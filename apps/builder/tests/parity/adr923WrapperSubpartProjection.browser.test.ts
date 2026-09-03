@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
+import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { NumberField } from "@composition/shared/components/NumberField";
 import { Select } from "@composition/shared/components/Select";
 import { ComboBox } from "@composition/shared/components/ComboBox";
@@ -206,6 +207,8 @@ beforeAll(async () => {
   style.id = "adr923-wrapper-subpart-bundle";
   style.textContent = bundleCss;
   document.head.appendChild(style);
+  // Preview iframe 의 전역 reset (`* { box-sizing: border-box }` 등) — production 과 같은 문자열.
+  injectPreviewBaseStyles(document);
   host = document.createElement("div");
   host.style.cssText = "position:absolute;left:0;top:0;width:400px;";
   document.body.appendChild(host);
@@ -268,14 +271,20 @@ describe("ADR-923 SelectTrigger 래퍼 · 그룹 Label · picker DateInput — r
     }
   });
 
-  it("래퍼 폭 — Canvas 래퍼는 root 폭 100% (implicit 주입이 유일 채널); DOM 래퍼는 root 이상 (content-box overflow 는 기록, 별도 작업)", () => {
+  it("래퍼 폭 — Canvas 래퍼는 root 폭 100% (implicit 주입이 유일 채널); DOM 래퍼도 Preview 전역 reset (border-box) 아래 root 폭 100% (양쪽 같은 값)", () => {
+    // 종전 "DOM 418 ≥ root 400 content-box overflow" 기록은 하니스 누락 (preview/baseStyles.ts 주석).
     for (const type of WRAPPER_TYPES) {
       const d = dom.get(type)!;
       const c = canvasClean.get(type)!;
       expect(c.control!.w, `${type} canvas control width`).toBe(c.root.w);
-      expect(d.control!.w, `${type} dom control width`).toBeGreaterThanOrEqual(
-        d.root.w,
-      );
+      expect(
+        Math.abs(d.control!.w - d.root.w),
+        `${type} dom control width (${d.control!.w}) vs root (${d.root.w})`,
+      ).toBeLessThanOrEqual(1);
+      expect(
+        Math.abs(d.control!.w - c.control!.w),
+        `${type} dom vs canvas control width`,
+      ).toBeLessThanOrEqual(1);
     }
   });
 });

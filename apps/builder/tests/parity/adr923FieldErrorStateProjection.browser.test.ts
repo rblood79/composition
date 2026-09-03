@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
+import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { TextField } from "@composition/shared/components/TextField";
 import { TextArea } from "@composition/shared/components/TextArea";
 import { NumberField } from "@composition/shared/components/NumberField";
@@ -247,6 +248,8 @@ beforeAll(async () => {
   style.id = "adr923-fe-state-bundle";
   style.textContent = bundleCss;
   document.head.appendChild(style);
+  // Preview iframe 의 전역 reset (`* { box-sizing: border-box }` 등) — production 과 같은 문자열.
+  injectPreviewBaseStyles(document);
   host = document.createElement("div");
   host.style.cssText = "position:absolute;left:0;top:0;width:400px;";
   document.body.appendChild(host);

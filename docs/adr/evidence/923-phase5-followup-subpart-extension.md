@@ -65,7 +65,7 @@
 ## 5. 범위 밖 (기록만)
 
 - SelectValue 의 placeholder 텍스트 축 (Select 은 자식 우선, ComboBox/SearchField 는 parent 우선) — DOM 이 읽으므로 편집 surface 유지. style 은 DOM 미도달이지만 이번 판정에 넣지 않았다.
-- DOM 래퍼 content-box overflow (NumberField·ComboBox·SearchField·DatePicker·DateRangePicker 418 > root 400; Select 은 400) — 기존 기록과 같은 계열, 별도 작업.
+- ~~DOM 래퍼 content-box overflow (NumberField·ComboBox·SearchField·DatePicker·DateRangePicker 418 > root 400; Select 은 400) — 기존 기록과 같은 계열, 별도 작업.~~ **정정 (§7)**: production 에 없는 격차 — gate DOM leg 의 하니스 누락.
 - 3.6 재측정이 raw `children` 텍스트를 읽는 것 자체 (비-sub-part Label 에도 해당) — propagation 텍스트를 쓰도록 바꾸는 것은 Label 폭 일반 결함으로 별도.
 
 ## 6. 판독 (phase 당 1회, rules/review-loop-closure.md §1)
@@ -73,3 +73,12 @@
 - Codex 판독 1회 (2026-09-03, 고정 스냅샷 `b6b2786df`): **VERIFIED_WITH_LOW_DEFERRED** — HIGH 0 · MEDIUM 0 · LOW 1 (`f5b-l1` doc-drift: §2-3 의 Δ11 gate 매치 수 "현재 2" 가 helper 호출처 수였고 gate regex 매치는 3 = baseline 3). 동작·gate 실패 없음 → 본 문서 정정으로 반영. 판독이 재현한 사실: hop DateInput 한정 (factory `DateColorComponents.ts:89` · DOM `DatePicker.tsx:217` · 음성 대조 bridge 테스트) · 투영 함수 3곳 (visit `fullTreeLayout.ts:1500` · implicit 입력 `:1742` · delta `:2052`) · 원복 (t)~(y) node/browser FAIL 수 §3 표와 일치 · (z) node·browser GREEN 재현 (자식 순서가 다른 production 문서 재현 없음 → LOW deferred 유지).
 - 판독 스냅샷 게이트: browser 15/15 (HC2 + rect + sub-part) · bridge 12/12 · Δ11 gate 15/15 · type-check PASS · full parity 1085 PASS (기존 GridListItem/Tooltip 2 FAIL).
 - **닫힘 선언 (실행자)**: 수리 검증 HIGH 0 — 후속 항목 "SelectTrigger 래퍼 · 그룹 Label · picker DateInput read-only sub-part" 닫힘. 재개 조건은 §5 범위 밖 항목의 착수 지시뿐.
+
+## 7. 후속 착수 1 — "DOM 입력 컨트롤 content-box overflow" 판정: 하니스 누락 (2026-09-03)
+
+- **착수 전 사실**: 넘침이 기록된 곳은 browser gate 의 DOM leg 뿐이다 (`adr923FieldSubpartProjection` 426 · `adr923WrapperSubpartProjection` 418). 두 leg 은 `@composition/shared/components/styles/index.css?inline` 만 싣는다. production Preview 는 `apps/builder/src/preview/index.tsx` 가 `* { box-sizing: border-box }` 를 포함한 전역 reset 을 `#canvas-base-styles` 로 주입하고 (publish 도 `apps/publish/src/styles/index.css` 에 같은 reset), RAC starter baseline 도 `.react-aria-Input { box-sizing: border-box }` 다. `catalogComponentBox.browser.test.ts:83` 은 이 reset 을 "ground truth 환경의 일부" 로 이미 싣고 있었다.
+- **live (Compare 모드 Preview, Chrome CPU throttle 4x)**: TextField root 342 = `.react-aria-Input` 342 (computed `box-sizing: border-box`, padding 12 + border 1) · Select root 342 = `.react-aria-Button` 342 · Canvas TextField root `[24,256,342,56]` · Input `[0,26,342,30]`. **넘침 없음** — 기록은 production 재현이 없는 하니스 산출물이다.
+- **수리 (동작 변경 0)**: reset 문자열을 `apps/builder/src/preview/baseStyles.ts` (`PREVIEW_BASE_STYLES` · `injectPreviewBaseStyles`) 로 옮기고 `preview/index.tsx` 가 그것을 부른다 (문자열 무변경). ADR-923 browser gate 6 파일 (Field/Wrapper sub-part · FieldError state · HC2 judgment/rect · CalendarGrid Q4) 이 bundle 뒤에 같은 함수로 reset 을 싣는다. 두 "기록" 테스트는 게이트로 전환 — DOM 컨트롤 폭 = root 폭 (±1) = Canvas 컨트롤 폭. `baseStyles.test.ts` 가 universal border-box 포함 + idempotent 주입을 지킨다.
+- **원복 RED**: 두 gate 에서 `injectPreviewBaseStyles` 한 줄을 빼면 TextField 426 vs 400 · NumberField 418 vs 400 으로 2 FAIL (4 PASS) — 종전 기록값 그대로 재현. 복원 후 6 파일 23 PASS, 나머지 4 파일의 baseline 수치는 reset 을 실어도 변화 0.
+- **live (수리 후)**: 재로드된 Preview 에서 `#canvas-base-styles` 1개 · universal border-box 포함 · TextField 342 = 342 · Select 342 = 342 · Canvas 342 (새 모듈 경로가 같은 문자열을 주입).
+- **교훈**: DOM leg 은 shared CSS 만이 아니라 Preview 가 주입하는 전역 reset 까지 실어야 production 이다. 이 격차는 FieldError 후속 (§5-5) → sub-part 확장 (§5) → 착수 순위 1 까지 세 문서를 "별도 작업" 으로 지나왔다 — 착수 전 "production 에서 실제로 보이는가" 를 먼저 물었어야 했다 (rules/review-loop-closure.md §2). 메모리 `feedback-parity-dom-leg-must-carry-preview-base-styles`.

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
 import type { Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
+import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { StatusLight } from "@composition/shared/components/StatusLight";
 import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
 import { useStore } from "@/builder/stores";
@@ -121,6 +122,8 @@ beforeAll(async () => {
   style.id = "adr923-hc2-conversion-bundle";
   style.textContent = bundleCss;
   document.head.appendChild(style);
+  // Preview iframe 의 전역 reset (`* { box-sizing: border-box }` 등) — production 과 같은 문자열.
+  injectPreviewBaseStyles(document);
   host = document.createElement("div");
   host.style.cssText = `position:absolute;top:0;left:0;width:${HOST_W}px;`;
   document.body.appendChild(host);

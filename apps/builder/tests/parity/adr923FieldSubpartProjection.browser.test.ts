@@ -2,6 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
+import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { TextField } from "@composition/shared/components/TextField";
 import { TextArea } from "@composition/shared/components/TextArea";
 import { NumberField } from "@composition/shared/components/NumberField";
@@ -170,6 +171,8 @@ beforeAll(async () => {
   style.id = "adr923-fe-subpart-bundle";
   style.textContent = bundleCss;
   document.head.appendChild(style);
+  // Preview iframe 의 전역 reset (`* { box-sizing: border-box }` 등) — production 과 같은 문자열.
+  injectPreviewBaseStyles(document);
   host = document.createElement("div");
   host.style.cssText = "position:absolute;left:0;top:0;width:400px;";
   document.body.appendChild(host);
@@ -229,14 +232,22 @@ describe("ADR-923 field 자식 Label · Input · DateInput — read-only sub-par
     }
   });
 
-  it("기록 — DOM 입력 컨트롤 폭이 root 를 넘친다 (content-box padding overflow, 별도 작업); Canvas 는 root 폭 100%", () => {
+  it("입력 컨트롤 폭 — DOM 은 Preview 전역 reset (border-box) 아래 root 폭 100%, Canvas 도 root 폭 100% (양쪽 같은 값)", () => {
+    // 종전 "DOM 426 > root 400 content-box overflow" 기록은 DOM leg 이 production Preview 의
+    //   `* { box-sizing: border-box }` (preview/baseStyles.ts) 를 안 실은 하니스 누락이었다
+    //   (2026-09-03 live: Preview TextField root 342 = Input 342, Canvas 342 = 342).
     for (const type of FIELD_TYPES) {
       const d = dom.get(type)!;
       const c = canvasClean.get(type)!;
-      expect(d.control!.w, `${type} dom control width`).toBeGreaterThan(
-        d.root.w,
-      );
+      expect(
+        Math.abs(d.control!.w - d.root.w),
+        `${type} dom control width (${d.control!.w}) vs root (${d.root.w})`,
+      ).toBeLessThanOrEqual(1);
       expect(c.control!.w, `${type} canvas control width`).toBe(c.root.w);
+      expect(
+        Math.abs(d.control!.w - c.control!.w),
+        `${type} dom vs canvas control width`,
+      ).toBeLessThanOrEqual(1);
     }
   });
 });

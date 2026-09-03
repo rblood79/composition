@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
+import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import previewAppSource from "@/preview/App.tsx?raw";
 import { Calendar } from "@composition/shared/components/Calendar";
 import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
@@ -92,6 +93,8 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
     style.id = "adr923-q4-bundle";
     style.textContent = bundleCss;
     document.head.appendChild(style);
+    // Preview iframe 의 전역 reset (`* { box-sizing: border-box }` 등) — production 과 같은 문자열.
+    injectPreviewBaseStyles(document);
   });
 
   afterAll(() => {

@@ -10,6 +10,7 @@ import { createRoot } from "react-dom/client";
 import { I18nProvider as AriaI18nProvider } from "@react-aria/i18n";
 import { App } from "./App";
 import { getLocaleConfig, getStoredLocale, LOCALE_STORAGE_KEY } from "../i18n";
+import { injectPreviewBaseStyles } from "./baseStyles";
 
 // React Aria 컴포넌트 스타일
 import "@composition/shared/components/styles/index.css";
@@ -28,53 +29,6 @@ import { injectBuiltinFontStyle } from "../fonts/builtinFonts";
 // Styles
 // ============================================
 
-/**
- * Preview iframe 전체 CSS reset + canvas 전용 스타일의 단일 소스.
- */
-const injectBaseStyles = () => {
-  if (document.getElementById("canvas-base-styles")) return;
-
-  const style = document.createElement("style");
-  style.id = "canvas-base-styles";
-  style.textContent = `
-    /* ── CSS Reset ── */
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; width: 100%; height: 100%; }
-    p { margin: 0; }
-    h1, h2, h3, h4, h5, h6 { margin: 0; padding: 0; }
-    button, input, select, textarea { font-family: inherit; font-feature-settings: inherit; }
-
-    :root {
-      font-size: 16px;
-    }
-
-    /* font-feature-settings: Pretendard cv 변형 — body 잔존 유지 필수 (한글 타이포 품질) */
-    body {
-      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-      color: var(--fg, #1a1a1a);
-      background: var(--bg, #ffffff);
-    }
-
-    /* ── Canvas 전용 스타일 ── */
-    .canvas-empty, .preview-empty {
-      display: flex; align-items: center; justify-content: center;
-      height: 100%; color: #999; font-size: 14px;
-    }
-    .canvas-loading, .preview-loading {
-      display: flex; align-items: center; justify-content: center;
-      height: 100%; color: #666; font-size: 14px;
-    }
-    .lasso-selection-box {
-      position: fixed;
-      border: 2px dashed var(--action-primary-bg, #3b82f6);
-      background: rgba(59, 130, 246, 0.1);
-      pointer-events: none;
-      z-index: 9999;
-    }
-    .slot-container { min-height: 40px; }
-  `;
-  document.head.appendChild(style);
-};
 
 /**
  * 커스텀 폰트 @font-face CSS를 DOM에 주입합니다.
@@ -135,7 +89,7 @@ function PreviewLocale({ children }: { children: ReactNode }) {
 
 function initPreviewRuntime() {
   injectBuiltinFontStyle();
-  injectBaseStyles();
+  injectPreviewBaseStyles();
   injectCustomFonts();
 
   // Canvas 마커 설정

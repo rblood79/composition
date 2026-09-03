@@ -355,7 +355,7 @@ E 가 핵심이다: 이 파일들은 "빠진 import" 가 아니라 **로드되�
 
 - Label delegation 을 가진 parent rule 11 (TextField·TextArea·NumberField·DateField·TimeField·Select·ComboBox·SearchField·ColorField·DatePicker·DateRangePicker) 과 Input/TextArea/DateInput delegation parent 9 는 전부 parent props 로 self-compose — renderer 4 파일 (Form·Date·Selection·Color) 에서 Label 관련 canonical 자식 읽기 0. CheckboxGroup·RadioGroup·Meter·ProgressBar 는 자식 Label **텍스트만** legacy 폴백으로 읽고 (r17m1) delegation 항목이 없다 → 범위 밖.
 - catalog 정합: Label rule sizes (xs 2xs · sm xs · md sm · lg base · xl lg) 가 11 parent 의 Label delegation 값과 전부 동일, 굵기 600 = Label rule `textWeight`. FieldError 때와 달리 글자 크기 갈림이 없다 — Canvas 가 size delegation 으로 Label rule 을 읽는 값이 곧 DOM 값.
-- 인라인이 layout 을 맡던 곳: Label `width:fit-content` (ADR-165 가 부재 시 주입), `fontWeight:600` (rule 과 중복), Input/DateInput `width:100%` — DOM root 는 `align-items:flex-start` 라 stretch 가 아니라 CSS 로 채운다 (실측 DOM 426 = 400 + content-box padding 26 overflow).
+- 인라인이 layout 을 맡던 곳: Label `width:fit-content` (ADR-165 가 부재 시 주입), `fontWeight:600` (rule 과 중복), Input/DateInput `width:100%` — DOM root 는 `align-items:flex-start` 라 stretch 가 아니라 CSS 로 채운다 (실측 DOM 426 = 400 + content-box padding 26 overflow). **정정 (2026-09-03)**: 426 은 gate DOM leg 이 Preview 전역 reset (`* { box-sizing: border-box }`) 을 안 실은 값 — production Preview 는 342 = 342 (하니스 누락, [subpart-extension §7](923-phase5-followup-subpart-extension.md)).
 - 실측 (browser gate, 400px): Label DOM 39.2×20 ↔ Canvas 40×20 · 컨트롤 h 30 y 26 양쪽 동일 · root 56 동일 (TextArea 는 기존 격차 — Canvas 56/30 vs DOM 96/70). junk (color·fontSize 30·fontWeight 900·marginTop 30·padding 9·width 50·lineHeight 10) 를 Label·Input 에 얹으면 **수리 전** Canvas root 가 704 로 폭발 (Label 318 높이) — 비대칭 확증.
 
 ### 12-2. 수리
@@ -368,7 +368,7 @@ E 가 핵심이다: 이 파일들은 "빠진 import" 가 아니라 **로드되�
 
 ### 12-3. 게이트 · 원복 RED
 
-- `adr923FieldSubpartProjection.browser.test.ts` (3): junk == clean (5 field × Label·컨트롤·root 정확 일치) · baseline DOM 대조 (Label w·h·y · 컨트롤 h·y · root h, TextArea 본체 제외) · 기록 — DOM 컨트롤 폭 > root (overflow 26/18, 별도 작업), Canvas 컨트롤 = root 폭.
+- `adr923FieldSubpartProjection.browser.test.ts` (3): junk == clean (5 field × Label·컨트롤·root 정확 일치) · baseline DOM 대조 (Label w·h·y · 컨트롤 h·y · root h, TextArea 본체 제외) · 기록 — DOM 컨트롤 폭 > root (overflow 26/18, 별도 작업), Canvas 컨트롤 = root 폭. **정정 (2026-09-03)**: overflow 기록은 하니스 누락 — 이제 DOM 컨트롤 폭 = root = Canvas 를 게이트한다.
 - bridge `read-only sub-part 확장` (9 조합 Skia 노드 동일 + 범위 밖 3) → node 11.
 - 원복 (r) 토큰 표에서 Label·Input·DateInput 제거 → node 1 FAIL · browser 1 FAIL · (s) 3.6 delta 패치 제거 → browser 1 FAIL (junk 부활).
 
@@ -380,4 +380,4 @@ type-check · builder unit **5203** (657 파일) · focused `adr923*` 132 · ful
 
 - NumberField/Select/ComboBox/SearchField 의 `SelectTrigger` 래퍼 자식 — delegation 표에 없는 별개 sub-part 가족 (DOM `.react-aria-Group`). 같은 판정을 적용하려면 토큰 표 + implicitStyles 주입 (width 100% · padding) 관계를 따로 봐야 한다.
 - CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider 의 Label — DOM 이 자식 텍스트를 legacy 폴백으로 읽는 반쪽 mirror.
-- DOM 입력 컨트롤 content-box overflow (426/418 > 400) · TextArea 본체 높이 (기존 HC2 후속).
+- ~~DOM 입력 컨트롤 content-box overflow (426/418 > 400)~~ (정정 2026-09-03: 하니스 누락, production 격차 0 — subpart-extension §7) · TextArea 본체 높이 (기존 HC2 후속).
