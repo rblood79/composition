@@ -228,3 +228,66 @@ describe("TextField minWidth — Spectrum 1.5×height 식별성 하한 (2026-08-
     expect(ps.minWidth).toBeUndefined();
   });
 });
+
+// ADR-923 Phase 5 후속 착수 2 (2026-09-03): TextArea 의 Input 자식 높이는 parent `rows` 로 정한다 —
+//   DOM `<textarea rows>` 가 rows × line-height + paddingY×2 + border×2 (md rows 3 = 70) 인데 Canvas 는
+//   한 줄 Input 30 이었다 (factory 인라인 height:80 은 read-only sub-part 투영이 걷어내고, 그 값 자체도
+//   DOM 70 과 달랐다). 한 줄 높이는 catalog Input.sizes[size].height, 줄 높이는 그 상자에서 paddingY·border
+//   를 뺀 값 (같은 catalog 상자 — DOM 한 줄 Input 도 line-height + padding + border 로 같은 30).
+describe("TextArea applyImplicitStyles — rows → Input 높이 (DOM textarea 동형)", () => {
+  const label = makeChild("lbl", "Label");
+  const input = makeChild("inp", "Input");
+
+  function applyTA(props: Record<string, unknown>): Record<string, unknown> {
+    const container: Element = {
+      id: "ta-1",
+      type: "TextArea",
+      props: { label: "Memo", ...props },
+      childrenIds: [label.id, input.id],
+    } as Element;
+    const byId = new Map<string, Element>([
+      [container.id, container],
+      [label.id, label],
+      [input.id, input],
+    ]);
+    const { filteredChildren } = applyImplicitStyles(
+      container,
+      [label, input],
+      () => [],
+      byId,
+    );
+    return (filteredChildren.find((c) => c.type === "Input")?.props?.style ??
+      {}) as Record<string, unknown>;
+  }
+
+  it("md rows 3 (기본) → 70 = 30 + 2 × 20", () => {
+    expect(applyTA({ rows: 3 }).height).toBe(70);
+  });
+
+  it("rows 미지정 → shared 기본 3 과 같은 70", () => {
+    expect(applyTA({}).height).toBe(70);
+  });
+
+  it("rows 5 → 110 · rows 1 → 30 (한 줄 Input 과 같다) · 0 이하·소수는 1 로 내림", () => {
+    expect(applyTA({ rows: 5 }).height).toBe(110);
+    expect(applyTA({ rows: 1 }).height).toBe(30);
+    expect(applyTA({ rows: 0 }).height).toBe(30);
+    expect(applyTA({ rows: 2.7 }).height).toBe(50);
+  });
+
+  it("size 가 줄 높이를 바꾼다 — lg rows 3 → 90 = 42 + 2 × 24 · sm rows 3 → 54 = 22 + 2 × 16", () => {
+    expect(applyTA({ rows: 3, size: "lg" }).height).toBe(90);
+    expect(applyTA({ rows: 3, size: "sm" }).height).toBe(54);
+  });
+
+  it("labelPosition side 에서도 같은 높이", () => {
+    expect(applyTA({ rows: 4, labelPosition: "side" }).height).toBe(90);
+  });
+
+  it("TextField 의 Input 은 rows 를 모른다 — height 미주입", () => {
+    const { filteredChildren } = applyTF({ rows: 3 }, [label, input]);
+    const st = (filteredChildren.find((c) => c.type === "Input")?.props
+      ?.style ?? {}) as Record<string, unknown>;
+    expect(st.height).toBeUndefined();
+  });
+});

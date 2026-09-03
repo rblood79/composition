@@ -1616,6 +1616,15 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         ? { display: existingStyle.display }
         : {};
     let projected: Record<string, unknown> = { ...projectedDisplay };
+    // TextArea 의 Input: rows 줄 상자 (implicit 주입, DOM `<textarea rows>` 동형) 안에서 placeholder 를
+    //   DOM 처럼 위에 둔다 — explicit `verticalAlign: "top"` 은 renderer 가 paddingTop 으로 그린다.
+    //   한 줄 Input (TextField) 은 기존 중앙 배치 (미설정) 유지. 자식 인라인 verticalAlign 은 sub-part
+    //   규칙대로 무시한다.
+    const projectedText: Record<string, unknown> =
+      element.type === "Input" && spParent.type === "TextArea"
+        ? { verticalAlign: "top" }
+        : {};
+    projected = { ...projected, ...projectedText };
     if (element.type === "Label") {
       // side 라벨 정렬은 parent `labelAlign`/`labelPosition` 의 **투영** (위 resolveLabelAlignment) —
       //   자식 인라인 textAlign 이 아니라 투영값만 남긴다 (DOM 도 parent prop 으로만 정렬).
@@ -1637,7 +1646,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       }
     }
     specProps = { ...specProps, style: projected };
-    style = { ...projectedDisplay } as typeof style;
+    style = { ...projectedDisplay, ...projectedText } as typeof style;
   }
 
   const progressProps = resolveProgressProps(element, elementsMap);

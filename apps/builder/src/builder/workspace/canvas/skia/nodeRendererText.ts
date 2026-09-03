@@ -188,11 +188,12 @@ export function renderText(
       typeof node.text!.paddingBottom === "number" &&
       node.text!.paddingBottom >= 0;
 
+    // explicit "top" 은 아래 paddingTop 분기로 보낸다 (2026-09-03, ADR-923 TextArea rows) — 종전엔
+    //   explicit paddingBottom 이 있으면 "top" 도 여기서 중앙 배치돼 Style 패널 "top" 이 no-op 이었고,
+    //   TextArea Input placeholder 가 rows 상자 중앙에 놓였다 (DOM `<textarea>` 는 위).
     if (
       hasExplicitBottomPadding &&
-      (!verticalAlign ||
-        verticalAlign === "top" ||
-        verticalAlign === "baseline")
+      (!verticalAlign || verticalAlign === "baseline")
     ) {
       const paraHeight = paragraph.getHeight();
       const lineMetrics = paragraph.getLineMetrics();

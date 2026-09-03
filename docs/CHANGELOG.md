@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [텍스트 영역 (TextArea) 의 높이가 캔버스와 미리보기에서 같습니다] - 2026-09-03
+
+### Fixed
+
+- 캔버스가 텍스트 영역을 한 줄 입력 상자 높이 (30px) 로 그려 미리보기 (3줄 = 70px) 와 달랐습니다. 이제 캔버스도 "Rows" 값과 크기 (size) 에 맞춰 줄을 쌓고 (기본 3줄 70px, 6줄 130px, lg 3줄 90px), 안내 문구 (placeholder) 도 미리보기처럼 상자 위쪽에 놓입니다.
+- 스타일 패널의 "Vertical Align: top" 이 실제로 글자를 위에 붙입니다 (이전에는 아무 변화가 없었습니다).
+
 ## [History undo/redo 를 IDB-boundary migrate 전용으로 좁혔습니다] - 2026-09-03
 
 ### Changed

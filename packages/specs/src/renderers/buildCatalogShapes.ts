@@ -485,17 +485,27 @@ export function buildCatalogShapes(
     //   box형(height>0)은 TEXT_LEAF_TAGS 비멤버라 measure 경로 비진입 → 측정 무영향(Skia 정렬만 동일).
     const lineHeightVal = (size as { lineHeight?: unknown }).lineHeight;
 
+    // 세로 정렬: 사용자 명시 `style.verticalAlign: "top"` (textAlign 과 같은 데이터 분기) 이면 box 텍스트를
+    //   상자 위 — y = size.paddingY (DOM 의 padding-top) · baseline top. 그 외는 inline top / box middle.
+    //   TextArea 의 Input 자식 (rows 줄 상자, DOM `<textarea>` 는 위) 은 Skia sub-part 투영이 이 값을 넣는다
+    //   (ADR-923 Phase 5 후속 착수 2, 2026-09-03). specShapeConverter 는 baseline top 이면 paddingTop = y.
+    const textTop = style?.verticalAlign === "top";
+    const textTopY =
+      typeof (size as { paddingY?: unknown }).paddingY === "number"
+        ? ((size as { paddingY?: number }).paddingY as number)
+        : 0;
+
     shapes.push({
       type: "text",
       x: textX,
-      y: 0,
+      y: textTop ? textTopY : 0,
       text,
       fontSize,
       fontFamily: ff,
       fontWeight: fw,
       fill: textColor,
       align: textAlign,
-      baseline: isInlineText ? "top" : "middle",
+      baseline: textTop ? "top" : isInlineText ? "top" : "middle",
       ...(lineHeightVal != null
         ? { lineHeight: lineHeightVal as unknown as number }
         : {}),

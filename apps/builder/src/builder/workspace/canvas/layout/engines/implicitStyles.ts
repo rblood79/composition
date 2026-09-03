@@ -284,6 +284,32 @@ function specSizeLineHeight(
 }
 
 /**
+ * TextArea 의 Input 자식 높이 (ADR-923 Phase 5 후속 착수 2, 2026-09-03).
+ *
+ * DOM 은 `<textarea rows>` — 높이 = rows × line-height + paddingY×2 + border×2 (md rows 3 = 70).
+ * Canvas 는 leaf Input 을 한 줄 (catalog `Input.sizes[size].height`, md 30) 로만 재 root 56 vs DOM 96
+ * 이었다. 한 줄 상자에서 paddingY·border 를 뺀 값이 줄 높이 (md 30 − 8 − 2 = 20 = text-sm line-height,
+ * lg 42 − 16 − 2 = 24) 라 같은 catalog 상자로 rows 줄을 쌓는다. `rows` 는 D2 prop (shared 기본 3,
+ * factory 3) — 1 미만·소수는 1 로 내림 (DOM `rows` 속성 규칙). catalog `TextArea.sizes[size].height`
+ * (64/80/120/160) 는 DOM (rows 기반) 도 Skia 도 읽지 않는 dead 값이라 여기서도 읽지 않는다.
+ */
+function textAreaInputHeight(
+  sizeName: string,
+  rawRows: unknown,
+): number | undefined {
+  const oneRow = specSizeField("input", sizeName, "height");
+  if (typeof oneRow !== "number") return undefined;
+  const padY = specSizeField("input", sizeName, "paddingY") ?? 0;
+  const border = specSizeField("input", sizeName, "borderWidth") ?? 1;
+  const lineHeight = oneRow - padY * 2 - border * 2;
+  const rows =
+    typeof rawRows === "number" && Number.isFinite(rawRows)
+      ? Math.max(1, Math.floor(rawRows))
+      : 3;
+  return oneRow + (rows - 1) * lineHeight;
+}
+
+/**
  * ADR-108 P0: packages/specs `resolveContainerStylesFallback` wrapper.
  *
  * builder 측 `LOWERCASE_TAG_SPEC_MAP` (packages/specs 102 정본 + 8 alias 병합) 을
@@ -2354,6 +2380,26 @@ export function applyImplicitStyles(
         (c.type === "Label" ? hasLabel : false) ||
         (visibleTags?.has(c.type) ?? false),
     );
+
+    // TextArea: Input 자식 높이 = rows 줄 (DOM `<textarea rows>` 동형) — read-time 주입이 유일 채널
+    //   (Input 은 read-only sub-part 라 factory 인라인 height 는 투영이 걷어낸다). 사용자 명시 height 우선.
+    if (containerTag === "textarea") {
+      const taHeight = textAreaInputHeight(
+        (containerProps?.size as string) ?? "md",
+        containerProps?.rows,
+      );
+      if (taHeight != null) {
+        filteredChildren = filteredChildren.map((child) => {
+          if (child.type !== "Input") return child;
+          const cs = (child.props?.style || {}) as Record<string, unknown>;
+          if (cs.height != null) return child;
+          return {
+            ...child,
+            props: { ...child.props, style: { ...cs, height: taHeight } },
+          };
+        });
+      }
+    }
 
     // ADR-912 단계5 step4 (2026-06-17): resolveActiveContainerVariants 경유 — spec 삭제
     //   (TextField/TextArea, 91c2be0dd) 후 catalog rule.containerVariants fallback 을 읽는다

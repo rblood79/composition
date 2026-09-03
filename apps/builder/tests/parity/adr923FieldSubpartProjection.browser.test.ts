@@ -218,12 +218,11 @@ describe("ADR-923 field 자식 Label · Input · DateInput — read-only sub-par
     }
   });
 
-  it("baseline DOM 대조 — Label 상자 (w·h·y) · 컨트롤 높이·y · root 높이가 1px 안 (TextArea 본체는 기존 격차 — 기록)", () => {
+  it("baseline DOM 대조 — Label 상자 (w·h·y) · 컨트롤 높이·y · root 높이가 1px 안 (TextArea 본체 포함 — rows 3 = 70/96)", () => {
     for (const type of FIELD_TYPES) {
       const d = dom.get(type)!;
       const c = canvasClean.get(type)!;
       expectBox(`${type} label`, c.label, d.label);
-      if (type === "TextArea") continue; // 기존: 본체 높이 Canvas 30/56 vs DOM 70/96 (HC2 후속 목록)
       expectBox(`${type} control`, c.control, d.control, ["h", "y"]);
       expect(
         Math.abs(c.root.h - d.root.h),

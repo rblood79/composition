@@ -1189,4 +1189,48 @@ describe("buildSpecNodeData", () => {
       ).toBe("left");
     });
   });
+
+  // ADR-923 Phase 5 후속 착수 2 (2026-09-03): TextArea 의 Input 자식은 rows 줄 높이 (implicit 주입,
+  //   md rows 3 = 70) 라 placeholder 를 DOM `<textarea>` 처럼 **위** 에 둔다. renderer 는 explicit
+  //   `verticalAlign: "top"` 을 paddingTop 으로 그린다 (종전엔 explicit paddingBottom 이 있으면 top 도
+  //   중앙 배치라 Style 패널 "top" 이 no-op 이었다). TextField 의 한 줄 Input 은 기존 중앙 유지.
+  describe("TextArea > Input placeholder 세로 정렬 — Skia sub-part 투영 verticalAlign top", () => {
+    const buildInput = (ownerType: "TextArea" | "TextField") => {
+      const owner = makeElement("owner-1", {
+        type: ownerType,
+        props: { label: "Memo", rows: 3, placeholder: "Enter text..." },
+      });
+      const input = makeElement("input-1", {
+        type: "Input",
+        parent_id: owner.id,
+        props: {
+          placeholder: "Enter text...",
+          style: { width: "100%", height: 80, verticalAlign: "middle" },
+        },
+      });
+      return buildSpecNodeData({
+        element: input,
+        layout: makeLayout({ x: 0, y: 26, width: 342, height: 70 }),
+        theme: "light",
+        elementsMap: new Map([owner, input].map((n) => [n.id, n])),
+      });
+    };
+    const vAlignOf = (node: SkiaNodeData | null | undefined): unknown => {
+      if (!node) return undefined;
+      if (node.text) return node.text.verticalAlign;
+      for (const child of node.children ?? []) {
+        const found = vAlignOf(child);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    };
+
+    it("TextArea 소유 Input → text.verticalAlign 'top' (자식 인라인 'middle' 은 무시)", () => {
+      expect(vAlignOf(buildInput("TextArea"))).toBe("top");
+    });
+
+    it("TextField 소유 Input → 미설정 (한 줄 중앙 배치 유지)", () => {
+      expect(vAlignOf(buildInput("TextField"))).toBeUndefined();
+    });
+  });
 });
