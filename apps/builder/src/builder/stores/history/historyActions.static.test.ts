@@ -18,7 +18,7 @@ describe("historyActions canonical compatibility sync contract", () => {
     expect(source).toContain(
       "getActiveCanonicalHistoryElements() ?? legacyElements",
     );
-    expect(source).toContain("migrateV1EntryToV2");
+    expect(source).not.toContain("migrateV1EntryToV2");
     expect(source).not.toContain("applySerializedHistoryDiff");
     expect(source).not.toContain("applySerializedHistoryDiffs");
     expect(source).not.toContain("recordRawLegacyHistoryRead");
@@ -27,15 +27,16 @@ describe("historyActions canonical compatibility sync contract", () => {
     expect(source).not.toContain(staleMapLookup);
   });
 
-  it("ADR-124: element undo/redo/goTo 는 migrate→canonicalEvents 만 적용 (legacy fallback 0)", async () => {
+  it("ADR-124: element undo/redo/goTo 는 canonicalEvents 만 적용 (migrate 는 IDB 경계)", async () => {
     const source = await readFile(
       resolve(__dirname, "historyActions.ts"),
       "utf-8",
     );
 
-    // apply 경로에 migrate 가 3곳 (undo / redo / applyHistoryEntry)
-    const migrateCalls = [...source.matchAll(/migrateV1EntryToV2\(/g)];
-    expect(migrateCalls.length).toBeGreaterThanOrEqual(3);
+    expect(source).not.toContain("migrateV1EntryToV2");
+    expect(source).toMatch(
+      /applyCanonicalHistoryEventsToActiveDocument\(\s*entry\.data\.canonicalEvents/,
+    );
 
     // legacy snapshot 소비 / sync-before-set fallback 경로 부재
     expect(source).not.toContain("syncHistoryElementsToCanonical");
@@ -66,13 +67,24 @@ describe("ADR-124: HistoryEntry.data 에서 legacy snapshot 타입 필드 제거
     }
   });
 
-  it("migration adapter 가 LegacyV1SnapshotData 로 raw payload 를 읽는다", async () => {
-    const source = await readFile(
+  it("migration adapter 는 historyEntryMigration 에만 두고 historyActions 는 소비하지 않는다", async () => {
+    const migration = await readFile(
       resolve(__dirname, "historyEntryMigration.ts"),
       "utf-8",
     );
-    expect(source).toContain("export type LegacyV1SnapshotData");
-    expect(source).toContain("function legacySnapshot(");
+    const actions = await readFile(
+      resolve(__dirname, "historyActions.ts"),
+      "utf-8",
+    );
+    const idb = await readFile(
+      resolve(__dirname, "historyIndexedDB.ts"),
+      "utf-8",
+    );
+    expect(migration).toContain("export type LegacyV1SnapshotData");
+    expect(migration).toContain("function legacySnapshot(");
+    expect(actions).not.toContain("migrateV1EntryToV2");
+    expect(idb).toContain("migrateV1EntryToV2");
+    expect(idb).toContain("migrateV1EntriesToV2");
   });
 });
 

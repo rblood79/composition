@@ -1,13 +1,14 @@
 /**
- * **ADR-124 Phase 3 — v1 entry → v2 canonical event adapter**.
+ * **ADR-124 — v1 entry → v2 canonical event adapter (IndexedDB 경계 전용)**.
  *
- * v1 IndexedDB 에 저장된 legacy snapshot field (`element` / `prevElement` /
- * `props` / `prevProps` / `childElements` / `elements` / `prevElements` /
- * `batchUpdates`) 를 보유한 entry 를 canonical event sequence 로 변환한다.
+ * v1 IndexedDB 에 저장된 legacy snapshot field 를 canonical event sequence 로
+ * 변환한다. undo/redo/goTo 는 `canonicalEvents` 만 소비하며 이 adapter 를
+ * 호출하지 않는다.
  *
- * IndexedDB load 와 undo/redo apply 양쪽에서 재사용한다. apply 경로에서는
- * `MigrateV1Context` 로 현재 elements + direction 을 넘겨 `diff`/`diffs` 를
- * full-props update event 로 펼친다 (`replaceNodeProps` 는 전체 교체).
+ * `diff`/`diffs` 는 apply 시점 elements+direction context 가 있어야 full-props
+ * update 로 펼칠 수 있다. IDB load 에는 그 context 가 없으므로 변환 불가
+ * element-axis entry 는 `keepConvertibleHistoryEntries` 로 스택에서 제거한다
+ * (조용한 undo no-op + index 소모 방지).
  *
  * 변환 규칙:
  * - 이미 `canonicalEvents` 보유 → identity 후 legacy snapshot strip
@@ -18,10 +19,9 @@
  * - `element`/`childElements` (add/remove) → insert/remove
  * - `group`/`ungroup` + element/elements → group/ungroup events
  * - 변환 성공 시 deprecated legacy snapshot keys strip
- * - 변환 불가 / 빈 entry → `canonicalEvents: []` (apply 는 상태 유지)
+ * - 변환 불가 / 빈 entry → `canonicalEvents: []` (IDB 경계에서 drop)
  *
  * @see docs/adr/124-canonical-only-history-schema.md
- * @see docs/adr/design/124-canonical-only-history-schema-breakdown.md §Phase 3 + §Phase 5
  */
 
 import type { ComponentElementProps } from "../../../types/core/store.types";
@@ -562,13 +562,39 @@ export function migrateV1EntryToV2(
 }
 
 /**
- * entry 배열 일괄 변환 (session-restore / IDB load 경로용).
+ * entry 배열 일괄 변환 (IndexedDB load / upgrade 경로용).
  * load 시점에는 elements/direction context 가 없어 diff-only entry 는
- * `canonicalEvents: []` 로 남고 legacy `diff` 필드를 유지한다 — 이후 apply
- * 가 context 와 함께 재변환한다.
+ * `canonicalEvents: []` 로 남는다 — 호출부는 `keepConvertibleHistoryEntries`
+ * 로 element-axis 빈 entry 를 스택에서 제거해야 한다.
  */
 export function migrateV1EntriesToV2(entries: HistoryEntry[]): HistoryEntry[] {
   return entries.map((entry) => migrateV1EntryToV2(entry));
+}
+
+const ELEMENT_AXIS_HISTORY_TYPES = new Set<HistoryEntry["type"]>([
+  "add",
+  "update",
+  "remove",
+  "move",
+  "batch",
+  "group",
+  "ungroup",
+]);
+
+/** element 축 entry 가 undo/redo 에 쓸 canonicalEvents 를 가졌는가. */
+export function isConvertibleElementHistoryEntry(entry: HistoryEntry): boolean {
+  if (!ELEMENT_AXIS_HISTORY_TYPES.has(entry.type)) return true;
+  return (entry.data.canonicalEvents?.length ?? 0) > 0;
+}
+
+/**
+ * migrate 후에도 canonicalEvents 가 비어 있는 element-axis entry 를 제거.
+ * page-* / snapshot-restore 는 자체 payload 로 적용되므로 유지.
+ */
+export function keepConvertibleHistoryEntries(
+  entries: HistoryEntry[],
+): HistoryEntry[] {
+  return entries.filter(isConvertibleElementHistoryEntry);
 }
 
 /**

@@ -48,10 +48,10 @@ describe("history entry canonical event 부착 (ADR-124 Phase 2)", () => {
       "element: structuredClone(updatedElement)",
     );
 
-    // entry data 에 batchUpdates 기록 금지 (undoBatchUpdate/redoBatchUpdate
-    // 헬퍼는 v1 IndexedDB entry 재생용으로 잔존 — 기록이 아닌 read 소비자)
+    // entry data 에 batchUpdates 기록 금지
     const historyHelpers = await read("utils/historyHelpers.ts");
     expect(historyHelpers).not.toMatch(/data:\s*\{\s*\n\s*batchUpdates/);
+    expect(historyHelpers).not.toContain("undoBatchUpdate");
 
     // resetInstanceOverrideField + applyElementSnapshotBatch 전환 완료
     const instanceActions = await read("utils/instanceActions.ts");

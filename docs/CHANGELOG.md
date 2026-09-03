@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [History undo/redo 를 IDB-boundary migrate 전용으로 좁혔습니다] - 2026-09-03
+
+### Changed
+
+- undo/redo/go-to-index 는 `canonicalEvents` 만 적용합니다. `migrateV1EntryToV2` 는 IndexedDB upgrade/load 경계에만 남겼습니다.
+- IDB load/upgrade 에서 context 없이 변환할 수 없는 element-axis entry(`diff`/`diffs` only 등) 는 스택에서 제거해, 되돌리기 한 칸만 소모하고 문서가 그대로인 상태를 막습니다.
+- production 소비처가 없던 `undoBatchUpdate` / `redoBatchUpdate` / `undoGroupCreation` / `redoGroupCreation` 과 raw legacy read 계측 모듈을 제거했습니다.
+
+### Tests
+
+- historyActions migrate 부재·IDB adapter 유지 static gate, v1 fixture pre-migrate roundtrip 을 갱신했습니다.
+
 ## [HistoryEntry 에서 legacy snapshot 타입 필드를 제거했습니다] - 2026-09-03
 
 ### Changed

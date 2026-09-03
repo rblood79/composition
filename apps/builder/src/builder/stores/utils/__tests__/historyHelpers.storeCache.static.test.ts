@@ -12,7 +12,8 @@ describe("historyHelpers store cache read model", () => {
     expect(source).toContain("trackBatchUpdate<TElement extends Element>");
     expect(source).toContain("elementsMap: ReadonlyMap<string, TElement>");
     expect(source).toContain("componentIndex: ComponentIndex<TElement>");
-    expect(source).toContain("undoGroupCreation<TElement extends Element>");
+    expect(source).not.toContain("undoGroupCreation");
+    expect(source).not.toContain("undoBatchUpdate");
     expect(source).not.toContain("elementsMap: Map<string, Element>");
   });
 });

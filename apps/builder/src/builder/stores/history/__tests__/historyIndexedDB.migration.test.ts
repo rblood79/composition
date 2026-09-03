@@ -13,11 +13,6 @@ import {
   migrateV1EntriesToV2,
   type LegacyV1SnapshotData,
 } from "../historyEntryMigration";
-import {
-  getRawLegacyHistoryReadCount,
-  recordRawLegacyHistoryRead,
-  resetRawLegacyHistoryReadCount,
-} from "../rawLegacyHistoryRead";
 
 function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
   return entry.data as LegacyV1SnapshotData;
@@ -110,27 +105,23 @@ describe("historyIndexedDB v1→v3 migration adapter contract", () => {
     });
   });
 
-  it("raw legacy read counter gates fallback removal", () => {
-    resetRawLegacyHistoryReadCount();
-    expect(getRawLegacyHistoryReadCount()).toBe(0);
-    recordRawLegacyHistoryRead("test");
-    expect(getRawLegacyHistoryReadCount()).toBe(1);
-    resetRawLegacyHistoryReadCount();
-    expect(getRawLegacyHistoryReadCount()).toBe(0);
-  });
-
-  it("historyActions 는 legacy fallback 없이 migrate→canonical 만 사용", async () => {
+  it("historyActions 는 migrate 없이 canonicalEvents 만 소비", async () => {
     const { readFile } = await import("node:fs/promises");
     const { resolve } = await import("node:path");
-    const source = await readFile(
+    const actions = await readFile(
       resolve(__dirname, "../historyActions.ts"),
       "utf-8",
     );
-    expect(source).toContain("migrateV1EntryToV2");
-    expect(source).not.toContain("recordRawLegacyHistoryRead");
-    expect(source).not.toMatch(/entry\.data\.element\b/);
-    expect(source).not.toMatch(/entry\.data\.prevElements\b/);
-    expect(source).not.toMatch(/entry\.data\.childElements\b/);
-    expect(source).not.toMatch(/entry\.data\.batchUpdates\b/);
+    const idb = await readFile(
+      resolve(__dirname, "../historyIndexedDB.ts"),
+      "utf-8",
+    );
+    expect(actions).not.toContain("migrateV1EntryToV2");
+    expect(idb).toContain("migrateV1EntryToV2");
+    expect(idb).toContain("keepConvertibleHistoryEntries");
+    expect(actions).not.toMatch(/entry\.data\.element\b/);
+    expect(actions).not.toMatch(/entry\.data\.prevElements\b/);
+    expect(actions).not.toMatch(/entry\.data\.childElements\b/);
+    expect(actions).not.toMatch(/entry\.data\.batchUpdates\b/);
   });
 });

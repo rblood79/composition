@@ -20,6 +20,8 @@ import type { HistoryEntry } from "../history";
 import {
   migrateV1EntriesToV2,
   migrateV1EntryToV2,
+  keepConvertibleHistoryEntries,
+  isConvertibleElementHistoryEntry,
 } from "./historyEntryMigration";
 import type { HistorySnapshot } from "./snapshots";
 
@@ -46,10 +48,9 @@ interface PageHistoryMeta {
 // ============================================
 
 const DB_NAME = "composition-history";
-// **ADR-124 Phase 5 — DB v1 → v2 upgrade**.
-// v1 entry (legacy snapshot field) 를 v2 canonical event sequence 로 one-shot
-// 변환. in-memory fallback (`migrateV1EntriesToV2` from Phase 3) 은 유지하되
-// 본격 변환은 onupgradeneeded 시점에 영속화.
+// **ADR-124** — DB v1 → v2 upgrade 시 legacy snapshot → canonicalEvents.
+// load 경로(`getEntriesByPage`)도 `migrateV1EntriesToV2` 로 방어 변환한다.
+// undo/redo 는 historyActions 에서 migrate 하지 않는다.
 // **ADR-180 Phase 1 — v2 → v3 upgrade**: `snapshots` store 신규 추가만
 // (기존 entries/meta 무변경 — G4 게이트).
 const DB_VERSION = 3;
@@ -143,11 +144,8 @@ export class HistoryIndexedDB {
           });
         }
 
-        // **ADR-124 Phase 5 — v1 → v2 entry migration**.
-        // 기존 v1 entry 의 legacy snapshot field 를 canonical event sequence 로
-        // one-shot 변환. 변환 성공 entry 는 legacy snapshot payload strip.
-        // 변환 불가 entry 는 `canonicalEvents: []` (undo/redo no-op).
-        // historyActions 는 migrate 후 canonical 경로만 사용한다.
+        // **ADR-124** — v1 → v2 entry migration (IDB upgrade one-shot).
+        // historyActions 는 migrate 하지 않는다 — 이 경계가 유일한 adapter.
         if (oldVersion < 2 && transaction) {
           try {
             const store = transaction.objectStore(STORE_ENTRIES);
@@ -159,7 +157,10 @@ export class HistoryIndexedDB {
               try {
                 const record = cursor.value as HistoryDBSchema;
                 const migratedEntry = migrateV1EntryToV2(record.entry);
-                if (migratedEntry !== record.entry) {
+                if (!isConvertibleElementHistoryEntry(migratedEntry)) {
+                  // diff-only 등 context 없이 변환 불가 — 조용한 undo no-op 방지
+                  cursor.delete();
+                } else if (migratedEntry !== record.entry) {
                   cursor.update({ ...record, entry: migratedEntry });
                 }
               } catch (entryError) {
@@ -301,10 +302,11 @@ export class HistoryIndexedDB {
           // 시간순 정렬
           records.sort((a, b) => a.createdAt - b.createdAt);
           const entries = records.map((r) => r.entry);
-          // **ADR-124 Phase 3** — v1 entry 를 in-memory 에서 v2 canonical event 로
-          // 변환 (Phase 5 IndexedDB v1→v2 migration 이전의 fallback adapter).
-          // 이미 canonicalEvents 보유한 entry 는 identity preserve.
-          const migrated = migrateV1EntriesToV2(entries);
+          // **ADR-124** — v1 entry 를 load 시 v2 canonical event 로 변환.
+          // 변환 불가 element-axis entry 는 drop (undo no-op + index 소모 방지).
+          const migrated = keepConvertibleHistoryEntries(
+            migrateV1EntriesToV2(entries),
+          );
           resolve(migrated);
         };
 

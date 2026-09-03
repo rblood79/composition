@@ -11,6 +11,7 @@ import type { HistoryEntry } from "../../history";
 import {
   expandDiffToFullProps,
   extractPropsFromDiff,
+  keepConvertibleHistoryEntries,
   migrateV1EntriesToV2,
   migrateV1EntryToV2,
   type LegacyV1SnapshotData,
@@ -503,5 +504,35 @@ describe("migrateV1EntriesToV2 (배치 변환)", () => {
     expect(result[0].data.canonicalEvents).toHaveLength(1); // identity
     expect(result[1].data.canonicalEvents).toHaveLength(1); // prevProps 변환
     expect(result[2].data.canonicalEvents).toEqual([]); // graceful
+  });
+});
+
+describe("keepConvertibleHistoryEntries", () => {
+  it("diff-only element entry 는 drop, page-guide 는 유지", () => {
+    const diffOnly = migrateV1EntryToV2(
+      makeEntry({
+        type: "update",
+        data: {
+          diff: {
+            elementId: "btn-1",
+            props: {
+              changed: [["label", { prev: "A", next: "B" }]],
+              added: [],
+              removed: [],
+            },
+          },
+        },
+      }),
+    );
+    const pageGuide = makeEntry({
+      type: "page-guide",
+      data: {
+        pageGuideEvent: { entries: [] },
+        canonicalEvents: [],
+      },
+    });
+    const kept = keepConvertibleHistoryEntries([diffOnly, pageGuide]);
+    expect(kept).toHaveLength(1);
+    expect(kept[0]!.type).toBe("page-guide");
   });
 });

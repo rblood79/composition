@@ -5,10 +5,7 @@
  * Helper functions to track multi-element operations in history
  */
 
-import type {
-  Element,
-  ComponentElementProps,
-} from "../../../types/builder/unified.types";
+import type { Element } from "../../../types/builder/unified.types";
 import type { ComponentIndex } from "./elementIndexer";
 import { historyManager } from "../history";
 import {
@@ -220,114 +217,4 @@ export function trackInstancePropagation<TElement extends Element>(
   // Master + 모든 Instance를 하나의 batch로 추적
   const allIds = [masterRefId, ...instanceIds];
   trackBatchUpdate(allIds, updates, elementsMap);
-}
-
-/**
- * Undo batch property update
- *
- * @param batchUpdates - Batch update data from history
- * @param updateElementProps - Function to update element props
- */
-export async function undoBatchUpdate(
-  batchUpdates: Array<{
-    elementId: string;
-    prevProps: ComponentElementProps;
-    newProps: ComponentElementProps;
-  }>,
-  updateElementProps: (
-    id: string,
-    props: Record<string, unknown>,
-  ) => Promise<void>,
-): Promise<void> {
-  await Promise.all(
-    batchUpdates.map((update) =>
-      updateElementProps(
-        update.elementId,
-        update.prevProps as Record<string, unknown>,
-      ),
-    ),
-  );
-}
-
-/**
- * Redo batch property update
- *
- * @param batchUpdates - Batch update data from history
- * @param updateElementProps - Function to update element props
- */
-export async function redoBatchUpdate(
-  batchUpdates: Array<{
-    elementId: string;
-    prevProps: ComponentElementProps;
-    newProps: ComponentElementProps;
-  }>,
-  updateElementProps: (
-    id: string,
-    props: Record<string, unknown>,
-  ) => Promise<void>,
-): Promise<void> {
-  await Promise.all(
-    batchUpdates.map((update) =>
-      updateElementProps(
-        update.elementId,
-        update.newProps as Record<string, unknown>,
-      ),
-    ),
-  );
-}
-
-/**
- * Undo group creation
- *
- * @param groupId - ID of the group to remove
- * @param childIds - IDs of children to restore
- * @param removeElement - Function to remove element
- * @param updateElement - Function to update element
- * @param elementsMap - Map of all elements
- */
-export async function undoGroupCreation<TElement extends Element>(
-  groupId: string,
-  childIds: readonly string[],
-  removeElement: (id: string) => Promise<void>,
-  updateElement: (id: string, updates: Partial<Element>) => Promise<void>,
-  elementsMap: ReadonlyMap<string, TElement>,
-): Promise<void> {
-  // Get group element to restore children's original parent_id
-  const groupElement = elementsMap.get(groupId);
-  const originalParentId = groupElement?.parent_id || null;
-
-  // Restore children's original parent_id
-  await Promise.all(
-    childIds.map((childId) =>
-      updateElement(childId, { parent_id: originalParentId }),
-    ),
-  );
-
-  // Remove group
-  await removeElement(groupId);
-}
-
-/**
- * Redo group creation
- *
- * @param groupElement - Group element to recreate
- * @param childIds - IDs of children to move into group
- * @param addElement - Function to add element
- * @param updateElement - Function to update element
- */
-export async function redoGroupCreation(
-  groupElement: Element,
-  childIds: string[],
-  addElement: (element: Element) => Promise<void>,
-  updateElement: (id: string, updates: Partial<Element>) => Promise<void>,
-): Promise<void> {
-  // Recreate group
-  await addElement(groupElement);
-
-  // Move children into group
-  await Promise.all(
-    childIds.map((childId) =>
-      updateElement(childId, { parent_id: groupElement.id }),
-    ),
-  );
 }

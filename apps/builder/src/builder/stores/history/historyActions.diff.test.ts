@@ -9,7 +9,9 @@ import {
 import type { Element } from "../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { createElementDiff, historyManager, serializeDiff } from "../history";
+import type { HistoryEntry } from "../history";
 import { useStore } from "../index";
+import { migrateV1EntryToV2 } from "./historyEntryMigration";
 
 vi.mock("../../../lib/db", () => ({
   getDB: vi.fn(async () => ({
@@ -108,12 +110,21 @@ describe("historyActions canonical diff/event application", () => {
       .setDocument("history-project", makeDocument([before]));
     useCanonicalDocumentStore.getState().setCurrentProject("history-project");
 
-    // v1 스타일 diff-only entry (canonicalEvents 없음) — legacy diff read
-    // path + HC#2 flip (canonical 1차 sync) 검증
+    // v1 diff-only → IDB 경계와 같이 migrate(context) 후 스택에 넣는다
+    const migrated = migrateV1EntryToV2(
+      {
+        id: "fixture",
+        timestamp: 0,
+        type: "update",
+        elementId: before.id,
+        data: { diff: serializeDiff(createElementDiff(before, after)) },
+      } as HistoryEntry,
+      { elements: [after], direction: "undo" },
+    );
     historyManager.addEntry({
-      type: "update",
-      elementId: before.id,
-      data: { diff: serializeDiff(createElementDiff(before, after)) },
+      type: migrated.type,
+      elementId: migrated.elementId,
+      data: migrated.data,
     });
 
     useCanonicalDocumentStore
@@ -152,16 +163,27 @@ describe("historyActions canonical diff/event application", () => {
       .setDocument("history-project", makeDocument([beforeA, beforeB]));
     useCanonicalDocumentStore.getState().setCurrentProject("history-project");
 
+    const migrated = migrateV1EntryToV2(
+      {
+        id: "fixture",
+        timestamp: 0,
+        type: "batch",
+        elementId: "batch_diff",
+        elementIds: [beforeA.id, beforeB.id],
+        data: {
+          diffs: [
+            serializeDiff(createElementDiff(beforeA, afterA)),
+            serializeDiff(createElementDiff(beforeB, afterB)),
+          ],
+        },
+      } as HistoryEntry,
+      { elements: [afterA, afterB], direction: "undo" },
+    );
     historyManager.addEntry({
-      type: "batch",
-      elementId: "batch_diff",
-      elementIds: [beforeA.id, beforeB.id],
-      data: {
-        diffs: [
-          serializeDiff(createElementDiff(beforeA, afterA)),
-          serializeDiff(createElementDiff(beforeB, afterB)),
-        ],
-      },
+      type: migrated.type,
+      elementId: migrated.elementId,
+      elementIds: migrated.elementIds,
+      data: migrated.data,
     });
 
     useCanonicalDocumentStore

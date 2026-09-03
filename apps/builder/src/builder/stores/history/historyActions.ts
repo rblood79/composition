@@ -10,7 +10,6 @@ import { applySnapshotRestoreHistoryEntry } from "./snapshotRestore";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { createCompleteProps } from "../utils/elementHelpers";
 import type { ElementsState } from "../elements";
-import { migrateV1EntryToV2 } from "./historyEntryMigration";
 import { getDB } from "../../../lib/db";
 import {
   applyCanonicalHistoryEventsToActiveDocument,
@@ -566,16 +565,13 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       ...get(),
       elements: getHistorySourceElements(get),
     };
-    const migratedEntry = migrateV1EntryToV2(entry, {
-      elements: currentState.elements,
-      direction: "undo",
-    });
 
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
+    // ADR-124: IDB load/upgrade 가 migrate 를 끝낸다. apply 는 canonicalEvents 만.
     const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-      migratedEntry.data.canonicalEvents,
+      entry.data.canonicalEvents,
       "undo",
     );
 
@@ -589,9 +585,6 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       updatedSelectedElementId = selection.selectedElementId;
       updatedSelectedElementProps = selection.selectedElementProps;
     }
-    // ADR-124: legacy fallback 제거 — v1 entry 는 migrateV1EntryToV2 로
-    // canonicalEvents 를 채운 뒤만 적용. events 없거나 doc 미적재면 element
-    // 상태는 유지한다 (raw legacy read = 0 계약).
 
     set({
       elements: updatedElements,
@@ -622,7 +615,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     // 3. Canonical document persistence (ADR-128: cloud compatibility sync dead)
     try {
       await persistActiveCanonicalDocument(
-        countExpectedShrinkNodes([migratedEntry], "undo"),
+        countExpectedShrinkNodes([entry], "undo"),
       );
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
@@ -700,15 +693,12 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       ...get(),
       elements: getHistorySourceElements(get),
     };
-    const migratedEntry = migrateV1EntryToV2(entry, {
-      elements: currentState.elements,
-      direction: "redo",
-    });
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
+    // ADR-124: IDB load/upgrade 가 migrate 를 끝낸다. apply 는 canonicalEvents 만.
     const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-      migratedEntry.data.canonicalEvents,
+      entry.data.canonicalEvents,
       "redo",
     );
 
@@ -722,7 +712,6 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       updatedSelectedElementId = selection.selectedElementId;
       updatedSelectedElementProps = selection.selectedElementProps;
     }
-    // ADR-124: legacy fallback 제거 — undo 와 동일 계약.
 
     set({
       elements: updatedElements,
@@ -753,7 +742,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     // 3. Canonical document persistence (ADR-128: cloud compatibility sync dead)
     try {
       await persistActiveCanonicalDocument(
-        countExpectedShrinkNodes([migratedEntry], "redo"),
+        countExpectedShrinkNodes([entry], "redo"),
       );
     } catch (dbError) {
       console.warn("⚠️ 데이터베이스 업데이트 실패 (메모리는 정상):", dbError);
@@ -915,16 +904,12 @@ function applyHistoryEntry(
     return { elements, selectedElementId, selectedElementProps };
   }
 
-  const migratedEntry = migrateV1EntryToV2(entry, {
-    elements,
-    direction,
-  });
   const canonicalEventElements = applyCanonicalHistoryEventsToActiveDocument(
-    migratedEntry.data.canonicalEvents,
+    entry.data.canonicalEvents,
     direction,
   );
   if (!canonicalEventElements) {
-    // events 없거나 doc 미적재 — legacy fallback 없이 상태 유지
+    // events 없거나 doc 미적재 — 상태 유지 (IDB migrate 경계 밖 entry)
     return { elements, selectedElementId, selectedElementProps };
   }
 
@@ -943,12 +928,11 @@ function applyHistoryEntry(
 async function syncDatabaseForEntries(
   entries: ReturnType<typeof historyManager.undo>[],
   direction: "undo" | "redo",
-  get: GetState,
+  _get: GetState,
 ): Promise<void> {
   // 마지막 엔트리의 최종 상태만 동기화 — cloud compatibility sync 는 dead
   // (ADR-128). shrink 가드용 deleteIds 만 모은다.
   const removedElementIds = new Set<string>();
-  const sourceElements = getHistorySourceElements(get);
 
   for (const entry of entries) {
     if (!entry) continue;
@@ -966,11 +950,7 @@ async function syncDatabaseForEntries(
     // applyPageLifecycleHistoryEntry 가 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "page-lifecycle") continue;
 
-    const migrated = migrateV1EntryToV2(entry, {
-      elements: sourceElements,
-      direction,
-    });
-    const events = migrated.data.canonicalEvents;
+    const events = entry.data.canonicalEvents;
     if (!events || events.length === 0) continue;
 
     const { deleteIds } = getCanonicalHistoryEventIds(events, direction);

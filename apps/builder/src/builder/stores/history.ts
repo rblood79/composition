@@ -28,10 +28,10 @@ import { type CanonicalHistoryNodeEvent } from "./history/canonicalHistoryEvents
  * **ADR-124**:
  * - `data.canonicalEvents` 가 primary path. 신규 entry 는 생성 시점에
  *   canonical event 를 부착한다 (`addEntry` DEV guard).
- * - v1 IndexedDB load 는 `migrateV1EntryToV2` 가 `canonicalEvents` 로 변환한다.
- * - legacy snapshot 필드 (`element` / `prevProps` / `batchUpdates` 등) 는
- *   `HistoryEntry.data` 타입에서 제거됐다. raw IDB payload 는 migration
- *   adapter 의 `LegacyV1SnapshotData` 로만 읽는다.
+ * - v1 IndexedDB load/upgrade 만 `migrateV1EntryToV2` 가 변환한다.
+ *   undo/redo/goTo 는 canonicalEvents 만 소비한다.
+ * - legacy snapshot 필드는 `HistoryEntry.data` 타입에 없다. raw IDB payload 는
+ *   migration adapter 의 `LegacyV1SnapshotData` 로만 읽는다.
  *
  * @see docs/adr/124-canonical-only-history-schema.md
  * @see apps/builder/src/builder/stores/history/historyEntryMigration.ts

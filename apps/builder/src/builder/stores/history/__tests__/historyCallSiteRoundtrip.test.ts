@@ -18,10 +18,32 @@ import { historyManager } from "../../history";
 import type { HistoryEntry } from "../../history";
 import { useStore } from "../../index";
 import { trackBatchUpdate } from "../../utils/historyHelpers";
-import type { LegacyV1SnapshotData } from "../historyEntryMigration";
+import {
+  migrateV1EntryToV2,
+  type LegacyV1SnapshotData,
+} from "../historyEntryMigration";
 
 function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
   return entry.data as LegacyV1SnapshotData;
+}
+
+/** 테스트용 v1 fixture → IDB 경계와 같이 migrate 후 addEntry. */
+function addMigratedV1Entry(
+  partial: Omit<HistoryEntry, "id" | "timestamp"> & {
+    data: HistoryEntry["data"] & LegacyV1SnapshotData;
+  },
+): void {
+  const migrated = migrateV1EntryToV2({
+    id: "fixture",
+    timestamp: 0,
+    ...partial,
+  } as HistoryEntry);
+  historyManager.addEntry({
+    type: migrated.type,
+    elementId: migrated.elementId,
+    elementIds: migrated.elementIds,
+    data: migrated.data,
+  });
 }
 
 vi.mock("../../../../lib/db", () => ({
@@ -204,15 +226,15 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     const after = makeElement("text-1", { children: "v1-after" });
     seed([after]);
 
-    // v1 IndexedDB 스타일 entry (canonicalEvents 없음 — legacy snapshot 만)
-    historyManager.addEntry({
+    // v1 IndexedDB 스타일 entry — IDB 경계와 같이 migrate 후 스택에 넣는다
+    addMigratedV1Entry({
       type: "batch",
       elementId: "text-1",
       elementIds: ["text-1"],
       data: {
         prevElements: [before],
         elements: [after],
-      } as HistoryEntry["data"] & LegacyV1SnapshotData,
+      },
     });
 
     await useStore.getState().undo();
@@ -243,14 +265,14 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     // entry 2 (v1 스타일): step1 → step2
     const step1 = makeElement("text-1", { children: "step1" });
     const step2 = makeElement("text-1", { children: "step2" });
-    historyManager.addEntry({
+    addMigratedV1Entry({
       type: "batch",
       elementId: "text-1",
       elementIds: ["text-1"],
       data: {
         prevElements: [step1],
         elements: [step2],
-      } as HistoryEntry["data"] & LegacyV1SnapshotData,
+      },
     });
     useCanonicalDocumentStore
       .getState()
