@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [사용되지 않는 Builder 호환 API를 정리했습니다] - 2026-09-03
+
+### Removed
+
+- catalog 기본값 경로로 대체된 `createDefaultButtonProps`·`createDefaultLinkProps`·`createDefaultToggleButtonProps`·`createDefaultBadgeProps`·`createDefaultTextProps` export를 제거했습니다.
+- 호출자가 없는 `loadPretendardToSkia`, `isPropertyModified`, `getModifiedProperties`, `BuilderCanvasWithFlag`를 제거했습니다. Builder의 Skia/iframe 선택은 계속 `Workspace`가 담당합니다.
+- 주석만 남은 Electron 타입 stub과 제거된 style helper만 안내하던 미연결 Visual Feedback 가이드를 삭제했습니다.
+
+### Infrastructure
+
+- 어떤 package에서도 사용하지 않는 pnpm catalog의 `jotai` 항목을 제거했습니다.
+
 ## [AI 어시스턴트가 Claude 5 계열 (Fable 5.1 · Opus 5 · Sonnet 5) 과 호환됩니다] - 2026-09-03
 
 ### Fixed

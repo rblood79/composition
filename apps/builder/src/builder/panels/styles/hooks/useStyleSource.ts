@@ -74,35 +74,6 @@ export function useStyleSource(
 }
 
 /**
- * Helper: Check if property is modified by user (inline style)
- */
-export function isPropertyModified(
-  element: SelectedElement | null,
-  property: keyof React.CSSProperties,
-): boolean {
-  if (!element || !element.style) return false;
-  return element.style[property] !== undefined;
-}
-
-/**
- * Helper: Get all inline style keys present on an element.
- *
- * @deprecated 이 함수는 inline style 키 **존재만** 판정해 factory 가 주입한 layout default 까지
- *   "modified" 로 잡는다 — reset 버튼(baseline 비교)과 비대칭이라 Modified Styles false positive 의
- *   원인이었다(2026-06-24). modified 판정은 `useDirtyStyleProps()`(또는 순수 함수
- *   `computeDirtyStyleProps`)를 사용해 reset 판정과 동일 baseline 을 공유할 것. 호출처가 모두 이관되어
- *   현재 미사용이며, 부모 컨텍스트가 없는 SelectedElement 만으로는 올바른 baseline 비교가 불가능하다.
- */
-export function getModifiedProperties(
-  element: SelectedElement | null,
-): string[] {
-  if (!element || !element.style) return [];
-  return Object.keys(element.style).filter(
-    (key) => element.style![key as keyof React.CSSProperties] !== undefined,
-  );
-}
-
-/**
  * Helper: Get CSS class for style source dot
  */
 export function getSourceDotClass(source: StyleSource): string {

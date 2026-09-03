@@ -93,9 +93,6 @@ export async function loadBuiltinFontsToSkia(): Promise<void> {
   }
 }
 
-/** @deprecated loadBuiltinFontsToSkia()로 대체 */
-export const loadPretendardToSkia = loadBuiltinFontsToSkia;
-
 /**
  * data URL → ArrayBuffer 변환.
  * 브라우저 fetch API가 data: URI를 지원한다.

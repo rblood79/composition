@@ -47,7 +47,6 @@ import {
   useActiveScope,
   useKeyboardShortcutsRegistry,
 } from "@/builder/hooks";
-import { isWebGLCanvas } from "../../../utils/featureFlags";
 import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
@@ -1573,24 +1572,6 @@ export function BuilderCanvas({
       )}
     </div>
   );
-}
-
-// ============================================
-// Feature Flag Wrapper
-// ============================================
-
-/**
- * Feature Flag에 따라 WebGL 또는 기존 iframe 캔버스 반환
- */
-export function BuilderCanvasWithFlag(props: BuilderCanvasProps) {
-  const useWebGL = isWebGLCanvas();
-
-  if (!useWebGL) {
-    // 기존 iframe Canvas (Fallback)
-    return null; // BuilderCore에서 기존 iframe 렌더링
-  }
-
-  return <BuilderCanvas {...props} />;
 }
 
 export default BuilderCanvas;

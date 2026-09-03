@@ -9,7 +9,7 @@
 
 // Main Components
 export { Workspace } from "./Workspace";
-export { BuilderCanvas, BuilderCanvasWithFlag } from "./canvas/BuilderCanvas";
+export { BuilderCanvas } from "./canvas/BuilderCanvas";
 
 // Stores
 export {

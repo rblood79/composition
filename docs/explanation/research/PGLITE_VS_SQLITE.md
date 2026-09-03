@@ -825,9 +825,9 @@ await db.query("SELECT * FROM elements WHERE props->>'variant' = $1", [
 
 ---
 
-### 2. 구현 완료 (0일)
+### 2. 당시 구현 완료 (0일)
 
-현재 구현된 파일 목록:
+작성 시점의 구현 목록입니다. 현재 PGlite·Electron 데이터 계층은 제거됐으며 아래 경로는 실재하지 않습니다.
 
 ```
 ✅ src/services/database/types.ts (258줄)
@@ -876,7 +876,7 @@ await db.query("SELECT * FROM elements WHERE props->>'variant' = $1", [
    - Context bridge
    - 안전한 IPC 노출
 
-✅ src/types/electron.d.ts (46줄)
+당시 `src/types/electron.d.ts` 선언을 제안했으나, Electron 미사용 확정 후 제거됨
    - TypeScript 타입 정의
 
 ✅ docs/legacy/ELECTRON_SETUP.md (역사 기록)
@@ -884,7 +884,7 @@ await db.query("SELECT * FROM elements WHERE props->>'variant' = $1", [
    - 빌드 및 배포 방법
 ```
 
-**총 2,921줄 코드 - 구현 완료**
+**당시 총 2,921줄 코드 - 구현 완료**
 
 ---
 

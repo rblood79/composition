@@ -701,7 +701,7 @@ function collectBreakpointOverrideStyle(
  * element(+부모 컨텍스트)의 style 중 baseline(factory default / spec preset / subpart)과 **다른**
  * prop 만 반환하는 순수 함수.
  *
- * Why: "Modified Styles" 패널·"modify N" 뱃지(`useStyleSource.getModifiedProperties` /
+ * Why: "Modified Styles" 패널·"modify N" 뱃지(구 `useStyleSource.getModifiedProperties` /
  * `StylesPanel.modifiedCount`)가 과거엔 `Object.keys(style)` 즉 **inline style 키 존재만**으로
  * modified 를 판정했다. composition 은 factory 가 layout 을 `props.style` 에 직접 주입하므로
  * (예: Form `{display:flex, flexDirection:column, gap:16px, width:100%}`) 신규 요소가 손대지 않아도

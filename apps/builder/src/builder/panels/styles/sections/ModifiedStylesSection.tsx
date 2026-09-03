@@ -66,7 +66,7 @@ export function ModifiedStylesSection({
       ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
       : label;
   // baseline(factory default / spec preset / subpart)과 실제로 다른 prop 만 modified 로 표시.
-  //   getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
+  //   구 getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
   const modifiedProperties = useDirtyStyleProps();
   const { accentColor } = useElementStyleContext(selectedElement.id);

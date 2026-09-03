@@ -432,7 +432,6 @@ catalogs:
 
     # 상태 관리
     zustand: ^5.0.9
-    jotai: ^2.16.0
     immer: ^10.1.1
 
     # 타입 정의
@@ -492,13 +491,13 @@ onlyBuiltDependencies[]=puppeteer
 ```yaml
 # 현재 (루트가 앱 역할)
 packages:
-  - '.'           # ← Phase 3 완료 후 제거
-  - 'packages/*'
+  - "." # ← Phase 3 완료 후 제거
+  - "packages/*"
 
 # Phase 3 이후 (목표 상태)
 packages:
-  - 'apps/*'
-  - 'packages/*'
+  - "apps/*"
+  - "packages/*"
 ```
 
 **Vite 버전 통일:**
@@ -961,12 +960,13 @@ describe("Event Signature Contract", () => {
 ```
 
 **검증 항목 체크리스트**:
-| 항목 | 검증 방법 | 기대 결과 |
-|-----|----------|----------|
-| Props 타입 일치 | `tsc --noEmit` | 타입 오류 없음 |
-| 스타일 토큰 일관성 | 단위 테스트 | 동일 값 반환 |
-| 이벤트 시그니처 | 통합 테스트 | 동일 형태 이벤트 |
-| 시각적 일관성 | Chromatic 스냅샷 | 픽셀 차이 0% |
+
+| 항목               | 검증 방법        | 기대 결과        |
+| ------------------ | ---------------- | ---------------- |
+| Props 타입 일치    | `tsc --noEmit`   | 타입 오류 없음   |
+| 스타일 토큰 일관성 | 단위 테스트      | 동일 값 반환     |
+| 이벤트 시그니처    | 통합 테스트      | 동일 형태 이벤트 |
+| 시각적 일관성      | Chromatic 스냅샷 | 픽셀 차이 0%     |
 
 5. **apps/builder/package.json 생성**
 
@@ -992,8 +992,7 @@ describe("Event Signature Contract", () => {
        "react-router": "catalog:",
        "react-router-dom": "catalog:",
        "react-aria-components": "catalog:",
-       "zustand": "catalog:",
-       "jotai": "catalog:"
+       "zustand": "catalog:"
        // ... 기존 의존성
      },
      "devDependencies": {

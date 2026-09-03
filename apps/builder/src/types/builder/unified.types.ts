@@ -1173,28 +1173,6 @@ export type ComponentElementProps =
 // cleanup 대상 inventory" 로 명시했으나 미이행으로 남아 있던 항목.
 
 // === 기본 props 생성 함수들 ===
-/**
- * @deprecated ADR-914 Phase 2a — DEFAULT_PROPS_MAP 의 Button row 가 삭제되어 현재 미사용
- * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Button")
- * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
- */
-export function createDefaultButtonProps(): ButtonElementProps {
-  return deriveDefaultPropsFromCatalog("Button") as ButtonElementProps;
-}
-
-/**
- * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Link row 가 삭제되어 현재 미사용
- * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Link")
- * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
- *
- * ADR-083 Phase 8 (R5): display/alignItems 는 Link containerStyles SSOT 로 이관.
- * ADR-912 단계5 step5: LinkSpec 삭제 — 시각 SSOT 는 componentRulesTable.Link (catalog rule).
- * ADR-912 #3: catalog 파생(variant/size/staticColor) + overlay(children/href/state).
- */
-export function createDefaultLinkProps(): LinkElementProps {
-  return deriveDefaultPropsFromCatalog("Link") as LinkElementProps;
-}
-
 export function createDefaultTextFieldProps(): TextFieldElementProps {
   return {
     name: "",
@@ -1241,21 +1219,6 @@ export function createDefaultRadioProps(): RadioElementProps {
       flexDirection: "row",
     },
   };
-}
-
-/**
- * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 ToggleButton row 가 삭제되어 현재 미사용
- * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("ToggleButton")
- * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
- *
- * ADR-912 #3: catalog 파생(size) + overlay(children/state). variant/fillStyle 없는 size-only leaf.
- * 스타일은 spec/generated CSS가 담당 — inline borderWidth 미주입(applyInlineBorderOverlay 가
- * borderColor 없이 회색 fallback border 를 렌더링하지 않도록).
- */
-export function createDefaultToggleButtonProps(): ToggleButtonElementProps {
-  return deriveDefaultPropsFromCatalog(
-    "ToggleButton",
-  ) as ToggleButtonElementProps;
 }
 
 export function createDefaultToggleButtonGroupProps(): ToggleButtonGroupElementProps {
@@ -1637,17 +1600,6 @@ export function createDefaultDialogFooterProps(): BaseElementProps {
   };
 }
 
-/**
- * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Badge row 가 삭제되어 현재 미사용
- * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Badge")
- * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
- *
- * ADR-912 #3: catalog 파생(variant/size/fillStyle) + overlay(children/isDot/isPulsing).
- */
-export function createDefaultBadgeProps(): BadgeElementProps {
-  return deriveDefaultPropsFromCatalog("Badge") as BadgeElementProps;
-}
-
 export function createDefaultLabelProps(): BaseElementProps {
   return {
     children: "Tag Group",
@@ -1783,17 +1735,6 @@ export function createDefaultGridListItemProps(): GridListItemElementProps {
   return {
     isDisabled: false,
   };
-}
-
-/**
- * @deprecated ADR-914 Phase 2b — DEFAULT_PROPS_MAP 의 Text row 가 삭제되어 현재 미사용
- * (getDefaultProps 가 ENTRY_DERIVED_DEFAULT_TYPES 분기로 deriveDefaultPropsFromCatalog("Text")
- * 직접 호출). historical 보존 — 후속 phase 에서 미참조 factory fn 일괄 정리.
- *
- * ADR-912 #3: catalog 파생(size) + overlay(children placeholder).
- */
-export function createDefaultTextProps(): TextElementProps {
-  return deriveDefaultPropsFromCatalog("Text") as TextElementProps;
 }
 
 export function createDefaultDivProps(): DivElementProps {
