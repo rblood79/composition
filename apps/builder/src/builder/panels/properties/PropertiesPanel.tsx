@@ -54,7 +54,10 @@ import {
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
 import { getPropagationRules } from "../../utils/propagationRegistry";
-import { buildPropagationUpdates } from "../../utils/propagationEngine";
+import {
+  buildPropagationUpdates,
+  toBatchPropsUpdates,
+} from "../../utils/propagationEngine";
 import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
 import {
   alignSelection,
@@ -227,14 +230,10 @@ const CatalogEditContractEditor = memo(
           );
 
           if (childUpdates.length > 0) {
-            const batchChildUpdates: BatchPropsUpdate[] = childUpdates.map(
-              (u) => ({
-                elementId: u.elementId,
-                props: u.props as BatchPropsUpdate["props"],
-                // propagation patch 는 바꾸는 style 키만 담는다 → 자식의 나머지 style 보존 (r2 feh2)
-                ...(u.mergeStyle ? { mergeStyle: true } : {}),
-              }),
-            );
+            // 매핑은 `toBatchPropsUpdates` 단일 지점 — 여기서 인라인으로 다시 쓰면 `mergeStyle`
+            //   누락 (자식 style 통째 교체) 을 게이트가 못 본다 (round 4 fe3m1).
+            const batchChildUpdates =
+              toBatchPropsUpdates<BatchPropsUpdate>(childUpdates);
             state.updateSelectedPropertiesWithChildren(
               changedProps,
               batchChildUpdates,

@@ -177,3 +177,60 @@ live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField 신규 생성):
 | `updateElementProps` 로 준 `backgroundColor`            | store 에 남지 않음 — sanitizer 가 fill 파생 키를 지운다 (fe2m1 의 근거)      |
 
 콘솔 0, 요소 정리 완료.
+
+## 7. Codex 판독 round 4 (2026-09-03) — MEDIUM 1 수리 (HIGH 0 · LOW 0)
+
+round 3 의 코드·수치·원복 (a)~(i) 는 판독에서 전부 VERIFIED 됐다. 열린 항목은 게이트 하나뿐이다.
+
+### 7-1. fe3m1 — transport seam 을 실행하는 게이트가 없었다 (MEDIUM)
+
+round 3 은 생산자 (`buildPropagationUpdates` 가 `mergeStyle` 을 붙인다) 와 최종 소비 helper (`applyBatchStylePatch` 가 병합한다) 를 각각 단위로 고정했지만, **그 사이 구간**을 실행하는 테스트가 없었다: Inspector 화면의 매핑 → `updateSelectedPropertiesWithChildren` → `sanitizeInspectorProps` → `batchUpdateElementProps` → `sanitizePropsPatch`. 중간에서 플래그가 빠져도 신설 3건은 통과한다.
+
+특히 그 매핑이 `PropertiesPanel.tsx` 안의 **인라인 한 줄**이었다 — 화면 코드가 매핑을 다시 쓰면 어떤 단위 테스트도 그 누락을 보지 못한다.
+
+수리 두 겹:
+
+- 매핑을 `toBatchPropsUpdates` (propagationEngine) 단일 지점으로 뽑고 `PropertiesPanel` 이 그것을 호출한다. 인라인 재작성이 되살아나면 정적 게이트가 잡는다.
+- `adr923PropagationTransport.test.ts` 신설 (3건) — mock 이 아닌 실제 체인을 돌린다: canonical document 를 얹은 store 에 TextField > {Label, FieldError} 를 두고, FieldError 자식에 `display:none · fontSize:13 · color · backgroundColor` (fill 파생 키) 를 저작한 뒤 `isInvalid: true` 로 `buildPropagationUpdates` → `toBatchPropsUpdates` → inspector slice → 실제 `batchUpdateElementProps` 를 통과시킨다. 단언은 **세 곳** — store `elementsMap` · canonical document (persist 대상) · history `nextProps` (undo/redo 가 복원하는 값) 에서 `display` 만 `block` 으로 바뀌고 나머지 3키가 그대로 남는가.
+
+두 번째 테스트는 같은 체인에 `mergeStyle` 을 뺀 매핑을 주입해 자식 style 이 `{display:"block"}` 으로 통째 교체되는 것을 대조로 고정한다 — 계약을 양방향으로 잠근다.
+
+### 7-2. 원복 RED — 전량 재측정 (node 26 → 29)
+
+신설 게이트가 (a)·(e) 의 반응을 바꾸므로 round 3 표를 그대로 두지 않고 다시 쟀다. 각 원복 후 원상복구 + 재통과 확인.
+
+| 원복                                       | node (29) | browser (5) |
+| ------------------------------------------ | --------- | ----------- |
+| (a) 규칙 5 field spread 제거               | 7 FAIL    | 5 FAIL      |
+| (b) layout 자식 visit propagation 차단     | —         | 5 FAIL      |
+| (c) layout FieldError delegation 주입 차단 | —         | 3 FAIL      |
+| (d) 5-심볼 등재 제거                       | 3 FAIL    | —           |
+| (e) `applyBatchStylePatch` 병합 무력화     | 2 FAIL    | —           |
+| (f) factory·origin 인라인 12 복원          | 2 FAIL    | 5 PASS      |
+| (g) Skia lineHeight 덮기 제거              | 1 FAIL    | 2 FAIL      |
+| (h) 인라인 fontSize 우선 복원              | 1 FAIL    | 1 FAIL      |
+| (i) 인라인 lineHeight 걷어내기 제거        | 1 FAIL    | 1 FAIL      |
+| (j) `toBatchPropsUpdates` 가 플래그 누락   | 1 FAIL    | 5 PASS      |
+| (k) Panel 이 매핑을 인라인 재작성          | 1 FAIL    | 5 PASS      |
+
+(a) 가 5 → 7 로, (e) 가 1 → 2 로 늘어난 만큼이 신설 게이트의 실제 담당 범위다. (j)·(k) 의 browser 5 PASS 는 (f) 와 같은 성격 — transport 는 Inspector 쓰기 경로라 layout·Skia read 경로 (browser parity) 와 교차하지 않는다.
+
+### 7-3. 남은 한계 (게이트가 덮지 않는 것)
+
+- `adr923PropagationTransport.test.ts` 는 store 슬라이스를 실제로 돌리지만 **React 렌더는 돌리지 않는다** — `PropertiesPanel` 의 UI 이벤트 → `changedProps` 조립까지는 정적 게이트 (매핑 함수 사용 여부) 로만 잠근다.
+- 그 밖 `BatchPropsUpdate` 를 만드는 writer 는 이 seam 을 지나지 않는다 (mergeStyle 미사용 = 통째 교체가 정본).
+
+### 7-4. 검증 · live
+
+type-check · builder unit **5199** (657 파일) · focused `adr923*` **129** · full parity **1073** (기존 2 FAIL) · smoke 84.
+
+live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField 신규 생성):
+
+| 확인                                                                  | 결과                                                                          |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 팔레트 TextField 신규 생성 직후 FieldError 자식 props                 | `{children:"", style:{display:"none"}}` — 인라인 `fontSize` 0 (round 2 삭제 유지) |
+| 자식에 `fontSize:13 · color · lineHeight:10 · backgroundColor` 주입    | 앞 3키만 저장, `backgroundColor` 는 sanitizer 가 제거 (fe2m1 근거 재확인)      |
+| 패널 Invalid 스위치 ON (실제 UI → 새 매핑 함수 경유)                  | 자식 `display` 만 `block`, `fontSize:13 · color · lineHeight:10` 그대로 보존   |
+| 이어서 Error Message 입력 "Required field"                            | 자식 `children` 갱신 + 나머지 style 4키 유지, Skia 87×21 @y62 · TextField 83   |
+
+인라인 `fontSize:13 · lineHeight:10` 을 준 채로도 Canvas 가 21px 줄 (delegation 14 × 1.5) 을 쓴다 — round 3 계약 그대로다. 콘솔 오류 0, 생성 요소 정리 완료 (55 → 51).
