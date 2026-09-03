@@ -321,3 +321,30 @@ field 5 가족의 FieldError 자식은 canonical 에 남되 (Canvas 구조 정�
 type-check · builder unit **5202** (657 파일) · bridge 10 · i18n 18 · focused `adr923*` **129** · full parity **1073** (기존 2 FAIL) · browser FieldError 5.
 
 live (Chrome MCP, 프로젝트 e16b69c6 Home — 팔레트 TextField, parent `isInvalid + errorMessage`, 자식에 `color · marginTop:30 · padding:9 · width:50 · fontSize:12 · lineHeight:10` 주입): FieldError rect 87×21 @y62 · TextField 83 — 주입 전과 동일, overlay margin 0. 자식 선택 시 Properties "Edited from the parent" · Styles "Styled by the parent" 안내 (type/parent 치환), 콘솔 오류 0.
+
+## 11. 잔여 2 — `styles/generated/*.css` 미import 전수 판정 (2026-09-03)
+
+### 11-1. 집계
+
+생성기 (`packages/specs/scripts/generate-css.ts`) 는 `structure` 를 가진 catalog rule 마다 파일을 낸다 — **93**. DOM 도달 경로는 `styles/index.css` `@import` (**66** 고유; 이전 "67" 은 `grep -c` 줄 수) 와 컴포넌트 모듈 import (**2** — DropZone.tsx · FileTrigger.tsx) 뿐. 나머지 **25** 는 아무도 읽지 않는다 (AvatarGroup·CardView 는 binding 머리말의 주석 언급이라 로드가 아니다). index.css 이력에서 25개 중 어느 것도 import 된 적이 없다 — 의도적 제외가 아니라 **처음부터 배선 안 된 상태**.
+
+### 11-2. 판정 — 실제 시각 공백 0
+
+| 범주                              | 파일                                                                                                                                    | 근거                                                                                                                                                                                                                                                                |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B 수동 CSS 가 같은 class 담당 (5) | FieldError · Input · Skeleton · Toast · Breadcrumb                                                                                      | 활성 bundle 규칙 61 · 56, Skeleton.css 169 · Toast.css 10 · Breadcrumbs.css 7 (컴포넌트 모듈 import)                                                                                                                                                                |
+| C 런타임 인라인 (4)               | Avatar · StatusLight · ProgressCircle · IllustratedMessage                                                                              | 컴포넌트가 `resolveComponentRule` 로 catalog 를 직접 소비, `react-aria-X` class 미방출 (StatusLight 머리말이 outlier 로 명시)                                                                                                                                       |
+| D DOM 미방출 (10)                 | MeterTrack · MeterValue · ProgressBarTrack · ProgressBarValue · FormField · CalendarHeader · TailSwatch · Body · AvatarGroup · CardView | RAC self-compose 자식 (DOM 미렌더) · ADR-171 제거 추상 · 다른 class · renderer 인라인 (AvatarGroup/CardView binding: "시각 분기 없는 빈 셸")                                                                                                                        |
+| E container 인라인 채널 (6)       | Section · Nav · ButtonGroup · DialogFooter · DisclosureHeader · Image                                                                   | ADR-907 Layer B — container layout 은 `props.style` 이 두 표면 공급원 (Nav 정의 주석: "미주입 시 CSS 는 Nav.css 로 보이나 Skia 는 props.style 만 읽어 비대칭"). **로드하면** height 56 · padding · variant 색이 DOM 에만 실려 Canvas 와 갈린다 — 미로드가 대칭 유지 |
+| A 모듈 import 로 활성 (2)         | DropZone · FileTrigger                                                                                                                  | `import "./styles/generated/X.css"`                                                                                                                                                                                                                                 |
+
+E 가 핵심이다: 이 파일들은 "빠진 import" 가 아니라 **로드되면 안 되는 파일**이다. 생성 자체가 잉여이고, 이번 잔여 항목 (FieldError.css 가 rule 원천처럼 보인 것) 도 그 잉여가 만든 오판이었다.
+
+### 11-3. 게이트
+
+`packages/shared/src/components/styles/__tests__/generatedCssLoadInventory.static.test.ts` (4) — 모든 생성 파일은 index.css · 모듈 import 문 (주석 언급 제외) · 명시 미로드 목록 (`UNLOADED_GENERATED_CSS`, 범주 주석 25) 중 **정확히 한 곳**에 속한다. 새 생성 파일이 어디에도 없으면 FAIL (판정 강제) · 목록 파일이 로드되면 FAIL (E 는 판정을 먼저 바꿔야 로드 가능) · 목록 파일이 사라지면 FAIL · 집계 93/66/2/25 고정. 원복 RED: (p) index.css 에 `@import "./generated/Nav.css"` 추가 → 2 FAIL · (q) 목록에서 Section 제거 → 2 FAIL. 검증: type-check · shared 971.
+
+### 11-4. 후속 (착수 금지 — 기록만)
+
+- 생성기에 미로드 25 를 **내지 않는** skip (catalog rule 메타 또는 목록) — 파일 삭제는 원본 삭제 정책상 별도 승인. 삭제 없이도 게이트가 drift 를 막으므로 급하지 않다.
+- AvatarGroup·CardView binding 머리말의 "generate-css virtual 전환 (R7 G1-a)" 이 실제로 적용됐는지 (파일은 여전히 생성됨) 는 위 skip 과 같이 본다.
