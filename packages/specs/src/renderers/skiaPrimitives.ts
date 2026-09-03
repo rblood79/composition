@@ -139,7 +139,9 @@ const dot: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
  */
 const divider: SkiaPrimitiveDrawFn = ({ props, size, paint }) => {
   const isVertical = (props.orientation as string | undefined) === "vertical";
-  const thickness = size.height;
+  // ADR-923 착수 8 (2026-09-04): SizeSpec.height 가 optional — Separator 계열은 항상 height 를
+  //   선언하므로 부재는 실무상 없지만 타입상 1 로 떨어뜨린다 (선 두께 최소값).
+  const thickness = size.height ?? 1;
   return [
     {
       type: "rect",

@@ -904,8 +904,15 @@ export interface IndicatorModeSpec {
  * Archetype 전용 치수(trackWidth, thumbSize 등)는 ComponentSpec.dimensions에 별도 정의.
  */
 export interface SizeSpec {
-  /** 높이 (px) */
-  height: number;
+  /**
+   * 높이 (optional, px).
+   *
+   * ADR-923 Phase 5 후속 착수 8 (2026-09-04): 필수 → optional. 상자 높이 축이 **고정 높이인지
+   * 최소 높이인지는 컴포넌트가 정한다** — Slot 은 layout 템플릿에서 `flex: 1` 로 늘어나야 해
+   * `minHeight` 를 쓰고 (CSSGenerator 는 height 부재 시 `height: auto` 를 emit), 나머지 잔존 spec
+   * (Frame/Group) 과 primitives 는 그대로 `height` 를 쓴다. 두 축이 상호 배타는 아니다.
+   */
+  height?: number;
 
   /** 가로 패딩 (px) — 대칭 패딩 */
   paddingX: number;

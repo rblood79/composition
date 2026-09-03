@@ -64,7 +64,8 @@ export function getSizePreset(
   sizeSpec: SizeSpec,
   theme: "light" | "dark" = "light",
 ): {
-  height: number;
+  /** ADR-923 착수 8 (2026-09-04): SizeSpec.height 가 optional 이 되어 그대로 통과시킨다 (Slot 은 minHeight 축). */
+  height: number | undefined;
   paddingX: number;
   paddingY: number;
   fontSize: number;

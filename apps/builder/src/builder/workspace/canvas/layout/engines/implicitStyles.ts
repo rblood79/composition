@@ -1294,12 +1294,14 @@ export function applyImplicitStyles(
     parentStyle.paddingLeft = emptyStatePadding;
   }
   // Slot (reusable frame 편집 = layout 모드 placeholder, ADR-923 Phase 5 후속 착수 3, 2026-09-03):
-  //   DOM `.react-aria-Slot` 은 generated Slot.css (잔존 spec sizes) 가 `height: 60px` (sm 40 · lg 80)
-  //   를 주는데 Canvas 는 자식 없는 컨테이너라 content 0 → placeholder 가 보이지 않았다 (실측 DOM 400×60
-  //   vs Canvas 400×0). spec sizes[size].height 를 **minHeight** 로 read-time 주입 — 레이아웃 템플릿의
+  //   DOM `.react-aria-Slot` 은 generated Slot.css (잔존 spec sizes) 가 최소 높이 60 (sm 40 · lg 80)
+  //   을 주는데 Canvas 는 자식 없는 컨테이너라 content 0 → placeholder 가 보이지 않았다 (실측 DOM 400×60
+  //   vs Canvas 400×0). spec sizes[size].minHeight 를 그대로 read-time 주입 — 레이아웃 템플릿의
   //   Slot 인라인 (`layoutTemplates.ts` `minHeight: 60` · content slot `flex: 1`) 과 같은 계약이라
   //   flex 로 늘어나는 slot 을 고정 높이로 눌러 앉히지 않는다. page 모드 (`_slotChrome: "hidden"`,
   //   DOM `.preview-slot` content 높이) 와 사용자 명시 height/minHeight 는 제외.
+  //   착수 8 (2026-09-04): spec 필드명이 `height` → `minHeight` 로 바뀌어 번역 없이 같은 축을 읽는다
+  //   (생성 CSS 도 `min-height` — DOM 이 같은 의미).
   if (
     containerTag === "slot" &&
     containerProps?._slotChrome !== "hidden" &&
@@ -1309,7 +1311,7 @@ export function applyImplicitStyles(
     const slotHeight = specSizeField(
       "slot",
       (containerProps?.size as string) ?? "md",
-      "height",
+      "minHeight",
     );
     if (slotHeight != null) {
       effectiveParent = withParentStyle(containerEl, {

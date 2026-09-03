@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [슬롯 (Slot) 의 자리 표시 상자가 내용에 맞춰 늘어납니다] - 2026-09-04
+
+### Changed
+
+- 슬롯 크기 (sm 40 · md 60 · lg 80px) 는 이제 **고정 높이가 아니라 최소 높이**입니다. 내용이 그보다 크면 상자가 같이 늘어납니다 (캔버스는 전부터 이렇게 다뤄 왔고, 미리보기가 이제 같아집니다).
+
+### Fixed
+
+- 슬롯 자리 표시 안내 (아이콘 + 슬롯 이름) 가 상자보다 커서 밖으로 넘치던 것을 한 줄 배치로 정리했습니다.
+
 ## [선택 상자의 값 텍스트에 준 스타일이 캔버스에서만 달라 보이던 문제를 정리했습니다] - 2026-09-04
 
 ### Changed

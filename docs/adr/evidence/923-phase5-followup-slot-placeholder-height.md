@@ -35,3 +35,37 @@
 - 계측 함정 (같이 확인): `useStore.setActiveBreakpoint(bp)` 만 부르면 layout rect 가 이전 breakpoint 값에 머문다 (`getSharedLayoutVersion` 은 오르는데 body 폭은 그대로). 헤더 뷰포트 radio (데스크톱/태블릿/모바일) 를 클릭해야 프레임 영역 크기까지 바뀐다 — breakpoint 별 rect 는 UI 경로로 잰다.
 - ~~catalog `TailSwatch` 팔레트 항목이 dead (creator 없음) — 제거 vs 구현은 제품 판단.~~ **사용자 판정 (2026-09-04): "컴포넌트에서 제공하지 않는다" → 팔레트 노출 제거** (`paletteItems.ts` PALETTE_ONLY · PALETTE_ORDER, `ComponentList` i18n 매핑, oracle fixture; 게이트 `paletteItems.test.ts` "TailSwatch 는 팔레트에 없다"). catalog rule/binding/generated CSS/shared `TailSwatch.tsx` (builder `PropertyColorPicker` 가 `MyColorSwatches` 를 쓴다) 는 남긴다 — 파일 삭제는 별도 승인.
 - Slot.spec `sizes.height` 가 CSS `height` 로 나가지만 Canvas 는 `minHeight` 로 읽는다 — 의미를 spec 에서 `minHeight` 로 옮길지 (CSSGenerator 필드) 별도 판단.
+
+## 후속 — spec 축을 `height` → `minHeight` 로 전환 (2026-09-04, 착수 8, 사용자 판단)
+
+Canvas 는 이미 spec 값을 minHeight 로 **번역**해 주입하고 있었다 (§2 — layout 템플릿의 Slot 인라인 `minHeight: 60` · content slot `flex: 1` 과 같은 계약; 고정 높이로 누르면 flex 로 늘어나야 하는 slot 이 깨진다). spec 만 `height` 라 **선언과 소비 의미가 어긋나** 있었고, 생성 CSS 는 DOM 에 고정 높이를 주고 있었다. 사용자 판단: 전환 — 단, 생성 CSS 가 `height` → `min-height` 로 바뀌는 **사용자-가시 semantic** 이므로 별도 commit.
+
+### 변경
+
+| 파일                          | 변경                                                                                   |
+| ----------------------------- | -------------------------------------------------------------------------------------- |
+| `Slot.spec.ts` sizes          | `height: 40/60/80` → `minHeight: 40/60/80`                                             |
+| `spec.types.ts` `SizeSpec`    | `height: number` → `height?: number` (축은 컴포넌트가 정한다 — Frame/Group·primitives 는 그대로 height) |
+| `implicitStyles.ts` Slot 분기 | `specSizeField(..., "height")` → `"minHeight"` (번역 없이 같은 축을 읽는다)            |
+| 생성 `Slot.css`               | `height: 60px` → `height: auto` + `min-height: 60px` (sm 40 · lg 80 동형)              |
+| `variantColors.ts` / `skiaPrimitives.ts` | optional 전파 — `getSizePreset` 반환 타입 `number \| undefined`, divider 두께 `?? 1` |
+
+### 전환이 드러낸 것 — placeholder chrome 이 상자를 넘고 있었다
+
+고정 높이를 걷어내자 DOM 이 **74** 로 늘어났다 (Canvas 60). 원인은 `Slot.tsx` 의 placeholder chrome (icon + 이름) 에 **CSS 가 하나도 없어** 블록 흐름으로 쌓인 것 — 자연 높이 74 가 종전 `height: 60px` 를 넘어 상자 **밖으로 넘치고 있었다** (고정 높이가 그 넘침을 가렸다). Canvas 는 이 chrome 을 그리지 않고 점선 상자만 그린다 (`Slot.spec.render.shapes`).
+
+수리: chrome 배치를 spec `composition.externalStyles` 로 선언해 (수동 CSS 아님 — D3 파생 채널) 한 줄 (icon · 이름) 로 눕혔다. 값은 배치뿐 (display/align-items/gap/flex-direction/min-width) — 색·타이포는 도입하지 않았다. content 24 + padding 24 = 48 < 60 → 선언 최소 높이가 이긴다.
+
+남는 비대칭 (기록): `description` 이 있어 chrome 이 두 줄이 되면 DOM 만 늘어난다. chrome 자체가 DOM 전용 편집 장식이라는 성질에서 오는 것으로, Canvas 가 chrome 을 그리게 되면 같이 해소된다.
+
+### 게이트 · 원복 RED
+
+- 신규 `packages/specs/src/components/__tests__/slotMinHeightAxis.test.ts` 2 — spec 이 minHeight 축을 쓴다 + 생성 CSS 가 `min-height` 를 emit 하고 고정 `height: Npx` 를 emit 하지 않는다 (한쪽만 고정하면 spec 을 되돌려도 CSS 만 보고 통과한다).
+- 원복 (minHeight → height) → 두 케이스 모두 FAIL.
+- 기존 `slotImplicitStyles.test.ts` 4 PASS (필드명 전환 후에도 주입값 60 동일 — 이 게이트가 rename 회귀를 막는다).
+- `CSSGenerator.snapshot` Slot 스냅샷 갱신 (생성물 diff 는 Slot.css 한 파일).
+
+### 검증
+
+- browser 게이트 `adr923Hc2ConversionRect` Slot: **canvas block 400×60 ↔ dom div:block 400×60** (production Canvas 트리 ↔ production rendererMap, Preview 전역 reset 포함). 전환 직후엔 이 게이트가 `Δh 60 vs 74` 로 RED 였고, chrome 배치 수리로 GREEN — 즉 이 숫자가 위 "넘침" 의 실측 근거다.
+- type-check PASS · specs 880 PASS · parity 1086 PASS (기존 2) · builder 5223 PASS (기존 4, 무관).
