@@ -42,7 +42,7 @@ import {
   toSkiaStyle,
   usesButtonBaseUtility,
   FIELD_ERROR_CHILD_SELECTOR,
-  resolveDelegatedSubpartOwnerType,
+  resolveSubpartStyleOwnerType,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -1597,7 +1597,7 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     ? elementsMap.get(spDirectParent.parent_id)
     : undefined;
   const spOwnerType = spDirectParent
-    ? resolveDelegatedSubpartOwnerType(
+    ? resolveSubpartStyleOwnerType(
         element.type,
         spDirectParent.type,
         spGrandparent?.type,

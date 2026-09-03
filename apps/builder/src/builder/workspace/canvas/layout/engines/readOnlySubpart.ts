@@ -6,6 +6,9 @@
  * 인라인 style 은 어떤 채널로도 DOM 에 닿지 않는다. Canvas read 경로 (layout · Skia) 는 그 인라인을
  * **통째로 무시**하고, DOM 이 CSS 로 갖는 구조값만 read-time 에 투영한다:
  *   - 투영 `display` (propagation / factory `none`) — 전 type.
+ *   - SelectValue 는 **style 축만** sub-part (2026-09-04 판정 A): 인라인 style 은 무시하되 텍스트/placeholder 는
+ *     자식이 정본이라 props 는 그대로 둔다. 구조값 (flex 1 · minWidth 0 · fontSize · nowrap) 은 implicitStyles
+ *     selecttrigger 분기의 read-through 주입이 유일 채널.
  *   - FieldError 글자 크기 = owner rule delegation (`.react-aria-FieldError` hint 변수 — DOM computed 원천).
  *   - Input · DateInput (field 직계) 폭 100% — DOM 실효 폭 (root 가 `align-items:flex-start` 라 stretch 가
  *     아니라 CSS width 로 채운다). SelectTrigger 아래 DateInput 은 implicitStyles selecttrigger 분기가
@@ -21,7 +24,7 @@
 import {
   FIELD_ERROR_CHILD_SELECTOR,
   resolveDelegatedChildFontSize,
-  resolveDelegatedSubpartOwnerType,
+  resolveSubpartStyleOwnerType,
 } from "@composition/shared";
 
 import type { CanvasLayoutNode } from "../layoutNode";
@@ -39,7 +42,7 @@ export function resolveReadOnlySubpartOwner(
   const grandparent = parent.parent_id
     ? elementsMap.get(parent.parent_id)
     : undefined;
-  const ownerType = resolveDelegatedSubpartOwnerType(
+  const ownerType = resolveSubpartStyleOwnerType(
     element.type,
     parent.type,
     grandparent?.type,

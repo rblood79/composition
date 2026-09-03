@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [선택 상자의 값 텍스트에 준 스타일이 캔버스에서만 달라 보이던 문제를 정리했습니다] - 2026-09-04
+
+### Changed
+
+- 선택 상자 (Select · ComboBox · 검색 필드) 안의 값/안내 문구는 상위 컴포넌트의 디자인 규칙이 모양을 정합니다. 이제 캔버스도 그 규칙만 따르므로 캔버스에서만 글자가 커지거나 밀려 보이던 차이가 없어집니다. 스타일 패널은 어디서 편집해야 하는지 안내합니다.
+- 값과 안내 문구 (Placeholder) 텍스트 편집은 그대로 해당 요소에서 합니다.
+
 ## [컴포넌트 팔레트에서 동작하지 않던 "color picker" 항목을 뺐습니다] - 2026-09-04
 
 ### Removed

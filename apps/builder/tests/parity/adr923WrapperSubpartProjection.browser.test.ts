@@ -121,6 +121,8 @@ interface Leg {
   root: Box;
   label: Box | null;
   control: Box | null;
+  /** SelectValue (값/placeholder leaf) — style 축만 sub-part (2026-09-04 판정 A). */
+  value: Box | null;
 }
 
 const dom = new Map<AnyType, Leg>();
@@ -158,6 +160,12 @@ async function renderDom(type: AnyType): Promise<Leg> {
     control: controlSel
       ? rect(mount.querySelector(controlSel), rootRect.top)
       : null,
+    value: rect(
+      mount.querySelector(
+        ".react-aria-SelectValue, .react-aria-Input, input",
+      ) as HTMLElement | null,
+      rootRect.top,
+    ),
   };
 }
 
@@ -189,6 +197,9 @@ async function runCanvas(type: AnyType, junk: boolean): Promise<Leg> {
   const control = els.find(
     (el) => el.id !== tree.root.id && el.type === "SelectTrigger",
   );
+  const value = els.find(
+    (el) => el.id !== tree.root.id && el.type === "SelectValue",
+  );
   const run = layoutTree(tree.root.id, els, 400, -1, "wrapper-subpart");
   const toBox = (id: string | undefined): Box | null => {
     if (!id) return null;
@@ -200,6 +211,7 @@ async function runCanvas(type: AnyType, junk: boolean): Promise<Leg> {
     root: { w: rootBox?.width ?? 0, h: rootBox?.height ?? 0, y: 0 },
     label: toBox(label?.id),
     control: toBox(control?.id),
+    value: toBox(value?.id),
   };
 }
 
@@ -271,6 +283,25 @@ describe("ADR-923 SelectTrigger 래퍼 · 그룹 Label · picker DateInput — r
       const d = dom.get(type)!;
       const c = canvasClean.get(type)!;
       expectBox(`${type} label`, c.label, d.label);
+    }
+  });
+
+  it("SelectValue 는 style 축만 sub-part (판정 A, 2026-09-04) — Canvas 값 상자가 junk 에 불변이고 DOM 값 상자와 높이가 같다", () => {
+    for (const type of ["Select", "ComboBox", "SearchField"] as const) {
+      const c = canvasClean.get(type)!;
+      const j = canvasJunk.get(type)!;
+      const d = dom.get(type)!;
+      expect(c.value, `${type} canvas value 상자`).not.toBeNull();
+      expect(
+        JSON.stringify(j.value),
+        `${type} SelectValue junk == clean`,
+      ).toBe(JSON.stringify(c.value));
+      if (d.value) {
+        expect(
+          Math.abs(d.value.h - c.value!.h),
+          `${type} value Δh (dom ${d.value.h} vs canvas ${c.value!.h})`,
+        ).toBeLessThanOrEqual(1.5);
+      }
     }
   });
 

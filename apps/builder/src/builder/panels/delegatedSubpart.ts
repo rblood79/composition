@@ -14,7 +14,10 @@
  * **owner** (직계 parent 또는 조부모 field) 로 귀속한다: Properties · Styles 패널은 owner 가 있으면 안내만 띄우고,
  * Canvas read 경로 (fullTreeLayout · buildSpecNodeData) 는 같은 shared 술어로 인라인을 무시한다.
  */
-import { resolveDelegatedSubpartOwnerType } from "@composition/shared";
+import {
+  resolveDelegatedSubpartOwnerType,
+  resolveSubpartStyleOwnerType,
+} from "@composition/shared";
 
 import { useStore } from "../stores";
 
@@ -46,5 +49,25 @@ export function useSelectedSubpartOwnerType(
       parent.type,
       grandparent?.type,
     );
+  });
+}
+
+/**
+ * 선택 요소의 **style 축** 을 소유한 DOM parent type — Styles 패널이 쓴다. 전체 sub-part 에 더해 style 축만
+ * parent 소유인 자식 (SelectValue, 2026-09-04 판정 A) 을 포함한다. Properties 패널은 텍스트 축이 자식에 남으므로
+ * `useSelectedSubpartOwnerType` 을 그대로 쓴다.
+ */
+export function useSelectedSubpartStyleOwnerType(
+  elementId: string | null | undefined,
+): string | null {
+  return useStore((s) => {
+    if (!elementId) return null;
+    const el = s.elementsMap.get(elementId);
+    const parent = el?.parent_id ? s.elementsMap.get(el.parent_id) : undefined;
+    if (!el || !parent) return null;
+    const grandparent = parent.parent_id
+      ? s.elementsMap.get(parent.parent_id)
+      : undefined;
+    return resolveSubpartStyleOwnerType(el.type, parent.type, grandparent?.type);
   });
 }

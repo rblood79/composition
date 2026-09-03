@@ -69,11 +69,12 @@ const DOM_CONFLICTS = ["Checkbox", "Radio", "SliderOutput"] as const;
  * Phase 5 후속 HC2 전환 — DOM 을 preview 실경로 (`rendererMap`) 로 재는 type. 전환 commit 마다 한 항목씩
  * 들어오며, 여기 든 type 은 아래 `renders` (shared 컴포넌트 직접 마운트) 에서 빠진다.
  */
+// TailSwatch 는 2026-09-04 팔레트에서 제거 (creator 부재 — 사용자 판정) → 팔레트 트리에 없다. catalog rule 은
+//   남아 있고 rect 대조는 `adr923Hc2ConversionRect.browser.test.ts` 가 직접 트리를 만들어 계속 잰다.
 const PREVIEW_LEG_TYPES: readonly string[] = [
   "Skeleton",
   "Avatar",
   "StatusLight",
-  "TailSwatch",
   "Slot",
 ];
 const UNDECLARED = [

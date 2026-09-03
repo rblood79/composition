@@ -23,7 +23,10 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { EmptyState, PanelHeader } from "../../components";
-import { isDelegatedSubpart, useSelectedSubpartOwnerType } from "../delegatedSubpart";
+import {
+  isDelegatedSubpart,
+  useSelectedSubpartStyleOwnerType,
+} from "../delegatedSubpart";
 import {
   TransformSection,
   LayoutSection,
@@ -107,7 +110,7 @@ function StylesPanelContent() {
   const selectedElement = useDebouncedSelectedElementData();
   // ADR-923 잔여 1 (2026-09-03 판정 A): parent 가 self-compose 하는 sub-part 는 style 정본이 parent rule —
   //   여기서 준 값은 어디에도 실리지 않으므로 안내만 (`delegatedSubpart.ts`).
-  const selectedSubpartOwnerType = useSelectedSubpartOwnerType(selectedElement?.id);
+  const selectedSubpartOwnerType = useSelectedSubpartStyleOwnerType(selectedElement?.id);
   const delegatedSubpart = isDelegatedSubpart(
     selectedElement?.type,
     selectedSubpartOwnerType,

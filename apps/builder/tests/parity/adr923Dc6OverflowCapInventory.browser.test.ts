@@ -347,7 +347,7 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
   Switch: "complex",
   Slider: "complex",
   Meter: "complex",
-  TailSwatch: "none",
+  // TailSwatch 는 2026-09-04 팔레트에서 제거 (ComponentFactory creator 부재 — 사용자 판정).
   DropZone: "none",
   FileTrigger: "none",
   Form: "reusableOrigin",
