@@ -173,6 +173,10 @@ async function runCanvas(
             ...((el.props?.style ?? {}) as Record<string, unknown>),
             fontSize: legacyChildFontSize,
             lineHeight: "10px",
+            // 잔여 1 (판정 A): read-only sub-part — 간격·색 인라인도 DOM 미도달, Canvas 가 무시해야 한다
+            marginTop: 30,
+            padding: 9,
+            color: "rgb(1, 2, 3)",
           },
         },
       } as Element;

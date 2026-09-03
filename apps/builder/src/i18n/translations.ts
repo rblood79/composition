@@ -453,6 +453,9 @@ const koKR: TranslationKeys = {
     slotReplace: "덮어쓰기",
     emptyMessage: "편집 가능한 속성이 없습니다",
     emptyDescription: "'{type}' 컴포넌트의 편집 계약이 비어 있습니다.",
+    delegatedSubpartMessage: "부모에서 편집하는 요소입니다",
+    delegatedSubpartDescription:
+      "{type} 은 {parent} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 Invalid · Error Message 로 편집하세요.",
     selectElement: "요소를 선택하세요",
     copyProperties: "속성 복사",
     pasteProperties: "속성 붙여넣기",
@@ -1065,6 +1068,9 @@ const koKR: TranslationKeys = {
       "아직 override 가 없습니다. 편집은 전역입니다 — 아래에서 속성을 추가하면 {breakpoint} 전용으로 분리됩니다.",
     restoreGlobally: "전역으로 되돌리기",
     view: "스타일 뷰",
+    delegatedSubpartMessage: "부모에서 그리는 요소입니다",
+    delegatedSubpartDescription:
+      "{type} 의 스타일은 {parent} 의 디자인 규칙이 정합니다. 여기서 준 값은 캔버스·미리보기 어디에도 반영되지 않습니다.",
     layout: "레이아웃",
     layoutHint: "변형 · 레이아웃",
     style: "스타일",
@@ -1875,6 +1881,9 @@ const enUS: TranslationKeys = {
     slotReplace: "Replace",
     emptyMessage: "No editable properties",
     emptyDescription: "The editing contract for '{type}' is empty.",
+    delegatedSubpartMessage: "Edited from the parent",
+    delegatedSubpartDescription:
+      "{type} is drawn by {parent} — its own properties and styles never reach Preview or Publish. Edit the parent's Invalid · Error Message instead.",
     selectElement: "Select an element",
     copyProperties: "Copy properties",
     pasteProperties: "Paste properties",
@@ -2492,6 +2501,9 @@ const enUS: TranslationKeys = {
       "No overrides yet — edits are global. Add a property below to split it into {breakpoint} only.",
     restoreGlobally: "restore globally",
     view: "Style view",
+    delegatedSubpartMessage: "Styled by the parent",
+    delegatedSubpartDescription:
+      "{type} takes its style from the design rules of {parent}. Values set here reach neither the canvas nor Preview.",
     layout: "Layout",
     layoutHint: "Transform · Layout",
     style: "Style",
@@ -3365,6 +3377,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → 토스트`,
     "interactions.summaryToastWithMessage": (args) =>
       `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
+    "propertiesPanel.delegatedSubpartDescription": (args) =>
+      `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 Invalid · Error Message 로 편집하세요.`,
+    "styles.delegatedSubpartDescription": (args) =>
+      `${String(args?.type ?? "")} 의 스타일은 ${String(args?.parent ?? "")} 의 디자인 규칙이 정합니다. 여기서 준 값은 캔버스·미리보기 어디에도 반영되지 않습니다.`,
     "propertiesPanel.emptyDescription": (args) =>
       `'${String(args?.type ?? "")}' 컴포넌트의 편집 계약이 비어 있습니다.`,
     "propertiesPanel.confirmDeleteSelection": (args) =>
@@ -3615,6 +3631,10 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → toast`,
     "interactions.summaryToastWithMessage": (args) =>
       `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
+    "propertiesPanel.delegatedSubpartDescription": (args) =>
+      `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's Invalid · Error Message instead.`,
+    "styles.delegatedSubpartDescription": (args) =>
+      `${String(args?.type ?? "")} takes its style from the design rules of ${String(args?.parent ?? "")}. Values set here reach neither the canvas nor Preview.`,
     "propertiesPanel.emptyDescription": (args) =>
       `The editing contract for '${String(args?.type ?? "")}' is empty.`,
     "propertiesPanel.confirmDeleteSelection": (args) =>

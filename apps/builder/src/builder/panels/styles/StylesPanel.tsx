@@ -23,6 +23,7 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { EmptyState, PanelHeader } from "../../components";
+import { isDelegatedSubpart, useSelectedParentType } from "../delegatedSubpart";
 import {
   TransformSection,
   LayoutSection,
@@ -104,6 +105,13 @@ function StylesPanelContent() {
   const { t } = useI18n();
   const hasSelectedElement = useStore((s) => s.selectedElementId != null);
   const selectedElement = useDebouncedSelectedElementData();
+  // ADR-923 잔여 1 (2026-09-03 판정 A): parent 가 self-compose 하는 sub-part 는 style 정본이 parent rule —
+  //   여기서 준 값은 어디에도 실리지 않으므로 안내만 (`delegatedSubpart.ts`).
+  const selectedParentType = useSelectedParentType(selectedElement?.id);
+  const delegatedSubpart = isDelegatedSubpart(
+    selectedElement?.type,
+    selectedParentType,
+  );
   const selectedStyle =
     (selectedElement?.style as Record<string, unknown> | undefined) ?? null;
   // 수정 개수는 baseline(factory default / spec preset / subpart)과 실제로 다른 prop 수만 센다.
@@ -180,6 +188,34 @@ function StylesPanelContent() {
           <EmptyState
             icon={<PaintRoller size={32} />}
             message={t("styles.selectElement")}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (delegatedSubpart && selectedElement) {
+    return (
+      <div className="panel">
+        <PanelHeader
+          icon={
+            <PaintRoller
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          }
+          title={selectedElement.type}
+          panelId="styles"
+        />
+        <div className="panel-contents">
+          <EmptyState
+            icon={<PaintRoller size={32} />}
+            message={t("styles.delegatedSubpartMessage")}
+            description={t("styles.delegatedSubpartDescription", {
+              type: selectedElement.type,
+              parent: selectedParentType ?? "",
+            })}
           />
         </div>
       </div>

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [입력 필드의 오류 메시지 요소는 부모에서 편집합니다] - 2026-09-03
+
+### Changed
+
+- TextField · TextArea · NumberField · DateField · TimeField 안의 오류 메시지 요소 (FieldError) 를 Layers 에서 선택하면 Properties 와 Styles 패널이 편집 컨트롤 대신 "부모에서 편집하는 요소" 안내를 띄웁니다. 이 요소에 직접 준 글자색·간격·크기는 Preview 와 Publish 가 원래 읽지 않았고 (필드가 부모 속성으로 통째로 그립니다) 캔버스에서만 달라 보였습니다. 이제 캔버스도 같은 값을 무시하고 부모 필드의 디자인 규칙 (글자 크기 14/12px, 빨간 글자, 줄 높이 1.5) 만 쓰므로 세 화면이 같습니다. 예전 문서에 남아 있던 값은 지우지 않아도 되며 어디에도 반영되지 않습니다. 오류 메시지의 표시·문구는 종전대로 부모의 Invalid · Error Message 로 편집합니다. 실측: 실제 빌더에서 요소에 색·여백·크기를 준 뒤 캔버스 상자 (87×21) 와 필드 높이 (83) 가 그대로인 것을 확인, 자동 게이트 2종 (Skia 노드 동일성 · DOM 대조 5 종).
+
 ## [Invalid 로 켠 입력 필드의 오류 메시지가 캔버스에도 보입니다] - 2026-09-03
 
 ### Fixed

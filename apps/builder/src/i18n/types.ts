@@ -470,6 +470,8 @@ export interface TranslationKeys {
     slotReplace: string;
     emptyMessage: string;
     emptyDescription: string;
+    delegatedSubpartMessage: string;
+    delegatedSubpartDescription: string;
     selectElement: string;
     copyProperties: string;
     pasteProperties: string;
@@ -1004,6 +1006,8 @@ export interface TranslationKeys {
     responsiveNoOverrides: string;
     restoreGlobally: string;
     view: string;
+    delegatedSubpartMessage: string;
+    delegatedSubpartDescription: string;
     layout: string;
     layoutHint: string;
     style: string;

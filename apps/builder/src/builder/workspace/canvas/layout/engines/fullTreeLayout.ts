@@ -13,6 +13,7 @@ import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
 import {
   FIELD_ERROR_CHILD_SELECTOR,
+  hasDelegatedChild,
   resolveDelegatedChildFontSize,
 } from "@composition/shared";
 import type { ComputedLayout } from "./LayoutEngine";
@@ -1500,16 +1501,22 @@ function traversePostOrder(
           string | undefined,
       );
       if (feFontSize != null) {
-        // 줄 높이도 같은 소유권 (round 3 fe2h1): DOM 은 root `line-height: 1.5` 를 상속하고 자식의
-        //   인라인 lineHeight 를 읽을 채널이 없다 → 인라인을 **걷어낸다**. 값을 명시 주입하지 않는
-        //   이유는 빈 FieldError (invalid + 메시지 없음) 때문 — DOM 은 내용이 없으면 줄 상자가 없어
-        //   높이 0 이고, 측정 기본 (내용 있을 때만 fs × 1.5) 이 그 계약과 같다.
-        const { lineHeight: _feInlineLineHeight, ...feStyleRest } = feStyle;
+        // read-only sub-part (잔여 1, 2026-09-03 판정 A): delegation 이 잡히는 parent 아래 FieldError 는
+        //   DOM 이 parent props 로 self-compose 하는 sub-part 라 자식의 인라인 style 전부가 DOM 에 닿을
+        //   채널이 없다 (fontSize·lineHeight 만이 아니라 color·margin·padding·width 도). 그래서 인라인은
+        //   **통째로 무시**하고 투영 `display` (propagation / factory none) 와 delegation fontSize 만 남긴다.
+        //   줄 높이는 명시 주입하지 않는다 — 빈 FieldError 는 DOM 에 줄 상자가 없어 높이 0 이고, 측정
+        //   기본 (내용 있을 때만 fs × 1.5) 이 그 계약과 같다 (round 3 fe2h1).
         rawElement = {
           ...rawElement,
           props: {
             ...rawElement.props,
-            style: { ...feStyleRest, fontSize: feFontSize },
+            style: {
+              ...(feStyle.display !== undefined
+                ? { display: feStyle.display }
+                : {}),
+              fontSize: feFontSize,
+            },
           },
         } as CanvasLayoutNode;
       }
@@ -3255,9 +3262,20 @@ export function calculateFullTreeLayout(
       const layoutResult = layoutBatch.get(handle);
       if (!layoutResult) continue;
 
-      // margin 정보 (ComputedLayout.margin 필드용)
-      const elementStyle = (elementsMap.get(node.elementId)?.props?.style ??
-        {}) as Record<string, unknown>;
+      // margin 정보 (ComputedLayout.margin 필드용). read-only sub-part (field 의 FieldError, 잔여 1
+      //   판정 A) 는 인라인 margin 을 엔진이 무시하므로 overlay 보고도 batch (축소된 style) 를 읽는다 —
+      //   raw store style 을 읽으면 적용되지 않은 margin 띠가 overlay 에 그려진다 (live 실측).
+      const rawEl = elementsMap.get(node.elementId);
+      const rawParent = rawEl?.parent_id
+        ? elementsMap.get(rawEl.parent_id)
+        : undefined;
+      const isReadOnlySubpart =
+        rawEl?.type === "FieldError" &&
+        !!rawParent &&
+        hasDelegatedChild(rawParent.type, FIELD_ERROR_CHILD_SELECTOR);
+      const elementStyle = (
+        isReadOnlySubpart ? (node.style ?? {}) : (rawEl?.props?.style ?? {})
+      ) as Record<string, unknown>;
       const margin = parseMargin(elementStyle);
 
       // **body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용** (2026-07-28).

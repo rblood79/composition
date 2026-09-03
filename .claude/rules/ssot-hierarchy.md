@@ -62,6 +62,12 @@ composition 아키텍처는 **3개의 독립 domain**으로 구성된다. 각 do
 - consumer 는 항상 `resolveFillTokens(variant)` / `resolveIndicatorFill(im)` 경유로 fill 접근 (direct property access 금지).
 - 비-background 색상 (`text / border / textHover / borderHover / selectedText / outlineText / subtleText / selectedBorder / emphasizedSelectedText / emphasizedSelectedBorder`) 는 VariantSpec 직접 필드로 유지 — fill preset 언어로의 확장은 후속 ADR 판정.
 
+**D3 read-only sub-part — field 5 가족의 FieldError 자식 (ADR-923 Phase 5 후속 잔여 1, 2026-09-03 사용자 판정 A)**:
+
+- Preview/publish 는 TextField·TextArea·NumberField·DateField·TimeField 를 parent props 만으로 self-compose 하고 canonical 자식 Label/Input/FieldError 를 읽지 않는다. 그중 FieldError 는 parent rule 의 `.react-aria-FieldError` delegation 이 시각 정본 — 자식은 canonical 에 남되 (Canvas 구조 정본) **편집 surface 는 parent 로 귀속**한다.
+- 술어 `hasDelegatedChild(parentType, childSelector)` (`@composition/shared`) 하나를 Canvas read 경로 (layout·Skia — 자식 인라인 style 통째 무시, 투영 display + delegation fontSize 만) 와 Properties·Styles 패널 (`panels/delegatedSubpart.ts` — 안내만) 이 같이 읽는다.
+- 금지: 자식 style 을 RAC 내부 sub-part 로 운반하는 custom prop 신설 (RSP 미규정 — D2 위반). Label/Input 은 factory 인라인이 Canvas layout 입력이라 별도 판정.
+
 **D1 ↔ D3 분리 사례 — RAC `Group` ↔ canonical `frame` (ADR-130 Implemented 2026-05-13)**:
 
 - RAC `Group` = D1 ARIA semantic (`role: "group"`, `aria-label`) — `Group.spec.ts` 보존 (변경 0)

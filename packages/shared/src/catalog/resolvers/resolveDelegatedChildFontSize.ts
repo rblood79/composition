@@ -82,6 +82,23 @@ function findDelegation(
   return entry ? { entry, defaultSize: rule?.defaultSize } : undefined;
 }
 
+/**
+ * parent rule 이 이 자식 selector 에 delegation 항목을 갖는가 — 즉 DOM 이 이 자식을 **parent 가 self-compose
+ * 하는 sub-part** 로 그리는가. ADR-923 Phase 5 후속 잔여 1 (2026-09-03, 사용자 판정 A): 그런 자식
+ * (field 5 가족의 FieldError) 은 canonical 에 남되 **read-only sub-part** 다 — Preview/publish 가 canonical
+ * 자식을 읽지 않으므로 (`renderTextField` 등은 parent props 만 self-compose) 자식의 인라인 style 은 DOM 에
+ * 닿을 채널이 없다. Canvas read 경로 (layout · Skia) 는 자식 인라인을 무시하고 delegation + 투영 display 만
+ * 소비하며, Properties · Styles 패널은 편집을 parent 로 귀속시킨다. 한 술어를 세 곳이 같이 읽는다.
+ */
+export function hasDelegatedChild(
+  parentType: string,
+  childSelector: string,
+): boolean {
+  if (findDelegation(parentType, childSelector)) return true;
+  const alias = DOM_ROOT_RULE_ALIAS[parentType.toLowerCase()];
+  return alias ? findDelegation(alias, childSelector) != null : false;
+}
+
 export function resolveDelegatedChildFontSize(
   parentType: string,
   childSelector: string,

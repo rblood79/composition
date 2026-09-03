@@ -290,3 +290,34 @@ live (Chrome MCP, 프로젝트 e16b69c6 Home — 팔레트 TextField 신규 생�
 round 6 판독은 열지 않는다. 사용자 지적 (2026-09-03) 으로 판독 루프의 커버리지 ratchet 패턴을 확정했고, 그 규칙을 `.claude/rules/review-loop-closure.md` 로 명문화했다 — phase · 후속 항목의 닫힘은 실행자가 선언하고, production 재현 없는 커버리지 지적은 LOW deferred 다.
 
 잔여 (§5-5) 는 이 항목 밖의 별도 작업으로 남긴다: (1) canonical FieldError 자식의 편집 surface 위상 (SSOT 경계 판정 — 착수 전 결정 지점 질문) · (2) `generated/*.css` 미import 전수 (생성물 93 vs import 66) · (3) 옛 문서 인라인 `fontSize:12` 정리 (별도 승인). Description 축 (§4 후속 9번) 은 (1) 판정 뒤.
+
+## 10. 잔여 1 — canonical FieldError 자식의 편집 surface 위상 (2026-09-03, 결정 지점 (3) 사용자 판정 A)
+
+### 10-1. 사실
+
+- DOM (Preview·publish 공통 `packages/shared/src/renderers/FormRenderers.tsx` — `renderTextField` · TextArea · NumberField · DateField · TimeField): parent props (`label`·`description`·`errorMessage`·`isInvalid`·`style`) 만으로 self-compose. canonical 자식 Label/Input/FieldError 는 **전혀 읽지 않는다** (`data-element-id` 없음).
+- Canvas: 자식은 실제 layout 노드 (`FIELD_VISIBLE_CHILD_TAGS`) · Skia 텍스트. 부모 상태는 propagation 으로 투영, fontSize·lineHeight 는 round 2·3 에서 delegation 우선. 그 밖의 인라인 (color·margin·padding·width) 은 Canvas 만 반영했다.
+- 편집 surface: Layers 에 자식 노출 · Properties 는 binding `accepts` 로 `children`·`size` 제공 · Styles 는 모든 style 쓰기 허용 — 셋 다 DOM 에 닿지 않았다.
+- 선례: collection 행은 `projection:` id (canonical 밖) · DatePicker 는 "canonical 자식이 Canvas 구조 정본, Skia projection 우회 금지". 자식을 canonical 에서 빼는 것은 선례와 충돌 — **편집 의미**만 판정.
+
+### 10-2. 판정 A — read-only sub-part
+
+field 5 가족의 FieldError 자식은 canonical 에 남되 (Canvas 구조 정본) D3 시각 정본은 **parent rule delegation** 이고 편집 surface 는 parent 로 귀속한다. 술어 하나 (`hasDelegatedChild(parentType, ".react-aria-FieldError")`, `@composition/shared`) 를 세 곳이 같이 읽는다:
+
+- Canvas read 경로 — layout (`fullTreeLayout` FieldError 블록) · Skia (`buildSpecNodeData` FieldError 블록): 자식 인라인 style 을 **통째로 무시**하고 투영 `display` + delegation fontSize 만 남긴다. 줄 높이는 root 1.5 (명시 주입 없음 — 빈 FieldError 높이 0 계약). overlay 의 margin 보고도 batch (축소된 style) 를 읽는다 — raw store style 을 읽으면 적용되지 않은 margin 띠가 그려졌다 (live 실측 `margin.top: 30`).
+- Properties · Styles 패널 (`panels/delegatedSubpart.ts` → `isDelegatedSubpart` · `useSelectedParentType`): 술어가 참이면 안내만 (`propertiesPanel.delegatedSubpart*` · `styles.delegatedSubpart*`, ko/en, `formattedMessages` 등록).
+- 옛 문서의 인라인 `fontSize:12` 등은 read 경로가 무시하므로 **잔여 3 (데이터 정리) 불필요** — 저장 데이터 무변경.
+- Label/Input 은 같은 부류지만 factory 인라인 (Input `width:100%` · Label `fontWeight 600`) 이 Canvas layout 입력이라 **별도 판정**으로 남긴다.
+- 대안 B (자식 style 을 RAC `<FieldError style>` 로 운반) 는 RSP 에 없는 custom prop 도입이라 D2 금지 패턴 — 기각. C (현행 유지) 는 symmetric consumer 원칙 위반.
+
+### 10-3. 게이트 · 원복 RED
+
+- bridge `read-only sub-part` 케이스 (5 field × 인라인 color·marginTop·padding·width·fontSize·lineHeight → Skia 노드가 clean 과 JSON 동일, `hasDelegatedChild` Button/Form false) → node 10.
+- browser 옛 문서 케이스에 `marginTop:30 · padding:9 · color` 추가 → 5 field 모두 DOM 과 Δ0 유지.
+- 원복 (n) layout 인라인 무시 제거 → browser 1 FAIL (TextField legacy 높이 Canvas 39 vs DOM 21) · (o) Skia 인라인 무시 제거 → bridge 1 FAIL. 기존 게이트 (a)~(m) 의 코드 경로는 손대지 않았다 (규칙 §3 동작 변경 커밋 — 새 게이트가 반응하는 행만 재측정).
+
+### 10-4. 검증 · live
+
+type-check · builder unit **5202** (657 파일) · bridge 10 · i18n 18 · focused `adr923*` **129** · full parity **1073** (기존 2 FAIL) · browser FieldError 5.
+
+live (Chrome MCP, 프로젝트 e16b69c6 Home — 팔레트 TextField, parent `isInvalid + errorMessage`, 자식에 `color · marginTop:30 · padding:9 · width:50 · fontSize:12 · lineHeight:10` 주입): FieldError rect 87×21 @y62 · TextField 83 — 주입 전과 동일, overlay margin 0. 자식 선택 시 Properties "Edited from the parent" · Styles "Styled by the parent" 안내 (type/parent 치환), 콘솔 오류 0.

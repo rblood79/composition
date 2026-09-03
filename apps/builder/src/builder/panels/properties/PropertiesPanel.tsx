@@ -54,6 +54,7 @@ import {
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
 import { dispatchSemanticUpdateWithPropagation } from "./semanticUpdateDispatch";
+import { isDelegatedSubpart, useSelectedParentType } from "../delegatedSubpart";
 import {
   alignSelection,
   copySelection,
@@ -692,6 +693,14 @@ function PropertiesPanelContent() {
   );
 
   // 선택된 요소가 없으면 빈 상태 표시
+  // ADR-923 잔여 1 (2026-09-03 판정 A): DOM 이 parent 로 self-compose 하는 sub-part (field 의 FieldError)
+  //   는 편집 surface 를 parent 로 귀속 — 안내만 띄운다 (`delegatedSubpart.ts`).
+  const selectedParentType = useSelectedParentType(selectedElement?.id);
+  const delegatedSubpart = isDelegatedSubpart(
+    selectedElement?.type,
+    selectedParentType,
+  );
+
   if (!selectedElement) {
     return (
       <div className="panel">
@@ -751,59 +760,73 @@ function PropertiesPanelContent() {
       />
 
       <div className="panel-contents">
-        {/* 🚀 Performance: MultiSelectContent - 다중 선택 UI 분리 */}
-        <MultiSelectContent
-          selectedElement={selectedElement}
-          onSetSelectedElement={setSelectedElement}
-          onSetSelectedElements={setSelectedElements}
-        />
+        {delegatedSubpart ? (
+          <EmptyState
+            icon={<Settings2 size={32} />}
+            message={t("propertiesPanel.delegatedSubpartMessage")}
+            description={t("propertiesPanel.delegatedSubpartDescription", {
+              type: selectedElement.type,
+              parent: selectedParentType ?? "",
+            })}
+          />
+        ) : (
+          <>
+            {/* 🚀 Performance: MultiSelectContent - 다중 선택 UI 분리 */}
+            <MultiSelectContent
+              selectedElement={selectedElement}
+              onSetSelectedElement={setSelectedElement}
+              onSetSelectedElements={setSelectedElements}
+            />
 
-        <ComponentSemanticsSection elementId={selectedElement.id} />
+            <ComponentSemanticsSection elementId={selectedElement.id} />
 
-        {/* 모든 element 공통의 DOM/CSS 식별 축 (id · class) — 퍼블리싱 문서와 인터랙션
+            {/* 모든 element 공통의 DOM/CSS 식별 축 (id · class) — 퍼블리싱 문서와 인터랙션
             대상 지목이 그대로 쓰는 구조라 컴포넌트별 편집 계약과 분리한다. */}
-        <ElementAttributesSection elementId={selectedElement.id} />
+            <ElementAttributesSection elementId={selectedElement.id} />
 
-        {/* body 의 페이지·프레임 오소링 축 (catalog accepts 로 표현 불가 — PageBodySection 주석) */}
-        <PageBodySection elementId={selectedElement.id} />
+            {/* body 의 페이지·프레임 오소링 축 (catalog accepts 로 표현 불가 — PageBodySection 주석) */}
+            <PageBodySection elementId={selectedElement.id} />
 
-        <FrameSlotSection elementId={selectedElement.id} />
+            <FrameSlotSection elementId={selectedElement.id} />
 
-        <ComponentSlotFillSection elementId={selectedElement.id} />
+            <ComponentSlotFillSection elementId={selectedElement.id} />
 
-        <CatalogEditContractEditor
-          selectedElement={selectedElement}
-          contentExtras={
-            /* Button/ToggleButton 의 Icon·Text 자식 편집 — catalog 계약 밖 축이지만
+            <CatalogEditContractEditor
+              selectedElement={selectedElement}
+              contentExtras={
+                /* Button/ToggleButton 의 Icon·Text 자식 편집 — catalog 계약 밖 축이지만
                사용자에겐 같은 Content 라 별도 섹션을 만들지 않고 주입한다. */
-            BUTTON_CHILD_HOST_TAGS.has(selectedElement.type) ? (
-              <ButtonChildFields elementId={selectedElement.id} />
-            ) : undefined
-          }
-        />
+                BUTTON_CHILD_HOST_TAGS.has(selectedElement.type) ? (
+                  <ButtonChildFields elementId={selectedElement.id} />
+                ) : undefined
+              }
+            />
 
-        {/* ⭐ Layout/Slot System: Element가 들어갈 Slot 선택 */}
-        <ElementSlotSelector
-          elementId={selectedElement.id}
-          currentSlotName={getSlotMirrorName(selectedElement.properties)}
-          onSlotChange={(slotName) => {
-            const element =
-              elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
-            const props = withSlotMirrorName(
-              (element?.props ?? selectedElement.properties) as Record<
-                string,
-                unknown
-              >,
-              slotName,
-            );
-            const patch: Partial<Element> = {
-              props: props as Element["props"],
-            };
-            (patch as Record<string, unknown>)[SLOT_NAME_MIRROR_FIELD] =
-              slotName;
-            void updateElement(selectedElement.id, patch);
-          }}
-        />
+            {/* ⭐ Layout/Slot System: Element가 들어갈 Slot 선택 */}
+            <ElementSlotSelector
+              elementId={selectedElement.id}
+              currentSlotName={getSlotMirrorName(selectedElement.properties)}
+              onSlotChange={(slotName) => {
+                const element =
+                  elementsById.get(selectedElement.id) ??
+                  selectedCanonicalElement;
+                const props = withSlotMirrorName(
+                  (element?.props ?? selectedElement.properties) as Record<
+                    string,
+                    unknown
+                  >,
+                  slotName,
+                );
+                const patch: Partial<Element> = {
+                  props: props as Element["props"],
+                };
+                (patch as Record<string, unknown>)[SLOT_NAME_MIRROR_FIELD] =
+                  slotName;
+                void updateElement(selectedElement.id, patch);
+              }}
+            />
+          </>
+        )}
       </div>
     </div>
   );

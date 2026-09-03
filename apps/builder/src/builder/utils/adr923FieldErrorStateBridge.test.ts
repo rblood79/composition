@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   FIELD_ERROR_CHILD_SELECTOR,
+  hasDelegatedChild,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -296,6 +297,56 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
         resolveInheritedLineHeight(expected),
       );
     }
+  });
+
+  it("read-only sub-part (잔여 1, 판정 A) — delegation 이 잡히는 parent 아래 FieldError 는 인라인 color·margin·padding·width 를 Skia 가 통째로 무시한다 (투영 display 만 남는다)", () => {
+    const layout = { x: 0, y: 0, width: 200, height: 21 } as ComputedLayout;
+    for (const { type } of FIELD_DEFS) {
+      expect(hasDelegatedChild(type, FIELD_ERROR_CHILD_SELECTOR), type).toBe(
+        true,
+      );
+      const parent = {
+        id: `${type}-rp`,
+        type,
+        parent_id: null,
+        props: { label: "Name", isInvalid: true, errorMessage: "required" },
+      } as unknown as CanvasSceneNode;
+      const makeFe = (style: Record<string, unknown>) =>
+        ({
+          id: `${type}-rfe`,
+          type: "FieldError",
+          parent_id: parent.id,
+          props: { children: "required", style },
+        }) as unknown as CanvasSceneNode;
+      const build = (fe: CanvasSceneNode) =>
+        buildSpecNodeData({
+          element: fe,
+          layout,
+          theme: "light",
+          elementsMap: new Map([
+            [parent.id, parent],
+            [fe.id, fe],
+          ]),
+        });
+      const clean = build(makeFe({ display: "block" }));
+      const junk = build(
+        makeFe({
+          display: "block",
+          color: "rgb(1, 2, 3)",
+          marginTop: 30,
+          padding: 9,
+          width: 50,
+          fontSize: 12,
+          lineHeight: 10,
+        }),
+      );
+      expect(JSON.stringify(junk), `${type} 인라인 무시`).toBe(
+        JSON.stringify(clean),
+      );
+    }
+    // delegation 이 없는 parent 아래에서는 sub-part 가 아니다 — 술어 false, 인라인은 그대로 (범위 밖)
+    expect(hasDelegatedChild("Button", FIELD_ERROR_CHILD_SELECTOR)).toBe(false);
+    expect(hasDelegatedChild("Form", FIELD_ERROR_CHILD_SELECTOR)).toBe(false);
   });
 
   it("Inspector 쓰기 — parent 변경 {isInvalid} / {errorMessage} 가 FieldError 자식 store 업데이트로 나온다", () => {

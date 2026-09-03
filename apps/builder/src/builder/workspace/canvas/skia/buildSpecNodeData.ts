@@ -1600,10 +1600,19 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         )
       : undefined;
     if (delegated != null) {
+      // read-only sub-part (잔여 1, 2026-09-03 판정 A): DOM 은 parent props 로 self-compose 하므로 자식
+      //   인라인 style 은 전부 DOM 미도달 — 투영 `display` 와 delegation fontSize 만 남기고 통째로 무시한다
+      //   (color 는 catalog negative, 간격은 catalog 기본). 아래 "Text style overrides" (Phase A) 가 raw
+      //   `style` 을 다시 읽으므로 그 입력도 같이 줄인다.
+      const projectedDisplay =
+        existingStyle.display !== undefined
+          ? { display: existingStyle.display }
+          : {};
       specProps = {
         ...specProps,
-        style: { ...existingStyle, fontSize: delegated },
+        style: { ...projectedDisplay, fontSize: delegated },
       };
+      style = { ...projectedDisplay } as typeof style;
     }
     // 줄 높이는 자식 rule 토큰(md 16)이 아니라 **root 상속 비율**이 DOM 의 값이다 (r2 feh3 —
     //   활성 bundle 에 FieldError line-height 규칙 없음). 자식의 인라인 lineHeight 도 DOM 에 도달할
@@ -1620,12 +1629,6 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
         ...sizeSpec,
         lineHeight: resolveInheritedLineHeight(effectiveFontSize),
       };
-      // 인라인 lineHeight 는 아래 "Text style overrides" (Phase A) 가 raw style 에서 다시 읽어
-      //   spec 값을 덮으므로 (숫자는 배율 해석 — 10 → 14×10=140), 그 입력에서도 걷어낸다.
-      if (delegated != null && style.lineHeight != null) {
-        const { lineHeight: _droppedLineHeight, ...restStyle } = style;
-        style = restStyle;
-      }
     }
   }
 
