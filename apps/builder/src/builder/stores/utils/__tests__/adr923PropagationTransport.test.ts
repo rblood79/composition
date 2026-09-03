@@ -1,5 +1,7 @@
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
+import ts from "typescript";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import type { Element, Page } from "../../../../types/builder/unified.types";
@@ -15,22 +17,21 @@ import { createInspectorActionsSlice } from "../../inspectorActions";
 import { createBatchUpdateElementPropsAction } from "../elementUpdate";
 import type { BatchPropsUpdate } from "../elementUpdate";
 import {
-  buildPropagationUpdates,
-  toBatchPropsUpdates,
-} from "../../../utils/propagationEngine";
-import { getPropagationRules } from "../../../utils/propagationRegistry";
+  dispatchSemanticUpdateWithPropagation,
+  type SemanticUpdateActions,
+} from "../../../panels/properties/semanticUpdateDispatch";
 
 /**
- * ADR-923 Phase 5 후속 round 4 (fe3m1) — propagation 부분 style patch 의 **transport seam**.
+ * ADR-923 Phase 5 후속 round 4·5 (fe3m1 · fe4m1) — propagation 부분 style patch 의 **transport seam**.
  *
  * round 3 은 생산자 (`buildPropagationUpdates` 가 `mergeStyle` 을 붙인다) 와 최종 소비 helper
- * (`applyBatchStylePatch` 가 병합한다) 를 각각 단위로 고정했지만, 그 사이 구간 —
- * Inspector 화면의 매핑 → `updateSelectedPropertiesWithChildren` → `sanitizeInspectorProps` →
- * `batchUpdateElementProps` → `sanitizePropsPatch` — 을 실행하는 게이트가 없었다. 중간에서
- * 플래그가 빠져도 두 단위 테스트는 통과한다.
- *
- * 여기서는 그 체인을 실제로 실행해 자식의 나머지 style (fill 파생 키 포함) 이 store · canonical
- * document · history next props 세 곳에서 모두 살아 있는지 본다.
+ * (`applyBatchStylePatch` 가 병합한다) 를 각각 단위로 고정했지만, 그 사이 — Properties 패널의
+ * 매핑 → `updateSelectedPropertiesWithChildren` → `sanitizeInspectorProps` → `batchUpdateElementProps`
+ * → `sanitizePropsPatch` — 을 실행하는 게이트가 없었다 (fe3m1). round 4 는 매핑을 helper 로 뽑았지만
+ * 테스트가 그 helper 를 **직접 주입**해, 패널이 helper 반환값을 버리고 원본을 넘기는 변형도 통과했다
+ * (fe4m1). 그래서 패널 콜백의 store 호출 흐름 전체를 `dispatchSemanticUpdateWithPropagation` 으로
+ * 뽑고 여기서는 **그 함수 자체**를 실제 inspector slice 위에서 돌린다. 패널이 그 함수를 거치는지는
+ * 아래 AST 게이트가 잠근다.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -210,17 +211,10 @@ function makeDocument(fixture: ReturnType<typeof makeFixture>) {
 }
 
 /**
- * 실제 체인 실행 — Inspector 화면이 하는 일을 그대로 한다.
- *
- * `transport` 로 매핑 함수를 주입해, 정본 (`toBatchPropsUpdates`) 과 `mergeStyle` 을 떨어뜨린
- * 매핑을 같은 체인에서 대조한다.
+ * 실제 store 를 세운다 — mock 은 db · history · save 세 모듈뿐이고, inspector slice 와
+ * `batchUpdateElementProps` 는 production 팩토리 그대로다.
  */
-async function runPropagationChain(
-  transport: (
-    updates: ReturnType<typeof buildPropagationUpdates>,
-  ) => BatchPropsUpdate[],
-  changedProps: Record<string, unknown> = { isInvalid: true },
-) {
+function setUpStore() {
   const fixture = makeFixture();
   const state = makeState([
     fixture.body,
@@ -244,34 +238,50 @@ async function runPropagationChain(
   const set = createSetMock(state) as never;
   const get = (() => state) as never;
   state.batchUpdateElementProps = createBatchUpdateElementPropsAction(set, get);
-
-  const rules = getPropagationRules("TextField");
-  expect(rules).toBeTruthy();
-  const childUpdates = buildPropagationUpdates(
-    fixture.field as never,
-    changedProps,
-    rules!,
-    state.childrenMap as never,
-    state.elementsMap as never,
-  );
-  expect(childUpdates.length).toBeGreaterThan(0);
-
   const inspectorActions = createInspectorActionsSlice(set, get, {} as never);
-  inspectorActions.updateSelectedPropertiesWithChildren(
-    changedProps,
-    transport(childUpdates),
-  );
+  return { fixture, state, inspectorActions };
+}
+
+function readChildStyle(state: MockState) {
+  return (state.elementsMap.get("field-error")?.props as Record<string, unknown>)
+    .style;
+}
+
+async function readCanonicalChild(): Promise<CanonicalNode> {
   await vi.waitFor(() => {
     expect(mocks.db.documents.put).toHaveBeenCalled();
   });
-
   const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
-  const canonicalChild = JSON.parse(JSON.stringify(doc)).children[0].children[0]
-    .children[0].children[1] as CanonicalNode;
-  return { state, canonicalChild };
+  return JSON.parse(JSON.stringify(doc)).children[0].children[0].children[0]
+    .children[1] as CanonicalNode;
 }
 
-describe("ADR-923 fe3m1 — propagation 부분 style patch 의 transport 체인", () => {
+const PANEL_PATH = resolve(
+  __dirname,
+  "../../../panels/properties/PropertiesPanel.tsx",
+);
+const DISPATCH_PATH = resolve(
+  __dirname,
+  "../../../panels/properties/semanticUpdateDispatch.ts",
+);
+
+/** `apps/builder/src` 의 production 파일 (테스트 제외) 을 재귀로 모은다. */
+function listProductionSources(root: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(root)) {
+    const full = join(root, entry);
+    if (statSync(full).isDirectory()) {
+      if (entry === "__tests__" || entry === "node_modules") continue;
+      out.push(...listProductionSources(full));
+      continue;
+    }
+    if (!/\.(ts|tsx)$/.test(entry) || /\.test\.tsx?$/.test(entry)) continue;
+    out.push(full);
+  }
+  return out;
+}
+
+describe("ADR-923 fe3m1·fe4m1 — propagation 부분 style patch 의 transport 체인", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.db.elements.update.mockImplementation(async () => {});
@@ -286,24 +296,27 @@ describe("ADR-923 fe3m1 — propagation 부분 style patch 의 transport 체인"
     (globalThis as { indexedDB?: unknown }).indexedDB = {};
   });
 
-  it("Panel 매핑 → inspector slice → batch 저장까지 자식의 나머지 style 이 살아남는다", async () => {
-    const { state, canonicalChild } = await runPropagationChain((updates) =>
-      toBatchPropsUpdates<BatchPropsUpdate>(updates),
-    );
+  it("패널의 dispatch 함수 → inspector slice → batch 저장까지 자식의 나머지 style 이 살아남는다", async () => {
+    const { fixture, state, inspectorActions } = setUpStore();
 
-    const expected = {
-      ...AUTHORED_CHILD_STYLE,
-      display: "block",
-    };
+    const result = dispatchSemanticUpdateWithPropagation({
+      changedProps: { isInvalid: true },
+      propagationElement: fixture.field as never,
+      childrenMap: state.childrenMap as never,
+      elementsMap: state.elementsMap as never,
+      // 패널이 넘기는 것과 같은 형태 — store 액션 객체 그대로
+      actions: inspectorActions as unknown as SemanticUpdateActions,
+    });
+    expect(result).toBe("with-children");
+
+    const expected = { ...AUTHORED_CHILD_STYLE, display: "block" };
     // store
-    expect(
-      (state.elementsMap.get("field-error")?.props as Record<string, unknown>)
-        .style,
-    ).toEqual(expected);
+    expect(readChildStyle(state)).toEqual(expected);
     // canonical document (persist 대상)
-    expect(
-      (canonicalChild.props as Record<string, unknown>).style,
-    ).toEqual(expected);
+    const canonicalChild = await readCanonicalChild();
+    expect((canonicalChild.props as Record<string, unknown>).style).toEqual(
+      expected,
+    );
     // history nextProps — undo/redo 가 복원하는 값 (merged 전체 props 계약)
     const entry = vi.mocked(historyManager.addEntry).mock.calls.at(-1)?.[0] as {
       data?: {
@@ -317,34 +330,143 @@ describe("ADR-923 fe3m1 — propagation 부분 style patch 의 transport 체인"
       (event) => event.nodeId === "field-error",
     );
     expect(childEvent?.nextProps?.style).toEqual(expected);
-    // errorMessage → children 규칙은 style 밖 필드라 같은 batch 에서 그대로 실린다
-    expect(
-      (state.elementsMap.get("field-error")?.props as Record<string, unknown>)
-        .children,
-    ).toBe("");
+    // 부모 자신의 변경도 같은 batch 에 실린다
+    expect(state.elementsMap.get("field")?.props).toMatchObject({
+      isInvalid: true,
+    });
   });
 
-  it("transport 가 mergeStyle 을 떨어뜨리면 자식 style 이 통째 교체된다 (계약 대조)", async () => {
-    const { state } = await runPropagationChain((updates) =>
-      updates.map((u) => ({
-        elementId: u.elementId,
-        props: u.props as BatchPropsUpdate["props"],
-      })),
-    );
-
-    expect(
-      (state.elementsMap.get("field-error")?.props as Record<string, unknown>)
-        .style,
-    ).toEqual({ display: "block" });
+  it("규칙이 안 걸리는 prop 은 자식을 건드리지 않고 updateSelectedProperties 로 간다", () => {
+    const { fixture, state, inspectorActions } = setUpStore();
+    const result = dispatchSemanticUpdateWithPropagation({
+      changedProps: { placeholder: "x" },
+      propagationElement: fixture.field as never,
+      childrenMap: state.childrenMap as never,
+      elementsMap: state.elementsMap as never,
+      actions: inspectorActions as unknown as SemanticUpdateActions,
+    });
+    expect(result).toBe("plain");
+    expect(readChildStyle(state)).toEqual(AUTHORED_CHILD_STYLE);
   });
 
-  it("Inspector 화면은 매핑을 재작성하지 않고 toBatchPropsUpdates 를 쓴다", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../../../panels/properties/PropertiesPanel.tsx"),
-      "utf-8",
+  it("mergeStyle 없이 slice 에 직접 넣으면 자식 style 이 통째 교체된다 (계약 대조)", () => {
+    const { state, inspectorActions } = setUpStore();
+    inspectorActions.updateSelectedPropertiesWithChildren({ isInvalid: true }, [
+      { elementId: "field-error", props: { style: { display: "block" } } },
+    ]);
+    expect(readChildStyle(state)).toEqual({ display: "block" });
+  });
+
+  it("PropertiesPanel.handleSemanticUpdate 는 store 액션을 직접 부르지 않고 dispatch 함수에 state 를 넘긴다 (AST)", async () => {
+    const source = await readFile(PANEL_PATH, "utf-8");
+    const sf = ts.createSourceFile(
+      PANEL_PATH,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      ts.ScriptKind.TSX,
     );
-    expect(source).toContain("toBatchPropsUpdates<BatchPropsUpdate>(");
-    // 인라인 재작성 (`...(u.mergeStyle ? ...)`) 이 되살아나면 seam 이 다시 게이트 밖으로 나간다
-    expect(source).not.toMatch(/mergeStyle\s*\?\s*\{\s*mergeStyle/);
+
+    // 1) `const handleSemanticUpdate = useCallback((key, value) => { ... }, deps)` 의 콜백 본문
+    let callback: ts.ArrowFunction | ts.FunctionExpression | undefined;
+    const findCallback = (node: ts.Node) => {
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === "handleSemanticUpdate" &&
+        node.initializer &&
+        ts.isCallExpression(node.initializer) &&
+        ts.isIdentifier(node.initializer.expression) &&
+        node.initializer.expression.text === "useCallback"
+      ) {
+        const first = node.initializer.arguments[0];
+        if (first && (ts.isArrowFunction(first) || ts.isFunctionExpression(first))) {
+          callback = first;
+        }
+      }
+      ts.forEachChild(node, findCallback);
+    };
+    findCallback(sf);
+    expect(callback, "handleSemanticUpdate useCallback").toBeDefined();
+
+    // 2) 본문 안: `dispatchSemanticUpdateWithPropagation({ ..., actions: state })` 정확히 1회,
+    //    `state` 는 같은 본문에서 `useStore.getState()` 로 선언
+    const dispatchCalls: ts.CallExpression[] = [];
+    const directStoreCalls: string[] = [];
+    let stateFromStore = false;
+    const walk = (node: ts.Node) => {
+      if (ts.isCallExpression(node)) {
+        const callee = node.expression;
+        if (
+          ts.isIdentifier(callee) &&
+          callee.text === "dispatchSemanticUpdateWithPropagation"
+        ) {
+          dispatchCalls.push(node);
+        }
+        if (
+          ts.isPropertyAccessExpression(callee) &&
+          [
+            "updateSelectedProperties",
+            "updateSelectedPropertiesWithChildren",
+            "batchUpdateElementProps",
+          ].includes(callee.name.text)
+        ) {
+          directStoreCalls.push(callee.getText(sf));
+        }
+      }
+      if (
+        ts.isVariableDeclaration(node) &&
+        ts.isIdentifier(node.name) &&
+        node.name.text === "state" &&
+        node.initializer &&
+        node.initializer.getText(sf) === "useStore.getState()"
+      ) {
+        stateFromStore = true;
+      }
+      ts.forEachChild(node, walk);
+    };
+    walk(callback!.body);
+
+    expect(directStoreCalls).toEqual([]);
+    expect(dispatchCalls).toHaveLength(1);
+    expect(stateFromStore).toBe(true);
+    const arg = dispatchCalls[0].arguments[0];
+    expect(arg && ts.isObjectLiteralExpression(arg)).toBe(true);
+    const props = new Map(
+      (arg as ts.ObjectLiteralExpression).properties.map((p) => [
+        p.name && ts.isIdentifier(p.name) ? p.name.text : "",
+        p,
+      ]),
+    );
+    for (const key of [
+      "changedProps",
+      "propagationElement",
+      "childrenMap",
+      "elementsMap",
+      "actions",
+    ]) {
+      expect(props.has(key), `dispatch arg.${key}`).toBe(true);
+    }
+    const actions = props.get("actions")!;
+    expect(
+      ts.isPropertyAssignment(actions) && actions.initializer.getText(sf),
+    ).toBe("state");
+  });
+
+  it("propagation → batch 변환의 production 호출자는 semanticUpdateDispatch 하나다", () => {
+    const srcRoot = resolve(__dirname, "../../../..");
+    const callers = listProductionSources(srcRoot).filter((file) => {
+      if (file === DISPATCH_PATH) return false;
+      const text = readFileSync(file, "utf-8");
+      return (
+        /\btoBatchPropsUpdates\s*\(/.test(text) &&
+        !file.endsWith("/utils/propagationEngine.ts")
+      );
+    });
+    expect(callers).toEqual([]);
+    const dispatchSource = readFileSync(DISPATCH_PATH, "utf-8");
+    expect(dispatchSource).toMatch(
+      /updateSelectedPropertiesWithChildren\(\s*changedProps,\s*toBatchPropsUpdates\(childUpdates\),?\s*\)/,
+    );
   });
 });

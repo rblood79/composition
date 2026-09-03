@@ -234,3 +234,51 @@ live (Chrome MCP, 프로젝트 123 Home — 팔레트 TextField 신규 생성):
 | 이어서 Error Message 입력 "Required field"                            | 자식 `children` 갱신 + 나머지 style 4키 유지, Skia 87×21 @y62 · TextField 83   |
 
 인라인 `fontSize:13 · lineHeight:10` 을 준 채로도 Canvas 가 21px 줄 (delegation 14 × 1.5) 을 쓴다 — round 3 계약 그대로다. 콘솔 오류 0, 생성 요소 정리 완료 (55 → 51).
+
+## 8. Codex 판독 round 5 (2026-09-03) — MEDIUM 1 · LOW 1 수리
+
+### 8-1. fe4m1 — 테스트가 패널 호출자를 거치지 않았다 (MEDIUM)
+
+round 4 의 `adr923PropagationTransport.test.ts` 는 helper → inspector slice → batch 체인을 실제로 돌렸지만 **transport 함수를 직접 주입**했다. 패널이 helper 를 호출만 하고 반환값을 버린 채 원본 `childUpdates` 를 넘기는 변형에서도 3/3 PASS 였다 (판독 반례). 정적 게이트도 helper 호출 문자열의 존재와 특정 삼항식의 부재만 봤다 — 반환값의 데이터 흐름은 고정하지 않았다.
+
+수리 — 패널 콜백 안의 store 호출 흐름 전체를 React 밖으로 뽑았다:
+
+- `panels/properties/semanticUpdateDispatch.ts` 의 `dispatchSemanticUpdateWithPropagation({ changedProps, propagationElement, childrenMap, elementsMap, actions })` 가 "규칙이 걸리면 `buildPropagationUpdates` → `toBatchPropsUpdates` → `actions.updateSelectedPropertiesWithChildren`, 아니면 `actions.updateSelectedProperties`" 를 전부 담는다. `PropertiesPanel.handleSemanticUpdate` 는 선택 요소·ref 해소·자식 지도만 마련해 `actions: state` (`useStore.getState()`) 로 넘긴다.
+- 테스트는 **그 함수 자체**를 실제 inspector slice 위에서 돌린다 (5건): with-children 경로 (store · canonical · history `nextProps` 세 곳 보존 + 부모 자신의 변경) · 규칙 미매칭 → plain 경로 (자식 무변경) · `mergeStyle` 없이 slice 직접 호출 시 통째 교체 (계약 대조) · **AST 게이트** (`typescript` 로 `PropertiesPanel.tsx` 를 파싱해 `handleSemanticUpdate` 의 `useCallback` 본문에서 `dispatchSemanticUpdateWithPropagation` 호출이 정확히 1회, 인자 객체에 5 키가 있고 `actions` 의 initializer 가 `state`, `state` 는 `useStore.getState()`, 그리고 `updateSelectedProperties*` / `batchUpdateElementProps` 직접 호출 0) · 단일 호출자 게이트 (`apps/builder/src` production 파일에서 `toBatchPropsUpdates(` 호출자는 dispatch 뿐, dispatch 안에서 그 반환값이 액션 인자로 직접 들어가는 형태를 정규식으로 고정).
+
+판독 반례 (helper 호출 후 반환값을 버리고 원본 전달) 를 원복 (l) 로 다시 쟀다 — **동작은 무변경** (`PropagationUpdate` 가 이미 `mergeStyle` 을 실어 store 계약과 구조가 같다), 단일 호출자 게이트만 1 FAIL. 즉 그 반례는 결함이 아니라 drift 였고, 실제 결함 형태 (m: dispatch 안에서 플래그를 떨어뜨리는 인라인 매핑) 는 기능 테스트 + 단일 호출자 게이트 2 FAIL 로 잡힌다.
+
+### 8-2. fe4l1 — `toBatchPropsUpdates` 반환 타입 (LOW)
+
+`<T extends {...}>` + `as unknown as T` 는 만들지 않은 필수 필드를 가진 타입도 반환한다고 선언할 수 있었다. `elementUpdate` 는 `propagationEngine` 을 import 하지 않으므로 (판독 확인) `import type { BatchPropsUpdate }` 로 반환 타입을 store 계약에 직접 묶었다 — 제네릭·캐스트 삭제.
+
+### 8-3. 원복 RED — 전량 재측정 (node 29 → 31)
+
+| 원복                                                | node (31) | browser (5) |
+| --------------------------------------------------- | --------- | ----------- |
+| (a) 규칙 5 field spread 제거                        | 6 FAIL    | 5 FAIL      |
+| (b) layout 자식 visit propagation 차단              | —         | 5 FAIL      |
+| (c) layout FieldError delegation 주입 차단          | —         | 3 FAIL      |
+| (d) 5-심볼 등재 제거                                | 3 FAIL    | —           |
+| (e) `applyBatchStylePatch` 병합 무력화              | 2 FAIL    | —           |
+| (f) factory·origin 인라인 12 복원                   | 2 FAIL    | 5 PASS      |
+| (g) Skia lineHeight 덮기 제거                       | 1 FAIL    | 2 FAIL      |
+| (h) 인라인 fontSize 우선 복원                       | 1 FAIL    | 1 FAIL      |
+| (i) 인라인 lineHeight 걷어내기 제거                 | 1 FAIL    | 1 FAIL      |
+| (j) `toBatchPropsUpdates` 가 플래그 누락            | 1 FAIL    | 5 PASS      |
+| (k) Panel 이 dispatch 우회 + 플래그 누락 매핑       | 1 FAIL    | 5 PASS      |
+| (l) dispatch 가 helper 반환값 버리고 원본 전달      | 1 FAIL    | —           |
+| (m) dispatch 안 인라인 매핑이 플래그 누락           | 2 FAIL    | —           |
+
+(a) 가 7 → 6 인 이유: round 4 의 대조 테스트 (transport 주입) 가 dispatch 기반 plain-경로 테스트로 바뀌어 규칙 부재에 반응하지 않는다 — 기능 테스트 1건 + bridge 5 = 6. (k) 는 AST 게이트, (j)·(m) 은 기능 테스트가 잡는다. (l) 은 위 8-1 의 판정대로 단일 호출자 게이트만.
+
+### 8-4. 남은 한계
+
+- 기능 테스트는 `dispatchSemanticUpdateWithPropagation` 을 실행하지만 **패널의 React 콜백 (`handleSemanticUpdate`) 자체는 실행하지 않는다** — 선택 요소·ref 인스턴스 해소·자식 지도 조립은 AST 게이트 (호출 형태) 로만 잠근다.
+- instance 경로 (`buildInstanceDescendantPatches` → `COMPONENT_DESCENDANTS_MIRROR_FIELD`) 는 `mergePropsWithStyleDeep` 로 깊게 병합해 `mergeStyle` 이 필요 없다 (판독 확인) — 단 instance 자식 style 전용 게이트는 없다.
+
+### 8-5. 검증 · live
+
+type-check · builder unit **5201** (657 파일) · focused `adr923*` **129** · full parity **1073** (기존 2 FAIL) · smoke 84.
+
+live (Chrome MCP, 프로젝트 e16b69c6 Home — 팔레트 TextField 신규 생성, 자식에 `fontSize:13 · color · lineHeight:10` 주입): 패널 Invalid 스위치 ON → 자식 `display` 만 `block`, 3키 보존 · Error Message "Required field" 입력 → 자식 `children` 갱신 + style 보존, Skia 87×21 @y62 · TextField 83. 이 경로가 새 `dispatchSemanticUpdateWithPropagation` 을 거친다. 콘솔 오류 0, 요소 정리 (185 → 181).

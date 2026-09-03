@@ -53,12 +53,7 @@ import {
   SLOT_NAME_MIRROR_FIELD,
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
-import { getPropagationRules } from "../../utils/propagationRegistry";
-import {
-  buildPropagationUpdates,
-  toBatchPropsUpdates,
-} from "../../utils/propagationEngine";
-import type { BatchPropsUpdate } from "../../stores/utils/elementUpdate";
+import { dispatchSemanticUpdateWithPropagation } from "./semanticUpdateDispatch";
 import {
   alignSelection,
   copySelection,
@@ -206,43 +201,21 @@ const CatalogEditContractEditor = memo(
         const propagationElementsMap =
           propagationSource?.elementsMap ?? elementsById;
 
-        // ADR-048: propagation 규칙 중 변경된 prop과 매칭되는 것이 있으면 자식도 업데이트
-        const rules = getPropagationRules(propagationElement.type);
-        if (
-          rules &&
-          rules.some(
-            (r) =>
-              typeof r.parentProp === "string" && r.parentProp in changedProps,
-          )
-        ) {
-          const childUpdates = buildPropagationUpdates(
-            propagationElement,
-            changedProps,
-            rules,
-            propagationChildrenMap as Map<
-              string,
-              { id: string; type: string; props: Record<string, unknown> }[]
-            >,
-            propagationElementsMap as Map<
-              string,
-              { id: string; type: string; props: Record<string, unknown> }
-            >,
-          );
-
-          if (childUpdates.length > 0) {
-            // 매핑은 `toBatchPropsUpdates` 단일 지점 — 여기서 인라인으로 다시 쓰면 `mergeStyle`
-            //   누락 (자식 style 통째 교체) 을 게이트가 못 본다 (round 4 fe3m1).
-            const batchChildUpdates =
-              toBatchPropsUpdates<BatchPropsUpdate>(childUpdates);
-            state.updateSelectedPropertiesWithChildren(
-              changedProps,
-              batchChildUpdates,
-            );
-            return;
-          }
-        }
-
-        state.updateSelectedProperties(changedProps);
+        // ADR-048 propagation 을 포함한 store 쓰기는 `semanticUpdateDispatch` 한 벌 — 여기서
+        //   직접 store 액션을 부르면 seam 이 게이트 밖으로 나간다 (round 5 fe4m1, AST 게이트).
+        dispatchSemanticUpdateWithPropagation({
+          changedProps,
+          propagationElement,
+          childrenMap: propagationChildrenMap as Map<
+            string,
+            { id: string; type: string; props: Record<string, unknown> }[]
+          >,
+          elementsMap: propagationElementsMap as Map<
+            string,
+            { id: string; type: string; props: Record<string, unknown> }
+          >,
+          actions: state,
+        });
       },
       [
         childrenByParent,

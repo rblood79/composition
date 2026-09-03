@@ -8,6 +8,7 @@
  * - resolvePropagatedProps (Skia/Layout fallback): 직접 자식 1단계만, Store에 값 없을 때 보완
  */
 import type { PropagationRule } from "@composition/specs";
+import type { BatchPropsUpdate } from "../stores/utils/elementUpdate";
 import { getPropagationRules } from "./propagationRegistry";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -211,26 +212,23 @@ export function buildPropagationUpdates(
 }
 
 /**
- * `PropagationUpdate[]` → store batch update entry (`BatchPropsUpdate` 호환) 변환.
+ * `PropagationUpdate[]` → store batch update entry (`BatchPropsUpdate`) 변환.
  *
  * `mergeStyle` 은 여기서 **그대로 실어 나른다** — 이 한 줄이 빠지면 자식의 부분 style patch 가
  * 통째 교체로 적용돼 나머지 style (fill 파생 키 포함) 이 사라진다 (r2 feh2 / round 3 fe2m1).
- * Inspector 화면 코드가 같은 매핑을 인라인으로 재작성하면 그 누락을 어떤 게이트도 못 본다 —
- * 그래서 생산자와 소비 helper 사이의 이 transport 를 함수 하나로 고정하고,
- * `adr923PropagationTransport.test.ts` 가 실제 체인 (Panel 매핑 → inspector slice →
- * batchUpdateElementProps) 을 이 함수로 실행한다 (round 4 fe3m1).
+ * 화면 코드가 같은 매핑을 인라인으로 재작성하면 그 누락을 어떤 게이트도 못 본다 — 그래서
+ * 이 transport 는 함수 하나로 고정하고, 유일한 production 호출자는 `semanticUpdateDispatch`
+ * 다 (round 4 fe3m1 · round 5 fe4m1). 반환 타입은 store 계약 (`BatchPropsUpdate`) 을 직접
+ * 가리킨다 — `elementUpdate` 는 이 모듈을 import 하지 않아 순환이 없다 (round 5 fe4l1).
  */
-export function toBatchPropsUpdates<
-  T extends { elementId: string; props: Record<string, unknown> },
->(updates: readonly PropagationUpdate[]): T[] {
-  return updates.map(
-    (update) =>
-      ({
-        elementId: update.elementId,
-        props: update.props,
-        ...(update.mergeStyle ? { mergeStyle: true } : {}),
-      }) as unknown as T,
-  );
+export function toBatchPropsUpdates(
+  updates: readonly PropagationUpdate[],
+): BatchPropsUpdate[] {
+  return updates.map((update) => ({
+    elementId: update.elementId,
+    props: update.props as BatchPropsUpdate["props"],
+    ...(update.mergeStyle ? { mergeStyle: true } : {}),
+  }));
 }
 
 // ─── Fallback: Skia/Layout 경로 ────────────────────────────────────────────
