@@ -46,6 +46,36 @@ describe("historyActions canonical compatibility sync contract", () => {
   });
 });
 
+describe("ADR-124: HistoryEntry.data 에서 legacy snapshot 타입 필드 제거", () => {
+  it("history.ts data 타입에 deprecated snapshot 키가 없다", async () => {
+    const source = await readFile(resolve(__dirname, "../history.ts"), "utf-8");
+    const forbiddenKeys = [
+      "element",
+      "prevElement",
+      "props",
+      "prevProps",
+      "parentId",
+      "prevParentId",
+      "childElements",
+      "elements",
+      "prevElements",
+      "batchUpdates",
+    ] as const;
+    for (const key of forbiddenKeys) {
+      expect(source).not.toMatch(new RegExp(`^\\s{4}${key}\\?:`, "m"));
+    }
+  });
+
+  it("migration adapter 가 LegacyV1SnapshotData 로 raw payload 를 읽는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "historyEntryMigration.ts"),
+      "utf-8",
+    );
+    expect(source).toContain("export type LegacyV1SnapshotData");
+    expect(source).toContain("function legacySnapshot(");
+  });
+});
+
 describe("ADR-177: page-position entry 소비 분기 (element 노드 경로 미진입 계약)", () => {
   it("undo/redo/goToIndex 3 진입점 + syncDatabaseForEntries 에 page-position 분기 존재", async () => {
     const source = await readFile(

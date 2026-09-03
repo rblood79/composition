@@ -9,14 +9,25 @@
 import { describe, expect, it } from "vitest";
 
 import type { HistoryEntry } from "../../history";
-import { migrateV1EntriesToV2 } from "../historyEntryMigration";
+import {
+  migrateV1EntriesToV2,
+  type LegacyV1SnapshotData,
+} from "../historyEntryMigration";
 import {
   getRawLegacyHistoryReadCount,
   recordRawLegacyHistoryRead,
   resetRawLegacyHistoryReadCount,
 } from "../rawLegacyHistoryRead";
 
-function makeV1Entry(partial: Partial<HistoryEntry>): HistoryEntry {
+function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
+  return entry.data as LegacyV1SnapshotData;
+}
+
+function makeV1Entry(
+  partial: Omit<Partial<HistoryEntry>, "data"> & {
+    data?: HistoryEntry["data"] & LegacyV1SnapshotData;
+  },
+): HistoryEntry {
   return {
     id: "v1-1",
     type: "update",
@@ -85,10 +96,10 @@ describe("historyIndexedDB v1→v3 migration adapter contract", () => {
     expect(migrated).toHaveLength(3);
     for (const entry of migrated) {
       expect(entry.data.canonicalEvents?.length ?? 0).toBeGreaterThan(0);
-      expect(entry.data.element).toBeUndefined();
-      expect(entry.data.prevElements).toBeUndefined();
-      expect(entry.data.elements).toBeUndefined();
-      expect(entry.data.childElements).toBeUndefined();
+      expect(legacyRead(entry).element).toBeUndefined();
+      expect(legacyRead(entry).prevElements).toBeUndefined();
+      expect(legacyRead(entry).elements).toBeUndefined();
+      expect(legacyRead(entry).childElements).toBeUndefined();
     }
 
     expect(migrated[0]!.data.canonicalEvents![0]).toMatchObject({

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [HistoryEntry 에서 legacy snapshot 타입 필드를 제거했습니다] - 2026-09-03
+
+### Changed
+
+- `HistoryEntry.data` 에서 `element` / `prevProps` / `batchUpdates` 등 v1 snapshot 필드를 제거했습니다. raw IndexedDB payload 는 `migrateV1EntryToV2` 의 `LegacyV1SnapshotData` 로만 읽습니다.
+- History 패널 라벨의 legacy snapshot 이름 분기를 제거했습니다. `canonicalEvents` 또는 truncated `elementId` 만 사용합니다. 변환에 실패한 구 IndexedDB entry 는 이름 대신 짧은 id 로 표시됩니다.
+
+### Tests
+
+- HistoryEntry 타입·migration LegacyV1 격리 static gate 와 label 회귀를 갱신했습니다.
+
 ## [History v1 fallback 을 제거하고 canonical 전용으로 전환했습니다] - 2026-09-03
 
 ### Changed

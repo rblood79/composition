@@ -42,17 +42,44 @@ import {
 } from "./canonicalHistoryEvents";
 import { selectActiveCanonicalDocument } from "../canonical/canonicalDocumentStore";
 
+/**
+ * HistoryEntry.data 에 더 이상 두지 않는 v1 snapshot 필드.
+ * IndexedDB/raw entry 와 unit fixture 만 이 shape 로 읽는다.
+ */
+export type LegacyV1SnapshotData = {
+  element?: Element;
+  prevElement?: Element;
+  props?: ComponentElementProps;
+  prevProps?: ComponentElementProps;
+  parentId?: string;
+  prevParentId?: string;
+  childElements?: Element[];
+  elements?: Element[];
+  prevElements?: Element[];
+  batchUpdates?: Array<{
+    elementId: string;
+    prevProps: ComponentElementProps;
+    newProps: ComponentElementProps;
+  }>;
+};
+
 /** HistoryEntry.data 에서 migration 성공 후 제거하는 legacy snapshot keys. */
 const LEGACY_SNAPSHOT_DATA_KEYS = [
   "element",
   "prevElement",
   "props",
   "prevProps",
+  "parentId",
+  "prevParentId",
   "childElements",
   "elements",
   "prevElements",
   "batchUpdates",
-] as const;
+] as const satisfies ReadonlyArray<keyof LegacyV1SnapshotData>;
+
+function legacySnapshot(entry: HistoryEntry): LegacyV1SnapshotData {
+  return entry.data as HistoryEntry["data"] & LegacyV1SnapshotData;
+}
 
 /** apply 시점 context — diff 를 full props 로 펼칠 때 필요. */
 export type MigrateV1Context = {
@@ -155,8 +182,9 @@ function buildBatchReplaceEventsFromEntry(
   entry: HistoryEntry,
 ): CanonicalHistoryNodeEvent[] {
   if (entry.type !== "batch") return [];
-  const prevElements = asElementArray(entry.data.prevElements);
-  const nextElements = asElementArray(entry.data.elements);
+  const snapshot = legacySnapshot(entry);
+  const prevElements = asElementArray(snapshot.prevElements);
+  const nextElements = asElementArray(snapshot.elements);
   if (prevElements.length === 0 || nextElements.length === 0) return [];
 
   const prevById = new Map(
@@ -361,8 +389,9 @@ export function stripLegacyHistoryPayload(entry: HistoryEntry): HistoryEntry {
 function buildStructuralEventsFromEntry(
   entry: HistoryEntry,
 ): CanonicalHistoryNodeEvent[] {
-  const root = asElement(entry.data.element);
-  const children = asElementArray(entry.data.childElements);
+  const snapshot = legacySnapshot(entry);
+  const root = asElement(snapshot.element);
+  const children = asElementArray(snapshot.childElements);
   const allElements = root ? [root, ...children] : children;
 
   if (entry.type === "add" && allElements.length > 0) {
@@ -380,8 +409,9 @@ function buildStructuralEventsFromEntry(
 function buildGroupUngroupEventsFromEntry(
   entry: HistoryEntry,
 ): CanonicalHistoryNodeEvent[] {
-  const groupElement = asElement(entry.data.element);
-  const snapshotChildren = asElementArray(entry.data.elements);
+  const snapshot = legacySnapshot(entry);
+  const groupElement = asElement(snapshot.element);
+  const snapshotChildren = asElementArray(snapshot.elements);
   if (!groupElement || snapshotChildren.length === 0) return [];
 
   if (entry.type === "group") {
@@ -469,15 +499,16 @@ export function migrateV1EntryToV2(
   }
 
   const canonicalEvents: CanonicalHistoryNodeEvent[] = [];
+  const snapshot = legacySnapshot(entry);
 
   // type=update + legacy prevProps snapshot → CanonicalUpdateEvent
   // (full snapshot 가정 — diff 보다 우선)
-  if (entry.type === "update" && entry.data.prevProps && entry.data.props) {
+  if (entry.type === "update" && snapshot.prevProps && snapshot.props) {
     canonicalEvents.push(
       buildCanonicalUpdateEvent(
         entry.elementId,
-        entry.data.prevProps as Record<string, unknown>,
-        entry.data.props as Record<string, unknown>,
+        snapshot.prevProps as Record<string, unknown>,
+        snapshot.props as Record<string, unknown>,
       ),
     );
   }
@@ -486,9 +517,9 @@ export function migrateV1EntryToV2(
   if (
     canonicalEvents.length === 0 &&
     entry.type === "batch" &&
-    entry.data.batchUpdates
+    snapshot.batchUpdates
   ) {
-    for (const update of entry.data.batchUpdates) {
+    for (const update of snapshot.batchUpdates) {
       canonicalEvents.push(
         buildCanonicalUpdateEvent(
           update.elementId,
@@ -544,6 +575,3 @@ export function migrateV1EntriesToV2(entries: HistoryEntry[]): HistoryEntry[] {
  * **ADR-124 Phase 5 prerequisite** — props 추출 helper export (unit test 용).
  */
 export { extractPropsFromDiff };
-
-// ComponentElementProps 가 unused 되지 않도록 type-only re-export.
-export type { ComponentElementProps };

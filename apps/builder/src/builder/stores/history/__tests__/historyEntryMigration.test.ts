@@ -13,9 +13,18 @@ import {
   extractPropsFromDiff,
   migrateV1EntriesToV2,
   migrateV1EntryToV2,
+  type LegacyV1SnapshotData,
 } from "../historyEntryMigration";
 
-function makeEntry(partial: Partial<HistoryEntry>): HistoryEntry {
+function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
+  return entry.data as LegacyV1SnapshotData;
+}
+
+function makeEntry(
+  partial: Omit<Partial<HistoryEntry>, "data"> & {
+    data?: HistoryEntry["data"] & LegacyV1SnapshotData;
+  },
+): HistoryEntry {
   return {
     id: "e1",
     type: "update",
@@ -91,8 +100,8 @@ describe("migrateV1EntryToV2", () => {
     });
     const result = migrateV1EntryToV2(entry);
     expect(result.data.canonicalEvents).toEqual([existingEvent]);
-    expect(result.data.prevProps).toBeUndefined();
-    expect(result.data.props).toBeUndefined();
+    expect(legacyRead(result).prevProps).toBeUndefined();
+    expect(legacyRead(result).props).toBeUndefined();
   });
 
   it("type=update + diff without context → canonicalEvents 빈 배열 (partial update 금지)", () => {
@@ -253,7 +262,7 @@ describe("migrateV1EntryToV2", () => {
       parentId: "body-1",
       node: expect.objectContaining({ id: "btn-1", type: "Button" }),
     });
-    expect(result.data.element).toBeUndefined();
+    expect(legacyRead(result).element).toBeUndefined();
   });
 
   it("type=remove + element/childElements → remove canonicalEvents + strip", () => {
@@ -282,8 +291,8 @@ describe("migrateV1EntryToV2", () => {
     expect(
       result.data.canonicalEvents!.every((event) => event.type === "remove"),
     ).toBe(true);
-    expect(result.data.element).toBeUndefined();
-    expect(result.data.childElements).toBeUndefined();
+    expect(legacyRead(result).element).toBeUndefined();
+    expect(legacyRead(result).childElements).toBeUndefined();
   });
 
   it("type=batch + prevElements/elements props-only → update events + strip", () => {
@@ -314,8 +323,8 @@ describe("migrateV1EntryToV2", () => {
       type: "update",
       nodeId: "btn-1",
     });
-    expect(result.data.prevElements).toBeUndefined();
-    expect(result.data.elements).toBeUndefined();
+    expect(legacyRead(result).prevElements).toBeUndefined();
+    expect(legacyRead(result).elements).toBeUndefined();
   });
 
   it("type=batch + prevElements/elements fills 변경 → replace events", () => {
@@ -388,7 +397,7 @@ describe("migrateV1EntryToV2", () => {
     const result = migrateV1EntryToV2(entry);
     expect(result.data.canonicalEvents!.length).toBeGreaterThan(0);
     expect(result.data.canonicalEvents![0]).toMatchObject({ type: "insert" });
-    expect(result.data.element).toBeUndefined();
+    expect(legacyRead(result).element).toBeUndefined();
   });
 
   it("type=ungroup + element/elements → ungroup canonicalEvents", () => {

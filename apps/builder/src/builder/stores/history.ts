@@ -1,8 +1,4 @@
-import {
-  Element,
-  ComponentElementProps,
-  Page,
-} from "../../types/builder/unified.types";
+import { Element, Page } from "../../types/builder/unified.types";
 import { type SerializableElementDiff } from "./utils/elementDiff";
 import { historyIndexedDB } from "./history/historyIndexedDB";
 import { type CanonicalHistoryNodeEvent } from "./history/canonicalHistoryEvents";
@@ -29,17 +25,13 @@ import { type CanonicalHistoryNodeEvent } from "./history/canonicalHistoryEvents
 /**
  * `HistoryEntry` — undo/redo 단일 엔트리.
  *
- * **ADR-124 Phase 4 deprecation contract**:
- * - `data.canonicalEvents` 가 primary path. 모든 신규 entry 는 entry 생성
- *   시점에 caller 가 canonical event 를 부착한다 (2026-07-15 history 정비 —
- *   전 mutation call site 전환 완료, `addEntry` DEV guard 가 미부착을 경고).
- * - v1 IndexedDB 에서 load 된 entry 는 `migrateV1EntryToV2` adapter 에 의해
- *   `data.canonicalEvents` 가 보장된다 (ADR-124 Phase 3).
- * - 하단 `@deprecated` 마킹된 legacy snapshot field 는 v1 IndexedDB
- *   compatibility 보존을 위해 type 정의는 유지하되 신규 entry 생성 시 사용
- *   금지. ADR-124 Phase 5 (v1→v2 IndexedDB migration) 완료 후 삭제 예정.
- * - 신규 entry 의 fallback path 도 `applyCanonicalHistoryEventsToActiveDocument`
- *   가 우선 적용 (early-return) 하므로 legacy snapshot field read 는 dead.
+ * **ADR-124**:
+ * - `data.canonicalEvents` 가 primary path. 신규 entry 는 생성 시점에
+ *   canonical event 를 부착한다 (`addEntry` DEV guard).
+ * - v1 IndexedDB load 는 `migrateV1EntryToV2` 가 `canonicalEvents` 로 변환한다.
+ * - legacy snapshot 필드 (`element` / `prevProps` / `batchUpdates` 등) 는
+ *   `HistoryEntry.data` 타입에서 제거됐다. raw IDB payload 는 migration
+ *   adapter 의 `LegacyV1SnapshotData` 로만 읽는다.
  *
  * @see docs/adr/124-canonical-only-history-schema.md
  * @see apps/builder/src/builder/stores/history/historyEntryMigration.ts
@@ -138,31 +130,7 @@ export interface HistoryEntry {
   elementId: string;
   elementIds?: string[]; // For multi-element operations
   data: {
-    /** @deprecated ADR-124 — migration adapter 입력 전용. undo/redo 는 canonicalEvents 만 소비. */
-    element?: Element;
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    prevElement?: Element;
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    props?: ComponentElementProps;
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    prevProps?: ComponentElementProps;
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    parentId?: string;
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    prevParentId?: string;
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    childElements?: Element[];
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    elements?: Element[];
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    prevElements?: Element[];
-    /** @deprecated ADR-124 — migration adapter 입력 전용. */
-    batchUpdates?: Array<{
-      elementId: string;
-      prevProps: ComponentElementProps;
-      newProps: ComponentElementProps;
-    }>;
-    /** group/ungroup 메타 (canonical 직접 표현 불가) — Phase 4 deprecation 미해당, 유지. */
+    /** group/ungroup 메타 (canonical 직접 표현 불가) — 유지. */
     groupData?: { groupId: string; childIds: string[] };
     /** Diff-based storage — size 추정용 유지, undo/redo 경로는 canonicalEvents 우선. */
     diff?: SerializableElementDiff;

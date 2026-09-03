@@ -4,9 +4,7 @@
  * 우선순위:
  * 1. `entry.data.canonicalEvents` — insert/remove 는 event 에 담긴 node 에서,
  *    update/move 는 현재 canonical document 조회로 이름 해석
- * 2. v1 legacy snapshot (`data.element`/`prevElement`) — 구 IndexedDB entry
- *    호환 (ADR-124 Phase 5 legacy field 삭제 시 이 분기만 제거)
- * 3. `entry.elementId` — sentinel(`batch_diff`/`drag-reorder`) 은 노출 금지
+ * 2. `entry.elementId` — sentinel(`batch_diff`/`drag-reorder`) 은 노출 금지
  */
 
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
@@ -56,13 +54,6 @@ function subjectFromEvent(
   return t("history.entryDeletedSubject", { id: truncateId(event.nodeId) });
 }
 
-function subjectFromLegacySnapshot(entry: HistoryEntry): string | null {
-  const element = entry.data.element ?? entry.data.prevElement;
-  if (element?.customId) return element.customId;
-  if (element?.type) return element.type;
-  return null;
-}
-
 function subjectFromElementId(entry: HistoryEntry): string | null {
   if (!entry.elementId) return null;
   if (SENTINEL_ELEMENT_IDS.has(entry.elementId)) return null;
@@ -78,7 +69,7 @@ function resolveSubject(
   if (events && events.length > 0) {
     return subjectFromEvent(events[0], doc, t);
   }
-  return subjectFromLegacySnapshot(entry) ?? subjectFromElementId(entry);
+  return subjectFromElementId(entry);
 }
 
 function countBatchTargets(entry: HistoryEntry): number {

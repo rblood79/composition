@@ -15,8 +15,14 @@ import {
 import type { Element } from "../../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { historyManager } from "../../history";
+import type { HistoryEntry } from "../../history";
 import { useStore } from "../../index";
 import { trackBatchUpdate } from "../../utils/historyHelpers";
+import type { LegacyV1SnapshotData } from "../historyEntryMigration";
+
+function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
+  return entry.data as LegacyV1SnapshotData;
+}
 
 vi.mock("../../../../lib/db", () => ({
   getDB: vi.fn(async () => ({
@@ -137,9 +143,9 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(events[0].prevProps).toEqual({ children: "before", keep: "stay" });
     expect(events[0].nextProps).toEqual({ children: "after", keep: "stay" });
     // deprecated legacy snapshot field 미기록
-    expect(entry.data.props).toBeUndefined();
-    expect(entry.data.prevProps).toBeUndefined();
-    expect(entry.data.prevElement).toBeUndefined();
+    expect(legacyRead(entry).props).toBeUndefined();
+    expect(legacyRead(entry).prevProps).toBeUndefined();
+    expect(legacyRead(entry).prevElement).toBeUndefined();
 
     expect(getCanonicalProps("text-1")).toEqual({
       children: "after",
@@ -176,7 +182,7 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(events).toHaveLength(2);
     if (events[0].type !== "update") throw new Error("update event expected");
     expect(events[0].nextProps).toEqual({ children: "A1", size: "md" });
-    expect(entry.data.batchUpdates).toBeUndefined();
+    expect(legacyRead(entry).batchUpdates).toBeUndefined();
 
     await useStore.getState().undo();
     expect(getCanonicalProps("text-a")).toEqual({
@@ -206,7 +212,7 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
       data: {
         prevElements: [before],
         elements: [after],
-      },
+      } as HistoryEntry["data"] & LegacyV1SnapshotData,
     });
 
     await useStore.getState().undo();
@@ -241,7 +247,10 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
       type: "batch",
       elementId: "text-1",
       elementIds: ["text-1"],
-      data: { prevElements: [step1], elements: [step2] },
+      data: {
+        prevElements: [step1],
+        elements: [step2],
+      } as HistoryEntry["data"] & LegacyV1SnapshotData,
     });
     useCanonicalDocumentStore
       .getState()
@@ -279,6 +288,6 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     if (events[0].type !== "update") throw new Error("update event expected");
     expect(events[0].prevProps).toEqual({ color: "red", size: "md" });
     expect(events[0].nextProps).toEqual({ color: "blue", size: "md" });
-    expect(entry.data.batchUpdates).toBeUndefined();
+    expect(legacyRead(entry).batchUpdates).toBeUndefined();
   });
 });

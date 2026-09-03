@@ -2,7 +2,7 @@
  * `getHistoryEntryLabel` — canonicalEvents 우선 label 해석 검증.
  *
  * - v2 canonical entry: event node / 현재 doc 조회로 이름 표시 (UUID 노출 금지)
- * - v1 legacy entry: deprecated snapshot fallback 유지
+ * - canonicalEvents 없으면 truncated elementId (legacy snapshot 분기 없음)
  * - sentinel elementId (`batch_diff`/`drag-reorder`) 원시 노출 금지
  * - 삭제된 노드: truncated id + "(삭제됨)"
  */
@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest";
 
 import type { CompositionDocument } from "@composition/shared";
 
-import type { Element } from "@/types/core/store.types";
 import type { HistoryEntry } from "../../stores/history";
 import { localizedStrings } from "@/i18n/translations";
 import { getHistoryEntryLabel } from "./historyEntryLabel";
@@ -130,20 +129,16 @@ describe("getHistoryEntryLabel", () => {
     expect(label).toBe("수정 3f2a9b1c… (삭제됨)");
   });
 
-  it("v1 legacy entry: deprecated snapshot fallback 으로 이름 표시", () => {
+  it("canonicalEvents 없으면 elementId trunc 로 이름 표시", () => {
     const entry = makeEntry({
       type: "update",
-      data: {
-        prevElement: {
-          id: NODE_ID,
-          type: "Text",
-          customId: "hero_title",
-          props: {},
-        } as unknown as Element,
-      },
+      elementId: NODE_ID,
+      data: {},
     });
 
-    expect(getHistoryEntryLabel(entry, null, t)).toBe("수정 hero_title");
+    expect(getHistoryEntryLabel(entry, null, t)).toBe(
+      `수정 ${NODE_ID.slice(0, 8)}…`,
+    );
   });
 
   it("sentinel elementId 는 원시 노출하지 않는다", () => {
