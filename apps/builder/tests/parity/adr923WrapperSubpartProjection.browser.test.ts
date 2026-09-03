@@ -83,12 +83,15 @@ const DOM_CONTROL: Partial<Record<AnyType, string>> = {
   DateRangePicker: ".react-aria-Group",
 };
 
-/** junk 대상 = 판정 A 의 sub-part: 래퍼 6 은 SelectTrigger (+ picker 의 DateInput), 그룹 3 은 Label */
+/**
+ * junk 대상 = 판정 A 의 sub-part: 래퍼 6 은 SelectTrigger (+ picker 의 DateInput), 그룹 3 은 Label,
+ * Select · ComboBox · SearchField 는 **SelectValue 의 style 축** (2026-09-04 판정 A — 텍스트 축은 자식 유지).
+ */
 const JUNK_TARGETS: Record<AnyType, readonly string[]> = {
   NumberField: ["SelectTrigger"],
-  Select: ["SelectTrigger"],
-  ComboBox: ["SelectTrigger"],
-  SearchField: ["SelectTrigger"],
+  Select: ["SelectTrigger", "SelectValue"],
+  ComboBox: ["SelectTrigger", "SelectValue"],
+  SearchField: ["SelectTrigger", "SelectValue"],
   DatePicker: ["SelectTrigger", "DateInput"],
   DateRangePicker: ["SelectTrigger", "DateInput"],
   Meter: ["Label"],

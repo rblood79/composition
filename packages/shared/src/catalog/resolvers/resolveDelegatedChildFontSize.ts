@@ -156,6 +156,23 @@ export const SUBPART_HOP_CHILD_TYPES: ReadonlySet<string> = new Set([
   "DateInput",
 ]);
 
+/**
+ * **style 축만** read-only 인 sub-part (2026-09-04 판정 A) — child type → 그 style 을 소유하는 field parent.
+ *
+ * SelectValue 는 DOM 렌더러가 `children` / `placeholder` 를 **자식 우선**으로 읽어 텍스트 축은 자식이 정본이지만
+ * (`SelectionRenderers` renderSelect:1152 · renderComboBox:1566, `FormRenderers` SearchField:397), style 은 어디에서도
+ * 읽지 않는다 (실측 SearchField: 자식에 fontSize 30 · marginTop 30 을 얹어도 DOM 14px · 0px 불변). Canvas 는 자식
+ * 인라인을 그대로 먹어 21 → 318 로 부푼다. 그래서 **style 축만** parent 소유로 귀속한다 — Styles 패널은 owner 안내,
+ * Canvas read 경로는 인라인 무시. 텍스트/placeholder 편집 surface (Properties 패널) 는 자식에 남는다.
+ * 구조값 (flex 1 · minWidth 0 · fontSize · nowrap/ellipsis) 은 implicitStyles selecttrigger 분기의 read-through
+ * 주입이 유일 채널이라 인라인을 걷어내도 그대로다.
+ */
+export const STYLE_ONLY_SUBPART_PARENTS: Readonly<
+  Record<string, readonly string[]>
+> = {
+  SelectValue: ["Select", "ComboBox", "SearchField"],
+};
+
 function delegationSelectors(parentType: string): string[] {
   const rule = resolveComponentRuleByTag(parentType);
   const list = rule?.structure?.composition?.delegation;
@@ -203,6 +220,35 @@ export function resolveDelegatedSubpartOwnerType(
     SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
     SUBPART_HOP_CHILD_TYPES.has(childType) &&
     ownsSubpartDirect(childType, grandparentType)
+  )
+    return grandparentType;
+  return null;
+}
+
+/**
+ * 이 자식의 **style 축** 을 소유한 DOM parent type — 전체 sub-part (텍스트·style 모두 parent 소유) 면 그 owner,
+ * style 축만 parent 소유인 자식 (SelectValue) 이면 그 field parent, 아니면 null. Canvas read 경로 (layout 투영 ·
+ * Skia) 와 Styles 패널이 이것을 쓴다. Properties 패널 (텍스트 축) 은 `resolveDelegatedSubpartOwnerType` 을 그대로 쓴다.
+ */
+export function resolveSubpartStyleOwnerType(
+  childType: string | null | undefined,
+  parentType: string | null | undefined,
+  grandparentType?: string | null,
+): string | null {
+  const full = resolveDelegatedSubpartOwnerType(
+    childType,
+    parentType,
+    grandparentType,
+  );
+  if (full) return full;
+  if (!childType || !parentType) return null;
+  const owners = STYLE_ONLY_SUBPART_PARENTS[childType];
+  if (!owners) return null;
+  if (owners.includes(parentType)) return parentType;
+  if (
+    grandparentType &&
+    SUBPART_HOP_WRAPPER_TYPES.has(parentType) &&
+    owners.includes(grandparentType)
   )
     return grandparentType;
   return null;

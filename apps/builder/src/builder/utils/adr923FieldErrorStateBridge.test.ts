@@ -5,6 +5,7 @@ import {
   hasDelegatedChild,
   isDelegatedSubpartChild,
   resolveDelegatedSubpartOwnerType,
+  resolveSubpartStyleOwnerType,
   resolveDelegatedChildFontSize,
   resolveInheritedLineHeight,
 } from "@composition/shared";
@@ -503,6 +504,81 @@ describe("ADR-923 Phase 5 후속 — FieldError 상태 투영 propagation 다리
     ).toBeNull();
     expect(
       resolveDelegatedSubpartOwnerType("Label", "SelectTrigger", "Select"),
+    ).toBeNull();
+  });
+
+  it("style 축만 sub-part (판정 A, 2026-09-04) — SelectValue 는 Skia 가 인라인 style 을 무시하되 텍스트 축 owner 는 없다", () => {
+    const layout = { x: 0, y: 0, width: 200, height: 30 } as ComputedLayout;
+    // [child, parent, grandparent?, 기대 style owner]
+    const cases: Array<[string, string, string | undefined, string]> = [
+      ["SelectValue", "SelectTrigger", "Select", "Select"],
+      ["SelectValue", "SelectTrigger", "ComboBox", "ComboBox"],
+      ["SelectValue", "SelectTrigger", "SearchField", "SearchField"],
+    ];
+    for (const [childType, parentType, grandType, owner] of cases) {
+      expect(
+        resolveSubpartStyleOwnerType(childType, parentType, grandType),
+        `${childType} < ${parentType} < ${grandType} style owner`,
+      ).toBe(owner);
+      // 텍스트 축은 자식이 정본 — 전체 sub-part 술어는 SelectValue 를 잡지 않는다 (Properties 패널 유지).
+      expect(
+        resolveDelegatedSubpartOwnerType(childType, parentType, grandType),
+        `${childType} 전체 sub-part 아님`,
+      ).toBeNull();
+
+      const grand = {
+        id: `${grandType}-sv`,
+        type: grandType!,
+        parent_id: null,
+        props: { label: "Name", size: "md", placeholder: "Choose..." },
+      } as unknown as CanvasSceneNode;
+      const parent = {
+        id: `${parentType}-sv`,
+        type: parentType,
+        parent_id: grand.id,
+        props: {},
+      } as unknown as CanvasSceneNode;
+      const make = (style: Record<string, unknown>) =>
+        ({
+          id: `${grandType}-${childType}-sv`,
+          type: childType,
+          parent_id: parent.id,
+          props: { placeholder: "Choose...", style },
+        }) as unknown as CanvasSceneNode;
+      const build = (el: CanvasSceneNode) =>
+        buildSpecNodeData({
+          element: el,
+          layout,
+          theme: "light",
+          elementsMap: new Map(
+            [grand, parent, el].map((n) => [n.id, n] as const),
+          ),
+        });
+      const clean = build(make({}));
+      const junk = build(
+        make({
+          color: "rgb(1, 2, 3)",
+          fontSize: 30,
+          fontWeight: 900,
+          marginTop: 30,
+          padding: 9,
+          width: 50,
+          lineHeight: 10,
+          backgroundColor: "rgb(4, 5, 6)",
+          borderRadius: 40,
+        }),
+      );
+      expect(
+        JSON.stringify(junk),
+        `${childType} < ${grandType} 인라인 무시`,
+      ).toBe(JSON.stringify(clean));
+    }
+    // 범위 밖: SelectIcon (iconName/size 는 D2 편집 축) · field 직계 Input (이미 전체 sub-part).
+    expect(
+      resolveSubpartStyleOwnerType("SelectIcon", "SelectTrigger", "Select"),
+    ).toBeNull();
+    expect(
+      resolveSubpartStyleOwnerType("SelectValue", "SelectTrigger", "frame"),
     ).toBeNull();
   });
 
