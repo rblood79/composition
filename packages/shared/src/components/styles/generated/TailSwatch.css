@@ -13,7 +13,7 @@
     box-sizing: border-box;
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
-  display: inline-flex;
+  display: block;
   align-items: center;
 
   /* Default variant */

@@ -6,10 +6,8 @@ import { Checkbox } from "@composition/shared/components/Checkbox";
 import { Radio } from "@composition/shared/components/Radio";
 import { RadioGroup } from "@composition/shared/components/RadioGroup";
 import { Slider } from "@composition/shared/components/Slider";
-import { Avatar } from "@composition/shared/components/Avatar";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
 import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
-import { StatusLight } from "@composition/shared/components/StatusLight";
 import { Meter } from "@composition/shared/components/Meter";
 import { ProgressBar } from "@composition/shared/components/ProgressBar";
 import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
@@ -30,6 +28,7 @@ import {
   type LayoutRun,
   type ProductionTree,
 } from "./adr923ProductionTrees";
+import { computedDisplayOf, mountProductionRoot } from "./adr923PreviewLeg";
 
 vi.mock("@/builder/factories/utils/elementCreation", async (importOriginal) => {
   const actual =
@@ -65,6 +64,17 @@ const CANDIDATES = [
   "TagList",
 ] as const;
 const DOM_CONFLICTS = ["Checkbox", "Radio", "SliderOutput"] as const;
+/**
+ * Phase 5 후속 HC2 전환 — DOM 을 preview 실경로 (`rendererMap`) 로 재는 type. 전환 commit 마다 한 항목씩
+ * 들어오며, 여기 든 type 은 아래 `renders` (shared 컴포넌트 직접 마운트) 에서 빠진다.
+ */
+const PREVIEW_LEG_TYPES: readonly string[] = [
+  "Skeleton",
+  "Avatar",
+  "StatusLight",
+  "TailSwatch",
+  "Slot",
+];
 const UNDECLARED = [
   "Avatar",
   "Breadcrumb",
@@ -245,8 +255,9 @@ beforeAll(async () => {
   }
 
   // live computed (실 번들 CSS) — DOM 충돌 3 + 선언 없음 17 중 렌더 가능한 것. 컴포넌트마다 root 를
-  //   따로 만들고 에러 경계로 감싸 하나가 죽어도 나머지를 잰다. Table(TableHeader/TableBody) · TailSwatch ·
-  //   Tree 는 props 부담/ColorSlider 의존으로 소스 태그 사실 (§A-4 · 컴포넌트 D1 주석) 로 판정한다.
+  //   따로 만들고 에러 경계로 감싸 하나가 죽어도 나머지를 잰다. Table(TableHeader/TableBody) · Tree 는 props
+  //   부담으로 소스 태그 사실 (§A-4 · 컴포넌트 D1 주석) 로 판정한다. TailSwatch 는 Phase 5 후속 (2026-09-03) 부터
+  //   preview 실경로 (`PREVIEW_LEG_TYPES`, rendererMap renderTailSwatch) 로 live 측정한다.
   const style = document.createElement("style");
   style.id = "adr923-hc2-bundle";
   style.textContent = bundleCss;
@@ -294,10 +305,6 @@ beforeAll(async () => {
       }),
     },
     {
-      types: [["Avatar", (m) => m.firstElementChild as HTMLElement | null]],
-      node: React.createElement(Avatar, { initials: "AB" }),
-    },
-    {
       types: [
         [
           "IllustratedMessage",
@@ -314,12 +321,6 @@ beforeAll(async () => {
         value: 50,
         "aria-label": "p",
       }),
-    },
-    {
-      types: [
-        ["StatusLight", (m) => m.firstElementChild as HTMLElement | null],
-      ],
-      node: React.createElement(StatusLight, { children: "On" }),
     },
     {
       types: [
@@ -412,6 +413,25 @@ beforeAll(async () => {
     }
   }
 
+  // Phase 5 후속 HC2 전환 (2026-09-03) — `전환필요(후속)` 5 의 DOM 은 **preview 실경로** 로 잰다: 팔레트 production
+  //   트리 root 를 App.tsx 와 같은 순서 (`adaptElementStyle` → `rendererMap[type]`) 로 마운트 (`adr923PreviewLeg`).
+  //   Avatar · StatusLight 는 shared 컴포넌트가 아니라 LayoutRenderers 가 자체 div 를 그린다 (renderAvatar flex ·
+  //   renderStatusLight inline-flex) — shared `StatusLight.tsx` (flex) 는 production 표면 어디에도 없다 (publish 는
+  //   `createHtmlElement("div")`). Canvas leg 와 같은 props 로 두 표면을 재는 것이 HC2 의 계약이다.
+  for (const type of PREVIEW_LEG_TYPES) {
+    const owner = trees.find((t) => t.type === type && t.root.type === type);
+    if (!owner) throw new Error(`${type}: 팔레트 production 트리 없음`);
+    const el = await mountProductionRoot(
+      host,
+      roots,
+      owner.elements,
+      type === "Slot" ? "layout" : "page",
+    );
+    live[type] = computedDisplayOf(el);
+    const c = captures.find((x) => x.type === type)!;
+    c.live = live[type];
+  }
+
   // r31m1 — FieldError DOM 상태 짝: 기본 상태 (isInvalid 없음, errorMessage "" — factory 와 같음) 는 RAC 가
   //   FieldError 를 렌더하지 않는다. invalid 상태는 위 표 캡처 (`live.FieldError`) 그대로.
   {
@@ -494,10 +514,10 @@ const HC2: Record<
     box: ".react-aria-FileTrigger — inner flow-root vs flex 는 자식 Button 1개라 배치 차이 없음",
   },
   Skeleton: {
-    canvas: "inline-flex",
-    dom: "block (Skeleton.css:65 live; generated inline-flex 는 dead)",
-    verdict: "전환필요(후속)",
-    box: ".react-aria-Skeleton — catalog structure inline-flex ↔ live CSS block (outer 다름, palette 항목)",
+    canvas: "block",
+    dom: "div:block (live — rendererMap renderSkeleton → Skeleton.tsx .react-aria-Skeleton, Skeleton.css:65; generated inline-flex 는 dead)",
+    verdict: "일치",
+    box: ".react-aria-Skeleton — Phase 5 후속 전환 (2026-09-03): catalog structure inline-flex → block (DOM 실효값)",
   },
   ColorPicker: {
     canvas: "flex",
@@ -531,9 +551,9 @@ const HC2: Record<
   },
   Slot: {
     canvas: "block",
-    dom: "inline-flex (generated/Slot.css archetype base — Slot.spec 에 display 없음)",
-    verdict: "전환필요(후속)",
-    box: ".react-aria-Slot — 잔존 spec: spec containerStyles 에 display 명시 등재가 필요 (CSSGenerator archetype 기본값과 Canvas 기본값이 갈림)",
+    dom: "div:block (live — rendererMap renderSlot → Slot.tsx .react-aria-Slot, frame 편집 모드 placeholder; generated/Slot.css 가 Slot.spec containerStyles display block 을 emit)",
+    verdict: "일치",
+    box: ".react-aria-Slot — Phase 5 후속 전환 (2026-09-03): 잔존 spec Slot.spec containerStyles 에 display block 명시 (종전 archetype default 기본값 inline-flex ↔ Canvas 기본 block). 부모 (frame body) 가 block 이라 값이 배치에 영향 — page 모드 `.preview-slot` (UA block) · Canvas block 과 같은 block 으로",
   },
   Tag: {
     canvas: "block",
@@ -566,10 +586,10 @@ const HC2: Record<
     box: ".react-aria-SliderOutput — Slider 컨테이너(grid/flex) 자식이라 양쪽 blockify",
   },
   Avatar: {
-    canvas: "inline-flex",
-    dom: "div:flex (live)",
-    verdict: "전환필요(후속)",
-    box: "Avatar root div — catalog structure inline-flex ↔ live flex (outer 다름, palette 항목)",
+    canvas: "flex",
+    dom: "div:flex (live — rendererMap renderAvatar 인라인 display flex, LayoutRenderers.tsx; shared Avatar.tsx:109 도 flex)",
+    verdict: "일치",
+    box: "Avatar root div — Phase 5 후속 전환 (2026-09-03): catalog structure inline-flex → flex (DOM 실효값)",
   },
   Breadcrumb: {
     canvas: "inline-flex",
@@ -633,9 +653,9 @@ const HC2: Record<
   },
   StatusLight: {
     canvas: "inline-flex",
-    dom: "div:flex (live)",
-    verdict: "전환필요(후속)",
-    box: "StatusLight root div — catalog structure inline-flex ↔ live flex (outer 다름, palette 항목)",
+    dom: 'div:inline-flex (live — rendererMap renderStatusLight 인라인 display inline-flex, LayoutRenderers.tsx; shared StatusLight.tsx:87 은 flex 이나 production 표면 미사용 — preview 는 rendererMap, publish 는 createHtmlElement("div"))',
+    verdict: "일치",
+    box: "StatusLight root div — Phase 5 후속 재측정 (2026-09-03): 종전 행의 'live flex' 는 shared StatusLight.tsx 직접 마운트 값 (production 미사용 표면). preview 실경로는 inline-flex = catalog (2026-07-13 sweep 이 CSS 388 ↔ Skia 75 폭 발산을 이 값으로 닫음) — catalog 변경 0",
   },
   TableHeader: {
     canvas: "flex",
@@ -650,10 +670,10 @@ const HC2: Record<
     box: "Canvas Table 은 flex 행 투영 (ADR-912)",
   },
   TailSwatch: {
-    canvas: "inline-flex",
-    dom: "div (UA block — Tailwind 래퍼, generated CSS dead; 소스)",
-    verdict: "전환필요(후속)",
-    box: "TailSwatch root — catalog structure inline-flex ↔ DOM block (palette 항목, live 미측정: ColorSlider 의존)",
+    canvas: "block",
+    dom: "div:block (live — rendererMap renderTailSwatch 래퍼 div, FormRenderers.tsx; class 없음 → UA block, 안쪽 MyColorSwatches Tailwind class 는 preview 에 Tailwind 미로드; generated/TailSwatch.css 는 dead)",
+    verdict: "일치",
+    box: "TailSwatch root div — Phase 5 후속 전환 (2026-09-03): catalog structure inline-flex → block (DOM 실효값, live 실측)",
   },
   TextArea: {
     canvas: "flex",
@@ -697,11 +717,10 @@ describe("ADR-923 Phase 5 — HC2 판정표 (Canvas 전용 display override 33 r
     console.log(`ADR923HC2 verdicts ${JSON.stringify(counts)}`);
     expect(counts).toEqual({
       "전환(Phase 5)": 2,
-      일치: 6,
+      일치: 11,
       "일치(outer)": 14,
       "예외(투영)": 2,
       "예외(inert)": 4,
-      "전환필요(후속)": 5,
     });
   });
 
