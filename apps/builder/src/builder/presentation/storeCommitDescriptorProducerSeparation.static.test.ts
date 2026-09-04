@@ -41,15 +41,14 @@ describe("ADR-190 commit lane producer separation", () => {
       "utf-8",
     );
 
-    const syncIndex = source.indexOf(
-      "syncUpdatedElementToCanonical(updatedElement);",
-    );
+    // canonical sync 호출 이름은 `updateCanonicalNodePropsPrimary` 다
+    // (구 `syncUpdatedElementToCanonical` 에서 개명). 지키려는 것은 이름이
+    // 아니라 sync → emit → set() 순서다.
+    const syncIndex = source.indexOf("updateCanonicalNodePropsPrimary(");
     const emitIndex = source.indexOf(
       "emitStoreStyleCommitDescriptor(elementId, patch);",
     );
-    const setIndex = source.indexOf(
-      "elements: updatedElements,\n          elementsMap,",
-    );
+    const setIndex = source.indexOf("elementsMap: derivedUpdate.elementsMap,");
 
     expect(syncIndex).toBeGreaterThanOrEqual(0);
     expect(emitIndex).toBeGreaterThanOrEqual(0);
