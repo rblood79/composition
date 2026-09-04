@@ -1,11 +1,15 @@
 import { Type } from "lucide-react";
 import { memo, useCallback } from "react";
+import type { CanonicalNode } from "@composition/shared";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
 import { PropertyInput } from "../../components/property/PropertyInput";
-import { useStore } from "../../stores";
+import { readImmediateSelectionSnapshot, useStore } from "../../stores";
 import { historyManager } from "../../stores/history";
-import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
-import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
+import {
+  getChildren,
+  getNodeMap,
+} from "../../stores/canonical/canonicalTraversalHelpers";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import {
   useCanonicalPropertyElement,
   useCanonicalPropertyChildren,
@@ -13,6 +17,11 @@ import {
 import { getDefaultProps } from "../../../types/builder/unified.types";
 import { generateCustomId } from "../../utils/idGeneration";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import { collectCanonicalCustomIdCandidates } from "../../../adapters/canonical/legacyMetadata";
+import {
+  requestOriginImpactApprovalIfNeeded,
+  type OriginImpactApproval,
+} from "../../stores/utils/elementUpdate";
 import {
   buttonIconPx,
   buttonTextMetrics,
@@ -22,6 +31,82 @@ type AddElementInput = Parameters<
   ReturnType<typeof useStore.getState>["addElement"]
 >[0];
 type CustomIdElements = Parameters<typeof generateCustomId>[1];
+
+type ApprovedButtonChildMutation = {
+  approval: OriginImpactApproval;
+  documentVersion: number;
+  elementId: string;
+  pageId: string;
+  projectId: string;
+};
+
+type ButtonChildMutationContext = ApprovedButtonChildMutation & {
+  node: CanonicalNode;
+};
+
+function isPendingOriginImpactApproval(
+  result: OriginImpactApproval | Promise<OriginImpactApproval | null>,
+): result is Promise<OriginImpactApproval | null> {
+  return (
+    typeof (result as Promise<OriginImpactApproval | null>).then === "function"
+  );
+}
+
+async function prepareButtonChildMutation(
+  elementId: string,
+): Promise<ApprovedButtonChildMutation | null> {
+  const selection = readImmediateSelectionSnapshot();
+  const canonical = useCanonicalDocumentStore.getState();
+  if (
+    selection.selectedElementId !== elementId ||
+    !selection.currentPageId ||
+    !canonical.currentProjectId ||
+    !canonical.documents.has(canonical.currentProjectId)
+  ) {
+    return null;
+  }
+
+  const node = getNodeMap().get(elementId);
+  if (!node) return null;
+
+  const approvalResult = requestOriginImpactApprovalIfNeeded(node);
+  const approval = isPendingOriginImpactApproval(approvalResult)
+    ? await approvalResult
+    : approvalResult;
+  if (!approval) return null;
+
+  return {
+    approval,
+    documentVersion: canonical.documentVersion,
+    elementId,
+    pageId: selection.currentPageId,
+    projectId: canonical.currentProjectId,
+  };
+}
+
+function resolveApprovedButtonChildMutation(
+  approved: ApprovedButtonChildMutation,
+): ButtonChildMutationContext | null {
+  // await가 끝난 handler stack에서 즉시 검증한다. 이 함수 반환부터 transaction
+  // commit까지 다시 await하지 않으므로 selection/document mutation이 끼어들 수 없다.
+  const latestSelection = readImmediateSelectionSnapshot();
+  const latestCanonical = useCanonicalDocumentStore.getState();
+  if (
+    latestSelection.selectedElementId !== approved.elementId ||
+    latestSelection.currentPageId !== approved.pageId ||
+    latestCanonical.currentProjectId !== approved.projectId ||
+    latestCanonical.documentVersion !== approved.documentVersion
+  ) {
+    return null;
+  }
+
+  const latestNode = getNodeMap().get(approved.elementId);
+  if (!latestNode) return null;
+  return {
+    ...approved,
+    node: latestNode,
+  };
+}
 
 /**
  * Icon 셀렉트 host 태그 (leaf 버튼만). ToggleButtonGroup 은 자식이 ToggleButton
@@ -117,24 +202,12 @@ export const ButtonChildFields = memo(function ButtonChildFields({
   const addElement = useStore((state) => state.addElement);
   const updateElementProps = useStore((state) => state.updateElementProps);
   const removeElement = useStore((state) => state.removeElement);
-  const currentPageId = useStore((state) => state.currentPageId);
 
   const existingIcon = findFirstIconChild(children);
   const existingText = findFirstTextChild(children);
   const currentIconName =
     (existingIcon?.props as { iconName?: string } | undefined)?.iconName ??
     undefined;
-
-  const buttonChildrenText =
-    typeof (element?.props as { children?: unknown } | undefined)?.children ===
-    "string"
-      ? ((element!.props as { children?: string }).children as string)
-      : undefined;
-
-  // 부모 Button 의 현재 size — `<Text>` 자식 생성 시 상속 주입. Button size 변경 시 자식 Text
-  //   size 동기화는 propagationRegistry buttonPropagationRules(size → Text)가 담당하지만, 전파는
-  //   *변경* 시점에만 작동 → 생성 직후 초기값은 여기서 직접 주입(부모-자식 글자 크기 일관).
-  const buttonSize = (element?.props as { size?: unknown } | undefined)?.size;
 
   const textChildValue =
     typeof (existingText?.props as { children?: unknown } | undefined)
@@ -146,22 +219,35 @@ export const ButtonChildFields = memo(function ButtonChildFields({
     async (iconName: string) => {
       if (!iconName) return;
 
+      // origin impact 승인을 모든 mutation 전에 끝내고, dialog 대기 뒤 최신
+      // selection/page/document가 동일할 때만 fresh canonical node로 진행한다.
+      const approved = await prepareButtonChildMutation(elementId);
+      const context = approved
+        ? resolveApprovedButtonChildMutation(approved)
+        : null;
+      if (!context) return;
+      const currentChildren = getChildren(context.node);
+      const currentExistingIcon = findFirstIconChild(currentChildren);
+      const currentExistingText = findFirstTextChild(currentChildren);
+
       // 아이콘 → 다른 아이콘: 기존 자식 Icon 의 iconName 만 수정 (write 1개 —
       //   되돌리기 단위가 이미 1개라 트랜잭션 불요).
-      if (existingIcon) {
-        await updateElementProps(existingIcon.id, { iconName });
-        return;
+      if (currentExistingIcon) {
+        return updateElementProps(currentExistingIcon.id, { iconName });
       }
 
       // None → 아이콘: Icon 자식 생성 + (label 이 string children 으로 있으면) Text 자식
       //   element 로 이관. RSP 공식 `<Button><Icon/><Text>label</Text></Button>`.
-      const doc = getActiveCanonicalDocument();
-      if (!doc || !currentPageId) return;
+      const pageElements: CustomIdElements = collectCanonicalCustomIdCandidates(
+        getNodeMap().values(),
+      );
 
-      const pageElements: CustomIdElements = [];
-      visitCanonicalDocumentElements(doc, (el) => {
-        pageElements.push(el);
-      });
+      const buttonChildrenText =
+        typeof context.node.props?.children === "string"
+          ? context.node.props.children
+          : undefined;
+      // 부모 Button 의 latest size — dialog 대기 중 stale closure를 쓰지 않는다.
+      const buttonSize = context.node.props?.size;
 
       // 자식 순서 = Icon 먼저, Text 나중(canonical children 추가 순서 = 렌더 순서, RSP 순서).
       //   Icon 은 buttonPropagationRules(size → Icon) 와 동일 3채널 주입:
@@ -174,7 +260,7 @@ export const ButtonChildFields = memo(function ButtonChildFields({
       const iconElement = buildButtonChild(
         "Icon",
         elementId,
-        currentPageId,
+        context.pageId,
         pageElements,
         // getDefaultProps("Icon") 의 random iconName override + 부모 size/px.
         typeof buttonSize === "string"
@@ -189,7 +275,7 @@ export const ButtonChildFields = memo(function ButtonChildFields({
       // string children(label) → Text 자식 element 이관. 이미 Text 자식이 있으면 중복
       //   생성하지 않는다(외부 경로로 만들어진 경우 보존).
       let textElement: AddElementInput | null = null;
-      if (buttonChildrenText !== undefined && !existingText) {
+      if (buttonChildrenText !== undefined && !currentExistingText) {
         // label <Text> 의 시각 척도(fontSize/lineHeight)는 Button 텍스트 척도(md=text-sm 14/20)를
         //   inline 으로 받는다 — Text 컴포넌트 독립 타이포 척도(text-base 16/24)가 아니라 Button
         //   척도. label 은 버튼 텍스트라 height 가 leaf Button 과 동일해야 함(사용자 결정 2026-06-27:
@@ -202,7 +288,7 @@ export const ButtonChildFields = memo(function ButtonChildFields({
         textElement = buildButtonChild(
           "Text",
           elementId,
-          currentPageId,
+          context.pageId,
           [...pageElements, iconElement], // Icon 까지 포함해 customId 충돌 회피
           typeof buttonSize === "string"
             ? {
@@ -230,27 +316,36 @@ export const ButtonChildFields = memo(function ButtonChildFields({
           if (textElement) {
             writes.push(addElement(textElement));
             // Button 의 string children 을 비운다(`<Text>` 자식이 label 을 보유).
-            writes.push(updateElementProps(elementId, { children: "" }));
+            writes.push(
+              updateElementProps(
+                elementId,
+                { children: "" },
+                { originImpactApproval: context.approval },
+              ),
+            );
           }
           return writes;
         },
       );
       await Promise.all(pendingWrites);
     },
-    [
-      existingIcon,
-      existingText,
-      buttonChildrenText,
-      buttonSize,
-      updateElementProps,
-      currentPageId,
-      elementId,
-      addElement,
-    ],
+    [updateElementProps, elementId, addElement],
   );
 
   const handleClearIcon = useCallback(async () => {
-    if (!existingIcon) return;
+    const approved = await prepareButtonChildMutation(elementId);
+    const context = approved
+      ? resolveApprovedButtonChildMutation(approved)
+      : null;
+    if (!context) return;
+    const currentChildren = getChildren(context.node);
+    const currentExistingIcon = findFirstIconChild(currentChildren);
+    const currentExistingText = findFirstTextChild(currentChildren);
+    if (!currentExistingIcon) return;
+    const currentTextValue =
+      typeof currentExistingText?.props?.children === "string"
+        ? currentExistingText.props.children
+        : "";
 
     // Icon 제거 → plain Button(string children) 모델 회복. `<Text>` 자식 element 가 있으면
     //   그 텍스트를 Button string children 으로 되돌리고 Text element 삭제.
@@ -263,25 +358,22 @@ export const ButtonChildFields = memo(function ButtonChildFields({
       { type: "batch", elementId },
       (): Promise<unknown>[] => {
         const writes: Promise<unknown>[] = [];
-        if (existingText) {
+        if (currentExistingText) {
           writes.push(
-            updateElementProps(elementId, { children: textChildValue }),
+            updateElementProps(
+              elementId,
+              { children: currentTextValue },
+              { originImpactApproval: context.approval },
+            ),
           );
-          writes.push(removeElement(existingText.id));
+          writes.push(removeElement(currentExistingText.id));
         }
-        writes.push(removeElement(existingIcon.id));
+        writes.push(removeElement(currentExistingIcon.id));
         return writes;
       },
     );
     await Promise.all(pendingWrites);
-  }, [
-    existingIcon,
-    existingText,
-    textChildValue,
-    removeElement,
-    updateElementProps,
-    elementId,
-  ]);
+  }, [elementId, removeElement, updateElementProps]);
 
   // icon Button 의 "Text" 입력: `<Text>` 자식 element 의 children 을 편집.
   const handleTextChange = useCallback(

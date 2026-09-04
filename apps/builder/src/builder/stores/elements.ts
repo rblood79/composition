@@ -50,6 +50,7 @@ import {
   createBatchUpdateElementsAction,
   type BatchElementUpdate,
   type BatchPropsUpdate,
+  type OriginImpactApproval,
 } from "./utils/elementUpdate";
 import { ElementUtils } from "../../utils/element/elementUtils";
 import {
@@ -196,6 +197,7 @@ export interface ElementsState {
   updateElementProps: (
     elementId: string,
     props: ComponentElementProps,
+    options?: { originImpactApproval?: OriginImpactApproval },
   ) => Promise<void>;
   updateElement: (
     elementId: string,

@@ -10,7 +10,11 @@ describe("useComponentMemory canonical read contract", () => {
     );
 
     expect(source).toContain("useActiveCanonicalDocument");
-    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).toContain("getNodeMap");
+    expect(source).toContain("getParent");
+    expect(source).toContain("readCanonicalNodeCustomId");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getCanonicalDocumentElementsView");
     expect(source).not.toContain("useCanonicalElements");
     expect(source).toContain("if (canonicalElements) return EMPTY_ELEMENTS;");
     expect(source).toContain("const { elements: legacyElements } = state;");

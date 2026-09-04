@@ -7,9 +7,14 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import type { CanonicalNode } from "@composition/shared";
 import { useStore } from "../../../stores";
-import { visitCanonicalDocumentElements } from "../../../stores/canonical/canonicalElementsView";
+import {
+  getNodeMap,
+  getParent,
+} from "../../../stores/canonical/canonicalTraversalHelpers";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
+import { readCanonicalNodeCustomId } from "../../../../adapters/canonical/legacyMetadata";
 
 interface ComponentMemoryNode {
   id: string;
@@ -20,6 +25,43 @@ interface ComponentMemoryNode {
 }
 
 const EMPTY_ELEMENTS: ComponentMemoryNode[] = [];
+
+function isComponentMemoryNode(node: CanonicalNode): boolean {
+  const metadataType = node.metadata?.type;
+  const isPagePlaceholder =
+    metadataType === "page" || metadataType === "legacy-page";
+  const isHoistedSlot = metadataType === "legacy-slot-hoisted";
+  const ref = (node as CanonicalNode & { ref?: unknown }).ref;
+  const isRenderableRef =
+    typeof ref === "string" && ref.length > 0 && !isPagePlaceholder;
+  return Boolean(node.props || isHoistedSlot || isRenderableRef);
+}
+
+function buildCanonicalMemoryNodes(): ComponentMemoryNode[] {
+  const nodes = [...getNodeMap().values()].filter(isComponentMemoryNode);
+  const includedIds = new Set(nodes.map((node) => node.id));
+
+  return nodes.map((node) => {
+    const isHoistedSlot = node.metadata?.type === "legacy-slot-hoisted";
+    const props = { ...(node.props ?? {}) };
+    if (isHoistedSlot && typeof node.metadata?.slotName === "string") {
+      props.name ??= node.metadata.slotName;
+    }
+
+    let parent = getParent(node.id);
+    while (parent && !includedIds.has(parent.id)) {
+      parent = getParent(parent.id);
+    }
+
+    return {
+      id: node.id,
+      customId: readCanonicalNodeCustomId(node),
+      type: isHoistedSlot ? "Slot" : node.type,
+      props,
+      parent_id: parent?.id ?? null,
+    };
+  });
+}
 
 export interface ComponentMemoryInfo {
   elementId: string;
@@ -110,11 +152,7 @@ export function useComponentMemory(options: UseComponentMemoryOptions = {}) {
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const canonicalElements = useMemo(() => {
     if (!activeCanonicalDocument) return null;
-    const elements: ComponentMemoryNode[] = [];
-    visitCanonicalDocumentElements(activeCanonicalDocument, (element) => {
-      elements.push(element);
-    });
-    return elements;
+    return buildCanonicalMemoryNodes();
   }, [activeCanonicalDocument]);
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;

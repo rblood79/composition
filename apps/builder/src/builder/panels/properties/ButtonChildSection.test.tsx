@@ -179,10 +179,50 @@ describe("Icon 셀렉트 다중 write 의 history 단일 엔트리 계약", () =
 
     // 되돌리기 단위가 이미 1개라 트랜잭션이 불필요하다 — 빈/단일 창을 만들지 않는다
     const singleWrite = source.indexOf(
-      "await updateElementProps(existingIcon.id, { iconName });",
+      "return updateElementProps(currentExistingIcon.id, { iconName });",
     );
     const firstWindow = source.indexOf("historyManager.runInTransaction(");
     expect(singleWrite).toBeGreaterThan(0);
     expect(singleWrite).toBeLessThan(firstWindow);
+  });
+
+  it("origin impact 확인은 Icon 추가·제거 mutation보다 먼저 끝낸다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "./ButtonChildSection.tsx"),
+      "utf-8",
+    );
+
+    const selectStart = source.indexOf("const handleSelectIcon");
+    const clearStart = source.indexOf("const handleClearIcon");
+    const selectSlice = source.slice(selectStart, clearStart);
+    const clearSlice = source.slice(clearStart);
+
+    for (const handler of [selectSlice, clearSlice]) {
+      const gate = handler.indexOf("prepareButtonChildMutation(elementId)");
+      const revalidate = handler.indexOf(
+        "resolveApprovedButtonChildMutation(approved)",
+      );
+      const transaction = handler.indexOf("historyManager.runInTransaction(");
+      expect(gate).toBeGreaterThan(0);
+      expect(revalidate).toBeGreaterThan(gate);
+      expect(transaction).toBeGreaterThan(revalidate);
+      const compoundPreparation = handler
+        .slice(revalidate, transaction)
+        .replace(/\/\/.*$/gm, "")
+        .replace(/\/\*[\s\S]*?\*\//g, "");
+      expect(compoundPreparation).not.toMatch(/\bawait\b/);
+    }
+  });
+
+  it("customId seed는 canonical node index에서 읽고 Element[] projection을 만들지 않는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "./ButtonChildSection.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("getNodeMap().values()");
+    expect(source).toContain("collectCanonicalCustomIdCandidates");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getCanonicalDocumentElementsView");
   });
 });

@@ -284,12 +284,111 @@ function sanitizeElementUpdate(updates: Partial<Element>): Partial<Element> {
 
 const confirmedOriginImpactKeys = new Set<string>();
 
+type OriginImpactTarget = Pick<Element, "id" | "type"> & {
+  componentRole?: unknown;
+  componentName?: string | null;
+  customId?: string | null;
+  masterId?: unknown;
+  metadata?: unknown;
+  name?: string | null;
+  ref?: unknown;
+  reusable?: unknown;
+};
+
+export type OriginImpactApproval = {
+  readonly kind: "origin-impact-approval";
+  readonly originId: string;
+  readonly confirmationKey: string | null;
+};
+
+type OriginImpactContext = {
+  confirmationKey: string;
+  countDurationMs: number;
+  impactedInstanceIds: string[];
+};
+
 export function clearOriginImpactConfirmationCacheForTests(): void {
   confirmedOriginImpactKeys.clear();
 }
 
 function nowMs(): number {
   return globalThis.performance?.now?.() ?? Date.now();
+}
+
+function getOriginImpactContext(
+  element: OriginImpactTarget,
+): OriginImpactContext | null {
+  if (getEditingSemanticsRole(element) !== "origin") return null;
+
+  const startedAt = nowMs();
+  const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
+    element,
+    getElementUpdateSourceElements(),
+  ).sort();
+  const countDurationMs = nowMs() - startedAt;
+  if (countDurationMs > 100) {
+    console.warn(
+      `[EditingSemantics] origin impact count took ${countDurationMs.toFixed(1)}ms for ${impactedInstanceIds.length} instances`,
+    );
+  }
+
+  return {
+    confirmationKey: JSON.stringify([element.id, impactedInstanceIds]),
+    countDurationMs,
+    impactedInstanceIds,
+  };
+}
+
+function createOriginImpactApproval(
+  element: OriginImpactTarget,
+  context: OriginImpactContext | null,
+): OriginImpactApproval {
+  return {
+    kind: "origin-impact-approval",
+    originId: element.id,
+    confirmationKey: context?.confirmationKey ?? null,
+  };
+}
+
+function isCurrentOriginImpactApproval(
+  element: OriginImpactTarget,
+  approval: OriginImpactApproval | undefined,
+): boolean {
+  if (
+    !approval ||
+    approval.kind !== "origin-impact-approval" ||
+    approval.originId !== element.id
+  ) {
+    return false;
+  }
+  const context = getOriginImpactContext(element);
+  return approval.confirmationKey === (context?.confirmationKey ?? null);
+}
+
+export function requestOriginImpactApprovalIfNeeded(
+  element: OriginImpactTarget,
+): OriginImpactApproval | Promise<OriginImpactApproval | null> {
+  const context = getOriginImpactContext(element);
+  if (
+    !context ||
+    context.impactedInstanceIds.length === 0 ||
+    confirmedOriginImpactKeys.has(context.confirmationKey)
+  ) {
+    return createOriginImpactApproval(element, context);
+  }
+
+  return requestEditingSemanticsImpactConfirmation({
+    countDurationMs: context.countDurationMs,
+    impactedInstanceIds: context.impactedInstanceIds,
+    instanceCount: context.impactedInstanceIds.length,
+    originId: element.id,
+    originLabel:
+      element.componentName ?? element.customId ?? element.name ?? element.type,
+  }).then((confirmed) => {
+    if (!confirmed) return null;
+    confirmedOriginImpactKeys.add(context.confirmationKey);
+    return createOriginImpactApproval(element, context);
+  });
 }
 
 /**
@@ -305,44 +404,15 @@ function nowMs(): number {
  * 호출부는 `gate !== true && !(await gate)` 형태로 받는다 — 동기 `true` 는 await 없이
  * 통과하고, 대화상자 경로만 실제로 양보한다.
  */
-function confirmOriginImpactIfNeeded(
-  element: Element,
+export function confirmOriginImpactIfNeeded(
+  element: OriginImpactTarget,
+  approval?: OriginImpactApproval,
 ): boolean | Promise<boolean> {
-  if (getEditingSemanticsRole(element) !== "origin") return true;
-
-  const startedAt = nowMs();
-  const sourceElements = getElementUpdateSourceElements();
-  const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
-    element,
-    sourceElements,
-  );
-  const countDurationMs = nowMs() - startedAt;
-  if (countDurationMs > 100) {
-    console.warn(
-      `[EditingSemantics] origin impact count took ${countDurationMs.toFixed(1)}ms for ${impactedInstanceIds.length} instances`,
-    );
-  }
-
-  const instanceCount = impactedInstanceIds.length;
-  if (instanceCount === 0) return true;
-
-  const confirmationKey = `${element.id}:${instanceCount}`;
-  if (confirmedOriginImpactKeys.has(confirmationKey)) {
-    return true;
-  }
-
-  return requestEditingSemanticsImpactConfirmation({
-    countDurationMs,
-    impactedInstanceIds,
-    instanceCount,
-    originId: element.id,
-    originLabel: element.componentName ?? element.customId ?? element.type,
-  }).then((confirmed) => {
-    if (confirmed) {
-      confirmedOriginImpactKeys.add(confirmationKey);
-    }
-    return confirmed;
-  });
+  if (isCurrentOriginImpactApproval(element, approval)) return true;
+  const approvalResult = requestOriginImpactApprovalIfNeeded(element);
+  return approvalResult instanceof Promise
+    ? approvalResult.then((result) => result !== null)
+    : true;
 }
 
 /**
@@ -363,7 +433,11 @@ function confirmOriginImpactIfNeeded(
  */
 export const createUpdateElementPropsAction =
   (set: SetState, get: GetState) =>
-  async (elementId: string, props: ComponentElementProps) => {
+  async (
+    elementId: string,
+    props: ComponentElementProps,
+    options?: { originImpactApproval?: OriginImpactApproval },
+  ) => {
     if (isRenderProjectionId(elementId)) return;
     const sanitizedProps = sanitizePropsPatch(
       (props ?? {}) as Record<string, unknown>,
@@ -380,7 +454,10 @@ export const createUpdateElementPropsAction =
     )
       return;
     // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
-    const originGate = confirmOriginImpactIfNeeded(element);
+    const originGate = confirmOriginImpactIfNeeded(
+      element,
+      options?.originImpactApproval,
+    );
     if (originGate !== true && !(await originGate)) return;
 
     const shouldRecordHistory = Boolean(currentState.currentPageId);

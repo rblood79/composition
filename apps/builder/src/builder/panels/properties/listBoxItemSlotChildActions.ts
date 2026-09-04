@@ -1,7 +1,8 @@
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
-import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
+import { getNodeMap } from "../../stores/canonical/canonicalTraversalHelpers";
 import { generateCustomId } from "../../utils/idGeneration";
 import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
+import { collectCanonicalCustomIdCandidates } from "../../../adapters/canonical/legacyMetadata";
 import type { ElementsState } from "../../stores/elements";
 
 type AddElementInput = Parameters<ElementsState["addElement"]>[0];
@@ -29,12 +30,9 @@ export function createListBoxItemSlotChildElement(opts: {
   const { role, parentId, pageId } = opts;
 
   const doc = getActiveCanonicalDocument();
-  const pageElements: CustomIdElements = [];
-  if (doc) {
-    visitCanonicalDocumentElements(doc, (el) => {
-      pageElements.push(el);
-    });
-  }
+  const pageElements: CustomIdElements = doc
+    ? collectCanonicalCustomIdCandidates(getNodeMap().values())
+    : [];
 
   const type = role === "icon" ? "Icon" : "Text";
   return withFrameElementMirrorId(

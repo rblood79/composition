@@ -1,4 +1,5 @@
 import type { Element } from "../../types/core/store.types";
+import type { CanonicalNode } from "@composition/shared";
 import {
   asElementWithLegacyMirror,
   type LegacyComponentRole,
@@ -60,6 +61,29 @@ export function readLegacyMetadataCustomId(
   const payload = readQuarantinedPayload(metadata);
   const customId = payload?.customId;
   return typeof customId === "string" && customId ? customId : undefined;
+}
+
+export function readCanonicalNodeCustomId(
+  node: Pick<CanonicalNode, "metadata">,
+): string | undefined {
+  return readLegacyMetadataCustomId(node.metadata);
+}
+
+/**
+ * customId 충돌 검사용 canonical-native projection.
+ *
+ * consumer는 legacy metadata shape를 알지 않고, active canonical node index의
+ * 실제 customId 값만 구조 입력으로 받는다.
+ */
+export function collectCanonicalCustomIdCandidates(
+  nodes: Iterable<Pick<CanonicalNode, "metadata">>,
+): Array<{ customId: string }> {
+  const candidates: Array<{ customId: string }> = [];
+  for (const node of nodes) {
+    const customId = readCanonicalNodeCustomId(node);
+    if (customId) candidates.push({ customId });
+  }
+  return candidates;
 }
 
 export function readLegacyElementPositionMetadata(

@@ -13,15 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - instance 생성·분리, 요소 update·remove가 활성 canonical 문서만 mutation source로 사용합니다. canonical 문서가 준비되지 않은 동안 오래된 legacy cache를 수정하거나 history로 기록하지 않습니다.
 - 중첩 요소의 editing context 진입·종료, Styles reset의 선택 요소·부모·조부모 조회, Fill 액션의 현재 값 조회를 ADR-127 canonical node helper로 옮겼습니다. page ref의 `descendants` replacement subtree도 같은 helper cache에서 탐색합니다.
+- 선택된 instance의 최신 override, Button/ListBoxItem 자식 생성용 customId 충돌 검사, Component Memory 분석도 canonical node index에서 직접 읽습니다. customId의 구 metadata 저장형식은 adapter 내부에서만 해소합니다.
 
 ### Fixed
 
 - 모바일·태블릿 style override를 reset할 때 선택 요소는 canonical 문서에서 읽으면서 responsive 값과 부모 baseline은 오래된 legacy map에서 읽어 reset이 누락될 수 있던 source 분리를 없앴습니다.
 - Fill 액션을 canonical node index로 옮기면서도, top-level `fills` 도입 전에 저장된 문서의 `metadata.legacyProps.fills`는 adapter 경계에서 복원해 첫 편집 때 기존 fill stack이 사라지지 않게 했습니다.
+- **Button Icon origin impact 취소와 단일 Undo**:
+  - **Why**: Icon/Text 추가·제거가 먼저 실행된 뒤 마지막 Button props update에서 impact 확인을 기다려, Cancel 뒤에도 자식 mutation이 남고 history transaction이 둘로 갈렸습니다.
+  - 모든 자식 mutation 전에 impact 승인을 완료하고 selection·page·project·canonical revision을 재검증합니다. 승인된 instance ID 집합에 묶인 operation token으로 Continue 뒤 Icon/Text/Button 변경을 한 history entry에 기록하며, Cancel 또는 dialog 대기 중 target 변경은 no-op입니다.
+  - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`
 
 ### Tests
 
-- legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존 회귀를 추가했습니다.
+- legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존, Button Icon impact Cancel·단일 Undo 회귀를 추가했습니다.
 
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
 

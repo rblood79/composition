@@ -19,6 +19,12 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { Element } from "../../../../types/core/store.types";
+import {
+  mergeElementsCanonicalPrimary,
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "../../../../adapters/canonical/canonicalMutations";
+import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { useStore } from "../../elements";
 import { historyManager } from "../../history";
 import { clearOriginImpactConfirmationCacheForTests } from "../elementUpdate";
@@ -62,7 +68,14 @@ describe("store mutation 은 history 를 동기로 기록한다", () => {
   let addEntrySpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     clearOriginImpactConfirmationCacheForTests();
+    historyManager.clearPageHistory("page-1");
     historyManager.setCurrentPage("page-1");
 
     // jsdom 은 IndexedDB 미구현이라 `typeof indexedDB` 가 "undefined" 다. 그러면
@@ -90,11 +103,24 @@ describe("store mutation 은 history 를 동기로 기록한다", () => {
       dirtyElementIds: new Set<string>(),
     } as never);
     useStore.getState()._rebuildIndexes();
+    registerCanonicalMutationStoreActions({
+      getCurrentProjectId: () => "mutation-history-project",
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [],
+        layouts: [],
+      }),
+    });
+    useCanonicalDocumentStore
+      .getState()
+      .setCurrentProject("mutation-history-project");
+    mergeElementsCanonicalPrimary(useStore.getState().elements);
 
     addEntrySpy = vi.spyOn(historyManager, "addEntry");
   });
 
   afterEach(() => {
+    resetCanonicalMutationStoreActions();
     vi.restoreAllMocks();
   });
 
@@ -145,7 +171,7 @@ describe("동기 도달 정적 가드", () => {
     );
 
     expect(source).toContain(
-      "function confirmOriginImpactIfNeeded(\n  state: ElementsState,\n  element: Element,\n): boolean | Promise<boolean> {",
+      "export function confirmOriginImpactIfNeeded(\n  element: OriginImpactTarget,\n  approval?: OriginImpactApproval,\n): boolean | Promise<boolean> {",
     );
     expect(source).not.toContain("async function confirmOriginImpactIfNeeded");
 
