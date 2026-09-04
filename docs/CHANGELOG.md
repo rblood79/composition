@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Components 팔레트와 Navigator Layers/Frames가 legacy `Element[]` 전체 projection 대신 panel 전용 canonical node 구조를 읽습니다. page·reusable frame scope, structural parent lifting, page ref descendants를 유지하며 component factory 입력도 생성에 필요한 필드로 축소했습니다.
 - Page 삭제의 canonical topology 동기화는 `BuilderCore` page-shell bridge 한 곳이 담당합니다. Pages panel의 중복 full-document replacement를 제거해 부분 legacy cache가 canonical 문서를 덮는 경로를 닫았습니다.
 - Select·ListBox·Menu의 items 편집은 target을 찾기 위해 canonical 문서를 매번 legacy `Element[]`로 평탄화하지 않고, document revision별 canonical projectable first-match index를 사용합니다. 활성 canonical 문서에 target이 없으면 오래된 legacy cache로 되살리지 않으며, 중복 id가 있는 잘못된 기존 문서에서도 structural node를 건너뛰고 후속 mutation과 같은 첫 DFS Element node를 선택합니다.
+- 단일 요소 props 편집은 canonical 문서를 legacy `Element[]`로 전체 투영한 뒤 다시 merge하지 않습니다. revision별 target·descendant cache와 canonical tree structural sharing을 사용하고, UI용 derived array/map만 같은 순서로 증분 교체합니다. 잘못된 기존 duplicate id 문서는 구 adapter 복구 의미를 유지합니다.
 
 ### Fixed
 
@@ -42,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존, Button Icon impact Cancel·단일 Undo 회귀를 추가했습니다.
 - panel canonical node의 page/frame scope·Slot·ref descendants, frame-bound LayerTree 합성, page 삭제 뒤 인접 body 즉시 선택, structural component creation 입력 회귀를 추가했습니다.
 - items action에는 canonical 우선·stale legacy 차단·중복 id projectable first-match 회귀와 full projection 재도입 static gate를 추가했습니다. 5,000-node 합성 측정의 3회 median에서 target pre-read는 첫 조회 4.40ms → 0.96ms, 동일 revision 100회 66.09ms → 0.045ms였습니다. 격리된 551-element Builder의 12회 실제 편집은 p50 33.9ms/p95 40.4ms였고 Undo/Redo·Canvas·console을 함께 검증했습니다. 후자는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
+- 단일 props 편집에는 full `Element[]` projection·legacy merge 재도입 static gate와 structural parent lifting·page ref descendants·duplicate id·history roundtrip 회귀를 추가했습니다. 5,000-node 격리 action 20회 측정은 p50 10.08ms → 1.27–1.51ms였고, foreground synthetic Builder 1,000-node post-change 검증은 p50 0.3ms/p95 1.1ms였습니다. live 검증에서 canonical·derived selection·Undo/Redo가 일치했고 runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
 
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
 

@@ -54,6 +54,10 @@ import {
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import {
+  getCanonicalNodeOccurrenceCount,
+  getFirstProjectableNodeById,
+} from "../../builder/stores/canonical/canonicalTraversalHelpers";
+import {
   buildLegacyElementMetadata,
   readLegacyElementPositionMetadata,
 } from "./legacyMetadata";
@@ -439,6 +443,92 @@ function replaceNodeInDescendants(
   return replaced
     ? { node: { ...refNode, descendants: nextDescendants }, replaced }
     : { node: refNode, replaced: false };
+}
+
+function replaceNodeByReference(
+  nodes: CanonicalNode[],
+  target: CanonicalNode,
+  replacement: CanonicalNode,
+): { nodes: CanonicalNode[]; replaced: boolean } {
+  for (let index = 0; index < nodes.length; index += 1) {
+    const node = nodes[index];
+    if (node === target) {
+      return { nodes: nodes.with(index, replacement), replaced: true };
+    }
+
+    const childResult = replaceNodeByReference(
+      node.children ?? [],
+      target,
+      replacement,
+    );
+    if (childResult.replaced) {
+      return {
+        nodes: nodes.with(index, { ...node, children: childResult.nodes }),
+        replaced: true,
+      };
+    }
+
+    if (node.type === "ref") {
+      const descendantResult = replaceNodeReferenceInDescendants(
+        node as RefNode,
+        target,
+        replacement,
+      );
+      if (descendantResult.replaced) {
+        return {
+          nodes: nodes.with(index, descendantResult.node),
+          replaced: true,
+        };
+      }
+    }
+  }
+
+  return { nodes, replaced: false };
+}
+
+function replaceNodeReferenceInDescendants(
+  refNode: RefNode,
+  target: CanonicalNode,
+  replacement: CanonicalNode,
+): { node: RefNode; replaced: boolean } {
+  const descendants = refNode.descendants ?? {};
+  for (const [path, override] of Object.entries(descendants)) {
+    if (override === target) {
+      return {
+        node: {
+          ...refNode,
+          descendants: { ...descendants, [path]: replacement },
+        },
+        replaced: true,
+      };
+    }
+    if (
+      override &&
+      typeof override === "object" &&
+      "children" in override &&
+      Array.isArray(override.children)
+    ) {
+      const childResult = replaceNodeByReference(
+        override.children,
+        target,
+        replacement,
+      );
+      if (childResult.replaced) {
+        return {
+          node: {
+            ...refNode,
+            descendants: {
+              ...descendants,
+              [path]: { ...override, children: childResult.nodes },
+            },
+          },
+          replaced: true,
+        };
+      }
+    }
+  }
+
+  return { node: refNode, replaced: false };
 }
 
 function appendChildToNode(
@@ -1855,6 +1945,48 @@ function applyCanonicalPrimarySet(
 // ─────────────────────────────────────────────
 // In-memory store wrapper API
 // ─────────────────────────────────────────────
+
+/**
+ * 활성 canonical document의 첫 projectable node props를 직접 교체한다.
+ *
+ * `updateElementProps` 전용 props-only 경로다. node의 위치·children·ref
+ * descendants와 canonical 전용 필드를 그대로 유지하므로 legacy Element 역변환과
+ * sibling order 재계산이 필요 없다. target reference까지의 경로만 structural
+ * sharing으로 복사한다.
+ */
+export function updateCanonicalNodePropsPrimary(
+  nodeId: string,
+  nextProps: Record<string, unknown>,
+  duplicateCompatElement?: Element,
+): CanonicalMutationResult {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return { changed: false, document: null };
+
+  const currentDoc = canonical.documents.get(projectId);
+  if (!currentDoc) return { changed: false, document: null };
+  const target = getFirstProjectableNodeById(nodeId);
+  if (!target) return { changed: false, document: currentDoc };
+
+  // 구 projection mutation은 invalid duplicate id를 1개 node로 정규화했다.
+  // 정상 hot path에는 legacy 변환을 재도입하지 않고, 실제 duplicate 문서에서만
+  // 기존 upsert adapter로 같은 복구 의미를 유지한다.
+  if (duplicateCompatElement && getCanonicalNodeOccurrenceCount(nodeId) > 1) {
+    return applyCanonicalPrimaryMerge([duplicateCompatElement]);
+  }
+
+  const replacement: CanonicalNode = { ...target, props: nextProps };
+  const result = replaceNodeByReference(
+    currentDoc.children,
+    target,
+    replacement,
+  );
+  if (!result.replaced) return { changed: false, document: currentDoc };
+
+  const nextDocument = { ...currentDoc, children: result.nodes };
+  canonical.setDocument(projectId, nextDocument);
+  return { changed: true, document: nextDocument };
+}
 
 /**
  * legacy `mergeElements` 의 canonical-aware wrapper.

@@ -49,13 +49,22 @@ import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 interface TraversalCache {
   version: number;
   projectId: string;
+  document: CompositionDocument;
   nodeMap: Map<string, CanonicalNode>;
   firstProjectableNodeById: Map<string, CanonicalNode>;
+  nodeOccurrenceCountById: Map<string, number>;
   childrenByParent: Map<string, CanonicalNode[]>;
+  projectableNodes: CanonicalNode[];
+  projectableChildrenByParent: Map<string, CanonicalNode[]>;
   parentEdge: Map<string, string>; // childId → parentId
 }
 
 let cache: TraversalCache | null = null;
+const EMPTY_PROJECTABLE_NODES: readonly CanonicalNode[] = [];
+const EMPTY_PROJECTABLE_CHILDREN_BY_PARENT: ReadonlyMap<
+  string,
+  readonly CanonicalNode[]
+> = new Map();
 
 function getActiveDocumentSnapshot(): {
   doc: CompositionDocument;
@@ -130,22 +139,43 @@ function ensureCache(): TraversalCache | null {
   if (
     cache &&
     cache.version === snapshot.version &&
-    cache.projectId === snapshot.projectId
+    cache.projectId === snapshot.projectId &&
+    cache.document === snapshot.doc
   ) {
     return cache;
   }
 
   const nodeMap = new Map<string, CanonicalNode>();
   const firstProjectableNodeById = new Map<string, CanonicalNode>();
+  const nodeOccurrenceCountById = new Map<string, number>();
   const childrenByParent = new Map<string, CanonicalNode[]>();
+  const projectableNodes: CanonicalNode[] = [];
+  const projectableChildrenByParent = new Map<string, CanonicalNode[]>();
   const parentEdge = new Map<string, string>();
 
-  function visit(node: CanonicalNode, parentId: string | null): void {
-    if (
-      isCanonicalNodeProjectableToElement(node) &&
-      !firstProjectableNodeById.has(node.id)
-    ) {
-      firstProjectableNodeById.set(node.id, node);
+  function visit(
+    node: CanonicalNode,
+    parentId: string | null,
+    projectableParentId: string | null,
+  ): void {
+    nodeOccurrenceCountById.set(
+      node.id,
+      (nodeOccurrenceCountById.get(node.id) ?? 0) + 1,
+    );
+    const isProjectable = isCanonicalNodeProjectableToElement(node);
+    if (isProjectable) {
+      projectableNodes.push(node);
+      if (!firstProjectableNodeById.has(node.id)) {
+        firstProjectableNodeById.set(node.id, node);
+      }
+      if (projectableParentId) {
+        const siblings = projectableChildrenByParent.get(projectableParentId);
+        if (siblings) {
+          siblings.push(node);
+        } else {
+          projectableChildrenByParent.set(projectableParentId, [node]);
+        }
+      }
     }
     nodeMap.set(node.id, node);
     if (parentId) {
@@ -159,7 +189,7 @@ function ensureCache(): TraversalCache | null {
     }
     if (node.children) {
       for (const child of node.children) {
-        visit(child, node.id);
+        visit(child, node.id, isProjectable ? node.id : projectableParentId);
       }
     }
     // Page ref 의 descendants replacement subtree 는 runtime page element다.
@@ -167,21 +197,25 @@ function ensureCache(): TraversalCache | null {
     // renderable parent 가 아니므로 override root 의 parent edge 는 비워 둔다.
     for (const children of getCanonicalPageRefDescendantChildren(node)) {
       for (const child of children) {
-        visit(child, null);
+        visit(child, null, isProjectable ? node.id : projectableParentId);
       }
     }
   }
 
   for (const child of snapshot.doc.children) {
-    visit(child, null);
+    visit(child, null, null);
   }
 
   cache = {
     version: snapshot.version,
     projectId: snapshot.projectId,
+    document: snapshot.doc,
     nodeMap,
     firstProjectableNodeById,
+    nodeOccurrenceCountById,
     childrenByParent,
+    projectableNodes,
+    projectableChildrenByParent,
     parentEdge,
   };
   return cache;
@@ -295,6 +329,31 @@ export function getFirstProjectableNodeById(
 ): CanonicalNode | null {
   const c = ensureCache();
   return c?.firstProjectableNodeById.get(nodeId) ?? null;
+}
+
+/** migration 중 invalid duplicate id 감지용. 정상 문서는 항상 0 또는 1이다. */
+export function getCanonicalNodeOccurrenceCount(nodeId: string): number {
+  const c = ensureCache();
+  return c?.nodeOccurrenceCountById.get(nodeId) ?? 0;
+}
+
+/** legacy Element view와 같은 projectable node 순서를 allocation 없이 반환한다. */
+export function getProjectableNodes(): readonly CanonicalNode[] {
+  const c = ensureCache();
+  return c?.projectableNodes ?? EMPTY_PROJECTABLE_NODES;
+}
+
+/**
+ * legacy Element view의 structural parent lifting을 보존한 parent→children cache.
+ * props-only mutation의 inherited dirty propagation에서 Element projection을
+ * 만들지 않기 위한 read-only view다.
+ */
+export function getProjectableChildrenByParent(): ReadonlyMap<
+  string,
+  readonly CanonicalNode[]
+> {
+  const c = ensureCache();
+  return c?.projectableChildrenByParent ?? EMPTY_PROJECTABLE_CHILDREN_BY_PARENT;
 }
 
 /**

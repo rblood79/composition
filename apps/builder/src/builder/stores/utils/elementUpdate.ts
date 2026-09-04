@@ -28,9 +28,15 @@ import {
   applyElementOrderCanonicalPrimary,
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
+  updateCanonicalNodePropsPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import {
+  getFirstProjectableNodeById,
+  getProjectableChildrenByParent,
+  getProjectableNodes,
+} from "../canonical/canonicalTraversalHelpers";
 import { isRenderProjectionId } from "../../projection/renderProjectionIds";
 import {
   INHERITED_LAYOUT_PROPS_UPDATE,
@@ -52,6 +58,64 @@ type ElementUpdateChildrenByParent<TElement extends Element = Element> = Map<
 >;
 
 const EMPTY_ELEMENTS: Element[] = [];
+const elementArrayIndexCache = new WeakMap<
+  readonly Element[],
+  ReadonlyMap<string, number>
+>();
+
+function getElementArrayIndex(
+  elements: readonly Element[],
+  elementId: string,
+): number {
+  let indexById = elementArrayIndexCache.get(elements);
+  if (!indexById) {
+    const nextIndexById = new Map<string, number>();
+    elements.forEach((element, index) => {
+      if (!nextIndexById.has(element.id)) {
+        nextIndexById.set(element.id, index);
+      }
+    });
+    indexById = nextIndexById;
+    elementArrayIndexCache.set(elements, indexById);
+  }
+  return indexById.get(elementId) ?? -1;
+}
+
+type DerivedPropsUpdate = {
+  element: Element;
+  elements: Element[];
+  elementsMap: ElementUpdateLookup;
+};
+
+function createDerivedPropsUpdate(
+  state: Pick<ElementsState, "elements" | "elementsMap">,
+  elementId: string,
+  nextProps: ComponentElementProps,
+): DerivedPropsUpdate | null {
+  let sourceElements = state.elements;
+  let index = getElementArrayIndex(sourceElements, elementId);
+
+  // 정상 hot path는 기존 canonical-derived cache를 증분 갱신한다. bootstrap 또는
+  // cache gap에서만 전체 projection으로 mirror를 복구한다.
+  if (index < 0) {
+    sourceElements = getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
+    index = getElementArrayIndex(sourceElements, elementId);
+  }
+  if (index < 0) return null;
+
+  const currentElement = sourceElements[index];
+  const element = { ...currentElement, props: nextProps };
+  const elements = sourceElements.with(index, element);
+  const sourceIndexById = elementArrayIndexCache.get(sourceElements);
+  if (sourceIndexById) elementArrayIndexCache.set(elements, sourceIndexById);
+
+  const elementsMap =
+    sourceElements === state.elements
+      ? new Map(state.elementsMap)
+      : buildElementUpdateLookup(sourceElements);
+  elementsMap.set(elementId, element);
+  return { element, elements, elementsMap };
+}
 
 function syncUpdatedElementToCanonical(
   element: Element,
@@ -323,7 +387,7 @@ function getOriginImpactContext(
   const startedAt = nowMs();
   const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
     element,
-    getElementUpdateSourceElements(),
+    getProjectableNodes(),
   ).sort();
   const countDurationMs = nowMs() - startedAt;
   if (countDurationMs > 100) {
@@ -443,31 +507,39 @@ export const createUpdateElementPropsAction =
       (props ?? {}) as Record<string, unknown>,
     ) as ComponentElementProps;
     const currentState = get();
-    const sourceElements = getElementUpdateSourceElements();
-    const element = findElementForUpdate(sourceElements, elementId);
-    if (!element) return;
+    const canonicalNode = getFirstProjectableNodeById(elementId);
+    if (!canonicalNode) return;
 
     const patch = sanitizedProps as Record<string, unknown>;
     if (Object.keys(patch).length === 0) return;
-    if (
-      !hasShallowPatchChanges(element.props as Record<string, unknown>, patch)
-    )
-      return;
+    const currentProps = (canonicalNode.props ?? {}) as Record<string, unknown>;
+    if (!hasShallowPatchChanges(currentProps, patch)) return;
     // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
     const originGate = confirmOriginImpactIfNeeded(
-      element,
+      canonicalNode,
       options?.originImpactApproval,
     );
     if (originGate !== true && !(await originGate)) return;
 
+    const nextProps = {
+      ...currentProps,
+      ...sanitizedProps,
+    } as ComponentElementProps;
+    const derivedUpdate = createDerivedPropsUpdate(
+      currentState,
+      elementId,
+      nextProps,
+    );
+    if (!derivedUpdate) return;
+
     const shouldRecordHistory = Boolean(currentState.currentPageId);
     const prevPropsClone = shouldRecordHistory
-      ? cloneForHistory(element.props)
+      ? cloneForHistory(currentProps)
       : null;
     // canonical update event 는 full merged props 계약 — patch 가 아닌
     // 병합된 전체 props 를 기록해야 undo/redo 가 props 를 소거하지 않는다.
     const mergedNextPropsClone = shouldRecordHistory
-      ? cloneForHistory({ ...element.props, ...sanitizedProps })
+      ? cloneForHistory(nextProps)
       : null;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
@@ -480,19 +552,10 @@ export const createUpdateElementPropsAction =
       );
     }
 
-    // ADR-040 Phase 3: indexOf + with() 증분 패치 (elements.map/find O(N) 제거)
-    const updatedElement = {
-      ...element,
-      props: { ...element.props, ...sanitizedProps },
-    };
-    const idx = sourceElements.indexOf(element);
-    const updatedElements =
-      idx !== -1 ? sourceElements.with(idx, updatedElement) : sourceElements;
-
     // 선택된 요소가 업데이트된 경우 selectedElementProps도 업데이트
     const selectedElementProps =
       currentState.selectedElementId === elementId
-        ? createCompleteProps(updatedElement, sanitizedProps)
+        ? createCompleteProps(derivedUpdate.element, sanitizedProps)
         : currentState.selectedElementProps;
 
     // ADR-006 P3-1: props.style 변경 시 dirty tracking
@@ -506,7 +569,13 @@ export const createUpdateElementPropsAction =
       ? isLayoutAffectingUpdate(changedStyle)
       : Object.keys(patch).some((k) => k !== "style"); // style 외 props 변경은 레이아웃 영향으로 간주
 
-    syncUpdatedElementToCanonical(updatedElement);
+    const projectableChildrenByParent = getProjectableChildrenByParent();
+    const canonicalResult = updateCanonicalNodePropsPrimary(
+      elementId,
+      nextProps as Record<string, unknown>,
+      derivedUpdate.element,
+    );
+    if (!canonicalResult.changed) return;
 
     // ADR-190: canonical 갱신 직후 ~ set() 직전이 commit lane 의 유일한 진입
     // 시점이다. canonical 이 갱신됐으므로 documentVersion 이 post-commit
@@ -516,36 +585,28 @@ export const createUpdateElementPropsAction =
     // 서술 불가한 patch 는 descriptor 가 null 이라 기존 full rebuild 유지.
     emitStoreStyleCommitDescriptor(elementId, patch);
 
-    // updateElementProps는 element 구조(parent_id/page_id/type/variableBindings 등)를 바꾸지 않으므로,
-    // 전체 인덱스 재구축(O(n)) 대신 변경된 요소만 O(1)로 갱신한다.
-    if (updatedElement) {
-      const elementsMap = buildElementUpdateLookup(sourceElements);
-      elementsMap.set(elementId, updatedElement);
-      if (isLayoutChange) {
-        const dirtyIds = new Set(currentState.dirtyElementIds);
-        markDirtyWithDescendantsUpdate(
-          elementId,
-          changedStyle,
-          buildElementUpdateChildrenByParent(sourceElements),
-          dirtyIds,
-        );
-        set((state) => ({
-          elements: updatedElements,
-          elementsMap,
-          selectedElementProps,
-          layoutVersion: state.layoutVersion + 1,
-          dirtyElementIds: dirtyIds,
-        }));
-      } else {
-        set({
-          elements: updatedElements,
-          elementsMap,
-          selectedElementProps,
-        });
-      }
+    // updateElementProps는 element 구조(parent_id/page_id/type/variableBindings 등)를
+    // 바꾸지 않는다. canonical target/path와 descendant cache를 재투영하지 않고,
+    // derived array/map은 기존 순서를 유지한 shallow copy로 갱신한다.
+    if (isLayoutChange) {
+      const dirtyIds = new Set(currentState.dirtyElementIds);
+      markDirtyWithDescendantsUpdate(
+        elementId,
+        changedStyle,
+        projectableChildrenByParent,
+        dirtyIds,
+      );
+      set((state) => ({
+        elements: derivedUpdate.elements,
+        elementsMap: derivedUpdate.elementsMap,
+        selectedElementProps,
+        layoutVersion: state.layoutVersion + 1,
+        dirtyElementIds: dirtyIds,
+      }));
     } else {
       set({
-        elements: updatedElements,
+        elements: derivedUpdate.elements,
+        elementsMap: derivedUpdate.elementsMap,
         selectedElementProps,
       });
     }

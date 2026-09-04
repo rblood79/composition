@@ -22,9 +22,12 @@ import {
   getAncestors,
   getChildren,
   getChildrenByParent,
+  getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
   getNodeMap,
   getParent,
+  getProjectableChildrenByParent,
+  getProjectableNodes,
 } from "../canonicalTraversalHelpers";
 
 // ─────────────────────────────────────────────
@@ -366,6 +369,50 @@ describe("getChildrenByParent", () => {
   });
 });
 
+describe("projectable traversal views", () => {
+  it("structural wrapper를 제외하고 legacy view 순서와 parent lifting을 보존", () => {
+    const leaf = makeNode("leaf", { props: { label: "Leaf" } });
+    const structuralWrapper = makeNode("structural-wrapper", {
+      children: [leaf],
+    });
+    const root = makeNode("root", {
+      props: {},
+      children: [structuralWrapper],
+    });
+    setActiveDocument("proj-a", makeDoc({ children: [root] }));
+
+    expect(getProjectableNodes().map((node) => node.id)).toEqual([
+      "root",
+      "leaf",
+    ]);
+    expect(
+      getProjectableChildrenByParent()
+        .get("root")
+        ?.map((node) => node.id),
+    ).toEqual(["leaf"]);
+    expect(getProjectableChildrenByParent().has("structural-wrapper")).toBe(
+      false,
+    );
+  });
+
+  it("duplicate id occurrence를 projection 여부와 무관하게 집계", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({
+        children: [
+          makeNode("duplicate", { props: { label: "First" } }),
+          makeNode("duplicate"),
+        ],
+      }),
+    );
+
+    expect(getCanonicalNodeOccurrenceCount("duplicate")).toBe(2);
+    expect(getFirstProjectableNodeById("duplicate")?.props).toEqual({
+      label: "First",
+    });
+  });
+});
+
 // ─────────────────────────────────────────────
 // 7. Cache invalidation
 // ─────────────────────────────────────────────
@@ -404,5 +451,27 @@ describe("Cache invalidation", () => {
     const map1 = getNodeMap();
     const map2 = getNodeMap();
     expect(map1).toBe(map2); // same reference
+  });
+
+  it("같은 project/version이어도 document reference가 바뀌면 cache flush", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({ children: [makeNode("root-before")] }),
+    );
+    const map1 = getNodeMap();
+    const version = useCanonicalDocumentStore.getState().documentVersion;
+
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        ["proj-a", makeDoc({ children: [makeNode("root-after")] })],
+      ]),
+      currentProjectId: "proj-a",
+      documentVersion: version,
+    });
+
+    const map2 = getNodeMap();
+    expect(map2.has("root-after")).toBe(true);
+    expect(map2.has("root-before")).toBe(false);
+    expect(map1).not.toBe(map2);
   });
 });

@@ -1586,6 +1586,7 @@ describe("element mutations keep canonical document primary", () => {
       "page-card-a",
       "page-card-b",
     ]);
+    expect(children?.[0]?.props).toMatchObject({ label: "A edited" });
   });
 
   // border(색/스타일/너비)는 전역 속성 — 어느 breakpoint 에서 편집해도 base props.style 에

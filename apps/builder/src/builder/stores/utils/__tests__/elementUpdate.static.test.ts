@@ -3,6 +3,25 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("elementUpdate canonical-only read contract", () => {
+  it("single props update avoids full Element projection on the hot path", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementUpdate.ts"),
+      "utf-8",
+    );
+    const action = source.slice(
+      source.indexOf("export const createUpdateElementPropsAction"),
+      source.indexOf("export const createUpdateElementAction"),
+    );
+
+    expect(action).toContain("getFirstProjectableNodeById(elementId)");
+    expect(action).toContain("updateCanonicalNodePropsPrimary(");
+    expect(action).not.toContain("getElementUpdateSourceElements()");
+    expect(action).not.toContain("findElementForUpdate(");
+    expect(action).not.toContain("buildElementUpdateLookup(");
+    expect(action).not.toContain("buildElementUpdateChildrenByParent(");
+    expect(action).not.toContain("syncUpdatedElementToCanonical(");
+  });
+
   it("uses only active canonical elements for mutation reads", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
@@ -26,20 +45,13 @@ describe("elementUpdate canonical-only read contract", () => {
       "buildElementUpdateChildrenByParent(state.elements)",
     );
 
-    const staleStateElementMap = ["state", ["elements", "Map"].join("")].join(
-      ".",
-    );
-    const staleCurrentStateElementMap = [
-      "currentState",
-      ["elements", "Map"].join(""),
-    ].join(".");
     const staleCurrentStateChildMap = [
       "currentState",
       ["children", "Map"].join(""),
     ].join(".");
-    expect(source).not.toContain(staleStateElementMap);
-    expect(source).not.toContain(staleCurrentStateElementMap);
     expect(source).not.toContain(staleCurrentStateChildMap);
+    expect(source).toContain("function createDerivedPropsUpdate(");
+    expect(source).toContain("new Map(state.elementsMap)");
     const staleHelper = ["get", "Element", "By", "Id"].join("");
     expect(source).not.toContain(staleHelper);
   });
@@ -77,10 +89,11 @@ describe("elementUpdate canonical-only read contract", () => {
     );
 
     const propsSyncIndex = source.indexOf(
-      "syncUpdatedElementToCanonical(updatedElement);",
+      "const canonicalResult = updateCanonicalNodePropsPrimary(",
     );
     const propsStoreIndex = source.indexOf(
-      "elements: updatedElements,\n          elementsMap,",
+      "elements: derivedUpdate.elements,\n        elementsMap: derivedUpdate.elementsMap,",
+      propsSyncIndex,
     );
     expect(propsSyncIndex).toBeGreaterThanOrEqual(0);
     expect(propsStoreIndex).toBeGreaterThanOrEqual(0);
