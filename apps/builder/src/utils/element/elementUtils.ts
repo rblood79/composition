@@ -52,7 +52,9 @@ export class ElementUtils {
    * Find the body element for a given page
    * Used for automatically setting body as parent when parent_id is null
    */
-  static findBodyElement(elements: Element[], pageId: string): string | null {
+  static findBodyElement<
+    T extends { id: string; type: string; page_id?: string | null },
+  >(elements: readonly T[], pageId: string): string | null {
     const bodyElement = elements.find(
       (el) => el.page_id === pageId && el.type === "body",
     );
@@ -65,8 +67,10 @@ export class ElementUtils {
    * ADR-903 P3-E E-6: write-through 전환 후 legacy frame ownership field 는
    * null. canonical frame node id 를 `el.parent_id` 와 매칭한다.
    */
-  static findLayoutBodyElement(
-    elements: Element[],
+  static findLayoutBodyElement<
+    T extends { id: string; type: string; parent_id?: string | null },
+  >(
+    elements: readonly T[],
     layoutId: string,
     doc: CompositionDocument,
   ): string | null {
@@ -91,8 +95,15 @@ export class ElementUtils {
    * @param doc - Canonical CompositionDocument (layout 모드에서 frame parent 변환 용)
    * @returns Body element ID or null
    */
-  static findBodyByContext(
-    elements: Element[],
+  static findBodyByContext<
+    T extends {
+      id: string;
+      type: string;
+      parent_id?: string | null;
+      page_id?: string | null;
+    },
+  >(
+    elements: readonly T[],
     pageId: string | null,
     layoutId: string | null,
     doc: CompositionDocument,

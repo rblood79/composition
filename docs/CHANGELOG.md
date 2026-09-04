@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - instance 생성·분리, 요소 update·remove가 활성 canonical 문서만 mutation source로 사용합니다. canonical 문서가 준비되지 않은 동안 오래된 legacy cache를 수정하거나 history로 기록하지 않습니다.
 - 중첩 요소의 editing context 진입·종료, Styles reset의 선택 요소·부모·조부모 조회, Fill 액션의 현재 값 조회를 ADR-127 canonical node helper로 옮겼습니다. page ref의 `descendants` replacement subtree도 같은 helper cache에서 탐색합니다.
 - 선택된 instance의 최신 override, Button/ListBoxItem 자식 생성용 customId 충돌 검사, Component Memory 분석도 canonical node index에서 직접 읽습니다. customId의 구 metadata 저장형식은 adapter 내부에서만 해소합니다.
+- Components 팔레트와 Navigator Layers/Frames가 legacy `Element[]` 전체 projection 대신 panel 전용 canonical node 구조를 읽습니다. page·reusable frame scope, structural parent lifting, page ref descendants를 유지하며 component factory 입력도 생성에 필요한 필드로 축소했습니다.
+- Page 삭제의 canonical topology 동기화는 `BuilderCore` page-shell bridge 한 곳이 담당합니다. Pages panel의 중복 full-document replacement를 제거해 부분 legacy cache가 canonical 문서를 덮는 경로를 닫았습니다.
 
 ### Fixed
 
@@ -27,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존, Button Icon impact Cancel·단일 Undo 회귀를 추가했습니다.
+- panel canonical node의 page/frame scope·Slot·ref descendants, frame-bound LayerTree 합성, page 삭제 뒤 인접 body 즉시 선택, structural component creation 입력 회귀를 추가했습니다.
 
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
 

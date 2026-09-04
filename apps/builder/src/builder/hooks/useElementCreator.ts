@@ -8,6 +8,7 @@ import {
   getDefaultProps as getCentralDefaultProps,
 } from "../../types/builder/unified.types";
 import { ComponentFactory } from "../factories/ComponentFactory";
+import type { ComponentCreationSourceNode } from "../factories/types";
 import { COMPLEX_COMPONENT_TAGS } from "../factories/constants";
 import { getReusableCompositeOriginId } from "../components/reusableCompositeOrigins";
 import { useErrorHandler, type ErrorInfo } from "./useErrorHandler";
@@ -26,7 +27,7 @@ export interface UseElementCreatorReturn {
     type: string,
     currentPageId: string,
     selectedElementId: string | null,
-    elements: Element[],
+    elements: ComponentCreationSourceNode[],
     addElement: (element: Element) => void,
     layoutId: string | null | undefined,
     doc: CompositionDocument,
@@ -57,7 +58,7 @@ export interface UseElementCreatorReturn {
 
 interface ResolveCreationParentIdInput {
   selectedElementId: string | null;
-  elements: Element[];
+  elements: ComponentCreationSourceNode[];
   currentPageId: string | null;
   layoutId: string | null | undefined;
   doc: CompositionDocument;
@@ -87,7 +88,7 @@ export function resolveCreationParentId({
 
 export const useElementCreator = (): UseElementCreatorReturn => {
   const isProcessingRef = useRef(false);
-  const elementsRef = useRef<Element[]>([]);
+  const elementsRef = useRef<ComponentCreationSourceNode[]>([]);
   const lastOperationRef = useRef<(() => Promise<string | null>) | null>(null);
   const isConfiguredRef = useRef(false);
 
@@ -116,7 +117,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
       type: string,
       currentPageId: string,
       selectedElementId: string | null,
-      elements: Element[],
+      elements: ComponentCreationSourceNode[],
       addElement: (element: Element) => void,
       layoutId: string | null | undefined,
       doc: CompositionDocument,
@@ -125,7 +126,9 @@ export const useElementCreator = (): UseElementCreatorReturn => {
       isProcessingRef.current = true;
 
       // 요소 유효성 검사
-      const validation = validateElements(elements);
+      const validation = validateElements(elements, {
+        frameScoped: Boolean(layoutId),
+      });
       if (!validation.isValid) {
         handleError(
           validation.errors.join(", "),

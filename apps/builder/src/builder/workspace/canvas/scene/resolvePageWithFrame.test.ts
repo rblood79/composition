@@ -137,6 +137,68 @@ describe("ADR-111 P3-θ resolvePageWithFrame", () => {
     ]);
   });
 
+  it("canonical frame scope id로 mirror 없는 frame 노드를 합성한다", () => {
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const frameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      page_id: null,
+    });
+    const frameText = makeEl({
+      id: "frame-text",
+      type: "Text",
+      page_id: null,
+      parent_id: frameBody.id,
+    });
+
+    const result = resolvePageWithFrame({
+      page: makeFramePage("frame-1", { id: "page-1" }),
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([pageBody, frameBody, frameText]),
+      frameElementIds: new Set([frameBody.id, frameText.id]),
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.bodyElement?.id).toBe(pageBody.id);
+    expect(result.pageElements.map((element) => element.id)).toEqual([
+      toPageFrameElementId("page-1", frameText.id),
+    ]);
+  });
+
+  it("canonical frame scope가 있으면 stale legacy frame mirror를 제외한다", () => {
+    const pageBody = makeEl({
+      id: "page-body",
+      type: "body",
+      page_id: "page-1",
+    });
+    const frameBody = makeEl({
+      id: "frame-body",
+      type: "body",
+      page_id: null,
+    });
+    const staleFrameText = makeEl({
+      id: "stale-frame-text",
+      type: "Text",
+      frameId: "frame-1",
+      page_id: null,
+      parent_id: frameBody.id,
+    });
+
+    const result = resolvePageWithFrame({
+      page: makeFramePage("frame-1", { id: "page-1" }),
+      pageElements: [pageBody],
+      elementsMap: buildElementsMap([pageBody, frameBody, staleFrameText]),
+      frameElementIds: new Set([frameBody.id]),
+    });
+
+    expect(result.hasFrameBinding).toBe(true);
+    expect(result.pageElements).toEqual([]);
+  });
+
   it("layout-id alias(`layout-<id>`) page 바인딩도 정규화되어 frame 합성 동작", () => {
     const pageBody = makeEl({
       id: "page-body",

@@ -26,13 +26,11 @@ import { PageTree } from "./tree/PageTree";
 import { NAVIGATOR_SECTION_IDS } from "./navigatorSectionIds";
 import { filterPagesByQuery } from "./filterPagesByQuery";
 import { getDB } from "../../../lib/db";
-import type { Element, Page } from "../../../types/builder/unified.types";
+import type { Page } from "../../../types/builder/unified.types";
 import { panToPage } from "../../workspace/canvas/viewport/panToPage";
 import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
-import { setElementsCanonicalPrimary } from "../../../adapters/canonical/canonicalMutations";
 import {
   scheduleBackgroundTask,
   scheduleNextFrame,
@@ -55,21 +53,6 @@ function findPageBodyElement(elements: readonly PanelNode[] | undefined) {
     elements?.[0] ??
     null
   );
-}
-
-function getActiveCanonicalPageElements(): Element[] | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
 }
 
 export const PagesSection = memo(function PagesSection({
@@ -337,11 +320,6 @@ export const PagesSection = memo(function PagesSection({
       } else {
         setIsFallbackTransitioning(false);
       }
-
-      const latestState = useStore.getState();
-      setElementsCanonicalPrimary(
-        getActiveCanonicalPageElements() ?? latestState.elements,
-      );
 
       // 2. 영속화는 백그라운드에서 직렬 처리
       enqueuePagePersistence(async () => {

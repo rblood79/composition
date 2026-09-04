@@ -85,21 +85,30 @@ vi.mock("./tree/PageTree", () => ({
   PageTree: ({
     pages,
     onPageSelect,
+    onPageDelete,
     onPageRename,
   }: {
     pages: Page[];
     onPageSelect: (page: Page) => void;
+    onPageDelete?: (page: Page) => void;
     onPageRename?: (page: Page, title: string) => void;
   }) => (
     <div>
       {pages.map((page) => (
-        <button
-          key={page.id}
-          onClick={() => onPageSelect(page)}
-          onDoubleClick={() => onPageRename?.(page, "Renamed")}
-        >
-          {page.title || "Untitled"}
-        </button>
+        <React.Fragment key={page.id}>
+          <button
+            onClick={() => onPageSelect(page)}
+            onDoubleClick={() => onPageRename?.(page, "Renamed")}
+          >
+            {page.title || "Untitled"}
+          </button>
+          <button
+            aria-label={`Delete ${page.title || "Untitled"}`}
+            onClick={() => onPageDelete?.(page)}
+          >
+            Delete
+          </button>
+        </React.Fragment>
       ))}
     </div>
   ),
@@ -299,6 +308,32 @@ describe("PagesSection page selection", () => {
       about.id,
       "Renamed",
     );
+  });
+
+  it("현재 page 삭제 시 store mutation 뒤 인접 page body를 즉시 선택한다", () => {
+    const home = makePage("page-1", "Home", 0);
+    const about = makePage("page-2", "About", 1);
+    mockStoreState.pages = [home, about];
+    mockStoreState.currentPageId = home.id;
+    mockStoreState.pageElementsSnapshot = {
+      [home.id]: [makeElement("body-1", home.id)],
+      [about.id]: [makeElement("body-2", about.id)],
+    };
+
+    render(<PagesSection projectId="project-1" />);
+    vi.clearAllMocks();
+
+    fireEvent.click(screen.getByRole("button", { name: "Delete Home" }));
+
+    expect(mockStoreState.removePageLocal).toHaveBeenCalledWith(home.id, {
+      pageId: about.id,
+      elementId: null,
+    });
+    expect(mockStoreState.activatePage).toHaveBeenCalledWith(
+      about.id,
+      "body-2",
+    );
+    expect(mockLoadPageIfNeeded).not.toHaveBeenCalled();
   });
 
   it("page body가 아직 snapshot에 없으면 탭 진입 시 page 로드를 요청한다", async () => {

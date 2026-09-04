@@ -10,13 +10,24 @@ export interface ComponentCreationResult {
   allElements: Element[];
 }
 
+/** 컴포넌트 생성기가 기존 트리에서 실제로 읽는 구조 필드만 노출한다. */
+export interface ComponentCreationSourceNode {
+  id: string;
+  type: string;
+  props?: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+  customId?: string | null;
+  deleted?: boolean;
+}
+
 /**
  * 컴포넌트 생성 컨텍스트
  */
 export interface ComponentCreationContext {
-  parentElement: Element | null;
+  parentElement: ComponentCreationSourceNode | null;
   pageId: string;
-  elements: Element[];
+  elements: ComponentCreationSourceNode[];
   // ⭐ Layout/Slot System: Layout 모드에서 요소 생성 시 사용
   layoutId?: string | null;
   /**

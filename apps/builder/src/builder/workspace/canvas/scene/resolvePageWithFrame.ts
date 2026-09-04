@@ -43,6 +43,8 @@ export interface ResolvePageWithFrameInput {
   pageElements: CanvasSceneNode[];
   /** 전체 elementsMap (frame elements 검색용) */
   elementsMap: Map<string, CanvasSceneNode>;
+  /** canonical reusable frame selector가 제공한 frame descendant id 집합 */
+  frameElementIds?: ReadonlySet<string>;
 }
 
 export interface ResolvePageWithFrameOutput {
@@ -189,7 +191,12 @@ function asPageResolvedRootSlot(
 export function resolvePageWithFrame(
   input: ResolvePageWithFrameInput,
 ): ResolvePageWithFrameOutput {
-  const { page, pageElements, elementsMap } = input;
+  const {
+    page,
+    pageElements,
+    elementsMap,
+    frameElementIds: canonicalFrameElementIds,
+  } = input;
   const layoutId = getNullablePageFrameBindingId(page);
 
   const splitPageBody = (): {
@@ -226,7 +233,11 @@ export function resolvePageWithFrame(
   for (const el of elementsMap.values()) {
     if (isHydratedPageFrameElement(el, page.id, layoutId)) {
       hydratedFrameElements.push(el);
-    } else if (isLegacyFrameElementForFrame(el, layoutId)) {
+    } else if (
+      canonicalFrameElementIds
+        ? canonicalFrameElementIds.has(el.id)
+        : isLegacyFrameElementForFrame(el, layoutId)
+    ) {
       legacyFrameElements.push(el);
     }
   }

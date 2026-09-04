@@ -145,7 +145,7 @@ describe("removePageLocal component semantics", () => {
     resetCanonicalMutationStoreActions();
   });
 
-  it("detaches instances on other pages when deleting the page that owns their origin", () => {
+  it("does not detach from a legacy-only cache when canonical is unavailable", () => {
     const pageOne = makePage("page-1");
     const pageTwo = makePage("page-2");
     const bodyOne = makeElement("body-1", "body", {
@@ -196,23 +196,17 @@ describe("removePageLocal component semantics", () => {
     expect(state.elementsMap.has(originLabel.id)).toBe(false);
     expect(detachedInstance).toMatchObject({
       id: instance.id,
-      type: "Button",
+      type: "ref",
+      ref: origin.id,
       page_id: pageOne.id,
       parent_id: bodyOne.id,
-      props: { label: "Instance", size: "md" },
+      props: { label: "Instance" },
     });
-    expect(detachedInstance).not.toHaveProperty("ref");
-    expect(getEditingSemanticsRole(detachedInstance)).toBeNull();
 
     const materializedChildren = state.elements.filter(
       (element) => element.parent_id === instance.id,
     );
-    expect(materializedChildren).toHaveLength(1);
-    expect(materializedChildren[0]).toMatchObject({
-      type: "Label",
-      page_id: pageOne.id,
-      props: { children: "Origin label" },
-    });
+    expect(materializedChildren).toHaveLength(0);
     expect(
       state.pageElementsSnapshot[pageOne.id]?.map((element) => element.id),
     ).toContain(instance.id);

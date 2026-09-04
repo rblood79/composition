@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
-import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
+import { collectCanonicalPanelNodes } from "../canonicalPanelNodes";
 import type { PanelNode } from "../panelNode";
 
 export function useCanonicalPanelElements(): PanelNode[] | null {
@@ -8,10 +8,6 @@ export function useCanonicalPanelElements(): PanelNode[] | null {
 
   return useMemo(() => {
     if (!canonicalDocument) return null;
-    const elements: PanelNode[] = [];
-    visitCanonicalDocumentElements(canonicalDocument, (element) => {
-      elements.push(element);
-    });
-    return elements;
+    return collectCanonicalPanelNodes(canonicalDocument);
   }, [canonicalDocument]);
 }

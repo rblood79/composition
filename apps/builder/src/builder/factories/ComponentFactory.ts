@@ -5,6 +5,7 @@ import {
   ComponentCreationContext,
   ComponentCreator,
   ComponentDefinition,
+  ComponentCreationSourceNode,
 } from "./types";
 import {
   createElementsFromDefinition,
@@ -183,9 +184,9 @@ export class ComponentFactory {
    */
   static async createComplexComponent(
     type: string,
-    parentElement: Element | null,
+    parentElement: ComponentCreationSourceNode | null,
     pageId: string,
-    elements: Element[],
+    elements: ComponentCreationSourceNode[],
     layoutId: string | null | undefined,
     doc: CompositionDocument,
   ): Promise<ComponentCreationResult> {

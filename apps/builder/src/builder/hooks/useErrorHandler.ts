@@ -17,11 +17,18 @@ export interface ErrorInfo {
   recoverable: boolean;
 }
 
+export interface ElementValidationNode {
+  id: string;
+  type: string;
+  parent_id?: string | null;
+  page_id?: string | null;
+}
+
 export interface RollbackInfo {
   operation: "create" | "update" | "delete" | "move";
   elementId: string;
   previousState?: Element;
-  previousElements?: Element[];
+  previousElements?: ElementValidationNode[];
   timestamp: Date;
 }
 
@@ -51,7 +58,10 @@ export interface UseErrorHandlerReturn {
     operation: () => Promise<T>,
     maxRetries?: number,
   ) => Promise<T | undefined>;
-  validateElements: (elements: Element[]) => {
+  validateElements: (
+    elements: ElementValidationNode[],
+    options?: { frameScoped?: boolean },
+  ) => {
     isValid: boolean;
     errors: string[];
   };
@@ -296,7 +306,10 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
   );
 
   const validateElements = useCallback(
-    (elements: Element[]): { isValid: boolean; errors: string[] } => {
+    (
+      elements: ElementValidationNode[],
+      options?: { frameScoped?: boolean },
+    ): { isValid: boolean; errors: string[] } => {
       const errors: string[] = [];
 
       // 기본 유효성 검사
@@ -323,7 +336,11 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
           errors.push(t("errors.elementNoTag", { id: element.id }));
         }
         // ⭐ Layout/Slot System: page_id 또는 legacy layout binding 중 하나는 있어야 함
-        if (!element.page_id && !hasFrameElementMirrorId(element)) {
+        if (
+          !element.page_id &&
+          !options?.frameScoped &&
+          !hasFrameElementMirrorId(element)
+        ) {
           errors.push(t("errors.elementNoOwner", { id: element.id }));
         }
       });

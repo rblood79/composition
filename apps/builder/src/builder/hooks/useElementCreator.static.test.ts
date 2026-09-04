@@ -51,4 +51,15 @@ describe("useElementCreator add-then-delete contract", () => {
     expect(source).toContain("return result.parent.id;");
     expect(source).toContain("return newElement.id;");
   });
+
+  it("accepts structural canonical creation sources instead of Element[]", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useElementCreator.ts"),
+      "utf-8",
+    );
+
+    expect(source).toContain("elements: ComponentCreationSourceNode[]");
+    expect(source).toContain("frameScoped: Boolean(layoutId)");
+    expect(source).not.toContain("elements: Element[]");
+  });
 });

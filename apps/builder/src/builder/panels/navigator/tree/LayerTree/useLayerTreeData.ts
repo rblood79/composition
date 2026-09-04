@@ -5,6 +5,7 @@ import type { ElementProps } from "../../../../../types/integrations/supabase.ty
 import { useStore } from "../../../../stores";
 import { resolveCanonicalRefTree } from "../../../../utils/canonicalRefResolution";
 import { useCanonicalPanelElements } from "../../useCanonicalPanelElements";
+import { useCanonicalFrameElementScopes } from "../../../../stores/canonical/canonicalElementsView";
 import { resolvePageWithFrame } from "../../../../workspace/canvas/scene/resolvePageWithFrame";
 import { getPageFrameBindingId } from "../../../../../adapters/canonical/frameMirror";
 import { getElementLayoutId } from "../../../../../adapters/canonical/legacyElementFields";
@@ -39,6 +40,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
   // ADR-116 direct cutover — canonical store 의 active document 에서 derived
   // panel read model 을 사용. 초기 hydration 전에는 caller elements[] fallback.
   const canonicalElements = useCanonicalPanelElements();
+  const frameElementScopes = useCanonicalFrameElementScopes();
   const storeElements = useStore((state) => {
     if (canonicalElements) return EMPTY_ELEMENTS;
     const { elements: legacyElements } = state;
@@ -58,12 +60,16 @@ export function useLayerTreeData(elements: PanelNode[]) {
     if (!currentPageId) return baseElements;
     const currentPage = pages.find((page) => page.id === currentPageId);
     const boundFrameId = currentPage ? getPageFrameBindingId(currentPage) : "";
+    const boundFrameScope = frameElementScopes?.get(boundFrameId) ?? null;
     const legacyLayerSource = baseElements.filter((element) => {
       const elementLayoutId = getElementLayoutId(asElementLike(element));
       const isCurrentPageOwnedElement =
         element.page_id === currentPageId && elementLayoutId === null;
       const isBoundFrameElement =
-        boundFrameId.length > 0 && elementLayoutId === boundFrameId;
+        boundFrameId.length > 0 &&
+        (boundFrameScope
+          ? boundFrameScope.elementIds.has(element.id)
+          : elementLayoutId === boundFrameId);
 
       return isCurrentPageOwnedElement || isBoundFrameElement;
     });
@@ -85,6 +91,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
       elementsMap: resolutionElementsMap as unknown as Parameters<
         typeof resolvePageWithFrame
       >[0]["elementsMap"],
+      frameElementIds: boundFrameScope?.elementIds,
     });
 
     if (!resolvedPage.hasFrameBinding || !resolvedPage.bodyElement) {
@@ -103,6 +110,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
     elements,
     canonicalElements,
     currentPageId,
+    frameElementScopes,
     pages,
     resolutionElementsMap,
   ]);

@@ -17,21 +17,7 @@ import { useSelectedReusableFrameId } from "../../stores/canonical/canonicalFram
 import { useElementCreator } from "@/builder/hooks";
 import { belongsToLegacyLayout } from "../../../adapters/canonical";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
-import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
-import type { CompositionDocument } from "@composition/shared";
-import type { Element } from "../../../types/core/store.types";
-
-function getComponentsPanelElements(doc: CompositionDocument): Element[] {
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push({
-      ...element,
-      customId: element.customId ?? undefined,
-      componentName: element.componentName ?? undefined,
-    });
-  });
-  return elements;
-}
+import { collectCanonicalPanelNodes } from "../canonicalPanelNodes";
 
 export function ComponentsPanel() {
   return <ComponentsPanelContent />;
@@ -63,7 +49,7 @@ function ComponentsPanelContent() {
         console.error("[ComponentsPanel] canonical document is not ready");
         return;
       }
-      const elements = getComponentsPanelElements(doc);
+      const elements = collectCanonicalPanelNodes(doc);
 
       // Layout 모드인 경우
       if (editMode === "layout" && selectedReusableFrameId) {

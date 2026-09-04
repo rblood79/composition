@@ -80,11 +80,6 @@ export interface CompositeCreationOutcome {
   childCount: number;
 }
 
-type CreateComplexComponentArgs = Parameters<
-  typeof ComponentFactory.createComplexComponent
->;
-type ResolveCreationParentArgs = Parameters<typeof resolveCreationParentId>[0];
-
 function activeDocument(): CompositionDocument | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
@@ -109,7 +104,7 @@ export async function createCompositeElement(
     input.parentIdOverride ??
     resolveCreationParentId({
       selectedElementId: input.selectedElementId,
-      elements: input.elements as ResolveCreationParentArgs["elements"],
+      elements: input.elements,
       currentPageId: input.currentPageId,
       layoutId: null,
       doc,
@@ -149,9 +144,9 @@ export async function createCompositeElement(
 
   const result = await ComponentFactory.createComplexComponent(
     input.type,
-    parentElement as CreateComplexComponentArgs[1],
+    parentElement,
     input.currentPageId ?? "",
-    input.elements as CreateComplexComponentArgs[3],
+    input.elements,
     null,
     doc,
   );
