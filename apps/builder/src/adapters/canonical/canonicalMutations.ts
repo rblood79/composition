@@ -531,6 +531,118 @@ function replaceNodeReferenceInDescendants(
   return { node: refNode, replaced: false };
 }
 
+type CanonicalNodePropsBatchResult = {
+  nodes: CanonicalNode[];
+  replacedCount: number;
+};
+
+type CanonicalNodePropsResult = {
+  node: CanonicalNode;
+  replacedCount: number;
+};
+
+function isCanonicalNodeValue(value: unknown): value is CanonicalNode {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as { id?: unknown; type?: unknown };
+  return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+function replaceNodePropsBatchByReference(
+  nodes: CanonicalNode[],
+  nextPropsByNode: ReadonlyMap<CanonicalNode, Record<string, unknown>>,
+): CanonicalNodePropsBatchResult {
+  let nextNodes: CanonicalNode[] | null = null;
+  let replacedCount = 0;
+
+  for (let index = 0; index < nodes.length; index += 1) {
+    const currentNode = nodes[index];
+    const result = replaceCanonicalNodePropsBatch(currentNode, nextPropsByNode);
+    replacedCount += result.replacedCount;
+    if (result.node === currentNode) continue;
+
+    nextNodes ??= [...nodes];
+    nextNodes[index] = result.node;
+  }
+
+  return { nodes: nextNodes ?? nodes, replacedCount };
+}
+
+function replaceCanonicalNodePropsBatch(
+  node: CanonicalNode,
+  nextPropsByNode: ReadonlyMap<CanonicalNode, Record<string, unknown>>,
+): CanonicalNodePropsResult {
+  const nextProps = nextPropsByNode.get(node);
+  let nextNode = nextProps ? { ...node, props: nextProps } : node;
+  let replacedCount = nextProps ? 1 : 0;
+
+  if (node.children?.length) {
+    const childResult = replaceNodePropsBatchByReference(
+      node.children,
+      nextPropsByNode,
+    );
+    replacedCount += childResult.replacedCount;
+    if (childResult.nodes !== node.children) {
+      nextNode = { ...nextNode, children: childResult.nodes };
+    }
+  }
+
+  if (node.type === "ref") {
+    const descendantResult = replaceNodePropsBatchInDescendants(
+      nextNode as RefNode,
+      nextPropsByNode,
+    );
+    replacedCount += descendantResult.replacedCount;
+    nextNode = descendantResult.node;
+  }
+
+  return { node: nextNode, replacedCount };
+}
+
+function replaceNodePropsBatchInDescendants(
+  refNode: RefNode,
+  nextPropsByNode: ReadonlyMap<CanonicalNode, Record<string, unknown>>,
+): { node: RefNode; replacedCount: number } {
+  const descendants = refNode.descendants ?? {};
+  let nextDescendants: RefNode["descendants"] | null = null;
+  let replacedCount = 0;
+
+  for (const [path, override] of Object.entries(descendants)) {
+    if (isCanonicalNodeValue(override)) {
+      const result = replaceCanonicalNodePropsBatch(override, nextPropsByNode);
+      replacedCount += result.replacedCount;
+      if (result.node !== override) {
+        nextDescendants ??= { ...descendants };
+        nextDescendants[path] = result.node;
+      }
+      continue;
+    }
+
+    if (
+      override &&
+      typeof override === "object" &&
+      "children" in override &&
+      Array.isArray(override.children)
+    ) {
+      const result = replaceNodePropsBatchByReference(
+        override.children,
+        nextPropsByNode,
+      );
+      replacedCount += result.replacedCount;
+      if (result.nodes !== override.children) {
+        nextDescendants ??= { ...descendants };
+        nextDescendants[path] = { ...override, children: result.nodes };
+      }
+    }
+  }
+
+  return nextDescendants
+    ? {
+        node: { ...refNode, descendants: nextDescendants },
+        replacedCount,
+      }
+    : { node: refNode, replacedCount };
+}
+
 function appendChildToNode(
   nodes: CanonicalNode[],
   parentElementId: string,
@@ -1968,9 +2080,9 @@ export function updateCanonicalNodePropsPrimary(
   const target = getFirstProjectableNodeById(nodeId);
   if (!target) return { changed: false, document: currentDoc };
 
-  // 구 projection mutation은 invalid duplicate id를 1개 node로 정규화했다.
-  // 정상 hot path에는 legacy 변환을 재도입하지 않고, 실제 duplicate 문서에서만
-  // 기존 upsert adapter로 같은 복구 의미를 유지한다.
+  // 구 projection mutation은 invalid duplicate id의 모든 occurrence를 같은 props로
+  // 교체했다. 정상 hot path에는 legacy 변환을 재도입하지 않고, 실제 duplicate
+  // 문서에서만 기존 upsert adapter로 같은 호환 의미를 유지한다.
   if (duplicateCompatElement && getCanonicalNodeOccurrenceCount(nodeId) > 1) {
     return applyCanonicalPrimaryMerge([duplicateCompatElement]);
   }
@@ -1982,6 +2094,56 @@ export function updateCanonicalNodePropsPrimary(
     replacement,
   );
   if (!result.replaced) return { changed: false, document: currentDoc };
+
+  const nextDocument = { ...currentDoc, children: result.nodes };
+  canonical.setDocument(projectId, nextDocument);
+  return { changed: true, document: nextDocument };
+}
+
+/**
+ * 활성 canonical document의 projectable node props를 한 traversal로 교체한다.
+ * target lookup은 revision cache를 사용하고 document push는 batch당 한 번이다.
+ */
+export function updateCanonicalNodePropsBatchPrimary(
+  nextPropsById: ReadonlyMap<string, Record<string, unknown>>,
+  duplicateCompatElements: readonly Element[],
+): CanonicalMutationResult {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return { changed: false, document: null };
+
+  const currentDoc = canonical.documents.get(projectId);
+  if (!currentDoc) return { changed: false, document: null };
+  if (nextPropsById.size === 0) {
+    return { changed: false, document: currentDoc };
+  }
+
+  const nextPropsByNode = new Map<CanonicalNode, Record<string, unknown>>();
+  let hasDuplicateId = false;
+  for (const [nodeId, nextProps] of nextPropsById) {
+    const target = getFirstProjectableNodeById(nodeId);
+    if (!target) continue;
+    nextPropsByNode.set(target, nextProps);
+    if (getCanonicalNodeOccurrenceCount(nodeId) > 1) {
+      hasDuplicateId = true;
+    }
+  }
+  if (nextPropsByNode.size === 0) {
+    return { changed: false, document: currentDoc };
+  }
+
+  // invalid duplicate id 문서는 구 batch merge와 같은 all-occurrence 교체 의미를 유지한다.
+  if (hasDuplicateId) {
+    return applyCanonicalPrimaryMerge([...duplicateCompatElements]);
+  }
+
+  const result = replaceNodePropsBatchByReference(
+    currentDoc.children,
+    nextPropsByNode,
+  );
+  if (result.replacedCount === 0) {
+    return { changed: false, document: currentDoc };
+  }
 
   const nextDocument = { ...currentDoc, children: result.nodes };
   canonical.setDocument(projectId, nextDocument);

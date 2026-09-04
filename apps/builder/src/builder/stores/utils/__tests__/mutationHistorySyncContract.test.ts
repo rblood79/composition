@@ -145,6 +145,23 @@ describe("store mutation 은 history 를 동기로 기록한다", () => {
     await pending;
   });
 
+  it("batchUpdateElementProps — await 없이 history 와 derived cache까지 갱신된다", async () => {
+    const pending = useStore.getState().batchUpdateElementProps([
+      { elementId: "a", props: { label: "A edited" } },
+      { elementId: "b", props: { label: "B edited" } },
+    ]);
+
+    expect(addEntrySpy).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().elementsMap.get("a")?.props).toMatchObject({
+      label: "A edited",
+    });
+    expect(useStore.getState().elementsMap.get("b")?.props).toMatchObject({
+      label: "B edited",
+    });
+
+    await pending;
+  });
+
   it("removeElements — DB 연결 await 가 기록 앞에 오지 않는다", async () => {
     const pending = useStore.getState().removeElements(["a", "b"]);
 

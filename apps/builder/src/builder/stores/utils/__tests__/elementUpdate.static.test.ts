@@ -3,6 +3,19 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("elementUpdate canonical-only read contract", () => {
+  it("does not expose the zero-caller batchUpdateElements legacy action", async () => {
+    const [actionSource, storeSource] = await Promise.all([
+      readFile(resolve(__dirname, "../elementUpdate.ts"), "utf-8"),
+      readFile(resolve(__dirname, "../../elements.ts"), "utf-8"),
+    ]);
+
+    for (const source of [actionSource, storeSource]) {
+      expect(source).not.toContain("createBatchUpdateElementsAction");
+      expect(source).not.toContain("BatchElementUpdate");
+      expect(source).not.toContain("batchUpdateElements");
+    }
+  });
+
   it("single props update avoids full Element projection on the hot path", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
@@ -22,6 +35,22 @@ describe("elementUpdate canonical-only read contract", () => {
     expect(action).not.toContain("syncUpdatedElementToCanonical(");
   });
 
+  it("batch props update avoids full Element projection on the hot path", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementUpdate.ts"),
+      "utf-8",
+    );
+    const action = source.slice(
+      source.indexOf("export const createBatchUpdateElementPropsAction"),
+    );
+
+    expect(action).toContain("updateCanonicalNodePropsBatchPrimary(");
+    expect(action).not.toContain("getElementUpdateSourceElements()");
+    expect(action).not.toContain("buildElementUpdateLookup(");
+    expect(action).not.toContain("buildElementUpdateChildrenByParent(");
+    expect(action).not.toContain("syncUpdatedElementsToCanonical(");
+  });
+
   it("uses only active canonical elements for mutation reads", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
@@ -38,7 +67,7 @@ describe("elementUpdate canonical-only read contract", () => {
     expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("buildElementUpdateLookup(sourceElements)");
     expect(source).toContain(
-      "buildElementUpdateChildrenByParent(sourceElements)",
+      "buildElementUpdateChildrenByParent(latestSource)",
     );
     expect(source).not.toContain("buildElementUpdateLookup(state.elements)");
     expect(source).not.toContain(
@@ -110,27 +139,26 @@ describe("elementUpdate canonical-only read contract", () => {
     expect(elementStoreIndex).toBeGreaterThanOrEqual(0);
     expect(elementSyncIndex).toBeLessThan(elementStoreIndex);
 
+    const batchPropsActionIndex = source.indexOf(
+      "export const createBatchUpdateElementPropsAction",
+    );
+    const batchPropsHistoryIndex = source.indexOf(
+      "historyManager.addEntry({",
+      batchPropsActionIndex,
+    );
     const batchPropsSyncIndex = source.indexOf(
-      "syncUpdatedElementsToCanonical(updatedElementsForPersistence);",
+      "const canonicalResult = updateCanonicalNodePropsBatchPrimary(",
+      batchPropsActionIndex,
     );
     const batchPropsStoreIndex = source.indexOf(
-      "elements: updatedElements,\n        elementsMap: nextElementsMap,",
+      "elements: derivedUpdate.elements,\n        elementsMap: derivedUpdate.elementsMap,",
       batchPropsSyncIndex,
     );
+    expect(batchPropsHistoryIndex).toBeGreaterThanOrEqual(0);
     expect(batchPropsSyncIndex).toBeGreaterThanOrEqual(0);
     expect(batchPropsStoreIndex).toBeGreaterThanOrEqual(0);
+    expect(batchPropsHistoryIndex).toBeLessThan(batchPropsSyncIndex);
     expect(batchPropsSyncIndex).toBeLessThan(batchPropsStoreIndex);
-
-    const batchElementsSyncIndex = source.indexOf(
-      "syncUpdatedElementsToCanonical(updatedElementsForPersistence, validUpdates);",
-    );
-    const batchElementsStoreIndex = source.indexOf(
-      "elements: updatedElements,\n      selectedElementProps: selectedProps,",
-      batchElementsSyncIndex,
-    );
-    expect(batchElementsSyncIndex).toBeGreaterThanOrEqual(0);
-    expect(batchElementsStoreIndex).toBeGreaterThanOrEqual(0);
-    expect(batchElementsSyncIndex).toBeLessThan(batchElementsStoreIndex);
   });
 });
 

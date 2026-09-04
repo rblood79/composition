@@ -485,7 +485,95 @@ describe("element mutations keep canonical document primary", () => {
     });
   });
 
-  it("batchUpdateElements persists structural order changes into canonical document", async () => {
+  it("batchUpdateElementProps marks descendants dirty for inherited layout style changes", async () => {
+    const parent = makeElement("parent", "Card", {
+      page_id: "page-1",
+      props: { style: { fontSize: "14px" } },
+    });
+    const child = makeElement("child", "Text", {
+      parent_id: "parent",
+      page_id: "page-1",
+      props: { children: "Child" },
+    });
+    const grandchild = makeElement("grandchild", "Text", {
+      parent_id: "child",
+      page_id: "page-1",
+      props: { children: "Grandchild" },
+    });
+    const state = makeState([parent, child, grandchild]);
+    state.currentPageId = "page-1";
+    state.pages = [makePage("page-1")];
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          ...makeCanonicalElementNode(parent),
+          children: [
+            {
+              ...makeCanonicalElementNode(child),
+              children: [makeCanonicalElementNode(grandchild)],
+            },
+          ],
+        } satisfies CanonicalNode,
+      ],
+    });
+
+    await createBatchUpdateElementPropsAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )([
+      {
+        elementId: "parent",
+        props: { style: { fontSize: "16px" } },
+      },
+    ]);
+
+    expect(state.dirtyElementIds).toEqual(
+      new Set(["parent", "child", "grandchild"]),
+    );
+    expect(state.layoutVersion).toBe(1);
+  });
+
+  it("batchUpdateElementProps preserves duplicate-id compatibility by updating every occurrence", async () => {
+    const first = makeElement("duplicate", "Button", {
+      props: { label: "First" },
+    });
+    const second = makeElement("duplicate", "Button", {
+      props: { label: "Second" },
+    });
+    const state = makeState([first, second]);
+    registerCanonicalActions(state, []);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        makeCanonicalElementNode(first),
+        makeCanonicalElementNode(second),
+      ],
+    });
+
+    await createBatchUpdateElementPropsAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )([{ elementId: "duplicate", props: { label: "Edited" } }]);
+
+    const duplicates = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")?.children;
+    expect(duplicates).toHaveLength(2);
+    expect(duplicates?.map((node) => node.props?.label)).toEqual([
+      "Edited",
+      "Edited",
+    ]);
+    expect(state.elements.map((element) => element.props.label)).toEqual([
+      "Edited",
+      "Edited",
+    ]);
+  });
+
+  it("moveElementCanonicalPrimary persists structural order changes into canonical document", async () => {
     const body = makeElement("body", "body", {
       page_id: "page-1",
       order_num: 0,
@@ -1587,6 +1675,89 @@ describe("element mutations keep canonical document primary", () => {
       "page-card-b",
     ]);
     expect(children?.[0]?.props).toMatchObject({ label: "A edited" });
+  });
+
+  it("batchUpdateElementProps updates page ref descendants in one pass without reordering siblings", async () => {
+    const page = makePage("page-1", "frame-1");
+    const first = makeElement("page-card-a", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 0,
+      props: { label: "A" },
+      slot_name: "content",
+    });
+    const second = makeElement("page-card-b", "Card", {
+      parent_id: "page-body",
+      page_id: page.id,
+      order_num: 1,
+      props: { label: "B" },
+      slot_name: "content",
+    });
+    const state = makeState([first, second]);
+    state.pages = [page];
+    state.currentPageId = page.id;
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-frame-1",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-1" },
+          children: [],
+        } satisfies FrameNode,
+        {
+          id: page.id,
+          type: "ref",
+          ref: "layout-frame-1",
+          name: page.title,
+          metadata: {
+            type: "legacy-page",
+            pageId: page.id,
+            layoutId: "frame-1",
+          },
+          descendants: {
+            "frame-body/slot-content": {
+              children: [
+                makeCanonicalElementNode(first),
+                makeCanonicalElementNode(second),
+              ],
+            },
+          },
+        } as RefNode,
+      ],
+    });
+
+    await createBatchUpdateElementPropsAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )([
+      { elementId: "page-card-a", props: { label: "A edited" } },
+      { elementId: "page-card-b", props: { label: "B edited" } },
+    ]);
+
+    const pageRef = useCanonicalDocumentStore
+      .getState()
+      .getDocument("project-1")
+      ?.children.find((node) => node.id === page.id) as RefNode | undefined;
+    const children =
+      pageRef?.descendants?.["frame-body/slot-content"]?.children;
+    expect(children?.map((node) => node.id)).toEqual([
+      "page-card-a",
+      "page-card-b",
+    ]);
+    expect(children?.map((node) => node.props?.label)).toEqual([
+      "A edited",
+      "B edited",
+    ]);
+    expect(state.elementsMap.get("page-card-a")?.props).toMatchObject({
+      label: "A edited",
+    });
+    expect(state.elementsMap.get("page-card-b")?.props).toMatchObject({
+      label: "B edited",
+    });
   });
 
   // border(색/스타일/너비)는 전역 속성 — 어느 breakpoint 에서 편집해도 base props.style 에

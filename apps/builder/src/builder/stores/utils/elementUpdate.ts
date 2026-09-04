@@ -8,12 +8,9 @@ import {
 import { sanitizeFillDerivedStylePatch } from "../../panels/styles/utils/fillDerivedStyleProps";
 import { historyManager } from "../history";
 import {
-  buildCanonicalMoveEvents,
   buildCanonicalReplaceEvents,
   buildCanonicalUpdateEvent,
-  captureCanonicalNodeLocations,
   hasNonPropsCanonicalHistoryChange,
-  type CanonicalHistoryNodeEvent,
 } from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
 import type { ElementsState } from "../elements";
@@ -28,11 +25,13 @@ import {
   applyElementOrderCanonicalPrimary,
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
+  updateCanonicalNodePropsBatchPrimary,
   updateCanonicalNodePropsPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import {
+  getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
   getProjectableChildrenByParent,
   getProjectableNodes,
@@ -117,18 +116,84 @@ function createDerivedPropsUpdate(
   return { element, elements, elementsMap };
 }
 
+type DerivedBatchPropsUpdate = {
+  elements: Element[];
+  elementsMap: ElementUpdateLookup;
+  updatedElementMap: ElementUpdateLookup;
+};
+
+function createDerivedBatchPropsUpdate(
+  state: Pick<ElementsState, "elements" | "elementsMap">,
+  nextPropsById: ReadonlyMap<string, ComponentElementProps>,
+  duplicateIds: ReadonlySet<string>,
+): DerivedBatchPropsUpdate | null {
+  let sourceElements = state.elements;
+  let hasMissingElement = false;
+  for (const elementId of nextPropsById.keys()) {
+    if (getElementArrayIndex(sourceElements, elementId) < 0) {
+      hasMissingElement = true;
+      break;
+    }
+  }
+
+  // 정상 hot path는 derived cache를 직접 patch한다. bootstrap/cache gap은
+  // canonical projection 한 번으로 전체 mirror를 복구한다.
+  if (hasMissingElement) {
+    sourceElements = getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
+    for (const elementId of nextPropsById.keys()) {
+      if (getElementArrayIndex(sourceElements, elementId) < 0) return null;
+    }
+  }
+
+  const updatedElementMap: ElementUpdateLookup = new Map();
+  let elements: Element[];
+  if (duplicateIds.size > 0) {
+    const sourceLookup = buildElementUpdateLookup(sourceElements);
+    for (const [elementId, nextProps] of nextPropsById) {
+      const currentElement = sourceLookup.get(elementId);
+      if (!currentElement) return null;
+      updatedElementMap.set(elementId, {
+        ...currentElement,
+        props: nextProps,
+      });
+    }
+    // 구 batch path는 duplicate row를 모두 마지막 same-id mirror로 교체했다.
+    elements = sourceElements.map(
+      (element) => updatedElementMap.get(element.id) ?? element,
+    );
+  } else {
+    elements = [...sourceElements];
+    for (const [elementId, nextProps] of nextPropsById) {
+      const index = getElementArrayIndex(sourceElements, elementId);
+      const currentElement = sourceElements[index];
+      const updatedElement = { ...currentElement, props: nextProps };
+      elements[index] = updatedElement;
+      updatedElementMap.set(elementId, updatedElement);
+    }
+    const sourceIndexById = elementArrayIndexCache.get(sourceElements);
+    if (sourceIndexById) elementArrayIndexCache.set(elements, sourceIndexById);
+  }
+
+  const elementsMap =
+    sourceElements === state.elements
+      ? new Map(state.elementsMap)
+      : buildElementUpdateLookup(sourceElements);
+  for (const [elementId, element] of updatedElementMap) {
+    elementsMap.set(elementId, element);
+  }
+  return { elements, elementsMap, updatedElementMap };
+}
+
 function syncUpdatedElementToCanonical(
   element: Element,
   updates?: Partial<Element>,
 ): void {
+  if (!areCanonicalMutationStoreActionsRegistered()) return;
   if (updates && isStructuralOrderMirrorPatch(updates)) {
-    syncUpdatedElementsToCanonical(
-      [element],
-      [{ elementId: element.id, updates }],
-    );
+    applyElementOrderCanonicalPrimary([element]);
     return;
   }
-  syncUpdatedElementsToCanonical([element]);
+  mergeElementsCanonicalPrimary([element]);
 }
 
 function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
@@ -137,22 +202,6 @@ function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
     keys.length > 0 &&
     keys.every((key) => key === "parent_id" || key === "page_id")
   );
-}
-
-function isStructuralOrderMirrorUpdate(update: BatchElementUpdate): boolean {
-  return isStructuralOrderMirrorPatch(update.updates);
-}
-
-function syncUpdatedElementsToCanonical(
-  elements: Element[],
-  updates?: BatchElementUpdate[],
-): void {
-  if (!areCanonicalMutationStoreActionsRegistered()) return;
-  if (updates && updates.every(isStructuralOrderMirrorUpdate)) {
-    applyElementOrderCanonicalPrimary(elements);
-    return;
-  }
-  mergeElementsCanonicalPrimary(elements);
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
@@ -224,20 +273,9 @@ function markDirtyWithDescendantsUpdate(
     }
   }
 }
-import {
-  rebuildPageIndex,
-  rebuildComponentIndex,
-  rebuildVariableUsageIndex,
-} from "./elementIndexer";
-
 // ============================================
 // Types for Batch Operations
 // ============================================
-
-export interface BatchElementUpdate {
-  elementId: string;
-  updates: Partial<Element>;
-}
 
 export interface BatchPropsUpdate {
   elementId: string;
@@ -819,8 +857,8 @@ export const createUpdateElementAction =
  * 최적화 포인트:
  * - 단일 Zustand 상태 업데이트 (N번 → 1번)
  * - 단일 히스토리 엔트리 (batch 타입)
- * - 단일 인덱스 재구축 (N번 → 1번)
- * - IndexedDB 병렬 저장 (Promise.all)
+ * - canonical target cache + 단일 tree traversal
+ * - derived array/map 일괄 patch
  *
  * @param set - Zustand setState 함수
  * @param get - Zustand getState 함수
@@ -834,81 +872,81 @@ export const createBatchUpdateElementPropsAction =
     if (canonicalUpdates.length === 0) return;
 
     const state = get();
-    const sourceElements = getElementUpdateSourceElements();
     const normalizedUpdates = canonicalUpdates.map((update) => ({
       ...update,
       props: sanitizePropsPatch(
         update.props as Record<string, unknown>,
       ) as ComponentElementProps,
     }));
-    const elementLookup = buildElementUpdateLookup(sourceElements);
-    const validUpdates = normalizedUpdates.filter((u) =>
-      elementLookup.has(u.elementId),
-    );
 
-    if (validUpdates.length === 0) return;
-
-    // 🚀 Phase 1: Immer → 함수형 업데이트
-    // 1. 히스토리용 이전 상태 저장 (불변 업데이트를 위해 먼저 수집)
-    const prevStates: Array<{
+    const preparedUpdates: Array<{
       elementId: string;
+      patch: ComponentElementProps;
       prevProps: ComponentElementProps;
+      nextProps: ComponentElementProps;
     }> = [];
-
-    // 업데이트 맵 생성 (O(1) 조회용)
-    const updateMap = new Map<string, ComponentElementProps>();
-    const updatedElementMap: ElementUpdateLookup = new Map();
-    const nextElementsMap = new Map(elementLookup);
-    for (const { elementId, props: rawProps, mergeStyle } of validUpdates) {
-      const element = elementLookup.get(elementId);
-      if (element) {
-        const props = applyBatchStylePatch(
-          element.props as Record<string, unknown>,
-          rawProps as Record<string, unknown>,
-          mergeStyle,
-        ) as ComponentElementProps;
-        prevStates.push({
-          elementId,
-          prevProps: cloneForHistory(element.props),
-        });
-        updateMap.set(elementId, props);
-
-        // props-only 업데이트는 element 구조를 바꾸지 않으므로,
-        // 인덱스 전체 재구축 대신 요소만 O(1)로 갱신한다.
-        const merged = { ...element, props: { ...element.props, ...props } };
-        updatedElementMap.set(elementId, merged);
-        nextElementsMap.set(elementId, merged);
+    const nextPropsById = new Map<string, ComponentElementProps>();
+    const duplicateIds = new Set<string>();
+    for (const {
+      elementId,
+      props: rawProps,
+      mergeStyle,
+    } of normalizedUpdates) {
+      const canonicalNode = getFirstProjectableNodeById(elementId);
+      if (!canonicalNode) continue;
+      const currentProps = (canonicalNode.props ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const patch = applyBatchStylePatch(
+        currentProps,
+        rawProps as Record<string, unknown>,
+        mergeStyle,
+      ) as ComponentElementProps;
+      const nextProps = { ...currentProps, ...patch } as ComponentElementProps;
+      preparedUpdates.push({
+        elementId,
+        patch: rawProps,
+        prevProps: cloneForHistory(currentProps) as ComponentElementProps,
+        nextProps,
+      });
+      nextPropsById.set(elementId, nextProps);
+      if (getCanonicalNodeOccurrenceCount(elementId) > 1) {
+        duplicateIds.add(elementId);
       }
     }
+    if (preparedUpdates.length === 0) return;
 
-    // 2. 단일 메모리 상태 업데이트 (불변)
-    const updatedElements = sourceElements.map(
-      (el) => updatedElementMap.get(el.id) ?? el,
+    const derivedUpdate = createDerivedBatchPropsUpdate(
+      state,
+      nextPropsById,
+      duplicateIds,
     );
+    if (!derivedUpdate) return;
 
     // 선택된 요소 props 업데이트
     const selectedId = state.selectedElementId;
-    const selectedProps =
-      selectedId && updateMap.has(selectedId)
-        ? (() => {
-            const el = updatedElementMap.get(selectedId);
-            return el
-              ? createCompleteProps(el, updateMap.get(selectedId)!)
-              : state.selectedElementProps;
-          })()
-        : state.selectedElementProps;
+    const selectedElement = selectedId
+      ? derivedUpdate.updatedElementMap.get(selectedId)
+      : null;
+    const selectedProps = selectedElement
+      ? createCompleteProps(
+          selectedElement,
+          nextPropsById.get(selectedElement.id),
+        )
+      : state.selectedElementProps;
 
     // ADR-006 P3-1: batch props 변경 시 dirty tracking
     // 업데이트 중 하나라도 레이아웃 영향이 있으면 layoutVersion 증가
     const dirtyIds = new Set(state.dirtyElementIds);
-    const childrenByParent = buildElementUpdateChildrenByParent(sourceElements);
+    const childrenByParent = getProjectableChildrenByParent();
     let hasAnyLayoutChange = false;
-    for (const { elementId, props } of validUpdates) {
-      const changedStyle = (props.style ?? {}) as Record<string, unknown>;
+    for (const { elementId, patch } of preparedUpdates) {
+      const changedStyle = (patch.style ?? {}) as Record<string, unknown>;
       const hasStyleChange = Object.keys(changedStyle).length > 0;
       const isLayoutChange = hasStyleChange
         ? isLayoutAffectingUpdate(changedStyle)
-        : Object.keys(props as Record<string, unknown>).some(
+        : Object.keys(patch as Record<string, unknown>).some(
             (k) => k !== "style",
           );
       if (isLayoutChange) {
@@ -922,57 +960,56 @@ export const createBatchUpdateElementPropsAction =
       }
     }
 
-    const updatedElementsForPersistence = Array.from(
-      updatedElementMap.values(),
+    // canonical event는 full merged props 계약이다. 사용자-가시 mutation 전에
+    // 부모+자식 전체를 한 batch history entry로 동기 기록한다.
+    if (state.currentPageId) {
+      historyManager.addEntry({
+        type: "batch",
+        elementId: preparedUpdates[0].elementId,
+        elementIds: preparedUpdates.map((update) => update.elementId),
+        data: {
+          canonicalEvents: preparedUpdates.map((update) =>
+            buildCanonicalUpdateEvent(
+              update.elementId,
+              update.prevProps as Record<string, unknown>,
+              cloneForHistory(
+                nextPropsById.get(update.elementId) ?? {},
+              ) as Record<string, unknown>,
+            ),
+          ),
+        },
+      });
+    }
+
+    const canonicalResult = updateCanonicalNodePropsBatchPrimary(
+      nextPropsById as ReadonlyMap<string, Record<string, unknown>>,
+      Array.from(derivedUpdate.updatedElementMap.values()),
     );
-    syncUpdatedElementsToCanonical(updatedElementsForPersistence);
+    if (!canonicalResult.changed) return;
 
     // ADR-190 Phase 3: 다중 선택 편집·정렬·드래그가 여기로 모인다. 요소마다
     // 따로 queue 하면 pendingCommit 단일 슬롯이 앞선 patch 를 덮어쓰므로
     // **한 번에** 배열로 넘긴다 (R6).
     emitStoreStyleCommitDescriptors(
-      validUpdates.map(({ elementId, props }) => ({
+      preparedUpdates.map(({ elementId, patch }) => ({
         elementId,
-        patch: props as Record<string, unknown>,
+        patch: patch as Record<string, unknown>,
       })),
     );
 
     if (hasAnyLayoutChange) {
       set((prevState) => ({
-        elements: updatedElements,
-        elementsMap: nextElementsMap,
+        elements: derivedUpdate.elements,
+        elementsMap: derivedUpdate.elementsMap,
         selectedElementProps: selectedProps,
         layoutVersion: prevState.layoutVersion + 1,
         dirtyElementIds: dirtyIds,
       }));
     } else {
       set({
-        elements: updatedElements,
-        elementsMap: nextElementsMap,
+        elements: derivedUpdate.elements,
+        elementsMap: derivedUpdate.elementsMap,
         selectedElementProps: selectedProps,
-      });
-    }
-
-    // 2. 단일 히스토리 엔트리 추가 (batch 타입)
-    // canonical update event — full merged props 계약 (updatedElementMap 의
-    // merged 결과를 next 로 기록).
-    const currentPageId = get().currentPageId;
-    if (currentPageId && prevStates.length > 0) {
-      historyManager.addEntry({
-        type: "batch",
-        elementId: prevStates[0].elementId, // 대표 요소
-        elementIds: prevStates.map((s) => s.elementId),
-        data: {
-          canonicalEvents: prevStates.map((s) =>
-            buildCanonicalUpdateEvent(
-              s.elementId,
-              s.prevProps as Record<string, unknown>,
-              cloneForHistory(
-                updatedElementMap.get(s.elementId)?.props ?? {},
-              ) as Record<string, unknown>,
-            ),
-          ),
-        },
       });
     }
 
@@ -998,209 +1035,4 @@ export const createBatchUpdateElementPropsAction =
         });
       }
     })();
-  };
-
-/**
- * BatchUpdateElements 액션 생성 팩토리
- *
- * 여러 요소의 전체 속성을 한 번에 업데이트합니다.
- * props, dataBinding 등 모든 필드 지원.
- *
- * @param set - Zustand setState 함수
- * @param get - Zustand getState 함수
- * @returns batchUpdateElements 액션 함수
- */
-export const createBatchUpdateElementsAction =
-  (set: SetState, get: GetState) => async (updates: BatchElementUpdate[]) => {
-    const canonicalUpdates = updates.filter(
-      (update) => !isRenderProjectionId(update.elementId),
-    );
-    if (canonicalUpdates.length === 0) return;
-
-    const state = get();
-    const sourceElements = getElementUpdateSourceElements();
-    const normalizedUpdates = canonicalUpdates.map((update) => ({
-      ...update,
-      updates: sanitizeElementUpdate(update.updates),
-    }));
-    const elementLookup = buildElementUpdateLookup(sourceElements);
-    const validUpdates = normalizedUpdates.filter((u) =>
-      elementLookup.has(u.elementId),
-    );
-
-    if (validUpdates.length === 0) return;
-
-    // 🚀 Phase 1: Immer → 함수형 업데이트
-    // 1. 히스토리용 canonical update event 수집 (props 변경 시에만)
-    //    batchUpdateElements 는 `{...el, ...updates}` 로 props 를 전체
-    //    교체하므로 updates.props 자체가 full next props 다.
-    const updateEvents: CanonicalHistoryNodeEvent[] = [];
-
-    // 업데이트 맵 생성 (O(1) 조회용)
-    const updateMap = new Map<string, Partial<Element>>();
-    for (const { elementId, updates: elementUpdates } of validUpdates) {
-      const element = elementLookup.get(elementId);
-      if (element) {
-        if (elementUpdates.props) {
-          updateEvents.push(
-            buildCanonicalUpdateEvent(
-              elementId,
-              cloneForHistory(element.props) as Record<string, unknown>,
-              cloneForHistory(elementUpdates.props) as Record<string, unknown>,
-            ),
-          );
-        }
-        updateMap.set(elementId, elementUpdates);
-      }
-    }
-
-    // 구조 변경(parent_id) 대상의 from-location 은 canonical mutation 전에 캡처
-    const structuralIds = validUpdates
-      .filter((u) => u.updates.parent_id !== undefined)
-      .map((u) => u.elementId);
-    const structuralFromLocations =
-      captureCanonicalNodeLocations(structuralIds);
-
-    // 2. 단일 메모리 상태 업데이트 (불변)
-    const updatedElements = sourceElements.map((el) => {
-      const updates = updateMap.get(el.id);
-      return updates ? { ...el, ...updates } : el;
-    });
-
-    // 선택된 요소 props 업데이트
-    const selectedId = state.selectedElementId;
-    const selectedUpdate = selectedId ? updateMap.get(selectedId) : undefined;
-    const selectedProps =
-      selectedId && selectedUpdate?.props
-        ? (() => {
-            const el = updatedElements.find((e) => e.id === selectedId);
-            return el
-              ? createCompleteProps(el, selectedUpdate.props!)
-              : state.selectedElementProps;
-          })()
-        : state.selectedElementProps;
-
-    // Fix 3: 단일 atomic set() — elements + indexes 동시 갱신 (transient 불일치 방지)
-    const elementsMap: ElementUpdateLookup = new Map();
-    const newChildrenMap: ElementUpdateChildrenByParent = new Map();
-    updatedElements.forEach((el) => {
-      elementsMap.set(el.id, el);
-      const parentId = el.parent_id || "root";
-      if (!newChildrenMap.has(parentId)) {
-        newChildrenMap.set(parentId, []);
-      }
-      newChildrenMap.get(parentId)!.push(el);
-    });
-    const pageIndex = rebuildPageIndex(updatedElements, elementsMap);
-    const componentIndex = rebuildComponentIndex(updatedElements);
-    const variableUsageIndex = rebuildVariableUsageIndex(updatedElements);
-
-    // pageElementsSnapshot 재구축 — 레이어 트리가 이 스냅샷에 의존
-    const pageElementsSnapshot: Record<string, Element[]> = {};
-    for (const [pageId, elementIds] of pageIndex.elementsByPage.entries()) {
-      const pageElements = updatedElements.filter((element) =>
-        elementIds.has(element.id),
-      );
-      pageElementsSnapshot[pageId] = pageElements;
-    }
-
-    // ADR-006 P3-1: batch elements 변경 시 dirty tracking
-    const dirtyIds = new Set(state.dirtyElementIds);
-    let hasAnyLayoutChange = false;
-
-    // 구조 변경(parent_id) 시 layoutVersion 증가 필수
-    for (const { updates: elementUpdates } of validUpdates) {
-      if (elementUpdates.parent_id !== undefined) {
-        hasAnyLayoutChange = true;
-        break;
-      }
-    }
-
-    for (const { elementId, updates: elementUpdates } of validUpdates) {
-      if (!elementUpdates.props) continue;
-      const changedStyle = (elementUpdates.props.style ?? {}) as Record<
-        string,
-        unknown
-      >;
-      const hasStyleChange = Object.keys(changedStyle).length > 0;
-      const isLayoutChange = hasStyleChange
-        ? isLayoutAffectingUpdate(changedStyle)
-        : true; // props 변경 → 레이아웃 영향 간주
-      if (isLayoutChange) {
-        hasAnyLayoutChange = true;
-        markDirtyWithDescendantsUpdate(
-          elementId,
-          changedStyle,
-          newChildrenMap,
-          dirtyIds,
-        );
-      }
-    }
-
-    const updatedElementMap = new Map(
-      updatedElements.map((element) => [element.id, element]),
-    );
-    const updatedElementsForPersistence = validUpdates
-      .map((update) => updatedElementMap.get(update.elementId))
-      .filter((element): element is Element => Boolean(element));
-    syncUpdatedElementsToCanonical(updatedElementsForPersistence, validUpdates);
-
-    set((prevState) => ({
-      elements: updatedElements,
-      selectedElementProps: selectedProps,
-      elementsMap,
-      childrenMap: newChildrenMap,
-      pageIndex,
-      pageElementsSnapshot,
-      componentIndex,
-      variableUsageIndex,
-      ...(hasAnyLayoutChange && {
-        layoutVersion: prevState.layoutVersion + 1,
-        dirtyElementIds: dirtyIds,
-      }),
-    }));
-
-    // 2. 히스토리 엔트리 추가 — update event (props) + move event (parent_id)
-    //    를 단일 batch entry 로. move 의 to-location 은 sync 후 doc 에서 해석.
-    //    (과거: 혼합 batch 에서 구조 변경이 history 누락 + batch diff 기록이
-    //     props-only event 를 만들어 undo 시 parent 복원이 skip 되던 결함)
-    const currentPageId = get().currentPageId;
-    if (currentPageId) {
-      const moveEvents = buildCanonicalMoveEvents(
-        structuralIds.flatMap((nodeId) => {
-          const from = structuralFromLocations.get(nodeId);
-          return from ? [{ nodeId, from }] : [];
-        }),
-      );
-      const canonicalEvents = [...updateEvents, ...moveEvents];
-      if (canonicalEvents.length > 0) {
-        historyManager.addEntry({
-          type: updateEvents.length > 0 ? "batch" : "move",
-          elementId: validUpdates[0].elementId,
-          elementIds: validUpdates.map((u) => u.elementId),
-          data: { canonicalEvents },
-        });
-      }
-    }
-
-    // 4. Canonical document 저장
-    try {
-      const db = await getDB();
-      await persistActiveCanonicalDocument(db);
-    } catch (error) {
-      console.warn(
-        "⚠️ [IndexedDB] canonical document 배치 저장 중 오류 (메모리는 정상):",
-        error,
-      );
-      // 🚀 Phase 7: Toast + Undo 버튼
-      globalToast.error("Save failed.", {
-        duration: 8000,
-        messageKey: "errors.saveFailed",
-        action: {
-          label: "Undo",
-          labelKey: "errors.undo",
-          onClick: () => get().undo(),
-        },
-      });
-    }
   };

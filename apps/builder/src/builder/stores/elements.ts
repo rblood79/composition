@@ -47,8 +47,6 @@ import {
   createUpdateElementPropsAction,
   createUpdateElementAction,
   createBatchUpdateElementPropsAction,
-  createBatchUpdateElementsAction,
-  type BatchElementUpdate,
   type BatchPropsUpdate,
   type OriginImpactApproval,
 } from "./utils/elementUpdate";
@@ -301,7 +299,6 @@ export interface ElementsState {
 
   // 🚀 배치 업데이트 (100+ 요소 최적화)
   batchUpdateElementProps: (updates: BatchPropsUpdate[]) => Promise<void>;
-  batchUpdateElements: (updates: BatchElementUpdate[]) => Promise<void>;
 
   // 🆕 Multi-page: 페이지 위치 관리
   initializePagePositions: (
@@ -844,7 +841,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
   // 🚀 배치 업데이트 함수 생성 (100+ 요소 최적화)
   const batchUpdateElementProps = createBatchUpdateElementPropsAction(set, get);
-  const batchUpdateElements = createBatchUpdateElementsAction(set, get);
 
   // 인덱스 재구축 순수 함수 (Fix 3: atomic update 지원)
   const buildIndexes = (elements: Element[]) => {
@@ -2218,7 +2214,6 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     // 🚀 배치 업데이트 (Factory 함수로 생성)
     batchUpdateElementProps,
-    batchUpdateElements,
 
     // `updateSelectedElementLayout` 은 삭제됐다 (2026-08-15) — legacy 레이아웃
     //   결과를 스타일 패널에 넘기던 채널인데 호출부가 0건이라 대응 필드
