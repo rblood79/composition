@@ -7,11 +7,11 @@
 
 `ctx.letterSpacing` 과 DOM `getBoundingClientRect` 를 같은 문자열로 대조:
 
-| 텍스트        | grapheme | base   | DOM (ls 2px) | Δ     | canvas (ls 2px) | Δ  |
-| ------------- | -------- | ------ | ------------ | ----- | --------------- | -- |
-| `abc`         | 3        | 25.797 | 31.797       | 6     | 31.797          | 6  |
-| `hello world` | 11       | 76.484 | 98.484       | 22    | 98.484          | 22 |
-| `가나다`      | 3        | 41.520 | 47.523       | 6.003 | 47.520          | 6  |
+| 텍스트        | grapheme | base   | DOM (ls 2px) | Δ     | canvas (ls 2px) | Δ   |
+| ------------- | -------- | ------ | ------------ | ----- | --------------- | --- |
+| `abc`         | 3        | 25.797 | 31.797       | 6     | 31.797          | 6   |
+| `hello world` | 11       | 76.484 | 98.484       | 22    | 98.484          | 22  |
+| `가나다`      | 3        | 41.520 | 47.523       | 6.003 | 47.520          | 6   |
 
 **규칙**: `base + grapheme 수 × spacing` — **마지막 글자 뒤 간격도 폭에 포함**된다
 (`(n-1)` 아님). `ctx.letterSpacing` 은 DOM 과 소수점까지 같다 (가나다의 0.003 은 DOM 쪽 반올림).
@@ -50,13 +50,13 @@ Chrome 실측 규칙 (`text.length * 8 + spacing * grapheme 수`) 을 흉내낸�
 
 수정 전 RED 5건:
 
-| 테스트                                            | Before          | After |
-| ------------------------------------------------- | --------------- | ----- |
-| `buildFontKey` 가 letterSpacing 을 키에 넣는다    | 같은 키 (오염)  | 분리  |
-| letterSpacing 은 fallback 이 아니다               | `true`          | `false` |
-| `getOrMeasureWidth` 가 ctx.letterSpacing 적용     | 24              | 30    |
-| `measureWithCanvas2D` 가 폭·줄바꿈에 반영         | width 40        | 50    |
-| `Canvas2DTextMeasurer` trailing 간격 포함         | 28              | 30    |
+| 테스트                                         | Before         | After   |
+| ---------------------------------------------- | -------------- | ------- |
+| `buildFontKey` 가 letterSpacing 을 키에 넣는다 | 같은 키 (오염) | 분리    |
+| letterSpacing 은 fallback 이 아니다            | `true`         | `false` |
+| `getOrMeasureWidth` 가 ctx.letterSpacing 적용  | 24             | 30      |
+| `measureWithCanvas2D` 가 폭·줄바꿈에 반영      | width 40       | 50      |
+| `Canvas2DTextMeasurer` trailing 간격 포함      | 28             | 30      |
 
 수정 후 `canvas` 스위트 **1609 PASS** (182 파일) · `pnpm type-check` PASS.
 구 `needsFallback` 테스트 1건은 지원/미지원 두 갈래를 재는 형태로 교체했다.
@@ -69,11 +69,11 @@ Chrome 실측 규칙 (`text.length * 8 + spacing * grapheme 수`) 을 흉내낸�
 빌더에 Text 1개를 만들고 인라인 style 을 주었다
 (`width 150px · Arial 16px · lineHeight 24px · **letterSpacing 2px**`):
 
-| 축                       | 결과                                                                 |
-| ------------------------ | -------------------------------------------------------------------- |
-| Chrome DOM 오라클 (ls 2) | `ab cd ef gh ij kl` / `mn op`                                        |
-| Chrome DOM 오라클 (ls 0) | `ab cd ef gh ij kl mn` / `op`                                        |
-| 빌더 Skia 렌더           | `ab cd ef gh ij kl mn` / `op` — **ls 0 결과**                        |
+| 축                       | 결과                                                                                                                                                         |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Chrome DOM 오라클 (ls 2) | `ab cd ef gh ij kl` / `mn op`                                                                                                                                |
+| Chrome DOM 오라클 (ls 0) | `ab cd ef gh ij kl mn` / `op`                                                                                                                                |
+| 빌더 Skia 렌더           | `ab cd ef gh ij kl mn` / `op` — **ls 0 결과**                                                                                                                |
 | Skia scene node          | `__composition_SKIA_DEBUG__.getSkiaNode(id)` 의 `text` 에 **`letterSpacing` 키 자체가 없다** (`fontSize` 16 · `lineHeight` 24 · `fontFamilies` 는 전부 도달) |
 
 원인 (코드 대조):
@@ -90,12 +90,37 @@ Chrome 실측 규칙 (`text.length * 8 + spacing * grapheme 수`) 을 흉내낸�
 문서가 근거로 든 "`TypographySection.tsx:276` 노출 — production 경로" 는 **CSS/Preview 한정**이
 맞고 Skia 축은 성립하지 않는다.
 
+### 5-1. 정정 — 위 "레이아웃 측 유일 유입" 은 틀렸다 (2026-09-05, ADR-205 리뷰 round 1)
+
+위 원인 분석의 두 번째 줄(`utils.ts:2102` 의 `inlineSpecStyle?.letterSpacing` 이 레이아웃의
+유일 유입)은 **코드와 다르다**. 관찰(§5 표)과 첫 번째 줄(Skia 는 `shape.letterSpacing` 전용)은
+그대로 유효하다. 정정 내용:
+
+- 레이아웃 **폭 leg** 은 이미 인라인 + computed 를 읽는다 —
+  `parseNumericValue(style?.letterSpacing) ?? computedStyle?.letterSpacing ?? 0`
+  (`utils.ts:2210-2212`, `calculateContentWidth` 일반 요소 분기). 진입은
+  `enrichWithIntrinsicSize` 가 `_computedStyle` 을 넘기는 `utils.ts:5210·5219`.
+- 레이아웃 **wrap/height leg** 은 letterSpacing 인자 자체가 없다 —
+  `measureTextWithWhiteSpace` (`utils.ts:5469`) → `measureWrappedTextHeight`
+  (`utils/textMeasure.ts:531`) → `measureWrapped`. **§5 표의 줄 수 불일치는 이 leg 의
+  결손**이지 `:2102` 채널의 결손이 아니다.
+- `inlineSpecStyle?.letterSpacing` (`utils.ts:2101`) 은 세 번째 채널이며 catalog 정의 0건
+  때문에 항상 undefined 다 — "유일" 이 아니라 "죽어 있는 하나" 다.
+- Skia 쪽에도 인라인 style 을 텍스트 자식으로 옮기는 일반화 블록이 이미 있다 (ADR-057
+  Phase A/B, `buildSpecNodeData.ts:2050-2165`, 13종 — `wordSpacing` 포함,
+  **letterSpacing 만 부재**). "인라인을 읽는 경로가 없다" 는 letterSpacing 에 한해 참이고
+  구조적 부재는 아니다.
+
+정본은 [ADR-205](../205-text-visual-axis-computed-seam.md) Context 와
+[breakdown §2 F9·F9b·F9c·F18~F21](../design/205-text-visual-axis-computed-seam-breakdown.md).
+
 ## 6. 이번 커밋이 한 것 / 안 한 것
 
 - **한 것**: 측정기가 letterSpacing 을 CSS 와 같은 규칙으로 잴 수 있게 됐다 (결선되면 그대로
   맞는다). 기본 측정기의 실제 공식 결함 1건을 고쳤다.
-- **안 한 것**: 인라인 `style.letterSpacing` → 레이아웃 측정 → Skia 텍스트 노드 결선.
-  fontSize 인라인 override 만 해도 `utils.ts` 8곳 + catalog/shape 경로에 흩어져 있어
-  (`parseNumericValue(style?.fontSize)` 패턴) 새 시각 축 하나를 D3 에 추가하는 규모다.
+- **안 한 것**: 인라인 `style.letterSpacing` → 레이아웃 wrap/height leg → Skia 텍스트 노드
+  결선 (§5-1 정정 반영 — 폭 leg 은 이미 결선돼 있다). fontSize 인라인 override 만 해도
+  `utils.ts` 21곳 + catalog/shape 경로에 흩어져 있어 (`parseNumericValue(style?.fontSize)`
+  패턴) 새 시각 축 하나를 D3 에 추가하는 규모다.
   scope 변경이라 사용자 판정 전까지 착수하지 않는다.
 - 따라서 이번 변경의 **사용자-가시 동작 변화는 0** 이다 (dead 조건 제거 + 미결선 축의 준비).
