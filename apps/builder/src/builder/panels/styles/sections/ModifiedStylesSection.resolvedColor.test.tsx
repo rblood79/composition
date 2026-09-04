@@ -8,7 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SelectedElement } from "../../../inspector/types";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
-import { seedPanelElements } from "../hooks/__tests__/panelFixture";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { ModifiedStylesSection } from "./ModifiedStylesSection";

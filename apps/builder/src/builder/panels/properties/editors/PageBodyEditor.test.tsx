@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import { PageBodyEditor } from "./PageBodyEditor";
 
 vi.mock("./PageLayoutSelector", () => ({
@@ -64,10 +65,9 @@ describe("PageBodyEditor page target", () => {
 
   it("page body가 live currentPageId와 일치하면 element.page_id를 page-bound editor 대상으로 사용한다", () => {
     const body = makeBodyElement("body-page-1", "page-1");
+    seedPanelElements([body]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [body],
-      elementsMap: new Map([[body.id, body]]),
     } as never);
 
     render(
@@ -84,10 +84,9 @@ describe("PageBodyEditor page target", () => {
 
   it("deferred stale page body가 live currentPageId와 다르면 page-bound editor를 숨긴다", () => {
     const body = makeBodyElement("body-page-1", "page-1");
+    seedPanelElements([body]);
     useStore.setState({
       currentPageId: "page-2",
-      elements: [body],
-      elementsMap: new Map([[body.id, body]]),
     } as never);
 
     render(
@@ -106,10 +105,9 @@ describe("PageBodyEditor page target", () => {
     const body = makeBodyElement("frame-body", null, {
       layout_id: "frame-1",
     } as Partial<Element>);
+    seedPanelElements([body]);
     useStore.setState({
       currentPageId: "page-2",
-      elements: [body],
-      elementsMap: new Map([[body.id, body]]),
     } as never);
 
     render(

@@ -16,7 +16,7 @@ import { useStore } from "../../../stores";
 import {
   resetPanelFixture,
   seedPanelElements,
-} from "./__tests__/panelFixture";
+} from "../../../__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 import { useFillActions } from "./useFillActions";
 import { useFillValues, useFillUIStore } from "./useFillValues";

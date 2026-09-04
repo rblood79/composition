@@ -45,7 +45,6 @@ docs/
 ├── COMPONENT_SPEC.md       # 컴포넌트 스펙 참조
 ├── CSS_SUPPORT_MATRIX.md   # CSS 지원 매트릭스
 ├── COLOR_PICKER.md         # Color Picker 설계
-├── AGENTS_TEAMS-archived.md # Agent Teams 매뉴얼 아카이브
 └── README.md               # 문서 메인 인덱스
 ```
 

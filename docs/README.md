@@ -50,7 +50,6 @@ docs/
 - [레이아웃 엔진 ADR](adr/completed/916-unified-rust-engine.md) - composition-engine 단일 Rust 엔진
 - [CSS 속성 지원 체크리스트](./CSS_SUPPORT_MATRIX.md) - CSS 속성별 지원 상태
 - [컬러 피커 + Fill 시스템](./COLOR_PICKER.md) - Color/Gradient/EyeDropper/BlendMode/ImageFill
-- [Agent Teams 매뉴얼 (아카이브)](./AGENTS_TEAMS-archived.md) - 2026-02 Agent Teams 기록 — 현행 경로는 CLAUDE.md §작업 워크플로
 
 ### ADR (Architecture Decision Records)
 

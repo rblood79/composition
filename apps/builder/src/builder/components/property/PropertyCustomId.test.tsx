@@ -14,7 +14,7 @@ import {
   resetCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
-import { seedPanelElements } from "../../panels/styles/hooks/__tests__/panelFixture";
+import { seedPanelElements } from "../../__tests__/panelFixture";
 import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { PropertyCustomId } from "./PropertyCustomId";

@@ -22,6 +22,10 @@ import { withFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
 import type { Element } from "../../../types/core/store.types";
 import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
+import {
+  resetPanelFixture,
+  seedPanelElements,
+} from "../../__tests__/panelFixture";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 
@@ -59,11 +63,7 @@ function makeElement(
 
 describe("ComponentSemanticsSection", () => {
   beforeEach(() => {
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
+    resetPanelFixture();
     historyManager.setCurrentPage("page-1");
     useStore.setState({
       elementsMap: new Map(),
@@ -88,10 +88,7 @@ describe("ComponentSemanticsSection", () => {
       reusable: true,
     });
 
-    useStore.setState({
-      elements: [origin],
-      elementsMap: new Map([["origin", origin]]),
-    });
+    seedPanelElements([origin]);
 
     renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
 
@@ -107,10 +104,7 @@ describe("ComponentSemanticsSection", () => {
       ref: "origin",
     } as never);
 
-    useStore.setState({
-      elements: [instance],
-      elementsMap: new Map([["instance", instance]]),
-    });
+    seedPanelElements([instance]);
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
 
@@ -123,10 +117,7 @@ describe("ComponentSemanticsSection", () => {
   it("renders Standard label for plain element", () => {
     const plain = makeElement("plain");
 
-    useStore.setState({
-      elements: [plain],
-      elementsMap: new Map([["plain", plain]]),
-    });
+    seedPanelElements([plain]);
 
     renderWithI18n(<ComponentSemanticsSection elementId="plain" />);
 
@@ -157,10 +148,7 @@ describe("ComponentSemanticsSection", () => {
       "frame-1",
     );
 
-    useStore.setState({
-      elements: [frameBody],
-      elementsMap: new Map([["frame-body", frameBody]]),
-    });
+    seedPanelElements([frameBody]);
 
     const { container } = renderWithI18n(
       <ComponentSemanticsSection elementId="frame-body" />,
@@ -175,11 +163,10 @@ describe("ComponentSemanticsSection", () => {
       page_id: "page-1",
     });
 
+    seedPanelElements([plain]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [plain],
-      elementsMap: new Map([["plain", plain]]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
 
     renderWithI18n(<ComponentSemanticsSection elementId="plain" />);
@@ -199,11 +186,10 @@ describe("ComponentSemanticsSection", () => {
       reusable: true,
     });
 
+    seedPanelElements([origin]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin],
-      elementsMap: new Map([["origin", origin]]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
 
     renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
@@ -227,14 +213,10 @@ describe("ComponentSemanticsSection", () => {
       page_id: "page-1",
     } as never);
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
 
@@ -254,14 +236,10 @@ describe("ComponentSemanticsSection", () => {
       reusable: true,
     } as never);
 
+    seedPanelElements([origin, dual]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin, dual],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["dual", dual],
-      ]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
 
     renderWithI18n(<ComponentSemanticsSection elementId="dual" />);
@@ -292,14 +270,10 @@ describe("ComponentSemanticsSection", () => {
       "origin",
     );
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Go to component" }));
@@ -320,14 +294,10 @@ describe("ComponentSemanticsSection", () => {
       page_id: "page-1",
     } as never);
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Go to component" }));
@@ -350,14 +320,10 @@ describe("ComponentSemanticsSection", () => {
       page_id: "instance-page",
     } as never);
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "instance-page",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Go to component" }));
@@ -378,15 +344,10 @@ describe("ComponentSemanticsSection", () => {
       "origin",
     );
 
+    seedPanelElements([origin, instanceA, instanceB]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin, instanceA, instanceB],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance-a", instanceA],
-        ["instance-b", instanceB],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     // 영향 수는 별도 행이 아니라 "Select instances (N)" 라벨이 보인다.
@@ -431,15 +392,10 @@ describe("ComponentSemanticsSection", () => {
       page_id: "page-b",
     } as never);
 
+    seedPanelElements([origin, instanceA, instanceB]);
     useStore.setState({
       currentPageId: "origin-page",
-      elements: [origin, instanceA, instanceB],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance-a", instanceA],
-        ["instance-b", instanceB],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     fireEvent.click(
@@ -521,15 +477,11 @@ describe("ComponentSemanticsSection", () => {
       { overrideProps: { label: "Detached" } },
     );
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
       selectedElementId: "instance",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
@@ -563,15 +515,11 @@ describe("ComponentSemanticsSection", () => {
       },
     );
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
       selectedElementId: "instance",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
@@ -607,15 +555,11 @@ describe("ComponentSemanticsSection", () => {
       },
     } as never);
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
       selectedElementId: "instance",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
@@ -685,12 +629,11 @@ describe("ComponentSemanticsSection", () => {
       ],
     } satisfies CompositionDocument;
 
+    seedPanelElements([legacyInstance]);
     useStore.setState({
       currentPageId: "page-1",
       selectedElementId: "instance",
-      elements: [legacyInstance],
-      elementsMap: new Map([["instance", legacyInstance]]),
-    });
+    } as never);
     useStore.getState()._rebuildIndexes();
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument("project-1", initialDoc);
@@ -729,14 +672,10 @@ describe("ComponentSemanticsSection", () => {
       { overrideProps: { label: "Detached" } },
     );
 
+    seedPanelElements([origin, instance]);
     useStore.setState({
       currentPageId: "page-1",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    });
+    } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="instance" />);
     fireEvent.click(screen.getByRole("button", { name: "Detach instance" }));

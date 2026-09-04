@@ -5,7 +5,7 @@ import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
-import { seedPanelElements } from "./__tests__/panelFixture";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import { useElementStyleContext } from "./useElementStyleContext";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {

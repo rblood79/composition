@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useTransformValues } from "./useTransformValues";
 import { useStore } from "../../../stores";
-import { seedPanelElements } from "./__tests__/panelFixture";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 
 function setTestElements(elements: Element[]): void {

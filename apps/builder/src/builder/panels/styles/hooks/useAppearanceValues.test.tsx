@@ -4,7 +4,7 @@ import { renderHook } from "@testing-library/react";
 import { lightColors } from "@composition/specs";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { useAppearanceValues } from "./useAppearanceValues";
-import { seedPanelElements } from "./__tests__/panelFixture";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import * as preset from "../utils/specPresetResolver";
 import type { Element } from "../../../../types/core/store.types";
 

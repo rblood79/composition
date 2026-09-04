@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { Element } from "../../../types/core/store.types";
 import { useStore } from "../../stores";
+import { seedPanelElements } from "../../__tests__/panelFixture";
 import { useEditModeStore } from "../../stores/editMode";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { PageBodySection } from "./PageBodySection";
@@ -55,7 +56,7 @@ describe("PageBodySection", () => {
   });
 
   it("renders the page body editor for body nodes in page mode", () => {
-    useStore.setState({ elements: [makeElement("body-1", "body")] } as never);
+    seedPanelElements([makeElement("body-1", "body")]);
 
     render(<PageBodySection elementId="body-1" />);
 
@@ -64,7 +65,7 @@ describe("PageBodySection", () => {
   });
 
   it("renders the layout body editor for body nodes in layout mode", () => {
-    useStore.setState({ elements: [makeElement("body-1", "body")] } as never);
+    seedPanelElements([makeElement("body-1", "body")]);
     useEditModeStore.setState({ mode: "layout" });
 
     render(<PageBodySection elementId="body-1" />);
@@ -74,7 +75,7 @@ describe("PageBodySection", () => {
   });
 
   it("renders nothing for non-body nodes", () => {
-    useStore.setState({ elements: [makeElement("btn-1", "Button")] } as never);
+    seedPanelElements([makeElement("btn-1", "Button")]);
 
     const { container } = render(<PageBodySection elementId="btn-1" />);
 

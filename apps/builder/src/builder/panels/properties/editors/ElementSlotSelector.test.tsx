@@ -8,6 +8,7 @@ import {
 import { withSlotMirrorName } from "../../../../adapters/canonical/slotMirror";
 import type { Element, Page } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import { ElementSlotSelector } from "./ElementSlotSelector";
 
 function makeElement(
@@ -103,16 +104,10 @@ describe("ElementSlotSelector", () => {
       props: { name: "footer" },
     });
 
+    seedPanelElements([element, headerSlot, contentSlot, otherFrameSlot]);
     useStore.setState({
       pages: [page],
-      elements: [element, headerSlot, contentSlot, otherFrameSlot],
-      elementsMap: new Map([
-        ["headline", element],
-        ["slot-header", headerSlot],
-        ["slot-content", contentSlot],
-        ["slot-other", otherFrameSlot],
-      ]),
-    });
+    } as never);
 
     render(
       <ElementSlotSelector

@@ -14,7 +14,7 @@ import { historyManager } from "../../../stores/history";
 import {
   resetPanelFixture,
   seedPanelElements,
-} from "../hooks/__tests__/panelFixture";
+} from "../../../__tests__/panelFixture";
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
 import {
   beginPagePositionPresentation,

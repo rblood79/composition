@@ -85,7 +85,7 @@ import {
   useJustifyContentSpacingKeys,
   useFlexWrapKeys,
 } from "./useLayoutAuxiliary";
-import { seedPanelElements } from "./__tests__/panelFixture";
+import { seedPanelElements } from "../../../__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 
 function makeElement(
