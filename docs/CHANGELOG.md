@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [React Aria Components 1.21 — ColorArea 패치 재적용] - 2026-09-05
+
+### Changed
+
+- **RAC 1.20.0 → 1.21.0 묶음 업데이트**:
+  - `react-aria-components` catalog pin `^1.21.0`, `react-aria` 3.52.0, `react-stately` 3.50.0, `@internationalized/date` 3.12.4 / `number` 3.6.8
+  - ColorArea `aria-hidden` 가드는 upstream에 아직 없어 `patches/react-aria@3.52.0.patch`로 같은 `isActiveInput` 가드를 다시 맞췄다. 이전 `react-aria@3.51.0` 패치는 제거했다.
+  - 1.21의 TokenField `caretPosition` → `selectedRange` 변경은 사용처가 없다. Menu async loading / NavigationTree는 catalog에 넣지 않았다.
+  - 위치: `pnpm-workspace.yaml`, `apps/builder/package.json`, `packages/shared/package.json`, `patches/react-aria@3.52.0.patch`
+
+### Tests
+
+- ColorArea 포커스 전환 회귀 테스트와 shared 972건, Fill/Color 훅 테스트, publish 테스트를 1.21에서 다시 통과시켰다.
+
 ## [Builder lint 경계를 정리했습니다] - 2026-09-04
 
 ### Changed

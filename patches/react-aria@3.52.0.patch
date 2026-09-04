@@ -1,6 +1,7 @@
+diff --git a/dist/private/color/useColorArea.js b/dist/private/color/useColorArea.js
 --- a/dist/private/color/useColorArea.js
 +++ b/dist/private/color/useColorArea.js
-@@ -275,6 +275,9 @@
+@@ -275,6 +275,9 @@ function $9e8e53809a0bcfb8$export$2f92a7a615a014f6(props, state) {
          else if (target === inputYRef.current) state.setYValue(parseFloat(target.value));
      };
      let isMobile = (0, $d5a2be505488529f$export$fedb369cb70207f1)() || (0, $d5a2be505488529f$export$a11b0059900ceec8)();
@@ -10,7 +11,7 @@
      let value = state.getDisplayColor();
      const getAriaValueTextForChannel = (0, $fI39H$useCallback)((channel)=>{
          const isAfterInput = valueChangedViaInputChangeEvent || valueChangedViaKeyboard;
-@@ -374,7 +377,7 @@
+@@ -374,7 +377,7 @@ function $9e8e53809a0bcfb8$export$2f92a7a615a014f6(props, state) {
          So that only a single "2d slider" control shows up when listing form elements for screen readers,
          add aria-hidden="true" to the unfocused control when the value has not changed via the keyboard,
          but remove aria-hidden to reveal the input for each channel when the value has changed with the keyboard.
@@ -19,7 +20,7 @@
              onChange: onChange
          },
          yInputProps: {
-@@ -399,7 +402,7 @@
+@@ -399,7 +402,7 @@ function $9e8e53809a0bcfb8$export$2f92a7a615a014f6(props, state) {
          So that only a single "2d slider" control shows up when listing form elements for screen readers,
          add aria-hidden="true" to the unfocused input when the value has not changed via the keyboard,
          but remove aria-hidden to reveal the input for each channel when the value has changed with the keyboard.
@@ -28,9 +29,10 @@
              onChange: onChange
          }
      };
+diff --git a/dist/private/color/useColorArea.cjs b/dist/private/color/useColorArea.cjs
 --- a/dist/private/color/useColorArea.cjs
 +++ b/dist/private/color/useColorArea.cjs
-@@ -276,6 +276,9 @@
+@@ -276,6 +276,9 @@ function $68bc5baedf6c23cc$export$2f92a7a615a014f6(props, state) {
          else if (target === inputYRef.current) state.setYValue(parseFloat(target.value));
      };
      let isMobile = (0, $d0b4a781cf26e80b$exports.isIOS)() || (0, $d0b4a781cf26e80b$exports.isAndroid)();
@@ -40,7 +42,7 @@
      let value = state.getDisplayColor();
      const getAriaValueTextForChannel = (0, $4G2q9$react.useCallback)((channel)=>{
          const isAfterInput = valueChangedViaInputChangeEvent || valueChangedViaKeyboard;
-@@ -375,7 +378,7 @@
+@@ -375,7 +378,7 @@ function $68bc5baedf6c23cc$export$2f92a7a615a014f6(props, state) {
          So that only a single "2d slider" control shows up when listing form elements for screen readers,
          add aria-hidden="true" to the unfocused control when the value has not changed via the keyboard,
          but remove aria-hidden to reveal the input for each channel when the value has changed with the keyboard.
@@ -49,7 +51,7 @@
              onChange: onChange
          },
          yInputProps: {
-@@ -400,7 +403,7 @@
+@@ -400,7 +403,7 @@ function $68bc5baedf6c23cc$export$2f92a7a615a014f6(props, state) {
          So that only a single "2d slider" control shows up when listing form elements for screen readers,
          add aria-hidden="true" to the unfocused input when the value has not changed via the keyboard,
          but remove aria-hidden to reveal the input for each channel when the value has changed with the keyboard.
@@ -58,9 +60,10 @@
              onChange: onChange
          }
      };
+diff --git a/dist/private/color/useColorArea.mjs b/dist/private/color/useColorArea.mjs
 --- a/dist/private/color/useColorArea.mjs
 +++ b/dist/private/color/useColorArea.mjs
-@@ -270,6 +270,9 @@
+@@ -270,6 +270,9 @@ function $12db0b624ec2ac09$export$2f92a7a615a014f6(props, state) {
          else if (target === inputYRef.current) state.setYValue(parseFloat(target.value));
      };
      let isMobile = (0, $2add3ce32c6007eb$export$fedb369cb70207f1)() || (0, $2add3ce32c6007eb$export$a11b0059900ceec8)();
@@ -70,7 +73,7 @@
      let value = state.getDisplayColor();
      const getAriaValueTextForChannel = (0, $U6XIH$useCallback)((channel)=>{
          const isAfterInput = valueChangedViaInputChangeEvent || valueChangedViaKeyboard;
-@@ -369,7 +372,7 @@
+@@ -369,7 +372,7 @@ function $12db0b624ec2ac09$export$2f92a7a615a014f6(props, state) {
          So that only a single "2d slider" control shows up when listing form elements for screen readers,
          add aria-hidden="true" to the unfocused control when the value has not changed via the keyboard,
          but remove aria-hidden to reveal the input for each channel when the value has changed with the keyboard.
@@ -79,7 +82,7 @@
              onChange: onChange
          },
          yInputProps: {
-@@ -394,7 +397,7 @@
+@@ -394,7 +397,7 @@ function $12db0b624ec2ac09$export$2f92a7a615a014f6(props, state) {
          So that only a single "2d slider" control shows up when listing form elements for screen readers,
          add aria-hidden="true" to the unfocused input when the value has not changed via the keyboard,
          but remove aria-hidden to reveal the input for each channel when the value has changed with the keyboard.

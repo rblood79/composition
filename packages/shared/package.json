@@ -61,8 +61,8 @@
   },
   "dependencies": {
     "@composition/specs": "workspace:*",
-    "@internationalized/date": "^3.12.3",
-    "@internationalized/number": "^3.6.7",
+    "@internationalized/date": "^3.12.4",
+    "@internationalized/number": "^3.6.8",
     "@react-aria/focus": "^3.22.1",
     "@react-aria/i18n": "^3.13.1",
     "@react-aria/utils": "^3.34.1",
@@ -73,7 +73,7 @@
     "jszip": "^3.10.1",
     "lucide-react": "^1.33.0",
     "react-aria-components": "catalog:",
-    "react-stately": "^3.49.0",
+    "react-stately": "^3.50.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
