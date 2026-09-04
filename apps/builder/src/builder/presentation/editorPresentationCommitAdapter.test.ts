@@ -8,6 +8,7 @@ import {
   resetCanonicalMutationRunnerBridge,
 } from "@/adapters/canonical/canonicalMutationRunner";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { historyManager } from "../stores/history";
 import { useStore } from "../stores";
 import { FillType, type FillItem } from "../../types/builder/fill.types";
@@ -113,18 +114,19 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
       documents: new Map(),
       documentVersion: 0,
     });
+    const initialDocument = documentWith();
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, initialDocument);
+    useCanonicalDocumentStore.getState().setCurrentProject(PROJECT_ID);
+    const initialElements = canonicalDocumentToElements(initialDocument);
+    useStore.getState().hydrateProjectSnapshot(initialElements);
     useStore.setState({
       currentPageId: PAGE_ID,
-      elements: [],
-      elementsMap: new Map(),
       selectedElementId: "node-1",
       selectedElementProps: {},
     } as never);
     registerCanonicalMutationRunnerBridge({ rebuildIndexes });
-    useCanonicalDocumentStore
-      .getState()
-      .setDocument(PROJECT_ID, documentWith());
-    useCanonicalDocumentStore.getState().setCurrentProject(PROJECT_ID);
   });
 
   afterEach(() => {
@@ -146,6 +148,7 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
       )?.color,
     ).toBe("#222222FF");
     expect(rebuildIndexes).toHaveBeenCalledTimes(1);
+    expect(rebuildIndexes).toHaveBeenCalledWith("store");
     expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
     await flushPersist();
     expect(put).toHaveBeenCalledTimes(1);
@@ -156,6 +159,107 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(currentColor()).toBe("#222222FF");
   });
 
+  it("fill commit은 target mirror만 교체하고 후속 commit에서 O(1) index를 재사용한다", async () => {
+    const beforeDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    const untouchedElement = useStore.getState().elements[1];
+
+    commit("#222222FF");
+
+    const state = useStore.getState();
+    const firstDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    expect(state.elements[1]).toBe(untouchedElement);
+    expect(firstDiagnostics.incrementalStorePatchCount).toBe(
+      beforeDiagnostics.incrementalStorePatchCount + 1,
+    );
+    expect(firstDiagnostics.fullStoreProjectionFallbackCount).toBe(
+      beforeDiagnostics.fullStoreProjectionFallbackCount,
+    );
+    expect(firstDiagnostics.storeElementIndexBuildCount).toBe(
+      beforeDiagnostics.storeElementIndexBuildCount + 1,
+    );
+
+    commit("#444444FF");
+    const secondDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    expect(secondDiagnostics.incrementalStorePatchCount).toBe(
+      beforeDiagnostics.incrementalStorePatchCount + 2,
+    );
+    expect(secondDiagnostics.storeElementIndexBuildCount).toBe(
+      firstDiagnostics.storeElementIndexBuildCount,
+    );
+    expect(rebuildIndexes).toHaveBeenLastCalledWith("store");
+    await flushPersist();
+  });
+
+  it("duplicate id mirror는 기존 전체 projection 의미로 fallback한다", () => {
+    const duplicateDocument = {
+      ...documentWith(),
+      children: [node("node-1", "#111111FF"), node("node-1", "#333333FF")],
+    } as CompositionDocument;
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, duplicateDocument);
+    const elements = canonicalDocumentToElements(duplicateDocument);
+    useStore.setState({
+      elements,
+      elementsMap: new Map(elements.map((element) => [element.id, element])),
+    });
+    const beforeDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+
+    commit("#222222FF");
+
+    const afterDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    expect(useStore.getState().elements).toHaveLength(2);
+    expect(
+      useStore
+        .getState()
+        .elements.map(
+          (element) =>
+            (element.fills?.[0] as { color?: string } | undefined)?.color,
+        ),
+    ).toEqual(["#111111FF", "#222222FF"]);
+    expect(afterDiagnostics.incrementalStorePatchCount).toBe(
+      beforeDiagnostics.incrementalStorePatchCount,
+    );
+    expect(afterDiagnostics.fullStoreProjectionFallbackCount).toBe(
+      beforeDiagnostics.fullStoreProjectionFallbackCount + 1,
+    );
+  });
+
+  it("canonical revision과 다른 부분 store mirror는 full projection으로 복구한다", () => {
+    const externallyUpdatedDocument = {
+      ...documentWith(),
+      children: [
+        node("node-1", "#111111FF"),
+        node("node-2", "#555555FF"),
+        node("node-3", "#777777FF"),
+      ],
+    } as CompositionDocument;
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, externallyUpdatedDocument);
+    const beforeDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+
+    commit("#222222FF");
+
+    const elements = useStore.getState().elements;
+    const afterDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    expect(elements.map((element) => element.id)).toEqual([
+      "node-1",
+      "node-2",
+      "node-3",
+    ]);
+    expect(
+      elements.find((element) => element.id === "node-2")?.fills?.[0],
+    ).toMatchObject({ color: "#555555FF" });
+    expect(afterDiagnostics.incrementalStorePatchCount).toBe(
+      beforeDiagnostics.incrementalStorePatchCount,
+    );
+    expect(afterDiagnostics.fullStoreProjectionFallbackCount).toBe(
+      beforeDiagnostics.fullStoreProjectionFallbackCount + 1,
+    );
+    expect(rebuildIndexes).toHaveBeenLastCalledWith("store");
+  });
+
   it("borderColor style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
     useCanonicalDocumentStore
       .getState()
@@ -163,7 +267,7 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     const document = useCanonicalDocumentStore
       .getState()
       .documents.get(PROJECT_ID)!;
-    useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+    const updatedDocument = {
       ...document,
       children: [
         node("node-1", "#111111FF", {
@@ -172,7 +276,14 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
         }),
         document.children[1]!,
       ],
-    });
+    } as CompositionDocument;
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(PROJECT_ID, updatedDocument);
+    const storeElements = canonicalDocumentToElements(updatedDocument);
+    useStore.getState().hydrateProjectSnapshot(storeElements);
+    const beforeDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    const untouchedElement = useStore.getState().elements[1];
     const result = commitEditorPresentationStyle({
       baseDocumentVersion: useCanonicalDocumentStore.getState().documentVersion,
       commitIntent: "style-border-color",
@@ -194,6 +305,14 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(
       (next?.props?.style as Record<string, unknown> | undefined)?.borderColor,
     ).toBe("#ABCDEF");
+    expect(useStore.getState().elements[1]).toBe(untouchedElement);
+    const afterDiagnostics = getEditorPresentationCommitAdapterDiagnostics();
+    expect(afterDiagnostics.incrementalStorePatchCount).toBe(
+      beforeDiagnostics.incrementalStorePatchCount + 1,
+    );
+    expect(afterDiagnostics.fullStoreProjectionFallbackCount).toBe(
+      beforeDiagnostics.fullStoreProjectionFallbackCount,
+    );
     expect(rebuildIndexes).toHaveBeenCalledTimes(1);
     expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
     await flushPersist();

@@ -101,6 +101,71 @@ describe("historyActions canonical diff/event application", () => {
     historyManager.clearAllHistory();
   });
 
+  it.each([
+    ["canonicalEvents 미부착", undefined],
+    [
+      "active canonical document 미적재",
+      [
+        {
+          type: "update" as const,
+          nodeId: "text-1",
+          prevProps: { children: "before" },
+          nextProps: { children: "after" },
+        },
+      ],
+    ],
+  ])(
+    "%s 시 undo/redo/goToIndex는 기존 derived state를 보존한다",
+    async (_, events) => {
+      const element = makeElement("text-1", { children: "derived" });
+      const selectedElementProps = { children: "derived" };
+      useStore.setState({
+        elements: [element],
+        elementsMap: new Map([[element.id, element]]),
+        selectedElementId: element.id,
+        selectedElementProps,
+      } as never);
+
+      const warn = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => undefined);
+      historyManager.addEntry({
+        type: "update",
+        elementId: element.id,
+        data: events ? { canonicalEvents: events } : {},
+      });
+
+      await useStore.getState().undo();
+      expect(useStore.getState().elements).toEqual([element]);
+      expect(useStore.getState().selectedElementId).toBe(element.id);
+      expect(useStore.getState().selectedElementProps).toBe(
+        selectedElementProps,
+      );
+
+      await useStore.getState().redo();
+      expect(useStore.getState().elements).toEqual([element]);
+      expect(useStore.getState().selectedElementId).toBe(element.id);
+      expect(useStore.getState().selectedElementProps).toBe(
+        selectedElementProps,
+      );
+
+      await useStore.getState().goToHistoryIndex(-1);
+      expect(useStore.getState().elements).toEqual([element]);
+      expect(useStore.getState().selectedElementId).toBe(element.id);
+      expect(useStore.getState().selectedElementProps).toBe(
+        selectedElementProps,
+      );
+
+      await useStore.getState().goToHistoryIndex(0);
+      expect(useStore.getState().elements).toEqual([element]);
+      expect(useStore.getState().selectedElementId).toBe(element.id);
+      expect(useStore.getState().selectedElementProps).toBe(
+        selectedElementProps,
+      );
+      warn.mockRestore();
+    },
+  );
+
   it("applies single serialized diff entries to the active canonical document on undo/redo", async () => {
     const before = makeElement("text-1", { children: "before" });
     const after = makeElement("text-1", { children: "after" });

@@ -18,7 +18,9 @@ describe("AI tools canonical read model contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).toContain("getCanonicalDocumentElementsView");
+    expect(source).toContain("canonicalProjectionCache");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
     expect(source).not.toContain("canonicalElementSnapshot");
   });
 

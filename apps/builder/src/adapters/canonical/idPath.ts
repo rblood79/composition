@@ -41,7 +41,9 @@ export interface IdPathContext {
  *  3. type 값 기반 fallback (예: "Button-3" — index suffix)
  * 형제간 이름 충돌 시 "-N" suffix.
  */
-export function buildIdPathContext(elements: Element[]): IdPathContext {
+export function buildIdPathContext(
+  elements: readonly Element[],
+): IdPathContext {
   const idPathMap = new Map<string, string>();
   const idSegmentMap = new Map<string, string>();
   const pathIdMap = new Map<string, string>();

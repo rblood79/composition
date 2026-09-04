@@ -9,11 +9,15 @@ describe("elementRemoval canonical-only read contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("getActiveCanonicalDocumentElements");
+    expect(source).toContain("getActiveCanonicalDocumentElementsView");
     expect(source).toContain("function getElementRemovalSourceElements");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
+      "return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS",
     );
+    expect(source).toContain(
+      "function getElementRemovalSourceElements(): readonly Element[]",
+    );
+    expect(source).not.toContain("getActiveCanonicalDocumentElements()");
     expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("function collectElementsToRemove");
     expect(source).toContain(

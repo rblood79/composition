@@ -48,7 +48,7 @@ import {
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import { getActiveCanonicalDocumentElementsView } from "../canonical/canonicalElementsView";
 import { generateCustomId } from "../../utils/idGeneration";
 
 type CanonicalElementFields = {
@@ -65,6 +65,9 @@ type CanonicalElementFields = {
 type CanonicalElement = Element & CanonicalElementFields;
 
 const EMPTY_ELEMENTS: Element[] = [];
+type InstanceActionSourceState = Omit<ElementsState, "elements"> & {
+  elements: readonly Element[];
+};
 
 function asCanonicalElement(
   element: Element,
@@ -121,18 +124,20 @@ function resetCanonicalOverrideRecordField(
 }
 
 function findInstanceActionElement(
-  elements: Element[],
+  elements: readonly Element[],
   elementId: string | null | undefined,
 ): Element | undefined {
   if (!elementId) return undefined;
   return elements.find((element) => element.id === elementId);
 }
 
-function getInstanceActionSourceElements(): Element[] {
-  return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
+function getInstanceActionSourceElements(): readonly Element[] {
+  return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS;
 }
 
-function withInstanceActionSourceState(state: ElementsState): ElementsState {
+function withInstanceActionSourceState(
+  state: ElementsState | InstanceActionSourceState,
+): InstanceActionSourceState {
   return { ...state, elements: getInstanceActionSourceElements() };
 }
 
@@ -285,7 +290,7 @@ function getCanonicalChildren(
 }
 
 function buildCanonicalDetachSnapshot(
-  state: ElementsState,
+  state: InstanceActionSourceState,
   refId: string,
   usedIds = new Set(
     getInstanceActionSourceElements().map((element) => element.id),
@@ -529,7 +534,7 @@ function buildLegacyDetachSnapshot(
 }
 
 function buildDetachSnapshot(
-  state: ElementsState,
+  state: ElementsState | InstanceActionSourceState,
   instanceId: string,
   usedIds?: Set<string>,
 ): { elements: Element[]; previousElements: Element[] } | null {
@@ -772,7 +777,7 @@ async function confirmOriginToggleImpact(
 
 function measureOriginImpact(
   origin: Element,
-  elements: Element[],
+  elements: readonly Element[],
 ): { countDurationMs: number; impactedInstanceIds: string[] } {
   const startedAt = performance.now();
   const impactedInstanceIds = getEditingSemanticsImpactInstanceIds(
@@ -968,7 +973,7 @@ export function resetInstanceOverrideField(
     const sourceElements = getInstanceActionSourceElements();
     const idx = sourceElements.findIndex((el) => el.id === instanceId);
     const nextElements =
-      idx >= 0 ? sourceElements.with(idx, nextElement) : sourceElements;
+      idx >= 0 ? sourceElements.with(idx, nextElement) : [...sourceElements];
     const nextElementsMap = new Map(
       nextElements.map((element) => [element.id, element]),
     );

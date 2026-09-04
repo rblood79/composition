@@ -4,7 +4,12 @@ import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunn
 import type { CanonicalMutationResult } from "@/adapters/canonical/canonicalMutations";
 import type { FillItem } from "../../types/builder/fill.types";
 import { useStore } from "../stores";
-import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
+import {
+  canonicalDocumentToElements,
+  canonicalNodeToElement,
+  isCanonicalDocumentElementProjection,
+  registerCanonicalDocumentElementProjection,
+} from "../stores/canonical/canonicalElementsView";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 import { historyManager } from "../stores/history";
 import type { CanonicalHistoryNodeEvent } from "../stores/history/canonicalHistoryEvents";
@@ -31,6 +36,7 @@ import {
   withCanonicalRefDescendantFills,
   withCanonicalRefDescendantStylePatch,
 } from "../../adapters/canonical/canonicalRefResolution";
+import { getFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
 import {
   hasPresentationSpacingPatch,
   normalizePresentationSpacingPatch,
@@ -46,12 +52,23 @@ interface IndexedCanonicalNode {
   readonly siblingIndex: number;
 }
 
+type PresentationStoreElement = NonNullable<
+  ReturnType<typeof canonicalNodeToElement>
+>;
+
 const indexByDocument = new WeakMap<
   CompositionDocument,
   ReadonlyMap<string, IndexedCanonicalNode>
 >();
 let documentIndexBuildCount = 0;
 let documentIndexReadMissCount = 0;
+let incrementalStorePatchCount = 0;
+let fullStoreProjectionFallbackCount = 0;
+let storeElementIndexBuildCount = 0;
+const storeElementIndexByElements = new WeakMap<
+  readonly PresentationStoreElement[],
+  ReadonlyMap<string, number | null>
+>();
 
 function buildDocumentIndex(
   document: CompositionDocument,
@@ -103,10 +120,16 @@ useCanonicalDocumentStore.subscribe((state, previousState) => {
 export function getEditorPresentationCommitAdapterDiagnostics(): {
   readonly documentIndexBuildCount: number;
   readonly documentIndexReadMissCount: number;
+  readonly fullStoreProjectionFallbackCount: number;
+  readonly incrementalStorePatchCount: number;
+  readonly storeElementIndexBuildCount: number;
 } {
   return Object.freeze({
     documentIndexBuildCount,
     documentIndexReadMissCount,
+    fullStoreProjectionFallbackCount,
+    incrementalStorePatchCount,
+    storeElementIndexBuildCount,
   });
 }
 
@@ -345,6 +368,79 @@ function buildReplaceHistoryEvents(
   ];
 }
 
+function getStoreElementIndex(
+  elements: readonly PresentationStoreElement[],
+): ReadonlyMap<string, number | null> {
+  const cached = storeElementIndexByElements.get(elements);
+  if (cached) return cached;
+
+  storeElementIndexBuildCount += 1;
+  const index = new Map<string, number | null>();
+  elements.forEach((element, elementIndex) => {
+    index.set(element.id, index.has(element.id) ? null : elementIndex);
+  });
+  storeElementIndexByElements.set(elements, index);
+  return index;
+}
+
+function syncPresentationStoreMirror(
+  previousDocument: CompositionDocument,
+  nextDocument: CompositionDocument,
+  before: IndexedCanonicalNode,
+  nextNode: CanonicalNode,
+): void {
+  useStore.setState((state) => {
+    const fallbackToFullProjection = (): {
+      elements: ReturnType<typeof canonicalDocumentToElements>;
+      layoutVersion: number;
+    } => {
+      fullStoreProjectionFallbackCount += 1;
+      return {
+        elements: canonicalDocumentToElements(nextDocument),
+        layoutVersion: state.layoutVersion + 1,
+      };
+    };
+
+    if (
+      !isCanonicalDocumentElementProjection(state.elements, previousDocument)
+    ) {
+      return fallbackToFullProjection();
+    }
+
+    const targetId = before.node.id;
+    if (!state.elementsMap.has(targetId)) {
+      return fallbackToFullProjection();
+    }
+    const elementIndex = getStoreElementIndex(state.elements);
+    const targetIndex = elementIndex.get(targetId);
+    // null 은 duplicate-id 표식이다. 기존 last-match 전체 projection 의미를
+    // 보존하려고 증분 치환을 닫는다.
+    if (typeof targetIndex !== "number") return fallbackToFullProjection();
+
+    const currentElement = state.elements[targetIndex];
+    if (!currentElement) return fallbackToFullProjection();
+    const nextElement = canonicalNodeToElement(
+      nextNode,
+      currentElement.parent_id ?? null,
+      {
+        pageId: currentElement.page_id ?? null,
+        layoutId: getFrameElementMirrorId(currentElement),
+      },
+    );
+    if (!nextElement) return fallbackToFullProjection();
+
+    incrementalStorePatchCount += 1;
+    const elements = [...state.elements];
+    elements[targetIndex] = nextElement;
+    storeElementIndexByElements.set(elements, elementIndex);
+    registerCanonicalDocumentElementProjection(elements, nextDocument);
+    return {
+      elements,
+      layoutVersion: state.layoutVersion + 1,
+    };
+  });
+}
+
 export function commitEditorPresentationFills(
   input: EditorPresentationCommitInput,
 ): EditorPresentationCommitResult {
@@ -410,12 +506,9 @@ export function commitEditorPresentationFills(
       return { changed: true, document: nextDocument };
     },
     store: () => {
-      const elements = canonicalDocumentToElements(nextDocument);
-      useStore.setState((state) => ({
-        elements,
-        layoutVersion: state.layoutVersion + 1,
-      }));
+      syncPresentationStoreMirror(document, nextDocument, before, nextNode);
     },
+    indexSource: "store",
     history: () => {
       historyManager.addEntry({
         type: "update",
@@ -595,12 +688,9 @@ export function commitEditorPresentationStyle(
       return { changed: true, document: nextDocument };
     },
     store: () => {
-      const elements = canonicalDocumentToElements(nextDocument);
-      useStore.setState((state) => ({
-        elements,
-        layoutVersion: state.layoutVersion + 1,
-      }));
+      syncPresentationStoreMirror(document, nextDocument, before, nextNode);
     },
+    indexSource: "store",
     history: () => {
       historyManager.addEntry({
         type: "update",

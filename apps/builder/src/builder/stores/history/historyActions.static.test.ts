@@ -3,21 +3,22 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("historyActions canonical compatibility sync contract", () => {
-  it("uses active canonical document traversal before legacy store map for cloud compatibility upsert", async () => {
+  it("canonical event apply 전 full projection 없이 derived state를 기준으로 삼는다", async () => {
     const source = await readFile(
       resolve(__dirname, "historyActions.ts"),
       "utf-8",
     );
 
-    expect(source).toContain("visitCanonicalDocumentElements");
-    expect(source).toContain("getActiveCanonicalHistoryElements");
-    expect(source).toContain("function getHistorySourceElements");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getActiveCanonicalHistoryElements");
+    expect(source).not.toContain("getHistorySourceElements");
+    expect(source).not.toContain('from "../canonical/canonicalElementsView"');
+    expect(source.match(/_rebuildIndexes\(updatedElements\)/g)).toHaveLength(3);
+    expect(source.match(/const currentState = get\(\);/g)).toHaveLength(2);
+    expect(source).toContain("const state = get();");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).not.toContain("getHistoryCompatibilityElementsMap");
     expect(source).not.toContain("HistoryCompatibilityElementMap");
-    expect(source).toContain(
-      "getActiveCanonicalHistoryElements() ?? legacyElements",
-    );
     expect(source).not.toContain("migrateV1EntryToV2");
     expect(source).not.toContain("applySerializedHistoryDiff");
     expect(source).not.toContain("applySerializedHistoryDiffs");

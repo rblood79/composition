@@ -3,6 +3,19 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("elements canonical action lookup performance boundary", () => {
+  it("resolves single store elements through the cached canonical lookup", async () => {
+    const source = await readFile(resolve(__dirname, "elements.ts"), "utf8");
+    const helper = source.match(
+      /function getActiveCanonicalStoreElement\([\s\S]*?\n}\n\nfunction getCanonicalOrStoreElements/,
+    )?.[0];
+
+    expect(helper).toBeDefined();
+    expect(helper).toContain("getLastProjectableNodeLookupById(elementId)");
+    expect(helper).toContain("canonicalNodeToElement(");
+    expect(helper).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+  });
+
   it("resolves items action nodes through the cached canonical node map", async () => {
     const source = await readFile(resolve(__dirname, "elements.ts"), "utf8");
     const helper = source.match(

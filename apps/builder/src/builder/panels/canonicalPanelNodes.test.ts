@@ -38,6 +38,37 @@ describe("collectCanonicalPanelNodes", () => {
     ]);
   });
 
+  it("동일 document identity의 panel projection을 공유하고 새 document에서는 재계산한다", () => {
+    const sourceProps = { children: "Before" };
+    const doc = asDocument([
+      {
+        id: "label-1",
+        type: "Text",
+        props: sourceProps,
+      },
+    ] as unknown as CompositionDocument["children"]);
+
+    const first = collectCanonicalPanelNodes(doc);
+    const repeated = collectCanonicalPanelNodes(doc);
+    const nextDoc = asDocument([
+      {
+        id: "label-1",
+        type: "Text",
+        props: { children: "After" },
+      },
+    ] as unknown as CompositionDocument["children"]);
+    const next = collectCanonicalPanelNodes(nextDoc);
+
+    expect(repeated).toBe(first);
+    expect(Object.isFrozen(first)).toBe(true);
+    expect(Object.isFrozen(first[0])).toBe(true);
+    expect(next).not.toBe(first);
+    expect(first[0]?.props).not.toBe(sourceProps);
+    expect(sourceProps).toEqual({ children: "Before" });
+    expect(first[0]?.props.children).toBe("Before");
+    expect(next[0]?.props.children).toBe("After");
+  });
+
   it("page placeholder를 생략하고 ref descendants의 page scope와 parent를 보존한다", () => {
     const doc = asDocument([
       {

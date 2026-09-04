@@ -14,6 +14,7 @@ import type {
 import {
   canonicalDocumentToElements,
   getCanonicalDocumentElementsView,
+  isCanonicalDocumentElementProjection,
 } from "../canonicalElementsView";
 
 function makeDoc(
@@ -458,6 +459,9 @@ describe("getCanonicalDocumentElementsView", () => {
     expect(second).toBe(first);
     expect(second.elements).toBe(first.elements);
     expect(second.byId).toBe(first.byId);
+    expect(isCanonicalDocumentElementProjection(first.elements, doc)).toBe(
+      true,
+    );
   });
 
   it("rebuilds the view for a new document reference (clone-on-write)", () => {
@@ -472,6 +476,9 @@ describe("getCanonicalDocumentElementsView", () => {
     const second = getCanonicalDocumentElementsView(cloned);
 
     expect(second).not.toBe(first);
+    expect(isCanonicalDocumentElementProjection(first.elements, cloned)).toBe(
+      false,
+    );
     expect(second.byId.get("button-1")?.props).toMatchObject({
       variant: "secondary",
     });

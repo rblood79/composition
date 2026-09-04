@@ -24,7 +24,7 @@ import {
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import { getActiveCanonicalDocumentElementsView } from "../canonical/canonicalElementsView";
 import {
   buildCanonicalRemoveEvents,
   buildCanonicalReplaceEvents,
@@ -55,8 +55,8 @@ function syncRemovedElementsToCanonical(elements: Element[]): void {
   setElementsCanonicalPrimary(elements);
 }
 
-function getElementRemovalSourceElements(): Element[] {
-  return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
+function getElementRemovalSourceElements(): readonly Element[] {
+  return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS;
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
@@ -221,6 +221,7 @@ function collectElementsToRemove<TElement extends Element>(
 async function executeRemoval(
   set: SetState,
   get: GetState,
+  sourceElements: readonly Element[],
   rootElements: Element[],
   allUniqueElements: Element[],
   options: { skipHistory?: boolean } = {},
@@ -228,10 +229,8 @@ async function executeRemoval(
   const elementIdsToRemove = allUniqueElements.map((el) => el.id);
   const removeSet = new Set(elementIdsToRemove);
   const currentState = get();
-  const sourceElements = getElementRemovalSourceElements();
-  const sourceState = { ...currentState, elements: sourceElements };
   const autoDetach = buildDetachSnapshotsForOrigins(
-    sourceState,
+    currentState,
     allUniqueElements,
     removeSet,
   );
@@ -445,6 +444,7 @@ export const createRemoveElementAction =
     await executeRemoval(
       set,
       get,
+      sourceElements,
       [result.rootElement],
       result.allElements,
       options,
@@ -487,5 +487,12 @@ export const createRemoveElementsAction =
     if (rootElements.length === 0) return;
 
     const allUniqueElements = Array.from(allElementsMap.values());
-    await executeRemoval(set, get, rootElements, allUniqueElements, options);
+    await executeRemoval(
+      set,
+      get,
+      sourceElements,
+      rootElements,
+      allUniqueElements,
+      options,
+    );
   };

@@ -20,6 +20,8 @@ describe("inspectorActions canonical lookup contract", () => {
     expect(source).not.toContain("getActiveCanonicalInspectorElements");
     expect(source).not.toContain("getInspectorLookupElements");
     expect(source).toContain("getInspectorUpdateSource");
+    expect(source).toContain("updateCanonicalNodeFromElementPrimary(element)");
+    expect(source).not.toContain("mergeElementsCanonicalPrimary");
     expect(source).toContain("getActiveCanonicalDocumentElements");
     expect(source).toContain("canonical target은");
     expect(source).toContain("currentElement: canonicalElement.element");

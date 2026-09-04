@@ -7,9 +7,8 @@
  * WebGL Canvas (VITE_USE_WEBGL_CANVAS=true)에서는 더 이상 필요하지 않습니다.
  *
  * 마이그레이션 가이드:
- * - 요소 가져오기: useCanvasElements() 사용
- * - 선택 요소: useCanvasSelectedElement() 사용
- * - 요소 업데이트: useCanvasUpdateElement() 사용
+ * - 요소/선택 읽기는 canonical document와 unified store selector를 사용
+ * - 요소 업데이트는 unified store action 또는 canonical mutation runner를 사용
  *
  * @see src/builder/stores/canvasStore.ts
  */

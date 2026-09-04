@@ -3,7 +3,7 @@ import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import { collectCanonicalPanelNodes } from "../canonicalPanelNodes";
 import type { PanelNode } from "../panelNode";
 
-export function useCanonicalPanelElements(): PanelNode[] | null {
+export function useCanonicalPanelElements(): readonly PanelNode[] | null {
   const canonicalDocument = useActiveCanonicalDocument();
 
   return useMemo(() => {

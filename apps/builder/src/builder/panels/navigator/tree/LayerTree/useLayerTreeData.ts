@@ -223,7 +223,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
 }
 
 function mergeCanonicalLayerSource(
-  canonicalElements: PanelNode[] | null,
+  canonicalElements: readonly PanelNode[] | null,
   layerElements: PanelNode[],
 ): PanelNode[] {
   if (!canonicalElements) return layerElements;

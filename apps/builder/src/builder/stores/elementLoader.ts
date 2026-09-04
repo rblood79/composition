@@ -19,7 +19,12 @@ import type { StateCreator } from "zustand";
 import type { Element } from "../../types/core/store.types";
 import { pageCache, type LRUCacheStats } from "../utils/LRUPageCache";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
-import { canonicalDocumentToElements } from "./canonical/canonicalElementsView";
+import { canonicalNodeToElement } from "./canonical/canonicalElementsView";
+import {
+  getFirstProjectableNodeLookupById,
+  getProjectableNodeLookupsByPage,
+  type CanonicalProjectableNodeLookup,
+} from "./canonical/canonicalTraversalHelpers";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import type { StoreElementCacheMap } from "./elements";
 
@@ -92,7 +97,7 @@ interface ElementsStateMinimal {
   pageElementsSnapshot: Record<string, Element[]>;
   currentPageId: string | null;
   selectedElementId: string | null;
-  _rebuildIndexes: () => void;
+  _rebuildIndexes: (sourceElements?: Element[]) => void;
   activatePage: (pageId: string, elementId?: string | null) => void;
 }
 
@@ -103,24 +108,36 @@ type GetState = Parameters<
   StateCreator<ElementLoaderSlice & ElementsStateMinimal>
 >[1];
 
-function getActiveCanonicalElements(): Element[] | null {
+function projectCanonicalLookup(
+  lookup: CanonicalProjectableNodeLookup,
+): Element | null {
+  return canonicalNodeToElement(lookup.node, lookup.parentId, {
+    pageId: lookup.pageId,
+    layoutId: lookup.layoutId,
+  });
+}
+
+function getActiveCanonicalPageElements(pageId: string): Element[] | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   const document = projectId ? canonical.documents.get(projectId) : null;
   if (!projectId || !document) return null;
 
-  return canonicalDocumentToElements(document).map(
-    (element) => element as Element,
-  );
+  const elements: Element[] = [];
+  for (const lookup of getProjectableNodeLookupsByPage(pageId)) {
+    const element = projectCanonicalLookup(lookup);
+    if (element) elements.push(element);
+  }
+  return elements;
 }
 
 function getPageElementsFromRuntimeState(
   state: Pick<ElementsStateMinimal, "elements">,
   pageId: string,
 ): Element[] {
-  const canonicalElements = getActiveCanonicalElements();
+  const canonicalElements = getActiveCanonicalPageElements(pageId);
   if (canonicalElements) {
-    return canonicalElements.filter((element) => element.page_id === pageId);
+    return canonicalElements;
   }
 
   const { elements: legacyElements } = state;
@@ -131,11 +148,12 @@ function findElementFromRuntimeState(
   state: Pick<ElementsStateMinimal, "elements">,
   elementId: string,
 ): Element | null {
-  const canonicalElements = getActiveCanonicalElements();
-  if (canonicalElements) {
-    return (
-      canonicalElements.find((element) => element.id === elementId) ?? null
-    );
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  const document = projectId ? canonical.documents.get(projectId) : null;
+  if (projectId && document) {
+    const lookup = getFirstProjectableNodeLookupById(elementId);
+    return lookup ? projectCanonicalLookup(lookup) : null;
   }
 
   const { elements: legacyElements } = state;
@@ -161,9 +179,9 @@ export function createElementLoaderSlice(
    * Canonical document에서 페이지 요소 파생
    */
   const loadFromCanonicalDocument = (pageId: string): Element[] => {
-    const canonicalElements = getActiveCanonicalElements();
+    const canonicalElements = getActiveCanonicalPageElements(pageId);
     if (!canonicalElements) return [];
-    return canonicalElements.filter((element) => element.page_id === pageId);
+    return canonicalElements;
   };
 
   // ============================================

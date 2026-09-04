@@ -9,7 +9,9 @@ describe("useTextEdit canonical live edit contract", () => {
     expect(source).toContain("getActiveCanonicalElementById");
     expect(source).toContain("hasActiveCanonicalTextEditDocument");
     expect(source).toContain("editingElementRef");
-    expect(source).toContain("mergeElementsCanonicalPrimary([updatedElement])");
+    expect(source).toContain("updateCanonicalNodePropsPrimary(");
+    expect(source).toContain("updatedElement.props");
+    expect(source).not.toContain("mergeElementsCanonicalPrimary");
     expect(source).toContain(
       "result.changed || hasActiveCanonicalTextEditDocument()",
     );

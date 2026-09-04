@@ -9,12 +9,16 @@ describe("instanceActions canonical-only read contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("getActiveCanonicalDocumentElements");
+    expect(source).toContain("getActiveCanonicalDocumentElementsView");
     expect(source).toContain("function getInstanceActionSourceElements");
     expect(source).toContain("function withInstanceActionSourceState");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
+      "return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS",
     );
+    expect(source).toContain(
+      "function getInstanceActionSourceElements(): readonly Element[]",
+    );
+    expect(source).not.toContain("getActiveCanonicalDocumentElements()");
     expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("function findInstanceActionElement");
     expect(source).toContain(
@@ -127,7 +131,7 @@ describe("legacy model leaf cleanup static gates", () => {
       "utf-8",
     );
 
-    expect(canvasSource).toContain("getCanonicalDocumentElementsView");
+    expect(canvasSource).not.toContain("getCanonicalDocumentElementsView");
     expect(canvasSource).not.toContain("visitCanonicalDocumentElements");
     expect(resetSource).toContain("getNodeMap");
     expect(resetSource).toContain("getParent");
@@ -137,7 +141,10 @@ describe("legacy model leaf cleanup static gates", () => {
     expect(overlaySource).not.toContain("getCanonicalDocumentElementsView");
     expect(overlaySource).not.toContain("visitCanonicalDocumentElements");
     expect(viewSource).toContain(
-      "return [...getCanonicalDocumentElementsView(doc).elements]",
+      "const elements = [...getCanonicalDocumentElementsView(doc).elements]",
+    );
+    expect(viewSource).toContain(
+      "return copyCanonicalDocumentElementProjection(doc)",
     );
   });
 

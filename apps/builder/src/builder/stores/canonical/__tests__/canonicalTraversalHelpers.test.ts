@@ -29,10 +29,12 @@ import {
   getFirstProjectableNodeLookupById,
   getFirstProjectableNodeLookupByReference,
   getLastProjectableNodeById,
+  getLastProjectableNodeLookupById,
   getNodeMap,
   getParent,
   getProjectableChildrenByParent,
   getProjectableNodeLookups,
+  getProjectableNodeLookupsByPage,
   getProjectableNodes,
 } from "../canonicalTraversalHelpers";
 
@@ -288,6 +290,12 @@ describe("getNodeMap", () => {
       layoutId: null,
     });
     expect(getLastProjectableNodeById("duplicate")?.props?.value).toBe("last");
+    expect(getLastProjectableNodeLookupById("duplicate")).toMatchObject({
+      node: { props: { value: "last" } },
+      parentId: null,
+      pageId: null,
+      layoutId: null,
+    });
     expect(getNodeMap().get("duplicate")?.props?.value).toBe("last");
   });
 
@@ -631,6 +639,13 @@ describe("projectable traversal views", () => {
         layoutId: null,
       },
     ]);
+    expect(getProjectableNodeLookupsByPage("page-1")).toBe(
+      getProjectableNodeLookupsByPage("page-1"),
+    );
+    expect(
+      getProjectableNodeLookupsByPage("page-1").map(({ node }) => node.id),
+    ).toEqual(["duplicate", "duplicate"]);
+    expect(getProjectableNodeLookupsByPage("missing")).toEqual([]);
   });
 
   it("duplicate id occurrence를 projection 여부와 무관하게 집계", () => {

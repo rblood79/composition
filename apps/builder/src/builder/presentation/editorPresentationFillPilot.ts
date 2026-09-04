@@ -10,7 +10,10 @@ import {
   type CompositionDocument,
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { getCanonicalDocumentElementsView } from "../stores/canonical/canonicalElementsView";
+import {
+  getLastProjectableNodeLookupById,
+  getProjectableChildrenByParent,
+} from "../stores/canonical/canonicalTraversalHelpers";
 import type { ColorFillItem, FillItem } from "../../types/builder/fill.types";
 import { FillType } from "../../types/builder/fill.types";
 import { hex8ToFloat32 } from "../panels/styles/utils/colorUtils";
@@ -386,8 +389,10 @@ function getMaterializationContext(
   const cached = documentCache.get(selectedElementId);
   if (cached) return cached;
 
-  const elementsView = getCanonicalDocumentElementsView(document);
-  const element = elementOverride ?? elementsView.byId.get(selectedElementId);
+  const selectedLookup = elementOverride
+    ? null
+    : getLastProjectableNodeLookupById(selectedElementId);
+  const element = elementOverride ?? selectedLookup?.node;
   if (!element) {
     return Object.freeze({
       ancestorTypes: Object.freeze([]),
@@ -397,15 +402,13 @@ function getMaterializationContext(
   }
   const ancestorTypes: string[] = [];
   const visitedAncestorIds = new Set<string>([selectedElementId]);
-  let parentId = elementOverride
-    ? null
-    : (element as { parent_id?: string | null }).parent_id;
+  let parentId = elementOverride ? null : selectedLookup?.parentId;
   while (parentId && !visitedAncestorIds.has(parentId)) {
     visitedAncestorIds.add(parentId);
-    const parent = elementsView.byId.get(parentId);
-    if (!parent) break;
-    ancestorTypes.push(parent.type);
-    parentId = parent.parent_id;
+    const parentLookup = getLastProjectableNodeLookupById(parentId);
+    if (!parentLookup) break;
+    ancestorTypes.push(parentLookup.node.type);
+    parentId = parentLookup.parentId;
   }
   const nativeSpec = element ? TAG_SPEC_MAP[element.type] : undefined;
   const context: SkiaPresentationMaterializationContext = Object.freeze({
@@ -417,9 +420,8 @@ function getMaterializationContext(
         nativeSpec.render.presentation?.fills === "background"),
     hasChildren: elementOverride
       ? (elementOverride.children?.length ?? 0) > 0
-      : elementsView.elements.some(
-          (candidate) => candidate.parent_id === selectedElementId,
-        ),
+      : (getProjectableChildrenByParent().get(selectedElementId)?.length ?? 0) >
+        0,
   });
   documentCache.set(selectedElementId, context);
   return context;

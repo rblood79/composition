@@ -24,7 +24,7 @@ export function getCustomIdBase(customId: string | undefined): string | null {
  */
 export function generateCustomId(
   type: string,
-  pageElements: Array<{ customId?: string | null }>,
+  pageElements: ReadonlyArray<{ customId?: string | null }>,
 ): string {
   // Convert type to lowercase for ID format
   const tagLower = normalizeCustomIdBase(type);

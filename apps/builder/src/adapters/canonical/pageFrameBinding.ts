@@ -9,7 +9,8 @@ import type { Element, Page } from "@/types/builder/unified.types";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../../builder/stores/canonical/canonicalElementsView";
+import { canonicalNodeToElement } from "../../builder/stores/canonical/canonicalElementsView";
+import { getProjectableNodeLookupsByPage } from "../../builder/stores/canonical/canonicalTraversalHelpers";
 import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue";
 import {
   getFrameElementMirrorId,
@@ -53,8 +54,7 @@ export interface ApplyPageFrameBindingExplicitInput {
 
 function isPageNode(node: CanonicalNode, pageId: string): boolean {
   const metadata = node.metadata as
-    | { type?: unknown; pageId?: unknown }
-    | undefined;
+    { type?: unknown; pageId?: unknown } | undefined;
   return (
     node.id === pageId &&
     metadata?.type === "legacy-page" &&
@@ -231,6 +231,7 @@ function findPageOwnedBodyElement(
 }
 
 function getPageBindingElementsMap(
+  pageId: string,
   fallbackElementsMap?: ReadonlyMap<string, Element>,
 ): ReadonlyMap<string, Element> | undefined {
   const canonical = useCanonicalDocumentStore.getState();
@@ -239,11 +240,15 @@ function getPageBindingElementsMap(
   if (!doc) return fallbackElementsMap;
 
   const elementsMap = new Map<string, Element>();
-  visitCanonicalDocumentElements(doc, (element) => {
-    elementsMap.set(element.id, element);
-  });
+  for (const lookup of getProjectableNodeLookupsByPage(pageId)) {
+    const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
+      pageId: lookup.pageId,
+      layoutId: lookup.layoutId,
+    });
+    if (element) elementsMap.set(element.id, element);
+  }
   fallbackElementsMap?.forEach((element, elementId) => {
-    if (!elementsMap.has(elementId)) {
+    if (element.page_id === pageId && !elementsMap.has(elementId)) {
       elementsMap.set(elementId, element);
     }
   });
@@ -421,7 +426,7 @@ async function applyPageFrameBindingForPageId({
 
   setCanonicalDocumentFromPageBinding(
     updatedPage,
-    getPageBindingElementsMap(legacyElementsMap),
+    getPageBindingElementsMap(pageId, legacyElementsMap),
   );
   state._rebuildIndexes?.();
   setPages(updatedPages);

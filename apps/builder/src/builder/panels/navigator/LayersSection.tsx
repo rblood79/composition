@@ -29,7 +29,7 @@ const EMPTY_ELEMENTS: PanelNode[] = [];
 
 export function buildLayerSectionElementMap(
   currentPageElements: PanelNode[],
-  canonicalElements: PanelNode[] | null,
+  canonicalElements: readonly PanelNode[] | null,
 ): Map<string, PanelNode> {
   const map = new Map<string, PanelNode>();
   if (canonicalElements) {

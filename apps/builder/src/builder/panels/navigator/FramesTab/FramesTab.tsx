@@ -59,7 +59,7 @@ const EMPTY_ELEMENTS: PanelNode[] = [];
 type LegacyFrameElement = Parameters<typeof buildTreeFromElements>[0][number];
 
 function collectCanonicalFrameElements(
-  canonicalElements: PanelNode[] | null,
+  canonicalElements: readonly PanelNode[] | null,
   frameScope: CanonicalFrameElementScope | null,
 ): PanelNode[] {
   if (!canonicalElements || !frameScope) return [];
@@ -69,7 +69,7 @@ function collectCanonicalFrameElements(
 }
 
 function hasCanonicalFrameElements(
-  canonicalElements: PanelNode[] | null,
+  canonicalElements: readonly PanelNode[] | null,
   frameScope: CanonicalFrameElementScope | null,
 ): boolean {
   return (
@@ -77,7 +77,9 @@ function hasCanonicalFrameElements(
   );
 }
 
-function findFrameBodyElement(elements: PanelNode[]): PanelNode | null {
+function findFrameBodyElement(
+  elements: readonly PanelNode[],
+): PanelNode | null {
   return (
     elements.find((element) => element.type === "body") ?? elements[0] ?? null
   );

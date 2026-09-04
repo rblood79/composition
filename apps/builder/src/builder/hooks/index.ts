@@ -20,7 +20,8 @@ export { useAsyncMutation } from "./useAsyncMutation";
 // 배럴이 **빈 캐시 싱글톤**을 공개 API 로 광고하던 상태라 표면을 걷어낸다 —
 // 그 이름으로 import 하면 이름·타입은 정상인 채 영원히 비어 있는 Map 을 받고
 // `invalidate()` 가 실제 캐시에 no-op 이 된다 (모듈 스코프 인스턴스 분리).
-export { useCollectionItemManager } from "./useCollectionItemManager";
+// `useCollectionItemManager`는 production caller 0이라 공개 export만 제거한다.
+// 원본 파일은 명시적 삭제 승인 전까지 보존한다.
 // ADR-912 후속 cleanup: useColumnLoader export 제거 — 외부 호출 0건 dead.
 export { dataQueryKeys, useDataPanelQuery } from "./useDataQueries";
 

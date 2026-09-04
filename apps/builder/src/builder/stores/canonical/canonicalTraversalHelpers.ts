@@ -56,6 +56,7 @@ interface TraversalCache {
   firstProjectableNodeById: Map<string, IndexedProjectableNodeLookup>;
   firstProjectableNodeByAlias: Map<string, IndexedProjectableNodeLookup>;
   projectableNodeLookups: CanonicalProjectableNodeLookup[];
+  projectableNodeLookupsByPage: Map<string, CanonicalProjectableNodeLookup[]>;
   nodeOccurrenceCountById: Map<string, number>;
   childrenByParent: Map<string, CanonicalNode[]>;
   projectableNodes: CanonicalNode[];
@@ -284,6 +285,10 @@ function ensureCache(): TraversalCache | null {
     IndexedProjectableNodeLookup
   >();
   const projectableNodeLookups: CanonicalProjectableNodeLookup[] = [];
+  const projectableNodeLookupsByPage = new Map<
+    string,
+    CanonicalProjectableNodeLookup[]
+  >();
   const nodeOccurrenceCountById = new Map<string, number>();
   const childrenByParent = new Map<string, CanonicalNode[]>();
   const projectableNodes: CanonicalNode[] = [];
@@ -314,6 +319,14 @@ function ensureCache(): TraversalCache | null {
       };
       projectableNodes.push(node);
       projectableNodeLookups.push(lookup);
+      if (lookup.pageId) {
+        const pageLookups = projectableNodeLookupsByPage.get(lookup.pageId);
+        if (pageLookups) {
+          pageLookups.push(lookup);
+        } else {
+          projectableNodeLookupsByPage.set(lookup.pageId, [lookup]);
+        }
+      }
       if (!firstProjectableNodeById.has(node.id)) {
         firstProjectableNodeById.set(node.id, indexedLookup);
       }
@@ -395,6 +408,7 @@ function ensureCache(): TraversalCache | null {
     firstProjectableNodeById,
     firstProjectableNodeByAlias,
     projectableNodeLookups,
+    projectableNodeLookupsByPage,
     nodeOccurrenceCountById,
     childrenByParent,
     projectableNodes,
@@ -550,17 +564,26 @@ export function getFirstProjectableNodeLookupByReference(
 export function getLastProjectableNodeById(
   nodeId: string,
 ): CanonicalNode | null {
+  return getLastProjectableNodeLookupById(nodeId)?.node ?? null;
+}
+
+/**
+ * legacy derived view의 `byId`와 같은 마지막 projectable node/context를 반환한다.
+ * 정상 문서는 first/last가 같아 O(1)이고, invalid duplicate id 문서만 역검색한다.
+ */
+export function getLastProjectableNodeLookupById(
+  nodeId: string,
+): CanonicalProjectableNodeLookup | null {
   const c = ensureCache();
   if (!c) return null;
 
   if ((c.nodeOccurrenceCountById.get(nodeId) ?? 0) <= 1) {
-    const node = c.nodeMap.get(nodeId);
-    return node && isCanonicalNodeProjectableToElement(node) ? node : null;
+    return c.firstProjectableNodeById.get(nodeId)?.lookup ?? null;
   }
 
   for (let index = c.projectableNodeLookups.length - 1; index >= 0; index--) {
-    const node = c.projectableNodeLookups[index]?.node;
-    if (node?.id === nodeId) return node;
+    const lookup = c.projectableNodeLookups[index];
+    if (lookup?.node.id === nodeId) return lookup;
   }
   return null;
 }
@@ -585,6 +608,21 @@ export function getProjectableNodes(): readonly CanonicalNode[] {
 export function getProjectableNodeLookups(): readonly CanonicalProjectableNodeLookup[] {
   const c = ensureCache();
   return c?.projectableNodeLookups ?? EMPTY_PROJECTABLE_NODE_LOOKUPS;
+}
+
+/**
+ * 활성 canonical document의 특정 page scope에 속한 projectable lookup을
+ * legacy projection 순서 그대로 반환한다. cache build 뒤에는 O(1) page lookup이며
+ * 다른 page의 Element 객체를 만들지 않는다.
+ */
+export function getProjectableNodeLookupsByPage(
+  pageId: string,
+): readonly CanonicalProjectableNodeLookup[] {
+  const c = ensureCache();
+  return (
+    c?.projectableNodeLookupsByPage.get(pageId) ??
+    EMPTY_PROJECTABLE_NODE_LOOKUPS
+  );
 }
 
 /**
@@ -634,10 +672,10 @@ export function getCanonicalRefOverrideEntries(
  */
 export function withCanonicalRefOverrides(
   refNode: RefNode,
-  overrides: RefNode["descendants"],
+  descendants: RefNode["descendants"],
 ): RefNode {
-  if (overrides && Object.keys(overrides).length > 0) {
-    return { ...refNode, descendants: overrides };
+  if (descendants && Object.keys(descendants).length > 0) {
+    return { ...refNode, descendants };
   }
 
   const { descendants: _descendants, ...rest } = refNode;

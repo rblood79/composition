@@ -37,6 +37,7 @@ import {
   LEGACY_MASTER_ID_FIELD,
   LEGACY_SLOT_NAME_FIELD,
 } from "@/adapters/canonical/legacyElementFields";
+import { readCanonicalNodeCustomId } from "@/adapters/canonical/legacyMetadata";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import {
   canonicalNodeToElement,
@@ -446,15 +447,11 @@ function sanitizeElementUpdate(updates: Partial<Element>): Partial<Element> {
 
 const confirmedOriginImpactKeys = new Set<string>();
 
-type OriginImpactTarget = Pick<Element, "id" | "type"> & {
-  componentRole?: unknown;
-  componentName?: string | null;
-  customId?: string | null;
-  masterId?: unknown;
-  metadata?: unknown;
-  name?: string | null;
+type OriginImpactTarget = Pick<
+  CanonicalNode,
+  "id" | "type" | "metadata" | "name" | "reusable"
+> & {
   ref?: unknown;
-  reusable?: unknown;
 };
 
 export type OriginImpactApproval = {
@@ -545,7 +542,7 @@ export function requestOriginImpactApprovalIfNeeded(
     instanceCount: context.impactedInstanceIds.length,
     originId: element.id,
     originLabel:
-      element.componentName ?? element.customId ?? element.name ?? element.type,
+      element.name ?? readCanonicalNodeCustomId(element) ?? element.type,
   }).then((confirmed) => {
     if (!confirmed) return null;
     confirmedOriginImpactKeys.add(context.confirmationKey);

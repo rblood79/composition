@@ -16,13 +16,19 @@ import type {
   SelectedElement,
 } from "../inspector/types";
 import {
+  getCanonicalRefTarget,
   isCanonicalRefElement,
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
 import type { CanonicalNode } from "@composition/shared";
-import { getCanonicalDocumentElementsView } from "./canonical/canonicalElementsView";
+import { canonicalNodeToElement } from "./canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
-import { getNodeMap } from "./canonical/canonicalTraversalHelpers";
+import {
+  getFirstProjectableNodeLookupByReference,
+  getLastProjectableNodeLookupById,
+  getNodeMap,
+  type CanonicalProjectableNodeLookup,
+} from "./canonical/canonicalTraversalHelpers";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { mergePropsWithStyleDeep } from "../../adapters/canonical/instanceResolver";
 import {
@@ -104,25 +110,6 @@ export const subscribeStore = useStore.subscribe;
 // Zundo 패턴은 기존 히스토리 시스템에 통합됨
 // useStore가 개선된 히스토리 시스템을 포함함
 
-// 안정적인 빈 배열 참조 (새 배열 생성 방지)
-const EMPTY_ELEMENTS: Element[] = [];
-
-// 간단한 선택기들 (Zustand의 내장 최적화 활용)
-export const useElements = (): Element[] => {
-  const activeCanonicalDocument = useActiveCanonicalDocument();
-  // 문서 참조당 1회 캐시된 shared view — hook 인스턴스마다 재-materialize 하지
-  // 않는다. 반환 배열은 공유 참조이므로 consumer 는 읽기 전용으로 취급.
-  const canonicalElements = activeCanonicalDocument
-    ? (getCanonicalDocumentElementsView(activeCanonicalDocument)
-        .elements as Element[])
-    : null;
-  const storeElements = useStore((state) => {
-    if (canonicalElements) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements;
-  });
-  return canonicalElements ?? storeElements;
-};
 export const useSelectedElementId = () =>
   useStore((state) => state.selectedElementId);
 // 호환성 alias
@@ -176,6 +163,36 @@ function getActiveCanonicalRefOverrideSource(
   return getNodeMap().get(elementId);
 }
 
+function projectCanonicalSelectionLookup(
+  lookup: CanonicalProjectableNodeLookup,
+): Element | null {
+  return canonicalNodeToElement(lookup.node, lookup.parentId, {
+    pageId: lookup.pageId,
+    layoutId: lookup.layoutId,
+  });
+}
+
+function getActiveCanonicalSelectedElement(elementId: string): Element | null {
+  const selectedLookup = getLastProjectableNodeLookupById(elementId);
+  if (!selectedLookup) return null;
+
+  const selectedElement = projectCanonicalSelectionLookup(selectedLookup);
+  if (!selectedElement || !isCanonicalRefElement(selectedElement)) {
+    return selectedElement;
+  }
+
+  const reference = getCanonicalRefTarget(selectedElement);
+  const masterLookup = reference
+    ? getFirstProjectableNodeLookupByReference(reference)
+    : null;
+  const masterElement = masterLookup
+    ? projectCanonicalSelectionLookup(masterLookup)
+    : null;
+  return masterElement
+    ? resolveCanonicalRefElement(selectedElement, [masterElement])
+    : selectedElement;
+}
+
 // ============================================
 // 🚀 Single Source of Truth: Selected Element
 // ============================================
@@ -206,12 +223,7 @@ export const useSelectedElementData = (): SelectedElement | null => {
   const hasCanonicalDocument = activeCanonicalDocument !== null;
   const canonicalSelectedElement = useMemo(() => {
     if (!selectedElementId || !activeCanonicalDocument) return null;
-    // 선택마다 문서 전체를 재-materialize 하지 않는다 — 문서 참조당 1회 캐시된
-    // shared view 에서 O(1) lookup (선택 클릭 동기 재렌더 비용의 주범이었음).
-    const view = getCanonicalDocumentElementsView(activeCanonicalDocument);
-    const selectedElement = view.byId.get(selectedElementId);
-    if (!selectedElement) return null;
-    return resolveCanonicalRefElement(selectedElement, view.elements);
+    return getActiveCanonicalSelectedElement(selectedElementId);
   }, [activeCanonicalDocument, selectedElementId]);
 
   // 🚀 추가 정보를 위해 elementsMap에서 한 번만 읽기 (구독 아님)
@@ -303,7 +315,6 @@ export const useSelectedElementData = (): SelectedElement | null => {
     selectedElementId,
     selectedElementProps,
     canonicalSelectedElement,
-    activeCanonicalDocument,
     hasCanonicalDocument,
   ]);
 };
@@ -393,68 +404,6 @@ export const useInspectorActions = () => ({
   // ADR-149 Phase 2c: events 필드 제거 (updateEvents/addEvent/updateEvent/removeEvent) —
   // dead selected-* mutation 제거. EventsPanel 은 updateEventsRootCollection 직접 사용.
 });
-
-// ============================================
-// 🚀 Performance Optimized Selectors (Phase 1)
-// ============================================
-
-/**
- * 현재 페이지의 요소만 반환하는 선택적 selector
- *
- * 🎯 Phase 2 최적화:
- * - O(1) 조회: pageIndex 기반 인덱스 사용 (filter O(n) → getPageElements O(1))
- * - 안정적인 참조: pageIndex 캐시 활용
- * - 개별 구독: currentPageId, pageIndex, elementsMap 분리 구독
- * - 무한 루프 방지: useMemo로 getSnapshot 결과 캐싱
- */
-export const useCurrentPageElements = (): Element[] => {
-  const currentPageId = useStore((state) => state.currentPageId);
-  const elements = useElements();
-
-  return useMemo(() => {
-    if (!currentPageId) return EMPTY_ELEMENTS;
-    const currentPageElements = elements.filter(
-      (element) => !element.deleted && element.page_id === currentPageId,
-    );
-    return currentPageElements.length > 0
-      ? currentPageElements
-      : EMPTY_ELEMENTS;
-  }, [currentPageId, elements]);
-};
-
-/**
- * elements[] 기반 요소 조회 selector
- */
-export const useElementById = (elementId: string | null) => {
-  const elements = useElements();
-  return useMemo(() => {
-    if (!elementId) return undefined;
-    return elements.find((element) => element.id === elementId);
-  }, [elementId, elements]);
-};
-
-/**
- * elements[] 기반 자식 요소 조회 selector
- */
-export const useChildElements = (parentId: string | null): Element[] => {
-  const elements = useElements();
-  return useMemo(() => {
-    const key = parentId || "root";
-    const children = elements.filter(
-      (element) => !element.deleted && (element.parent_id || "root") === key,
-    );
-    return children.length > 0 ? children : EMPTY_ELEMENTS;
-  }, [elements, parentId]);
-};
-
-/**
- * 현재 페이지의 요소 개수만 반환 (가벼운 조회용)
- *
- * 🆕 Phase 2: O(1) 인덱스 기반 카운트
- */
-export const useCurrentPageElementCount = () => {
-  return useCurrentPageElements().length;
-};
 
 // 액션 선택기들
 // NOTE: These grouped selectors are intentional API exports for convenience.
@@ -578,11 +527,4 @@ export type { ElementScrollState } from "./scrollState";
 // ============================================
 // Canvas Store (뷰포트/편집 상태)
 // ============================================
-export {
-  useCanvasStore,
-  useCanvasElements,
-  useCanvasSelectedElement,
-  useCanvasSelectedElementIds,
-  useCanvasUpdateElement,
-  useCanvasSetSelectedElement,
-} from "./canvasStore";
+export { useCanvasStore } from "./canvasStore";

@@ -71,7 +71,7 @@ import {
   getActiveCanonicalDocument,
   subscribeCanonicalStore,
 } from "../stores/canonical/canonicalElementsBridge";
-import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { copyCanonicalDocumentElementProjection } from "../stores/canonical/canonicalElementsView";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import {
   setElementsCanonicalPrimary,
@@ -150,11 +150,7 @@ function getActiveCanonicalBuilderElements(): Element[] | null {
   const doc = getActiveCanonicalDocument();
   if (!doc) return null;
 
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
+  return copyCanonicalDocumentElementProjection(doc);
 }
 
 function getCanonicalOrBootstrapBuilderElements(state: {
@@ -272,7 +268,10 @@ export const BuilderCore: React.FC = () => {
     // ADR-184 — 러너 ③ 스테이지 (rebuildIndexes) DI. persist 는 러너가
     // canonical store + getDB 로 직접 수행하므로 bridge 대상 아님.
     registerCanonicalMutationRunnerBridge({
-      rebuildIndexes: () => useStore.getState()._rebuildIndexes(),
+      rebuildIndexes: (source) => {
+        const state = useStore.getState();
+        state._rebuildIndexes(source === "store" ? state.elements : undefined);
+      },
     });
   }, [projectId]);
 

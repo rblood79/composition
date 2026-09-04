@@ -70,8 +70,16 @@ import {
   selectActiveCanonicalDocument,
   useCanonicalDocumentStore,
 } from "./canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
-import { getFirstProjectableNodeById } from "./canonical/canonicalTraversalHelpers";
+import {
+  canonicalNodeToElement,
+  copyCanonicalDocumentElementProjection,
+  isCanonicalDocumentElementProjection,
+  registerCanonicalDocumentElementProjection,
+} from "./canonical/canonicalElementsView";
+import {
+  getFirstProjectableNodeById,
+  getLastProjectableNodeLookupById,
+} from "./canonical/canonicalTraversalHelpers";
 import {
   type PageElementIndex,
   type ComponentIndex,
@@ -177,7 +185,7 @@ export interface ElementsState {
   clearDirtyElementIds: () => void;
 
   // 내부 헬퍼: 인덱스 재구축
-  _rebuildIndexes: () => void;
+  _rebuildIndexes: (sourceElements?: Element[]) => void;
   // 내부 헬퍼: 진행 중인 selectedElementProps hydration 취소
   _cancelHydrateSelectedProps: () => void;
 
@@ -479,27 +487,16 @@ function getActiveCanonicalStoreElements(): Element[] | null {
   const doc = canonical.documents.get(projectId);
   if (!doc) return null;
 
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
+  return copyCanonicalDocumentElementProjection(doc);
 }
 
 function getActiveCanonicalStoreElement(elementId: string): Element | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  let match: Element | null = null;
-  visitCanonicalDocumentElements(doc, (element) => {
-    if (element.id === elementId) {
-      match = element;
-    }
+  const lookup = getLastProjectableNodeLookupById(elementId);
+  if (!lookup) return null;
+  return canonicalNodeToElement(lookup.node, lookup.parentId, {
+    pageId: lookup.pageId,
+    layoutId: lookup.layoutId,
   });
-  return match;
 }
 
 function getCanonicalOrStoreElements(
@@ -879,9 +876,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
   };
 
   // 인덱스 재구축 함수 (Phase 2: 페이지 인덱스 포함)
-  const _rebuildIndexes = () => {
+  const _rebuildIndexes = (sourceElements?: Element[]) => {
     const state = get();
-    set(buildIndexes(getCanonicalOrStoreElements(state)));
+    set(buildIndexes(sourceElements ?? getCanonicalOrStoreElements(state)));
   };
 
   // 🆕 Phase 2: O(1) 페이지 요소 조회 함수
@@ -906,10 +903,26 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
   };
 
   const applyFullSnapshot = (elements: Element[]) => {
+    const canonical = useCanonicalDocumentStore.getState();
+    const projectId = canonical.currentProjectId;
+    const activeDocument = projectId
+      ? canonical.documents.get(projectId)
+      : undefined;
+    const projectionDocument =
+      activeDocument &&
+      isCanonicalDocumentElementProjection(elements, activeDocument)
+        ? activeDocument
+        : null;
     const { elements: normalizedElements } = normalizeElementTags(elements);
     const canonicalElements = normalizedElements.map((element) =>
       normalizeExternalFillIngress(element),
     );
+    if (projectionDocument) {
+      registerCanonicalDocumentElementProjection(
+        canonicalElements,
+        projectionDocument,
+      );
+    }
     const nextIndexes = buildIndexes(canonicalElements);
     set((state) => ({
       elements: canonicalElements,

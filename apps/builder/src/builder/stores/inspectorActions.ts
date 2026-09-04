@@ -47,7 +47,7 @@ import {
 } from "../utils/canonicalRefResolution";
 import {
   areCanonicalMutationStoreActionsRegistered,
-  mergeElementsCanonicalPrimary,
+  updateCanonicalNodeFromElementPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { historyManager } from "./history";
 import {
@@ -198,7 +198,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function syncInspectorElementToCanonical(element: Element): void {
   if (!areCanonicalMutationStoreActionsRegistered()) return;
-  mergeElementsCanonicalPrimary([element]);
+  updateCanonicalNodeFromElementPrimary(element);
 }
 
 function getResolvedInspectorElement(
@@ -612,7 +612,7 @@ interface RequiredState {
     elementId: string,
     updates: Partial<Element>,
   ) => Promise<void>;
-  _rebuildIndexes: () => void;
+  _rebuildIndexes: (sourceElements?: Element[]) => void;
   _cancelHydrateSelectedProps: () => void;
   batchUpdateElementProps: (updates: BatchPropsUpdate[]) => Promise<void>;
 }

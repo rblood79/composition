@@ -35,7 +35,6 @@ import {
   getActiveCanonicalDocument,
   useActiveCanonicalDocument,
 } from "./canonicalElementsBridge";
-import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 import {
   getCanonicalProjectionScope,
   getCanonicalPageRefDescendantChildren,
@@ -67,6 +66,34 @@ const ROOT_SCOPE: CanonicalProjectionScope = {
   pageId: null,
   layoutId: null,
 };
+const documentByElementProjection = new WeakMap<
+  readonly Element[],
+  CompositionDocument
+>();
+
+/** store mirror가 어느 clone-on-write canonical document에서 파생됐는지 기록한다. */
+export function registerCanonicalDocumentElementProjection(
+  elements: readonly Element[],
+  document: CompositionDocument,
+): void {
+  documentByElementProjection.set(elements, document);
+}
+
+/** 부분 mirror를 full index source로 쓰기 전 document identity 일치를 검증한다. */
+export function isCanonicalDocumentElementProjection(
+  elements: readonly Element[],
+  document: CompositionDocument,
+): boolean {
+  return documentByElementProjection.get(elements) === document;
+}
+
+export function copyCanonicalDocumentElementProjection(
+  doc: CompositionDocument,
+): Element[] {
+  const elements = [...getCanonicalDocumentElementsView(doc).elements];
+  registerCanonicalDocumentElementProjection(elements, doc);
+  return elements;
+}
 
 /**
  * ADR-116 Phase 5 G7 본격 cutover (2026-05-01) — `x-composition` extension 에서
@@ -97,13 +124,6 @@ function extractExtensionFields(node: CanonicalNode): {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
-
-// Ref override helpers — ADR-127 leaf 소유권은 canonicalTraversalHelpers.
-// panel/store 최종 소비자를 위해 동일 심볼을 여기서 re-export 한다.
-export {
-  getCanonicalRefOverrideEntries,
-  withCanonicalRefOverrides,
-} from "./canonicalTraversalHelpers";
 
 function extractCanonicalComponentMirrorFields(
   node: CanonicalNode,
@@ -206,11 +226,11 @@ export function getActiveCanonicalDocumentElements(): Element[] | null {
 
   // WeakMap-cached view — update/removal/instance hot path 가 매 visit 마다
   // 전체 DFS 를 다시 돌리지 않도록 한다.
-  return [...getCanonicalDocumentElementsView(doc).elements];
+  return copyCanonicalDocumentElementProjection(doc);
 }
 
 function collectCanonicalDocumentElements(doc: CompositionDocument): Element[] {
-  return [...getCanonicalDocumentElementsView(doc).elements];
+  return copyCanonicalDocumentElementProjection(doc);
 }
 
 // ─────────────────────────────────────────────
@@ -252,8 +272,14 @@ export function getCanonicalDocumentElementsView(
     byId.set(element.id, element);
   });
   const view: CanonicalDocumentElementsView = { elements, byId };
+  registerCanonicalDocumentElementProjection(elements, doc);
   elementsViewCache.set(doc, view);
   return view;
+}
+
+export function getActiveCanonicalDocumentElementsView(): CanonicalDocumentElementsView | null {
+  const doc = getActiveCanonicalDocument();
+  return doc ? getCanonicalDocumentElementsView(doc) : null;
 }
 
 /**
@@ -310,11 +336,8 @@ export function visitCanonicalDocumentElements(
 
 export function useCanonicalFrameElementScopes(): CanonicalFrameElementScopeMap | null {
   const doc = useActiveCanonicalDocument();
-  const documentVersion = useCanonicalDocumentStore(
-    (state) => state.documentVersion,
-  );
   return useMemo(() => {
     if (!doc) return null;
     return canonicalDocumentToFrameElementScopes(doc);
-  }, [doc, documentVersion]);
+  }, [doc]);
 }

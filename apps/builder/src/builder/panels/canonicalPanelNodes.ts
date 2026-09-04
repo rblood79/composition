@@ -14,6 +14,12 @@ interface PanelScopeMetadata extends Record<string, unknown> {
 }
 
 const ROOT_SCOPE: PanelScope = { pageId: null };
+// Canonical mutations are clone-on-write, so document identity is the cache
+// invalidation boundary shared by every panel hook instance.
+const panelNodesByDocument = new WeakMap<
+  CompositionDocument,
+  readonly PanelNode[]
+>();
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -109,7 +115,10 @@ function toPanelNode(
  */
 export function collectCanonicalPanelNodes(
   doc: CompositionDocument,
-): PanelNode[] {
+): readonly PanelNode[] {
+  const cachedNodes = panelNodesByDocument.get(doc);
+  if (cachedNodes) return cachedNodes;
+
   const nodes: PanelNode[] = [];
 
   function visit(
@@ -136,5 +145,8 @@ export function collectCanonicalPanelNodes(
     visit(child, null, ROOT_SCOPE);
   });
 
-  return nodes;
+  nodes.forEach(Object.freeze);
+  const cachedProjection = Object.freeze(nodes);
+  panelNodesByDocument.set(doc, cachedProjection);
+  return cachedProjection;
 }

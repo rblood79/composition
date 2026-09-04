@@ -14,7 +14,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { useStore } from "../../stores";
 import {
   areCanonicalMutationStoreActionsRegistered,
-  mergeElementsCanonicalPrimary,
+  updateCanonicalNodePropsPrimary,
 } from "../../../adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { getActiveCanonicalElementById } from "../../stores/canonical/canonicalElementsView";
@@ -167,7 +167,11 @@ function silentUpdateTextProp(
   const updatedElement = { ...element, props: { ...props, [propKey]: value } };
 
   if (areCanonicalMutationStoreActionsRegistered()) {
-    const result = mergeElementsCanonicalPrimary([updatedElement]);
+    const result = updateCanonicalNodePropsPrimary(
+      updatedElement.id,
+      updatedElement.props,
+      updatedElement,
+    );
     if (result.changed || hasActiveCanonicalTextEditDocument()) {
       return updatedElement;
     }

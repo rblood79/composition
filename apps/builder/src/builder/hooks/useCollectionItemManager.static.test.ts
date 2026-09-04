@@ -14,4 +14,11 @@ describe("useCollectionItemManager canonical read contract", () => {
     expect(source).toContain("const canonicalChildren = useMemo(() => {");
     expect(source).not.toContain("useCanonicalElements");
   });
+
+  it("production caller 0인 deprecated hook을 barrel에서 다시 공개하지 않는다", async () => {
+    const barrel = await readFile(resolve(__dirname, "index.ts"), "utf-8");
+    expect(barrel).not.toMatch(
+      /export\s*\{[^}]*useCollectionItemManager[^}]*\}/,
+    );
+  });
 });

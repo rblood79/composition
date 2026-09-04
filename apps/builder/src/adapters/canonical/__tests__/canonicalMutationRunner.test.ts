@@ -43,9 +43,11 @@ async function flushPersist(): Promise<void> {
 
 describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
   const calls: string[] = [];
+  const rebuildSources: string[] = [];
 
   beforeEach(() => {
     calls.length = 0;
+    rebuildSources.length = 0;
     // persist 마커는 실제 DB write(put) 시점 — getDB 호출 자체는 러너의 동기
     // 구간 안에서 일어난다 (async 함수의 첫 await 전 세그먼트)
     putSpy.mockClear().mockImplementation(async () => {
@@ -55,7 +57,10 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
       .mockClear()
       .mockResolvedValue({ documents: { put: putSpy } } as never);
     registerCanonicalMutationRunnerBridge({
-      rebuildIndexes: () => calls.push("rebuild"),
+      rebuildIndexes: (source) => {
+        rebuildSources.push(source);
+        calls.push("rebuild");
+      },
     });
     const canonical = useCanonicalDocumentStore.getState();
     canonical.setDocument(PROJECT_ID, makeDocument());
@@ -80,6 +85,7 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
     // 동기 구간은 반환 시점에 완료 — persist 는 그 뒤 백그라운드
     expect(calls).toEqual(["canonical", "store", "rebuild", "history"]);
     expect(result.changed).toBe(true);
+    expect(rebuildSources).toEqual(["canonical"]);
 
     await flushPersist();
     expect(calls).toEqual([
@@ -94,6 +100,34 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
       expect.objectContaining({ version: "composition-1.0" }),
       undefined,
     );
+  });
+
+  it("store index source는 store stage 뒤 동일 mirror를 index 입력으로 선택한다", () => {
+    runCanonicalMutation({
+      canonical: () => {
+        calls.push("canonical");
+        return makeResult();
+      },
+      store: () => calls.push("store"),
+      indexSource: "store",
+      history: () => calls.push("history"),
+    });
+
+    expect(calls).toEqual(["canonical", "store", "rebuild", "history"]);
+    expect(rebuildSources).toEqual(["store"]);
+  });
+
+  it("store index source는 store stage 없이 런타임에서도 fail-fast한다", () => {
+    const canonicalSpy = vi.fn(() => makeResult());
+    expect(() => {
+      // @ts-expect-error — store source는 store stage와 쌍이어야 한다.
+      runCanonicalMutation({
+        canonical: canonicalSpy,
+        indexSource: "store",
+        history: { skip: "runner-test" },
+      });
+    }).toThrow(/store index source requires a store stage/);
+    expect(canonicalSpy).not.toHaveBeenCalled();
   });
 
   it("store 는 optional, history 는 { skip: 사유 } 명시 — canonical-only mutation 도 rebuild + persist 는 러너가 수행한다 (ADR-185)", async () => {

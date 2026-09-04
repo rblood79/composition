@@ -13,15 +13,8 @@
  * @moved 2024-12-29 workspace/canvas/store/ → builder/stores/
  */
 
-import { useMemo } from "react";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
-import { useStore } from ".";
-import { getCanonicalDocumentElementsView } from "./canonical/canonicalElementsView";
-import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
-import type { Element } from "../../types/core/store.types";
-
-const EMPTY_ELEMENTS: Element[] = [];
 
 // ============================================
 // Types
@@ -68,90 +61,5 @@ export const useCanvasStore = create<CanvasState>()(
     resetView: () => set({ zoom: 1, panX: 0, panY: 0 }),
   })),
 );
-
-// ============================================
-// Selectors (Direct Builder Store Access)
-// ============================================
-
-/**
- * Builder 스토어에서 현재 페이지 요소들 가져오기
- * postMessage 없이 직접 접근
- */
-export function useCanvasElements() {
-  const currentPageId = useStore((state) => state.currentPageId);
-  const activeCanonicalDocument = useActiveCanonicalDocument();
-  const canonicalPageElements = useMemo(() => {
-    if (!activeCanonicalDocument || !currentPageId) return null;
-    return getCanonicalDocumentElementsView(
-      activeCanonicalDocument,
-    ).elements.filter((element) => element.page_id === currentPageId);
-  }, [activeCanonicalDocument, currentPageId]);
-  const storePageElements = useStore((state) =>
-    canonicalPageElements || !currentPageId
-      ? EMPTY_ELEMENTS
-      : (state.pageElementsSnapshot[currentPageId] ?? EMPTY_ELEMENTS),
-  );
-
-  return useMemo(() => {
-    const sourceElements = canonicalPageElements ?? storePageElements;
-    return sourceElements.filter((element) => !element.deleted);
-  }, [canonicalPageElements, storePageElements]);
-}
-
-/**
- * Builder 스토어에서 선택된 요소 가져오기
- */
-export function useCanvasSelectedElement() {
-  const selectedElementId = useStore((state) => state.selectedElementId);
-  const activeCanonicalDocument = useActiveCanonicalDocument();
-  const canonicalSelectedElement = useMemo(() => {
-    if (!activeCanonicalDocument || !selectedElementId) return null;
-    return (
-      getCanonicalDocumentElementsView(activeCanonicalDocument).byId.get(
-        selectedElementId,
-      ) ?? null
-    );
-  }, [activeCanonicalDocument, selectedElementId]);
-  const storeElements = useStore((state) => {
-    if (activeCanonicalDocument) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements ?? EMPTY_ELEMENTS;
-  });
-
-  return useMemo(() => {
-    if (!selectedElementId) return null;
-    if (activeCanonicalDocument) return canonicalSelectedElement;
-    const sourceElements = storeElements;
-    return (
-      sourceElements.find((element) => element.id === selectedElementId) ?? null
-    );
-  }, [
-    activeCanonicalDocument,
-    canonicalSelectedElement,
-    selectedElementId,
-    storeElements,
-  ]);
-}
-
-/**
- * Builder 스토어에서 선택된 요소 ID들 가져오기 (다중 선택)
- */
-export function useCanvasSelectedElementIds() {
-  return useStore((state) => state.selectedElementIds);
-}
-
-/**
- * Builder 스토어의 updateElementProps 직접 접근
- */
-export function useCanvasUpdateElement() {
-  return useStore((state) => state.updateElementProps);
-}
-
-/**
- * Builder 스토어의 setSelectedElement 직접 접근
- */
-export function useCanvasSetSelectedElement() {
-  return useStore((state) => state.setSelectedElement);
-}
 
 export default useCanvasStore;

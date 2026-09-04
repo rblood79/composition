@@ -34,9 +34,11 @@ import type { CanonicalMutationResult } from "./canonicalMutations";
 // ─────────────────────────────────────────────
 
 export interface CanonicalMutationRunnerBridge {
-  /** ③ 스테이지 — builder store 의 `_rebuildIndexes()` closure */
-  rebuildIndexes: () => void;
+  /** ③ 스테이지 — 선택된 source로 builder store 인덱스를 재구축한다. */
+  rebuildIndexes: (source: CanonicalMutationIndexSource) => void;
 }
+
+export type CanonicalMutationIndexSource = "canonical" | "store";
 
 let _bridge: CanonicalMutationRunnerBridge | null = null;
 
@@ -78,21 +80,31 @@ export type CanonicalMutationHistoryStage<
   TResult extends CanonicalMutationResult = CanonicalMutationResult,
 > = ((result: TResult) => void) | { skip: string };
 
-export interface CanonicalMutationStages<
+type CanonicalMutationStoreStage<
   TResult extends CanonicalMutationResult = CanonicalMutationResult,
-> {
+> =
+  | {
+      /** 기본값. canonical document derived view로 인덱스를 재구축한다. */
+      indexSource?: "canonical";
+      /** ② legacy mirror/store 파생 상태 갱신. canonical-only mutation은 생략 가능. */
+      store?: (result: TResult) => void;
+    }
+  | {
+      /** store stage가 만든 최신 mirror를 재사용해 중복 canonical projection을 피한다. */
+      indexSource: "store";
+      /** store index source와 반드시 쌍으로 제공한다. */
+      store: (result: TResult) => void;
+    };
+
+export type CanonicalMutationStages<
+  TResult extends CanonicalMutationResult = CanonicalMutationResult,
+> = {
   /**
    * ① canonical document 갱신 — wrapper (`mergeElementsCanonicalPrimary` /
    * `setElementsCanonicalPrimary` / `moveElement*` 등) 호출 closure. **required**
    * — canonical 없이 store 만 갱신하는 형태 (set-1차 위반) 는 타입 에러.
    */
   canonical: () => TResult;
-  /**
-   * ② store set — legacy mirror (elements 배열 / layoutVersion 등) 갱신.
-   * move형은 canonical derive (`getCanonicalOrStoreElements`) 반영도 이 슬롯.
-   * canonical-only silent edit (useTextEdit 형) 은 생략 가능.
-   */
-  store?: (result: TResult) => void;
   /**
    * ④ history 기록 — rebuild **뒤** 슬롯 (기준형 `addElementsToStore` +
    * CLAUDE.md 파이프라인 Memory → Index → History → DB 정합). prev-상태
@@ -106,7 +118,7 @@ export interface CanonicalMutationStages<
    * 의도된 mutation (삭제 계열) 만 급감 가드 통과 사유를 명시한다.
    */
   persistOptions?: DocumentPersistOptions;
-}
+} & CanonicalMutationStoreStage<TResult>;
 
 /**
  * canonical mutation 을 고정 순서로 실행한다.
@@ -130,10 +142,15 @@ export function runCanonicalMutation<TResult extends CanonicalMutationResult>(
         "의도적 생략은 사유 문자열 필수 (ADR-185)",
     );
   }
+  if (stages.indexSource === "store" && !stages.store) {
+    throw new Error(
+      "[canonicalMutationRunner] store index source requires a store stage",
+    );
+  }
 
   const result = stages.canonical(); // ①
   stages.store?.(result); // ②
-  bridge.rebuildIndexes(); // ③ — 러너 소유
+  bridge.rebuildIndexes(stages.indexSource ?? "canonical"); // ③ — 러너 소유
   if (typeof stages.history === "function") {
     stages.history(result); // ④ — { skip: 사유 } 는 명시된 no-op
   }

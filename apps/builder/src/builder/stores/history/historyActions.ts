@@ -5,7 +5,7 @@ import {
   Element,
   ComponentElementProps,
 } from "../../../types/core/store.types";
-import { historyManager, type HistoryEntry } from "../history";
+import { historyManager } from "../history";
 import { applySnapshotRestoreHistoryEntry } from "./snapshotRestore";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { createCompleteProps } from "../utils/elementHelpers";
@@ -20,7 +20,6 @@ import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { renameActiveCanonicalPageTitle } from "../canonical/pageTitleMutation";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { bumpPageGuideRevision } from "../../workspace/canvas/interaction/pageGuideRevision";
-import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
 import {
   isWebGLCanvas,
@@ -431,25 +430,6 @@ function applyPageLifecycleHistoryEntry(
   });
 }
 
-function getHistorySourceElements(get: GetState): Element[] {
-  const { elements: legacyElements } = get();
-  return getActiveCanonicalHistoryElements() ?? legacyElements;
-}
-
-function getActiveCanonicalHistoryElements(): Element[] | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
-}
-
 /**
  * 🚀 Phase 2: structuredClone 우선 사용 헬퍼
  * JSON.parse/stringify보다 2-5배 빠름
@@ -561,10 +541,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    const currentState = {
-      ...get(),
-      elements: getHistorySourceElements(get),
-    };
+    const currentState = get();
 
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
@@ -593,7 +570,7 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
     });
 
     // 🔧 CRITICAL: elementsMap 재구축 (Undo 후 인덱스 동기화)
-    get()._rebuildIndexes();
+    get()._rebuildIndexes(updatedElements);
 
     // 2. iframe 업데이트
     // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 스킵
@@ -689,10 +666,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    const currentState = {
-      ...get(),
-      elements: getHistorySourceElements(get),
-    };
+    const currentState = get();
     let updatedElements = currentState.elements;
     let updatedSelectedElementId = currentState.selectedElementId;
     let updatedSelectedElementProps = currentState.selectedElementProps;
@@ -720,7 +694,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
     });
 
     // 🔧 CRITICAL: elementsMap 재구축 (Redo 후 인덱스 동기화)
-    get()._rebuildIndexes();
+    get()._rebuildIndexes(updatedElements);
 
     // 2. iframe 업데이트
     // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 스킵
@@ -768,10 +742,7 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 export const createGoToHistoryIndexAction =
   (set: SetState, get: GetState) => async (targetIndex: number) => {
     try {
-      const state = {
-        ...get(),
-        elements: getHistorySourceElements(get),
-      };
+      const state = get();
       const { currentPageId } = state;
       if (!currentPageId) return;
 
@@ -859,7 +830,7 @@ export const createGoToHistoryIndexAction =
       });
 
       // elementsMap 재구축
-      get()._rebuildIndexes();
+      get()._rebuildIndexes(updatedElements);
 
       // iframe 업데이트
       const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();

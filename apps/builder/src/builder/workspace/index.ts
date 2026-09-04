@@ -26,14 +26,7 @@ export {
   type CanvasMetricsState,
   type CanvasViewportSnapshot,
 } from "./canvas/stores";
-export {
-  useCanvasStore,
-  useCanvasElements,
-  useCanvasSelectedElement,
-  useCanvasSelectedElementIds,
-  useCanvasUpdateElement,
-  useCanvasSetSelectedElement,
-} from "../stores/canvasStore"; // B2.4: Direct Zustand Access (moved to stores/)
+export { useCanvasStore } from "../stores/canvasStore"; // B2.4: Direct Zustand Access (moved to stores/)
 
 // Utils
 export { gpuProfiler, useGPUProfiler } from "./canvas/utils/gpuProfilerCore";

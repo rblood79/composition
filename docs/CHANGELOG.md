@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 다중 요소 props 편집도 target마다 legacy `Element[]`를 투영·재인덱싱하지 않고 revision cache로 읽은 뒤 canonical tree를 한 번만 순회합니다. canonical 문서는 batch당 한 번 push하고 UI용 derived array/map은 대상 행만 교체해 다중 선택 편집·정렬·propagation의 hot path 비용을 줄였습니다.
 - production caller가 0인 `batchUpdateElements` store action과 legacy full-projection 구현을 제거했습니다. 실제 LayerTree·Canvas DnD는 canonical `children[]` 기반 `moveElementToContainer`/`moveElementToCanonicalTarget` 경로를 계속 사용합니다.
 - 전체 필드 `updateElement`도 canonical target 한 건을 직접 교체하고 UI용 derived array/map의 대상 행만 갱신합니다. 구조·소유권·component/variable index 필드와 잘못된 duplicate id 호환 경로에서만 전체 index를 재구축해 customId·responsive·slot·descendants 편집의 문서 전체 projection을 제거했습니다.
+- production caller가 0인 unified-store 전체 요소/current-page selector와 Canvas 요소 selector의 public export를 제거했습니다. 원본 모듈 파일은 삭제 승인 경계를 지켜 보존하고, canonical ref override helper 소유권은 ADR-127 traversal 모듈 한 곳으로 줄였습니다.
 
 ### Fixed
 
@@ -54,8 +55,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 5,000-node 합성 문서에서 실제 collect와 같은 count 2회 교차 측정 p50/p95가 2.095/3.593ms → 0.033/0.332ms였습니다. 실제 문서 분포나 전체 collect 시간의 개선율로 해석하지 않습니다.
 - Inspector의 style·responsive·fill 편집은 선택 요소를 얻기 위해 매번 전체 `Element[]`를 만들고 Map을 재구축하지 않습니다. projectable leaf lookup과 기존 derived `elementsMap`·`childrenMap`을 재사용하며, ref master도 DFS-first ID/name/customId 호환 인덱스로 조회합니다. bootstrap 중 derived cache에서 target이 빠진 경우에만 cached canonical view 전체를 한 번 복구합니다. 5,000-node 합성 3-projection action shape에서 p50/p95가 1.766/8.972ms → 1.481/2.945ms였습니다.
 - 텍스트 편집은 key 입력마다 canonical 문서를 다시 투영하지 않고 편집 시작 때 얻은 leaf snapshot을 session 동안 유지합니다. 외부 document/layout revision이 바뀌면 최신 leaf를 다시 읽어 함께 변경된 props를 보존합니다. 5,000-node 합성 13-read 편집 session p50이 3.339ms → 0.706ms였습니다.
+- 텍스트 live input과 Inspector property/style preview의 canonical write를 단일 node structural-sharing helper로 전환했습니다. 선택 leaf를 이미 알고 있는 변경이 `BuilderCore.getCurrentLegacySnapshot()`을 거쳐 매 입력·preview마다 전체 document projection·ID Set·page shell filter를 생성하던 경로를 우회합니다. duplicate ID 문서는 기존 all-occurrence merge fallback을 유지합니다.
 - Preview의 selection echo는 leaf lookup을 사용하고, 생성된 column/field 중복 검사는 legacy `Element[]` 대신 document 참조별 projectable ID Set을 사용합니다. 5,000-node generated-ID cold p50/p95가 0.475/3.107ms → 0.143/0.475ms였습니다.
 - reusable frame 보강 로드는 frame마다 전체 문서를 투영·filter하지 않습니다. document별 frame scope와 DFS occurrence를 한 번 인덱싱해 frame 소유권과 duplicate 순서를 보존합니다. 60 frame·4,800-node 합성 전체 hydrate 재측정 p50/p95가 43.19/44.12ms → 2.14/3.58ms였습니다.
+- 선택/활성화 단일 요소 read는 전체 document visitor 대신 last-match canonical lookup과 해당 leaf만 project합니다. Properties의 ref instance는 selected leaf와 DFS-first master leaf만 조합하며, store 전체 요소 selector가 document 변경마다 만들던 full view 구독을 없앴습니다.
+- Navigator·Components가 공유하는 panel node projection은 clone-on-write document identity별 WeakMap cache를 사용하고, 공유 배열과 node를 readonly 경계에서 동결해 consumer 오염을 막습니다. 5,000-node 동일 프로세스 진단에서 100회 반복 cache miss 20.364ms, cache hit 0.011ms였으며 실제 UI latency 수치는 아닙니다.
+- Undo/Redo/go-to-index는 canonical event 적용 전에 legacy 전체 projection을 만들지 않고, 적용기가 반환한 배열을 store와 index rebuild가 함께 사용합니다. event 또는 active document가 없는 실패 경로는 기존 derived state를 유지합니다.
+- fill/style presentation commit의 정상 경로는 store mirror의 canonical document identity가 일치할 때 target 한 건만 교체하고 방금 만든 store 배열로 index를 재구축해 commit당 두 번이던 full projection을 0회로 줄였습니다. canonical revision 불일치·duplicate ID·mirror 누락·비-projectable target은 최신 문서 전체 projection으로 fail-safe 복구합니다.
+- lazy page load와 page-frame binding은 ADR-127의 page-scope lookup만 project합니다. Fill presentation의 materialization context도 selected/ancestor/children canonical index만 읽어 다른 page·document 요소 객체를 만들지 않습니다.
+- 연속 AI tool 호출이 같은 canonical 문서를 매번 visitor로 평탄화하고 ID/children Map을 다시 만들지 않도록 document identity별 read-model cache를 공유합니다. legacy bootstrap도 동일 elements 배열 동안 같은 index를 재사용합니다.
+- instance detach·origin impact·override reset은 한 action 안에서 같은 canonical `Element[]` 복사본을 반복 생성하지 않고 document-keyed readonly view를 공유합니다. ref origin 영향이 page 경계를 넘을 수 있어 전체 문서 범위는 유지하되, store에 쓸 때만 새 배열을 만듭니다.
+- 단일·다중 요소 삭제는 target/subtree를 수집할 때 읽은 readonly canonical snapshot을 동기 `executeRemoval` 구간에 그대로 전달합니다. 전체 문서의 ref/origin 영향 계산은 유지하면서 삭제 1회당 중복 `Element[]` 복사를 제거했습니다.
 
 ### Tests
 
@@ -67,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 전체 필드 편집에는 canonical target 재조회, full projection 재도입 방지, customId sibling order, duplicate id all-occurrence, structural rebuild, responsive history/layout 회귀를 추가했습니다. 5,000-node 실제 store action 20회 격리 측정은 변경 전 p50/p95 20.15/29.35ms에서 변경 후 3회 p50 1.11–1.44ms, p95 3.89–6.24ms였고, customId history 활성 최종 재측정도 p50/p95 1.17/6.52ms였습니다. foreground Builder에서는 ID 편집 1회가 history 1개만 만들고 Undo/Redo의 canonical ID가 왕복하며 console error 0임을 확인했습니다. selection 보존은 격리 store roundtrip으로 고정했습니다.
 - Performance Monitor count에는 structural wrapper 제외, page ref descendants 포함, hoisted slot 포함, 새 document 참조 재계산과 legacy projection 재도입 방지 static gate를 추가했습니다.
 - Inspector leaf/ref/history·cache-gap 복구·alias/ID 충돌 우선순위, text edit session revision·cancel·commit, Preview selection/generated-ID, frame scope cache·duplicate occurrence 소유권에 full projection 재도입 방지와 회귀 테스트를 추가했습니다.
+- selection leaf·page-scope loader/binding·panel cache·presentation store index source·history projection reuse에 focused regression과 full-projection 재도입 static gate를 추가했습니다. duplicate ID, ref descendants, page/frame scope, selection 즉시성, Undo/Redo/go-to-index 의미를 유지합니다.
 - 격리 Chromium에서 실제 IndexedDB v1 entry를 v3으로 올려 `canonicalEvents` 변환과 legacy payload strip을 확인했습니다. 같은 production history singleton으로 step2→step1 Undo, step1→step2 Redo, go-to-index 왕복을 실행했고, user/system snapshot 2개 영속과 step3→step2 복원·Undo/Redo 왕복도 확인했습니다 (console/page error 0).
 
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
