@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed — 2026-09-05
+Accepted — 2026-09-05
+
+- Proposed 2026-09-05 → 리뷰 round 1 ([reviews/205.md](reviews/205.md)) 이슈 8건 전부 `fixed`
+  (HIGH 2 포함) → **Accepted 2026-09-05**. 전제 확정 종결 계약 성립
+  (`.claude/rules/premise-decision-points.md`).
+- Phase 0 반영 2026-09-05 — 격차표 생성 (G0 통과):
+  [evidence/205-text-axis-gap-matrix.md](evidence/205-text-axis-gap-matrix.md).
 
 ## Context
 

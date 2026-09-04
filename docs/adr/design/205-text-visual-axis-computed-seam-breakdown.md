@@ -1,7 +1,7 @@
 # ADR-205 design breakdown — 텍스트 시각 축 computed 단일 seam
 
 > 본 문서가 구현 상세의 정본이다. ADR 본문은 결정·위험·게이트만 둔다.
-> 상태: 설계, Phase 0 대기.
+> 상태: Phase 0 반영 완료 (2026-09-05) — Phase 1 대기.
 
 ## 1. Fork 게이트 4 질문 lock-in
 
@@ -25,7 +25,7 @@
 (ADR 규모)** 선택 + `/create-adr 텍스트 시각 축 computed 단일 seam — letterSpacing 결선`
 직접 입력. 본문 self-lock-in 이 아니라 사용자 선택이 선행했다.
 
-## 2. Phase 0 — 코드 사실 표 (착수 전 전수 대조용)
+## 2. Phase 0 — 코드 사실 표 (착수 전 전수 대조용) ✅ 반영 완료 2026-09-05
 
 각 행은 사실 1줄 + 경로:라인 + 확인 명령. 리뷰어는 명령을 그대로 실행해 대조할 수 있다.
 
@@ -55,7 +55,17 @@
 | F20 | Skia scene build 경로에 `ComputedStyle` 이 **존재하지 않는다** — 참조 0건, `specShapesToSkia` 는 요소 style 도 computed 도 받지 않으며 `resolveStyle()` 결과는 재귀 지역 변수로만 산다                                                                                                                              | `canvas/skia/**` (0건) · `specShapeConverter.ts:162` · `fullTreeLayout.ts:1872`                     | `grep -rn "ComputedStyle\|resolveStyle(" apps/builder/src/builder/workspace/canvas/skia/` → 0                  |
 | F21 | `node.text.letterSpacing` 은 paragraph **캐시 키**에도 들어간다 — 결선 시 같이 갱신하지 않으면 stale paragraph                                                                                                                                                                                                      | `skia/textParagraphKey.ts:44`                                                                       | `grep -n "letterSpacing" …/skia/textParagraphKey.ts`                                                           |
 
-### Phase 0 산출물
+### Phase 0 산출물 — 반영 결과 (2026-09-05)
+
+**생성물**: [evidence/205-text-axis-gap-matrix.md](../evidence/205-text-axis-gap-matrix.md) —
+`scripts/generate-text-axis-matrix.mjs` 가 코드에서 생성한다 (`--check` 로 drift 검사, Phase 2 에서 pre-push 배선).
+
+측정 결과: 속성 **22개** (A 16 ∪ B 14). 측정 축 중 **wrap leg 과 Skia 인라인 양쪽에 미도달**인 것은
+`letterSpacing` · `fontStyle` · `textTransform` **3개**뿐이고, Phase 1 범위는 그중 live 증상(F15·F16)의
+원인인 **`letterSpacing` 한 축**으로 확정된다. 예상했던 결손 3자리 중 ①wrap leg ②Skia 인라인은 표로
+확증됐고, ③게이트는 Phase 2 에서 만든다. 상세·후속 목록은 생성물 §4.
+
+### Phase 0 산출물 (설계 시점 정의)
 
 - **텍스트 CSS 속성 격차표**: 텍스트 CSS 속성 × {DOM 소비 · layout 폭 leg 도달 · layout wrap leg 도달 · Skia 도달} × {인라인 채널 · 상속 채널}. F1~F21 을 그 표의 첫 행들로 채운다. **이 표가 Phase 1 의 범위를 정한다** — 추정으로 범위를 잡지 않는다.
 - 속성 집합의 출처는 코드 2곳의 합집합이다 (R4) — `cssResolver.INHERITABLE_PROPERTIES` 의 텍스트 항목(F1, `visibility` 제외) ∪ ADR-057 블록이 소비하는 비상속 텍스트 속성(F18). 어느 쪽도 단독으로는 "DOM 이 소비하는 텍스트 CSS 속성 집합" 이 아니다.
