@@ -7,14 +7,24 @@
 - **ADR-155** (Implemented 2026-07-17) 는 **숨은** 패널의 선택 fan-out 을 `<Activity mode="hidden">` 으로 차단했다. 본 ADR 은 **열린** Navigator 패널의 잔여 비용을 다룬다. 155 의 scope 밖 후속 주제이며 155 의 전제 (패널 gating) 는 그대로 유효하다.
 - **ADR-150 R2** 는 캔버스 collection window 와 LayerTree 패널 정책을 분리하고 "패널은 별도 정책 결정 후 검증" 으로 남겼다. 본 ADR 이 그 패널 정책이다. 의존 방향 없음 — 캔버스 projection window (Skia draw/hit) 와 패널 DOM 창 렌더는 서로 다른 표면이다.
 - **Builder 성능 상위 계획**에서 본 ADR은 ready 이후 선택 상호작용을 다루는 Track B다. 프로젝트 생성·편집기 진입 시 Skia cold first-frame Track A와 원인·Gate·소비 표면을 합치지 않고, 하니스와 측정 조건만 공유한다 (`BUILDER_PERF_BASELINE_2026-09.md` §4-1).
-- tanstack 기반 `VirtualizedTree` 는 FramesTab (`FrameElementTree.tsx:176`) 도 쓰고, 공용 `TreeBase`는 PageTree · FrameList · FrameElementTree도 소비한다 — 모두 scope 밖. `Virtualizer`는 LayerTree에서만 감싸고, tanstack 경로도 LayerTree 에서만 제거한다.
+- tanstack 기반 `VirtualizedTree` 는 FramesTab (`FrameElementTree.tsx:176`) 도 쓰고, 공용 `TreeBase`는 PageTree · FrameList · FrameElementTree도 소비한다 — 모두 scope 밖. `Virtualizer`는 LayerTree에서만 감싸고, tanstack 경로도 LayerTree 에서만 제거한다. FrameElementTree는 이미 별도 tanstack 조건 분기가 있으므로 "비가상 소비자"가 아니라 **RAC `TreeBase` 호출부와 기존 tanstack 분기 모두 무변경인 소비자**로 판정한다.
 
 **4 질문 lock-in** (`adr-writing.md` §"ADR Fork / 분리 결정 시 전제·관점 점검" — 신규 주제라 fork 는 아니지만 ADR-150·155 와의 관계 재론을 막기 위해 같은 형식으로 고정; /review 2026-09-03 LOW 반영):
 
 1. **base / 응용 분류**: 본 ADR 은 응용 (Navigator 패널 DOM 창 렌더) 이고 base 는 RAC `Tree` + `Virtualizer` (upstream). ADR-150 A2 (캔버스 collection window) · ADR-155 (패널 gating) 어느 쪽도 본 ADR 의 base 가 아니다 — prerequisite 없음.
-2. **schema 직교성**: 문서 schema · canonical 노드 · catalog 무접촉. 바뀌는 것은 LayerTree의 Virtualizer 결선과 CSS 행 높이 토큰뿐이며 공용 `TreeBase.tsx`는 유지 — 150/155 의 schema 와 직교.
+2. **schema 직교성**: 문서 schema · canonical 노드 · catalog 무접촉. 바뀌는 것은 LayerTree의 Virtualizer 결선, LayerTree 전용 `rowSize` 상수, Layers section의 scoped scroll style뿐이며 공용 `TreeBase.tsx`는 유지 — 150/155 의 schema 와 직교.
 3. **선행 ADR 전제 reverse 검증**: 150 R2 "window 는 캔버스 전용, 패널은 별도 정책" 은 본 ADR 후에도 그대로 성립 (패널이 캔버스 window 를 소비하지 않는다 — `useLayerTreeData.ts` 는 `LISTBOX_ROW_PROJECTION_WINDOW_LIMIT` 를 projected 행 cap 으로만 쓴다). 155 의 Activity gating 은 열린 패널에 무관하므로 방향 반전 없음. 사용자 confirm: `/create-adr` 직접 입력 (2026-09-02) + 추천 순서 답변 "adr생성 차례인가" 확인.
-4. **codex 3차 review 까지 미루지 않기**: 전제 (Navigator 단독 비용 · 가동된 적 없는 분기) 는 Phase 0 A/B 와 코드 사실 C1~~C9 로 착수 전에 확정했고, /review round 1 (2026-09-03) 이 C1~~C7 인용을 전수 대조해 정확 판정. 1차 진입 전 전제 검증 완료.
+4. **전면 재리뷰 불필요**: 전제 (Navigator 단독 비용 · 가동된 적 없는 분기) 는 Phase 0 A/B 와 코드 사실 C1~~C10 로 착수 전에 확정했고, /review round 1 (2026-09-03) 이 당시 C1~~C7 인용을 전수 대조해 정확 판정했다. 2026-09-04 변경은 설치된 RAC 구현과 G0 live에 맞춘 실행계획 보정이며 대안·위험 임계·Decision을 바꾸지 않는다. Phase 1 구현 뒤 G1 수리 검증으로 닫고 별도 전면 review round를 추가하지 않는다.
+
+### 1-1. 리뷰 후 실행계획 보정 (2026-09-04, Decision/Status 불변)
+
+리뷰 뒤 G0 live와 설치된 RAC 1.20 구현을 실행 관점에서 다시 대조해 아래를 보정했다. 대안 A와 위험 임계 판정은 바뀌지 않는다.
+
+1. 실 DOM 행 selector는 `[role="treeitem"]`이 아니라 `[role="row"]`이며, 하니스는 다른 treegrid와 섞이지 않도록 `.layer-tree--rac-virtualized [role="row"]`로 scope한다.
+2. RAC `Virtualizer`는 자손 `Tree`에 `CollectionRendererContext`를 공급하므로 LayerTree에서 `<TreeBase>`만 감쌀 수 있다. 공용 `TreeBase`를 수정하지 않는다.
+3. `ListLayoutOptions.rowHeight`는 호환용 deprecated alias다. 현행 `rowSize`를 사용한다. RAC에는 사용자 지정 overscan prop이 없고 내부 `OverscanManager`가 진행 방향으로 viewport의 1/3을 더하므로 Gate도 실제 계약으로 계산한다.
+4. `Virtualizer`의 `CollectionRoot`는 `Tree` ref에 inline overflow/content size를 부여한다. 기존 `.section-content`와 이중 스크롤이 되지 않도록 Layers section의 scroll owner를 RAC Tree 하나로 옮긴다.
+5. G0 live에서 캔버스 선택은 조상을 펼치지만 선택 행을 강제 자동 스크롤하지 않았다. G3는 이 기준선을 유지하고, 숨김→복원은 DOM 노드가 바뀌는 전후 `scrollTop` 숫자 대신 첫 가시 key + offset으로 비교한다.
 
 ## §2 Phase 0 — inventory (2026-09-02 완료분 + 착수 시 보강 1건)
 
@@ -46,17 +56,18 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ### 2-3. 코드 사실 (착수 전 재확인 대상 — 라인은 2026-09-02 기준)
 
-| #   | 사실                                                                                                                                                                           | 경로                                                                                    |
-| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
-| C1  | 가상화 분기 `treeNodes.length >= 300` 는 **root 노드 개수** 기준. `treeNodes` 는 `buildTreeFromElements` 의 root 목록이라 페이지마다 body 1개 → 실 문서에서 절대 켜지지 않는다 | `panels/navigator/tree/LayerTree/LayerTree.tsx:214`, `useLayerTreeData.ts:123-141`      |
-| C2  | 분기 도입 커밋 `881e5e5d6` (2026-08-29) 이후 LayerTree 에서 가동된 적 없는 경로 (측정 Q4 — 존재 ≠ 가동)                                                                        | `git log -S'treeNodes.length >= 300'`                                                   |
-| C3  | 비가상 경로는 RAC `Tree` 에 전체 행 mount, `TreeBaseItem` 이 `TreeItem`/`TreeItemContent`/`Collection` 재귀                                                                    | `tree/TreeBase/TreeBase.tsx:187-208`, `TreeBaseItem.tsx:33-56`                          |
-| C4  | 선택마다 `selectedKeys: new Set(activeSelectedIds)` 새 Set + `LayersSection` 의 `expandedKeys` 새 Set → Tree 전체 재렌더 확정                                                  | `LayerTree.tsx:193`, `LayersSection.tsx:151-152, 166-180`                               |
-| C5  | RAC 1.20 `Tree` 는 `CollectionRendererContext` 의 `CollectionRoot` / `isVirtualized` / `layoutDelegate` / `dropTargetDelegate` 를 소비 — Virtualizer 결선 존재                 | `node_modules/react-aria-components/dist/private/Tree.mjs:215, 239-240, 280, 648, 687`  |
-| C6  | `Virtualizer` · `ListLayout` 은 RAC 패키지가 re-export (신규 의존 0). 현재 builder 에서 사용 0건                                                                               | `react-aria-components/dist/exports/{index,Virtualizer}.mjs`                            |
-| C7  | 행 높이는 CSS `min-height: var(--control-size)` (`calc(var(--text-2xl) + var(--spacing))`) — 숫자 상수 아님. tanstack 경로는 `itemHeight={28}` 하드코딩                        | `panels/navigator/NavigatorPanel.css:6-12`, `packages/shared/.../builder-system.css:45` |
-| C8  | 패널 숨김/복원 스크롤 보존은 capture-phase `scroll` 리스너로 **임의 자손 스크롤 요소** 를 기억 — Virtualizer 스크롤 컨테이너도 자손이면 자동 대상 (착수 시 확인)               | `layout/PanelWorkspace.tsx:557-650`                                                     |
-| C9  | store `setSelectedElement` 는 2단 set (Phase 1 즉시: id/ids/idsSet, Phase 2 rAF: selectedElementProps) — 패널 재렌더가 프레임당 2회 일어날 수 있다                             | `stores/elements.ts:1194-1240`                                                          |
+| #   | 사실                                                                                                                                                                                                                                    | 경로                                                                                                                                                                                                                                              |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1  | 가상화 분기 `treeNodes.length >= 300` 는 **root 노드 개수** 기준. `treeNodes` 는 `buildTreeFromElements` 의 root 목록이라 페이지마다 body 1개 → 실 문서에서 절대 켜지지 않는다                                                          | `panels/navigator/tree/LayerTree/LayerTree.tsx:214`, `useLayerTreeData.ts:123-141`                                                                                                                                                                |
+| C2  | 분기 도입 커밋 `881e5e5d6` (2026-08-29) 이후 LayerTree 에서 가동된 적 없는 경로 (측정 Q4 — 존재 ≠ 가동)                                                                                                                                 | `git log -S'treeNodes.length >= 300'`                                                                                                                                                                                                             |
+| C3  | 비가상 경로는 RAC `Tree` 에 전체 행 mount, `TreeBaseItem` 이 `TreeItem`/`TreeItemContent`/`Collection` 재귀                                                                                                                             | `tree/TreeBase/TreeBase.tsx:187-208`, `TreeBaseItem.tsx:33-56`                                                                                                                                                                                    |
+| C4  | 선택마다 `selectedKeys: new Set(activeSelectedIds)` 새 Set + `LayersSection` 의 `expandedKeys` 새 Set → Tree 전체 재렌더 확정                                                                                                           | `LayerTree.tsx:193`, `LayersSection.tsx:151-152, 166-180`                                                                                                                                                                                         |
+| C5  | RAC 1.20 `Virtualizer`가 `CollectionRendererContext.Provider`를 만들고 자손 `Tree`는 `CollectionRoot` / `isVirtualized` / `layoutDelegate` / `dropTargetDelegate`를 소비 — LayerTree 외부 wrapper 결선 가능                             | `apps/builder/node_modules/react-aria-components/dist/private/Virtualizer.mjs:24-46`, `Tree.mjs:215,239-240,269-280,382-386`                                                                                                                      |
+| C6  | `Virtualizer` · `ListLayout` 은 RAC 패키지가 re-export (신규 의존 0). `ListLayoutOptions.rowSize`가 현행 fixed-row API이고 `rowHeight`는 deprecated alias. 사용자 overscan prop은 없으며 내부값은 viewport/3                            | `apps/builder/node_modules/react-aria-components/dist/{exports/Virtualizer.mjs,types/src/Virtualizer.d.ts}`, `apps/builder/node_modules/react-stately/dist/{types/src/layout/ListLayout.d.ts:7-75,private/virtualizer/OverscanManager.mjs:26-34}` |
+| C7  | 행 높이는 CSS `min-height: var(--control-size)` (`calc(var(--text-2xl) + var(--spacing))`) — 숫자 상수 아님. tanstack 경로는 `itemHeight={28}` 하드코딩                                                                                 | `panels/navigator/NavigatorPanel.css:6-12`, `packages/shared/.../builder-system.css:45`                                                                                                                                                           |
+| C8  | 패널 숨김/복원 스크롤 보존은 capture-phase `scroll` 리스너로 **임의 자손 스크롤 요소** 를 기억 — Virtualizer 스크롤 컨테이너도 자손이면 자동 대상 (착수 시 확인)                                                                        | `layout/PanelWorkspace.tsx:557-650`                                                                                                                                                                                                               |
+| C9  | store `setSelectedElement` 는 2단 set (Phase 1 즉시: id/ids/idsSet, Phase 2 rAF: selectedElementProps) — 패널 재렌더가 프레임당 2회 일어날 수 있다                                                                                      | `stores/elements.ts:1194-1240`                                                                                                                                                                                                                    |
+| C10 | RAC `Tree`가 자기 ref를 `Virtualizer.CollectionRoot`의 `scrollRef`로 넘기고 `useScrollView`가 그 ref에 inline overflow/content size를 적용한다. 현재 외부 `.section-content`도 `overflow-y:auto`라 명시적 단일 scroll owner 전환이 필요 | `apps/builder/node_modules/react-aria-components/dist/private/{Tree.mjs:382-386,Virtualizer.mjs:48-86}`, `apps/builder/node_modules/react-aria/dist/private/virtualizer/ScrollView.mjs:248-280`, `components/panel/SectionSplitStack.css:36-41`   |
 
 ### 2-4. 선택 구독자 인벤토리 (stores 밖 32 파일, `grep -rlE 'state\.selectedElementIds?|useDebouncedSelectedElementData\(|...'`)
 
@@ -81,22 +92,22 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ## §3 Phase 1 — 스파이크: RAC `Virtualizer` + `ListLayout` (G1)
 
-목표: RAC Tree 를 그대로 두고 LayerTree에서만 창 렌더를 켠다. 공용 `TreeBase`는 변경하지 않고 LayerTree 결선 + CSS + 행 높이 SSOT로 범위를 닫는다.
+목표: RAC Tree 를 그대로 두고 LayerTree에서만 창 렌더를 켠다. 공용 `TreeBase`는 변경하지 않고 LayerTree 결선 + 단일 scroll owner + fixed row 계약으로 범위를 닫는다.
 
-| 파일                                       | 변경                                                                                                                                                                                                                                     |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tree/LayerTree/LayerTree.tsx`             | RAC `<TreeBase>` 경로만 `<Virtualizer layout={ListLayout} layoutOptions={{ rowHeight }}>`로 감싼다. `dragAndDropHooks`/`renderDropIndicator`는 TreeBase에 그대로 두고, Phase 1에서는 `>= 300` tanstack 분기를 유지한 뒤 Phase 2에서 제거 |
-| `tree/LayerTree/rowHeight.ts` (신규, 소형) | `getComputedStyle(root).getPropertyValue('--layer-tree-row-height')` → number (fallback 28). SSR/jsdom 에서는 fallback                                                                                                                   |
-| `panels/navigator/NavigatorPanel.css`      | `--layer-tree-row-height: 28px` 를 선언하고 `.elementItem` 은 `height: var(--layer-tree-row-height)` (min-height 아님 — ListLayout 고정 행 높이와 1:1). 트리 컨테이너 `height: 100%; min-height: 0`                                      |
-| `panels/navigator/LayersSection.tsx`       | 변경 없음 (구독 유지). `Section` 래퍼가 트리에 높이를 주는지 확인 — 안 주면 Virtualizer 가 0 행을 그린다 (R5)                                                                                                                            |
-| `tree/TreeBase/TreeBase.tsx`               | **변경 없음**. 공용 소비자 PageTree · FrameList · FrameElementTree까지 가상화가 확산되지 않도록 `Virtualizer`를 import/결선하지 않는다                                                                                                   |
-| `tree/{PageTree,TreeBase}/`, `FramesTab/*` | 동작 변경 없음. G1에서 비대상 소비자 3종(PageTree · FrameList · FrameElementTree)의 기존 비가상 경로와 D1 기본 계약을 정적·browser 대조로 고정                                                                                           |
+| 파일                                       | 변경                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tree/LayerTree/LayerTree.tsx`             | RAC `<TreeBase>` 경로만 `<Virtualizer layout={ListLayout} layoutOptions={{ rowSize: LAYER_TREE_ROW_SIZE_PX }}>`로 감싸고 TreeBase에 `className="layer-tree layer-tree--rac-virtualized"`를 준다. RAC에는 별도 overscan prop을 전달하지 않는다. Phase 1에서는 `>= 300` tanstack 분기를 유지한 뒤 Phase 2에서 제거 |
+| `tree/LayerTree/virtualization.ts` (신규)  | `LAYER_TREE_ROW_SIZE_PX = 28`만 export. DOM query나 첫 render 뒤 상태 갱신 없이 ListLayout의 첫 layout부터 같은 숫자를 쓴다                                                                                                                                                                                      |
+| `panels/navigator/NavigatorPanel.css`      | Layers section `.section-content`의 외부 overflow를 끄고 `.layer-tree--rac-virtualized`를 `flex: 1; min-height: 0`인 단일 scroll owner로 둔다. `.react-aria-TreeItem`과 `.elementItem`은 기존 `--control-size`를 유지하며 browser gate가 계산 높이 28px를 상수와 대조한다                                        |
+| `panels/navigator/LayersSection.tsx`       | 구독/렌더 변경 없음. 실제 `data-section-id="navigator-layers"` 경계로 외부 scroll selector를 scope한다. 첫 render에서 RAC Tree의 clientHeight가 320px fixture 조건을 실제로 받는지 확인한다 (R5)                                                                                                                 |
+| `tree/TreeBase/TreeBase.tsx`               | **변경 없음**. 공용 소비자 PageTree · FrameList · FrameElementTree까지 가상화가 확산되지 않도록 `Virtualizer`를 import/결선하지 않는다                                                                                                                                                                           |
+| `tree/{PageTree,TreeBase}/`, `FramesTab/*` | 동작 변경 없음. G1에서 PageTree · FrameList · FrameElementTree의 RAC `TreeBase` 호출부가 wrapper 없이 유지되고 FrameElementTree의 기존 tanstack 조건 분기도 그대로임을 정적·browser 대조로 고정                                                                                                                  |
 
 RED 먼저:
 
-- [ ] browser vitest (`vitest.browser.config.ts`) `tree/LayerTree/LayerTree.virtualized.browser.test.tsx`: 600 노드 (body 1 root + 599 자식, 펼침) 를 320 px 높이 컨테이너에 렌더 → `[role="row"]` 수 ≤ ⌈320/28⌉ + overscan×2 (현재 코드로는 600 → RED). 같은 테스트에서 `selectedKeys` 를 10회 바꿔도 행 콘텐츠 렌더 횟수 (renderContent spy) ≤ 가시 행 × 10.
-- [ ] 같은 파일: 계산된 `.elementItem` 높이 === `rowHeight` (CSS SSOT 와 ListLayout 상수 일치 가드).
-- [ ] 정적 + browser 음성 대조: `TreeBase.tsx`의 `Virtualizer` 참조 0건, PageTree · FrameList · FrameElementTree는 wrapper가 없고 기존 행 DOM/키보드/DnD 경로가 유지된다.
+- [ ] browser vitest (`vitest.browser.config.ts`) `tree/LayerTree/LayerTree.virtualized.browser.test.tsx`: 600·5k 노드 (body 1 root + 나머지 자식, 펼침)를 각각 320px 높이로 렌더한다. `.layer-tree--rac-virtualized [role="row"]` idle 수는 `ceil((320 + 320/3) / 28) + focused/boundary 여유 2 = 18` 이하이고 두 규모의 차이는 1 이하(현재 코드는 600/5k → RED). settle 뒤 spy를 reset하고 `selectedKeys` 10회 변경 시 `renderContent` 증가량 ≤ 180.
+- [ ] 같은 파일: `.react-aria-TreeItem`과 `.elementItem`의 계산 높이 === `LAYER_TREE_ROW_SIZE_PX`; `.section[data-section-id="navigator-layers"] > .section-content`는 스크롤하지 않고 `.layer-tree--rac-virtualized` 하나만 `overflow-y: auto`이며 clientHeight 320px.
+- [ ] 정적 + browser 음성 대조: `TreeBase.tsx`의 `Virtualizer` 참조 0건, PageTree · FrameList · FrameElementTree의 RAC 호출부에는 wrapper가 없고 FrameElementTree의 기존 `VirtualizedTree` 조건 분기와 행 DOM/키보드/DnD 경로가 유지된다.
 
 G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-count 600 --classes idle,select --duration-ms 3000` (both 패널, 기본값) 에서 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0, 그리고 `--seed-count 60` 에서 드롭 0. 결과 JSON 경로를 ADR Gates 에 기록.
 
@@ -104,8 +115,8 @@ G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-co
 
 ## §4 Phase 2 — D1 parity + 정리 (G2 · G3)
 
-- [ ] G2 (Chrome MCP, 실 builder): 가상화 전/후 같은 행의 `role` / `aria-selected` / `aria-expanded` / `aria-level` / `aria-posinset` / `aria-setsize` diff 0. 키보드 ↑↓ Home/End typeahead, shift/meta 다중 선택, 화면 밖 행으로 포커스 이동 시 자동 스크롤. DnD 3 케이스 + drop indicator 위치.
-- [ ] G3: 패널 숨김 → 복원 scrollTop 보존 (C8 경로가 Virtualizer 컨테이너를 잡는지), 캔버스 클릭 → 자동 펼침 + 선택 행 가시화 (§2-5 기준선과 동일).
+- [ ] G2 (Chrome MCP, 실 builder): 가상화 전/후 같은 행의 `role` / `aria-selected` / `aria-expanded` / `aria-level` / `aria-posinset` / `aria-setsize` diff 0. 키보드 ↑↓ Home/End typeahead, shift/meta 다중 선택, 화면 밖 키보드 포커스 자동 스크롤, DnD 뒤 이동 행 포커스 유지. DnD 3 케이스 + drop indicator 위치.
+- [ ] G3: 패널 숨김 전 `.layer-tree--rac-virtualized`의 첫 가시 row key + viewport top offset을 기록하고 복원 뒤 같은 key/offset(≤1px)을 확인한다. 캔버스 클릭은 조상 자동 펼침 + 선택 상태만 기준선과 동일하고, 선택 행 강제 자동 스크롤은 추가하지 않는다.
 - [ ] `LayerTree.tsx` 의 `>= 300` 분기와 `VirtualizedTree` import 제거 (LayerTree 한정). `FramesTab` 은 손대지 않는다. `LayerTree.tsx:193` 의 `new Set(activeSelectedIds)` 는 `useMemo` 로 (가시 행만 재렌더돼도 Set 재생성은 불필요).
 - [ ] `useFocusManagement` 의 `focusedKey` 가 가상화와 충돌하지 않는지 (화면 밖 키에 focus 요청 시 RAC `layoutDelegate` 경유 scrollIntoView).
 - [ ] unit: `LayerTree.static.test.ts` — `VirtualizedTree` 참조 0건 가드 (FramesTab 제외).
@@ -114,7 +125,7 @@ G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-co
 
 - [ ] 5k 시드 1회를 **persistent** 프로젝트에 넣고 (`--project-url`) select p50 ≤ 50 ms. 시드 4분+ 이므로 격리 컨텍스트 재시드 금지 (메모리 `project-frame-drop-map-5k-baseline`).
 - [ ] `--headed` 1회 (절대값) + 실 포인터 클릭 1회 (hit-test 경로 — 하니스 select 는 store 경로라 빠져 있다).
-- [ ] 하니스: frame lane select 결과에 `[role="row"]` 수를 기록 (`RECORDER_SCRIPT` 종료 시 1회 `document.querySelectorAll` — 창 렌더 회귀 가드). `[role="treeitem"]`은 RAC 1.20 실 DOM에 없으므로 사용 금지.
+- [ ] 하니스: frame lane select 결과에 `.layer-tree--rac-virtualized [role="row"]` 수를 기록 (`RECORDER_SCRIPT` 종료 시 1회 `document.querySelectorAll` — Pages/Frames treegrid 행 혼입 방지). `[role="treeitem"]`은 RAC 1.20 실 DOM에 없으므로 사용 금지.
 - [ ] `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md` §3-2 select 행과 §4 순위 갱신 (전/후 표).
 
 ## §6 Phase 4 — Properties 필드 단위 구독 (조건부, G6)
