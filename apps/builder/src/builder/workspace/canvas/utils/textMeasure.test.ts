@@ -21,9 +21,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
  *
  * 예: "Button" = 6글자 = 48px, " " = 1글자 = 8px
  */
-const mockMeasureText = vi.fn((text: string) => ({ width: text.length * 8 }));
+const mockMeasureText = vi.fn((text: string) => {
+  const spacing = parseFloat(mockCtx.letterSpacing) || 0;
+  return { width: text.length * 8 + spacing * Array.from(text).length };
+});
 const mockCtx = {
   font: "",
+  letterSpacing: "0px",
   measureText: mockMeasureText,
 };
 
@@ -228,5 +232,43 @@ describe("verifyLines — overflow trailing space 수정", () => {
     expect(result.length).toBeGreaterThan(1);
     // "Hello"는 첫 줄에
     expect(result[0].join("")).toBe("Hello");
+  });
+});
+
+
+// ============================================
+// letterSpacing — Chrome 실측 규칙 (grapheme 마다, trailing 포함)
+// ============================================
+
+describe("Canvas2DTextMeasurer.measureWidth — letterSpacing", () => {
+  it("grapheme 마다 가산하고 마지막 글자 뒤 간격도 포함한다", () => {
+    // Chrome 152 실측 (16px Arial): "abc" letter-spacing 2px → base + 3×2.
+    // 구현은 `text.length - 1` (문자 사이만) 이었다 — 마지막 간격 누락 + surrogate
+    // pair 를 2로 세는 두 결함.
+    const m = new Canvas2DTextMeasurer();
+    const w = m.measureWidth("abc", {
+      fontSize: 16,
+      fontFamily: "Arial",
+      letterSpacing: 2,
+    });
+    expect(w).toBe(3 * 8 + 3 * 2);
+  });
+
+  it("letterSpacing 0 이면 base 폭 그대로", () => {
+    const m = new Canvas2DTextMeasurer();
+    expect(
+      m.measureWidth("abc", { fontSize: 16, fontFamily: "Arial" }),
+    ).toBe(24);
+  });
+
+  it("서로게이트 페어는 grapheme 1개로 센다", () => {
+    const m = new Canvas2DTextMeasurer();
+    // "😀" 는 UTF-16 길이 2, grapheme 1 → spacing 은 1회만
+    const w = m.measureWidth("😀", {
+      fontSize: 16,
+      fontFamily: "Arial",
+      letterSpacing: 2,
+    });
+    expect(w).toBe(2 * 8 + 1 * 2);
   });
 });

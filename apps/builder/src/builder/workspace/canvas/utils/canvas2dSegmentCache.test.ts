@@ -18,9 +18,16 @@ import type { Token } from "./canvas2dSegmentCache";
 // Canvas 2D mock 설정
 // ============================================
 
-const mockMeasureText = vi.fn((text: string) => ({ width: text.length * 8 }));
+// Chrome 실측 (2026-09-05, 16px Arial): letter-spacing 은 grapheme 마다 가산되며
+// **마지막 글자 뒤 간격도 폭에 포함**된다 (DOM `getBoundingClientRect` == `ctx.letterSpacing`
+// 측정, "abc" ls 2px → base+6). mock 도 같은 규칙으로 흉내낸다.
+const mockMeasureText = vi.fn((text: string) => {
+  const spacing = parseFloat(mockCtx.letterSpacing) || 0;
+  return { width: text.length * 8 + spacing * Array.from(text).length };
+});
 const mockCtx = {
   font: "",
+  letterSpacing: "0px",
   measureText: mockMeasureText,
 };
 
@@ -72,6 +79,7 @@ import {
   buildFontString,
   needsFallback,
   buildHintedText,
+  measureWithCanvas2D,
   getOrMeasureWidth,
   clearSegmentCaches,
   computeLines,
@@ -326,10 +334,22 @@ describe("needsFallback", () => {
     expect(needsFallback({ fontSize: 16, fontFamily: "Arial" })).toBe(false);
   });
 
-  it("letterSpacing 있으면 fallback 필요", () => {
+  it("letterSpacing 은 ctx.letterSpacing 미지원 브라우저에서만 fallback (§B4-7)", () => {
+    // 지원 환경 (mock ctx 에 letterSpacing 있음) → Canvas 2D 로 잰다
     expect(
       needsFallback({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 }),
-    ).toBe(true);
+    ).toBe(false);
+
+    // 미지원 환경 → 종전대로 CanvasKit 폴백
+    const saved = mockCtx.letterSpacing;
+    delete (mockCtx as { letterSpacing?: string }).letterSpacing;
+    try {
+      expect(
+        needsFallback({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 }),
+      ).toBe(true);
+    } finally {
+      mockCtx.letterSpacing = saved;
+    }
   });
 
   it("letterSpacing 0이면 fallback 불필요", () => {
@@ -638,5 +658,77 @@ describe("Tier 3 — Chrome 오라클 케이스 고정", () => {
 
   it("R. `(note)` 는 한 단위", () => {
     expect(simulate("(note)", "(note)").lines).toEqual(["(note)"]);
+  });
+});
+
+
+// ============================================
+// letterSpacing — Canvas 2D 측정 (§B4-7)
+// ============================================
+
+describe("letterSpacing", () => {
+  beforeEach(() => {
+    clearSegmentCaches();
+    mockMeasureText.mockClear();
+    mockCtx.letterSpacing = "0px";
+    mockFontsCheck.mockReturnValue(true);
+  });
+
+  it("buildFontKey 가 letterSpacing 을 키에 넣는다 (캐시 오염 방지)", () => {
+    const a = buildFontKey({ fontSize: 16, fontFamily: "Arial" });
+    const b = buildFontKey({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 });
+    expect(a).not.toBe(b);
+  });
+
+  it("ctx.letterSpacing 을 지원하면 letterSpacing 은 fallback 이 아니다", () => {
+    expect(needsFallback({ fontSize: 16, fontFamily: "Arial", letterSpacing: 2 })).toBe(false);
+  });
+
+  it("wordSpacing 은 여전히 fallback (upstream 도 미지원)", () => {
+    expect(needsFallback({ fontSize: 16, fontFamily: "Arial", wordSpacing: 2 })).toBe(true);
+  });
+
+  it("getOrMeasureWidth 가 ctx.letterSpacing 을 적용한다 — 마지막 글자 뒤 간격 포함", () => {
+    const w = getOrMeasureWidth("abc", "Arial\x00400\x002", "400 16px Arial", 2);
+    // base 3×8 = 24, spacing 2 × grapheme 3 = 6 (trailing 포함)
+    expect(w).toBe(30);
+    expect(mockCtx.letterSpacing).toBe("2px");
+  });
+
+  it("letterSpacing 이 다르면 캐시가 분리된다", () => {
+    getOrMeasureWidth("abc", "Arial\x00400\x000", "400 16px Arial", 0);
+    getOrMeasureWidth("abc", "Arial\x00400\x002", "400 16px Arial", 2);
+    expect(mockMeasureText).toHaveBeenCalledTimes(2);
+    getOrMeasureWidth("abc", "Arial\x00400\x002", "400 16px Arial", 2);
+    expect(mockMeasureText).toHaveBeenCalledTimes(2);
+  });
+
+  it("측정 후 ctx.letterSpacing 이 남지 않는다 (다음 측정 오염 방지)", () => {
+    getOrMeasureWidth("abc", "Arial\x00400\x002", "400 16px Arial", 2);
+    const w = getOrMeasureWidth("abc", "Arial\x00400\x000", "400 16px Arial", 0);
+    expect(w).toBe(24);
+  });
+
+  it("measureWithCanvas2D 가 letterSpacing 을 폭·줄바꿈에 반영한다", () => {
+    const style = {
+      fontSize: 16,
+      fontFamily: "Arial",
+      lineHeight: 20,
+      letterSpacing: 2,
+    };
+    // "ab cd": 토큰 ab(2×8+2×2=20) ␠(8+2=10) cd(20) → 한 줄 50
+    const fits = measureWithCanvas2D("ab cd", style, 50);
+    expect(fits.lineCount).toBe(1);
+    expect(fits.width).toBe(50);
+
+    // 폭을 1px 줄이면 두 줄 — trailing 간격이 판정에 들어간다 (Chrome 실측 규칙)
+    const wraps = measureWithCanvas2D("ab cd", style, 49);
+    expect(wraps.lineCount).toBe(2);
+    expect(wraps.hintedText).toBe("ab \ncd");
+  });
+
+  it("letterSpacing 0 이면 기존 폭과 같다", () => {
+    const style = { fontSize: 16, fontFamily: "Arial", lineHeight: 20 };
+    expect(measureWithCanvas2D("ab cd", style, 200).width).toBe(40);
   });
 });

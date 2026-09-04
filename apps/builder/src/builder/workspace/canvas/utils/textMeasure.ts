@@ -81,6 +81,36 @@ function getMeasureCtx(): CanvasRenderingContext2D | null {
 }
 
 /**
+ * letter-spacing 적용 — 브라우저가 지원하면 셰이퍼에 맡기고, 아니면 산술 가산.
+ *
+ * Chrome 152 실측 (2026-09-05, 16px Arial): CSS letter-spacing 은 **grapheme 마다**
+ * 가산되고 **마지막 글자 뒤 간격도 폭에 포함**된다 ("abc" · 2px → base + 3×2,
+ * DOM `getBoundingClientRect` == `ctx.letterSpacing` 측정). 구 구현의
+ * `text.length - 1` 은 마지막 간격을 빼고 (CSS 와 1칸 어긋남) 서로게이트 페어를
+ * 2로 세는 두 결함이 있었다.
+ *
+ * @returns ctx 가 letter-spacing 을 직접 반영하면 true (호출자는 산술 가산 금지)
+ */
+function applyMeasureLetterSpacing(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  letterSpacing: number | undefined,
+): boolean {
+  if (!("letterSpacing" in ctx)) return false;
+  const next = `${letterSpacing || 0}px`;
+  if (ctx.letterSpacing !== next) ctx.letterSpacing = next;
+  return true;
+}
+
+/** ctx 미지원 시의 산술 가산 폭 (grapheme 수 × spacing — trailing 포함). */
+function letterSpacingFallbackWidth(
+  text: string,
+  letterSpacing: number | undefined,
+): number {
+  if (!letterSpacing) return 0;
+  return letterSpacing * Array.from(text).length;
+}
+
+/**
  * Canvas 2D API 기반 텍스트 측정기
  *
  * 기존 measureTextWidth(), measureWrappedTextHeight()를
@@ -94,10 +124,13 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
       return text.length * (style.fontSize * 0.5);
     }
     ctx.font = buildFontString(style);
+    const shaperHandlesSpacing = applyMeasureLetterSpacing(
+      ctx,
+      style.letterSpacing,
+    );
     let width = ctx.measureText(text).width;
-    // letterSpacing: 각 문자 사이 간격 수동 가산
-    if (style.letterSpacing && style.letterSpacing !== 0) {
-      width += style.letterSpacing * Math.max(0, text.length - 1);
+    if (!shaperHandlesSpacing) {
+      width += letterSpacingFallbackWidth(text, style.letterSpacing);
     }
     // wordSpacing: 공백 문자 수만큼 추가 간격 가산
     if (style.wordSpacing && style.wordSpacing !== 0) {
@@ -199,9 +232,13 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     word: string,
     style: TextMeasureStyle,
   ): number {
+    const shaperHandlesSpacing = applyMeasureLetterSpacing(
+      ctx,
+      style.letterSpacing,
+    );
     let w = ctx.measureText(word).width;
-    if (style.letterSpacing && style.letterSpacing !== 0) {
-      w += style.letterSpacing * Math.max(0, word.length - 1);
+    if (!shaperHandlesSpacing) {
+      w += letterSpacingFallbackWidth(word, style.letterSpacing);
     }
     return w;
   }

@@ -397,14 +397,48 @@ function getCtx():
 }
 
 /**
+ * `ctx.letterSpacing` 지원 여부 (Chrome 99+ · Safari 17.4+ · Firefox 126+).
+ *
+ * 지원하면 letter-spacing 을 **브라우저 셰이퍼가** 반영한 폭을 그대로 받는다 —
+ * grapheme 수를 세어 산술 가산할 필요가 없다 (그 경로는 텍스트당 49 µs 라 캐시 없이는
+ * 파이프라인의 4배, §B4-13). 미지원 브라우저는 종전대로 CanvasKit 로 폴백한다.
+ *
+ * Chrome 152 실측 (2026-09-05, 16px Arial): DOM `getBoundingClientRect` 와
+ * `ctx.letterSpacing` 이 일치하고, 둘 다 **마지막 글자 뒤 간격을 폭에 포함**한다
+ * ("abc" · 2px → base + 6). 줄바꿈 판정도 그 폭 그대로다 (이분 탐색으로 확인 —
+ * 1줄이 되는 최소 폭 == trailing 포함 폭).
+ */
+function supportsCanvasLetterSpacing(): boolean {
+  try {
+    return typeof getCtx().letterSpacing === "string";
+  } catch {
+    return false;
+  }
+}
+
+/** 공유 ctx 에 letter-spacing 을 세팅한다 — 값이 남아 다음 측정을 오염시키지 않게 항상 명시. */
+function applyLetterSpacing(
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D,
+  letterSpacing: number,
+): void {
+  if (!("letterSpacing" in ctx)) return;
+  const next = `${letterSpacing || 0}px`;
+  if (ctx.letterSpacing !== next) ctx.letterSpacing = next;
+}
+
+/**
  * 세그먼트 폭 측정 + 캐시
  *
  * 폰트 미로드 시 캐싱 스킵 (fallback 폰트 결과 캐시 방지).
+ *
+ * `letterSpacing` 은 `fontKey` 에 이미 들어 있다 (`buildFontKey`) — 캐시 분리는
+ * 그 키가 담당하고, 이 인자는 ctx 세팅용이다.
  */
 export function getOrMeasureWidth(
   token: string,
   fontKey: string,
   fontString: string,
+  letterSpacing: number = 0,
 ): number {
   const ctx = getCtx();
   const isFontLoaded =
@@ -416,6 +450,7 @@ export function getOrMeasureWidth(
   if (!isFontLoaded) {
     queueFontLoad(fontString, token);
     ctx.font = fontString;
+    applyLetterSpacing(ctx, letterSpacing);
     return ctx.measureText(token).width;
   }
 
@@ -429,6 +464,7 @@ export function getOrMeasureWidth(
   if (cached !== undefined) return cached;
 
   ctx.font = fontString;
+  applyLetterSpacing(ctx, letterSpacing);
   const width = ctx.measureText(token).width;
   cache.set(token, width);
   return width;
@@ -454,6 +490,8 @@ export function buildFontKey(style: TextMeasureStyle): string {
     style.fontStyle ?? 0,
     style.fontVariant ?? "",
     style.fontStretch ?? "",
+    // letter-spacing 은 세그먼트 폭을 바꾼다 — 키에 없으면 spacing 다른 결과가 섞인다.
+    style.letterSpacing ?? 0,
   ].join("\0");
 }
 
@@ -486,8 +524,15 @@ export function buildFontString(style: TextMeasureStyle): string {
  * white-space: nowrap/pre-wrap 등의 특수 줄바꿈 규칙도 처리하지 않는다.
  */
 export function needsFallback(style: TextMeasureStyle): boolean {
-  // letterSpacing/wordSpacing: Canvas 2D measureText에 미반영
-  if (style.letterSpacing && style.letterSpacing !== 0) return true;
+  // letterSpacing: `ctx.letterSpacing` 을 지원하면 Canvas 2D 로 정확히 잰다.
+  // 미지원 브라우저에서만 CanvasKit 폴백 (§B4-7).
+  if (
+    style.letterSpacing &&
+    style.letterSpacing !== 0 &&
+    !supportsCanvasLetterSpacing()
+  )
+    return true;
+  // wordSpacing: `ctx.measureText` 에 미반영 — upstream 도 미지원이라 폴백 유지.
   if (style.wordSpacing && style.wordSpacing !== 0) return true;
   // white-space: nowrap, pre, pre-wrap 등은 특수 줄바꿈 규칙
   if (style.whiteSpace && style.whiteSpace !== "normal") return true;
@@ -524,6 +569,7 @@ export function computeLines(
   overflowWrap: string,
   fontKey: string,
   fontString: string,
+  letterSpacing: number = 0,
 ): ComputedLines {
   const lines: string[][] = [[]];
   let lineW = 0;
@@ -560,7 +606,7 @@ export function computeLines(
         pendingSpace = 0;
         const graphemes = Array.from(token.text);
         for (const g of graphemes) {
-          const gw = getOrMeasureWidth(g, fontKey, fontString);
+          const gw = getOrMeasureWidth(g, fontKey, fontString, letterSpacing);
           if (lineW > 0 && lineW + gw > maxWidth + LINE_FIT_EPSILON) {
             maxLineW = Math.max(maxLineW, lineW);
             lines.push([]);
@@ -613,11 +659,13 @@ export function verifyLines(
   lines: string[][],
   maxWidth: number,
   fontString: string,
+  letterSpacing: number = 0,
 ): string[][] {
   if (lines.length <= 1) return lines;
 
   const ctx = getCtx();
   ctx.font = fontString;
+  applyLetterSpacing(ctx, letterSpacing);
   const verified: string[][] = [];
   let carry: string[] = [];
 
@@ -723,8 +771,9 @@ export function measureWithCanvas2D(
   // Segment width cache
   const fontKey = buildFontKey(style);
   const fontString = buildFontString(style);
+  const letterSpacing = style.letterSpacing ?? 0;
   const widths = tokens.map((t) =>
-    getOrMeasureWidth(t.text, fontKey, fontString),
+    getOrMeasureWidth(t.text, fontKey, fontString, letterSpacing),
   );
 
   // Tier 1: Greedy line-breaking with lineFitEpsilon
@@ -735,10 +784,11 @@ export function measureWithCanvas2D(
     style.overflowWrap ?? "normal",
     fontKey,
     fontString,
+    letterSpacing,
   );
 
   // Tier 2: Line-level Verification (safety net)
-  const verified = verifyLines(lines, maxWidth, fontString);
+  const verified = verifyLines(lines, maxWidth, fontString, letterSpacing);
 
   const hintedText = buildHintedText(verified);
   const effectiveLineHeight = Math.max(lineHeight, style.fontSize * 1.2);
