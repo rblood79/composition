@@ -13,25 +13,10 @@ import { AgentProfileSettings } from "./AgentProfileSettings";
 import { ConnectionStatus } from "./ConnectionStatus";
 import { hasProgress, type AgentProgress } from "../hooks/agentProgress";
 import { useI18n } from "@/i18n";
+import { trimLabelEcho } from "./advancedModeUtils";
 
 interface AdvancedModeProps {
   progress: AgentProgress;
-}
-
-/**
- * 요약이 역할 이름을 다시 말하면 지운다 — 오케스트레이터는 "2건 실행" / "수리 1회" 처럼
- * 문장으로 요약하는데, 역할 라벨 옆에 그대로 붙으면 "실행 2건 실행" 이 된다.
- */
-export function trimLabelEcho(label: string, summary: string): string {
-  const trimmed = summary.trim();
-  if (trimmed === label) return "";
-  if (trimmed.startsWith(`${label} `)) {
-    return trimmed.slice(label.length).trim();
-  }
-  if (trimmed.endsWith(` ${label}`)) {
-    return trimmed.slice(0, -label.length).trim();
-  }
-  return trimmed;
 }
 
 export function AdvancedMode({ progress }: AdvancedModeProps) {

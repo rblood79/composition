@@ -93,8 +93,10 @@ export function DataTableCreator({
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   /** preset 문구 해소기 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const tr: PresetTranslate = (key, params) =>
-    i18n ? i18n.t(key, params) : key;
+  const tr = useCallback<PresetTranslate>(
+    (key, params) => (i18n ? i18n.t(key, params) : key),
+    [i18n],
+  );
   const createDataTable = useDataStore((state) => state.createDataTable);
 
   // 선택 상태
@@ -146,6 +148,7 @@ export function DataTableCreator({
     projectId,
     createDataTable,
     onClose,
+    tr,
   ]);
 
   // 아이콘 렌더링 헬퍼

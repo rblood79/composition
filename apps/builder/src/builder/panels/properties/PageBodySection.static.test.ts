@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { DEDICATED_SECTION_TYPES } from "./PageBodySection";
+import { DEDICATED_SECTION_TYPES } from "./pageBodySectionConstants";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const panelSource = readFileSync(resolve(HERE, "PropertiesPanel.tsx"), "utf8");

@@ -150,7 +150,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
         // 필요시 외부 모니터링 시스템에 전송
       }
     },
-    [],
+    [t],
   );
 
   const clearError = useCallback(() => {
@@ -256,7 +256,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
         return false;
       }
     },
-    [rollbackStack, handleError],
+    [rollbackStack, handleError, t],
   );
 
   const retryOperation = useCallback(
@@ -302,7 +302,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
         }
       }
     },
-    [handleError],
+    [handleError, t],
   );
 
   const validateElements = useCallback(
@@ -382,7 +382,7 @@ export const useErrorHandler = (): UseErrorHandlerReturn => {
         errors,
       };
     },
-    [],
+    [t],
   );
 
   const getErrorStats = useCallback(() => {

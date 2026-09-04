@@ -24,11 +24,11 @@ import type {
 import { PanelToggleGroup } from "./PanelToggleGroup";
 import { getPanelLabel } from "./panelLabels";
 import { registerPanelWorkspaceActivationDispatcher } from "./panelWorkspaceActivationDispatcher";
+import { PanelSnapInteractionProvider } from "./PanelSnapContext";
 import {
-  PanelSnapInteractionProvider,
   usePanelSnapInteractionActions,
   usePanelSnapInteractionState,
-} from "./PanelSnapContext";
+} from "./usePanelSnapInteraction";
 import { panelDragMovedBeyondSnapThreshold } from "./panelSnap";
 import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
 import { PanelSplitter } from "./PanelSplitter";

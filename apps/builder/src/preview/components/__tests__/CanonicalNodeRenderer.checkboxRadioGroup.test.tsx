@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getPrimitiveBinding } from "@composition/shared";
 
-import { DELEGATING_RAC_RENDERERS } from "../CanonicalNodeRenderer";
+import { DELEGATING_RAC_RENDERERS } from "../canonicalRendererRegistry";
 
 /**
  * ADR-912 CheckboxItems/RadioItems 폐기 후속 (2026-06-15) — CheckboxGroup/RadioGroup

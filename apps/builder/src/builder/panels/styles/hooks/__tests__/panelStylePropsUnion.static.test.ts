@@ -6,7 +6,7 @@
  * 둘이 어긋나면 "modify N 인데 reset 0"(또는 역) 비대칭이 재발한다(grid placement 키 사례,
  * 2026-06-24). 섹션 PROPS 를 추가/삭제하면 본 가드가 PANEL_STYLE_PROPS 동반 갱신을 강제한다.
  *
- * 섹션 PROPS 는 export 되지 않으므로(컴포넌트 파일 내부 const) 본 가드는 소스 텍스트에서 배열을
+ * 섹션 PROPS 는 공통 유틸리티에 보관되므로 본 가드는 소스 텍스트에서 배열을
  * 정규식 추출해 union 을 만든다 — import 불가능한 내부 상수의 정적 계약을 텍스트 레벨로 검증.
  */
 import { describe, it, expect } from "vitest";
@@ -19,10 +19,10 @@ const here = dirname(fileURLToPath(import.meta.url));
 const sectionsDir = resolve(here, "../../sections");
 
 const SECTION_FILES: Record<string, string> = {
-  TRANSFORM_PROPS: "TransformSection.tsx",
-  LAYOUT_PROPS: "LayoutSection.tsx",
-  APPEARANCE_PROPS: "AppearanceSection.tsx",
-  TYPOGRAPHY_PROPS: "TypographySection.tsx",
+  TRANSFORM_PROPS: "styleSectionProps.ts",
+  LAYOUT_PROPS: "styleSectionProps.ts",
+  APPEARANCE_PROPS: "styleSectionProps.ts",
+  TYPOGRAPHY_PROPS: "styleSectionProps.ts",
 };
 
 /** `const NAME_PROPS = [ "a", "b", ... ];` 배열 리터럴에서 문자열 항목을 추출. */

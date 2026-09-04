@@ -24,7 +24,7 @@ import {
   publishGuideDrag,
   type GuideDragState,
 } from "../interaction/guidePresentation";
-import { isRulerEventTarget } from "../../components/RulerOverlay";
+import { isRulerEventTarget } from "../../components/rulerOverlayUtils";
 import { guideCursorForAxis } from "../../components/rulerMetrics";
 import { resolveTopPageIdAtPoint } from "../interaction/selectionModel";
 import { commitGuideDrag } from "../viewport/pageGuideActions";

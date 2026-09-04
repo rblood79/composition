@@ -8,9 +8,9 @@ export {
 } from "./ContextMenuOverlay";
 export {
   ContextMenuProvider,
-  useContextMenu,
   type ContextMenuProviderProps,
 } from "./useContextMenu";
+export { useContextMenu } from "./useContextMenuHook";
 export {
   isEditableContextMenuTarget,
   resolveContextMenuDisposition,

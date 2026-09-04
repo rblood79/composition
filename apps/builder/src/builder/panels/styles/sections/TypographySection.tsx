@@ -49,6 +49,7 @@ import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { getFontWeightOptions } from "../../../fonts/customFonts";
 import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
 import { useFontRegistry } from "../../fonts/useFontRegistry";
+import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
 import {
   semanticLabelKeys,
   translateKey,
@@ -501,24 +502,6 @@ const TypographySectionContent = memo(function TypographySectionContent() {
 /**
  * TypographySection - 외부 래퍼 (PropertySection 관리)
  */
-export const TYPOGRAPHY_PROPS = [
-  "fontFamily",
-  "fontSize",
-  "fontWeight",
-  "fontStyle",
-  "lineHeight",
-  "letterSpacing",
-  "color",
-  "textAlign",
-  "textDecoration",
-  "textTransform",
-  "verticalAlign",
-  "whiteSpace",
-  "wordBreak",
-  "overflowWrap",
-  "textOverflow",
-];
-
 export const TypographySection = memo(function TypographySection() {
   const resetStyles = useResetStyles();
   const hasDirty = useHasDirtyStyles(TYPOGRAPHY_PROPS);

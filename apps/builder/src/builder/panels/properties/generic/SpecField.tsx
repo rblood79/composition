@@ -11,6 +11,7 @@ import {
 import { inferLabel } from "./inferLabel";
 import { ChildItemManager } from "./ChildItemManager";
 import { ItemsManager } from "./ItemsManager";
+import { SIZE_DISPLAY_LABELS } from "./specFieldConstants";
 
 interface SpecFieldProps {
   field: FieldDef;
@@ -19,14 +20,6 @@ interface SpecFieldProps {
   onUpdate: (updatedProps: Record<string, unknown>) => void;
   elementId?: string;
 }
-
-export const SIZE_DISPLAY_LABELS: Record<string, string> = {
-  xs: "XS",
-  sm: "S",
-  md: "M",
-  lg: "L",
-  xl: "XL",
-};
 
 export const SpecField = memo(function SpecField({
   field,

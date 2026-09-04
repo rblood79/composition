@@ -12,7 +12,6 @@ import { useCanonicalPanelElements } from "./useCanonicalPanelElements";
 import { ActionIconButton, Section } from "../../components";
 import { LayerTree } from "./tree/LayerTree";
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { resolveEditingContextForTreeSelection } from "../../utils/hierarchicalSelection";
 import {
   scheduleCancelableBackgroundTask,
   scheduleNextFrame,
@@ -20,85 +19,18 @@ import {
 import type { PanelNode } from "../panelNode";
 import { useI18n } from "../../../i18n";
 import { NAVIGATOR_SECTION_IDS } from "./navigatorSectionIds";
+import {
+  buildLayerSectionElementMap,
+  collectAutoExpandedParents,
+  resolveLayerTreeEditingContext,
+  resolveLayerTreeSelectionIntent,
+} from "./layersSectionUtils";
 
 interface LayersSectionProps {
   currentPageId: string;
 }
 
 const EMPTY_ELEMENTS: PanelNode[] = [];
-
-export function buildLayerSectionElementMap(
-  currentPageElements: PanelNode[],
-  canonicalElements: readonly PanelNode[] | null,
-): Map<string, PanelNode> {
-  const map = new Map<string, PanelNode>();
-  if (canonicalElements) {
-    for (const element of canonicalElements) {
-      map.set(element.id, element);
-    }
-  }
-  for (const element of currentPageElements) {
-    if (!map.has(element.id)) map.set(element.id, element);
-  }
-  return map;
-}
-
-export function resolveLayerTreeEditingContext(
-  element: PanelNode,
-  elementsMap: Map<string, PanelNode>,
-): string | null {
-  const lookup = elementsMap.has(element.id)
-    ? elementsMap
-    : new Map(elementsMap).set(element.id, element);
-  return resolveEditingContextForTreeSelection(element.id, lookup);
-}
-
-/**
- * 선택된 요소 **전부**의 조상을 펼침 대상으로 모은다.
- *
- * 단일 선택만 보면 다중 선택의 나머지 요소가 접힌 채 남아 선택 표시가 부분적으로만
- * 보인다 — 캔버스에서 shift 로 잡은 선택이 트리에 반쯤만 나타나는 증상.
- */
-export function collectAutoExpandedParents(
-  selectedIds: readonly string[],
-  elementsMap: Map<string, PanelNode>,
-): Set<Key> {
-  const parents = new Set<Key>();
-  const visited = new Set<string>();
-
-  for (const selectedId of selectedIds) {
-    let currentParentId = elementsMap.get(selectedId)?.parent_id ?? null;
-    while (currentParentId && !visited.has(currentParentId)) {
-      visited.add(currentParentId);
-      parents.add(currentParentId);
-      currentParentId = elementsMap.get(currentParentId)?.parent_id ?? null;
-    }
-  }
-  return parents;
-}
-
-export type LayerTreeSelectionIntent =
-  | { readonly kind: "clear" }
-  | { readonly kind: "single"; readonly element: PanelNode }
-  | { readonly kind: "multiple"; readonly elementIds: string[] };
-
-/**
- * 트리 선택 결과를 store 호출로 번역한다.
- *
- * 단일 선택만 editingContext 를 조정한다. 다중 선택에서 context 를 옮기면 마지막
- * 클릭 하나가 나머지의 깊이 기준을 바꿔 버리며, 캔버스의 shift 경로도 같은 이유로
- * context 를 건드리지 않는다 (`useCanvasElementSelectionHandlers`).
- */
-export function resolveLayerTreeSelectionIntent(
-  elements: readonly PanelNode[],
-): LayerTreeSelectionIntent {
-  if (elements.length === 0) return { kind: "clear" };
-  if (elements.length === 1) return { element: elements[0], kind: "single" };
-  return {
-    elementIds: elements.map((element) => element.id),
-    kind: "multiple",
-  };
-}
 
 export const LayersSection = memo(function LayersSection({
   currentPageId,

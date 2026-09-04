@@ -36,10 +36,8 @@ import { useNavigate } from "react-router";
 import { iconProps } from "../../utils/ui/uiConstants";
 import { usePanelLayout } from "../layout";
 import { ActionIconButton } from "../components/ui/ActionIconButton";
-import {
-  ActionTooltipTrigger,
-  shortcutDisplayFor,
-} from "../components/ui/ActionTooltip";
+import { ActionTooltipTrigger } from "../components/ui/ActionTooltip";
+import { shortcutDisplayFor } from "../components/ui/actionTooltipUtils";
 import {
   bindHandlersToDefinitions,
   useKeyboardShortcutsRegistry,

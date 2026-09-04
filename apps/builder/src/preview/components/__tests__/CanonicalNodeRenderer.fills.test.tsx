@@ -6,11 +6,11 @@ import { FillType } from "../../../types/builder/fill.types";
 
 import type { RenderContext } from "../../types/index";
 import { getRuntimeStore } from "../../store/runtimeStore";
+import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
 import {
-  CanonicalNodeRenderer,
   resolvePresentationLayoutProps,
   resolvePresentationPaintProps,
-} from "../CanonicalNodeRenderer";
+} from "../canonicalPresentationProps";
 
 /**
  * Background(fills) canonical Preview 회귀 테스트 (2026-07-15).

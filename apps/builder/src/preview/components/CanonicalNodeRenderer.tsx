@@ -30,41 +30,16 @@ import {
   toReactStyle,
   type EventHandlerMap,
 } from "@composition/shared";
-import { Badge } from "@composition/shared/components/Badge";
-import { Calendar } from "@composition/shared/components/Calendar";
-import { ComboBox } from "@composition/shared/components/ComboBox";
-import { DatePicker } from "@composition/shared/components/DatePicker";
-import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
-import { Dialog } from "@composition/shared/components/Dialog";
-import { DropZone } from "@composition/shared/components/DropZone";
-import { GridList } from "@composition/shared/components/GridList";
-import { Icon } from "@composition/shared/components/Icon";
-import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
-import { StatusLight } from "@composition/shared/components/StatusLight";
-import { Avatar } from "@composition/shared/components/Avatar";
-import { ProgressCircle } from "@composition/shared/components/ProgressCircle";
-import { ListBox } from "@composition/shared/components/ListBox";
-import { MenuButton } from "@composition/shared/components/Menu";
-import { Modal } from "@composition/shared/components/Modal";
-import { Breadcrumbs } from "@composition/shared/components/Breadcrumbs";
-import { Popover } from "@composition/shared/components/Popover";
-import { RangeCalendar } from "@composition/shared/components/RangeCalendar";
-import { Select } from "@composition/shared/components/Select";
-import { Skeleton } from "@composition/shared/components/Skeleton";
-import Table from "@composition/shared/components/Table";
-import { Tabs } from "@composition/shared/components/Tabs";
-import { TagGroup } from "@composition/shared/components/TagGroup";
-import { Tooltip } from "@composition/shared/components/Tooltip";
-import { Tree } from "@composition/shared/components/Tree";
 import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
   usesButtonBaseUtility,
 } from "../utils/specCatalogBacked";
 import {
-  deriveDelegatingInternalRenderers,
-  deriveDelegatingRacRenderers,
-} from "./renderFacetDeclaration";
+  DELEGATING_INTERNAL_RENDERERS,
+  DELEGATING_RAC_RENDERERS,
+  INTERNAL_RENDERERS,
+} from "./canonicalRendererRegistry";
 import type { ResolvedNode } from "@composition/shared";
 // `../types/index` 가 shared 렌더 타입을 그대로 재수출하므로 별칭 import 와
 // `as unknown as` 이중 단언이 필요 없어졌다 (ADR 없이 타입 검사만 되살아난 자리).
@@ -77,13 +52,11 @@ import {
 } from "../../adapters/canonical/frameMirror";
 import { readLegacyMetadataCustomId } from "../../adapters/canonical/legacyMetadata";
 import type { FillItem } from "../../types/builder/fill.types";
-import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
-import type { BoxShadowPresentationValue } from "../../builder/presentation/boxShadowPresentation";
-import { parsePresentationOpacity } from "../../builder/presentation/editorPresentationOpacity";
+import { normalizePresentationSpacingStyle } from "../../builder/presentation/editorPresentationStyleNormalization";
 import {
-  normalizePresentationSpacingPatch,
-  normalizePresentationSpacingStyle,
-} from "../../builder/presentation/editorPresentationStyleNormalization";
+  resolvePresentationLayoutProps,
+  resolvePresentationPaintProps,
+} from "./canonicalPresentationProps";
 import { resolvePresentationTextMetricProps } from "./presentationTextMetricProps";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -125,77 +98,6 @@ interface CanonicalNodeRendererProps {
  */
 // ADR-914 Phase 1: entryUniverseContract 가 render facet 의 internal membership 을
 //   mirror 검증하도록 export (값/동작 불변, 가시성만 확장).
-export const INTERNAL_RENDERERS: Readonly<
-  Record<string, React.ElementType | undefined>
-> = {
-  icon: Icon,
-  badge: Badge,
-  // ADR-912 단계 5 선행-1: loading placeholder internal leaf
-  skeleton: Skeleton,
-  // ADR-912 진로 1번: 빈 상태(empty state) internal leaf (heading/description props 직접 소비)
-  illustrated: IllustratedMessage,
-  // ADR-912 진로 1번: 상태 표시 dot+label internal leaf (variant/size/children props 직접 소비)
-  statuslight: StatusLight,
-  // ADR-912 진로 1번: 사용자 아바타 internal leaf (src/initials/size props 직접 소비, image generic 불가)
-  avatar: Avatar,
-  // ADR-912 진로 1번: 원형 진행률 internal leaf (value/size/isIndeterminate props 직접 소비, SVG ring generic 불가)
-  progresscircle: ProgressCircle,
-  // family ④ collections — composition wrapper (useCollectionData 포함)
-  listbox: ListBox,
-  menu: MenuButton,
-  select: Select,
-  combobox: ComboBox,
-  tabs: Tabs,
-  taggroup: TagGroup,
-  gridlist: GridList,
-  // ADR-912 영역 B (A): Breadcrumbs — items SSOT + crumb projection (delegating renderBreadcrumbs)
-  breadcrumbs: Breadcrumbs,
-  // family ⑤ Tree·Table — composition wrapper (재귀/2D collection, useCollectionData)
-  tree: Tree,
-  table: Table,
-  // family ⑥ overlays — composition wrapper (portal/overlay, skiaLegacy)
-  dialog: Dialog,
-  modal: Modal,
-  popover: Popover,
-  tooltip: Tooltip,
-  dropzone: DropZone,
-  // family ⑦ date — composition wrapper (날짜 grid/portal, skiaLegacy). color 는 사용자 지시 제외.
-  calendar: Calendar,
-  rangecalendar: RangeCalendar,
-  datepicker: DatePicker,
-  daterangepicker: DateRangePicker,
-};
-
-/**
- * ADR-912 — rendererMap(element, context) 함수에 위임하는 internal renderer 키 집합.
- *
- * 이 집합의 renderer 는 자식 element-tree context(childrenByParent)가 필요한 self-compose
- * 컴포넌트라, INTERNAL_RENDERERS 의 React.ElementType + generic 자식 재귀로는 표현 불가하다.
- * cutover DOM 경로가 rendererMap[type](LayoutRenderers)로 위임하고 generic 자식 재귀는 skip한다.
- *
- * ADR-914 Phase 3-A (2026-06-20): SSOT 를 `renderFacetDeclaration.ts` 로 역전했다. 기존
- * hardcoded 28종(internal 18 + rac 10) membership + 위임 사유는 declaration 으로 1:1 이전됐고,
- * 본 set 은 `deriveDelegatingInternalRenderers()` 로 파생된다 (값 byte-identical, insertion
- * order 보존 — `renderFacetDeclarationContract.test.ts` parity A 가 무손실 검증). 소비처
- * 분기 위치(L467-471)는 불변. 삭제 0 (rendererMap dead row 삭제는 dead 확증 후 별도 slice).
- */
-export const DELEGATING_INTERNAL_RENDERERS: ReadonlySet<string> =
-  deriveDelegatingInternalRenderers();
-
-/**
- * ADR-912 — rac source compound 중 rendererMap self-compose 렌더러로 위임할 type 집합.
- *
- * DELEGATING_INTERNAL_RENDERERS 는 binding.source.kind==="internal" 전용인데, Slider 등은
- * source.kind==="rac" 라 그 경로를 못 탄다. RAC[component] 로 직접 렌더하면 canonical 자식
- * sub-part(SliderTrack/Output/Thumb 등)를 generic 재귀 → 소문자 raw tag 누수 + RAC 의미 깨짐.
- * render{Type} wrapper 가 자기완결 렌더하므로 rendererMap 위임 + 자식 재귀 skip 한다.
- *
- * ADR-914 Phase 3-A (2026-06-20): SSOT 를 `renderFacetDeclaration.ts` 로 역전 (위 internal
- * set 동형). membership + 위임 사유는 declaration 으로 1:1 이전, 본 set 은
- * `deriveDelegatingRacRenderers()` 파생 (값 byte-identical, parity A 검증).
- */
-export const DELEGATING_RAC_RENDERERS: ReadonlySet<string> =
-  deriveDelegatingRacRenderers();
 
 /**
  * collection item type → **호스트 collection type** (orphan item 크래시 차단).
@@ -349,76 +251,6 @@ function mergeInteractionOverride(
   return merged;
 }
 
-function isTypedBoxShadowPresentationValue(
-  value: unknown,
-): value is BoxShadowPresentationValue {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const layers = (value as { layers?: unknown }).layers;
-  if (!Array.isArray(layers) || layers.length === 0) return false;
-  return layers.every((layer) => {
-    if (!layer || typeof layer !== "object" || Array.isArray(layer)) {
-      return false;
-    }
-    const candidate = layer as Partial<
-      BoxShadowPresentationValue["layers"][number]
-    >;
-    return (
-      typeof candidate.offsetX === "number" &&
-      Number.isFinite(candidate.offsetX) &&
-      typeof candidate.offsetY === "number" &&
-      Number.isFinite(candidate.offsetY) &&
-      typeof candidate.blur === "number" &&
-      Number.isFinite(candidate.blur) &&
-      candidate.blur >= 0 &&
-      typeof candidate.spread === "number" &&
-      Number.isFinite(candidate.spread) &&
-      typeof candidate.color === "string" &&
-      candidate.color.length > 0 &&
-      typeof candidate.inset === "boolean"
-    );
-  });
-}
-
-function formatBoxShadowNumber(value: number): string {
-  if (!Number.isFinite(value)) return "0";
-  const rounded = Math.round(value * 1000) / 1000;
-  return Object.is(rounded, -0) ? "0" : String(rounded);
-}
-
-/**
- * Preview iframe owns only this pure typed-value serialization step. It does
- * not import the builder style parser and therefore cannot affect geometry.
- */
-function serializeTypedBoxShadowPresentation(
-  value: BoxShadowPresentationValue,
-): string {
-  return value.layers
-    .map(
-      (layer) =>
-        `${layer.inset ? "inset " : ""}${formatBoxShadowNumber(layer.offsetX)}px ${formatBoxShadowNumber(layer.offsetY)}px ${formatBoxShadowNumber(layer.blur)}px ${formatBoxShadowNumber(layer.spread)}px ${layer.color}`,
-    )
-    .join(", ");
-}
-
-function boxShadowTopology(raw: unknown): readonly boolean[] | null {
-  if (typeof raw !== "string" || raw.trim() === "" || raw === "none") {
-    return null;
-  }
-  return raw.split(/,(?![^(]*\))/).map((layer) => /\binset\b/.test(layer));
-}
-
-function hasSameBoxShadowTopology(
-  base: unknown,
-  value: BoxShadowPresentationValue,
-): boolean {
-  const baseTopology = boxShadowTopology(base);
-  return (
-    baseTopology !== null &&
-    baseTopology.length === value.layers.length &&
-    baseTopology.every((inset, index) => inset === value.layers[index]?.inset)
-  );
-}
-
 function resolvePresentationFills(
   canonicalFills: ResolvedNode["fills"],
   mutations:
@@ -432,139 +264,6 @@ function resolvePresentationFills(
     }
   }
   return fills;
-}
-
-/** Skia layout bridge와 동일한 보수적 layout presentation allowlist. */
-export function resolvePresentationLayoutProps(
-  base: Record<string, unknown>,
-  mutations: readonly EditorMutationDescriptor[] | undefined,
-  hasChildren = false,
-): Record<string, unknown> {
-  const baseStyle = base.style;
-  if (!baseStyle || typeof baseStyle !== "object") return base;
-  const style = normalizePresentationSpacingStyle(
-    baseStyle as Record<string, unknown>,
-  );
-  if (style.position === "fixed" || style.position === "sticky") return base;
-
-  let nextStyle = style;
-  for (const mutation of mutations ?? []) {
-    const rawPatch =
-      mutation.type === "style.patch"
-        ? mutation.patch
-        : mutation.type === "geometry.patch"
-          ? mutation.patch
-          : null;
-    if (!rawPatch) continue;
-    const patch =
-      mutation.type === "style.patch"
-        ? normalizePresentationSpacingPatch(rawPatch)
-        : rawPatch;
-    const keys = Object.keys(patch);
-    const isStylePatch = mutation.type === "style.patch";
-    const allowedKeys = isStylePatch
-      ? [
-          "left",
-          "top",
-          "width",
-          "height",
-          "padding",
-          "paddingTop",
-          "paddingRight",
-          "paddingBottom",
-          "paddingLeft",
-          "gap",
-          "rowGap",
-          "columnGap",
-        ]
-      : ["x", "y", "width", "height"];
-    const hasSizePatch = keys.includes("width") || keys.includes("height");
-    const hasPositionPatch = keys.some((key) =>
-      ["left", "top", "x", "y"].includes(key),
-    );
-    if (
-      keys.length === 0 ||
-      (hasPositionPatch && style.position !== "absolute") ||
-      (hasChildren && style.position === "absolute" && hasSizePatch) ||
-      keys.some((key) => !allowedKeys.includes(key)) ||
-      keys.some(
-        (key) =>
-          typeof patch[key] !== "number" ||
-          !Number.isFinite(patch[key]) ||
-          patch[key] < 0,
-      )
-    ) {
-      continue;
-    }
-    nextStyle = {
-      ...nextStyle,
-      ...(isStylePatch
-        ? patch
-        : {
-            ...(patch.x !== undefined ? { left: patch.x } : {}),
-            ...(patch.y !== undefined ? { top: patch.y } : {}),
-          }),
-    };
-  }
-  if (nextStyle === style) return base;
-  return { ...base, style: nextStyle };
-}
-
-export function resolvePresentationPaintProps(
-  base: Record<string, unknown>,
-  mutations: readonly EditorMutationDescriptor[] | undefined,
-): Record<string, unknown> {
-  const baseStyle = base.style;
-  if (!baseStyle || typeof baseStyle !== "object") return base;
-  const style = baseStyle as Record<string, unknown>;
-  let nextStyle = style;
-  for (const mutation of mutations ?? []) {
-    if (mutation.type !== "style.patch") continue;
-    const patch = mutation.patch;
-    const keys = Object.keys(patch);
-    if (
-      keys.length === 0 ||
-      keys.some(
-        (key) =>
-          key !== "borderColor" &&
-          key !== "boxShadow" &&
-          key !== "color" &&
-          key !== "opacity",
-      ) ||
-      (keys.includes("borderColor") && typeof patch.borderColor !== "string") ||
-      (keys.includes("color") && typeof patch.color !== "string") ||
-      (keys.includes("opacity") &&
-        parsePresentationOpacity(patch.opacity) === null) ||
-      (keys.includes("boxShadow") &&
-        typeof patch.boxShadow !== "string" &&
-        !isTypedBoxShadowPresentationValue(patch.boxShadow))
-    ) {
-      continue;
-    }
-    const typedBoxShadow = isTypedBoxShadowPresentationValue(patch.boxShadow)
-      ? patch.boxShadow
-      : null;
-    if (
-      typedBoxShadow &&
-      !hasSameBoxShadowTopology(style.boxShadow, typedBoxShadow)
-    ) {
-      continue;
-    }
-    const boxShadow = typedBoxShadow
-      ? serializeTypedBoxShadowPresentation(typedBoxShadow)
-      : patch.boxShadow;
-    nextStyle = {
-      ...nextStyle,
-      ...(keys.includes("borderColor")
-        ? { borderColor: patch.borderColor }
-        : {}),
-      ...(keys.includes("color") ? { color: patch.color } : {}),
-      ...(keys.includes("opacity") ? { opacity: patch.opacity } : {}),
-      ...(keys.includes("boxShadow") ? { boxShadow } : {}),
-    };
-  }
-  if (nextStyle === style) return base;
-  return { ...base, style: nextStyle };
 }
 
 export function CanonicalNodeRenderer({

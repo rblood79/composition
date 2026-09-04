@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getPrimitiveBinding } from "@composition/shared";
-import { DELEGATING_INTERNAL_RENDERERS } from "../../../../preview/components/CanonicalNodeRenderer";
+import { DELEGATING_INTERNAL_RENDERERS } from "../../../../preview/components/canonicalRendererRegistry";
 
 import {
   SHELL_ONLY_CONTAINER_TAGS,

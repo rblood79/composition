@@ -45,9 +45,9 @@ function extractPropsArray(fileName: string, constName: string): string[] {
 
 describe("ADR-154 R9 / ADR-168 — responsive eligible allowlist 드리프트 가드", () => {
   it("SECTION_EDITABLE_RESPONSIVE_PROPS === LAYOUT_PROPS ∪ TRANSFORM_PROPS", () => {
-    const layout = extractPropsArray("LayoutSection.tsx", "LAYOUT_PROPS");
+    const layout = extractPropsArray("styleSectionProps.ts", "LAYOUT_PROPS");
     const transform = extractPropsArray(
-      "TransformSection.tsx",
+      "styleSectionProps.ts",
       "TRANSFORM_PROPS",
     );
     expect(layout.length).toBeGreaterThan(0);

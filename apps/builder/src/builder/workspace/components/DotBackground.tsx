@@ -4,47 +4,16 @@ import {
   getViewportPresentationSnapshot,
   subscribeViewportPresentation,
 } from "../canvas/viewport/viewportPresentation";
-
-export const DOT_BACKGROUND_BASE_GAP = 16;
-export const DOT_BACKGROUND_DOT_SIZE = 1;
+import {
+  DOT_BACKGROUND_INSET,
+  calculateDotBackgroundMetrics,
+} from "./dotBackgroundMetrics";
 const GLOW_RADIUS = 96;
 // GLOW_RADIUS 와 동기화 — glow mask 가 viewport 경계에서 clip 되지 않도록 box 오버사이즈.
 // CSS `--dot-inset` 로 주입, glow 커서 좌표도 +BG_INSET 보정 (박스 오프셋 상쇄).
-export const DOT_BACKGROUND_INSET = 96;
 const IDLE_FADE_MS = 1000;
 // ADR-047: 상시 will-change 금지 — pan 중에만 합성 레이어 힌트, idle 시 해제.
 const WILL_CHANGE_IDLE_MS = 200;
-
-interface DotBackgroundMetricsInput {
-  panOffset: { x: number; y: number };
-  zoom: number;
-}
-
-export interface DotBackgroundMetrics {
-  gap: number;
-  tx: number;
-  ty: number;
-  dotSize: number;
-}
-
-function positiveModulo(value: number, modulus: number): number {
-  return ((value % modulus) + modulus) % modulus;
-}
-
-export function calculateDotBackgroundMetrics({
-  panOffset,
-  zoom,
-}: DotBackgroundMetricsInput): DotBackgroundMetrics {
-  const gap = DOT_BACKGROUND_BASE_GAP * zoom;
-  return {
-    gap,
-    // `.dot-background` 박스는 -DOT_BACKGROUND_INSET 에서 시작한다. 실제 화면 phase가
-    // Skia의 `pan + world * zoom` 과 같도록 inset을 더해 보정한다.
-    tx: positiveModulo(panOffset.x + DOT_BACKGROUND_INSET, gap),
-    ty: positiveModulo(panOffset.y + DOT_BACKGROUND_INSET, gap),
-    dotSize: DOT_BACKGROUND_DOT_SIZE * zoom,
-  };
-}
 
 export function DotBackground() {
   const baseRef = useRef<HTMLDivElement>(null);

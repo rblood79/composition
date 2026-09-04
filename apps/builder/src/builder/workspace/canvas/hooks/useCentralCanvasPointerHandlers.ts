@@ -753,6 +753,7 @@ export function useCentralCanvasPointerHandlers({
     lastClickTargetRef,
     lastClickTimeRef,
     onEndDrag,
+    onCancelDrag,
     onStartMove,
     onUpdateDrag,
     pageSelectionEnabled,

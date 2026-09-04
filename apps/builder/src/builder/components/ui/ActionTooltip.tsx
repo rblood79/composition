@@ -13,12 +13,9 @@
 
 import { Tooltip, TooltipTrigger, OverlayArrow } from "react-aria-components";
 import type { ReactElement, ReactNode } from "react";
-import {
-  SHORTCUT_DEFINITIONS,
-  type ShortcutId,
-} from "../../config/keyboardShortcuts";
-import { formatShortcut } from "@/builder/hooks";
+import { type ShortcutId } from "../../config/keyboardShortcuts";
 import { useI18n } from "@/i18n";
+import { shortcutDisplayFor } from "./actionTooltipUtils";
 import "./ActionTooltip.css";
 
 export type ActionTooltipPlacement = "top" | "bottom" | "left" | "right";
@@ -34,56 +31,8 @@ export interface ActionTooltipOptions {
   delay?: number;
 }
 
-/** 정의에서 파생한 표기 — 정의가 없으면 undefined. */
-export function shortcutDisplayFor(
-  shortcutId: ShortcutId | undefined,
-): string | undefined {
-  const def = shortcutId ? SHORTCUT_DEFINITIONS[shortcutId] : undefined;
-  return def
-    ? formatShortcut({ key: def.key, modifier: def.modifier })
-    : undefined;
-}
-
 /**
- * 트리거 요소에 툴팁을 붙인다. 라벨을 만들 수 없으면 요소를 그대로 돌려준다.
- */
-export function withActionTooltip(
-  trigger: ReactElement,
-  {
-    tooltip,
-    shortcutId,
-    tooltipPlacement = "bottom",
-    delay = 700,
-  }: ActionTooltipOptions,
-): ReactElement {
-  const shortcutDisplay = shortcutDisplayFor(shortcutId);
-
-  // 라벨을 만들 재료가 없으면 툴팁 자체가 없다.
-  if (!tooltip && !shortcutId) {
-    return trigger;
-  }
-
-  return (
-    <TooltipTrigger delay={delay}>
-      {trigger}
-      <Tooltip placement={tooltipPlacement} className="action-tooltip">
-        <OverlayArrow>
-          <svg width={8} height={8} viewBox="0 0 8 8">
-            <path d="M0 0 L4 4 L8 0" />
-          </svg>
-        </OverlayArrow>
-        <ActionTooltipLabel tooltip={tooltip} shortcutId={shortcutId} />
-        {shortcutDisplay && (
-          <kbd className="action-tooltip-kbd">{shortcutDisplay}</kbd>
-        )}
-      </Tooltip>
-    </TooltipTrigger>
-  );
-}
-
-/**
- * 라벨은 표시 시점에 해소한다 (ADR-200) — `withActionTooltip` 은 컴포넌트가
- * 아니라 훅을 쓸 수 없으므로, 훅이 필요한 조각만 컴포넌트로 떼어 낸다.
+ * 라벨은 표시 시점에 해소한다 (ADR-200).
  */
 function ActionTooltipLabel({
   tooltip,
@@ -109,5 +58,31 @@ export function ActionTooltipTrigger({
   children,
   ...options
 }: ActionTooltipTriggerProps): ReactNode {
-  return withActionTooltip(children, options);
+  const {
+    tooltip,
+    shortcutId,
+    tooltipPlacement = "bottom",
+    delay = 700,
+  } = options;
+  const shortcutDisplay = shortcutDisplayFor(shortcutId);
+
+  // 라벨을 만들 재료가 없으면 툴팁 자체가 없다.
+  if (!tooltip && !shortcutId) return children;
+
+  return (
+    <TooltipTrigger delay={delay}>
+      {children}
+      <Tooltip placement={tooltipPlacement} className="action-tooltip">
+        <OverlayArrow>
+          <svg width={8} height={8} viewBox="0 0 8 8">
+            <path d="M0 0 L4 4 L8 0" />
+          </svg>
+        </OverlayArrow>
+        <ActionTooltipLabel tooltip={tooltip} shortcutId={shortcutId} />
+        {shortcutDisplay && (
+          <kbd className="action-tooltip-kbd">{shortcutDisplay}</kbd>
+        )}
+      </Tooltip>
+    </TooltipTrigger>
+  );
 }

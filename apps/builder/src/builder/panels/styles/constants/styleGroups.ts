@@ -18,10 +18,12 @@
  * screen 그룹은 style prop 이 아니라 breakpoint override / visibility 라 목록이 비어 있다.
  */
 
-import { TRANSFORM_PROPS } from "../sections/TransformSection";
-import { LAYOUT_PROPS } from "../sections/LayoutSection";
-import { APPEARANCE_PROPS } from "../sections/AppearanceSection";
-import { TYPOGRAPHY_PROPS } from "../sections/TypographySection";
+import {
+  APPEARANCE_PROPS,
+  LAYOUT_PROPS,
+  TRANSFORM_PROPS,
+  TYPOGRAPHY_PROPS,
+} from "../sections/styleSectionProps";
 
 export type StyleGroupId = "layout" | "style" | "text" | "screen";
 

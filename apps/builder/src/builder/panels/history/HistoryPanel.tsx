@@ -325,7 +325,7 @@ function HistoryPanelContent() {
     }
 
     return ordered;
-  }, [entries, activeDoc]);
+  }, [entries, activeDoc, t]);
 
   return (
     <div className="panel history-panel">

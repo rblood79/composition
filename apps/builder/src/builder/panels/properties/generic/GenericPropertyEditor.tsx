@@ -11,7 +11,8 @@ import type { ComponentEditorProps } from "../../../inspector/types";
 import { CatalogInspectorFields } from "./CatalogInspectorFields";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { inferLabel } from "./inferLabel";
-import { SIZE_DISPLAY_LABELS, SpecField } from "./SpecField";
+import { SpecField } from "./SpecField";
+import { SIZE_DISPLAY_LABELS } from "./specFieldConstants";
 import { useCanonicalPropertyElementsMap } from "../hooks/useCanonicalPropertyRead";
 
 interface GenericPropertyEditorProps extends ComponentEditorProps {

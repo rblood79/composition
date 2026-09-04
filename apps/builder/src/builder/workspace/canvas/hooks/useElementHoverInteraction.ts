@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useRef } from "react";
-import { isRulerEventTarget } from "../../components/RulerOverlay";
+import { isRulerEventTarget } from "../../components/rulerOverlayUtils";
 import type { MutableRefObject, RefObject } from "react";
 import { useStore } from "../../../stores";
 import { useViewportSyncStore } from "../stores";

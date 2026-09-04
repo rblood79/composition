@@ -5,7 +5,7 @@ import { getPrimitiveBinding } from "@composition/shared";
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
-} from "../CanonicalNodeRenderer";
+} from "../canonicalRendererRegistry";
 
 /**
  * ADR-912 R1 Select family rebuild (2026-06-12) — DELEGATING 위임 멤버십 회귀 가드.

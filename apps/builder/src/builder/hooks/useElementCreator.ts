@@ -310,6 +310,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
     [
       getDefaultProps,
       handleError,
+      t,
       addRollbackPoint,
       retryOperation,
       validateElements,

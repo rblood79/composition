@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -10,6 +8,7 @@ import {
 import { buildContextMenuItems } from "./buildContextMenuItems";
 import { ContextMenuOverlay } from "./ContextMenuOverlay";
 import { resolveContextMenuDisposition } from "./contextMenuPolicy";
+import { ContextMenuContext } from "./contextMenuContext";
 import type {
   ContextMenuController,
   ContextMenuDeps,
@@ -18,8 +17,6 @@ import type {
 } from "./types";
 
 const EMPTY_CONTEXT_MENU_DEPS: ContextMenuDeps = {};
-const ContextMenuContext = createContext<ContextMenuController | null>(null);
-
 export interface ContextMenuProviderProps {
   children: ReactNode;
   deps?: ContextMenuDeps;
@@ -118,13 +115,4 @@ export function ContextMenuProvider({
       />
     </ContextMenuContext.Provider>
   );
-}
-
-export function useContextMenu(): ContextMenuController {
-  const context = useContext(ContextMenuContext);
-  if (!context) {
-    throw new Error("useContextMenu must be used within a ContextMenuProvider");
-  }
-
-  return context;
 }

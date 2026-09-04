@@ -7,7 +7,7 @@ import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntim
 import {
   resolvePresentationLayoutProps,
   resolvePresentationPaintProps,
-} from "../../preview/components/CanonicalNodeRenderer";
+} from "../../preview/components/canonicalPresentationProps";
 
 const target = { kind: "canonical-node" as const, nodeId: "spacing-node" };
 

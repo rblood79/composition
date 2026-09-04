@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder lint 경계를 정리했습니다] - 2026-09-04
+
+### Changed
+
+- Fast Refresh 경고를 없애기 위해 Context·panel helper·style props·Preview registry와 순수 presentation helper를 컴포넌트 모듈에서 분리했습니다. 기존 import·정적 parity 계약은 유지합니다.
+
+### Fixed
+
+- locale callback 의존성, drag/viewport 이벤트 수명주기, Ruler label pool cleanup의 stale closure 경고를 수정했습니다. P2 검토가 필요한 8개 경고(clipboard·shortcut registry·일부 memo dependency)는 동작 계약 확인 후 별도 처리 대상으로 남겼습니다.
+
+### Tests
+
+- Builder lint가 `0 errors / 8 review warnings`로 통과하고, type-check·registration·agent-catalog preflight와 관련 focused Vitest가 통과했습니다.
+
 ## [Legacy layout/history 경계를 canonical-only로 줄였습니다] - 2026-09-04
 
 ### Changed

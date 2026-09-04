@@ -17,7 +17,6 @@ vi.mock("../../../../services/ai/createAgentRunner", () => ({
     if (!scripted.configured) return null;
     return {
       orchestrated: true,
-      // eslint-disable-next-line require-yield
       async *runAgentLoop(_messages: unknown, context: unknown) {
         scripted.lastContext = context;
         for (const event of scripted.events) yield event;

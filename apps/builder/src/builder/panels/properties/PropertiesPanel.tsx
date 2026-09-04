@@ -28,12 +28,11 @@ import { ElementSlotSelector } from "./editors/ElementSlotSelector";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 import { FrameSlotSection } from "./FrameSlotSection";
-import {
-  BUTTON_CHILD_HOST_TAGS,
-  ButtonChildFields,
-} from "./ButtonChildSection";
+import { ButtonChildFields } from "./ButtonChildSection";
+import { BUTTON_CHILD_HOST_TAGS } from "./buttonChildSectionUtils";
 import { ElementAttributesSection } from "./ElementAttributesSection";
-import { PageBodySection, DEDICATED_SECTION_TYPES } from "./PageBodySection";
+import { PageBodySection } from "./PageBodySection";
+import { DEDICATED_SECTION_TYPES } from "./pageBodySectionConstants";
 import { ActionIconButton } from "../../components/ui";
 import { Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";

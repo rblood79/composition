@@ -1,29 +1,10 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import type { PanelId } from "../panels/core/types";
 import type { PanelDropCandidate } from "./panelWorkspaceZoneDrop";
-
-interface PanelSnapInteractionActions {
-  beginPanelDrag: (panelId: PanelId) => void;
-  updatePanelDropCandidate: (candidate: PanelDropCandidate) => void;
-  endPanelDrag: () => void;
-}
-
-interface PanelSnapInteractionState {
-  draggedPanelId: PanelId | null;
-  dropCandidate: PanelDropCandidate;
-}
-
-const PanelSnapInteractionActionsContext =
-  createContext<PanelSnapInteractionActions | null>(null);
-const PanelSnapInteractionStateContext =
-  createContext<PanelSnapInteractionState | null>(null);
+import {
+  PanelSnapInteractionActionsContext,
+  PanelSnapInteractionStateContext,
+} from "./panelSnapInteractionContext";
 
 export function PanelSnapInteractionProvider({
   children,
@@ -64,24 +45,4 @@ export function PanelSnapInteractionProvider({
       </PanelSnapInteractionStateContext.Provider>
     </PanelSnapInteractionActionsContext.Provider>
   );
-}
-
-export function usePanelSnapInteractionActions(): PanelSnapInteractionActions {
-  const value = useContext(PanelSnapInteractionActionsContext);
-  if (!value) {
-    throw new Error(
-      "usePanelSnapInteractionActions must be used within PanelSnapInteractionProvider",
-    );
-  }
-  return value;
-}
-
-export function usePanelSnapInteractionState(): PanelSnapInteractionState {
-  const value = useContext(PanelSnapInteractionStateContext);
-  if (!value) {
-    throw new Error(
-      "usePanelSnapInteractionState must be used within PanelSnapInteractionProvider",
-    );
-  }
-  return value;
 }

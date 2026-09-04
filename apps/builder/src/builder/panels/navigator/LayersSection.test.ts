@@ -7,7 +7,7 @@ import {
   collectAutoExpandedParents,
   resolveLayerTreeEditingContext,
   resolveLayerTreeSelectionIntent,
-} from "./LayersSection";
+} from "./layersSectionUtils";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
   return {

@@ -37,8 +37,6 @@ import { useCanonicalPropertyElement } from "./hooks/useCanonicalPropertyRead";
  * 띄우지 않는다 — 계약이 빈 게 결함이 아니라 축이 다른 것이고, 실제 컨트롤은 본 섹션이
  * 공급하므로 EmptyState 가 함께 뜨면 모순된 안내가 된다.
  */
-export const DEDICATED_SECTION_TYPES: ReadonlySet<string> = new Set(["body"]);
-
 export const PageBodySection = memo(function PageBodySection({
   elementId,
 }: {

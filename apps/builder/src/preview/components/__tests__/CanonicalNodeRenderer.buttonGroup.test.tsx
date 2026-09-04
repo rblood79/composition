@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { getPrimitiveBinding } from "@composition/shared";
 import { rendererMap } from "@composition/shared/renderers";
 
-import { DELEGATING_INTERNAL_RENDERERS } from "../CanonicalNodeRenderer";
+import { DELEGATING_INTERNAL_RENDERERS } from "../canonicalRendererRegistry";
 
 /**
  * ButtonGroup self-compose 위임 회귀 가드 (2026-06-27 live 적발 → 수정).

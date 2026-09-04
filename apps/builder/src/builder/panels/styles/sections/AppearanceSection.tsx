@@ -32,6 +32,7 @@ import {
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
+import { APPEARANCE_PROPS } from "./styleSectionProps";
 import {
   applyShadowInset,
   getShadowToken,
@@ -360,17 +361,6 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 /**
  * AppearanceSection - 외부 래퍼 (PropertySection 관리)
  */
-export const APPEARANCE_PROPS = [
-  "backgroundColor",
-  "opacity",
-  "borderColor",
-  "borderWidth",
-  "borderRadius",
-  "borderStyle",
-  "boxShadow",
-  "overflow",
-];
-
 export const AppearanceSection = memo(function AppearanceSection() {
   const resetStyles = useResetStyles();
   const hasDirty = useHasDirtyStyles(APPEARANCE_PROPS);

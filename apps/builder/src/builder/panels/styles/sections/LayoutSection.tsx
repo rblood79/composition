@@ -51,6 +51,7 @@ import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
+import { LAYOUT_PROPS } from "./styleSectionProps";
 
 // 4방향 값 추출은 이제 useLayoutValues 훅에서 처리됨
 
@@ -542,27 +543,6 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
  * LayoutSection - 외부 래퍼 (PropertySection 관리)
  */
 // store 가 shorthand 를 longhand 로 분배하므로 dirty 판정도 longhand 를 포함.
-export const LAYOUT_PROPS = [
-  "display",
-  "flexDirection",
-  "flexWrap",
-  "alignItems",
-  "justifyContent",
-  "gap",
-  "rowGap",
-  "columnGap",
-  "padding",
-  "paddingTop",
-  "paddingRight",
-  "paddingBottom",
-  "paddingLeft",
-  "margin",
-  "marginTop",
-  "marginRight",
-  "marginBottom",
-  "marginLeft",
-];
-
 export const LayoutSection = memo(function LayoutSection() {
   const resetStyles = useResetStyles();
   const hasDirty = useHasDirtyStyles(LAYOUT_PROPS);

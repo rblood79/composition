@@ -5,7 +5,7 @@ import {
   type ToggleButtonProps as RACToggleButtonProps,
 } from "react-aria-components";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
-import { withActionTooltip } from "./ActionTooltip";
+import { ActionTooltipTrigger } from "./ActionTooltip";
 import "./ActionIconButton.css";
 
 // ---------------------------------------------------------------------------
@@ -45,7 +45,15 @@ export function ActionIconButton({
     </RACButton>
   );
 
-  return withActionTooltip(button, { tooltip, shortcutId, tooltipPlacement });
+  return (
+    <ActionTooltipTrigger
+      tooltip={tooltip}
+      shortcutId={shortcutId}
+      tooltipPlacement={tooltipPlacement}
+    >
+      {button}
+    </ActionTooltipTrigger>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -85,5 +93,13 @@ export function ActionIconToggleButton({
     </RACToggleButton>
   );
 
-  return withActionTooltip(button, { tooltip, shortcutId, tooltipPlacement });
+  return (
+    <ActionTooltipTrigger
+      tooltip={tooltip}
+      shortcutId={shortcutId}
+      tooltipPlacement={tooltipPlacement}
+    >
+      {button}
+    </ActionTooltipTrigger>
+  );
 }

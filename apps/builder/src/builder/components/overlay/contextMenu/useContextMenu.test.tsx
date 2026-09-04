@@ -9,7 +9,8 @@ import {
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReactElement } from "react";
 import { I18nProvider } from "@/i18n";
-import { ContextMenuProvider, useContextMenu } from "./useContextMenu";
+import { ContextMenuProvider } from "./useContextMenu";
+import { useContextMenu } from "./useContextMenuHook";
 
 /**
  * ADR-200 Phase 2 — 오버레이가 `t()` 로 라벨을 만들므로 provider 하위에서

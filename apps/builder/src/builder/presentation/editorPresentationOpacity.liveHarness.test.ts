@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument, CanonicalNode } from "@composition/shared";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { resolvePresentationPaintProps } from "../../preview/components/CanonicalNodeRenderer";
+import { resolvePresentationPaintProps } from "../../preview/components/canonicalPresentationProps";
 import { resolveOpacityPresentationPilotTarget } from "./editorPresentationStylePilot";
 import { EditorPresentationTransactionRuntime } from "./editorPresentationRuntime";
 import type { EditorPresentationFrameScheduler } from "./editorPresentationRuntime";

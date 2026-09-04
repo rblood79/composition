@@ -283,7 +283,7 @@ export function useViewportControl(
         isPanningRef.current = false;
       }
     };
-  }, [containerEl, gestureSession, viewportSession]);
+  }, [containerEl, controller, gestureSession, viewportSession]);
 
   // 휠 이벤트 핸들러 (줌/팬) - Figma/Photoshop 스타일
   useEffect(() => {

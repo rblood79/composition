@@ -1,9 +1,7 @@
-import { isRulerEventTarget } from "../../../workspace/components/RulerOverlay";
+import { isRulerEventTarget } from "../../../workspace/components/rulerOverlayUtils";
 
 export type ContextMenuDisposition =
-  | "native"
-  | "suppress"
-  | "suppress-without-menu";
+  "native" | "suppress" | "suppress-without-menu";
 
 export interface ContextMenuPolicyInput {
   target: EventTarget | null;

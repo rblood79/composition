@@ -182,7 +182,7 @@ export function useMemoryStats(options: UseMemoryStatsOptions = {}) {
       // 상태 메시지 자동 제거
       setTimeout(() => setStatusMessage(""), 3000);
     }
-  }, [collectStats]);
+  }, [collectStats, t]);
 
   return { stats, statusMessage, optimize, isOptimizing };
 }

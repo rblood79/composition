@@ -12,7 +12,8 @@ vi.mock("./ConnectionStatus", () => ({
   ConnectionStatus: () => <div>연결 상태 자리</div>,
 }));
 
-import { AdvancedMode, trimLabelEcho } from "./AdvancedMode";
+import { AdvancedMode } from "./AdvancedMode";
+import { trimLabelEcho } from "./advancedModeUtils";
 import type { ReactElement } from "react";
 import { I18nProvider } from "@/i18n";
 

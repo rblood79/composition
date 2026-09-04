@@ -16,18 +16,7 @@
  */
 
 import type { ReactNode } from "react";
-
-/**
- * `.panel-contents` 클래스 문자열을 합성한다.
- *
- * @example
- * ```tsx
- * <TabPanel id="memory" className={panelContents("monitor-panel-contents")}>
- * ```
- */
-export function panelContents(...extra: (string | false | undefined)[]) {
-  return ["panel-contents", ...extra.filter(Boolean)].join(" ");
-}
+import { panelContents } from "./panelContentsUtils";
 
 export interface PanelContentsProps {
   children?: ReactNode;

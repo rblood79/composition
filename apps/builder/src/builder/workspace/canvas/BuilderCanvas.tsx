@@ -35,7 +35,7 @@ import {
 } from "../../stores/canonical/canonicalFrameStore";
 import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
-import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenu";
+import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenuHook";
 import { resolveContextMenuDisposition } from "../../components/overlay/contextMenu/contextMenuPolicy";
 import { selectFrameAreaPanelMetrics, useViewportSyncStore } from "./stores";
 import {
@@ -54,7 +54,8 @@ import { ViewportControlBridge } from "./viewport";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
-import { RulerOverlay, isRulerEventTarget } from "../components/RulerOverlay";
+import { RulerOverlay } from "../components/RulerOverlay";
+import { isRulerEventTarget } from "../components/rulerOverlayUtils";
 import {
   getGuideHoverCursor,
   useGuideDrag,

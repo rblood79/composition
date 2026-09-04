@@ -83,29 +83,11 @@ import type { BoundingBox } from "../../../workspace/canvas/selection/types";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
 import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
 import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
+import { resolveAbsolutePositionActivationStyles } from "./transformUtils";
+import { TRANSFORM_PROPS } from "./styleSectionProps";
 
 const ICON_SIZE = 14;
 const ICON_STROKE = 1.5;
-
-function formatAbsoluteOffsetPx(value: number): string {
-  const rounded = Math.round(value * 1000) / 1000;
-  return `${Number.isInteger(rounded) ? rounded : rounded.toFixed(3).replace(/0+$/, "").replace(/\.$/, "")}px`;
-}
-
-export function resolveAbsolutePositionActivationStyles(
-  elementBounds: BoundingBox | null | undefined,
-  parentBounds: BoundingBox | null | undefined,
-): Record<string, string> | null {
-  if (!elementBounds || !parentBounds) {
-    return null;
-  }
-
-  return {
-    position: "absolute",
-    left: formatAbsoluteOffsetPx(elementBounds.x - parentBounds.x),
-    top: formatAbsoluteOffsetPx(elementBounds.y - parentBounds.y),
-  };
-}
 
 function resolveAbsoluteContainingBlockBounds(
   parent: CanvasLayoutNode,
@@ -766,24 +748,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
  * TransformSection - 외부 래퍼 (PropertySection 관리)
  */
 /** 그룹 탭 dirty 표시(styleGroups.ts)가 재사용 — 섹션 reset 범위와 단일 소스. */
-export const TRANSFORM_PROPS = [
-  "width",
-  "height",
-  "position",
-  "top",
-  "left",
-  "flexGrow",
-  "flexShrink",
-  "flexBasis",
-  "alignSelf",
-  "justifySelf",
-  "minWidth",
-  "maxWidth",
-  "minHeight",
-  "maxHeight",
-  "aspectRatio",
-];
-
 export const TransformSection = memo(function TransformSection() {
   const resetStyles = useResetStyles();
   const hasDirty = useHasDirtyStyles(TRANSFORM_PROPS);

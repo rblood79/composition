@@ -40,6 +40,7 @@ import {
   observeCanvasViewportInset,
   type CanvasViewportInset,
 } from "./canvasViewportInset";
+import { RULER_OVERLAY_ATTR } from "./rulerOverlayUtils";
 
 /** ADR-047: 상시 will-change 금지 — 팬 중에만 합성 레이어 힌트 */
 const WILL_CHANGE_IDLE_MS = 200;
@@ -50,21 +51,6 @@ const MINOR_TICK_LEN_PX = 4;
 
 /** 라벨을 눈금선에서 띄우는 여백 (screen px) */
 const LABEL_GAP_PX = 3;
-
-/** 눈금자 DOM 식별자 — pointer 가드가 이 속성으로 소속을 판정한다 */
-export const RULER_OVERLAY_ATTR = "data-ruler-overlay";
-
-/**
- * 이벤트 타깃이 눈금자 안인가 (ADR-181 R1 — 소속 조기 반환).
- *
- * 캡처 리스너가 `.canvas-container` 에 붙어 있어(`BuilderCanvas.tsx:1155`)
- * 조상 캡처가 스트립 자신의 핸들러보다 먼저 실행되고, hover 는 `window` 라
- * DOM z-order 로는 막히지 않는다. 선택자를 이 함수 하나에 가둔다.
- */
-export function isRulerEventTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof Element)) return false;
-  return target.closest(`[${RULER_OVERLAY_ATTR}]`) !== null;
-}
 
 function setAxisVars(
   el: HTMLElement,
@@ -155,6 +141,8 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
     const vStrip = vStripRef.current;
     const hLabels = hLabelsRef.current;
     const vLabels = vLabelsRef.current;
+    const hPool = hPoolRef.current;
+    const vPool = vPoolRef.current;
     if (!root || !hStrip || !vStrip || !hLabels || !vLabels) return;
 
     const strips = [hStrip, vStrip];
@@ -241,7 +229,7 @@ export function RulerOverlay({ onStartGuideCreate }: RulerOverlayProps = {}) {
         willChangeTimerRef.current = null;
       }
       isWillChangeActiveRef.current = false;
-      for (const pool of [hPoolRef.current, vPoolRef.current]) {
+      for (const pool of [hPool, vPool]) {
         for (const el of pool) el.remove();
         pool.length = 0;
       }

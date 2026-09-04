@@ -134,7 +134,7 @@ export const usePageManager = (): UsePageManagerReturn => {
         setIsCreatingPage(false);
       }
     },
-    [],
+    [t],
   );
 
   const computeNextPagePosition = useCallback(() => {
@@ -459,7 +459,7 @@ export const usePageManager = (): UsePageManagerReturn => {
         return { success: false, error: error as Error };
       }
     },
-    [pageList],
+    [pageList, t],
   );
 
   /**

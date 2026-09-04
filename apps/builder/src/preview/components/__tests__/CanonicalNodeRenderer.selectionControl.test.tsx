@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   DELEGATING_RAC_RENDERERS,
   DELEGATING_INTERNAL_RENDERERS,
-} from "../CanonicalNodeRenderer";
+} from "../canonicalRendererRegistry";
 
 /**
  * 회귀 방지 — Switch/Checkbox 위임 등록 (ADR-913 slice 3, 2026-06-18).

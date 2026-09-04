@@ -25,7 +25,7 @@ import { describe, it, expect } from "vitest";
 import {
   DELEGATING_INTERNAL_RENDERERS,
   DELEGATING_RAC_RENDERERS,
-} from "@/preview/components/CanonicalNodeRenderer";
+} from "@/preview/components/canonicalRendererRegistry";
 import {
   RENDER_FACET_DELEGATIONS,
   deriveDelegatingInternalRenderers,

@@ -14,9 +14,6 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyChildren,
 } from "./hooks/useCanonicalPropertyRead";
-import { getDefaultProps } from "../../../types/builder/unified.types";
-import { generateCustomId } from "../../utils/idGeneration";
-import { withFrameElementMirrorId } from "../../../adapters/canonical/frameMirror";
 import { collectCanonicalCustomIdCandidates } from "../../../adapters/canonical/legacyMetadata";
 import {
   requestOriginImpactApprovalIfNeeded,
@@ -26,11 +23,14 @@ import {
   buttonIconPx,
   buttonTextMetrics,
 } from "../../utils/propagationRegistry";
-
-type AddElementInput = Parameters<
-  ReturnType<typeof useStore.getState>["addElement"]
->[0];
-type CustomIdElements = Parameters<typeof generateCustomId>[1];
+import {
+  BUTTON_CHILD_HOST_TAGS,
+  buildButtonChild,
+  findFirstIconChild,
+  findFirstTextChild,
+  type AddElementInput,
+  type CustomIdElements,
+} from "./buttonChildSectionUtils";
 
 type ApprovedButtonChildMutation = {
   approval: OriginImpactApproval;
@@ -106,64 +106,6 @@ function resolveApprovedButtonChildMutation(
     ...approved,
     node: latestNode,
   };
-}
-
-/**
- * Icon 셀렉트 host 태그 (leaf 버튼만). ToggleButtonGroup 은 자식이 ToggleButton
- *   (leaf 버튼)이라 Icon 자식 직접 대상 아님 → 제외. ADR-142: Button=RAC leaf,
- *   아이콘은 자식 element(RSP composite) — binding iconName 복원 0.
- */
-export const BUTTON_CHILD_HOST_TAGS: ReadonlySet<string> = new Set([
-  "Button",
-  "ToggleButton",
-]);
-
-/**
- * Button 자식 목록에서 첫 비삭제 Icon element 를 찾는다. 셀렉트 표시값(현재 iconName)
- *   + none/생성/수정 분기 판정의 단일 소스. 자식 없으면 undefined → 셀렉트 "None".
- */
-export function findFirstIconChild<
-  T extends { id: string; type: string; deleted?: boolean },
->(children: ReadonlyArray<T>): T | undefined {
-  return children.find((child) => child.type === "Icon" && !child.deleted);
-}
-
-/**
- * Button 자식 목록에서 첫 비삭제 Text element 를 찾는다. icon Button 의 label 은 RSP 공식대로
- *   `<Text>` 자식 element 로 표현(`<Button><Icon/><Text>label</Text></Button>`). 프로퍼티
- *   Text 입력이 이 `<Text>` 자식을 편집하고, Icon 제거 시 이 자식 → string children 복구.
- */
-export function findFirstTextChild<
-  T extends { id: string; type: string; deleted?: boolean },
->(children: ReadonlyArray<T>): T | undefined {
-  return children.find((child) => child.type === "Text" && !child.deleted);
-}
-
-/**
- * Button 자식으로 추가할 leaf element(Icon/Text)를 생성한다. handleAddElement 대신 직접
- *   생성하는 이유: handleAddElement 는 생성 직후 setSelectedElement 로 Button 선택을 풀어
- *   셀렉트가 사라진다. id 를 미리 만들어 selection 변경 없이 생성.
- */
-export function buildButtonChild(
-  type: "Icon" | "Text",
-  parentId: string,
-  pageId: string,
-  pageElements: CustomIdElements,
-  propsOverride: Record<string, unknown>,
-): AddElementInput {
-  return withFrameElementMirrorId(
-    {
-      id: crypto.randomUUID(),
-      type,
-      customId: generateCustomId(type, pageElements),
-      props: { ...getDefaultProps(type), ...propsOverride },
-      page_id: pageId,
-      parent_id: parentId,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    } as AddElementInput,
-    null,
-  );
 }
 
 /**

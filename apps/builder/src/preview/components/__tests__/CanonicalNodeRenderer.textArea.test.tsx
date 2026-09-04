@@ -4,10 +4,8 @@ import { describe, expect, it } from "vitest";
 import type { ResolvedNode } from "@composition/shared";
 
 import type { RenderContext } from "../../types/index";
-import {
-  CanonicalNodeRenderer,
-  DELEGATING_RAC_RENDERERS,
-} from "../CanonicalNodeRenderer";
+import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
+import { DELEGATING_RAC_RENDERERS } from "../canonicalRendererRegistry";
 
 /**
  * TextArea 가 진짜 `<textarea>` 로 렌더되는지 (2026-08-21 신설).

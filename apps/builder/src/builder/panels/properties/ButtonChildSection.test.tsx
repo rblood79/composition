@@ -6,7 +6,7 @@ import {
   buildButtonChild,
   findFirstIconChild,
   findFirstTextChild,
-} from "./ButtonChildSection";
+} from "./buttonChildSectionUtils";
 
 describe("ButtonChildSection gate", () => {
   it("Button/ToggleButton 만 host 대상", () => {

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculateDotBackgroundMetrics,
   DOT_BACKGROUND_INSET,
-} from "./DotBackground";
+} from "./dotBackgroundMetrics";
 
 function positiveModulo(value: number, modulus: number): number {
   return ((value % modulus) + modulus) % modulus;

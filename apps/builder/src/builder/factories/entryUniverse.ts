@@ -41,7 +41,7 @@ import {
   FIELD_VISIBLE_CHILD_TAGS,
 } from "@/builder/workspace/canvas/layout/engines/implicitStyles";
 import { SYNTHETIC_CHILD_PROP_MERGE_TAGS } from "@/builder/workspace/canvas/skia/buildSpecNodeData";
-import { INTERNAL_RENDERERS } from "@/preview/components/CanonicalNodeRenderer";
+import { INTERNAL_RENDERERS } from "@/preview/components/canonicalRendererRegistry";
 import { deriveDelegatingLowerLookup } from "@/preview/components/renderFacetDeclaration";
 import {
   ENTRY_DERIVED_DEFAULT_TYPES,
@@ -61,10 +61,7 @@ import {
  * - `generic`: rendererMap fallback (또는 generic resolveHtmlTag) — 본 set 에 미등록
  */
 export type RenderFacetMode =
-  | "delegating-rac"
-  | "delegating-internal"
-  | "internal"
-  | "generic";
+  "delegating-rac" | "delegating-internal" | "internal" | "generic";
 
 /**
  * creation facet — palette add 시 factory 가 child tree 를 어떻게 만드는지.
