@@ -14,7 +14,8 @@ import { resolve, relative } from "node:path";
  * 패널 골격(`panel-header` 줄이 몇 개인가)도 패널마다 달라진다 — 실제로 DataTable/Monitor 가
  * 그 상태였다.
  *
- * **`TabPanel` = `.panel-contents`** (2026-08-30 Monitor 표준화). 스크롤·패딩·배경을 갖는
+ * **`TabPanel` = `.panel-contents`** (2026-08-30 Monitor 표준화, 2026-09-05 `panelContents()`
+ * 헬퍼 경유로 전환). 스크롤·패딩·배경을 갖는
  * 본문은 탭 **안**이다. Monitor 만 `.panel-contents` 가 `Tabs` 를 감싸고 `TabPanel` 은
  * 로컬 클래스(`.monitor-tab-panel`)라, 탭 줄까지 본문 크롬을 받고 스크롤 규칙이 두 곳에
  * 있었다. `Tabs` 가 탭 줄만 감싸고 본문을 형제 `.panel-contents` 에 두는 DataTable 편집기
@@ -67,6 +68,9 @@ describe("패널 탭 구조 가드", () => {
       const source = await readFile(file, "utf-8");
       for (const match of source.matchAll(/<TabPanel\b([\s\S]*?)>/g)) {
         const attrs = match[1];
+        // `panelContents()` 헬퍼 경유가 정본 (PanelContents.tsx 주석) — 리터럴은
+        // 아직 옮기지 않은 파일용으로만 남긴다. 손으로 적는 이름은 오타를 못 막는다.
+        if (/className=\{panelContents\(/.test(attrs)) continue;
         if (/className="panel-contents/.test(attrs)) continue;
         const line = source.slice(0, match.index).split("\n").length;
         offenders.push(`${relative(BUILDER_ROOT, file)}:${line}`);

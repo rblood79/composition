@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Builder lint가 `0 errors / 8 review warnings`로 통과하고, type-check·registration·agent-catalog preflight와 관련 focused Vitest가 통과했습니다.
+- (2026-09-05 후속 2) 패널 테스트가 canonical document 를 시드하도록 공용 헬퍼 `src/builder/__tests__/panelFixture.ts` 로 통일하고, `PanelContents` 도입 (2026-09-04) 이 남긴 잔여를 닫았습니다. 배럴 전체를 교체하던 AIPanel·SettingsPanel 의 mock 은 실물을 깔고 필요한 것만 덮도록 바꿔 새 export 추가 때 다시 깨지지 않게 했고, TabPanel 본문 층을 검사하던 정적 게이트 3종은 `panelContents()` 헬퍼 경유를 정본으로 인정하도록 갱신했습니다. 빌더 전체 스위트 실패가 99 에서 16 으로 줄었습니다.
 - (2026-09-05 후속) memo dependency 경고 3건을 닫았습니다 — `PropertyUnitInput` sync effect 는 memo 된 `parsed` 를 그대로 의존하고, `useColorStyleValues` 의 `themeVersion` 은 tint/neutral 이 `lightColors` 를 제자리 mutation 하는 유일한 재계산 신호라 제거하지 않고 cache key 로 명시했으며, `ApiEndpointEditor` 의 `t` 는 `useCallback` 으로 고정했습니다. Styles 패널 color 테스트 fixture 를 canonical document 시드로 고쳐 16건 실패를 복구했고 tint 변경 재해석·부모 재렌더 draft 보존 테스트를 추가했습니다. 남은 경고 5건(clipboard 2·keyboard registry 3)은 계약 설계 후 별도 처리합니다.
 
 ## [Legacy layout/history 경계를 canonical-only로 줄였습니다] - 2026-09-04

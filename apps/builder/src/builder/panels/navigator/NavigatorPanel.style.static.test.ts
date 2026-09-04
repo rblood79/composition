@@ -33,7 +33,7 @@ describe("NavigatorPanel shared panel style contract", () => {
       'className="panel navigator-panel navigator-panel--new-tree"',
     );
     expect(panelSource).toContain(
-      'className="panel-contents navigator-panel-content"',
+      'className={panelContents("navigator-panel-content")}',
     );
     expect(panelSource).toContain("<PanelHeader");
     expect(panelSource).toContain('panelId="navigator"');

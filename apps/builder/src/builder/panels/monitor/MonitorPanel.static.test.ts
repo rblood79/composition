@@ -15,12 +15,12 @@ describe("MonitorPanel common panel contract", () => {
     expect(source).toContain('i18n.t("panels.monitor")');
     expect(source).toContain('panelId="monitor"');
     // 탭 패널 골격은 Styles/Navigator/DataTable 과 같다 — `Tabs` 가 `.panel-header.panel-tabrow`
-    // 와 `TabPanel`(= `.panel-contents`) 을 감싸고, 스크롤은 각 `TabPanel` 이 갖는다.
+    // 와 `TabPanel`(= `panelContents()` 합성) 을 감싸고, 스크롤은 각 `TabPanel` 이 갖는다.
     // 종전에는 `.panel-contents` 가 `Tabs` 를 감싸고 `TabPanel` 은 로컬 클래스라
     // 탭 줄까지 본문 패딩·배경을 받고 스크롤이 두 번 정의됐다.
     expect(source).not.toContain("monitor-tab-panel");
     expect(
-      source.match(/<TabPanel[^>]*className="panel-contents/g),
+      source.match(/<TabPanel[^>]*className=\{panelContents\(/g),
     ).toHaveLength(5);
     expect(source.match(/<Section/g)).toHaveLength(7);
     // 섹션은 id 로 접힘 상태를 저장한다 (다른 패널과 동일) — 전부 collapsible={false} 아님.

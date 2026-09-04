@@ -66,7 +66,10 @@ vi.mock("./components/AgentCommandLogList", () => ({
   AgentCommandLogList: () => null,
 }));
 
-vi.mock("../../components", () => ({
+// 배럴 전체를 교체하지 않는다 — 새 export 가 추가될 때마다 조용히 깨진다
+// (PanelContents 도입 때 실제로 깨졌다). 실물을 깔고 무거운 것만 덮는다.
+vi.mock("../../components", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../components")>()),
   PanelHeader: ({
     title,
     actions,
