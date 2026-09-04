@@ -82,7 +82,9 @@ function fmtEvent(e: EngineTraceEvent): string {
       return `${tag}AutoMinFloor: item#${e.item} floor=${e.floor} (${
         e.source === "ContentMinScalar"
           ? "정확 min-content — TS 스칼라 공급"
-          : "스칼라 부재 fallback — 단일줄 상한 근사"
+          : e.source === "SpecifiedSizeMin"
+            ? "definite 주축 — min(specified, 정확 min-content) (ADR-204 §4.5)"
+            : "스칼라 부재 fallback — 단일줄 상한 근사"
       })`;
     case "ShrinkToFitReentry":
       return `${tag}ShrinkToFitReentry: ${axisName(e.axis)} settled=${e.settled} — 확정 크기를 containing block 으로 2차 pass (§5.1)`;

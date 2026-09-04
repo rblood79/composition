@@ -2147,7 +2147,12 @@ impl LayoutTree {
             for (i, &c) in children.iter().enumerate() {
                 let off = i * flex::FLEX_FIELD_COUNT;
                 if data[off + 1] != -1.0 {
-                    continue; // main 명시 — content 슬롯 미소비
+                    // main 명시 — content 슬롯 미소비. ADR-204 Phase 1 은 row definite 컨테이너의
+                    // content min-content 측정(자기 폭을 비운 가상 solve 2회)을 시도했으나
+                    // shrink 행에서 방문 수가 2N→4N 으로 늘어 ADR-188 G0 기준선을 깬다 —
+                    // 별도 perf 판정으로 이연 (evidence/204-phase1). 그동안 row definite 는
+                    // 스칼라(off 19) 보유 leaf 에서만 §4.5 specified 절이 동작한다.
+                    continue;
                 }
                 let is_container_item = self
                     .get(c)
@@ -2171,6 +2176,44 @@ impl LayoutTree {
                     // 적어 그 모호성을 피한다 — §4.5 의 조건을 tree.rs 가 재구현하지
                     // 않으면서 결과는 동일하다 (floor 0).
                     data[off + 9] = 0.0;
+                }
+            }
+        }
+
+        // 2-c) **column definite 컨테이너의 content 제안** (ADR-204 Phase 1 — §4.5 specified size
+        // suggestion). 커널 절은 정확 스칼라(off 19) 가 있을 때만 definite item 에 floor 를 두고
+        // (`content_main` 은 definite item 에서 자기 solved 크기라 제안이 아니다), column 의
+        // off 19 는 종전에 항상 0 이었다. block 축 min-content 는 **그 폭에서의 내용 높이**라
+        // 재줄바꿈이 없고 (row 의 2-pass 계약과 다르다 — R5), 위 1) 단계 solve 가 이미 자식을
+        // 배치해 뒀으므로 가상 solve 없이 자식 layout 의 max bottom 을 읽으면 된다.
+        //
+        // 대상: 자식이 있고 · 주축(높이) definite · min-height auto · non-scrollable. leaf 는
+        // 내용이 없거나 (빈 상자 → 제안 0 = floor 0, 종전과 같다) 텍스트라 (높이 = 내용) 제외.
+        // 하한 근사: 자식 bottom margin 은 더하지 않는다 (floor 가 조금 낮은 쪽 — 보수적).
+        if !is_row {
+            for (i, &c) in children.iter().enumerate() {
+                let off = i * flex::FLEX_FIELD_COUNT;
+                let main_definite = data[off + 1] != -1.0 && data[off + 1] != flex::CONTENT;
+                if !main_definite || data[off + 9] != -1.0 || data[off + 18] != 0.0 || data[off + 19] > 0.0 {
+                    continue;
+                }
+                let Some(n) = self.get(c) else { continue };
+                if n.children.is_empty() {
+                    continue;
+                }
+                let kids = n.children.clone();
+                let mut extent = 0.0f32;
+                for k in kids {
+                    if let Some(kn) = self.get(k) {
+                        if is_out_of_flow(kn.style.position.as_deref()) {
+                            continue;
+                        }
+                        extent = extent.max(kn.layout.y + kn.layout.height);
+                    }
+                }
+                if extent > 0.0 {
+                    // off 19 는 content_main 과 같은 공간 (pad_border_main 가산 — 2-b 와 동일).
+                    data[off + 19] = extent + data[off + 7];
                 }
             }
         }
@@ -2205,7 +2248,7 @@ impl LayoutTree {
         // 조건 판정은 커널과 같은 `flex::resolve_auto_min_main` 이 소유한다 (§4-4a).
         if self.trace.is_some() {
             for i in 0..children.len() {
-                if let (floor, Some(source)) = flex::resolve_auto_min_main(&data, i) {
+                if let (floor, Some(source)) = flex::resolve_auto_min_main(&data, i, is_row) {
                     self.trace_push(handle, || TraceEvent::AutoMinFloor { item: i, source, floor });
                 }
             }

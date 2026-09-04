@@ -78,6 +78,8 @@ pub enum FloorSource {
     ContentMinScalar,
     /// off 13 `content_main` — 스칼라 부재 fallback (단일줄 상한 근사).
     ContentMainFallback,
+    /// definite 주축 — `min(specified, content 제안)` (ADR-204 §4.5 specified size suggestion).
+    SpecifiedSizeMin,
 }
 
 /// 트랙 sizing 단계 (CSS-GRID-1).

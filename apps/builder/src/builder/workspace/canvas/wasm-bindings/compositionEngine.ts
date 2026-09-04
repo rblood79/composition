@@ -69,7 +69,7 @@ export type EngineTraceEvent = { measure_pass: boolean } & (
   | {
       type: "AutoMinFloor";
       item: number;
-      source: "ContentMinScalar" | "ContentMainFallback";
+      source: "ContentMinScalar" | "ContentMainFallback" | "SpecifiedSizeMin";
       floor: number;
     }
   | { type: "ShrinkToFitReentry"; axis: "Inline" | "Block"; settled: number }

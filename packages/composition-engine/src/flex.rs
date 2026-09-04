@@ -297,7 +297,7 @@ impl FlexItem {
 /// `off + 1` 은 이름이 `width` 지만 tree.rs 가 **논리 main** 을 쓴다 (`write_flex_item`
 /// 의 direction 매핑) — column 컨테이너에서도 주축을 본다.
 #[inline]
-pub fn resolve_auto_min_main(data: &[f32], i: usize) -> (f32, Option<FloorSource>) {
+pub fn resolve_auto_min_main(data: &[f32], i: usize, is_row: bool) -> (f32, Option<FloorSource>) {
     let off = i * FLEX_FIELD_COUNT;
     auto_min_main_from_parts(
         data[off + 1],
@@ -306,6 +306,7 @@ pub fn resolve_auto_min_main(data: &[f32], i: usize) -> (f32, Option<FloorSource
         data[off + 13],
         data[off + 18] != 0.0,
         data[off + 19],
+        is_row,
     )
 }
 
@@ -325,22 +326,43 @@ fn auto_min_main_from_parts(
     content_main: f32,
     is_scroll_container: bool,
     content_min_main: f32,
+    is_row: bool,
 ) -> (f32, Option<FloorSource>) {
     // css-flexbox-1 §4.5: automatic minimum 은 computed overflow 가 **non-scrollable** 인
     // item 에만 content-based — scroll container(scroll/auto/hidden) 는 0. clip 은
     // non-scrollable (css-overflow-3 scrollable values 에 없음) — r9h1 Chrome 실측.
-    if min_main == AUTO && !is_scroll_container && main_size == AUTO {
-        let (suggestion, source) = if content_min_main > 0.0 {
-            (content_min_main, FloorSource::ContentMinScalar)
-        } else {
-            (content_main, FloorSource::ContentMainFallback)
-        };
-        let floor = suggestion.max(0.0);
-        let floor = if max_main != AUTO { floor.min(max_main) } else { floor };
-        (floor, Some(source))
-    } else {
-        (min_main, None)
+    if min_main != AUTO || is_scroll_container {
+        return (min_main, None);
     }
+    let main_definite = main_size != AUTO && main_size != CONTENT;
+    // content size suggestion — 정확 스칼라(off 19) 우선, 부재 시 `content_main` fallback.
+    //
+    // 단 주축이 **definite** 면 (ADR-204 §4.5 specified size suggestion 절) fallback 을 쓰지
+    // 않는다: definite item 의 `content_main` 은 자식 solve 가 돌려준 **자기 solved 크기**라
+    // (tree.rs `child_sizes` → `write_flex_item`) content 제안이 아니라 specified 와 같은 값이다.
+    // 그걸 min(specified, content) 에 넣으면 floor = specified 로 굳어 definite item 이 영영
+    // shrink 하지 못한다 (golden `flex_column_shrink` 100/100, 기존 계약
+    // `width_definite_item_keeps_free_shrink`). 그래서 definite 는 **정확 스칼라가 있을 때만**
+    // 절이 동작하고, 스칼라 공급은 writer (tree.rs — leaf 는 ADR-165 폭 측정, 컨테이너·가상화
+    // collection 은 ADR-204 Phase 1/2) 가 책임진다. `is_row` 는 트레이스 대칭을 위해 받는다.
+    let _ = is_row;
+    let (suggestion, source) = if content_min_main > 0.0 {
+        (content_min_main, FloorSource::ContentMinScalar)
+    } else if !main_definite {
+        (content_main, FloorSource::ContentMainFallback)
+    } else {
+        return (min_main, None);
+    };
+    let floor = suggestion.max(0.0);
+    // §4.5 specified size suggestion — definite 주축이면 min(specified, content).
+    // 종전에는 이 절이 없어 definite item 의 floor 가 0 이었다 (G0: Chrome 164 vs 80).
+    let (floor, source) = if main_definite {
+        (floor.min(main_size.max(0.0)), FloorSource::SpecifiedSizeMin)
+    } else {
+        (floor, source)
+    };
+    let floor = if max_main != AUTO { floor.min(max_main) } else { floor };
+    (floor, Some(source))
 }
 
 /// 원본 배열에서 아이템 파싱 → 논리축 FlexItem.
@@ -386,6 +408,7 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         content_main,
         data[off + 18] != 0.0,
         data[off + 19],
+        direction == DIR_ROW,
     );
 
     // flex-basis 해석 우선순위: flex_basis(명시) → width(논리 main) → content.
@@ -1923,5 +1946,76 @@ mod tests {
             ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
         );
         assert!((out[3] - 150.0).abs() < 0.01, "h={} (expect 150 — column floor 대칭)", out[3]);
+    }
+
+    // ── ADR-204 §4.5 specified size suggestion (definite 주축) ──
+
+    #[test]
+    fn definite_main_with_scalar_floors_at_min_of_specified_and_content() {
+        // width 200 definite + 정확 min-content 150 (off 19) + shrink 1, available 100.
+        // §4.5: floor = min(specified 200, content 150) = 150 → 100 으로 못 줄고 150 유지.
+        // (ADR-204 G0 — 종전 가드는 definite 면 floor 0 이라 100 이었다: Chrome 164 vs 80)
+        let mut f = with_flex(item(200.0, 20.0), 0.0, 1.0);
+        f[19] = 150.0;
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 150.0).abs() < 0.01, "w={} (expect 150 — min(specified, scalar))", out[2]);
+    }
+
+    #[test]
+    fn definite_main_scalar_above_specified_clamps_to_specified() {
+        // width 120 definite + 스칼라 300 → floor = min(120, 300) = 120 (specified 가 상한).
+        let mut f = with_flex(item(120.0, 20.0), 0.0, 1.0);
+        f[19] = 300.0;
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 120.0).abs() < 0.01, "w={} (expect 120 — specified 상한)", out[2]);
+    }
+
+    #[test]
+    fn definite_main_without_scalar_keeps_free_shrink() {
+        // width 200 definite + 스칼라 부재 + content_main 200 (자기 solved 크기) → fallback 금지,
+        // floor 없음 → 100. content_main 을 제안으로 쓰면 200 으로 굳는다 (ADR-204 판정).
+        let mut f = with_flex(item(200.0, 20.0), 0.0, 1.0);
+        f[13] = 200.0;
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 100.0).abs() < 0.01, "w={} (expect 100 — 스칼라 없으면 종전대로)", out[2]);
+    }
+
+    #[test]
+    fn definite_main_scroll_container_ignores_scalar() {
+        // definite + 스칼라 150 이라도 scroll container 면 §4.5 floor 0 → 100.
+        let mut f = with_flex(item(200.0, 20.0), 0.0, 1.0);
+        f[18] = 1.0;
+        f[19] = 150.0;
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 50.0, DIR_ROW, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[2] - 100.0).abs() < 0.01, "w={} (expect 100 — scroll container)", out[2]);
+    }
+
+    #[test]
+    fn definite_main_column_axis_symmetric() {
+        // column: height 200 definite + 스칼라 150, available 100 → 150 유지 (축 대칭).
+        let mut f = with_flex(item(200.0, 40.0), 0.0, 1.0);
+        f[19] = 150.0;
+        let data = flatten(&[f]);
+        let out = flex_layout(
+            &data, 100.0, 300.0, DIR_COLUMN, JUSTIFY_START, ALIGN_START,
+            ALIGN_CONTENT_START, WRAP_NOWRAP, 0.0, 0.0, true,
+        );
+        assert!((out[3] - 150.0).abs() < 0.01, "h={} (expect 150 — column 대칭)", out[3]);
     }
 }

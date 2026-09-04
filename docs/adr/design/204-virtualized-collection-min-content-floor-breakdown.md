@@ -52,7 +52,9 @@
 3. BC 수식화 — 로컬 검증 프로젝트와 fixture 전수에서 "collection + non-scrollable + 제약 flex 주축 item" 형태의 실제 출현 수를 센다. **기본 상태 둘 (`Table` · stack `GridList`) 이 이미 non-scrollable** 이므로 authored overflow 만 세면 과소 계수다. 재직렬화는 0 (read-time 파생, canonical 미변경) 임을 같이 기록.
 4. 대안 C 회귀 표면 — collection 밖 "definite 높이 + min auto + non-scrollable" flex item 의 출현 수 (R1 HIGH 의 크기).
 
-## 4. Phase 1 — 엔진 (Rust) · 순서 C → A (Phase 0 확정)
+## 4. Phase 1 — 엔진 (Rust) · 순서 C → A (Phase 0 확정) ✅ Implemented 2026-09-04 (row definite 컨테이너 writer 는 이연)
+
+> 결과 정본: [evidence/204-phase1-specified-size-suggestion.md](../evidence/204-phase1-specified-size-suggestion.md). 반영 = 커널 절 (스칼라 보유 definite 만) + column 컨테이너 extent writer. 이연 = row definite 컨테이너 스칼라 (perf 기준선 2N→4N 판정 대기).
 
 - 세로축 content-min 필드 추가 (`content_min_height`) — Rust `NodeStyle` + TS `layoutTypes.ts` (활성 경로는 JSON). 커널 쪽은 슬롯 19 (`content_min_main`, 이미 논리 main) 를 `is_row` 에 따라 둘 중 하나로 채운다 — **`FLEX_FIELD_COUNT` 불변**.
 - 채우는 대상을 **가상화 collection type 으로 한정**한다 (R5) — `tree.rs:4789-4790` 이 column 축을 비운 사유는 height-for-width 재줄바꿈 2-pass 계약이고, 텍스트 노드로 일반화하면 그 계약과 충돌한다.
