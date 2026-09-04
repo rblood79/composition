@@ -1698,8 +1698,8 @@ export class StoreRenderBridge {
       useStore.getState().activeBreakpoint,
     );
 
-    // TagGroup maxRows chip 접힘 — layout(fullTreeLayout Step 4.5b)이 이미 Taffy 실측 rowY 기준으로
-    //   초과 chip(+ 미접힘 시 Show all)을 RowsGroup Taffy 트리에서 제외했다. 제외된 chip 은
+    // TagGroup maxRows chip 접힘 — layout(fullTreeLayout Step 4.5b)이 이미 엔진 실측 rowY 기준으로
+    //   초과 chip(+ 미접힘 시 Show all)을 RowsGroup 엔진 트리에서 제외했다. 제외된 chip 은
     //   `ctx.layoutMap` 에 좌표가 없으므로(=미배치), 여기서 layoutMap 부재를 미emit 신호로 사용한다.
     //   **Why layoutMap 기반**: chip 개수 제어 SSOT = layout 의 rowY 접힘(폭 가변 견고). render 가
     //   추정 wrap 공식(resolveTagWrapLayout)을 재실행하면 layout 판정과 갈릴 수 있어 단일화 위반 —

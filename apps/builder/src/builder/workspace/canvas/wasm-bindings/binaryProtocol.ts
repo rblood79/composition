@@ -1,5 +1,5 @@
 /**
- * Binary Protocol Encoder for WASM Taffy Layout
+ * Binary Protocol Encoder for WASM 엔진 Layout
  *
  * 스타일 데이터를 JSON.stringify 대신 바이너리 포맷으로 인코딩하여
  * WASM 경계 비용을 최소화한다.

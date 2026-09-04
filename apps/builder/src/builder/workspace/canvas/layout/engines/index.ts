@@ -1,7 +1,7 @@
 /**
  * Layout Engine 모듈
  *
- * ADR-005: Taffy WASM 단일 엔진으로 전체 트리 레이아웃 계산.
+ * ADR-005: 엔진 WASM 단일 엔진으로 전체 트리 레이아웃 계산.
  * fullTreeLayout.ts가 모든 display 타입(flex/grid/block)을 단일 WASM 호출로 처리.
  *
  * @since 2026-01-28 Phase 2 - 하이브리드 레이아웃 엔진
@@ -48,7 +48,7 @@ export {
 // W3-7: CSS var() DOM fallback 헬퍼
 export { createVariableScopeWithDOMFallback } from "./cssValueParser";
 
-// ADR-005 Phase 2: Persistent Taffy Tree + Incremental Layout
+// ADR-005 Phase 2: Persistent 엔진 트리 + Incremental Layout
 export {
   calculateFullTreeLayout,
   computePresentationLayoutTargeted,

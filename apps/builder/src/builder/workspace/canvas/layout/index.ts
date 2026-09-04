@@ -1,7 +1,7 @@
 /**
  * Layout Module
  *
- * ADR-005: Taffy WASM 단일 엔진 (fullTreeLayout)
+ * ADR-005: 엔진 WASM 단일 엔진 (fullTreeLayout)
  *
  * @since 2025-12-11 Phase 11 B2
  * @updated 2026-03-01 ADR-005 Foundation 완료 - Dropflow 제거, 단일 엔진 전환
@@ -50,7 +50,7 @@ export {
   // W3-7: CSS var() DOM fallback
   type CSSVariableScope,
   createVariableScopeWithDOMFallback,
-  // ADR-005 Phase 2: Persistent Taffy Tree + Incremental Layout
+  // ADR-005 Phase 2: Persistent 엔진 트리 + Incremental Layout
   calculateFullTreeLayout,
   resetPersistentTree,
   // ADR-005 Phase 3: Flat Render Command Stream — 공유 Layout Map

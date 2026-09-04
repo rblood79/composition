@@ -1650,7 +1650,7 @@ function appendGridListRowProjection(
 //
 // GridList(row 1단) 대비 cell 차원 추가: RowsGroup → Row[i] → Cell[i][j]. header 행 1개 +
 // data 행 N개(window). Row 는 bg(striped/selected)+divider self-render(TableRow.spec), Cell 은
-// text-only(TableCell.spec). 배치(컬럼 폭 누적)는 Taffy flex row 가 담당.
+// text-only(TableCell.spec). 배치(컬럼 폭 누적)는 엔진 flex row 가 담당.
 
 function isTableSceneSource(
   tableSceneNode: CanvasSceneNode,
@@ -2039,7 +2039,7 @@ function appendTableRowProjection(
 //      (TagGroup.spec propagation, allowsRemoving 은 override:true 로 토글 즉시 반영). chip 좌표계 =
 //      TagList node — projection 을 TagList 에 붙인다.
 //   2) **rowsGroup = flexWrap:"wrap" row** (세로 stack 아닌 가로 wrap-flow). 수동 wrap 시뮬레이션
-//      (구 TagList.spec render.shapes 라인 299-333) 폐기 — chip width:fit-content + Taffy
+//      (구 TagList.spec render.shapes 라인 299-333) 폐기 — chip width:fit-content + 엔진
 //      flex-wrap 이 행 배치를 담당(GridList grid 모드의 flexWrap 패턴과 동형).
 //   3) chip 의 remove(X)는 chip 본체(Tag)가 catalog cutover 후 **trailing_icon**(buildCatalogShapes
 //      가 rule.trailingIcon{name:"x"} 를 text 우측에 icon_font glyph 로 덧그림, props.allowsRemoving
@@ -2133,7 +2133,7 @@ function resolveDataBoundTagProjection(
 /**
  * TagGroup chip projected tree 생성: RowsGroup(flex wrap row) → Tag chip[i] (+ remove cell).
  *
- * - rowsGroup: 가로 flex row + flexWrap:wrap → chip 들이 컨테이너 폭에서 자동 줄바꿈(Taffy 위임,
+ * - rowsGroup: 가로 flex row + flexWrap:wrap → chip 들이 컨테이너 폭에서 자동 줄바꿈(엔진 위임,
  *   수동 wrap 계산 없음). gap = chip 간격(size 토큰 gap, propagation 으로 TagList 좌표계).
  * - chip(Tag): width:fit-content → 라벨 폭 + padding 만큼만. catalog cutover 후 buildCatalogShapes
  *   가 box+text generic 렌더(_isSelected → selected variant). allowsRemoving=true 시 chip 에
@@ -2178,7 +2178,7 @@ function appendTagRowProjection(
         columnGap: gap,
         width: "100%",
         alignItems: "flex-start",
-        // alignContent:flex-start — flex-wrap 다중 행을 컨테이너 상단에 붙인다. 미설정 시 Taffy
+        // alignContent:flex-start — flex-wrap 다중 행을 컨테이너 상단에 붙인다. 미설정 시 엔진
         //   기본(stretch/분산)이 컨테이너 height > 행 총합일 때 chip 행 사이를 벌려 세로 gap 발산
         //   (maxRows gap 버그 근본, 2026-07-02). height 를 RowsGroup 실측으로 맞춰도 이 분산이
         //   남으므로 flex-start 로 명시 고정. CSS(TagGroup.css .react-aria-TagList)도 동일 상단 정렬.
@@ -2209,7 +2209,7 @@ function appendTagRowProjection(
     const chipProps: Record<string, unknown> = {
       children: row.label,
       // chip 폭 = 라벨 + padding (+ allowsRemoving 시 trailing X) — Tag rule(catalog cutover) inline-flex.
-      //   wrap-flow 에서 각 chip 이 fit-content 로 자연 폭을 갖고 Taffy flexWrap 이 행 배치.
+      //   wrap-flow 에서 각 chip 이 fit-content 로 자연 폭을 갖고 엔진 flexWrap 이 행 배치.
       style: { width: "fit-content" },
       _isSelected: isListBoxRowSelected(props, row.itemKey, row.rowIndex),
     };

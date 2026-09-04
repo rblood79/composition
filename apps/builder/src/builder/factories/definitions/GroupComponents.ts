@@ -306,7 +306,7 @@ export function createTagGroupDefinition(
         selectionMode: "multiple",
         items,
         // CSS block-level flex 박스는 block 부모 안에서 width:auto = 부모 폭 100% 로 늘어나
-        //   내부 칩이 그 폭에서 wrap 되지만, Taffy 는 비-flex-wrap 부모의 block-level 자식에
+        //   내부 칩이 그 폭에서 wrap 되지만, 엔진 은 비-flex-wrap 부모의 block-level 자식에
         //   "block child fills parent width" 규칙을 에뮬레이션하지 않아 width 미설정 시 칩 합산
         //   intrinsic 폭으로 늘어나 page 를 벗어난다. 다른 컨테이너 factory(Layout/Selection 등)와
         //   동일하게 width:100% 를 명시해 CSS↔Skia 대칭(칩 자동 줄바꿈)을 맞춘다.

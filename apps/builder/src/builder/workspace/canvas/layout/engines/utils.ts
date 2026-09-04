@@ -1803,7 +1803,7 @@ export function calculateContentWidth(
       });
       if (isHorizontal) {
         // horizontal: 버튼 폭 합 + gap*(n-1). CSS 의 margin-inline-start:-1px 오버랩은
-        //   Taffy 자식에 없으므로 차감 없이 border-box 합계와 일치(Taffy 축소 방지).
+        //   엔진 자식에 없으므로 차감 없이 border-box 합계와 일치(엔진 축소 방지).
         return (
           buttonWidths.reduce((sum, w) => sum + w, 0) +
           gap * (childElements.length - 1)
@@ -1865,7 +1865,7 @@ export function calculateContentWidth(
   //   DEFAULT_WIDTH(80) 로 떨어진다. ToggleButtonGroup intrinsic width 경로 A(line 1366)가
   //   `calculateContentWidth(child)` 를 직접 호출하므로 이 80 fallback 이 그대로 group width
   //   에 박혀 selection box(=Skia 노드 bounds)가 시각보다 좁게 그려졌다(XL: group 260 vs
-  //   DOM 308). standalone Button/ToggleButton 은 fullTreeLayout 이 자식을 Taffy 트리에
+  //   DOM 308). standalone Button/ToggleButton 은 fullTreeLayout 이 자식을 엔진 트리에
   //   등록해 합산하므로 정상이지만, group intrinsic 경로는 본 함수 결과를 직접 쓴다.
   //   자식 element 직접 합산은 RSP composite 의 icon width 를 generic 하게 포함한다(자식
   //   Icon leaf 가 자기 width 를 정확히 반환).
@@ -2461,7 +2461,7 @@ export function calculateContentHeight(
 
   // 1.56. Column/Cell (TableView 자식 텍스트 leaf): border-box height = 텍스트 높이 + 세로 padding.
   //   **Why**: Column/Cell 은 텍스트를 가진 leaf 인데 Skia 텍스트는 buildCatalogShapes 가 그려
-  //   Taffy 가 텍스트 높이를 자식으로 모른다. catalog containerStyles.padding(8px)은 Taffy box /
+  //   엔진 이 텍스트 높이를 자식으로 모른다. catalog containerStyles.padding(8px)은 엔진 box /
   //   Preview CSS 용이라 layout 의 leaf intrinsic height 에는 도달 안 한다 → Skia 셀 height = 텍스트
   //   높이만(상하 padding 누락) → CSS(border-box height=40, padding 8px 상하)보다 16px 작아 행 촘촘.
   //   catalog rule(Column/Cell.sizes.md.paddingY=8 + fontSize/lineHeight)을 read-through 해 height =
@@ -2927,10 +2927,10 @@ export function calculateContentHeight(
   // 1.55d. TagList: items SSOT + row-wrap 기반 intrinsic height (ListBox/GridList items 분기 동형).
   // ADR-912 영역 B (A, 2026-06-05): chip self-render seam 제거 후에도 본 분기는 유지된다.
   //   chip 시각은 chip projection(`appendTagRowProjection` → `type:"Tag"`)이 그리지만, TagList
-  //   **컨테이너 높이**는 items × chip 치수 wrap 으로 직접 산출해야 Taffy 가 projection rowsGroup
+  //   **컨테이너 높이**는 items × chip 치수 wrap 으로 직접 산출해야 엔진 이 projection rowsGroup
   //   (flexWrap:"wrap")의 행 수에 맞는 컨테이너 높이를 갖는다(ListBox=tag1:listbox / GridList=
   //   tag1:gridlist 의 items 기반 height 분기와 동형 — self-render 의존 아님, items SSOT 직접 계산).
-  //   wrap 공식은 chip 의 Taffy flex-wrap 배치와 정합해야 한다(rows × chipHeight + (rows-1)×rowGap).
+  //   wrap 공식은 chip 의 엔진 flex-wrap 배치와 정합해야 한다(rows × chipHeight + (rows-1)×rowGap).
   if (tag1 === "taglist") {
     const props = element.props as Record<string, unknown> | undefined;
     const items = props?.items as
@@ -3853,7 +3853,7 @@ export function calculateContentHeight(
       //   TagList 는 flex:1 로 남은 공간(availableWidth − labelWidth − gap)에서 칩을 wrap 한다
       //   (implicitStyles taglist 분기의 `flex:1/minWidth:0` 와 정합). availableWidth 전체를
       //   TagList 에 그대로 넘기면 칩이 1줄로 과소 wrap 되어 height 가 top(세로 합산)과 같게
-      //   나오는 버그(side 전환 시 selection 높이 불변)의 근본. Label 자연폭을 차감해 Taffy
+      //   나오는 버그(side 전환 시 selection 높이 불변)의 근본. Label 자연폭을 차감해 엔진
       //   실제 wrap 폭과 일치시킨다.
       let sideTagListAvail = availableWidth;
       if (isSideLayout && availableWidth !== undefined) {
@@ -4819,7 +4819,7 @@ const SPEC_SHAPES_INPUT_TAGS = new Set([
 /**
  * 리프 UI 컴포넌트에 intrinsic size(width/height)를 주입
  *
- * 레이아웃 엔진(Dropflow/Taffy)은 자식이 없는 블록의 height를 0으로 collapse하고,
+ * 레이아웃 엔진은 자식이 없는 블록의 height를 0으로 collapse하고,
  * block 요소의 width를 부모 100%로 확장한다.
  *
  * Button, Badge 등은 텍스트/인디케이터가 props에만 있어
@@ -4962,7 +4962,7 @@ export function enrichWithIntrinsicSize(
     rawWidth !== "auto" &&
     INTRINSIC_SIZE_KEYWORDS.has(rawWidth);
   // Flex 자식인 TEXT_LEAF_TAGS(Label, Description 등)도 intrinsic width 필요:
-  // Block layout에서는 자동 stretch되지만, Flex layout에서는 Taffy가 content size를
+  // Block layout에서는 자동 stretch되지만, Flex layout에서는 엔진이 content size를
   // 알 수 없어 width=0으로 처리함 (Checkbox/Radio/Switch 내부 Label 세로 출력 버그)
   // Image: replaced element — auto/fit-content 시 자연 치수 사용 필요
   const needsWidth =
@@ -5159,7 +5159,7 @@ export function enrichWithIntrinsicSize(
       // BUTTON_LIKE_BOX_TAGS(button 등): inline padding이 설정된 경우
       // applyCommonEngineStyle은 parsePadding(style)로 inline 값을 엔진에 전달하지만,
       // box.padding은 parseBoxModel 내부 sizeConfig 로직으로 spec 값을 반환할 수 있다.
-      // 이 불일치로 인해 injectHeight(spec 기반)와 Taffy padding(inline)이 달라져
+      // 이 불일치로 인해 injectHeight(spec 기반)와 엔진 padding(inline)이 달라져
       // content area가 좁아지고 텍스트가 잘리는 버그 발생.
       // 따라서 inline padding이 설정된 경우 parsePadding(style)을 직접 사용하여
       // applyCommonEngineStyle이 엔진에 전달하는 값과 동일한 패딩으로 injectHeight 계산.
@@ -5306,7 +5306,7 @@ export function enrichWithIntrinsicSize(
     let injectWidth = baseContentWidth;
     injectWidth += box.padding.left + box.padding.right;
     injectWidth += box.border.left + box.border.right;
-    // Math.ceil: Taffy(f32)와 JS(f64) 간 부동소수점 정밀도 차이로
+    // Math.ceil: 엔진(f32)와 JS(f64) 간 부동소수점 정밀도 차이로
     // flex-wrap 컨테이너에서 자식 합계가 부모 폭을 미세하게 초과하여
     // 불필요한 wrap이 발생하는 것을 방지
     const ceiledWidth = Math.ceil(injectWidth);
@@ -5607,7 +5607,7 @@ export function calculateMaxContentWidth(
  * RC-3: CSS prop → number | string 파서 (단위 정규화 적용)
  *
  * rem, em, vh, vw, calc() 등을 resolveCSSSizeValue()로 해석.
- * % 값은 Taffy 네이티브 % 처리를 위해 문자열 그대로 반환.
+ * % 값은 엔진 네이티브 % 처리를 위해 문자열 그대로 반환.
  *
  * flexStyleAdapter, gridStyleAdapter 공용
  */
@@ -5619,7 +5619,7 @@ export function parseCSSPropWithContext(
     return undefined;
   if (typeof value === "number") return value;
   if (typeof value === "string") {
-    // % 값은 Taffy가 네이티브로 처리
+    // % 값은 엔진이 네이티브로 처리
     if (value.endsWith("%")) return value;
     // intrinsic sizing 키워드는 본 파서에선 undefined — 숫자 파서 계약 유지.
     //   ADR-165: 키워드의 엔진 통과는 applyCommonEngineStyle 의 문자열 복원 분기가
@@ -5643,7 +5643,7 @@ export function parseCSSPropWithContext(
 }
 
 /**
- * Taffy 공통 스타일 적용: Size + Min/Max + Padding + Border + Gap
+ * 엔진 공통 스타일 적용: Size + Min/Max + Padding + Border + Gap
  *
  * flexStyleAdapter과 gridStyleAdapter 양쪽에서 동일한 Box model + Gap 변환을
  * 중복 없이 적용하기 위한 헬퍼.
@@ -5755,7 +5755,7 @@ export function applyCommonEngineStyle(
   if (rowGap !== undefined) result.rowGap = rowGap;
   if (columnGap !== undefined) result.columnGap = columnGap;
 
-  // Overflow — Taffy가 scroll/hidden 컨테이너의 크기 계산에 사용
+  // Overflow — 엔진이 scroll/hidden 컨테이너의 크기 계산에 사용
   if (style.overflow) {
     result.overflowX = style.overflow;
     result.overflowY = style.overflow;
@@ -5785,7 +5785,7 @@ export function applyCommonEngineStyle(
 }
 
 /**
- * CSS flex item 속성을 Taffy 스타일에 적용.
+ * CSS flex item 속성을 엔진 스타일에 적용.
  *
  * CSS 명세: flex/grid 부모의 모든 자식은 자신의 display와 무관하게
  * flex/grid item으로 참여한다. 자식의 display는 내부 formatting context만 결정.
@@ -5879,7 +5879,7 @@ export function applyFlexItemProperties(
   //   block/inline leaf 자식(ProgressBarValue/MeterValue 등)은 elementToEngineBlockStyle →
   //   engineStyleToRecord 경로를 타는데 elementToEngineBlockStyle 이 justifySelf/alignSelf 만
   //   패스스루하고 grid line(gridColumnStart/End/gridRowStart/End)은 누락한다. 그 결과
-  //   Taffy 가 grid line 없이 auto-placement → grid item 이 컨테이너 밖으로 흘러나감
+  //   엔진 이 grid line 없이 auto-placement → grid item 이 컨테이너 밖으로 흘러나감
   //   (Skia 만 깨지고 DOM 은 CSSGenerator 가 grid-area 이름으로 정상 배치 → D3 비대칭).
   //   justifySelf/alignSelf 는 elementToEngineBlockStyle 이 이미 처리하므로 여기선 line 만.
   if (style.gridColumnStart !== undefined)

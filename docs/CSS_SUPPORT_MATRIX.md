@@ -1,9 +1,40 @@
 # CSS Level 3 엔진 정합성 체크리스트
 
-> **최종 갱신**: 2026-04-06
 > **목적**: composition 레이아웃/렌더링 엔진의 CSS Level 3 속성 지원 현황 추적
-> **엔진**: TaffyFlexEngine (Taffy WASM) · TaffyGridEngine (Taffy WASM) · TaffyBlockEngine (Taffy WASM)
+> **엔진**: `packages/composition-engine` (자체 Rust 엔진, wasm) — 스타일 어댑터는
+> `layout/engines/{flexStyleAdapter,blockStyleAdapter,gridStyleAdapter,displayAdapter}.ts`
 > **렌더러**: CanvasKit/Skia WASM
+>
+> **읽는 법 (2026-09-05)**: 아래 §0 은 **코드가 생성**한다 — 엔진이 CSS 의미를 그대로 구현하지 않는
+> 자리와 Chrome 격차 실측치가 여기 있고, 정본은 `layoutCapabilityMatrix.ts` 다. §1 이후의 손 편집
+> 본문은 **2026-04-06 기준 스냅샷**이며 자동 갱신되지 않는다 — 그 시점의 엔진 파일명 (ADR-916 에서
+> 삭제된 구 어댑터 3종) 은 현재 파일명으로 바꿔 두었으나 행 번호는 검증할 수 없어 떼었고 개별 판정은
+> 재확인하지 않았다. 충돌 시 §0 과 코드가 우선한다.
+
+---
+
+## 0. 엔진 capability — 코드 생성
+
+<!-- engine-matrix:begin -->
+
+<!-- 이 블록은 `node scripts/generate-engine-matrix.mjs` 가 생성한다. 직접 편집하지 말 것 —
+     정본은 layout/engines/layoutCapabilityMatrix.ts, drift 는 codex:preflight 가 잡는다. -->
+
+| 자리 | 속성 | 값 | 엔진 구현 | 경계 정책 | 미지원 시 동작 | Chrome 격차 (px) | 후속 |
+| ---- | ---- | -- | --------- | --------- | -------------- | ---------------- | ---- |
+| S4 | `display` | inline | none | declared-substitution | `inline` 은 경계에 그대로 실리고 (`normalizeCssDisplay` 인식 8 값) 엔진 `parse_display` 가 {outer inline, inner flow} 로 읽지만, block 부모의 line item 판정 `is_atomic_inline_level` 이 inner=flow 를 제외해 block-level box 로 치환된다 (`tree.rs write_block_item` code 0). 순수 inline box (텍스트 run 과 섞이는 IFC) 는 없다. inline-block · inline-flex · inline-grid 는 line item (pass). | `S4-inline-text-pair` dx 41.9 · dy 19 · dw 259.2 · dh 2 | breakdown §8 S4 — store 쓰기 chokepoint + hydration 원값 보존 + 패널 DISPLAY_OPTIONS 조정 후 정규화 (persisted migration 동반). 그 전까지 declared-substitution (block 격상). |
+| S7 | `float` | left \| right (clear · writing-mode · column-* 동류) | none | ignored | `EngineStyle` (layoutTypes.ts) · 엔진 `StyleInput` 에 float/clear/writing-mode/column 필드가 없어 어댑터 (`flexStyleAdapter` · `blockStyleAdapter`) 가 싣지 않는다 — 경계 record 에 키가 없고, 요소는 normal flow block 으로 쌓인다 (ADR-916 1-C 미구현). | `S7-float-left` dx 0 · dy 20 · dw 0 · dh 0 | breakdown §8 S7 — 패널 노출 없음 확인, import strip 여부 결정. ignored 선언 유지. |
+| S8 | `grid-template-columns \| grid-auto-flow` | subgrid \| … dense (baseline 정렬 · intrinsic track 일부 동류) | partial | declared-substitution | `subgrid` 는 부모 트랙을 상속하지 않고 독립 grid 로 치환된다 (`parseGridTemplate` 이 토큰 `subgrid` 를 그대로 넘기고 엔진 `parse_single_track_value` 가 미인식 → auto 폴백, `grid.rs`). `grid-auto-flow: … dense` 는 값이 실리지만 (`EngineGridAutoFlow` · binary `GRID_AUTO_FLOW_MAP`) 엔진 auto-placement 가 `contains("column")` 만 읽어 **sparse 커서** 로만 놓는다 — 빈칸 역채움 없음 (`grid.rs` Phase 1 auto-placement, ADR-916 1-B 미구현 목록 그대로; round 33 이전의 "dense Δ0 = 구현" 판정은 운반되지 않는 `gridColumn` shorthand 가 만든 우연이었다). baseline 정렬은 start 로 치환. | `S8-grid-subgrid` dx 100 · dy 20 · dw 100 · dh 0<br>`S8-grid-dense` dx 100 · dy 40 · dw 0 · dh 0 | breakdown §8 S8 — declared-substitution 유지, 구현은 별도 ADR (차등 케이스로 수치 고정). |
+
+**정책 어휘** — `pass`: 값이 경계에 실리고 엔진이 그 의미로 구현한다 · `declared-substitution`: 값이
+경계에 실리지만 엔진이 다른 의미로 치환한다 (치환 내용은 동작 열) · `ignored`: 속성이 `EngineStyle` /
+Rust `StyleInput` 에 없어 어댑터가 싣지 않는다 — 엔진은 읽을 기회조차 없다.
+
+격차 수치는 `apps/builder/tests/parity/adr923CapabilityMatrixSeed.browser.test.ts` 가 DOM leg
+(`getBoundingClientRect`) ↔ production 파이프라인 (`calculateFullTreeLayout`) 으로 고정한다. 수치가
+바뀌면 테스트가 RED 로 알린다 — 표를 유리하게 바꿔 격차를 줄이는 방향은 금지 (수리 결과로만 갱신).
+
+<!-- engine-matrix:end -->
 
 ---
 
@@ -23,15 +54,15 @@
 
 | 속성값         | 상태 | 엔진       | 구현 파일                                       | 비고                                                             |
 | -------------- | ---- | ---------- | ----------------------------------------------- | ---------------------------------------------------------------- |
-| `block`        | ✅   | TaffyBlock | `TaffyBlockEngine.ts`, `taffyDisplayAdapter.ts` |                                                                  |
-| `inline`       | ✅   | TaffyBlock | `TaffyBlockEngine.ts`, `taffyDisplayAdapter.ts` |                                                                  |
-| `inline-block` | ✅   | TaffyBlock | `TaffyBlockEngine.ts`, `taffyDisplayAdapter.ts` | `taffyDisplayAdapter.ts INLINE_BLOCK_PARENT_CONFIG`              |
-| `flex`         | ✅   | TaffyFlex  | `TaffyFlexEngine.ts:210`                        |                                                                  |
-| `inline-flex`  | ⚠️   | TaffyFlex  | `taffyDisplayAdapter.ts`                        | `flex`로 정규화됨 — inline 특성(주변 텍스트와 한 줄 배치) 미반영 |
-| `grid`         | ✅   | TaffyGrid  | `TaffyGridEngine.ts:520`                        |                                                                  |
-| `inline-grid`  | ⚠️   | TaffyGrid  | `TaffyGridEngine.ts:520`                        | `grid`로 정규화됨 — inline 특성 미반영                           |
-| `flow-root`    | ✅   | TaffyBlock | `TaffyBlockEngine.ts`, `taffyDisplayAdapter.ts` | BFC 생성                                                         |
-| `none`         | ✅   | 공통       | `TaffyFlexEngine.ts:52`, `nodeRenderers.ts:219` | 레이아웃 제외 + 렌더 스킵                                        |
+| `block`        | ✅   | Block | `blockStyleAdapter.ts`, `displayAdapter.ts` |                                                                  |
+| `inline`       | ✅   | Block | `blockStyleAdapter.ts`, `displayAdapter.ts` |                                                                  |
+| `inline-block` | ✅   | Block | `blockStyleAdapter.ts`, `displayAdapter.ts` | `displayAdapter.ts INLINE_BLOCK_PARENT_CONFIG`              |
+| `flex`         | ✅   | Flex  | `flexStyleAdapter.ts`                        |                                                                  |
+| `inline-flex`  | ⚠️   | Flex  | `displayAdapter.ts`                        | `flex`로 정규화됨 — inline 특성(주변 텍스트와 한 줄 배치) 미반영 |
+| `grid`         | ✅   | Grid  | `gridStyleAdapter.ts`                        |                                                                  |
+| `inline-grid`  | ⚠️   | Grid  | `gridStyleAdapter.ts`                        | `grid`로 정규화됨 — inline 특성 미반영                           |
+| `flow-root`    | ✅   | Block | `blockStyleAdapter.ts`, `displayAdapter.ts` | BFC 생성                                                         |
+| `none`         | ✅   | 공통       | `flexStyleAdapter.ts`, `nodeRenderers.ts:219` | 레이아웃 제외 + 렌더 스킵                                        |
 | `contents`     | ✅   | 공통       | `BuilderCanvas.tsx` pageChildrenMap 플래튼      | 자식을 부모에 직접 배치, 자체 박스 생성 안 함                    |
 
 ---
@@ -46,10 +77,10 @@
 | ------------ | ---- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | `width`      | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `utils.ts:863`          | px, %, em, rem, vh, vw, calc()                                                                          |
 | `height`     | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `utils.ts:864`          | 동상                                                                                                    |
-| `min-width`  | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `TaffyFlexEngine.ts:71` | flex item: `enrichWithIntrinsicSize`에서 `min-width:auto` 에뮬레이션 (width 주입 시 minWidth 동시 설정) |
-| `max-width`  | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `TaffyFlexEngine.ts:73` |                                                                                                         |
-| `min-height` | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `TaffyFlexEngine.ts:72` |                                                                                                         |
-| `max-height` | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `TaffyFlexEngine.ts:74` |                                                                                                         |
+| `min-width`  | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `flexStyleAdapter.ts` | flex item: `enrichWithIntrinsicSize`에서 `min-width:auto` 에뮬레이션 (width 주입 시 minWidth 동시 설정) |
+| `max-width`  | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `flexStyleAdapter.ts` |                                                                                                         |
+| `min-height` | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `flexStyleAdapter.ts` |                                                                                                         |
+| `max-height` | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `flexStyleAdapter.ts` |                                                                                                         |
 
 ### 2.2 여백
 
@@ -75,11 +106,11 @@
 
 | 키워드         | 상태 | 구현 파일                                                     | 비고                                                                |
 | -------------- | ---- | ------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `auto`         | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `TaffyFlexEngine.ts:28` |                                                                     |
-| `fit-content`  | ⚠️   | `fullTreeLayout.ts buildNodeStyle()`, `cssValueParser.ts:192` | 태그별 픽셀 계산 워크어라운드 — Taffy 네이티브 `fit-content` 미전달 |
+| `auto`         | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `flexStyleAdapter.ts` |                                                                     |
+| `fit-content`  | ⚠️   | `fullTreeLayout.ts buildNodeStyle()`, `cssValueParser.ts:192` | 태그별 픽셀 계산 워크어라운드 — 엔진 네이티브 `fit-content` 미전달 |
 | `min-content`  | ⚠️   | `cssValueParser.ts:193`, `utils.ts:1206-1227`                 | 텍스트 측정만 구현, 레이아웃 엔진에 직접 전달 안됨                  |
 | `max-content`  | ⚠️   | `cssValueParser.ts:194`, `utils.ts:1241-1249`                 | 텍스트 측정만 구현, 레이아웃 엔진에 직접 전달 안됨                  |
-| `aspect-ratio` | ✅   | `engines/utils.ts` `applyCommonTaffyStyle()`                  | Flex/Grid/Block 3경로 모두 지원                                     |
+| `aspect-ratio` | ✅   | `engines/utils.ts` `applyCommon엔진Style()`                  | Flex/Grid/Block 3경로 모두 지원                                     |
 
 ---
 
@@ -91,24 +122,24 @@
 
 | 속성                             | 상태 | 구현 파일                    | 비고                                                                    |
 | -------------------------------- | ---- | ---------------------------- | ----------------------------------------------------------------------- |
-| `flex-direction`                 | ✅   | `TaffyFlexEngine.ts:81-83`   | row, column, row-reverse, column-reverse                                |
-| `flex-wrap`                      | ✅   | `TaffyFlexEngine.ts:85-88`   | nowrap, wrap, wrap-reverse                                              |
-| `flex-flow`                      | ✅   | `TaffyFlexEngine.ts:88-112`  | shorthand 파싱 → flex-direction + flex-wrap 분리                        |
-| `justify-content`                | ✅   | `TaffyFlexEngine.ts:90-93`   | flex-start, flex-end, center, space-between, space-around, space-evenly |
-| `align-items`                    | ✅   | `TaffyFlexEngine.ts:95-98`   | stretch, flex-start, flex-end, center, baseline                         |
-| `align-content`                  | ✅   | `TaffyFlexEngine.ts:100-103` |                                                                         |
-| `gap` / `row-gap` / `column-gap` | ✅   | `TaffyFlexEngine.ts:140-157` |                                                                         |
+| `flex-direction`                 | ✅   | `flexStyleAdapter.ts-83`   | row, column, row-reverse, column-reverse                                |
+| `flex-wrap`                      | ✅   | `flexStyleAdapter.ts-88`   | nowrap, wrap, wrap-reverse                                              |
+| `flex-flow`                      | ✅   | `flexStyleAdapter.ts-112`  | shorthand 파싱 → flex-direction + flex-wrap 분리                        |
+| `justify-content`                | ✅   | `flexStyleAdapter.ts-93`   | flex-start, flex-end, center, space-between, space-around, space-evenly |
+| `align-items`                    | ✅   | `flexStyleAdapter.ts-98`   | stretch, flex-start, flex-end, center, baseline                         |
+| `align-content`                  | ✅   | `flexStyleAdapter.ts-103` |                                                                         |
+| `gap` / `row-gap` / `column-gap` | ✅   | `flexStyleAdapter.ts-157` |                                                                         |
 
 ### 4.2 아이템 속성
 
 | 속성               | 상태 | 구현 파일                                                                          | 비고                                                                                                                        |
 | ------------------ | ---- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | `flex` (shorthand) | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `engines/utils.ts applyFlexItemProperties()` | none, auto, 숫자, 3값 형식 — block/grid 자식에서도 `applyFlexItemProperties()`로 flexGrow/flexShrink/flexBasis 분해 적용    |
-| `flex-grow`        | ✅   | `TaffyFlexEngine.ts:106`                                                           |                                                                                                                             |
-| `flex-shrink`      | ✅   | `TaffyFlexEngine.ts:107`                                                           | `overflow !== visible` 부모: 명시적 flexShrink 없으면 `flexShrink: 0` 자동 주입 (fullTreeLayout Step 5.7 + TaffyFlexEngine) |
-| `flex-basis`       | ✅   | `TaffyFlexEngine.ts:108-111`                                                       |                                                                                                                             |
-| `align-self`       | ✅   | `TaffyFlexEngine.ts:113-116`                                                       |                                                                                                                             |
-| `order`            | ✅   | `TaffyFlexEngine.ts:118-122`, `taffyLayout.ts`                                     | Taffy WASM order 전달                                                                                                       |
+| `flex-grow`        | ✅   | `flexStyleAdapter.ts`                                                           |                                                                                                                             |
+| `flex-shrink`      | ✅   | `flexStyleAdapter.ts`                                                           | `overflow !== visible` 부모: 명시적 flexShrink 없으면 `flexShrink: 0` 자동 주입 (fullTreeLayout Step 5.7 + 엔진FlexEngine) |
+| `flex-basis`       | ✅   | `flexStyleAdapter.ts-111`                                                       |                                                                                                                             |
+| `align-self`       | ✅   | `flexStyleAdapter.ts-116`                                                       |                                                                                                                             |
+| `order`            | ✅   | `flexStyleAdapter.ts-122`, `compositionEngine.ts`                                     | 엔진 WASM order 전달                                                                                                       |
 
 ---
 
@@ -120,32 +151,32 @@
 
 | 속성                             | 상태 | 구현 파일                    | 비고                                                  |
 | -------------------------------- | ---- | ---------------------------- | ----------------------------------------------------- |
-| `grid-template-columns`          | ✅   | `TaffyGridEngine.ts:349-361` | px, fr, auto, minmax(), repeat()                      |
-| `grid-template-rows`             | ✅   | `TaffyGridEngine.ts:349-362` | 동상                                                  |
-| `grid-template-areas`            | ✅   | `TaffyGridEngine.ts:272-300` | 문자열 이름 기반 영역                                 |
-| `grid-auto-flow`                 | ✅   | `TaffyGridEngine.ts:365-368` | row, column, dense                                    |
-| `grid-auto-columns`              | ✅   | `TaffyGridEngine.ts:352`     |                                                       |
-| `grid-auto-rows`                 | ✅   | `TaffyGridEngine.ts:353`     |                                                       |
-| `justify-items`                  | ✅   | `TaffyGridEngine.ts:374-376` |                                                       |
-| `align-items`                    | ✅   | `TaffyGridEngine.ts:372-373` |                                                       |
-| `gap` / `row-gap` / `column-gap` | ✅   | `TaffyGridEngine.ts:369-371` |                                                       |
-| `place-items`                    | ✅   | `TaffyGridEngine.ts`         | shorthand 파싱 → align-items + justify-items 분리     |
-| `place-content`                  | ✅   | `TaffyGridEngine.ts`         | shorthand 파싱 → align-content + justify-content 분리 |
-| `repeat(auto-fill)`              | ✅   | `TaffyGridEngine.ts:99-163`  | containerSize 기반 동적 계산                          |
-| `repeat(auto-fit)`               | ✅   | `TaffyGridEngine.ts:99-163`  |                                                       |
-| `minmax()`                       | ✅   | `TaffyGridEngine.ts:165-200` |                                                       |
+| `grid-template-columns`          | ✅   | `gridStyleAdapter.ts-361` | px, fr, auto, minmax(), repeat()                      |
+| `grid-template-rows`             | ✅   | `gridStyleAdapter.ts-362` | 동상                                                  |
+| `grid-template-areas`            | ✅   | `gridStyleAdapter.ts-300` | 문자열 이름 기반 영역                                 |
+| `grid-auto-flow`                 | ✅   | `gridStyleAdapter.ts-368` | row, column, dense                                    |
+| `grid-auto-columns`              | ✅   | `gridStyleAdapter.ts`     |                                                       |
+| `grid-auto-rows`                 | ✅   | `gridStyleAdapter.ts`     |                                                       |
+| `justify-items`                  | ✅   | `gridStyleAdapter.ts-376` |                                                       |
+| `align-items`                    | ✅   | `gridStyleAdapter.ts-373` |                                                       |
+| `gap` / `row-gap` / `column-gap` | ✅   | `gridStyleAdapter.ts-371` |                                                       |
+| `place-items`                    | ✅   | `gridStyleAdapter.ts`         | shorthand 파싱 → align-items + justify-items 분리     |
+| `place-content`                  | ✅   | `gridStyleAdapter.ts`         | shorthand 파싱 → align-content + justify-content 분리 |
+| `repeat(auto-fill)`              | ✅   | `gridStyleAdapter.ts-163`  | containerSize 기반 동적 계산                          |
+| `repeat(auto-fit)`               | ✅   | `gridStyleAdapter.ts-163`  |                                                       |
+| `minmax()`                       | ✅   | `gridStyleAdapter.ts-200` |                                                       |
 
 ### 5.2 아이템 속성
 
 | 속성                    | 상태 | 구현 파일                    | 비고             |
 | ----------------------- | ---- | ---------------------------- | ---------------- |
-| `grid-column`           | ✅   | `TaffyGridEngine.ts:423-435` | "1/3", "span 2"  |
-| `grid-row`              | ✅   | `TaffyGridEngine.ts:423-436` |                  |
-| `grid-column-start/end` | ✅   | `TaffyGridEngine.ts:439-450` |                  |
-| `grid-row-start/end`    | ✅   | `TaffyGridEngine.ts:445-450` |                  |
-| `grid-area`             | ✅   | `TaffyGridEngine.ts:405-419` | 숫자 + 이름 기반 |
-| `justify-self`          | ✅   | `TaffyGridEngine.ts:456-458` |                  |
-| `align-self`            | ✅   | `TaffyGridEngine.ts:453-455` |                  |
+| `grid-column`           | ✅   | `gridStyleAdapter.ts-435` | "1/3", "span 2"  |
+| `grid-row`              | ✅   | `gridStyleAdapter.ts-436` |                  |
+| `grid-column-start/end` | ✅   | `gridStyleAdapter.ts-450` |                  |
+| `grid-row-start/end`    | ✅   | `gridStyleAdapter.ts-450` |                  |
+| `grid-area`             | ✅   | `gridStyleAdapter.ts-419` | 숫자 + 이름 기반 |
+| `justify-self`          | ✅   | `gridStyleAdapter.ts-458` |                  |
+| `align-self`            | ✅   | `gridStyleAdapter.ts-455` |                  |
 
 ---
 
@@ -157,10 +188,10 @@
 | ----------------------------------- | ---- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | `position: static`                  | ✅   | (기본값)                                                         |                                                                                                 |
 | `position: relative`                | ✅   | `cssStackingContext.ts:23`                                       | stacking context 판정                                                                           |
-| `position: absolute`                | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `TaffyFlexEngine.ts:58-59` |                                                                                                 |
+| `position: absolute`                | ✅   | `fullTreeLayout.ts buildNodeStyle()`, `flexStyleAdapter.ts-59` |                                                                                                 |
 | `position: fixed`                   | ⚠️   | `fullTreeLayout.ts buildNodeStyle()`                             | `absolute`로 정규화 — 뷰포트 기준 고정 동작 없음                                                |
 | `position: sticky`                  | ⚠️   | `cssStackingContext.ts:22`, `layout/stickyResolver.ts`           | stacking context 생성 + post-layout 3-state 보정 (normal→stuck→limit). fullTreeLayout 연동 대기 |
-| `top` / `right` / `bottom` / `left` | ✅   | `TaffyFlexEngine.ts:161-169`                                     | absolute/relative 요소에 적용                                                                   |
+| `top` / `right` / `bottom` / `left` | ✅   | `flexStyleAdapter.ts-169`                                     | absolute/relative 요소에 적용                                                                   |
 | `z-index`                           | ✅   | `cssStackingContext.ts:38-43`, `nodeRenderers.ts:155`            | auto/숫자, stacking context 렌더 정렬                                                           |
 
 ---
@@ -175,9 +206,9 @@
 | `overflow: hidden`                | ✅   | `BoxSprite.tsx:224`, `nodeRenderers.ts:282-308`                   | CanvasKit `clipRect` + flex 자식 `flexShrink: 0` 자동 주입                                                          |
 | `overflow: scroll`                | ✅   | `BoxSprite.tsx`, `scrollState.ts`, `renderCommands.ts`            | 클리핑 + 스크롤바 UI + 마우스 휠 스크롤 + flex 자식 shrink 방지 + hover guideline scroll offset 동기화 (2026-04-06) |
 | `overflow: auto`                  | ✅   | `BoxSprite.tsx`, `scrollState.ts`                                 | scroll과 동일 동작 (콘텐츠 초과 시 스크롤바 표시)                                                                   |
-| `overflow: clip`                  | ✅   | `BoxSprite.tsx`, `TaffyBlockEngine.ts`                            | hidden과 동일한 clipRect + BFC 생성 + flex 자식 shrink 방지                                                         |
-| `overflow-x` / `overflow-y`       | ✅   | `engines/utils.ts` `applyCommonTaffyStyle()`                      | Flex/Grid/Block 3경로 모두 지원. 축별 독립 제어                                                                     |
-| **flex shrink 보정**              | ✅   | `fullTreeLayout.ts` Step 5.7, `TaffyFlexEngine.ts`                | `overflow !== visible` 시 자식 `flexShrink: 0` 주입. flex-direction 축 매칭 (row→overflowX, column→overflowY)       |
+| `overflow: clip`                  | ✅   | `BoxSprite.tsx`, `blockStyleAdapter.ts`                            | hidden과 동일한 clipRect + BFC 생성 + flex 자식 shrink 방지                                                         |
+| `overflow-x` / `overflow-y`       | ✅   | `engines/utils.ts` `applyCommon엔진Style()`                      | Flex/Grid/Block 3경로 모두 지원. 축별 독립 제어                                                                     |
+| **flex shrink 보정**              | ✅   | `fullTreeLayout.ts` Step 5.7, `flexStyleAdapter.ts`                | `overflow !== visible` 시 자식 `flexShrink: 0` 주입. flex-direction 축 매칭 (row→overflowX, column→overflowY)       |
 | **min-width:auto 에뮬레이션**     | ✅   | `engines/utils.ts` `enrichWithIntrinsicSize()`                    | flex item에 width 주입 시 minWidth 동시 설정. CSS §4.5 min-width:auto = min-content (2026-04-06)                    |
 | **hover guideline scroll 동기화** | ✅   | `skiaFrameHelpers.ts`, `renderCommands.ts`, `scrollState.ts`      | treeBoundsMap에 scrollOffset 반영 + scrollVersion 캐시 무효화 (2026-04-06)                                          |
 | **에디터 UI**                     | ✅   | `panels/styles/sections/AppearanceSection.tsx`, `styleOptions.ts` | Appearance 섹션 — visible/hidden/scroll/auto/clip 셀렉터 (ADR-050, 2026-04-03)                                      |
@@ -552,7 +583,7 @@
 
 | 우선순위 | 항목                                                                | 이유                                        |
 | -------- | ------------------------------------------------------------------- | ------------------------------------------- |
-| P1       | `fit-content` / `min-content` / `max-content` 네이티브              | 현재 워크어라운드, Taffy 네이티브 전달 필요 |
+| P1       | `fit-content` / `min-content` / `max-content` 네이티브              | 현재 워크어라운드, 엔진 네이티브 전달 필요 |
 | ~~P1~~   | ~~`background-size` / `background-position`~~                       | ✅ v1.3에서 구현 완료                       |
 | ~~P1~~   | ~~`cursor` / `pointer-events`~~                                     | ✅ v1.3에서 구현 완료                       |
 | ~~P1~~   | ~~`filter` 함수 확장 (brightness, contrast, saturate, hue-rotate)~~ | ✅ 구현 완료 (v1.1에서 누락 확인)           |
@@ -574,7 +605,7 @@
 | 2   | `vmin` / `vmax` 단위    | `cssValueParser.ts` resolveUnitValue | 🟢     |
 | 3   | `overflow: clip`        | `BoxSprite.tsx`, engines             | 🟢     |
 | 4   | `visibility: collapse`  | `BoxSprite.tsx`, cssResolver         | 🟢     |
-| 5   | `order` (flex)          | `TaffyFlexEngine.ts`                 | 🟢     |
+| 5   | `order` (flex)          | `flexStyleAdapter.ts`                 | 🟢     |
 
 ### Phase 2: Shorthand Parsers + CSS Wiring (5개)
 
@@ -658,7 +689,7 @@
 
 | 차원                                  | v1 추정 | v2 보정 | Δ      | 비고                                                                                                                                                    |
 | ------------------------------------- | ------- | ------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 구조/레이아웃                         | 85%     | **85%** | 0      | Taffy 단일 엔진 (TaffyBlock/Flex/Grid). CSS 엔진 88%. ⚠️ [7건 구조적 근본 원인](#레이아웃-엔진-구조적-근본-원인-7건-전수-코드-검증-완료) 해결 시 93~97% |
+| 구조/레이아웃                         | 85%     | **85%** | 0      | 엔진 단일 엔진 (Block/Flex/Grid). CSS 엔진 88%. ⚠️ [7건 구조적 근본 원인](#레이아웃-엔진-구조적-근본-원인-7건-전수-코드-검증-완료) 해결 시 93~97% |
 | 색상/Variant                          | 80%     | **80%** | 0      | Spec variant + CSS variable reader                                                                                                                      |
 | 타이포그래피                          | 80%     | **82%** | +2     | CanvasKit Paragraph API — font-variant, font-stretch 포함 확인                                                                                          |
 | 렌더링 정밀도 (shadow/outline/border) | 60%     | **65%** | **+5** | **multi-shadow ✅ 이미 동작**, border 8종 ✅ 확인. 잔존 갭: focus ring, shadow spread, spec border-style 패스스루                                       |
@@ -764,11 +795,11 @@ gradient 효과가 필요하면 Button에 `variant: 'gradient'` 추가.
 | scroll offset       | ✅   | `canvas.translate(-scrollLeft, -scrollTop)`       |
 | 콘텐츠 측정         | ✅   | `computeContentBounds()` → maxScroll 계산         |
 | Zustand store       | ✅   | `scrollState.ts` (scrollTop/Left/max)             |
-| Taffy overflow 전달 | ❌   | TaffyStyle에 타입 있으나 엔진에서 미전달          |
+| 엔진 overflow 전달 | ❌   | 엔진Style에 타입 있으나 엔진에서 미전달          |
 | **스크롤바 UI**     | ❌   | 미구현                                            |
 | **이벤트 바인딩**   | ❌   | wheel/touch → scrollBy() 미연결                   |
 
-**필요 작업**: 스크롤바 Skia 렌더링 + wheel 이벤트 바인딩 + Taffy에 overflow 전달
+**필요 작업**: 스크롤바 Skia 렌더링 + wheel 이벤트 바인딩 + 엔진에 overflow 전달
 
 ### Quick Win 상세: 렌더링 정밀도 개선
 
@@ -1056,18 +1087,18 @@ CSS Level 3 속성 지원(88%)과 별도로, **레이아웃 계산 파이프라�
 | -------------------------------------- | ------------------------------------ | ------------------------------------------------ |
 | **A. Available Space 모델 일치**       | 부모/자식 동일한 sizing 모델 사용    | 부모는 Definite 고정, 자식은 auto/intrinsic 혼합 |
 | **B. Display 변경 시 자식 의미 보존**  | blockification 후에도 자식 의도 유지 | 엔진 경계에서 내부/외부 display 의미 변질        |
-| **C. Intrinsic 키워드 엔진 간 일관성** | auto/fit-content 동일 규칙 해석      | TaffyBlock: fit-content → auto 정규화            |
+| **C. Intrinsic 키워드 엔진 간 일관성** | auto/fit-content 동일 규칙 해석      | Block: fit-content → auto 정규화            |
 
 ### 7건 근본 원인 목록
 
 | #        | 근본 원인                           | 관련 파일                                                  | 심각도 | 구조/레이아웃 차원 영향                    |
 | -------- | ----------------------------------- | ---------------------------------------------------------- | ------ | ------------------------------------------ |
-| **RC-1** | AvailableSpace 항상 Definite 고정   | `TaffyFlexEngine.ts:438-439`, `BuilderCanvas.tsx:720-725`  | HIGH   | stretch/overflow/min-content 왜곡          |
-| **RC-2** | 부모 height 무조건 강제 주입        | `TaffyFlexEngine.ts:434-439`, `TaffyGridEngine.ts:626-631` | HIGH   | cross-axis stretch, auto height 무시       |
-| **RC-3** | CSS 단위 px 중심 `parseFloat` 축소  | `TaffyFlexEngine.ts:205-216`                               | HIGH   | rem/em/vh/vw/calc 전역 오차                |
-| **RC-4** | 2-pass 트리거 비교 기준 부정확      | `TaffyFlexEngine.ts:352`                                   | HIGH   | 과/미재계산 → 텍스트 줄바꿈 높이 불일치    |
-| **RC-5** | inline-run baseline ≈ middle 단순화 | `taffyDisplayAdapter.ts`                                   | MEDIUM | y-offset 누적, line break 불연속           |
-| **RC-6** | auto/fit-content 엔진별 분기 처리   | `taffyDisplayAdapter.ts`                                   | HIGH   | enrichment 실패 시 width/height 0 붕괴     |
+| **RC-1** | AvailableSpace 항상 Definite 고정   | `flexStyleAdapter.ts-439`, `BuilderCanvas.tsx:720-725`  | HIGH   | stretch/overflow/min-content 왜곡          |
+| **RC-2** | 부모 height 무조건 강제 주입        | `flexStyleAdapter.ts-439`, `gridStyleAdapter.ts-631` | HIGH   | cross-axis stretch, auto height 무시       |
+| **RC-3** | CSS 단위 px 중심 `parseFloat` 축소  | `flexStyleAdapter.ts-216`                               | HIGH   | rem/em/vh/vw/calc 전역 오차                |
+| **RC-4** | 2-pass 트리거 비교 기준 부정확      | `flexStyleAdapter.ts`                                   | HIGH   | 과/미재계산 → 텍스트 줄바꿈 높이 불일치    |
+| **RC-5** | inline-run baseline ≈ middle 단순화 | `displayAdapter.ts`                                   | MEDIUM | y-offset 누적, line break 불연속           |
+| **RC-6** | auto/fit-content 엔진별 분기 처리   | `displayAdapter.ts`                                   | HIGH   | enrichment 실패 시 width/height 0 붕괴     |
 | **RC-7** | blockification 경계 처리 불완전     | `index.ts:131-144, 193-221`                                | MEDIUM | display 전환 시 자식 shrink/stretch 불일치 |
 
 > ※ **권장 실행 순서**: 1단계 RC-3 → 2단계 RC-1+RC-2 → 3단계 RC-6+RC-4 → 4단계 RC-7 → RC-5
@@ -1121,8 +1152,8 @@ CSS Level 3 속성 지원(88%)과 별도로, **레이아웃 계산 파이프라�
 | 2026-02-22 | **2.6** | **TagGroup label 두 줄 렌더링 버그 수정**: (1) `TagGroup.spec.ts` — `render.shapes`에서 label 텍스트 shape 제거. label은 자식 Label 엘리먼트(fontSize:14)가 렌더링하므로 spec shapes(fontSize:12) 중복 렌더가 두 줄처럼 보이는 현상 제거. (2) `engines/utils.ts` line 759-760 — `calculateContentWidth` 일반 텍스트 경로에 Canvas 2D→CanvasKit 폭 측정 보정 추가: `Math.ceil(calculateTextWidth(...)) + 2`. INLINE_FORM 경로(line 718-719)에만 존재하던 보정을 일반 텍스트 경로에도 동일 패턴으로 적용. CanvasKit paragraph API가 Canvas 2D `measureText` 결과(65px)보다 더 넓은 폭을 요구하여 텍스트가 wrapping되던 근본 원인 해결.                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | 2026-02-22 | **2.7** | **Slider Complex Component 전환 + 렌더링 버그 수정**: (1) `Slider.spec.ts` — `render.shapes`에서 `size.fontSize`를 TokenRef 문자열(`'{typography.text-sm}'`)로 숫자 연산에 직접 사용하던 버그 수정 → `resolveToken()` 적용 (NaN → track/thumb 미렌더링 현상 해결). (2) Slider를 Complex Component로 전환: `useElementCreator.ts` complexComponents에 'Slider' 추가, `ComponentFactory.ts` Slider creator 등록, `FormComponents.ts` `createSliderDefinition()` 팩토리 추가. DOM 구조: `Slider > Label + SliderOutput + SliderTrack > SliderThumb`. (3) `Slider.css` class selector → data-attribute selector 전환, spec dimensions 정확히 반영. (4) `ElementSprite.tsx` — `SLIDER_DIMENSIONS` 기반 specHeight 보정 로직 추가 (label + gap + thumbSize), `_hasLabelChild` 체크에 Slider 추가하여 중복 렌더링 방지. (5) `SliderOutput` 위치 수정: `x: width` → `x: 0 + maxWidth: width`로 컨테이너 내 우측 정렬 패턴 적용. 수정 파일: `Slider.spec.ts`, `useElementCreator.ts`, `ComponentFactory.ts`, `FormComponents.ts`, `Slider.css`, `ElementSprite.tsx` |
 | 2026-02-23 | **2.8** | **Breadcrumbs CONTAINER_TAGS 전환**: (1) `calculateContentHeight` — Breadcrumbs 높이 핸들러 추가 (sm:16, md:24, lg:24). (2) `enrichWithIntrinsicSize` — `SPEC_SHAPES_INPUT_TAGS`에 'breadcrumbs' 추가 (early return 방지). (3) `Breadcrumbs.spec.ts` — `resolveToken` 기반 fontSize 해석 적용, sizes height CSS 값과 일치하도록 보정 (32→24). (4) `ElementSprite.tsx` — `_crumbs` prop 주입 패턴 추가 (자식 Breadcrumb 텍스트 배열). (5) `BuilderCanvas.tsx` — `CONTAINER_TAGS`에 'Breadcrumbs' 추가.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| 2026-03-01 | **2.9** | **fullTreeLayout.ts 속성 커버리지 확장**: (1) `aspect-ratio` ❌→✅ — `applyCommonTaffyStyle()`에 추가, Flex/Grid/Block 3경로 모두 지원. (2) `overflow-x/overflow-y` ⚠️→✅ — `applyCommonTaffyStyle()`에 추가, BFC 계산 전용에서 3경로 공통 지원으로 승격. (3) `flex` shorthand — block/grid 경로에서도 `applyFlexItemProperties()`로 flexGrow/flexShrink/flexBasis 분해 적용 (`buildNodeStyle()` `parentDisplay` 파라미터 추가). (4) `height: auto` 컨테이너 enrichment — Taffy 자동 계산 허용 (enrichment height 제거). 수정 파일: `engines/fullTreeLayout.ts`, `engines/utils.ts`. 총 ✅167, ⚠️9, ❌11                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| 2026-03-03 | **3.0** | **Phase 11 반영: Dropflow → TaffyBlock 전환 완료, 엔진 참조/파일 경로 일괄 갱신, styleToLayout.ts → fullTreeLayout.ts 정정**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| 2026-03-01 | **2.9** | **fullTreeLayout.ts 속성 커버리지 확장**: (1) `aspect-ratio` ❌→✅ — `applyCommon엔진Style()`에 추가, Flex/Grid/Block 3경로 모두 지원. (2) `overflow-x/overflow-y` ⚠️→✅ — `applyCommon엔진Style()`에 추가, BFC 계산 전용에서 3경로 공통 지원으로 승격. (3) `flex` shorthand — block/grid 경로에서도 `applyFlexItemProperties()`로 flexGrow/flexShrink/flexBasis 분해 적용 (`buildNodeStyle()` `parentDisplay` 파라미터 추가). (4) `height: auto` 컨테이너 enrichment — 엔진 자동 계산 허용 (enrichment height 제거). 수정 파일: `engines/fullTreeLayout.ts`, `engines/utils.ts`. 총 ✅167, ⚠️9, ❌11                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| 2026-03-03 | **3.0** | **Phase 11 반영: Dropflow → Block 전환 완료, 엔진 참조/파일 경로 일괄 갱신, styleToLayout.ts → fullTreeLayout.ts 정정**                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 ### v1 → v2 기준 변경 사유
 
@@ -1130,7 +1161,7 @@ v1.0(2026-02-18)에서 v2.0(2026-02-19)으로의 수치 변동은 **측정 기�
 
 | 변경 항목        | v1.x 기준           | v2.0 기준                                                                        | 이유                                      |
 | ---------------- | ------------------- | -------------------------------------------------------------------------------- | ----------------------------------------- |
-| CSS 속성 지원율  | API 존재 여부 판정  | **코드 경로 실행 검증** (실제 parseCSSProp 호출 → Taffy WASM 입력까지 전달 확인) | 선언만 있고 미연결된 속성 제외            |
+| CSS 속성 지원율  | API 존재 여부 판정  | **코드 경로 실행 검증** (실제 parseCSSProp 호출 → 엔진 WASM 입력까지 전달 확인) | 선언만 있고 미연결된 속성 제외            |
 | 컴포넌트 정합성  | Spec 파일 존재 기준 | **state 활용 + 렌더 경로 비교** (CSS Preview ↔ Canvas 시각 비교 기반)            | 62 Spec 중 state 활용 20개(32%) 정밀 측정 |
 | Quick Win 분류   | 독립 실행 가정      | **의존성 그래프 기반** (QW-2/QW-3은 Phase A 선행 필수 발견)                      | 실행 순서 보정                            |
 | M-1 multi-shadow | ❌ 미지원           | **이미 동작 확인 → 항목 제거**                                                   | 코드 검증으로 오보 정정                   |
@@ -1214,7 +1245,7 @@ const offsetY = fontSize + 4;
 ### 레이아웃 파이프라인 검증
 
 ```
-[parseBoxModel] → [enrichWithIntrinsicSize] → [calculateContentHeight] → [Taffy WASM] → [BuilderCanvas]
+[parseBoxModel] → [enrichWithIntrinsicSize] → [calculateContentHeight] → [엔진 WASM] → [BuilderCanvas]
      ↑                    ↑                           ↑                                            ↑
   isFormElement     SPEC_SHAPES_INPUT_TAGS        자식 순회 브랜치                          implicit style 주입
   제외 필요          제외 필요                     Card 패턴 참조                            ?? 패턴 사용
@@ -1249,13 +1280,13 @@ const hasUserValue =
 const pad = hasUserValue ? parsePadding(style) : null; // ✅ 통합 파싱
 ```
 
-### Taffy 0.9 Box Model
+### 엔진 0.9 Box Model
 
 | 속성                    | 의미                                                          |
 | ----------------------- | ------------------------------------------------------------- |
 | `style.size`            | **border-box** (padding+border 포함)                          |
 | `layout.size`           | **border-box** 반환                                           |
-| `applyCommonTaffyStyle` | 변환 불필요 — composition `box-sizing:border-box` 그대로 전달 |
+| `applyCommon엔진Style` | 변환 불필요 — composition `box-sizing:border-box` 그대로 전달 |
 
 ### Spec Shapes 배경색 검증
 

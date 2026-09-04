@@ -1642,7 +1642,7 @@ export function createDefaultTagGroupProps(): TagGroupElementProps {
 /**
  * SelectTrigger 의 dirty/reset baseline (getDefaultProps) — 6 factory(Select/ComboBox/
  *   NumberField/SearchField/DatePicker/DateRangePicker)가 모두 동일한 row-flex layout 을
- *   `props.style` 에 주입한다(ADR-907 Layer B: 컨테이너 layout 은 factory props.style, Skia/Taffy
+ *   `props.style` 에 주입한다(ADR-907 Layer B: 컨테이너 layout 은 factory props.style, Skia/레이아웃 엔진
  *   는 rule table 미참조). catalog SelectTrigger rule 에는 layout 필드(display/flexDirection/
  *   alignItems/gap/width)가 없어 specStyle baseline=undefined → 이 함수가 없으면 legacyStyle 도
  *   `{}` 가 되어 Style Panel Transform/Layout 리셋 버튼이 default layout 을 "사용자 override" 로
@@ -2011,7 +2011,7 @@ export function createDefaultDropZoneProps(): DropZoneElementProps {
       // ADR-912 단계5 step4 Phase 1 batch 2 (2026-06-16): _hasChildren 컨테이너 layout SSOT
       //   = factory props.style (ADR-907 Layer B — layout 엔진은 catalog rule import 0건).
       //   md 기본값 미러(rule.sizes.md paddingX/Y 24 / gap 12). store longhand 정책(style-ssot.md):
-      //   padding 4-way + rowGap/columnGap. DOM 은 generated CSS(rule.sizes)가 size 추종, Skia/Taffy
+      //   padding 4-way + rowGap/columnGap. DOM 은 generated CSS(rule.sizes)가 size 추종, Skia/레이아웃 엔진
       //   컨테이너 배치는 본 props.style 에서만 읽음(Nav/Pagination 선례 동형).
       paddingTop: "24px",
       paddingRight: "24px",

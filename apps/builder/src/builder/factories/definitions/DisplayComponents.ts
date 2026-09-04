@@ -204,7 +204,7 @@ export function createButtonGroupDefinition(
  *   └─ Label (child element, optional)
  *
  * track/fill은 spec shapes(paddingBottom 영역)에서 렌더링,
- * Label은 child Element로 분리하여 padding/gap이 Taffy를 통해 자연 적용.
+ * Label은 child Element로 분리하여 padding/gap이 엔진을 통해 자연 적용.
  */
 export function createProgressBarDefinition(
   context: ComponentCreationContext,
@@ -243,7 +243,7 @@ export function createProgressBarDefinition(
             // 2026-06-24 전수조사 정정: backgroundColor:"transparent" 제거(catalog Label fill 투명
             //   정본과 중복, dirty baseline 부재로 false dirty). Skia/CSS 투명 배경 동일.
             width: "fit-content",
-            // Skia Taffy grid 경로는 gridArea 이름 해석 미지원 → 숫자 line 명시.
+            // Skia 엔진 grid 경로는 gridArea 이름 해석 미지원 → 숫자 line 명시.
             // CSS 는 spec.composition.staticSelectors 의 grid-area 이름 적용 (대칭 유지).
             gridColumnStart: "1",
             gridColumnEnd: "2",

@@ -157,7 +157,7 @@ export function resolveCanvasInteractionTarget(input: {
       projection.kind === "table-cell" ||
       // ADR-912 영역 B (A): TagGroup chip(tag-row)/컨테이너(tag-rows) 클릭 → owner select
       //   redirect. listBoxId = TagList scene node id (TagGroup 의 중간 컨테이너 — chip 좌표계).
-      //   chip 1노드 = self-render seam 제거 + Taffy flexWrap parity + selection 보존이 본 slice
+      //   chip 1노드 = self-render seam 제거 + 엔진 flexWrap parity + selection 보존이 본 slice
       //   증명 대상. X 독립 hit/remove mutation 은 후속(layout overlay + interaction kind 계약).
       projection.kind === "tag-row" ||
       projection.kind === "tag-rows" ||

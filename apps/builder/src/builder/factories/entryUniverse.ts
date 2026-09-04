@@ -131,7 +131,7 @@ export interface ComponentEntryRuntime {
   childRuntime: {
     /** Skia `_hasChildren` 주입 차단 (자식 props 참조 self-compose). */
     syntheticPropMerge: boolean;
-    /** Taffy 레이아웃 제외 (popover-hosted). */
+    /** 엔진 레이아웃 제외 (popover-hosted). */
     popoverHosted: boolean;
     /**
      * Field 컨테이너의 **비-Label 가시 child.type 화이트리스트** (포함형 filter membership).

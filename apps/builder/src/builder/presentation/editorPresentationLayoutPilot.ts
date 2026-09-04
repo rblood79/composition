@@ -82,7 +82,7 @@ export function canUseTargetedLayoutPresentation(
     if (position === "absolute") return !hasChildren;
     return true;
   }
-  // Taffy targeted incremental placement cannot invalidate grid track caches.
+  // 엔진 targeted incremental placement cannot invalidate grid track caches.
   return style.display !== "grid" && style.display !== "inline-grid";
 }
 

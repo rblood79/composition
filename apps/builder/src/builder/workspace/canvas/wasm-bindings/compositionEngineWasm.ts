@@ -1,7 +1,7 @@
 /**
  * composition-engine WASM 모듈 초기화 래퍼 (ADR-916 Phase 2-B seam C-2a)
  *
- * Taffy 없는 자체 레이아웃 엔진(`packages/composition-engine`)의 wasm-pack
+ * 엔진 없는 자체 레이아웃 엔진(`packages/composition-engine`)의 wasm-pack
  * `--target bundler` 산출물(`composition-engine-pkg/`)을 전역 로드한다.
  * 비동기 로드로 전역 캐시를 채우고, 동기 wrapper(`CompositionEngineLayout`)
  * 가 그 캐시에서 `new LayoutEngine()` 을 즉시 생성한다.

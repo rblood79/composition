@@ -61,7 +61,7 @@ export function updateElementBounds(id: string, bounds: ElementBounds): void {
 
   layoutBoundsRegistry.set(id, bounds);
 
-  // Phase 6+: 레이아웃 엔진(Taffy/Dropflow) 재계산 후 Skia 렌더 루프에 알림
+  // Phase 6+: 레이아웃 엔진 재계산 후 Skia 렌더 루프에 알림
   // DirectContainer의 레이아웃 콜백에서 호출되므로, registryVersion 증가로
   // 다음 프레임에서 container.width가 반영된 Skia 트리가 재구축된다.
   notifyLayoutChange();

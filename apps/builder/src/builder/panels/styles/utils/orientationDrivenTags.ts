@@ -37,7 +37,7 @@
  *    accepts 를 후속 추가하여 Properties dropdown 편집 진입점 확보).
  *
  * ⚠️ 제외:
- *  - ButtonGroup: SSOT 가 정반대(style.flexDirection 이 Skia/Taffy 직접 read,
+ *  - ButtonGroup: SSOT 가 정반대(style.flexDirection 이 Skia/레이아웃 엔진 직접 read,
  *    orientation 은 CSS/preview 전용 채널)라 포함 시 새 drift.
  *    [[feedback-orientation-ssot-not-uniform-buttongroup-inverse]]
  *  - Form: labelPosition accepts 는 있으나 그룹 root flexDirection derive 아님

@@ -169,7 +169,7 @@ const LOWERCASE_TO_PASCAL_RULE_KEY: ReadonlyMap<string, string> = (() => {
  *   - 그 외 문자열 (`flex`/`column`/`fit-content` 등): 그대로 (변환 불가 → 보존)
  *
  * **Why**: catalog field류 gap = `var(--spacing-xs)` (CSS-var 문자열). `isValidTokenRef` 가
- *   reject → raw 문자열이 Taffy 로 유입되면 number 타입 깨짐(NaN layout). cssVarToTokenRef 가
+ *   reject → raw 문자열이 엔진 로 유입되면 number 타입 깨짐(NaN layout). cssVarToTokenRef 가
  *   `{spacing.xs}` 로 역변환 후 resolveToken → 4. spacing 외(예: `var(--fg)` color) 는 null →
  *   raw 보존(layout 무관 색상값).
  */
@@ -795,7 +795,7 @@ const PROGRESSBAR_TAGS = new Set([
 /** Slider 태그 집합 */
 const SLIDER_TAGS = new Set(["slider"]);
 /**
- * DatePicker/DateRangePicker 내 Popover로 표시되는 자식 — Taffy 레이아웃 제외.
+ * DatePicker/DateRangePicker 내 Popover로 표시되는 자식 — 엔진 레이아웃 제외.
  *
  * ADR-914 Phase 1: `entryUniverseContract` 가 childRuntime facet 의 popover-hosted
  * membership 을 mirror 검증하도록 export (값/동작 불변, 가시성만 확장).
@@ -1334,7 +1334,7 @@ export function applyImplicitStyles(
   }
 
   // ── Menu ──────────────────────────────────────────────────────────
-  // Menu는 트리거 버튼만 캔버스에 렌더링 — MenuItem 자식은 Popover이므로 Taffy 레이아웃 제외
+  // Menu는 트리거 버튼만 캔버스에 렌더링 — MenuItem 자식은 Popover이므로 엔진 레이아웃 제외
   if (containerTag === "menu") {
     filteredChildren = [];
     return { effectiveParent, filteredChildren };
@@ -1480,7 +1480,7 @@ export function applyImplicitStyles(
 
     // Compositional Label: whiteSpace nowrap 주입 (줄바꿈 방지)
     // ADR-923 r21m1 — parent prop 이 빈 슬롯 자식 (Label/Description/FieldError) 은 Preview 가 렌더하지
-    //   않아 DOM 에 없다 (`{label && <Label>}`) — Taffy 트리에서도 뺀다 (gap 한 칸 방지).
+    //   않아 DOM 에 없다 (`{label && <Label>}`) — 엔진 트리에서도 뺀다 (gap 한 칸 방지).
     filteredChildren = children
       .filter((child) => isTagGroupSlotChildVisible(child, containerProps))
       .map((child) => {
@@ -1618,7 +1618,7 @@ export function applyImplicitStyles(
 
   // ── GridListItem ────────────────────────────────────────────────
   // ADR-912 cutover: padding/gap/borderWidth 는 resolveGridListItemMetric(collectionItemMetrics)
-  //   에서 SSOT 참조 (Taffy shorthand 미지원). GridListItem.spec body 삭제 대비 — sizes.md 직접
+  //   에서 SSOT 참조 (엔진 shorthand 미지원). GridListItem.spec body 삭제 대비 — sizes.md 직접
   //   참조 제거. fontSize=14 medium 카드 분기(cardPaddingX 16/cardPaddingY 12). gap 2 =
   //   componentRulesTable.GridListItem.sizes.md.gap 정합.
   // ADR-912 Phase 3-A-3b (2026-06-20): base-axis(display/flexDirection/minWidth)를 catalog
@@ -1658,7 +1658,7 @@ export function applyImplicitStyles(
   //   icon Button = `<Button><Icon/><Text/></Button>` 처럼 자식(Icon/Text element)을 가지면
   //   Button 이 컨테이너로 layout 된다. catalog `sizes[size]` 의 paddingX/paddingY/gap 은
   //   standalone leaf 렌더(buildCatalogShapes / calculateContentWidth·Height)에서만 소비되고
-  //   자식 보유 Taffy 노드로는 흘러가지 않는다 → 자식이 여백 0 + Icon↔Text 간격 0 으로 경계에
+  //   자식 보유 엔진 노드로는 흘러가지 않는다 → 자식이 여백 0 + Icon↔Text 간격 0 으로 경계에
   //   붙는다(2026-06-27 발견). top-level containerStyles 에는 size 별 값을 못 담으므로(size 무관
   //   단일값만) 여기서 size 기반 padding/gap 을 effectiveParent 에 주입한다(Toolbar 패턴 동형).
   //   parsePadding 은 longhand 만 읽으므로 paddingX/Y → padding{Left,Right,Top,Bottom} 변환.
@@ -1669,7 +1669,7 @@ export function applyImplicitStyles(
     const py = specSizeField(containerTag, sizeName, "paddingY");
     const gapVal = specSizeField(containerTag, sizeName, "gap");
     // borderWidth 주입 필수 — 자식 보유 Button 은 hasEngineChildren=true 라 enrichWithIntrinsicSize
-    //   의 height(content+padding+border) 가 제거되고 Taffy 자동 계산에 위임된다. Taffy 는
+    //   의 height(content+padding+border) 가 제거되고 엔진 자동 계산에 위임된다. 엔진 은
     //   parseBorder(style) 로 border 를 box 에 더하므로 borderWidth 미주입 시 height 에서 border
     //   2px 누락 → leaf Button(30px, enrichWithIntrinsicSize 가 border 더함)보다 2px 작아짐
     //   (md container 28 vs leaf 30, CSS 는 box-sizing:border-box 로 30 → Skia↔CSS 발산).
@@ -1969,7 +1969,7 @@ export function applyImplicitStyles(
       : children.find((c) => c.type === "TabPanel");
 
     if (tabListEl) {
-      // 새 구조 (TabList 존재): TabList에 고정 height 주입 → Taffy 레이아웃 포함
+      // 새 구조 (TabList 존재): TabList에 고정 height 주입 → 엔진 레이아웃 포함
       // → spatialIndex에 bounds 등록 → 캔버스에서 TabList/Tab 선택 가능
       // ADR-087 SP2: display/flexDirection 은 TabList.spec containerStyles 로 리프팅됨.
       //   height/width 는 size-based tabBarHeight 주입 (runtime 잔존).
@@ -2299,7 +2299,7 @@ export function applyImplicitStyles(
           gap: parentStyle.gap ?? 4, // CSS: gap: var(--spacing-xs) = 4px
           // CSS .react-aria-Button: border: 1px solid
           borderWidth: parentStyle.borderWidth ?? 1,
-          // rule height로 CSS와 정확히 일치 (Taffy auto 계산 시 ceil로 1px 오차 방지)
+          // rule height로 CSS와 정확히 일치 (엔진 auto 계산 시 ceil로 1px 오차 방지)
           height:
             parentStyle.height ??
             specSizeField("selecttrigger", sizeName, "height") ??
@@ -2576,7 +2576,7 @@ export function applyImplicitStyles(
   //  분기에 흡수됨.)
 
   // ── ProgressBar / Meter ───────────────────────────────────────────────
-  // ADR-085 P4: Taffy grid 네이티브 지원 (G0 PASS) + ProgressBar/Meter.spec
+  // ADR-085 P4: 엔진 grid 네이티브 지원 (G0 PASS) + ProgressBar/Meter.spec
   //   containerStyles (display:grid + gridTemplateAreas/Columns) resolveContainerStylesFallback
   //   경유 주입 → 기존 flex row wrap emulation 제거, 자식에 gridArea 만 주입.
   // grid-template-areas: '"label value" "bar bar"' (1fr auto / 2 rows)
@@ -2993,7 +2993,7 @@ export function applyImplicitStyles(
 
     // DateInput(trigger field)에 세그먼트 텍스트 생성용 부모 props 주입.
     //   width 는 주입하지 않는다(2026-06-23): 이전엔 `width:"100%"` 를 줬으나 부모 container
-    //   가 width:auto(body align-items:flex-start)라 Taffy 가 `100%` 를 콘텐츠보다 작게 계산
+    //   가 width:auto(body align-items:flex-start)라 엔진 이 `100%` 를 콘텐츠보다 작게 계산
     //   → box < 콘텐츠 → 텍스트 overflow. width 미주입 시 INTRINSIC_MEASURE_TAGS(dateinput) +
     //   needsWidth → calculateContentWidth(dateinput 분기)가 콘텐츠 자연폭(segment text +
     //   icon + padding)을 산출 → box 가 콘텐츠를 담는다(DisclosureHeader/CalendarHeader 동형).
@@ -3139,7 +3139,7 @@ export function applyImplicitStyles(
   //   CardHeaderSpec.propagation + CardContentSpec.propagation + propagationRegistry 등록.
 
   // ── Checkbox / Radio / Switch — indicator 공간 확보 ────────────────
-  // Indicator는 spec shapes로 렌더링 (Taffy 트리 밖).
+  // Indicator는 spec shapes로 렌더링 (엔진 트리 밖).
   // Label 자식에 marginLeft = indicatorWidth + gap을 주입하여 indicator와 겹치지 않도록 한다.
   // gap은 사용자가 스타일 패널에서 변경 가능 → parentStyle.gap 우선 사용.
   if (
@@ -3218,7 +3218,7 @@ export function applyImplicitStyles(
     }
   }
 
-  // ── InlineAlert: 자식 font 주입 + borderWidth (Taffy는 CSS 못 읽음) ──
+  // ── InlineAlert: 자식 font 주입 + borderWidth (엔진은 CSS 못 읽음) ──
   if (containerTag === "inlinealert") {
     const sizeName = (containerProps?.size as string) ?? "md";
     // ADR-912 단계5 step4 (2026-06-17): InlineAlertSpec.sizes 직독 → resolveSkiaRule read-through.
@@ -3288,7 +3288,7 @@ export function applyImplicitStyles(
     });
   }
 
-  // ── Separator: size → margin 주입 (Taffy는 CSS data-size 못 읽음) ──
+  // ── Separator: size → margin 주입 (엔진은 CSS data-size 못 읽음) ──
   if (filteredChildren.some((c) => c.type === "Separator" || c.type === "Hr")) {
     filteredChildren = filteredChildren.map((child) => {
       if (child.type !== "Separator" && child.type !== "Hr") return child;
@@ -3421,7 +3421,7 @@ export function applyImplicitStyles(
 
   // ── Disclosure collapse ───────────────────────────────────────────
   // ADR-912 Disclosure 버그 수정 (2026-06-10): isExpanded=false 면 DisclosureContent
-  //   자식에 display:none 주입 → Taffy 레이아웃에서 공간 0 (utils.ts:1552) + Skia 렌더
+  //   자식에 display:none 주입 → 엔진 레이아웃에서 공간 0 (utils.ts:1552) + Skia 렌더
   //   skip (buildSkiaNodeData.ts:74) 동시 처리. **Why**: Disclosure 는 SHELL_ONLY 라
   //   spec.render.shapes 의 isExpanded 분기(콘텐츠 패널 display:none)에 도달 못 하고
   //   (_hasChildren → return []), catalog generic 도 isExpanded 무시 → 자식

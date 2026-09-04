@@ -408,7 +408,7 @@ export function buildCollectionRemainderTargets(
  * ListBox 등 collection 컨테이너는 padding 이 spec containerStyles
  * (예: `{spacing.xs}` = 4) 에만 정의되고 `element.props.style` 에는 없다 —
  * `element.props.style` 만 읽으면 0 으로 보여 전체에 사선이 그려진다(버그).
- * `resolveContainerStylesFallback` 은 layout(Taffy)이 컨테이너 padding 을
+ * `resolveContainerStylesFallback` 은 layout(엔진)이 컨테이너 padding 을
  * 주입할 때 쓰는 바로 그 SSOT 경로(implicitStyles 와 동일)이며, parentStyle 에
  * 이미 명시된 키는 건드리지 않으므로 사용자 padding 이 항상 우선한다.
  *

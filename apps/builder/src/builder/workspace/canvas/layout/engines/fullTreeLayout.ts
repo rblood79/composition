@@ -1,7 +1,7 @@
 /**
  * Phase 0: Full-Tree WASM Layout (Batch Build)
  *
- * 레벨별 독립 Taffy 호출을 단일 WASM 호출로 통합.
+ * 레벨별 독립 엔진 호출을 단일 WASM 호출로 통합.
  * DFS post-order로 전체 트리를 배치 배열로 변환 후
  * build_tree_batch() 1회 → compute_layout() 1회 → get_layouts_batch() 1회.
  *
@@ -220,7 +220,7 @@ function sanitizeLayoutValue(v: number, fallback: number = 0): number {
 // ─── 페이지별 PersistentLayoutTree ──────────────────────────────────
 
 /**
- * 페이지별 Persistent Taffy 트리 맵.
+ * 페이지별 Persistent 엔진 트리 맵.
  *
  * 멀티페이지 캔버스에서 각 페이지의 ElementsLayer가 독립적으로
  * calculateFullTreeLayout()을 호출하므로, 싱글톤 트리는
@@ -673,7 +673,7 @@ export function getSharedFilteredChildrenMap(): Map<string, string[]> | null {
 
 // ─── 내부 유틸리티 ───────────────────────────────────────────────────
 
-/** Taffy WASM binary protocol 은 grid track 을 array 로 기대. CSS 표준 string ("1fr auto")
+/** 엔진 WASM binary protocol 은 grid track 을 array 로 기대. CSS 표준 string ("1fr auto")
  *  입력을 정규화. 이미 array 면 그대로 통과. `engineStyleToRecord` /
  *  `buildNodeStyle` grid branch / `patchBatchStyleFromImplicit` 3 진입점 공유. */
 function coerceGridTrack(val: unknown): unknown {
@@ -743,7 +743,7 @@ function normalizeDimFields(partial: Record<string, unknown>): void {
 }
 
 /** Grid container 의 layout-영향 속성 — 증분 갱신에서 변경 시 full rebuild 필요.
- *  Taffy `updateStyleRaw`(=set_style) 가 track/placement 캐시 invalidation 실패.
+ *  엔진 `updateStyleRaw`(=set_style) 가 track/placement 캐시 invalidation 실패.
  *
  *  dimension(width/height/min/max) 추가 (2026-06-16): grid container **자신**의 width/height
  *  변경 시 incremental 경로(updateStyleRaw)에선 1fr/auto track 이 변경 전 컨테이너 폭 기준으로
@@ -817,7 +817,7 @@ function patchBatchStyleFromImplicit(
   modStyle: Record<string, unknown>,
   computedFontSize?: number,
 ): void {
-  // 각 modStyle key 를 Taffy 형식 (targetKey, coercedVal) 로 정규화한 뒤
+  // 각 modStyle key 를 엔진 형식 (targetKey, coercedVal) 로 정규화한 뒤
   // batchStyle 의 현재 값과 비교해 달라진 경우에만 패치한다.
   //
   // batchStyle (= 실제 패치 대상) 기준 비교가 핵심: origStyle (DB 원본) 기준으로
@@ -856,7 +856,7 @@ function patchBatchStyleFromImplicit(
       key === "right" ||
       key === "bottom"
     ) {
-      // CSS left/top/right/bottom → Taffy insetLeft/Top/Right/Bottom
+      // CSS left/top/right/bottom → 엔진 insetLeft/Top/Right/Bottom
       targetKey = `inset${key.charAt(0).toUpperCase()}${key.slice(1)}`;
       coercedVal = typeof val === "number" ? `${val}px` : String(val);
     } else if (
@@ -1289,16 +1289,16 @@ function estimateChildAvailableSize(
 }
 
 /**
- * TagGroup maxRows chip 접힘 — Taffy 실측 chip y좌표(rowY) 기반으로 유지할 chip id 를 산출한다.
+ * TagGroup maxRows chip 접힘 — 엔진 실측 chip y좌표(rowY) 기반으로 유지할 chip id 를 산출한다.
  *
- * **폭 가변 견고**: 폭 값을 전혀 쓰지 않고 Taffy 가 배치한 각 chip 의 실제 rowY 로 행 번호를 매핑,
+ * **폭 가변 견고**: 폭 값을 전혀 쓰지 않고 엔진 이 배치한 각 chip 의 실제 rowY 로 행 번호를 매핑,
  * `행 번호 ≥ maxRows` 인 비-Show all chip 을 제외한다. CSS 정본 알고리즘(`TagGroup.tsx`
  * `computeVisibleTagCount`: getBoundingClientRect y 로 rowCount, `rowCount > maxRows` break)과
- * 동일 원리 — DOM getBoundingClientRect y ↔ Taffy layout y 대응.
+ * 동일 원리 — DOM getBoundingClientRect y ↔ 엔진 layout y 대응.
  *
- * @param chips - RowsGroup 자식 chip (id + Taffy 실측 y + Show all 여부), emit 순서 보존
+ * @param chips - RowsGroup 자식 chip (id + 엔진 실측 y + Show all 여부), emit 순서 보존
  * @param maxRows - 표시 최대 행 수 (owner TagGroup.props.maxRows)
- * @returns keep - Taffy 트리에 유지할 chip id 배열. 접힘 발생 시 Show all 유지, 미발생 시 Show all 제외.
+ * @returns keep - 엔진 트리에 유지할 chip id 배열. 접힘 발생 시 Show all 유지, 미발생 시 Show all 제외.
  */
 export function computeTagFoldKeep(
   chips: ReadonlyArray<{ id: string; y: number; isShowAll: boolean }>,
@@ -1306,7 +1306,7 @@ export function computeTagFoldKeep(
 ): string[] {
   if (chips.length === 0 || maxRows <= 0)
     return chips.filter((c) => !c.isShowAll).map((c) => c.id);
-  // 고유 rowY → 행 번호 매핑 (오름차순). Taffy 실배치 기준이라 폭 무관.
+  // 고유 rowY → 행 번호 매핑 (오름차순). 엔진 실배치 기준이라 폭 무관.
   const uniqueYs = [...new Set(chips.map((c) => c.y))].sort((a, b) => a - b);
   const rowIndexOf = (y: number): number => uniqueYs.indexOf(y);
   // 표시 행 수(비-Show all chip 기준, Show all 은 별도 행일 수 있어 제외하고 계산).
@@ -1330,7 +1330,7 @@ export function computeTagFoldKeep(
  *   `preserveEnrichHeight=true` → enrich 의 calculateContentHeight(추정 wrap, stale mirror
  *   items 기반) 가 산출한 명시 height 가 엔진에 강제된다. Step 4.5b/c 가 자식(TagList/RowsGroup)
  *   을 자식-bottom 실측으로 교정해도 부모 명시 height 는 fixed 라 갱신 안 됨 → selection 여분 공백.
- *   자식 교정 시점에 부모 명시 height 를 제거해 Taffy row auto height(max 자식)로 재계산시킨다.
+ *   자식 교정 시점에 부모 명시 height 를 제거해 엔진 row auto height(max 자식)로 재계산시킨다.
  *
  * 제거 대상 조건 (3가지 모두):
  *   1. type === "TagGroup"
@@ -1364,7 +1364,7 @@ export function shouldClearSideLabelTagGroupHeight(
  * `onlyProjectionRowsChild` preserve 에 걸리면 enrich 의 1-pass 추정 height(단일 줄 행 합산)가
  * 엔진에 동결된다. Step 4.5 2-pass 가 행을 wrap 실측(§1.55b-2 wrapContext)으로 재계산해
  * rowsGroup 은 커지는데(400) owner 는 동결값(234)에 머물러 CSS(min(content, maxHeight)=300)와
- * 발산 + 행 clip. bounded-scroll owner 는 preserve 를 제외해 Taffy auto(자식 실측 합) +
+ * 발산 + 행 clip. bounded-scroll owner 는 preserve 를 제외해 엔진 auto(자식 실측 합) +
  * max_size(maxHeight) clamp 로 CSS 와 정합시킨다. **sample-mode(auto-height, ADR-157) owner 는
  * bounded 가 아니므로 본 판정 false → preserve 유지** — 표시 정책 불변.
  */
@@ -1539,8 +1539,8 @@ function traversePostOrder(
 
   // ProgressBar/Meter: leaf spec 컴포넌트 — display:grid 정규화
   // 이전 기본값에서 display:"grid"가 주입된 기존 요소를 block으로 정규화
-  // grid+자식없음 → Taffy height=0 문제 방지
-  // 하이브리드 모드 (자식 있음): grid 유지 — Label child가 Taffy 레이아웃 참여
+  // grid+자식없음 → 엔진 height=0 문제 방지
+  // 하이브리드 모드 (자식 있음): grid 유지 — Label child가 엔진 레이아웃 참여
   {
     const rawTag = (rawElement.type ?? "").toLowerCase();
     const hasChildren = getChildElements(rawElement.id).length > 0;
@@ -1676,7 +1676,7 @@ function traversePostOrder(
   }
 
   // Label → 부모 size 상속 (DFS 진입 시 fontSize/lineHeight 주입)
-  // CSS는 --label-font-size 변수로 처리하지만, Taffy는 인라인 fontSize가 필요
+  // CSS는 --label-font-size 변수로 처리하지만, 엔진은 인라인 fontSize가 필요
   if (rawElement.type === "Label") {
     const rawProps = rawElement.props as Record<string, unknown> | undefined;
     const labelStyle = (rawProps?.style || {}) as Record<string, unknown>;
@@ -1917,7 +1917,7 @@ function traversePostOrder(
   //   그러나 이 루프가 wrapper 자식에 컨테이너 전체 폭(availableWidth)을 그대로 넘기면,
   //   enrichWithIntrinsicSize 가 그 폭 기준으로 칩 wrap 을 계산해 1줄 height(28)를 박는다.
   //   부모(TagGroup) 자신은 calculateContentHeight 차감 분기로 2줄 height(60)를 산출하지만,
-  //   Taffy 는 자식 wrapper 의 명시 height(28)를 우선하므로 컨테이너가 54 로 고정 → 칩 2줄째가
+  //   엔진 은 자식 wrapper 의 명시 height(28)를 우선하므로 컨테이너가 54 로 고정 → 칩 2줄째가
   //   박스 밖으로 삐져나간다(side 전환 시 selection 높이 불변). CheckboxGroup/RadioGroup 은
   //   synthetic wrapper 가 flexShrink:0 자연폭이라 이 폭 불일치를 구조적으로 회피하지만,
   //   TagGroup 의 TagList(RAC export element)는 flex:1 이라 여기서 폭 차감이 필요하다.
@@ -1973,14 +1973,14 @@ function traversePostOrder(
 
   // 3.5. Synthetic children (e.g., `xxx__synlabel` from applyImplicitStyles) 처리
   // elementsMap에 없는 자식(Radio/Checkbox/Switch/Toggle의 합성 Label)을
-  // leaf 노드로 Taffy 트리에 추가하여 레이아웃을 계산받게 한다.
+  // leaf 노드로 엔진 트리에 추가하여 레이아웃을 계산받게 한다.
   // 이를 통해 BuilderCanvas의 renderChildElement가 fullTreeLayoutMap에서 레이아웃을 조회 가능.
   //
   // **synthetic 컨테이너 (CheckboxGroup/RadioGroup `__items` wrapper, 2026-06-19)**:
   //   wrapper.props.__synthChildIds 가 있으면 자식 보유 synthetic 컨테이너다. 자식 item
   //   (Checkbox/Radio)은 filteredChildren 에 유지돼 위 post-order 재귀(3.)에서 이미 batch 에
   //   등록됐으므로 indexMap 으로 조회해 wrapper children 으로 연결한다. 그러면 filteredChildIdsMap
-  //   (Step 2)이 wrapperId→[itemIds] 를 자동 생성 → Taffy 2단 트리 구성(CSS `.checkbox-items` 동형).
+  //   (Step 2)이 wrapperId→[itemIds] 를 자동 생성 → 엔진 2단 트리 구성(CSS `.checkbox-items` 동형).
   for (const synthChild of filteredChildren) {
     if (elementsMap.has(synthChild.id) || indexMap.has(synthChild.id)) continue;
 
@@ -2000,7 +2000,7 @@ function traversePostOrder(
     >;
     const synthComputed = resolveStyle(synthStyle, computedStyle);
     const isSynthFlexChild = FLEX_GRID_DISPLAYS.has(effectiveDisplay);
-    // 컨테이너 wrapper 는 자식 layout-node 를 enrich/buildNodeStyle 에 전달해 Taffy 가
+    // 컨테이너 wrapper 는 자식 layout-node 를 enrich/buildNodeStyle 에 전달해 엔진 이
     //   자식 합산으로 wrapper 크기를 산출하게 한다(leaf 는 빈 배열).
     const synthChildNodes = synthChildIds
       ? (synthChildIds
@@ -2118,15 +2118,15 @@ function traversePostOrder(
 
   // 4. enrichWithIntrinsicSize: intrinsic 크기 주입
   // CSS height:auto 일반 규칙:
-  //   A. 컨테이너 (Taffy 자식 있음) → Taffy가 자식 border-box + padding + border로 자동 계산
-  //   B. 리프 (Taffy 자식 없음) → intrinsic height 주입 (텍스트 측정 / spec shapes)
+  //   A. 컨테이너 (엔진 자식 있음) → 엔진이 자식 border-box + padding + border로 자동 계산
+  //   B. 리프 (엔진 자식 없음) → intrinsic height 주입 (텍스트 측정 / spec shapes)
   const isFlexChild =
     parentDisplay === "flex" || parentDisplay === "inline-flex";
   // grid 자식은 flex 자식과 **스칼라 공급 조건만** 공유한다 (`isFlexChild` 를 넓히면
   //   flex-grow 억제 / non-container minWidth 주입까지 딸려온다 — utils.ts 주석 참조).
   const isGridChild =
     parentDisplay === "grid" || parentDisplay === "inline-grid";
-  // hasEngineChildren: 실제 Taffy 노드로 처리된 자식이 있는지 확인
+  // hasEngineChildren: 실제 엔진 노드로 처리된 자식이 있는지 확인
   // synthetic children도 이제 indexMap에 포함되므로 정상적으로 true 반환
   const hasEngineChildren = childIds.some((id) => indexMap.has(id));
 
@@ -2222,25 +2222,25 @@ function traversePostOrder(
     isGridChild,
   );
 
-  // projection-only 컨테이너(TagList 등): 유일한 Taffy 자식이 projection RowsGroup("Rows")
+  // projection-only 컨테이너(TagList 등): 유일한 엔진 자식이 projection RowsGroup("Rows")
   //   인 경우, enrich 가 calculateContentHeight(taglist 분기, items 기반 정확)로 산출한 height 를
   //   **보존**한다. **Why (TagGroup side height 버그 최종층)**: 칩은 element 가 아니라 projection
-  //   scene node("Rows" RowsGroup, width:100%, flex-wrap)다. RowsGroup 의 칩 wrap 을 Taffy 에
-  //   맡기면, TagList 가 side-label 에서 flex:1 폭을 Taffy 가 푸는 시점과 enrich 폭(Label 차감 229)
+  //   scene node("Rows" RowsGroup, width:100%, flex-wrap)다. RowsGroup 의 칩 wrap 을 엔진에
+  //   맡기면, TagList 가 side-label 에서 flex:1 폭을 엔진 이 푸는 시점과 enrich 폭(Label 차감 229)
   //   사이 불일치로 1줄(28)로 무너진다(컨테이너 54 고정). items 기반 calculateContentHeight 가
   //   maxRows/폭 wrap 을 정확히 계산하므로(229→2줄→60) 그 명시 height 를 엔진에 강제하는 게
-  //   projection Taffy wrap 보다 정확. (ListBox/GridList top-level 은 enrich 폭=Taffy 폭 일치라
+  //   projection 엔진 wrap 보다 정확. (ListBox/GridList top-level 은 enrich 폭=엔진 폭 일치라
   //   기존 height 제거로도 정상 — TagList 의 flex:1 side-label 만 발산.)
   const onlyProjectionRowsChild =
     filteredChildren.length === 1 && filteredChildren[0]?.type === "Rows";
 
   // side-label row 컨테이너(TagGroup labelPosition="side" 등): Label + projection-only
   //   자식(TagList → RowsGroup) 의 가로 배치. enrich 의 calculateContentHeight(taggroup 분기,
-  //   Math.max(Label, TagList)) 가 이미 정확한 height(64)를 산출하지만, 이를 제거하고 Taffy
-  //   자식 합산에 맡기면 Taffy 가 row 에서 projection-only 자식(TagList)의 height 를 그 자식
+  //   Math.max(Label, TagList)) 가 이미 정확한 height(64)를 산출하지만, 이를 제거하고 엔진
+  //   자식 합산에 맡기면 엔진 이 row 에서 projection-only 자식(TagList)의 height 를 그 자식
   //   RowsGroup 과 중복 누적하여 발산(64 → 88)한다. **Why (TagGroup side selection 과대 버그
   //   최종층, 2026-06-19)**: TagList 자체 layout 은 64 로 정확하나, 부모(TagGroup)가 그 TagList 를
-  //   row 배치할 때 Taffy 가 +24px 부풀려 selection/hover outline 이 실제 박스보다 높게 잡힌다.
+  //   row 배치할 때 엔진 이 +24px 부풀려 selection/hover outline 이 실제 박스보다 높게 잡힌다.
   //   onlyProjectionRowsChild(자식 1개 Rows) 보존과 동형으로, side-label row + Label + 나머지
   //   전부 projection-only 컨테이너면 enrich height 를 보존한다.
   const labelChildForPreserve = filteredChildren.find(
@@ -2265,7 +2265,7 @@ function traversePostOrder(
 
   // bounded-scroll owner(maxHeight/height + overflow scroll/auto)는 preserve 제외 —
   //   1-pass 추정(단일 줄 행 합산) 동결이 Step 4.5 행 wrap 실측과 발산(owner 234 vs rows 400,
-  //   CSS min(content,maxHeight)=300). Taffy auto + max_size clamp 가 CSS 와 정합.
+  //   CSS min(content,maxHeight)=300). 엔진 auto + max_size clamp 가 CSS 와 정합.
   //   sample-mode(auto-height, ADR-157)는 bounded 아님 → preserve 유지 (표시 정책 불변).
   const preserveEnrichHeight =
     (onlyProjectionRowsChild && !isBoundedScrollOwnerStyle(elementStyle)) ||
@@ -2274,7 +2274,7 @@ function traversePostOrder(
   if (hasEngineChildren && !preserveEnrichHeight) {
     // A. 컨테이너: CSS height:auto → enrichment가 주입한 height를 제거
     // 사용자가 명시한 CSS height는 보존, enrichment가 추가한 height만 제거
-    // → Taffy가 자식 border-box + padding + border로 height를 자동 계산
+    // → 엔진이 자식 border-box + padding + border로 height를 자동 계산
     const originalHeight = elementStyle.height;
     if (!originalHeight || originalHeight === "auto") {
       const enrichedStyle = (enriched.props?.style ?? {}) as Record<
@@ -2333,7 +2333,7 @@ function traversePostOrder(
   // 4.7.1. ProgressBar/Meter: spec shapes leaf 안전망
   // enrichWithIntrinsicSize가 height를 주입했어야 하지만,
   // 어떤 이유로 누락된 경우 calculateContentHeight로 보정
-  // 하이브리드 모드 (자식 있음): Taffy가 자동 계산 → 이 안전망 스킵
+  // 하이브리드 모드 (자식 있음): 엔진이 자동 계산 → 이 안전망 스킵
   {
     const enrichedStyle = (enriched.props?.style ?? {}) as Record<
       string,
@@ -2370,7 +2370,7 @@ function traversePostOrder(
 
   // 4.8. CSS min-width:auto 에뮬레이션 (flex/grid 자식 리프 노드)
   // CSS Flexbox §4.5: flex/grid item의 기본 min-width는 auto = min-content.
-  // Taffy는 텍스트 측정이 불가하여 min-content를 0으로 처리한다.
+  // 엔진은 텍스트 측정이 불가하여 min-content를 0으로 처리한다.
   // 캔버스의 non-TEXT_LEAF 노드는 단일 행 렌더링(줄바꿈 없음)이므로
   // max-content(전체 텍스트 폭)를 minWidth로 주입하여
   // shrink-wrap 환경(alignItems:center 등)에서 텍스트 축소를 방지한다.
@@ -2462,7 +2462,7 @@ function traversePostOrder(
   //
   // synthetic 컨테이너 (CheckboxGroup/RadioGroup `__items` wrapper) 의 자식 item 은
   //   wrapper children 으로 이미 연결됐으므로 group 직속에서 제외한다(이중 부모 방지 —
-  //   동일 노드가 group + wrapper 양쪽 Taffy 자식이 되면 이중 layout/render). wrapper 가
+  //   동일 노드가 group + wrapper 양쪽 엔진 자식이 되면 이중 layout/render). wrapper 가
   //   group 의 자식으로 들어가고, item 은 wrapper 의 자식으로만 들어간다.
   const wrappedItemIds = new Set<string>();
   for (const child of filteredChildren) {
@@ -2470,7 +2470,7 @@ function traversePostOrder(
       ?.__synthChildIds as string[] | undefined;
     if (ids) ids.forEach((id) => wrappedItemIds.add(id));
   }
-  // TagGroup maxRows chip 접힘은 layout 에서 chip 을 제외하지 않는다 — Taffy 는 chip 전부를
+  // TagGroup maxRows chip 접힘은 layout 에서 chip 을 제외하지 않는다 — 엔진 은 chip 전부를
   //   flexWrap 배치하고, 초과 chip 은 **render 단계**(StoreRenderBridge, 실제 RowsGroup layout.width
   //   보유)에서 미emit + Show all 표시한다. **Why (2026-07-01, maxRows=3 gap 발산 근본)**: layout
   //   1-pass 시점의 availableWidth 는 부모 top-down 추정폭(예 310)이라 실제 RowsGroup 배치폭(예 350,
@@ -2511,7 +2511,7 @@ function traversePostOrder(
  * 새 노드 추가 / 스타일 변경 / 자식 구조 변경 / 노드 삭제를 수행한다.
  *
  * PersistentLayoutTree 내부의 해시 비교로 실제 변경이 없는 노드는 자동 스킵되며,
- * Taffy의 dirty cache 덕분에 computeLayout()에서 변경 없는 서브트리는 O(1) 스킵된다.
+ * 엔진의 dirty cache 덕분에 computeLayout()에서 변경 없는 서브트리는 O(1) 스킵된다.
  *
  * @returns DEV 전용: 실제 갱신된 스타일/자식/추가/삭제 수
  */
@@ -2571,15 +2571,15 @@ function incrementalUpdate(
 // ─── 공개 API ────────────────────────────────────────────────────────
 
 /**
- * 전체 트리를 WASM Taffy로 레이아웃 계산.
+ * 전체 트리를 WASM 엔진으로 레이아웃 계산.
  *
- * Phase 2: Persistent Taffy Tree
+ * Phase 2: Persistent 엔진 트리
  * - Path A (초기 빌드): DFS → buildFull() → computeLayout() → getLayoutsBatch()
  * - Path B (증분 갱신): DFS → incrementalUpdate() → computeLayout() → getLayoutsBatch()
  *
  * DFS 순회는 항상 수행 (implicit style, enrichment, CSS resolve 필요).
  * 초기 빌드 후 증분 갱신은 변경된 노드만 WASM 호출하여
- * Taffy internal dirty cache를 최대한 활용한다.
+ * 엔진 internal dirty cache를 최대한 활용한다.
  *
  * WASM 엔진이 사용 불가하거나 실패하면 null을 반환한다.
  * 호출부(BuilderCanvas)는 null 수신 시 레거시 레벨별 폴백으로 전환해야 한다.
@@ -2615,7 +2615,7 @@ export function calculateFullTreeLayout(
 
   // 페이지/Frame root 별 persistent tree 조회/생성.
   // Frame body 는 page_id 가 null 이므로 layout binding 으로 분리하지 않으면 여러
-  // reusable Frame 이 "__default__" Taffy tree 를 공유해 root state 가 섞인다.
+  // reusable Frame 이 "__default__" 엔진 tree 를 공유해 root state 가 섞인다.
   const rootKey = getLayoutRootKey(rootEl);
   let persistentTree = persistentTrees.get(rootKey);
   if (!persistentTree) {
@@ -2662,7 +2662,7 @@ export function calculateFullTreeLayout(
   // → 자식의 width/height:100%가 페이지 크기 기준으로 계산되도록 보장
   //
   // NOTE: availableWidth/Height는 content-box (pageWidth - padding - border)
-  //       Taffy style.size = border-box → padding/border 포함한 전체 페이지 크기 필요
+  //       엔진 style.size = border-box → padding/border 포함한 전체 페이지 크기 필요
   const rootIdx = indexMap.get(rootElementId);
   if (rootIdx !== undefined) {
     const rootEl = elementsMap.get(rootElementId);
@@ -2700,15 +2700,15 @@ export function calculateFullTreeLayout(
   // ── Step 3: 초기 빌드 또는 증분 갱신 ──────────────────────────────
   try {
     // display 타입 전환 감지 (flex↔grid↔block): incremental update로는
-    // Taffy WASM이 올바르게 재계산하지 않으므로 full rebuild 필요
+    // 엔진 WASM이 올바르게 재계산하지 않으므로 full rebuild 필요
     let needsFullRebuild = !persistentTree.isInitialized;
     if (!needsFullRebuild) {
-      // display/grid 전환 감지: Taffy 증분 갱신으로 처리 불가 → full rebuild
+      // display/grid 전환 감지: 엔진 증분 갱신으로 처리 불가 → full rebuild
       for (const node of batch) {
         const prevJson = persistentTree.getLastJson(node.elementId);
         const curDisplay = node.style.display;
         // 신규 노드 (prevJson 없음) 가 grid container 면 full rebuild 필요 —
-        // Taffy WASM `addNode` 증분 추가로는 grid track (gridTemplateColumns/Areas)
+        // 엔진 WASM `addNode` 증분 추가로는 grid track (gridTemplateColumns/Areas)
         // 이 auto-placement 로 degrade 됨. `buildFull` 로만 정상 배치.
         //
         // ADR-912 R1 후속 (2026-06-12): 신규 노드가 **자식 서브트리를 가진 컨테이너**
@@ -2735,7 +2735,7 @@ export function calculateFullTreeLayout(
           needsFullRebuild = true;
           break;
         }
-        // Grid container 의 layout-영향 속성 변경: Taffy `updateStyleRaw` 가
+        // Grid container 의 layout-영향 속성 변경: 엔진 `updateStyleRaw` 가
         // track/placement 캐시 invalidation 실패 (padding 변경→1줄 degrade,
         // gap 변경→미반영). GRID_REBUILD_TRIGGER_KEYS 중 하나라도 변경 시
         // full rebuild 강제.
@@ -2871,24 +2871,24 @@ export function calculateFullTreeLayout(
         }
       }
 
-      // ── Step 4.5b: TagGroup maxRows chip 접힘 = Taffy 실측 행 번호 기반 (폭 가변 견고) ──
+      // ── Step 4.5b: TagGroup maxRows chip 접힘 = 엔진 실측 행 번호 기반 (폭 가변 견고) ──
       //   **Why (2026-07-02, maxRows gap 발산 최종 근본)**: TagGroup 폭은 가변이다. chip 접힘
       //   개수/height 를 추정 wrap 공식(`resolveTagWrapLayout`, measureText + 특정 폭 의존)으로
-      //   계산하면 실제 Taffy WASM flexWrap 배치와 어긋난다(JS measureText ≠ Taffy 측정, f32,
-      //   폭 추정 오차). 어긋나면 (1) render skip 은 Skia 그리기만 막고 Taffy 는 chip 전부를 배치해
+      //   계산하면 실제 엔진 WASM flexWrap 배치와 어긋난다(JS measureText ≠ 엔진 측정, f32,
+      //   폭 추정 오차). 어긋나면 (1) render skip 은 Skia 그리기만 막고 엔진 은 chip 전부를 배치해
       //   RowsGroup height 가 실제 표시 행보다 큼(예 15+Show all=16 chip → 5줄 166, 표시는 3줄) →
       //   잉여 여백이 align-content 분산 → 세로 gap 발산 + Show all 이 box 밖. 근본 해결 = **폭 값을
-      //   전혀 안 쓰고 Taffy 가 배치한 각 chip 의 실제 y좌표(rowY)로 행 번호를 산출**해 `행 번호 ≥
-      //   maxRows` chip 을 Taffy 트리(RowsGroup children)에서 제외한다. rowY 는 Taffy 실배치 결과라
-      //   폭 무관 정확 — 리사이즈 시 Taffy 가 재배치하면 자동 정합. Show all(_isShowAll)은 유지 →
-      //   Taffy 가 남은 chip 다음에 재배치. 제외 후 recompute 하면 RowsGroup height 가 표시 행 수로
+      //   전혀 안 쓰고 엔진 이 배치한 각 chip 의 실제 y좌표(rowY)로 행 번호를 산출**해 `행 번호 ≥
+      //   maxRows` chip 을 엔진 트리(RowsGroup children)에서 제외한다. rowY 는 엔진 실배치 결과라
+      //   폭 무관 정확 — 리사이즈 시 엔진 이 재배치하면 자동 정합. Show all(_isShowAll)은 유지 →
+      //   엔진 이 남은 chip 다음에 재배치. 제외 후 recompute 하면 RowsGroup height 가 표시 행 수로
       //   수렴 → TagList(preserveEnrichHeight) 와 정합 → 분산 gap 소멸.
       const foldChipRemovals: Array<{ rowsGroupId: string; keep: string[] }> =
         [];
-      // projection-only TagList 전수(접힘 여부 무관): Step 4.5c 가 각 RowsGroup Taffy 실측
+      // projection-only TagList 전수(접힘 여부 무관): Step 4.5c 가 각 RowsGroup 엔진 실측
       //   height 를 부모 TagList 에 강제할 대상. 접힘 미발생(itemRowCount ≤ maxRows) 이어도
-      //   preserveEnrichHeight(추정 wrap contentHeight)와 Taffy 실배치 행 수가 어긋날 수 있어
-      //   (measureText ≠ Taffy, 폭 추정 오차 → 예 11 tag/maxRows3: 추정 4행 156 vs 실측 3행 122)
+      //   preserveEnrichHeight(추정 wrap contentHeight)와 엔진 실배치 행 수가 어긋날 수 있어
+      //   (measureText ≠ 엔진, 폭 추정 오차 → 예 11 tag/maxRows3: 추정 4행 156 vs 실측 3행 122)
       //   전 케이스 실측 강제가 필요하다.
       const projectionTagLists: Array<{
         tagListId: string;
@@ -2953,7 +2953,7 @@ export function calculateFullTreeLayout(
         if (keep.length === chipIds.length) continue; // 제외 대상 없음
         foldChipRemovals.push({ rowsGroupId, keep });
       }
-      // chip 제외 적용 → RowsGroup children 갱신 → Taffy 재배치.
+      // chip 제외 적용 → RowsGroup children 갱신 → 엔진 재배치.
       for (const { rowsGroupId, keep } of foldChipRemovals) {
         filteredChildIdsMap.set(rowsGroupId, keep);
         persistentTree.updateChildren(rowsGroupId, keep);
@@ -2979,7 +2979,7 @@ export function calculateFullTreeLayout(
             string,
             unknown
           >;
-          // 컨테이너(자식이 있는 요소)는 height 제거 — Taffy auto height 계산
+          // 컨테이너(자식이 있는 요소)는 height 제거 — 엔진 auto height 계산
           const childChildren = getChildElements(node.elementId);
           const filteredChildIds = filteredChildIdsMap.get(node.elementId);
           const isContainer =
@@ -2987,7 +2987,7 @@ export function calculateFullTreeLayout(
             (filteredChildIds != null && filteredChildIds.length > 0);
           // projection-only 컨테이너(TagList 등): 유일한 자식이 projection RowsGroup("Rows")이면
           //   height 를 보존한다(1-pass enrich 보존과 동형). **Why**: 칩 wrap height 는
-          //   calculateContentHeight(taglist, items 기반)가 정확히 계산하므로 Taffy RowsGroup
+          //   calculateContentHeight(taglist, items 기반)가 정확히 계산하므로 엔진 RowsGroup
           //   auto height(side-label flex:1 폭 발산 시 1줄로 무너짐)보다 신뢰. 이 2-pass 가
           //   1-pass 의 height 보존을 다시 삭제하면 side height 버그가 재현된다(최종층).
           // projection RowsGroup id 형식: `projection:<family>-rows:<ownerId>`
@@ -3080,15 +3080,15 @@ export function calculateFullTreeLayout(
         }
       }
 
-      // ── Step 4.5c: RowsGroup Taffy 실측 height → TagList height 강제 (접힘 여부 무관) ──────
+      // ── Step 4.5c: RowsGroup 엔진 실측 height → TagList height 강제 (접힘 여부 무관) ──────
       //   projection-only TagList 는 `preserveEnrichHeight`(1-pass 추정 wrap contentHeight)로
       //   height 가 강제된 상태다. 그러나 추정 wrap(`resolveTagWrapLayout`, measureText 기반)은
-      //   실제 Taffy WASM flexWrap 배치와 어긋난다(measureText ≠ Taffy 측정, 폭 추정 오차, f32) →
-      //   Taffy 는 3행(122)으로 배치하는데 추정은 4행(156)을 반환해 selection height 에 여분 공백.
-      //   **근본**: chip 개수 제어(Step 4.5b)뿐 아니라 **TagList height 도 Taffy 실측이 SSOT** 여야
+      //   실제 엔진 WASM flexWrap 배치와 어긋난다(measureText ≠ 엔진 측정, 폭 추정 오차, f32) →
+      //   엔진 은 3행(122)으로 배치하는데 추정은 4행(156)을 반환해 selection height 에 여분 공백.
+      //   **근본**: chip 개수 제어(Step 4.5b)뿐 아니라 **TagList height 도 엔진 실측이 SSOT** 여야
       //   한다. 따라서 접힘 발생 여부와 무관하게 모든 projection TagList 의 RowsGroup 실측 height 를
       //   부모 TagList 에 강제한다. 접힘 케이스는 4.5b recompute 후 좌표(표시 행 기준), 미접힘 케이스는
-      //   1-pass 좌표(전체 행) — 둘 다 Taffy 실배치라 폭 무관 정확.
+      //   1-pass 좌표(전체 행) — 둘 다 엔진 실배치라 폭 무관 정확.
       //   **Why (2026-07-02, 미접힘 여분 공백 근본)**: 이전 재설계는 접힘 경로만 실측으로 갔고
       //   미접힘 height 는 추정 잔존 → 11 tag/maxRows3(접힘 없음) 에서 추정 4행 = selection 156.
       if (projectionTagLists.length > 0) {
@@ -3108,11 +3108,11 @@ export function calculateFullTreeLayout(
           persistentTree.getLayoutsForIds(postFoldElementIds);
         let tagListHeightChanged = false;
         for (const { tagListId, rowsGroupId } of projectionTagLists) {
-          // **Why 자식 실측(RowsGroup 컨테이너 실측 아님)**: Taffy `setChildren` 으로 chip 을 제거해도
+          // **Why 자식 실측(RowsGroup 컨테이너 실측 아님)**: 엔진 `setChildren` 으로 chip 을 제거해도
           //   RowsGroup 컨테이너의 auto height 는 축소되지 않는다(증분 갱신 한계 — 자식 3행 배치인데
           //   컨테이너 height 는 Show all 포함 4행값 132 로 stale). 따라서 컨테이너 실측이 아니라
           //   **유지된 chip 들의 실제 배치 bottom(max(chip.y + chip.height))** 으로 content height 를
-          //   직접 산출한다. 폭 무관(Taffy 실좌표 기준) + Show all 제거 반영.
+          //   직접 산출한다. 폭 무관(엔진 실좌표 기준) + Show all 제거 반영.
           const chipIds = filteredChildIdsMap.get(rowsGroupId);
           if (!chipIds || chipIds.length === 0) continue;
           let maxBottom = 0;
@@ -3134,7 +3134,7 @@ export function calculateFullTreeLayout(
           //   TagGroup 의 명시 height(98)는 auto 가 아니라 fixed 라 재계산 시에도 98 유지 →
           //   selection/hover outline 이 실제 자식(64) 아래로 34px(1행) 여분 공백. top-label 은 column
           //   이라 preserve 미적용(자식 2개)이라 auto 합산으로 자연 수렴하나, side-label(row)만 발산.
-          //   → 부모 명시 height 를 제거해 Taffy 가 row auto height(max(Label, 교정된 TagList)=64)로
+          //   → 부모 명시 height 를 제거해 엔진 이 row auto height(max(Label, 교정된 TagList)=64)로
           //   재계산하게 한다. **정합(tlAligned&&rowsAligned) 여부와 독립** — TagList 가 이미 64 로
           //   정합이어도 부모 TagGroup 은 여전히 stale 98 을 명시 강제하므로, 아래 continue 앞에서
           //   처리한다. 사용자 명시 CSS height 는 보존.

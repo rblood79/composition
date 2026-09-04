@@ -206,14 +206,14 @@ Element props  ──→  skiaNodeData 생성  ──→  글로벌 레지스트
 ```
 
 > **레이아웃 계층 분리**: Spec은 컴포넌트 **내부** Shape 배치를 정의하고,
-> **외부** 컨테이너 간 배치는 Taffy 레이아웃 엔진이 담당합니다.
+> **외부** 컨테이너 간 배치는 엔진 레이아웃 엔진이 담당합니다.
 >
 > | 엔진                 | 담당                  | CSS display                       |
 > | -------------------- | --------------------- | --------------------------------- |
-> | **Taffy WASM**       | Flex/Grid 레이아웃    | `flex`, `grid`, `inline-flex`     |
-> | **TaffyBlockEngine** | Block/Inline 레이아웃 | `block`, `inline`, `inline-block` |
+> | **엔진 WASM**       | Flex/Grid 레이아웃    | `flex`, `grid`, `inline-flex`     |
+> | **blockStyleAdapter** | Block/Inline 레이아웃 | `block`, `inline`, `inline-block` |
 >
-> React 경로는 브라우저 CSS 레이아웃을, Canvas 경로는 Taffy가 계산한 절대 px 값을 CanvasKit이 사용합니다.
+> React 경로는 브라우저 CSS 레이아웃을, Canvas 경로는 엔진이 계산한 절대 px 값을 CanvasKit이 사용합니다.
 > 자세한 내용은 [ADR-008: 레이아웃 엔진](adr/completed/008-layout-engine.md)를 참조하세요.
 
 <details>
@@ -793,7 +793,7 @@ export interface ContainerShape {
   children: Shape[];
   clip?: boolean;
 
-  /** 레이아웃 설정 (Taffy WASM 연동) */
+  /** 레이아웃 설정 (엔진 WASM 연동) */
   layout?: ContainerLayout;
 }
 
@@ -2849,13 +2849,13 @@ if (ENABLE_BUTTON_SPEC) {
 > - `layout/engines/utils.ts` — `enrichWithIntrinsicSize()`, `parseBoxModel()`, `calculateContentHeight/Width()` (intrinsic 크기)
 > - 레거시 `parseCSSSize()` (`sprites/styleConverter`) — 폐기됨, 위 함수로 대체
 
-**CanvasKit/Skia 렌더링 (현재):** Taffy 레이아웃 엔진이 CSS 단위(%, vw, vh, rem, calc 등)를 **절대 px로 변환**한 결과를 CanvasKit이 받으므로, CanvasKit 렌더러에서는 CSS 단위 해석이 **불필요**하다. `skiaNodeData.width/height` 등 이미 계산된 숫자를 직접 사용한다.
+**CanvasKit/Skia 렌더링 (현재):** 엔진 레이아웃 엔진이 CSS 단위(%, vw, vh, rem, calc 등)를 **절대 px로 변환**한 결과를 CanvasKit이 받으므로, CanvasKit 렌더러에서는 CSS 단위 해석이 **불필요**하다. `skiaNodeData.width/height` 등 이미 계산된 숫자를 직접 사용한다.
 
-| 항목               | Phase 1-4 (PixiJS)                         | 현재 (CanvasKit + Taffy WASM)                                               |
+| 항목               | Phase 1-4 (PixiJS)                         | 현재 (CanvasKit + 엔진 WASM)                                               |
 | ------------------ | ------------------------------------------ | --------------------------------------------------------------------------- |
 | CSS 단위 해석      | 각 Pixi 컴포넌트에서 `parseCSSSize()` 필요 | **불필요** — 레이아웃 엔진이 px로 변환 완료                                 |
 | viewport 크기 참조 | vw/vh → parentContentArea 기준 변환        | `resolveCSSSizeValue()`가 `CSSValueContext`로 처리, CanvasKit은 결과만 수신 |
-| % 단위             | 부모 content area 수동 계산                | Taffy가 자동 계산                                                           |
+| % 단위             | 부모 content area 수동 계산                | 엔진이 자동 계산                                                           |
 | 입력 형식          | CSS 문자열 ("16px", "50%")                 | 숫자 (px 절대값)                                                            |
 
 **CSS 단위 파서 (`cssValueParser.ts`):**
@@ -2899,7 +2899,7 @@ interface CSSValueContext {
 
 > **⚠️ 예외: 시각 전용 속성 (borderRadius, borderColor 등)**
 >
-> Taffy가 변환하는 것은 **레이아웃 속성**(width, height, padding, margin 등)뿐이다.
+> 엔진이 변환하는 것은 **레이아웃 속성**(width, height, padding, margin 등)뿐이다.
 > `borderRadius`와 같은 **시각 전용 속성**은 레이아웃 엔진을 거치지 않으므로 `element.props.style`에
 > CSS 문자열 형태(`"12px"`, `"8"`)로 남아 있다.
 > `ElementSprite`의 Skia 폴백에서 이런 속성을 읽을 때는 반드시 `convertStyle()`의 반환값을
@@ -2923,7 +2923,7 @@ interface CSSValueContext {
 <summary>Phase 1-4 레거시: Pixi UI 컴포넌트 CSS 단위 해석 규칙 (폐기됨)</summary>
 
 > **⚠️ 폐기됨**: 아래 규칙은 Phase 1-4 PixiJS 컴포넌트에만 적용되었던 레거시 규칙이다.
-> 현재는 Taffy 레이아웃 엔진이 CSS 단위를 자동 해석하며,
+> 현재는 엔진 레이아웃 엔진이 CSS 단위를 자동 해석하며,
 > `resolveCSSSizeValue()` + `CSSValueContext` (`layout/engines/cssValueParser.ts`)로 대체되었다.
 >
 > - `parseCSSSize()` → `resolveCSSSizeValue()`
@@ -2993,7 +2993,7 @@ pnpm --filter @composition/builder dev
 #### 4.7.4.1 Padding/Border 이중 적용 방지 (CRITICAL)
 
 자체적으로 padding/border를 그래픽 크기에 반영하는 leaf UI 컴포넌트(Button 등)는
-레이아웃 엔진(Taffy)에도 padding/border를 전달하면 **이중 적용**된다.
+레이아웃 엔진에도 padding/border를 전달하면 **이중 적용**된다.
 
 **현행 해결 방식: `enrichWithIntrinsicSize()` + `parseBoxModel()`**
 
@@ -3191,7 +3191,7 @@ if (treatAsBorderBox) {
 **v3.9 추가 → v3.12 수정 — Card/Box/Section padding 처리**:
 컨테이너 요소(`Card`, `Box`, `Section`)도 `parseBoxModel()`에서 `treatAsBorderBox` 대상입니다.
 단, `enrichWithIntrinsicSize()`에서는 CSS에 padding/border가 명시된 경우 **content-box 높이만 주입**합니다.
-레이아웃 엔진(Taffy)이 CSS padding/border를 자체 추가하므로, enrichment에서 중복 추가하면 이중 계산이 발생합니다.
+레이아웃 엔진이 CSS padding/border를 자체 추가하므로, enrichment에서 중복 추가하면 이중 계산이 발생합니다.
 
 ```typescript
 // utils.ts enrichWithIntrinsicSize() — CSS padding 유무에 따른 조건부 추가
@@ -4452,11 +4452,11 @@ line?: {
 
 #### 9.3.4 레이아웃 통합
 
-Body의 `display: 'block'` → TaffyBlockEngine 경로에서의 폼 컨트롤 크기 계산:
+Body의 `display: 'block'` → blockStyleAdapter 경로에서의 폼 컨트롤 크기 계산:
 
 | 파일               | 변경                                                                                                                     |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ |
-| `engines/utils.ts` | `enrichWithIntrinsicSize()`: leaf UI 컴포넌트 intrinsic 크기 주입 (Taffy Flex/Block 공용)                                |
+| `engines/utils.ts` | `enrichWithIntrinsicSize()`: leaf UI 컴포넌트 intrinsic 크기 주입 (엔진 Flex/Block 공용)                                |
 | `engines/utils.ts` | `calculateContentHeight`/`Width`: INLINE_FORM 테이블 기반 크기 계산                                                      |
 | `engines/utils.ts` | `INLINE_FORM_INDICATOR_WIDTHS` switch/toggle 값 수정 (26/34/42 → 36/44/52) + `INLINE_FORM_GAPS` 테이블 신규 추가 (v3.10) |
 
@@ -4468,7 +4468,7 @@ Spec `shapes()` 함수는 항상 row 레이아웃 좌표를 생성. column 지�
 
 1. **shapes 좌표 변환** (`rearrangeShapesForColumn`): indicator 중앙 배치, text를 indicator 아래로 이동
 2. **크기 계산** (`engines/utils.ts`의 `enrichWithIntrinsicSize()`): column → height = indicator + gap + textLineHeight, width = max(indicator, textWidth)
-3. **BlockEngine 동기화** (`engines/utils.ts`): 동일한 column 크기 계산을 TaffyBlockEngine 경로에도 적용
+3. **BlockEngine 동기화** (`engines/utils.ts`): 동일한 column 크기 계산을 blockStyleAdapter 경로에도 적용
 
 ### 9.5 수정 파일 목록
 
@@ -4772,7 +4772,7 @@ return {
 | ---------------- | ----------------------------------------- | ---------------------------------------- |
 | **렌더링**       | `PixiTagGroup.tsx` (전용 Graphics 렌더링) | BoxSprite 기본 컨테이너 (CONTAINER_TAGS) |
 | **TAG_SPEC_MAP** | TagGroup 등록                             | 제거 (spec shapes 미사용)                |
-| **레이아웃**     | PixiTagGroup 내부 계산                    | Taffy flex layout (TaffyFlexEngine)      |
+| **레이아웃**     | PixiTagGroup 내부 계산                    | 엔진 flex layout (flexStyleAdapter)      |
 | **구조**         | 2-level (parent + flat children)          | 3-level (TagGroup → TagList → Tag)       |
 | **CSS 동기화**   | 수동 동기화                               | props.style로 직접 적용                  |
 
@@ -4781,11 +4781,11 @@ return {
 ```typescript
 // TagGroup: 기본 flex column 레이아웃 (Label + TagList 수직 배치)
 // → props.style: { display: 'flex', flexDirection: 'column' }
-// → TaffyFlexEngine이 Flex 레이아웃 계산
+// → flexStyleAdapter이 Flex 레이아웃 계산
 
 // TagList: 기본 flex row wrap 레이아웃 (Tags 가로 배치)
 // → props.style: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: 4 }
-// → TaffyFlexEngine이 Flex 레이아웃 계산
+// → flexStyleAdapter이 Flex 레이아웃 계산
 ```
 
 **수정 파일:**
@@ -4815,7 +4815,7 @@ Web (packages/shared/src/components/)     Canvas (Builder 요소 트리)
 │   │   ├── Tag                           │   │   ├── Tag → BadgeSpec (Skia)
 │   │   └── Tag                           │   │   └── Tag → BadgeSpec (Skia)
 │   └── description                       │   └── (description은 props)
-└── (CSS flex layout)                     └── (TaffyFlexEngine layout)
+└── (CSS flex layout)                     └── (flexStyleAdapter layout)
 ```
 
 #### 9.8.2 계층 선택 메커니즘
@@ -4939,7 +4939,7 @@ PixiJS Canvas (z-index: 4)        ← 이벤트 전용 (alpha=0, 보이지 않�
 
 **전환 완료 컴포넌트 (CONTAINER_TAGS 등록 완료):**
 
-- [x] **TagGroup** — 3-level 계층 (TagGroup > Label + TagList > Tag×N), TaffyFlexEngine
+- [x] **TagGroup** — 3-level 계층 (TagGroup > Label + TagList > Tag×N), flexStyleAdapter
 - [x] **Tabs** — 컨테이너 패턴, Panel 필터링, paddingTop=tabBar+padding
 - [x] **Breadcrumbs** — nav/flex, `_crumbs` 주입 (자식 텍스트 배열), `filteredContainerChildren = []`
 - [x] **Calendar** — Compositional (Calendar > CalendarHeader + CalendarGrid), `_hasChildren` 2단계 평가
@@ -4953,7 +4953,7 @@ PixiJS Canvas (z-index: 4)        ← 이벤트 전용 (alpha=0, 보이지 않�
 규칙 1: 웹 컴포넌트의 JSX children 계층 = Factory의 children 계층
 규칙 2: 컨테이너 → NON_CONTAINER_TAGS 미포함 + display 기본값 (flex/block) (§9.13 opt-out 전환)
 규칙 3: 리프 UI → TAG_SPEC_MAP + ComponentSpec (Skia 렌더링)
-규칙 4: 컨테이너의 레이아웃 = 웹 CSS와 동일 (TaffyFlexEngine/TaffyBlockEngine)
+규칙 4: 컨테이너의 레이아웃 = 웹 CSS와 동일 (flexStyleAdapter/blockStyleAdapter)
 규칙 5: Layer Tree 선택 = Canvas Drill-Down 선택 (editingContextId 동기화)
 ```
 
@@ -5188,7 +5188,7 @@ calculateContentHeight(Card)
 | 조건                      | padding/border 추가  | 이유                                     |
 | ------------------------- | -------------------- | ---------------------------------------- |
 | CSS에 padding/border 없음 | O (spec 기본값 포함) | 레이아웃 엔진이 추가할 값 없음           |
-| CSS에 padding/border 있음 | X (엔진에 위임)      | Taffy가 CSS 값을 자체 추가               |
+| CSS에 padding/border 있음 | X (엔진에 위임)      | 엔진이 CSS 값을 자체 추가               |
 | INLINE_BLOCK_TAGS         | O (항상 포함)        | layoutInlineRun이 border-box로 직접 사용 |
 
 > **v3.9→v3.12 변경**: 기존 `isTreatedAsBorderBox` 조건이 Card/Box/Section에 CSS padding이 있어도 강제 추가 → Taffy가 또 추가 → 이중 계산. 조건 제거하여 CSS padding 존재 시 엔진에 위임.
@@ -5864,10 +5864,10 @@ return (
 );
 ```
 
-### 9.13.5 Taffy 단일 엔진 레이아웃
+### 9.13.5 엔진 단일 엔진 레이아웃
 
 > **변경 이력**: 이전 `DropflowBlockEngine` fallback flex 처리 코드는 Taffy 단일 엔진 전환(ADR-009 Foundation)으로 제거되었다.
-> 현재 모든 display 타입(flex/grid/block)은 Taffy WASM 단일 호출로 처리된다.
+> 현재 모든 display 타입(flex/grid/block)은 엔진 WASM 단일 호출로 처리된다.
 
 ### 9.13.6 하위호환
 
@@ -5909,7 +5909,7 @@ Opt-out 전환 후, 75개 spec 중 49개가 `_hasChildren`를 지원한다.
 | `BuilderCanvas.tsx` L165                  | `NON_CONTAINER_TAGS` (32개 블랙리스트) + `isContainerTagForLayout()`                          |
 | `BuilderCanvas.tsx` L661-963              | createContainerChildRenderer (layout 주입, props sync, transparent)                           |
 | `engines/utils.ts` L1148                  | flex column border-box 높이 이중 계산 수정                                                    |
-| `engines/index.ts`                        | 레이아웃 엔진 디스패처 (Taffy 단일 엔진)                                                      |
+| `engines/index.ts`                        | 레이아웃 엔진 디스패처 (엔진 단일 엔진)                                                      |
 | `packages/specs/src/components/*.spec.ts` | 49개 spec의 shapes() 함수 `_hasChildren` 지원                                                 |
 
 ### 9.13.9 신규 컴포넌트 등록 체크리스트 (Opt-Out)
@@ -7582,7 +7582,7 @@ Spec 수정 → pnpm --filter @composition/specs build → dist/ 갱신 → Buil
 | 2026-02-22 | 3.12 | **§9.11 TagGroup label 두 줄 렌더링 버그 수정**: (1) `TagGroup.spec.ts` — `render.shapes`에서 label 텍스트 shape 제거. 자식 Label 엘리먼트가 렌더링 담당이므로 spec shapes(fontSize:12)와 Label element(fontSize:14)의 이중 렌더링으로 인한 두 줄 표시 현상 제거. (2) `engines/utils.ts` line 759-760 — `calculateContentWidth` 일반 텍스트 경로에 Canvas 2D→CanvasKit 폭 측정 보정(`Math.ceil() + 2`) 추가. INLINE_FORM 경로(line 718-719)와 동일 패턴. §9.11.3 spec shapes label 중복 렌더링 제거 원칙, §9.11.4 Canvas 2D→CanvasKit 폭 보정 패턴 문서화                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | 2026-02-22 | 3.13 | **§9.12 Slider Complex Component 전환**: (1) **Slider → Complex Component 전환** — `useElementCreator.ts` complexComponents 배열에 'Slider' 추가, `ComponentFactory.ts` Slider creator 등록, `FormComponents.ts` `createSliderDefinition()` 팩토리 추가. DOM 구조: `Slider > Label + SliderOutput + SliderTrack > SliderThumb`, (2) **TokenRef offsetY NaN 버그 수정** — `Slider.spec.ts` `size.fontSize`(TokenRef 문자열)를 숫자 연산에 직접 사용하여 NaN 발생. `resolveToken()` 호출로 해결. CRITICAL 규칙 추가: spec `shapes()` 내 TokenRef 필드는 숫자 연산 전 `resolveToken()` 필수, (3) **SliderOutput 위치 수정** — `x: width` → `x: 0` + `maxWidth: width`로 컨테이너 내 우측 정렬, (4) **`_hasLabelChild` 패턴 문서화** — Select/ComboBox/Slider 공통 패턴, 자식 element 담당 텍스트를 spec shapes에서 스킵하는 메커니즘, (5) **Slider.css data-attribute 전환** — `.sm`/`.primary` class selector → `[data-size="sm"]`/`[data-variant="primary"]` data-attribute selector, SLIDER_DIMENSIONS spec 정확히 반영 (sm=4/14, md=6/18, lg=8/22), M3 토큰 사용, (6) **unified.types.ts** — Slider 기본 props 수정 (value=50, width=200, height=45, showValue=true, maxWidth=300). §5.1 Slider 상태 "✅ 완전 지원 (Complex Component 전환 완료)"로 갱신. §5.3 Slider.spec.ts 체크리스트 완료 표기                                                                                                                                                                                                          |
 | 2026-02-23 | 3.14 | **§9.x Breadcrumbs CONTAINER_TAGS 전환 + Skia 렌더링**: (1) **Breadcrumbs.spec.ts** — `resolveToken` 기반 fontSize 해석, 기본 구분자 `›`, CSS 일치 sizes height (sm:16, md:24, lg:24), (2) **ElementSprite.tsx** — `_crumbs` prop 주입 (자식 Breadcrumb 텍스트 배열 → spec shapes), (3) **BuilderCanvas.tsx** — `CONTAINER_TAGS`에 `'Breadcrumbs'` 추가, `filteredContainerChildren = []` (spec shapes가 크럼 텍스트 직접 렌더링), (4) **utils.ts** — `calculateContentHeight` Breadcrumbs 핸들러 (sm:16, md:24, lg:24), `SPEC_SHAPES_INPUT_TAGS`에 `'breadcrumbs'` 추가, (5) **PixiBreadcrumbs** — Skia spec shapes 전환 완료로 더 이상 사용하지 않음. §6.1 상태 "⚠️ 부분"→"✅ 정상 (CONTAINER_TAGS 전환)", §6.3 체크리스트 완료 표기, §9.8.4 테이블에 Breadcrumbs 행 추가, §9.8.5 전환 완료 목록에 Breadcrumbs 추가                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| 2026-02-24 | 3.15 | **§9.13 자식 조합 패턴(Child Composition Pattern) 전체 전환**: (1) **CHILD_COMPOSITION_TAGS 통합 Set** — ElementSprite.tsx에 20개 컴포넌트 등록 (Input Fields 6종, Overlay 4종, Navigation 4종, Groups 2종, Date&Color 4종), `_hasChildren: true` flag 주입으로 spec shapes 조건부 렌더링 (2) **TRANSPARENT_CONTAINER_TAGS 확장** — DateField, TimeField, ColorField, CheckboxGroup, RadioGroup 추가, (3) **Input Field 5종 spec 전환** — NumberField, SearchField, DateField, TimeField, ColorField shapes()에 `_hasChildren` → bg/border만 반환, (4) **Overlay 4종 spec 전환** — Dialog(backdrop+shadow+bg), Popover(shadow+bg+border), Tooltip(bg), Toast(shadow+bg+border+accent bar) 유지, 콘텐츠 스킵, (5) **Navigation 4종 spec 전환** — Menu(shadow+bg+border), Disclosure(bg+border), DisclosureGroup(bg+border), Toolbar(bg+border) 유지, 콘텐츠 스킵, (6) **Groups 2종** — CheckboxGroup, RadioGroup 빈 배열 반환 (transparent container), (7) **Date&Color 4종** — DatePicker, DateRangePicker, Calendar, ColorPicker 배경 shapes 유지 후 복합 콘텐츠 스킵, (8) **BuilderCanvas.tsx props sync 확장** — Input Fields 6종(label→Label), Overlay 4종(heading→Heading, description→Description), (9) **border-box 높이 이중 계산 수정** — calculateContentHeight flex column에서 form element border-box explicit height 감지, padding+border 미추가 (engines/utils.ts), (10) **Dropflow fallback flex 처리** — Taffy WASM 미로드 시 flex-direction row/column + gap 수동 후처리 (engines/index.ts) |
+| 2026-02-24 | 3.15 | **§9.13 자식 조합 패턴(Child Composition Pattern) 전체 전환**: (1) **CHILD_COMPOSITION_TAGS 통합 Set** — ElementSprite.tsx에 20개 컴포넌트 등록 (Input Fields 6종, Overlay 4종, Navigation 4종, Groups 2종, Date&Color 4종), `_hasChildren: true` flag 주입으로 spec shapes 조건부 렌더링 (2) **TRANSPARENT_CONTAINER_TAGS 확장** — DateField, TimeField, ColorField, CheckboxGroup, RadioGroup 추가, (3) **Input Field 5종 spec 전환** — NumberField, SearchField, DateField, TimeField, ColorField shapes()에 `_hasChildren` → bg/border만 반환, (4) **Overlay 4종 spec 전환** — Dialog(backdrop+shadow+bg), Popover(shadow+bg+border), Tooltip(bg), Toast(shadow+bg+border+accent bar) 유지, 콘텐츠 스킵, (5) **Navigation 4종 spec 전환** — Menu(shadow+bg+border), Disclosure(bg+border), DisclosureGroup(bg+border), Toolbar(bg+border) 유지, 콘텐츠 스킵, (6) **Groups 2종** — CheckboxGroup, RadioGroup 빈 배열 반환 (transparent container), (7) **Date&Color 4종** — DatePicker, DateRangePicker, Calendar, ColorPicker 배경 shapes 유지 후 복합 콘텐츠 스킵, (8) **BuilderCanvas.tsx props sync 확장** — Input Fields 6종(label→Label), Overlay 4종(heading→Heading, description→Description), (9) **border-box 높이 이중 계산 수정** — calculateContentHeight flex column에서 form element border-box explicit height 감지, padding+border 미추가 (engines/utils.ts), (10) **Dropflow fallback flex 처리** — 엔진 WASM 미로드 시 flex-direction row/column + gap 수동 후처리 (engines/index.ts) |
 | 2026-02-24 | 3.16 | **§9.13 Opt-In → Opt-Out 아키텍처 전환**: (1) **CHILD_COMPOSITION_TAGS(42개 화이트리스트) → CHILD_COMPOSITION_EXCLUDE_TAGS(5개 블랙리스트)** — 모든 컴포넌트가 기본적으로 자식 조합 허용, Tabs/Breadcrumbs/TagGroup(synthetic prop)/Table/Tree(다단계 중첩)만 제외 (ElementSprite.tsx), (2) **CONTAINER_TAGS(49개 화이트리스트) → NON_CONTAINER_TAGS(~21개 블랙리스트)** — TEXT_TAGS 14개 + Void/Visual 3개 + Color Sub-component 4개만 비컨테이너, 나머지 모두 컨테이너 (BuilderCanvas.tsx), (3) **isContainerTagForLayout() 반전** — `CONTAINER_TAGS.has(tag)` → `!NON_CONTAINER_TAGS.has(tag)`, Section 조건부 로직 유지, (4) **7개 신규 spec `_hasChildren` 추가** — Button, Badge, ToggleButton, Slot, Panel, ProgressBar, Meter (packages/specs/src/components/), (5) **`_hasChildren` 지원 spec 총 49개** (E-1: 20개 + E-2: 22개 + Phase 1: 7개), (6) **전환 동기** — 노코드 빌더에서 DOM+CSS 자유 조합 지원, 3중 수동 등록(CHILD_COMPOSITION_TAGS + CONTAINER_TAGS + spec) 제거, (7) **§9.8.5 체크리스트 업데이트** — `CONTAINER_TAGS 등록` → `NON_CONTAINER_TAGS 미포함 확인`, 규칙 2 NON_CONTAINER_TAGS 반영, (8) **문서 동기화** — SKILL.md opt-out 패턴 반영, CHILD_COMPOSITION_REMAINING.md 완료 보고서 갱신                                                                                                                                                                                                                                                                                    |
 | 2026-02-24 | 3.17 | **COMPLEX_COMPONENT_TAGS 공유 상수 도입 + `_hasChildren` 자식 삭제 버그 수정**: (1) **`factories/constants.ts` 신규** — `COMPLEX_COMPONENT_TAGS` Set(40+개 태그) 공유 상수 파일 생성, `useElementCreator.ts`/`ElementSprite.tsx`에서 import, (2) **`ElementSprite.tsx` L1105 조건 수정** — 기존 `!CHILD_COMPOSITION_EXCLUDE_TAGS.has(tag) && childElements && childElements.length > 0` → `!CHILD_COMPOSITION_EXCLUDE_TAGS.has(tag)` 내에서 `COMPLEX_COMPONENT_TAGS.has(tag)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |     | (childElements && childElements.length > 0)`, (3) **`useElementCreator.ts`로컬 배열 → 공유 상수 전환** — 로컬`complexComponents`배열 제거,`COMPLEX_COMPONENT_TAGS`import 후`includes()`→`has()`교체, (4) **버그 수정** — TextField 등 complex component에서 모든 자식을 삭제했을 때`\_hasChildren`이 `false`가 되어 standalone 렌더링(label+input 일체형)이 재활성화되는 현상 수정. 근본 원인: `\_hasChildren`이 런타임 `childElements.length > 0`에만 의존하는 설계 |
 | 2026-02-25 | 3.18 | **TokenRef fontSize 산술 연산 버그 전수 수정 + label 렌더링 패턴 추가**: (1) **§9.12.5 확장** — `as unknown as number` 캐스팅이 런타임 NaN을 방지하지 못함을 명시, 영향 범위 19개 이상 spec 파일(Calendar, CheckboxGroup, ColorField, DateField, DatePicker, DateRangePicker, Disclosure, Form, GridList, List, ListBox, Meter, NumberField, Panel, ProgressBar, RadioGroup, SearchField, TagGroup, TextArea, TimeField, Tree) 문서화, 올바른 패턴(rawFontSize → resolvedFs → fallback 16px) 코드 예시 갱신, (2) **§9.12.8 신규 — labelOffset 패턴** — SearchField/NumberField label 렌더링 추가: `resolveToken()` 기반 fontSize → labelFontSize(-2) → labelHeight(\*1.2) → labelOffset 계산, props.label 조건부 text shape 추가 및 이후 모든 shapes에 y+labelOffset 적용, 하드코딩 오프셋(`props.label ? 20 : 0`) 금지 원칙                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |

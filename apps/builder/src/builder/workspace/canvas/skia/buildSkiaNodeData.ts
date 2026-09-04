@@ -29,7 +29,7 @@ import {
 // ---------------------------------------------------------------------------
 
 export interface BuildContext {
-  /** Taffy 레이아웃 결과 */
+  /** 엔진 레이아웃 결과 */
   layoutMap: Map<string, ComputedLayout>;
   /** 현재 테마 (dark/light) */
   theme: "light" | "dark";

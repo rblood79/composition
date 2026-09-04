@@ -60,7 +60,7 @@ export interface LayoutEngineAPI {
  *
  * WASM 미준비 시에도 엔진 인스턴스를 반환한다: 미준비 상태의 메서드 호출은
  * throw 되고, `isAvailable()` 이 lazy re-init 을 시도하며, 부트스트랩의
- * 15초 폴링/재시도가 준비를 대기한다. Taffy 폴백 없음 (ADR-916 R4 소멸).
+ * 15초 폴링/재시도가 준비를 대기한다. 엔진 폴백 없음 (ADR-916 R4 소멸).
  */
 export function createLayoutEngine(): LayoutEngineAPI {
   return new CompositionEngineLayout() as unknown as LayoutEngineAPI;

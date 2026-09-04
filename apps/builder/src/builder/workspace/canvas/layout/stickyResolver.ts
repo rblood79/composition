@@ -1,7 +1,7 @@
 /**
  * Position Sticky Resolver (ADR-100 Phase 3)
  *
- * Taffy 레이아웃 결과에 post-layout 보정 적용.
+ * 엔진 레이아웃 결과에 post-layout 보정 적용.
  * Chrome Blink 기법: 3단계 상태 전환 (normal → stuck → limit)
  */
 
