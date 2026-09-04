@@ -14,6 +14,7 @@ import {
   resetCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
+import { seedPanelElements } from "../../panels/styles/hooks/__tests__/panelFixture";
 import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { PropertyCustomId } from "./PropertyCustomId";
@@ -130,13 +131,7 @@ describe("PropertyCustomId", () => {
     const existing = makeElement("existing", { customId: "button_1" });
     const target = makeElement("target", { customId: "button_2" });
 
-    useStore.setState({
-      elements: [existing, target],
-      elementsMap: new Map([
-        [existing.id, existing],
-        [target.id, target],
-      ]),
-    } as never);
+    seedPanelElements([existing, target]);
 
     render(<PropertyCustomId elementId="target" label="ID" value="button_2" />);
 

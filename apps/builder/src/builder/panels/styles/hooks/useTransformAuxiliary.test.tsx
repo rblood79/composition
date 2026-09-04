@@ -8,13 +8,32 @@ import {
   useParentFlexDirection,
 } from "./useTransformAuxiliary";
 import { useStore } from "../../../stores";
+import { seedPanelElements } from "./__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 
 function setTestElements(elements: Element[]): void {
-  useStore.setState({
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
-  } as never);
+  seedPanelElements(elements);
+}
+
+/**
+ * 시드 후 요소 하나를 바꿀 때는 store 만 mutate 하지 말고 **재시드**한다 —
+ * 패널 hook 은 canonical document 를 읽으므로 flat store 만 고치면 반영되지 않는다.
+ */
+function reseedWith(id: string, patch: Partial<Element>): void {
+  const next = useStore
+    .getState()
+    .elements.map((element) =>
+      element.id === id ? ({ ...element, ...patch } as Element) : element,
+    );
+  seedPanelElements(next);
+}
+
+function seedResponsiveOverride(
+  styles: Record<string, Record<string, string>>,
+  id = "el-1",
+): void {
+  reseedWith(id, { responsive: { styles } } as Partial<Element>);
+  useStore.setState({ activeBreakpoint: "mobile" } as never);
 }
 
 describe("useTransformAuxiliary", () => {
@@ -63,40 +82,14 @@ describe("useTransformAuxiliary", () => {
   });
 
   it("useWidthSizeMode reads the active breakpoint override", () => {
-    useStore.setState((state) => {
-      const responsiveElement = {
-        ...(state.elementsMap.get("el-1") as Element),
-        responsive: { styles: { width: { mobile: "100%" } } },
-      } as Element;
-      const elements = state.elements.map((element) =>
-        element.id === "el-1" ? responsiveElement : element,
-      );
-      return {
-        elements,
-        elementsMap: new Map(elements.map((element) => [element.id, element])),
-        activeBreakpoint: "mobile",
-      };
-    });
+    seedResponsiveOverride({ width: { mobile: "100%" } });
 
     const { result } = renderHook(() => useWidthSizeMode("el-1"));
     expect(result.current).toBe("fill");
   });
 
   it("useHeightSizeMode reads the active breakpoint override", () => {
-    useStore.setState((state) => {
-      const responsiveElement = {
-        ...(state.elementsMap.get("el-1") as Element),
-        responsive: { styles: { height: { mobile: "100%" } } },
-      } as Element;
-      const elements = state.elements.map((element) =>
-        element.id === "el-1" ? responsiveElement : element,
-      );
-      return {
-        elements,
-        elementsMap: new Map(elements.map((element) => [element.id, element])),
-        activeBreakpoint: "mobile",
-      };
-    });
+    seedResponsiveOverride({ height: { mobile: "100%" } });
 
     const { result } = renderHook(() => useHeightSizeMode("el-1"));
     expect(result.current).toBe("fill");
@@ -135,21 +128,7 @@ describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
   });
 
   it("inline style.display overrides Spec containerStyles fallback (inline 우선)", () => {
-    useStore.setState((s) => {
-      const map = new Map<string, Element>(s.elementsMap);
-      const existing = map.get("lb-1") ?? {};
-      const parent = {
-        ...existing,
-        props: { style: { display: "block" } },
-      } as unknown as Element;
-      map.set("lb-1", parent);
-      return {
-        elements: (s.elements ?? []).map((element) =>
-          element.id === "lb-1" ? parent : element,
-        ),
-        elementsMap: map,
-      };
-    });
+    reseedWith("lb-1", { props: { style: { display: "block" } } });
     const { result } = renderHook(() => useParentDisplay("item-1"));
     expect(result.current).toBe("block");
   });

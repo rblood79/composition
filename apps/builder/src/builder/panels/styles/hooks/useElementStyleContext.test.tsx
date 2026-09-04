@@ -5,6 +5,7 @@ import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import { seedPanelElements } from "./__tests__/panelFixture";
 import { useElementStyleContext } from "./useElementStyleContext";
 
 function makeElement(id: string, overrides: Partial<Element> = {}): Element {
@@ -87,10 +88,7 @@ describe("useElementStyleContext", () => {
       },
     } as never);
 
-    useStore.setState({
-      elements: [listBoxRef],
-      elementsMap: new Map([[listBoxRef.id, listBoxRef]]),
-    } as never);
+    seedPanelElements([listBoxRef]);
 
     const { result } = renderHook(() =>
       useElementStyleContext("listbox-instance"),
@@ -297,10 +295,7 @@ describe("useElementStyleContext", () => {
       props: { style: {} },
     } as never);
 
-    useStore.setState({
-      elements: [ref],
-      elementsMap: new Map([[ref.id, ref]]),
-    } as never);
+    seedPanelElements([ref]);
 
     const { result } = renderHook(() =>
       useElementStyleContext("missing-origin-instance"),

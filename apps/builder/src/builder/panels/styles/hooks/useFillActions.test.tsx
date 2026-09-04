@@ -13,6 +13,11 @@ vi.mock("../../../../env/supabase.client", () => ({
 }));
 
 import { useStore } from "../../../stores";
+import {
+  resetPanelFixture,
+  seedPanelElements,
+} from "./__tests__/panelFixture";
+import type { Element } from "../../../../types/core/store.types";
 import { useFillActions } from "./useFillActions";
 import { useFillValues, useFillUIStore } from "./useFillValues";
 
@@ -23,37 +28,24 @@ describe("useFillActions", () => {
       colorInputMode: "hex",
     });
 
+    resetPanelFixture();
+    seedPanelElements([
+      {
+        id: "legacy-1",
+        type: "Box",
+        props: { style: { backgroundColor: "#112233" } },
+      } as Element,
+    ]);
     useStore.setState({
       selectedElementId: "legacy-1",
       selectedElementProps: {
         style: { backgroundColor: "#112233" },
       },
       currentPageId: null,
-      elements: [
-        {
-          id: "legacy-1",
-          type: "Box",
-          props: {
-            style: { backgroundColor: "#112233" },
-          },
-        },
-      ],
-      elementsMap: new Map([
-        [
-          "legacy-1",
-          {
-            id: "legacy-1",
-            type: "Box",
-            props: {
-              style: { backgroundColor: "#112233" },
-            },
-          },
-        ],
-      ]),
       childrenMap: new Map(),
       dirtyElementIds: new Set(),
       layoutVersion: 0,
-    });
+    } as never);
   });
 
   it("legacy backgroundColor-only 요소도 synthetic fill 로 canonicalize 해서 편집할 수 있다", () => {

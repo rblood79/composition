@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SelectedElement } from "../../../inspector/types";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { resolveAccentColorTokens } from "../../../../utils/theme/tintToSkiaColors";
+import { seedPanelElements } from "../hooks/__tests__/panelFixture";
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { ModifiedStylesSection } from "./ModifiedStylesSection";
@@ -92,10 +93,7 @@ describe("ADR-912 후속 — Modified Styles resolved color", () => {
       parent_id: null,
       props: { accentColor: "red", style: selectedElement.style },
     };
-    useStore.setState({
-      elements: [element],
-      elementsMap: new Map([[element.id, element]]),
-    } as never);
+    seedPanelElements([element as never]);
 
     render(<ModifiedStylesSection selectedElement={selectedElement} />);
 

@@ -11,7 +11,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../../stores";
 import { historyManager } from "../../../stores/history";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import {
+  resetPanelFixture,
+  seedPanelElements,
+} from "../hooks/__tests__/panelFixture";
 import { useSectionCollapse } from "../hooks/useSectionCollapse";
 import {
   beginPagePositionPresentation,
@@ -28,9 +31,8 @@ vi.mock("../../../workspace/canvas/skia/renderCommands", () => ({
 }));
 
 function setTestElements(elements: Element[]): void {
+  seedPanelElements(elements);
   useStore.setState({
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
     selectedElementId: "button-1",
     activeBreakpoint: "desktop",
   } as never);
@@ -40,11 +42,7 @@ describe("TransformSection sizing controls", () => {
   beforeEach(() => {
     getSceneBoundsMock.mockReset();
     vi.stubGlobal("CSS", { escape: (value: string) => value });
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-      documentVersion: 0,
-    });
+    resetPanelFixture();
     useSectionCollapse.setState({
       collapsedSections: new Set(),
       focusMode: false,

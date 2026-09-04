@@ -85,7 +85,7 @@ import {
   useJustifyContentSpacingKeys,
   useFlexWrapKeys,
 } from "./useLayoutAuxiliary";
-import { useStore } from "../../../stores";
+import { seedPanelElements } from "./__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 
 function makeElement(
@@ -102,11 +102,7 @@ function setElement(
   tag = "Div",
   extraProps: Record<string, unknown> = {},
 ) {
-  const element = makeElement(id, tag, { ...extraProps, style });
-  useStore.setState({
-    elements: [element],
-    elementsMap: new Map([[id, element]]),
-  } as never);
+  seedPanelElements([makeElement(id, tag, { ...extraProps, style })]);
 }
 
 describe("useFlexDirectionKeys", () => {

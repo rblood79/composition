@@ -4,15 +4,12 @@ import { renderHook } from "@testing-library/react";
 import { lightColors } from "@composition/specs";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { useAppearanceValues } from "./useAppearanceValues";
-import { useStore } from "../../../stores";
+import { seedPanelElements } from "./__tests__/panelFixture";
 import * as preset from "../utils/specPresetResolver";
 import type { Element } from "../../../../types/core/store.types";
 
 function setTestElements(elements: Element[]): void {
-  useStore.setState({
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
-  } as never);
+  seedPanelElements(elements);
 }
 
 describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/borderColor)", () => {

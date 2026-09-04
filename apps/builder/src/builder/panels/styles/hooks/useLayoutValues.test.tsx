@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { renderHook } from "@testing-library/react";
 import { useLayoutValues } from "./useLayoutValues";
 import { useStore } from "../../../stores";
+import { seedPanelElements } from "./__tests__/panelFixture";
 import type { Element } from "../../../../types/core/store.types";
 import * as preset from "../utils/specPresetResolver";
 
@@ -15,10 +16,7 @@ function makeElement(
 }
 
 function setTestElements(elements: Element[]): void {
-  useStore.setState({
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
-  } as never);
+  seedPanelElements(elements);
 }
 
 describe("useLayoutValues", () => {
