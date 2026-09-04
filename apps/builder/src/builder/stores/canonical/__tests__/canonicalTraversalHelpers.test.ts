@@ -18,6 +18,7 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../canonicalDocumentStore";
 import {
   __resetTraversalCache_TEST_ONLY__,
+  getCanonicalDocumentProjectableNodeCount,
   findByPath,
   getAncestors,
   getChildren,
@@ -424,6 +425,47 @@ describe("getChildrenByParent", () => {
 });
 
 describe("projectable traversal views", () => {
+  it("counts only projectable nodes across structural and page-ref boundaries", () => {
+    const pageRef = makeNode("page-ref", {
+      type: "ref",
+      metadata: { type: "legacy-page", pageId: "page-1" },
+      ref: "layout-1",
+      descendants: {
+        slot: {
+          children: [
+            makeNode("body-1", {
+              type: "body",
+              props: {},
+              children: [makeNode("section-1", { props: {} })],
+            } as never),
+          ],
+        },
+      },
+    } as never);
+    const doc = makeDoc({
+      children: [
+        makeNode("structural", {
+          children: [makeNode("leaf", { props: {} })],
+        }),
+        pageRef,
+        makeNode("slot", {
+          type: "frame",
+          metadata: { type: "legacy-slot-hoisted", slotName: "content" },
+        }),
+      ],
+    });
+
+    expect(getCanonicalDocumentProjectableNodeCount(doc)).toBe(4);
+    expect(getCanonicalDocumentProjectableNodeCount(doc)).toBe(4);
+    expect(
+      getCanonicalDocumentProjectableNodeCount(
+        makeDoc({
+          children: [...doc.children, makeNode("extra", { props: {} })],
+        }),
+      ),
+    ).toBe(5);
+  });
+
   it("structural wrapper를 제외하고 legacy view 순서와 parent lifting을 보존", () => {
     const leaf = makeNode("leaf", { props: { label: "Leaf" } });
     const structuralWrapper = makeNode("structural-wrapper", {

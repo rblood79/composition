@@ -72,6 +72,7 @@ export type CanonicalProjectableNodeLookup = CanonicalProjectionScope & {
 };
 
 let cache: TraversalCache | null = null;
+const projectableNodeCountCache = new WeakMap<CompositionDocument, number>();
 const EMPTY_PROJECTABLE_NODES: readonly CanonicalNode[] = [];
 const EMPTY_PROJECTABLE_NODE_LOOKUPS: readonly CanonicalProjectableNodeLookup[] =
   [];
@@ -186,6 +187,30 @@ export function getCanonicalPageRefDescendantChildren(
   return Object.values((node as RefNode).descendants ?? {})
     .map(readDescendantChildren)
     .filter((children) => children.length > 0);
+}
+
+/**
+ * canonical document에서 legacy Element view에 나타나는 node 수를 센다.
+ * Element 객체를 만들지 않으며 clone-on-write document 참조별로 결과를 캐시한다.
+ */
+export function getCanonicalDocumentProjectableNodeCount(
+  document: CompositionDocument,
+): number {
+  const cached = projectableNodeCountCache.get(document);
+  if (cached !== undefined) return cached;
+
+  let count = 0;
+  function visit(node: CanonicalNode): void {
+    if (isCanonicalNodeProjectableToElement(node)) count += 1;
+    for (const child of node.children ?? []) visit(child);
+    for (const children of getCanonicalPageRefDescendantChildren(node)) {
+      for (const child of children) visit(child);
+    }
+  }
+
+  for (const child of document.children) visit(child);
+  projectableNodeCountCache.set(document, count);
+  return count;
 }
 
 function ensureCache(): TraversalCache | null {

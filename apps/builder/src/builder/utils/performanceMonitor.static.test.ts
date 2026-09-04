@@ -9,7 +9,8 @@ describe("performanceMonitor canonical count contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).toContain("getCanonicalDocumentProjectableNodeCount");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
     expect(source).toContain("getActiveCanonicalElementCount()");
     expect(source).toContain("getCanonicalFirstElementCount(state)");
     expect(source).not.toContain("canonicalElementSnapshot");

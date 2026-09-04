@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 5,000-node 합성 규모 A/B에서 같은 문서의 warm selection p50/p95는 0.0300/0.0392ms → 0.00121/0.00358ms, canonical mutation 뒤 이미 갱신된 traversal cache의 leaf read는 0.7769/2.1724ms → 0.00117/0.00729ms였습니다. 최초 cold read도 0.8803/1.2420ms → 0.7239/1.1751ms로 악화되지 않았고, cache scope 확장 뒤 기존 `updateElement` action은 history 23건 포함 p50/p95 1.33/1.89ms로 직전 기준 범위에 머물렀습니다. 이 수치는 합성 문서의 규모 비용 비교이며 실제 문서 분포의 개선율로 해석하지 않습니다.
 - Properties/Styles의 aggregate elements/children 조회를 `getCanonicalDocumentElementsView`와 hook 인스턴스별 Map 재생성에서 ADR-127 occurrence cache 기반 문서별 공유 index로 전환했습니다. ref descendants의 parent·page/frame scope, DFS 순서, duplicate ID의 aggregate last-match 의미를 유지하면서 PanelNode adapter 경계 안에서 배열·ID Map·children Map을 한 번에 만듭니다.
 - 6,000-node 합성 문서에서 elements Map 8개·children Map 3개 consumer를 GC 전처리 후 old/new 교차 실행한 결과, canonical revision 재구축 p50/p95가 4.92/7.17ms → 3.46/4.84ms였습니다. 실제 문서 분포가 아닌 aggregate 중복 생성 비용의 합성 비교입니다.
+- Performance Monitor의 element count가 숫자 하나를 얻기 위해 매 수집마다 canonical 문서를 legacy `Element[]`로 두 번 투영하던 경로를 projectable canonical node 직접 count로 전환했습니다. clone-on-write document 참조별 WeakMap cache를 공유해 같은 collect 안의 store-memory 추정 재조회도 O(1)입니다.
+- 5,000-node 합성 문서에서 실제 collect와 같은 count 2회 교차 측정 p50/p95가 2.095/3.593ms → 0.033/0.332ms였습니다. 실제 문서 분포나 전체 collect 시간의 개선율로 해석하지 않습니다.
 
 ### Tests
 
@@ -59,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 단일 props 편집에는 full `Element[]` projection·legacy merge 재도입 static gate와 structural parent lifting·page ref descendants·duplicate id·history roundtrip 회귀를 추가했습니다. 5,000-node 격리 action 20회 측정은 p50 10.08ms → 1.27–1.51ms였고, foreground synthetic Builder 1,000-node post-change 검증은 p50 0.3ms/p95 1.1ms였습니다. live 검증에서 canonical·derived selection·Undo/Redo가 일치했고 runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
 - batch props 편집에는 full projection·legacy merge 재도입 static gate와 inherited dirty descendants, page ref descendants sibling order, duplicate id all-occurrence 호환, 동기 history/derived cache 회귀를 추가했습니다. 5,000-node 중 100개를 바꾸는 격리 action 20회 측정은 p50 17.11ms → 1.58–1.63ms였고, foreground browser post-change 검증은 p50 1.5ms/p95 2.0ms였습니다. canonical·derived selection·Undo/Redo가 일치했고 console/runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
 - 전체 필드 편집에는 canonical target 재조회, full projection 재도입 방지, customId sibling order, duplicate id all-occurrence, structural rebuild, responsive history/layout 회귀를 추가했습니다. 5,000-node 실제 store action 20회 격리 측정은 변경 전 p50/p95 20.15/29.35ms에서 변경 후 3회 p50 1.11–1.44ms, p95 3.89–6.24ms였고, customId history 활성 최종 재측정도 p50/p95 1.17/6.52ms였습니다. foreground Builder에서는 ID 편집 1회가 history 1개만 만들고 Undo/Redo의 canonical ID가 왕복하며 console error 0임을 확인했습니다. selection 보존은 격리 store roundtrip으로 고정했습니다.
+- Performance Monitor count에는 structural wrapper 제외, page ref descendants 포함, hoisted slot 포함, 새 document 참조 재계산과 legacy projection 재도입 방지 static gate를 추가했습니다.
 
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
 

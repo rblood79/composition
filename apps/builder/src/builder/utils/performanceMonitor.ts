@@ -14,7 +14,7 @@
 
 import { getStoreState } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { getCanonicalDocumentProjectableNodeCount } from "../stores/canonical/canonicalTraversalHelpers";
 import { historyManager } from "../stores/history";
 import { pageCache } from "./LRUPageCache";
 
@@ -61,11 +61,7 @@ function getActiveCanonicalElementCount(): number | null {
   const doc = canonical.documents.get(projectId);
   if (!doc) return null;
 
-  let count = 0;
-  visitCanonicalDocumentElements(doc, () => {
-    count += 1;
-  });
-  return count;
+  return getCanonicalDocumentProjectableNodeCount(doc);
 }
 
 function getCanonicalFirstElementCount(state: StoreSnapshot): number {

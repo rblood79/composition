@@ -2,13 +2,15 @@
 
 ## Status
 
-Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 기록 + `/execute-adr 203` 착수로 승격)
+Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 기록 + `/execute-adr 203` 착수로 승격; 2026-09-04 상위 Builder 성능 계획 Track B 연결 + RAC 실 DOM selector/LayerTree 범위 보정, Status 불변)
 
 ## Context
 
 **Domain**: 빌더 chrome UI (Navigator · Properties 패널). 문서 컴포넌트의 D2/D3 에는 손대지 않는다. Navigator 트리는 RAC `Tree` 위에 있으므로 **D1 원칙 (RAC 컴포넌트의 DOM/ARIA 재작성 금지, `.claude/rules/ssot-hierarchy.md` §6)** 이 패널에도 그대로 적용된다.
 
 **관계**: ADR-155 (Implemented 2026-07-17) 는 숨은 패널의 선택 fan-out 을 Activity 로 차단했고, 열린 패널의 비용은 남겼다. ADR-150 R2 는 캔버스 collection window 와 LayerTree 패널 정책을 분리하고 패널 쪽을 "별도 정책 결정 후 검증" 으로 남겼다. 본 ADR 이 그 패널 정책이며 두 ADR 과 의존 방향은 없다 (fork 아님 — breakdown §1).
+
+**상위 Builder 성능 계획과의 관계**: `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md` §4-1의 Track B다. 프로젝트 생성·편집기 진입 때의 Skia cold first-frame은 같은 문서의 Track A로 분리한다. Track A는 font/paragraph/GPU surface와 matching surface flush까지의 부팅 경로, 본 ADR은 ready 이후 Navigator DOM 선택 fan-out 경로이므로 원인·소비 표면·Gate를 합치지 않는다. 두 트랙은 공통 하니스와 측정 조건만 공유하며 성능 측정은 자원 경합을 피하려고 직렬 실행한다.
 
 **문제** (2026-09 기준선 `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md` §3): 600 요소 문서에서 선택 1회 ≈ 240 ms (3.9 fps, 할당 143 MB/s, longtask 13/3116 ms). 60 요소에서도 gap p95 43.5 ms · 드롭 16.8%. 선택은 캔버스 클릭마다 일어나는 가장 잦은 상호작용이라 체감이 가장 크다.
 
@@ -21,23 +23,23 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 **Hard Constraints**:
 
 1. 600 요소 · Navigator + Properties 열림 · headless 60Hz 에서 select gap p50 ≤ 33 ms (2 프레임) · longtask 0. 60 요소에서 드롭 0%.
-2. RAC Tree 의 DOM/ARIA/키보드/DnD 계약 유지 — `role=tree/treeitem`, `aria-selected/expanded/level/posinset/setsize`, ↑↓ Home/End typeahead, shift/meta 다중 선택, `dragAndDropHooks` (D1).
+2. RAC Tree 의 DOM/ARIA/키보드/DnD 계약 유지 — RAC 1.20 실 DOM인 `role=treegrid` + 행 `role=row`, `aria-selected/expanded/level/posinset/setsize`, ↑↓ Home/End typeahead, shift/meta 다중 선택, `dragAndDropHooks` (D1).
 3. 기존 사용자 가시 동작 무손실 — 캔버스 클릭 시 자동 펼침 + 선택 행 가시화, 우클릭 메뉴, 삭제, DnD 재배치, 패널 숨김→복원 스크롤 보존 (ADR-155 G4).
 4. 신규 런타임 의존 0 — `Virtualizer` / `ListLayout` 은 RAC 1.20 이 re-export (breakdown C6). 초기 번들 +0.
 5. 5k 문서에서 select p50 ≤ 50 ms (persistent 프로젝트 재측정 후 ratchet).
 
-**Soft Constraints**: headless 수치는 비교치 (절대값은 `--headed`) · dev React 오버헤드 15~20% 는 prod 에서 빠진다 · FramesTab 이 같은 TreeBase/VirtualizedTree 를 쓰지만 scope 밖 · Properties 축은 600 에서 문제가 아니므로 조건부.
+**Soft Constraints**: headless 수치는 비교치 (절대값은 `--headed`) · dev React 오버헤드 15~20% 는 prod 에서 빠진다 · PageTree와 FramesTab이 같은 `TreeBase`를 쓰지만 scope 밖이므로 공용 `TreeBase` 자체에는 가상화 동작을 추가하지 않는다 · Properties 축은 600 에서 문제가 아니므로 조건부.
 
 ## Alternatives Considered
 
 ### 대안 A: RAC `Virtualizer` + `ListLayout` 로 RAC Tree 창 렌더 (D1 유지)
 
-- 설명: `TreeBase` 의 `<Tree>` 를 `<Virtualizer layout={ListLayout} layoutOptions={{ rowHeight }}>` 로 감싼다. 가시 행 + overscan 만 mount 되므로 선택 변경 시 재렌더 단위가 O(가시 행) 이 된다. 행 높이는 CSS 토큰 하나를 SSOT 로 두고 TS 가 읽는다.
+- 설명: `LayerTree`의 RAC 경로에서 `<TreeBase>`를 `<Virtualizer layout={ListLayout} layoutOptions={{ rowHeight }}>`로 감싼다. 가시 행 + overscan 만 mount 되므로 선택 변경 시 재렌더 단위가 O(가시 행) 이 된다. 행 높이는 CSS 토큰 하나를 SSOT 로 두고 TS 가 읽는다. 공용 `TreeBase`와 그 다른 소비자(PageTree · FrameList · FrameElementTree)는 변경하지 않는다.
 - 근거: RAC 공식 가상화 경로 — Virtualizer 문서는 ListBox/GridList/Table 예시를 들고, 1.20 `Tree.mjs:215` 가 같은 `CollectionRendererContext` (`isVirtualized`/`layoutDelegate`/`dropTargetDelegate`) 를 소비한다 (코드 확인). Adobe Spectrum 2 TreeView 가 이 경로 위에 있다. 자체 트리 없이 upstream 이 접근성·키보드·DnD 를 계속 소유한다.
 - 위험:
   - 기술: **M** — Tree + Virtualizer + DnD 조합은 문서 예시가 없어 스파이크로 확인해야 한다 (drop indicator 위치, 화면 밖 행 포커스).
   - 성능: L — 창 렌더는 문서 크기와 무관. 고정 행 높이라 ResizeObserver 불필요.
-  - 유지보수: L — TreeBase 1곳 + CSS. tanstack 자체 트리를 LayerTree 에서 제거할 수 있다.
+  - 유지보수: L — LayerTree 결선 + CSS. 공용 TreeBase를 건드리지 않고 tanstack 자체 트리를 LayerTree 에서 제거할 수 있다.
   - 마이그레이션: L — 래퍼 제거로 즉시 롤백.
 
 ### 대안 B: 기존 tanstack `VirtualizedTree` 를 총 행 수 기준으로 켠다
@@ -101,6 +103,8 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 
 **부수 정정**: 가동된 적 없는 `>= 300` 분기는 A 채택과 함께 LayerTree 에서 제거한다. FramesTab 의 같은 분기는 scope 밖 (후속 fix 단위).
 
+**가상화 범위 경계**: `Virtualizer`는 `LayerTree`에서만 opt-in 한다. `TreeBase.tsx`를 무조건 감싸면 같은 공용 컴포넌트를 쓰는 PageTree · FrameList · FrameElementTree까지 계획 밖에서 동작이 바뀌므로 금지한다. G1에서 공용 소비자 3종의 비가상 경로가 그대로임을 정적·browser 대조로 고정한다.
+
 > 구현 상세: [203-selection-fanout-layer-tree-virtualized-rows-breakdown.md](design/203-selection-fanout-layer-tree-virtualized-rows-breakdown.md) — §2 Phase 0 inventory (A/B 표 · 프로파일 · 코드 사실 C1~C9 · 구독자 32 파일) / §3 Phase 1 스파이크 / §4 parity·정리 / §5 재측정·ratchet / §6 Phase 4 조건부 / §8 측정 조건.
 
 ## Risks
@@ -114,20 +118,21 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 | R5  | 패널 레이아웃이 트리에 높이를 주지 않아 Virtualizer 가 0 행을 그림 (`LayersSection.tsx:288` Section 래퍼)                                                                                                                                                          |   MED    | Phase 1 첫 렌더에서 확인, `height: 100%; min-height: 0` 명시                                                                                                              |
 | R6  | 측정 leakage — 하니스 select 는 store 경로 (hit-test 없음), headless 는 비교치                                                                                                                                                                                     |   LOW    | G4 에 실 포인터 클릭 1회 + `--headed` 1회                                                                                                                                 |
 | R7  | 기준선 문서 stale — 전/후 표 미갱신                                                                                                                                                                                                                                |   LOW    | G5 종결 조건                                                                                                                                                              |
+| R8  | 공용 `TreeBase`에 가상화를 무조건 결선하면 scope 밖 PageTree · FrameList · FrameElementTree의 DOM/포커스/DnD/스크롤 계약까지 함께 바뀜                                                                                                                             |   MED    | `LayerTree`에서만 `Virtualizer`를 감싸고 G1에서 공용 `TreeBase` 자체의 `Virtualizer` 참조 0건 + 비대상 소비자 3종의 기존 비가상 렌더를 고정                               |
 
 ## Gates
 
 측정 조건 (모든 Gate 공통): 격리 프로젝트 · 시드 600 (body 아래 Text/frame) · Navigator + Properties 열림 · headless 60Hz · select 부류 100 ms 간격 3 s · 하니스 `pnpm perf:baseline -- --lane frame --classes idle,select`. 대조군 = 2026-09-02 A/B (both 234.8 ms). 불리 케이스 = 5k persistent 문서 + 실 포인터 클릭. live 확인은 DevTools CPU throttle 상태를 함께 기록한다 (사용자 환경은 4x slowdown — 하니스 수치와 직접 비교 금지, breakdown §8).
 
-| Gate | 시점              | 통과 조건                                                                                                                                                                                  | 실패 시 대안                                                                  |
-| ---- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · `[role=treeitem]` 수 (전면 탭에서, 잔여) + 현재 동작 체크리스트 기록. **2026-09-03 통과** — breakdown §2-5: 실 DOM 은 `role="treegrid"` + 행 `role="row"` (treeitem 아님), 초기 행 1 → body 펼침 후 12 (Components 페이지), `.layer-tree--virtualized` 없음, 체크리스트 11 항목 기록 (shift 구간 선택이 2 행 · 캔버스 선택 행 자동 스크롤 없음 = 현재 값) | 기록 없이 착수 금지                                                           |
-| G1   | Phase 1 종료      | browser 테스트 (600 노드 · 320 px) treeitem ≤ 가시 행 + overscan×2 · 하니스 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0 · 60 요소 드롭 0 · DnD 3 케이스 동작                           | 대안 B 임시 fallback + D1 debt HIGH 등재 + 후속 ADR 없이 본 ADR 안에서 재시도 |
-| G2   | Phase 2           | 가상화 전/후 같은 행 ARIA 속성 diff 0 · 키보드 ↑↓ Home/End typeahead · shift/meta 다중 선택 · 화면 밖 포커스 자동 스크롤 (Chrome MCP live)                                                 | 해당 축 RAC 설정 수정 후 재확인 — D1 계약 미달이면 승격 금지                  |
-| G3   | Phase 2           | 패널 숨김→복원 scrollTop 보존 · 캔버스 클릭 시 자동 펼침 + 선택 행 가시화 = §2-5 기준선                                                                                                    | scroll memory 대상 지정 / 선택 행 `scrollIntoView` 보강                       |
-| G4   | Phase 3           | 5k persistent 문서 select p50 ≤ 50 ms · `--headed` 1회 · 실 포인터 클릭 1회 · 하니스에 treeitem 수 기록 추가                                                                               | ratchet 값을 실측으로 재설정하고 사유 기록                                    |
-| G5   | Implemented 전    | CHANGELOG · 기준선 문서 §3-2/§4 전/후 표 · `### Live Exercise` 절 · README                                                                                                                 | 승격 보류                                                                     |
-| G6   | Phase 4 착수 판정 | Styles + Properties + Navigator 열림 5k 에서 select gap p95 > 25 ms 또는 할당 > 60 MB/s → Phase 4 착수. 미달 → "측정상 불필요" 로 종결 기록                                                | (판정 게이트 — 실패 개념 없음)                                                |
+| Gate | 시점              | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                              | 실패 시 대안                                                                  |
+| ---- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · 실제 행 role/수 + 현재 동작 체크리스트 기록. **2026-09-03 통과** — breakdown §2-5: 실 DOM 은 `role="treegrid"` + 행 `role="row"`, 초기 행 1 → body 펼침 후 12 (Components 페이지), `.layer-tree--virtualized` 없음, 체크리스트 11 항목 기록 (shift 구간 선택이 2 행 · 캔버스 선택 행 자동 스크롤 없음 = 현재 값) | 기록 없이 착수 금지                                                           |
+| G1   | Phase 1 종료      | browser 테스트 (600 노드 · 320 px) `[role="row"]` ≤ 가시 행 + overscan×2 · 하니스 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0 · 60 요소 드롭 0 · DnD 3 케이스 동작 · `TreeBase`의 `Virtualizer` 참조 0건 · PageTree/FrameList/FrameElementTree 기존 비가상 경로 유지                                                                                                                                                               | 대안 B 임시 fallback + D1 debt HIGH 등재 + 후속 ADR 없이 본 ADR 안에서 재시도 |
+| G2   | Phase 2           | 가상화 전/후 같은 행 ARIA 속성 diff 0 · 키보드 ↑↓ Home/End typeahead · shift/meta 다중 선택 · 화면 밖 포커스 자동 스크롤 (Chrome MCP live)                                                                                                                                                                                                                                                                                             | 해당 축 RAC 설정 수정 후 재확인 — D1 계약 미달이면 승격 금지                  |
+| G3   | Phase 2           | 패널 숨김→복원 scrollTop 보존 · 캔버스 클릭 시 자동 펼침 + 선택 행 가시화 = §2-5 기준선                                                                                                                                                                                                                                                                                                                                                | scroll memory 대상 지정 / 선택 행 `scrollIntoView` 보강                       |
+| G4   | Phase 3           | 5k persistent 문서 select p50 ≤ 50 ms · `--headed` 1회 · 실 포인터 클릭 1회 · 하니스에 `[role="row"]` 수 기록 추가                                                                                                                                                                                                                                                                                                                     | ratchet 값을 실측으로 재설정하고 사유 기록                                    |
+| G5   | Implemented 전    | CHANGELOG · 기준선 문서 §3-2/§4 전/후 표 · `### Live Exercise` 절 · README                                                                                                                                                                                                                                                                                                                                                             | 승격 보류                                                                     |
+| G6   | Phase 4 착수 판정 | Styles + Properties + Navigator 열림 5k 에서 select gap p95 > 25 ms 또는 할당 > 60 MB/s → Phase 4 착수. 미달 → "측정상 불필요" 로 종결 기록                                                                                                                                                                                                                                                                                            | (판정 게이트 — 실패 개념 없음)                                                |
 
 ### Live Exercise
 
@@ -137,9 +142,9 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 
 ### Positive
 
-- 선택 1회 비용이 문서 크기와 무관해진다 — `TreeBase.tsx` 1곳 변경으로 LayerTree 를 쓰는 모든 페이지에 적용. 600 요소 240 ms → 2 프레임 이내 (G1).
+- 선택 1회 비용이 문서 크기와 무관해진다 — `LayerTree`의 RAC 경로만 창 렌더해 모든 Builder 페이지의 Layers 섹션에 적용하고, 공용 `TreeBase`의 다른 소비자는 유지한다. 600 요소 240 ms → 2 프레임 이내 (G1).
 - RAC 가 접근성·키보드·DnD 를 계속 소유한다 (D1). `LayerTree.tsx` 의 자체 가상 트리 분기가 사라져 경로가 하나가 된다.
-- 하니스 select 결과에 treeitem 수가 남아 창 렌더 회귀를 잡는다.
+- 하니스 select 결과에 `[role="row"]` 수가 남아 창 렌더 회귀를 잡는다.
 
 ### Negative
 

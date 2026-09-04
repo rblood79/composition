@@ -6,12 +6,13 @@
 
 - **ADR-155** (Implemented 2026-07-17) 는 **숨은** 패널의 선택 fan-out 을 `<Activity mode="hidden">` 으로 차단했다. 본 ADR 은 **열린** Navigator 패널의 잔여 비용을 다룬다. 155 의 scope 밖 후속 주제이며 155 의 전제 (패널 gating) 는 그대로 유효하다.
 - **ADR-150 R2** 는 캔버스 collection window 와 LayerTree 패널 정책을 분리하고 "패널은 별도 정책 결정 후 검증" 으로 남겼다. 본 ADR 이 그 패널 정책이다. 의존 방향 없음 — 캔버스 projection window (Skia draw/hit) 와 패널 DOM 창 렌더는 서로 다른 표면이다.
-- tanstack 기반 `VirtualizedTree` 는 FramesTab (`FrameElementTree.tsx:176`) 도 쓴다 — scope 밖. LayerTree 에서만 제거하고 FramesTab 은 후속 fix 단위로 남긴다.
+- **Builder 성능 상위 계획**에서 본 ADR은 ready 이후 선택 상호작용을 다루는 Track B다. 프로젝트 생성·편집기 진입 시 Skia cold first-frame Track A와 원인·Gate·소비 표면을 합치지 않고, 하니스와 측정 조건만 공유한다 (`BUILDER_PERF_BASELINE_2026-09.md` §4-1).
+- tanstack 기반 `VirtualizedTree` 는 FramesTab (`FrameElementTree.tsx:176`) 도 쓰고, 공용 `TreeBase`는 PageTree · FrameList · FrameElementTree도 소비한다 — 모두 scope 밖. `Virtualizer`는 LayerTree에서만 감싸고, tanstack 경로도 LayerTree 에서만 제거한다.
 
 **4 질문 lock-in** (`adr-writing.md` §"ADR Fork / 분리 결정 시 전제·관점 점검" — 신규 주제라 fork 는 아니지만 ADR-150·155 와의 관계 재론을 막기 위해 같은 형식으로 고정; /review 2026-09-03 LOW 반영):
 
 1. **base / 응용 분류**: 본 ADR 은 응용 (Navigator 패널 DOM 창 렌더) 이고 base 는 RAC `Tree` + `Virtualizer` (upstream). ADR-150 A2 (캔버스 collection window) · ADR-155 (패널 gating) 어느 쪽도 본 ADR 의 base 가 아니다 — prerequisite 없음.
-2. **schema 직교성**: 문서 schema · canonical 노드 · catalog 무접촉. 바뀌는 것은 패널 렌더 경로 (`TreeBase.tsx`) 와 CSS 행 높이 토큰뿐 — 150/155 의 schema 와 직교.
+2. **schema 직교성**: 문서 schema · canonical 노드 · catalog 무접촉. 바뀌는 것은 LayerTree의 Virtualizer 결선과 CSS 행 높이 토큰뿐이며 공용 `TreeBase.tsx`는 유지 — 150/155 의 schema 와 직교.
 3. **선행 ADR 전제 reverse 검증**: 150 R2 "window 는 캔버스 전용, 패널은 별도 정책" 은 본 ADR 후에도 그대로 성립 (패널이 캔버스 window 를 소비하지 않는다 — `useLayerTreeData.ts` 는 `LISTBOX_ROW_PROJECTION_WINDOW_LIMIT` 를 projected 행 cap 으로만 쓴다). 155 의 Activity gating 은 열린 패널에 무관하므로 방향 반전 없음. 사용자 confirm: `/create-adr` 직접 입력 (2026-09-02) + 추천 순서 답변 "adr생성 차례인가" 확인.
 4. **codex 3차 review 까지 미루지 않기**: 전제 (Navigator 단독 비용 · 가동된 적 없는 분기) 는 Phase 0 A/B 와 코드 사실 C1~~C9 로 착수 전에 확정했고, /review round 1 (2026-09-03) 이 C1~~C7 인용을 전수 대조해 정확 판정. 1차 진입 전 전제 검증 완료.
 
@@ -69,7 +70,7 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ### 2-5. 착수 시 보강 (G0 — 코드 변경 전 1회)
 
-- [x] **실 문서 root 수 — 확인 (2026-09-03, Chrome MCP, 사용자 프로젝트 "AAAA")**: 26 페이지 · 요소 98 · 현재 페이지 7 · `elements.filter(e => !e.parent_id)` = **1 (body)** → `treeNodes.length` 는 요소 수와 무관하게 1 이라 C1 이 사람이 만든 문서에서도 성립 (측정 Q1 충족). 잔여: `[role="treeitem"]` 수 · `.layer-tree--virtualized` 유무는 boot 가 `visibilityState: hidden` 탭에서 "Preparing the canvas 100%" 에 머물러 (ADR-923 readiness 게이트는 실제 Skia flush 전 UI 를 숨긴다 — 숨은 탭은 RAF 정지) 못 읽었다. Phase 1 착수 시 전면 탭 (visible) 에서 1회 기록.
+- [x] **실 문서 root 수 — 확인 (2026-09-03, Chrome MCP, 사용자 프로젝트 "AAAA")**: 26 페이지 · 요소 98 · 현재 페이지 7 · `elements.filter(e => !e.parent_id)` = **1 (body)** → `treeNodes.length` 는 요소 수와 무관하게 1 이라 C1 이 사람이 만든 문서에서도 성립 (측정 Q1 충족). 당시 hidden 탭에서는 행 role/수 · `.layer-tree--virtualized` 유무를 읽지 못했으나, 바로 아래 전면 탭 기록에서 RAC 1.20 실 행이 `[role="row"]`임을 확정했다.
 - [x] **현재 동작 체크리스트 — 기록 (2026-09-03, Chrome MCP 전면 탭 `visibilityState: visible`, 창 2699×1258 CSS px · DPR 1 · DevTools 미열림 = CPU throttle 없음, main 928058f2c)**. 프로젝트 "123" (대시보드 유일 — 이전 기록의 "AAAA" 는 목록에 없음), Pages 트리 25 행, **Components** 페이지 (body + 11 컨테이너 = 펼침 후 12 행, Form 펼침 시 15 행; Home 은 7 행). 실 DOM: RAC 1.20 `Tree` 는 `role="treegrid"` + 행 `role="row"` (`aria-label` / `aria-level` / `aria-posinset` / `aria-setsize` / `aria-selected` / `aria-expanded`, `data-key`, `data-level`) + 셀 `role="gridcell"` — ADR 의 `[role=treeitem]` 표기는 실 DOM 과 다르므로 이후 계측은 `[role="row"]` 로 센다. 초기 (body 접힘) 행 1, `.layer-tree--virtualized` 없음 (C1·C2 live 확정). 행 높이 28px (`.elementItem` min-height = `--control-size` = calc(1.5rem + 0.25rem)), 트리 `overflow: visible`, 스크롤 컨테이너 = `.section-content` (12 행에서 clientHeight 191 / scrollHeight 352).
   - 키보드: ↓↓ ListBoxItem → ListBox ✓ · ↑ ✓ · End → Card ✓ (section 스크롤 동반) · Home → body ✓ · typeahead `T` → Toolbar ✓.
   - 다중 선택 (실 포인터 클릭): ListBox 클릭 → shift+클릭 MenuItem → 선택 **[ListBox, MenuItem] 2 행** (구간 4 행이 아님 — 현재 값, 본 ADR 은 이 값을 대조군으로 쓴다) · meta+클릭 Form → 3 (토글 추가) · meta 재클릭 → 2 · 일반 클릭 → 1.
@@ -80,20 +81,22 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ## §3 Phase 1 — 스파이크: RAC `Virtualizer` + `ListLayout` (G1)
 
-목표: RAC Tree 를 그대로 두고 창 렌더만 켠다. 코드 변경은 TreeBase 1곳 + CSS + 행 높이 SSOT.
+목표: RAC Tree 를 그대로 두고 LayerTree에서만 창 렌더를 켠다. 공용 `TreeBase`는 변경하지 않고 LayerTree 결선 + CSS + 행 높이 SSOT로 범위를 닫는다.
 
-| 파일                                      | 변경                                                                                                                                                                                                                                  |
-| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `tree/TreeBase/TreeBase.tsx`              | `<Tree>` 를 `<Virtualizer layout={ListLayout} layoutOptions={{ rowHeight }}>` 로 감싼다. `rowHeight` 는 아래 SSOT 에서 1회 읽음. `dragAndDropHooks`/`renderDropIndicator` 는 그대로 (RAC 가 `dropTargetDelegate` 를 layout 에서 공급) |
-| `panels/navigator/NavigatorPanel.css`     | `--layer-tree-row-height: 28px` 를 선언하고 `.elementItem` 은 `height: var(--layer-tree-row-height)` (min-height 아님 — ListLayout 고정 행 높이와 1:1). 트리 컨테이너 `height: 100%; min-height: 0`                                   |
-| `tree/TreeBase/rowHeight.ts` (신규, 소형) | `getComputedStyle(root).getPropertyValue('--layer-tree-row-height')` → number (fallback 28). SSR/jsdom 에서는 fallback                                                                                                                |
-| `panels/navigator/LayersSection.tsx`      | 변경 없음 (구독 유지). `Section` 래퍼가 트리에 높이를 주는지 확인 — 안 주면 Virtualizer 가 0 행을 그린다 (R7)                                                                                                                         |
-| `tree/LayerTree/LayerTree.tsx`            | Phase 1 에서는 `>= 300` 분기 유지 (스파이크는 TreeBase 경로만). Phase 2 에서 제거                                                                                                                                                     |
+| 파일                                       | 변경                                                                                                                                                                                                                                     |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tree/LayerTree/LayerTree.tsx`             | RAC `<TreeBase>` 경로만 `<Virtualizer layout={ListLayout} layoutOptions={{ rowHeight }}>`로 감싼다. `dragAndDropHooks`/`renderDropIndicator`는 TreeBase에 그대로 두고, Phase 1에서는 `>= 300` tanstack 분기를 유지한 뒤 Phase 2에서 제거 |
+| `tree/LayerTree/rowHeight.ts` (신규, 소형) | `getComputedStyle(root).getPropertyValue('--layer-tree-row-height')` → number (fallback 28). SSR/jsdom 에서는 fallback                                                                                                                   |
+| `panels/navigator/NavigatorPanel.css`      | `--layer-tree-row-height: 28px` 를 선언하고 `.elementItem` 은 `height: var(--layer-tree-row-height)` (min-height 아님 — ListLayout 고정 행 높이와 1:1). 트리 컨테이너 `height: 100%; min-height: 0`                                      |
+| `panels/navigator/LayersSection.tsx`       | 변경 없음 (구독 유지). `Section` 래퍼가 트리에 높이를 주는지 확인 — 안 주면 Virtualizer 가 0 행을 그린다 (R5)                                                                                                                            |
+| `tree/TreeBase/TreeBase.tsx`               | **변경 없음**. 공용 소비자 PageTree · FrameList · FrameElementTree까지 가상화가 확산되지 않도록 `Virtualizer`를 import/결선하지 않는다                                                                                                   |
+| `tree/{PageTree,TreeBase}/`, `FramesTab/*` | 동작 변경 없음. G1에서 비대상 소비자 3종(PageTree · FrameList · FrameElementTree)의 기존 비가상 경로와 D1 기본 계약을 정적·browser 대조로 고정                                                                                           |
 
 RED 먼저:
 
-- [ ] browser vitest (`vitest.browser.config.ts`) `tree/TreeBase/TreeBase.virtualized.browser.test.tsx`: 600 노드 (body 1 root + 599 자식, 펼침) 를 320 px 높이 컨테이너에 렌더 → `[role="treeitem"]` 수 ≤ ⌈320/28⌉ + overscan×2 (현재 코드로는 600 → RED). 같은 테스트에서 `selectedKeys` 를 10회 바꿔도 행 콘텐츠 렌더 횟수 (renderContent spy) ≤ 가시 행 × 10.
+- [ ] browser vitest (`vitest.browser.config.ts`) `tree/LayerTree/LayerTree.virtualized.browser.test.tsx`: 600 노드 (body 1 root + 599 자식, 펼침) 를 320 px 높이 컨테이너에 렌더 → `[role="row"]` 수 ≤ ⌈320/28⌉ + overscan×2 (현재 코드로는 600 → RED). 같은 테스트에서 `selectedKeys` 를 10회 바꿔도 행 콘텐츠 렌더 횟수 (renderContent spy) ≤ 가시 행 × 10.
 - [ ] 같은 파일: 계산된 `.elementItem` 높이 === `rowHeight` (CSS SSOT 와 ListLayout 상수 일치 가드).
+- [ ] 정적 + browser 음성 대조: `TreeBase.tsx`의 `Virtualizer` 참조 0건, PageTree · FrameList · FrameElementTree는 wrapper가 없고 기존 행 DOM/키보드/DnD 경로가 유지된다.
 
 G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-count 600 --classes idle,select --duration-ms 3000` (both 패널, 기본값) 에서 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0, 그리고 `--seed-count 60` 에서 드롭 0. 결과 JSON 경로를 ADR Gates 에 기록.
 
@@ -111,7 +114,7 @@ G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-co
 
 - [ ] 5k 시드 1회를 **persistent** 프로젝트에 넣고 (`--project-url`) select p50 ≤ 50 ms. 시드 4분+ 이므로 격리 컨텍스트 재시드 금지 (메모리 `project-frame-drop-map-5k-baseline`).
 - [ ] `--headed` 1회 (절대값) + 실 포인터 클릭 1회 (hit-test 경로 — 하니스 select 는 store 경로라 빠져 있다).
-- [ ] 하니스: frame lane select 결과에 `[role="treeitem"]` 수를 기록 (`RECORDER_SCRIPT` 종료 시 1회 `document.querySelectorAll` — 창 렌더 회귀 가드).
+- [ ] 하니스: frame lane select 결과에 `[role="row"]` 수를 기록 (`RECORDER_SCRIPT` 종료 시 1회 `document.querySelectorAll` — 창 렌더 회귀 가드). `[role="treeitem"]`은 RAC 1.20 실 DOM에 없으므로 사용 금지.
 - [ ] `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md` §3-2 select 행과 §4 순위 갱신 (전/후 표).
 
 ## §6 Phase 4 — Properties 필드 단위 구독 (조건부, G6)
