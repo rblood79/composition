@@ -34,6 +34,54 @@
     flex-direction: column;
     flex: 1;
     overflow-y: auto;
+
+    /* 스크롤 힌트 — `.section-content` 의 하단 페이드가 장식 마감인 것과 달리
+       이쪽은 "아래에 더 있다" 를 알리는 기능이다. 그래서 무조건 그리지 않고
+       스크롤 위치에 따라 켜고 끈다.
+
+       스크롤러는 자기 자신의 scroll-state 를 컨테이너 질의로 볼 수 없다 (질의는
+       조상만 본다). 그 제약을 피하려고 sticky 자식 상자를 두는 게 종전 어법인데,
+       scroll-progress timeline 은 스크롤러 자신에게 직접 걸리므로 추가 상자 없이
+       자기 mask 를 움직일 수 있다. 상자도 pseudo-element 도 쓰지 않는 이유다.
+
+       스크롤 불가 상태에서는 timeline 이 비활성이라 애니메이션이 아무 영향을 주지
+       않는다 — base 에 mask 가 없으므로 그대로 페이드 없음. 미지원 브라우저
+       (Firefox) 도 같은 경로로 퇴화한다. */
+    animation: panel-contents-scroll-fade linear both;
+
+    /* `animation` 단축은 animation-timeline 을 auto 로 되돌리므로 반드시 뒤에 온다. */
+    animation-timeline: scroll(self block);
+
+    /* 마지막 24px 를 스크롤하는 동안에만 페이드가 걷힌다. 그전 구간은 keyframe
+       값이 고정이라 스크롤 중 mask 재계산이 일어나지 않는다. */
+    animation-range: calc(100% - 24px) 100%;
+  }
+
+  /* 두 keyframe 은 스톱 개수·색이 같고 위치만 다르다 — 그래야 보간된다.
+     끝 상태는 전 스톱을 100% 로 몰아 mask 를 전면 불투명으로 만든다 (= 페이드 없음).
+     곡선은 `.section-content` 와 같은 ease-out 근사. */
+  @keyframes panel-contents-scroll-fade {
+    from {
+      mask-image: linear-gradient(
+        to bottom,
+        #000 max(50%, 100% - 24px),
+        rgb(0 0 0 / 0.85) max(62%, 100% - 18px),
+        rgb(0 0 0 / 0.55) max(75%, 100% - 12px),
+        rgb(0 0 0 / 0.22) max(88%, 100% - 6px),
+        transparent 100%
+      );
+    }
+
+    to {
+      mask-image: linear-gradient(
+        to bottom,
+        #000 100%,
+        rgb(0 0 0 / 0.85) 100%,
+        rgb(0 0 0 / 0.55) 100%,
+        rgb(0 0 0 / 0.22) 100%,
+        transparent 100%
+      );
+    }
   }
 
   /* Panel Tabs — 패널 타이틀 아래의 배타적 뷰 전환 공통 골격.

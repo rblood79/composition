@@ -22,7 +22,12 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 복사/붙여넣기 정본. */
 const { copy: CopyIcon, paste: PasteIcon } = ACTION_ICONS;
 import { iconProps } from "../../../utils/ui/uiConstants";
-import { EmptyState, PanelHeader } from "../../components";
+import {
+  EmptyState,
+  PanelHeader,
+  PanelContents,
+  panelContents,
+} from "../../components";
 import {
   isDelegatedSubpart,
   useSelectedSubpartStyleOwnerType,
@@ -110,7 +115,9 @@ function StylesPanelContent() {
   const selectedElement = useDebouncedSelectedElementData();
   // ADR-923 잔여 1 (2026-09-03 판정 A): parent 가 self-compose 하는 sub-part 는 style 정본이 parent rule —
   //   여기서 준 값은 어디에도 실리지 않으므로 안내만 (`delegatedSubpart.ts`).
-  const selectedSubpartOwnerType = useSelectedSubpartStyleOwnerType(selectedElement?.id);
+  const selectedSubpartOwnerType = useSelectedSubpartStyleOwnerType(
+    selectedElement?.id,
+  );
   const delegatedSubpart = isDelegatedSubpart(
     selectedElement?.type,
     selectedSubpartOwnerType,
@@ -187,12 +194,12 @@ function StylesPanelContent() {
           title={t("panels.styles")}
           panelId="styles"
         />
-        <div className="panel-contents">
+        <PanelContents>
           <EmptyState
             icon={<PaintRoller size={32} />}
             message={t("styles.selectElement")}
           />
-        </div>
+        </PanelContents>
       </div>
     );
   }
@@ -211,7 +218,7 @@ function StylesPanelContent() {
           title={selectedElement.type}
           panelId="styles"
         />
-        <div className="panel-contents">
+        <PanelContents>
           <EmptyState
             icon={<PaintRoller size={32} />}
             message={t("styles.delegatedSubpartMessage")}
@@ -220,7 +227,7 @@ function StylesPanelContent() {
               parent: selectedSubpartOwnerType ?? "",
             })}
           />
-        </div>
+        </PanelContents>
       </div>
     );
   }
@@ -284,7 +291,7 @@ function StylesPanelContent() {
         </div>
 
         {STYLE_VIEW_IDS.map((id) => (
-          <TabPanel key={id} id={id} className="panel-contents">
+          <TabPanel key={id} id={id} className={panelContents()}>
             {isStyleGroupId(id) ? (
               <GroupSections group={id} />
             ) : (

@@ -38,7 +38,7 @@ import {
   ApiEndpointEditor,
   VariableEditor,
 } from "./editors";
-import { EmptyState, PanelHeader } from "../../components";
+import { EmptyState, PanelHeader, PanelContents } from "../../components";
 import type {
   TableEditorTab,
   ApiEditorTab,
@@ -411,7 +411,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         onClose={close}
       />
       {renderTabs()}
-      <div className="panel-contents">{renderEditorContent()}</div>
+      <PanelContents>{renderEditorContent()}</PanelContents>
     </div>
   );
 }
@@ -461,12 +461,12 @@ export function DataTableEditorPanel() {
           title={localize("editor", "Editor")}
           onClose={close}
         />
-        <div className="panel-contents">
+        <PanelContents>
           <EmptyState
             icon={<FileEdit size={32} />}
             message={localize("selectEditorItem", "Select an item to edit")}
           />
-        </div>
+        </PanelContents>
       </div>
     );
   }

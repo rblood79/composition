@@ -28,7 +28,12 @@ import type { NeutralPreset } from "../../../utils/theme/neutralToSkiaColors";
 import { NEUTRAL_PALETTES } from "../../../utils/theme/neutralToSkiaColors";
 import type { RadiusScale } from "../../../stores/themeConfigStore";
 import { oklchToHex } from "../../../utils/theme/oklchToHex";
-import { PanelHeader, PropertySection, PropertySelect } from "../../components";
+import {
+  PanelHeader,
+  PropertySection,
+  PropertySelect,
+  PanelContents,
+} from "../../components";
 import { MiniThemePreview } from "./MiniThemePreview";
 import { useThemeMessenger } from "../../hooks/useThemeMessenger";
 import { DEFAULT_BASE_TYPOGRAPHY } from "../../fonts/customFonts";
@@ -320,69 +325,71 @@ function ThemesContent() {
         }
       />
 
-      <PropertySection title="Colors" id="theme-colors">
-        <fieldset className="properties-aria">
-          <legend className="fieldset-legend">Accent</legend>
-          <div className="tint-grid">
-            {TINT_ORDER.map((tint) => (
-              <TintSwatch
-                key={tint}
-                tint={tint}
-                selected={currentTint === tint}
-                onSelect={handleTintSelect}
-              />
-            ))}
-          </div>
-        </fieldset>
+      <PanelContents>
+        <PropertySection title="Colors" id="theme-colors">
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">Accent</legend>
+            <div className="tint-grid">
+              {TINT_ORDER.map((tint) => (
+                <TintSwatch
+                  key={tint}
+                  tint={tint}
+                  selected={currentTint === tint}
+                  onSelect={handleTintSelect}
+                />
+              ))}
+            </div>
+          </fieldset>
 
-        <fieldset className="properties-aria">
-          <legend className="fieldset-legend">Tone</legend>
-          <div className="tint-grid">
-            {NEUTRAL_ORDER.map((preset) => (
-              <NeutralSwatch
-                key={preset}
-                preset={preset}
-                selected={neutral === preset}
-                onSelect={handleNeutralSelect}
-              />
-            ))}
-          </div>
-        </fieldset>
-      </PropertySection>
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">Tone</legend>
+            <div className="tint-grid">
+              {NEUTRAL_ORDER.map((preset) => (
+                <NeutralSwatch
+                  key={preset}
+                  preset={preset}
+                  selected={neutral === preset}
+                  onSelect={handleNeutralSelect}
+                />
+              ))}
+            </div>
+          </fieldset>
+        </PropertySection>
 
-      <PropertySection title="Appearance" id="theme-appearance">
-        <PropertySelect
-          label="Radius"
-          value={radiusScale}
-          onChange={handleRadiusChange}
-          options={RADIUS_OPTIONS}
-        />
-      </PropertySection>
+        <PropertySection title="Appearance" id="theme-appearance">
+          <PropertySelect
+            label="Radius"
+            value={radiusScale}
+            onChange={handleRadiusChange}
+            options={RADIUS_OPTIONS}
+          />
+        </PropertySection>
 
-      <PropertySection title="Typography" id="theme-typography">
-        <PropertySelect
-          label="Font"
-          value={baseTypography.fontFamily}
-          onChange={handleFontFamilyChange}
-          options={FONT_FAMILY_OPTIONS}
-        />
-        <PropertySelect
-          label="Size"
-          value={String(baseTypography.fontSize)}
-          onChange={handleBaseFontSizeChange}
-          options={BASE_FONT_SIZE_OPTIONS}
-        />
-        <PropertySelect
-          label="Line Height"
-          value={String(baseTypography.lineHeight)}
-          onChange={handleLineHeightChange}
-          options={LINE_HEIGHT_OPTIONS}
-        />
-      </PropertySection>
+        <PropertySection title="Typography" id="theme-typography">
+          <PropertySelect
+            label="Font"
+            value={baseTypography.fontFamily}
+            onChange={handleFontFamilyChange}
+            options={FONT_FAMILY_OPTIONS}
+          />
+          <PropertySelect
+            label="Size"
+            value={String(baseTypography.fontSize)}
+            onChange={handleBaseFontSizeChange}
+            options={BASE_FONT_SIZE_OPTIONS}
+          />
+          <PropertySelect
+            label="Line Height"
+            value={String(baseTypography.lineHeight)}
+            onChange={handleLineHeightChange}
+            options={LINE_HEIGHT_OPTIONS}
+          />
+        </PropertySection>
 
-      <PropertySection title="Preview" id="theme-preview">
-        <MiniThemePreview />
-      </PropertySection>
+        <PropertySection title="Preview" id="theme-preview">
+          <MiniThemePreview />
+        </PropertySection>
+      </PanelContents>
     </div>
   );
 }

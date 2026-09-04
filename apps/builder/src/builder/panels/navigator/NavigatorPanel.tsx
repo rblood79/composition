@@ -27,6 +27,7 @@ import {
   PanelHeader,
   SectionGroupToggleButton,
   SectionSplitStack,
+  panelContents,
 } from "../../components";
 import {
   NavigatorPanelTabs,
@@ -119,12 +120,15 @@ export function NavigatorPanel() {
           <NavigatorPanelTabs />
         </div>
 
-        <TabPanel id="pages" className="panel-contents navigator-panel-content">
+        <TabPanel
+          id="pages"
+          className={panelContents("navigator-panel-content")}
+        >
           <PagesTabContent projectId={projectId} />
         </TabPanel>
         <TabPanel
           id="layouts"
-          className="panel-contents navigator-panel-content"
+          className={panelContents("navigator-panel-content")}
         >
           <FramesTabContent projectId={projectId} />
         </TabPanel>

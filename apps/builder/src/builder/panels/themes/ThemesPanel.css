@@ -1,7 +1,6 @@
+/* 구조(display/flex-direction/height)는 `.panel` 정본이 정한다 — 여기 있던
+   같은 값 재선언은 제거. 표면색만 남긴다. */
 .themes-panel {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
   background: var(--bg-overlay);
 }
 

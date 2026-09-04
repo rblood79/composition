@@ -45,6 +45,7 @@ import {
   PanelHeader,
   Section,
   ToastContainer,
+  panelContents,
 } from "../../components";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 import { useI18n } from "@/i18n";
@@ -241,7 +242,10 @@ export function MonitorPanel() {
           </TabList>
         </div>
 
-        <TabPanel id="memory" className="panel-contents monitor-panel-contents">
+        <TabPanel
+          id="memory"
+          className={panelContents("monitor-panel-contents")}
+        >
           <Section
             id="monitor-memory-usage"
             title={localize("memoryUsage", "Memory Usage")}
@@ -280,7 +284,7 @@ export function MonitorPanel() {
 
         <TabPanel
           id="realtime"
-          className="panel-contents monitor-panel-contents"
+          className={panelContents("monitor-panel-contents")}
         >
           <Section
             id="monitor-realtime-metrics"
@@ -310,7 +314,10 @@ export function MonitorPanel() {
           </Section>
         </TabPanel>
 
-        <TabPanel id="stats" className="panel-contents monitor-panel-contents">
+        <TabPanel
+          id="stats"
+          className={panelContents("monitor-panel-contents")}
+        >
           <Section
             id="monitor-document-stats"
             title={localize("documentStats", "Document Stats")}
@@ -342,7 +349,7 @@ export function MonitorPanel() {
 
         <TabPanel
           id="browser"
-          className="panel-contents monitor-panel-contents"
+          className={panelContents("monitor-panel-contents")}
         >
           <Section
             id="monitor-browser-memory"
@@ -388,7 +395,7 @@ export function MonitorPanel() {
 
         <TabPanel
           id="analysis"
-          className="panel-contents monitor-panel-contents"
+          className={panelContents("monitor-panel-contents")}
         >
           <Section
             id="monitor-component-memory"

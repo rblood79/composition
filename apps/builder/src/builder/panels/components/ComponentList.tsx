@@ -9,6 +9,7 @@ import {
   PanelHeader,
   Section,
   SectionGroupToggleButton,
+  PanelContents,
 } from "../../components";
 import { useEditModeStore } from "../../stores/editMode";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -298,7 +299,7 @@ const ComponentList = memo(
         {/* 검색바 */}
         <ComponentSearch onSearchChange={setSearchQuery} />
 
-        <div className="panel-contents">
+        <PanelContents>
           {/* Recent 컴포넌트 - 검색 시 숨김 */}
           {!searchQuery && recentComponents.length > 0 && (
             <Section
@@ -431,7 +432,7 @@ const ComponentList = memo(
               />
             </div>
           )}
-        </div>
+        </PanelContents>
       </div>
     );
   },

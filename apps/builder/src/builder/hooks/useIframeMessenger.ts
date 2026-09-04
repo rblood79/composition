@@ -951,7 +951,6 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     [
       enqueuePreviewGeneratedElements,
       processMessageQueue,
-      activeCanonicalDocument,
       sendCanonicalDocumentToIframe,
       sendLayoutsToIframe,
       sendPagesToIframe,

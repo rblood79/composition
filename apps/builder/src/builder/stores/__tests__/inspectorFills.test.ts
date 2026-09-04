@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import type { CompositionDocument } from "@composition/shared";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../services/save", () => ({
@@ -9,6 +10,12 @@ vi.mock("../../../services/save", () => ({
 
 vi.mock("../../../env/supabase.client", () => ({
   supabase: {},
+}));
+
+vi.mock("../../../lib/db", () => ({
+  getDB: async () => ({
+    documents: { put: vi.fn() },
+  }),
 }));
 
 vi.mock("../../../utils/featureFlags", () => ({
@@ -26,8 +33,36 @@ import { useStore } from "../index";
 import { historyManager } from "../history";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 
+function seedCanonicalFillTarget(): void {
+  const document = {
+    version: "composition-1.0",
+    children: [
+      {
+        id: "fill-target",
+        type: "group",
+        props: {
+          style: { backgroundColor: "#ffffff" },
+        },
+      },
+    ],
+  } satisfies CompositionDocument;
+
+  useCanonicalDocumentStore.setState({
+    documents: new Map<string, CompositionDocument>([
+      ["fill-test-project", document],
+    ]),
+    currentProjectId: "fill-test-project",
+    documentVersion: 1,
+  });
+}
+
 describe("inspectorActions fill write-through", () => {
   beforeEach(() => {
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     useStore.setState({
       selectedElementId: "fill-target",
       selectedElementProps: {
@@ -123,6 +158,8 @@ describe("inspectorActions fill write-through", () => {
   });
 
   it("store updateElementProps 경로도 Fill V2 에서 derived background style patch 를 제거한다", async () => {
+    seedCanonicalFillTarget();
+
     await useStore.getState().updateElementProps("fill-target", {
       style: {
         backgroundColor: "#654321",
@@ -149,6 +186,8 @@ describe("inspectorActions fill write-through", () => {
   });
 
   it("batch update 경로도 Fill V2 에서 derived background style patch 를 제거한다", async () => {
+    seedCanonicalFillTarget();
+
     await useStore.getState().batchUpdateElementProps([
       {
         elementId: "fill-target",
@@ -290,13 +329,6 @@ describe("inspectorActions fill write-through", () => {
       props: { style: {} },
       fills: [oldFill],
     } as unknown as Element;
-
-    // 이전 테스트가 syncInspectorElementToCanonical 로 남긴 stale canonical 노드(fills 없음)를
-    //   history snapshot 이 읽지 않도록 canonical doc store 를 비운다 → fallback 이 element.fills 직독.
-    useCanonicalDocumentStore.setState({
-      documents: new Map(),
-      currentProjectId: null,
-    });
 
     useStore.setState({
       selectedElementId: "fill-target",

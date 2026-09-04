@@ -1,3 +1,5 @@
+export { PanelContents, panelContents } from "./PanelContents";
+export type { PanelContentsProps } from "./PanelContents";
 export { PanelHeader } from "./PanelHeader";
 export { Section } from "./Section";
 export type { SectionProps } from "./Section";

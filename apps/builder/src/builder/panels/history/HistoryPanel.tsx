@@ -19,7 +19,12 @@ import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본. */
 const DeleteIcon = ACTION_ICONS.delete;
-import { EmptyState, PanelHeader, Section } from "../../components";
+import {
+  EmptyState,
+  PanelHeader,
+  Section,
+  PanelContents,
+} from "../../components";
 import { ActionIconButton } from "../../components/ui";
 import { Button, Toolbar } from "@composition/shared/components";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
@@ -418,7 +423,7 @@ function HistoryPanelContent() {
         }
       />
 
-      <div className="panel-contents">
+      <PanelContents>
         {projectId && (
           <Section
             title={t("history.snapshotsSection")}
@@ -553,7 +558,7 @@ function HistoryPanelContent() {
             </div>
           )}
         </Section>
-      </div>
+      </PanelContents>
     </div>
   );
 }

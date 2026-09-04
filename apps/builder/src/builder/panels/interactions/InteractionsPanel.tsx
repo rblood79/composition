@@ -15,7 +15,12 @@ import { useCallback, useState } from "react";
 import { SquareMousePointer } from "lucide-react";
 import { resolveTriggers } from "@composition/shared";
 
-import { EmptyState, PanelHeader, Section } from "../../components";
+import {
+  EmptyState,
+  PanelHeader,
+  Section,
+  PanelContents,
+} from "../../components";
 import { useDebouncedSelectedElementData } from "../../stores";
 import { RuleRow } from "./RuleRow";
 import { useInteractionRules } from "./useInteractionRules";
@@ -38,12 +43,12 @@ export function InteractionsPanel() {
           icon={<SquareMousePointer size={14} />}
           panelId="events"
         />
-        <div className="panel-contents">
+        <PanelContents>
           <EmptyState
             icon={<SquareMousePointer size={32} />}
             message={t("interactions.selectElement")}
           />
-        </div>
+        </PanelContents>
       </div>
     );
   }
@@ -88,7 +93,7 @@ function InteractionsPanelContent({
         icon={<SquareMousePointer size={14} />}
         panelId="events"
       />
-      <div className="panel-contents">
+      <PanelContents>
         <Section
           title={t("interactions.rulesTitle")}
           id="interactions-rules"
@@ -137,7 +142,7 @@ function InteractionsPanelContent({
             </>
           )}
         </Section>
-      </div>
+      </PanelContents>
     </div>
   );
 }

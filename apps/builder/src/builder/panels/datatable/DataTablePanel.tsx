@@ -26,7 +26,12 @@ import type { PanelProps } from "../core/types";
 import { useDataStore } from "../../stores/data";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { useDataPanelQuery } from "@/builder/hooks";
-import { PanelHeader, EmptyState, LoadingSpinner } from "../../components";
+import {
+  PanelHeader,
+  EmptyState,
+  LoadingSpinner,
+  panelContents,
+} from "../../components";
 import { DataTableList } from "./components/DataTableList";
 import { ApiEndpointList } from "./components/ApiEndpointList";
 import { VariableList } from "./components/VariableList";
@@ -221,7 +226,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
             <LoadingSpinner />
           </div>
         )}
-        <TabPanel id="tables" className="panel-contents">
+        <TabPanel id="tables" className={panelContents()}>
           <DataTableList
             projectId={currentProjectId}
             editingId={editingTableId}
@@ -229,10 +234,10 @@ export function DataTablePanel({ isActive }: PanelProps) {
             onCreateClick={handleCreateClick}
           />
         </TabPanel>
-        <TabPanel id="endpoints" className="panel-contents">
+        <TabPanel id="endpoints" className={panelContents()}>
           <ApiEndpointList projectId={currentProjectId} />
         </TabPanel>
-        <TabPanel id="variables" className="panel-contents">
+        <TabPanel id="variables" className={panelContents()}>
           <VariableList projectId={currentProjectId} />
         </TabPanel>
       </Tabs>

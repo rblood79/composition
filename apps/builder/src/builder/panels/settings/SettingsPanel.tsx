@@ -25,6 +25,7 @@ import {
   PropertySection,
   PropertySizeToggle,
   PanelHeader,
+  PanelContents,
 } from "../../components";
 import { PAGE_GAP_PRESETS } from "../../components/property/propertyUnitPresets";
 import { useThemeMessenger } from "@/builder/hooks";
@@ -114,7 +115,7 @@ function SettingsContent() {
         panelId="settings"
       />
 
-      <div className="panel-settings">
+      <PanelContents>
         {/* Rulers & Guides Section */}
         <PropertySection title={t("settings.rulersAndGuides")}>
           {/* ADR-181 — 눈금자는 뷰포트 chrome (문서 데이터 아님).
@@ -188,7 +189,7 @@ function SettingsContent() {
         <PropertySection title={t("settings.language")}>
           <LanguageSwitcher />
         </PropertySection>
-      </div>
+      </PanelContents>
     </div>
   );
 }

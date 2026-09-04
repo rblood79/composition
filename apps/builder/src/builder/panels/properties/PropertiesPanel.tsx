@@ -22,6 +22,7 @@ import {
   SelectionFilter,
   SmartSelection,
   SelectionMemory,
+  PanelContents,
 } from "../../components";
 import { ElementSlotSelector } from "./editors/ElementSlotSelector";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
@@ -54,7 +55,10 @@ import {
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
 import { dispatchSemanticUpdateWithPropagation } from "./semanticUpdateDispatch";
-import { isDelegatedSubpart, useSelectedSubpartOwnerType } from "../delegatedSubpart";
+import {
+  isDelegatedSubpart,
+  useSelectedSubpartOwnerType,
+} from "../delegatedSubpart";
 import {
   alignSelection,
   copySelection,
@@ -695,7 +699,9 @@ function PropertiesPanelContent() {
   // 선택된 요소가 없으면 빈 상태 표시
   // ADR-923 잔여 1 (2026-09-03 판정 A): DOM 이 parent 로 self-compose 하는 sub-part (field 의 FieldError)
   //   는 편집 surface 를 parent 로 귀속 — 안내만 띄운다 (`delegatedSubpart.ts`).
-  const selectedSubpartOwnerType = useSelectedSubpartOwnerType(selectedElement?.id);
+  const selectedSubpartOwnerType = useSelectedSubpartOwnerType(
+    selectedElement?.id,
+  );
   const delegatedSubpart = isDelegatedSubpart(
     selectedElement?.type,
     selectedSubpartOwnerType,
@@ -709,12 +715,12 @@ function PropertiesPanelContent() {
           title={t("panels.properties")}
           panelId="properties"
         />
-        <div className="panel-contents">
+        <PanelContents>
           <EmptyState
             icon={<Settings2 size={32} />}
             message={t("propertiesPanel.selectElement")}
           />
-        </div>
+        </PanelContents>
       </div>
     );
   }
@@ -759,7 +765,7 @@ function PropertiesPanelContent() {
         }
       />
 
-      <div className="panel-contents">
+      <PanelContents>
         {delegatedSubpart ? (
           <EmptyState
             icon={<Settings2 size={32} />}
@@ -827,7 +833,7 @@ function PropertiesPanelContent() {
             />
           </>
         )}
-      </div>
+      </PanelContents>
     </div>
   );
 }

@@ -35,12 +35,15 @@ export {
 
 // Panel 컴포넌트
 export {
+  PanelContents,
+  panelContents,
   PanelHeader,
   Section,
   SectionGroupToggleButton,
   SectionSplitStack,
 } from "./panel";
 export type {
+  PanelContentsProps,
   SectionProps,
   SectionGroupToggleButtonProps,
   SectionSplitStackProps,

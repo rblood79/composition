@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { ActionIconButton, PanelHeader } from "../../components";
+import { ActionIconButton, PanelHeader, PanelContents } from "../../components";
 import { Button } from "@composition/shared/components";
 import {
   ArrowRight,
@@ -203,7 +203,7 @@ function ChatContainer({
   ];
 
   return (
-    <div className="panel-contents ai-contents">
+    <PanelContents className="ai-contents">
       <div className="ai-transcript" aria-live="polite">
         {messages.length === 0 && !hasAgent ? (
           <div
@@ -268,7 +268,7 @@ function ChatContainer({
         <ChatInput onSend={onSendMessage} disabled={isDisabled} />
         <p className="ai-disclaimer">{t("ai.disclaimer")}</p>
       </div>
-    </div>
+    </PanelContents>
   );
 }
 
@@ -351,9 +351,9 @@ function AIPanelContent() {
         }
       />
       {advancedOpen ? (
-        <div className="panel-contents ai-contents">
+        <PanelContents className="ai-contents">
           <AdvancedMode progress={progress} />
-        </div>
+        </PanelContents>
       ) : (
         <>
           <AgentCommandLogList />
