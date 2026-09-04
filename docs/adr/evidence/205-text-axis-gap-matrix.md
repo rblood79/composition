@@ -162,3 +162,72 @@ CSS 키**는 12 + 2 = **14개**로 표와 맞는다. 모순 아님.
 `codex:preflight` (커밋 전) · `.githooks/pre-push` (push 직전 — 이 저장소에는 PR status
 check 가 없다) · `.github/workflows/deploy.yml` 의 `push:main` job. 셋 다 브라우저가 필요
 없는 초 단위 검사다.
+
+## 7. Phase 1 게이트 실측 (G2 · G3, 2026-09-05)
+
+### G2 — 성능 (불리 케이스 포함)
+
+기존 600 요소 문서에는 `ls ≠ 0` 이 0건이라 baseline 만으로는 새 경로가 실행되지 않는다.
+그래서 **같은 텍스트·같은 파이프라인**을 두 arm 으로 잰다
+(`canvas/skia/textAxisLetterSpacing.bench.ts`).
+
+| arm                              |  mean (ms) | p75    | p99    | hz      |
+| -------------------------------- | ---------: | ------ | ------ | ------- |
+| 대조군 — ls 0                    | **0.0076** | 0.0071 | 0.0112 | 131,086 |
+| 불리 arm — ls 0.5 (fontKey 분기) | **0.0096** | 0.0086 | 0.0220 | 103,639 |
+
+텍스트 1건당 **+2.0 µs** (+26%). 최악(600 leaf 전부 ls≠0, 매 프레임 캐시 미스)을 가정해도
++1.2 ms 로 16.7 ms 예산의 7% 이며, 실제로는 세그먼트 캐시가 반복 측정을 흡수한다.
+
+seam 자체의 호출 비용은 **48 ns**(인라인 적중) / **22 ns**(computed 폴백) 다 — R2 가 말한
+"추가 조회가 아니라 읽기 한 번" 이 수치로 확인된다.
+
+`pnpm perf:baseline --lane frame --seed-count 600` (600 요소 · 2 페이지, headless):
+
+| 부류         |  gap p95 | 드롭% |
+| ------------ | -------: | ----: |
+| idle         |  17.5 ms |     0 |
+| pan          |  18.7 ms |   0.6 |
+| zoom         |  23.8 ms |   3.5 |
+| select       | 322.3 ms |   100 |
+| edit         | 478.2 ms |   9.2 |
+| panel-resize |  17.7 ms |   1.1 |
+
+select·edit 의 큰 값은 **본 변경 이전부터의 기존 병목**이다 (메모리
+`project-builder-perf-baseline-2026-09-harness-and-levers` — 선택 240 ms / 편집 500 ms 대).
+문서 텍스트에 `ls ≠ 0` 이 0건이라 이 lane 에서는 새 경로가 실행되지 않으며, 그래서 위 arm
+벤치가 G2 의 불리 케이스를 담당한다.
+
+### G3 — 시각 파리티 + 신규 fixture
+
+`gate:visual-parity` smoke **98 PASS** (신규 케이스로 84 → 98, 바닥값 81 → 95).
+
+신규 케이스 `text-letter-spacing` (`tests/visual-parity/cases/textLetterSpacing.ts`) —
+같은 문자열·같은 폭의 두 문단이 자간만 다르다.
+
+| region                               |     diffRatio | maxByte | 상자 높이    |
+| ------------------------------------ | ------------: | ------: | ------------ |
+| `letter-spacing-text` (ls 20)        | **0.0197** ✅ |     204 | 120 px (6줄) |
+| `letter-spacing-control-text` (ls 0) |        0.0727 |     204 | 40 px (2줄)  |
+| `letter-spacing-anchor`              |        0.0000 |       0 | 16 px        |
+
+**자간이 걸린 문단이 대조군보다 파리티가 좋다** — 두 leg 이 같은 줄 수로 접힌다는 뜻이다.
+
+원복 RED: Phase 1 을 전량 원복하면(seam · wrap leg · Skia 3곳) 같은 케이스가
+**`L1:fail`** 로 떨어진다 — 두 leg 의 줄 수가 갈려 geometry 층에서 먼저 무너진다.
+즉 이 fixture 는 **결선이 살아 있을 때만 통과**한다.
+
+측정 중 두 가지를 기록해 둔다.
+
+1. **자간 2px 로는 판정이 안 된다.** 이 문자열·폭에서 2px 는 줄 수를 바꾸지 않아(양쪽 2줄)
+   diff 가 텍스트 래스터 기본 격차(대조군 0.0727)에 묻혔다. 그래서 fixture 는 20px 를 쓴다 —
+   축이 잡음을 압도해야 게이트다.
+2. **paint leg 만 원복하면 픽셀이 소수점 5자리까지 같다.** 즉 이 케이스에서 두 leg 을
+   맞추는 것은 **layout leg** (줄 수)이고, Skia 텍스트 노드의 `letterSpacing` 이 픽셀에
+   기여하는지는 이 fixture 로는 갈리지 않는다. 단위 테스트는 값이 노드에 실리는 것을
+   확인하지만(도달 검사 G4 ②), **그 값이 glyph advance 로 쓰이는지**는 미확인이다 —
+   Phase 3 live 와 후속 판정의 입력으로 남긴다.
+
+케이스는 비동기 리소스 케이스보다 **앞**에 둔다 — 뒤에 두면 앞 케이스가 남긴 Preview
+콘솔 에러(`<paragraph>` 미인식, 기존 known defect)를 이 케이스의 identity 판정이
+물려받는다 (실측).

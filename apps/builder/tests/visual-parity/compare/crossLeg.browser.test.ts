@@ -68,6 +68,10 @@ const KNOWN_OVER_BUDGET: Record<string, string[]> = {
   // L1 에서 멈춰 픽셀 층이 아예 안 돈다 — region 목록이 비는 것이 정상이다.
   "catalog-state-paint": [],
   "text-raster-resources": ["heading-text", "paragraph-text", "image-raster"],
+  // ADR-205 — 텍스트 래스터 기본 격차(maxByte 204)는 위 케이스와 같은 자리다.
+  // 자간 축의 판정은 이 목록이 아니라 **줄 수**가 한다: 결선이 끊기면 두 leg 의 줄
+  // 수가 갈려 L1 geometry 가 먼저 깨진다 (KNOWN_LAYERS 의 L1:pass 가 그 계약).
+  "text-letter-spacing": ["letter-spacing-control-text"],
 };
 
 /** 층별 현재 판정. 어느 층이 좋아지거나 나빠져도 드러난다. */
@@ -78,6 +82,8 @@ const KNOWN_LAYERS: Record<string, string> = {
     "env:pass live:pass L0:pass L1:fail L2:skip L3:skip L4:skip",
   "text-raster-resources":
     "env:pass live:pass L0:pass L1:pass L2:skip L3:fail L4:fail",
+  "text-letter-spacing":
+    "env:pass live:pass L0:pass L1:pass L2:skip L3:pass L4:fail",
 };
 
 let ck: CanvasKit;
@@ -252,7 +258,8 @@ function deltaMap(
         if (delta > d) d = delta;
       }
       if (d === 0) continue;
-      const ci = Math.min(rows - 1, Math.floor(y / ch)) * cols +
+      const ci =
+        Math.min(rows - 1, Math.floor(y / ch)) * cols +
         Math.min(cols - 1, Math.floor(x / cw));
       if (d > cell[ci]) cell[ci] = d;
       if (d > 64 && hotspots.length < 60) hotspots.push({ x, y, d });
@@ -382,11 +389,7 @@ describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => 
                   ),
                 ),
                 geometry: { skia: skia.geometry, preview: preview.geometry },
-                deltaMap: deltaMap(
-                  skia.pixels!,
-                  preview.pixels!,
-                  c.viewport,
-                ),
+                deltaMap: deltaMap(skia.pixels!, preview.pixels!, c.viewport),
                 // 경계를 가로지르는 세로 슬라이스 — 어느 leg 이 무슨 색을 놓는지
                 // 픽셀 단위로 본다 (요약 지표로는 "누가 무엇을" 이 안 보인다).
                 edgeSlice: (() => {
@@ -402,7 +405,8 @@ describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => 
                     const i = (y * c.viewport.width + x) * 4;
                     const px = (arr: Uint8Array) =>
                       Array.from(arr.subarray(i, i + 4)).join(",");
-                    rows[`y=${y}`] = `skia ${px(skia.pixels!)} | preview ${px(preview.pixels!)}`;
+                    rows[`y=${y}`] =
+                      `skia ${px(skia.pixels!)} | preview ${px(preview.pixels!)}`;
                   }
                   return { x, rows };
                 })(),
@@ -445,14 +449,18 @@ describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => 
         // 미충족이고, 그 사실을 초록으로 덮는 대신 "지금 어디가 얼마나 넘는가"
         // 를 못박는다. 발산이 고쳐지면 목록이 줄어 이 단언이 깨지고, 그때
         // 기록을 갱신하는 것이 올바른 대응이다 (Phase 0/2/3 과 같은 ratchet).
-        const blocked = report.regions.filter((m) => m.blocked).map((m) => m.regionId);
+        const blocked = report.regions
+          .filter((m) => m.blocked)
+          .map((m) => m.regionId);
         expect(blocked, formatRegions(report)).toEqual(
           KNOWN_OVER_BUDGET[c.id] ?? [],
         );
       });
 
       it("층별 판정이 실측과 일치한다", () => {
-        const actual = report.layers.map((l) => `${l.layer}:${l.status}`).join(" ");
+        const actual = report.layers
+          .map((l) => `${l.layer}:${l.status}`)
+          .join(" ");
         console.log(`[ADR-198 P4b] ${c.id} layers=${actual}`);
 
         // skip 을 통과로 세지 않는다 — 사유 없는 skip 은 그 자체가 결함이다.
