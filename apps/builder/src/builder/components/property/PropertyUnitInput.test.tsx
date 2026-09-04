@@ -54,6 +54,40 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenCalledWith("1234px");
   });
 
+  it("keeps the local draft when the parent rerenders with an unchanged value", () => {
+    // parsed 는 value 에 memo 된 파생값이라 부모 재렌더만으로는 sync effect 가 다시 돌면 안 된다.
+    const onChange = vi.fn();
+    function Host() {
+      const [tick, setTick] = useState(0);
+      return (
+        <>
+          <button type="button" onClick={() => setTick(tick + 1)}>
+            rerender {tick}
+          </button>
+          <PropertyUnitInput
+            label="Gap"
+            value="12px"
+            units={["reset", "px"]}
+            onChange={onChange}
+            onDrag={vi.fn()}
+          />
+        </>
+      );
+    }
+
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(<Host />);
+
+    const input = screen.getByRole("combobox", { name: "Gap" });
+    fireEvent.change(input, { target: { value: "1234" } });
+    expect((input as HTMLInputElement).value).toBe("1234");
+
+    fireEvent.click(screen.getByRole("button", { name: /rerender/ }));
+
+    expect((input as HTMLInputElement).value).toBe("1234");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it("commits on blur when Enter is not pressed", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();

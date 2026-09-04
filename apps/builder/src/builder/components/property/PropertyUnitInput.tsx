@@ -317,14 +317,7 @@ export const PropertyUnitInput = memo(
         setInputValue(nextDisplay);
         setDraftUnit(null);
       });
-    }, [
-      value,
-      selectedElementId,
-      parsed.numericValue,
-      parsed.unit,
-      isPreservedEmptyValue,
-      presets,
-    ]);
+    }, [value, selectedElementId, parsed, isPreservedEmptyValue, presets]);
 
     const handleInputChange = (newValue: string) => {
       setInputValue(newValue);

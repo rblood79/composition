@@ -58,10 +58,11 @@ export function ApiEndpointEditor({
 }: ApiEndpointEditorProps) {
   const i18n = useOptionalI18n();
   /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const t = (
-    key: string,
-    params?: Record<string, string | number | boolean>,
-  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number | boolean>) =>
+      i18n ? i18n.t(`datatable.${key}`, params) : key,
+    [i18n],
+  );
   const updateApiEndpoint = useDataStore((state) => state.updateApiEndpoint);
   const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
   const createDataTable = useDataStore((state) => state.createDataTable);

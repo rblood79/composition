@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Tests
 
 - Builder lint가 `0 errors / 8 review warnings`로 통과하고, type-check·registration·agent-catalog preflight와 관련 focused Vitest가 통과했습니다.
+- (2026-09-05 후속) memo dependency 경고 3건을 닫았습니다 — `PropertyUnitInput` sync effect 는 memo 된 `parsed` 를 그대로 의존하고, `useColorStyleValues` 의 `themeVersion` 은 tint/neutral 이 `lightColors` 를 제자리 mutation 하는 유일한 재계산 신호라 제거하지 않고 cache key 로 명시했으며, `ApiEndpointEditor` 의 `t` 는 `useCallback` 으로 고정했습니다. Styles 패널 color 테스트 fixture 를 canonical document 시드로 고쳐 16건 실패를 복구했고 tint 변경 재해석·부모 재렌더 draft 보존 테스트를 추가했습니다. 남은 경고 5건(clipboard 2·keyboard registry 3)은 계약 설계 후 별도 처리합니다.
 
 ## [Legacy layout/history 경계를 canonical-only로 줄였습니다] - 2026-09-04
 

@@ -97,6 +97,10 @@ export function useColorStyleValues(
 
   return useMemo(() => {
     if (!id) return null;
+    // resolveStylePanelColor → resolveToken 은 lightColors/darkColors 전역 객체를 읽고,
+    // setTint/setNeutral 은 그 객체를 제자리 mutation 한다. theme 문자열과 accentColor 는
+    // 그대로이므로 themeVersion 이 이 memo 의 유일한 재계산 신호다 (구독 + cache key).
+    void themeVersion;
 
     const backgroundRaw = firstDefined(
       effectiveStyle?.backgroundColor,
