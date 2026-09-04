@@ -80,7 +80,7 @@
 //! seam 미배선 순수 Rust — live builder 영향 0. `createLayoutEngine` 실배선(flag
 //! 전환)은 flex/block/grid 트리 dual-run(Taffy self-diff 0) 통과 후 별도 단계.
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 #[cfg(test)]
 use std::cell::Cell;
 
@@ -180,7 +180,7 @@ fn shrink_to_fit_settled(
 ///
 /// 단위 1 은 자기 크기 해결에 필요한 필드만 실사용하지만, 계약 정합을 위해
 /// StyleInput 전체 스키마를 그대로 보유한다(누락 필드는 다음 단위에서 소비).
-#[derive(Debug, Clone, Default, Deserialize)]
+#[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NodeStyle {
     // Display & position
@@ -286,7 +286,7 @@ pub struct NodeStyle {
 /// ADR-923 P2 +3) 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
-pub const NODESTYLE_FIELD_COUNT: usize = 54;
+pub const NODESTYLE_FIELD_COUNT: usize = 55;
 
 /// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
 ///
@@ -300,6 +300,130 @@ pub const NODESTYLE_FIELD_COUNT: usize = 54;
 /// `grid_inline_justify`/`parse_justify_items` 배선으로 소비 전환 → 목록 비움.
 /// 남은 미소비 필드 0 (전부 소비 — 이후 ADR-165 +2 · ADR-923 P2 +3 로 54).
 pub const UNCONSUMED_NODESTYLE_FIELDS: [&str; 0] = [];
+
+/// `NodeStyle` 의 serde 계약명 (camelCase) 전수 — strict 입력 검증의 allowlist.
+///
+/// **왜 `deny_unknown_fields` 가 아닌 이름 표인가**: 기본 경로는 관대해야 하고
+/// (production 에서 미지 키 하나로 레이아웃이 통째로 실패하면 안 된다) strict 는
+/// 하니스·진단 전용이다. serde 로는 한 타입이 두 정책을 가질 수 없어 54 필드 구조체를
+/// 복제해야 하는데, 복제본은 조용히 드리프트한다. 대신 이름 표 하나를 두고
+/// `nodestyle_serde_names_match_field_table` 이 **serde 가 실제로 쓰는 이름**과
+/// 기계 대조한다 (`Serialize` 로 직렬화한 키 집합 == 이 표).
+///
+/// 기본 경로 비용 0 — 이 표는 `strict_input` 이 켜졌을 때만 읽힌다.
+pub const NODESTYLE_FIELD_NAMES: [&str; NODESTYLE_FIELD_COUNT] = [
+    "display",
+    "position",
+    "overflowX",
+    "overflowY",
+    "flexDirection",
+    "flexWrap",
+    "justifyContent",
+    "justifyItems",
+    "alignItems",
+    "alignContent",
+    "flexGrow",
+    "flexShrink",
+    "flexBasis",
+    "alignSelf",
+    "justifySelf",
+    "gridTemplateColumns",
+    "gridTemplateRows",
+    "gridAutoFlow",
+    "gridAutoColumns",
+    "gridAutoRows",
+    "gridColumnStart",
+    "gridColumnEnd",
+    "gridRowStart",
+    "gridRowEnd",
+    "width",
+    "height",
+    "minWidth",
+    "minHeight",
+    "maxWidth",
+    "maxHeight",
+    "marginTop",
+    "marginRight",
+    "marginBottom",
+    "marginLeft",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "borderTop",
+    "borderRight",
+    "borderBottom",
+    "borderLeft",
+    "insetTop",
+    "insetRight",
+    "insetBottom",
+    "insetLeft",
+    "columnGap",
+    "rowGap",
+    "aspectRatio",
+    "contentMinWidth",
+    "contentMaxWidth",
+    "contentMinHeight",
+    "verticalAlign",
+    "lineHeight",
+    "leafBaseline",
+];
+
+/// `BatchNodeInput` 의 serde 계약명.
+pub const BATCH_NODE_FIELD_NAMES: [&str; 2] = ["style", "children"];
+
+/// TS 가 소유해 엔진이 읽을 필요가 없는 키 — strict 입력이 통과시킨다.
+///
+/// 파이프라인이 경계까지 실어 보내지만 엔진 `NodeStyle` 에 없어 serde 가 조용히 버리는
+/// 키다. **버려도 되는 이유가 확인된 것만** 여기 등재한다 — 등재는 "엔진이 안 읽어도
+/// 결과가 맞다" 는 주장이고, 근거는 TS 쪽 소유 경로다. 새 무음 드롭은 strict 실패로
+/// 남아야 하므로 이 목록은 자라지 않는 것이 정상이다.
+///
+/// - `whiteSpace` — 텍스트 줄바꿈은 TS 측정이 소유한다. `resolve_text_leaf_white_space`
+///   (utils.ts) 가 해석해 `contentMinWidth`/`contentMaxWidth` 스칼라로 환원해 보내므로
+///   엔진은 원값이 필요 없다 (ADR-165 스칼라 계약).
+/// - `order` — flex/grid item 순서는 `fullTreeLayout.ts` 가 TS 에서 미리 정렬해 batch
+///   배열 순서로 넘긴다 (`applyCommonEngineStyle` 이 값을 같이 싣지만 엔진은 배열 순서만
+///   본다). 엔진이 읽으면 이중 정렬이다.
+pub const TS_OWNED_INPUT_KEYS: [&str; 2] = ["style.whiteSpace", "style.order"];
+
+/// batch payload 에서 엔진이 읽지 않는 키를 모은다 — 노드 인덱스별 (키는 정렬).
+///
+/// 진단·하니스 전용이다. `serde_json::Value` 선파싱은 파싱을 두 번 하므로
+/// **기본 레이아웃 경로에서는 절대 호출하지 않는다** (EXTERNAL_PATTERN_DELTA_2026-09 §A5-2).
+///
+/// # Errors
+/// JSON 파싱 실패 시 `Err`.
+pub fn collect_unknown_keys(nodes_json: &str) -> Result<Vec<(usize, Vec<String>)>, String> {
+    let parsed: serde_json::Value = serde_json::from_str(nodes_json)
+        .map_err(|e| format!("collect_unknown_keys: parse error: {e}"))?;
+    let nodes = parsed
+        .as_array()
+        .ok_or_else(|| "collect_unknown_keys: 최상위가 배열이 아니다".to_string())?;
+
+    let mut out: Vec<(usize, Vec<String>)> = Vec::new();
+    for (i, node) in nodes.iter().enumerate() {
+        let Some(obj) = node.as_object() else { continue };
+        let mut unknown: Vec<String> = obj
+            .keys()
+            .filter(|k| !BATCH_NODE_FIELD_NAMES.contains(&k.as_str()))
+            .map(|k| k.to_string())
+            .collect();
+        if let Some(style) = obj.get("style").and_then(|v| v.as_object()) {
+            unknown.extend(
+                style
+                    .keys()
+                    .filter(|k| !NODESTYLE_FIELD_NAMES.contains(&k.as_str()))
+                    .map(|k| format!("style.{k}")),
+            );
+        }
+        if !unknown.is_empty() {
+            unknown.sort();
+            out.push((i, unknown));
+        }
+    }
+    Ok(out)
+}
 
 /// batch 트리 빌드 입력 (taffy_bridge.rs `BatchNodeInput` 대응).
 ///
@@ -448,6 +572,13 @@ pub struct LayoutTree {
     /// 트리 mutation 카운터 — intrinsic 측정 캐시 유효성 판정 (ADR-169 Phase 1).
     /// 노드 생성/스타일·자식 변경/제거/clear 마다 증가.
     mutation_gen: u64,
+    /// strict 입력 모드 — 켜면 `build_tree_batch` 가 미지 키를 오류로 낸다.
+    ///
+    /// 기본 false: production 은 미지 키를 조용히 버린다 (레이아웃 전체 실패보다 낫다).
+    /// 하니스 (`tests/parity` · visual-parity doctor) 만 true 로 켜서 "파이프라인이
+    /// 보냈는데 엔진이 버린 키" 를 그 자리에서 실패로 만든다. 켜기 전에는 그 차이가
+    /// rect 불일치로만 나타나 엔진 결함으로 오판됐다 (1차 sweep 오탐 132/288).
+    strict_input: bool,
     /// ADR-183 — 판정 트레이스 sink. `None` 이 기본이고, 그때 계측 지점의 비용은
     /// `Option` 분기 1회다 (HC1). `Box` 인 이유는 off 상태 `LayoutTree` 를
     /// 포인터 하나만큼만 키우기 위함.
@@ -713,6 +844,19 @@ impl LayoutTree {
         self.last_compute = None;
     }
 
+    /// strict 입력 모드 토글 (기본 false).
+    ///
+    /// true 면 `build_tree_batch` 가 `NodeStyle` / `BatchNodeInput` 에 없는 키를
+    /// 조용히 버리지 않고 오류를 낸다. 하니스에서만 켠다.
+    pub fn set_strict_input(&mut self, enabled: bool) {
+        self.strict_input = enabled;
+    }
+
+    /// 현재 strict 입력 모드.
+    pub fn strict_input(&self) -> bool {
+        self.strict_input
+    }
+
     /// 현재 살아있는 노드 수.
     pub fn node_count(&self) -> usize {
         self.nodes.iter().filter(|n| n.is_some()).count()
@@ -729,6 +873,32 @@ impl LayoutTree {
     /// JSON 파싱 실패 또는 자식 인덱스 범위 초과 시 `Err`. (taffy_bridge.rs 와
     /// 동일한 no-silent-drop 정책 — filter_map/unwrap 금지.)
     pub fn build_tree_batch(&mut self, nodes_json: &str) -> Result<Vec<usize>, String> {
+        // strict 는 하니스·진단 전용 — 기본 경로가 지나는 것은 이 분기 하나다.
+        if self.strict_input {
+            let unknown: Vec<(usize, Vec<String>)> = collect_unknown_keys(nodes_json)?
+                .into_iter()
+                .filter_map(|(i, keys)| {
+                    let rest: Vec<String> = keys
+                        .into_iter()
+                        .filter(|k| !TS_OWNED_INPUT_KEYS.contains(&k.as_str()))
+                        .collect();
+                    (!rest.is_empty()).then_some((i, rest))
+                })
+                .collect();
+            if !unknown.is_empty() {
+                let detail = unknown
+                    .iter()
+                    .take(8)
+                    .map(|(i, keys)| format!("node {i}: {}", keys.join(", ")))
+                    .collect::<Vec<_>>()
+                    .join(" | ");
+                return Err(format!(
+                    "build_tree_batch: strict 입력 — 엔진이 읽지 않는 키를 가진 노드 {}개 ({detail})",
+                    unknown.len()
+                ));
+            }
+        }
+
         let inputs: Vec<BatchNodeInput> = serde_json::from_str(nodes_json)
             .map_err(|e| format!("build_tree_batch: parse error: {e}"))?;
 
@@ -5448,7 +5618,7 @@ mod tests {
         //     추가 — 소비처는 write_block_item 슬롯 16/17 + 컨테이너 strut(line_height)
         //     + leaf solve baseline (슬롯 18 은 S4 text run 예약 — r8l1 정정) →
         //     "54 = 소비 54 + 미소비 0".
-        const CONSUMED_COUNT: usize = 54;
+        const CONSUMED_COUNT: usize = 55;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,
@@ -5464,6 +5634,92 @@ mod tests {
             UNCONSUMED_NODESTYLE_FIELDS, empty,
             "미소비 필드 변경 — ADR-156 §Residual + breakdown §1-3 동반 갱신",
         );
+    }
+
+    /// serde 가 실제로 쓰는 이름 == `NODESTYLE_FIELD_NAMES`.
+    ///
+    /// 이름 표는 손으로 쓰므로 드리프트할 수 있다. `Serialize` 로 직렬화한 키 집합과
+    /// 대조해 표가 serde 계약을 그대로 옮겼는지 기계 확인한다 — 필드를 추가하면서
+    /// 표를 안 고치면 여기서 RED. 개수 상수 (`NODESTYLE_FIELD_COUNT`) 도 같이 잡힌다
+    /// (ADR-204 Phase 2 가 contentMinHeight 를 더하고 54 를 안 올린 채 지나갔다 —
+    /// 산술 단언은 상수끼리만 비교해 그 드리프트를 못 봤다).
+    #[test]
+    fn nodestyle_serde_names_match_field_table() {
+        let value = serde_json::to_value(NodeStyle::default()).expect("직렬화");
+        let mut serde_names: Vec<String> = value
+            .as_object()
+            .expect("NodeStyle 은 객체")
+            .keys()
+            .cloned()
+            .collect();
+        serde_names.sort();
+
+        let mut table: Vec<String> = NODESTYLE_FIELD_NAMES.iter().map(|s| s.to_string()).collect();
+        table.sort();
+
+        assert_eq!(
+            serde_names, table,
+            "NODESTYLE_FIELD_NAMES 가 serde 계약명과 다르다 — 필드 추가/개명 시 표 동반 갱신"
+        );
+        assert_eq!(NODESTYLE_FIELD_NAMES.len(), NODESTYLE_FIELD_COUNT);
+    }
+
+    #[test]
+    fn collect_unknown_keys_finds_dropped_style_and_node_keys() {
+        // `order` 는 TS 가 지금도 보내지만 (`utils.ts` applyCommonEngineStyle) NodeStyle 에
+        // 없어 조용히 버려진다. `gap` 은 shorthand — 엔진은 rowGap/columnGap 만 읽는다.
+        let json = r#"[{"style":{"width":"10px","gap":"8px","order":2},"children":[],"note":"x"}]"#;
+        let found = collect_unknown_keys(json).expect("파싱");
+        assert_eq!(found.len(), 1);
+        assert_eq!(found[0].0, 0);
+        assert_eq!(
+            found[0].1,
+            vec!["note".to_string(), "style.gap".to_string(), "style.order".to_string()]
+        );
+    }
+
+    #[test]
+    fn collect_unknown_keys_empty_for_clean_payload() {
+        let json = r#"[{"style":{"width":"10px","rowGap":"8px"},"children":[]}]"#;
+        assert!(collect_unknown_keys(json).expect("파싱").is_empty());
+    }
+
+    /// TS 소유 키는 strict 도 통과 — 등재된 것만.
+    #[test]
+    fn strict_input_allows_ts_owned_keys() {
+        let json = r#"[{"style":{"width":"10px","whiteSpace":"nowrap","order":2},"children":[]}]"#;
+        // 진단은 여전히 전부 보여준다 (버려지는 사실 자체는 숨기지 않는다).
+        let found = collect_unknown_keys(json).expect("파싱");
+        assert_eq!(
+            found[0].1,
+            vec!["style.order".to_string(), "style.whiteSpace".to_string()]
+        );
+
+        // strict 는 통과.
+        let mut strict = LayoutTree::new();
+        strict.set_strict_input(true);
+        assert!(strict.build_tree_batch(json).is_ok());
+    }
+
+    #[test]
+    fn strict_input_rejects_unknown_keys_default_path_accepts() {
+        let json = r#"[{"style":{"width":"10px","gap":"8px"},"children":[]}]"#;
+
+        // 기본 경로: 미지 키를 조용히 버리고 성공 (production 계약 — 무변경)
+        let mut lenient = LayoutTree::new();
+        assert!(!lenient.strict_input());
+        assert!(lenient.build_tree_batch(json).is_ok());
+
+        // strict: 같은 payload 가 오류
+        let mut strict = LayoutTree::new();
+        strict.set_strict_input(true);
+        let err = strict.build_tree_batch(json).expect_err("strict 는 실패해야 한다");
+        assert!(err.contains("strict 입력"), "{err}");
+        assert!(err.contains("style.gap"), "{err}");
+
+        // strict 라도 깨끗한 payload 는 통과
+        let clean = r#"[{"style":{"width":"10px","rowGap":"8px"},"children":[]}]"#;
+        assert!(strict.build_tree_batch(clean).is_ok());
     }
 
     /// BatchNodeInput 형식(`{style, children}`)의 leaf 노드 JSON 1개.

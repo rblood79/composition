@@ -190,6 +190,34 @@ export class CompositionEngineLayout {
     return this.engine.hasBinaryProtocol();
   }
 
+  // ── strict 입력 (하니스·진단 채널) ──────────────────────────────────
+
+  /**
+   * strict 입력 모드 토글 (기본 false).
+   *
+   * 켜면 `buildTreeBatch` 가 `NodeStyle` 에 없는 키를 조용히 버리지 않고 오류를
+   * 낸다. **production 에서 켜지 말 것** — 미지 키 하나로 레이아웃이 통째로 실패한다.
+   * 켜는 곳은 parity / visual-parity 하니스다.
+   */
+  setStrictInput(enabled: boolean): void {
+    if (!this.engine) return;
+    this.engine.setStrictInput(enabled);
+  }
+
+  /**
+   * batch payload 에서 엔진이 읽지 않는 키를 진단한다 — `[{index, keys}]`.
+   *
+   * `serde_json::Value` 선파싱이라 파싱을 두 번 한다. **레이아웃 경로에서 호출 금지** —
+   * 일회성 진단 전용이다.
+   */
+  inspectUnknownKeys(nodesJson: string): { index: number; keys: string[] }[] {
+    if (!this.engine) return [];
+    return JSON.parse(this.engine.inspectUnknownKeys(nodesJson)) as {
+      index: number;
+      keys: string[];
+    }[];
+  }
+
   // ── 증분 갱신 ────────────────────────────────────────────────────────
 
   createNodeRaw(styleJson: string): LayoutNodeHandle {

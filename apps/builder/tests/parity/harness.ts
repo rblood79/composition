@@ -3,6 +3,7 @@ import {
   calculateFullTreeLayout,
   resetPersistentTree,
 } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
+import { setStrictLayoutInput } from "@/builder/workspace/canvas/wasm-bindings/layoutBridge";
 import type { CanvasLayoutNode } from "@/types/builder/unified.types";
 
 /**
@@ -134,6 +135,11 @@ export function engineLeg(
       "composition-engine WASM 미준비 — initCompositionEngineWasm 확인",
     );
   }
+  // strict 입력은 여기서 켜지 않는다 — 케이스의 `style` 은 두 leg 이 공유하는
+  // **DOM ∪ 엔진 키의 합집합**이다 (`borderTopStyle` 은 DOM leg 이 테두리를 그리는 데
+  // 필요하고, `left`/`top` 은 CSS 이름). 엔진이 안 읽는 것이 정상이라 여기서 strict 를
+  // 켜면 케이스 77건이 가짜로 실패한다. strict 가 의미 있는 곳은 production 파이프라인이
+  // 만든 payload — `pipelineLeg` 다.
 
   const batch = nodes.map((n) => ({
     style: n.style,
@@ -270,14 +276,25 @@ export function pipelineLeg(
     (childrenMap.get(id) ?? []).map((cid) => elementsMap.get(cid)!);
 
   resetPersistentTree(pageId);
-  const map = calculateFullTreeLayout(
-    ids[rootIdx],
-    elementsMap,
-    childrenMap,
-    availW,
-    availH,
-    getChild,
-  );
+  // strict 입력 — 이 leg 의 payload 는 production 파이프라인
+  // (`enrichWithIntrinsicSize` → `applyCommonEngineStyle` → `buildNodeStyle`) 이 만든다.
+  // 파이프라인이 실어 보냈는데 엔진 `NodeStyle` 에 없어 조용히 버려지는 키가 있으면
+  // rect 불일치(= 엔진 결함처럼 보이는 것)가 아니라 그 자리에서 실패시킨다 —
+  // 1차 sweep 오탐 132/288 의 원인이 정확히 그 무음 드롭이었다.
+  setStrictLayoutInput(true);
+  let map;
+  try {
+    map = calculateFullTreeLayout(
+      ids[rootIdx],
+      elementsMap,
+      childrenMap,
+      availW,
+      availH,
+      getChild,
+    );
+  } finally {
+    setStrictLayoutInput(false);
+  }
   resetPersistentTree(pageId);
   if (!map) {
     throw new Error(

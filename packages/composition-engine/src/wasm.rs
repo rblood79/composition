@@ -30,7 +30,7 @@
 
 use wasm_bindgen::prelude::*;
 
-use crate::tree::LayoutTree;
+use crate::tree::{collect_unknown_keys, LayoutTree};
 
 /// `LayoutEngineAPI`(layoutBridge.ts) 를 구현하는 자체 엔진 wrapper.
 ///
@@ -88,6 +88,42 @@ impl LayoutEngine {
     #[wasm_bindgen(js_name = hasBinaryProtocol)]
     pub fn has_binary_protocol(&self) -> bool {
         false
+    }
+
+    // ── strict 입력 (하니스·진단 전용) ──
+
+    /// strict 입력 모드 토글 (기본 false).
+    ///
+    /// true 면 `buildTreeBatch` 가 엔진이 읽지 않는 키를 만났을 때 조용히 버리지
+    /// 않고 오류를 낸다. **production 에서 켜지 말 것** — 미지 키 하나로 레이아웃이
+    /// 통째로 실패한다. 켜는 곳은 parity/visual-parity 하니스다.
+    #[wasm_bindgen(js_name = setStrictInput)]
+    pub fn set_strict_input(&mut self, enabled: bool) {
+        self.tree.set_strict_input(enabled);
+    }
+
+    /// 현재 strict 입력 모드.
+    #[wasm_bindgen(js_name = isStrictInput)]
+    pub fn is_strict_input(&self) -> bool {
+        self.tree.strict_input()
+    }
+
+    /// batch payload 에서 엔진이 읽지 않는 키를 진단한다 (일회성 — hot path 금지).
+    ///
+    /// 반환: `[{"index":0,"keys":["style.gap"]}, ...]` JSON. 미지 키가 없으면 `[]`.
+    ///
+    /// # Errors
+    /// JSON 파싱 실패 시 `Err(JsValue)`.
+    #[wasm_bindgen(js_name = inspectUnknownKeys)]
+    pub fn inspect_unknown_keys(&self, nodes_json: &str) -> Result<String, JsValue> {
+        let found =
+            collect_unknown_keys(nodes_json).map_err(|e| JsValue::from_str(&e))?;
+        let payload: Vec<serde_json::Value> = found
+            .into_iter()
+            .map(|(index, keys)| serde_json::json!({ "index": index, "keys": keys }))
+            .collect();
+        serde_json::to_string(&payload)
+            .map_err(|e| JsValue::from_str(&format!("inspectUnknownKeys: {e}")))
     }
 
     // ── 증분 갱신 ──

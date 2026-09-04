@@ -53,6 +53,15 @@ export interface LayoutEngineAPI {
   // 소비자는 `?.` 호출 + 미지원 시 false/null 로 강등.
   enableLayoutTrace?(enabled: boolean): boolean;
   getLayoutTrace?(handle: number): EngineTraceNode | null;
+
+  // ── strict 입력 (하니스·진단 채널) ──
+  // 기본 false. 켜면 `buildTreeBatch` 가 엔진이 읽지 않는 키를 오류로 낸다 —
+  // "파이프라인이 보냈는데 엔진이 버린 키" 를 rect 불일치가 아니라 그 자리에서
+  // 실패로 만든다. production 은 켜지 않는다 (미지 키 하나로 레이아웃 전체 실패).
+  // optional: 테스트용 fake 엔진이 구현을 강제받지 않는다.
+  setStrictInput?(enabled: boolean): void;
+  /** batch payload 에서 엔진이 버리는 키 — `[{index, keys}]`. hot path 금지. */
+  inspectUnknownKeys?(nodesJson: string): { index: number; keys: string[] }[];
 }
 
 /**
@@ -63,5 +72,25 @@ export interface LayoutEngineAPI {
  * 15초 폴링/재시도가 준비를 대기한다. 엔진 폴백 없음 (ADR-916 R4 소멸).
  */
 export function createLayoutEngine(): LayoutEngineAPI {
-  return new CompositionEngineLayout() as unknown as LayoutEngineAPI;
+  const engine = new CompositionEngineLayout() as unknown as LayoutEngineAPI;
+  if (strictLayoutInput) engine.setStrictInput?.(true);
+  return engine;
+}
+
+// ── strict 입력 스위치 (하니스 전용) ──────────────────────────────────
+//
+// `createLayoutEngine()` 은 `PersistentLayoutTree` 안에서 호출돼 호출자가 인스턴스를
+// 잡을 수 없다. 그래서 프로세스 전역 플래그로 둔다 — **기본 false**, 켜는 곳은
+// parity 하니스의 파이프라인 leg 뿐이다. production 에서 켜면 미지 키 하나로
+// 레이아웃이 통째로 실패한다.
+let strictLayoutInput = false;
+
+/** 이후 생성되는 엔진에 strict 입력을 적용한다 (하니스 전용). */
+export function setStrictLayoutInput(enabled: boolean): void {
+  strictLayoutInput = enabled;
+}
+
+/** 현재 strict 입력 스위치 상태. */
+export function isStrictLayoutInput(): boolean {
+  return strictLayoutInput;
 }
