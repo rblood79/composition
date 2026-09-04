@@ -629,8 +629,8 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 | 순서 | 항목                                                       | 등급 | 실측 근거                                                                                                                                                                                                                                                                     | 종류          | phase / 트리거                                           |
 | ---- | ---------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------- |
 | 1 ✅ | pretext ① Tier 3 규칙 5 + computeLines 1                   | A    | B3 결함 10 케이스 (A·C·E·F·G·H·L·O·N·N2) 전부 현재 코드에서 재현. 행말 금칙 dead 확정 (`tokenize` 가 `「 ( " '` 을 `breakable:false` 로 냄). D 케이스 폭 누락 재현 (토큰 폭 합 130 vs `maxLineWidth` 110). `nodeRendererText.ts:539` hintedText 로 Skia 에 직결 — 사용자-가시 | **동작 변경** | 1 · live 필수 (빌더 Text 에 A/E/G/L/N 문자열)            |
-| 2    | fulgur ⑤ Taffy 주석 sweep + 매트릭스 생성                  | B    | 비테스트 src 35 파일 · `CSS_SUPPORT_MATRIX.md` 04-06 정지 · Taffy 71건 · 오판 2회 기록 (메모리 `feedback-stale-dependency-comment-is-not-engine-constraint`). 가치 본체는 sweep — 생성 스크립트는 `layoutCapabilityMatrix.ts` (참조 = 테스트 1개) 가 정본인지 먼저 확인       | 동작 변경 0   | 1 · sweep 선행, 생성은 정본 확인 후                      |
-| 3    | fulgur ② wasm strict 입력                                  | B    | 오탐 132/288 기록. 추가 실증: TS 가 `order` 를 지금도 전송 (`utils.ts:5872`) 하지만 `NodeStyle` 미선언 → 무음 드롭, `tree.rs:296` guard 주석은 "유입 경로 생기면 선언" 이라 계약 guard 가 유입을 이미 놓침 (동작 영향 0 — `fullTreeLayout.ts:1824` 가 TS 에서 pre-sort)       | 동작 변경 0   | 1 · 첫 run 이 미지 키 인벤토리                           |
+| 2 ✅ | fulgur ⑤ Taffy 주석 sweep + 매트릭스 생성                  | B    | 비테스트 src 35 파일 · `CSS_SUPPORT_MATRIX.md` 04-06 정지 · Taffy 71건 · 오판 2회 기록 (메모리 `feedback-stale-dependency-comment-is-not-engine-constraint`). 가치 본체는 sweep — 생성 스크립트는 `layoutCapabilityMatrix.ts` (참조 = 테스트 1개) 가 정본인지 먼저 확인       | 동작 변경 0   | 1 · sweep 선행, 생성은 정본 확인 후                      |
+| 3 ✅ | fulgur ② wasm strict 입력                                  | B    | 오탐 132/288 기록. 추가 실증: TS 가 `order` 를 지금도 전송 (`utils.ts:5872`) 하지만 `NodeStyle` 미선언 → 무음 드롭, `tree.rs:296` guard 주석은 "유입 경로 생기면 선언" 이라 계약 guard 가 유입을 이미 놓침 (동작 영향 0 — `fullTreeLayout.ts:1824` 가 TS 에서 pre-sort)       | 동작 변경 0   | 1 · 첫 run 이 미지 키 인벤토리                           |
 | 4    | pretext ③ letterSpacing fallback 축소                      | B    | `needsFallback():384` + `TypographySection.tsx:276` 노출 — production 경로. grapheme 수 캐시 없으면 텍스트당 49 µs (B4-13) 라 캐시가 착수 조건                                                                                                                                | **동작 변경** | 1 · 1 이후 · grapheme 수 캐시                            |
 | 5    | pretext ② 이모지 보정                                      | B−   | B3 emoji 실측 (Chrome 152 · DPR 2) 은 문서 기록뿐, 09-04 재확인 안 함. headless DPR 1 무효                                                                                                                                                                                    | **동작 변경** | 1 · DPR 2 헤드 환경에서 재현 확인 후                     |
 | —    | fulgur ③ 결정성 기준선 축                                  | C+   | 논리는 성립 (양 leg 가 catalog 파생 → 토큰 회귀는 대칭 통과). gate 는 pre-push + `deploy.yml` 실행이라 3축 추가 시 실효. 그러나 "게이트가 놓친 회귀" 사고 기록 없음                                                                                                           | 동작 변경 0   | 대칭 통과한 토큰 회귀가 실제로 1건 발생할 때             |
@@ -644,6 +644,16 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 **반영 이력**: 순서 1 (pretext ①) 은 2026-09-05 `ba579c7a6` 로 반영 완료 — 원복 RED 13/18 → 18/18 GREEN,
 회귀 538건, 빌더 Skia ↔ Chrome DOM 줄 위치 live 대조 일치. 근거
 [docs/adr/evidence/051-tier3-upstream-rules-live.md](../../adr/evidence/051-tier3-upstream-rules-live.md).
-§B6 의 ADR-051 breakdown 상태 drift 도 같이 정정했다. 다음은 순서 2 (fulgur ⑤ Taffy 주석 sweep).
+§B6 의 ADR-051 breakdown 상태 drift 도 같이 정정했다.
+
+순서 2·3 은 파일 집합이 분리돼 한 phase 로 묶어 2026-09-05 `a34e1b66c` · `f40e40051` 로 반영했다 —
+게이트 2개 RED probe 확인, strict 첫 run 이 인벤토리 (버려지는 키는 `whiteSpace` · `order` 둘뿐,
+둘 다 TS 소유), parity 는 baseline 과 동일. 근거
+[docs/adr/evidence/external-pattern-delta-group-a.md](../../adr/evidence/external-pattern-delta-group-a.md).
+두 곳에서 문서 제안을 실측으로 고쳤다 — ① strict 는 `engineLeg` 이 아니라 `pipelineLeg` 에 둔다
+(케이스 style 은 DOM ∪ 엔진 키의 합집합이라 engineLeg 에서는 77건이 가짜 실패) · ② `deny_unknown_fields`
+별도 구조체 대신 serde 이름 표 + 기계 대조 (55 필드 복제본은 조용히 드리프트한다).
+
+다음은 순서 4 (pretext ③ letterSpacing — grapheme 수 캐시가 착수 조건).
 
 문서 drift 추가 확인 (09-04): A2 "51 파일" 은 49 (비테스트 35). ADR-051 breakdown "Phase 0 대기" 는 `featureFlags.ts:35` `USE_CANVAS2D_MEASURE = true` 와 어긋남 (B6 그대로).

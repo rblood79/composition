@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [엔진 입력·문서가 조용히 어긋나던 자리에 게이트를 세웠습니다] - 2026-09-05
+
+### Added
+
+- **wasm 입력 strict 모드**: 레이아웃 엔진은 자기가 모르는 스타일 키를 조용히 버립니다. 그 차이가 위치 어긋남으로만 나타나 엔진 결함으로 오판된 이력이 있어, 하니스에서 켜면 그 자리에서 실패하도록 했습니다. production 은 그대로 관대합니다 (미지 키 하나로 레이아웃 전체가 실패하면 안 됩니다).
+  - 켠 첫 실행이 인벤토리였습니다 — 파이프라인이 보내고 엔진이 버리는 키는 `whiteSpace` 와 `order` 둘뿐이고, 둘 다 TS 가 소유해 엔진이 안 읽어도 결과가 맞습니다 (사유와 함께 통과 목록에 등재).
+  - 위치: `packages/composition-engine/src/{tree,wasm}.rs`, `canvas/wasm-bindings/{layoutBridge,compositionEngine}.ts`
+- **정적 게이트 2개**: 삭제된 의존성 이름 (Taffy) 의 현재형 서술 재유입 차단 · `CSS_SUPPORT_MATRIX.md` 엔진 절과 코드의 drift 검사 (`codex:preflight` 에 추가).
+
+### Fixed
+
+- **엔진 필드 수 상수 드리프트**: `NODESTYLE_FIELD_COUNT` 가 54 인데 구조체는 55 필드였습니다. 필드를 더한 커밋이 상수를 안 올렸고, 검사 단언이 상수끼리만 비교해 통과하고 있었습니다. 이제 serde 가 실제로 쓰는 키 집합과 기계 대조합니다.
+
+### Changed
+
+- **삭제된 레이아웃 엔진 이름 정리**: ADR-916 에서 제거된 Taffy 가 소스 35 파일 주석에 현재형으로 남아 없는 라이브러리의 능력이 엔진 제약처럼 읽히고 있었습니다. 현재형 서술만 바꾸고 제거·개명·계보를 밝힌 역사 서술은 남겼습니다.
+- **`docs/CSS_SUPPORT_MATRIX.md`**: 2026-04-06 에 멈춘 채 삭제된 파일을 71곳에서 인용하고 있었습니다. 엔진 capability 절 (§0) 은 이제 코드가 생성하고, 손 편집 본문은 스냅샷임을 머리말에 밝혔습니다.
+
+### Tests
+
+- Rust 417건 · builder `canvas/layout` 482건 · parity 1056건 통과 (parity 의 기존 실패 13 파일 + 2건은 이번 변경과 무관 — baseline 대조로 확인).
+- 근거: [docs/adr/evidence/external-pattern-delta-group-a.md](adr/evidence/external-pattern-delta-group-a.md) — 게이트 RED probe · strict 첫 run 인벤토리 · baseline 대조.
+
 ## [텍스트 줄바꿈이 브라우저와 어긋나던 10가지를 고쳤습니다] - 2026-09-05
 
 ### Fixed
