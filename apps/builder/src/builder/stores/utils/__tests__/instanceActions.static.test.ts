@@ -133,7 +133,8 @@ describe("legacy model leaf cleanup static gates", () => {
     expect(resetSource).toContain("getParent");
     expect(resetSource).not.toContain("getCanonicalDocumentElementsView");
     expect(resetSource).not.toContain("visitCanonicalDocumentElements");
-    expect(overlaySource).toContain("getCanonicalDocumentElementsView");
+    expect(overlaySource).toContain("getLastProjectableNodeById");
+    expect(overlaySource).not.toContain("getCanonicalDocumentElementsView");
     expect(overlaySource).not.toContain("visitCanonicalDocumentElements");
     expect(viewSource).toContain(
       "return [...getCanonicalDocumentElementsView(doc).elements]",

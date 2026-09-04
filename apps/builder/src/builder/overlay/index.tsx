@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useStore } from "../stores";
-import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { getCanonicalDocumentElementsView } from "../stores/canonical/canonicalElementsView";
+import { getLastProjectableNodeById } from "../stores/canonical/canonicalTraversalHelpers";
 import { MessageService } from "../../utils/messaging";
 import { isValidPreviewMessage } from "../../utils/messageValidation";
 import { useVisibleOverlays } from "./hooks/useVisibleOverlays";
@@ -11,18 +10,11 @@ import { useOverlayDebug } from "./OverlayDebug";
 
 import "./index.css";
 
-function getActiveCanonicalElementForOverlay(
+function getActiveCanonicalNodeForOverlay(
   elementId: string,
 ): { type: string } | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const element = getCanonicalDocumentElementsView(doc).byId.get(elementId);
-  return element ? { type: element.type } : null;
+  const node = getLastProjectableNodeById(elementId);
+  return node ? { type: node.type } : null;
 }
 
 interface Rect {
@@ -107,7 +99,7 @@ export default function SelectionOverlay() {
         // (실제 body에 data-element-id가 설정되어 있음)
         if (!element) {
           const selectedElement =
-            getActiveCanonicalElementForOverlay(selectedElementId);
+            getActiveCanonicalNodeForOverlay(selectedElementId);
           if (selectedElement?.type === "body") {
             // 실제 <body> 태그에서 찾기
             if (iframe.contentDocument.body.getAttribute("data-element-id")) {

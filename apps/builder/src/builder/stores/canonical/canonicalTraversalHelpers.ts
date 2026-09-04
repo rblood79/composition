@@ -418,6 +418,29 @@ export function getFirstProjectableNodeLookupById(
   return c?.firstProjectableNodeById.get(nodeId) ?? null;
 }
 
+/**
+ * legacy derived view의 `byId`와 같은 마지막 projectable node를 반환한다.
+ * 정상 문서의 unique id는 기존 nodeMap에서 O(1), migration 중 duplicate id만
+ * projectable occurrence를 역검색하는 compatibility slow path를 사용한다.
+ */
+export function getLastProjectableNodeById(
+  nodeId: string,
+): CanonicalNode | null {
+  const c = ensureCache();
+  if (!c) return null;
+
+  if ((c.nodeOccurrenceCountById.get(nodeId) ?? 0) <= 1) {
+    const node = c.nodeMap.get(nodeId);
+    return node && isCanonicalNodeProjectableToElement(node) ? node : null;
+  }
+
+  for (let index = c.projectableNodeLookups.length - 1; index >= 0; index--) {
+    const node = c.projectableNodeLookups[index]?.node;
+    if (node?.id === nodeId) return node;
+  }
+  return null;
+}
+
 /** migration 중 invalid duplicate id 감지용. 정상 문서는 항상 0 또는 1이다. */
 export function getCanonicalNodeOccurrenceCount(nodeId: string): number {
   const c = ensureCache();

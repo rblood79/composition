@@ -25,6 +25,7 @@ import {
   getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
   getFirstProjectableNodeLookupById,
+  getLastProjectableNodeById,
   getNodeMap,
   getParent,
   getProjectableChildrenByParent,
@@ -283,6 +284,7 @@ describe("getNodeMap", () => {
       pageId: null,
       layoutId: null,
     });
+    expect(getLastProjectableNodeById("duplicate")?.props?.value).toBe("last");
     expect(getNodeMap().get("duplicate")?.props?.value).toBe("last");
   });
 
@@ -298,6 +300,9 @@ describe("getNodeMap", () => {
     );
 
     expect(getFirstProjectableNodeById("duplicate")?.props?.value).toBe(
+      "renderable",
+    );
+    expect(getLastProjectableNodeById("duplicate")?.props?.value).toBe(
       "renderable",
     );
   });
