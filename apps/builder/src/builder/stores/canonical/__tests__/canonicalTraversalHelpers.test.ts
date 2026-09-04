@@ -22,6 +22,7 @@ import {
   getAncestors,
   getChildren,
   getChildrenByParent,
+  getFirstProjectableNodeById,
   getNodeMap,
   getParent,
 } from "../canonicalTraversalHelpers";
@@ -255,6 +256,39 @@ describe("getNodeMap", () => {
     const map = getNodeMap();
     expect(map.size).toBe(3);
     expect([...map.keys()].sort()).toEqual(["r1", "r2", "r3"]);
+  });
+
+  it("first-match lookup은 legacy mutation의 Array.find 의미를 보존한다", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({
+        children: [
+          makeNode("duplicate", { props: { value: "first" } }),
+          makeNode("duplicate", { props: { value: "last" } }),
+        ],
+      }),
+    );
+
+    expect(getFirstProjectableNodeById("duplicate")?.props?.value).toBe(
+      "first",
+    );
+    expect(getNodeMap().get("duplicate")?.props?.value).toBe("last");
+  });
+
+  it("first projectable lookup은 structural duplicate를 건너뛴다", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({
+        children: [
+          makeNode("duplicate", { props: undefined }),
+          makeNode("duplicate", { props: { value: "renderable" } }),
+        ],
+      }),
+    );
+
+    expect(getFirstProjectableNodeById("duplicate")?.props?.value).toBe(
+      "renderable",
+    );
   });
 
   it("page ref descendants의 replacement subtree를 canonical hierarchy로 등록", () => {

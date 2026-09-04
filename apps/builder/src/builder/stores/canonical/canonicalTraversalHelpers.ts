@@ -50,6 +50,7 @@ interface TraversalCache {
   version: number;
   projectId: string;
   nodeMap: Map<string, CanonicalNode>;
+  firstProjectableNodeById: Map<string, CanonicalNode>;
   childrenByParent: Map<string, CanonicalNode[]>;
   parentEdge: Map<string, string>; // childId → parentId
 }
@@ -76,6 +77,25 @@ function isCanonicalNode(value: unknown): value is CanonicalNode {
   if (!value || typeof value !== "object") return false;
   const candidate = value as { id?: unknown; type?: unknown };
   return typeof candidate.id === "string" && typeof candidate.type === "string";
+}
+
+/**
+ * legacy Element view에 실제로 나타나는 canonical node인지 판정한다.
+ * canonicalNodeToElement과 items mutation lookup이 같은 경계를 공유해야
+ * structural placeholder가 renderable duplicate id보다 먼저 선택되지 않는다.
+ */
+export function isCanonicalNodeProjectableToElement(
+  node: CanonicalNode,
+): boolean {
+  if (node.props) return true;
+
+  const metadata = node.metadata as { type?: unknown } | undefined;
+  if (metadata?.type === "legacy-slot-hoisted") return true;
+
+  const ref = (node as CanonicalNode & { ref?: unknown }).ref;
+  const isPagePlaceholder =
+    metadata?.type === "page" || metadata?.type === "legacy-page";
+  return typeof ref === "string" && ref.length > 0 && !isPagePlaceholder;
 }
 
 function readDescendantChildren(override: unknown): CanonicalNode[] {
@@ -116,10 +136,17 @@ function ensureCache(): TraversalCache | null {
   }
 
   const nodeMap = new Map<string, CanonicalNode>();
+  const firstProjectableNodeById = new Map<string, CanonicalNode>();
   const childrenByParent = new Map<string, CanonicalNode[]>();
   const parentEdge = new Map<string, string>();
 
   function visit(node: CanonicalNode, parentId: string | null): void {
+    if (
+      isCanonicalNodeProjectableToElement(node) &&
+      !firstProjectableNodeById.has(node.id)
+    ) {
+      firstProjectableNodeById.set(node.id, node);
+    }
     nodeMap.set(node.id, node);
     if (parentId) {
       parentEdge.set(node.id, parentId);
@@ -153,6 +180,7 @@ function ensureCache(): TraversalCache | null {
     version: snapshot.version,
     projectId: snapshot.projectId,
     nodeMap,
+    firstProjectableNodeById,
     childrenByParent,
     parentEdge,
   };
@@ -252,6 +280,21 @@ export function findByPath(path: string): CanonicalNode | null {
 export function getNodeMap(): Map<string, CanonicalNode> {
   const c = ensureCache();
   return c?.nodeMap ?? new Map();
+}
+
+/**
+ * 활성 canonical document에서 legacy Element view에 포함되는 nodeId의 첫 DFS
+ * match를 반환한다.
+ *
+ * legacy `Element[].find()` mutation 경계가 중복 id 문서에서 사용하던 의미를
+ * 유지하는 O(1) compatibility lookup이다. 정상 문서의 id는 유일해야 하지만,
+ * migration 중 structural duplicate로 read target이 어긋나지 않도록 별도로 둔다.
+ */
+export function getFirstProjectableNodeById(
+  nodeId: string,
+): CanonicalNode | null {
+  const c = ensureCache();
+  return c?.firstProjectableNodeById.get(nodeId) ?? null;
 }
 
 /**

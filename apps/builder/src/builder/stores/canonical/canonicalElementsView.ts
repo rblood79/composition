@@ -37,7 +37,10 @@ import {
   useActiveCanonicalDocument,
 } from "./canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
-import { getCanonicalPageRefDescendantChildren } from "./canonicalTraversalHelpers";
+import {
+  getCanonicalPageRefDescendantChildren,
+  isCanonicalNodeProjectableToElement,
+} from "./canonicalTraversalHelpers";
 
 type ElementScopeContext = {
   pageId: string | null;
@@ -165,10 +168,8 @@ export function canonicalNodeToElement(
   const extFields = extractExtensionFields(node);
   const metadata = node.metadata as CanonicalScopeMetadata | undefined;
   const isLegacySlotHoisted = metadata?.type === "legacy-slot-hoisted";
-  const isPagePlaceholder = isPagePlaceholderNode(node);
   const mirrorFields = extractCanonicalComponentMirrorFields(node);
-  const isRenderableRef = mirrorFields.ref !== undefined && !isPagePlaceholder;
-  if (!node.props && !isLegacySlotHoisted && !isRenderableRef) return null;
+  if (!isCanonicalNodeProjectableToElement(node)) return null;
   const customId = readLegacyMetadataCustomId(metadata);
   const props = { ...(node.props ?? {}) };
   if (isLegacySlotHoisted && typeof metadata?.slotName === "string") {

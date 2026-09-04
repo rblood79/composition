@@ -73,6 +73,7 @@ import {
   useCanonicalDocumentStore,
 } from "./canonical/canonicalDocumentStore";
 import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
+import { getFirstProjectableNodeById } from "./canonical/canonicalTraversalHelpers";
 import {
   type PageElementIndex,
   type ComponentIndex,
@@ -518,14 +519,28 @@ function resolvePageActivationElementById(
   return resolveStoreOrCanonicalElement(state, elementId);
 }
 
+type ItemsActionNode = {
+  readonly type: string;
+  readonly props?: Readonly<Record<string, unknown>>;
+};
+
 function getElementForItemsAction(
   get: () => ElementsState,
   elementId: string,
-): Element | undefined {
+): ItemsActionNode | undefined {
   const state = get();
-  return (
-    findElementById(getCanonicalOrStoreElements(state), elementId) ?? undefined
-  );
+  if (selectActiveCanonicalDocument()) {
+    return getFirstProjectableNodeById(elementId) ?? undefined;
+  }
+  return state.elementsMap.get(elementId);
+}
+
+function getItemsForAction(
+  element: ItemsActionNode,
+  itemsKey: string,
+): Record<string, unknown>[] {
+  const items = element.props?.[itemsKey];
+  return Array.isArray(items) ? (items as Record<string, unknown>[]) : [];
 }
 
 // Builder type-check gate가 기존 legacy 오류를 source line으로 식별하므로,
@@ -2535,14 +2550,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     addItem: async (elementId, itemsKey, item) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const newItem: Record<string, unknown> = {
         label: "Item",
         ...(item ?? {}),
@@ -2559,14 +2567,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     removeItem: async (elementId, itemsKey, itemId) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const next = currentItems.filter((it) => it.id !== itemId);
       await get().updateElementProps(elementId, { [itemsKey]: next });
     },
@@ -2574,14 +2575,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     updateItem: async (elementId, itemsKey, itemId, patch) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const next = currentItems.map((it) =>
         it.id === itemId ? { ...it, ...patch } : it,
       );
@@ -2592,14 +2586,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     addSection: async (elementId, itemsKey, header = "New Section") => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const newSection: Record<string, unknown> = {
         id: crypto.randomUUID(),
         type: "section",
@@ -2614,14 +2601,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     addSeparator: async (elementId, itemsKey) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const newSeparator: Record<string, unknown> = {
         id: crypto.randomUUID(),
         type: "separator",
@@ -2634,14 +2614,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     addItemToSection: async (elementId, itemsKey, sectionId, item) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const newItem: Record<string, unknown> = {
         label: "Item",
         ...item,
@@ -2665,14 +2638,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     removeItemFromSection: async (elementId, itemsKey, sectionId, itemId) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const next = currentItems.map((entry) => {
         if (entry.id === sectionId && entry.type === "section") {
           const sectionItems = Array.isArray(entry.items)
@@ -2697,14 +2663,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     ) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
-      const currentItems = Array.isArray(
-        (el.props as Record<string, unknown>)[itemsKey],
-      )
-        ? ((el.props as Record<string, unknown>)[itemsKey] as Record<
-            string,
-            unknown
-          >[])
-        : [];
+      const currentItems = getItemsForAction(el, itemsKey);
       const next = currentItems.map((entry) => {
         if (entry.id === sectionId && entry.type === "section") {
           const sectionItems = Array.isArray(entry.items)
@@ -2743,7 +2702,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
     reorderMenuItems: async (menuId, fromIndex, toIndex) => {
       const menu = getElementForItemsAction(get, menuId);
       if (!menu || menu.type !== "Menu") return;
-      const items = ((menu.props.items ?? []) as StoredMenuItem[]).slice();
+      const items = getItemsForAction(menu, "items").slice();
       if (
         fromIndex < 0 ||
         toIndex < 0 ||
