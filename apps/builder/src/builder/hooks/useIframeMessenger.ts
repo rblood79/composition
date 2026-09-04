@@ -57,7 +57,8 @@ import {
 import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
 import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { getActiveCanonicalElementById } from "../stores/canonical/canonicalElementsView";
+import { getCanonicalDocumentProjectableNodeIds } from "../stores/canonical/canonicalTraversalHelpers";
 import type { CompositionDocument } from "@composition/shared";
 import { recordEditorPresentationPreviewFullDocumentMessage } from "../performance/editorPresentationPhase0Metrics";
 // ADR-006 P2-2: postMessage 보안 검증
@@ -88,37 +89,26 @@ function getActiveCanonicalDocumentForPreviewRead(): CompositionDocument | null 
   return canonical.getDocument(projectId) ?? null;
 }
 
-function getActiveCanonicalPreviewElements(): Element[] | null {
-  const doc = getActiveCanonicalDocumentForPreviewRead();
-  if (!doc) return null;
-
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
-}
-
 function getElementForPreviewSelection(elementId: string): Element | null {
-  const canonicalElements = getActiveCanonicalPreviewElements();
-  if (canonicalElements) {
-    return (
-      canonicalElements.find((element) => element.id === elementId) ?? null
-    );
+  const doc = getActiveCanonicalDocumentForPreviewRead();
+  if (doc) {
+    return getActiveCanonicalElementById(elementId);
   }
 
   const { elements: legacyElements } = useStore.getState();
   return legacyElements.find((element) => element.id === elementId) ?? null;
 }
 
-function getPreviewGeneratedElementIds(): Set<string> {
-  const canonicalElements = getActiveCanonicalPreviewElements();
-  if (canonicalElements) {
-    return new Set(canonicalElements.map((element) => element.id));
+function filterNewPreviewGeneratedElements(elements: Element[]): Element[] {
+  const doc = getActiveCanonicalDocumentForPreviewRead();
+  if (doc) {
+    const existingElementIds = getCanonicalDocumentProjectableNodeIds(doc);
+    return elements.filter((element) => !existingElementIds.has(element.id));
   }
 
   const { elements: legacyElements } = useStore.getState();
-  return new Set(legacyElements.map((element) => element.id));
+  const legacyElementIds = new Set(legacyElements.map((element) => element.id));
+  return elements.filter((element) => !legacyElementIds.has(element.id));
 }
 
 export interface UseIframeMessengerReturn {
@@ -766,12 +756,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         event.data.type === "ADD_COLUMN_ELEMENTS" &&
         event.data.payload?.columns
       ) {
-        const existingElementIds = getPreviewGeneratedElementIds();
         const newColumns = event.data.payload.columns;
-
-        const columnsToAdd = newColumns.filter(
-          (col: Element) => !existingElementIds.has(col.id),
-        );
+        const columnsToAdd = filterNewPreviewGeneratedElements(newColumns);
 
         if (columnsToAdd.length === 0) {
           return;
@@ -786,12 +772,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         event.data.type === "ADD_FIELD_ELEMENTS" &&
         event.data.payload?.fields
       ) {
-        const existingElementIds = getPreviewGeneratedElementIds();
         const newFields = event.data.payload.fields;
-
-        const fieldsToAdd = newFields.filter(
-          (field: Element) => !existingElementIds.has(field.id),
-        );
+        const fieldsToAdd = filterNewPreviewGeneratedElements(newFields);
 
         if (fieldsToAdd.length === 0) {
           return;

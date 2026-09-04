@@ -17,7 +17,7 @@ import {
   mergeElementsCanonicalPrimary,
 } from "../../../adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../../stores/canonical/canonicalElementsView";
+import { getActiveCanonicalElementById } from "../../stores/canonical/canonicalElementsView";
 import type { TextStyleConfig } from "./TextEditOverlay";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { useCanvasStore } from "../../stores/canvasStore";
@@ -29,9 +29,9 @@ import {
   textSourceOrder,
 } from "@composition/specs";
 
-type TextEditNode = Parameters<
-  Parameters<typeof visitCanonicalDocumentElements>[1]
->[0];
+type TextEditNode = NonNullable<
+  ReturnType<typeof getActiveCanonicalElementById>
+>;
 
 // ============================================
 // Types
@@ -115,27 +115,16 @@ const TEXT_ELEMENT_TAGS = new Set([
 // Helper Functions
 // ============================================
 
-function getActiveCanonicalTextEditElements(): TextEditNode[] | null {
+function hasActiveCanonicalTextEditDocument(): boolean {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const elements: TextEditNode[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
+  return projectId !== null && canonical.documents.has(projectId);
 }
 
 function getTextEditElement(elementId: string): TextEditNode | null {
-  const canonicalElements = getActiveCanonicalTextEditElements();
-  if (canonicalElements) {
-    return (
-      canonicalElements.find((element) => element.id === elementId) ?? null
-    );
+  const canonicalElement = getActiveCanonicalElementById(elementId);
+  if (canonicalElement || hasActiveCanonicalTextEditDocument()) {
+    return canonicalElement;
   }
 
   const { elements: legacyElements } = useStore.getState();
@@ -169,19 +158,23 @@ function applyLegacyBootstrapTextProp(updatedElement: TextEditNode): void {
  * canonical mutation wrapper를 먼저 통과한다. legacy store patch는 canonical
  * hydration 전 bootstrap fallback으로만 남긴다.
  */
-function silentUpdateTextProp(elementId: string, value: string): void {
-  const element = getTextEditElement(elementId);
-  if (!element) return;
+function silentUpdateTextProp(
+  element: TextEditNode,
+  value: string,
+): TextEditNode {
   const props = element.props as Record<string, unknown> | undefined;
   const propKey = getTextPropKey(element.type, props);
   const updatedElement = { ...element, props: { ...props, [propKey]: value } };
 
   if (areCanonicalMutationStoreActionsRegistered()) {
     const result = mergeElementsCanonicalPrimary([updatedElement]);
-    if (result.changed || getActiveCanonicalTextEditElements()) return;
+    if (result.changed || hasActiveCanonicalTextEditDocument()) {
+      return updatedElement;
+    }
   }
 
   applyLegacyBootstrapTextProp(updatedElement);
+  return updatedElement;
 }
 
 /**
@@ -310,7 +303,44 @@ export function useTextEdit(): UseTextEditReturn {
   // Pencil originalUndoSnapshot 패턴: 편집 시작 시 원본 값 저장
   const originalValueRef = useRef<string>("");
   const editingIdRef = useRef<string | null>(null);
+  const editingElementRef = useRef<TextEditNode | null>(null);
+  const editingRevisionRef = useRef({
+    documentVersion: -1,
+    layoutVersion: -1,
+  });
   const currentValueRef = useRef<string>("");
+
+  const captureEditingRevision = useCallback(() => {
+    editingRevisionRef.current = {
+      documentVersion: useCanonicalDocumentStore.getState().documentVersion,
+      layoutVersion: useStore.getState().layoutVersion,
+    };
+  }, []);
+
+  const readEditingElement = useCallback(
+    (elementId: string) => {
+      const cachedElement = editingElementRef.current;
+      if (!cachedElement || cachedElement.id !== elementId) return null;
+
+      const revision = editingRevisionRef.current;
+      const currentDocumentVersion =
+        useCanonicalDocumentStore.getState().documentVersion;
+      const currentLayoutVersion = useStore.getState().layoutVersion;
+      if (
+        revision.documentVersion === currentDocumentVersion &&
+        revision.layoutVersion === currentLayoutVersion
+      ) {
+        return cachedElement;
+      }
+
+      const refreshedElement = getTextEditElement(elementId);
+      if (!refreshedElement) return null;
+      editingElementRef.current = refreshedElement;
+      captureEditingRevision();
+      return refreshedElement;
+    },
+    [captureEditingRevision],
+  );
 
   // 편집 시작 (Pencil startTextEditing + nUt constructor 패턴)
   const startEdit = useCallback(
@@ -335,6 +365,8 @@ export function useTextEdit(): UseTextEditReturn {
       originalValueRef.current = text;
       currentValueRef.current = text;
       editingIdRef.current = elementId;
+      editingElementRef.current = element;
+      captureEditingRevision();
 
       // Skia 텍스트 숨김은 TextEditOverlay 마운트 후 수행 (깜빡임 방지)
       // → TextEditOverlay useEffect에서 setEditingElementId 호출
@@ -357,82 +389,106 @@ export function useTextEdit(): UseTextEditReturn {
       // ADR-192 — 바/셸이 텍스트 편집 중임을 읽는 유일한 반응형 플래그
       useCanvasStore.getState().setEditing(true, elementId);
     },
-    [],
+    [captureEditingRevision],
   );
 
   // 텍스트 변경 (실시간 — store props 업데이트, 히스토리 미기록)
   // fit-content 버튼 등 텍스트 기반 크기 요소의 실시간 레이아웃 반영
   // completeEdit에서 히스토리 1건만 기록
-  const updateText = useCallback((elementId: string, newValue: string) => {
-    if (editingIdRef.current !== elementId) return;
-    currentValueRef.current = newValue;
-    setEditState((prev) => {
-      if (!prev || prev.elementId !== elementId) return prev;
-      return { ...prev, value: newValue };
-    });
+  const updateText = useCallback(
+    (elementId: string, newValue: string) => {
+      if (editingIdRef.current !== elementId) return;
+      const editingElement = readEditingElement(elementId);
+      if (!editingElement) return;
+      currentValueRef.current = newValue;
+      setEditState((prev) => {
+        if (!prev || prev.elementId !== elementId) return prev;
+        return { ...prev, value: newValue };
+      });
 
-    // store props 직접 업데이트 (히스토리 없이) → 레이아웃 재계산 트리거
-    silentUpdateTextProp(elementId, newValue);
-  }, []);
+      // store props 직접 업데이트 (히스토리 없이) → 레이아웃 재계산 트리거
+      editingElementRef.current = silentUpdateTextProp(
+        editingElement,
+        newValue,
+      );
+      captureEditingRevision();
+    },
+    [captureEditingRevision, readEditingElement],
+  );
 
   // 편집 완료 (Pencil: commitBlock with undo: true)
-  const completeEdit = useCallback((elementId: string) => {
-    if (editingIdRef.current !== elementId) return;
+  const completeEdit = useCallback(
+    (elementId: string) => {
+      if (editingIdRef.current !== elementId) return;
 
-    const finalValue = currentValueRef.current;
-    const originalValue = originalValueRef.current;
+      const finalValue = currentValueRef.current;
+      const originalValue = originalValueRef.current;
+      const element = readEditingElement(elementId);
 
-    // Pencil showText: Skia 텍스트 렌더링 복원 + 리렌더 트리거
-    setEditingElementId(null);
-    notifyLayoutChange();
-    editingIdRef.current = null;
+      // Pencil showText: Skia 텍스트 렌더링 복원 + 리렌더 트리거
+      setEditingElementId(null);
+      notifyLayoutChange();
+      editingIdRef.current = null;
 
-    // 변경이 있으면 히스토리 기록 + DB 저장
-    // updateText에서 이미 store props를 실시간 반영했으므로
-    // 원본으로 복원 → updateElementProps (히스토리 기록) → 최종값 반영
-    if (finalValue !== originalValue) {
-      const element = getTextEditElement(elementId);
-      if (element) {
-        const props = element.props as Record<string, unknown> | undefined;
-        const propKey = getTextPropKey(element.type, props);
+      // 변경이 있으면 히스토리 기록 + DB 저장
+      // updateText에서 이미 store props를 실시간 반영했으므로
+      // 원본으로 복원 → updateElementProps (히스토리 기록) → 최종값 반영
+      if (finalValue !== originalValue) {
+        if (element?.id === elementId) {
+          const props = element.props as Record<string, unknown> | undefined;
+          const propKey = getTextPropKey(element.type, props);
 
-        // 원본 값으로 복원 (updateElementProps가 변경 감지하도록)
-        silentUpdateTextProp(elementId, originalValue);
+          // 원본 값으로 복원 (updateElementProps가 변경 감지하도록)
+          editingElementRef.current = silentUpdateTextProp(
+            element,
+            originalValue,
+          );
+          captureEditingRevision();
 
-        // silentUpdateTextProp이 store를 변경했으므로 최신 state 재조회
-        const freshState = useStore.getState();
-        // updateElementProps: 히스토리 기록 + DB persist + layoutVersion
-        freshState.updateElementProps(elementId, {
-          ...props,
-          [propKey]: finalValue,
-        });
-        freshState.invalidateLayout?.();
+          // silentUpdateTextProp이 store를 변경했으므로 최신 state 재조회
+          const freshState = useStore.getState();
+          // updateElementProps: 히스토리 기록 + DB persist + layoutVersion
+          freshState.updateElementProps(elementId, {
+            ...props,
+            [propKey]: finalValue,
+          });
+          freshState.invalidateLayout?.();
+        }
       }
-    }
 
-    useCanvasStore.getState().setEditing(false);
-    setEditState(null);
-  }, []);
+      editingElementRef.current = null;
+      useCanvasStore.getState().setEditing(false);
+      setEditState(null);
+    },
+    [captureEditingRevision, readEditingElement],
+  );
 
   // 편집 취소 (Pencil: 원본 복원)
-  const cancelEdit = useCallback((elementId: string) => {
-    if (editingIdRef.current !== elementId) return;
+  const cancelEdit = useCallback(
+    (elementId: string) => {
+      if (editingIdRef.current !== elementId) return;
+      const element = readEditingElement(elementId);
 
-    // Pencil showText: Skia 텍스트 렌더링 복원 + 리렌더 트리거
-    setEditingElementId(null);
-    notifyLayoutChange();
-    editingIdRef.current = null;
+      // Pencil showText: Skia 텍스트 렌더링 복원 + 리렌더 트리거
+      setEditingElementId(null);
+      notifyLayoutChange();
+      editingIdRef.current = null;
 
-    // updateText가 store를 실시간 반영했으므로 원본 복원 필요
-    const originalValue = originalValueRef.current;
-    const currentValue = currentValueRef.current;
-    if (currentValue !== originalValue) {
-      silentUpdateTextProp(elementId, originalValue);
-    }
+      // updateText가 store를 실시간 반영했으므로 원본 복원 필요
+      const originalValue = originalValueRef.current;
+      const currentValue = currentValueRef.current;
+      if (currentValue !== originalValue) {
+        if (element?.id === elementId) {
+          silentUpdateTextProp(element, originalValue);
+        }
+      }
 
-    useCanvasStore.getState().setEditing(false);
-    setEditState(null);
-  }, []);
+      editingElementRef.current = null;
+      useCanvasStore.getState().setEditing(false);
+      setEditState(null);
+    },
+    [readEditingElement],
+  );
 
   // 언마운트 시 편집 플래그 회수 (2026-08-27 code-review #6).
   // `isEditing` 은 `useCanvasStore` 싱글턴이고 내려가는 경로가
@@ -445,6 +501,7 @@ export function useTextEdit(): UseTextEditReturn {
     return () => {
       if (editingIdRef.current === null) return;
       editingIdRef.current = null;
+      editingElementRef.current = null;
       setEditingElementId(null);
       useCanvasStore.getState().setEditing(false);
     };

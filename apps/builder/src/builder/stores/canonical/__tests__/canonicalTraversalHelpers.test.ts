@@ -18,6 +18,7 @@ import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../canonicalDocumentStore";
 import {
   __resetTraversalCache_TEST_ONLY__,
+  getCanonicalDocumentProjectableNodeIds,
   getCanonicalDocumentProjectableNodeCount,
   findByPath,
   getAncestors,
@@ -26,6 +27,7 @@ import {
   getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
   getFirstProjectableNodeLookupById,
+  getFirstProjectableNodeLookupByReference,
   getLastProjectableNodeById,
   getNodeMap,
   getParent,
@@ -308,6 +310,53 @@ describe("getNodeMap", () => {
     );
   });
 
+  it("reference lookup은 뒤쪽 id보다 앞선 alias의 DFS 우선순위를 보존한다", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({
+        children: [
+          makeNode("alias-owner", {
+            name: "collision",
+            props: { value: "first-alias" },
+          }),
+          makeNode("collision", { props: { value: "later-id" } }),
+        ],
+      }),
+    );
+
+    expect(
+      getFirstProjectableNodeLookupByReference("collision")?.node.props?.value,
+    ).toBe("first-alias");
+  });
+
+  it("reference lookup은 quarantined customId와 metadata componentName을 인덱싱한다", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({
+        children: [
+          makeNode("custom-owner", {
+            props: {},
+            metadata: {
+              type: "legacy-element-props",
+              customId: "custom-alias",
+            },
+          }),
+          makeNode("component-owner", {
+            props: {},
+            metadata: { componentName: "component-alias" },
+          }),
+        ],
+      }),
+    );
+
+    expect(
+      getFirstProjectableNodeLookupByReference("custom-alias")?.node.id,
+    ).toBe("custom-owner");
+    expect(
+      getFirstProjectableNodeLookupByReference("component-alias")?.node.id,
+    ).toBe("component-owner");
+  });
+
   it("page ref descendants의 replacement subtree를 canonical hierarchy로 등록", () => {
     const pageRef = makeNode("page-ref", {
       type: "ref",
@@ -464,6 +513,43 @@ describe("projectable traversal views", () => {
         }),
       ),
     ).toBe(5);
+  });
+
+  it("collects reference-stable projectable IDs without structural wrappers", () => {
+    const pageRef = makeNode("page-ref", {
+      type: "ref",
+      metadata: { type: "legacy-page", pageId: "page-1" },
+      ref: "layout-1",
+      descendants: {
+        slot: {
+          children: [makeNode("descendant", { props: {} })],
+        },
+      },
+    } as never);
+    const doc = makeDoc({
+      children: [
+        makeNode("structural", {
+          children: [makeNode("leaf", { props: {} })],
+        }),
+        pageRef,
+        makeNode("duplicate", { props: { order: 1 } }),
+        makeNode("duplicate", { props: { order: 2 } }),
+      ],
+    });
+
+    const ids = getCanonicalDocumentProjectableNodeIds(doc);
+
+    expect([...ids]).toEqual(["leaf", "descendant", "duplicate"]);
+    expect(ids.has("structural")).toBe(false);
+    expect(ids.has("page-ref")).toBe(false);
+    expect(getCanonicalDocumentProjectableNodeIds(doc)).toBe(ids);
+    expect(
+      getCanonicalDocumentProjectableNodeIds(
+        makeDoc({
+          children: [...doc.children, makeNode("extra", { props: {} })],
+        }),
+      ).has("extra"),
+    ).toBe(true);
   });
 
   it("structural wrapper를 제외하고 legacy view 순서와 parent lifting을 보존", () => {

@@ -18,6 +18,7 @@ import {
 } from "@composition/shared";
 import type {
   BreakpointName,
+  CanonicalNode,
   ElementResponsiveConfig,
   InteractionRule,
   ResponsiveValue,
@@ -41,6 +42,7 @@ import {
   isComponentInstanceMirrorElement,
 } from "../../adapters/canonical/componentSemanticsMirror";
 import {
+  getCanonicalRefTarget,
   isCanonicalRefElement,
   resolveCanonicalRefElement,
 } from "../utils/canonicalRefResolution";
@@ -55,8 +57,14 @@ import {
   hasNonPropsCanonicalHistoryChange,
 } from "./history/canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "./canonical/canonicalElementsView";
-import { normalizeElementTags } from "./utils/elementTagNormalizer";
+import { canonicalNodeToElement } from "./canonical/canonicalElementsView";
+import {
+  getFirstProjectableNodeLookupById,
+  getProjectableNodeLookups,
+  type CanonicalProjectableNodeLookup,
+} from "./canonical/canonicalTraversalHelpers";
+import { readCanonicalNodeCustomId } from "../../adapters/canonical/legacyMetadata";
+import { normalizeElementTagInElement } from "./utils/elementTagNormalizer";
 import type { BatchPropsUpdate } from "./utils/elementUpdate";
 import {
   collectDirtyElementSubtree,
@@ -191,59 +199,86 @@ function syncInspectorElementToCanonical(element: Element): void {
 
 function getResolvedInspectorElement(
   element: Element,
-  elements: Iterable<Element>,
+  fallbackElements: Iterable<Element>,
 ): Element {
-  return isCanonicalRefElement(element)
-    ? resolveCanonicalRefElement(element, elements)
-    : element;
+  if (!isCanonicalRefElement(element)) return element;
+
+  const canonicalMaster = getActiveCanonicalInspectorRefMaster(element);
+  if (canonicalMaster) {
+    return canonicalMaster.element
+      ? resolveCanonicalRefElement(element, [canonicalMaster.element])
+      : element;
+  }
+
+  return resolveCanonicalRefElement(element, fallbackElements);
 }
 
-function getInspectorLookupElements(
-  fallbackElements: Iterable<Element> = [],
-): Iterable<Element> {
-  const canonicalElements = getActiveCanonicalInspectorElements();
-  return canonicalElements ?? fallbackElements;
+type ActiveCanonicalInspectorElement = {
+  element: Element | null;
+};
+
+function projectCanonicalInspectorElement(
+  lookup: CanonicalProjectableNodeLookup,
+): Element | null {
+  return canonicalNodeToElement(lookup.node, lookup.parentId, {
+    pageId: lookup.pageId,
+    layoutId: lookup.layoutId,
+  });
+}
+
+function getActiveCanonicalInspectorElementById(
+  elementId: string,
+): ActiveCanonicalInspectorElement | null {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId || !canonical.documents.has(projectId)) return null;
+
+  const lookup = getFirstProjectableNodeLookupById(elementId);
+  return { element: lookup ? projectCanonicalInspectorElement(lookup) : null };
+}
+
+function matchesCanonicalInspectorReference(
+  node: CanonicalNode,
+  reference: string,
+): boolean {
+  if (node.id === reference || node.name === reference) return true;
+  if (readCanonicalNodeCustomId(node) === reference) return true;
+
+  const metadata = node.metadata as
+    { componentName?: unknown; customId?: unknown } | undefined;
+  return (
+    metadata?.componentName === reference || metadata?.customId === reference
+  );
+}
+
+function getActiveCanonicalInspectorRefMaster(
+  element: Element,
+): ActiveCanonicalInspectorElement | null {
+  const reference = getCanonicalRefTarget(element);
+  if (!reference) return getActiveCanonicalInspectorElementById(element.id);
+
+  const direct = getActiveCanonicalInspectorElementById(reference);
+  if (!direct || direct.element) return direct;
+
+  for (const lookup of getProjectableNodeLookups()) {
+    if (matchesCanonicalInspectorReference(lookup.node, reference)) {
+      return { element: projectCanonicalInspectorElement(lookup) };
+    }
+  }
+  return direct;
 }
 
 function getInspectorElementById(
   elements: Iterable<Element>,
   elementId: string,
 ): Element | null {
-  const canonicalElements = getActiveCanonicalInspectorElements();
-  if (canonicalElements) {
-    return (
-      canonicalElements.find((element) => element.id === elementId) ?? null
-    );
-  }
+  const canonicalElement = getActiveCanonicalInspectorElementById(elementId);
+  if (canonicalElement) return canonicalElement.element;
 
   for (const element of elements) {
     if (element.id === elementId) return element;
   }
   return null;
-}
-
-function getActiveCanonicalInspectorElements(): Element[] | null {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return null;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return null;
-
-  const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
-}
-
-function buildInspectorElementMap<TElement extends Element>(
-  elements: Iterable<TElement>,
-): InspectorElementMap<TElement> {
-  const map: InspectorElementMap<TElement> = new Map();
-  for (const element of elements) {
-    map.set(element.id, element);
-  }
-  return map;
 }
 
 function replaceInspectorElement(
@@ -259,19 +294,6 @@ function replaceInspectorElement(
   const nextElements = elements.slice();
   nextElements[elementIndex] = updatedElement;
   return nextElements;
-}
-
-function buildInspectorChildrenByParent<TElement extends Element>(
-  elements: Iterable<TElement>,
-): InspectorChildrenMap<TElement> {
-  const childrenByParent: InspectorChildrenMap<TElement> = new Map();
-  for (const element of elements) {
-    const parentId = element.parent_id || "root";
-    const siblings = childrenByParent.get(parentId) ?? [];
-    siblings.push(element);
-    childrenByParent.set(parentId, siblings);
-  }
-  return childrenByParent;
 }
 
 function getInspectorWritableProps(element: Element): Record<string, unknown> {
@@ -586,7 +608,8 @@ export const createInspectorActionsSlice: StateCreator<
    * Helper: Update element and save to DB
    *
    * 🚀 Performance Optimization:
-   * - elementsMap 직접 업데이트 (O(1))
+   * - canonical target/ref master 는 traversal index 의 leaf lookup 으로 조회
+   * - 기존 derived elementsMap/childrenMap 을 재사용해 projection/index 재구축 제거
    * - props/style 변경 시 _rebuildIndexes 스킵 (구조 변경 없음)
    * - 단일 set() 호출로 배칭
    */
@@ -597,14 +620,10 @@ export const createInspectorActionsSlice: StateCreator<
     /** 프리뷰 → 커밋 시 히스토리 정확성을 위한 원본 요소 */
     prevElementOverride?: Element,
   ) => {
-    const { elements, selectedElementId, currentPageId } = get();
-    const canonicalElements = getActiveCanonicalInspectorElements();
-    const normalizedState = normalizeElementTags(canonicalElements ?? elements);
-    const normalizedElements = normalizedState.elements;
-    const baseElementsMap = buildInspectorElementMap(normalizedElements);
-
-    const element = baseElementsMap.get(elementId);
-    if (!element) return;
+    const { elements, elementsMap, selectedElementId, currentPageId } = get();
+    const currentElement = getInspectorElementById(elements, elementId);
+    if (!currentElement) return;
+    const element = normalizeElementTagInElement(currentElement);
 
     // 선택된 요소의 props를 직접 업데이트하므로,
     // 진행 중인 hydration이 있으면 취소하여 경쟁 상태 방지
@@ -662,19 +681,16 @@ export const createInspectorActionsSlice: StateCreator<
       });
     }
 
-    // 🚀 O(1) Map 업데이트 (새 Map 생성으로 불변성 유지)
-    const newElementsMap = new Map(baseElementsMap);
+    // 기존 derived Map 을 한 번만 clone 하고 target entry 만 교체 (불변성 유지)
+    const newElementsMap = new Map(elementsMap);
     newElementsMap.set(elementId, updatedElement);
 
     // 🚀 elements 배열도 업데이트 (findIndex로 위치 찾아서 직접 교체)
-    const elementIndex = normalizedElements.findIndex(
-      (el) => el.id === elementId,
+    const newElements = replaceInspectorElement(
+      elements,
+      elementId,
+      updatedElement,
     );
-    let newElements = normalizedElements;
-    if (elementIndex !== -1) {
-      newElements = [...normalizedElements];
-      newElements[elementIndex] = updatedElement;
-    }
 
     // 🚀 단일 set() 호출 - 배칭으로 리렌더링 최소화
     // ADR-006 P3-1: 레이아웃 영향 prop 변경 시 layoutVersion 증가 → fullTreeLayoutMap 재계산 트리거
@@ -709,11 +725,7 @@ export const createInspectorActionsSlice: StateCreator<
       // dirtyElementIds: 변경 요소 + 하위 자식 전체 등록 (delegation prop이 자식 레이아웃에 영향)
       if (hasLayoutChange) {
         const dirtyIds = new Set(prevState.dirtyElementIds);
-        collectDirtyElementSubtree(
-          elementId,
-          buildInspectorChildrenByParent(prevState.elements),
-          dirtyIds,
-        );
+        collectDirtyElementSubtree(elementId, prevState.childrenMap, dirtyIds);
         (stateUpdate as Record<string, unknown>).layoutVersion =
           prevState.layoutVersion + 1;
         (stateUpdate as Record<string, unknown>).dirtyElementIds = dirtyIds;
@@ -812,7 +824,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
-        getInspectorLookupElements(),
+        get().elements,
       );
       const currentStyle = {
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
@@ -853,7 +865,7 @@ export const createInspectorActionsSlice: StateCreator<
     },
 
     updateSelectedStylePreview: (property, value) => {
-      const { elements, selectedElementId } = get();
+      const { elements, elementsMap, selectedElementId } = get();
       if (!selectedElementId) return;
 
       const activeBreakpoint = get().activeBreakpoint;
@@ -898,10 +910,7 @@ export const createInspectorActionsSlice: StateCreator<
         );
       } else {
         // desktop = base preview (기존 동작)
-        const resolvedElement = getResolvedInspectorElement(
-          element,
-          getInspectorLookupElements(elements),
-        );
+        const resolvedElement = getResolvedInspectorElement(element, elements);
         const currentStyle = {
           ...((resolvedElement.props?.style as Record<string, string>) || {}),
         };
@@ -948,7 +957,7 @@ export const createInspectorActionsSlice: StateCreator<
         selectedElementId,
         updatedElement,
       );
-      const newElementsMap = buildInspectorElementMap(newElements);
+      const newElementsMap = new Map(elementsMap);
       newElementsMap.set(selectedElementId, updatedElement);
 
       // ADR-006 P3-1: style 프리뷰도 layoutVersion 증가 → 캔버스 레이아웃 즉시 반영
@@ -956,7 +965,7 @@ export const createInspectorActionsSlice: StateCreator<
         const dirtyIds = new Set(prevState.dirtyElementIds);
         collectDirtyElementSubtree(
           selectedElementId,
-          buildInspectorChildrenByParent(prevState.elements),
+          prevState.childrenMap,
           dirtyIds,
         );
 
@@ -1036,10 +1045,7 @@ export const createInspectorActionsSlice: StateCreator<
       // 속성(minWidth/flexGrow/alignSelf 등 factory 기본값 부재)은 resolveEligibleSeedDefault
       // 의 CSS-initial 값(length→auto, spacing→0, enum→유효 기본)으로 seed 해 토글을 고정한다
       // (기존엔 no-op → data-derived 토글이 즉시 OFF 로 읽혀 override 가 안 걸리던 버그).
-      const resolved = getResolvedInspectorElement(
-        element,
-        getInspectorLookupElements(),
-      );
+      const resolved = getResolvedInspectorElement(element, get().elements);
       const baseStyle =
         (resolved.props?.style as Record<string, unknown>) || {};
       const respStyles = element.responsive?.styles as
@@ -1134,7 +1140,7 @@ export const createInspectorActionsSlice: StateCreator<
         // base-대상 entry 는 base 에 반영 + responsive.styles 의 non-eligible 키 정리 (R8)
         const resolvedBaseElement = getResolvedInspectorElement(
           baseElement,
-          getInspectorLookupElements(),
+          get().elements,
         );
         const baseStyle = {
           ...((resolvedBaseElement.props?.style as Record<string, unknown>) ||
@@ -1159,7 +1165,7 @@ export const createInspectorActionsSlice: StateCreator<
 
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
-        getInspectorLookupElements(),
+        get().elements,
       );
       const currentStyle = {
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
@@ -1316,7 +1322,7 @@ export const createInspectorActionsSlice: StateCreator<
           : element;
       const resolvedBaseElement = getResolvedInspectorElement(
         baseElement,
-        getInspectorLookupElements(),
+        get().elements,
       );
 
       const currentStyle = sanitizeFillDerivedStylePatch(

@@ -1,10 +1,21 @@
 // @vitest-environment jsdom
 
 import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "../../../adapters/canonical/canonicalMutations";
 import { useStore } from "../../stores";
 import { useCanvasStore } from "../../stores/canvasStore";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { useTextEdit } from "./useTextEdit";
+
+vi.mock("../../../lib/db", () => ({
+  getDB: vi.fn(async () => ({
+    documents: { put: vi.fn() },
+  })),
+}));
 
 /**
  * 2026-08-27 code-review #6 — `isEditing` 은 `useCanvasStore` 싱글턴이고
@@ -21,9 +32,21 @@ const TEXT_ELEMENT = {
   page_id: "page-1",
 } as const;
 
+const OTHER_TEXT_ELEMENT = {
+  ...TEXT_ELEMENT,
+  id: "text-2",
+  props: { children: "other" },
+} as const;
+
 afterEach(() => {
+  resetCanonicalMutationStoreActions();
   useCanvasStore.getState().setEditing(false);
   useStore.setState({ elements: [], elementsMap: new Map() } as never);
+  useCanonicalDocumentStore.setState({
+    documents: new Map(),
+    currentProjectId: null,
+    documentVersion: 0,
+  });
 });
 
 describe("useTextEdit — 편집 플래그 회수", () => {
@@ -54,5 +77,121 @@ describe("useTextEdit — 편집 플래그 회수", () => {
     unmount();
 
     expect(useCanvasStore.getState().isEditing).toBe(true);
+  });
+
+  it("다른 selection ID의 update와 cancel은 현재 편집 세션을 바꾸지 않는다", () => {
+    useStore.setState({
+      elements: [TEXT_ELEMENT, OTHER_TEXT_ELEMENT],
+      elementsMap: new Map<string, unknown>([
+        [TEXT_ELEMENT.id, TEXT_ELEMENT] as const,
+        [OTHER_TEXT_ELEMENT.id, OTHER_TEXT_ELEMENT] as const,
+      ]),
+    } as never);
+
+    const { result } = renderHook(() => useTextEdit());
+
+    act(() => {
+      result.current.startEdit(TEXT_ELEMENT.id);
+      result.current.updateText(TEXT_ELEMENT.id, "draft");
+      result.current.updateText(OTHER_TEXT_ELEMENT.id, "stale");
+      result.current.cancelEdit(OTHER_TEXT_ELEMENT.id);
+    });
+
+    expect(result.current.editState).toMatchObject({
+      elementId: TEXT_ELEMENT.id,
+      value: "draft",
+    });
+    expect(useStore.getState().elements).toEqual([
+      { ...TEXT_ELEMENT, props: { children: "draft" } },
+      OTHER_TEXT_ELEMENT,
+    ]);
+    expect(useCanvasStore.getState().isEditing).toBe(true);
+
+    act(() => {
+      result.current.cancelEdit(TEXT_ELEMENT.id);
+    });
+
+    expect(useStore.getState().elements).toEqual([
+      TEXT_ELEMENT,
+      OTHER_TEXT_ELEMENT,
+    ]);
+    expect(useCanvasStore.getState().isEditing).toBe(false);
+  });
+
+  it("다른 selection ID의 complete는 무시하고 현재 편집 요소만 commit한다", () => {
+    registerCanonicalMutationStoreActions({
+      getCurrentProjectId: () => "text-project",
+      getCurrentLegacySnapshot: () => ({
+        elements: useStore.getState().elements,
+        pages: [],
+        layouts: [],
+      }),
+    });
+    useCanonicalDocumentStore.setState({
+      documents: new Map([
+        [
+          "text-project",
+          {
+            version: "composition-1.0",
+            children: [TEXT_ELEMENT, OTHER_TEXT_ELEMENT].map((element) => ({
+              id: element.id,
+              type: element.type,
+              props: element.props,
+              children: [],
+            })),
+          },
+        ],
+      ]),
+      currentProjectId: "text-project",
+      documentVersion: 1,
+    } as never);
+    useStore.setState({
+      elements: [TEXT_ELEMENT, OTHER_TEXT_ELEMENT],
+      elementsMap: new Map<string, unknown>([
+        [TEXT_ELEMENT.id, TEXT_ELEMENT] as const,
+        [OTHER_TEXT_ELEMENT.id, OTHER_TEXT_ELEMENT] as const,
+      ]),
+    } as never);
+
+    const { result } = renderHook(() => useTextEdit());
+
+    act(() => {
+      result.current.startEdit(TEXT_ELEMENT.id);
+      result.current.updateText(TEXT_ELEMENT.id, "draft");
+    });
+
+    const liveDocument = useCanonicalDocumentStore
+      .getState()
+      .getDocument("text-project");
+    if (!liveDocument) throw new Error("canonical text fixture missing");
+    useCanonicalDocumentStore.getState().setDocument("text-project", {
+      ...liveDocument,
+      children: liveDocument.children.map((node) =>
+        node.id === TEXT_ELEMENT.id
+          ? { ...node, props: { ...node.props, external: "preserved" } }
+          : node,
+      ),
+    });
+
+    act(() => {
+      result.current.updateText(TEXT_ELEMENT.id, "committed");
+      result.current.completeEdit(OTHER_TEXT_ELEMENT.id);
+    });
+
+    expect(result.current.editState?.elementId).toBe(TEXT_ELEMENT.id);
+    expect(useCanvasStore.getState().isEditing).toBe(true);
+
+    act(() => {
+      result.current.completeEdit(TEXT_ELEMENT.id);
+    });
+
+    expect(result.current.editState).toBeNull();
+    expect(useStore.getState().elements[0]).toMatchObject({
+      id: TEXT_ELEMENT.id,
+      type: TEXT_ELEMENT.type,
+      props: { children: "committed", external: "preserved" },
+    });
+    expect(useStore.getState().elements[1]).toMatchObject(OTHER_TEXT_ELEMENT);
+    expect(useCanvasStore.getState().isEditing).toBe(false);
   });
 });

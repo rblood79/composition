@@ -21,6 +21,11 @@ export type CanonicalFrameElementScopeMap = ReadonlyMap<
   CanonicalFrameElementScope
 >;
 
+const frameElementScopesCache = new WeakMap<
+  CompositionDocument,
+  CanonicalFrameElementScopeMap
+>();
+
 function isReusableFrameNode(node: CanonicalNode): node is FrameNode {
   return node.type === "frame" && (node as FrameNode).reusable === true;
 }
@@ -89,7 +94,10 @@ function collectElementScopeIds(
 
 export function canonicalDocumentToFrameElementScopes(
   doc: CompositionDocument,
-): Map<string, CanonicalFrameElementScope> {
+): CanonicalFrameElementScopeMap {
+  const cached = frameElementScopesCache.get(doc);
+  if (cached) return cached;
+
   const scopes = new Map<string, CanonicalFrameElementScope>();
 
   for (const child of doc.children) {
@@ -114,6 +122,7 @@ export function canonicalDocumentToFrameElementScopes(
     });
   }
 
+  frameElementScopesCache.set(doc, scopes);
   return scopes;
 }
 

@@ -6,13 +6,17 @@ describe("useTextEdit canonical live edit contract", () => {
   it("routes live text edits through canonical mutation before bootstrap fallback", async () => {
     const source = await readFile(resolve(__dirname, "useTextEdit.ts"), "utf8");
 
-    expect(source).toContain("visitCanonicalDocumentElements");
-    expect(source).toContain("getActiveCanonicalTextEditElements");
+    expect(source).toContain("getActiveCanonicalElementById");
+    expect(source).toContain("hasActiveCanonicalTextEditDocument");
+    expect(source).toContain("editingElementRef");
     expect(source).toContain("mergeElementsCanonicalPrimary([updatedElement])");
     expect(source).toContain(
-      "if (result.changed || getActiveCanonicalTextEditElements()) return;",
+      "result.changed || hasActiveCanonicalTextEditDocument()",
     );
     expect(source).toContain("applyLegacyBootstrapTextProp(updatedElement)");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getActiveCanonicalTextEditElements");
+    expect(source).not.toContain("getTextEditElement(elementId, newValue)");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).not.toContain("useStore.getState().elements.find");
     expect(source).not.toContain("state.elementsMap.get(elementId)");

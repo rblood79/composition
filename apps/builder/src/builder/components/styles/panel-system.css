@@ -279,16 +279,26 @@
       flex-direction: column;
       gap: var(--spacing-sm);
 
-      &::after {
-        content: "";
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 24px;
-        background: linear-gradient(0deg, var(--bg-overlay), transparent);
-        pointer-events: none;
-      }
+      /* 하단 페이드 — 자기 알파를 직접 깎는다. 종전 `::after` 오버레이는
+         `--bg-overlay` 색 필름을 덮어 "뒤가 패널 표면일 때만" 맞는 효과였고,
+         위치 기준도 `.section` 의 paint containment 에 의존했다. mask 는 뒤 색과
+         무관하게 같은 결과를 내고 추가 상자·position 의존이 없다.
+
+         `max(...)` 는 짧은 섹션 클램프다. 고정 24px 만 쓰면 높이 24px 미만에서
+         시작 스톱이 음수로 가 첫 픽셀부터 이미 반투명해진다 (10px 섹션이면 상단 알파
+         0.58). 페이드가 높이의 절반을 넘지 않게 잘라, 짧은 섹션은 아래 절반만 옅어진다.
+
+         중간 스톱 3개는 ease-out 알파 근사다. 선형 2-스톱은 페이드가 끝나는 지점에
+         기울기가 꺾여 mach band (눈이 잡는 경계선) 가 보인다. 곡선을 태우면 그 선이
+         사라진다 — 장식 마감이 목적이므로 이 부드러움이 효과 자체다. */
+      mask-image: linear-gradient(
+        to bottom,
+        #000 max(50%, 100% - 24px),
+        rgb(0 0 0 / 0.85) max(62%, 100% - 18px),
+        rgb(0 0 0 / 0.55) max(75%, 100% - 12px),
+        rgb(0 0 0 / 0.22) max(88%, 100% - 6px),
+        transparent
+      );
 
       .fieldset-actions {
         grid-area: icon;

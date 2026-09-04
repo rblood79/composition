@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
@@ -72,6 +74,19 @@ describe("frameElementLoader canonical adapter", () => {
       documents: new Map(),
       documentVersion: 0,
     });
+  });
+
+  it("uses the cached canonical view and frame ID scope instead of full traversal", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../frameElementLoader.ts"),
+      "utf8",
+    );
+
+    expect(source).toContain("getCanonicalDocumentElementsView(doc)");
+    expect(source).toContain("for (const elementId of scope.elementIds)");
+    expect(source).toContain("elementsView.byId.get(elementId)");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("collectFrameLoaderElements");
   });
 
   it("uses canonical descendants when they include the frame body", async () => {

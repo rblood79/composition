@@ -4,6 +4,23 @@ import type { CompositionDocument } from "@composition/shared";
 import { canonicalDocumentToFrameElementScopes } from "../frameElementScope";
 
 describe("canonical frame element scope", () => {
+  it("reuses the scope index for the same document reference", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [],
+    };
+
+    const first = canonicalDocumentToFrameElementScopes(doc);
+    const second = canonicalDocumentToFrameElementScopes(doc);
+    const next = canonicalDocumentToFrameElementScopes({
+      ...doc,
+      children: [...doc.children],
+    });
+
+    expect(second).toBe(first);
+    expect(next).not.toBe(first);
+  });
+
   it("includes props-less Slot hosts in reusable frame scope", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",

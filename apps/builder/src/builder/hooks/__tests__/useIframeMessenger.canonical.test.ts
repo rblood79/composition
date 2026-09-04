@@ -146,17 +146,20 @@ describe("Builder → Preview canonical 단일 채널", () => {
       );
     });
 
-    it("selection echo 는 elementsMap subscription 대신 canonical document traversal 을 우선 사용한다", async () => {
+    it("selection echo와 generated ID 필터는 canonical indexed read를 우선 사용한다", async () => {
       const fs = await import("node:fs/promises");
       const path = await import("node:path");
       const filePath = path.resolve(__dirname, "../useIframeMessenger.ts");
       const source = await fs.readFile(filePath, "utf-8");
 
       expect(source).toContain("getActiveCanonicalDocumentForPreviewRead");
-      expect(source).toContain("getActiveCanonicalPreviewElements");
-      expect(source).toContain("visitCanonicalDocumentElements");
+      expect(source).toContain("getActiveCanonicalElementById");
+      expect(source).toContain("getCanonicalDocumentProjectableNodeIds");
       expect(source).toContain("getElementForPreviewSelection");
-      expect(source).toContain("getPreviewGeneratedElementIds");
+      expect(source).toContain("filterNewPreviewGeneratedElements");
+      expect(source).not.toContain("visitCanonicalDocumentElements");
+      expect(source).not.toContain("getActiveCanonicalPreviewElements");
+      expect(source).not.toContain("getPreviewGeneratedElementIds");
       expect(source).not.toContain("canonicalElementSnapshot");
       expect(source).not.toContain("useStore.getState().elements.find");
       expect(source).not.toContain("useStore.getState().elements.map");

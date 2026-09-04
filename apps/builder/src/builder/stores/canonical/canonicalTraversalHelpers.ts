@@ -41,6 +41,7 @@ import type {
 } from "@composition/shared";
 
 import { normalizeFrameLayoutId } from "@/adapters/canonical/frameMirror";
+import { readLegacyMetadataCustomId } from "@/adapters/canonical/legacyMetadata";
 import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 
 // ─────────────────────────────────────────────
@@ -53,6 +54,7 @@ interface TraversalCache {
   document: CompositionDocument;
   nodeMap: Map<string, CanonicalNode>;
   firstProjectableNodeById: Map<string, CanonicalProjectableNodeLookup>;
+  firstProjectableNodeByReference: Map<string, CanonicalProjectableNodeLookup>;
   projectableNodeLookups: CanonicalProjectableNodeLookup[];
   nodeOccurrenceCountById: Map<string, number>;
   childrenByParent: Map<string, CanonicalNode[]>;
@@ -73,6 +75,10 @@ export type CanonicalProjectableNodeLookup = CanonicalProjectionScope & {
 
 let cache: TraversalCache | null = null;
 const projectableNodeCountCache = new WeakMap<CompositionDocument, number>();
+const projectableNodeIdsCache = new WeakMap<
+  CompositionDocument,
+  ReadonlySet<string>
+>();
 const EMPTY_PROJECTABLE_NODES: readonly CanonicalNode[] = [];
 const EMPTY_PROJECTABLE_NODE_LOOKUPS: readonly CanonicalProjectableNodeLookup[] =
   [];
@@ -200,8 +206,37 @@ export function getCanonicalDocumentProjectableNodeCount(
   if (cached !== undefined) return cached;
 
   let count = 0;
+  visitCanonicalDocumentProjectableNodes(document, () => {
+    count += 1;
+  });
+  projectableNodeCountCache.set(document, count);
+  return count;
+}
+
+/**
+ * legacy Element view에 나타나는 ID 집합을 Element projection 없이 만든다.
+ * clone-on-write document 참조별로 캐시해 preview 생성 중복 검사에서 재사용한다.
+ */
+export function getCanonicalDocumentProjectableNodeIds(
+  document: CompositionDocument,
+): ReadonlySet<string> {
+  const cached = projectableNodeIdsCache.get(document);
+  if (cached) return cached;
+
+  const ids = new Set<string>();
+  visitCanonicalDocumentProjectableNodes(document, (node) => {
+    ids.add(node.id);
+  });
+  projectableNodeIdsCache.set(document, ids);
+  return ids;
+}
+
+function visitCanonicalDocumentProjectableNodes(
+  document: CompositionDocument,
+  visitor: (node: CanonicalNode) => void,
+): void {
   function visit(node: CanonicalNode): void {
-    if (isCanonicalNodeProjectableToElement(node)) count += 1;
+    if (isCanonicalNodeProjectableToElement(node)) visitor(node);
     for (const child of node.children ?? []) visit(child);
     for (const children of getCanonicalPageRefDescendantChildren(node)) {
       for (const child of children) visit(child);
@@ -209,8 +244,6 @@ export function getCanonicalDocumentProjectableNodeCount(
   }
 
   for (const child of document.children) visit(child);
-  projectableNodeCountCache.set(document, count);
-  return count;
 }
 
 function ensureCache(): TraversalCache | null {
@@ -228,6 +261,10 @@ function ensureCache(): TraversalCache | null {
 
   const nodeMap = new Map<string, CanonicalNode>();
   const firstProjectableNodeById = new Map<
+    string,
+    CanonicalProjectableNodeLookup
+  >();
+  const firstProjectableNodeByReference = new Map<
     string,
     CanonicalProjectableNodeLookup
   >();
@@ -260,6 +297,24 @@ function ensureCache(): TraversalCache | null {
       projectableNodeLookups.push(lookup);
       if (!firstProjectableNodeById.has(node.id)) {
         firstProjectableNodeById.set(node.id, lookup);
+      }
+      const metadata = node.metadata as
+        { componentName?: unknown; customId?: unknown } | undefined;
+      const referenceKeys = [
+        node.id,
+        node.name,
+        readLegacyMetadataCustomId(node.metadata),
+        metadata?.componentName,
+        metadata?.customId,
+      ];
+      for (const referenceKey of referenceKeys) {
+        if (
+          typeof referenceKey === "string" &&
+          referenceKey.length > 0 &&
+          !firstProjectableNodeByReference.has(referenceKey)
+        ) {
+          firstProjectableNodeByReference.set(referenceKey, lookup);
+        }
       }
       if (projectableParentId) {
         const siblings = projectableChildrenByParent.get(projectableParentId);
@@ -315,6 +370,7 @@ function ensureCache(): TraversalCache | null {
     document: snapshot.doc,
     nodeMap,
     firstProjectableNodeById,
+    firstProjectableNodeByReference,
     projectableNodeLookups,
     nodeOccurrenceCountById,
     childrenByParent,
@@ -441,6 +497,18 @@ export function getFirstProjectableNodeLookupById(
 ): CanonicalProjectableNodeLookup | null {
   const c = ensureCache();
   return c?.firstProjectableNodeById.get(nodeId) ?? null;
+}
+
+/**
+ * legacy `resolveReference()`와 같은 DFS-first 의미로 id/name/customId/
+ * componentName reference를 O(1) 조회한다. key 종류보다 노드 DFS 순서가
+ * 우선이므로 앞선 alias와 뒤쪽 id가 충돌해도 앞선 node를 반환한다.
+ */
+export function getFirstProjectableNodeLookupByReference(
+  reference: string,
+): CanonicalProjectableNodeLookup | null {
+  const c = ensureCache();
+  return c?.firstProjectableNodeByReference.get(reference) ?? null;
 }
 
 /**
