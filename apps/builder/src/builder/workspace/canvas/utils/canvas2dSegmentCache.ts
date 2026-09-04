@@ -77,8 +77,31 @@ const KINSOKU_HEAD = new Set([
   "\u30E7", // ョ
 ]);
 
-/** 행말 금칙 — 줄 끝에 올 수 없는 문자 (여는 괄호/따옴표) */
-const KINSOKU_TAIL = new Set([
+/**
+ * forward-sticky — 줄 끝에 남을 수 없는 문자 (여는 괄호/따옴표)
+ *
+ * upstream pretext 의 `kinsokuEnd` + `forwardStickyGlue` 를 합친 표.
+ * CJK 여는 괄호만 있던 구 `KINSOKU_TAIL` 을 라틴 여는 괄호·따옴표·
+ * 아포스트로피까지 확장했다 (EXTERNAL_PATTERN_DELTA_2026-09 §B4-1).
+ */
+const FORWARD_STICKY = new Set([
+  // 라틴 여는 괄호/따옴표
+  '"',
+  "(",
+  "[",
+  "{",
+  "'",
+  "\u00A1", // ¡
+  "\u00BF", // ¿
+  "\u201C", // “
+  "\u2018", // ‘
+  "\u201A", // ‚
+  "\u201E", // „
+  "\u00AB", // «
+  "\u2039", // ‹
+  "\u2E18", // ⸘
+  "\u2019", // ’
+  // CJK 여는 괄호
   "\u300C", // 「
   "\u300E", // 『
   "\uFF08", // （
@@ -91,8 +114,48 @@ const KINSOKU_TAIL = new Set([
   "\u301A", // 〚
 ]);
 
-/** 라틴 trailing 구두점 — 선행 단어에 병합 */
-const LATIN_TRAILING_PUNCT = /^[.,;:!?)\]'"}\u2019\u201D]$/;
+/**
+ * numeric affix — UAX #14 PR (prefix) 클래스 일부. 후속 토큰에 병합 (`$100`)
+ *
+ * upstream 은 표 전체 (약 70 코드포인트) 를 쓰지만 통화·부호만으로 builder
+ * 텍스트 범위를 덮는다.
+ */
+const NUMERIC_PREFIX = /^[$+\\\u00A2\u00A3\u00A4\u00A5\u20AC\u20A9\u20B9\u20BD\u2212\u00B1]$/u;
+
+/**
+ * 라틴 trailing 구두점 — 선행 단어에 병합
+ *
+ * UAX #14 PO (postfix) 클래스 `% ‰ °` 와 말줄임 `…` 포함 (§B4-2).
+ */
+const LATIN_TRAILING_PUNCT =
+  /^[.,;:!?)\]'"}\u2019\u201D%\u2030\u00B0\u2026]$/u;
+
+/**
+ * ASCII 기호 run — `-` 제외 (하이픈 뒤 break 는 브라우저도 허용)
+ *
+ * upstream `canJoinNoSpaceWordBoundary` 축약 (§B4-3).
+ */
+const SYMBOL_RUN = /^[!-/:-@[-`{-~]+$/;
+
+function isSymbolRun(text: string): boolean {
+  return SYMBOL_RUN.test(text) && !text.includes("-");
+}
+
+/**
+ * 공백 판별 — NBSP 제외
+ *
+ * CSS 에서 NBSP 는 glue 라 hang 되지 않는다. `\s` 는 NBSP 를 포함하므로 쓰지 않는다.
+ */
+function isWhitespaceToken(text: string): boolean {
+  return text.length > 0 && /^[ \t\n\r\f\v\u2028\u2029]+$/.test(text);
+}
+
+function containsCJK(text: string): boolean {
+  for (const ch of text) {
+    if (isCJKCodePoint(ch.codePointAt(0) ?? 0)) return true;
+  }
+  return false;
+}
 
 // ============================================
 // Tokenizer (Intl.Segmenter 기반)
@@ -155,68 +218,111 @@ export function tokenize(text: string, wordBreak: string = "normal"): Token[] {
 /**
  * 토큰 병합 전처리 — CSS 렌더링과 동일한 측정 단위 생성
  *
- * 1. 행두 금칙 문자 → 선행 토큰에 병합 (줄 시작 방지)
- * 2. 행말 금칙 문자 → 후속 토큰에 병합 (줄 끝 방지)
- * 3. 라틴 trailing 구두점 → 선행 word에 병합 ("word," 단위 측정)
+ * 4개의 선형 패스 (EXTERNAL_PATTERN_DELTA_2026-09 §B4-10):
+ *   ① left-sticky   — 행두 금칙 + 라틴 trailing 구두점 (`%` `‰` `°` `…` 포함) → 선행 토큰
+ *   ② forward-sticky — 여는 괄호·따옴표·아포스트로피 + numeric prefix (`$100`) → 후속 토큰
+ *   ③ no-space chain — 공백 없이 이어진 `[word][symbol][word]` 는 한 단위 (이메일·경로·URL)
+ *   ④ keep-all      — 공백 경계 없이 이어진 breakable 그룹에 CJK 가 있으면 한 단위
+ *
+ * ② 는 구 `KINSOKU_TAIL` 분기를 대체한다. 구 분기는 `token.breakable` 을 요구했지만
+ * `Intl.Segmenter` 는 괄호·따옴표를 `isWordLike: false` 로 내므로 실경로에서 한 번도
+ * 동작하지 않았다 (dead — §B3 G/H).
  *
  * Pretext 원리: "local semantic preprocessing > clever runtime correction"
  */
-export function preprocessTokens(tokens: Token[]): Token[] {
-  const result: Token[] = [];
-  const toks = tokens.map((t) => ({ ...t }));
-
-  for (let i = 0; i < toks.length; i++) {
-    const token = toks[i];
-
-    // 행두 금칙: non-breakable 단일 문자 → 선행 토큰에 병합
-    if (
+export function preprocessTokens(
+  tokens: Token[],
+  wordBreak: string = "normal",
+): Token[] {
+  // ① left-sticky — 행두 금칙 · 라틴 trailing 구두점
+  const leftSticky: Token[] = [];
+  for (const token of tokens) {
+    const prev = leftSticky[leftSticky.length - 1];
+    const isKinsokuHead =
       !token.breakable &&
       token.text.length === 1 &&
       KINSOKU_HEAD.has(token.text) &&
-      result.length > 0
-    ) {
-      const prev = result[result.length - 1];
-      result[result.length - 1] = {
-        text: prev.text + token.text,
-        breakable: prev.breakable,
-      };
-      continue;
-    }
-
-    // 행말 금칙: breakable 단일 문자 → 후속 토큰에 병합
-    if (
-      token.breakable &&
-      token.text.length === 1 &&
-      KINSOKU_TAIL.has(token.text) &&
-      i + 1 < toks.length
-    ) {
-      toks[i + 1] = {
-        text: token.text + toks[i + 1].text,
-        breakable: toks[i + 1].breakable,
-      };
-      continue;
-    }
-
-    // 라틴 trailing 구두점: "." "," ";" 등 → 선행 breakable 토큰에 병합
-    if (
+      prev !== undefined;
+    const isTrailingPunct =
       !token.breakable &&
       token.text.length === 1 &&
       LATIN_TRAILING_PUNCT.test(token.text) &&
-      result.length > 0 &&
-      result[result.length - 1].breakable
-    ) {
-      const prev = result[result.length - 1];
-      result[result.length - 1] = {
+      prev !== undefined &&
+      prev.breakable;
+    if (isKinsokuHead || isTrailingPunct) {
+      leftSticky[leftSticky.length - 1] = {
         text: prev.text + token.text,
         breakable: prev.breakable,
       };
       continue;
     }
-
-    result.push(token);
+    leftSticky.push({ ...token });
   }
 
-  return result;
+  // ② forward-sticky — 역방향 패스 (연속 `("` 도 한 번에 carry)
+  const forward: Token[] = [];
+  for (let i = leftSticky.length - 1; i >= 0; i--) {
+    const token = leftSticky[i];
+    // 오른쪽의 살아남은 토큰 — 역방향이므로 forward 의 마지막 원소
+    const next = forward[forward.length - 1];
+    const isForwardSticky =
+      !token.breakable &&
+      !isWhitespaceToken(token.text) &&
+      next !== undefined &&
+      !isWhitespaceToken(next.text) &&
+      Array.from(token.text).every(
+        (ch) => FORWARD_STICKY.has(ch) || NUMERIC_PREFIX.test(ch),
+      );
+    if (isForwardSticky) {
+      // 병합된 토큰의 breakable 은 후속 토큰 것을 따른다 (`「こん` 은 breakable)
+      next.text = token.text + next.text;
+      continue;
+    }
+    forward.push({ ...token });
+  }
+  forward.reverse();
+
+  // ③ no-space chain — 이메일 · 경로 · URL · 식별자
+  const chained: Token[] = [];
+  for (const token of forward) {
+    const prev = chained[chained.length - 1];
+    const joinable =
+      prev !== undefined &&
+      !isWhitespaceToken(prev.text) &&
+      !isWhitespaceToken(token.text) &&
+      !containsCJK(prev.text) &&
+      !containsCJK(token.text) &&
+      // word + symbol | symbol + word (`-` 뒤는 break 허용 — 전화번호·하이픈)
+      ((!token.breakable && isSymbolRun(token.text)) ||
+        (token.breakable &&
+          isSymbolRun(prev.text.slice(-1)) &&
+          prev.text.slice(-1) !== "-"));
+    if (joinable) {
+      prev.text += token.text;
+      prev.breakable = prev.breakable || token.breakable;
+      continue;
+    }
+    chained.push({ ...token });
+  }
+
+  if (wordBreak !== "keep-all") return chained;
+
+  // ④ keep-all — 공백/구두점 경계 없이 이어진 breakable 그룹에 CJK 가 있으면 한 단위
+  const merged: Token[] = [];
+  for (const token of chained) {
+    const prev = merged[merged.length - 1];
+    if (
+      prev !== undefined &&
+      prev.breakable &&
+      token.breakable &&
+      (containsCJK(prev.text) || containsCJK(token.text))
+    ) {
+      prev.text += token.text;
+      continue;
+    }
+    merged.push({ ...token });
+  }
+  return merged;
 }
 
 // ============================================
@@ -407,6 +513,7 @@ export interface ComputedLines {
  *
  * CSS trailing whitespace는 hangable — 줄 끝 공백은 overflow에 포함하지 않는다.
  * 공백 폭을 pendingSpace에 보류하고, 다음 단어 추가 시에만 확정한다.
+ * hangable 은 **공백뿐** — 구두점·기호(non-breakable)는 즉시 줄 폭에 가산한다.
  *
  * Tier 1: lineFitEpsilon 적용 — maxWidth + ε 으로 서브픽셀 경계 흡수.
  */
@@ -427,9 +534,19 @@ export function computeLines(
     const token = tokens[i];
     const w = widths[i];
 
+    if (isWhitespaceToken(token.text)) {
+      // 공백만 hangable — 보류 (lineW에 즉시 더하지 않음). 연속 공백은 누적한다.
+      pendingSpace += w;
+      lines[lines.length - 1].push(token.text);
+      continue;
+    }
+
     if (!token.breakable) {
-      // 공백/구두점 → 보류 (lineW에 즉시 더하지 않음)
-      pendingSpace = w;
+      // 구두점·기호는 break 기회가 없을 뿐 폭은 즉시 줄에 들어간다.
+      // 구 코드는 이들도 `pendingSpace = w` 로 덮어써 `Save / Cancel` 의 "/" 와
+      // 공백 하나가 폭에서 사라졌다 (§B4-5 · D 케이스).
+      lineW += pendingSpace + w;
+      pendingSpace = 0;
       lines[lines.length - 1].push(token.text);
       continue;
     }
@@ -599,8 +716,9 @@ export function measureWithCanvas2D(
   }
 
   // Tier 3: Semantic Preprocessing
-  const rawTokens = tokenize(text, style.wordBreak ?? "normal");
-  const tokens = preprocessTokens(rawTokens);
+  const wordBreak = style.wordBreak ?? "normal";
+  const rawTokens = tokenize(text, wordBreak);
+  const tokens = preprocessTokens(rawTokens, wordBreak);
 
   // Segment width cache
   const fontKey = buildFontKey(style);

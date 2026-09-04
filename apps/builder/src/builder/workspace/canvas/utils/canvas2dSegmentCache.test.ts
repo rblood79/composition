@@ -74,6 +74,7 @@ import {
   buildHintedText,
   getOrMeasureWidth,
   clearSegmentCaches,
+  computeLines,
 } from "./canvas2dSegmentCache";
 
 // ============================================
@@ -153,27 +154,18 @@ describe("preprocessTokens", () => {
     expect(result).toEqual([{ text: "\u3002", breakable: false }]);
   });
 
-  it("행말 금칙(「)은 후속 토큰에 병합", () => {
-    // 「 = \u300C 는 KINSOKU_TAIL, breakable 단일 문자
-    const tokens: Token[] = [
-      { text: "\u300C", breakable: true }, // 「
-      { text: "本文", breakable: true },
-    ];
-    const result = preprocessTokens(tokens);
+  it("forward-sticky(「)는 후속 토큰에 병합 — tokenize 실경로 fixture", () => {
+    // 손으로 만든 breakable:true fixture 금지 (§B5-1). Intl.Segmenter 는
+    // 「 를 isWordLike:false 로 내므로 구 breakable 조건은 실경로에서 dead 였다.
+    const result = preprocessTokens(tokenize("\u300C\u672C\u6587", "keep-all"));
     expect(result.length).toBe(1);
-    expect(result[0].text).toBe("\u300C本文");
+    expect(result[0].text).toBe("\u300C\u672C\u6587");
     expect(result[0].breakable).toBe(true);
   });
 
-  it("행말 금칙이 마지막 토큰이면 후속 없이 스킵", () => {
-    // i + 1 < toks.length 조건 미충족 → 그냥 push
-    const tokens: Token[] = [
-      { text: "text", breakable: true },
-      { text: "\u300C", breakable: true }, // 「 at end
-    ];
-    const result = preprocessTokens(tokens);
-    // \u300C 는 마지막이라 후속 토큰 없음 → 그대로 push
-    expect(result[1].text).toBe("\u300C");
+  it("forward-sticky 문자가 마지막 토큰이면 병합 대상 없이 그대로", () => {
+    const result = preprocessTokens(tokenize("text\u300C"));
+    expect(result[result.length - 1].text).toBe("\u300C");
   });
 
   it("연속 구두점 병합 — 여러 trailing punct 연달아 처리", () => {
@@ -475,5 +467,176 @@ describe("getOrMeasureWidth", () => {
     mockFontsCheck.mockReturnValue(true);
     getOrMeasureWidth("x", "key", "700 24px Roboto");
     expect(mockCtx.font).toBe("700 24px Roboto");
+  });
+});
+
+
+// ============================================
+// Chrome 오라클 16 케이스 — Tier 3 preprocessing + computeLines
+//
+// EXTERNAL_PATTERN_DELTA_2026-09.md §B3 / §B4-11 이 Chrome 152 (macOS) 의
+// Range.getClientRects() 로 추출한 줄 경계를 기대값으로 고정한다.
+//
+// fixture 는 반드시 tokenize() 실경로로 만든다 — 손으로 만든 breakable:true
+// 구두점 fixture 가 행말 금칙 dead 규칙을 5개월간 가렸다 (§B3 G/H).
+// 폭은 fake 등폭 (grapheme 당 10px) — "어디서 끊을 수 있는가" 만 보므로 폰트 무관.
+// maxWidth = graphemes(접두어) × 10 + 1.5 (§B7 오라클 스크립트와 같은 규약).
+// ============================================
+
+const FAKE_GRAPHEME_W = 10;
+
+function simulate(
+  text: string,
+  prefix: string,
+  opts: { wordBreak?: string; delta?: number } = {},
+): { lines: string[]; maxLineWidth: number } {
+  const wordBreak = opts.wordBreak ?? "normal";
+  const tokens = preprocessTokens(tokenize(text, wordBreak), wordBreak);
+  const widths = tokens.map((t) => Array.from(t.text).length * FAKE_GRAPHEME_W);
+  const maxWidth =
+    Array.from(prefix).length * FAKE_GRAPHEME_W + (opts.delta ?? 1.5);
+  const { lines, maxLineWidth } = computeLines(
+    tokens,
+    widths,
+    maxWidth,
+    "normal",
+    "fake\x00400",
+    "400 16px Arial",
+  );
+  // 줄 끝 hang 공백은 CSS 에서 줄 폭에 기여하지 않으므로 비교에서 제외한다.
+  return { lines: lines.map((l) => l.join("").trim()), maxLineWidth };
+}
+
+describe("Tier 3 — Chrome 오라클 케이스 고정", () => {
+  it("A. `$` 는 뒤 숫자에 붙는다 (numeric prefix affix)", () => {
+    expect(simulate("Price $100 today", "Price $").lines).toEqual([
+      "Price",
+      "$100",
+      "today",
+    ]);
+  });
+
+  it("B. `%` 는 앞 숫자에 붙는다 (numeric postfix affix)", () => {
+    const { lines, maxLineWidth } = simulate("50% off", "50%");
+    expect(lines).toEqual(["50%", "off"]);
+    // "50%" 3 grapheme = 30px — `%` 가 hang 되면 20px 로 과소 측정된다
+    expect(maxLineWidth).toBe(30);
+  });
+
+  it("C. 라틴 여는 괄호는 후속 토큰에 붙는다", () => {
+    expect(simulate("call (주)회사 now", "call (").lines).toEqual([
+      "call",
+      "(주)회사",
+      "now",
+    ]);
+  });
+
+  it("E. 이메일은 공백 없는 한 단위", () => {
+    expect(
+      simulate("mail support@example.com now", "mail support@").lines,
+    ).toEqual(["mail", "support@example.com", "now"]);
+  });
+
+  it("F. 경로·식별자는 공백 없는 한 단위", () => {
+    expect(simulate("see foo_bar/baz_qux here", "see foo_bar/").lines).toEqual([
+      "see",
+      "foo_bar/baz_qux",
+      "here",
+    ]);
+  });
+
+  it("F2. URL 은 공백 없는 한 단위", () => {
+    expect(
+      simulate(
+        "go https://example.com/path/to",
+        "go https://example.com/",
+      ).lines,
+    ).toEqual(["go", "https://example.com/path/to"]);
+  });
+
+  it("G. CJK 여는 괄호 「 는 줄 끝에 남지 않는다", () => {
+    expect(simulate("彼は「こんにちは」と言った", "彼は「").lines).toEqual([
+      "彼は",
+      "「こん",
+      "にち",
+      "は」と",
+      "言った",
+    ]);
+  });
+
+  it("H. 전각 여는 괄호 （ 는 줄 끝에 남지 않는다", () => {
+    expect(simulate("漢字（注）です", "漢字（").lines).toEqual([
+      "漢字",
+      "（注）",
+      "です",
+    ]);
+  });
+
+  it("L. 여는 곧은 따옴표는 줄 끝에 남지 않는다", () => {
+    expect(simulate('he said "hello world" ok', 'he said "').lines).toEqual([
+      "he said",
+      '"hello',
+      'world" ok',
+    ]);
+  });
+
+  it("O. 여는 아포스트로피는 줄 끝에 남지 않는다", () => {
+    expect(simulate("it's 'quoted' text here", "it's '").lines).toEqual([
+      "it's",
+      "'quoted'",
+      "text",
+      "here",
+    ]);
+  });
+
+  it("N. keep-all — 공백 없이 인접한 CJK 포함 그룹은 한 단위", () => {
+    expect(
+      simulate("한글abc123 다음", "한글", { wordBreak: "keep-all" }).lines,
+    ).toEqual(["한글abc123", "다음"]);
+  });
+
+  it("N2. keep-all — CJK+숫자 혼합도 한 단위", () => {
+    expect(
+      simulate("価格1200円です", "価格1200", { wordBreak: "keep-all" }).lines,
+    ).toEqual(["価格1200円です"]);
+  });
+
+  it("D. computeLines — 연속 non-breakable 토큰의 폭이 누락되지 않는다", () => {
+    // 컨테이너 = 실폭(130) − 0.5 → Chrome 은 줄바꿈. Before 는 "/" 와 공백 하나가
+    // pendingSpace 덮어쓰기로 사라져 fits 로 오판했다 (Tier 2 가 가림).
+    const { lines, maxLineWidth } = simulate("Save / Cancel", "Save / Cancel", {
+      delta: -0.5,
+    });
+    expect(lines).toEqual(["Save /", "Cancel"]);
+    expect(maxLineWidth).toBe(60);
+  });
+
+  it("P. `Save /` — SY 앞에서는 공백 뒤에도 끊지 않는다 (폭은 정확)", () => {
+    const { lines, maxLineWidth } = simulate("Save /", "Save");
+    expect(lines).toEqual(["Save /"]);
+    expect(maxLineWidth).toBe(60);
+  });
+
+  it("M. 하이픈은 앞에 붙고 뒤에서 끊는다 (전화번호 오적용 방지)", () => {
+    expect(simulate("well-known word", "well-").lines).toEqual([
+      "well-",
+      "known",
+      "word",
+    ]);
+  });
+
+  it("M2. 전화번호는 하이픈 뒤에서만 끊는다", () => {
+    expect(simulate("010-1234-5678", "010-1234-").lines).toEqual([
+      "010-1234-",
+      "5678",
+    ]);
+  });
+
+  it("Q. `Wait...` 는 한 단위", () => {
+    expect(simulate("Wait...", "Wait...").lines).toEqual(["Wait..."]);
+  });
+
+  it("R. `(note)` 는 한 단위", () => {
+    expect(simulate("(note)", "(note)").lines).toEqual(["(note)"]);
   });
 });
