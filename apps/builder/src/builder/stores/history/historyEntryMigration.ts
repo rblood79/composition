@@ -25,7 +25,6 @@
  */
 
 import type { ComponentElementProps } from "../../../types/core/store.types";
-import type { Element } from "../../../types/core/store.types";
 import type { SerializableElementDiff } from "../utils/elementDiff";
 import type { HistoryEntry } from "../history";
 import { createCanonicalHistoryNodeFromElement } from "@/adapters/canonical/canonicalMutations";
@@ -42,20 +41,29 @@ import {
 } from "./canonicalHistoryEvents";
 import { selectActiveCanonicalDocument } from "../canonical/canonicalDocumentStore";
 
+/** IndexedDB v1 history payload 에 실제 저장된 legacy element snapshot shape. */
+type LegacyHistoryElementSnapshot = {
+  id: string;
+  type: string;
+  props: Record<string, unknown>;
+  parent_id?: string | null;
+  page_id?: string | null;
+};
+
 /**
  * HistoryEntry.data 에 더 이상 두지 않는 v1 snapshot 필드.
  * IndexedDB/raw entry 와 unit fixture 만 이 shape 로 읽는다.
  */
 export type LegacyV1SnapshotData = {
-  element?: Element;
-  prevElement?: Element;
+  element?: LegacyHistoryElementSnapshot;
+  prevElement?: LegacyHistoryElementSnapshot;
   props?: ComponentElementProps;
   prevProps?: ComponentElementProps;
   parentId?: string;
   prevParentId?: string;
-  childElements?: Element[];
-  elements?: Element[];
-  prevElements?: Element[];
+  childElements?: LegacyHistoryElementSnapshot[];
+  elements?: LegacyHistoryElementSnapshot[];
+  prevElements?: LegacyHistoryElementSnapshot[];
   batchUpdates?: Array<{
     elementId: string;
     prevProps: ComponentElementProps;
@@ -83,44 +91,52 @@ function legacySnapshot(entry: HistoryEntry): LegacyV1SnapshotData {
 
 /** apply 시점 context — diff 를 full props 로 펼칠 때 필요. */
 export type MigrateV1Context = {
-  elements?: Element[];
+  elements?: LegacyHistoryElementSnapshot[];
   direction?: "undo" | "redo";
 };
 
-function asElementArray(value: unknown): Element[] {
+function asElementArray(value: unknown): LegacyHistoryElementSnapshot[] {
   if (!Array.isArray(value)) return [];
   return value.filter(
-    (item): item is Element =>
+    (item): item is LegacyHistoryElementSnapshot =>
       Boolean(item) &&
       typeof item === "object" &&
-      typeof (item as Element).id === "string" &&
-      typeof (item as Element).type === "string",
+      typeof (item as LegacyHistoryElementSnapshot).id === "string" &&
+      typeof (item as LegacyHistoryElementSnapshot).type === "string",
   );
 }
 
-function asElement(value: unknown): Element | null {
+function asElement(value: unknown): LegacyHistoryElementSnapshot | null {
   if (!value || typeof value !== "object") return null;
-  const element = value as Element;
+  const element = value as LegacyHistoryElementSnapshot;
   if (typeof element.id !== "string" || typeof element.type !== "string") {
     return null;
   }
   return element;
 }
 
-function elementParentKey(element: Element): string | null {
+function elementParentKey(
+  element: LegacyHistoryElementSnapshot,
+): string | null {
   return element.parent_id ?? element.page_id ?? null;
 }
 
-function siblingIndexInList(element: Element, siblings: Element[]): number {
+function siblingIndexInList(
+  element: LegacyHistoryElementSnapshot,
+  siblings: LegacyHistoryElementSnapshot[],
+): number {
   const parentId = elementParentKey(element);
   return siblings
     .filter((candidate) => elementParentKey(candidate) === parentId)
     .findIndex((candidate) => candidate.id === element.id);
 }
 
-function nonPropsDiffer(prev: Element, next: Element): boolean {
-  const prevFields = prev as Element & Record<string, unknown>;
-  const nextFields = next as Element & Record<string, unknown>;
+function nonPropsDiffer(
+  prev: LegacyHistoryElementSnapshot,
+  next: LegacyHistoryElementSnapshot,
+): boolean {
+  const prevFields = prev as unknown as Record<string, unknown>;
+  const nextFields = next as unknown as Record<string, unknown>;
   for (const field of NON_PROPS_CANONICAL_HISTORY_FIELDS) {
     if (
       JSON.stringify(prevFields[field]) !== JSON.stringify(nextFields[field])
@@ -132,10 +148,10 @@ function nonPropsDiffer(prev: Element, next: Element): boolean {
 }
 
 function nonPropsOrLocationChanged(
-  prev: Element,
-  next: Element,
-  prevElements: Element[],
-  nextElements: Element[],
+  prev: LegacyHistoryElementSnapshot,
+  next: LegacyHistoryElementSnapshot,
+  prevElements: LegacyHistoryElementSnapshot[],
+  nextElements: LegacyHistoryElementSnapshot[],
 ): boolean {
   if (nonPropsDiffer(prev, next)) return true;
   if (elementParentKey(prev) !== elementParentKey(next)) return true;
@@ -145,7 +161,10 @@ function nonPropsOrLocationChanged(
   );
 }
 
-function propsEqual(prev: Element, next: Element): boolean {
+function propsEqual(
+  prev: LegacyHistoryElementSnapshot,
+  next: LegacyHistoryElementSnapshot,
+): boolean {
   return JSON.stringify(prev.props ?? {}) === JSON.stringify(next.props ?? {});
 }
 
@@ -156,7 +175,9 @@ function propsEqual(prev: Element, next: Element): boolean {
  * apply 시 subtree 가 지워지지 않도록 현재 문서 children 을 붙인다.
  * fills/responsive 등 스냅샷 필드는 Element 쪽에서 온다 (live after 금지).
  */
-function nodeFromLegacyElementSnapshot(element: Element): CanonicalNode {
+function nodeFromLegacyElementSnapshot(
+  element: LegacyHistoryElementSnapshot,
+): CanonicalNode {
   const node = createCanonicalHistoryNodeFromElement(element);
   const doc = selectActiveCanonicalDocument();
   if (!doc) return node;
@@ -357,7 +378,7 @@ export function expandDiffToFullProps(
 }
 
 function findElementProps(
-  elements: Element[] | undefined,
+  elements: LegacyHistoryElementSnapshot[] | undefined,
   elementId: string,
 ): Record<string, unknown> | null {
   if (!elements) return null;
