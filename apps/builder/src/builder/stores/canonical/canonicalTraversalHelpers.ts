@@ -53,6 +53,7 @@ interface TraversalCache {
   document: CompositionDocument;
   nodeMap: Map<string, CanonicalNode>;
   firstProjectableNodeById: Map<string, CanonicalProjectableNodeLookup>;
+  projectableNodeLookups: CanonicalProjectableNodeLookup[];
   nodeOccurrenceCountById: Map<string, number>;
   childrenByParent: Map<string, CanonicalNode[]>;
   projectableNodes: CanonicalNode[];
@@ -72,6 +73,8 @@ export type CanonicalProjectableNodeLookup = CanonicalProjectionScope & {
 
 let cache: TraversalCache | null = null;
 const EMPTY_PROJECTABLE_NODES: readonly CanonicalNode[] = [];
+const EMPTY_PROJECTABLE_NODE_LOOKUPS: readonly CanonicalProjectableNodeLookup[] =
+  [];
 const EMPTY_PROJECTABLE_CHILDREN_BY_PARENT: ReadonlyMap<
   string,
   readonly CanonicalNode[]
@@ -203,6 +206,7 @@ function ensureCache(): TraversalCache | null {
     string,
     CanonicalProjectableNodeLookup
   >();
+  const projectableNodeLookups: CanonicalProjectableNodeLookup[] = [];
   const nodeOccurrenceCountById = new Map<string, number>();
   const childrenByParent = new Map<string, CanonicalNode[]>();
   const projectableNodes: CanonicalNode[] = [];
@@ -222,13 +226,15 @@ function ensureCache(): TraversalCache | null {
     const nextScope = getCanonicalProjectionScope(node, scope);
     const isProjectable = isCanonicalNodeProjectableToElement(node);
     if (isProjectable) {
+      const lookup: CanonicalProjectableNodeLookup = {
+        node,
+        parentId: projectableParentId,
+        ...nextScope,
+      };
       projectableNodes.push(node);
+      projectableNodeLookups.push(lookup);
       if (!firstProjectableNodeById.has(node.id)) {
-        firstProjectableNodeById.set(node.id, {
-          node,
-          parentId: projectableParentId,
-          ...nextScope,
-        });
+        firstProjectableNodeById.set(node.id, lookup);
       }
       if (projectableParentId) {
         const siblings = projectableChildrenByParent.get(projectableParentId);
@@ -284,6 +290,7 @@ function ensureCache(): TraversalCache | null {
     document: snapshot.doc,
     nodeMap,
     firstProjectableNodeById,
+    projectableNodeLookups,
     nodeOccurrenceCountById,
     childrenByParent,
     projectableNodes,
@@ -421,6 +428,16 @@ export function getCanonicalNodeOccurrenceCount(nodeId: string): number {
 export function getProjectableNodes(): readonly CanonicalNode[] {
   const c = ensureCache();
   return c?.projectableNodes ?? EMPTY_PROJECTABLE_NODES;
+}
+
+/**
+ * legacy projection과 같은 DFS occurrence 순서의 canonical node/context index.
+ * aggregate adapter가 전체 Element[] traversal을 다시 수행하지 않고 한 번에
+ * panel read index를 만들 때 사용한다. duplicate id occurrence도 보존한다.
+ */
+export function getProjectableNodeLookups(): readonly CanonicalProjectableNodeLookup[] {
+  const c = ensureCache();
+  return c?.projectableNodeLookups ?? EMPTY_PROJECTABLE_NODE_LOOKUPS;
 }
 
 /**

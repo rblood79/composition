@@ -48,6 +48,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Properties/Styles 패널의 단일 요소 조회를 전체 canonical `Element[]` projection과 선형 `find`에서 ADR-127 revision cache의 projectable node·parent·page/frame scope 조회로 전환했습니다. page ref descendants와 잘못된 duplicate ID의 첫-match 의미를 유지합니다.
 - 5,000-node 합성 규모 A/B에서 같은 문서의 warm selection p50/p95는 0.0300/0.0392ms → 0.00121/0.00358ms, canonical mutation 뒤 이미 갱신된 traversal cache의 leaf read는 0.7769/2.1724ms → 0.00117/0.00729ms였습니다. 최초 cold read도 0.8803/1.2420ms → 0.7239/1.1751ms로 악화되지 않았고, cache scope 확장 뒤 기존 `updateElement` action은 history 23건 포함 p50/p95 1.33/1.89ms로 직전 기준 범위에 머물렀습니다. 이 수치는 합성 문서의 규모 비용 비교이며 실제 문서 분포의 개선율로 해석하지 않습니다.
+- Properties/Styles의 aggregate elements/children 조회를 `getCanonicalDocumentElementsView`와 hook 인스턴스별 Map 재생성에서 ADR-127 occurrence cache 기반 문서별 공유 index로 전환했습니다. ref descendants의 parent·page/frame scope, DFS 순서, duplicate ID의 aggregate last-match 의미를 유지하면서 PanelNode adapter 경계 안에서 배열·ID Map·children Map을 한 번에 만듭니다.
+- 6,000-node 합성 문서에서 elements Map 8개·children Map 3개 consumer를 GC 전처리 후 old/new 교차 실행한 결과, canonical revision 재구축 p50/p95가 4.92/7.17ms → 3.46/4.84ms였습니다. 실제 문서 분포가 아닌 aggregate 중복 생성 비용의 합성 비교입니다.
 
 ### Tests
 

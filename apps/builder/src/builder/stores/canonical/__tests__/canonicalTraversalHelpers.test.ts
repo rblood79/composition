@@ -28,6 +28,7 @@ import {
   getNodeMap,
   getParent,
   getProjectableChildrenByParent,
+  getProjectableNodeLookups,
   getProjectableNodes,
 } from "../canonicalTraversalHelpers";
 
@@ -441,6 +442,59 @@ describe("projectable traversal views", () => {
     expect(getProjectableChildrenByParent().has("structural-wrapper")).toBe(
       false,
     );
+    expect(
+      getProjectableNodeLookups().map(({ node, parentId }) => ({
+        id: node.id,
+        parentId,
+      })),
+    ).toEqual([
+      { id: "root", parentId: null },
+      { id: "leaf", parentId: "root" },
+    ]);
+  });
+
+  it("aggregate lookup은 duplicate occurrence와 page ref scope를 모두 보존", () => {
+    const pageRef = makeNode("page-ref", {
+      type: "ref",
+      metadata: { type: "legacy-page", pageId: "page-1" },
+      ref: "layout-1",
+      descendants: {
+        slot: {
+          children: [
+            makeNode("duplicate", { props: { label: "First" } }),
+            makeNode("duplicate", { props: { label: "Last" } }),
+          ],
+        },
+      },
+    } as never);
+    setActiveDocument("proj-a", makeDoc({ children: [pageRef] }));
+
+    expect(
+      getProjectableNodeLookups().map(
+        ({ node, parentId, pageId, layoutId }) => ({
+          id: node.id,
+          label: node.props?.label,
+          parentId,
+          pageId,
+          layoutId,
+        }),
+      ),
+    ).toEqual([
+      {
+        id: "duplicate",
+        label: "First",
+        parentId: null,
+        pageId: "page-1",
+        layoutId: null,
+      },
+      {
+        id: "duplicate",
+        label: "Last",
+        parentId: null,
+        pageId: "page-1",
+        layoutId: null,
+      },
+    ]);
   });
 
   it("duplicate id occurrence를 projection 여부와 무관하게 집계", () => {
