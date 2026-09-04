@@ -1,7 +1,12 @@
 # ADR-051 구현 설계: Canvas 2D 텍스트 측정 내재화
 
 > ADR: [051-pretext-text-measurement-integration.md](../completed/051-pretext-text-measurement-integration.md)
-> 상태: 설계 완료, Phase 0 대기
+> 상태: 구현 완료 (live) — `USE_CANVAS2D_MEASURE = true` (`canvas/wasm-bindings/featureFlags.ts`) 로
+> 2026-04-05 `ed3a67ac3` 부터 측정·Break Hint 양쪽이 Canvas 2D 경로를 탄다. 구 "Phase 0 대기" 서술은
+> 5개월간 코드와 어긋난 drift 였다 (2026-09-05 정정 — EXTERNAL_PATTERN_DELTA_2026-09 §B6).
+>
+> Tier 3 preprocessing 은 2026-09-05 에 upstream pretext 0.0.5~0.0.8 규칙 5 + computeLines 1 을
+> 반영했다 — 근거 [evidence/051-tier3-upstream-rules-live.md](../evidence/051-tier3-upstream-rules-live.md).
 
 ---
 

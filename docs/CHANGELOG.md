@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [텍스트 줄바꿈이 브라우저와 어긋나던 10가지를 고쳤습니다] - 2026-09-05
+
+### Fixed
+
+- **Canvas 2D 텍스트 측정 (Tier 3) 이 Chrome 과 다르게 끊던 위치 10종**: 캔버스에서만 단어가 잘못 쪼개지거나 구두점이 줄 끝에 홀로 남던 문제입니다.
+  - `$100` 의 `$` 가 앞 줄 끝에 남던 것 → 숫자에 붙습니다. `50%` 의 `%` 도 앞 숫자에 붙습니다.
+  - 여는 괄호·따옴표·아포스트로피 (`(` `"` `'` `「` `（`) 가 줄 끝에 홀로 남던 것 → 다음 줄로 함께 넘어갑니다. CJK 여는 괄호 규칙은 조건 오류로 실제로는 한 번도 동작하지 않는 상태였습니다.
+  - 이메일·파일 경로·URL·식별자 (`support@example.com`, `foo_bar/baz_qux`, `https://…`) 가 기호에서 쪼개지던 것 → 브라우저처럼 한 단위로 둡니다. 하이픈 뒤는 그대로 끊깁니다 (전화번호 유지).
+  - `word-break: keep-all` 에서 `한글abc123` · `価格1200円` 처럼 공백 없이 붙은 CJK 혼합 그룹이 쪼개지던 것 → 한 단위로 둡니다.
+  - 줄 폭 계산에서 구두점·기호가 공백처럼 취급돼 폭이 과소 측정되던 것 → 공백만 줄 끝에서 흘리고 기호는 폭에 포함합니다. `Save / Cancel` 류의 fit-content 폭과 줄 수가 맞아집니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/utils/canvas2dSegmentCache.ts`
+
+### Tests
+
+- Chrome 152 오라클 기대값 18 케이스를 `tokenize()` 실경로 fixture 로 고정했습니다 (수정 전 13 FAIL → 18 GREEN). 손으로 만든 fixture 가 동작하지 않는 규칙을 가리고 있던 기존 테스트 2건도 실경로로 교체했습니다.
+- 근거: [docs/adr/evidence/051-tier3-upstream-rules-live.md](adr/evidence/051-tier3-upstream-rules-live.md) — 원복 RED 표 · 회귀 538건 · 빌더 Skia ↔ Chrome DOM 줄 위치 대조.
+
 ## [React Aria Components 1.21 — ColorArea 패치 재적용] - 2026-09-05
 
 ### Changed

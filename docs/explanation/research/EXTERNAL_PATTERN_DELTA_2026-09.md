@@ -628,7 +628,7 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 
 | 순서 | 항목                                                       | 등급 | 실측 근거                                                                                                                                                                                                                                                                     | 종류          | phase / 트리거                                           |
 | ---- | ---------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------- |
-| 1    | pretext ① Tier 3 규칙 5 + computeLines 1                   | A    | B3 결함 10 케이스 (A·C·E·F·G·H·L·O·N·N2) 전부 현재 코드에서 재현. 행말 금칙 dead 확정 (`tokenize` 가 `「 ( " '` 을 `breakable:false` 로 냄). D 케이스 폭 누락 재현 (토큰 폭 합 130 vs `maxLineWidth` 110). `nodeRendererText.ts:539` hintedText 로 Skia 에 직결 — 사용자-가시 | **동작 변경** | 1 · live 필수 (빌더 Text 에 A/E/G/L/N 문자열)            |
+| 1 ✅ | pretext ① Tier 3 규칙 5 + computeLines 1                   | A    | B3 결함 10 케이스 (A·C·E·F·G·H·L·O·N·N2) 전부 현재 코드에서 재현. 행말 금칙 dead 확정 (`tokenize` 가 `「 ( " '` 을 `breakable:false` 로 냄). D 케이스 폭 누락 재현 (토큰 폭 합 130 vs `maxLineWidth` 110). `nodeRendererText.ts:539` hintedText 로 Skia 에 직결 — 사용자-가시 | **동작 변경** | 1 · live 필수 (빌더 Text 에 A/E/G/L/N 문자열)            |
 | 2    | fulgur ⑤ Taffy 주석 sweep + 매트릭스 생성                  | B    | 비테스트 src 35 파일 · `CSS_SUPPORT_MATRIX.md` 04-06 정지 · Taffy 71건 · 오판 2회 기록 (메모리 `feedback-stale-dependency-comment-is-not-engine-constraint`). 가치 본체는 sweep — 생성 스크립트는 `layoutCapabilityMatrix.ts` (참조 = 테스트 1개) 가 정본인지 먼저 확인       | 동작 변경 0   | 1 · sweep 선행, 생성은 정본 확인 후                      |
 | 3    | fulgur ② wasm strict 입력                                  | B    | 오탐 132/288 기록. 추가 실증: TS 가 `order` 를 지금도 전송 (`utils.ts:5872`) 하지만 `NodeStyle` 미선언 → 무음 드롭, `tree.rs:296` guard 주석은 "유입 경로 생기면 선언" 이라 계약 guard 가 유입을 이미 놓침 (동작 영향 0 — `fullTreeLayout.ts:1824` 가 TS 에서 pre-sort)       | 동작 변경 0   | 1 · 첫 run 이 미지 키 인벤토리                           |
 | 4    | pretext ③ letterSpacing fallback 축소                      | B    | `needsFallback():384` + `TypographySection.tsx:276` 노출 — production 경로. grapheme 수 캐시 없으면 텍스트당 49 µs (B4-13) 라 캐시가 착수 조건                                                                                                                                | **동작 변경** | 1 · 1 이후 · grapheme 수 캐시                            |
@@ -640,5 +640,10 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 | —    | pretext 보류 3 (Tier 2 제거 · 라이브러리 도입 · Rust 이관) | —    | B5 표 그대로                                                                                                                                                                                                                                                                  | —             | B5 표 조건                                               |
 
 동작 변경 0 항목 (2·3) 은 review-loop-closure §3 축소 절차, 동작 변경 항목 (1·4·5) 은 원복 RED 전량 · live 필수 · evidence/README/CHANGELOG. 판독 프롬프트 필수 문구는 §4 그대로. C 등급 3건은 트리거 성립 전 착수하지 않는다 — 초판 순서 (② → ④ → ⑤ → ①) 는 절차 편의였고 가치 순서가 아니었다.
+
+**반영 이력**: 순서 1 (pretext ①) 은 2026-09-05 `ba579c7a6` 로 반영 완료 — 원복 RED 13/18 → 18/18 GREEN,
+회귀 538건, 빌더 Skia ↔ Chrome DOM 줄 위치 live 대조 일치. 근거
+[docs/adr/evidence/051-tier3-upstream-rules-live.md](../../adr/evidence/051-tier3-upstream-rules-live.md).
+§B6 의 ADR-051 breakdown 상태 drift 도 같이 정정했다. 다음은 순서 2 (fulgur ⑤ Taffy 주석 sweep).
 
 문서 drift 추가 확인 (09-04): A2 "51 파일" 은 49 (비테스트 35). ADR-051 breakdown "Phase 0 대기" 는 `featureFlags.ts:35` `USE_CANVAS2D_MEASURE = true` 와 어긋남 (B6 그대로).
