@@ -13,9 +13,6 @@ import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
 import { hasDelegatedChild } from "@composition/shared";
 import {
-  isFitContentRemeasureWidth,
-  resolveFitContentRemeasureText,
-  resolveRemeasureChildProps,
   resolveSubpartAwareImplicitStyles,
 } from "./fitContentRemeasure";
 import { isReadOnlySubpart, projectReadOnlySubpart } from "./readOnlySubpart";
@@ -2115,41 +2112,10 @@ function traversePostOrder(
       batch[batchIdx].style.height = `${correctedHeight}px`;
 
       // fit-content/max-content/min-content: 텍스트 측정값이 fontSize에 의존
-      if (isFitContentRemeasureWidth(origStyle.width)) {
-        // ADR-923 Phase 5 후속 (2026-09-04): 재측정은 **자식 visit 이 쓴 것과 같은 텍스트**로 한다.
-        //   visit (위 read-time propagation) 은 parent 가 정한 표시 텍스트로 폭을 재는데, 여기 입력
-        //   `filteredChild` 는 elementsMap 원본에서 온 것이라 store 텍스트가 낡았으면 그 낡은 폭이
-        //   visit 값을 덮는다 (Meter Label "Storage" 54 vs 표시 "Name" 40 = DOM 39 와 같은 형태 —
-        //   Label 축은 sub-part 판정으로 닫혔고 GridListItem/ListBoxItem 의 Text/Description 이 남아
-        //   있었다). 같은 registry 를 같은 방향으로 한 번 더 읽어 텍스트만 맞춘다.
-        const propagatedChildProps = resolveRemeasureChildProps(
-          rawElement,
-          filteredChild,
-        );
-        const childText = resolveFitContentRemeasureText(propagatedChildProps);
-        if (childText) {
-          // ADR-912 영역 B (A): 순수 measureTextWidth 는 type-specific 부속(Tag remove X /
-          //   Button icon 등) 폭을 누락한다. calculateContentWidth(type 분기 포함)로 교체해
-          //   fit-content 재계산이 content-width 를 generic 하게 산출하게 한다 — Tag chip 의 X
-          //   공간이 fit-content 에 포함되어 Tag.spec X 우측정렬이 라벨과 겹치지 않는다.
-          //   주입된 fontSize 를 element.props.style 에 반영해 type 분기가 올바른 fontSize 로 계산.
-          const childForWidth: CanvasLayoutNode = {
-            ...filteredChild,
-            props: {
-              ...propagatedChildProps,
-              style: {
-                ...(filteredChild.props?.style as
-                  Record<string, unknown> | undefined),
-                fontSize: childFs,
-              },
-            },
-          };
-          const correctedWidth = Math.ceil(
-            calculateContentWidth(childForWidth),
-          );
-          batch[batchIdx].style.width = `${correctedWidth}px`;
-        }
-      }
+      // ADR-923 착수 5 재확인 (2026-09-04): 종전 여기서 `width: fit-content` 자식의 폭을 텍스트로
+      //   다시 재 batch 에 px 로 썼다. 그 write 를 1px 로 강제해도 parity 1110 · unit 482 · live 가
+      //   무반응 — 자식 visit 의 스칼라 + 엔진 intrinsic 해소 (ADR-165/170) 에 항상 덮이는 dead
+      //   경로라 삭제했다 (evidence/923-phase5-followup-fitcontent-remeasure-text-source.md §8).
     }
   }
 

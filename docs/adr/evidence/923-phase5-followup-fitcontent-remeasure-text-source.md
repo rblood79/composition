@@ -91,3 +91,16 @@ surface: 빌더 Components 페이지의 `component-listbox-item-default` (실 st
 - 따라서 registry 규칙 `label → Text.children` 은 parentProp 이 없어 **read-time · write-time 모두 skip** 되고 (`resolvePropagatedProps` 는 undefined 를 건너뛴다), `description → Description.children` 은 origin 의 자식이 `Text[slot=description]` 이라 type 이 맞지 않아 역시 대상이 없다. §5 의 "두 줄 모두 Name" 은 probe 가 parent 에 `label` 을 넣어 만든 상태였다.
 - panel 편집은 `listBoxItemSlotChildActions.ts` 가 slot 자식을 **직접** 쓴다 (`{ slot: role, children }`) — registry 를 거치지 않는다.
 - 판정: production 재현 없음 유지. 성격은 slot 미구분 결함이 아니라 **도달 불가 규칙** — 정리 대상 (규칙 삭제 또는 `children → Text[slot=label]` 로 재키잉은 필요가 생길 때). 이 문서 §2 축 A 의 RED 4 도 이 규칙을 테스트가 직접 켠 결과라, §3 수리는 문서가 이미 말한 대로 사용자-가시 변경 0 이다.
+
+## 9. 정리 (2026-09-04, 사용자 승인 "확인결과대로 시작해")
+
+동작 변경 0 절차 (`review-loop-closure.md` §3 — 새 게이트가 반응하는 행만 원복, 해당 패키지 스위트).
+
+| 삭제                                                                                                                                 | 대체 게이트                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fullTreeLayout.ts` 3.6 의 fit-content 폭 재측정 블록 (`childForWidth` · `batch[...].style.width = px`)                              | `__tests__/fullTreeLayoutNoRemeasureWidthWrite.static.test.ts` — `style.width =` write 가 root pageW 하나뿐 · 재측정 심볼 4개 부재 (원문 고정)        |
+| `fitContentRemeasure.ts` 의 `isFitContentRemeasureWidth` · `resolveFitContentRemeasureText` · `shouldRemeasureFitContentWidth` · `resolveRemeasureChildProps` (남는 것은 sub-part delta 판정 `resolveSubpartAwareImplicitStyles` 뿐, 파일명은 유지) | (위와 같음)                                                                                                                                          |
+| `__tests__/adr923FitContentRemeasureTextSource.test.ts` (3 케이스 — 전부 삭제된 경로의 판정)                                          | (위와 같음)                                                                                                                                          |
+| `propagationRegistry.ts` `collectionItemPropagationRules` 의 `label → Text.children` (ListBoxItem·GridListItem)                        | 없음 — 도달 불가 규칙 삭제. `description → Description.children` 은 D2 prop `description` 이 실재하므로 유지 (대상 자식이 있는 트리는 현재 없지만 규칙은 살아 있는 계약) |
+
+검증: layout engines + utils unit 641 PASS · browser parity **1110 PASS** (기존 실패 2) · builder 전량 5232 PASS / 27 실패 = **HEAD 와 동일한 12 파일** (다른 세션의 canonical 리팩터 `77a18b279` 기존 실패 — 사본 대조로 확인, 신규 실패 0) · `pnpm type-check` PASS · live (빌더 재로드, 서빙 모듈에 `childForWidth` 부재 확인): Components·Page 2 의 Text/Label/Description/ProgressBarValue 폭 18 노드 전부 삭제 전과 동일. 원복 RED: HEAD 의 3.6 블록을 되돌리면 static 게이트 2 FAIL.

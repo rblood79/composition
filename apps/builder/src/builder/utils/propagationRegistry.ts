@@ -55,13 +55,11 @@ import {
 // ADR-914 Phase 5 후속 (2026-06-21): shadow ComponentSpec wrapper 제거 — rule 배열 직접
 //   등록 (`registerPropagationRules`). GridListItem/ListBoxItem 둘 다 동일 rule (name 무관)
 //   이라 함수 대신 단일 상수로 공유.
+// ADR-923 착수 5 재확인 (2026-09-04): `label → Text.children` 규칙 삭제 — ListBoxItem/GridListItem 의
+//   D2 binding 에 `label` prop 이 없어 (라벨 텍스트는 `children`) parentProp 이 항상 undefined 였고,
+//   read/write-time 모두 skip 되는 도달 불가 규칙이었다. slot 자식 편집은 panel 이 직접 쓴다
+//   (`listBoxItemSlotChildActions.ts`). evidence/923-phase5-followup-fitcontent-remeasure-text-source.md §8.
 const collectionItemPropagationRules: PropagationRule[] = [
-  {
-    parentProp: "label",
-    childPath: "Text",
-    childProp: "children",
-    override: true,
-  },
   {
     parentProp: "description",
     childPath: "Description",
