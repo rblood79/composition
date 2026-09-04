@@ -182,18 +182,20 @@ describe("ADR-923 Phase 5 — DC-6 overflow cap 제거 (Chrome 게이트)", () =
     //   (specified 164 가 경계에 닿은 채 flex 축소 — 위 400 케이스가 cap 부재의 증거).
     expect(facts["ListBox 80 raw"].h).toBeCloseTo(80, 0);
     expect(facts["GridList 80 raw"].h).toBeCloseTo(80, 0);
-    // 사실 고정 (발산 기록 — ADR-923 범위 밖): visible/clip 도 80. production collection 의 행은
-    //   가상화돼 layout 트리의 자식이 아니므로 엔진의 content-size suggestion 이 0 이고 automatic
-    //   minimum = min(specified 164, content 0) = 0 이 된다. DOM 은 행이 실제 자식이라 min-content 164
-    //   (위 DOM 아날로그의 visible/clip 164 와 같은 의미). 가상화 collection 의 min-content floor 는
-    //   별도 항목 (evidence/923-phase5-cutover.md §DC-6).
+    // ADR-204 Phase 2 (2026-09-04) — 종전 사실 고정은 "visible/clip 도 80" 이었다 (ADR-923 범위 밖
+    //   발산 기록: production collection 의 행이 가상화라 엔진 content 제안 0 → floor 0, DOM 은 행이
+    //   실 자식이라 min-content 164). 이제 enrich 가 collection owner 에 세로축 정확 min-content
+    //   (`contentMinHeight` = 행 수 × stride, 투영과 같은 심볼) 를 싣고 엔진 §4.5 specified size
+    //   suggestion 절이 floor = min(specified 164, 164) 를 둔다 → non-scrollable 은 **164** (위 DOM
+    //   아날로그 visible/clip 164 와 같다). scroll container 행 (raw) 은 여전히 80 — 절이 §4.5 조건
+    //   (non-scrollable) 안에서만 동작한다는 대조군. 원복 (enrich 공급 제거 / 커널 절 제거) 은 80.
     for (const key of [
       "ListBox 80 visible",
       "ListBox 80 clip",
       "GridList 80 visible",
       "GridList 80 clip",
     ]) {
-      expect(facts[key].h, key).toBeCloseTo(80, 0);
+      expect(facts[key].h, key).toBeCloseTo(164, 0);
     }
   });
 

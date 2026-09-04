@@ -1034,6 +1034,9 @@ function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
     result.contentMinWidth = style.contentMinWidth;
   if (style.contentMaxWidth !== undefined)
     result.contentMaxWidth = style.contentMaxWidth;
+  // ADR-204 Phase 2 — 세로축 스칼라 (가상화 collection owner)
+  if (style.contentMinHeight !== undefined)
+    result.contentMinHeight = style.contentMinHeight;
 
   // baseline 계약 입력 3종 (ADR-923 Phase 2) — 숫자 스칼라·키워드 문자열 그대로
   // (applyCommonEngineStyle 이 px 해석을 이미 끝냈다: lineHeight 는 px 숫자).

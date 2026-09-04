@@ -110,6 +110,9 @@ function fmtTsSupply(lastStyleJson: string | undefined): string | null {
   try {
     const style = JSON.parse(lastStyleJson) as Record<string, unknown>;
     const parts: string[] = [];
+    if (typeof style.contentMinHeight === "number") {
+      parts.push(`contentMinHeight=${style.contentMinHeight}`);
+    }
     if (typeof style.contentMinWidth === "number") {
       parts.push(`contentMinWidth=${style.contentMinWidth}`);
     }

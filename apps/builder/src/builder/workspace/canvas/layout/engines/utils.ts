@@ -5180,6 +5180,25 @@ export function enrichWithIntrinsicSize(
       injectHeight += box.border.top + box.border.bottom;
     }
     injectedStyle.height = injectHeight;
+    // ADR-204 Phase 2 — 가상화 collection owner (ListBox/GridList: 행이 scene 투영이라 레이아웃
+    //   자식 0 → 엔진의 content 제안 0) 에 **세로축 정확 min-content** 를 같이 싣는다. 값은 위
+    //   injectHeight 의 원천인 §1.55b/§1.55c (행 수 × stride, 투영 window resolver 와 같은 심볼)
+    //   그대로이고, 엔진 규약 (content-box, writer 가 pad_border 가산) 에 맞춰 padding·border 를
+    //   뺀다. 이 값이 있어야 §4.5 specified size suggestion 절 (flex.rs) 이 definite 주입 높이에
+    //   floor = min(specified, 이 값) 을 둔다 — non-scrollable 로 저작된 collection 이 제약 flex
+    //   column 안에서 DOM (RAC 실 자식 행) 과 같은 높이를 지킨다. scroll container 는 엔진이 절을
+    //   건너뛰므로 (§4.5 floor 0) 기본 상태 (auto/hidden) 는 값이 있어도 무변화.
+    if (type === "listbox" || type === "gridlist") {
+      const contentBoxHeight =
+        injectHeight -
+        box.padding.top -
+        box.padding.bottom -
+        box.border.top -
+        box.border.bottom;
+      if (contentBoxHeight > 0) {
+        injectedStyle.contentMinHeight = Math.ceil(contentBoxHeight);
+      }
+    }
   }
 
   // Width 주입 (inline-block 태그의 fit-content / min-content / max-content 에뮬레이션)
@@ -5665,6 +5684,10 @@ export function applyCommonEngineStyle(
   }
   if (typeof style.contentMaxWidth === "number") {
     result.contentMaxWidth = style.contentMaxWidth;
+  }
+  // ADR-204 Phase 2: 세로축 스칼라 (enrichWithIntrinsicSize 가 가상화 collection owner 에 주입).
+  if (typeof style.contentMinHeight === "number") {
+    result.contentMinHeight = style.contentMinHeight;
   }
 
   // ADR-923 Phase 2 — baseline 계약 입력 3종. verticalAlign 은 CSS 키워드 문자열

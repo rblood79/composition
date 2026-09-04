@@ -78,7 +78,8 @@ const FIELD_MAP: Record<string, number> = {
   gridColumnEnd: 42,
   gridRowStart: 43,
   gridRowEnd: 44,
-  // ⚠ ADR-165 측정 스칼라(contentMinWidth/contentMaxWidth)는 **비등재** — 본 인코더의
+  // ⚠ ADR-165 측정 스칼라(contentMinWidth/contentMaxWidth) 와 ADR-204 세로축 스칼라
+  // (contentMinHeight) 는 **비등재** — 본 인코더의
   // 타입 범위(enum 0~12 / f32 13~15 / dim 16~22 / LPA 23~30 / LP 31~40 / grid 41~44)에
   // 신규 f32 범위 확장이 필요해, Rust 디코더 부재(hasBinaryProtocol=false) 상태에선
   // dead 확장이다. binary protocol 을 실구현하는 시점에 f32 범위로 반드시 편입할 것 —

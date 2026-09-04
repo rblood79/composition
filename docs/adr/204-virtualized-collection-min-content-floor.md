@@ -8,6 +8,7 @@ Accepted — 2026-09-04 (리뷰 round 1 종결 · Phase 0 반영)
 
 - **Phase 0 Implemented 2026-09-04** — G0 first-nail 통과 + 도달 인벤토리. 설계 교체 1건 (collection 을 쓰지 않는 형태로) · ADR 전제 정정 2건. [evidence](evidence/204-phase0-first-nail-and-reach.md)
 - **Phase 1 Implemented 2026-09-04** — 대안 C 커널 절 (정확 스칼라 보유 definite item 만 — `content_main` 은 definite item 의 자기 solved 크기라 제안이 아님을 golden 이 즉시 드러냈다) + column definite 컨테이너 스칼라 writer (자식 extent, 가상 solve 0). G0 column definite **164 = 164** · parity 1105 PASS 이동 0 · live F2 164 / auto 80. **row definite 컨테이너 writer 는 이연** — ADR-188 G0 방문 수 2N→4N 과 충돌 (사용자 perf 판정). [evidence](evidence/204-phase1-specified-size-suggestion.md)
+- **Phase 2 Implemented 2026-09-04** — 대안 A. `contentMinHeight` (JSON 경계 + `binaryProtocol.ts` 비등재 주석 동시 — R3) · `NodeStyle.content_min_height` → column 슬롯 19 · enrich 가 listbox/gridlist owner 에 주입 높이 원천 (행 수 × stride) 의 content-box 값을 공급. DC-6 "visible/clip 80" 사실 고정 → **164** (DOM 아날로그와 일치, 기준선 갱신 근거 기록) · parity 1105 PASS 그 외 이동 0 · 원복 RED 공급 제거 → 80 · live ListBox ref visible 164 / auto 80. [evidence](evidence/204-phase2-collection-vertical-scalar.md)
 
 ## Context
 

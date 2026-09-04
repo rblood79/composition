@@ -260,6 +260,10 @@ pub struct NodeStyle {
     pub content_min_width: Option<f32>,
     /// max-content 폭 (단일줄 폭)
     pub content_max_width: Option<f32>,
+    /// 세로축 정확 min-content (content-box px) — ADR-204 Phase 2. 가상화 collection owner
+    /// 처럼 레이아웃 자식이 없어 content 제안이 0 인 노드에 TS 가 "내용은 최소 이만큼" 을
+    /// 공급하는 채널. column 컨테이너의 item 일 때 슬롯 19 로 실린다 (§4.5 floor 입력).
+    pub content_min_height: Option<f32>,
 
     // Baseline 계약 (ADR-923 Phase 2) — block line box 의 vertical-align/baseline 슬롯
     // 배선 + 컨테이너 baseline 출력의 입력. line_height 는 컨테이너 strut 으로 소비되고
@@ -4833,13 +4837,19 @@ fn write_flex_item(
     // 존재 (column 의 main=height 는 height-for-width 재줄바꿈 영역 → 2-pass 잔존 계약).
     // content_main(=cw, 자식 solve 반환) 과 같은 공간이 되도록 pad_border_main 가산.
     // 0 = absent → flex.rs 가 content_main(상한 근사) fallback.
+    // ADR-204 Phase 2 — column 은 `content_min_height` (가상화 collection owner 의 행 수 × stride
+    // 등, 자식 없이 내용 크기를 아는 노드의 TS 공급). block 축은 재줄바꿈이 없어 폭 스칼라의
+    // 2-pass 계약과 충돌하지 않는다. 같은 공간 규약 (content-box + pad_border_main).
     data[off + 19] = if is_row {
         cstyle
             .content_min_width
             .map(|v| v.max(0.0) + pad_border_main)
             .unwrap_or(0.0)
     } else {
-        0.0
+        cstyle
+            .content_min_height
+            .map(|v| v.max(0.0) + pad_border_main)
+            .unwrap_or(0.0)
     };
     // §8.1 auto margin 마스크 — 값 자체는 `resolve_signed` 가 0 으로 주므로, "0 인가"
     // 로는 `margin: 0` 과 구분되지 않는다. 흡수/정렬 무효화 판정을 위해 별도 채널.
@@ -5422,6 +5432,7 @@ mod tests {
             aspect_ratio: _,
             content_min_width: _,
             content_max_width: _,
+            content_min_height: _,
             vertical_align: _,
             line_height: _,
             leaf_baseline: _,

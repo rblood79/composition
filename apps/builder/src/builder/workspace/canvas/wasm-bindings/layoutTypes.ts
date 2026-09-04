@@ -180,6 +180,8 @@ export interface EngineStyle {
   // 키워드(fit/min/max-content)와 §4.5 automatic minimum floor 의 입력.
   contentMinWidth?: number;
   contentMaxWidth?: number;
+  /** 세로축 정확 min-content (content-box px) — ADR-204 Phase 2, 가상화 collection owner 공급. */
+  contentMinHeight?: number;
 
   // Baseline 계약 입력 3종 (ADR-923 Phase 2 — wasm 경계).
   // 엔진 NodeStyle.vertical_align/line_height/leaf_baseline 대응.

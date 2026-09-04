@@ -62,7 +62,9 @@
 - `binaryProtocol.ts` 의 비등재 주석에 세로축 스칼라를 같이 적는다 — binary protocol 실구현 시 누락되면 silent drop 이고 그 주석이 유일한 경고다 (R3).
 - cargo 테스트: 기존 스위트 PASS 유지 + 신규 커널 케이스 (definite × scrollable × content 유무).
 
-## 5. Phase 2 — TS 공급 (Canvas)
+## 5. Phase 2 — TS 공급 (Canvas) ✅ Implemented 2026-09-04
+
+> 결과 정본: [evidence/204-phase2-collection-vertical-scalar.md](../evidence/204-phase2-collection-vertical-scalar.md). 공급 지점은 implicitStyles 가 아니라 `enrichWithIntrinsicSize` 의 `injectedStyle.height` 직후 (주입 높이의 원천과 같은 자리라 두 값이 갈릴 수 없다).
 
 - 가상화 collection owner 의 세로축 content-min = `행 수 × stride + padding/border` 를 read-time 산출해 measure 계약으로 넘긴다. **행 높이 심볼은 신설하지 않는다** — `resolveListBoxItemRowHeightFromStyle` / `getTableProjectionRows` 를 그대로 쓴다 (scene 투영과 같은 값이어야 스크롤 총량과 floor 가 갈리지 않는다).
 - 빈 collection (행 원천 전부 없음) 은 0 — ADR-923 r21m1 의 `data-empty` 계약과 같은 판정.
