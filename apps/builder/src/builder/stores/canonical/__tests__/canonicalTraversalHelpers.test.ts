@@ -24,6 +24,7 @@ import {
   getChildrenByParent,
   getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
+  getFirstProjectableNodeLookupById,
   getNodeMap,
   getParent,
   getProjectableChildrenByParent,
@@ -275,6 +276,12 @@ describe("getNodeMap", () => {
     expect(getFirstProjectableNodeById("duplicate")?.props?.value).toBe(
       "first",
     );
+    expect(getFirstProjectableNodeLookupById("duplicate")).toMatchObject({
+      node: { props: { value: "first" } },
+      parentId: null,
+      pageId: null,
+      layoutId: null,
+    });
     expect(getNodeMap().get("duplicate")?.props?.value).toBe("last");
   });
 
@@ -304,7 +311,8 @@ describe("getNodeMap", () => {
           children: [
             makeNode("body-1", {
               type: "body",
-              children: [makeNode("section-1", { type: "Section" })],
+              props: {},
+              children: [makeNode("section-1", { type: "Section", props: {} })],
             } as never),
           ],
         },
@@ -319,11 +327,51 @@ describe("getNodeMap", () => {
     expect(map.has("section-1")).toBe(true);
     expect(getParent("body-1")).toBeNull();
     expect(getParent("section-1")?.id).toBe("body-1");
+    expect(getFirstProjectableNodeLookupById("body-1")).toMatchObject({
+      node: { id: "body-1" },
+      parentId: null,
+      pageId: "page-1",
+      layoutId: null,
+    });
+    expect(getFirstProjectableNodeLookupById("section-1")).toMatchObject({
+      node: { id: "section-1" },
+      parentId: "body-1",
+      pageId: "page-1",
+      layoutId: null,
+    });
     expect(
       getChildrenByParent()
         .get("body-1")
         ?.map((node) => node.id),
     ).toEqual(["section-1"]);
+  });
+
+  it("reusable frame children의 normalized layout scope를 등록", () => {
+    setActiveDocument(
+      "proj-a",
+      makeDoc({
+        children: [
+          makeNode("layout-frame-1", {
+            type: "frame",
+            reusable: true,
+            metadata: { type: "legacy-layout", layoutId: "layout-frame-1" },
+            children: [
+              makeNode("body-1", {
+                type: "body" as CanonicalNode["type"],
+                props: {},
+              }),
+            ],
+          }),
+        ],
+      }),
+    );
+
+    expect(getFirstProjectableNodeLookupById("body-1")).toMatchObject({
+      node: { id: "body-1" },
+      parentId: null,
+      pageId: null,
+      layoutId: "frame-1",
+    });
   });
 });
 

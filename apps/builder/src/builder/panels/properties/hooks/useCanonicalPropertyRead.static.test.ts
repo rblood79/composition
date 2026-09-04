@@ -3,7 +3,23 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("useCanonicalPropertyRead", () => {
-  it("derives property lookup maps from canonical/store elements instead of store maps", async () => {
+  it("reads a single property element without materializing the full canonical view", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useCanonicalPropertyRead.ts"),
+      "utf-8",
+    );
+
+    const elementHook = source.slice(
+      source.indexOf("export function useCanonicalPropertyElement("),
+      source.indexOf("export function useCanonicalPropertyElementsMap("),
+    );
+
+    expect(elementHook).toContain("getActiveCanonicalElementById(elementId)");
+    expect(elementHook).not.toContain("useCanonicalPropertySourceElements()");
+    expect(elementHook).not.toContain("getCanonicalDocumentElementsView(");
+  });
+
+  it("derives aggregate property lookup maps from canonical/store elements instead of store maps", async () => {
     const source = await readFile(
       resolve(__dirname, "useCanonicalPropertyRead.ts"),
       "utf-8",

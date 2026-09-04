@@ -44,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 모든 자식 mutation 전에 impact 승인을 완료하고 selection·page·project·canonical revision을 재검증합니다. 승인된 instance ID 집합에 묶인 operation token으로 Continue 뒤 Icon/Text/Button 변경을 한 history entry에 기록하며, Cancel 또는 dialog 대기 중 target 변경은 no-op입니다.
   - 위치: `apps/builder/src/builder/panels/properties/ButtonChildSection.tsx`
 
+### Performance
+
+- Properties/Styles 패널의 단일 요소 조회를 전체 canonical `Element[]` projection과 선형 `find`에서 ADR-127 revision cache의 projectable node·parent·page/frame scope 조회로 전환했습니다. page ref descendants와 잘못된 duplicate ID의 첫-match 의미를 유지합니다.
+- 5,000-node 합성 규모 A/B에서 같은 문서의 warm selection p50/p95는 0.0300/0.0392ms → 0.00121/0.00358ms, canonical mutation 뒤 이미 갱신된 traversal cache의 leaf read는 0.7769/2.1724ms → 0.00117/0.00729ms였습니다. 최초 cold read도 0.8803/1.2420ms → 0.7239/1.1751ms로 악화되지 않았고, cache scope 확장 뒤 기존 `updateElement` action은 history 23건 포함 p50/p95 1.33/1.89ms로 직전 기준 범위에 머물렀습니다. 이 수치는 합성 문서의 규모 비용 비교이며 실제 문서 분포의 개선율로 해석하지 않습니다.
+
 ### Tests
 
 - legacy-only instance/update/remove no-op, selection 즉시성·stale legacy 미복원, page ref descendants hierarchy, canonical responsive reset, 선택 노드가 사라진 Fill 액션의 stale legacy 미복원과 pre-cutover fill 보존, Button Icon impact Cancel·단일 Undo 회귀를 추가했습니다.

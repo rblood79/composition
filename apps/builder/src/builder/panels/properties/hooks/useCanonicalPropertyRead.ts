@@ -1,6 +1,9 @@
 import { useMemo } from "react";
 import { useStore } from "../../../stores";
-import { getCanonicalDocumentElementsView } from "../../../stores/canonical/canonicalElementsView";
+import {
+  getActiveCanonicalElementById,
+  getCanonicalDocumentElementsView,
+} from "../../../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import type { PanelNode } from "../../panelNode";
 
@@ -49,11 +52,22 @@ export function useCanonicalPropertyElements(): PanelNode[] {
 export function useCanonicalPropertyElement(
   elementId: string,
 ): PanelNode | undefined {
-  const sourceElements = useCanonicalPropertySourceElements();
+  const canonicalDocument = useActiveCanonicalDocument();
+  const canonicalElement = useMemo(() => {
+    if (!canonicalDocument) return undefined;
+    return (
+      (getActiveCanonicalElementById(elementId) as PanelNode | null) ??
+      undefined
+    );
+  }, [canonicalDocument, elementId]);
+  const storeElement = useStore((state) => {
+    if (canonicalDocument) return undefined;
+    return (state.elements ?? EMPTY_ELEMENTS).find(
+      (candidate) => candidate.id === elementId,
+    );
+  });
 
-  return useMemo(() => {
-    return sourceElements.find((candidate) => candidate.id === elementId);
-  }, [elementId, sourceElements]);
+  return canonicalDocument ? canonicalElement : storeElement;
 }
 
 export function useCanonicalPropertyElementsMap(): ReadonlyMap<

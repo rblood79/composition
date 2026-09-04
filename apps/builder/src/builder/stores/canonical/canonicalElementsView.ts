@@ -24,7 +24,6 @@ import type { Element } from "../../../types/builder/unified.types";
 import {
   getFrameElementMirrorId,
   withFrameElementMirrorId,
-  normalizeFrameLayoutId,
 } from "../../../adapters/canonical/frameMirror";
 import { readLegacyMetadataCustomId } from "../../../adapters/canonical/legacyMetadata";
 import { readCanonicalNodeFillPayload } from "../../../adapters/canonical/canonicalFillPayload";
@@ -38,14 +37,12 @@ import {
 } from "./canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 import {
+  getCanonicalProjectionScope,
   getCanonicalPageRefDescendantChildren,
+  getFirstProjectableNodeLookupById,
   isCanonicalNodeProjectableToElement,
+  type CanonicalProjectionScope,
 } from "./canonicalTraversalHelpers";
-
-type ElementScopeContext = {
-  pageId: string | null;
-  layoutId: string | null;
-};
 
 type CanonicalScopeMetadata = {
   customId?: unknown;
@@ -66,7 +63,7 @@ type CanonicalComponentMirrorFields = {
   responsive?: CanonicalNode["responsive"];
 };
 
-const ROOT_SCOPE: ElementScopeContext = {
+const ROOT_SCOPE: CanonicalProjectionScope = {
   pageId: null,
   layoutId: null,
 };
@@ -107,11 +104,6 @@ export {
   getCanonicalRefOverrideEntries,
   withCanonicalRefOverrides,
 } from "./canonicalTraversalHelpers";
-
-function isPagePlaceholderNode(node: CanonicalNode): boolean {
-  const metadata = node.metadata as CanonicalScopeMetadata | undefined;
-  return metadata?.type === "page" || metadata?.type === "legacy-page";
-}
 
 function extractCanonicalComponentMirrorFields(
   node: CanonicalNode,
@@ -161,7 +153,7 @@ function extractCanonicalComponentMirrorFields(
 export function canonicalNodeToElement(
   node: CanonicalNode,
   parentId: string | null,
-  scope: ElementScopeContext = ROOT_SCOPE,
+  scope: CanonicalProjectionScope = ROOT_SCOPE,
 ): Element | null {
   // ADR-116 Phase 5 G7 본격 cutover — `x-composition` extension 에서
   // events/dataBinding 복원.
@@ -264,6 +256,24 @@ export function getCanonicalDocumentElementsView(
   return view;
 }
 
+/**
+ * 활성 canonical document의 첫 projectable node를 legacy Element leaf view로
+ * 변환한다. ADR-127 traversal cache의 node/parent/scope index를 사용하므로
+ * 전체 Element[]/byId projection을 만들지 않는다.
+ *
+ * duplicate id는 `Element[].find()`와 같은 first-match 의미를 유지한다.
+ */
+export function getActiveCanonicalElementById(
+  elementId: string,
+): Element | null {
+  const lookup = getFirstProjectableNodeLookupById(elementId);
+  if (!lookup) return null;
+  return canonicalNodeToElement(lookup.node, lookup.parentId, {
+    pageId: lookup.pageId,
+    layoutId: lookup.layoutId,
+  });
+}
+
 export function visitCanonicalDocumentElements(
   doc: CompositionDocument,
   visitor: (element: Element, node: CanonicalNode) => void,
@@ -271,9 +281,9 @@ export function visitCanonicalDocumentElements(
   function visit(
     node: CanonicalNode,
     parentLegacyId: string | null,
-    scope: ElementScopeContext,
+    scope: CanonicalProjectionScope,
   ): void {
-    const nextScope = getNodeScope(node, scope);
+    const nextScope = getCanonicalProjectionScope(node, scope);
     const element = canonicalNodeToElement(node, parentLegacyId, nextScope);
     const nextParentId = element?.id ?? parentLegacyId;
     if (element) visitor(element, node);
@@ -292,50 +302,6 @@ export function visitCanonicalDocumentElements(
   doc.children.forEach((child) => {
     visit(child, null, ROOT_SCOPE);
   });
-}
-
-function getNodeScope(
-  node: CanonicalNode,
-  scope: ElementScopeContext,
-): ElementScopeContext {
-  const metadata = node.metadata as CanonicalScopeMetadata | undefined;
-  const metadataType = metadata?.type;
-
-  if (metadataType === "legacy-slot-hoisted") {
-    return scope;
-  }
-
-  if (isPagePlaceholderNode(node)) {
-    return {
-      pageId: typeof metadata?.pageId === "string" ? metadata.pageId : node.id,
-      layoutId: null,
-    };
-  }
-
-  if (
-    node.type === "frame" &&
-    node.reusable !== true &&
-    scope.pageId === null
-  ) {
-    return {
-      pageId: node.id,
-      layoutId: null,
-    };
-  }
-
-  if (node.type === "frame" && node.reusable === true) {
-    const metadataLayoutId = metadata?.layoutId;
-    const layoutId =
-      normalizeFrameLayoutId(
-        typeof metadataLayoutId === "string" ? metadataLayoutId : null,
-      ) ?? node.id;
-    return {
-      pageId: null,
-      layoutId,
-    };
-  }
-
-  return scope;
 }
 
 // ─────────────────────────────────────────────

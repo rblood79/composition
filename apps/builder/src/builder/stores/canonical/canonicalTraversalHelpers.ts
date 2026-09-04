@@ -40,6 +40,7 @@ import type {
   RefNode,
 } from "@composition/shared";
 
+import { normalizeFrameLayoutId } from "@/adapters/canonical/frameMirror";
 import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 
 // ─────────────────────────────────────────────
@@ -51,7 +52,7 @@ interface TraversalCache {
   projectId: string;
   document: CompositionDocument;
   nodeMap: Map<string, CanonicalNode>;
-  firstProjectableNodeById: Map<string, CanonicalNode>;
+  firstProjectableNodeById: Map<string, CanonicalProjectableNodeLookup>;
   nodeOccurrenceCountById: Map<string, number>;
   childrenByParent: Map<string, CanonicalNode[]>;
   projectableNodes: CanonicalNode[];
@@ -59,12 +60,27 @@ interface TraversalCache {
   parentEdge: Map<string, string>; // childId → parentId
 }
 
+export type CanonicalProjectionScope = {
+  pageId: string | null;
+  layoutId: string | null;
+};
+
+export type CanonicalProjectableNodeLookup = CanonicalProjectionScope & {
+  node: CanonicalNode;
+  parentId: string | null;
+};
+
 let cache: TraversalCache | null = null;
 const EMPTY_PROJECTABLE_NODES: readonly CanonicalNode[] = [];
 const EMPTY_PROJECTABLE_CHILDREN_BY_PARENT: ReadonlyMap<
   string,
   readonly CanonicalNode[]
 > = new Map();
+
+const ROOT_PROJECTION_SCOPE: CanonicalProjectionScope = {
+  pageId: null,
+  layoutId: null,
+};
 
 function getActiveDocumentSnapshot(): {
   doc: CompositionDocument;
@@ -116,6 +132,43 @@ function readDescendantChildren(override: unknown): CanonicalNode[] {
   return children.filter(isCanonicalNode);
 }
 
+export function getCanonicalProjectionScope(
+  node: CanonicalNode,
+  scope: CanonicalProjectionScope,
+): CanonicalProjectionScope {
+  const metadata = node.metadata as
+    { type?: unknown; pageId?: unknown; layoutId?: unknown } | undefined;
+
+  if (metadata?.type === "legacy-slot-hoisted") return scope;
+
+  if (metadata?.type === "page" || metadata?.type === "legacy-page") {
+    return {
+      pageId: typeof metadata.pageId === "string" ? metadata.pageId : node.id,
+      layoutId: null,
+    };
+  }
+
+  if (
+    node.type === "frame" &&
+    node.reusable !== true &&
+    scope.pageId === null
+  ) {
+    return { pageId: node.id, layoutId: null };
+  }
+
+  if (node.type === "frame" && node.reusable === true) {
+    return {
+      pageId: null,
+      layoutId:
+        normalizeFrameLayoutId(
+          typeof metadata?.layoutId === "string" ? metadata.layoutId : null,
+        ) ?? node.id,
+    };
+  }
+
+  return scope;
+}
+
 export function getCanonicalPageRefDescendantChildren(
   node: CanonicalNode,
 ): CanonicalNode[][] {
@@ -146,7 +199,10 @@ function ensureCache(): TraversalCache | null {
   }
 
   const nodeMap = new Map<string, CanonicalNode>();
-  const firstProjectableNodeById = new Map<string, CanonicalNode>();
+  const firstProjectableNodeById = new Map<
+    string,
+    CanonicalProjectableNodeLookup
+  >();
   const nodeOccurrenceCountById = new Map<string, number>();
   const childrenByParent = new Map<string, CanonicalNode[]>();
   const projectableNodes: CanonicalNode[] = [];
@@ -157,16 +213,22 @@ function ensureCache(): TraversalCache | null {
     node: CanonicalNode,
     parentId: string | null,
     projectableParentId: string | null,
+    scope: CanonicalProjectionScope,
   ): void {
     nodeOccurrenceCountById.set(
       node.id,
       (nodeOccurrenceCountById.get(node.id) ?? 0) + 1,
     );
+    const nextScope = getCanonicalProjectionScope(node, scope);
     const isProjectable = isCanonicalNodeProjectableToElement(node);
     if (isProjectable) {
       projectableNodes.push(node);
       if (!firstProjectableNodeById.has(node.id)) {
-        firstProjectableNodeById.set(node.id, node);
+        firstProjectableNodeById.set(node.id, {
+          node,
+          parentId: projectableParentId,
+          ...nextScope,
+        });
       }
       if (projectableParentId) {
         const siblings = projectableChildrenByParent.get(projectableParentId);
@@ -189,7 +251,12 @@ function ensureCache(): TraversalCache | null {
     }
     if (node.children) {
       for (const child of node.children) {
-        visit(child, node.id, isProjectable ? node.id : projectableParentId);
+        visit(
+          child,
+          node.id,
+          isProjectable ? node.id : projectableParentId,
+          nextScope,
+        );
       }
     }
     // Page ref 의 descendants replacement subtree 는 runtime page element다.
@@ -197,13 +264,18 @@ function ensureCache(): TraversalCache | null {
     // renderable parent 가 아니므로 override root 의 parent edge 는 비워 둔다.
     for (const children of getCanonicalPageRefDescendantChildren(node)) {
       for (const child of children) {
-        visit(child, null, isProjectable ? node.id : projectableParentId);
+        visit(
+          child,
+          null,
+          isProjectable ? node.id : projectableParentId,
+          nextScope,
+        );
       }
     }
   }
 
   for (const child of snapshot.doc.children) {
-    visit(child, null, null);
+    visit(child, null, null, ROOT_PROJECTION_SCOPE);
   }
 
   cache = {
@@ -327,6 +399,14 @@ export function getNodeMap(): Map<string, CanonicalNode> {
 export function getFirstProjectableNodeById(
   nodeId: string,
 ): CanonicalNode | null {
+  const c = ensureCache();
+  return c?.firstProjectableNodeById.get(nodeId)?.node ?? null;
+}
+
+/** 첫 projectable node와 legacy projection parent/scope를 O(1)로 반환한다. */
+export function getFirstProjectableNodeLookupById(
+  nodeId: string,
+): CanonicalProjectableNodeLookup | null {
   const c = ensureCache();
   return c?.firstProjectableNodeById.get(nodeId) ?? null;
 }
