@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Styles 패널의 letter-spacing 이 캔버스에도 반영됩니다] - 2026-09-05
+
+### Fixed
+
+- **letter-spacing 이 Preview 에만 반영되던 것**: Styles 패널 Typography 에서 자간을 조절하면 Preview 는 바뀌는데 캔버스는 그대로였습니다. 값이 Skia 텍스트 노드까지 가는 경로가 없었고, 줄 수를 만드는 레이아웃 측정 경로도 자간을 받지 않았습니다. 세 자리를 모두 이었습니다 — 캔버스 글자 간격과 **줄바꿈 위치**가 Preview 와 같아집니다.
+  - 영향 범위: 사용자가 자간을 직접 설정한 요소만 바뀝니다. 기본값·가져오기·테마 어디에도 자간을 넣는 곳이 없어(각 0건), 설정하지 않은 문서는 보이는 결과가 그대로입니다.
+  - 부모에서 **상속된** 자간은 아직 캔버스 그리기에 반영되지 않습니다 (레이아웃만 반영). 알려진 미지원이며 후속 작업입니다.
+  - 앞선 항목([letter-spacing 을 Canvas 2D 가…])의 "아직 결선되어 있지 않습니다" 한계를 이 변경이 해소합니다.
+
+### Added
+
+- **텍스트 시각 축 게이트**: 새 텍스트 CSS 속성이 Preview 에만 반영되고 캔버스에는 빠지는 일이 커밋 시점에 잡힙니다. 속성 목록을 손으로 적지 않고 코드에서 뽑아 두 소비자에 값이 실제로 실리는지까지 확인합니다 (`codex:preflight` · push 직전 · CI).
+- **자간 시각 파리티 케이스**: 캔버스와 Preview 가 같은 문단을 같은 줄 수로 접는지 보는 케이스를 추가했습니다. 결선이 끊기면 이 케이스가 먼저 깨집니다.
+
 ## [letter-spacing 을 Canvas 2D 가 CSS 와 같은 규칙으로 잽니다] - 2026-09-05
 
 ### Fixed

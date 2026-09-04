@@ -231,3 +231,43 @@ select·edit 의 큰 값은 **본 변경 이전부터의 기존 병목**이다 (
 케이스는 비동기 리소스 케이스보다 **앞**에 둔다 — 뒤에 두면 앞 케이스가 남긴 Preview
 콘솔 에러(`<paragraph>` 미인식, 기존 known defect)를 이 케이스의 identity 판정이
 물려받는다 (실측).
+
+## 8. Phase 3 — 회귀 (G5) 와 남은 live (G1), 2026-09-05
+
+### G5 — 회귀 0
+
+| 스위트                 | 결과                                           |
+| ---------------------- | ---------------------------------------------- |
+| `@composition/builder` | **5,340 passed** / 0 failed (5 skip · 14 todo) |
+| `@composition/shared`  | 972 passed / 0 failed                          |
+| `@composition/specs`   | 880 passed / 0 failed                          |
+| `canvas` 하위          | 1,625 passed / 0 failed                        |
+| visual-parity smoke    | 98 PASS                                        |
+| `pnpm type-check`      | PASS (baseline 0)                              |
+
+### G1 — 미실행 (환경 차단)
+
+Chrome 창이 `visibilityState: "hidden"` 이면 rAF 가 멈추고, 빌더 readiness 계약이
+"실제 Skia surface flush 전에는 UI 를 노출하지 않는다" 이므로 로딩 오버레이에서 진행하지
+않는다 (탭 2개로 재현, 재navigate·클릭으로도 해소되지 않음 — 메모리
+`reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`). MCP 로는 OS 창을 앞으로 꺼낼 수
+없다.
+
+**Chrome 창이 보이는 상태에서 실행할 절차** (한 번에 끝나도록 고정):
+
+1. 빌더 프로젝트를 연다 (`/builder/<projectId>`) — 오버레이가 사라질 때까지 대기.
+2. 팔레트에서 Text 1개 추가 후 Styles 패널 Typography 에서
+   `width 150px · fontFamily Arial · fontSize 16px · lineHeight 24px · letterSpacing 2px`,
+   본문 `ab cd ef gh ij kl mn op`.
+3. 판정 3축을 같은 상태에서 잰다:
+   - `__composition_SKIA_DEBUG__.getSkiaNode(id).text.letterSpacing` === `2`
+     (Phase 1 이전에는 **키 자체가 없었다** — §5 표)
+   - 캔버스 줄바꿈이 `ab cd ef gh ij kl` / `mn op` (ls 2 결과) — 이전에는
+     `ab cd ef gh ij kl mn` / `op` (ls 0 결과)
+   - 같은 문자열·스타일의 Chrome DOM 오라클
+     (`evidence/051-letterspacing-canvas2d.md` §1 스크립트) 과 일치
+4. 부모 상속 케이스(부모에 `letter-spacing`, 자식 Text 미지정)는 **불일치가 예상 결과**다
+   (R7) — 그 값을 실측해 Phase 5 착수 판정의 입력으로 기록한다.
+
+이 절차가 끝나기 전에는 ADR-205 를 Implemented 로 올리지 않는다 (CLAUDE.md §완료 기준 ·
+`adr-status-sync-check.sh` 가 `### Live Exercise` 부재를 block).

@@ -9,6 +9,17 @@ Accepted — 2026-09-05
   (`.claude/rules/premise-decision-points.md`).
 - Phase 0 반영 2026-09-05 — 격차표 생성 (G0 통과):
   [evidence/205-text-axis-gap-matrix.md](evidence/205-text-axis-gap-matrix.md).
+  측정 축 중 wrap leg·Skia 인라인 양쪽 미도달은 `letterSpacing`·`fontStyle`·`textTransform`
+  3개뿐 → Phase 1 범위 `letterSpacing` 확정.
+- Phase 1 반영 2026-09-05 (`cd9762006`) — seam `resolveTextRenderStyle` 신설 + 소비자 3곳
+  (폭 leg 리팩터 · wrap leg 결선 · Skia ADR-057 블록). **G2 통과**: 텍스트당 +2.0 µs
+  (0.0076 → 0.0096 ms), seam 호출 48 ns / 22 ns. **G3 통과**: visual-parity smoke 98 PASS,
+  신규 자간 fixture 는 Phase 1 전량 원복 시 `L1:fail`.
+- Phase 2 반영 2026-09-05 (`809347f4c`) — **G4 통과**: 집합 대조(생성기 `--check`) +
+  값 수준 도달 검사. 원복 RED 3종이 각각 다른 테스트를 RED 로 만든다.
+- **Phase 3 미완 — G1 (live) 미실행**. Chrome 창이 `visibilityState: "hidden"` 이라
+  rAF 가 멈춰 빌더 readiness 가 진행하지 않았다 (알려진 hidden 탭 rAF pause). 회귀·문서
+  (G5) 는 반영. **Implemented 승격은 G1 실행 후**.
 
 ## Context
 
