@@ -912,7 +912,7 @@ export function BuilderCanvas({
     const state = useStore.getState();
     const selectedElements = resolveSelectedElementsForPage({
       currentPageId: state.currentPageId,
-      elementsMap: interactiveElementsMapRef.current,
+      elementsMap: skiaRendererInput.interactionNodesMap,
       selectedElementIds: state.selectedElementIds,
     });
 
@@ -927,7 +927,14 @@ export function BuilderCanvas({
       selectedElements,
       zoom,
     });
-  }, [frameAreas, pageWidth, pageHeight, zoom, pagePositions]);
+  }, [
+    frameAreas,
+    pageWidth,
+    pageHeight,
+    pagePositions,
+    skiaRendererInput.interactionNodesMap,
+    zoom,
+  ]);
 
   const handleCanvasContextMenu = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -1009,7 +1016,6 @@ export function BuilderCanvas({
       getInteractiveElementsMap,
       openContextMenu,
       pageHeight,
-      pagePositions,
       pageWidth,
       screenToCanvasPoint,
       selectElementWithPageTransition,

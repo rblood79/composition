@@ -682,7 +682,7 @@ export const BuilderCore: React.FC = () => {
     return () => {
       MessageService.clearIframeCache();
     };
-  }, [projectId, initializeProject, setError]);
+  }, [projectId, initializeProject, setError, t]);
 
   // 🔧 FIX: 프리뷰 요소 전송은 PREVIEW_READY 핸들러에서 처리
   // (BuilderCore에서 중복 전송하지 않음 - useIframeMessenger.ts:178-201 참고)
@@ -837,7 +837,7 @@ export const BuilderCore: React.FC = () => {
     return () => {
       window.removeEventListener("message", handleNavigateMessage);
     };
-  }, [pages, fetchElements, handleError]);
+  }, [pages, fetchElements, handleError, t]);
 
   // ===== Data Panel Integration Message Handlers (Phase 5) =====
   useEffect(() => {
