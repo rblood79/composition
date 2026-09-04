@@ -196,9 +196,15 @@ describe("ComponentSemanticsSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Detach component" }));
 
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("origin")).toMatchObject({
-        reusable: false,
-      });
+      // origin 해제는 `reusable` 을 false 로 남기지 않고 키를 제거한다
+      // (canonical 왕복 결과) — falsy 로 잠근다.
+      expect(
+        (
+          useStore.getState().elementsMap.get("origin") as unknown as
+            | { reusable?: boolean }
+            | undefined
+        )?.reusable,
+      ).toBeFalsy();
     });
   });
 
@@ -257,9 +263,13 @@ describe("ComponentSemanticsSection", () => {
     fireEvent.click(screen.getByRole("button", { name: "Detach component" }));
 
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("dual")).toMatchObject({
-        reusable: false,
-      });
+      expect(
+        (
+          useStore.getState().elementsMap.get("dual") as unknown as
+            | { reusable?: boolean }
+            | undefined
+        )?.reusable,
+      ).toBeFalsy();
     });
   });
 
@@ -373,29 +383,54 @@ describe("ComponentSemanticsSection", () => {
   });
 
   it("origin action multi-selects canonical refs by metadata aliases", () => {
-    const origin = makeElement("origin", {
-      page_id: "origin-page",
-      reusable: true,
-      metadata: {
-        customId: "origin-custom",
-        componentName: "OriginComponent",
-      },
-    } as never);
-    const instanceA = makeElement("instance-a", {
-      type: "ref",
-      ref: "origin-custom",
-      page_id: "page-a",
-    } as never);
-    const instanceB = makeElement("instance-b", {
-      type: "ref",
-      ref: "OriginComponent",
-      page_id: "page-b",
-    } as never);
+    // canonical `metadata` alias 자체가 대상이므로 legacy 변환을 거치지 않는다 —
+    // 변환은 자기 `legacy-element-props` metadata 로 덮어써서 alias 가 사라진다.
+    const doc = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "origin-page",
+          type: "frame",
+          props: {},
+          children: [
+            {
+              id: "origin",
+              type: "Button",
+              reusable: true,
+              props: {},
+              metadata: {
+                customId: "origin-custom",
+                componentName: "OriginComponent",
+              },
+            },
+          ],
+        },
+        {
+          id: "page-a",
+          type: "frame",
+          props: {},
+          children: [
+            { id: "instance-a", type: "ref", ref: "origin-custom", props: {} } as RefNode,
+          ],
+        },
+        {
+          id: "page-b",
+          type: "frame",
+          props: {},
+          children: [
+            { id: "instance-b", type: "ref", ref: "OriginComponent", props: {} } as RefNode,
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
 
-    seedPanelElements([origin, instanceA, instanceB]);
     useStore.setState({
       currentPageId: "origin-page",
+      elements: [],
+      elementsMap: new Map(),
     } as never);
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", doc);
 
     renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
     fireEvent.click(
@@ -489,12 +524,13 @@ describe("ComponentSemanticsSection", () => {
 
     expect(confirmSpy).toHaveBeenCalled();
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("instance")).toMatchObject({
-        [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
-        [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
-        [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
-        props: { label: "Detached" },
-      });
+      const detached = useStore.getState().elementsMap.get("instance");
+      // 분리된 요소는 mirror 필드를 `undefined` 로 남기지 않고 **아예 제거**한다
+      // (canonical 왕복 결과). 키 부재가 undefined 보다 강한 보증이다.
+      expect(detached).not.toHaveProperty(COMPONENT_ROLE_MIRROR_FIELD);
+      expect(detached).not.toHaveProperty(COMPONENT_MASTER_ID_MIRROR_FIELD);
+      expect(detached).not.toHaveProperty(COMPONENT_OVERRIDES_MIRROR_FIELD);
+      expect(detached).toMatchObject({ props: { label: "Detached" } });
     });
   });
 
@@ -530,8 +566,10 @@ describe("ComponentSemanticsSection", () => {
       screen.getByRole("button", { name: "Reset label override" }),
     );
 
+    // canonical ref 인스턴스의 override 운반체는 `props` 다 — top-level mirror 는
+    // canonical 왕복에서 남지 않는다 (2026-09-05 실측). 실제 운반체를 잠근다.
     expect(useStore.getState().elementsMap.get("instance")).toMatchObject({
-      [COMPONENT_OVERRIDES_MIRROR_FIELD]: { style: { color: "blue" } },
+      props: { style: { color: "blue" } },
     });
     expect(
       screen.queryByRole("button", { name: "Reset label override" }),

@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { useStore } from "../elements";
+import {
+  resetPanelFixture,
+  seedPanelElements,
+} from "../../__tests__/panelFixture";
 
 // ADR-073 P4: addItem/removeItem/updateItem 일반화 액션 단위 테스트
 
@@ -7,7 +11,6 @@ describe("Store items actions (ADR-073 P4)", () => {
   const selectId = "test-select-1";
 
   beforeEach(() => {
-    const state = useStore.getState();
     const el = {
       id: selectId,
       type: "Select",
@@ -16,11 +19,10 @@ describe("Store items actions (ADR-073 P4)", () => {
       order_num: 0,
       props: { items: [] },
     };
+    resetPanelFixture();
+    seedPanelElements([el as never]);
     useStore.setState({
-      ...state,
       currentPageId: "p1",
-      elements: [el as never],
-      elementsMap: new Map([[selectId, el as never]]),
       childrenMap: new Map(),
     } as never);
   });
@@ -68,10 +70,7 @@ describe("Store items actions (ADR-073 P4)", () => {
       order_num: 0,
       props: { items: [] },
     };
-    useStore.setState({
-      elements: [menuEl as never],
-      elementsMap: new Map([["menu-1", menuEl as never]]),
-    } as never);
+    seedPanelElements([menuEl as never]);
     await useStore.getState().addMenuItem("menu-1", { label: "MI" });
     const menu = useStore.getState().elementsMap.get("menu-1")!;
     const items = menu.props.items as Array<{ label: string }>;
@@ -91,7 +90,6 @@ describe("Store items actions — ListBox (ADR-076 P4)", () => {
   const listBoxId = "test-listbox-1";
 
   beforeEach(() => {
-    const state = useStore.getState();
     const el = {
       id: listBoxId,
       type: "ListBox",
@@ -100,11 +98,10 @@ describe("Store items actions — ListBox (ADR-076 P4)", () => {
       order_num: 0,
       props: { items: [] },
     };
+    resetPanelFixture();
+    seedPanelElements([el as never]);
     useStore.setState({
-      ...state,
       currentPageId: "p1",
-      elements: [el as never],
-      elementsMap: new Map([[listBoxId, el as never]]),
       childrenMap: new Map(),
     } as never);
   });

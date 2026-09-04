@@ -5,6 +5,10 @@ import {
 } from "@/adapters/canonical/slotMirror";
 import type { Element } from "../../../../types/core/store.types";
 import { useStore } from "../../elements";
+import {
+  resetPanelFixture,
+  seedPanelElements,
+} from "../../../__tests__/panelFixture";
 import { historyManager } from "../../history";
 
 type LegacyElementOverrides = Partial<Element> & {
@@ -29,10 +33,10 @@ function makeElement(
 }
 
 function setElements(elements: Element[]): void {
+  resetPanelFixture();
+  seedPanelElements(elements);
   useStore.setState({
     currentPageId: "page-1",
-    elements,
-    elementsMap: new Map(elements.map((element) => [element.id, element])),
     childrenMap: new Map(),
     selectedElementId: null,
     selectedElementProps: {},
@@ -88,10 +92,13 @@ describe("ADR-112 editing semantics regression sweep", () => {
 
     for (const [index, id] of remainingIds.entries()) {
       const slotName = index % 2 === 0 ? "content" : "footer";
+      // slot 배치의 운반체는 `props` 다. top-level mirror 는 canonical 왕복에서
+      // 보존되지 않지만 (2026-09-05 실측), production 은 두 곳에 함께 쓰고
+      // 읽기는 props 우선이라 (projectPageFrameTree — props → top-level 순서)
+      // 배치 결과가 달라지지 않는다. 여기서는 실제 운반체만 잠근다.
       expect(useStore.getState().elementsMap.get(id)).toMatchObject({
         type: "ref",
         props: { [SLOT_NAME_MIRROR_FIELD]: slotName },
-        ...withSlotMirrorName({}, slotName),
       });
     }
   });

@@ -16,6 +16,7 @@ import {
   withComponentInstanceMirror,
   withComponentOriginMirror,
 } from "@/adapters/canonical/componentSemanticsMirror";
+import { seedPanelElements } from "../../../../__tests__/panelFixture";
 import { useStore } from "../../../../stores";
 import { historyManager } from "../../../../stores/history";
 import { ContextMenuProvider } from "../../../../components";
@@ -210,14 +211,8 @@ describe("LayerTreeItemContent editing semantics marker", () => {
       { overrideProps: { label: "Detached" } },
     );
     historyManager.setCurrentPage("page-1");
-    useStore.setState({
-      currentPageId: "page-1",
-      elements: [origin, instance],
-      elementsMap: new Map([
-        ["origin", origin],
-        ["instance", instance],
-      ]),
-    } as never);
+    seedPanelElements([origin, instance]);
+    useStore.setState({ currentPageId: "page-1" } as never);
     useStore.getState()._rebuildIndexes();
 
     unregisterContextMenuProviders = registerCanvasContextMenuProviders({
@@ -239,15 +234,19 @@ describe("LayerTreeItemContent editing semantics marker", () => {
       clientX: 12,
       clientY: 34,
     });
+    // 확인 다이얼로그 리스너가 없으면 window.confirm 폴백을 타는데 jsdom 은
+    // undefined 를 돌려줘 "취소" 로 읽힌다 — production 은 다이얼로그가 떠 있다.
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     fireEvent.click(screen.getByRole("menuitem", { name: /Detach instance/ }));
 
     await waitFor(() => {
-      expect(useStore.getState().elementsMap.get("instance")).toMatchObject({
-        [COMPONENT_ROLE_MIRROR_FIELD]: undefined,
-        [COMPONENT_MASTER_ID_MIRROR_FIELD]: undefined,
-        [COMPONENT_OVERRIDES_MIRROR_FIELD]: undefined,
-        props: { label: "Detached" },
-      });
+      const detached = useStore.getState().elementsMap.get("instance");
+      // 분리된 요소는 mirror 필드를 `undefined` 로 남기지 않고 **아예 제거**한다
+      // (canonical 왕복 결과). 키 부재가 undefined 보다 강한 보증이다.
+      expect(detached).not.toHaveProperty(COMPONENT_ROLE_MIRROR_FIELD);
+      expect(detached).not.toHaveProperty(COMPONENT_MASTER_ID_MIRROR_FIELD);
+      expect(detached).not.toHaveProperty(COMPONENT_OVERRIDES_MIRROR_FIELD);
+      expect(detached).toMatchObject({ props: { label: "Detached" } });
     });
   });
 });
