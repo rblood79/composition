@@ -35,7 +35,10 @@ describe("Table fixed height border 보정 (ADR-151 B8)", () => {
   it("factory height 400 → 402 주입 (border 1px×2 합산 — DOM 402 golden)", () => {
     const s = styleOf(apply("Table", { height: 400, style: {} }));
     expect(s.height).toBe(402);
-    expect(s.minHeight).toBe(402);
+    // ADR-204 G1 (2026-09-04): minHeight 는 catalog `containerStyles.minHeight: 40px` 채널 그대로 —
+    //   DOM 외곽 `.react-aria-Table` 도 min-height 40 (Table.css) 이라 제약 flex column 에서 같이 줄어든다.
+    //   종전 `minHeight: 402` 주입은 Canvas 에서만 축소를 막았다 (layout 402 vs DOM 80).
+    expect(s.minHeight).toBe("40px");
   });
 
   // ADR-923 r22m1 (2026-09-02): prop 부재 기본값은 catalog binding accepts default 가 정본이다.
@@ -45,7 +48,7 @@ describe("Table fixed height border 보정 (ADR-151 B8)", () => {
   it("height 미지정 → binding default 400 + 2 = 402 (종전 layout 리터럴 300 → 302)", () => {
     const s = styleOf(apply("Table", { style: {} }));
     expect(s.height).toBe(402);
-    expect(s.minHeight).toBe(402);
+    expect(s.minHeight).toBe("40px");
   });
 
   it("사용자 style.height 명시 → 미주입 (사용자 우선)", () => {

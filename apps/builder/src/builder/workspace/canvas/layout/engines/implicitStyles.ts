@@ -1377,10 +1377,15 @@ export function applyImplicitStyles(
           : typeof bwRaw === "string"
             ? Number.parseFloat(bwRaw) || 0
             : 1; // Table.css `border: 1px solid` 정본 — 미선언 시 1
+      // ADR-204 G1 (2026-09-04): minHeight 는 주입하지 않는다 — DOM 외곽 `.react-aria-Table` 의
+      //   min-height 는 catalog `containerStyles.minHeight: 40px` (Table.css 도 같은 값) 이고
+      //   height 는 안쪽 virtualizer 에만 있어, 제약 flex column 안에서는 40 까지 줄어든다
+      //   (Chrome 실측: 부모 80 → 80). 종전 `minHeight: 402` 는 Canvas 에서만 축소를 막아
+      //   같은 문서가 layout 402 vs DOM 80 으로 갈렸다 (`adr204ReachMatrix.browser.test.ts`).
+      //   catalog 의 40 은 parentStyle 채널로 이미 실려 있어 그대로 둔다.
       effectiveParent = withParentStyle(containerEl, {
         ...parentStyle,
         height: fixedH + bw * 2,
-        minHeight: fixedH + bw * 2,
       });
     }
   }
@@ -1589,13 +1594,17 @@ export function applyImplicitStyles(
     //   과거 OWNER 를 display:grid 2열로 두면 자식 rows-group(1개)이 column 1(≈169px)에만 들어가
     //   rows-group 폭이 1열로 축소되고, 그 안 카드가 좁은 폭에서 텍스트 과도 wrap 됐다(148 vs DOM 76).
     //   OWNER 는 flex-column(rows-group 전폭)로 두고 열 구성은 rows-group 에 위임한다.
+    // ADR-204 G1 (2026-09-04): `overflow: hidden` 주입 제거 — DOM `.react-aria-GridList` (GridList.css)
+    //   는 overflow 를 선언하지 않아 non-scrollable 이고, 제약 flex column 안에서 §4.5 min-content
+    //   floor (행 수 × stride 164) 를 지킨다 (Chrome 실측: 부모 80 → 164). Canvas 만 hidden 이면
+    //   scroll container 로 판정돼 floor 0 → 80 으로 갈린다 (`adr204ReachMatrix.browser.test.ts`).
+    //   03-23 (`a87d4d898`) 주입은 사유 기록이 없고 catalog GridList rule 에도 overflow 가 없다.
     if (layout === "grid") {
       effectiveParent = withParentStyle(containerEl, {
         ...parentStyle,
         display: "flex",
         flexDirection: "column",
         gap: parentStyle.gap ?? gap,
-        overflow: parentStyle.overflow ?? "hidden",
       });
     } else {
       effectiveParent = withParentStyle(containerEl, {

@@ -70,7 +70,10 @@
 - 빈 collection (행 원천 전부 없음) 은 0 — ADR-923 r21m1 의 `data-empty` 계약과 같은 판정.
 - 주의: 이 값은 **floor 입력**이지 주입 높이가 아니다. 기존 주입 높이 (implicitStyles) 경로는 건드리지 않는다.
 
-## 6. Phase 3 — 게이트
+## 6. Phase 3 — 게이트 ✅ G1·G2·G3 2026-09-04
+
+> 결과 정본: [evidence/204-phase3-gates.md](../evidence/204-phase3-gates.md). G1 DOM leg 는 아날로그 상자가 아니라 `rendererMap` 실렌더 (`adr204ReachMatrix.browser.test.ts`). 착수 시 RED 2 행의 원인은 커널·스칼라가 아니라 **Canvas 만의 implicit 주입**이었다 — Table `minHeight: 402` (DOM 외곽은 catalog min-height 40) · GridList `overflow: hidden` (DOM GridList.css 에 overflow 없음). 둘 다 주입 제거. Phase 0 의 "Table 은 가드 하나가 원인" · "GridList 기본은 scrollable" 은 이 주입을 production 사실로 읽은 오류였다 — 기본 상태 격차는 Table + GridList.
+
 
 | Gate | 내용                                                                                                                              |
 | ---- | --------------------------------------------------------------------------------------------------------------------------------- |

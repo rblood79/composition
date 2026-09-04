@@ -216,7 +216,8 @@ describe("ADR-923 r22m1 — 갈려 있던 3 타입 고정", () => {
       400,
     ).effectiveParent.props?.style as Record<string, unknown>;
     expect(style.height).toBe(402);
-    expect(style.minHeight).toBe(402);
+    // ADR-204 G1 (2026-09-04): minHeight 는 catalog 40px 채널 (DOM min-height 40 과 같은 값) — 402 주입 제거.
+    expect(style.minHeight).toBe("40px");
   });
 
   it("Table: 사용자 height 는 그대로, heightMode auto 는 미주입", () => {

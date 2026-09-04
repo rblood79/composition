@@ -392,6 +392,9 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
  * - 종전 수동 목록이 놓친 형태 (ToggleButtonGroup · Table · TableView · Calendar · RangeCalendar
  *   complex 5 · Form · Toolbar · InlineAlert · IconButton ref 4) 는 overflow 도달 노드 0.
  * Phase 5 제거 시 Chrome 케이스: block 문맥 auto-height + overflow hidden/clip 은 cap 되지 않는다 /
+ * **ADR-204 G1 (2026-09-04)**: GridList 행은 목록에서 빠졌다 — implicit `overflow:hidden` 주입 제거
+ * (DOM GridList.css 에 overflow 선언 없음 → non-scrollable 이 production). 도달 집합 19 → 18.
+ *
  * flex 문맥은 엔진 §4.5 가 담당 — SelectValue 4 + ListBox/GridList 2 + Button inline 이 그 회귀
  * 게이트의 대상이다. ListBox/GridList 는 production 서브트리를 main-axis 크기가 제한된 flex 부모의
  * item 으로 두고 ListBox overflow:auto · GridList overflow:hidden 이 automatic minimum 0 으로
@@ -410,7 +413,6 @@ const EXPECTED: string[] = [
   "palette:complex Select > SelectValue overflow:hidden H= W=",
   "palette:complex ComboBox > SelectValue overflow:hidden H= W=",
   "palette:complex ListBox > ListBox overflow:auto H= W=",
-  "palette:complex GridList > GridList overflow:hidden H= W=",
   "palette:complex Tree > Tree overflow:auto H= W=",
   "palette:complex Dialog > Dialog overflow:auto H= W=",
   "inline div overflow:hidden > div overflow:hidden H= W=",

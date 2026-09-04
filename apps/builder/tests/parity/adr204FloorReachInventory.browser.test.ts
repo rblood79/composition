@@ -166,23 +166,28 @@ describe("ADR-204 Phase 0 — floor 도달 인벤토리", () => {
     expect(root("Table").childCount, "Table 자식").toBeGreaterThan(0);
   });
 
-  it("기본 상태에서 격차 조건을 만족하는 collection 은 Table 하나다", () => {
+  it("기본 상태에서 격차 조건을 만족하는 collection 은 Table 과 GridList 다 (ListBox 만 기본 scrollable)", () => {
     const root = (t: string): NodeFact => {
       const f = facts.find((x) => x.root && x.type === t);
       if (!f) throw new Error(`${t} root 미도달`);
       return f;
     };
-    // Table — non-scrollable + 주축(높이) definite → 가드가 floor 를 죽인다.
+    // Table — non-scrollable + 주축(높이) definite. Phase 3 G1 실측: 원인은 가드가 아니라 implicit
+    //   `minHeight: 402` 주입이었다 (DOM 외곽은 catalog min-height 40) — G1 에서 주입 제거.
     const table = root("Table");
     expect(isNonScrollable(table.overflow), "Table non-scrollable").toBe(true);
     expect(table.definiteHeight, "Table 높이 definite").toBe(true);
-    // ListBox/GridList — 기본 overflow 가 scrollable 이라 Chrome 도 floor 0 → 기본 상태는 정합.
+    // ListBox — 기본 overflow auto (raw props) 라 Chrome 도 floor 0 → 기본 상태는 정합.
     expect(isNonScrollable(root("ListBox").overflow), "ListBox 기본").toBe(
       false,
     );
+    // GridList — Phase 0 은 implicit `overflow:hidden` 주입 때문에 scrollable 로 셌다. G1 이 DOM
+    //   (GridList.css 에 overflow 선언 없음) 과 대조해 주입을 제거했으므로 기본 상태도 격차 행이며
+    //   대안 A (세로축 스칼라) + C (specified 절) 로 닫힌다.
     expect(isNonScrollable(root("GridList").overflow), "GridList 기본").toBe(
-      false,
+      true,
     );
+    expect(root("GridList").definiteHeight, "GridList 높이 definite").toBe(true);
   });
 
   it("대안 C 가 닿는 표면은 collection 밖이 훨씬 크다 (R1 의 크기)", () => {

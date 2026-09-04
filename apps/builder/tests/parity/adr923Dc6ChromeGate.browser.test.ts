@@ -169,10 +169,12 @@ describe("ADR-923 Phase 5 — DC-6 overflow cap 제거 (Chrome 게이트)", () =
         }
       }
     }
-    // raw 형태의 overflow 가 그대로 경계에 닿는다 (ListBox auto 는 raw props, GridList hidden 은
-    //   implicitStyles gridlist 분기 주입) — cap 없이 specified height 164 도 그대로.
+    // raw 형태의 overflow 가 그대로 경계에 닿는다 (ListBox auto 는 raw props) — cap 없이 specified
+    //   height 164 도 그대로. GridList 는 ADR-204 G1 (2026-09-04) 에서 implicit `overflow:hidden`
+    //   주입을 제거했다 — DOM `.react-aria-GridList` (GridList.css) 에 overflow 선언이 없어
+    //   non-scrollable 이 production 사실이다 (`adr204ReachMatrix.browser.test.ts` Chrome 대조).
     expect(facts["ListBox 400 raw"].reached).toBe("auto");
-    expect(facts["GridList 400 raw"].reached).toBe("hidden");
+    expect(facts["GridList 400 raw"].reached).toBe("undefined");
     for (const key of ["ListBox 400 raw", "GridList 400 raw"]) {
       expect(facts[key].specified, key).toBe("164px");
       expect(facts[key].h, key).toBeCloseTo(164, 0); // 제약 없는 부모 → 주입 높이 그대로
@@ -181,7 +183,9 @@ describe("ADR-923 Phase 5 — DC-6 overflow cap 제거 (Chrome 게이트)", () =
     //   종전 TS cap 도 80 을 냈지만 그건 availableHeight 로 자른 결과였고, 지금은 엔진 §4.5 소비다
     //   (specified 164 가 경계에 닿은 채 flex 축소 — 위 400 케이스가 cap 부재의 증거).
     expect(facts["ListBox 80 raw"].h).toBeCloseTo(80, 0);
-    expect(facts["GridList 80 raw"].h).toBeCloseTo(80, 0);
+    // GridList raw 는 non-scrollable (위) → §4.5 floor = min(specified 164, content 164) = 164
+    //   (Chrome 164, ADR-204 G1). 종전 80 은 Canvas 만의 hidden 주입에 고정된 값이었다.
+    expect(facts["GridList 80 raw"].h).toBeCloseTo(164, 0);
     // ADR-204 Phase 2 (2026-09-04) — 종전 사실 고정은 "visible/clip 도 80" 이었다 (ADR-923 범위 밖
     //   발산 기록: production collection 의 행이 가상화라 엔진 content 제안 0 → floor 0, DOM 은 행이
     //   실 자식이라 min-content 164). 이제 enrich 가 collection owner 에 세로축 정확 min-content
