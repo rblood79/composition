@@ -202,8 +202,13 @@ function skiaHasComputedStyle(dir) {
   );
 }
 
+/** 게이트가 seam 축을 읽을 수 있게 소스를 넘긴다. */
+export function readSeamSource() {
+  return read(SRC.seam);
+}
+
 /** seam 이 선언하는 축 — `*Source` 는 채널 표시이지 축이 아니다. */
-function seamAxes(src) {
+export function seamAxes(src) {
   const m = src.match(/export interface TextRenderStyle \{([\s\S]*?)\n\}/);
   if (!m) throw new Error("TextRenderStyle 파싱 실패");
   return new Set(

@@ -106,6 +106,9 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: pnpm -F @composition/builder test:visual-parity:smoke
 
+      - name: 텍스트 시각 축 격차표 drift (ADR-205 G4)
+        run: node scripts/generate-text-axis-matrix.mjs --check
+
       - name: Upload failure artifacts
         if: failure() && steps.scope.outputs.run == 'true'
         uses: actions/upload-artifact@v4

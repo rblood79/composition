@@ -59,6 +59,16 @@ if [ "$CHANGED" != "__ALL__" ]; then
 fi
 
 cd "$REPO_ROOT" || exit 1
+
+# ADR-205 G4 — 텍스트 시각 축 격차표 drift (초 단위, 브라우저 불필요).
+# 이 저장소에는 PR status check 가 없으므로 push 직전이 첫 차단 지점이다.
+if ! node scripts/generate-text-axis-matrix.mjs --check; then
+  echo ""
+  echo "[ADR-205] push 를 막았다 — 텍스트 시각 축 격차표가 코드와 어긋난다."
+  echo "  고치기: node scripts/generate-text-axis-matrix.mjs && git add docs/adr/evidence/205-text-axis-gap-matrix.md"
+  exit 1
+fi
+
 if ! pnpm -F @composition/builder test:visual-parity:smoke; then
   echo ""
   echo "[ADR-198] push 를 막았다 — Skia↔Preview 시각 파리티 smoke 실패."

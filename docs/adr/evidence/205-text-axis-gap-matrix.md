@@ -129,3 +129,36 @@ CSS 키**는 12 + 2 = **14개**로 표와 맞는다. 모순 아님.
 두 번째는 게이트 설계의 교훈이다 — **"어떻게 배선했는가" 로 도달을 재면 배선 방식이 바뀔 때
 가짜 결손이 난다.** Phase 2 의 도달 검사는 이 사각을 피해 `TextMeasureStyle`·`child.text` 에
 값이 실리는지를 본다.
+
+## 6. Phase 2 — 대칭 게이트 (G4, 2026-09-05)
+
+두 축을 같이 본다.
+
+| 축          | 어디에                                                        | 무엇을                                                   |
+| ----------- | ------------------------------------------------------------- | -------------------------------------------------------- |
+| ① 집합 대조 | `scripts/codex/text-axis-matrix-gate.sh` (= 생성기 `--check`) | 격차표가 코드와 어긋나면 RED                             |
+| ② 도달 검사 | `canvas/utils/__tests__/textAxisGate.static.test.ts`          | seam 축의 값이 두 소비자에 **실제로 실리는지** (값 수준) |
+
+②는 배선 방식이 아니라 **값**을 본다 — wrap leg 은 기록용 measurer 를 끼워
+`TextMeasureStyle[axis]` 를 확인하고, Skia 는 `buildSpecNodeData` 결과의
+`child.text[field]` 를 확인한다. §5 의 두 번째 교훈("어떻게 배선했는가로 도달을 재면
+배선을 바꿀 때 가짜 결손이 난다")을 피하는 형태다.
+
+**forcing function**: `AXIS_REACH_CASES` 의 키 집합이 seam 축 집합과 같아야 한다. seam 에
+축을 늘리면서 케이스를 안 쓰면 그 테스트가 먼저 RED 다.
+
+### 원복 RED 매트릭스
+
+| 원복한 것                                      | RED 가 된 테스트                        | 결과              |
+| ---------------------------------------------- | --------------------------------------- | ----------------- |
+| Skia ADR-057 블록의 letterSpacing 행 제거      | ② Skia 텍스트 노드가 인라인 값을 받는다 | 1 failed / 3 pass |
+| `measureWrappedTextHeight` 의 운반 필드 제거   | ② layout wrap leg 이 값을 받는다        | 1 failed / 3 pass |
+| seam `TextRenderStyle` 에서 letterSpacing 제거 | ① 격차표 drift · ② 도달 케이스 집합     | 2 failed / 2 pass |
+
+세 지점이 **각각 다른 테스트**로 잡힌다 — 한 테스트가 셋을 뭉뚱그리지 않는다.
+
+### 실행 지점
+
+`codex:preflight` (커밋 전) · `.githooks/pre-push` (push 직전 — 이 저장소에는 PR status
+check 가 없다) · `.github/workflows/deploy.yml` 의 `push:main` job. 셋 다 브라우저가 필요
+없는 초 단위 검사다.
