@@ -268,7 +268,7 @@ export async function requestStream(
   });
 
   if (!response.ok) {
-    let detail = "";
+    let detail: string;
     try {
       detail = await response.text();
     } catch {

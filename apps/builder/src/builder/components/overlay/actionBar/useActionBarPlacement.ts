@@ -8,11 +8,12 @@
  * - 부모(`.workspace-overlay`, inset:0) 가 배치 기준면.
  */
 import {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
+  type Dispatch,
+  type SetStateAction,
 } from "react";
 import { useStore } from "../../../stores";
 import type { ActionBarOffset } from "../../../stores/utils/actionBarStorage";
@@ -105,32 +106,76 @@ function applyAutomaticPageAnchor(
   return anchor;
 }
 
-export function useActionBarPlacement(pageId: string | null = null) {
-  const settings = useStore((state) => state.actionBar);
-  const setActionBarOffset = useStore((state) => state.setActionBarOffset);
-  const setActionBarPinned = useStore((state) => state.setActionBarPinned);
-  const setActionBarHidden = useStore((state) => state.setActionBarHidden);
-  const tracksAutomaticPagePosition =
-    pageId !== null && settings.offset === null;
+type DragSession = {
+  pointerId: number;
+  startX: number;
+  startY: number;
+  base: ActionBarOffset;
+  latest: ActionBarOffset | null;
+  /** pointerdown 시점에 한 번 잰 크기 — 드래그 중 바·overlay 크기는 변하지 않는다 */
+  sizes: { overlay: Size; bar: Size } | null;
+};
 
+type ActionBarPlacementInteractions = {
+  barNode: HTMLDivElement | null;
+  handleNode: HTMLElement | null;
+  pageId: string | null;
+  tracksAutomaticPagePosition: boolean;
+  settings: { offset: ActionBarOffset | null; pinned: boolean };
+  setDragOffset: Dispatch<SetStateAction<ActionBarOffset | null>>;
+  setActionBarOffset: (offset: ActionBarOffset | null) => void;
+};
+
+/**
+ * Ref 기반 DOM 상호작용은 렌더용 placement snapshot과 분리한다. React Compiler가
+ * ref를 읽는 callback이 섞인 반환 객체 전체를 렌더 값으로 오염시키지 않도록 이 hook은
+ * 값을 반환하지 않고 effect/event listener만 설치한다.
+ */
+function useActionBarPlacementInteractions({
+  barNode,
+  handleNode,
+  pageId,
+  tracksAutomaticPagePosition,
+  settings,
+  setDragOffset,
+  setActionBarOffset,
+}: ActionBarPlacementInteractions): void {
   const barRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
   const latestAutomaticAnchorRef = useRef<Point | null>(null);
+  const dragRef = useRef<DragSession | null>(null);
 
-  const [dragOffset, setDragOffset] = useState<ActionBarOffset | null>(null);
-  // `latest` 는 드롭 시 commit 할 값. `setDragOffset` updater 안에서 store 를
-  // 쓰면 그 updater 가 render phase 에 실행될 때 다른 컴포넌트 갱신이 되어
-  // React DEV 경고가 난다 (code-review #11) — 값은 세션 레코드에 두고 commit 은
-  // 이벤트 핸들러 본문에서 한다.
-  const dragRef = useRef<{
-    pointerId: number;
-    startX: number;
-    startY: number;
-    base: ActionBarOffset;
-    latest: ActionBarOffset | null;
-    /** pointerdown 시점에 한 번 잰 크기 — 드래그 중 바·overlay 크기는 변하지 않는다 */
-    sizes: { overlay: Size; bar: Size } | null;
-  } | null>(null);
+  // 바 DOM 은 선택/편집/Hide 전환 때 생겼다 사라진다. callback ref는 DOM node만
+  // 상위에 전달하고, clamp·ResizeObserver·자동 anchor는 commit effect에서 처리한다.
+  useLayoutEffect(() => {
+    observerRef.current?.disconnect();
+    observerRef.current = null;
+    barRef.current = barNode;
+    if (!barNode) return;
+
+    // 바가 나타난 그 시점 1회 — ResizeObserver 최초 전달에 맡기지 않는다.
+    clampStoredOffset(barNode);
+
+    if (tracksAutomaticPagePosition && pageId) {
+      latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(
+        barNode,
+        pageId,
+        getCanvasFramePresentationSnapshot(),
+      );
+    }
+
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => clampStoredOffset(barNode));
+    observer.observe(barNode);
+    if (barNode.parentElement) observer.observe(barNode.parentElement);
+    observerRef.current = observer;
+
+    return () => {
+      observer.disconnect();
+      if (observerRef.current === observer) observerRef.current = null;
+      if (barRef.current === barNode) barRef.current = null;
+    };
+  }, [barNode, pageId, tracksAutomaticPagePosition]);
 
   // 드래그 중 pointermove 는 React state 를 건드리지 않고 DOM transform 만 쓴다
   // (자동 page anchor 와 같은 방식). move 마다 setState 하면 바 전체가 다시 렌더돼
@@ -143,45 +188,6 @@ export function useActionBarPlacement(pageId: string | null = null) {
     if (!drag?.latest || !bar) return;
     bar.style.transform = actionBarTransform(drag.latest);
   });
-
-  // 바 DOM 은 마운트/언마운트를 반복한다 (선택 0 / 편집 중 / Hide → null).
-  // callback ref 가 그 시점을 직접 받아 clamp + 관찰을 세우고 걷는다 — 노드를
-  // state 로 들면 전환마다 렌더가 한 번 더 돈다.
-  //
-  // 재실행 계기는 3가지 — (a) 바가 나타남, (b) 바 크기 변화(컨텍스트 전환으로
-  // 항목 수가 바뀜), (c) overlay 크기 변화(창 리사이즈 · 패널 도크 리사이즈).
-  // window resize 리스너로는 (b) 와 "창 크기는 그대로인데 패널이 접혀 overlay 가
-  // 넓어진" 경우를 못 잡는다.
-  const attachBar = useCallback(
-    (node: HTMLDivElement | null) => {
-      observerRef.current?.disconnect();
-      observerRef.current = null;
-      barRef.current = node;
-      if (!node) return;
-
-      // 바가 나타난 그 시점 1회 — ResizeObserver 의 최초 전달에 맡기지 않는다.
-      // RO 콜백은 렌더링 단계에 실려 오므로 탭이 보이지 않는 동안에는 지연된다
-      // (실측: hidden 탭에서 rAF·RO 모두 정지). 이 clamp 는 "바가 화면 밖에
-      // 고착됐는가" 를 막는 경로라 마운트 시점에 결정적으로 돌아야 한다.
-      clampStoredOffset(node);
-
-      if (tracksAutomaticPagePosition && pageId) {
-        latestAutomaticAnchorRef.current = applyAutomaticPageAnchor(
-          node,
-          pageId,
-          getCanvasFramePresentationSnapshot(),
-        );
-      }
-
-      const observer = new ResizeObserver(() => clampStoredOffset(node));
-      observer.observe(node);
-      if (node.parentElement) observer.observe(node.parentElement);
-      observerRef.current = observer;
-    },
-    [pageId, tracksAutomaticPagePosition],
-  );
-
-  useEffect(() => () => observerRef.current?.disconnect(), []);
 
   useEffect(() => {
     if (!tracksAutomaticPagePosition || !pageId) return;
@@ -203,11 +209,14 @@ export function useActionBarPlacement(pageId: string | null = null) {
     return subscribeCanvasFramePresentation(apply);
   }, [pageId, tracksAutomaticPagePosition]);
 
-  const onHandlePointerDown = useCallback(
-    (event: React.PointerEvent<HTMLElement>) => {
+  useEffect(() => {
+    if (!handleNode) return;
+
+    const onPointerDown = (event: PointerEvent): void => {
       if (settings.pinned || event.button !== 0) return;
       event.preventDefault();
-      event.currentTarget.setPointerCapture(event.pointerId);
+      const target = event.currentTarget as HTMLElement;
+      target.setPointerCapture?.(event.pointerId);
       const sizes = barRef.current ? measureBar(barRef.current) : null;
       const pageAnchor =
         tracksAutomaticPagePosition && pageId
@@ -236,12 +245,9 @@ export function useActionBarPlacement(pageId: string | null = null) {
       };
       // 자동 page anchor를 기존 수동 좌표계로 바꾸되 같은 screen 위치를 유지한다.
       setDragOffset(base);
-    },
-    [pageId, settings.offset, settings.pinned, tracksAutomaticPagePosition],
-  );
+    };
 
-  const onHandlePointerMove = useCallback(
-    (event: React.PointerEvent<HTMLElement>) => {
+    const onPointerMove = (event: PointerEvent): void => {
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== event.pointerId) return;
       const bar = barRef.current;
@@ -258,26 +264,70 @@ export function useActionBarPlacement(pageId: string | null = null) {
         : next;
       drag.latest = clamped;
       if (bar) bar.style.transform = actionBarTransform(clamped);
-    },
-    [],
-  );
+    };
 
-  const endDrag = useCallback(
-    (event: React.PointerEvent<HTMLElement>) => {
+    const endDrag = (event: PointerEvent): void => {
       const drag = dragRef.current;
       if (!drag || drag.pointerId !== event.pointerId) return;
       dragRef.current = null;
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
+      const target = event.currentTarget as HTMLElement;
+      if (target.hasPointerCapture?.(event.pointerId)) {
+        target.releasePointerCapture?.(event.pointerId);
       }
       setDragOffset(null);
       const committed = drag.latest;
       if (committed && !offsetsEqual(committed, settings.offset)) {
         setActionBarOffset(committed);
       }
-    },
-    [setActionBarOffset, settings.offset],
-  );
+    };
+
+    handleNode.addEventListener("pointerdown", onPointerDown);
+    handleNode.addEventListener("pointermove", onPointerMove);
+    handleNode.addEventListener("pointerup", endDrag);
+    handleNode.addEventListener("pointercancel", endDrag);
+    return () => {
+      handleNode.removeEventListener("pointerdown", onPointerDown);
+      handleNode.removeEventListener("pointermove", onPointerMove);
+      handleNode.removeEventListener("pointerup", endDrag);
+      handleNode.removeEventListener("pointercancel", endDrag);
+    };
+  }, [
+    handleNode,
+    pageId,
+    setActionBarOffset,
+    setDragOffset,
+    settings.offset,
+    settings.pinned,
+    tracksAutomaticPagePosition,
+  ]);
+}
+
+export interface ActionBarPlacementNodes {
+  barNode: HTMLDivElement | null;
+  handleNode: HTMLElement | null;
+}
+
+export function useActionBarPlacement(
+  pageId: string | null = null,
+  { barNode, handleNode }: ActionBarPlacementNodes,
+) {
+  const settings = useStore((state) => state.actionBar);
+  const setActionBarOffset = useStore((state) => state.setActionBarOffset);
+  const setActionBarPinned = useStore((state) => state.setActionBarPinned);
+  const setActionBarHidden = useStore((state) => state.setActionBarHidden);
+  const tracksAutomaticPagePosition =
+    pageId !== null && settings.offset === null;
+  const [dragOffset, setDragOffset] = useState<ActionBarOffset | null>(null);
+
+  useActionBarPlacementInteractions({
+    barNode,
+    handleNode,
+    pageId,
+    tracksAutomaticPagePosition,
+    settings,
+    setDragOffset,
+    setActionBarOffset,
+  });
 
   return {
     hidden: settings.hidden,
@@ -296,14 +346,6 @@ export function useActionBarPlacement(pageId: string | null = null) {
             left: "0px",
             top: "0px",
           },
-    /** 바 루트에 그대로 붙인다 — 노드가 생기고 사라지는 시점을 훅이 알아야 한다 */
-    attachBar,
-    handleProps: {
-      onPointerDown: onHandlePointerDown,
-      onPointerMove: onHandlePointerMove,
-      onPointerUp: endDrag,
-      onPointerCancel: endDrag,
-    },
     togglePinned: () => setActionBarPinned(!settings.pinned),
     resetPosition: () => setActionBarOffset(null),
     hide: () => setActionBarHidden(true),

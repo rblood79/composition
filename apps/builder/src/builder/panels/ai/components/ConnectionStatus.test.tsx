@@ -9,7 +9,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   getAgentProfileRegistry,
   resetAgentProfileRegistry,
-  saveAgentProfiles,
 } from "../../../../services/ai/providers/agentProfiles";
 import type { AgentProfileConfig } from "../../../../services/ai/providers/AgentProfileRegistry";
 import { ConnectionStatus } from "./ConnectionStatus";

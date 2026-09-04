@@ -23,7 +23,6 @@ import {
 } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  Square,
   SquareDashed,
   SquareRoundCorner,
   SquareDashedBottom,

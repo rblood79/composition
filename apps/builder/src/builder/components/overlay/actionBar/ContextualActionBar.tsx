@@ -16,7 +16,7 @@
  * - 배치: 좌측 핸들 드래그 · 옵션 메뉴 (Pin / Reset / Hide) — Photoshop
  *   Contextual Task Bar 의 ⋯ 메뉴 동형 (Phase 3, `useActionBarPlacement`)
  */
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import {
   ChevronDown,
   EllipsisVertical,
@@ -99,11 +99,7 @@ function ActionButton({ item }: { item: ContextMenuItem }) {
   );
   if (!item.shortcutId) return button;
   return (
-    <ShortcutTooltip
-      shortcutId={item.shortcutId}
-      label={label}
-      placement="top"
-    >
+    <ShortcutTooltip shortcutId={item.shortcutId} label={label} placement="top">
       {button}
     </ShortcutTooltip>
   );
@@ -261,7 +257,18 @@ export function ContextualActionBar() {
     state.selectedElementIds.every((id) => state.elementsMap.has(id)),
   );
   const contextMenu = useContextMenu();
-  const placement = useActionBarPlacement(selectedPageId);
+  const [barNode, setBarNode] = useState<HTMLDivElement | null>(null);
+  const [handleNode, setHandleNode] = useState<HTMLElement | null>(null);
+  const attachBar = useCallback((node: HTMLDivElement | null) => {
+    setBarNode(node);
+  }, []);
+  const attachHandle = useCallback((node: HTMLElement | null) => {
+    setHandleNode(node);
+  }, []);
+  const placement = useActionBarPlacement(selectedPageId, {
+    barNode,
+    handleNode,
+  });
 
   // 182 provider 는 BuilderCanvas 의 interactive map 을 읽는데, 그 ref 는
   // BuilderCanvas 의 useEffect(BuilderCanvas.tsx:756) 에서 갱신된다. 같은 store
@@ -270,11 +277,16 @@ export function ContextualActionBar() {
   // 산출한다 — BuilderCanvas 가 앞선 형제라 그 effect 가 먼저 실행된다.
   const [model, setModel] = useState<ActionBarModel | null>(null);
   useEffect(() => {
-    setModel(
-      selectionResolved && !pageSelection
-        ? buildActionBarItems(selectedElementIds)
-        : null,
-    );
+    // provider registry는 BuilderCanvas commit effect에서 갱신된다. 모델을
+    // 같은 effect에서 동기 갱신하면 cascading render가 발생하므로, 선택 결과를
+    // 낮은 우선순위 transition으로 반영해 registry commit 이후 한 번만 그린다.
+    startTransition(() => {
+      setModel(
+        selectionResolved && !pageSelection
+          ? buildActionBarItems(selectedElementIds)
+          : null,
+      );
+    });
     // elements 는 재산출 트리거로만 쓴다 (항목 산출은 182 provider 가 담당)
   }, [selectedElementIds, selectionResolved, pageSelection, elements]);
   // 요소→page 전환 직후 effect가 이전 요소 model을 비우기 전에도 stale 액션을
@@ -318,7 +330,7 @@ export function ContextualActionBar() {
 
   return (
     <div
-      ref={placement.attachBar}
+      ref={attachBar}
       className="contextual-action-bar"
       onMouseDown={keepCanvasFocus}
       data-shortcut-scope="global"
@@ -329,10 +341,10 @@ export function ContextualActionBar() {
       style={placement.style}
     >
       <span
+        ref={attachHandle}
         className="contextual-action-bar-handle"
         title={t("actionBar.dragHandle")}
         aria-hidden="true"
-        {...placement.handleProps}
       >
         <GripVertical size={MENU_ICON_SIZE} />
       </span>

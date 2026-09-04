@@ -107,10 +107,7 @@ const generatePermissions = (
     ]),
   }));
 
-const generateInvitations = (
-  count: number,
-  t: PresetTranslate,
-): Record<string, unknown>[] =>
+const generateInvitations = (count: number): Record<string, unknown>[] =>
   Array.from({ length: count }, (_, i) => ({
     id: getRandomId("inv_"),
     email: `invited${i + 1}@example.com`,
@@ -285,10 +282,7 @@ const generateAuditLogs = (
     ipAddress: `${randomInt(1, 255)}.${randomInt(1, 255)}.${randomInt(1, 255)}.${randomInt(1, 255)}`,
   }));
 
-const generateProjectMemberships = (
-  count: number,
-  t: PresetTranslate,
-): Record<string, unknown>[] =>
+const generateProjectMemberships = (count: number): Record<string, unknown>[] =>
   Array.from({ length: count }, () => ({
     id: getRandomId("mem_"),
     projectId: getRandomId("proj_"),

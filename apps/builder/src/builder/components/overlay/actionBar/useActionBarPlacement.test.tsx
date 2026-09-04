@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { act, cleanup, render } from "@testing-library/react";
-import { useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
 import {
@@ -126,9 +126,6 @@ function presentCanvasFrame(
 }
 
 /** 실제 바처럼 "모델이 있을 때만" 루트를 그리는 소비자 */
-/* eslint-disable react-hooks/refs --
- * 훅 반환 객체에는 callback ref가 함께 있지만, Harness가 render에서 읽는 나머지
- * 값은 현재 render의 plain style/event snapshot이다. */
 function Harness({
   onCommittedRender,
   pageId = null,
@@ -138,21 +135,22 @@ function Harness({
   pageId?: string | null;
   visible: boolean;
 }) {
-  const placement = useActionBarPlacement(pageId);
+  const [barNode, setBarNode] = useState<HTMLDivElement | null>(null);
+  const attachNode = useCallback((node: HTMLDivElement | null) => {
+    setBarNode(node);
+  }, []);
+  const placement = useActionBarPlacement(pageId, {
+    barNode,
+    handleNode: barNode,
+  });
   useEffect(() => onCommittedRender?.());
   if (!visible) return null;
   return (
     <div data-testid="overlay">
-      <div
-        data-testid="bar"
-        ref={placement.attachBar}
-        style={placement.style}
-        {...placement.handleProps}
-      />
+      <div data-testid="bar" ref={attachNode} style={placement.style} />
     </div>
   );
 }
-/* eslint-enable react-hooks/refs */
 
 describe("useActionBarPlacement — 저장 offset clamp (R4)", () => {
   it("바가 나타난 뒤에 clamp 가 실행된다 (마운트 시점에는 잴 것이 없다)", () => {

@@ -69,8 +69,10 @@ describe("표면이 달라도 같은 동작은 같은 이름", () => {
 
   it("영어가 같으면 한국어도 같다 (동음이의어 제외)", () => {
     const conflicts = [...byEnglish.entries()]
-      .filter(([english, variants]) => variants.size > 1)
-      .filter(([english]) => !HOMONYMS.has(english) && !KNOWN_DRIFT.has(english))
+      .filter(([, variants]) => variants.size > 1)
+      .filter(
+        ([english]) => !HOMONYMS.has(english) && !KNOWN_DRIFT.has(english),
+      )
       .map(
         ([english, variants]) =>
           `"${english}" → ${[...variants.entries()]
@@ -85,8 +87,9 @@ describe("표면이 달라도 같은 동작은 같은 이름", () => {
     const stale = [...HOMONYMS, ...KNOWN_DRIFT].filter(
       (english) => (byEnglish.get(english)?.size ?? 0) <= 1,
     );
-    expect(stale, "이 항목들은 더 이상 갈리지 않는다 — 목록에서 지운다").toEqual(
-      [],
-    );
+    expect(
+      stale,
+      "이 항목들은 더 이상 갈리지 않는다 — 목록에서 지운다",
+    ).toEqual([]);
   });
 });

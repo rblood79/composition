@@ -11,10 +11,7 @@
 
 import type { CanvasLayoutNode } from "../layoutNode";
 import { getLayoutRootKey } from "../layoutRootKey";
-import { hasDelegatedChild } from "@composition/shared";
-import {
-  resolveSubpartAwareImplicitStyles,
-} from "./fitContentRemeasure";
+import { resolveSubpartAwareImplicitStyles } from "./fitContentRemeasure";
 import { isReadOnlySubpart, projectReadOnlySubpart } from "./readOnlySubpart";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
