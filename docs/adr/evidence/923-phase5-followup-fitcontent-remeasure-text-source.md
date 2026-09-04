@@ -73,3 +73,21 @@ surface: 빌더 Components 페이지의 `component-listbox-item-default` (실 st
 - 신규 게이트 3 PASS · builder unit 5221 PASS (기존 실패 4건은 본 변경과 무관 — `canvasStore.static` · `styleReadCanonical.static` · `adr113DescendantsGrepGate` · `g5LegacyFieldGrepGate`, HEAD 에서 동일 재현 확인)
 - browser parity 1086 PASS (기존 2 실패: `catalogComponentBox` GridListItem · Tooltip)
 - `pnpm type-check` PASS
+
+## 8. 재확인 (2026-09-04, 사용자 요청 — "production 재현 없음" 판정을 다시 잰다)
+
+§6 의 LOW deferred 두 건을 각각 **가설 1 + 반증 1** 로 다시 쟀다. 둘 다 "재현 없음" 이 유지되고, 성격은 결함이 아니라 **dead 경로**로 좁혀진다.
+
+### 8-1. 3.6 의 fit-content 폭 write — 게이트·live 어디에서도 최종 rect 에 닿지 않는다 (dead)
+
+- 반증: `fullTreeLayout.ts` 3.6 의 `batch[batchIdx].style.width = \`${correctedWidth}px\`` 를 **`1px` 로 강제**하고 전량을 돌렸다 (변이 대조).
+  - browser parity **1110 PASS** (기존 실패 2 만 — GridListItem·Tooltip) · layout engines unit **482 PASS**. 팔레트 production 트리 · DC-6 · field/sub-part 게이트 어느 것도 반응하지 않았다.
+  - live (빌더 재로드, 서빙 모듈에 변이 확인): 재측정이 **실제로 걸리는** 축 B 자리 ProgressBarValue (`width: fit-content`) laid 30 · Label 38/35/58 — 1px 인 노드는 Separator (설계값 1) 와 빈 FieldError (0) 뿐.
+- 판정: 이 write 는 뒤 단계 (자식 visit 의 스칼라 + 엔진 fit-content 해소 — ADR-170 · ADR-165) 에 항상 덮인다. production 재현 없음 유지. 성격은 "특정 컨테이너에서만 덮이는 결함" 이 아니라 **전 경로 dead** — 정리 대상 (삭제는 동작 변경 0 커밋 절차, `review-loop-closure.md` §3). 변이는 `git checkout` 으로 원복, diff 0.
+
+### 8-2. `label → Text.children` 의 slot 미구분 — 규칙 자체가 production 에서 실행되지 않는다 (dead rule)
+
+- 사실: ListBoxItem · GridListItem 의 D2 binding 은 `children` (라벨 "Label") · `description` · `icon` · `size` 만 노출하고 **`label` prop 이 없다** (`ListBoxItem.binding.ts:43` · `GridListItem.binding.ts:42`). live 의 origin (`component-listbox-item-default`) props 도 `children: "{label}"` · `description: "{description}"` 뿐. Canvas 투영 (`collectionVirtualization.ts:302` 의 `label:` 은 slot 폰트 맵) 도 parent `label` 을 쓰지 않는다.
+- 따라서 registry 규칙 `label → Text.children` 은 parentProp 이 없어 **read-time · write-time 모두 skip** 되고 (`resolvePropagatedProps` 는 undefined 를 건너뛴다), `description → Description.children` 은 origin 의 자식이 `Text[slot=description]` 이라 type 이 맞지 않아 역시 대상이 없다. §5 의 "두 줄 모두 Name" 은 probe 가 parent 에 `label` 을 넣어 만든 상태였다.
+- panel 편집은 `listBoxItemSlotChildActions.ts` 가 slot 자식을 **직접** 쓴다 (`{ slot: role, children }`) — registry 를 거치지 않는다.
+- 판정: production 재현 없음 유지. 성격은 slot 미구분 결함이 아니라 **도달 불가 규칙** — 정리 대상 (규칙 삭제 또는 `children → Text[slot=label]` 로 재키잉은 필요가 생길 때). 이 문서 §2 축 A 의 RED 4 도 이 규칙을 테스트가 직접 켠 결과라, §3 수리는 문서가 이미 말한 대로 사용자-가시 변경 0 이다.
