@@ -789,11 +789,13 @@ function buildCanonicalMutationMetadata(
     //   legacyPositionMatches 위치 불일치 → 빠른 경로(제자리 replace) skip → remove+append
     //   (형제 순서 맨 뒤로 변경) 가 발생한다 (2026-06-29 RadioGroup 회귀).
     //
-    //   **위치 필드만** 고정한다. type/customId/sourceComponentRole/sourceMasterId/
-    //   sourceElementType 및 import/export roundtrip metadata(templateRole/locked/
-    //   compositionType/importedFrom 등 ref·template anchor 식별)는 incomingMetadata 로
-    //   보존해야 한다 — 이를 덮어쓰면 ref/template 노드 식별이 깨진다(ADR-145 ListBox
-    //   template anchor). move 로 바뀌는 것은 부모/슬롯 위치뿐이므로 이 두 필드로 충분.
+    //   위치 필드와 customId는 현재 Element 값으로 고정한다. customId 편집 시
+    //   incomingMetadata가 이전 metadata.customId를 들고 있으므로 이를 허용하면 다음
+    //   canonical projection에서 방금 쓴 ID가 되돌아간다. 나머지 type/
+    //   sourceComponentRole/sourceMasterId/sourceElementType 및 import/export roundtrip
+    //   metadata(templateRole/locked/compositionType/importedFrom 등 ref·template anchor
+    //   식별)는 incomingMetadata 로 보존한다.
+    customId: legacyMetadata.customId,
     sourceParentId: legacyMetadata.sourceParentId,
     sourceSlotName: legacyMetadata.sourceSlotName,
     legacyProps: legacyMetadata.legacyProps,
@@ -2088,6 +2090,45 @@ export function updateCanonicalNodePropsPrimary(
   }
 
   const replacement: CanonicalNode = { ...target, props: nextProps };
+  const result = replaceNodeByReference(
+    currentDoc.children,
+    target,
+    replacement,
+  );
+  if (!result.replaced) return { changed: false, document: currentDoc };
+
+  const nextDocument = { ...currentDoc, children: result.nodes };
+  canonical.setDocument(projectId, nextDocument);
+  return { changed: true, document: nextDocument };
+}
+
+/**
+ * 활성 canonical document의 첫 projectable node를 단일 legacy-compatible
+ * Element snapshot으로 교체한다.
+ *
+ * `updateElement`의 비구조 hot path 전용 adapter다. 현재 canonical target을
+ * 기준으로 node를 다시 만들고 target reference까지의 경로만 structural
+ * sharing으로 복사하므로, 전체 Element[] projection·snapshot 조회·sibling order
+ * 재계산이 필요 없다. 잘못된 duplicate id 문서에서만 기존 merge adapter로
+ * fallback해 all-occurrence 호환 의미를 유지한다.
+ */
+export function updateCanonicalNodeFromElementPrimary(
+  element: Element,
+): CanonicalMutationResult {
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId) return { changed: false, document: null };
+
+  const currentDoc = canonical.documents.get(projectId);
+  if (!currentDoc) return { changed: false, document: null };
+  const target = getFirstProjectableNodeById(element.id);
+  if (!target) return { changed: false, document: currentDoc };
+
+  if (getCanonicalNodeOccurrenceCount(element.id) > 1) {
+    return applyCanonicalPrimaryMerge([element]);
+  }
+
+  const replacement = legacyElementToCanonicalNode(element, currentDoc, target);
   const result = replaceNodeByReference(
     currentDoc.children,
     target,

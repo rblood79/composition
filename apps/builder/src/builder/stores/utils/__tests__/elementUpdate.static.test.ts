@@ -35,6 +35,26 @@ describe("elementUpdate canonical-only read contract", () => {
     expect(action).not.toContain("syncUpdatedElementToCanonical(");
   });
 
+  it("full element update uses the canonical target and incremental derived caches on its normal path", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../elementUpdate.ts"),
+      "utf-8",
+    );
+    const action = source.slice(
+      source.indexOf("export const createUpdateElementAction"),
+      source.indexOf("export const createBatchUpdateElementPropsAction"),
+    );
+
+    expect(action).toContain("getFirstProjectableNodeById(elementId)");
+    expect(action).toContain("createDerivedElementUpdate(");
+    expect(action).toContain("updateCanonicalNodeFromElementPrimary(");
+    expect(action).toContain("getProjectableChildrenByParent()");
+    expect(action).not.toContain("getElementUpdateSourceElements()");
+    expect(action).not.toContain("findElementForUpdate(");
+    expect(action).not.toContain("findIndex(");
+    expect(action).not.toContain("buildElementUpdateChildrenByParent(");
+  });
+
   it("batch props update avoids full Element projection on the hot path", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
@@ -58,21 +78,18 @@ describe("elementUpdate canonical-only read contract", () => {
     );
 
     expect(source).toContain("getActiveCanonicalDocumentElements");
-    expect(source).toContain("function getElementUpdateSourceElements");
     expect(source).toContain("function buildElementUpdateLookup");
-    expect(source).toContain("function buildElementUpdateChildrenByParent");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
+      "sourceElements = getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS",
     );
+    expect(source).toContain("canonicalNodeToElement(");
+    expect(source).toContain("getElementArrayIndex(sourceElements");
+    expect(source).not.toContain("function getElementUpdateSourceElements");
+    expect(source).not.toContain("function findElementForUpdate");
+    expect(source).not.toContain("function buildElementUpdateChildrenByParent");
     expect(source).not.toContain("const { elements: legacyElements } = state");
     expect(source).toContain("buildElementUpdateLookup(sourceElements)");
-    expect(source).toContain(
-      "buildElementUpdateChildrenByParent(latestSource)",
-    );
     expect(source).not.toContain("buildElementUpdateLookup(state.elements)");
-    expect(source).not.toContain(
-      "buildElementUpdateChildrenByParent(state.elements)",
-    );
 
     const staleCurrentStateChildMap = [
       "currentState",
@@ -92,22 +109,17 @@ describe("elementUpdate canonical-only read contract", () => {
     );
 
     expect(source).toContain("type ElementUpdateLookup");
-    expect(source).toContain("type ElementUpdateChildrenByParent");
     expect(source).toContain(
       'childrenByParent: ReadonlyMap<string, readonly Pick<Element, "id">[]>',
     );
     expect(source).not.toContain(
       "function buildElementUpdateLookup(elements: Element[]): Map<string, Element>",
     );
-    expect(source).not.toContain("): Map<string, Element[]> {");
     expect(source).not.toContain(
       "const updatedElementMap = new Map<string, Element>();",
     );
     expect(source).not.toContain(
       "const elementsMap = new Map<string, Element>();",
-    );
-    expect(source).not.toContain(
-      "const newChildrenMap = new Map<string, Element[]>();",
     );
   });
 
@@ -128,11 +140,15 @@ describe("elementUpdate canonical-only read contract", () => {
     expect(propsStoreIndex).toBeGreaterThanOrEqual(0);
     expect(propsSyncIndex).toBeLessThan(propsStoreIndex);
 
+    const elementActionIndex = source.indexOf(
+      "export const createUpdateElementAction",
+    );
     const elementSyncIndex = source.indexOf(
-      "syncUpdatedElementToCanonical(latestUpdatedElement, sanitizedUpdates);",
+      "updateCanonicalNodeFromElementPrimary(derivedUpdate.element);",
+      elementActionIndex,
     );
     const elementStoreIndex = source.indexOf(
-      "elements: latestUpdatedElements,\n          selectedElementProps: latestSelectedElementProps,",
+      "elements: derivedUpdate.elements,\n        elementsMap: derivedUpdate.elementsMap,",
       elementSyncIndex,
     );
     expect(elementSyncIndex).toBeGreaterThanOrEqual(0);
@@ -192,7 +208,7 @@ describe("elementUpdate responsive layout-invalidation contract (ADR-168)", () =
 
     // layoutVersion bump 이 isLayoutChange 분기 안에 있음을 확인 (bump 누락 회귀 차단)
     const bumpIndex = source.indexOf(
-      "layoutVersion: state.layoutVersion + 1",
+      "layoutVersion: latestState.layoutVersion + 1",
       layoutChangeIndex,
     );
     expect(bumpIndex).toBeGreaterThan(layoutChangeIndex);

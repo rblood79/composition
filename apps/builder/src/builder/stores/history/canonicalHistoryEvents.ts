@@ -15,6 +15,10 @@ import {
   getCanonicalHistoryNodeSnapshot,
 } from "@/adapters/canonical/canonicalMutations";
 import { getFrameElementMirrorId } from "@/adapters/canonical/frameMirror";
+import {
+  LEGACY_DESCENDANTS_FIELD,
+  LEGACY_SLOT_NAME_FIELD,
+} from "@/adapters/canonical/legacyElementFields";
 import type { Element } from "@/types/core/store.types";
 import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
 import {
@@ -611,11 +615,18 @@ export function captureCanonicalReplaceSources(
  * 판정을 이 한 곳에 둔다: 예전엔 `inspectorActions` 안에만 인라인으로 있어서
  * `updateElement` 일반 경로가 같은 규칙을 갖지 못했고, 프리셋이 body `responsive` 를
  * 그 경로로 쓰면서 **undo 로 되돌아가지 않는** 결함이 생겼다 (ADR-168 잔존 항목).
+ * `customId`와 slot/descendants mirror도 canonical metadata·top-level field에
+ * 저장되므로 props-only update event로는 복원할 수 없다. 이 편집들은 full-node
+ * replace event로 기록한다.
  * 필드를 추가할 땐 여기만 고치면 두 경로가 함께 따라온다.
  */
 export const NON_PROPS_CANONICAL_HISTORY_FIELDS = [
+  "customId",
   "fills",
   "responsive",
+  "slot",
+  LEGACY_SLOT_NAME_FIELD,
+  LEGACY_DESCENDANTS_FIELD,
 ] as const;
 
 /** 변경 patch 에 props 밖 canonical 필드가 있는가 (→ replace event 필요). */

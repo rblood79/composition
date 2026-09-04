@@ -10,8 +10,14 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../types/core/store.types";
+import {
+  mergeElementsCanonicalPrimary,
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
 import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSemanticsSection } from "./ComponentSemanticsSection";
 import { FrameSlotSection } from "./FrameSlotSection";
 
@@ -22,7 +28,6 @@ import { FrameSlotSection } from "./FrameSlotSection";
  */
 const renderWithI18n = (ui: ReactElement) =>
   render(ui, { wrapper: I18nProvider });
-
 
 const defaultAddElement = useStore.getState().addElement;
 
@@ -49,8 +54,30 @@ function makeElement(
   } as Element;
 }
 
+function seedCanonicalFromStore(): void {
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => "frame-slot-section-project",
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  useCanonicalDocumentStore
+    .getState()
+    .setCurrentProject("frame-slot-section-project");
+  mergeElementsCanonicalPrimary(useStore.getState().elements);
+  useStore.getState()._rebuildIndexes();
+}
+
 describe("FrameSlotSection", () => {
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     historyManager.setCurrentPage("page-1");
     useStore.setState({
       addElement: defaultAddElement,
@@ -63,6 +90,7 @@ describe("FrameSlotSection", () => {
   });
 
   afterEach(() => {
+    resetCanonicalMutationStoreActions();
     vi.restoreAllMocks();
     cleanup();
   });
@@ -90,7 +118,7 @@ describe("FrameSlotSection", () => {
       elements: [cardContent],
       elementsMap: new Map([["card-content", cardContent]]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(<FrameSlotSection elementId="card-content" />);
 
@@ -114,7 +142,7 @@ describe("FrameSlotSection", () => {
       elements: [frame],
       elementsMap: new Map([["frame", frame]]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(<FrameSlotSection elementId="frame" />);
 
@@ -155,7 +183,7 @@ describe("FrameSlotSection", () => {
         ["origin", origin],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(<FrameSlotSection elementId="frame" />);
 
@@ -200,7 +228,7 @@ describe("FrameSlotSection", () => {
         ["origin", origin],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(
       <>
@@ -231,7 +259,7 @@ describe("FrameSlotSection", () => {
         ["origin", origin],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(<FrameSlotSection elementId="frame" />);
 
@@ -267,7 +295,7 @@ describe("FrameSlotSection", () => {
         elements: [...state.elements, element],
         elementsMap: new Map([...state.elementsMap, [element.id, element]]),
       });
-      useStore.getState()._rebuildIndexes();
+      seedCanonicalFromStore();
     });
 
     useStore.setState({
@@ -278,7 +306,7 @@ describe("FrameSlotSection", () => {
         ["origin", origin],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(<FrameSlotSection elementId="footer" />);
 
@@ -313,7 +341,7 @@ describe("FrameSlotSection", () => {
         elements: [...state.elements, element],
         elementsMap: new Map([...state.elementsMap, [element.id, element]]),
       });
-      useStore.getState()._rebuildIndexes();
+      seedCanonicalFromStore();
     });
 
     useStore.setState({
@@ -324,7 +352,7 @@ describe("FrameSlotSection", () => {
         ["origin", origin],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     renderWithI18n(<FrameSlotSection elementId="footer" />);
 

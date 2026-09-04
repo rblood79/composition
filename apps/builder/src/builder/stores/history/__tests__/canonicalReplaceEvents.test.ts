@@ -21,6 +21,7 @@ import {
   buildCanonicalReplaceEvents,
   captureCanonicalReplaceSources,
   findLocation,
+  hasNonPropsCanonicalHistoryChange,
 } from "../canonicalHistoryEvents";
 
 const PROJECT_ID = "proj-replace-test";
@@ -77,6 +78,17 @@ afterEach(() => {
 });
 
 describe("buildCanonicalReplaceEvents (post-mutation 모드)", () => {
+  it.each([
+    ["customId", { customId: "next" }],
+    ["frame slot", { slot: [] }],
+    ["element slot", { slot_name: "content" }],
+    ["ref descendants", { descendants: { content: { hidden: true } } }],
+  ])("%s field requires full-node history", (_label, updates) => {
+    expect(hasNonPropsCanonicalHistoryChange(updates as Partial<Element>)).toBe(
+      true,
+    );
+  });
+
   it("capture(pre) → mutate → build → undo 가 descendants 를 deep-equal 복원", () => {
     const prevNode = makeRefNode("before");
     const nextNode = makeRefNode("after");

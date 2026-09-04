@@ -16,11 +16,11 @@ Tab title을 Property Editor에서 변경하면 Preview에는 반영되나 Skia 
 
 > `elementsMap`/`childrenMap` 은 canonical document 에서 파생된 **read-only derived 캐시** (ADR-122) — 아래 비대칭 원칙은 derived 캐시 간에도 동일하게 유지됩니다.
 
-| 액션                                          | `elementsMap` |     `childrenMap`      |
-| --------------------------------------------- | :-----------: | :--------------------: |
-| `createUpdateElementPropsAction` (props 변경) |    ✅ 갱신    |      ❌ 기존 유지      |
-| `createUpdateElementAction` (구조 변경)       |    ✅ 갱신    | ✅ `_rebuildIndexes()` |
-| `createBatchUpdateElementPropsAction`         |    ✅ 갱신    |      ❌ 기존 유지      |
+| 액션                                          | `elementsMap` |      `childrenMap`       |
+| --------------------------------------------- | :-----------: | :----------------------: |
+| `createUpdateElementPropsAction` (props 변경) |    ✅ 갱신    |       ❌ 기존 유지       |
+| `createUpdateElementAction`                   |    ✅ 갱신    | 구조·index 필드만 재구축 |
+| `createBatchUpdateElementPropsAction`         |    ✅ 갱신    |       ❌ 기존 유지       |
 
 **`childrenMap`은 parent-child 구조가 변할 때만 갱신됩니다.** props만 변경하면 `childrenMap` 내부의 Element 객체는 **이전 props를 가진 stale 참조**입니다.
 

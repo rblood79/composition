@@ -418,6 +418,163 @@ describe("element mutations keep canonical document primary", () => {
     });
   });
 
+  it("updateElement replaces one canonical node and derived row without rebuilding indexes", async () => {
+    const first = makeElement("first", "Button", {
+      layout_id: "frame-1",
+      customId: "first",
+      props: { label: "First" },
+    });
+    const target = makeElement("target", "Button", {
+      layout_id: "frame-1",
+      customId: "before",
+      props: { label: "Target" },
+    });
+    const last = makeElement("last", "Button", {
+      layout_id: "frame-1",
+      customId: "last",
+      props: { label: "Last" },
+    });
+    const state = makeState([first, target, last]) as ReturnType<
+      typeof makeState
+    > & {
+      _rebuildIndexes: ReturnType<typeof vi.fn>;
+    };
+    state._rebuildIndexes = vi.fn();
+    state.currentPageId = "page-1";
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(
+        "project-1",
+        makeFrameDocument([
+          makeCanonicalElementNode(first),
+          makeCanonicalElementNode(target),
+          makeCanonicalElementNode(last),
+        ]),
+      );
+
+    await createUpdateElementAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )("target", { customId: "after" });
+
+    const frame = useCanonicalDocumentStore.getState().getDocument("project-1")
+      ?.children[0] as FrameNode;
+    expect(frame.children?.map((node) => node.id)).toEqual([
+      "first",
+      "target",
+      "last",
+    ]);
+    expect(frame.children?.[1]?.metadata).toMatchObject({
+      customId: "after",
+      legacyProps: expect.objectContaining({ customId: "after" }),
+    });
+    expect(state.elementsMap.get("target")?.customId).toBe("after");
+    expect(state._rebuildIndexes).not.toHaveBeenCalled();
+    expect(historyManager.addEntry).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "update",
+        elementId: "target",
+        data: {
+          canonicalEvents: [
+            expect.objectContaining({ type: "remove" }),
+            expect.objectContaining({ type: "insert" }),
+          ],
+        },
+      }),
+    );
+  });
+
+  it("updateElement preserves duplicate-id all-occurrence compatibility", async () => {
+    const first = makeElement("duplicate", "Button", {
+      layout_id: "frame-1",
+      props: { label: "First" },
+    });
+    const second = makeElement("duplicate", "Button", {
+      layout_id: "frame-1",
+      props: { label: "Second" },
+    });
+    const state = makeState([first, second]) as ReturnType<typeof makeState> & {
+      _rebuildIndexes: ReturnType<typeof vi.fn>;
+    };
+    state._rebuildIndexes = vi.fn();
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument(
+        "project-1",
+        makeFrameDocument([
+          makeCanonicalElementNode(first),
+          makeCanonicalElementNode(second),
+        ]),
+      );
+
+    await createUpdateElementAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )("duplicate", { props: { label: "Edited" } });
+
+    const frame = useCanonicalDocumentStore.getState().getDocument("project-1")
+      ?.children[0] as FrameNode;
+    expect(frame.children?.map((node) => node.props?.label)).toEqual([
+      "Edited",
+      "Edited",
+    ]);
+    expect(state._rebuildIndexes).toHaveBeenCalledTimes(1);
+  });
+
+  it("updateElement keeps structural parent changes on the rebuild path", async () => {
+    const body = makeElement("body", "body", {
+      layout_id: "frame-1",
+      props: {},
+    });
+    const child = makeElement("child", "Button", {
+      parent_id: "body",
+      layout_id: "frame-1",
+      props: { label: "Child" },
+    });
+    const group = makeElement("group", "frame", {
+      parent_id: "body",
+      layout_id: "frame-1",
+      props: {},
+    });
+    const state = makeState([body, child, group]) as ReturnType<
+      typeof makeState
+    > & {
+      _rebuildIndexes: ReturnType<typeof vi.fn>;
+    };
+    state._rebuildIndexes = vi.fn();
+    registerCanonicalActions(state);
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeFrameDocument([
+        {
+          ...makeCanonicalElementNode(body),
+          children: [
+            makeCanonicalElementNode(child),
+            { ...makeCanonicalElementNode(group), children: [] },
+          ],
+        },
+      ]),
+    );
+
+    await createUpdateElementAction(
+      createSetMock(state) as never,
+      () => state as never,
+    )("child", { parent_id: "group" });
+
+    const frame = useCanonicalDocumentStore.getState().getDocument("project-1")
+      ?.children[0] as FrameNode;
+    const frameBody = frame.children?.[0];
+    const canonicalGroup = frameBody?.children?.find(
+      (node) => node.id === "group",
+    );
+    expect(frameBody?.children?.map((node) => node.id)).toEqual(["group"]);
+    expect(canonicalGroup?.children?.map((node) => node.id)).toEqual(["child"]);
+    expect(state.elementsMap.get("child")?.parent_id).toBe("group");
+    expect(state._rebuildIndexes).toHaveBeenCalledTimes(1);
+  });
+
   it("batchUpdateElementProps persists canonical origin and propagated child updates when a legacy mirror row is missing", async () => {
     const origin = makeElement("origin", "Button", {
       reusable: true,
@@ -1956,5 +2113,6 @@ describe("element mutations keep canonical document primary", () => {
 
     // 같은 write 가 layoutVersion 도 올려야 한다 (preview @media 재발행 트리거)
     expect(state.layoutVersion).toBe(1);
+    expect(state._rebuildIndexes).not.toHaveBeenCalled();
   });
 });

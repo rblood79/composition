@@ -30,11 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 단일 요소 props 편집은 canonical 문서를 legacy `Element[]`로 전체 투영한 뒤 다시 merge하지 않습니다. revision별 target·descendant cache와 canonical tree structural sharing을 사용하고, UI용 derived array/map만 같은 순서로 증분 교체합니다. 잘못된 기존 duplicate id 문서는 구 adapter 복구 의미를 유지합니다.
 - 다중 요소 props 편집도 target마다 legacy `Element[]`를 투영·재인덱싱하지 않고 revision cache로 읽은 뒤 canonical tree를 한 번만 순회합니다. canonical 문서는 batch당 한 번 push하고 UI용 derived array/map은 대상 행만 교체해 다중 선택 편집·정렬·propagation의 hot path 비용을 줄였습니다.
 - production caller가 0인 `batchUpdateElements` store action과 legacy full-projection 구현을 제거했습니다. 실제 LayerTree·Canvas DnD는 canonical `children[]` 기반 `moveElementToContainer`/`moveElementToCanonicalTarget` 경로를 계속 사용합니다.
+- 전체 필드 `updateElement`도 canonical target 한 건을 직접 교체하고 UI용 derived array/map의 대상 행만 갱신합니다. 구조·소유권·component/variable index 필드와 잘못된 duplicate id 호환 경로에서만 전체 index를 재구축해 customId·responsive·slot·descendants 편집의 문서 전체 projection을 제거했습니다.
 
 ### Fixed
 
 - 모바일·태블릿 style override를 reset할 때 선택 요소는 canonical 문서에서 읽으면서 responsive 값과 부모 baseline은 오래된 legacy map에서 읽어 reset이 누락될 수 있던 source 분리를 없앴습니다.
 - Fill 액션을 canonical node index로 옮기면서도, top-level `fills` 도입 전에 저장된 문서의 `metadata.legacyProps.fills`는 adapter 경계에서 복원해 첫 편집 때 기존 fill stack이 사라지지 않게 했습니다.
+- `updateElement`로 customId를 바꿀 때 이전 `metadata.customId`가 새 `metadata.legacyProps.customId`를 덮어 다음 canonical projection에서 값이 되돌아가던 adapter 우선순위를 현재 Element 값 기준으로 바로잡았습니다.
+- customId·Frame Slot·Element Slot·instance Slot Fill 변경을 full-node canonical history event로 기록해 props 밖 canonical 필드 편집 뒤 Undo/Redo가 동작하도록 복구했습니다.
+- ID 입력을 Enter로 확정할 때 keydown과 blur가 각각 저장해 동일한 no-op history entry를 하나 더 만들던 중복 commit을 제거했습니다.
 - **Button Icon origin impact 취소와 단일 Undo**:
   - **Why**: Icon/Text 추가·제거가 먼저 실행된 뒤 마지막 Button props update에서 impact 확인을 기다려, Cancel 뒤에도 자식 mutation이 남고 history transaction이 둘로 갈렸습니다.
   - 모든 자식 mutation 전에 impact 승인을 완료하고 selection·page·project·canonical revision을 재검증합니다. 승인된 instance ID 집합에 묶인 operation token으로 Continue 뒤 Icon/Text/Button 변경을 한 history entry에 기록하며, Cancel 또는 dialog 대기 중 target 변경은 no-op입니다.
@@ -47,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - items action에는 canonical 우선·stale legacy 차단·중복 id projectable first-match 회귀와 full projection 재도입 static gate를 추가했습니다. 5,000-node 합성 측정의 3회 median에서 target pre-read는 첫 조회 4.40ms → 0.96ms, 동일 revision 100회 66.09ms → 0.045ms였습니다. 격리된 551-element Builder의 12회 실제 편집은 p50 33.9ms/p95 40.4ms였고 Undo/Redo·Canvas·console을 함께 검증했습니다. 후자는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
 - 단일 props 편집에는 full `Element[]` projection·legacy merge 재도입 static gate와 structural parent lifting·page ref descendants·duplicate id·history roundtrip 회귀를 추가했습니다. 5,000-node 격리 action 20회 측정은 p50 10.08ms → 1.27–1.51ms였고, foreground synthetic Builder 1,000-node post-change 검증은 p50 0.3ms/p95 1.1ms였습니다. live 검증에서 canonical·derived selection·Undo/Redo가 일치했고 runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
 - batch props 편집에는 full projection·legacy merge 재도입 static gate와 inherited dirty descendants, page ref descendants sibling order, duplicate id all-occurrence 호환, 동기 history/derived cache 회귀를 추가했습니다. 5,000-node 중 100개를 바꾸는 격리 action 20회 측정은 p50 17.11ms → 1.58–1.63ms였고, foreground browser post-change 검증은 p50 1.5ms/p95 2.0ms였습니다. canonical·derived selection·Undo/Redo가 일치했고 console/runtime error는 0이었습니다. live 수치는 post-change 안정성 기준선이며 pre-change end-to-end 개선 수치로 해석하지 않습니다.
+- 전체 필드 편집에는 canonical target 재조회, full projection 재도입 방지, customId sibling order, duplicate id all-occurrence, structural rebuild, responsive history/layout 회귀를 추가했습니다. 5,000-node 실제 store action 20회 격리 측정은 변경 전 p50/p95 20.15/29.35ms에서 변경 후 3회 p50 1.11–1.44ms, p95 3.89–6.24ms였고, customId history 활성 최종 재측정도 p50/p95 1.17/6.52ms였습니다. foreground Builder에서는 ID 편집 1회가 history 1개만 만들고 Undo/Redo의 canonical ID가 왕복하며 console error 0임을 확인했습니다. selection 보존은 격리 store roundtrip으로 고정했습니다.
 
 ## [입력 필드의 설명 문구가 캔버스에도 보입니다] - 2026-09-04
 

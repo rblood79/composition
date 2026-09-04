@@ -6,8 +6,13 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../types/core/store.types";
+import {
+  mergeElementsCanonicalPrimary,
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
 import { withComponentInstanceMirror } from "@/adapters/canonical/componentSemanticsMirror";
 import { useStore } from "../../stores";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
@@ -25,12 +30,29 @@ function makeElement(id: string, overrides: Partial<Element> = {}): Element {
   } as Element;
 }
 
+function seedCanonicalFromStore(): void {
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => "property-custom-id-project",
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  useCanonicalDocumentStore
+    .getState()
+    .setCurrentProject("property-custom-id-project");
+  mergeElementsCanonicalPrimary(useStore.getState().elements);
+}
+
 describe("PropertyCustomId", () => {
   afterEach(() => {
+    resetCanonicalMutationStoreActions();
     cleanup();
   });
 
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
     useStore.setState({
       elements: [],
       elementsMap: new Map(),
@@ -62,6 +84,7 @@ describe("PropertyCustomId", () => {
       selectedElementId: "origin",
       selectedElementProps: origin.props,
     } as never);
+    seedCanonicalFromStore();
 
     render(
       <PropertyCustomId elementId="instance" label="ID" value="instance-id" />,
@@ -79,6 +102,28 @@ describe("PropertyCustomId", () => {
     expect(useStore.getState().elementsMap.get("origin")?.customId).toBe(
       "origin-id",
     );
+  });
+
+  it("commits an Enter-confirmed ID exactly once", () => {
+    const onChange = vi.fn();
+    render(
+      <PropertyCustomId
+        elementId="target"
+        label="ID"
+        value="before"
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "after" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    // Browser Enter path calls input.blur(), which then dispatches blur.
+    fireEvent.blur(input);
+
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledWith("after");
   });
 
   it("renders duplicate customId FieldError inside the properties fieldset", async () => {

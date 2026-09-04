@@ -119,8 +119,12 @@ function siblingIndexInList(element: Element, siblings: Element[]): number {
 }
 
 function nonPropsDiffer(prev: Element, next: Element): boolean {
+  const prevFields = prev as Element & Record<string, unknown>;
+  const nextFields = next as Element & Record<string, unknown>;
   for (const field of NON_PROPS_CANONICAL_HISTORY_FIELDS) {
-    if (JSON.stringify(prev[field]) !== JSON.stringify(next[field])) {
+    if (
+      JSON.stringify(prevFields[field]) !== JSON.stringify(nextFields[field])
+    ) {
       return true;
     }
   }

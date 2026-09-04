@@ -12,6 +12,7 @@ import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
 } from "@/adapters/canonical/canonicalMutations";
+import { buildLegacyElementMetadata } from "@/adapters/canonical/legacyMetadata";
 import type { Element } from "../../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
 import { historyManager } from "../../history";
@@ -83,6 +84,7 @@ function makeDocument(elements: Element[]): CompositionDocument {
       id: element.id,
       type: element.type as CanonicalNode["type"],
       props: element.props as Record<string, unknown>,
+      metadata: buildLegacyElementMetadata(element),
       children: [],
     })),
   };
@@ -185,6 +187,45 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
       children: "after",
       keep: "stay",
     });
+  });
+
+  it("updateElement customId: one replace entry preserves selection through undo/redo", async () => {
+    const original = makeElement(
+      "text-1",
+      { children: "label" },
+      { customId: "before" },
+    );
+    seed([original]);
+    useStore.setState({
+      selectedElementId: original.id,
+      selectedElementIds: [original.id],
+      selectedElementIdsSet: new Set([original.id]),
+      selectedElementProps: original.props,
+    } as never);
+
+    await useStore.getState().updateElement(original.id, { customId: "after" });
+
+    expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+    expect(
+      lastEntry().data.canonicalEvents?.map((event) => event.type),
+    ).toEqual(["remove", "insert"]);
+    expect(useStore.getState().elementsMap.get(original.id)?.customId).toBe(
+      "after",
+    );
+
+    await useStore.getState().undo();
+    expect(useStore.getState().selectedElementId).toBe(original.id);
+    expect(useStore.getState().selectedElementIds).toEqual([original.id]);
+    expect(useStore.getState().elementsMap.get(original.id)?.customId).toBe(
+      "before",
+    );
+
+    await useStore.getState().redo();
+    expect(useStore.getState().selectedElementId).toBe(original.id);
+    expect(useStore.getState().selectedElementIds).toEqual([original.id]);
+    expect(useStore.getState().elementsMap.get(original.id)?.customId).toBe(
+      "after",
+    );
   });
 
   it("batchUpdateElementProps: 요소별 full-merged update events + roundtrip", async () => {

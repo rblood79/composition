@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("elementUpdate canonical atomicity contract", () => {
-  it("syncs canonical from latest element inside the atomic store callback", async () => {
+  it("re-reads after the async gate and commits canonical before the derived store", async () => {
     const source = await readFile(
       resolve(__dirname, "../elementUpdate.ts"),
       "utf-8",
@@ -12,22 +12,34 @@ describe("elementUpdate canonical atomicity contract", () => {
     const actionIndex = source.indexOf(
       "export const createUpdateElementAction",
     );
-    const callbackIndex = source.indexOf("set((state) => {", actionIndex);
-    const latestElementIndex = source.indexOf(
-      "const latestUpdatedElement = { ...latestElement, ...sanitizedUpdates };",
-      callbackIndex,
+    const gateIndex = source.indexOf(
+      "if (originGate !== true && !(await originGate)) return;",
+      actionIndex,
+    );
+    const latestStateIndex = source.indexOf("const state = get();", gateIndex);
+    const latestCanonicalIndex = source.indexOf(
+      "const canonicalNode = getFirstProjectableNodeById(elementId);",
+      latestStateIndex,
+    );
+    const derivedIndex = source.indexOf(
+      "const derivedUpdate = createDerivedElementUpdate(",
+      latestCanonicalIndex,
     );
     const syncIndex = source.indexOf(
-      "syncUpdatedElementToCanonical(latestUpdatedElement, sanitizedUpdates);",
-      latestElementIndex,
+      "updateCanonicalNodeFromElementPrimary(derivedUpdate.element);",
+      derivedIndex,
+    );
+    const storeIndex = source.indexOf(
+      "elements: derivedUpdate.elements,",
+      syncIndex,
     );
 
     expect(actionIndex).toBeGreaterThanOrEqual(0);
-    expect(callbackIndex).toBeGreaterThan(actionIndex);
-    expect(latestElementIndex).toBeGreaterThan(callbackIndex);
-    expect(syncIndex).toBeGreaterThan(latestElementIndex);
-    expect(source.slice(actionIndex, callbackIndex)).not.toContain(
-      "syncUpdatedElementToCanonical(updatedElement, sanitizedUpdates);",
-    );
+    expect(gateIndex).toBeGreaterThan(actionIndex);
+    expect(latestStateIndex).toBeGreaterThan(gateIndex);
+    expect(latestCanonicalIndex).toBeGreaterThan(latestStateIndex);
+    expect(derivedIndex).toBeGreaterThan(latestCanonicalIndex);
+    expect(syncIndex).toBeGreaterThan(derivedIndex);
+    expect(storeIndex).toBeGreaterThan(syncIndex);
   });
 });

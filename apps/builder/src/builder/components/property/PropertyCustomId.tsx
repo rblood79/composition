@@ -85,32 +85,9 @@ export const PropertyCustomId = memo(function PropertyCustomId({
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      // Save on Enter
+      // blur가 검증과 commit을 한 번만 담당한다. 여기서도 commit하면 브라우저가
+      // 이어서 발생시키는 blur와 중복되어 no-op history entry가 하나 더 생긴다.
       e.preventDefault();
-
-      // Validate before saving
-      const validation = validateCustomId(
-        inputValue,
-        elementId,
-        validationElements,
-      );
-
-      if (!validation.isValid) {
-        setError(validation.error);
-        // Revert to original value if invalid
-        setInputValue(value || "");
-        return;
-      }
-
-      if (inputValue !== (value || "")) {
-        // IMPORTANT: Only update Inspector state, NOT calling onChange
-        // onChange would bypass Inspector state and directly update Builder store
-        // which prevents useSyncWithBuilder from detecting changes
-        commitCustomId(inputValue);
-        setError(undefined);
-      }
-
-      // Blur the input to confirm the change
       (e.target as HTMLInputElement).blur();
     } else if (e.key === "Escape") {
       // Revert on Escape

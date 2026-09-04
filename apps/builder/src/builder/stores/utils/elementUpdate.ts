@@ -1,6 +1,7 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
 import type { StateCreator } from "zustand";
+import type { CanonicalNode } from "@composition/shared";
 import {
   ComponentElementProps,
   Element,
@@ -25,11 +26,22 @@ import {
   applyElementOrderCanonicalPrimary,
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
+  updateCanonicalNodeFromElementPrimary,
   updateCanonicalNodePropsBatchPrimary,
   updateCanonicalNodePropsPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import {
+  getElementLayoutId,
+  LEGACY_COMPONENT_ROLE_FIELD,
+  LEGACY_LAYOUT_ID_FIELD,
+  LEGACY_MASTER_ID_FIELD,
+  LEGACY_SLOT_NAME_FIELD,
+} from "@/adapters/canonical/legacyElementFields";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { getActiveCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import {
+  canonicalNodeToElement,
+  getActiveCanonicalDocumentElements,
+} from "../canonical/canonicalElementsView";
 import {
   getCanonicalNodeOccurrenceCount,
   getFirstProjectableNodeById,
@@ -50,10 +62,6 @@ type BuilderDb = Awaited<ReturnType<typeof getDB>>;
 type ElementUpdateLookup<TElement extends Element = Element> = Map<
   string,
   TElement
->;
-type ElementUpdateChildrenByParent<TElement extends Element = Element> = Map<
-  string,
-  TElement[]
 >;
 
 const EMPTY_ELEMENTS: Element[] = [];
@@ -114,6 +122,53 @@ function createDerivedPropsUpdate(
       : buildElementUpdateLookup(sourceElements);
   elementsMap.set(elementId, element);
   return { element, elements, elementsMap };
+}
+
+type DerivedElementUpdate = {
+  previousElement: Element;
+  element: Element;
+  elements: Element[];
+  elementsMap: ElementUpdateLookup;
+};
+
+function createDerivedElementUpdate(
+  state: Pick<ElementsState, "elements" | "elementsMap">,
+  canonicalNode: CanonicalNode,
+  updates: Partial<Element>,
+): DerivedElementUpdate | null {
+  let sourceElements = state.elements;
+  let index = getElementArrayIndex(sourceElements, canonicalNode.id);
+
+  // 정상 hot path는 canonical-derived store cache의 위치 정보만 재사용한다.
+  // bootstrap/cache gap에서만 전체 projection 한 번으로 mirror를 복구한다.
+  if (index < 0) {
+    sourceElements = getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
+    index = getElementArrayIndex(sourceElements, canonicalNode.id);
+  }
+  if (index < 0) return null;
+
+  const scopeElement = sourceElements[index];
+  const previousElement = canonicalNodeToElement(
+    canonicalNode,
+    scopeElement.parent_id ?? null,
+    {
+      pageId: scopeElement.page_id ?? null,
+      layoutId: getElementLayoutId(scopeElement),
+    },
+  );
+  if (!previousElement) return null;
+
+  const element = { ...previousElement, ...updates };
+  const elements = sourceElements.with(index, element);
+  const sourceIndexById = elementArrayIndexCache.get(sourceElements);
+  if (sourceIndexById) elementArrayIndexCache.set(elements, sourceIndexById);
+
+  const elementsMap =
+    sourceElements === state.elements
+      ? new Map(state.elementsMap)
+      : buildElementUpdateLookup(sourceElements);
+  elementsMap.set(canonicalNode.id, element);
+  return { previousElement, element, elements, elementsMap };
 }
 
 type DerivedBatchPropsUpdate = {
@@ -184,12 +239,11 @@ function createDerivedBatchPropsUpdate(
   return { elements, elementsMap, updatedElementMap };
 }
 
-function syncUpdatedElementToCanonical(
+function syncLocationUpdatedElementToCanonical(
   element: Element,
-  updates?: Partial<Element>,
+  updates: Partial<Element>,
 ): void {
-  if (!areCanonicalMutationStoreActionsRegistered()) return;
-  if (updates && isStructuralOrderMirrorPatch(updates)) {
+  if (isStructuralOrderMirrorPatch(updates)) {
     applyElementOrderCanonicalPrimary([element]);
     return;
   }
@@ -201,6 +255,38 @@ function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {
   return (
     keys.length > 0 &&
     keys.every((key) => key === "parent_id" || key === "page_id")
+  );
+}
+
+const CANONICAL_LOCATION_FIELDS = new Set<string>([
+  "id",
+  "parent_id",
+  "page_id",
+  LEGACY_LAYOUT_ID_FIELD,
+  LEGACY_SLOT_NAME_FIELD,
+]);
+
+const DERIVED_INDEX_FIELDS = new Set<string>([
+  ...CANONICAL_LOCATION_FIELDS,
+  "type",
+  "variableBindings",
+  LEGACY_COMPONENT_ROLE_FIELD,
+  LEGACY_MASTER_ID_FIELD,
+  "ref",
+  "reusable",
+]);
+
+function hasCanonicalLocationUpdate(updates: Partial<Element>): boolean {
+  return Object.keys(updates).some((key) => CANONICAL_LOCATION_FIELDS.has(key));
+}
+
+function requiresFullDerivedIndexRebuild(
+  updates: Partial<Element>,
+  occurrenceCount: number,
+): boolean {
+  return (
+    occurrenceCount > 1 ||
+    Object.keys(updates).some((key) => DERIVED_INDEX_FIELDS.has(key))
   );
 }
 
@@ -223,32 +309,6 @@ function buildElementUpdateLookup<TElement extends Element>(
   elements: readonly TElement[],
 ): ElementUpdateLookup<TElement> {
   return new Map(elements.map((element) => [element.id, element]));
-}
-
-function findElementForUpdate(
-  elements: Element[],
-  elementId: string,
-): Element | undefined {
-  return elements.find((element) => element.id === elementId);
-}
-
-function buildElementUpdateChildrenByParent<TElement extends Element>(
-  elements: readonly TElement[],
-): ElementUpdateChildrenByParent<TElement> {
-  const childrenByParent: ElementUpdateChildrenByParent<TElement> = new Map();
-  for (const element of elements) {
-    const parentId = element.parent_id;
-    if (!parentId) continue;
-    childrenByParent.set(parentId, [
-      ...(childrenByParent.get(parentId) ?? []),
-      element,
-    ]);
-  }
-  return childrenByParent;
-}
-
-function getElementUpdateSourceElements(): Element[] {
-  return getActiveCanonicalDocumentElements() ?? EMPTY_ELEMENTS;
 }
 
 function markDirtyWithDescendantsUpdate(
@@ -700,13 +760,23 @@ export const createUpdateElementAction =
     const sanitizedUpdates = sanitizeElementUpdate(updates as Partial<Element>);
     if (Object.keys(sanitizedUpdates).length === 0) return;
 
-    const currentState = get();
-    const sourceElements = getElementUpdateSourceElements();
-    const element = findElementForUpdate(sourceElements, elementId);
-    if (!element) return;
+    const initialCanonicalNode = getFirstProjectableNodeById(elementId);
+    if (!initialCanonicalNode) return;
     // 동기 통과(대화상자 불필요) 경로는 await 하지 않는다 — 게이트 주석 참조.
-    const originGate = confirmOriginImpactIfNeeded(element);
+    const originGate = confirmOriginImpactIfNeeded(initialCanonicalNode);
     if (originGate !== true && !(await originGate)) return;
+
+    // origin confirmation만 실제 async 경계다. dialog 대기 중 다른 mutation이
+    // 들어올 수 있으므로 승인 뒤 canonical target과 derived cache를 다시 읽는다.
+    const state = get();
+    const canonicalNode = getFirstProjectableNodeById(elementId);
+    if (!canonicalNode) return;
+    const derivedUpdate = createDerivedElementUpdate(
+      state,
+      canonicalNode,
+      sanitizedUpdates,
+    );
+    if (!derivedUpdate) return;
 
     // props 밖 canonical 필드(`responsive`/`fills`) 변경은 update event 로 undo 되지
     // 않는다 — `replaceNodeProps` 가 props 만 교체하므로 full node 를 실어야 한다.
@@ -714,10 +784,10 @@ export const createUpdateElementAction =
     const hasNonPropsCanonicalChange =
       hasNonPropsCanonicalHistoryChange(sanitizedUpdates);
     const shouldRecordHistory =
-      Boolean(currentState.currentPageId) &&
+      Boolean(state.currentPageId) &&
       (Boolean(sanitizedUpdates.props) || hasNonPropsCanonicalChange);
     const prevPropsClone = shouldRecordHistory
-      ? cloneForHistory(element.props)
+      ? cloneForHistory(canonicalNode.props ?? {})
       : null;
     // updateElement 는 `{...element, ...sanitizedUpdates}` 로 props 를 전체
     // 교체하므로 sanitizedUpdates.props 자체가 full next props 다.
@@ -737,8 +807,8 @@ export const createUpdateElementAction =
           elementId,
           data: {
             canonicalEvents: buildCanonicalReplaceEvents(
-              [element],
-              [{ ...element, ...sanitizedUpdates }],
+              [derivedUpdate.previousElement],
+              [derivedUpdate.element],
             ),
           },
         });
@@ -770,54 +840,56 @@ export const createUpdateElementAction =
         ? isLayoutAffectingUpdate(changedStyle)
         : Boolean(sanitizedUpdates.props)); // props 변경이 있으면 레이아웃 영향으로 간주
 
-    // Atomic derive — set callback 안에서 latest `state` 기반으로 elements 재계산.
-    // Why: concurrent 호출 (예: Promise.all 로 여러 updateElement) 시 모든 호출이
-    // 외부에서 같은 stale snapshot 기반으로 derive 하면 `set` last-write-wins 로
-    // 다른 element 변경이 lost. canonical 자체는 latest doc 기반이라 안전하나,
-    // legacy `state.elements` mirror 가 `_rebuildIndexes` primary derive source
-    // 이므로 mirror race 가 UI 에 그대로 노출됨.
-    set((state) => {
-      const latestSource = getElementUpdateSourceElements();
-      const latestIdx = latestSource.findIndex((el) => el.id === elementId);
-      if (latestIdx === -1) return state; // 다른 호출로 이미 삭제된 경우 skip
+    const projectableChildrenByParent = getProjectableChildrenByParent();
+    const occurrenceCount = getCanonicalNodeOccurrenceCount(elementId);
+    const needsFullIndexRebuild = requiresFullDerivedIndexRebuild(
+      sanitizedUpdates,
+      occurrenceCount,
+    );
 
-      const latestElement = latestSource[latestIdx];
-      const latestUpdatedElement = { ...latestElement, ...sanitizedUpdates };
-      syncUpdatedElementToCanonical(latestUpdatedElement, sanitizedUpdates);
-      const latestUpdatedElements = latestSource.with(
-        latestIdx,
-        latestUpdatedElement,
-      );
-
-      const latestSelectedElementProps =
-        state.selectedElementId === elementId && sanitizedUpdates.props
-          ? createCompleteProps(latestUpdatedElement, sanitizedUpdates.props)
-          : state.selectedElementProps;
-
-      if (isLayoutChange) {
-        const dirtyIds = new Set(state.dirtyElementIds);
-        markDirtyWithDescendantsUpdate(
-          elementId,
-          changedStyle,
-          buildElementUpdateChildrenByParent(latestSource),
-          dirtyIds,
+    if (areCanonicalMutationStoreActionsRegistered()) {
+      if (hasCanonicalLocationUpdate(sanitizedUpdates)) {
+        syncLocationUpdatedElementToCanonical(
+          derivedUpdate.element,
+          sanitizedUpdates,
         );
-        return {
-          elements: latestUpdatedElements,
-          selectedElementProps: latestSelectedElementProps,
-          layoutVersion: state.layoutVersion + 1,
-          dirtyElementIds: dirtyIds,
-        };
+      } else {
+        updateCanonicalNodeFromElementPrimary(derivedUpdate.element);
       }
-      return {
-        elements: latestUpdatedElements,
-        selectedElementProps: latestSelectedElementProps,
-      };
-    });
+    }
 
-    // 🔧 CRITICAL: elementsMap 재구축 (재선택 시 이전 값 반환 방지)
-    // Immer produce() 외부에서 호출 (Map은 Immer가 직접 지원하지 않음)
-    get()._rebuildIndexes();
+    const selectedElementProps =
+      state.selectedElementId === elementId && sanitizedUpdates.props
+        ? createCompleteProps(derivedUpdate.element, sanitizedUpdates.props)
+        : state.selectedElementProps;
+
+    if (isLayoutChange) {
+      const dirtyIds = new Set(state.dirtyElementIds);
+      markDirtyWithDescendantsUpdate(
+        elementId,
+        changedStyle,
+        projectableChildrenByParent,
+        dirtyIds,
+      );
+      set((latestState) => ({
+        elements: derivedUpdate.elements,
+        elementsMap: derivedUpdate.elementsMap,
+        selectedElementProps,
+        layoutVersion: latestState.layoutVersion + 1,
+        dirtyElementIds: dirtyIds,
+      }));
+    } else {
+      set({
+        elements: derivedUpdate.elements,
+        elementsMap: derivedUpdate.elementsMap,
+        selectedElementProps,
+      });
+    }
+
+    // 구조·소유권·component/variable index 축이 바뀌는 드문 경로만 전체
+    // canonical derive를 수행한다. props/customId/responsive/slot/descendants
+    // 편집은 위의 array/map 한 행 patch로 끝난다.
+    if (needsFullIndexRebuild) get()._rebuildIndexes();
 
     // 2. Canonical document 저장 — UI 이벤트 핸들러를 블로킹하지 않도록 비동기 처리
     if (typeof indexedDB === "undefined") return;

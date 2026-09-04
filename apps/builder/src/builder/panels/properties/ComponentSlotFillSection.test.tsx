@@ -8,8 +8,14 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Element } from "../../../types/core/store.types";
+import {
+  mergeElementsCanonicalPrimary,
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "@/adapters/canonical/canonicalMutations";
 import { historyManager } from "../../stores/history";
 import { useStore } from "../../stores";
+import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { ComponentSlotFillSection } from "./ComponentSlotFillSection";
 
 // Canonical migration: `reusable` / `ref` / `componentRole` are CanonicalNode fields,
@@ -36,8 +42,30 @@ function makeElement(
   } as Element;
 }
 
+function seedCanonicalFromStore(): void {
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => "component-slot-fill-project",
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  useCanonicalDocumentStore
+    .getState()
+    .setCurrentProject("component-slot-fill-project");
+  mergeElementsCanonicalPrimary(useStore.getState().elements);
+  useStore.getState()._rebuildIndexes();
+}
+
 describe("ComponentSlotFillSection", () => {
   beforeEach(() => {
+    resetCanonicalMutationStoreActions();
+    useCanonicalDocumentStore.setState({
+      documents: new Map(),
+      currentProjectId: null,
+      documentVersion: 0,
+    });
     historyManager.setCurrentPage("page-1");
     useStore.setState({
       currentPageId: "page-1",
@@ -49,6 +77,7 @@ describe("ComponentSlotFillSection", () => {
   });
 
   afterEach(() => {
+    resetCanonicalMutationStoreActions();
     vi.restoreAllMocks();
     cleanup();
   });
@@ -83,7 +112,7 @@ describe("ComponentSlotFillSection", () => {
         ["card-instance", cardInstance],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     render(<ComponentSlotFillSection elementId="card-instance" />);
 
@@ -141,7 +170,7 @@ describe("ComponentSlotFillSection", () => {
         ["card-instance", cardInstance],
       ]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     render(<ComponentSlotFillSection elementId="card-instance" />);
 
@@ -181,7 +210,7 @@ describe("ComponentSlotFillSection", () => {
       elements: [cardOrigin],
       elementsMap: new Map([["card-origin", cardOrigin]]),
     });
-    useStore.getState()._rebuildIndexes();
+    seedCanonicalFromStore();
 
     const { container } = render(
       <ComponentSlotFillSection elementId="card-origin" />,
