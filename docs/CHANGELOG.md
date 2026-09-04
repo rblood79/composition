@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [제약 flex 안의 collection 이 Preview 와 같은 높이를 지킵니다 (ADR-204)] - 2026-09-04
+
+### Fixed
+
+- **가상화 collection 의 min-content floor (ADR-204 Implemented)**: 높이가 제한된 flex column 안에서 `overflow: visible`/`clip` 인 ListBox·GridList 가 Canvas 에서만 부모 높이로 줄어들던 문제를 고쳤습니다. Preview 는 행이 실제 자식이라 CSS §4.5 자동 최소 크기 (행 수 × 행 높이) 를 지키는데, Canvas 는 행을 투영으로 그려 레이아웃 자식이 없고 엔진도 주축이 definite 인 item 에는 floor 를 두지 않았습니다.
+  - 엔진 `flex.rs` 에 §4.5 specified size suggestion 절 (`min(specified, content)`, 정확 스칼라를 가진 definite item 만) 을 두고, column definite 컨테이너는 자식 extent 를, 가상화 collection 은 `contentMinHeight` (행 수 × stride) 를 공급합니다. 같은 절이 collection 밖 일반 상자 (자식 실재, definite 높이) 의 발산도 닫습니다.
+  - **Table**: Canvas 만 `minHeight: 402` 를 주입해 제약 flex 에서 줄어들지 않던 것을 제거했습니다. DOM 외곽 `.react-aria-Table` 은 catalog `min-height: 40px` 이라 같이 줄어듭니다 (Canvas 402 → 80).
+  - **GridList**: Canvas 만 `overflow: hidden` 을 주입해 scroll container 로 판정되던 것을 제거했습니다. GridList.css 에 overflow 선언이 없어 Preview 는 non-scrollable 이고 min-content 164 를 지킵니다 (Canvas 80 → 164).
+  - 위치: `packages/composition-engine/src/flex.rs` · `tree.rs` · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `implicitStyles.ts`. 게이트: `adr204ReachMatrix.browser.test.ts` (production 24 행 Chrome ≤1px) · `adr204MinContentFloorFirstNail.browser.test.ts`. 이연: row 축 definite 컨테이너 (ADR-188 방문 수 기준선과 충돌 — 사용자 판정 대기).
+
 ## [요소 편집과 선택·스타일 읽기를 canonical 문서 기준으로 통일했습니다] - 2026-09-04
 
 ### Changed

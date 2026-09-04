@@ -2,14 +2,15 @@
 
 ## Status
 
-Accepted — 2026-09-04 (리뷰 round 1 종결 · Phase 0 반영)
+Implemented — 2026-09-04 (Phase 0~~3 · G0~~G4 통과. Accepted 2026-09-04 — 리뷰 round 1 종결)
 
 진행 로그:
 
-- **Phase 0 Implemented 2026-09-04** — G0 first-nail 통과 + 도달 인벤토리. 설계 교체 1건 (collection 을 쓰지 않는 형태로) · ADR 전제 정정 2건. [evidence](evidence/204-phase0-first-nail-and-reach.md)
-- **Phase 1 Implemented 2026-09-04** — 대안 C 커널 절 (정확 스칼라 보유 definite item 만 — `content_main` 은 definite item 의 자기 solved 크기라 제안이 아님을 golden 이 즉시 드러냈다) + column definite 컨테이너 스칼라 writer (자식 extent, 가상 solve 0). G0 column definite **164 = 164** · parity 1105 PASS 이동 0 · live F2 164 / auto 80. **row definite 컨테이너 writer 는 이연** — ADR-188 G0 방문 수 2N→4N 과 충돌 (사용자 perf 판정). [evidence](evidence/204-phase1-specified-size-suggestion.md)
-- **Phase 3 Implemented 2026-09-04** — G1·G3 통과. G1 은 DOM leg 를 `rendererMap` 실렌더로 바꿔 24 행 Chrome 대조 (≤1px). 착수 시 RED 2 행의 원인은 커널·스칼라가 아니라 **Canvas 만의 implicit 주입** — Table `minHeight: 402` (DOM 외곽은 catalog min-height 40 → 제약 flex 에서 같이 줄어든다) · GridList `overflow: hidden` (GridList.css 에 overflow 없음 → non-scrollable, Chrome 164). 둘 다 주입 제거, 기준선 갱신 (DC-6 GridList raw 80→164 · ratchet 19→18 · Table minHeight 402→40px). **Phase 0 전제 재정정 3번째** — 기본 상태 격차는 Table + GridList (GridList 를 scrollable 로 센 것은 주입을 production 사실로 읽은 오류). G3 노드 210 불변 · frame p50 회귀 신호 없음. live: GridList 기본 80→164 · Table 402→80. [evidence](evidence/204-phase3-gates.md)
-- **Phase 2 Implemented 2026-09-04** — 대안 A. `contentMinHeight` (JSON 경계 + `binaryProtocol.ts` 비등재 주석 동시 — R3) · `NodeStyle.content_min_height` → column 슬롯 19 · enrich 가 listbox/gridlist owner 에 주입 높이 원천 (행 수 × stride) 의 content-box 값을 공급. DC-6 "visible/clip 80" 사실 고정 → **164** (DOM 아날로그와 일치, 기준선 갱신 근거 기록) · parity 1105 PASS 그 외 이동 0 · 원복 RED 공급 제거 → 80 · live ListBox ref visible 164 / auto 80. [evidence](evidence/204-phase2-collection-vertical-scalar.md)
+- **Phase 0 Implemented 2026-09-04** — G0 first-nail 통과 + 도달 인벤토리. 설계 교체 1건 (collection 을 쓰지 않는 형태로) · ADR 전제 정정 2건. [evidence](../evidence/204-phase0-first-nail-and-reach.md)
+- **Phase 1 Implemented 2026-09-04** — 대안 C 커널 절 (정확 스칼라 보유 definite item 만 — `content_main` 은 definite item 의 자기 solved 크기라 제안이 아님을 golden 이 즉시 드러냈다) + column definite 컨테이너 스칼라 writer (자식 extent, 가상 solve 0). G0 column definite **164 = 164** · parity 1105 PASS 이동 0 · live F2 164 / auto 80. **row definite 컨테이너 writer 는 이연** — ADR-188 G0 방문 수 2N→4N 과 충돌 (사용자 perf 판정). [evidence](../evidence/204-phase1-specified-size-suggestion.md)
+- **Phase 4 종결 2026-09-04** — Implemented 승격 · README 이동 · CHANGELOG · archive. **이연 확정 1**: row definite 컨테이너 스칼라 writer (ADR-188 G0 방문 수 2N→4N) 는 채택하지 않았다 — row 축은 텍스트 leaf 스칼라 (`contentMinWidth`) 까지만이고 row 컨테이너 definite item 은 G0 row definite 행 (DOM 164 vs production 80) 그대로 남는다. 재개 조건 = ADR-188 기준선 갱신을 사용자가 승인할 때 (Phase 1 evidence §3).
+- **Phase 3 Implemented 2026-09-04** — G1·G3 통과. G1 은 DOM leg 를 `rendererMap` 실렌더로 바꿔 24 행 Chrome 대조 (≤1px). 착수 시 RED 2 행의 원인은 커널·스칼라가 아니라 **Canvas 만의 implicit 주입** — Table `minHeight: 402` (DOM 외곽은 catalog min-height 40 → 제약 flex 에서 같이 줄어든다) · GridList `overflow: hidden` (GridList.css 에 overflow 없음 → non-scrollable, Chrome 164). 둘 다 주입 제거, 기준선 갱신 (DC-6 GridList raw 80→164 · ratchet 19→18 · Table minHeight 402→40px). **Phase 0 전제 재정정 3번째** — 기본 상태 격차는 Table + GridList (GridList 를 scrollable 로 센 것은 주입을 production 사실로 읽은 오류). G3 노드 210 불변 · frame p50 회귀 신호 없음. live: GridList 기본 80→164 · Table 402→80. [evidence](../evidence/204-phase3-gates.md)
+- **Phase 2 Implemented 2026-09-04** — 대안 A. `contentMinHeight` (JSON 경계 + `binaryProtocol.ts` 비등재 주석 동시 — R3) · `NodeStyle.content_min_height` → column 슬롯 19 · enrich 가 listbox/gridlist owner 에 주입 높이 원천 (행 수 × stride) 의 content-box 값을 공급. DC-6 "visible/clip 80" 사실 고정 → **164** (DOM 아날로그와 일치, 기준선 갱신 근거 기록) · parity 1105 PASS 그 외 이동 0 · 원복 RED 공급 제거 → 80 · live ListBox ref visible 164 / auto 80. [evidence](../evidence/204-phase2-collection-vertical-scalar.md)
 
 ## Context
 
@@ -115,7 +116,7 @@ Canvas 의 **ListBox · GridList** 는 행을 **scene graph 투영**으로 그�
 - **대안 C 단독 기각**: collection 의 content 가 0 이므로 이 절만으로는 격차가 그대로다 — 그래서 기각이 아니라 **A 와의 결합**으로 둔다. C 는 collection 밖 definite 높이 flex item 전반에도 닿으므로 회귀 표면이 이 결정의 가장 큰 비용이고, G1/G3 이 그 비용을 잰다.
 - **대안 D 기각**: 기본 상태 둘 (`Table` · stack 배치 `GridList`) 이 이미 도달 조건을 만족한다 (Hard Constraint 4) — "사용자가 명시로 준 경우만" 이라는 D 의 전제가 성립하지 않는다.
 
-> 구현 상세: [204-virtualized-collection-min-content-floor-breakdown.md](design/204-virtualized-collection-min-content-floor-breakdown.md)
+> 구현 상세: [204-virtualized-collection-min-content-floor-breakdown.md](../design/204-virtualized-collection-min-content-floor-breakdown.md)
 
 ## Risks
 
@@ -129,13 +130,26 @@ Canvas 의 **ListBox · GridList** 는 행을 **scene graph 투영**으로 그�
 
 ## Gates
 
-| Gate | 시점                | 통과 조건                                                                                                                                                                                                     | 실패 시 대안                                                  |
-| ---- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| G0   | Phase 0 종료        | **통과 (2026-09-04)** — collection 을 쓰지 않는 일반 상자로 가드만 분리: definite 주축에서 DOM 164 vs production 80 (양 축), 대조군 auto·scroll 정합. [evidence](evidence/204-phase0-first-nail-and-reach.md) | (해당 없음 — 통과)                                            |
-| G1   | Phase 3             | **통과 (2026-09-04)** — production ListBox/GridList/Table × overflow 4 × 부모 400/80 을 `rendererMap` 실렌더 DOM 과 대조, 24 행 전부 ≤1px · scrollable 행 80 불변 · collection 밖 대조군 회귀 0. 착수 시 RED 2 (Table `minHeight:402` · GridList `overflow:hidden` — 둘 다 Canvas 만의 implicit 주입) 은 주입 제거로 수리. [evidence](evidence/204-phase3-gates.md)                                                                                                                                            | (해당 없음 — 통과)       |
-| G2   | Phase 3             | 원복 RED — (a) 세로축 스칼라 공급 제거 → 격차 행 RED, (b) 해당 시 specified 절 원복 → 일반 케이스 RED                                                                                                         | 게이트가 변경을 감지하지 못하는 것이므로 게이트를 먼저 고친다 |
-| G3   | Phase 3             | **통과 (2026-09-04)** — parity 1110 PASS (기존 실패 2) · engines unit 482 · 노드 210 불변 · frame p50 A/B (엔진만 교체, arm 당 2회): idle +0.3% · edit −0.3% · select −1.2% — 회귀 신호 없음 (run 간 편차가 arm 차보다 커 1% 자체는 하니스 해상도 밖). [evidence](evidence/204-phase3-gates.md)                                                                                                                                 | (해당 없음 — 통과)     |
-| G4   | Implemented 승격 전 | live exercise — 빌더에서 collection 에 `overflow:visible` 을 주고 제약 flex 안에 둔 뒤 Skia rect 와 publish DOM 대조                                                                                          | 승격 보류                                                     |
+| Gate | 시점                | 통과 조건                                                                                                                                                                                                                                                                                                                                                              | 실패 시 대안                                                  |
+| ---- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| G0   | Phase 0 종료        | **통과 (2026-09-04)** — collection 을 쓰지 않는 일반 상자로 가드만 분리: definite 주축에서 DOM 164 vs production 80 (양 축), 대조군 auto·scroll 정합. [evidence](../evidence/204-phase0-first-nail-and-reach.md)                                                                                                                                                       | (해당 없음 — 통과)                                            |
+| G1   | Phase 3             | **통과 (2026-09-04)** — production ListBox/GridList/Table × overflow 4 × 부모 400/80 을 `rendererMap` 실렌더 DOM 과 대조, 24 행 전부 ≤1px · scrollable 행 80 불변 · collection 밖 대조군 회귀 0. 착수 시 RED 2 (Table `minHeight:402` · GridList `overflow:hidden` — 둘 다 Canvas 만의 implicit 주입) 은 주입 제거로 수리. [evidence](../evidence/204-phase3-gates.md) | (해당 없음 — 통과)                                            |
+| G2   | Phase 3             | 원복 RED — (a) 세로축 스칼라 공급 제거 → 격차 행 RED, (b) 해당 시 specified 절 원복 → 일반 케이스 RED                                                                                                                                                                                                                                                                  | 게이트가 변경을 감지하지 못하는 것이므로 게이트를 먼저 고친다 |
+| G3   | Phase 3             | **통과 (2026-09-04)** — parity 1110 PASS (기존 실패 2) · engines unit 482 · 노드 210 불변 · frame p50 A/B (엔진만 교체, arm 당 2회): idle +0.3% · edit −0.3% · select −1.2% — 회귀 신호 없음 (run 간 편차가 arm 차보다 커 1% 자체는 하니스 해상도 밖). [evidence](../evidence/204-phase3-gates.md)                                                                     | (해당 없음 — 통과)                                            |
+| G4   | Implemented 승격 전 | **통과 (2026-09-04)** — 아래 `### Live Exercise`. DOM 대조는 G1 의 preview 경로 (`rendererMap` 실렌더) 가 담당했다 — publish 는 preview 와 같은 renderer 를 쓰고 이 저장소 방침상 (기능 링크만) 별도 oracle 로 두지 않는다.                                                                                                                                            | (해당 없음 — 통과)                                            |
+
+### Live Exercise
+
+Chrome MCP · 빌더 Home 페이지 · 2026-09-04 (사용자 Chrome throttle 미적용 세션).
+
+| Phase | 시나리오 (팔레트로 frame 을 body 에 넣고 style 을 `updateElementProps` 로 준 뒤 그 안에 collection 추가, `__composition_LAYOUT_DEBUG__.getSharedLayoutMap()` rect) | 결과 (착수 전 → 후)                                |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| 1     | frame `column · height 80` > 자식 실재 일반 상자 (definite 164, overflow visible)                                                                                  | 80 → **164**, auto 80 대조군 불변                  |
+| 2     | frame `column · height 80` > ListBox ref 인스턴스 `overflow: visible` / `auto`                                                                                     | visible 80 → **164** · auto **80** 불변            |
+| 3     | frame `column · 300×80` > GridList 기본 상태 (overflow 미지정)                                                                                                     | 80 → **164** (카드가 frame 밖으로 넘쳐 보임 = DOM) |
+| 3     | 같은 frame > Table 단독 / GridList + Table                                                                                                                         | 402 → **80** / 164 + **40** (각자 min 에 고정)     |
+
+각 phase 끝에 frame 을 `removeElement` 로 제거해 원복했다 (Cmd+Z 는 포커스 문제로 동작하지 않아 store 액션 사용). DOM 쪽 값은 G1 (`adr204ReachMatrix.browser.test.ts`, rendererMap 실렌더 + 실 번들 CSS) 의 같은 상태 24 행이 정본이다. 상세: [Phase 1](../evidence/204-phase1-specified-size-suggestion.md) · [Phase 2](../evidence/204-phase2-collection-vertical-scalar.md) · [Phase 3](../evidence/204-phase3-gates.md).
 
 ## Consequences
 
