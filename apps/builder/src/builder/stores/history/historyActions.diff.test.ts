@@ -8,10 +8,8 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 import type { Element } from "../../../types/core/store.types";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { createElementDiff, historyManager, serializeDiff } from "../history";
-import type { HistoryEntry } from "../history";
+import { historyManager } from "../history";
 import { useStore } from "../index";
-import { migrateV1EntryToV2 } from "./historyEntryMigration";
 
 vi.mock("../../../lib/db", () => ({
   getDB: vi.fn(async () => ({
@@ -166,7 +164,7 @@ describe("historyActions canonical diff/event application", () => {
     },
   );
 
-  it("applies single serialized diff entries to the active canonical document on undo/redo", async () => {
+  it("applies a canonical update entry to the active document on undo/redo", async () => {
     const before = makeElement("text-1", { children: "before" });
     const after = makeElement("text-1", { children: "after" });
 
@@ -175,21 +173,19 @@ describe("historyActions canonical diff/event application", () => {
       .setDocument("history-project", makeDocument([before]));
     useCanonicalDocumentStore.getState().setCurrentProject("history-project");
 
-    // v1 diff-only → IDB 경계와 같이 migrate(context) 후 스택에 넣는다
-    const migrated = migrateV1EntryToV2(
-      {
-        id: "fixture",
-        timestamp: 0,
-        type: "update",
-        elementId: before.id,
-        data: { diff: serializeDiff(createElementDiff(before, after)) },
-      } as HistoryEntry,
-      { elements: [after], direction: "undo" },
-    );
     historyManager.addEntry({
-      type: migrated.type,
-      elementId: migrated.elementId,
-      data: migrated.data,
+      type: "update",
+      elementId: before.id,
+      data: {
+        canonicalEvents: [
+          {
+            type: "update",
+            nodeId: before.id,
+            prevProps: before.props,
+            nextProps: after.props,
+          },
+        ],
+      },
     });
 
     useCanonicalDocumentStore
@@ -217,7 +213,7 @@ describe("historyActions canonical diff/event application", () => {
     });
   });
 
-  it("applies batch serialized diff entries without requiring legacy snapshot payloads", async () => {
+  it("applies canonical batch entries without legacy snapshot payloads", async () => {
     const beforeA = makeElement("text-a", { children: "A0" });
     const beforeB = makeElement("text-b", { children: "B0" });
     const afterA = makeElement("text-a", { children: "A1" });
@@ -228,27 +224,26 @@ describe("historyActions canonical diff/event application", () => {
       .setDocument("history-project", makeDocument([beforeA, beforeB]));
     useCanonicalDocumentStore.getState().setCurrentProject("history-project");
 
-    const migrated = migrateV1EntryToV2(
-      {
-        id: "fixture",
-        timestamp: 0,
-        type: "batch",
-        elementId: "batch_diff",
-        elementIds: [beforeA.id, beforeB.id],
-        data: {
-          diffs: [
-            serializeDiff(createElementDiff(beforeA, afterA)),
-            serializeDiff(createElementDiff(beforeB, afterB)),
-          ],
-        },
-      } as HistoryEntry,
-      { elements: [afterA, afterB], direction: "undo" },
-    );
     historyManager.addEntry({
-      type: migrated.type,
-      elementId: migrated.elementId,
-      elementIds: migrated.elementIds,
-      data: migrated.data,
+      type: "batch",
+      elementId: "batch_update",
+      elementIds: [beforeA.id, beforeB.id],
+      data: {
+        canonicalEvents: [
+          {
+            type: "update",
+            nodeId: beforeA.id,
+            prevProps: beforeA.props,
+            nextProps: afterA.props,
+          },
+          {
+            type: "update",
+            nodeId: beforeB.id,
+            prevProps: beforeB.props,
+            nextProps: afterB.props,
+          },
+        ],
+      },
     });
 
     useCanonicalDocumentStore

@@ -6,7 +6,7 @@ import type {
   RefNode,
 } from "@composition/shared";
 import type { Element, Page } from "../../../../types/builder/unified.types";
-import type { Layout } from "../../../../types/builder/layout.types";
+import type { LegacyLayoutRecord } from "../../../../adapters/canonical/types";
 import { saveService } from "../../../../services/save";
 import { historyManager } from "../../history";
 import { useCanonicalDocumentStore } from "../../canonical/canonicalDocumentStore";
@@ -91,7 +91,7 @@ function makeElement(
   } as Element;
 }
 
-function makeLayout(id: string): Layout {
+function makeLayout(id: string): LegacyLayoutRecord {
   return {
     id,
     name: id,
@@ -175,7 +175,7 @@ function createSetMock(state: MockState) {
 
 function registerCanonicalActions(
   state: MockState,
-  layouts: Layout[] = [makeLayout("frame-1")],
+  layouts: LegacyLayoutRecord[] = [makeLayout("frame-1")],
 ): void {
   registerCanonicalMutationStoreActions({
     getCurrentLegacySnapshot: () => ({

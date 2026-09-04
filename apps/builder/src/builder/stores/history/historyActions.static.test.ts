@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("historyActions canonical compatibility sync contract", () => {
@@ -68,11 +68,8 @@ describe("ADR-124: HistoryEntry.data 에서 legacy snapshot 타입 필드 제거
     }
   });
 
-  it("migration adapter 는 historyEntryMigration 에만 두고 historyActions 는 소비하지 않는다", async () => {
-    const migration = await readFile(
-      resolve(__dirname, "historyEntryMigration.ts"),
-      "utf-8",
-    );
+  it("migration adapter 없이 historyActions와 IDB가 canonical entry만 소비한다", async () => {
+    const migrationPath = resolve(__dirname, "historyEntryMigration.ts");
     const actions = await readFile(
       resolve(__dirname, "historyActions.ts"),
       "utf-8",
@@ -81,11 +78,12 @@ describe("ADR-124: HistoryEntry.data 에서 legacy snapshot 타입 필드 제거
       resolve(__dirname, "historyIndexedDB.ts"),
       "utf-8",
     );
-    expect(migration).toContain("export type LegacyV1SnapshotData");
-    expect(migration).toContain("function legacySnapshot(");
+    await expect(access(migrationPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
     expect(actions).not.toContain("migrateV1EntryToV2");
-    expect(idb).toContain("migrateV1EntryToV2");
-    expect(idb).toContain("migrateV1EntriesToV2");
+    expect(idb).toContain("isCanonicalHistoryEntry");
+    expect(idb).not.toContain("migrateV1");
   });
 });
 

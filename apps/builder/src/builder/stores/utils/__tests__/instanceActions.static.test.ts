@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("instanceActions canonical-only read contract", () => {
@@ -78,30 +78,20 @@ describe("legacy model leaf cleanup static gates", () => {
     );
   });
 
-  it("does not reintroduce dead resolved layout tree item types", async () => {
-    const source = await readFile(
-      resolve(__dirname, "../../../../types/builder/layout.types.ts"),
+  it("removes the legacy Builder-wide layout type surface", async () => {
+    const legacyTypePath = resolve(
+      __dirname,
+      "../../../../types/builder/layout.types.ts",
+    );
+    const adapterTypes = await readFile(
+      resolve(__dirname, "../../../../adapters/canonical/types.ts"),
       "utf-8",
     );
 
-    for (const deadType of [
-      "ResolvedSlotContent",
-      "LayoutResolutionResult",
-      "ResolvedElement",
-      "PageTreeItem",
-      "LayoutTreeItem",
-      "SlotProps",
-      "SlotInfo",
-      "SlotValidationError",
-      "EditMode",
-      "EditContext",
-      "EditModeStore",
-      "NavigatorPanelTab",
-    ]) {
-      expect(source).not.toMatch(new RegExp(`\\binterface ${deadType}\\b`));
-      expect(source).not.toMatch(new RegExp(`\\btype ${deadType}\\b`));
-      expect(source).not.toMatch(new RegExp(`\\bexport type ${deadType}\\b`));
-    }
+    await expect(access(legacyTypePath)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(adapterTypes).toContain("export interface LegacyLayoutRecord");
   });
 
   it("owns EditMode UI types in editMode store, not layout.types", async () => {

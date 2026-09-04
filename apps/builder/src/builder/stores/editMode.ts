@@ -5,8 +5,7 @@
  * - Page 모드: 일반 Page 요소 편집
  * - Layout 모드: Layout 구조 및 Slot 편집
  *
- * EditMode* UI 상태 타입은 legacy `layout.types` schema 와 분리한다
- * (legacy model migration — layout-contracts slice).
+ * EditMode* 타입은 영속 layout schema가 아닌 Builder UI 상태 계약이다.
  */
 
 import { create } from "zustand";

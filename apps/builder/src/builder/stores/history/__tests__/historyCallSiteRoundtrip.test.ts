@@ -19,31 +19,25 @@ import { historyManager } from "../../history";
 import type { HistoryEntry } from "../../history";
 import { useStore } from "../../index";
 import { trackBatchUpdate } from "../../utils/historyHelpers";
-import {
-  migrateV1EntryToV2,
-  type LegacyV1SnapshotData,
-} from "../historyEntryMigration";
 
-function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
-  return entry.data as LegacyV1SnapshotData;
+function hasHistoryDataField(entry: HistoryEntry, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(entry.data, key);
 }
 
-/** 테스트용 v1 fixture → IDB 경계와 같이 migrate 후 addEntry. */
-function addMigratedV1Entry(
-  partial: Omit<HistoryEntry, "id" | "timestamp"> & {
-    data: HistoryEntry["data"] & LegacyV1SnapshotData;
-  },
-): void {
-  const migrated = migrateV1EntryToV2({
-    id: "fixture",
-    timestamp: 0,
-    ...partial,
-  } as HistoryEntry);
+function addCanonicalUpdateEntry(before: Element, after: Element): void {
   historyManager.addEntry({
-    type: migrated.type,
-    elementId: migrated.elementId,
-    elementIds: migrated.elementIds,
-    data: migrated.data,
+    type: "update",
+    elementId: before.id,
+    data: {
+      canonicalEvents: [
+        {
+          type: "update",
+          nodeId: before.id,
+          prevProps: before.props,
+          nextProps: after.props,
+        },
+      ],
+    },
   });
 }
 
@@ -167,9 +161,9 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(events[0].prevProps).toEqual({ children: "before", keep: "stay" });
     expect(events[0].nextProps).toEqual({ children: "after", keep: "stay" });
     // deprecated legacy snapshot field 미기록
-    expect(legacyRead(entry).props).toBeUndefined();
-    expect(legacyRead(entry).prevProps).toBeUndefined();
-    expect(legacyRead(entry).prevElement).toBeUndefined();
+    expect(hasHistoryDataField(entry, "props")).toBe(false);
+    expect(hasHistoryDataField(entry, "prevProps")).toBe(false);
+    expect(hasHistoryDataField(entry, "prevElement")).toBe(false);
 
     expect(getCanonicalProps("text-1")).toEqual({
       children: "after",
@@ -245,7 +239,7 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(events).toHaveLength(2);
     if (events[0].type !== "update") throw new Error("update event expected");
     expect(events[0].nextProps).toEqual({ children: "A1", size: "md" });
-    expect(legacyRead(entry).batchUpdates).toBeUndefined();
+    expect(hasHistoryDataField(entry, "batchUpdates")).toBe(false);
 
     await useStore.getState().undo();
     expect(getCanonicalProps("text-a")).toEqual({
@@ -262,30 +256,21 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(getCanonicalProps("text-b")).toEqual({ children: "B1" });
   });
 
-  it("HC#2 flip: v1 legacy entry undo 후 canonical ↔ store elements 발산 0", async () => {
-    const before = makeElement("text-1", { children: "v1-before" });
-    const after = makeElement("text-1", { children: "v1-after" });
+  it("canonical entry undo 후 canonical ↔ store elements 발산 0", async () => {
+    const before = makeElement("text-1", { children: "before" });
+    const after = makeElement("text-1", { children: "after" });
     seed([after]);
 
-    // v1 IndexedDB 스타일 entry — IDB 경계와 같이 migrate 후 스택에 넣는다
-    addMigratedV1Entry({
-      type: "batch",
-      elementId: "text-1",
-      elementIds: ["text-1"],
-      data: {
-        prevElements: [before],
-        elements: [after],
-      },
-    });
+    addCanonicalUpdateEntry(before, after);
 
     await useStore.getState().undo();
 
     // canonical 이 먼저 갱신되고 store 는 canonical 재파생 — 발산 0
     expect(getCanonicalProps("text-1")).toMatchObject({
-      children: "v1-before",
+      children: "before",
     });
     const storeElement = useStore.getState().elementsMap.get("text-1");
-    expect(storeElement?.props).toMatchObject({ children: "v1-before" });
+    expect(storeElement?.props).toMatchObject({ children: "before" });
 
     const doc = useCanonicalDocumentStore
       .getState()
@@ -295,26 +280,18 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     expect(storeIds).toEqual(canonicalIds);
   });
 
-  it("goToHistoryIndex: v2/v1 혼합 시퀀스 cross-jump 정합", async () => {
+  it("goToHistoryIndex: canonical 시퀀스 cross-jump 정합", async () => {
     const original = makeElement("text-1", { children: "step0" });
     seed([original]);
 
-    // entry 1 (v2): step0 → step1
+    // entry 1: step0 → step1
     await useStore.getState().updateElementProps("text-1", {
       children: "step1",
     });
-    // entry 2 (v1 스타일): step1 → step2
+    // entry 2: step1 → step2
     const step1 = makeElement("text-1", { children: "step1" });
     const step2 = makeElement("text-1", { children: "step2" });
-    addMigratedV1Entry({
-      type: "batch",
-      elementId: "text-1",
-      elementIds: ["text-1"],
-      data: {
-        prevElements: [step1],
-        elements: [step2],
-      },
-    });
+    addCanonicalUpdateEntry(step1, step2);
     useCanonicalDocumentStore
       .getState()
       .setDocument("history-project", makeDocument([step2]));
@@ -351,6 +328,6 @@ describe("R1 call site → canonicalEvents 부착 + roundtrip", () => {
     if (events[0].type !== "update") throw new Error("update event expected");
     expect(events[0].prevProps).toEqual({ color: "red", size: "md" });
     expect(events[0].nextProps).toEqual({ color: "blue", size: "md" });
-    expect(legacyRead(entry).batchUpdates).toBeUndefined();
+    expect(hasHistoryDataField(entry, "batchUpdates")).toBe(false);
   });
 });

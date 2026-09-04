@@ -1,30 +1,17 @@
-/**
- * ADR-124 history-v1 — IndexedDB upgrade path + migration strip 계약.
- *
- * fake-indexeddb 의존성 없이, HistoryIndexedDB 가 호출하는 동일 adapter
- * (`migrateV1EntriesToV2`) 로 v1 seed → v3 소비 shape 을 고정한다.
- * 실제 IDB onupgradeneeded 는 동일 함수를 cursor.update 에 넘긴다.
- */
-
 import { describe, expect, it } from "vitest";
+import { access, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 import type { HistoryEntry } from "../../history";
-import {
-  migrateV1EntriesToV2,
-  type LegacyV1SnapshotData,
-} from "../historyEntryMigration";
+import { isCanonicalHistoryEntry } from "../historyIndexedDB";
 
-function legacyRead(entry: HistoryEntry): LegacyV1SnapshotData {
-  return entry.data as LegacyV1SnapshotData;
-}
-
-function makeV1Entry(
+function makeEntry(
   partial: Omit<Partial<HistoryEntry>, "data"> & {
-    data?: HistoryEntry["data"] & LegacyV1SnapshotData;
+    data?: HistoryEntry["data"];
   },
 ): HistoryEntry {
   return {
-    id: "v1-1",
+    id: "entry-1",
     type: "update",
     elementId: "elem-1",
     timestamp: 1,
@@ -33,95 +20,80 @@ function makeV1Entry(
   } as HistoryEntry;
 }
 
-describe("historyIndexedDB v1→v3 migration adapter contract", () => {
-  it("v1 seed batch (structural + props) → canonicalEvents + legacy strip", () => {
-    const seeded: HistoryEntry[] = [
-      makeV1Entry({
-        id: "add-1",
-        type: "add",
-        elementId: "btn-1",
-        data: {
-          element: {
-            id: "btn-1",
-            type: "Button",
-            props: { label: "New" },
-            parent_id: "body-1",
-          } as never,
-        },
-      }),
-      makeV1Entry({
-        id: "batch-1",
-        type: "batch",
-        data: {
-          prevElements: [
-            {
-              id: "btn-1",
-              type: "Button",
-              props: { label: "New" },
-              parent_id: "body-1",
-            } as never,
-          ],
-          elements: [
-            {
-              id: "btn-1",
-              type: "Button",
-              props: { label: "Updated" },
-              parent_id: "body-1",
-            } as never,
-          ],
-        },
-      }),
-      makeV1Entry({
-        id: "remove-1",
-        type: "remove",
-        elementId: "btn-1",
-        data: {
-          element: {
-            id: "btn-1",
-            type: "Button",
-            props: { label: "Updated" },
-            parent_id: "body-1",
-          } as never,
-        },
-      }),
-    ];
-
-    const migrated = migrateV1EntriesToV2(seeded);
-
-    expect(migrated).toHaveLength(3);
-    for (const entry of migrated) {
-      expect(entry.data.canonicalEvents?.length ?? 0).toBeGreaterThan(0);
-      expect(legacyRead(entry).element).toBeUndefined();
-      expect(legacyRead(entry).prevElements).toBeUndefined();
-      expect(legacyRead(entry).elements).toBeUndefined();
-      expect(legacyRead(entry).childElements).toBeUndefined();
-    }
-
-    expect(migrated[0]!.data.canonicalEvents![0]).toMatchObject({
-      type: "insert",
-    });
-    expect(migrated[2]!.data.canonicalEvents![0]).toMatchObject({
-      type: "remove",
-    });
+describe("historyIndexedDB canonical-only persistence contract", () => {
+  it("element history는 canonicalEvents가 있을 때만 저장·복원한다", () => {
+    expect(
+      isCanonicalHistoryEntry(
+        makeEntry({
+          data: {
+            canonicalEvents: [
+              {
+                type: "update",
+                nodeId: "elem-1",
+                prevProps: { children: "before" },
+                nextProps: { children: "after" },
+              },
+            ],
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(isCanonicalHistoryEntry(makeEntry({ data: {} }))).toBe(false);
   });
 
-  it("historyActions 는 migrate 없이 canonicalEvents 만 소비", async () => {
-    const { readFile } = await import("node:fs/promises");
-    const { resolve } = await import("node:path");
-    const actions = await readFile(
-      resolve(__dirname, "../historyActions.ts"),
-      "utf-8",
-    );
-    const idb = await readFile(
+  it("page/snapshot 축은 전용 canonical payload 계약으로 유지한다", () => {
+    expect(
+      isCanonicalHistoryEntry(
+        makeEntry({
+          type: "page-title",
+          data: {
+            pageTitleEvent: {
+              pageId: "page-1",
+              before: "Before",
+              after: "After",
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isCanonicalHistoryEntry(
+        makeEntry({
+          type: "snapshot-restore",
+          data: {
+            snapshotRestoreEvent: {
+              beforeSnapshotId: "before",
+              afterSnapshotId: "after",
+              snapshotName: "Checkpoint",
+            },
+          },
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isCanonicalHistoryEntry(makeEntry({ type: "page-title", data: {} })),
+    ).toBe(false);
+    expect(
+      isCanonicalHistoryEntry(
+        makeEntry({ type: "snapshot-restore", data: {} }),
+      ),
+    ).toBe(false);
+  });
+
+  it("v1 history만 초기화하고 migration adapter를 재도입하지 않는다", async () => {
+    const source = await readFile(
       resolve(__dirname, "../historyIndexedDB.ts"),
       "utf-8",
     );
-    expect(actions).not.toContain("migrateV1EntryToV2");
-    expect(idb).toContain("migrateV1EntryToV2");
-    expect(idb).toContain("keepConvertibleHistoryEntries");
-    expect(actions).not.toMatch(/entry\.data\.element\b/);
-    expect(actions).not.toMatch(/entry\.data\.prevElements\b/);
-    expect(actions).not.toMatch(/entry\.data\.childElements\b/);
-    expect(actions).not.toMatch(/entry\.data\.batchUpdates\b/);
+    const migrationPath = resolve(__dirname, "../historyEntryMigration.ts");
+
+    expect(source).toMatch(/const DB_VERSION\s*=\s*4\b/);
+    expect(source).toContain("if (oldVersion === 1)");
+    expect(source).toContain("db.deleteObjectStore(STORE_ENTRIES)");
+    expect(source).toContain("db.deleteObjectStore(STORE_META)");
+    expect(source).not.toContain("migrateV1");
+    await expect(access(migrationPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });

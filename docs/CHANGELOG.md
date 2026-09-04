@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Legacy layout/history 경계를 canonical-only로 줄였습니다] - 2026-09-04
+
+### Changed
+
+- Builder 전역의 deprecated `layout.types.ts`를 제거했습니다. 과거 프로젝트 import에만 필요한 layout record는 canonical adapter 내부 계약으로 격리하고, reusable frame 생성·수정과 UI 읽기는 `FrameNode` 기반 계약만 사용합니다.
+- 개발 단계에서 생성된 history IndexedDB v1 snapshot payload 변환을 중단했습니다. DB v4로 직접 올라오는 v1 history entry/meta만 초기화하며, v2/v3 canonical history와 v3 snapshot 및 프로젝트 문서는 보존합니다. 저장·복원 경계는 element history에 `canonicalEvents`가 없는 entry를 받지 않습니다.
+
+### Fixed
+
+- Builder bootstrap readiness가 false일 때 effect 안에서 동기 state reset을 일으키던 경로를 제거했습니다. paint 완료 상태를 project와 canonical document revision으로 식별해 새 target은 자동으로 미완료가 되며, matching renderer frame이 준비된 뒤의 paint 완료 계약을 유지합니다.
+
+### Performance
+
+- history load/upgrade 시 legacy payload를 순회·변환하는 adapter 비용을 제거했고, bootstrap effect의 불필요한 연쇄 render를 없앴습니다.
+
 ## [제약 flex 안의 collection 이 Preview 와 같은 높이를 지킵니다 (ADR-204)] - 2026-09-04
 
 ### Fixed

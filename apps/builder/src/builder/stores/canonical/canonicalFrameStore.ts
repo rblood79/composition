@@ -1,9 +1,7 @@
 import { useMemo } from "react";
 import { create } from "zustand";
 import type { CompositionDocument, FrameNode } from "@composition/shared";
-import type { Layout } from "@/types/builder/layout.types";
 import { getReusableFrameMirrorId } from "@/adapters/canonical/frameMirror";
-import { useCanonicalDocumentStore } from "./canonicalDocumentStore";
 import {
   getActiveCanonicalDocument,
   useActiveCanonicalDocument,
@@ -11,7 +9,6 @@ import {
 
 /**
  * Canonical reusable frame → UI/list/invalidation 읽기 투영.
- * adapter seed/mutation 의 `Layout` schema 와 분리한다.
  */
 export interface ReusableFrameLayoutSummary {
   id: string;
@@ -64,73 +61,6 @@ function getStringMetadata(
 ): string | undefined {
   const value = (metadata as Record<string, unknown> | undefined)?.[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function createEmptyDocument(): CompositionDocument {
-  return {
-    version: "composition-1.0",
-    children: [],
-  };
-}
-
-function buildReusableFrameShell(
-  layout: Layout,
-  existingFrame?: FrameNode,
-): FrameNode {
-  const metadata: FrameNode["metadata"] = {
-    ...(existingFrame?.metadata ?? { type: "legacy-layout" }),
-    type: existingFrame?.metadata?.type ?? "legacy-layout",
-    layoutId: layout.id,
-    project_id: layout.project_id,
-    description: layout.description ?? null,
-    slug: layout.slug ?? null,
-  };
-  delete (metadata as Record<string, unknown>).order_num;
-
-  return {
-    ...(existingFrame ?? {}),
-    id: existingFrame?.id ?? `layout-${layout.id}`,
-    type: "frame",
-    reusable: true,
-    name: layout.name,
-    metadata,
-    slot: existingFrame?.slot,
-    children: existingFrame?.children ?? [],
-  };
-}
-
-export function seedCanonicalReusableFrameLayouts(
-  layouts: Layout[],
-  projectId: string,
-): void {
-  if (layouts.length === 0) return;
-
-  const canonical = useCanonicalDocumentStore.getState();
-  const currentDoc = canonical.getDocument(projectId) ?? createEmptyDocument();
-  const framesById = new Map<string, FrameNode>();
-  for (const child of currentDoc.children) {
-    if (isReusableFrameNode(child)) {
-      framesById.set(getReusableFrameMirrorId(child), child);
-    }
-  }
-
-  const nextFrameIds = new Set(layouts.map((layout) => layout.id));
-  const nextFrames = layouts.map((layout) =>
-    buildReusableFrameShell(layout, framesById.get(layout.id)),
-  );
-  const otherChildren = currentDoc.children.filter(
-    (child) =>
-      !isReusableFrameNode(child) ||
-      !nextFrameIds.has(getReusableFrameMirrorId(child)),
-  );
-
-  if (canonical.currentProjectId !== projectId) {
-    canonical.setCurrentProject(projectId);
-  }
-  canonical.setDocument(projectId, {
-    ...currentDoc,
-    children: [...nextFrames, ...otherChildren],
-  });
 }
 
 export function canonicalDocumentToReusableFrameLayouts(

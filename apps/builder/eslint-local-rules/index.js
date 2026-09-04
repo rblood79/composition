@@ -69,7 +69,6 @@ const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/services/ai/tools/canonicalToolReadModel.ts",
   "src/services/ai/tools/createElement.ts",
   "src/types/builder/component.types.ts",
-  "src/types/builder/layout.types.ts",
   "src/types/builder/unified.types.ts",
   "src/types/core/store.types.ts",
   "src/utils/dom/iframeMessenger.ts",

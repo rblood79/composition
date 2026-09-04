@@ -19,7 +19,6 @@
  *  - `createReusableFrameNode` — reusable FrameNode 생성 factory
  *  - `CanonicalPageRef` — page 노드 canonical 표현 타입
  *  - `extractSlotMetaFromNode` — FrameNode slot schema → SlotMeta[]
- *  - `hoistLayoutAsReusableFrame` — legacy Layout → FrameNode (alias)
  *  - `SlotMeta` — slot 메타 타입 (shared 미수록 → 본 파일 정의)
  */
 
@@ -33,7 +32,6 @@ import type {
   SerializedEventHandler,
 } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
 import type {
   ConvertComponentRoleFn,
   ConvertPageLayoutFn,
@@ -50,7 +48,6 @@ import { buildLegacyElementMetadata } from "./legacyMetadata";
 import {
   convertLayoutToReusableFrame,
   buildSlotPathMap,
-  legacyLayoutToCanonicalFrame,
 } from "./slotAndLayoutAdapter";
 import { getCanonicalSlotDeclaration } from "./slotDeclaration";
 import {
@@ -434,22 +431,6 @@ export function extractSlotMetaFromNode(frame: FrameNode): SlotMeta[] {
     name: slotName,
     required: false,
   }));
-}
-
-/**
- * Legacy Layout 을 canonical reusable FrameNode 로 hoist.
- * P3-B Stores 해체 시 `layouts[]` → canonical document children 변환에 사용.
- *
- * `legacyLayoutToCanonicalFrame` 의 export alias — 호출자 의미 명확화.
- *
- * @param legacyLayout - Legacy Layout 레코드
- * @param elements - 해당 layout_id로 필터링된 Element 배열 (호출자 책임)
- */
-export function hoistLayoutAsReusableFrame(
-  legacyLayout: Layout,
-  elements: Element[],
-): FrameNode {
-  return legacyLayoutToCanonicalFrame(legacyLayout, elements);
 }
 
 /**

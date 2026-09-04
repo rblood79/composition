@@ -17,12 +17,6 @@
  */
 
 import type { HistoryEntry } from "../history";
-import {
-  migrateV1EntriesToV2,
-  migrateV1EntryToV2,
-  keepConvertibleHistoryEntries,
-  isConvertibleElementHistoryEntry,
-} from "./historyEntryMigration";
 import type { HistorySnapshot } from "./snapshots";
 
 // ============================================
@@ -48,16 +42,46 @@ interface PageHistoryMeta {
 // ============================================
 
 const DB_NAME = "composition-history";
-// **ADR-124** — DB v1 → v2 upgrade 시 legacy snapshot → canonicalEvents.
-// load 경로(`getEntriesByPage`)도 `migrateV1EntriesToV2` 로 방어 변환한다.
-// undo/redo 는 historyActions 에서 migrate 하지 않는다.
-// **ADR-180 Phase 1 — v2 → v3 upgrade**: `snapshots` store 신규 추가만
-// (기존 entries/meta 무변경 — G4 게이트).
-const DB_VERSION = 3;
+// v4부터 history entry는 canonicalEvents 계약만 영속한다. 개발 단계의 v1
+// snapshot payload는 변환하지 않고 해당 history store만 초기화한다. v2/v3의
+// canonical history와 v3 snapshots는 그대로 보존한다.
+const DB_VERSION = 4;
 const STORE_ENTRIES = "history-entries";
 const STORE_META = "page-meta";
 const STORE_SNAPSHOTS = "snapshots";
 const MAX_AGE_DAYS = 90;
+
+const ELEMENT_AXIS_HISTORY_TYPES = new Set<HistoryEntry["type"]>([
+  "add",
+  "update",
+  "remove",
+  "move",
+  "batch",
+  "group",
+  "ungroup",
+]);
+
+/** IndexedDB에 저장·복원할 수 있는 canonical history entry 계약. */
+export function isCanonicalHistoryEntry(entry: HistoryEntry): boolean {
+  if (ELEMENT_AXIS_HISTORY_TYPES.has(entry.type)) {
+    return (entry.data.canonicalEvents?.length ?? 0) > 0;
+  }
+
+  switch (entry.type) {
+    case "page-title":
+      return entry.data.pageTitleEvent !== undefined;
+    case "page-position":
+      return (entry.data.pagePositionEvent?.entries.length ?? 0) > 0;
+    case "page-guide":
+      return (entry.data.pageGuideEvent?.entries.length ?? 0) > 0;
+    case "page-lifecycle":
+      return entry.data.pageLifecycleEvent !== undefined;
+    case "snapshot-restore":
+      return entry.data.snapshotRestoreEvent !== undefined;
+    default:
+      return false;
+  }
+}
 
 // ============================================
 // IndexedDB Service
@@ -113,9 +137,19 @@ export class HistoryIndexedDB {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         const oldVersion = event.oldVersion;
-        const transaction = (event.target as IDBOpenDBRequest).transaction;
 
-        // 히스토리 엔트리 스토어 (v1 신규 생성 + v2 동일 store 사용)
+        // 개발 단계에서 만들어진 v1 snapshot history는 더 이상 지원하지 않는다.
+        // 프로젝트 문서 DB와 별도 DB이므로 history entry/meta만 초기화한다.
+        if (oldVersion === 1) {
+          if (db.objectStoreNames.contains(STORE_ENTRIES)) {
+            db.deleteObjectStore(STORE_ENTRIES);
+          }
+          if (db.objectStoreNames.contains(STORE_META)) {
+            db.deleteObjectStore(STORE_META);
+          }
+        }
+
+        // 히스토리 엔트리 스토어
         if (!db.objectStoreNames.contains(STORE_ENTRIES)) {
           const entriesStore = db.createObjectStore(STORE_ENTRIES, {
             keyPath: "id",
@@ -143,47 +177,6 @@ export class HistoryIndexedDB {
             unique: false,
           });
         }
-
-        // **ADR-124** — v1 → v2 entry migration (IDB upgrade one-shot).
-        // historyActions 는 migrate 하지 않는다 — 이 경계가 유일한 adapter.
-        if (oldVersion < 2 && transaction) {
-          try {
-            const store = transaction.objectStore(STORE_ENTRIES);
-            const cursorRequest = store.openCursor();
-            cursorRequest.onsuccess = (e) => {
-              const cursor = (e.target as IDBRequest<IDBCursorWithValue>)
-                .result;
-              if (!cursor) return;
-              try {
-                const record = cursor.value as HistoryDBSchema;
-                const migratedEntry = migrateV1EntryToV2(record.entry);
-                if (!isConvertibleElementHistoryEntry(migratedEntry)) {
-                  // diff-only 등 context 없이 변환 불가 — 조용한 undo no-op 방지
-                  cursor.delete();
-                } else if (migratedEntry !== record.entry) {
-                  cursor.update({ ...record, entry: migratedEntry });
-                }
-              } catch (entryError) {
-                console.warn(
-                  "[HistoryIDB] v1→v2 entry migration 실패 (원본 보존):",
-                  entryError,
-                );
-              }
-              cursor.continue();
-            };
-            cursorRequest.onerror = () => {
-              console.warn(
-                "[HistoryIDB] v1→v2 cursor open 실패 (in-memory fallback 유지):",
-                cursorRequest.error,
-              );
-            };
-          } catch (migrationError) {
-            console.warn(
-              "[HistoryIDB] v1→v2 migration 진입 실패 (in-memory fallback 유지):",
-              migrationError,
-            );
-          }
-        }
       };
     });
   }
@@ -206,6 +199,8 @@ export class HistoryIndexedDB {
    * 히스토리 엔트리 저장
    */
   async saveEntry(pageId: string, entry: HistoryEntry): Promise<void> {
+    if (!isCanonicalHistoryEntry(entry)) return;
+
     try {
       const db = await this.getDB();
 
@@ -238,7 +233,8 @@ export class HistoryIndexedDB {
    * 여러 히스토리 엔트리 일괄 저장
    */
   async saveEntries(pageId: string, entries: HistoryEntry[]): Promise<void> {
-    if (entries.length === 0) return;
+    const canonicalEntries = entries.filter(isCanonicalHistoryEntry);
+    if (canonicalEntries.length === 0) return;
 
     try {
       const db = await this.getDB();
@@ -250,7 +246,7 @@ export class HistoryIndexedDB {
         let completed = 0;
         let hasError = false;
 
-        for (const entry of entries) {
+        for (const entry of canonicalEntries) {
           const record: HistoryDBSchema = {
             id: entry.id,
             pageId,
@@ -262,7 +258,7 @@ export class HistoryIndexedDB {
 
           request.onsuccess = () => {
             completed++;
-            if (completed === entries.length && !hasError) {
+            if (completed === canonicalEntries.length && !hasError) {
               resolve();
             }
           };
@@ -301,13 +297,11 @@ export class HistoryIndexedDB {
           const records = request.result as HistoryDBSchema[];
           // 시간순 정렬
           records.sort((a, b) => a.createdAt - b.createdAt);
-          const entries = records.map((r) => r.entry);
-          // **ADR-124** — v1 entry 를 load 시 v2 canonical event 로 변환.
-          // 변환 불가 element-axis entry 는 drop (undo no-op + index 소모 방지).
-          const migrated = keepConvertibleHistoryEntries(
-            migrateV1EntriesToV2(entries),
+          resolve(
+            records
+              .map((record) => record.entry)
+              .filter(isCanonicalHistoryEntry),
           );
-          resolve(migrated);
         };
 
         request.onerror = () => {

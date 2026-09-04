@@ -37,7 +37,6 @@
  */
 
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
 import type {
   CanonicalNode,
   CanonicalParentId,
@@ -71,6 +70,7 @@ import {
   createElementSourceIndex,
 } from "../../builder/utils/elementOrdering";
 import { isRenderProjectionId } from "../../builder/projection/renderProjectionIds";
+import type { LegacyLayoutRecord } from "./types";
 
 type CanonicalRefElementFields = {
   ref?: unknown;
@@ -86,7 +86,7 @@ type CanonicalRefElementFields = {
 export type LegacySnapshot = {
   elements: Element[];
   pages: Page[];
-  layouts: Layout[];
+  layouts: LegacyLayoutRecord[];
 };
 
 /**
@@ -1124,7 +1124,7 @@ function ensurePageNode(
 }
 
 function buildFrameShell(
-  layout: Layout,
+  layout: LegacyLayoutRecord,
   currentDoc: CompositionDocument,
 ): FrameNode {
   const existingFrame = findReusableFrame(currentDoc, layout.id);

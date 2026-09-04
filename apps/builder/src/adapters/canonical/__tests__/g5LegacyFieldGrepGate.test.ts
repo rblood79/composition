@@ -39,7 +39,6 @@ const NON_ADAPTER_TEST_SCAN_DIRS = [
 const FRAME_SLOT_SCHEMA_FILES = [
   "apps/builder/src/types/builder/unified.types.ts",
   "packages/shared/src/types/element.types.ts",
-  "apps/builder/src/types/builder/layout.types.ts",
   "packages/shared/src/types/renderer.types.ts",
   "apps/builder/src/preview/store/types.ts",
   "apps/builder/src/preview/types/index.ts",

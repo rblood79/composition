@@ -221,11 +221,15 @@ export const BuilderCore: React.FC = () => {
   // effect가 시작되기 전 첫 render부터 loading이어야 chrome flash가 없다.
   const [projectBootstrapPhase, setProjectBootstrapPhase] =
     useState<ProjectBootstrapPhase>("project");
-  const [hasPaintedBootstrapCompletion, setHasPaintedBootstrapCompletion] =
-    useState(false);
+  const [paintedBootstrapTargetKey, setPaintedBootstrapTargetKey] = useState<
+    string | null
+  >(null);
   const isCanvasReady = useCanvasLifecycleStore((state) => state.isCanvasReady);
   const canvasBootstrapPhase = useCanvasLifecycleStore(
     (state) => state.bootstrapPhase,
+  );
+  const canvasPresentationTarget = useCanvasLifecycleStore(
+    (state) => state.presentationTarget,
   );
 
   // Store 상태
@@ -1289,12 +1293,18 @@ export const BuilderCore: React.FC = () => {
   const rendererReady = usesSkiaRenderer
     ? isCanvasReady
     : iframeReadyState === "ready";
+  const bootstrapTargetKey = usesSkiaRenderer
+    ? canvasPresentationTarget !== null &&
+      canvasPresentationTarget.projectId === projectId
+      ? `${canvasPresentationTarget.projectId}:${canvasPresentationTarget.documentRevision}`
+      : null
+    : (projectId ?? null);
   const isBuilderReady = projectBootstrapPhase === "renderer" && rendererReady;
+  const hasPaintedBootstrapCompletion =
+    bootstrapTargetKey !== null &&
+    paintedBootstrapTargetKey === bootstrapTargetKey;
   useEffect(() => {
-    if (!isBuilderReady) {
-      setHasPaintedBootstrapCompletion(false);
-      return;
-    }
+    if (!isBuilderReady || bootstrapTargetKey === null) return;
 
     // normal motion은 시각 fill의 transitionend가 완료 presentation을 확정한다.
     // reduced motion에서는 transition이 없으므로 실제 100%를 한 번 paint한 뒤 공개한다.
@@ -1307,14 +1317,14 @@ export const BuilderCore: React.FC = () => {
     let revealFrameId = 0;
     const completionFrameId = window.requestAnimationFrame(() => {
       revealFrameId = window.requestAnimationFrame(() => {
-        setHasPaintedBootstrapCompletion(true);
+        setPaintedBootstrapTargetKey(bootstrapTargetKey);
       });
     });
     return () => {
       window.cancelAnimationFrame(completionFrameId);
       window.cancelAnimationFrame(revealFrameId);
     };
-  }, [isBuilderReady]);
+  }, [bootstrapTargetKey, isBuilderReady]);
 
   const isBuilderPresented = isBuilderReady && hasPaintedBootstrapCompletion;
   const bootstrapProgress = resolveBootstrapProgress(
@@ -1325,8 +1335,12 @@ export const BuilderCore: React.FC = () => {
   const handleBootstrapProgressTransitionEnd = (
     event: React.TransitionEvent<HTMLDivElement>,
   ) => {
-    if (event.propertyName === "transform" && isBuilderReady) {
-      setHasPaintedBootstrapCompletion(true);
+    if (
+      event.propertyName === "transform" &&
+      isBuilderReady &&
+      bootstrapTargetKey !== null
+    ) {
+      setPaintedBootstrapTargetKey(bootstrapTargetKey);
     }
   };
   const isInitialBootstrap =

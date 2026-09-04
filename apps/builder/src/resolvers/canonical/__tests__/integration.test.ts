@@ -10,7 +10,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, RefNode, ResolvedNode } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
+import type { LegacyLayoutRecord } from "@/adapters/canonical/types";
 import { legacyToCanonical } from "@/adapters/canonical";
 import { convertComponentRole } from "@/adapters/canonical/componentRoleAdapter";
 import {
@@ -50,12 +50,13 @@ function page(partial: Partial<Page> & Pick<Page, "id" | "title">): Page {
 }
 
 function layout(
-  partial: Partial<Layout> & Pick<Layout, "id" | "name">,
-): Layout {
+  partial: Partial<LegacyLayoutRecord> &
+    Pick<LegacyLayoutRecord, "id" | "name">,
+): LegacyLayoutRecord {
   return {
     project_id: "proj-1",
     ...partial,
-  } as Layout;
+  } as LegacyLayoutRecord;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -130,7 +131,9 @@ describe("ADR-903 P2 통합 테스트: legacyToCanonical → resolveCanonicalDoc
 
   it("TC2: legacy layout + page (slot_name=main) → adapter → resolver — resolved page 의 main slot 에 Card 자식 들어감", () => {
     // Arrange
-    const layouts: Layout[] = [layout({ id: "L1", name: "App Shell" })];
+    const layouts: LegacyLayoutRecord[] = [
+      layout({ id: "L1", name: "App Shell" }),
+    ];
     const elements: Element[] = [
       withFrameElementMirrorId(
         el({ id: "shell-root", type: "Box", parent_id: null }),
@@ -188,7 +191,9 @@ describe("ADR-903 P2 통합 테스트: legacyToCanonical → resolveCanonicalDoc
   // ────────────────────────────────────────────
 
   it("TC2-b: layout + page resolve 후 instance metadata (type/pageId) 보존 — page filter 시나리오", () => {
-    const layouts: Layout[] = [layout({ id: "L1", name: "App Shell" })];
+    const layouts: LegacyLayoutRecord[] = [
+      layout({ id: "L1", name: "App Shell" }),
+    ];
     const elements: Element[] = [
       withFrameElementMirrorId(
         el({ id: "shell-root", type: "Box", parent_id: null }),
@@ -288,8 +293,7 @@ describe("ADR-903 P2 통합 테스트: legacyToCanonical → resolveCanonicalDoc
 
     // resolved label child 검증: text 가 Override 되었거나 원본(OK) 유지
     const labelChild = children.find((c) => c.id.includes("label")) as
-      | ResolvedNode
-      | undefined;
+      ResolvedNode | undefined;
     if (labelChild) {
       // text 는 "Cancel"(override 성공) 또는 "OK"(UUID remap 실패 fallback) 둘 중 하나
       expect(["Cancel", "OK"]).toContain(labelChild.props?.text);
@@ -334,7 +338,7 @@ describe("ADR-903 P2 통합 테스트: legacyToCanonical → resolveCanonicalDoc
 
   it("TC5: invalidateSubtree(layoutRefId) 후 다음 resolve 시 해당 ref 만 cache miss", () => {
     // Arrange: layout ref (L1) + master ref (btn) 두 ref 가 cache 에 들어감
-    const layouts: Layout[] = [layout({ id: "L1", name: "Shell" })];
+    const layouts: LegacyLayoutRecord[] = [layout({ id: "L1", name: "Shell" })];
     const masterEl = withComponentOriginMirror(
       el({
         id: "master-btn",

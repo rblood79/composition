@@ -23,6 +23,14 @@ describe("BuilderCore canonical document direct cutover contract", () => {
       'className={isBuilderPresented ? "app" : "app builder-booting"}',
     );
     expect(source).toContain("hasPaintedBootstrapCompletion");
+    expect(source).toContain("paintedBootstrapTargetKey");
+    expect(source).toContain("canvasPresentationTarget.documentRevision");
+    expect(source).toContain("canvasPresentationTarget !== null");
+    expect(source).toContain(
+      "canvasPresentationTarget.projectId === projectId",
+    );
+    expect(source).toContain("bootstrapTargetKey !== null");
+    expect(source).not.toContain("setHasPaintedBootstrapCompletion(false)");
     expect(source).toContain("const isBuilderPresented =");
     expect(source).toContain("window.requestAnimationFrame");
     expect(source).toContain('className="loading-progress"');

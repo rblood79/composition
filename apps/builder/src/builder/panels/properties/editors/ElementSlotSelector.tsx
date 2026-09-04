@@ -23,8 +23,8 @@ interface ElementSlotSelectorProps {
 }
 
 /**
- * Slot Assignment UI 옵션 — legacy `type:"Slot"` marker 스캔 결과.
- * layout.types.SlotInfo 와 분리 (canonical FrameNode.slot 이관 전 local contract).
+ * Slot Assignment UI 옵션 — legacy `type:"Slot"` marker 스캔 결과를 담는
+ * editor-local contract.
  */
 interface ElementSlotOption {
   name: string;

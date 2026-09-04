@@ -7,11 +7,11 @@ import type {
 import { deriveProjectRenderModelFromDocument } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
 import { getDefaultProps } from "../../types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import { getLegacyLayoutId, withLegacyLayoutId } from "./legacyElementFields";
 import { getPageOwnedChildrenFromFrameRef } from "./pageFrameRefChildren";
+import type { LegacyLayoutRecord } from "./types";
 
 interface ElementsStateForFrameLayoutCascade {
   elements?: Element[];
@@ -21,7 +21,7 @@ interface ElementsStateForFrameLayoutCascade {
 
 interface ApplyDeleteReusableFrameInput {
   frameId: string;
-  layouts: Layout[];
+  layouts: LegacyLayoutRecord[];
   getElementsState: () => ElementsStateForFrameLayoutCascade;
   setPages: (pages: Page[]) => void;
 }
@@ -55,7 +55,10 @@ function findReusableFrame(
   );
 }
 
-function getProjectId(pages: Page[], layouts: Layout[]): string | null {
+function getProjectId(
+  pages: Page[],
+  layouts: LegacyLayoutRecord[],
+): string | null {
   return (
     pages.find((page) => page.project_id)?.project_id ??
     layouts.find((layout) => layout.project_id)?.project_id ??
@@ -65,7 +68,7 @@ function getProjectId(pages: Page[], layouts: Layout[]): string | null {
 
 function getCurrentCanonicalDocument(
   pages: Page[],
-  layouts: Layout[],
+  layouts: LegacyLayoutRecord[],
 ): CompositionDocument {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId ?? getProjectId(pages, layouts);
@@ -80,7 +83,7 @@ function getCurrentCanonicalDocument(
 function setCanonicalDocument(
   doc: CompositionDocument,
   pages: Page[],
-  layouts: Layout[],
+  layouts: LegacyLayoutRecord[],
 ): void {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId ?? getProjectId(pages, layouts);
@@ -113,8 +116,7 @@ function getLegacyPageMetadata(
   node: CanonicalNode,
 ): { type?: unknown; pageId?: unknown; layoutId?: unknown } | undefined {
   return node.metadata as
-    | { type?: unknown; pageId?: unknown; layoutId?: unknown }
-    | undefined;
+    { type?: unknown; pageId?: unknown; layoutId?: unknown } | undefined;
 }
 
 function isLegacyPageNode(node: CanonicalNode): boolean {

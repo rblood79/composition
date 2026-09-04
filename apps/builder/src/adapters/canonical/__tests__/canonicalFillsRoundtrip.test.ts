@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "@/types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
+import type { LegacyLayoutRecord } from "../types";
 import { FillType, type FillItem } from "@/types/builder/fill.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { canonicalDocumentToElements } from "../../../builder/stores/canonical/canonicalElementsView";
@@ -48,7 +48,7 @@ function makeElement(
   } as TestElement;
 }
 
-function makeLayout(id: string): Layout {
+function makeLayout(id: string): LegacyLayoutRecord {
   return {
     id,
     name: id,
@@ -134,8 +134,7 @@ describe("canonical fills roundtrip", () => {
     expect(node?.fills).toEqual([COLOR_FILL]);
     // 격리 보존(metadata.legacyProps)만 있고 1차 필드가 비는 과거 절단 재발 방지
     const metadata = node?.metadata as
-      | { legacyProps?: Record<string, unknown> }
-      | undefined;
+      { legacyProps?: Record<string, unknown> } | undefined;
     expect(metadata?.legacyProps?.fills).toEqual([COLOR_FILL]);
   });
 

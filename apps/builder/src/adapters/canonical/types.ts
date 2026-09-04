@@ -5,14 +5,32 @@
  */
 
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
 import type { RefNode } from "@composition/shared";
 import type { ElementWithLegacyMirror } from "./legacyElementFields";
+
+/**
+ * Pre-canonical project import record.
+ *
+ * This shape is intentionally owned by the legacy-to-canonical adapter rather
+ * than the Builder-wide type surface. Runtime UI and stores consume canonical
+ * reusable FrameNode projections instead.
+ */
+export interface LegacyLayoutRecord {
+  id: string;
+  name: string;
+  project_id: string;
+  description?: string;
+  slug?: string;
+  notFoundPageId?: string;
+  inheritNotFound?: boolean;
+  created_at?: string;
+  updated_at?: string;
+}
 
 export interface LegacyAdapterInput {
   elements: Element[];
   pages: Page[];
-  layouts: Layout[];
+  layouts: LegacyLayoutRecord[];
 }
 
 /**
@@ -41,7 +59,7 @@ export type ConvertSlotElementFn = (slotElement: Element) => {
 
 export type ConvertPageLayoutFn = (
   page: Page,
-  layouts: Layout[],
+  layouts: LegacyLayoutRecord[],
   pageElements: Element[],
   /**
    * layout shell 내 slot name → stable id path 매핑.

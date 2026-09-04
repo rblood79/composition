@@ -11,8 +11,7 @@ import {
 } from "../../adapters/canonical/frameMirror";
 
 /**
- * 템플릿 Slot 선언 — layout.types.SlotProps 와 분리한 local contract.
- * (canonical FrameNode.slot 이관 전 template 전용)
+ * 템플릿 생성 입력에만 사용하는 local Slot contract.
  */
 interface LayoutTemplateSlotProps extends Record<string, unknown> {
   name: string;

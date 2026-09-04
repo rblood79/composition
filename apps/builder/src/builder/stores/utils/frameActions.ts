@@ -22,7 +22,6 @@ import {
   createFrameBodyElement,
 } from "@/adapters/canonical/frameLayoutCascade";
 import { getReusableFrameMirrorId } from "@/adapters/canonical/frameMirror";
-import { legacyLayoutToCanonicalFrame } from "@/adapters/canonical/slotAndLayoutAdapter";
 import {
   selectActiveCanonicalDocument,
   useCanonicalDocumentStore,
@@ -33,7 +32,6 @@ import {
   setSelectedReusableFrameId,
 } from "@/builder/stores/canonical/canonicalFrameStore";
 import { getLiveElementsState } from "@/builder/stores/rootStoreAccess";
-import type { Layout, LayoutUpdate } from "@/types/builder/layout.types";
 import type { Element } from "@/types/builder/unified.types";
 
 /**
@@ -53,16 +51,29 @@ export interface CreateReusableFrameInput {
 /**
  * Reusable frame 생성 결과.
  *
- * P2 scope 동안 내부 구현은 legacy `Layout` 그대로 반환 — 하지만 consumer 는
- * canonical 의미 (`reusable: true` FrameNode 와 동일 식별자)로 사용해야 한다.
- *
- * P3 이후 반환 타입을 `FrameNode` 로 전환 예정.
+ * Canonical reusable frame 생성 뒤 UI가 필요한 최소 식별자만 반환한다.
  */
 export interface ReusableFrameRef {
   /** Canonical FrameNode id (현재는 layout id 와 동일) */
   id: string;
   /** Frame 이름 */
   name: string;
+}
+
+export interface ReusableFrameUpdate {
+  name?: string;
+  description?: string;
+  slug?: string;
+  notFoundPageId?: string;
+  inheritNotFound?: boolean;
+}
+
+interface ReusableFrameRecord extends ReusableFrameRef {
+  projectId: string;
+  description?: string;
+  slug?: string;
+  notFoundPageId?: string;
+  inheritNotFound?: boolean;
 }
 
 async function persistCanonicalDocument(projectId: string): Promise<void> {
@@ -81,20 +92,25 @@ function isReusableFrameNode(node: CanonicalNode): node is FrameNode {
   return node.type === "frame" && (node as FrameNode).reusable === true;
 }
 
-function withLayoutMetadata(frame: FrameNode, layout: Layout): FrameNode {
+function withFrameMetadata(
+  frame: FrameNode,
+  record: ReusableFrameRecord,
+): FrameNode {
   const metadata: FrameNode["metadata"] = {
     ...(frame.metadata ?? { type: "legacy-layout" }),
     type: frame.metadata?.type ?? "legacy-layout",
-    layoutId: layout.id,
-    project_id: layout.project_id,
-    description: layout.description ?? null,
-    slug: layout.slug ?? null,
+    layoutId: record.id,
+    project_id: record.projectId,
+    description: record.description ?? null,
+    slug: record.slug ?? null,
+    notFoundPageId: record.notFoundPageId ?? null,
+    inheritNotFound: record.inheritNotFound ?? true,
   };
   delete (metadata as Record<string, unknown>).order_num;
 
   return {
     ...frame,
-    name: layout.name,
+    name: record.name,
     metadata,
   };
 }
@@ -109,18 +125,18 @@ function elementToCanonicalNode(element: Element): CanonicalNode {
 }
 
 function createReusableFrameNode(
-  layout: Layout,
+  record: ReusableFrameRecord,
   bodyElement: Element,
 ): FrameNode {
-  return withLayoutMetadata(
+  return withFrameMetadata(
     {
-      id: `layout-${layout.id}`,
+      id: `layout-${record.id}`,
       type: "frame",
       reusable: true,
-      name: layout.name,
+      name: record.name,
       children: [elementToCanonicalNode(bodyElement)],
     },
-    layout,
+    record,
   );
 }
 
@@ -162,31 +178,27 @@ function upsertReusableFrame(frame: FrameNode, projectId: string): void {
 export async function createReusableFrame(
   input: CreateReusableFrameInput,
 ): Promise<ReusableFrameRef> {
-  const now = new Date().toISOString();
-  const layout: Layout = {
+  const frameRecord: ReusableFrameRecord = {
     id: crypto.randomUUID(),
     name: input.name,
-    project_id: input.projectId,
+    projectId: input.projectId,
     description: input.description ?? "",
-    created_at: now,
-    updated_at: now,
   };
-  const bodyElement = createFrameBodyElement(layout.id);
+  const bodyElement = createFrameBodyElement(frameRecord.id);
 
-  const frame = createReusableFrameNode(layout, bodyElement);
+  const frame = createReusableFrameNode(frameRecord, bodyElement);
   upsertReusableFrame(frame, input.projectId);
   await persistCanonicalDocument(input.projectId);
-  setSelectedReusableFrameId(layout.id);
+  setSelectedReusableFrameId(frameRecord.id);
 
-  return { id: layout.id, name: layout.name };
+  return { id: frameRecord.id, name: frameRecord.name };
 }
 
 /**
  * Reusable frame 삭제 — canonical-shaped wrapper.
  *
- * 내부 구현: legacy `deleteLayout` 호출. canonical frame 제거와 page binding clear 는
- * layoutAction 의 canonical cascade adapter 에서 처리한다.
- * cascade (page frame binding clear + element 삭제) 도 frame action 내부에서 처리.
+ * canonical frame 제거와 page binding clear를 동일 cascade에서 처리하고
+ * 변경된 canonical document를 영속한다.
  *
  * @param frameId - canonical FrameNode id (현재는 layout id 와 동일)
  */
@@ -214,7 +226,7 @@ export async function deleteReusableFrame(frameId: string): Promise<void> {
 /**
  * Reusable frame 이름 업데이트 — canonical-shaped wrapper.
  *
- * 내부 구현: legacy `updateLayout` 호출.
+ * canonical FrameNode를 직접 갱신한다.
  *
  * @param frameId - canonical FrameNode id
  * @param name - 새 이름
@@ -228,40 +240,58 @@ export async function updateReusableFrameName(
 
 export async function updateReusableFrame(
   frameId: string,
-  updates: LayoutUpdate,
+  updates: ReusableFrameUpdate,
 ): Promise<void> {
-  const updatedAt = new Date().toISOString();
   const currentLayouts = getCanonicalReusableFrameLayouts();
   const activeProjectId = useCanonicalDocumentStore.getState().currentProjectId;
-  const sourceLayout =
-    currentLayouts.find((layout) => layout.id === frameId) ??
-    ({
-      id: frameId,
-      name: updates.name ?? "Frame",
-      project_id: activeProjectId ?? "",
-      description: "",
-      created_at: updatedAt,
-      updated_at: updatedAt,
-    } satisfies Layout);
-  const nextLayout: Layout = {
-    ...sourceLayout,
-    ...updates,
-    project_id: sourceLayout.project_id || activeProjectId || "",
-    updated_at: updatedAt,
-  };
+  const sourceSummary = currentLayouts.find((layout) => layout.id === frameId);
   const currentDoc = selectActiveCanonicalDocument();
   const existingFrame = currentDoc?.children.find(
     (node): node is FrameNode =>
       isReusableFrameNode(node) && getReusableFrameMirrorId(node) === frameId,
   );
-  const nextFrame = withLayoutMetadata(
-    existingFrame ?? legacyLayoutToCanonicalFrame(nextLayout, []),
-    nextLayout,
+  const existingMetadata = existingFrame?.metadata as
+    Record<string, unknown> | undefined;
+  const projectId = sourceSummary?.project_id || activeProjectId || "";
+  const nextRecord: ReusableFrameRecord = {
+    id: frameId,
+    name: updates.name ?? existingFrame?.name ?? sourceSummary?.name ?? "Frame",
+    projectId,
+    description:
+      updates.description ??
+      (typeof existingMetadata?.description === "string"
+        ? existingMetadata.description
+        : sourceSummary?.description),
+    slug:
+      updates.slug ??
+      (typeof existingMetadata?.slug === "string"
+        ? existingMetadata.slug
+        : sourceSummary?.slug),
+    notFoundPageId:
+      updates.notFoundPageId ??
+      (typeof existingMetadata?.notFoundPageId === "string"
+        ? existingMetadata.notFoundPageId
+        : undefined),
+    inheritNotFound:
+      updates.inheritNotFound ??
+      (typeof existingMetadata?.inheritNotFound === "boolean"
+        ? existingMetadata.inheritNotFound
+        : undefined),
+  };
+  const nextFrame = withFrameMetadata(
+    existingFrame ?? {
+      id: `layout-${frameId}`,
+      type: "frame",
+      reusable: true,
+      name: nextRecord.name,
+      children: [],
+    },
+    nextRecord,
   );
 
-  upsertReusableFrame(nextFrame, nextLayout.project_id);
-  if (nextLayout.project_id) {
-    await persistCanonicalDocument(nextLayout.project_id);
+  upsertReusableFrame(nextFrame, projectId);
+  if (projectId) {
+    await persistCanonicalDocument(projectId);
   }
 }
 

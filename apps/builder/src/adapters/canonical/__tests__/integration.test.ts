@@ -9,7 +9,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CanonicalNode, RefNode } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { Layout } from "@/types/builder/layout.types";
+import type { LegacyLayoutRecord } from "../types";
 import {
   legacyToCanonical,
   legacyOwnershipToCanonicalParent,
@@ -78,12 +78,13 @@ function page(
 }
 
 function layout(
-  partial: Partial<Layout> & Pick<Layout, "id" | "name">,
-): Layout {
+  partial: Partial<LegacyLayoutRecord> &
+    Pick<LegacyLayoutRecord, "id" | "name">,
+): LegacyLayoutRecord {
   return {
     project_id: "proj-1",
     ...partial,
-  } as Layout;
+  } as LegacyLayoutRecord;
 }
 
 describe("legacyToCanonical integration (ADR-903 P1)", () => {
@@ -182,7 +183,9 @@ describe("legacyToCanonical integration (ADR-903 P1)", () => {
   // TC3: layout shell + page with slot fill
   // ============================================
   it("TC3: converts layout to reusable frame + page to ref with descendants[slot].children", () => {
-    const layouts: Layout[] = [layout({ id: "L1", name: "App Shell" })];
+    const layouts: LegacyLayoutRecord[] = [
+      layout({ id: "L1", name: "App Shell" }),
+    ];
     const elements: Element[] = [
       el({
         id: "shell-root",
@@ -349,7 +352,7 @@ describe("legacyToCanonical integration (ADR-903 P1)", () => {
   // children 순서 (layoutFrames → reusableMasters → pageNodes)
   // ============================================
   it("orders children: layoutFrames → reusableMasters → pageNodes", () => {
-    const layouts: Layout[] = [layout({ id: "L1", name: "Shell" })];
+    const layouts: LegacyLayoutRecord[] = [layout({ id: "L1", name: "Shell" })];
     const elements: Element[] = [
       el({ id: "shell-root", type: "Box", layout_id: "L1" }),
       el({
