@@ -60,5 +60,7 @@ md5 복원 일치.
 ## 6. 남은 것 (Phase 2 진입 조건)
 
 - **row definite 컨테이너 스칼라** — 2N→4N perf 판정 (사용자). 판정 전까지 row 축 definite 컨테이너는 종전 floor 0.
+  - **판정 (2026-09-04, Phase 4 뒤)**: ADR-188 기준선을 4N 으로 갱신하지 않는다. 4N 은 편집마다 드는 증분 비용이고 (측정 캐시 키가 전역 `mutation_gen` 이라 clean 서브트리도 매번 다시 잰다), ADR-188 이 보호하는 모양 (큰 clean 서브트리 + dirty leaf 1) 그 자체다. 재개 경로는 기준선 갱신이 아니라 **서브트리 세대 캐시** (자기 폭 제외 의미의 별도 슬롯) 위에 writer 를 다시 여는 것 — ADR-188 이 이름 붙인 subtree-dirty 요약 계열 Rust 작업.
+  - **first nail (실제 문서 계수, 2026-09-04)**: 로컬 계정의 유일 프로젝트 QWE (6 페이지, layout map 63 노드 — 전 페이지가 한 map) 를 live 스크립트로 셌다. 조건 = row 라인 (raw flex row 또는 자식이 한 줄로 놓인 geometry) 이 shrink (자식 hypothetical 합 > 컨테이너 content 폭) 하고 item 이 definite 폭 · 자식 보유 · non-scrollable · min auto. 결과 **row 라인 2 · shrink 0 · 후보 0** — 이연을 확정할 근거. 표본이 작다는 한계는 그대로다 (재개 조건 (a) 는 실제 문서에서 격차 보고가 나올 때).
 - **Table 의 DOM leg** — RAC `TableVirtualizer` 창 렌더라 Chrome 값 미측정. G1 매트릭스에 Table 을 넣으려면 DOM leg 을 rendererMap 으로 마운트해 재야 한다.
 - **Phase 2 / A** — ListBox·GridList (자식 0) 의 세로축 스칼라 = 행 수 × stride (투영과 같은 심볼). 이제 커널·writer 경로가 있으므로 `contentMinHeight` 필드 1개 + `implicitStyles` 공급 1곳.
