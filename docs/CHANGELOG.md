@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [letter-spacing 을 Canvas 2D 가 CSS 와 같은 규칙으로 잽니다] - 2026-09-05
+
+### Fixed
+
+- **letter-spacing 폭 공식**: CanvasKit 초기화 전에 쓰이는 기본 측정기가 `글자수 − 1` 로 간격을 세고 있었습니다. CSS 는 글자마다 (마지막 글자 뒤까지) 간격을 넣으므로 항상 한 칸 좁았고, 이모지 같은 서로게이트 페어를 2글자로 셌습니다. Chrome 실측 규칙으로 고쳤습니다.
+
+### Changed
+
+- **letter-spacing 측정 경로**: 값이 0이 아니면 CanvasKit 으로 우회하던 것을, 브라우저가 `ctx.letterSpacing` 을 지원하면 Canvas 2D 에서 직접 재도록 했습니다 (미지원 브라우저는 종전대로 우회). 폭 캐시는 letter-spacing 별로 분리됩니다.
+- 알려진 한계: 인라인 스타일의 letter-spacing 은 아직 Canvas(Skia) 렌더까지 결선되어 있지 않습니다 — Preview/CSS 에만 반영됩니다. 이번 변경은 측정 쪽 준비이며 사용자-가시 동작 변화는 없습니다. 근거·경로: [docs/adr/evidence/051-letterspacing-canvas2d.md](adr/evidence/051-letterspacing-canvas2d.md)
+
 ## [엔진 입력·문서가 조용히 어긋나던 자리에 게이트를 세웠습니다] - 2026-09-05
 
 ### Added
