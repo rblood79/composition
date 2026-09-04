@@ -53,8 +53,8 @@ interface TraversalCache {
   projectId: string;
   document: CompositionDocument;
   nodeMap: Map<string, CanonicalNode>;
-  firstProjectableNodeById: Map<string, CanonicalProjectableNodeLookup>;
-  firstProjectableNodeByReference: Map<string, CanonicalProjectableNodeLookup>;
+  firstProjectableNodeById: Map<string, IndexedProjectableNodeLookup>;
+  firstProjectableNodeByAlias: Map<string, IndexedProjectableNodeLookup>;
   projectableNodeLookups: CanonicalProjectableNodeLookup[];
   nodeOccurrenceCountById: Map<string, number>;
   childrenByParent: Map<string, CanonicalNode[]>;
@@ -72,6 +72,21 @@ export type CanonicalProjectableNodeLookup = CanonicalProjectionScope & {
   node: CanonicalNode;
   parentId: string | null;
 };
+
+type IndexedProjectableNodeLookup = {
+  lookup: CanonicalProjectableNodeLookup;
+  traversalIndex: number;
+};
+
+function indexFirstProjectableAlias(
+  aliases: Map<string, IndexedProjectableNodeLookup>,
+  alias: unknown,
+  indexedLookup: IndexedProjectableNodeLookup,
+): void {
+  if (typeof alias === "string" && alias.length > 0 && !aliases.has(alias)) {
+    aliases.set(alias, indexedLookup);
+  }
+}
 
 let cache: TraversalCache | null = null;
 const projectableNodeCountCache = new WeakMap<CompositionDocument, number>();
@@ -262,11 +277,11 @@ function ensureCache(): TraversalCache | null {
   const nodeMap = new Map<string, CanonicalNode>();
   const firstProjectableNodeById = new Map<
     string,
-    CanonicalProjectableNodeLookup
+    IndexedProjectableNodeLookup
   >();
-  const firstProjectableNodeByReference = new Map<
+  const firstProjectableNodeByAlias = new Map<
     string,
-    CanonicalProjectableNodeLookup
+    IndexedProjectableNodeLookup
   >();
   const projectableNodeLookups: CanonicalProjectableNodeLookup[] = [];
   const nodeOccurrenceCountById = new Map<string, number>();
@@ -293,29 +308,37 @@ function ensureCache(): TraversalCache | null {
         parentId: projectableParentId,
         ...nextScope,
       };
+      const indexedLookup = {
+        lookup,
+        traversalIndex: projectableNodeLookups.length,
+      };
       projectableNodes.push(node);
       projectableNodeLookups.push(lookup);
       if (!firstProjectableNodeById.has(node.id)) {
-        firstProjectableNodeById.set(node.id, lookup);
+        firstProjectableNodeById.set(node.id, indexedLookup);
       }
       const metadata = node.metadata as
         { componentName?: unknown; customId?: unknown } | undefined;
-      const referenceKeys = [
-        node.id,
+      indexFirstProjectableAlias(
+        firstProjectableNodeByAlias,
         node.name,
+        indexedLookup,
+      );
+      indexFirstProjectableAlias(
+        firstProjectableNodeByAlias,
         readLegacyMetadataCustomId(node.metadata),
+        indexedLookup,
+      );
+      indexFirstProjectableAlias(
+        firstProjectableNodeByAlias,
         metadata?.componentName,
+        indexedLookup,
+      );
+      indexFirstProjectableAlias(
+        firstProjectableNodeByAlias,
         metadata?.customId,
-      ];
-      for (const referenceKey of referenceKeys) {
-        if (
-          typeof referenceKey === "string" &&
-          referenceKey.length > 0 &&
-          !firstProjectableNodeByReference.has(referenceKey)
-        ) {
-          firstProjectableNodeByReference.set(referenceKey, lookup);
-        }
-      }
+        indexedLookup,
+      );
       if (projectableParentId) {
         const siblings = projectableChildrenByParent.get(projectableParentId);
         if (siblings) {
@@ -370,7 +393,7 @@ function ensureCache(): TraversalCache | null {
     document: snapshot.doc,
     nodeMap,
     firstProjectableNodeById,
-    firstProjectableNodeByReference,
+    firstProjectableNodeByAlias,
     projectableNodeLookups,
     nodeOccurrenceCountById,
     childrenByParent,
@@ -488,7 +511,7 @@ export function getFirstProjectableNodeById(
   nodeId: string,
 ): CanonicalNode | null {
   const c = ensureCache();
-  return c?.firstProjectableNodeById.get(nodeId)?.node ?? null;
+  return c?.firstProjectableNodeById.get(nodeId)?.lookup.node ?? null;
 }
 
 /** 첫 projectable node와 legacy projection parent/scope를 O(1)로 반환한다. */
@@ -496,7 +519,7 @@ export function getFirstProjectableNodeLookupById(
   nodeId: string,
 ): CanonicalProjectableNodeLookup | null {
   const c = ensureCache();
-  return c?.firstProjectableNodeById.get(nodeId) ?? null;
+  return c?.firstProjectableNodeById.get(nodeId)?.lookup ?? null;
 }
 
 /**
@@ -508,7 +531,15 @@ export function getFirstProjectableNodeLookupByReference(
   reference: string,
 ): CanonicalProjectableNodeLookup | null {
   const c = ensureCache();
-  return c?.firstProjectableNodeByReference.get(reference) ?? null;
+  if (!c) return null;
+
+  const idMatch = c.firstProjectableNodeById.get(reference);
+  const aliasMatch = c.firstProjectableNodeByAlias.get(reference);
+  if (!idMatch) return aliasMatch?.lookup ?? null;
+  if (!aliasMatch) return idMatch.lookup;
+  return aliasMatch.traversalIndex < idMatch.traversalIndex
+    ? aliasMatch.lookup
+    : idMatch.lookup;
 }
 
 /**

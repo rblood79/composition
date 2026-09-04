@@ -76,15 +76,16 @@ describe("frameElementLoader canonical adapter", () => {
     });
   });
 
-  it("uses the cached canonical view and frame ID scope instead of full traversal", async () => {
+  it("uses the cached canonical occurrence index and frame scope instead of full traversal", async () => {
     const source = await readFile(
       resolve(__dirname, "../frameElementLoader.ts"),
       "utf8",
     );
 
-    expect(source).toContain("getCanonicalDocumentElementsView(doc)");
-    expect(source).toContain("for (const elementId of scope.elementIds)");
-    expect(source).toContain("elementsView.byId.get(elementId)");
+    expect(source).toContain("getCanonicalFrameElementsById(doc, scopes)");
+    expect(source).toContain("getProjectableNodeLookups()");
+    expect(source).toContain("lookup.layoutId");
+    expect(source).not.toContain("elementsView.byId.get");
     expect(source).not.toContain("visitCanonicalDocumentElements");
     expect(source).not.toContain("collectFrameLoaderElements");
   });
@@ -151,6 +152,42 @@ describe("frameElementLoader canonical adapter", () => {
         expect.objectContaining({ id: "button-4", type: "ref" }),
       ]),
     );
+  });
+
+  it("preserves duplicate occurrences without leaking the same id from another frame", async () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "layout-frame-a",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-a" },
+          children: [
+            { id: "duplicate", type: "Slot", props: { owner: "a-1" } },
+            { id: "duplicate", type: "Slot", props: { owner: "a-2" } },
+          ],
+        },
+        {
+          id: "layout-frame-b",
+          type: "frame",
+          reusable: true,
+          metadata: { type: "legacy-layout", layoutId: "frame-b" },
+          children: [{ id: "duplicate", type: "Slot", props: { owner: "b" } }],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    useCanonicalDocumentStore.setState({
+      currentProjectId: "project-1",
+      documents: new Map([["project-1", doc]]),
+      documentVersion: 0,
+    });
+
+    const elements = await loadFrameElements("frame-a");
+    expect(elements.map((element) => element.props.owner)).toEqual([
+      "a-1",
+      "a-2",
+    ]);
   });
 
   it("returns an empty list when the active canonical document is missing", async () => {

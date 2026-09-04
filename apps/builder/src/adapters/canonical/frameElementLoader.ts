@@ -1,10 +1,16 @@
+import type { CompositionDocument } from "@composition/shared";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
-import { getCanonicalDocumentElementsView } from "@/builder/stores/canonical/canonicalElementsView";
+import {
+  canonicalNodeToElement,
+  getCanonicalDocumentElementsView,
+} from "@/builder/stores/canonical/canonicalElementsView";
+import { getProjectableNodeLookups } from "@/builder/stores/canonical/canonicalTraversalHelpers";
 import {
   canonicalDocumentToFrameElementScopes,
   isElementInCanonicalFrameScope,
   type CanonicalFrameScopedNode,
   type CanonicalFrameElementScope,
+  type CanonicalFrameElementScopeMap,
 } from "./frameElementScope";
 import { getFrameElementMirrorId } from "./frameMirror";
 
@@ -23,6 +29,47 @@ export interface FrameElementLike extends CanonicalFrameScopedNode {
 export interface FrameElementNode extends FrameElementLike {
   id: string;
   props: Record<string, unknown>;
+}
+
+const frameElementsByDocumentCache = new WeakMap<
+  CompositionDocument,
+  ReadonlyMap<string, readonly FrameElementNode[]>
+>();
+
+/**
+ * active document traversal cache의 occurrence 순서와 layout scope를 함께 사용해
+ * frame별 projection을 한 번만 만든다. global byId를 사용하지 않으므로 다른
+ * frame의 duplicate id가 현재 frame 요소를 덮어쓰지 않는다.
+ */
+function getCanonicalFrameElementsById(
+  doc: CompositionDocument,
+  scopes: CanonicalFrameElementScopeMap,
+): ReadonlyMap<string, readonly FrameElementNode[]> {
+  const cached = frameElementsByDocumentCache.get(doc);
+  if (cached) return cached;
+
+  const frameElementsById = new Map<string, FrameElementNode[]>();
+  for (const frameId of scopes.keys()) {
+    frameElementsById.set(frameId, []);
+  }
+
+  for (const lookup of getProjectableNodeLookups()) {
+    const frameId = lookup.layoutId;
+    if (!frameId) continue;
+    const scope = scopes.get(frameId);
+    if (!scope || !scope.elementIds.has(lookup.node.id)) continue;
+
+    const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
+      pageId: lookup.pageId,
+      layoutId: lookup.layoutId,
+    }) as FrameElementNode | null;
+    if (element && !element.deleted) {
+      frameElementsById.get(frameId)?.push(element);
+    }
+  }
+
+  frameElementsByDocumentCache.set(doc, frameElementsById);
+  return frameElementsById;
 }
 
 function isBodyElement(element: FrameElementLike): boolean {
@@ -98,18 +145,15 @@ export async function loadFrameElements(
   const doc = projectId ? canonical.documents.get(projectId) : null;
   if (!doc) return [];
 
-  const elementsView = getCanonicalDocumentElementsView(doc);
-  const scope = canonicalDocumentToFrameElementScopes(doc).get(frameId);
+  const scopes = canonicalDocumentToFrameElementScopes(doc);
+  const scope = scopes.get(frameId);
   const frameElements: FrameElementNode[] = [];
   if (scope) {
-    for (const elementId of scope.elementIds) {
-      const element = elementsView.byId.get(elementId) as
-        FrameElementNode | undefined;
-      if (element && isFrameElementForFrame(element, scope)) {
-        frameElements.push(element);
-      }
-    }
+    frameElements.push(
+      ...(getCanonicalFrameElementsById(doc, scopes).get(frameId) ?? []),
+    );
   } else {
+    const elementsView = getCanonicalDocumentElementsView(doc);
     for (const element of elementsView.elements as readonly FrameElementNode[]) {
       if (isLegacyFrameElementForFrame(element, frameId)) {
         frameElements.push(element);

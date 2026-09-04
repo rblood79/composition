@@ -18,7 +18,6 @@ import {
 } from "@composition/shared";
 import type {
   BreakpointName,
-  CanonicalNode,
   ElementResponsiveConfig,
   InteractionRule,
   ResponsiveValue,
@@ -57,14 +56,19 @@ import {
   hasNonPropsCanonicalHistoryChange,
 } from "./history/canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "./canonical/canonicalDocumentStore";
-import { canonicalNodeToElement } from "./canonical/canonicalElementsView";
+import {
+  canonicalNodeToElement,
+  getActiveCanonicalDocumentElements,
+} from "./canonical/canonicalElementsView";
 import {
   getFirstProjectableNodeLookupById,
-  getProjectableNodeLookups,
+  getFirstProjectableNodeLookupByReference,
   type CanonicalProjectableNodeLookup,
 } from "./canonical/canonicalTraversalHelpers";
-import { readCanonicalNodeCustomId } from "../../adapters/canonical/legacyMetadata";
-import { normalizeElementTagInElement } from "./utils/elementTagNormalizer";
+import {
+  normalizeElementTagInElement,
+  normalizeElementTags,
+} from "./utils/elementTagNormalizer";
 import type { BatchPropsUpdate } from "./utils/elementUpdate";
 import {
   collectDirtyElementSubtree,
@@ -237,35 +241,18 @@ function getActiveCanonicalInspectorElementById(
   return { element: lookup ? projectCanonicalInspectorElement(lookup) : null };
 }
 
-function matchesCanonicalInspectorReference(
-  node: CanonicalNode,
-  reference: string,
-): boolean {
-  if (node.id === reference || node.name === reference) return true;
-  if (readCanonicalNodeCustomId(node) === reference) return true;
-
-  const metadata = node.metadata as
-    { componentName?: unknown; customId?: unknown } | undefined;
-  return (
-    metadata?.componentName === reference || metadata?.customId === reference
-  );
-}
-
 function getActiveCanonicalInspectorRefMaster(
   element: Element,
 ): ActiveCanonicalInspectorElement | null {
   const reference = getCanonicalRefTarget(element);
   if (!reference) return getActiveCanonicalInspectorElementById(element.id);
 
-  const direct = getActiveCanonicalInspectorElementById(reference);
-  if (!direct || direct.element) return direct;
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId || !canonical.documents.has(projectId)) return null;
 
-  for (const lookup of getProjectableNodeLookups()) {
-    if (matchesCanonicalInspectorReference(lookup.node, reference)) {
-      return { element: projectCanonicalInspectorElement(lookup) };
-    }
-  }
-  return direct;
+  const lookup = getFirstProjectableNodeLookupByReference(reference);
+  return { element: lookup ? projectCanonicalInspectorElement(lookup) : null };
 }
 
 function getInspectorElementById(
@@ -294,6 +281,61 @@ function replaceInspectorElement(
   const nextElements = elements.slice();
   nextElements[elementIndex] = updatedElement;
   return nextElements;
+}
+
+type InspectorUpdateSource = {
+  currentElement: Element;
+  elements: Element[];
+  elementsMap: InspectorElementMap;
+};
+
+/**
+ * 정상 편집은 기존 derived collections를 그대로 사용한다. canonical target은
+ * 존재하지만 bootstrap 중 배열/Map 한쪽에 target이 빠진 경우에만 cached full
+ * view로 derived state를 한 번 복구해 legacy consumer가 부분 배열을 보지 않게 한다.
+ */
+function getInspectorUpdateSource(
+  elements: Element[],
+  elementsMap: InspectorElementMap,
+  elementId: string,
+): InspectorUpdateSource | null {
+  const canonicalElement = getActiveCanonicalInspectorElementById(elementId);
+  const elementIndex = elements.findIndex(
+    (element) => element.id === elementId,
+  );
+
+  if (canonicalElement) {
+    if (!canonicalElement.element) return null;
+    if (elementIndex >= 0 && elementsMap.has(elementId)) {
+      return {
+        currentElement: canonicalElement.element,
+        elements,
+        elementsMap,
+      };
+    }
+
+    const canonicalElements = getActiveCanonicalDocumentElements();
+    if (canonicalElements) {
+      const normalizedElements =
+        normalizeElementTags(canonicalElements).elements;
+      const restoredElementsMap = new Map(
+        normalizedElements.map((element) => [element.id, element]),
+      );
+      return {
+        currentElement: canonicalElement.element,
+        elements: normalizedElements,
+        elementsMap: restoredElementsMap,
+      };
+    }
+
+    return { currentElement: canonicalElement.element, elements, elementsMap };
+  }
+
+  const fallbackElement =
+    elementIndex >= 0 ? (elements[elementIndex] ?? null) : null;
+  return fallbackElement
+    ? { currentElement: fallbackElement, elements, elementsMap }
+    : null;
 }
 
 function getInspectorWritableProps(element: Element): Record<string, unknown> {
@@ -621,9 +663,9 @@ export const createInspectorActionsSlice: StateCreator<
     prevElementOverride?: Element,
   ) => {
     const { elements, elementsMap, selectedElementId, currentPageId } = get();
-    const currentElement = getInspectorElementById(elements, elementId);
-    if (!currentElement) return;
-    const element = normalizeElementTagInElement(currentElement);
+    const source = getInspectorUpdateSource(elements, elementsMap, elementId);
+    if (!source) return;
+    const element = normalizeElementTagInElement(source.currentElement);
 
     // 선택된 요소의 props를 직접 업데이트하므로,
     // 진행 중인 hydration이 있으면 취소하여 경쟁 상태 방지
@@ -682,12 +724,12 @@ export const createInspectorActionsSlice: StateCreator<
     }
 
     // 기존 derived Map 을 한 번만 clone 하고 target entry 만 교체 (불변성 유지)
-    const newElementsMap = new Map(elementsMap);
+    const newElementsMap = new Map(source.elementsMap);
     newElementsMap.set(elementId, updatedElement);
 
     // 🚀 elements 배열도 업데이트 (findIndex로 위치 찾아서 직접 교체)
     const newElements = replaceInspectorElement(
-      elements,
+      source.elements,
       elementId,
       updatedElement,
     );

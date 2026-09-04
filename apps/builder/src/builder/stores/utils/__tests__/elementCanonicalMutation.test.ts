@@ -1202,6 +1202,11 @@ describe("element mutations keep canonical document primary", () => {
     expect(state.elementsMap.get("instance")?.props).toMatchObject({
       label: "Instance",
     });
+    expect(state.elements.map((element) => element.id)).toEqual([
+      "origin",
+      "instance",
+    ]);
+    expect([...state.elementsMap.keys()]).toEqual(["origin", "instance"]);
     await vi.waitFor(() => {
       expect(mocks.db.documents.put).toHaveBeenCalledWith(
         "project-1",

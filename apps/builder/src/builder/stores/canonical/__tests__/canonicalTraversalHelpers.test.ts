@@ -343,7 +343,10 @@ describe("getNodeMap", () => {
           }),
           makeNode("component-owner", {
             props: {},
-            metadata: { componentName: "component-alias" },
+            metadata: {
+              type: "legacy-element-props",
+              componentName: "component-alias",
+            },
           }),
         ],
       }),
