@@ -15,6 +15,10 @@ vi.mock("../../../../env/supabase.client", () => ({
 
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
+import {
+  registerCanonicalMutationStoreActions,
+  resetCanonicalMutationStoreActions,
+} from "../../../../adapters/canonical/canonicalMutations";
 import { useLayoutValues } from "./useLayoutValues";
 import { useTransformValues } from "./useTransformValues";
 import {
@@ -29,6 +33,51 @@ import type { Element } from "../../../../types/core/store.types";
 
 const LAYOUT_DIRTY_PROPS = ["display", "flexDirection", "gap"];
 const TRANSFORM_DIRTY_PROPS = ["width", "height", "minWidth", "maxWidth"];
+const CANONICAL_TEST_PROJECT_ID = "reset-styles-test-project";
+
+function setCanonicalElementFixture(element: Element): void {
+  registerCanonicalMutationStoreActions({
+    getCurrentProjectId: () => CANONICAL_TEST_PROJECT_ID,
+    getCurrentLegacySnapshot: () => ({
+      elements: useStore.getState().elements,
+      pages: [],
+      layouts: [],
+    }),
+  });
+  useCanonicalDocumentStore.setState({
+    documents: new Map([
+      [
+        CANONICAL_TEST_PROJECT_ID,
+        {
+          version: "composition-1.0",
+          children: [
+            {
+              id: element.id,
+              type: element.type,
+              props: element.props,
+              ...(element.fills !== undefined ? { fills: element.fills } : {}),
+              ...(element.responsive !== undefined
+                ? { responsive: element.responsive }
+                : {}),
+              children: [],
+            },
+          ],
+        } as unknown as CompositionDocument,
+      ],
+    ]),
+    currentProjectId: CANONICAL_TEST_PROJECT_ID,
+    documentVersion: 1,
+  });
+}
+
+afterEach(() => {
+  resetCanonicalMutationStoreActions();
+  useCanonicalDocumentStore.setState({
+    documents: new Map(),
+    currentProjectId: null,
+    documentVersion: 0,
+  });
+});
 
 function makeElement(id: string, props: Record<string, unknown>): Element {
   return {
@@ -82,6 +131,7 @@ describe("useResetStyles — spec preset dirty regression", () => {
       size: "md",
       labelPosition: "top",
     });
+    setCanonicalElementFixture(element);
 
     useStore.setState({
       selectedElementId: "taggroup-1",
@@ -777,6 +827,7 @@ describe("useResetStyles — layout preset baseline", () => {
         flexDirection: "column",
       },
     });
+    setCanonicalElementFixture(body);
 
     useStore.setState({
       selectedElementId: body.id,
@@ -863,6 +914,7 @@ describe("useResetStyles — appearance select baseline (M3/M5)", () => {
       size: "md",
       style,
     });
+    setCanonicalElementFixture(element);
     useStore.setState({
       selectedElementId: element.id,
       selectedElementProps: element.props,
@@ -942,6 +994,7 @@ describe("useResetStyles — fills backgroundColor dirty (M1)", () => {
       props: { size: "md", style: {} },
       ...(fills ? { fills } : {}),
     } as unknown as Element;
+    setCanonicalElementFixture(element);
     useStore.setState({
       selectedElementId: element.id,
       selectedElementProps: element.props,
@@ -1010,6 +1063,7 @@ describe("useResetStyles — ADR-154 non-desktop responsive override dirty/reset
 
   function selectAt(breakpoint: string): void {
     const el = makeResponsiveElement();
+    setCanonicalElementFixture(el);
     useStore.setState({
       selectedElementId: "resp-el",
       selectedElementProps: el.props,
@@ -1162,6 +1216,7 @@ describe("useResetStyles — ADR-154 non-desktop responsive override dirty/reset
       props: { size: "md", style: {} },
       fills: [{ type: "color", enabled: true, color: "#123456FF" }],
     } as unknown as Element;
+    setCanonicalElementFixture(el);
     useStore.setState({
       selectedElementId: "resp-fills",
       selectedElementProps: el.props,

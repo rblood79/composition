@@ -6,12 +6,14 @@ describe("elements canonical action lookup performance boundary", () => {
   it("resolves single store elements through the cached canonical lookup", async () => {
     const source = await readFile(resolve(__dirname, "elements.ts"), "utf8");
     const helper = source.match(
-      /function getActiveCanonicalStoreElement\([\s\S]*?\n}\n\nfunction getCanonicalOrStoreElements/,
+      /function getActiveCanonicalStoreElement\([\s\S]*?\n}\n\nfunction getCanonicalOrBootstrapElements/,
     )?.[0];
 
     expect(helper).toBeDefined();
     expect(helper).toContain("getLastProjectableNodeLookupById(elementId)");
     expect(helper).toContain("canonicalNodeToElement(");
+    expect(source).toContain("state.elementsMap.get(elementId)");
+    expect(source).not.toContain("legacyElements");
     expect(helper).not.toContain("visitCanonicalDocumentElements");
     expect(source).not.toContain("visitCanonicalDocumentElements");
   });
@@ -26,7 +28,7 @@ describe("elements canonical action lookup performance boundary", () => {
     expect(source).toContain('from "./canonical/canonicalTraversalHelpers"');
     expect(helper).toContain("getFirstProjectableNodeById(elementId)");
     expect(helper).toContain("state.elementsMap.get(elementId)");
-    expect(helper).not.toContain("getCanonicalOrStoreElements");
+    expect(helper).not.toContain("getCanonicalOrBootstrapElements");
     expect(helper).not.toContain("findElementById");
   });
 });

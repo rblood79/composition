@@ -37,13 +37,6 @@ import { useEditModeStore } from "../../../stores/editMode";
 import { useStore } from "../../../stores";
 import { useCanonicalFrameElementScopes } from "../../../stores/canonical/canonicalElementsView";
 import { useCanonicalPanelElements } from "../useCanonicalPanelElements";
-// ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
-import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
-import {
-  collectHydratedFrameElements,
-  hasHydratedFrameElements,
-  loadFrameElements,
-} from "../../../../adapters/canonical/frameElementLoader";
 import type { CanonicalFrameElementScope } from "../../../../adapters/canonical/frameElementScope";
 import type { ElementProps } from "../../../../types/integrations/supabase.types";
 import type { PanelNode } from "../../panelNode";
@@ -55,7 +48,6 @@ import {
   isCanvasCompareMode,
 } from "../../../../utils/featureFlags";
 
-const EMPTY_ELEMENTS: PanelNode[] = [];
 type LegacyFrameElement = Parameters<typeof buildTreeFromElements>[0][number];
 
 function collectCanonicalFrameElements(
@@ -68,20 +60,13 @@ function collectCanonicalFrameElements(
   );
 }
 
-function hasCanonicalFrameElements(
-  canonicalElements: readonly PanelNode[] | null,
-  frameScope: CanonicalFrameElementScope | null,
-): boolean {
-  return (
-    collectCanonicalFrameElements(canonicalElements, frameScope).length > 0
-  );
-}
-
 function findFrameBodyElement(
   elements: readonly PanelNode[],
 ): PanelNode | null {
   return (
-    elements.find((element) => element.type === "body") ?? elements[0] ?? null
+    elements.find((element) => element.type.toLowerCase() === "body") ??
+    elements[0] ??
+    null
   );
 }
 
@@ -122,15 +107,7 @@ export function FramesTab({
 
   const removeElement = useStore((state) => state.removeElement);
   const canonicalElements = useCanonicalPanelElements();
-  const storeElements = useStore((state) => {
-    if (canonicalElements) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements ?? EMPTY_ELEMENTS;
-  });
   const frameElementScopes = useCanonicalFrameElementScopes();
-  const hydratedElementsMap = useMemo(() => {
-    return new Map(storeElements.map((element) => [element.id, element]));
-  }, [storeElements]);
 
   // ADR-116 projection 제거: active canonical document 의 reusable FrameNode 를
   // 단일 read path 로 사용한다.
@@ -153,164 +130,25 @@ export function FramesTab({
 
   const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
 
-  // 이미 로드된 frame ID 추적 (중복 로드 방지)
-  const loadedFrameIdsRef = React.useRef<Set<string>>(new Set());
-  const loadingFrameIdsRef = React.useRef<Set<string>>(new Set());
-  const frameSelectRequestRef = React.useRef(0);
   const autoSelectedFrameIdRef = React.useRef<string | null>(null);
 
-  // selectedReusableFrameId 변경 시 DB에서 요소 로드 (fallback)
-  useEffect(() => {
-    if (!selectedReusableFrameId) return;
-
-    if (
-      loadedFrameIdsRef.current.has(selectedReusableFrameId) ||
-      loadingFrameIdsRef.current.has(selectedReusableFrameId)
-    ) {
-      return;
-    }
-
-    const selectedFrameScope =
-      frameElementScopes?.get(selectedReusableFrameId) ?? null;
-    if (
-      hasCanonicalFrameElements(canonicalElements, selectedFrameScope) ||
-      (selectedFrameScope &&
-        hasHydratedFrameElements(hydratedElementsMap, selectedFrameScope))
-    ) {
-      loadedFrameIdsRef.current.add(selectedReusableFrameId);
-      return;
-    }
-
-    const loadSelectedFrameElements = async () => {
-      loadingFrameIdsRef.current.add(selectedReusableFrameId);
-      try {
-        const frameElements = await loadFrameElements(selectedReusableFrameId);
-        if (frameElements.length > 0) {
-          mergeElementsCanonicalPrimary(frameElements);
-          loadedFrameIdsRef.current.add(selectedReusableFrameId);
-        }
-      } catch (error) {
-        console.error("[FramesTab] Frame 요소 로드 실패:", error);
-      } finally {
-        loadingFrameIdsRef.current.delete(selectedReusableFrameId);
-      }
-    };
-
-    loadSelectedFrameElements();
-  }, [
-    selectedReusableFrameId,
-    hydratedElementsMap,
-    canonicalElements,
-    frameElementScopes,
-  ]);
-
-  // 새로고침 직후 전역 hydrate race 로 selected frame 이외의 body/slot 이
-  // 메모리에 없을 수 있다. Frames 탭 목록이 로드되면 등록된 frame 전체 중
-  // 아직 store 에 없는 frame elements 를 보강 로드해 tree/canvas 입력을 맞춘다.
-  useEffect(() => {
-    if (reusableFrames.length === 0) return;
-
-    const missingFrameIds = reusableFrames
-      .map((frame) => frame.id)
-      .filter((frameId) => {
-        const frameScope = frameElementScopes?.get(frameId) ?? null;
-        return (
-          !loadedFrameIdsRef.current.has(frameId) &&
-          !loadingFrameIdsRef.current.has(frameId) &&
-          !hasCanonicalFrameElements(canonicalElements, frameScope) &&
-          (!frameScope ||
-            !hasHydratedFrameElements(hydratedElementsMap, frameScope))
-        );
-      });
-
-    for (const frame of reusableFrames) {
-      const frameScope = frameElementScopes?.get(frame.id) ?? null;
-      if (
-        hasCanonicalFrameElements(canonicalElements, frameScope) ||
-        (frameScope &&
-          hasHydratedFrameElements(hydratedElementsMap, frameScope))
-      ) {
-        loadedFrameIdsRef.current.add(frame.id);
-      }
-    }
-
-    if (missingFrameIds.length === 0) return;
-
-    missingFrameIds.forEach((frameId) =>
-      loadingFrameIdsRef.current.add(frameId),
-    );
-
-    const loadMissingFrameElements = async () => {
-      try {
-        const frameElementGroups = await Promise.all(
-          missingFrameIds.map(async (frameId) => ({
-            frameId,
-            elements: await loadFrameElements(frameId),
-          })),
-        );
-        const liveFrameIds = new Set(reusableFrames.map((frame) => frame.id));
-        const liveFrameElementGroups = frameElementGroups.filter((group) =>
-          liveFrameIds.has(group.frameId),
-        );
-
-        const frameElements = liveFrameElementGroups.flatMap(
-          (group) => group.elements,
-        );
-        if (frameElements.length > 0) {
-          mergeElementsCanonicalPrimary(frameElements);
-        }
-
-        liveFrameElementGroups.forEach((group) => {
-          if (group.elements.length > 0) {
-            loadedFrameIdsRef.current.add(group.frameId);
-          }
-        });
-      } catch (error) {
-        console.error("[FramesTab] Frame 요소 보강 로드 실패:", error);
-      } finally {
-        missingFrameIds.forEach((frameId) =>
-          loadingFrameIdsRef.current.delete(frameId),
-        );
-      }
-    };
-
-    loadMissingFrameElements();
-  }, [
-    reusableFrames,
-    hydratedElementsMap,
-    canonicalElements,
-    frameElementScopes,
-  ]);
-
-  // ADR-116: Frames tree read path 는 active canonical document 를 우선 사용한다.
-  // canonical hydration race 동안에만 legacy store mirror 로 fallback 한다.
+  // Frames tree는 canonical document가 가진 frame scope만 읽는다. Builder chrome은
+  // matching canonical 첫 frame 전까지 숨겨지므로 legacy hydration fallback이 없다.
   const frameElements = useMemo(() => {
     if (!currentFrame) return [];
     const frameScope = frameElementScopes?.get(currentFrame.id) ?? null;
-    const canonicalFrameElements = collectCanonicalFrameElements(
-      canonicalElements,
-      frameScope,
-    );
-    return canonicalFrameElements.length > 0
-      ? canonicalFrameElements
-      : frameScope
-        ? collectHydratedFrameElements(hydratedElementsMap, frameScope)
-        : [];
-  }, [
-    canonicalElements,
-    hydratedElementsMap,
-    currentFrame,
-    frameElementScopes,
-  ]);
-
-  // Frame 요소 트리 빌드
-  const frameElementTree = useMemo(() => {
-    return buildTreeFromElements(frameElements.map(toLegacyFrameElement));
-  }, [frameElements]);
+    return collectCanonicalFrameElements(canonicalElements, frameScope);
+  }, [canonicalElements, currentFrame, frameElementScopes]);
 
   const legacyFrameElements = useMemo(
     () => frameElements.map(toLegacyFrameElement),
     [frameElements],
+  );
+
+  // Frame 요소 트리 빌드
+  const frameElementTree = useMemo(
+    () => buildTreeFromElements(legacyFrameElements),
+    [legacyFrameElements],
   );
 
   // Frame 전용 트리 펼치기/접기 상태
@@ -336,16 +174,10 @@ export function FramesTab({
   const selectFrameBody = useCallback(
     (frameId: string): boolean => {
       const frameScope = frameElementScopes?.get(frameId) ?? null;
-      const canonicalFrameElements = collectCanonicalFrameElements(
-        canonicalElements,
-        frameScope,
-      );
       const elementsForFrame =
-        canonicalFrameElements.length > 0
-          ? canonicalFrameElements
-          : frameScope
-            ? collectHydratedFrameElements(hydratedElementsMap, frameScope)
-            : [];
+        currentFrame?.id === frameId
+          ? frameElements
+          : collectCanonicalFrameElements(canonicalElements, frameScope);
       const bodyElement = findFrameBodyElement(elementsForFrame);
       if (!bodyElement) return false;
 
@@ -369,8 +201,9 @@ export function FramesTab({
     },
     [
       canonicalElements,
-      hydratedElementsMap,
+      currentFrame?.id,
       expandKey,
+      frameElements,
       frameElementScopes,
       sendElementSelectedMessage,
       setSelectedElement,
@@ -398,53 +231,12 @@ export function FramesTab({
 
   // Frame 선택 핸들러 — id 기반 (ADR-111 P2-a PR-B)
   const handleSelectFrame = useCallback(
-    async (frameId: string) => {
-      const requestId = frameSelectRequestRef.current + 1;
-      frameSelectRequestRef.current = requestId;
+    (frameId: string) => {
       selectReusableFrame(frameId);
       setEditModeLayoutId(frameId);
       selectFrameBody(frameId);
-
-      const frameScope = frameElementScopes?.get(frameId) ?? null;
-      if (
-        hasCanonicalFrameElements(canonicalElements, frameScope) ||
-        (frameScope &&
-          hasHydratedFrameElements(hydratedElementsMap, frameScope))
-      ) {
-        loadedFrameIdsRef.current.add(frameId);
-        return;
-      }
-      if (loadingFrameIdsRef.current.has(frameId)) {
-        return;
-      }
-      loadingFrameIdsRef.current.add(frameId);
-
-      try {
-        const frameElements = await loadFrameElements(frameId);
-        if (requestId !== frameSelectRequestRef.current) {
-          return;
-        }
-
-        if (frameElements.length > 0) {
-          mergeElementsCanonicalPrimary(frameElements);
-          loadedFrameIdsRef.current.add(frameId);
-        }
-      } catch (error) {
-        if (requestId !== frameSelectRequestRef.current) {
-          return;
-        }
-        console.error("[FramesTab] Frame 선택 에러:", error);
-      } finally {
-        loadingFrameIdsRef.current.delete(frameId);
-      }
     },
-    [
-      setEditModeLayoutId,
-      selectFrameBody,
-      hydratedElementsMap,
-      canonicalElements,
-      frameElementScopes,
-    ],
+    [setEditModeLayoutId, selectFrameBody],
   );
 
   useEffect(() => {

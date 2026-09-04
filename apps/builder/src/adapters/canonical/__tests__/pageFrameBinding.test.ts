@@ -24,8 +24,6 @@ const mocks = vi.hoisted(() => ({
   },
   getDB: vi.fn(),
   enqueuePagePersistence: vi.fn(),
-  loadFrameElements: vi.fn(),
-  mergeElementsCanonicalPrimary: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -34,14 +32,6 @@ vi.mock("@/lib/db", () => ({
 
 vi.mock("@/builder/utils/pagePersistenceQueue", () => ({
   enqueuePagePersistence: mocks.enqueuePagePersistence,
-}));
-
-vi.mock("../frameElementLoader", () => ({
-  loadFrameElements: mocks.loadFrameElements,
-}));
-
-vi.mock("../canonicalMutations", () => ({
-  mergeElementsCanonicalPrimary: mocks.mergeElementsCanonicalPrimary,
 }));
 
 function makePage(id = "page-1", layoutId: string | null = null): Page {
@@ -105,7 +95,6 @@ describe("pageFrameBinding canonical primary helper", () => {
         await task();
       },
     );
-    mocks.loadFrameElements.mockResolvedValue([makeElement()]);
     useCanonicalDocumentStore.setState({
       documents: new Map(),
       currentProjectId: null,
@@ -221,8 +210,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       setPages,
     });
 
-    expect(mocks.loadFrameElements).not.toHaveBeenCalled();
-    expect(mocks.mergeElementsCanonicalPrimary).not.toHaveBeenCalled();
     const doc = useCanonicalDocumentStore.getState().getDocument("project-1");
     const pageNode = doc?.children.find((node) => node.id === "page-1") as
       RefNode | undefined;
@@ -306,7 +293,6 @@ describe("pageFrameBinding canonical primary helper", () => {
       setPages,
     });
 
-    expect(mocks.loadFrameElements).not.toHaveBeenCalled();
     expect(setPages).toHaveBeenCalledWith([
       expect.objectContaining({ id: "page-2", layout_id: null }),
     ]);

@@ -56,7 +56,8 @@ interface SelectionElement {
 
 // 다른 슬라이스(ElementsState)에서 필요한 상태
 interface RequiredElementsState {
-  elements: SelectionElement[];
+  elementsMap: ReadonlyMap<string, SelectionElement>;
+  childrenMap: ReadonlyMap<string, readonly SelectionElement[]>;
 }
 
 type CombinedSelectionState = SelectionState & RequiredElementsState;
@@ -88,20 +89,15 @@ function getSelectionHierarchyEntry(
     };
   }
 
-  const { elements: legacyElements } = state;
-  const element = legacyElements.find(
-    (candidate) => candidate.id === elementId,
-  );
+  const element = state.elementsMap.get(elementId);
   if (!element) return null;
   const parent = element.parent_id
-    ? legacyElements.find((candidate) => candidate.id === element.parent_id)
+    ? state.elementsMap.get(element.parent_id)
     : null;
   return {
     ...element,
     parentType: parent?.type ?? null,
-    hasChildren: legacyElements.some(
-      (candidate) => candidate.parent_id === elementId,
-    ),
+    hasChildren: (state.childrenMap.get(elementId)?.length ?? 0) > 0,
   };
 }
 

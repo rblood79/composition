@@ -8,29 +8,19 @@ import type { Element, Page } from "@/types/builder/unified.types";
 import type { RefNode } from "@composition/shared";
 import type { ElementWithLegacyMirror } from "./legacyElementFields";
 
-/**
- * Pre-canonical project import record.
- *
- * This shape is intentionally owned by the legacy-to-canonical adapter rather
- * than the Builder-wide type surface. Runtime UI and stores consume canonical
- * reusable FrameNode projections instead.
- */
-export interface LegacyLayoutRecord {
+/** Canonical reusable FrameNode에서 파생된 adapter 최소 입력. */
+export interface ReusableFrameLayoutInput {
   id: string;
   name: string;
   project_id: string;
   description?: string;
   slug?: string;
-  notFoundPageId?: string;
-  inheritNotFound?: boolean;
-  created_at?: string;
-  updated_at?: string;
 }
 
 export interface LegacyAdapterInput {
   elements: Element[];
   pages: Page[];
-  layouts: LegacyLayoutRecord[];
+  layouts: ReusableFrameLayoutInput[];
 }
 
 /**
@@ -59,7 +49,7 @@ export type ConvertSlotElementFn = (slotElement: Element) => {
 
 export type ConvertPageLayoutFn = (
   page: Page,
-  layouts: LegacyLayoutRecord[],
+  layouts: ReusableFrameLayoutInput[],
   pageElements: Element[],
   /**
    * layout shell 내 slot name → stable id path 매핑.

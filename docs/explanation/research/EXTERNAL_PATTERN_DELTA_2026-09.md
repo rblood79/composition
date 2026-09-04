@@ -16,7 +16,7 @@
 
 두 대조에서 같이 나온 원칙 (§C): 외부 upstream 규칙은 주기적으로 대조한다 · 단위 fixture 는 실경로 (`tokenize()`) 로 만든다 (손 fixture 가 dead 규칙을 가렸다) · 성능 리스크는 패턴이 아니라 구현 선택에 있다 · 문서 drift 2건 (`CSS_SUPPORT_MATRIX.md` 04-06 정지 · ADR-051 breakdown "Phase 0 대기") · 오라클은 명세 손계산이 아니라 Chrome 실측.
 
-**착수 순서 통합** (§D): fulgur ② → ④ → ⑤ (독립, 각 1 phase, 동작 변경 0) → pretext ① (동작 변경 1 phase, live 필수) → fulgur ③ → pretext ② → fulgur ① → pretext ③.
+**착수 순서 통합** (§D, 2026-09-04 가치 순 개정): pretext ① (A — 결함 10 케이스 현재 코드 재현) → fulgur ⑤ sweep (B) → fulgur ② strict (B — `order` 무음 드롭 실증) → pretext ③ → pretext ②. fulgur ③ · ④ · ① 은 C 등급 — 트리거 (토큰 회귀 1건 · `canvaskit-wasm` bump/ADR-921 · 단위 혼동 버그 1건) 전 보류.
 
 ---
 
@@ -622,19 +622,23 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 | 문서 drift 는 코드 정본에서 생성으로 막는다 | `css-support.md` 기능별 버전·미지원 동작                | ADR-051 breakdown "Phase 0 대기" 가 5개월 live 코드와 어긋남            | `CSS_SUPPORT_MATRIX.md` 엔진 절 생성 (A4-5). ADR-051 breakdown 상태와 메모리 `adr051-pretext-integration` 갱신 (B6)                                |
 | 커밋 golden 이 드리프트 축을 잡는다         | run-twice ≠ golden 비교                                 | Chrome 기대값 16 케이스를 테스트에 고정                                 | visual-parity golden 8 케이스 커밋 (A4-3) · canvas2dSegmentCache 16 케이스 고정 (B5-1)                                                             |
 
-# D. 착수 순서 통합
+# D. 착수 순서 통합 — 도입 가치 순 (2026-09-04 개정)
 
-| 순서 | 항목                                                       | 종류          | 의존                                    | phase |
-| ---- | ---------------------------------------------------------- | ------------- | --------------------------------------- | ----- |
-| 1    | fulgur ② wasm strict 입력                                  | 동작 변경 0   | 없음                                    | 1     |
-| 2    | fulgur ④ CanvasKit 어댑터 (타입 재수출 + enum 상수)        | 동작 변경 0   | 없음                                    | 1     |
-| 3    | fulgur ⑤ 매트릭스 생성 + Taffy 주석 sweep                  | 동작 변경 0   | 없음                                    | 1     |
-| 4    | pretext ① Tier 3 규칙 5 + computeLines 1                   | **동작 변경** | 없음 (프로토타입 검증 완료)             | 1     |
-| 5    | fulgur ③ 결정성 기준선 축                                  | 동작 변경 0   | golden 커밋 결정                        | 1     |
-| 6    | pretext ② 이모지 보정                                      | **동작 변경** | 4 · DPR 2 헤드 환경                     | 1     |
-| 7    | fulgur ① 단위 브랜드 타입 (스칼라 변환 12곳 한정)          | 동작 변경 0   | 없음 (범위 확장 시 별도 ADR)            | 1     |
-| 8    | pretext ③ letterSpacing fallback 축소                      | **동작 변경** | 4 · grapheme 수 캐시                    | 1     |
-| —    | fulgur 조건부 2 (WPT 코퍼스 · knownDefects 항목화)         | —             | 다음 엔진 결함이 손 격자 밖에서 나올 때 | —     |
-| —    | pretext 보류 3 (Tier 2 제거 · 라이브러리 도입 · Rust 이관) | —             | B5 표 조건                              | —     |
+> 2026-09-03 초판은 "동작 변경 0 먼저" 라는 절차 편의로 순서를 세웠다. 2026-09-04 코드 실측 (현재 `tokenize → preprocessTokens → computeLines` 를 node 로 직접 실행 · `order` 키 wasm 경계 대조 · `canvaskit-wasm` bump 이력 · git 단위 혼동 버그 이력) 으로 **도입 가치** 기준으로 재정렬한다. 등급: **A** = 지금 production 코드에서 재현되는 결함을 고친다 · **B** = 기록된 사고가 있고 재발을 막는다 · **C** = 예방·위생 (사고 기록 없음, 트리거 성립 시만 가치).
 
-동작 변경 0 항목 (1·2·3·5·7) 은 review-loop-closure §3 축소 절차, 동작 변경 항목 (4·6·8) 은 원복 RED 전량 · live 필수 · evidence/README/CHANGELOG. 판독 프롬프트 필수 문구는 §4 그대로.
+| 순서 | 항목                                                       | 등급 | 실측 근거                                                                                                                                                                                                                                                                     | 종류          | phase / 트리거                                           |
+| ---- | ---------------------------------------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | -------------------------------------------------------- |
+| 1    | pretext ① Tier 3 규칙 5 + computeLines 1                   | A    | B3 결함 10 케이스 (A·C·E·F·G·H·L·O·N·N2) 전부 현재 코드에서 재현. 행말 금칙 dead 확정 (`tokenize` 가 `「 ( " '` 을 `breakable:false` 로 냄). D 케이스 폭 누락 재현 (토큰 폭 합 130 vs `maxLineWidth` 110). `nodeRendererText.ts:539` hintedText 로 Skia 에 직결 — 사용자-가시 | **동작 변경** | 1 · live 필수 (빌더 Text 에 A/E/G/L/N 문자열)            |
+| 2    | fulgur ⑤ Taffy 주석 sweep + 매트릭스 생성                  | B    | 비테스트 src 35 파일 · `CSS_SUPPORT_MATRIX.md` 04-06 정지 · Taffy 71건 · 오판 2회 기록 (메모리 `feedback-stale-dependency-comment-is-not-engine-constraint`). 가치 본체는 sweep — 생성 스크립트는 `layoutCapabilityMatrix.ts` (참조 = 테스트 1개) 가 정본인지 먼저 확인       | 동작 변경 0   | 1 · sweep 선행, 생성은 정본 확인 후                      |
+| 3    | fulgur ② wasm strict 입력                                  | B    | 오탐 132/288 기록. 추가 실증: TS 가 `order` 를 지금도 전송 (`utils.ts:5872`) 하지만 `NodeStyle` 미선언 → 무음 드롭, `tree.rs:296` guard 주석은 "유입 경로 생기면 선언" 이라 계약 guard 가 유입을 이미 놓침 (동작 영향 0 — `fullTreeLayout.ts:1824` 가 TS 에서 pre-sort)       | 동작 변경 0   | 1 · 첫 run 이 미지 키 인벤토리                           |
+| 4    | pretext ③ letterSpacing fallback 축소                      | B    | `needsFallback():384` + `TypographySection.tsx:276` 노출 — production 경로. grapheme 수 캐시 없으면 텍스트당 49 µs (B4-13) 라 캐시가 착수 조건                                                                                                                                | **동작 변경** | 1 · 1 이후 · grapheme 수 캐시                            |
+| 5    | pretext ② 이모지 보정                                      | B−   | B3 emoji 실측 (Chrome 152 · DPR 2) 은 문서 기록뿐, 09-04 재확인 안 함. headless DPR 1 무효                                                                                                                                                                                    | **동작 변경** | 1 · DPR 2 헤드 환경에서 재현 확인 후                     |
+| —    | fulgur ③ 결정성 기준선 축                                  | C+   | 논리는 성립 (양 leg 가 catalog 파생 → 토큰 회귀는 대칭 통과). gate 는 pre-push + `deploy.yml` 실행이라 3축 추가 시 실효. 그러나 "게이트가 놓친 회귀" 사고 기록 없음                                                                                                           | 동작 변경 0   | 대칭 통과한 토큰 회귀가 실제로 1건 발생할 때             |
+| —    | fulgur ④ CanvasKit 어댑터                                  | C    | 49 파일 (비테스트 35) 직접 import 는 사실. `canvaskit-wasm ^0.42.0` 은 도입 후 bump 0회 (git log 1 commit). 지금 하면 50 파일 경로 diff 만 남는다                                                                                                                             | 동작 변경 0   | `canvaskit-wasm` bump 또는 ADR-921 (Proposed 08-17) 착수 |
+| —    | fulgur ① 단위 브랜드 타입                                  | C    | `/dpr` `/zoom` 변환 70곳. git 에 단위 공간 혼동 버그 이력 0건. A2 가 든 근거 2건 (border-box 메모리 · ADR-198 R14) 은 box 계약 · 하니스 스크린샷 배율 문제라 단위 공간 혼동이 아님 — 근거 가장 약함                                                                           | 동작 변경 0   | 단위 공간 혼동 버그 1건 발생 시                          |
+| —    | fulgur 조건부 2 (WPT 코퍼스 · knownDefects 항목화)         | —    | A6-1 그대로                                                                                                                                                                                                                                                                   | —             | 다음 엔진 결함이 손 격자 밖에서 나올 때                  |
+| —    | pretext 보류 3 (Tier 2 제거 · 라이브러리 도입 · Rust 이관) | —    | B5 표 그대로                                                                                                                                                                                                                                                                  | —             | B5 표 조건                                               |
+
+동작 변경 0 항목 (2·3) 은 review-loop-closure §3 축소 절차, 동작 변경 항목 (1·4·5) 은 원복 RED 전량 · live 필수 · evidence/README/CHANGELOG. 판독 프롬프트 필수 문구는 §4 그대로. C 등급 3건은 트리거 성립 전 착수하지 않는다 — 초판 순서 (② → ④ → ⑤ → ①) 는 절차 편의였고 가치 순서가 아니었다.
+
+문서 drift 추가 확인 (09-04): A2 "51 파일" 은 49 (비테스트 35). ADR-051 breakdown "Phase 0 대기" 는 `featureFlags.ts:35` `USE_CANVAS2D_MEASURE = true` 와 어긋남 (B6 그대로).

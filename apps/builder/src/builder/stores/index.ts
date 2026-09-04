@@ -244,14 +244,12 @@ export const useSelectedElementData = (): SelectedElement | null => {
       // legacy elementsMap fallback 으로 선택 데이터를 되살리지 않는다.
       return null;
     } else {
-      // legacy mode — getState()로 동기적 읽기 (구독 없음)
-      const { elements: legacyElements = [] } = useStore.getState();
-      element = legacyElements.find(
-        (candidate) => candidate.id === selectedElementId,
-      );
+      // canonical hydration 전 bootstrap cache — getState() 동기 read, 구독 없음.
+      const { elementsMap } = useStore.getState();
+      element = elementsMap.get(selectedElementId) as Element | undefined;
       if (!element) return null;
       resolvedElement = isCanonicalRefElement(element)
-        ? resolveCanonicalRefElement(element, legacyElements)
+        ? resolveCanonicalRefElement(element, elementsMap.values())
         : element;
     }
 

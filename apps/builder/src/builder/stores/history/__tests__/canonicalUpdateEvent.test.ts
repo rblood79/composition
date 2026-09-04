@@ -45,13 +45,16 @@ function makeDoc(): CompositionDocument {
 }
 
 describe("buildCanonicalUpdateEvent + apply", () => {
-  it("collects active-document results through canonical traversal visitor", async () => {
+  it("collects active-document results through the cached projectable lookup index", async () => {
     const source = await readFile(
       resolve(__dirname, "..", "canonicalHistoryEvents.ts"),
       "utf8",
     );
 
-    expect(source).toContain("visitCanonicalDocumentElements");
+    expect(source).toContain("getProjectableNodeLookups");
+    expect(source).toContain("canonicalNodeToElement");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getCanonicalDocumentElementsView");
     expect(source).not.toContain("canonicalDocumentToElements");
   });
 

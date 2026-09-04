@@ -1,5 +1,6 @@
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
-import { getCanonicalDocumentElementsView } from "../../../builder/stores/canonical/canonicalElementsView";
+import { canonicalNodeToElement } from "../../../builder/stores/canonical/canonicalElementsView";
+import { getProjectableNodeLookups } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
 import { getStoreState } from "../../../builder/stores";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "../../../types/builder/unified.types";
@@ -47,9 +48,14 @@ function getActiveCanonicalProjectionForAiTools(): AiToolElementProjection | nul
   const cached = canonicalProjectionCache.get(doc);
   if (cached) return cached;
 
-  const elements = [
-    ...getCanonicalDocumentElementsView(doc).elements,
-  ] as Element[];
+  const elements: Element[] = [];
+  for (const lookup of getProjectableNodeLookups()) {
+    const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
+      pageId: lookup.pageId,
+      layoutId: lookup.layoutId,
+    });
+    if (element) elements.push(element);
+  }
   const projection = buildAiToolElementProjection(elements);
   canonicalProjectionCache.set(doc, projection);
   return projection;

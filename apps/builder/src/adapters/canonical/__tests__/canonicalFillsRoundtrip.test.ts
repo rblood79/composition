@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element } from "@/types/builder/unified.types";
-import type { LegacyLayoutRecord } from "../types";
+import type { ReusableFrameLayoutInput } from "../types";
 import { FillType, type FillItem } from "@/types/builder/fill.types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { canonicalDocumentToElements } from "../../../builder/stores/canonical/canonicalElementsView";
@@ -48,7 +48,7 @@ function makeElement(
   } as TestElement;
 }
 
-function makeLayout(id: string): LegacyLayoutRecord {
+function makeLayout(id: string): ReusableFrameLayoutInput {
   return {
     id,
     name: id,

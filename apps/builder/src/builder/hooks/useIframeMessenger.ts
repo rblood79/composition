@@ -94,8 +94,7 @@ function getElementForPreviewSelection(elementId: string): Element | null {
     return getActiveCanonicalElementById(elementId);
   }
 
-  const { elements: legacyElements } = useStore.getState();
-  return legacyElements.find((element) => element.id === elementId) ?? null;
+  return (useStore.getState().elementsMap.get(elementId) as Element) ?? null;
 }
 
 function filterNewPreviewGeneratedElements(elements: Element[]): Element[] {
@@ -105,9 +104,8 @@ function filterNewPreviewGeneratedElements(elements: Element[]): Element[] {
     return elements.filter((element) => !existingElementIds.has(element.id));
   }
 
-  const { elements: legacyElements } = useStore.getState();
-  const legacyElementIds = new Set(legacyElements.map((element) => element.id));
-  return elements.filter((element) => !legacyElementIds.has(element.id));
+  const { elementsMap } = useStore.getState();
+  return elements.filter((element) => !elementsMap.has(element.id));
 }
 
 export interface UseIframeMessengerReturn {

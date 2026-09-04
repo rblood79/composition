@@ -3,6 +3,8 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type {
   CanonicalNode,
   CompositionDocument,
@@ -13,7 +15,6 @@ import type {
 
 import {
   canonicalDocumentToElements,
-  getCanonicalDocumentElementsView,
   isCanonicalDocumentElementProjection,
 } from "../canonicalElementsView";
 
@@ -443,8 +444,18 @@ describe("canonicalDocumentToElements", () => {
 //   (Button 선례 동형, canonical props → element 변환은 위 describe 가 직접 커버). 시각은
 //   catalog rule(COMPONENT_RULES_TABLE) + buildCatalogShapes generic box 경로.
 
-describe("getCanonicalDocumentElementsView", () => {
-  it("caches the view per document reference (same doc → same view object)", () => {
+describe("canonical document element projection cache", () => {
+  it("aggregate view/traversal helper를 production export로 다시 노출하지 않는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "../canonicalElementsView.ts"),
+      "utf-8",
+    );
+    expect(source).not.toMatch(
+      /export function (?:getCanonicalDocumentElementsView|visitCanonicalDocumentElements)/,
+    );
+  });
+
+  it("문서 참조별 변환 element를 재사용하고 반환 배열만 격리한다", () => {
     const doc = makeDoc([
       {
         id: "button-1",
@@ -453,18 +464,16 @@ describe("getCanonicalDocumentElementsView", () => {
       },
     ]);
 
-    const first = getCanonicalDocumentElementsView(doc);
-    const second = getCanonicalDocumentElementsView(doc);
+    const first = canonicalDocumentToElements(doc);
+    const second = canonicalDocumentToElements(doc);
 
-    expect(second).toBe(first);
-    expect(second.elements).toBe(first.elements);
-    expect(second.byId).toBe(first.byId);
-    expect(isCanonicalDocumentElementProjection(first.elements, doc)).toBe(
-      true,
-    );
+    expect(second).not.toBe(first);
+    expect(second[0]).toBe(first[0]);
+    expect(isCanonicalDocumentElementProjection(first, doc)).toBe(true);
+    expect(isCanonicalDocumentElementProjection(second, doc)).toBe(true);
   });
 
-  it("rebuilds the view for a new document reference (clone-on-write)", () => {
+  it("clone-on-write 문서 참조가 바뀌면 projection을 재구축한다", () => {
     const doc = makeDoc([
       { id: "button-1", type: "Button", props: { variant: "primary" } },
     ]);
@@ -472,19 +481,17 @@ describe("getCanonicalDocumentElementsView", () => {
       { id: "button-1", type: "Button", props: { variant: "secondary" } },
     ]);
 
-    const first = getCanonicalDocumentElementsView(doc);
-    const second = getCanonicalDocumentElementsView(cloned);
+    const first = canonicalDocumentToElements(doc);
+    const second = canonicalDocumentToElements(cloned);
 
-    expect(second).not.toBe(first);
-    expect(isCanonicalDocumentElementProjection(first.elements, cloned)).toBe(
-      false,
-    );
-    expect(second.byId.get("button-1")?.props).toMatchObject({
+    expect(second[0]).not.toBe(first[0]);
+    expect(isCanonicalDocumentElementProjection(first, cloned)).toBe(false);
+    expect(second[0]?.props).toMatchObject({
       variant: "secondary",
     });
   });
 
-  it("matches canonicalDocumentToElements output and indexes every element by id", () => {
+  it("source order대로 모든 projectable element를 반환한다", () => {
     const doc = makeDoc([
       {
         id: "section-1",
@@ -497,28 +504,19 @@ describe("getCanonicalDocumentElementsView", () => {
       },
     ]);
 
-    const view = getCanonicalDocumentElementsView(doc);
-    const reference = canonicalDocumentToElements(doc);
-
-    expect(view.elements).toEqual(reference);
-    expect([...view.byId.keys()].sort()).toEqual(
-      reference.map((element) => element.id).sort(),
-    );
-    expect(view.byId.get("button-2")).toBe(
-      view.elements.find((element) => element.id === "button-2"),
-    );
+    expect(
+      canonicalDocumentToElements(doc).map((element) => element.id),
+    ).toEqual(["section-1", "button-1", "button-2"]);
   });
 
-  it("keeps last-match semantics for duplicate ids (traversal parity)", () => {
+  it("duplicate id도 traversal occurrence와 순서를 보존한다", () => {
     const doc = makeDoc([
       { id: "dup", type: "Button", props: { children: "first" } },
       { id: "dup", type: "Button", props: { children: "last" } },
     ]);
 
-    const view = getCanonicalDocumentElementsView(doc);
-
-    // 기존 findElementInCanonicalDocument (전체 순회 + 재할당) 는 마지막 매치를
-    // 반환했다 — byId 도 동일해야 소비처 의미가 보존된다.
-    expect(view.byId.get("dup")?.props).toMatchObject({ children: "last" });
+    expect(
+      canonicalDocumentToElements(doc).map((element) => element.props.children),
+    ).toEqual(["first", "last"]);
   });
 });

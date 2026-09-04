@@ -158,13 +158,13 @@ function getCanonicalOrBootstrapBuilderElements(state: {
   pages?: Array<{ id: string }>;
 }): Element[] {
   const canonicalElements = getActiveCanonicalBuilderElements();
-  const { elements: legacyElements = [] } = state;
+  const bootstrapElements = state.elements ?? [];
   if (canonicalElements) {
     const canonicalIds = new Set(
       canonicalElements.map((element) => element.id),
     );
     const pageIds = new Set((state.pages ?? []).map((page) => page.id));
-    const missingPageBodyShells = legacyElements.filter(
+    const missingPageBodyShells = bootstrapElements.filter(
       (element) =>
         !canonicalIds.has(element.id) &&
         element.type === "body" &&
@@ -176,7 +176,7 @@ function getCanonicalOrBootstrapBuilderElements(state: {
       ? [...canonicalElements, ...missingPageBodyShells]
       : canonicalElements;
   }
-  return legacyElements;
+  return bootstrapElements;
 }
 
 function getPageShellBridgeElements(state: {

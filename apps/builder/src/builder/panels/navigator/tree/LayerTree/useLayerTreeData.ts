@@ -21,8 +21,12 @@ import {
 import type { LayerTreeNode, VirtualChildType } from "./types";
 import type { PanelNode } from "../../../panelNode";
 
-const EMPTY_ELEMENTS: PanelNode[] = [];
 type LegacyTreeElement = Parameters<typeof buildTreeFromElements>[0][number];
+
+interface CanonicalLayerSource {
+  elements: PanelNode[];
+  elementsById: Map<string, PanelNode>;
+}
 
 function asElementLike(element: PanelNode): LegacyTreeElement {
   return element as unknown as LegacyTreeElement;
@@ -38,25 +42,18 @@ export function useLayerTreeData(elements: PanelNode[]) {
   );
 
   // ADR-116 direct cutover — canonical store 의 active document 에서 derived
-  // panel read model 을 사용. 초기 hydration 전에는 caller elements[] fallback.
+  // panel read model 을 사용. caller 의 page snapshot 은 선택 직후의 live child를
+  // 보강하되 전역 legacy elements 배열은 구독하지 않는다.
   const canonicalElements = useCanonicalPanelElements();
   const frameElementScopes = useCanonicalFrameElementScopes();
-  const storeElements = useStore((state) => {
-    if (canonicalElements) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements ?? EMPTY_ELEMENTS;
-  });
-  const resolutionElementsMap = useMemo(() => {
-    const sourceElements = canonicalElements ?? storeElements;
-    const map = new Map(sourceElements.map((element) => [element.id, element]));
-    for (const element of elements) {
-      if (!map.has(element.id)) map.set(element.id, element);
-    }
-    return map;
-  }, [canonicalElements, elements, storeElements]);
+  const canonicalLayerSource = useMemo(
+    () => buildCanonicalLayerSource(canonicalElements, elements),
+    [canonicalElements, elements],
+  );
+  const resolutionElementsMap = canonicalLayerSource.elementsById;
 
   const sourceElements = useMemo(() => {
-    const baseElements = mergeCanonicalLayerSource(canonicalElements, elements);
+    const baseElements = canonicalLayerSource.elements;
     if (!currentPageId) return baseElements;
     const currentPage = pages.find((page) => page.id === currentPageId);
     const boundFrameId = currentPage ? getPageFrameBindingId(currentPage) : "";
@@ -107,8 +104,7 @@ export function useLayerTreeData(elements: PanelNode[]) {
       ...resolvedPageElements,
     ] as unknown as PanelNode[];
   }, [
-    elements,
-    canonicalElements,
+    canonicalLayerSource,
     currentPageId,
     frameElementScopes,
     pages,
@@ -136,15 +132,20 @@ export function useLayerTreeData(elements: PanelNode[]) {
     [projectedElements],
   );
 
+  const projectedElementsMap = useMemo(
+    () => new Map(projectedElements.map((element) => [element.id, element])),
+    [projectedElements],
+  );
+
   const treeNodes = useMemo(
     () =>
       convertToLayerTreeNodes(
         elementTree,
-        projectedElements,
+        projectedElementsMap,
         resolutionElementsMap,
         collections,
       ),
-    [elementTree, projectedElements, resolutionElementsMap, collections],
+    [elementTree, projectedElementsMap, resolutionElementsMap, collections],
   );
 
   // nodeMap: treeNodes 기반 O(1) 조회용 맵
@@ -222,22 +223,30 @@ export function useLayerTreeData(elements: PanelNode[]) {
   return { tree, treeNodes, nodeMap, focusNodeMap, disabledKeys, syncToStore };
 }
 
-function mergeCanonicalLayerSource(
+function buildCanonicalLayerSource(
   canonicalElements: readonly PanelNode[] | null,
   layerElements: PanelNode[],
-): PanelNode[] {
-  if (!canonicalElements) return layerElements;
+): CanonicalLayerSource {
+  const sourceElements = canonicalElements ?? layerElements;
   const elementsById = new Map(
-    canonicalElements.map((element) => [element.id, element]),
+    sourceElements.map((element) => [element.id, element]),
   );
 
-  for (const element of layerElements) {
-    if (!elementsById.has(element.id)) {
-      elementsById.set(element.id, element);
+  if (canonicalElements) {
+    for (const element of layerElements) {
+      if (!elementsById.has(element.id)) {
+        elementsById.set(element.id, element);
+      }
     }
   }
 
-  return Array.from(elementsById.values());
+  return {
+    elements:
+      canonicalElements === null
+        ? layerElements
+        : Array.from(elementsById.values()),
+    elementsById,
+  };
 }
 
 function dedupeLayerElementsById(elements: PanelNode[]): PanelNode[] {
@@ -256,24 +265,22 @@ function dedupeLayerElementsById(elements: PanelNode[]): PanelNode[] {
 
 function convertToLayerTreeNodes(
   tree: ElementTreeItem[],
-  elements: PanelNode[],
+  elementsById: ReadonlyMap<string, PanelNode>,
   persistedElementsMap: Map<string, PanelNode>,
   collections: Parameters<
     typeof buildListBoxRowProjectionGroup
   >[0]["collections"],
   depth = 0,
 ): LayerTreeNode[] {
-  const elementsMap = new Map(elements.map((el) => [el.id, el]));
-
   return tree.flatMap((item): LayerTreeNode[] => {
-    const element = elementsMap.get(item.id);
+    const element = elementsById.get(item.id);
     if (!element) return [];
     const persistedElement = persistedElementsMap.get(item.id);
 
     const childNodes = item.children
       ? convertToLayerTreeNodes(
           item.children,
-          elements,
+          elementsById,
           persistedElementsMap,
           collections,
           depth + 1,

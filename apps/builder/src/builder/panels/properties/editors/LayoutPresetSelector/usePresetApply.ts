@@ -13,18 +13,13 @@
 import { useCallback, useMemo, useState } from "react";
 import { useStore } from "../../../../stores";
 import { historyManager } from "../../../../stores/history";
-import {
-  useCanonicalFrameElementScopes,
-  visitCanonicalDocumentElements,
-} from "../../../../stores/canonical/canonicalElementsView";
+import { useCanonicalFrameElementScopes } from "../../../../stores/canonical/canonicalElementsView";
 import {
   useCanonicalPropertyChildrenMap,
   useCanonicalPropertyElement,
   useCanonicalPropertyElements,
   useCanonicalPropertyElementsMap,
 } from "../../hooks/useCanonicalPropertyRead";
-import { getActiveCanonicalDocument } from "../../../../stores/canonical/canonicalElementsBridge";
-import { useCanonicalDocumentStore } from "../../../../stores/canonical/canonicalDocumentStore";
 import { LAYOUT_PRESETS } from "./presetDefinitions";
 import {
   normalizeFramePresetContainerStyle,
@@ -41,8 +36,6 @@ import { isLegacyFrameElementForFrame } from "../../../../../adapters/canonical/
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import { withFrameElementMirrorId } from "../../../../../adapters/canonical/frameMirror";
 import { getSlotMirrorName } from "../../../../../adapters/canonical/slotMirror";
-import { setElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
-import { getDB } from "../../../../../lib/db";
 
 export { normalizeFramePresetContainerStyle } from "./presetStyle";
 
@@ -89,16 +82,6 @@ function buildElementMap(
     combined.set(element.id, element);
   }
   return combined;
-}
-
-function collectPresetSourceElements(
-  doc: Parameters<typeof visitCanonicalDocumentElements>[0],
-): PresetElementNode[] {
-  const elements: PresetElementNode[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
-  return elements;
 }
 
 function hasSlotChildren(
@@ -167,67 +150,6 @@ export function collectExistingFrameSlots({
       ),
     };
   });
-}
-
-export function filterElementsForPresetSlotReplace(
-  elements: PresetElementNode[],
-  slotIds: ReadonlySet<string>,
-): PresetElementNode[] {
-  if (slotIds.size === 0) return elements;
-  return elements.filter((element) => !slotIds.has(element.id));
-}
-
-async function persistActiveCanonicalDocument(
-  db: Awaited<ReturnType<typeof getDB>>,
-): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-
-  await db.documents.put(projectId, doc);
-}
-
-/**
- * canonical 에서 preset slot 제거 — **메모리만**, 동기.
- *
- * IndexedDB 영속화를 여기서 떼어낸 이유: 이 함수는 history 트랜잭션 안에서 호출되고,
- * 트랜잭션이 열려 있는 동안 일어나는 무관한 mutation 은 같은 엔트리로 병합된다. IDB
- * 왕복(`await`)을 창 안에 두면 그만큼 창이 넓어진다. 영속화는 호출부가 커밋 뒤에 한다.
- *
- * @returns canonical 이 실제로 바뀌었는가 (영속화 필요 여부)
- */
-function removeCanonicalPresetSlotsInMemory(slotIds: string[]): boolean {
-  if (slotIds.length === 0) return false;
-
-  const doc = getActiveCanonicalDocument();
-  if (!doc) return false;
-
-  const slotIdSet = new Set(slotIds);
-  const sourceElements = collectPresetSourceElements(doc);
-  const filteredElements = filterElementsForPresetSlotReplace(
-    sourceElements,
-    slotIdSet,
-  );
-
-  if (filteredElements.length === sourceElements.length) return false;
-
-  setElementsCanonicalPrimary(filteredElements);
-  return true;
-}
-
-/** canonical document 영속화 — 트랜잭션 **밖**에서 호출한다 (위 함수 주석 참조). */
-async function persistCanonicalPresetSlotRemoval(): Promise<void> {
-  try {
-    const db = await getDB();
-    await persistActiveCanonicalDocument(db);
-  } catch (error) {
-    console.warn(
-      "⚠️ [IndexedDB] preset slot 교체 반영 중 오류 (메모리는 정상):",
-      error,
-    );
-  }
 }
 
 interface UsePresetApplyOptions {
@@ -429,8 +351,6 @@ export function usePresetApply({
           ? existingSlots.map((slot) => slot.elementId)
           : [];
 
-      let needsCanonicalPersist = false;
-
       try {
         // ── history 트랜잭션 창 (동기 블록 — 안에서 await 금지) ─────────────
         // 창이 열려 있는 동안의 addEntry 는 모두 한 엔트리로 병합된다. 그래서 창 안에서
@@ -452,9 +372,6 @@ export function usePresetApply({
 
             if (existingSlotIds.length > 0) {
               writes.push(removeElements(existingSlotIds));
-              // 메모리만 — IDB 영속화는 창 밖(아래 finally)에서
-              needsCanonicalPersist =
-                removeCanonicalPresetSlotsInMemory(existingSlotIds);
             }
 
             if (bodyWrite) {
@@ -489,7 +406,6 @@ export function usePresetApply({
         console.error("[Preset] Failed to apply preset:", error);
         throw error;
       } finally {
-        if (needsCanonicalPersist) await persistCanonicalPresetSlotRemoval();
         setIsApplying(false);
       }
     },

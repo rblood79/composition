@@ -36,7 +36,7 @@ import type {
 import type {
   ConvertSlotElementFn,
   ConvertPageLayoutFn,
-  LegacyLayoutRecord,
+  ReusableFrameLayoutInput,
 } from "./types";
 import { tagToType, isLegacySlotTag } from "./tagRename";
 import { buildLegacyElementMetadata } from "./legacyMetadata";
@@ -214,7 +214,7 @@ export function buildSlotPathMap(
  * @param layoutElements - 해당 layout_id로 필터링된 Element 배열 (호출자 책임)
  */
 export function convertLayoutToReusableFrame(
-  layout: LegacyLayoutRecord,
+  layout: ReusableFrameLayoutInput,
   layoutElements: Element[],
 ): CanonicalNode {
   const idPathCtx = buildIdPathContext(layoutElements);

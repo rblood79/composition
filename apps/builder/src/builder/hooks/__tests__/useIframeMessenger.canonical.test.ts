@@ -163,13 +163,15 @@ describe("Builder → Preview canonical 단일 채널", () => {
       expect(source).not.toContain("canonicalElementSnapshot");
       expect(source).not.toContain("useStore.getState().elements.find");
       expect(source).not.toContain("useStore.getState().elements.map");
+      expect(source).toContain(
+        "useStore.getState().elementsMap.get(elementId)",
+      );
+      expect(source).toContain("!elementsMap.has(element.id)");
+      expect(source).not.toContain("legacyElements");
       expect(source).not.toContain(
         ["const elementsMap = useStore((state) => state", "elementsMap);"].join(
           ".",
         ),
-      );
-      expect(source).not.toContain(
-        "const { elementsMap } = useStore.getState();",
       );
     });
 

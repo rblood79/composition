@@ -19,7 +19,7 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).toContain(
       "return buildCanonicalSceneModel(activeCanonicalDocument, {",
     );
-    expect(source).toContain("buildLegacyCanvasSceneGraph");
+    expect(source).not.toContain("buildLegacyCanvasSceneGraph");
     expect(source).not.toContain("getSceneModelElementsLegacy");
     expect(source).not.toContain("getSceneModelElementsMapLegacy");
     expect(source).not.toContain("getSceneModelChildrenByParentLegacy");
@@ -27,18 +27,18 @@ describe("BuilderCanvas canonical projection contract", () => {
       new RegExp(
         [
           "const sceneNodes =\\s*",
-          "canonicalSceneModel\\?\\.sceneNodes \\?\\? legacySceneGraph\\.nodes",
+          "canonicalSceneModel\\?\\.sceneNodes \\?\\? EMPTY_SCENE_NODES",
         ].join(""),
       ),
     );
     expect(source).toMatch(
-      /const sceneNodesMap =\s*canonicalSceneModel\?\.sceneNodesMap \?\? legacySceneGraph\.nodesMap;/,
+      /const sceneNodesMap =\s*canonicalSceneModel\?\.sceneNodesMap \?\? EMPTY_SCENE_NODES_MAP;/,
     );
     expect(source).toMatch(
-      /const sceneChildrenByParent =\s*canonicalSceneModel\?\.sceneChildrenByParent \?\?\s*legacySceneGraph\.childrenByParent;/,
+      /const sceneChildrenByParent =\s*canonicalSceneModel\?\.sceneChildrenByParent \?\?\s*EMPTY_SCENE_CHILDREN_MAP;/,
     );
     expect(source).toContain(
-      "const scenePageIndex = canonicalSceneModel?.pageIndex ?? pageIndex;",
+      "const scenePageIndex = canonicalSceneModel?.pageIndex ?? EMPTY_PAGE_INDEX;",
     );
     expect(source).not.toContain("return rebuildPageIndex(");
     expect(source).not.toContain(
@@ -105,15 +105,14 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(slotGuardBlock).toContain("setSelectedElements([])");
   });
 
-  it("tags scene snapshots with canonical vs legacy-bootstrap source", async () => {
+  it("tags scene snapshots as canonical even before document readiness", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderCanvas.tsx"),
       "utf-8",
     );
 
-    expect(source).toContain(
-      'source: canonicalSceneModel ? "canonical" : "legacy-bootstrap"',
-    );
+    expect(source).toContain('source: "canonical"');
+    expect(source).not.toContain("legacy-bootstrap");
   });
 
   it("uses the transient viewport presentation for live page culling", async () => {

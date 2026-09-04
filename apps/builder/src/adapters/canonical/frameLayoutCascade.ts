@@ -11,7 +11,7 @@ import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import { getLegacyLayoutId, withLegacyLayoutId } from "./legacyElementFields";
 import { getPageOwnedChildrenFromFrameRef } from "./pageFrameRefChildren";
-import type { LegacyLayoutRecord } from "./types";
+import type { ReusableFrameLayoutInput } from "./types";
 
 interface ElementsStateForFrameLayoutCascade {
   elements?: Element[];
@@ -21,7 +21,7 @@ interface ElementsStateForFrameLayoutCascade {
 
 interface ApplyDeleteReusableFrameInput {
   frameId: string;
-  layouts: LegacyLayoutRecord[];
+  layouts: ReusableFrameLayoutInput[];
   getElementsState: () => ElementsStateForFrameLayoutCascade;
   setPages: (pages: Page[]) => void;
 }
@@ -57,7 +57,7 @@ function findReusableFrame(
 
 function getProjectId(
   pages: Page[],
-  layouts: LegacyLayoutRecord[],
+  layouts: ReusableFrameLayoutInput[],
 ): string | null {
   return (
     pages.find((page) => page.project_id)?.project_id ??
@@ -68,7 +68,7 @@ function getProjectId(
 
 function getCurrentCanonicalDocument(
   pages: Page[],
-  layouts: LegacyLayoutRecord[],
+  layouts: ReusableFrameLayoutInput[],
 ): CompositionDocument {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId ?? getProjectId(pages, layouts);
@@ -83,7 +83,7 @@ function getCurrentCanonicalDocument(
 function setCanonicalDocument(
   doc: CompositionDocument,
   pages: Page[],
-  layouts: LegacyLayoutRecord[],
+  layouts: ReusableFrameLayoutInput[],
 ): void {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId ?? getProjectId(pages, layouts);

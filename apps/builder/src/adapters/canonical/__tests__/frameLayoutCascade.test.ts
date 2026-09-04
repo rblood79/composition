@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { LegacyLayoutRecord } from "../types";
+import type { ReusableFrameLayoutInput } from "../types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { applyDeleteReusableFrameCanonicalPrimary } from "../frameLayoutCascade";
 
@@ -50,7 +50,7 @@ describe("frameLayoutCascade page-frame unbinding", () => {
       id: "frame-1",
       name: "Frame 1",
       project_id: "project-1",
-    } as LegacyLayoutRecord;
+    } as ReusableFrameLayoutInput;
     useCanonicalDocumentStore.getState().setCurrentProject("project-1");
     useCanonicalDocumentStore.getState().setDocument(
       "project-1",

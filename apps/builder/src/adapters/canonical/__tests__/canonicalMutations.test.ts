@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
 import type { Element, Page } from "@/types/builder/unified.types";
-import type { LegacyLayoutRecord } from "../types";
+import type { ReusableFrameLayoutInput } from "../types";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
 import { canonicalDocumentToElements } from "../../../builder/stores/canonical/canonicalElementsView";
 import {
@@ -60,7 +60,7 @@ function makePage(id: string): LegacyTestPage {
   } as LegacyTestPage;
 }
 
-function makeLayout(id: string): LegacyLayoutRecord {
+function makeLayout(id: string): ReusableFrameLayoutInput {
   return {
     id,
     name: id,

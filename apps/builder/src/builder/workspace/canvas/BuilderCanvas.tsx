@@ -106,6 +106,8 @@ import {
   buildVisiblePageSet,
   createResolvedProjectionSignature,
 } from "./scene";
+import type { CanvasSceneNode } from "./scene/canvasSceneNode";
+import type { PageElementIndex } from "../../stores/utils/elementIndexer";
 import {
   getViewportPresentationSnapshot,
   subscribeViewportPresentation,
@@ -116,7 +118,6 @@ import {
   collectionWindowSignature,
 } from "./scene/collectionVirtualization";
 import { useScrollState } from "../../stores/scrollState";
-import { buildLegacyCanvasSceneGraph } from "../../stores/canonical/canonicalSceneModelLegacy";
 import {
   computeWorkflowEdges,
   computeDataSourceEdges,
@@ -166,7 +167,13 @@ interface PageTitleHitSnapshot {
 
 const DEFAULT_WIDTH = 1920;
 const DEFAULT_HEIGHT = 1080;
-const EMPTY_ELEMENTS: never[] = [];
+const EMPTY_SCENE_NODES: CanvasSceneNode[] = [];
+const EMPTY_SCENE_NODES_MAP = new Map<string, CanvasSceneNode>();
+const EMPTY_SCENE_CHILDREN_MAP = new Map<string, CanvasSceneNode[]>();
+const EMPTY_PAGE_INDEX: PageElementIndex = {
+  elementsByPage: new Map(),
+  rootsByPage: new Map(),
+};
 
 function computeStackedCanvasPosition(
   index: number,
@@ -338,12 +345,6 @@ export function BuilderCanvas({
     sceneActiveBreakpoint,
   ]);
 
-  // Store state
-  const storeElements = useStore((state) => {
-    if (activeCanonicalDocument) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements;
-  });
   const pages = useStore((state) => state.pages);
   const currentEditMode = useEditModeStore((state) => state.mode);
   const isFrameEditMode = currentEditMode === "layout";
@@ -427,19 +428,14 @@ export function BuilderCanvas({
     getSnapCandidateFrames,
   );
 
-  // ADR-122 Phase 3: active canonical document 가 있으면 Skia scene input은
-  // Builder store mirror 가 아니라 canonical document 에서 만든 scene model을
-  // 직접 사용한다. store mirror 는 hydration fallback 으로만 남긴다.
-  const legacySceneGraph = useMemo(
-    () => buildLegacyCanvasSceneGraph(storeElements),
-    [storeElements],
-  );
-  const sceneNodes = canonicalSceneModel?.sceneNodes ?? legacySceneGraph.nodes;
+  // Matching canonical document가 준비되기 전에는 빈 scene을 유지한다. Builder
+  // chrome은 matching Skia 첫 frame 제출까지 숨겨지므로 legacy store projection을
+  // 만들거나 구독할 필요가 없다.
+  const sceneNodes = canonicalSceneModel?.sceneNodes ?? EMPTY_SCENE_NODES;
   const sceneNodesMap =
-    canonicalSceneModel?.sceneNodesMap ?? legacySceneGraph.nodesMap;
+    canonicalSceneModel?.sceneNodesMap ?? EMPTY_SCENE_NODES_MAP;
   const sceneChildrenByParent =
-    canonicalSceneModel?.sceneChildrenByParent ??
-    legacySceneGraph.childrenByParent;
+    canonicalSceneModel?.sceneChildrenByParent ?? EMPTY_SCENE_CHILDREN_MAP;
   const elementById = sceneNodesMap;
 
   // ADR-006 P3-1: dirtyElementIds 소비 후 초기화
@@ -466,8 +462,7 @@ export function BuilderCanvas({
   const pageLayoutDirection = useStore((state) => state.pageLayoutDirection);
   const pageGap = useStore((state) => state.pageGap);
 
-  const pageIndex = useStore((state) => state.pageIndex);
-  const scenePageIndex = canonicalSceneModel?.pageIndex ?? pageIndex;
+  const scenePageIndex = canonicalSceneModel?.pageIndex ?? EMPTY_PAGE_INDEX;
 
   // ADR-916 2-C 안 A: projection content signature 를 pan/zoom 독립 useMemo 로
   // 분리. 벤치상 이 계산(전체 elements stableSerialize)이 buildScene 비용의
@@ -512,13 +507,12 @@ export function BuilderCanvas({
       pages: scenePages,
       panOffset,
       precomputedProjectionSignature: projectionContentSignature,
-      source: canonicalSceneModel ? "canonical" : "legacy-bootstrap",
+      source: "canonical",
       visiblePageIdsOverride: transientVisiblePageIds ?? undefined,
       zoom,
     });
   }, [
     containerSize,
-    canonicalSceneModel,
     currentPageId,
     isFrameEditMode,
     layoutVersion,

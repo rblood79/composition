@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 import type { CanonicalFrameElementScope } from "../../../../../adapters/canonical/frameElementScope";
 import {
   collectExistingFrameSlots,
-  filterElementsForPresetSlotReplace,
   normalizeFramePresetContainerStyle,
 } from "./usePresetApply";
 
@@ -45,9 +44,10 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     );
     // 슬롯 전체를 한 번에 넘기는 batch 호출 (await 는 창 밖에서 — 동기 창 계약)
     expect(source).toContain("writes.push(removeElements(existingSlotIds));");
-    expect(source).toContain(
-      "removeCanonicalPresetSlotsInMemory(existingSlotIds);",
-    );
+    expect(source).not.toContain("removeCanonicalPresetSlotsInMemory");
+    expect(source).not.toContain("setElementsCanonicalPrimary");
+    expect(source).not.toContain("visitCanonicalDocumentElements");
+    expect(source).not.toContain("getCanonicalDocumentElementsView");
     expect(source).toContain("useCanonicalPropertyElements");
     expect(source).toContain("useCanonicalPropertyElementsMap");
     expect(source).not.toContain("useCanonicalElements");
@@ -119,24 +119,6 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
         hasChildren: false,
       },
     ]);
-  });
-
-  it("filters canonical-only slots before replacing a frame preset", () => {
-    const body = makeElement("frame-body", "body");
-    const oldSlot = makeElement("slot-content", "Slot", {
-      parent_id: "frame-body",
-      props: { name: "content" },
-    });
-    const text = makeElement("text-content", "Text", {
-      parent_id: "frame-body",
-    });
-
-    expect(
-      filterElementsForPresetSlotReplace(
-        [body, oldSlot, text],
-        new Set(["slot-content"]),
-      ).map((element) => element.id),
-    ).toEqual(["frame-body", "text-content"]);
   });
 });
 

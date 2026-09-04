@@ -48,7 +48,7 @@ import {
   withFrameElementMirrorId,
 } from "../../../adapters/canonical/frameMirror";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { getActiveCanonicalDocumentElementsView } from "../canonical/canonicalElementsView";
+import { getActiveCanonicalDocumentElementProjection } from "../canonical/canonicalElementsView";
 import { generateCustomId } from "../../utils/idGeneration";
 
 type CanonicalElementFields = {
@@ -132,7 +132,7 @@ function findInstanceActionElement(
 }
 
 function getInstanceActionSourceElements(): readonly Element[] {
-  return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS;
+  return getActiveCanonicalDocumentElementProjection() ?? EMPTY_ELEMENTS;
 }
 
 function withInstanceActionSourceState(

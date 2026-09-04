@@ -27,6 +27,10 @@ import {
 } from "./canonical/canonicalTraversalHelpers";
 import { normalizeElementTags } from "./utils/elementTagNormalizer";
 import type { StoreElementCacheMap } from "./elements";
+import {
+  getPageElements as getPageElementsFromIndex,
+  type PageElementIndex,
+} from "./utils/elementIndexer";
 
 // ============================================
 // Types
@@ -94,6 +98,7 @@ export type ElementLoaderSlice = LoaderState & ElementLoaderActions;
 interface ElementsStateMinimal {
   elements: Element[];
   elementsMap: StoreElementCacheMap;
+  pageIndex: PageElementIndex;
   pageElementsSnapshot: Record<string, Element[]>;
   currentPageId: string | null;
   selectedElementId: string | null;
@@ -132,7 +137,7 @@ function getActiveCanonicalPageElements(pageId: string): Element[] | null {
 }
 
 function getPageElementsFromRuntimeState(
-  state: Pick<ElementsStateMinimal, "elements">,
+  state: Pick<ElementsStateMinimal, "elementsMap" | "pageIndex">,
   pageId: string,
 ): Element[] {
   const canonicalElements = getActiveCanonicalPageElements(pageId);
@@ -140,12 +145,11 @@ function getPageElementsFromRuntimeState(
     return canonicalElements;
   }
 
-  const { elements: legacyElements } = state;
-  return legacyElements.filter((element) => element.page_id === pageId);
+  return getPageElementsFromIndex(state.pageIndex, pageId, state.elementsMap);
 }
 
 function findElementFromRuntimeState(
-  state: Pick<ElementsStateMinimal, "elements">,
+  state: Pick<ElementsStateMinimal, "elementsMap">,
   elementId: string,
 ): Element | null {
   const canonical = useCanonicalDocumentStore.getState();
@@ -156,8 +160,7 @@ function findElementFromRuntimeState(
     return lookup ? projectCanonicalLookup(lookup) : null;
   }
 
-  const { elements: legacyElements } = state;
-  return legacyElements.find((element) => element.id === elementId) ?? null;
+  return (state.elementsMap.get(elementId) as Element) ?? null;
 }
 
 // ============================================

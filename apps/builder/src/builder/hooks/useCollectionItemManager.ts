@@ -20,8 +20,9 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { useStore } from "../stores";
-import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { canonicalNodeToElement } from "../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../stores/canonical/canonicalElementsBridge";
+import { getProjectableNodeLookups } from "../stores/canonical/canonicalTraversalHelpers";
 import { ElementUtils } from "../../utils/element/elementUtils";
 
 interface CollectionItemNode {
@@ -40,29 +41,19 @@ const EMPTY_CHILDREN: CollectionItemNode[] = [];
 
 function useCollectionChildren(elementId: string): CollectionItemNode[] {
   const canonicalDocument = useActiveCanonicalDocument();
-  const canonicalChildren = useMemo(() => {
-    if (!canonicalDocument) return null;
-    const children: CollectionItemNode[] = [];
-    visitCanonicalDocumentElements(canonicalDocument, (element) => {
-      if (!element.deleted && element.parent_id === elementId) {
-        children.push(element);
-      }
-    });
-    return children;
-  }, [canonicalDocument, elementId]);
-  const storeElements = useStore((state) => {
-    if (canonicalChildren) return EMPTY_CHILDREN;
-    const { elements: legacyElements } = state;
-    return legacyElements ?? EMPTY_CHILDREN;
-  });
-
   return useMemo(() => {
-    const sourceElements = canonicalChildren ?? storeElements;
-    if (sourceElements.length === 0) return EMPTY_CHILDREN;
-    return sourceElements.filter(
-      (element) => !element.deleted && element.parent_id === elementId,
-    );
-  }, [canonicalChildren, elementId, storeElements]);
+    if (!canonicalDocument) return EMPTY_CHILDREN;
+    const children: CollectionItemNode[] = [];
+    for (const lookup of getProjectableNodeLookups()) {
+      if (lookup.parentId !== elementId) continue;
+      const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
+        pageId: lookup.pageId,
+        layoutId: lookup.layoutId,
+      });
+      if (element && !element.deleted) children.push(element);
+    }
+    return children.length > 0 ? children : EMPTY_CHILDREN;
+  }, [canonicalDocument, elementId]);
 }
 
 export interface UseCollectionItemManagerOptions {

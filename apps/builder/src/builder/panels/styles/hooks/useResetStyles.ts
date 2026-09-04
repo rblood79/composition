@@ -947,13 +947,12 @@ export function useResetStyles() {
     if (!selectedId) return;
 
     const hasCanonicalDocument = hasActiveCanonicalResetDocument();
-    const { elements: legacyElements } = state;
     const canonicalElement = hasCanonicalDocument
       ? getActiveCanonicalResetElement(selectedId)
       : null;
     const element = hasCanonicalDocument
       ? canonicalElement
-      : legacyElements.find((candidate) => candidate.id === selectedId);
+      : state.elementsMap.get(selectedId);
     if (!element) return;
 
     // 부모-컨텍스트 sub-part baseline(SelectValue/SelectIcon/DateInput) 정합을 위해 부모 체인 조회.

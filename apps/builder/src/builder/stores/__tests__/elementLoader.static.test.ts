@@ -16,7 +16,9 @@ describe("ADR-120 Phase 1 elementLoader persistence contract", () => {
     expect(source).not.toContain("deriveProjectRenderModelFromDocument");
     expect(source).toContain("getActiveCanonicalPageElements");
     expect(source).toContain("getPageElementsFromRuntimeState");
-    expect(source).toContain("legacyElements");
+    expect(source).toContain("getPageElementsFromIndex");
+    expect(source).toContain("state.elementsMap.get(elementId)");
+    expect(source).not.toContain("legacyElements");
     expect(source).toContain("StoreElementCacheMap");
     expect(source).not.toContain("elementsMap: Map<string, Element>");
     expect(source).not.toContain("getDB");

@@ -9,7 +9,6 @@ import type { Element, Page } from "@/types/builder/unified.types";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import { getDB } from "../../lib/db";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
-import { canonicalNodeToElement } from "../../builder/stores/canonical/canonicalElementsView";
 import { getProjectableNodeLookupsByPage } from "../../builder/stores/canonical/canonicalTraversalHelpers";
 import { enqueuePagePersistence } from "../../builder/utils/pagePersistenceQueue";
 import {
@@ -230,29 +229,22 @@ function findPageOwnedBodyElement(
   return null;
 }
 
-function getPageBindingElementsMap(
+function getPageBindingBodyNode(
   pageId: string,
-  fallbackElementsMap?: ReadonlyMap<string, Element>,
-): ReadonlyMap<string, Element> | undefined {
+  bootstrapElementsMap?: ReadonlyMap<string, Element>,
+): CanonicalNode | null {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId = canonical.currentProjectId;
   const doc = projectId ? canonical.getDocument(projectId) : null;
-  if (!doc) return fallbackElementsMap;
-
-  const elementsMap = new Map<string, Element>();
-  for (const lookup of getProjectableNodeLookupsByPage(pageId)) {
-    const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
-      pageId: lookup.pageId,
-      layoutId: lookup.layoutId,
-    });
-    if (element) elementsMap.set(element.id, element);
-  }
-  fallbackElementsMap?.forEach((element, elementId) => {
-    if (element.page_id === pageId && !elementsMap.has(elementId)) {
-      elementsMap.set(elementId, element);
+  if (doc) {
+    for (const lookup of getProjectableNodeLookupsByPage(pageId)) {
+      if (lookup.layoutId == null && isBodyElementNode(lookup.node)) {
+        return lookup.node;
+      }
     }
-  });
-  return elementsMap;
+  }
+  const bootstrapBody = findPageOwnedBodyElement(bootstrapElementsMap, pageId);
+  return bootstrapBody ? makeBodyNodeFromElement(bootstrapBody) : null;
 }
 
 function makeBodyNodeFromElement(element: Element): CanonicalNode {
@@ -276,14 +268,11 @@ function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
 function ensurePageBodyChild(
   children: CanonicalNode[],
   updatedPage: Page,
-  elementsMap?: ReadonlyMap<string, Element>,
+  bootstrapBody?: CanonicalNode | null,
 ): CanonicalNode[] {
   if (children.some(isBodyElementNode)) return children;
 
-  const bodyElement = findPageOwnedBodyElement(elementsMap, updatedPage.id);
-  const bodyNode = bodyElement
-    ? makeBodyNodeFromElement(bodyElement)
-    : makeDefaultPageBodyNode(updatedPage.id);
+  const bodyNode = bootstrapBody ?? makeDefaultPageBodyNode(updatedPage.id);
 
   return [bodyNode, ...children];
 }
@@ -293,7 +282,7 @@ function buildPageNode(
   frameId: string | null,
   frameRefId: string | null,
   existingNode?: CanonicalNode,
-  elementsMap?: ReadonlyMap<string, Element>,
+  bootstrapBody?: CanonicalNode | null,
 ): CanonicalNode {
   if (frameId) {
     const descendants =
@@ -304,7 +293,7 @@ function buildPageNode(
     const pageBodyChildren = ensurePageBodyChild(
       directChildren.filter(isBodyElementNode),
       updatedPage,
-      elementsMap,
+      bootstrapBody,
     );
     const rebuiltDescendants =
       buildDescendantsFromDirectChildren(directChildren);
@@ -334,7 +323,7 @@ function buildPageNode(
   const childrenWithBody = ensurePageBodyChild(
     children,
     updatedPage,
-    elementsMap,
+    bootstrapBody,
   );
 
   const nextNode: FrameNode = {
@@ -349,7 +338,7 @@ function buildPageNode(
 
 function setCanonicalDocumentFromPageBinding(
   updatedPage: Page,
-  elementsMap?: ReadonlyMap<string, Element>,
+  bootstrapBody?: CanonicalNode | null,
 ): CompositionDocument {
   const canonical = useCanonicalDocumentStore.getState();
   const projectId =
@@ -369,7 +358,7 @@ function setCanonicalDocumentFromPageBinding(
     frameId,
     frameId ? resolvePageFrameRefId(currentDoc, frameId) : null,
     existingPageNode,
-    elementsMap,
+    bootstrapBody,
   );
   const nextChildren = [...currentDoc.children];
   if (pageIndex >= 0) {
@@ -414,7 +403,6 @@ async function applyPageFrameBindingForPageId({
   setPages,
 }: ApplyPageFrameBindingForPageIdInput): Promise<void> {
   const state = getElementsState();
-  const { elementsMap: legacyElementsMap } = state;
   const updatedPages = state.pages.map((page) =>
     page.id === pageId ? withPageFrameBinding(page, frameId) : page,
   );
@@ -426,7 +414,7 @@ async function applyPageFrameBindingForPageId({
 
   setCanonicalDocumentFromPageBinding(
     updatedPage,
-    getPageBindingElementsMap(pageId, legacyElementsMap),
+    getPageBindingBodyNode(pageId, state.elementsMap),
   );
   state._rebuildIndexes?.();
   setPages(updatedPages);

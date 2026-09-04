@@ -108,7 +108,7 @@ describe("useCanonicalPropertyElement", () => {
     expect(result.current?.props.label).toBe("After");
   });
 
-  it("canonical document가 없을 때만 store elements fallback을 사용한다", () => {
+  it("canonical document가 없을 때 store elements를 구독하거나 반환하지 않는다", () => {
     useStore.setState({
       elements: [
         {
@@ -123,7 +123,7 @@ describe("useCanonicalPropertyElement", () => {
       useCanonicalPropertyElement("legacy-only"),
     );
 
-    expect(result.current?.props.children).toBe("Fallback");
+    expect(result.current).toBeUndefined();
   });
 });
 
@@ -237,7 +237,7 @@ describe("canonical aggregate property read index", () => {
     expect(leaf.result.current?.props.children).toBe("First");
   });
 
-  it("canonical document가 없을 때 legacy aggregate fallback을 공유한다", () => {
+  it("canonical document가 없을 때 stable empty aggregate index를 공유한다", () => {
     useStore.setState({
       elements: [
         {
@@ -257,11 +257,7 @@ describe("canonical aggregate property read index", () => {
     const elementsMap = renderHook(() => useCanonicalPropertyElementsMap());
     const childrenMap = renderHook(() => useCanonicalPropertyChildrenMap());
 
-    expect(elementsMap.result.current.get("legacy-child")?.props.children).toBe(
-      "Fallback",
-    );
-    expect(childrenMap.result.current.get("legacy-parent")?.[0]?.id).toBe(
-      "legacy-child",
-    );
+    expect(elementsMap.result.current.size).toBe(0);
+    expect(childrenMap.result.current.size).toBe(0);
   });
 });

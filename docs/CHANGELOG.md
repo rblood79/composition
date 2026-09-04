@@ -11,8 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Builder 전역의 deprecated `layout.types.ts`를 제거했습니다. 과거 프로젝트 import에만 필요한 layout record는 canonical adapter 내부 계약으로 격리하고, reusable frame 생성·수정과 UI 읽기는 `FrameNode` 기반 계약만 사용합니다.
+- Builder 전역의 deprecated `layout.types.ts`를 제거했습니다. canonical adapter의 reusable frame 입력은 필요한 필드만 가진 `ReusableFrameLayoutInput`으로 축소하고, reusable frame 생성·수정과 UI 읽기는 `FrameNode` 기반 계약만 사용합니다.
 - 개발 단계에서 생성된 history IndexedDB v1 snapshot payload 변환을 중단했습니다. DB v4로 직접 올라오는 v1 history entry/meta만 초기화하며, v2/v3 canonical history와 v3 snapshot 및 프로젝트 문서는 보존합니다. 저장·복원 경계는 element history에 `canonicalEvents`가 없는 entry를 받지 않습니다.
+- AI read model, frame read, collection item 관리, Layout preset, history result의 aggregate document projection caller를 ADR-127 traversal lookup과 leaf projection으로 전환했습니다. `getCanonicalDocumentElementsView`/`visitCanonicalDocumentElements`는 외부 export가 아니며, 남은 full projection cache도 사용되지 않는 `byId` Map 없이 readonly 배열만 보관합니다.
+- Properties·Frames·LayerTree·Canvas와 element loader/selection/text/reset mutation 경로의 legacy `Element[]` fallback을 제거했습니다. matching canonical document 전에는 Canvas가 빈 scene을 유지하고 Builder chrome readiness가 노출을 막으며, frame body/slot은 canonical frame scope만 읽습니다.
+- production caller가 0인 Canvas legacy scene projection 파일과 frame hydration loader API, legacy property read index를 제거했습니다. page-frame binding은 canonical page lookup과 bootstrap body 한 건만 사용합니다.
 
 ### Fixed
 
@@ -21,6 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 
 - history load/upgrade 시 legacy payload를 순회·변환하는 adapter 비용을 제거했고, bootstrap effect의 불필요한 연쇄 render를 없앴습니다.
+- 같은 document를 반복 평탄화하던 5개 caller와 selection/page/frame hot path의 stale legacy subscription을 제거했습니다. 이 wave에서는 별도 성능 측정을 실행하지 않았습니다.
+
+### Tests
+
+- canonical projection·selection 즉시성·ref descendants·page/frame scope·preset removal·history result 회귀 32개 파일 339개 테스트와 Builder type-check를 통과했습니다.
+- 격리 Chromium에서 production module singleton으로 canonical update의 Undo/Redo·go-to-index, IndexedDB `canonicalEvents`-only 저장, user/system snapshot 복원과 복원 Undo/Redo를 실제 실행했습니다. console error/warning은 0건이었습니다.
 
 ## [제약 flex 안의 collection 이 Preview 와 같은 높이를 지킵니다 (ADR-204)] - 2026-09-04
 

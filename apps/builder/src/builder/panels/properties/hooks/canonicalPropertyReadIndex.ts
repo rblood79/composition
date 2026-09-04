@@ -14,7 +14,6 @@ const canonicalIndexCache = new WeakMap<
   CompositionDocument,
   CanonicalPropertyReadIndex
 >();
-const legacyIndexCache = new WeakMap<PanelNode[], CanonicalPropertyReadIndex>();
 
 function appendNode(
   index: {
@@ -70,18 +69,5 @@ export function getCanonicalPropertyReadIndex(
   }
 
   canonicalIndexCache.set(document, index);
-  return index;
-}
-
-/** canonical document가 없는 pre-cutover/test 경계의 reference-stable fallback. */
-export function getLegacyPropertyReadIndex(
-  elements: PanelNode[],
-): CanonicalPropertyReadIndex {
-  const cached = legacyIndexCache.get(elements);
-  if (cached) return cached;
-
-  const index = createMutableIndex();
-  for (const element of elements) appendNode(index, element);
-  legacyIndexCache.set(elements, index);
   return index;
 }

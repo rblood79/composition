@@ -20,9 +20,10 @@ import {
   LEGACY_SLOT_NAME_FIELD,
 } from "@/adapters/canonical/legacyElementFields";
 import type { Element } from "@/types/core/store.types";
-import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import { canonicalNodeToElement } from "../canonical/canonicalElementsView";
 import {
   getCanonicalRefOverrideEntries,
+  getProjectableNodeLookups,
   withCanonicalRefOverrides,
 } from "../canonical/canonicalTraversalHelpers";
 import {
@@ -299,11 +300,15 @@ function applyNodePropsUpdate(
   return { ...doc, children: result.nodes };
 }
 
-function collectHistoryResultElements(doc: CompositionDocument): Element[] {
+function collectHistoryResultElements(): Element[] {
   const elements: Element[] = [];
-  visitCanonicalDocumentElements(doc, (element) => {
-    elements.push(element);
-  });
+  for (const lookup of getProjectableNodeLookups()) {
+    const element = canonicalNodeToElement(lookup.node, lookup.parentId, {
+      pageId: lookup.pageId,
+      layoutId: lookup.layoutId,
+    });
+    if (element) elements.push(element);
+  }
   return elements;
 }
 
@@ -347,7 +352,7 @@ export function applyCanonicalHistoryEventsToActiveDocument(
 
   const nextDoc = applyCanonicalHistoryEventsToDocument(doc, events, direction);
   canonical.setDocument(projectId, nextDoc);
-  return collectHistoryResultElements(nextDoc);
+  return collectHistoryResultElements();
 }
 
 export function getCanonicalHistoryEventIds(

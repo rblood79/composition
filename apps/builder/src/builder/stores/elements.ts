@@ -27,7 +27,6 @@ import { isRenderProjectionId } from "../projection/renderProjectionIds";
 import { getDB } from "../../lib/db";
 import {
   createCompleteProps,
-  findElementById,
   computeCanvasElementStyle,
 } from "./utils/elementHelpers";
 import {
@@ -470,13 +469,13 @@ function findPageActivationBodyElement(
 }
 
 function resolveStoreOrCanonicalElement(
-  state: Pick<ElementsState, "elements">,
+  state: Pick<ElementsState, "elementsMap">,
   elementId: string,
 ): Element | null {
-  const { elements: legacyElements } = state;
   return (
     getActiveCanonicalStoreElement(elementId) ??
-    findElementById(legacyElements, elementId)
+    (state.elementsMap.get(elementId) as Element | undefined) ??
+    null
   );
 }
 
@@ -499,11 +498,10 @@ function getActiveCanonicalStoreElement(elementId: string): Element | null {
   });
 }
 
-function getCanonicalOrStoreElements(
+function getCanonicalOrBootstrapElements(
   state: Pick<ElementsState, "elements">,
 ): Element[] {
-  const { elements: legacyElements } = state;
-  return getActiveCanonicalStoreElements() ?? legacyElements;
+  return getActiveCanonicalStoreElements() ?? state.elements;
 }
 
 function resolvePageActivationElementById(
@@ -878,7 +876,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
   // 인덱스 재구축 함수 (Phase 2: 페이지 인덱스 포함)
   const _rebuildIndexes = (sourceElements?: Element[]) => {
     const state = get();
-    set(buildIndexes(sourceElements ?? getCanonicalOrStoreElements(state)));
+    set(buildIndexes(sourceElements ?? getCanonicalOrBootstrapElements(state)));
   };
 
   // 🆕 Phase 2: O(1) 페이지 요소 조회 함수
@@ -1065,7 +1063,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         normalizeExternalFillIngress(element),
       );
       set((state) => {
-        const sourceElements = getCanonicalOrStoreElements(state);
+        const sourceElements = getCanonicalOrBootstrapElements(state);
         const mergedMap = new Map(
           sourceElements.map((element) => [element.id, element]),
         );
@@ -1101,8 +1099,8 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       }
 
       set((state) => {
-        const sourceElements = getCanonicalOrStoreElements(state);
-        const targetElement = findElementById(sourceElements, oldId);
+        const sourceElements = getCanonicalOrBootstrapElements(state);
+        const targetElement = resolveStoreOrCanonicalElement(state, oldId);
         if (!targetElement) {
           return state;
         }
@@ -1415,7 +1413,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const startTime = performance.now();
       set((state) => {
         const nextElements = [
-          ...getCanonicalOrStoreElements(state),
+          ...getCanonicalOrBootstrapElements(state),
           bodyElement,
         ];
         const nextPages = [...state.pages, page];
@@ -1841,7 +1839,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             trackCanonicalMove(elementId, fromLocations.get(elementId));
           }
           // canonical(SSOT)이 갱신됐으면 store mirror(elements 배열 + 인덱스)도
-          //   canonical 기준으로 재구축한다. getCanonicalOrStoreElements 가
+          //   canonical 기준으로 재구축한다. getCanonicalOrBootstrapElements 가
           //   canonical 우선 derive 하므로 이동 결과가 정확히 반영된다.
           //   (addElement 등 다른 mutation 과 동일 패턴 — canonical 성공 후에도
           //   store set 누락 금지.)
@@ -1852,7 +1850,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           //   `buildIndexes(prevState.elements)`(stale elements)로 oldParentId 를
           //   옛 부모로 읽어 same-parent no-op 판정으로 종료된다. elements 배열도
           //   canonical derive 로 함께 갱신해야 한다.
-          const nextElements = getCanonicalOrStoreElements(get());
+          const nextElements = getCanonicalOrBootstrapElements(get());
           set((state) => ({
             elements: nextElements,
             ...buildIndexes(nextElements),
@@ -2005,7 +2003,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         "order",
       );
 
-      const nextElements = getCanonicalOrStoreElements(get());
+      const nextElements = getCanonicalOrBootstrapElements(get());
       set((state) => ({
         elements: nextElements,
         ...buildIndexes(nextElements),
@@ -2066,7 +2064,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             [{ elementId, parentId: target.parentId }],
             "order",
           );
-          const nextElements = getCanonicalOrStoreElements(get());
+          const nextElements = getCanonicalOrBootstrapElements(get());
           set((state) => ({
             elements: nextElements,
             ...buildIndexes(nextElements),
@@ -2110,7 +2108,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
         // mirror 재파생 — 인덱스만 다시 만들면 `elements` 배열이 옛 extension 을 들고
         // 있어 캔버스가 갱신되지 않는다 (`moveElementToSiblingEdge` 와 같은 함정).
         store: () => {
-          const nextElements = getCanonicalOrStoreElements(get());
+          const nextElements = getCanonicalOrBootstrapElements(get());
           set((state) => ({
             elements: nextElements,
             ...buildIndexes(nextElements),

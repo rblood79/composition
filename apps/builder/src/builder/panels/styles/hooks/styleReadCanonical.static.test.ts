@@ -66,9 +66,8 @@ describe("style hooks canonical read contract", () => {
     expect(source).not.toContain("visitCanonicalDocumentElements");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).not.toContain("state.elements.find");
-    expect(source).not.toContain(
-      "const element = state.elementsMap.get(selectedId);",
-    );
+    expect(source).toContain("state.elementsMap.get(selectedId)");
+    expect(source).not.toContain("legacyElements");
   });
 
   it("uses canonical property element for transform parent and size reads", async () => {

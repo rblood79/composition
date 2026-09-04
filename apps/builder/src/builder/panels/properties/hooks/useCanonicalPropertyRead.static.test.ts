@@ -37,8 +37,9 @@ describe("useCanonicalPropertyRead", () => {
     expect(source).not.toContain("useCanonicalElements()");
     expect(source).not.toContain("getCanonicalDocumentElementsView");
     expect(source).not.toContain("visitCanonicalDocumentElements");
-    expect(source).toContain("const { elements: legacyElements } = state;");
-    expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");
+    expect(source).not.toContain("useStore");
+    expect(source).not.toContain("legacyElements");
+    expect(source).toContain("EMPTY_PROPERTY_READ_INDEX");
     expect(indexSource).toContain("getProjectableNodeLookups()");
     expect(indexSource).toContain("canonicalIndexCache");
     expect(indexSource).not.toContain("getCanonicalDocumentElementsView");

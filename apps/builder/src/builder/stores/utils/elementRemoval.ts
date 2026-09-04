@@ -24,7 +24,7 @@ import {
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { getActiveCanonicalDocumentElementsView } from "../canonical/canonicalElementsView";
+import { getActiveCanonicalDocumentElementProjection } from "../canonical/canonicalElementsView";
 import {
   buildCanonicalRemoveEvents,
   buildCanonicalReplaceEvents,
@@ -56,7 +56,7 @@ function syncRemovedElementsToCanonical(elements: Element[]): void {
 }
 
 function getElementRemovalSourceElements(): readonly Element[] {
-  return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS;
+  return getActiveCanonicalDocumentElementProjection() ?? EMPTY_ELEMENTS;
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {

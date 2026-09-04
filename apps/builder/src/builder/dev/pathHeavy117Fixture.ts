@@ -2,7 +2,7 @@ import type { CompositionDocument } from "@composition/shared";
 import type { Page } from "../../types/core/store.types";
 import type { SettingsState } from "../stores/canvasSettings";
 import type { ElementsState } from "../stores/elements";
-import { getCanonicalDocumentElementsView } from "../stores/canonical/canonicalElementsView";
+import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 
 const BENCHMARK_PARAM = "benchmark";
@@ -372,7 +372,7 @@ export function applyPathHeavy117Fixture(
   canonicalStore.setDocument(projectId, document);
   canonicalStore.setCurrentProject(projectId);
   store.setPages(pages);
-  store.setElements([...getCanonicalDocumentElementsView(document).elements]);
+  store.setElements(canonicalDocumentToElements(document));
   store.initializePagePositions(
     pages,
     1920,

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
-import { visitCanonicalDocumentElements } from "../stores/canonical/canonicalElementsView";
+import { canonicalDocumentToElements } from "../stores/canonical/canonicalElementsView";
 import { createPathHeavy117Document } from "./pathHeavy117Fixture";
 
 describe("pathHeavy117Fixture", () => {
@@ -10,17 +10,12 @@ describe("pathHeavy117Fixture", () => {
       png: "data:image/png;base64,png",
       webp: "data:image/webp;base64,webp",
     });
-    const elements: Array<{
-      id: string;
-      props: Record<string, unknown>;
-      type: string;
-    }> = [];
-    visitCanonicalDocumentElements(document, (element) => {
-      elements.push({
+    const elements = canonicalDocumentToElements(document).map((element) => {
+      return {
         id: element.id,
         props: element.props as Record<string, unknown>,
         type: element.type,
-      });
+      };
     });
 
     expect(document.children.map((page) => page.name)).toEqual([

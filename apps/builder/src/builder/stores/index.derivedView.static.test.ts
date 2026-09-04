@@ -17,6 +17,8 @@ describe("builder store canonical derived view callers", () => {
     expect(source).toContain(
       "const canonicalSelectedElement = useMemo(() => {",
     );
+    expect(source).toContain("elementsMap.get(selectedElementId)");
+    expect(source).not.toContain("legacyElements");
     const selectedHelper = source.match(
       /function getActiveCanonicalSelectedElement[\s\S]*?\n}\n\n\/\/ ============================================/,
     )?.[0];

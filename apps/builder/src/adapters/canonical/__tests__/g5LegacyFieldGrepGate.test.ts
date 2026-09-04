@@ -77,10 +77,6 @@ const EXCLUDE_PATH_PATTERNS: readonly RegExp[] = [
   // canonical → legacy compat extraction view: COMPAT_EXTRACTION_RUNTIME_FILES
   // 목록과 정합. store layer 에 위치하지만 의도적 legacy emit 영역.
   /\/apps\/builder\/src\/builder\/stores\/canonical\/canonicalElementsView\.ts$/,
-  // legacy Element[] → CanvasSceneNode bootstrap fallback (BuilderCanvas 가 active canonical
-  // document 부재 시 호출). legacy Element 의 snake_case `layout_id` 를 읽는 것이 이 함수의
-  // 존재 이유 — canonicalElementsView 와 같은 legacy 경계 영역.
-  /\/apps\/builder\/src\/builder\/stores\/canonical\/canonicalSceneModelLegacy\.ts$/,
   // ADR-122 residual: legacy mirror instance element 의 componentRole/masterId/overrides 를
   // 선언한다. PropertiesPanel 의 panelNodeToElement → isComponentInstanceMirrorElement 가
   // 이 필드를 실제로 읽으므로(소비처 live) 선언을 지워선 안 된다.

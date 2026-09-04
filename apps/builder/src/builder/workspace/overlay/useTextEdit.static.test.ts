@@ -21,8 +21,10 @@ describe("useTextEdit canonical live edit contract", () => {
     expect(source).not.toContain("getTextEditElement(elementId, newValue)");
     expect(source).not.toContain("canonicalElementSnapshot");
     expect(source).not.toContain("useStore.getState().elements.find");
-    expect(source).not.toContain("state.elementsMap.get(elementId)");
-    expect(source).not.toContain("useStore.getState().elementsMap.get");
-    expect(source).not.toContain("new Map(state.elementsMap)");
+    expect(source).toContain("useStore.getState().elementsMap.get(elementId)");
+    expect(source).toContain("new Map(state.elementsMap)");
+    expect(source).not.toContain("legacyElements");
+    expect(source).not.toContain("findIndex(");
+    expect(source).not.toContain("new Map(nextElements.map");
   });
 });

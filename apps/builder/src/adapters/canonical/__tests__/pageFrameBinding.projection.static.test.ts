@@ -10,6 +10,8 @@ describe("page frame binding projection boundary", () => {
     );
 
     expect(source).toContain("getProjectableNodeLookupsByPage(pageId)");
+    expect(source).toContain("getPageBindingBodyNode");
+    expect(source).not.toContain("canonicalNodeToElement");
     expect(source).not.toContain("visitCanonicalDocumentElements");
   });
 });

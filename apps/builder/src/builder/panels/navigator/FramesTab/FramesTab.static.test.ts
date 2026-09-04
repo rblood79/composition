@@ -3,29 +3,24 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 describe("FramesTab frame selection race guard", () => {
-  it("selects immediately and ignores stale async frame loads", async () => {
+  it("selects canonical frames synchronously without an async mirror load", async () => {
     const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
 
-    expect(source).toContain("const frameSelectRequestRef = React.useRef(0);");
     expect(source).toMatch(
-      /const requestId = frameSelectRequestRef\.current \+ 1;/,
+      /selectReusableFrame\(frameId\);[\s\S]*setEditModeLayoutId\(frameId\);[\s\S]*selectFrameBody\(frameId\);/,
     );
-    expect(source).toMatch(
-      /frameSelectRequestRef\.current = requestId;[\s\S]*selectReusableFrame\(frameId\);[\s\S]*setEditModeLayoutId\(frameId\);/,
-    );
-    expect(source).toMatch(
-      /if \(requestId !== frameSelectRequestRef\.current\) \{[\s\S]*return;[\s\S]*\}/,
-    );
+    expect(source).not.toContain("frameSelectRequestRef");
+    expect(source).not.toContain("loadFrameElements");
   });
 
-  it("does not replace live frame elements with an empty descendant load", async () => {
+  it("does not merge a legacy frame mirror into the canonical document", async () => {
     const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
 
-    expect(source).toContain("loadFrameElements");
     expect(source).toContain("useCanonicalFrameElementScopes");
     expect(source).toContain("frameScope.elementIds.has(element.id)");
-    expect(source).toMatch(/const frameElements = await loadFrameElements\(/);
-    expect(source).toMatch(/mergeElementsCanonicalPrimary\(frameElements\);/);
+    expect(source).not.toContain("mergeElementsCanonicalPrimary");
+    expect(source).not.toContain("collectHydratedFrameElements");
+    expect(source).not.toContain("hasHydratedFrameElements");
     expect(source).not.toContain(
       "const storeSetElements = useStore.getState().setElements;",
     );
@@ -42,15 +37,15 @@ describe("FramesTab frame selection race guard", () => {
     expect(source).not.toContain("useLayoutsStore");
   });
 
-  it("derives hydration fallback from store elements instead of subscribing to elementsMap", async () => {
+  it("reads the selected canonical frame scope without store array/map subscriptions", async () => {
     const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
 
     expect(source).toContain("useCanonicalPanelElements");
-    expect(source).toContain("if (canonicalElements) return EMPTY_ELEMENTS;");
     expect(source).not.toContain("useCanonicalElements");
-    expect(source).toContain("const { elements: legacyElements } = state;");
-    expect(source).toContain("return legacyElements ?? EMPTY_ELEMENTS;");
-    expect(source).toContain("const hydratedElementsMap = useMemo");
+    expect(source).toContain("collectCanonicalFrameElements");
+    expect(source).not.toContain("canonicalElementsById");
+    expect(source).not.toContain("legacyElements");
+    expect(source).not.toContain("hydratedElementsMap");
     expect(source).not.toContain("useStore((state) => state.elementsMap)");
   });
 

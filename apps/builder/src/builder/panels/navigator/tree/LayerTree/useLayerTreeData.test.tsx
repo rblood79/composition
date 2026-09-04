@@ -23,7 +23,6 @@ import { useLayerTreeData } from "./useLayerTreeData";
 const renderWithI18n = (ui: ReactElement) =>
   render(ui, { wrapper: I18nProvider });
 
-
 function makeElement(
   id: string,
   overrides: Partial<Element> & Record<string, unknown> = {},
@@ -54,7 +53,7 @@ describe("useLayerTreeData", () => {
     });
   });
 
-  it("derives resolution map from canonical/store elements instead of store map subscription", async () => {
+  it("indexes canonical/caller elements once without a legacy store-array subscription", async () => {
     const source = await readFile(
       resolve(__dirname, "useLayerTreeData.ts"),
       "utf-8",
@@ -67,10 +66,11 @@ describe("useLayerTreeData", () => {
 
     expect(source).toContain("useCanonicalPanelElements");
     expect(source).not.toContain("useCanonicalElements");
-    expect(source).toContain(
-      "const sourceElements = canonicalElements ?? storeElements",
-    );
+    expect(source).toContain("buildCanonicalLayerSource");
+    expect(source).not.toContain("legacyElements");
+    expect(source).not.toContain("storeElements");
     expect(source).not.toContain(directStoreMapSubscription);
+    expect(source.match(/new Map\(elements\.map/g)).toBeNull();
   });
 
   it("projects canonical ref instances as origin type with synthetic children", () => {

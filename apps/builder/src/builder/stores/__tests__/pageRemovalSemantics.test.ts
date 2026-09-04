@@ -13,7 +13,7 @@ import {
 import { getEditingSemanticsRole } from "../../../adapters/canonical/editingSemantics";
 import type { Element, Page } from "../../../types/builder/unified.types";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
-import { visitCanonicalDocumentElements } from "../canonical/canonicalElementsView";
+import { canonicalDocumentToElements } from "../canonical/canonicalElementsView";
 import { useStore } from "../elements";
 
 function makePage(id: string): Page {
@@ -112,11 +112,11 @@ function findCanonicalElement(
 ): Element | undefined {
   if (!doc) return undefined;
   let match: Element | undefined;
-  visitCanonicalDocumentElements(doc, (element) => {
+  for (const element of canonicalDocumentToElements(doc)) {
     if (element.id === elementId) {
       match = element;
     }
-  });
+  }
   return match;
 }
 

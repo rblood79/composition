@@ -90,7 +90,7 @@ export function isCanonicalDocumentElementProjection(
 export function copyCanonicalDocumentElementProjection(
   doc: CompositionDocument,
 ): Element[] {
-  const elements = [...getCanonicalDocumentElementsView(doc).elements];
+  const elements = [...getCanonicalDocumentElementProjection(doc)];
   registerCanonicalDocumentElementProjection(elements, doc);
   return elements;
 }
@@ -237,14 +237,9 @@ function collectCanonicalDocumentElements(doc: CompositionDocument): Element[] {
 // Document-keyed derived view cache
 // ─────────────────────────────────────────────
 
-export type CanonicalDocumentElementsView = {
-  readonly elements: readonly Element[];
-  readonly byId: ReadonlyMap<string, Element>;
-};
-
-const elementsViewCache = new WeakMap<
+const elementsProjectionCache = new WeakMap<
   CompositionDocument,
-  CanonicalDocumentElementsView
+  readonly Element[]
 >();
 
 /**
@@ -256,30 +251,26 @@ const elementsViewCache = new WeakMap<
  * useCanonicalPropertySourceElements) 가 선택·hook 인스턴스마다 문서 전체를
  * 재-materialize 하던 비용을 제거한다.
  *
- * `byId` 는 중복 id 시 last-match — 기존 전체 순회 재할당 (`match = element`)
- * 의미와 동일하다.
  */
-export function getCanonicalDocumentElementsView(
+function getCanonicalDocumentElementProjection(
   doc: CompositionDocument,
-): CanonicalDocumentElementsView {
-  const cached = elementsViewCache.get(doc);
+): readonly Element[] {
+  const cached = elementsProjectionCache.get(doc);
   if (cached) return cached;
 
   const elements: Element[] = [];
-  const byId = new Map<string, Element>();
   visitCanonicalDocumentElements(doc, (element) => {
     elements.push(element);
-    byId.set(element.id, element);
   });
-  const view: CanonicalDocumentElementsView = { elements, byId };
   registerCanonicalDocumentElementProjection(elements, doc);
-  elementsViewCache.set(doc, view);
-  return view;
+  elementsProjectionCache.set(doc, elements);
+  return elements;
 }
 
-export function getActiveCanonicalDocumentElementsView(): CanonicalDocumentElementsView | null {
+export function getActiveCanonicalDocumentElementProjection():
+  readonly Element[] | null {
   const doc = getActiveCanonicalDocument();
-  return doc ? getCanonicalDocumentElementsView(doc) : null;
+  return doc ? getCanonicalDocumentElementProjection(doc) : null;
 }
 
 /**
@@ -300,7 +291,7 @@ export function getActiveCanonicalElementById(
   });
 }
 
-export function visitCanonicalDocumentElements(
+function visitCanonicalDocumentElements(
   doc: CompositionDocument,
   visitor: (element: Element, node: CanonicalNode) => void,
 ): void {

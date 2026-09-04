@@ -127,22 +127,20 @@ function getTextEditElement(elementId: string): TextEditNode | null {
     return canonicalElement;
   }
 
-  const { elements: legacyElements } = useStore.getState();
-  return legacyElements.find((element) => element.id === elementId) ?? null;
+  return (
+    (useStore.getState().elementsMap.get(elementId) as TextEditNode) ?? null
+  );
 }
 
 function applyLegacyBootstrapTextProp(updatedElement: TextEditNode): void {
   const state = useStore.getState();
-  const { elements: legacyElements } = state;
-  const elementIndex = legacyElements.findIndex(
-    (element) => element.id === updatedElement.id,
-  );
-  if (elementIndex < 0) return;
+  if (!state.elementsMap.has(updatedElement.id)) return;
 
-  const nextElements = legacyElements.with(elementIndex, updatedElement);
-  const nextElementsMap = new Map(
-    nextElements.map((element) => [element.id, element] as const),
+  const nextElements = state.elements.map((element) =>
+    element.id === updatedElement.id ? updatedElement : element,
   );
+  const nextElementsMap = new Map(state.elementsMap);
+  nextElementsMap.set(updatedElement.id, updatedElement);
 
   useStore.setState((currentState) => ({
     elements: nextElements,

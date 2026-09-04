@@ -29,13 +29,11 @@ import type { ListBoxCollectionDataSource } from "../../../components/listbox/li
  * - **pageIndex**: `sceneNodes` 에서 직접 derive 하므로 scene model 내부에서
  *   flat legacy projection 을 만들지 않는다.
  * - **legacy getter**: ADR-912 후속 cleanup 으로 scene-model flat projection
- *   getter 6종 제거됨 (canonical-only 전환으로 caller 0건). 초기 bootstrap
- *   fallback 인 `canonicalSceneModelLegacy.ts` 의 `buildLegacyCanvasSceneGraph`
- *   만 boundary 격리되어 잔존.
+ *   getter와 초기 bootstrap fallback을 제거했다.
  *
  * **G2 grep gate (workspace scope 의 flat compatibility projection 사용)**:
  * scene model interface export 자체에 legacy flat array 미포함. compatibility
- * projection 은 boundary file 격리.
+ * projection 은 workspace render path에서 사용하지 않는다.
  *
  * **Why**: ADR-126 Phase 2 hot path 70 file transition 진입 prerequisite —
  * scene model 자체가 canonical-native shape 을 expose 해야 caller 가 점진

@@ -1,27 +1,27 @@
 import { useMemo } from "react";
-import { useStore } from "../../../stores";
 import { getActiveCanonicalElementById } from "../../../stores/canonical/canonicalElementsView";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import type { PanelNode } from "../../panelNode";
 import {
   getCanonicalPropertyReadIndex,
-  getLegacyPropertyReadIndex,
   type CanonicalPropertyReadIndex,
 } from "./canonicalPropertyReadIndex";
 
 const EMPTY_ELEMENTS: PanelNode[] = [];
+const EMPTY_ELEMENTS_BY_ID: ReadonlyMap<string, PanelNode> = new Map();
+const EMPTY_CHILDREN_BY_PARENT: ReadonlyMap<string, PanelNode[]> = new Map();
+const EMPTY_PROPERTY_READ_INDEX: CanonicalPropertyReadIndex = {
+  elements: EMPTY_ELEMENTS,
+  elementsById: EMPTY_ELEMENTS_BY_ID,
+  childrenByParent: EMPTY_CHILDREN_BY_PARENT,
+};
 
 function useCanonicalPropertyAggregateIndex(): CanonicalPropertyReadIndex {
   const canonicalDocument = useActiveCanonicalDocument();
-  const storeElements = useStore((state) => {
-    if (canonicalDocument) return EMPTY_ELEMENTS;
-    const { elements: legacyElements } = state;
-    return legacyElements ?? EMPTY_ELEMENTS;
-  });
 
   return canonicalDocument
     ? getCanonicalPropertyReadIndex(canonicalDocument)
-    : getLegacyPropertyReadIndex(storeElements);
+    : EMPTY_PROPERTY_READ_INDEX;
 }
 
 export function useCanonicalPropertyElements(): PanelNode[] {
@@ -39,14 +39,8 @@ export function useCanonicalPropertyElement(
       undefined
     );
   }, [canonicalDocument, elementId]);
-  const storeElement = useStore((state) => {
-    if (canonicalDocument) return undefined;
-    return (state.elements ?? EMPTY_ELEMENTS).find(
-      (candidate) => candidate.id === elementId,
-    );
-  });
 
-  return canonicalDocument ? canonicalElement : storeElement;
+  return canonicalElement;
 }
 
 export function useCanonicalPropertyElementsMap(): ReadonlyMap<

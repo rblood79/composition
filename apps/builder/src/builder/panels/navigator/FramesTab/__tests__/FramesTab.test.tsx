@@ -736,8 +736,8 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       ]);
       expect(lastCall[0]).toMatchObject({
         page_id: null,
-        layout_id: "frame-b",
       });
+      expect(lastCall[0]).not.toHaveProperty("layout_id");
     });
   });
 });

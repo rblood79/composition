@@ -9,11 +9,11 @@ describe("instanceActions canonical-only read contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("getActiveCanonicalDocumentElementsView");
+    expect(source).toContain("getActiveCanonicalDocumentElementProjection");
     expect(source).toContain("function getInstanceActionSourceElements");
     expect(source).toContain("function withInstanceActionSourceState");
     expect(source).toContain(
-      "return getActiveCanonicalDocumentElementsView()?.elements ?? EMPTY_ELEMENTS",
+      "return getActiveCanonicalDocumentElementProjection() ?? EMPTY_ELEMENTS",
     );
     expect(source).toContain(
       "function getInstanceActionSourceElements(): readonly Element[]",
@@ -91,7 +91,8 @@ describe("legacy model leaf cleanup static gates", () => {
     await expect(access(legacyTypePath)).rejects.toMatchObject({
       code: "ENOENT",
     });
-    expect(adapterTypes).toContain("export interface LegacyLayoutRecord");
+    expect(adapterTypes).not.toContain(["Legacy", "LayoutRecord"].join(""));
+    expect(adapterTypes).toContain("export interface ReusableFrameLayoutInput");
   });
 
   it("owns EditMode UI types in editMode store, not layout.types", async () => {
@@ -131,7 +132,7 @@ describe("legacy model leaf cleanup static gates", () => {
     expect(overlaySource).not.toContain("getCanonicalDocumentElementsView");
     expect(overlaySource).not.toContain("visitCanonicalDocumentElements");
     expect(viewSource).toContain(
-      "const elements = [...getCanonicalDocumentElementsView(doc).elements]",
+      "const elements = [...getCanonicalDocumentElementProjection(doc)]",
     );
     expect(viewSource).toContain(
       "return copyCanonicalDocumentElementProjection(doc)",
