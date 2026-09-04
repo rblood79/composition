@@ -1233,4 +1233,47 @@ describe("buildSpecNodeData", () => {
       expect(vAlignOf(buildInput("TextField"))).toBeUndefined();
     });
   });
+
+  describe("ADR-205 — 인라인 letterSpacing 이 텍스트 자식에 도달한다", () => {
+    function firstText(
+      node: SkiaNodeData | null | undefined,
+    ): SkiaNodeData["text"] | undefined {
+      if (!node) return undefined;
+      if (node.type === "text" && node.text) return node.text;
+      for (const child of node.children ?? []) {
+        const found = firstText(child);
+        if (found) return found;
+      }
+      return undefined;
+    }
+
+    function build(style?: Record<string, unknown>) {
+      const label = makeElement("ls-label", {
+        type: "Label",
+        props: { children: "Hello", ...(style ? { style } : {}) },
+      });
+      return firstText(
+        buildSpecNodeData({
+          element: label,
+          layout: makeLayout({ x: 0, y: 0, width: 200, height: 24 }),
+          theme: "light",
+          elementsMap: new Map([[label.id, label]]),
+        }),
+      );
+    }
+
+    it("인라인 style.letterSpacing 이 child.text 로 옮겨진다", () => {
+      expect(build({ letterSpacing: "2px" })?.letterSpacing).toBe(2);
+    });
+
+    it("인라인 0 도 그대로 실린다 (자간 해제는 명시 값이다)", () => {
+      expect(build({ letterSpacing: 0 })?.letterSpacing).toBe(0);
+    });
+
+    it("인라인이 없으면 catalog/spec 채널 값을 덮어쓰지 않는다", () => {
+      const withoutInline = build();
+      const baseline = build({ color: "#111111" });
+      expect(withoutInline?.letterSpacing).toBe(baseline?.letterSpacing);
+    });
+  });
 });

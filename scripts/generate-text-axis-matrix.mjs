@@ -29,6 +29,7 @@ const SRC = {
   cssResolver: `${CANVAS}/layout/engines/cssResolver.ts`,
   layoutUtils: `${CANVAS}/layout/engines/utils.ts`,
   textMeasure: `${CANVAS}/utils/textMeasure.ts`,
+  seam: `${CANVAS}/utils/textRenderStyle.ts`,
   skiaBuild: `${CANVAS}/skia/buildSpecNodeData.ts`,
 };
 const DOC = resolve(ROOT, "docs/adr/evidence/205-text-axis-gap-matrix.md");
@@ -96,7 +97,7 @@ function inheritableTextProps(src) {
  * 손 목록이 아니라 **쌍**으로 판정한다 — `style.X` 를 읽은 뒤 `child.text.` 에 쓰는
  * 근방 문장만 센다. `style.overflow` (clipText 파생원) 는 루프 밖에서 읽히므로 자연히 빠진다.
  */
-function adr057BlockProps(raw) {
+function adr057BlockRegion(raw) {
   // 주석 제거는 길이를 보존하므로 (블록은 개행만 남기고 나머지는 공백) 두 문자열의 오프셋이 같다.
   // 마커는 주석 안에 있으므로 원본에서 찾고, 내용 판정은 주석을 지운 쪽에서 한다.
   const src = stripComments(raw);
@@ -118,7 +119,12 @@ function adr057BlockProps(raw) {
     }
   }
   if (end < 0) throw new Error("ADR-057 블록의 끝을 찾지 못함");
-  const body = src.slice(loopAt, end);
+  return src.slice(loopAt, end);
+}
+
+/** B 집합 — 블록이 `style.X` 를 읽고 `child.text.` 에 쓰는 근방 문장만 센다. */
+function adr057BlockProps(raw) {
+  const body = adr057BlockRegion(raw);
   const props = [];
   let pending = [];
   for (const line of body.split("\n")) {
@@ -142,16 +148,19 @@ function measureStyleFields(src) {
 }
 
 /** S4 인라인 — Skia scene build 가 인라인 `style.X` / `style?.X` 를 읽는가. */
-function skiaInlineReach(dir) {
-  const files = execFileSync("git", ["ls-files", `${dir}/*.ts`], {
+function skiaSources(dir) {
+  return execFileSync("git", ["ls-files", `${dir}/*.ts`], {
     cwd: ROOT,
     encoding: "utf8",
   })
     .split("\n")
-    .filter((f) => f && !f.includes(".test.") && !f.includes("__tests__"));
+    .filter((f) => f && !f.includes(".test.") && !f.includes("__tests__"))
+    .map((f) => read(f));
+}
+
+function skiaInlineReach(dir) {
   const props = new Set();
-  for (const f of files) {
-    const src = read(f);
+  for (const src of skiaSources(dir)) {
     for (const m of src.matchAll(/\bstyle\??\.([A-Za-z][\w]*)/g))
       props.add(m[1]);
     for (const m of src.matchAll(/\bexistingStyle\??\.([A-Za-z][\w]*)/g))
@@ -185,21 +194,35 @@ function wrapLegReach(layoutSrc, measureSrc) {
 }
 
 /** S4 상속 채널 — Skia scene build 에 `ComputedStyle` 이 존재하는가 (F20). */
-function skiaHasComputedStyle() {
-  try {
-    const out = execFileSync(
-      "grep",
-      [
-        "-rln",
-        "ComputedStyle\\|resolveStyle(",
-        resolve(ROOT, `${CANVAS}/skia`),
-      ],
-      { encoding: "utf8" },
-    );
-    return out.trim().length > 0;
-  } catch {
-    return false; // grep exit 1 = 일치 0건
-  }
+function skiaHasComputedStyle(dir) {
+  // 주석을 지운 소스에서만 본다 — 서술 주석("scene build 는 ComputedStyle 을 쥔 적이 없다")
+  // 이 도달 판정으로 새는 것을 Phase 1 에서 실측했다.
+  return skiaSources(dir).some((src) =>
+    /ComputedStyle|resolveStyle\(/.test(src),
+  );
+}
+
+/** seam 이 선언하는 축 — `*Source` 는 채널 표시이지 축이 아니다. */
+function seamAxes(src) {
+  const m = src.match(/export interface TextRenderStyle \{([\s\S]*?)\n\}/);
+  if (!m) throw new Error("TextRenderStyle 파싱 실패");
+  return new Set(
+    [...m[1].matchAll(/^\s{2}([A-Za-z][\w]*)\??:/gm)]
+      .map((x) => x[1])
+      .filter((n) => !n.endsWith("Source")),
+  );
+}
+
+/**
+ * 표면이 seam 을 호출하는가 — 호출하면 seam 이 선언한 축 전부에 도달한 것이다.
+ * 인자가 2개면 computed(상속) 채널까지, 1개면 인라인 채널만.
+ *
+ * 이 인지가 없으면 결선하는 순간 표가 ❌ 로 뒤집힌다 (속성별 배선만 보던 검출기의 사각).
+ */
+function seamCall(region) {
+  const calls = [...region.matchAll(/resolveTextRenderStyle\(([^)]*)\)/g)];
+  if (calls.length === 0) return null;
+  return { inline: true, computed: calls.some((c) => c[1].includes(",")) };
 }
 
 /** S1 — Preview renderer 의 인라인 style 통과 지점 수 (F13). */
@@ -228,12 +251,26 @@ export function buildMatrix() {
 
   const setA = inheritableTextProps(cssResolver);
   const setB = adr057BlockProps(skiaBuild);
+  const axes = seamAxes(read(SRC.seam));
+  const skiaSeam = seamCall(adr057BlockRegion(skiaBuild));
+  if (skiaSeam)
+    for (const axis of axes) if (!setB.includes(axis)) setB.push(axis);
   const props = [...new Set([...setA, ...setB])].sort();
 
   const width = widthLegReach(layoutUtils);
   const wrap = wrapLegReach(layoutUtils, textMeasure);
   const skiaInline = skiaInlineReach(`${CANVAS}/skia`);
-  const skiaInherits = skiaHasComputedStyle();
+  const skiaInherits = skiaHasComputedStyle(`${CANVAS}/skia`);
+
+  // seam 경유 도달 — 표면이 `resolveTextRenderStyle` 을 부르면 seam 축 전부에 닿는다.
+  const widthSeam = seamCall(
+    topLevelFunction(layoutUtils, "calculateContentWidth"),
+  );
+  for (const axis of axes) {
+    if (widthSeam?.inline) width.inline.add(axis);
+    if (widthSeam?.computed) width.computed.add(axis);
+    if (skiaSeam?.inline) skiaInline.add(axis);
+  }
 
   // 측정 축 = `TextMeasureStyle` 필드 ∪ 폭 leg 이 실제로 읽는 축.
   // 이 집합 밖(color·textDecoration·textShadow 등)은 줄 수·폭을 바꾸지 않으므로

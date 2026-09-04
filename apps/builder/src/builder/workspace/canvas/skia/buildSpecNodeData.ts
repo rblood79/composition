@@ -15,6 +15,7 @@
  * element.props + layout + theme + elementsMap에서 구축한다.
  */
 
+import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { buildScrollNodeFields } from "./buildBoxNodeData";
@@ -2163,6 +2164,17 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       if (style.verticalAlign) {
         child.text.verticalAlign =
           style.verticalAlign as typeof child.text.verticalAlign;
+      }
+
+      // 14. letterSpacing — ADR-205 Phase 1
+      //   해소는 seam(`resolveTextRenderStyle`) 하나가 하고, 여기는 결과를 옮긴다.
+      //   **인라인 채널일 때만** 쓴다 — 값이 없을 때 0 을 실으면 catalog/spec 이 준
+      //   `shape.letterSpacing` 을 덮는다. 우선순위는 CSS 와 같게 인라인 > catalog/spec (R6).
+      //   상속(computed)은 이 경로에 없다 — scene build 는 `ComputedStyle` 을 쥔 적이
+      //   없고(F20) 그 배선은 ADR-205 Phase 5 다.
+      const inlineTextAxis = resolveTextRenderStyle(style);
+      if (inlineTextAxis.letterSpacingSource === "inline") {
+        child.text.letterSpacing = inlineTextAxis.letterSpacing;
       }
     }
   }

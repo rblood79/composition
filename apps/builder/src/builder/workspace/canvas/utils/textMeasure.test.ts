@@ -71,7 +71,7 @@ vi.stubGlobal("window", {
 // 모듈 임포트 — mock 설정 완료 후
 // ============================================
 
-import { Canvas2DTextMeasurer } from "./textMeasure";
+import { Canvas2DTextMeasurer, measureWrappedTextHeight } from "./textMeasure";
 import { verifyLines, clearSegmentCaches } from "./canvas2dSegmentCache";
 
 // ============================================
@@ -124,10 +124,14 @@ describe("Canvas2DTextMeasurer.measureWrapped — trailing space hang 수정", (
     // "Hi Superlongword" — "Hi"(16px) fit, " "(8) hang,
     // 다음 단어 "Superlongword"(104px): currentLineWidth=16 > 0, wordWidth=104 > maxWidth=40
     // → break-word 분할 발동 → 3줄 이상
-    const result = measurer.measureWrapped("Hi Superlongword", {
-      ...baseStyle,
-      overflowWrap: "break-word",
-    }, 40);
+    const result = measurer.measureWrapped(
+      "Hi Superlongword",
+      {
+        ...baseStyle,
+        overflowWrap: "break-word",
+      },
+      40,
+    );
     const approxLineHeight = 19.2;
     const lineCount = Math.round(result.height / approxLineHeight);
     expect(lineCount).toBeGreaterThan(1);
@@ -235,7 +239,6 @@ describe("verifyLines — overflow trailing space 수정", () => {
   });
 });
 
-
 // ============================================
 // letterSpacing — Chrome 실측 규칙 (grapheme 마다, trailing 포함)
 // ============================================
@@ -256,9 +259,9 @@ describe("Canvas2DTextMeasurer.measureWidth — letterSpacing", () => {
 
   it("letterSpacing 0 이면 base 폭 그대로", () => {
     const m = new Canvas2DTextMeasurer();
-    expect(
-      m.measureWidth("abc", { fontSize: 16, fontFamily: "Arial" }),
-    ).toBe(24);
+    expect(m.measureWidth("abc", { fontSize: 16, fontFamily: "Arial" })).toBe(
+      24,
+    );
   });
 
   it("서로게이트 페어는 grapheme 1개로 센다", () => {
@@ -270,5 +273,69 @@ describe("Canvas2DTextMeasurer.measureWidth — letterSpacing", () => {
       letterSpacing: 2,
     });
     expect(w).toBe(2 * 8 + 1 * 2);
+  });
+});
+
+// ============================================
+// ADR-205 Phase 1 — wrap/height leg 의 letterSpacing 결선
+// ============================================
+
+describe("measureWrappedTextHeight — letterSpacing (ADR-205)", () => {
+  beforeEach(() => {
+    mockCtx.letterSpacing = "0px";
+    mockMeasureText.mockClear();
+  });
+
+  // mock 은 글자당 8px + letterSpacing×글자수.
+  //   "abc def" → abc 24 · 공백 8 · def 24 = 56  (ls 0)
+  //              → abc 30 · 공백 10 · def 30 = 70 (ls 2)
+  // maxWidth 60 이면 ls 0 은 한 줄, ls 2 는 두 줄이다.
+  const TEXT = "abc def";
+  const MAX_WIDTH = 60;
+  const LINE_HEIGHT = 20;
+
+  it("ls 0 은 한 줄 — 종전 동작 유지", () => {
+    expect(
+      measureWrappedTextHeight(
+        TEXT,
+        8,
+        400,
+        "Pretendard",
+        MAX_WIDTH,
+        LINE_HEIGHT,
+        undefined,
+        undefined,
+        0,
+      ),
+    ).toBe(LINE_HEIGHT);
+  });
+
+  it("ls 2 는 줄 수가 늘어난다 — 인자가 측정기까지 도달해야 성립", () => {
+    expect(
+      measureWrappedTextHeight(
+        TEXT,
+        8,
+        400,
+        "Pretendard",
+        MAX_WIDTH,
+        LINE_HEIGHT,
+        undefined,
+        undefined,
+        2,
+      ),
+    ).toBe(LINE_HEIGHT * 2);
+  });
+
+  it("인자 생략은 ls 0 과 같다 — 기존 호출 지점 하위 호환", () => {
+    expect(
+      measureWrappedTextHeight(
+        TEXT,
+        8,
+        400,
+        "Pretendard",
+        MAX_WIDTH,
+        LINE_HEIGHT,
+      ),
+    ).toBe(LINE_HEIGHT);
   });
 });

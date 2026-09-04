@@ -98,6 +98,7 @@ import {
 } from "../../skia/resolveSkiaVisualRule";
 import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
 import { extractSpecTextStyle } from "../../utils/specTextStyle";
+import { resolveTextRenderStyle } from "../../utils/textRenderStyle";
 import {
   measureWrappedTextHeight,
   measureFontMetrics,
@@ -2207,10 +2208,12 @@ export function calculateContentWidth(
       specStyle?.fontWeight ??
       computedStyle?.fontWeight ??
       400;
-    const letterSpacing =
-      parseNumericValue(style?.letterSpacing) ??
-      computedStyle?.letterSpacing ??
-      0;
+    // ADR-205 Phase 1 — 폭 leg 의 자간 해소를 seam 으로 옮긴다 (규칙 동일, 값 변화 0).
+    // wrap leg · Skia 가 같은 함수를 읽어 표면마다 규칙이 갈리지 않게 한다.
+    const letterSpacing = resolveTextRenderStyle(
+      style,
+      computedStyle,
+    ).letterSpacing;
     const wordSpacing =
       parseNumericValue(style?.wordSpacing) ?? computedStyle?.wordSpacing ?? 0;
 
@@ -3062,6 +3065,8 @@ export function calculateContentHeight(
             wbVal,
             owVal,
             effectiveLineHeight,
+            // ADR-205 Phase 1 — 폭 leg 과 같은 seam 으로 자간을 해소한다.
+            resolveTextRenderStyle(style, computedStyle).letterSpacing,
           );
           if (measured.height > textHeight + 0.5) {
             const wrappedHeight = Math.max(measured.height, minContentHeight);
@@ -4238,6 +4243,8 @@ export function calculateContentHeight(
           resolvedLH,
           wb1,
           ow1,
+          // ADR-205 Phase 1 — 여기가 live 증상(줄 수)의 결손 지점이었다.
+          resolveTextRenderStyle(style, computedStyle).letterSpacing,
         );
         const singleLineH = resolvedLH;
         if (wrappedHeight > singleLineH + 0.5) {
@@ -5476,6 +5483,11 @@ export function measureTextWithWhiteSpace(
   wordBreak?: string,
   overflowWrap?: string,
   lineHeightOverride?: number,
+  /**
+   * ADR-205 Phase 1 — 자간(px). 줄 수를 바꾸는 축이라 wrap leg 이 받아야 한다.
+   * 해소는 호출부의 `resolveTextRenderStyle` 이 하고 여기는 운반만 한다.
+   */
+  letterSpacing?: number,
 ): { width: number; height: number } {
   // CSS line-height: normal 근사값 (fontBoundingBox 기반)
   // lineHeightOverride가 있으면 spec/config 기반 lineHeight 우선 사용
@@ -5489,7 +5501,9 @@ export function measureTextWithWhiteSpace(
   switch (whiteSpace) {
     case "nowrap": {
       // 줄바꿈 없이 한 줄
-      const width = measureTextWidth(text, fontSize, fontFamily, fontWeight);
+      const width = measureTextWidth(text, fontSize, fontFamily, fontWeight, {
+        letterSpacing,
+      });
       return { width, height: lineHeight };
     }
     case "pre": {
@@ -5497,7 +5511,9 @@ export function measureTextWithWhiteSpace(
       const lines = text.split("\n");
       let maxLineWidth = 0;
       for (const line of lines) {
-        const w = measureTextWidth(line, fontSize, fontFamily, fontWeight);
+        const w = measureTextWidth(line, fontSize, fontFamily, fontWeight, {
+          letterSpacing,
+        });
         if (w > maxLineWidth) maxLineWidth = w;
       }
       return { width: maxLineWidth, height: lines.length * lineHeight };
@@ -5518,6 +5534,7 @@ export function measureTextWithWhiteSpace(
           lineHeightOverride,
           wb,
           ow,
+          letterSpacing,
         ),
       };
     }
@@ -5534,6 +5551,7 @@ export function measureTextWithWhiteSpace(
           lineHeightOverride,
           wb,
           ow,
+          letterSpacing,
         ),
       };
     }

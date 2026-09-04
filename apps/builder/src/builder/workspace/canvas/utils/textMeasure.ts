@@ -537,6 +537,12 @@ export function measureWrappedTextHeight(
   lineHeight?: number,
   wordBreak?: "normal" | "break-all" | "keep-all",
   overflowWrap?: "normal" | "break-word" | "anywhere",
+  /**
+   * ADR-205 Phase 1 — 자간(px). 줄 수를 바꾸는 축이므로 wrap leg 이 받아야 한다.
+   * 생략은 0 과 같아 기존 호출 지점의 동작이 바뀌지 않는다.
+   * 해소는 `resolveTextRenderStyle` 이 하고 이 함수는 결과를 운반만 한다.
+   */
+  letterSpacing?: number,
 ): number {
   const result = getTextMeasurer().measureWrapped(
     text,
@@ -547,6 +553,7 @@ export function measureWrappedTextHeight(
       lineHeight,
       wordBreak,
       overflowWrap,
+      letterSpacing,
     },
     maxWidth,
   );

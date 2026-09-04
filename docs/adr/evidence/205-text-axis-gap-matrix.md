@@ -10,7 +10,7 @@
 
 > 이 절은 `scripts/generate-text-axis-matrix.mjs` 가 코드에서 생성한다. 손으로 고치지 않는다.
 
-- 속성 집합 = A ∪ B — A: `cssResolver.INHERITABLE_PROPERTIES` 텍스트 항목 16개 (`visibility` 제외) · B: ADR-057 블록이 `child.text.*` 로 옮기는 인라인 속성 14개 → 합집합 **22개**
+- 속성 집합 = A ∪ B — A: `cssResolver.INHERITABLE_PROPERTIES` 텍스트 항목 16개 (`visibility` 제외) · B: ADR-057 블록이 `child.text.*` 로 옮기는 인라인 속성 15개 → 합집합 **22개**
 - S1 DOM/Preview 는 renderer root 의 `style={element.props.style}` 통과 (62곳 — F13) — 인라인 전 속성이 브라우저 cascade 로 도달하므로 열을 따로 두지 않는다
 - S4 상속 채널: Skia scene build 의 `ComputedStyle` 참조 **0건** → 상속 축은 전 속성 미도달 (ADR-205 F20 · R7)
 - **측정** 열이 `—` 인 속성은 줄 수·폭을 바꾸지 않아 S2/S3 가 해당 없다 (측정 축 = `TextMeasureStyle` 필드 ∪ 폭 leg 실참조)
@@ -24,7 +24,7 @@
 | `fontStyle`           |  상속  |  측정   |        ✅        |       ✅       |     ❌      |       ❌       |      ❌      |
 | `fontVariant`         |  상속  |  측정   |        ✅        |       ✅       |     ❌      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `fontWeight`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |       ✅       |      ❌      |
-| `letterSpacing`       |  상속  |  측정   |        ✅        |       ✅       |     ❌      |       ❌       |      ❌      |
+| `letterSpacing`       |  상속  |  측정   |        ✅        |       ✅       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `lineHeight`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `overflowWrap`        |  상속  |  측정   |        ❌        |       ❌       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `textAlign`           |  상속  |    —    |        —         |       —        |      —      |       ✅       |      ❌      |
@@ -42,13 +42,12 @@
 
 ⁽⁰⁵⁷⁾ = ADR-057 블록(`buildSpecNodeData`)이 `child.text.*` 로 옮기는 축. 표식이 없는 ✅ 는 Skia scene build 의 다른 지점이 인라인 style 을 읽는다는 뜻.
 
-**결손 — 측정 축인데 wrap leg 또는 Skia 인라인에 미도달: 7개**
+**결손 — 측정 축인데 wrap leg 또는 Skia 인라인에 미도달: 6개**
 
 - `fontFamily` — S4 Skia 인라인 미도달
 - `fontStretch` — S3 wrap leg 미도달
 - `fontStyle` — S3 wrap leg · S4 Skia 인라인 미도달
 - `fontVariant` — S3 wrap leg 미도달
-- `letterSpacing` — S3 wrap leg · S4 Skia 인라인 미도달
 - `textTransform` — S3 wrap leg · S4 Skia 인라인 미도달
 - `wordSpacing` — S3 wrap leg 미도달
 
@@ -111,3 +110,22 @@ CSS 키**는 12 + 2 = **14개**로 표와 맞는다. 모순 아님.
 **결손 3자리 확증**: ADR 본문이 예상한 ① wrap leg · ② Skia 인라인 · ③ 게이트 부재 중 ①②는 위
 표로 확증됐다 (`letterSpacing` 행). ③ 은 이 문서가 생성물로 존재한다는 것 자체가 아직 게이트가
 아님을 보인다 — Phase 2 에서 `--check` 를 pre-push 에 배선한다.
+
+## 5. Phase 1 반영 후 (2026-09-05)
+
+`letterSpacing` 행이 S2 폭 · S3 wrap · S4 Skia 인라인 **전부 ✅** 로 바뀌었고 결손 목록에서
+빠졌다 (7 → 6). 남은 `❌` 는 S4 Skia **상속** 한 칸이며 이는 R7 이 명시한 알려진 미지원
+(Phase 5 입력) 이다.
+
+생성기 자체도 이때 두 번 고쳤다 — 둘 다 **결선하는 순간 드러난** 검출기의 사각이다:
+
+1. **주석 유출** — `skiaHasComputedStyle` 이 grep 이라, 새로 쓴 주석
+   ("scene build 는 `ComputedStyle` 을 쥔 적이 없다") 을 도달 근거로 세어 S4 상속 열이 전 행
+   ✅ 로 뒤집혔다. 주석을 지운 소스만 보도록 고쳤다.
+2. **seam 무인지** — 검출기가 `style?.X` / `style.X` 같은 **속성별 배선**만 찾았기 때문에,
+   같은 해소를 `resolveTextRenderStyle` 로 옮기자 폭 leg·Skia 가 동시에 ❌ 가 됐다.
+   seam 호출을 도달로 인정하도록 고쳤다 (인자 2개면 상속 채널까지, 1개면 인라인만).
+
+두 번째는 게이트 설계의 교훈이다 — **"어떻게 배선했는가" 로 도달을 재면 배선 방식이 바뀔 때
+가짜 결손이 난다.** Phase 2 의 도달 검사는 이 사각을 피해 `TextMeasureStyle`·`child.text` 에
+값이 실리는지를 본다.
