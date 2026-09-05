@@ -111,7 +111,7 @@ Chrome 실측 규칙 (`text.length * 8 + spacing * grapheme 수`) 을 흉내낸�
   **letterSpacing 만 부재**). "인라인을 읽는 경로가 없다" 는 letterSpacing 에 한해 참이고
   구조적 부재는 아니다.
 
-정본은 [ADR-205](../205-text-visual-axis-computed-seam.md) Context 와
+정본은 [ADR-205](../completed/205-text-visual-axis-computed-seam.md) Context 와
 [breakdown §2 F9·F9b·F9c·F18~F21](../design/205-text-visual-axis-computed-seam-breakdown.md).
 
 ## 6. 이번 커밋이 한 것 / 안 한 것

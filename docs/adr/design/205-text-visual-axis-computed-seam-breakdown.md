@@ -1,7 +1,10 @@
 # ADR-205 design breakdown — 텍스트 시각 축 computed 단일 seam
 
 > 본 문서가 구현 상세의 정본이다. ADR 본문은 결정·위험·게이트만 둔다.
-> 상태: Phase 0 반영 완료 (2026-09-05) — Phase 1 대기.
+> 상태: **Phase 0~3 반영 완료 (2026-09-05) — ADR Implemented.** Phase 4(fontSize 21곳 수렴)·
+> Phase 5(Skia cascade = 상속)는 조건부 후속이며 본 ADR 의 종결 조건이 아니다. Phase 5 착수
+> 판정의 입력은 live 실측 R7 (부모 상속 자간이 Skia paint 에 미도달 — 한 단어 차이,
+> [evidence §9](../evidence/205-text-axis-gap-matrix.md)).
 
 ## 1. Fork 게이트 4 질문 lock-in
 
@@ -72,7 +75,7 @@
 - 격차표는 코드가 생성한다 (게이트 G4 의 입력과 같은 소스).
 - 현 시점 예상 결손 3자리 (G0 가 확증할 대상): ① wrap leg (F19) · ② Skia 인라인 (F18) · ③ 게이트 부재. 상속 축의 layout↔paint 발산 (F20, R7) 은 Phase 5 입력으로 별도 열에 기록만 한다.
 
-## 3. Phase 1 — seam 신설 (letterSpacing 단독 소비자, 인라인 채널만)
+## 3. Phase 1 — seam 신설 (letterSpacing 단독 소비자, 인라인 채널만) ✅ 반영 완료 2026-09-05
 
 - `resolveTextRenderStyle(style, computed?)` 신설 — 위치는 `canvas/utils/` (layout·skia 양쪽에서 import 가능한 곳). 반환은 `TextMeasureStyle` 의 텍스트 축 조각.
 - 규칙은 `resolveTextLeafWhiteSpace` (F6) 와 같다: inline 우선, 없으면 computed, cascade 키워드는 computed 가 해석한 값. **`computed` 는 선택 인자** — 없으면 인라인만 해소한다.
@@ -83,14 +86,14 @@
   - (c) Skia 텍스트 노드 — `buildSpecNodeData.ts:2050-2165` 의 ADR-057 블록(F18)에 letterSpacing 을 seam 경유로 추가한다. **`specShapeConverter` 가 아니다** — 그 함수는 요소 style 도 computed 도 받지 않는다 (F20). 우선순위는 인라인 > `shape.letterSpacing` (R6). `textParagraphKey.ts:44` 캐시 키 동반 갱신 (F21).
 - **상속(computed)은 이 phase 의 Skia leg 에 넣지 않는다** — scene build 에 `ComputedStyle` 이 없어(F20) cascade 배선이 필요하고, 그것은 Phase 5 다. Phase 1 종료 시점의 상태: 인라인 ls 는 layout·Skia 모두 일치, 상속 ls 는 layout 만 반영 (R7).
 
-## 4. Phase 2 — 대칭 게이트
+## 4. Phase 2 — 대칭 게이트 ✅ 반영 완료 2026-09-05
 
 - 두 축을 같이 본다 (G4):
   - **집합 대조** — 텍스트 CSS 속성 집합 ↔ seam 필드 집합. 새 텍스트 속성이 한쪽에만 생기면 RED.
   - **도달 검사** — 각 속성이 두 소비자(layout wrap leg · Skia 텍스트 노드)에 실제로 닿는지. 필드는 있는데 표면에 안 닿는 형태(F15 가 그 형태였다)를 집합 대조만으로는 못 잡는다.
 - 집합의 출처는 §2 Phase 0 산출물의 합집합 규칙 (F1 ∪ F18) — 손 목록 신설 금지.
 
-## 5. Phase 3 — live + 회귀
+## 5. Phase 3 — live + 회귀 ✅ 반영 완료 2026-09-05
 
 - 빌더 Text 에 인라인 `letter-spacing: 2px` → Skia 줄바꿈이 Chrome DOM 오라클과 일치.
 - `evidence/051-letterspacing-canvas2d.md` §1 의 오라클 스크립트를 그대로 재사용.

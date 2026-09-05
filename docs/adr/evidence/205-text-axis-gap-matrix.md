@@ -1,6 +1,6 @@
 # ADR-205 Phase 0 — 텍스트 시각 축 격차표
 
-> [ADR-205](../205-text-visual-axis-computed-seam.md) · [breakdown §2](../design/205-text-visual-axis-computed-seam-breakdown.md)
+> [ADR-205](../completed/205-text-visual-axis-computed-seam.md) · [breakdown §2](../design/205-text-visual-axis-computed-seam-breakdown.md)
 > Gate **G0** 의 산출물. 아래 표는 `scripts/generate-text-axis-matrix.mjs` 가 코드에서 생성한다 —
 > 추정으로 범위를 잡지 않는다 (breakdown §2 Phase 0 산출물).
 
@@ -271,3 +271,41 @@ Chrome 창이 `visibilityState: "hidden"` 이면 rAF 가 멈추고, 빌더 readi
 
 이 절차가 끝나기 전에는 ADR-205 를 Implemented 로 올리지 않는다 (CLAUDE.md §완료 기준 ·
 `adr-status-sync-check.sh` 가 `### Live Exercise` 부재를 block).
+
+## 9. G1 live — 실제 빌더 실측 (2026-09-05)
+
+Chrome MCP 경로는 창이 `hidden` 이라 열리지 않았다(rAF 정지 → readiness 계약이 오버레이를
+풀지 않음). 같은 판정을 **같은 빌더 앱**에서 하도록 하니스를 썼다 —
+`apps/builder/scripts/adr205-live-letterspacing.mjs` 는 `perf-baseline.mjs` 와 동일한 부팅
+절차(대시보드에서 격리 프로젝트 생성 → `waitReady`)를 쓰므로 production 번들 · production
+store · production `StoreRenderBridge` 다. 재실행:
+
+```bash
+node apps/builder/scripts/adr205-live-letterspacing.mjs   # --headed 로 눈으로도 확인 가능
+```
+
+줄바꿈은 렌더러가 break hint 를 만들 때 쓰는 것과 **같은 함수**(`measureWithCanvas2D`)에
+live scene node 값을 넣어 얻고(`nodeRendererText.ts:526-545` 의 c2dStyle 조립 재현), 오라클은
+같은 페이지에서 실제 DOM 에 조판해 `Range.getClientRects` 로 줄 경계를 뽑는다.
+
+문서: `Text` × `width 150px · Arial 16px · lineHeight 24px`, 본문 `ab cd ef gh ij kl mn op`.
+
+| 케이스                       | Skia `text.letterSpacing` | Skia 줄바꿈                   | Chrome DOM 오라클             | 판정             |
+| ---------------------------- | ------------------------: | ----------------------------- | ----------------------------- | ---------------- |
+| 인라인 `letter-spacing: 2px` |                     **2** | `ab cd ef gh ij kl` / `mn op` | `ab cd ef gh ij kl` / `mn op` | ✅ 일치          |
+| 대조군 (자간 미설정)         |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl mn` / `op` | ✅ 일치          |
+| **부모 상속** (R7)           |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl` / `mn op` | ❌ 불일치 (예상) |
+
+세 줄이 각각 다른 것을 말한다.
+
+1. **결선 확인** — 인라인 케이스의 `letterSpacing` 이 **2** 다. Phase 1 이전에는
+   scene node `text` 에 **키 자체가 없었다** (§5 표). 줄바꿈도 `ls 2` 결과로 바뀌었다 —
+   이전 실측은 `ab cd ef gh ij kl mn` / `op` (= `ls 0` 결과) 였다.
+2. **축이 실제로 갈린다** — 대조군이 같은 문자열·같은 폭에서 다른 줄바꿈을 낸다.
+   두 줄이 같았다면 "자간이 반영됐다" 를 주장할 수 없다.
+3. **R7 이 수치로 확정됐다** — 부모가 준 자간은 여전히 Skia paint 에 도달하지 않아 DOM 과
+   한 단어만큼 갈린다. 알려진 미지원이며 **Phase 5 (Skia cascade 배선) 착수 판정의 입력**이다.
+   레이아웃은 이 값을 이미 읽으므로(폭 leg) 상속 축에서는 layout↔paint 가 갈린 채 남는다.
+
+`fallback=false` — 세 케이스 모두 Canvas 2D 측정 경로를 탔다(CanvasKit 우회 아님). 즉
+2026-09-05 `8b6c1bd22` 가 갖춘 측정 능력이 실제로 쓰이고 있다.

@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted — 2026-09-05
+Implemented — 2026-09-05
 
-- Proposed 2026-09-05 → 리뷰 round 1 ([reviews/205.md](reviews/205.md)) 이슈 8건 전부 `fixed`
+- Proposed 2026-09-05 → 리뷰 round 1 ([reviews/205.md](../reviews/205.md)) 이슈 8건 전부 `fixed`
   (HIGH 2 포함) → **Accepted 2026-09-05**. 전제 확정 종결 계약 성립
   (`.claude/rules/premise-decision-points.md`).
 - Phase 0 반영 2026-09-05 — 격차표 생성 (G0 통과):
-  [evidence/205-text-axis-gap-matrix.md](evidence/205-text-axis-gap-matrix.md).
+  [evidence/205-text-axis-gap-matrix.md](../evidence/205-text-axis-gap-matrix.md).
   측정 축 중 wrap leg·Skia 인라인 양쪽 미도달은 `letterSpacing`·`fontStyle`·`textTransform`
   3개뿐 → Phase 1 범위 `letterSpacing` 확정.
 - Phase 1 반영 2026-09-05 (`cd9762006`) — seam `resolveTextRenderStyle` 신설 + 소비자 3곳
@@ -17,9 +17,10 @@ Accepted — 2026-09-05
   신규 자간 fixture 는 Phase 1 전량 원복 시 `L1:fail`.
 - Phase 2 반영 2026-09-05 (`809347f4c`) — **G4 통과**: 집합 대조(생성기 `--check`) +
   값 수준 도달 검사. 원복 RED 3종이 각각 다른 테스트를 RED 로 만든다.
-- **Phase 3 미완 — G1 (live) 미실행**. Chrome 창이 `visibilityState: "hidden"` 이라
-  rAF 가 멈춰 빌더 readiness 가 진행하지 않았다 (알려진 hidden 탭 rAF pause). 회귀·문서
-  (G5) 는 반영. **Implemented 승격은 G1 실행 후**.
+- Phase 3 반영 2026-09-05 — **G1·G5 통과**. G5 회귀 0 (builder 5,340 / shared 972 /
+  specs 880 / canvas 1,625 / visual-parity 98 / type-check). G1 은 아래 §Live Exercise.
+- **Implemented 2026-09-05**. Phase 4(fontSize 21곳 수렴)·Phase 5(Skia cascade = 상속)는
+  조건부 후속이며 본 ADR 의 종결 조건이 아니다 (Decision §Phase 분리 질문).
 
 ## Context
 
@@ -27,7 +28,7 @@ Styles 패널이 노출하는 `letter-spacing` 이 **Preview 에만 반영되고
 않는다**. 2026-09-05 live 실측 — 인라인 `letterSpacing: "2px"` 인 Text 의 Skia scene node
 `text` 객체에는 그 키 자체가 없고 (`fontSize`·`lineHeight`·`fontFamilies` 는 도달), 줄바꿈이
 Chrome 의 `letter-spacing: 0` 결과와 일치했다
-([evidence](evidence/051-letterspacing-canvas2d.md) §5).
+([evidence](../evidence/051-letterspacing-canvas2d.md) §5).
 
 이것은 D3(시각 스타일)의 **symmetric consumer 위반**이다 — 같은 SSOT 에서 Builder 와
 Preview 가 같은 시각 결과를 내야 하는데, 두 소비자가 서로 다른 입력을 읽는다.
@@ -227,7 +228,7 @@ Phase 1~3 만으로 G1 (사용자-가시 결함 해소 — 인라인 letter-spac
   인라인 `style.letterSpacing` 이므로(D2 상 표준 CSS 속성), catalog 축만 추가하면
   사용자가 패널에서 조정한 값은 여전히 Preview 에만 반영된다. 문제 정의를 바꾸는 대안이다.
 
-> 구현 상세: [205-text-visual-axis-computed-seam-breakdown.md](design/205-text-visual-axis-computed-seam-breakdown.md)
+> 구현 상세: [205-text-visual-axis-computed-seam-breakdown.md](../design/205-text-visual-axis-computed-seam-breakdown.md)
 
 ## Risks
 
@@ -251,6 +252,29 @@ Phase 1~3 만으로 G1 (사용자-가시 결함 해소 — 인라인 letter-spac
 | G3   | Phase 1 종료 | visual-parity smoke PASS + **G3** 10회 연속 RGBA 해시 동일. 기존 fixture `maxByte 0` (회귀 없음) **와 함께**, ls≠0 을 쓰는 신규 fixture 1개가 변경 전 arm 대비 `maxByte > 0` (= 새 경로가 실제로 그려진다)                                                                                                                                       | 발산 region 을 특정해 우선순위·상속 규칙 중 어느 쪽인지 판정. 신규 fixture 가 `maxByte 0` 이면 결선 미도달로 판정하고 Phase 1 재작업 |
 | G4   | Phase 2 종료 | 두 조건 동시 — ① 텍스트 속성을 seam 필드 집합에서 하나 빼면 정적 테스트 RED (집합 대조), ② 그 속성의 **소비자 도달**(layout wrap leg · Skia 텍스트 노드)을 끊으면 RED (도달 검사 — F15 형태의 "필드는 있는데 표면에 안 닿음" 차단). pre-push 훅과 `push:main` 워크플로에서 실행                                                                  | ②만 실패하면 도달 검사를 parity fixture 기반으로 대체. 전체 실패 시 `codex:preflight` 로 옮겨 커밋 시점 검사로 강등                  |
 | G5   | Phase 3 종료 | 관련 스위트 회귀 0 (`canvas` 1609+ · parity baseline 동일) + CHANGELOG·evidence 반영                                                                                                                                                                                                                                                             | 회귀 원인이 seam 이면 Phase 1 원복, 기존 결함이면 baseline 대조로 분리 기록                                                          |
+
+### Live Exercise
+
+**2026-09-05 · 실제 빌더 (production 번들·store·`StoreRenderBridge`) · 하니스 실행**
+— `node apps/builder/scripts/adr205-live-letterspacing.mjs`. Chrome MCP 경로는 창이
+`visibilityState: "hidden"` 이라 rAF 가 멈춰 readiness 오버레이가 풀리지 않아 사용하지
+못했고, 같은 부팅 절차(`perf-baseline.mjs` 의 대시보드 격리 프로젝트 생성 → `waitReady`)를
+쓰는 하니스로 대체했다. 상세·재실행 방법:
+[evidence/205-text-axis-gap-matrix.md §9](../evidence/205-text-axis-gap-matrix.md).
+
+`Text` × `width 150px · Arial 16px · lineHeight 24px`, 본문 `ab cd ef gh ij kl mn op` 를
+빌더에 넣고 세 케이스를 같은 실행에서 쟀다.
+
+| 케이스                       | Skia `text.letterSpacing` | Skia 줄바꿈                   | Chrome DOM 오라클             | 판정             |
+| ---------------------------- | ------------------------: | ----------------------------- | ----------------------------- | ---------------- |
+| 인라인 `letter-spacing: 2px` |                     **2** | `ab cd ef gh ij kl` / `mn op` | `ab cd ef gh ij kl` / `mn op` | ✅ 일치          |
+| 대조군 (자간 미설정)         |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl mn` / `op` | ✅ 일치          |
+| 부모 상속 (R7)               |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl` / `mn op` | ❌ 불일치 (예상) |
+
+Phase 1 이전에는 인라인 케이스의 scene node `text` 에 `letterSpacing` **키 자체가 없었고**
+줄바꿈이 `ls 0` 결과였다. 대조군이 다른 줄바꿈을 내므로 축이 실제로 갈린다는 것도 같이
+확인된다. 상속 케이스의 불일치는 R7 이 예고한 알려진 미지원이며 Phase 5 착수 판정의
+입력으로 수치까지 기록했다.
 
 ## Consequences
 
