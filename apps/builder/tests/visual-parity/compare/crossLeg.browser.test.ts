@@ -70,6 +70,20 @@ const KNOWN_OVER_BUDGET: Record<string, string[]> = {
   "basic-geometry-paint": [],
   // 2026-09-05 하니스 폰트 수리로 L1 이 통과하면서 픽셀 층이 처음 돌았다. 아래는 그
   // 첫 측정값이다 — 새로 생긴 발산이 아니라 L1 에 가려 안 보이던 것이다.
+  //
+  // 같은 날 **accent 토큰 발산은 수리됐다**: `lightColors.accent` 가 빌드 시점 tailwind
+  // 리터럴(`blue-600` #155dfc)로 남아 있었고 CSS 테마는 `--tint` 에서 oklch L55% 로
+  // 파생한다(#3660f0). `initThemeConfig` 가 `if (!persisted) return` 으로 먼저 빠져서
+  // 기본 상태의 Skia 만 다른 파랑을 썼다. 수리 후 enabled Button 채우기 픽셀은
+  // **완전 일치**(양쪽 rgb(54,96,240)). `button-enabled-fill` 이 아직 목록에 남는 이유는
+  // 그 region 상자가 라벨 글자를 포함해 text AA 가 non-text 예산(0.001)을 넘기 때문이다.
+  //
+  // 남은 실제 발산은 **disabled 상태 채우기**다 — Preview 는 `utilities.css` 의
+  // `.button-base:where([data-disabled])` 가 배경을 `--fg` 12% 중립으로 **교체**하고
+  // (+color 38%, border transparent, opacity 0.38), Skia 는 catalog
+  // `structure.states.disabled` 에 **opacity 밖에 없어** accent 를 그대로 두고 흐리기만
+  // 한다. 실측 skia rgb(179,195,249) vs preview rgb(245,245,245). catalog 에 disabled
+  // 배경 축을 넣는 것은 D3 스키마 확장이라 ADR 대상 (ADR-908 fill token 소유).
   "catalog-state-paint": [
     "clip-fill",
     "clip-boundary",

@@ -128,6 +128,39 @@ function persistCurrentConfig(): void {
   });
 }
 
+/** store 기본 선택값 — `applyThemeDerivations` 와 초기 state 가 같은 값을 읽는다. */
+export const DEFAULT_THEME_SELECTION = {
+  tint: "blue",
+  neutral: "neutral",
+  radiusScale: "md",
+} as const satisfies {
+  tint: TintPreset;
+  neutral: NeutralPreset;
+  radiusScale: RadiusScale;
+};
+
+/**
+ * theme 선택값 → Skia 토큰 파생을 한 번에 적용한다.
+ *
+ * 셋(tint · neutral · radiusScale)이 항상 같이 움직여야 한다 — 하나만 적용하면 Skia 가
+ * 반쯤 다른 테마로 그린다. 인자를 생략하면 store 기본값을 쓴다.
+ */
+export function applyThemeDerivations(
+  // 이름 주의: `overrides` 는 canonical instance mirror 의 예약 필드명이라 ADR-116 G5
+  // grep 게이트가 잡는다 (`g5LegacyFieldGrepGate.test.ts`).
+  selection: {
+    tint?: TintPreset;
+    neutral?: NeutralPreset;
+    radiusScale?: RadiusScale;
+  } = {},
+): void {
+  tintToSkiaColors(selection.tint ?? DEFAULT_THEME_SELECTION.tint);
+  neutralToSkiaColors(selection.neutral ?? DEFAULT_THEME_SELECTION.neutral);
+  radiusScaleToSkia(
+    selection.radiusScale ?? DEFAULT_THEME_SELECTION.radiusScale,
+  );
+}
+
 // ============================================================================
 // Store
 // ============================================================================
@@ -135,10 +168,10 @@ function persistCurrentConfig(): void {
 export const useThemeConfigStore = create<ThemeConfigState>()(
   devtools(
     (set) => ({
-      tint: "blue",
+      tint: DEFAULT_THEME_SELECTION.tint,
       darkMode: "light",
-      neutral: "neutral",
-      radiusScale: "md",
+      neutral: DEFAULT_THEME_SELECTION.neutral,
+      radiusScale: DEFAULT_THEME_SELECTION.radiusScale,
       baseTypography: DEFAULT_BASE_TYPOGRAPHY,
       themeVersion: 0,
 
@@ -243,12 +276,21 @@ export const useThemeConfigStore = create<ThemeConfigState>()(
         currentProjectId = projectId;
 
         const persisted = loadPersistedConfig(projectId);
-        if (!persisted) return;
 
-        // Skia 색상/토큰 동기화
-        if (persisted.tint) tintToSkiaColors(persisted.tint);
-        if (persisted.neutral) neutralToSkiaColors(persisted.neutral);
-        if (persisted.radiusScale) radiusScaleToSkia(persisted.radiusScale);
+        // **영속 설정이 없어도 파생은 적용한다.** `lightColors`/`darkColors` 의 accent 는
+        // 빌드 시점 tailwind 리터럴(`blue-600` = #155dfc)인데, CSS 테마는 같은 색을
+        // `--tint`(= `--blue`, oklch(0.5 0.22049 266.315)) 에서 L 55% 로 파생한다
+        // (#3660f0). 예전에는 이 함수가 `if (!persisted) return` 으로 먼저 빠져서
+        // **기본 상태의 Skia 만 다른 파랑**을 썼다 — tint 를 한 번이라도 바꾼 사용자만
+        // 우연히 정합했다. 실측 (2026-09-05 visual-parity): Skia rgb(21,93,252) vs
+        // Preview rgb(54,96,240).
+        applyThemeDerivations({
+          tint: persisted?.tint,
+          neutral: persisted?.neutral,
+          radiusScale: persisted?.radiusScale,
+        });
+
+        if (!persisted) return;
 
         // 상태 복원 + themeVersion 증가
         set(
