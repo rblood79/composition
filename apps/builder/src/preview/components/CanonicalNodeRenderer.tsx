@@ -24,6 +24,7 @@ import { useRuntimeStore } from "../store";
 import {
   adaptElementStyle,
   getPrimitiveBinding,
+  resolveAuthoredAriaLabel,
   resolveAuthoredDomId,
   resolveBodyArtboardStyle,
   toRacProps,
@@ -520,6 +521,15 @@ export function CanonicalNodeRenderer({
             );
             return domId ? { id: domId } : {};
           })()}
+          {...(() => {
+            // id 와 같은 전 타입 공통 축 — `toRacProps` allowlist 를 타지 않으므로
+            // 여기가 유일한 emit 지점이다. 컴포넌트가 이미 이름을 냈으면 덮지 않는다.
+            const ariaLabel = resolveAuthoredAriaLabel(
+              adaptedEl.props as Record<string, unknown> | undefined,
+              (racRest as Record<string, unknown>)["aria-label"],
+            );
+            return ariaLabel ? { "aria-label": ariaLabel } : {};
+          })()}
           {...eventHandlers}
           {...(cutoverClassName ? { className: cutoverClassName } : {})}
           style={overrideStyle}
@@ -608,6 +618,12 @@ export function CanonicalNodeRenderer({
       key: node.id,
       ...markerProps,
       id: resolveAuthoredDomId(type, authoredCustomId),
+      ...(() => {
+        const ariaLabel = resolveAuthoredAriaLabel(
+          adaptedEl.props as Record<string, unknown> | undefined,
+        );
+        return ariaLabel ? { "aria-label": ariaLabel } : {};
+      })(),
       style: resolvedStyle,
       className: mergedClassName,
       ...specDataAttrs,

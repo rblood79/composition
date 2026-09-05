@@ -49,3 +49,29 @@ export function resolveAuthoredDomId(
   if (RAC_KEYED_ITEM_TYPES.has(type)) return undefined;
   return customId;
 }
+
+/**
+ * 렌더러가 DOM 에 실을 `aria-label` 을 판정한다.
+ *
+ * `id`/`class` 와 같은 **전 타입 공통 축**이다 — 컴포넌트별 편집 계약(catalog `accepts`)이
+ * 아니라 모든 DOM 노드가 가질 수 있는 접근성 축이고, `toRacProps` 의 allowlist 를 타지
+ * 않으므로 이 규칙이 유일한 emit 지점이다.
+ *
+ * 넣게 된 계기: `role="progressbar"` 처럼 **접근 가능한 이름이 필수인** 컴포넌트를 빌더에서
+ * 만들면 이름을 넣을 수단이 없었다 (2026-09-05). 컴포넌트마다 prop 을 늘리는 대신 축을
+ * 하나 연다 — 그것이 `id`/`class` 와 같은 성격이기 때문이다.
+ *
+ * @param props canonical 노드의 props
+ * @param existing 렌더러가 이미 산출한 `aria-label` — 있으면 덮지 않는다 (컴포넌트가 스스로
+ *   이름을 만드는 경우가 우선. 예: RAC 가 label 자식에서 파생)
+ */
+export function resolveAuthoredAriaLabel(
+  props: Record<string, unknown> | undefined | null,
+  existing?: unknown,
+): string | undefined {
+  if (existing !== undefined && existing !== null) return undefined;
+  const raw = props?.["aria-label"];
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
