@@ -123,7 +123,7 @@ async function renderDom(type: FieldType): Promise<Leg> {
 }
 
 async function runCanvas(type: FieldType, junk: boolean): Promise<Leg> {
-  const tree = await paletteCreationTree(type);
+  const tree = await paletteCreationTree(type, `fd-subpart-${type}`);
   const els = tree.elements.map((el) => {
     if (el.id === tree.root.id) {
       return { ...el, props: { ...el.props, label: "Name" } } as Element;
@@ -131,7 +131,8 @@ async function runCanvas(type: FieldType, junk: boolean): Promise<Leg> {
     // junk 대상 = 판정 A 의 sub-part 토큰 (Label · Input · DateInput). NumberField 의 SelectTrigger 래퍼는
     //   delegation 표에 없는 별개 가족이라 범위 밖 (후속 기록).
     const isTarget =
-      el.id !== tree.root.id && JUNK_TARGET_TYPES.includes(el.type);
+      el.id !== tree.root.id &&
+      (JUNK_TARGET_TYPES as readonly string[]).includes(el.type);
     if (junk && isTarget) {
       return {
         ...el,

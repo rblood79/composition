@@ -4,7 +4,7 @@ import {
   calculateFullTreeLayout,
   resetPersistentTree,
 } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
-import type { CanvasLayoutNode } from "@/types/builder/unified.types";
+import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import type { CaseNode } from "./harness";
 
 /**

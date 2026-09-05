@@ -315,16 +315,13 @@ beforeAll(async () => {
           (m) => m.firstElementChild as HTMLElement | null,
         ],
       ],
-      node: React.createElement(IllustratedMessage, { title: "Empty" }),
+      node: React.createElement(IllustratedMessage, { heading: "Empty" }),
     },
     {
       types: [
         ["ProgressCircle", (m) => m.firstElementChild as HTMLElement | null],
       ],
-      node: React.createElement(ProgressCircle, {
-        value: 50,
-        "aria-label": "p",
-      }),
+      node: React.createElement(ProgressCircle, { value: 50 }),
     },
     {
       types: [

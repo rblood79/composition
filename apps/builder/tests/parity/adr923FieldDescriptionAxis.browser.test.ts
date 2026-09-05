@@ -114,7 +114,7 @@ async function renderDom(type: FieldType, withDesc: boolean): Promise<Leg> {
 
 /** Canvas production 트리 — root props 에 label(+description) 만 얹는다 (자식은 factory 그대로). */
 async function runCanvas(type: FieldType, withDesc: boolean): Promise<Leg> {
-  const tree = await paletteCreationTree(type);
+  const tree = await paletteCreationTree(type, `fd-desc-${type}`);
   const els = tree.elements.map((el) =>
     el.id === tree.root.id
       ? ({

@@ -213,7 +213,8 @@ describe("ADR-198 Phase 0 — Preview leg (task 4)", () => {
       base64: true,
       save: false,
     });
-    const b64 = typeof shot === "string" ? shot : shot.base64;
+    const b64 =
+      typeof shot === "string" ? shot : (shot as { base64?: string }).base64;
     expect(b64).toBeTruthy();
 
     const bytes = Uint8Array.from(atob(b64!), (c) => c.charCodeAt(0));

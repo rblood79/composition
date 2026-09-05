@@ -33,17 +33,9 @@ vi.mock(
       >();
     return {
       ...actual,
-      toEngineDisplay: (
-        display: string,
-        childDisplays: string[],
-        childElements?: unknown,
-      ) => {
+      toEngineDisplay: (display: string, childDisplays: string[]) => {
         CALLS.push({ display, childDisplays: [...childDisplays] });
-        return actual.toEngineDisplay(
-          display,
-          childDisplays,
-          childElements as Parameters<typeof actual.toEngineDisplay>[2],
-        );
+        return actual.toEngineDisplay(display, childDisplays);
       },
     };
   },

@@ -170,7 +170,7 @@ async function renderDom(type: AnyType): Promise<Leg> {
 }
 
 async function runCanvas(type: AnyType, junk: boolean): Promise<Leg> {
-  const tree = await paletteCreationTree(type);
+  const tree = await paletteCreationTree(type, `wrap-subpart-${type}`);
   const targets = JUNK_TARGETS[type];
   const els = tree.elements.map((el) => {
     if (el.id === tree.root.id) {
@@ -292,10 +292,9 @@ describe("ADR-923 SelectTrigger 래퍼 · 그룹 Label · picker DateInput — r
       const j = canvasJunk.get(type)!;
       const d = dom.get(type)!;
       expect(c.value, `${type} canvas value 상자`).not.toBeNull();
-      expect(
-        JSON.stringify(j.value),
-        `${type} SelectValue junk == clean`,
-      ).toBe(JSON.stringify(c.value));
+      expect(JSON.stringify(j.value), `${type} SelectValue junk == clean`).toBe(
+        JSON.stringify(c.value),
+      );
       if (d.value) {
         expect(
           Math.abs(d.value.h - c.value!.h),

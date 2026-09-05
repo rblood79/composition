@@ -1677,7 +1677,7 @@ describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이�
   ];
   /** root 에 style 을 얹어 자식 Text 가 상속받게 한다 (r12h1 — white-space 는 inherited). */
   const textZeroIn = (
-    rootExtra: Record<string, unknown>,
+    rootExtra: StyleRecord,
     extra: Record<string, unknown>,
     text: string,
   ): CaseNode[] => {

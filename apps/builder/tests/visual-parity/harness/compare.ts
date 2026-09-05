@@ -112,11 +112,7 @@ function regionBox(
   return { x, y, width: w, height: h };
 }
 
-function crop(
-  pixels: Uint8Array,
-  frameWidth: number,
-  box: Rect,
-): Uint8Array {
+function crop(pixels: Uint8Array, frameWidth: number, box: Rect): Uint8Array {
   const out = new Uint8Array(box.width * box.height * 4);
   for (let row = 0; row < box.height; row++) {
     const src = ((box.y + row) * frameWidth + box.x) * 4;
@@ -288,9 +284,8 @@ export function compareLegs(
         "L1",
         "PARITY-L1-GEOMETRY",
         `${id}.${worst[0][0]}`,
-        worst
-          .map(([k, d]) => `${k} Δ${d.toFixed(2)}px`)
-          .join(", ") + ` (${a.leg.legId} vs ${b.leg.legId})`,
+        worst.map(([k, d]) => `${k} Δ${d.toFixed(2)}px`).join(", ") +
+          ` (${a.leg.legId} vs ${b.leg.legId})`,
       );
     }
   }
@@ -341,7 +336,13 @@ export function compareLegs(
       reason: "한쪽 leg 이 픽셀을 내지 않았다",
     });
     layers.push({ layer: "L4", status: "skip", reason: "L3 미실행" });
-    return { caseId: c.id, ok: failures.length === 0, layers, failures, regions };
+    return {
+      caseId: c.id,
+      ok: failures.length === 0,
+      layers,
+      failures,
+      regions,
+    };
   }
 
   const { width, height } = opts.frame;
@@ -362,7 +363,7 @@ export function compareLegs(
     const diffPixels = pixelmatch(
       new Uint8ClampedArray(ca.buffer.slice(0)),
       new Uint8ClampedArray(cb.buffer.slice(0)),
-      null,
+      undefined,
       box.width,
       box.height,
       { threshold: 0.1 },

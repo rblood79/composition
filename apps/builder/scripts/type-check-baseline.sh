@@ -6,7 +6,7 @@
 #
 # 배경: apps/builder/tsconfig.json 이 `files: []` + project references 구성으로
 # `tsc --noEmit` 단일 호출 시 0 파일 검사 → 모든 type 위반 silent 통과 상태였다.
-# 본 wrapper 는 tsconfig.app.json + tsconfig.node.json 를 각각 명시 검사하여
+# 본 wrapper 는 tsconfig.app.json + tsconfig.node.json + tsconfig.tests.json 을 각각 명시 검사하여
 # 실효 type-check 를 회복한다.
 #
 # baseline 정책: 누적 type 에러 freeze (.type-errors-baseline.txt) 후
@@ -37,10 +37,11 @@ NEW=$(mktemp)
 RESOLVED=$(mktemp)
 trap "rm -f '$CURRENT' '$NEW' '$RESOLVED'" EXIT
 
-# Run both tsconfigs. grep "error TS" 매칭 line 만 추출. fail 도 무시 (|| true).
+# Run all three tsconfigs (app / node / tests). grep "error TS" 매칭 line 만 추출. fail 도 무시 (|| true).
 {
   pnpm exec tsc -p tsconfig.app.json --noEmit 2>&1 || true
   pnpm exec tsc -p tsconfig.node.json --noEmit 2>&1 || true
+  pnpm exec tsc -p tsconfig.tests.json --noEmit 2>&1 || true
 } | { grep "error TS" || true; } | sort -u > "$CURRENT"
 
 # baseline 에 없는 새 위반

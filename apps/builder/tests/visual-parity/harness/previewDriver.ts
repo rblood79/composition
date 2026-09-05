@@ -169,8 +169,7 @@ export class PreviewDriver implements PreviewEntryProbe {
   private installErrorHooks(el: HTMLIFrameElement): void {
     const tryPatch = (): boolean => {
       const win = el.contentWindow as
-        | (Window & { __parityHooked?: boolean })
-        | null;
+        (Window & typeof globalThis & { __parityHooked?: boolean }) | null;
       const doc = el.contentDocument;
       if (!win || !doc || win.__parityHooked) return false;
       if (doc.URL === "about:blank") return false;
@@ -373,7 +372,8 @@ export class PreviewDriver implements PreviewEntryProbe {
       base64: true,
       save: false,
     });
-    const b64 = typeof shot === "string" ? shot : shot.base64;
+    const b64 =
+      typeof shot === "string" ? shot : (shot as { base64?: string }).base64;
     if (!b64) throw new Error("PARITY-RESOURCE: 스크린샷 base64 없음");
     const png = base64ToBytes(b64);
     const decoded = await decodePngToRgba(png);

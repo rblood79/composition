@@ -33,6 +33,10 @@ interface ShapeOptions {
   legacyPageMetadata: boolean;
   /** 컨테이너 위에 Body 래퍼를 둘지 (축 B) */
   bodyWrapper: boolean;
+  /** Body 노드 타입 — canonical 은 소문자 "body" 만 인식한다 (S5 축) */
+  bodyType?: string;
+  /** Body 를 page 자식이 아니라 document 루트에 둘지 (S6 축) */
+  bodyAtRoot?: boolean;
 }
 
 function containerStyle(): Record<string, string> {

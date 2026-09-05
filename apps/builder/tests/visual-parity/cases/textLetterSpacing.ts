@@ -110,7 +110,7 @@ export const textLetterSpacing: VisualParityCase = {
     {
       id: "letter-spacing-anchor",
       nodeIds: [ANCHOR],
-      kind: "nonText",
+      kind: "non-text",
       reason: "liveness 앵커 — 단색 사각",
       ...INITIAL_BUDGETS.nonText,
     },

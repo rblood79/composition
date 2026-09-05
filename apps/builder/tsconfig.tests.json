@@ -1,0 +1,18 @@
+{
+  // tests/ 는 tsconfig.app.json (include: ["src"]) 밖이라 `pnpm type-check` 가 돌지 않았다.
+  // 그 사이 src 리팩터가 tests/ 를 조용히 깨뜨렸다 — fdd76c0e5 (2026-09-04) 가
+  // `getCanonicalDocumentElementsView` 를 제거하면서 parity browser 테스트 12 파일이
+  // import 실패로 하루 동안 전량 실패했고, type-check 는 계속 PASS 였다.
+  // 이 config 가 tests/ 를 같은 옵션으로 검사해 그 재발을 막는다.
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.tests.tsbuildinfo"
+  },
+  // vite-env.d.ts / css-modules.d.ts 는 `*.css` 등 ambient 선언 원천이라 함께 포함해야
+  // 한다 — 빠지면 tests 가 아니라 import 된 src·shared 쪽에서 TS2307 이 쏟아진다.
+  "include": [
+    "tests",
+    "src/vite-env.d.ts",
+    "../../packages/shared/src/css-modules.d.ts"
+  ]
+}

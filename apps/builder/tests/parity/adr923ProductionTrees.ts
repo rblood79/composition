@@ -27,7 +27,7 @@ import { resolveComponentEntryRuntime } from "@/builder/factories/entryUniverse"
 import { getPaletteItems } from "@/builder/panels/components/paletteItems";
 import { getReusableCompositeOriginId } from "@/builder/components/reusableCompositeOrigins";
 import { normalizeMainDocument } from "@/adapters/canonical/mainDocumentNormalization";
-import { getCanonicalDocumentElementsView } from "@/builder/stores/canonical/canonicalElementsView";
+import { canonicalDocumentToElements } from "@/builder/stores/canonical/canonicalElementsView";
 import { resolveCanonicalRefTree } from "@/builder/utils/canonicalRefResolution";
 import {
   COMPONENT_MASTER_ID_MIRROR_FIELD,
@@ -73,8 +73,7 @@ let originElementsCache: Element[] | null = null;
 export function seededOriginElements(): Element[] {
   if (originElementsCache) return originElementsCache;
   const doc = normalizeMainDocument(emptyDocument());
-  originElementsCache = getCanonicalDocumentElementsView(doc)
-    .elements as Element[];
+  originElementsCache = canonicalDocumentToElements(doc);
   return originElementsCache;
 }
 

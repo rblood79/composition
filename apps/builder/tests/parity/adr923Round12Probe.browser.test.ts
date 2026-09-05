@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
 import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
 import { enrichWithIntrinsicSize } from "@/builder/workspace/canvas/layout/engines/utils";
-import type { CanvasLayoutNode } from "@/types/builder/unified.types";
+import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import {
   type Bounds,
   type CaseNode,

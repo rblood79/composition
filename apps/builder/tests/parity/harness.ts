@@ -4,7 +4,7 @@ import {
   resetPersistentTree,
 } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
 import { setStrictLayoutInput } from "@/builder/workspace/canvas/wasm-bindings/layoutBridge";
-import type { CanvasLayoutNode } from "@/types/builder/unified.types";
+import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 
 /**
  * ADR-156 Phase 1 — 엔진 ↔ CSS 차등 하니스 코어 (G1)
