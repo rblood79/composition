@@ -29,9 +29,10 @@
     background: var(--chrome-surface);
   }
 
-  /* Viewport Group이 단일 surface를 소유하고 내부 RAC selection semantics는 유지한다. */
+  /* Viewport·action Group이 단일 surface를 소유하고 내부 RAC selection semantics는 유지한다. */
   .builder-viewport-controls
-    > .builder-control-group.react-aria-ToggleButtonGroup {
+    > .builder-control-group.react-aria-ToggleButtonGroup,
+  .builder-action-group > .builder-control-group.react-aria-ToggleButtonGroup {
     --button-color: transparent;
     padding: 0;
     background: var(--button-color);

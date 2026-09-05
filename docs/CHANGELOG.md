@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 위치: `apps/builder/src/builder/panels/navigator/`, `apps/builder/src/builder/panels/properties/`
   - Live Exercise: ADR 본문 `### Live Exercise` — Chrome 키보드/DnD/숨김복원, headed Playwright pointer.
 
+## [헤더 Compare·Preview 그룹 통합] - 2026-09-06
+
+### Changed
+
+- 헤더 오른쪽의 Compare와 Preview를 서로 다른 chrome island에서 하나의 보기 옵션 그룹으로 합쳤습니다. Compare는 토글, Preview는 실행 버튼으로 역할은 그대로입니다.
+
 ## [Navigator 선택 성능 — ADR-203 Phase 1 스파이크] - 2026-09-05
 
 ### Performance

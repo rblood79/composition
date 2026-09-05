@@ -13,6 +13,10 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).not.toContain('<nav className="header">');
     expect(source.match(/className="builder-control-group"/g)).toHaveLength(2);
     expect(source).toContain(
+      '<Group\n          className="builder-action-group"',
+    );
+    expect(source).not.toContain('<div className="builder-action-group">');
+    expect(source).toContain(
       '<Group\n        className="header_contents screen builder-viewport-controls"',
     );
     expect(source).toContain('aria-label={t("header.viewportControls")}');
@@ -119,7 +123,7 @@ describe("BuilderHeader chrome control groups", () => {
       /\.builder-viewport-controls\s*\{[\s\S]*?padding: var\(--chrome-padding\);[\s\S]*?border: var\(--chrome-border\);[\s\S]*?border-radius: var\(--chrome-radius\);[\s\S]*?box-shadow: var\(--chrome-shadow\);/,
     );
     expect(groupStyles).toMatch(
-      /\.builder-viewport-controls[\s\S]*?> \.builder-control-group\.react-aria-ToggleButtonGroup\s*\{[\s\S]*?--button-color: transparent;[\s\S]*?padding: 0;[\s\S]*?box-shadow: none;/,
+      /\.builder-viewport-controls[\s\S]*?> \.builder-control-group\.react-aria-ToggleButtonGroup[\s\S]*?\.builder-action-group\s*> \.builder-control-group\.react-aria-ToggleButtonGroup\s*\{[\s\S]*?--button-color: transparent;[\s\S]*?padding: 0;[\s\S]*?box-shadow: none;/,
     );
     expect(headerStyles).toMatch(
       /\.zoom-trigger-button\s*\{[\s\S]*?background: var\(--bg-muted\);[\s\S]*?box-shadow: none;[\s\S]*?border-radius: var\(--radius-md\);/,

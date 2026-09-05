@@ -288,33 +288,36 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
       </Group>
 
       <div className="header_contents header_right">
-        <ToggleButtonGroup
-          className="builder-control-group"
-          selectionMode="multiple"
-          selectedKeys={new Set([...(isCompareMode ? ["compare"] : [])])}
-          indicator={true}
-          onSelectionChange={(keys: Set<Key>) => {
-            const selectedKeys = new Set(keys);
-            const wasCompareMode = isCompareMode;
-            const isCompareNowSelected = selectedKeys.has("compare");
-
-            // Compare mode 토글
-            if (wasCompareMode !== isCompareNowSelected) {
-              toggleCompareMode();
-            }
-          }}
+        <Group
+          className="builder-action-group"
           aria-label={t("header.viewOptions")}
         >
-          <ActionTooltipTrigger tooltip={compareLabel}>
-            <ToggleButton id="compare" aria-label={compareLabel}>
-              <Columns
-                strokeWidth={iconProps.strokeWidth}
-                size={iconProps.size}
-              />
-            </ToggleButton>
-          </ActionTooltipTrigger>
-        </ToggleButtonGroup>
-        <div className="builder-action-group">
+          <ToggleButtonGroup
+            className="builder-control-group"
+            selectionMode="multiple"
+            selectedKeys={new Set([...(isCompareMode ? ["compare"] : [])])}
+            indicator={true}
+            onSelectionChange={(keys: Set<Key>) => {
+              const selectedKeys = new Set(keys);
+              const wasCompareMode = isCompareMode;
+              const isCompareNowSelected = selectedKeys.has("compare");
+
+              // Compare mode 토글
+              if (wasCompareMode !== isCompareNowSelected) {
+                toggleCompareMode();
+              }
+            }}
+            aria-label={compareLabel}
+          >
+            <ActionTooltipTrigger tooltip={compareLabel}>
+              <ToggleButton id="compare" aria-label={compareLabel}>
+                <Columns
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                />
+              </ToggleButton>
+            </ActionTooltipTrigger>
+          </ToggleButtonGroup>
           <ActionIconButton
             aria-label={t("header.preview")}
             tooltip={t("header.preview")}
@@ -322,7 +325,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           >
             <Eye strokeWidth={iconProps.strokeWidth} size={iconProps.size} />
           </ActionIconButton>
-        </div>
+        </Group>
       </div>
     </header>
   );
