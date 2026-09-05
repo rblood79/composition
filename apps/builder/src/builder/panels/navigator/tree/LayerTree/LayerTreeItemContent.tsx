@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import { Button } from "react-aria-components";
 import {
   ChevronRight,
@@ -64,7 +64,15 @@ export function LayerTreeItemContent({
   }
 
   // 일반 요소 렌더링
-  return <NormalItemContent node={node} state={state} onDelete={onDelete} />;
+  return (
+    <NormalItemContent
+      node={node}
+      isSelected={state.isSelected}
+      isExpanded={state.isExpanded}
+      isFocusVisible={state.isFocusVisible}
+      onDelete={onDelete}
+    />
+  );
 }
 
 // ============================================
@@ -73,13 +81,22 @@ export function LayerTreeItemContent({
 
 interface NormalItemContentProps {
   node: LayerTreeNode;
-  state: TreeItemState;
+  isSelected: boolean;
+  isExpanded: boolean;
+  isFocusVisible: boolean;
   onDelete: (element: PanelNode) => Promise<void>;
 }
 
-function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
+// RAC가 만드는 state 객체의 참조 변화가 무관한 가시 행의 content까지 재실행하지
+// 않도록 소비하는 상태만 전달한다. 버튼의 RAC context 갱신은 memo 아래에서도 유지된다.
+const NormalItemContent = memo(function NormalItemContent({
+  node,
+  isSelected,
+  isExpanded,
+  isFocusVisible,
+  onDelete,
+}: NormalItemContentProps) {
   const { depth, hasChildren, type, element, name, isSyntheticRefChild } = node;
-  const { isSelected, isExpanded, isFocusVisible } = state;
   const { open: openContextMenu } = useContextMenu();
   const semanticsRole = getEditingSemanticsRole(element);
   const semanticsLabel = getEditingSemanticsLabel(semanticsRole);
@@ -202,7 +219,7 @@ function NormalItemContent({ node, state, onDelete }: NormalItemContentProps) {
       </div>
     </div>
   );
-}
+});
 
 // ============================================
 // VirtualChild 콘텐츠

@@ -1,0 +1,88 @@
+{
+  "lane": "frame",
+  "at": "2026-09-05T10:23:01.969Z",
+  "chrome": "152.0.7977.82",
+  "headless": true,
+  "options": {
+    "baseUrl": "http://localhost:5173",
+    "storageState": "(redacted)",
+    "lane": "frame",
+    "cycles": 20,
+    "warmup": 5,
+    "seedCount": 60,
+    "actions": ["panels", "pages", "select", "edit", "zoom"],
+    "out": "/private/tmp/adr203-stable60",
+    "headed": false,
+    "projectUrl": null,
+    "mode": "series",
+    "attributeCycles": 10,
+    "retainerClass": "Object",
+    "retainerProps": ["parent_id", "page_id"],
+    "retainerSamples": 40,
+    "durationMs": 3000,
+    "openPanels": ["navigator", "properties"],
+    "profile": false,
+    "classes": ["idle", "select"]
+  },
+  "project": "http://localhost:5173/builder/2c8413cd-fd87-4b16-b9f1-0eb07eb253d5",
+  "seed": {
+    "elements": 60,
+    "pages": 2
+  },
+  "results": {
+    "idle": {
+      "ms": 3005,
+      "frames": 181,
+      "fps": 60.2,
+      "gapP50": 16.7,
+      "gapP95": 17.3,
+      "gapP99": 17.9,
+      "gapMax": 18.7,
+      "dropPct": 0,
+      "allocMBps": 2,
+      "gcCount": 1,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 181,
+        "p50": 0.1,
+        "p95": 0.2
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 181,
+        "misses": 0,
+        "reasons": null
+      }
+    },
+    "select": {
+      "ms": 3067,
+      "frames": 184,
+      "fps": 60,
+      "gapP50": 16.6,
+      "gapP95": 22.3,
+      "gapP99": 29.4,
+      "gapMax": 34.4,
+      "dropPct": 3.8,
+      "allocMBps": 48.5,
+      "gcCount": 6,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 184,
+        "p50": 0.1,
+        "p95": 0.6
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 184,
+        "misses": 0,
+        "reasons": null
+      }
+    }
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}

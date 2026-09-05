@@ -1,0 +1,154 @@
+{
+  "lane": "frame",
+  "at": "2026-09-05T10:20:31.130Z",
+  "chrome": "152.0.7977.82",
+  "headless": true,
+  "options": {
+    "baseUrl": "http://localhost:5173",
+    "storageState": "(redacted)",
+    "lane": "frame",
+    "cycles": 20,
+    "warmup": 5,
+    "seedCount": 60,
+    "actions": ["panels", "pages", "select", "edit", "zoom"],
+    "out": "/private/tmp/adr203-profile60",
+    "headed": false,
+    "projectUrl": null,
+    "mode": "series",
+    "attributeCycles": 10,
+    "retainerClass": "Object",
+    "retainerProps": ["parent_id", "page_id"],
+    "retainerSamples": 40,
+    "durationMs": 3000,
+    "openPanels": ["navigator", "properties"],
+    "profile": true,
+    "classes": ["select"]
+  },
+  "project": "http://localhost:5173/builder/8a5286b0-82fd-4277-b499-a9f627dc432d",
+  "seed": {
+    "elements": 60,
+    "pages": 2
+  },
+  "results": {
+    "select": {
+      "ms": 3060,
+      "frames": 172,
+      "fps": 56.2,
+      "gapP50": 16.5,
+      "gapP95": 25.5,
+      "gapP99": 66.3,
+      "gapMax": 102.4,
+      "dropPct": 6.4,
+      "allocMBps": 49.3,
+      "gcCount": 7,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 172,
+        "p50": 0.1,
+        "p95": 0.6
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 172,
+        "misses": 0,
+        "reasons": null
+      },
+      "profile": {
+        "samples": 278,
+        "idlePct": 63.7,
+        "top": [
+          {
+            "frame": "(anonymous) nm/.vite/deps/react.js:591",
+            "pct": 3.2
+          },
+          {
+            "frame": "logComponentRender nm/.vite/deps/react-dom_client.js:2461",
+            "pct": 1.8
+          },
+          {
+            "frame": "querySelector :0",
+            "pct": 1.4
+          },
+          {
+            "frame": "updateProperties nm/.vite/deps/react-dom_client.js:9926",
+            "pct": 1.1
+          },
+          {
+            "frame": "deleteRemainingChildren nm/.vite/deps/react-dom_client.js:3569",
+            "pct": 0.7
+          },
+          {
+            "frame": "coerceRef nm/.vite/deps/react-dom_client.js:3533",
+            "pct": 0.7
+          },
+          {
+            "frame": "beginWork nm/.vite/deps/react-dom_client.js:6081",
+            "pct": 0.7
+          },
+          {
+            "frame": "runWithFiberInDEV nm/.vite/deps/react-dom_client.js:847",
+            "pct": 0.7
+          },
+          {
+            "frame": "finishRenderingHooks nm/.vite/deps/react-dom_client.js:4227",
+            "pct": 0.7
+          },
+          {
+            "frame": "pushSimpleEffect nm/.vite/deps/react-dom_client.js:4826",
+            "pct": 0.7
+          },
+          {
+            "frame": "readContextForConsumer nm/.vite/deps/react-dom_client.js:3209",
+            "pct": 0.7
+          },
+          {
+            "frame": "updateWorkInProgressHook nm/.vite/deps/react-dom_client.js:4317",
+            "pct": 0.7
+          },
+          {
+            "frame": "commitHookEffectListUnmount nm/.vite/deps/react-dom_client.js:6633",
+            "pct": 0.7
+          },
+          {
+            "frame": "getRootForUpdatedFiber nm/.vite/deps/react-dom_client.js:2632",
+            "pct": 0.7
+          },
+          {
+            "frame": "commitPassiveMountOnFiber nm/.vite/deps/react-dom_client.js:7610",
+            "pct": 0.7
+          }
+        ],
+        "app": [
+          {
+            "frame": "getEditingSemanticsRole src/adapters/canonical/editingSemantics.ts:35",
+            "pct": 0.4
+          },
+          {
+            "frame": "isSlotCandidateAllowed src/builder/components/slotHostPolicy.ts:65",
+            "pct": 0.4
+          },
+          {
+            "frame": "deriveOptions src/catalog/resolvers/resolveEditContract.ts:147",
+            "pct": 0.4
+          },
+          {
+            "frame": "(anonymous) src/builder/panels/properties/PropertiesPanel.tsx:83",
+            "pct": 0.4
+          },
+          {
+            "frame": "tickPagePosStaleFrames src/builder/workspace/canvas/skia/skiaTreeBuilder.ts:28",
+            "pct": 0.4
+          },
+          {
+            "frame": "buildSlotMarkerTargets src/builder/workspace/canvas/skia/skiaOverlayHelpers.ts:158",
+            "pct": 0.4
+          }
+        ]
+      }
+    }
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}

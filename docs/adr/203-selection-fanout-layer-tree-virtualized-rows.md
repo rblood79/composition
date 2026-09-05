@@ -6,6 +6,8 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 
 ## Context
 
+> 2026-09-05 실행 현황: Phase 1 로컬 스파이크 구현·부분 검증. 600 요소 select p50 226.3→16.6ms, drop 100→3.8%, longtask 12→0. **60 요소 drop 3.8%로 G1의 0% 조건 미달**이므로 Phase 1은 열려 있고 Status는 Accepted 유지. [실측·live·미종결 항목](evidence/203-phase1-live.md).
+
 **Domain**: 빌더 chrome UI (Navigator · Properties 패널). 문서 컴포넌트의 D2/D3 에는 손대지 않는다. Navigator 트리는 RAC `Tree` 위에 있으므로 **D1 원칙 (RAC 컴포넌트의 DOM/ARIA 재작성 금지, `.claude/rules/ssot-hierarchy.md` §6)** 이 패널에도 그대로 적용된다.
 
 **관계**: ADR-155 (Implemented 2026-07-17) 는 숨은 패널의 선택 fan-out 을 Activity 로 차단했고, 열린 패널의 비용은 남겼다. ADR-150 R2 는 캔버스 collection window 와 LayerTree 패널 정책을 분리하고 패널 쪽을 "별도 정책 결정 후 검증" 으로 남겼다. 본 ADR 이 그 패널 정책이며 두 ADR 과 의존 방향은 없다 (fork 아님 — breakdown §1).

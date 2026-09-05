@@ -1,0 +1,83 @@
+{
+  "before": {
+    "summary": {
+      "group": "navigator",
+      "reactMode": true,
+      "idOnly": true,
+      "tall": false,
+      "count": 305,
+      "ts": {
+        "p95": 16.700000000000728,
+        "max": 16.80000000000109,
+        "over25": 0
+      },
+      "now": {
+        "p95": 20.799999997019768,
+        "max": 21.80000001192093,
+        "over25": 0
+      },
+      "delay": {
+        "p95": 4.799999999999272,
+        "max": 7.0999999940395355,
+        "over25": 0
+      },
+      "sync": 0.13600000023841857,
+      "notifications": 150,
+      "commits": 383,
+      "tree": {
+        "height": 90,
+        "rows": 6
+      }
+    },
+    "rootMs": 292.7000001370907,
+    "components": {
+      "ContextualActionBar": [117.0, 11.7, 100],
+      "OptionsMenu": [32.3, 9.4, 100],
+      "LayersSection": [161.3, 3.0, 53]
+    },
+    "optionsProps": {
+      "": 1,
+      "onAction": 99
+    }
+  },
+  "after": {
+    "summary": {
+      "group": "navigator",
+      "reactMode": true,
+      "idOnly": true,
+      "tall": false,
+      "count": 306,
+      "ts": {
+        "p95": 16.799999999999272,
+        "max": 16.80000000000109,
+        "over25": 0
+      },
+      "now": {
+        "p95": 20.899999991059303,
+        "max": 23.399999991059303,
+        "over25": 0
+      },
+      "delay": {
+        "p95": 4.899999999999636,
+        "max": 7.299999997019768,
+        "over25": 0
+      },
+      "sync": 0.12,
+      "notifications": 150,
+      "commits": 406,
+      "tree": {
+        "height": 90,
+        "rows": 6
+      }
+    },
+    "rootMs": 241.49999976158142,
+    "components": {
+      "ContextualActionBar": [81.3, 11.5, 101],
+      "OptionsMenu": [0.4, 0.1, 1],
+      "LayersSection": [149.8, 2.3, 53]
+    },
+    "optionsProps": {
+      "": 1
+    }
+  }
+}

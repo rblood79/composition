@@ -8,6 +8,7 @@
  * - 부모(`.workspace-overlay`, inset:0) 가 배치 기준면.
  */
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -329,6 +330,19 @@ export function useActionBarPlacement(
     setActionBarOffset,
   });
 
+  const togglePinned = useCallback(
+    () => setActionBarPinned(!settings.pinned),
+    [setActionBarPinned, settings.pinned],
+  );
+  const resetPosition = useCallback(
+    () => setActionBarOffset(null),
+    [setActionBarOffset],
+  );
+  const hide = useCallback(
+    () => setActionBarHidden(true),
+    [setActionBarHidden],
+  );
+
   return {
     hidden: settings.hidden,
     pinned: settings.pinned,
@@ -346,8 +360,8 @@ export function useActionBarPlacement(
             left: "0px",
             top: "0px",
           },
-    togglePinned: () => setActionBarPinned(!settings.pinned),
-    resetPosition: () => setActionBarOffset(null),
-    hide: () => setActionBarHidden(true),
+    togglePinned,
+    resetPosition,
+    hide,
   };
 }

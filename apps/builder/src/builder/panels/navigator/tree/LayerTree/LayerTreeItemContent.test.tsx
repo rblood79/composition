@@ -22,6 +22,7 @@ import { historyManager } from "../../../../stores/history";
 import { ContextMenuProvider } from "../../../../components";
 import { registerCanvasContextMenuProviders } from "../../../../workspace/canvas/contextMenu/canvasContextMenuProviders";
 import type { CanvasActionElement } from "../../../../workspace/canvas/actions/canvasActions";
+import * as editingSemantics from "../../../../utils/editingSemantics";
 import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import type { LayerTreeNode } from "./types";
 import type { TreeItemState } from "../TreeBase/types";
@@ -33,7 +34,6 @@ import type { TreeItemState } from "../TreeBase/types";
  */
 const renderWithI18n = (ui: ReactElement) =>
   render(ui, { wrapper: I18nProvider });
-
 
 function makeNode(overrides: Partial<LayerTreeNode> = {}): LayerTreeNode {
   return {
@@ -85,6 +85,60 @@ describe("LayerTreeItemContent editing semantics marker", () => {
     unregisterContextMenuProviders = null;
     vi.restoreAllMocks();
     cleanup();
+  });
+
+  it("동일한 행 상태는 content 계산을 건너뛰고 선택·focus·확장·이름·삭제 callback 변경은 반영한다", () => {
+    const semantics = vi.spyOn(editingSemantics, "getEditingSemanticsRole");
+    const node = makeNode({ hasChildren: true });
+    const onDelete = vi.fn();
+    const ui = (
+      state: TreeItemState,
+      currentNode = node,
+      remove = onDelete,
+    ) => (
+      <ContextMenuProvider>
+        <LayerTreeItemContent
+          node={currentNode}
+          state={state}
+          onDelete={remove}
+        />
+      </ContextMenuProvider>
+    );
+    const view = renderWithI18n(ui(makeState()));
+    semantics.mockClear();
+    view.rerender(ui(makeState()));
+    expect(semantics).not.toHaveBeenCalled();
+
+    view.rerender(
+      ui(
+        makeState({ isSelected: true, isFocusVisible: true, isExpanded: true }),
+      ),
+    );
+    expect(view.container.querySelector(".elementItem")?.className).toContain(
+      "active",
+    );
+    expect(view.container.querySelector(".elementItem")?.className).toContain(
+      "focused",
+    );
+    expect(
+      screen.getByRole("button", { name: "Collapse Origin Button" }),
+    ).toBeTruthy();
+    expect(semantics).toHaveBeenCalled();
+
+    const renamed = {
+      ...node,
+      name: "Renamed",
+      element: { ...node.element, props: { label: "Updated" } },
+    };
+    const nextDelete = vi.fn();
+    view.rerender(ui(makeState(), renamed, nextDelete));
+    expect(screen.getByText("Renamed")).toBeTruthy();
+    expect(
+      view.container.querySelector(".elementItem")?.className,
+    ).not.toContain("active");
+    fireEvent.click(screen.getByRole("button", { name: "Delete Button" }));
+    expect(nextDelete).toHaveBeenCalledWith(renamed.element);
+    expect(onDelete).not.toHaveBeenCalled();
   });
 
   it("텍스트 앞의 layer 아이콘과 depth guide를 유지한다", () => {

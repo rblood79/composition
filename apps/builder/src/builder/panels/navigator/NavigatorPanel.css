@@ -247,6 +247,12 @@
   min-width: 0;
 }
 
+.navigator-panel-content
+  .section[data-section-id="navigator-layers"]
+  > .section-content {
+  overflow: hidden;
+}
+
 /* Pages 검색 — 섹션 안에 놓이므로 flat 필드의 좌우 border 를 복원하고 트리 행 높이에 맞춘다 */
 .navigator-panel-content .page-search-field {
   height: var(--control-size);
@@ -260,7 +266,8 @@
   color: var(--fg-muted);
 }
 
-.navigator-panel-content :is(.react-aria-Tree, .page-tree, .frame-tree) {
+.navigator-panel-content
+  :is(.react-aria-Tree, .page-tree, .frame-tree, .layer-tree--rac-virtualized) {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -280,6 +287,14 @@
   min-height: var(--control-size);
   padding: 0;
   border-radius: var(--radius-md);
+}
+
+.navigator-panel-content .layer-tree--rac-virtualized {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .navigator-panel-content .elementItem {

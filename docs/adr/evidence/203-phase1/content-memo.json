@@ -1,0 +1,76 @@
+{
+  "before": {
+    "summary": {
+      "group": "navigator",
+      "reactMode": true,
+      "idOnly": false,
+      "tall": true,
+      "count": 305,
+      "ts": {
+        "p95": 16.700000000000728,
+        "max": 33.30000000000109,
+        "over25": 1
+      },
+      "now": {
+        "p95": 25,
+        "max": 36.8999999910593,
+        "over25": 15
+      },
+      "delay": {
+        "p95": 9.299999997019768,
+        "max": 20.799999988079435,
+        "over25": 0
+      },
+      "sync": 0.10999999910593034,
+      "notifications": 50,
+      "commits": 267,
+      "tree": {
+        "height": 382,
+        "rows": 20
+      }
+    },
+    "rootMs": 643.8000000268221,
+    "components": {
+      "LayersSection": [524.1, 2.5, 53],
+      "NormalItemContent": [295.5, 50.4, 997],
+      "ContextualActionBar": [110.4, 11.5, 100]
+    }
+  },
+  "after": {
+    "summary": {
+      "group": "navigator",
+      "reactMode": true,
+      "idOnly": false,
+      "tall": true,
+      "count": 305,
+      "ts": {
+        "p95": 16.700000000000728,
+        "max": 33.400000000000546,
+        "over25": 1
+      },
+      "now": {
+        "p95": 21.900000005960464,
+        "max": 24.30000001192093,
+        "over25": 0
+      },
+      "delay": {
+        "p95": 6.199999991058576,
+        "max": 9.399999999999636,
+        "over25": 0
+      },
+      "sync": 0.1159999993443489,
+      "notifications": 50,
+      "commits": 264,
+      "tree": {
+        "height": 382,
+        "rows": 20
+      }
+    },
+    "rootMs": 502.20000010728836,
+    "components": {
+      "LayersSection": [376.9, 2.6, 53],
+      "NormalItemContent": [131.9, 5.6, 874],
+      "ContextualActionBar": [115.7, 10.6, 100]
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import type { Key } from "react-stately";
+import { ListLayout, Virtualizer } from "react-aria-components";
 import { TreeBase, VirtualizedTree } from "../TreeBase";
 import type { TreeBaseDndConfig, TreeItemState } from "../TreeBase/types";
 import type { PanelNode } from "../../../panelNode";
@@ -9,6 +10,11 @@ import { calculateMoveUpdates } from "./useLayerTreeDnd";
 import { isValidDrop } from "./validation";
 import { LayerTreeItemContent } from "./LayerTreeItemContent";
 import { useFocusManagement } from "../hooks";
+import { LAYER_TREE_ROW_SIZE_PX } from "./virtualization";
+
+const LAYER_TREE_LAYOUT_OPTIONS = { rowSize: LAYER_TREE_ROW_SIZE_PX };
+const getLayerTreeKey = (node: LayerTreeNode) => node.id;
+const getLayerTreeTextValue = (node: LayerTreeNode) => node.name;
 
 function readDragPreviewText(item: unknown): string | null {
   if (!item || typeof item !== "object") return null;
@@ -71,6 +77,11 @@ export function LayerTree({
     }
     return selectedElementId ? [selectedElementId] : [];
   }, [selectedElementId, selectedElementIds]);
+
+  const selectedKeys = useMemo(
+    () => new Set<Key>(activeSelectedIds),
+    [activeSelectedIds],
+  );
 
   const resolvedExpandedKeys = expandedKeys ?? internalExpandedKeys;
   const effectiveExpandedKeys = useMemo(() => {
@@ -187,10 +198,10 @@ export function LayerTree({
   const sharedTreeProps = {
     "aria-label": "Layers" as const,
     items: treeNodes,
-    getKey: (node: LayerTreeNode) => node.id,
-    getTextValue: (node: LayerTreeNode) => node.name,
+    getKey: getLayerTreeKey,
+    getTextValue: getLayerTreeTextValue,
     renderContent,
-    selectedKeys: new Set<Key>(activeSelectedIds),
+    selectedKeys,
     // 캔버스와 같은 다중 선택을 트리에서도 만들고 표시한다. 수식어 의미는 RAC
     // 규칙을 그대로 쓴다 — shift 는 구간, meta/ctrl 은 개별 토글 (D1 권위).
     // RAC 기본 `toggle` 은 수식어 없는 클릭까지 토글로 만들어(체크박스 목록 어법)
@@ -223,9 +234,12 @@ export function LayerTree({
   }
 
   return (
-    <TreeBase<LayerTreeNode>
-      {...sharedTreeProps}
-      dropIndicatorClassName="layer-drop-indicator"
-    />
+    <Virtualizer layout={ListLayout} layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}>
+      <TreeBase<LayerTreeNode>
+        {...sharedTreeProps}
+        className="layer-tree layer-tree--rac-virtualized"
+        dropIndicatorClassName="layer-drop-indicator"
+      />
+    </Virtualizer>
   );
 }

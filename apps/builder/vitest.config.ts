@@ -45,6 +45,7 @@ export default defineConfig({
     ],
   },
   test: {
+    exclude: ["**/node_modules/**", "**/*.browser.test.tsx"],
     environment: "jsdom",
     include: [
       "src/**/__tests__/**/*.test.ts",

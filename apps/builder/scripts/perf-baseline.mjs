@@ -16,12 +16,14 @@
 //   pnpm perf:baseline -- --lane leak [--cycles 20] [--warmup 3]
 //     [--actions panels,pages,select,edit,zoom] [--project-url <url>] [--headed]
 //   pnpm perf:baseline -- --lane frame [--duration-ms 3000] [--seed-count 60]
+//     [--selection-driver external-props|id-only] (기본 external-props: 기존 baseline 보존)
 //     [--classes idle,pan,zoom,select,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
 //
 // 결과: <out>/leak-<ts>.json + stdout 마크다운 표. 판정 기준 (warm-up 제외):
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { chromium } from "playwright";
 
 const DEFAULTS = {
@@ -43,6 +45,7 @@ const DEFAULTS = {
   durationMs: 3000,
   openPanels: ["navigator", "properties"],
   profile: false,
+  selectionDriver: "external-props",
   classes: [
     "idle",
     "pan",
@@ -56,7 +59,7 @@ const DEFAULTS = {
   ],
 };
 
-function parseArgs(argv) {
+export function parseArgs(argv) {
   const options = { ...DEFAULTS };
   for (let i = 0; i < argv.length; i += 1) {
     const value = argv[i];
@@ -79,6 +82,7 @@ function parseArgs(argv) {
     else if (value === "--retainer-samples")
       options.retainerSamples = Number(next);
     else if (value === "--duration-ms") options.durationMs = Number(next);
+    else if (value === "--selection-driver") options.selectionDriver = next;
     else if (value === "--classes") options.classes = next.split(",");
     else if (value === "--profile") {
       options.profile = true;
@@ -91,6 +95,8 @@ function parseArgs(argv) {
     } else continue;
     i += 1;
   }
+  if (!["external-props", "id-only"].includes(options.selectionDriver))
+    throw new Error(`selection driver ${options.selectionDriver}`);
   if (!["leak", "frame"].includes(options.lane))
     throw new Error(`lane ${options.lane}`);
   if (!["series", "attribute", "retainers"].includes(options.mode))
@@ -969,19 +975,24 @@ function renderAttribution(r) {
 // 페이지 안 기록기: rAF gap · usedJSHeapSize 프레임별 양(+) 증가 합 (MB/s) · GC 횟수
 // (음(−) delta) · longtask. heartbeat 대신 rAF 만 쓴다 (MessageChannel heartbeat 는
 // 자체 할당 ~18MB/s — 메모리 feedback-panel-resize-frame-cost-canvas-subscription-gc ⑤).
-const RECORDER_SCRIPT = `(() => {
+export const RECORDER_SCRIPT = `(() => {
   window.__perfRecorder = {
     start(opts = {}) {
       // JS Self-Profiling (vite dev 가 Document-Policy: js-profiling 을 보낸다) — 부류별
       // self-time 상위 프레임. 샘플 1ms, 최대 10만 샘플.
       const profiler = opts.profile && typeof Profiler !== "undefined" ? new Profiler({ sampleInterval: 1, maxBufferSize: 100000 }) : null;
-      const gaps = []; let allocBytes = 0, gcCount = 0; let lastHeap = performance.memory?.usedJSHeapSize ?? 0;
+      const gaps = []; const rafGaps = []; const callbackDelays = []; const gapEvents = [];
+      let lastTimestamp = null; let allocBytes = 0, gcCount = 0; let lastHeap = performance.memory?.usedJSHeapSize ?? 0;
       const longTasks = [];
       const lt = typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")
         ? new PerformanceObserver((list) => { for (const e of list.getEntries()) longTasks.push(e.duration); }) : null;
       lt?.observe({ type: "longtask" });
       let last = performance.now(); let running = true;
-      const tick = () => { if (!running) return; const now = performance.now(); gaps.push(now - last); last = now;
+      const tick = (timestamp) => { if (!running) return; const now = performance.now();
+        const callbackGap = now - last; const rafGap = lastTimestamp === null ? null : timestamp - lastTimestamp;
+        gaps.push(callbackGap); if (rafGap !== null) rafGaps.push(rafGap); callbackDelays.push(now - timestamp);
+        if (callbackGap > 25 || (rafGap !== null && rafGap > 25)) gapEvents.push({ timestamp, callbackTime: now, callbackGap, rafGap, callbackDelay: now - timestamp });
+        last = now; lastTimestamp = timestamp;
         const heap = performance.memory?.usedJSHeapSize ?? 0; const d = heap - lastHeap; if (d > 0) allocBytes += d; else if (d < 0) gcCount += 1; lastHeap = heap;
         requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
@@ -999,7 +1010,7 @@ const RECORDER_SCRIPT = `(() => {
           const app = [...self.entries()].filter(([f]) => f.includes(" src/")).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([frame, n]) => ({ frame, pct: +((n / total) * 100).toFixed(1) }));
           profile = { samples: total, idlePct: +((idle / total) * 100).toFixed(1), top, app };
         }
-        return { ms, gaps, allocBytes, gcCount, longTasks, profile,
+        return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile,
           perf: (window.__composition_PERF__?.snapshotAll?.() ?? []).map((s) => ({ label: s.label, count: s.count, p50: s.p50, p95: s.p95, max: s.max })),
           caches: (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ?? null })) }; };
     },
@@ -1013,13 +1024,33 @@ function pct(sorted, q) {
     Math.min(sorted.length - 1, Math.floor(q * (sorted.length - 1)))
   ];
 }
-function summarizeRecording(rec, nominalMs = 1000 / 60) {
+function summarizeIntervals(values, thresholdMs) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const count = sorted.length;
+  const overThreshold = values.filter((v) => v > thresholdMs).length;
+  return {
+    count,
+    p50: +pct(sorted, 0.5).toFixed(1),
+    p95: +pct(sorted, 0.95).toFixed(1),
+    p99: +pct(sorted, 0.99).toFixed(1),
+    max: +(sorted.at(-1) ?? 0).toFixed(1),
+    thresholdMs,
+    overThreshold,
+    overThresholdPct: count ? +((overThreshold / count) * 100).toFixed(1) : 0,
+  };
+}
+
+export function summarizeRecording(rec, nominalMs = 1000 / 60) {
   const gaps = [...rec.gaps].sort((a, b) => a - b);
   const frames = gaps.length;
   const dropped = rec.gaps.filter((g) => g > nominalMs * 1.5).length;
   const perf = Object.fromEntries(rec.perf.map((p) => [p.label, p]));
   const stream = rec.caches.find((c) => c.name === "commandStream");
   return {
+    // 기존 gap/drop 필드는 callback 실행 간격이며 G1 비교를 위해 보존한다.
+    rafTimestampGap: summarizeIntervals(rec.rafGaps, nominalMs * 1.5),
+    callbackDelay: summarizeIntervals(rec.callbackDelays, nominalMs * 1.5),
+    gapEvents: rec.gapEvents,
     ms: Math.round(rec.ms),
     frames,
     fps: +(frames / (rec.ms / 1000)).toFixed(1),
@@ -1098,7 +1129,7 @@ const wheelBurst = (page, durationMs, initFactory) =>
     { durationMs, initFactorySrc: initFactory },
   );
 
-const FRAME_CLASSES = {
+export const FRAME_CLASSES = {
   idle: async (page, ctx, ms) => {
     await page.waitForTimeout(ms);
   },
@@ -1119,20 +1150,24 @@ const FRAME_CLASSES = {
   // 선택 전환 (store 경로 — hit-test 는 안 거친다): 100ms 마다 다음 요소
   select: (page, ctx, ms) =>
     page.evaluate(
-      async ({ ids, ms }) => {
+      async ({ ids, ms, selectionDriver }) => {
         const store = window.__composition_STORE__;
         const t0 = performance.now();
         let i = 0;
         while (performance.now() - t0 < ms) {
           const id = ids[i++ % ids.length];
           const s = store.getState();
-          const el = s.elements.find((e) => e.id === id);
-          if (el) s.setSelectedElement(id, el.props, el.props?.style ?? {}, {});
+          if (selectionDriver === "id-only") s.setSelectedElement(id);
+          else {
+            const el = s.elements.find((e) => e.id === id);
+            if (el)
+              s.setSelectedElement(id, el.props, el.props?.style ?? {}, {});
+          }
           await new Promise((r) => setTimeout(r, 100));
         }
         store.getState().clearSelection?.();
       },
-      { ids: ctx.seedIds, ms },
+      { ids: ctx.seedIds, ms, selectionDriver: ctx.selectionDriver },
     ),
   // 스타일 편집 5회/s (mutation 축: 동기 무효화 + persist)
   edit: (page, ctx, ms) =>
@@ -1247,9 +1282,15 @@ async function runFrameLane(page, seed, options) {
       (profile) => window.__perfRecorder.start({ profile }),
       options.profile,
     );
-    await driver(page, seed, options.durationMs);
+    await driver(
+      page,
+      { ...seed, selectionDriver: options.selectionDriver },
+      options.durationMs,
+    );
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
     results[cls] = summarizeRecording(rec);
+    if (cls === "select")
+      results[cls].selectionDriver = options.selectionDriver;
     if (rec.profile) results[cls].profile = rec.profile;
     await page.waitForTimeout(400);
   }
@@ -1275,7 +1316,8 @@ function renderProfiles(results) {
 function renderFrameTable(results) {
   const lines = [
     "\n### frame lane",
-    "| 부류 | frames/fps | gap p50 / p95 / p99 / max (ms) | 드롭% | 할당 MB/s | GC | longtask (n / ms) | render.frame p50/p95 | record.content p50/p95 | flush p95/max | stream miss |",
+    "callback gap/dropPct는 실행 간격이며 RAF timestamp 간격 및 실제 presentation과 다르다. RAF 첫 callback은 간격 표본에서 제외한다.",
+    "| 부류 | frames/fps | callback gap p50 / p95 / p99 / max (ms) | callback >25ms % | 할당 MB/s | GC | longtask (n / ms) | render.frame p50/p95 | record.content p50/p95 | flush p95/max | stream miss |",
     "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
   ];
   for (const [cls, r] of Object.entries(results)) {
@@ -1291,6 +1333,16 @@ function renderFrameTable(results) {
       : "-";
     lines.push(
       `| ${cls} | ${r.frames}/${r.fps} | ${r.gapP50} / ${r.gapP95} / ${r.gapP99} / ${r.gapMax} | ${r.dropPct} | ${r.allocMBps} | ${r.gcCount} | ${r.longTasks} / ${r.longTaskMs} | ${r.renderFrame ? `${r.renderFrame.p50}/${r.renderFrame.p95} (${r.renderFrame.count})` : "-"} | ${r.recordContent ? `${r.recordContent.p50}/${r.recordContent.p95} (${r.recordContent.count})` : "-"} | ${r.flushContent ? `${r.flushContent.p95}/${r.flushContent.max}` : "-"} | ${miss} |`,
+    );
+  }
+  lines.push(
+    "\n| 부류 / 선택 driver | RAF timestamp p95 / max (ms) | RAF >25ms n / % | callback delay p95 / max (ms) |",
+    "| --- | ---: | ---: | ---: |",
+  );
+  for (const [cls, r] of Object.entries(results)) {
+    const raf = r.rafTimestampGap;
+    lines.push(
+      `| ${cls} / ${r.selectionDriver ?? "-"} | ${raf.p95} / ${raf.max} | ${raf.overThreshold} / ${raf.overThresholdPct} | ${r.callbackDelay.p95} / ${r.callbackDelay.max} |`,
     );
   }
   return lines.join("\n");
@@ -1342,6 +1394,13 @@ async function main() {
       const results = await runFrameLane(page, seed, options);
       const report = {
         lane: "frame",
+        metricDefinitions: {
+          gapP50: "callback performance.now interval; first sample includes recorder startup wait",
+          dropPct: "callback interval >25ms percentage; legacy G1 metric, not presentation drops",
+          rafTimestampGap: "RAF timestamp intervals; first callback excluded",
+          callbackDelay: "callback performance.now minus RAF timestamp; not input-to-presentation latency",
+          gapEvents: "callback or RAF interval >25ms; page performance time origin",
+        },
         at: new Date().toISOString(),
         chrome: browser.version(),
         headless: !options.headed,
@@ -1409,7 +1468,11 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error?.stack ?? error}\n`);
-  process.exit(1);
-});
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(resolve(process.argv[1])).href
+)
+  main().catch((error) => {
+    process.stderr.write(`${error?.stack ?? error}\n`);
+    process.exit(1);
+  });

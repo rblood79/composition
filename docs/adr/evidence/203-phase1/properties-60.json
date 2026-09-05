@@ -1,0 +1,62 @@
+{
+  "lane": "frame",
+  "at": "2026-09-05T10:23:54.617Z",
+  "chrome": "152.0.7977.82",
+  "headless": true,
+  "options": {
+    "baseUrl": "http://localhost:5173",
+    "storageState": "(redacted)",
+    "lane": "frame",
+    "cycles": 20,
+    "warmup": 5,
+    "seedCount": 60,
+    "actions": ["panels", "pages", "select", "edit", "zoom"],
+    "out": "/private/tmp/adr203-properties60",
+    "headed": false,
+    "projectUrl": null,
+    "mode": "series",
+    "attributeCycles": 10,
+    "retainerClass": "Object",
+    "retainerProps": ["parent_id", "page_id"],
+    "retainerSamples": 40,
+    "durationMs": 3000,
+    "openPanels": ["properties"],
+    "profile": false,
+    "classes": ["select"]
+  },
+  "project": "http://localhost:5173/builder/25dcbb12-e5c3-46d6-821f-5a88d2b1645f",
+  "seed": {
+    "elements": 60,
+    "pages": 2
+  },
+  "results": {
+    "select": {
+      "ms": 3047,
+      "frames": 182,
+      "fps": 59.7,
+      "gapP50": 16.6,
+      "gapP95": 20.8,
+      "gapP99": 24,
+      "gapMax": 24.3,
+      "dropPct": 0,
+      "allocMBps": 32,
+      "gcCount": 4,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 182,
+        "p50": 0.1,
+        "p95": 0.7
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 182,
+        "misses": 0,
+        "reasons": null
+      }
+    }
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}

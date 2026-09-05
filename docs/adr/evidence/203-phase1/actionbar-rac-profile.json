@@ -1,0 +1,98 @@
+{
+  "date": "2026-09-05",
+  "rawSource": "/private/tmp/adr203-residual/react-id-only.json",
+  "sha256": "5d777714cf2446369db629f60c066aaceeace4c58879e93c8b63c418d465e182",
+  "summary": {
+    "group": "navigator",
+    "reactMode": true,
+    "idOnly": true,
+    "tall": false,
+    "count": 305,
+    "ts": {
+      "p95": 16.700000000000728,
+      "max": 16.80000000000109,
+      "over25": 0
+    },
+    "now": {
+      "p95": 20.799999997019768,
+      "max": 21.80000001192093,
+      "over25": 0
+    },
+    "delay": {
+      "p95": 4.799999999999272,
+      "max": 7.0999999940395355,
+      "over25": 0
+    },
+    "sync": 0.13600000023841857,
+    "notifications": 150,
+    "commits": 383,
+    "tree": {
+      "height": 90,
+      "rows": 6
+    }
+  },
+  "selections": 50,
+  "rootMs": 292.7000001370907,
+  "filteredSelfMs": 292.5000001490116,
+  "components": {
+    "LayersSection": {
+      "subtreeMs": 161.3000000268221,
+      "selfMs": 2.999999985098839,
+      "fiberObservations": 53
+    },
+    "$89d060d8eb451127$var$TreeInner": {
+      "subtreeMs": 132.10000009834766,
+      "selfMs": 11.500000059604645,
+      "fiberObservations": 53
+    },
+    "NormalItemContent": {
+      "subtreeMs": 44.999999955296516,
+      "selfMs": 1.6000000089406967,
+      "fiberObservations": 264
+    },
+    "ContextualActionBar": {
+      "subtreeMs": 116.99999995529652,
+      "selfMs": 11.69999985396862,
+      "fiberObservations": 100
+    },
+    "ActionButton": {
+      "subtreeMs": 47.400000005960464,
+      "selfMs": 4.899999976158142,
+      "fiberObservations": 245
+    },
+    "ShortcutTooltip": {
+      "subtreeMs": 42.50000002980232,
+      "selfMs": 2.7999999672174454,
+      "fiberObservations": 242
+    },
+    "OptionsMenu": {
+      "subtreeMs": 32.30000004172325,
+      "selfMs": 9.399999991059303,
+      "fiberObservations": 100
+    }
+  },
+  "actionBarCommitGroups": {
+    "noItemPropChangeObserved": {
+      "subtreeMs": 60.39999997615814,
+      "commits": 51
+    },
+    "itemChanged": {
+      "subtreeMs": 56.599999979138374,
+      "commits": 49
+    }
+  },
+  "changedProps": {
+    "ContextualActionBar": {
+      "": 100
+    },
+    "ActionButton": {
+      "": 151,
+      "item": 94
+    },
+    "OptionsMenu": {
+      "": 1,
+      "onAction": 99
+    }
+  },
+  "note": "subtree totals overlap; filtered actualStartTime >= previous commit; no item prop change observed is an identity classification, not proof of zero context/hook changes"
+}

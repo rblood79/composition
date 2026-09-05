@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, render } from "@testing-library/react";
+import { act, cleanup, render, renderHook } from "@testing-library/react";
 import { useCallback, useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
@@ -153,6 +153,29 @@ function Harness({
 }
 
 describe("useActionBarPlacement — 저장 offset clamp (R4)", () => {
+  it("page/offset 변경에는 액션 참조를 유지하고 최신 pin/reset/hide 상태를 반영한다", () => {
+    const { result, rerender } = renderHook(
+      ({ pageId }) =>
+        useActionBarPlacement(pageId, { barNode: null, handleNode: null }),
+      { initialProps: { pageId: "page-1" } },
+    );
+    const initial = result.current;
+    rerender({ pageId: "page-2" });
+    act(() => useStore.getState().setActionBarOffset({ dx: 10, dy: 20 }));
+    expect(result.current.togglePinned).toBe(initial.togglePinned);
+    expect(result.current.resetPosition).toBe(initial.resetPosition);
+    expect(result.current.hide).toBe(initial.hide);
+    act(() => result.current.togglePinned());
+    expect(result.current.pinned).toBe(true);
+    expect(result.current.togglePinned).not.toBe(initial.togglePinned);
+    act(() => result.current.togglePinned());
+    expect(result.current.pinned).toBe(false);
+    act(() => result.current.resetPosition());
+    expect(useStore.getState().actionBar.offset).toBeNull();
+    act(() => result.current.hide());
+    expect(result.current.hidden).toBe(true);
+  });
+
   it("바가 나타난 뒤에 clamp 가 실행된다 (마운트 시점에는 잴 것이 없다)", () => {
     const setActionBarOffset = vi.spyOn(
       useStore.getState(),

@@ -1,0 +1,653 @@
+{
+  "environment": "Chrome 152 headless, dev localhost:5173, 1440x900, 60 elements, Navigator+Properties, same isolated project",
+  "traceSha256": "812e5995c7bbd43094abfe78801d25d5ba90be7432dd9b09a6fd62f3e0b5dc9b",
+  "rawTrace": "/private/tmp/adr203-repeated/trace.json",
+  "alignmentMark": {
+    "args": {
+      "data": {
+        "callTime": 69521733619,
+        "navigationId": "44E14B245F01DE08510F439E27146F4D",
+        "sampleTraceId": 8718556886363594,
+        "startTime": 56467.09999999404
+      }
+    },
+    "cat": "blink.user_timing",
+    "name": "adr203-trace-start",
+    "ph": "I",
+    "pid": 38560,
+    "s": "t",
+    "tid": 1989555,
+    "ts": 69521733612,
+    "tts": 8146764
+  },
+  "traceMinusPerformanceUs": 69465266512.0,
+  "intervalPerformanceMs": [73319.49, 73405.975],
+  "sampleCount": 663,
+  "sampleTop": [
+    ["getProgramParameter", 610],
+    ["getShaderParameter", 9],
+    ["(program)", 7],
+    ["wasm-function[936]", 3],
+    ["wasm-function[3236]", 2],
+    ["wasm-function[1008]", 2],
+    ["wasm-function[1142]", 2],
+    ["wasm-function[2869]", 2],
+    ["wasm-function[710]", 2],
+    ["deleteQuery", 1],
+    ["wasm-function[1213]", 1],
+    ["wasm-function[308]", 1],
+    ["", 1],
+    ["wasm-function[3494]", 1],
+    ["wasm-function[5103]", 1]
+  ],
+  "waitStack": [
+    {
+      "codeType": "JS",
+      "functionName": "getProgramParameter",
+      "scriptId": 0
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 8,
+      "functionName": "la",
+      "lineNumber": 5022,
+      "scriptId": 1353,
+      "url": "http://localhost:5173/node_modules/.vite/deps/canvaskit-wasm.js?v=611d0e6b"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 0,
+      "functionName": "wasm-to-js",
+      "lineNumber": 0,
+      "scriptId": -1
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 190991,
+      "functionName": "wasm-function[674]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 961353,
+      "functionName": "wasm-function[2317]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 2320177,
+      "functionName": "wasm-function[4325]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 2348356,
+      "functionName": "wasm-function[4350]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 4357144,
+      "functionName": "wasm-function[7672]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 130070,
+      "functionName": "wasm-function[507]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 4583642,
+      "functionName": "wasm-function[8241]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 2472124,
+      "functionName": "wasm-function[4496]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 2686398,
+      "functionName": "wasm-function[4845]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 545695,
+      "functionName": "wasm-function[1518]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 4952467,
+      "functionName": "wasm-function[9685]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "wasm",
+      "columnNumber": 710203,
+      "functionName": "wasm-function[1774]",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 4749537,
+      "functionName": "js-to-wasm::i",
+      "lineNumber": 0,
+      "scriptId": 1354,
+      "url": "http://localhost:5173/wasm/canvaskit.wasm"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 25,
+      "functionName": "",
+      "lineNumber": 3679,
+      "scriptId": 1353,
+      "url": "http://localhost:5173/node_modules/.vite/deps/canvaskit-wasm.js?v=611d0e6b"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 41,
+      "functionName": "a.Surface.flush",
+      "lineNumber": 50,
+      "scriptId": 1353,
+      "url": "http://localhost:5173/node_modules/.vite/deps/canvaskit-wasm.js?v=611d0e6b"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 8,
+      "functionName": "present",
+      "lineNumber": 626,
+      "scriptId": 1286,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaRenderer.ts?t=1788544234779"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 18,
+      "functionName": "renderDualSurface",
+      "lineNumber": 730,
+      "scriptId": 1286,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaRenderer.ts?t=1788544234779"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 7,
+      "functionName": "render",
+      "lineNumber": 859,
+      "scriptId": 1286,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaRenderer.ts?t=1788544234779"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 59,
+      "functionName": "",
+      "lineNumber": 724,
+      "scriptId": 1279,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaCanvas.tsx?t=1788601947535"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 23,
+      "functionName": "observe",
+      "lineNumber": 154,
+      "scriptId": 664,
+      "url": "http://localhost:5173/src/builder/utils/perfMarks.ts"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 26,
+      "functionName": "renderFrameCore",
+      "lineNumber": 471,
+      "scriptId": 1279,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaCanvas.tsx?t=1788601947535"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 36,
+      "functionName": "",
+      "lineNumber": 745,
+      "scriptId": 1279,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaCanvas.tsx?t=1788601947535"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 23,
+      "functionName": "observe",
+      "lineNumber": 154,
+      "scriptId": 664,
+      "url": "http://localhost:5173/src/builder/utils/perfMarks.ts"
+    },
+    {
+      "codeType": "JS",
+      "columnNumber": 22,
+      "functionName": "renderFrame",
+      "lineNumber": 744,
+      "scriptId": 1279,
+      "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaCanvas.tsx?t=1788601947535"
+    },
+    {
+      "codeType": "other",
+      "functionName": "(root)",
+      "scriptId": 0
+    }
+  ],
+  "mainThreadFunctionEvents": [
+    {
+      "args": {
+        "data": {
+          "columnNumber": 30,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "",
+          "isolate": "17916519308476715867",
+          "lineNumber": 9077,
+          "sampleTraceId": 8718556886392944,
+          "scriptId": "10",
+          "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=611d0e6b"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 7312,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 7199,
+      "tid": 1989555,
+      "ts": 69538569449,
+      "tts": 10144239
+    },
+    {
+      "args": {
+        "data": {
+          "columnNumber": 36,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "performWorkUntilDeadline",
+          "isolate": "17916519308476715867",
+          "lineNumber": 16,
+          "sampleTraceId": 8718556886393238,
+          "scriptId": "10",
+          "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=611d0e6b"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 1369,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 1340,
+      "tid": 1989555,
+      "ts": 69538577147,
+      "tts": 10151815
+    },
+    {
+      "args": {
+        "data": {
+          "columnNumber": 36,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "performWorkUntilDeadline",
+          "isolate": "17916519308476715867",
+          "lineNumber": 16,
+          "sampleTraceId": 8718556886393286,
+          "scriptId": "10",
+          "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=611d0e6b"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 3605,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 3581,
+      "tid": 1989555,
+      "ts": 69538579069,
+      "tts": 10153693
+    },
+    {
+      "args": {
+        "data": {
+          "columnNumber": 19,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "",
+          "isolate": "17916519308476715867",
+          "lineNumber": 1981,
+          "sampleTraceId": 8718556886393303,
+          "scriptId": "39",
+          "url": "http://localhost:5173/node_modules/.vite/deps/react-aria-components.js?v=611d0e6b"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 1934,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 1868,
+      "tid": 1989555,
+      "ts": 69538582942,
+      "tts": 10157534
+    },
+    {
+      "args": {
+        "data": {
+          "columnNumber": 23,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "renderFrame",
+          "isolate": "17916519308476715867",
+          "lineNumber": 745,
+          "sampleTraceId": 8718556886393181,
+          "scriptId": "1279",
+          "url": "http://localhost:5173/src/builder/workspace/canvas/skia/SkiaCanvas.tsx?t=1788601947535"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 86473,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 9095,
+      "tid": 1989555,
+      "ts": 69538586003,
+      "tts": 10160512
+    },
+    {
+      "args": {
+        "data": {
+          "columnNumber": 30,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "",
+          "isolate": "17916519308476715867",
+          "lineNumber": 9077,
+          "sampleTraceId": 8718556886394542,
+          "scriptId": "10",
+          "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=611d0e6b"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 2546,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 2511,
+      "tid": 1989555,
+      "ts": 69538672650,
+      "tts": 10169771
+    },
+    {
+      "args": {
+        "data": {
+          "columnNumber": 30,
+          "frame": "F70CCB695194C624A03D5BB3B51BF550",
+          "functionName": "",
+          "isolate": "17916519308476715867",
+          "lineNumber": 9077,
+          "sampleTraceId": 8718556886394616,
+          "scriptId": "10",
+          "url": "http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=611d0e6b"
+        }
+      },
+      "cat": "devtools.timeline",
+      "dur": 7859,
+      "name": "FunctionCall",
+      "ph": "X",
+      "pid": 38560,
+      "tdur": 7749,
+      "tid": 1989555,
+      "ts": 69538677652,
+      "tts": 10174672
+    }
+  ],
+  "traceResult": {
+    "origin": 56468.79999999702,
+    "results": {
+      "idle": {
+        "rafTimestampGap": {
+          "count": 599,
+          "p50": 16.7,
+          "p95": 16.8,
+          "p99": 16.8,
+          "max": 16.8,
+          "thresholdMs": 25,
+          "overThreshold": 0,
+          "overThresholdPct": 0
+        },
+        "callbackDelay": {
+          "count": 600,
+          "p50": 0.7,
+          "p95": 1,
+          "p99": 1.2,
+          "max": 2.4,
+          "thresholdMs": 25,
+          "overThreshold": 0,
+          "overThresholdPct": 0
+        },
+        "gapEvents": [],
+        "ms": 10000,
+        "frames": 600,
+        "fps": 60,
+        "gapP50": 16.7,
+        "gapP95": 17.3,
+        "gapP99": 17.4,
+        "gapMax": 18.8,
+        "dropPct": 0,
+        "allocMBps": 0.9,
+        "gcCount": 4,
+        "longTasks": 0,
+        "longTaskMs": 0,
+        "renderFrame": {
+          "count": 600,
+          "p50": 0,
+          "p95": 0.1
+        },
+        "recordContent": null,
+        "flushContent": null,
+        "streamMiss": {
+          "hits": 600,
+          "misses": 0,
+          "reasons": null
+        }
+      },
+      "select": {
+        "rafTimestampGap": {
+          "count": 597,
+          "p50": 16.7,
+          "p95": 16.8,
+          "p99": 16.8,
+          "max": 83.3,
+          "thresholdMs": 25,
+          "overThreshold": 1,
+          "overThresholdPct": 0.2
+        },
+        "callbackDelay": {
+          "count": 598,
+          "p50": 1.1,
+          "p95": 6.3,
+          "p99": 9.1,
+          "max": 92.1,
+          "thresholdMs": 25,
+          "overThreshold": 1,
+          "overThresholdPct": 0.2
+        },
+        "gapEvents": [
+          {
+            "timestamp": 71397.3,
+            "callbackTime": 71406.79999999702,
+            "callbackGap": 25.099999994039536,
+            "rafGap": 16.69999999999709,
+            "callbackDelay": 9.499999997016857
+          },
+          {
+            "timestamp": 73313.9,
+            "callbackTime": 73406,
+            "callbackGap": 108.20000000298023,
+            "rafGap": 16.69999999999709,
+            "callbackDelay": 92.10000000000582
+          },
+          {
+            "timestamp": 73397.2,
+            "callbackTime": 73410.90000000596,
+            "callbackGap": 4.9000000059604645,
+            "rafGap": 83.30000000000291,
+            "callbackDelay": 13.700000005963375
+          },
+          {
+            "timestamp": 74113.9,
+            "callbackTime": 74123,
+            "callbackGap": 25.299999997019768,
+            "rafGap": 16.69999999999709,
+            "callbackDelay": 9.10000000000582
+          },
+          {
+            "timestamp": 74213.9,
+            "callbackTime": 74222.79999999702,
+            "callbackGap": 25.299999997019768,
+            "rafGap": 16.59999999999127,
+            "callbackDelay": 8.899999997025589
+          },
+          {
+            "timestamp": 74413.9,
+            "callbackTime": 74423,
+            "callbackGap": 25.200000002980232,
+            "rafGap": 16.59999999999127,
+            "callbackDelay": 9.10000000000582
+          },
+          {
+            "timestamp": 74813.8,
+            "callbackTime": 74823,
+            "callbackGap": 25.200000002980232,
+            "rafGap": 16.60000000000582,
+            "callbackDelay": 9.19999999999709
+          }
+        ],
+        "ms": 10038,
+        "frames": 598,
+        "fps": 59.6,
+        "gapP50": 16.6,
+        "gapP95": 21.9,
+        "gapP99": 24.9,
+        "gapMax": 108.2,
+        "dropPct": 1,
+        "allocMBps": 46.6,
+        "gcCount": 31,
+        "longTasks": 1,
+        "longTaskMs": 91,
+        "renderFrame": {
+          "count": 598,
+          "p50": 0.1,
+          "p95": 0.6
+        },
+        "recordContent": null,
+        "flushContent": null,
+        "streamMiss": {
+          "hits": 598,
+          "misses": 0,
+          "reasons": null
+        },
+        "selectionDriver": "id-only"
+      }
+    }
+  },
+  "followupGlProbe": {
+    "origin": 8979.20000000298,
+    "results": {
+      "select": {
+        "rafTimestampGap": {
+          "count": 601,
+          "p50": 16.7,
+          "p95": 16.7,
+          "p99": 16.8,
+          "max": 16.8,
+          "thresholdMs": 25,
+          "overThreshold": 0,
+          "overThresholdPct": 0
+        },
+        "callbackDelay": {
+          "count": 602,
+          "p50": 1.1,
+          "p95": 5.3,
+          "p99": 8.2,
+          "max": 12.9,
+          "thresholdMs": 25,
+          "overThreshold": 0,
+          "overThresholdPct": 0
+        },
+        "gapEvents": [
+          {
+            "timestamp": 10099.8,
+            "callbackTime": 10108.89999999106,
+            "callbackGap": 25.099999994039536,
+            "rafGap": 16.599999999998545,
+            "callbackDelay": 9.09999999106003
+          },
+          {
+            "timestamp": 14899.7,
+            "callbackTime": 14912.59999999404,
+            "callbackGap": 28.399999991059303,
+            "rafGap": 16.700000000000728,
+            "callbackDelay": 12.899999994038808
+          },
+          {
+            "timestamp": 15199.7,
+            "callbackTime": 15209.20000000298,
+            "callbackGap": 25.80000001192093,
+            "rafGap": 16.700000000000728,
+            "callbackDelay": 9.500000002979505
+          }
+        ],
+        "ms": 10032,
+        "frames": 602,
+        "fps": 60,
+        "gapP50": 16.6,
+        "gapP95": 20.6,
+        "gapP99": 23.8,
+        "gapMax": 28.4,
+        "dropPct": 0.5,
+        "allocMBps": 53.2,
+        "gcCount": 23,
+        "longTasks": 0,
+        "longTaskMs": 0,
+        "renderFrame": {
+          "count": 602,
+          "p50": 0.1,
+          "p95": 0.6
+        },
+        "recordContent": null,
+        "flushContent": null,
+        "streamMiss": {
+          "hits": 602,
+          "misses": 0,
+          "reasons": null
+        },
+        "selectionDriver": "id-only"
+      }
+    },
+    "glWaits": [],
+    "rawTrace": "/private/tmp/adr203-gl-trace/trace.json",
+    "note": "getProgramParameter wrapper records calls >2ms; no matching slow call reproduced; pname of original stall remains unknown"
+  }
+}

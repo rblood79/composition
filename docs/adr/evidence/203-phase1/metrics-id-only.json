@@ -1,0 +1,182 @@
+{
+  "lane": "frame",
+  "at": "2026-09-05T12:12:43.602Z",
+  "chrome": "152.0.7977.82",
+  "headless": true,
+  "options": {
+    "baseUrl": "http://localhost:5173",
+    "storageState": "(redacted)",
+    "lane": "frame",
+    "cycles": 20,
+    "warmup": 5,
+    "seedCount": 60,
+    "actions": ["panels", "pages", "select", "edit", "zoom"],
+    "out": "/private/tmp/adr203-metrics-id-only",
+    "headed": false,
+    "projectUrl": null,
+    "mode": "series",
+    "attributeCycles": 10,
+    "retainerClass": "Object",
+    "retainerProps": ["parent_id", "page_id"],
+    "retainerSamples": 40,
+    "durationMs": 3000,
+    "openPanels": ["navigator"],
+    "profile": false,
+    "selectionDriver": "id-only",
+    "classes": ["idle", "select"]
+  },
+  "project": "http://localhost:5173/builder/1943e6bc-5d56-4feb-8dc2-347e3a7d73c8",
+  "seed": {
+    "elements": 60,
+    "pages": 2
+  },
+  "results": {
+    "idle": {
+      "rafTimestampGap": {
+        "count": 179,
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 16.8,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "callbackDelay": {
+        "count": 180,
+        "p50": 1.2,
+        "p95": 1.6,
+        "p99": 2.1,
+        "max": 2.3,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "gapEvents": [],
+      "ms": 3003,
+      "frames": 180,
+      "fps": 59.9,
+      "gapP50": 16.7,
+      "gapP95": 17.5,
+      "gapP99": 17.8,
+      "gapMax": 18,
+      "dropPct": 0,
+      "allocMBps": 1.9,
+      "gcCount": 0,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 180,
+        "p50": 0.1,
+        "p95": 0.2
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 180,
+        "misses": 0,
+        "reasons": null
+      }
+    },
+    "select": {
+      "rafTimestampGap": {
+        "count": 182,
+        "p50": 16.7,
+        "p95": 16.8,
+        "p99": 16.8,
+        "max": 16.8,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "callbackDelay": {
+        "count": 183,
+        "p50": 1.1,
+        "p95": 5.4,
+        "p99": 13.8,
+        "max": 15.6,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "gapEvents": [
+        {
+          "timestamp": 13231.8,
+          "callbackTime": 13242,
+          "callbackGap": 25.400000005960464,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 10.200000000000728
+        },
+        {
+          "timestamp": 13431.8,
+          "callbackTime": 13443.29999999702,
+          "callbackGap": 28,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 11.499999997020495
+        },
+        {
+          "timestamp": 13531.8,
+          "callbackTime": 13546,
+          "callbackGap": 30.5,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 14.200000000000728
+        },
+        {
+          "timestamp": 13631.8,
+          "callbackTime": 13647.40000000596,
+          "callbackGap": 31.700000002980232,
+          "rafGap": 16.599999999998545,
+          "callbackDelay": 15.600000005961192
+        },
+        {
+          "timestamp": 14548.4,
+          "callbackTime": 14559.20000000298,
+          "callbackGap": 26,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 10.800000002980596
+        },
+        {
+          "timestamp": 14648.4,
+          "callbackTime": 14661.40000000596,
+          "callbackGap": 28.900000005960464,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 13.000000005960828
+        },
+        {
+          "timestamp": 14748.4,
+          "callbackTime": 14762.20000000298,
+          "callbackGap": 29.5,
+          "rafGap": 16.600000000000364,
+          "callbackDelay": 13.800000002980596
+        }
+      ],
+      "ms": 3054,
+      "frames": 183,
+      "fps": 59.9,
+      "gapP50": 16.6,
+      "gapP95": 21.5,
+      "gapP99": 29.5,
+      "gapMax": 31.7,
+      "dropPct": 3.8,
+      "allocMBps": 32,
+      "gcCount": 4,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 183,
+        "p50": 0.1,
+        "p95": 0.5
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 183,
+        "misses": 0,
+        "reasons": null
+      },
+      "selectionDriver": "id-only"
+    }
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}

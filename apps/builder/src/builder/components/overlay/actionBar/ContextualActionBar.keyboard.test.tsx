@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ContextMenuItem } from "../contextMenu/types";
 import type { ActionBarModel } from "./actionBarPolicy";
@@ -94,6 +100,49 @@ afterEach(() => {
 });
 
 describe("ContextualActionBar — 키보드 규약 (ADR-192 R2)", () => {
+  it("같은 action id의 새 item은 최신 라벨과 선택 대상 callback을 반영한다", async () => {
+    const runA = vi.fn();
+    const runB = vi.fn();
+    actionBarModel = {
+      context: "single",
+      items: [
+        {
+          kind: "action",
+          id: "same-action",
+          labelKey: "contextMenu.duplicate",
+          run: runA,
+        },
+      ],
+    };
+    renderBar();
+    fireEvent.click(screen.getByRole("button", { name: "Duplicate" }));
+    expect(runA).toHaveBeenCalledTimes(1);
+    actionBarModel = {
+      context: "single",
+      items: [
+        {
+          kind: "action",
+          id: "same-action",
+          labelKey: "contextMenu.delete",
+          run: runB,
+        },
+      ],
+    };
+    act(() =>
+      useStore.setState({
+        selectedElementId: "b",
+        selectedElementIds: ["b"],
+        elementsMap: new Map([["b", { id: "b", type: "Button" }]]),
+      } as never),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Duplicate" })).toBeNull(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+    expect(runB).toHaveBeenCalledTimes(1);
+    expect(runA).toHaveBeenCalledTimes(1);
+  });
+
   it("page body 단독 선택에서도 page 컨텍스트 bar를 표시한다", () => {
     actionBarModel = null;
     useStore.setState({

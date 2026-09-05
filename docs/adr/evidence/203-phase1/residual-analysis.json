@@ -1,0 +1,1160 @@
+{
+  "date": "2026-09-05",
+  "baseHead": "4f0d7a36e",
+  "environment": {
+    "chrome": "152.0.7977.82",
+    "mode": "headless development",
+    "viewport": [1440, 900],
+    "elements": 60,
+    "selectionIntervalMs": 100
+  },
+  "method": "RAF timestamp and callback performance.now sampled separately; React rows filtered by positive root duration and actualStartTime >= previous commit time (initial cutoff = run.started). Subtree durations overlap; do not sum component totals.",
+  "sources": [
+    {
+      "path": "/private/tmp/adr203-residual/cadence.json",
+      "sha256": "2bc6ce7e6fadbdb23fcb48aa4567ef748f5214f4ebfa29efaa740f222ae17a4d"
+    },
+    {
+      "path": "/private/tmp/adr203-residual/id-only.json",
+      "sha256": "eeec7f716c3351395065ea22ccecbf91434d1bd5d3c6755d0942cf6f4a1b08ec"
+    },
+    {
+      "path": "/private/tmp/adr203-residual/cadence-tall.json",
+      "sha256": "e1031142d5d9ff7a924c6ef0f597d6c0a1fc992c4e77ab29bf80f46e924a16e1"
+    },
+    {
+      "path": "/private/tmp/adr203-residual/react.json",
+      "sha256": "1b313266d82a898abd3c4853e6a065a6e95f9eb684fe292ce7d961b7e11ee44d"
+    },
+    {
+      "path": "/private/tmp/adr203-residual/react-id-only.json",
+      "sha256": "699505c48360ea115afbf3c359fe9bc61c3cccb8cc6b0faca756163ca92e9a0d"
+    },
+    {
+      "path": "/private/tmp/adr203-residual/react-tall.json",
+      "sha256": "e13ea3bbe91d9aedec6407e53c558bdcf3b5c6a67325dac28c9ceb335da14833"
+    }
+  ],
+  "cadence": {
+    "cadence.json": [
+      {
+        "summary": {
+          "group": "none",
+          "reactMode": false,
+          "count": 188,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 18.3,
+            "max": 22.6,
+            "over25": 0
+          },
+          "delay": {
+            "p95": 2.8,
+            "max": 6.9,
+            "over25": 0
+          },
+          "sync": 0.153,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 0,
+            "rows": 0
+          }
+        },
+        "spikes": []
+      },
+      {
+        "summary": {
+          "group": "navigator",
+          "reactMode": false,
+          "count": 181,
+          "ts": {
+            "p95": 16.7,
+            "max": 133.4,
+            "over25": 1
+          },
+          "now": {
+            "p95": 21.9,
+            "max": 139,
+            "over25": 5
+          },
+          "delay": {
+            "p95": 6.3,
+            "max": 13,
+            "over25": 0
+          },
+          "sync": 0.193,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": [
+          {
+            "ts": 133.4,
+            "now": 139,
+            "delay": 6.3,
+            "time": 12191.4
+          },
+          {
+            "ts": 16.6,
+            "now": 26.3,
+            "delay": 11,
+            "time": 13346
+          },
+          {
+            "ts": 16.6,
+            "now": 26.5,
+            "delay": 11.2,
+            "time": 13446.2
+          },
+          {
+            "ts": 16.6,
+            "now": 29,
+            "delay": 13,
+            "time": 13548
+          },
+          {
+            "ts": 16.7,
+            "now": 26.2,
+            "delay": 10.9,
+            "time": 14762.6
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "both",
+          "reactMode": false,
+          "count": 187,
+          "ts": {
+            "p95": 16.8,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 19.8,
+            "max": 24.9,
+            "over25": 0
+          },
+          "delay": {
+            "p95": 4.2,
+            "max": 8.7,
+            "over25": 0
+          },
+          "sync": 0.113,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": []
+      },
+      {
+        "summary": {
+          "group": "properties",
+          "reactMode": false,
+          "count": 188,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 19.2,
+            "max": 25.3,
+            "over25": 1
+          },
+          "delay": {
+            "p95": 3.4,
+            "max": 9.6,
+            "over25": 0
+          },
+          "sync": 0.143,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 0,
+            "rows": 6
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.6,
+            "now": 25.3,
+            "delay": 9.6,
+            "time": 22594.2
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "navigator",
+          "reactMode": false,
+          "count": 188,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 21.8,
+            "max": 29.8,
+            "over25": 4
+          },
+          "delay": {
+            "p95": 5.4,
+            "max": 14.4,
+            "over25": 0
+          },
+          "sync": 0.15,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.6,
+            "now": 25.4,
+            "delay": 10.1,
+            "time": 25028
+          },
+          {
+            "ts": 16.7,
+            "now": 26.7,
+            "delay": 11.2,
+            "time": 25129.1
+          },
+          {
+            "ts": 16.6,
+            "now": 28.6,
+            "delay": 13.0,
+            "time": 25230.9
+          },
+          {
+            "ts": 16.7,
+            "now": 29.8,
+            "delay": 14.4,
+            "time": 25332.3
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "both",
+          "reactMode": false,
+          "count": 187,
+          "ts": {
+            "p95": 16.8,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 20.4,
+            "max": 30.6,
+            "over25": 2
+          },
+          "delay": {
+            "p95": 4.9,
+            "max": 15.0,
+            "over25": 0
+          },
+          "sync": 0.137,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.7,
+            "now": 25.7,
+            "delay": 10.3,
+            "time": 28894.7
+          },
+          {
+            "ts": 16.6,
+            "now": 30.6,
+            "delay": 15.0,
+            "time": 29299.4
+          }
+        ]
+      }
+    ],
+    "id-only.json": [
+      {
+        "summary": {
+          "group": "none",
+          "reactMode": false,
+          "idOnly": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 17.7,
+            "max": 20.8,
+            "over25": 0
+          },
+          "delay": {
+            "p95": 1.7,
+            "max": 5.4,
+            "over25": 0
+          },
+          "sync": 0.157,
+          "notifications": 90,
+          "commits": 0,
+          "tree": {
+            "height": 0,
+            "rows": 0
+          }
+        },
+        "spikes": []
+      },
+      {
+        "summary": {
+          "group": "navigator",
+          "reactMode": false,
+          "idOnly": true,
+          "count": 188,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 19.5,
+            "max": 28.4,
+            "over25": 1
+          },
+          "delay": {
+            "p95": 3.7,
+            "max": 12.5,
+            "over25": 0
+          },
+          "sync": 0.16,
+          "notifications": 90,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.7,
+            "now": 28.4,
+            "delay": 12.5,
+            "time": 14128.2
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "both",
+          "reactMode": false,
+          "idOnly": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.8,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 20.3,
+            "max": 24.3,
+            "over25": 0
+          },
+          "delay": {
+            "p95": 4.4,
+            "max": 8.6,
+            "over25": 0
+          },
+          "sync": 0.137,
+          "notifications": 90,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": []
+      },
+      {
+        "summary": {
+          "group": "properties",
+          "reactMode": false,
+          "idOnly": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 18,
+            "max": 19.9,
+            "over25": 0
+          },
+          "delay": {
+            "p95": 2.3,
+            "max": 4.1,
+            "over25": 0
+          },
+          "sync": 0.14,
+          "notifications": 90,
+          "commits": 0,
+          "tree": {
+            "height": 0,
+            "rows": 6
+          }
+        },
+        "spikes": []
+      },
+      {
+        "summary": {
+          "group": "navigator",
+          "reactMode": false,
+          "idOnly": true,
+          "count": 188,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 20.4,
+            "max": 28.6,
+            "over25": 2
+          },
+          "delay": {
+            "p95": 4.9,
+            "max": 13.1,
+            "over25": 0
+          },
+          "sync": 0.183,
+          "notifications": 90,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.7,
+            "now": 25.7,
+            "delay": 10.4,
+            "time": 25675.6
+          },
+          {
+            "ts": 16.7,
+            "now": 28.6,
+            "delay": 13.1,
+            "time": 25878.3
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "both",
+          "reactMode": false,
+          "idOnly": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 20.4,
+            "max": 24.7,
+            "over25": 0
+          },
+          "delay": {
+            "p95": 4.6,
+            "max": 8.3,
+            "over25": 0
+          },
+          "sync": 0.13,
+          "notifications": 90,
+          "commits": 0,
+          "tree": {
+            "height": 90,
+            "rows": 6
+          }
+        },
+        "spikes": []
+      }
+    ],
+    "cadence-tall.json": [
+      {
+        "summary": {
+          "group": "navigator",
+          "reactMode": false,
+          "idOnly": false,
+          "tall": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 28.3,
+            "max": 42,
+            "over25": 13
+          },
+          "delay": {
+            "p95": 13.9,
+            "max": 26.5,
+            "over25": 1
+          },
+          "sync": 0.127,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 382,
+            "rows": 20
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.6,
+            "now": 27.6,
+            "delay": 13.2,
+            "time": 8446.6
+          },
+          {
+            "ts": 16.6,
+            "now": 30.8,
+            "delay": 14.5,
+            "time": 8547.9
+          },
+          {
+            "ts": 16.6,
+            "now": 31.1,
+            "delay": 14.9,
+            "time": 8648.3
+          },
+          {
+            "ts": 16.7,
+            "now": 31.4,
+            "delay": 16.3,
+            "time": 8749.7
+          },
+          {
+            "ts": 16.7,
+            "now": 33.8,
+            "delay": 18.2,
+            "time": 8851.6
+          },
+          {
+            "ts": 16.7,
+            "now": 31.2,
+            "delay": 16.9,
+            "time": 8950.3
+          },
+          {
+            "ts": 16.6,
+            "now": 26,
+            "delay": 10.1,
+            "time": 9660.1
+          },
+          {
+            "ts": 16.7,
+            "now": 28.8,
+            "delay": 13,
+            "time": 9763
+          },
+          {
+            "ts": 16.7,
+            "now": 42,
+            "delay": 26.5,
+            "time": 10176.5
+          },
+          {
+            "ts": 16.7,
+            "now": 32.4,
+            "delay": 17.9,
+            "time": 10267.9
+          },
+          {
+            "ts": 16.8,
+            "now": 25.1,
+            "delay": 10.4,
+            "time": 10777.1
+          },
+          {
+            "ts": 16.7,
+            "now": 28.3,
+            "delay": 13.9,
+            "time": 11180.5
+          },
+          {
+            "ts": 16.7,
+            "now": 32,
+            "delay": 16.9,
+            "time": 11283.5
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "both",
+          "reactMode": false,
+          "idOnly": false,
+          "tall": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 24.6,
+            "max": 34,
+            "over25": 7
+          },
+          "delay": {
+            "p95": 8.8,
+            "max": 18.4,
+            "over25": 0
+          },
+          "sync": 0.123,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 320,
+            "rows": 17
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.7,
+            "now": 27.5,
+            "delay": 11.2,
+            "time": 12544.5
+          },
+          {
+            "ts": 16.7,
+            "now": 25.5,
+            "delay": 10.1,
+            "time": 12943.4
+          },
+          {
+            "ts": 16.7,
+            "now": 29.4,
+            "delay": 13.9,
+            "time": 13247.1
+          },
+          {
+            "ts": 16.7,
+            "now": 30.4,
+            "delay": 14.7,
+            "time": 13347.9
+          },
+          {
+            "ts": 16.7,
+            "now": 34,
+            "delay": 18.4,
+            "time": 13451.6
+          },
+          {
+            "ts": 16.6,
+            "now": 25.4,
+            "delay": 9.2,
+            "time": 14659
+          },
+          {
+            "ts": 16.6,
+            "now": 27.3,
+            "delay": 11.9,
+            "time": 14761.7
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "navigator",
+          "reactMode": false,
+          "idOnly": false,
+          "tall": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.8,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 24.5,
+            "max": 30.1,
+            "over25": 6
+          },
+          "delay": {
+            "p95": 8.2,
+            "max": 13.7,
+            "over25": 0
+          },
+          "sync": 0.093,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 320,
+            "rows": 17
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.7,
+            "now": 26.9,
+            "delay": 11.0,
+            "time": 16510.7
+          },
+          {
+            "ts": 16.7,
+            "now": 27.4,
+            "delay": 11.1,
+            "time": 16610.9
+          },
+          {
+            "ts": 16.7,
+            "now": 30.1,
+            "delay": 13.7,
+            "time": 16713.5
+          },
+          {
+            "ts": 16.7,
+            "now": 26.4,
+            "delay": 9.9,
+            "time": 17926.3
+          },
+          {
+            "ts": 16.7,
+            "now": 26.9,
+            "delay": 10.5,
+            "time": 18026.9
+          },
+          {
+            "ts": 16.6,
+            "now": 26.6,
+            "delay": 10.2,
+            "time": 18126.5
+          }
+        ]
+      },
+      {
+        "summary": {
+          "group": "both",
+          "reactMode": false,
+          "idOnly": false,
+          "tall": true,
+          "count": 187,
+          "ts": {
+            "p95": 16.7,
+            "max": 16.8,
+            "over25": 0
+          },
+          "now": {
+            "p95": 26,
+            "max": 31.6,
+            "over25": 14
+          },
+          "delay": {
+            "p95": 9.7,
+            "max": 15.4,
+            "over25": 0
+          },
+          "sync": 0.12,
+          "notifications": 30,
+          "commits": 0,
+          "tree": {
+            "height": 320,
+            "rows": 17
+          }
+        },
+        "spikes": [
+          {
+            "ts": 16.7,
+            "now": 26.3,
+            "delay": 9.9,
+            "time": 20292.9
+          },
+          {
+            "ts": 16.7,
+            "now": 25.4,
+            "delay": 9.6,
+            "time": 20392.5
+          },
+          {
+            "ts": 16.7,
+            "now": 26,
+            "delay": 9.6,
+            "time": 20492.6
+          },
+          {
+            "ts": 16.8,
+            "now": 27.4,
+            "delay": 11.1,
+            "time": 20594.1
+          },
+          {
+            "ts": 16.6,
+            "now": 30.3,
+            "delay": 14.0,
+            "time": 20696.9
+          },
+          {
+            "ts": 16.6,
+            "now": 29.7,
+            "delay": 13.4,
+            "time": 20796.3
+          },
+          {
+            "ts": 16.7,
+            "now": 25.4,
+            "delay": 9.1,
+            "time": 20892
+          },
+          {
+            "ts": 16.7,
+            "now": 25.8,
+            "delay": 9.5,
+            "time": 20992.4
+          },
+          {
+            "ts": 16.6,
+            "now": 26,
+            "delay": 9.7,
+            "time": 21092.6
+          },
+          {
+            "ts": 16.8,
+            "now": 25.5,
+            "delay": 9.9,
+            "time": 22409.5
+          },
+          {
+            "ts": 16.6,
+            "now": 26.7,
+            "delay": 11.2,
+            "time": 22510.7
+          },
+          {
+            "ts": 16.6,
+            "now": 28.1,
+            "delay": 12.6,
+            "time": 22612.1
+          },
+          {
+            "ts": 16.6,
+            "now": 29.7,
+            "delay": 13.6,
+            "time": 22713.1
+          },
+          {
+            "ts": 16.7,
+            "now": 31.6,
+            "delay": 15.4,
+            "time": 22814.9
+          }
+        ]
+      }
+    ]
+  },
+  "react": {
+    "react.json": {
+      "summary": {
+        "group": "navigator",
+        "reactMode": true,
+        "count": 306,
+        "ts": {
+          "p95": 16.8,
+          "max": 16.8,
+          "over25": 0
+        },
+        "now": {
+          "p95": 22.1,
+          "max": 24.9,
+          "over25": 0
+        },
+        "delay": {
+          "p95": 6.2,
+          "max": 9.4,
+          "over25": 0
+        },
+        "sync": 0.122,
+        "notifications": 50,
+        "commits": 264,
+        "tree": {
+          "height": 90,
+          "rows": 6
+        }
+      },
+      "selections": 50,
+      "positiveDurationCommits": 112,
+      "rootRenderMs": 354.9,
+      "filteredSelfMs": 354.8,
+      "notificationKeys": {
+        "selectedElementId,selectedElementProps,selectedElementIds,selectedElementIdsSet": 50
+      },
+      "components": {
+        "LayersSection": {
+          "subtreeMs": 227.1,
+          "selfMs": 2.8,
+          "renders": 53
+        },
+        "LayerTree": {
+          "subtreeMs": 207.4,
+          "selfMs": 1.8,
+          "renders": 53
+        },
+        "TreeBase": {
+          "subtreeMs": 204.9,
+          "selfMs": 0.9,
+          "renders": 53
+        },
+        "$42ceafc619f9c3ba$var$CollectionRoot": {
+          "subtreeMs": 1.0,
+          "selfMs": 0.7,
+          "renders": 10
+        },
+        "$89d060d8eb451127$var$TreeInner": {
+          "subtreeMs": 197.4,
+          "selfMs": 11.2,
+          "renders": 53
+        },
+        "$143fb904d86051ce$var$CollectionRoot": {
+          "subtreeMs": 180.7,
+          "selfMs": 6.3,
+          "renders": 53
+        },
+        "LayerTreeItemContent": {
+          "subtreeMs": 109.6,
+          "selfMs": 2.1,
+          "renders": 305
+        },
+        "NormalItemContent": {
+          "subtreeMs": 107.5,
+          "selfMs": 20.9,
+          "renders": 305
+        },
+        "ContextualActionBar": {
+          "subtreeMs": 119.3,
+          "selfMs": 11.3,
+          "renders": 100
+        },
+        "OptionsMenu": {
+          "subtreeMs": 34.3,
+          "selfMs": 9.9,
+          "renders": 100
+        }
+      }
+    },
+    "react-id-only.json": {
+      "summary": {
+        "group": "navigator",
+        "reactMode": true,
+        "idOnly": true,
+        "count": 306,
+        "ts": {
+          "p95": 16.7,
+          "max": 16.8,
+          "over25": 0
+        },
+        "now": {
+          "p95": 22.6,
+          "max": 25,
+          "over25": 0
+        },
+        "delay": {
+          "p95": 7.2,
+          "max": 9.5,
+          "over25": 0
+        },
+        "sync": 0.134,
+        "notifications": 150,
+        "commits": 414,
+        "tree": {
+          "height": 90,
+          "rows": 6
+        }
+      },
+      "selections": 50,
+      "positiveDurationCommits": 151,
+      "rootRenderMs": 351.9,
+      "filteredSelfMs": 351.6,
+      "notificationKeys": {
+        "selectedElementId,selectedElementIds,selectedElementIdsSet": 50,
+        "selectedElementProps": 100
+      },
+      "components": {
+        "LayersSection": {
+          "subtreeMs": 221.5,
+          "selfMs": 2.3,
+          "renders": 53
+        },
+        "LayerTree": {
+          "subtreeMs": 202.5,
+          "selfMs": 2.3,
+          "renders": 53
+        },
+        "TreeBase": {
+          "subtreeMs": 199.7,
+          "selfMs": 1.0,
+          "renders": 53
+        },
+        "$89d060d8eb451127$var$TreeInner": {
+          "subtreeMs": 192.1,
+          "selfMs": 11.2,
+          "renders": 53
+        },
+        "$143fb904d86051ce$var$CollectionRoot": {
+          "subtreeMs": 175.9,
+          "selfMs": 6.8,
+          "renders": 53
+        },
+        "LayerTreeItemContent": {
+          "subtreeMs": 106.8,
+          "selfMs": 1.9,
+          "renders": 305
+        },
+        "NormalItemContent": {
+          "subtreeMs": 104.9,
+          "selfMs": 20.9,
+          "renders": 305
+        },
+        "ContextualActionBar": {
+          "subtreeMs": 118.4,
+          "selfMs": 10.1,
+          "renders": 100
+        },
+        "OptionsMenu": {
+          "subtreeMs": 33.4,
+          "selfMs": 8.7,
+          "renders": 100
+        },
+        "$42ceafc619f9c3ba$var$CollectionRoot": {
+          "subtreeMs": 0.9,
+          "selfMs": 0.8,
+          "renders": 9
+        },
+        "TreeBaseItem": {
+          "subtreeMs": 0.1,
+          "selfMs": 0,
+          "renders": 1
+        }
+      }
+    },
+    "react-tall.json": {
+      "summary": {
+        "group": "navigator",
+        "reactMode": true,
+        "idOnly": false,
+        "tall": true,
+        "count": 305,
+        "ts": {
+          "p95": 16.7,
+          "max": 33.4,
+          "over25": 1
+        },
+        "now": {
+          "p95": 25.1,
+          "max": 28.9,
+          "over25": 16
+        },
+        "delay": {
+          "p95": 9.2,
+          "max": 14.0,
+          "over25": 0
+        },
+        "sync": 0.116,
+        "notifications": 50,
+        "commits": 268,
+        "tree": {
+          "height": 382,
+          "rows": 20
+        }
+      },
+      "selections": 50,
+      "positiveDurationCommits": 125,
+      "rootRenderMs": 657.2,
+      "filteredSelfMs": 656.8,
+      "notificationKeys": {
+        "selectedElementId,selectedElementProps,selectedElementIds,selectedElementIdsSet": 50
+      },
+      "components": {
+        "LayersSection": {
+          "subtreeMs": 534.0,
+          "selfMs": 3.1,
+          "renders": 53
+        },
+        "LayerTree": {
+          "subtreeMs": 513.8,
+          "selfMs": 1.3,
+          "renders": 53
+        },
+        "TreeBase": {
+          "subtreeMs": 511.3,
+          "selfMs": 0.8,
+          "renders": 53
+        },
+        "$89d060d8eb451127$var$TreeInner": {
+          "subtreeMs": 504.1,
+          "selfMs": 11.7,
+          "renders": 53
+        },
+        "$143fb904d86051ce$var$CollectionRoot": {
+          "subtreeMs": 487.7,
+          "selfMs": 14.7,
+          "renders": 53
+        },
+        "LayerTreeItemContent": {
+          "subtreeMs": 302.8,
+          "selfMs": 5.5,
+          "renders": 1000
+        },
+        "NormalItemContent": {
+          "subtreeMs": 297.3,
+          "selfMs": 52.0,
+          "renders": 999
+        },
+        "ContextualActionBar": {
+          "subtreeMs": 112.1,
+          "selfMs": 11.4,
+          "renders": 102
+        },
+        "OptionsMenu": {
+          "subtreeMs": 31.2,
+          "selfMs": 8.3,
+          "renders": 100
+        },
+        "$42ceafc619f9c3ba$var$CollectionRoot": {
+          "subtreeMs": 1.2,
+          "selfMs": 1.0,
+          "renders": 12
+        },
+        "TreeBaseItem": {
+          "subtreeMs": 0.1,
+          "selfMs": 0,
+          "renders": 1
+        }
+      }
+    }
+  }
+}

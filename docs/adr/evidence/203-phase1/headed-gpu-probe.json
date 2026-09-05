@@ -1,0 +1,428 @@
+{
+  "date": "2026-09-05",
+  "environment": {
+    "mode": "headed",
+    "chrome": "152.0.7977.82",
+    "viewport": [1440, 900],
+    "elements": 60,
+    "panels": ["navigator", "properties"],
+    "driver": "id-only",
+    "durationMs": 20000,
+    "cpuThrottle": 1
+  },
+  "runs": [
+    {
+      "origin": 9475.70000000298,
+      "results": {
+        "select": {
+          "rafTimestampGap": {
+            "count": 2406,
+            "p50": 8.3,
+            "p95": 9.2,
+            "p99": 9.3,
+            "max": 16.9,
+            "thresholdMs": 25,
+            "overThreshold": 0,
+            "overThresholdPct": 0
+          },
+          "callbackDelay": {
+            "count": 2407,
+            "p50": 0.5,
+            "p95": 5.4,
+            "p99": 8.2,
+            "max": 19.5,
+            "thresholdMs": 25,
+            "overThreshold": 0,
+            "overThresholdPct": 0
+          },
+          "gapEvents": [],
+          "ms": 20054,
+          "frames": 2407,
+          "fps": 120,
+          "gapP50": 8.3,
+          "gapP95": 12.1,
+          "gapP99": 16.1,
+          "gapMax": 20.8,
+          "dropPct": 0,
+          "allocMBps": 54.3,
+          "gcCount": 45,
+          "longTasks": 0,
+          "longTaskMs": 0,
+          "renderFrame": {
+            "count": 1000,
+            "p50": 0,
+            "p95": 0.5
+          },
+          "recordContent": null,
+          "flushContent": null,
+          "streamMiss": {
+            "hits": 2407,
+            "misses": 0,
+            "reasons": null
+          },
+          "selectionDriver": "id-only"
+        }
+      },
+      "glProbe": {
+        "waits": [],
+        "calls": {
+          "compileShader:undefined": 66,
+          "linkProgram:undefined": 33,
+          "getProgramParameter:LINK_STATUS": 33,
+          "getProgramParameter:ACTIVE_UNIFORMS": 33,
+          "getProgramParameter:ACTIVE_ATTRIBUTES": 12,
+          "getShaderParameter:COMPILE_STATUS": 42
+        },
+        "contexts": [
+          {
+            "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+            "vendor": "Google Inc. (Apple)"
+          },
+          {
+            "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+            "vendor": "Google Inc. (Apple)"
+          }
+        ],
+        "visibility": "visible"
+      },
+      "gpuDevices": [
+        {
+          "vendorId": 4203,
+          "deviceId": 0,
+          "vendorString": "Google Inc. (Apple)",
+          "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Version 26.6.2 (Build 25G83))",
+          "driverVendor": "Apple",
+          "driverVersion": "26.6.2"
+        }
+      ],
+      "rawTrace": "/private/tmp/adr203-headed-gpu/trace.json",
+      "traceSha256": "b277237f88b61d926ec4ca7c945615d64959251b94b0433830ad0d77b7f0039f",
+      "gpuQueryEvents": [
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 679,
+          "name": "GLES2Implementation::GetShaderiv",
+          "ph": "X",
+          "pid": 49564,
+          "tdur": 72,
+          "tid": 2027749,
+          "ts": 71653487624,
+          "tts": 5429246
+        },
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 448,
+          "name": "GLES2Implementation::GetShaderiv",
+          "ph": "X",
+          "pid": 49564,
+          "tdur": 46,
+          "tid": 2027749,
+          "ts": 71653488464,
+          "tts": 5429479
+        },
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 15,
+          "name": "GLES2DecoderPassthroughImpl::DoLinkProgram",
+          "ph": "X",
+          "pid": 49559,
+          "tdur": 14,
+          "tid": 2027652,
+          "ts": 71653488985,
+          "tts": 556290
+        }
+      ]
+    },
+    {
+      "origin": 8788.09999999404,
+      "probeBefore": {
+        "calls": {
+          "compileShader:undefined": 64,
+          "linkProgram:undefined": 32,
+          "getProgramParameter:LINK_STATUS": 32,
+          "getProgramParameter:ACTIVE_UNIFORMS": 32,
+          "getProgramParameter:ACTIVE_ATTRIBUTES": 12,
+          "getShaderParameter:COMPILE_STATUS": 40
+        },
+        "waitCount": 0
+      },
+      "results": {
+        "select": {
+          "rafTimestampGap": {
+            "count": 2408,
+            "p50": 8.3,
+            "p95": 9.2,
+            "p99": 9.4,
+            "max": 16.6,
+            "thresholdMs": 25,
+            "overThreshold": 0,
+            "overThresholdPct": 0
+          },
+          "callbackDelay": {
+            "count": 2409,
+            "p50": 0.4,
+            "p95": 5.5,
+            "p99": 8.1,
+            "max": 16.3,
+            "thresholdMs": 25,
+            "overThreshold": 0,
+            "overThresholdPct": 0
+          },
+          "gapEvents": [],
+          "ms": 20054,
+          "frames": 2409,
+          "fps": 120.1,
+          "gapP50": 8.3,
+          "gapP95": 12,
+          "gapP99": 16.1,
+          "gapMax": 21.4,
+          "dropPct": 0,
+          "allocMBps": 53.9,
+          "gcCount": 45,
+          "longTasks": 0,
+          "longTaskMs": 0,
+          "renderFrame": {
+            "count": 1000,
+            "p50": 0,
+            "p95": 0.5
+          },
+          "recordContent": null,
+          "flushContent": null,
+          "streamMiss": {
+            "hits": 2409,
+            "misses": 0,
+            "reasons": null
+          },
+          "selectionDriver": "id-only"
+        }
+      },
+      "glProbe": {
+        "waits": [],
+        "calls": {
+          "compileShader:undefined": 66,
+          "linkProgram:undefined": 33,
+          "getProgramParameter:LINK_STATUS": 33,
+          "getProgramParameter:ACTIVE_UNIFORMS": 33,
+          "getProgramParameter:ACTIVE_ATTRIBUTES": 12,
+          "getShaderParameter:COMPILE_STATUS": 42
+        },
+        "contexts": [
+          {
+            "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+            "vendor": "Google Inc. (Apple)"
+          },
+          {
+            "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+            "vendor": "Google Inc. (Apple)"
+          }
+        ],
+        "visibility": "visible"
+      },
+      "gpuDevices": [
+        {
+          "vendorId": 4203,
+          "deviceId": 0,
+          "vendorString": "Google Inc. (Apple)",
+          "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Version 26.6.2 (Build 25G83))",
+          "driverVendor": "Apple",
+          "driverVersion": "26.6.2"
+        }
+      ],
+      "rawTrace": "/private/tmp/adr203-headed-gpu-2/trace.json",
+      "traceSha256": "1c9755be6f8dd6d34b656abfe376f0806ef22d9f60a175fd67c5a17a1961f38f",
+      "gpuQueryEvents": [
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 704,
+          "name": "GLES2Implementation::GetShaderiv",
+          "ph": "X",
+          "pid": 49942,
+          "tdur": 60,
+          "tid": 2029936,
+          "ts": 71731479334,
+          "tts": 5407971
+        },
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 489,
+          "name": "GLES2Implementation::GetShaderiv",
+          "ph": "X",
+          "pid": 49942,
+          "tdur": 30,
+          "tid": 2029936,
+          "ts": 71731480165,
+          "tts": 5408158
+        },
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 15,
+          "name": "GLES2DecoderPassthroughImpl::DoLinkProgram",
+          "ph": "X",
+          "pid": 49937,
+          "tdur": 14,
+          "tid": 2029822,
+          "ts": 71731480740,
+          "tts": 520316
+        }
+      ]
+    },
+    {
+      "origin": 8780.40000000596,
+      "probeBefore": {
+        "calls": {
+          "compileShader:undefined": 64,
+          "linkProgram:undefined": 32,
+          "getProgramParameter:LINK_STATUS": 32,
+          "getProgramParameter:ACTIVE_UNIFORMS": 32,
+          "getProgramParameter:ACTIVE_ATTRIBUTES": 12,
+          "getShaderParameter:COMPILE_STATUS": 40
+        },
+        "waitCount": 0
+      },
+      "results": {
+        "select": {
+          "rafTimestampGap": {
+            "count": 2405,
+            "p50": 8.3,
+            "p95": 9.2,
+            "p99": 9.4,
+            "max": 17.1,
+            "thresholdMs": 25,
+            "overThreshold": 0,
+            "overThresholdPct": 0
+          },
+          "callbackDelay": {
+            "count": 2406,
+            "p50": 0.4,
+            "p95": 6,
+            "p99": 8.5,
+            "max": 16.4,
+            "thresholdMs": 25,
+            "overThreshold": 0,
+            "overThresholdPct": 0
+          },
+          "gapEvents": [],
+          "ms": 20052,
+          "frames": 2406,
+          "fps": 120,
+          "gapP50": 8.3,
+          "gapP95": 12.7,
+          "gapP99": 16.3,
+          "gapMax": 21.3,
+          "dropPct": 0,
+          "allocMBps": 54.2,
+          "gcCount": 45,
+          "longTasks": 0,
+          "longTaskMs": 0,
+          "renderFrame": {
+            "count": 1000,
+            "p50": 0,
+            "p95": 0.5
+          },
+          "recordContent": null,
+          "flushContent": null,
+          "streamMiss": {
+            "hits": 2406,
+            "misses": 0,
+            "reasons": null
+          },
+          "selectionDriver": "id-only"
+        }
+      },
+      "glProbe": {
+        "waits": [],
+        "calls": {
+          "compileShader:undefined": 66,
+          "linkProgram:undefined": 33,
+          "getProgramParameter:LINK_STATUS": 33,
+          "getProgramParameter:ACTIVE_UNIFORMS": 33,
+          "getProgramParameter:ACTIVE_ATTRIBUTES": 12,
+          "getShaderParameter:COMPILE_STATUS": 42
+        },
+        "contexts": [
+          {
+            "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+            "vendor": "Google Inc. (Apple)"
+          },
+          {
+            "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)",
+            "vendor": "Google Inc. (Apple)"
+          }
+        ],
+        "visibility": "visible"
+      },
+      "gpuDevices": [
+        {
+          "vendorId": 4203,
+          "deviceId": 0,
+          "vendorString": "Google Inc. (Apple)",
+          "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Version 26.6.2 (Build 25G83))",
+          "driverVendor": "Apple",
+          "driverVersion": "26.6.2"
+        }
+      ],
+      "rawTrace": "/private/tmp/adr203-headed-gpu-3/trace.json",
+      "traceSha256": "9e3d47ef961b5d20a18f8cf226362a69ff29284b3a45a6c0c5b2e60b57dde1eb",
+      "gpuQueryEvents": [
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 706,
+          "name": "GLES2Implementation::GetShaderiv",
+          "ph": "X",
+          "pid": 50122,
+          "tdur": 44,
+          "tid": 2031278,
+          "ts": 71766368549,
+          "tts": 5425361
+        },
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 427,
+          "name": "GLES2Implementation::GetShaderiv",
+          "ph": "X",
+          "pid": 50122,
+          "tdur": 30,
+          "tid": 2031278,
+          "ts": 71766369413,
+          "tts": 5425562
+        },
+        {
+          "args": {},
+          "cat": "gpu",
+          "dur": 15,
+          "name": "GLES2DecoderPassthroughImpl::DoLinkProgram",
+          "ph": "X",
+          "pid": 50116,
+          "tdur": 14,
+          "tid": 2031190,
+          "ts": 71766369924,
+          "tts": 518990
+        }
+      ]
+    }
+  ],
+  "currentHeadlessDevices": [
+    {
+      "vendorId": 4203,
+      "deviceId": 0,
+      "vendorString": "Google Inc. (Apple)",
+      "deviceString": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Version 26.6.2 (Build 25G83))",
+      "driverVendor": "Apple",
+      "driverVersion": "26.6.2"
+    }
+  ],
+  "limitations": [
+    "25ms remains the legacy 60Hz threshold; actual headed cadence approximately 120Hz",
+    "Fresh browser sessions do not prove cold OS/driver shader caches",
+    "No slow query reproduced; original stall pname remains unknown",
+    "Raw traces are temporary files; summaries and hashes retained"
+  ]
+}

@@ -16,7 +16,7 @@
  * - 배치: 좌측 핸들 드래그 · 옵션 메뉴 (Pin / Reset / Hide) — Photoshop
  *   Contextual Task Bar 의 ⋯ 메뉴 동형 (Phase 3, `useActionBarPlacement`)
  */
-import { startTransition, useCallback, useEffect, useState } from "react";
+import { memo, startTransition, useCallback, useEffect, useState } from "react";
 import {
   ChevronDown,
   EllipsisVertical,
@@ -80,7 +80,11 @@ function ItemIcon({ item }: { item: ContextMenuItem }) {
   return <Icon size={ICON_SIZE} aria-hidden="true" />;
 }
 
-function ActionButton({ item }: { item: ContextMenuItem }) {
+const ActionButton = memo(function ActionButton({
+  item,
+}: {
+  item: ContextMenuItem;
+}) {
   const label = useItemLabel(item);
   if (item.kind !== "action" && item.kind !== "toggle") return null;
   const button = (
@@ -103,7 +107,7 @@ function ActionButton({ item }: { item: ContextMenuItem }) {
       {button}
     </ShortcutTooltip>
   );
-}
+});
 
 /** 정렬 서브메뉴 → 4×2 아이콘 popover (A1) */
 function AlignPopover({
@@ -164,7 +168,7 @@ function AlignPopover({
 
 type OptionKey = "pin" | "reset" | "hide";
 
-function OptionsMenu({
+const OptionsMenu = memo(function OptionsMenu({
   pinned,
   onAction,
 }: {
@@ -210,7 +214,7 @@ function OptionsMenu({
       </Popover>
     </MenuTrigger>
   );
-}
+});
 
 export function ContextualActionBar() {
   const { t } = useI18n();
@@ -306,18 +310,19 @@ export function ContextualActionBar() {
     [contextMenu, selectedElementIds],
   );
 
+  const { togglePinned, resetPosition, hide } = placement;
   const onOption = useCallback(
     (key: OptionKey) => {
-      if (key === "pin") placement.togglePinned();
-      else if (key === "reset") placement.resetPosition();
-      else placement.hide();
+      if (key === "pin") togglePinned();
+      else if (key === "reset") resetPosition();
+      else hide();
       // RAC Menu 는 닫힘(exit 애니메이션 ~80ms) 뒤 FocusScope 가 포커스를
       // 복원하는데 그 결과가 body 라 `canvas-focused` scope 가 풀린다 (Phase 3
       // live). 동기 focus() 는 그 복원에 덮이므로 (Phase 4 live) 복원 이후로
       // 미뤄 캔버스 컨테이너로 되돌린다.
       window.setTimeout(focusCanvasContainer, 150);
     },
-    [placement],
+    [togglePinned, resetPosition, hide],
   );
 
   if (
