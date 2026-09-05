@@ -195,12 +195,26 @@ function wrapLegReach(layoutSrc, measureSrc) {
 }
 
 /** S4 상속 채널 — Skia scene build 에 `ComputedStyle` 이 존재하는가 (F20). */
-function skiaHasComputedStyle(dir) {
+function skiaInheritReach(dir) {
   // 주석을 지운 소스에서만 본다 — 서술 주석("scene build 는 ComputedStyle 을 쥔 적이 없다")
   // 이 도달 판정으로 새는 것을 Phase 1 에서 실측했다.
-  return skiaSources(dir).some((src) =>
-    /ComputedStyle|resolveStyle\(/.test(src),
-  );
+  //
+  // 상속 채널은 두 형태다: scene build 가 `ComputedStyle` 을 직접 쥐거나(F20 이 부재를
+  // 기록했다), 레이아웃이 실어 보낸 `layout.textAxes` 를 seam 에 넘기거나(Phase 5).
+  // 후자는 **축별**이라 seam 호출의 두 번째 인자로 판정한다 — 전부-또는-무 로 세면
+  // Phase 4 에서 고친 것과 같은 거짓 귀속이 다시 생긴다.
+  const srcs = skiaSources(dir);
+  if (srcs.some((src) => /ComputedStyle|resolveStyle\(/.test(src))) return "all";
+  const axes = new Set();
+  for (const src of srcs) {
+    for (const m of src.matchAll(
+      /resolveTextRenderStyle\([^)]*,[^)]*\)[\s\S]{0,400}/g,
+    )) {
+      for (const a of m[0].matchAll(/child\.text\.([A-Za-z][\w]*)\s*=[^=]/g))
+        axes.add(a[1]);
+    }
+  }
+  return axes;
 }
 
 /** 게이트가 seam 축을 읽을 수 있게 소스를 넘긴다. */
@@ -275,7 +289,7 @@ export function buildMatrix() {
   const width = widthLegReach(layoutUtils);
   const wrap = wrapLegReach(layoutUtils, textMeasure);
   const skiaInline = skiaInlineReach(`${CANVAS}/skia`);
-  const skiaInherits = skiaHasComputedStyle(`${CANVAS}/skia`);
+  const skiaInherits = skiaInheritReach(`${CANVAS}/skia`);
 
   // seam 경유 도달 — 표면이 `resolveTextRenderStyle` 을 부르면 seam 축 전부에 닿는다.
   const widthSeam = seamCall(
@@ -308,7 +322,8 @@ export function buildMatrix() {
       widthComputed: measures ? width.computed.has(p) : null,
       wrap: measures ? wrap.has(p) : null,
       skiaInline: skiaInline.has(p),
-      skiaComputed: skiaInherits,
+      skiaComputed:
+        skiaInherits === "all" ? true : skiaInherits.has(p),
       adr057: setB.includes(p),
       gateVerified: verified.has(p),
     };
@@ -354,7 +369,7 @@ function render(matrix) {
     "",
     `- 속성 집합 = A ∪ B — A: \`cssResolver.INHERITABLE_PROPERTIES\` 텍스트 항목 ${setA.length}개 (\`visibility\` 제외) · B: ADR-057 블록이 \`child.text.*\` 로 옮기는 인라인 속성 ${setB.length}개 → 합집합 **${rows.length}개**`,
     `- S1 DOM/Preview 는 renderer root 의 \`style={element.props.style}\` 통과 (${domPassthrough}곳 — F13) — 인라인 전 속성이 브라우저 cascade 로 도달하므로 열을 따로 두지 않는다`,
-    `- S4 상속 채널: Skia scene build 의 \`ComputedStyle\` 참조 ${skiaInherits ? "있음" : "**0건**"} → 상속 축은 전 속성 미도달 (ADR-205 F20 · R7)`,
+    `- S4 상속 채널: Skia scene build 에 \`ComputedStyle\` 참조는 여전히 **0건**(F20) — 대신 레이아웃이 \`ComputedLayout.textAxes\` 로 **선언된 축만** 실어 보낸다 (ADR-205 Phase 5). 현재 운반 축 ${skiaInherits === "all" ? "(ComputedStyle 직접)" : skiaInherits.size === 0 ? "**없음**" : [...skiaInherits].map((a) => `\`${a}\``).join(" · ")}`,
     "- **측정** 열이 `—` 인 속성은 줄 수·폭을 바꾸지 않아 S2/S3 가 해당 없다 (측정 축 = `TextMeasureStyle` 필드 ∪ 폭 leg 실참조)",
     "",
     "| 속성 | 상속 | 측정 축 | S2 폭 leg 인라인 | S2 폭 leg 상속 | S3 wrap leg | S4 Skia 인라인 | S4 Skia 상속 |",

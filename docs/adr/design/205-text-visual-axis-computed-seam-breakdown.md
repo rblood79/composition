@@ -1,10 +1,9 @@
 # ADR-205 design breakdown — 텍스트 시각 축 computed 단일 seam
 
 > 본 문서가 구현 상세의 정본이다. ADR 본문은 결정·위험·게이트만 둔다.
-> 상태: **Phase 0~3 반영 완료 (2026-09-05) — ADR Implemented.** Phase 4(fontSize 21곳 수렴)·
-> Phase 5(Skia cascade = 상속)는 조건부 후속이며 본 ADR 의 종결 조건이 아니다. Phase 5 착수
-> 판정의 입력은 live 실측 R7 (부모 상속 자간이 Skia paint 에 미도달 — 한 단어 차이,
-> [evidence §9](../evidence/205-text-axis-gap-matrix.md)).
+> 상태: **Phase 0~5 반영 완료 (2026-09-05) — ADR Implemented.** 조건부 후속이던 Phase 4·5 도
+> 같은 날 사용자 지시로 이어서 반영했다 ([evidence §10](../evidence/205-text-axis-gap-matrix.md)
+> · [§11](../evidence/205-text-axis-gap-matrix.md)). R7 은 Phase 5 로 종결.
 
 ## 1. Fork 게이트 4 질문 lock-in
 
@@ -99,19 +98,28 @@
 - `evidence/051-letterspacing-canvas2d.md` §1 의 오라클 스크립트를 그대로 재사용.
 - 부모 상속 케이스(부모에 `letter-spacing`, 자식 Text 는 미지정)는 **불일치가 예상 결과**다 (R7) — 그 값을 실측해 Phase 5 착수 판정의 입력으로 기록한다.
 
-## 6. Phase 4 (조건부) — fontSize 21곳 수렴
+## 6. Phase 4 — fontSize ✅ 반영 완료 2026-09-05
 
-Phase 1~3 이 종결되고 seam 이 한 phase 를 버틴 뒤에만 착수. 착수 전 별도 판정 —
-21곳을 한 번에 옮기면 회귀 표면이 커서 phase 를 더 쪼갠다.
+착수 전 인벤토리에서 **21곳이 4가지 우선순위로 갈리고 그중 3곳만 computed 를 읽는다**는 것이
+드러났다 (인라인 즉시반환 5 · catalog/spec 기본 13 · spec 우선 3 · computed 소비 3). 전부를 한
+해소식으로 뭉치면 나머지 18곳에 상속이 새로 생기는 **동작 변경**이라, seam 은 인라인 채널만
+공급하고 뒤 fallback 은 호출부에 남겼다 — 수렴되는 것은 **파싱 규칙 하나**다.
 
-## 7. Phase 5 (조건부) — Skia cascade 배선 = 상속
+그 인벤토리가 결손을 하나 찾았다: seam 에 `fontSize` 축을 선언한 순간 G4 ② 가 RED 가 됐고,
+`resolveSpecFontSize` 가 px 문자열(= 인라인 style 의 정본 저장 형태)을 버리고 있었다. 수리와
+근거는 [evidence §10](../evidence/205-text-axis-gap-matrix.md).
 
-Phase 1~3 종결 후 별도 판정. 내용은 `resolveStyle()` 결과를 scene build 로 운반하는 채널
-하나 (요소별 `ComputedStyle` 을 `StoreRenderBridge` → `buildSpecNodeData` 로 전달) 를 만들고,
-Phase 1 이 이미 심어 둔 seam 호출에 인자를 하나 더 넘기는 것이다. 착수 전 확인:
+## 7. Phase 5 — Skia 상속 배선 ✅ 반영 완료 2026-09-05
 
-- 운반 비용 — 요소당 computed 를 다시 만들 것인가(비용 2배), 레이아웃 pass 의 결과를 재사용할 것인가(`fullTreeLayout.ts:1872` 가 지역 변수라 보존 채널 신설 필요). 후자면 그 자체가 레이아웃 계약 변경이라 규모가 별도 ADR 을 요구할 수 있다 — 그때 fork.
-- 기술 위험 재평가 — 회귀 표면이 scene build 전체이므로 Phase 1 의 M 을 그대로 승계하지 않는다.
+착수 전 확인의 결론: **fork 불필요**. 두 갈래(재계산 vs 보존 채널 신설) 중 어느 쪽도 아닌
+셋째 길이 있었다 — 레이아웃은 이미 요소마다 `ComputedLayout` 을 만들어 Skia 로 보내고
+scene build 는 그것을 읽는다. 새 채널이 아니라 **있는 레코드에 선택 필드 `textAxes` 하나를
+더하는 것**이라 계약 신설이 아니고, 값도 순회 중 누적이라 재계산이 아니다.
+
+핵심 계약 둘: (a) `resolveStyle` 결과를 그대로 싣지 않는다 — 미선언과 CSS 초기값을 구별하지
+못해 catalog 기본을 0 으로 덮는다 (R6). 조상이 **선언한** 축만 싣고 필드 부재가 "아무도
+선언하지 않았다" 는 뜻이다. (b) letterSpacing 한 축만 — fontSize 는 layout 18곳이 상속을
+읽지 않아 Skia 만 상속시키면 거울상 결손이 된다. 상세: [evidence §11](../evidence/205-text-axis-gap-matrix.md).
 
 ## 8. 범위 밖
 
@@ -119,3 +127,5 @@ Phase 1 이 이미 심어 둔 seam 호출에 인자를 하나 더 넘기는 것�
 - 텍스트 **렌더** 속성 중 측정에 영향 없는 것 (`color` 등) 은 이미 다른 경로가 소유.
 - catalog 에 letterSpacing 축을 추가하는 것 (대안 C, 기각).
 - ADR-057 블록의 나머지 12종을 seam 으로 옮기는 것 — Phase 4 와 같은 조건부 수렴 대상.
+- `fontSize` 상속 (Phase 5 가 letterSpacing 만 운반한 이유) — layout leg 18곳의 기본값
+  정책을 같이 바꾸는 작업이라 별도 판정 대상.

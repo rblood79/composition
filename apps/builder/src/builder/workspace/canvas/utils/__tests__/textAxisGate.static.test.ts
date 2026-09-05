@@ -150,4 +150,46 @@ describe("ADR-205 G4 — 텍스트 시각 축 대칭 게이트", () => {
       expect(text?.[spec.skiaField]).toBe(spec.expected);
     });
   }
+
+  /**
+   * ③ 상속 채널 (Phase 5) — scene build 는 `ComputedStyle` 을 쥔 적이 없어서(F20)
+   * 상속분을 `layout.textAxes` 로 받는다. 조상이 **선언한** 축만 실린다는 계약이라
+   * 두 방향을 같이 본다: 선언이 있으면 실리고, 없으면 catalog 기본을 덮지 않는다.
+   */
+  describe("③ 상속 채널 — layout.textAxes", () => {
+    const build = (
+      style: Record<string, unknown>,
+      textAxes?: { letterSpacing?: number },
+    ) => {
+      const element = makeTextElement(style);
+      return firstText(
+        buildSpecNodeData({
+          element,
+          layout: {
+            x: 0,
+            y: 0,
+            width: 200,
+            height: 24,
+            ...(textAxes ? { textAxes } : {}),
+          } as ComputedLayout,
+          theme: "light",
+          elementsMap: new Map([[element.id, element]]),
+        }),
+      );
+    };
+
+    it("조상이 선언한 letterSpacing 이 Skia 텍스트 노드에 실린다", () => {
+      expect(build({}, { letterSpacing: 4 })?.letterSpacing).toBe(4);
+    });
+
+    it("인라인이 상속을 이긴다 (CSS 와 같은 순서)", () => {
+      expect(
+        build({ letterSpacing: "7px" }, { letterSpacing: 4 })?.letterSpacing,
+      ).toBe(7);
+    });
+
+    it("아무도 선언하지 않으면 축을 쓰지 않는다 — catalog 기본 보존 (R6)", () => {
+      expect(build({})?.letterSpacing).toBeUndefined();
+    });
+  });
 });

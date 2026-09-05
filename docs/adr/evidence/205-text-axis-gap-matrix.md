@@ -12,7 +12,7 @@
 
 - 속성 집합 = A ∪ B — A: `cssResolver.INHERITABLE_PROPERTIES` 텍스트 항목 16개 (`visibility` 제외) · B: ADR-057 블록이 `child.text.*` 로 옮기는 인라인 속성 15개 → 합집합 **22개**
 - S1 DOM/Preview 는 renderer root 의 `style={element.props.style}` 통과 (62곳 — F13) — 인라인 전 속성이 브라우저 cascade 로 도달하므로 열을 따로 두지 않는다
-- S4 상속 채널: Skia scene build 의 `ComputedStyle` 참조 **0건** → 상속 축은 전 속성 미도달 (ADR-205 F20 · R7)
+- S4 상속 채널: Skia scene build 에 `ComputedStyle` 참조는 여전히 **0건**(F20) — 대신 레이아웃이 `ComputedLayout.textAxes` 로 **선언된 축만** 실어 보낸다 (ADR-205 Phase 5). 현재 운반 축 `letterSpacing`
 - **측정** 열이 `—` 인 속성은 줄 수·폭을 바꾸지 않아 S2/S3 가 해당 없다 (측정 축 = `TextMeasureStyle` 필드 ∪ 폭 leg 실참조)
 
 | 속성                  |  상속  | 측정 축 | S2 폭 leg 인라인 | S2 폭 leg 상속 | S3 wrap leg | S4 Skia 인라인 | S4 Skia 상속 |
@@ -24,7 +24,7 @@
 | `fontStyle`           |  상속  |  측정   |        ✅        |       ✅       |     ❌      |       ❌       |      ❌      |
 | `fontVariant`         |  상속  |  측정   |        ✅        |       ✅       |     ❌      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `fontWeight`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |       ✅       |      ❌      |
-| `letterSpacing`       |  상속  |  측정   |        ✅        |       ✅       |     ✅      | ✅ ⁽⁰⁵⁷⁾ ⁽ᴳ⁴⁾  |      ❌      |
+| `letterSpacing`       |  상속  |  측정   |        ✅        |       ✅       |     ✅      | ✅ ⁽⁰⁵⁷⁾ ⁽ᴳ⁴⁾  |      ✅      |
 | `lineHeight`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `overflowWrap`        |  상속  |  측정   |        ❌        |       ❌       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `textAlign`           |  상속  |    —    |        —         |       —        |      —      |       ✅       |      ❌      |
@@ -372,3 +372,52 @@ fixture 를 시스템 폰트(`Arial`)로 바꿔 두 문맥이 같은 metric 을 
 **남은 사실**: `textRasterResources` 도 `Pretendard` 를 쓴다. 그 케이스는 현재 통과하지만
 같은 비대칭 위에 있다 — 문자열이 짧아 줄바꿈 경계를 건드리지 않을 뿐이다. tester 페이지에
 Preview 와 같은 폰트를 싣는 것은 하니스 변경이라 본 ADR 범위 밖으로 둔다.
+
+## 11. Phase 5 — 상속 채널 (2026-09-05)
+
+### 11-1. 운반 방식 판정 — fork 불필요
+
+breakdown §7 은 두 갈래를 놓고 "레이아웃 결과 재사용이면 계약 변경이라 별도 ADR 을 요구할 수
+있다 — 그때 fork" 로 열어 두었다. 코드를 보면 **셋째 길**이 있었다: 레이아웃은 이미 요소마다
+`ComputedLayout` 레코드를 만들어 Skia 로 보내고 있고 (`ctx.layoutMap` → `buildSpecNodeData`
+의 `layout` 인자), scene build 는 그것을 이미 읽는다. 새 채널을 뚫는 것이 아니라 **있는
+레코드에 선택 필드 하나를 더하는 것**이므로 계약 신설이 아니다 → fork 없이 진행.
+
+비용도 재계산이 아니다. `traversePostOrder` 는 이미 조상 체인을 지나므로 순회 중 값 하나를
+누적한다 (요소당 Map set 1회). "요소당 computed 를 다시 만든다(비용 2배)" 갈래는 채택하지
+않았다.
+
+### 11-2. 초기값을 싣지 않는다
+
+`resolveStyle` 의 결과를 그대로 실으면 안 된다 — **미선언과 CSS 초기값을 구별하지 못하기
+때문**이다. letter-spacing 초기값 0 을 실으면 아무도 선언하지 않은 요소가 catalog/spec 의
+`shape.letterSpacing` 을 0 으로 덮는다 (R6 위반). 그래서 순회는 `resolveStyle` 이 아니라
+**seam 의 인라인 판정**으로 조상의 선언만 누적하고, 필드의 부재가 "아무도 선언하지 않았다" 는
+뜻이 된다. Skia 쪽 소비도 `letterSpacingSource !== "initial"` 로 같은 계약을 읽는다.
+
+### 11-3. letterSpacing 한 축만 — fontSize 는 싣지 않는다
+
+`textAxes` 는 구조상 두 축을 담을 수 있지만 **letterSpacing 만 싣는다**. fontSize 는 레이아웃
+21곳 중 18곳이 상속을 읽지 않고 catalog/spec 기본으로 떨어지므로 (§10 인벤토리), Skia 만
+상속시키면 방금 고친 결손의 **거울상**이 된다 — 이번엔 캔버스가 앞서간다. fontSize 상속은
+layout leg 18곳의 기본값 정책을 같이 바꾸는 작업이라 본 ADR 범위 밖이다.
+
+### 11-4. R7 종결 — live 실측
+
+`node apps/builder/scripts/adr205-live-letterspacing.mjs` (실제 빌더, Playwright):
+
+| 케이스             | Skia `letterSpacing` |                   Skia 줄바꿈 | DOM 오라클 | 판정 |
+| ------------------ | -------------------: | ----------------------------: | ---------- | :--: |
+| 인라인 `2px`       |                    2 | `ab cd ef gh ij kl` / `mn op` | 동일       |  ✅  |
+| 대조군 (미설정)    |                 null | `ab cd ef gh ij kl mn` / `op` | 동일       |  ✅  |
+| **부모 상속 (R7)** |                **2** | `ab cd ef gh ij kl` / `mn op` | 동일       |  ✅  |
+
+R7 이전 실측 (§9) 에서 상속 케이스는 `letterSpacing = null` 에 ls 0 줄바꿈이었다 — 한 단어
+차이로 DOM 과 갈렸다. 그 행이 닫혔다. 세 케이스 모두 `fallback=false` (Canvas 2D 경로).
+
+### 11-5. 격차표 detector 도 축별로 고쳤다
+
+S4 상속 열은 "`canvas/skia/**` 에 `ComputedStyle` 참조가 있는가" 라는 **전부-또는-무** 판정이라
+Phase 5 이후에도 전 속성 ❌ 로 남았다. §10-2 에서 고친 것과 같은 형태의 거짓 귀속이므로, 이제
+seam 을 **두 인자로** 부른 뒤 실제로 `child.text.<축>` 에 대입하는 축만 ✅ 로 센다. 현재 운반
+축은 `letterSpacing` 하나이고, 표에서 측정 4열이 모두 ✅ 인 유일한 속성이다.

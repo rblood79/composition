@@ -35,6 +35,10 @@ import {
   measureTextWidth,
 } from "./utils";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
+import {
+  resolveTextRenderStyle,
+  type TextRenderComputedInput,
+} from "../../utils/textRenderStyle";
 import type { ComputedStyle } from "./cssResolver";
 import {
   toEngineDisplay,
@@ -1396,6 +1400,11 @@ interface DFSContext {
   indexMap: Map<string, number>;
   visiting: Set<string>;
   processedElementsMap: Map<string, CanvasLayoutNode>;
+  /**
+   * ADR-205 Phase 5 — 요소별 **조상 선언** 텍스트 축. Step 5 가 `ComputedLayout.textAxes`
+   * 로 실어 Skia scene build 까지 운반한다 (scene build 에는 ComputedStyle 이 없다, F20).
+   */
+  inheritedTextAxes: Map<string, TextRenderComputedInput>;
 }
 
 /**
@@ -1412,6 +1421,7 @@ function traversePostOrder(
   parentComputed: ComputedStyle,
   parentDisplay: string,
   depth: number = 0,
+  parentTextAxes: TextRenderComputedInput = {},
 ): void {
   const {
     elementsMap,
@@ -1421,6 +1431,7 @@ function traversePostOrder(
     indexMap,
     visiting,
     processedElementsMap,
+    inheritedTextAxes,
   } = ctx;
   // 1. 중복 방문 방지 (이미 post-order 완료된 노드)
   if (indexMap.has(elementId)) return;
@@ -1871,6 +1882,20 @@ function traversePostOrder(
 
   const computedStyle = resolveStyle(elementStyle, parentComputed);
 
+  // ADR-205 Phase 5 — 조상 체인이 **선언한** 텍스트 축을 누적한다. `computedStyle` 을 그대로
+  //   쓰지 않는 이유: `resolveStyle` 은 미선언과 CSS 초기값을 구별하지 못해서, 초기값까지
+  //   실으면 아무도 선언하지 않은 축이 catalog 기본값을 덮는다 (D3 위반).
+  //   **letterSpacing 한 축만 싣는다** — fontSize 는 레이아웃 21곳 중 18곳이 상속을 읽지
+  //   않고 catalog/spec 기본으로 떨어지므로, Skia 만 상속시키면 방금 고친 것의 거울상이 된다
+  //   (Phase 4 §10). fontSize 상속은 layout leg 을 같이 바꾸는 별도 작업이다.
+  const ownTextAxes = resolveTextRenderStyle(elementStyle);
+  const elementTextAxes: TextRenderComputedInput =
+    ownTextAxes.letterSpacingSource === "inline"
+      ? { ...parentTextAxes, letterSpacing: ownTextAxes.letterSpacing }
+      : parentTextAxes;
+  if (elementTextAxes.letterSpacing !== undefined)
+    inheritedTextAxes.set(elementId, elementTextAxes);
+
   // 2. 자식들의 display 값 수집 — CSS 값 그대로 (ADR-923 Phase 5: TS blockify 삭제, flex/grid
   //    자식의 blockify 는 엔진 tree.rs). HC1 게이트가 이 값과 자식 batch display 의 일치를 본다.
   const childDisplays: string[] = filteredChildren.map((childEl) =>
@@ -1968,6 +1993,7 @@ function traversePostOrder(
       computedStyle,
       effectiveDisplay,
       depth + 1,
+      elementTextAxes,
     );
   }
 
@@ -2034,6 +2060,9 @@ function traversePostOrder(
       enrichAvailWidth: childAvail.width,
     });
     indexMap.set(synthChild.id, batch.length - 1);
+    // 합성 Label 도 텍스트라 조상 자간을 그대로 물려받는다 (자신은 인라인 선언이 없다).
+    if (elementTextAxes.letterSpacing !== undefined)
+      inheritedTextAxes.set(synthChild.id, elementTextAxes);
     registerSyntheticElement(synthChild);
   }
 
@@ -2635,6 +2664,7 @@ export function calculateFullTreeLayout(
     indexMap: new Map<string, number>(),
     visiting: new Set<string>(),
     processedElementsMap: new Map<string, CanvasLayoutNode>(),
+    inheritedTextAxes: new Map<string, TextRenderComputedInput>(),
   };
   const { batch, indexMap, processedElementsMap } = dfsCtx;
 
@@ -3246,8 +3276,10 @@ export function calculateFullTreeLayout(
       // 값으로 재분배하도록 갖춰져야 한다 (`tree.rs` solve_flex 3.6·3.7 / solve_grid 재진입).
       const isBodyRoot =
         bodyViewportHeight !== null && node.elementId === rootElementId;
+      const nodeTextAxes = dfsCtx.inheritedTextAxes.get(node.elementId);
       result.set(node.elementId, {
         elementId: node.elementId,
+        ...(nodeTextAxes ? { textAxes: nodeTextAxes } : {}),
         x: sanitizeLayoutValue(layoutResult.x),
         y: sanitizeLayoutValue(layoutResult.y),
         width: sanitizeLayoutValue(layoutResult.width),

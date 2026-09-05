@@ -19,8 +19,25 @@ Implemented — 2026-09-05
   값 수준 도달 검사. 원복 RED 3종이 각각 다른 테스트를 RED 로 만든다.
 - Phase 3 반영 2026-09-05 — **G1·G5 통과**. G5 회귀 0 (builder 5,340 / shared 972 /
   specs 880 / canvas 1,625 / visual-parity 98 / type-check). G1 은 아래 §Live Exercise.
-- **Implemented 2026-09-05**. Phase 4(fontSize 21곳 수렴)·Phase 5(Skia cascade = 상속)는
-  조건부 후속이며 본 ADR 의 종결 조건이 아니다 (Decision §Phase 분리 질문).
+- **Implemented 2026-09-05**. Phase 4·5 는 조건부 후속으로 열어 두었고, 같은 날 사용자
+  지시로 이어서 반영했다 (아래).
+- Phase 4 반영 2026-09-05 (`fcb02ef51` · `2760f545d`) — seam 에 `fontSize` 축을 선언하자
+  G4 ② 가 곧바로 RED. `resolveSpecFontSize` 가 숫자·TokenRef 만 받아 **인라인 style 의 정본
+  저장 형태인 px 문자열**을 통째로 fallback 으로 보내고 있었다 (Styles 패널의
+  `normalizeStyleValue` 가 숫자를 `${n}px` 로 만든다). live: 저장 `"23px"` → Skia 16 /
+  DOM 23px → 수리 후 23 / 23px. 기본값 16 이 곧 fallback 이라 기본 크기에서 증상이 없었고
+  Phase 3 하니스도 마침 `16px` 를 써서 이 축을 비껴갔다. 파싱 규칙을 `parsePxOnlyValue`
+  (ADR-907 Layer A) 로 옮겨 Skia leg 과 seam 이 같은 함수를 쓰고, 레이아웃 21곳도 seam
+  파싱으로 수렴했다 (우선순위는 그대로 — 21곳이 4가지 순서로 갈리고 그중 3곳만 computed 를
+  읽는다). 부수로 격차표의 거짓 ✅ 2건과 parity fixture 의 폰트 비대칭을 고쳤다.
+  [evidence §10](../evidence/205-text-axis-gap-matrix.md).
+- Phase 5 반영 2026-09-05 — **R7 종결**. 운반은 새 채널이 아니라 이미 layout→Skia 로 흐르는
+  `ComputedLayout` 에 선택 필드 `textAxes` 하나를 더하는 것이라 fork 불필요(breakdown §7 의
+  판정 조건 미충족). 순회 중 **조상이 선언한 축만** 누적한다 — `resolveStyle` 결과를 그대로
+  실으면 미선언과 CSS 초기값을 구별 못 해 catalog 기본을 0 으로 덮는다 (R6). letterSpacing
+  한 축만 싣는다 (fontSize 는 layout 18곳이 상속을 안 읽어 Skia 만 상속시키면 거울상 결손).
+  live: 부모 상속 케이스가 `letterSpacing = 2` + DOM 오라클과 줄바꿈 일치.
+  [evidence §11](../evidence/205-text-axis-gap-matrix.md).
 
 ## Context
 
@@ -265,11 +282,22 @@ Phase 1~3 만으로 G1 (사용자-가시 결함 해소 — 인라인 letter-spac
 `Text` × `width 150px · Arial 16px · lineHeight 24px`, 본문 `ab cd ef gh ij kl mn op` 를
 빌더에 넣고 세 케이스를 같은 실행에서 쟀다.
 
-| 케이스                       | Skia `text.letterSpacing` | Skia 줄바꿈                   | Chrome DOM 오라클             | 판정             |
-| ---------------------------- | ------------------------: | ----------------------------- | ----------------------------- | ---------------- |
-| 인라인 `letter-spacing: 2px` |                     **2** | `ab cd ef gh ij kl` / `mn op` | `ab cd ef gh ij kl` / `mn op` | ✅ 일치          |
-| 대조군 (자간 미설정)         |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl mn` / `op` | ✅ 일치          |
-| 부모 상속 (R7)               |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl` / `mn op` | ❌ 불일치 (예상) |
+| 케이스                       | Skia `text.letterSpacing` | Skia 줄바꿈                   | Chrome DOM 오라클             | 판정    |
+| ---------------------------- | ------------------------: | ----------------------------- | ----------------------------- | ------- |
+| 인라인 `letter-spacing: 2px` |                     **2** | `ab cd ef gh ij kl` / `mn op` | `ab cd ef gh ij kl` / `mn op` | ✅ 일치 |
+| 대조군 (자간 미설정)         |                      null | `ab cd ef gh ij kl mn` / `op` | `ab cd ef gh ij kl mn` / `op` | ✅ 일치 |
+| 부모 상속 (R7)               |                     **2** | `ab cd ef gh ij kl` / `mn op` | `ab cd ef gh ij kl` / `mn op` | ✅ 일치 |
+
+Phase 3 시점의 상속 행은 `null` + `ls 0` 줄바꿈이라 DOM 과 한 단어 갈렸다 (R7, 예상된
+미지원). Phase 5 가 그 행을 닫았다 — 위 표는 Phase 5 반영 후 재실행 결과다.
+
+**Phase 4 (fontSize)** — `node apps/builder/scripts/adr205-live-fontsize.mjs`:
+
+| 저장 형태 | 수리 전 Skia | 수리 후 Skia | DOM(Preview) | 판정    |
+| --------- | -----------: | -----------: | -----------: | ------- |
+| `"23px"`  |       **16** |           23 |         23px | ✅ 일치 |
+| `23`      |           23 |           23 |         23px | ✅ 일치 |
+| `"16px"`  |           16 |           16 |         16px | ✅ 일치 |
 
 Phase 1 이전에는 인라인 케이스의 scene node `text` 에 `letterSpacing` **키 자체가 없었고**
 줄바꿈이 `ls 0` 결과였다. 대조군이 다른 줄바꿈을 내므로 축이 실제로 갈린다는 것도 같이
@@ -293,11 +321,15 @@ Phase 1 이전에는 인라인 케이스의 scene node `text` 에 `letterSpacing
 ### Negative
 
 - `canvas/utils` 에 seam 파일 1개와 정적 게이트 1개가 늘어난다.
-- Phase 4 전까지 텍스트 축이 두 규칙(seam · `parseNumericValue(style?.fontSize)` 21곳)으로
-  갈려 있다 — 격차표를 읽어야 어느 쪽인지 안다 (R3).
-- Phase 5 전까지 **부모에서 상속된** letter-spacing 은 레이아웃만 반영하고 Skia paint 는
-  무시한다 (R7). 인라인 축이 닫히는 동안 상속 축의 layout↔paint 발산은 그대로 남는다 —
-  현행 상태와 같지만, 이제는 알려진 미지원으로 기록된다.
+- ~~Phase 4 전까지 텍스트 축이 두 규칙으로 갈려 있다 (R3)~~ — Phase 4 에서 21곳이 seam
+  파싱으로 수렴해 해소. 우선순위 체인은 지점마다 남지만 파싱 규칙은 하나다.
+- ~~Phase 5 전까지 상속된 letter-spacing 은 Skia paint 가 무시한다 (R7)~~ — Phase 5 에서
+  `ComputedLayout.textAxes` 운반으로 해소.
+- 상속 운반 축이 `letterSpacing` 하나다. `fontSize` 는 레이아웃 21곳 중 18곳이 상속을 읽지
+  않고 catalog/spec 기본으로 떨어지므로 Skia 만 상속시키면 거울상 결손이 된다 — 두 leg 의
+  기본값 정책을 같이 바꾸는 별도 작업이다.
+- 격차표 S4 열은 여전히 **언급 기반 상한**이다. 값 수준 증거는 G4 가 확인한 축(`⁽ᴳ⁴⁾`)뿐이며,
+  표식 없는 ✅ 를 도달 증거로 읽으면 Phase 4 가 겪은 오판을 반복한다.
 - Skia 쪽 seam 결선은 ADR-057 블록(`buildSpecNodeData.ts:2050-2165`)과 한동안 공존한다 —
   letterSpacing 은 seam 을, 나머지 13종은 그 블록을 탄다.
 - 지금까지 무시되던 인라인 letter-spacing 이 반영되므로 **그 값을 쓰던 기존 문서의 캔버스

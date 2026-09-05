@@ -9,6 +9,8 @@
 import type { CanvasLayoutNode } from "../layoutNode";
 import type { ComputedStyle } from "./cssResolver";
 
+import type { TextRenderComputedInput } from "../../utils/textRenderStyle";
+
 /**
  * 계산된 레이아웃 결과
  */
@@ -45,6 +47,17 @@ export interface ComputedLayout {
     contentWidth: number;
     contentHeight: number;
   };
+  /**
+   * ADR-205 Phase 5 — **조상이 선언한** 텍스트 축. Skia scene build 로 상속을 운반하는 채널.
+   *
+   * scene build 에는 `ComputedStyle` 이 없어서(F20) 상속 축이 캔버스에 도달하지 못했다.
+   * 레이아웃은 순회하면서 이미 조상 체인을 지나므로, 그때 본 **선언값만** 여기 싣는다.
+   *
+   * CSS 초기값은 싣지 않는다 — `resolveStyle` 은 미선언과 초기값을 구별하지 못하는데,
+   * 초기값까지 실으면 아무도 선언하지 않은 축이 catalog 기본값을 덮어쓴다 (D3 위반).
+   * 필드가 없다는 것이 "조상 중 아무도 선언하지 않았다" 는 뜻이다.
+   */
+  textAxes?: TextRenderComputedInput;
 }
 
 /**

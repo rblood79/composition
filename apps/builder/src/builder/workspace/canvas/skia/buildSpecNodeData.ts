@@ -2166,15 +2166,16 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
           style.verticalAlign as typeof child.text.verticalAlign;
       }
 
-      // 14. letterSpacing — ADR-205 Phase 1
+      // 14. letterSpacing — ADR-205 Phase 1 (인라인) + Phase 5 (상속)
       //   해소는 seam(`resolveTextRenderStyle`) 하나가 하고, 여기는 결과를 옮긴다.
-      //   **인라인 채널일 때만** 쓴다 — 값이 없을 때 0 을 실으면 catalog/spec 이 준
-      //   `shape.letterSpacing` 을 덮는다. 우선순위는 CSS 와 같게 인라인 > catalog/spec (R6).
-      //   상속(computed)은 이 경로에 없다 — scene build 는 `ComputedStyle` 을 쥔 적이
-      //   없고(F20) 그 배선은 ADR-205 Phase 5 다.
-      const inlineTextAxis = resolveTextRenderStyle(style);
-      if (inlineTextAxis.letterSpacingSource === "inline") {
-        child.text.letterSpacing = inlineTextAxis.letterSpacing;
+      //   **초기값일 때는 쓰지 않는다** — 값이 없을 때 0 을 실으면 catalog/spec 이 준
+      //   `shape.letterSpacing` 을 덮는다. 우선순위는 CSS 와 같게 인라인 > 상속 >
+      //   catalog/spec (R6).
+      //   상속분은 `layout.textAxes` 로 온다 — scene build 는 `ComputedStyle` 을 쥔 적이
+      //   없어서(F20), 이미 조상 체인을 지나는 레이아웃이 **선언된 축만** 실어 보낸다.
+      const textAxis = resolveTextRenderStyle(style, layout?.textAxes);
+      if (textAxis.letterSpacingSource !== "initial") {
+        child.text.letterSpacing = textAxis.letterSpacing;
       }
     }
   }
