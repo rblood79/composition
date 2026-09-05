@@ -1,0 +1,242 @@
+{
+  "lane": "frame",
+  "metricDefinitions": {
+    "gapP50": "callback performance.now interval; first sample includes recorder startup wait",
+    "dropPct": "callback interval >25ms percentage; legacy G1 metric, not presentation drops",
+    "rafTimestampGap": "RAF timestamp intervals; first callback excluded",
+    "callbackDelay": "callback performance.now minus RAF timestamp; not input-to-presentation latency",
+    "gapEvents": "callback or RAF interval >25ms; page performance time origin",
+    "layerTreeRows": ".layer-tree--rac-virtualized [role=\"row\"] count at recording stop"
+  },
+  "at": "2026-09-05T15:30:47.129Z",
+  "chrome": "152.0.7977.82",
+  "headless": true,
+  "options": {
+    "baseUrl": "http://localhost:5173",
+    "storageState": "(redacted)",
+    "saveStorageState": null,
+    "pointerExercise": false,
+    "lane": "frame",
+    "cycles": 20,
+    "warmup": 5,
+    "seedCount": 600,
+    "actions": ["panels", "pages", "select", "edit", "zoom"],
+    "out": "docs/adr/evidence/203-g1-final",
+    "headed": false,
+    "projectUrl": null,
+    "mode": "series",
+    "attributeCycles": 10,
+    "retainerClass": "Object",
+    "retainerProps": ["parent_id", "page_id"],
+    "retainerSamples": 40,
+    "durationMs": 3000,
+    "openPanels": ["navigator", "properties"],
+    "profile": false,
+    "selectionDriver": "external-props",
+    "classes": ["idle", "select"]
+  },
+  "project": "http://localhost:5173/builder/e2904c97-83f4-425c-890e-268a1a000fdf",
+  "seed": {
+    "elements": 600,
+    "pages": 2
+  },
+  "layerTreeSetup": {
+    "initialRows": 1,
+    "finalRows": 6,
+    "clicked": true
+  },
+  "pointerExercise": null,
+  "results": {
+    "idle": {
+      "rafTimestampGap": {
+        "count": 179,
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 16.8,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "callbackDelay": {
+        "count": 180,
+        "p50": 1.2,
+        "p95": 1.7,
+        "p99": 1.9,
+        "max": 2.6,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "gapEvents": [],
+      "layerTreeRows": 6,
+      "ms": 3003,
+      "frames": 180,
+      "fps": 59.9,
+      "gapP50": 16.6,
+      "gapP95": 17.4,
+      "gapP99": 17.9,
+      "gapMax": 18.4,
+      "dropPct": 0,
+      "allocMBps": 4.3,
+      "gcCount": 0,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 180,
+        "p50": 0.2,
+        "p95": 0.3
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 180,
+        "misses": 0,
+        "reasons": null
+      }
+    },
+    "select": {
+      "rafTimestampGap": {
+        "count": 182,
+        "p50": 16.7,
+        "p95": 16.7,
+        "p99": 16.8,
+        "max": 16.8,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "callbackDelay": {
+        "count": 183,
+        "p50": 1.1,
+        "p95": 11.4,
+        "p99": 17,
+        "max": 28.7,
+        "thresholdMs": 25,
+        "overThreshold": 1,
+        "overThresholdPct": 0.5
+      },
+      "gapEvents": [
+        {
+          "timestamp": 11969,
+          "callbackTime": 11997.70000000298,
+          "callbackGap": 33.099999994039536,
+          "rafGap": null,
+          "callbackDelay": 28.700000002980232
+        },
+        {
+          "timestamp": 12785.7,
+          "callbackTime": 12798.20000000298,
+          "callbackGap": 28.099999994039536,
+          "rafGap": 16.700000000000728,
+          "callbackDelay": 12.500000002979505
+        },
+        {
+          "timestamp": 12885.6,
+          "callbackTime": 12897,
+          "callbackGap": 27.599999994039536,
+          "rafGap": 16.600000000000364,
+          "callbackDelay": 11.399999999999636
+        },
+        {
+          "timestamp": 12985.7,
+          "callbackTime": 13002.70000000298,
+          "callbackGap": 33.29999999701977,
+          "rafGap": 16.700000000000728,
+          "callbackDelay": 17.000000002979505
+        },
+        {
+          "timestamp": 13085.7,
+          "callbackTime": 13096,
+          "callbackGap": 26.399999991059303,
+          "rafGap": 16.80000000000109,
+          "callbackDelay": 10.299999999999272
+        },
+        {
+          "timestamp": 13185.6,
+          "callbackTime": 13200.10000000894,
+          "callbackGap": 30.200000002980232,
+          "rafGap": 16.600000000000364,
+          "callbackDelay": 14.500000008940333
+        },
+        {
+          "timestamp": 13802.3,
+          "callbackTime": 13815.20000000298,
+          "callbackGap": 28.399999991059303,
+          "rafGap": 16.599999999998545,
+          "callbackDelay": 12.90000000298096
+        },
+        {
+          "timestamp": 14002.2,
+          "callbackTime": 14012.5,
+          "callbackGap": 25.69999998807907,
+          "rafGap": 16.600000000000364,
+          "callbackDelay": 10.299999999999272
+        },
+        {
+          "timestamp": 14102.3,
+          "callbackTime": 14114.40000000596,
+          "callbackGap": 27.799999997019768,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 12.100000005961192
+        },
+        {
+          "timestamp": 14202.3,
+          "callbackTime": 14213.40000000596,
+          "callbackGap": 27.700000002980232,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 11.100000005961192
+        },
+        {
+          "timestamp": 14302.2,
+          "callbackTime": 14314.5,
+          "callbackGap": 28.5,
+          "rafGap": 16.600000000000364,
+          "callbackDelay": 12.299999999999272
+        },
+        {
+          "timestamp": 14402.3,
+          "callbackTime": 14420.20000000298,
+          "callbackGap": 34.29999999701977,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 17.90000000298096
+        },
+        {
+          "timestamp": 14502.3,
+          "callbackTime": 14518.70000000298,
+          "callbackGap": 32,
+          "rafGap": 16.69999999999891,
+          "callbackDelay": 16.40000000298096
+        }
+      ],
+      "layerTreeRows": 6,
+      "ms": 3055,
+      "frames": 183,
+      "fps": 59.9,
+      "gapP50": 16.6,
+      "gapP95": 27.6,
+      "gapP99": 33.1,
+      "gapMax": 34.3,
+      "dropPct": 7.1,
+      "allocMBps": 42.5,
+      "gcCount": 7,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 183,
+        "p50": 0.1,
+        "p95": 0.7
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 183,
+        "misses": 0,
+        "reasons": null
+      },
+      "selectionDriver": "external-props"
+    }
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}

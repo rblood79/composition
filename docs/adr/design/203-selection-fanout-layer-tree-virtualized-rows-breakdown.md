@@ -1,6 +1,6 @@
 # ADR-203 Design Breakdown — 선택 변경 fan-out 제거: Navigator 트리 창 렌더 · Properties 조건부
 
-> ADR 본문: [203-selection-fanout-layer-tree-virtualized-rows.md](../203-selection-fanout-layer-tree-virtualized-rows.md). 본 문서는 Phase · 파일 · 체크리스트 · 측정 절차만 담는다. 전제 · 대안 · 위험 판정은 ADR 본문이 정본이며 여기에 추가 결정을 두지 않는다.
+> ADR 본문: [203-selection-fanout-layer-tree-virtualized-rows.md](../completed/203-selection-fanout-layer-tree-virtualized-rows.md). 본 문서는 Phase · 파일 · 체크리스트 · 측정 절차만 담는다. 전제 · 대안 · 위험 판정은 ADR 본문이 정본이며 여기에 추가 결정을 두지 않는다.
 
 ## §1 관계 선언 (fork 아님 — 신규 주제)
 
@@ -14,7 +14,7 @@
 1. **base / 응용 분류**: 본 ADR 은 응용 (Navigator 패널 DOM 창 렌더) 이고 base 는 RAC `Tree` + `Virtualizer` (upstream). ADR-150 A2 (캔버스 collection window) · ADR-155 (패널 gating) 어느 쪽도 본 ADR 의 base 가 아니다 — prerequisite 없음.
 2. **schema 직교성**: 문서 schema · canonical 노드 · catalog 무접촉. 바뀌는 것은 LayerTree의 Virtualizer 결선, LayerTree 전용 `rowSize` 상수, Layers section의 scoped scroll style뿐이며 공용 `TreeBase.tsx`는 유지 — 150/155 의 schema 와 직교.
 3. **선행 ADR 전제 reverse 검증**: 150 R2 "window 는 캔버스 전용, 패널은 별도 정책" 은 본 ADR 후에도 그대로 성립 (패널이 캔버스 window 를 소비하지 않는다 — `useLayerTreeData.ts` 는 `LISTBOX_ROW_PROJECTION_WINDOW_LIMIT` 를 projected 행 cap 으로만 쓴다). 155 의 Activity gating 은 열린 패널에 무관하므로 방향 반전 없음. 사용자 confirm: `/create-adr` 직접 입력 (2026-09-02) + 추천 순서 답변 "adr생성 차례인가" 확인.
-4. **전면 재리뷰 불필요**: 전제 (Navigator 단독 비용 · 가동된 적 없는 분기) 는 Phase 0 A/B 와 코드 사실 C1~~C10 로 착수 전에 확정했고, /review round 1 (2026-09-03) 이 당시 C1~~C7 인용을 전수 대조해 정확 판정했다. 2026-09-04 변경은 설치된 RAC 구현과 G0 live에 맞춘 실행계획 보정이며 대안·위험 임계·Decision을 바꾸지 않는다. Phase 1 구현 뒤 G1 수리 검증으로 닫고 별도 전면 review round를 추가하지 않는다.
+4. **구현 중 전제 재질문 불필요**: 전제 (Navigator 단독 비용 · 가동된 적 없는 분기) 는 Phase 0 A/B 와 코드 사실 C1–C10으로 착수 전에 확정했고, /review round 1 (2026-09-03)이 당시 C1–C7 인용을 전수 대조해 정확 판정했다. 2026-09-04 변경은 설치된 RAC 구현과 G0 live에 맞춘 실행계획 보정이며 대안·위험 임계·Decision을 바꾸지 않는다. 구현 중에는 같은 전제를 재질문하지 않고 G1 수리 검증으로 진행했으며, Implemented 승격 전에는 [review round 2](../reviews/203.md)로 최종 코드·측정 정합성을 재검증했다.
 
 ### 1-1. 리뷰 후 실행계획 보정 (2026-09-04, Decision/Status 불변)
 
@@ -92,7 +92,7 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ## §3 Phase 1 — 스파이크: RAC `Virtualizer` + `ListLayout` (G1)
 
-2026-09-05: 체크포인트 `3fb404392`, **G1 열림**. 실제 600/5k 행 제한·높이·선택 renderContent·키보드·ARIA diff browser 4건 및 Navigator 테스트 139건 통과. 600 성능 3회는 통과했고 60 drop 3.8/3.3/2.7%로 0% 조건을 모두 미달했다. DnD 3종·키보드 다중선택·깊은 scroll·캔버스 선택 parity를 통과했고 컨테이너 on-drop 포커스를 LayerTree 전용 지연 포커스로 수리했다. selectedKeys memo만 잔여 비용 조사 과정에서 Phase 2로부터 앞당겼으며 tanstack 분기는 보존한다. 상세는 [G1 재검증](../evidence/203-g1-revalidation.md).
+2026-09-06: 체크포인트 `3fb404392` + 포커스 수리 `8dd5e8ce4`, **G1 PASS**. 실제 600/5k 행 제한·높이·선택 renderContent·키보드·ARIA diff browser 4건 및 Navigator 테스트를 통과했다. callback 실행 간격을 presentation drop으로 쓰던 조건은 RAF timestamp/callback delay percentile로 정정했고, root를 실제 펼친 60/600 paired 3회가 모두 통과했다. DnD 3종·키보드 다중선택·깊은 scroll·캔버스 선택 parity도 통과했다. 상세는 [G1 재검증](../evidence/203-g1-revalidation.md).
 
 목표: RAC Tree 를 그대로 두고 LayerTree에서만 창 렌더를 켠다. 공용 `TreeBase`는 변경하지 않고 LayerTree 결선 + 단일 scroll owner + fixed row 계약으로 범위를 닫는다.
 
@@ -107,28 +107,28 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 RED 먼저:
 
-- [ ] browser vitest (`vitest.browser.config.ts`) `tree/LayerTree/LayerTree.virtualized.browser.test.tsx`: 600·5k 노드 (body 1 root + 나머지 자식, 펼침)를 각각 320px 높이로 렌더한다. `.layer-tree--rac-virtualized [role="row"]` idle 수는 `ceil((320 + 320/3) / 28) + focused/boundary 여유 2 = 18` 이하이고 두 규모의 차이는 1 이하(현재 코드는 600/5k → RED). settle 뒤 spy를 reset하고 `selectedKeys` 10회 변경 시 `renderContent` 증가량 ≤ 180.
-- [ ] 같은 파일: `.react-aria-TreeItem`과 `.elementItem`의 계산 높이 === `LAYER_TREE_ROW_SIZE_PX`; `.section[data-section-id="navigator-layers"] > .section-content`는 스크롤하지 않고 `.layer-tree--rac-virtualized` 하나만 `overflow-y: auto`이며 clientHeight 320px.
-- [ ] 정적 + browser 음성 대조: `TreeBase.tsx`의 `Virtualizer` 참조 0건, PageTree · FrameList · FrameElementTree의 RAC 호출부에는 wrapper가 없고 FrameElementTree의 기존 `VirtualizedTree` 조건 분기와 행 DOM/키보드/DnD 경로가 유지된다.
+- [x] browser vitest (`vitest.navigator.config.ts`) `tree/LayerTree/LayerTree.virtualized.browser.test.tsx`: 600·5k 노드 (body 1 root + 나머지 자식, 펼침)를 각각 320px 높이로 렌더한다. `.layer-tree--rac-virtualized [role="row"]` idle 수는 `ceil((320 + 320/3) / 28) + focused/boundary 여유 2 = 18` 이하이고 두 규모의 차이는 1 이하. settle 뒤 spy를 reset하고 `selectedKeys` 10회 변경 시 `renderContent` 증가량 ≤ 180.
+- [x] 같은 파일: `.react-aria-TreeItem`과 `.elementItem`의 계산 높이 === `LAYER_TREE_ROW_SIZE_PX`; `.section[data-section-id="navigator-layers"] > .section-content`는 스크롤하지 않고 `.layer-tree--rac-virtualized` 하나만 `overflow-y: auto`이며 clientHeight 320px.
+- [x] 정적 + browser 대조: `TreeBase.tsx`의 `Virtualizer` 참조 0건, PageTree · FrameList · FrameElementTree의 RAC 호출부에는 wrapper가 없고 FrameElementTree의 기존 `VirtualizedTree` 조건 분기와 행 DOM/키보드/DnD 경로가 유지된다.
 
-G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-count 600 --classes idle,select --duration-ms 3000` (both 패널, 기본값) 에서 select gap p50 ≤ 33 ms · 드롭 ≤ 5% · longtask 0, 그리고 `--seed-count 60` 에서 드롭 0. 결과 JSON 경로를 ADR Gates 에 기록.
+G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-count 60|600 --classes idle,select --duration-ms 3000` (Navigator+Properties, `external-props`) 에서 select callback gap p50 ≤33ms · RAF timestamp p95/p99 ≤17ms · callback delay p95 ≤16.7ms · longtask 0. `dropPct`는 callback 실행 간격이라 presentation drop 판정에서 제외하되 원본에 보존한다. 최종 paired 3회씩은 p50 16.4~~16.6ms, RAF p95/p99 16.7~~16.8ms, callback delay p95 6.5~11.7ms, longtask 0으로 PASS.
 
 실패 시: 대안 B (tanstack `VirtualizedTree` 총 행 수 기준 활성화) 를 **임시** 로 켜고 D1 debt (자체 `role="tree"` 유지) 를 ADR Risks 에 HIGH 로 등재.
 
 ## §4 Phase 2 — D1 parity + 정리 (G2 · G3)
 
-- [ ] G2 (Chrome MCP, 실 builder): 가상화 전/후 같은 행의 `role` / `aria-selected` / `aria-expanded` / `aria-level` / `aria-posinset` / `aria-setsize` diff 0. 키보드 ↑↓ Home/End typeahead, shift/meta 다중 선택, 화면 밖 키보드 포커스 자동 스크롤, DnD 뒤 이동 행 포커스 유지. DnD 3 케이스 + drop indicator 위치.
-- [ ] G3: 패널 숨김 전 `.layer-tree--rac-virtualized`의 첫 가시 row key + viewport top offset을 기록하고 복원 뒤 같은 key/offset(≤1px)을 확인한다. 캔버스 클릭은 조상 자동 펼침 + 선택 상태만 기준선과 동일하고, 선택 행 강제 자동 스크롤은 추가하지 않는다.
-- [ ] `LayerTree.tsx` 의 `>= 300` 분기와 `VirtualizedTree` import 제거 (LayerTree 한정). `FramesTab` 은 손대지 않는다. `LayerTree.tsx:193` 의 `new Set(activeSelectedIds)` 는 `useMemo` 로 (가시 행만 재렌더돼도 Set 재생성은 불필요).
-- [ ] `useFocusManagement` 의 `focusedKey` 가 가상화와 충돌하지 않는지 (화면 밖 키에 focus 요청 시 RAC `layoutDelegate` 경유 scrollIntoView).
-- [ ] unit: `LayerTree.static.test.ts` — `VirtualizedTree` 참조 0건 가드 (FramesTab 제외).
+- [x] G2 (Chrome live, 실 builder): 가상화 전/후 같은 행의 `role` / `aria-selected` / `aria-expanded` / `aria-level` / `aria-posinset` / `aria-setsize` diff 0. 키보드 ↑↓ Home/End typeahead, shift/meta 다중 선택, 화면 밖 키보드 포커스 자동 스크롤, DnD 뒤 이동 행 포커스 유지. DnD 3 케이스 + drop indicator 위치.
+- [x] G3: 패널 숨김 전 `.layer-tree--rac-virtualized`의 첫 가시 row key + viewport top offset을 기록하고 복원 뒤 같은 key/offset(0px)을 확인했다. 캔버스 클릭은 조상 자동 펼침 + 선택 상태만 기준선과 동일하고, 선택 행 강제 자동 스크롤은 추가하지 않았다.
+- [x] `LayerTree.tsx` 의 `>= 300` 분기와 `VirtualizedTree` import 제거 (LayerTree 한정). `FramesTab` 은 손대지 않았다. `selectedKeys`는 `useMemo`로 고정했다.
+- [x] `useFocusManagement` 의 `focusedKey`와 화면 밖 focus scroll, DnD 재부모화 뒤 다음-frame focus 재요청을 검증했다.
+- [x] unit: `LayerTree.static.test.ts` — `VirtualizedTree` 참조 0건 가드 (FramesTab 제외).
 
 ## §5 Phase 3 — 규모 · 조건 재측정 + ratchet (G4)
 
-- [ ] 5k 시드 1회를 **persistent** 프로젝트에 넣고 (`--project-url`) select p50 ≤ 50 ms. 시드 4분+ 이므로 격리 컨텍스트 재시드 금지 (메모리 `project-frame-drop-map-5k-baseline`).
-- [ ] `--headed` 1회 (절대값) + 실 포인터 클릭 1회 (hit-test 경로 — 하니스 select 는 store 경로라 빠져 있다).
-- [ ] 하니스: frame lane select 결과에 `.layer-tree--rac-virtualized [role="row"]` 수를 기록 (`RECORDER_SCRIPT` 종료 시 1회 `document.querySelectorAll` — Pages/Frames treegrid 행 혼입 방지). `[role="treeitem"]`은 RAC 1.20 실 DOM에 없으므로 사용 금지.
-- [ ] `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md` §3-2 select 행과 §4 순위 갱신 (전/후 표).
+- [x] 5k 시드 1회를 **persistent** 프로젝트에 넣고 IndexedDB storage snapshot으로 같은 프로젝트를 재사용했다. headless select p50 16.0/16.2/16.2ms로 ≤50ms PASS.
+- [x] `--headed` 1회 p50 8.2ms + 실제 `Meta+0`/middle-pan/primary-click으로 `perf-seed-1` 선택 일치 PASS.
+- [x] 하니스가 frame 결과에 `.layer-tree--rac-virtualized [role="row"]` 수를 기록하고, 측정 전에 실제 root를 펼쳐 `rows 1 → 6`을 고정한다. 선택 종료는 `setSelectedElement(null)`을 사용한다.
+- [x] `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md` §3-2 select 전/후와 §4 순위를 갱신했다.
 
 ## §6 Phase 4 — Properties 필드 단위 구독 (조건부, G6)
 
@@ -136,11 +136,17 @@ G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-co
 
 착수 시 범위: `PropertiesPanelContent` 가 `useDebouncedSelectedElementData()` 객체 대신 `selectedElementId` + `type` 만 구독하고, `GenericField` 각각이 `useStore(s => readProp(s, id, path))` 로 자기 값만 구독. `PropertyInput.tsx:38` / `PropertyNumberInput.tsx:48` 의 `selectedElementId` 구독은 유지 (포커스 보호용).
 
+- [x] G6 TRIGGERED — persistent 5k p95 36.5~~43.7ms, 할당 88.4~~108.2MB/s.
+- [x] `PropertiesPanelContent`를 `selectedElementId` + ref-resolved type scalar 구독으로 전환했다.
+- [x] `GenericField`가 canonical semantic/style field snapshot을 직접 구독하고 unrelated node/prop 변경 재렌더 0을 회귀 테스트로 고정했다.
+- [x] clipboard/slot mirror는 leaf로 격리하고 semantic propagation/ref 해소는 write 시점의 active canonical document에서 계산한다.
+- [x] Properties/Skia focused 6 files / 49 tests, harness node 9 tests PASS.
+
 ## §7 종결 (G5)
 
-- [ ] `docs/CHANGELOG.md` — 사용자-가시 (선택 반응 속도) 항목.
-- [ ] ADR `### Live Exercise` — G2/G3 시나리오 · 결과 · 날짜 · Chrome MCP/사용자 confirm 구분.
-- [ ] README 상태 전이 + 본 breakdown 체크박스 반영.
+- [x] `docs/CHANGELOG.md` — 사용자-가시 (선택 반응 속도) 항목.
+- [x] ADR `### Live Exercise` — G2/G3/G4 시나리오 · 결과 · 날짜 · 도구 구분.
+- [x] README 상태 전이 + 본 breakdown 체크박스 반영.
 
 ## §8 측정 조건 · 함정
 
@@ -148,6 +154,7 @@ G1 측정 (Phase 1 종료 조건): `pnpm perf:baseline -- --lane frame --seed-co
 - 새 컨텍스트는 패널 전부 닫힘 — `--open-panels` 기본값이 navigator,properties.
 - React 19.2 dev 는 렌더마다 `performance.measure` 를 남긴다 — 하니스가 측정 전 clear. `logComponentRender` 6.5% 는 dev 전용.
 - select 부류는 store 경로 (`setSelectedElement`) — hit-test 비용 미포함. G4 에 실 클릭 1회.
+- LayerTree row 수는 recorder 종료 시점의 선택 해제에 따라 1로 접힐 수 있다. 측정 전에 실제 root expand button을 눌러 window 행이 1보다 큰지 확인하고, `setSelectedElement(null)`로 선택을 정리한다.
 - Chrome MCP 숨은 탭은 RAF 정지 → readiness 게이트가 안 풀린다 (2026-09-02 실측). 탭을 전면에 두고 확인.
 - **사용자 Chrome 은 DevTools CPU throttle 4x slowdown 상태** (사용자 고지 2026-09-02). 하니스 headless 수치는 throttle 없음 — 같은 240 ms 가 사용자 환경에서는 ~1 s 로 체감된다. live exercise (G2/G3/G4 실 클릭) 는 throttle 상태를 결과와 함께 기록하고, 수치 비교는 throttle 동일 조건에서만 한다 (measurement-validity Q/8 조건 기록).
 - 프로파일 self-time 은 dev React 오버헤드 15~20% 포함 — prod 절대값은 `--serve-dist`.

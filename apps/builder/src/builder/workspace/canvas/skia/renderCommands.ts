@@ -68,6 +68,7 @@ import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
+import { getCanvasFramePresentationSnapshot } from "../canvasFramePresentation";
 
 // ── Command 타입 ──────────────────────────────────────────────────────
 
@@ -1283,6 +1284,11 @@ function readRenderCommandDebugIdentity(value: unknown): number | undefined {
 declare global {
   interface Window {
     __composition_RENDER_COMMAND_DEBUG__?: {
+      readCamera(): {
+        readonly zoom: number;
+        readonly panX: number;
+        readonly panY: number;
+      } | null;
       readNode(elementId: string): RenderCommandDebugNodeSnapshot;
     };
   }
@@ -1297,6 +1303,7 @@ if (
     new URLSearchParams(window.location.search).has("adr187Metrics"))
 ) {
   window.__composition_RENDER_COMMAND_DEBUG__ = {
+    readCamera: () => getCanvasFramePresentationSnapshot()?.cameraState ?? null,
     readNode: (elementId) => {
       const stream = getCachedCommandStreamSnapshot();
       if (!stream) return { available: false };

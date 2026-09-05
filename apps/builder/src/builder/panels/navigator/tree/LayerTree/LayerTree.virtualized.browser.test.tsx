@@ -93,8 +93,11 @@ async function mount(
   await vi.waitFor(() =>
     expect(host.querySelectorAll('[role="row"]').length).toBeGreaterThan(0),
   );
-  await new Promise<void>((resolve) =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+  await act(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
   );
 }
 

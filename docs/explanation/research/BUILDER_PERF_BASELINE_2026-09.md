@@ -81,6 +81,19 @@ JS 힙 기울기 edit +0.08 · select 0.00 · panels +0.02 · pages +0.02 MB/c, 
 | panel-toggle      |      16.6 / 20.8 / 27 / 28 |      3.4 |        31 |   7 |             0 / 0 |              2.5/2.7 |                                 |
 | **layers-scroll** |        18 / 32.9 / 36 / 41 | **31.1** |       4.6 |   1 |             0 / 0 |              2.5/7.7 | 크기 무관 31%                   |
 
+### 3-2a. ADR-203 적용 후 선택 경로 (2026-09-06)
+
+LayerTree에서만 RAC `Virtualizer + ListLayout`을 항상 사용하고, Properties 상위 패널은 선택 id/type, generic field는 자기 canonical 값만 구독한다. 하니스는 실제 LayerTree root를 펼쳐 window 행 6개를 확인했다. callback `dropPct`는 RAF presentation drop이 아니므로 비교용으로만 보존하고, G1은 RAF timestamp와 callback delay percentile로 판정한다.
+
+| 규모 / 조건                 | select callback p50 |      RAF p95 / p99 | callback delay p95 | longtask | 판정                      |
+| --------------------------- | ------------------: | -----------------: | -----------------: | -------: | ------------------------- |
+| 60 headless, paired 3회     |         16.4~16.6ms | 16.7~16.8 / 16.8ms |         6.5~10.6ms |        0 | G1 PASS                   |
+| 600 headless, paired 3회    |              16.6ms |      16.7 / 16.8ms |         7.7~11.7ms |        0 | G1 PASS                   |
+| 5k persistent headless, 3회 |         16.0~16.2ms | 16.8 / 33.3~33.4ms |        25.7~28.1ms |     각 1 | G4 p50 PASS, tail 잔존    |
+| 5k persistent headed 120Hz  |               8.2ms |      25.0 / 33.4ms |             28.5ms |        1 | G4 headed PASS, tail 잔존 |
+
+600 요소 기준 select p50은 약 218ms에서 16.6ms로 92% 감소했고 longtask 13건/3116ms는 0이 됐다. persistent 5k의 p95 36.5–43.7ms와 할당 88.4–108.2MB/s는 남아 있으므로 tail 제거 완료로 해석하지 않는다. headed 실제 pointer는 Canvas `(720, 450)`에서 `perf-seed-1` 선택 일치, page/console error 0을 확인했다. 원본은 `docs/adr/evidence/203-g1-final/`과 `docs/adr/evidence/203-phase3/`에 있다.
+
 ### 3-3. self-time 귀속 (`--profile`, JS Self-Profiling 1ms, 600 요소)
 
 샘플 1ms, 3초. "idle" 은 스택 없는 샘플 비율 (JS 가 안 도는 시간). dev 빌드라 React DEV 오버헤드 (`logComponentRender` · `runWithFiberInDEV` · `validateProperty` · `warnUnknownProperties` · `addObjectDiffToProperties`) 가 busy 의 15~20% 를 차지한다 — prod 절대값은 `--serve-dist` (adr187 방식) 로 다시 재야 한다.
@@ -131,27 +144,27 @@ GPU 축도 독립적으로 크다. content padding 512 CSS px가 DPR 2에서 사
 
 cold entry는 1회성 부팅 경로이고 select/edit은 반복 상호작용 경로라 같은 percentile로 합치지 않는다. 아래 순위는 2026-09-04 현재 실행 우선순위이며, 각 축은 별도 Gate로 판정한다.
 
-| 순위 | 축                                                | 근거 (본 문서)                                                                   | 07-30 레버                                                                                                                                         |
-| ---: | ------------------------------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-|    1 | **프로젝트 cold entry / matching Skia 첫 프레임** | 기본 75요소에서도 `render.frame` max 266.9~~427.7ms, 실제 ready 경계를 직접 지연 | 레버 1·2의 cold miss 세분화 + 신규 Track A (font/paragraph/surface bootstrap)                                                                      |
-|    2 | **선택 변경 fan-out**                             | 600 요소에서 선택 1회 ≈ 240ms · 143 MB/s. 60 요소에서도 드롭 16.8%               | (없음 — ADR-155 이후 잔여) → **ADR-203** Accepted 2026-09-03 Track B: Navigator 단독 확정, LayerTree 한정 RAC `Virtualizer` + `ListLayout` 창 렌더 |
-|    3 | **편집 mutation (동기 무효화 + persist)**         | 편집당 60→70ms, 600→500ms. 문서 크기 선형                                        | 레버 4·5                                                                                                                                           |
-|    4 | **Layers 트리 스크롤**                            | 크기 무관 드롭 31%, 할당 ~0 → DOM 레이아웃/페인트                                | (없음)                                                                                                                                             |
-|    5 | 페이지 전환                                       | 600 에서 p99 80ms, longtask 4/274                                                | (없음)                                                                                                                                             |
-|    6 | 줌                                                | 600 에서 드롭 6% (5k 는 07-30 p50 133ms — 미재측정)                              | 레버 1·2                                                                                                                                           |
-|    — | 유휴 600 요소 render.frame p95 7.6                | 유휴에 매 프레임 렌더 — 무엇이 무효화하는지 확인 필요                            | ADR-167 기각 전제 재확인                                                                                                                           |
+| 순위 | 축                                                | 근거 (본 문서)                                                                           | 07-30 레버                                                                                                        |
+| ---: | ------------------------------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+|    1 | **프로젝트 cold entry / matching Skia 첫 프레임** | 기본 75요소에서도 `render.frame` max 266.9~~427.7ms, 실제 ready 경계를 직접 지연         | 레버 1·2의 cold miss 세분화 + 신규 Track A (font/paragraph/surface bootstrap)                                     |
+|    2 | **선택 변경 fan-out**                             | ADR-203 뒤 600 p50 16.6ms, longtask 0. persistent 5k p50 16.0~16.2ms; p95·할당 tail 잔존 | **ADR-203 Implemented 2026-09-06**: LayerTree 한정 RAC `Virtualizer` + `ListLayout`, Properties field scalar 구독 |
+|    3 | **편집 mutation (동기 무효화 + persist)**         | 편집당 60→70ms, 600→500ms. 문서 크기 선형                                                | 레버 4·5                                                                                                          |
+|    4 | **Layers 트리 스크롤**                            | 크기 무관 드롭 31%, 할당 ~0 → DOM 레이아웃/페인트                                        | (없음)                                                                                                            |
+|    5 | 페이지 전환                                       | 600 에서 p99 80ms, longtask 4/274                                                        | (없음)                                                                                                            |
+|    6 | 줌                                                | 600 에서 드롭 6% (5k 는 07-30 p50 133ms — 미재측정)                                      | 레버 1·2                                                                                                          |
+|    — | 유휴 600 요소 render.frame p95 7.6                | 유휴에 매 프레임 렌더 — 무엇이 무효화하는지 확인 필요                                    | ADR-167 기각 전제 재확인                                                                                          |
 
 07-30 의 팬 상수 비용 (레버 3) 은 60·600 요소 headless 에서 드롭 0 — 5k 에서만 보이는 축이므로 5k 재측정 전까지 순위 보류.
 
 ### 4-1. 실행 계획과 ADR 관계
 
-| 단계     | 범위                                     | 작업·Gate                                                                                                                                                                                                                           | 결정 SSOT                              |
-| -------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| Phase 0  | 공통 측정 기반                           | visible/headed 여부, cold/warm, DPR, canvas device size, CPU throttle, 처녀 힙을 결과에 기록. 같은 조건의 변경 전/후 총비용 A/B를 유지                                                                                              | 본 문서 §1 · `measurement-validity.md` |
-| Track A  | 프로젝트 생성·편집기 진입                | shared `FontCollection`과 첫 문서 고유 weight 선예열, surface/shader 초기화 구간 분리, `render.skia.surface.init`·`render.skia.sync.standby` label 추가 검토. matching surface flush 전 readiness 승인 금지                         | Canvas readiness 계약 + 본 문서 §3-5   |
-| Track B  | ready 이후 Navigator 선택 fan-out        | ADR-203 Phase 1~~3. LayerTree에서만 RAC `Virtualizer`를 opt-in하고 scoped `[role="row"]` 행 수·현행 `rowSize`·Tree 단일 scroll owner·D1/DnD·600/5k select 총비용을 검증. PageTree·FrameList·FrameElementTree 호출부는 변경하지 않음 | ADR-203                                |
-| Track B4 | Properties 필드 단위 구독                | ADR-203 G6에서 5k select gap p95 > 25ms 또는 할당 > 60MB/s일 때만 착수. 미달이면 측정상 불필요로 종결                                                                                                                               | ADR-203 조건부 Phase 4                 |
-| Track C  | edit/persist · Layers scroll · page/zoom | Track A/B 종결 후 현재 §4 순위대로 별도 원인 A/B와 불리 케이스를 확보하고 착수                                                                                                                                                      | 본 문서 + 필요 시 별도 ADR             |
+| 단계     | 범위                                     | 작업·Gate                                                                                                                                                                                                   | 결정 SSOT                              |
+| -------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| Phase 0  | 공통 측정 기반                           | visible/headed 여부, cold/warm, DPR, canvas device size, CPU throttle, 처녀 힙을 결과에 기록. 같은 조건의 변경 전/후 총비용 A/B를 유지                                                                      | 본 문서 §1 · `measurement-validity.md` |
+| Track A  | 프로젝트 생성·편집기 진입                | shared `FontCollection`과 첫 문서 고유 weight 선예열, surface/shader 초기화 구간 분리, `render.skia.surface.init`·`render.skia.sync.standby` label 추가 검토. matching surface flush 전 readiness 승인 금지 | Canvas readiness 계약 + 본 문서 §3-5   |
+| Track B  | ready 이후 Navigator 선택 fan-out        | **완료** — LayerTree에서만 RAC `Virtualizer`를 opt-in하고 scoped `[role="row"]` 행 수·`rowSize`·단일 scroll owner·D1/DnD·600/5k 총비용을 검증. PageTree·FrameList·FrameElementTree 호출부는 유지            | ADR-203 Implemented                    |
+| Track B4 | Properties 필드 단위 구독                | **완료** — G6가 5k p95/할당으로 활성화되어 Properties id/type와 generic field canonical scalar 구독을 구현                                                                                                  | ADR-203 Phase 4                        |
+| Track C  | edit/persist · Layers scroll · page/zoom | Track A/B 종결 후 현재 §4 순위대로 별도 원인 A/B와 불리 케이스를 확보하고 착수                                                                                                                              | 본 문서 + 필요 시 별도 ADR             |
 
 Track A와 Track B 사이에 코드 의존은 없다. Track A는 CanvasKit/Skia font·surface 경로, Track B는 Navigator DOM/RAC 경로다. 구현 작업은 독립적으로 준비할 수 있지만 `pnpm perf:baseline`, foreground Chrome, CPU/GPU 프로파일은 동시에 실행하지 않는다. ADR-203의 Phase·위험·Gate는 ADR-203을 정본으로 유지하고 이 문서에는 순서와 경계만 둔다.
 
@@ -181,8 +194,7 @@ pnpm perf:baseline -- --lane frame --headed ...                                 
 
 ## 7. 미측정 잔여
 
-- 5k 실문서 (07-30 기준선의 재현) — 시드 5k 는 4분+ 라 persistent 컨텍스트 (`launchPersistentContext`) 로 1회 시드 후 재사용하는 옵션이 필요.
-- headed (실제 GPU·120Hz) 절대값.
+- persistent 5k 선택의 p95 36.5–43.7ms, 할당 88.4–108.2MB/s, run당 longtask 1건의 잔여 귀속. p50 G4는 통과했다.
 - cold entry는 기본 신규 프로젝트의 foreground Chrome 4회만 측정했다. hard reload/SPA 재진입/warm reload, production dist, 60·600·5k 문서, DPR·viewport별 surface 크기를 같은 하니스로 재측정해야 한다.
 - 실 포인터 요소 드래그 (합성 드래그 함정: 메모리 `reference-synthetic-pointer-drag-testing-traps`), 인스펙터 타이핑, 다이얼로그·팝오버, 미리보기 토글, 30분 soak.
-- 선택 부류는 store 경로 (`setSelectedElement`) 라 hit-test 비용이 빠져 있다 — 실 클릭 경로는 더 무겁다.
+- 실제 pointer 단일 선택은 통과했지만 반복 pointer 선택/드래그의 input-to-presentation latency 분포는 아직 미측정이다.

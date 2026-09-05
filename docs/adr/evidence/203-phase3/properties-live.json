@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-06",
+  "environment": {
+    "chrome": "152.0.7977.82",
+    "headless": true,
+    "viewport": "1440x900",
+    "persistentProject": true,
+    "seedCount": 5000,
+    "pages": 2
+  },
+  "exercise": {
+    "selectionInput": "LayerTree row click",
+    "targetId": "perf-seed-0",
+    "beforeValue": "Seed 0",
+    "afterValue": "ADR-203 scalar live",
+    "legacyMirrorValue": "ADR-203 scalar live",
+    "layerTreeRows": 6,
+    "selectedRowAria": "true",
+    "pageErrors": 0,
+    "consoleErrors": 0
+  },
+  "screenshot": "properties-live.png",
+  "result": "PASS"
+}

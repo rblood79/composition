@@ -1,0 +1,150 @@
+{
+  "lane": "frame",
+  "metricDefinitions": {
+    "gapP50": "callback performance.now interval; first sample includes recorder startup wait",
+    "dropPct": "callback interval >25ms percentage; legacy G1 metric, not presentation drops",
+    "rafTimestampGap": "RAF timestamp intervals; first callback excluded",
+    "callbackDelay": "callback performance.now minus RAF timestamp; not input-to-presentation latency",
+    "gapEvents": "callback or RAF interval >25ms; page performance time origin",
+    "layerTreeRows": ".layer-tree--rac-virtualized [role=\"row\"] count at recording stop"
+  },
+  "at": "2026-09-05T15:27:22.981Z",
+  "chrome": "152.0.7977.82",
+  "headless": false,
+  "options": {
+    "baseUrl": "http://localhost:5173",
+    "storageState": "(redacted)",
+    "saveStorageState": null,
+    "pointerExercise": true,
+    "lane": "frame",
+    "cycles": 20,
+    "warmup": 5,
+    "seedCount": 5000,
+    "actions": ["panels", "pages", "select", "edit", "zoom"],
+    "out": "docs/adr/evidence/203-phase3",
+    "headed": true,
+    "projectUrl": "http://localhost:5173/builder/56438f4a-42b4-4aff-b09a-b6b6da6a32e9",
+    "mode": "series",
+    "attributeCycles": 10,
+    "retainerClass": "Object",
+    "retainerProps": ["parent_id", "page_id"],
+    "retainerSamples": 40,
+    "durationMs": 1000,
+    "openPanels": ["navigator", "properties", "styles"],
+    "profile": false,
+    "selectionDriver": "id-only",
+    "classes": ["idle"]
+  },
+  "project": "http://localhost:5173/builder/56438f4a-42b4-4aff-b09a-b6b6da6a32e9",
+  "seed": {
+    "elements": 5000,
+    "pages": 2
+  },
+  "layerTreeSetup": {
+    "initialRows": 1,
+    "finalRows": 6,
+    "clicked": true
+  },
+  "pointerExercise": {
+    "targetId": "perf-seed-1",
+    "cameraSetup": "Meta+0",
+    "hitCandidates": ["3e3d2b3e-06ed-4095-bef9-7af489f13f0b", "perf-seed-1"],
+    "sceneX": 1087,
+    "sceneY": 50,
+    "zoom": 0.9597156398104266,
+    "canvasBounds": {
+      "left": 0,
+      "top": 0,
+      "right": 1440,
+      "bottom": 900
+    },
+    "panX": -323.21089497787693,
+    "panY": 402.0142211914062,
+    "clientX": 720.0000054960567,
+    "clientY": 450.0000031819275,
+    "surfaceTag": "CANVAS",
+    "surfaceClass": "",
+    "surfaceCanvasContainer": true,
+    "panAdjustments": [
+      {
+        "start": {
+          "x": 720,
+          "y": 450
+        },
+        "end": {
+          "x": 100,
+          "y": 800
+        }
+      },
+      {
+        "start": {
+          "x": 720,
+          "y": 450
+        },
+        "end": {
+          "x": 483.93364928909955,
+          "y": 457.0142180094787
+        }
+      }
+    ],
+    "pointerTarget": {
+      "tagName": "CANVAS",
+      "className": "",
+      "canvasContainer": true
+    },
+    "actualElementId": "perf-seed-1",
+    "passed": true
+  },
+  "results": {
+    "idle": {
+      "rafTimestampGap": {
+        "count": 120,
+        "p50": 8.3,
+        "p95": 9.2,
+        "p99": 9.3,
+        "max": 9.3,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "callbackDelay": {
+        "count": 121,
+        "p50": 1.2,
+        "p95": 2.6,
+        "p99": 3,
+        "max": 4.6,
+        "thresholdMs": 25,
+        "overThreshold": 0,
+        "overThresholdPct": 0
+      },
+      "gapEvents": [],
+      "layerTreeRows": 6,
+      "ms": 1003,
+      "frames": 121,
+      "fps": 120.7,
+      "gapP50": 8.3,
+      "gapP95": 9.3,
+      "gapP99": 9.6,
+      "gapMax": 12.6,
+      "dropPct": 0,
+      "allocMBps": 59.1,
+      "gcCount": 2,
+      "longTasks": 0,
+      "longTaskMs": 0,
+      "renderFrame": {
+        "count": 121,
+        "p50": 0.7,
+        "p95": 1.2
+      },
+      "recordContent": null,
+      "flushContent": null,
+      "streamMiss": {
+        "hits": 121,
+        "misses": 0,
+        "reasons": null
+      }
+    }
+  },
+  "pageErrors": [],
+  "consoleErrors": []
+}

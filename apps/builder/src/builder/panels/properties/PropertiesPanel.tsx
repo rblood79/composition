@@ -49,7 +49,6 @@ import {
 import { useI18n } from "../../../i18n";
 import { useStore } from "../../stores";
 import {
-  getSlotMirrorName,
   SLOT_NAME_MIRROR_FIELD,
   withSlotMirrorName,
 } from "../../../adapters/canonical/slotMirror";
@@ -79,13 +78,18 @@ import {
   resolveCanonicalRefTree,
 } from "../../utils/canonicalRefResolution";
 import {
-  useCanonicalPropertyChildrenMap,
-  useCanonicalPropertyElement,
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElementType,
   useCanonicalPropertyElementsMap,
+  useCanonicalPropertyValue,
 } from "./hooks/useCanonicalPropertyRead";
+import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
+import { getCanonicalPropertyReadIndex } from "./hooks/canonicalPropertyReadIndex";
 import { isComponentInstanceMirrorElement } from "../../../adapters/canonical/componentSemanticsMirror";
 import type { PanelNode } from "../panelNode";
 import type { Element } from "../../../types/core/store.types";
+
+type SelectedElementIdentity = Pick<SelectedElement, "id" | "type">;
 
 type PanelCanonicalRefNode = CanonicalRefResolvableNode & {
   props: Record<string, unknown>;
@@ -117,194 +121,152 @@ function panelNodeToCanonicalRefNode(node: PanelNode): PanelCanonicalRefNode {
  * canonical ref instance 해소를 그대로 유지(legacy PropertyEditorWrapper.handleUpdate 동일 로직 +
  * 동일 `as Map<...>` cast — PanelNode/Element 경계 우회 보존).
  */
-const CatalogEditContractEditor = memo(
-  function CatalogEditContractEditor({
-    selectedElement,
-    contentExtras,
-  }: {
-    selectedElement: SelectedElement;
-    /** catalog "Content" 그룹에 주입할 비-catalog 컨트롤 (Button 자식 Icon/Text 편집). */
-    contentExtras?: ReactNode;
-  }) {
-    const { t } = useI18n();
-    const selectedCanonicalElement = useCanonicalPropertyElement(
-      selectedElement.id,
-    );
-    const elementsById = useCanonicalPropertyElementsMap();
-    const childrenByParent = useCanonicalPropertyChildrenMap();
-    const lookupElementList = useMemo(
-      () => Array.from(elementsById.values()),
-      [elementsById],
-    );
-    const lookupRefElementList = useMemo(
-      () => lookupElementList.map(panelNodeToCanonicalRefNode),
-      [lookupElementList],
-    );
+const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
+  elementId,
+  elementType,
+  contentExtras,
+}: {
+  elementId: string;
+  elementType: string;
+  /** catalog "Content" 그룹에 주입할 비-catalog 컨트롤 (Button 자식 Icon/Text 편집). */
+  contentExtras?: ReactNode;
+}) {
+  const { t } = useI18n();
+  const selectedChildren = useCanonicalPropertyChildren(elementId);
 
-    // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
-    const contract = useEditContract(selectedElement.id);
-    // Properties view = semantic origin (node.props / D2). style origin 은 Style view(후속).
-    const semanticFields = useMemo(() => {
-      const fields = contract.fields.filter((f) => f.origin === "semantic");
-      // icon Button/ToggleButton: label 이 RSP 공식대로 `<Text>` 자식 element 로 이관되어
-      //   Button.children 이 비므로, GenericFieldRenderer 의 "Text"(children) 필드를 제외한다.
-      //   대신 ButtonChildSection 의 Text 입력이 그 `<Text>` 자식을 편집(중복 필드 방지).
+  // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
+  const contract = useEditContract(elementId);
+  // Properties view = semantic origin (node.props / D2). style origin 은 Style view(후속).
+  const semanticFields = useMemo(() => {
+    const fields = contract.fields.filter((f) => f.origin === "semantic");
+    // icon Button/ToggleButton: label 이 RSP 공식대로 `<Text>` 자식 element 로 이관되어
+    //   Button.children 이 비므로, GenericFieldRenderer 의 "Text"(children) 필드를 제외한다.
+    //   대신 ButtonChildSection 의 Text 입력이 그 `<Text>` 자식을 편집(중복 필드 방지).
+    if (elementType === "Button" || elementType === "ToggleButton") {
       if (
-        selectedElement.type === "Button" ||
-        selectedElement.type === "ToggleButton"
+        selectedChildren.some(
+          (child) => child.type === "Icon" && !child.deleted,
+        )
       ) {
-        const kids = childrenByParent.get(selectedElement.id) ?? [];
-        if (kids.some((c) => c.type === "Icon" && !c.deleted)) {
-          return fields.filter((f) => f.key !== "children");
-        }
+        return fields.filter((f) => f.key !== "children");
       }
-      return fields;
-    }, [contract, selectedElement.type, selectedElement.id, childrenByParent]);
+    }
+    return fields;
+  }, [contract, elementType, selectedChildren]);
 
-    // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
-    const handleSemanticUpdate = useCallback(
-      (key: string, value: unknown) => {
-        const state = useStore.getState();
-        const element =
-          elementsById.get(selectedElement.id) ?? selectedCanonicalElement;
-        if (!element) return;
-
-        const refElement = panelNodeToCanonicalRefNode(element);
-        const effectiveElement = isCanonicalRefElement(refElement)
-          ? resolveCanonicalRefElement(refElement, lookupRefElementList)
-          : refElement;
-        const baselineProps = (effectiveElement.props ?? {}) as Record<
-          string,
-          unknown
-        >;
-        // 실제 변경된 경우만 — stale 덮어쓰기 방지(legacy handleUpdate 동일).
-        if (baselineProps[key] === value) return;
-        const changedProps: Record<string, unknown> = { [key]: value };
-
-        const isComponentInstanceSelection =
-          isCanonicalRefElement(refElement) ||
-          isComponentInstanceMirrorElement(panelNodeToElement(element));
-        const propagationSource = isComponentInstanceSelection
-          ? (() => {
-              const lookupElementsMap = new Map(
-                lookupRefElementList.map((candidate) => [
-                  candidate.id,
-                  candidate,
-                ]),
-              );
-              return resolveCanonicalRefTree({
-                elements: lookupRefElementList,
-                elementsMap: lookupElementsMap,
-              });
-            })()
-          : null;
-        const propagationElement =
-          propagationSource?.elementsMap.get(refElement.id) ?? effectiveElement;
-        const propagationChildrenMap =
-          propagationSource?.childrenMap ?? childrenByParent;
-        const propagationElementsMap =
-          propagationSource?.elementsMap ?? elementsById;
-
-        // ADR-048 propagation 을 포함한 store 쓰기는 `semanticUpdateDispatch` 한 벌 — 여기서
-        //   직접 store 액션을 부르면 seam 이 게이트 밖으로 나간다 (round 5 fe4m1, AST 게이트).
-        dispatchSemanticUpdateWithPropagation({
-          changedProps,
-          propagationElement,
-          childrenMap: propagationChildrenMap as Map<
-            string,
-            { id: string; type: string; props: Record<string, unknown> }[]
-          >,
-          elementsMap: propagationElementsMap as Map<
-            string,
-            { id: string; type: string; props: Record<string, unknown> }
-          >,
-          actions: state,
-        });
-      },
-      [
-        childrenByParent,
-        elementsById,
-        lookupRefElementList,
-        selectedCanonicalElement,
-        selectedElement.id,
-      ],
-    );
-
-    // style write — Style view 전환(후속)까지는 미사용. updateSelectedStyle 단일 prop + distributeShorthand.
-    const handleStyleUpdate = useCallback((key: string, value: unknown) => {
+  // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
+  const handleSemanticUpdate = useCallback(
+    (key: string, value: unknown) => {
       const state = useStore.getState();
-      state.updateSelectedStyle(key, value == null ? "" : String(value));
-    }, []);
+      const canonicalDocument = getActiveCanonicalDocument();
+      if (!canonicalDocument) return;
+      const { childrenByParent, elementsById } =
+        getCanonicalPropertyReadIndex(canonicalDocument);
+      const element = elementsById.get(elementId);
+      if (!element) return;
 
-    if (semanticFields.length === 0) {
-      // 비-catalog 오소링 섹션이 편집 축을 전담하는 타입(body)은 EmptyState 를 띄우지
-      // 않는다 — 계약이 빈 게 결함이 아니라 축이 다른 것이고, 실제 컨트롤은
-      // PageBodySection 이 공급하므로 함께 뜨면 모순된 안내가 된다.
-      if (DEDICATED_SECTION_TYPES.has(selectedElement.type)) return null;
-      if (contentExtras != null) {
-        return (
-          <GenericFieldRenderer
-            fields={semanticFields}
-            onSemanticUpdate={handleSemanticUpdate}
-            onStyleUpdate={handleStyleUpdate}
-            elementId={selectedElement.id}
-            contentExtras={contentExtras}
-          />
-        );
-      }
+      const lookupRefElementList = Array.from(elementsById.values()).map(
+        panelNodeToCanonicalRefNode,
+      );
+
+      const refElement = panelNodeToCanonicalRefNode(element);
+      const effectiveElement = isCanonicalRefElement(refElement)
+        ? resolveCanonicalRefElement(refElement, lookupRefElementList)
+        : refElement;
+      const baselineProps = (effectiveElement.props ?? {}) as Record<
+        string,
+        unknown
+      >;
+      // 실제 변경된 경우만 — stale 덮어쓰기 방지(legacy handleUpdate 동일).
+      if (baselineProps[key] === value) return;
+      const changedProps: Record<string, unknown> = { [key]: value };
+
+      const isComponentInstanceSelection =
+        isCanonicalRefElement(refElement) ||
+        isComponentInstanceMirrorElement(panelNodeToElement(element));
+      const propagationSource = isComponentInstanceSelection
+        ? (() => {
+            const lookupElementsMap = new Map(
+              lookupRefElementList.map((candidate) => [
+                candidate.id,
+                candidate,
+              ]),
+            );
+            return resolveCanonicalRefTree({
+              elements: lookupRefElementList,
+              elementsMap: lookupElementsMap,
+            });
+          })()
+        : null;
+      const propagationElement =
+        propagationSource?.elementsMap.get(refElement.id) ?? effectiveElement;
+      const propagationChildrenMap =
+        propagationSource?.childrenMap ?? childrenByParent;
+      const propagationElementsMap =
+        propagationSource?.elementsMap ?? elementsById;
+
+      // ADR-048 propagation 을 포함한 store 쓰기는 `semanticUpdateDispatch` 한 벌 — 여기서
+      //   직접 store 액션을 부르면 seam 이 게이트 밖으로 나간다 (round 5 fe4m1, AST 게이트).
+      dispatchSemanticUpdateWithPropagation({
+        changedProps,
+        propagationElement,
+        childrenMap: propagationChildrenMap as Map<
+          string,
+          { id: string; type: string; props: Record<string, unknown> }[]
+        >,
+        elementsMap: propagationElementsMap as Map<
+          string,
+          { id: string; type: string; props: Record<string, unknown> }
+        >,
+        actions: state,
+      });
+    },
+    [elementId],
+  );
+
+  // style write — Style view 전환(후속)까지는 미사용. updateSelectedStyle 단일 prop + distributeShorthand.
+  const handleStyleUpdate = useCallback((key: string, value: unknown) => {
+    const state = useStore.getState();
+    state.updateSelectedStyle(key, value == null ? "" : String(value));
+  }, []);
+
+  if (semanticFields.length === 0) {
+    // 비-catalog 오소링 섹션이 편집 축을 전담하는 타입(body)은 EmptyState 를 띄우지
+    // 않는다 — 계약이 빈 게 결함이 아니라 축이 다른 것이고, 실제 컨트롤은
+    // PageBodySection 이 공급하므로 함께 뜨면 모순된 안내가 된다.
+    if (DEDICATED_SECTION_TYPES.has(elementType)) return null;
+    if (contentExtras != null) {
       return (
-        <EmptyState
-          icon={<Settings2 size={32} />}
-          message={t("propertiesPanel.emptyMessage")}
-          description={t("propertiesPanel.emptyDescription", {
-            type: selectedElement.type,
-          })}
+        <GenericFieldRenderer
+          fields={semanticFields}
+          onSemanticUpdate={handleSemanticUpdate}
+          onStyleUpdate={handleStyleUpdate}
+          elementId={elementId}
+          contentExtras={contentExtras}
         />
       );
     }
-
     return (
-      <GenericFieldRenderer
-        fields={semanticFields}
-        onSemanticUpdate={handleSemanticUpdate}
-        onStyleUpdate={handleStyleUpdate}
-        elementId={selectedElement.id}
-        contentExtras={contentExtras}
+      <EmptyState
+        icon={<Settings2 size={32} />}
+        message={t("propertiesPanel.emptyMessage")}
+        description={t("propertiesPanel.emptyDescription", {
+          type: elementType,
+        })}
       />
     );
-  },
-  (prevProps, nextProps) => {
-    // 🚀 Phase 14: 참조 비교 우선, JSON.stringify 최소화
-    const prev = prevProps.selectedElement;
-    const next = nextProps.selectedElement;
+  }
 
-    // 1단계: 기본 필드 빠른 비교 (primitive, early return)
-    if (prev.id !== next.id) return false;
-    if (prev.type !== next.type) return false;
-    if (prev.customId !== next.customId) return false;
-
-    // 2단계: 참조 비교 우선 (가장 빠름)
-    // - 같은 참조면 확실히 동일 → JSON.stringify 스킵
-    // - 다른 참조여도 내용이 같을 수 있음 → JSON.stringify로 확인
-    const propertiesSame =
-      prev.properties === next.properties ||
-      JSON.stringify(prev.properties) === JSON.stringify(next.properties);
-    if (!propertiesSame) return false;
-
-    const styleSame =
-      prev.style === next.style ||
-      JSON.stringify(prev.style) === JSON.stringify(next.style);
-    if (!styleSame) return false;
-
-    const dataBindingSame =
-      prev.dataBinding === next.dataBinding ||
-      JSON.stringify(prev.dataBinding) === JSON.stringify(next.dataBinding);
-    if (!dataBindingSame) return false;
-
-    // 모든 필드가 같으면 리렌더 불필요
-    return true;
-  },
-);
+  return (
+    <GenericFieldRenderer
+      fields={semanticFields}
+      onSemanticUpdate={handleSemanticUpdate}
+      onStyleUpdate={handleStyleUpdate}
+      elementId={elementId}
+      contentExtras={contentExtras}
+    />
+  );
+});
 
 /**
  * ⭐ Phase 4: useAsyncAction/useAsyncData 사용 가이드
@@ -390,7 +352,7 @@ const MultiSelectContent = memo(function MultiSelectContent({
   onSetSelectedElement,
   onSetSelectedElements,
 }: {
-  selectedElement: SelectedElement;
+  selectedElement: SelectedElementIdentity;
   onSetSelectedElement: (
     id: string | null,
     props?: Record<string, unknown>,
@@ -628,33 +590,21 @@ const MultiSelectContent = memo(function MultiSelectContent({
 });
 
 /**
- * PropertiesPanelContent - 실제 콘텐츠 컴포넌트
- * 훅은 여기서만 실행됨 (isActive=true일 때만)
- *
- * 🚀 Performance: multiSelectMode, selectedElementIds 구독을 MultiSelectContent로 분리
- * 이 컴포넌트는 selectedElement만 구독하여 단일 선택 시 불필요한 리렌더 방지
+ * 선택 props 전체가 필요한 clipboard 축을 header leaf로 격리한다.
+ * PropertiesPanelContent는 id/type만 구독하며, deferred snapshot이 새 id를 따라올 때까지
+ * 복사 버튼을 비활성화해 직전 선택의 props를 복사하지 않는다.
  */
-function PropertiesPanelContent() {
+const PropertyClipboardActions = memo(function PropertyClipboardActions({
+  elementId,
+}: {
+  elementId: string;
+}) {
   const { t } = useI18n();
-  // ⭐ CRITICAL: Only subscribe to selectedElement (like StylesPanel)
-  // multiSelectMode, selectedElementIds 구독은 MultiSelectContent에서 수행
-  // 🚀 Phase 3: 디바운스된 선택 데이터 사용 (100ms 지연)
   const selectedElement = useDebouncedSelectedElementData();
-  const elementsById = useCanonicalPropertyElementsMap();
-  const selectedCanonicalElement = useCanonicalPropertyElement(
-    selectedElement?.id ?? "",
-  );
-
-  // 🚀 Performance: 액션만 가져오기 (구독 없음)
-  // ADR-155 Phase 2: removeElement/updateElementProps/addElement 는 전역 단축키
-  // 핸들러와 함께 CanvasSelectionShortcuts host 로 이동
-  const setSelectedElement = useStore.getState().setSelectedElement;
-  const updateElement = useStore.getState().updateElement;
-  const setSelectedElements = useStore.getState().setSelectedElements;
-
   const activeScope = useActiveScope();
+  const selectedProperties =
+    selectedElement?.id === elementId ? selectedElement.properties : null;
 
-  // 🔥 최적화: useCopyPaste hook 사용
   const { copy: copyProperties, paste: pasteProperties } = useCopyPaste({
     onPaste: (data) => {
       useStore.getState().updateSelectedProperties(data);
@@ -663,24 +613,16 @@ function PropertiesPanelContent() {
   });
 
   const handleCopyProperties = useCallback(async () => {
-    if (!selectedElement?.properties) return;
-    await copyProperties(selectedElement.properties);
-    // TODO: Show toast notification
-  }, [selectedElement, copyProperties]);
+    if (!selectedProperties) return;
+    await copyProperties(selectedProperties);
+  }, [copyProperties, selectedProperties]);
 
   const handlePasteProperties = useCallback(async () => {
     await pasteProperties();
-    // TODO: Show toast notification
   }, [pasteProperties]);
 
-  // 🔥 최적화: 키보드 단축키를 useKeyboardShortcutsRegistry로 통합
-  // ADR-155 Phase 2: 캔버스 전역 단축키 (Cmd+C/V/D/A, Escape, Cmd+G, 정렬/분배,
-  // detach, Tab 네비게이션) 는 CanvasSelectionShortcuts host 로 이전 — 패널이
-  // Activity gating 으로 숨겨져도 동작 유지. 여기에는 패널 UI 단축키만 잔류.
   const shortcuts = useMemo(
     () => [
-      // key/modifier/scope 는 정의가 정본 — 손으로 다시 적으면 정의는 표기용으로만
-      // 남는다 (⌘⇧C 에서 ⌘⌥C 로 옮긴 것도 정의에서만 바뀐다).
       ...bindHandlersToDefinitions(["copyProperties", "pasteProperties"], {
         copyProperties: handleCopyProperties,
         pasteProperties: handlePasteProperties,
@@ -695,18 +637,114 @@ function PropertiesPanelContent() {
     { activeScope },
   );
 
+  return (
+    <>
+      <ActionIconButton
+        onPress={handleCopyProperties}
+        aria-label="Copy properties"
+        isDisabled={
+          !selectedProperties || Object.keys(selectedProperties).length === 0
+        }
+        tooltip={t("propertiesPanel.copyProperties")}
+        shortcutId="copyProperties"
+      >
+        <CopyIcon
+          color={iconProps.color}
+          size={iconProps.size}
+          strokeWidth={iconProps.strokeWidth}
+        />
+      </ActionIconButton>
+      <ActionIconButton
+        onPress={handlePasteProperties}
+        aria-label="Paste properties"
+        tooltip={t("propertiesPanel.pasteProperties")}
+        shortcutId="pasteProperties"
+      >
+        <PasteIcon
+          color={iconProps.color}
+          size={iconProps.size}
+          strokeWidth={iconProps.strokeWidth}
+        />
+      </ActionIconButton>
+    </>
+  );
+});
+
+/** slot mirror 값과 write closure도 선택 identity 소비자에서 분리한다. */
+const SelectedElementSlotSelector = memo(function SelectedElementSlotSelector({
+  elementId,
+}: {
+  elementId: string;
+}) {
+  const slotValue = useCanonicalPropertyValue(
+    elementId,
+    "semantic",
+    SLOT_NAME_MIRROR_FIELD,
+    null,
+  );
+  const currentSlotName = typeof slotValue === "string" ? slotValue : null;
+  const handleSlotChange = useCallback(
+    (slotName: string) => {
+      const canonicalDocument = getActiveCanonicalDocument();
+      if (!canonicalDocument) return;
+      const element =
+        getCanonicalPropertyReadIndex(canonicalDocument).elementsById.get(
+          elementId,
+        );
+      if (!element) return;
+
+      const props = withSlotMirrorName(
+        (element.props ?? {}) as Record<string, unknown>,
+        slotName,
+      );
+      const patch: Partial<Element> = {
+        props: props as Element["props"],
+      };
+      (patch as Record<string, unknown>)[SLOT_NAME_MIRROR_FIELD] = slotName;
+      void useStore.getState().updateElement(elementId, patch);
+    },
+    [elementId],
+  );
+
+  return (
+    <ElementSlotSelector
+      elementId={elementId}
+      currentSlotName={currentSlotName}
+      onSlotChange={handleSlotChange}
+    />
+  );
+});
+
+/**
+ * PropertiesPanelContent - 실제 콘텐츠 컴포넌트
+ * 훅은 여기서만 실행됨 (isActive=true일 때만)
+ *
+ * ADR-203 Phase 4: 선택 전체 객체 대신 id + 해소된 type scalar만 구독한다.
+ * 전체 props가 필요한 clipboard/slot/field는 각각 leaf에서 구독한다.
+ */
+function PropertiesPanelContent() {
+  const { t } = useI18n();
+  const selectedElementId = useStore((state) => state.selectedElementId);
+  const selectedElementType =
+    useCanonicalPropertyElementType(selectedElementId);
+
+  // 🚀 Performance: 액션만 가져오기 (구독 없음)
+  // ADR-155 Phase 2: removeElement/updateElementProps/addElement 는 전역 단축키
+  // 핸들러와 함께 CanvasSelectionShortcuts host 로 이동
+  const setSelectedElement = useStore.getState().setSelectedElement;
+  const setSelectedElements = useStore.getState().setSelectedElements;
+
   // 선택된 요소가 없으면 빈 상태 표시
   // ADR-923 잔여 1 (2026-09-03 판정 A): DOM 이 parent 로 self-compose 하는 sub-part (field 의 FieldError)
   //   는 편집 surface 를 parent 로 귀속 — 안내만 띄운다 (`delegatedSubpart.ts`).
-  const selectedSubpartOwnerType = useSelectedSubpartOwnerType(
-    selectedElement?.id,
-  );
+  const selectedSubpartOwnerType =
+    useSelectedSubpartOwnerType(selectedElementId);
   const delegatedSubpart = isDelegatedSubpart(
-    selectedElement?.type,
+    selectedElementType,
     selectedSubpartOwnerType,
   );
 
-  if (!selectedElement) {
+  if (!selectedElementId || !selectedElementType) {
     return (
       <div className="panel">
         <PanelHeader
@@ -728,40 +766,9 @@ function PropertiesPanelContent() {
     <div className="panel">
       <PanelHeader
         icon={<Settings2 size={iconProps.size} />}
-        title={selectedElement.type}
+        title={selectedElementType}
         panelId="properties"
-        actions={
-          <>
-            <ActionIconButton
-              onPress={handleCopyProperties}
-              aria-label="Copy properties"
-              isDisabled={
-                !selectedElement?.properties ||
-                Object.keys(selectedElement.properties).length === 0
-              }
-              tooltip={t("propertiesPanel.copyProperties")}
-              shortcutId="copyProperties"
-            >
-              <CopyIcon
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </ActionIconButton>
-            <ActionIconButton
-              onPress={handlePasteProperties}
-              aria-label="Paste properties"
-              tooltip={t("propertiesPanel.pasteProperties")}
-              shortcutId="pasteProperties"
-            >
-              <PasteIcon
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </ActionIconButton>
-          </>
-        }
+        actions={<PropertyClipboardActions elementId={selectedElementId} />}
       />
 
       <PanelContents>
@@ -770,7 +777,7 @@ function PropertiesPanelContent() {
             icon={<Settings2 size={32} />}
             message={t("propertiesPanel.delegatedSubpartMessage")}
             description={t("propertiesPanel.delegatedSubpartDescription", {
-              type: selectedElement.type,
+              type: selectedElementType,
               parent: selectedSubpartOwnerType ?? "",
             })}
           />
@@ -778,58 +785,41 @@ function PropertiesPanelContent() {
           <>
             {/* 🚀 Performance: MultiSelectContent - 다중 선택 UI 분리 */}
             <MultiSelectContent
-              selectedElement={selectedElement}
+              selectedElement={{
+                id: selectedElementId,
+                type: selectedElementType,
+              }}
               onSetSelectedElement={setSelectedElement}
               onSetSelectedElements={setSelectedElements}
             />
 
-            <ComponentSemanticsSection elementId={selectedElement.id} />
+            <ComponentSemanticsSection elementId={selectedElementId} />
 
             {/* 모든 element 공통의 DOM/CSS 식별 축 (id · class) — 퍼블리싱 문서와 인터랙션
             대상 지목이 그대로 쓰는 구조라 컴포넌트별 편집 계약과 분리한다. */}
-            <ElementAttributesSection elementId={selectedElement.id} />
+            <ElementAttributesSection elementId={selectedElementId} />
 
             {/* body 의 페이지·프레임 오소링 축 (catalog accepts 로 표현 불가 — PageBodySection 주석) */}
-            <PageBodySection elementId={selectedElement.id} />
+            <PageBodySection elementId={selectedElementId} />
 
-            <FrameSlotSection elementId={selectedElement.id} />
+            <FrameSlotSection elementId={selectedElementId} />
 
-            <ComponentSlotFillSection elementId={selectedElement.id} />
+            <ComponentSlotFillSection elementId={selectedElementId} />
 
             <CatalogEditContractEditor
-              selectedElement={selectedElement}
+              elementId={selectedElementId}
+              elementType={selectedElementType}
               contentExtras={
                 /* Button/ToggleButton 의 Icon·Text 자식 편집 — catalog 계약 밖 축이지만
                사용자에겐 같은 Content 라 별도 섹션을 만들지 않고 주입한다. */
-                BUTTON_CHILD_HOST_TAGS.has(selectedElement.type) ? (
-                  <ButtonChildFields elementId={selectedElement.id} />
+                BUTTON_CHILD_HOST_TAGS.has(selectedElementType) ? (
+                  <ButtonChildFields elementId={selectedElementId} />
                 ) : undefined
               }
             />
 
             {/* ⭐ Layout/Slot System: Element가 들어갈 Slot 선택 */}
-            <ElementSlotSelector
-              elementId={selectedElement.id}
-              currentSlotName={getSlotMirrorName(selectedElement.properties)}
-              onSlotChange={(slotName) => {
-                const element =
-                  elementsById.get(selectedElement.id) ??
-                  selectedCanonicalElement;
-                const props = withSlotMirrorName(
-                  (element?.props ?? selectedElement.properties) as Record<
-                    string,
-                    unknown
-                  >,
-                  slotName,
-                );
-                const patch: Partial<Element> = {
-                  props: props as Element["props"],
-                };
-                (patch as Record<string, unknown>)[SLOT_NAME_MIRROR_FIELD] =
-                  slotName;
-                void updateElement(selectedElement.id, patch);
-              }}
-            />
+            <SelectedElementSlotSelector elementId={selectedElementId} />
           </>
         )}
       </PanelContents>

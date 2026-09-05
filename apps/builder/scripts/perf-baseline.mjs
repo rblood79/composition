@@ -17,6 +17,8 @@
 //     [--actions panels,pages,select,edit,zoom] [--project-url <url>] [--headed]
 //   pnpm perf:baseline -- --lane frame [--duration-ms 3000] [--seed-count 60]
 //     [--selection-driver external-props|id-only] (기본 external-props: 기존 baseline 보존)
+//     [--save-storage-state <path>] (격리 프로젝트 IndexedDB 포함, 후속 persistent run용)
+//     [--pointer-exercise] (Skia canvas hit-test 실포인터 클릭 1회 + 선택 결과 기록)
 //     [--classes idle,pan,zoom,select,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
 //
 // 결과: <out>/leak-<ts>.json + stdout 마크다운 표. 판정 기준 (warm-up 제외):
@@ -29,6 +31,8 @@ import { chromium } from "playwright";
 const DEFAULTS = {
   baseUrl: "http://localhost:5173",
   storageState: resolve("apps/builder/scripts/.auth-session.json"),
+  saveStorageState: null,
+  pointerExercise: false,
   lane: "leak",
   cycles: 20,
   warmup: 5,
@@ -66,6 +70,8 @@ export function parseArgs(argv) {
     const next = argv[i + 1];
     if (value === "--base-url") options.baseUrl = next;
     else if (value === "--storage-state") options.storageState = resolve(next);
+    else if (value === "--save-storage-state")
+      options.saveStorageState = resolve(next);
     else if (value === "--lane") options.lane = next;
     else if (value === "--cycles") options.cycles = Number(next);
     else if (value === "--warmup") options.warmup = Number(next);
@@ -91,6 +97,9 @@ export function parseArgs(argv) {
       options.openPanels = next ? next.split(",").filter(Boolean) : [];
     else if (value === "--headed") {
       options.headed = true;
+      continue;
+    } else if (value === "--pointer-exercise") {
+      options.pointerExercise = true;
       continue;
     } else continue;
     i += 1;
@@ -348,6 +357,204 @@ async function seedDocument(page, seedCount) {
   );
 }
 
+async function expandLayerTreeRoot(page) {
+  const treeSelector = ".layer-tree--rac-virtualized";
+  const rowSelector = `${treeSelector} [role="row"]`;
+  const initialRows = await page.locator(rowSelector).count();
+  const expandButton = page
+    .locator(`${treeSelector} [role="row"]`)
+    .first()
+    .locator('button[aria-label^="Expand "]');
+  const clicked = (await expandButton.count()) > 0;
+  if (clicked) {
+    await expandButton.click();
+    await page.waitForFunction(
+      (selector) => document.querySelectorAll(selector).length > 1,
+      rowSelector,
+    );
+  }
+  const finalRows = await page.locator(rowSelector).count();
+  if (finalRows <= 1) {
+    throw new Error(
+      `LayerTree root expand 실패: initial=${initialRows}, final=${finalRows}`,
+    );
+  }
+  return { initialRows, finalRows, clicked };
+}
+
+async function runPointerSelectionExercise(page, targetId) {
+  // Production global shortcut으로 실제 viewport를 화면에 맞춘 뒤 같은 frame camera를
+  // 읽는다. 직접 store/module을 import하면 Vite HMR query가 다른 singleton을 만들 수 있다.
+  await page.keyboard.press("Meta+0");
+  await page.waitForTimeout(350);
+
+  const readProbe = () =>
+    page.evaluate((elementId) => {
+      const state = window.__composition_STORE__.getState();
+      const element = state.elementsMap.get(elementId);
+      const renderDebug = window.__composition_RENDER_COMMAND_DEBUG__;
+      const debug = renderDebug?.readNode(elementId);
+      const camera = renderDebug?.readCamera();
+      const canvas = document.querySelector('[data-canvas-container="true"]');
+      if (
+        !element ||
+        !debug?.available ||
+        !debug.hitBounds ||
+        !camera ||
+        !canvas
+      ) {
+        throw new Error("pointer exercise target bounds 없음");
+      }
+
+      const sceneX = debug.hitBounds.x + debug.hitBounds.width / 2;
+      const sceneY = debug.hitBounds.y + debug.hitBounds.height / 2;
+      const hitCandidates = debug.centerHitIds ?? [];
+      if (!hitCandidates.includes(elementId)) {
+        throw new Error(
+          `pointer exercise spatial miss: ${elementId} @ ${sceneX},${sceneY}`,
+        );
+      }
+
+      const rect = canvas.getBoundingClientRect();
+      if (!Number.isFinite(camera.zoom) || camera.zoom <= 0) {
+        throw new Error(`pointer exercise zoom invalid: ${camera.zoom}`);
+      }
+      const clientX = rect.left + sceneX * camera.zoom + camera.panX;
+      const clientY = rect.top + sceneY * camera.zoom + camera.panY;
+      const pointerSurface = document.elementFromPoint(clientX, clientY);
+      return {
+        targetId: elementId,
+        cameraSetup: "Meta+0",
+        hitCandidates,
+        sceneX,
+        sceneY,
+        zoom: camera.zoom,
+        canvasBounds: {
+          left: rect.left,
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+        },
+        panX: camera.panX,
+        panY: camera.panY,
+        clientX,
+        clientY,
+        surfaceTag: pointerSurface?.tagName ?? null,
+        surfaceClass:
+          pointerSurface instanceof HTMLElement
+            ? pointerSurface.className
+            : null,
+        surfaceCanvasContainer: Boolean(
+          pointerSurface?.closest('[data-canvas-container="true"]'),
+        ),
+      };
+    }, targetId);
+
+  let probe = await readProbe();
+  const panAdjustments = [];
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const safeBounds = {
+      left: probe.canvasBounds.left + 400,
+      right: probe.canvasBounds.right - 400,
+      top: probe.canvasBounds.top + 100,
+      bottom: probe.canvasBounds.bottom - 100,
+    };
+    if (
+      probe.clientX >= safeBounds.left &&
+      probe.clientX <= safeBounds.right &&
+      probe.clientY >= safeBounds.top &&
+      probe.clientY <= safeBounds.bottom &&
+      probe.surfaceCanvasContainer
+    ) {
+      break;
+    }
+
+    const start = {
+      x: (probe.canvasBounds.left + probe.canvasBounds.right) / 2,
+      y: (probe.canvasBounds.top + probe.canvasBounds.bottom) / 2,
+    };
+    const end = {
+      x: Math.max(
+        probe.canvasBounds.left + 100,
+        Math.min(
+          probe.canvasBounds.right - 100,
+          start.x + (start.x - probe.clientX),
+        ),
+      ),
+      y: Math.max(
+        probe.canvasBounds.top + 100,
+        Math.min(
+          probe.canvasBounds.bottom - 100,
+          start.y + (start.y - probe.clientY),
+        ),
+      ),
+    };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down({ button: "middle" });
+    await page.mouse.move(end.x, end.y, { steps: 8 });
+    await page.mouse.up({ button: "middle" });
+    panAdjustments.push({ start, end });
+    await page.waitForTimeout(250);
+    probe = await readProbe();
+  }
+
+  if (
+    probe.clientX < probe.canvasBounds.left ||
+    probe.clientX > probe.canvasBounds.right ||
+    probe.clientY < probe.canvasBounds.top ||
+    probe.clientY > probe.canvasBounds.bottom
+  ) {
+    throw new Error(
+      `pointer exercise point outside canvas: ${JSON.stringify(probe)}`,
+    );
+  }
+
+  await page.evaluate(() =>
+    window.__composition_STORE__.getState().setSelectedElement(null),
+  );
+  await page.waitForTimeout(100);
+  const beforeClickElementId = await page.evaluate(
+    () => window.__composition_STORE__.getState().selectedElementId,
+  );
+  if (beforeClickElementId !== null) {
+    throw new Error(`pointer exercise clear failed: ${beforeClickElementId}`);
+  }
+  const pointerTarget = await page.evaluate(({ clientX, clientY }) => {
+    const target = document.elementFromPoint(clientX, clientY);
+    return target
+      ? {
+          tagName: target.tagName,
+          className:
+            target instanceof HTMLElement ? target.className : undefined,
+          canvasContainer: Boolean(
+            target.closest('[data-canvas-container="true"]'),
+          ),
+        }
+      : null;
+  }, probe);
+  await page.mouse.click(probe.clientX, probe.clientY);
+  await page.waitForTimeout(250);
+  const actualElementId = await page.evaluate(
+    () => window.__composition_STORE__.getState().selectedElementId,
+  );
+  const result = {
+    ...probe,
+    panAdjustments,
+    pointerTarget,
+    actualElementId,
+    passed: actualElementId === targetId,
+  };
+  if (!result.passed) {
+    throw new Error(
+      `pointer exercise selection mismatch: ${JSON.stringify(result)}`,
+    );
+  }
+  await page.evaluate(() =>
+    window.__composition_STORE__.getState().setSelectedElement(null),
+  );
+  return result;
+}
+
 // ── actions (한 사이클 = 한 action 부류의 왕복) ───────────────────────────────
 const ACTIONS = {
   // 패널 토글 4개 off→on. Monitor/AI 는 자체 루프가 있어 제외.
@@ -385,7 +592,7 @@ const ACTIONS = {
       { other, home: ctx.homePageId },
     );
     await page.evaluate(() =>
-      window.__composition_STORE__.getState().clearSelection?.(),
+      window.__composition_STORE__.getState().setSelectedElement(null),
     );
   },
   select: async (page, ctx) => {
@@ -399,7 +606,7 @@ const ACTIONS = {
           s.setSelectedElement(id, el.props, el.props?.style ?? {}, {});
           await new Promise((r) => setTimeout(r, 40));
         }
-        store.getState().clearSelection?.();
+        store.getState().setSelectedElement(null);
       },
       { ids: ctx.seedIds },
     );
@@ -431,7 +638,7 @@ const ACTIONS = {
           await store.getState().undo();
           await new Promise((r) => setTimeout(r, 30));
         }
-        store.getState().clearSelection?.();
+        store.getState().setSelectedElement(null);
       },
       { id: ctx.seedIds[1] },
     );
@@ -440,7 +647,7 @@ const ACTIONS = {
   // 선택이 있으면 Phase E 가 휠을 scrollBy 로 삼키므로 먼저 clearSelection.
   zoom: async (page) => {
     await page.evaluate(async () => {
-      window.__composition_STORE__.getState().clearSelection?.();
+      window.__composition_STORE__.getState().setSelectedElement(null);
       const canvas = document.querySelector(
         '[data-testid="skia-canvas-unified"]',
       );
@@ -1110,7 +1317,7 @@ const wheelBurst = (page, durationMs, initFactory) =>
   page.evaluate(
     async ({ durationMs, initFactorySrc }) => {
       const initFactory = new Function("i", initFactorySrc);
-      window.__composition_STORE__.getState().clearSelection?.();
+      window.__composition_STORE__.getState().setSelectedElement(null);
       const canvas = document.querySelector(
         '[data-testid="skia-canvas-unified"]',
       );
@@ -1175,7 +1382,7 @@ export const FRAME_CLASSES = {
           }
           await new Promise((r) => setTimeout(r, 100));
         }
-        store.getState().clearSelection?.();
+        store.getState().setSelectedElement(null);
       },
       { ids: ctx.seedIds, ms, selectionDriver: ctx.selectionDriver },
     ),
@@ -1189,12 +1396,10 @@ export const FRAME_CLASSES = {
         const t0 = performance.now();
         let i = 0;
         while (performance.now() - t0 < ms) {
-          await store
-            .getState()
-            .updateElementProps(id, {
-              ...el.props,
-              style: { ...base, width: `${160 + (i++ % 5) * 4}px` },
-            });
+          await store.getState().updateElementProps(id, {
+            ...el.props,
+            style: { ...base, width: `${160 + (i++ % 5) * 4}px` },
+          });
           await new Promise((r) => setTimeout(r, 200));
         }
         await store
@@ -1236,7 +1441,7 @@ export const FRAME_CLASSES = {
           await new Promise((r) => setTimeout(r, 300));
         }
         store.getState().activatePage(home);
-        store.getState().clearSelection?.();
+        store.getState().setSelectedElement(null);
       },
       { pageIds: ctx.pageIds, home: ctx.homePageId, ms },
     ),
@@ -1285,7 +1490,7 @@ async function runFrameLane(page, seed, options) {
     const driver = FRAME_CLASSES[cls];
     if (!driver) throw new Error(`unknown class ${cls}`);
     await page.evaluate(() =>
-      window.__composition_STORE__.getState().clearSelection?.(),
+      window.__composition_STORE__.getState().setSelectedElement(null),
     );
     await page.waitForTimeout(500);
     await page.evaluate(
@@ -1398,27 +1603,65 @@ async function main() {
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}\n`,
     );
+    const layerTreeSetup = options.openPanels.includes("navigator")
+      ? await expandLayerTreeRoot(page)
+      : null;
+    if (layerTreeSetup) {
+      process.stderr.write(
+        `[layers] rows ${layerTreeSetup.initialRows} -> ${layerTreeSetup.finalRows}\n`,
+      );
+    }
     await page.waitForTimeout(1_500);
+    const pointerExercise = options.pointerExercise
+      ? await runPointerSelectionExercise(
+          page,
+          seed.seedIds[1] ?? seed.seedIds[0],
+        )
+      : null;
+    if (pointerExercise) {
+      process.stderr.write(
+        `[pointer] ${pointerExercise.targetId} selected via canvas hit-test\n`,
+      );
+    }
+    if (options.saveStorageState) {
+      await context.storageState({
+        path: options.saveStorageState,
+        indexedDB: true,
+      });
+      process.stderr.write(
+        `[storage] IndexedDB snapshot ${options.saveStorageState}\n`,
+      );
+    }
 
     if (options.lane === "frame") {
       const results = await runFrameLane(page, seed, options);
       const report = {
         lane: "frame",
         metricDefinitions: {
-          gapP50: "callback performance.now interval; first sample includes recorder startup wait",
-          dropPct: "callback interval >25ms percentage; legacy G1 metric, not presentation drops",
+          gapP50:
+            "callback performance.now interval; first sample includes recorder startup wait",
+          dropPct:
+            "callback interval >25ms percentage; legacy G1 metric, not presentation drops",
           rafTimestampGap: "RAF timestamp intervals; first callback excluded",
-          callbackDelay: "callback performance.now minus RAF timestamp; not input-to-presentation latency",
-          gapEvents: "callback or RAF interval >25ms; page performance time origin",
+          callbackDelay:
+            "callback performance.now minus RAF timestamp; not input-to-presentation latency",
+          gapEvents:
+            "callback or RAF interval >25ms; page performance time origin",
           layerTreeRows:
             '.layer-tree--rac-virtualized [role="row"] count at recording stop',
         },
         at: new Date().toISOString(),
         chrome: browser.version(),
         headless: !options.headed,
-        options: { ...options, storageState: "(redacted)" },
+        options: {
+          ...options,
+          storageState: "(redacted)",
+          saveStorageState: options.saveStorageState ? "(redacted)" : null,
+        },
         project: project.projectUrl,
         seed: { elements: seed.seedIds.length, pages: seed.pageIds.length },
+        layerTreeSetup,
+        pointerExercise,
         results,
         pageErrors,
         consoleErrors: consoleErrors.slice(0, 50),
@@ -1436,8 +1679,14 @@ async function main() {
       lane: "leak",
       at: new Date().toISOString(),
       chrome: browser.version(),
-      options: { ...options, storageState: "(redacted)" },
+      options: {
+        ...options,
+        storageState: "(redacted)",
+        saveStorageState: options.saveStorageState ? "(redacted)" : null,
+      },
       project: project.projectUrl,
+      layerTreeSetup,
+      pointerExercise,
       series: {},
     };
     for (const action of options.actions) {

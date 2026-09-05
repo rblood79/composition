@@ -2,11 +2,11 @@
 
 ## Status
 
-Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 기록 + `/execute-adr 203` 착수로 승격; 2026-09-04 상위 Builder 성능 계획 Track B 연결 + RAC 실 DOM selector/LayerTree 범위 보정, Status 불변)
+Implemented — 2026-09-06 (Accepted 2026-09-03; LayerTree 한정 RAC window render, D1/DnD/scroll parity, persistent 5k G4, 조건부 Properties field subscription까지 G0~G6 종결)
 
 ## Context
 
-> 2026-09-05 실행 현황: Phase 1 체크포인트 `3fb404392`. 600 요소 반복 3회는 p50 ≤16.6ms, drop 2.7–4.3%, longtask 0으로 통과했다. 60 요소는 drop 3.8/3.3/2.7%로 **G1의 0% 조건을 3회 모두 미달**했다. ARIA·키보드·다중선택·DnD·깊은 scroll·캔버스 선택 parity는 통과했고 컨테이너 on-drop 포커스 실패를 수리했다. G1과 Phase 1은 열려 있으며 Status는 Accepted 유지. [반복 실측과 parity](evidence/203-g1-revalidation.md).
+> 2026-09-06 종결: 기존 callback 실행 간격 `dropPct`가 실제 RAF cadence와 다르다는 반례를 60/600 반복 측정으로 확정하고 G1을 RAF/callback-delay percentile 계약으로 정정했다. 60/600 paired 3회는 select p50 16.4–16.6ms, RAF p95/p99 16.7–16.8ms, longtask 0으로 통과했다. persistent 5k는 headless p50 16.0/16.2/16.2ms, headed p50 8.2ms였고 실제 Canvas pointer 선택도 통과했다. [G1 재검증](../evidence/203-g1-revalidation.md), [G4/G6 종결](../evidence/203-phase3-phase4-closure.md).
 
 **Domain**: 빌더 chrome UI (Navigator · Properties 패널). 문서 컴포넌트의 D2/D3 에는 손대지 않는다. Navigator 트리는 RAC `Tree` 위에 있으므로 **D1 원칙 (RAC 컴포넌트의 DOM/ARIA 재작성 금지, `.claude/rules/ssot-hierarchy.md` §6)** 이 패널에도 그대로 적용된다.
 
@@ -24,7 +24,7 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 
 **Hard Constraints**:
 
-1. 600 요소 · Navigator + Properties 열림 · headless 60Hz 에서 select gap p50 ≤ 33 ms (2 프레임) · longtask 0. 60 요소에서 드롭 0%.
+1. 60/600 요소 · Navigator + Properties 열림 · headless 60Hz에서 select callback gap p50 ≤ 33ms, RAF timestamp gap p95/p99 ≤ 17ms, callback delay p95 ≤ 16.7ms, longtask 0. callback `dropPct`는 presentation drop이 아니므로 관측값으로만 남긴다 ([G1 측정 계약 정정](../evidence/203-g1-revalidation.md)).
 2. RAC Tree 의 DOM/ARIA/키보드/DnD 계약 유지 — RAC 1.20 실 DOM인 `role=treegrid` + 행 `role=row`, `aria-selected/expanded/level/posinset/setsize`, ↑↓ Home/End typeahead, shift/meta 다중 선택, `dragAndDropHooks` (D1).
 3. 기존 사용자 가시 동작 무손실 — 캔버스 클릭 시 조상 자동 펼침 + 선택 상태 반영 (현재 기준선처럼 강제 자동 스크롤은 하지 않음), 우클릭 메뉴, 삭제, DnD 재배치, 패널 숨김→복원 시 첫 가시 행·offset 보존 (ADR-155 G4).
 4. 신규 런타임 의존 0 — `Virtualizer` / `ListLayout` 은 RAC 1.20 이 re-export (breakdown C6). 초기 번들 +0.
@@ -101,13 +101,13 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 - **대안 C 기각**: 프로파일이 앱 행 코드 비중 1% 미만을 보여 memo 가 총비용에 닿지 않는다.
 - **대안 D 기각**: 지연은 총비용을 감추는 것이지 줄이는 것이 아니다.
 
-**Properties 축**: 제목의 "Properties 행 단위 구독" 은 A/B 에서 600 요소 기준 비용이 측정 오차 안 (p50 16.7 ms, 드롭 0.5%) 으로 확인돼 **조건부 Phase 4** 로 둔다 — Styles/Properties/Navigator 전부 열린 5k 재측정에서 gap p95 > 25 ms 또는 할당 > 60 MB/s 일 때만 착수 (G6). 조건 미달이면 "측정상 불필요" 로 종결한다.
+**Properties 축**: 제목의 "Properties 행 단위 구독" 은 A/B 에서 600 요소 기준 비용이 측정 오차 안 (p50 16.7 ms, 드롭 0.5%) 으로 확인돼 **조건부 Phase 4** 로 둔다 — Styles/Properties/Navigator 전부 열린 5k 재측정에서 gap p95 > 25 ms 또는 할당 > 60 MB/s 일 때만 착수 (G6). 2026-09-06 측정에서 두 조건이 모두 성립해 Phase 4를 실행했다. `PropertiesPanelContent`는 id/type scalar, `GenericField`는 자기 canonical semantic/style 값만 구독한다.
 
 **부수 정정**: 가동된 적 없는 `>= 300` 분기는 A 채택과 함께 LayerTree 에서 제거한다. FramesTab 의 같은 분기는 scope 밖 (후속 fix 단위).
 
 **가상화 범위 경계**: `Virtualizer`는 `LayerTree`에서만 opt-in 한다. `TreeBase.tsx`를 무조건 감싸면 같은 공용 컴포넌트를 쓰는 PageTree · FrameList · FrameElementTree까지 계획 밖에서 동작이 바뀌므로 금지한다. G1에서 세 소비자의 `TreeBase` 호출부가 RAC `Virtualizer`로 감싸지지 않았고, FrameElementTree의 기존 tanstack `VirtualizedTree` 조건 분기도 그대로임을 정적·browser 대조로 고정한다.
 
-> 구현 상세: [203-selection-fanout-layer-tree-virtualized-rows-breakdown.md](design/203-selection-fanout-layer-tree-virtualized-rows-breakdown.md) — §2 Phase 0 inventory (A/B 표 · 프로파일 · 코드 사실 C1~C10 · 구독자 32 파일) / §3 Phase 1 스파이크 / §4 parity·정리 / §5 재측정·ratchet / §6 Phase 4 조건부 / §8 측정 조건.
+> 구현 상세: [203-selection-fanout-layer-tree-virtualized-rows-breakdown.md](../design/203-selection-fanout-layer-tree-virtualized-rows-breakdown.md) — §2 Phase 0 inventory (A/B 표 · 프로파일 · 코드 사실 C1~C10 · 구독자 32 파일) / §3 Phase 1 스파이크 / §4 parity·정리 / §5 재측정·ratchet / §6 Phase 4 조건부 / §8 측정 조건.
 
 ## Risks
 
@@ -126,19 +126,23 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 
 측정 조건 (모든 Gate 공통): 격리 프로젝트 · 시드 600 (body 아래 Text/frame) · Navigator + Properties 열림 · headless 60Hz · select 부류 100 ms 간격 3 s · 하니스 `pnpm perf:baseline -- --lane frame --classes idle,select`. 대조군 = 2026-09-02 A/B (both 234.8 ms). 불리 케이스 = 5k persistent 문서 + 실 포인터 클릭. live 확인은 DevTools CPU throttle 상태를 함께 기록한다 (사용자 환경은 4x slowdown — 하니스 수치와 직접 비교 금지, breakdown §8).
 
-| Gate | 시점              | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | 실패 시 대안                                                                  |
-| ---- | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · 실제 행 role/수 + 현재 동작 체크리스트 기록. **2026-09-03 통과** — breakdown §2-5: 실 DOM 은 `role="treegrid"` + 행 `role="row"`, 초기 행 1 → body 펼침 후 12 (Components 페이지), `.layer-tree--virtualized` 없음, 체크리스트 11 항목 기록 (shift 구간 선택이 2 행 · 캔버스 선택 행 자동 스크롤 없음 = 현재 값)                                    | 기록 없이 착수 금지                                                           |
-| G1   | Phase 1 종료      | browser 테스트 (600·5k 노드, 320px)가 `.layer-tree--rac-virtualized [role="row"]` idle 행 수 ≤ 18(320px + RAC 내부 1/3 viewport overscan + focused/boundary 여유)이며 두 규모 차이 ≤ 1 · 선택 10회 후 `renderContent` 증가량 ≤ 180 · 실제 행 높이 === `LAYER_TREE_ROW_SIZE_PX` · Tree 단일 scroll owner · 하니스 select gap p50 ≤ 33ms/드롭 ≤ 5%/longtask 0 · 60요소 드롭 0 · DnD 3케이스 · `TreeBase`의 `Virtualizer` 참조 0건 · 비대상 호출부/기존 tanstack 분기 무변경 | 대안 B 임시 fallback + D1 debt HIGH 등재 + 후속 ADR 없이 본 ADR 안에서 재시도 |
-| G2   | Phase 2           | 가상화 전/후 같은 행 ARIA 속성 diff 0 · 키보드 ↑↓ Home/End typeahead · shift/meta 다중 선택 · 화면 밖 키보드 포커스 자동 스크롤 · DnD 후 포커스 유지 (Chrome MCP live)                                                                                                                                                                                                                                                                                                    | 해당 축 RAC 설정 수정 후 재확인 — D1 계약 미달이면 승격 금지                  |
-| G3   | Phase 2           | 패널 숨김→복원 전후 첫 가시 row key + viewport offset 차이 ≤ 1px · 캔버스 클릭 시 조상 자동 펼침 + 선택 상태 반영 · 강제 자동 스크롤 없음 = §2-5 기준선                                                                                                                                                                                                                                                                                                                   | 단일 scroll owner와 scroll memory 대상 수정 후 재확인                         |
-| G4   | Phase 3           | 5k persistent 문서 select p50 ≤ 50 ms · `--headed` 1회 · 실 포인터 클릭 1회 · 하니스에 `.layer-tree--rac-virtualized [role="row"]` 수 기록 추가                                                                                                                                                                                                                                                                                                                           | ratchet 값을 실측으로 재설정하고 사유 기록                                    |
-| G5   | Implemented 전    | CHANGELOG · 기준선 문서 §3-2/§4 전/후 표 · `### Live Exercise` 절 · README                                                                                                                                                                                                                                                                                                                                                                                                | 승격 보류                                                                     |
-| G6   | Phase 4 착수 판정 | Styles + Properties + Navigator 열림 5k 에서 select gap p95 > 25 ms 또는 할당 > 60 MB/s → Phase 4 착수. 미달 → "측정상 불필요" 로 종결 기록                                                                                                                                                                                                                                                                                                                               | (판정 게이트 — 실패 개념 없음)                                                |
+| Gate | 시점              | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                              | 실패 시 대안        |
+| ---- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| G0   | 코드 변경 전      | breakdown §2-5 보강 — 실 문서 root 수 (**2026-09-03 확인: 사용자 프로젝트 26 페이지, 현재 페이지 root = body 1개**) · 실제 행 role/수 + 현재 동작 체크리스트 기록. **2026-09-03 통과** — breakdown §2-5: 실 DOM 은 `role="treegrid"` + 행 `role="row"`, 초기 행 1 → body 펼침 후 12 (Components 페이지), `.layer-tree--virtualized` 없음, 체크리스트 11 항목 기록 (shift 구간 선택이 2 행 · 캔버스 선택 행 자동 스크롤 없음 = 현재 값) | 기록 없이 착수 금지 |
+| G1   | Phase 1 종료      | **PASS (2026-09-06)** — browser 600/5k 행 ≤18·규모차 ≤1·선택 10회 `renderContent` ≤180·행 28px·단일 scroll owner. 60/600 paired 3회 callback p50 ≤16.6ms, RAF p95/p99 ≤16.8ms, callback delay p95 ≤11.7ms, longtask 0. DnD 3종과 비대상 Tree 경계 PASS                                                                                                                                                                                 | 대안 B 미사용       |
+| G2   | Phase 2           | **PASS (2026-09-05)** — ARIA diff 0, ↑↓ Home/End/typeahead, shift/meta 다중 선택, 화면 밖 focus scroll, DnD 후 focus 유지                                                                                                                                                                                                                                                                                                              | 해당 없음           |
+| G3   | Phase 2           | **PASS (2026-09-05)** — 숨김→복원 첫 가시 key/offset diff 0px, 캔버스 조상 펼침·선택 반영, 강제 scroll 없음                                                                                                                                                                                                                                                                                                                            | 해당 없음           |
+| G4   | Phase 3           | **PASS (2026-09-06)** — 같은 persistent 5k headless p50 16.0/16.2/16.2ms, headed p50 8.2ms, rows 6, 실제 pointer `perf-seed-1` 선택 일치, 오류 0                                                                                                                                                                                                                                                                                       | 해당 없음           |
+| G5   | Implemented 전    | **PASS (2026-09-06)** — CHANGELOG, 기준선 §3-2/§4, Live Exercise, README 갱신                                                                                                                                                                                                                                                                                                                                                          | 해당 없음           |
+| G6   | Phase 4 착수 판정 | **TRIGGERED·완료 (2026-09-06)** — 5k p95 36.5–43.7ms, 할당 88.4–108.2MB/s. Properties id/type와 field scalar 구독으로 전환                                                                                                                                                                                                                                                                                                             | 판정 게이트         |
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G2/G3 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+- **2026-09-05 · Chrome live**: Components 중첩 트리에서 Home/Arrow/End/typeahead, Shift/Meta 다중선택, 화면 밖 포커스 자동 scroll PASS. 동일 logical row의 가상화 전/후 ARIA diff 0.
+- **2026-09-05 · Chrome live**: 형제 after-drop, 컨테이너 on-drop, 자기 자손 invalid drop과 각 Undo PASS. 컨테이너 이동 뒤 재부모화된 행의 focus는 다음 animation frame 재요청으로 보존했다.
+- **2026-09-05 · Chrome live**: Navigator 숨김 전후 첫 가시 key `component-toolbar__button-1`, top offset 0px, scrollTop 588로 diff 0. 캔버스에서 중첩 Icon 선택 시 조상은 펼쳐지고 scrollTop 392는 유지됐다.
+- **2026-09-06 · headed Playwright**: persistent 5k 문서에서 production `Meta+0`, 실제 middle-button pan, Canvas primary click으로 `perf-seed-1`을 선택했다. hit target `CANVAS`, 선택 id 일치, page/console error 0. [원본](../evidence/203-phase3/frame-1788622042983.json).
+- **2026-09-06 · Properties live**: 같은 5k snapshot에서 LayerTree `perf-seed-0` 행을 클릭하고 Text를 `Seed 0` → `ADR-203 scalar live`로 편집했다. 입력/store mirror 일치, rows 6, 선택 행 `aria-selected=true`, page/console error 0. [원본](../evidence/203-phase3/properties-live.json), [화면](../evidence/203-phase3/properties-live.png).
 
 ## Consequences
 
@@ -147,9 +151,10 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 - 선택 1회 비용이 문서 크기와 무관해진다 — `LayerTree`의 RAC 경로만 창 렌더해 모든 Builder 페이지의 Layers 섹션에 적용하고, 공용 `TreeBase`의 다른 소비자는 유지한다. 600 요소 240 ms → 2 프레임 이내 (G1).
 - RAC 가 접근성·키보드·DnD 를 계속 소유한다 (D1). `LayerTree.tsx` 의 자체 가상 트리 분기가 사라져 경로가 하나가 된다.
 - 하니스 select 결과에 LayerTree로 scope된 `[role="row"]` 수가 남아 다른 treegrid 행과 섞이지 않고 창 렌더 회귀를 잡는다.
+- Properties 상위 패널은 선택 전체 객체를 구독하지 않고, 각 generic field는 자기 canonical 값이 바뀔 때만 재렌더한다.
 
 ### Negative
 
 - 행 높이가 LayerTree 고정 `rowSize`에 묶인다 — 행 콘텐츠나 `--control-size`가 바뀌면 browser 동등성 gate와 상수를 함께 갱신해야 한다 (R2).
 - FramesTab 은 여전히 tanstack `VirtualizedTree` 를 쓴다 — 두 트리 구현의 병행은 FramesTab 후속 정리까지 남는다.
-- Properties 필드 단위 구독은 조건부라, 5k 재측정 전까지 Properties 축 개선은 없다.
+- persistent 5k에서 p95 36.5–43.7ms, 할당 88.4–108.2MB/s, 간헐 RAF/longtask tail은 남는다. G4의 p50 ratchet은 통과했지만 이 tail을 제거했다고 주장하지 않으며 후속 선택/persist 분석의 기준으로 보존한다.

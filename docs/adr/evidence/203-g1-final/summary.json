@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-06",
+  "environment": {
+    "chrome": "152.0.7977.82",
+    "headless": true,
+    "viewport": "1440x900",
+    "durationMsPerClass": 3000,
+    "classes": ["idle", "select"],
+    "selectionDriver": "external-props",
+    "openPanels": ["navigator", "properties"],
+    "layerTreeRows": 6
+  },
+  "gateContract": {
+    "callbackGapP50MaxMs": 33,
+    "rafTimestampGapP95MaxMs": 17,
+    "rafTimestampGapP99MaxMs": 17,
+    "callbackDelayP95MaxMs": 16.7,
+    "longTasks": 0
+  },
+  "runs": [
+    {
+      "file": "frame-1788622153403.json",
+      "seedCount": 60,
+      "callbackGapP50": 16.4,
+      "legacyDropPct": 3.8,
+      "rafP95": 16.8,
+      "rafP99": 16.8,
+      "rafMax": 16.8,
+      "rafOver25": 0,
+      "callbackDelayP95": 6.5,
+      "callbackDelayMax": 16.7,
+      "longTasks": 0
+    },
+    {
+      "file": "frame-1788622172958.json",
+      "seedCount": 60,
+      "callbackGapP50": 16.6,
+      "legacyDropPct": 6.0,
+      "rafP95": 16.8,
+      "rafP99": 16.8,
+      "rafMax": 16.8,
+      "rafOver25": 0,
+      "callbackDelayP95": 9.4,
+      "callbackDelayMax": 17.1,
+      "longTasks": 0
+    },
+    {
+      "file": "frame-1788622192295.json",
+      "seedCount": 60,
+      "callbackGapP50": 16.6,
+      "legacyDropPct": 6.0,
+      "rafP95": 16.7,
+      "rafP99": 16.8,
+      "rafMax": 33.3,
+      "rafOver25": 1,
+      "callbackDelayP95": 10.6,
+      "callbackDelayMax": 20.7,
+      "longTasks": 0
+    },
+    {
+      "file": "frame-1788622226510.json",
+      "seedCount": 600,
+      "callbackGapP50": 16.6,
+      "legacyDropPct": 4.4,
+      "rafP95": 16.7,
+      "rafP99": 16.8,
+      "rafMax": 16.8,
+      "rafOver25": 0,
+      "callbackDelayP95": 7.7,
+      "callbackDelayMax": 19.2,
+      "longTasks": 0
+    },
+    {
+      "file": "frame-1788622247129.json",
+      "seedCount": 600,
+      "callbackGapP50": 16.6,
+      "legacyDropPct": 7.1,
+      "rafP95": 16.7,
+      "rafP99": 16.8,
+      "rafMax": 16.8,
+      "rafOver25": 0,
+      "callbackDelayP95": 11.4,
+      "callbackDelayMax": 28.7,
+      "longTasks": 0
+    },
+    {
+      "file": "frame-1788622268377.json",
+      "seedCount": 600,
+      "callbackGapP50": 16.6,
+      "legacyDropPct": 7.1,
+      "rafP95": 16.7,
+      "rafP99": 16.8,
+      "rafMax": 16.8,
+      "rafOver25": 0,
+      "callbackDelayP95": 11.7,
+      "callbackDelayMax": 19.8,
+      "longTasks": 0
+    }
+  ],
+  "result": "PASS"
+}

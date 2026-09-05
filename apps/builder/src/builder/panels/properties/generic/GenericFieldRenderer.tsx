@@ -39,6 +39,7 @@ import {
   TEMPLATE_TEXT_KEYS,
   useOwnerCollectionColumns,
 } from "../hooks/useOwnerCollectionColumns";
+import { useCanonicalPropertyValue } from "../hooks/useCanonicalPropertyRead";
 
 /**
  * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
@@ -87,19 +88,74 @@ function capitalize(s: string): string {
   return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-/** 단일 필드 — kind switch + origin 라우팅. */
+interface GenericFieldProps extends GenericFieldRouting {
+  field: ResolvedField;
+  /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
+  ownerColumns?: string[] | null;
+}
+
+function areOptionsEqual(
+  previous: ResolvedField["options"],
+  next: ResolvedField["options"],
+): boolean {
+  if (previous === next) return true;
+  if (!previous || !next || previous.length !== next.length) return false;
+  return previous.every(
+    (option, index) =>
+      option.value === next[index]?.value &&
+      option.label === next[index]?.label,
+  );
+}
+
+function areStringArraysEqual(
+  previous: string[] | null | undefined,
+  next: string[] | null | undefined,
+): boolean {
+  if (previous === next) return true;
+  if (!previous || !next || previous.length !== next.length) return false;
+  return previous.every((value, index) => value === next[index]);
+}
+
+/** currentValue/isOverridden는 leaf hook이 소유하므로 field metadata만 비교한다. */
+function areGenericFieldPropsEqual(
+  previous: GenericFieldProps,
+  next: GenericFieldProps,
+): boolean {
+  const a = previous.field;
+  const b = next.field;
+  return (
+    previous.elementId === next.elementId &&
+    previous.onSemanticUpdate === next.onSemanticUpdate &&
+    previous.onStyleUpdate === next.onStyleUpdate &&
+    areStringArraysEqual(previous.ownerColumns, next.ownerColumns) &&
+    a.key === b.key &&
+    a.kind === b.kind &&
+    a.label === b.label &&
+    a.section === b.section &&
+    a.origin === b.origin &&
+    Object.is(a.baseValue, b.baseValue) &&
+    a.min === b.min &&
+    a.max === b.max &&
+    a.step === b.step &&
+    areOptionsEqual(a.options, b.options) &&
+    a.itemsManager === b.itemsManager
+  );
+}
+
+/** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 const GenericField = memo(function GenericField({
   field,
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
   ownerColumns,
-}: {
-  field: ResolvedField;
-  /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
-  ownerColumns?: string[] | null;
-} & GenericFieldRouting) {
-  const value = field.currentValue;
+}: GenericFieldProps) {
+  const value = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    field.key,
+    field.baseValue,
+  );
   // origin 단일 진실로 write 분기 (semantic → props / style → props.style).
   const update = (v: unknown) => {
     if (field.origin === "style") onStyleUpdate(field.key, v);
@@ -254,7 +310,7 @@ const GenericField = memo(function GenericField({
     default:
       return null;
   }
-});
+}, areGenericFieldPropsEqual);
 
 /**
  * ResolvedField[] → section 그룹 + kind dispatch 렌더.

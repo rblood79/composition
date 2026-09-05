@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-06",
+  "environment": {
+    "chrome": "152.0.7977.82",
+    "viewport": "1440x900",
+    "persistentProject": true,
+    "seedCount": 5000,
+    "pages": 2,
+    "selectionDriver": "external-props",
+    "openPanels": ["navigator", "properties", "styles"],
+    "layerTreeRows": 6
+  },
+  "headlessRuns": [
+    {
+      "file": "frame-1788621959629.json",
+      "callbackGapP50": 16.0,
+      "callbackGapP95": 41.4,
+      "allocMBps": 93.2,
+      "rafP95": 16.8,
+      "rafMax": 50.0,
+      "rafOver25": 3,
+      "callbackDelayP95": 25.7,
+      "longTasks": 1,
+      "longTaskMs": 67
+    },
+    {
+      "file": "frame-1788621979504.json",
+      "callbackGapP50": 16.2,
+      "callbackGapP95": 43.7,
+      "allocMBps": 108.2,
+      "rafP95": 16.8,
+      "rafMax": 66.7,
+      "rafOver25": 5,
+      "callbackDelayP95": 28.1,
+      "longTasks": 1,
+      "longTaskMs": 70
+    },
+    {
+      "file": "frame-1788621998391.json",
+      "callbackGapP50": 16.2,
+      "callbackGapP95": 43.1,
+      "allocMBps": 88.4,
+      "rafP95": 16.8,
+      "rafMax": 49.9,
+      "rafOver25": 9,
+      "callbackDelayP95": 27.8,
+      "longTasks": 1,
+      "longTaskMs": 66
+    }
+  ],
+  "headedRun": {
+    "file": "frame-1788622023813.json",
+    "callbackGapP50": 8.2,
+    "callbackGapP95": 36.5,
+    "allocMBps": 104.0,
+    "rafP95": 25.0,
+    "rafMax": 75.0,
+    "rafOver25": 15,
+    "callbackDelayP95": 28.5,
+    "longTasks": 1,
+    "longTaskMs": 75
+  },
+  "pointerExercise": {
+    "file": "frame-1788622042983.json",
+    "targetId": "perf-seed-1",
+    "actualElementId": "perf-seed-1",
+    "clientX": 720.0000054960567,
+    "clientY": 450.0000031819275,
+    "surface": "CANVAS",
+    "passed": true,
+    "pageErrors": 0,
+    "consoleErrors": 0
+  },
+  "propertiesLive": {
+    "file": "properties-live.json",
+    "targetId": "perf-seed-0",
+    "beforeValue": "Seed 0",
+    "afterValue": "ADR-203 scalar live",
+    "legacyMirrorValue": "ADR-203 scalar live",
+    "layerTreeRows": 6,
+    "selectedRowAria": "true",
+    "pageErrors": 0,
+    "consoleErrors": 0,
+    "passed": true
+  },
+  "g4": "PASS",
+  "g6": "TRIGGERED_AND_IMPLEMENTED",
+  "residual": "5k p95, allocation, and intermittent RAF/longtask tail remain observable"
+}

@@ -9,8 +9,10 @@ import {
   useCanonicalPropertyChildren,
   useCanonicalPropertyChildrenMap,
   useCanonicalPropertyElement,
+  useCanonicalPropertyElementType,
   useCanonicalPropertyElements,
   useCanonicalPropertyElementsMap,
+  useCanonicalPropertyValue,
 } from "./useCanonicalPropertyRead";
 
 function makeDoc(children: CanonicalNode[]): CompositionDocument {
@@ -124,6 +126,120 @@ describe("useCanonicalPropertyElement", () => {
     );
 
     expect(result.current).toBeUndefined();
+  });
+});
+
+describe("canonical property scalar reads", () => {
+  it("선택 타입은 ref 원본 타입으로 해소하고 unrelated document 갱신에는 재렌더하지 않는다", () => {
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument(
+      "project-1",
+      makeDoc([
+        {
+          id: "button-origin",
+          type: "Button",
+          reusable: true,
+          props: { children: "Origin" },
+        },
+        {
+          id: "button-instance",
+          type: "ref",
+          ref: "button-origin",
+          props: { children: "Instance" },
+        },
+        { id: "other", type: "Text", props: { children: "Before" } },
+      ] as CanonicalNode[]),
+    );
+    store.setCurrentProject("project-1");
+
+    let renderCount = 0;
+    const { result } = renderHook(() => {
+      renderCount += 1;
+      return useCanonicalPropertyElementType("button-instance");
+    });
+
+    expect(result.current).toBe("Button");
+    expect(renderCount).toBe(1);
+
+    act(() => {
+      useCanonicalDocumentStore.getState().setDocument(
+        "project-1",
+        makeDoc([
+          {
+            id: "button-origin",
+            type: "Button",
+            reusable: true,
+            props: { children: "Origin" },
+          },
+          {
+            id: "button-instance",
+            type: "ref",
+            ref: "button-origin",
+            props: { children: "Instance" },
+          },
+          { id: "other", type: "Text", props: { children: "After" } },
+        ] as CanonicalNode[]),
+      );
+    });
+
+    expect(result.current).toBe("Button");
+    expect(renderCount).toBe(1);
+  });
+
+  it("semantic/style 필드가 자기 값 변경에만 반응하고 미정의 값은 계약 base로 복귀한다", () => {
+    const store = useCanonicalDocumentStore.getState();
+    store.setDocument(
+      "project-1",
+      makeDoc([
+        {
+          id: "selected",
+          type: "Button",
+          props: { children: "Before", style: { opacity: 0.5 } },
+        },
+        { id: "other", type: "Text", props: { children: "Other" } },
+      ] as CanonicalNode[]),
+    );
+    store.setCurrentProject("project-1");
+
+    let semanticRenderCount = 0;
+    let styleRenderCount = 0;
+    const semantic = renderHook(() => {
+      semanticRenderCount += 1;
+      return useCanonicalPropertyValue(
+        "selected",
+        "semantic",
+        "children",
+        "Base",
+      );
+    });
+    const style = renderHook(() => {
+      styleRenderCount += 1;
+      return useCanonicalPropertyValue("selected", "style", "opacity", 1);
+    });
+
+    expect(semantic.result.current).toBe("Before");
+    expect(style.result.current).toBe(0.5);
+
+    act(() => {
+      useCanonicalDocumentStore.getState().updateNodeProps("other", {
+        children: "Changed",
+      });
+    });
+
+    expect(semanticRenderCount).toBe(1);
+    expect(styleRenderCount).toBe(1);
+
+    act(() => {
+      useCanonicalDocumentStore.getState().updateNodeProps("selected", {
+        children: "After",
+        style: undefined,
+      });
+    });
+
+    expect(semantic.result.current).toBe("After");
+    expect(style.result.current).toBe(1);
+    expect(semanticRenderCount).toBe(2);
+    expect(styleRenderCount).toBe(2);
   });
 });
 

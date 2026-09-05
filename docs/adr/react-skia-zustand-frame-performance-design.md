@@ -17,7 +17,7 @@
 | [상위 성능 계획 §4-1](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md)           | Track A(cold first-frame), Track B(Navigator 선택), Track C(edit 등) 순서를 유지. 본 문서는 공통 프레임 기반의 준비와 조건부 실행을 구체화하며 우선순위를 대체하지 않는다. |
 | [ADR-167](../adr/completed/167-on-demand-frame-loop.md)                                   | Deprecated. 당시 idle 6.7ms/s, 코어 0.67%로 기각. 저사양 실측 idle 코어 3% 이상이라는 재개 조건을 P2 입구에 적용한다.                                                      |
 | [ADR-187](../adr/completed/187-editor-presentation-transaction-and-typed-invalidation.md) | Implemented. presentation transaction, typed invalidation, commit handoff를 재사용한다. 새 domain/presentation store를 병렬로 만들지 않는다.                               |
-| [ADR-203](../adr/203-selection-fanout-layer-tree-virtualized-rows.md)                     | Accepted. LayerTree 가상화와 Properties 조건부 구독 변경은 해당 ADR 소관. 본 문서에서 패널 전체 구독 재설계를 시작하지 않는다.                                             |
+| [ADR-203](../adr/completed/203-selection-fanout-layer-tree-virtualized-rows.md)           | Implemented 2026-09-06. LayerTree 가상화와 Properties 조건부 구독 변경은 해당 ADR 소관. 본 문서에서 패널 전체 구독 재설계를 시작하지 않는다.                               |
 
 즉시 범위는 Skia 프레임 비용 계측, 캐시 입력 계약, wake 경계 조사다. schema/DB 변경, canonical migration 전수 정리, Worker/OffscreenCanvas, CanvasKit 교체, 시각 스타일 변경, Monitor 패널 신설은 제외한다. cold font/paragraph prewarm은 Track A에서 처리하고 본 측정에는 별도 cold 지표로 남긴다.
 

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Navigator 선택 fan-out 제거 — ADR-203 Implemented] - 2026-09-06
+
+### Performance
+
+- **ADR-203 Implemented — LayerTree 창 렌더와 Properties 필드 구독**:
+  - Navigator에서 요소를 고를 때 문서 크기만큼 트리가 다시 그려지던 비용을 가시 행만 그리도록 바꿨습니다. 600요소 선택 p50은 약 240ms에서 16.6ms로 줄었고 longtask는 0입니다.
+  - **Why:** 가상화 분기가 root 개수(실문서는 body 1개)를 보고 한 번도 켜지지 않았고, RAC Tree는 선택마다 전체 행을 재렌더했습니다. 앱 행 memo로는 닿지 않아 LayerTree만 RAC `Virtualizer` + `ListLayout`으로 창을 그립니다.
+  - Properties는 선택 객체 전체가 아니라 id/type과 각 필드의 canonical 값만 구독합니다. 5k에서 G6가 켜져 Phase 4를 실행했습니다.
+  - persistent 5k headless p50 16.0/16.2/16.2ms, headed 8.2ms. 실제 Canvas pointer로 `perf-seed-1` 선택이 맞았습니다. p95·할당 tail은 남아 있어 제거 완료로 읽지 않습니다.
+  - 위치: `apps/builder/src/builder/panels/navigator/`, `apps/builder/src/builder/panels/properties/`
+  - Live Exercise: ADR 본문 `### Live Exercise` — Chrome 키보드/DnD/숨김복원, headed Playwright pointer.
+
 ## [Navigator 선택 성능 — ADR-203 Phase 1 스파이크] - 2026-09-05
 
 ### Performance
