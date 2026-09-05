@@ -1,0 +1,181 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-09-05",
+  "checkpointCommit": "3fb404392",
+  "environment": {
+    "chrome": "152.0.7977.82",
+    "headless": true,
+    "viewport": "1440x900",
+    "baseUrl": "http://localhost:5173",
+    "durationMs": 3000,
+    "nominalRefreshHz": 60,
+    "selectionIntervalMs": 100,
+    "selectionDriver": "external-props",
+    "openPanels": ["navigator", "properties"]
+  },
+  "metricDefinitions": {
+    "dropPct": "RAF callback performance.now interval >25ms percentage; legacy G1 metric, not presentation drops",
+    "rafOver": "RAF timestamp interval >25ms count; first callback excluded",
+    "callbackDelay": "callback performance.now minus RAF timestamp; not input-to-presentation latency"
+  },
+  "runs": [
+    {
+      "id": "60-external-1",
+      "seedCount": 60,
+      "gapP50": 16.5,
+      "gapP95": 22.6,
+      "gapP99": 27.0,
+      "gapMax": 27.6,
+      "dropPct": 3.8,
+      "longTasks": 0,
+      "allocMBps": 40.8,
+      "gcCount": 5,
+      "rafMax": 16.8,
+      "rafOver": 0,
+      "callbackDelayP95": 6.7,
+      "callbackDelayMax": 16.3,
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "sourceFile": "g1-60-1.json"
+    },
+    {
+      "id": "60-external-2",
+      "seedCount": 60,
+      "gapP50": 16.6,
+      "gapP95": 23.0,
+      "gapP99": 26.1,
+      "gapMax": 30.4,
+      "dropPct": 3.3,
+      "longTasks": 0,
+      "allocMBps": 40.2,
+      "gcCount": 5,
+      "rafMax": 16.8,
+      "rafOver": 0,
+      "callbackDelayP95": 7.7,
+      "callbackDelayMax": 21.1,
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "sourceFile": "g1-60-2.json"
+    },
+    {
+      "id": "60-external-3",
+      "seedCount": 60,
+      "gapP50": 16.6,
+      "gapP95": 22.3,
+      "gapP99": 26.1,
+      "gapMax": 30.4,
+      "dropPct": 2.7,
+      "longTasks": 0,
+      "allocMBps": 41.7,
+      "gcCount": 5,
+      "rafMax": 16.8,
+      "rafOver": 0,
+      "callbackDelayP95": 6.8,
+      "callbackDelayMax": 20.2,
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "sourceFile": "g1-60-3.json"
+    },
+    {
+      "id": "600-external-1",
+      "seedCount": 600,
+      "gapP50": 16.6,
+      "gapP95": 23.5,
+      "gapP99": 27.0,
+      "gapMax": 32.9,
+      "dropPct": 2.7,
+      "longTasks": 0,
+      "allocMBps": 48.2,
+      "gcCount": 6,
+      "rafMax": 16.8,
+      "rafOver": 0,
+      "callbackDelayP95": 7.8,
+      "callbackDelayMax": 17.9,
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "sourceFile": "g1-600-1.json"
+    },
+    {
+      "id": "600-external-2",
+      "seedCount": 600,
+      "gapP50": 16.5,
+      "gapP95": 22.2,
+      "gapP99": 29.4,
+      "gapMax": 32.9,
+      "dropPct": 2.7,
+      "longTasks": 0,
+      "allocMBps": 48.0,
+      "gcCount": 6,
+      "rafMax": 16.8,
+      "rafOver": 0,
+      "callbackDelayP95": 7.5,
+      "callbackDelayMax": 24.1,
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "sourceFile": "g1-600-2.json"
+    },
+    {
+      "id": "600-external-3",
+      "seedCount": 600,
+      "gapP50": 16.6,
+      "gapP95": 23.8,
+      "gapP99": 27.1,
+      "gapMax": 33.9,
+      "dropPct": 4.3,
+      "longTasks": 0,
+      "allocMBps": 45.7,
+      "gcCount": 6,
+      "rafMax": 16.8,
+      "rafOver": 0,
+      "callbackDelayP95": 8.2,
+      "callbackDelayMax": 18.7,
+      "pageErrors": 0,
+      "consoleErrors": 0,
+      "sourceFile": "g1-600-3.json"
+    }
+  ],
+  "browserTests": {
+    "command": "pnpm --filter @composition/builder exec vitest run --config vitest.navigator.config.ts",
+    "files": 1,
+    "tests": 4,
+    "passed": 4,
+    "ariaDiff": 0
+  },
+  "live": {
+    "keyboard": "PASS",
+    "multiSelection": "PASS",
+    "deepScrollRestore": {
+      "result": "PASS",
+      "before": {
+        "firstVisibleKey": "component-toolbar__button-1",
+        "topOffset": 0,
+        "scrollTop": 588
+      },
+      "after": {
+        "firstVisibleKey": "component-toolbar__button-1",
+        "topOffset": 0,
+        "scrollTop": 588
+      }
+    },
+    "dnd": {
+      "afterDrop": "PASS",
+      "containerOnDrop": "PASS after deferred focus repair",
+      "descendantInvalidDrop": "PASS",
+      "undoRestore": "PASS"
+    },
+    "canvasSelection": {
+      "result": "PASS",
+      "selectedKey": "component-menu-item-default__icon",
+      "ancestorExpanded": true,
+      "scrollTopBefore": 392,
+      "scrollTopAfter": 392
+    }
+  },
+  "gate": {
+    "g1": "FAIL",
+    "reason": "All three 60-element runs missed the required 0% callback drop condition. All three 600-element runs met p50 <=33ms, drop <=5%, and longtask 0.",
+    "g2ParityEvidence": "PASS",
+    "g3ParityEvidence": "PASS",
+    "adrStatus": "Accepted"
+  }
+}

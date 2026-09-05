@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import type { Key } from "react-stately";
 
 interface FocusManagementOptions {
@@ -6,6 +6,8 @@ interface FocusManagementOptions {
   nodeMap: Map<string, { parentId: string | null; children?: unknown[] }>;
   /** 선택 변경 콜백 */
   onSelectionChange?: (keys: Set<Key>) => void;
+  /** 재부모화 DOM 반영 뒤 DnD 포커스를 적용해야 하는 가상화 경로 */
+  deferMoveFocusUntilLayout?: boolean;
 }
 
 interface FocusManagementResult {
@@ -34,15 +36,38 @@ interface FocusManagementResult {
 export function useFocusManagement({
   nodeMap,
   onSelectionChange,
+  deferMoveFocusUntilLayout = false,
 }: FocusManagementOptions): FocusManagementResult {
   const [focusedKey, setFocusedKey] = useState<Key | null>(null);
+  const pendingFocusFrameRef = useRef<number | null>(null);
 
-  // 포커스 예약 (다음 마이크로태스크에서 실행)
   const scheduleFocus = useCallback((key: Key | null) => {
     queueMicrotask(() => {
       setFocusedKey(key);
     });
   }, []);
+
+  // DnD 재부모화가 DOM에 반영되고 RAC의 drop 대상 포커스가 끝난 뒤 실행한다.
+  // 먼저 null로 비워 같은 행을 연속 이동해도 다음 포커스 요청을 다시 전달한다.
+  const scheduleFocusAfterLayout = useCallback((key: Key) => {
+    setFocusedKey(null);
+    if (pendingFocusFrameRef.current !== null) {
+      cancelAnimationFrame(pendingFocusFrameRef.current);
+    }
+    pendingFocusFrameRef.current = requestAnimationFrame(() => {
+      pendingFocusFrameRef.current = null;
+      setFocusedKey(key);
+    });
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (pendingFocusFrameRef.current !== null) {
+        cancelAnimationFrame(pendingFocusFrameRef.current);
+      }
+    },
+    [],
+  );
 
   // DnD 완료 후 포커스 처리
   const handleAfterMove = useCallback(
@@ -50,10 +75,14 @@ export function useFocusManagement({
       // 이동된 노드들 중 첫 번째로 포커스 유지
       const firstKey = [...movedKeys][0];
       if (firstKey) {
-        scheduleFocus(firstKey);
+        if (deferMoveFocusUntilLayout) {
+          scheduleFocusAfterLayout(firstKey);
+        } else {
+          scheduleFocus(firstKey);
+        }
       }
     },
-    [scheduleFocus],
+    [deferMoveFocusUntilLayout, scheduleFocus, scheduleFocusAfterLayout],
   );
 
   // 삭제 후 포커스 처리

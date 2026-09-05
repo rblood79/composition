@@ -92,7 +92,7 @@ headless Chrome 60Hz · 격리 프로젝트 · 시드 600 (Text/frame, 전부 `p
 
 ## §3 Phase 1 — 스파이크: RAC `Virtualizer` + `ListLayout` (G1)
 
-2026-09-05: 로컬 구현·부분 검증, **G1 열림**. 브라우저 테스트는 기존 parity 설정을 상속한 `vitest.navigator.config.ts`로 격리한다. 실제 600/5k 행 제한·높이·선택 renderContent·키보드 테스트 3건 및 인접 테스트 36건 통과. 600 성능 조건 통과, 60 drop 3.8%로 0% 조건 미달. selectedKeys memo만 잔여 비용 조사 과정에서 Phase 2로부터 앞당겼으며 tanstack 분기는 보존한다. 상세는 [Phase 1 evidence](../evidence/203-phase1-live.md).
+2026-09-05: 체크포인트 `3fb404392`, **G1 열림**. 실제 600/5k 행 제한·높이·선택 renderContent·키보드·ARIA diff browser 4건 및 Navigator 테스트 139건 통과. 600 성능 3회는 통과했고 60 drop 3.8/3.3/2.7%로 0% 조건을 모두 미달했다. DnD 3종·키보드 다중선택·깊은 scroll·캔버스 선택 parity를 통과했고 컨테이너 on-drop 포커스를 LayerTree 전용 지연 포커스로 수리했다. selectedKeys memo만 잔여 비용 조사 과정에서 Phase 2로부터 앞당겼으며 tanstack 분기는 보존한다. 상세는 [G1 재검증](../evidence/203-g1-revalidation.md).
 
 목표: RAC Tree 를 그대로 두고 LayerTree에서만 창 렌더를 켠다. 공용 `TreeBase`는 변경하지 않고 LayerTree 결선 + 단일 scroll owner + fixed row 계약으로 범위를 닫는다.
 

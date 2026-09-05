@@ -65,6 +65,7 @@ export function LayerTree({
   // 포커스 관리 훅
   const { focusedKey, handleAfterMove } = useFocusManagement({
     nodeMap: focusNodeMap,
+    deferMoveFocusUntilLayout: true,
     onSelectionChange: (keys) => {
       const selected = resolveSelectedElements(keys);
       if (selected.length > 0) onSelectionChange(selected);

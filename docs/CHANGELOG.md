@@ -15,7 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Action Bar 옵션 메뉴의 placement callback을 안정화하고 memo를 적용했다. 50회 선택 실측에서 OptionsMenu 렌더가 100→1회, Action Bar React 누적 시간이 117.0→81.3ms로 줄었다. registry 갱신 후 모델 반영 순서는 유지한다. [근거](adr/evidence/203-actionbar-rac-analysis.md).
 - 일반 LayerTree 행에 소비하는 선택·확장·focus 값만 전달하고 content를 memo 처리했다. 20개 가시 행/50회 선택의 개발 환경 실측에서 Navigator React 누적 시간이 524.1→376.9ms로 약 28% 감소했다. [전후 근거](adr/evidence/203-selection-residual-analysis.md).
 - LayerTree에만 RAC Virtualizer를 연결하고 행 높이·단일 스크롤 계약을 검증했다. 600 요소 개발 환경 선택 p50 226.3→16.6ms, longtask 12→0. 공용 TreeBase·Pages·Frames는 유지한다.
-- **검증 진행 중**: 60 요소 drop 0% 게이트는 현재 3.8%로 미달이며 Phase 1과 ADR은 아직 완료하지 않았다. [실측 및 남은 검증](adr/evidence/203-phase1-live.md).
+- **검증 진행 중**: 600 요소 반복 3회는 p50·drop·longtask 조건을 통과했다. 60 요소는 drop 3.8/3.3/2.7%로 필수 0%를 모두 미달해 Phase 1과 ADR은 아직 완료하지 않았다. [반복 실측과 parity](adr/evidence/203-g1-revalidation.md).
+
+### Fixed
+
+- LayerTree에서 항목을 다른 컨테이너 안으로 옮긴 뒤 포커스가 이동 항목 대신 대상 컨테이너에 남던 문제를 고쳤다. 재부모화 DOM이 반영된 다음 frame에 이동 행 포커스를 재요청하며, 같은 행을 연속 이동해도 요청이 생략되지 않는다.
 
 ## [캔버스 accent 색 정정 · Aria Label 편집 축] - 2026-09-05
 

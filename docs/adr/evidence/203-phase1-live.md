@@ -5,6 +5,7 @@
 - 판정: **구현·부분 검증 완료, G1 미통과. Phase 1 열림, Phase 2/3 미착수.**
 - 이유: 600 요소 성능 조건은 통과했지만 60 요소 select drop 0% 조건은 미달이다. 임계값을 완화하거나 Implemented로 승격하지 않는다.
 - 후속 분석: [Navigator 잔여 선택 비용](203-selection-residual-analysis.md). 아래 기존 drop/p50/p95는 RAF callback의 실행 간격 지표이며 실제 presentation 누락률이나 선택 처리 시간과 동일하지 않다. 기존 수치와 G1 열림 판정은 보존한다.
+- 재검증: [60/600 반복 측정과 parity 종결](203-g1-revalidation.md). 600 요소 3회는 통과했고 60 요소 3회는 drop 0%를 모두 미달했다. 아래의 DnD 포커스·ARIA·다중선택·깊은 scroll 미종결 항목은 재검증에서 수리·확인했다.
 
 ## 구현 범위
 

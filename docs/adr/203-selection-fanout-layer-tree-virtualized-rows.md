@@ -6,7 +6,7 @@ Accepted — 2026-09-03 (Proposed 2026-09-02 → breakdown §1 4 질문 lock-in 
 
 ## Context
 
-> 2026-09-05 실행 현황: Phase 1 로컬 스파이크 구현·부분 검증. 600 요소 select p50 226.3→16.6ms, drop 100→3.8%, longtask 12→0. **60 요소 drop 3.8%로 G1의 0% 조건 미달**이므로 Phase 1은 열려 있고 Status는 Accepted 유지. [실측·live·미종결 항목](evidence/203-phase1-live.md).
+> 2026-09-05 실행 현황: Phase 1 체크포인트 `3fb404392`. 600 요소 반복 3회는 p50 ≤16.6ms, drop 2.7–4.3%, longtask 0으로 통과했다. 60 요소는 drop 3.8/3.3/2.7%로 **G1의 0% 조건을 3회 모두 미달**했다. ARIA·키보드·다중선택·DnD·깊은 scroll·캔버스 선택 parity는 통과했고 컨테이너 on-drop 포커스 실패를 수리했다. G1과 Phase 1은 열려 있으며 Status는 Accepted 유지. [반복 실측과 parity](evidence/203-g1-revalidation.md).
 
 **Domain**: 빌더 chrome UI (Navigator · Properties 패널). 문서 컴포넌트의 D2/D3 에는 손대지 않는다. Navigator 트리는 RAC `Tree` 위에 있으므로 **D1 원칙 (RAC 컴포넌트의 DOM/ARIA 재작성 금지, `.claude/rules/ssot-hierarchy.md` §6)** 이 패널에도 그대로 적용된다.
 

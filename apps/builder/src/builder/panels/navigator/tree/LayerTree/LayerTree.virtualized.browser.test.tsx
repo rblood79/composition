@@ -1,5 +1,6 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { Button } from "react-aria-components";
 import { afterEach, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { I18nProvider } from "@/i18n";
@@ -8,6 +9,7 @@ import type { PanelNode } from "../../../panelNode";
 import { LayerTree } from "./LayerTree";
 import { LAYER_TREE_ROW_SIZE_PX } from "./virtualization";
 import { TreeBase } from "../TreeBase/TreeBase";
+import type { BaseTreeNode } from "../TreeBase/types";
 import "@composition/shared/components/styles/theme/shared-tokens.css";
 import "@composition/shared/components/styles/theme/builder-system.css";
 import "../../NavigatorPanel.css";
@@ -178,10 +180,76 @@ it("opt-in하지 않은 공용 TreeBase는 전체 행을 유지한다", async ()
         items={items}
         getKey={(node) => node.id}
         getTextValue={(node) => node.id}
-        renderContent={(node) => <span>{node.id}</span>}
+        renderContent={(node) => (
+          <>
+            {node.hasChildren ? <Button slot="chevron">toggle</Button> : null}
+            <span>{node.id}</span>
+          </>
+        )}
       />,
     );
   });
   expect(host.querySelectorAll('[role="row"]')).toHaveLength(40);
   expect(host.querySelector(".layer-tree--rac-virtualized")).toBeNull();
+});
+
+it("Virtualizer 결선 전후 같은 행의 RAC ARIA 속성을 보존한다", async () => {
+  const readAria = (container: HTMLElement) =>
+    [...container.querySelectorAll<HTMLElement>('[role="row"]')].map((row) => ({
+      key: row.dataset.key,
+      role: row.getAttribute("role"),
+      selected: row.getAttribute("aria-selected"),
+      expanded: row.getAttribute("aria-expanded"),
+      level: row.getAttribute("aria-level"),
+      posinset: row.getAttribute("aria-posinset"),
+      setsize: row.getAttribute("aria-setsize"),
+    }));
+
+  await mount(fixture(5), "node-2");
+  const virtualizedAria = readAria(host);
+
+  await act(async () => root!.unmount());
+  root = undefined;
+  host.remove();
+
+  host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  const children: BaseTreeNode[] = Array.from({ length: 4 }, (_, index) => ({
+    id: `node-${index + 1}`,
+    parentId: "body",
+    depth: 1,
+    hasChildren: false,
+  }));
+  const items: BaseTreeNode[] = [
+    {
+      id: "body",
+      parentId: null,
+      depth: 0,
+      hasChildren: true,
+      children,
+    },
+  ];
+  await act(async () => {
+    root!.render(
+      <TreeBase
+        aria-label="Unvirtualized LayerTree baseline"
+        items={items}
+        getKey={(node) => node.id}
+        getTextValue={(node) => node.id}
+        renderContent={(node) => (
+          <>
+            {node.hasChildren ? <Button slot="chevron">toggle</Button> : null}
+            <span>{node.id}</span>
+          </>
+        )}
+        selectedKeys={new Set(["node-2"])}
+        expandedKeys={new Set(["body"])}
+        selectionMode="multiple"
+        selectionBehavior="replace"
+      />,
+    );
+  });
+
+  expect(readAria(host)).toEqual(virtualizedAria);
 });
