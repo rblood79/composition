@@ -414,7 +414,7 @@ export function resolveListBoxItemRowHeightFromStyle(
   //   default 크기 instance 행을 -3px 짧게 그렸다 (label 21 vs 실 렌더 24).
   const fontSize =
     slotFontSizes?.label ??
-    parseNumericValue(style?.fontSize) ??
+    resolveTextRenderStyle(style).fontSize ??
     COLLECTION_TEXT_DEFAULT_FONT_SIZE;
   // description 은 label size 와 무관한 자체 기본(--text-xs = 12) — CSS [slot="description"]
   //   { font-size: var(--lb-desc-size, var(--text-xs)) } 정합. 명시 slot size 우선.
@@ -1495,7 +1495,7 @@ export function calculateContentWidth(
   if (type === "icon") {
     const props = element.props as Record<string, unknown> | undefined;
     // fontSize 오버라이드 시 iconSize = fontSize
-    const overrideFs = parseNumericValue(style?.fontSize);
+    const overrideFs = resolveTextRenderStyle(style).fontSize;
     if (overrideFs != null) return overrideFs;
     const sizeName = String(props?.size ?? "md");
     // ADR-912: IconSpec.sizes → catalog rule(Icon) iconSize (spec 끊기).
@@ -1538,12 +1538,12 @@ export function calculateContentWidth(
       parseNumericValue(
         style?.paddingLeft ?? style?.paddingRight ?? style?.padding,
       ) ?? dhDims.paddingX;
-    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+    const fontSize = resolveTextRenderStyle(style).fontSize ?? 14;
     // iconSize: catalog rule iconSize(>0) 우선, style fontSize override 시 round(fontSize*1.1) —
     //   leading_icon module 과 동형. rule iconSize 는 전 size 18 고정(DOM chevron 고정-크기 컨벤션,
     //   위 catalog 주석 참조)이라 size 별로 갈리지 않는다 — override 시만 비례.
     const iconSize =
-      parseNumericValue(style?.fontSize) != null
+      resolveTextRenderStyle(style).fontSize != null
         ? Math.round(fontSize * 1.1)
         : dhDims.iconSize;
     const gap = 6;
@@ -1620,7 +1620,7 @@ export function calculateContentWidth(
     if (!text) return 0;
     const specStyle = extractSpecTextStyle("link", props ?? {});
     const fontSize =
-      parseNumericValue(style?.fontSize) ?? specStyle?.fontSize ?? 14;
+      resolveTextRenderStyle(style).fontSize ?? specStyle?.fontSize ?? 14;
     const fontWeight = specStyle?.fontWeight ?? 500;
     const ffamily = specStyle?.fontFamily ?? specFontFamily.sans;
     const textWidth = measureTextWidth(text, fontSize, ffamily, fontWeight);
@@ -1996,7 +1996,7 @@ export function calculateContentWidth(
       const btnConfig = sizeConfig as { iconSize?: number };
       const baseIconSize = btnConfig.iconSize ?? 16;
       // fontSize 오버라이드 시 iconSize = fontSize
-      const overrideFs = parseNumericValue(style?.fontSize);
+      const overrideFs = resolveTextRenderStyle(style).fontSize;
       return overrideFs != null ? overrideFs : baseIconSize;
     }
   }
@@ -2088,7 +2088,7 @@ export function calculateContentWidth(
         Object.values(configMap)[0];
       // Spec 기반 font 속성 (style override는 Spec 내부에서 반영됨)
       const fontSize =
-        parseNumericValue(style?.fontSize) ??
+        resolveTextRenderStyle(style).fontSize ??
         inlineSpecStyle?.fontSize ??
         sizeConfig.fontSize;
       const inlineFontWeight = inlineSpecStyle?.fontWeight ?? 400;
@@ -2119,7 +2119,7 @@ export function calculateContentWidth(
           };
           let iconSize = btnConfig.iconSize ?? 16;
           // fontSize 오버라이드 시 iconSize = fontSize
-          const overrideFs = parseNumericValue(style?.fontSize);
+          const overrideFs = resolveTextRenderStyle(style).fontSize;
           if (overrideFs != null) {
             iconSize = overrideFs;
           }
@@ -2194,7 +2194,7 @@ export function calculateContentWidth(
     // ADR-058 Phase 1: Text가 Spec 경로로 전환되면서 extractSpecTextStyle이
     // 실제 shape에서 fontSize를 읽어오므로 5-point patch 분기 제거.
     const fontSize =
-      parseNumericValue(style?.fontSize) ??
+      resolveTextRenderStyle(style).fontSize ??
       specStyle?.fontSize ??
       computedStyle?.fontSize ??
       16;
@@ -2355,7 +2355,7 @@ export function calculateContentHeight(
     const props = element.props as Record<string, unknown> | undefined;
     // fontSize 오버라이드 시 iconSize = fontSize
     // ADR-091 Phase 3: ICON_SIZE_MAP Record (R7) → IconSpec.sizes.iconSize 직접 참조.
-    const overrideFs = parseNumericValue(style?.fontSize);
+    const overrideFs = resolveTextRenderStyle(style).fontSize;
     if (overrideFs != null) return overrideFs;
     const sizeName = String(props?.size ?? "md");
     // ADR-912: IconSpec.sizes → catalog rule(Icon) iconSize (spec 끊기).
@@ -2445,7 +2445,7 @@ export function calculateContentHeight(
     const props = element.props as Record<string, unknown> | undefined;
     const specStyle = extractSpecTextStyle("disclosurecontent", props ?? {});
     const fontSize =
-      parseNumericValue(style?.fontSize) ?? specStyle?.fontSize ?? 14;
+      resolveTextRenderStyle(style).fontSize ?? specStyle?.fontSize ?? 14;
     const lh = parseLineHeight(style, fontSize) ?? specStyle?.lineHeight;
     return estimateTextHeight(fontSize, lh);
   }
@@ -2457,7 +2457,7 @@ export function calculateContentHeight(
     const props = element.props as Record<string, unknown> | undefined;
     const specStyle = extractSpecTextStyle("link", props ?? {});
     const fontSize =
-      parseNumericValue(style?.fontSize) ?? specStyle?.fontSize ?? 14;
+      resolveTextRenderStyle(style).fontSize ?? specStyle?.fontSize ?? 14;
     const lh = parseLineHeight(style, fontSize) ?? specStyle?.lineHeight;
     return estimateTextHeight(fontSize, lh);
   }
@@ -2477,7 +2477,7 @@ export function calculateContentHeight(
       ?.sizes[sizeName] as
       { fontSize?: number; lineHeight?: number; paddingY?: number } | undefined;
     const fontSize =
-      parseNumericValue(style?.fontSize) ?? ruleSize?.fontSize ?? 14;
+      resolveTextRenderStyle(style).fontSize ?? ruleSize?.fontSize ?? 14;
     const lineHeight =
       parseNumericValue(style?.lineHeight) ?? ruleSize?.lineHeight;
     const textHeight = estimateTextHeight(fontSize, lineHeight);
@@ -2536,7 +2536,7 @@ export function calculateContentHeight(
   if (tag1 === "listbox") {
     const props = element.props as Record<string, unknown> | undefined;
     const rawEntries = props?.items;
-    const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+    const fontSize = resolveTextRenderStyle(style).fontSize ?? 14;
     const metric = resolveListBoxSpacingMetric({
       style: style as Record<string, unknown> | undefined,
       defaultFontSize: fontSize,
@@ -2953,7 +2953,8 @@ export function calculateContentHeight(
       sizeName,
       allowsRemoving: Boolean(props?.allowsRemoving),
       maxRows: typeof props?.maxRows === "number" ? props.maxRows : 0,
-      fontSizeOverride: parseNumericValue(style?.fontSize) ?? chipSize.fontSize,
+      fontSizeOverride:
+        resolveTextRenderStyle(style).fontSize ?? chipSize.fontSize,
     });
     return contentHeight;
   }
@@ -3019,7 +3020,8 @@ export function calculateContentHeight(
           )
         : undefined;
 
-    const fontSize = parseNumericValue(style?.fontSize) ?? sizeConfig.fontSize;
+    const fontSize =
+      resolveTextRenderStyle(style).fontSize ?? sizeConfig.fontSize;
     const resolvedLineHeight = parseLineHeight(style, fontSize);
     // CSS Button은 명시적 line-height를 사용 → inline style이 없으면 config의 lineHeight 적용
     const configLineHeight = (sizeConfig as { lineHeight?: number }).lineHeight;
@@ -3105,7 +3107,7 @@ export function calculateContentHeight(
               rawFontSize as Parameters<typeof resolveToken>[0],
             ) as number)
           : 16;
-    const fontSize = parseNumericValue(style?.fontSize) ?? specFontSize;
+    const fontSize = resolveTextRenderStyle(style).fontSize ?? specFontSize;
     const resolvedLineHeight = parseLineHeight(style, fontSize);
     // CSS Input은 명시적 line-height 사용 → BUTTON_SIZE_CONFIG에서 lineHeight 참조
     // Input height = Button height (동일 size에서 동일 높이)
@@ -3144,7 +3146,7 @@ export function calculateContentHeight(
     const hasLabel = !!props?.label;
     const hasValue = props?.showValueLabel !== false; // ProgressBar/Meter 모두 기본 true
     if (hasLabel || hasValue) {
-      const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+      const fontSize = resolveTextRenderStyle(style).fontSize ?? 14;
       // ADR-912 Phase 5: catalog `.sizes.gap` read-through (구 인라인 `8` 은 catalog=4 와 불일치한
       //   dual-SSOT 미러 = Builder≠Preview drift. 8→4 정합 복원).
       const gap = specSizeGap(isMeter ? "Meter" : "ProgressBar", sizeName, 4);
@@ -3188,7 +3190,7 @@ export function calculateContentHeight(
     const hasLabel = !!props?.label;
     const hasValue = props?.showValueLabel !== false; // Slider 기본 true
     if (hasLabel || hasValue) {
-      const fontSize = parseNumericValue(style?.fontSize) ?? 14;
+      const fontSize = resolveTextRenderStyle(style).fontSize ?? 14;
       const gap = specSizeGap("Slider", sizeName, 4); // catalog .sizes.gap read-through
       const labelText = String(props?.label ?? "");
       const fontWeight =
@@ -4212,7 +4214,7 @@ export function calculateContentHeight(
       // textLeafSpec 우선: render.shapes 와 동일 우선순위(props.size 시 size.fontSize).
       const fs0 =
         textLeafSpec?.fontSize ??
-        parseNumericValue(style?.fontSize) ??
+        resolveTextRenderStyle(style).fontSize ??
         computedStyle?.fontSize ??
         16;
       const fw0 =
@@ -4258,7 +4260,7 @@ export function calculateContentHeight(
   // text leaf 는 spec size 기준 fontSize/lineHeight 를 우선 적용 (Skia 정합)
   const fontSize =
     textLeafSpec?.fontSize ??
-    parseNumericValue(style?.fontSize) ??
+    resolveTextRenderStyle(style).fontSize ??
     computedStyle?.fontSize;
   const resolvedLineHeight =
     parseLineHeight(style, fontSize) ?? textLeafSpec?.lineHeight;
