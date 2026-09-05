@@ -37,7 +37,11 @@ import { markBegin, markEnd, PERF_LABEL } from "../../../utils/perfMarks";
 import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";
-import { setVolatileNodeIds } from "./nodePictureCache";
+import {
+  setVolatileNodeIds,
+  getNodePictureCacheSize,
+} from "./nodePictureCache";
+import { getImageCacheSize } from "./imageCache";
 import type { BoundingBox } from "../selection/types";
 
 interface DamageMetricsSnapshot {
@@ -228,9 +232,36 @@ export class SkiaRenderer {
   public transitionManager: TransitionManager | null = null;
   public animationEngine: AnimationEngine | null = null;
 
-  /** GPU 프레임 시간 측정 (dev 전용 — production 은 null 유지, ADR-153 Phase 1-c) */
+  /** GPU 프레임 시간 측정 (development 또는 navigation 전 명시적 capture opt-in) */
   private gpuTimer: GpuTimer | null = null;
   private unregisterFrameCapture: () => void = () => {};
+  private animationCleanupPending = false;
+
+  /** 상태 소비·animation tick 없이 확인한다. 실제 분류/cleanup 소비는 render 한 곳에서 수행한다. */
+  canReuseFramePreparation(
+    registryVersion: number,
+    camera: CameraState,
+    overlayVersion: number,
+    screenOverlayVersion = 0,
+  ): boolean {
+    return (
+      !this.disposed &&
+      !!this.contentNode &&
+      !!this.contentSurface &&
+      !!this.contentSnapshot &&
+      !this.contentDirty &&
+      !this.needsCleanupRender &&
+      !this.animationCleanupPending &&
+      !this.transitionManager?.isActive() &&
+      !this.animationEngine?.isActive() &&
+      registryVersion === this.lastRegistryVersion &&
+      overlayVersion === this.lastOverlayVersion &&
+      screenOverlayVersion === this.lastScreenOverlayVersion &&
+      camera.zoom === this.lastCamera.zoom &&
+      camera.panX === this.lastCamera.panX &&
+      camera.panY === this.lastCamera.panY
+    );
+  }
 
   constructor(ck: CanvasKit, htmlCanvas: HTMLCanvasElement, dpr?: number) {
     this.ck = ck;
@@ -254,6 +285,8 @@ export class SkiaRenderer {
         snapshot: () => ({
           gpu: this.gpuTimer?.snapshot() ?? null,
           resources: {
+            nodePicturesGlobal: getNodePictureCacheSize(),
+            imagesGlobal: getImageCacheSize(),
             mainSurface: this.disposed ? 0 : 1,
             contentSurface: this.contentSurface ? 1 : 0,
             standbySurface: this.standbySurface ? 1 : 0,
@@ -912,6 +945,7 @@ export class SkiaRenderer {
     // Early exit: transition/animation 모두 비활성이면 Set 할당 없이 반환
     const tmActive = this.transitionManager?.isActive() ?? false;
     const aeActive = this.animationEngine?.isActive() ?? false;
+    this.animationCleanupPending = tmActive || aeActive;
     if (!tmActive && !aeActive) {
       setVolatileNodeIds(null);
       return false;
@@ -1056,6 +1090,7 @@ export class SkiaRenderer {
       frameType = "content";
       frameReason = "animation";
     }
+    countFrameEvent(`frame.${frameType}`);
 
     // ADR-153 Phase 1-a: contentSurface 캐시 hit(스냅샷 재사용) / miss(재렌더 + 사유)
     if (process.env.NODE_ENV === "development") {
@@ -1070,7 +1105,7 @@ export class SkiaRenderer {
     }
 
     // ADR-153 Phase 1-c: GPU 프레임 시간 — 직전 in-flight 결과 poll 후 이번 프레임 측정
-    // (gpuTimer 는 dev 에서만 생성되므로 production 은 이 블록 전체가 no-op)
+    // (일반 production은 null이며 명시적 capture opt-in에서만 수집)
     this.pollGpuTimer();
     if (frameType !== "idle" && this.gpuTimer) {
       this.gpuTimer.frameBegin();
@@ -1158,6 +1193,7 @@ export class SkiaRenderer {
     }
     this.mainCanvas.restore();
     this.mainSurface.flush();
+    recordMainSubmission();
 
     if (process.env.NODE_ENV === "development") {
       recordWasmMetric("skiaFrameTime", performance.now() - start);

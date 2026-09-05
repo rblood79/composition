@@ -9,7 +9,9 @@ describe("skiaFramePipeline page-resolved render tree contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("rendererInput.renderNodesMap.get(cid)");
+    expect(source).toMatch(
+      /readChildren\(\s*filteredChildIds,\s*rendererInput.renderNodesMap,/,
+    );
     expect(source).toMatch(
       /buildSharedSceneDerivedData\(\s*treeBoundsMap,\s*rendererInput\.renderNodesMap,/,
     );

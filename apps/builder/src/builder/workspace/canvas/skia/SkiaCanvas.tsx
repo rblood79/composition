@@ -21,6 +21,11 @@ import {
   syncCustomFontsWithSkia,
 } from "../../../fonts/loadCustomFontsToSkia";
 import { registerImageLoadCallback } from "./imageCache";
+import {
+  countFrameEvent,
+  frameCaptureEnabled,
+  recordReadinessPresentation,
+} from "./frameCapture";
 import { destroyAllSkiaCaches } from "./disposable";
 import {
   createOverlayInvalidationPacket,
@@ -43,6 +48,7 @@ import {
   setDragSiblingOffsets,
 } from "./nodeRendererTree";
 import { buildSkiaFrameContent } from "./skiaFramePipeline";
+import { FrameContentCache } from "./frameContentCache";
 import {
   invalidateCommandStreamCache,
   markCachedCommandStreamPatched,
@@ -157,6 +163,13 @@ export function SkiaCanvas({
   // BuilderCanvas 루트의 selection/editing/ai 구독을 제거하여 루트 리렌더
   // fan-out 을 차단. 합성 invalidationPacket 은 기존 ref/render 로직과 호환.
   const currentPageId = useStore((state) => state.currentPageId);
+  useEffect(() => {
+    if (!frameCaptureEnabled) return;
+    return useCanonicalDocumentStore.subscribe((state, previous) => {
+      if (state.documentVersion !== previous.documentVersion)
+        countFrameEvent("domainPublication");
+    });
+  }, []);
   const selectedElementId = useStore((state) => state.selectedElementId);
   const selectedElementIds = useStore((state) => state.selectedElementIds);
   const editingContextId = useStore((state) => state.editingContextId);
@@ -646,6 +659,10 @@ export function SkiaCanvas({
     // ----- RAF 렌더 루프 -----
     let rafId = 0;
     let running = true;
+    const contentCache = new FrameContentCache();
+    let preparedInput: SkiaRendererInput | null = null;
+    let preparedPacket: typeof invalidationPacketRef.current | null = null;
+    let preparedLayoutVersion = -1;
 
     // ADR-069 Phase 0: renderFrameCore는 원본 로직을 그대로 보존.
     // 아래 renderFrame wrapper가 observe()로 "render.frame" 라벨에 계측을 주입한다.
@@ -654,6 +671,7 @@ export function SkiaCanvas({
     // 분해 계측하여 Violation 발생 시 어느 단계가 지배적인지 즉시 식별 가능.
     const renderFrameCore = (): void => {
       if (!running) return;
+      countFrameEvent("renderRaf");
       rafId = requestAnimationFrame(renderFrame);
 
       if (!rendererRef.current) return;
@@ -877,21 +895,44 @@ export function SkiaCanvas({
       }
 
       // Content build — Command Stream 경로
-      const contentResult = observe(PERF_LABEL.RENDER_CONTENT_BUILD, () =>
-        buildSkiaFrameContent({
-          aiState: packet.ai,
+      const layoutVersion = getSharedLayoutVersion();
+      if (
+        preparedInput === currentRendererInput &&
+        preparedPacket === packet &&
+        preparedLayoutVersion === layoutVersion &&
+        !presentationTargetRef.current &&
+        !dropIndicator &&
+        packet.ai.generatingNodes.size === 0 &&
+        packet.ai.flashAnimations.size === 0 &&
+        renderer.canReuseFramePreparation(
           registryVersion,
-          pagePosVersion: contentPagePositionVersion,
-          cameraX,
-          cameraY,
-          cameraZoom,
-          ck,
-          fontMgr,
-          rendererInput: currentRendererInput,
-        }),
+          cameraState,
+          overlayVersionRef.current,
+        )
+      ) {
+        renderer.pollGpuTimer();
+        countFrameEvent("preparationSkipped");
+        return;
+      }
+      const contentResult = observe(PERF_LABEL.RENDER_CONTENT_BUILD, () =>
+        buildSkiaFrameContent(
+          {
+            aiState: packet.ai,
+            registryVersion,
+            pagePosVersion: contentPagePositionVersion,
+            cameraX,
+            cameraY,
+            cameraZoom,
+            ck,
+            fontMgr,
+            rendererInput: currentRendererInput,
+          },
+          contentCache,
+        ),
       );
 
       if (!contentResult) {
+        preparedInput = null;
         renderer.clearFrame();
         renderer.invalidateContent();
         pendingDamageRevisionRef.current = null;
@@ -913,6 +954,7 @@ export function SkiaCanvas({
         cameraZoom,
         overlayVersion: overlayVersionRef.current,
       });
+      countFrameEvent("planBuild");
       const framePlan = observe(PERF_LABEL.RENDER_PLAN_BUILD, () =>
         buildFrameRenderPlan({
           ck,
@@ -976,6 +1018,9 @@ export function SkiaCanvas({
       );
 
       const pendingTarget = presentationTargetRef.current;
+      preparedInput = currentRendererInput;
+      preparedPacket = packet;
+      preparedLayoutVersion = layoutVersion;
       if (didPresent && pendingTarget) {
         const renderedProjectId =
           useCanonicalDocumentStore.getState().currentProjectId;
@@ -988,6 +1033,10 @@ export function SkiaCanvas({
           // 성공한 acknowledgment 뒤에는 ref를 비워 이후 RAF의 Zustand 접근을
           // 제거한다. revision이 아직 target보다 낮으면 다음 제출을 계속 기다린다.
           if (useCanvasLifecycleStore.getState().isCanvasReady) {
+            recordReadinessPresentation(
+              renderedProjectId,
+              currentRendererInput.documentRevision,
+            );
             presentationTargetRef.current = null;
           }
         }
@@ -1031,6 +1080,7 @@ export function SkiaCanvas({
 
     return () => {
       running = false;
+      contentCache.clear();
       cancelAnimationFrame(rafId);
       themeWatcherHandle.disconnect();
       unwatchContext();

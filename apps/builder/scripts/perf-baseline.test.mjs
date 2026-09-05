@@ -103,6 +103,19 @@ test("선택 driver 기본값과 명시 옵션을 검증한다", () => {
 });
 
 test("계측 옵션을 검증하고 누락된 CPU 지표를 0으로 만들지 않는다", () => {
+  assert.equal(parseArgs(["--fixed-inputs"]).fixedInputs, true);
+  assert.equal(
+    parseArgs(["--cpu-time-domain", "threadTicks"]).cpuTimeDomain,
+    "threadTicks",
+  );
+  assert.throws(
+    () => parseArgs(["--cpu-time-domain", "invalid"]),
+    /cpu time domain/,
+  );
+  assert.throws(() => parseArgs(["--cold-entries", "1"]), /project URL/);
+  assert.equal(parseArgs(["--fixture-kind", "refs"]).fixtureKind, "refs");
+  assert.throws(() => parseArgs(["--fixture-kind", "unknown"]), /fixture/);
+  assert.throws(() => parseArgs(["--cpu-throttle", "0"]), /throttle/);
   assert.equal(parseArgs([]).instrumentation, "on");
   assert.equal(parseArgs(["--instrumentation", "off"]).instrumentation, "off");
   assert.throws(
@@ -119,6 +132,53 @@ test("계측 옵션을 검증하고 누락된 CPU 지표를 0으로 만들지 �
     taskMs: 500,
     taskMsPerSecond: 50,
   });
+});
+
+test("고정 wheel 입력은 RAF 속도가 달라도 같은 입력 개수와 순서를 재생한다", async () => {
+  const traces = [];
+  for (const rafDelay of [8, 40]) {
+    let now = 0;
+    const events = [];
+    const canvas = {
+      getBoundingClientRect: () => ({
+        left: 0,
+        top: 0,
+        width: 100,
+        height: 100,
+      }),
+      dispatchEvent: (e) => events.push([e.deltaX, e.deltaY]),
+    };
+    const page = {
+      evaluate: (fn, args) =>
+        runInNewContext(`(${fn.toString()})(args)`, {
+          args,
+          window: {
+            __composition_STORE__: {
+              getState: () => ({ setSelectedElement() {} }),
+            },
+          },
+          document: { querySelector: () => canvas },
+          performance: { now: () => now },
+          WheelEvent: class {
+            constructor(_name, init) {
+              Object.assign(this, init);
+            }
+          },
+          requestAnimationFrame: (cb) => {
+            now += rafDelay;
+            cb();
+          },
+          setTimeout: (cb, delay) => {
+            now += delay;
+            cb();
+          },
+        }),
+    };
+    await FRAME_CLASSES.pan(page, { fixedInputs: true }, 1000);
+    assert.equal(events.length, 60);
+    traces.push(events);
+  }
+  assert.deepEqual(traces[0], traces[1]);
 });
 
 test("summary는 최근 버퍼와 전체 호출 수·누적 시간·p99를 구분한다", async () => {

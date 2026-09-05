@@ -52,6 +52,13 @@ const DEFAULTS = {
   openPanels: ["navigator", "properties"],
   profile: false,
   instrumentation: "on",
+  frameCapture: false,
+  cpuThrottle: 1,
+  cpuTimeDomain: "timeTicks",
+  buildId: null,
+  fixtureKind: "mixed",
+  fixedInputs: false,
+  coldEntries: 0,
   selectionDriver: "external-props",
   classes: [
     "idle",
@@ -93,9 +100,20 @@ export function parseArgs(argv) {
     else if (value === "--duration-ms") options.durationMs = Number(next);
     else if (value === "--selection-driver") options.selectionDriver = next;
     else if (value === "--instrumentation") options.instrumentation = next;
+    else if (value === "--cpu-throttle") options.cpuThrottle = Number(next);
+    else if (value === "--cpu-time-domain") options.cpuTimeDomain = next;
+    else if (value === "--build-id") options.buildId = next;
+    else if (value === "--fixture-kind") options.fixtureKind = next;
+    else if (value === "--cold-entries") options.coldEntries = Number(next);
     else if (value === "--classes") options.classes = next.split(",");
     else if (value === "--profile") {
       options.profile = true;
+      continue;
+    } else if (value === "--frame-capture") {
+      options.frameCapture = true;
+      continue;
+    } else if (value === "--fixed-inputs") {
+      options.fixedInputs = true;
       continue;
     } else if (value === "--open-panels")
       options.openPanels = next ? next.split(",").filter(Boolean) : [];
@@ -112,6 +130,20 @@ export function parseArgs(argv) {
     throw new Error(`selection driver ${options.selectionDriver}`);
   if (!["on", "off"].includes(options.instrumentation))
     throw new Error(`instrumentation ${options.instrumentation}`);
+  if (!Number.isFinite(options.cpuThrottle) || options.cpuThrottle < 1)
+    throw new Error("cpu throttle must be >= 1");
+  if (!["timeTicks", "threadTicks"].includes(options.cpuTimeDomain))
+    throw new Error("cpu time domain");
+  if (!["mixed", "text", "refs"].includes(options.fixtureKind))
+    throw new Error("fixture kind");
+  if (
+    !Number.isInteger(options.coldEntries) ||
+    options.coldEntries < 0 ||
+    (options.coldEntries > 0 && !options.projectUrl)
+  )
+    throw new Error(
+      "cold entries require a project URL and a nonnegative integer",
+    );
   if (!["leak", "frame"].includes(options.lane))
     throw new Error(`lane ${options.lane}`);
   if (!["series", "attribute", "retainers"].includes(options.mode))
@@ -192,7 +224,7 @@ const PROBE_SCRIPT = `(() => {
 })();`;
 
 // ── boot ─────────────────────────────────────────────────────────────────────
-function loadStorageState(path) {
+export function loadStorageState(path) {
   const storageState = JSON.parse(readFileSync(path, "utf8"));
   for (const origin of storageState.origins ?? []) {
     const devSession = origin.localStorage?.find(
@@ -265,9 +297,9 @@ async function openPanels(page, names) {
 // 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 두 번째 페이지 1개.
 // 5k fixture는 단일 addElement 반복의 전체 문서 persist O(n²) 비용을 피하려고
 // production addComplexElement action으로 한 번에 merge/store/reindex/persist한다.
-async function seedDocument(page, seedCount) {
+async function seedDocument(page, seedCount, fixtureKind) {
   return page.evaluate(
-    async ({ seedCount }) => {
+    async ({ seedCount, fixtureKind }) => {
       const store = window.__composition_STORE__;
       const state = store.getState();
       const pageId = state.currentPageId;
@@ -276,7 +308,9 @@ async function seedDocument(page, seedCount) {
       );
       if (!body) throw new Error("body 없음");
       const existing = state.elements.filter(
-        (e) => e.page_id === pageId && String(e.id).startsWith("perf-seed-"),
+        (e) =>
+          (fixtureKind === "refs" || e.page_id === pageId) &&
+          String(e.id).startsWith("perf-seed-"),
       );
       const existingIds = new Set(existing.map((e) => e.id));
       const ids = [];
@@ -289,14 +323,14 @@ async function seedDocument(page, seedCount) {
         const id = `perf-seed-${i}`;
         ids.push(id);
         if (existingIds.has(id)) continue;
-        const isText = i % 2 === 0;
+        const isText = fixtureKind === "text" || i % 2 === 0;
         const col = i % 6,
           row = Math.floor(i / 6);
         missingElements.push({
           id,
           customId: id,
           type: isText ? "Text" : "frame",
-          parent_id: body.id,
+          parent_id: fixtureKind === "refs" ? "perf-ref-origin" : body.id,
           page_id: pageId,
           order_num: i,
           created_at: now,
@@ -310,16 +344,63 @@ async function seedDocument(page, seedCount) {
               width: "160px",
               height: "60px",
               fontSize: "14px",
+              ...(fixtureKind === "text"
+                ? { fontWeight: [400, 500, 600, 700][i % 4] }
+                : {}),
               ...(isText ? {} : { backgroundColor: "#dbe7ff" }),
             },
           },
         });
       }
       if (missingElements.length > 0) {
+        if (
+          fixtureKind === "refs" &&
+          !store.getState().elementsMap.has("perf-ref-origin")
+        ) {
+          missingElements.unshift({
+            id: "perf-ref-origin",
+            type: "frame",
+            parent_id: body.id,
+            page_id: pageId,
+            props: {
+              style: {
+                position: "absolute",
+                left: "0px",
+                top: "0px",
+                width: "1200px",
+                height: "1000px",
+              },
+            },
+          });
+        }
         await store
           .getState()
           .addComplexElement(missingElements[0], missingElements.slice(1));
         await yieldTask();
+      }
+      if (
+        fixtureKind === "refs" &&
+        !store.getState().elements.some((e) => e.props?.["data-perf-ref"] === 0)
+      ) {
+        await store.getState().toggleComponentOrigin("perf-ref-origin");
+        for (let i = 0; i < 12; i++) {
+          const instance = store
+            .getState()
+            .createInstance("perf-ref-origin", body.id, pageId);
+          if (!instance) throw new Error("ref fixture 생성 실패");
+          store.getState().updateElementProps(instance.id, {
+            style: {
+              position: "absolute",
+              left: `${(i % 3) * 1250}px`,
+              top: `${(Math.floor(i / 3) + 1) * 1050}px`,
+            },
+          });
+          // 후속 run에서는 기존 origin/ref를 재사용한다.
+          store
+            .getState()
+            .updateElementProps(instance.id, { "data-perf-ref": i });
+          await yieldTask();
+        }
       }
       let pages = store.getState().pages;
       if (pages.length < 2) {
@@ -354,12 +435,22 @@ async function seedDocument(page, seedCount) {
         pages = store.getState().pages;
       }
       return {
-        seedIds: ids,
+        seedIds:
+          fixtureKind === "refs"
+            ? store
+                .getState()
+                .elements.filter(
+                  (e) =>
+                    e.page_id === pageId &&
+                    e.props?.["data-perf-ref"] !== undefined,
+                )
+                .map((e) => e.id)
+            : ids,
         pageIds: pages.map((p) => p.id),
         homePageId: pageId,
       };
     },
-    { seedCount },
+    { seedCount, fixtureKind },
   );
 }
 
@@ -388,7 +479,7 @@ async function expandLayerTreeRoot(page) {
   return { initialRows, finalRows, clicked };
 }
 
-async function runPointerSelectionExercise(page, targetId) {
+export async function runPointerSelectionExercise(page, targetId) {
   // Production global shortcut으로 실제 viewport를 화면에 맞춘 뒤 같은 frame camera를
   // 읽는다. 직접 store/module을 import하면 Vite HMR query가 다른 singleton을 만들 수 있다.
   await page.keyboard.press("Meta+0");
@@ -1208,7 +1299,10 @@ export const RECORDER_SCRIPT = `(() => {
       // self-time 상위 프레임. 샘플 1ms, 최대 10만 샘플.
       const profiler = opts.profile && typeof Profiler !== "undefined" ? new Profiler({ sampleInterval: 1, maxBufferSize: 100000 }) : null;
       const gaps = []; const rafGaps = []; const callbackDelays = []; const gapEvents = [];
+      const inputPhases = [];
       let lastTimestamp = null; let allocBytes = 0, gcCount = 0; let lastHeap = performance.memory?.usedJSHeapSize ?? 0;
+      const inputPhase = () => { inputPhases.push({ at: performance.now(), lastRafTimestamp: lastTimestamp }); };
+      document.addEventListener?.("wheel", inputPhase, { capture: true, passive: true });
       const longTasks = [];
       const lt = typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")
         ? new PerformanceObserver((list) => { for (const e of list.getEntries()) longTasks.push(e.duration); }) : null;
@@ -1223,10 +1317,17 @@ export const RECORDER_SCRIPT = `(() => {
         requestAnimationFrame(tick); };
       requestAnimationFrame(tick);
       const t0 = performance.now();
+      const visibility = [document.visibilityState ?? "unavailable"];
+      const visibilityChanged = () => visibility.push(document.visibilityState);
+      document.addEventListener?.("visibilitychange", visibilityChanged);
+      window.__composition_FRAME_CAPTURE__?.reset();
       window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.();
       this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) longTasks.push(e.duration); lt.disconnect(); }
+        document.removeEventListener?.("visibilitychange", visibilityChanged);
+        document.removeEventListener?.("wheel", inputPhase, true);
         // profiler.stop()을 기다리는 동안 발생한 프레임은 측정 구간에 포함하지 않는다.
         const perf = window.__composition_PERF__?.snapshotAll?.() ?? [];
+        const frameCapture = window.__composition_FRAME_CAPTURE__?.snapshot() ?? null;
         const caches = (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ? { ...c.missReasons } : null }));
         if (previousRecording !== undefined) perfApi.setRecordingEnabled(previousRecording);
         let profile = null;
@@ -1242,7 +1343,7 @@ export const RECORDER_SCRIPT = `(() => {
         }
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
-          perf, caches }; };
+          perf, caches, frameCapture, visibility, inputPhases }; };
     },
     stop() { return this._stop(); },
   };
@@ -1282,6 +1383,8 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
     callbackDelay: summarizeIntervals(rec.callbackDelays, nominalMs * 1.5),
     gapEvents: rec.gapEvents,
     layerTreeRows: rec.layerTreeRows,
+    frameCapture: rec.frameCapture ?? null,
+    visibility: rec.visibility ?? null,
     measuredDurations: Object.fromEntries(
       rec.perf.map((sample) => [
         sample.label,
@@ -1340,9 +1443,9 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
 // 드라이버 — 각각 durationMs 동안 동작. 휠은 canvas 에 dispatch (실핸들러 경로, 메모리
 // project-frame-drop-map-5k-baseline: 선택이 있으면 Phase E 가 휠을 scrollBy 로 삼킨다 →
 // 팬/줌 전 clearSelection). 포인터 경로 (패널 리사이즈) 는 Playwright mouse.
-const wheelBurst = (page, durationMs, initFactory) =>
+const wheelBurst = (page, durationMs, initFactory, fixedInputs = false) =>
   page.evaluate(
-    async ({ durationMs, initFactorySrc }) => {
+    async ({ durationMs, initFactorySrc, fixedInputs }) => {
       const initFactory = new Function("i", initFactorySrc);
       window.__composition_STORE__.getState().setSelectedElement(null);
       const canvas = document.querySelector(
@@ -1364,13 +1467,16 @@ const wheelBurst = (page, durationMs, initFactory) =>
               ...initFactory(i++),
             }),
           );
-          if (performance.now() - t0 < durationMs) requestAnimationFrame(step);
+          if (fixedInputs && i < Math.round((durationMs * 60) / 1000))
+            requestAnimationFrame(() => requestAnimationFrame(step));
+          else if (!fixedInputs && performance.now() - t0 < durationMs)
+            requestAnimationFrame(step);
           else res();
         };
         requestAnimationFrame(step);
       });
     },
-    { durationMs, initFactorySrc: initFactory },
+    { durationMs, initFactorySrc: initFactory, fixedInputs },
   );
 
 export const FRAME_CLASSES = {
@@ -1383,6 +1489,7 @@ export const FRAME_CLASSES = {
       page,
       ms,
       "return { deltaX: (Math.floor(i / 40) % 2 ? -1 : 1) * 24, deltaY: 0 };",
+      ctx.fixedInputs,
     ),
   // 줌 오실레이션 ±30 (baseline 5K 와 같은 자극)
   zoom: (page, ctx, ms) =>
@@ -1390,15 +1497,18 @@ export const FRAME_CLASSES = {
       page,
       ms,
       "return { deltaY: (Math.floor(i / 12) % 2 ? 30 : -30), ctrlKey: true };",
+      ctx.fixedInputs,
     ),
   // 선택 전환 (store 경로 — hit-test 는 안 거친다): 100ms 마다 다음 요소
   select: (page, ctx, ms) =>
     page.evaluate(
-      async ({ ids, ms, selectionDriver }) => {
+      async ({ ids, ms, selectionDriver, fixedInputs }) => {
         const store = window.__composition_STORE__;
         const t0 = performance.now();
         let i = 0;
-        while (performance.now() - t0 < ms) {
+        while (
+          fixedInputs ? i < Math.ceil(ms / 100) : performance.now() - t0 < ms
+        ) {
           const id = ids[i++ % ids.length];
           const s = store.getState();
           if (selectionDriver === "id-only") s.setSelectedElement(id);
@@ -1411,18 +1521,25 @@ export const FRAME_CLASSES = {
         }
         store.getState().setSelectedElement(null);
       },
-      { ids: ctx.seedIds, ms, selectionDriver: ctx.selectionDriver },
+      {
+        ids: ctx.seedIds,
+        ms,
+        selectionDriver: ctx.selectionDriver,
+        fixedInputs: ctx.fixedInputs,
+      },
     ),
   // 스타일 편집 5회/s (mutation 축: 동기 무효화 + persist)
   edit: (page, ctx, ms) =>
     page.evaluate(
-      async ({ id, ms }) => {
+      async ({ id, ms, fixedInputs }) => {
         const store = window.__composition_STORE__;
         const el = store.getState().elements.find((e) => e.id === id);
         const base = el?.props?.style ?? {};
         const t0 = performance.now();
         let i = 0;
-        while (performance.now() - t0 < ms) {
+        while (
+          fixedInputs ? i < Math.ceil(ms / 200) : performance.now() - t0 < ms
+        ) {
           await store.getState().updateElementProps(id, {
             ...el.props,
             style: { ...base, width: `${160 + (i++ % 5) * 4}px` },
@@ -1433,7 +1550,7 @@ export const FRAME_CLASSES = {
           .getState()
           .updateElementProps(id, { ...el.props, style: base });
       },
-      { id: ctx.seedIds[1], ms },
+      { id: ctx.seedIds[1], ms, fixedInputs: ctx.fixedInputs },
     ),
   // 패널 리사이즈: 첫 세로 splitter 를 ±60px 왕복 (실 포인터)
   "panel-resize": async (page, ctx, ms) => {
@@ -1527,7 +1644,11 @@ async function runFrameLane(page, cdp, seed, options) {
     });
     await driver(
       page,
-      { ...seed, selectionDriver: options.selectionDriver },
+      {
+        ...seed,
+        selectionDriver: options.selectionDriver,
+        fixedInputs: options.fixedInputs,
+      },
       options.durationMs,
     );
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
@@ -1612,6 +1733,65 @@ function renderFrameTable(results) {
 }
 
 // ── main ─────────────────────────────────────────────────────────────────────
+async function runColdEntries(browser, options, storageState) {
+  const runs = [];
+  for (let i = 0; i < options.coldEntries; i++) {
+    const context = await browser.newContext({
+      storageState,
+      viewport: { width: 1440, height: 900 },
+    });
+    try {
+      await context.addInitScript(() => {
+        window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
+      });
+      const page = await context.newPage();
+      const errors = [];
+      page.on("pageerror", (e) => errors.push(String(e)));
+      page.on("console", (m) => {
+        if (m.type() === "error") errors.push(m.text());
+      });
+      const cdp = await context.newCDPSession(page);
+      await cdp.send("Emulation.setCPUThrottlingRate", {
+        rate: options.cpuThrottle,
+      });
+      await page.goto(options.projectUrl, { waitUntil: "domcontentloaded" });
+      await page.waitForFunction(READY_PREDICATE, undefined, {
+        timeout: 90000,
+      });
+      const result = await page.evaluate(() => ({
+        readyObservedAtMs: performance.now(),
+        visibility: document.visibilityState,
+        capture: window.__composition_FRAME_CAPTURE__?.snapshot() ?? null,
+        perf: window.__composition_PERF__?.snapshotAll() ?? [],
+      }));
+      runs.push({ ...result, errors });
+      process.stderr.write(
+        `[cold ${i + 1}] ready ${result.readyObservedAtMs.toFixed(1)}ms errors ${errors.length}\n`,
+      );
+      if (errors.length) throw new Error("cold entry errors");
+    } finally {
+      await context.close();
+    }
+  }
+  const outPath = resolve(options.out, `cold-${Date.now()}.json`);
+  writeFileSync(
+    outPath,
+    JSON.stringify(
+      {
+        kind: "new browser context cold entry; same browser process",
+        buildId: options.buildId,
+        projectUrl: options.projectUrl,
+        chrome: browser.version(),
+        cpuThrottle: options.cpuThrottle,
+        runs,
+      },
+      null,
+      2,
+    ),
+  );
+  process.stdout.write(`[out] ${outPath}\n`);
+}
+
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   mkdirSync(options.out, { recursive: true });
@@ -1623,11 +1803,19 @@ async function main() {
   const pageErrors = [];
   const consoleErrors = [];
   try {
+    if (options.coldEntries > 0) {
+      await runColdEntries(browser, options, storageState);
+      return;
+    }
     const context = await browser.newContext({
       storageState,
       viewport: { width: 1440, height: 900 },
     });
     await context.addInitScript(PROBE_SCRIPT);
+    if (options.frameCapture)
+      await context.addInitScript(() => {
+        window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
+      });
     const page = await context.newPage();
     page.on("pageerror", (e) => {
       pageErrors.push(String(e));
@@ -1639,7 +1827,10 @@ async function main() {
       }
     });
     const cdp = await context.newCDPSession(page);
-    await cdp.send("Performance.enable");
+    await cdp.send("Emulation.setCPUThrottlingRate", {
+      rate: options.cpuThrottle,
+    });
+    await cdp.send("Performance.enable", { timeDomain: options.cpuTimeDomain });
     await cdp.send("HeapProfiler.enable");
 
     const project = options.projectUrl
@@ -1647,7 +1838,11 @@ async function main() {
       : await createIsolatedProject(page, options.baseUrl);
     process.stderr.write(`[boot] ${project.projectUrl}\n`);
     await openPanels(page, options.openPanels);
-    const seed = await seedDocument(page, options.seedCount);
+    const seed = await seedDocument(
+      page,
+      options.seedCount,
+      options.fixtureKind,
+    );
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}\n`,
     );
@@ -1682,6 +1877,9 @@ async function main() {
     }
 
     if (options.lane === "frame") {
+      const browserCdp = await browser.newBrowserCDPSession();
+      const gpuInfo = await browserCdp.send("SystemInfo.getInfo");
+      await browserCdp.detach();
       const environment = await page.evaluate(() => ({
         visibility: document.visibilityState,
         viewport: { width: innerWidth, height: innerHeight },
@@ -1690,11 +1888,27 @@ async function main() {
           width: c.width,
           height: c.height,
         })),
-        build: document.querySelector('script[src*="/@vite/client"]')
-          ? "development"
-          : "unverified",
+        captureGauges:
+          window.__composition_FRAME_CAPTURE__?.snapshot().gauges ?? null,
+        build: window.__composition_FRAME_CAPTURE__?.snapshot().build
+          ?.production
+          ? "production"
+          : document.querySelector('script[src*="/@vite/client"]')
+            ? "development"
+            : "unverified",
         userAgent: navigator.userAgent,
       }));
+      environment.gpu = {
+        devices: gpuInfo.gpu.devices,
+        glRenderer: gpuInfo.gpu.auxAttributes?.glRenderer ?? null,
+        glVendor: gpuInfo.gpu.auxAttributes?.glVendor ?? null,
+      };
+      environment.cpuThrottle = options.cpuThrottle;
+      environment.cpuTimeDomain = options.cpuTimeDomain;
+      environment.buildId = options.buildId;
+      environment.inputClock = options.fixedInputs
+        ? "two-observer-RAFs; fixed 60 inputs per nominal second; actual duration recorded"
+        : "legacy-duration";
       const fixture = await page.evaluate(() => {
         const s = window.__composition_STORE__.getState();
         return s.elements
@@ -1725,13 +1939,18 @@ async function main() {
           sha256: createHash("sha256")
             .update(JSON.stringify(fixture))
             .digest("hex"),
-          resolvedRenderNodeCount: null,
+          resolvedRenderNodeCount:
+            environment.captureGauges?.resolvedInputNodeCount ?? null,
+          renderBoundsCount:
+            environment.captureGauges?.renderBoundsCount ?? null,
         },
         metricDefinitions: {
           measuredDurations:
             "최근 1000개 percentile과 reset 이후 전체 호출 수/누적 inclusive 시간. label 간 합산 금지; CPU thread time이 아님",
           mainThread:
-            "CDP TaskDuration wall time / CDP Timestamp 구간. 모든 main-thread task와 recorder/driver 비용 포함; OS thread CPU가 아님",
+            options.cpuTimeDomain === "threadTicks"
+              ? "CDP TaskDuration threadTicks / monotonic CDP Timestamp. renderer main-thread task CPU; recorder/driver 포함, Skia 단독 또는 전체 process CPU 아님"
+              : "CDP TaskDuration wall time / CDP Timestamp 구간. 모든 main-thread task와 recorder/driver 비용 포함; OS thread CPU가 아님",
           instrumentation:
             "off는 perfMarks만 중지. cache/GPU/recorder 계측은 유지하므로 전체 계측 off가 아님",
           gapP50:

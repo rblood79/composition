@@ -44,6 +44,8 @@ import { recordWasmMetric } from "../utils/gpuProfilerCore";
 import { collectVisiblePageRoots } from "./visiblePageRoots";
 import { collectVisibleFrameRoots } from "./visibleFrameRoots";
 import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
+import { countFrameEvent, setFrameGauge } from "./frameCapture";
+import { FrameContentCache } from "./frameContentCache";
 import {
   buildDragPresentationNode,
   buildDragPresentationPlan,
@@ -79,7 +81,9 @@ export interface ContentBuildInput {
  */
 export function buildSkiaFrameContent(
   input: ContentBuildInput,
+  cache: FrameContentCache = new FrameContentCache(),
 ): ContentBuildResult | null {
+  countFrameEvent("contentBuild");
   const {
     aiState,
     registryVersion,
@@ -110,6 +114,7 @@ export function buildSkiaFrameContent(
     rendererInput,
     ck,
     fontMgr,
+    cache,
   );
   if (!result) return null;
   const treeBoundsMap = result.treeBoundsMap;
@@ -206,6 +211,7 @@ function buildViaCommandStream(
   rendererInput: SkiaRendererInput,
   ck: CanvasKit,
   fontMgr: FontMgr | undefined,
+  cache: FrameContentCache,
 ): InternalBuildResult | null {
   const treeBuildStart =
     process.env.NODE_ENV === "development" ? performance.now() : 0;
@@ -229,17 +235,14 @@ function buildViaCommandStream(
   const filteredChildIds = getSharedFilteredChildrenMap();
   let commandChildrenMap: Map<string, CanvasSceneNode[]>;
   if (filteredChildIds) {
-    commandChildrenMap = new Map();
     const syntheticMap = getSyntheticElementsMap();
-    for (const [parentId, childIds] of filteredChildIds) {
-      const children: CanvasSceneNode[] = [];
-      for (const cid of childIds) {
-        const el =
-          rendererInput.renderNodesMap.get(cid) ?? syntheticMap.get(cid);
-        if (el) children.push(el as CanvasSceneNode);
-      }
-      commandChildrenMap.set(parentId, children);
-    }
+    commandChildrenMap = cache.readChildren(
+      filteredChildIds,
+      rendererInput.renderNodesMap,
+      syntheticMap,
+      registryVersion,
+      layoutVersion,
+    );
   } else {
     commandChildrenMap = rendererInput.childrenMap;
   }
@@ -267,6 +270,8 @@ function buildViaCommandStream(
   }
 
   const treeBoundsMap = stream.boundsMap;
+  setFrameGauge("renderBoundsCount", treeBoundsMap.size);
+  setFrameGauge("resolvedInputNodeCount", rendererInput.renderNodesMap.size);
   if (treeBoundsMap.size === 0) return null;
 
   // Selection build (boundsMap에서 0ms — 공용 산출물 재사용)

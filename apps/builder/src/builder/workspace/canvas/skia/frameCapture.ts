@@ -8,15 +8,37 @@ interface CaptureSource {
 /** production 기본 off. navigation 전 opt-in만 허용해 측정 중 정책 변경을 피한다. */
 export const frameCaptureEnabled = isFrameCaptureRequested();
 const counters: Record<string, number> = {};
+const gauges: Record<string, number> = {};
 const sources = new Map<number, CaptureSource>();
 let nextSourceId = 0;
 let lastInput: number | null = null;
 let inputCount = 0;
 let droppedLatencySamples = 0;
 const latencies: number[] = [];
+let readinessPresentation: {
+  projectId: string;
+  documentRevision: number;
+  atMs: number;
+} | null = null;
+
+export function recordReadinessPresentation(
+  projectId: string,
+  documentRevision: number,
+): void {
+  if (frameCaptureEnabled)
+    readinessPresentation = {
+      projectId,
+      documentRevision,
+      atMs: performance.now(),
+    };
+}
 
 export function countFrameEvent(name: string, amount = 1): void {
   if (frameCaptureEnabled) counters[name] = (counters[name] ?? 0) + amount;
+}
+
+export function setFrameGauge(name: string, value: number): void {
+  if (frameCaptureEnabled) gauges[name] = value;
 }
 
 export function recordMainSubmission(): void {
@@ -66,7 +88,17 @@ if (frameCaptureEnabled) {
     },
     snapshot() {
       return {
-        counters: { ...counters },
+        build: { mode: import.meta.env.MODE, production: import.meta.env.PROD },
+        readinessPresentation,
+        counters: {
+          renderRaf: 0,
+          mainSubmission: 0,
+          contentBuild: 0,
+          planBuild: 0,
+          domainPublication: 0,
+          ...counters,
+        },
+        gauges: { ...gauges },
         rendererSources: [...sources.values()].map((source) =>
           source.snapshot(),
         ),
@@ -84,4 +116,17 @@ if (frameCaptureEnabled) {
   (
     window as unknown as { __composition_FRAME_CAPTURE__: typeof api }
   ).__composition_FRAME_CAPTURE__ = api;
+  if (import.meta.hot)
+    import.meta.hot.dispose(() => {
+      for (const event of [
+        "pointerdown",
+        "pointermove",
+        "wheel",
+        "keydown",
+        "input",
+      ]) {
+        document.removeEventListener(event, recordInput, true);
+      }
+      sources.clear();
+    });
 }

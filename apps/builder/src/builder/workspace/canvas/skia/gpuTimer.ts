@@ -11,7 +11,7 @@
  * - in-flight query 는 1개만 유지 — 결과 준비 전에는 새 측정을 시작하지 않는다
  *   (`getQueryParameter` 동기 대기 금지, 파이프라인 stall 방지)
  * - GPU_DISJOINT_EXT 발생 시 해당 샘플 폐기 (스펙 요구)
- * - 인스턴스는 dev 모드에서만 생성 (SkiaRenderer 생성자 게이트)
+ * - 인스턴스는 development 또는 명시적 capture opt-in에서 생성 (SkiaRenderer 게이트)
  */
 
 interface TimerExt {

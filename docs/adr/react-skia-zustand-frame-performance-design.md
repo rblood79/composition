@@ -1,8 +1,8 @@
 # Builder 프레임 성능 개선 실행 설계
 
 - 작성일: 2026-09-05
-- 상태: P0 진행 중 · 첫 계측 단위 반영 (2026-09-06), P1/P2 미착수
-- 코드 기준: `b5ad1fbc4` (작성 시점 main). 구현 착수 시 HEAD와 변경 파일을 다시 확인한다.
+- 상태: P0/P1/P3 완료, P2 조건부 보류로 종결 (2026-09-06).
+- 코드 기준: 설계 `b5ad1fbc4`, 착수 `4ae4ff43b`, 작업 중 외부 commit `4d3345e1c` 보존. 성능 A/B는 고정 정적 artifact의 manifest로 식별한다.
 - 입력: [React · Zustand · Skia 프레임 성능 분석자료](../migrations/react-skia-zustand-frame-performance-guide.md)
 - 목적: 기존 retained rendering과 presentation 경계를 유지하며, 불필요한 CPU 구축과 상태 전파를 줄인다. on-demand RAF는 실측 조건부로 전환한다.
 
@@ -23,7 +23,7 @@
 
 ## 2. 코드 대조 결과
 
-아래 경로는 모두 `apps/builder/src/` 기준이다. 행 번호보다 심볼을 기준으로 재확인한다. 비용의 크기는 이 설계에서 새로 측정하지 않았다.
+아래 경로는 모두 `apps/builder/src/` 기준이다. 행 번호보다 심볼을 기준으로 재확인한다. 이 표는 설계 시점의 동작이다. 실제 반영·실측 판정은 §9와 evidence를 따른다.
 
 | 코드 근거                                                                                                                                                  | 현재 동작                                                                                                           | 설계에 반영할 사항                                                                                                         |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -154,7 +154,7 @@ coordinator의 로컬 상태는 `pendingRaf`, `dirtyReasons`, `generation`, `sus
 - render RAF 간격과 display cadence는 별개다. on-demand의 idle 제출 간격을 dropped frame으로 계산하지 않는다. 일정 시간 display sampling을 켠 진단 run과 scheduler wake를 검증하는 계측 최소화 run을 분리한다.
 - production GPU 계측은 기본 배포 설정에 켜지지 않는 명시적 계측 옵션으로 준비한다. Canvas flag가 필요하면 기존 `featureFlags.ts` registry에만 정의한다. React Profiler 수치는 지원하는 profiling 빌드에서 보조 수집하고 일반 production frame 수치와 혼합하지 않는다.
 
-evidence 경로: `docs/migrations/evidence/frame-performance/`. [baseline](../migrations/evidence/frame-performance/baseline.md), [wake-sources](../migrations/evidence/frame-performance/wake-sources.md), 600요소 development idle on/off 5쌍 원시 JSON을 생성했다. 전체 호출 수·누적 시간·p99와 recorder 원시 배열을 보존한다. production opt-in GPU, 실제 resolved node/submission 계수, 나머지 fixture·cold·resource 축은 P0 잔여이며 G0 미통과다.
+evidence 경로: `docs/migrations/evidence/frame-performance/`. 최초 [baseline](../migrations/evidence/frame-performance/baseline.md), [입력·자원 경계](../migrations/evidence/frame-performance/wake-sources.md), [P1 반복 실측](../migrations/evidence/frame-performance/p1-measurements.md), [종결 검증](../migrations/evidence/frame-performance/closure.md)을 구분한다. 전체 호출·누적 시간·p99, GPU/RAF/input 원시 표본을 보존한다. 600 fixture 5쌍으로 상대 효과를 판정하고 다른 규모·text/ref 문서는 정합성 smoke 대조로 한정한다.
 
 기존 하니스로 가능한 초기 기준선 명령 예시(기본은 dev 서버이며 production 판정을 대신하지 않음):
 
@@ -162,7 +162,7 @@ evidence 경로: `docs/migrations/evidence/frame-performance/`. [baseline](../mi
 pnpm perf:baseline -- --lane frame --headed --seed-count 600 --duration-ms 10000 --classes idle,pan,zoom,select,edit
 ```
 
-기존 runner는 인증 상태와 테스트 프로젝트 생성 경로를 사용한다. 격리된 측정용 프로젝트로 실행하고 측정 중 다른 탭·테스트 작업으로 foreground를 빼앗지 않는다. drag/boot/GPU 원시 수집은 현재 CLI가 제공한다고 가정하지 않고 P0에서 확장한다.
+기존 runner는 인증 상태와 테스트 프로젝트 생성 경로를 사용한다. 격리된 측정용 프로젝트로 실행하고 측정 중 다른 탭·테스트 작업으로 foreground를 빼앗지 않는다. 확장 CLI는 `--frame-capture`, `--fixed-inputs`, `--fixture-kind`, `--cold-entries`, `--build-id`, `--cpu-time-domain`을 제공한다. 실제 pointer/자원 수명 검증은 `apps/builder/scripts/frame-performance-exercise.mjs`로 분리한다.
 
 ### 6.2 합격 기준
 
@@ -202,11 +202,44 @@ P2 전환 flag는 기존 `wasm-bindings/featureFlags.ts`에 등록하고 연속 
 ## 8. 착수 체크리스트와 인수인계
 
 - [x] P0: 현재 HEAD/dirty scope 확인, Track A/B와 측정 시간 조정. `4ae4ff43b` main clean에서 착수, 정식 idle 5쌍 직렬 측정.
-- [ ] P0: baseline과 계측 비용 확보, wake 표의 미확정 생산자·resource 의존성 닫기.
-- [ ] P0 종료: 어떤 build 비용을 줄일지와 G1의 baseline을 evidence에 고정. 효과가 작으면 종료.
-- [ ] P1: 파생물 재사용부터 단계 적용, state/visual parity와 총 interaction 지연 대조.
-- [ ] P2 입구: P1 후 idle 저사양 실측 ≥3% 여부 기록. 미달이면 P2 보류로 종결.
-- [ ] P2 실행 시: 모든 wake·cleanup·context·readiness 게이트 통과 후 활성화.
-- [ ] P3: 실제 적용 단계, 보류 단계, 미측정 축을 기록. 사용자 가시 성능 변경과 단계 완결은 `docs/CHANGELOG.md` 반영.
+- [x] P0: production opt-in 계측과 baseline, 입력·자원 경계 확보. dev perfMarks on/off 비용은 변동성으로 별도 효과 주장 없음.
+- [x] P0 종료: 600 fixture 5쌍 상대 효과 baseline 고정. 60/5,000/text/ref는 동일 snapshot smoke로 한정하며 전체 React/저사양 실측은 미검증으로 명시.
+- [x] P1: 한 세대 children Map 재사용과 보수적 idle 준비 생략. CPU·지연·GPU, state/visual 계약 검증.
+- [x] P2 입구: 실제 저사양 재개 근거 미확보로 보류. 현재 장비나 CPU throttle을 저사양 실측으로 대체하지 않음.
+- [x] P2 실행: 이번에는 미적용. scheduler/wake mutation 게이트는 재개 시 적용.
+- [x] P3: 효과·미측정·보류·롤백과 검증 기록, `docs/CHANGELOG.md` 반영. 커밋/푸시는 수행하지 않음.
 
-설계문서 작성 자체로 기존 ADR 상태나 성능 향상 수치를 변경하지 않는다. 2026-09-06 P0 첫 계측 단위를 반영했다. 다음 단위는 baseline의 P0 잔여 목록이며, **P0 종료 전에 P1/P2로 넘어가지 않는다**.
+설계문서 작성 자체로 기존 ADR 상태를 변경하지 않는다. 실제 실행은 §9로 인수인계한다. P0 첫 단위 뒤 production 기준선을 고정하고 P1 스파이크를 적용했으며, 추가 fixture·자원 검증은 활성화 판정 전에 후속 보강했다. 이는 최초의 P0 전축 종료→P1 순서보다 범위를 나눈 실행이며, 미실측 축을 통과로 간주하지 않는다.
+
+## 9. 실행 결과 — 2026-09-06
+
+### 적용한 P1
+
+- `FrameContentCache`: filtered children·실제/synthetic node Map identity와 registry/layout revision으로 CPU children Map 한 세대를 재사용한다. 같은 개수 node 교체도 무효화하며 effect cleanup에서 참조를 해제한다. root/command stream·picture/font/image를 새 전역 cache에 보관하지 않는다.
+- `SkiaRenderer.canReuseFramePreparation`: 상태를 소비하지 않는 사전 조회다. 기존 polling 뒤 모든 입력이 같고 content surface/snapshot이 유효한 경우에만 content/plan 구축을 생략한다. animation/최종 정리·damage·minimap·readiness target·context 경계는 유지한다. camera가 변하면 기존 준비 경로로 진입한다.
+- `compositionEngineWasm.ts`: production에서 동적 JS 경로가 404여서 95% 부팅에 머무는 기존 blocker를 발견했다. literal import의 `@vite-ignore`를 제거해 Vite가 JS/WASM을 번들에 포함하도록 수리했다. timeout이나 readiness 우회는 추가하지 않았다. 이 수정은 A/B 양쪽 artifact에 적용했다.
+- 계측: 배포 기본 off의 navigation opt-in capture, 실제 main flush와 readiness acknowledgment, GPU nonblocking raw/invalid/pending, canonical publication·cache·resource 계수. 프레임 통계를 Zustand에 쓰지 않는다.
+
+### 효과와 적용 경계
+
+600요소 production 5쌍에서 idle `render.frame` inclusive 중앙값은 **14.87→2.62ms/s (82.4% 감소)**, CDP wall task는 **33.05→19.27ms/s (41.7% 감소)**였다. 후자는 driver/recorder를 포함하고 OS thread CPU를 뜻하지 않는다. settled idle 10초 content/plan/main submission은 모두 0이고 application RAF는 계속된다.
+
+별도 `threadTicks` 5쌍에서 renderer main-thread task CPU 중앙값은 **33.47→19.65ms/s (41.3% 감소)**로 G1의 20% 기준을 통과했다. driver/recorder를 포함하며 정상 속도 기기 수치다.
+
+입력 위상을 맞춰 다시 측정한 pan input→main flush p95는 **17.6→18.2ms**, zoom은 **26.6→27.1ms**로 `max(1ms, 5%)` 기준 안이다. GPU p95 중앙값도 기준 안이다. timer 기반 최초 pan 회귀와 pair별 최악 값을 evidence에서 보존하고 재측정 이유를 기록했다. 5,000요소 zoom·edit tail은 남았으며 전체 60/120fps 달성이나 cold p99 개선을 주장하지 않는다.
+
+P2는 **보류로 종결**한다. 저사양 기기에서 P1 이후 renderer idle CPU ≥30ms/s라는 실제 근거가 없으며, CDP 전체 task·CPU throttle 또는 과거 ADR-167 수치로 이를 대신하지 않는다. 별도 scheduler·wake setter·heartbeat·활성화 flag를 추가하지 않는다. P2 재개 시 §5와 G2 전체를 다시 검증한다. forwards-fill animation이 active record를 유지하는 경우에는 안전을 위해 준비를 계속한다.
+
+### 검증 범위
+
+실행 설계의 전체 실험 행렬을 모든 환경에서 완료했다는 의미는 아니다. 600 fixture에서 5쌍 상대 효과, 60/5,000/text/ref fixture에서 동일 snapshot smoke 대조, 새 context cold 10회, 실제 pointer/드래그·Undo/Redo·refresh, presentation preview/cancel/commit, context 복원과 자원 수명, focused·parity·preflight를 종결 기준으로 삼는다. 실제 신규 외부 font 다운로드, 저사양 기기, React profiling build 수치는 미측정으로 남긴다. on-demand wake mutation 테스트는 P2 미실행에 따라 적용하지 않는다.
+
+### 최종 게이트
+
+- Focused Vitest 12 files / **79 tests PASS**, 하니스 node tests **13 PASS**.
+- `gate:visual-parity` **101 tests PASS** (3 계약 + 98 browser). 기존 fixture의 `/appIcon.svg` decode warning은 있으나 gate exit 0이며 별도 production runtime에서는 page/console error 0이다.
+- `codex:preflight` **PASS**: type-check baseline 0, registration 14, agent catalog/engine matrix/text-axis matrix 정상. `git diff --check` PASS.
+- Production live: 선택/hit, drag delta canonical 0, Undo/Redo/refresh, presentation preview/cancel/commit/Undo, 페이지 왕복, **20회 drag/Undo + context loss/restore**, 동일 선택 상태의 Canvas 내용 영역 PNG 바이트 동일, delayed image/font sync/resize, unmount 후 renderer/RAF 0.
+- 복원 반복의 main/content/standby surface·snapshot 각1, node pictures147, listener547, DOM nodes2589로 일정했다. 강제 GC 뒤 JS heap은 43.38→45.51MB였다. 이 결과를 전체 JS heap 증가 0 또는 모든 자원 누수 부재로 표현하지 않는다.
+
+직접 `review` 체크리스트로 cache 입력·수명, animation 마지막 정리, 실제 flush readiness, store 비의존, Spec/CSS/Preview 소비 경계를 대조했다. 범위 내 미해결 HIGH/CRITICAL은 발견하지 않았다. 신규 외부 폰트·저사양·profiling build 및 P2는 위 제한을 유지한다.

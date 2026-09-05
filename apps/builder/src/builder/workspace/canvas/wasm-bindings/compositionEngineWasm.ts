@@ -92,17 +92,16 @@ export async function initCompositionEngineWasm(): Promise<void> {
     try {
       // wasm-pack --target bundler 산출물 — vite-plugin-wasm 이 .wasm 바이너리를
       // ES 모듈로 로드하면 import 시점에 자동 초기화된다(__wbg_init
-      // default export 없음). @vite-ignore 로 정적 분석 우회 + 런타임 동적 로드.
+      // default export 없음). 정적 import 경로를 유지해 production에서도
+      // JS/WASM 자산이 번들에 포함되도록 한다.
       //
       // 경로는 apps/builder **내부** 상대 경로. wasm-pack out-dir 을
       // `composition-engine-pkg/`(dev 서버 root
       // 안)로 지정한다 — `/packages/composition-engine/pkg/...` 절대 URL 은 dev
       // 서버 root(apps/builder)를 벗어나 fetch 실패하기 때문. `package.json`
       // `wasm:build:engine` 스크립트가 이 out-dir 로 빌드한다.
-      const mod = (await import(
-        /* @vite-ignore */
-        "./composition-engine-pkg/composition_engine.js"
-      )) as unknown as CompositionEngineModule;
+      const mod =
+        (await import("./composition-engine-pkg/composition_engine.js")) as unknown as CompositionEngineModule;
 
       if (!mod?.LayoutEngine || typeof mod.LayoutEngine !== "function") {
         engineModule = null;

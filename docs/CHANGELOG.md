@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder 프레임 CPU 준비 재사용] - 2026-09-06
+
+### Performance
+
+- 동일 입력의 children Map을 renderer 수명 안에서 재사용하고, 유효한 retained frame의 settled idle에서는 content/plan 준비를 생략합니다. animation·resource·camera·readiness 변경은 기존 제출 경로로 처리하며 연속 RAF는 유지합니다.
+- 600요소 production 5쌍에서 renderer main-thread task CPU 중앙값이 33.47→19.65ms/s로 41.3% 감소했습니다. 입력 위상을 맞춘 pan/zoom 제출 지연과 GPU p95는 회귀 예산 안입니다. 5,000요소 편집·zoom tail과 실제 저사양 검증은 남아 있으며, on-demand RAF는 조건부 보류합니다.
+- 근거·적용 범위: [프레임 성능 실행 설계 §9](adr/react-skia-zustand-frame-performance-design.md#9-실행-결과--2026-09-06).
+
+### Fixed
+
+- production에서 composition engine의 동적 JS import가 404를 내며 Builder 부팅이 95%에 머무는 문제를 수정했습니다. Vite가 JS/WASM 경로를 번들링하도록 연결하고, matching document의 실제 Skia 제출 이후에만 ready가 되는 계약을 유지합니다.
+
 ## [Navigator 선택 fan-out 제거 — ADR-203 Implemented] - 2026-09-06
 
 ### Performance
