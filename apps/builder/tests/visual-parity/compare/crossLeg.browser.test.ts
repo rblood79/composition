@@ -53,7 +53,7 @@ import type { LegResult, Rect, VisualParityCase } from "../harness/types";
  * | 케이스 | 상태 (2026-08-31) |
  * | --- | --- |
  * | `basic-geometry-paint` | **통과** — 선언 예산 그대로 L3 pass. 잔여는 모서리 arc 의 AA(`maxByte 96`)뿐이고 비율이 0.00068 로 예산(0.001) 안이라 HC6 의 AND 조항이 막지 않는다 |
- * | `catalog-state-paint` | L1 geometry 발산 — (2026-08-31) 버튼이 x 140px / y 55px 어긋났다 → **ADR-923 Phase 5 (2026-09-02)** 로 위치 발산은 0 (block 부모 안 Button 2 가 같은 줄, `blockInlineProbe` Δ0). 잔여 L1 은 Button **폭** Δ2.66 / Δ2.80px (텍스트 측정 — ADR-923 범위 밖, `.artifacts/catalog-state-paint.crossleg.json`) 라 층 판정은 그대로 `L1:fail`. 픽셀 층은 실행되지 않는다 |
+ * | `catalog-state-paint` | L1 통과 (2026-09-05) — (2026-08-31) 버튼이 x 140px / y 55px 어긋났다 → **ADR-923 Phase 5 (2026-09-02)** 로 위치 발산 0. 남아 있던 Button **폭** Δ2.66 / Δ2.80px 는 "텍스트 측정, ADR-923 범위 밖" 으로 기록돼 있었으나 실제 병인은 **하니스 폰트 비대칭**이었다 (Skia leg 은 앱 폰트 없는 tester 페이지, Preview leg 은 폰트 실은 iframe — `harness/setupFonts.ts`). tester 에 같은 폰트를 실으니 L1 이 통과했고, **그때부터 픽셀 층이 처음으로 실행된다** — 아래 5 region 은 새 발산이 아니라 L1 에 가려 한 번도 안 돌던 층의 첫 측정값이다 |
  * | `text-raster-resources` | text 2종 + `image-raster` (ratio 0.914) |
  *
  * basic 이 통과로 바뀐 경위: 착수 시점엔 세 region 이 `maxByte 145` 로 막혀 있었고
@@ -61,12 +61,22 @@ import type { LegResult, Rect, VisualParityCase } from "../harness/types";
  * (같은 자리에서 배경도 안 그리고 있었다 — `FrameSpec.render.shapes()`). 고친 뒤
  * 예산은 한 줄도 건드리지 않은 채 통과했다.
  *
- * 남은 둘은 원인 미규명이거나(text/raster) 수리 방식이 결정 대기다(catalog 레이아웃).
+ * 남은 것은 원인 미규명이다(text/raster · catalog 픽셀). `catalog-state-paint` 의 픽셀 층
+ * 5 region 은 2026-09-05 이 처음 측정이며 `button-disabled-fill` 0.899 는 **90% 픽셀이
+ * 다르다** — 예산 문제가 아니라 disabled Button 채우기의 실제 시각 발산으로 보인다.
+ * 별도 조사 대상이며 여기서는 값을 못박아 두어 좋아지거나 나빠지면 드러나게 한다.
  */
 const KNOWN_OVER_BUDGET: Record<string, string[]> = {
   "basic-geometry-paint": [],
-  // L1 에서 멈춰 픽셀 층이 아예 안 돈다 — region 목록이 비는 것이 정상이다.
-  "catalog-state-paint": [],
+  // 2026-09-05 하니스 폰트 수리로 L1 이 통과하면서 픽셀 층이 처음 돌았다. 아래는 그
+  // 첫 측정값이다 — 새로 생긴 발산이 아니라 L1 에 가려 안 보이던 것이다.
+  "catalog-state-paint": [
+    "clip-fill",
+    "clip-boundary",
+    "button-enabled-fill",
+    "button-disabled-fill",
+    "button-labels",
+  ],
   "text-raster-resources": ["heading-text", "paragraph-text", "image-raster"],
   // ADR-205 — 텍스트 래스터 기본 격차(maxByte 204)는 위 케이스와 같은 자리다.
   // 자간 축의 판정은 이 목록이 아니라 **줄 수**가 한다: 결선이 끊기면 두 leg 의 줄
@@ -79,7 +89,7 @@ const KNOWN_LAYERS: Record<string, string> = {
   "basic-geometry-paint":
     "env:pass live:pass L0:pass L1:pass L2:skip L3:pass L4:pass",
   "catalog-state-paint":
-    "env:pass live:pass L0:pass L1:fail L2:skip L3:skip L4:skip",
+    "env:pass live:pass L0:pass L1:pass L2:skip L3:fail L4:fail",
   "text-raster-resources":
     "env:pass live:pass L0:pass L1:pass L2:skip L3:fail L4:fail",
   "text-letter-spacing":

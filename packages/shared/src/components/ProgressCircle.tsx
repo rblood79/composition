@@ -56,6 +56,16 @@ export interface ProgressCircleProps {
   /** 추가 className */
   className?: string;
   /**
+   * 접근 가능한 이름. `role="progressbar"` 는 이름이 필수인데 이 컴포넌트에는 보이는 label 이
+   * 없어서(RSP ProgressCircle 과 같은 형태) 호출부가 줘야 한다. 예전에는 타입에 없어 넘기면
+   * TS 오류였고 — 런타임은 `...rest` 로 통과시키고 있었다 — 그래서 이름 없는 progressbar 가
+   * 나갔다 (ADR-205 후속, 2026-09-05). 축은 D1(ARIA) 이고 이 컴포넌트는 RAC 가 아닌
+   * composition 자체 어댑터라 DOM 소유가 여기 있다.
+   */
+  "aria-label"?: string;
+  /** 접근 가능한 이름을 다른 요소에서 참조할 때 (`aria-label` 과 택일). */
+  "aria-labelledby"?: string;
+  /**
    * cutover 경로(toRacProps propPassthrough)가 함께 emit 하는 `data-*` 속성(예: data-size).
    * root `<div>` 에 passthrough 하여 CSS/debug marker 보존. 지름 계산엔 props.size 사용.
    */

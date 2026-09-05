@@ -16,6 +16,9 @@ const config = mergeConfig(
     test: {
       testTimeout: 120_000,
       hookTimeout: 120_000,
+      // tester 페이지에 Preview 와 같은 폰트를 싣는다 — 두 leg 이 다른 폰트 집합을
+      // 보면 케이스가 의도한 축이 아니라 폰트 로딩을 잰다 (harness/setupFonts.ts).
+      setupFiles: ["./tests/visual-parity/harness/setupFonts.ts"],
     },
   }),
 );

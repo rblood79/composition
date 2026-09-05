@@ -17,7 +17,7 @@
  * (대조군 0.073) 에 묻혔다 — 결선을 원복해도 수치가 소수점 5자리까지 같았다. `20px`
  * 에서는 spaced 문단이 **6줄(h 120)**, 대조군이 2줄(h 40) 로 갈리고, 결선이 끊기면 두 leg
  * 의 줄 수 자체가 달라져 L1 geometry 부터 무너진다. 즉 이 케이스는 **결선이 살아 있을
- * 때만 통과**한다 (실측: ls 20 결선 시 spaced diffRatio 0.0220 < 대조군 0.0862 — Arial 기준, ADR-205 Phase 4).
+ * 때만 통과**한다 (실측: ls 20 결선 시 spaced diffRatio 0.0196 < 대조군 0.0727).
  */
 
 import type { VisualParityCase } from "../harness/types";
@@ -34,13 +34,10 @@ const BODY = "Letter spacing changes where this line wraps.";
 const WIDTH = "260px";
 
 const SHARED_TEXT_STYLE = {
-  // **Pretendard 를 쓰지 않는다.** Skia leg 의 Canvas 2D 측정은 tester 페이지에서
-  // 일어나고 Preview leg 은 폰트를 실은 iframe 안에서 조판된다 — 두 문맥의 폰트 집합이
-  // 달라 같은 문자열이 다른 폭으로 나온다 (실측: tester 에서 Pretendard 14px = 255px
-  // = 폴백 폰트 metric, Preview iframe 은 실제 Pretendard 로 260px 을 넘겨 2줄).
-  // 그 격차는 예전에 fontSize 결손(px 문자열 → 16 fallback)이 Skia 를 291px 로 부풀려
-  // 우연히 가려져 있었다. 시스템 폰트를 쓰면 두 문맥이 같은 metric 을 본다.
-  fontFamily: "Arial",
+  // 앱 폰트 그대로 — tester 페이지에도 같은 폰트를 싣는다 (`harness/setupFonts.ts`).
+  // 그 전에는 Skia leg(tester 페이지, 폴백 metric)과 Preview leg(폰트 실은 iframe)이
+  // 다른 폭을 봐서 이 케이스가 자간이 아니라 폰트 로딩을 쟀다.
+  fontFamily: "Pretendard",
   fontSize: "14px",
   lineHeight: "20px",
   fontWeight: 400,

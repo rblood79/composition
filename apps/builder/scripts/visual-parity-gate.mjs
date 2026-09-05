@@ -54,6 +54,9 @@ const DOCTOR = ["tests/visual-parity/skia/doctor.browser.test.ts"];
  * 질문이 아니라서 full 로 보낸다.
  */
 const SMOKE = [
+  // 폰트 문맥은 probe 지만 smoke 다 — 이게 깨지면 **모든 텍스트 케이스**가 조용히
+  // 폴백 metric 으로 돌아가 게이트가 vacuous 해진다 (아래 FLOORS 주석의 그 경로).
+  "tests/visual-parity/harness/fontContext.browser.test.ts",
   "tests/visual-parity/identity.browser.test.ts",
   "tests/visual-parity/productionPath.browser.test.ts",
   "tests/visual-parity/skia/productionLeg.browser.test.ts",
@@ -71,7 +74,7 @@ const SMOKE = [
  * 파일 하나가 include glob 에서 빠지거나 셋업이 깨져 조용히 줄어드는 경우가
  * 게이트를 vacuous 하게 만드는 실제 경로다.
  */
-const FLOORS = { doctor: 3, smoke: 95, full: 112 };
+const FLOORS = { doctor: 3, smoke: 98, full: 118 };
 
 /** HC10 — 초 단위 벽시계 예산 */
 const BUDGET_SECONDS = { smoke: 90, full: 300 };
@@ -152,7 +155,9 @@ function checkRun(run, floor) {
   }
   const pending = r.numPendingTests ?? 0;
   if (pending > 0) {
-    problems.push(`${run.label}: skip 된 테스트 ${pending}건 — 게이트는 skip 을 허용하지 않는다`);
+    problems.push(
+      `${run.label}: skip 된 테스트 ${pending}건 — 게이트는 skip 을 허용하지 않는다`,
+    );
   }
   return problems;
 }
@@ -201,7 +206,9 @@ function checkScopeSync() {
     (f) => !existsSync(join(BUILDER_ROOT, f)),
   );
   if (missing.length > 0) {
-    return [`smoke 목록의 파일이 없다: ${missing.join(", ")} — 이름이 바뀌었거나 지워졌다`];
+    return [
+      `smoke 목록의 파일이 없다: ${missing.join(", ")} — 이름이 바뀌었거나 지워졌다`,
+    ];
   }
   return [];
 }
@@ -217,7 +224,9 @@ if (scopeProblems.length > 0) {
 }
 
 console.log(`\n[ADR-198] visual parity gate — mode=${mode}`);
-console.log(`[ADR-198] 1/2 doctor fixture (HC11 — 환경 판정이 매트릭스보다 먼저)`);
+console.log(
+  `[ADR-198] 1/2 doctor fixture (HC11 — 환경 판정이 매트릭스보다 먼저)`,
+);
 const doctorRun = runVitest("doctor", DOCTOR, join(tmp, "doctor.json"));
 runs.push(doctorRun);
 
@@ -253,9 +262,12 @@ if (totalSeconds > budget) {
 }
 
 const testCount =
-  (doctorRun.report?.numTotalTests ?? 0) + (matrixRun.report?.numTotalTests ?? 0);
+  (doctorRun.report?.numTotalTests ?? 0) +
+  (matrixRun.report?.numTotalTests ?? 0);
 
-console.log(`\n[ADR-198] mode=${mode}  tests=${testCount}  wall=${totalSeconds.toFixed(1)}s / ${budget}s`);
+console.log(
+  `\n[ADR-198] mode=${mode}  tests=${testCount}  wall=${totalSeconds.toFixed(1)}s / ${budget}s`,
+);
 
 if (problems.length > 0) {
   const code = extractCode(matrixRun.report);

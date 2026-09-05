@@ -186,6 +186,32 @@ describe("ProgressCircle — staticColor over background (§2-F, 2026-08-21)", (
     expect(html).not.toContain("/ 0.25)");
   });
 
+  /**
+   * `role="progressbar"` 는 접근 가능한 이름이 필수인데 이 컴포넌트에는 보이는 label 이 없다.
+   * 예전에는 `aria-label` 이 타입에 없어 호출부가 넘기면 TS 오류였고 (런타임은 통과시켰다),
+   * 그래서 이름 없는 progressbar 가 나갔다 — ADR-205 후속 (2026-09-05).
+   */
+  it("aria-label 이 root progressbar 에 실린다", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ProgressCircle, {
+        value: 50,
+        "aria-label": "업로드",
+      }),
+    );
+    expect(html).toContain('role="progressbar"');
+    expect(html).toContain('aria-label="업로드"');
+  });
+
+  it("aria-labelledby 도 같이 실린다 (이름 참조 형태)", () => {
+    const html = renderToStaticMarkup(
+      React.createElement(ProgressCircle, {
+        value: 50,
+        "aria-labelledby": "title-1",
+      }),
+    );
+    expect(html).toContain('aria-labelledby="title-1"');
+  });
+
   it("binding propPassthrough 로 staticColor 가 React prop + data-static-color 둘 다 emit", () => {
     const node = {
       id: "x",
