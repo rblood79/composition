@@ -16,6 +16,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -192,4 +193,75 @@ describe("ADR-205 G4 — 텍스트 시각 축 대칭 게이트", () => {
       expect(build({})?.letterSpacing).toBeUndefined();
     });
   });
+
+  /**
+   * ④ **상속이 catalog 기본을 이겨도 되는 축인지** — Phase 5 의 전제를 지킨다.
+   *
+   * Preview 에서 상속은 **가장 약한 채널**이다. 컴포넌트 CSS 가 그 속성을 선언하면
+   * 선언이 상속을 이긴다 (측정 2026-09-05, 부모 `font-size:23px` 아래에서
+   * `.react-aria-Text` 16px · `.react-aria-Label` 14px · `.react-aria-Button` 14px,
+   * 클래스 없는 요소만 23px). 그래서 `fontSize` 는 상속 운반 대상이 **아니다** —
+   * 운반하면 catalog 선언을 상속이 덮어 Preview 와 갈린다.
+   *
+   * `letterSpacing` 을 운반해도 되는 근거는 **어떤 컴포넌트 CSS 도 letter-spacing 을
+   * 선언하지 않는다**는 사실 하나다 (토큰 정의만 있다). 그 사실이 바뀌면 이 게이트가
+   * 먼저 깨진다 — 그때는 운반 대상에서 빼거나 우선순위를 다시 정해야 한다.
+   */
+  it("④ 상속 운반 축을 선언하는 컴포넌트 CSS 가 없다 (Phase 5 전제)", () => {
+    const carried = readCarriedInheritedAxes();
+    expect(carried.length).toBeGreaterThan(0);
+
+    const cssDir = join(ROOT, "packages/shared/src/components/styles");
+    const files = execFileSync("bash", ["-c", `find ${cssDir} -name '*.css'`], {
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter(Boolean);
+
+    // 선언 탐지는 JS 로 한다 — shell 정규식의 줄머리 앵커에 의존하면 한 줄로 쓴
+    // 규칙(`.x { letter-spacing: 1px }`)을 놓쳐 게이트가 조용히 vacuous 해진다
+    // (실측: 그 형태로 원복 RED 를 넣었더니 통과했다).
+    const declared: string[] = [];
+    for (const axis of carried) {
+      const prop = cssProp(axis);
+      // `--letter-spacing-*` 같은 **토큰 정의**는 선언이 아니다 — 앞에 `-` 가 붙는다.
+      const re = new RegExp(`(^|[^-\\w])${prop}\\s*:`, "g");
+      for (const file of files) {
+        const text = readFileSync(file, "utf8");
+        if (re.test(text)) declared.push(`${prop} @ ${file.replace(ROOT, "")}`);
+        re.lastIndex = 0;
+      }
+    }
+
+    expect(declared).toEqual([]);
+  });
 });
+
+/** camelCase 축 → CSS 속성명. */
+function cssProp(axis: string): string {
+  return axis.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+}
+
+/**
+ * 레이아웃이 `ComputedLayout.textAxes` 로 **실어 보내는** 축. 타입에 선언된 것이 아니라
+ * 실제로 누적하는 축만 센다 — 타입은 두 축을 담을 수 있지만 Phase 5 는 하나만 싣는다.
+ */
+function readCarriedInheritedAxes(): string[] {
+  const src = readFileSync(
+    join(
+      ROOT,
+      "apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts",
+    ),
+    "utf8",
+  );
+  const region = src.slice(
+    src.indexOf("const ownTextAxes = resolveTextRenderStyle"),
+  );
+  const block = region.slice(
+    0,
+    region.indexOf("inheritedTextAxes.set(elementId"),
+  );
+  return [...block.matchAll(/\{ \.\.\.parentTextAxes, ([A-Za-z][\w]*):/g)].map(
+    (m) => m[1],
+  );
+}

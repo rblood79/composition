@@ -127,5 +127,7 @@ scene build 는 그것을 읽는다. 새 채널이 아니라 **있는 레코드�
 - 텍스트 **렌더** 속성 중 측정에 영향 없는 것 (`color` 등) 은 이미 다른 경로가 소유.
 - catalog 에 letterSpacing 축을 추가하는 것 (대안 C, 기각).
 - ADR-057 블록의 나머지 12종을 seam 으로 옮기는 것 — Phase 4 와 같은 조건부 수렴 대상.
-- `fontSize` 상속 (Phase 5 가 letterSpacing 만 운반한 이유) — layout leg 18곳의 기본값
-  정책을 같이 바꾸는 작업이라 별도 판정 대상.
+- `fontSize` 상속 — **결손이 아님이 실측으로 확정** (2026-09-05,
+  [evidence §12](../evidence/205-text-axis-gap-matrix.md)). 컴포넌트 CSS 가 `font-size` 를
+  선언하므로 Preview 도 상속하지 않는다 (부모 23px 아래 `.react-aria-Text` 16px). 캔버스가
+  catalog 기본으로 그리는 현재 동작이 대칭이며, 상속을 이으면 오히려 발산이 생긴다.

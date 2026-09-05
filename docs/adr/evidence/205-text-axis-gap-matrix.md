@@ -421,3 +421,57 @@ S4 상속 열은 "`canvas/skia/**` 에 `ComputedStyle` 참조가 있는가" 라�
 Phase 5 이후에도 전 속성 ❌ 로 남았다. §10-2 에서 고친 것과 같은 형태의 거짓 귀속이므로, 이제
 seam 을 **두 인자로** 부른 뒤 실제로 `child.text.<축>` 에 대입하는 축만 ✅ 로 센다. 현재 운반
 축은 `letterSpacing` 하나이고, 표에서 측정 4열이 모두 ✅ 인 유일한 속성이다.
+
+## 12. fontSize 상속 — 결손이 아니다 (2026-09-05)
+
+Phase 5 는 "fontSize 는 layout 18곳이 상속을 읽지 않아서 Skia 만 상속시키면 거울상 결손" 을
+이유로 letterSpacing 만 운반했다 (§11-3). 후속으로 그 18곳을 마저 잇는 작업을 검토했고,
+**실측 결과 이어서는 안 된다**는 결론이 나왔다. 이유가 처음 적은 것보다 강하다.
+
+### 12-1. Preview 에서 상속은 가장 약한 채널이다
+
+실 번들 CSS 를 실은 문서에서 부모에 `font-size: 23px` 를 주고 자식의 computed 를 쟀다
+(2026-09-05, chromium):
+
+| 자식                    | computed font-size |
+| ----------------------- | -----------------: |
+| `.react-aria-Text`      |               16px |
+| `.react-aria-Label`     |               14px |
+| `.react-aria-Button`    |               14px |
+| `.react-aria-Paragraph` |               16px |
+| 클래스 없는 `<span>`    |           **23px** |
+
+컴포넌트 CSS 가 `font-size` 를 **선언**하므로 CSS 캐스케이드에서 선언이 상속을 이긴다.
+즉 Preview 도 상속하지 않는다.
+
+따라서 캔버스가 catalog/spec 기본으로 그리는 현재 동작이 **대칭이며 옳다**. 레이아웃 21곳 중
+18곳이 `computedStyle` 을 읽지 않는 것도 결손이 아니라 정확한 우선순위다 —
+`인라인 > 컴포넌트 선언(catalog/spec) > (선언이 없을 때만) 상속`.
+
+앞서 이 축을 "결손" 으로 본 판단은 **오라클이 잘못됐기 때문**이었다. live 하니스의 DOM
+비교군이 클래스 없는 `<div>` 라 항상 상속했고, 그래서 캔버스만 안 따라오는 것처럼 보였다.
+컴포넌트 클래스를 붙이는 순간 두 쪽이 같아진다.
+
+### 12-2. 잔여 — 선언이 없는 타입
+
+팔레트 64 타입 중 root 클래스가 `font-size` 를 선언하지 않아 상속되는 것은 **18개**다
+(`Skeleton` `Avatar` `AvatarGroup` `StatusLight` `ProgressCircle` `Image` `IllustratedMessage`
+`frame` `Nav` `CardView` `IconButton` `ButtonGroup` `DropZone` `FileTrigger` `Table` `GridList`
+`Tree` `Section`). 대부분 컨테이너·비텍스트이고, 그 안의 텍스트는 자기 클래스를 갖는다
+(`.react-aria-Text` 등) — 그래서 상속이 최종 글자 크기를 정하는 자리가 아니다.
+
+### 12-3. letterSpacing 이 달랐던 이유 — 그리고 그 전제를 게이트로
+
+Phase 5 가 letterSpacing 을 운반해도 되는 근거는 **어떤 컴포넌트 CSS 도 `letter-spacing` 을
+선언하지 않는다**는 사실 하나다 (번들 전체에서 매칭 5건은 전부 `--letter-spacing-*` 토큰
+**정의**이고 선언이 아니다. catalog 쪽도 0건 — F12). 선언이 없으면 상속이 유일한 채널이므로
+상속이 catalog 기본을 이겨도 Preview 와 갈리지 않는다.
+
+이 전제는 CSS 한 줄로 무너진다. 그래서 게이트 ④ 로 고정했다 — 레이아웃이 실제로 실어 보내는
+축(`ComputedLayout.textAxes` 누적 지점에서 읽는다)에 대해, 번들 CSS 어디에도 그 속성 선언이
+없어야 한다. 원복 RED 확인: `generated/Text.css` 에 `letter-spacing` 한 줄을 넣으면 FAIL.
+
+> 게이트를 처음에 shell `grep` 의 줄머리 앵커로 짰더니 한 줄짜리 규칙
+> (`.x { letter-spacing: 1px }`)을 놓쳐 **원복 RED 가 통과**했다. JS 스캔으로 바꿔
+> `--` 접두(토큰 정의)만 제외하도록 했다. 게이트를 넣은 뒤 반드시 RED 를 확인해야 하는
+> 이유의 사례다.

@@ -325,9 +325,12 @@ Phase 1 이전에는 인라인 케이스의 scene node `text` 에 `letterSpacing
   파싱으로 수렴해 해소. 우선순위 체인은 지점마다 남지만 파싱 규칙은 하나다.
 - ~~Phase 5 전까지 상속된 letter-spacing 은 Skia paint 가 무시한다 (R7)~~ — Phase 5 에서
   `ComputedLayout.textAxes` 운반으로 해소.
-- 상속 운반 축이 `letterSpacing` 하나다. `fontSize` 는 레이아웃 21곳 중 18곳이 상속을 읽지
-  않고 catalog/spec 기본으로 떨어지므로 Skia 만 상속시키면 거울상 결손이 된다 — 두 leg 의
-  기본값 정책을 같이 바꾸는 별도 작업이다.
+- 상속 운반 축이 `letterSpacing` 하나다. `fontSize` 는 **운반하면 안 된다** — 컴포넌트 CSS 가
+  `font-size` 를 선언해 Preview 에서도 상속을 이기기 때문이다 (실측: 부모 23px 아래
+  `.react-aria-Text` 16px · `.react-aria-Label` 14px, 클래스 없는 요소만 23px). 캔버스가
+  catalog 기본으로 그리는 현재 동작이 대칭이며 [evidence §12](../evidence/205-text-axis-gap-matrix.md)
+  가 근거다. letterSpacing 이 예외인 이유는 **어떤 컴포넌트 CSS 도 그 속성을 선언하지 않기**
+  때문이고, 그 전제는 게이트 ④ 가 지킨다.
 - 격차표 S4 열은 여전히 **언급 기반 상한**이다. 값 수준 증거는 G4 가 확인한 축(`⁽ᴳ⁴⁾`)뿐이며,
   표식 없는 ✅ 를 도달 증거로 읽으면 Phase 4 가 겪은 오판을 반복한다.
 - Skia 쪽 seam 결선은 ADR-057 블록(`buildSpecNodeData.ts:2050-2165`)과 한동안 공존한다 —
