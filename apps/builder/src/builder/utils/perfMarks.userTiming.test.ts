@@ -10,15 +10,62 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getSnapshot,
   observe,
+  observeAsync,
+  markBegin,
+  markEnd,
   resetPerfMarks,
+  setRecordingEnabled,
   setUserTiming,
 } from "./perfMarks";
 
 describe("perfMarks observe — User Timing 토글", () => {
   afterEach(() => {
+    setRecordingEnabled(true);
     setUserTiming(false);
     resetPerfMarks();
     vi.restoreAllMocks();
+  });
+
+  it("1,000개 버퍼가 순환해도 전체 호출 수와 누적 시간은 보존한다", () => {
+    let time = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => time++);
+    for (let i = 0; i < 1200; i++) observe("test.total", () => undefined);
+    expect(getSnapshot("test.total")).toMatchObject({
+      count: 1000,
+      totalCount: 1200,
+      totalDurationMs: 1200,
+    });
+    resetPerfMarks();
+    expect(getSnapshot("test.total")).toBeNull();
+  });
+
+  it("계측 off에서도 반환값과 예외를 보존하고 timing을 호출하지 않는다", async () => {
+    setRecordingEnabled(false);
+    setUserTiming(true);
+    const now = vi.spyOn(performance, "now");
+    const mark = vi.spyOn(performance, "mark");
+    expect(observe("test.off", () => 42)).toBe(42);
+    await expect(observeAsync("test.off", async () => 43)).resolves.toBe(43);
+    expect(() =>
+      observe("test.off", () => {
+        throw new Error("sync");
+      }),
+    ).toThrow("sync");
+    await expect(
+      observeAsync("test.off", async () => {
+        throw new Error("async");
+      }),
+    ).rejects.toThrow("async");
+    const start = markBegin();
+    markEnd("test.off", start);
+    expect(now).not.toHaveBeenCalled();
+    expect(mark).not.toHaveBeenCalled();
+    expect(getSnapshot("test.off")).toBeNull();
+    setRecordingEnabled(true);
+    markEnd("test.off", start);
+    expect(getSnapshot("test.off")).toBeNull();
+    observe("test.on", () => 1);
+    expect(getSnapshot("test.on")?.totalCount).toBe(1);
   });
 
   it("기본은 performance.mark/measure/clear 를 부르지 않고 내부 기록만 남긴다", () => {

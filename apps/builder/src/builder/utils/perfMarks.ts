@@ -91,6 +91,8 @@ interface LabelBuffer {
   durations: number[];
   /** Running total samples seen (can exceed BUFFER_SIZE). */
   totalCount: number;
+  /** reset 이후 전체 표본의 누적 시간. 최근 표본 버퍼와 독립적이다. */
+  totalDurationMs: number;
   /** Count of durations exceeding 50 ms threshold. */
   violations50ms: number;
   /** Count of durations exceeding 100 ms threshold. */
@@ -109,6 +111,7 @@ export interface PerfSnapshot {
   label: string;
   count: number;
   totalCount: number;
+  totalDurationMs: number;
   mean: number;
   p50: number;
   p95: number;
@@ -135,6 +138,7 @@ function getOrCreateBuffer(label: string): LabelBuffer {
     buf = {
       durations: [],
       totalCount: 0,
+      totalDurationMs: 0,
       violations50ms: 0,
       violations100ms: 0,
     };
@@ -150,6 +154,7 @@ function record(label: string, duration: number, attribution?: string): void {
     buf.durations.shift();
   }
   buf.totalCount += 1;
+  buf.totalDurationMs += duration;
   if (duration > VIOLATION_THRESHOLDS[0]) buf.violations50ms += 1;
   if (duration > VIOLATION_THRESHOLDS[1]) buf.violations100ms += 1;
   if (attribution) {
@@ -188,6 +193,17 @@ function pushTrace(label: string, start: number, end: number): void {
  * flame graph 용 User Timing 은 `__composition_PERF__.setUserTiming(true)` 로 켠다.
  */
 let userTimingEnabled = false;
+let recordingEnabled = true;
+
+/** 계측 비용 A/B용. 렌더링과 입력 함수 실행은 유지한다. */
+export function setRecordingEnabled(enabled: boolean): void {
+  recordingEnabled = enabled;
+  measurementTraces.length = 0;
+}
+
+export function isRecordingEnabled(): boolean {
+  return recordingEnabled;
+}
 
 export function setUserTiming(enabled: boolean): void {
   userTimingEnabled = enabled;
@@ -203,6 +219,7 @@ export function isUserTimingEnabled(): boolean {
  * appear in the DevTools Performance panel flame graph.
  */
 export function observe<T>(label: string, fn: () => T): T {
+  if (!recordingEnabled) return fn();
   if (!userTimingEnabled) {
     const start = performance.now();
     try {
@@ -243,6 +260,7 @@ export async function observeAsync<T>(
   label: string,
   fn: () => Promise<T>,
 ): Promise<T> {
+  if (!recordingEnabled) return fn();
   const start = performance.now();
   try {
     return await fn();
@@ -258,10 +276,11 @@ export async function observeAsync<T>(
  * (e.g., rAF body spread across conditional branches).
  */
 export function markBegin(): number {
-  return performance.now();
+  return recordingEnabled ? performance.now() : Number.NaN;
 }
 
 export function markEnd(label: string, beginTimestamp: number): number {
+  if (!recordingEnabled || !Number.isFinite(beginTimestamp)) return 0;
   const end = performance.now();
   const duration = end - beginTimestamp;
   record(label, duration);
@@ -288,6 +307,7 @@ export function getSnapshot(label: string): PerfSnapshot | null {
     label,
     count: sorted.length,
     totalCount: buf.totalCount,
+    totalDurationMs: buf.totalDurationMs,
     mean: Number((sum / sorted.length).toFixed(2)),
     p50: Number(percentile(sorted, 0.5).toFixed(2)),
     p95: Number(percentile(sorted, 0.95).toFixed(2)),
@@ -330,6 +350,7 @@ export function resetPerfMarks(label?: string): void {
     buffers.delete(label);
   } else {
     buffers.clear();
+    measurementTraces.length = 0;
   }
 }
 
@@ -373,6 +394,7 @@ function classifyLongTask(startTime: number, duration: number): LongTaskLabel {
 }
 
 function recordLongTask(entry: PerformanceEntry): void {
+  if (!recordingEnabled) return;
   const label = classifyLongTask(entry.startTime, entry.duration);
   // Per spec, attribution is usually empty for SPA main-document tasks.
   const attrs = (entry as unknown as { attribution?: LongTaskAttribution[] })
@@ -435,6 +457,8 @@ if (typeof window !== "undefined") {
       snapshotLongTasks: typeof getAllLongTaskSnapshots;
       resetLongTasks: typeof resetLongTasks;
       setUserTiming: typeof setUserTiming;
+      setRecordingEnabled: typeof setRecordingEnabled;
+      isRecordingEnabled: typeof isRecordingEnabled;
     };
   };
   w.__composition_PERF__ = {
@@ -446,6 +470,8 @@ if (typeof window !== "undefined") {
     snapshotLongTasks: getAllLongTaskSnapshots,
     resetLongTasks,
     setUserTiming,
+    setRecordingEnabled,
+    isRecordingEnabled,
   };
   initLongTaskObserver();
 }

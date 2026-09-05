@@ -8,6 +8,7 @@ import {
   parseArgs,
   RECORDER_SCRIPT,
   summarizeRecording,
+  summarizeTaskMetrics,
 } from "./perf-baseline.mjs";
 
 async function record(samples, layerTreeRows = 0) {
@@ -98,6 +99,78 @@ test("선택 driver 기본값과 명시 옵션을 검증한다", () => {
   assert.throws(
     () => parseArgs(["--selection-driver", "typo"]),
     /selection driver/,
+  );
+});
+
+test("계측 옵션을 검증하고 누락된 CPU 지표를 0으로 만들지 않는다", () => {
+  assert.equal(parseArgs([]).instrumentation, "on");
+  assert.equal(parseArgs(["--instrumentation", "off"]).instrumentation, "off");
+  assert.throws(
+    () => parseArgs(["--instrumentation", "bad"]),
+    /instrumentation/,
+  );
+  assert.equal(summarizeTaskMetrics([], []), null);
+  const metrics = (timestamp, task) => [
+    { name: "Timestamp", value: timestamp },
+    { name: "TaskDuration", value: task },
+  ];
+  assert.deepEqual(summarizeTaskMetrics(metrics(10, 2), metrics(20, 2.5)), {
+    seconds: 10,
+    taskMs: 500,
+    taskMsPerSecond: 50,
+  });
+});
+
+test("summary는 최근 버퍼와 전체 호출 수·누적 시간·p99를 구분한다", async () => {
+  const rec = await record([[10, 11]]);
+  rec.ms = 10000;
+  rec.perf = [
+    {
+      label: "render.frame",
+      count: 1000,
+      totalCount: 1200,
+      totalDurationMs: 60,
+      p50: 0.05,
+      p95: 0.1,
+      p99: 0.2,
+      max: 0.3,
+    },
+  ];
+  const sample = summarizeRecording(rec).measuredDurations["render.frame"];
+  assert.equal(sample.count, 1000);
+  assert.equal(sample.totalCount, 1200);
+  assert.equal(sample.p99, 0.2);
+  assert.equal(sample.inclusiveMsPerSecond, 6);
+});
+
+test("recorder는 계측 off를 적용하고 종료할 때 이전 설정을 복원한다", async () => {
+  let enabled = true;
+  const changes = [];
+  const window = {
+    __composition_PERF__: {
+      isRecordingEnabled: () => enabled,
+      setRecordingEnabled: (value) => {
+        enabled = value;
+        changes.push(value);
+      },
+      snapshotAll: () => [],
+    },
+  };
+  runInNewContext(RECORDER_SCRIPT, {
+    window,
+    performance: { now: () => 10 },
+    document: { querySelectorAll: () => [] },
+    requestAnimationFrame: () => {},
+  });
+  window.__perfRecorder.start({ instrumentation: "off" });
+  assert.equal(enabled, false);
+  await window.__perfRecorder.stop();
+  assert.equal(enabled, true);
+  assert.deepEqual(changes, [false, true]);
+  delete window.__composition_PERF__;
+  assert.throws(
+    () => window.__perfRecorder.start({ instrumentation: "off" }),
+    /API 없음/,
   );
 });
 

@@ -122,3 +122,6 @@ CLAUDE.local.md
 
 # ADR parity raw captures (local-only — ADR-923 G0/G3 baseline, 커밋 금지)
 apps/builder/tests/parity/.artifacts/
+
+
+docs/migrations/evidence

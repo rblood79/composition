@@ -1,7 +1,7 @@
 # Builder 프레임 성능 개선 실행 설계
 
 - 작성일: 2026-09-05
-- 상태: 설계 완료 · P0 측정 준비 착수 가능 · 제품 코드 미구현
+- 상태: P0 진행 중 · 첫 계측 단위 반영 (2026-09-06), P1/P2 미착수
 - 코드 기준: `b5ad1fbc4` (작성 시점 main). 구현 착수 시 HEAD와 변경 파일을 다시 확인한다.
 - 입력: [React · Zustand · Skia 프레임 성능 분석자료](../migrations/react-skia-zustand-frame-performance-guide.md)
 - 목적: 기존 retained rendering과 presentation 경계를 유지하며, 불필요한 CPU 구축과 상태 전파를 줄인다. on-demand RAF는 실측 조건부로 전환한다.
@@ -154,7 +154,7 @@ coordinator의 로컬 상태는 `pendingRaf`, `dirtyReasons`, `generation`, `sus
 - render RAF 간격과 display cadence는 별개다. on-demand의 idle 제출 간격을 dropped frame으로 계산하지 않는다. 일정 시간 display sampling을 켠 진단 run과 scheduler wake를 검증하는 계측 최소화 run을 분리한다.
 - production GPU 계측은 기본 배포 설정에 켜지지 않는 명시적 계측 옵션으로 준비한다. Canvas flag가 필요하면 기존 `featureFlags.ts` registry에만 정의한다. React Profiler 수치는 지원하는 profiling 빌드에서 보조 수집하고 일반 production frame 수치와 혼합하지 않는다.
 
-evidence 경로 제안: `docs/migrations/evidence/frame-performance/`. P0에서 `baseline.md`, `wake-sources.md`, 원시 JSON을 생성한다. 아직 이 파일들은 생성하지 않았다. JSON에는 환경, 표본 수, 유효/누락 GPU sample 수, 시나리오별 지표를 저장한다.
+evidence 경로: `docs/migrations/evidence/frame-performance/`. [baseline](../migrations/evidence/frame-performance/baseline.md), [wake-sources](../migrations/evidence/frame-performance/wake-sources.md), 600요소 development idle on/off 5쌍 원시 JSON을 생성했다. 전체 호출 수·누적 시간·p99와 recorder 원시 배열을 보존한다. production opt-in GPU, 실제 resolved node/submission 계수, 나머지 fixture·cold·resource 축은 P0 잔여이며 G0 미통과다.
 
 기존 하니스로 가능한 초기 기준선 명령 예시(기본은 dev 서버이며 production 판정을 대신하지 않음):
 
@@ -201,7 +201,7 @@ P2 전환 flag는 기존 `wasm-bindings/featureFlags.ts`에 등록하고 연속 
 
 ## 8. 착수 체크리스트와 인수인계
 
-- [ ] P0: 현재 HEAD/dirty scope 확인, Track A/B와 측정 시간 조정.
+- [x] P0: 현재 HEAD/dirty scope 확인, Track A/B와 측정 시간 조정. `4ae4ff43b` main clean에서 착수, 정식 idle 5쌍 직렬 측정.
 - [ ] P0: baseline과 계측 비용 확보, wake 표의 미확정 생산자·resource 의존성 닫기.
 - [ ] P0 종료: 어떤 build 비용을 줄일지와 G1의 baseline을 evidence에 고정. 효과가 작으면 종료.
 - [ ] P1: 파생물 재사용부터 단계 적용, state/visual parity와 총 interaction 지연 대조.
@@ -209,4 +209,4 @@ P2 전환 flag는 기존 `wasm-bindings/featureFlags.ts`에 등록하고 연속 
 - [ ] P2 실행 시: 모든 wake·cleanup·context·readiness 게이트 통과 후 활성화.
 - [ ] P3: 실제 적용 단계, 보류 단계, 미측정 축을 기록. 사용자 가시 성능 변경과 단계 완결은 `docs/CHANGELOG.md` 반영.
 
-설계문서 작성 자체로 제품 코드, 기존 ADR 상태, 성능 향상 수치를 변경하지 않는다. 다음 담당자는 **P0 계측 단위**부터 시작할 수 있다.
+설계문서 작성 자체로 기존 ADR 상태나 성능 향상 수치를 변경하지 않는다. 2026-09-06 P0 첫 계측 단위를 반영했다. 다음 단위는 baseline의 P0 잔여 목록이며, **P0 종료 전에 P1/P2로 넘어가지 않는다**.

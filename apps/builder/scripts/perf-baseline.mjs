@@ -26,6 +26,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { chromium } from "playwright";
 
 const DEFAULTS = {
@@ -49,6 +51,7 @@ const DEFAULTS = {
   durationMs: 3000,
   openPanels: ["navigator", "properties"],
   profile: false,
+  instrumentation: "on",
   selectionDriver: "external-props",
   classes: [
     "idle",
@@ -89,6 +92,7 @@ export function parseArgs(argv) {
       options.retainerSamples = Number(next);
     else if (value === "--duration-ms") options.durationMs = Number(next);
     else if (value === "--selection-driver") options.selectionDriver = next;
+    else if (value === "--instrumentation") options.instrumentation = next;
     else if (value === "--classes") options.classes = next.split(",");
     else if (value === "--profile") {
       options.profile = true;
@@ -106,6 +110,8 @@ export function parseArgs(argv) {
   }
   if (!["external-props", "id-only"].includes(options.selectionDriver))
     throw new Error(`selection driver ${options.selectionDriver}`);
+  if (!["on", "off"].includes(options.instrumentation))
+    throw new Error(`instrumentation ${options.instrumentation}`);
   if (!["leak", "frame"].includes(options.lane))
     throw new Error(`lane ${options.lane}`);
   if (!["series", "attribute", "retainers"].includes(options.mode))
@@ -1193,6 +1199,11 @@ function renderAttribution(r) {
 export const RECORDER_SCRIPT = `(() => {
   window.__perfRecorder = {
     start(opts = {}) {
+      const perfApi = window.__composition_PERF__;
+      const previousRecording = perfApi?.isRecordingEnabled?.();
+      if (opts.instrumentation === "off" && !perfApi?.setRecordingEnabled)
+        throw new Error("계측 off API 없음: 하니스와 앱 버전을 확인하세요");
+      perfApi?.setRecordingEnabled?.(opts.instrumentation !== "off");
       // JS Self-Profiling (vite dev 가 Document-Policy: js-profiling 을 보낸다) — 부류별
       // self-time 상위 프레임. 샘플 1ms, 최대 10만 샘플.
       const profiler = opts.profile && typeof Profiler !== "undefined" ? new Profiler({ sampleInterval: 1, maxBufferSize: 100000 }) : null;
@@ -1214,6 +1225,10 @@ export const RECORDER_SCRIPT = `(() => {
       const t0 = performance.now();
       window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.();
       this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) longTasks.push(e.duration); lt.disconnect(); }
+        // profiler.stop()을 기다리는 동안 발생한 프레임은 측정 구간에 포함하지 않는다.
+        const perf = window.__composition_PERF__?.snapshotAll?.() ?? [];
+        const caches = (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ? { ...c.missReasons } : null }));
+        if (previousRecording !== undefined) perfApi.setRecordingEnabled(previousRecording);
         let profile = null;
         if (profiler) {
           const trace = await profiler.stop();
@@ -1227,8 +1242,7 @@ export const RECORDER_SCRIPT = `(() => {
         }
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
-          perf: (window.__composition_PERF__?.snapshotAll?.() ?? []).map((s) => ({ label: s.label, count: s.count, p50: s.p50, p95: s.p95, max: s.max })),
-          caches: (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ?? null })) }; };
+          perf, caches }; };
     },
     stop() { return this._stop(); },
   };
@@ -1268,6 +1282,19 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
     callbackDelay: summarizeIntervals(rec.callbackDelays, nominalMs * 1.5),
     gapEvents: rec.gapEvents,
     layerTreeRows: rec.layerTreeRows,
+    measuredDurations: Object.fromEntries(
+      rec.perf.map((sample) => [
+        sample.label,
+        {
+          ...sample,
+          // 중첩 label은 inclusive 시간이다. label 간 합산은 금지한다.
+          inclusiveMsPerSecond:
+            sample.totalDurationMs == null || rec.ms <= 0
+              ? null
+              : sample.totalDurationMs / (rec.ms / 1000),
+        },
+      ]),
+    ),
     ms: Math.round(rec.ms),
     frames,
     fps: +(frames / (rec.ms / 1000)).toFixed(1),
@@ -1483,7 +1510,7 @@ export const FRAME_CLASSES = {
   },
 };
 
-async function runFrameLane(page, seed, options) {
+async function runFrameLane(page, cdp, seed, options) {
   await page.addScriptTag({ content: RECORDER_SCRIPT });
   const results = {};
   for (const cls of options.classes) {
@@ -1493,23 +1520,44 @@ async function runFrameLane(page, seed, options) {
       window.__composition_STORE__.getState().setSelectedElement(null),
     );
     await page.waitForTimeout(500);
-    await page.evaluate(
-      (profile) => window.__perfRecorder.start({ profile }),
-      options.profile,
-    );
+    const before = await cdp.send("Performance.getMetrics");
+    await page.evaluate((opts) => window.__perfRecorder.start(opts), {
+      profile: options.profile,
+      instrumentation: options.instrumentation,
+    });
     await driver(
       page,
       { ...seed, selectionDriver: options.selectionDriver },
       options.durationMs,
     );
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
+    const after = await cdp.send("Performance.getMetrics");
     results[cls] = summarizeRecording(rec);
+    results[cls].raw = rec;
+    results[cls].mainThread = summarizeTaskMetrics(
+      before.metrics,
+      after.metrics,
+    );
     if (cls === "select")
       results[cls].selectionDriver = options.selectionDriver;
     if (rec.profile) results[cls].profile = rec.profile;
     await page.waitForTimeout(400);
   }
   return results;
+}
+
+export function summarizeTaskMetrics(before, after) {
+  const a = Object.fromEntries(before.map(({ name, value }) => [name, value]));
+  const b = Object.fromEntries(after.map(({ name, value }) => [name, value]));
+  const seconds = b.Timestamp - a.Timestamp;
+  const taskSeconds = b.TaskDuration - a.TaskDuration;
+  if (!(seconds > 0) || !Number.isFinite(taskSeconds) || taskSeconds < 0)
+    return null;
+  return {
+    seconds,
+    taskMs: taskSeconds * 1000,
+    taskMsPerSecond: (taskSeconds * 1000) / seconds,
+  };
 }
 
 function renderProfiles(results) {
@@ -1634,10 +1682,58 @@ async function main() {
     }
 
     if (options.lane === "frame") {
-      const results = await runFrameLane(page, seed, options);
+      const environment = await page.evaluate(() => ({
+        visibility: document.visibilityState,
+        viewport: { width: innerWidth, height: innerHeight },
+        dpr: devicePixelRatio,
+        canvases: [...document.querySelectorAll("canvas")].map((c) => ({
+          width: c.width,
+          height: c.height,
+        })),
+        build: document.querySelector('script[src*="/@vite/client"]')
+          ? "development"
+          : "unverified",
+        userAgent: navigator.userAgent,
+      }));
+      const fixture = await page.evaluate(() => {
+        const s = window.__composition_STORE__.getState();
+        return s.elements
+          .filter((e) => e.page_id === s.currentPageId)
+          .map((e) => ({
+            id: e.id,
+            type: e.type,
+            parent_id: e.parent_id,
+            props: e.props,
+          }));
+      });
+      const results = await runFrameLane(page, cdp, seed, options);
       const report = {
         lane: "frame",
+        head: execFileSync("git", ["rev-parse", "HEAD"], {
+          encoding: "utf8",
+        }).trim(),
+        dirtyFiles: execFileSync("git", ["diff", "--name-only"], {
+          encoding: "utf8",
+        })
+          .trim()
+          .split("\n")
+          .filter(Boolean),
+        environment,
+        fixture: {
+          kind: "current-page-element-projection",
+          count: fixture.length,
+          sha256: createHash("sha256")
+            .update(JSON.stringify(fixture))
+            .digest("hex"),
+          resolvedRenderNodeCount: null,
+        },
         metricDefinitions: {
+          measuredDurations:
+            "최근 1000개 percentile과 reset 이후 전체 호출 수/누적 inclusive 시간. label 간 합산 금지; CPU thread time이 아님",
+          mainThread:
+            "CDP TaskDuration wall time / CDP Timestamp 구간. 모든 main-thread task와 recorder/driver 비용 포함; OS thread CPU가 아님",
+          instrumentation:
+            "off는 perfMarks만 중지. cache/GPU/recorder 계측은 유지하므로 전체 계측 off가 아님",
           gapP50:
             "callback performance.now interval; first sample includes recorder startup wait",
           dropPct:

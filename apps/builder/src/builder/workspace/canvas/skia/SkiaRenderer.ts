@@ -27,6 +27,12 @@ import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
 import { getCacheMetrics } from "./cacheMetrics";
 import { takeDrawStats } from "./drawStats";
 import { GpuTimer } from "./gpuTimer";
+import {
+  frameCaptureEnabled,
+  countFrameEvent,
+  recordMainSubmission,
+  registerFrameCaptureSource,
+} from "./frameCapture";
 import { markBegin, markEnd, PERF_LABEL } from "../../../utils/perfMarks";
 import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
@@ -224,6 +230,7 @@ export class SkiaRenderer {
 
   /** GPU 프레임 시간 측정 (dev 전용 — production 은 null 유지, ADR-153 Phase 1-c) */
   private gpuTimer: GpuTimer | null = null;
+  private unregisterFrameCapture: () => void = () => {};
 
   constructor(ck: CanvasKit, htmlCanvas: HTMLCanvasElement, dpr?: number) {
     this.ck = ck;
@@ -240,6 +247,22 @@ export class SkiaRenderer {
       // CanvasKit 이 획득한 동일 canvas 의 webgl2 컨텍스트를 재사용한다.
       // webgl1 폴백/SW surface 면 supported=false 로 전체 no-op.
       this.gpuTimer = new GpuTimer(htmlCanvas);
+    }
+    if (frameCaptureEnabled) {
+      this.gpuTimer ??= new GpuTimer(htmlCanvas);
+      this.unregisterFrameCapture = registerFrameCaptureSource({
+        snapshot: () => ({
+          gpu: this.gpuTimer?.snapshot() ?? null,
+          resources: {
+            mainSurface: this.disposed ? 0 : 1,
+            contentSurface: this.contentSurface ? 1 : 0,
+            standbySurface: this.standbySurface ? 1 : 0,
+            contentSnapshot: this.contentSnapshot ? 1 : 0,
+            cleanupTimer: this.cleanupTimer ? 1 : 0,
+          },
+        }),
+        reset: () => this.gpuTimer?.resetSamples(),
+      });
     }
   }
 
@@ -289,6 +312,7 @@ export class SkiaRenderer {
     // 페이지 body fill 은 element 트리 렌더 경로에서 유지된다.
     this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
     this.mainSurface.flush();
+    recordMainSubmission();
   }
 
   // ============================================
@@ -870,6 +894,7 @@ export class SkiaRenderer {
     // ADR-153 Phase 1-e: 화면 surface 제출 구간 분해 라벨
     const flushMainBegin = isDev ? markBegin() : 0;
     this.mainSurface.flush();
+    recordMainSubmission();
     if (isDev) {
       markEnd(PERF_LABEL.RENDER_SKIA_FLUSH_MAIN, flushMainBegin);
     }
@@ -1046,9 +1071,8 @@ export class SkiaRenderer {
 
     // ADR-153 Phase 1-c: GPU 프레임 시간 — 직전 in-flight 결과 poll 후 이번 프레임 측정
     // (gpuTimer 는 dev 에서만 생성되므로 production 은 이 블록 전체가 no-op)
+    this.pollGpuTimer();
     if (frameType !== "idle" && this.gpuTimer) {
-      const gpuMs = this.gpuTimer.poll();
-      if (gpuMs !== null) recordWasmMetric("gpuFrameTime", gpuMs);
       this.gpuTimer.frameBegin();
     }
 
@@ -1170,6 +1194,13 @@ export class SkiaRenderer {
     }
   }
 
+  /** idle에서도 마지막 query만 비차단 수거한다. scene 구축이나 surface 제출은 없다. */
+  pollGpuTimer(): void {
+    const gpuMs = this.gpuTimer?.poll();
+    if (gpuMs != null && process.env.NODE_ENV === "development")
+      recordWasmMetric("gpuFrameTime", gpuMs);
+  }
+
   // ============================================
   // 리사이즈 / 리소스 관리
   // ============================================
@@ -1230,6 +1261,7 @@ export class SkiaRenderer {
       this.cleanupTimer = null;
     }
     this.gpuTimer?.dispose();
+    this.unregisterFrameCapture();
     this.gpuTimer = null;
     this.disposeContentSurface();
     this.mainSurface.delete();

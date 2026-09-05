@@ -34,6 +34,15 @@ export const WASM_FLAGS = {
  */
 export const USE_CANVAS2D_MEASURE = true;
 
+/** 측정 하니스가 navigation 전에 명시적으로 요청하는 production 계측. 렌더 정책과 독립. */
+export function isFrameCaptureRequested(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    (window as unknown as { __composition_FRAME_CAPTURE_REQUESTED__?: boolean })
+      .__composition_FRAME_CAPTURE_REQUESTED__ === true
+  );
+}
+
 /** Unified engine flags with live consumers. */
 export const UNIFIED_ENGINE_FLAGS = {
   // Layout Engine — ADR-916 Taffy 완전 제거(2026-07-06) 후 자체 엔진
