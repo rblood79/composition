@@ -31,6 +31,7 @@ const SRC = {
   textMeasure: `${CANVAS}/utils/textMeasure.ts`,
   seam: `${CANVAS}/utils/textRenderStyle.ts`,
   skiaBuild: `${CANVAS}/skia/buildSpecNodeData.ts`,
+  gate: `${CANVAS}/utils/__tests__/textAxisGate.static.test.ts`,
 };
 const DOC = resolve(ROOT, "docs/adr/evidence/205-text-axis-gap-matrix.md");
 const BEGIN = "<!-- text-axis-matrix:begin -->";
@@ -257,9 +258,18 @@ export function buildMatrix() {
   const setA = inheritableTextProps(cssResolver);
   const setB = adr057BlockProps(skiaBuild);
   const axes = seamAxes(read(SRC.seam));
-  const skiaSeam = seamCall(adr057BlockRegion(skiaBuild));
+  const skiaBlock = adr057BlockRegion(skiaBuild);
+  const skiaSeam = seamCall(skiaBlock);
+  // 블록이 seam 을 부른다고 해서 seam 의 **모든** 축이 블록을 통해 실리는 것은 아니다.
+  // 실제 대입 (`child.text.<axis> =`) 이 있는 축만 센다 — 예전 규칙은 블록이 읽기만 하는
+  // `child.text.fontSize` 까지 "블록이 옮긴다" 로 표시해 거짓 귀속을 만들었다 (Phase 4).
   if (skiaSeam)
-    for (const axis of axes) if (!setB.includes(axis)) setB.push(axis);
+    for (const axis of axes)
+      if (
+        !setB.includes(axis) &&
+        new RegExp(`child\\.text\\.${axis}\\s*=[^=]`).test(skiaBlock)
+      )
+        setB.push(axis);
   const props = [...new Set([...setA, ...setB])].sort();
 
   const width = widthLegReach(layoutUtils);
@@ -274,7 +284,7 @@ export function buildMatrix() {
   for (const axis of axes) {
     if (widthSeam?.inline) width.inline.add(axis);
     if (widthSeam?.computed) width.computed.add(axis);
-    if (skiaSeam?.inline) skiaInline.add(axis);
+    if (skiaSeam?.inline && setB.includes(axis)) skiaInline.add(axis);
   }
 
   // 측정 축 = `TextMeasureStyle` 필드 ∪ 폭 leg 이 실제로 읽는 축.
@@ -285,6 +295,8 @@ export function buildMatrix() {
     ...width.inline,
     ...width.computed,
   ]);
+
+  const verified = gateVerifiedAxes();
 
   const rows = props.map((p) => {
     const measures = measureAxis.has(p);
@@ -298,6 +310,7 @@ export function buildMatrix() {
       skiaInline: skiaInline.has(p),
       skiaComputed: skiaInherits,
       adr057: setB.includes(p),
+      gateVerified: verified.has(p),
     };
   });
 
@@ -308,6 +321,24 @@ export function buildMatrix() {
     skiaInherits,
     domPassthrough: domPassthroughCount(),
   };
+}
+
+/**
+ * G4 ② 가 **값 수준**으로 도달을 확인한 축 (`AXIS_REACH_CASES` 의 키).
+ *
+ * S4 열의 detector 는 `canvas/skia/**` 안의 `style.X` **언급**을 세는 상한이다 —
+ * 언급이 곧 도달은 아니다. 실제로 `fontSize` 는 이 열이 오래 ✅ 였는데 live 에서는
+ * px 문자열이 통째로 버려지고 있었다 (Phase 4 실측). 그래서 "확인됨" 과 "언급됨" 을
+ * 표에서 구분한다.
+ */
+function gateVerifiedAxes() {
+  const src = readRaw(SRC.gate);
+  const at = src.indexOf("AXIS_REACH_CASES");
+  if (at < 0) return new Set();
+  const body = src.slice(src.indexOf("> = {", at), src.indexOf("\n};", at));
+  return new Set(
+    [...body.matchAll(/^  ([A-Za-z][\w]*): \{/gm)].map((m) => m[1]),
+  );
 }
 
 const mark = (ok) => (ok === null ? "—" : ok ? "✅" : "❌");
@@ -331,12 +362,14 @@ function render(matrix) {
   );
   for (const r of rows) {
     lines.push(
-      `| \`${r.property}\` | ${r.inherited ? "상속" : "비상속"} | ${r.measures ? "측정" : "—"} | ${mark(r.widthInline)} | ${mark(r.widthComputed)} | ${mark(r.wrap)} | ${mark(r.skiaInline)}${r.adr057 ? " ⁽⁰⁵⁷⁾" : ""} | ${mark(r.skiaComputed)} |`,
+      `| \`${r.property}\` | ${r.inherited ? "상속" : "비상속"} | ${r.measures ? "측정" : "—"} | ${mark(r.widthInline)} | ${mark(r.widthComputed)} | ${mark(r.wrap)} | ${mark(r.skiaInline)}${r.adr057 ? " ⁽⁰⁵⁷⁾" : ""}${r.gateVerified ? " ⁽ᴳ⁴⁾" : ""} | ${mark(r.skiaComputed)} |`,
     );
   }
   lines.push(
     "",
-    "⁽⁰⁵⁷⁾ = ADR-057 블록(`buildSpecNodeData`)이 `child.text.*` 로 옮기는 축. 표식이 없는 ✅ 는 Skia scene build 의 다른 지점이 인라인 style 을 읽는다는 뜻.",
+    "⁽⁰⁵⁷⁾ = ADR-057 블록(`buildSpecNodeData`)이 `child.text.*` 에 **대입**하는 축. 표식이 없는 ✅ 는 Skia scene build 의 다른 지점이 인라인 style 을 읽는다는 뜻.",
+    "",
+    '⁽ᴳ⁴⁾ = G4 ② 가 값 수준으로 도달을 확인한 축. **표식 없는 S4 ✅ 는 상한이지 증거가 아니다** — 이 열의 detector 는 `canvas/skia/**` 의 `style.X` 언급을 세므로, 값을 버리는 해소기가 중간에 있어도 ✅ 로 보인다. `fontSize` 가 그 사례였다 (Phase 4 live: 저장 `"23px"` → Skia 16 / DOM 23).',
     "",
     `**결손 — 측정 축인데 wrap leg 또는 Skia 인라인에 미도달: ${gaps.length}개**`,
     "",

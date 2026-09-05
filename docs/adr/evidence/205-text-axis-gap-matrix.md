@@ -19,12 +19,12 @@
 | --------------------- | :----: | :-----: | :--------------: | :------------: | :---------: | :------------: | :----------: |
 | `color`               |  상속  |    —    |        —         |       —        |      —      |       ✅       |      ❌      |
 | `fontFamily`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |       ❌       |      ❌      |
-| `fontSize`            |  상속  |  측정   |        ✅        |       ✅       |     ✅      |       ✅       |      ❌      |
+| `fontSize`            |  상속  |  측정   |        ✅        |       ✅       |     ✅      |    ✅ ⁽ᴳ⁴⁾     |      ❌      |
 | `fontStretch`         |  상속  |  측정   |        ✅        |       ✅       |     ❌      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `fontStyle`           |  상속  |  측정   |        ✅        |       ✅       |     ❌      |       ❌       |      ❌      |
 | `fontVariant`         |  상속  |  측정   |        ✅        |       ✅       |     ❌      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `fontWeight`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |       ✅       |      ❌      |
-| `letterSpacing`       |  상속  |  측정   |        ✅        |       ✅       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
+| `letterSpacing`       |  상속  |  측정   |        ✅        |       ✅       |     ✅      | ✅ ⁽⁰⁵⁷⁾ ⁽ᴳ⁴⁾  |      ❌      |
 | `lineHeight`          |  상속  |  측정   |        ✅        |       ✅       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `overflowWrap`        |  상속  |  측정   |        ❌        |       ❌       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `textAlign`           |  상속  |    —    |        —         |       —        |      —      |       ✅       |      ❌      |
@@ -40,7 +40,9 @@
 | `wordBreak`           |  상속  |  측정   |        ❌        |       ❌       |     ✅      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 | `wordSpacing`         |  상속  |  측정   |        ✅        |       ✅       |     ❌      |    ✅ ⁽⁰⁵⁷⁾    |      ❌      |
 
-⁽⁰⁵⁷⁾ = ADR-057 블록(`buildSpecNodeData`)이 `child.text.*` 로 옮기는 축. 표식이 없는 ✅ 는 Skia scene build 의 다른 지점이 인라인 style 을 읽는다는 뜻.
+⁽⁰⁵⁷⁾ = ADR-057 블록(`buildSpecNodeData`)이 `child.text.*` 에 **대입**하는 축. 표식이 없는 ✅ 는 Skia scene build 의 다른 지점이 인라인 style 을 읽는다는 뜻.
+
+⁽ᴳ⁴⁾ = G4 ② 가 값 수준으로 도달을 확인한 축. **표식 없는 S4 ✅ 는 상한이지 증거가 아니다** — 이 열의 detector 는 `canvas/skia/**` 의 `style.X` 언급을 세므로, 값을 버리는 해소기가 중간에 있어도 ✅ 로 보인다. `fontSize` 가 그 사례였다 (Phase 4 live: 저장 `"23px"` → Skia 16 / DOM 23).
 
 **결손 — 측정 축인데 wrap leg 또는 Skia 인라인에 미도달: 6개**
 
@@ -309,3 +311,64 @@ live scene node 값을 넣어 얻고(`nodeRendererText.ts:526-545` 의 c2dStyle 
 
 `fallback=false` — 세 케이스 모두 Canvas 2D 측정 경로를 탔다(CanvasKit 우회 아님). 즉
 2026-09-05 `8b6c1bd22` 가 갖춘 측정 능력이 실제로 쓰이고 있다.
+
+## 10. Phase 4 — fontSize 축 (2026-09-05)
+
+### 10-1. seam 축을 늘리자 게이트가 결손을 찾았다
+
+Phase 4 는 "레이아웃 21곳 수렴" 으로 설계돼 있었다 (breakdown §6). 착수 전 인벤토리에서
+`fontSize` 를 seam 축으로 선언하자 **G4 ② 가 곧바로 RED** 가 됐다 — 인라인
+`fontSize: "23px"` 가 Skia 텍스트 노드에 실리지 않고 16 으로 떨어졌다.
+
+원인은 `resolveSpecFontSize` (`packages/specs/src/renderers/utils/`) 였다. 이 함수는
+**숫자와 TokenRef 만** 받아들이고 나머지는 fallback 으로 보냈다. 그런데 인라인 style 이
+저장되는 정본 형태는 **px 문자열**이다 — Styles 패널의 `normalizeStyleValue` 가 숫자를
+`${n}px` 로 만들고 (`useResetStyles.ts:109`), `useStyleValues` 의 기본값도 `"16px"` 다.
+
+live 실측 (실제 빌더, `apps/builder/scripts/adr205-live-fontsize.mjs`):
+
+| 저장 형태 | 수리 전 Skia | 수리 후 Skia | DOM(Preview) |
+| --------- | -----------: | -----------: | -----------: |
+| `"23px"`  |       **16** |           23 |         23px |
+| `23`      |           23 |           23 |         23px |
+| `"16px"`  |           16 |           16 |         16px |
+
+`"16px"` 행이 왜 오래 안 잡혔는지를 말한다 — **16 이 곧 fallback** 이라 기본 크기에서는
+증상이 없다. Phase 3 의 G1 하니스도 `fontSize: "16px"` 를 썼다 (유리한 경우만 측정).
+
+수리: `resolveSpecFontSize` 가 px/단위 없는 숫자 문자열을 해석한다. 상대 단위(em/rem/%)는
+여전히 fallback — 해소 지점이 폰트 컨텍스트를 모르며 레이아웃 경로(`parseNumericValue`)도
+같은 이유로 거부한다. 규칙은 `parsePxOnlyValue` (`primitives/cssValueParser.ts`, ADR-907
+Layer A) 로 옮겨 **두 leg 이 같은 함수를 쓴다** — seam 의 `parseTextAxisNumber` 도 위임한다.
+
+### 10-2. 격차표의 ✅ 두 개가 거짓이었다
+
+이 결손은 §1 표에서 `fontSize` 의 **S4 Skia 인라인이 ✅** 였기 때문에 Phase 0 범위 판정에서
+빠졌다. 원인 두 가지를 생성기에서 고쳤다.
+
+1. **S4 열의 detector 는 언급을 센다.** `canvas/skia/**` 안의 `style.X` 를 정규식으로 찾는
+   상한이라, 값을 버리는 해소기가 중간에 있어도 ✅ 로 보인다. 이제 G4 ② 가 값 수준으로
+   확인한 축에만 `⁽ᴳ⁴⁾` 를 붙이고, 표식 없는 ✅ 는 상한임을 범례가 말한다.
+2. **⁽⁰⁵⁷⁾ 귀속이 과했다.** "블록이 seam 을 부르면 seam 축 전부가 블록을 통해 실린다" 로
+   세고 있었는데 (Phase 1 의 배선-모양 blind spot 을 메우려던 규칙), 블록은 `letterSpacing`
+   만 대입하고 `fontSize` 는 lineHeight 계산에 **읽기만** 한다. 이제 `child.text.<축> =`
+   대입이 있는 축만 센다.
+
+### 10-3. 수리가 가린 것을 드러냈다 — parity fixture 의 폰트 비대칭
+
+`text-letter-spacing` 케이스가 수리 직후 `L1:fail` (control 높이 skia 20 vs preview 40) 로
+바뀌었다. 조사 결과 **수리가 만든 회귀가 아니라 가려져 있던 하니스 격차**다:
+
+- tester 페이지에서 잰 폭 — `Pretendard` 14px = 255px, 16px = 291px (Canvas 2D 와 DOM 이
+  **서로 일치**). fixture 폭이 260px 이므로 14px 는 1줄, 16px 는 2줄이다.
+- Preview leg 은 폰트를 실은 iframe 안에서 조판되므로 실제 Pretendard 로 2줄을 낸다.
+- 즉 두 leg 이 **다른 폰트 metric** 을 보고 있었고, fontSize 결손이 Skia 를 16px(291px)로
+  부풀려 줄 수를 우연히 맞춰 주고 있었다.
+
+fixture 를 시스템 폰트(`Arial`)로 바꿔 두 문맥이 같은 metric 을 보게 했다. 이후 geometry 는
+양쪽 40px 로 일치하고 ratchet (`L4:fail` · `letter-spacing-control-text`) 이 그대로 성립한다
+(spaced 0.0220 < 대조군 0.0862 — 자간 축의 판별력 유지).
+
+**남은 사실**: `textRasterResources` 도 `Pretendard` 를 쓴다. 그 케이스는 현재 통과하지만
+같은 비대칭 위에 있다 — 문자열이 짧아 줄바꿈 경계를 건드리지 않을 뿐이다. tester 페이지에
+Preview 와 같은 폰트를 싣는 것은 하니스 변경이라 본 ADR 범위 밖으로 둔다.

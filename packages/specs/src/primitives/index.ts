@@ -97,6 +97,7 @@ export { TABS_SIZE_CONFIG } from "./tabSizes";
 // CSS value parser SSOT (ADR-907 Phase 1 Layer A)
 export {
   parsePxValue,
+  parsePxOnlyValue,
   parsePadding4Way,
   parseBorderWidth,
   parseGapValue,

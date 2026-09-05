@@ -193,6 +193,7 @@ export {
   HTML_PRIMITIVE_DEFAULT_HEIGHTS,
   // CSS value parser SSOT (ADR-907 Layer A)
   parsePxValue,
+  parsePxOnlyValue,
   parsePadding4Way,
   parseBorderWidth,
   parseGapValue,

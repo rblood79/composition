@@ -48,12 +48,36 @@ const AXIS_REACH_CASES: Record<
     expected: number;
     /** Skia 텍스트 노드의 대응 필드 */
     skiaField: keyof NonNullable<SkiaNodeData["text"]>;
+    /**
+     * 그 축의 값을 wrap leg 진입점에 싣는 호출. 축마다 인자 자리가 달라
+     * (fontSize 는 2번째, letterSpacing 은 9번째) 호출 자체를 케이스가 들고 있다.
+     */
+    callWrapLeg: (value: number) => void;
   }
 > = {
   letterSpacing: {
     inline: "3px",
     expected: 3,
     skiaField: "letterSpacing",
+    callWrapLeg: (v) =>
+      measureWrappedTextHeight(
+        "ab cd",
+        16,
+        400,
+        "Pretendard",
+        100,
+        24,
+        undefined,
+        undefined,
+        v,
+      ),
+  },
+  fontSize: {
+    inline: "23px",
+    expected: 23,
+    skiaField: "fontSize",
+    callWrapLeg: (v) =>
+      measureWrappedTextHeight("ab cd", v, 400, "Pretendard", 100, 24),
   },
 };
 
@@ -109,17 +133,7 @@ describe("ADR-205 G4 — 텍스트 시각 축 대칭 게이트", () => {
           return { width: 0, height: 0 };
         },
       });
-      measureWrappedTextHeight(
-        "ab cd",
-        16,
-        400,
-        "Pretendard",
-        100,
-        24,
-        undefined,
-        undefined,
-        spec.expected,
-      );
+      spec.callWrapLeg(spec.expected);
       expect(seen?.[axis as keyof TextMeasureStyle]).toBe(spec.expected);
     });
 

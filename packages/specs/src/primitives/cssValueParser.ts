@@ -41,6 +41,31 @@ export function parsePxValue<F = number>(
 }
 
 /**
+ * 엄격 단위 파싱 — **px 또는 단위 없는 숫자만** 수용한다.
+ *
+ * `parsePxValue` 와 갈리는 지점은 상대 단위다. `parsePxValue` 는 `parseFloat` 라
+ * `"2em"` 을 2 로, `"50%"` 를 50 으로 읽는다. 길이가 "그 자리의 폰트·부모 크기에 대한
+ * 배수" 인 축(font-size, letter-spacing)에서는 그 해석이 틀린 값을 만든다 — 해소 지점이
+ * 폰트 컨텍스트를 모르기 때문이다.
+ *
+ * 그래서 레이아웃 경로(`parseNumericValue`)와 ADR-205 seam 은 예전부터 px/숫자만
+ * 받아들였다. 이 함수가 그 규칙의 SSOT 다 — 축마다 따로 쓰면 Skia 와 레이아웃이 같은
+ * 문자열을 다르게 읽는다 (ADR-205 Phase 4 실측: Skia 만 px 문자열을 통째로 버렸다).
+ */
+export function parsePxOnlyValue<F = undefined>(
+  value: unknown,
+  fallback: F = undefined as F,
+): number | F {
+  if (typeof value === "number")
+    return Number.isFinite(value) ? value : fallback;
+  if (typeof value !== "string") return fallback;
+  const trimmed = value.trim();
+  if (!/^-?\d+(\.\d+)?(px)?$/.test(trimmed)) return fallback;
+  const parsed = Number.parseFloat(trimmed);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+/**
  * CSS padding shorthand 를 1/2/3/4 값으로 분해.
  * 예: "8px 16px" → { top: 8, right: 16, bottom: 8, left: 16 }
  * 파싱 실패 부위는 0 으로 채움.
