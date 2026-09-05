@@ -54,13 +54,13 @@ cat <<EOF
 - \`evaluate\` — 실행 중 builder 런타임 검증, 4축 채점 (model + user)
 
 ## Agents (사용자가 위임·병렬 작업을 명시한 경우에만)
-2026-09-02 재편: persona 는 reviewer·debugger 2개, 절차는 skill.
+역할별 절차는 해당 skill을 참조합니다. Codex 역할 설정은 .codex/agents/ 에 있습니다.
 | 상황 | 경로 |
 |---|---|
-| 완료 직전 코드 리뷰 | `review` skill 체크리스트 (Claude 는 reviewer 격리 fork) → 수정은 메인 세션 |
-| 버그 재현/수정 | `fix` skill (root-cause 4단계) — 복잡하면 debugger 격리 조사 |
-| UI 실제 동작 검증 | `evaluate` skill (Chrome MCP 4축 채점) |
-| 아키텍처 설계/ADR | 메인 세션 + `review-adr` skill |
+| 완료 직전 코드 리뷰 | \`review\` skill 체크리스트 → 요청 범위의 수정은 메인 세션 |
+| 버그 재현/수정 | \`fix\` skill (root-cause 4단계) — 위임 요청이 있으면 debugger 조사 |
+| UI 실제 동작 검증 | \`evaluate\` skill (사용 가능한 브라우저 도구) |
+| 아키텍처 설계/ADR | 메인 세션 + \`review-adr\` skill |
 | 구현·테스트·리팩토링·문서 | 메인 세션 직접 — 서브에이전트 위임 없음 |
 
 ## 자동 규칙 (UserPromptSubmit hook)
@@ -72,7 +72,7 @@ cat <<EOF
 - "리팩토링" → composition-patterns + scoped gate
 - "테스트" → 변경 모듈 인접 focused test
 - "완료/머지/PR" → evidence 확인 + codex:preflight
-- "정정/아니야/그게 아니라" → same-session memory 저장 권고
+- "정정/아니야/그게 아니라" → 현재 작업에 반영; 메모리 영속 저장은 사용자 요청 시에만
 
 ## Codex Entry Points
 - \`\$cross-check\` — 렌더링 정합성 검증
@@ -86,7 +86,8 @@ cat <<EOF
 - PostToolUse: spec/* 편집 시 \`.codex/.spec-rebuild-pending\` flag → Stop hook 시점 \`pnpm build:specs\` 1회 실행
 - Stop: type-check 전 spec rebuild 게이트 → flag 있으면 build → 그 후 type-check
 
-규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. CRITICAL/HIGH 이슈는 즉시 수정.${drift_block}
+규칙: 한 줄 수정/단순 질문은 skill 스킵 가능. 수정 요청 범위의 CRITICAL/HIGH 이슈는 수리하고, 리뷰만 요청되면 보고합니다.
+AGENTS.md의 실행·완료 계약을 따릅니다. 이미 승인된 단계는 재승인 없이 진행하고, 검증은 변경 위험에 맞춥니다.${drift_block}
 </composition-workflow-roster>
 EOF
 

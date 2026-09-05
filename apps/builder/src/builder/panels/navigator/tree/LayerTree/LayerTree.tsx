@@ -1,7 +1,7 @@
 import React, { useCallback, useMemo, useState } from "react";
 import type { Key } from "react-stately";
 import { ListLayout, Virtualizer } from "react-aria-components";
-import { TreeBase, VirtualizedTree } from "../TreeBase";
+import { TreeBase } from "../TreeBase";
 import type { TreeBaseDndConfig, TreeItemState } from "../TreeBase/types";
 import type { PanelNode } from "../../../panelNode";
 import type { LayerTreeNode, LayerTreeProps } from "./types";
@@ -222,17 +222,6 @@ export function LayerTree({
       renderDragPreview,
     },
   };
-
-  if (treeNodes.length >= 300) {
-    return (
-      <VirtualizedTree<LayerTreeNode>
-        {...sharedTreeProps}
-        itemHeight={28}
-        overscan={8}
-        className="layer-tree layer-tree--virtualized"
-      />
-    );
-  }
 
   return (
     <Virtualizer layout={ListLayout} layoutOptions={LAYER_TREE_LAYOUT_OPTIONS}>

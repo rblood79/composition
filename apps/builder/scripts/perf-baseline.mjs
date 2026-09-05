@@ -248,8 +248,8 @@ async function openPanels(page, names) {
 }
 
 // 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 두 번째 페이지 1개.
-// 추가마다 persist 가 전체 문서를 쓰므로 10개마다 macrotask yield (메모리
-// reference-bulk-seeding-live-builder-via-page-context 함정 3).
+// 5k fixture는 단일 addElement 반복의 전체 문서 persist O(n²) 비용을 피하려고
+// production addComplexElement action으로 한 번에 merge/store/reindex/persist한다.
 async function seedDocument(page, seedCount) {
   return page.evaluate(
     async ({ seedCount }) => {
@@ -263,40 +263,48 @@ async function seedDocument(page, seedCount) {
       const existing = state.elements.filter(
         (e) => e.page_id === pageId && String(e.id).startsWith("perf-seed-"),
       );
-      const ids = existing.map((e) => e.id);
+      const existingIds = new Set(existing.map((e) => e.id));
+      const ids = [];
+      const missingElements = [];
       const now = new Date().toISOString();
       const yieldTask = () => new Promise((r) => setTimeout(r, 0));
-      for (let i = existing.length; i < seedCount; i += 1) {
+      performance.clearMeasures();
+      performance.clearMarks();
+      for (let i = 0; i < seedCount; i += 1) {
         const id = `perf-seed-${i}`;
+        ids.push(id);
+        if (existingIds.has(id)) continue;
         const isText = i % 2 === 0;
         const col = i % 6,
           row = Math.floor(i / 6);
-        await state.addElement(
-          {
-            id,
-            type: isText ? "Text" : "frame",
-            parent_id: body.id,
-            page_id: pageId,
-            order_num: i,
-            created_at: now,
-            updated_at: now,
-            props: {
-              ...(isText ? { children: `Seed ${i}` } : {}),
-              style: {
-                position: "absolute",
-                left: `${20 + col * 200}px`,
-                top: `${20 + row * 90}px`,
-                width: "160px",
-                height: "60px",
-                fontSize: "14px",
-                ...(isText ? {} : { backgroundColor: "#dbe7ff" }),
-              },
+        missingElements.push({
+          id,
+          customId: id,
+          type: isText ? "Text" : "frame",
+          parent_id: body.id,
+          page_id: pageId,
+          order_num: i,
+          created_at: now,
+          updated_at: now,
+          props: {
+            ...(isText ? { children: `Seed ${i}` } : {}),
+            style: {
+              position: "absolute",
+              left: `${20 + col * 200}px`,
+              top: `${20 + row * 90}px`,
+              width: "160px",
+              height: "60px",
+              fontSize: "14px",
+              ...(isText ? {} : { backgroundColor: "#dbe7ff" }),
             },
           },
-          { skipHistory: true },
-        );
-        ids.push(id);
-        if (i % 10 === 9) await yieldTask();
+        });
+      }
+      if (missingElements.length > 0) {
+        await store
+          .getState()
+          .addComplexElement(missingElements[0], missingElements.slice(1));
+        await yieldTask();
       }
       let pages = store.getState().pages;
       if (pages.length < 2) {
@@ -1010,7 +1018,8 @@ export const RECORDER_SCRIPT = `(() => {
           const app = [...self.entries()].filter(([f]) => f.includes(" src/")).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([frame, n]) => ({ frame, pct: +((n / total) * 100).toFixed(1) }));
           profile = { samples: total, idlePct: +((idle / total) * 100).toFixed(1), top, app };
         }
-        return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile,
+        const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
+        return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
           perf: (window.__composition_PERF__?.snapshotAll?.() ?? []).map((s) => ({ label: s.label, count: s.count, p50: s.p50, p95: s.p95, max: s.max })),
           caches: (window.__composition_CACHE_METRICS__?.snapshotAll?.() ?? []).map((c) => ({ name: c.name, hits: c.hits, misses: c.misses, missReasons: c.missReasons ?? null })) }; };
     },
@@ -1051,6 +1060,7 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
     rafTimestampGap: summarizeIntervals(rec.rafGaps, nominalMs * 1.5),
     callbackDelay: summarizeIntervals(rec.callbackDelays, nominalMs * 1.5),
     gapEvents: rec.gapEvents,
+    layerTreeRows: rec.layerTreeRows,
     ms: Math.round(rec.ms),
     frames,
     fps: +(frames / (rec.ms / 1000)).toFixed(1),
@@ -1336,13 +1346,13 @@ function renderFrameTable(results) {
     );
   }
   lines.push(
-    "\n| 부류 / 선택 driver | RAF timestamp p95 / max (ms) | RAF >25ms n / % | callback delay p95 / max (ms) |",
-    "| --- | ---: | ---: | ---: |",
+    "\n| 부류 / 선택 driver | RAF timestamp p95 / max (ms) | RAF >25ms n / % | callback delay p95 / max (ms) | LayerTree rows |",
+    "| --- | ---: | ---: | ---: | ---: |",
   );
   for (const [cls, r] of Object.entries(results)) {
     const raf = r.rafTimestampGap;
     lines.push(
-      `| ${cls} / ${r.selectionDriver ?? "-"} | ${raf.p95} / ${raf.max} | ${raf.overThreshold} / ${raf.overThresholdPct} | ${r.callbackDelay.p95} / ${r.callbackDelay.max} |`,
+      `| ${cls} / ${r.selectionDriver ?? "-"} | ${raf.p95} / ${raf.max} | ${raf.overThreshold} / ${raf.overThresholdPct} | ${r.callbackDelay.p95} / ${r.callbackDelay.max} | ${r.layerTreeRows} |`,
     );
   }
   return lines.join("\n");
@@ -1400,6 +1410,8 @@ async function main() {
           rafTimestampGap: "RAF timestamp intervals; first callback excluded",
           callbackDelay: "callback performance.now minus RAF timestamp; not input-to-presentation latency",
           gapEvents: "callback or RAF interval >25ms; page performance time origin",
+          layerTreeRows:
+            '.layer-tree--rac-virtualized [role="row"] count at recording stop',
         },
         at: new Date().toISOString(),
         chrome: browser.version(),

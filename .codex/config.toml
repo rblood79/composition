@@ -1,9 +1,11 @@
+# GPT-6 Astra: 공식 가이드와 Codex 모델 카탈로그 기준. 근거: README.md.
+model = "gpt-6-astra"
+model_reasoning_effort = "medium"
+
+# 기존 사용자 권한 정책 유지. 자율 진행 지침은 AGENTS.md에서 관리.
 approval_policy = "on-request"
 sandbox_mode = "danger-full-access"
-web_search = "cached"
-
-[sandbox_workspace_write]
-network_access = true
+web_search = "live"
 
 [features]
 hooks = true

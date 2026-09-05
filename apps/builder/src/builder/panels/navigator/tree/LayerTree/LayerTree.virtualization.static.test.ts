@@ -15,3 +15,9 @@ it.each([
     expect(source).toContain("treeNodes.length >= 12");
   }
 });
+
+it("LayerTree는 legacy VirtualizedTree 분기를 참조하지 않는다", () => {
+  const source = readFileSync(resolve(__dirname, "./LayerTree.tsx"), "utf8");
+  expect(source).not.toMatch(/\bVirtualizedTree\b/);
+  expect(source).not.toContain("treeNodes.length >= 300");
+});

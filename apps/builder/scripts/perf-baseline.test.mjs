@@ -8,13 +8,19 @@ import {
   summarizeRecording,
 } from "./perf-baseline.mjs";
 
-async function record(samples) {
+async function record(samples, layerTreeRows = 0) {
   let now = 0;
   let next;
   const window = {};
   runInNewContext(RECORDER_SCRIPT, {
     window,
     performance: { now: () => now },
+    document: {
+      querySelectorAll: (selector) => {
+        assert.equal(selector, '.layer-tree--rac-virtualized [role="row"]');
+        return { length: layerTreeRows };
+      },
+    },
     requestAnimationFrame: (callback) => {
       next = callback;
     },
@@ -26,6 +32,11 @@ async function record(samples) {
   }
   return window.__perfRecorder.stop();
 }
+
+test("frame 결과에 LayerTree로 scope한 가시 행 수를 기록한다", async () => {
+  const result = summarizeRecording(await record([[10, 11]], 17));
+  assert.equal(result.layerTreeRows, 17);
+});
 
 test("callback 지연 증가를 RAF cadence 누락으로 집계하지 않는다", async () => {
   const rec = await record([

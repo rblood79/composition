@@ -79,13 +79,19 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
 
     expect(panelSource).toContain("<SectionSplitStack");
-    expect(panelSource).toContain("storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.pages}");
+    expect(panelSource).toContain(
+      "storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.pages}",
+    );
     expect(panelSource).toContain("topId={NAVIGATOR_SECTION_IDS.pages}");
     expect(panelSource).toContain("bottomId={NAVIGATOR_SECTION_IDS.layers}");
     expect(framesSource).toContain("<SectionSplitStack");
-    expect(framesSource).toContain("storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}");
+    expect(framesSource).toContain(
+      "storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}",
+    );
     expect(framesSource).toContain("topId={NAVIGATOR_SECTION_IDS.frames}");
-    expect(framesSource).toContain("bottomId={NAVIGATOR_SECTION_IDS.frameLayers}");
+    expect(framesSource).toContain(
+      "bottomId={NAVIGATOR_SECTION_IDS.frameLayers}",
+    );
 
     // 탭 컨텐츠는 스크롤 컨테이너가 아니다 — 각 섹션이 따로 스크롤한다
     const css = await readFile(
@@ -141,6 +147,10 @@ describe("NavigatorPanel shared panel style contract", () => {
       resolve(__dirname, "tree/LayerTree/LayerTree.tsx"),
       "utf-8",
     );
+    const layerVirtualizationSource = await readFile(
+      resolve(__dirname, "tree/LayerTree/virtualization.ts"),
+      "utf-8",
+    );
     const frameTreeSource = await readFile(
       resolve(__dirname, "FramesTab/FrameElementTree.tsx"),
       "utf-8",
@@ -163,7 +173,8 @@ describe("NavigatorPanel shared panel style contract", () => {
     expect(css).not.toMatch(
       /\.elementItemActions \.iconButton \{[^}]*(width|height): var\(--text-xl\);/s,
     );
-    expect(layerTreeSource).toContain("itemHeight={28}");
+    expect(layerTreeSource).toContain("rowSize: LAYER_TREE_ROW_SIZE_PX");
+    expect(layerVirtualizationSource).toContain("LAYER_TREE_ROW_SIZE_PX = 28");
     expect(frameTreeSource).toContain("itemHeight={28}");
   });
 
