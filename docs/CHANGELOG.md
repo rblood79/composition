@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임 성능 재검증·계측 경계 수리] - 2026-09-06
+
+### Fixed
+
+- GPU 측정 창을 초기화한 뒤 context loss가 발생하면 이전 창의 query를 새 창의 invalid에 더해 `started=0, invalid=1`이 되던 문제를 수정했습니다. 해당 순서를 회귀 테스트로 고정했습니다.
+- 실제 복원 검증 하니스가 clear와 main 제출 계수 분리 이후에도 2회 제출을 요구해 timeout이 나던 문제를 수정했습니다. 복원 요청 직전보다 새 실제 main flush가 증가했는지를 확인합니다.
+
+### Performance
+
+- 동일 소스 3개 대조 빌드 × GPU 계측 off/on을 각 5회 비교했습니다. 600요소에서 GPU off renderer main-thread task CPU는 31.376→20.639ms/s로 34.2% 감소했습니다. Map 재사용만의 감소는 25.4%, Map을 유지한 준비 생략의 추가 감소는 11.8%입니다. capture/perfMarks/recorder 비용은 포함하며, 이전 원본 artifact의 36.0%와 구분합니다.
+- pan/zoom 지연과 GPU 예산은 통과했지만, 10초 edit GPU p95는 0.327→0.944ms(+0.617ms)로 +0.5ms 예산을 넘었습니다. 동일 입력의 30초 추가 5쌍은 0.309→0.471ms(+0.161ms)였으나 원래 실패를 덮지 않고 전체 G5/설계 완료를 보류합니다. on-demand RAF도 저사양 재개 근거 미확보로 계속 보류합니다.
+- [재검증 근거·각 run·범위와 한계](adr/evidence/frame-performance-remeasurement-20260906.md). 부팅 시 공통 Pretendard 정적 폰트 404는 별도 잔여로 기록했습니다.
+
 ## [패널 탭 전환 수리] - 2026-09-06
 
 ### Fixed

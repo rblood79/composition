@@ -124,6 +124,21 @@ describe("GPU raw capture", () => {
       after.started,
     );
   });
+  it("reset 이전 query의 context loss를 새 측정 창 invalid로 세지 않는다", () => {
+    const f = fixture();
+    f.timer.frameBegin();
+    f.timer.resetSamples();
+    f.timer.frameEnd();
+    f.lose();
+    expect(f.timer.poll()).toBeNull();
+    expect(f.timer.snapshot()).toMatchObject({
+      started: 0,
+      valid: 0,
+      invalid: 0,
+      dropped: 0,
+      pending: 0,
+    });
+  });
   it("구간 reset은 이전 query를 폐기하고 dispose는 열린 query까지 정리한다", () => {
     const f = fixture();
     f.timer.frameBegin();

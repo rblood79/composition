@@ -1,10 +1,26 @@
 # Builder 프레임 성능 개선 실행 설계
 
 - 작성일: 2026-09-05
-- 상태: P0/P1/P3 완료, P2 조건부 보류로 종결 (2026-09-06).
+- 상태: P1 CPU·지연 재검증 완료, GPU 편집 tail 게이트 미종결. P3 완료 재판정 보류, P2 조건부 보류 (2026-09-06).
 - 코드 기준: 설계 `b5ad1fbc4`, 착수 `4ae4ff43b`, 작업 중 외부 commit `4d3345e1c` 보존. 성능 A/B는 고정 정적 artifact의 manifest로 식별한다.
+- 재검증 기준: `d0f31008d` + GPU reset/context-loss 수리. 새 artifact와 source override SHA는 [재검증 증거](evidence/frame-performance-remeasurement-20260906.md)에 기록한다.
 - 입력: [React · Zustand · Skia 프레임 성능 분석자료](../migrations/react-skia-zustand-frame-performance-guide.md)
 - 목적: 기존 retained rendering과 presentation 경계를 유지하며, 불필요한 CPU 구축과 상태 전파를 줄인다. on-demand RAF는 실측 조건부로 전환한다.
+
+## 0. 레퍼런스 기반 실행 정정 (2026-09-06)
+
+사용자가 제공한 가이드의 목적은 외부 기술 자료의 방법을 현재 구현에 적용하고 변경 전후를 비교하는 것이다. 자체 계수와 임의 예산의 통과를 최적화 완료의 충분한 근거로 삼지 않는다. 단일 PC의 GPU edit tail 추가 추적은 중단했다. 기존 G5 실패와 측정값은 이력으로 보존하지만, 원인이 확정된 제품 결함으로 해석하거나 그 해소를 모든 후속 방법 비교의 선행 조건으로 삼지 않는다.
+
+| 원문 방법 | 현재 구현과의 차이 / 다음 비교 | 효과를 판단할 근거 |
+| --- | --- | --- |
+| [CanvasKit Quickstart](https://skia.org/docs/user/modules/quickstart/): 이벤트 기반 화면에서는 draw callback의 자기 재예약을 제거 | P1은 content/plan 준비를 생략하지만 연속 RAF는 유지한다. 다음 구현 후보는 단일 pending RAF와 명시적 invalidation wake다. 기존 ADR-167의 저사양 3% 조건은 공식 권고가 아닌 프로젝트 결정이므로 별도 재검토 대상으로 드러낸다. | 현재 P1을 baseline으로 고정하고 동일 행동의 변경 전후 idle callback/task CPU, 활성 interaction frame interval p50/p95/p99를 비교. wake 누락·animation 종료·readiness는 정확성 조건으로 검증 |
+| [Zustand transient updates](https://github.com/pmndrs/zustand/blob/main/README.md#transient-updates-for-often-occurring-state-changes): subscribe/ref로 React 재렌더 없이 최신값 소비 | 기존 presentation 계층을 재사용하고 camera/drag/hover별 남은 domain publication·React commit을 대조. 전 경로 fan-out 0을 이미 달성했다고 가정하지 않는다. | 같은 입력의 React Performance Tracks/Profiler render·commit 및 store notification 전후 비교 |
+| [Chrome Performance Insights](https://developer.chrome.com/blog/performance-insights): main/highlight offscreen canvas 분리 후 합성 | 기존 content/overlay retained 경로와 방향이 일치한다. overlay-only 변경이 content 재기록을 유발하는 구체 경로가 있을 때 그 경로만 수정한다. | 같은 hover/selection 행동의 content recording·합성 시간과 브라우저 frame trace 비교 |
+| [CanvasKit 공식 SKP benchmark](https://skia.googlesource.com/skia/+/3b13de2073cd/tools/perf-canvaskit-puppeteer/render-skp.html): draw, draw+flush, 전체 frame interval 분리 | GPU query p95 하나를 중심으로 한 추적에서 세 시간축의 전후 비교로 복귀한다. GPU query는 보조 진단이다. | 원문 측정 경계와 Builder 대응 경계를 기록하고 CPU 제출과 전체 frame interval을 함께 비교. 일반 Builder의 frame interval을 순수 GPU 시간으로 단정하지 않는다. |
+
+실행 순서는 **원문 방법·적용 조건 확인 → 현재 코드와 차이 명시 → 현재 P1 기준값 고정 → 방법 하나 적용 → 같은 조건에서 변경 전후 비교 → 채택/기각과 한계 기록**이다. 이미 반영된 방법은 중복 구현하지 않는다. 공식 문서가 Builder 전용 수치 예산을 제공하는 것은 아니므로 프로젝트 예산을 공식 기준으로 표현하지 않는다. 외부 사례의 절대 ms를 Builder와 직접 비교하지 않으며, 단일 장비 A/B는 해당 환경의 상대 효과로 한정한다.
+
+회귀 테스트는 구현 정확성의 근거로 유지한다. 성능 효과는 브라우저 원시 trace와 출처가 명시된 측정 방법에 연결한다. 자체 계수는 귀속을 보조하며 테스트 통과 횟수를 성능 개선의 증거로 사용하지 않는다. 이번 정정에서는 scheduler 제품 코드를 변경하지 않았고, 기존 ADR의 상태나 역사적 게이트 결과도 승격하지 않았다.
 
 ## 1. 결정과 범위
 
@@ -204,45 +220,43 @@ P2 전환 flag는 기존 `wasm-bindings/featureFlags.ts`에 등록하고 연속 
 - [x] P0: 현재 HEAD/dirty scope 확인, Track A/B와 측정 시간 조정. `4ae4ff43b` main clean에서 착수, 정식 idle 5쌍 직렬 측정.
 - [x] P0: production opt-in 계측과 baseline, 입력·자원 경계 확보. dev perfMarks on/off 비용은 변동성으로 별도 효과 주장 없음.
 - [x] P0 종료: 600 fixture 5쌍 상대 효과 baseline 고정. 60/5,000/text/ref는 동일 snapshot smoke로 한정하며 전체 React/저사양 실측은 미검증으로 명시.
-- [x] P1: 한 세대 children Map 재사용과 보수적 idle 준비 생략. CPU·지연·GPU, state/visual 계약 검증.
+- [ ] P1 검증 종결: 한 세대 children Map 재사용과 보수적 idle 준비 생략은 반영. CPU·지연은 통과했으나 GPU edit의 10초/30초 판정이 달라 G5 종결 보류.
 - [x] P2 입구: 실제 저사양 재개 근거 미확보로 보류. 현재 장비나 CPU throttle을 저사양 실측으로 대체하지 않음.
 - [x] P2 실행: 이번에는 미적용. scheduler/wake mutation 게이트는 재개 시 적용.
-- [x] P3: 효과·미측정·보류·롤백과 검증 기록, `docs/CHANGELOG.md` 반영. 커밋/푸시는 수행하지 않음.
+- [ ] P3 최종 종결: 효과·미측정·보류·롤백·검증 문서 동기화는 완료. GPU edit G5 미해결로 전체 종결은 보류하며 이번 커밋/푸시는 수행하지 않음.
 
 설계문서 작성 자체로 기존 ADR 상태를 변경하지 않는다. 실제 실행은 §9로 인수인계한다. P0 첫 단위 뒤 production 기준선을 고정하고 P1 스파이크를 적용했으며, 추가 fixture·자원 검증은 활성화 판정 전에 후속 보강했다. 이는 최초의 P0 전축 종료→P1 순서보다 범위를 나눈 실행이며, 미실측 축을 통과로 간주하지 않는다.
 
 ## 9. 실행 결과 — 2026-09-06
+
+> 계측 정정 이후 재검증 결과 G1은 통과했으나 GPU edit의 G5는 미종결이다. 아래 최초 실행 기록의 41.3%와 GPU p95 통과 판정은 철회했다. GPU query 없는 원본 artifact 재검증은 CPU 32.955→21.094ms/s(36.0%)로 P1 묶음 전체 효과만 확인했다. 최신 종결 여부는 [GPU 재측정 인수인계](evidence/frame-performance-gpu-remeasure-handoff.md)와 후속 결과를 따른다.
 
 ### 적용한 P1
 
 - `FrameContentCache`: filtered children·실제/synthetic node Map identity와 registry/layout revision으로 CPU children Map 한 세대를 재사용한다. 같은 개수 node 교체도 무효화하며 effect cleanup에서 참조를 해제한다. root/command stream·picture/font/image를 새 전역 cache에 보관하지 않는다.
 - `SkiaRenderer.canReuseFramePreparation`: 상태를 소비하지 않는 사전 조회다. 기존 polling 뒤 모든 입력이 같고 content surface/snapshot이 유효한 경우에만 content/plan 구축을 생략한다. animation/최종 정리·damage·minimap·readiness target·context 경계는 유지한다. camera가 변하면 기존 준비 경로로 진입한다.
 - `compositionEngineWasm.ts`: production에서 동적 JS 경로가 404여서 95% 부팅에 머무는 기존 blocker를 발견했다. literal import의 `@vite-ignore`를 제거해 Vite가 JS/WASM을 번들에 포함하도록 수리했다. timeout이나 readiness 우회는 추가하지 않았다. 이 수정은 A/B 양쪽 artifact에 적용했다.
-- 계측: 배포 기본 off의 navigation opt-in capture, 실제 main flush와 readiness acknowledgment, GPU nonblocking raw/invalid/pending, canonical publication·cache·resource 계수. 프레임 통계를 Zustand에 쓰지 않는다.
+- 계측: 배포 기본 off의 서로 독립적인 capture/GPU timer opt-in, 실제 main flush와 readiness acknowledgment, GPU nonblocking raw/invalid/pending, canonical publication·cache·resource 계수. 프레임 통계를 Zustand에 쓰지 않는다.
 
 ### 효과와 적용 경계
 
-600요소 production 5쌍에서 idle `render.frame` inclusive 중앙값은 **14.87→2.62ms/s (82.4% 감소)**, CDP wall task는 **33.05→19.27ms/s (41.7% 감소)**였다. 후자는 driver/recorder를 포함하고 OS thread CPU를 뜻하지 않는다. settled idle 10초 content/plan/main submission은 모두 0이고 application RAF는 계속된다.
+GPU 계수 수리 후 동일 소스 3빌드(재사용 off / Map only / P1 전체) × GPU off/on으로 각 5회 비교했다. [재검증 결과와 각 run](evidence/frame-performance-remeasurement-20260906.md)이 최신 정본이다. GPU off에서도 capture/perfMarks/recorder는 유지하므로 모든 계측을 끈 출하 경로의 비용이라고 표현하지 않는다.
 
-별도 `threadTicks` 5쌍에서 renderer main-thread task CPU 중앙값은 **33.47→19.65ms/s (41.3% 감소)**로 G1의 20% 기준을 통과했다. driver/recorder를 포함하며 정상 속도 기기 수치다.
+600요소 production에서 renderer main-thread task CPU(`threadTicks`) 중앙값은 **31.376→20.639ms/s (34.2% 감소)**다. Map only는 23.407ms/s로 **25.4% 감소**, Map 재사용을 유지한 preparation-skip 추가 효과는 **11.8% 감소**다. 서로 다른 기준의 비율이므로 합산하지 않는다. P1 전체의 유효 settled idle 10초에서 content/plan/main submission은 모두 0이며 application RAF는 계속된다.
 
-입력 위상을 맞춰 다시 측정한 pan input→main flush p95는 **17.6→18.2ms**, zoom은 **26.6→27.1ms**로 `max(1ms, 5%)` 기준 안이다. GPU p95 중앙값도 기준 안이다. timer 기반 최초 pan 회귀와 pair별 최악 값을 evidence에서 보존하고 재측정 이유를 기록했다. 5,000요소 zoom·edit tail은 남았으며 전체 60/120fps 달성이나 cold p99 개선을 주장하지 않는다.
+GPU off pan input→main flush p95의 5회 중앙값은 **17.9→17.5ms**, zoom은 **28.4→28.8ms**로 기존 회귀 예산 안이다. GPU on의 pan p95는 **1.862→1.752ms**, zoom은 **1.900→2.112ms**로 +0.5ms 예산 안이다. 10초 edit GPU p95는 **0.327→0.944ms**로 +0.617ms여서 예산을 초과했다. 약 50개 표본에서 tail 변동성이 커 같은 사전 입력과 동일 빌드의 edit만 30초로 늘린 독립 5쌍을 추가했다. 이때는 **0.309→0.471ms(+0.161ms)**로 통과했지만, 원래 10초 실패를 덮지 않는다. 두 구간의 판정이 달라 **G5/P3는 미종결**로 유지한다. 다음은 query/CPU 제출/GC 이벤트를 표본별로 연결하는 원인 분석이며, 근거 없이 준비 생략이나 회귀 예산을 바꾸지 않는다.
 
-P2는 **보류로 종결**한다. 저사양 기기에서 P1 이후 renderer idle CPU ≥30ms/s라는 실제 근거가 없으며, CDP 전체 task·CPU throttle 또는 과거 ADR-167 수치로 이를 대신하지 않는다. 별도 scheduler·wake setter·heartbeat·활성화 flag를 추가하지 않는다. P2 재개 시 §5와 G2 전체를 다시 검증한다. forwards-fill animation이 active record를 유지하는 경우에는 안전을 위해 준비를 계속한다.
+이전 원본 artifact의 GPU query 없는 **36.0%**는 그 artifact의 P1 묶음 결과로 유효하다. 현재 34.2%와 다른 코드/계측 조건의 숫자다. 최초 **41.3%와 GPU p95 통과 판정은 철회**했고 현재 효과나 GPU 계측 비용으로 재사용하지 않는다.
 
-### 검증 범위
+P2는 **조건부 보류**한다. 실제 저사양 기기에서 P1 이후 renderer idle CPU ≥30ms/s라는 근거가 없으며 현재 M4 Pro, CDP 전체 task나 CPU throttle을 대신 쓰지 않는다. 별도 scheduler·wake setter·heartbeat·활성화 flag는 추가하지 않는다. 재개 시 §5/G2 전체를 검증한다.
 
-실행 설계의 전체 실험 행렬을 모든 환경에서 완료했다는 의미는 아니다. 600 fixture에서 5쌍 상대 효과, 60/5,000/text/ref fixture에서 동일 snapshot smoke 대조, 새 context cold 10회, 실제 pointer/드래그·Undo/Redo·refresh, presentation preview/cancel/commit, context 복원과 자원 수명, focused·parity·preflight를 종결 기준으로 삼는다. 실제 신규 외부 font 다운로드, 저사양 기기, React profiling build 수치는 미측정으로 남긴다. on-demand wake mutation 테스트는 P2 미실행에 따라 적용하지 않는다.
+### 검증 범위와 게이트
 
-### 최종 게이트
-
-- Focused Vitest 12 files / **79 tests PASS**, 하니스 node tests **13 PASS**.
-- `gate:visual-parity` **101 tests PASS** (3 계약 + 98 browser). 기존 fixture의 `/appIcon.svg` decode warning은 있으나 gate exit 0이며 별도 production runtime에서는 page/console error 0이다.
-- `codex:preflight` **PASS**: type-check baseline 0, registration 14, agent catalog/engine matrix/text-axis matrix 정상. `git diff --check` PASS.
-- Production live: 선택/hit, drag delta canonical 0, Undo/Redo/refresh, presentation preview/cancel/commit/Undo, 페이지 왕복, **20회 drag/Undo + context loss/restore**, 동일 선택 상태의 Canvas 내용 영역 PNG 바이트 동일, delayed image/font sync/resize, unmount 후 renderer/RAF 0.
-- 복원 반복의 main/content/standby surface·snapshot 각1, node pictures147, listener547, DOM nodes2589로 일정했다. 강제 GC 뒤 JS heap은 43.38→45.51MB였다. 이 결과를 전체 JS heap 증가 0 또는 모든 자원 누수 부재로 표현하지 않는다.
-
-직접 `review` 체크리스트로 cache 입력·수명, animation 마지막 정리, 실제 flush readiness, store 비의존, Spec/CSS/Preview 소비 경계를 대조했다. 범위 내 미해결 HIGH/CRITICAL은 발견하지 않았다. 신규 외부 폰트·저사양·profiling build 및 P2는 위 제한을 유지한다.
+- GPU timer reset/context-loss 실패를 회귀 테스트로 재현하고, 이전 창 query의 invalid 계수 유입을 수리했다. 관련 cache/preparation/readiness/presentation **6 files / 28 tests PASS**; 하니스 **13 tests PASS**.
+- `gate:visual-parity` **101 tests PASS** (3 계약 + 98 browser). 이는 기존 smoke suite 통과이며 모든 catalog/텍스트/이미지 fixture가 픽셀 동일하다는 뜻은 아니다.
+- `codex:preflight` **PASS**. 최종 scoped format/diff와 source SHA 일치도 확인했다.
+- 현재 600요소 반복은 모든 측정 구간 visible, checksum 동일, 측정 구간 오류 0이다. 부팅 때 공통 Pretendard 정적 URL 8건의 404는 별도로 보존한다. 전체 runtime 오류 0으로 표현하지 않는다.
+- 기존 60/5,000/text/ref smoke, cold 10회, 실제 drag/Undo/Redo/refresh·presentation·복원·자원 수명 결과는 최초 실행 기록이다. 현재 빌드에서도 실제 drag/Undo/context restore 20회, 동일 Canvas 영역 PNG 바이트 일치, preview/cancel/commit/Undo/Redo/refresh, 지연 이미지·font sync·resize·unmount를 확인했다. surface/snapshot 각 1, picture 147, listener 547, DOM nodes 2589로 일정했다. 신규 외부 폰트 다운로드·저사양·React profiling build·전체 JS heap 누수 부재·P2 wake mutation 검증으로 일반화하지 않는다.
 
 ### 정리 라운드 이월 항목 — 2026-09-06
 
@@ -252,7 +266,7 @@ P2는 **보류로 종결**한다. 저사양 기기에서 P1 이후 renderer idle
 | --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
 | 1   | `SkiaCanvas.tsx` `preparedFrame` 을 다시 `preparedInput`/`preparedPacket`/`preparedLayoutVersion` 3개 로컬로 분해 (rebuild 프레임당 객체 1개 할당 회피)     | 같은 라운드의 다른 판독이 정반대로 "그룹화는 과잉 아님" 판정. 그룹화가 고친 것은 실패 경로에서 1개만 `null` 로 되돌리고 2개는 stale 로 남던 비대칭 초기화다. 3필드 객체 1개는 그 프레임이 어차피 수행하는 content rebuild 할당량에 비해 무시할 수준 | 프로파일에서 이 할당이 실제 GC 압력으로 잡힐 때                                                   |
 | 2   | `fullTreeLayout.ts` 가 filtered/synthetic children 의 결합 generation 카운터 하나를 발행하고, `FrameContentCache` 는 그 숫자만 비교                         | 생산자 모듈 변경이라 이번 diff 밖. 현재는 무효화 계약이 소비처(`readChildren` 인자 목록)에 산다                                                                                                                                                     | children 에 영향을 주는 상위 입력이 하나 더 늘어날 때 (그 시점에 인자 목록 추가 대신 이 방향으로) |
-| 3   | `classifyFrame` 의 idle 판정을 순수 술어로 노출해 `canReuseFramePreparation` 이 재사용 (두 개의 "무엇이 stale 인가" 목록 통합)                              | 무엇이 skip 되는지가 바뀌어 §9 의 기준선 (threadTicks 33.47→19.65ms/s) 이 무효화된다                                                                                                                                                                | P1 후속 성능 작업을 열어 기준선을 다시 잴 때 함께                                                 |
+| 3   | `classifyFrame` 의 idle 판정을 순수 술어로 노출해 `canReuseFramePreparation` 이 재사용 (두 개의 "무엇이 stale 인가" 목록 통합)                              | 무엇이 skip 되는지가 바뀌어 §9 의 새 기준선 (threadTicks 31.376→20.639ms/s) 이 무효화된다                                                                                                                                                           | P1 후속 성능 작업을 열어 기준선을 다시 잴 때 함께                                                 |
 | 4   | `perf-baseline.mjs` `seedDocument` 의 `fixtureKind` 8분기를 `seedMixedFixture`/`seedTextFixture`/`seedRefsFixture` 3개 빌더로 분리                          | 60/5k/text/ref 동일 checksum smoke 가 이 fixture 형태에 걸려 있다                                                                                                                                                                                   | fixture 종류를 4번째로 추가할 때 (그때 분기 추가 대신 분리)                                       |
 | 5   | `framePreparation.test.ts` (private 필드 `Object.assign` poke) · `frameContentCache.test.ts` (`Map` 참조 동일성 단정) 를 public surface 검증으로 재작성     | 지적은 타당 — 동작이 같은 refactor 에도 깨진다. 다만 `SkiaRenderer.render()` 경로 검증은 CanvasKit 이 필요해 browser vitest (`vitest.browser.config.ts`) 로 옮기는 별도 작업                                                                        | 위 3번을 열 때 함께 (그 refactor 가 정확히 이 테스트를 깬다)                                      |
 | 6   | `perf-baseline.mjs` `select`/`edit` 에서 `fixedInputs` 제거 (두 루프는 `setTimeout` 페이싱이라 vsync 의존이 없다 — `wheelBurst` 와 달리 보정할 대상이 없음) | 판독자 본인이 low confidence 로 제출. 루프 tail 반올림이 바뀌어 측정 하니스 동작 변경                                                                                                                                                               | 이 두 driver 의 수치를 다시 잴 일이 생길 때 확인 후                                               |

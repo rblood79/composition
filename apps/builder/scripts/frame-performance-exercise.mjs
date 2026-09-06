@@ -194,13 +194,22 @@ try {
           .contextLost,
     );
     await page.waitForTimeout(50);
-    await page.evaluate(() => window.__frameContextTest.restoreContext());
-    await page.waitForFunction(() => {
+    const submissionsBeforeRestore = await page.evaluate(() => {
+      const count =
+        window.__composition_FRAME_CAPTURE__.counter("mainSubmission");
+      if (typeof count !== "number")
+        throw new Error("mainSubmission channel missing");
+      window.__frameContextTest.restoreContext();
+      return count;
+    });
+    // clearSubmission은 실제 content 제출이 아니다. 복원 이후 새 main flush를 기다린다.
+    await page.waitForFunction((before) => {
       const s = window.__composition_FRAME_CAPTURE__.probe();
       return (
-        !s.rendererSources[0].gpu.contextLost && s.counters.mainSubmission > 1
+        !s.rendererSources[0].gpu.contextLost &&
+        s.counters.mainSubmission > before
       );
-    });
+    }, submissionsBeforeRestore);
     await page.waitForTimeout(250);
     const snapshot = await capture();
     assert.equal(snapshot.rendererSources.length, 1);
