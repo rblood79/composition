@@ -299,7 +299,17 @@ export async function createInstrumentedContext(
   const cdp = await context.newCDPSession(page);
   if (cpuThrottle !== undefined)
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle });
-  return { context, page, cdp, pageErrors, consoleErrors };
+  return {
+    context,
+    page,
+    cdp,
+    pageErrors,
+    consoleErrors,
+    // 파생 getter — 기존 소비자(`const { errors } = ...`)가 계속 동작한다.
+    get errors() {
+      return [...pageErrors, ...consoleErrors];
+    },
+  };
 }
 
 async function createIsolatedProject(page, baseUrl) {
@@ -1785,49 +1795,59 @@ function renderFrameTable(results) {
 // ── main ─────────────────────────────────────────────────────────────────────
 async function runColdEntries(browser, options, storageState) {
   const runs = [];
-  for (let i = 0; i < options.coldEntries; i++) {
-    const { context, page, pageErrors, consoleErrors } =
-      await createInstrumentedContext(browser, {
-        storageState,
-        cpuThrottle: options.cpuThrottle,
-      });
-    try {
-      await page.goto(options.projectUrl, { waitUntil: "domcontentloaded" });
-      await waitReady(page, { settleMs: 0 });
-      const result = await page.evaluate(() => ({
-        readyObservedAtMs: performance.now(),
-        visibility: document.visibilityState,
-        capture: window.__composition_FRAME_CAPTURE__?.snapshot() ?? null,
-        perf: window.__composition_PERF__?.snapshotAll() ?? [],
-      }));
-      // 에러는 page 구동 뒤에 읽는다 — 생성 직후 스냅샷은 항상 비어 있다.
-      const errors = [...pageErrors, ...consoleErrors];
-      runs.push({ ...result, errors });
-      process.stderr.write(
-        `[cold ${i + 1}] ready ${result.readyObservedAtMs.toFixed(1)}ms errors ${errors.length}\n`,
-      );
-      if (errors.length) throw new Error("cold entry errors");
-    } finally {
-      await context.close();
-    }
-  }
   const outPath = resolve(options.out, `cold-${Date.now()}.json`);
-  writeFileSync(
-    outPath,
-    JSON.stringify(
-      {
-        kind: "new browser context cold entry; same browser process",
-        buildId: options.buildId,
-        projectUrl: options.projectUrl,
-        chrome: browser.version(),
-        cpuThrottle: options.cpuThrottle,
-        runs,
-      },
-      null,
-      2,
-    ),
-  );
-  process.stdout.write(`[out] ${outPath}\n`);
+  let failure = null;
+  // 리포트 write 를 finally 로 — 중간 run 이 throw 해도 앞선 ready 샘플을 남긴다.
+  try {
+    for (let i = 0; i < options.coldEntries; i++) {
+      const { context, page, pageErrors, consoleErrors } =
+        await createInstrumentedContext(browser, {
+          storageState,
+          cpuThrottle: options.cpuThrottle,
+        });
+      try {
+        await page.goto(options.projectUrl, { waitUntil: "domcontentloaded" });
+        await waitReady(page, { settleMs: 0 });
+        const result = await page.evaluate(() => ({
+          readyObservedAtMs: performance.now(),
+          visibility: document.visibilityState,
+          capture: window.__composition_FRAME_CAPTURE__?.snapshot() ?? null,
+          perf: window.__composition_PERF__?.snapshotAll() ?? [],
+        }));
+        // 에러는 page 구동 뒤에 읽는다 — 생성 직후 스냅샷은 항상 비어 있다.
+        const errors = [...pageErrors, ...consoleErrors];
+        runs.push({ ...result, errors });
+        process.stderr.write(
+          `[cold ${i + 1}] ready ${result.readyObservedAtMs.toFixed(1)}ms errors ${errors.length}\n`,
+        );
+        if (errors.length) throw new Error("cold entry errors");
+      } finally {
+        await context.close();
+      }
+    }
+  } catch (error) {
+    failure = String(error);
+    throw error;
+  } finally {
+    writeFileSync(
+      outPath,
+      JSON.stringify(
+        {
+          kind: "new browser context cold entry; same browser process",
+          buildId: options.buildId,
+          projectUrl: options.projectUrl,
+          chrome: browser.version(),
+          cpuThrottle: options.cpuThrottle,
+          requestedEntries: options.coldEntries,
+          failure,
+          runs,
+        },
+        null,
+        2,
+      ),
+    );
+    process.stdout.write(`[out] ${outPath}\n`);
+  }
 }
 
 async function main() {

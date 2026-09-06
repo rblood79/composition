@@ -10,22 +10,6 @@ export const FRAME_EVENT_NAME: Record<FrameType, string> = {
   full: "frame.full",
 };
 
-/**
- * 하니스가 첫 발생 전에도 0 을 읽어야 하는 counter 전부. countFrameEvent 키를
- * 새로 추가하면 여기에도 넣는다 — 빠지면 snapshot 이 0 대신 undefined 를 준다.
- */
-const KNOWN_COUNTERS: readonly string[] = [
-  "renderRaf",
-  "mainSubmission",
-  "contentBuild",
-  "planBuild",
-  "domainPublication",
-  "preparationSkipped",
-  "childrenCacheHit",
-  "childrenCacheBuild",
-  ...Object.values(FRAME_EVENT_NAME),
-];
-
 interface CaptureSource {
   snapshot(): unknown;
   reset(): void;
@@ -57,6 +41,15 @@ export function recordReadinessPresentation(
       documentRevision,
       atMs: performance.now(),
     };
+}
+
+/**
+ * 아직 한 번도 fire 하지 않은 counter 를 0 으로 노출한다. emit 지점 옆(모듈
+ * 스코프)에서 호출한다 — 이름이 producer 를 떠나면 채널이 끊겨도 하니스가
+ * 0 을 읽어 단언이 vacuous 해진다.
+ */
+export function declareCounter(name: string): void {
+  if (frameCaptureEnabled) counters[name] ??= 0;
 }
 
 export function countFrameEvent(name: string, amount = 1): void {
@@ -105,7 +98,8 @@ if (frameCaptureEnabled) {
   }
   const api = {
     reset() {
-      for (const key of Object.keys(counters)) delete counters[key];
+      // delete 가 아니라 0 — 한 번이라도 fire 한 채널은 창을 넘어 관측 가능하게.
+      for (const key of Object.keys(counters)) counters[key] = 0;
       latencies.length = 0;
       lastInput = null;
       inputCount = 0;
@@ -116,10 +110,7 @@ if (frameCaptureEnabled) {
       return {
         build: { mode: import.meta.env.MODE, production: import.meta.env.PROD },
         readinessPresentation,
-        counters: {
-          ...Object.fromEntries(KNOWN_COUNTERS.map((name) => [name, 0])),
-          ...counters,
-        },
+        counters: { ...counters },
         gauges: { ...gauges },
         rendererSources: [...sources.values()].map((source) =>
           source.snapshot(),

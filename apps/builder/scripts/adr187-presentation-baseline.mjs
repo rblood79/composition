@@ -197,9 +197,11 @@ async function startProductionBundleHost(options) {
   return server;
 }
 
+// counter 는 첫 fire 전까지 snapshot 에 없다 (frameCapture 는 미발생 채널을
+// 0 으로 위장하지 않는다) — 집계 층에서만 0 으로 읽는다.
 function subtractCounters(after, before) {
   return Object.fromEntries(
-    Object.keys(after).map((key) => [key, after[key] - before[key]]),
+    Object.keys(after).map((key) => [key, after[key] - (before[key] ?? 0)]),
   );
 }
 
@@ -276,11 +278,14 @@ function sameOptionalLayoutGeometry(left, right) {
 }
 
 function aggregateRuns(runs, environmentMessages = []) {
-  const counterKeys = Object.keys(runs[0]?.drag.counters ?? {});
+  // run 마다 fire 한 채널이 다를 수 있으므로 키는 합집합으로 잡는다.
+  const counterKeys = [
+    ...new Set(runs.flatMap((run) => Object.keys(run.drag.counters))),
+  ];
   const medianCounters = Object.fromEntries(
     counterKeys.map((key) => [
       key,
-      median(runs.map((run) => run.drag.counters[key])),
+      median(runs.map((run) => run.drag.counters[key] ?? 0)),
     ]),
   );
   return {

@@ -60,4 +60,25 @@ describe("명시적 프레임 capture", () => {
     unregister();
     expect(api.snapshot().rendererSources).toEqual([]);
   });
+
+  it("fire 한 적 없는 counter 는 0 이 아니라 undefined 이고, declareCounter 만 0 을 연다", async () => {
+    flag.enabled = true;
+    const capture = await import("./frameCapture");
+    const api = (
+      window as unknown as {
+        __composition_FRAME_CAPTURE__: {
+          reset(): void;
+          snapshot(): { counters: Record<string, number> };
+        };
+      }
+    ).__composition_FRAME_CAPTURE__;
+    // 채널이 끊기면 `counter === 0` 단언이 조용히 통과하면 안 된다.
+    expect(api.snapshot().counters.contentBuild).toBeUndefined();
+    capture.declareCounter("domainPublication");
+    expect(api.snapshot().counters.domainPublication).toBe(0);
+    // 한 번이라도 fire 한 채널은 reset 후에도 0 으로 관측된다.
+    capture.countFrameEvent("contentBuild");
+    api.reset();
+    expect(api.snapshot().counters.contentBuild).toBe(0);
+  });
 });

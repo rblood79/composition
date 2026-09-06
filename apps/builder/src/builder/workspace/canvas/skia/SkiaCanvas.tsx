@@ -23,6 +23,7 @@ import {
 import { registerImageLoadCallback } from "./imageCache";
 import {
   countFrameEvent,
+  declareCounter,
   frameCaptureEnabled,
   recordReadinessPresentation,
 } from "./frameCapture";
@@ -150,6 +151,10 @@ export interface SkiaCanvasProps {
  * - Camera 클래스로 viewport 상태 관리
  * - Command Stream 경로 전용 (sharedLayoutMap 필수)
  */
+
+// 아래 useEffect 의 canonical 구독이 fire 하기 전에도 하니스가 0 을 읽어야 한다.
+declareCounter("domainPublication");
+
 export function SkiaCanvas({
   containerEl,
   gestureSession,
