@@ -29,8 +29,12 @@ describe("PropertiesPanel body wiring", () => {
   });
 
   it("suppresses the empty edit-contract state for dedicated section types", () => {
-    expect(panelSource).toContain(
-      "DEDICATED_SECTION_TYPES.has(selectedElement.type)",
+    // 고정 대상은 "DEDICATED_SECTION_TYPES 를 조회해 EmptyState 앞에서 빠져나간다"
+    // 는 소비 지점이지 표현식 문자열이 아니다 — 2026-09-06 ADR-203 selection
+    // fan-out 이 selectedElement.type → elementType 으로 바꾸자 배선이 멀쩡한데도
+    // 이 단언만 깨졌다. 피검사 대상 변수명에 묶이지 않게 한다.
+    expect(panelSource).toMatch(
+      /if\s*\(DEDICATED_SECTION_TYPES\.has\([^)]+\)\)\s*return null;/,
     );
   });
 

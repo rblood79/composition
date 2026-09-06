@@ -7,12 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [프레임 계측 정확성 수리] - 2026-09-06
+
+### Fixed
+
+- 프레임 계측의 GPU 타이머가 EXT_disjoint_timer_query 플래그를 결과 준비 전에 조회해 유효 표본까지 버리던 문제를 수정했습니다. GPU throttling 구간에서 유효 표본이 0으로 무너지던 원인이며, 이 수정 이전에 수집한 GPU 지표는 재수집 대상입니다.
+- 측정 창을 초기화해도 이전 창의 readiness 기록과 gauge가 남아 새 창의 값으로 보고되던 문제를 수정했습니다.
+
 ## [Builder 프레임 CPU 준비 재사용] - 2026-09-06
 
 ### Performance
 
 - 동일 입력의 children Map을 renderer 수명 안에서 재사용하고, 유효한 retained frame의 settled idle에서는 content/plan 준비를 생략합니다. animation·resource·camera·readiness 변경은 기존 제출 경로로 처리하며 연속 RAF는 유지합니다.
-- 600요소 production 5쌍에서 renderer main-thread task CPU 중앙값이 33.47→19.65ms/s로 41.3% 감소했습니다. 입력 위상을 맞춘 pan/zoom 제출 지연과 GPU p95는 회귀 예산 안입니다. 5,000요소 편집·zoom tail과 실제 저사양 검증은 남아 있으며, on-demand RAF는 조건부 보류합니다.
+- 600요소 production 5쌍에서 renderer main-thread task CPU 중앙값이 32.96→21.09ms/s로 36.0% 감소했습니다. 이 값은 P1 변경 묶음 전체의 효과이며 준비 생략 단독 효과가 아닙니다. 입력 위상을 맞춘 pan/zoom 제출 지연은 회귀 예산 안입니다. 5,000요소 편집·zoom tail과 실제 저사양 검증은 남아 있으며, on-demand RAF는 조건부 보류합니다.
+- **2026-09-06 정정**: 앞서 기록한 33.47→19.65ms/s(41.3%)와 GPU p95 판정은 철회했습니다. 계측 opt-in이 출하 production에는 없는 GPU 타이머를 만들고 그 동기 GL 조회가 측정 구간 안에서 실행되어, 출하 경로가 아닌 빌드를 잰 값이었습니다. 위 수치는 GPU 조회가 없는 경로에서 다시 잰 것이고, GPU 지표는 타이머 결함 수정 후 재수집 대상입니다.
 - 근거·적용 범위: [프레임 성능 실행 설계 §9](adr/react-skia-zustand-frame-performance-design.md#9-실행-결과--2026-09-06).
 
 ### Fixed
