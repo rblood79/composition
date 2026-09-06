@@ -160,6 +160,15 @@ interface FrameClassification {
 type SnapshotPolicy = "single" | "ping-pong";
 const DEFAULT_SNAPSHOT_POLICY: SnapshotPolicy = "ping-pong";
 
+/** 렌더 프레임 분류별 counter 키 — hot path에서 템플릿 문자열 할당을 피한다. */
+const FRAME_EVENT_NAME: Record<FrameType, string> = {
+  idle: "frame.idle",
+  present: "frame.present",
+  "camera-only": "frame.camera-only",
+  content: "frame.content",
+  full: "frame.full",
+};
+
 export class SkiaRenderer {
   private ck: CanvasKit;
   private contentNode: SkiaRenderable | null = null;
@@ -1090,7 +1099,7 @@ export class SkiaRenderer {
       frameType = "content";
       frameReason = "animation";
     }
-    countFrameEvent(`frame.${frameType}`);
+    countFrameEvent(FRAME_EVENT_NAME[frameType]);
 
     // ADR-153 Phase 1-a: contentSurface 캐시 hit(스냅샷 재사용) / miss(재렌더 + 사유)
     if (process.env.NODE_ENV === "development") {

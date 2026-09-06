@@ -4,9 +4,11 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import {
+  createInstrumentedContext,
   loadStorageState,
   parseArgs,
   runPointerSelectionExercise,
+  waitReady,
 } from "./perf-baseline.mjs";
 
 const options = parseArgs(process.argv.slice(2));
@@ -16,29 +18,19 @@ const browser = await chromium.launch({
   channel: "chrome",
   headless: !options.headed,
 });
-const errors = [];
 const result = { buildId: options.buildId, checks: {}, contextCycles: [] };
+let errors = [];
 try {
-  const context = await browser.newContext({
+  const instrumented = await createInstrumentedContext(browser, {
     storageState: loadStorageState(options.storageState),
-    viewport: { width: 1440, height: 900 },
   });
-  await context.addInitScript(() => {
-    window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
-  });
-  const page = await context.newPage();
-  page.on("pageerror", (e) => errors.push(String(e)));
-  page.on("console", (m) => {
-    if (m.type() === "error") errors.push(m.text());
-  });
+  const { page, cdp } = instrumented;
+  errors = instrumented.errors;
   const url = new URL(options.projectUrl);
   url.searchParams.set("adr187Metrics", "1");
+  // ready 정의는 perf-baseline 의 것 하나뿐이다. settle 은 이 하니스가 직접 잰다.
   const ready = () =>
-    page.waitForFunction(
-      () =>
-        document.querySelector(".app:not(.builder-booting)") &&
-        window.__composition_FRAME_CAPTURE__,
-    );
+    waitReady(page, { settleMs: 0, requireFrameCapture: true });
   const capture = () =>
     page.evaluate(() => window.__composition_FRAME_CAPTURE__.snapshot());
   const reset = () =>
@@ -175,7 +167,6 @@ try {
     clip: { x: 650, y: 340, width: 450, height: 550 },
     path: resolve(options.out, "before-restore.png"),
   });
-  const cdp = await context.newCDPSession(page);
   await cdp.send("Performance.enable");
   for (let i = 0; i < 20; i++) {
     await page.mouse.move(cyclePointer.clientX, cyclePointer.clientY);

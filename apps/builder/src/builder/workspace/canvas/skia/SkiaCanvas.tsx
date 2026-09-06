@@ -660,9 +660,16 @@ export function SkiaCanvas({
     let rafId = 0;
     let running = true;
     const contentCache = new FrameContentCache();
-    let preparedInput: SkiaRendererInput | null = null;
-    let preparedPacket: typeof invalidationPacketRef.current | null = null;
-    let preparedLayoutVersion = -1;
+    // 재사용 판정 3축은 항상 함께 만들어지고 함께 무효화된다. 한 참조로 묶어
+    // 부분 초기화로 stale 값이 남는 경로를 없앤다.
+    let preparedFrame: {
+      input: SkiaRendererInput;
+      packet: typeof invalidationPacketRef.current;
+      layoutVersion: number;
+    } | null = null;
+    // 재사용 검사 전용 스크래치. skip 경로에서 즉시 버려질 camera 객체를
+    // 매 RAF 새로 할당하지 않는다.
+    const cameraProbe = { zoom: 0, panX: 0, panY: 0 };
 
     // ADR-069 Phase 0: renderFrameCore는 원본 로직을 그대로 보존.
     // 아래 renderFrame wrapper가 observe()로 "render.frame" 라벨에 계측을 주입한다.
@@ -823,12 +830,6 @@ export function SkiaCanvas({
         }
       }
 
-      const cameraState = {
-        zoom: cameraZoom,
-        panX: cameraX,
-        panY: cameraY,
-      };
-
       // Visible page 변경 → content 무효화
       if (
         sceneDocument.visibleContentVersion !==
@@ -896,17 +897,20 @@ export function SkiaCanvas({
 
       // Content build — Command Stream 경로
       const layoutVersion = getSharedLayoutVersion();
+      cameraProbe.zoom = cameraZoom;
+      cameraProbe.panX = cameraX;
+      cameraProbe.panY = cameraY;
       if (
-        preparedInput === currentRendererInput &&
-        preparedPacket === packet &&
-        preparedLayoutVersion === layoutVersion &&
+        preparedFrame?.input === currentRendererInput &&
+        preparedFrame.packet === packet &&
+        preparedFrame.layoutVersion === layoutVersion &&
         !presentationTargetRef.current &&
         !dropIndicator &&
         packet.ai.generatingNodes.size === 0 &&
         packet.ai.flashAnimations.size === 0 &&
         renderer.canReuseFramePreparation(
           registryVersion,
-          cameraState,
+          cameraProbe,
           overlayVersionRef.current,
         )
       ) {
@@ -932,7 +936,7 @@ export function SkiaCanvas({
       );
 
       if (!contentResult) {
-        preparedInput = null;
+        preparedFrame = null;
         renderer.clearFrame();
         renderer.invalidateContent();
         pendingDamageRevisionRef.current = null;
@@ -1006,6 +1010,11 @@ export function SkiaCanvas({
 
       // DOM overlay는 별도 RAF를 만들지 않고, 이 frame이 실제로 그릴 정확한
       // camera/page snapshot을 소비한다. callback은 transform-only여야 한다.
+      const cameraState = {
+        zoom: cameraZoom,
+        panX: cameraX,
+        panY: cameraY,
+      };
       publishCanvasFramePresentation(cameraState, pagePositionSnapshot);
 
       const didPresent = observe(PERF_LABEL.RENDER_SKIA_DRAW, () =>
@@ -1018,9 +1027,7 @@ export function SkiaCanvas({
       );
 
       const pendingTarget = presentationTargetRef.current;
-      preparedInput = currentRendererInput;
-      preparedPacket = packet;
-      preparedLayoutVersion = layoutVersion;
+      preparedFrame = { input: currentRendererInput, packet, layoutVersion };
       if (didPresent && pendingTarget) {
         const renderedProjectId =
           useCanonicalDocumentStore.getState().currentProjectId;

@@ -242,17 +242,67 @@ export function loadStorageState(path) {
   return storageState;
 }
 
-const READY_PREDICATE = () =>
+const READY_PREDICATE = (requireFrameCapture = false) =>
   Boolean(
     window.__composition_STORE__ &&
     window.__composition_STORE__.getState().currentPageId &&
     document.querySelector(".app:not(.builder-booting)") &&
-    document.querySelector('[data-testid="skia-canvas-unified"]'),
+    document.querySelector('[data-testid="skia-canvas-unified"]') &&
+    (!requireFrameCapture || window.__composition_FRAME_CAPTURE__),
   );
 
-async function waitReady(page) {
-  await page.waitForFunction(READY_PREDICATE, undefined, { timeout: 90_000 });
-  await page.waitForTimeout(1_500);
+/** builder ready 정의는 여기 하나뿐이다. 다른 하니스도 이 함수를 거친다. */
+export async function waitReady(
+  page,
+  { settleMs = 1_500, requireFrameCapture = false, timeout = 90_000 } = {},
+) {
+  await page.waitForFunction(READY_PREDICATE, requireFrameCapture, { timeout });
+  if (settleMs) await page.waitForTimeout(settleMs);
+}
+
+/**
+ * 계측 context 1개 — storageState·viewport·frame capture init script·
+ * 에러 수집·CDP CPU throttle 을 한 곳에서 묶는다. cold entry / A-B 본 실행 /
+ * frame-performance-exercise 가 같은 정의를 쓴다.
+ */
+export async function createInstrumentedContext(
+  browser,
+  {
+    storageState,
+    cpuThrottle,
+    frameCapture = true,
+    initScript = null,
+    onPageError = null,
+  } = {},
+) {
+  const context = await browser.newContext({
+    storageState,
+    viewport: { width: 1440, height: 900 },
+  });
+  if (initScript) await context.addInitScript(initScript);
+  if (frameCapture)
+    await context.addInitScript(() => {
+      window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
+    });
+  const page = await context.newPage();
+  const pageErrors = [];
+  const consoleErrors = [];
+  const errors = [];
+  page.on("pageerror", (e) => {
+    pageErrors.push(String(e));
+    errors.push(String(e));
+    onPageError?.(e);
+  });
+  page.on("console", (m) => {
+    if (m.type() === "error") {
+      consoleErrors.push(m.text());
+      errors.push(m.text());
+    }
+  });
+  const cdp = await context.newCDPSession(page);
+  if (cpuThrottle !== undefined)
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle });
+  return { context, page, cdp, errors, pageErrors, consoleErrors };
 }
 
 async function createIsolatedProject(page, baseUrl) {
@@ -1467,11 +1517,14 @@ const wheelBurst = (page, durationMs, initFactory, fixedInputs = false) =>
               ...initFactory(i++),
             }),
           );
-          if (fixedInputs && i < Math.round((durationMs * 60) / 1000))
-            requestAnimationFrame(() => requestAnimationFrame(step));
-          else if (!fixedInputs && performance.now() - t0 < durationMs)
-            requestAnimationFrame(step);
-          else res();
+          // fixedInputs: 고정 tick 수 + 2-vsync 위상 정렬. 그 외: 벽시계 기준.
+          const shouldContinue = fixedInputs
+            ? i < Math.round((durationMs * 60) / 1000)
+            : performance.now() - t0 < durationMs;
+          if (!shouldContinue) return res();
+          requestAnimationFrame(
+            fixedInputs ? () => requestAnimationFrame(step) : step,
+          );
         };
         requestAnimationFrame(step);
       });
@@ -1736,28 +1789,13 @@ function renderFrameTable(results) {
 async function runColdEntries(browser, options, storageState) {
   const runs = [];
   for (let i = 0; i < options.coldEntries; i++) {
-    const context = await browser.newContext({
+    const { context, page, errors } = await createInstrumentedContext(browser, {
       storageState,
-      viewport: { width: 1440, height: 900 },
+      cpuThrottle: options.cpuThrottle,
     });
     try {
-      await context.addInitScript(() => {
-        window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
-      });
-      const page = await context.newPage();
-      const errors = [];
-      page.on("pageerror", (e) => errors.push(String(e)));
-      page.on("console", (m) => {
-        if (m.type() === "error") errors.push(m.text());
-      });
-      const cdp = await context.newCDPSession(page);
-      await cdp.send("Emulation.setCPUThrottlingRate", {
-        rate: options.cpuThrottle,
-      });
       await page.goto(options.projectUrl, { waitUntil: "domcontentloaded" });
-      await page.waitForFunction(READY_PREDICATE, undefined, {
-        timeout: 90000,
-      });
+      await waitReady(page, { settleMs: 0 });
       const result = await page.evaluate(() => ({
         readyObservedAtMs: performance.now(),
         visibility: document.visibilityState,
@@ -1800,36 +1838,23 @@ async function main() {
     channel: "chrome",
     headless: !options.headed,
   });
-  const pageErrors = [];
-  const consoleErrors = [];
+  let pageErrors = [];
+  let consoleErrors = [];
   try {
     if (options.coldEntries > 0) {
       await runColdEntries(browser, options, storageState);
       return;
     }
-    const context = await browser.newContext({
+    const instrumented = await createInstrumentedContext(browser, {
       storageState,
-      viewport: { width: 1440, height: 900 },
+      cpuThrottle: options.cpuThrottle,
+      frameCapture: options.frameCapture,
+      initScript: PROBE_SCRIPT,
+      onPageError: (e) => process.stderr.write(`[pageerror] ${e}\n`),
     });
-    await context.addInitScript(PROBE_SCRIPT);
-    if (options.frameCapture)
-      await context.addInitScript(() => {
-        window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
-      });
-    const page = await context.newPage();
-    page.on("pageerror", (e) => {
-      pageErrors.push(String(e));
-      process.stderr.write(`[pageerror] ${e}\n`);
-    });
-    page.on("console", (m) => {
-      if (m.type() === "error") {
-        consoleErrors.push(m.text());
-      }
-    });
-    const cdp = await context.newCDPSession(page);
-    await cdp.send("Emulation.setCPUThrottlingRate", {
-      rate: options.cpuThrottle,
-    });
+    const { context, page, cdp } = instrumented;
+    pageErrors = instrumented.pageErrors;
+    consoleErrors = instrumented.consoleErrors;
     await cdp.send("Performance.enable", { timeDomain: options.cpuTimeDomain });
     await cdp.send("HeapProfiler.enable");
 
