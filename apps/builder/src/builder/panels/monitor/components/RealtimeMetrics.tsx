@@ -27,7 +27,7 @@ type MetricStatus = "good" | "needs-improvement" | "poor" | "unknown";
 /** Google 기준 (Core Web Vitals). FPS 는 60Hz 호환 최소선 기준. */
 const VITAL_THRESHOLDS = {
   lcp: { good: 2500, poor: 4000 },
-  fid: { good: 100, poor: 300 },
+  inp: { good: 200, poor: 500 },
   cls: { good: 0.1, poor: 0.25 },
   ttfb: { good: 800, poor: 1800 },
 } as const;
@@ -103,12 +103,12 @@ export function RealtimeMetrics({ fps, vitals }: RealtimeMetricsProps) {
       icon: Layout,
     },
     {
-      key: "fid",
-      label: "FID",
-      description: "First Input Delay",
-      value: formatVital("fid", vitals.fid),
-      unit: vitals.fid === null ? "" : "ms",
-      status: vitalStatus("fid", vitals.fid),
+      key: "inp",
+      label: "INP",
+      description: "Interaction to Next Paint",
+      value: formatVital("inp", vitals.inp),
+      unit: vitals.inp === null ? "" : "ms",
+      status: vitalStatus("inp", vitals.inp),
       icon: MousePointer,
     },
     {

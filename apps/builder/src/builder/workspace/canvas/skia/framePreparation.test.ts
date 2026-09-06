@@ -30,6 +30,7 @@ describe("idle 준비 재사용 판정", () => {
   it("이미 제출한 동일 입력만 재사용하며 camera와 각 version 변경을 거부한다", () => {
     const r = fixture();
     expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(true);
+    expect(r.canReuseContentPreparation(1, 1, 0)).toBe(true);
     expect(r.canReuseFramePreparation(2, camera, 1, 0)).toBe(false);
     expect(r.canReuseFramePreparation(1, camera, 2, 0)).toBe(false);
     expect(r.canReuseFramePreparation(1, camera, 1, 1)).toBe(false);
@@ -49,7 +50,9 @@ describe("idle 준비 재사용 판정", () => {
     const r = fixture();
     Object.assign(r, { [key]: true });
     expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(false);
+    expect(r.canReuseContentPreparation(1, 1, 0)).toBe(false);
     expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(false);
+    expect(r.canReuseContentPreparation(1, 1, 0)).toBe(false);
   });
   it.each(["contentNode", "contentSurface", "contentSnapshot"])(
     "%s 부재와 single-surface fallback에서는 준비를 생략하지 않는다",
@@ -57,6 +60,7 @@ describe("idle 준비 재사용 판정", () => {
       const r = fixture();
       Object.assign(r, { [key]: null });
       expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(false);
+      expect(r.canReuseContentPreparation(1, 1, 0)).toBe(false);
     },
   );
   it("조회는 animation을 tick하지 않고 render가 한 번 tick한 뒤 마지막 정리도 수행한다", () => {
@@ -68,13 +72,16 @@ describe("idle 준비 재사용 판정", () => {
       tick,
     } as unknown as TransitionManager;
     expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(false);
+    expect(r.canReuseContentPreparation(1, 1, 0)).toBe(false);
     expect(tick).not.toHaveBeenCalled();
     expect(r.render(new DOMRect(0, 0, 100, 100), 1, camera, 1, 0)).toBe(false);
     expect(tick).toHaveBeenCalledTimes(1);
     active = false;
     expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(false);
+    expect(r.canReuseContentPreparation(1, 1, 0)).toBe(false);
     r.render(new DOMRect(0, 0, 100, 100), 1, camera, 1, 0);
     expect(r.canReuseFramePreparation(1, camera, 1, 0)).toBe(true);
+    expect(r.canReuseContentPreparation(1, 1, 0)).toBe(true);
     expect(tick).toHaveBeenCalledTimes(1);
   });
 });

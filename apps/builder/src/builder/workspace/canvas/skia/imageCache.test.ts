@@ -23,6 +23,7 @@ interface MockImage {
 }
 
 const createdImages: MockImage[] = [];
+let imageSize = 10;
 let canvasKitInitialized = true;
 let initCanvasKitBehavior = async (): Promise<void> => {
   canvasKitInitialized = true;
@@ -32,8 +33,8 @@ const initCanvasKitMock = vi.fn(() => initCanvasKitBehavior());
 function makeImage(): MockImage {
   const deleteFn = vi.fn();
   const image: MockImage = {
-    width: () => 10,
-    height: () => 10,
+    width: () => imageSize,
+    height: () => imageSize,
     delete: deleteFn,
     isDeleted: () => deleteFn.mock.calls.length > 0,
   };
@@ -54,6 +55,7 @@ vi.mock("./disposable", () => ({
 }));
 
 const {
+  getImageCacheMemory,
   clearImageCache,
   getImageCacheSize,
   getSkImage,
@@ -77,6 +79,7 @@ async function loadUrls(count: number, offset = 0): Promise<void> {
 describe("imageCache LRU 퇴거", () => {
   beforeEach(() => {
     createdImages.length = 0;
+    imageSize = 10;
     canvasKitInitialized = true;
     initCanvasKitBehavior = async () => {
       canvasKitInitialized = true;
@@ -96,6 +99,22 @@ describe("imageCache LRU 퇴거", () => {
     drainPendingWasmDisposals();
     clearImageCache();
     vi.unstubAllGlobals();
+  });
+
+  it("큰 이미지는 개수 미만에서도 byte 예산으로 정리하고 live 참조는 보존한다", async () => {
+    imageSize = 4096;
+    await loadUrls(3);
+    expect(getImageCacheMemory().estimatedBytes).toBe(3 * 4096 * 4096 * 4);
+    expect(getImageCacheMemory().overBudget).toBe(true);
+    drainPendingWasmDisposals();
+    expect(createdImages.every((image) => !image.isDeleted())).toBe(true);
+    releaseSkImage("https://example.test/0.png");
+    drainPendingWasmDisposals();
+    expect(createdImages[0].isDeleted()).toBe(true);
+    expect(getImageCacheMemory().overBudget).toBe(false);
+    expect(getImageCacheSize()).toBe(2);
+    clearImageCache();
+    expect(getImageCacheMemory().estimatedBytes).toBe(0);
   });
 
   it("참조 중인 이미지는 상한을 넘겨도 퇴거하지 않는다", async () => {

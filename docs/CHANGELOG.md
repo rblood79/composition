@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder 외부 레퍼런스 우선순위 1–5] - 2026-09-07
+
+- IndexedDB v21에서 변경된 canonical 노드만 저장하고 transaction 완료 후 성공 처리한다. 구 문서 전환·급감 가드·백업·복원 계약을 유지한다. 큰 저장 준비에는 transaction 밖의 task yield를 적용했다.
+- 카메라만 바뀌면 콘텐츠 준비를 재사용한다. 이미지 캐시는 RGBA 추정 128 MiB 예산을 적용하며 살아 있는 참조는 보호한다.
+- Monitor의 FID를 Google web-vitals INP로 교체하고 INP/LoAF·환경 정보를 로컬 JSON으로 내보낸다.
+- production 3쌍에서 edit CPU 중앙값 219.013→189.546ms/s(-13.45%). pan -0.77%, zoom +0.15%로 zoom CPU 개선은 확인하지 못했다. [구현·수치·저장 버전 호환성·한계](migrations/builder-performance-priorities-20260907.md).
+
 ## [줌 표시의 React 갱신 제거] - 2026-09-07
 
 - 연속 줌에서 숫자 표시만 직접 갱신해 불필요한 React 렌더를 제거했다. 직접 입력은 유지하고 Escape 취소와 Enter 단일 확정을 검증했다.

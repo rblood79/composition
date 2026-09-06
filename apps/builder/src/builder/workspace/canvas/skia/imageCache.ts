@@ -95,9 +95,21 @@ function destroyCachedImage(image: SkImage): void {
 
 /** GPU 메모리 보호를 위한 캐시 상한 (엔트리 수) */
 const MAX_CACHE_SIZE = 100;
+/** RGBA 디코딩 바이트 추정 상한. GPU 전체 사용량이나 강제 live-set 상한은 아니다. */
+export const IMAGE_CACHE_BYTE_BUDGET = 128 * 1024 * 1024;
+let estimatedBytes = 0;
+
+export function getImageCacheMemory() {
+  return {
+    estimatedBytes,
+    budgetBytes: IMAGE_CACHE_BYTE_BUDGET,
+    overBudget: estimatedBytes > IMAGE_CACHE_BYTE_BUDGET,
+  };
+}
 
 interface CacheEntry {
   image: SkImage;
+  estimatedBytes: number;
   refCount: number;
   /** 마지막 접근 시각 (LRU 퇴거용) */
   lastAccess: number;
@@ -227,10 +239,15 @@ export async function loadSkImage(url: string): Promise<SkImage | null> {
     }
 
     if (image) {
-      if (cache.size >= MAX_CACHE_SIZE) {
-        evictLRU();
-      }
-      cache.set(url, { image, refCount: 1, lastAccess: performance.now() });
+      const bytes = image.width() * image.height() * 4;
+      cache.set(url, {
+        image,
+        estimatedBytes: bytes,
+        refCount: 1,
+        lastAccess: performance.now(),
+      });
+      estimatedBytes += bytes;
+      trimImageCache();
       // 자연 치수 캐시 저장 (레이아웃 엔진 fit-content/auto용)
       dimensionsCache.set(url, {
         width: image.width(),
@@ -271,6 +288,7 @@ export function releaseSkImage(url: string): void {
   if (!entry) return;
 
   entry.refCount = Math.max(0, entry.refCount - 1);
+  trimImageCache();
 }
 
 /** 전체 캐시 초기화 */
@@ -280,6 +298,7 @@ export function clearImageCache(): void {
     destroyCachedImage(entry.image);
   }
   cache.clear();
+  estimatedBytes = 0;
   pending.clear();
   dimensionsCache.clear();
   lastOverflowWarnSize = 0;
@@ -317,7 +336,16 @@ let lastOverflowWarnSize = 0;
  * 참조 중인 이미지 집합이고, 마지막 참조가 풀리는 순간 후보가 되어 다음
  * 삽입에서 정리된다.
  */
-function evictLRU(): void {
+function trimImageCache(): void {
+  while (
+    cache.size > MAX_CACHE_SIZE ||
+    estimatedBytes > IMAGE_CACHE_BYTE_BUDGET
+  ) {
+    if (!evictLRU()) break;
+  }
+}
+
+function evictLRU(): boolean {
   let oldestUnref: { url: string; entry: CacheEntry } | null = null;
 
   for (const [url, entry] of cache) {
@@ -329,11 +357,13 @@ function evictLRU(): void {
 
   if (!oldestUnref) {
     warnCacheOverflow();
-    return;
+    return false;
   }
 
   destroyCachedImage(oldestUnref.entry.image);
   cache.delete(oldestUnref.url);
+  estimatedBytes -= oldestUnref.entry.estimatedBytes;
+  return true;
 }
 
 /** 참조 중 엔트리만으로 상한을 넘긴 상황을 MAX_CACHE_SIZE 단위로 1회 알린다 */

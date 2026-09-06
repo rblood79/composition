@@ -1,3 +1,4 @@
+import { startLocalWebVitals } from "../performance/localWebVitals";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { Key } from "react-aria-components";
@@ -249,6 +250,9 @@ export const BuilderCore: React.FC = () => {
     (state) => state.toggleWorkflowOverlay,
   );
   const pageShellBridgeSuspendedRef = useRef(false);
+  useEffect(() => {
+    startLocalWebVitals();
+  }, []);
 
   // ADR-116 Phase 5 G6-2 third slice — canonicalMutations DI registration.
   // wrapper API (canonicalMutations.ts) 의 ESM circular import chain 차단을

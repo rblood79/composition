@@ -10,7 +10,6 @@
 import type {
   DatabaseAdapter,
   Project,
-  CanonicalDocumentRecord,
   CanonicalDocumentBackupRecord,
   SerializedActionRecord,
   SerializedEventRecord,
@@ -23,15 +22,14 @@ import type {
 } from "../../../types/builder/data.types";
 import { LRUCache } from "./LRUCache";
 import {
-  BACKUP_GENERATIONS,
-  countCanonicalDocumentNodes,
-  evaluateDocumentPersist,
-  shouldWriteBackup,
-  type DocumentPersistOptions,
-} from "./documentPersistGuard";
+  IncrementalDocuments,
+  DOCUMENT_HEADS,
+  DOCUMENT_PARTS,
+} from "./incrementalDocuments";
+import type { DocumentPersistOptions } from "./documentPersistGuard";
 
 const DB_NAME = "composition";
-const DB_VERSION = 20; // 2026-07-14: documents_backup ring 도입 (요소 소실 사건 대응 — 덮어쓰기 전 세대 보존).
+const DB_VERSION = 21; // 2026-09-07: canonical 변경 노드 저장 (기존 row는 첫 저장에 원자적으로 전환).
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -147,6 +145,10 @@ function stripLegacyOrderPayloads(transaction: IDBTransaction | null): void {
 export class IndexedDBAdapter implements DatabaseAdapter {
   private db: IDBDatabase | null = null;
 
+  private incrementalDocuments = new IncrementalDocuments(() =>
+    this.ensureDB(),
+  );
+
   // LRU Caches for frequently accessed data
   private projectCache = new LRUCache<Project>(10);
 
@@ -207,6 +209,15 @@ export class IndexedDBAdapter implements DatabaseAdapter {
         if (!db.objectStoreNames.contains("documents")) {
           db.createObjectStore("documents", { keyPath: "project_id" });
           console.log("[IndexedDB] Created store: documents");
+        }
+
+        if (!db.objectStoreNames.contains(DOCUMENT_HEADS))
+          db.createObjectStore(DOCUMENT_HEADS, { keyPath: "project_id" });
+        if (!db.objectStoreNames.contains(DOCUMENT_PARTS)) {
+          const parts = db.createObjectStore(DOCUMENT_PARTS, {
+            keyPath: ["project_id", "key"],
+          });
+          parts.createIndex("project_id", "project_id");
         }
 
         // Canonical documents backup ring (DB_VERSION 20 — 2026-07-14)
@@ -381,47 +392,6 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
   // === Helper Methods ===
 
-  /**
-   * documents_backup ring 에 기존 row 세대 보존 (2026-07-14).
-   *
-   * - 시간 버킷: 최신 백업이 BACKUP_MIN_INTERVAL_MS 이내면 skip.
-   * - 프로젝트당 BACKUP_GENERATIONS 초과분은 오래된 것부터 prune.
-   * - 백업 실패는 본 write 를 막지 않는다 (best-effort — 원본 persist 가 우선).
-   */
-  private async writeDocumentBackup(
-    existing: CanonicalDocumentRecord,
-  ): Promise<void> {
-    try {
-      const backups = await this.getAllByIndex<CanonicalDocumentBackupRecord>(
-        "documents_backup",
-        "project_id",
-        existing.project_id,
-      );
-      backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
-
-      if (!shouldWriteBackup(backups[0]?.updated_at, Date.now())) {
-        return;
-      }
-
-      const backup: CanonicalDocumentBackupRecord = {
-        backup_id: `${existing.project_id}::${existing.updated_at}`,
-        project_id: existing.project_id,
-        document: existing.document,
-        updated_at: existing.updated_at,
-      };
-      await this.putToStore("documents_backup", backup);
-
-      const pruneTargets = [backup, ...backups]
-        .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-        .slice(BACKUP_GENERATIONS);
-      for (const stale of pruneTargets) {
-        await this.deleteFromStore("documents_backup", stale.backup_id);
-      }
-    } catch (error) {
-      console.warn("[IndexedDB] document backup write failed:", error);
-    }
-  }
-
   private ensureDB(): IDBDatabase {
     if (!this.db) {
       throw new Error("Database not initialized. Call init() first.");
@@ -569,48 +539,7 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       document: CompositionDocument,
       options?: DocumentPersistOptions,
     ): Promise<CompositionDocument> => {
-      const existing = await this.getFromStore<CanonicalDocumentRecord>(
-        "documents",
-        projectId,
-      );
-
-      if (existing) {
-        const decision = evaluateDocumentPersist(
-          countCanonicalDocumentNodes(existing.document),
-          countCanonicalDocumentNodes(document),
-          options,
-        );
-        if (!decision.allowed) {
-          console.error(
-            "🚨 [IndexedDB] canonical document write BLOCKED " +
-              `(project ${projectId}${options?.reason ? `, from ${options.reason}` : ""}): ` +
-              decision.blockReason,
-          );
-          if (typeof window !== "undefined") {
-            window.dispatchEvent(
-              new CustomEvent("composition:document-persist-blocked", {
-                detail: {
-                  projectId,
-                  prevCount: decision.prevCount,
-                  nextCount: decision.nextCount,
-                  reason: options?.reason ?? null,
-                },
-              }),
-            );
-          }
-          return document;
-        }
-
-        await this.writeDocumentBackup(existing);
-      }
-
-      const record: CanonicalDocumentRecord = {
-        project_id: projectId,
-        document,
-        updated_at: new Date().toISOString(),
-      };
-      await this.putToStore("documents", record);
-      return document;
+      return this.incrementalDocuments.put(projectId, document, options);
     },
 
     /** 백업 ring 조회 (최신순) — 사고 시 콘솔 복구용 진입점 */
@@ -625,21 +554,9 @@ export class IndexedDBAdapter implements DatabaseAdapter {
       return backups.sort((a, b) => b.updated_at.localeCompare(a.updated_at));
     },
 
-    get: async (projectId: string): Promise<CompositionDocument | null> => {
-      const record = await this.getFromStore<CanonicalDocumentRecord>(
-        "documents",
-        projectId,
-      );
-      return record?.document ?? null;
-    },
-
-    delete: async (projectId: string): Promise<void> => {
-      await this.deleteFromStore("documents", projectId);
-    },
-
-    getAll: async (): Promise<CanonicalDocumentRecord[]> => {
-      return this.getAllFromStore<CanonicalDocumentRecord>("documents");
-    },
+    get: (projectId: string) => this.incrementalDocuments.get(projectId),
+    delete: (projectId: string) => this.incrementalDocuments.delete(projectId),
+    getAll: () => this.incrementalDocuments.getAll(),
   };
 
   // === Data Tables (Data Panel System) ===

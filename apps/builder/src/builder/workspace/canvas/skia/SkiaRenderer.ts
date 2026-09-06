@@ -258,6 +258,24 @@ export class SkiaRenderer {
     screenOverlayVersion: number,
   ): boolean {
     return (
+      this.canReuseContentPreparation(
+        registryVersion,
+        overlayVersion,
+        screenOverlayVersion,
+      ) &&
+      camera.zoom === this.lastCamera.zoom &&
+      camera.panX === this.lastCamera.panX &&
+      camera.panY === this.lastCamera.panY
+    );
+  }
+
+  /** 카메라와 무관한 CPU content만 재사용한다. 실제 render/제출은 유지한다. */
+  canReuseContentPreparation(
+    registryVersion: number,
+    overlayVersion: number,
+    screenOverlayVersion: number,
+  ): boolean {
+    return (
       !this.disposed &&
       !!this.contentNode &&
       !!this.contentSurface &&
@@ -269,10 +287,7 @@ export class SkiaRenderer {
       !this.animationEngine?.isActive() &&
       registryVersion === this.lastRegistryVersion &&
       overlayVersion === this.lastOverlayVersion &&
-      screenOverlayVersion === this.lastScreenOverlayVersion &&
-      camera.zoom === this.lastCamera.zoom &&
-      camera.panX === this.lastCamera.panX &&
-      camera.panY === this.lastCamera.panY
+      screenOverlayVersion === this.lastScreenOverlayVersion
     );
   }
 

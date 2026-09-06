@@ -692,6 +692,8 @@ export function SkiaCanvas({
       input: SkiaRendererInput;
       packet: typeof invalidationPacketRef.current;
       layoutVersion: number;
+      content: NonNullable<ReturnType<typeof buildSkiaFrameContent>>;
+      pagePosVersion: number;
     } | null = null;
     // 재사용 검사 전용 스크래치. skip 경로에서 즉시 버려질 camera 객체를
     // 매 RAF 새로 할당하지 않는다.
@@ -959,22 +961,49 @@ export function SkiaCanvas({
         countFrameEvent("preparationSkipped");
         return;
       }
-      const contentResult = observe(PERF_LABEL.RENDER_CONTENT_BUILD, () =>
-        buildSkiaFrameContent(
-          {
-            aiState: packet.ai,
-            registryVersion,
-            pagePosVersion: contentPagePositionVersion,
-            cameraX,
-            cameraY,
-            cameraZoom,
-            ck,
-            fontMgr,
-            rendererInput: currentRendererInput,
-          },
-          contentCache,
-        ),
-      );
+      const reusableContent =
+        preparedFrame &&
+        preparedFrame.input === currentRendererInput &&
+        preparedFrame.packet === packet &&
+        preparedFrame.layoutVersion === layoutVersion &&
+        preparedFrame.pagePosVersion === contentPagePositionVersion &&
+        !presentationTargetRef.current &&
+        !dropIndicator &&
+        !dragAnimating &&
+        currentAIActive === 0 &&
+        renderer.canReuseContentPreparation(
+          registryVersion,
+          overlayVersionRef.current,
+          screenOverlayVersion,
+        )
+          ? preparedFrame.content
+          : null;
+      const contentResult = reusableContent
+        ? {
+            ...reusableContent,
+            sharedScene: {
+              ...reusableContent.sharedScene,
+              cameraX,
+              cameraY,
+              cameraZoom,
+            },
+          }
+        : observe(PERF_LABEL.RENDER_CONTENT_BUILD, () =>
+            buildSkiaFrameContent(
+              {
+                aiState: packet.ai,
+                registryVersion,
+                pagePosVersion: contentPagePositionVersion,
+                cameraX,
+                cameraY,
+                cameraZoom,
+                ck,
+                fontMgr,
+                rendererInput: currentRendererInput,
+              },
+              contentCache,
+            ),
+          );
 
       if (!contentResult) {
         preparedFrame = null;
@@ -1070,7 +1099,13 @@ export function SkiaCanvas({
 
       if (didPresent) gpuDrainPolls = 0;
       const pendingTarget = presentationTargetRef.current;
-      preparedFrame = { input: currentRendererInput, packet, layoutVersion };
+      preparedFrame = {
+        input: currentRendererInput,
+        packet,
+        layoutVersion,
+        content: contentResult,
+        pagePosVersion: contentPagePositionVersion,
+      };
       if (didPresent && pendingTarget) {
         const renderedProjectId =
           useCanonicalDocumentStore.getState().currentProjectId;

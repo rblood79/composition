@@ -123,11 +123,11 @@ describe("MonitorPanel common panel contract", () => {
     ]);
 
     // FPS + LCP/CLS/FID/TTFB — 순서까지 고정 (한 격자에 같은 크기).
-    expect(metrics.match(/key: "(fps|lcp|cls|fid|ttfb)"/g)).toEqual([
+    expect(metrics.match(/key: "(fps|lcp|cls|inp|ttfb)"/g)).toEqual([
       'key: "fps"',
       'key: "lcp"',
       'key: "cls"',
-      'key: "fid"',
+      'key: "inp"',
       'key: "ttfb"',
     ]);
     expect(metrics).toContain('className="fieldset-row monitor-metrics-row"');

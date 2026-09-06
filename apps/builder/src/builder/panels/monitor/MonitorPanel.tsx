@@ -1,3 +1,4 @@
+import { downloadLocalPerformanceReport } from "../../performance/localWebVitals";
 /**
  * MonitorPanel Component
  *
@@ -18,7 +19,7 @@ import {
   History,
   MemoryStick,
   Percent,
-  RefreshCw,
+  Download,
   Zap,
 } from "lucide-react";
 import { iconProps, iconLarge } from "../../../utils/ui/uiConstants";
@@ -291,11 +292,14 @@ export function MonitorPanel() {
             title={localize("realtimeMetrics", "Realtime Metrics")}
             actions={
               <ActionIconButton
-                aria-label={localize("refreshWebVitals", "Refresh Web Vitals")}
-                onPress={collectLocalVitals}
-                tooltip={localize("refreshWebVitals", "Refresh Web Vitals")}
+                aria-label={localize("exportPerformance", "Export Performance")}
+                onPress={() => {
+                  collectLocalVitals();
+                  downloadLocalPerformanceReport();
+                }}
+                tooltip={localize("exportPerformance", "Export Performance")}
               >
-                <RefreshCw size={iconProps.size} aria-hidden="true" />
+                <Download size={iconProps.size} aria-hidden="true" />
               </ActionIconButton>
             }
           >
