@@ -100,8 +100,13 @@ export async function initCompositionEngineWasm(): Promise<void> {
       // 안)로 지정한다 — `/packages/composition-engine/pkg/...` 절대 URL 은 dev
       // 서버 root(apps/builder)를 벗어나 fetch 실패하기 때문. `package.json`
       // `wasm:build:engine` 스크립트가 이 out-dir 로 빌드한다.
-      const mod =
-        (await import("./composition-engine-pkg/composition_engine.js")) as unknown as CompositionEngineModule;
+      // @vite-ignore 유지 필수 — 산출물(`composition-engine-pkg/`)은 gitignored
+      // 이고 postinstall 이 만들지 않는다. 정적 분석 대상이 되면 wasm 미빌드
+      // 상태의 fresh clone / CI 에서 Rollup 이 'Failed to resolve import' 로
+      // 빌드를 통째 실패시킨다 — 아래 catch 로 열화하지 못한다.
+      const mod = (await import(
+        /* @vite-ignore */ "./composition-engine-pkg/composition_engine.js"
+      )) as unknown as CompositionEngineModule;
 
       if (!mod?.LayoutEngine || typeof mod.LayoutEngine !== "function") {
         engineModule = null;

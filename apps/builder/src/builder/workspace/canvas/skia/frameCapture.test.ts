@@ -1,11 +1,38 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const flag = vi.hoisted(() => ({ enabled: false }));
 vi.mock("../wasm-bindings/featureFlags", () => ({
   isFrameCaptureRequested: () => flag.enabled,
 }));
 
+// enabled import 마다 모듈 top-level 이 document 리스너 5개를 단다.
+// vitest 에는 import.meta.hot 이 없어 dispose 정리가 안 돌고 resetModules 도
+// DOM 리스너를 떼지 않는다 — 직접 추적해서 떼지 않으면 버려진 모듈 인스턴스가
+// 공유 document 에 계속 묶인 채 쌓인다.
+const attached: Array<[string, EventListenerOrEventListenerObject, unknown]> =
+  [];
+const realAddEventListener = document.addEventListener.bind(document);
+beforeEach(() => {
+  vi.spyOn(document, "addEventListener").mockImplementation(
+    (type, handler, options) => {
+      attached.push([
+        type,
+        handler as EventListenerOrEventListenerObject,
+        options,
+      ]);
+      realAddEventListener(
+        type,
+        handler as EventListenerOrEventListenerObject,
+        options as never,
+      );
+    },
+  );
+});
+
 afterEach(() => {
+  for (const [type, handler, options] of attached)
+    document.removeEventListener(type, handler, options as never);
+  attached.length = 0;
   vi.restoreAllMocks();
   vi.resetModules();
   delete (window as unknown as Record<string, unknown>)
@@ -37,7 +64,7 @@ describe("명시적 프레임 capture", () => {
           snapshot(): {
             counters: Record<string, number>;
             rendererSources: unknown[];
-            readinessPresentation: { projectId: string };
+            readinessPresentation: { projectId: string } | null;
             inputToSubmission: { samplesMs: number[] };
           };
         };
@@ -53,10 +80,12 @@ describe("명시적 프레임 capture", () => {
     expect(api.snapshot().counters.mainSubmission).toBe(1);
     expect(api.snapshot().inputToSubmission.samplesMs).toEqual([]);
     expect(api.snapshot().rendererSources).toEqual([{ alive: 1 }]);
+    expect(api.snapshot().readinessPresentation?.projectId).toBe("project-a");
     api.reset();
     expect(reset).toHaveBeenCalledOnce();
     expect(api.snapshot().counters.mainSubmission).toBe(0);
-    expect(api.snapshot().readinessPresentation.projectId).toBe("project-a");
+    // 이전 창의 readiness 기록은 새 창으로 넘어오지 않는다.
+    expect(api.snapshot().readinessPresentation).toBeNull();
     unregister();
     expect(api.snapshot().rendererSources).toEqual([]);
   });

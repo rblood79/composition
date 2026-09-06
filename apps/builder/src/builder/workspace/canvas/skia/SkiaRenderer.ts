@@ -252,7 +252,9 @@ export class SkiaRenderer {
     registryVersion: number,
     camera: CameraState,
     overlayVersion: number,
-    screenOverlayVersion = 0,
+    // 기본값 없음 — render() 와 이 술어가 같은 값을 봐야 한다. 한쪽만 실제
+    // 버전을 받으면 최적화가 영원히 죽거나(불일치) 변경이 skip 된다(정지).
+    screenOverlayVersion: number,
   ): boolean {
     return (
       !this.disposed &&
@@ -363,7 +365,10 @@ export class SkiaRenderer {
     // 페이지 body fill 은 element 트리 렌더 경로에서 유지된다.
     this.mainCanvas.clear(this.ck.Color4f(0, 0, 0, 0));
     this.mainSurface.flush();
-    recordMainSubmission();
+    // 내용이 없는 clear 다 — mainSubmission 으로 세면 waitForSubmission 이 빈
+    // 화면에 풀리고, input→submission latency 분포에 작업량 0 인 표본이 섞여
+    // p50/p95 를 낮춘다. 제출 사실은 별도 counter 로 남긴다.
+    countFrameEvent("clearSubmission");
   }
 
   // ============================================
@@ -1061,9 +1066,14 @@ export class SkiaRenderer {
     registryVersion: number,
     camera: CameraState,
     overlayVersion: number,
-    screenOverlayVersion = 0,
+    screenOverlayVersion: number,
   ): boolean {
-    if (this.disposed || !this.contentNode) return false;
+    if (this.disposed || !this.contentNode) {
+      // renderRaf 는 이미 증가했다 — 어느 frame.* 에도 안 들어가는 프레임을
+      // 남겨두면 renderRaf > sum(frame.*) 의 사유를 알 수 없다.
+      countFrameEvent("frameAborted");
+      return false;
+    }
 
     const now = performance.now();
     this.tickDevMetrics(now);
@@ -1082,6 +1092,9 @@ export class SkiaRenderer {
       this.initContentSurface();
       // Content surface 실패 시 레거시 폴백
       if (!this.contentSurface) {
+        // 이 경로는 classifyFrame 을 거치지 않아 frame.* 버킷이 없다.
+        // GPU surface 열화 run 을 진단하려면 별도로 세야 한다.
+        countFrameEvent("singleSurfaceFallback");
         return this.renderSingleSurface(cullingBounds, camera);
       }
     }
@@ -1230,7 +1243,7 @@ export class SkiaRenderer {
     registryVersion: number,
     camera: CameraState,
     overlayVersion: number,
-    screenOverlayVersion = 0,
+    screenOverlayVersion: number,
   ): boolean {
     try {
       return this.renderDualSurface(

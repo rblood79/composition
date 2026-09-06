@@ -900,6 +900,9 @@ export function SkiaCanvas({
       }
 
       // Content build — Command Stream 경로
+      // screen overlay 버전은 아직 배선 전(항상 0)이다. 값을 하나로 두어
+      // skip 술어와 render 가 갈라질 수 없게 한다 — 배선할 때 여기만 바꾼다.
+      const screenOverlayVersion = 0;
       const layoutVersion = getSharedLayoutVersion();
       cameraProbe.zoom = cameraZoom;
       cameraProbe.panX = cameraX;
@@ -910,12 +913,12 @@ export function SkiaCanvas({
         preparedFrame.layoutVersion === layoutVersion &&
         !presentationTargetRef.current &&
         !dropIndicator &&
-        packet.ai.generatingNodes.size === 0 &&
-        packet.ai.flashAnimations.size === 0 &&
+        currentAIActive === 0 &&
         renderer.canReuseFramePreparation(
           registryVersion,
           cameraProbe,
           overlayVersionRef.current,
+          screenOverlayVersion,
         )
       ) {
         renderer.pollGpuTimer();
@@ -1027,6 +1030,7 @@ export function SkiaCanvas({
           registryVersion,
           cameraState,
           overlayVersionRef.current,
+          screenOverlayVersion,
         ),
       );
 

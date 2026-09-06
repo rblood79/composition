@@ -24,6 +24,8 @@ export class GpuTimer {
   private ext: TimerExt | null = null;
   private pending: WebGLQuery | null = null;
   private measuring = false;
+  /** reset 시점에 endQuery 를 기다리던 query — 완료돼도 이전 창 것이라 버린다. */
+  private discardPending = false;
   readonly supported: boolean;
   private samplesMs: number[] = [];
   private invalid = 0;
@@ -54,6 +56,11 @@ export class GpuTimer {
     if (this.pending && !this.measuring) {
       this.gl?.deleteQuery(this.pending);
       this.pending = null;
+      this.discardPending = false;
+    } else if (this.pending) {
+      // measuring 중 — endQuery 전이라 지울 수 없다. 살려두되 결과가 나오면
+      // 버린다. started 를 0 으로 두면서 그 표본을 세면 valid > started 가 된다.
+      this.discardPending = true;
     }
     this.samplesMs.length = 0;
     this.invalid = 0;
@@ -82,9 +89,10 @@ export class GpuTimer {
   poll(): number | null {
     const { gl, ext, pending } = this;
     if (!gl || !ext || !pending || this.measuring) return null;
-    if (gl.isContextLost() || gl.getParameter(ext.GPU_DISJOINT_EXT)) {
-      gl.deleteQuery(pending);
+    if (gl.isContextLost()) {
+      // context 유실 — query 객체도 함께 사라졌다. GL 호출 없이 참조만 버린다.
       this.pending = null;
+      this.discardPending = false;
       this.invalid++;
       return null;
     }
@@ -94,6 +102,17 @@ export class GpuTimer {
     ) as boolean;
     if (!available) return null;
 
+    if (this.discardPending) {
+      // reset 을 넘어온 이전 창의 표본. 카운터 어디에도 넣지 않는다.
+      gl.deleteQuery(pending);
+      this.pending = null;
+      this.discardPending = false;
+      return null;
+    }
+
+    // GPU_DISJOINT_EXT 는 조회하면 FALSE 로 리셋된다 (EXT_disjoint_timer_query).
+    // 결과가 준비된 뒤 딱 한 번만 읽는다 — 대기 중에 읽으면 플래그를 소모해
+    // 이 검사가 죽고 (항상 false), 아직 유효한 in-flight query 까지 버린다.
     const disjoint = gl.getParameter(ext.GPU_DISJOINT_EXT) as boolean;
     let resultMs: number | null = null;
     if (!disjoint) {
@@ -142,6 +161,7 @@ export class GpuTimer {
     }
     this.pending = null;
     this.measuring = false;
+    this.discardPending = false;
     this.gl = null;
     this.ext = null;
     this.disposed = true;

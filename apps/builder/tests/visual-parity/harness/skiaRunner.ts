@@ -53,6 +53,7 @@ import {
   getRegistryVersion,
 } from "@/builder/workspace/canvas/skia/useSkiaNode";
 import { buildSkiaFrameContent } from "@/builder/workspace/canvas/skia/skiaFramePipeline";
+import { FrameContentCache } from "@/builder/workspace/canvas/skia/frameContentCache";
 import { exportToImage } from "@/builder/workspace/canvas/skia/export";
 import { getSharedLayoutMap } from "@/builder/workspace/canvas/layout/engines/fullTreeLayout";
 import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
@@ -237,21 +238,25 @@ export function runSkiaLeg(
   });
 
   // 7) 프로덕션 content node (SkiaRenderable)
-  const content = buildSkiaFrameContent({
-    aiState: {
-      cleanupExpiredFlashes: () => {},
-      flashAnimations: new Map(),
-      generatingNodes: new Map(),
+  const content = buildSkiaFrameContent(
+    {
+      aiState: {
+        cleanupExpiredFlashes: () => {},
+        flashAnimations: new Map(),
+        generatingNodes: new Map(),
+      },
+      registryVersion,
+      pagePosVersion: 1,
+      cameraX: 0,
+      cameraY: 0,
+      cameraZoom: 1,
+      ck,
+      fontMgr: undefined,
+      rendererInput,
+      // 1회성 빌드라 재사용할 이전 프레임이 없다 — 새 캐시가 맞다.
     },
-    registryVersion,
-    pagePosVersion: 1,
-    cameraX: 0,
-    cameraY: 0,
-    cameraZoom: 1,
-    ck,
-    fontMgr: undefined,
-    rendererInput,
-  });
+    new FrameContentCache(),
+  );
   if (!content) {
     throw new Error(
       "buildSkiaFrameContent null — sharedLayoutMap 발행 후에도 빈 씬 (visiblePageIds/bodyElement 확인)",

@@ -95,6 +95,9 @@ if (frameCaptureEnabled) {
       // gauge 는 현재값 의미라 0 이 곧 허구의 측정치 — 새 창에서 다시 샘플될
       // 때까지 지운다. counter 처럼 0 으로 남기지 않는다.
       for (const key of Object.keys(gauges)) delete gauges[key];
+      // 이전 창의 readiness 기록을 새 창의 것으로 보고하지 않는다. atMs 는
+      // 새 창의 원점과 무관한 performance.now() 값이라 특히 오도한다.
+      readinessPresentation = null;
       latencies.length = 0;
       lastInput = null;
       inputCount = 0;

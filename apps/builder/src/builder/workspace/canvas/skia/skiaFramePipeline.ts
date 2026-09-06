@@ -81,7 +81,9 @@ export interface ContentBuildInput {
  */
 export function buildSkiaFrameContent(
   input: ContentBuildInput,
-  cache: FrameContentCache = new FrameContentCache(),
+  // 필수 — 기본값으로 새 캐시를 만들면 인자를 빠뜨린 호출부가 매 프레임 빈
+  // 캐시를 받아 childrenCacheHit 0 인 채로 조용히 최적화를 잃는다.
+  cache: FrameContentCache,
 ): ContentBuildResult | null {
   countFrameEvent("contentBuild");
   const {
