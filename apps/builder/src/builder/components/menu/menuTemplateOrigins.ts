@@ -1,8 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import {
-  COMPONENTS_SYSTEM_BODY_ID,
-  ensureComponentsSystemPage,
-} from "../../pages/systemComponentsPage";
+import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 export const MENU_ITEM_DEFAULT_ORIGIN_ID = "component-menu-item-default";
 
@@ -123,67 +120,17 @@ function repairOrigin(
   };
 }
 
-function collectOrigins(
-  nodes: readonly CanonicalNode[],
-  out = new Map<string, CanonicalNode>(),
-): Map<string, CanonicalNode> {
-  for (const node of nodes) {
-    if (MENU_SYSTEM_ORIGIN_IDS.has(node.id)) {
-      out.set(node.id, node);
-    }
-    collectOrigins(node.children ?? [], out);
-  }
-  return out;
-}
-
-function stripOrigins(nodes: readonly CanonicalNode[]): CanonicalNode[] {
-  return nodes
-    .filter((node) => !MENU_SYSTEM_ORIGIN_IDS.has(node.id))
-    .map((node) => {
-      if (!node.children) return node;
-      return {
-        ...node,
-        children: stripOrigins(node.children),
-      };
-    });
-}
-
-function withOriginsInComponentsBody(
-  nodes: readonly CanonicalNode[],
-  origins: CanonicalNode[],
-): CanonicalNode[] {
-  return nodes.map((node) => {
-    if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
-      return {
-        ...node,
-        children: [...(node.children ?? []), ...origins],
-      };
-    }
-    if (!node.children) return node;
-    return {
-      ...node,
-      children: withOriginsInComponentsBody(node.children, origins),
-    };
-  });
-}
-
 export function ensureMenuTemplateOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
-  const withComponentsPage = ensureComponentsSystemPage(document);
-  const existingOrigins = collectOrigins(withComponentsPage.children);
-  const origins = [
-    repairOrigin(
-      existingOrigins.get(MENU_ITEM_DEFAULT_ORIGIN_ID),
-      createMenuItemDefaultOrigin,
-    ),
-  ];
-
-  const strippedChildren = stripOrigins(withComponentsPage.children);
-  const nextChildren = withOriginsInComponentsBody(strippedChildren, origins);
-  const nextDocument = { ...withComponentsPage, children: nextChildren };
-
-  return JSON.stringify(withComponentsPage) === JSON.stringify(nextDocument)
-    ? withComponentsPage
-    : nextDocument;
+  return ensureTemplateOrigins(
+    document,
+    MENU_SYSTEM_ORIGIN_IDS,
+    (existingOrigins) => [
+      repairOrigin(
+        existingOrigins.get(MENU_ITEM_DEFAULT_ORIGIN_ID),
+        createMenuItemDefaultOrigin,
+      ),
+    ],
+  );
 }

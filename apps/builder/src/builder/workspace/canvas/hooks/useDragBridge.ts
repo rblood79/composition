@@ -10,6 +10,7 @@
  * SelectionBox의 시각적 조작은 Skia 렌더링이 담당한다.
  */
 
+import { persistActiveCanonicalDocument } from "../../../stores/canonical/persistActiveCanonicalDocument";
 import { useEffect, useRef, type MutableRefObject } from "react";
 import { useStore } from "../../../stores";
 import { useDragInteraction } from "../selection/useDragInteraction";
@@ -33,7 +34,6 @@ import {
 import { historyManager } from "../../../stores/history";
 import { captureCanonicalNodeLocations } from "../../../stores/history/canonicalHistoryEvents";
 import { trackCanonicalMove } from "../../../stores/utils/historyHelpers";
-import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { getDB } from "../../../../lib/db";
 import { hitTestPoint, queryRect } from "../wasm-bindings/spatialIndex";
 import { getSceneBounds } from "../skia/renderCommands";
@@ -159,17 +159,6 @@ export function resolveDragReadModel(
     childrenByParent:
       resolvers.getInteractiveChildrenMap?.() ?? fallbackChildrenByParent,
   };
-}
-
-async function persistActiveCanonicalDocument(
-  db: Awaited<ReturnType<typeof getDB>>,
-): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  await db.documents.put(projectId, doc);
 }
 
 export function isManualPositionDragTarget(

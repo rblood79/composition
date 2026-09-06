@@ -1,3 +1,4 @@
+import type { PageProjectionMetadata } from "../canvasProjection";
 import type { CanvasInteractionNode } from "./interactionNode";
 import { resolveTopmostHitElementId } from "./selectionModel";
 
@@ -17,26 +18,7 @@ export type CanvasInteractionTarget =
   | { kind: "none" };
 
 type ProjectionLike =
-  | {
-      kind: "page-frame-element";
-      pageId: string;
-      sourceElementId: string;
-      renderElementId: string;
-      renderParentId: string | null;
-      canonicalParentId: string | null;
-      slotName?: string;
-      descendantPath?: string;
-    }
-  | {
-      kind: "page-slot-fill";
-      pageId: string;
-      sourceElementId: string;
-      renderElementId: string;
-      renderParentId: string;
-      canonicalParentId: string | null;
-      slotName: string;
-      descendantPath: string;
-    }
+  | PageProjectionMetadata
   // ADR-147 (layout edit): ListBox row/rows projection 은 비영속 render-space 노드다.
   // 클릭 시 canonical template anchor(없으면 ListBox)로 redirect 하여
   // 사용자가 행 layout 을 편집하면 모든 행에 반영되도록 한다. projected ID 는 selection 에 진입하지 않는다(§9).

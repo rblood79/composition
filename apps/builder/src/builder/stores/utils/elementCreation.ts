@@ -1,5 +1,6 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
+import { persistActiveCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import { Element } from "../../../types/core/store.types";
 import { normalizeExternalFillIngress } from "../../panels/styles/utils/fillExternalIngress";
@@ -15,7 +16,6 @@ import type {
 } from "@composition/shared";
 import { getActiveCanonicalDocument } from "@/builder/stores/canonical/canonicalElementsBridge";
 import { getCanonicalRefOverrideEntries } from "../canonical/canonicalTraversalHelpers";
-import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import {
   buildCanonicalInsertEvents,
   hasCanonicalNodeLocation,
@@ -162,15 +162,6 @@ function withFreshCustomId(
       allocatedElements,
     ),
   };
-}
-
-async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  await db.documents.put(projectId, doc);
 }
 
 /**

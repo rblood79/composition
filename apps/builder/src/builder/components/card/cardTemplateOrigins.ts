@@ -1,9 +1,6 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
 import type { PropsSchema } from "@composition/shared";
-import {
-  COMPONENTS_SYSTEM_BODY_ID,
-  ensureComponentsSystemPage,
-} from "../../pages/systemComponentsPage";
+import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 /**
  * ADR-148 Phase 3: Card — factory-대체군 reusable 전환 (재판정 적격, 4-region).
@@ -264,50 +261,6 @@ function repairOrigin(
   };
 }
 
-function collectOrigins(
-  nodes: readonly CanonicalNode[],
-  out = new Map<string, CanonicalNode>(),
-): Map<string, CanonicalNode> {
-  for (const node of nodes) {
-    if (CARD_SYSTEM_ORIGIN_IDS.has(node.id)) {
-      out.set(node.id, node);
-    }
-    collectOrigins(node.children ?? [], out);
-  }
-  return out;
-}
-
-function stripOrigins(nodes: readonly CanonicalNode[]): CanonicalNode[] {
-  return nodes
-    .filter((node) => !CARD_SYSTEM_ORIGIN_IDS.has(node.id))
-    .map((node) => {
-      if (!node.children) return node;
-      return {
-        ...node,
-        children: stripOrigins(node.children),
-      };
-    });
-}
-
-function withOriginsInComponentsBody(
-  nodes: readonly CanonicalNode[],
-  origins: CanonicalNode[],
-): CanonicalNode[] {
-  return nodes.map((node) => {
-    if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
-      return {
-        ...node,
-        children: [...(node.children ?? []), ...origins],
-      };
-    }
-    if (!node.children) return node;
-    return {
-      ...node,
-      children: withOriginsInComponentsBody(node.children, origins),
-    };
-  });
-}
-
 /**
  * Card reusable origin 을 Components page body 에 보장한다 (멱등).
  * `iconButtonTemplateOrigins.ensureIconButtonTemplateOrigins` 와 동형.
@@ -315,17 +268,11 @@ function withOriginsInComponentsBody(
 export function ensureCardTemplateOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
-  const withComponentsPage = ensureComponentsSystemPage(document);
-  const existingOrigins = collectOrigins(withComponentsPage.children);
-  const origins = [
-    repairOrigin(existingOrigins.get(CARD_ORIGIN_ID), createCardOrigin),
-  ];
-
-  const strippedChildren = stripOrigins(withComponentsPage.children);
-  const nextChildren = withOriginsInComponentsBody(strippedChildren, origins);
-  const nextDocument = { ...withComponentsPage, children: nextChildren };
-
-  return JSON.stringify(withComponentsPage) === JSON.stringify(nextDocument)
-    ? withComponentsPage
-    : nextDocument;
+  return ensureTemplateOrigins(
+    document,
+    CARD_SYSTEM_ORIGIN_IDS,
+    (existingOrigins) => [
+      repairOrigin(existingOrigins.get(CARD_ORIGIN_ID), createCardOrigin),
+    ],
+  );
 }

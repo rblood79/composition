@@ -1,5 +1,6 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
+import { persistActiveCanonicalDocument as persistCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import { Element } from "../../../types/core/store.types";
 import { historyManager } from "../history";
@@ -23,7 +24,6 @@ import {
   areCanonicalMutationStoreActionsRegistered,
   setElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
-import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { getActiveCanonicalDocumentElementProjection } from "../canonical/canonicalElementsView";
 import {
   buildCanonicalRemoveEvents,
@@ -60,13 +60,8 @@ function getElementRemovalSourceElements(): readonly Element[] {
 }
 
 async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  // 요소 삭제는 의도된 대량 감소 가능 (서브트리/다중 선택) — 급감 가드 명시 통과
-  await db.documents.put(projectId, doc, {
+  // 삭제 명령의 기존 급감 가드 옵션을 유지한다.
+  await persistCanonicalDocument(db, {
     allowShrink: true,
     reason: "element-removal",
   });

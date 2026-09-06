@@ -1,3 +1,4 @@
+import { persistActiveCanonicalDocument } from "./canonical/persistActiveCanonicalDocument";
 import { create } from "zustand";
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
@@ -100,24 +101,6 @@ import {
 import { resolveAbsoluteFlowReparentProps } from "../utils/absolutePositioning";
 function pageLayoutId(page: Page): string | null {
   return getNullablePageFrameBindingId(page);
-}
-
-/**
- * canonical document 를 IndexedDB 에 저장.
- *
- * `elementCreation.ts` / `elementRemoval.ts` / `useDragBridge.ts` /
- * `usePresetApply.ts` 의 동명 로컬 헬퍼와 같은 5줄 — 공용 심볼 추출은 호출부
- * 4곳을 함께 손대야 하므로 별도 정리 대상으로 남긴다 (현행 관례 준수).
- */
-async function persistActiveCanonicalDocument(
-  db: Awaited<ReturnType<typeof getDB>>,
-): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  await db.documents.put(projectId, doc);
 }
 
 function shouldInvalidatePagesLayout(

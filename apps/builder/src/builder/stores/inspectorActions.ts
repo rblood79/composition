@@ -11,6 +11,7 @@
  * - updateEvents, addEvent, updateEvent, removeEvent
  */
 
+import { persistActiveCanonicalDocument as persistCanonicalDocument } from "./canonical/persistActiveCanonicalDocument";
 import { StateCreator } from "zustand";
 import {
   getResponsiveValueWithCascade,
@@ -496,13 +497,9 @@ function buildInspectorPersistencePayload(
 }
 
 async function persistActiveCanonicalDocument(): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  const db = await getDB();
-  await db.documents.put(projectId, doc);
+  const persisted = await persistCanonicalDocument(getDB);
+  if (!persisted) return;
+  const { projectId, document: doc } = persisted;
 
   // ADR-131 Phase 7 — fan-out to dedicated IndexedDB stores so DevTools 표시가
   // design_themes / variables / collections / api_endpoints

@@ -9,27 +9,13 @@
  * 채널이 나르고, 여기까지 오는 것은 확정된 결과뿐이다.
  */
 
+import { persistActiveCanonicalDocument } from "../../../stores/canonical/persistActiveCanonicalDocument";
 import type { BreakpointName, PageGuideLine } from "@composition/shared";
 
 import { getDB } from "../../../../lib/db";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { historyManager } from "../../../stores/history";
 import { bumpPageGuideRevision } from "../interaction/pageGuideRevision";
-
-/**
- * canonical document 를 IndexedDB 에 저장 — `pageLayoutActions.ts` 의 동명
- * 로컬 헬퍼와 같은 5줄 (공용 심볼 추출은 별도 정리 대상, 현행 관례 준수).
- */
-async function persistActiveCanonicalDocument(
-  db: Awaited<ReturnType<typeof getDB>>,
-): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  await db.documents.put(projectId, doc);
-}
 
 /**
  * 드래그 결과를 문서에 반영한다 — 생성/이동/삭제가 한 진입점 (ADR-181 Phase 5).

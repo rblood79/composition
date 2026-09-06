@@ -1,3 +1,4 @@
+import { clonePanelWorkspaceLayoutV4 } from "./clonePanelWorkspaceLayoutV4";
 import type { PanelId, PanelResizeEdge } from "../panels/core/types";
 import {
   MAX_PANEL_WORKSPACE_COLUMNS,
@@ -32,34 +33,6 @@ function failure(error: string): PanelWorkspaceResult<never> {
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(value, maximum));
-}
-
-function cloneLayout(layout: PanelWorkspaceLayoutV4): PanelWorkspaceLayoutV4 {
-  return {
-    version: 4,
-    ...(layout.migrationSource
-      ? { migrationSource: { ...layout.migrationSource } }
-      : {}),
-    visibility: { ...layout.visibility },
-    railOrder: {
-      left: [...layout.railOrder.left],
-      right: [...layout.railOrder.right],
-      bottom: [...layout.railOrder.bottom],
-    },
-    clusters: layout.clusters.map((cluster) => ({
-      id: cluster.id,
-      placementZone: cluster.placementZone,
-      ...(cluster.originOffset
-        ? { originOffset: { ...cluster.originOffset } }
-        : {}),
-      columns: cluster.columns.map((column) => ({
-        id: column.id,
-        width: column.width,
-        rows: column.rows.map((row) => ({ ...row })),
-      })),
-    })),
-    clusterFocusOrder: [...layout.clusterFocusOrder],
-  };
 }
 
 function findPlacement(
@@ -233,7 +206,7 @@ export function activatePanelWorkspacePanelV4(
     surfaceRect,
   );
   if (!normalized.ok) return normalized;
-  const next = cloneLayout(normalized.value);
+  const next = clonePanelWorkspaceLayoutV4(normalized.value);
   const placement = findPlacement(next, panelId);
   if (!placement) return failure(`Panel "${panelId}" has no placement`);
   const cluster = next.clusters[placement.clusterIndex];
@@ -397,7 +370,7 @@ export function resizePanelWorkspaceBoundaryV4(
     surfaceRect,
   );
   if (!normalized.ok) return normalized;
-  const next = cloneLayout(normalized.value);
+  const next = clonePanelWorkspaceLayoutV4(normalized.value);
   const placement = findPlacement(next, panelId);
   if (!placement) return failure(`Panel "${panelId}" has no placement`);
   const cluster = next.clusters[placement.clusterIndex];

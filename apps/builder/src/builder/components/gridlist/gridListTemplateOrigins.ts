@@ -1,8 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import {
-  COMPONENTS_SYSTEM_BODY_ID,
-  ensureComponentsSystemPage,
-} from "../../pages/systemComponentsPage";
+import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 export const GRIDLIST_ITEM_DEFAULT_ORIGIN_ID =
   "component-gridlist-item-default";
@@ -153,69 +150,22 @@ function repairOrigin(
   };
 }
 
-function collectOrigins(
-  nodes: readonly CanonicalNode[],
-  out = new Map<string, CanonicalNode>(),
-): Map<string, CanonicalNode> {
-  for (const node of nodes) {
-    if (GRIDLIST_SYSTEM_ORIGIN_IDS.has(node.id)) {
-      out.set(node.id, node);
-    }
-    collectOrigins(node.children ?? [], out);
-  }
-  return out;
-}
-
-function stripOrigins(nodes: readonly CanonicalNode[]): CanonicalNode[] {
-  return nodes
-    .filter((node) => !GRIDLIST_SYSTEM_ORIGIN_IDS.has(node.id))
-    .map((node) => {
-      if (!node.children) return node;
-      return {
-        ...node,
-        children: stripOrigins(node.children),
-      };
-    });
-}
-
-function withOriginsInComponentsBody(
-  nodes: readonly CanonicalNode[],
-  origins: CanonicalNode[],
-): CanonicalNode[] {
-  return nodes.map((node) => {
-    if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
-      return {
-        ...node,
-        children: [...(node.children ?? []), ...origins],
-      };
-    }
-    if (!node.children) return node;
-    return {
-      ...node,
-      children: withOriginsInComponentsBody(node.children, origins),
-    };
-  });
-}
-
 export function ensureGridListTemplateOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
-  const withComponentsPage = ensureComponentsSystemPage(document);
-  const existingOrigins = collectOrigins(withComponentsPage.children);
-  const origins = [
-    repairOrigin(
-      existingOrigins.get(GRIDLIST_ITEM_DEFAULT_ORIGIN_ID),
-      createGridListItemDefaultOrigin,
-    ),
-    // ADR-161 Phase 1: 컨테이너 master origin (item 다음, ListBox 순서 동형).
-    repairOrigin(existingOrigins.get(GRIDLIST_ORIGIN_ID), createGridListOrigin),
-  ];
-
-  const strippedChildren = stripOrigins(withComponentsPage.children);
-  const nextChildren = withOriginsInComponentsBody(strippedChildren, origins);
-  const nextDocument = { ...withComponentsPage, children: nextChildren };
-
-  return JSON.stringify(withComponentsPage) === JSON.stringify(nextDocument)
-    ? withComponentsPage
-    : nextDocument;
+  return ensureTemplateOrigins(
+    document,
+    GRIDLIST_SYSTEM_ORIGIN_IDS,
+    (existingOrigins) => [
+      repairOrigin(
+        existingOrigins.get(GRIDLIST_ITEM_DEFAULT_ORIGIN_ID),
+        createGridListItemDefaultOrigin,
+      ),
+      // ADR-161 Phase 1: 컨테이너 master origin (item 다음, ListBox 순서 동형).
+      repairOrigin(
+        existingOrigins.get(GRIDLIST_ORIGIN_ID),
+        createGridListOrigin,
+      ),
+    ],
+  );
 }

@@ -24,9 +24,9 @@
  * `registerCanonicalMutationStoreActions` 와 동일 이유 — BuilderCore 가 등록).
  */
 
+import { persistActiveCanonicalDocument as persistCanonicalDocument } from "../../builder/stores/canonical/persistActiveCanonicalDocument";
 import type { DocumentPersistOptions } from "@/lib/db";
 import { getDB } from "@/lib/db";
-import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import type { CanonicalMutationResult } from "./canonicalMutations";
 
 // ─────────────────────────────────────────────
@@ -161,20 +161,13 @@ export function runCanonicalMutation<TResult extends CanonicalMutationResult>(
 
 /**
  * 활성 canonical document 를 IndexedDB 에 저장 (fire-and-forget).
- * 각 store action 파일의 로컬 `persistActiveCanonicalDocument` 와 동일 형태 —
- * 러너 경유 경로에서는 이 단일 구현이 대체한다.
+ * 문서 캡처·저장은 공통 helper를 사용하고, 러너는 백그라운드 오류 처리를 소유한다.
  */
 async function persistActiveCanonicalDocumentInBackground(
   options?: DocumentPersistOptions,
 ): Promise<void> {
   try {
-    const canonical = useCanonicalDocumentStore.getState();
-    const projectId = canonical.currentProjectId;
-    if (!projectId) return;
-    const doc = canonical.documents.get(projectId);
-    if (!doc) return;
-    const db = await getDB();
-    await db.documents.put(projectId, doc, options);
+    await persistCanonicalDocument(getDB, options);
   } catch (error) {
     console.warn(
       "⚠️ [canonicalMutationRunner] canonical document 저장 중 오류 (메모리는 정상):",

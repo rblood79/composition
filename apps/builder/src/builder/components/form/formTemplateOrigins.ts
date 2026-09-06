@@ -1,8 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import {
-  COMPONENTS_SYSTEM_BODY_ID,
-  ensureComponentsSystemPage,
-} from "../../pages/systemComponentsPage";
+import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 /**
  * ADR-912 R-5 (HC#5 "조합 = 데이터"): Form reusable composite origin.
@@ -210,73 +207,23 @@ function repairOrigin(
   };
 }
 
-function collectOrigins(
-  nodes: readonly CanonicalNode[],
-  out = new Map<string, CanonicalNode>(),
-): Map<string, CanonicalNode> {
-  for (const node of nodes) {
-    if (FORM_SYSTEM_ORIGIN_IDS.has(node.id)) {
-      out.set(node.id, node);
-    }
-    collectOrigins(node.children ?? [], out);
-  }
-  return out;
-}
-
-function stripOrigins(nodes: readonly CanonicalNode[]): CanonicalNode[] {
-  return nodes
-    .filter((node) => !FORM_SYSTEM_ORIGIN_IDS.has(node.id))
-    .map((node) => {
-      if (!node.children) return node;
-      return {
-        ...node,
-        children: stripOrigins(node.children),
-      };
-    });
-}
-
-function withOriginsInComponentsBody(
-  nodes: readonly CanonicalNode[],
-  origins: CanonicalNode[],
-): CanonicalNode[] {
-  return nodes.map((node) => {
-    if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
-      return {
-        ...node,
-        children: [...(node.children ?? []), ...origins],
-      };
-    }
-    if (!node.children) return node;
-    return {
-      ...node,
-      children: withOriginsInComponentsBody(node.children, origins),
-    };
-  });
-}
-
 /**
  * Form reusable origin 을 Components page body 에 보장한다 (멱등).
  *
  * `toolbarTemplateOrigins.ensureToolbarTemplateOrigins` 와 동형 — 기존 origin 이 있으면
  * `repairOrigin` 으로 사용자 편집(props/children)을 보존하며 system metadata 만 회복하고,
- * 없으면 새로 seed 한다. document 변경 없으면 동일 참조 반환.
+ * 없으면 새로 seed 한다. 반복 적용해도 document 내용은 동일하다.
  */
 export function ensureFormTemplateOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
-  const withComponentsPage = ensureComponentsSystemPage(document);
-  const existingOrigins = collectOrigins(withComponentsPage.children);
-  const origins = [
-    repairOrigin(existingOrigins.get(FORM_ORIGIN_ID), createFormOrigin),
-  ];
-
-  const strippedChildren = stripOrigins(withComponentsPage.children);
-  const nextChildren = withOriginsInComponentsBody(strippedChildren, origins);
-  const nextDocument = { ...withComponentsPage, children: nextChildren };
-
-  return JSON.stringify(withComponentsPage) === JSON.stringify(nextDocument)
-    ? withComponentsPage
-    : nextDocument;
+  return ensureTemplateOrigins(
+    document,
+    FORM_SYSTEM_ORIGIN_IDS,
+    (existingOrigins) => [
+      repairOrigin(existingOrigins.get(FORM_ORIGIN_ID), createFormOrigin),
+    ],
+  );
 }
 
 /** Form origin id 여부 (테스트/외부 가드용). */

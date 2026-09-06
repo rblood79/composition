@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Builder 반복 구현 공통화] - 2026-09-06
+
+### Changed
+
+- 8개 컴포넌트의 template origin 수집·재배치·멱등 처리, flex/block의 `margin:auto` 해석, 패널 layout 복사, canonical 문서 저장, Layout/TextMetrics 편집 취소 생명주기, Canvas page projection 타입을 공통화했습니다.
+- 컴포넌트별 origin 보정, 사용자 responsive 설정, Undo/삭제 저장 옵션, Inspector 추가 저장, 편집 취소 후 재진입 정책은 유지합니다. 동작 변경과 성능 개선을 목적으로 한 변경은 아닙니다.
+
 ## [프레임 계측 정확성 수리] - 2026-09-06
 
 ### Fixed

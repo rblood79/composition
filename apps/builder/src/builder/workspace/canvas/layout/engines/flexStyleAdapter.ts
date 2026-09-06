@@ -9,6 +9,7 @@
  * (2026-07-06, 스키마 계보만 유지) · ADR-923 Phase 6 개명 (2026-09-03).
  */
 
+import { resolveMarginAutoSides } from "./resolveMarginAutoSides";
 import type { CanvasLayoutNode } from "../layoutNode";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import {
@@ -18,77 +19,6 @@ import {
 } from "./utils";
 import type { ComputedStyle } from "./cssResolver";
 import type { CSSValueContext } from "./cssValueParser";
-
-// ─── margin:auto 판별 ────────────────────────────────────────────────
-
-/**
- * margin shorthand/개별 속성에서 'auto' 값인 방향을 판별.
- *
- * parseMargin()은 숫자 전용(Margin = {top: number, ...})이므로 'auto'를 표현 불가.
- * 엔진의 margin:auto 네이티브 지원을 활용하기 위해 원본 값을 직접 검사한다.
- */
-function resolveMarginAutoSides(style: Record<string, unknown> | undefined): {
-  top: boolean;
-  right: boolean;
-  bottom: boolean;
-  left: boolean;
-} {
-  const result = { top: false, right: false, bottom: false, left: false };
-  if (!style) return result;
-
-  // shorthand에서 auto 판별
-  if (typeof style.margin === "string") {
-    const tokens = style.margin.trim().split(/\s+/);
-    const sides = (() => {
-      switch (tokens.length) {
-        case 1:
-          return {
-            top: tokens[0],
-            right: tokens[0],
-            bottom: tokens[0],
-            left: tokens[0],
-          };
-        case 2:
-          return {
-            top: tokens[0],
-            right: tokens[1],
-            bottom: tokens[0],
-            left: tokens[1],
-          };
-        case 3:
-          return {
-            top: tokens[0],
-            right: tokens[1],
-            bottom: tokens[2],
-            left: tokens[1],
-          };
-        case 4:
-          return {
-            top: tokens[0],
-            right: tokens[1],
-            bottom: tokens[2],
-            left: tokens[3],
-          };
-        default:
-          return { top: "", right: "", bottom: "", left: "" };
-      }
-    })();
-    result.top = sides.top === "auto";
-    result.right = sides.right === "auto";
-    result.bottom = sides.bottom === "auto";
-    result.left = sides.left === "auto";
-  }
-
-  // 개별 속성이 shorthand를 override (CSS 우선순위)
-  if (style.marginTop !== undefined) result.top = style.marginTop === "auto";
-  if (style.marginRight !== undefined)
-    result.right = style.marginRight === "auto";
-  if (style.marginBottom !== undefined)
-    result.bottom = style.marginBottom === "auto";
-  if (style.marginLeft !== undefined) result.left = style.marginLeft === "auto";
-
-  return result;
-}
 
 // ─── Style conversion ────────────────────────────────────────────────
 
@@ -159,7 +89,8 @@ export function elementToEngineStyle(
 
   // Flex direction
   if (resolvedFlexDirection) {
-    result.flexDirection = resolvedFlexDirection as EngineStyle["flexDirection"];
+    result.flexDirection =
+      resolvedFlexDirection as EngineStyle["flexDirection"];
   }
 
   // Flex wrap

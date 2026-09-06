@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
+import { usePresentationLifecycle } from "./usePresentationLifecycle";
+import { useCallback, useRef, useState } from "react";
+import { readImmediateSelectionSnapshot } from "../../../stores";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import {
   parsePresentationLayoutPx,
@@ -43,31 +44,7 @@ export function useLayoutPresentationActions(): LayoutPresentationActions {
   const stateRef = useRef<LayoutPresentationState | null>(null);
   const [ownerId] = useState(() => `style-layout-owner-${nextLayoutOwnerId++}`);
 
-  useEffect(() => {
-    const unsubscribeSelection = useStore.subscribe(() => {
-      const active = stateRef.current;
-      if (!active) return;
-      const { selectedElementId } = readImmediateSelectionSnapshot();
-      if (selectedElementId !== active.selectedElementId) {
-        active.handle.cancel("selection-change");
-        active.phase = "cancelled";
-      }
-    });
-    const handleWindowBlur = (): void => {
-      const active = stateRef.current;
-      if (active?.phase === "active") {
-        active.handle.cancel("blur");
-        active.phase = "cancelled";
-      }
-    };
-    window.addEventListener("blur", handleWindowBlur);
-    return () => {
-      stateRef.current?.handle.cancel("unmount");
-      stateRef.current = null;
-      unsubscribeSelection();
-      window.removeEventListener("blur", handleWindowBlur);
-    };
-  }, []);
+  usePresentationLifecycle(stateRef);
 
   const isLayoutPresentationOwned = useCallback(
     (property: LayoutPresentationProperty): boolean =>

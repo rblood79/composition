@@ -1,27 +1,8 @@
+import type { PageProjectionMetadata } from "../canvasProjection";
 import type { CanonicalMoveTarget } from "../../../../adapters/canonical/canonicalMutations";
 import type { CanvasInteractionNode } from "./interactionNode";
 
-type ProjectionLike =
-  | {
-      kind: "page-frame-element";
-      pageId: string;
-      sourceElementId: string;
-      renderElementId: string;
-      renderParentId: string | null;
-      canonicalParentId: string | null;
-      slotName?: string;
-      descendantPath?: string;
-    }
-  | {
-      kind: "page-slot-fill";
-      pageId: string;
-      sourceElementId: string;
-      renderElementId: string;
-      renderParentId: string;
-      canonicalParentId: string | null;
-      slotName: string;
-      descendantPath: string;
-    };
+type ProjectionLike = PageProjectionMetadata;
 
 type ProjectedInteractionNode = CanvasInteractionNode & {
   projection?: ProjectionLike;

@@ -98,7 +98,6 @@ describe("runCanonicalMutation — 스테이지 순서 (ADR-184)", () => {
     expect(putSpy).toHaveBeenCalledWith(
       PROJECT_ID,
       expect.objectContaining({ version: "composition-1.0" }),
-      undefined,
     );
   });
 

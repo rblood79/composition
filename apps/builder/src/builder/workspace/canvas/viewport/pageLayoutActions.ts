@@ -1,3 +1,4 @@
+import { persistActiveCanonicalDocument } from "../../../stores/canonical/persistActiveCanonicalDocument";
 import { useStore } from "../../../stores";
 import { historyManager } from "../../../stores/history";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
@@ -6,21 +7,6 @@ import { useViewportSyncStore } from "../stores";
 import { resolvePageLayoutBounds } from "../pageLayoutConstants";
 
 type BreakpointName = import("@composition/shared").BreakpointName;
-
-/**
- * canonical document 를 IndexedDB 에 저장 — `elements.ts` 등의 동명 로컬 헬퍼와
- * 같은 5줄 (공용 심볼 추출은 별도 정리 대상, 현행 관례 준수).
- */
-async function persistActiveCanonicalDocument(
-  db: Awaited<ReturnType<typeof getDB>>,
-): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  await db.documents.put(projectId, doc);
-}
 
 /**
  * 현재 breakpoint의 page 크기와 Settings의 배치 방향으로 모든 page를 재배치한다.

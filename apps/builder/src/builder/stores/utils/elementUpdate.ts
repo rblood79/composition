@@ -1,5 +1,6 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
+import { persistActiveCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import type { CanonicalNode } from "@composition/shared";
 import {
@@ -38,7 +39,6 @@ import {
   LEGACY_SLOT_NAME_FIELD,
 } from "@/adapters/canonical/legacyElementFields";
 import { readCanonicalNodeCustomId } from "@/adapters/canonical/legacyMetadata";
-import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import {
   canonicalNodeToElement,
   getActiveCanonicalDocumentElements,
@@ -289,15 +289,6 @@ function requiresFullDerivedIndexRebuild(
     occurrenceCount > 1 ||
     Object.keys(updates).some((key) => DERIVED_INDEX_FIELDS.has(key))
   );
-}
-
-async function persistActiveCanonicalDocument(db: BuilderDb): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  await db.documents.put(projectId, doc);
 }
 
 function isLayoutAffectingUpdate(

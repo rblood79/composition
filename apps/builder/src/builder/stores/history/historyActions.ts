@@ -1,5 +1,6 @@
 // 🚀 Phase 1: Immer 제거 - 함수형 업데이트로 전환
 // import { produce } from "immer"; // REMOVED
+import { persistActiveCanonicalDocument as persistCanonicalDocument } from "../canonical/persistActiveCanonicalDocument";
 import type { StateCreator } from "zustand";
 import {
   Element,
@@ -49,13 +50,7 @@ type GetState = Parameters<StateCreator<ElementsState>>[1];
 async function persistActiveCanonicalDocument(
   expectedShrinkNodeCount?: number,
 ): Promise<void> {
-  const canonical = useCanonicalDocumentStore.getState();
-  const projectId = canonical.currentProjectId;
-  if (!projectId) return;
-  const doc = canonical.documents.get(projectId);
-  if (!doc) return;
-  const db = await getDB();
-  await db.documents.put(projectId, doc, {
+  await persistCanonicalDocument(getDB, {
     reason: "history-undo-redo",
     ...(expectedShrinkNodeCount && expectedShrinkNodeCount > 0
       ? { expectedShrinkNodeCount }

@@ -1,3 +1,4 @@
+import { clonePanelWorkspaceLayoutV4 } from "./clonePanelWorkspaceLayoutV4";
 import type {
   PanelFrameGeometry,
   PanelId,
@@ -70,34 +71,6 @@ const PANEL_DROP_HYSTERESIS = 6;
 
 function failure(error: string): PanelWorkspaceResult<never> {
   return { ok: false, error };
-}
-
-function cloneLayout(layout: PanelWorkspaceLayoutV4): PanelWorkspaceLayoutV4 {
-  return {
-    version: 4,
-    ...(layout.migrationSource
-      ? { migrationSource: { ...layout.migrationSource } }
-      : {}),
-    visibility: { ...layout.visibility },
-    railOrder: {
-      left: [...layout.railOrder.left],
-      right: [...layout.railOrder.right],
-      bottom: [...layout.railOrder.bottom],
-    },
-    clusters: layout.clusters.map((cluster) => ({
-      id: cluster.id,
-      placementZone: cluster.placementZone,
-      ...(cluster.originOffset
-        ? { originOffset: { ...cluster.originOffset } }
-        : {}),
-      columns: cluster.columns.map((column) => ({
-        id: column.id,
-        width: column.width,
-        rows: column.rows.map((row) => ({ ...row })),
-      })),
-    })),
-    clusterFocusOrder: [...layout.clusterFocusOrder],
-  };
 }
 
 function findPlacement(
@@ -380,7 +353,7 @@ function detachPanel(
   layout: PanelWorkspaceLayoutV4,
   panelId: PanelId,
 ): PanelWorkspaceResult<DetachedPanelV4> {
-  const next = cloneLayout(layout);
+  const next = clonePanelWorkspaceLayoutV4(layout);
   const placement = findPlacement(next, panelId);
   if (!placement) return failure(`Panel "${panelId}" has no placement`);
   const cluster = next.clusters[placement.clusterIndex];
@@ -520,7 +493,7 @@ export function beginPanelWorkspaceDragSession(
   const previewGeometry = baseSolved.value.frameGeometries.get(panelId);
   if (!previewGeometry) return failure(`Panel "${panelId}" is not visible`);
 
-  const candidateInput = cloneLayout(baseSolved.value.layout);
+  const candidateInput = clonePanelWorkspaceLayoutV4(baseSolved.value.layout);
   candidateInput.visibility[panelId] = false;
   const candidateSolved = solvePanelWorkspaceLayoutV4(
     candidateInput,
@@ -532,7 +505,7 @@ export function beginPanelWorkspaceDragSession(
     ok: true,
     value: {
       panelId,
-      baseLayout: cloneLayout(baseSolved.value.layout),
+      baseLayout: clonePanelWorkspaceLayoutV4(baseSolved.value.layout),
       previewGeometry: {
         x: previewGeometry.x,
         y: previewGeometry.y,

@@ -1,8 +1,5 @@
 import type { CanonicalNode, CompositionDocument } from "@composition/shared";
-import {
-  COMPONENTS_SYSTEM_BODY_ID,
-  ensureComponentsSystemPage,
-} from "../../pages/systemComponentsPage";
+import { ensureTemplateOrigins } from "../ensureTemplateOrigins";
 
 export const LISTBOX_ITEM_DEFAULT_ORIGIN_ID = "component-listbox-item-default";
 export const LISTBOX_ITEM_SELECTED_ORIGIN_ID =
@@ -235,8 +232,7 @@ function repairLegacyDeadVarProps(
   props: CanonicalNode["props"],
 ): CanonicalNode["props"] {
   const style = (props as Record<string, unknown> | undefined)?.style as
-    | Record<string, unknown>
-    | undefined;
+    Record<string, unknown> | undefined;
   if (style?.backgroundColor !== LEGACY_SELECTED_BG) return props;
   // 사용자 편집값이 아닌 구 seed 리터럴만 교체 (사용자 값 보존 원칙 유지).
   return {
@@ -267,72 +263,22 @@ function repairOrigin(
   };
 }
 
-function collectOrigins(
-  nodes: readonly CanonicalNode[],
-  out = new Map<string, CanonicalNode>(),
-): Map<string, CanonicalNode> {
-  for (const node of nodes) {
-    if (LISTBOX_SYSTEM_ORIGIN_IDS.has(node.id)) {
-      out.set(node.id, node);
-    }
-    collectOrigins(node.children ?? [], out);
-  }
-  return out;
-}
-
-function stripOrigins(nodes: readonly CanonicalNode[]): CanonicalNode[] {
-  return nodes
-    .filter((node) => !LISTBOX_SYSTEM_ORIGIN_IDS.has(node.id))
-    .map((node) => {
-      if (!node.children) return node;
-      return {
-        ...node,
-        children: stripOrigins(node.children),
-      };
-    });
-}
-
-function withOriginsInComponentsBody(
-  nodes: readonly CanonicalNode[],
-  origins: CanonicalNode[],
-): CanonicalNode[] {
-  return nodes.map((node) => {
-    if (node.id === COMPONENTS_SYSTEM_BODY_ID) {
-      return {
-        ...node,
-        children: [...(node.children ?? []), ...origins],
-      };
-    }
-    if (!node.children) return node;
-    return {
-      ...node,
-      children: withOriginsInComponentsBody(node.children, origins),
-    };
-  });
-}
-
 export function ensureListBoxTemplateOrigins(
   document: CompositionDocument,
 ): CompositionDocument {
-  const withComponentsPage = ensureComponentsSystemPage(document);
-  const existingOrigins = collectOrigins(withComponentsPage.children);
-  const origins = [
-    repairOrigin(
-      existingOrigins.get(LISTBOX_ITEM_DEFAULT_ORIGIN_ID),
-      createListBoxItemDefaultOrigin,
-    ),
-    repairOrigin(
-      existingOrigins.get(LISTBOX_ITEM_SELECTED_ORIGIN_ID),
-      createListBoxItemSelectedOrigin,
-    ),
-    repairOrigin(existingOrigins.get(LISTBOX_ORIGIN_ID), createListBoxOrigin),
-  ];
-
-  const strippedChildren = stripOrigins(withComponentsPage.children);
-  const nextChildren = withOriginsInComponentsBody(strippedChildren, origins);
-  const nextDocument = { ...withComponentsPage, children: nextChildren };
-
-  return JSON.stringify(withComponentsPage) === JSON.stringify(nextDocument)
-    ? withComponentsPage
-    : nextDocument;
+  return ensureTemplateOrigins(
+    document,
+    LISTBOX_SYSTEM_ORIGIN_IDS,
+    (existingOrigins) => [
+      repairOrigin(
+        existingOrigins.get(LISTBOX_ITEM_DEFAULT_ORIGIN_ID),
+        createListBoxItemDefaultOrigin,
+      ),
+      repairOrigin(
+        existingOrigins.get(LISTBOX_ITEM_SELECTED_ORIGIN_ID),
+        createListBoxItemSelectedOrigin,
+      ),
+      repairOrigin(existingOrigins.get(LISTBOX_ORIGIN_ID), createListBoxOrigin),
+    ],
+  );
 }
