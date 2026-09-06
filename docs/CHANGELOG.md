@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [줌 표시의 React 갱신 제거] - 2026-09-07
+
+- 연속 줌에서 숫자 표시만 직접 갱신해 불필요한 React 렌더를 제거했다. 직접 입력은 유지하고 Escape 취소와 Enter 단일 확정을 검증했다.
+- 120회 입력 진단의 ZoomControls 실행 99→0회. 별도 production 3쌍 CPU 중앙값 291.094→271.559ms/s(-6.71%), p95 10.4→10.5ms, p99 17.7→16.8ms. [전후 비교·한계](adr/evidence/frame-performance-reference-zoom-20260907.md).
+
 ## [React 진단 집계 정정] - 2026-09-06
 
 - 잔존 actualDuration을 실행 횟수로 세던 진단을 정정했다. dirty 구독 제거의 Canvas 실행은 22→11회이며 DataTablePanel은 편집 중 0회였다. 기존 fiber self 집계는 철회하고 별도 production CPU/frame 값은 유지한다. [정정 증거](adr/evidence/frame-performance-reference-profile-audit-20260906.md).

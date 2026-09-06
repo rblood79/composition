@@ -309,3 +309,7 @@ BuilderCanvas의 미사용 dirtyElementIds 구독과 renderer 전달 필드를 �
 ### 10.5 패널 후보 검증과 진단 집계 정정 — 2026-09-06
 
 DataTablePanel 갱신 의심은 잔존 actualDuration을 실제 render로 세던 진단 오류였다. 동일 artifacts를 이전 commit fiber 제외 + PerformedWork로 재검증해 DataTablePanel 0→0회, Canvas 22→11회, React commit 55→44회를 확인했다. 패널에 추가 memo나 구독 변경을 적용하지 않는다. 이전 fiber self/render 집계는 철회하고 독립적인 CDP CPU/frame 비교는 유지한다. [정정 근거와 한계](evidence/frame-performance-reference-profile-audit-20260906.md).
+
+### 10.6 ZoomControls transient 갱신 제거 — 2026-09-07
+
+실제 zoom 입력 중 ZoomControls의 React 구독을 ref 기반 native input 표시로 바꿨다. 120회 입력 진단에서 해당 컴포넌트 실행 99→0회, 전체 commit 107→18회, domain 발행은 양쪽 0회다. 일반 production 3쌍 CPU 중앙값 291.094→271.559ms/s(-6.71%), p95 10.4→10.5ms, p99 17.7→16.8ms. 남은 commit과 일부 frame 악화를 보존하며 전체 transient 경로 0으로 판정하지 않는다. 입력/취소/메뉴 live, 10 tests, preflight PASS. [각 쌍과 동작 계약](evidence/frame-performance-reference-zoom-20260907.md).

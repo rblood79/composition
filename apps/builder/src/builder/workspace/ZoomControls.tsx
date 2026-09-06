@@ -1,6 +1,6 @@
 /** 줌 레벨 표시 input + 프리셋 액션 메뉴 (MenuTrigger 패턴) */
 
-import { useCallback, useRef, memo, useState } from "react";
+import { useCallback, useRef, memo, useState, useLayoutEffect } from "react";
 import {
   MenuTrigger,
   Menu,
@@ -19,7 +19,7 @@ import {
 import { alignPagesToScreen } from "./canvas/viewport/pageLayoutActions";
 import {
   getViewportPresentationSnapshot,
-  useViewportPresentationZoom,
+  subscribeViewportPresentationZoom,
 } from "./canvas/viewport/viewportPresentation";
 import { iconProps } from "../../utils/ui/uiConstants";
 import {
@@ -68,13 +68,22 @@ export const ZoomControls = memo(function ZoomControls({
   className,
 }: ZoomControlsProps) {
   const { t } = useI18n();
-  const zoom = useViewportPresentationZoom();
-
-  const zoomPercent = Math.round(zoom * 100);
-  // null = 편집 중 아님, string = 편집 중인 값
+  const inputRef = useRef<HTMLInputElement>(null);
+  const cancelOnBlurRef = useRef(false);
+  const initialValue = useRef(
+    `${Math.round(getViewportPresentationSnapshot().scale * 100)}%`,
+  );
+  // null = 편집 중 아님, string = 직접 입력 중인 값
   const [editingValue, setEditingValue] = useState<string | null>(null);
-  const displayedValue =
-    editingValue !== null ? editingValue : `${zoomPercent}%`;
+  useLayoutEffect(() => {
+    const updateDisplay = () => {
+      if (editingValue === null && inputRef.current) {
+        inputRef.current.value = `${Math.round(getViewportPresentationSnapshot().scale * 100)}%`;
+      }
+    };
+    updateDisplay();
+    return subscribeViewportPresentationZoom(updateDisplay);
+  }, [editingValue]);
   const anchorRef = useRef<HTMLDivElement>(null);
 
   // ============================================
@@ -151,6 +160,11 @@ export const ZoomControls = memo(function ZoomControls({
   // ============================================
 
   const handleInputBlur = useCallback(() => {
+    if (cancelOnBlurRef.current) {
+      cancelOnBlurRef.current = false;
+      setEditingValue(null);
+      return;
+    }
     const numStr = (editingValue ?? "").replace(/%/g, "").trim();
     const num = parseFloat(numStr);
     setEditingValue(null);
@@ -166,18 +180,21 @@ export const ZoomControls = memo(function ZoomControls({
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         e.preventDefault();
-        handleInputBlur();
         (e.target as HTMLInputElement).blur();
         return;
       }
 
       if (e.key === "Escape") {
+        cancelOnBlurRef.current = true;
         e.preventDefault();
         setEditingValue(null);
         (e.target as HTMLInputElement).blur();
         return;
       }
 
+      const zoomPercent = Math.round(
+        getViewportPresentationSnapshot().scale * 100,
+      );
       const step = e.shiftKey ? 10 : 1;
       if (e.key === "ArrowUp") {
         e.preventDefault();
@@ -189,15 +206,17 @@ export const ZoomControls = memo(function ZoomControls({
         zoomTo(newZoom / 100);
       }
     },
-    [handleInputBlur, zoomPercent, zoomTo],
+    [zoomTo],
   );
 
   const handleInputFocus = useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
-      setEditingValue(`${zoomPercent}%`);
+      setEditingValue(
+        `${Math.round(getViewportPresentationSnapshot().scale * 100)}%`,
+      );
       e.target.select();
     },
-    [zoomPercent],
+    [],
   );
 
   // ============================================
@@ -209,7 +228,8 @@ export const ZoomControls = memo(function ZoomControls({
       <div ref={anchorRef} className="zoom-trigger-button">
         <input
           className="zoom-input"
-          value={displayedValue}
+          ref={inputRef}
+          defaultValue={initialValue.current}
           onChange={(e) => setEditingValue(e.target.value)}
           onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
