@@ -53,6 +53,7 @@ const DEFAULTS = {
   profile: false,
   instrumentation: "on",
   frameCapture: false,
+  gpuTimer: false,
   cpuThrottle: 1,
   cpuTimeDomain: "timeTicks",
   buildId: null,
@@ -111,6 +112,10 @@ export function parseArgs(argv) {
       continue;
     } else if (value === "--frame-capture") {
       options.frameCapture = true;
+      continue;
+    } else if (value === "--gpu-timer") {
+      // capture 와 별도 — GPU 지표가 필요한 run 에서만. CPU A/B 는 off 로 잰다.
+      options.gpuTimer = true;
       continue;
     } else if (value === "--fixed-inputs") {
       options.fixedInputs = true;
@@ -282,6 +287,9 @@ export async function createInstrumentedContext(
     storageState,
     cpuThrottle,
     frameCapture = true,
+    // GpuTimer 는 출하 production 에 없고 poll 이 GL 동기 조회를 측정 구간에서
+    // 돌린다 — CPU A/B 에 섞이지 않도록 기본 off, GPU 지표가 필요할 때만 켠다.
+    gpuTimer = false,
     initScript = null,
     onPageError = null,
   } = {},
@@ -294,6 +302,10 @@ export async function createInstrumentedContext(
   if (frameCapture)
     await context.addInitScript(() => {
       window.__composition_FRAME_CAPTURE_REQUESTED__ = true;
+    });
+  if (gpuTimer)
+    await context.addInitScript(() => {
+      window.__composition_GPU_TIMER_REQUESTED__ = true;
     });
   const page = await context.newPage();
   const pageErrors = [];
@@ -1903,6 +1915,7 @@ async function main() {
       storageState,
       cpuThrottle: options.cpuThrottle,
       frameCapture: options.frameCapture,
+      gpuTimer: options.gpuTimer,
       initScript: PROBE_SCRIPT,
       onPageError: (e) => process.stderr.write(`[pageerror] ${e}\n`),
     });

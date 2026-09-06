@@ -114,8 +114,11 @@ describe("명시적 프레임 capture", () => {
         };
       }
     ).__composition_FRAME_CAPTURE__;
+    // source 가 probe 를 주면 폴링은 무거운 snapshot 을 부르지 않는다.
+    const heavySnapshot = vi.fn(() => ({ alive: 1, samplesMs: [1, 2, 3] }));
     capture.registerFrameCaptureSource({
-      snapshot: () => ({ alive: 1 }),
+      snapshot: heavySnapshot,
+      probe: () => ({ alive: 1 }),
       reset: vi.fn(),
     });
     capture.recordMainSubmission();
@@ -123,8 +126,10 @@ describe("명시적 프레임 capture", () => {
     expect(api.counter("mainSubmission")).toBe(2);
     expect(api.counter("planBuild")).toBeUndefined();
     const probe = api.probe();
-    expect(probe.counters).toEqual(api.snapshot().counters);
+    // snapshot 을 부르기 전에 확인한다 — 아래 비교가 heavySnapshot 을 깨운다.
+    expect(heavySnapshot).not.toHaveBeenCalled();
     expect(probe.rendererSources).toEqual([{ alive: 1 }]);
     expect(probe).not.toHaveProperty("inputToSubmission");
+    expect(probe.counters).toEqual(api.snapshot().counters);
   });
 });

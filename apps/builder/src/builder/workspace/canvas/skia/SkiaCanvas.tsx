@@ -151,10 +151,6 @@ export interface SkiaCanvasProps {
  * - Camera 클래스로 viewport 상태 관리
  * - Command Stream 경로 전용 (sharedLayoutMap 필수)
  */
-
-// 아래 useEffect 의 canonical 구독이 fire 하기 전에도 하니스가 0 을 읽어야 한다.
-declareCounter("domainPublication");
-
 export function SkiaCanvas({
   containerEl,
   gestureSession,
@@ -170,6 +166,9 @@ export function SkiaCanvas({
   const currentPageId = useStore((state) => state.currentPageId);
   useEffect(() => {
     if (!frameCaptureEnabled) return;
+    // 구독을 실제로 설치한 뒤에만 채널을 연다 — 여기까지 못 오면 하니스가
+    // undefined 를 읽어야 `=== 0` 단언이 조용히 통과하지 않는다.
+    declareCounter("domainPublication");
     return useCanonicalDocumentStore.subscribe((state, previous) => {
       if (state.documentVersion !== previous.documentVersion)
         countFrameEvent("domainPublication");

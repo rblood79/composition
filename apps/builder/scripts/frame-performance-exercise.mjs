@@ -25,6 +25,9 @@ const collectErrors = () => collected?.errors ?? [];
 try {
   const instrumented = await createInstrumentedContext(browser, {
     storageState: loadStorageState(options.storageState),
+    // 이 하니스는 자원 수명·context loss 를 보므로 GPU 계측이 필요하다
+    // (contextLost 판정이 gpu 를 읽는다). CPU A/B 가 아니라 섞일 여지가 없다.
+    gpuTimer: true,
   });
   collected = instrumented;
   const { page, cdp } = instrumented;

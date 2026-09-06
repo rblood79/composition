@@ -27,6 +27,7 @@ import { recordWasmMetric, flushWasmMetrics } from "../utils/gpuProfilerCore";
 import { getCacheMetrics } from "./cacheMetrics";
 import { takeDrawStats } from "./drawStats";
 import { GpuTimer } from "./gpuTimer";
+import { isGpuTimerRequested } from "../wasm-bindings/featureFlags";
 import {
   frameCaptureEnabled,
   countFrameEvent,
@@ -288,20 +289,28 @@ export class SkiaRenderer {
       // webgl1 폴백/SW surface 면 supported=false 로 전체 no-op.
       this.gpuTimer = new GpuTimer(htmlCanvas);
     }
+    // capture 와 독립 opt-in — GL 동기 조회가 CPU 측정 구간에 섞이지 않게.
+    // 꺼두면 capture source 의 gpu 는 null 이고 나머지 지표는 그대로 나온다.
+    if (isGpuTimerRequested()) this.gpuTimer ??= new GpuTimer(htmlCanvas);
     if (frameCaptureEnabled) {
-      this.gpuTimer ??= new GpuTimer(htmlCanvas);
+      const resources = () => ({
+        nodePicturesGlobal: getNodePictureCacheSize(),
+        imagesGlobal: getImageCacheSize(),
+        mainSurface: this.disposed ? 0 : 1,
+        contentSurface: this.contentSurface ? 1 : 0,
+        standbySurface: this.standbySurface ? 1 : 0,
+        contentSnapshot: this.contentSnapshot ? 1 : 0,
+        cleanupTimer: this.cleanupTimer ? 1 : 0,
+      });
       this.unregisterFrameCapture = registerFrameCaptureSource({
         snapshot: () => ({
           gpu: this.gpuTimer?.snapshot() ?? null,
-          resources: {
-            nodePicturesGlobal: getNodePictureCacheSize(),
-            imagesGlobal: getImageCacheSize(),
-            mainSurface: this.disposed ? 0 : 1,
-            contentSurface: this.contentSurface ? 1 : 0,
-            standbySurface: this.standbySurface ? 1 : 0,
-            contentSnapshot: this.contentSnapshot ? 1 : 0,
-            cleanupTimer: this.cleanupTimer ? 1 : 0,
-          },
+          resources: resources(),
+        }),
+        // 폴링 경로는 GPU 샘플 배열을 복사하지 않는다.
+        probe: () => ({
+          gpu: this.gpuTimer?.status() ?? null,
+          resources: resources(),
         }),
         reset: () => this.gpuTimer?.resetSamples(),
       });

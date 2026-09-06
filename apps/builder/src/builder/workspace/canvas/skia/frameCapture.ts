@@ -2,6 +2,8 @@ import { isFrameCaptureRequested } from "../wasm-bindings/featureFlags";
 
 interface CaptureSource {
   snapshot(): unknown;
+  /** rAF 주기 폴링용 저비용 사영. 없으면 snapshot 으로 떨어진다. */
+  probe?(): unknown;
   reset(): void;
 }
 
@@ -103,12 +105,15 @@ if (frameCaptureEnabled) {
     counter(name: string) {
       return counters[name];
     },
-    /** waitForFunction 폴링용 — rAF 주기 호출이라 latency 배열 복사를 뺀다. */
+    /**
+     * waitForFunction 폴링용 — rAF 주기 호출이라 배열 복사를 전부 뺀다
+     * (latency 최대 1만 + source 의 GPU samplesMs 최대 1만).
+     */
     probe() {
       return {
         counters: { ...counters },
-        rendererSources: [...sources.values()].map((source) =>
-          source.snapshot(),
+        rendererSources: [...sources.values()].map(
+          (source) => source.probe?.() ?? source.snapshot(),
         ),
       };
     },

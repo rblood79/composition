@@ -31,7 +31,8 @@ export class GpuTimer {
   private dropped = 0;
   private disposed = false;
 
-  snapshot() {
+  /** samplesMs 복사 없는 상태만 — rAF 주기 폴링(probe)용. */
+  status() {
     return {
       supported: this.supported,
       disposed: this.disposed,
@@ -41,8 +42,11 @@ export class GpuTimer {
       invalid: this.invalid,
       dropped: this.dropped,
       pending: this.pending ? 1 : 0,
-      samplesMs: [...this.samplesMs],
     };
+  }
+
+  snapshot() {
+    return { ...this.status(), samplesMs: [...this.samplesMs] };
   }
 
   resetSamples(): void {

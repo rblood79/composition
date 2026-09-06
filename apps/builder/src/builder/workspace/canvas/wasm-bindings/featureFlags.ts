@@ -43,6 +43,22 @@ export function isFrameCaptureRequested(): boolean {
   );
 }
 
+/**
+ * GPU 프레임 시간 계측 (GpuTimer) 요청. frame capture 와 **별도 opt-in** 이다.
+ *
+ * Why: GpuTimer 는 출하 production 에 없는 객체이고 poll 이 GL 동기 조회
+ * (getParameter(GPU_DISJOINT_EXT) — Chrome 에서 GPU 프로세스 왕복) 를 측정 구간
+ * 안에서 돌린다. capture 에 묶어두면 "계측만 켠 production" 의 CPU A/B 를 잴
+ * 방법이 없어 CPU delta 에 GPU 계측 비용이 섞인다 (2026-09-06 판정 철회 사유).
+ */
+export function isGpuTimerRequested(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    (window as unknown as { __composition_GPU_TIMER_REQUESTED__?: boolean })
+      .__composition_GPU_TIMER_REQUESTED__ === true
+  );
+}
+
 /** Unified engine flags with live consumers. */
 export const UNIFIED_ENGINE_FLAGS = {
   // Layout Engine — ADR-916 Taffy 완전 제거(2026-07-06) 후 자체 엔진
