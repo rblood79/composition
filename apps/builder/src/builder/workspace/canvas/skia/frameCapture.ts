@@ -1,4 +1,30 @@
 import { isFrameCaptureRequested } from "../wasm-bindings/featureFlags";
+import type { FrameType } from "./types";
+
+/** 렌더 프레임 분류별 counter 키 — hot path에서 템플릿 문자열 할당을 피한다. */
+export const FRAME_EVENT_NAME: Record<FrameType, string> = {
+  idle: "frame.idle",
+  present: "frame.present",
+  "camera-only": "frame.camera-only",
+  content: "frame.content",
+  full: "frame.full",
+};
+
+/**
+ * 하니스가 첫 발생 전에도 0 을 읽어야 하는 counter 전부. countFrameEvent 키를
+ * 새로 추가하면 여기에도 넣는다 — 빠지면 snapshot 이 0 대신 undefined 를 준다.
+ */
+const KNOWN_COUNTERS: readonly string[] = [
+  "renderRaf",
+  "mainSubmission",
+  "contentBuild",
+  "planBuild",
+  "domainPublication",
+  "preparationSkipped",
+  "childrenCacheHit",
+  "childrenCacheBuild",
+  ...Object.values(FRAME_EVENT_NAME),
+];
 
 interface CaptureSource {
   snapshot(): unknown;
@@ -91,11 +117,7 @@ if (frameCaptureEnabled) {
         build: { mode: import.meta.env.MODE, production: import.meta.env.PROD },
         readinessPresentation,
         counters: {
-          renderRaf: 0,
-          mainSubmission: 0,
-          contentBuild: 0,
-          planBuild: 0,
-          domainPublication: 0,
+          ...Object.fromEntries(KNOWN_COUNTERS.map((name) => [name, 0])),
           ...counters,
         },
         gauges: { ...gauges },

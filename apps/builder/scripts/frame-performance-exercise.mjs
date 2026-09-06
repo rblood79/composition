@@ -19,13 +19,15 @@ const browser = await chromium.launch({
   headless: !options.headed,
 });
 const result = { buildId: options.buildId, checks: {}, contextCycles: [] };
-let errors = [];
+let pageErrors = [];
+let consoleErrors = [];
+const collectErrors = () => [...pageErrors, ...consoleErrors];
 try {
   const instrumented = await createInstrumentedContext(browser, {
     storageState: loadStorageState(options.storageState),
   });
   const { page, cdp } = instrumented;
-  errors = instrumented.errors;
+  ({ pageErrors, consoleErrors } = instrumented);
   const url = new URL(options.projectUrl);
   url.searchParams.set("adr187Metrics", "1");
   // ready 정의는 perf-baseline 의 것 하나뿐이다. settle 은 이 하니스가 직접 잰다.
@@ -35,6 +37,13 @@ try {
     page.evaluate(() => window.__composition_FRAME_CAPTURE__.snapshot());
   const reset = () =>
     page.evaluate(() => window.__composition_FRAME_CAPTURE__.reset());
+  /** 렌더러가 다시 main flush 를 낼 때까지. reset() 직후 재제출 확인용. */
+  const waitForSubmission = () =>
+    page.waitForFunction(
+      () =>
+        window.__composition_FRAME_CAPTURE__.snapshot().counters
+          .mainSubmission > 0,
+    );
   const props = () =>
     page.evaluate(
       () =>
@@ -107,20 +116,12 @@ try {
     });
   await reset();
   assert.equal(await beginPreview(), true);
-  await page.waitForFunction(
-    () =>
-      window.__composition_FRAME_CAPTURE__.snapshot().counters.mainSubmission >
-      0,
-  );
+  await waitForSubmission();
   assert.deepEqual(await props(), stableProps);
   assert.equal((await capture()).counters.domainPublication, 0);
   await reset();
   await page.evaluate(() => window.__framePreviewHandle.cancel("escape"));
-  await page.waitForFunction(
-    () =>
-      window.__composition_FRAME_CAPTURE__.snapshot().counters.mainSubmission >
-      0,
-  );
+  await waitForSubmission();
   assert.deepEqual(await props(), stableProps);
   await beginPreview();
   const committed = await page.evaluate(() =>
@@ -145,11 +146,7 @@ try {
       (id) => window.__composition_STORE__.getState().activatePage(id),
       id,
     );
-    await page.waitForFunction(
-      () =>
-        window.__composition_FRAME_CAPTURE__.snapshot().counters
-          .mainSubmission > 0,
-    );
+    await waitForSubmission();
   }
   result.checks.pageSwitch = true;
 
@@ -312,19 +309,11 @@ try {
   await page.evaluate(() =>
     window.dispatchEvent(new CustomEvent("composition:custom-fonts-updated")),
   );
-  await page.waitForFunction(
-    () =>
-      window.__composition_FRAME_CAPTURE__.snapshot().counters.mainSubmission >
-      0,
-  );
+  await waitForSubmission();
   result.checks.fontSyncPublication = true; // 기존 폰트 동기화 알림; 신규 외부 font 다운로드 측정은 아님.
   await reset();
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.waitForFunction(
-    () =>
-      window.__composition_FRAME_CAPTURE__.snapshot().counters.mainSubmission >
-      0,
-  );
+  await waitForSubmission();
   result.checks.resize = true;
   await page.evaluate(() => {
     history.pushState(null, "", "/composition/dashboard");
@@ -340,12 +329,13 @@ try {
   result.unmounted = await capture();
   assert.equal(result.unmounted.counters.renderRaf, 0);
   result.checks.unmount = true;
+  const errors = collectErrors();
   assert.equal(errors.length, 0, errors.join("\n"));
 } catch (error) {
   result.failure = String(error);
   throw error;
 } finally {
-  result.errors = errors;
+  result.errors = collectErrors();
   writeFileSync(
     resolve(options.out, "exercise.json"),
     JSON.stringify(result, null, 2),

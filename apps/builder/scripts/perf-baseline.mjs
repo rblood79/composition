@@ -254,9 +254,11 @@ const READY_PREDICATE = (requireFrameCapture = false) =>
 /** builder ready 정의는 여기 하나뿐이다. 다른 하니스도 이 함수를 거친다. */
 export async function waitReady(
   page,
-  { settleMs = 1_500, requireFrameCapture = false, timeout = 90_000 } = {},
+  { settleMs = 1_500, requireFrameCapture = false } = {},
 ) {
-  await page.waitForFunction(READY_PREDICATE, requireFrameCapture, { timeout });
+  await page.waitForFunction(READY_PREDICATE, requireFrameCapture, {
+    timeout: 90_000,
+  });
   if (settleMs) await page.waitForTimeout(settleMs);
 }
 
@@ -287,22 +289,17 @@ export async function createInstrumentedContext(
   const page = await context.newPage();
   const pageErrors = [];
   const consoleErrors = [];
-  const errors = [];
   page.on("pageerror", (e) => {
     pageErrors.push(String(e));
-    errors.push(String(e));
     onPageError?.(e);
   });
   page.on("console", (m) => {
-    if (m.type() === "error") {
-      consoleErrors.push(m.text());
-      errors.push(m.text());
-    }
+    if (m.type() === "error") consoleErrors.push(m.text());
   });
   const cdp = await context.newCDPSession(page);
   if (cpuThrottle !== undefined)
     await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle });
-  return { context, page, cdp, errors, pageErrors, consoleErrors };
+  return { context, page, cdp, pageErrors, consoleErrors };
 }
 
 async function createIsolatedProject(page, baseUrl) {
@@ -1789,10 +1786,11 @@ function renderFrameTable(results) {
 async function runColdEntries(browser, options, storageState) {
   const runs = [];
   for (let i = 0; i < options.coldEntries; i++) {
-    const { context, page, errors } = await createInstrumentedContext(browser, {
-      storageState,
-      cpuThrottle: options.cpuThrottle,
-    });
+    const { context, page, pageErrors, consoleErrors } =
+      await createInstrumentedContext(browser, {
+        storageState,
+        cpuThrottle: options.cpuThrottle,
+      });
     try {
       await page.goto(options.projectUrl, { waitUntil: "domcontentloaded" });
       await waitReady(page, { settleMs: 0 });
@@ -1802,6 +1800,8 @@ async function runColdEntries(browser, options, storageState) {
         capture: window.__composition_FRAME_CAPTURE__?.snapshot() ?? null,
         perf: window.__composition_PERF__?.snapshotAll() ?? [],
       }));
+      // 에러는 page 구동 뒤에 읽는다 — 생성 직후 스냅샷은 항상 비어 있다.
+      const errors = [...pageErrors, ...consoleErrors];
       runs.push({ ...result, errors });
       process.stderr.write(
         `[cold ${i + 1}] ready ${result.readyObservedAtMs.toFixed(1)}ms errors ${errors.length}\n`,
