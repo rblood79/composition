@@ -95,6 +95,48 @@ describe("패널 탭 구조 가드", () => {
     expect(offenders, offenders.join("\n")).toEqual([]);
   });
 
+  it("scroll-progress 애니메이션 선택자는 RAC 전환 상태에서 스스로를 끈다", async () => {
+    // Why: RAC 1.21+ `TabPanel` 은 `getAnimations()` 의 `finished` 로 마운트/언마운트
+    // 전환의 끝을 판정한다. scroll-progress timeline 애니메이션은 그 promise 가 영원히
+    // settle 되지 않으므로, 그런 애니메이션을 얹은 선택자가 곧 `TabPanel` 이면 빠지는
+    // 패널이 `inert` 인 채로 화면에 남는다 (2026-09-06 Navigator Pages/Frames 동시 표시).
+    // 전환 상태(`[data-entering]` / `[data-exiting]`)에서 `animation-name: none` 을 함께
+    // 두어야 RAC 가 그 프레임에 전환을 종료한다.
+    const cssFiles: string[] = [];
+    const walk = async (dir: string) => {
+      for (const e of await readdir(dir, { withFileTypes: true })) {
+        const full = resolve(dir, e.name);
+        if (e.isDirectory()) {
+          if (e.name === "node_modules" || e.name === "dist") continue;
+          await walk(full);
+        } else if (e.name.endsWith(".css")) cssFiles.push(full);
+      }
+    };
+    await walk(BUILDER_ROOT);
+
+    const offenders: string[] = [];
+    for (const file of cssFiles) {
+      const source = await readFile(file, "utf-8");
+      if (!source.includes("animation-timeline")) continue;
+      // scroll-progress timeline 을 얹은 규칙의 선택자를 모은다.
+      for (const match of source.matchAll(
+        /([^{}]+)\{[^{}]*animation-timeline:\s*scroll\([^{}]*\}/g,
+      )) {
+        for (const selector of match[1].split(",")) {
+          const base = selector.replace(/\/\*[\s\S]*?\*\//g, "").trim();
+          if (!base) continue;
+          const neutralized =
+            source.includes(`${base}[data-exiting]`) &&
+            source.includes(`${base}[data-entering]`);
+          if (!neutralized) {
+            offenders.push(`${relative(BUILDER_ROOT, file)}: ${base}`);
+          }
+        }
+      }
+    }
+    expect(offenders, offenders.join("\n")).toEqual([]);
+  });
+
   it("탭 바는 RAC Tabs 경유 — 수동 button 탭 마크업 0건", async () => {
     const files = await collectTsxFiles(BUILDER_ROOT);
     const offenders: string[] = [];

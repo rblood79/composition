@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [패널 탭 전환 수리] - 2026-09-06
+
+### Fixed
+
+- 패널 탭을 바꿔도 이전 탭의 본문이 사라지지 않고 화면에 남아 두 탭이 겹쳐 보이던 문제를 수정했습니다. Navigator 의 Pages/Frames 가 함께 보였고, Styles·DataTable·Monitor 도 같은 원인이었습니다. `.panel-contents` 의 스크롤 힌트가 scroll-progress timeline 애니메이션이라 끝나지 않는데, React Aria Components 1.21+ 의 `TabPanel` 이 그 종료를 기다려 unmount 를 미룬 것이 원인입니다. 전환 중에만 힌트를 끄도록 했고, 정착한 패널의 스크롤 페이드는 그대로입니다.
+
 ## [Builder 반복 구현 공통화] - 2026-09-06
 
 ### Changed
