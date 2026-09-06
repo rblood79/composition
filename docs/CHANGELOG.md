@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [React 진단 집계 정정] - 2026-09-06
+
+- 잔존 actualDuration을 실행 횟수로 세던 진단을 정정했다. dirty 구독 제거의 Canvas 실행은 22→11회이며 DataTablePanel은 편집 중 0회였다. 기존 fiber self 집계는 철회하고 별도 production CPU/frame 값은 유지한다. [정정 증거](adr/evidence/frame-performance-reference-profile-audit-20260906.md).
+
 ## [Canvas 미사용 dirty Set 구독 제거] - 2026-09-06
 
 - Canvas가 읽지 않는 dirty Set 구독과 renderer 전달을 제거해 Set 정리 시 불필요한 React 갱신을 줄인다. 기존 레이아웃 무효화와 실제 제출 계약은 유지한다.
-- 10회 편집 진단에서 Canvas render 33→11회. 별도 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 동일. [진단·측정·한계](adr/evidence/frame-performance-reference-dirty-20260906.md).
+- 10회 편집 진단에서 Canvas render 22→11회(기존 33→11은 bailout 포함 집계로 정정). 별도 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 동일. [진단·측정·한계](adr/evidence/frame-performance-reference-dirty-20260906.md).
 
 ## [Layout publisher 서명 재사용] - 2026-09-06
 

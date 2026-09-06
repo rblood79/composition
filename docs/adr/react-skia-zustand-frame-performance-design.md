@@ -304,4 +304,8 @@ raw scene과 resolved page의 공유 객체 직렬화 결과를 한 호출 안�
 
 ### 10.4 미사용 dirty Set 구독 제거 — 2026-09-06
 
-BuilderCanvas의 미사용 dirtyElementIds 구독과 renderer 전달 필드를 제거했다. dirty 정리 및 layout/scene revision 계약은 유지한다. 10회 편집 profiling 진단에서 Canvas render 33→11회, 전체 React commit 55→44회. 별도 일반 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 9.4ms 동일, p99 50.4→48.7ms다. CPU 효과는 작고 타기기 일반화는 없다. 35 tests·실제 편집/제출/Undo·preflight PASS. [측정과 변경 경계](evidence/frame-performance-reference-dirty-20260906.md).
+BuilderCanvas의 미사용 dirtyElementIds 구독과 renderer 전달 필드를 제거했다. dirty 정리 및 layout/scene revision 계약은 유지한다. 10회 편집 profiling 진단에서 Canvas render 22→11회(기존 33→11은 bailout 과대집계로 정정), 전체 React commit 55→44회. 별도 일반 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 9.4ms 동일, p99 50.4→48.7ms다. CPU 효과는 작고 타기기 일반화는 없다. 35 tests·실제 편집/제출/Undo·preflight PASS. [측정과 변경 경계](evidence/frame-performance-reference-dirty-20260906.md).
+
+### 10.5 패널 후보 검증과 진단 집계 정정 — 2026-09-06
+
+DataTablePanel 갱신 의심은 잔존 actualDuration을 실제 render로 세던 진단 오류였다. 동일 artifacts를 이전 commit fiber 제외 + PerformedWork로 재검증해 DataTablePanel 0→0회, Canvas 22→11회, React commit 55→44회를 확인했다. 패널에 추가 memo나 구독 변경을 적용하지 않는다. 이전 fiber self/render 집계는 철회하고 독립적인 CDP CPU/frame 비교는 유지한다. [정정 근거와 한계](evidence/frame-performance-reference-profile-audit-20260906.md).

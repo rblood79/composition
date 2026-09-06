@@ -4,11 +4,11 @@
 
 가이드 §3의 비용 귀속 → 확인된 계산만 최적화 → production 고정 fixture 재측정 순서를 적용했다. [React Profiler](https://react.dev/reference/react/Profiler)의 production profiling 경로는 진단에만 사용하고, 채택 비교는 일반 production 빌드 + Chrome DevTools trace/CDP threadTicks로 수행했다. 자체 테스트의 실행 시간을 성능 증거로 사용하지 않았다.
 
-기준 HEAD는 `75c73dd1f`이다. 기존 scheduler after edit trace에서 React callback 합계 2.244초, Skia callback 45ms였으며, 10회 편집 진단에서 BuilderCanvas self 219.1ms/33회와 CPU sample `createElementLayoutSignature` 82ms가 확인됐다. self는 fiber actualDuration에서 직접 자식 시간을 뺀 진단 집계이며 React commit 시간이나 정상 배포 성능 수치가 아니다.
+기준 HEAD는 `75c73dd1f`이다. 기존 scheduler after edit trace에서 React callback 합계 2.244초, Skia callback 45ms였으며, CPU sample `createElementLayoutSignature` 82ms가 확인됐다. 기존 BuilderCanvas self 219.1ms/33회는 bailout을 제외하지 않은 집계여서 철회한다.
 
 변경은 `layoutCache.ts` 한 경로다. registry 순서대로 값을 확인하되 빈 값의 `key=` 문자열 생성을 생략한다. 값 길이를 기록해 값 내부 구분자와 다음 속성을 혼동하지 않는다. 동일 객체 내부 편집도 매번 읽으며 identity cache를 추가하지 않았다. 기존 null/undefined/빈 문자열 동등성, responsive resolve 이후 서명 생성, layout publish trigger는 유지한다. Spec/CSS/Preview 데이터와 layout engine 입력은 변경하지 않았다.
 
-동일한 CPU sampling 포함 진단의 변경 후 BuilderCanvas self는 **219.1→168.6ms**, 렌더 수는 **33→33회**, React commit 수는 **55→55회**였다. 이 단일 진단 비교는 계산 축소의 귀속 근거이며 아래 정상 빌드 A/B와 분리한다.
+기존 self 219.1→168.6ms 및 render 33→33회 비교는 [진단 집계 정정](frame-performance-reference-profile-audit-20260906.md)에 따라 철회한다. commit 55→55회와 아래 일반 production A/B는 이 fiber 필터를 사용하지 않았으므로 구분해 보존한다.
 
 ## 일반 production 비교
 

@@ -10,15 +10,15 @@ store의 dirty 기록/정리, layoutVersion, scene/document revision, canonical/
 
 ## React 진단과 production 비교
 
-production profiling + CPU sampling의 동일 10회 편집/복원에서:
+**진단 집계 정정 (2026-09-06):** 기존 `actualDuration > 0` 조건은 bailout한 fiber의 잔존 시간을 포함했다. 기존 33→11회와 self 140.3→100.6ms 집계는 철회한다. 같은 before/after profiling artifacts를 다시 실행해 이전 commit의 fiber 재사용을 제외하고 `PerformedWork`를 확인했다.
 
-| 진단                        |  before |   after |
-| --------------------------- | ------: | ------: |
-| BuilderCanvas render        |      33 |      11 |
-| 전체 React commit           |      55 |      44 |
-| BuilderCanvas self duration | 140.3ms | 100.6ms |
+| 수정된 실행 횟수  | before | after |
+| ----------------- | -----: | ----: |
+| BuilderCanvas     |     22 |    11 |
+| 전체 React commit |     55 |    44 |
+| DataTablePanel    |      0 |     0 |
 
-self duration은 fiber actualDuration에서 직접 자식 시간을 뺀 진단값이다. 단일 profiling 비교의 시간·횟수를 일반 배포 CPU나 모든 시나리오로 일반화하지 않는다.
+실제 Canvas 실행은 50% 감소했다. 이전 66.7%에 해당하는 해석은 사용하지 않는다. 내부 fiber 진단의 한계와 재현 방법은 [집계 정정 증거](frame-performance-reference-profile-audit-20260906.md)에 기록한다.
 
 아래는 별도의 일반 production 빌드, 동일 600요소 snapshot, 50회 폭 편집/복원, visible Chrome, frame capture on/GPU timer off, CDP threadTicks/Chrome trace다. before/after, after/before, before/after 순서 3쌍을 사전 고정했으며 측정 중 다른 빌드/테스트를 실행하지 않았다.
 
