@@ -9,9 +9,7 @@ describe("useLayoutPublisher invalidation contract", () => {
       "utf-8",
     );
 
-    expect(source).toMatch(
-      /const layoutInputKey = \[\.\.\.pages, \.\.\.framePages\]/,
-    );
+    expect(source).toMatch(/const layoutInputKey = useMemo\(/);
     expect(source).toMatch(/createPageElementsSignature\(/);
     expect(source).toMatch(/createPageLayoutSignature\(/);
     expect(source).toMatch(

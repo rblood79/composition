@@ -37,7 +37,6 @@ const makeInput = (partial: Partial<SkiaRendererInput>): SkiaRendererInput => ({
   sceneChildrenByParent: new Map(),
   sceneNodes: [],
   sceneNodesMap: new Map(),
-  dirtyElementIds: new Set(),
   documentRevision: 0,
   editMode: "page",
   pageIndex: { elementsByPage: new Map() } as never,

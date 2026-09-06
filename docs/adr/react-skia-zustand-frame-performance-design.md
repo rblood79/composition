@@ -297,3 +297,11 @@ React production profiling으로 BuilderCanvas의 layout signature 생성을 귀
 ### 10.2 Projection 직렬화 재사용 — 2026-09-06
 
 raw scene과 resolved page의 공유 객체 직렬화 결과를 한 호출 안에서 재사용한다. 호출 간 cache 없이 기존 hash와 후속 내부 편집 감지를 유지한다. 현재 layoutCache 개선을 양쪽에 포함한 normal production 3쌍에서 CPU 중앙값 238.904→236.226ms/s(-1.12%), frame p95 9.4ms 동일, p99 54.1→52.2ms였다. 20 tests, 실제 폭 편집/제출/Undo, preflight PASS. 작은 상대 효과이며 장비 일반화나 전체 edit stall 해결을 주장하지 않는다. [각 쌍과 검증](evidence/frame-performance-reference-projection-20260906.md).
+
+### 10.3 Layout publisher 서명 재사용 — 2026-09-06
+
+동일 page/frame 입력과 layoutVersion의 layout signature 계산을 useMemo로 재사용했다. 입력 교체와 WASM ready 발행은 보존한다. production 3쌍 CPU 중앙값 239.748→237.404ms/s(-0.98%), p95 9.4ms 동일, p99 54.3→53.0ms. 한 쌍 CPU 증가는 보존하며 보편적 성능 개선으로 일반화하지 않는다. 22 tests, 실제 편집/제출/Undo, preflight PASS. [측정과 계약](evidence/frame-performance-reference-publisher-20260906.md).
+
+### 10.4 미사용 dirty Set 구독 제거 — 2026-09-06
+
+BuilderCanvas의 미사용 dirtyElementIds 구독과 renderer 전달 필드를 제거했다. dirty 정리 및 layout/scene revision 계약은 유지한다. 10회 편집 profiling 진단에서 Canvas render 33→11회, 전체 React commit 55→44회. 별도 일반 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 9.4ms 동일, p99 50.4→48.7ms다. CPU 효과는 작고 타기기 일반화는 없다. 35 tests·실제 편집/제출/Undo·preflight PASS. [측정과 변경 경계](evidence/frame-performance-reference-dirty-20260906.md).

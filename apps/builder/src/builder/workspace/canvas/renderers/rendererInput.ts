@@ -19,7 +19,6 @@ import {
 export interface LayoutPublisherInput {
   bodyElement: CanvasLayoutNode | null;
   depthMap: Map<string, number>;
-  dirtyElementIds: Set<string>;
   elementById: Map<string, CanvasLayoutNode>;
   layoutVersion: number;
   pageElements: CanvasLayoutNode[];
@@ -36,7 +35,6 @@ export interface LayoutPublisherInput {
 
 interface BuildPageLayoutPublisherInputOptions {
   elementById: ReadonlyMap<string, CanvasLayoutNode>;
-  dirtyElementIds: Set<string>;
   pageHeight: number;
   pageId: string;
   pagePositionVersion: number;
@@ -49,7 +47,6 @@ interface BuildPageLayoutPublisherInputOptions {
 
 export function buildPageLayoutPublisherInput({
   elementById,
-  dirtyElementIds,
   pageHeight,
   pageId,
   pagePositionVersion,
@@ -67,7 +64,6 @@ export function buildPageLayoutPublisherInput({
   return {
     bodyElement: pageSnapshot.bodyElement,
     depthMap: sceneSnapshot.depthMap,
-    dirtyElementIds,
     elementById: new Map(elementById),
     layoutVersion: sceneSnapshot.layoutVersion,
     pageElements: pageSnapshot.pageElements,
@@ -84,7 +80,6 @@ export function buildPageLayoutPublisherInput({
 }
 
 interface BuildFrameRendererInputOptions {
-  dirtyElementIds: Set<string>;
   elementById: ReadonlyMap<string, CanvasLayoutNode>;
   /** ADR-111 P3-α framePositions[frameId] (또는 frameAreas fallback) */
   frameHeight: number;
@@ -121,7 +116,6 @@ interface BuildFrameRendererInputOptions {
  * consumer 영향 없음.
  */
 export function buildFrameLayoutPublisherInput({
-  dirtyElementIds,
   elementById,
   frameHeight,
   frameId,
@@ -180,7 +174,6 @@ export function buildFrameLayoutPublisherInput({
   return {
     bodyElement: bodySceneElement,
     depthMap: sceneSnapshot.depthMap,
-    dirtyElementIds,
     elementById: layoutElementById,
     layoutVersion: sceneSnapshot.layoutVersion,
     pageElements,
@@ -205,7 +198,6 @@ export interface SkiaRendererInput {
   sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
-  dirtyElementIds: Set<string>;
   documentRevision: number;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
@@ -237,7 +229,6 @@ interface CreateSkiaRendererInputOptions {
   sceneChildrenByParent: Map<string, CanvasSceneNode[]>;
   sceneNodes: CanvasSceneNode[];
   sceneNodesMap: Map<string, CanvasSceneNode>;
-  dirtyElementIds: Set<string>;
   documentRevision: number;
   editMode: "page" | "layout";
   pageIndex: PageElementIndex;
@@ -478,7 +469,6 @@ export function createSkiaRendererInput(
     sceneChildrenByParent: sourceSceneGraph.childrenByParent,
     sceneNodes: sourceSceneGraph.nodes,
     sceneNodesMap: sourceSceneGraph.nodesMap,
-    dirtyElementIds: input.dirtyElementIds,
     documentRevision: input.documentRevision,
     editMode: input.editMode,
     pageIndex: input.pageIndex,

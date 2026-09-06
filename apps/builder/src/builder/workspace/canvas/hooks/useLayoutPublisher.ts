@@ -13,7 +13,7 @@
  * 으로 구분. dimensionKey 단일 통합 (D6=A).
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { LayoutPublisherInput } from "../renderers";
 import {
   publishFilteredChildrenMap,
@@ -85,18 +85,24 @@ export function useLayoutPublisher(
   // commit 으로 rebuild 한다. 두 번째 commit 은 layoutVersion 이 변하지 않으므로
   // page/frame input 구조 자체도 publish trigger 에 포함해야 신규 child 가
   // layoutMap 없이 투명/미등록 상태로 남지 않는다.
-  const layoutInputKey = [...pages, ...framePages]
-    .map(({ pageId, input }) => {
-      const pageElementsSignature = createPageElementsSignature(
-        input.pageElements,
-      );
-      const pageLayoutSignature = createPageLayoutSignature(
-        input.bodyElement,
-        input.pageElements,
-      );
-      return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
-    })
-    .join("||");
+  // BuilderCanvas는 scene/index 입력이 바뀌면 새 배열을 만든다. 동일 입력의
+  // React 재렌더에서는 서명 순회를 재사용하되 layout invalidation은 별도로 본다.
+  const layoutInputKey = useMemo(
+    () =>
+      [...pages, ...framePages]
+        .map(({ pageId, input }) => {
+          const pageElementsSignature = createPageElementsSignature(
+            input.pageElements,
+          );
+          const pageLayoutSignature = createPageLayoutSignature(
+            input.bodyElement,
+            input.pageElements,
+          );
+          return `${pageId}:${input.projectionVersion}:${input.bodyElement?.id ?? "no-body"}:${pageElementsSignature}:${pageLayoutSignature}`;
+        })
+        .join("||"),
+    [pages, framePages, layoutVersion],
+  );
 
   // 새로고침 직후 frame inputs 가 먼저 생성되고 WASM layout 이 아직 pending 이면
   // effect 는 skip 된다. 이후 ready 전환만으로도 layoutMap 을 다시 publish 해야 한다.

@@ -190,7 +190,6 @@ describe("createSkiaRendererInput", () => {
         ["page-1-body", [page1Fill]],
         ["page-2-body", [page2Fill]],
       ]),
-      dirtyElementIds: new Set(),
       documentRevision: 1,
       editMode: "page",
       elements,
@@ -320,7 +319,6 @@ describe("createSkiaRendererInput", () => {
 
     const input = createSkiaRendererInput({
       childrenMap: buildChildrenByParent(sourceNodes),
-      dirtyElementIds: new Set(),
       documentRevision: 1,
       editMode: "page",
       elements: sourceNodes,
@@ -371,7 +369,6 @@ describe("createSkiaRendererInput", () => {
     const nodes = [body, fallbackButton, hiddenButton];
     const input = createSkiaRendererInput({
       childrenMap: buildChildrenByParent(nodes),
-      dirtyElementIds: new Set(),
       documentRevision: 1,
       editMode: "page",
       elements: nodes,
@@ -470,7 +467,6 @@ describe("createSkiaRendererInput", () => {
 
     const input = createSkiaRendererInput({
       childrenMap: new Map([[body.id, [first, second]]]),
-      dirtyElementIds: new Set(),
       documentRevision: 1,
       editMode: "page",
       elements: [body, first, second],
@@ -559,7 +555,6 @@ describe("createSkiaRendererInput", () => {
 
     const input = createSkiaRendererInput({
       childrenMap: new Map(),
-      dirtyElementIds: new Set(),
       documentRevision: 1,
       editMode: "page",
       elements: [body],
@@ -676,7 +671,6 @@ describe("createSkiaRendererInput", () => {
 
     const input = createSkiaRendererInput({
       childrenMap: buildChildrenByParent(nodes),
-      dirtyElementIds: new Set(),
       documentRevision: 1,
       editMode: "layout",
       elements: nodes,

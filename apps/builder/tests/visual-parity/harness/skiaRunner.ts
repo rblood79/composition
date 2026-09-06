@@ -172,7 +172,6 @@ export function runSkiaLeg(
     model.sceneNodesMap as unknown as Map<string, CanvasLayoutNode>,
   );
   const publisherInput = buildPageLayoutPublisherInput({
-    dirtyElementIds: new Set<string>(),
     elementById,
     pageHeight: height,
     pageId,
@@ -218,7 +217,6 @@ export function runSkiaLeg(
   // 6) renderer input (프로덕션 builder)
   const rendererInput: SkiaRendererInput = createSkiaRendererInput({
     childrenMap: model.sceneChildrenByParent,
-    dirtyElementIds: new Set<string>(),
     documentRevision: 1,
     editMode: "page",
     elements: model.sceneNodes,

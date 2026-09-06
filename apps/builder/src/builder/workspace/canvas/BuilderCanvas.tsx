@@ -390,7 +390,6 @@ export function BuilderCanvas({
   const workflowFocusedPageId = useStore(
     (state) => state.workflowFocusedPageId,
   );
-  const dirtyElementIds = useStore((state) => state.dirtyElementIds);
   const emptyFrameElementScopes = useMemo(() => new Map(), []);
   const frameElementScopes =
     canonicalSceneModel?.frameElementScopes ?? emptyFrameElementScopes;
@@ -439,9 +438,8 @@ export function BuilderCanvas({
     canonicalSceneModel?.sceneChildrenByParent ?? EMPTY_SCENE_CHILDREN_MAP;
   const elementById = sceneNodesMap;
 
-  // ADR-006 P3-1: dirtyElementIds 소비 후 초기화
-  // layoutVersion이 변경되면 render cycle에서 useMemo가 레이아웃을 재계산한 뒤,
-  // useEffect에서 이전 프레임의 dirty ID를 정리하여 메모리 누적을 방지한다.
+  // legacy dirty ID는 layoutVersion 변경 후 정리하되, 이 Set을 Canvas가
+  // 구독하지 않아 정리만으로 렌더러 입력을 재생성하지 않는다.
   const layoutVersion = useStore((state) => state.layoutVersion);
   const clearDirtyElementIds = useStore((state) => state.clearDirtyElementIds);
   useEffect(() => {
@@ -601,7 +599,6 @@ export function BuilderCanvas({
       .map((page) => {
         const input = buildPageLayoutPublisherInput({
           elementById,
-          dirtyElementIds,
           pageHeight,
           pageId: page.id,
           pagePositionVersion: pagePositionsVersion,
@@ -617,7 +614,6 @@ export function BuilderCanvas({
   }, [
     visiblePages,
     elementById,
-    dirtyElementIds,
     pageHeight,
     pagePositionsVersion,
     pageWidth,
@@ -704,7 +700,6 @@ export function BuilderCanvas({
     return frameAreas
       .map((area) => {
         const input = buildFrameLayoutPublisherInput({
-          dirtyElementIds,
           elementById,
           frameHeight: area.height,
           frameId: area.frameId,
@@ -724,7 +719,6 @@ export function BuilderCanvas({
   }, [
     frameAreas,
     framePositionsVersion,
-    dirtyElementIds,
     elementById,
     frameElementScopes,
     panOffset,
@@ -742,7 +736,6 @@ export function BuilderCanvas({
   const skiaRendererInput = useMemo(() => {
     return createSkiaRendererInput({
       childrenMap: sceneChildrenByParent,
-      dirtyElementIds,
       documentRevision: canonicalDocumentRevision,
       editMode: currentEditMode,
       elements: sceneNodes,
@@ -763,7 +756,6 @@ export function BuilderCanvas({
   }, [
     canonicalDocumentRevision,
     currentEditMode,
-    dirtyElementIds,
     sceneChildrenByParent,
     sceneNodes,
     sceneNodesMap,

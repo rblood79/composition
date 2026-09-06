@@ -52,7 +52,6 @@ const makeSceneSnapshot = (
 });
 
 const baseOptions = {
-  dirtyElementIds: new Set<string>(),
   pagePositionVersion: 0,
   panOffset: { x: 0, y: 0 },
   wasmLayoutReady: true,

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Canvas 미사용 dirty Set 구독 제거] - 2026-09-06
+
+- Canvas가 읽지 않는 dirty Set 구독과 renderer 전달을 제거해 Set 정리 시 불필요한 React 갱신을 줄인다. 기존 레이아웃 무효화와 실제 제출 계약은 유지한다.
+- 10회 편집 진단에서 Canvas render 33→11회. 별도 production 3쌍 CPU 중앙값 227.579→225.727ms/s(-0.81%), p95 동일. [진단·측정·한계](adr/evidence/frame-performance-reference-dirty-20260906.md).
+
+## [Layout publisher 서명 재사용] - 2026-09-06
+
+- 동일 page/frame 입력의 재렌더에서 레이아웃 서명을 재사용한다. 입력 교체·layout revision·WASM ready 전환의 발행은 유지한다.
+- production 3쌍 CPU 중앙값 239.748→237.404ms/s(-0.98%), p95 동일. 한 쌍 CPU 증가를 포함한 제한적 결과다. [검증과 한계](adr/evidence/frame-performance-reference-publisher-20260906.md).
+
 ## [Projection 중복 직렬화 재사용] - 2026-09-06
 
 - 같은 scene 서명 계산에서 공유 props/배열의 중복 직렬화를 재사용한다. 호출이 끝나면 캐시를 버려 후속 내부 편집을 계속 감지한다.
