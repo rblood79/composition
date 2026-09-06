@@ -246,6 +246,7 @@ try {
   await reset();
   await page.waitForTimeout(10000);
   result.settled = await capture();
+  assert.equal(result.settled.counters.renderRaf, 0);
   assert.equal(result.settled.counters.contentBuild, 0);
   assert.equal(result.settled.counters.planBuild, 0);
   assert.equal(result.settled.counters.mainSubmission, 0);

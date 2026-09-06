@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "./frameScheduler";
 /**
  * CSS Transition 렌더 루프 통합 (Pull 모델).
  *
@@ -43,6 +44,7 @@ export class TransitionManager {
       done: false,
     });
     this.transitions.set(elementId, filtered);
+    requestCanvasFrame();
   }
 
   /**
@@ -91,5 +93,6 @@ export class TransitionManager {
 
   clear(): void {
     this.transitions.clear();
+    requestCanvasFrame();
   }
 }

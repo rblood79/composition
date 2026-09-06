@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "../skia/frameScheduler";
 /**
  * Workflow Interaction Hook
  *
@@ -93,6 +94,7 @@ export function useWorkflowInteraction({
     if (hoverStateRef.current.hoveredEdgeId !== null) {
       hoverStateRef.current.hoveredEdgeId = null;
       overlayVersionRef.current++;
+      requestCanvasFrame();
     }
   }, [hoverStateRef, overlayVersionRef]);
 
@@ -149,6 +151,7 @@ export function useWorkflowInteraction({
         applyViewportState(targetViewport);
       }
       overlayVersionRef.current++;
+      requestCanvasFrame();
     },
     [minimapConfigRef, pageFrameMapRef, overlayVersionRef],
   );
@@ -212,6 +215,7 @@ export function useWorkflowInteraction({
         if (newHoveredId !== hoverStateRef.current.hoveredEdgeId) {
           hoverStateRef.current.hoveredEdgeId = newHoveredId;
           overlayVersionRef.current++;
+          requestCanvasFrame();
         }
       });
     },
@@ -312,6 +316,7 @@ export function useWorkflowInteraction({
         // 이벤트는 전파하여 요소 선택 등 기존 동작 유지
         useStore.getState().setWorkflowFocusedPageId(null);
         overlayVersionRef.current++;
+        requestCanvasFrame();
         return;
       }
 
@@ -319,6 +324,7 @@ export function useWorkflowInteraction({
       if (useStore.getState().workflowFocusedPageId !== null) {
         useStore.getState().setWorkflowFocusedPageId(null);
         overlayVersionRef.current++;
+        requestCanvasFrame();
       }
       // 이벤트 전파 — 기존 요소 선택 유지
     },
@@ -400,6 +406,7 @@ export function useWorkflowInteraction({
         if (hoverStateRef.current.hoveredEdgeId !== null) {
           hoverStateRef.current.hoveredEdgeId = null;
           overlayVersionRef.current++;
+          requestCanvasFrame();
         }
         if (useStore.getState().workflowFocusedPageId !== null) {
           useStore.getState().setWorkflowFocusedPageId(null);

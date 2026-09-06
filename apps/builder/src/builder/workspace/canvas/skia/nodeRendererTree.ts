@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "./frameScheduler";
 /**
  * 드래그 시각 오프셋 모듈 (구 nodeRendererTree 잔존 현역부)
  *
@@ -67,6 +68,7 @@ export function getDragVisualOffsetRevision(): number {
 
 function bumpDragVisualOffsetRevision(): void {
   G.__composition_dragVisualOffsetRevision = getDragVisualOffsetRevision() + 1;
+  requestCanvasFrame();
 }
 
 /** command tail 분리가 성립하지 않을 때 delta별 legacy invalidation으로 폴백한다. */
@@ -151,6 +153,7 @@ export function setDragSiblingOffsets(
     G.__composition_dragSiblingOffsets = null;
     G.__composition_dragSiblingOffsetRevision =
       getDragSiblingOffsetRevision() + 1;
+    requestCanvasFrame();
     return;
   }
 
@@ -176,6 +179,7 @@ export function setDragSiblingOffsets(
   G.__composition_dragSiblingOffsets = snapshot;
   G.__composition_dragSiblingOffsetRevision =
     getDragSiblingOffsetRevision() + 1;
+  requestCanvasFrame();
 }
 
 /** 현재 드래그 시각적 오프셋 반환 */

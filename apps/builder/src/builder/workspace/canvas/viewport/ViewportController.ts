@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "../skia/frameScheduler";
 /**
  * ViewportController
  *
@@ -271,6 +272,7 @@ export class ViewportController {
     viewportState.x = state.x;
     viewportState.y = state.y;
     viewportState.zoom = state.scale;
+    requestCanvasFrame();
     publishViewportPresentation(state);
     recordViewportInteractionListenerFanout(this.updateListeners.size);
     for (const listener of this.updateListeners) {

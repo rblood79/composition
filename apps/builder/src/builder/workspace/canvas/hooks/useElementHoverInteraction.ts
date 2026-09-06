@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "../skia/frameScheduler";
 /**
  * Element Hover Interaction Hook — Deep Hover (Pencil 패턴)
  *
@@ -318,15 +319,18 @@ export function useElementHoverInteraction({
     }
     if (changed) {
       overlayVersionRef.current++;
+      requestCanvasFrame();
     }
   }, [hoverStateRef, overlayVersionRef]);
 
   const clearHover = useCallback(() => {
     if (clearElementHoverState(hoverStateRef.current)) {
       overlayVersionRef.current++;
+      requestCanvasFrame();
     }
     if (clearMeasureGuides()) {
       overlayVersionRef.current++;
+      requestCanvasFrame();
     }
   }, [hoverStateRef, overlayVersionRef]);
 
@@ -516,6 +520,7 @@ export function useElementHoverInteraction({
           hoverStateRef.current.isGroupHover = groupState.isGroupHover;
 
           overlayVersionRef.current++;
+          requestCanvasFrame();
         }
 
         // Alt 거리 측정 — hover 무변경이어도 Alt/선택 상태가 바뀔 수 있어

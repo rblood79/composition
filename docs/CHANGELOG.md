@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [CanvasKit 레퍼런스 기반 프레임 예약] - 2026-09-06
+
+- CanvasKit 공식 가이드의 이벤트 기반 RAF를 적용해 화면 변경이 없는 동안 Skia 렌더 callback을 중지한다. 카메라·드래그·hover·리소스·cleanup·복구가 단일 pending RAF를 깨우며 animation의 종료 프레임을 보존한다.
+- 현재 P1 대비 production 교차 3쌍에서 idle renderer RAF 1,202→0회/10초, main-thread task CPU 24.334→20.390ms/s(-16.209%). Chrome trace와 전체 frame interval을 함께 비교했으며 이 장비의 상대 효과로 한정한다.
+- 기존 retained content/overlay와 실제 matching submission readiness를 유지한다. GPU tail의 과거 실패는 해결로 바꾸지 않고, 상세 검증 및 한계는 [레퍼런스 적용 증거](adr/evidence/frame-performance-reference-scheduler-20260906.md)에 기록한다.
+
 ## [프레임 성능 재검증·계측 경계 수리] - 2026-09-06
 
 ### Fixed

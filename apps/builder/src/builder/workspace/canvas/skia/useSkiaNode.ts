@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "./frameScheduler";
 /**
  * Skia 렌더 데이터 전역 레지스트리
  *
@@ -43,6 +44,7 @@ export function registerSkiaNode(elementId: string, data: SkiaNodeData): void {
   if (oldData) releaseParagraphsIn(oldData);
   skiaNodeRegistry.set(elementId, data);
   registryVersion++;
+  requestCanvasFrame();
   // 내용 교체 = record 된 self-draw Picture stale — 즉시 해제 (ADR-153 Phase 3).
   // 키(identity) 불일치로도 재생은 차단되지만, 즉시 해제가 WASM 메모리를 먼저 돌려준다.
   invalidateNodePicture(elementId);
@@ -54,6 +56,7 @@ export function unregisterSkiaNode(elementId: string): void {
   if (data) releaseParagraphsIn(data);
   skiaNodeRegistry.delete(elementId);
   registryVersion++;
+  requestCanvasFrame();
   invalidateNodePicture(elementId);
 }
 
@@ -76,6 +79,7 @@ export function clearSkiaRegistry(): void {
   for (const data of skiaNodeRegistry.values()) releaseParagraphsIn(data);
   skiaNodeRegistry.clear();
   registryVersion++;
+  requestCanvasFrame();
   clearNodePictureCache();
   // 페이지 전환은 프레임 밖(React commit) 이고 한 번에 캐시 전량을 폐기 큐로
   // 보낸다. hidden 탭처럼 rAF 가 멈춰 flush 가 오래 없는 상태에서도 큐가
@@ -97,6 +101,7 @@ export function getRegistryVersion(): number {
  */
 export function notifyLayoutChange(): void {
   registryVersion++;
+  requestCanvasFrame();
   recordInvalidation("content", "notifyLayoutChange");
 }
 

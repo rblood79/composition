@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "../skia/frameScheduler";
 /**
  * useDragBridge — SelectionLayer 드래그 로직 추출 (ADR-100 Phase 6)
  *
@@ -689,8 +690,10 @@ export function useDragBridge({
               dragStore,
             ),
           };
+          requestCanvasFrame();
         } else {
           dropIndicatorSnapshotRef.current = null;
+          requestCanvasFrame();
         }
         return;
       }
@@ -729,6 +732,7 @@ export function useDragBridge({
                 dragStore,
               ),
             };
+            requestCanvasFrame();
             return;
           }
         }
@@ -795,8 +799,10 @@ export function useDragBridge({
             dragStore,
           ),
         };
+        requestCanvasFrame();
       } else {
         dropIndicatorSnapshotRef.current = null;
+        requestCanvasFrame();
       }
     },
     onMoveEnd: (elementId, _delta) => {
@@ -823,6 +829,7 @@ export function useDragBridge({
         setDragSiblingOffsets(null);
         lastResolvedDropTargetRef.current = null;
         dropIndicatorSnapshotRef.current = null;
+        requestCanvasFrame();
         void cloneDragTargetsAtDrop(
           session?.ids ?? [elementId],
           effectiveDelta,
@@ -837,6 +844,7 @@ export function useDragBridge({
         setDragSiblingOffsets(null);
         lastResolvedDropTargetRef.current = null;
         dropIndicatorSnapshotRef.current = null;
+        requestCanvasFrame();
         commitMultiDragDrop({
           delta: effectiveDelta,
           dragStore,
@@ -859,6 +867,7 @@ export function useDragBridge({
 
       lastResolvedDropTargetRef.current = null;
       dropIndicatorSnapshotRef.current = null;
+      requestCanvasFrame();
 
       if (manualDropTarget) {
         const manualPositionProps = resolveManualPositionDropProps(
@@ -976,6 +985,7 @@ export function useDragBridge({
       setDragVisualOffset(null);
       setDragSiblingOffsets(null);
       dropIndicatorSnapshotRef.current = null;
+      requestCanvasFrame();
       lastResolvedDropTargetRef.current = null;
       dragSessionRef.current = null;
       armDragAltClone(false);

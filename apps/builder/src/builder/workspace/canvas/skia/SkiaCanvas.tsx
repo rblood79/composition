@@ -1,8 +1,13 @@
+import {
+  createFrameScheduler,
+  requestCanvasFrame,
+  subscribeCanvasFrames,
+} from "./frameScheduler";
 /**
  * SkiaCanvas — 독립 Skia 렌더러 (ADR-100 Phase 2.6)
  *
  * 단독 CanvasKit 캔버스 컴포넌트.
- * - 자체 requestAnimationFrame 루프
+ * - invalidation 기반 단일 pending requestAnimationFrame
  * - Camera 클래스로 viewport 제어
  * - 기존 빌드 파이프라인(buildSkiaFrameContent, buildFrameRenderPlan) 재사용
  * SkiaOverlay와 동일한 렌더링 결과를 산출하되,
@@ -147,7 +152,7 @@ export interface SkiaCanvasProps {
  *
  * 단독 CanvasKit 경로로 동작:
  * - z-index: 2 — CanvasKit 캔버스 (디자인 + 오버레이)
- * - 자체 RAF 루프
+ * - invalidation 기반 프레임 예약
  * - Camera 클래스로 viewport 상태 관리
  * - Command Stream 경로 전용 (sharedLayoutMap 필수)
  */
@@ -315,6 +320,7 @@ export function SkiaCanvas({
       rendererInput.sceneSnapshot.document.visiblePageFrames;
     frameAreasRef.current = rendererInput.frameAreas;
     rendererInputRef.current = rendererInput;
+    requestCanvasFrame();
     documentPageFrameVersionRef.current =
       rendererInput.sceneSnapshot.document.allPageFrameVersion;
     const syncResult = storeRenderBridgeRef.current?.sync(
@@ -365,6 +371,7 @@ export function SkiaCanvas({
 
   useEffect(() => {
     invalidationPacketRef.current = invalidationPacket;
+    requestCanvasFrame();
   }, [invalidationPacket]);
 
   // Page drag는 canonical pagePositions를 pointerup에서만 갱신한다. 따라서
@@ -380,6 +387,7 @@ export function SkiaCanvas({
       pagePositionPresentationVersionRef.current = nextVersion;
       rendererRef.current?.invalidateContent();
       overlayVersionRef.current++;
+      requestCanvasFrame();
       recordInvalidation("content", "pagePositionPresentation");
     });
   }, []);
@@ -393,6 +401,7 @@ export function SkiaCanvas({
       if (nextRevision === pageGuideRevisionRef.current) return;
       pageGuideRevisionRef.current = nextRevision;
       overlayVersionRef.current++;
+      requestCanvasFrame();
       recordInvalidation("overlay", "pageGuideRevision");
     });
   }, []);
@@ -595,6 +604,7 @@ export function SkiaCanvas({
   // 준비 완료로 오인하지 않는다.
   useEffect(() => {
     presentationTargetRef.current = presentationTarget;
+    requestCanvasFrame();
     if (presentationTarget) {
       rendererRef.current?.invalidateContent();
     }
@@ -660,12 +670,24 @@ export function SkiaCanvas({
       },
     });
 
-    // ----- RAF 렌더 루프 -----
-    let rafId = 0;
+    // ----- invalidation 기반 렌더 프레임 -----
     let running = true;
     const contentCache = new FrameContentCache();
     // 재사용 판정 3축은 항상 함께 만들어지고 함께 무효화된다. 한 참조로 묶어
     // 부분 초기화로 stale 값이 남는 경로를 없앤다.
+    let dragAnimating = false;
+    // GPU 계측은 render RAF와 분리한다. 마지막 query 수거가 scene/plan을
+    // 재구축하지 않으며, 미회수 query는 pending으로 남긴 채 유한하게 종료한다.
+    let gpuDrainTimer: ReturnType<typeof setTimeout> | null = null;
+    let gpuDrainPolls = 0;
+    const drainGpuQuery = () => {
+      gpuDrainTimer = null;
+      if (!running || contextLostRef.current || document.hidden) return;
+      renderer.pollGpuTimer();
+      if (renderer.hasPendingGpuQuery() && ++gpuDrainPolls < 120) {
+        gpuDrainTimer = setTimeout(drainGpuQuery, 16);
+      }
+    };
     let preparedFrame: {
       input: SkiaRendererInput;
       packet: typeof invalidationPacketRef.current;
@@ -683,7 +705,6 @@ export function SkiaCanvas({
     const renderFrameCore = (): void => {
       if (!running) return;
       countFrameEvent("renderRaf");
-      rafId = requestAnimationFrame(renderFrame);
 
       if (!rendererRef.current) return;
       if (contextLostRef.current) return;
@@ -717,6 +738,7 @@ export function SkiaCanvas({
         if (!minimapVisibleRef.current) {
           minimapVisibleRef.current = true;
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("overlay", "minimapShow");
         }
         if (minimapFadeTimerRef.current)
@@ -724,6 +746,7 @@ export function SkiaCanvas({
         minimapFadeTimerRef.current = setTimeout(() => {
           minimapVisibleRef.current = false;
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("overlay", "minimapHide");
         }, 1500);
       }
@@ -752,6 +775,7 @@ export function SkiaCanvas({
       const currentSelectionSignature = packet.selection.selectionSignature;
       if (currentSelectionSignature !== lastSelectionSignatureRef.current) {
         overlayVersionRef.current++;
+        requestCanvasFrame();
         recordInvalidation("overlay", "selection");
         lastSelectionSignatureRef.current = currentSelectionSignature;
       }
@@ -760,6 +784,7 @@ export function SkiaCanvas({
       const currentEditingSignature = packet.selection.editingSignature;
       if (currentEditingSignature !== lastEditingContextRef.current) {
         overlayVersionRef.current++;
+        requestCanvasFrame();
         recordInvalidation("overlay", "editingContext");
         lastEditingContextRef.current = currentEditingSignature;
       }
@@ -772,6 +797,7 @@ export function SkiaCanvas({
         const hasGenerating = aiState.generatingNodes.size > 0;
         if (hasGenerating) {
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("overlay", "aiGenerating");
         } else {
           const now = performance.now();
@@ -786,11 +812,13 @@ export function SkiaCanvas({
           }
           if (!allNearEnd) {
             overlayVersionRef.current++;
+            requestCanvasFrame();
             recordInvalidation("overlay", "aiFlash");
           }
         }
       } else if (currentAIActive !== lastAIActiveRef.current) {
         overlayVersionRef.current++;
+        requestCanvasFrame();
         recordInvalidation("overlay", "aiCleanup");
       }
       lastAIActiveRef.current = currentAIActive;
@@ -802,6 +830,7 @@ export function SkiaCanvas({
       ) {
         lastWorkflowOverlaySignatureRef.current = workflowOverlaySignature;
         overlayVersionRef.current++;
+        requestCanvasFrame();
         recordInvalidation("workflow", "toggleOverlay");
       }
 
@@ -810,6 +839,7 @@ export function SkiaCanvas({
         if (subKey !== lastWfSubTogglesRef.current) {
           lastWfSubTogglesRef.current = subKey;
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("workflow", "subToggles");
         }
 
@@ -817,6 +847,7 @@ export function SkiaCanvas({
         if (workflowGraphSignature !== lastWorkflowGraphSignatureRef.current) {
           lastWorkflowGraphSignatureRef.current = workflowGraphSignature;
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("workflow", "edgesRecalc");
         }
 
@@ -824,12 +855,14 @@ export function SkiaCanvas({
         if (hoveredEdgeId !== lastHoveredEdgeRef.current) {
           lastHoveredEdgeRef.current = hoveredEdgeId;
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("workflow", "hoverEdge");
         }
         const focusedPageId = packet.workflow.focusedPageId;
         if (focusedPageId !== lastFocusedPageRef.current) {
           lastFocusedPageRef.current = focusedPageId;
           overlayVersionRef.current++;
+          requestCanvasFrame();
           recordInvalidation("workflow", "focusedPage");
         }
       }
@@ -880,13 +913,14 @@ export function SkiaCanvas({
         // 같은 target의 delta는 retained picture의 translate에서 소비한다.
         // registry/content를 무효화하지 않고 현재 surface를 다시 present한다.
         overlayVersionRef.current++;
+        requestCanvasFrame();
         recordInvalidation("overlay", "dragPresentation");
       }
 
       // Drag animation
       const dropIndicator = dropIndicatorSnapshotRef?.current ?? null;
-      if (dropIndicator) {
-        tickAnimations();
+      if (dropIndicator || dragAnimating) {
+        dragAnimating = tickAnimations();
         const interpolated = getInterpolatedOffsets();
         setDragSiblingOffsets(interpolated.size > 0 ? interpolated : null);
       }
@@ -1034,6 +1068,7 @@ export function SkiaCanvas({
         ),
       );
 
+      if (didPresent) gpuDrainPolls = 0;
       const pendingTarget = presentationTargetRef.current;
       preparedFrame = { input: currentRendererInput, packet, layoutVersion };
       if (didPresent && pendingTarget) {
@@ -1058,14 +1093,29 @@ export function SkiaCanvas({
       }
     };
 
-    // renderFrameCore는 내부에서 requestAnimationFrame(renderFrame)을 호출하므로,
-    // 루프가 지속되는 동안 매 프레임 observe()가 "render.frame" duration을 기록한다.
     const renderFrame = (): void => {
       observe(PERF_LABEL.RENDER_FRAME, () => renderFrameCore());
+      const ai = invalidationPacketRef.current.ai;
+      if (renderer.hasPendingGpuQuery() && gpuDrainTimer === null) {
+        gpuDrainTimer = setTimeout(drainGpuQuery, 16);
+      }
+      if (
+        dragAnimating ||
+        renderer.needsAnimationFrame() ||
+        ai.generatingNodes.size > 0 ||
+        ai.flashAnimations.size > 0
+      ) {
+        scheduler.invalidate();
+      }
     };
-
-    // RAF 시작
-    rafId = requestAnimationFrame(renderFrame);
+    const scheduler = createFrameScheduler(renderFrame);
+    const unsubscribeFrames = subscribeCanvasFrames(scheduler.invalidate);
+    const updatePaused = () => {
+      scheduler.setPaused(document.hidden || contextLostRef.current);
+      scheduler.invalidate();
+    };
+    document.addEventListener("visibilitychange", updatePaused);
+    updatePaused();
 
     // WebGL 컨텍스트 손실 감시 — 이 등록이 **유일한 소유자**다.
     //   캔버스를 소유한 층만 그 element 에 리스너를 걸 수 있다. 밖에서
@@ -1079,10 +1129,12 @@ export function SkiaCanvas({
       skiaCanvas,
       () => {
         contextLostRef.current = true;
+        updatePaused();
         publishContextLost(true);
       },
       () => {
         contextLostRef.current = false;
+        updatePaused();
         publishContextLost(false);
         if (rendererRef.current && canvasRef.current) {
           rendererRef.current.resize(canvasRef.current);
@@ -1096,7 +1148,10 @@ export function SkiaCanvas({
     return () => {
       running = false;
       contentCache.clear();
-      cancelAnimationFrame(rafId);
+      unsubscribeFrames();
+      scheduler.dispose();
+      if (gpuDrainTimer !== null) clearTimeout(gpuDrainTimer);
+      document.removeEventListener("visibilitychange", updatePaused);
       themeWatcherHandle.disconnect();
       unwatchContext();
       // 손실 상태로 캔버스가 사라지면 플래그가 남아 remount 후에도 경고가 붙는다.
@@ -1126,6 +1181,7 @@ export function SkiaCanvas({
     if (prevPageIdRef.current !== currentPageId) {
       prevPageIdRef.current = currentPageId;
       overlayVersionRef.current++;
+      requestCanvasFrame();
       // 활성 페이지가 페인트 최상단으로 재배열되므로 (pagePaintOrder.ts) content
       // 재렌더 필수 — overlayVersion 만으로는 classifyFrame 이 "present"(snapshot
       // blit)로 분류해 이전 겹침 순서의 스냅샷이 남는다.

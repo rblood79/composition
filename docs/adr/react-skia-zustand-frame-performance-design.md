@@ -1,28 +1,30 @@
 # Builder 프레임 성능 개선 실행 설계
 
 - 작성일: 2026-09-05
-- 상태: P1 CPU·지연 재검증 완료, GPU 편집 tail 게이트 미종결. P3 완료 재판정 보류, P2 조건부 보류 (2026-09-06).
+- 상태: 레퍼런스 기반 P2 구현·전후 비교 및 P3 문서화 완료·채택. 환경별 미검증 항목은 §10/evidence에 명시 (2026-09-06).
 - 코드 기준: 설계 `b5ad1fbc4`, 착수 `4ae4ff43b`, 작업 중 외부 commit `4d3345e1c` 보존. 성능 A/B는 고정 정적 artifact의 manifest로 식별한다.
 - 재검증 기준: `d0f31008d` + GPU reset/context-loss 수리. 새 artifact와 source override SHA는 [재검증 증거](evidence/frame-performance-remeasurement-20260906.md)에 기록한다.
 - 입력: [React · Zustand · Skia 프레임 성능 분석자료](../migrations/react-skia-zustand-frame-performance-guide.md)
-- 목적: 기존 retained rendering과 presentation 경계를 유지하며, 불필요한 CPU 구축과 상태 전파를 줄인다. on-demand RAF는 실측 조건부로 전환한다.
+- 목적: 공식 레퍼런스의 event-driven RAF를 기존 retained rendering·presentation 경계에 적용하고 현재 P1과 전후 비교한다.
 
 ## 0. 레퍼런스 기반 실행 정정 (2026-09-06)
 
 사용자가 제공한 가이드의 목적은 외부 기술 자료의 방법을 현재 구현에 적용하고 변경 전후를 비교하는 것이다. 자체 계수와 임의 예산의 통과를 최적화 완료의 충분한 근거로 삼지 않는다. 단일 PC의 GPU edit tail 추가 추적은 중단했다. 기존 G5 실패와 측정값은 이력으로 보존하지만, 원인이 확정된 제품 결함으로 해석하거나 그 해소를 모든 후속 방법 비교의 선행 조건으로 삼지 않는다.
 
-| 원문 방법 | 현재 구현과의 차이 / 다음 비교 | 효과를 판단할 근거 |
-| --- | --- | --- |
-| [CanvasKit Quickstart](https://skia.org/docs/user/modules/quickstart/): 이벤트 기반 화면에서는 draw callback의 자기 재예약을 제거 | P1은 content/plan 준비를 생략하지만 연속 RAF는 유지한다. 다음 구현 후보는 단일 pending RAF와 명시적 invalidation wake다. 기존 ADR-167의 저사양 3% 조건은 공식 권고가 아닌 프로젝트 결정이므로 별도 재검토 대상으로 드러낸다. | 현재 P1을 baseline으로 고정하고 동일 행동의 변경 전후 idle callback/task CPU, 활성 interaction frame interval p50/p95/p99를 비교. wake 누락·animation 종료·readiness는 정확성 조건으로 검증 |
-| [Zustand transient updates](https://github.com/pmndrs/zustand/blob/main/README.md#transient-updates-for-often-occurring-state-changes): subscribe/ref로 React 재렌더 없이 최신값 소비 | 기존 presentation 계층을 재사용하고 camera/drag/hover별 남은 domain publication·React commit을 대조. 전 경로 fan-out 0을 이미 달성했다고 가정하지 않는다. | 같은 입력의 React Performance Tracks/Profiler render·commit 및 store notification 전후 비교 |
-| [Chrome Performance Insights](https://developer.chrome.com/blog/performance-insights): main/highlight offscreen canvas 분리 후 합성 | 기존 content/overlay retained 경로와 방향이 일치한다. overlay-only 변경이 content 재기록을 유발하는 구체 경로가 있을 때 그 경로만 수정한다. | 같은 hover/selection 행동의 content recording·합성 시간과 브라우저 frame trace 비교 |
-| [CanvasKit 공식 SKP benchmark](https://skia.googlesource.com/skia/+/3b13de2073cd/tools/perf-canvaskit-puppeteer/render-skp.html): draw, draw+flush, 전체 frame interval 분리 | GPU query p95 하나를 중심으로 한 추적에서 세 시간축의 전후 비교로 복귀한다. GPU query는 보조 진단이다. | 원문 측정 경계와 Builder 대응 경계를 기록하고 CPU 제출과 전체 frame interval을 함께 비교. 일반 Builder의 frame interval을 순수 GPU 시간으로 단정하지 않는다. |
+| 원문 방법                                                                                                                                                                             | 현재 구현과의 차이 / 다음 비교                                                                                                                                                                                            | 효과를 판단할 근거                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [CanvasKit Quickstart](https://skia.org/docs/user/modules/quickstart/): 이벤트 기반 화면에서는 draw callback의 자기 재예약을 제거                                                     | P1은 content/plan 준비를 생략하지만 연속 RAF는 유지한다. 단일 pending RAF와 명시적 invalidation wake를 적용했다(§10). 기존 ADR-167의 저사양 3% 조건은 공식 권고가 아닌 프로젝트 결정이므로 별도 재검토 대상으로 드러낸다. | 현재 P1을 baseline으로 고정하고 동일 행동의 변경 전후 idle callback/task CPU, 활성 interaction frame interval p50/p95/p99를 비교. wake 누락·animation 종료·readiness는 정확성 조건으로 검증 |
+| [Zustand transient updates](https://github.com/pmndrs/zustand/blob/main/README.md#transient-updates-for-often-occurring-state-changes): subscribe/ref로 React 재렌더 없이 최신값 소비 | 기존 presentation 계층을 재사용하고 camera/drag/hover별 남은 domain publication·React commit을 대조. 전 경로 fan-out 0을 이미 달성했다고 가정하지 않는다.                                                                 | 같은 입력의 React Performance Tracks/Profiler render·commit 및 store notification 전후 비교                                                                                                 |
+| [Chrome Performance Insights](https://developer.chrome.com/blog/performance-insights): main/highlight offscreen canvas 분리 후 합성                                                   | 기존 content/overlay retained 경로와 방향이 일치한다. overlay-only 변경이 content 재기록을 유발하는 구체 경로가 있을 때 그 경로만 수정한다.                                                                               | 같은 hover/selection 행동의 content recording·합성 시간과 브라우저 frame trace 비교                                                                                                         |
+| [CanvasKit 공식 SKP benchmark](https://skia.googlesource.com/skia/+/3b13de2073cd/tools/perf-canvaskit-puppeteer/render-skp.html): draw, draw+flush, 전체 frame interval 분리          | GPU query p95 하나를 중심으로 한 추적에서 세 시간축의 전후 비교로 복귀한다. GPU query는 보조 진단이다.                                                                                                                    | 원문 측정 경계와 Builder 대응 경계를 기록하고 CPU 제출과 전체 frame interval을 함께 비교. 일반 Builder의 frame interval을 순수 GPU 시간으로 단정하지 않는다.                                |
 
 실행 순서는 **원문 방법·적용 조건 확인 → 현재 코드와 차이 명시 → 현재 P1 기준값 고정 → 방법 하나 적용 → 같은 조건에서 변경 전후 비교 → 채택/기각과 한계 기록**이다. 이미 반영된 방법은 중복 구현하지 않는다. 공식 문서가 Builder 전용 수치 예산을 제공하는 것은 아니므로 프로젝트 예산을 공식 기준으로 표현하지 않는다. 외부 사례의 절대 ms를 Builder와 직접 비교하지 않으며, 단일 장비 A/B는 해당 환경의 상대 효과로 한정한다.
 
-회귀 테스트는 구현 정확성의 근거로 유지한다. 성능 효과는 브라우저 원시 trace와 출처가 명시된 측정 방법에 연결한다. 자체 계수는 귀속을 보조하며 테스트 통과 횟수를 성능 개선의 증거로 사용하지 않는다. 이번 정정에서는 scheduler 제품 코드를 변경하지 않았고, 기존 ADR의 상태나 역사적 게이트 결과도 승격하지 않았다.
+회귀 테스트는 구현 정확성의 근거로 유지한다. 성능 효과는 브라우저 원시 trace와 출처가 명시된 측정 방법에 연결한다. 자체 계수는 귀속을 보조하며 테스트 통과 횟수를 성능 개선의 증거로 사용하지 않는다. 정정 이후 사용자가 새 방향으로 완료까지 실행을 승인했으며 scheduler 제품 코드와 검증 결과는 §10에 기록한다. 기존 ADR의 역사적 상태와 과거 게이트 실패를 성공으로 바꾸지 않는다.
 
-## 1. 결정과 범위
+> **현재 실행 계약:** §10과 위 §0이 현재 정본이다. 아래 §1~9는 최초 설계와 P1 실행 이력으로 보존한다. §1/§6의 저사양 3% 입구, §6의 20% 개선·GPU +0.5ms 종결 조건, §8/§9의 P2 보류와 GPU tail 추가 추적은 새 방법 비교의 선행 조건으로 적용하지 않는다. 이는 수치가 안 맞아 기준을 완화한 처리가 아니라, 사용자 지시에 따라 외부 기법을 적용하고 현재 P1과 비교하도록 실행 목적을 교체한 결정이다. 기존 실패는 그대로 남는다.
+
+## 1. 결정과 범위 — 최초 설계 이력
 
 첫 작업은 **측정과 입력 의존성 확정(P0)** 이다. 다음으로 이득이 확인된 content/plan 파생물 재사용(P1)을 수행한다. 상시 RAF 종료(P2)는 ADR-167 재개 조건과 wake 누락 검증을 통과했을 때만 진행한다. P1만으로 효과가 충분하면 P2 없이 종결할 수 있다.
 
@@ -274,3 +276,16 @@ P2는 **조건부 보류**한다. 실제 저사양 기기에서 P1 이후 render
 후속 후보 (위 6건과 별개): `perf-baseline.mjs` (2,079행) 가 `main()` 을 가진 실행 스크립트이면서 동시에 9개 심볼을 export 하는 공용 하니스 라이브러리가 됐다. `frame-harness-lib.mjs` 로 분리하면 `import.meta.url` entry-point guard 가 불필요해지고 CLI 옵션 표면과 공용 인프라가 갈린다. 파일 전체를 흔드는 작업이라 정리 라운드 범위 밖으로 뒀다.
 
 1라운드에서 같은 사유로 넘긴 항목 3건도 유효하다 — `layoutVersion`/AI/`presentationTarget`/`dropIndicator` 무효화를 `renderer.invalidateContent()` 로 통일 (위 3번과 같은 계열, 기준선 무효화) · `canReuseFramePreparation` 의 `screenOverlayVersion` 인자 제거 (같은 축을 `shouldRerender` 가 실제로 쓴다) · `wheelBurst`/`select`/`edit` 공용 `runAtCadence` 추출 (세 driver 의 페이싱이 실제로 다르다).
+
+## 10. 레퍼런스 기반 P2 실행 결과 — 현재 정본
+
+사용자의 “새로운 실행 설계방향으로 완료까지 착수” 지시에 따라 CanvasKit Quickstart의 이벤트 기반 RAF를 적용했다. ADR-167 당시 판단은 역사로 유지하되 저사양 3% 수치를 이번 방법 비교의 입구로 사용하지 않는다. 현재 P1 production을 before로 고정하고 scheduler 변경본과 교차 3쌍을 비교했다.
+
+- 구현: `frameScheduler.ts`의 단일 pending RAF, invalidation 병합, hidden/context pause와 dirty 보존, dispose 취소. camera/registry/layout/overlay/drag/resource/timer/복구 생산자가 프레임을 요청한다. engine과 AI/sibling animation 동안만 연속 예약한다.
+- 정확성: semantic Zustand·history 계약, renderer store 비의존, matching project/revision의 실제 main flush readiness, 기존 content/overlay/damage 캐시를 보존했다.
+- 효과: idle CPU **24.334→20.390ms/s(-16.209%)**, render RAF **1,202→0회/10초**. Chrome trace에서도 renderer callback **1,204→0회**. 기존 P1 이후의 추가 효과이며 과거 34.2%와 합산하지 않는다.
+- 상호작용: pan/zoom/edit frame p95 **10.0/10.3/10.3→9.9/10.2/10.2ms**. zoom CPU **266.796→267.489ms/s**는 개선이 아니고, edit p99 **42.0→41.7ms**의 기존 stall도 남는다. “전체 120fps 달성”으로 표현하지 않는다.
+- 판단: 반복 idle render callback이 제거되고 주요 동작·제출 경계를 보존하므로 event-driven scheduler를 채택한다. GPU query tail 추적을 재개하거나 외부 기기 성능을 일반화하지 않는다.
+- 기존 transient presentation/retained layers는 참조 방향과 일치하므로 중복 재설계하지 않는다. 전 경로 React commit 0이나 Worker 필요성을 이번 비교로 입증하지 않았다. 별도 근거 없이 memo/Worker를 추가하지 않는다.
+- 검증: 관련 100 tests, 시각 계약 101, 최종 focused 23 및 preflight PASS. 최종 release에서 drag/undo·context restore 20회, PNG 동일, 자원 callback과 settled idle RAF 0 PASS. 실제 hidden 전환과 물리 모니터 DPR 전환은 자동화에서 미검증이며 pause/resume 단위 계약과 DPR+resize만 확인했다.
+- 상세 producer·수명·원문 링크·각 run·측정 경계·한계·최종 게이트는 [레퍼런스 적용 증거](evidence/frame-performance-reference-scheduler-20260906.md)가 정본이다. 이번 변경을 되돌려야 하면 scheduler와 wake 배선을 함께 원복하여 P1의 단일 연속 RAF로 돌아가며 readiness 계약은 유지한다.

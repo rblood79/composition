@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "./frameScheduler";
 /**
  * CSS @keyframes 애니메이션 엔진.
  * 범용 엔진. UI (타임라인 에디터) 없이 API만 제공.
@@ -45,9 +46,11 @@ export class AnimationEngine {
       done: false,
     });
     this.animations.set(elementId, filtered);
+    requestCanvasFrame();
   }
 
   stop(elementId: string, name?: string): void {
+    requestCanvasFrame();
     if (!name) {
       this.animations.delete(elementId);
       return;
@@ -135,11 +138,15 @@ export class AnimationEngine {
   }
 
   isActive(): boolean {
-    return this.animations.size > 0;
+    for (const animations of this.animations.values()) {
+      if (animations.some((animation) => !animation.done)) return true;
+    }
+    return false;
   }
 
   clear(): void {
     this.animations.clear();
+    requestCanvasFrame();
   }
 
   private resolveDirection(

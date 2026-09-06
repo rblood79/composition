@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "./frameScheduler";
 /**
  * Drag Animator — Spring Interpolation for Sibling Offsets
  *
@@ -25,6 +26,7 @@ const animatedOffsets = new Map<string, AnimatedOffset>();
 export function updateAnimationTargets(
   targets: Map<string, { dx: number; dy: number }> | null,
 ): void {
+  requestCanvasFrame();
   if (!targets) {
     // 모든 기존 오프셋의 target을 0으로 → lerp로 돌아감
     for (const [, offset] of animatedOffsets) {
@@ -121,4 +123,5 @@ export function getInterpolatedOffsets(): Map<
  */
 export function clearAllAnimations(): void {
   animatedOffsets.clear();
+  requestCanvasFrame();
 }

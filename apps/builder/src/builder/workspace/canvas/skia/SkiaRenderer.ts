@@ -1,3 +1,4 @@
+import { requestCanvasFrame } from "./frameScheduler";
 /**
  * CanvasKit/Skia 렌더 루프
  *
@@ -332,6 +333,7 @@ export class SkiaRenderer {
   /** 컨텐츠 캐시를 무효화하고, damage가 있으면 다음 프레임 부분 재기록을 예약한다. */
   invalidateContent(damageBounds?: BoundingBox): void {
     this.contentDirty = true;
+    requestCanvasFrame();
     recordDamageInvalidation(damageBounds);
     if (!damageBounds) {
       this.pendingDamage = null;
@@ -471,6 +473,7 @@ export class SkiaRenderer {
     if (this.cleanupTimer) clearTimeout(this.cleanupTimer);
     this.cleanupTimer = setTimeout(() => {
       this.needsCleanupRender = true;
+      requestCanvasFrame();
       this.cleanupTimer = null;
     }, 200);
   }
@@ -1136,7 +1139,7 @@ export class SkiaRenderer {
     }
 
     // ADR-153 Phase 1-c: GPU 프레임 시간 — 직전 in-flight 결과 poll 후 이번 프레임 측정
-    // (일반 production은 null이며 명시적 capture opt-in에서만 수집)
+    // (일반 production은 null이며 명시적 GPU timer opt-in에서만 수집)
     this.pollGpuTimer();
     if (frameType !== "idle" && this.gpuTimer) {
       this.gpuTimer.frameBegin();
@@ -1262,6 +1265,18 @@ export class SkiaRenderer {
   }
 
   /** idle에서도 마지막 query만 비차단 수거한다. scene 구축이나 surface 제출은 없다. */
+  needsAnimationFrame(): boolean {
+    return (
+      this.animationCleanupPending ||
+      !!this.transitionManager?.isActive() ||
+      !!this.animationEngine?.isActive()
+    );
+  }
+
+  hasPendingGpuQuery(): boolean {
+    return (this.gpuTimer?.status().pending ?? 0) > 0;
+  }
+
   pollGpuTimer(): void {
     const gpuMs = this.gpuTimer?.poll();
     if (gpuMs != null && process.env.NODE_ENV === "development")
