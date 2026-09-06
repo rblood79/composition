@@ -251,13 +251,22 @@ const READY_PREDICATE = (requireFrameCapture = false) =>
     (!requireFrameCapture || window.__composition_FRAME_CAPTURE__),
   );
 
+/** ready 대기 상한 — 하니스별로 조정하지 않는다 (ready 정의가 하나이므로). */
+export const READY_TIMEOUT_MS = 90_000;
+
 /** builder ready 정의는 여기 하나뿐이다. 다른 하니스도 이 함수를 거친다. */
 export async function waitReady(
   page,
-  { settleMs = 1_500, requireFrameCapture = false } = {},
+  { settleMs = 1_500, requireFrameCapture = false, ...rest } = {},
 ) {
+  // 무시되는 옵션(특히 timeout)은 조용히 버리지 않고 실패시킨다.
+  const unknown = Object.keys(rest);
+  if (unknown.length)
+    throw new Error(
+      `waitReady: 지원하지 않는 옵션 ${unknown.join(", ")} — ready timeout 은 READY_TIMEOUT_MS 고정`,
+    );
   await page.waitForFunction(READY_PREDICATE, requireFrameCapture, {
-    timeout: 90_000,
+    timeout: READY_TIMEOUT_MS,
   });
   if (settleMs) await page.waitForTimeout(settleMs);
 }
@@ -289,27 +298,45 @@ export async function createInstrumentedContext(
   const page = await context.newPage();
   const pageErrors = [];
   const consoleErrors = [];
+  /** push 시점 순서를 보존한 단일 로그 — 두 배열은 부류별 보고용 사영. */
+  const errorLog = [];
+  const record = (source, text) => {
+    errorLog.push({ atMs: Math.round(performance.now()), source, text });
+  };
   page.on("pageerror", (e) => {
-    pageErrors.push(String(e));
+    const text = String(e);
+    pageErrors.push(text);
+    record("pageerror", text);
     onPageError?.(e);
   });
   page.on("console", (m) => {
-    if (m.type() === "error") consoleErrors.push(m.text());
+    if (m.type() !== "error") return;
+    consoleErrors.push(m.text());
+    record("console", m.text());
   });
-  const cdp = await context.newCDPSession(page);
-  if (cpuThrottle !== undefined)
-    await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle });
-  return {
-    context,
-    page,
-    cdp,
-    pageErrors,
-    consoleErrors,
-    // 파생 getter — 기존 소비자(`const { errors } = ...`)가 계속 동작한다.
-    get errors() {
-      return [...pageErrors, ...consoleErrors];
-    },
-  };
+  // spread 는 getter 를 그 자리에서 값으로 굳히므로 defineProperties 로 단다 —
+  // `errors` 는 teardown 뒤에 읽어도 그때까지의 수집분을 준다.
+  const withCollected = (target) =>
+    Object.defineProperties(target, {
+      pageErrors: { value: pageErrors, enumerable: true },
+      consoleErrors: { value: consoleErrors, enumerable: true },
+      errorLog: { value: errorLog, enumerable: true },
+      errors: {
+        enumerable: true,
+        get: () => errorLog.map((entry) => entry.text),
+      },
+    });
+  try {
+    const cdp = await context.newCDPSession(page);
+    if (cpuThrottle !== undefined)
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpuThrottle });
+    return withCollected({ context, page, cdp });
+  } catch (error) {
+    // 부분 생성 실패 — 리스너가 이미 담은 boot 에러가 호출자에게 닿지 않으면
+    // 실패 원인이 통째로 사라진다. 던지는 error 에 실어 보낸다.
+    error.collected = withCollected({});
+    throw error;
+  }
 }
 
 async function createIsolatedProject(page, baseUrl) {
@@ -1800,30 +1827,37 @@ async function runColdEntries(browser, options, storageState) {
   // 리포트 write 를 finally 로 — 중간 run 이 throw 해도 앞선 ready 샘플을 남긴다.
   try {
     for (let i = 0; i < options.coldEntries; i++) {
-      const { context, page, pageErrors, consoleErrors } =
-        await createInstrumentedContext(browser, {
-          storageState,
-          cpuThrottle: options.cpuThrottle,
-        });
+      const instrumented = await createInstrumentedContext(browser, {
+        storageState,
+        cpuThrottle: options.cpuThrottle,
+      });
+      const { context, page } = instrumented;
+      // 실패한 run 도 리포트에 남도록 먼저 넣고 채운다.
+      const run = { errors: [], errorLog: [] };
+      runs.push(run);
       try {
         await page.goto(options.projectUrl, { waitUntil: "domcontentloaded" });
         await waitReady(page, { settleMs: 0 });
-        const result = await page.evaluate(() => ({
-          readyObservedAtMs: performance.now(),
-          visibility: document.visibilityState,
-          capture: window.__composition_FRAME_CAPTURE__?.snapshot() ?? null,
-          perf: window.__composition_PERF__?.snapshotAll() ?? [],
-        }));
-        // 에러는 page 구동 뒤에 읽는다 — 생성 직후 스냅샷은 항상 비어 있다.
-        const errors = [...pageErrors, ...consoleErrors];
-        runs.push({ ...result, errors });
-        process.stderr.write(
-          `[cold ${i + 1}] ready ${result.readyObservedAtMs.toFixed(1)}ms errors ${errors.length}\n`,
+        Object.assign(
+          run,
+          await page.evaluate(() => ({
+            readyObservedAtMs: performance.now(),
+            visibility: document.visibilityState,
+            capture: window.__composition_FRAME_CAPTURE__?.snapshot() ?? null,
+            perf: window.__composition_PERF__?.snapshotAll() ?? [],
+          })),
         );
-        if (errors.length) throw new Error("cold entry errors");
       } finally {
         await context.close();
+        // close 뒤에 읽는다 — unload/teardown pageerror 는 이 하니스가 감시하는
+        // disposal 경로라 스냅샷을 먼저 뜨면 통째로 빠진다.
+        run.errors = instrumented.errors;
+        run.errorLog = instrumented.errorLog;
       }
+      process.stderr.write(
+        `[cold ${i + 1}] ready ${run.readyObservedAtMs.toFixed(1)}ms errors ${run.errors.length}\n`,
+      );
+      if (run.errors.length) throw new Error("cold entry errors");
     }
   } catch (error) {
     failure = String(error);

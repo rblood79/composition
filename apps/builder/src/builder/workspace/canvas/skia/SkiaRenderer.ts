@@ -28,13 +28,21 @@ import { getCacheMetrics } from "./cacheMetrics";
 import { takeDrawStats } from "./drawStats";
 import { GpuTimer } from "./gpuTimer";
 import {
-  FRAME_EVENT_NAME,
   frameCaptureEnabled,
   countFrameEvent,
   recordMainSubmission,
   registerFrameCaptureSource,
 } from "./frameCapture";
 import { markBegin, markEnd, PERF_LABEL } from "../../../utils/perfMarks";
+
+/** 렌더 프레임 분류별 counter 키 — hot path에서 템플릿 문자열 할당을 피한다. */
+const FRAME_EVENT_NAME: Record<FrameType, string> = {
+  idle: "frame.idle",
+  present: "frame.present",
+  "camera-only": "frame.camera-only",
+  content: "frame.content",
+  full: "frame.full",
+};
 import type { TransitionManager } from "./transitionManager";
 import type { AnimationEngine } from "./animationEngine";
 import { getSkiaNode } from "./useSkiaNode";

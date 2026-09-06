@@ -19,15 +19,15 @@ const browser = await chromium.launch({
   headless: !options.headed,
 });
 const result = { buildId: options.buildId, checks: {}, contextCycles: [] };
-let pageErrors = [];
-let consoleErrors = [];
-const collectErrors = () => [...pageErrors, ...consoleErrors];
+// 수집 배열은 createInstrumentedContext 소유 — 시간 순서는 그쪽 errorLog 가 정본.
+let collected = null;
+const collectErrors = () => collected?.errors ?? [];
 try {
   const instrumented = await createInstrumentedContext(browser, {
     storageState: loadStorageState(options.storageState),
   });
+  collected = instrumented;
   const { page, cdp } = instrumented;
-  ({ pageErrors, consoleErrors } = instrumented);
   const url = new URL(options.projectUrl);
   url.searchParams.set("adr187Metrics", "1");
   // ready 정의는 perf-baseline 의 것 하나뿐이다. settle 은 이 하니스가 직접 잰다.
@@ -40,9 +40,7 @@ try {
   /** 렌더러가 다시 main flush 를 낼 때까지. reset() 직후 재제출 확인용. */
   const waitForSubmission = () =>
     page.waitForFunction(
-      () =>
-        window.__composition_FRAME_CAPTURE__.snapshot().counters
-          .mainSubmission > 0,
+      () => window.__composition_FRAME_CAPTURE__.counter("mainSubmission") > 0,
     );
   const props = () =>
     page.evaluate(
@@ -189,13 +187,13 @@ try {
     });
     await page.waitForFunction(
       () =>
-        window.__composition_FRAME_CAPTURE__.snapshot().rendererSources[0].gpu
+        window.__composition_FRAME_CAPTURE__.probe().rendererSources[0].gpu
           .contextLost,
     );
     await page.waitForTimeout(50);
     await page.evaluate(() => window.__frameContextTest.restoreContext());
     await page.waitForFunction(() => {
-      const s = window.__composition_FRAME_CAPTURE__.snapshot();
+      const s = window.__composition_FRAME_CAPTURE__.probe();
       return (
         !s.rendererSources[0].gpu.contextLost && s.counters.mainSubmission > 1
       );
@@ -298,7 +296,7 @@ try {
     body: Buffer.from(png, "base64"),
   });
   await page.waitForFunction(() => {
-    const s = window.__composition_FRAME_CAPTURE__.snapshot();
+    const s = window.__composition_FRAME_CAPTURE__.probe();
     return (
       s.counters.mainSubmission > 0 &&
       s.rendererSources[0].resources.imagesGlobal > 0
@@ -321,8 +319,7 @@ try {
   });
   await page.waitForFunction(
     () =>
-      window.__composition_FRAME_CAPTURE__.snapshot().rendererSources.length ===
-      0,
+      window.__composition_FRAME_CAPTURE__.probe().rendererSources.length === 0,
   );
   await reset();
   await page.waitForTimeout(300);
@@ -333,12 +330,19 @@ try {
   assert.equal(errors.length, 0, errors.join("\n"));
 } catch (error) {
   result.failure = String(error);
+  // createInstrumentedContext 가 리스너 등록 뒤에 throw 하면 수집분이 error 에 실린다.
+  collected ??= error.collected ?? null;
   throw error;
 } finally {
-  result.errors = collectErrors();
-  writeFileSync(
-    resolve(options.out, "exercise.json"),
-    JSON.stringify(result, null, 2),
-  );
-  await browser.close();
+  try {
+    await browser.close();
+  } finally {
+    // close 뒤에 읽어야 unload/teardown pageerror 까지 들어온다.
+    result.errors = collectErrors();
+    result.errorLog = collected?.errorLog ?? [];
+    writeFileSync(
+      resolve(options.out, "exercise.json"),
+      JSON.stringify(result, null, 2),
+    );
+  }
 }

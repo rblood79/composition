@@ -1,14 +1,4 @@
 import { isFrameCaptureRequested } from "../wasm-bindings/featureFlags";
-import type { FrameType } from "./types";
-
-/** 렌더 프레임 분류별 counter 키 — hot path에서 템플릿 문자열 할당을 피한다. */
-export const FRAME_EVENT_NAME: Record<FrameType, string> = {
-  idle: "frame.idle",
-  present: "frame.present",
-  "camera-only": "frame.camera-only",
-  content: "frame.content",
-  full: "frame.full",
-};
 
 interface CaptureSource {
   snapshot(): unknown;
@@ -100,11 +90,27 @@ if (frameCaptureEnabled) {
     reset() {
       // delete 가 아니라 0 — 한 번이라도 fire 한 채널은 창을 넘어 관측 가능하게.
       for (const key of Object.keys(counters)) counters[key] = 0;
+      // gauge 는 현재값 의미라 0 이 곧 허구의 측정치 — 새 창에서 다시 샘플될
+      // 때까지 지운다. counter 처럼 0 으로 남기지 않는다.
+      for (const key of Object.keys(gauges)) delete gauges[key];
       latencies.length = 0;
       lastInput = null;
       inputCount = 0;
       droppedLatencySamples = 0;
       for (const source of sources.values()) source.reset();
+    },
+    /** 단일 counter 폴링용. 미발생 채널은 undefined 그대로 (0 위장 금지). */
+    counter(name: string) {
+      return counters[name];
+    },
+    /** waitForFunction 폴링용 — rAF 주기 호출이라 latency 배열 복사를 뺀다. */
+    probe() {
+      return {
+        counters: { ...counters },
+        rendererSources: [...sources.values()].map((source) =>
+          source.snapshot(),
+        ),
+      };
     },
     snapshot() {
       return {

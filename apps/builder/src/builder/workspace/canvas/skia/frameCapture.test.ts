@@ -81,4 +81,50 @@ describe("명시적 프레임 capture", () => {
     api.reset();
     expect(api.snapshot().counters.contentBuild).toBe(0);
   });
+
+  it("gauge 는 reset 이 지운다 — 이전 측정 창의 값이 새 창의 값으로 보고되면 안 된다", async () => {
+    flag.enabled = true;
+    const capture = await import("./frameCapture");
+    const api = (
+      window as unknown as {
+        __composition_FRAME_CAPTURE__: {
+          reset(): void;
+          snapshot(): { gauges: Record<string, number> };
+        };
+      }
+    ).__composition_FRAME_CAPTURE__;
+    capture.setFrameGauge("renderBoundsCount", 402);
+    expect(api.snapshot().gauges.renderBoundsCount).toBe(402);
+    api.reset();
+    expect(api.snapshot().gauges.renderBoundsCount).toBeUndefined();
+  });
+
+  it("폴링용 counter/probe 는 latency 배열을 복사하지 않고 같은 값을 준다", async () => {
+    flag.enabled = true;
+    const capture = await import("./frameCapture");
+    const api = (
+      window as unknown as {
+        __composition_FRAME_CAPTURE__: {
+          counter(name: string): number | undefined;
+          probe(): {
+            counters: Record<string, number>;
+            rendererSources: unknown[];
+          };
+          snapshot(): { counters: Record<string, number> };
+        };
+      }
+    ).__composition_FRAME_CAPTURE__;
+    capture.registerFrameCaptureSource({
+      snapshot: () => ({ alive: 1 }),
+      reset: vi.fn(),
+    });
+    capture.recordMainSubmission();
+    capture.recordMainSubmission();
+    expect(api.counter("mainSubmission")).toBe(2);
+    expect(api.counter("planBuild")).toBeUndefined();
+    const probe = api.probe();
+    expect(probe.counters).toEqual(api.snapshot().counters);
+    expect(probe.rendererSources).toEqual([{ alive: 1 }]);
+    expect(probe).not.toHaveProperty("inputToSubmission");
+  });
 });
