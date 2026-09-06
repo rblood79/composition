@@ -130,4 +130,43 @@ describe("layoutCache filtered children republish contract", () => {
       createPageLayoutSignature(null, [makeTableView("compact")]),
     ).not.toBe(createPageLayoutSignature(null, [makeTableView("spacious")]));
   });
+  it("detects edits and removal on the same node without treating empty values as changes", () => {
+    const style: Record<string, unknown> = {};
+    const node = {
+      id: "box",
+      type: "Box",
+      parent_id: "body",
+      props: { style },
+    } as CanvasLayoutNode;
+    const signature = () => createPageLayoutSignature(null, [node]);
+    const empty = signature();
+    style.width = undefined;
+    expect(signature()).toBe(empty);
+    style.width = null;
+    expect(signature()).toBe(empty);
+    style.width = "";
+    expect(signature()).toBe(empty);
+    style.width = 0;
+    expect(signature()).not.toBe(empty);
+    const zero = signature();
+    style.width = "20px";
+    expect(signature()).not.toBe(zero);
+    delete style.width;
+    expect(signature()).toBe(empty);
+  });
+
+  it("does not confuse delimiters in values with another populated layout property", () => {
+    const make = (style: Record<string, unknown>) =>
+      ({
+        id: "box",
+        type: "Box",
+        parent_id: "body",
+        props: { style },
+      }) as CanvasLayoutNode;
+    expect(
+      createPageLayoutSignature(null, [make({ width: "1;height=2" })]),
+    ).not.toBe(
+      createPageLayoutSignature(null, [make({ width: "1", height: "2" })]),
+    );
+  });
 });

@@ -423,3 +423,34 @@ describe("Background(fills) projection signature (2026-07-15)", () => {
     expect(sigWith).not.toBe(sigWithOther);
   });
 });
+
+describe("projection serialization reuse lifetime", () => {
+  it("keeps the signature identical for shared and copied page nodes, and detects subsequent in-place edits", () => {
+    const props = { style: { width: "100px" }, items: ["one", "two"] };
+    const node = makeNode({ id: "node", type: "Box", props });
+    const shared = {
+      elements: [node],
+      pageSnapshots: new Map([
+        ["page", { bodyElement: null, pageElements: [node] }],
+      ]),
+    };
+    const copied = {
+      elements: [node],
+      pageSnapshots: new Map([
+        ["page", { bodyElement: null, pageElements: [structuredClone(node)] }],
+      ]),
+    };
+    const before = createResolvedProjectionSignature(shared);
+    // 기존 정렬 직렬화/31 hash 결과도 유지한다.
+    expect(before).toBe(1832414373);
+    expect(createResolvedProjectionSignature(copied)).toBe(before);
+    props.style.width = "200px";
+    const edited = createResolvedProjectionSignature(shared);
+    expect(edited).not.toBe(before);
+    props.items.push("three");
+    expect(createResolvedProjectionSignature(shared)).not.toBe(edited);
+    props.style.width = "100px";
+    props.items.pop();
+    expect(createResolvedProjectionSignature(shared)).toBe(before);
+  });
+});

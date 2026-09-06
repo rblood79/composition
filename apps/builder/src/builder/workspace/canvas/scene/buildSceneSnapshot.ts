@@ -31,20 +31,28 @@ function hashString(value: string): number {
   return Math.abs(hash);
 }
 
-function stableSerialize(value: unknown): string {
+function stableSerialize(
+  value: unknown,
+  serialized: WeakMap<object, string>,
+): string {
   if (value === null || typeof value !== "object") {
     return JSON.stringify(value);
   }
 
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => stableSerialize(item)).join(",")}]`;
-  }
+  const cached = serialized.get(value);
+  if (cached !== undefined) return cached;
 
-  const record = value as Record<string, unknown>;
-  return `{${Object.keys(record)
-    .sort()
-    .map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`)
-    .join(",")}}`;
+  const result = Array.isArray(value)
+    ? `[${value.map((item) => stableSerialize(item, serialized)).join(",")}]`
+    : `{${Object.keys(value)
+        .sort()
+        .map(
+          (key) =>
+            `${JSON.stringify(key)}:${stableSerialize((value as Record<string, unknown>)[key], serialized)}`,
+        )
+        .join(",")}}`;
+  serialized.set(value, result);
+  return result;
 }
 
 function createNodeProjectionSignature(node: CanvasSceneNode | null) {
@@ -85,19 +93,24 @@ export function createResolvedProjectionSignature(input: {
   pageSnapshots: Map<string, ScenePageData>;
 }): number {
   const startedAt = performance.now();
+  // raw/resolved 페이지가 공유하는 props는 이 호출 안에서만 직렬화를 재사용한다.
+  // 다음 호출은 새 캐시로 시작해 동일 객체 내부 편집도 감지한다.
   const signature = hashString(
-    stableSerialize({
-      rawSceneNodes: input.elements.map(createNodeProjectionSignature),
-      resolvedPages: Array.from(input.pageSnapshots.entries()).map(
-        ([pageId, snapshot]) => ({
-          bodyElement: createNodeProjectionSignature(snapshot.bodyElement),
-          pageElements: snapshot.pageElements.map(
-            createNodeProjectionSignature,
-          ),
-          pageId,
-        }),
-      ),
-    }),
+    stableSerialize(
+      {
+        rawSceneNodes: input.elements.map(createNodeProjectionSignature),
+        resolvedPages: Array.from(input.pageSnapshots.entries()).map(
+          ([pageId, snapshot]) => ({
+            bodyElement: createNodeProjectionSignature(snapshot.bodyElement),
+            pageElements: snapshot.pageElements.map(
+              createNodeProjectionSignature,
+            ),
+            pageId,
+          }),
+        ),
+      },
+      new WeakMap(),
+    ),
   );
   recordEditorPresentationProjectionSignature(performance.now() - startedAt);
   return signature;

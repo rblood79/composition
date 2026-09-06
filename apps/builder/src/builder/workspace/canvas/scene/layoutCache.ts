@@ -94,22 +94,36 @@ function serializeLayoutRelevantValue(value: unknown): string {
   }
 
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(value) ?? "undefined";
   } catch {
     return "";
   }
+}
+
+// 빈 값은 기존 서명에서도 동일하게 취급한다. 실제 값만 기록해 매 render마다
+// 모든 registry key의 빈 문자열을 할당하지 않는다. 길이 접두사는 값 내부의
+// 구분자가 다음 속성으로 해석되는 충돌을 막는다. 객체 identity 캐시는 쓰지
+// 않으므로 같은 객체 내부의 변경도 계속 감지한다.
+function createLayoutValuesSignature(
+  values: Record<string, unknown>,
+  keys: readonly string[],
+): string {
+  let signature = "";
+  for (const key of keys) {
+    const value = serializeLayoutRelevantValue(values[key]);
+    if (value !== "") {
+      signature += `${key}=${value.length}:${value};`;
+    }
+  }
+  return signature;
 }
 
 function createElementLayoutSignature(element: CanvasLayoutNode): string {
   const props = (element.props ?? {}) as Record<string, unknown>;
   const style = (props.style ?? {}) as Record<string, unknown>;
 
-  const styleSignature = LAYOUT_STYLE_KEYS.map(
-    (key) => `${key}=${serializeLayoutRelevantValue(style[key])}`,
-  ).join(";");
-  const propSignature = LAYOUT_PROP_KEYS.map(
-    (key) => `${key}=${serializeLayoutRelevantValue(props[key])}`,
-  ).join(";");
+  const styleSignature = createLayoutValuesSignature(style, LAYOUT_STYLE_KEYS);
+  const propSignature = createLayoutValuesSignature(props, LAYOUT_PROP_KEYS);
 
   return [
     element.id,

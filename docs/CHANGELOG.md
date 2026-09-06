@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Projection 중복 직렬화 재사용] - 2026-09-06
+
+- 같은 scene 서명 계산에서 공유 props/배열의 중복 직렬화를 재사용한다. 호출이 끝나면 캐시를 버려 후속 내부 편집을 계속 감지한다.
+- 현재 구현 대비 production 3쌍의 edit CPU 중앙값 238.904→236.226ms/s(-1.12%), frame p95 동일. [측정·검증·한계](adr/evidence/frame-performance-reference-projection-20260906.md).
+
+## [편집 시 레이아웃 서명 계산 축소] - 2026-09-06
+
+- 레이아웃 변경 감지 시 값이 없는 속성의 반복 문자열 할당을 줄였다. 같은 객체 내부 편집·삭제와 실제 렌더 제출/Undo 동작은 유지한다.
+- 일반 production 3쌍에서 edit CPU 중앙값 241.085→234.604ms/s(-2.69%), frame p95 동일. 첫 쌍은 악화돼 장비·반복 변동성을 포함한 제한적 결과로 기록한다. [측정과 검증](adr/evidence/frame-performance-reference-edit-20260906.md).
+
 ## [CanvasKit 레퍼런스 기반 프레임 예약] - 2026-09-06
 
 - CanvasKit 공식 가이드의 이벤트 기반 RAF를 적용해 화면 변경이 없는 동안 Skia 렌더 callback을 중지한다. 카메라·드래그·hover·리소스·cleanup·복구가 단일 pending RAF를 깨우며 animation의 종료 프레임을 보존한다.

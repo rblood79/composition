@@ -289,3 +289,11 @@ P2는 **조건부 보류**한다. 실제 저사양 기기에서 P1 이후 render
 - 기존 transient presentation/retained layers는 참조 방향과 일치하므로 중복 재설계하지 않는다. 전 경로 React commit 0이나 Worker 필요성을 이번 비교로 입증하지 않았다. 별도 근거 없이 memo/Worker를 추가하지 않는다.
 - 검증: 관련 100 tests, 시각 계약 101, 최종 focused 23 및 preflight PASS. 최종 release에서 drag/undo·context restore 20회, PNG 동일, 자원 callback과 settled idle RAF 0 PASS. 실제 hidden 전환과 물리 모니터 DPR 전환은 자동화에서 미검증이며 pause/resume 단위 계약과 DPR+resize만 확인했다.
 - 상세 producer·수명·원문 링크·각 run·측정 경계·한계·최종 게이트는 [레퍼런스 적용 증거](evidence/frame-performance-reference-scheduler-20260906.md)가 정본이다. 이번 변경을 되돌려야 하면 scheduler와 wake 배선을 함께 원복하여 P1의 단일 연속 RAF로 돌아가며 readiness 계약은 유지한다.
+
+### 10.1 후속 편집 계산 축소 — 2026-09-06
+
+React production profiling으로 BuilderCanvas의 layout signature 생성을 귀속한 뒤 빈 속성 문자열 할당을 줄였다. 일반 production 교차 3쌍의 edit CPU 중앙값은 241.085→234.604ms/s(-2.69%), frame p95는 10.4ms로 동일, p99는 54.3→51.9ms다. 첫 쌍은 악화됐으므로 변동성을 보존하며 보편적인 개선으로 일반화하지 않는다. 관련 15 tests, 실제 폭 편집/제출/Undo, preflight PASS. 상세 방법·각 쌍·한계는 [편집 계산 증거](evidence/frame-performance-reference-edit-20260906.md)를 따른다.
+
+### 10.2 Projection 직렬화 재사용 — 2026-09-06
+
+raw scene과 resolved page의 공유 객체 직렬화 결과를 한 호출 안에서 재사용한다. 호출 간 cache 없이 기존 hash와 후속 내부 편집 감지를 유지한다. 현재 layoutCache 개선을 양쪽에 포함한 normal production 3쌍에서 CPU 중앙값 238.904→236.226ms/s(-1.12%), frame p95 9.4ms 동일, p99 54.1→52.2ms였다. 20 tests, 실제 폭 편집/제출/Undo, preflight PASS. 작은 상대 효과이며 장비 일반화나 전체 edit stall 해결을 주장하지 않는다. [각 쌍과 검증](evidence/frame-performance-reference-projection-20260906.md).
