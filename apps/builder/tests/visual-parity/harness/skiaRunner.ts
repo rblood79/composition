@@ -236,7 +236,7 @@ export function runSkiaLeg(
   });
 
   // 7) 프로덕션 content node (SkiaRenderable)
-  const content = buildSkiaFrameContent(
+  const outcome = buildSkiaFrameContent(
     {
       aiState: {
         cleanupExpiredFlashes: () => {},
@@ -255,11 +255,12 @@ export function runSkiaLeg(
     },
     new FrameContentCache(),
   );
-  if (!content) {
+  if (outcome.kind !== "content") {
     throw new Error(
-      "buildSkiaFrameContent null — sharedLayoutMap 발행 후에도 빈 씬 (visiblePageIds/bodyElement 확인)",
+      `buildSkiaFrameContent empty(${outcome.reason}) — sharedLayoutMap 발행 후에도 빈 씬 (visiblePageIds/bodyElement 확인)`,
     );
   }
+  const content = outcome.content;
 
   // 8) 프로덕션 offscreen export (ck.MakeSurface → PNG)
   const png = exportToImage(ck, content.contentNode, {

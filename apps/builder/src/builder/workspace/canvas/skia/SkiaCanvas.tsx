@@ -692,12 +692,42 @@ export function SkiaCanvas({
       input: SkiaRendererInput;
       packet: typeof invalidationPacketRef.current;
       layoutVersion: number;
-      content: NonNullable<ReturnType<typeof buildSkiaFrameContent>>;
+      content: Extract<
+        ReturnType<typeof buildSkiaFrameContent>,
+        { kind: "content" }
+      >["content"];
       pagePosVersion: number;
     } | null = null;
     // 재사용 검사 전용 스크래치. skip 경로에서 즉시 버려질 camera 객체를
     // 매 RAF 새로 할당하지 않는다.
     const cameraProbe = { zoom: 0, panX: 0, panY: 0 };
+    /** 마지막으로 surface 를 지운 빈 프레임의 입력 키. 같은 입력의 재-clear 를 막는다. */
+    let lastEmptyFrameKey: string | null = null;
+
+    /**
+     * 실제 surface 제출 뒤 boot target 을 확정한다.
+     *
+     * 호출부는 두 곳이며 **둘 다 실제 main surface flush 뒤**다 — 콘텐츠 프레임의
+     * `renderer.render` 와 빈 프레임의 `renderer.clearFrame`. timeout 이나 가짜
+     * 진행률로 여는 경로는 없다.
+     */
+    const acknowledgeBootPresentation = (documentRevision: number): void => {
+      if (!presentationTargetRef.current) return;
+      const renderedProjectId =
+        useCanonicalDocumentStore.getState().currentProjectId;
+      if (!renderedProjectId) return;
+      const lifecycle = useCanvasLifecycleStore.getState();
+      lifecycle.acknowledgePresentedFrame({
+        projectId: renderedProjectId,
+        documentRevision,
+      });
+      // 성공한 acknowledgment 뒤에는 ref를 비워 이후 RAF의 Zustand 접근을
+      // 제거한다. revision이 아직 target보다 낮으면 다음 제출을 계속 기다린다.
+      if (useCanvasLifecycleStore.getState().isCanvasReady) {
+        recordReadinessPresentation(renderedProjectId, documentRevision);
+        presentationTargetRef.current = null;
+      }
+    };
 
     // ADR-069 Phase 0: renderFrameCore는 원본 로직을 그대로 보존.
     // 아래 renderFrame wrapper가 observe()로 "render.frame" 라벨에 계측을 주입한다.
@@ -978,16 +1008,8 @@ export function SkiaCanvas({
         )
           ? preparedFrame.content
           : null;
-      const contentResult = reusableContent
-        ? {
-            ...reusableContent,
-            sharedScene: {
-              ...reusableContent.sharedScene,
-              cameraX,
-              cameraY,
-              cameraZoom,
-            },
-          }
+      const buildOutcome = reusableContent
+        ? null
         : observe(PERF_LABEL.RENDER_CONTENT_BUILD, () =>
             buildSkiaFrameContent(
               {
@@ -1004,12 +1026,45 @@ export function SkiaCanvas({
               contentCache,
             ),
           );
+      const contentResult = reusableContent
+        ? {
+            ...reusableContent,
+            sharedScene: {
+              ...reusableContent.sharedScene,
+              cameraX,
+              cameraY,
+              cameraZoom,
+            },
+          }
+        : buildOutcome?.kind === "content"
+          ? buildOutcome.content
+          : null;
 
       if (!contentResult) {
         preparedFrame = null;
-        renderer.clearFrame();
-        renderer.invalidateContent();
-        pendingDamageRevisionRef.current = null;
+        // 빈 프레임은 입력이 바뀔 때 한 번만 지운다. 매 프레임 clear + invalidateContent
+        // 를 반복하면 invalidateContent 안의 requestCanvasFrame 이 다음 프레임을 다시
+        // 예약해 빈 화면에서 flush 가 영원히 돈다 (2026-09-07 실측 120 flush/s — 저장된
+        // viewport 가 화면 밖이면 그 상태가 정상 화면이라 끝나지 않는다). 지워진 surface
+        // 는 그대로 유지되므로 같은 입력에서 다시 지울 이유가 없다.
+        const emptyFrameKey = `${currentRendererInput.documentRevision}:${registryVersion}:${layoutVersion}:${cameraX}:${cameraY}:${cameraZoom}`;
+        if (emptyFrameKey !== lastEmptyFrameKey) {
+          lastEmptyFrameKey = emptyFrameKey;
+          renderer.clearFrame();
+          renderer.invalidateContent();
+          pendingDamageRevisionRef.current = null;
+        }
+        // clearFrame 은 main surface 를 실제로 flush 한다. 그릴 것이 이 revision 에
+        // 실제로 없는 경우(저장된 viewport 가 화면 밖이라 페이지가 전부 culling 되는
+        // 등)에는 그 빈 화면이 boot target 의 올바른 결과이므로 여기서 확정한다.
+        // 확정하지 않으면 bootstrapPhase 가 first-frame(95%)에 영구히 머문다.
+        // layout-pending 은 결과가 아직 확정되지 않은 상태라 계속 기다린다.
+        if (
+          buildOutcome?.kind === "empty" &&
+          buildOutcome.reason === "no-visible-content"
+        ) {
+          acknowledgeBootPresentation(currentRendererInput.documentRevision);
+        }
         return;
       }
 
@@ -1098,6 +1153,8 @@ export function SkiaCanvas({
       );
 
       if (didPresent) gpuDrainPolls = 0;
+      // 콘텐츠가 다시 그려졌다 — 다음 빈 프레임은 surface 를 새로 지워야 한다.
+      lastEmptyFrameKey = null;
       const pendingTarget = presentationTargetRef.current;
       preparedFrame = {
         input: currentRendererInput,
@@ -1107,24 +1164,7 @@ export function SkiaCanvas({
         pagePosVersion: contentPagePositionVersion,
       };
       if (didPresent && pendingTarget) {
-        const renderedProjectId =
-          useCanonicalDocumentStore.getState().currentProjectId;
-        if (renderedProjectId) {
-          const lifecycle = useCanvasLifecycleStore.getState();
-          lifecycle.acknowledgePresentedFrame({
-            projectId: renderedProjectId,
-            documentRevision: currentRendererInput.documentRevision,
-          });
-          // 성공한 acknowledgment 뒤에는 ref를 비워 이후 RAF의 Zustand 접근을
-          // 제거한다. revision이 아직 target보다 낮으면 다음 제출을 계속 기다린다.
-          if (useCanvasLifecycleStore.getState().isCanvasReady) {
-            recordReadinessPresentation(
-              renderedProjectId,
-              currentRendererInput.documentRevision,
-            );
-            presentationTargetRef.current = null;
-          }
-        }
+        acknowledgeBootPresentation(currentRendererInput.documentRevision);
       }
     };
 

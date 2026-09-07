@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [캔버스 — 화면 밖 viewport 로 저장된 프로젝트가 95% 에서 멈추던 결함] - 2026-09-07
+
+### Fixed
+
+- 저장된 캔버스 위치가 화면 밖이면 (예: `{x: -2147, y: -340}`) 프로젝트를 다시 열 때 "Preparing the canvas… 95%" 에서 영원히 멈추던 결함을 고쳤습니다. 화면 밖 페이지는 컬링돼 레이아웃이 발행되지 않고, 그러면 빈 프레임만 나와 첫 프레임 확인이 오지 않았습니다. 이제 그릴 것이 이 문서 상태에 실제로 없으면 빈 화면 자체를 실제 surface 제출로 확정합니다 — 화면에 맞추기 (Cmd+0) 로 되돌아오면 내용이 정상으로 그려집니다. 레이아웃이 아직 준비되지 않은 상태 (그릴 root 는 있는데 레이아웃 결과가 없는 경우) 는 종전대로 계속 기다립니다. timeout 이나 가짜 진행률로 여는 경로는 없습니다.
+- 빈 화면이 계속되는 동안 매 프레임 GPU 제출이 돌던 것을 멈췄습니다 (실측 120회/초 → 입력이 바뀔 때 1회). 같은 분기가 매 프레임 `invalidateContent` 로 다음 프레임을 다시 예약하던 것이 원인입니다.
+- 근거: live Playwright 재현 — 수리 전 reload 2회 모두 95% 고정 (`clearSubmission` 3,060 · readiness 기록 없음), 수리 후 ready · `clearSubmission` 2 → 2 → 2 · Cmd+0 복귀 시 `renderBoundsCount` 57. 회귀 static 3 (원복 RED 3) · 캔버스 단위 516 · parity 1,380 · visual smoke 101.
+
 ## [레이아웃 엔진 — flex baseline 정렬 · safe/unsafe · self-start/self-end] - 2026-09-07
 
 ### Fixed
@@ -32,7 +40,7 @@ All notable changes to composition will be documented in this file.
 
 ### Fixed
 
-- 이모지가 들어간 텍스트가 캔버스에서 Preview 보다 이른 줄에서 접히던 결함을 고쳤습니다. Chrome (macOS · Retina) 의 canvas 측정이 이모지 하나당 3~4px (12~20px 글자 크기) 넓게 나오는 브라우저 버그 (Chromium #489494015) 가 원인 — 폰트당 1회 DOM 과 대조한 보정값을 이모지 개수만큼 차감합니다. Retina 가 아니거나 24px 이상이면 차이가 0 이라 보정도 0 입니다.
+- 이모지가 들어간 텍스트가 캔버스에서 Preview 보다 이른 줄에서 접히던 결함을 고쳤습니다. Chrome (macOS · Retina) 의 canvas 측정이 이모지 하나당 3~~4px (12~~20px 글자 크기) 넓게 나오는 브라우저 버그 (Chromium #489494015) 가 원인 — 폰트당 1회 DOM 과 대조한 보정값을 이모지 개수만큼 차감합니다. Retina 가 아니거나 24px 이상이면 차이가 0 이라 보정도 0 입니다.
 - 이모지 앞에서 줄이 바뀌지 않고 이전 줄 끝에 붙어 넘치던 결함을 고쳤습니다 — Chrome 처럼 이모지 앞뒤가 모두 줄바꿈 기회입니다 (`Hello😀World` 좁은 폭 → 3줄). 국기·피부톤·가족(ZWJ) 이모지는 한 단위로 유지됩니다.
 - 근거: pretext 대조 §D 순서 5 (`docs/explanation/research/EXTERNAL_PATTERN_DELTA_2026-09.md`). 사용자 Chrome 152 / DPR 2 재현 확인 후 착수. 단위 7 (파일 78) · live 4 텍스트 × 3 경계 폭에서 Chrome 줄 위치와 12/12 일치, 폭 소수점 동일. evidence `docs/adr/evidence/051-emoji-canvas-width-correction.md`.
 
@@ -56,7 +64,7 @@ All notable changes to composition will be documented in this file.
 
 ### Changed
 
-- ADR-206 을 Implemented 로 승격했습니다 (Phase 0~3 / G0~G5 당일 종결). 사용자-가시 변경은 아래 Phase 1 · Phase 2 엔트리 두 건이 전부이고, 이 엔트리는 종결 근거만 적습니다.
+- ADR-206 을 Implemented 로 승격했습니다 (Phase 0~~3 / G0~~G5 당일 종결). 사용자-가시 변경은 아래 Phase 1 · Phase 2 엔트리 두 건이 전부이고, 이 엔트리는 종결 근거만 적습니다.
 - 제품 수준 프레임 영향 확인: `pnpm perf:baseline -- --lane frame` 600 요소 — idle / pan / zoom / panel-resize 의 callback gap p95 17.5~17.8 ms, >25 ms 0 %, `render.frame` p95 ≤ 5.4 ms. 엔진 재-solve 추가 (stretch 소비자 재-solve · grid 셀 definite) 가 프레임을 밀지 않습니다. `tree_solve` bench depth 12 는 Phase 0 baseline 과 같습니다 (27,666 ns).
 - 실제 빌더 exercise (Chrome MCP, 로컬 프로젝트): flex row 안 `height:100%` → `50%` 3단 전파 · 2열 grid 의 `span 3` 자식 제자리 (종전 y 100,000) · template 없는 grid 자식 폭 400 · ProgressBar Track 회귀 0.
 - 남은 기록: Chrome 의 grid line 상한은 10,000,000 이고 엔진은 10,000 을 유지합니다 (의도된 편차). 내용 0 인 grid auto item 이 셀을 채우는 폴백은 LOW deferred (ADR-206 리뷰 round 1). 문서: ADR `docs/adr/completed/206-…md`, 규칙 ledger §백분율 · §25.

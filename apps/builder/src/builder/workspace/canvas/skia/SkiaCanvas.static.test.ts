@@ -114,17 +114,74 @@ describe("SkiaCanvas render invalidation contract", () => {
       renderIndex,
     );
     const acknowledgmentIndex = source.indexOf(
-      "lifecycle.acknowledgePresentedFrame({",
+      "acknowledgeBootPresentation(currentRendererInput.documentRevision)",
       guardIndex,
     );
 
     expect(renderIndex).toBeGreaterThan(-1);
     expect(guardIndex).toBeGreaterThan(renderIndex);
     expect(acknowledgmentIndex).toBeGreaterThan(guardIndex);
+    // 확정은 헬퍼 한 곳이 소유한다 — 호출부가 늘어도 store 계약이 갈리지 않는다.
+    expect(source).toContain("lifecycle.acknowledgePresentedFrame({");
     expect(source).toContain(
-      "projectId: renderedProjectId,\n            documentRevision: currentRendererInput.documentRevision,",
+      "projectId: renderedProjectId,\n        documentRevision,",
     );
     expect(source).toContain("rendererRef.current?.invalidateContent()");
+  });
+
+  it("그릴 것이 없는 빈 프레임도 clearFrame 의 실제 flush 로 boot target 을 확정한다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+
+    // 저장된 viewport 가 화면 밖이면 페이지가 전부 culling 돼 content build 가
+    // 빈 프레임을 돌려준다. 그 경로가 readiness 를 확정하지 않으면 bootstrapPhase
+    // 가 first-frame(95%)에 영구히 머문다 (2026-09-07 live 재현).
+    const emptyBranch = source.indexOf("if (!contentResult) {");
+    const clearIndex = source.indexOf("renderer.clearFrame();", emptyBranch);
+    const ackIndex = source.indexOf(
+      "acknowledgeBootPresentation(currentRendererInput.documentRevision)",
+      clearIndex,
+    );
+
+    expect(emptyBranch).toBeGreaterThan(-1);
+    expect(clearIndex).toBeGreaterThan(emptyBranch);
+    expect(ackIndex).toBeGreaterThan(clearIndex);
+    // layout 이 아직 안 나온 상태는 결과가 확정되지 않았으므로 계속 기다린다.
+    expect(source).toContain('buildOutcome.reason === "no-visible-content"');
+  });
+
+  it("빈 프레임은 같은 입력에서 surface 를 다시 지우지 않는다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "SkiaCanvas.tsx"),
+      "utf-8",
+    );
+
+    // clearFrame + invalidateContent 를 매 프레임 반복하면 invalidateContent 안의
+    // requestCanvasFrame 이 다음 프레임을 다시 예약해 빈 화면에서 flush 가 영원히
+    // 돈다 (2026-09-07 실측 120 flush/s). camera/revision 이 키에 들어가야 화면
+    // 안으로 돌아왔을 때 콘텐츠가 다시 그려진다.
+    expect(source).toContain("let lastEmptyFrameKey: string | null = null;");
+    expect(source).toContain("if (emptyFrameKey !== lastEmptyFrameKey) {");
+    for (const part of [
+      "currentRendererInput.documentRevision",
+      "registryVersion",
+      "layoutVersion",
+      "cameraX",
+      "cameraY",
+      "cameraZoom",
+    ]) {
+      expect(
+        source.slice(
+          source.indexOf("const emptyFrameKey = "),
+          source.indexOf("if (emptyFrameKey !== lastEmptyFrameKey) {"),
+        ),
+        `빈 프레임 키에 ${part} 가 없으면 그 축이 바뀌어도 화면이 빈 채로 남는다`,
+      ).toContain(part);
+    }
+    // 콘텐츠가 다시 그려지면 latch 를 풀어야 다음 빈 상태에서 surface 를 지운다.
+    expect(source).toContain("lastEmptyFrameKey = null;");
   });
 
   it("feeds StoreRenderBridge from page-resolved rendererInput maps", async () => {
