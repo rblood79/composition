@@ -27,7 +27,7 @@
  * `presentationRole: "background-fill"` 을 보고 곱하므로 여기서 곱하지 않는다.
  *
  * @see docs/adr/130-layer3-canonical-vocabulary-alignment.md
- * @see docs/adr/198-d3-renderer-pixel-parity-gate.md
+ * @see docs/adr/completed/198-d3-renderer-pixel-parity-gate.md
  */
 
 import type { ComponentSpec, Shape, TokenRef } from "../types";
