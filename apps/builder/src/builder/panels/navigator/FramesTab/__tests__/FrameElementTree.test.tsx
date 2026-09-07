@@ -283,4 +283,42 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
       expect(onCollapseAll).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("가상화 전환 임계값", () => {
+    /**
+     * 실제 문서는 루트가 `body` 하나뿐이라, 판정을 루트 배열 길이로 하면
+     * 요소를 아무리 늘려도 임계값에 닿지 않는다 (2026-09-07 실측: 행 18개에서도
+     * TreeBase 렌더). 아래 두 케이스가 "전체 노드 수" 기준임을 잠근다.
+     */
+    function deepTree(childCount: number) {
+      const children = Array.from({ length: childCount }, (_, i) =>
+        makeItem(`child-${i}`, "Text"),
+      );
+      return [makeItem("body", "body", { children })];
+    }
+
+    const expandAll = (childCount: number) =>
+      new Set([
+        "body",
+        ...Array.from({ length: childCount }, (_, i) => `child-${i}`),
+      ]);
+
+    it("루트 1개 + 자식 11개(총 12) → VirtualizedTree(role=tree)", () => {
+      render(
+        <FrameElementTree
+          {...makeProps({ tree: deepTree(11), expandedKeys: expandAll(11) })}
+        />,
+      );
+      expect(screen.getByRole("tree")).toBeTruthy();
+    });
+
+    it("루트 1개 + 자식 10개(총 11) → TreeBase 유지", () => {
+      render(
+        <FrameElementTree
+          {...makeProps({ tree: deepTree(10), expandedKeys: expandAll(10) })}
+        />,
+      );
+      expect(screen.queryByRole("tree")).toBeNull();
+    });
+  });
 });

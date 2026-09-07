@@ -35,6 +35,16 @@ interface FrameElementTreeNode extends BaseTreeNode {
   children?: FrameElementTreeNode[];
 }
 
+/**
+ * 이 개수 이상이면 `VirtualizedTree` 로 그린다.
+ *
+ * 세는 대상은 **트리 전체 노드**(`nodeMap.size`)다. `treeNodes` 는 루트 배열이고
+ * 자식은 `children` 으로 중첩돼 있어, 단일 `body` 루트인 실제 문서에서는 길이가
+ * 늘 1 이었다 — 요소를 아무리 늘려도 가상화가 열리지 않았다 (2026-09-07 실측:
+ * 행 18개에서도 `TreeBase` 렌더).
+ */
+const VIRTUALIZE_THRESHOLD = 12;
+
 export interface FrameElementTreeProps {
   /** 렌더할 element 트리 */
   tree: ElementTreeItem[];
@@ -172,7 +182,7 @@ export function FrameElementTree({
           icon={<Layers3 size={32} />}
           message={t("navigator.noElements")}
         />
-      ) : treeNodes.length >= 12 ? (
+      ) : nodeMap.size >= VIRTUALIZE_THRESHOLD ? (
         <VirtualizedTree<FrameElementTreeNode>
           aria-label={t("navigator.layers")}
           items={treeNodes}

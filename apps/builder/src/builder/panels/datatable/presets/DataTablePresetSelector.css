@@ -63,7 +63,9 @@
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   cursor: pointer;
-  transition: background-color 150ms, color 150ms;
+  transition:
+    background-color 150ms,
+    color 150ms;
 }
 
 .preset-modal-close:hover {
@@ -232,7 +234,7 @@
   text-align: center;
 }
 
-.preset-sample-count input:focus {
+.preset-sample-count input:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
 }

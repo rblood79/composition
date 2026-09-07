@@ -69,7 +69,7 @@
     transition: border-color 150ms;
   }
 
-  .add-page-field input:focus {
+  .add-page-field input:focus-visible {
     outline: none;
     border-color: var(--accent);
   }
@@ -88,7 +88,7 @@
     cursor: pointer;
   }
 
-  .add-page-select:focus {
+  .add-page-select:focus-visible {
     outline: none;
     border-color: var(--accent);
   }
@@ -138,5 +138,4 @@
     padding-top: var(--spacing-md);
     border-top: 1px solid var(--border);
   }
-
 }

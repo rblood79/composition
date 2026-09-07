@@ -1,0 +1,25 @@
+/* 전역 reduced-motion 대응 (Web Interface Guidelines)
+ *
+ * 빌더 CSS 43개 파일이 transition/animation 을 쓰지만 개별 대응은 3개뿐이라,
+ * 여기서 한 번에 받는다. 파일별 `@media (prefers-reduced-motion: reduce)` 블록이
+ * 이미 있는 곳(PanelWorkspace / error-loading / inspector-layout)은 그대로 두고,
+ * 이 규칙이 남는 전부를 덮는다.
+ *
+ * 0 이 아니라 0.01ms 인 이유: `transitionend` / `animationend` 를 기다리는
+ * 코드가 이벤트를 못 받고 멈추는 것을 막는다.
+ *
+ * `utilities` 는 레이어 우선순위 최상단(index.css @layer 선언)이라
+ * builder-system / components 규칙을 전부 이긴다.
+ */
+@layer utilities {
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}

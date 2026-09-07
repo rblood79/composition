@@ -105,7 +105,7 @@
   color: var(--fg);
 }
 
-.kv-input:focus {
+.kv-input:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 2px var(--color-primary-100);
@@ -169,7 +169,7 @@
   resize: vertical;
 }
 
-.body-textarea:focus {
+.body-textarea:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 2px var(--color-primary-100);

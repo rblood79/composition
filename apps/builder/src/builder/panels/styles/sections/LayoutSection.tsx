@@ -279,21 +279,25 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               handleFlexDirection(value);
             }}
           >
-            <ToggleButton id="block" isDisabled={isDirectionDriven}>
+            <ToggleButton
+              id="block"
+              aria-label={localize("Block")}
+              isDisabled={isDirectionDriven}
+            >
               <Square
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="row">
+            <ToggleButton id="row" aria-label={localize("Row")}>
               <StretchVertical
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="column">
+            <ToggleButton id="column" aria-label={localize("Column")}>
               <StretchHorizontal
                 color={iconProps.color}
                 size={iconProps.size}
@@ -320,31 +324,43 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               }
             }}
           >
-            <ToggleButton id="leftTop">
+            <ToggleButton id="leftTop" aria-label={localize("Top left")}>
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="centerTop">
+            <ToggleButton id="centerTop" aria-label={localize("Top center")}>
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="rightTop">
+            <ToggleButton id="rightTop" aria-label={localize("Top right")}>
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="leftCenter">
+            <ToggleButton id="leftCenter" aria-label={localize("Middle left")}>
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="centerCenter">
+            <ToggleButton
+              id="centerCenter"
+              aria-label={localize("Middle center")}
+            >
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="rightCenter">
+            <ToggleButton
+              id="rightCenter"
+              aria-label={localize("Middle right")}
+            >
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="leftBottom">
+            <ToggleButton id="leftBottom" aria-label={localize("Bottom left")}>
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="centerBottom">
+            <ToggleButton
+              id="centerBottom"
+              aria-label={localize("Bottom center")}
+            >
               <span className="alignment-dot" />
             </ToggleButton>
-            <ToggleButton id="rightBottom">
+            <ToggleButton
+              id="rightBottom"
+              aria-label={localize("Bottom right")}
+            >
               <span className="alignment-dot" />
             </ToggleButton>
           </ToggleButtonGroup>
@@ -375,21 +391,30 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               }
             }}
           >
-            <ToggleButton id="space-around">
+            <ToggleButton
+              id="space-around"
+              aria-label={localize("Space around")}
+            >
               <AlignHorizontalSpaceAround
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="space-between">
+            <ToggleButton
+              id="space-between"
+              aria-label={localize("Space between")}
+            >
               <AlignHorizontalSpaceBetween
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="space-evenly">
+            <ToggleButton
+              id="space-evenly"
+              aria-label={localize("Space evenly")}
+            >
               <GalleryHorizontal
                 color={iconProps.color}
                 size={iconProps.size}
@@ -415,21 +440,24 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               }
             }}
           >
-            <ToggleButton id="wrap">
+            <ToggleButton id="wrap" aria-label={localize("Wrap lines")}>
               <TextWrap
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="wrap-reverse">
+            <ToggleButton
+              id="wrap-reverse"
+              aria-label={localize("Wrap reverse")}
+            >
               <CornerDownLeft
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
-            <ToggleButton id="nowrap">
+            <ToggleButton id="nowrap" aria-label={localize("No wrap")}>
               <ArrowRightToLine
                 color={iconProps.color}
                 size={iconProps.size}

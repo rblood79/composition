@@ -107,6 +107,7 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
   const scrollRef = useRef<HTMLDivElement>(null);
   const anchorKeyRef = useRef<Key | null>(null);
   const [draggingKey, setDraggingKey] = useState<Key | null>(null);
+  const [activeKey, setActiveKey] = useState<Key | null>(null);
   const [dropTarget, setDropTarget] = useState<{
     key: Key;
     position: DropPosition;
@@ -159,18 +160,16 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
     }
   }, [focusedKey, flattenedNodes, virtualizer]);
 
-  // 노드 클릭 핸들러 — 수식어 해석은 TreeBase(RAC) 경로와 같은 규칙을 쓴다
-  const handleNodeClick = useCallback(
-    (key: Key, event: React.MouseEvent) => {
-      event.preventDefault();
+  // 선택 규칙 — 수식어 해석은 TreeBase(RAC) 경로와 같다. 클릭과 키보드가 같이 쓴다.
+  const selectKey = useCallback(
+    (
+      key: Key,
+      modifiers: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+    ) => {
       const result = resolveVirtualizedSelection({
         anchorKey: anchorKeyRef.current,
         key,
-        modifiers: {
-          ctrlKey: event.ctrlKey,
-          metaKey: event.metaKey,
-          shiftKey: event.shiftKey,
-        },
+        modifiers,
         orderedKeys: flattenedNodes.map((entry) => entry.key),
         selectedKeys,
         selectionBehavior,
@@ -188,19 +187,40 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
     ],
   );
 
-  // 확장 토글
-  const handleToggle = useCallback(
+  const handleNodeClick = useCallback(
     (key: Key, event: React.MouseEvent) => {
-      event.stopPropagation();
+      event.preventDefault();
+      setActiveKey(key);
+      selectKey(key, {
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        shiftKey: event.shiftKey,
+      });
+    },
+    [selectKey],
+  );
+
+  // 확장 상태 변경 — 토글 버튼과 ArrowLeft/Right 가 같이 쓴다
+  const setExpanded = useCallback(
+    (key: Key, expanded: boolean) => {
+      if (expandedKeys.has(key) === expanded) return;
       const newExpanded = new Set(expandedKeys);
-      if (newExpanded.has(key)) {
-        newExpanded.delete(key);
-      } else {
+      if (expanded) {
         newExpanded.add(key);
+      } else {
+        newExpanded.delete(key);
       }
       onExpandedChange?.(newExpanded);
     },
     [expandedKeys, onExpandedChange],
+  );
+
+  const handleToggle = useCallback(
+    (key: Key, event: React.MouseEvent) => {
+      event.stopPropagation();
+      setExpanded(key, !expandedKeys.has(key));
+    },
+    [expandedKeys, setExpanded],
   );
 
   // DnD 핸들러
@@ -273,6 +293,104 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
     setDropTarget(null);
   }, []);
 
+  // ── 키보드 탐색 (role="tree" 계약) ──────────────────────────────────
+  // activeKey 는 roving tabindex 의 소유자다. 소비자가 주는 focusedKey 를
+  // 초기값으로 쓰고, 그 뒤로는 화살표 입력이 옮긴다.
+  const activeIndex = useMemo(() => {
+    const key = activeKey ?? focusedKey;
+    const index =
+      key == null ? -1 : flattenedNodes.findIndex((n) => n.key === key);
+    return index >= 0 ? index : flattenedNodes.length > 0 ? 0 : -1;
+  }, [activeKey, focusedKey, flattenedNodes]);
+
+  const activeNodeKey =
+    activeIndex >= 0 ? flattenedNodes[activeIndex].key : null;
+
+  // 키보드로 옮긴 뒤에만 DOM 포커스를 따라 옮긴다 (마우스 선택은 건드리지 않음).
+  const pendingFocusRef = useRef(false);
+
+  const moveActive = useCallback(
+    (index: number) => {
+      if (index < 0 || index >= flattenedNodes.length) return;
+      pendingFocusRef.current = true;
+      setActiveKey(flattenedNodes[index].key);
+      virtualizer.scrollToIndex(index, { align: "auto" });
+    },
+    [flattenedNodes, virtualizer],
+  );
+
+  useEffect(() => {
+    if (!pendingFocusRef.current || activeNodeKey == null) return;
+    const el = scrollRef.current?.querySelector<HTMLElement>(
+      `[data-key="${CSS.escape(String(activeNodeKey))}"]`,
+    );
+    if (el) {
+      pendingFocusRef.current = false;
+      el.focus();
+    }
+  });
+
+  const handleKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (activeIndex < 0) return;
+      const current = flattenedNodes[activeIndex];
+
+      switch (event.key) {
+        case "ArrowDown":
+          event.preventDefault();
+          moveActive(activeIndex + 1);
+          return;
+        case "ArrowUp":
+          event.preventDefault();
+          moveActive(activeIndex - 1);
+          return;
+        case "Home":
+          event.preventDefault();
+          moveActive(0);
+          return;
+        case "End":
+          event.preventDefault();
+          moveActive(flattenedNodes.length - 1);
+          return;
+        case "ArrowRight":
+          event.preventDefault();
+          if (current.hasChildren && !current.isExpanded) {
+            setExpanded(current.key, true);
+          } else if (current.hasChildren) {
+            moveActive(activeIndex + 1);
+          }
+          return;
+        case "ArrowLeft": {
+          event.preventDefault();
+          if (current.hasChildren && current.isExpanded) {
+            setExpanded(current.key, false);
+            return;
+          }
+          // 부모로 — 자기보다 얕은 depth 가 처음 나오는 위쪽 행
+          for (let i = activeIndex - 1; i >= 0; i--) {
+            if (flattenedNodes[i].depth < current.depth) {
+              moveActive(i);
+              return;
+            }
+          }
+          return;
+        }
+        case "Enter":
+        case " ":
+          event.preventDefault();
+          selectKey(current.key, {
+            ctrlKey: event.ctrlKey,
+            metaKey: event.metaKey,
+            shiftKey: event.shiftKey,
+          });
+          return;
+        default:
+          return;
+      }
+    },
+    [activeIndex, flattenedNodes, moveActive, selectKey, setExpanded],
+  );
+
   const virtualItems = virtualizer.getVirtualItems();
 
   return (
@@ -281,6 +399,7 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
       className={className}
       role="tree"
       aria-label={ariaLabel}
+      onKeyDown={handleKeyDown}
       style={{ height: "100%", overflow: "auto" }}
     >
       <div
@@ -296,6 +415,7 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
           const isSelected = selectedKeys.has(key);
           const isDisabled = disabledKeys?.has(key) ?? false;
           const isFocusVisible = key === focusedKey;
+          const isActive = key === activeNodeKey;
           const isDropTargetActive = dropTarget?.key === key;
 
           const textValue = getTextValue(node);
@@ -309,7 +429,7 @@ export function VirtualizedTree<TNode extends BaseTreeNode>({
               aria-selected={isSelected}
               aria-expanded={hasChildren ? isExpanded : undefined}
               aria-disabled={isDisabled}
-              tabIndex={isFocusVisible ? 0 : -1}
+              tabIndex={isActive ? 0 : -1}
               draggable={dnd?.canDrag(node) ?? false}
               onClick={(e) => handleNodeClick(key, e)}
               onDragStart={(e) => handleDragStart(key, node, e)}

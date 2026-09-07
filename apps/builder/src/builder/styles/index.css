@@ -14,6 +14,7 @@
 @import "./modules/builder-control-group.css";
 @import "./modules/element-tree.css";
 @import "./modules/error-loading.css";
+@import "./modules/reduced-motion.css";
 
 /* Monitor Panel */
 @import "../panels/monitor/monitor-panel.css";

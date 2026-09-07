@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [빌더 패널 접근성 — 토글 이름·트리 키보드·포커스 링·reduced motion] - 2026-09-07
+
+### Added
+
+- Styles 패널의 아이콘 전용 ToggleButton 33개에 접근 가능한 이름을 붙였습니다. Typography 15개(가로/세로 정렬·장식·글꼴 스타일·대소문자)와 Layout 18개(방향 3·9칸 정렬 그리드·주축 정렬 3·줄바꿈 3)이며 ko/en 라벨을 함께 추가했습니다. 그룹에만 이름이 있어 개별 옵션이 스크린리더에서 무명이던 상태를 해소합니다.
+- Layers 가상화 트리(`VirtualizedTree`)에 키보드 탐색을 추가했습니다. ArrowUp/Down·Home/End 이동, ArrowRight 펼침, ArrowLeft 접기 및 부모 이동, Enter/Space 선택을 지원하며 선택 규칙은 클릭 경로와 같습니다. `focusedKey` 가 없을 때 모든 행의 `tabIndex` 가 -1 이라 Tab 으로 진입조차 못 하던 것도 roving tabindex 로 고쳤습니다.
+- 전역 `prefers-reduced-motion` 대응을 추가했습니다. 빌더 CSS 43개 파일 중 3개만 개별 대응하던 것을 `utilities` 레이어의 규칙 하나가 덮습니다.
+
+### Fixed
+
+- Layers 트리의 가상화 전환 조건이 루트 배열 길이를 세어 단일 `body` 루트 문서에서는 값이 늘 1 이었습니다. 요소를 아무리 늘려도 가상화가 열리지 않아(행 18개에서도 비가상 트리) 전체 노드 수 기준으로 정정했습니다.
+- `outline: none` 뒤에 포커스 표시가 없던 곳을 정리했습니다. 대체 스타일이 있던 12곳은 `:focus-visible` 로 전환하고, 대체가 없던 6곳(필터·검색·스냅숏 이름·줌 입력·인스펙터 입력)에는 포커스 링을 넣었습니다.
+
 ## [Builder 외부 레퍼런스 우선순위 1–5] - 2026-09-07
 
 - IndexedDB v21에서 변경된 canonical 노드만 저장하고 transaction 완료 후 성공 처리한다. 구 문서 전환·급감 가드·백업·복원 계약을 유지한다. 큰 저장 준비에는 transaction 밖의 task yield를 적용했다.

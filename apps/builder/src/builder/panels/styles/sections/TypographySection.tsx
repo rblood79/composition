@@ -294,21 +294,21 @@ const TypographySectionContent = memo(function TypographySectionContent() {
             if (value) updateStyle("textAlign", value);
           }}
         >
-          <ToggleButton id="left">
+          <ToggleButton id="left" aria-label={localize("Align left")}>
             <AlignLeft
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="center">
+          <ToggleButton id="center" aria-label={localize("Align center")}>
             <AlignCenter
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="right">
+          <ToggleButton id="right" aria-label={localize("Align right")}>
             <AlignRight
               color={iconProps.color}
               size={iconProps.size}
@@ -331,21 +331,27 @@ const TypographySectionContent = memo(function TypographySectionContent() {
             if (value) updateStyle("verticalAlign", value);
           }}
         >
-          <ToggleButton id="top">
+          <ToggleButton id="top" aria-label={localize("Vertical align top")}>
             <AlignVerticalJustifyStart
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="middle">
+          <ToggleButton
+            id="middle"
+            aria-label={localize("Vertical align middle")}
+          >
             <AlignVerticalJustifyCenter
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="bottom">
+          <ToggleButton
+            id="bottom"
+            aria-label={localize("Vertical align bottom")}
+          >
             <AlignVerticalJustifyEnd
               color={iconProps.color}
               size={iconProps.size}
@@ -373,7 +379,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
             updateStyle("textDecoration", value || "none");
           }}
         >
-          <ToggleButton id="overline">
+          <ToggleButton id="overline" aria-label={localize("Overline")}>
             <Baseline
               color={iconProps.color}
               size={iconProps.size}
@@ -381,14 +387,17 @@ const TypographySectionContent = memo(function TypographySectionContent() {
               style={{ transform: "rotate(180deg)" }}
             />
           </ToggleButton>
-          <ToggleButton id="underline">
+          <ToggleButton id="underline" aria-label={localize("Underline")}>
             <Underline
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="line-through">
+          <ToggleButton
+            id="line-through"
+            aria-label={localize("Strikethrough")}
+          >
             <Strikethrough
               color={iconProps.color}
               size={iconProps.size}
@@ -409,21 +418,21 @@ const TypographySectionContent = memo(function TypographySectionContent() {
             if (value) updateStyle("fontStyle", value);
           }}
         >
-          <ToggleButton id="normal">
+          <ToggleButton id="normal" aria-label={localize("Normal style")}>
             <RemoveFormatting
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="italic">
+          <ToggleButton id="italic" aria-label={localize("Italic")}>
             <Italic
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="oblique">
+          <ToggleButton id="oblique" aria-label={localize("Oblique")}>
             <Type
               color={iconProps.color}
               size={iconProps.size}
@@ -452,21 +461,21 @@ const TypographySectionContent = memo(function TypographySectionContent() {
             updateStyle("textTransform", value || "none");
           }}
         >
-          <ToggleButton id="uppercase">
+          <ToggleButton id="uppercase" aria-label={localize("Uppercase")}>
             <CaseUpper
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="lowercase">
+          <ToggleButton id="lowercase" aria-label={localize("Lowercase")}>
             <CaseLower
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="capitalize">
+          <ToggleButton id="capitalize" aria-label={localize("Capitalize")}>
             <CaseSensitive
               color={iconProps.color}
               size={iconProps.size}

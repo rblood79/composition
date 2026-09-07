@@ -52,7 +52,7 @@
   resize: vertical;
 }
 
-.json-textarea:focus {
+.json-textarea:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 2px var(--color-primary-100);
@@ -113,7 +113,7 @@
   margin-left: var(--spacing-md);
 }
 
-.transform-textarea:focus {
+.transform-textarea:focus-visible {
   outline: none;
   border-color: var(--color-primary-500);
   box-shadow: 0 0 0 2px var(--color-primary-100);
