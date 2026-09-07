@@ -7,15 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
-## [Skia 최초 Picture 준비 분할] - 2026-09-07
+## [Skia 폰트 이름 조회의 중복 파싱 제거] - 2026-09-07
 
 ### Performance
 
-- **최초 Picture 캐시 생성의 RAF 집중 완화**:
-  - **Why**: 최초 cold Picture 130건의 명령 실행이 한 RAF에 몰려 개발 모드에서 461ms 경고가 발생했습니다.
-  - 노드별 준비를 4ms 예산의 task로 분할하고 폰트 등록도 별도 작업으로 분리했습니다. 버전 변경·컨텍스트 손실·unmount에서 취소하며 실제 matching surface flush 이후 readiness를 유지합니다.
-  - camera-only/edit fast path와 기존 캐시 용량을 유지합니다. 초기 native paragraph.layout와 overlay/flush 비용은 남아 있어 long task 완전 제거로 보지 않습니다.
-  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{picturePreparation,renderCommands,SkiaCanvas}.ts*`. 측정·한계: [검증 기록](migrations/cold-picture-preparation-20260907.md).
+- 이미 생성한 Typeface의 내장 패밀리 이름을 직접 읽어, 이름 조회만을 위한 임시 `FontMgr.FromData` 재파싱을 제거했습니다. 동일 이름도 매핑에 저장해 추가 weight 로드에서 반복 조회하지 않습니다.
+- FontMgr의 variable weight 선택과 Paragraph의 공유 FontCollection 경로는 유지합니다. provider 통합은 실제 700/900 글리프 폭 대조에서 차이가 확인돼 적용하지 않았습니다.
+- 실제 프로젝트 부트와 관련 회귀 테스트를 검증했습니다. 전체 FontMgr 구축 및 단일 Paragraph layout의 긴 동기 호출은 남아 있으므로 프로젝트 오픈 경고의 완전한 해결은 아닙니다.
+
+## [Skia WOFF2 반복 파싱 제거와 임시 최적화 철회] - 2026-09-07
+
+### Performance
+
+- CanvasKit 빌트인 폰트는 원본 Variable WOFF2를 압축 해제한 TTF를 사용합니다. variation·글리프·이름 테이블을 유지하고 브라우저 CSS는 WOFF2를 유지합니다. URL 검증을 통해 이전 WOFF2 IndexedDB 항목은 새 TTF로 교체됩니다.
+- 동일 폰트 대조에서 Pretendard FontMgr 구축 531.1→1.0ms, 최초 Paragraph layout90.8→1.0ms를 관측했습니다. 작은 격리 실험 수치이며 전체 프로젝트 오픈 개선율이 아닙니다.
+- 근본 비용을 줄이지 못했던 Picture 타이머 분할·전용 준비 경로를 제거했습니다. 기존 Picture 캐시, 측정 라벨, matching surface flush readiness는 유지합니다. 미커밋 Styles/단축키/팔레트 추정 최적화도 철회했습니다.
+- 실제 부트에서 Paragraph max17.2ms, collection max1.0ms를 관측했지만 초기 content 기록/GPU flush를 포함한 RAF90.6ms는 남았습니다. 경고 전체 해결로 판정하지 않습니다. Worker는 제품에 추가하지 않았습니다.
+- TTF 원시 크기는 두 파일 합계 약7.62MB로 WOFF2 합계2.41MB보다 큽니다. 첫 다운로드와 배포 HTTP 압축 비용은 별도 확인 대상입니다. 재생성: `scripts/prepare-skia-fonts.py`.
 
 ## [빌더 패널 접근성 — 토글 이름·트리 키보드·포커스 링·reduced motion] - 2026-09-07
 

@@ -17,7 +17,7 @@
  *   node scripts/generate-text-axis-matrix.mjs --check  # drift 만 검사 (preflight)
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { format, resolveConfig } from "prettier";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -156,6 +156,8 @@ function skiaSources(dir) {
   })
     .split("\n")
     .filter((f) => f && !f.includes(".test.") && !f.includes("__tests__"))
+    // 미커밋 삭제 파일은 index에 남지만 현재 렌더링 소스에는 포함되지 않는다.
+    .filter((f) => existsSync(resolve(ROOT, f)))
     .map((f) => read(f));
 }
 

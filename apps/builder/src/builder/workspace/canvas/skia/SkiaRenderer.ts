@@ -530,17 +530,6 @@ export class SkiaRenderer {
     );
   }
 
-  /** 사전 Picture 준비와 실제 content 렌더가 같은 padding을 소비한다. */
-  getContentCullingBounds(bounds: DOMRect, zoom: number): DOMRect {
-    const pad = this.contentPaddingDevicePx / this.dpr / Math.max(zoom, 0.001);
-    return new DOMRect(
-      bounds.x - pad,
-      bounds.y - pad,
-      bounds.width + pad * 2,
-      bounds.height + pad * 2,
-    );
-  }
-
   /**
    * Content Surface를 초기화한다.
    * mainSurface보다 큰 오프스크린 Surface를 생성하여 camera-only blit 시
@@ -804,9 +793,12 @@ export class SkiaRenderer {
 
     // 전체 콘텐츠 렌더링 (Pencil 방식: content invalidation은 full rerender)
     const padCss = this.contentPaddingDevicePx / this.dpr;
-    const paddedBounds = this.getContentCullingBounds(
-      cullingBounds,
-      camera.zoom,
+    const padScene = padCss / Math.max(camera.zoom, 0.001);
+    const paddedBounds = new DOMRect(
+      cullingBounds.x - padScene,
+      cullingBounds.y - padScene,
+      cullingBounds.width + padScene * 2,
+      cullingBounds.height + padScene * 2,
     );
 
     // 투명 배경으로 클리어 — 그리드가 콘텐츠 아래(main canvas)에서 보이도록

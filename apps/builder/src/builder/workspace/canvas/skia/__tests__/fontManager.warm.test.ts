@@ -23,7 +23,10 @@ const { fromDataMock } = vi.hoisted(() => {
 vi.mock("../initCanvasKit", () => ({
   getCanvasKit: () => ({
     Typeface: {
-      MakeFreeTypeFaceFromData: () => ({ delete: vi.fn() }),
+      MakeFreeTypeFaceFromData: () => ({
+        getFamilyName: () => "MockEmbeddedName",
+        delete: vi.fn(),
+      }),
     },
     FontMgr: { FromData: fromDataMock },
   }),
@@ -51,6 +54,18 @@ describe("SkiaFontManager.warmFontMgr", () => {
     expect(mgr1).toBe(mgr2);
   });
 
+  it("이미 만든 Typeface에서 이름을 읽고 같은 face의 중복 로드는 건너뛴다", () => {
+    const fm = new SkiaFontManager();
+    const bytes = new ArrayBuffer(8);
+    fm.loadFontFromBuffer("Alias", bytes);
+    fm.loadFontFromBuffer("Alias", bytes);
+    expect(fm.resolveFamily("Alias")).toBe("MockEmbeddedName");
+    expect(fromDataMock).not.toHaveBeenCalled();
+    fm.warmFontMgr();
+    expect(fromDataMock).toHaveBeenCalledTimes(1);
+    fm.dispose();
+  });
+
   it("폰트 미로드 상태에서는 no-op (throw 하지 않는다)", () => {
     const fm = new SkiaFontManager();
     expect(() => fm.warmFontMgr()).not.toThrow();
@@ -65,8 +80,8 @@ describe("SkiaFontManager.warmFontMgr", () => {
 
     fm.loadFontFromBuffer("FontB", new ArrayBuffer(8));
     fm.warmFontMgr();
-    // FontB 로드의 이름 추출(temp FromData) + 재구축으로 호출 수 증가
-    expect(fromDataMock.mock.calls.length).toBeGreaterThan(afterFirstWarm);
+    // 새 폰트 배치에 대한 manager 재구축만 수행한다
+    expect(fromDataMock.mock.calls.length).toBe(afterFirstWarm + 1);
 
     // 재구축 완료 후 프레임 내 getFontMgr() 는 캐시 히트
     const stable = fromDataMock.mock.calls.length;

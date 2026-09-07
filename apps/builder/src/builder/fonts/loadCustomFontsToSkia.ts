@@ -51,28 +51,34 @@ async function registerFontInBrowser(
  * - Pretendard Variable: cv02/cv03/cv04/cv11 (single-story a) 지원
  * - Inter Variable: cv01~cv11, ss01~ss08 지원
  *
- * public/fonts/ 에 위치한 woff2를 직접 fetch.
+ * CanvasKit에는 압축 해제한 TTF를 공급한다. WOFF2는 native 폰트 스캔과
+ * variation 생성 때 반복 디코딩 비용이 크다. 브라우저는 기존 WOFF2를 유지한다.
  */
 export async function loadBuiltinFontsToSkia(): Promise<void> {
-  const builtins: Array<{ family: string; url: string; fallbackUrl?: string }> =
-    [
-      {
-        family: "Pretendard",
-        url: resolveFontUrl("fonts/PretendardVariable.woff2"),
-      },
-      {
-        family: "Inter",
-        url: resolveFontUrl("fonts/InterVariable.woff2"),
-      },
-    ];
+  const builtins: Array<{
+    family: string;
+    url: string;
+    browserUrl?: string;
+    fallbackUrl?: string;
+  }> = [
+    {
+      family: "Pretendard",
+      url: resolveFontUrl("fonts/PretendardVariable.ttf"),
+    },
+    {
+      family: "Inter",
+      url: resolveFontUrl("fonts/InterVariable.ttf"),
+      browserUrl: resolveFontUrl("fonts/InterVariable.woff2"),
+    },
+  ];
 
-  for (const { family, url, fallbackUrl } of builtins) {
+  for (const { family, url, browserUrl, fallbackUrl } of builtins) {
     if (skiaFontManager.hasFont(family)) continue;
     try {
       await skiaFontManager.loadFont(family, url);
       // Canvas 2D 측정 경로를 위해 document.fonts에도 등록 (Pretendard 제외: 이미 CSS로 로드됨)
       if (family !== "Pretendard") {
-        await registerFontInBrowser(family, url);
+        await registerFontInBrowser(family, browserUrl ?? url);
       }
     } catch (e) {
       console.warn(`[loadBuiltinFontsToSkia] ${family} Variable 로드 실패:`, e);

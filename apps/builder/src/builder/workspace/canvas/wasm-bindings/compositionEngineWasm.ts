@@ -122,7 +122,7 @@ export async function initCompositionEngineWasm(): Promise<void> {
       engineModule = mod;
 
       if (import.meta.env.DEV) {
-        console.log("[ADR-916] composition-engine WASM initialized");
+        console.log("composition-engine WASM initialized");
       }
     } catch (err) {
       engineModule = null; // HMR 잔류 방지

@@ -108,7 +108,7 @@ export class SkiaFontManager {
 
     this.typefaces.set(key, typeface);
     this.buffers.set(key, buffer);
-    this.extractAndMapName(family, buffer);
+    this.extractAndMapName(family, typeface);
     this.dirty = true;
   }
 
@@ -133,7 +133,7 @@ export class SkiaFontManager {
 
     this.typefaces.set(key, typeface);
     this.buffers.set(key, buffer);
-    this.extractAndMapName(family, buffer);
+    this.extractAndMapName(family, typeface);
     this.dirty = true;
 
     // IndexedDB 캐싱 (fire-and-forget)
@@ -334,28 +334,11 @@ export class SkiaFontManager {
     this.dirty = true;
   }
 
-  /**
-   * 폰트 바이너리에서 내장 패밀리 이름을 추출하여 nameMap에 저장.
-   * CanvasKit FontMgr.FromData()는 바이너리 name 테이블의 이름을 사용하므로
-   * 사용자 지정 이름과 다를 수 있다.
-   * 같은 family에 대해 이미 매핑이 있으면 스킵.
-   */
-  private extractAndMapName(family: string, buffer: ArrayBuffer): void {
+  /** 이미 파싱한 Typeface의 이름을 사용해 별도 FontMgr 재파싱을 피한다. */
+  private extractAndMapName(family: string, typeface: Typeface): void {
     if (this.nameMap.has(family)) return;
-    try {
-      const ck = getCanvasKit();
-      const tempMgr = ck.FontMgr.FromData(buffer);
-      if (!tempMgr) return;
-      if (tempMgr.countFamilies() > 0) {
-        const embeddedName = tempMgr.getFamilyName(0);
-        if (embeddedName && embeddedName !== family) {
-          this.nameMap.set(family, embeddedName);
-        }
-      }
-      tempMgr.delete();
-    } catch {
-      // 이름 추출 실패 시 family 그대로 사용
-    }
+    const embeddedName = typeface.getFamilyName();
+    this.nameMap.set(family, embeddedName || family);
   }
 
   // ============================================

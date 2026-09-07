@@ -1,3 +1,5 @@
+> 2026-09-07 철회: 타이머 분할과 전용 준비 경로를 제거했다. WOFF2 반복 native 파싱이 확인되어 CanvasKit 빌트인 입력을 동일 Variable TTF로 변경했다. 아래는 과거 구현 기록이다.
+
 # 최초 Skia Picture 준비 분할 — 2026-09-07
 
 상태: 구현·회귀 검증 완료, 최초 native long task와 RAF 경고는 잔존.
