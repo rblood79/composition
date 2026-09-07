@@ -1,10 +1,26 @@
 # Sitemap(Hierarchy) 워크플로우 엣지 추가 계획
 
-> **작성일**: 2026-02-13
-> **수정일**: 2026-02-13 (v3 — 미니맵/인터랙션 동일 적용 범위 확정)
-> **상태**: 계획 수립 (코드 미생성)
-> **관련 브랜치**: `work`
-> **검토 기준**: 현재 저장소 코드베이스(`apps/builder` 구조) 기준으로 경로/영향 범위를 재검증
+> **Deprecated — 2026-09-07**. hierarchy 워크플로우 엣지(P1)는 구현하지 않는다. 페이지 IA는 Navigator `PageTree`(`parent_id` 트리·DnD)가 담당하고, 캔버스 워크플로우는 nav/event 등 실제 이동을 보여준다. 자유 배치 캔버스에 계층 선만 올리면 트리와 중복되고 선이 어긋난다. P2 `addPage` 방향 반영은 이 ADR과 무관하게 이미 고쳐졌다. P3(AI 사이트맵·URL 임포트)는 별도 결정. 재개 조건: 사용자가 캔버스 사이트맵을 제품 기능으로 채택하거나, 트리만으로 IA를 못 보는 규모가 실제로 보고될 때 — 그때는 이 본문의 경로를 승계하지 말고 현행 워크플로우 파일 기준으로 다시 설계한다. 사용자 결정 (2026-09-07).
+
+- 상태: **Deprecated** — 2026-09-07 (직전: Proposed, 계획 수립·코드 미생성)
+- 작성일: 2026-02-13 (v3 — 미니맵/인터랙션 동일 적용 범위 확정)
+- 대상: `apps/builder` 워크플로우 오버레이 · Navigator PageTree
+
+---
+
+## 0. 종결 재정렬 (2026-09-07)
+
+2026-02-13 계획 · 2026-03-03 코드 대조는 구현 미착수로 맞았다. 2026-09-07 재대조에서 P1은 여전히 없고, IA 필요와 P2 버그는 다른 경로로 닫혔다. 아래만 현재 사실이다. §0-1 이후 본문은 2026-02/03 역사 기록으로 보존한다.
+
+| 항목                                        | 원 계획                                                                       | 현재 사실 (2026-09-07)                                                                                                           | 처리                                 |
+| ------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 아키텍처 (sitemap ≠ `pageLayoutDirection`)  | §0 v2 — 배치는 방향, 관계는 workflow overlay                                  | 방향 enum에 `"sitemap"`을 넣지 않은 결정은 유지                                                                                  | **결정 유지** — 구현 착수 없음       |
+| Hierarchy 엣지 (P1)                         | `WorkflowEdge.type`에 `'hierarchy'`, teal-500, 토글·미니맵·hit-test 동일 적용 | 타입은 여전히 `"navigation" \| "event-navigation"`. `showWorkflowHierarchy` / `computeHierarchyEdges()` 0건. 오버레이 기본값 off | **미구현 확정 — 범위 제외**          |
+| 페이지 IA 시각화                            | Relume식 캔버스 트리 선                                                       | Navigator `PageTree`가 `parent_id` 트리·검색·DnD를 제공. Preview URL도 `parent_id`를 소비                                        | **기존 패널이 대체**                 |
+| `addPage` 방향 (P2)                         | `usePageManager`가 항상 `maxX, 0`                                             | `calculateNextPagePosition()`이 `pageLayoutDirection`을 반영                                                                     | **별도 수리로 종료**                 |
+| Auto-arrange · 색상 코딩 (P2)               | 일회성 트리 배치 버튼                                                         | 코드 0건                                                                                                                         | **미착수 유지**                      |
+| AI 사이트맵 · URL 임포트 · 폴더 페이지 (P3) | Relume 차별화                                                                 | 이 ADR 잔여가 아님. 생기면 ADR-202/134 쪽 새 결정                                                                                | **범위 밖**                          |
+| 계획 경로                                   | `SkiaOverlay.tsx` + `Workspace.tsx` 토글                                      | 워크플로우는 `BuilderCanvas` / `skiaOverlayBuilder` / `WorkflowCanvasToggles` / `filterRenderableWorkflowEdges`                  | **본문 경로 stale — 재개 시 미승계** |
 
 ---
 
@@ -449,9 +465,9 @@ hierarchy 엣지 추가 위치:
 
 ### 4.3 구현 위치
 
-| #   | 파일                                                                                                             | 변경 내용                            |
-| --- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| 1   | `apps/builder/src/builder/stores/elements.ts`                                                                    | `autoArrangeByHierarchy()` 액션 추가 |
+| #   | 파일                                                                                                                 | 변경 내용                            |
+| --- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| 1   | `apps/builder/src/builder/stores/elements.ts`                                                                        | `autoArrangeByHierarchy()` 액션 추가 |
 | 2   | `apps/builder/src/builder/workspace/Workspace.tsx` 또는 `apps/builder/src/builder/panels/navigator/PagesSection.tsx` | "Auto-arrange" 버튼 추가             |
 
 **이 Phase는 hierarchy 엣지 구현 후 별도로 진행 가능.**
@@ -533,7 +549,7 @@ Phase 5: Auto-Arrange (선택적, 별도)
 | `apps/builder/src/builder/workspace/canvas/skia/workflowHitTest.ts`    | **None**    | 변경 불필요                                                         |
 | `apps/builder/src/builder/workspace/canvas/skia/workflowGraphUtils.ts` | **None**    | 변경 불필요                                                         |
 
-**총 변경량: ~90~120줄 (신규 함수 + Paint 객체 생성 포함)**
+**총 변경량: ~~90~~120줄 (신규 함수 + Paint 객체 생성 포함)**
 
 ---
 
@@ -580,7 +596,7 @@ if (direction === "vertical") {
 }
 ```
 
-**이 버그는 P2에서 별도 수정 권장.**
+**이 버그는 P2에서 별도 수정 권장였다.** 2026-09-07 재대조: `usePageManager.computeNextPagePosition()` → `calculateNextPagePosition()`이 `pageLayoutDirection`을 반영한다. 이 ADR P1과 무관하게 종료.
 
 ---
 
@@ -739,6 +755,10 @@ useStore.getState().updatePagePosition(newPage.id, maxX, 0); // 항상 y=0
 | Phase 4 | 렌더링 통합      | 모든 대상 파일 존재(✅). 색상 분기/Paint 객체 추가 필요                                                             |
 | Phase 5 | Auto-Arrange     | 별도 진행 — `initializePagePositions` 로직 참조 필요                                                                |
 
-### Status 판단
+### Status 판단 (2026-03-03 당시)
 
-**Proposed 유지.** 구현이 전혀 시작되지 않은 상태이며, 모든 전제 조건 파일이 존재한다. 변경량은 문서 추정(~90~120줄)이 실제 코드 구조와 일치한다.
+**Proposed 유지**였다. 구현이 시작되지 않았고, 전제 조건 파일은 존재했다.
+
+### Status 판단 (2026-09-07)
+
+**Deprecated.** P1 코드는 여전히 0건이다. IA는 `PageTree`가 담당하고, `addPage` 방향은 별도 수리로 종료됐다. hierarchy 엣지는 착수하지 않고 이 문서를 역사 기록으로 `completed/`에 둔다. 재개 조건은 머리말.

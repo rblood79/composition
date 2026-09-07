@@ -53,6 +53,7 @@ import { getCacheMetrics } from "./cacheMetrics";
 import { addCommandCount, incrementDrawCall } from "./drawStats";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import {
+  canPrepareColdNodePicture,
   ensureNodePictureFontGeneration,
   getCachedNodePicture,
   invalidateNodePicture,
@@ -69,6 +70,62 @@ import {
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
 import { getCanvasFramePresentationSnapshot } from "../canvasFramePresentation";
+import { observe } from "../../../utils/perfMarks";
+import { skiaFontManager } from "./fontManager";
+
+/** 최초 cache miss를 노드 단위 작업으로 노출한다. 기존 record 경로와 동일하다. */
+export function* prepareColdPictures(
+  ck: CanvasKit,
+  commands: RenderCommand[],
+  spans: ReadonlyMap<string, SelfSpan>,
+  boundsMap: ReadonlyMap<string, BoundingBox>,
+  viewport: DOMRect,
+  fontMgr?: FontMgr,
+): Generator<() => void> {
+  if (!isNodePictureCacheEnabled()) return;
+  ensureNodePictureFontGeneration(fontMgr ?? null);
+  let fontsPrepared = false;
+  for (const [id, span] of spans) {
+    const cmd = commands[span.start - 1];
+    const bounds = boundsMap.get(id);
+    if (
+      cmd?.type !== CMD_ELEMENT_BEGIN ||
+      !cmd.visible ||
+      !bounds ||
+      !intersectBoxes(bounds, viewport) ||
+      isVolatileNode(id) ||
+      getEditingElementId() === id ||
+      !canPrepareColdNodePicture(id)
+    )
+      continue;
+    // collection 등록과 첫 paragraph.layout의 native 비용을 한 task에 합치지 않는다.
+    if (fontMgr && !fontsPrepared) {
+      fontsPrepared = true;
+      yield () => {
+        observe("render.text.fontCollection", () =>
+          skiaFontManager.getFontCollection(),
+        );
+      };
+    }
+    yield () => {
+      const data = getSkiaNode(id);
+      if (!data || !canPrepareColdNodePicture(id)) return;
+      const picture = observe("render.prepare.picture", () =>
+        recordSelfSpan(ck, commands, span, id, fontMgr),
+      );
+      if (picture) {
+        storeNodePicture(
+          id,
+          data,
+          cmd.width,
+          cmd.height,
+          picture,
+          collectSpanImageRefs(commands, span),
+        );
+      }
+    };
+  }
+}
 
 // ── Command 타입 ──────────────────────────────────────────────────────
 

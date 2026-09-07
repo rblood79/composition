@@ -34,6 +34,7 @@ import {
   getCachedCommandStream,
   executeDamageRenderCommands,
   executeRenderCommands,
+  prepareColdPictures,
   buildAIBoundsFromStream,
 } from "./renderCommands";
 import {
@@ -301,6 +302,16 @@ function buildViaCommandStream(
   }
 
   const contentNode: SkiaRenderable = {
+    preparePictures(bounds) {
+      return prepareColdPictures(
+        ck,
+        stream.commands,
+        stream.selfSpans,
+        stream.boundsMap,
+        bounds,
+        fontMgr,
+      );
+    },
     renderSkia(canvas, bounds) {
       const currentPagePositionSnapshot = getPagePositionPresentationSnapshot();
       // selfSpans 전달 = 노드 Picture 캐시 활성 (ADR-153 Phase 3 — command stream 경로 한정)

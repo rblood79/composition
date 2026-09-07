@@ -77,7 +77,7 @@ docs/
 | [012](adr/completed/012-rendering-layout-pipeline-hardening.md) | 렌더링/레이아웃 파이프라인 강화       | Proposed            |
 | [013](./adr/013-quick-connect-data-binding.md)                  | Quick Connect 데이터 바인딩           | Proposed            |
 | [014](adr/completed/014-fonts.md)                               | 폰트 시스템                           | Proposed            |
-| [015](./adr/015-sitemap-layout.md)                              | Sitemap 레이아웃                      | Proposed            |
+| [015](adr/completed/015-sitemap-layout.md)                      | Sitemap Hierarchy 워크플로우 엣지     | Deprecated          |
 | [016](adr/completed/016-photoshop-ui-ux.md)                     | Photoshop UI/UX 적용 계획             | Superseded          |
 
 ---

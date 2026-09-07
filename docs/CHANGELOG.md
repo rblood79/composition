@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 > 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙).
 
+## [Skia 최초 Picture 준비 분할] - 2026-09-07
+
+### Performance
+
+- **최초 Picture 캐시 생성의 RAF 집중 완화**:
+  - **Why**: 최초 cold Picture 130건의 명령 실행이 한 RAF에 몰려 개발 모드에서 461ms 경고가 발생했습니다.
+  - 노드별 준비를 4ms 예산의 task로 분할하고 폰트 등록도 별도 작업으로 분리했습니다. 버전 변경·컨텍스트 손실·unmount에서 취소하며 실제 matching surface flush 이후 readiness를 유지합니다.
+  - camera-only/edit fast path와 기존 캐시 용량을 유지합니다. 초기 native paragraph.layout와 overlay/flush 비용은 남아 있어 long task 완전 제거로 보지 않습니다.
+  - 위치: `apps/builder/src/builder/workspace/canvas/skia/{picturePreparation,renderCommands,SkiaCanvas}.ts*`. 측정·한계: [검증 기록](migrations/cold-picture-preparation-20260907.md).
+
 ## [빌더 패널 접근성 — 토글 이름·트리 키보드·포커스 링·reduced motion] - 2026-09-07
 
 ### Added

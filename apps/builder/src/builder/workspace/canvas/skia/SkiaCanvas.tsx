@@ -3,6 +3,7 @@ import {
   requestCanvasFrame,
   subscribeCanvasFrames,
 } from "./frameScheduler";
+import { createPicturePreparation } from "./picturePreparation";
 /**
  * SkiaCanvas — 독립 Skia 렌더러 (ADR-100 Phase 2.6)
  *
@@ -673,6 +674,7 @@ export function SkiaCanvas({
     // ----- invalidation 기반 렌더 프레임 -----
     let running = true;
     const contentCache = new FrameContentCache();
+    const picturePreparation = createPicturePreparation(requestCanvasFrame);
     // 재사용 판정 3축은 항상 함께 만들어지고 함께 무효화된다. 한 참조로 묶어
     // 부분 초기화로 stale 값이 남는 경로를 없앤다.
     let dragAnimating = false;
@@ -692,6 +694,7 @@ export function SkiaCanvas({
       input: SkiaRendererInput;
       packet: typeof invalidationPacketRef.current;
       layoutVersion: number;
+      fontMgr: ReturnType<typeof skiaFontManager.getFontMgr> | undefined;
       content: NonNullable<ReturnType<typeof buildSkiaFrameContent>>;
       pagePosVersion: number;
     } | null = null;
@@ -1063,6 +1066,55 @@ export function SkiaCanvas({
         }),
       );
 
+      const width = skiaCanvas.width;
+      const height = skiaCanvas.height;
+      const preparePictures = contentNode.preparePictures;
+      if (
+        // camera-only/edit hot path에서는 warm 캐시를 다시 순회하지 않는다.
+        (!preparedFrame ||
+          presentationTargetRef.current ||
+          preparedFrame.fontMgr !== fontMgr) &&
+        preparePictures &&
+        !picturePreparation.ensure(
+          [
+            currentRendererInput,
+            packet,
+            registryVersion,
+            layoutVersion,
+            fontMgr,
+            pagePositionSnapshot,
+            cameraX,
+            cameraY,
+            cameraZoom,
+            width,
+            height,
+          ],
+          () =>
+            preparePictures(
+              renderer.getContentCullingBounds(
+                framePlan.cullingBounds,
+                cameraZoom,
+              ),
+            ),
+          () =>
+            running &&
+            !contextLostRef.current &&
+            !document.hidden &&
+            rendererInputRef.current === currentRendererInput &&
+            invalidationPacketRef.current === packet &&
+            getRegistryVersion() === registryVersion &&
+            getSharedLayoutVersion() === layoutVersion &&
+            skiaFontManager.getFontMgr() === (fontMgr ?? null) &&
+            getPagePositionPresentationSnapshot() === pagePositionSnapshot &&
+            mutableViewport.x === cameraX &&
+            mutableViewport.y === cameraY &&
+            Math.max(mutableViewport.zoom, 0.001) === cameraZoom &&
+            skiaCanvas.width === width &&
+            skiaCanvas.height === height,
+        )
+      )
+        return;
+
       hitBoundsMapRef.current = framePlan.sharedScene.hitBoundsMap;
       renderer.setContentNode(framePlan.contentNode);
       renderer.setOverlayNode(framePlan.overlayNode);
@@ -1103,6 +1155,7 @@ export function SkiaCanvas({
         input: currentRendererInput,
         packet,
         layoutVersion,
+        fontMgr,
         content: contentResult,
         pagePosVersion: contentPagePositionVersion,
       };
@@ -1146,6 +1199,8 @@ export function SkiaCanvas({
     const scheduler = createFrameScheduler(renderFrame);
     const unsubscribeFrames = subscribeCanvasFrames(scheduler.invalidate);
     const updatePaused = () => {
+      if (document.hidden || contextLostRef.current)
+        picturePreparation.cancel();
       scheduler.setPaused(document.hidden || contextLostRef.current);
       scheduler.invalidate();
     };
@@ -1164,6 +1219,7 @@ export function SkiaCanvas({
       skiaCanvas,
       () => {
         contextLostRef.current = true;
+        preparedFrame = null;
         updatePaused();
         publishContextLost(true);
       },
@@ -1182,6 +1238,7 @@ export function SkiaCanvas({
 
     return () => {
       running = false;
+      picturePreparation.cancel();
       contentCache.clear();
       unsubscribeFrames();
       scheduler.dispose();

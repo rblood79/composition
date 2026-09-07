@@ -64,6 +64,11 @@ interface DragSubtreePictureEntry {
 /** GPU/WASM 메모리 보호 상한 (요소당 1 entry — LRU 퇴거) */
 const MAX_NODE_PICTURES = 1024;
 
+/** 사전 준비는 기존 entry를 밀어내지 않는다. 용량 초과 씬의 thrash를 방지한다. */
+export function canPrepareColdNodePicture(elementId: string): boolean {
+  return !cache.has(elementId) && cache.size < MAX_NODE_PICTURES;
+}
+
 /** elementId → entry. LRU 순서는 `entry.lastUsed` 스탬프가 보유한다. */
 const cache = new Map<string, NodePictureEntry>();
 

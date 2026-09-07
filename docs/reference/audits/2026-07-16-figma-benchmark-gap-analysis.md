@@ -156,7 +156,7 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 
 벡터 도구 (M1) 는 "Figma Draw 를 따라갈 것인가" 자체가 제품 정체성 결정이므로 순위 밖 — 컴포넌트 조립형 정체성을 유지한다면 SVG import + 이미지 에셋 라이브러리 (M3) 우회가 정합적.
 
-**기존 Proposed ADR 백로그와의 접점**: ADR-150 ↔ H5 · ADR-152 ↔ 데이터 계층 심화 · ADR-015 (Sitemap) ↔ C3 · ADR-134 (AI) ↔ AI 강점 심화. **C1 (breakpoint)·H2 (편집 UI 노출)·H1 (캔버스 도구) 은 대응 ADR 이 없어** 신규 결정이 필요한 영역.
+**기존 Proposed ADR 백로그와의 접점**: ADR-150 ↔ H5 · ADR-152 ↔ 데이터 계층 심화 · ADR-015 (캔버스 계층 선, 2026-09-07 Deprecated — C3 SEO `sitemap.xml`과는 다른 주제) · ADR-134 (AI) ↔ AI 강점 심화. **C1 (breakpoint)·H2 (편집 UI 노출)·H1 (캔버스 도구) 은 대응 ADR 이 없어** 신규 결정이 필요한 영역.
 
 ---
 

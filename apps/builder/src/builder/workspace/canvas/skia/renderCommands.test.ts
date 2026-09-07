@@ -1,7 +1,14 @@
 // @vitest-environment jsdom
 
-import { afterEach, describe, expect, it } from "vitest";
-import type { Canvas, CanvasKit } from "canvaskit-wasm";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import type {
+  Canvas,
+  CanvasKit,
+  SkPicture,
+  FontMgr,
+  FontCollection,
+} from "canvaskit-wasm";
+import { skiaFontManager } from "./fontManager";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import { clearSkiaRegistry, registerSkiaNode } from "./useSkiaNode";
 import { setDragVisualOffset } from "./nodeRendererTree";
@@ -9,11 +16,14 @@ import { setEditingElementId } from "./nodeRendererState";
 import {
   getNodePictureCacheSize,
   setVolatileNodeIds,
+  storeNodePicture,
+  canPrepareColdNodePicture,
 } from "./nodePictureCache";
 import {
   buildDamageRenderCommandSequence,
   buildRenderCommandStream,
   executeRenderCommands,
+  prepareColdPictures,
 } from "./renderCommands";
 import {
   beginPagePositionPresentation,
@@ -629,6 +639,7 @@ describe("ADR-189 damage command selection", () => {
 
 describe("executeRenderCommands 노드 Picture 캐시 (ADR-153 Phase 3)", () => {
   afterEach(() => {
+    vi.restoreAllMocks();
     setEditingElementId(null);
     setVolatileNodeIds(null);
     clearSkiaRegistry(); // clearNodePictureCache 포함
@@ -706,6 +717,117 @@ describe("executeRenderCommands 노드 Picture 캐시 (ADR-153 Phase 3)", () => 
     expect(stream.selfSpans.has("pic-leaf")).toBe(true);
     // container 는 DRAW 커맨드가 없어 record 단위가 아니다
     expect(stream.selfSpans.has("pic-body")).toBe(false);
+  });
+
+  it("cold 준비 후 실제 draw는 같은 Picture를 재생하고 추가 기록하지 않는다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+    const work = prepareColdPictures(
+      ck,
+      stream.commands,
+      stream.selfSpans,
+      stream.boundsMap,
+      viewport,
+    );
+    const first = work.next();
+    expect(recordCount()).toBe(0);
+    expect(first.done).toBe(false);
+    first.value!();
+    expect(work.next().done).toBe(true);
+    const { canvas, drawnPictures } = makePictureCanvas();
+    executeRenderCommands(
+      ck,
+      canvas,
+      stream.commands,
+      viewport,
+      undefined,
+      stream.selfSpans,
+    );
+    expect(recordCount()).toBe(1);
+    expect(drawnPictures).toHaveLength(1);
+    expect(
+      prepareColdPictures(
+        ck,
+        stream.commands,
+        stream.selfSpans,
+        stream.boundsMap,
+        viewport,
+      ).next().done,
+    ).toBe(true);
+  });
+
+  it("FontCollection 준비와 첫 Picture 기록은 별도 작업이다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+    const fonts = vi
+      .spyOn(skiaFontManager, "getFontCollection")
+      .mockReturnValue({} as FontCollection);
+    const work = prepareColdPictures(
+      ck,
+      stream.commands,
+      stream.selfSpans,
+      stream.boundsMap,
+      viewport,
+      {} as FontMgr,
+    );
+    work.next().value!();
+    expect(fonts).toHaveBeenCalledOnce();
+    expect(recordCount()).toBe(0);
+    work.next().value!();
+    expect(recordCount()).toBe(1);
+  });
+
+  it("viewport 밖 또는 volatile 노드는 사전 기록하지 않는다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+    const outside = new DOMRect(2000, 2000, 10, 10);
+    expect(
+      prepareColdPictures(
+        ck,
+        stream.commands,
+        stream.selfSpans,
+        stream.boundsMap,
+        outside,
+      ).next().done,
+    ).toBe(true);
+    setVolatileNodeIds(new Set(["pic-leaf"]));
+    expect(
+      prepareColdPictures(
+        ck,
+        stream.commands,
+        stream.selfSpans,
+        stream.boundsMap,
+        viewport,
+      ).next().done,
+    ).toBe(true);
+    expect(recordCount()).toBe(0);
+  });
+
+  it("캐시 용량이 차면 사전 준비가 기존 Picture를 퇴거시키지 않는다", () => {
+    const stream = buildLeafStream();
+    const { ck, recordCount } = makePictureStubCk();
+    for (let i = 0; i < 1024; i++) {
+      storeNodePicture(
+        `filled-${i}`,
+        {},
+        1,
+        1,
+        { delete() {} } as SkPicture,
+        null,
+      );
+    }
+    expect(canPrepareColdNodePicture("pic-leaf")).toBe(false);
+    expect(
+      prepareColdPictures(
+        ck,
+        stream.commands,
+        stream.selfSpans,
+        stream.boundsMap,
+        viewport,
+      ).next().done,
+    ).toBe(true);
+    expect(recordCount()).toBe(0);
+    expect(getNodePictureCacheSize()).toBe(1024);
   });
 
   it("miss → record 1회, 이후 동일 내용 재실행은 replay (재기록 0)", () => {

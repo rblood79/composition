@@ -530,6 +530,17 @@ export class SkiaRenderer {
     );
   }
 
+  /** 사전 Picture 준비와 실제 content 렌더가 같은 padding을 소비한다. */
+  getContentCullingBounds(bounds: DOMRect, zoom: number): DOMRect {
+    const pad = this.contentPaddingDevicePx / this.dpr / Math.max(zoom, 0.001);
+    return new DOMRect(
+      bounds.x - pad,
+      bounds.y - pad,
+      bounds.width + pad * 2,
+      bounds.height + pad * 2,
+    );
+  }
+
   /**
    * Content Surface를 초기화한다.
    * mainSurface보다 큰 오프스크린 Surface를 생성하여 camera-only blit 시
@@ -793,12 +804,9 @@ export class SkiaRenderer {
 
     // 전체 콘텐츠 렌더링 (Pencil 방식: content invalidation은 full rerender)
     const padCss = this.contentPaddingDevicePx / this.dpr;
-    const padScene = padCss / Math.max(camera.zoom, 0.001);
-    const paddedBounds = new DOMRect(
-      cullingBounds.x - padScene,
-      cullingBounds.y - padScene,
-      cullingBounds.width + padScene * 2,
-      cullingBounds.height + padScene * 2,
+    const paddedBounds = this.getContentCullingBounds(
+      cullingBounds,
+      camera.zoom,
     );
 
     // 투명 배경으로 클리어 — 그리드가 콘텐츠 아래(main canvas)에서 보이도록
@@ -964,7 +972,9 @@ export class SkiaRenderer {
     if (isDev) {
       recordWasmMetric("blitTime", performance.now() - blitStart);
     }
+    const overlayBegin = isDev ? markBegin() : 0;
     this.renderNodeWithCamera(this.overlayNode, cullingBounds, camera);
+    if (isDev) markEnd("render.skia.overlay", overlayBegin);
     // ADR-153 Phase 1-e: 화면 surface 제출 구간 분해 라벨
     const flushMainBegin = isDev ? markBegin() : 0;
     this.mainSurface.flush();
@@ -1107,7 +1117,11 @@ export class SkiaRenderer {
 
     // Lazy init content surface
     if (!this.contentSurface) {
+      const initBegin =
+        process.env.NODE_ENV === "development" ? markBegin() : 0;
       this.initContentSurface();
+      if (process.env.NODE_ENV === "development")
+        markEnd("render.skia.surface.init", initBegin);
       // Content surface 실패 시 레거시 폴백
       if (!this.contentSurface) {
         // 이 경로는 classifyFrame 을 거치지 않아 frame.* 버킷이 없다.

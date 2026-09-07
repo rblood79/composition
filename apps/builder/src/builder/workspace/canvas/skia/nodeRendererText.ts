@@ -27,6 +27,7 @@ import {
 import { registerSkiaCacheDestroy, SkiaDisposable } from "./disposable";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { skiaFontManager } from "./fontManager";
+import { observe } from "../../../utils/perfMarks";
 import { getCacheMetrics } from "./cacheMetrics";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
 import type { SkiaNodeData } from "./nodeRendererTypes";
@@ -602,7 +603,9 @@ export function renderText(
     const builder = scope.track(
       ck.ParagraphBuilder.MakeFromFontCollection(
         paraStyle,
-        skiaFontManager.getFontCollection(),
+        observe("render.text.fontCollection", () =>
+          skiaFontManager.getFontCollection(),
+        ),
       ),
     );
     // Variable font: fontFeatures + fontVariations(wght axis)를 pushStyle로 명시 적용.
@@ -658,8 +661,12 @@ export function renderText(
       }),
     );
     builder.addText(renderableText);
-    const paragraph = builder.build();
-    paragraph.layout(effectiveLayoutWidth);
+    const paragraph = observe("render.text.paragraph.build", () =>
+      builder.build(),
+    );
+    observe("render.text.paragraph.layout", () =>
+      paragraph.layout(effectiveLayoutWidth),
+    );
 
     // CanvasKit 큰 width 렌더링 실패 방지:
     // paragraph.layout(100000+) 시 텍스트가 보이지 않는 CanvasKit 내부 버그.
