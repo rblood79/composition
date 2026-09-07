@@ -186,6 +186,24 @@ D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델�
 
 **측정 조건 2건** (재현 시 필수): Skia 캔버스 픽셀은 페이지 안에서 읽을 수 없다 — WebGL `preserveDrawingBuffer:false` 라 `drawImage` 가 빈 화면을 준다 (1차 시도가 그래서 "안 그려졌다" 로 오판했고 스크린샷에는 멀쩡히 있었다). Playwright 스크린샷을 페이지에서 디코드해 분석한다. 그리고 색 분류에서 보라(#8B00FF 계열)는 파랑 조건도 만족하므로 보라를 먼저 판정해야 한다.
 
+## 후속 확장 — shadcn charts 대조 (2026-09-08, 본 ADR 승격 직후)
+
+사용자 요청으로 [shadcn/ui charts](https://ui.shadcn.com/charts/area) 7개 범주와 대조해, **radar · radial 을 뺀 나머지 격차를 전부 반영**했다. 본 ADR 의 v1 비스코프 중 **곡선 보간과 툴팁은 이 확장에서 해제**됐다 (축 레이블 회전은 그대로 비스코프 — 여전히 every-nth 솎아내기).
+
+| 커밋 | 반영 |
+| --- | --- |
+| `626ad20a1` | area 누적 결선 (stackBands 를 bar 만 쓰고 있었다) + `stackType: "expand"` (100% 누적) |
+| `596baf1c9` | `curve` linear/monotone/step (d3-shape 알고리즘 재구현, **의존 0 유지** — §Decision 의 "필요해지면 d3-shape 도입" 대신 자작으로 닫음) + `showDots` |
+| `9c992180e` | `showValueLabels` · `colorBy: "category"` (bar mixed) · **파이 범례가 조각과 무관한 시리즈를 나열하던 결함 수정** |
+| `ab5f8b780` | `innerRadius` 도넛 · `showTotal` (구멍 안 합계, `TextMark.fontScale` 신설) · 다중 시리즈 링 |
+| `514cd1395` | `showTooltip` — hover 는 D1 이라 **Preview/Publish 소유**, 히트 기하는 기하 함수가 소유 (`hitTooltipBand`). Skia 는 `showTooltip=false` 고정으로 정적 유지 |
+
+**대칭 유지 근거**: 좌표 대칭 게이트를 28 → 64 로 늘렸고 (신규 축 7 케이스 + `fontScale` 채널 대조), path `d` byte 동일 계약은 그대로다. 툴팁 케이스가 GREEN 이라는 것은 툴팁이 정적 마크를 건드리지 않는다는 뜻이다.
+
+**Live Exercise (확장분)** — `apps/builder/scripts/adr194-chart-extensions-live.mjs`, **20/20 PASS** (2026-09-08, Playwright headless, dev 5173). 축마다 **두 leg 을 따로** 확인했다: Skia 는 Compare Mode 를 **끈 전체 폭 상태**에서 캔버스 픽셀 (도넛 구멍 = 잉크 84,034 → 71,019, 파이 대비 15.5% 감소 · 점 표시 48,936 → 49,123 · 누적/보간/레이블은 해시 변화), Preview 는 Compare Mode 에서 DOM (`C` 명령 · `fill-rule="evenodd"` · `font-size="1.8em"` · 100% 누적 열 높이 198.4 × 4 동일 · hover 툴팁 `"Tue A 30 B 8"` · 이탈 시 닫힘).
+
+> 측정 조건 (기록 의무): Compare Mode 에서는 캔버스가 반폭으로 줄어 **면적 변화가 픽셀 수에 안 잡힌다** — 1차 측정에서 도넛 Δ가 1px 로 나왔고 (실제 Δ13,015), 그래서 하니스를 Skia 먼저 / DOM 나중 2단계로 갈랐다.
+
 ## Consequences
 
 ### Positive
