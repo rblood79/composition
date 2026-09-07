@@ -364,3 +364,72 @@ describe("computeChartScene — 스냅샷 (좌표 회귀 감시)", () => {
     ).toMatchSnapshot();
   });
 });
+
+describe("누적 (shadcn stacked / stacked-expand 대조)", () => {
+  const areaOf = (stackType: ChartProps["stackType"]) =>
+    computeChartScene(props({ chartType: "area", stackType }), ROWS, SIZE)
+      .marks.filter((m): m is Extract<Mark, { kind: "path" }> =>
+        m.kind === "path",
+      );
+
+  it("area 는 누적 여부로 좌표가 갈린다 (겹쳐 그리기 ≠ 쌓기)", () => {
+    const dodged = areaOf("dodged");
+    const stacked = areaOf("stacked");
+    expect(stacked).toHaveLength(dodged.length);
+    expect(stacked.map((m) => m.d)).not.toEqual(dodged.map((m) => m.d));
+  });
+
+  it("누적 area 는 두 번째 시리즈가 첫 시리즈 위에서 시작한다", () => {
+    const [first, second] = areaOf("stacked");
+    // 아래 경계(뒤로 돌아오는 절반)의 y 가 첫 시리즈의 위 경계와 같은 값이어야 한다.
+    const ys = (d: string) =>
+      d.split(/[ML]\s*/).filter(Boolean).map((pair) => Number(pair.trim().split(/\s+/)[1]));
+    const firstUpper = ys(first.d).slice(0, ROWS.length / 2);
+    const secondLower = ys(second.d).slice(ROWS.length / 2).slice(0, 3).reverse();
+    expect(secondLower).toEqual(firstUpper);
+  });
+
+  it("expand 는 모든 범주 막대가 같은 길이가 된다 (비중 100%)", () => {
+    const scene = computeChartScene(
+      props({ chartType: "bar", stackType: "expand" }),
+      ROWS,
+      SIZE,
+    );
+    const totals = new Map<number, number>();
+    for (const mark of scene.marks) {
+      if (mark.kind !== "rect") continue;
+      totals.set(mark.x, (totals.get(mark.x) ?? 0) + mark.h);
+    }
+    const values = [...totals.values()];
+    expect(values.length).toBeGreaterThan(1);
+    for (const v of values) expect(v).toBeCloseTo(values[0], 1);
+  });
+
+  it("expand 값 축 눈금은 0~100 이다", () => {
+    const scene = computeChartScene(
+      props({ chartType: "bar", stackType: "expand" }),
+      ROWS,
+      SIZE,
+    );
+    const valueAxis = scene.axes.find((a) => a.axis === "y");
+    const labels = valueAxis?.ticks.map((t) => t.text) ?? [];
+    expect(labels[0]).toBe("0");
+    expect(labels[labels.length - 1]).toBe("100");
+  });
+
+  it("시리즈가 1개면 expand 도 원래 값 축을 쓴다 (전부 100% 로 접히지 않는다)", () => {
+    const single: ChartRow[] = [
+      { category: "Mon", value: 12 },
+      { category: "Tue", value: 30 },
+    ];
+    const scene = computeChartScene(
+      { ...CHART_DEFAULT_PROPS, stackType: "expand" },
+      single,
+      SIZE,
+    );
+    const heights = scene.marks
+      .filter((m): m is Extract<Mark, { kind: "rect" }> => m.kind === "rect")
+      .map((m) => m.h);
+    expect(heights[0]).not.toBeCloseTo(heights[1], 1);
+  });
+});

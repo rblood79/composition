@@ -112,6 +112,7 @@ export const chartBinding: PrimitiveBinding = {
         options: [
           { value: "dodged", label: "Dodged" },
           { value: "stacked", label: "Stacked" },
+          { value: "expand", label: "Stacked 100%" },
         ],
       },
       showAxis: {

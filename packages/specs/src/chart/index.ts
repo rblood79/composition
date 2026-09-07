@@ -17,8 +17,18 @@ export {
   toFiniteNumber,
 } from "./scales";
 export type { BandScale, LinearScale, TickResult } from "./scales";
-export { buildSeriesGrid, stackBands, valueExtent } from "./series";
-export type { SeriesData, SeriesGrid } from "./series";
+export {
+  buildSeriesGrid,
+  stackBands,
+  stackRangesBySeries,
+  valueExtent,
+} from "./series";
+export type {
+  SeriesData,
+  SeriesGrid,
+  StackMode,
+  StackRange,
+} from "./series";
 export { buildBarMarks } from "./marks/bar";
 export { bandCenter, buildLineMarks, seriesPoints } from "./marks/line";
 export { buildAreaMarks } from "./marks/area";

@@ -1,5 +1,5 @@
 /**
- * ADR-194 — bar 마크. dodged(나란히) / stacked(누적) × vertical / horizontal.
+ * ADR-194 — bar 마크. dodged(나란히) / stacked(누적) / expand(100% 누적) × vertical / horizontal.
  *
  * 막대는 `RectMark` 다 — path 로 만들 수도 있지만, Skia 가 rect 를 직접 그리는
  * 경로(`RectShape`)가 이미 있고 DOM 도 `<rect>` 가 있어 양쪽 다 path 파싱을
@@ -8,7 +8,7 @@
 import { r2 } from "../scales";
 import type { LinearScale, BandScale } from "../scales";
 import { stackBands } from "../series";
-import type { SeriesGrid } from "../series";
+import type { SeriesGrid, StackMode } from "../series";
 import type { ChartOrientation, Rect, RectMark } from "../types";
 
 export interface BarMarkInput {
@@ -17,7 +17,7 @@ export interface BarMarkInput {
   value: LinearScale;
   plot: Rect;
   orientation: ChartOrientation;
-  stacked: boolean;
+  stackMode: StackMode;
 }
 
 function rect(
@@ -51,13 +51,13 @@ function rect(
 }
 
 export function buildBarMarks(input: BarMarkInput): RectMark[] {
-  const { grid, band, value, orientation, stacked } = input;
+  const { grid, band, value, orientation, stackMode } = input;
   const marks: RectMark[] = [];
   const zero = value(0);
 
   for (let ci = 0; ci < grid.categories.length; ci++) {
-    if (stacked) {
-      for (const { series, from, to } of stackBands(grid, ci)) {
+    if (stackMode !== "none") {
+      for (const { series, from, to } of stackBands(grid, ci, stackMode)) {
         marks.push(
           rect(
             orientation,

@@ -15,8 +15,11 @@ export type ChartType = "bar" | "line" | "area" | "pie";
 
 export type ChartOrientation = "vertical" | "horizontal";
 
-/** RSC `Bar.type`. 다중 시리즈에서만 의미가 있다. */
-export type ChartStackType = "stacked" | "dodged";
+/**
+ * RSC `Bar.type` + shadcn `stacked-expand`. 다중 시리즈에서만 의미가 있다.
+ * `expand` 는 범주별 합을 100 으로 정규화해 쌓는다 (비중 비교용).
+ */
+export type ChartStackType = "stacked" | "dodged" | "expand";
 
 /** RSC `Legend.position`. */
 export type ChartLegendPosition = "bottom" | "top" | "left" | "right";

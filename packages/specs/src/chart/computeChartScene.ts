@@ -20,6 +20,7 @@ import {
   r2,
 } from "./scales";
 import { buildSeriesGrid, valueExtent } from "./series";
+import type { StackMode } from "./series";
 import type {
   ChartMetrics,
   ChartProps,
@@ -176,8 +177,12 @@ export function computeChartScene(
   }
 
   // ── 축 자리 확보 ─────────────────────────────────────────────────────────
-  const stacked = props.stackType === "stacked" && grid.series.length > 1;
-  const extent = valueExtent(grid, stacked);
+  // 누적은 시리즈가 2개 이상일 때만 의미가 있다 (1개면 expand 가 전부 100% 가 된다).
+  const stackMode: StackMode =
+    grid.series.length > 1 && props.stackType !== "dodged"
+      ? props.stackType
+      : "none";
+  const extent = valueExtent(grid, stackMode);
   const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
   const horizontal = props.orientation === "horizontal";
 
@@ -234,7 +239,7 @@ export function computeChartScene(
       value,
       plot,
       orientation: props.orientation,
-      stacked,
+      stackMode,
     });
   } else if (props.chartType === "area") {
     marks = buildAreaMarks({
@@ -244,6 +249,7 @@ export function computeChartScene(
       plot,
       orientation: props.orientation,
       strokeWidth: metrics.strokeWidth,
+      stackMode,
     });
   } else {
     marks = buildLineMarks({
