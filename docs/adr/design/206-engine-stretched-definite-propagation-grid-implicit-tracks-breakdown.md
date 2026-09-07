@@ -87,7 +87,16 @@
 - 원복 RED: 채널 제거 시 F5·B1d·B6c·W3·W4 5건 RED, 대조군 GREEN 유지 (대조군이 RED 면 가짜 확정 — ledger §백분율 금지 패턴 1).
 - 회귀: `basicAxis{ContainerSize,ChildSize,Nesting}` · `percentSize` · `flexSweep` · `crossAxisOverflow` · `gridItemBox` 전량.
 
-### Phase 2 — grid 암묵 트랙 준수 (② · ④, Taffy #1036 · #1037 · #986 · 암묵 트랙 기본 `auto`)
+### Phase 2 — grid 암묵 트랙 준수 (② · ④, Taffy #1036 · #1037 · #986 · 암묵 트랙 기본 `auto`) — **완료 2026-09-07**
+
+**구현 결과**: 표의 7 항목 전부. 추가로 실측이 드러낸 2건 — (i) `combine_grid_line` 이 end-only (`grid-column-end: span 2` 단독) 를 auto 로 버리던 결함 → `auto / end`, (ii) 라인 정규화 (음수는 명시 grid 끝에서 · 0 은 auto · start < 1 은 1 로 당기고 span 축소). **Chrome 의 라인 상한은 10,000,000 이지 10,000 이 아니다** (실측 line 10000001 → y 9999999) — 엔진은 10,000 (`MAX_GRID_LINE`, Firefox·Taffy 값) 을 의도된 편차로 유지 (백만 단위 암묵 트랙은 엔진 부담), fixture 는 상한 안쪽 5000 으로 대조. 설계 차이 1건: "10,000 clamp 후 정상 배치" 의 실제 채널은 `implicit_minor_count` (자동 축 폭 = max(명시, 명시 배치 end, auto span)) 다 — definite-col 스캔의 `i32::MAX` 만으로는 G4 가 이미 GREEN 이라 (원복 (a) 30/30) 그 함수가 원복 대상.
+
+- 게이트 `gridImplicitTracks.browser.test.ts`: positive 11 (G4 · G4b · G4' · G4'' · G12 ×2 · G10 · G11 · G11b · auto-rows 순환 · 먼 라인 5000) + 대조군 4, engine · pipeline 두 leg = 30. baseline: positive 9 × 2 RED (G4' · auto-rows 순환 · 먼 라인은 baseline GREEN — 암묵 행 경로는 있었다). 최종 30/30.
+- 원복 RED (타입별 실제 diff 행): **A** `implicit_minor_count` → 명시 수 + definite-col 한계 복원 → G4 `root.h dom 20 / eng 100010` · G4b `b.y 20/0 · root.h 40/20` (×2 leg, 4 RED) · **B** 암묵 열 합성 제거 (tree.rs append + grid.rs `with_implicit_tracks`) → G12 `item.w 400/0` · G4 `a.w 400/200` · G4'' `a.x 300/200 · a.w 100/0` · G10 `a.w 400/0` · G11 `a.w 133/0` · G11b `a.w 50/0` · E14 대조군 60px 까지 9 × 2 = 18 RED · **C** `grid-auto-columns` 첫 토큰만 → G11 `a.w 133/200 · b.x 133/200 · b.w 267/200` · G11b `b.w 150/50 · c.x 200/100 · d.x 250/150 · d.w 150/50` (4 RED). 세 원복 모두 다른 케이스 GREEN 유지.
+- 회귀: parity 전량 1,193 PASS / 실패 3 = 기존 2 (`catalogComponentBox` GridListItem · Tooltip) + `shrinkToFitInline` 구 `[잔존] flow:column 행 extent 0` 단언 (→ 20 으로 전환, positive). cargo 394 + golden 28 + grid unit 신규 3 (`test_axis_placement_line_normalization` · `test_resolve_cells_implicit_grid` · `test_grid_layout_implicit_tracks`). type-check 0. preset 정적 80 PASS (주석만).
+- bench `tree_solve` depth 12: **27,666 ns** = Phase 0 baseline (27,167 / 3-run 27,666·27,792·27,792) — +0 % (G3 상한 +5 %).
+- live (b) · (c) → ADR `### Live Exercise` (아래 Phase 3 항목 중 live 는 완료, `perf:baseline frame` 과 README Implemented 만 잔여).
+
 
 | 변경                                                                                                                                        | 파일                                                                                                   | 규범                                  |
 | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------- |
@@ -137,8 +146,8 @@ C 묶음은 **production 도달 사례가 없어** 본 ADR 에 넣지 않는다.
 
 - [ ] Phase 0 산출 4건 (전수 대조 · F14 live · BC 인벤토리 · bench baseline)
 - [x] Phase 1 게이트 GREEN + 원복 RED + 회귀 0 — 2026-09-07: `percentSize` §ADR-206 positive 12 (baseline 11 RED × 2 leg, 신규 aspect auto-width 1) · 대조군 9 GREEN · `containerIntrinsic` K Δ40 → 0 · unit `adr206_*` 7 · golden N11/N12 · cargo 393 · parity 1,164 PASS (기존 실패 2) · bench depth 12 +1.5 % (3-run)
-- [ ] Phase 2 게이트 GREEN + 원복 RED + 회귀 0 (기존 실패 2건 분리 기록)
-- [ ] `cargo bench tree_solve` p50 ≤ baseline +5%
-- [ ] live 3 시나리오 → ADR `### Live Exercise`
-- [ ] ledger · 색인 · CHANGELOG · 대조 문서 · preset 주석
+- [x] Phase 2 게이트 GREEN + 원복 RED + 회귀 0 (기존 실패 2건 분리 기록) — 2026-09-07: `gridImplicitTracks` 30/30 (baseline 9 × 2 RED) · 원복 A/B/C RED 4/18/4 · parity 1,193 PASS (기존 실패 2) · cargo 394 · golden 28
+- [x] `cargo bench tree_solve` p50 ≤ baseline +5% — Phase 1 +1.5 % · Phase 2 depth 12 27,666 ns (baseline 동일)
+- [x] live 3 시나리오 → ADR `### Live Exercise` — (a) Phase 1 · (b)(c) Phase 2, 2026-09-07 Chrome MCP
+- [x] ledger · 색인 · CHANGELOG · 대조 문서 · preset 주석 — §백분율/§25 · 색인 13/25 · CHANGELOG Phase 1/2 · 대조 문서 §4 ①②④ ✅ · `presetDefinitions.ts` 주석 (auto-repeat 만 잔존)
 - [ ] README Implemented 전이 + 현황 카운트

@@ -268,9 +268,10 @@ describe("shrink-to-fit 확정 뒤 `%` 재해소", () => {
       it(c.name, () => check(c));
     }
 
-    it("[잔존] flow:column 은 행 extent 를 못 세운다", () => {
-      // 열은 맞고(자식 x/w 정합) 컨테이너 **높이**만 0 이다. 암묵 **행** 생성은 row-flow
-      // 전용이라 col-flow 에는 행 트랙이 서지 않는다 — 별개 축(grid.rs 의 flow 확장).
+    it("flow:column 도 암묵 행 extent 를 세운다 (ADR-206 Phase 2 — 구 [잔존] 해소)", () => {
+      // 종전엔 열은 맞고 컨테이너 **높이**만 0 이었다 — 암묵 행 생성이 row-flow 전용이라
+      // col-flow 에는 행 트랙이 서지 않았다. ADR-206 Phase 2 가 암묵 행을 flow 와 무관하게
+      // 배치가 쓰는 만큼 만들어 (`solve_grid` row_count) 높이도 DOM 과 같다 (20).
       const c = gridCase("flow column", { gridAutoFlow: "column" }, [
         atom(120),
         atom(60),
@@ -281,7 +282,7 @@ describe("shrink-to-fit 확정 뒤 `%` 재해소", () => {
       expect(Math.round(eng[bi].w)).toBe(Math.round(dom[bi].w)); // 180
       expect(Math.round(eng[1].x)).toBe(Math.round(dom[1].x)); // 두 번째 열 위치
       expect(Math.round(dom[bi].h)).toBe(20);
-      expect(Math.round(eng[bi].h)).toBe(0); // 행 트랙 미생성
+      expect(Math.round(eng[bi].h)).toBe(20); // 암묵 행 1개 = 자식 높이
     });
   });
 

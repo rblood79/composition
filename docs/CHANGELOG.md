@@ -2,6 +2,18 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — grid 암묵 트랙 · 명시 grid 를 넘는 배치 (ADR-206 Phase 2)] - 2026-09-07
+
+### Fixed
+
+- grid 자식의 `grid-column` / `grid-row` 가 명시 트랙 수를 넘으면 (2열 grid 에 `span 3`, `grid-column-start: 4`, 1행 grid 에 `grid-row-start: 3`) 캔버스가 요소를 행 10,001 (y 100,000) 로 보내던 결함을 고쳤습니다. 이제 Preview/Chrome 처럼 그만큼 암묵 트랙이 생기고 (CSS-GRID-1 §7.6 · §8.5), 그 뒤 자동 배치는 넓어진 grid 를 씁니다. 자동 배치 자체는 종전대로 명시 열 한계를 지킵니다.
+- `display: grid` 에 `grid-template-columns` 가 없으면 자식 폭이 100px 로 굳던 결함을 고쳤습니다 — 암묵 `auto` 열 1개가 컨테이너를 채웁니다 (정폭 400 → 400).
+- `grid-auto-columns` / `grid-auto-rows` 목록이 첫 px 토큰만 읽히던 것을 순환 적용으로 고쳤습니다 (`1fr 2fr` → 133/267). `grid-auto-flow: column` 컨테이너의 높이가 0 이던 결함도 같이 (암묵 행이 flow 와 무관하게 섭니다).
+- `grid-template-rows: repeat(2, 40px)` 같은 정수 반복이 auto 높이 grid 에서 행 하나로 접히던 결함을 고쳤습니다 (두 행 40/40). `grid-column-end: span 2` 만 준 자식이 span 을 잃던 결함도 같이.
+- grid line 정수는 ±10,000 으로 clamp 합니다 (Chrome 은 10,000,000 — 실측, 의도된 편차: 백만 단위 암묵 트랙은 실사용 배치가 아니고 엔진 부담). 음수 라인은 명시 grid 끝에서 셉니다 (`-1` = 마지막 라인).
+- **기존 문서 영향**: catalog 의 template 없는 grid 6 규칙 (Meter · ProgressBar · Slider 의 Track/Value · ProgressCircle) 은 canonical 자식이 없어 배치가 바뀌지 않습니다 (ADR-206 Phase 0 live 판정). 사용자가 grid Frame 에 열 수를 넘는 span 을 줬던 문서는 요소가 제자리로 돌아옵니다.
+- 근거: Taffy 0.10→0.14 대조 §4 ② ④ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`). Chrome 차등 게이트 `tests/parity/gridImplicitTracks.browser.test.ts` (positive 11 · 대조군 4 · engine/pipeline 두 leg — baseline 9 × 2 RED → 30 GREEN), `shrinkToFitInline` 구 `[잔존] flow:column` 단언 0 → 20, grid unit 3 신규 · cargo 394 PASS · golden 28, parity 1,193 PASS (기존 실패 2 유지), `tree_solve` bench depth 12 27,666 ns (baseline 동일). 엔진 정합 규칙 ledger §25.
+
 ## [레이아웃 엔진 — 늘어난 크기가 `%` 높이의 기준이 된다 (ADR-206 Phase 1)] - 2026-09-07
 
 ### Fixed

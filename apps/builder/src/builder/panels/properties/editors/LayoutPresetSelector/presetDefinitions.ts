@@ -18,8 +18,12 @@
  * 모드에서 grid line 은 무시된다. 덕분에 슬롯 트리가 평면으로 유지되고 이름 없는 wrapper
  * 노드가 생기지 않는다.
  *
- * `repeat()` / `minmax()` 는 쓰지 않는다 — 2026-07-25 실측에서 `minmax(60px, auto)` 가
- * 슬롯 폭 1920 / header 570 같은 비정상값을 냈다. 트랙은 명시 나열한다.
+ * 트랙은 명시 나열한다. 2026-07-25 실측의 `minmax(60px, auto)` 비정상값 (슬롯 폭 1920 /
+ * header 570) 은 ADR-923 이후 수리되어 Chrome 과 일치하고 (TAFFY_UPSTREAM_DELTA_2026-09.md
+ * §2 P0725), 정수 `repeat(N, …)` 도 ADR-206 Phase 2 가 토큰 수준에서 펼친다 — 둘 다 이제
+ * 회피 사유가 아니다. 남는 회피는 **auto-fill / auto-fit** 뿐이다 (같은 문서 §2 G1 · G1b —
+ * 빈 트랙 미축소 · 반복 수 계산 결함, ADR-206 scope 밖 ⑥). R3 정적 게이트는 그 판정이 바뀔
+ * 때 함께 푼다.
  */
 
 import type { CSSProperties } from "react";

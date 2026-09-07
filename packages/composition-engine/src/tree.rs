@@ -3551,7 +3551,7 @@ impl LayoutTree {
         let row_gap = resolve_gap(style.row_gap.as_deref(), &ctx_w);
 
         // (1) track array → space-join 문자열.
-        let mut template_cols = join_tracks(style.grid_template_columns.as_deref());
+        let template_cols = join_tracks(style.grid_template_columns.as_deref());
         let mut template_rows = join_tracks(style.grid_template_rows.as_deref());
 
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
@@ -3567,14 +3567,62 @@ impl LayoutTree {
             .as_deref()
             .map(|f| f.contains("column"))
             .unwrap_or(false);
+        // **명시 토큰은 정수 `repeat()` 를 펼친 목록**이다 — 아래 트랙 sizing 은 토큰 하나를
+        // 트랙 하나로 세므로 `repeat(2, 40px)` 이 한 토큰으로 남으면 두 행이 하나로 접힌다
+        // (ADR-206 G10). auto-fill/auto-fit 은 컨테이너 크기가 있어야 펼쳐져 토큰으로 남고,
+        // 그 경우 트랙 수만 `parse_tracks` 로 센다 (auto-repeat 자체는 scope 밖 ⑥).
+        let explicit_col_tokens: Vec<String> =
+            grid::expand_repeat_tokens(&grid::tokenize_template(&template_cols));
+        let col_has_auto_repeat = explicit_col_tokens.iter().any(|t| t.starts_with("repeat("));
+        let explicit_col_count = if col_has_auto_repeat {
+            grid::parse_tracks(&template_cols, container_w, col_gap).len()
+        } else {
+            explicit_col_tokens.len()
+        };
+        let explicit_row_tokens: Vec<String> =
+            grid::expand_repeat_tokens(&grid::tokenize_template(&template_rows));
         let placed_cells = grid::resolve_child_cells(
             &placement_spec,
             children.len(),
             "",
-            grid::parse_tracks(&template_cols, container_w, col_gap).len().max(1),
-            grid::tokenize_template(&template_rows).len().max(1),
+            explicit_col_count,
+            explicit_row_tokens.len(),
             flow_column,
         );
+
+        // ── 암묵 열 (ADR-206 ② · ④, CSS-GRID-1 §7.6) ──
+        // 명시 열 뒤에 배치가 쓰는 만큼 암묵 열을 붙인다 — template 이 없으면 암묵 열 1개,
+        // `span 3` 이 2열을 넘으면 3열. 크기는 `grid-auto-columns` 토큰 순환 (기본 `auto` →
+        // 아래 기여 측정 + §12.8 stretch 로 정폭 grid 에서 컨테이너를 채운다). 종전엔 이 합성이
+        // `inline_intrinsic` (auto 폭) 분기 안에만 있어 정폭 grid 는 grid.rs 폴백 100 셀로
+        // 떨어졌다 (G12: Chrome 400 / 엔진 100). 행 축의 암묵 행 생성과 같은 규칙이다.
+        let auto_col_tokens: Vec<String> = style
+            .grid_auto_columns
+            .as_deref()
+            .map(|v| {
+                v.iter()
+                    .map(|t| t.trim().to_string())
+                    .filter(|t| !t.is_empty())
+                    .collect()
+            })
+            .filter(|v: &Vec<String>| !v.is_empty())
+            .unwrap_or_else(|| vec!["auto".to_string()]);
+        let needed_cols = placed_cells
+            .iter()
+            .map(|p| p.1 + p.3)
+            .max()
+            .unwrap_or(0)
+            .max(explicit_col_count)
+            .max(1);
+        let mut template_cols = if col_has_auto_repeat {
+            template_cols
+        } else {
+            let mut toks = explicit_col_tokens.clone();
+            for i in 0..needed_cols.saturating_sub(explicit_col_count) {
+                toks.push(auto_col_tokens[i % auto_col_tokens.len()].clone());
+            }
+            toks.join(" ")
+        };
 
         // 아래 intrinsic 측정 pass 들은 자식 서브트리를 **컨테이너 크기**로 solve 한다.
         // solve_* 는 말미에 dirty=false 를 찍으므로, 그 뒤 셀 크기로 다시 부르면 증분 skip
@@ -3613,29 +3661,10 @@ impl LayoutTree {
         });
 
         if let Some(mode) = inline_intrinsic {
-            // **명시 열이 없어도 암묵 열은 있다** — `grid-template-columns` 미지정이면
-            // auto-placement 가 만든 암묵 열을 `grid-auto-columns`(기본 `auto`)가 정한다.
-            // 종전엔 여기서 그냥 빠져나가 `container_w` 가 미결정 센티넬(`-1`) 그대로 남았고,
-            // 그 값이 컨테이너 폭으로 보고됐다 — 실측: `align-items:center` 아래 template
-            // 없는 grid 의 폭이 **-1** (DOM 120). 행 축의 암묵 트랙 생성과 같은 규칙이다.
-            let toks: Vec<String> = {
-                let explicit = grid::tokenize_template(&template_cols);
-                if !explicit.is_empty() {
-                    explicit
-                } else {
-                    let cols = placed_cells.iter().map(|p| p.1).max().map_or(1, |m| m + 1);
-                    let auto_toks =
-                        grid::tokenize_template(&join_tracks(style.grid_auto_columns.as_deref()));
-                    (0..cols)
-                        .map(|i| {
-                            auto_toks
-                                .get(i % auto_toks.len().max(1))
-                                .cloned()
-                                .unwrap_or_else(|| "auto".to_string())
-                        })
-                        .collect()
-                }
-            };
+            // 열 목록 = 명시 ++ 암묵 (위에서 합성) — template 없는 grid 도 암묵 `auto` 열
+            // 1개를 가지므로 여기서 `container_w` 가 미결정 센티넬(`-1`) 로 남지 않는다
+            // (실측: `align-items:center` 아래 template 없는 grid 의 폭 -1 / DOM 120).
+            let toks: Vec<String> = grid::tokenize_template(&template_cols);
             if !toks.is_empty() {
                 let col_count = toks.len();
                 let mut col_min = vec![0.0f32; col_count];
@@ -3690,7 +3719,6 @@ impl LayoutTree {
         // **블록 축이 미결정이면 전 토큰을 기여로 세운다** (§12.5–§12.7.1, 인라인 축과 동형).
         // `1fr`/`%` 는 나눠 줄 여유가 없으니 content 크기가 되어야 하는데 종전 경로는 그 둘을
         // 상속 available 로 풀었다. 미결정 축에서는 이 확정 결과가 곧 컨테이너 높이다(`final_h`).
-        let explicit_row_tokens: Vec<String> = grid::tokenize_template(&template_rows);
         let auto_row_tokens: Vec<String> = style
             .grid_auto_rows
             .as_deref()
@@ -3703,18 +3731,14 @@ impl LayoutTree {
             .filter(|v: &Vec<String>| !v.is_empty())
             .unwrap_or_else(|| vec!["auto".to_string()]);
         let child_rows: Vec<usize> = placed_cells.iter().map(|p| p.0).collect();
-        // 암묵 행은 **row-flow 에서만** 생긴다 — col-flow 는 행을 명시 트랙으로 고정하고
-        // 열을 늘린다 (그 확장은 grid.rs 소관).
-        let row_count = if flow_column {
-            explicit_row_tokens.len()
-        } else {
-            child_rows
-                .iter()
-                .map(|&r| r + 1)
-                .max()
-                .unwrap_or(0)
-                .max(explicit_row_tokens.len())
-        };
+        // 암묵 행은 flow 와 무관하게 배치가 쓰는 만큼 생긴다 (span 끝까지) — col-flow 도
+        // 명시 행이 없으면 암묵 행 1개다 (ADR-206 G11: 종전 row_count 0 → 컨테이너 높이 0).
+        let row_count = placed_cells
+            .iter()
+            .map(|p| p.0 + p.2)
+            .max()
+            .unwrap_or(0)
+            .max(explicit_row_tokens.len());
         let row_tokens: Vec<String> = (0..row_count)
             .map(|r| match explicit_row_tokens.get(r) {
                 Some(t) => t.clone(),
@@ -5013,8 +5037,11 @@ fn combine_grid_line(start: Option<&str>, end: Option<&str>) -> String {
     match (s, e) {
         (Some(s), Some(e)) => format!("{s} / {e}"),
         (Some(s), None) => s,
-        // end 만 있으면 start 없이 grid.rs 로 표현 불가 → auto.
-        (None, _) => String::new(),
+        // end 만 있으면 `auto / end` — `span N` 은 위치 auto 의 span, 숫자 end 는 그 앞 한 칸
+        // (grid.rs `parse_axis_placement` 가 둘 다 푼다). 종전엔 auto 로 떨어져 `span 2` 가
+        // 사라졌다 (ADR-206 Phase 2 — Chrome b.w 200 / 엔진 100).
+        (None, Some(e)) => format!("auto / {e}"),
+        (None, None) => String::new(),
     }
 }
 

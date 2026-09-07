@@ -109,6 +109,50 @@ pub(crate) fn tokenize_template(template: &str) -> Vec<String> {
     tokens
 }
 
+/// 정수 반복 `repeat(N, <track-list>)` 를 **토큰 수준**에서 펼친다 (CSS-GRID-1 §7.2.3.1).
+///
+/// tree.rs 의 트랙 sizing 은 토큰 하나 = 트랙 하나로 센다 — `repeat(2, 40px)` 이 한 토큰으로
+/// 남으면 행 수가 1 로 세어져 auto 축에서 두 행이 하나의 content 행으로 접힌다 (ADR-206 G10:
+/// Chrome b.y 40 / 엔진 20). auto-fill / auto-fit 은 컨테이너 크기 없이는 반복 수를 모르므로
+/// 그대로 둔다 (`expand_repeat` 이 크기를 알고 푼다 — auto-repeat 는 ADR-206 scope 밖 ⑥).
+pub(crate) fn expand_repeat_tokens(tokens: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::with_capacity(tokens.len());
+    for tok in tokens {
+        let Some(inner) = tok
+            .strip_prefix("repeat(")
+            .and_then(|rest| rest.strip_suffix(')'))
+        else {
+            out.push(tok.clone());
+            continue;
+        };
+        let Some(comma) = inner.find(',') else {
+            out.push(tok.clone());
+            continue;
+        };
+        let Ok(count) = inner[..comma].trim().parse::<usize>() else {
+            // auto-fill / auto-fit / 잘못된 수 → 원문 유지.
+            out.push(tok.clone());
+            continue;
+        };
+        let pattern = tokenize_template(inner[comma + 1..].trim());
+        if pattern.is_empty() {
+            out.push(tok.clone());
+            continue;
+        }
+        for _ in 0..count.max(1) {
+            out.extend(pattern.iter().cloned());
+        }
+    }
+    out
+}
+
+/// 명시 grid line 정수의 상한 (Firefox `kMaxLine` · Taffy #986 과 같은 10,000). Chrome 실측
+/// (2026-09-07) 은 10,000,000 (`kGridMaxTracks` — line 10000001 → y 9999999) 이라 그 사이는
+/// **의도된 편차**다: 암묵 트랙은 라인 수만큼 토큰·기여 벡터를 만들므로 백만 단위는 엔진
+/// 부담이고 실사용 배치가 아니다. 배치 루프의 종료 상한이기도 하다 — 점유는 유한하고 라인은
+/// 이 값을 넘지 못하므로 무한 루프 가드가 따로 필요 없다.
+pub(crate) const MAX_GRID_LINE: i32 = 10_000;
+
 // ─── 단일 트랙 파싱 ─────────────────────────────────────────────────────
 
 /// px / fr / % / auto 단일 값 파싱 (minmax 제외). fr/%/auto 는 size 미결정.
@@ -678,13 +722,8 @@ fn cell_bounds_for_child(
         }
     }
 
-    if width == 0.0 {
-        width = tracks_x.first().copied().unwrap_or(100.0);
-    }
-    if height == 0.0 {
-        height = tracks_y.first().copied().unwrap_or(100.0);
-    }
-
+    // 트랙 부재 폴백 (종전 100 / 첫 트랙) 없음 — 셀이 가리키는 트랙은 `grid_layout` 의 암묵
+    // 트랙 생성이 항상 먼저 만든다 (ADR-206 ④). 0 폭 트랙은 그대로 0 이다.
     (x, y, width, height)
 }
 
@@ -709,7 +748,12 @@ struct ChildPlacement {
 /// - `"span 2"` → `(None, 2)`
 /// - `"1 / span 2"` → `(Some(1), 2)`
 /// - `"span 2 / 4"` → `(Some(2), 2)`  (end 고정 → start=end-span)
-fn parse_axis_placement(value: &str) -> (Option<i32>, i32) {
+///
+/// **라인 정규화 (ADR-206 Phase 2)**: 음수 라인은 명시 grid 끝에서 센다 (`-1` = 마지막 명시
+/// 라인 = `explicit + 1`, CSS-GRID-1 §8.3), `0` 은 무효 → auto. 정수는 ±[`MAX_GRID_LINE`] 으로
+/// clamp 한다 (Chrome 파싱 규칙). 결과 start 가 1 앞이면 1 로 당기고 span 을 그만큼 줄인다 —
+/// 명시 grid 앞쪽 암묵 트랙(음수 방향 확장) 은 scope 밖이다.
+fn parse_axis_placement(value: &str, explicit_count: i32) -> (Option<i32>, i32) {
     let v = value.trim();
     if v.is_empty() || v.eq_ignore_ascii_case("auto") {
         return (None, 1);
@@ -719,40 +763,63 @@ fn parse_axis_placement(value: &str) -> (Option<i32>, i32) {
             .trim()
             .parse::<i32>()
             .unwrap_or(1)
-            .max(1)
+            .clamp(1, MAX_GRID_LINE)
     };
-    if let Some(slash) = v.find('/') {
+    // 정수 라인 → 정규화된 1-based 라인. 0 / 파싱 실패 → None (auto).
+    let line_of = |s: &str| -> Option<i32> {
+        let n = s.parse::<i32>().ok()?.clamp(-MAX_GRID_LINE, MAX_GRID_LINE);
+        if n == 0 {
+            None
+        } else if n < 0 {
+            Some((explicit_count.max(0) + 2 + n).max(1))
+        } else {
+            Some(n)
+        }
+    };
+    let (start, span) = if let Some(slash) = v.find('/') {
         let a = v[..slash].trim();
         let b = v[slash + 1..].trim();
         let a_span = a.starts_with("span");
         let b_span = b.starts_with("span");
-        return match (a_span, b_span) {
+        match (a_span, b_span) {
             // "span N / end" → end 고정, start=end-N
             (true, false) => {
                 let span = span_of(a);
-                (b.parse::<i32>().ok().map(|e| e - span), span)
+                (line_of(b).map(|e| e - span), span)
             }
             // "start / span N"
-            (false, true) => (a.parse::<i32>().ok(), span_of(b)),
+            (false, true) => (line_of(a), span_of(b)),
             // "span N / span M" → 위치 auto, span=첫째
             (true, true) => (None, span_of(a)),
             // "start / end" 숫자
-            (false, false) => match (a.parse::<i32>().ok(), b.parse::<i32>().ok()) {
+            (false, false) => match (line_of(a), line_of(b)) {
                 (Some(s), Some(e)) => (Some(s), (e - s).max(1)),
                 (Some(s), None) => (Some(s), 1),
+                // end 만 명시 → span 1 이 end 에서 끝난다 (`auto / 3` = 라인 2..3).
+                (None, Some(e)) => (Some(e - 1), 1),
                 _ => (None, 1),
             },
-        };
+        }
+    } else if v.starts_with("span") {
+        (None, span_of(v))
+    } else {
+        (line_of(v), 1)
+    };
+    match start {
+        // start 가 1 앞이면 1 로 당기고 그만큼 span 을 줄인다 (end 라인 보존).
+        Some(s) if s < 1 => (Some(1), (span + s - 1).max(1)),
+        Some(s) => (Some(s), span.min(MAX_GRID_LINE + 1 - s).max(1)),
+        None => (None, span),
     }
-    if v.starts_with("span") {
-        return (None, span_of(v));
-    }
-    (v.parse::<i32>().ok(), 1)
 }
 
-/// span 블록이 (row0,col0)에서 점유 없이 열 범위 안에 들어가는가.
+/// span 블록이 (row0,col0) 에서 점유 없이 `cols` 한계 안에 들어가는가.
+///
+/// `cols` 는 **자동 배치 축의 암묵 트랙 수**다 (`implicit_minor_count`). 명시 배치 축에는
+/// 한계가 없다 — 호출부가 `i32::MAX` 를 넘긴다 (ADR-206 ②: 종전엔 명시 `span 3` 이 2열
+/// 한계에 걸려 10,000 반복 뒤 실패 위치 (행 10,001) 에 배치됐다 — Taffy #1036 · #1037).
 fn block_fits(occ: &HashSet<(i32, i32)>, r0: i32, c0: i32, rs: i32, cs: i32, cols: i32) -> bool {
-    if c0 < 1 || c0 + cs - 1 > cols {
+    if c0 < 1 || c0.saturating_add(cs - 1) > cols {
         return false;
     }
     for r in r0..r0 + rs {
@@ -773,19 +840,20 @@ fn mark_block(occ: &mut HashSet<(i32, i32)>, r0: i32, c0: i32, rs: i32, cs: i32)
     }
 }
 
-/// 고정 행 r 에서 span 이 들어가는 첫 free 열 (row-flow definite-row 아이템용).
-fn first_free_col(occ: &HashSet<(i32, i32)>, r: i32, rs: i32, cs: i32, cols: i32) -> i32 {
+/// 고정 행 r 에서 span 이 들어가는 첫 free 열 (row-flow definite-row 아이템용, §8.5 step 2).
+/// 열 한계 없음 — 자리가 없으면 암묵 열이 생긴다.
+fn first_free_col(occ: &HashSet<(i32, i32)>, r: i32, rs: i32, cs: i32) -> i32 {
     let mut c = 1;
-    while !block_fits(occ, r, c, rs, cs, cols) && c <= cols {
+    while !block_fits(occ, r, c, rs, cs, i32::MAX) && c < MAX_GRID_LINE {
         c += 1;
     }
-    c.min(cols.max(1))
+    c
 }
 
 /// 고정 열 c 에서 span 이 들어가는 첫 free 행 (col-flow definite-column 아이템용).
-fn first_free_row(occ: &HashSet<(i32, i32)>, c: i32, rs: i32, cs: i32, rows: i32) -> i32 {
+fn first_free_row(occ: &HashSet<(i32, i32)>, c: i32, rs: i32, cs: i32) -> i32 {
     let mut r = 1;
-    while !block_fits(occ, r, c, rs, cs, i32::MAX) && r <= rows.max(1) + 10_000 {
+    while !block_fits(occ, r, c, rs, cs, i32::MAX) && r < MAX_GRID_LINE {
         r += 1;
     }
     r
@@ -800,7 +868,13 @@ struct PlacementIntent {
 }
 
 /// ChildPlacement 문자열 → PlacementIntent (area 이름 / 숫자 gridArea / gridColumn·Row).
-fn resolve_placement_intent(p: &ChildPlacement, areas: &[(String, AreaRect)]) -> PlacementIntent {
+/// `explicit_cols` / `explicit_rows` 는 음수 라인 정규화 기준 (명시 트랙 수).
+fn resolve_placement_intent(
+    p: &ChildPlacement,
+    areas: &[(String, AreaRect)],
+    explicit_cols: i32,
+    explicit_rows: i32,
+) -> PlacementIntent {
     if !p.area_name.is_empty() {
         if let Some((_, rect)) = areas.iter().find(|(n, _)| n == &p.area_name) {
             return PlacementIntent {
@@ -824,45 +898,45 @@ fn resolve_placement_intent(p: &ChildPlacement, areas: &[(String, AreaRect)]) ->
             row_span: (re - rs).max(1),
         };
     }
-    let (col_start, col_span) = parse_axis_placement(&p.grid_column);
-    let (row_start, row_span) = parse_axis_placement(&p.grid_row);
+    let (col_start, col_span) = parse_axis_placement(&p.grid_column, explicit_cols);
+    let (row_start, row_span) = parse_axis_placement(&p.grid_row, explicit_rows);
     PlacementIntent { col_start, col_span, row_start, row_span }
 }
 
-/// tracks + placement 배열로 모든 자식 bounds 계산. gridArea 이름/숫자, gridColumn/Row span,
-/// **occupancy 기반 2-phase auto-placement**(CSS-GRID-1 §8.5, grid-auto-flow:row sparse)를
-/// 통합 처리한다.
+/// 자동 배치 축(minor)의 **암묵 트랙 수** (CSS-GRID-1 §7.6 · §8.5 step 1).
 ///
-/// E13(ADR-156 Phase 3): 이전 구현은 auto 위치를 `child_index % cols` 로 계산해 span 점유를
-/// 무시했다 (span 2 자식 뒤 자식이 겹침). CSS §8.5 는 **정의된 row 를 가진 아이템을 먼저**
-/// 배치하고(step 2), **fully-auto 아이템을 커서로 나중에** 배치한다(step 4) — 단일 패스는
-/// 이 순서를 못 지켜 row-span 아이템과 auto 아이템의 열이 뒤바뀐다(실측: a.x 100↔rspan.x 0).
-/// 따라서 2-phase 로 처리한다:
-///   Phase 0 — 명시 row 아이템(fully-definite + definite-row-auto-col): row band 첫 free 열.
-///   Phase 1 — 나머지(definite-col-auto-row + fully-auto): 커서 row-major 스캔.
-fn place_children(
-    placements: &[ChildPlacement],
+/// 명시 트랙 수 · 그 축에 명시 배치된 아이템의 end 라인 · 그 축이 auto 인 아이템의 span 중
+/// 최댓값이다 — 커서 스캔은 이 폭 안에서 돌고, 이보다 큰 span 은 없으므로 스캔이 항상 끝난다.
+/// (Chrome `GridPlacement` 의 minor-axis end-line 계산과 같은 규칙.)
+fn implicit_minor_count(items: &[PlacementIntent], explicit: i32, minor_is_col: bool) -> i32 {
+    let mut n = explicit.max(1);
+    for it in items {
+        let (start, span) = if minor_is_col {
+            (it.col_start, it.col_span)
+        } else {
+            (it.row_start, it.row_span)
+        };
+        n = n.max(match start {
+            Some(s) => s + span - 1,
+            None => span,
+        });
+    }
+    n.min(MAX_GRID_LINE)
+}
+
+/// intents + 해소된 셀 → 자식 bounds (child 순서).
+fn bounds_for_cells(
+    items: &[PlacementIntent],
+    resolved: &[(i32, i32)],
     tracks_x: &[f32],
     tracks_y: &[f32],
     col_gap: f32,
     row_gap: f32,
-    areas: &[(String, AreaRect)],
-    flow_column: bool,
 ) -> Vec<(f32, f32, f32, f32)> {
-    let cols = tracks_x.len().max(1) as i32;
-    let rows = tracks_y.len().max(1) as i32;
-    let items: Vec<PlacementIntent> = placements
-        .iter()
-        .map(|p| resolve_placement_intent(p, areas))
-        .collect();
-    let resolved = resolve_cells_from_intents(&items, cols, rows, flow_column);
-
-    // ── 최종 bounds (child 순서) ──
     items
         .iter()
-        .enumerate()
-        .map(|(i, it)| {
-            let (r, c) = resolved[i];
+        .zip(resolved)
+        .map(|(it, &(r, c))| {
             cell_bounds_for_child(
                 c,
                 c + it.col_span,
@@ -877,10 +951,31 @@ fn place_children(
         .collect()
 }
 
+/// 테스트 전용 — placements + 트랙으로 bounds 까지 한 번에 (구 `place_children` 계약 유지).
+#[cfg(test)]
+fn place_children(
+    placements: &[ChildPlacement],
+    tracks_x: &[f32],
+    tracks_y: &[f32],
+    col_gap: f32,
+    row_gap: f32,
+    areas: &[(String, AreaRect)],
+    flow_column: bool,
+) -> Vec<(f32, f32, f32, f32)> {
+    let (ec, er) = (tracks_x.len() as i32, tracks_y.len() as i32);
+    let items: Vec<PlacementIntent> = placements
+        .iter()
+        .map(|p| resolve_placement_intent(p, areas, ec, er))
+        .collect();
+    let resolved = resolve_cells_from_intents(&items, ec, er, flow_column);
+    bounds_for_cells(&items, &resolved, tracks_x, tracks_y, col_gap, row_gap)
+}
+
 /// 자식 → 셀 `(row, col, row_span, col_span)` (0-based 트랙 인덱스). 트랙 sizing 진입점.
 ///
 /// `grid_layout` 이 내부에서 하는 배치와 **같은 함수**를 쓴다 — 측정한 트랙과 배치된 트랙이
-/// 갈리면 컨테이너 크기가 어긋난다.
+/// 갈리면 컨테이너 크기가 어긋난다. `cols` / `rows` 는 **명시** 트랙 수 (0 가능) — 암묵
+/// 트랙은 결과의 `row + row_span` / `col + col_span` 최댓값으로 호출부가 만든다.
 pub(crate) fn resolve_child_cells(
     placement_spec: &str,
     child_count: usize,
@@ -901,10 +996,9 @@ pub(crate) fn resolve_child_cells(
     };
     let items: Vec<PlacementIntent> = placements
         .iter()
-        .map(|p| resolve_placement_intent(p, &areas))
+        .map(|p| resolve_placement_intent(p, &areas, cols as i32, rows as i32))
         .collect();
-    let resolved =
-        resolve_cells_from_intents(&items, cols.max(1) as i32, rows.max(1) as i32, flow_column);
+    let resolved = resolve_cells_from_intents(&items, cols as i32, rows as i32, flow_column);
     items
         .iter()
         .zip(resolved)
@@ -926,12 +1020,18 @@ pub(crate) fn resolve_child_cells(
 /// 판정은 여기에만 있다. tree.rs 가 `i / col_count` 로 근사하면 grid.rs 의 실제 배치와
 /// 어긋나 **측정한 행과 배치된 행이 달라진다** (실측: definite-column 자식 2개가 CSS 는
 /// 2행인데 근사는 1행 → 컨테이너 높이 400 vs 200).
+///
+/// `explicit_cols` / `explicit_rows` 는 명시 트랙 수. 자동 배치 축의 폭은
+/// [`implicit_minor_count`] 로 넓힌다 — 명시 배치가 명시 grid 를 넘으면 그만큼 암묵 트랙이
+/// 생기고 (ADR-206 ②), 그 자리는 이후 자동 배치도 쓴다.
 fn resolve_cells_from_intents(
     items: &[PlacementIntent],
-    cols: i32,
-    rows: i32,
+    explicit_cols: i32,
+    explicit_rows: i32,
     flow_column: bool,
 ) -> Vec<(i32, i32)> {
+    let cols = implicit_minor_count(items, explicit_cols, true);
+    let rows = implicit_minor_count(items, explicit_rows, false);
 
     let mut occ: HashSet<(i32, i32)> = HashSet::new();
     let mut resolved: Vec<Option<(i32, i32)>> = vec![None; items.len()];
@@ -943,14 +1043,14 @@ fn resolve_cells_from_intents(
             it.row_start.map(|r| {
                 let c = it
                     .col_start
-                    .unwrap_or_else(|| first_free_col(&occ, r, it.row_span, it.col_span, cols));
+                    .unwrap_or_else(|| first_free_col(&occ, r, it.row_span, it.col_span));
                 (r, c)
             })
         } else {
             it.col_start.map(|c| {
                 let r = it
                     .row_start
-                    .unwrap_or_else(|| first_free_row(&occ, c, it.row_span, it.col_span, rows));
+                    .unwrap_or_else(|| first_free_row(&occ, c, it.row_span, it.col_span));
                 (r, c)
             })
         };
@@ -995,6 +1095,9 @@ fn resolve_cells_from_intents(
 }
 
 /// row-flow(기본) fully-auto 아이템 배치 — 커서에서 row-major 스캔.
+///
+/// `cols` 는 암묵 열 수 (≥ 모든 auto 아이템의 span) 라 각 행에 후보가 있고, 점유는 유한하므로
+/// 스캔은 [`MAX_GRID_LINE`] 안에서 끝난다 — 종전의 `+ 10_000` 실패-위치 반환은 없다.
 fn place_auto_row_flow(
     occ: &HashSet<(i32, i32)>,
     it: &PlacementIntent,
@@ -1002,16 +1105,16 @@ fn place_auto_row_flow(
     cur_row: i32,
     cur_col: i32,
 ) -> (i32, i32) {
-    // definite-col-auto-row: 커서 row 부터 그 열에서 첫 free.
+    // definite-col-auto-row: 커서 row 부터 그 열에서 첫 free. 열 한계 없음 (명시 축).
     if let Some(c) = it.col_start {
         let mut r = cur_row;
-        while !block_fits(occ, r, c, it.row_span, it.col_span, cols) && r < cur_row + 10_000 {
+        while !block_fits(occ, r, c, it.row_span, it.col_span, i32::MAX) && r < MAX_GRID_LINE {
             r += 1;
         }
         return (r, c);
     }
     let mut r = cur_row;
-    while r < cur_row + 10_000 {
+    while r <= MAX_GRID_LINE {
         let mut c = if r == cur_row { cur_col } else { 1 };
         while c + it.col_span - 1 <= cols {
             if block_fits(occ, r, c, it.row_span, it.col_span, cols) {
@@ -1021,7 +1124,7 @@ fn place_auto_row_flow(
         }
         r += 1;
     }
-    (cur_row, 1)
+    (MAX_GRID_LINE, 1)
 }
 
 /// col-flow(grid-auto-flow:column) fully-auto 아이템 배치 — 커서에서 column-major 스캔.
@@ -1032,16 +1135,16 @@ fn place_auto_col_flow(
     cur_row: i32,
     cur_col: i32,
 ) -> (i32, i32) {
-    // definite-row-auto-col: 커서 col 부터 그 행에서 첫 free.
+    // definite-row-auto-col: 커서 col 부터 그 행에서 첫 free. 열 한계 없음 (명시 축).
     if let Some(r) = it.row_start {
         let mut c = cur_col;
-        while !block_fits(occ, r, c, it.row_span, it.col_span, i32::MAX) && c < cur_col + 10_000 {
+        while !block_fits(occ, r, c, it.row_span, it.col_span, i32::MAX) && c < MAX_GRID_LINE {
             c += 1;
         }
         return (r, c);
     }
     let mut c = cur_col;
-    while c < cur_col + 10_000 {
+    while c <= MAX_GRID_LINE {
         let mut r = if c == cur_col { cur_row } else { 1 };
         while r + it.row_span - 1 <= rows {
             if block_fits(occ, r, c, it.row_span, it.col_span, i32::MAX) {
@@ -1051,9 +1154,8 @@ fn place_auto_col_flow(
         }
         c += 1;
     }
-    (1, cur_col)
+    (1, MAX_GRID_LINE)
 }
-
 // ─── 컨테이너 트랙 정렬 (E12) ───────────────────────────────────────────
 
 /// justify-content / align-content 로 트랙셋을 컨테이너 안에서 정렬 (CSS-GRID-1 §10.4/§10.5).
@@ -1088,19 +1190,6 @@ fn track_distribution(mode: &str, free: f32, n: usize) -> (f32, f32) {
     }
 }
 
-/// grid-auto-columns/rows 문자열 → 암시 트랙 px 크기 (E14). 첫 토큰의 px 값만 소비
-/// (fr/%/auto/minmax intrinsic 은 미측정 → fallback). CSS 는 auto 트랙 리스트를 반복 적용하나
-/// 옵션 3-b 범위에선 단일 px 값 + fallback 으로 한정.
-fn parse_implicit_track_size(spec: &str, fallback: f32) -> f32 {
-    let first = spec.split_whitespace().next().unwrap_or("").trim();
-    if let Some(px) = first.strip_suffix("px") {
-        if let Ok(v) = px.trim().parse::<f32>() {
-            return v.max(0.0);
-        }
-    }
-    fallback
-}
-
 // ─── 공개 API: 완결 grid 레이아웃 ──────────────────────────────────────
 
 /// 자식 placement 문자열 파싱. 자식당 `area_name|grid_column|grid_row` (파이프 구분),
@@ -1121,6 +1210,38 @@ fn parse_placements(spec: &str) -> Vec<ChildPlacement> {
         .collect()
 }
 
+/// 명시 트랙 목록 뒤에 **암묵 트랙**을 `grid-auto-*` 토큰 순환으로 붙인 template 문자열
+/// (CSS-GRID-1 §7.6 — 목록이 여러 개면 첫 암묵 트랙부터 순환, 없으면 `auto`).
+///
+/// 반환은 명시 토큰 ++ 암묵 토큰의 space-join — `parse_template_to_tracks` 가 전체를 한 번에
+/// 풀어 `fr` 분배가 명시·암묵 트랙을 같이 본다 (G11: `grid-auto-columns: 1fr 2fr` → 133/267).
+/// tree.rs 는 이 함수를 거치지 않고 자식 기여로 세운 전체 목록을 넘기므로 (auto 트랙 측정),
+/// 여기 경로는 직접 호출자 (`grid_layout` 단독 사용) 의 폴백이다.
+///
+/// `explicit_count` 는 **해소된** 명시 트랙 수다 (auto-fill 반복이 펼쳐진 뒤) — 토큰 수로 세면
+/// `repeat(auto-fill, …)` 하나가 트랙 하나로 보여 가짜 암묵 트랙이 붙는다.
+fn with_implicit_tracks(
+    explicit: &str,
+    explicit_count: usize,
+    auto_spec: &str,
+    needed: usize,
+) -> String {
+    if explicit_count >= needed {
+        return explicit.trim().to_string();
+    }
+    let mut toks = tokenize_template(explicit);
+    let auto_toks = tokenize_template(auto_spec);
+    for i in 0..(needed - explicit_count) {
+        toks.push(
+            auto_toks
+                .get(i % auto_toks.len().max(1))
+                .cloned()
+                .unwrap_or_else(|| "auto".to_string()),
+        );
+    }
+    toks.join(" ")
+}
+
 /// flex_layout / block_layout 과 대칭인 grid 의 완결 공개 엔트리.
 /// 문자열 template(cols/rows/areas) + 자식 placement 를 받아 최종 자식 bounds flat 배열
 /// (`[x, y, w, h, ...]`, 자식당 4값) 을 반환한다.
@@ -1133,6 +1254,7 @@ fn parse_placements(spec: &str) -> Vec<ChildPlacement> {
 /// * `child_count` — 자식 수 (placement_spec 이 비면 이 수만큼 auto-placement)
 /// * `available_w` / `available_h` — 컨테이너 가용 폭/높이
 /// * `col_gap` / `row_gap` — 트랙 간 gap
+/// * `auto_columns` / `auto_rows` — 암묵 트랙 크기 목록 (`grid-auto-columns/rows`, 순환)
 #[wasm_bindgen]
 #[allow(clippy::too_many_arguments)]
 pub fn grid_layout(
@@ -1151,16 +1273,6 @@ pub fn grid_layout(
     auto_columns: &str,
     auto_rows: &str,
 ) -> Box<[f32]> {
-    let _ = auto_rows; // gridAutoRows override(flow:row 암시 행)는 tree.rs intrinsic 소유 — §Residual.
-    // 트랙 해결.
-    let mut col_tracks = parse_template_to_tracks(template_cols.trim(), available_w, col_gap);
-    resolve_grid_tracks(&mut col_tracks, available_w, col_gap);
-    let mut row_tracks = parse_template_to_tracks(template_rows.trim(), available_h, row_gap);
-    resolve_grid_tracks(&mut row_tracks, available_h, row_gap);
-
-    let mut tracks_x: Vec<f32> = col_tracks.iter().map(|t| t.size).collect();
-    let tracks_y: Vec<f32> = row_tracks.iter().map(|t| t.size).collect();
-
     // named areas.
     let areas = if template_areas.trim().is_empty() {
         Vec::new()
@@ -1175,22 +1287,37 @@ pub fn grid_layout(
         parse_placements(placement_spec)
     };
 
-    // ── E14: grid-auto-flow:column → column-major 배치 + 암시 컬럼(gridAutoColumns) ──
-    // flow:column 은 행(gridTemplateRows)을 채운 뒤 다음 열로 넘어가며, 명시 열을 넘어서는
-    // 열은 암시 트랙(gridAutoColumns px)으로 생성된다. 행은 명시 트랙(tree.rs 소유)이므로
-    // 여기선 컬럼만 확장한다 (row-flow 암시 행은 tree.rs intrinsic 이 담당 — §Residual).
+    // ── 배치 먼저, 트랙은 그 다음 (ADR-206 ② · ④) ──
+    // 명시 grid 를 넘는 배치 (`span 3` in 2열 · `grid-row-start: 3` in 1행 · template 없음) 는
+    // 암묵 트랙을 만든다 — 셀이 가리키는 트랙 수는 배치 결과에서만 알 수 있다. 종전엔
+    // column-flow 의 열만 늘리고 (`child_count / rows`) 나머지는 폴백 100 셀로 떨어졌다.
     let flow_column = auto_flow.contains("column");
-    if flow_column && child_count > 0 {
-        let rows = tracks_y.len().max(1);
-        let needed_cols = child_count.div_ceil(rows as u32) as usize;
-        if needed_cols > tracks_x.len() {
-            let fallback = tracks_x.last().copied().unwrap_or(100.0);
-            let implicit = parse_implicit_track_size(auto_columns, fallback);
-            while tracks_x.len() < needed_cols {
-                tracks_x.push(implicit);
-            }
-        }
+    let explicit_cols = parse_template_to_tracks(template_cols.trim(), available_w, col_gap).len();
+    let explicit_rows = parse_template_to_tracks(template_rows.trim(), available_h, row_gap).len();
+    let items: Vec<PlacementIntent> = placements
+        .iter()
+        .map(|p| resolve_placement_intent(p, &areas, explicit_cols as i32, explicit_rows as i32))
+        .collect();
+    let resolved =
+        resolve_cells_from_intents(&items, explicit_cols as i32, explicit_rows as i32, flow_column);
+    let (mut need_cols, mut need_rows) = (explicit_cols, explicit_rows);
+    for (it, &(r, c)) in items.iter().zip(&resolved) {
+        need_cols = need_cols.max((c + it.col_span - 1).max(0) as usize);
+        need_rows = need_rows.max((r + it.row_span - 1).max(0) as usize);
     }
+    let template_cols =
+        with_implicit_tracks(template_cols, explicit_cols, auto_columns, need_cols.max(1));
+    let template_rows =
+        with_implicit_tracks(template_rows, explicit_rows, auto_rows, need_rows.max(1));
+
+    // 트랙 해결 — 명시 ++ 암묵을 한 목록으로.
+    let mut col_tracks = parse_template_to_tracks(&template_cols, available_w, col_gap);
+    resolve_grid_tracks(&mut col_tracks, available_w, col_gap);
+    let mut row_tracks = parse_template_to_tracks(&template_rows, available_h, row_gap);
+    resolve_grid_tracks(&mut row_tracks, available_h, row_gap);
+
+    let tracks_x: Vec<f32> = col_tracks.iter().map(|t| t.size).collect();
+    let tracks_y: Vec<f32> = row_tracks.iter().map(|t| t.size).collect();
 
     // ── E12: 컨테이너 트랙 정렬 (justify-content / align-content) ──
     // 트랙 총합 < 컨테이너(고정 트랙)일 때만 free space → 오프셋/추가 gap. fr/auto 는 free≈0.
@@ -1204,14 +1331,13 @@ pub fn grid_layout(
     let (off_x, extra_col_gap) = track_distribution(justify_content, available_w - total_x, n_cols);
     let (off_y, extra_row_gap) = track_distribution(align_content, available_h - total_y, n_rows);
 
-    let bounds = place_children(
-        &placements,
+    let bounds = bounds_for_cells(
+        &items,
+        &resolved,
         &tracks_x,
         &tracks_y,
         col_gap + extra_col_gap,
         row_gap + extra_row_gap,
-        &areas,
-        flow_column,
     );
 
     let mut out = Vec::with_capacity(bounds.len() * 4);
@@ -1223,7 +1349,6 @@ pub fn grid_layout(
     }
     out.into_boxed_slice()
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1400,13 +1525,88 @@ mod tests {
     #[test]
     fn test_axis_placement_span() {
         // (명시 start, span) 분리 — E13 occupancy 커서 입력.
-        assert_eq!(parse_axis_placement("span 2"), (None, 2)); // 위치 auto, span 2
-        assert_eq!(parse_axis_placement("1 / 3"), (Some(1), 2)); // start 1, span 2
-        assert_eq!(parse_axis_placement("1 / span 3"), (Some(1), 3));
-        assert_eq!(parse_axis_placement("span 2 / 5"), (Some(3), 2)); // end 5 고정 → start 3
-        assert_eq!(parse_axis_placement("2"), (Some(2), 1));
-        assert_eq!(parse_axis_placement(""), (None, 1));
-        assert_eq!(parse_axis_placement("auto"), (None, 1));
+        assert_eq!(parse_axis_placement("span 2", 2), (None, 2)); // 위치 auto, span 2
+        assert_eq!(parse_axis_placement("1 / 3", 2), (Some(1), 2)); // start 1, span 2
+        assert_eq!(parse_axis_placement("1 / span 3", 2), (Some(1), 3));
+        assert_eq!(parse_axis_placement("span 2 / 5", 2), (Some(3), 2)); // end 5 고정 → start 3
+        assert_eq!(parse_axis_placement("2", 2), (Some(2), 1));
+        assert_eq!(parse_axis_placement("", 2), (None, 1));
+        assert_eq!(parse_axis_placement("auto", 2), (None, 1));
+    }
+
+    /// ADR-206 Phase 2 — 라인 정규화: 음수는 명시 grid 끝에서, 0 은 auto, ±10,000 clamp,
+    /// start 가 1 앞이면 1 로 당기고 span 축소, end 만 명시하면 그 앞 한 칸.
+    #[test]
+    fn test_axis_placement_line_normalization() {
+        assert_eq!(parse_axis_placement("-1", 3), (Some(4), 1)); // 마지막 명시 라인 = 4
+        assert_eq!(parse_axis_placement("1 / -1", 3), (Some(1), 3)); // 전폭
+        assert_eq!(parse_axis_placement("0", 3), (None, 1)); // 무효 → auto
+        assert_eq!(parse_axis_placement("20000", 3), (Some(MAX_GRID_LINE), 1));
+        assert_eq!(parse_axis_placement("span 3 / 2", 3), (Some(1), 1)); // start -1 → 1, end 2 보존
+        assert_eq!(parse_axis_placement("auto / 3", 3), (Some(2), 1)); // end 만 → 2..3
+        assert_eq!(parse_axis_placement("9999 / span 5", 3), (Some(9999), 2)); // end ≤ 10,001
+    }
+
+    /// ADR-206 ② — 명시 배치가 명시 grid 를 넘으면 암묵 트랙 (텔레포트 없음), 이후 자동 배치는
+    /// 넓어진 암묵 grid 를 쓰고, 자동 배치 자체는 명시 열 한계를 지킨다 (대조군).
+    #[test]
+    fn test_resolve_cells_implicit_grid() {
+        let intent = |c: Option<i32>, cs: i32, r: Option<i32>, rs: i32| PlacementIntent {
+            col_start: c,
+            col_span: cs,
+            row_start: r,
+            row_span: rs,
+        };
+        // 2열 · `1 / span 3` → (1,1) 그대로, 다음 auto 는 행 2 열 1.
+        let items = vec![intent(Some(1), 3, None, 1), intent(None, 1, None, 1)];
+        assert_eq!(resolve_cells_from_intents(&items, 2, 0, false), vec![(1, 1), (2, 1)]);
+        // 2열 · col-start 4 → (1,4) (열 한계 없음). 뒤 auto 는 커서가 열 4 에 있고 암묵 4열
+        // 끝이라 §8.5 step 4 대로 다음 행 (2,1) — 커서는 되돌아가지 않는다 (sparse).
+        let items = vec![intent(Some(4), 1, None, 1), intent(None, 1, None, 1)];
+        assert_eq!(resolve_cells_from_intents(&items, 2, 0, false), vec![(1, 4), (2, 1)]);
+        // auto `span 3` in 2열 → 암묵 3열로 넓혀 (1,1).
+        let items = vec![intent(None, 3, None, 1)];
+        assert_eq!(resolve_cells_from_intents(&items, 2, 0, false), vec![(1, 1)]);
+        // 대조군 — 자동 3개 / 2열 → 3번째는 행 2.
+        let items: Vec<PlacementIntent> = (0..3).map(|_| intent(None, 1, None, 1)).collect();
+        assert_eq!(
+            resolve_cells_from_intents(&items, 2, 0, false),
+            vec![(1, 1), (1, 2), (2, 1)]
+        );
+        // 명시 row 3 · auto col in 1행 grid → (3,1) (암묵 행).
+        let items = vec![intent(None, 1, Some(3), 1)];
+        assert_eq!(resolve_cells_from_intents(&items, 2, 1, false), vec![(3, 1)]);
+    }
+
+    /// ADR-206 ④ — template 없는 grid_layout 은 암묵 열 `auto` (available 채움), 폴백 100 없음;
+    /// `grid-auto-columns: 1fr 2fr` 순환 (column flow); `repeat(2, 40px)` 토큰 펼침.
+    #[test]
+    fn test_grid_layout_implicit_tracks() {
+        // template 없음, 1 자식 → 폭 400 (암묵 auto = 1fr 근사).
+        let out = grid_layout("", "20px", "", "", 1, 400.0, 20.0, 0.0, 0.0, "", "", "", "", "");
+        assert!(approx_eq(out[2], 400.0), "w={}", out[2]);
+        // column flow · auto-columns 1fr 2fr → 133.3 / 266.7.
+        let out = grid_layout(
+            "", "20px", "", "", 2, 400.0, 20.0, 0.0, 0.0, "", "", "column", "1fr 2fr", "",
+        );
+        assert!(approx_eq(out[2], 400.0 / 3.0), "a.w={}", out[2]);
+        assert!(approx_eq(out[4], 400.0 / 3.0), "b.x={}", out[4]);
+        assert!(approx_eq(out[6], 800.0 / 3.0), "b.w={}", out[6]);
+        // 2열 · `1 / span 3` (placement 형식 `|col|row`) → 암묵 3열, y 0, w = 100+100+200.
+        let out = grid_layout(
+            "100px 100px", "", "", "|1 / span 3|", 1, 400.0, -1.0, 0.0, 10.0, "", "", "", "", "",
+        );
+        assert!(approx_eq(out[1], 0.0), "y={}", out[1]);
+        assert!(approx_eq(out[2], 400.0), "w={}", out[2]);
+        // repeat 토큰 펼침.
+        assert_eq!(
+            expand_repeat_tokens(&["repeat(2, 40px)".to_string(), "1fr".to_string()]),
+            vec!["40px", "40px", "1fr"]
+        );
+        assert_eq!(
+            expand_repeat_tokens(&["repeat(auto-fill, 40px)".to_string()]),
+            vec!["repeat(auto-fill, 40px)"]
+        );
     }
 
     #[test]

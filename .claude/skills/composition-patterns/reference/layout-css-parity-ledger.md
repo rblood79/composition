@@ -690,3 +690,34 @@ Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DEL
 - ❌ abs 경로에서 `resolve_dimension(width)` 를 used size 로 직접 쓰기 → clamp 가 사라진다. used size 는 `resolve_abs_axis` 반환값
 - ❌ stretch 결과를 clamp 만 하고 배치 분기를 안 바꾸기 → clamp 된 상자가 여전히 start 에 붙는다 (margin auto 중앙이 안 된다)
 - ❌ leaf 의 min/max 바인딩까지 군집 F 로 승격 → block.rs stretch+clamp 와 이중
+
+## grid 암묵 트랙 — 명시 grid 를 넘는 배치는 트랙을 만든다, 텔레포트하지 않는다 (CSS-GRID-1 §7.6 · §8.5, ADR-206 Phase 2, 2026-09-07)
+
+Taffy 0.10→0.14 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md` §2 G4 · G10 · G11 · G12, §4 ② · ④) 에서 Chrome 실측으로 잡은 결함군. 공통 병인은 "**암묵 grid 는 배치 결과에서 나온다**" 를 두 층이 각자 근사한 것 — grid.rs 는 명시 열 수를 배치 한계로 쓰고 (넘으면 10,000 반복 뒤 실패 위치 반환), tree.rs 는 암묵 열 합성을 auto 폭 분기 안에만 두고 암묵 행은 row-flow 에만 만들었다.
+
+| 결함                                                        | 거처                                                                                  |          Chrome |            구 엔진 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------: | -----------------: |
+| 2열 grid 에 `grid-column: 1 / span 3`                       | `block_fits` 열 한계 + `+ 10_000` 가드 5곳                                            |  y 0 · w 400    | y **100,000** · 200 |
+| 2열 grid 에 `grid-column-start: 4`                          | 같은 곳 (definite-col 스캔)                                                            |           x 300 |              x 200 |
+| 정폭 grid, template 없음                                    | tree.rs 합성이 `inline_intrinsic` 분기 안 · grid.rs 셀 폴백 `unwrap_or(100.0)` 3곳   |           w 400 |          w **100** |
+| `grid-template-rows: repeat(2, 40px)` (height auto)         | `repeat()` 토큰 하나 = 행 하나로 세어 content 행으로 접힘                              | b.y 40 · h 80   |     b.y 20 · h 40  |
+| `grid-auto-flow: column; grid-auto-columns: 1fr 2fr`        | `parse_implicit_track_size` 첫 토큰 px 만 · col-flow 는 행 트랙 0                     | 133/267 · h 20  |    100/100 · h **0** |
+| `grid-column-end: span 2` 단독                               | `combine_grid_line` 이 end-only 를 auto 로 버림                                       |           w 200 |              w 100 |
+
+- **배치가 먼저, 트랙은 그 다음.** `resolve_cells_from_intents` 가 자동 배치 축의 폭을 `implicit_minor_count` = max(명시 트랙 수, 명시 배치 item 의 end 라인, auto item 의 span) 로 넓혀 스캔한다 (Chrome `GridPlacement` 의 minor end-line 과 같은 규칙). 명시 축 (`col_start` / `row_start` 있음) 에는 한계가 없다 — `block_fits` 에 `i32::MAX`. 점유는 유한하고 라인은 `MAX_GRID_LINE` 을 못 넘으므로 "실패 위치 반환" 가드는 사라졌다.
+- **암묵 트랙 수 = 배치 결과의 `max(start + span)`** — 열·행 모두, flow 와 무관. tree.rs 가 `placed_cells` 에서 그 수를 세어 명시 토큰 뒤에 `grid-auto-columns` / `grid-auto-rows` 토큰을 **순환**으로 붙인다 (기본 `auto` → 기여 측정 + §12.8 stretch 로 정폭 grid 를 채운다). grid.rs 의 `with_implicit_tracks` 는 직접 호출자 (`grid_layout` 단독) 의 같은 규칙 폴백이고, 폴백 100 셀은 없다.
+- **정수 `repeat(N, …)` 은 토큰 수준에서 먼저 펼친다** (`expand_repeat_tokens`) — 트랙 sizing 이 토큰 하나를 트랙 하나로 세기 때문. auto-fill / auto-fit 은 컨테이너 크기가 있어야 펼쳐져 토큰으로 남고 트랙 수만 `parse_tracks` 로 센다 (auto-repeat 자체는 scope 밖 ⑥ — 그때는 암묵 열을 붙이지 않는다).
+- **라인 정규화** (`parse_axis_placement`): 음수 라인은 명시 grid 끝에서 (`-1` = `explicit + 1`), `0` 은 auto, 정수는 ±`MAX_GRID_LINE` clamp, start 가 1 앞이면 1 로 당기고 span 축소, end 만 명시하면 그 앞 한 칸. `combine_grid_line` 은 end-only 를 `auto / end` 로 넘긴다.
+- **엔진 라인 상한 10,000 은 의도된 Chrome 편차**다. Chrome 실측 (2026-09-07) 은 10,000,000 (`kGridMaxTracks` — line 10000001 → y 9999999). 암묵 트랙은 라인 수만큼 토큰·기여 벡터를 만들므로 백만 단위는 엔진 부담이고 실사용 배치가 아니다 (Firefox `kMaxLine` · Taffy 와 같은 값). fixture 는 상한 안쪽 (5000) 만 대조하고 상한 자체는 grid.rs unit 이 잠근다.
+- Chrome 실측 fixture: `gridImplicitTracks.browser.test.ts` (positive 11 + 대조군 4, engine · pipeline 두 leg). baseline: positive 9 × 2 leg RED (G4' · auto-rows 순환 · 먼 라인 은 baseline 도 GREEN — 암묵 행 경로는 이미 있었다). `shrinkToFitInline` 의 구 `[잔존] flow:column 행 extent 0` 단언은 20 으로 전환. unit: `test_axis_placement_line_normalization` · `test_resolve_cells_implicit_grid` · `test_grid_layout_implicit_tracks`.
+- **자동 배치는 여전히 명시 열 한계를 지킨다** — 대조군 (3 item / 2열 → 3번째는 다음 행, `1 / 3` 명시 span, column flow `60px`) 이 GREEN 인 것이 한계 해제가 자동 축으로 새지 않았다는 증거다. `col-start 4` 뒤의 auto item 은 §8.5 sparse 커서 규칙대로 **다음 행** (2,1) 이다 — 커서는 되돌아가지 않는다.
+- 남은 결함 (LOW deferred): 내용 0 인 auto item 이 grid 셀을 채우는 `real_size <= 0` 폴백 (Chrome 0) — ADR-206 리뷰 round 1 기록.
+
+### 금지 패턴
+
+- ❌ 명시 배치 (`grid-column` / `grid-row` start · span) 에 명시 트랙 수를 한계로 걸기 → 암묵 트랙 대신 실패 위치 배치 (텔레포트)
+- ❌ 배치 루프에 `+ 10_000` 류 반복 가드를 되살려 실패 위치를 반환하기 → 종료 상한은 라인 clamp 하나 (`MAX_GRID_LINE`)
+- ❌ 트랙이 없을 때 셀 크기를 상수 (100) 나 첫 트랙으로 채우기 → 암묵 트랙 생성이 항상 먼저다
+- ❌ 암묵 트랙 크기를 `grid-auto-*` 첫 토큰 px 로만 읽기 → 목록 순환 + `fr`/`auto` 는 명시 트랙과 같은 sizing
+- ❌ 암묵 행을 row-flow 에만, 암묵 열을 auto 폭 분기에만 만들기 → 배치 결과의 extent 가 유일 기준
+- ❌ `repeat(N, …)` 을 토큰 하나로 둔 채 트랙 sizing 에 넘기기 → 행 수가 접힌다

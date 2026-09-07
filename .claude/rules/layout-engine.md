@@ -159,6 +159,7 @@ paths:
 | 22  | grid 자식 TS 공급 3결함 — 스칼라 게이트 `isGridChild`(`isFlexChild` 확장 금지) / 트랙 수 `coerceGridTrack` / Step 4.5 가정 폭 `enrichAvailWidth`                                                                                                                                                                                                                   | `utils.ts` · `fullTreeLayout.ts`                                                                                                  | gridTrackContribution pipeline                               |
 | 23  | grid item 의 크기 키워드도 stretch 를 이김 — `explicit` 판정에 `size_is_intrinsic_keyword` OR                                                                                                                                                                                                                                                                      | `place_grid_axis`                                                                                                                 | gridTrackContribution I                                      |
 | 24  | absolute used size 는 min/max clamp **뒤** 값 (`resolve_abs_axis((min,max))` 단일 지점, stretch→clamp 면 over-constrained 재적용) · 빈 block 상자도 stretch 폭에서 aspect 높이 전송 (군집 F 에 leaf ② 만 진입)                                                                                                                                                     | `resolve_abs_axis` · `solve_node` 군집 F                                                                                          | absClampAspectLeaf                                           |
+| 25  | grid 암묵 트랙은 **배치 결과**에서 — 명시 배치 축은 한계 없음 (`block_fits` `i32::MAX`), 자동 축은 `implicit_minor_count`, 암묵 트랙 수 = `max(start+span)` 열·행·flow 무관, 크기는 `grid-auto-*` 순환 (기본 `auto` 기여+stretch), 정수 `repeat()` 토큰 펼침, 라인 ±10,000 clamp (Chrome 10M — 의도된 편차), 셀 폴백 100 없음 (ADR-206 Phase 2) | `grid::resolve_cells_from_intents` · `with_implicit_tracks` · `expand_repeat_tokens` · `solve_grid` 암묵 열/행 합성 | gridImplicitTracks · shrinkToFitInline flow:column |
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 
@@ -193,7 +194,7 @@ paths:
 | 정렬 속성 (`justify-*`/`align-*`)                    | `flexSweep` + `crossAxisOverflow` + `gridAlignContent` — 격자는 부모 컨텍스트 신호로만 사용                               |
 | 중첩 2단 이상                                        | 격자 3 은 1단 전파만 — 조합 폭발. 1단 정합이면 귀납 가정                                                                  |
 | `writing-mode` / `direction` / `float` / inline flow | 엔진 미지원 표면 (`NodeStyle` 부재)                                                                                       |
-| grid `auto-flow: column` 의 행 extent                | 기존 명시 잔존 (`shrinkToFitInline` `[잔존]`) — 격자는 row-flow 고정                                                      |
+| grid `auto-flow: column` 의 행 extent                | ADR-206 Phase 2 (2026-09-07) 로 해소 — 암묵 행이 flow 와 무관하게 선다 (`shrinkToFitInline` 구 `[잔존]` 단언 → 20). 격자는 여전히 row-flow 고정 |
 | `gap` / `padding` / `border` 조합                    | 기본 축 밖 — 격자는 0 리셋 고정 (`gridTrackContribution`/`gridMinmaxTracks` 가 부분 커버)                                 |
 | 내용 leaf 의 `height:auto`                           | **오라클 쪽 사각** — engine leg 에 높이 스칼라 채널이 없다 (아래)                                                         |
 
