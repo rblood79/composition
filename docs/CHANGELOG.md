@@ -2,6 +2,15 @@
 
 All notable changes to composition will be documented in this file.
 
+## [ADR-206 Implemented — 엔진 늘어난 크기 definite 전파 + grid 암묵 트랙 준수] - 2026-09-07
+
+### Changed
+
+- ADR-206 을 Implemented 로 승격했습니다 (Phase 0~3 / G0~G5 당일 종결). 사용자-가시 변경은 아래 Phase 1 · Phase 2 엔트리 두 건이 전부이고, 이 엔트리는 종결 근거만 적습니다.
+- 제품 수준 프레임 영향 확인: `pnpm perf:baseline -- --lane frame` 600 요소 — idle / pan / zoom / panel-resize 의 callback gap p95 17.5~17.8 ms, >25 ms 0 %, `render.frame` p95 ≤ 5.4 ms. 엔진 재-solve 추가 (stretch 소비자 재-solve · grid 셀 definite) 가 프레임을 밀지 않습니다. `tree_solve` bench depth 12 는 Phase 0 baseline 과 같습니다 (27,666 ns).
+- 실제 빌더 exercise (Chrome MCP, 로컬 프로젝트): flex row 안 `height:100%` → `50%` 3단 전파 · 2열 grid 의 `span 3` 자식 제자리 (종전 y 100,000) · template 없는 grid 자식 폭 400 · ProgressBar Track 회귀 0.
+- 남은 기록: Chrome 의 grid line 상한은 10,000,000 이고 엔진은 10,000 을 유지합니다 (의도된 편차). 내용 0 인 grid auto item 이 셀을 채우는 폴백은 LOW deferred (ADR-206 리뷰 round 1). 문서: ADR `docs/adr/completed/206-…md`, 규칙 ledger §백분율 · §25.
+
 ## [레이아웃 엔진 — grid 암묵 트랙 · 명시 grid 를 넘는 배치 (ADR-206 Phase 2)] - 2026-09-07
 
 ### Fixed

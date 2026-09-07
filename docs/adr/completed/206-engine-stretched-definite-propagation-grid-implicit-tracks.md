@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-07
+Implemented — 2026-09-07 (Proposed 2026-09-07 · 리뷰 round 1 승인 · Phase 0~3 / G0~G5 당일 종결)
 
 ## Context
 
@@ -103,7 +103,7 @@ Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지�
 - **대안 C 기각**: 텔레포트는 없애지만 Chrome 과 다른 결과 (3열 → 2열 압축) 가 남아 대칭 게이트를 못 닫는다. "덜 틀린" 상태는 다음 판독에서 다시 HIGH 로 올라온다.
 - **대안 D 기각**: ADR-916 반전 + CRITICAL 마이그레이션. Taffy 는 참조 원본이지 오라클이 아니며, 대조 결과 엔진이 이미 맞는 항목 (캐시 키 · `%` 를 grid area 기준 · `minmax` 상한 · auto margin) 도 잃는다.
 
-> 구현 상세: [206-engine-stretched-definite-propagation-grid-implicit-tracks-breakdown.md](design/206-engine-stretched-definite-propagation-grid-implicit-tracks-breakdown.md)
+> 구현 상세: [206-engine-stretched-definite-propagation-grid-implicit-tracks-breakdown.md](../design/206-engine-stretched-definite-propagation-grid-implicit-tracks-breakdown.md)
 
 ## Risks
 
@@ -126,13 +126,14 @@ Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지�
 | G1   | Phase 1 종료   | F5 · B1d · B6c · W3 · W4 (multi-line wrap, 분배 라인 기준) GREEN + 대조군 (align-self start · auto margin · auto 부모 · grid align start) GREEN + 원복 시 5건만 RED · `percentSize` `basicAxis*` `flexSweep` `crossAxisOverflow` 회귀 0 | 대조군 RED = 가짜 확정 → 채널을 stretch item 한정으로 좁힘, 재측정              |
 | G2   | Phase 2 종료   | G4 · G12 · G10 · G11 · 10,000 clamp GREEN + 원복 RED (타입별 diff) · grid 회귀 8 스위트 0 · 기존 실패 2건 분리 기록                                                                                                                     | 암묵 트랙 생성을 명시 배치 축에만 한정하고 auto-columns 순환은 후속 phase 로    |
 | G3   | Phase 2 종료   | `cargo bench tree_solve` p50 ≤ baseline +5% (같은 머신·조건) · `perf:baseline frame` 600 요소 편집 p95 악화 없음                                                                                                                        | cross 재-solve 를 "자손에 `%` 높이가 있는 item" 으로 게이트 (measure 캐시 활용) |
-| G4   | Implemented 전 | live 3 시나리오 (`height:100%` 자식 · span 초과 grid · Track 1종) — Chrome MCP 또는 사용자 confirm, `### Live Exercise` 기재 — **3/3 기재 (2026-09-07)**                                                                                  | 승격 보류                                                                       |
+| G4   | Implemented 전 | live 3 시나리오 (`height:100%` 자식 · span 초과 grid · Track 1종) — Chrome MCP 또는 사용자 confirm, `### Live Exercise` 기재 — **3/3 기재 + frame lane (2026-09-07) → 통과**                                                              | 승격 보류                                                                       |
 | G5   | Implemented 전 | ledger §백분율 개정 + §25 · 색인 13/25 · CHANGELOG · 대조 문서 §4 ✅ · preset 주석 정정                                                                                                                                                 | Stop hook block (README/CHANGELOG/Live Exercise)                                |
 
 ### Live Exercise
 
 (Implemented 승격 시 3 시나리오 전부 기재 — 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
 
+- **Phase 3 프레임 영향 — `pnpm perf:baseline -- --lane frame --seed-count 600 --duration-ms 3000` (2026-09-07, headless, ADR-206 Phase 2 `21abcc8ce` 뒤): idle 181/60.2 fps · callback gap p50/p95/max 16.7/17.6/18.5 · >25 ms 0 % · pan 17.5/18.3 · zoom 17.7/27.8 (forced miss 30) · panel-resize 17.8/18.4 · select p95 27.9 (longtask 1/114) · edit p95 77.4 (12/936) · page-switch 31.7 · layers-scroll 28.7 (>25 ms 19.9 %, 할당 0.4 — DOM 축). 캔버스 레이아웃이 도는 부류 (idle · pan · zoom · panel-resize) 전부 vsync 안, `render.frame` p95 ≤ 5.4 — 재-solve 추가의 제품 수준 프레임 영향 없음 (BUILDER_PERF_BASELINE §3-2 대비 idle p95 24.5 → 17.6 은 ADR-203 · perfMarks 토글 등 선행 수리 효과, 본 ADR 의 몫 아님). 출력 `/private/tmp/perf-baseline/frame-1788780384186.json`, page/console error 0.
 - **Phase 2 (b) span 초과 grid · (c) Track — 2026-09-07, Chrome MCP** (로컬 `qwe`, hidden 탭 · `getSharedLayoutMap()` 299 rect): factory 로 심은 Frame `grid w400 cols 100px 100px rowGap 10` > Frame `h20 grid-column 1 / span 3` → **(0,0,400,20)** + 자동 Frame `h20` → **(0,30,100,20)**, grid 높이 **50** (종전 y 100,000 · 높이 100,020). template 없는 Frame `grid w400` > Frame `h20` → 폭 **400** (종전 100). ProgressBar 의 `ProgressBarTrack` → **(0,24,342,8)** = Phase 0 F14 값 (④ 잠복 회귀 0). 시드 3건 `removeElement` (잔여 0).
 - **Phase 1 (a) `height:100%` 자식 — 2026-09-07, Chrome MCP** (로컬 `qwe`, hidden 탭 · `getSharedLayoutMap()`): factory 로 심은 Frame `flex row 300×200` > Frame `height:100%` → **200** > Frame `height:50%` → **100** (3단 전파, 종전 0 · 0). 시드는 `removeElement` 로 제거 (잔여 0).
 

@@ -112,7 +112,10 @@
 - 원복 RED: `block_fits` 한계 해제 원복 → G4 RED · 합성 분기 원복 → G12 RED · 순환 원복 → G11 RED (타입별 실제 diff 행 기록 — 메모리 `feedback-mutation-red-record-actual-diff-per-type`).
 - 회귀: `gridItemBox` · `gridTrackContribution` · `gridContainerIntrinsic` · `gridContainerBlockSize` · `gridAutoTrackStretch` · `gridMinmaxTracks` · `gridAlignContent` · `shrinkToFitInline` 전량 + `catalogComponentBox` (F14 6 규칙 — 착수 전 GridListItem·Tooltip 2건은 기존 실패로 분리 기록).
 
-### Phase 3 — 문서 · live · 종결
+### Phase 3 — 문서 · live · 종결 — **완료 2026-09-07**
+
+**결과**: 문서 (ledger §백분율/§25 · 색인 13/25 · CHANGELOG Phase 1/2/Implemented · 대조 문서 §4 ①②④ ✅ · preset 주석) 와 live 3 시나리오는 Phase 1·2 커밋에서 선반영. Phase 3 고유 산출 = frame lane 1회 — `pnpm perf:baseline -- --lane frame --seed-count 600 --duration-ms 3000` (2026-09-07, headless, ADR-206 Phase 2 `21abcc8ce` 뒤): idle 181/60.2 fps · callback gap p50/p95/max 16.7/17.6/18.5 · >25 ms 0 % · pan 17.5/18.3 · zoom 17.7/27.8 (forced miss 30) · panel-resize 17.8/18.4 · select p95 27.9 (longtask 1/114) · edit p95 77.4 (12/936) · page-switch 31.7 · layers-scroll 28.7 (>25 ms 19.9 %, 할당 0.4 — DOM 축). 캔버스 레이아웃이 도는 부류 (idle · pan · zoom · panel-resize) 전부 vsync 안, `render.frame` p95 ≤ 5.4 — 재-solve 추가의 제품 수준 프레임 영향 없음 (BUILDER_PERF_BASELINE §3-2 대비 idle p95 24.5 → 17.6 은 ADR-203 · perfMarks 토글 등 선행 수리 효과, 본 ADR 의 몫 아님). 출력 `/private/tmp/perf-baseline/frame-1788780384186.json`, page/console error 0. README Implemented 전이 (완료 218 / 미구현 11 / 합계 233).
+
 
 - ledger §백분율 개정 + 신규 §25 (grid 암묵 트랙) · `layout-engine.md` 색인 13 개정 + 25 추가 · CHANGELOG (Fixed — 기존 문서 배치 변화 명시) · `TAFFY_UPSTREAM_DELTA_2026-09.md` §4 ①②④ ✅ · `presetDefinitions.ts:21` 회피 주석 정정 (`minmax()` 만 해제 — auto-repeat 는 여전히 회피).
 - live: 실제 프로젝트에서 (a) `flex row height:200` 안 Frame 의 `height:100%` 자식, (b) 2열 grid 에 `grid-column: span 3` 자식, (c) F14 Track 하나 — Chrome MCP 또는 사용자 confirm, 결과를 ADR `### Live Exercise` 에 기재.
@@ -144,10 +147,10 @@ C 묶음은 **production 도달 사례가 없어** 본 ADR 에 넣지 않는다.
 
 ## 6. 완료 체크리스트
 
-- [ ] Phase 0 산출 4건 (전수 대조 · F14 live · BC 인벤토리 · bench baseline)
+- [x] Phase 0 산출 4건 (전수 대조 · F14 live · BC 인벤토리 · bench baseline) — 2026-09-07 `1d3fbb7cd`
 - [x] Phase 1 게이트 GREEN + 원복 RED + 회귀 0 — 2026-09-07: `percentSize` §ADR-206 positive 12 (baseline 11 RED × 2 leg, 신규 aspect auto-width 1) · 대조군 9 GREEN · `containerIntrinsic` K Δ40 → 0 · unit `adr206_*` 7 · golden N11/N12 · cargo 393 · parity 1,164 PASS (기존 실패 2) · bench depth 12 +1.5 % (3-run)
 - [x] Phase 2 게이트 GREEN + 원복 RED + 회귀 0 (기존 실패 2건 분리 기록) — 2026-09-07: `gridImplicitTracks` 30/30 (baseline 9 × 2 RED) · 원복 A/B/C RED 4/18/4 · parity 1,193 PASS (기존 실패 2) · cargo 394 · golden 28
 - [x] `cargo bench tree_solve` p50 ≤ baseline +5% — Phase 1 +1.5 % · Phase 2 depth 12 27,666 ns (baseline 동일)
 - [x] live 3 시나리오 → ADR `### Live Exercise` — (a) Phase 1 · (b)(c) Phase 2, 2026-09-07 Chrome MCP
 - [x] ledger · 색인 · CHANGELOG · 대조 문서 · preset 주석 — §백분율/§25 · 색인 13/25 · CHANGELOG Phase 1/2 · 대조 문서 §4 ①②④ ✅ · `presetDefinitions.ts` 주석 (auto-repeat 만 잔존)
-- [ ] README Implemented 전이 + 현황 카운트
+- [x] README Implemented 전이 + 현황 카운트 — 2026-09-07 (완료 218 / 미구현 11)
