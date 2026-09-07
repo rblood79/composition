@@ -115,6 +115,23 @@ export const chartBinding: PrimitiveBinding = {
           { value: "expand", label: "Stacked 100%" },
         ],
       },
+      curve: {
+        kind: "enum",
+        label: "Curve",
+        section: "appearance",
+        default: "linear",
+        options: [
+          { value: "linear", label: "Linear" },
+          { value: "monotone", label: "Monotone" },
+          { value: "step", label: "Step" },
+        ],
+      },
+      showDots: {
+        kind: "boolean",
+        label: "Show Dots",
+        section: "appearance",
+        default: false,
+      },
       showAxis: {
         kind: "boolean",
         label: "Show Axis",
@@ -166,6 +183,8 @@ export const chartBinding: PrimitiveBinding = {
       "color",
       "orientation",
       "stackType",
+      "curve",
+      "showDots",
       "showAxis",
       "showGrid",
       "showLegend",

@@ -21,6 +21,7 @@ import {
   resolveChartMetrics,
 } from "@composition/specs";
 import type {
+  ChartCurve,
   ChartLegendPosition,
   ChartOrientation,
   ChartRow,
@@ -41,6 +42,8 @@ export interface ChartProps {
   color?: string;
   orientation?: ChartOrientation;
   stackType?: ChartStackType;
+  curve?: ChartCurve;
+  showDots?: boolean;
   showAxis?: boolean;
   showGrid?: boolean;
   showLegend?: boolean;
@@ -236,6 +239,8 @@ export function Chart({
   color,
   orientation,
   stackType,
+  curve,
+  showDots,
   showAxis,
   showGrid,
   showLegend,
@@ -268,6 +273,8 @@ export function Chart({
       ...(color ? { color } : {}),
       orientation: orientation ?? CHART_DEFAULT_PROPS.orientation,
       stackType: stackType ?? CHART_DEFAULT_PROPS.stackType,
+      curve: curve ?? CHART_DEFAULT_PROPS.curve,
+      showDots: showDots ?? CHART_DEFAULT_PROPS.showDots,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: showGrid ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend: showLegend ?? CHART_DEFAULT_PROPS.showLegend,
@@ -280,6 +287,8 @@ export function Chart({
       color,
       orientation,
       stackType,
+      curve,
+      showDots,
       showAxis,
       showGrid,
       showLegend,

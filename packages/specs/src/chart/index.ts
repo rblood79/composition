@@ -30,8 +30,19 @@ export type {
   StackRange,
 } from "./series";
 export { buildBarMarks } from "./marks/bar";
-export { bandCenter, buildLineMarks, seriesPoints } from "./marks/line";
+export {
+  bandCenter,
+  buildLineMarks,
+  seriesAxialPoints,
+  seriesPoints,
+  splitRuns,
+} from "./marks/line";
+export type { AxialSeriesPoint, SeriesPoint } from "./marks/line";
 export { buildAreaMarks } from "./marks/area";
+export type { AreaMarks } from "./marks/area";
+export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
+export { curveCommands, toScreen } from "./curves";
+export type { AxialPoint, ScreenPoint } from "./curves";
 export { arcPath, buildPieMarks } from "./marks/pie";
 export { buildAxes, labelStride } from "./axes";
 export {

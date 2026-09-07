@@ -6,10 +6,12 @@
  * 도 "Skia 가 기준" 도 아니고 이 함수가 기준이다 (ssot-hierarchy §1 D3 대칭).
  */
 import { buildAxes } from "./axes";
+import { toScreen } from "./curves";
 import { buildLegend, legendExtent } from "./legend";
 import { buildAreaMarks } from "./marks/area";
 import { buildBarMarks } from "./marks/bar";
-import { buildLineMarks } from "./marks/line";
+import { buildDotMarks, dotRadius } from "./marks/dots";
+import { buildLineMarks, seriesAxialPoints } from "./marks/line";
 import { buildPieMarks } from "./marks/pie";
 import {
   approxTextWidth,
@@ -52,6 +54,8 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   metric: "value",
   orientation: "vertical",
   stackType: "dodged",
+  curve: "linear",
+  showDots: false,
   showAxis: true,
   showGrid: false,
   showLegend: false,
@@ -231,6 +235,17 @@ export function computeChartScene(
       : [r2(plot.y + plot.h), plot.y],
   );
 
+  // 점은 선/띠 **뒤에** 밀어 넣는다 — 두 consumer 가 같은 순서로 그리므로 겹치는
+  //   자리에서 점이 항상 위에 온다 (순서가 갈리면 그 자리에서만 화면이 다르다).
+  const pushDots = (points: readonly { x: number; y: number }[], si: number): void => {
+    const dot = buildDotMarks(
+      points,
+      grid.series[si].seriesIndex,
+      dotRadius(metrics.strokeWidth),
+    );
+    if (dot) marks.push(dot);
+  };
+
   let marks: Mark[];
   if (props.chartType === "bar") {
     marks = buildBarMarks({
@@ -242,7 +257,7 @@ export function computeChartScene(
       stackMode,
     });
   } else if (props.chartType === "area") {
-    marks = buildAreaMarks({
+    const area = buildAreaMarks({
       grid,
       band,
       value,
@@ -250,7 +265,10 @@ export function computeChartScene(
       orientation: props.orientation,
       strokeWidth: metrics.strokeWidth,
       stackMode,
+      curve: props.curve,
     });
+    marks = [...area.marks];
+    if (props.showDots) area.upper.forEach((points, si) => pushDots(points, si));
   } else {
     marks = buildLineMarks({
       grid,
@@ -259,7 +277,18 @@ export function computeChartScene(
       plot,
       orientation: props.orientation,
       strokeWidth: metrics.strokeWidth,
+      curve: props.curve,
     });
+    if (props.showDots) {
+      for (let si = 0; si < grid.series.length; si++) {
+        pushDots(
+          seriesAxialPoints(grid, si, band, value).map((point) =>
+            toScreen(props.orientation, point),
+          ),
+          si,
+        );
+      }
+    }
   }
 
   return {

@@ -16,6 +16,12 @@ export type ChartType = "bar" | "line" | "area" | "pie";
 export type ChartOrientation = "vertical" | "horizontal";
 
 /**
+ * 선 보간 (Recharts `type` 계열 — shadcn 예제의 축).
+ * `monotone` 은 데이터에 없는 봉우리를 만들지 않는 단조 3차, `step` 은 중점 계단.
+ */
+export type ChartCurve = "linear" | "monotone" | "step";
+
+/**
  * RSC `Bar.type` + shadcn `stacked-expand`. 다중 시리즈에서만 의미가 있다.
  * `expand` 는 범주별 합을 100 으로 정규화해 쌓는다 (비중 비교용).
  */
@@ -37,6 +43,10 @@ export interface ChartProps {
   color?: string;
   orientation: ChartOrientation;
   stackType: ChartStackType;
+  /** line/area 보간 */
+  curve: ChartCurve;
+  /** line/area 의 데이터 점 표시 */
+  showDots: boolean;
   showAxis: boolean;
   showGrid: boolean;
   showLegend: boolean;

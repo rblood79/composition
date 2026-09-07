@@ -42,6 +42,7 @@ import {
   toSkiaTextGeometry,
 } from "../chart";
 import type {
+  ChartCurve,
   ChartLegendPosition,
   ChartOrientation,
   ChartRow,
@@ -3347,6 +3348,10 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       stackType:
         (props.stackType as ChartStackType | undefined) ??
         CHART_DEFAULT_PROPS.stackType,
+      curve:
+        (props.curve as ChartCurve | undefined) ?? CHART_DEFAULT_PROPS.curve,
+      showDots:
+        (props.showDots as boolean | undefined) ?? CHART_DEFAULT_PROPS.showDots,
       showAxis: (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend:

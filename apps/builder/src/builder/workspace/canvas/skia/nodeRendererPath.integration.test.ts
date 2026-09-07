@@ -119,6 +119,24 @@ describe("renderPath 실제 CanvasKit 렌더 (ADR-194 G1)", () => {
     surface.delete();
   });
 
+  it("3차 베지어 `C` 를 파싱해 stroke 한다 (monotone 보간 전제)", () => {
+    // (4,32) → (60,32) 로 가되 제어점을 위로 당긴 곡선. 중앙은 직선보다 위를 지난다.
+    draw(
+      pathNode({
+        d: "M 4 32 C 22.67 8 41.33 8 60 32",
+        offsetX: 0,
+        offsetY: 0,
+        strokeColor: Float32Array.of(0, 0, 1, 1),
+        strokeWidth: 4,
+      }),
+    );
+    // 곡선은 중앙에서 y≈16 근처를 지난다 (제어점 y=8 과 끝점 y=32 사이).
+    expect(readPixel(ck, surface, 32, 16)[2]).toBeGreaterThan(200);
+    // 직선이었다면 지났을 (32,32) 는 비어 있어야 곡선으로 그려진 것이다.
+    expect(readPixel(ck, surface, 32, 32)[3]).toBe(0);
+    surface.delete();
+  });
+
   it("evenodd — 도넛 안쪽 구멍이 뚫린다 (nonzero 면 채워진다)", () => {
     // 바깥 사각형 + 안쪽 사각형, 같은 방향(둘 다 시계) 이라 nonzero 로는 안 뚫린다.
     const donut = "M 4 4 H 60 V 60 H 4 Z M 20 20 H 44 V 44 H 20 Z";

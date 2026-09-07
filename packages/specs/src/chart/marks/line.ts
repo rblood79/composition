@@ -1,13 +1,15 @@
 /**
- * ADR-194 — line 마크. v1 은 직선 polyline (곡선 보간은 비스코프 §7).
+ * ADR-194 — line 마크. linear / monotone / step 보간 (curves.ts) × vertical / horizontal.
  *
  * 값이 없는 범주에서 선을 **끊는다** (M 으로 새 subpath). 이어 그으면 없는
  * 데이터를 통과하는 선분이 생겨 사용자가 준 적 없는 추세가 화면에 나온다.
  */
+import { curveCommands, toScreen } from "../curves";
+import type { AxialPoint, ScreenPoint } from "../curves";
 import { r2 } from "../scales";
 import type { LinearScale, BandScale } from "../scales";
 import type { SeriesGrid } from "../series";
-import type { ChartOrientation, PathMark, Rect } from "../types";
+import type { ChartCurve, ChartOrientation, PathMark, Rect } from "../types";
 
 export interface LineMarkInput {
   grid: SeriesGrid;
@@ -16,19 +18,57 @@ export interface LineMarkInput {
   plot: Rect;
   orientation: ChartOrientation;
   strokeWidth: number;
+  curve: ChartCurve;
 }
 
-/** 범주 i 의 밴드 중앙 (선/영역의 꼭짓점 x). */
+/** 범주 i 의 밴드 중앙 (선/영역의 꼭짓점 위치). */
 export function bandCenter(band: BandScale, index: number): number {
   return band.at(index) + band.bandwidth / 2;
 }
 
-export interface SeriesPoint {
-  x: number;
-  y: number;
+export type SeriesPoint = ScreenPoint;
+
+/** 범주 축 위의 한 점 — 보간은 이 좌표계에서 한다 (curves.ts §머리말). */
+export interface AxialSeriesPoint extends AxialPoint {
+  categoryIndex: number;
 }
 
-/** 한 시리즈의 (있는 값만) 점 목록. 끊김은 `gapAfter` 로 표시. */
+/** 한 시리즈의 (있는 값만) 점 목록. 없는 범주는 아예 빠진다. */
+export function seriesAxialPoints(
+  grid: SeriesGrid,
+  seriesIdx: number,
+  band: BandScale,
+  value: LinearScale,
+): AxialSeriesPoint[] {
+  const series = grid.series[seriesIdx];
+  const points: AxialSeriesPoint[] = [];
+  for (let ci = 0; ci < grid.categories.length; ci++) {
+    const v = series.values.get(ci);
+    if (v === undefined) continue;
+    points.push({ categoryIndex: ci, along: bandCenter(band, ci), across: value(v) });
+  }
+  return points;
+}
+
+/** 범주 인덱스가 끊긴 자리에서 subpath 를 나눈다. */
+export function splitRuns<T extends { categoryIndex: number }>(
+  points: readonly T[],
+): T[][] {
+  const runs: T[][] = [];
+  let current: T[] = [];
+  for (const point of points) {
+    const previous = current[current.length - 1];
+    if (previous && point.categoryIndex !== previous.categoryIndex + 1) {
+      runs.push(current);
+      current = [];
+    }
+    current.push(point);
+  }
+  if (current.length > 0) runs.push(current);
+  return runs;
+}
+
+/** 화면 좌표 + 끊김 표시 — 외부 소비자용 (기하 내부는 axial 을 쓴다). */
 export function seriesPoints(
   grid: SeriesGrid,
   seriesIdx: number,
@@ -36,35 +76,11 @@ export function seriesPoints(
   value: LinearScale,
   orientation: ChartOrientation,
 ): Array<SeriesPoint & { gapBefore: boolean }> {
-  const series = grid.series[seriesIdx];
-  const points: Array<SeriesPoint & { gapBefore: boolean }> = [];
-  let previousIndex = -2;
-  for (let ci = 0; ci < grid.categories.length; ci++) {
-    const v = series.values.get(ci);
-    if (v === undefined) continue;
-    const along = bandCenter(band, ci);
-    const across = value(v);
-    points.push({
-      x: r2(orientation === "horizontal" ? across : along),
-      y: r2(orientation === "horizontal" ? along : across),
-      gapBefore: previousIndex >= 0 && ci !== previousIndex + 1,
-    });
-    previousIndex = ci;
-  }
-  return points;
-}
-
-export function pointsToPath(
-  points: ReadonlyArray<SeriesPoint & { gapBefore: boolean }>,
-): string {
-  let d = "";
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i];
-    d += i === 0 || p.gapBefore ? `M ${p.x} ${p.y}` : ` L ${p.x} ${p.y}`;
-    if (i < points.length - 1 && !points[i + 1].gapBefore) continue;
-    if (i < points.length - 1) d += " ";
-  }
-  return d;
+  const axial = seriesAxialPoints(grid, seriesIdx, band, value);
+  return axial.map((point, i) => ({
+    ...toScreen(orientation, point),
+    gapBefore: i > 0 && point.categoryIndex !== axial[i - 1].categoryIndex + 1,
+  }));
 }
 
 export function bboxOf(points: ReadonlyArray<SeriesPoint>): Rect {
@@ -83,20 +99,23 @@ export function bboxOf(points: ReadonlyArray<SeriesPoint>): Rect {
 }
 
 export function buildLineMarks(input: LineMarkInput): PathMark[] {
-  const { grid, band, value, orientation, strokeWidth } = input;
+  const { grid, band, value, orientation, strokeWidth, curve } = input;
   const marks: PathMark[] = [];
   for (let si = 0; si < grid.series.length; si++) {
-    const points = seriesPoints(grid, si, band, value, orientation);
+    const points = seriesAxialPoints(grid, si, band, value);
     if (points.length === 0) continue;
+    const screen = points.map((p) => toScreen(orientation, p));
     // 점 1개면 선이 안 보인다 — 길이 0 의 선분을 round cap 으로 찍어 점을 남긴다.
     const d =
       points.length === 1
-        ? `M ${points[0].x} ${points[0].y} L ${points[0].x} ${points[0].y}`
-        : pointsToPath(points);
+        ? `M ${screen[0].x} ${screen[0].y} L ${screen[0].x} ${screen[0].y}`
+        : splitRuns(points)
+            .map((run) => curveCommands(run, curve, orientation, true))
+            .join(" ");
     marks.push({
       kind: "path",
       d,
-      bbox: bboxOf(points),
+      bbox: bboxOf(screen),
       strokeSeries: grid.series[si].seriesIndex,
       strokeWidth,
     });

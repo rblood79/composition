@@ -565,6 +565,8 @@ export function createChartDefinition(
         color: "series",
         orientation: "vertical",
         stackType: "dodged",
+        curve: "linear",
+        showDots: false,
         showAxis: true,
         showGrid: false,
         showLegend: true,

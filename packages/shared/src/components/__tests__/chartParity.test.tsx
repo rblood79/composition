@@ -101,6 +101,14 @@ const CASES: Array<[string, ChartProps]> = [
   ],
   ["line / grid + legend", props({ chartType: "line", showGrid: true, showLegend: true })],
   ["area / vertical", props({ chartType: "area" })],
+  [
+    "line / monotone + dots",
+    props({ chartType: "line", curve: "monotone", showDots: true }),
+  ],
+  [
+    "area / stacked 100% + step",
+    props({ chartType: "area", stackType: "expand", curve: "step" }),
+  ],
   ["pie / legend right", props({ chartType: "pie", showLegend: true, legendPosition: "right" })],
 ];
 
