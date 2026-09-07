@@ -2,6 +2,15 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — 늘어난 크기가 `%` 높이의 기준이 된다 (ADR-206 Phase 1)] - 2026-09-07
+
+### Fixed
+
+- 부모가 늘려 준 크기 안의 `height: %` 자식이 캔버스에서 0 으로 접히던 결함을 고쳤습니다. `display: flex` (row, 높이 지정) 의 늘어난 item 안 `height: 50%` 는 Preview/Chrome 처럼 item 높이의 절반이 되고 (종전 0), 늘어난 item 이 다시 flex 컨테이너면 그 자식도 같이 늘어납니다. `flex-wrap: wrap` 의 여러 줄 · `min-height` 로 커진 컨테이너 · 세로 flex 의 `flex-grow` 로 커진 item · grid 칸 · `aspect-ratio` 로 파생된 높이도 같은 기준입니다 (CSS-FLEXBOX-1 §9.8 · CSS-GRID-1 §6.6 · CSS-SIZING-4 §5.2.2).
+- 늘어난 item 에 `aspect-ratio` 만 있고 폭이 없으면 폭이 내용 크기로 남던 것을 늘어난 높이에서 파생하도록 고쳤습니다 (row 높이 200 안 `aspect-ratio: 1` → 200×200, Chrome 동일).
+- **기존 문서 영향**: 로컬 프로젝트 인벤토리에서 `%` 높이 요소 0 / 269 (ADR-206 Phase 0) — 배치가 바뀌는 기존 문서는 없고, 앞으로 `%` 높이를 넣을 때 Preview 와 같은 결과를 냅니다.
+- 근거: Taffy 0.10→0.14 대조 §4 ① (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`). Chrome 차등 게이트 `tests/parity/percentSize.browser.test.ts` §ADR-206 (positive 12 baseline 전부 RED → GREEN, 대조군 9 GREEN 유지), `containerIntrinsic` K 잔존 Δ40 → 0, unit 7 · golden N11/N12, cargo 393 PASS, parity 1,164 PASS (기존 실패 2 유지), `tree_solve` bench depth 12 +1.5 %. grid 암묵 트랙 (② ④) 은 Phase 2.
+
 ## [레이아웃 엔진 — absolute 크기 min/max clamp · 빈 상자 aspect-ratio 높이] - 2026-09-07
 
 ### Fixed

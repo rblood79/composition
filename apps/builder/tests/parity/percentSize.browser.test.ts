@@ -166,3 +166,342 @@ describe("백분율 크기 containing block — CSS 대조", () => {
     },
   );
 });
+
+/**
+ * ADR-206 Phase 1 — **늘어난 크기는 definite 다** (CSS-FLEXBOX-1 §9.8 · CSS-GRID-1 §6.6 ·
+ * CSS-SIZING-4 §5.2.2). 위 §10.5 규칙 ("상속 available 은 높이를 확정하지 않는다") 은 그대로
+ * 유지하되, **stretch / grid area / aspect 전송 / 정의된 컨테이너의 post-flexing main** 으로
+ * 확정된 크기는 손자 `%` 의 base 가 된다. Chrome 실측 (2026-09-07, Taffy 0.10→0.14 대조 F5 ·
+ * B1d · B6c + 리뷰 round 1 W3 · W4): 종전 엔진은 `explicit_h > 0` 단일 게이트라 전부 0.
+ *
+ * - Chrome 은 multi-line (`flex-wrap: wrap`) 의 stretch item 도 확정으로 본다 — §9.8 의
+ *   "single-line" 한정과 다르다. 기준은 **분배 뒤 라인 cross** (W4 57.5).
+ * - 대조군 (`ADR206_CONTROLS`) 은 채널이 **가짜 확정**을 만들지 않음을 잠근다 — 비확정
+ *   (align-self start · auto margin · height auto 부모 · grid align start) 은 종전처럼 0.
+ */
+
+const n = (label: string, style: StyleRecord, children?: number[]): CaseNode =>
+  ({ label, style, children }) as CaseNode;
+const pct = (label = "inner", extra: StyleRecord = {}): CaseNode =>
+  n(label, { height: "50%", width: "40px", ...extra });
+const rowRoot = (children: number[], extra: StyleRecord = {}): CaseNode =>
+  n(
+    "root",
+    {
+      display: "flex",
+      flexDirection: "row",
+      width: "400px",
+      height: "200px",
+      ...extra,
+    },
+    children,
+  );
+
+const ADR206_CASES: ParityCase[] = [
+  {
+    name: "F5 row h200 > item(auto) > h50% → 100 (stretch 확정)",
+    availW: 400,
+    availH: -1,
+    nodes: [pct(), n("item", { width: "100px" }, [0]), rowRoot([1])],
+  },
+  {
+    name: "중첩 stretch — row h200 > item(row, auto h) > 손자 auto h → 200",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      n("inner", { width: "40px" }),
+      n("item", { display: "flex", flexDirection: "row", width: "100px" }, [0]),
+      rowRoot([1]),
+    ],
+  },
+  {
+    name: "3단 — row h200 > item(block) > mid h100% > inner h50% → 100",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("mid", { height: "100%", width: "60px" }, [0]),
+      n("item", { width: "100px" }, [1]),
+      rowRoot([2]),
+    ],
+  },
+  {
+    name: "B1d grid rows 200px > item > h50% → 100 (grid area 확정)",
+    availW: 200,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", {}, [0]),
+      n(
+        "root",
+        {
+          display: "grid",
+          gridTemplateRows: ["200px"],
+          gridTemplateColumns: ["200px"],
+          width: "200px",
+        },
+        [1],
+      ),
+    ],
+  },
+  {
+    name: "grid auto row — item > [A h100px, B h50%] → B 50 (트랙 확정 뒤 area 기준)",
+    availW: 200,
+    availH: -1,
+    nodes: [
+      n("a", { height: "100px", width: "40px" }),
+      pct("b"),
+      n("item", {}, [0, 1]),
+      n(
+        "root",
+        { display: "grid", gridTemplateColumns: ["200px"], width: "200px" },
+        [2],
+      ),
+    ],
+  },
+  {
+    name: "B6c aspect 2 (w300 → h150) > h50% → 75 (전송 높이 확정)",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      pct("inner", { width: "20px" }),
+      n("ar", { aspectRatio: 2 }, [0]),
+      n("root", { width: "300px" }, [1]),
+    ],
+  },
+  {
+    name: "aspect 2 (w300 → 150) 이지만 내용 200 > 전송 — [A h200px, B h50%]",
+    availW: 300,
+    availH: -1,
+    nodes: [
+      n("a", { height: "200px", width: "20px" }),
+      pct("b", { width: "20px" }),
+      n("ar", { aspectRatio: 2 }, [0, 1]),
+      n("root", { width: "300px" }, [2]),
+    ],
+  },
+  {
+    name: "W3 wrap h200 · 3×150 → 2 라인 (100) > h50% → 50",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "150px" }, [0]),
+      n("item2", { width: "150px" }),
+      n("item3", { width: "150px" }),
+      rowRoot([1, 2, 3], { flexWrap: "wrap" }),
+    ],
+  },
+  {
+    name: "W4 wrap + item2 h30 + align-content stretch → 라인 115 > h50% → 57.5",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "150px" }, [0]),
+      n("item2", { width: "150px", height: "30px" }),
+      n("item3", { width: "150px" }),
+      rowRoot([1, 2, 3], { flexWrap: "wrap", alignContent: "stretch" }),
+    ],
+  },
+  {
+    name: "column h200 > item flexGrow 1 > h50% → 100 (post-flexing main 확정)",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { flexGrow: 1, width: "100px" }, [0]),
+      n(
+        "root",
+        {
+          display: "flex",
+          flexDirection: "column",
+          width: "400px",
+          height: "200px",
+          alignItems: "flex-start",
+        },
+        [1],
+      ),
+    ],
+  },
+  {
+    name: "column h300 > item(auto, 내용 100) > [A h100px, B h50%] → B 50",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      n("a", { height: "100px", width: "40px" }),
+      pct("b"),
+      n("item", { width: "100px" }, [0, 1]),
+      n(
+        "root",
+        {
+          display: "flex",
+          flexDirection: "column",
+          width: "400px",
+          height: "300px",
+          alignItems: "flex-start",
+        },
+        [2],
+      ),
+    ],
+  },
+];
+
+const ADR206_CONTROLS: ParityCase[] = [
+  {
+    name: "대조군 — align-items flex-start (비stretch) > h50% → 0",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px" }, [0]),
+      rowRoot([1], { alignItems: "flex-start" }),
+    ],
+  },
+  {
+    name: "대조군 — item align-self flex-start > h50% → 0",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px", alignSelf: "flex-start" }, [0]),
+      rowRoot([1]),
+    ],
+  },
+  {
+    name: "대조군 — item margin-top auto (stretch 무효) > h50% → 0",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px", marginTop: "auto" }, [0]),
+      rowRoot([1]),
+    ],
+  },
+  {
+    name: "대조군 — row height auto 부모 > item > h50% → 0",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px" }, [0]),
+      n("root", { display: "flex", flexDirection: "row", width: "400px" }, [1]),
+    ],
+  },
+  {
+    name: "대조군 — row minHeight 400 (height auto) > item > h50%",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px" }, [0]),
+      n(
+        "root",
+        {
+          display: "flex",
+          flexDirection: "row",
+          width: "400px",
+          minHeight: "400px",
+        },
+        [1],
+      ),
+    ],
+  },
+  {
+    // item 에 내용 (a 10px) 을 둔다 — 내용 0 인 auto item 은 엔진의 "0 붕괴 방지" 폴백
+    // (`place_grid_axis` real_size ≤ 0 → 셀 채움, ADR-156 §Residual) 이 셀을 채워 Chrome 0 과
+    // 갈린다. 그건 본 채널과 무관한 기존 결함 (LOW deferred) 이라 여기서는 비켜 간다.
+    name: "대조군 — grid rows 200 > item align-self start (내용 10) > h50% → 0",
+    availW: 200,
+    availH: -1,
+    nodes: [
+      n("a", { height: "10px", width: "40px" }),
+      pct(),
+      n("item", { alignSelf: "start" }, [0, 1]),
+      n(
+        "root",
+        {
+          display: "grid",
+          gridTemplateRows: ["200px"],
+          gridTemplateColumns: ["200px"],
+          width: "200px",
+        },
+        [2],
+      ),
+    ],
+  },
+  {
+    name: "대조군 — stretch item aspect-ratio 1 · width auto > h50% (stretch 가 aspect 를 이김)",
+    availW: 400,
+    availH: -1,
+    nodes: [pct(), n("item", { aspectRatio: 1 }, [0]), rowRoot([1])],
+  },
+  {
+    name: "대조군 — 명시 height item (h100px) > h50% → 50 (기존 경로)",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px", height: "100px" }, [0]),
+      rowRoot([1]),
+    ],
+  },
+  {
+    name: "대조군 — stretch item 에 aspect-ratio 1 + w100 > h50%",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      pct(),
+      n("item", { width: "100px", aspectRatio: 1 }, [0]),
+      rowRoot([1]),
+    ],
+  },
+  {
+    name: "대조군 — column h200 auto-h item 에 % 없음 (내용 100) → 100",
+    availW: 400,
+    availH: -1,
+    nodes: [
+      n("a", { height: "100px", width: "40px" }),
+      n("item", { width: "100px" }, [0]),
+      n(
+        "root",
+        {
+          display: "flex",
+          flexDirection: "column",
+          width: "400px",
+          height: "200px",
+          alignItems: "flex-start",
+        },
+        [1],
+      ),
+    ],
+  },
+];
+
+describe("ADR-206 Phase 1 — 늘어난 크기 definite 전파", () => {
+  beforeAll(async () => {
+    await initCompositionEngineWasm();
+  });
+
+  it.each(
+    [...ADR206_CASES, ...ADR206_CONTROLS].map((c) => [c.name, c] as const),
+  )("engine leg — %s", (_name, c) => {
+    const bad = diffCase(
+      c.nodes,
+      domLeg(c.nodes, c.availW),
+      engineLeg(c.nodes, c.availW, c.availH),
+    );
+    expect(bad, bad.join("\n")).toEqual([]);
+  });
+
+  it.each(
+    [...ADR206_CASES, ...ADR206_CONTROLS].map((c) => [c.name, c] as const),
+  )("pipeline leg — %s", (_name, c) => {
+    const bad = diffCase(
+      c.nodes,
+      domLeg(c.nodes, c.availW),
+      pipelineLeg(c.nodes, c.availW, c.availH),
+    );
+    expect(bad, bad.join("\n")).toEqual([]);
+  });
+});

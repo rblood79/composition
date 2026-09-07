@@ -393,7 +393,7 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 | 인라인 (width) | **확정**                              | block 레벨 자식은 부모 폭으로 stretch          |
 | 블록 (height)  | **미확정**                            | `height:auto` 는 내용 크기 — 세로 stretch 없음 |
 
-- 판정은 `explicit_h > 0.0` **하나**다. 상속 available(`avail_h >= 0`)은 높이를 확정하지 않는다 (CSS §10.5).
+- 판정은 `explicit_h > 0.0` 이다 — 상속 available(`avail_h >= 0`)은 높이를 확정하지 않는다 (CSS §10.5). **단 `explicit_h` 자리에는 명시 높이만 오는 것이 아니다** (ADR-206, 2026-09-07): 부모 배치가 그 축을 확정한 used 값도 같은 자리다 — 아래 §늘어난 크기.
 - **게이트는 두 경로에 다 있어야 한다** — `%` 를 푸는 ctx (`cross_ctx`/`main_ctx`) 와 **자식 재귀 solve 에 내려주는 available** (`child_containing_h`). 한쪽만 막으면 자식이 자기 `solve_node` 에서 상속 available 로 다시 해소한다. `solve_block` 은 원래 두 곳 다 있었고 `solve_flex` 는 둘 다 없었다.
   - 민감도 실측: ctx 게이트만 되돌리면 8 red(row 만), 재귀 available 게이트만 되돌리면 16 red(row+column).
 - 폭 축의 `avail_w >= 0` 조항은 **유지**한다 — 지우면 stretch 부모 안의 `width:100%` 손자가 다시 수축한다 (DatePicker 2026-07-14). `percentSize.browser.test.ts` 의 `SHRINK_WRAP_CASES` 가 양쪽(stretch/shrink-wrap)을 같이 잠근다.
@@ -404,6 +404,39 @@ single-line(`flex-wrap:nowrap`) + definite cross 컨테이너에서 flex 라인�
 - ❌ 두 축을 한 규칙으로 묶어 `explicit || avail >= 0` 판정 → 블록 축에서 가짜 확정
 - ❌ `%` ctx 만 막고 자식 재귀 available 은 그대로 전달 (또는 그 반대) → 한 경로로 새어 나간다
 - ❌ 폭 축에서 `avail_w >= 0` 제거 → stretch 부모의 `width:100%` 수축 회귀
+
+### 늘어난 크기는 definite 다 — stretch · grid area · post-flexing main · aspect 전송 (ADR-206 Phase 1, 2026-09-07)
+
+위 게이트는 "상속 available 은 확정이 아니다" 를 말할 뿐, **부모 배치가 확정한 used 크기**까지 미확정으로 두면 안 된다. CSS 는 셋을 definite 로 규정한다 — flexbox §9.8 (stretch 된 item 의 cross · definite 컨테이너의 post-flexing main), grid §6.6 (grid area), CSS-SIZING-4 §5.2.2 (aspect 전송값은 `%` base, 상자는 내용 하한). 종전 엔진은 `explicit_h` 에 style 명시값만 실어 2단 (부모 stretch → item → 손자 `%`) 부터 전부 0 이었다 — ADR-170 격자는 1단만 잠갔다.
+
+| 케이스 (Chrome 실측 2026-09-07)                                             |        Chrome |     구 엔진 | 경로                                     |
+| --------------------------------------------------------------------------- | ------------: | ----------: | ---------------------------------------- |
+| `flex row h200` > item(auto) > `h50%` (F5)                                  |           100 |       **0** | (a) 단일 라인 stretch                    |
+| 위 item 이 `flex row` 이고 손자 auto h                                      |           200 |       **0** | (a) 중첩 stretch                         |
+| `flex-wrap: wrap` 2 라인 (W3) / `align-content: stretch` 분배 (W4)          |     50 / 57.5 |       **0** | (b) multi-line — 분배 뒤 라인            |
+| `row minHeight 400` (height auto) > item > `h50%`                           |           200 |       **0** | (b) 3.7 min/max 확정 cross               |
+| `column h200` > item `flexGrow 1` > `h50%` · h300 > item(내용 100) > `h50%` |      100 · 50 |       **0** | (c) post-flexing main                    |
+| `grid rows 200px` > item > `h50%` (B1d) · auto row + 내용 100               |      100 · 50 |       **0** | grid area                                |
+| `w300 aspect 2` > `h50%` (B6c) · 내용 200 초과                              | 75 · 상자 275 | **0** · 200 | aspect `%` base (상자는 max(전송, 내용)) |
+| stretch item `aspect 1` + width auto                                        |       200×200 |      40×200 | stretch cross → aspect h→w 전송          |
+
+- **채널은 style 이 아니라 배치 결과다** — `TreeNode.definite_h` (per-solve 입력, 부모가 `solve_node` 직전에 넣고 진입부가 `take()`). `explicit_h` 가 auto 일 때 그 자리를 채우므로 기존 두 게이트 · `cross_ctx`/`main_ctx` · grid definite 분기 · min/max clamp 가 **한 줄도 안 바뀌고** 열린다. `NodeStyle` 55 필드 무변경. 증분 skip 키에 `last_definite_h` 가 셋째로 들어간다 (같은 available 이어도 definite 입력이 다르면 손자 `%` 가 다르다).
+- **(a) 단일 라인 row 의 definite cross 는 커널 전에 안다** (§9.4 step 8·11) — `stretch_definite[i]` = inner cross − cross margin 을 1차 solve 에 넣는다. 재-solve 0. 조건: align-self 가 stretch 로 해소 · height auto · cross margin auto 없음 (`flex_item_stretches_block_cross`).
+- **(b) 커널 뒤에야 아는 cross** (wrap 의 분배 뒤 라인 · 3.7 이 min/max 로 확정한 cross) 는 used cross 로 한 번 더 푼다 — **커널은 다시 돌리지 않는다** (item 상자는 `out`, 재-solve 는 그 안만). 소비자 (`%` 블록 크기 또는 자식 있는 flex/grid 자손 — `definite_consumer_flags`, `mutation_gen` 캐시) 가 있는 item 만.
+- **(c) column definite 컨테이너의 post-flexing main** 은 3.5 재-solve 에 `Some(used_main)` 으로 싣는다. used == content 인 item 도 `%` 자손이 있으면 다시 푼다 — 단 **content 슬롯 (13/14) 은 갱신하지 않는다** (flex base size 는 `%`→auto 의 1차 content 기여, Chrome 도 같다). 소비자 없는 item 은 건너뛴다 — 전부 다시 풀면 column 중첩 깊이에 2^d (ADR-169 G4 재발).
+- **grid area** 는 셀 solve 직전에 stretch 판정 (align stretch · height auto/키워드 아님 · auto margin 없음) 이면 셀 − margin 을 넣는다. auto row 도 트랙 확정 뒤라 definite 다.
+- **aspect 전송값은 `pct_base_h`** — 상자 자신은 auto 로 풀어 내용 하한 (§5.2.2) 을 받고, 자식 `%` 의 containing block 만 전송값이다 (`child_containing_h` · `cross_ctx` · `main_ctx` 가 읽는다). 전송값이 내용을 이겨 상자를 키우면 `self_collapsing=false` 를 같이 내려야 한다 — 남기면 block intake 코드 2 가 높이를 0 으로 되돌린다 (실측 `ratio 2` + 내용 0 → 150 대신 0).
+- Chrome 은 §9.8 본문의 "single-line" 한정과 달리 **multi-line 도 확정**으로 본다 (W3·W4). oracle 은 Chrome.
+- 대조군 (채널이 가짜 확정을 만들지 않음): align-items/align-self start · cross margin auto · height auto 부모 · grid align start → 전부 0 유지. 게이트 `percentSize.browser.test.ts` §ADR-206 (positive 12 · 대조군 9, baseline positive 전부 RED) · `containerIntrinsic` K (ADR-169 잔존 Δ40 → 0) · unit `adr206_*` 7 · golden N11·N12.
+- bench `tree_solve` depth 12 median 27.7 → 28.2 µs (+1.5 %, 3-run 평균 · G3 상한 +5 %).
+
+#### 금지 패턴
+
+- ❌ definite 채널을 `NodeStyle` 필드나 style 문자열 (`height: Npx` 주입) 로 흉내 → 원복 잊으면 style 이 오염되고 skip 키에 안 잡힌다. 채널은 per-solve 입력 + `take()`.
+- ❌ (b)/(c) 재-solve 를 소비자 게이트 없이 전 item 에 → 중첩 깊이 2^d (ADR-169 G4 사고 형태).
+- ❌ (c) 재-solve 결과로 content 슬롯을 덮기 → base size 가 used 로 바뀌어 3.6 재분배가 달라진다.
+- ❌ multi-line 을 §9.8 문장대로 미확정 처리 → Chrome 과 갈린다 (W3 50 / W4 57.5).
+- ❌ aspect 전송값을 `explicit_h` 로 굳혀 dispatch → flex column 이 전송값으로 shrink 한다. `%` base 와 상자 크기는 다른 채널이다.
 
 ## flex item 재-solve 는 **자기가 푼 available** 을 기준으로 한다 — `%` 의 세 번째 누수 경로 (2026-07-28)
 
@@ -641,11 +674,11 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 
 Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md` §2 B4·B4c·B6) 에서 Chrome 실측으로 잡은 두 결함. 둘 다 "정본은 이미 clamp/전송을 아는데 **한 경로만** 빠져 있던" 형태다.
 
-| 결함                                            | 거처                                          | Chrome | 구 엔진 |
-| ----------------------------------------------- | --------------------------------------------- | -----: | ------: |
-| abs 명시 `width:300 + max-width:100 + margin auto` | `place_absolute_children` 의 `resolve_dimension` 덮어쓰기 | 100 / x150 | **300 / x50** |
-| abs stretch (`left0 right0`, width auto) `+ max-width:100` | `resolve_abs_axis` stretch 분기 clamp 부재      | 100 / x0 | **400** |
-| block leaf `aspect-ratio:2` (width auto) in w300 | `solve_node` 군집 F 분기의 `!children.is_empty()` | 300×150 | **300×0** |
+| 결함                                                       | 거처                                                      |     Chrome |       구 엔진 |
+| ---------------------------------------------------------- | --------------------------------------------------------- | ---------: | ------------: |
+| abs 명시 `width:300 + max-width:100 + margin auto`         | `place_absolute_children` 의 `resolve_dimension` 덮어쓰기 | 100 / x150 | **300 / x50** |
+| abs stretch (`left0 right0`, width auto) `+ max-width:100` | `resolve_abs_axis` stretch 분기 clamp 부재                |   100 / x0 |       **400** |
+| block leaf `aspect-ratio:2` (width auto) in w300           | `solve_node` 군집 F 분기의 `!children.is_empty()`         |    300×150 |     **300×0** |
 
 - **abs**: `solve_node` 는 자기 clamp 를 이미 하는데 abs 경로가 `resolve_dimension(width)` raw 값으로 그 결과를 덮어썼다. clamp 를 `resolve_abs_axis((min,max))` 한 곳으로 옮겼다 — 명시 크기든 stretch 결과든 같은 클로저가 clamp 하고, **stretch 가 clamp 로 바뀌면 그 축은 over-constrained** 가 되어 명시 크기 분기 (margin auto 흡수 · start 우선) 를 다시 탄다 (§10.3.7 "재적용"). `%` min/max 는 inset 과 같은 containing block ctx.
 - **aspect leaf**: 군집 F (stretch 폭이 w→h 전송 입력) 는 자식 있는 상자만 진입했다. leaf 의 ① (min/max 바인딩 승격) 은 block.rs stretch+clamp 가 담당하므로 그대로 두고, **② aspect 전송이 필요한 경우만** leaf 도 진입시킨다 (`!children.is_empty() || own_aspect.is_some() && explicit_h <= 0.0`). 전송값은 leaf 에 content 하한이 없으므로 `explicit_h` 로 굳는다.
@@ -657,4 +690,3 @@ Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DEL
 - ❌ abs 경로에서 `resolve_dimension(width)` 를 used size 로 직접 쓰기 → clamp 가 사라진다. used size 는 `resolve_abs_axis` 반환값
 - ❌ stretch 결과를 clamp 만 하고 배치 분기를 안 바꾸기 → clamp 된 상자가 여전히 start 에 붙는다 (margin auto 중앙이 안 된다)
 - ❌ leaf 의 min/max 바인딩까지 군집 F 로 승격 → block.rs stretch+clamp 와 이중
-

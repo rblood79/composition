@@ -131,7 +131,9 @@ Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+(Implemented 승격 시 3 시나리오 전부 기재 — 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분.)
+
+- **Phase 1 (a) `height:100%` 자식 — 2026-09-07, Chrome MCP** (로컬 `qwe`, hidden 탭 · `getSharedLayoutMap()`): factory 로 심은 Frame `flex row 300×200` > Frame `height:100%` → **200** > Frame `height:50%` → **100** (3단 전파, 종전 0 · 0). 시드는 `removeElement` 로 제거 (잔여 0).
 
 ## Consequences
 

@@ -474,7 +474,7 @@ const GRID_DEFERRED: ParityCase[] = [
  * ADR-169 범위 밖으로 기록만 남긴다 (해소되면 이 스냅샷이 red 로 알린다).
  */
 const K_COLUMN_MAIN: ParityCase = {
-  name: "K. column main(height) — 컨테이너 결함 부재 + 백분율 잔존",
+  name: "K. column main(height) — 컨테이너 결함 부재 (백분율 잔존은 ADR-206 으로 해소)",
   availW: 300,
   availH: 100,
   nodes: [
@@ -594,7 +594,9 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     });
 
     it("I. grid 직접 flex item — pipeline leg", () => {
-      expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(`[]`);
+      expect(runPipelineParityCase(GRID_DEFERRED[0])).toMatchInlineSnapshot(
+        `[]`,
+      );
     });
 
     it("J. grid 중첩 — engine leg", () => {
@@ -602,23 +604,19 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     });
 
     it("K. height 축(column main) — engine leg", () => {
-      expect(runParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`
-        [
-          "k-inner.h: dom=40.0 eng=0.0 (Δ40.0)",
-        ]
-      `);
+      // ADR-206 Phase 1 (2026-09-07): definite 컨테이너의 post-flexing main 은 definite (§9.8 2항)
+      // — grow 로 40 이 된 k-content 안의 `height:100%` 가 40 으로 해소된다 (종전 잔존 Δ40 → 0).
+      expect(runParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`[]`);
     });
 
     it("K. height 축(column main) — pipeline leg", () => {
-      expect(runPipelineParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`
-        [
-          "k-inner.h: dom=40.0 eng=0.0 (Δ40.0)",
-        ]
-      `);
+      expect(runPipelineParityCase(K_COLUMN_MAIN)).toMatchInlineSnapshot(`[]`);
     });
 
     it("J. grid 중첩 — pipeline leg", () => {
-      expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(`[]`);
+      expect(runPipelineParityCase(GRID_DEFERRED[1])).toMatchInlineSnapshot(
+        `[]`,
+      );
     });
   });
 });

@@ -396,6 +396,45 @@ fn tree_golden_n10_flex_start_column_percent_width_child() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// N11 / N12 — ADR-206 Phase 1: 늘어난 크기는 definite (Chrome 실측 2026-09-07, 손계산 대조)
+//   N11: flex row h200 의 stretch item 안 `height:50%` = 100 (CSS-FLEXBOX-1 §9.8)
+//   N12: grid `rows 200px` area 안 `height:50%` = 100 (CSS-GRID-1 §6.6)
+// ─────────────────────────────────────────────────────────────────────────────
+const N11_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 40., 100.],  // [0] n11-inner (50% of stretch 200 — Chrome 100, 종전 0)
+    [0., 0., 100., 200.], // [1] n11-item (stretch)
+    [0., 0., 400., 200.], // [2] n11-root
+];
+const N11_BATCH: &str = r#"[
+  {"style":{"width":"40px","height":"50%"},"children":[]},
+  {"style":{"width":"100px"},"children":[0]},
+  {"style":{"display":"flex","flexDirection":"row","width":"400px","height":"200px"},"children":[1]}
+]"#;
+
+#[test]
+fn tree_golden_n11_stretched_flex_item_percent_child() {
+    let rel = layout_relative(N11_BATCH);
+    assert_tree_bounds("N11 stretched flex item percent child", &rel, N11_EXPECTED);
+}
+
+const N12_EXPECTED: &[[f32; 4]] = &[
+    [0., 0., 40., 100.],  // [0] n12-inner (50% of grid area 200 — Chrome 100, 종전 0)
+    [0., 0., 200., 200.], // [1] n12-item (area stretch)
+    [0., 0., 200., 200.], // [2] n12-root
+];
+const N12_BATCH: &str = r#"[
+  {"style":{"width":"40px","height":"50%"},"children":[]},
+  {"style":{},"children":[0]},
+  {"style":{"display":"grid","gridTemplateRows":["200px"],"gridTemplateColumns":["200px"],"width":"200px"},"children":[1]}
+]"#;
+
+#[test]
+fn tree_golden_n12_grid_area_percent_child() {
+    let rel = layout_relative(N12_BATCH);
+    assert_tree_bounds("N12 grid area percent child", &rel, N12_EXPECTED);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // field contract guard — EXPECTED 길이 = fixture 노드 수 (순서 drift 조기 검출)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -411,4 +450,6 @@ fn tree_golden_field_contract_guard() {
     assert_eq!(N8_EXPECTED.len(), 3, "N8 노드 3");
     assert_eq!(N9_EXPECTED.len(), 4, "N9 노드 4");
     assert_eq!(N10_EXPECTED.len(), 3, "N10 노드 3");
+    assert_eq!(N11_EXPECTED.len(), 3, "N11 노드 3");
+    assert_eq!(N12_EXPECTED.len(), 3, "N12 노드 3");
 }

@@ -480,6 +480,7 @@ type SubtreeSnap = (
     NodeLayout,
     Option<(f32, f32)>,
     Option<(f32, f32)>,
+    Option<f32>,
 );
 
 /// 트리 노드 (style + 자식 handle + 계산 결과).
@@ -549,6 +550,23 @@ struct TreeNode {
     /// skip 마다 그만큼 부풀어 오른다 (라이브: 다른 요소를 편집할 때마다 컬렉션
     /// item origin 높이가 `2×(padding+border)` 씩 누적 — 새로고침하면 원상복귀).
     last_solved: Option<(f32, f32)>,
+    /// ADR-206 — **definite 입력 채널** (per-solve, 부모가 `solve_node` 직전에 넣고 진입부가
+    /// `take()` 한다). 자기 `height` 가 auto 인데 부모 배치가 이 축을 확정했을 때 (stretch
+    /// 된 flex item · grid area · definite 컨테이너의 post-flexing main — CSS-FLEXBOX-1 §9.8 ·
+    /// CSS-GRID-1 §6.6) 그 used 값 (border-box). `explicit_h` 와 같은 자리를 차지해 기존
+    /// 게이트 (`child_containing_h` · `cross_ctx` · `main_ctx` · grid definite) 가 전부 열린다.
+    /// `NodeStyle` 은 안 건드린다 — style 이 아니라 배치 결과다.
+    definite_h: Option<f32>,
+    /// 증분 skip 의 **세 번째 키** — `last_avail` 와 같은 이유. 같은 available 이어도
+    /// definite 입력이 달라지면 손자 `%` 해소가 달라진다.
+    last_definite_h: Option<f32>,
+    /// ADR-206 — aspect w→h 전송값 (border-box). 상자 자신은 auto (내용 하한, §5.2.2) 로 풀되
+    /// 자식 `%` 의 containing block 높이는 이 값이다 (Chrome: `w300 ratio 2` > `h50%` = 75,
+    /// 내용 200 이 넘어도 `%` 는 150 기준 → 상자 275). dispatch 동안만 Some.
+    pct_base_h: Option<f32>,
+    /// 서브트리에 definite 높이를 **소비**하는 노드가 있는가 — `(mutation_gen, %만, 중첩 컨테이너 포함)`.
+    /// post-kernel 재-solve 를 소비자가 있는 item 으로 한정하는 게이트 (G3 — 2^d 차단).
+    definite_consumer: Option<(u64, bool, bool)>,
 }
 
 /// 자체 레이아웃 트리 엔진 (taffy_bridge.rs `TaffyLayoutEngine` 대응).
@@ -693,6 +711,7 @@ impl LayoutTree {
         subtree_dirty: impl FnOnce() -> bool,
         avail_w: f32,
         avail_h: f32,
+        definite_h: Option<f32>,
     ) -> (SkipReason, Option<(f32, f32)>) {
         let Some(prev) = node.last_solved else {
             return (SkipReason::NoPrev, None);
@@ -700,7 +719,7 @@ impl LayoutTree {
         if subtree_dirty() {
             return (SkipReason::Dirty, None);
         }
-        if node.last_avail != Some((avail_w, avail_h)) {
+        if node.last_avail != Some((avail_w, avail_h)) || node.last_definite_h != definite_h {
             return (SkipReason::AvailChanged, None);
         }
         (SkipReason::Hit, Some(prev))
@@ -748,6 +767,10 @@ impl LayoutTree {
             intrinsic_w: None,
             last_avail: None,
             last_solved: None,
+            definite_h: None,
+            last_definite_h: None,
+            pct_base_h: None,
+            definite_consumer: None,
         })
     }
 
@@ -929,6 +952,10 @@ impl LayoutTree {
                 intrinsic_w: None,
                 last_avail: None,
                 last_solved: None,
+                definite_h: None,
+                last_definite_h: None,
+                pct_base_h: None,
+                definite_consumer: None,
             });
             // 자식들의 parent 를 이 노드로 배선 (조상 dirty 전파 경로 확보).
             for &ch in &child_handles {
@@ -1263,6 +1290,59 @@ impl LayoutTree {
         }
     }
 
+    /// ADR-206 — 서브트리 (자손만) 에 definite 높이를 **소비**하는 노드가 있는가.
+    ///
+    /// 반환 `(pct, nested)`: `pct` = `%` 블록 크기 (height/min-height/max-height/flex-basis) 자손 존재 ·
+    /// `nested` = 그에 더해 자식을 가진 flex/grid 컨테이너 자손 존재 (그 컨테이너의 cross/main 확정이
+    /// 손자 stretch 를 바꾼다). post-kernel 재-solve 의 게이트 — 소비자 없는 item 을 다시 풀면
+    /// 결과가 같은데 solve 만 는다 (중첩 깊이에 2^d, ADR-169 G4 재발). `mutation_gen` 캐시라 O(1).
+    fn definite_consumer_flags(&mut self, handle: usize) -> (bool, bool) {
+        if let Some((g, pct, nested)) = self.get(handle).and_then(|n| n.definite_consumer) {
+            if g == self.mutation_gen {
+                return (pct, nested);
+            }
+        }
+        let children = self.get(handle).map(|n| n.children.clone()).unwrap_or_default();
+        let mut pct = false;
+        let mut nested = false;
+        for c in children {
+            if let Some(cn) = self.get(c) {
+                if style_has_pct_block_size(&cn.style) {
+                    pct = true;
+                }
+                if !cn.children.is_empty()
+                    && matches!(
+                        classify_container_display(cn.style.display.as_deref()),
+                        ContainerDisplay::Flex | ContainerDisplay::Grid
+                    )
+                {
+                    nested = true;
+                }
+            }
+            let (cp, cn_) = self.definite_consumer_flags(c);
+            pct |= cp;
+            nested |= cn_;
+        }
+        let nested = nested || pct;
+        let gen = self.mutation_gen;
+        if let Some(n) = self.get_mut(handle) {
+            n.definite_consumer = Some((gen, pct, nested));
+        }
+        (pct, nested)
+    }
+
+    /// `definite_h` 를 넣고 한 번 풀고 반드시 비운다 — 소비되지 않은 입력이 다음 호출에 새지 않게.
+    fn solve_node_definite(&mut self, c: usize, sw: f32, sh: f32, definite_h: Option<f32>) -> (f32, f32) {
+        if let Some(n) = self.get_mut(c) {
+            n.definite_h = definite_h;
+        }
+        let r = self.solve_node(c, sw, sh);
+        if let Some(n) = self.get_mut(c) {
+            n.definite_h = None;
+        }
+        r
+    }
+
     // ── intrinsic 측정 패스 (ADR-169 Phase 1) ──
 
     /// 서브트리의 `(dirty, subtree_dirty, layout, last_avail, last_solved)` 를
@@ -1276,6 +1356,7 @@ impl LayoutTree {
             node.layout,
             node.last_avail,
             node.last_solved,
+            node.last_definite_h,
         ));
         for c in node.children.clone() {
             self.snapshot_subtree(c, &mut *out);
@@ -1288,13 +1369,14 @@ impl LayoutTree {
     /// 그 값이 남으면 skip 게이트의 키가 측정값으로 오염된다 (복구 대상은
     /// layout·dirty·available 3종이 한 묶음).
     fn restore_subtree(&mut self, snap: &[SubtreeSnap]) {
-        for &(h, dirty, subtree_dirty, layout, last_avail, last_solved) in snap {
+        for &(h, dirty, subtree_dirty, layout, last_avail, last_solved, last_definite_h) in snap {
             if let Some(node) = self.get_mut(h) {
                 node.dirty = dirty;
                 node.subtree_dirty = subtree_dirty;
                 node.layout = layout;
                 node.last_avail = last_avail;
                 node.last_solved = last_solved;
+                node.last_definite_h = last_definite_h;
             }
         }
     }
@@ -1468,6 +1550,9 @@ impl LayoutTree {
     /// 노드 하나를 solve — 자식을 먼저 재귀 solve 한 뒤 display 별로 배치.
     /// 반환: (content_width, content_height) — 부모 intrinsic 도출용.
     fn solve_node(&mut self, handle: usize, avail_w: f32, avail_h: f32) -> (f32, f32) {
+        // ADR-206: definite 입력은 **skip 판정보다 먼저** 거둔다 — skip 이 HIT 해도 남겨두면
+        // 다음 무관한 호출 (측정 pass 등) 에 새어 들어간다.
+        let definite_h_in = self.get_mut(handle).and_then(|n| n.definite_h.take());
         let Some(node) = self.get(handle) else {
             return (0.0, 0.0);
         };
@@ -1499,8 +1584,13 @@ impl LayoutTree {
         // 옛 조건을 보고해 거짓 안심을 준다 (R2). `subtree_has_dirty` 는 O(1) 요약
         // 게이트지만 클로저로 넘겨 **기존 단축 평가를 보존**한다 (last_solved 가
         // 없으면 요약 판정도 호출하지 않는다).
-        let (skip_reason, skip_prev) =
-            Self::skip_decision(node, || self.subtree_has_dirty(handle), avail_w, avail_h);
+        let (skip_reason, skip_prev) = Self::skip_decision(
+            node,
+            || self.subtree_has_dirty(handle),
+            avail_w,
+            avail_h,
+            definite_h_in,
+        );
         if let Some(prev) = skip_prev {
             if self.trace.is_some() {
                 self.trace_push(handle, || TraceEvent::IncrementalSkip {
@@ -1519,6 +1609,7 @@ impl LayoutTree {
         // 끝난 지점에서 한 번만 쓴다 (재-borrow 추가 없이).
         if let Some(n) = self.get_mut(handle) {
             n.last_avail = Some((avail_w, avail_h));
+            n.last_definite_h = definite_h_in;
         }
         // MISS 사유 기록 — HIT 는 위에서 이미 남기고 반환했다.
         if self.trace.is_some() {
@@ -1553,6 +1644,14 @@ impl LayoutTree {
 
         // 명시 크기(있으면) — auto 는 아래에서 content 로 채움.
         let (mut explicit_w, mut explicit_h) = self.resolve_self_size(handle, avail_w, avail_h);
+        // ADR-206: 부모 배치가 이 축을 확정했으면 (stretch · grid area · post-flexing main) 그 used
+        // 값이 곧 명시 높이 자리다 — 아래 min/max clamp · 자식 `%` base · flex/grid definite
+        // 게이트가 전부 이 값을 본다. 자기 style 에 명시 높이가 있으면 그쪽이 이긴다 (stretch 는
+        // auto 크기에만 — CSS-ALIGN-3 §4.1). 0 은 "확정 0" 이 아니라 미확정으로 둔다 (0 의 % 는 0).
+        let h_from_definite = explicit_h <= 0.0 && definite_h_in.is_some_and(|d| d > 0.0);
+        if h_from_definite {
+            explicit_h = definite_h_in.unwrap_or(0.0);
+        }
 
         // 컨테이너 자신의 intrinsic 키워드 폭 해소 (CSS-SIZING-3 §5 — ADR-170 군집 B).
         //
@@ -1770,8 +1869,20 @@ impl LayoutTree {
                         explicit_h = transferred;
                     }
                 } else if explicit_h > 0.0 && explicit_w <= 0.0 {
+                    // stretch 로 확정된 cross (ADR-206 definite 입력) 도 전송 입력이다 — Chrome 실측
+                    // (2026-09-07): `row h200` 의 stretch item `ratio 1` + width auto → 200×200
+                    // (종전 엔진 폭 40 = content). 명시 폭이 있으면 stretch 가 aspect 를 이기고
+                    // (control: `w100 ratio 1` → 100×200) 여기 오지 않는다.
                     explicit_w = explicit_h * ratio;
                 }
+            }
+        }
+
+        // ADR-206: aspect 전송값은 dispatch 동안 자식 `%` 의 containing block 높이다 (§5.2.2 —
+        // 상자는 auto 로 풀어 내용 하한을 받되, `%` base 는 전송값. Chrome B6c 75 / 내용 초과 275).
+        if aspect_h_floor.is_some() {
+            if let Some(n) = self.get_mut(handle) {
+                n.pct_base_h = aspect_h_floor;
             }
         }
 
@@ -1849,11 +1960,20 @@ impl LayoutTree {
 
         // aspect w→h 전송의 content 하한 (§5.2.2 — 위 파생 블록 참조): used h =
         // max(전송값, content). dispatch 는 h=auto 로 돌아 ch = content extent 다.
+        if aspect_h_floor.is_some() {
+            if let Some(n) = self.get_mut(handle) {
+                n.pct_base_h = None;
+            }
+        }
         if let Some(t) = aspect_h_floor {
             if t > ch {
                 ch = t;
                 if let Some(n) = self.get_mut(handle) {
                     n.layout.height = ch;
+                    // used 높이가 0 이 아니므로 self-collapsing 이 아니다 (§8.3.1 은 height 0 한정)
+                    // — 이 플래그를 남기면 block intake 가 코드 2 로 보내 높이를 0 으로 되돌린다
+                    // (실측: `ratio 2` + 내용 0 상자가 150 대신 0).
+                    n.self_collapsing = false;
                 }
             }
         }
@@ -2128,8 +2248,13 @@ impl LayoutTree {
         //   자식이 `height:50%` 를 **상속 available** 로 해소한다. `solve_block` 의 동명
         //   게이트와 같은 규칙이고 flex 에만 빠져 있었다 (2026-07-27).
         //   축 무관 — 블록 축에는 stretch 가 없어 row/column 어느 쪽 cross 든 동일하다.
+        //   ADR-206: aspect 전송값 (`pct_base_h`) 이 있으면 그 content 높이가 `%` base 다 — 컨테이너
+        //   자신은 여전히 auto (cross_definite_self 불변, stretch 없음).
+        let pct_base_h = self.get(handle).and_then(|n| n.pct_base_h);
         let child_containing_h = if explicit_h > 0.0 {
             child_avail_h
+        } else if let Some(b) = pct_base_h {
+            spec_to_content(b, own_pb_v).max(0.0)
         } else {
             INDEFINITE_AVAIL
         };
@@ -2183,6 +2308,8 @@ impl LayoutTree {
         };
         let cross_ctx = if cross_definite_self {
             self.ctx_for(if is_row { child_avail_h } else { child_avail_w })
+        } else if is_row && pct_base_h.is_some() {
+            self.ctx_for(child_containing_h) // ADR-206 aspect 전송값이 `%` base
         } else {
             self.ctx_for(INDEFINITE_AVAIL)
         };
@@ -2242,6 +2369,29 @@ impl LayoutTree {
         let mut child_sizes: Vec<(f32, f32)> = Vec::with_capacity(children.len());
         let wraps = matches!(style.flex_wrap.as_deref(), Some("wrap") | Some("wrap-reverse"));
 
+        // ADR-206 (a) — **단일 라인 row 컨테이너의 definite cross** 는 커널 전에 stretch item 의
+        //   used cross 를 안다 (§9.4 step 8: 라인 cross = 컨테이너 inner cross · step 11: item =
+        //   라인 − margin). 그 값을 `definite_h` 로 넣어 **1차 solve 부터** 손자 `%` 와 중첩 stretch
+        //   가 확정을 본다 — 재-solve 0 (G3). min/max 는 item 의 `solve_node` 가 clamp 한다.
+        //   wrap 은 라인 분할 뒤에야 알고, 컨테이너 cross 가 auto 면 (min/max 로 확정되는 3.7
+        //   포함) 커널 뒤 (b) 가 맡는다. column 의 cross(=width) 는 §백분율 (b) 인라인 축 규칙으로
+        //   이미 확정 — 여기서는 블록 축 (row cross) 만.
+        let stretch_definite: Vec<Option<f32>> = children
+            .iter()
+            .map(|&c| {
+                if !is_row || wraps || !cross_definite_self || child_containing_h < 0.0 {
+                    return None;
+                }
+                let n = self.get(c)?;
+                if !flex_item_stretches_block_cross(&n.style, align_items) {
+                    return None;
+                }
+                let m = resolve_signed(n.style.margin_top.as_deref(), &ctx)
+                    + resolve_signed(n.style.margin_bottom.as_deref(), &ctx);
+                Some((child_containing_h - m).max(0.0))
+            })
+            .collect();
+
         // **step 1 중복 제거** (ADR-169 Phase 4 / G4). 아래 2-b 가 intrinsic 으로 덮어쓸
         // item 은 여기서 available 로 푸는 solve 의 **주축 결과가 버려진다**. 그런데도 풀면
         // 3.5 가 used size 로 한 번 더 풀어 레벨당 solve 가 2회 — 중첩 깊이에 2^d 다
@@ -2273,11 +2423,22 @@ impl LayoutTree {
             let (sw, sh) = child_solves[i];
             // wrap 컨테이너는 라인 분할이 cross 에 걸려 cross 를 0 으로 둘 수 없다 —
             // 그 경우만 기존 재귀 solve 를 유지한다.
+            let definite = stretch_definite[i]; // ADR-206 (a)
+            if definite.is_some() {
+                if let Some(n) = self.get_mut(c) {
+                    n.definite_h = definite;
+                }
+            }
             let cs = if wraps {
                 self.solve_node(c, sw, sh)
             } else {
                 self.solve_child_intrinsic_aware(c, sw, sh)
             };
+            if definite.is_some() {
+                if let Some(n) = self.get_mut(c) {
+                    n.definite_h = None; // 측정 경로가 solve_node 를 안 탔으면 여기서 비운다
+                }
+            }
             child_sizes.push(cs);
         }
 
@@ -2293,7 +2454,7 @@ impl LayoutTree {
         let main_ctx = if is_row {
             ctx.clone()
         } else {
-            self.ctx_for(if explicit_h > 0.0 { child_avail_h } else { INDEFINITE_AVAIL })
+            self.ctx_for(child_containing_h) // explicit → child_avail_h · aspect 전송 · 아니면 INDEFINITE
         };
         let mut data = vec![0.0f32; children.len() * flex::FLEX_FIELD_COUNT];
         for (i, &c) in children.iter().enumerate() {
@@ -2517,9 +2678,26 @@ impl LayoutTree {
                     });
                 // step 1 을 건너뛴 item 은 **아직 한 번도 배치되지 않았다** — 비교 없이
                 // 무조건 여기서 푼다 (이게 그 item 의 유일한 실 solve 다).
-                if !deferred_to_resolve[i] && (used_main - laid_out_main).abs() <= RESOLVE_EPS {
+                let main_changed =
+                    deferred_to_resolve[i] || (used_main - laid_out_main).abs() > RESOLVE_EPS;
+                // ADR-206 (c) — definite 컨테이너의 **post-flexing main 은 definite** 다 (§9.8 2항,
+                //   grow 든 아니든). column 이면 main = height 라 손자 `%` 높이가 이 값을 base 로
+                //   삼는다 — 소비자 (`%` 블록 크기 자손) 가 있는 item 만 다시 푼다 (used == content
+                //   인 item 을 전부 다시 풀면 column 중첩 깊이에 2^d). row 의 main 은 width 라
+                //   인라인 축 규칙으로 이미 확정 — 해당 없음.
+                let column_definite = !is_row && avail_main >= 0.0;
+                let column_definite_consumer =
+                    column_definite && self.definite_consumer_flags(c).0;
+                if !main_changed && !column_definite_consumer {
                     continue; // 분배로 안 바뀜 — 재배치 불필요
                 }
+                let definite_for_resolve = if is_row {
+                    stretch_definite[i]
+                } else if column_definite {
+                    Some(used_main)
+                } else {
+                    None
+                };
 
                 // ADR-183 #6 — 3.5 재-solve 발생. 이 재-solve 는 `used_main` 을 상속
                 // available 로 내려주므로, 자식의 미해소 `%` 가 여기서 다시 풀린다
@@ -2573,9 +2751,9 @@ impl LayoutTree {
                 // cross available 은 1차 solve 와 동일 규칙 (자식별 — 위 child_solve_cross).
                 let (cs_w, cs_h) = child_solves[i];
                 let (re_w, re_h) = if is_row {
-                    self.solve_node(c, used_main, cs_h)
+                    self.solve_node_definite(c, used_main, cs_h, definite_for_resolve)
                 } else {
-                    self.solve_node(c, cs_w, used_main)
+                    self.solve_node_definite(c, cs_w, used_main, definite_for_resolve)
                 };
 
                 if overridden {
@@ -2589,11 +2767,16 @@ impl LayoutTree {
                 }
 
                 // flex 입력의 content 슬롯 갱신 (13=content_main, 14=content_cross).
-                let d_off = i * flex::FLEX_FIELD_COUNT;
-                let (new_cm, new_cc) = if is_row { (re_w, re_h) } else { (re_h, re_w) };
-                data[d_off + 13] = new_cm;
-                data[d_off + 14] = new_cc;
-                changed = true;
+                //   ADR-206: column 에서 definite 로 다시 푼 item 의 반환 높이는 used 값 자체라
+                //   content 제안이 아니다 — flex base size 는 여전히 1차 content (Chrome 도 base
+                //   size 는 `%`→auto 의 content 기여). 슬롯을 두고 커널을 다시 돌리지 않는다.
+                if main_changed && !(definite_for_resolve.is_some() && !is_row) {
+                    let d_off = i * flex::FLEX_FIELD_COUNT;
+                    let (new_cm, new_cc) = if is_row { (re_w, re_h) } else { (re_h, re_w) };
+                    data[d_off + 13] = new_cm;
+                    data[d_off + 14] = new_cc;
+                    changed = true;
+                }
             }
 
             if changed {
@@ -2751,6 +2934,41 @@ impl LayoutTree {
                         cross_definite,
                     );
                 }
+            }
+        }
+
+        // ADR-206 (b) — **커널 뒤에야 아는 definite cross**: multi-line (라인 cross = 분배 뒤 값,
+        //   Chrome W3 50 · W4 57.5) 과 3.7 이 min/max 로 확정한 cross (Chrome `minHeight 400` 안
+        //   손자 `h50%` = 200). (a) 가 이미 같은 값을 넣은 item 은 건너뛰고, 소비자 (`%` 또는 중첩
+        //   컨테이너 자손) 가 있는 stretch item 만 used cross 로 다시 푼다. 커널은 다시 돌리지
+        //   않는다 — item 의 상자는 `out` 이 정하고, 재-solve 는 그 안의 배치만 바꾼다.
+        if is_row && cross_definite && !children.is_empty() {
+            for (i, &c) in children.iter().enumerate() {
+                let off = i * 4;
+                let used_cross = out[off + 3];
+                if stretch_definite[i].is_some_and(|d| (d - used_cross).abs() <= 0.5) {
+                    continue;
+                }
+                let Some(n) = self.get(c) else { continue };
+                if n.children.is_empty()
+                    || used_cross <= 0.0
+                    || !flex_item_stretches_block_cross(&n.style, align_items)
+                {
+                    continue;
+                }
+                if !self.definite_consumer_flags(c).1 {
+                    continue;
+                }
+                let used_w = out[off + 2];
+                self.mark_subtree_dirty(c);
+                if self.trace.is_some() {
+                    self.trace_push(handle, || TraceEvent::FlexItemResolve {
+                        item: i,
+                        used_main: used_w,
+                        prev_avail: used_cross,
+                    });
+                }
+                self.solve_node_definite(c, used_w, child_containing_h, Some(used_cross));
             }
         }
 
@@ -2974,7 +3192,14 @@ impl LayoutTree {
         // available 로 잘못 해소한다(E6 auto-parent PH-1/FP-1: leaf 의 resolve_self_size 가
         // avail_h 기준으로 250 을 냄). height_ctx(write_block_item) 와 solve_node(leaf 자기
         // 크기) **양 경로**에 같은 게이트를 적용해야 percent height 가 일관되게 auto 가 된다.
-        let child_containing_h = if explicit_h > 0.0 { child_avail_h } else { INDEFINITE_AVAIL };
+        //   ADR-206: aspect 전송값 (`pct_base_h`) 은 상자가 auto 여도 `%` base 다 (§5.2.2, Chrome B6c).
+        let child_containing_h = if explicit_h > 0.0 {
+            child_avail_h
+        } else if let Some(b) = self.get(handle).and_then(|n| n.pct_base_h) {
+            spec_to_content(b, own_pb_v).max(0.0)
+        } else {
+            INDEFINITE_AVAIL
+        };
         let height_ctx = self.ctx_for(child_containing_h);
 
         // 1) 자식 재귀 solve → content 크기 확보. auto 컨테이너면 avail_h=INDEFINITE 를 내려
@@ -3750,7 +3975,26 @@ impl LayoutTree {
             {
                 self.mark_subtree_dirty(c);
             }
-            let (cw, ch) = self.solve_node(c, w, h);
+            // ADR-206 — **grid area 는 definite** (CSS-GRID-1 §6.6): 블록 축 stretch 대상 (align
+            //   stretch · height auto · auto margin 없음) 이면 used height = 셀 − margin 이고 그
+            //   값이 손자 `%` 의 base 다 (Chrome B1d 100 · auto row 50). 명시/키워드 높이는 stretch
+            //   대상이 아니라 종전대로.
+            let grid_definite_h = {
+                let (_, pre_eh) = self.resolve_self_size(c, w, h);
+                let pre = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
+                let stretch_h = grid_block_align(pre.align_self.as_deref(), grid_align_items) == 0
+                    && pre_eh <= 0.0
+                    && !size_is_intrinsic_keyword(pre.height.as_deref())
+                    && !is_auto_margin(pre.margin_top.as_deref())
+                    && !is_auto_margin(pre.margin_bottom.as_deref());
+                if stretch_h && h > 0.0 {
+                    let m = GridItemMargin::resolve(&pre, &self.ctx_for(w));
+                    Some((h - m.top - m.bottom).max(0.0))
+                } else {
+                    None
+                }
+            };
+            let (cw, ch) = self.solve_node_definite(c, w, h, grid_definite_h);
             // 자식 **명시(definite) 크기** 여부 — auto/미설정/intrinsic 센티넬은 0.
             //   stretch 하 explicit dimension respect 판정에 쓴다(아래 세로축). percentage/
             //   calc 는 셀(w,h) 기준 resolve → definite 로 취급(CSS grid area 는 definite).
@@ -5179,6 +5423,30 @@ fn size_is_intrinsic_keyword(v: Option<&str>) -> bool {
         || t.eq_ignore_ascii_case("fit-content")
 }
 
+/// ADR-206 — 블록 축 크기에 `%` 가 있는가 (definite containing block 높이의 소비자 판정).
+fn style_has_pct_block_size(s: &NodeStyle) -> bool {
+    [s.height.as_deref(), s.min_height.as_deref(), s.max_height.as_deref(), s.flex_basis.as_deref()]
+        .into_iter()
+        .flatten()
+        .any(|v| v.trim().ends_with('%'))
+}
+
+/// ADR-206 — row 컨테이너의 item 이 cross(=height) 를 **stretch 로 받는가** (CSS-FLEXBOX-1 §9.4
+/// step 11): align-self 가 stretch 로 해소되고 · height 가 auto 이고 · cross margin 에 auto 가 없다.
+/// 이 셋이 만족하면 used cross = 라인 cross − margin 이고, 그 값은 definite 다 (§9.8).
+fn flex_item_stretches_block_cross(s: &NodeStyle, container_align_items: u8) -> bool {
+    let align_self = parse_align_self(s.align_self.as_deref());
+    let stretched = if align_self == 0.0 { container_align_items == 0 } else { align_self == 1.0 };
+    if !stretched {
+        return false;
+    }
+    if is_auto_margin(s.margin_top.as_deref()) || is_auto_margin(s.margin_bottom.as_deref()) {
+        return false;
+    }
+    let h = s.height.as_deref().map(str::trim).unwrap_or("");
+    h.is_empty() || h.eq_ignore_ascii_case("auto")
+}
+
 /// margin 값이 `auto` 인가 — 흡수 대상 판정(§8.1 / §10.3.3 / abspos §10.3.7).
 #[inline]
 fn is_auto_margin(v: Option<&str>) -> bool {
@@ -6088,6 +6356,149 @@ mod tests {
         let l2 = t2.get_layout(h2[0]);
         assert_eq!(l2.width, 100.0, "stretch 300 → max 100");
         assert_eq!(l2.height, 50.0, "100 / 2");
+    }
+
+    // ── ADR-206 Phase 1: 늘어난 크기는 definite 다 (Chrome 실측 2026-09-07) ──
+
+    fn solve(json: &str, root: usize, w: f32, h: f32) -> (LayoutTree, Vec<usize>) {
+        let mut tree = LayoutTree::new();
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[root], w, h);
+        (tree, handles)
+    }
+
+    /// F5: `flex row h200` 의 stretch item 은 cross 가 definite — 손자 `h50%` = 100 (종전 0).
+    #[test]
+    fn adr206_stretched_flex_item_cross_is_definite_for_percent_child() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50%","width":"40px"},"children":[]},
+            {"style":{"width":"100px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","height":"200px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 200.0, "item stretch");
+        assert_eq!(t.get_layout(h[0]).height, 100.0, "손자 50% of 200 (Chrome 100)");
+    }
+
+    /// 중첩 stretch: stretch 된 item 이 row 컨테이너면 그 cross 도 definite → 손자 auto h = 200.
+    #[test]
+    fn adr206_nested_row_stretch_chain() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"40px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"100px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","height":"200px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).height, 200.0, "손자 stretch (Chrome 200)");
+    }
+
+    /// B1d: grid area 는 definite — `rows 200px` 셀 안 item 의 손자 `h50%` = 100.
+    #[test]
+    fn adr206_grid_area_is_definite_for_percent_child() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50%","width":"40px"},"children":[]},
+            {"style":{},"children":[0]},
+            {"style":{"display":"grid","gridTemplateRows":["200px"],"gridTemplateColumns":["200px"],"width":"200px"},"children":[1]}
+        ]"#,
+            2, 200.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).height, 100.0, "Chrome 100");
+    }
+
+    /// B6c: aspect w→h 전송값은 손자 `%` 의 base 다 — 상자 자체는 max(전송, 내용) (CSS-SIZING-4 §5.2.2).
+    #[test]
+    fn adr206_aspect_transferred_height_is_percent_base() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50%","width":"20px"},"children":[]},
+            {"style":{"aspectRatio":2},"children":[0]},
+            {"style":{"width":"300px"},"children":[1]}
+        ]"#,
+            2, 300.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 150.0, "300/2 (Chrome 150)");
+        assert_eq!(t.get_layout(h[0]).height, 75.0, "50% of 150 (Chrome 75)");
+
+        // 내용 (200 + 75) 이 전송 150 을 넘으면 상자는 내용 — `%` base 는 여전히 150 (Chrome 275 / 75).
+        let (t2, h2) = solve(
+            r#"[
+            {"style":{"height":"200px","width":"20px"},"children":[]},
+            {"style":{"height":"50%","width":"20px"},"children":[]},
+            {"style":{"aspectRatio":2},"children":[0,1]},
+            {"style":{"width":"300px"},"children":[2]}
+        ]"#,
+            3, 300.0, -1.0,
+        );
+        assert_eq!(t2.get_layout(h2[1]).height, 75.0, "Chrome 75");
+        assert_eq!(t2.get_layout(h2[2]).height, 275.0, "Chrome 275");
+    }
+
+    /// column definite 컨테이너의 post-flexing main 은 definite (§9.8 2항).
+    #[test]
+    fn adr206_column_definite_post_flexing_main_is_definite() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50%","width":"40px"},"children":[]},
+            {"style":{"flexGrow":1,"width":"100px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","width":"400px","height":"200px","alignItems":"flex-start"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 200.0, "grow");
+        assert_eq!(t.get_layout(h[0]).height, 100.0, "Chrome 100");
+
+        let (t2, h2) = solve(
+            r#"[
+            {"style":{"height":"100px","width":"40px"},"children":[]},
+            {"style":{"height":"50%","width":"40px"},"children":[]},
+            {"style":{"width":"100px"},"children":[0,1]},
+            {"style":{"display":"flex","flexDirection":"column","width":"400px","height":"300px","alignItems":"flex-start"},"children":[2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t2.get_layout(h2[2]).height, 100.0, "post-flexing = 내용 100");
+        assert_eq!(t2.get_layout(h2[1]).height, 50.0, "Chrome 50");
+    }
+
+    /// `min-height` 로 확정된 row cross 도 stretch item 에 definite 로 내려간다 (Chrome 200).
+    #[test]
+    fn adr206_min_height_bound_row_cross_is_definite() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50%","width":"40px"},"children":[]},
+            {"style":{"width":"100px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","minHeight":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 400.0, "item stretch to min");
+        assert_eq!(t.get_layout(h[0]).height, 200.0, "Chrome 200");
+    }
+
+    /// 대조군 — 비확정은 종전처럼 0: align-self start · auto margin · height auto 부모.
+    #[test]
+    fn adr206_controls_stay_indefinite() {
+        for (label, item_extra, root_extra) in [
+            ("align-self start", r#","alignSelf":"flex-start""#, r#","height":"200px""#),
+            ("margin-top auto", r#","marginTop":"auto""#, r#","height":"200px""#),
+            ("align-items start", "", r#","height":"200px","alignItems":"flex-start""#),
+            ("height auto 부모", "", ""),
+        ] {
+            let json = format!(
+                r#"[
+                {{"style":{{"height":"50%","width":"40px"}},"children":[]}},
+                {{"style":{{"width":"100px"{item_extra}}},"children":[0]}},
+                {{"style":{{"display":"flex","flexDirection":"row","width":"400px"{root_extra}}},"children":[1]}}
+            ]"#
+            );
+            let (t, h) = solve(&json, 2, 400.0, -1.0);
+            assert_eq!(t.get_layout(h[0]).height, 0.0, "{label}: 손자 % 는 auto (Chrome 0)");
+        }
     }
 
     #[test]

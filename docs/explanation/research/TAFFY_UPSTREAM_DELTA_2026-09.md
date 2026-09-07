@@ -129,6 +129,7 @@ a = 엔진이 이미 맞음 · b = 같은 결함/gap · c = 모델 밖. "도달"
 ### 4-1. 진행 기록
 
 - **2026-09-07 A 묶음 (③⑤) 완료** — `tree.rs` `resolve_abs_axis` 에 `(min,max)` clamp (stretch 가 clamp 로 바뀌면 over-constrained 분기 재적용) · 군집 F 분기가 leaf 도 aspect 전송 입력으로 stretch 폭을 잡게 (`!children.is_empty() || aspect_needs_w`). 게이트 `tests/parity/absClampAspectLeaf.browser.test.ts` 12 (baseline 11 RED) · unit 3 · cargo 421. ledger §24. 사용자 결정: B (①②④) 는 ADR 1개, C (⑥⑦⑧) 는 그 ADR 에 scope 밖 기록.
+- **2026-09-07 저녁 — ① 완료 (ADR-206 Phase 1)**: `TreeNode.definite_h` per-solve 채널 + `pct_base_h` (aspect). F5 · B1d · B6c · W3 · W4 + column post-flexing + minHeight cross + 중첩 stretch 전부 GREEN (`percentSize.browser.test.ts` §ADR-206), `containerIntrinsic` K 잔존 Δ40 → 0. ② ④ 는 Phase 2.
 
 ## 5. 반영 불요
 

@@ -71,7 +71,9 @@
 
 ## 3. Phase 분할
 
-### Phase 1 — 늘어난 크기를 definite 로 전달 (①, Taffy #1003 · #1123 · #965)
+### Phase 1 — 늘어난 크기를 definite 로 전달 (①, Taffy #1003 · #1123 · #965) — **완료 2026-09-07**
+
+구현 요약 (정본 ledger §백분율 → 늘어난 크기): `TreeNode.definite_h` per-solve 입력 (skip 키 3번째 `last_definite_h`) · (a) 단일 라인 row 는 커널 전 `stretch_definite` · (b) wrap / 3.7 min-max 는 커널 뒤 소비자 게이트 재-solve (커널 재실행 없음) · (c) column post-flexing main 은 3.5 에 `Some(used_main)` (content 슬롯 무갱신) · grid 셀 stretch 판정 → 셀 − margin · aspect 는 `pct_base_h` 별도 채널 (상자 auto, `%` base 만). 실측으로 드러난 추가 사실: Chrome 은 `minHeight` 로 확정된 cross 도 definite (200) · stretch item 의 `aspect-ratio` + width auto 는 늘어난 높이에서 폭 전송 (200×200) · grid 의 내용 0 auto item 은 엔진 `real_size ≤ 0` 폴백이 셀을 채워 Chrome 0 과 갈린다 (기존, LOW deferred — 대조군은 내용 10 을 둔다).
 
 | 변경                                                                                                                                                                                                                                                                                                                                                         | 파일                                                                                          | 규범                                                              |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -134,7 +136,7 @@ C 묶음은 **production 도달 사례가 없어** 본 ADR 에 넣지 않는다.
 ## 6. 완료 체크리스트
 
 - [ ] Phase 0 산출 4건 (전수 대조 · F14 live · BC 인벤토리 · bench baseline)
-- [ ] Phase 1 게이트 GREEN + 원복 RED + 회귀 0
+- [x] Phase 1 게이트 GREEN + 원복 RED + 회귀 0 — 2026-09-07: `percentSize` §ADR-206 positive 12 (baseline 11 RED × 2 leg, 신규 aspect auto-width 1) · 대조군 9 GREEN · `containerIntrinsic` K Δ40 → 0 · unit `adr206_*` 7 · golden N11/N12 · cargo 393 · parity 1,164 PASS (기존 실패 2) · bench depth 12 +1.5 % (3-run)
 - [ ] Phase 2 게이트 GREEN + 원복 RED + 회귀 0 (기존 실패 2건 분리 기록)
 - [ ] `cargo bench tree_solve` p50 ≤ baseline +5%
 - [ ] live 3 시나리오 → ADR `### Live Exercise`
