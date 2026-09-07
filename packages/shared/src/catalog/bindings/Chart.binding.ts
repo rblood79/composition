@@ -132,6 +132,22 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         default: false,
       },
+      showValueLabels: {
+        kind: "boolean",
+        label: "Show Value Labels",
+        section: "appearance",
+        default: false,
+      },
+      colorBy: {
+        kind: "enum",
+        label: "Color By",
+        section: "appearance",
+        default: "series",
+        options: [
+          { value: "series", label: "Series" },
+          { value: "category", label: "Category" },
+        ],
+      },
       showAxis: {
         kind: "boolean",
         label: "Show Axis",
@@ -185,6 +201,8 @@ export const chartBinding: PrimitiveBinding = {
       "stackType",
       "curve",
       "showDots",
+      "showValueLabels",
+      "colorBy",
       "showAxis",
       "showGrid",
       "showLegend",

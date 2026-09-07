@@ -27,6 +27,12 @@ export type ChartCurve = "linear" | "monotone" | "step";
  */
 export type ChartStackType = "stacked" | "dodged" | "expand";
 
+/**
+ * 색을 무엇으로 가르는가. `series` 는 시리즈별(기본), `category` 는 범주별
+ * (shadcn `chart-bar-mixed`). pie 는 구조상 항상 범주별이다.
+ */
+export type ChartColorBy = "series" | "category";
+
 /** RSC `Legend.position`. */
 export type ChartLegendPosition = "bottom" | "top" | "left" | "right";
 
@@ -47,6 +53,10 @@ export interface ChartProps {
   curve: ChartCurve;
   /** line/area 의 데이터 점 표시 */
   showDots: boolean;
+  /** 마크 위 값 레이블 */
+  showValueLabels: boolean;
+  /** 색을 가르는 축 (bar 전용 — pie 는 항상 범주, line/area 는 시리즈) */
+  colorBy: ChartColorBy;
   showAxis: boolean;
   showGrid: boolean;
   showLegend: boolean;
@@ -82,7 +92,7 @@ export interface Rect {
 
 export type TextAnchor = "start" | "middle" | "end";
 export type TextBaseline = "top" | "middle" | "bottom";
-export type TextRole = "tick" | "legend" | "empty";
+export type TextRole = "tick" | "legend" | "empty" | "value";
 export type LineRole = "axis" | "grid";
 
 export interface RectMark {

@@ -18,8 +18,14 @@ import { r2 } from "../scales";
 import type { LinearScale, BandScale } from "../scales";
 import { stackRangesBySeries } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
-import type { ChartCurve, ChartOrientation, PathMark, Rect } from "../types";
-import { bandCenter, bboxOf, splitRuns } from "./line";
+import type {
+  ChartCurve,
+  ChartOrientation,
+  PathMark,
+  Rect,
+  TextMark,
+} from "../types";
+import { bandCenter, bboxOf, pointValueLabel, splitRuns } from "./line";
 
 export interface AreaMarkInput {
   grid: SeriesGrid;
@@ -30,28 +36,41 @@ export interface AreaMarkInput {
   strokeWidth: number;
   stackMode: StackMode;
   curve: ChartCurve;
+  showValueLabels: boolean;
 }
 
 export interface AreaMarks {
   marks: PathMark[];
   /** 시리즈별 위 경계 화면 좌표 — 점 표시(dots)가 여기 찍힌다. */
   upper: ScreenPoint[][];
+  labels: TextMark[];
 }
 
 interface AreaBand {
   categoryIndex: number;
   upper: AxialPoint;
   lower: AxialPoint;
+  /** 원래 데이터 값 (누적 좌표가 아니라) — 값 레이블이 읽는다 */
+  raw: number;
 }
 
 export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
-  const { grid, band, value, orientation, strokeWidth, stackMode, curve } =
-    input;
+  const {
+    grid,
+    band,
+    value,
+    orientation,
+    strokeWidth,
+    stackMode,
+    curve,
+    showValueLabels,
+  } = input;
   const baseline = r2(value(0));
   const ranges =
     stackMode === "none" ? null : stackRangesBySeries(grid, stackMode);
   const marks: PathMark[] = [];
   const upperPoints: ScreenPoint[][] = [];
+  const labels: TextMark[] = [];
 
   for (let si = 0; si < grid.series.length; si++) {
     const series = grid.series[si];
@@ -66,6 +85,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
           categoryIndex: ci,
           upper: { along, across: value(range.to) },
           lower: { along, across: value(range.from) },
+          raw: series.values.get(ci) ?? 0,
         });
         continue;
       }
@@ -75,6 +95,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
         categoryIndex: ci,
         upper: { along, across: value(v) },
         lower: { along, across: baseline },
+        raw: v,
       });
     }
 
@@ -111,8 +132,15 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
       strokeSeries: series.seriesIndex,
       strokeWidth,
     });
-    upperPoints.push(bands.map((b) => toScreen(orientation, b.upper)));
+    const upper = bands.map((b) => toScreen(orientation, b.upper));
+    upperPoints.push(upper);
+    if (showValueLabels) {
+      upper.forEach((point, i) => {
+        const label = pointValueLabel(point, bands[i].raw, orientation);
+        if (label) labels.push(label);
+      });
+    }
   }
 
-  return { marks, upper: upperPoints };
+  return { marks, upper: upperPoints, labels };
 }

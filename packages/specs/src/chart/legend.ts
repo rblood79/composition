@@ -6,11 +6,22 @@
  * 사라지는데, 그게 색만 보이고 이름이 없는 상태보다 나쁘다.
  */
 import { approxTextWidth, r2 } from "./scales";
-import type { SeriesGrid } from "./series";
 import type { ChartLegendPosition, LegendItem, LegendScene, Rect } from "./types";
 
+/**
+ * 범례 한 줄. **grid.series 가 아니라 이 목록**을 받는다 — 색을 가르는 축이
+ * 차트마다 다르기 때문이다 (pie 와 bar mixed 는 범주가, 나머지는 시리즈가
+ * 색을 가른다). grid 를 직접 읽던 때는 pie 범례가 조각과 무관한 시리즈 이름을
+ * 나열했다 (2026-09-08 shadcn 대조에서 발견).
+ */
+export interface LegendEntry {
+  label: string;
+  /** 팔레트 인덱스 (이미 modulo 됨) */
+  colorIndex: number;
+}
+
 export interface LegendInput {
-  grid: SeriesGrid;
+  entries: readonly LegendEntry[];
   /** 범례가 차지하도록 배정된 영역 */
   box: Rect;
   position: ChartLegendPosition;
@@ -27,12 +38,12 @@ export function legendItemWidth(label: string, fontSize: number): number {
 
 /** 범례가 필요로 하는 높이 (top/bottom) 또는 폭 (left/right). */
 export function legendExtent(
-  grid: SeriesGrid,
+  entries: readonly LegendEntry[],
   position: ChartLegendPosition,
   available: number,
   fontSize: number,
 ): number {
-  const labels = grid.series.map((s) => s.key || "series");
+  const labels = entries.map((e) => e.label);
   if (labels.length === 0) return 0;
   const rowHeight = Math.max(LEGEND_SWATCH, fontSize) + LEGEND_GAP;
 
@@ -59,8 +70,8 @@ export function legendExtent(
 }
 
 export function buildLegend(input: LegendInput): LegendScene | null {
-  const { grid, box, position, fontSize } = input;
-  if (grid.series.length === 0) return null;
+  const { entries, box, position, fontSize } = input;
+  if (entries.length === 0) return null;
 
   const items: LegendItem[] = [];
   const rowHeight = Math.max(LEGEND_SWATCH, fontSize) + LEGEND_GAP;
@@ -69,8 +80,8 @@ export function buildLegend(input: LegendInput): LegendScene | null {
   let x = box.x;
   let y = box.y;
 
-  for (const series of grid.series) {
-    const label = series.key || "series";
+  for (const entry of entries) {
+    const label = entry.label;
     const width = legendItemWidth(label, fontSize);
     if (!vertical && x > box.x && x + width > box.x + box.w) {
       x = box.x;
@@ -80,14 +91,14 @@ export function buildLegend(input: LegendInput): LegendScene | null {
     const swatchY = y + (rowHeight - LEGEND_GAP - LEGEND_SWATCH) / 2;
     items.push({
       label,
-      seriesIndex: series.seriesIndex,
+      seriesIndex: entry.colorIndex,
       swatch: {
         kind: "rect",
         x: r2(x),
         y: r2(swatchY),
         w: LEGEND_SWATCH,
         h: LEGEND_SWATCH,
-        seriesIndex: series.seriesIndex,
+        seriesIndex: entry.colorIndex,
       },
       text: {
         kind: "text",

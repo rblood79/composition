@@ -6,10 +6,16 @@
  */
 import { curveCommands, toScreen } from "../curves";
 import type { AxialPoint, ScreenPoint } from "../curves";
-import { r2 } from "../scales";
+import { formatTick, r2 } from "../scales";
 import type { LinearScale, BandScale } from "../scales";
 import type { SeriesGrid } from "../series";
-import type { ChartCurve, ChartOrientation, PathMark, Rect } from "../types";
+import type {
+  ChartCurve,
+  ChartOrientation,
+  PathMark,
+  Rect,
+  TextMark,
+} from "../types";
 
 export interface LineMarkInput {
   grid: SeriesGrid;
@@ -19,6 +25,13 @@ export interface LineMarkInput {
   orientation: ChartOrientation;
   strokeWidth: number;
   curve: ChartCurve;
+  showValueLabels: boolean;
+  fontSize: number;
+}
+
+export interface LineMarks {
+  marks: PathMark[];
+  labels: TextMark[];
 }
 
 /** 범주 i 의 밴드 중앙 (선/영역의 꼭짓점 위치). */
@@ -31,6 +44,8 @@ export type SeriesPoint = ScreenPoint;
 /** 범주 축 위의 한 점 — 보간은 이 좌표계에서 한다 (curves.ts §머리말). */
 export interface AxialSeriesPoint extends AxialPoint {
   categoryIndex: number;
+  /** 원래 데이터 값 — 값 레이블이 읽는다 (스케일 적용 전) */
+  raw: number;
 }
 
 /** 한 시리즈의 (있는 값만) 점 목록. 없는 범주는 아예 빠진다. */
@@ -45,7 +60,12 @@ export function seriesAxialPoints(
   for (let ci = 0; ci < grid.categories.length; ci++) {
     const v = series.values.get(ci);
     if (v === undefined) continue;
-    points.push({ categoryIndex: ci, along: bandCenter(band, ci), across: value(v) });
+    points.push({
+      categoryIndex: ci,
+      along: bandCenter(band, ci),
+      across: value(v),
+      raw: v,
+    });
   }
   return points;
 }
@@ -98,9 +118,43 @@ export function bboxOf(points: ReadonlyArray<SeriesPoint>): Rect {
   return { x: r2(minX), y: r2(minY), w: r2(maxX - minX), h: r2(maxY - minY) };
 }
 
-export function buildLineMarks(input: LineMarkInput): PathMark[] {
-  const { grid, band, value, orientation, strokeWidth, curve } = input;
+/**
+ * 점 위 값 레이블. 세로 차트는 점 위에, 가로 차트는 점 오른쪽에 둔다 —
+ * 값이 커지는 방향 반대쪽에 놓으면 선과 겹친다.
+ */
+export function pointValueLabel(
+  point: ScreenPoint,
+  raw: number,
+  orientation: ChartOrientation,
+): TextMark | null {
+  const text = formatTick(raw);
+  if (text === "") return null;
+  return orientation === "horizontal"
+    ? {
+        kind: "text",
+        x: r2(point.x + 6),
+        y: point.y,
+        text,
+        anchor: "start",
+        baseline: "middle",
+        role: "value",
+      }
+    : {
+        kind: "text",
+        x: point.x,
+        y: r2(point.y - 6),
+        text,
+        anchor: "middle",
+        baseline: "bottom",
+        role: "value",
+      };
+}
+
+export function buildLineMarks(input: LineMarkInput): LineMarks {
+  const { grid, band, value, orientation, strokeWidth, curve, showValueLabels } =
+    input;
   const marks: PathMark[] = [];
+  const labels: TextMark[] = [];
   for (let si = 0; si < grid.series.length; si++) {
     const points = seriesAxialPoints(grid, si, band, value);
     if (points.length === 0) continue;
@@ -119,6 +173,12 @@ export function buildLineMarks(input: LineMarkInput): PathMark[] {
       strokeSeries: grid.series[si].seriesIndex,
       strokeWidth,
     });
+    if (showValueLabels) {
+      screen.forEach((point, i) => {
+        const label = pointValueLabel(point, points[i].raw, orientation);
+        if (label) labels.push(label);
+      });
+    }
   }
-  return marks;
+  return { marks, labels };
 }

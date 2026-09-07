@@ -8,6 +8,7 @@
 import { buildAxes } from "./axes";
 import { toScreen } from "./curves";
 import { buildLegend, legendExtent } from "./legend";
+import type { LegendEntry } from "./legend";
 import { buildAreaMarks } from "./marks/area";
 import { buildBarMarks } from "./marks/bar";
 import { buildDotMarks, dotRadius } from "./marks/dots";
@@ -56,6 +57,8 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   stackType: "dodged",
   curve: "linear",
   showDots: false,
+  showValueLabels: false,
+  colorBy: "series",
   showAxis: true,
   showGrid: false,
   showLegend: false,
@@ -113,8 +116,25 @@ export function computeChartScene(
     return emptyScene(normalizedSize, outer);
   }
 
+  // ── 범례 항목 — 색을 가르는 축을 따라간다 ────────────────────────────────
+  //   pie 는 조각(범주)이, bar mixed 는 막대(범주)가 색을 가른다. 여기를 시리즈로
+  //   고정해 두면 범례가 화면의 색과 무관한 이름을 나열한다 (파이에서 실제로 그랬다).
+  const palette = Math.max(1, metrics.seriesCount);
+  const byCategory =
+    props.chartType === "pie" ||
+    (props.chartType === "bar" && props.colorBy === "category");
+  const legendEntries: LegendEntry[] = byCategory
+    ? grid.categories.map((label, ci) => ({
+        label: label || "category",
+        colorIndex: ci % palette,
+      }))
+    : grid.series.map((series) => ({
+        label: series.key || "series",
+        colorIndex: series.seriesIndex,
+      }));
+
   // ── 범례 자리 확보 ───────────────────────────────────────────────────────
-  const wantsLegend = props.showLegend && grid.series.length > 0;
+  const wantsLegend = props.showLegend && legendEntries.length > 0;
   let legendBox: Rect | null = null;
   let plot: Rect = outer;
 
@@ -122,7 +142,7 @@ export function computeChartScene(
     const position = props.legendPosition;
     const vertical = position === "left" || position === "right";
     const extent = legendExtent(
-      grid,
+      legendEntries,
       position,
       vertical ? outer.w : outer.w,
       fontSize,
@@ -157,20 +177,21 @@ export function computeChartScene(
 
   // ── 파이는 축이 없다 ─────────────────────────────────────────────────────
   if (props.chartType === "pie") {
-    const marks: Mark[] = buildPieMarks({
+    const pie = buildPieMarks({
       grid,
       plot,
       seriesCount: metrics.seriesCount,
+      showValueLabels: props.showValueLabels,
     });
-    if (marks.length === 0) return emptyScene(normalizedSize, outer);
+    if (pie.marks.length === 0) return emptyScene(normalizedSize, outer);
     return {
       size: normalizedSize,
       plot,
-      marks,
+      marks: [...pie.marks, ...pie.labels],
       axes: [],
       legend: legendBox
         ? buildLegend({
-            grid,
+            entries: legendEntries,
             box: legendBox,
             position: props.legendPosition,
             fontSize,
@@ -247,15 +268,22 @@ export function computeChartScene(
   };
 
   let marks: Mark[];
+  let labels: Mark[] = [];
   if (props.chartType === "bar") {
-    marks = buildBarMarks({
+    const bar = buildBarMarks({
       grid,
       band,
       value,
       plot,
       orientation: props.orientation,
       stackMode,
+      colorBy: props.colorBy,
+      seriesCount: metrics.seriesCount,
+      showValueLabels: props.showValueLabels,
+      fontSize,
     });
+    marks = [...bar.marks];
+    labels = bar.labels;
   } else if (props.chartType === "area") {
     const area = buildAreaMarks({
       grid,
@@ -266,11 +294,13 @@ export function computeChartScene(
       strokeWidth: metrics.strokeWidth,
       stackMode,
       curve: props.curve,
+      showValueLabels: props.showValueLabels,
     });
     marks = [...area.marks];
+    labels = area.labels;
     if (props.showDots) area.upper.forEach((points, si) => pushDots(points, si));
   } else {
-    marks = buildLineMarks({
+    const line = buildLineMarks({
       grid,
       band,
       value,
@@ -278,7 +308,11 @@ export function computeChartScene(
       orientation: props.orientation,
       strokeWidth: metrics.strokeWidth,
       curve: props.curve,
+      showValueLabels: props.showValueLabels,
+      fontSize,
     });
+    marks = [...line.marks];
+    labels = line.labels;
     if (props.showDots) {
       for (let si = 0; si < grid.series.length; si++) {
         pushDots(
@@ -290,6 +324,9 @@ export function computeChartScene(
       }
     }
   }
+
+  // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.
+  if (labels.length > 0) marks = [...marks, ...labels];
 
   return {
     size: normalizedSize,
@@ -308,7 +345,7 @@ export function computeChartScene(
     }),
     legend: legendBox
       ? buildLegend({
-          grid,
+          entries: legendEntries,
           box: legendBox,
           position: props.legendPosition,
           fontSize,

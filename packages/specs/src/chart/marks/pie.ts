@@ -8,15 +8,21 @@
  * 파이는 범주 축·값 축이 없다: 첫 시리즈의 범주별 값이 조각이 된다 (다중 시리즈
  * 파이는 v1 비스코프 — 도넛/이중 링은 chartType 확장 시 마크 파일 추가).
  */
-import { r2 } from "../scales";
+import { formatTick, r2 } from "../scales";
 import type { SeriesGrid } from "../series";
-import type { PathMark, Rect } from "../types";
+import type { PathMark, Rect, TextMark } from "../types";
 
 export interface PieMarkInput {
   grid: SeriesGrid;
   plot: Rect;
   /** 팔레트 길이 — 파이는 **범주**가 색을 가르므로 범주 인덱스를 여기로 modulo 한다. */
   seriesCount: number;
+  showValueLabels: boolean;
+}
+
+export interface PieMarks {
+  marks: PathMark[];
+  labels: TextMark[];
 }
 
 /** 각도(도) → 원 위의 점. 12시 방향을 0° 로 두고 시계 방향. */
@@ -56,10 +62,11 @@ export function arcPath(
   return `M ${r2(cx)} ${r2(cy)} L ${sx} ${sy} A ${r2(radius)} ${r2(radius)} 0 ${largeArc} 1 ${ex} ${ey} Z`;
 }
 
-export function buildPieMarks(input: PieMarkInput): PathMark[] {
-  const { grid, plot, seriesCount } = input;
+export function buildPieMarks(input: PieMarkInput): PieMarks {
+  const { grid, plot, seriesCount, showValueLabels } = input;
+  const empty: PieMarks = { marks: [], labels: [] };
   const series = grid.series[0];
-  if (!series) return [];
+  if (!series) return empty;
 
   // 음수는 각도를 만들 수 없다 — 절대값으로 비중을 낸다 (파이에 음수를 넣은
   //   입력을 버리지 않고 크기로 해석. 부호는 파이가 표현할 수 없는 축이다).
@@ -73,19 +80,21 @@ export function buildPieMarks(input: PieMarkInput): PathMark[] {
     slices.push({ ci, magnitude });
     total += magnitude;
   }
-  if (total === 0) return [];
+  if (total === 0) return empty;
 
   const cx = plot.x + plot.w / 2;
   const cy = plot.y + plot.h / 2;
   const radius = Math.min(plot.w, plot.h) / 2;
-  if (radius <= 0) return [];
+  if (radius <= 0) return empty;
 
   const palette = Math.max(1, seriesCount);
   const marks: PathMark[] = [];
+  const labels: TextMark[] = [];
   let angle = 0;
   for (const slice of slices) {
     const sweep = (slice.magnitude / total) * 360;
     const d = arcPath(cx, cy, radius, angle, sweep);
+    const midAngle = angle + sweep / 2;
     angle += sweep;
     if (!d) continue;
     marks.push({
@@ -102,6 +111,23 @@ export function buildPieMarks(input: PieMarkInput): PathMark[] {
       // 파이는 시리즈가 아니라 **범주**가 색을 가른다 (조각마다 다른 색).
       fillSeries: slice.ci % palette,
     });
+
+    if (showValueLabels) {
+      const text = formatTick(series.values.get(slice.ci) ?? slice.magnitude);
+      if (text !== "") {
+        // 조각 중심선의 62% 지점 — 중심(0%)은 조각끼리 겹치고 테두리(100%)는 잘린다.
+        const [lx, ly] = polar(cx, cy, radius * 0.62, midAngle);
+        labels.push({
+          kind: "text",
+          x: lx,
+          y: ly,
+          text,
+          anchor: "middle",
+          baseline: "middle",
+          role: "value",
+        });
+      }
+    }
   }
-  return marks;
+  return { marks, labels };
 }

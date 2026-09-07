@@ -109,6 +109,14 @@ const CASES: Array<[string, ChartProps]> = [
     "area / stacked 100% + step",
     props({ chartType: "area", stackType: "expand", curve: "step" }),
   ],
+  [
+    "bar / mixed + value labels",
+    props({ colorBy: "category", showValueLabels: true }),
+  ],
+  [
+    "pie / value labels + legend",
+    props({ chartType: "pie", showValueLabels: true, showLegend: true }),
+  ],
   ["pie / legend right", props({ chartType: "pie", showLegend: true, legendPosition: "right" })],
 ];
 

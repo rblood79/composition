@@ -42,6 +42,7 @@ import {
   toSkiaTextGeometry,
 } from "../chart";
 import type {
+  ChartColorBy,
   ChartCurve,
   ChartLegendPosition,
   ChartOrientation,
@@ -3352,6 +3353,12 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
         (props.curve as ChartCurve | undefined) ?? CHART_DEFAULT_PROPS.curve,
       showDots:
         (props.showDots as boolean | undefined) ?? CHART_DEFAULT_PROPS.showDots,
+      showValueLabels:
+        (props.showValueLabels as boolean | undefined) ??
+        CHART_DEFAULT_PROPS.showValueLabels,
+      colorBy:
+        (props.colorBy as ChartColorBy | undefined) ??
+        CHART_DEFAULT_PROPS.colorBy,
       showAxis: (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend:
@@ -3418,7 +3425,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       text: mark.text,
       fontSize: metrics.fontSize,
       fontFamily: fontFamily.sans,
-      fill: mark.role === "legend" ? textToken : axisToken,
+      // 값 레이블·범례는 본문 전경색, tick/empty 는 축 보조색 (DOM ROLE_FILL 동형).
+      fill:
+        mark.role === "legend" || mark.role === "value" ? textToken : axisToken,
       align: geometry.align,
       ...(geometry.maxWidth !== undefined
         ? { maxWidth: geometry.maxWidth }

@@ -21,6 +21,7 @@ import {
   resolveChartMetrics,
 } from "@composition/specs";
 import type {
+  ChartColorBy,
   ChartCurve,
   ChartLegendPosition,
   ChartOrientation,
@@ -44,6 +45,8 @@ export interface ChartProps {
   stackType?: ChartStackType;
   curve?: ChartCurve;
   showDots?: boolean;
+  showValueLabels?: boolean;
+  colorBy?: ChartColorBy;
   showAxis?: boolean;
   showGrid?: boolean;
   showLegend?: boolean;
@@ -78,6 +81,8 @@ const ROLE_FILL: Record<TextMark["role"], string> = {
   tick: "var(--chart-axis, currentColor)",
   legend: "currentColor",
   empty: "var(--chart-axis, currentColor)",
+  // 값 레이블은 데이터를 읽는 글자다 — 축 보조색이 아니라 본문 전경색.
+  value: "currentColor",
 };
 
 const ANCHOR_MAP = {
@@ -241,6 +246,8 @@ export function Chart({
   stackType,
   curve,
   showDots,
+  showValueLabels,
+  colorBy,
   showAxis,
   showGrid,
   showLegend,
@@ -275,6 +282,9 @@ export function Chart({
       stackType: stackType ?? CHART_DEFAULT_PROPS.stackType,
       curve: curve ?? CHART_DEFAULT_PROPS.curve,
       showDots: showDots ?? CHART_DEFAULT_PROPS.showDots,
+      showValueLabels:
+        showValueLabels ?? CHART_DEFAULT_PROPS.showValueLabels,
+      colorBy: colorBy ?? CHART_DEFAULT_PROPS.colorBy,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: showGrid ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend: showLegend ?? CHART_DEFAULT_PROPS.showLegend,
@@ -289,6 +299,8 @@ export function Chart({
       stackType,
       curve,
       showDots,
+      showValueLabels,
+      colorBy,
       showAxis,
       showGrid,
       showLegend,
