@@ -16,9 +16,9 @@ Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지�
 | ②   | 2열 grid 에 `grid-column: 1 / span 3` → item y **100,000**, 컨테이너 높이 100,020 (Chrome 0 / 암묵 3열)                        | `grid.rs:754` `block_fits` 열 한계 · `:1008/1014/1038/1044` 10,000 가드가 실패 위치 반환          | #1036 #1037 #986             |
 | ④   | 정폭 grid 에 template 없음 → item **100px** (Chrome 컨테이너 폭) · `grid-auto-columns: 1fr 2fr` 무시 · auto 축 `repeat()` 접힘 | `grid.rs:682` 폴백 100 · `:1094` 첫 토큰 px · `:1186` column-flow 한정 · `tree.rs:3390` · `:4446` | 암묵 트랙 기본 `auto` (§7.6) |
 
-①은 빌더의 기본 패턴 (`height:100%` 자식) 에 직접 닿는다. ②는 사용자가 span 을 열 수보다 크게 줄 수 있다. ④는 catalog 6 규칙 (Meter · ProgressBar · Slider 의 Track/Value · ProgressCircle) 이 template 없는 `display:grid` 라 implicitStyles 가 가리는지 live 판정이 먼저다.
+①이 닿는 production 경로는 둘이다 — catalog 의 Meter · ProgressBar **Value** (`height: "100%"`, `componentRulesTable.ts:7058 · 8339` — template 없는 Track grid area 안) 와 사용자가 Styles 패널에서 넣는 `%` 높이. 빌더 factory · preset 은 `height:%` 를 생성하지 않는다 (리뷰 round 1 grep 0건) — 그래서 영향 규모는 추정이 아니라 Phase 0 인벤토리 (N/M) 로만 말한다. ②는 사용자가 span 을 열 수보다 크게 줄 수 있다. ④는 catalog 6 규칙 (Meter · ProgressBar · Slider 의 Track/Value · ProgressCircle) 이 template 없는 `display:grid` 라 implicitStyles 가 가리는지 live 판정이 먼저다.
 
-①은 ledger 정본 규칙과 충돌한다 — §백분율 크기 "판정은 `explicit_h > 0` 하나" (CSS §10.5 만 인용) 는 flexbox §9.8 (stretch 된 item 의 cross 는 definite) 와 grid §6.6 을 빠뜨렸다. ADR-170 격자 2,702 조합 0 발산은 **1단 전파만** 잠갔고, 이 결함은 2단 (부모 stretch → 자식 → 손자 `%`) 이라 격자 green 이 반증이 아니다 (`layout-engine.md` 사각 표 "중첩 2단 이상").
+①은 ledger 정본 규칙과 충돌한다 — §백분율 크기 "판정은 `explicit_h > 0` 하나" (CSS §10.5 만 인용) 는 flexbox §9.8 (stretch 된 item 의 cross 는 definite) 와 grid §6.6 을 빠뜨렸다. Chrome 은 multi-line (`flex-wrap: wrap`) 의 stretch item 도 확정으로 본다 — 리뷰 round 1 실측 W3 (2 라인 · 라인 100) inner 50 · W4 (`align-content: stretch` 분배 라인 115) inner 57.5, 엔진 둘 다 0. §9.8 본문의 "single-line" 한정과 다르므로 oracle 은 Chrome 이고 채널의 기준은 **분배 뒤 라인 cross** 다. ADR-170 격자 2,702 조합 0 발산은 **1단 전파만** 잠갔고, 이 결함은 2단 (부모 stretch → 자식 → 손자 `%`) 이라 격자 green 이 반증이 아니다 (`layout-engine.md` 사각 표 "중첩 2단 이상").
 
 **Hard Constraints**:
 
@@ -120,14 +120,14 @@ Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지�
 
 ## Gates
 
-| Gate | 시점           | 통과 조건                                                                                                                                                                                   | 실패 시 대안                                                                    |
-| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| G0   | Phase 0 종료   | 코드 사실 표 F1~F18 전수 대조 · F14 live 판정 기록 · BC 인벤토리 N/M 수치 · bench baseline 기록                                                                                             | 착수 보류 — inventory 보강 (M3: gap 은 절차 결함, fork 사유 아님)               |
-| G1   | Phase 1 종료   | F5 · B1d · B6c GREEN + 대조군 (align-self start · auto margin · auto 부모 · grid align start) GREEN + 원복 시 3건만 RED · `percentSize` `basicAxis*` `flexSweep` `crossAxisOverflow` 회귀 0 | 대조군 RED = 가짜 확정 → 채널을 stretch item 한정으로 좁힘, 재측정              |
-| G2   | Phase 2 종료   | G4 · G12 · G10 · G11 · 10,000 clamp GREEN + 원복 RED (타입별 diff) · grid 회귀 8 스위트 0 · 기존 실패 2건 분리 기록                                                                         | 암묵 트랙 생성을 명시 배치 축에만 한정하고 auto-columns 순환은 후속 phase 로    |
-| G3   | Phase 2 종료   | `cargo bench tree_solve` p50 ≤ baseline +5% (같은 머신·조건) · `perf:baseline frame` 600 요소 편집 p95 악화 없음                                                                            | cross 재-solve 를 "자손에 `%` 높이가 있는 item" 으로 게이트 (measure 캐시 활용) |
-| G4   | Implemented 전 | live 3 시나리오 (`height:100%` 자식 · span 초과 grid · Track 1종) — Chrome MCP 또는 사용자 confirm, `### Live Exercise` 기재                                                                | 승격 보류                                                                       |
-| G5   | Implemented 전 | ledger §백분율 개정 + §25 · 색인 13/25 · CHANGELOG · 대조 문서 §4 ✅ · preset 주석 정정                                                                                                     | Stop hook block (README/CHANGELOG/Live Exercise)                                |
+| Gate | 시점           | 통과 조건                                                                                                                                                                                                                               | 실패 시 대안                                                                    |
+| ---- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| G0   | Phase 0 종료   | 코드 사실 표 F1~F18 전수 대조 · F14 live 판정 기록 · BC 인벤토리 N/M 수치 · bench baseline 기록                                                                                                                                         | 착수 보류 — inventory 보강 (M3: gap 은 절차 결함, fork 사유 아님)               |
+| G1   | Phase 1 종료   | F5 · B1d · B6c · W3 · W4 (multi-line wrap, 분배 라인 기준) GREEN + 대조군 (align-self start · auto margin · auto 부모 · grid align start) GREEN + 원복 시 5건만 RED · `percentSize` `basicAxis*` `flexSweep` `crossAxisOverflow` 회귀 0 | 대조군 RED = 가짜 확정 → 채널을 stretch item 한정으로 좁힘, 재측정              |
+| G2   | Phase 2 종료   | G4 · G12 · G10 · G11 · 10,000 clamp GREEN + 원복 RED (타입별 diff) · grid 회귀 8 스위트 0 · 기존 실패 2건 분리 기록                                                                                                                     | 암묵 트랙 생성을 명시 배치 축에만 한정하고 auto-columns 순환은 후속 phase 로    |
+| G3   | Phase 2 종료   | `cargo bench tree_solve` p50 ≤ baseline +5% (같은 머신·조건) · `perf:baseline frame` 600 요소 편집 p95 악화 없음                                                                                                                        | cross 재-solve 를 "자손에 `%` 높이가 있는 item" 으로 게이트 (measure 캐시 활용) |
+| G4   | Implemented 전 | live 3 시나리오 (`height:100%` 자식 · span 초과 grid · Track 1종) — Chrome MCP 또는 사용자 confirm, `### Live Exercise` 기재                                                                                                            | 승격 보류                                                                       |
+| G5   | Implemented 전 | ledger §백분율 개정 + §25 · 색인 13/25 · CHANGELOG · 대조 문서 §4 ✅ · preset 주석 정정                                                                                                                                                 | Stop hook block (README/CHANGELOG/Live Exercise)                                |
 
 ### Live Exercise
 
