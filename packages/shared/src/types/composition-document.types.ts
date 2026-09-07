@@ -508,6 +508,14 @@ export interface ComponentRuleChart {
    * 쓰는 값만 여기에 px 로 못 박고 두 consumer 가 그대로 읽는다.
    */
   metrics?: Record<string, { padding: number; fontSize: number }>;
+  /**
+   * hover 툴팁 표면 토큰 (Preview/Publish 전용 — Skia 는 툴팁을 그리지 않는다).
+   * DOM 이 색을 직접 고르면 수동 CSS 가 SSOT 파생이 아니게 된다 (D3 위반) —
+   * 그래서 rule 채널로 두고 generate-css 가 CSS 변수로 emit 한다.
+   */
+  tooltipBackground?: string;
+  tooltipBorder?: string;
+  tooltipText?: string;
 }
 
 export interface ComponentRule {

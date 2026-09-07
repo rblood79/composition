@@ -160,6 +160,12 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         default: false,
       },
+      showTooltip: {
+        kind: "boolean",
+        label: "Show Tooltip",
+        section: "appearance",
+        default: false,
+      },
       showAxis: {
         kind: "boolean",
         label: "Show Axis",
@@ -217,6 +223,7 @@ export const chartBinding: PrimitiveBinding = {
       "colorBy",
       "innerRadius",
       "showTotal",
+      "showTooltip",
       "showAxis",
       "showGrid",
       "showLegend",

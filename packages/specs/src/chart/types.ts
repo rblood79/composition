@@ -61,6 +61,8 @@ export interface ChartProps {
   innerRadius: number;
   /** 도넛 구멍 안 합계 표시 */
   showTotal: boolean;
+  /** hover 툴팁 (Preview/Publish 전용 — Skia 는 정적) */
+  showTooltip: boolean;
   showAxis: boolean;
   showGrid: boolean;
   showLegend: boolean;
@@ -171,6 +173,39 @@ export interface LegendScene {
   items: LegendItem[];
 }
 
+/** 툴팁 한 줄 — 색 스와치 + 이름 + 값. */
+export interface TooltipEntry {
+  label: string;
+  /** 팔레트 인덱스 (이미 modulo 됨) */
+  colorIndex: number;
+  text: string;
+}
+
+/**
+ * 툴팁 히트 단위. bar/line/area 는 밴드 기둥(rect), pie 는 조각(arc) 이다.
+ *
+ * 히트 기하를 scene 에 싣는 이유: DOM 쪽에서 포인터 → 범주를 다시 계산하면
+ * 밴드 규칙(패딩·방향·누적)이 기하와 갈린다. 마크와 같은 함수가 낸 값이라야
+ * 툴팁이 가리키는 막대와 실제 막대가 같다.
+ */
+export interface TooltipBand {
+  categoryIndex: number;
+  label: string;
+  /** 밴드 히트 영역 (pie 는 null) */
+  rect: Rect | null;
+  /** 조각 각도 범위 — 12시=0, 시계 방향 (pie 전용) */
+  arc: { start: number; end: number } | null;
+  /** 기준점 — 커서 선/툴팁 위치 */
+  anchor: { x: number; y: number };
+  entries: TooltipEntry[];
+}
+
+export interface TooltipScene {
+  bands: TooltipBand[];
+  /** pie 히트 판정용 중심·반지름 (bar/line/area 는 null) */
+  center: { x: number; y: number; outer: number; inner: number } | null;
+}
+
 export interface ChartScene {
   size: ChartSize;
   /** 마크가 그려지는 영역 (축·범례를 뺀 나머지) */
@@ -179,6 +214,12 @@ export interface ChartScene {
   marks: Mark[];
   axes: AxisScene[];
   legend: LegendScene | null;
+  /**
+   * 툴팁 데이터·히트 기하 (showTooltip=false 면 null).
+   * **Skia consumer 는 읽지 않는다** — hover 는 D1 상호작용이고 Preview/Publish
+   * (DOM) 소유다. Builder 캔버스는 정적 렌더를 유지한다.
+   */
+  tooltip: TooltipScene | null;
   /**
    * 그릴 데이터가 없는 상태 (행 0 · 값 전부 비수치 · 크기 0).
    * marks 는 안내 텍스트 1개만 담고 axes/legend 는 비어 있다 — 경계 케이스를

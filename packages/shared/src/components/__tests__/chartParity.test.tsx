@@ -125,6 +125,9 @@ const CASES: Array<[string, ChartProps]> = [
     "pie / stacked rings",
     props({ chartType: "pie", stackType: "stacked", innerRadius: 30 }),
   ],
+  // 툴팁은 DOM 전용 축이다 (Skia 는 showTooltip=false 로 고정). 이 케이스가
+  //   GREEN 이라는 것은 툴팁이 **정적 마크를 건드리지 않는다**는 뜻이다.
+  ["bar / tooltip on", props({ showTooltip: true })],
   ["pie / legend right", props({ chartType: "pie", showLegend: true, legendPosition: "right" })],
 ];
 

@@ -45,8 +45,13 @@ export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
 export { curveCommands, toScreen } from "./curves";
 export type { AxialPoint, ScreenPoint } from "./curves";
 export { arcPath, arcSlicePath, buildPieMarks } from "./marks/pie";
-export type { PieMarks } from "./marks/pie";
+export type { PieHit, PieMarks } from "./marks/pie";
 export { buildAxes, labelStride } from "./axes";
+export {
+  buildBandTooltip,
+  buildRadialTooltip,
+  hitTooltipBand,
+} from "./tooltip";
 export type { LegendEntry } from "./legend";
 export {
   buildLegend,

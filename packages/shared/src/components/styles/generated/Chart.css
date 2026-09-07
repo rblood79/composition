@@ -69,6 +69,9 @@
   --chart-axis: var(--fg-muted);
   --chart-grid: var(--border);
   --chart-stroke-width: 2px;
+  --chart-tooltip-bg: var(--bg-muted);
+  --chart-tooltip-border: var(--border);
+  --chart-tooltip-text: var(--fg);
 }
 .react-aria-Chart[data-size="sm"] {
   height: 160px;

@@ -30,9 +30,21 @@ export interface PieMarkInput {
   fontSize: number;
 }
 
+/** 툴팁 히트용 — **바깥 링**의 조각 각도 (marks 와 같은 계산에서 나온 값). */
+export interface PieHit {
+  center: { x: number; y: number; outer: number; inner: number };
+  slices: Array<{
+    categoryIndex: number;
+    start: number;
+    sweep: number;
+    raw: number;
+  }>;
+}
+
 export interface PieMarks {
   marks: PathMark[];
   labels: TextMark[];
+  hit: PieHit | null;
 }
 
 /** 링 사이 간격 — 붙여 그리면 두 링의 경계가 조각 경계처럼 보인다. */
@@ -156,11 +168,13 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
   } = input;
   const marks: PathMark[] = [];
   const labels: TextMark[] = [];
+  let hit: PieHit | null = null;
 
   const cx = plot.x + plot.w / 2;
   const cy = plot.y + plot.h / 2;
   const outerRadius = Math.min(plot.w, plot.h) / 2;
-  if (outerRadius <= 0 || grid.series.length === 0) return { marks, labels };
+  if (outerRadius <= 0 || grid.series.length === 0)
+    return { marks, labels, hit };
 
   const holeRatio = Math.min(Math.max(innerRadius, 0), 90) / 100;
   const holeRadius = r2(outerRadius * holeRatio);
@@ -182,11 +196,26 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
       ringCount > 1 ? ringOuter - ringBand + RING_GAP : holeRadius;
     if (ringOuter - ringInner <= 0) continue;
 
+    if (si === 0) {
+      hit = {
+        center: { x: r2(cx), y: r2(cy), outer: r2(ringOuter), inner: r2(ringInner) },
+        slices: [],
+      };
+    }
+
     let angle = 0;
     for (const slice of slices) {
       const sweep = (slice.magnitude / total) * 360;
       const d = arcSlicePath(cx, cy, ringOuter, ringInner, angle, sweep);
       const midAngle = angle + sweep / 2;
+      if (si === 0 && hit) {
+        hit.slices.push({
+          categoryIndex: slice.categoryIndex,
+          start: angle,
+          sweep,
+          raw: slice.raw,
+        });
+      }
       angle += sweep;
       if (!d) continue;
       marks.push({
@@ -228,7 +257,7 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
     }
   }
 
-  if (marks.length === 0) return { marks, labels };
+  if (marks.length === 0) return { marks, labels, hit: null };
 
   // 구멍 안 합계 — 구멍이 글자보다 작으면 그리지 않는다.
   const innermost =
@@ -257,5 +286,5 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
     }
   }
 
-  return { marks, labels };
+  return { marks, labels, hit };
 }

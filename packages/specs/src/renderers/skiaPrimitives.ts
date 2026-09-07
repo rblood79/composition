@@ -3366,6 +3366,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       showTotal:
         (props.showTotal as boolean | undefined) ??
         CHART_DEFAULT_PROPS.showTotal,
+      // 툴팁은 hover(D1) 라 Preview/Publish 소유다 — 캔버스는 정적이므로 히트
+      //   기하를 계산할 이유가 없다. 마크는 이 값과 무관하다 (parity 유지).
+      showTooltip: false,
       showAxis: (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend:

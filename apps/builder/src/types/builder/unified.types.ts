@@ -2210,6 +2210,7 @@ export function createDefaultChartProps(): BaseElementProps {
     colorBy: "series",
     innerRadius: 0,
     showTotal: false,
+    showTooltip: false,
     showAxis: true,
     showGrid: false,
     showLegend: true,

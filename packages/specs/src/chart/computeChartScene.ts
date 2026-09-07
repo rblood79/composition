@@ -23,6 +23,7 @@ import {
   r2,
 } from "./scales";
 import { buildSeriesGrid, valueExtent } from "./series";
+import { buildBandTooltip, buildRadialTooltip } from "./tooltip";
 import type { StackMode } from "./series";
 import type {
   ChartMetrics,
@@ -61,6 +62,7 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   colorBy: "series",
   innerRadius: 0,
   showTotal: false,
+  showTooltip: false,
   showAxis: true,
   showGrid: false,
   showLegend: false,
@@ -84,6 +86,7 @@ function emptyScene(size: ChartSize, plot: Rect): ChartScene {
     ],
     axes: [],
     legend: null,
+    tooltip: null,
     empty: true,
   };
 }
@@ -209,6 +212,15 @@ export function computeChartScene(
             fontSize,
           })
         : null,
+      tooltip:
+        props.showTooltip && pie.hit
+          ? buildRadialTooltip({
+              grid,
+              slices: pie.hit.slices,
+              seriesCount: metrics.seriesCount,
+              center: pie.hit.center,
+            })
+          : null,
       empty: false,
     };
   }
@@ -363,6 +375,15 @@ export function computeChartScene(
           fontSize,
         })
       : null,
+    tooltip: props.showTooltip
+      ? buildBandTooltip({
+          grid,
+          band,
+          plot,
+          orientation: props.orientation,
+          seriesCount: metrics.seriesCount,
+        })
+      : null,
     empty: false,
   };
 }
@@ -374,6 +395,9 @@ export interface ChartRuleChannel {
   grid: string;
   strokeWidth?: number;
   metrics?: Readonly<Record<string, { padding: number; fontSize: number }>>;
+  tooltipBackground?: string;
+  tooltipBorder?: string;
+  tooltipText?: string;
 }
 
 /**

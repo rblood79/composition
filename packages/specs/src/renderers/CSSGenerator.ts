@@ -1042,6 +1042,21 @@ function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
   if (chart.strokeWidth !== undefined) {
     lines.push(`  --chart-stroke-width: ${chart.strokeWidth}px;`);
   }
+  if (chart.tooltipBackground) {
+    lines.push(
+      `  --chart-tooltip-bg: ${tokenToCSSVar(chart.tooltipBackground as TokenRef)};`,
+    );
+  }
+  if (chart.tooltipBorder) {
+    lines.push(
+      `  --chart-tooltip-border: ${tokenToCSSVar(chart.tooltipBorder as TokenRef)};`,
+    );
+  }
+  if (chart.tooltipText) {
+    lines.push(
+      `  --chart-tooltip-text: ${tokenToCSSVar(chart.tooltipText as TokenRef)};`,
+    );
+  }
   lines.push("}");
   return lines;
 }

@@ -153,6 +153,7 @@ exports[`computeChartScene — 스냅샷 (좌표 회귀 감시) > area / vertica
     "height": 240,
     "width": 320,
   },
+  "tooltip": null,
 }
 `;
 
@@ -316,6 +317,7 @@ exports[`computeChartScene — 스냅샷 (좌표 회귀 감시) > bar / vertical
     "height": 240,
     "width": 320,
   },
+  "tooltip": null,
 }
 `;
 
@@ -582,6 +584,7 @@ exports[`computeChartScene — 스냅샷 (좌표 회귀 감시) > line / horizon
     "height": 240,
     "width": 320,
   },
+  "tooltip": null,
 }
 `;
 
@@ -702,5 +705,6 @@ exports[`computeChartScene — 스냅샷 (좌표 회귀 감시) > pie / legend r
     "height": 240,
     "width": 320,
   },
+  "tooltip": null,
 }
 `;

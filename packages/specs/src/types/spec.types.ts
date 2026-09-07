@@ -196,6 +196,9 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     grid: string;
     strokeWidth?: number;
     metrics?: Record<string, { padding: number; fontSize: number }>;
+    tooltipBackground?: string;
+    tooltipBorder?: string;
+    tooltipText?: string;
   };
 
   /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음) */

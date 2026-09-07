@@ -18,6 +18,7 @@ import {
   CHART_DEFAULT_PROPS,
   CHART_SAMPLE_ROWS,
   computeChartScene,
+  hitTooltipBand,
   resolveChartMetrics,
 } from "@composition/specs";
 import type {
@@ -31,6 +32,7 @@ import type {
   ChartType,
   Mark,
   TextMark,
+  TooltipBand,
 } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { useCollectionData } from "../hooks";
@@ -49,6 +51,7 @@ export interface ChartProps {
   colorBy?: ChartColorBy;
   innerRadius?: number;
   showTotal?: boolean;
+  showTooltip?: boolean;
   showAxis?: boolean;
   showGrid?: boolean;
   showLegend?: boolean;
@@ -254,6 +257,7 @@ export function Chart({
   colorBy,
   innerRadius,
   showTotal,
+  showTooltip,
   showAxis,
   showGrid,
   showLegend,
@@ -293,6 +297,7 @@ export function Chart({
       colorBy: colorBy ?? CHART_DEFAULT_PROPS.colorBy,
       innerRadius: innerRadius ?? CHART_DEFAULT_PROPS.innerRadius,
       showTotal: showTotal ?? CHART_DEFAULT_PROPS.showTotal,
+      showTooltip: showTooltip ?? CHART_DEFAULT_PROPS.showTooltip,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: showGrid ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend: showLegend ?? CHART_DEFAULT_PROPS.showLegend,
@@ -311,6 +316,7 @@ export function Chart({
       colorBy,
       innerRadius,
       showTotal,
+      showTooltip,
       showAxis,
       showGrid,
       showLegend,
@@ -346,6 +352,50 @@ export function Chart({
     [chartProps, rows, box, metrics],
   );
 
+  // hover 는 D1 상호작용 — Preview/Publish(DOM) 만 가진다. Builder 의 Skia 는
+  //   같은 scene 을 정적으로 그린다 (scene.tooltip 을 읽지 않는다).
+  const [hover, setHover] = React.useState<{
+    band: TooltipBand;
+    x: number;
+    y: number;
+  } | null>(null);
+  const hasTooltip = scene.tooltip !== null;
+
+  const handleMove = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>): void => {
+      const node = ref.current;
+      if (!node || !scene.tooltip) return;
+      const rect = node.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      // 히트 판정은 기하가 한다 — DOM 이 밴드 폭을 다시 계산하면 마크와 어긋난다.
+      const band = hitTooltipBand(scene.tooltip, x, y);
+      setHover((prev) => {
+        if (!band) return prev === null ? prev : null;
+        return prev &&
+          prev.band.categoryIndex === band.categoryIndex &&
+          prev.x === x &&
+          prev.y === y
+          ? prev
+          : { band, x, y };
+      });
+    },
+    [scene.tooltip],
+  );
+
+  const handleLeave = React.useCallback((): void => setHover(null), []);
+
+  React.useEffect(() => {
+    if (!hasTooltip) setHover(null);
+  }, [hasTooltip]);
+
+  const cursorBand = hover?.band.rect;
+  // 툴팁이 컨테이너 밖으로 나가지 않게 접는다 (오른쪽·아래 가장자리).
+  const tooltipLeft = hover
+    ? Math.min(hover.x + 12, Math.max(0, box.width - 140))
+    : 0;
+  const tooltipTop = hover ? Math.max(0, hover.y - 12) : 0;
+
   return (
     <div
       {...rest}
@@ -364,7 +414,9 @@ export function Chart({
       //   `[data-variant]`/`[data-size]` 선택자를 여기서 직접 채워야 매칭된다.
       data-variant={variant}
       data-size={size}
-      style={style}
+      style={hasTooltip ? { position: "relative", ...style } : style}
+      onPointerMove={hasTooltip ? handleMove : undefined}
+      onPointerLeave={hasTooltip ? handleLeave : undefined}
     >
       <svg
         width="100%"
@@ -377,8 +429,65 @@ export function Chart({
         aria-hidden="true"
         focusable="false"
       >
+        {cursorBand ? (
+          <rect
+            x={cursorBand.x}
+            y={cursorBand.y}
+            width={cursorBand.w}
+            height={cursorBand.h}
+            fill="var(--chart-grid, currentColor)"
+            fillOpacity={0.18}
+          />
+        ) : null}
         {renderChartScene(scene)}
       </svg>
+      {hover ? (
+        <div
+          className="react-aria-Chart-tooltip"
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            left: tooltipLeft,
+            top: tooltipTop,
+            pointerEvents: "none",
+            background: "var(--chart-tooltip-bg, Canvas)",
+            border: "1px solid var(--chart-tooltip-border, currentColor)",
+            color: "var(--chart-tooltip-text, inherit)",
+            borderRadius: 6,
+            padding: "6px 8px",
+            fontSize: 12,
+            lineHeight: 1.4,
+            whiteSpace: "nowrap",
+            zIndex: 1,
+          }}
+        >
+          <div className="react-aria-Chart-tooltip-label">
+            {hover.band.label}
+          </div>
+          {hover.band.entries.map((entry) => (
+            <div
+              key={`${entry.label}-${entry.colorIndex}`}
+              className="react-aria-Chart-tooltip-entry"
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 2,
+                  background: seriesVar(entry.colorIndex),
+                  flex: "none",
+                }}
+              />
+              <span style={{ flex: 1 }}>{entry.label}</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>
+                {entry.text}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

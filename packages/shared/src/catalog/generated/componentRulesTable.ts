@@ -11727,6 +11727,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       axis: "{color.neutral-subdued}",
       grid: "{color.border}",
       strokeWidth: 2,
+      // 툴팁 표면 — Tooltip 컴포넌트 rule 과 같은 계열 토큰 (neutral-subtle 면).
+      tooltipBackground: "{color.neutral-subtle}",
+      tooltipBorder: "{color.border}",
+      tooltipText: "{color.neutral}",
       // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
       //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
       metrics: {
