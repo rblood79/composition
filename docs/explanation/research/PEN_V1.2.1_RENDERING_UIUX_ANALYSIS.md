@@ -6,6 +6,7 @@
 > **선행 문서**: [PENCIL_ECOSYSTEM_ANALYSIS.md](PENCIL_ECOSYSTEM_ANALYSIS.md) (2026-05-27, v1.1.57 메타데이터 추정) · [PENCIL_RENDERING_OPTIMIZATION.md](PENCIL_RENDERING_OPTIMIZATION.md) (2026-05-28) · [PENCIL_VS_XSTUDIO_UI_UX.md](../../legacy/PENCIL_VS_XSTUDIO_UI_UX.md) (2026-02, v1.1.10)
 > **⚠️ 본 문서가 선행 3개 문서의 Pencil.app 서술을 부분 반증한다** — §7 델타 표 참조. 선행 문서의 openpencil / open-pencil 부분은 본 문서와 무관하게 유효
 > **관련 메모리**: `project-pen-v121-extraction-analysis`
+> **♻️ 후속 버전 (2026-09-07)**: `/Users/admin/work/pencil` 이 **Pen v1.2.8** 번들로 교체됐다. 대조 정본은 [PEN_V1.2.8_DELTA_2026-09.md](PEN_V1.2.8_DELTA_2026-09.md) — 렌더링 코어 (§2·§3·§6) 는 v1.2.8 에서도 심볼 단위로 동일하므로 본 문서의 렌더링 판정은 유효하다. **stale 절**: §5 "MCP 도구 10종" → 6종 (`execute` JS API 가 읽기·export·스크린샷 흡수, `browser` 신설) · §5 "외부 CLI 7종" → installer 는 v1.2.1 에도 11 타깃 (축소 서술 정정) · §4-3 단축키 표 → Align 5 + Flip 2 추가 · §8-9 `get_guidelines` guide corpus → 디스크 스킬 번들 (`read_skill`, 원격 갱신). 스키마 v2.14 → 2.17 은 공개 표면 무변경.
 
 ---
 

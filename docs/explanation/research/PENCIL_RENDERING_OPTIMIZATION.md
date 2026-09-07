@@ -7,6 +7,8 @@
 >
 > **⚠️ STALE (2026-07-26)**: Pencil.app 서술 ("native Skia + 4-process 분리까지만 확정") 이 v1.2.1 asar 전개 실측으로 대체됨 — 실체는 **자체 C++ WASM 엔진 (Skia m149 임베드) + JS 레이아웃**이며, 본체도 open-pencil T2 와 같은 계열의 **콘텐츠 캐시 surface + stale blit** 수법을 사용. 실측 정본: [PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md](PEN_V1.2.1_RENDERING_UIUX_ANALYSIS.md) §3. openpencil / open-pencil 분석은 유효 유지.
 >
+> **♻️ 재검증 (2026-09-07) — Pen v1.2.8**: `/Users/admin/work/pencil` 의 v1.2.8 번들에서 위 STALE 배너의 대체 사실 (자체 WASM 엔진 + JS 레이아웃 + 콘텐츠 캐시 surface) 이 심볼 단위로 동일함을 재확인 — 추가 정정 없음. 대조표: [PEN_V1.2.8_DELTA_2026-09.md](PEN_V1.2.8_DELTA_2026-09.md) §2.
+>
 > **♻️ 경로·규모 갱신 (2026-08-15) — open-pencil v0.14.0**: 본 문서의 **구조적 결론은 유지**되나 (3-tier 캐시 + phase profiler + paint 풀 전부 존속), 인용 경로·LOC 가 드리프트했다. ① `packages/core/src/scene-graph/index.ts` → **`packages/scene-graph/src/`** 로 패키지 분리 (0.14.0 Breaking) ② `canvas/renderer/retained-backing.ts` **428 → 548 LOC** (`pipeline.ts` 317→358, `canvas/renderer/` 전체 +753/−60) ③ `profiler/` 는 **구조 불변** (v0.12.2 이후 `hud-renderer.ts` 1건만 수정 — 11파일 1,002 LOC, speedscope/gpu-timer/draw-call-counter/phase-timer 그대로) ④ paint 풀은 `packages/core/src/canvas/renderer/paints.ts` (111 LOC, 변동 없음). v0.14.0 의 신규 성능 축 (Layers 패널 가상화 / 비활성 패널 지연 생성 / 클립보드 자식 1회 인덱싱 / 바이너리 IPC) 은 본 문서 범위 밖이라 미반영 — [PENCIL_ECOSYSTEM_ANALYSIS.md](PENCIL_ECOSYSTEM_ANALYSIS.md) §4-6 참조.
 
 ---
