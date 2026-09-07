@@ -771,3 +771,38 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 - ❌ 텍스트 leaf 스칼라 공급을 부모 display 로 게이트하기 → shrink-to-fit block 부모에서 0 붕괴
 - ❌ 이를 고치려고 `isFlexChild` 를 block 포함으로 넓히기 → flex-grow 억제·minWidth 주입까지 번진다
 - ❌ shrink-to-fit 컨테이너를 pipeline fixture 의 root 자리에 두기 → body 폭 주입을 결함으로 잘못 읽는다
+
+## BFC 원인은 넷 — scroll container · flex/grid item · **flow-root/inline-block** · **abs-pos**, 그리고 block `align-content` 는 margin 을 가둔다 (CSS 2.1 §9.4.1 · CSS-ALIGN-3 §6.1, upstream 대조 ⑧, 2026-09-07)
+
+`solve_block` 의 부모-자식 margin collapse 차단 (`block_is_bfc`) 과 `node_establishes_bfc` (leaf self-collapsing 제외) 가 scroll container 와 flex/grid 만 봤다. `display.rs` 는 `flow-root` 를 파싱했지만 소비처가 없었고 (Taffy #997 의 전제), abs-pos 상자는 live 대조군이 드러냈다. block `align-content` (Chrome 123+) 는 `solve_block` 에 0건이었다 (Taffy #959).
+
+| fixture (Chrome 실측)                                   | Chrome                        | 종전 엔진      |
+| ------------------------------------------------------- | ----------------------------- | -------------- |
+| B8 `flow-root` > child mt40 h10 · sib                   | fr h 50 · sib y 50            | 10 · 10        |
+| `flow-root` > child h10 mb20                            | fr h 30                       | 10             |
+| 빈 `flow-root` mt20 mb30 사이 형제                      | b.y 60 · root 70 (self-collapsing 아님) | 40 · 50 |
+| `inline-block` w100 > child mt40 h10 (root line-height 0) | ib h 50 · y 0               | 10 · 40        |
+| abs w300 > plain block > child mt40 h10                 | abs h 50 · plain y 40         | 10 · 0         |
+| B5 block h200 `align-content: center` > child h50       | y 75                          | 0              |
+| h200 `end` / `flex-end` · `space-around` / `space-evenly` (단일) · `safe center` | 150 · 75 · 75 | 0 |
+| h200 `space-between` (단일) · `start` · `normal`        | 0                             | 0              |
+| h200 center > child mt20 h50 · outer 안 blk `start`     | 85 · child y 20 (margin 안에) | 0 · 0 (탈출)   |
+| h auto center > child mt20 h50 · child h50 mb30         | blk h 70 · 80                 | 50 · 50        |
+| h100 center > child h150 · `unsafe center`              | 0 · −25                       | 0 · 0          |
+| h auto `min-height 200` center > h50                    | 75                            | 0              |
+| h200 pt20 center > h50                                  | 85 (20 + 55)                  | 20             |
+
+- **BFC 술어** — `display_creates_bfc` = inner `FlowRoot` (`flow-root` · `inline-block`) ∨ `is_out_of_flow(position)`. `node_establishes_bfc` 와 `solve_block` 의 `creates_bfc` 가 같이 읽는다. BFC 자신의 top/bottom margin 은 형제와 정상 collapse (a mb20 · fr mt10 → fr y 30) — 종전 r9 규칙 그대로.
+- **block `align-content`** — `parse_block_align_content` → `(계수 0/0.5/1, unsafe)`; `None` = normal/stretch/baseline/미인식. 여유 = used content 높이 (명시 height 면 content box, auto 면 `max(내용, min-height)` 후 max-height) − in-flow 내용 (block.rs in-flow bottom = margin box 포함). 음수 여유는 기본 safe (start), `unsafe` 접두만 음수. 오프셋은 in-flow 자식 y 와 컨테이너 baseline 에 더한다 — abs 자식은 대상 아님.
+- **margin containment** — normal 이 아닌 값이면 (`start` 포함, 여유 0 이어도) `can_collapse_top/bottom` 이 닫힌다. Chrome 실측: 정렬 대상 "내용 묶음" 이 margin box 라 첫/마지막 자식 margin 이 컨테이너 밖으로 새지 않는다 (auto 높이 center > mt20 h50 → blk h 70).
+- **TS 공급** — `normalizeCssDisplay` 가 `flow-root` 를 `block` 으로 접었다 (`EngineDisplay` 에 `flow-root` 추가) · `elementToEngineBlockStyle` 이 style `alignContent` 를 안 실었다 (inline-block 시뮬레이션 잔재 `engineConfig.alignContent` 만). 둘 다 없으면 engine leg 만 GREEN 이고 pipeline 이 갈린다 (23 RED).
+- 인접 발견: ⑨ 삽입 때 `#[test]` 두 개 (`padded_scalar_leaf_in_fit_content_block_parent` · F5 `adr206_stretched_flex_item_cross_is_definite_for_percent_child`) 가 attribute 를 잃어 안 돌고 있었다 — 복구 (cargo 400 → 405).
+- Chrome 실측 fixture: `blockFlowRootAlignContent.browser.test.ts` (engine + pipeline, 36 케이스 × 2 = 72 — baseline 48 RED, 엔진만 수리 시 pipeline 23 RED). unit `flow_root_contains_child_margins` · `inline_block_is_bfc_and_empty_flow_root_not_self_collapsing` · `block_align_content_*` 2.
+
+### 금지 패턴
+
+- ❌ BFC 원인을 scroll container 로만 판정 → `flow-root` · `inline-block` · abs 안에서 자식 margin 이 새어 상자 높이가 준다
+- ❌ block `align-content` 를 flex 파서 (`parse_align_content`) 로 처리 → `safe`/`unsafe` 접두가 0 (stretch) 로 떨어지고 분배 폴백이 없다
+- ❌ 정렬 오프셋을 여유 > 0 일 때만 margin containment 와 묶기 → `start` 와 여유 0 인 케이스에서 margin 이 탈출해 Chrome 과 20 어긋난다
+- ❌ TS 운반 union 에서 CSS display 값을 접기 (`flow-root` → `block`) → 엔진 술어가 못 본다
+

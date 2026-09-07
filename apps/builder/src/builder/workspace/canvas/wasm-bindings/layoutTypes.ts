@@ -17,6 +17,7 @@
  */
 export type EngineDisplay =
   | "block"
+  | "flow-root"
   | "inline"
   | "inline-block"
   | "flex"

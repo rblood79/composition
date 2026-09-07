@@ -62,6 +62,11 @@ export function elementToEngineBlockStyle(
   if (engineConfig.alignContent)
     result.alignContent =
       engineConfig.alignContent as EngineStyle["alignContent"];
+  // block 컨테이너 자신의 `align-content` (CSS-ALIGN-3 §6.1, Chrome 123+ — upstream 대조 ⑧, TAFFY_UPSTREAM_DELTA_2026-09.md): 엔진
+  // `solve_block` 이 in-flow 내용 묶음을 여유 공간에 정렬하고 자식 margin 을 안에 가둔다.
+  // `safe`/`unsafe` 접두는 문자열 그대로 — 엔진 `parse_block_align_content` 가 뗀다.
+  else if (typeof style.alignContent === "string" && style.alignContent)
+    result.alignContent = style.alignContent as EngineStyle["alignContent"];
 
   // Position
   if (style.position === "absolute" || style.position === "fixed") {

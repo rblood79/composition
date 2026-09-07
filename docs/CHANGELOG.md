@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — flow-root · inline-block · absolute 상자의 margin 누출, block align-content] - 2026-09-07
+
+### Fixed
+
+- `display: flow-root` · `inline-block` · `position: absolute` 인 Frame 안 첫/마지막 자식의 `margin` 이 상자 밖으로 새어 캔버스에서 상자가 그만큼 낮게 잡히던 결함을 고쳤습니다 (자식 `marginTop: 40px` + 높이 10 — Preview/Chrome 상자 50 / 캔버스 10). 세 경우 모두 CSS 의 새 block formatting context 라 margin 이 상자 안에 남습니다. 빈 `flow-root` 상자도 위아래 margin 을 따로 유지합니다.
+- block Frame 의 `align-content` (Chrome 123+) 를 캔버스가 반영합니다 — `center` / `end` 는 내용 묶음을 여유 공간에 정렬 (높이 200 안 50 → y 75 / 150), `space-around`·`space-evenly` 는 center 로, `space-between` 은 start 로. 내용이 넘치면 기본은 start 에 고정하고 `unsafe center` 만 위로 넘칩니다. `min-height` 가 만든 여유도 정렬합니다. `normal` 이 아닌 값이면 (`start` 포함) 첫/마지막 자식 margin 이 상자 안에 남습니다 (Chrome 동일).
+- 근거: Taffy 0.10→0.14 대조 §4 ⑧ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`, Taffy #997 · #959). Chrome 실측 fixture 36 × 2 leg (baseline 48 RED) · 엔진 단위 4 · live 빌더 (Playwright) 에서 flow-root 상자 50 · center 자식 85 확인. 상세 `.claude/skills/composition-patterns/reference/layout-css-parity-ledger.md` §28.
+
 ## [캔버스 텍스트 — 이모지 폭 과대 · 이모지 앞뒤 줄바꿈] - 2026-09-07
 
 ### Fixed

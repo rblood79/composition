@@ -3253,7 +3253,14 @@ impl LayoutTree {
         //   BFC 를 확립하지 않을 때만 부모와 상쇄해 밖으로 탈출한다. 마지막 자식 bottom 도 대칭.
         //   차단 요인: ① overflow≠visible (BFC, E17) ② top/bottom padding·border
         //   ③ 이 block 이 flex/grid **item** (부모가 flex/grid → item 은 BFC).
-        let creates_bfc = overflow_creates_bfc(&style);
+        //   ④ display flow-root / inline-block (CSS-DISPLAY-3 §2.1 — Taffy 대조 ⑧, B8)
+        let creates_bfc = overflow_creates_bfc(&style) || display_creates_bfc(&style);
+        // block `align-content` 가 normal 이 아니면 (start 포함) 자식 margin 은 컨테이너 안에 남는다
+        // — Chrome 실측 (2026-09-07): h200 start > child mt20 → child y 20 (normal 은 탈출 0) ·
+        // auto 높이 center > child mt20 h50 → blk h 70, child mb30 → blk h 80. 정렬 대상 "내용
+        // 묶음" 이 margin box 라 collapse 가 열리지 않는다 (CSS-ALIGN-3 §6.1 block 컨테이너).
+        let block_align = parse_block_align_content(style.align_content.as_deref());
+        let align_contains_margins = block_align.is_some();
         let parent_is_flex_or_grid = self
             .get(handle)
             .and_then(|n| n.parent)
@@ -3266,7 +3273,7 @@ impl LayoutTree {
             })
             .unwrap_or(false);
         let block_is_bfc = creates_bfc || parent_is_flex_or_grid;
-        let can_collapse_top = !block_is_bfc && off_y == 0.0; // off_y = padding_top+border_top
+        let can_collapse_top = !block_is_bfc && !align_contains_margins && off_y == 0.0; // off_y = padding_top+border_top
         let bottom_barrier = pad_border_end(&style, &parent_ctx, false);
         // r11m1 — §8.3.1 adjoining: "bottom margin of a last in-flow child and bottom margin of
         // its parent if the parent has 'auto' computed height" (padding/border 0 · BFC 아님 은
@@ -3284,7 +3291,8 @@ impl LayoutTree {
             resolve_dimension_opt(style.height.as_deref(), &own_height_ctx).is_none();
         let own_min_h =
             resolve_dimension_opt(style.min_height.as_deref(), &own_height_ctx).unwrap_or(0.0);
-        let can_collapse_bottom = !block_is_bfc && bottom_barrier == 0.0 && own_height_is_auto;
+        let can_collapse_bottom =
+            !block_is_bfc && !align_contains_margins && bottom_barrier == 0.0 && own_height_is_auto;
 
         // 2) 자식 → block flat f32 (FIELD_COUNT=21 필드, 물리축).
         let measuring = intrinsic_mode(avail_w).is_some();
@@ -3377,6 +3385,34 @@ impl LayoutTree {
         let escaped_bottom_set =
             block::MarginSet { pos: escaped_bottom - out[meta_off + 5], neg: out[meta_off + 5] };
 
+        // block `align-content` (CSS-ALIGN-3 §6.1, Chrome 123+ — Taffy 대조 ⑧, B5): in-flow 내용
+        // 묶음 (margin box 포함 = block.rs in-flow bottom) 을 content box 의 여유 공간에 정렬한다.
+        // 여유 = used content 높이 − 내용. 명시 height 면 content box, auto 면 min/max-height 가
+        // 만든 값 (Chrome min-height 200 center > h50 → y 75). 여유가 음수면 기본은 safe (start)
+        // — `unsafe` 접두만 음수 허용 (Chrome h100 center > h150 → 0 · unsafe → −25).
+        let align_offset = match block_align {
+            Some((factor, allow_overflow)) => {
+                let content_extent = (out[meta_off + 3] - out[meta_off]).max(0.0);
+                let used_content = if explicit_h > 0.0 {
+                    child_avail_h
+                } else {
+                    let mut used = content_extent.max(spec_to_content(own_min_h, own_pb_v));
+                    if let Some(mx) = resolve_dimension_opt(style.max_height.as_deref(), &own_height_ctx)
+                    {
+                        used = used.min(spec_to_content(mx, own_pb_v));
+                    }
+                    used
+                };
+                let free = used_content - content_extent;
+                if free < 0.0 && !allow_overflow {
+                    0.0
+                } else {
+                    free * factor
+                }
+            }
+            None => 0.0,
+        };
+
         // 4) 자식 위치 반영 + bounding box 로 컨테이너 content 크기 도출.
         //    bounding box 는 offset 전 좌표 기준(컨테이너 content 크기), 저장은 offset 후
         //    (자식 화면 좌표는 padding 안쪽) — 섞으면 컨테이너 크기에 padding 이중 반영.
@@ -3387,7 +3423,8 @@ impl LayoutTree {
         let mut last_inflow_baseline: f32 = BASELINE_NONE;
         for (i, &c) in children.iter().enumerate() {
             let off = i * 4;
-            let (mut x, y, w, h) = (out[off], out[off + 1] - escaped_top, out[off + 2], out[off + 3]);
+            let (mut x, y, w, h) =
+                (out[off], out[off + 1] - escaped_top + align_offset, out[off + 2], out[off + 3]);
             // E4: 가로 margin:auto → content box 잉여 공간 분배 (ADR-156 Phase 5, CSS §10.3.3).
             //   both auto = 중앙, left auto = 우측 정렬. auto width 자식은 free 0 이라 무영향.
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
@@ -3427,7 +3464,7 @@ impl LayoutTree {
         let last_child_is_line_item = !children.is_empty()
             && data[(children.len() - 1) * block::FIELD_COUNT] == 1.0;
         let container_baseline = if last_child_is_line_item && last_line_baseline >= 0.0 {
-            off_y + (last_line_baseline - escaped_top)
+            off_y + (last_line_baseline - escaped_top + align_offset)
         } else {
             last_inflow_baseline
         };
@@ -4679,6 +4716,35 @@ fn parse_align_content(v: Option<&str>) -> u8 {
     }
 }
 
+/// `safe` / `unsafe` overflow 접두 분리 (CSS-ALIGN-3 §4.4). 반환 `(키워드, Some(safe?))` —
+/// 접두 없으면 `None` (소비처가 기본 overflow 동작을 정한다).
+fn strip_overflow_position(v: &str) -> (&str, Option<bool>) {
+    let t = v.trim();
+    if let Some(rest) = t.strip_prefix("safe ") {
+        return (rest.trim_start(), Some(true));
+    }
+    if let Some(rest) = t.strip_prefix("unsafe ") {
+        return (rest.trim_start(), Some(false));
+    }
+    (t, None)
+}
+
+/// block 컨테이너의 `align-content` (CSS-ALIGN-3 §6.1) → `(여유 배분 계수, 음수 허용)`.
+/// `None` = normal (stretch · baseline · 미지정 · 미인식 — 정렬도 margin containment 도 없음).
+/// 분배 키워드는 단일 묶음이라 폴백 (space-between → start · space-around/evenly → center).
+/// 기본 overflow 는 safe (Chrome h100 center > h150 → 0) — `unsafe` 접두만 음수 허용.
+fn parse_block_align_content(v: Option<&str>) -> Option<(f32, bool)> {
+    let lower = v?.trim().to_ascii_lowercase();
+    let (kw, safe) = strip_overflow_position(&lower);
+    let factor = match kw {
+        "start" | "flex-start" | "self-start" | "space-between" => 0.0,
+        "center" | "space-around" | "space-evenly" => 0.5,
+        "end" | "flex-end" | "self-end" => 1.0,
+        _ => return None,
+    };
+    Some((factor, safe == Some(false)))
+}
+
 /// flex-wrap → flex.rs WRAP_NOWRAP(0)/WRAP_WRAP(1). wrap-reverse 는 wrap 로 정규화.
 fn parse_flex_wrap(v: Option<&str>) -> u8 {
     match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
@@ -5215,10 +5281,22 @@ fn node_establishes_bfc(style: &NodeStyle) -> bool {
         return true;
     }
     // flex/grid 컨테이너 = inner ∈ {Flex, Grid} (outer 무관 — ADR-923 Phase 1 `display.rs` 배선).
+    // flow-root (`display: flow-root` · `inline-block` = inline + flow-root) 도 BFC 다
+    // (CSS-DISPLAY-3 §2.1 — Taffy 대조 ⑧, Chrome B8 fr h 50 / 종전 10).
     matches!(
         display::parse_display(style.display.as_deref()).inner,
         InnerDisplay::Flex | InnerDisplay::Grid
-    )
+    ) || display_creates_bfc(style)
+}
+
+/// `display` 의 inner 가 flow-root 인가 — `flow-root` · `inline-block` — 또는 out-of-flow
+/// (absolute/fixed, CSS 2.1 §9.4.1 "absolutely positioned elements … establish new BFC"). 자기
+/// in-flow 자식과의 margin collapse 를 막는 BFC 원인 중 display·position 축 (scroll container 는
+/// `overflow_creates_bfc`). abs 는 ⑧ live 대조군 (abs wrapper > plain > mt40) 이 드러낸 사각 —
+/// Chrome abs h 50 / 종전 10.
+fn display_creates_bfc(style: &NodeStyle) -> bool {
+    matches!(display::parse_display(style.display.as_deref()).inner, InnerDisplay::FlowRoot)
+        || is_out_of_flow(style.position.as_deref())
 }
 
 /// specified size(border-box, 전역 `* { box-sizing: border-box }` 계약) →
@@ -6463,8 +6541,6 @@ mod tests {
         (tree, handles)
     }
 
-    /// F5: `flex row h200` 의 stretch item 은 cross 가 definite — 손자 `h50%` = 100 (종전 0).
-    #[test]
     /// ⑨ (Taffy #1018) — padding 있는 텍스트 leaf (스칼라 공급) 의 auto 폭: flex row 에서
     /// border-box = content + padding **한 번** (Chrome 94.4 / 구 엔진 107 — pipeline 실측).
     #[test]
@@ -6563,6 +6639,9 @@ mod tests {
         assert_eq!(t.get_layout(h[1]).height, 40.0, "align start 배치 높이 = border-box 40");
     }
 
+    /// ⑨ — shrink-to-fit block 부모 안의 padded 스칼라 leaf (ledger §27 인접). `#[test]` 는 2026-09-07
+    /// ⑨ 삽입 때 F5 의 attribute 를 가로채며 빠졌던 것을 ⑧ 착수 시 복구.
+    #[test]
     fn padded_scalar_leaf_in_fit_content_block_parent() {
         let (t, h) = solve(
             r#"[
@@ -6576,6 +6655,194 @@ mod tests {
         assert_eq!(t.get_layout(h[1]).width, 100.0, "fit-content 부모 = leaf border-box");
     }
 
+    /// ⑧ (Taffy #997) — `display: flow-root` 는 BFC: 자식 margin 이 안에 남는다 (Chrome B8 fr h 50 /
+    /// 종전 10 · 마지막 mb20 도 안에 30 · BFC 자신의 top 은 형제와 collapse).
+    #[test]
+    fn flow_root_contains_child_margins() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"40px","height":"10px"},"children":[]},
+            {"style":{"display":"flow-root"},"children":[0]},
+            {"style":{"height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"400px"},"children":[1,2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 40.0, "child 는 fr 안에서 40");
+        assert_eq!(t.get_layout(h[1]).height, 50.0, "fr 가 margin 을 품는다");
+        assert_eq!(t.get_layout(h[2]).y, 50.0, "sib");
+        assert_eq!(t.get_layout(h[3]).height, 60.0, "root");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"10px","marginBottom":"20px"},"children":[]},
+            {"style":{"display":"flow-root"},"children":[0]},
+            {"style":{"height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"400px"},"children":[1,2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 30.0, "마지막 자식 bottom margin 도 안에");
+        assert_eq!(t.get_layout(h[2]).y, 30.0, "sib");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"10px","marginBottom":"20px"},"children":[]},
+            {"style":{"height":"10px"},"children":[]},
+            {"style":{"display":"flow-root","marginTop":"10px"},"children":[1]},
+            {"style":{"display":"block","width":"400px"},"children":[0,2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[2]).y, 30.0, "a 10 + max(mb20, mt10) — BFC 자신의 top 은 형제 bottom 과 collapse");
+    }
+
+    /// ⑧ — `inline-block` (inner flow-root) 도 BFC · 빈 flow-root 는 self-collapsing 이 아니다
+    /// (Chrome ib h 50 · 빈 fr mt20 mb30 → b.y 60, root h 70).
+    #[test]
+    fn inline_block_is_bfc_and_empty_flow_root_not_self_collapsing() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"40px","height":"10px"},"children":[]},
+            {"style":{"display":"inline-block","width":"100px"},"children":[0]},
+            {"style":{"display":"block","width":"400px","lineHeight":0},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).y, 0.0, "ib y");
+        assert_eq!(t.get_layout(h[1]).height, 50.0, "ib 가 자식 margin 을 품는다");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"10px"},"children":[]},
+            {"style":{"display":"flow-root","marginTop":"20px","marginBottom":"30px"},"children":[]},
+            {"style":{"height":"10px"},"children":[]},
+            {"style":{"display":"block","width":"400px"},"children":[0,1,2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[2]).y, 60.0, "20 + 0 + 30 — 관통 collapse 없음");
+        assert_eq!(t.get_layout(h[3]).height, 70.0, "root");
+
+        // abs-pos 상자도 BFC (CSS 2.1 §9.4.1) — live 대조군이 드러낸 사각 (Chrome abs h 50 / 종전 10).
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"40px","height":"10px"},"children":[]},
+            {"style":{"display":"block"},"children":[0]},
+            {"style":{"position":"absolute","insetTop":"0px","insetLeft":"0px","width":"300px"},"children":[1]},
+            {"style":{"display":"block","position":"relative","width":"400px","height":"100px"},"children":[2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).y, 40.0, "plain 은 abs 안에서 40 (margin 이 abs 를 못 나간다)");
+        assert_eq!(t.get_layout(h[2]).height, 50.0, "abs h");
+    }
+
+    /// ⑧ (Taffy #959) — block `align-content` (CSS-ALIGN-3 §6.1, Chrome 123+): 내용 묶음을 여유
+    /// 공간에 정렬 (center 75 · end 150) · 첫/마지막 자식 margin 은 묶음에 포함되고 컨테이너 밖으로
+    /// 새지 않는다 (mt20 center → 85 · auto 높이 center > mt20 h50 → blk h 70).
+    #[test]
+    fn block_align_content_distributes_free_space_and_contains_margins() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px","alignContent":"center"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 75.0, "center (200-50)/2");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px","alignContent":"end"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 150.0, "end");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"20px","height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px","alignContent":"center"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 85.0, "묶음 70 → 65 + margin 20");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"20px","height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","alignContent":"center"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 20.0, "auto 높이여도 margin 은 blk 안");
+        assert_eq!(t.get_layout(h[1]).height, 70.0, "blk h = 20 + 50");
+
+        // normal 은 종전대로 탈출 (outer 까지 관통 → blk 안 child y 0).
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"20px","height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px","alignContent":"normal"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 0.0, "normal — 탈출");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"marginTop":"20px","height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px","alignContent":"start"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 20.0, "start — 정렬 0 이지만 margin 은 안에");
+    }
+
+    /// ⑧ — overflow 기본은 safe (h100 center > h150 → 0), `unsafe` 만 음수 (−25) · min-height 가 만든
+    /// 여유도 정렬 (auto + min-height 200 center > h50 → 75) · 분배 키워드 폴백 (space-around → center).
+    #[test]
+    fn block_align_content_overflow_min_height_and_distribution_fallback() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"150px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"100px","alignContent":"center"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 0.0, "overflow → safe start");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"150px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"100px","alignContent":"unsafe center"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, -25.0, "unsafe → 음수");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","minHeight":"200px","alignContent":"center"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 75.0, "min-height 여유");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"50px"},"children":[]},
+            {"style":{"display":"block","width":"400px","height":"200px","alignContent":"space-around"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 75.0, "space-around 단일 → center 폴백");
+    }
+
+    /// F5: `flex row h200` 의 stretch item 은 cross 가 definite — 손자 `h50%` = 100 (종전 0).
+    #[test]
     fn adr206_stretched_flex_item_cross_is_definite_for_percent_child() {
         let (t, h) = solve(
             r#"[

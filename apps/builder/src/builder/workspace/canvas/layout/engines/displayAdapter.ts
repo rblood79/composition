@@ -222,8 +222,12 @@ function parseDisplay(value: string | undefined): Display {
  * CSS display 문자열 → 운반 union `EngineDisplay` (손실 없는 정규화, ADR-923 Phase 5).
  *
  * `parseDisplay` 로 outer/inner 를 읽고 CSS 문자열로 되돌린다 — 인식되는 값은 그대로
- * (inline-flex · inline-grid · inline-block · inline 보존), `flow-root` 는 `block` (엔진 solver 는
- * 둘 다 Block), 미인식 값은 `block` 폴백 (엔진 `parse_display` 와 같다). outer 해석은 엔진 몫이다.
+ * (inline-flex · inline-grid · inline-block · inline · flow-root 보존), 미인식 값은 `block` 폴백
+ * (엔진 `parse_display` 와 같다). outer 해석은 엔진 몫이다.
+ *
+ * `flow-root` 를 `block` 으로 접지 않는다 (2026-09-07, upstream 대조 ⑧ — TAFFY_UPSTREAM_DELTA_2026-09.md) — 엔진 solver 는 둘 다 Block
+ * 이지만 `node_establishes_bfc` 가 inner flow-root 로 BFC 를 판정한다 (자식 margin 이 안에 남는다,
+ * Chrome B8 fr h 50). 접으면 pipeline 만 margin 이 새어 engine leg 와 갈린다.
  */
 export function normalizeCssDisplay(raw: string | undefined): EngineDisplay {
   const d = parseDisplay(raw);
@@ -235,7 +239,7 @@ export function normalizeCssDisplay(raw: string | undefined): EngineDisplay {
     case "grid":
       return inline ? "inline-grid" : "grid";
     case "flow-root":
-      return inline ? "inline-block" : "block";
+      return inline ? "inline-block" : "flow-root";
     default:
       return inline ? "inline" : "block";
   }
