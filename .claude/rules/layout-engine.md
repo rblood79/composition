@@ -158,6 +158,7 @@ paths:
 | 21  | 단독 `fr` = `minmax(auto, fr)` — §12.7.1 freeze-restart, 기여는 margin-box(`%` margin 은 0)                                                                        | `split_track_sizing` · `col_contribution`                 | basicAxisContainerSize/ChildSize            |
 | 22  | grid 자식 TS 공급 3결함 — 스칼라 게이트 `isGridChild`(`isFlexChild` 확장 금지) / 트랙 수 `coerceGridTrack` / Step 4.5 가정 폭 `enrichAvailWidth`                   | `utils.ts` · `fullTreeLayout.ts`                          | gridTrackContribution pipeline              |
 | 23  | grid item 의 크기 키워드도 stretch 를 이김 — `explicit` 판정에 `size_is_intrinsic_keyword` OR                                                                      | `place_grid_axis`                                         | gridTrackContribution I                     |
+| 24  | absolute used size 는 min/max clamp **뒤** 값 (`resolve_abs_axis((min,max))` 단일 지점, stretch→clamp 면 over-constrained 재적용) · 빈 block 상자도 stretch 폭에서 aspect 높이 전송 (군집 F 에 leaf ② 만 진입) | `resolve_abs_axis` · `solve_node` 군집 F | absClampAspectLeaf |
 
 ## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
 

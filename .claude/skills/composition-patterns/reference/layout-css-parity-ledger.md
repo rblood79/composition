@@ -637,3 +637,24 @@ grid item 의 크기·위치는 **자식 자신의 상자 모델**이 정하고,
 - ❌ stretch 대상 판정을 해소된 길이 값(`> 0.0`)만으로 하기 → 키워드가 미설정과 같아진다
 - ❌ 키워드를 미리 길이로 치환해 우회 → 셀 크기가 정해지기 전이라 값이 없다 (판정은 style 문자열, 크기는 `solve_node` 결과)
 
+## absolute 의 used size 는 min/max clamp **뒤** 값이다 · 빈 상자도 aspect-ratio 로 높이를 판다 (CSS §10.4/§10.7 · CSS-SIZING-4 §6.1, 2026-09-07)
+
+Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md` §2 B4·B4c·B6) 에서 Chrome 실측으로 잡은 두 결함. 둘 다 "정본은 이미 clamp/전송을 아는데 **한 경로만** 빠져 있던" 형태다.
+
+| 결함                                            | 거처                                          | Chrome | 구 엔진 |
+| ----------------------------------------------- | --------------------------------------------- | -----: | ------: |
+| abs 명시 `width:300 + max-width:100 + margin auto` | `place_absolute_children` 의 `resolve_dimension` 덮어쓰기 | 100 / x150 | **300 / x50** |
+| abs stretch (`left0 right0`, width auto) `+ max-width:100` | `resolve_abs_axis` stretch 분기 clamp 부재      | 100 / x0 | **400** |
+| block leaf `aspect-ratio:2` (width auto) in w300 | `solve_node` 군집 F 분기의 `!children.is_empty()` | 300×150 | **300×0** |
+
+- **abs**: `solve_node` 는 자기 clamp 를 이미 하는데 abs 경로가 `resolve_dimension(width)` raw 값으로 그 결과를 덮어썼다. clamp 를 `resolve_abs_axis((min,max))` 한 곳으로 옮겼다 — 명시 크기든 stretch 결과든 같은 클로저가 clamp 하고, **stretch 가 clamp 로 바뀌면 그 축은 over-constrained** 가 되어 명시 크기 분기 (margin auto 흡수 · start 우선) 를 다시 탄다 (§10.3.7 "재적용"). `%` min/max 는 inset 과 같은 containing block ctx.
+- **aspect leaf**: 군집 F (stretch 폭이 w→h 전송 입력) 는 자식 있는 상자만 진입했다. leaf 의 ① (min/max 바인딩 승격) 은 block.rs stretch+clamp 가 담당하므로 그대로 두고, **② aspect 전송이 필요한 경우만** leaf 도 진입시킨다 (`!children.is_empty() || own_aspect.is_some() && explicit_h <= 0.0`). 전송값은 leaf 에 content 하한이 없으므로 `explicit_h` 로 굳는다.
+- Chrome 실측 fixture: `absClampAspectLeaf.browser.test.ts` (abs 7 + aspect 5). 민감도 — 패치 원복 시 11/12 RED (E15 h→w 회귀 케이스만 GREEN 유지). unit: `absolute_explicit_width_clamped_by_max_width_before_auto_margin` · `absolute_stretch_clamped_by_max_width` · `aspect_ratio_block_leaf_auto_width_derives_height_from_stretch`.
+- **남은 것 (같은 문서 §4 ①)**: aspect 로 파생한 높이·stretch 된 flex item·grid area 가 손자 `%` 의 base 가 되는 것은 §백분율 규칙 (`explicit_h > 0` 하나) 의 확장이라 별도 ADR — 이 절은 그 전제를 바꾸지 않는다.
+
+### 금지 패턴
+
+- ❌ abs 경로에서 `resolve_dimension(width)` 를 used size 로 직접 쓰기 → clamp 가 사라진다. used size 는 `resolve_abs_axis` 반환값
+- ❌ stretch 결과를 clamp 만 하고 배치 분기를 안 바꾸기 → clamp 된 상자가 여전히 start 에 붙는다 (margin auto 중앙이 안 된다)
+- ❌ leaf 의 min/max 바인딩까지 군집 F 로 승격 → block.rs stretch+clamp 와 이중
+

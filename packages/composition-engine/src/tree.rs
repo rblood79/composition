@@ -1683,7 +1683,7 @@ impl LayoutTree {
                     to,
                 });
             }
-        } else if !children.is_empty()
+        } else if (!children.is_empty() || own_aspect.is_some() && explicit_h <= 0.0)
             && intrinsic_mode(avail_w).is_none()
             && avail_w >= 0.0
         {
@@ -1695,6 +1695,11 @@ impl LayoutTree {
             // 유지 (flex item main 등 stretch 가 아닌 문맥에서 폭을 강제하지 않기 위함).
             // 부모가 block 일 때만 — flex/grid item 의 used 크기는 그 커널 소관이다.
             // aspect 의 h→w 전송이 예정된 상자는 제외 (전송값이 stretch 를 이긴다 — §5).
+            //
+            // **leaf 는 ② 만 진입한다** (2026-09-07, Taffy 대조 B6 — Chrome 300×150, 종전 0):
+            // 자식 없는 상자의 ① 은 block.rs 의 stretch+clamp 가 담당하므로 여기서 승격하면
+            // 이중이다. ② 는 전송 입력이 stretch 폭이라 leaf 도 여기서 잡아야 한다 —
+            // 전송값은 아래 aspect 블록이 explicit_h 로 굳힌다 (leaf 는 content 하한 없음).
             let aspect_needs_w = own_aspect.is_some() && explicit_h <= 0.0;
             if own_min_w.is_some() || own_max_w.is_some() || aspect_needs_w {
                 let parent_is_block = self
@@ -2048,11 +2053,19 @@ impl LayoutTree {
                 .unwrap_or((pb_start_x, pb_start_y));
 
             // 축별 배치 — x/y 대칭 (stretch / margin auto / static 을 한 함수로).
+            // min/max 는 containing block 기준 (%) — used size 는 clamp 뒤 값이다
+            // (CSS §10.4 / §10.7 — 2026-09-07 Taffy 대조 B4·B4c, Chrome 100 vs 종전 300/400).
+            let min_w = resolve_dimension_opt(cstyle.min_width.as_deref(), &ctx_x);
+            let max_w = resolve_dimension_opt(cstyle.max_width.as_deref(), &ctx_x);
+            let min_h = resolve_dimension_opt(cstyle.min_height.as_deref(), &ctx_y);
+            let max_h = resolve_dimension_opt(cstyle.max_height.as_deref(), &ctx_y);
             let (x, nw) = resolve_abs_axis(
-                pb_start_x, cb_w, left, right, w, has_w, ml, mr, ml_auto, mr_auto, sx,
+                pb_start_x, cb_w, left, right, w, has_w, (min_w, max_w), ml, mr, ml_auto, mr_auto,
+                sx,
             );
             let (y, nh) = resolve_abs_axis(
-                pb_start_y, cb_h, top, bottom, h, has_h, mt, mb, mt_auto, mb_auto, sy,
+                pb_start_y, cb_h, top, bottom, h, has_h, (min_h, max_h), mt, mb, mt_auto, mb_auto,
+                sy,
             );
 
             if let Some(n) = self.get_mut(c) {
@@ -5379,6 +5392,11 @@ fn is_out_of_flow(position: Option<&str>) -> bool {
 /// - 양측 auto → **static position** 유지 (E11 ②).
 ///
 /// `m_*_auto` 이면 해당 margin 은 잉여 흡수용이라 `m_*` 는 0 으로 전달된다.
+///
+/// `(min, max)` 는 used size 의 clamp (CSS §10.4 / §10.7): 명시 크기든 stretch 결과든 clamp 뒤
+/// 값이 used size 이고, stretch 가 clamp 로 바뀌면 그 축은 over-constrained 가 되어 명시 크기
+/// 분기 (margin auto 흡수 · start 우선) 를 **다시** 탄다 (§10.3.7 "재적용"). 2026-09-07
+/// Taffy 대조 B4·B4c — Chrome 100 / x150·x0, 종전 엔진 300 / 400.
 #[allow(clippy::too_many_arguments)]
 fn resolve_abs_axis(
     pb_start: f32,
@@ -5387,19 +5405,36 @@ fn resolve_abs_axis(
     end: Option<f32>,
     size: f32,
     has_explicit_size: bool,
+    (min, max): (Option<f32>, Option<f32>),
     m_start: f32,
     m_end: f32,
     m_start_auto: bool,
     m_end_auto: bool,
     static_pos: f32,
 ) -> (f32, f32) {
+    // max 먼저, min 이 이긴다 (CSS §5.1).
+    let clamp = |v: f32| {
+        let mut out = v;
+        if let Some(mx) = max {
+            out = out.min(mx);
+        }
+        if let Some(mn) = min {
+            out = out.max(mn);
+        }
+        out
+    };
+    let size = clamp(size);
     match (start, end) {
         (Some(s), Some(e)) => {
-            if !has_explicit_size {
+            let stretched = (cb_size - s - e - m_start - m_end).max(0.0);
+            let clamped = clamp(stretched);
+            if !has_explicit_size && clamped == stretched {
                 // ① stretch — 크기가 잉여 공간을 채운다.
-                let sz = (cb_size - s - e - m_start - m_end).max(0.0);
-                (pb_start + s + m_start, sz)
+                (pb_start + s + m_start, stretched)
             } else {
+                // clamp 가 stretch 를 바꿨으면 그 값이 used size (§10.4 재적용) — 아래 분기의
+                // `size` 로 흘린다.
+                let size = if has_explicit_size { size } else { clamped };
                 // 크기 definite + 양측 inset → over-constrained. margin auto 가 잉여를 흡수.
                 let free = cb_size - s - e - size - m_start - m_end;
                 let start_margin = if m_start_auto && m_end_auto {
@@ -6023,6 +6058,36 @@ mod tests {
         let h2 = h2w.build_tree_batch(json_h).unwrap();
         h2w.compute_layout(h2[1], 300.0, -1.0);
         assert_eq!(h2w.get_layout(h2[0]).width, 180.0, "height 60 * ratio 3 = 180 (no stretch)");
+    }
+
+    /// Taffy 대조 B6 (2026-09-07, Chrome 실측 300×150): 자식 없는 block leaf 도 stretch 폭에서
+    /// aspect-ratio 로 높이를 파생한다 (CSS-SIZING-4 §6.1). 종전엔 군집 F 분기가
+    /// `!children.is_empty()` 로 leaf 를 배제해 높이 0.
+    #[test]
+    fn aspect_ratio_block_leaf_auto_width_derives_height_from_stretch() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"block","aspectRatio":2},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0]}
+        ]"#;
+        let h = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(h[1], 300.0, -1.0);
+        let leaf = tree.get_layout(h[0]);
+        assert_eq!(leaf.width, 300.0, "block-level stretch");
+        assert_eq!(leaf.height, 150.0, "300 / ratio 2 (Chrome 150)");
+        assert_eq!(tree.get_layout(h[1]).height, 150.0, "부모 auto 높이 = leaf 높이");
+
+        // max-width 가 stretch 폭을 먼저 clamp 하고 그 값이 전송 입력이다.
+        let mut t2 = LayoutTree::new();
+        let json2 = r#"[
+            {"style":{"display":"block","aspectRatio":2,"maxWidth":"100px"},"children":[]},
+            {"style":{"display":"block","width":"300px"},"children":[0]}
+        ]"#;
+        let h2 = t2.build_tree_batch(json2).unwrap();
+        t2.compute_layout(h2[1], 300.0, -1.0);
+        let l2 = t2.get_layout(h2[0]);
+        assert_eq!(l2.width, 100.0, "stretch 300 → max 100");
+        assert_eq!(l2.height, 50.0, "100 / 2");
     }
 
     #[test]
@@ -7684,6 +7749,52 @@ mod tests {
         let c = tree.get_layout(handles[0]);
         assert_eq!(c.x, 80.0, "margin auto 중앙 = (200 - 40)/2");
         assert_eq!(c.width, 40.0, "명시 width 보존");
+    }
+
+    /// Taffy 대조 B4 (2026-09-07, Chrome 실측): 명시 width 가 max-width 를 넘으면 used size 는
+    /// clamp 값이고, margin auto 는 **clamp 된** 크기 기준으로 잉여를 나눈다.
+    /// 종전엔 `resolve_dimension(width)` raw 값이 solve_node 의 clamp 결과를 덮어써 300 유지.
+    #[test]
+    fn absolute_explicit_width_clamped_by_max_width_before_auto_margin() {
+        let mut tree = LayoutTree::new();
+        // cb 400: left0/right0 + width300 + maxWidth100 + margin auto → w 100, x (400-100)/2 = 150.
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"0px","insetRight":"0px","width":"300px","maxWidth":"100px","height":"20px","marginLeft":"auto","marginRight":"auto"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"400px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.width, 100.0, "used width = max-width clamp (Chrome 100)");
+        assert_eq!(c.x, 150.0, "margin auto 는 clamp 된 폭 기준 (Chrome 150)");
+    }
+
+    /// Taffy 대조 B4c (2026-09-07, Chrome 실측): 양측 inset + width auto 의 stretch 도 min/max
+    /// clamp 를 받는다 (CSS §10.3.7 → §10.4 재적용). clamp 뒤 over-constrained 면 start 정렬.
+    #[test]
+    fn absolute_stretch_clamped_by_max_width() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"position":"absolute","insetLeft":"0px","insetRight":"0px","maxWidth":"100px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"400px","height":"100px"},"children":[0]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[1], 400.0, 400.0);
+        let c = tree.get_layout(handles[0]);
+        assert_eq!(c.width, 100.0, "stretch 400 → max-width 100 (Chrome 100)");
+        assert_eq!(c.x, 0.0, "over-constrained → left 우선 (Chrome 0)");
+
+        // min-width 도 대칭 — stretch 60 (200-70-70) 이 min 120 으로 올라간다.
+        let mut t2 = LayoutTree::new();
+        let json2 = r#"[
+            {"style":{"position":"absolute","insetLeft":"70px","insetRight":"70px","minWidth":"120px","height":"20px"},"children":[]},
+            {"style":{"display":"block","position":"relative","width":"200px","height":"100px"},"children":[0]}
+        ]"#;
+        let h2 = t2.build_tree_batch(json2).unwrap();
+        t2.compute_layout(h2[1], 400.0, 400.0);
+        let c2 = t2.get_layout(h2[0]);
+        assert_eq!(c2.width, 120.0, "stretch 60 → min-width 120");
+        assert_eq!(c2.x, 70.0, "left 우선");
     }
 
     // ── get_layouts_batch ──

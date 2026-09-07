@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — absolute 크기 min/max clamp · 빈 상자 aspect-ratio 높이] - 2026-09-07
+
+### Fixed
+
+- `position: absolute` 요소의 사용 크기가 `min-width`/`max-width`(세로축 동일)를 무시하던 결함을 고쳤습니다. 명시 `width: 300px` + `max-width: 100px` 은 캔버스에서 300 으로, 양측 inset 의 stretch 는 containing block 전체로 그려졌습니다 (Preview/Chrome 100). 이제 clamp 뒤 값이 사용 크기이고 `margin: auto` 는 그 값 기준으로 잉여를 나눕니다 (CSS §10.4/§10.7).
+- 자식이 없는 block 요소에 `aspect-ratio` 만 주면 캔버스 높이가 0 이던 결함을 고쳤습니다. stretch 된 폭에서 높이를 파생합니다 (`width: 300` 컨테이너 안 `aspect-ratio: 2` → 300×150, Chrome 동일).
+- 근거: Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md` §2 B4·B4c·B6). Chrome 차등 게이트 `tests/parity/absClampAspectLeaf.browser.test.ts` 12 케이스 (baseline 11 RED → 12 GREEN), cargo 421 PASS. 늘어난 flex item / grid area 의 `%` 높이 base (같은 문서 §4 ①) 는 별도 ADR 로 남깁니다.
+
 ## [실제 Builder Worker 적용 검증 후 철회] - 2026-09-07
 
 - 실제 프로젝트에 Worker 소유 SkiaRenderer를 연결해 부트3쌍, 전체 화면 픽셀, 휠 입력6회씩을 비교했습니다. 메인 렌더 프레임 최대값은 약107→22ms로 감소했고 전체 화면 픽셀 차이는0이었습니다.
