@@ -291,6 +291,65 @@ async function main() {
     );
     await page.screenshot({ path: `${OUT_DIR}/preview.png`, fullPage: false });
 
+    // ── 6) G3 live — 4종 × (Preview bbox ↔ Skia layout rect) + 마크 수 대조 ──
+    //    Compare Mode 가 켜진 상태라 두 leg 이 같은 화면에 있다. 단위 parity(좌표 숫자)와
+    //    달리 여기서는 **실제 배치된 상자** 를 잰다 — 엔진(Skia)과 CSS(DOM)가 같은 크기를
+    //    주는지는 기하 함수 밖의 축이고, 그게 어긋나면 같은 scene 이어도 화면이 갈린다.
+    for (const kind of ["bar", "line", "area", "pie"]) {
+      await page.evaluate(
+        ({ id, kind }) => {
+          window.__composition_STORE__
+            .getState()
+            .updateElementProps(id, { chartType: kind });
+        },
+        { id: placed.id, kind },
+      );
+      await page.waitForTimeout(1600);
+
+      const compare = await page.evaluate((id) => {
+        const map = window.__composition_LAYOUT_DEBUG__?.getSharedLayoutMap?.();
+        const layout = map?.get?.(id);
+        let dom = null;
+        for (const frame of document.querySelectorAll("iframe")) {
+          const doc = frame.contentDocument;
+          const el = doc?.querySelector(".react-aria-Chart");
+          if (!el) continue;
+          const box = el.getBoundingClientRect();
+          const svg = el.querySelector("svg");
+          dom = {
+            w: box.width,
+            h: box.height,
+            rects: svg?.querySelectorAll("rect").length ?? 0,
+            paths: svg?.querySelectorAll("path").length ?? 0,
+            lines: svg?.querySelectorAll("line").length ?? 0,
+            texts: svg?.querySelectorAll("text").length ?? 0,
+          };
+          break;
+        }
+        return {
+          skia: layout ? { w: layout.width, h: layout.height } : null,
+          dom,
+        };
+      }, placed.id);
+
+      const dw = Math.abs((compare.dom?.w ?? -1) - (compare.skia?.w ?? -2));
+      const dh = Math.abs((compare.dom?.h ?? -1) - (compare.skia?.h ?? -2));
+      record(
+        `G3 ${kind} — Preview 상자 ↔ Skia layout rect Δ ≤ 1px`,
+        !!compare.dom && !!compare.skia && dw <= 1 && dh <= 1,
+        `skia ${compare.skia?.w}×${compare.skia?.h} ↔ dom ${compare.dom?.w}×${compare.dom?.h} (Δ ${dw.toFixed(2)}, ${dh.toFixed(2)})`,
+      );
+      const marks =
+        (compare.dom?.rects ?? 0) +
+        (compare.dom?.paths ?? 0) +
+        (compare.dom?.lines ?? 0);
+      record(
+        `G3 ${kind} — Preview 가 마크를 그린다 (빈 SVG 아님)`,
+        marks > 0 && (compare.dom?.texts ?? 0) > 1,
+        `rect ${compare.dom?.rects} · path ${compare.dom?.paths} · line ${compare.dom?.lines} · text ${compare.dom?.texts}`,
+      );
+    }
+
     const passed = findings.filter((f) => f.pass).length;
     writeFileSync(
       `${OUT_DIR}/result.json`,

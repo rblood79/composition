@@ -164,7 +164,7 @@ D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델�
 
 ### Live Exercise
 
-**2026-09-08 · Playwright headless (`apps/builder/scripts/adr194-chart-live.mjs`, 11/11 PASS)** — 격리 프로젝트를 만들어 실제 빌더에서:
+**2026-09-08 · Playwright headless (`apps/builder/scripts/adr194-chart-live.mjs`, **19/19 PASS**)** — 격리 프로젝트를 만들어 실제 빌더에서:
 
 1. 컴포넌트 패널 Collections 에 `chart` 노출 → 클릭 → canonical 에 `Chart` 생성.
 2. 엔진이 320×240 부여 (layout map), factory 샘플 8행 실림.
@@ -179,6 +179,8 @@ D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델�
 | ① | 축 레이블이 전부 상자 한가운데로 몰림 | DOM `textAnchor` 는 **점** 앵커인데 Skia converter 의 `align:"center"` 는 컨테이너 중앙 정렬이라 `x` 가 무시된다. 좌표 숫자만 비교하던 G3 는 **같은 숫자가 다른 뜻**이라 통과했다 | 매핑을 `toSkiaTextGeometry` 공용 helper 로 두고, parity 테스트도 앵커 왕복(`skiaTextAnchorX`)으로 비교 |
 | ② | Preview 차트에 생성 CSS 가 전량 미적용 | `Chart.tsx` 가 `react-aria-Chart` base class 를 합성하지 않음 (internal source wrapper 의 공통 규약 — Badge/Icon/ListBox 전수 동일) | 컴포넌트가 base class + `data-variant`/`data-size` 를 직접 부여 |
 | ③ | Preview 만 "No data" | `data` 를 binding `accepts` 에 선언하지 않아 `toRacProps` 가 버림. Skia 는 scene-node props 직독이라 멀쩡 — **한쪽만 깨지는** 형태 | `accepts.data` 를 `kind:"items-manager"` 로 선언 (샘플 rows 인라인 편집도 함께 열림) |
+
+**G3 live 4종 bbox (같은 하니스, 최종 19/19 PASS)**: Compare Mode 로 두 leg 을 같은 화면에 두고 chartType 4종 각각에 대해 Preview `.react-aria-Chart` 상자 ↔ Skia layout rect 를 비교 — **Δ 0.00px (4/4)**. Preview 마크 수: bar `rect 10 · line 2 · text 13` · line `path 2 · rect 2 · line 2 · text 13` · area 동일 · pie `path 4 · rect 2 · text 2` (파이는 축이 없어 line 0, text 는 범례 2). 단위 층은 `chartParity.test.tsx` 28건 (path `d` byte 동일 · rect/line 좌표 · text 앵커 왕복).
 
 **성능·번들 (`apps/builder/scripts/adr194-chart-perf.mjs`)**: 200행 × 4시리즈 bar 를 놓고 zoom 드라이버(가시 집합이 매 프레임 바뀌어 캐시에 불리한 쪽)로 4초 측정, 같은 세션의 차트 없는 대조군과 A/B — frame p95 Δ = **+0.2 / +0.6 / −0.2 ms** (3회, 한도 +1ms). 측정 해상도가 ~0.8ms 라 문턱이 잡음 바로 위임을 함께 기록한다. 번들 gz Δ = builder 초기 chunk **+6.71KB** · publish **+5.90KB** (한도 각 +15KB, baseline = 같은 디렉터리 detached checkout `d16c2fecb` 재빌드).
 
