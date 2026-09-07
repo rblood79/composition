@@ -57,6 +57,10 @@ export interface ChartProps {
   showValueLabels: boolean;
   /** 색을 가르는 축 (bar 전용 — pie 는 항상 범주, line/area 는 시리즈) */
   colorBy: ChartColorBy;
+  /** pie 안쪽 반지름 비율 (0~90%). 0 보다 크면 도넛 */
+  innerRadius: number;
+  /** 도넛 구멍 안 합계 표시 */
+  showTotal: boolean;
   showAxis: boolean;
   showGrid: boolean;
   showLegend: boolean;
@@ -127,6 +131,11 @@ export interface TextMark {
   anchor: TextAnchor;
   baseline: TextBaseline;
   role: TextRole;
+  /**
+   * 기본 글자 크기 대비 배율 (기본 1). 도넛 가운데 합계처럼 한 글자만 크게
+   * 두는 자리에 쓴다 — DOM 은 `em`, Skia 는 metrics.fontSize 곱으로 푼다.
+   */
+  fontScale?: number;
 }
 
 export interface LineMark {

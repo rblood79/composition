@@ -38,6 +38,7 @@ import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import {
   CHART_DEFAULT_PROPS,
   computeChartScene,
+  r2,
   resolveChartMetrics,
   toSkiaTextGeometry,
 } from "../chart";
@@ -3359,6 +3360,12 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       colorBy:
         (props.colorBy as ChartColorBy | undefined) ??
         CHART_DEFAULT_PROPS.colorBy,
+      innerRadius:
+        (props.innerRadius as number | undefined) ??
+        CHART_DEFAULT_PROPS.innerRadius,
+      showTotal:
+        (props.showTotal as boolean | undefined) ??
+        CHART_DEFAULT_PROPS.showTotal,
       showAxis: (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend:
@@ -3417,13 +3424,16 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     //   parity 테스트의 type-check 가 잡음). 필드는 `text` 다.
     // 앵커 변환은 `toSkiaTextGeometry` 한 곳이 한다 — DOM 의 점 앵커와 Skia 의 문단 박스는
     //   의미가 달라서 좌표를 그대로 넘기면 중앙 정렬 레이블이 전부 상자 한가운데로 몰린다.
-    const geometry = toSkiaTextGeometry(mark, metrics.fontSize);
+    // fontScale 은 DOM 의 `em` 과 같은 뜻 — 기준 글자 크기의 배율이다. 앵커 계산도
+    //   같은 크기를 봐야 중앙 정렬이 어긋나지 않는다.
+    const markFontSize = r2(metrics.fontSize * (mark.fontScale ?? 1));
+    const geometry = toSkiaTextGeometry(mark, markFontSize);
     shapes.push({
       type: "text",
       x: geometry.x,
       y: mark.y,
       text: mark.text,
-      fontSize: metrics.fontSize,
+      fontSize: markFontSize,
       fontFamily: fontFamily.sans,
       // 값 레이블·범례는 본문 전경색, tick/empty 는 축 보조색 (DOM ROLE_FILL 동형).
       fill:

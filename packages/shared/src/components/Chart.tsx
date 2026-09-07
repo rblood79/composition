@@ -47,6 +47,8 @@ export interface ChartProps {
   showDots?: boolean;
   showValueLabels?: boolean;
   colorBy?: ChartColorBy;
+  innerRadius?: number;
+  showTotal?: boolean;
   showAxis?: boolean;
   showGrid?: boolean;
   showLegend?: boolean;
@@ -106,7 +108,9 @@ function renderText(mark: TextMark, key: string): React.ReactElement {
       textAnchor={ANCHOR_MAP[mark.anchor]}
       dominantBaseline={BASELINE_MAP[mark.baseline]}
       fill={ROLE_FILL[mark.role]}
-      fontSize="inherit"
+      // fontScale 은 부모 svg 의 font-size 기준 배율 — em 이라야 Skia 의
+      //   metrics.fontSize 곱과 같은 값이 된다.
+      fontSize={mark.fontScale ? `${mark.fontScale}em` : "inherit"}
     >
       {mark.text}
     </text>
@@ -248,6 +252,8 @@ export function Chart({
   showDots,
   showValueLabels,
   colorBy,
+  innerRadius,
+  showTotal,
   showAxis,
   showGrid,
   showLegend,
@@ -285,6 +291,8 @@ export function Chart({
       showValueLabels:
         showValueLabels ?? CHART_DEFAULT_PROPS.showValueLabels,
       colorBy: colorBy ?? CHART_DEFAULT_PROPS.colorBy,
+      innerRadius: innerRadius ?? CHART_DEFAULT_PROPS.innerRadius,
+      showTotal: showTotal ?? CHART_DEFAULT_PROPS.showTotal,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
       showGrid: showGrid ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend: showLegend ?? CHART_DEFAULT_PROPS.showLegend,
@@ -301,6 +309,8 @@ export function Chart({
       showDots,
       showValueLabels,
       colorBy,
+      innerRadius,
+      showTotal,
       showAxis,
       showGrid,
       showLegend,

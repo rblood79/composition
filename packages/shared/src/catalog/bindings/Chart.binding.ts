@@ -148,6 +148,18 @@ export const chartBinding: PrimitiveBinding = {
           { value: "category", label: "Category" },
         ],
       },
+      innerRadius: {
+        kind: "number",
+        label: "Inner Radius (%)",
+        section: "appearance",
+        default: 0,
+      },
+      showTotal: {
+        kind: "boolean",
+        label: "Show Total (donut)",
+        section: "appearance",
+        default: false,
+      },
       showAxis: {
         kind: "boolean",
         label: "Show Axis",
@@ -203,6 +215,8 @@ export const chartBinding: PrimitiveBinding = {
       "showDots",
       "showValueLabels",
       "colorBy",
+      "innerRadius",
+      "showTotal",
       "showAxis",
       "showGrid",
       "showLegend",

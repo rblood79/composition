@@ -117,6 +117,14 @@ const CASES: Array<[string, ChartProps]> = [
     "pie / value labels + legend",
     props({ chartType: "pie", showValueLabels: true, showLegend: true }),
   ],
+  [
+    "pie / donut + total",
+    props({ chartType: "pie", innerRadius: 60, showTotal: true }),
+  ],
+  [
+    "pie / stacked rings",
+    props({ chartType: "pie", stackType: "stacked", innerRadius: 30 }),
+  ],
   ["pie / legend right", props({ chartType: "pie", showLegend: true, legendPosition: "right" })],
 ];
 
@@ -215,6 +223,30 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
     expect(shapes[1]).toMatchObject({ type: "border", target: "chart-bg" });
     // DOM SVG 에는 컨테이너 배경이 없다 — 있으면 이중으로 칠해진다.
     expect(domMarkup(props())).not.toContain('id="chart-bg"');
+  });
+
+  it("fontScale 은 DOM em 배율과 Skia fontSize 곱이 같은 값이다", () => {
+    const chartProps = props({
+      chartType: "pie",
+      innerRadius: 60,
+      showTotal: true,
+    });
+    const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+    const scene = computeChartScene(chartProps, ROWS, SIZE, metrics);
+    const scaled = scene.marks.filter(
+      (m) => m.kind === "text" && m.fontScale !== undefined,
+    );
+    expect(scaled.length, "배율 텍스트가 실제로 있다").toBeGreaterThan(0);
+    const scale = (scaled[0] as { fontScale: number }).fontScale;
+
+    // DOM: 부모 svg 의 font-size 기준 em
+    expect(domMarkup(chartProps)).toContain(`font-size="${scale}em"`);
+    // Skia: 같은 기준 크기의 곱
+    const skiaSizes = skiaShapes(chartProps)
+      .filter((s): s is Extract<Shape, { type: "text" }> => s.type === "text")
+      .map((s) => s.fontSize);
+    expect(skiaSizes).toContain(metrics.fontSize * scale);
+    expect(skiaSizes).toContain(metrics.fontSize);
   });
 
   it("색은 양쪽 다 인덱스로 해소된다 — scene 에 hex 가 없다", () => {

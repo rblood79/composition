@@ -569,6 +569,8 @@ export function createChartDefinition(
         showDots: false,
         showValueLabels: false,
         colorBy: "series",
+        innerRadius: 0,
+        showTotal: false,
         showAxis: true,
         showGrid: false,
         showLegend: true,

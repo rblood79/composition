@@ -59,6 +59,8 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   showDots: false,
   showValueLabels: false,
   colorBy: "series",
+  innerRadius: 0,
+  showTotal: false,
   showAxis: true,
   showGrid: false,
   showLegend: false,
@@ -182,6 +184,16 @@ export function computeChartScene(
       plot,
       seriesCount: metrics.seriesCount,
       showValueLabels: props.showValueLabels,
+      innerRadius: props.innerRadius,
+      showTotal: props.showTotal,
+      totalCaption: props.metric,
+      // 파이의 링 분할은 값 축이 없어 여기서 따로 판정한다 (bar/area 의 stackMode
+      //   는 축 계산 뒤에 나온다 — 파이 분기는 그보다 앞이다).
+      stackMode:
+        grid.series.length > 1 && props.stackType !== "dodged"
+          ? props.stackType
+          : "none",
+      fontSize,
     });
     if (pie.marks.length === 0) return emptyScene(normalizedSize, outer);
     return {

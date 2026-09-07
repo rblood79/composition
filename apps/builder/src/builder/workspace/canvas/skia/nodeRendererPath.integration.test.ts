@@ -168,6 +168,28 @@ describe("renderPath 실제 CanvasKit 렌더 (ADR-194 G1)", () => {
     surface.delete();
   });
 
+  it("호로 만든 고리는 가운데가 뚫린다 (도넛 전제)", () => {
+    // arcSlicePath(32,32, r=28, inner=14, 0, 360) 와 같은 구조 — 바깥 원(sweep 1)
+    //   + 안쪽 원(sweep 0). evenodd 로 안쪽을 뚫는다.
+    const donut =
+      "M 32 4 A 28 28 0 1 1 32 60 A 28 28 0 1 1 32 4 Z " +
+      "M 32 18 A 14 14 0 1 0 32 46 A 14 14 0 1 0 32 18 Z";
+    draw(
+      pathNode({
+        d: donut,
+        offsetX: 0,
+        offsetY: 0,
+        fillColor: Float32Array.of(0, 0, 1, 1),
+        fillRule: "evenodd",
+        strokeWidth: 0,
+      }),
+    );
+    // 고리 위(32,10)는 칠해지고 가운데(32,32)는 비어 있다.
+    expect(readPixel(ck, surface, 32, 10)[2]).toBeGreaterThan(200);
+    expect(readPixel(ck, surface, 32, 32)[3]).toBe(0);
+    surface.delete();
+  });
+
   it("offset 이 그리는 위치를 옮긴다 (노드는 원점 유지)", () => {
     draw(
       pathNode({
