@@ -19,6 +19,13 @@
   box-shadow: var(--inset-shadow-sm);
   cursor: text;
 
+  /* 포커스 링은 필드 상자(부모)가 그린다 — Properties 패널의
+     `.react-aria-Group:focus-within` 과 같은 어법·같은 토큰. */
+  &:focus-within {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+
   /* ===== Search Icon ===== */
   .builder-search-icon {
     display: flex;
@@ -43,11 +50,11 @@
     background: transparent;
     color: var(--fg);
     font-size: var(--text-xs);
-    line-height: var(--text-xs-line-height);
+    line-height: var(--text-xs--line-height);
 
+    &:focus,
     &:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
+      outline: none;
     }
 
     &::placeholder {
@@ -110,6 +117,12 @@
   border: 0;
   background: transparent;
   box-shadow: none;
+
+  /* 포커스 링은 아래 Group 이 그린다 — 상자 두 개가 겹쳐 링이 이중으로 보이지 않게
+     flat 기본형의 root 링을 끈다. */
+  &:focus-within {
+    outline: none;
+  }
 
   .react-aria-Group {
     position: relative;

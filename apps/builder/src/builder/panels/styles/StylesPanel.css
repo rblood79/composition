@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   justify-content: inherit;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   width: 100%;
   min-width: 0;
 }
@@ -120,4 +120,3 @@
 }
 
 /* ADR-154 개정 1 — override opt-in picker */
-

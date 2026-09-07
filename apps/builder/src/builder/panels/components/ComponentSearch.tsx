@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { SearchField } from "../../components/ui/SearchField";
 import { useRecentSearches } from "../../hooks/useRecentSearches";
+import "./ComponentSearch.css";
 
 interface ComponentSearchProps {
   onSearchChange: (query: string) => void;
@@ -38,6 +39,8 @@ export function ComponentSearch({ onSearchChange }: ComponentSearchProps) {
 
   return (
     <SearchField
+      className="component-search-field"
+      appearance="control"
       value={query}
       onChange={handleChange}
       placeholder="Search components..."

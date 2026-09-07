@@ -253,12 +253,10 @@
   overflow: hidden;
 }
 
-/* Pages 검색 — 섹션 안에 놓이므로 flat 필드의 좌우 border 를 복원하고 트리 행 높이에 맞춘다 */
-.navigator-panel-content .page-search-field {
-  height: var(--control-size);
-  border-width: 1px;
-  border-radius: var(--radius-md);
-}
+/* Pages 검색 — Properties 패널 Attributes(ID) 입력과 같은 control 표면을 쓴다.
+   포커스 링은 input 이 아니라 부모 `.react-aria-Group` 이 그린다 (form-controls.css
+   `.section .react-aria-Group:focus-within`). 여기서 height/border 를 덮으면 그
+   공통 표면이 깨지므로 레이아웃 override 를 두지 않는다. */
 
 .navigator-panel-content .page-search-empty {
   padding: var(--spacing-sm);

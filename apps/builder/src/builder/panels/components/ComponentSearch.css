@@ -1,0 +1,18 @@
+/**
+ * ComponentSearch — Components 패널 검색 필드의 배치 여백
+ *
+ * 필드 표면·포커스 링은 `SearchField` 의 control appearance 가 담당한다
+ * (Navigator 의 Pages 검색·Properties 패널 ID 입력과 같은 어법).
+ * 여기서 주는 것은 여백뿐이다: Pages 검색은 `.section-content` 안에 놓여
+ * 그 padding 을 물려받지만, 이쪽은 PanelHeader 와 `.panel-contents` 사이에
+ * 직접 놓여 감싸는 상자가 없다 (CommandPalette 가 같은 자리에서 같은 처리를 한다).
+ *
+ * `@layer` 밖에 두고 클래스를 둘 겹치는 이유: `.builder-search-field--control`
+ * 의 `padding: 0` 이 unlayered 라 layer 안의 규칙 (panel-system.css) 으로는
+ * 못 이긴다 — 실제로 layer 에 두었을 때 padding 이 0 으로 계산됐다.
+ */
+
+.builder-search-field.component-search-field {
+  flex: 0 0 auto;
+  padding: var(--spacing-sm);
+}

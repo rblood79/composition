@@ -383,6 +383,7 @@ export const PagesSection = memo(function PagesSection({
       {isSearchOpen && canSearch && (
         <SearchField
           className="page-search-field"
+          appearance="control"
           autoFocus
           value={pageQuery}
           onChange={setPageQuery}
