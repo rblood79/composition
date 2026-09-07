@@ -1223,15 +1223,53 @@ impl LayoutTree {
                 })
                 .unwrap_or(0.0)
         };
+        // **auto 폭 자식의 측정/solve 반환은 content-box** 다 (컨테이너 `solve_*` · leaf 스칼라
+        // 경로 공통 계약) — 기여는 border-box 라 자식 pad/border 를 여기서 더한다. 명시 크기와
+        // intrinsic 키워드는 border-box 로 돌아오므로 더하지 않는다. 종전엔 leaf 가 border-box 를
+        // 보고해 우연히 맞았고 padded **컨테이너** 는 padding 만큼 트랙이 모자랐다 (실측 50 / 70).
+        let pb_h = self.child_auto_inline_pad_border(c, container_w);
         if let Some((mn, mx)) = self.measure_intrinsic_width(c) {
-            let mn = self.clamp_auto_min_contribution(c, mn, fixed_max, true);
+            let mn = self.clamp_auto_min_contribution(c, mn + pb_h, fixed_max, true);
             let (mn, _) = self.track_contribution(c, mn, 0.0, container_w, container_h);
-            let (mx, _) = self.track_contribution(c, mx, 0.0, container_w, container_h);
+            let (mx, _) = self.track_contribution(c, mx + pb_h, 0.0, container_w, container_h);
             return ((mn + m_h).min(mx + m_h), mx + m_h, false);
         }
         let (cw, ch) = self.solve_node(c, container_w, container_h);
-        let (cw, _) = self.track_contribution(c, cw, ch, container_w, container_h);
+        let (cw, _) = self.track_contribution(c, cw + pb_h, ch, container_w, container_h);
         (cw + m_h, cw + m_h, true)
+    }
+
+    /// 자식의 **블록 축이 auto** 이면 상하 pad+border 합, 아니면 0 (인라인 축 대칭).
+    fn child_auto_block_pad_border(&self, c: usize, container_w: f32, container_h: f32) -> f32 {
+        let Some(n) = self.get(c) else { return 0.0 };
+        let h = n.style.height.as_deref();
+        let is_auto = resolve_dimension_opt(h, &self.ctx_for(container_h)).is_none()
+            && !size_is_intrinsic_keyword(h);
+        if is_auto {
+            axis_pad_border(&n.style, &self.ctx_for(container_w.max(0.0)), false)
+        } else {
+            0.0
+        }
+    }
+
+    /// 자식의 **인라인 축이 auto** (미설정/auto — `%`·px·키워드 아님) 이면 그 pad+border 합,
+    /// 아니면 0. auto 축 반환 (content-box) 을 border-box **기여**로 올릴 때 쓴다.
+    ///
+    /// `%` padding 은 **0** — intrinsic 기여에서 백분율은 기준이 지금 구하는 크기 자신이라
+    /// 순환이다 (`col_contribution` 의 `%` margin 과 같은 규칙, CSS-SIZING-3 §5.2.1). 재진입
+    /// pass 에서 확정 폭으로 풀면 auto 트랙이 부풀어 Chrome 과 갈린다 (실측 shrink-to-fit grid
+    /// + `paddingLeft:10%` 자식: Chrome 120 / 확정 기준 132).
+    fn child_auto_inline_pad_border(&self, c: usize, container_w: f32) -> f32 {
+        let Some(n) = self.get(c) else { return 0.0 };
+        let ctx = self.ctx_for(container_w.max(0.0));
+        let w = n.style.width.as_deref();
+        let is_auto =
+            resolve_dimension_opt(w, &ctx).is_none() && !size_is_intrinsic_keyword(w);
+        if is_auto {
+            axis_pad_border(&n.style, &self.ctx_for(0.0), true)
+        } else {
+            0.0
+        }
     }
 
     /// 서브트리(`handle` 포함)에 dirty 노드가 하나라도 있으면 true.
@@ -1901,7 +1939,7 @@ impl LayoutTree {
             // ADR-165: 폭 intrinsic — width auto/센티넬을 공급 스칼라로 해석 (스칼라
             // 부재 시 explicit_w 그대로 = 기존 동작). 반환 w 는 부모 content 슬롯
             // (content_main/cross, content_w) 의 제안값이 된다.
-            let w = self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w);
+            let (w, w_box) = self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w);
             let h = explicit_h;
             // ADR-923 Phase 2: leaf baseline = TS 측정 스칼라(`leafBaseline`, content-box
             // 상단 기준 첫 줄 baseline) + 자기 padding/border-top (border-box 좌표 승격).
@@ -1931,13 +1969,13 @@ impl LayoutTree {
                     && lstyle.leaf_baseline.is_none()
             };
             if let Some(n) = self.get_mut(handle) {
-                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w, height: h, baseline };
+                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w_box, height: h, baseline };
                 n.self_collapsing = leaf_self_collapsing;
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
             if !abs_children.is_empty() {
-                self.place_absolute_children(handle, &abs_children, w, h, avail_w);
+                self.place_absolute_children(handle, &abs_children, w_box, h, avail_w);
             }
             if let Some(n) = self.get_mut(handle) {
                 n.last_solved = Some((w, h));
@@ -3760,6 +3798,9 @@ impl LayoutTree {
             for (i, &c) in children.iter().enumerate() {
                 let row = child_rows[i];
                 let (cw, ch) = self.solve_node(c, container_w, container_h);
+                // auto 높이의 solve 반환은 content-box — 행 기여는 border-box 라 pad/border 를
+                // 더한다 (인라인 축 `col_contribution` 과 대칭. 실측: padded 컨테이너 행 20 / 40).
+                let ch = ch + self.child_auto_block_pad_border(c, container_w, container_h);
                 // §6.6 — 고정 max 트랙만 span 하는 auto-height 아이템의 최소 기여 clamp.
                 let fixed_max = row_tokens
                     .get(row)
@@ -4051,10 +4092,16 @@ impl LayoutTree {
             let mctx = self.ctx_for(w);
             let hctx = self.ctx_for(h);
             let margin = GridItemMargin::resolve(&cstyle, &mctx);
+            // auto 높이 solve 반환은 content-box — 배치 높이는 border-box (인라인 축과 대칭).
+            let ch_box = if child_eh > 0.0 || eh_is_keyword {
+                ch
+            } else {
+                ch + axis_pad_border(&cstyle, &mctx, false)
+            };
             let (fy, fh) = place_grid_axis(GridAxisInput {
                 cell_pos: y,
                 cell_size: h,
-                real_size: ch,
+                real_size: ch_box,
                 explicit: child_eh > 0.0 || eh_is_keyword,
                 align,
                 m_start: margin.top,
@@ -4077,10 +4124,18 @@ impl LayoutTree {
             //   셀 폭을 그대로 썼다 — `width:40px` grid item 이 150 트랙에서 150 이 되는 식.
             //   `%`/min-max clamp 도 같이 삼켜졌다(50% → 150, maxWidth:60 → 150).
             let justify = grid_inline_justify(cstyle.justify_self.as_deref(), grid_justify_items);
+            // auto 폭의 solve 반환은 content-box (leaf 스칼라 · 컨테이너 공통) — 배치 폭은
+            // border-box 라 pad/border 를 더한다 (종전: padded 컨테이너 `justify-items:start` 가
+            // padding 만큼 좁았다, 실측 50 / 70).
+            let cw_box = if child_ew > 0.0 || ew_is_keyword {
+                cw
+            } else {
+                cw + axis_pad_border(&cstyle, &mctx, true)
+            };
             let (fx, fw) = place_grid_axis(GridAxisInput {
                 cell_pos: x,
                 cell_size: w,
-                real_size: cw,
+                real_size: cw_box,
                 explicit: child_ew > 0.0 || ew_is_keyword,
                 align: justify,
                 m_start: margin.left,
@@ -4349,14 +4404,26 @@ impl LayoutTree {
     ///   stretch-fit = avail − margins (avail indefinite 면 max-content).
     /// - `min-content` / `max-content`: 해당 스칼라.
     /// - 명시 크기(px/%/…): `explicit_w` 그대로 (기존 경로).
-    fn resolve_leaf_intrinsic_width(&self, handle: usize, explicit_w: f32, avail_w: f32) -> f32 {
+    ///
+    /// 반환 `(부모에게 보고할 값, 자기 layout 의 border-box 폭)`. **auto 폭은 content-box 로
+    /// 보고한다** — 컨테이너의 auto 축 반환 계약과 같다 (`solve_flex` "auto 축 반환은 content-box").
+    /// 부모 커널 셋 (flex `border_main` · block `content_w + pad_border_h` · grid 기여) 이 자기가
+    /// pad/border 를 더하므로, 종전처럼 border-box 를 보고하면 좌우 padding 이 **두 번** 더해졌다
+    /// (Taffy #1018 · pipeline 실측 `paddingLeft 12` Text: Chrome 94.4 / 엔진 107). 명시 크기와
+    /// intrinsic 키워드 (`min-content` 등) 는 컨테이너와 같이 border-box 그대로.
+    fn resolve_leaf_intrinsic_width(
+        &self,
+        handle: usize,
+        explicit_w: f32,
+        avail_w: f32,
+    ) -> (f32, f32) {
         let Some(node) = self.get(handle) else {
-            return explicit_w;
+            return (explicit_w, explicit_w);
         };
         let s = &node.style;
         let (min_raw, max_raw) = (s.content_min_width, s.content_max_width);
         if min_raw.is_none() && max_raw.is_none() {
-            return explicit_w;
+            return (explicit_w, explicit_w);
         }
         // 한쪽만 공급되면 다른 쪽으로 보정 (min ≤ max 불변식 유지).
         let min_c = min_raw.or(max_raw).unwrap_or(0.0).max(0.0);
@@ -4369,11 +4436,12 @@ impl LayoutTree {
         } else {
             resolve_css_size_value(raw, &ctx)
         };
+        let bb = |content: f32| (content + pad_border_h, content + pad_border_h);
         match sentinel {
             // 명시 크기 — 기존 경로 그대로.
-            Some(n) if n >= 0.0 => explicit_w,
-            Some(n) if n == MIN_CONTENT => min_c + pad_border_h,
-            Some(n) if n == MAX_CONTENT => max_c + pad_border_h,
+            Some(n) if n >= 0.0 => (explicit_w, explicit_w),
+            Some(n) if n == MIN_CONTENT => bb(min_c),
+            Some(n) if n == MAX_CONTENT => bb(max_c),
             Some(n) if n == FIT_CONTENT => {
                 let m_l = resolve_signed(s.margin_left.as_deref(), &ctx);
                 let m_r = resolve_signed(s.margin_right.as_deref(), &ctx);
@@ -4388,14 +4456,16 @@ impl LayoutTree {
                         _ => max_c,
                     }
                 };
-                stretch_fit.clamp(min_c, max_c) + pad_border_h
+                bb(stretch_fit.clamp(min_c, max_c))
             }
-            // auto (None) / 해석 불가 — content 제안값 = max-content.
+            // auto (None) / 해석 불가 — content 제안값 = max-content, **content-box 로 보고**.
             //   단 min-content 측정 패스에서는 min-content 를 낸다 (ADR-169 Phase 1).
             //   컨테이너는 이 leaf 값을 기존 집계 경로 그대로 합/최대로 모으므로,
             //   모드 분기는 **leaf 한 곳**에만 있으면 서브트리 전체에 전파된다.
-            _ if intrinsic_mode(avail_w) == Some(IntrinsicMode::Min) => min_c + pad_border_h,
-            _ => max_c + pad_border_h,
+            _ if intrinsic_mode(avail_w) == Some(IntrinsicMode::Min) => {
+                (min_c, min_c + pad_border_h)
+            }
+            _ => (max_c, max_c + pad_border_h),
         }
     }
 
@@ -5289,16 +5359,15 @@ fn write_flex_item(
     data[off + 18] = if is_scroll_container(cstyle) { 1.0 } else { 0.0 };
     // §4.5 floor 의 정확 min-content (ADR-165) — 스칼라는 폭 축 측정값이므로 row 에서만
     // 존재 (column 의 main=height 는 height-for-width 재줄바꿈 영역 → 2-pass 잔존 계약).
-    // content_main(=cw, 자식 solve 반환) 과 같은 공간이 되도록 pad_border_main 가산.
-    // 0 = absent → flex.rs 가 content_main(상한 근사) fallback.
+    // content_main 과 같은 공간이어야 한다. 0 = absent → flex.rs 가 content_main(상한 근사) fallback.
     // ADR-204 Phase 2 — column 은 `content_min_height` (가상화 collection owner 의 행 수 × stride
     // 등, 자식 없이 내용 크기를 아는 노드의 TS 공급). block 축은 재줄바꿈이 없어 폭 스칼라의
-    // 2-pass 계약과 충돌하지 않는다. 같은 공간 규약 (content-box + pad_border_main).
+    // 2-pass 계약과 충돌하지 않는다. column 의 content_main(=ch) 은 leaf 명시 높이 (border-box) 라
+    // 스칼라에 pad_border_main 을 더해 같은 공간으로 맞춘다.
     data[off + 19] = if is_row {
-        cstyle
-            .content_min_width
-            .map(|v| v.max(0.0) + pad_border_main)
-            .unwrap_or(0.0)
+        // row: content_main(=cw) 은 leaf 가 **content-box** 로 보고하므로 (⑨ 수리) 스칼라도
+        // 같은 공간 — pad_border 를 더하지 않는다 (더하면 §4.5 floor 가 padding 만큼 부푼다).
+        cstyle.content_min_width.map(|v| v.max(0.0)).unwrap_or(0.0)
     } else {
         cstyle
             .content_min_height
@@ -6396,6 +6465,117 @@ mod tests {
 
     /// F5: `flex row h200` 의 stretch item 은 cross 가 definite — 손자 `h50%` = 100 (종전 0).
     #[test]
+    /// ⑨ (Taffy #1018) — padding 있는 텍스트 leaf (스칼라 공급) 의 auto 폭: flex row 에서
+    /// border-box = content + padding **한 번** (Chrome 94.4 / 구 엔진 107 — pipeline 실측).
+    #[test]
+    fn padded_scalar_leaf_in_flex_row_is_content_plus_padding_once() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"auto","height":"20px","paddingLeft":"12px","paddingRight":"8px","contentMinWidth":40,"contentMaxWidth":80},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).width, 100.0, "80 + 12 + 8 (구 엔진 120)");
+    }
+
+    /// 대조 — padding 있는 **컨테이너** (auto 폭) 도 flex row 에서 content + padding 한 번.
+    #[test]
+    fn padded_auto_container_in_flex_row_is_content_plus_padding_once() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","paddingLeft":"10px","paddingRight":"10px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).width, 70.0, "50 + 10 + 10");
+    }
+
+    /// grid `auto` 트랙 기여 — padded leaf 와 padded 컨테이너 모두 border-box (+ margin) 기여.
+    #[test]
+    fn grid_auto_track_contribution_is_border_box_for_leaf_and_container() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"auto","height":"20px","paddingLeft":"12px","paddingRight":"8px","contentMinWidth":40,"contentMaxWidth":80},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["auto","1fr"],"width":"400px"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).width, 100.0, "leaf: auto 트랙 = 80 + 20");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","paddingLeft":"10px","paddingRight":"10px"},"children":[0]},
+            {"style":{"display":"grid","gridTemplateColumns":["auto","1fr"],"width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).width, 70.0, "컨테이너: auto 트랙 = 50 + 20");
+    }
+
+    /// grid `justify-items: start` — auto 폭 자식의 배치 폭도 border-box (leaf · 컨테이너).
+    #[test]
+    fn grid_justify_start_uses_border_box_for_auto_width_leaf_and_container() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"auto","height":"20px","paddingLeft":"12px","paddingRight":"8px","contentMinWidth":40,"contentMaxWidth":80},"children":[]},
+            {"style":{"display":"grid","gridTemplateColumns":["300px"],"justifyItems":"start","width":"400px"},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).width, 100.0, "leaf 80 + 20");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","paddingLeft":"10px","paddingRight":"10px"},"children":[0]},
+            {"style":{"display":"grid","gridTemplateColumns":["300px"],"justifyItems":"start","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).width, 70.0, "컨테이너 50 + 20");
+    }
+
+    /// block `width: fit-content` 부모 안 padded leaf — shrink-to-fit 폭도 한 번만.
+    #[test]
+    /// 세로 축 대조 — grid auto 행 안 padded 컨테이너 (auto 높이) 의 행 높이 · align start 배치.
+    #[test]
+    fn grid_auto_row_padded_container_block_axis() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","paddingTop":"10px","paddingBottom":"10px"},"children":[0]},
+            {"style":{"display":"grid","gridTemplateColumns":["100px"],"width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 40.0, "auto 행 = 20 + 20");
+        assert_eq!(t.get_layout(h[2]).height, 40.0, "grid 높이 = 행");
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","paddingTop":"10px","paddingBottom":"10px"},"children":[0]},
+            {"style":{"display":"grid","gridTemplateColumns":["100px"],"gridTemplateRows":["100px"],"alignItems":"start","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 40.0, "align start 배치 높이 = border-box 40");
+    }
+
+    fn padded_scalar_leaf_in_fit_content_block_parent() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"auto","height":"20px","paddingLeft":"12px","paddingRight":"8px","contentMinWidth":40,"contentMaxWidth":80},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"fit-content"},"children":[0]},
+            {"style":{"display":"block","width":"400px"},"children":[1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).width, 100.0, "leaf 80 + 20");
+        assert_eq!(t.get_layout(h[1]).width, 100.0, "fit-content 부모 = leaf border-box");
+    }
+
     fn adr206_stretched_flex_item_cross_is_definite_for_percent_child() {
         let (t, h) = solve(
             r#"[

@@ -286,11 +286,12 @@ describe("shrink-to-fit 확정 뒤 `%` 재해소", () => {
     });
   });
 
-  describe("[잔존] 측정 스칼라 leaf 의 padding 이중 계산", () => {
-    // leaf 의 `resolve_leaf_intrinsic_width` 는 border-box 를 반환하는데, 부모 커널의
-    // content 슬롯은 content-box 를 기대한다(`flex.rs::border_main` 이 pad_border 를 더한다).
-    // shrink-to-fit 과 무관한 **선행 결함** — 부모가 definite 여도 같은 값이 나온다.
-    it("definite 부모에서도 재현된다 (본 변경과 무관)", () => {
+  describe("측정 스칼라 leaf 의 padding — 한 번만 더해진다 (구 [잔존] 이중 계산, 2026-09-07 수리)", () => {
+    // 종전엔 leaf 의 `resolve_leaf_intrinsic_width` 가 border-box 를 반환하는데 부모 커널의
+    // content 슬롯은 content-box 를 기대해 (`flex.rs::border_main` 이 pad_border 를 더한다)
+    // padding 이 두 번 더해졌다 (144). 이제 leaf 의 auto 폭 보고는 content-box 다 — 부모가
+    // definite 여도 같은 값 (132). 게이트: `paddedLeafIntrinsic.browser.test.ts` (pipeline).
+    it("definite 부모에서 content 120 + padding 12 = 132", () => {
       const mk = (boxStyle: StyleRecord): CaseNode[] => [
         atom(120, { paddingLeft: "12px" }),
         { label: "box", style: boxStyle, children: [0] },
@@ -308,7 +309,7 @@ describe("shrink-to-fit 확정 뒤 `%` 재해소", () => {
       const dom = domLeg(definite, AVAIL_W);
       const eng = engineLeg(definite, AVAIL_W, -1);
       expect(Math.round(dom[0].w)).toBe(132); // content 120 + padding 12
-      expect(Math.round(eng[0].w)).toBe(144); // padding 이 두 번 더해진다
+      expect(Math.round(eng[0].w)).toBe(132); // 종전 144 (padding 이중)
     });
   });
 });

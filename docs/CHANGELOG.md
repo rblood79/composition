@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — padding 있는 텍스트의 폭 이중 가산 · grid 안 padded 컨테이너 크기] - 2026-09-07
+
+### Fixed
+
+- flex 컨테이너 안 Text 에 좌우 `padding` 을 주면 캔버스 폭이 padding 만큼 더 넓어지던 결함을 고쳤습니다 (`paddingLeft: 12px` "Hello World" — Preview/Chrome 94.4 / 캔버스 107, `12 + 8` — 102.4 / 123). 세로 padding 과 padding 없는 텍스트는 종전대로입니다.
+- grid 컨테이너 안에서 `padding` 이 있는 auto 크기 Frame 이 padding 만큼 작게 잡히던 결함을 고쳤습니다 — `auto` 트랙 폭 (50 → 70), `justify-items: start` 배치 폭, auto 행 높이 (20 → 40) 전부 Chrome 값.
+- 근거: Taffy 0.10→0.14 대조 §4 ⑨ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`) — "실측 전 판정 보류" 항목을 pipeline 실측으로 확정. 엔진의 auto 축 반환 계약 (content-box) 을 leaf 까지 통일하고 grid 소비처가 pad/border 를 더합니다 (ledger §26). Chrome 차등 게이트 `tests/parity/paddedLeafIntrinsic.browser.test.ts` 16 (baseline 13 RED → GREEN), `shrinkToFitInline` 구 [잔존] 132, unit 6 · cargo 400, parity 1,210 PASS (기존 실패 2 유지), type-check 0. live (Playwright 격리 프로젝트, `getSharedLayoutMap`): flex row Frame 안 `width:auto` Text 82 / padded Text **102** (= 82 + 20, Chrome 102.4 · 종전 122), grid `auto 1fr` 안 padded Frame 70 · 내부 x 10.
+
 ## [ADR-206 Implemented — 엔진 늘어난 크기 definite 전파 + grid 암묵 트랙 준수] - 2026-09-07
 
 ### Changed

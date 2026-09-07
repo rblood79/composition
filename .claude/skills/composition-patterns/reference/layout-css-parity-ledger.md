@@ -721,3 +721,30 @@ Taffy 0.10→0.14 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-0
 - ❌ 암묵 트랙 크기를 `grid-auto-*` 첫 토큰 px 로만 읽기 → 목록 순환 + `fr`/`auto` 는 명시 트랙과 같은 sizing
 - ❌ 암묵 행을 row-flow 에만, 암묵 열을 auto 폭 분기에만 만들기 → 배치 결과의 extent 가 유일 기준
 - ❌ `repeat(N, …)` 을 토큰 하나로 둔 채 트랙 sizing 에 넘기기 → 행 수가 접힌다
+
+## auto 축의 solve 반환은 content-box 다 — leaf 도, 그리고 grid 는 그 위에 pad/border 를 더한다 (Taffy #1018, 2026-09-07)
+
+Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline (실제 텍스트 측정 스칼라) 로 재현해 **확정**했고, 같은 질문을 컨테이너에도 던지자 grid 쪽에 반대 부호의 잠복 결함이 같이 나왔다.
+
+| 결함                                                              | 거처                                                          |          Chrome |       구 엔진 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------- | --------------: | ------------: |
+| flex row > Text `paddingLeft 12` (스칼라 leaf)                    | `resolve_leaf_intrinsic_width` 가 border-box 보고 → flex `border_main` 이 또 더함 | 94.4 | **107** |
+| flex row > Text `padding 12 / 8`                                  | 같은 곳                                                       |           102.4 |       **123** |
+| grid `auto` 트랙 > padded **컨테이너** (auto 폭)                  | `col_contribution` 이 content-box 반환에 pad 를 안 더함       |              70 |        **50** |
+| grid `justify-items:start` > padded 컨테이너                      | `place_grid_axis(real_size: cw)` 같은 이유                    |              70 |        **50** |
+| grid auto 행 > padded 컨테이너 (auto 높이)                        | 행 기여 · `real_size: ch` 같은 이유 (블록 축)                  |              40 |        **20** |
+
+- **계약 하나로 통일**: `solve_node` 의 **auto 축 반환은 content-box** (컨테이너 `solve_*` 가 이미 그랬다 — "auto 축 반환은 content-box"), 명시 크기와 intrinsic 키워드는 border-box. leaf 의 스칼라 경로 (`width: auto` + `contentMin/MaxWidth`) 만 border-box 를 보고하던 유일한 생산자였다. 이제 `(보고값, 자기 layout 의 border-box)` 두 값을 돌려 layout 은 border-box, 보고는 content-box.
+- **소비처 셋 중 둘은 원래 맞았다** — flex `border_main` · block `content_w + pad_border_h` 는 content-box 를 기대해 leaf 에서만 이중이었고, grid 는 반환을 border-box 로 읽어 leaf 는 우연히 맞고 컨테이너는 padding 만큼 모자랐다. grid 기여 (`col_contribution` · 행 기여) 와 배치 (`place_grid_axis` 의 `real_size`) 가 auto 축 자식에 pad/border 를 더한다 — `child_auto_inline_pad_border` / `child_auto_block_pad_border` (명시·키워드는 0).
+- **기여의 `%` padding 은 0** — margin 과 같은 규칙 (순환 백분율, CSS-SIZING-3 §5.2.1). 재진입 pass 에서 확정 폭으로 풀면 auto 트랙이 부푼다 (실측 shrink-to-fit grid + `paddingLeft:10%`: Chrome 120 / 확정 기준 132). 배치 (`real_size`) 는 셀 폭 기준으로 푼다.
+- flex `off+19` (§4.5 정확 min-content) 의 row 값도 content 공간 — 종전 `+ pad_border_main` 은 leaf border-box 보고와 짝이었다. column 은 leaf 높이가 명시 (border-box) 라 유지.
+- Chrome 실측 fixture: `paddedLeafIntrinsic.browser.test.ts` (pipeline — 부모 4 × padding 3 + 대조군 4 = 16, baseline 13 RED). engine: `shrinkToFitInline` 구 `[잔존] padding 이중 계산` → 132 (positive). unit: `padded_scalar_leaf_in_flex_row_…` · `padded_auto_container_in_flex_row_…` · `grid_auto_track_contribution_is_border_box_…` · `grid_justify_start_uses_border_box_…` · `grid_auto_row_padded_container_block_axis` · `padded_scalar_leaf_in_fit_content_block_parent`.
+- live (2026-09-07, Playwright 격리 프로젝트 — Chrome MCP 탭은 hidden 이라 shared layout version 이 store 를 못 따라와 (7 < 14) 대체): flex row Frame > `width:auto` Text 82 · padded (12/8) Text **102** (Chrome 102.4, 종전 122) · grid `auto 1fr` > padded Frame 70 · inner x 10. production 의 Text 는 base width 100% (B22) 라 `width:auto` 를 명시해야 스칼라 경로다.
+- **별개 발견 (미수리, 기록)**: `width: fit-content` / `max-content` 를 가진 **컨테이너**가 pipeline leg 에서 padding 과 무관하게 부모 폭 400 (Chrome 94.4) — engine leg 는 정합 (ledger §8) 이므로 TS 가 컨테이너 키워드 폭을 엔진에 안 넘기거나 선해석하는 경로. `max-content` 부모 아래 Text 는 스칼라도 사라진다 (폭 12 = padding 만). Styles 패널에서 Frame 폭에 키워드를 넣을 때 도달 — 후속 판정.
+
+### 금지 패턴
+
+- ❌ leaf 의 auto 폭 보고에 pad/border 를 다시 넣기 → 세 커널 전부 이중
+- ❌ grid 기여를 반환값 그대로 (border-box 로 가정) 쓰기 → padded 컨테이너의 트랙이 모자란다
+- ❌ 기여의 `%` padding 을 확정 폭으로 풀기 → 재진입 pass 에서 auto 트랙 팽창
+- ❌ `off+19` 에 pad_border 를 다시 더하기 → §4.5 floor 가 padding 만큼 부푼다
