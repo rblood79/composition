@@ -174,6 +174,10 @@ const CONTAINER_DIMENSION_TAGS = new Set([
   //   escape 좌표가 box 밖으로 어긋난다. `_containerWidth` 주입으로 escape 가 실제 box 폭을 받아
   //   "한 노드에 box+text+icon 을 다 그리는" Skia 좌표계가 box 와 일치(ListBox/GridList 동형).
   "DateInput",
+  // ADR-194: chart_scene 은 plot 영역·축 여백을 **실제 박스 크기** 위에서 잡는다.
+  //   미주입 시 rule sizes.height 만 알고 폭을 모르므로 DOM(ResizeObserver 실측)과
+  //   다른 좌표가 나온다 — 대칭이 깨지는 지점이 바로 여기다.
+  "Chart",
 ]);
 
 /**
@@ -1763,6 +1767,20 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       _containerWidth: w,
       _containerHeight: h,
     };
+  }
+
+  // ADR-194 — chart rule 채널 주입 (R8).
+  //   `SkiaPrimitiveDrawFn` ctx 는 {props,size,visual,paint,style} 뿐이라 팔레트가 실릴
+  //   자리가 없고, `ComponentVisualRule` 은 "VariantSpec 색상 필드 전수" 라는 불변식이
+  //   있어(resolveComponentVisual.test 가 계약으로 검증) 거기 얹을 수도 없다. 그래서
+  //   `_containerWidth` 와 같은 자리에서 props 로 넣는다. **TokenRef 그대로** 넣는 이유:
+  //   여기서 hex 로 풀면 dark 전환 때 Skia 만 옛 색으로 남는다 — 색은 converter 가
+  //   theme 과 함께 푼다.
+  if (type === "Chart") {
+    const chartChannel = resolveSkiaRule(type)?.chart;
+    if (chartChannel) {
+      specProps = { ...specProps, _chartRule: chartChannel };
+    }
   }
 
   // ---------- component state (ADR-912 단계 3: racStateAttrs) ----------

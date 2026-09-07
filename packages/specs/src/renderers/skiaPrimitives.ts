@@ -35,6 +35,21 @@ import {
   DATE_PICKER_SIZES,
 } from "./datePickerShapes";
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
+import {
+  CHART_DEFAULT_PROPS,
+  computeChartScene,
+  resolveChartMetrics,
+} from "../chart";
+import type {
+  ChartLegendPosition,
+  ChartOrientation,
+  ChartRow,
+  ChartRuleChannel,
+  ChartStackType,
+  ChartType,
+  Mark,
+  TextMark,
+} from "../chart";
 import { resolveSpecFontSize } from "./utils/resolveSpecFontSize";
 import { resolveTextSourceText } from "./utils/textSource";
 import {
@@ -3275,9 +3290,215 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
 };
 
 /** skiaPrimitive 키 → draw module. binding.skiaPrimitive 가 이 키를 가리킨다. */
+
+// ─── ADR-194 chart_scene ────────────────────────────────────────────────────
+
+/**
+ * `chart_scene` — 차트 Skia consumer (replace).
+ *
+ * **기하를 여기서 만들지 않는다.** `computeChartScene`(../chart) 이 낸 좌표를 Shape 로
+ * 옮기기만 한다 — DOM 의 `Chart.tsx` 도 같은 scene 의 같은 숫자를 `<svg>` 로 옮긴다.
+ * 두 파일이 각자 좌표를 계산하면 그 차이는 단위 테스트가 아니라 화면에서만 보인다.
+ *
+ * **색은 TokenRef 로 싣는다**: scene 은 팔레트 **인덱스** 만 들고 있고, 여기서 rule 의
+ * `chart.series[i]` TokenRef 를 Shape 의 `fill`/`stroke` 에 그대로 넣는다. hex 로 미리
+ * 풀면 dark 전환 때 Skia 만 옛 색으로 남는다 — converter(`colorValueToFloat32`)가
+ * theme 과 함께 푸는 것이 대칭 경로다.
+ *
+ * ctx 에 데이터 채널이 없으므로(`SkiaPrimitiveDrawFn` 은 props/size/visual/paint/style)
+ * 행과 rule chart 채널은 scene-node 층이 `_chartRows` / `_chartRule` 로 주입한다
+ * (`buildSpecNodeData` 의 `_containerWidth` 주입과 같은 자리, ADR-194 R8).
+ */
+const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
+  const channel = props._chartRule as ChartRuleChannel | undefined;
+  const width = parsePxValue(
+    props._containerWidth,
+    parsePxValue(style?.width, 0),
+  );
+  const height = parsePxValue(
+    props._containerHeight,
+    typeof size.height === "number" ? size.height : 0,
+  );
+  const sizeKey = (props.size as string | undefined) ?? "md";
+  const metrics = resolveChartMetrics(channel, String(sizeKey).toLowerCase());
+
+  const rows = Array.isArray(props._chartRows)
+    ? (props._chartRows as ChartRow[])
+    : Array.isArray(props.data)
+      ? (props.data as ChartRow[])
+      : [];
+
+  const scene = computeChartScene(
+    {
+      chartType:
+        (props.chartType as ChartType | undefined) ??
+        CHART_DEFAULT_PROPS.chartType,
+      dimension:
+        (props.dimension as string | undefined) ??
+        CHART_DEFAULT_PROPS.dimension,
+      metric: (props.metric as string | undefined) ?? CHART_DEFAULT_PROPS.metric,
+      ...(typeof props.color === "string" && props.color
+        ? { color: props.color }
+        : {}),
+      orientation:
+        (props.orientation as ChartOrientation | undefined) ??
+        CHART_DEFAULT_PROPS.orientation,
+      stackType:
+        (props.stackType as ChartStackType | undefined) ??
+        CHART_DEFAULT_PROPS.stackType,
+      showAxis: (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
+      showGrid: (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
+      showLegend:
+        (props.showLegend as boolean | undefined) ??
+        CHART_DEFAULT_PROPS.showLegend,
+      legendPosition:
+        (props.legendPosition as ChartLegendPosition | undefined) ??
+        CHART_DEFAULT_PROPS.legendPosition,
+    },
+    rows,
+    { width, height },
+    metrics,
+  );
+
+  const seriesToken = (index: number): TokenRef => {
+    const palette = channel?.series ?? [];
+    if (palette.length === 0) return "{color.accent}" as TokenRef;
+    return palette[index % palette.length] as TokenRef;
+  };
+  const axisToken = (channel?.axis ?? "{color.neutral-subdued}") as TokenRef;
+  const gridToken = (channel?.grid ?? "{color.border}") as TokenRef;
+  const textToken = (paint.color ?? "{color.neutral}") as TokenRef;
+
+  const shapes: Shape[] = [];
+
+  // 컨테이너 box — replace 라 buildCatalogShapes 의 box 가 없다. DOM 은 같은 값을
+  //   `.react-aria-Chart` 의 background/border 로 그린다.
+  shapes.push({
+    id: "chart-bg",
+    presentationRole: "background-fill",
+    type: "roundRect",
+    x: 0,
+    y: 0,
+    width: "auto",
+    height: "auto" as unknown as number,
+    radius: parsePxValue(
+      style?.borderRadius,
+      typeof size.borderRadius === "number" ? size.borderRadius : 6,
+    ),
+    fill: (paint.backgroundColor ?? "{color.transparent}") as TokenRef,
+  });
+  const borderWidth = parseBorderWidth(style?.borderWidth, 1);
+  if (borderWidth > 0 && paint.borderColor) {
+    shapes.push({
+      type: "border",
+      target: "chart-bg",
+      borderWidth,
+      color: paint.borderColor as TokenRef,
+    });
+  }
+
+  const pushText = (mark: TextMark): void => {
+    // Skia TextShape 는 회전이 없다 (v1 비스코프) — 수평 고정.
+    //   `as Shape` 캐스팅을 쓰지 않는다: 초안이 필드명을 `content` 로 잘못 써도 캐스팅이
+    //   타입 오류를 삼켜 **텍스트가 통째로 안 그려지는** 상태로 통과했다 (2026-09-08,
+    //   parity 테스트의 type-check 가 잡음). 필드는 `text` 다.
+    shapes.push({
+      type: "text",
+      x: mark.x,
+      y: mark.y,
+      text: mark.text,
+      fontSize: metrics.fontSize,
+      fontFamily: fontFamily.sans,
+      fill: mark.role === "legend" ? textToken : axisToken,
+      align:
+        mark.anchor === "start"
+          ? "left"
+          : mark.anchor === "end"
+            ? "right"
+            : "center",
+      baseline:
+        mark.baseline === "top"
+          ? "top"
+          : mark.baseline === "bottom"
+            ? "bottom"
+            : "middle",
+    });
+  };
+
+  const pushMark = (mark: Mark): void => {
+    switch (mark.kind) {
+      case "rect":
+        shapes.push({
+          type: "rect",
+          x: mark.x,
+          y: mark.y,
+          width: mark.w,
+          height: mark.h,
+          fill: seriesToken(mark.seriesIndex),
+        });
+        return;
+      case "path":
+        shapes.push({
+          type: "path",
+          d: mark.d,
+          x: 0,
+          y: 0,
+          width: mark.bbox.x + mark.bbox.w,
+          height: mark.bbox.y + mark.bbox.h,
+          ...(mark.fillSeries !== undefined
+            ? { fill: seriesToken(mark.fillSeries), fillAlpha: 0.85 }
+            : {}),
+          ...(mark.strokeSeries !== undefined
+            ? {
+                stroke: seriesToken(mark.strokeSeries),
+                strokeWidth: mark.strokeWidth ?? metrics.strokeWidth,
+              }
+            : {}),
+          strokeCap: "round",
+          strokeJoin: "round",
+          ...(mark.fillRule ? { fillRule: mark.fillRule } : {}),
+        });
+        return;
+      case "line":
+        shapes.push({
+          type: "line",
+          x1: mark.x1,
+          y1: mark.y1,
+          x2: mark.x2,
+          y2: mark.y2,
+          stroke: mark.role === "grid" ? gridToken : axisToken,
+          strokeWidth: 1,
+        });
+        return;
+      case "text":
+        pushText(mark);
+        return;
+    }
+  };
+
+  // 그리는 순서는 DOM `renderChartScene` 과 같다 — grid → 마크 → 축선/tick → 범례.
+  //   순서가 갈리면 겹치는 자리에서만 두 화면이 달라진다.
+  for (const axis of scene.axes) for (const line of axis.grid) pushMark(line);
+  for (const mark of scene.marks) pushMark(mark);
+  for (const axis of scene.axes) {
+    if (axis.line) pushMark(axis.line);
+    for (const tick of axis.ticks) pushText(tick);
+  }
+  if (scene.legend) {
+    for (const item of scene.legend.items) {
+      pushMark(item.swatch);
+      pushText(item.text);
+    }
+  }
+
+  return shapes;
+};
+
 export const SKIA_PRIMITIVES: Readonly<Record<string, SkiaPrimitiveDrawFn>> = {
   icon_font: iconFont,
   dot,
+  // ADR-194: 차트 (replace — scene 전체를 자체 생성, box+text 대체).
+  chart_scene: chartScene,
   divider,
   // ADR-912 Pattern B (TableRow catalog cutover): 행 하단 구분선(append, y=rowHeight).
   table_row_divider: tableRowDivider,
@@ -3344,6 +3565,10 @@ export type SkiaPrimitiveMode = "replace" | "prepend" | "append";
  * 미등록 키는 `"replace"` 로 간주(기존 호환).
  */
 const SKIA_PRIMITIVE_MODES: Readonly<Record<string, SkiaPrimitiveMode>> = {
+  // ADR-194: chart_scene 은 컨테이너 box 부터 축·마크·범례까지 scene 전체를 자체 생성
+  //   (좌표가 절대 배치라 buildCatalogShapes 의 box+center-text 가정과 충돌) → replace.
+  //   미등록=replace 지만 의도 명시.
+  chart_scene: "replace",
   // ADR-912 Pattern B: table_row_divider 는 bg box(buildCatalogShapes) 아래쪽 경계 line → append.
   table_row_divider: "append",
   // ADR-912 projection 3: tablist_divider 는 transparent shell 아래쪽/우측 경계 line → append.
