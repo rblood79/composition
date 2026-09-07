@@ -8,6 +8,7 @@ export {
   renderArc,
   renderPartialBorder,
   renderIconPath,
+  renderPath,
   renderScrollbar,
 } from "./nodeRendererShapes";
 export { renderImage } from "./nodeRendererImage";

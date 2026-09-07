@@ -155,6 +155,7 @@ D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델�
 | Phase | 상태 | 일자 | 결과 |
 | :---: | ---- | ---- | ---- |
 | 0 | ✅ Implemented | 2026-09-08 | inventory freeze (breakdown §2 재실측, HEAD `795f405b5`). **G0 PASS** — R1 emit 미지원 확정 → `ComponentRule.chart` top-level 채널 신설 + Phase 3 emit 확장 선행 · R6 publish registry 검출 테스트 부재 확정 → Phase 3 oracle 추가 · R8 rows 채널 부재 확정 (주입 지점 `buildSpecNodeData.ts:1760-1766`) · R9 bbox 필수 확정 · **R10 해소** (`editorMutationEffectRegistry.ts:31/96/362` 에 `"size"` 이미 등재 — 초안 grep 은 심볼 이관 전 stale) · ADR-117 Implemented 2026-08-28 (직교 전제 성립). gap 배수 1.0x |
+| 1 | ✅ Implemented | 2026-09-08 | `PathShape` (Shape 유니온 13번째, additive) + Skia `path` 노드 + `renderPath` + converter `case "path"`. **G1 PASS** — converter 단위 5 (fill/stroke/evenodd/bbox offset/기본값) + **실제 CanvasKit surface 픽셀 5** (`nodeRendererPath.integration.test.ts` — 삼각형 fill · SVG `A` 호 stroke · evenodd 도넛이 nonzero 와 갈리는 것까지 픽셀로 확인 · offset · 조기 반환). R9 bbox = offset 포함 원점 기준 extent 로 AABB 상위집합 보장. 기존 12 shape·`SkiaPrimitiveDrawFn`·lucide 채널 무변경 |
 
 
 ## Consequences

@@ -38,6 +38,7 @@ import {
   renderImage,
   renderLine,
   renderIconPath,
+  renderPath,
   renderPartialBorder,
   renderScrollbar,
   buildClipPath,
@@ -2383,6 +2384,9 @@ function executeCommandRange(
             break;
           case "icon_path":
             renderIconPath(ck, canvas, cmd.skiaData);
+            break;
+          case "path":
+            renderPath(ck, canvas, cmd.skiaData);
             break;
           case "partial_border":
             renderPartialBorder(ck, canvas, cmd.skiaData);

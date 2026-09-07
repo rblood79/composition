@@ -29,6 +29,7 @@ export interface SkiaNodeData {
     | "line"
     | "arc"
     | "icon_path"
+    | "path"
     | "partial_border";
   elementId?: string;
   x: number;
@@ -129,6 +130,22 @@ export interface SkiaNodeData {
     strokeColor: Float32Array;
     strokeWidth: number;
     strokeCap?: "butt" | "round" | "square";
+  };
+  /**
+   * ADR-194: 임의 벡터 형상 (SVG path data). `d` 는 부모 노드 좌표계 기준이고
+   * offsetX/offsetY 로만 이동한다 — 노드 자체는 원점(x=0,y=0)에 서고 width/height 는
+   * offset 을 포함한 원점 기준 extent(=AABB 상위집합)라 컬링이 오판하지 않는다 (R9).
+   */
+  path?: {
+    d: string;
+    offsetX: number;
+    offsetY: number;
+    fillColor?: Float32Array;
+    strokeColor?: Float32Array;
+    strokeWidth: number;
+    strokeCap?: "butt" | "round" | "square";
+    strokeJoin?: "miter" | "round" | "bevel";
+    fillRule?: "nonzero" | "evenodd";
   };
   partialBorder?: PartialBorderData;
   iconPath?: {

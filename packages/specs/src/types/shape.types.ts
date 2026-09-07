@@ -43,6 +43,7 @@ export type Shape =
   | (GradientShape & ShapeBase)
   | (ImageShape & ShapeBase)
   | (LineShape & ShapeBase)
+  | (PathShape & ShapeBase)
   | (IconFontShape & ShapeBase);
 
 /**
@@ -399,6 +400,49 @@ export interface LineShape {
   strokeWidth: number;
   strokeDasharray?: number[];
   strokeCap?: "butt" | "round" | "square";
+}
+
+/**
+ * 임의 벡터 형상 (SVG path data)
+ *
+ * ADR-194 Phase 1. `d` 는 CanvasKit `Path.MakeFromSVGString` 이 그대로 소비하는
+ * SVG path 문자열 (M/L/C/Q/A/Z). 좌표계는 **노드 로컬 px** 이며 `x`/`y` 오프셋만
+ * 별도로 적용된다 — DOM 은 같은 문자열을 `<path d>` 에 그대로 싣는다 (기하 함수가
+ * SSOT, 두 consumer 는 좌표를 복사만 한다).
+ *
+ * **`width`/`height` (bbox) 는 필수** (ADR-194 R9): Skia 노드의 width/height 가
+ * AABB 컬링과 Picture 캐시 키의 축이라, `d` 만 있는 노드는 0 크기로 취급돼 화면
+ * 밖 판정·캐시 키가 무너진다. 기하 모듈이 좌표를 이미 알고 있으므로 `d` 재파싱
+ * 없이 bbox 를 함께 싣는다.
+ */
+export interface PathShape {
+  type: "path";
+  /** SVG path data (M/L/C/Q/A/Z). 좌표계 = 노드 로컬 px. */
+  d: string;
+  /** 그리기 오프셋 X (기본 0) */
+  x?: number;
+  /** 그리기 오프셋 Y (기본 0) */
+  y?: number;
+  /** bbox 너비 — 노드 width/컬링/캐시 키 축 (필수) */
+  width: number;
+  /** bbox 높이 — 노드 height/컬링/캐시 키 축 (필수) */
+  height: number;
+  /** 채우기 색 (미지정 시 fill 안 함) */
+  fill?: ColorValue;
+  /** 채우기 투명도 0-1. hex8 색 채널 시프트 함정 회피 — alpha 는 본 필드로 운반. */
+  fillAlpha?: number;
+  /** 선 색 (미지정 시 stroke 안 함) */
+  stroke?: ColorValue;
+  /** 선 투명도 0-1 */
+  strokeAlpha?: number;
+  /** 선 두께 (기본 1) */
+  strokeWidth?: number;
+  /** 선 끝 모양 (기본 butt) */
+  strokeCap?: "butt" | "round" | "square";
+  /** 선 이음 모양 (기본 miter) */
+  strokeJoin?: "miter" | "round" | "bevel";
+  /** 채우기 규칙 (기본 nonzero — pie donut 등 구멍 뚫린 형상은 evenodd) */
+  fillRule?: "nonzero" | "evenodd";
 }
 
 /**

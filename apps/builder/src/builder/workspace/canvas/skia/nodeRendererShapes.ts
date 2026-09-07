@@ -252,6 +252,82 @@ export function renderIconPath(
   canvas.restore();
 }
 
+/**
+ * ADR-194 Phase 1 — 임의 SVG path 렌더.
+ *
+ * `Path.MakeFromSVGString` 은 CanvasKit 0.42.0 유지 API (ADR-117 Implemented 후에도
+ * 동일) 다. lucide 레지스트리에 잠겨 있던 이 경로가 본 함수로 일반화된다 —
+ * `renderIconPath` 는 24 viewBox 스케일 + round cap/join 이 고정된 아이콘 전용이라
+ * 그대로 두고(레지스트리 채널 불변), 임의 형상은 여기로 온다.
+ *
+ * fill 과 stroke 는 배타가 아니라 가산 — 둘 다 지정되면 fill 후 stroke 를 얹는다
+ * (SVG `<path fill stroke>` 동형).
+ */
+export function renderPath(
+  ck: CanvasKit,
+  canvas: Canvas,
+  node: SkiaNodeData,
+): void {
+  if (!node.path) return;
+  const { d, offsetX, offsetY, fillColor, strokeColor, strokeWidth } =
+    node.path;
+
+  const hasFill = !!fillColor && fillColor[3] > 0;
+  const hasStroke = !!strokeColor && strokeColor[3] > 0 && strokeWidth > 0;
+  if (!hasFill && !hasStroke) return;
+
+  const path = ck.Path.MakeFromSVGString(d);
+  if (!path) return;
+
+  if (node.path.fillRule === "evenodd") {
+    path.setFillType(ck.FillType.EvenOdd);
+  }
+
+  const translated = offsetX !== 0 || offsetY !== 0;
+  if (translated) {
+    canvas.save();
+    canvas.translate(offsetX, offsetY);
+  }
+
+  if (hasFill) {
+    const paint = acquirePooledPaint(ck);
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setColor(fillColor!);
+    canvas.drawPath(path, paint);
+    releasePooledPaint(paint);
+  }
+
+  if (hasStroke) {
+    const paint = acquirePooledPaint(ck);
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Stroke);
+    paint.setStrokeWidth(strokeWidth);
+    const cap = node.path.strokeCap;
+    paint.setStrokeCap(
+      cap === "round"
+        ? ck.StrokeCap.Round
+        : cap === "square"
+          ? ck.StrokeCap.Square
+          : ck.StrokeCap.Butt,
+    );
+    const join = node.path.strokeJoin;
+    paint.setStrokeJoin(
+      join === "round"
+        ? ck.StrokeJoin.Round
+        : join === "bevel"
+          ? ck.StrokeJoin.Bevel
+          : ck.StrokeJoin.Miter,
+    );
+    paint.setColor(strokeColor!);
+    canvas.drawPath(path, paint);
+    releasePooledPaint(paint);
+  }
+
+  if (translated) canvas.restore();
+  path.delete();
+}
+
 export function renderScrollbar(
   ck: CanvasKit,
   canvas: Canvas,

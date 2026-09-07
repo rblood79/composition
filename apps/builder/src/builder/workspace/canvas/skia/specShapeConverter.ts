@@ -481,6 +481,57 @@ export function specShapesToSkia(
         break;
       }
 
+      // ADR-194 Phase 1 — 임의 벡터 형상. line 동형으로 노드는 원점에 서고 `d` 가
+      //   부모 좌표계를 그대로 쓴다. width/height 는 offset 포함 extent 라
+      //   AABB 컬링(renderCommands `cmd.width > 0 || cmd.height > 0`)이 실제 그려지는
+      //   영역의 상위집합을 본다 — bbox 를 shape 가 싣는 이유 (R9).
+      case "path": {
+        if (!shape.d) break;
+        const offsetX = shape.x ?? 0;
+        const offsetY = shape.y ?? 0;
+
+        const node: SkiaNodeData = {
+          type: "path",
+          x: 0,
+          y: 0,
+          width: offsetX + shape.width,
+          height: offsetY + shape.height,
+          visible: true,
+          path: {
+            d: shape.d,
+            offsetX,
+            offsetY,
+            ...(shape.fill !== undefined
+              ? {
+                  fillColor: colorValueToFloat32(
+                    shape.fill,
+                    theme,
+                    shape.fillAlpha ?? 1,
+                  ),
+                }
+              : {}),
+            ...(shape.stroke !== undefined
+              ? {
+                  strokeColor: colorValueToFloat32(
+                    shape.stroke,
+                    theme,
+                    shape.strokeAlpha ?? 1,
+                  ),
+                }
+              : {}),
+            strokeWidth: shape.strokeWidth ?? 1,
+            ...(shape.strokeCap ? { strokeCap: shape.strokeCap } : {}),
+            ...(shape.strokeJoin ? { strokeJoin: shape.strokeJoin } : {}),
+            ...(shape.fillRule ? { fillRule: shape.fillRule } : {}),
+          },
+        };
+
+        collectPresentationFillTarget(shape, node);
+        children.push(node);
+        lastNode = node;
+        break;
+      }
+
       case "icon_font": {
         if (!shape.iconName) break;
         const iconData = getIconData(
@@ -1153,6 +1204,13 @@ export function specShapesToSkia(
     if (node.arc) {
       presentationFillTargets.push({
         color: node.arc.strokeColor,
+        opacityMultiplier: shape.presentationOpacityMultiplier ?? 1,
+      });
+      return;
+    }
+    if (node.path?.fillColor) {
+      presentationFillTargets.push({
+        color: node.path.fillColor,
         opacityMultiplier: shape.presentationOpacityMultiplier ?? 1,
       });
       return;
