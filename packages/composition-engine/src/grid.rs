@@ -78,12 +78,49 @@ impl GridTrack {
 /// `tree.rs` 도 같은 분해를 써야 한다 — `split_whitespace` 로 자르면
 /// `minmax(50px, 80px)` 처럼 **내부에 공백이 있는** 토큰이 두 조각으로 쪼개진다.
 pub(crate) fn tokenize_template(template: &str) -> Vec<String> {
+    tokenize_template_with_line_names(template).0
+}
+
+/// 트랙 토큰 + **라인 이름** (CSS-GRID-1 §7.2.1 `[name …]`) 분리 (upstream 대조 ⑥, Taffy #1138).
+///
+/// `[a] 1fr [b] 1fr [c]` → 트랙 `["1fr", "1fr"]`, 이름 `[("a",1), ("b",2), ("c",3)]` (1-based 라인).
+/// 대괄호 안의 공백은 이름 구분자 (`[a b]` = 같은 라인의 이름 둘) 라 토큰을 자르지 않는다.
+/// 종전엔 `[a]` 가 트랙 토큰으로 남아 `auto` 트랙으로 읽혔다 (Chrome G3 a.w 150 / 엔진 60 — 5 트랙).
+/// `repeat()` 안의 이름은 반복 전개 (`expand_repeat_tokens` / `expand_repeat`) 가 같은 함수로 뗀다.
+pub(crate) fn tokenize_template_with_line_names(template: &str) -> (Vec<String>, Vec<(String, usize)>) {
     let mut tokens: Vec<String> = Vec::new();
+    let mut names: Vec<(String, usize)> = Vec::new();
     let mut depth: i32 = 0;
+    let mut in_bracket = false;
     let mut current = String::new();
 
+    let flush_track = |current: &mut String, tokens: &mut Vec<String>| {
+        let t = current.trim();
+        if !t.is_empty() {
+            tokens.push(t.to_string());
+        }
+        current.clear();
+    };
+
     for ch in template.chars() {
+        if in_bracket {
+            if ch == ']' {
+                in_bracket = false;
+                // 이름은 다음 트랙의 앞 라인 = tokens.len() + 1.
+                for name in current.split_whitespace() {
+                    names.push((name.to_string(), tokens.len() + 1));
+                }
+                current.clear();
+            } else {
+                current.push(ch);
+            }
+            continue;
+        }
         match ch {
+            '[' if depth == 0 => {
+                flush_track(&mut current, &mut tokens);
+                in_bracket = true;
+            }
             '(' => {
                 depth += 1;
                 current.push(ch);
@@ -92,21 +129,26 @@ pub(crate) fn tokenize_template(template: &str) -> Vec<String> {
                 depth -= 1;
                 current.push(ch);
             }
-            ' ' if depth == 0 => {
-                let t = current.trim();
-                if !t.is_empty() {
-                    tokens.push(t.to_string());
-                }
-                current.clear();
-            }
+            ' ' if depth == 0 => flush_track(&mut current, &mut tokens),
             _ => current.push(ch),
         }
     }
-    let t = current.trim();
-    if !t.is_empty() {
-        tokens.push(t.to_string());
+    if !in_bracket {
+        flush_track(&mut current, &mut tokens);
     }
-    tokens
+    (tokens, names)
+}
+
+/// 라인 이름 → 라인 번호 (CSS-GRID-1 §8.3 `<custom-ident> [<integer>]`). `b` = 첫 `b` 라인,
+/// `x 2` = 두 번째 `x` 라인. 없는 이름은 `None` (호출부가 auto 로 둔다 — 암묵 이름 생성은 미대상).
+pub(crate) fn resolve_line_name(value: &str, names: &[(String, usize)]) -> Option<usize> {
+    let mut parts = value.split_whitespace();
+    let name = parts.next()?;
+    let nth: usize = parts.next().and_then(|n| n.parse().ok()).unwrap_or(1).max(1);
+    if parts.next().is_some() || name.parse::<i32>().is_ok() || name.eq_ignore_ascii_case("span") {
+        return None;
+    }
+    names.iter().filter(|(n, _)| n == name).nth(nth - 1).map(|(_, line)| *line)
 }
 
 /// 정수 반복 `repeat(N, <track-list>)` 를 **토큰 수준**에서 펼친다 (CSS-GRID-1 §7.2.3.1).
@@ -229,11 +271,124 @@ fn parse_minmax(expr: &str, container_size: f32) -> GridTrack {
 
 // ─── repeat() 전개 ─────────────────────────────────────────────────────
 
+/// auto-fill / auto-fit 반복 수 (CSS-GRID-1 §7.2.3.2, upstream 대조 ⑥ — Taffy #946).
+///
+/// 각 트랙은 **max 가 definite 면 max, 아니면 min** 으로 센다 (`minmax(100px, 1fr)` → 100 ·
+/// `minmax(auto, 200px)` → 200 · `25%` → 컨테이너 기준 px). 반복 수 = floor((컨테이너 + gap) /
+/// (패턴 합 + 패턴 길이 × gap)), 하한 1. 패턴에 definite 크기가 없거나 컨테이너가 미결정이면 1
+/// (auto-repeat 문법상 definite 트랙이 하나는 있어야 한다). 종전엔 min px 만 합산해
+/// `minmax(auto, 200px)` · `25%` 가 1 반복이었다 (Chrome G1b b.x 200 / 엔진 0,20).
+fn auto_repeat_count(
+    pattern_tracks: &[GridTrack],
+    container_size: f32,
+    gap: f32,
+    outside_tracks: &[GridTrack],
+) -> usize {
+    if container_size <= 0.0 || pattern_tracks.is_empty() {
+        return 1;
+    }
+    let pattern_size: f32 = pattern_tracks.iter().map(|t| repeat_count_size(t, container_size)).sum();
+    if pattern_size <= 0.0 {
+        return 1;
+    }
+    // 반복 밖의 명시 트랙 (+ 그 gutter) 은 먼저 공간을 차지한다 — `50px repeat(auto-fill, 100px) 50px`
+    // w400 → (400 − 100 − gap·2) 에서 센다 (Chrome e.w 50 = 3 반복 / 컨테이너 전체로 세면 4).
+    let outside: f32 = outside_tracks.iter().map(|t| repeat_count_size(t, container_size)).sum::<f32>()
+        + gap * outside_tracks.len() as f32;
+    let effective_gap = gap * pattern_tracks.len() as f32;
+    let n = ((container_size - outside + gap) / (pattern_size + effective_gap)).floor();
+    (n.max(1.0)) as usize
+}
+
+/// §7.2.3.2 반복 수 계산에서 트랙 하나가 차지하는 크기 — max 가 definite 면 max (min 으로 floor),
+/// 아니면 min, 둘 다 아니면 0.
+fn repeat_count_size(track: &GridTrack, container_size: f32) -> f32 {
+    match track.unit {
+        TrackUnit::Px => track.size.max(0.0),
+        TrackUnit::Percent => (track.fr_value / 100.0 * container_size).max(0.0),
+        // max ≥ 0 = px/% 로 확정된 max, 음수 = fr / auto → min 으로.
+        TrackUnit::Minmax => {
+            if track.max >= 0.0 {
+                track.max.max(track.min)
+            } else {
+                track.min
+            }
+        }
+        _ => 0.0,
+    }
+}
+
+/// auto-repeat 범위 — 펼친 토큰 목록에서 `[start, start + len)` 이 auto-fill/auto-fit 트랙.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub(crate) struct AutoRepeatRange {
+    pub start: usize,
+    pub len: usize,
+    pub is_auto_fit: bool,
+}
+
+/// 토큰 목록의 auto-fill / auto-fit `repeat()` 을 **컨테이너 크기로** 토큰 수준에서 펼친다
+/// (`expand_repeat_tokens` 는 정수 반복만 펼치고 이것들은 남긴다). tree.rs 의 트랙 sizing 은
+/// 토큰 하나 = 트랙 하나라 펼쳐야 명시 트랙 수·기여·stretch 가 자리를 찾는다. 반환 범위는
+/// auto-fit collapse (빈 트랙 제거) 의 후보 구간 — 하나의 auto-repeat 만 허용된다 (CSS 문법).
+pub(crate) fn expand_auto_repeat_tokens(
+    tokens: &[String],
+    container_size: f32,
+    gap: f32,
+) -> (Vec<String>, Option<AutoRepeatRange>) {
+    let mut out: Vec<String> = Vec::with_capacity(tokens.len());
+    let mut range: Option<AutoRepeatRange> = None;
+    let parse_track = |token: &str| {
+        if token.starts_with("minmax(") {
+            parse_minmax(token, container_size)
+        } else {
+            parse_single_track_value(token)
+        }
+    };
+    let outside_tracks: Vec<GridTrack> = tokens
+        .iter()
+        .filter(|t| !t.starts_with("repeat("))
+        .map(|t| parse_track(t))
+        .collect();
+    for tok in tokens {
+        let Some(inner) = tok.strip_prefix("repeat(").and_then(|rest| rest.strip_suffix(')')) else {
+            out.push(tok.clone());
+            continue;
+        };
+        let Some(comma) = inner.find(',') else {
+            out.push(tok.clone());
+            continue;
+        };
+        let count_str = inner[..comma].trim();
+        if count_str != "auto-fill" && count_str != "auto-fit" {
+            out.push(tok.clone());
+            continue;
+        }
+        let pattern = tokenize_template(inner[comma + 1..].trim());
+        if pattern.is_empty() || range.is_some() {
+            out.push(tok.clone());
+            continue;
+        }
+        let pattern_tracks: Vec<GridTrack> = pattern.iter().map(|t| parse_track(t)).collect();
+        let count = auto_repeat_count(&pattern_tracks, container_size, gap, &outside_tracks);
+        let start = out.len();
+        for _ in 0..count {
+            out.extend(pattern.iter().cloned());
+        }
+        range = Some(AutoRepeatRange { start, len: count * pattern.len(), is_auto_fit: count_str == "auto-fit" });
+    }
+    (out, range)
+}
+
 /// `repeat(count | auto-fill | auto-fit, track-list)` 를 트랙 배열로 전개.
 /// auto-fill/auto-fit 은 컨테이너 크기 기반으로 반복 횟수를 산출한다.
 /// 반환: (전개된 트랙, is_auto_fit)
 /// (GridLayout.utils.ts expandRepeat 동일)
-fn expand_repeat(expr: &str, container_size: f32, gap: f32) -> (Vec<GridTrack>, bool) {
+fn expand_repeat(
+    expr: &str,
+    container_size: f32,
+    gap: f32,
+    outside_tracks: &[GridTrack],
+) -> (Vec<GridTrack>, bool) {
     let open = expr.find('(').map(|i| i + 1).unwrap_or(0);
     let close = expr.rfind(')').unwrap_or(expr.len());
     let inner = if open <= close { &expr[open..close] } else { "" };
@@ -278,23 +433,7 @@ fn expand_repeat(expr: &str, container_size: f32, gap: f32) -> (Vec<GridTrack>, 
 
     if count_str == "auto-fill" || count_str == "auto-fit" {
         is_auto_fit = count_str == "auto-fit";
-        // 패턴 당 최소 크기 합산 (minmax→min, px→size, 그 외 0).
-        let mut pattern_min_size = 0.0f32;
-        for track in &pattern_tracks {
-            match track.unit {
-                TrackUnit::Minmax => pattern_min_size += track.min,
-                TrackUnit::Px => pattern_min_size += track.size,
-                _ => {}
-            }
-        }
-
-        if pattern_min_size <= 0.0 {
-            repeat_count = 1;
-        } else {
-            let effective_gap = gap * pattern_tracks.len() as f32;
-            let n = ((container_size + gap) / (pattern_min_size + effective_gap)).floor();
-            repeat_count = (n.max(1.0)) as usize;
-        }
+        repeat_count = auto_repeat_count(&pattern_tracks, container_size, gap, outside_tracks);
     } else {
         repeat_count = count_str.parse::<usize>().unwrap_or(1).max(1);
     }
@@ -514,10 +653,22 @@ pub fn parse_tracks(template: &str, available: f32, gap: f32) -> Box<[f32]> {
 fn parse_template_to_tracks(template: &str, container_size: f32, gap: f32) -> Vec<GridTrack> {
     let tokens = tokenize_template(template.trim());
     let mut tracks: Vec<GridTrack> = Vec::new();
+    // auto-repeat 반복 수는 반복 밖 트랙이 먼저 차지한 공간을 뺀다 (§7.2.3.2).
+    let outside_tracks: Vec<GridTrack> = tokens
+        .iter()
+        .filter(|t| !t.starts_with("repeat("))
+        .map(|token| {
+            if token.starts_with("minmax(") {
+                parse_minmax(token, container_size)
+            } else {
+                parse_single_track_value(token)
+            }
+        })
+        .collect();
 
     for token in &tokens {
         if token.starts_with("repeat(") {
-            let (expanded, _is_auto_fit) = expand_repeat(token, container_size, gap);
+            let (expanded, _is_auto_fit) = expand_repeat(token, container_size, gap, &outside_tracks);
             tracks.extend(expanded);
         } else if token.starts_with("minmax(") {
             tracks.push(parse_minmax(token, container_size));
@@ -1536,6 +1687,54 @@ mod tests {
 
     /// ADR-206 Phase 2 — 라인 정규화: 음수는 명시 grid 끝에서, 0 은 auto, ±10,000 clamp,
     /// start 가 1 앞이면 1 로 당기고 span 축소, end 만 명시하면 그 앞 한 칸.
+    #[test]
+    /// ⑥ (Taffy #1138) — 대괄호 라인 이름은 트랙이 아니다. 이름 → 1-based 라인, 공백 이름 둘.
+    fn test_tokenize_line_names() {
+        let (toks, names) = tokenize_template_with_line_names("[a] 1fr [b] 1fr [c]");
+        assert_eq!(toks, vec!["1fr", "1fr"]);
+        assert_eq!(names, vec![("a".to_string(), 1), ("b".to_string(), 2), ("c".to_string(), 3)]);
+        let (toks, names) = tokenize_template_with_line_names("[a b] 100px [c] minmax(10px, 1fr) [d e]");
+        assert_eq!(toks, vec!["100px", "minmax(10px, 1fr)"]);
+        assert_eq!(names.len(), 5);
+        assert_eq!(names[1], ("b".to_string(), 1));
+        assert_eq!(names[4], ("e".to_string(), 3));
+        assert_eq!(tokenize_template("[a] 1fr [b]"), vec!["1fr"]);
+        // 이름 해석: 첫 번째 · n 번째 · 미지 이름 · 숫자/span 은 이름 아님.
+        let names = vec![("x".to_string(), 1), ("x".to_string(), 2), ("y".to_string(), 3)];
+        assert_eq!(resolve_line_name("x", &names), Some(1));
+        assert_eq!(resolve_line_name("x 2", &names), Some(2));
+        assert_eq!(resolve_line_name("y", &names), Some(3));
+        assert_eq!(resolve_line_name("z", &names), None);
+        assert_eq!(resolve_line_name("2", &names), None);
+        assert_eq!(resolve_line_name("span 2", &names), None);
+    }
+
+    /// ⑥ (Taffy #946) — auto-repeat 반복 수는 "max 가 definite 면 max, 아니면 min" (§7.2.3.2).
+    #[test]
+    fn test_auto_repeat_count_rule() {
+        let pat = |t: &str| parse_template_to_tracks(t, 600.0, 0.0);
+        let none: [GridTrack; 0] = [];
+        assert_eq!(auto_repeat_count(&pat("minmax(100px, 1fr)"), 600.0, 0.0, &none), 6);
+        assert_eq!(auto_repeat_count(&pat("minmax(auto, 200px)"), 600.0, 0.0, &none), 3, "max 200 definite");
+        assert_eq!(auto_repeat_count(&pat("25%"), 400.0, 0.0, &none), 4, "% 는 컨테이너 기준");
+        assert_eq!(auto_repeat_count(&pat("minmax(100px, 1fr)"), 600.0, 20.0, &none), 5, "(600+20)/(100+20)");
+        assert_eq!(auto_repeat_count(&pat("150px"), 600.0, 0.0, &none), 4);
+        assert_eq!(auto_repeat_count(&pat("1fr"), 600.0, 0.0, &none), 1, "definite 없음 → 1");
+        assert_eq!(auto_repeat_count(&pat("100px"), -1.0, 0.0, &none), 1, "컨테이너 미결정 → 1");
+        assert_eq!(auto_repeat_count(&pat("100px"), 400.0, 0.0, &pat("50px 50px")), 3, "밖 트랙 100 을 뺀다");
+        let toks: Vec<String> = ["50px", "repeat(auto-fit, minmax(100px, 1fr))", "50px"]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
+        let (out, range) = expand_auto_repeat_tokens(&toks, 600.0, 0.0);
+        assert_eq!(out.len(), 2 + 5, "(600 − 100)/100 = 5 — 앞뒤 50 이 먼저 차지");
+        let r = range.unwrap();
+        assert_eq!((r.start, r.len, r.is_auto_fit), (1, 5, true));
+        let (out, range) = expand_auto_repeat_tokens(&toks[..1], 600.0, 0.0);
+        assert_eq!(out, vec!["50px"]);
+        assert!(range.is_none());
+    }
+
     #[test]
     fn test_axis_placement_line_normalization() {
         assert_eq!(parse_axis_placement("-1", 3), (Some(4), 1)); // 마지막 명시 라인 = 4

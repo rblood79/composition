@@ -2,6 +2,15 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — grid 라인 이름 · auto-fill/auto-fit] - 2026-09-07
+
+### Fixed
+
+- `grid-template-columns: [a] 1fr [b] 1fr [c]` 처럼 대괄호 라인 이름이 있으면 캔버스가 이름을 트랙으로 세어 열이 늘어나던 결함을 고쳤습니다 (2열 150/150 이 5열 60 으로). `grid-column-start: b` · `x 2` 같은 이름 배치도 됩니다.
+- `repeat(auto-fill | auto-fit, …)` 의 반복 수가 Chrome 과 어긋나던 결함을 고쳤습니다 — `minmax(auto, 200px)` · `25%` 가 1 반복으로 접혀 세로로 쌓이던 것 (Chrome 3·4 반복), 반복 밖 고정 트랙이 있으면 한 반복 과다.
+- `auto-fit` 의 빈 트랙이 캔버스에 남아 item 이 좁게 그려지던 결함을 고쳤습니다 — 빈 트랙과 그 gutter 가 사라져 `repeat(auto-fit, minmax(100px,1fr))` 600 폭 2 item 이 300/300 (gap 20 이면 290/290) 이 됩니다. 명시 배치 앞의 빈 트랙도 사라집니다.
+- 근거: Taffy 0.10→0.14 대조 §4 ⑥ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`, Taffy #1138 · #946 · #1035). Chrome 실측 fixture 19 × 2 leg (baseline 22 RED) · 엔진 단위 3 · live 빌더 3 케이스 Chrome 동일. 레이아웃 preset 의 `repeat()` 회피 사유는 이제 없습니다 (명시 나열은 설계 선택). 상세 ledger §29.
+
 ## [레이아웃 엔진 — flow-root · inline-block · absolute 상자의 margin 누출, block align-content] - 2026-09-07
 
 ### Fixed

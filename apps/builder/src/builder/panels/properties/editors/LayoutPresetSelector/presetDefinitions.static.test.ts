@@ -265,9 +265,9 @@ describe("ADR-168 — 프리셋 반응형 계약", () => {
   );
 
   it.each(PRESET_ORDER)("%s: repeat()/minmax() 미사용 (R3)", (key) => {
-    // 2026-07-25 의 minmax(60px, auto) 비정상값은 수리됐고 (P0725) 정수 repeat 도
-    // ADR-206 Phase 2 가 펼친다 — 남는 회피 사유는 auto-fill / auto-fit 뿐 (G1 · G1b).
-    // 게이트는 그 판정이 바뀔 때 함께 푼다 (presetDefinitions.ts 헤더 주석).
+    // 엔진 회피 사유는 전부 소멸 (P0725 minmax · ADR-206 Phase 2 정수 repeat · 2026-09-07 ⑥
+    // auto-fill/auto-fit). 명시 나열은 슬롯 ↔ 트랙 1:1 평면 매핑의 설계 선택 — 이 게이트는
+    // 그 선택을 잠근다 (presetDefinitions.ts 헤더 주석).
     const preset = LAYOUT_PRESETS[key];
     const blob = JSON.stringify([
       preset.containerStyle,

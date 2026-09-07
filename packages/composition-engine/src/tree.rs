@@ -3630,7 +3630,12 @@ impl LayoutTree {
         let mut template_rows = join_tracks(style.grid_template_rows.as_deref());
 
         // (2)+(3) 자식 placement 직렬화 (area_name|grid_column|grid_row 개행 구분).
-        let placement_spec = self.build_grid_placement_spec(children);
+        // 라인 이름 (`[a] 1fr [b]`, CSS-GRID-1 §7.2.1 — upstream 대조 ⑥) 은 여기서 번호로 푼다:
+        // grid.rs 는 트랙 토큰만 보고 (`tokenize_template` 이 이름을 뗀다) 배치는 숫자 라인이다.
+        let (_, col_line_names) = grid::tokenize_template_with_line_names(&template_cols);
+        let (_, row_line_names) = grid::tokenize_template_with_line_names(&template_rows);
+        let mut placement_spec =
+            self.build_grid_placement_spec(children, &col_line_names, &row_line_names);
 
         // 자식 → 셀 매핑은 **grid.rs 의 실제 배치**로 구한다. 트랙 sizing 은 "어느 자식이
         // 어느 트랙에 있는가" 를 알아야 하는데, `i / col_count` 근사는 CSS §8.5 커서 규칙
@@ -3646,17 +3651,32 @@ impl LayoutTree {
         // 트랙 하나로 세므로 `repeat(2, 40px)` 이 한 토큰으로 남으면 두 행이 하나로 접힌다
         // (ADR-206 G10). auto-fill/auto-fit 은 컨테이너 크기가 있어야 펼쳐져 토큰으로 남고,
         // 그 경우 트랙 수만 `parse_tracks` 로 센다 (auto-repeat 자체는 scope 밖 ⑥).
-        let explicit_col_tokens: Vec<String> =
-            grid::expand_repeat_tokens(&grid::tokenize_template(&template_cols));
+        // auto-fill / auto-fit 은 컨테이너 크기가 definite 면 여기서 §7.2.3.2 반복 수로 펼친다
+        // (upstream 대조 ⑥ — `expand_auto_repeat_tokens`). 미결정 축에서만 토큰으로 남는다.
+        let (explicit_col_tokens, col_auto_repeat): (Vec<String>, Option<grid::AutoRepeatRange>) = {
+            let raw = grid::expand_repeat_tokens(&grid::tokenize_template(&template_cols));
+            if container_w > 0.0 {
+                grid::expand_auto_repeat_tokens(&raw, container_w, col_gap)
+            } else {
+                (raw, None)
+            }
+        };
         let col_has_auto_repeat = explicit_col_tokens.iter().any(|t| t.starts_with("repeat("));
-        let explicit_col_count = if col_has_auto_repeat {
+        let mut explicit_col_count = if col_has_auto_repeat {
             grid::parse_tracks(&template_cols, container_w, col_gap).len()
         } else {
             explicit_col_tokens.len()
         };
-        let explicit_row_tokens: Vec<String> =
-            grid::expand_repeat_tokens(&grid::tokenize_template(&template_rows));
-        let placed_cells = grid::resolve_child_cells(
+        let mut explicit_col_tokens = explicit_col_tokens;
+        let explicit_row_tokens: Vec<String> = {
+            let raw = grid::expand_repeat_tokens(&grid::tokenize_template(&template_rows));
+            if explicit_h > 0.0 && container_h > 0.0 {
+                grid::expand_auto_repeat_tokens(&raw, container_h, row_gap).0
+            } else {
+                raw
+            }
+        };
+        let mut placed_cells = grid::resolve_child_cells(
             &placement_spec,
             children.len(),
             "",
@@ -3664,6 +3684,49 @@ impl LayoutTree {
             explicit_row_tokens.len(),
             flow_column,
         );
+
+        // ── auto-fit 빈 트랙 collapse (CSS-GRID-1 §7.2.3.2, upstream 대조 ⑥ — Taffy #1035) ──
+        // 배치 뒤 auto-fit 반복 구간에서 아무 item 도 안 지나는 트랙은 0 이 되고 **gutter 도
+        // 없어진다** (Chrome gap 20 · 2 item → 290/290, b.x 310). 토큰을 지우고 배치 인덱스를
+        // 당긴 뒤 placement 를 **숫자 라인으로 다시 쓴다** — 마지막 `grid_layout` 이 같은 배치를
+        // 재현하게 (명시 `grid-column-start: 3` 도 앞 빈 트랙이 사라져 x 0, w 600).
+        if let Some(range) = col_auto_repeat.filter(|r| r.is_auto_fit && r.len > 0) {
+            let mut occupied = vec![false; explicit_col_tokens.len()];
+            for p in &placed_cells {
+                for c in p.1..(p.1 + p.3) {
+                    if c < occupied.len() {
+                        occupied[c] = true;
+                    }
+                }
+            }
+            let removed: Vec<usize> = (range.start..range.start + range.len)
+                .filter(|&c| c < occupied.len() && !occupied[c])
+                .collect();
+            if !removed.is_empty() {
+                let removed_before = |c: usize| removed.iter().filter(|&&r| r < c).count();
+                for p in placed_cells.iter_mut() {
+                    let end = p.1 + p.3;
+                    let new_start = p.1 - removed_before(p.1);
+                    let new_end = end - removed_before(end);
+                    p.1 = new_start;
+                    p.3 = (new_end - new_start).max(1);
+                }
+                explicit_col_tokens = explicit_col_tokens
+                    .iter()
+                    .enumerate()
+                    .filter(|(c, _)| !removed.contains(c))
+                    .map(|(_, t)| t.clone())
+                    .collect();
+                explicit_col_count = explicit_col_tokens.len();
+                placement_spec = placed_cells
+                    .iter()
+                    .map(|p| {
+                        format!("|{} / {}|{} / {}", p.1 + 1, p.1 + 1 + p.3, p.0 + 1, p.0 + 1 + p.2)
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+            }
+        }
 
         // ── 암묵 열 (ADR-206 ② · ④, CSS-GRID-1 §7.6) ──
         // 명시 열 뒤에 배치가 쓰는 만큼 암묵 열을 붙인다 — template 이 없으면 암묵 열 1개,
@@ -4359,19 +4422,37 @@ impl LayoutTree {
     /// `grid_column_start`+`grid_column_end` 를 grid.rs `parse_grid_line` 결합 형식
     /// (`"{start} / {end}"`)으로 재조립 — start 만 있으면 start 만, 둘 다 없으면 빈
     /// 문자열(auto-placement). placement 가 하나도 없으면 빈 문자열 반환(전부 auto).
-    fn build_grid_placement_spec(&self, children: &[usize]) -> String {
+    fn build_grid_placement_spec(
+        &self,
+        children: &[usize],
+        col_line_names: &[(String, usize)],
+        row_line_names: &[(String, usize)],
+    ) -> String {
         let mut lines: Vec<String> = Vec::with_capacity(children.len());
         let mut any_placement = false;
+        // 라인 이름 → 번호 (`b` · `x 2`). 없는 이름은 auto 로 (암묵 이름 생성 미대상).
+        let named = |v: Option<&str>, names: &[(String, usize)]| -> Option<String> {
+            let v = v?;
+            match grid::resolve_line_name(v, names) {
+                Some(line) => Some(line.to_string()),
+                None if v.trim().parse::<i32>().is_err()
+                    && !v.trim_start().starts_with("span")
+                    && !v.trim().eq_ignore_ascii_case("auto")
+                    && !v.trim().is_empty() =>
+                {
+                    None
+                }
+                None => Some(v.to_string()),
+            }
+        };
         for &c in children {
             let cstyle = self.get(c).map(|n| n.style.clone()).unwrap_or_default();
-            let grid_column = combine_grid_line(
-                cstyle.grid_column_start.as_deref(),
-                cstyle.grid_column_end.as_deref(),
-            );
-            let grid_row = combine_grid_line(
-                cstyle.grid_row_start.as_deref(),
-                cstyle.grid_row_end.as_deref(),
-            );
+            let cs = named(cstyle.grid_column_start.as_deref(), col_line_names);
+            let ce = named(cstyle.grid_column_end.as_deref(), col_line_names);
+            let rs = named(cstyle.grid_row_start.as_deref(), row_line_names);
+            let re = named(cstyle.grid_row_end.as_deref(), row_line_names);
+            let grid_column = combine_grid_line(cs.as_deref(), ce.as_deref());
+            let grid_row = combine_grid_line(rs.as_deref(), re.as_deref());
             if !grid_column.is_empty() || !grid_row.is_empty() {
                 any_placement = true;
             }
@@ -6653,6 +6734,65 @@ mod tests {
         );
         assert_eq!(t.get_layout(h[0]).width, 100.0, "leaf 80 + 20");
         assert_eq!(t.get_layout(h[1]).width, 100.0, "fit-content 부모 = leaf border-box");
+    }
+
+    /// ⑥ (Taffy #1138 · #946 · #1035) — 라인 이름 트랙/배치 · auto-fill 반복 수 · auto-fit collapse
+    /// (Chrome: G3 a.w 150 · `grid-column-start: b` x 100 · G1b b.x 200 · G1 300/300 · gap 20 → 290/290 b.x 310 ·
+    /// 명시 col-start 3 → x 0 w 600).
+    #[test]
+    fn grid_line_names_and_auto_repeat() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"display":"grid","width":"300px","gridTemplateColumns":["[a]","1fr","[b]","1fr","[c]"]},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).width, 150.0, "G3 — 이름은 트랙이 아니다");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"20px","gridColumnStart":"b"},"children":[]},
+            {"style":{"height":"20px","gridColumnStart":"a","gridColumnEnd":"c"},"children":[]},
+            {"style":{"display":"grid","width":"400px","gridTemplateColumns":["[a]","100px","[b]","100px","[c]"]},"children":[0,1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).x, 100.0, "이름 배치 b");
+        assert_eq!(t.get_layout(h[1]).width, 200.0, "a / c");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"display":"grid","width":"600px","gridTemplateColumns":["repeat(auto-fill, minmax(auto, 200px))"]},"children":[0,1,2]}
+        ]"#,
+            3, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).x, 200.0, "G1b — max 200 definite → 3 반복");
+        assert_eq!(t.get_layout(h[3]).height, 20.0, "한 행");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"height":"20px"},"children":[]},
+            {"style":{"display":"grid","width":"600px","columnGap":"20px","gridTemplateColumns":["repeat(auto-fit, minmax(100px, 1fr))"]},"children":[0,1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).width, 290.0, "auto-fit — 빈 3 트랙 + gutter collapse");
+        assert_eq!(t.get_layout(h[1]).x, 310.0);
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"height":"20px","gridColumnStart":"3"},"children":[]},
+            {"style":{"display":"grid","width":"600px","gridTemplateColumns":["repeat(auto-fit, minmax(100px, 1fr))"]},"children":[0]}
+        ]"#,
+            1, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).x, 0.0, "앞 빈 트랙도 collapse");
+        assert_eq!(t.get_layout(h[0]).width, 600.0);
     }
 
     /// ⑧ (Taffy #997) — `display: flow-root` 는 BFC: 자식 margin 이 안에 남는다 (Chrome B8 fr h 50 /

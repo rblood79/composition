@@ -21,9 +21,10 @@
  * 트랙은 명시 나열한다. 2026-07-25 실측의 `minmax(60px, auto)` 비정상값 (슬롯 폭 1920 /
  * header 570) 은 ADR-923 이후 수리되어 Chrome 과 일치하고 (TAFFY_UPSTREAM_DELTA_2026-09.md
  * §2 P0725), 정수 `repeat(N, …)` 도 ADR-206 Phase 2 가 토큰 수준에서 펼친다 — 둘 다 이제
- * 회피 사유가 아니다. 남는 회피는 **auto-fill / auto-fit** 뿐이다 (같은 문서 §2 G1 · G1b —
- * 빈 트랙 미축소 · 반복 수 계산 결함, ADR-206 scope 밖 ⑥). R3 정적 게이트는 그 판정이 바뀔
- * 때 함께 푼다.
+ * 회피 사유가 아니다. auto-fill / auto-fit (같은 문서 §2 G1 · G1b) 도 2026-09-07 ⑥ 에서
+ * 수리됐다 (§7.2.3.2 반복 수 · auto-fit 빈 트랙 collapse · 라인 이름). 즉 **엔진 회피 사유는
+ * 남지 않았다** — 명시 나열은 이제 슬롯 ↔ 트랙 1:1 매핑을 평면으로 유지하는 설계 선택이고,
+ * R3 정적 게이트는 그 선택을 잠근다 (repeat 을 쓰고 싶은 preset 이 생기면 게이트를 그때 푼다).
  */
 
 import type { CSSProperties } from "react";

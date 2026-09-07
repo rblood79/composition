@@ -806,3 +806,34 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 - ❌ 정렬 오프셋을 여유 > 0 일 때만 margin containment 와 묶기 → `start` 와 여유 0 인 케이스에서 margin 이 탈출해 Chrome 과 20 어긋난다
 - ❌ TS 운반 union 에서 CSS display 값을 접기 (`flow-root` → `block`) → 엔진 술어가 못 본다
 
+## grid 라인 이름은 트랙이 아니다 · auto-repeat 는 "definite 한 쪽" 으로 세고 밖 트랙을 먼저 뺀다 · auto-fit 빈 트랙은 gutter 까지 사라진다 (CSS-GRID-1 §7.2.1 · §7.2.3.2, upstream 대조 ⑥, 2026-09-07)
+
+`tokenize_template` 이 `[a]` 를 트랙 토큰으로 남겨 `auto` 트랙이 됐고 (Taffy #1138), auto-fill/auto-fit 반복 수가 minmax 의 **min px 만** 합산해 `minmax(auto, 200px)` · `25%` 가 1 반복이었으며 (Taffy #946), `expand_repeat` 이 계산한 `is_auto_fit` 을 버려 빈 트랙이 남았다 (Taffy #1035).
+
+| fixture (Chrome 실측)                                                        | Chrome                       | 종전 엔진          |
+| ---------------------------------------------------------------------------- | ---------------------------- | ------------------ |
+| G3 `[a] 1fr [b] 1fr [c]` w300 > a                                            | 150 (2 트랙)                 | 60 (5 트랙)        |
+| `[a b] 100px [c] 100px [d e]` > a, b                                         | 100 / 100                    | 40 / 40            |
+| `grid-column-start: b` · `a / c` · 행 `mid` · `x 2`                           | x 100 · w 200 · y 30 · x 100 | 0 · 66.7 · 0 · 0   |
+| G1 `repeat(auto-fit, minmax(100px,1fr))` w600 > a, b                         | 300 / 300                    | 100 / 100          |
+| 위 + `column-gap 20`                                                         | 290 / 290, b.x 310           | 104 / 104, 124     |
+| auto-fit + `grid-column-start: 3` (1 item)                                   | x 0, w 600                   | x 200, w 100       |
+| G1b `repeat(auto-fill, minmax(auto,200px))` w600 > a, b, c                    | b.x 200 · c.x 400 · 한 행    | 0,20 · 0,40 · 3 행 |
+| `repeat(auto-fill, 25%)` w400 > 5 item                                       | 4 트랙 100, e 2행            | 1 트랙             |
+| `50px repeat(auto-fill, 100px) 50px` w400 > 5 item                           | 3 반복, e.w 50 (뒤 50px 트랙) | 4 반복, e.w 100   |
+| 대조군 auto-fill `minmax(100px,1fr)` 2 item · `150px` · 행 auto-fill · 정수 repeat | 종전과 같음              | 일치               |
+
+- **라인 이름** — `tokenize_template_with_line_names` 가 `[…]` 를 통째로 떼어 `(이름, 1-based 라인)` 목록으로 돌려주고 (대괄호 안 공백은 이름 구분), `tokenize_template` 은 트랙만. grid.rs 배치는 숫자 라인만 알므로 tree.rs `build_grid_placement_spec` 이 컨테이너 template 의 이름 목록으로 `b` · `x 2` 를 번호로 푼다 (`resolve_line_name`). 없는 이름은 auto (암묵 `-start`/`-end` 이름 · area 이름은 미대상).
+- **반복 수** — `auto_repeat_count`: 트랙당 `repeat_count_size` = max 가 definite (px/%) 면 max (min 으로 floor), 아니면 min, 둘 다 아니면 0. **반복 밖 명시 트랙 + 그 gutter 를 먼저 뺀다** — 컨테이너 전체로 세면 `50px repeat(auto-fill,100px) 50px` w400 이 4 반복 (Chrome 3, e.w 50). 컨테이너 미결정이면 1 (§7.2.3.2 의 min-width 경로는 미대상).
+- **토큰 펼침** — tree.rs 는 트랙 sizing 이 토큰 = 트랙이라 `expand_auto_repeat_tokens` 로 컨테이너 크기에서 펼친다 (열: `container_w > 0`, 행: `explicit_h > 0`). 반환 `AutoRepeatRange` 가 collapse 후보 구간.
+- **auto-fit collapse** — 배치 (`placed_cells`) 뒤 구간 안 미점유 트랙을 **토큰에서 지우고** 배치 인덱스를 당긴 뒤 `placement_spec` 을 숫자 라인으로 다시 쓴다 — 마지막 `grid_layout` 이 같은 배치를 재현한다. 토큰 삭제라 gutter 도 자연히 없어진다 (`0px` 로 두면 gap 이 남아 260/260). 열만 — 행 auto-fit 은 auto-fill 로 동작.
+- Chrome 실측 fixture: `gridLineNamesAutoRepeat.browser.test.ts` (engine + pipeline, 19 × 2 = 38 — baseline 22 RED). unit `test_tokenize_line_names` · `test_auto_repeat_count_rule` · `grid_line_names_and_auto_repeat`. live (Playwright): 150/150 · 290/290 b.x 310 · 200/200/200 — Chrome 동일. `presetDefinitions.ts` 회피 사유 소멸 (명시 나열은 설계 선택, R3 게이트 유지).
+
+### 금지 패턴
+
+- ❌ `[name]` 을 트랙 토큰으로 두기 → `auto` 트랙이 끼어 fr 분배가 깨진다
+- ❌ auto-repeat 반복 수를 min 만으로 세기 → `minmax(auto, 200px)` · `%` 가 1 반복
+- ❌ 반복 수를 컨테이너 전체로 세기 → 반복 밖 고정 트랙만큼 한 반복 과다
+- ❌ auto-fit 빈 트랙을 `0px` 토큰으로 남기기 → gutter 가 남아 Chrome 과 gap × 빈 트랙 수 어긋난다
+- ❌ collapse 뒤 원 `placement_spec` 을 그대로 `grid_layout` 에 넘기기 → 명시 라인이 지워진 트랙을 가리켜 배치가 갈린다
+
