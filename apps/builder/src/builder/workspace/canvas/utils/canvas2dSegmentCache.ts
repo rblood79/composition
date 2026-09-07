@@ -195,7 +195,17 @@ export function tokenize(text: string, wordBreak: string = "normal"): Token[] {
   const tokens: Token[] = [];
   for (const seg of segments) {
     if (!seg.isWordLike) {
-      tokens.push({ text: seg.segment, breakable: false });
+      if (EMOJI_HINT.test(seg.segment)) {
+        // 이모지는 UAX #14 ID/EB 류 — CJK 문자처럼 **앞뒤 모두** break 기회다 (Chrome 실측
+        // 2026-09-07: `Hello😀World` → 3줄, `Hi 😀 ok` 좁은 폭 → `Hi` / `😀` / `ok`). 종전엔
+        // `isWordLike: false` 라 구두점처럼 이전 줄에 부착돼 이모지 앞에서 끊지 못했다.
+        // grapheme 단위 (국기 RI 쌍 · 피부톤 · ZWJ 시퀀스는 한 토큰) 로 낸다.
+        for (const g of segmentGraphemes(seg.segment)) {
+          tokens.push({ text: g, breakable: EMOJI_GRAPHEME.test(g) });
+        }
+      } else {
+        tokens.push({ text: seg.segment, breakable: false });
+      }
     } else if (
       isCJKCodePoint(seg.segment.codePointAt(0) ?? 0) &&
       wordBreak !== "keep-all"
@@ -333,6 +343,101 @@ export function preprocessTokens(
 const segmentCaches = new Map<string, Map<string, number>>();
 const pendingFontLoads = new Map<string, Promise<void>>();
 
+// ============================================
+// 이모지 canvas 폭 보정 (upstream `getEmojiCorrection`, Chromium #489494015)
+// ============================================
+//
+// Chrome (macOS · DPR 2) 은 컬러 이모지의 `measureText` 폭을 DOM 보다 크게 낸다 — 실측
+// (2026-09-07, Chrome 152, 사용자 환경): 이모지 grapheme 당 +3 / +4 / +4 / +2 px
+// (12 / 14 / 16 / 20px), 24px 이상 0. 얼굴 · VS16 하트 · 피부톤 modifier · 국기 전부 같은
+// 값이고 폰트 (Arial · Pretendard · system-ui · Helvetica) 무관, ASCII 는 0. 보정 없이는
+// 이모지 포함 텍스트가 CSS 보다 이른 줄에서 접힌다 (EXTERNAL_PATTERN_DELTA §B3 emoji).
+//
+// 보정값은 **폰트 문자열당 1회** DOM span 대조로 얻어 캐시한다 (DOM read 는 렌더 hot path
+// 밖 — `measureWithCanvas2D` 는 paragraph 캐시 miss 경로에서만 돈다). 폰트 로드 이벤트에서
+// 세그먼트 캐시와 같이 비운다 (fallback 폰트로 잰 보정값 제거). headless DPR 1 에서는 차이가
+// 0 이라 보정도 0 — 환경이 결정하지 코드가 가정하지 않는다.
+
+const EMOJI_PROBE = "\u{1F600}";
+/** 이모지 가능성 사전검사 — 통과한 텍스트만 grapheme 을 센다 (텍스트당 ~0.5 µs). */
+const EMOJI_HINT = /\p{Extended_Pictographic}|\p{Regional_Indicator}|\uFE0F/u;
+/** grapheme 단위 판정 — 국기 (RI 쌍) · 피부톤 · ZWJ 시퀀스는 Segmenter 가 한 grapheme 으로 준다. */
+const EMOJI_GRAPHEME = /^(?:\p{Extended_Pictographic}|\p{Regional_Indicator})/u;
+const EMOJI_COUNT_CACHE_MAX = 4096;
+/** fontString → 이모지 grapheme 당 보정 px */
+const emojiCorrectionCache = new Map<string, number>();
+/** token → 이모지 grapheme 수 (폰트 무관, 상한 있음) */
+const emojiCountCache = new Map<string, number>();
+let graphemeSegmenter: Intl.Segmenter | null = null;
+
+function segmentGraphemes(text: string): string[] {
+  if (!graphemeSegmenter) {
+    graphemeSegmenter = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+  }
+  const out: string[] = [];
+  for (const seg of graphemeSegmenter.segment(text)) out.push(seg.segment);
+  return out;
+}
+
+/** 텍스트 안 이모지 grapheme 수. 이모지가 없으면 0 (regex 사전검사만 비용). */
+export function countEmojiGraphemes(text: string): number {
+  if (!EMOJI_HINT.test(text)) return 0;
+  const cached = emojiCountCache.get(text);
+  if (cached !== undefined) return cached;
+  let n = 0;
+  for (const g of segmentGraphemes(text)) {
+    if (EMOJI_GRAPHEME.test(g)) n++;
+  }
+  if (emojiCountCache.size >= EMOJI_COUNT_CACHE_MAX) emojiCountCache.clear();
+  emojiCountCache.set(text, n);
+  return n;
+}
+
+/**
+ * 폰트 문자열당 이모지 grapheme 1개의 canvas − DOM 폭 차이 (px). 차이가 0.5 미만이거나 DOM 을
+ * 잴 수 없으면 0. 폰트가 로드된 상태에서만 캐시한다 (미로드 시 fallback 폰트 값이 굳는 것 방지).
+ *
+ * 공유 ctx 의 font / letterSpacing 을 바꾸므로 호출자는 **자기 측정 전에** 부른다.
+ */
+export function getEmojiCorrection(fontString: string): number {
+  const hit = emojiCorrectionCache.get(fontString);
+  if (hit !== undefined) return hit;
+  if (
+    typeof document === "undefined" ||
+    typeof document.createElement !== "function" ||
+    !document.body
+  ) {
+    return 0;
+  }
+  let correction = 0;
+  try {
+    const ctx = getCtx();
+    ctx.font = fontString;
+    applyLetterSpacing(ctx, 0);
+    const canvasW = ctx.measureText(EMOJI_PROBE).width;
+    const span = document.createElement("span");
+    span.style.cssText = `font:${fontString};display:inline-block;position:absolute;visibility:hidden;white-space:pre;letter-spacing:0`;
+    span.textContent = EMOJI_PROBE;
+    document.body.appendChild(span);
+    const domW = span.getBoundingClientRect().width;
+    span.remove();
+    if (domW > 0 && canvasW - domW > 0.5) correction = canvasW - domW;
+  } catch {
+    correction = 0;
+  }
+  const loaded = document.fonts
+    ? document.fonts.check(fontString, EMOJI_PROBE)
+    : fontsReady;
+  if (loaded) emojiCorrectionCache.set(fontString, correction);
+  return correction;
+}
+
+/** 텍스트에 이모지가 있으면 `개수 × 보정`, 없으면 0 — 측정 폭에서 차감할 값. */
+function emojiWidthFix(text: string, fontString: string): number {
+  const n = countEmojiGraphemes(text);
+  return n === 0 ? 0 : n * getEmojiCorrection(fontString);
+}
+
 let sharedCtx:
   | CanvasRenderingContext2D
   | OffscreenCanvasRenderingContext2D
@@ -354,6 +459,7 @@ function queueFontLoad(fontString: string, sampleText: string): void {
     .then(() => {
       fontsReady = true;
       segmentCaches.clear();
+      emojiCorrectionCache.clear();
       notifyFontsReady();
     })
     .catch(() => {
@@ -371,11 +477,13 @@ if (typeof document !== "undefined" && document.fonts) {
   document.fonts.ready.then(() => {
     fontsReady = true;
     segmentCaches.clear();
+    emojiCorrectionCache.clear();
     notifyFontsReady();
   });
   document.fonts.addEventListener("loadingdone", () => {
     // 새 폰트 로드 시 기존 캐시 무효화 (fallback 폰트 결과 제거)
     segmentCaches.clear();
+    emojiCorrectionCache.clear();
     fontsReady = true;
     notifyFontsReady();
   });
@@ -449,9 +557,10 @@ export function getOrMeasureWidth(
   // 폰트 미로드 → 캐싱 없이 직접 측정하고 비동기 로드 트리거
   if (!isFontLoaded) {
     queueFontLoad(fontString, token);
+    const fix = emojiWidthFix(token, fontString); // ctx 를 바꾸므로 측정 전에
     ctx.font = fontString;
     applyLetterSpacing(ctx, letterSpacing);
-    return ctx.measureText(token).width;
+    return ctx.measureText(token).width - fix;
   }
 
   let cache = segmentCaches.get(fontKey);
@@ -463,9 +572,12 @@ export function getOrMeasureWidth(
   const cached = cache.get(token);
   if (cached !== undefined) return cached;
 
+  // 이모지 보정은 캐시에 **반영된 값**으로 저장한다 — 보정 캐시와 세그먼트 캐시는 같은
+  // 폰트 이벤트에서 함께 비워지므로 어긋나지 않는다.
+  const fix = emojiWidthFix(token, fontString);
   ctx.font = fontString;
   applyLetterSpacing(ctx, letterSpacing);
-  const width = ctx.measureText(token).width;
+  const width = ctx.measureText(token).width - fix;
   cache.set(token, width);
   return width;
 }
@@ -473,6 +585,8 @@ export function getOrMeasureWidth(
 /** 전체 캐시 클리어 */
 export function clearSegmentCaches(): void {
   segmentCaches.clear();
+  emojiCorrectionCache.clear();
+  emojiCountCache.clear();
 }
 
 // ============================================
@@ -664,6 +778,13 @@ export function verifyLines(
   if (lines.length <= 1) return lines;
 
   const ctx = getCtx();
+  // 줄 단위 재측정도 세그먼트와 같은 이모지 보정을 받는다 — 아니면 Tier 2 가 보정 전 폭으로
+  // 줄을 다시 밀어 Tier 3 결과를 되돌린다. 보정 조회는 ctx 를 바꾸므로 font 세팅 전에.
+  const perEmoji = getEmojiCorrection(fontString);
+  const measureLine = (text: string): number => {
+    const w = ctx.measureText(text).width;
+    return perEmoji === 0 ? w : w - countEmojiGraphemes(text) * perEmoji;
+  };
   ctx.font = fontString;
   applyLetterSpacing(ctx, letterSpacing);
   const verified: string[][] = [];
@@ -679,14 +800,14 @@ export function verifyLines(
     if (lineTokens.length === 0) continue;
 
     const lineText = lineTokens.join("");
-    const actualW = ctx.measureText(lineText).width;
+    const actualW = measureLine(lineText);
 
     if (actualW <= maxWidth + LINE_FIT_EPSILON || lineTokens.length <= 1) {
       // 줄이 fit하면, 다음 줄 첫 토큰도 들어가는지 시도 (pull)
       if (i + 1 < mutableLines.length && mutableLines[i + 1].length > 0) {
         const nextFirst = mutableLines[i + 1][0];
         const tryText = lineText + nextFirst;
-        if (ctx.measureText(tryText).width <= maxWidth + LINE_FIT_EPSILON) {
+        if (measureLine(tryText) <= maxWidth + LINE_FIT_EPSILON) {
           lineTokens.push(nextFirst);
           mutableLines[i + 1] = mutableLines[i + 1].slice(1);
         }
@@ -698,7 +819,7 @@ export function verifyLines(
       while (fit > 1) {
         fit--;
         const testText = lineTokens.slice(0, fit).join("");
-        if (ctx.measureText(testText).width <= maxWidth + LINE_FIT_EPSILON) {
+        if (measureLine(testText) <= maxWidth + LINE_FIT_EPSILON) {
           break;
         }
       }
@@ -808,5 +929,7 @@ export function measureWithCanvas2D(
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     segmentCaches.clear();
+    emojiCorrectionCache.clear();
+    emojiCountCache.clear();
   });
 }

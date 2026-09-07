@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [캔버스 텍스트 — 이모지 폭 과대 · 이모지 앞뒤 줄바꿈] - 2026-09-07
+
+### Fixed
+
+- 이모지가 들어간 텍스트가 캔버스에서 Preview 보다 이른 줄에서 접히던 결함을 고쳤습니다. Chrome (macOS · Retina) 의 canvas 측정이 이모지 하나당 3~4px (12~20px 글자 크기) 넓게 나오는 브라우저 버그 (Chromium #489494015) 가 원인 — 폰트당 1회 DOM 과 대조한 보정값을 이모지 개수만큼 차감합니다. Retina 가 아니거나 24px 이상이면 차이가 0 이라 보정도 0 입니다.
+- 이모지 앞에서 줄이 바뀌지 않고 이전 줄 끝에 붙어 넘치던 결함을 고쳤습니다 — Chrome 처럼 이모지 앞뒤가 모두 줄바꿈 기회입니다 (`Hello😀World` 좁은 폭 → 3줄). 국기·피부톤·가족(ZWJ) 이모지는 한 단위로 유지됩니다.
+- 근거: pretext 대조 §D 순서 5 (`docs/explanation/research/EXTERNAL_PATTERN_DELTA_2026-09.md`). 사용자 Chrome 152 / DPR 2 재현 확인 후 착수. 단위 7 (파일 78) · live 4 텍스트 × 3 경계 폭에서 Chrome 줄 위치와 12/12 일치, 폭 소수점 동일. evidence `docs/adr/evidence/051-emoji-canvas-width-correction.md`.
+
 ## [캔버스 — 내용 크기 Frame 안 텍스트가 0 또는 전폭으로 접히던 결함] - 2026-09-07
 
 ### Fixed

@@ -243,6 +243,8 @@
 | ws                     | `a  b\nc` (white-space: normal)                                        | 공백 1개로 collapse, `\n` 도 공백         | 측정 경로: `"  "` 2칸 폭, `\n` 은 hard break                 | 측정 경로에 정규화 없음, 렌더는 `[ \t]+` 만                                              | `normalizeWhitespaceNormal`                | **미검증** (Preview 의 `\n` 처리 확인 필요)          |
 | ε                      | line-fit epsilon                                                       | Chrome 0.005 / Safari 1/64                | 고정 0.015                                                   | Chrome 에서 0.01px 만큼 관대                                                             | `EngineProfile.lineFitEpsilon`             | 미검증 (실측 불일치 사례 없음)                       |
 
+**추가 (2026-09-07 DPR 2 재확인)**: 이모지 행의 보정값은 사용자 Chrome 152 에서 그대로 재현 (12/14/16/20px +3/+4/+4/+2, 폰트 무관). 같은 probe 에서 새 결함 — Chrome 은 이모지 **앞뒤** 를 break 기회로 보는데 (`Hello😀World` 3줄) `tokenize()` 는 `isWordLike:false` 를 non-breakable 로 내 이전 줄에 부착했다. 둘 다 반영 (§D 5).
+
 한글 산문·영문 산문·구두점 병합·CJK 문자 분할 등 기존 4 규칙이 맞는 범위는 그대로 맞는다. 결함은 전부 "단위를 어디까지 붙이느냐" 의 Tier 3 층이고, upstream 이 4~6월에 브라우저 sweep 으로 고친 항목과 1:1 로 겹친다.
 
 ## B4. 적용 가치가 있는 규칙 — Before / After
@@ -632,7 +634,7 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 | 2 ✅ | fulgur ⑤ Taffy 주석 sweep + 매트릭스 생성                  | B    | 비테스트 src 35 파일 · `CSS_SUPPORT_MATRIX.md` 04-06 정지 · Taffy 71건 · 오판 2회 기록 (메모리 `feedback-stale-dependency-comment-is-not-engine-constraint`). 가치 본체는 sweep — 생성 스크립트는 `layoutCapabilityMatrix.ts` (참조 = 테스트 1개) 가 정본인지 먼저 확인       | 동작 변경 0   | 1 · sweep 선행, 생성은 정본 확인 후                      |
 | 3 ✅ | fulgur ② wasm strict 입력                                  | B    | 오탐 132/288 기록. 추가 실증: TS 가 `order` 를 지금도 전송 (`utils.ts:5872`) 하지만 `NodeStyle` 미선언 → 무음 드롭, `tree.rs:296` guard 주석은 "유입 경로 생기면 선언" 이라 계약 guard 가 유입을 이미 놓침 (동작 영향 0 — `fullTreeLayout.ts:1824` 가 TS 에서 pre-sort)       | 동작 변경 0   | 1 · 첫 run 이 미지 키 인벤토리                           |
 | 4    | pretext ③ letterSpacing fallback 축소                      | B    | `needsFallback():384` + `TypographySection.tsx:276` 노출 — production 경로. grapheme 수 캐시 없으면 텍스트당 49 µs (B4-13) 라 캐시가 착수 조건                                                                                                                                | **동작 변경** | 1 · 1 이후 · grapheme 수 캐시                            |
-| 5    | pretext ② 이모지 보정                                      | B−   | B3 emoji 실측 (Chrome 152 · DPR 2) 은 문서 기록뿐, 09-04 재확인 안 함. headless DPR 1 무효                                                                                                                                                                                    | **동작 변경** | 1 · DPR 2 헤드 환경에서 재현 확인 후                     |
+| 5 ✅ | pretext ② 이모지 보정                                      | B−   | B3 emoji 실측 (Chrome 152 · DPR 2) 은 문서 기록뿐, 09-04 재확인 안 함. headless DPR 1 무효                                                                                                                                                                                    | **동작 변경** | 1 · DPR 2 헤드 환경에서 재현 확인 후                     |
 | —    | fulgur ③ 결정성 기준선 축                                  | C+   | 논리는 성립 (양 leg 가 catalog 파생 → 토큰 회귀는 대칭 통과). gate 는 pre-push + `deploy.yml` 실행이라 3축 추가 시 실효. 그러나 "게이트가 놓친 회귀" 사고 기록 없음                                                                                                           | 동작 변경 0   | 대칭 통과한 토큰 회귀가 실제로 1건 발생할 때             |
 | —    | fulgur ④ CanvasKit 어댑터                                  | C    | 49 파일 (비테스트 35) 직접 import 는 사실. `canvaskit-wasm ^0.42.0` 은 도입 후 bump 0회 (git log 1 commit). 지금 하면 50 파일 경로 diff 만 남는다                                                                                                                             | 동작 변경 0   | `canvaskit-wasm` bump 또는 ADR-921 (Proposed 08-17) 착수 |
 | —    | fulgur ① 단위 브랜드 타입                                  | C    | `/dpr` `/zoom` 변환 70곳. git 에 단위 공간 혼동 버그 이력 0건. A2 가 든 근거 2건 (border-box 메모리 · ADR-198 R14) 은 box 계약 · 하니스 스크린샷 배율 문제라 단위 공간 혼동이 아님 — 근거 가장 약함                                                                           | 동작 변경 0   | 단위 공간 혼동 버그 1건 발생 시                          |
@@ -654,6 +656,8 @@ lines("한글abc123 다음", M("한글") + 1.5, "word-break:keep-all"); // → [
 (케이스 style 은 DOM ∪ 엔진 키의 합집합이라 engineLeg 에서는 77건이 가짜 실패) · ② `deny_unknown_fields`
 별도 구조체 대신 serde 이름 표 + 기계 대조 (55 필드 복제본은 조용히 드리프트한다).
 
-다음은 순서 4 (pretext ③ letterSpacing — grapheme 수 캐시가 착수 조건).
+순서 4 (pretext ③ letterSpacing) 는 `8b6c1bd22` (`ctx.letterSpacing` 지원 시 Canvas 2D 직접 측정 — grapheme 수 캐시 불요, [evidence](../../adr/evidence/051-letterspacing-canvas2d.md)).
+
+순서 5 (pretext ② 이모지 보정) 는 2026-09-07 반영 — 착수 조건이던 DPR 2 재현을 사용자 Chrome 152 에서 확인 (grapheme 당 +3/+4/+4/+2 px, 12~20px, 폰트 무관, 24px 이상 0). 같은 probe 에서 **이모지 break 기회 결함** 추가 발견 (Chrome 은 이모지 앞뒤 모두 break — `Hello😀World` 3줄, 우리 tokenizer 는 non-breakable 부착) → `tokenize` 가 이모지 grapheme 을 breakable 토큰으로. 폰트당 1회 DOM 대조 보정 (`getEmojiCorrection`) + `getOrMeasureWidth`/`verifyLines` 차감. 단위 7 · live 4 텍스트 × 3 경계 12/12 · 폭 소수점 일치. 근거 [docs/adr/evidence/051-emoji-canvas-width-correction.md](../../adr/evidence/051-emoji-canvas-width-correction.md). §D 잔여 = C 등급 트리거 대기 3건 + 보류 (Tier 2 제거 · 라이브러리 · Rust).
 
 문서 drift 추가 확인 (09-04): A2 "51 파일" 은 49 (비테스트 35). ADR-051 breakdown "Phase 0 대기" 는 `featureFlags.ts:35` `USE_CANVAS2D_MEASURE = true` 와 어긋남 (B6 그대로).

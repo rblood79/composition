@@ -47,6 +47,10 @@ const mockFontsLoad = vi.fn(() => Promise.resolve([]));
 const mockFontsReadyPromise = Promise.resolve();
 const mockFontsAddEventListener = vi.fn();
 
+// 이모지 보정 probe 용 DOM span mock — `mockDomEmojiWidth` 가 DOM 폭, canvas 폭은 mockMeasureText
+// ("😀" 는 UTF-16 2 code unit → 16). 기본 12 → 보정 4 (Chrome 152 · DPR 2 · 14~16px 실측값).
+let mockDomEmojiWidth = 12;
+const mockBodyAppendChild = vi.fn();
 Object.defineProperty(globalThis, "document", {
   value: {
     fonts: {
@@ -55,9 +59,17 @@ Object.defineProperty(globalThis, "document", {
       ready: mockFontsReadyPromise,
       addEventListener: mockFontsAddEventListener,
     },
-    createElement: vi.fn(() => ({
-      getContext: () => mockCtx,
-    })),
+    body: { appendChild: mockBodyAppendChild },
+    createElement: vi.fn((tag: string) =>
+      tag === "span"
+        ? {
+            style: { cssText: "" },
+            textContent: "",
+            remove: vi.fn(),
+            getBoundingClientRect: () => ({ width: mockDomEmojiWidth }),
+          }
+        : { getContext: () => mockCtx },
+    ),
   },
   writable: true,
   configurable: true,
@@ -83,6 +95,9 @@ import {
   getOrMeasureWidth,
   clearSegmentCaches,
   computeLines,
+  countEmojiGraphemes,
+  getEmojiCorrection,
+  verifyLines,
 } from "./canvas2dSegmentCache";
 
 // ============================================
@@ -730,5 +745,99 @@ describe("letterSpacing", () => {
   it("letterSpacing 0 이면 기존 폭과 같다", () => {
     const style = { fontSize: 16, fontFamily: "Arial", lineHeight: 20 };
     expect(measureWithCanvas2D("ab cd", style, 200).width).toBe(40);
+  });
+});
+
+// ============================================
+// 이모지 canvas 폭 보정 (§B4-6 · Chromium #489494015)
+// ============================================
+//
+// 사용자 Chrome 152 / DPR 2 실측 (2026-09-07): 이모지 grapheme 당 canvas − DOM = +3/+4/+4/+2 px
+// (12/14/16/20px), 24px 이상 0, 폰트 무관, ASCII 0. mock 은 canvas 16 / DOM 12 → 보정 4.
+
+describe("이모지 canvas 폭 보정", () => {
+  const FONT = "400 16px Arial";
+  const KEY = "Arial\x00400\x000";
+
+  beforeEach(() => {
+    clearSegmentCaches();
+    mockDomEmojiWidth = 12;
+    mockMeasureText.mockClear();
+  });
+
+  it("countEmojiGraphemes — 얼굴 · VS16 · 피부톤 · 국기 · ZWJ 는 각 1, ASCII 는 0", () => {
+    expect(countEmojiGraphemes("abc")).toBe(0);
+    expect(countEmojiGraphemes("한글 텍스트")).toBe(0);
+    expect(countEmojiGraphemes("\u{1F600}")).toBe(1);
+    expect(countEmojiGraphemes("❤️")).toBe(1);
+    expect(countEmojiGraphemes("\u{1F44D}\u{1F3FD}")).toBe(1);
+    expect(countEmojiGraphemes("\u{1F1F0}\u{1F1F7}")).toBe(1);
+    expect(countEmojiGraphemes("\u{1F468}\u200D\u{1F469}\u200D\u{1F467}")).toBe(1);
+    expect(countEmojiGraphemes("Hi \u{1F600} ok \u{1F600}")).toBe(2);
+  });
+
+  it("getEmojiCorrection — 폰트당 1회 DOM 대조, 캐시", () => {
+    expect(getEmojiCorrection(FONT)).toBe(4);
+    const appended = mockBodyAppendChild.mock.calls.length;
+    expect(getEmojiCorrection(FONT)).toBe(4);
+    expect(mockBodyAppendChild.mock.calls.length).toBe(appended); // 캐시 hit — DOM read 없음
+  });
+
+  it("차이가 0.5 미만이면 보정 0 (headless DPR 1 · 24px 이상)", () => {
+    mockDomEmojiWidth = 16;
+    expect(getEmojiCorrection("400 24px Arial")).toBe(0);
+    expect(getOrMeasureWidth("\u{1F600}", "Arial\x00400\x000\x0024", "400 24px Arial")).toBe(16);
+  });
+
+  it("getOrMeasureWidth — 이모지 토큰은 개수 × 보정 차감, ASCII 는 그대로, 캐시에 반영값 저장", () => {
+    expect(getOrMeasureWidth("abc", KEY, FONT)).toBe(24);
+    expect(getOrMeasureWidth("\u{1F600}", KEY, FONT)).toBe(12); // 16 − 4
+    expect(getOrMeasureWidth("\u{1F600}\u{1F600}", KEY, FONT)).toBe(24); // 32 − 8
+    const calls = mockMeasureText.mock.calls.length;
+    expect(getOrMeasureWidth("\u{1F600}", KEY, FONT)).toBe(12);
+    expect(mockMeasureText.mock.calls.length).toBe(calls); // 세그먼트 캐시 hit
+  });
+
+  it("measureWithCanvas2D — 보정 뒤 폭으로 줄바꿈 판정 (보정 없으면 CSS 보다 이른 줄바꿈)", () => {
+    const style = { fontSize: 16, fontFamily: "Arial", lineHeight: 20 };
+    // "Hi 😀 ok": Hi 16 + ␠ 8 + 😀 (16 − 4 = 12) + ␠ 8 + ok 16 = 60 → 60 에 한 줄
+    // (보정 전 64 라 60 에서는 `ok` 가 다음 줄로 밀렸다 — CSS 보다 이른 줄바꿈).
+    // 이모지 자체는 tokenizer 가 non-breakable 로 내 이모지 **앞**에서는 끊지 않는다 (별개 축).
+    const fits = measureWithCanvas2D("Hi \u{1F600} ok", style, 60);
+    expect(fits.lineCount).toBe(1);
+    expect(fits.width).toBe(60);
+    const wraps = measureWithCanvas2D("Hi \u{1F600} ok", style, 59);
+    expect(wraps.lineCount).toBe(2);
+    expect(wraps.hintedText).toBe("Hi \u{1F600} \nok");
+  });
+
+  it("tokenize — 이모지는 CJK 처럼 앞뒤 break 기회 (Chrome: `Hello😀World` 3줄)", () => {
+    expect(tokenize("Hello\u{1F600}World")).toEqual([
+      { text: "Hello", breakable: true },
+      { text: "\u{1F600}", breakable: true },
+      { text: "World", breakable: true },
+    ]);
+    // 국기 (RI 쌍) 와 ZWJ 시퀀스는 한 토큰
+    expect(tokenize("\u{1F1F0}\u{1F1F7}\u{1F468}\u200D\u{1F469}").map((t) => t.text)).toEqual([
+      "\u{1F1F0}\u{1F1F7}",
+      "\u{1F468}\u200D\u{1F469}",
+    ]);
+    // 좁은 폭에서 이모지가 자기 줄을 갖는다 — 종전엔 `Hi ` 뒤에 부착돼 넘쳤다
+    const style = { fontSize: 16, fontFamily: "Arial", lineHeight: 20 };
+    const r = measureWithCanvas2D("Hi \u{1F600} ok", style, 20);
+    expect(r.lineCount).toBe(3);
+    expect(r.hintedText).toBe("Hi \n\u{1F600} \nok");
+  });
+
+  it("verifyLines — 줄 재측정도 같은 보정 (Tier 2 가 Tier 3 결과를 되돌리지 않는다)", () => {
+    // 두 줄 입력, 첫 줄 "Hi 😀" 보정 폭 36 ≤ 36 → 유지, 두 번째 줄 첫 토큰 pull 은 폭 초과라 없음
+    const lines = [["Hi", " ", "\u{1F600}"], ["ok"]];
+    const out = verifyLines(lines, 36, FONT);
+    expect(out).toEqual([["Hi", " ", "\u{1F600}"], ["ok"]]);
+    // 보정 없이 (DOM == canvas) 면 첫 줄 40 > 36 → 이모지가 다음 줄로 밀린다
+    clearSegmentCaches();
+    mockDomEmojiWidth = 16;
+    const pushed = verifyLines(lines, 36, FONT);
+    expect(pushed[0]).toEqual(["Hi", " "]);
   });
 });
