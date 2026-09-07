@@ -150,6 +150,13 @@ D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델�
 | G4   | Phase 6      | `vite build` builder 초기 chunk Δ ≤ +15KB gz · publish Δ ≤ +15KB gz · 200행×4시리즈 frame p95 ≤ baseline +1ms                                                                           | 초과 시 chart 모듈 lazy chunk (팔레트 드롭 시 로드) — 그래도 초과면 Implemented 금지             |
 | G5   | Phase 5 종료 | **live**: 팔레트 드롭 → 캔버스 표시 → dataTable 바인딩 → builder 갱신 (preview 대조는 R7 조건부)                                                                                        | 바인딩 실패 시 샘플 fallback 으로 종결 + residual 기록                                           |
 
+## Phase 진행 로그
+
+| Phase | 상태 | 일자 | 결과 |
+| :---: | ---- | ---- | ---- |
+| 0 | ✅ Implemented | 2026-09-08 | inventory freeze (breakdown §2 재실측, HEAD `795f405b5`). **G0 PASS** — R1 emit 미지원 확정 → `ComponentRule.chart` top-level 채널 신설 + Phase 3 emit 확장 선행 · R6 publish registry 검출 테스트 부재 확정 → Phase 3 oracle 추가 · R8 rows 채널 부재 확정 (주입 지점 `buildSpecNodeData.ts:1760-1766`) · R9 bbox 필수 확정 · **R10 해소** (`editorMutationEffectRegistry.ts:31/96/362` 에 `"size"` 이미 등재 — 초안 grep 은 심볼 이관 전 stale) · ADR-117 Implemented 2026-08-28 (직교 전제 성립). gap 배수 1.0x |
+
+
 ## Consequences
 
 ### Positive
