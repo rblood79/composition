@@ -133,6 +133,7 @@
 @import "./generated/TimeField.css";
 
 /* Collection Components */
+@import "./generated/Chart.css"; /* ADR-194: --chart-series-N / --chart-axis / --chart-grid 팔레트. 미import 시 DOM 이 색 변수를 못 받아 currentColor 로 떨어지고 Skia(rule 직독)와 발산 */
 @import "./generated/TableView.css"; /* ADR-151 후속 (2026-07-17): 미import 로 width:100%/text-sm 미도달 — flex 부모에서 Skia(catalog width 소비)와 발산 */
 @import "./generated/ListBox.css"; /* ADR-076: 컨테이너 base — containerStyles SSOT */
 @import "./generated/ListBoxItem.css"; /* ADR-912: ListBoxItem virtual (childSpec inline emit 분리) — 수동 ListBox.css 이전 배치로 selection/theme override 순서 보존 */

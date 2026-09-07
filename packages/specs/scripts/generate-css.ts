@@ -352,6 +352,10 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
         : {}),
       // indicatorMode: ToggleButtonGroup 의 selection indicator 구조. 미설정 시 미emit.
       ...(meta.indicatorMode ? { indicatorMode: meta.indicatorMode } : {}),
+      // chart (ADR-194): 시리즈 팔레트·축 색을 CSS custom property 로 내보낸다.
+      //   variants/sizes 두 축에 안 들어가는 **순서 있는 색 목록** 이라 rule top-level
+      //   채널을 그대로 실어 보낸다. 미보유 rule 은 emit 0 (CSS diff 0).
+      ...(rule.chart ? { chart: rule.chart } : {}),
       render: {
         shapes: () => [],
       },

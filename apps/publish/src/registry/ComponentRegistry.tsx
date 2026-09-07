@@ -59,6 +59,7 @@ import {
   Modal,
   Popover,
   Tooltip,
+  Chart,
 } from "@composition/shared/components";
 
 // ============================================
@@ -398,6 +399,13 @@ export function registerSharedComponents(): void {
   registerComponent("Table", {
     component: Table as unknown as ComponentType<Record<string, unknown>>,
     displayName: "Table",
+    category: "collection",
+  });
+  // ADR-194: 차트. builder Preview 와 **같은 shared Chart** 를 쓴다 — publish 만 다른
+  //   컴포넌트를 쓰면 배포본에서만 차트가 달라지고, 그건 배포 후에야 드러난다.
+  registerComponent("Chart", {
+    component: Chart as unknown as ComponentType<Record<string, unknown>>,
+    displayName: "Chart",
     category: "collection",
   });
   registerComponent("Tabs", {

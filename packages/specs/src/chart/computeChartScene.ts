@@ -282,3 +282,33 @@ export function computeChartScene(
     empty: false,
   };
 }
+
+/** rule 의 `chart` 채널 모양 (shared `ComponentRuleChart` 미러 — specs 는 shared 를 import 하지 않는다). */
+export interface ChartRuleChannel {
+  series: readonly string[];
+  axis: string;
+  grid: string;
+  strokeWidth?: number;
+  metrics?: Readonly<Record<string, { padding: number; fontSize: number }>>;
+}
+
+/**
+ * rule 의 chart 채널 + size 키 → 기하 metric.
+ *
+ * **두 consumer 가 같이 부른다** (DOM `Chart.tsx` / Skia `chart_scene` primitive).
+ * 각자 rule 을 해석하면 padding/fontSize 가 갈려 좌표가 어긋나는데, 그 어긋남은
+ * 스냅샷 테스트가 아니라 live 화면에서만 보인다 — 그래서 해석을 한 곳에 둔다.
+ */
+export function resolveChartMetrics(
+  channel: ChartRuleChannel | undefined,
+  sizeKey: string,
+): ChartMetrics {
+  const entry = channel?.metrics?.[sizeKey];
+  return {
+    padding: entry?.padding ?? CHART_DEFAULT_METRICS.padding,
+    fontSize: entry?.fontSize ?? CHART_DEFAULT_METRICS.fontSize,
+    strokeWidth: channel?.strokeWidth ?? CHART_DEFAULT_METRICS.strokeWidth,
+    seriesCount:
+      channel?.series.length ?? CHART_DEFAULT_METRICS.seriesCount,
+  };
+}

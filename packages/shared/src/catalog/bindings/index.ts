@@ -14,6 +14,7 @@ import { buttonGroupBinding } from "./ButtonGroup.binding";
 import { calendarBinding } from "./Calendar.binding";
 import { calendarGridBinding } from "./CalendarGrid.binding";
 import { calendarHeaderBinding } from "./CalendarHeader.binding";
+import { chartBinding } from "./Chart.binding";
 import { checkboxBinding } from "./Checkbox.binding";
 import { dateInputBinding } from "./DateInput.binding";
 import { checkboxGroupBinding } from "./CheckboxGroup.binding";
@@ -346,6 +347,10 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   // ADR-912 R7 G1-b (2026-06-15): Card 그리드/워터폴 컬렉션 컨테이너 (AvatarGroup 동형 — 빈 셸,
   //   자식 Card self-draw). internal/div shell, layout(flex/wrap/gap)은 factory props.style.
   CardView: cardViewBinding,
+  // ADR-194 (2026-09-08): 데이터 시각화 leaf. internal source(RAC 에 chart primitive 없음) +
+  //   skiaPrimitive "chart_scene". 기하는 packages/specs/src/chart 의 computeChartScene 단일
+  //   source 이고 DOM(Chart.tsx SVG)/Skia 는 좌표를 복사만 한다.
+  Chart: chartBinding,
   // ADR-912 위험군 해소(선행-6): field/form validation 에러 메시지 leaf (TEXT_LEAF 동형, 부모 데이터
   //   의존 0, weight 400 negative 색, measure 는 부모 height 분기로 catalog 직교)
   FieldError: fieldErrorBinding,

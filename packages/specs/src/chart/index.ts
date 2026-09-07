@@ -39,4 +39,6 @@ export {
   CHART_SAMPLE_ROWS,
   CHART_TICK_COUNT,
   computeChartScene,
+  resolveChartMetrics,
 } from "./computeChartScene";
+export type { ChartRuleChannel } from "./computeChartScene";

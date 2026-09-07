@@ -4,8 +4,10 @@
  * DataTable 은 비시각적 컴포넌트다 — 화면에 아무것도 그리지 않는다.
  */
 
+import type React from "react";
 import type { PreviewElement } from "../types";
 import type { ReactNode } from "react";
+import { Chart } from "../components/Chart";
 
 /**
  * DataTable 렌더러 — 렌더 산출물 없음.
@@ -27,4 +29,38 @@ import type { ReactNode } from "react";
  */
 export function renderDataTable(_element: PreviewElement): ReactNode {
   return null;
+}
+
+/**
+ * Chart 렌더러 (ADR-194) — legacy `rendererMap` 경로.
+ *
+ * cutover 경로(CanonicalNodeRenderer → `INTERNAL_RENDERERS["chart"]`)와 **같은 shared
+ * `Chart` 컴포넌트** 를 렌더한다. 두 경로가 다른 컴포넌트를 그리면 진입로마다 차트가
+ * 달라지는데, 그 차이는 팔레트 드롭이 아니라 문서 로드 경로에서만 드러난다.
+ */
+export function renderChart(element: PreviewElement): ReactNode {
+  const props = element.props as Record<string, unknown>;
+  return (
+    <Chart
+      key={element.id}
+      data-element-id={element.id}
+      data-custom-id={element.customId}
+      chartType={props.chartType as never}
+      dimension={props.dimension as string | undefined}
+      metric={props.metric as string | undefined}
+      color={props.color as string | undefined}
+      orientation={props.orientation as never}
+      stackType={props.stackType as never}
+      showAxis={props.showAxis as boolean | undefined}
+      showGrid={props.showGrid as boolean | undefined}
+      showLegend={props.showLegend as boolean | undefined}
+      legendPosition={props.legendPosition as never}
+      variant={props.variant as string | undefined}
+      size={props.size as never}
+      data={props.data as never}
+      aria-label={props["aria-label"] as string | undefined}
+      className={props.className as string | undefined}
+      style={props.style as React.CSSProperties | undefined}
+    />
+  );
 }

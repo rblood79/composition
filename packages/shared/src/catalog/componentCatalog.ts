@@ -445,6 +445,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "table view",
     icon: "Table",
   }),
+  // ADR-194 (2026-09-08): 차트. category 는 collections — dataTable 바인딩을 소비하는
+  //   데이터 컴포넌트라 TableView/CardView 와 같은 묶음이 사용자 탐색 경로에 맞다.
+  primitiveEntry("Chart", "primitives", FAMILY_1_CUTOVER, {
+    category: "collections",
+    label: "chart",
+    icon: "BarChart3",
+  }),
   // ADR-912 catalog cutover (TableView 자식 트리 Skia 대칭, 2026-06-25): TableView factory 가
   //   생성하는 canonical 자식 5종. catalog 미등록 시 buildSpecNodeData:994(!spec &&
   //   !isCatalogCutover → return null)에서 Skia scene node 가 통째로 버려져 헤더/행/텍스트가 Skia 에

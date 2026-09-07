@@ -562,6 +562,13 @@ export function generateCSS<Props>(
     lines.push("");
   }
 
+  // ─── ADR-194: 차트 팔레트 CSS 변수 ───
+  const chartVars = generateChartVariables(spec);
+  if (chartVars.length > 0) {
+    lines.push("");
+    lines.push(...chartVars);
+  }
+
   // Size 스타일
   // ADR-141: composition 이 컨테이너 box 를 소유할 때만 sizes 경로 height/padding skip.
   const ownsContainerBox = compositionOwnsContainerBox(spec);
@@ -1008,6 +1015,34 @@ function generateSizeStyles(
     lines.push(`  --icon-gap: ${size.iconGap}px;`);
   }
 
+  return lines;
+}
+
+// ─── Chart Variables (ADR-194) ───────────────────────────────────────────────
+
+/**
+ * 차트 팔레트를 CSS custom property 로 낸다.
+ *
+ * DOM 렌더러는 `var(--chart-series-N)` 을 읽고 Skia 는 같은 `rule.chart` 를 토큰으로
+ * 해소한다 — scene 에는 인덱스만 실려 있으므로 두 경로가 같은 표를 각자 푼다.
+ * 1-based 번호를 쓰는 이유는 shadcn 의 `--chart-1..5` 관례와 맞추기 위해서다.
+ */
+function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
+  const chart = spec.chart;
+  if (!chart) return [];
+
+  const lines: string[] = [`.react-aria-${spec.name} {`];
+  chart.series.forEach((token, index) => {
+    lines.push(
+      `  --chart-series-${index + 1}: ${tokenToCSSVar(token as TokenRef)};`,
+    );
+  });
+  lines.push(`  --chart-axis: ${tokenToCSSVar(chart.axis as TokenRef)};`);
+  lines.push(`  --chart-grid: ${tokenToCSSVar(chart.grid as TokenRef)};`);
+  if (chart.strokeWidth !== undefined) {
+    lines.push(`  --chart-stroke-width: ${chart.strokeWidth}px;`);
+  }
+  lines.push("}");
   return lines;
 }
 

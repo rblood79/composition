@@ -101,6 +101,8 @@ export { ProgressBar } from "./ProgressBar";
 export { Meter } from "./Meter";
 export { Skeleton } from "./Skeleton";
 export { IllustratedMessage } from "./IllustratedMessage";
+export { Chart } from "./Chart";
+export type { ChartProps } from "./Chart";
 export { StatusLight } from "./StatusLight";
 export { Avatar } from "./Avatar";
 export { ProgressCircle } from "./ProgressCircle";

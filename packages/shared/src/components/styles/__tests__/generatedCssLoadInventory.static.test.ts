@@ -143,9 +143,9 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("인벤토리 집계 — 생성 93 · index 66 · 모듈 2 · 미로드 25 (evidence §11)", () => {
-    expect(generated.length).toBe(93);
-    expect(indexImported.size).toBe(66);
+  it("인벤토리 집계 — 생성 94 · index 67 · 모듈 2 · 미로드 25 (evidence §11 + ADR-194 Chart)", () => {
+    expect(generated.length).toBe(94);
+    expect(indexImported.size).toBe(67);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))

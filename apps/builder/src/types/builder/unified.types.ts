@@ -2194,6 +2194,36 @@ export function createDefaultCardViewProps(): BaseElementProps {
   };
 }
 
+// ADR-194: Chart 기본 props. factory(createChartDefinition) 와 같은 값 — 팔레트 드롭과
+//   getDefaultProps 두 경로가 갈리면 같은 컴포넌트가 진입로마다 다르게 보인다.
+export function createDefaultChartProps(): BaseElementProps {
+  return {
+    chartType: "bar",
+    dimension: "category",
+    metric: "value",
+    color: "series",
+    orientation: "vertical",
+    stackType: "dodged",
+    showAxis: true,
+    showGrid: false,
+    showLegend: true,
+    legendPosition: "bottom",
+    variant: "default",
+    size: "md",
+    data: [
+      { category: "Mon", value: 12, series: "A" },
+      { category: "Tue", value: 30, series: "A" },
+      { category: "Wed", value: 18, series: "A" },
+      { category: "Thu", value: 24, series: "A" },
+      { category: "Mon", value: 20, series: "B" },
+      { category: "Tue", value: 8, series: "B" },
+      { category: "Wed", value: 25, series: "B" },
+      { category: "Thu", value: 14, series: "B" },
+    ],
+    style: { width: 320 },
+  };
+}
+
 export function createDefaultColorSwatchPickerProps(): BaseElementProps {
   return {
     columns: 6,
@@ -2421,6 +2451,7 @@ export const DEFAULT_PROPS_MAP: Record<string, () => ComponentElementProps> = {
   AvatarGroup: createDefaultAvatarGroupProps,
   ButtonGroup: createDefaultButtonGroupProps,
   CardView: createDefaultCardViewProps,
+  Chart: createDefaultChartProps,
   ColorSwatchPicker: createDefaultColorSwatchPickerProps,
   IllustratedMessage: createDefaultIllustratedMessageProps,
   Pagination: createDefaultPaginationProps,

@@ -1,6 +1,7 @@
 import type { ElementType } from "react";
 import { Badge } from "@composition/shared/components/Badge";
 import { Calendar } from "@composition/shared/components/Calendar";
+import { Chart } from "@composition/shared/components/Chart";
 import { ComboBox } from "@composition/shared/components/ComboBox";
 import { DatePicker } from "@composition/shared/components/DatePicker";
 import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
@@ -34,6 +35,7 @@ export const INTERNAL_RENDERERS: Readonly<
   Record<string, ElementType | undefined>
 > = {
   icon: Icon,
+  chart: Chart,
   badge: Badge,
   skeleton: Skeleton,
   illustrated: IllustratedMessage,

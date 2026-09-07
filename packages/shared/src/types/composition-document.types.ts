@@ -477,6 +477,39 @@ export interface ComponentRuleDensity {
   paddingY?: number;
 }
 
+/**
+ * 차트 전용 시각 채널 (ADR-194).
+ *
+ * variants(상태별 색) 도 sizes(치수) 도 아닌 **팔레트** 라 기존 두 축에 안 들어간다 —
+ * variant 는 컴포넌트 상태 하나당 색 하나고, 시리즈 색은 데이터 개수만큼 필요한
+ * 순서 있는 목록이다. 그래서 `textDecoration`/`containerStyles` 와 같은 층의
+ * top-level 채널로 둔다.
+ *
+ * 두 consumer 가 같은 표를 읽는다: generate-css 가 `.react-aria-Chart` 에
+ * `--chart-series-N` / `--chart-axis` / `--chart-grid` 를 emit 하고(DOM), Skia 는
+ * 같은 `rule.chart` 를 `resolveToken` 으로 해소한다. scene 에는 hex 가 아니라
+ * 인덱스만 실리므로 dark 전환 시 양쪽이 같은 단계를 따라간다 (ADR-193 정합).
+ */
+export interface ComponentRuleChart {
+  /** 시리즈 팔레트 — 배열 인덱스가 곧 `Mark.seriesIndex`. 소진되면 순환한다. */
+  series: string[];
+  /** 축선 색 */
+  axis: string;
+  /** grid line 색 */
+  grid: string;
+  /** line/area 선 두께 (px) */
+  strokeWidth?: number;
+  /**
+   * size 별 기하 metric — **TokenRef 가 아니라 해소된 px**.
+   *
+   * `sizes[*].fontSize` 는 `{typography.text-sm}` 같은 TokenRef 라 DOM 은 CSS 가 풀고
+   * Skia 는 런타임이 푼다. 그런데 기하는 축 여백과 레이블 솎아내기 판정에 **숫자 하나**
+   * 를 써야 하고, 두 consumer 가 서로 다른 숫자를 쓰면 좌표가 갈린다. 그래서 기하가
+   * 쓰는 값만 여기에 px 로 못 박고 두 consumer 가 그대로 읽는다.
+   */
+  metrics?: Record<string, { padding: number; fontSize: number }>;
+}
+
 export interface ComponentRule {
   defaultVariant?: string;
   defaultSize?: string;
@@ -526,6 +559,11 @@ export interface ComponentRule {
    * (`specs ← shared` 의존 방향 — 새 resolver 의 `@composition/specs` import 0 유지).
    */
   structure?: ComponentRuleStructure;
+  /**
+   * 차트 팔레트·축 색 (ADR-194). 보유한 rule 만 generate-css 가
+   * `--chart-*` custom property 를 emit 한다 — 미보유는 emit 0 (CSS diff 0).
+   */
+  chart?: ComponentRuleChart;
 }
 
 /** CSS emit layout token (generate-css `COMPOSITION_LAYOUT_STYLES` key 의 catalog 대응). */

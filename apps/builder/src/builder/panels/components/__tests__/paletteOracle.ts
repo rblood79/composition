@@ -343,6 +343,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "TableProperties",
   },
   {
+    type: "Chart",
+    category: "collections",
+    label: "chart",
+    icon: "BarChart3",
+  },
+  {
     type: "Calendar",
     category: "dateTime",
     label: "calendar",

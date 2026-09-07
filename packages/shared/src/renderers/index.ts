@@ -105,6 +105,9 @@ export const rendererMap: Record<
   // Phase 4: Advanced Components (ADR-030)
   IllustratedMessage: LayoutRenderers.renderIllustratedMessage,
   CardView: LayoutRenderers.renderCardView,
+  // ADR-194: 차트 (internal source leaf). legacy rendererMap 경로 — cutover 경로는
+  //   INTERNAL_RENDERERS["chart"] 가 같은 shared Chart 컴포넌트를 렌더한다.
+  Chart: DataRenderers.renderChart,
   TableView: LayoutRenderers.renderTableView,
 
   // Date 컴포넌트

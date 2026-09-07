@@ -238,6 +238,9 @@ const PALETTE_ORDER: ReadonlyArray<{
   { type: "TagGroup", source: "catalog" },
   { type: "Section", source: "catalog" },
   { type: "TableView", source: "overlay" },
+  // ADR-194 (2026-09-08): 차트. catalog 등록 컴포넌트라 source="catalog"
+  //   (TableView 는 catalog 미등록 7 중 하나라 overlay).
+  { type: "Chart", source: "catalog" },
   { type: "Calendar", source: "catalog" },
   { type: "DatePicker", source: "catalog" },
   { type: "DateRangePicker", source: "catalog" },

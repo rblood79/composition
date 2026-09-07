@@ -541,6 +541,57 @@ export function createIllustratedMessageDefinition(
 }
 
 /**
+ * Chart 컴포넌트 정의 (ADR-194)
+ *
+ * leaf 다 — 자식 Element 를 만들지 않는다. 기하는 `computeChartScene` 이 그리고
+ * DOM/Skia 가 좌표를 복사한다. 샘플 rows 를 factory 가 싣는 이유: dataBinding 을
+ * 붙이기 전에도 팔레트에서 끌어다 놓으면 뭔가 보여야 한다 (빈 상자를 놓고
+ * "데이터를 연결하세요" 를 띄우면 사용자는 이게 고장인지 빈 건지 구별 못 한다).
+ */
+export function createChartDefinition(
+  context: ComponentCreationContext,
+): ComponentDefinition {
+  const { parentElement } = context;
+  const parentId = parentElement?.id || null;
+
+  return {
+    type: "Chart",
+    parent: {
+      type: "Chart",
+      props: {
+        chartType: "bar",
+        dimension: "category",
+        metric: "value",
+        color: "series",
+        orientation: "vertical",
+        stackType: "dodged",
+        showAxis: true,
+        showGrid: false,
+        showLegend: true,
+        legendPosition: "bottom",
+        variant: "default",
+        size: "md",
+        data: [
+      { category: "Mon", value: 12, series: "A" },
+      { category: "Tue", value: 30, series: "A" },
+      { category: "Wed", value: 18, series: "A" },
+      { category: "Thu", value: 24, series: "A" },
+      { category: "Mon", value: 20, series: "B" },
+      { category: "Tue", value: 8, series: "B" },
+      { category: "Wed", value: 25, series: "B" },
+      { category: "Thu", value: 14, series: "B" },
+    ],
+        style: {
+          width: 320,
+        },
+      } as ComponentElementProps,
+      parent_id: parentId,
+    },
+    children: [],
+  };
+}
+
+/**
  * CardView 컴포넌트 정의
  *
  * CSS DOM 구조:

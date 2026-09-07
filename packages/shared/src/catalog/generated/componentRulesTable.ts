@@ -11650,6 +11650,103 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-194 — 차트. D1 은 internal source(RAC 에 chart primitive 없음)라 role="img" 를
+  //   binding.staticAttrs 가 부여하고, D3 는 여기 rule 이 정본이다. `chart` 채널의 시리즈
+  //   순서는 RSC categorical 팔레트 순서를 참조했다 — Spectrum design-data 에 chart 토큰이
+  //   0건이라(2026-08-27 실측) 어느 대안을 골랐어도 팔레트는 자체 정의였다.
+  Chart: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.layer-1}",
+            hover: "{color.layer-1}",
+            pressed: "{color.layer-1}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.border}",
+        },
+      },
+      quiet: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+        },
+        colors: {
+          text: "{color.neutral}",
+          border: "{color.transparent}",
+        },
+      },
+    },
+    sizes: {
+      sm: {
+        fontSize: "{typography.text-xs}",
+        borderRadius: "{radius.md}",
+        height: 160,
+        paddingX: 8,
+        paddingY: 8,
+      },
+      md: {
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.md}",
+        height: 240,
+        paddingX: 12,
+        paddingY: 12,
+      },
+      lg: {
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.md}",
+        height: 320,
+        paddingX: 16,
+        paddingY: 16,
+      },
+    },
+    containerStyles: {
+      display: "block",
+      width: "100%",
+      borderWidth: "1px",
+    },
+    chart: {
+      series: [
+        "{color.blue}",
+        "{color.purple}",
+        "{color.green-named}",
+        "{color.orange}",
+        "{color.magenta}",
+        "{color.cyan}",
+        "{color.yellow}",
+        "{color.indigo}",
+      ],
+      axis: "{color.neutral-subdued}",
+      grid: "{color.border}",
+      strokeWidth: 2,
+      // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
+      //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
+      metrics: {
+        sm: { padding: 8, fontSize: 10 },
+        md: { padding: 12, fontSize: 11 },
+        lg: { padding: 16, fontSize: 12 },
+      },
+    },
+    structure: {
+      // "text" archetype = block + width 100% + border-box. "default" 를 쓰면
+      //   DEFAULT_BASE_STYLES 의 cursor:pointer / user-select:none 이 딸려와
+      //   클릭 대상이 아닌 차트에 손가락 커서가 붙는다 (생성 CSS 실측 2026-09-08).
+      archetype: "text",
+      element: "div",
+      containerStyles: {
+        display: "block",
+        width: "100%",
+      },
+    },
+  },
   TableView: {
     defaultVariant: "default",
     defaultSize: "md",

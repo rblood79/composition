@@ -168,6 +168,7 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Column",
         "Row",
         "Cell",
+        "Chart",
       ].sort(),
     );
     expect(fam1.every((e) => e.kind === "primitive")).toBe(true);

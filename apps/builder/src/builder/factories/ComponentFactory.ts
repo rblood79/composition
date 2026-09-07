@@ -83,6 +83,7 @@ import {
   createRangeCalendarDefinition,
   createIllustratedMessageDefinition,
   createCardViewDefinition,
+  createChartDefinition,
   createTableViewDefinition,
 } from "./definitions/DisplayComponents";
 
@@ -163,6 +164,7 @@ export class ComponentFactory {
     // ⭐ Display Components (Phase 4)
     IllustratedMessage: ComponentFactory.createIllustratedMessage,
     CardView: ComponentFactory.createCardView,
+    Chart: ComponentFactory.createChart,
     TableView: ComponentFactory.createTableView,
   };
 
@@ -575,6 +577,12 @@ export class ComponentFactory {
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
     return this.createComponent(createCardViewDefinition, context);
+  }
+
+  private static async createChart(
+    context: ComponentCreationContext,
+  ): Promise<ComponentCreationResult> {
+    return this.createComponent(createChartDefinition, context);
   }
 
   private static async createTableView(

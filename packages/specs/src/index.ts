@@ -592,3 +592,7 @@ export {
   LOWERCASE_TAG_SPEC_MAP,
 } from "./runtime/tagToElement";
 export { resolveContainerStylesFallback } from "./runtime/containerStylesFallback";
+
+// ─── Chart 기하 SSOT (ADR-194) ───────────────────────────────────────────────
+// DOM(shared Chart.tsx) 과 Skia(chart_scene primitive) 가 같이 소비하는 순수 기하.
+export * from "./chart";

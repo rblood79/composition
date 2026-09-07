@@ -182,6 +182,22 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     trapFocus?: boolean;
   };
 
+  /**
+   * 차트 팔레트·축 색 (ADR-194). generate-css 가 rule table 의 `chart` 채널을 그대로
+   * 실어 보내고 CSSGenerator 가 `--chart-series-N` / `--chart-axis` / `--chart-grid` /
+   * `--chart-stroke-width` 를 emit 한다. 미보유 spec 은 emit 0.
+   *
+   * shared `ComponentRuleChart` 의 구조 미러 — specs 는 shared 를 import 하지 않는다
+   * (의존 방향 shared→specs).
+   */
+  chart?: {
+    series: string[];
+    axis: string;
+    grid: string;
+    strokeWidth?: number;
+    metrics?: Record<string, { padding: number; fontSize: number }>;
+  };
+
   /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음) */
   variants?: Record<string, VariantSpec>;
 
