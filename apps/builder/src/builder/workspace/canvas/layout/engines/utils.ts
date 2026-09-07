@@ -5005,8 +5005,14 @@ export function enrichWithIntrinsicSize(
     //   **stretch 부모에서는 무해**하다 — `%` 가 해소되면 엔진이 그 값을 그대로 쓰고
     //   (`resolve_leaf_intrinsic_width` 의 `Some(n) if n >= 0.0 => explicit_w`) 스칼라는
     //   소비되지 않는다.
-    ((isFlexChild || isGridChild) &&
-      TEXT_LEAF_TAGS.has(type) &&
+    // **block 자식도 대상** (2026-09-07): "block 자식은 stretch 되어 스칼라가 없어도 된다" 는
+    //   부모가 definite 일 때만 참이다. 부모가 shrink-to-fit 이면 (`width: max/min/fit-content`
+    //   블록 · non-stretch align 아래 auto 폭 블록 = Container Align) 엔진은 내용 폭을 알 길이
+    //   없어 leaf 가 0 으로 접힌다 — pipeline 실측 block `max-content` > Text: Chrome 82.4 /
+    //   엔진 400 (padding 있으면 12 = padding 만), column `align-items:center` > block > Text:
+    //   Chrome 82.4 / 엔진 **0**. stretch 부모에서는 여전히 무해 (block.rs AUTO 분기는
+    //   content_w 를 안 읽는다). 부모 종류 게이트는 여기서만 풀고 `isFlexChild` 자체는 그대로.
+    (TEXT_LEAF_TAGS.has(type) &&
       (!rawWidth ||
         rawWidth === "auto" ||
         (typeof rawWidth === "string" && rawWidth.trim().endsWith("%")) ||

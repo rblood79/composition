@@ -1,5 +1,5 @@
 {
-  "capturedAt": "ee4bd0b9d (Phase 4 착수 직전, INLINE_BLOCK_TAGS 경로)",
+  "capturedAt": "ee4bd0b9d (Phase 4 착수 직전, INLINE_BLOCK_TAGS 경로) — 2026-09-07 의도된 갱신: 텍스트 leaf 의 @absent/@auto 변형에 측정 스칼라 (text 32/32 · label @auto 35/63) — 스칼라 공급의 부모 display 게이트 제거 (ledger §27, textLeafScalarBlockParent 게이트)",
   "tags": [
     "button",
     "submitbutton",
@@ -464,11 +464,15 @@
     },
     "text @absent": {
       "height": 24,
+      "contentMinWidth": 32,
+      "contentMaxWidth": 32,
       "leafBaseline": 14.4
     },
     "text @auto": {
       "width": "auto",
       "height": 24,
+      "contentMinWidth": 32,
+      "contentMaxWidth": 32,
       "leafBaseline": 14.4
     },
     "text @fit-content": {
@@ -497,6 +501,8 @@
       "fontWeight": 600,
       "width": "auto",
       "height": 20,
+      "contentMinWidth": 35,
+      "contentMaxWidth": 63,
       "leafBaseline": 12.600000000000001
     },
     "label @fit-content": {

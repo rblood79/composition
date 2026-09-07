@@ -740,7 +740,7 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 - flex `off+19` (§4.5 정확 min-content) 의 row 값도 content 공간 — 종전 `+ pad_border_main` 은 leaf border-box 보고와 짝이었다. column 은 leaf 높이가 명시 (border-box) 라 유지.
 - Chrome 실측 fixture: `paddedLeafIntrinsic.browser.test.ts` (pipeline — 부모 4 × padding 3 + 대조군 4 = 16, baseline 13 RED). engine: `shrinkToFitInline` 구 `[잔존] padding 이중 계산` → 132 (positive). unit: `padded_scalar_leaf_in_flex_row_…` · `padded_auto_container_in_flex_row_…` · `grid_auto_track_contribution_is_border_box_…` · `grid_justify_start_uses_border_box_…` · `grid_auto_row_padded_container_block_axis` · `padded_scalar_leaf_in_fit_content_block_parent`.
 - live (2026-09-07, Playwright 격리 프로젝트 — Chrome MCP 탭은 hidden 이라 shared layout version 이 store 를 못 따라와 (7 < 14) 대체): flex row Frame > `width:auto` Text 82 · padded (12/8) Text **102** (Chrome 102.4, 종전 122) · grid `auto 1fr` > padded Frame 70 · inner x 10. production 의 Text 는 base width 100% (B22) 라 `width:auto` 를 명시해야 스칼라 경로다.
-- **별개 발견 (미수리, 기록)**: `width: fit-content` / `max-content` 를 가진 **컨테이너**가 pipeline leg 에서 padding 과 무관하게 부모 폭 400 (Chrome 94.4) — engine leg 는 정합 (ledger §8) 이므로 TS 가 컨테이너 키워드 폭을 엔진에 안 넘기거나 선해석하는 경로. `max-content` 부모 아래 Text 는 스칼라도 사라진다 (폭 12 = padding 만). Styles 패널에서 Frame 폭에 키워드를 넣을 때 도달 — 후속 판정.
+- **별개 발견 → 같은 날 판정** (아래 §block 부모 아래 텍스트 leaf): "fit-content 컨테이너 400" 은 pipeline leg 가 마지막 노드를 페이지 body 로 다뤄 `width = pageW` 를 주입한 **fixture 배치 오류** (§2) — 바깥 root 를 씌우면 95 / 94.4 정합. `max-content` 부모 아래 Text 스칼라 소실 (12) 은 진짜 결함으로 분리해 수리.
 
 ### 금지 패턴
 
@@ -748,3 +748,26 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 - ❌ grid 기여를 반환값 그대로 (border-box 로 가정) 쓰기 → padded 컨테이너의 트랙이 모자란다
 - ❌ 기여의 `%` padding 을 확정 폭으로 풀기 → 재진입 pass 에서 auto 트랙 팽창
 - ❌ `off+19` 에 pad_border 를 다시 더하기 → §4.5 floor 가 padding 만큼 부푼다
+
+## block 부모 아래 텍스트 leaf 의 측정 스칼라 — 부모가 shrink-to-fit 이면 필요하다 (2026-09-07)
+
+`enrichWithIntrinsicSize` 의 텍스트 스칼라 (`contentMinWidth/contentMaxWidth`) 공급이 `(isFlexChild || isGridChild)` 로 게이트돼 있었다. 근거였던 "block 자식은 stretch 되어 스칼라가 없어도 된다" 는 **부모가 definite 일 때만** 참이다.
+
+| 부모                                                    | Chrome |     구 파이프라인 |
+| ------------------------------------------------------- | -----: | ----------------: |
+| block `width: max-content` > Text                       |   82.4 |           **400** |
+| 위 + Text `paddingLeft 12`                              |   94.4 | **12** (padding 만) |
+| block `width: min-content` > Text                       |   41.5 |           **400** |
+| column `align-items: center` > block > Text (Container Align) | 82.4 |        **0** |
+
+- engine leg (스칼라 atom) 는 네 부모 전부 정합 — 엔진 결함이 아니라 **TS 공급 결함**. 2026-07-28 의 `isFlexChild`/`isGridChild` 확장 때 block 은 "stretch 라 무해" 로 남겼는데, 그 판단이 shrink-to-fit 부모 (키워드 폭 블록 · non-stretch align 아래 auto 폭 블록) 를 빠뜨렸다. 후자가 그 주석이 적은 live 증상 (Container Align 안 텍스트 0) 그대로다.
+- 수리: TEXT_LEAF_TAGS 절의 부모 종류 게이트만 제거 (rawWidth 조건은 유지 — 미설정/auto/`%`/키워드). `isFlexChild` 자체는 넓히지 않는다 (growsInFlex · minWidth 주입에 딸려온다 — §grid 자식의 TS 공급 3결함).
+- stretch 부모에서 무해한 이유: block.rs 의 AUTO 분기는 `content_w` 를 읽지 않고 available 로 stretch 한다 (대조군 definite block 400 유지). `%` 폭은 확정 해소라 스칼라 미소비 (대조군 200).
+- Chrome 실측 fixture: `textLeafScalarBlockParent.browser.test.ts` (pipeline — positive 5 + 대조군 3, baseline 4 RED). 같은 원인으로 닫힌 것: `containerIntrinsic` H (§4.5 floor 채널, 중첩 block 텍스트) 의 구 잔존 Δ1.5 — "파이프라인 층이 중첩 텍스트에 다른 하한을 공급" 의 정체가 이 게이트였다. ADR-923 G5 fingerprint baseline 은 text/label @absent·@auto 에 스칼라가 붙는 것만 의도 갱신 (`capturedAt` 에 기록).
+- **하니스 함정**: pipeline leg 의 마지막 노드는 페이지 body 라 `width = pageW` 가 주입된다 (§2). shrink-to-fit 컨테이너를 root 자리에 두면 그 주입이 결함처럼 보인다 (400) — 항상 바깥 root 를 하나 더 씌운다.
+
+### 금지 패턴
+
+- ❌ 텍스트 leaf 스칼라 공급을 부모 display 로 게이트하기 → shrink-to-fit block 부모에서 0 붕괴
+- ❌ 이를 고치려고 `isFlexChild` 를 block 포함으로 넓히기 → flex-grow 억제·minWidth 주입까지 번진다
+- ❌ shrink-to-fit 컨테이너를 pipeline fixture 의 root 자리에 두기 → body 폭 주입을 결함으로 잘못 읽는다

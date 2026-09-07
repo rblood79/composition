@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [캔버스 — 내용 크기 Frame 안 텍스트가 0 또는 전폭으로 접히던 결함] - 2026-09-07
+
+### Fixed
+
+- `width: max-content` / `min-content` / `fit-content` 인 block Frame 안의 텍스트가 캔버스에서 Frame 전폭 (400) 으로 늘어나거나, 좌우 padding 이 있으면 padding 폭만 (12) 남던 결함을 고쳤습니다. Preview/Chrome 처럼 텍스트 폭 (82.4 / 94.4 / 41.5) 이 됩니다.
+- 세로 flex 의 `align-items: center` 안 block Frame 의 텍스트 (Container Align) 가 캔버스에서 폭 0 으로 사라지던 결함도 같은 원인 — 이제 82.4 @ x 158.8 (Chrome 동일).
+- 원인은 엔진이 아니라 TS 공급: 텍스트 측정 스칼라가 flex/grid 자식에게만 공급돼 shrink-to-fit block 부모에서 엔진이 내용 폭을 몰랐습니다 (ledger §27). definite block 부모 (stretch) 와 `%` 폭은 종전과 같습니다. 게이트 `tests/parity/textLeafScalarBlockParent.browser.test.ts` 8 (baseline 4 RED), `containerIntrinsic` H 의 구 잔존 Δ1.5 (block 자식 텍스트 하한) 도 같은 원인이라 `[]` 로 닫힘, ADR-923 G5 fingerprint baseline 은 text/label @absent·@auto 스칼라만 의도 갱신, parity 1,218 PASS (기존 실패 2) · layout unit 475 · type-check 0.
+
 ## [레이아웃 엔진 — padding 있는 텍스트의 폭 이중 가산 · grid 안 padded 컨테이너 크기] - 2026-09-07
 
 ### Fixed

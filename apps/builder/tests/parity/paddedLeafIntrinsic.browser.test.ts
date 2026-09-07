@@ -24,9 +24,9 @@ import {
  * production 도달: Styles 패널에서 Text 에 좌우 padding 을 준 flex/grid 자식 전부 (텍스트 leaf 는
  * TS 가 `contentMinWidth/contentMaxWidth` 스칼라를 공급하고 width 는 auto).
  *
- * `width: fit-content` / `max-content` **부모** 는 넣지 않는다 — pipeline 에서 padding 과 무관하게
- * 부모 폭이 400 (Chrome 94.4) 으로 늘어나는 별개 결함 (TS 가 컨테이너 키워드 폭을 엔진에 안 넘기거나
- * 선해석 — `TAFFY_UPSTREAM_DELTA_2026-09.md` §4-1 2026-09-07 기록). engine leg 는
+ * `width: fit-content` / `max-content` **부모** 는 여기 없다 — 처음 넣었을 때의 400 은 그 부모를
+ * fixture 의 root 자리에 둔 탓 (pipeline leg 는 마지막 노드를 페이지 body 로 다뤄 `width = pageW`
+ * 주입, ledger §2). 그 축은 `textLeafScalarBlockParent.browser.test.ts` (바깥 root 포함) 와
  * `padded_scalar_leaf_in_fit_content_block_parent` unit 이 잠근다.
  *
  * pipeline leg 만 돈다 — 텍스트 실측정 스칼라가 production 경로이고, engine leg 의 대응 케이스는

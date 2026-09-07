@@ -522,21 +522,14 @@ describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
     }
   });
 
-  // **잔존 발산 (Phase 2 미해소, 실측 기록)**. 엔진 측 floor 채널은 정확하다 —
-  // Rust `container_item_floors_at_exact_min_content` 가 동일 형태에서 스칼라 42 를
-  // 집계해 42 에서 정지함을 확증한다. 여기서 40 이 나오는 것은 **파이프라인 층**이
-  // 중첩 텍스트에 대해 다른 하한을 공급한다는 뜻이고, 원인 지목은 Phase 3 이후로 넘긴다
-  // (엔진 오배선이면 위 Rust 테스트가 먼저 red 가 된다 — 두 층이 분리 감시된다).
-  describe("§4.5 floor 채널 — 잔존 발산 1.5px", () => {
+  // 구 잔존 발산 1.5px (Phase 2 기록) 의 원인이 2026-09-07 에 지목·수리됐다: **파이프라인 층**이
+  // block 자식 (`h-content` 는 block) 의 텍스트 leaf 에 측정 스칼라를 안 줬다 (`isFlexChild ||
+  // isGridChild` 게이트) — 그래서 컨테이너 하한이 폭 주입값 40 에서 멈췄다. 게이트 제거 후
+  // 정확 min-content 41.5 (ledger §27, `textLeafScalarBlockParent.browser.test.ts`). 엔진 측은
+  // 종전부터 정확 — Rust `container_item_floors_at_exact_min_content`.
+  describe("§4.5 floor 채널 — 중첩 block 텍스트도 정확 min-content", () => {
     it(H_FLOOR_CHANNEL_TEXT.name, () => {
-      expect(runPipelineParityCase(H_FLOOR_CHANNEL_TEXT))
-        .toMatchInlineSnapshot(`
-        [
-          "h-text.w: dom=41.5 eng=40.0 (Δ1.5)",
-          "h-content.w: dom=41.5 eng=40.0 (Δ1.5)",
-          "h-sidebar.x: dom=41.5 eng=40.0 (Δ1.5)",
-        ]
-      `);
+      expect(runPipelineParityCase(H_FLOOR_CHANNEL_TEXT)).toEqual([]);
     });
   });
 
