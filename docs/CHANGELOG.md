@@ -2,6 +2,17 @@
 
 All notable changes to composition will be documented in this file.
 
+## [차트 컴포넌트 추가 — bar · line · area · pie] - 2026-09-08
+
+### Added
+
+- 컴포넌트 패널 Collections 에 **chart** 가 추가됐습니다. 끌어다 놓으면 샘플 데이터가 실린 막대 차트가 바로 보이고, Properties 에서 종류 (bar / line / area / pie) · 가로세로 · 누적/나란히 · 축 · 격자 · 범례 (위/아래/좌/우) · 크기 (sm/md/lg) 를 바꿉니다. 어느 필드를 범주로 쓰고 어느 필드를 값으로 쓸지도 지정합니다 (Dimension / Metric / Series Field).
+- DataTable 바인딩을 붙이면 그 데이터로 그립니다. 바인딩이 없거나 아직 0행이면 샘플 rows 로 보여 빈 상자가 되지 않습니다. 빌더 캔버스는 앞 200행까지 그리고, Preview 와 배포본은 전체를 그립니다.
+- **외부 차트 라이브러리를 쓰지 않습니다** (신규 런타임 의존 0). 축·눈금·범례·마크를 자체 기하 함수로 산출하고 Builder(캔버스)와 Preview/배포본(SVG)이 **같은 좌표를 복사**합니다 — 두 화면이 다르게 보일 여지를 구조로 없앴습니다. 시리즈 색은 테마 토큰이라 dark 모드에서 양쪽이 같이 바뀝니다.
+- 접근성: 차트 컨테이너에 `role="img"` 와 라벨이 붙습니다.
+- v1 에 없는 것: 곡선 보간 (직선만) · 축 레이블 회전 (겹치면 건너뛰어 그립니다) · 툴팁/hover.
+- 근거: ADR-194. live 빌더 11/11 (팔레트 노출 → 캔버스 픽셀 → 종류 전환 → Compare Mode 에서 Preview SVG 대조 → 팔레트 CSS 변수 도달 → role/aria) · 좌표 대칭 게이트 28 (path `d` byte 동일) · 기하 단위 43 · 실제 CanvasKit 픽셀 5 · 행 주입 6. 번들 증가 builder +6.71KB gz · publish +5.90KB gz (한도 +15KB). 200행 × 4시리즈에서 프레임 p95 Δ +0.2ms (3회 측정 +0.2 / +0.6 / −0.2, 한도 +1ms).
+
 ## [캔버스 — 화면 밖 viewport 로 저장된 프로젝트가 95% 에서 멈추던 결함] - 2026-09-07
 
 ### Fixed

@@ -1,6 +1,6 @@
 # ADR-194 Breakdown: 차트 컴포넌트 — headless 기하 SSOT + Skia/DOM 대칭 consumer
 
-> 2026-08-27 초안. ADR 본문: [194-chart-component-headless-geometry.md](../194-chart-component-headless-geometry.md).
+> 2026-08-27 초안. ADR 본문: [194-chart-component-headless-geometry.md](../completed/194-chart-component-headless-geometry.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은
 > inventory 보강이지 fork 사유가 아님).
 

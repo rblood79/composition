@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-08-27 (review-adr round 1 승인 — HIGH 1·MED 2·LOW 2 전부 fixed, `docs/adr/reviews/194.md`; 직전 Proposed 2026-08-27)
+**Implemented — 2026-09-08** (Phase 0~6 / G0~G5 전부 통과. 컴포넌트 패널 Collections 의 `chart` — bar/line/area/pie, 신규 런타임 의존 0, Builder Skia 와 Preview/Publish SVG 가 같은 기하 함수 좌표를 복사. 직전 Accepted 2026-08-27 — review-adr round 1 승인, HIGH 1·MED 2·LOW 2 전부 fixed, `docs/adr/reviews/194.md`)
 
-> 출처: 2026-08-27 사용자 요청 — 컴포넌트 패널에 RAC/RSP 기반 컴포넌트만 있고 chart 가 없다. 외부 라이브러리 리서치·비교 (본문 §Alternatives) 후 설계 착수. 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](design/194-chart-component-headless-geometry-breakdown.md).
+> 출처: 2026-08-27 사용자 요청 — 컴포넌트 패널에 RAC/RSP 기반 컴포넌트만 있고 chart 가 없다. 외부 라이브러리 리서치·비교 (본문 §Alternatives) 후 설계 착수. 완전 신규 주제 (fork 아님) — 전제 기록은 [breakdown §1](../design/194-chart-component-headless-geometry-breakdown.md).
 
 ## Context
 
@@ -122,7 +122,7 @@ Accepted — 2026-08-27 (review-adr round 1 승인 — HIGH 1·MED 2·LOW 2 전�
 
 D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델인데 본 ADR 은 노코드 팔레트용 단일 leaf 로 평탄화 (`chartType` enum + `showAxis`/`showLegend` boolean). prop 명은 RSC 를 그대로 쓰고 (`dimension`/`metric`/`color`/`orientation`/`stackType`←`type`/`legendPosition`←`Legend.position`), 평탄화 근거는 binding 주석에 기록 (R5).
 
-> 구현 상세: [194-chart-component-headless-geometry-breakdown.md](design/194-chart-component-headless-geometry-breakdown.md) — 전제 lock-in(§1), baseline 실측(§2), 시스템 설계·`PathShape`·binding/rule 표(§3), Phase 0~6(§4), 검증 체크리스트(§5), 위험 매핑(§6), 비스코프(§7)
+> 구현 상세: [194-chart-component-headless-geometry-breakdown.md](../design/194-chart-component-headless-geometry-breakdown.md) — 전제 lock-in(§1), baseline 실측(§2), 시스템 설계·`PathShape`·binding/rule 표(§3), Phase 0~6(§4), 검증 체크리스트(§5), 위험 매핑(§6), 비스코프(§7)
 
 ## Risks
 
@@ -161,6 +161,28 @@ D2 판정 기록: RSC 는 `<Chart><Bar/><Axis/><Legend/></Chart>` 조합 모델�
 | 4 | ✅ Implemented | 2026-09-08 | Skia consumer `chart_scene` primitive (replace) + `_chartRule` 주입 (R8 — `_containerWidth` 와 같은 자리, TokenRef 그대로) + Chart 를 `CONTAINER_DIMENSION_TAGS` 에 등재. **G3 단위 PASS** — `chartParity.test.tsx` 28건이 5 조합 (bar v/dodged · bar h/stacked · line+grid+legend · area · pie+legend) 에서 path `d` **byte 동일** · rect/line 좌표 동일 · text 위치·문자열 동일을 검증. falsify: Skia leg 좌표 +1 → RED 4 (rebuild 후에야 반응 — dist 신선도 조건을 테스트 머리말에 기록). 결함 1건 수리: 초안이 `TextShape.content` 로 써서 **축·범례 텍스트가 통째로 안 그려지는** 상태였고 `as Shape` 캐스팅이 그걸 삼켰다 (필드는 `text`). G3 의 live bbox 대조는 Phase 5 |
 | 5 | ✅ Implemented | 2026-09-08 | dataBinding 연결 (Skia: scene-node 층 `_chartRows` · DOM: `useCollectionData` — `useResolvedCollectionItems` 는 행을 label/description 으로 정규화해 임의 필드명을 못 읽는다) + 행 상한 200 (R4) + **G5 live 11/11 PASS**. live 가 잡은 결함 3건 (전부 단위 테스트 통과 상태였다): ① Skia `align:"center"` 는 x 를 무시하고 **컨테이너 중앙** 정렬 → 축 레이블이 전부 상자 한가운데로 몰림 (DOM 은 점 앵커) — 매핑을 `toSkiaTextGeometry` 공용 helper 로 두고 parity 테스트도 앵커 왕복 비교로 정정 ② `Chart.tsx` 가 `react-aria-Chart` base class 를 안 붙여 생성 CSS 전량 미매칭 (internal wrapper 는 자기 base class 를 합성하는 규약) ③ `data` 를 binding `accepts` 에 선언 안 해 `toRacProps` 가 버림 → Preview 만 "No data" (Skia 는 scene props 직독이라 멀쩡 — 한쪽만 깨지는 형태) |
 
+
+### Live Exercise
+
+**2026-09-08 · Playwright headless (`apps/builder/scripts/adr194-chart-live.mjs`, 11/11 PASS)** — 격리 프로젝트를 만들어 실제 빌더에서:
+
+1. 컴포넌트 패널 Collections 에 `chart` 노출 → 클릭 → canonical 에 `Chart` 생성.
+2. 엔진이 320×240 부여 (layout map), factory 샘플 8행 실림.
+3. Skia 가 시리즈 색을 실제 픽셀로 칠함 — 차트 추가 **전** 대조군 대비 Δblue 13,789 · Δpurple 11,004.
+4. `chartType` bar → line → pie 전환이 픽셀을 바꿈 (blue 17,277 → 4,494 → 7,982) — prop→렌더 채널과 SVG `A` 호 경로가 live 에서 동작.
+5. Compare Mode 로 Preview DOM 대조 — `.react-aria-Chart` 320×240 안에 `rect` 10 · `text` 13 · `line` 2, `--chart-series-1` = `oklch(54.6% 0.245 262.881)` 도달 (R1 emit 확장이 DOM 까지 닿음), `role="img"` + `aria-label="chart"`.
+
+**live 가 잡은 결함 3건** (셋 다 단위 테스트·type-check 통과 상태였다 — 그래서 이 절이 필요하다):
+
+| # | 증상 | 원인 | 수리 |
+| - | ---- | ---- | ---- |
+| ① | 축 레이블이 전부 상자 한가운데로 몰림 | DOM `textAnchor` 는 **점** 앵커인데 Skia converter 의 `align:"center"` 는 컨테이너 중앙 정렬이라 `x` 가 무시된다. 좌표 숫자만 비교하던 G3 는 **같은 숫자가 다른 뜻**이라 통과했다 | 매핑을 `toSkiaTextGeometry` 공용 helper 로 두고, parity 테스트도 앵커 왕복(`skiaTextAnchorX`)으로 비교 |
+| ② | Preview 차트에 생성 CSS 가 전량 미적용 | `Chart.tsx` 가 `react-aria-Chart` base class 를 합성하지 않음 (internal source wrapper 의 공통 규약 — Badge/Icon/ListBox 전수 동일) | 컴포넌트가 base class + `data-variant`/`data-size` 를 직접 부여 |
+| ③ | Preview 만 "No data" | `data` 를 binding `accepts` 에 선언하지 않아 `toRacProps` 가 버림. Skia 는 scene-node props 직독이라 멀쩡 — **한쪽만 깨지는** 형태 | `accepts.data` 를 `kind:"items-manager"` 로 선언 (샘플 rows 인라인 편집도 함께 열림) |
+
+**성능·번들 (`apps/builder/scripts/adr194-chart-perf.mjs`)**: 200행 × 4시리즈 bar 를 놓고 zoom 드라이버(가시 집합이 매 프레임 바뀌어 캐시에 불리한 쪽)로 4초 측정, 같은 세션의 차트 없는 대조군과 A/B — frame p95 Δ = **+0.2 / +0.6 / −0.2 ms** (3회, 한도 +1ms). 측정 해상도가 ~0.8ms 라 문턱이 잡음 바로 위임을 함께 기록한다. 번들 gz Δ = builder 초기 chunk **+6.71KB** · publish **+5.90KB** (한도 각 +15KB, baseline = 같은 디렉터리 detached checkout `d16c2fecb` 재빌드).
+
+**측정 조건 2건** (재현 시 필수): Skia 캔버스 픽셀은 페이지 안에서 읽을 수 없다 — WebGL `preserveDrawingBuffer:false` 라 `drawImage` 가 빈 화면을 준다 (1차 시도가 그래서 "안 그려졌다" 로 오판했고 스크린샷에는 멀쩡히 있었다). Playwright 스크린샷을 페이지에서 디코드해 분석한다. 그리고 색 분류에서 보라(#8B00FF 계열)는 파랑 조건도 만족하므로 보라를 먼저 판정해야 한다.
 
 ## Consequences
 
