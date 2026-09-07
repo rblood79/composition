@@ -312,3 +312,48 @@ export function resolveChartMetrics(
       channel?.series.length ?? CHART_DEFAULT_METRICS.seriesCount,
   };
 }
+
+/**
+ * scene 의 `TextMark`(점 기준 앵커) → Skia `TextShape` 의 박스 기하.
+ *
+ * **두 렌더러의 텍스트 앵커 의미가 다르다.** DOM `<text textAnchor>` 는 `x` 를 **점**으로
+ * 두고 그 점을 기준으로 정렬한다. Skia 쪽 converter 는 문단 박스로 옮기는데, `align:"center"`
+ * 는 `[x, containerWidth - x]` 안에서 가운데 정렬이라 **결과가 항상 컨테이너 중앙** 이고 `x`
+ * 는 사실상 무시된다 (`specShapeConverter` text case). 그래서 좌표를 그대로 넘기면 축 레이블이
+ * 전부 상자 한가운데로 몰린다 — 2026-09-08 live 에서 실제로 그렇게 나왔고, 좌표 숫자만 비교하는
+ * 단위 parity 는 두 값이 같아서 통과했다.
+ *
+ * 해소: 중앙 정렬은 **중심이 `px` 가 되는 박스** `[x, x + 2(px - x)]` 로 옮긴다. 좌/우 정렬은
+ * converter 의 의미가 점 기준과 일치하므로 그대로 둔다. 매핑을 여기 한 곳에 두어 primitive 와
+ * parity 테스트가 같은 규칙을 본다.
+ */
+export interface SkiaTextGeometry {
+  x: number;
+  align: "left" | "center" | "right";
+  maxWidth?: number;
+}
+
+export function toSkiaTextGeometry(
+  mark: { x: number; anchor: "start" | "middle" | "end"; text: string },
+  fontSize: number,
+): SkiaTextGeometry {
+  if (mark.anchor === "start") return { x: r2(mark.x), align: "left" };
+  if (mark.anchor === "end") return { x: r2(mark.x), align: "right" };
+  const needed = approxTextWidth(mark.text, fontSize) + fontSize;
+  // 왼쪽을 **먼저** 반올림하고 폭을 거기서 파생한다. 순서를 바꾸면 왕복
+  //   (`skiaTextAnchorX`) 이 0.01 씩 어긋나 좌표 동일성 게이트가 흔들린다.
+  const left = r2(Math.max(0, mark.x - needed / 2));
+  return {
+    x: left,
+    align: "center",
+    maxWidth: r2((mark.x - left) * 2),
+  };
+}
+
+/** `toSkiaTextGeometry` 의 역 — 박스에서 앵커 점을 되돌린다 (parity 검증용). */
+export function skiaTextAnchorX(geometry: SkiaTextGeometry): number {
+  if (geometry.align === "center") {
+    return r2(geometry.x + (geometry.maxWidth ?? 0) / 2);
+  }
+  return geometry.x;
+}

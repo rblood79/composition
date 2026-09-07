@@ -40,5 +40,10 @@ export {
   CHART_TICK_COUNT,
   computeChartScene,
   resolveChartMetrics,
+  skiaTextAnchorX,
+  toSkiaTextGeometry,
 } from "./computeChartScene";
-export type { ChartRuleChannel } from "./computeChartScene";
+export type {
+  ChartRuleChannel,
+  SkiaTextGeometry,
+} from "./computeChartScene";

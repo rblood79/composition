@@ -16,6 +16,7 @@
 import React from "react";
 import {
   CHART_DEFAULT_PROPS,
+  CHART_SAMPLE_ROWS,
   computeChartScene,
   resolveChartMetrics,
 } from "@composition/specs";
@@ -30,6 +31,8 @@ import type {
   TextMark,
 } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
+import { useCollectionData } from "../hooks";
+import type { DataBinding } from "../types";
 
 export interface ChartProps {
   chartType?: ChartType;
@@ -44,8 +47,18 @@ export interface ChartProps {
   legendPosition?: ChartLegendPosition;
   variant?: string;
   size?: "sm" | "md" | "lg";
-  /** 샘플/정적 rows — dataBinding 이 없을 때의 입력 */
+  /** 샘플/정적 rows — dataBinding 이 없거나 0행일 때의 입력 */
   data?: readonly ChartRow[];
+  /**
+   * dataTable/API 바인딩 (ADR-152/159 계약 재사용 — 새 data source 경로 0).
+   *
+   * **`useResolvedCollectionItems` 가 아니라 `useCollectionData` 를 쓴다**: 전자는 행을
+   * `{label, description, value}` projection 으로 정규화하는데, 차트는 사용자가 지정한
+   * 임의 필드명(`dimension`/`metric`/`color`)을 읽어야 해서 **원본 레코드** 가 필요하다.
+   */
+  dataBinding?: DataBinding;
+  /** 요소 id — 바인딩 캐시 키 */
+  "data-element-id"?: string;
   /** 접근성 라벨 (미지정 시 "chart") */
   "aria-label"?: string;
   style?: React.CSSProperties;
@@ -227,8 +240,10 @@ export function Chart({
   showGrid,
   showLegend,
   legendPosition,
+  variant = "default",
   size = "md",
   data,
+  dataBinding,
   style,
   className,
   "aria-label": ariaLabel,
@@ -278,9 +293,26 @@ export function Chart({
     [rule, sizeKey],
   );
 
+  // 바인딩 행. provider 가 없거나(builder 밖) 아직 0행이면 샘플로 떨어진다 — 팔레트에서
+  //   갓 놓은 차트가 빈 상자로 보이지 않게 하는 같은 규칙 (Skia leg 의 _chartRows 동형).
+  const { data: boundRows } = useCollectionData({
+    dataBinding: dataBinding as DataBinding,
+    componentName: "Chart",
+    fallbackData: [],
+    elementId: rest["data-element-id"] as string | undefined,
+  });
+
+  const rows = React.useMemo<readonly ChartRow[]>(() => {
+    const source =
+      boundRows && boundRows.length > 0 ? boundRows : (data ?? []);
+    return source.length > CHART_SAMPLE_ROWS
+      ? source.slice(0, CHART_SAMPLE_ROWS)
+      : source;
+  }, [boundRows, data]);
+
   const scene = React.useMemo(
-    () => computeChartScene(chartProps, data ?? [], box, metrics),
-    [chartProps, data, box, metrics],
+    () => computeChartScene(chartProps, rows, box, metrics),
+    [chartProps, rows, box, metrics],
   );
 
   return (
@@ -289,7 +321,18 @@ export function Chart({
       ref={ref}
       role="img"
       aria-label={ariaLabel ?? "chart"}
-      className={className}
+      // internal source wrapper 는 **자기 root class 를 자기가 합성한다** (Badge/Icon/ListBox …
+      //   전수 동일 규약 — CanonicalNodeRenderer 는 사용자 class 만 넘긴다). 빠뜨리면 생성
+      //   CSS(.react-aria-Chart)가 통째로 미매칭이라 배경·테두리·팔레트 변수가 DOM 에 안 닿고
+      //   Skia(rule 직독) 와 발산한다 — 2026-09-08 live 에서 클래스 없는 div 로 확인.
+      className={
+        className ? `react-aria-Chart ${className}` : "react-aria-Chart"
+      }
+      // variant/size 는 binding 의 propPassthrough 로 **React prop** 으로 온다 (차트 기하의
+      //   입력이라 그렇게 뒀다). 그래서 generic data-attr 라우팅이 없고, 생성 CSS 의
+      //   `[data-variant]`/`[data-size]` 선택자를 여기서 직접 채워야 매칭된다.
+      data-variant={variant}
+      data-size={size}
       style={style}
     >
       <svg

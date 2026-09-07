@@ -28,6 +28,7 @@ import {
   CHART_DEFAULT_PROPS,
   computeChartScene,
   resolveChartMetrics,
+  skiaTextAnchorX,
 } from "@composition/specs";
 import type { ChartProps, ChartRow, Shape } from "@composition/specs";
 import { SKIA_PRIMITIVES } from "@composition/specs/renderers";
@@ -154,7 +155,7 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
         expect(skiaLines).toEqual(domLines);
       });
 
-      it("text 위치·문자열이 동일하다", () => {
+      it("text 앵커 점·문자열이 동일하다 (좌표 raw 비교 금지 — 앵커 의미가 다르다)", () => {
         const markup = domMarkup(chartProps);
         const domX = attr(markup, "text", "x");
         const domY = attr(markup, "text", "y");
@@ -164,7 +165,20 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
         const skiaTexts = skiaShapes(chartProps).filter(
           (s): s is Extract<Shape, { type: "text" }> => s.type === "text",
         );
-        expect(skiaTexts.map((s) => String(s.x))).toEqual(domX);
+        // Skia 의 x 는 문단 **박스 좌측**, DOM 의 x 는 **앵커 점** 이다. 같은 숫자를 비교하면
+        //   중앙 정렬 레이블이 상자 한가운데로 몰리는 결함이 통과한다 (2026-09-08 live 실측).
+        //   박스에서 앵커를 되돌려 비교한다.
+        expect(
+          skiaTexts.map((s) =>
+            String(
+              skiaTextAnchorX({
+                x: s.x,
+                align: s.align as "left" | "center" | "right",
+                maxWidth: s.maxWidth,
+              }),
+            ),
+          ),
+        ).toEqual(domX);
         expect(skiaTexts.map((s) => String(s.y))).toEqual(domY);
         expect(skiaTexts.map((s) => s.text)).toEqual(domContent);
       });

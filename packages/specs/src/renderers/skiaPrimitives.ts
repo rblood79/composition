@@ -39,6 +39,7 @@ import {
   CHART_DEFAULT_PROPS,
   computeChartScene,
   resolveChartMetrics,
+  toSkiaTextGeometry,
 } from "../chart";
 import type {
   ChartLegendPosition,
@@ -3402,20 +3403,21 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     //   `as Shape` 캐스팅을 쓰지 않는다: 초안이 필드명을 `content` 로 잘못 써도 캐스팅이
     //   타입 오류를 삼켜 **텍스트가 통째로 안 그려지는** 상태로 통과했다 (2026-09-08,
     //   parity 테스트의 type-check 가 잡음). 필드는 `text` 다.
+    // 앵커 변환은 `toSkiaTextGeometry` 한 곳이 한다 — DOM 의 점 앵커와 Skia 의 문단 박스는
+    //   의미가 달라서 좌표를 그대로 넘기면 중앙 정렬 레이블이 전부 상자 한가운데로 몰린다.
+    const geometry = toSkiaTextGeometry(mark, metrics.fontSize);
     shapes.push({
       type: "text",
-      x: mark.x,
+      x: geometry.x,
       y: mark.y,
       text: mark.text,
       fontSize: metrics.fontSize,
       fontFamily: fontFamily.sans,
       fill: mark.role === "legend" ? textToken : axisToken,
-      align:
-        mark.anchor === "start"
-          ? "left"
-          : mark.anchor === "end"
-            ? "right"
-            : "center",
+      align: geometry.align,
+      ...(geometry.maxWidth !== undefined
+        ? { maxWidth: geometry.maxWidth }
+        : {}),
       baseline:
         mark.baseline === "top"
           ? "top"

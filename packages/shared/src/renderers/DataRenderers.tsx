@@ -58,6 +58,7 @@ export function renderChart(element: PreviewElement): ReactNode {
       variant={props.variant as string | undefined}
       size={props.size as never}
       data={props.data as never}
+      dataBinding={props.dataBinding as never}
       aria-label={props["aria-label"] as string | undefined}
       className={props.className as string | undefined}
       style={props.style as React.CSSProperties | undefined}
