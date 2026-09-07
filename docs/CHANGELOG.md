@@ -2,6 +2,14 @@
 
 All notable changes to composition will be documented in this file.
 
+## [프로젝트 부트 후속 작업 계측과 닫힌 팔레트 행 생성 제거] - 2026-09-07
+
+### Performance
+
+- DB 완료 이후 문서 정규화·투영·store 발행을 개별 계측합니다. 작은 프로젝트에서 이 경로는 각1회/합계3.9ms였으며 DB 완료 경고의 대부분은 후속 React 작업이었습니다.
+- 닫힌 CommandPalette에서 63개 행 JSX를 미리 만들던 `map`을 React Aria ListBox의 `items` 렌더링으로 변경했습니다. 기존 단축키·scope·열림/닫힘 수명은 유지합니다. 회귀 테스트에서 이전 코드의 닫힌 행 표시 계산63회와 수정 후0회를 확인했습니다.
+- 전체 DB 완료 경고 해결이나 production 개선율을 주장하지 않습니다. 후속 `useLayoutPublisher`의 전체 레이아웃 계산이 같은 이벤트 구간에 포함되는 현상이 남았습니다.
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 

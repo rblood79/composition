@@ -39,6 +39,22 @@ import type { ShortcutScope } from "../../types/keyboard";
 const renderWithI18n = (ui: ReactElement) =>
   render(ui, { wrapper: I18nProvider });
 
+const rowTranslations = vi.hoisted(() => vi.fn());
+vi.mock("@/i18n", async () => {
+  const actual = await vi.importActual<typeof import("@/i18n")>("@/i18n");
+  return {
+    ...actual,
+    useI18n: () => {
+      const value = actual.useI18n();
+      const t: typeof value.t = (key, params) => {
+        if (key === "commandPalette.scopeGlobal") rowTranslations();
+        return value.t(key, params);
+      };
+      return { ...value, t };
+    },
+  };
+});
+
 const mockScope = vi.hoisted(() => ({
   current: "canvas-focused" as ShortcutScope,
 }));
@@ -140,6 +156,7 @@ function itemFor(label: string): HTMLElement {
 
 beforeEach(() => {
   resetCommandRegistry();
+  rowTranslations.mockClear();
   mockScope.current = "canvas-focused";
 });
 
@@ -148,6 +165,14 @@ afterEach(() => {
 });
 
 describe("CommandPalette — registry 소비", () => {
+  it("닫힌 동안 행 표시를 계산하지 않고 열면 현재 명령 목록을 표시한다", () => {
+    const { rerender } = renderWithI18n(<CommandPalette isOpen={false} />);
+    expect(rowTranslations).not.toHaveBeenCalled();
+    rerender(<CommandPalette isOpen />);
+    expect(rowTranslations).toHaveBeenCalled();
+    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(63);
+  });
+
   it("palette:false 정의는 목록에서 빠진다 (63개)", () => {
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 

@@ -425,8 +425,9 @@ export function CommandPalette({
                 className="command-palette-list"
                 selectionMode="single"
                 onAction={handleAction}
+                items={filteredCommands}
               >
-                {filteredCommands.map((cmd) => (
+                {(cmd) => (
                   <ListBoxItem
                     key={cmd.id}
                     id={cmd.id}
@@ -450,7 +451,7 @@ export function CommandPalette({
                     </div>
                     <kbd className="command-palette-kbd">{cmd.shortcut}</kbd>
                   </ListBoxItem>
-                ))}
+                )}
               </ListBox>
             ) : (
               <EmptyState

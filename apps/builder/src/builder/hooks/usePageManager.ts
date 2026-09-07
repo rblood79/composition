@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { observe } from "../utils/perfMarks";
 import { useI18n } from "@/i18n";
 import { useListData } from "react-stately";
 import { Element } from "../../types/core/store.types";
@@ -377,7 +378,9 @@ export const usePageManager = (): UsePageManagerReturn => {
         // ADR-923 r18m2 (2026-09-01): main document 정규화 체인 (origin 시드 + 형태 migration) 은
         //   `normalizeMainDocument` 단일 소유 — hydration (adapters/canonical) · 전체 문서 교체
         //   (applySnapshotDocument) 와 같은 함수.
-        const document = normalizeMainDocument(baseDocument);
+        const document = observe("boot.normalize", () =>
+          normalizeMainDocument(baseDocument),
+        );
         // persist-back 은 "기존 row 를 읽은" 경우에만 — null read 에서 파생된
         // skeleton 을 write 하면 (read 가 일시 miss 였을 때) 실제 데이터를 덮어쓴다.
         // 신규 프로젝트 row 는 dashboard 생성 시점에 이미 기록되므로 여기서 만들 이유 없음.
@@ -387,11 +390,12 @@ export const usePageManager = (): UsePageManagerReturn => {
           });
         }
 
-        useCanonicalDocumentStore.getState().setDocument(projectId, document);
+        observe("boot.canonical.publish", () =>
+          useCanonicalDocumentStore.getState().setDocument(projectId, document),
+        );
 
-        const renderModel = deriveProjectEditorPageModelFromDocument(
-          document,
-          projectId,
+        const renderModel = observe("boot.pageModel", () =>
+          deriveProjectEditorPageModelFromDocument(document, projectId),
         );
         const apiPages: ApiPage[] = renderModel.pages.map((page) => ({
           ...page,
@@ -403,9 +407,15 @@ export const usePageManager = (): UsePageManagerReturn => {
           parent_id: page.parent_id ?? null,
         }));
 
-        const canonicalElements = canonicalDocumentToElements(document);
-        hydrateProjectSnapshot(canonicalElements as Element[]);
-        apiPages.forEach((page) => pageList.append(page));
+        const canonicalElements = observe("boot.elements.project", () =>
+          canonicalDocumentToElements(document),
+        );
+        observe("boot.elements.hydrate", () =>
+          hydrateProjectSnapshot(canonicalElements as Element[]),
+        );
+        observe("boot.pageList.publish", () =>
+          apiPages.forEach((page) => pageList.append(page)),
+        );
         // 🆕 Multi-page: 페이지 위치 초기화 (현재 방향 + canvasSize 기반).
         // ADR-177: document 에 저장된 배치가 있으면 페이지 단위로 재계산 결과를
         // override 병합 (entry 부재 페이지만 재계산 폴백 — lazy write 대응).
@@ -429,7 +439,7 @@ export const usePageManager = (): UsePageManagerReturn => {
         );
         // 위치를 먼저 준비한 뒤 page 목록을 publish하여 미초기화 page가
         // 렌더 단계에서 (0, 0)으로 겹치는 중간 상태를 만들지 않는다.
-        setPages(storePages);
+        observe("boot.pages.publish", () => setPages(storePages));
 
         setLazyLoadingEnabled(false);
 
@@ -447,7 +457,9 @@ export const usePageManager = (): UsePageManagerReturn => {
             pageBodyCandidates.find((el) => el.type === "body") ??
             pageBodyCandidates[0];
 
-          useStore.getState().activatePage(pageToSelect.id, bodyElement?.id);
+          observe("boot.page.activate", () =>
+            useStore.getState().activatePage(pageToSelect.id, bodyElement?.id),
+          );
           setSelectedPageId(pageToSelect.id);
         }
 
