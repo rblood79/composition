@@ -2,6 +2,12 @@
 
 All notable changes to composition will be documented in this file.
 
+## [실제 Builder Worker 적용 검증 후 철회] - 2026-09-07
+
+- 실제 프로젝트에 Worker 소유 SkiaRenderer를 연결해 부트3쌍, 전체 화면 픽셀, 휠 입력6회씩을 비교했습니다. 메인 렌더 프레임 최대값은 약107→22ms로 감소했고 전체 화면 픽셀 차이는0이었습니다.
+- 그러나 준비 완료는 각쌍에서100~~128ms 늦어졌고, 휠 입력→제출은 메인40.5~~46.1ms 대비 Worker60.9~77.6ms로 악화됐습니다. Worker 응답 계측은 flush 후 메인 수신까지 포함합니다.
+- 사용자 유지 조건을 충족하지 못해 Worker 연결·전송 codec·runtime 주입·Worker 전용 폰트/환경 분리와 해당 테스트를 제거했습니다. 기존 main 렌더러, matching flush readiness, 폰트 파싱 최적화는 보존합니다. 초기 프로젝트 오픈 경고가 해결됐다는 판정은 하지 않습니다.
+
 ## [프로젝트 부트 후속 작업 계측과 닫힌 팔레트 행 생성 제거] - 2026-09-07
 
 ### Performance
