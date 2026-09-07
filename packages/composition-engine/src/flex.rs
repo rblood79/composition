@@ -45,7 +45,7 @@
 //! `flex-wrap: nowrap` 이면 전 아이템이 단일 라인. `wrap` 이면 아이템 outer main-size
 //! 누적이 available_main 을 초과하기 직전에 새 라인 시작 (각 라인은 최소 1개 아이템).
 //!
-//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 21, 노드당)
+//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 22, 노드당)
 //!
 //! | off | 필드              | 센티넬                          |
 //! | --- | ----------------- | ------------------------------- |
@@ -70,6 +70,7 @@
 //! | 18  | overflow_main     | 0=non-scrollable(visible/clip, zero-init) 1=scroll container(scroll/auto/hidden) — item 자신의 overflow (ADR-164 §4.5, r9h1) |
 //! | 19  | content_min_main  | 0=absent(zero-init) — 정확 min-content (main, ADR-165 §4.5 floor 정밀화) |
 //! | 20  | margin_auto_mask  | 0=없음(zero-init) — 물리 margin `auto` 비트마스크 (1=top 2=right 4=bottom 8=left) |
+//! | 21  | baseline_plus_one | 0=absent(zero-init) — item 의 cross 축 baseline (border-top 기준) + 1. absent 면 border-box 아래 모서리로 합성 (Flexbox §8.5, upstream 대조 ⑦) |
 //!
 //! off 17(`align_self`)은 **0=auto 가 zero-init 기본값 겸 CSS 기본값**이라, 값을 안 쓰는
 //! 입력 배열(기존 golden/테스트)은 자동으로 컨테이너 `align_items` 를 상속한다.
@@ -116,7 +117,7 @@ use crate::trace::FloorSource;
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
-pub const FLEX_FIELD_COUNT: usize = 21;
+pub const FLEX_FIELD_COUNT: usize = 22;
 
 /// off 20 `margin_auto_mask` 비트 — 물리 margin 이 `auto` 인지 (§8.1 흡수 대상).
 /// 기록(`tree.rs::write_flex_item`)과 해석(`parse_item`)이 **같은 상수**를 쓴다.
@@ -149,6 +150,9 @@ const JUSTIFY_END: u8 = 2;
 const JUSTIFY_SPACE_BETWEEN: u8 = 3;
 const JUSTIFY_SPACE_AROUND: u8 = 4;
 const JUSTIFY_SPACE_EVENLY: u8 = 5;
+// `safe` 접두 (CSS-ALIGN-3 §4.4, upstream 대조 ⑦ — Taffy #952): 여유가 음수면 start 로.
+const JUSTIFY_SAFE_CENTER: u8 = 6;
+const JUSTIFY_SAFE_END: u8 = 7;
 
 // align_items (cross 축 정렬). START 는 default 분기(`_`)로 처리 — 명세 문서화용 상수.
 const ALIGN_STRETCH: u8 = 0;
@@ -156,6 +160,11 @@ const ALIGN_STRETCH: u8 = 0;
 const ALIGN_START: u8 = 1;
 const ALIGN_CENTER: u8 = 2;
 const ALIGN_END: u8 = 3;
+/// baseline 그룹 (Flexbox §8.3 · §8.5, upstream 대조 ⑦ — Taffy #1109 · #1127). column 방향과
+/// cross auto margin item 은 그룹 밖 (start 로).
+const ALIGN_BASELINE: u8 = 4;
+const ALIGN_SAFE_CENTER: u8 = 5;
+const ALIGN_SAFE_END: u8 = 6;
 
 // align_self (per-item cross 정렬, E1). 입력 field(off 17) 값 → 컨테이너 align_items
 // override. 0=auto 는 컨테이너 값 상속(CSS `align-self:auto` 기본). 1~4 는 명시.
@@ -166,6 +175,9 @@ const ALIGN_SELF_STRETCH: u8 = 1;
 const ALIGN_SELF_START: u8 = 2;
 const ALIGN_SELF_CENTER: u8 = 3;
 const ALIGN_SELF_END: u8 = 4;
+const ALIGN_SELF_BASELINE: u8 = 5;
+const ALIGN_SELF_SAFE_CENTER: u8 = 6;
+const ALIGN_SELF_SAFE_END: u8 = 7;
 
 /// per-item `align_self`(0=auto/1~4) 를 라인 `align_items`(ALIGN_*) 로 해소.
 /// auto → 컨테이너 값 상속, 그 외 → 대응 ALIGN_* 코드.
@@ -176,6 +188,9 @@ fn resolve_self_align(align_self: u8, container_align: u8) -> u8 {
         ALIGN_SELF_START => ALIGN_START,
         ALIGN_SELF_CENTER => ALIGN_CENTER,
         ALIGN_SELF_END => ALIGN_END,
+        ALIGN_SELF_BASELINE => ALIGN_BASELINE,
+        ALIGN_SELF_SAFE_CENTER => ALIGN_SAFE_CENTER,
+        ALIGN_SELF_SAFE_END => ALIGN_SAFE_END,
         // ALIGN_SELF_AUTO + 미지의 값 → 컨테이너 상속
         _ => container_align,
     }
@@ -195,6 +210,8 @@ const ALIGN_CONTENT_CENTER: u8 = 2;
 const ALIGN_CONTENT_END: u8 = 3;
 const ALIGN_CONTENT_SPACE_BETWEEN: u8 = 4;
 const ALIGN_CONTENT_SPACE_AROUND: u8 = 5;
+const ALIGN_CONTENT_SAFE_CENTER: u8 = 6;
+const ALIGN_CONTENT_SAFE_END: u8 = 7;
 
 /// min/max clamp (block_layout.rs 승계 — 유일한 공용 primitive).
 /// max=AUTO(-1) 은 제약 없음(무한대)으로 취급.
@@ -269,6 +286,8 @@ struct FlexItem {
     /// per-item cross 정렬(0=auto 상속 / 1~4 명시) — E1. place_line_cross_axis 가
     /// resolve_self_align 으로 컨테이너 align_items 를 override.
     align_self: u8,
+    /// cross 축 baseline (border-top 기준, 슬롯 21 − 1). 음수 = absent → border-box 아래로 합성.
+    baseline: f32,
     // §9.7 상태
     frozen: bool,
     target_main: f32,
@@ -485,9 +504,49 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         flex_grow,
         flex_shrink,
         align_self,
+        baseline: data[off + 21] - 1.0,
         frozen: false,
         target_main: main_content,
     }
+}
+
+/// baseline 그룹 참여 (Flexbox §8.3 — `align-self: baseline` 로 해소되고 cross auto margin 이 없다).
+#[inline]
+fn item_in_baseline_group(it: &FlexItem, align_items: u8) -> bool {
+    !(it.margin_cross_start_auto || it.margin_cross_end_auto)
+        && resolve_self_align(it.align_self, align_items) == ALIGN_BASELINE
+}
+
+/// item 의 (baseline 거리 = margin_cross_start + border-box 안 baseline, 그 아래 나머지 outer cross).
+/// baseline 이 없으면 border-box 아래 모서리로 합성 (§8.5 "synthesized from the flex item's border box").
+#[inline]
+fn item_baseline_metrics(it: &FlexItem) -> (f32, f32) {
+    let border = it.cross_content + it.pad_border_cross;
+    let inner = if it.baseline >= 0.0 { it.baseline } else { border };
+    let b = it.margin_cross_start + inner;
+    let outer = border + it.margin_cross_start + it.margin_cross_end;
+    (b, outer - b)
+}
+
+/// 라인의 baseline 그룹 — `(그룹 baseline 거리, 그룹 cross extent)`. 그룹이 없거나 column 방향
+/// (cross 가 인라인 축이라 baseline 정렬은 start 로 동작 — Chrome 실측) 이면 `None`.
+fn baseline_group(line: &[FlexItem], direction: u8, align_items: u8) -> Option<(f32, f32)> {
+    if direction == DIR_COLUMN {
+        return None;
+    }
+    let mut max_b = f32::MIN;
+    let mut max_below = f32::MIN;
+    let mut any = false;
+    for it in line {
+        if !item_in_baseline_group(it, align_items) {
+            continue;
+        }
+        let (b, below) = item_baseline_metrics(it);
+        any = true;
+        max_b = max_b.max(b);
+        max_below = max_below.max(below);
+    }
+    if any { Some((max_b, max_b + max_below)) } else { None }
 }
 
 /// §9.7 Resolving Flexible Lengths — 단일 라인의 아이템 main content 크기 확정.
@@ -741,10 +800,15 @@ pub fn flex_layout(
         resolve_flexible_lengths(&mut line, available_main, line_gap);
 
         // 라인 cross 크기 = 최대 (cross content + pad_border + margin)
-        let line_cross = line
+        let mut line_cross = line
             .iter()
             .map(|it| it.cross_content + it.pad_border_cross + it.margin_cross_start + it.margin_cross_end)
             .fold(0.0f32, f32::max);
+        // baseline 그룹은 baseline 을 맞춰 놓이므로 그 extent (최대 baseline 거리 + 최대 아래) 가
+        // 라인 cross 를 키운다 (Chrome a h30 · b mt10 h60 → root h 70 · a h100 · b h20 → 100).
+        if let Some((_, extent)) = baseline_group(&line, direction, align_items) {
+            line_cross = line_cross.max(extent);
+        }
         line_cross_sizes.push(line_cross);
         resolved_lines.push(line);
     }
@@ -882,6 +946,8 @@ fn align_content_offsets(
         }
         ALIGN_CONTENT_CENTER => (cross_free_raw / 2.0, 0.0, 0.0),
         ALIGN_CONTENT_END => (cross_free_raw, 0.0, 0.0),
+        ALIGN_CONTENT_SAFE_CENTER => (cross_free / 2.0, 0.0, 0.0),
+        ALIGN_CONTENT_SAFE_END => (cross_free, 0.0, 0.0),
         ALIGN_CONTENT_SPACE_BETWEEN => {
             if line_count > 1 {
                 (0.0, cross_free / (line_count as f32 - 1.0), 0.0)
@@ -959,6 +1025,9 @@ fn place_line_main_axis(
         match justify_content {
         JUSTIFY_CENTER => (free_main_raw / 2.0, 0.0),
         JUSTIFY_END => (free_main_raw, 0.0),
+        // `safe` — 넘치면 start (음수 여유 0 clamp). Chrome F8b safe center 150 · 넘침 0.
+        JUSTIFY_SAFE_CENTER => (free_main / 2.0, 0.0),
+        JUSTIFY_SAFE_END => (free_main, 0.0),
         JUSTIFY_SPACE_BETWEEN => {
             if n > 1 {
                 (0.0, free_main / (n as f32 - 1.0))
@@ -1013,6 +1082,7 @@ fn place_line_cross_axis(
     line_cross_size: f32,
     align_items: u8,
 ) {
+    let group = baseline_group(line, direction, align_items);
     for it in line.iter() {
         let out_off = it.index * OUT_FIELDS;
         // main_pos / main_size 를 임시 슬롯에서 회수
@@ -1065,6 +1135,18 @@ fn place_line_cross_axis(
             }
             ALIGN_CENTER => (it.margin_cross_start + cross_free / 2.0, item_cross_border),
             ALIGN_END => (it.margin_cross_start + cross_free, item_cross_border),
+            // `safe` — 넘치면 start (Chrome align-items safe center h100 > h300 → 0, 여유 h200 > h50 → 75).
+            ALIGN_SAFE_CENTER => (it.margin_cross_start + cross_free.max(0.0) / 2.0, item_cross_border),
+            ALIGN_SAFE_END => (it.margin_cross_start + cross_free.max(0.0), item_cross_border),
+            // baseline 그룹: 그룹 최대 baseline 거리에 자기 baseline 을 맞춘다 (§8.3, 그룹은 cross-start
+            // 에 붙는다 — Chrome F4 a h30 · b h60 → a.y 30). 그룹이 없으면 (column) start.
+            ALIGN_BASELINE => match group {
+                Some((max_b, _)) if item_in_baseline_group(it, align_items) => {
+                    let (b, _) = item_baseline_metrics(it);
+                    (it.margin_cross_start + (max_b - b), item_cross_border)
+                }
+                _ => (it.margin_cross_start, item_cross_border),
+            },
             // ALIGN_START (default) + ALIGN_STRETCH with explicit cross size
             _ => (it.margin_cross_start, item_cross_border),
         };

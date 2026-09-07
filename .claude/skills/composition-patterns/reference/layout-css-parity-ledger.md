@@ -837,3 +837,40 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 - ❌ auto-fit 빈 트랙을 `0px` 토큰으로 남기기 → gutter 가 남아 Chrome 과 gap × 빈 트랙 수 어긋난다
 - ❌ collapse 뒤 원 `placement_spec` 을 그대로 `grid_layout` 에 넘기기 → 명시 라인이 지워진 트랙을 가리켜 배치가 갈린다
 
+## flex `baseline` 은 그룹이고 라인을 키운다 · `safe` 는 넘칠 때만 start · `self-*` 는 start/end (CSS-FLEXBOX-1 §8.3 · §8.5 · CSS-ALIGN-3 §4.4, upstream 대조 ⑦, 2026-09-07)
+
+flex.rs 에 `baseline` 코드가 없었고 (Taffy #1109 · #1127 의 전제 — `align-items: baseline` 이 stretch 0 으로 떨어짐), 정렬 파서가 정확 문자열 매치라 `safe center` 가 start (Taffy #952), `self-end` 가 default 로 떨어졌다 (#1077).
+
+| fixture (Chrome 실측)                                          | Chrome                 | 종전 엔진 |
+| -------------------------------------------------------------- | ---------------------- | --------- |
+| F4 row `align-items: baseline` > a h30 · b h60                 | a.y 30                 | 0         |
+| 위 + b `margin-top 10`                                         | a.y 40 · root h 70     | 0 · 70    |
+| a h100 · b h20                                                 | b.y 80 · root h 100    | 0         |
+| a pb20 (합성 baseline = border-box 아래)                       | a.y 30                 | 0         |
+| definite h200 — 그룹은 cross-start                             | a.y 30 · b.y 0         | 0 · 0     |
+| b `margin-top: auto` — 그룹 밖 (#1109)                          | a.y 0                  | 0 (우연)  |
+| column + baseline                                              | start (x 0)            | 0 (우연)  |
+| 중첩 flex item (자식 h60) 의 baseline                           | a.y 30                 | 0         |
+| wrap 2 줄 — 줄마다 독립                                         | a.y 30 · c.y 110       | 0 · 60    |
+| F8b `justify-content: safe center` w400 > w100                 | 150                    | 0         |
+| `safe center` 넘침 (w100 > w300) · `unsafe center` · 접두 없음 | 0 · −100 · −100        | 0 · 0 · −100 |
+| `safe flex-end` 넘침 · `unsafe flex-end`                       | 0 · −200               | 0 · 0     |
+| `align-items: safe center` 여유 h200 > h50 · 넘침 h100 > h300  | 75 · 0                 | 0 · 0     |
+| `align-self: safe flex-end` 넘침 (컨테이너 center)             | 0                      | −100      |
+| `align-content: safe center` wrap h200 두 줄 60 · 넘침 h20     | 70 · 0                 | 0 · 0     |
+| `align-items: self-end` h200 > h50 · `align-self: self-end` · column `self-end` | 150 · 150 · x 350 | 0 |
+
+- **슬롯 계약** — `FLEX_FIELD_COUNT` 21 → **22**: 슬롯 21 `baseline_plus_one` (cross 축 baseline, border-top 기준, +1 — 0 = absent 가 zero-init 겸 기본). tree.rs `write_flex_item` 이 자식 `layout.baseline` (ADR-923 — 텍스트 leaf 첫 줄 · block 컨테이너 마지막 line box · flex 컨테이너 첫 item) 을 row 방향에서만 싣는다. golden `golden_field_contract_guard` 22.
+- **코드** — align_items `ALIGN_BASELINE 4 · ALIGN_SAFE_CENTER 5 · ALIGN_SAFE_END 6`, align_self `5/6/7`, justify `JUSTIFY_SAFE_CENTER 6 · SAFE_END 7`, align_content `SAFE_CENTER 6 · SAFE_END 7`. grid 는 `grid_align_items_code` 로 0~3 계약에 접는다 (baseline → start 근사).
+- **baseline 그룹** — `baseline_group(line, direction, align_items)`: 참여 = `align-self` 가 baseline 으로 해소되고 cross auto margin 없음 (§9.6 — auto margin 이 이긴다), column 은 `None` (cross 가 인라인 축 → start). item 거리 `b = margin_cross_start + (baseline ∨ border-box 높이)`, 그룹 = `max b`, extent = `max b + max(outer − b)`. 라인 cross 는 `max(outer cross, extent)` — 그룹이 라인을 키운다. 배치는 `margin_cross_start + (max_b − b)`, 그룹은 cross-start 에.
+- **safe** — `strip_overflow_position` (⑧ 에서 도입) 을 네 파서가 같이 쓴다. safe 코드는 여유를 `max(0)` 로 clamp 한 center/end — 접두 없음은 종전대로 unsafe (crossAxisOverflow 실측 유지). `self-start`/`self-end` 는 writing-mode 미지원이라 start/end 동치.
+- Chrome 실측 fixture: `flexBaselineSafeAlign.browser.test.ts` (engine + pipeline, 26 × 2 = 52 — baseline 34 RED). unit `flex_align_items_baseline_group` (leafBaseline 12 → y 48, extent 78) · `flex_safe_prefix_and_self_keywords`. live (Playwright): a.y 40 · b.y 10 · Text y 55.9 (DOM 55) · safe 0 · unsafe −100 · self-end 150.
+- **LOW deferred (production 재현 없음)**: `first baseline`/`last baseline` 구분 (둘 다 첫 baseline 근사 — 다중 줄 block item 에서 last 가 다르다) · grid `align-items: baseline` (start 근사) · flex `align-content: space-evenly` 가 stretch 0 으로 떨어지는 기존 gap · 컨테이너 자기 baseline 이 baseline 그룹 첫 item 이 아니라 첫 in-flow item (§8.5 근사 유지).
+
+### 금지 패턴
+
+- ❌ baseline 을 item 별 offset 으로만 처리하고 라인 cross 를 안 키우기 → auto 높이 컨테이너가 그룹 아래를 잘라낸다 (root 70 이 60)
+- ❌ `safe` 를 파서에서 접두만 떼고 같은 코드로 보내기 → 넘침에서 unsafe 와 같아진다
+- ❌ column 방향에 baseline 그룹 적용 → Chrome 은 start
+- ❌ 슬롯 21 을 raw baseline 으로 두기 → zero-init 0 이 "top 이 baseline" 이 되어 정렬 미참여 item 까지 옮긴다
+

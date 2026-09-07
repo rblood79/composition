@@ -2512,6 +2512,7 @@ impl LayoutTree {
                     main: flex_direction_is_reverse(style.flex_direction.as_deref()),
                     cross: flex_wrap_is_reverse(style.flex_wrap.as_deref()),
                 },
+                self.get(c).map(|n| n.layout.baseline).unwrap_or(BASELINE_NONE),
             );
         }
 
@@ -4108,7 +4109,7 @@ impl LayoutTree {
         //   자식 실제 height 를 쓴다(stretch 기본은 셀 채움 유지). **width(justify)는 stretch 유지**
         //   — JS DFS(fullTreeLayout) 가 grid 자식 폭을 트랙 폭으로 강제하므로 엔진이 justify 를
         //   더해도 live 에서 이중 적용/무효가 되어 §Residual (옵션 3-b 계약).
-        let grid_align_items = parse_align_items(style.align_items.as_deref());
+        let grid_align_items = grid_align_items_code(style.align_items.as_deref());
         let grid_justify_items = parse_justify_items(style.justify_items.as_deref());
         let mut max_right: f32 = 0.0;
         // ADR-923 Phase 2 (r7m1 수정): grid 컨테이너 baseline = **placement row-major
@@ -4702,25 +4703,45 @@ fn flex_wrap_is_reverse(v: Option<&str>) -> bool {
 /// justify-content → flex.rs JUSTIFY_* (start=0/center=1/end=2/space-between=3/
 /// space-around=4/space-evenly=5). flex.rs 상수와 리터럴 대조 일치.
 fn parse_justify_content(v: Option<&str>) -> u8 {
-    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
-        Some("center") => 1,
-        Some("flex-end") | Some("end") => 2,
-        Some("space-between") => 3,
-        Some("space-around") => 4,
-        Some("space-evenly") => 5,
-        // flex-start/start/normal/기타 → 0
+    let lower = v.map(|s| s.trim().to_ascii_lowercase()).unwrap_or_default();
+    let (kw, safe) = strip_overflow_position(&lower);
+    let safe = safe == Some(true);
+    match kw {
+        // `safe` 접두 (upstream 대조 ⑦): 넘치면 start — flex.rs JUSTIFY_SAFE_*.
+        "center" => if safe { 6 } else { 1 },
+        "flex-end" | "end" | "right" => if safe { 7 } else { 2 },
+        "space-between" => 3,
+        "space-around" => 4,
+        "space-evenly" => 5,
+        // flex-start/start/left/normal/기타 → 0
         _ => 0,
     }
 }
 
-/// align-items → flex.rs ALIGN_* (stretch=0/start=1/center=2/end=3).
+/// align-items → flex.rs ALIGN_* (stretch=0/start=1/center=2/end=3/baseline=4/safe center=5/
+/// safe end=6). `self-start`/`self-end` 는 writing-mode 미지원이라 start/end 와 동치 (upstream 대조 ⑦).
 fn parse_align_items(v: Option<&str>) -> u8 {
-    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
-        Some("flex-start") | Some("start") => 1,
-        Some("center") => 2,
-        Some("flex-end") | Some("end") => 3,
+    let lower = v.map(|s| s.trim().to_ascii_lowercase()).unwrap_or_default();
+    let (kw, safe) = strip_overflow_position(&lower);
+    let safe = safe == Some(true);
+    match kw {
+        "flex-start" | "start" | "self-start" => 1,
+        "center" => if safe { 5 } else { 2 },
+        "flex-end" | "end" | "self-end" => if safe { 6 } else { 3 },
+        "baseline" | "first baseline" | "last baseline" => 4,
         // stretch/normal/기타 → 0 (default stretch)
         _ => 0,
+    }
+}
+
+/// grid 가 읽는 align-items 코드 — flex 전용 코드 (baseline · safe) 는 grid 의 0~3 계약으로 접는다
+/// (baseline → start 근사, safe center/end → center/end; grid baseline 정렬은 미대상).
+fn grid_align_items_code(v: Option<&str>) -> u8 {
+    match parse_align_items(v) {
+        4 => 1,
+        5 => 2,
+        6 => 3,
+        c => c,
     }
 }
 
@@ -4730,11 +4751,15 @@ fn parse_align_items(v: Option<&str>) -> u8 {
 /// flex.rs off 17 이 zero-init 이면 자동으로 auto 가 되므로, 미지정 자식은 항상 상속한다.
 /// justify-self 는 flex item 에 무효(grid 전용, Phase 3) — 여기선 align-self 만 소비.
 fn parse_align_self(v: Option<&str>) -> f32 {
-    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
-        Some("stretch") => 1.0,
-        Some("flex-start") | Some("start") => 2.0,
-        Some("center") => 3.0,
-        Some("flex-end") | Some("end") => 4.0,
+    let lower = v.map(|s| s.trim().to_ascii_lowercase()).unwrap_or_default();
+    let (kw, safe) = strip_overflow_position(&lower);
+    let safe = safe == Some(true);
+    match kw {
+        "stretch" => 1.0,
+        "flex-start" | "start" | "self-start" => 2.0,
+        "center" => if safe { 6.0 } else { 3.0 },
+        "flex-end" | "end" | "self-end" => if safe { 7.0 } else { 4.0 },
+        "baseline" | "first baseline" | "last baseline" => 5.0,
         // auto/normal/미지정/기타 → 0 (컨테이너 align-items 상속)
         _ => 0.0,
     }
@@ -4786,12 +4811,15 @@ fn grid_inline_justify(justify_self: Option<&str>, container: u8) -> u8 {
 /// align-content → flex.rs ALIGN_CONTENT_* (stretch=0/start=1/center=2/end=3/
 /// space-between=4/space-around=5).
 fn parse_align_content(v: Option<&str>) -> u8 {
-    match v.map(|s| s.trim().to_ascii_lowercase()).as_deref() {
-        Some("flex-start") | Some("start") => 1,
-        Some("center") => 2,
-        Some("flex-end") | Some("end") => 3,
-        Some("space-between") => 4,
-        Some("space-around") => 5,
+    let lower = v.map(|s| s.trim().to_ascii_lowercase()).unwrap_or_default();
+    let (kw, safe) = strip_overflow_position(&lower);
+    let safe = safe == Some(true);
+    match kw {
+        "flex-start" | "start" => 1,
+        "center" => if safe { 6 } else { 2 },
+        "flex-end" | "end" => if safe { 7 } else { 3 },
+        "space-between" => 4,
+        "space-around" => 5,
         // stretch/normal/기타 → 0
         _ => 0,
     }
@@ -5418,8 +5446,12 @@ fn write_flex_item(
     main_ctx: &CssValueContext,
     cross_ctx: &CssValueContext,
     reverse: MarginAxisReverse,
+    child_baseline: f32,
 ) {
     let off = i * flex::FLEX_FIELD_COUNT;
+    // 슬롯 21 — cross 축 baseline + 1 (0 = absent → flex.rs 가 border-box 아래로 합성). row 만:
+    // column 의 cross 는 인라인 축이라 baseline 정렬이 start 로 동작한다 (upstream 대조 ⑦).
+    data[off + 21] = if is_row && child_baseline >= 0.0 { child_baseline + 1.0 } else { 0.0 };
 
     // 논리축 매핑: row → main=가로(width), cross=세로(height) / column → 반대.
     // main 축은 `resolve_dimension_opt`(fit-content→AUTO), cross 축은
@@ -6734,6 +6766,113 @@ mod tests {
         );
         assert_eq!(t.get_layout(h[0]).width, 100.0, "leaf 80 + 20");
         assert_eq!(t.get_layout(h[1]).width, 100.0, "fit-content 부모 = leaf border-box");
+    }
+
+    /// ⑦ (Taffy #1109 · #1127) — flex `align-items: baseline`: 합성 baseline (border-box 아래) 정렬 ·
+    /// margin 포함 · 라인 cross 는 그룹 extent · 텍스트 leaf 는 자기 baseline · column 은 start.
+    /// (Chrome F4 a.y 30 · mt10 → 40, root 70 · h100/h20 → b.y 80)
+    #[test]
+    fn flex_align_items_baseline_group() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"30px"},"children":[]},
+            {"style":{"width":"50px","height":"60px","marginTop":"10px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","alignItems":"baseline"},"children":[0,1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 40.0, "a baseline 30 → b 의 70 에 맞춤");
+        assert_eq!(t.get_layout(h[1]).y, 10.0, "b 는 margin 뒤 그대로");
+        assert_eq!(t.get_layout(h[2]).height, 70.0, "라인 cross = 그룹 extent");
+
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"100px"},"children":[]},
+            {"style":{"width":"50px","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","alignItems":"baseline"},"children":[0,1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).y, 80.0);
+        assert_eq!(t.get_layout(h[2]).height, 100.0);
+
+        // 텍스트 leaf 의 baseline (leafBaseline 12) 이 합성 baseline (60) 에 맞는다 → y 48.
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"30px","leafBaseline":12},"children":[]},
+            {"style":{"width":"50px","height":"60px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"400px","alignItems":"baseline"},"children":[0,1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).y, 48.0, "leaf baseline 12 → 60 − 12");
+        assert_eq!(t.get_layout(h[2]).height, 78.0, "그룹 extent = 60 + (30 − 12)");
+
+        // column: baseline → start.
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"50px","height":"30px"},"children":[]},
+            {"style":{"width":"100px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","width":"400px","alignItems":"baseline"},"children":[0,1]}
+        ]"#,
+            2, 400.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[0]).x, 0.0);
+        assert_eq!(t.get_layout(h[1]).x, 0.0);
+    }
+
+    /// ⑦ (Taffy #952 · #1077) — `safe` 접두는 넘칠 때만 start (여유 있으면 center 그대로), 기본은 unsafe
+    /// (음수 허용) · `self-start`/`self-end` 는 start/end. (Chrome F8b 150 · 넘침 0 / unsafe −100 · self-end 150)
+    #[test]
+    fn flex_safe_prefix_and_self_keywords() {
+        let case = |jc: &str, w: &str, item_w: &str| {
+            let json = format!(
+                r#"[
+                {{"style":{{"width":"{item_w}","height":"30px","flexShrink":0}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"row","width":"{w}","justifyContent":"{jc}"}},"children":[0]}}
+            ]"#
+            );
+            let (t, h) = solve(&json, 1, 400.0, -1.0);
+            t.get_layout(h[0]).x
+        };
+        assert_eq!(case("safe center", "400px", "100px"), 150.0);
+        assert_eq!(case("safe center", "100px", "300px"), 0.0);
+        assert_eq!(case("unsafe center", "100px", "300px"), -100.0);
+        assert_eq!(case("center", "100px", "300px"), -100.0, "기본 unsafe");
+        assert_eq!(case("safe flex-end", "100px", "300px"), 0.0);
+        assert_eq!(case("unsafe flex-end", "100px", "300px"), -200.0);
+
+        let cross = |ai: &str, aself: &str, h_container: &str, h_item: &str| {
+            let json = format!(
+                r#"[
+                {{"style":{{"width":"50px","height":"{h_item}","alignSelf":"{aself}"}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"row","width":"400px","height":"{h_container}","alignItems":"{ai}"}},"children":[0]}}
+            ]"#
+            );
+            let (t, h) = solve(&json, 1, 400.0, -1.0);
+            t.get_layout(h[0]).y
+        };
+        assert_eq!(cross("safe center", "auto", "200px", "50px"), 75.0);
+        assert_eq!(cross("safe center", "auto", "100px", "300px"), 0.0);
+        assert_eq!(cross("center", "safe flex-end", "100px", "300px"), 0.0, "align-self safe 가 컨테이너 center 를 덮는다");
+        assert_eq!(cross("self-end", "auto", "200px", "50px"), 150.0);
+        assert_eq!(cross("flex-start", "self-end", "200px", "50px"), 150.0);
+        assert_eq!(cross("self-start", "auto", "200px", "50px"), 0.0);
+
+        // align-content safe center — wrap h200 두 줄 합 60 → 70 · 넘침 h20 → 0.
+        let lines = |hc: &str| {
+            let json = format!(
+                r#"[
+                {{"style":{{"width":"300px","height":"30px"}},"children":[]}},
+                {{"style":{{"width":"300px","height":"30px"}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"row","flexWrap":"wrap","width":"400px","height":"{hc}","alignContent":"safe center"}},"children":[0,1]}}
+            ]"#
+            );
+            let (t, h) = solve(&json, 2, 400.0, -1.0);
+            t.get_layout(h[0]).y
+        };
+        assert_eq!(lines("200px"), 70.0);
+        assert_eq!(lines("20px"), 0.0);
     }
 
     /// ⑥ (Taffy #1138 · #946 · #1035) — 라인 이름 트랙/배치 · auto-fill 반복 수 · auto-fit collapse

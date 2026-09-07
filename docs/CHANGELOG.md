@@ -2,6 +2,15 @@
 
 All notable changes to composition will be documented in this file.
 
+## [레이아웃 엔진 — flex baseline 정렬 · safe/unsafe · self-start/self-end] - 2026-09-07
+
+### Fixed
+
+- flex 컨테이너의 `align-items: baseline` / `align-self: baseline` 을 캔버스가 반영합니다 — 높이가 다른 상자·텍스트가 baseline 을 맞춰 놓이고 (h30 · h60 → 위 상자가 30 내려감, 텍스트는 글자 baseline), 그룹이 컨테이너 높이를 키웁니다. 종전엔 stretch 로 떨어졌습니다. `margin: auto` 가 있는 item 과 세로 (column) 컨테이너는 CSS 대로 start 입니다.
+- `justify-content` · `align-items` · `align-self` · `align-content` 의 `safe` 접두를 반영합니다 — 내용이 넘칠 때만 start 로 (`safe center` 여유 있으면 center 150, 넘치면 0). 접두 없는 `center` 는 종전대로 양쪽으로 넘칩니다 (`unsafe` 와 같음, Chrome 동일).
+- `self-start` / `self-end` 키워드가 무시되던 것을 start / end 로 반영합니다 (`align-items: self-end` 높이 200 안 50 → y 150).
+- 근거: Taffy 0.10→0.14 대조 §4 ⑦ (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md`, Taffy #1109 · #1127 · #952 · #1077). Chrome 실측 fixture 26 × 2 leg (baseline 34 RED) · 엔진 단위 2 · flex 커널 슬롯 계약 21 → 22 (golden 갱신) · live 빌더 4 케이스 Chrome 동일. 이로써 Taffy 대조 §4 의 ①~⑨ 가 전부 반영됐습니다. 상세 ledger §30.
+
 ## [레이아웃 엔진 — grid 라인 이름 · auto-fill/auto-fit] - 2026-09-07
 
 ### Fixed
