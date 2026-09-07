@@ -201,6 +201,30 @@
   /* Header Screen Section */
   .header_contents.screen {
     gap: var(--spacing-xs);
+    /*
+    &::before {
+      content: "";
+      display: block;
+      width: 32px;
+      height: 32px;
+      background-image: url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 xmlns:xlink=%22http://www.w3.org/1999/xlink%22 viewBox=%220 0 20 20%22 overflow=%22visible%22><path d=%22M 0 0 L 20 0 C 8.954 0 0 8.954 0 20 Z%22 fill=%22rgb(0, 0, 0)%22></path></svg>");
+      transform: rotate(90deg);
+      position: absolute;
+      top: 0;
+      left: -32px;
+    }
+    &::after {
+      content: "";
+      display: block;
+      width: 32px;
+      height: 32px;
+      background-image: url("data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 xmlns:xlink=%22http://www.w3.org/1999/xlink%22 viewBox=%220 0 20 20%22 overflow=%22visible%22><path d=%22M 0 0 L 20 0 C 8.954 0 0 8.954 0 20 Z%22 fill=%22rgb(0, 0, 0)%22></path></svg>");
+
+      position: absolute;
+      top: 0;
+      right: -32px;
+    }
+    */
   }
 
   /* Theme Selector */
