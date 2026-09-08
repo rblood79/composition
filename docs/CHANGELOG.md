@@ -2,6 +2,17 @@
 
 All notable changes to composition will be documented in this file.
 
+## [중첩 제약 — Pen 구조 · RAC 합성 · HTML 의미] - 2026-09-08
+
+### Fixed
+
+- **RAC 가 그릴 수 없는 중첩을 빌더가 만들어 내던 결함** — Button 안에 Button, Link 안에 Checkbox, Form 안에 Form, Text 안에 무엇이든, Select 안에 Button, Tabs 밖의 TabPanel 이 끌어놓기·붙여넣기·AI 도구 어디서든 통과해 문서에 남았습니다. 캔버스는 RAC 를 그리는 도구라 세 층의 제약을 **상속**합니다. Pen 구조 (`Text`·`Icon` 은 잎 — `.pen` 으로 나갈 때 `text`/`icon_font` 라 자식을 가질 수 없음) · RAC 합성 (컬렉션 컨테이너는 자기 item 만 읽고, 합성 부품은 소유자 안에서만 뜻이 있음) · HTML 의미 (interactive 는 `<button>`/`<a>` 자손 금지, `<form>` 안 `<form>` 금지, `<p>`/`<h1-6>`/`<label>` 안 블록 금지). 규칙은 canonical 스키마가 아니라 catalog 층에 있어 canonical 은 Pen 형태를 그대로 유지합니다.
+- **끌어놓기·붙여넣기는 거부하지 않고 옮깁니다** — 넣을 수 없는 자리에 놓으면 가장 가까운 유효한 조상에 넣고 토스트로 알리며 **되돌리기** 를 줍니다. 조상 어디에도 못 두면 (예: Tabs 가 없는 곳의 TabPanel) 취소하고 이유를 알립니다.
+- **AI 도구** `create_element` · `batch_design` 은 잘못된 `parentId` 를 받으면 이유와 함께 실패를 돌려줍니다 (에이전트는 토스트를 못 봅니다).
+- **canonical 변이 경계가 fail-closed 백스톱** — preflight 를 거치지 않은 경로가 위반 이동·삽입을 요청하면 `changed: false` + `nestingViolation` 으로 거부합니다. 기존 노드의 제자리 prop 갱신은 검사하지 않아 옛 문서의 위반이 무관한 편집을 막지 않습니다.
+- **pencil export 경계에 가드** — `Text`·`Icon` 에 자식이 있는 옛 문서는 스키마 위반 `.pen` 이 되므로 export 함수가 어느 노드인지 말하며 거부합니다 (아직 UI 에 연결된 export 경로는 없어 지금은 코드 경계의 보호입니다).
+- 규칙 표 (`RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES`) 는 손으로 썼지만 팩토리가 실제로 만드는 합성 트리 52개 전부가 통과하는지 오라클 테스트가 고정합니다 — 표가 틀리면 표를 고칩니다.
+
 ## [차트 — radar · radial (극좌표 2종)] - 2026-09-08
 
 ### Added

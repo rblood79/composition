@@ -10,6 +10,7 @@ export * from "./core/dateUtils";
 export * from "./core/numberUtils";
 export * from "./export.utils";
 export * from "./compositionDocumentOrder";
+export * from "./canonicalNestingContext";
 export * from "./disclosureGroupExpansion";
 
 export * from "./font.utils";

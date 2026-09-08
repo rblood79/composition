@@ -48,8 +48,16 @@ import type {
   SerializedEventHandler,
 } from "@composition/shared";
 import {
+  collectAncestorTypesForChildOf,
+  collectAncestorTypesForDescendantSlot,
+  createCanonicalNestingIndex,
+  type CanonicalNestingIndex,
+  findCanonicalNodeType,
+  findCanonicalParentId,
   moveCanonicalChild,
   moveCanonicalChildToDescendants,
+  resolveNestingViolation,
+  type NestingViolation,
 } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../../builder/stores/canonical/canonicalDocumentStore";
 import {
@@ -106,7 +114,134 @@ export type CanonicalMutationStoreActions = {
 export type CanonicalMutationResult = {
   changed: boolean;
   document: CompositionDocument | null;
+  /**
+   * 중첩 규칙 위반으로 변이를 **거부**했을 때만 실린다 (`changed: false`). 캔버스는
+   * RAC 를 그리는 도구라 Pen 구조 · RAC 합성 · HTML 의미 세 층을 상속한다 — 여기가
+   * 그 fail-closed 백스톱이다. 소비처 (drop · paste · AI) 는 이 경계에 오기 전에
+   * `resolveNestingViolation` 로 preflight 해서 가까운 유효 부모로 옮기고 사용자에게
+   * 알린다. 여기서 걸리는 건 preflight 를 거치지 않은 경로뿐이다.
+   */
+  nestingViolation?: NestingViolation;
 };
+
+/**
+ * 이동 target 아래의 조상 타입 사슬. 못 읽으면 `null` — 판정을 건너뛴다 (projection
+ * id 는 `assertCanonicalMoveTarget` 이 이미 걸렀고, 그 밖의 낯선 구조는 막지 않는다).
+ */
+function collectMoveTargetAncestorTypes(
+  index: CanonicalNestingIndex,
+  target: CanonicalMoveTarget,
+): readonly string[] | null {
+  return target.kind === "node-children"
+    ? collectAncestorTypesForChildOf(index, target.parentId)
+    : collectAncestorTypesForDescendantSlot(
+        index,
+        target.refNodeId,
+        target.descendantPath,
+      );
+}
+
+/** 문서 DFS 1회 (`createCanonicalNestingIndex`) 로 이동 대상 전부를 판정한다. */
+function resolveMoveNestingViolation(
+  doc: CompositionDocument,
+  elementIds: readonly string[],
+  target: CanonicalMoveTarget,
+): NestingViolation | null {
+  const index = createCanonicalNestingIndex(doc);
+  const ancestorTypes = collectMoveTargetAncestorTypes(index, target);
+  if (!ancestorTypes) return null;
+  for (const elementId of elementIds) {
+    const childType = findCanonicalNodeType(index, elementId);
+    if (!childType) continue;
+    const violation = resolveNestingViolation({
+      parentType: ancestorTypes[0] ?? null,
+      childType,
+      ancestorTypes,
+    });
+    if (violation) return violation;
+  }
+  return null;
+}
+
+/**
+ * merge 배치의 중첩 검사 — **새로 들어오거나 부모가 바뀌는** element 만 본다. 기존
+ * 노드의 prop 갱신도 같은 merge 를 타므로, 제자리 upsert 까지 검사하면 옛 문서의
+ * 기존 위반 때문에 무관한 편집이 막힌다.
+ *
+ * 위반 element 와 그 배치 안 자손은 **건너뛰고 나머지는 통과**시킨다 — 배치 전체를
+ * 거부하면 preview ingress 나 팩토리 트리가 한 건 때문에 통째로 사라진다 (리뷰 HIGH).
+ * 첫 위반은 결과의 `nestingViolation` 으로 돌려준다.
+ *
+ * 조상 사슬은 배치 안의 parent_id 를 먼저 따라가고 (팩토리 트리는 부모가 같은
+ * 배치에 있다), 배치를 벗어나면 문서 인덱스에서 잇는다.
+ */
+function partitionMergeByNesting(
+  doc: CompositionDocument,
+  elements: readonly Element[],
+): { accepted: Element[]; violation: NestingViolation | null } {
+  const index = createCanonicalNestingIndex(doc);
+  const batchById = new Map(elements.map((el) => [el.id, el] as const));
+  const skipped = new Set<string>();
+  let violation: NestingViolation | null = null;
+
+  const ancestorTypesOf = (
+    parentId: string | null,
+  ): readonly string[] | null => {
+    const types: string[] = [];
+    let cursor: string | null = parentId;
+    const seen = new Set<string>();
+    while (cursor !== null) {
+      if (seen.has(cursor)) return null;
+      seen.add(cursor);
+      const inBatch = batchById.get(cursor);
+      if (!inBatch) {
+        const fromDoc = collectAncestorTypesForChildOf(index, cursor);
+        return fromDoc ? [...types, ...fromDoc] : null;
+      }
+      types.push(inBatch.type);
+      cursor = inBatch.parent_id ?? null;
+    }
+    return types;
+  };
+
+  const hasSkippedAncestorInBatch = (element: Element): boolean => {
+    let cursor: string | null = element.parent_id ?? null;
+    const seen = new Set<string>();
+    while (cursor !== null && !seen.has(cursor)) {
+      seen.add(cursor);
+      if (skipped.has(cursor)) return true;
+      cursor = batchById.get(cursor)?.parent_id ?? null;
+    }
+    return false;
+  };
+
+  const accepted: Element[] = [];
+  for (const element of elements) {
+    const parentId = element.parent_id ?? null;
+    const existingParent = findCanonicalParentId(index, element.id);
+    const isNew = existingParent === undefined;
+    const isReparent = !isNew && existingParent !== parentId;
+    if (isNew || isReparent) {
+      const ancestorTypes = ancestorTypesOf(parentId);
+      if (ancestorTypes) {
+        const found = resolveNestingViolation({
+          parentType: ancestorTypes[0] ?? null,
+          childType: element.type,
+          ancestorTypes,
+        });
+        if (found) {
+          violation ??= found;
+          skipped.add(element.id);
+          continue;
+        }
+      }
+    }
+    accepted.push(element);
+  }
+  // 부모가 먼저 오도록 정렬돼 있지 않을 수 있어 자손 제거는 한 번 더 훑는다
+  const survivors = accepted.filter((el) => !hasSkippedAncestorInBatch(el));
+  return { accepted: survivors, violation };
+}
 
 export type CanonicalMoveTarget =
   | {
@@ -2201,7 +2336,23 @@ export function updateCanonicalNodePropsBatchPrimary(
 export function mergeElementsCanonicalPrimary(
   elements: Element[],
 ): CanonicalMutationResult {
-  return applyCanonicalPrimaryMerge(elements);
+  const projectId = getActions().getCurrentProjectId();
+  if (!projectId) return applyCanonicalPrimaryMerge(elements);
+
+  const currentDoc = getCurrentDocument(projectId);
+  const { accepted, violation } = partitionMergeByNesting(currentDoc, elements);
+  if (!violation) return applyCanonicalPrimaryMerge(elements);
+  if (accepted.length === 0) {
+    return {
+      changed: false,
+      document: currentDoc,
+      nestingViolation: violation,
+    };
+  }
+  return {
+    ...applyCanonicalPrimaryMerge(accepted),
+    nestingViolation: violation,
+  };
 }
 
 /**
@@ -2236,6 +2387,15 @@ export function moveElementCanonicalPrimary(
     return { changed: false, document: null };
   }
   const currentDoc = getCurrentDocument(projectId);
+  const nestingViolation = resolveMoveNestingViolation(currentDoc, [elementId], {
+    kind: "node-children",
+    parentId: targetParentId,
+    insertionIndex,
+  });
+  if (nestingViolation) {
+    return { changed: false, document: currentDoc, nestingViolation };
+  }
+
   const result = moveCanonicalChild(
     currentDoc,
     elementId,
@@ -2265,6 +2425,15 @@ export function moveElementToCanonicalTarget(
   }
 
   const currentDoc = getCurrentDocument(projectId);
+  const nestingViolation = resolveMoveNestingViolation(
+    currentDoc,
+    [elementId],
+    target,
+  );
+  if (nestingViolation) {
+    return { changed: false, document: currentDoc, nestingViolation };
+  }
+
   const result =
     target.kind === "node-children"
       ? moveCanonicalChild(
@@ -2314,6 +2483,15 @@ export function moveElementsToCanonicalTarget(
   }
 
   const currentDoc = getCurrentDocument(projectId);
+  const nestingViolation = resolveMoveNestingViolation(
+    currentDoc,
+    elementIds,
+    target,
+  );
+  if (nestingViolation) {
+    return { changed: false, document: currentDoc, movedIds: [], nestingViolation };
+  }
+
   let doc = currentDoc;
   let insertionIndex = target.insertionIndex;
   const movedIds: string[] = [];

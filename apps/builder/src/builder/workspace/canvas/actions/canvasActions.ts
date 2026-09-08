@@ -1,4 +1,10 @@
 import { useStore } from "../../../stores";
+import type { CanvasInteractionNode } from "../interaction/interactionNode";
+import { resolveNestingAwareTarget } from "../interaction/nestingRelocation";
+import {
+  notifyNestingRejected,
+  notifyNestingRelocation,
+} from "../interaction/nestingNotice";
 import {
   copyMultipleElements,
   deserializeCopiedElements,
@@ -195,31 +201,63 @@ export async function paste(context: CanvasActionContext): Promise<void> {
   if (!copiedData) return;
 
   const elementsMap = getActionElements(context);
+  const rawTargetParentId = resolvePasteTargetParentId({
+    currentPageId,
+    selectedElementId,
+    elements: elementsMap.values(),
+  });
+
+  // 중첩 preflight — 붙여넣는 루트 타입들이 대상 안에 못 들어가면 가까운 유효 조상으로
+  // 옮기고, 어디에도 못 두면 취소한다 (canonical guard 가 조용히 거부하기 전에 알린다).
+  const rootTypes = copiedData.rootIds
+    .map((id) => copiedData.elements.find((el) => el.id === id)?.type)
+    .filter((t): t is string => typeof t === "string");
+  const nesting = rawTargetParentId
+    ? resolveNestingAwareTarget({
+        renderTargetId: rawTargetParentId,
+        insertionIndex: Number.MAX_SAFE_INTEGER,
+        movingTypes: rootTypes,
+        elementsMap: elementsMap as ReadonlyMap<string, CanvasInteractionNode>,
+      })
+    : null;
+  if (nesting?.relocation && nesting.relocation.relocatedToId === null) {
+    notifyNestingRejected(nesting.relocation.violation);
+    return;
+  }
+  const targetParentId = nesting ? nesting.renderTargetId : rawTargetParentId;
+
   const newElements = pasteMultipleElements(
     copiedData,
     currentPageId,
     context.scenePoint ?? { x: 10, y: 10 },
     Array.from(elementsMap.values()),
-    {
-      targetParentId: resolvePasteTargetParentId({
-        currentPageId,
-        selectedElementId,
-        elements: elementsMap.values(),
-      }),
-    },
+    { targetParentId },
   );
+
+  // batch 경로는 trackMultiPaste 가 entry 하나를 남기므로 undo 1회가 붙여넣기 전체를
+  //   되돌린다. 비-batch 경로는 element 마다 entry 라 단일일 때만 되돌리기를 준다.
+  const notifyIfRelocated = (withUndo: boolean): void => {
+    if (!nesting?.relocation || newElements.length === 0) return;
+    notifyNestingRelocation(
+      nesting.relocation,
+      elementsMap.get(nesting.renderTargetId)?.type ?? nesting.renderTargetId,
+      { withUndo },
+    );
+  };
 
   if (context.pasteHistory === "batch") {
     await Promise.all(
       newElements.map((element) => addElement(element, { skipHistory: true })),
     );
     if (newElements.length > 0) trackMultiPaste(newElements);
+    notifyIfRelocated(true);
     return;
   }
 
   for (const element of newElements) {
     await addElement(element);
   }
+  notifyIfRelocated(newElements.length === 1);
 }
 
 export async function duplicateSelection(

@@ -9,6 +9,13 @@ import {
 } from "../../types/builder/unified.types";
 import { ComponentFactory } from "../factories/ComponentFactory";
 import type { ComponentCreationSourceNode } from "../factories/types";
+import type { CanvasInteractionNode } from "../workspace/canvas/interaction/interactionNode";
+import { resolveNestingAwareTarget } from "../workspace/canvas/interaction/nestingRelocation";
+import {
+  notifyNestingRejected,
+  notifyNestingRelocation,
+} from "../workspace/canvas/interaction/nestingNotice";
+
 import { COMPLEX_COMPONENT_TAGS } from "../factories/constants";
 import { getReusableCompositeOriginId } from "../components/reusableCompositeOrigins";
 import { useErrorHandler, type ErrorInfo } from "./useErrorHandler";
@@ -20,6 +27,71 @@ import {
   COMPONENT_MASTER_ID_MIRROR_FIELD,
 } from "../../adapters/canonical/componentSemanticsMirror";
 import { useStore } from "../stores";
+
+/**
+ * 팔레트 추가의 중첩 preflight. 선택된 요소 (= 생성 부모) 가 `type` 을 담을 수 없으면
+ * 가까운 유효 조상으로 부모를 옮기고, 어디에도 못 두면 `rejected` 로 취소한다.
+ * `notify()` 는 요소가 실제로 추가된 **뒤** 에 불러야 되돌리기가 그 추가를 되돌린다.
+ */
+function resolveNestedCreationParent(
+  type: string,
+  parentId: string | null,
+  elements: readonly ComponentCreationSourceNode[],
+): {
+  parentId: string | null;
+  parentElement: ComponentCreationSourceNode | null;
+  rejected: boolean;
+  relocated: boolean;
+  notify: () => void;
+} {
+  const byId = new Map<string, CanvasInteractionNode>(
+    elements.map((el) => [
+      el.id,
+      {
+        id: el.id,
+        type: el.type,
+        props: el.props ?? {},
+        parent_id: el.parent_id ?? null,
+        page_id: el.page_id ?? null,
+      },
+    ]),
+  );
+  const passthrough = {
+    parentId,
+    parentElement: parentId
+      ? (elements.find((el) => el.id === parentId) ?? null)
+      : null,
+    rejected: false,
+    relocated: false,
+    notify: () => {},
+  };
+  if (!parentId) return passthrough;
+
+  const nesting = resolveNestingAwareTarget({
+    renderTargetId: parentId,
+    insertionIndex: Number.MAX_SAFE_INTEGER,
+    movingTypes: [type],
+    elementsMap: byId,
+  });
+  if (!nesting.relocation) return passthrough;
+  if (nesting.relocation.relocatedToId === null) {
+    notifyNestingRejected(nesting.relocation.violation);
+    return { ...passthrough, rejected: true };
+  }
+  const relocation = nesting.relocation;
+  const nextParentId = nesting.renderTargetId;
+  return {
+    parentId: nextParentId,
+    parentElement: elements.find((el) => el.id === nextParentId) ?? null,
+    rejected: false,
+    relocated: true,
+    notify: () =>
+      notifyNestingRelocation(
+        relocation,
+        byId.get(nextParentId)?.type ?? nextParentId,
+      ),
+  };
+}
 
 export interface UseElementCreatorReturn {
   getDefaultProps: (type: string) => ComponentElementProps;
@@ -200,15 +272,28 @@ export const useElementCreator = (): UseElementCreatorReturn => {
               addElement(refElement);
               return refElement.id;
             } else if (COMPLEX_COMPONENT_TAGS.has(type)) {
+              // 중첩 preflight — 선택된 요소가 이 타입을 담을 수 없으면 가까운 유효 조상으로
+              //   옮기고 알린다 (canonical guard 가 조용히 거부하기 전에).
+              const complexParent = resolveNestedCreationParent(
+                type,
+                selectedElement?.id ?? null,
+                elements,
+              );
+              if (complexParent.rejected) return null;
               // ComponentFactory를 사용하여 복합 컴포넌트 생성
               const result = await ComponentFactory.createComplexComponent(
                 type,
-                selectedElement ?? null,
+                // relocation 이 없으면 기존 인자 그대로 — 선택 요소가 elements 에 없는
+                //   stale 선택 창 (ADR-137) 에서 루트 생성으로 바뀌지 않게 (리뷰 MEDIUM)
+                complexParent.relocated
+                  ? complexParent.parentElement
+                  : (selectedElement ?? null),
                 currentPageId,
                 elements,
                 layoutId, // ⭐ Layout/Slot System: layoutId 전달
                 doc,
               );
+              complexParent.notify();
               return result.parent.id;
             } else {
               // 단순 컴포넌트 생성 (캐시 활용)
@@ -250,6 +335,16 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 }
               }
 
+              // 중첩 preflight — Button 안에 Button, Text 안에 무엇이든 등은 가까운 유효
+              //   조상으로 옮기고 알린다. 어디에도 못 두면 취소.
+              const nested = resolveNestedCreationParent(
+                type,
+                parentId,
+                elements,
+              );
+              if (nested.rejected) return null;
+              parentId = nested.parentId;
+
               const newElement: Element = withFrameElementMirrorId(
                 {
                   id: crypto.randomUUID(), // UUID 생성
@@ -267,6 +362,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
 
               // addElement 호출 (내부에서 DB 저장 처리)
               addElement(newElement);
+              nested.notify();
               return newElement.id;
             }
           };

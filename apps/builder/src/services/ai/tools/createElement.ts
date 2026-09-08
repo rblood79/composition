@@ -20,6 +20,38 @@ import {
 } from "./canonicalNodeFields";
 import { createCompositeElement } from "./compositeCreation";
 import { rememberCreatedElement } from "./elementRef";
+import { resolveNestingViolation } from "@composition/shared";
+
+/**
+ * 중첩 preflight — 캔버스는 RAC 를 그리는 도구라 Pen 구조 · RAC 합성 · HTML 의미 세
+ * 층을 상속한다. canonical guard 가 조용히 거부하기 전에 에이전트에게 이유를 돌려준다
+ * (에이전트는 toast 를 못 본다). 부모 사슬은 flat element 의 `parent_id` 를 따른다.
+ */
+function findNestingErrorForParent(
+  elements: readonly Element[],
+  parentId: string | null,
+  childType: string,
+): string | null {
+  const byId = new Map(elements.map((el) => [el.id, el] as const));
+  const ancestorTypes: string[] = [];
+  const seen = new Set<string>();
+  let cursor: string | null = parentId;
+  while (cursor && !seen.has(cursor)) {
+    seen.add(cursor);
+    const node = byId.get(cursor);
+    if (!node) break;
+    ancestorTypes.push(node.type);
+    cursor = node.parent_id ?? null;
+  }
+  const violation = resolveNestingViolation({
+    parentType: ancestorTypes[0] ?? null,
+    childType,
+    ancestorTypes,
+  });
+  return violation
+    ? `Cannot place ${childType} under ${violation.parentType}: ${violation.reason}. Choose a different parentId.`
+    : null;
+}
 
 export const createElementTool: ToolExecutor = {
   name: "create_element",
@@ -72,6 +104,11 @@ export const createElementTool: ToolExecutor = {
             parentId = bodyElement.id;
           }
         }
+      }
+
+      const nestingError = findNestingErrorForParent(elements, parentId, type);
+      if (nestingError) {
+        return { success: false, error: nestingError };
       }
 
       // ADR-134 Phase 6: 합성 컴포넌트는 팔레트와 같은 분기로 만든다 — Select/ListBox 등

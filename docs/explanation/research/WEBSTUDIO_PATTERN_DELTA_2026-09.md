@@ -8,12 +8,13 @@
 
 | 등급              | 건수 | 내용                                                                                                                                                                                                                                                                                                                                                                            |
 | ----------------- | ---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **결함 (필수)**   |    1 | ⑨ 중첩 제약 3층 (Pen 구조 · RAC 합성 · HTML 의미). 편의가 아니라 **기능 결함** — 없으면 빌더가 RAC 가 그릴 수 없는 트리를 만들어 낸다 (2026-09-08 사용자 판정). 모든 A 보다 앞선다 |
 | **A 권장**        |    5 | ① 생성물 drift 를 `git status` 로 판정하는 단일 게이트 ② 번들 크기 상한 게이트 ③ Styles 패널 스크럽 중 live 미리보기 (ephemeral 채널) ④ 스타일 값 origin 배지 + 조건부 reset ⑤ AI tool 정의를 commandRegistry 에서 생성 + drift 검사. ①②⑤ 는 **동작 변경 0**, ③④ 는 패널 한정 동작 변경                                                                                         |
-| **B 조건부**      |    6 | ⑥ 순수 runtime op + accumulator (undo 단위 = op 묶음) ⑦ css-data 값 검증 (`invalid` 1급 값) ⑧ UA 기본 스타일을 데이터로 (측정 1건 선행) ⑨ HTML content model 제약 (D1 경계 판정 필요) ⑩ 공유 style source (D3 스키마 확장 — 결정 지점) ⑪ AI 평가 회귀 (키 필요)                                                                                                                 |
+| **B 조건부**      |    5 | ⑥ 순수 runtime op + accumulator (undo 단위 = op 묶음) ⑦ css-data 값 검증 (`invalid` 1급 값) ⑧ UA 기본 스타일을 데이터로 (측정 1건 선행) ⑩ 공유 style source (D3 스키마 확장 — 결정 지점) ⑪ AI 평가 회귀 (키 필요)                                                                                                                 |
 | **C 보류**        |    8 | namespace 분할 patch + CAS 저장 · migration-as-transaction · TS 타입 → prop meta 생성 · 템플릿 JSX DSL · 클립보드 플러그인 체인 (HTML paste) · 조건 breakpoint 시뮬레이션 · 문서 = 프롬프트 · 콘텐츠 해시 캐시 키                                                                                                                                                               |
 | **N 비적용·동등** |   13 | iframe emitter 주입 · 아웃라인 rect 분리 · do-not-track marker · Inflation · `@layer`/`:where()` · CSS var ephemeral (Preview) · 롱핸드→숏핸드 merger · Expression/변수/코드 생성 export · 멀티플레이어 · 라벨 승인 · package boundary (`private`) · 빈 리포트 가드 · 로딩 진행률 · Layers 가상화 (composition 이 앞섬) · feature flag 모듈 · hidden 탭 스케줄러 (의도된 pause) |
 
-**착수 순서 (가치 ÷ 비용)**: A① → A② → A⑤ → A④ → A③ → B⑦ (css-tree lazy import 로 번들 예산 확인 후) → B⑧ (Text as `h1` 측정 1건) → B⑥ (ADR) → B⑨ · B⑩ 은 결정 지점 질문 후.
+**착수 순서**: **⑨ 수리 완료 (2026-09-08 — 규칙 `packages/shared/src/catalog/nesting/nestingRules.ts` · canonical guard · drop/paste/팔레트/AI preflight · pencil export guard · 팩토리 오라클 52 통과 · Playwright live: Button 안 Button 팔레트 추가·붙여넣기 → body 로 이동 + 되돌리기 토스트)** → A① → A② → A⑤ → A④ → A③ → B⑦ (css-tree lazy import 로 번들 예산 확인 후) → B⑧ (Text as `h1` 측정 1건) → B⑥ (ADR) → B⑩ 은 결정 지점 질문 후. ⑨ 는 `/fix` 절차 (root cause → 수리 → live) 대상이며 3+ 파일이면 ADR.
 
 ---
 
@@ -108,7 +109,7 @@
 
 | #   | 패턴 (webstudio 근거)                                                                                  | Before (composition)                                                                        | After                                                                                                                                                 | 예상 장점                                                                        | 등급 |
 | --- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | :--: |
-| ⑨   | HTML content model 제약 (`content-model.ts` — html-data 카테고리 + `non-interactive / non-form`)       | nesting 제약 0. ADR-142 가 컴포넌트별 allow-set 을 금지                                     | 컴포넌트별 allow-set 이 아니라 **HTML 스펙 카테고리** (D1) 로 `button > button` · `form > form` · `a > a` 를 drop·paste 시 경고. 기존 경고는 baseline | 접근성 위반 트리 예방. **D1 검증을 빌더가 보유하는가 — 결정 지점 (3) 질문 선행** |  B   |
+| ⑨   | 중첩 제약 (`content-model.ts` — `contentModel.children` 합성 + html-data 카테고리, 두 층 분리)         | 검증 0. factory 가 합성 트리 **생성**은 알고 (`definitions/*.ts`) 검증은 없음. Pen leaf (`Text`·`Icon`) 검사도 없음 (`toPencilType` 이 나머지를 frame 으로 냄). ADR-142 가 손으로 쓰는 allow-set 을 금지 | 세 층을 **관찰**로 유도해 같은 drop·paste 경고로 합류 — ① Pen 구조: `Text`·`Icon` leaf ② RAC 합성: `rac.primitive` + parts/slots (Select ⊃ ListBox, Tabs ⊃ TabList+TabPanel) ③ HTML 의미: primitive → 루트 태그 → 카테고리 (`button > button` · `a > a` · `form > form`). 거부 대신 가까운 유효 부모로 옮기고 되돌리기. 기존 경고는 baseline | 캔버스가 RAC 를 그리는 도구라 세 층 전부 이미 아래에 있는 제약 (React DEV `validateDOMNesting` 이 Preview 에서 경고). 빌더는 관찰만 — **결정 지점 아님** (2026-09-08 사용자 전제, 메모리 `feedback-canvas-draws-rac-inherits-html-content-model`). **편의가 아니라 기능 결함** — 같은 날 사용자 판정으로 등급 B → 필수 | **결함** |
 | —   | TS 타입 → prop meta 생성 (`generate-arg-types` — `__generated__` 커밋 + `.ws.ts` override)             | `PropContract` ~100 파일 수기                                                               | RAC props 타입에서 초안 생성 + 수동 override                                                                                                          | RAC 업그레이드 시 prop drift 감지. D2 는 RSP 참조라 RAC 타입 자동 도출과 어긋남  |  C   |
 | —   | 템플릿 JSX DSL (`renderTemplate` — 타입 전용 JSX 확장, 결정론적 id, 교정 힌트 에러)                    | `ComponentDefinition{parent, children[]}` 객체 재귀                                         | 팩토리 정의를 typed JSX 로                                                                                                                            | 작성 편의·IDE 자동완성. `.pen` 정합이 우선이라 이득 작음                         |  C   |
 | —   | `indexWithinAncestor` 짝 매칭 · Hook + memory prop (Layers 선택 시 해당 탭 열기)                       | Tabs 짝 방식·선택 시 패널 노출 미확인                                                       | Layers 에서 TabPanel 선택 시 editMode 에 활성 탭 기록 (저장 안 함)                                                                                    | 편집 UX. 확인 후 판정                                                            |  C   |
@@ -123,7 +124,7 @@
 
 - **캔버스 층은 대조 대상이 아니다.** webstudio 의 강점 (iframe 동기화 · ephemeral CSS var · 아웃라인 분리) 은 DOM 캔버스 전제다. composition 은 Skia 라 같은 문제가 다른 형태 (renderer 입력 override) 로 존재한다 — ③ 이 그 번역.
 - **게이트는 "재생성 후 clean" 하나로 통일한다.** 생성물마다 게이트를 따로 짜면 알림만 하는 게이트 (generated CSS) 와 차단하는 게이트 (text-axis) 가 섞인다. ① 이 4벌을 1벌로.
-- **결정 지점은 두 건뿐이다.** ⑨ (D1 검증의 빌더 보유) 와 ⑩ (D3 스키마에 공유 style source 추가). 둘 다 `.claude/rules/premise-decision-points.md` 의 (3) SSOT 경계 재판정이라 착수 전 질문한다. 나머지는 자율 진행 대상.
+- **결정 지점은 한 건뿐이다.** ⑩ (D3 스키마에 공유 style source 추가) 만 `.claude/rules/premise-decision-points.md` 의 (3) SSOT 경계 재판정이다. ⑨ 는 2026-09-08 사용자 전제로 결정 지점에서 내려왔다 — 캔버스는 RAC 를 그리는 도구라 Pen 구조 · RAC 합성 · HTML 의미 세 층을 **상속**하며, 빌더는 관찰만 한다. Pen 은 의미 제약이 없고 `CanHaveChildren` (frame·group) 과 산문 규범 (`out/skills/pen-dev/SKILL.md`) 뿐이며 `slot` 은 권장 목록이다. 나머지는 자율 진행 대상.
 - **STYLE_PARSING.md §3.5 의 gap 은 9개월째 그대로다.** css-tree · mdn-data 부재는 2025-12 에 기록됐고 지금도 0건. ⑦ 은 새 아이디어가 아니라 미이행 항목의 재제기다.
 
 ## 5. 관련
@@ -131,5 +132,6 @@
 - [EXTERNAL_PATTERN_DELTA_2026-09.md](EXTERNAL_PATTERN_DELTA_2026-09.md) — fulgur · pretext 대조 (형식 정본)
 - [STYLE_PARSING.md](STYLE_PARSING.md) §3.1 · §3.5 — webstudio css-data 최초 언급 (2025-12)
 - [PEN_V1.2.8_DELTA_2026-09.md](PEN_V1.2.8_DELTA_2026-09.md) — Pen 대조 (canonical 스키마 정합 기준)
-- `.claude/rules/premise-decision-points.md` — ⑨ · ⑩ 질문 규약
+- `.claude/rules/premise-decision-points.md` — ⑩ 질문 규약
+- `/Users/admin/work/pencil/Resources/app.asar.unpacked/out/skills/pen-dev/{pen-schema.md,SKILL.md}` — Pen 중첩 정의 원본 (⑨ 층 ①)
 - `.claude/rules/ssot-hierarchy.md` — D1/D2/D3 경계

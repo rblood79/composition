@@ -3575,6 +3575,18 @@ const formattedMessages: Record<
       `최대 ${String(args?.max ?? "")}자 이하여야 합니다`,
     "validation.min": (args) => `최소값은 ${String(args?.min ?? "")}입니다`,
     "validation.max": (args) => `최대값은 ${String(args?.max ?? "")}입니다`,
+    "errors.nestingLeafRelocated": (args) =>
+      `${String(args?.parent ?? "")} 안에는 다른 요소를 넣을 수 없어 ${String(args?.target ?? "")} 에 넣었습니다.`,
+    "errors.nestingLeafRejected": (args) =>
+      `${String(args?.parent ?? "")} 안에는 다른 요소를 넣을 수 없고, 넣을 수 있는 곳이 없어 취소했습니다.`,
+    "errors.nestingOwnerRelocated": (args) =>
+      `${String(args?.child ?? "")} 은(는) ${String(args?.owners ?? "")} 안에서만 쓸 수 있어 ${String(args?.target ?? "")} 에 넣었습니다.`,
+    "errors.nestingOwnerRejected": (args) =>
+      `${String(args?.child ?? "")} 은(는) ${String(args?.owners ?? "")} 안에서만 쓸 수 있습니다. 넣을 수 있는 곳이 없어 취소했습니다.`,
+    "errors.nestingNotAllowedRelocated": (args) =>
+      `${String(args?.parent ?? "")} 안에는 ${String(args?.child ?? "")} 을(를) 넣을 수 없어 ${String(args?.target ?? "")} 에 넣었습니다.`,
+    "errors.nestingNotAllowedRejected": (args) =>
+      `${String(args?.parent ?? "")} 안에는 ${String(args?.child ?? "")} 을(를) 넣을 수 없고, 넣을 수 있는 곳이 없어 취소했습니다.`,
     "messages.itemCount": (args) => `${String(args?.count ?? 0)}개`,
   },
   "en-US": {
@@ -3833,6 +3845,18 @@ const formattedMessages: Record<
       `Must be at most ${String(args?.max ?? "")} characters`,
     "validation.min": (args) => `Minimum value is ${String(args?.min ?? "")}`,
     "validation.max": (args) => `Maximum value is ${String(args?.max ?? "")}`,
+    "errors.nestingLeafRelocated": (args) =>
+      `${String(args?.parent ?? "")} cannot contain other elements, so it was placed in ${String(args?.target ?? "")}.`,
+    "errors.nestingLeafRejected": (args) =>
+      `${String(args?.parent ?? "")} cannot contain other elements, and no valid place was found — cancelled.`,
+    "errors.nestingOwnerRelocated": (args) =>
+      `${String(args?.child ?? "")} only works inside ${String(args?.owners ?? "")}, so it was placed in ${String(args?.target ?? "")}.`,
+    "errors.nestingOwnerRejected": (args) =>
+      `${String(args?.child ?? "")} only works inside ${String(args?.owners ?? "")}. No valid place was found — cancelled.`,
+    "errors.nestingNotAllowedRelocated": (args) =>
+      `${String(args?.child ?? "")} cannot be placed inside ${String(args?.parent ?? "")}, so it was placed in ${String(args?.target ?? "")}.`,
+    "errors.nestingNotAllowedRejected": (args) =>
+      `${String(args?.child ?? "")} cannot be placed inside ${String(args?.parent ?? "")}, and no valid place was found — cancelled.`,
     "messages.itemCount": (args) => {
       const count = Number(args?.count ?? 0);
       return `${count} ${count === 1 ? "item" : "items"}`;

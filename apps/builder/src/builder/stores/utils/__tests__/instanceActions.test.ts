@@ -985,8 +985,11 @@ describe("instance store actions", () => {
   });
 
   it("materializes nested canonical refs recursively", () => {
+    // master 는 자식을 가질 수 있는 타입이어야 한다 — `Icon` 은 Pen 스키마의 잎
+    //   (`toPencilType` → icon_font) 이라 중첩 guard 가 자식을 걸러낸다 (2026-09-08).
+    //   재귀 실체화라는 테스트 의도는 타입과 무관하므로 Badge 로 둔다.
     const iconMaster = makeElement("icon-master", {
-      type: "Icon",
+      type: "Badge",
       reusable: true,
       props: { name: "default-icon" },
     });
@@ -1035,7 +1038,7 @@ describe("instance store actions", () => {
       .elements.find((element) => element.parent_id === materializedIcon?.id);
 
     expect(materializedIcon).toMatchObject({
-      type: "Icon",
+      type: "Badge",
       props: { name: "override-icon" },
     });
     expect(

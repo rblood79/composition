@@ -149,6 +149,17 @@ export function runCanonicalMutation<TResult extends CanonicalMutationResult>(
   }
 
   const result = stages.canonical(); // ①
+  // 중첩 guard 가 canonical 삽입을 통째로 거부했으면 store 도 갱신하지 않는다 —
+  //   canonical 은 없고 legacy store 에만 있는 element 는 새로고침 뒤 사라지는
+  //   "무음 발산" 이다 (리뷰 HIGH, 2026-09-08). preflight 를 거친 경로 (팔레트·drop·
+  //   paste·AI) 는 여기까지 오지 않고, 온다면 preflight 없는 경로라 경고로 남긴다.
+  if (!result.changed && result.nestingViolation) {
+    console.warn(
+      "[canonicalMutationRunner] nesting guard rejected the mutation — store stage skipped:",
+      result.nestingViolation,
+    );
+    return result;
+  }
   stages.store?.(result); // ②
   bridge.rebuildIndexes(stages.indexSource ?? "canonical"); // ③ — 러너 소유
   if (typeof stages.history === "function") {

@@ -54,6 +54,10 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   "packages/shared/src/utils/export.utils.ts",
   "packages/shared/src/utils/compositionDocumentOrder.ts",
   "packages/shared/src/types/composition-vocabulary.ts",
+  // 중첩 guard 의 조상 사슬 수집 — `compositionDocumentOrder.ts` 의 `findNodeInChildren`
+  // 과 같은 범위로 canonical `RefNode.descendants` children-mode 안까지 걷는다
+  // (2026-09-08 중첩 결함 수리, 메모리 feedback-canvas-draws-rac-inherits-html-content-model).
+  "packages/shared/src/utils/canonicalNestingContext.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

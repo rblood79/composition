@@ -25,6 +25,12 @@ export {
 } from "./resolveCanvasInteractionTarget";
 export { resolveCanonicalMoveTarget } from "./resolveCanonicalMutationTarget";
 export {
+  collectInteractionAncestorChain,
+  resolveNestingAwareTarget,
+  type NestingAwareTarget,
+  type NestingRelocation,
+} from "./nestingRelocation";
+export {
   CanvasGestureSession,
   resolveCanvasGestureMode,
   type CanvasGestureMode,

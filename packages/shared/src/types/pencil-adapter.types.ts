@@ -556,10 +556,71 @@ export function componentToPencilTree(node: CanonicalNode): PencilNode {
   return pencilNode as PencilNode;
 }
 
+/**
+ * Pen 스키마의 `CanHaveChildren` 은 frame·group 뿐이다. `toPencilType` 이 `Text → text`,
+ * `Icon → icon_font` 로 내므로 이 둘이 자식을 가지면 `.pen` 이 스키마를 위반한다.
+ * canonical 경계 guard 가 새 위반을 막지만, 옛 문서를 위해 export 직전에 한 번 더 본다.
+ */
+export interface PencilLeafViolation {
+  nodeId: string;
+  type: string;
+  pencilType: PencilNodeType;
+  childCount: number;
+}
+
+export function collectPencilLeafViolations(
+  document: CompositionDocument,
+): PencilLeafViolation[] {
+  const out: PencilLeafViolation[] = [];
+  const visit = (node: CanonicalNode): void => {
+    const pencilType = toPencilType(node);
+    const children = node.children ?? [];
+    if (
+      (pencilType === "text" || pencilType === "icon_font") &&
+      children.length > 0
+    ) {
+      out.push({
+        nodeId: node.id,
+        type: node.type,
+        pencilType,
+        childCount: children.length,
+      });
+    }
+    for (const child of children) visit(child);
+    if (node.type === "ref") {
+      const descendants = (node as RefNode).descendants ?? {};
+      for (const override of Object.values(descendants)) {
+        if (
+          override &&
+          typeof override === "object" &&
+          !("type" in override) &&
+          Array.isArray((override as { children?: unknown }).children)
+        ) {
+          for (const child of (override as { children: CanonicalNode[] })
+            .children)
+            visit(child);
+        }
+      }
+    }
+  };
+  for (const child of document.children) visit(child);
+  return out;
+}
+
 export function compositionDocumentToPencilDocument(
   document: CompositionDocument,
   options: PencilExportOptions = {},
 ): PencilDocument {
+  const leafViolations = collectPencilLeafViolations(document);
+  if (leafViolations.length > 0) {
+    const listed = leafViolations
+      .slice(0, 5)
+      .map((v) => `${v.type}#${v.nodeId} (${v.childCount} children)`)
+      .join(", ");
+    throw new Error(
+      `[pencil export] ${leafViolations.length} node(s) would violate the Pen schema — text/icon_font cannot have children: ${listed}`,
+    );
+  }
   return {
     version: options.version ?? DEFAULT_PENCIL_VERSION,
     ...(document.imports ? { imports: { ...document.imports } } : {}),

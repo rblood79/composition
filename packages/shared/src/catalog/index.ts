@@ -5,6 +5,7 @@
  */
 export * from "./types";
 export * from "./cutover";
+export * from "./nesting/nestingRules";
 export * from "./componentCatalog";
 export * from "./outputs/toRacProps";
 export * from "./outputs/domIdentity";
