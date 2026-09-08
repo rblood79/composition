@@ -98,18 +98,22 @@
     color: var(--fg);
   }
 
-  /* Toast Action Button (Undo 등) — 크롬 island 안의 quiet 버튼.
-     rail·action bar 와 같은 상호작용 어법 (hover 8% wash, press accent 채움). */
+  /* Toast Action Button (Undo 등) — 빌더 primary 컨트롤 어법
+     (`.control-button[data-variant="primary"]` 와 같은 accent 채움 + --fg-on-accent).
+     Why: quiet 박스로 두면 글자색이 문구와 같아 (--fg) 눌러야 할 것이 안 보인다.
+     --accent 는 빌더에서 파랑이 아니라 중립 (light gray-700 / dark zinc-200) 이라
+     새 색상 축을 들이지 않으면서 회복 동작만 도드라진다. 닫기 X 는 ghost 로 남겨
+     "되돌리기 > 닫기" 위계를 만든다. */
   .toast-action {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: var(--control-size);
     padding: 0 var(--spacing-sm);
-    border: 1px solid var(--border);
+    border: 1px solid transparent;
     border-radius: var(--radius-md);
-    background: transparent;
-    color: var(--fg);
+    background: var(--accent);
+    color: var(--fg-on-accent);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);
     cursor: pointer;
@@ -121,13 +125,11 @@
   }
 
   .toast-action[data-hovered] {
-    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    background: color-mix(in srgb, var(--accent) 85%, black);
   }
 
   .toast-action[data-pressed] {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--fg-on-accent);
+    background: color-mix(in srgb, var(--accent) 75%, black);
   }
 
   .toast-action[data-focus-visible] {
