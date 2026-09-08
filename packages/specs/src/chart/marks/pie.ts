@@ -52,6 +52,48 @@ export interface PieMarks {
 const RING_GAP = 2;
 
 /**
+ * 구멍 안 합계 텍스트 (도넛 · radial 게이지 공용).
+ *
+ * 구멍이 글자보다 작으면 **안 그린다** — 겹쳐 그리면 값도 못 읽고 도형도 가린다.
+ * 설명 줄은 구멍이 두 줄을 받을 만큼일 때만 붙는다. radial 이 같은 함수를 쓰므로
+ * 두 극좌표 계열의 중앙 텍스트 자리가 갈리지 않는다 (shadcn `chart-radial-text`).
+ */
+export function centerTotalLabels(
+  cx: number,
+  cy: number,
+  hole: number,
+  total: number,
+  caption: string,
+  fontSize: number,
+): TextMark[] {
+  if (hole < fontSize) return [];
+  const labels: TextMark[] = [
+    {
+      kind: "text",
+      x: r2(cx),
+      y: r2(cy - fontSize * 0.2),
+      text: formatTick(total),
+      anchor: "middle",
+      baseline: "middle",
+      role: "value",
+      fontScale: 1.8,
+    },
+  ];
+  if (caption && hole >= fontSize * 2) {
+    labels.push({
+      kind: "text",
+      x: r2(cx),
+      y: r2(cy + fontSize * 1.3),
+      text: caption,
+      anchor: "middle",
+      baseline: "middle",
+      role: "tick",
+    });
+  }
+  return labels;
+}
+
+/**
  * 각도(도) → 원 위의 점. 12시 방향을 0° 로 두고 시계 방향.
  * 규약 정본은 `polar.ts` 의 `polarPoint` 다 (ADR-207) — 여기서는 튜플로만 바꿔 쓴다.
  * 두 극좌표 계열(파이 · radar/radial)이 같은 각도 원점을 갖도록 구현을 하나로 둔다.
@@ -264,28 +306,10 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
   // 구멍 안 합계 — 구멍이 글자보다 작으면 그리지 않는다.
   const innermost =
     ringCount > 1 ? outerRadius - ringBand * (ringCount - 1) - ringBand + RING_GAP : holeRadius;
-  if (showTotal && innermost >= fontSize) {
-    labels.push({
-      kind: "text",
-      x: r2(cx),
-      y: r2(cy - fontSize * 0.2),
-      text: formatTick(grandTotal),
-      anchor: "middle",
-      baseline: "middle",
-      role: "value",
-      fontScale: 1.8,
-    });
-    if (totalCaption && innermost >= fontSize * 2) {
-      labels.push({
-        kind: "text",
-        x: r2(cx),
-        y: r2(cy + fontSize * 1.3),
-        text: totalCaption,
-        anchor: "middle",
-        baseline: "middle",
-        role: "tick",
-      });
-    }
+  if (showTotal) {
+    labels.push(
+      ...centerTotalLabels(cx, cy, innermost, grandTotal, totalCaption, fontSize),
+    );
   }
 
   return { marks, labels, hit };

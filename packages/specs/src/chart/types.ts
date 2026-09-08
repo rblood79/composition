@@ -81,6 +81,14 @@ export interface ChartProps {
   fillGrid: boolean;
   /** radar 다각형을 채운다. false 면 선만 (shadcn `chart-radar-lines-only`) */
   fillArea: boolean;
+  /**
+   * radial 값 호가 도는 각도 범위 (도). **12시 = 0, 시계 방향** — Recharts 는
+   * 3시=0 반시계라 같은 그림이라도 숫자가 다르다. `endAngle - startAngle` 이
+   * 값 상한이 차지하는 각도이며, 0 이하·360 초과는 한 바퀴로 접는다.
+   * 반원 게이지 = `{ startAngle: 0, endAngle: 180 }` (shadcn `chart-radial-stacked`).
+   */
+  startAngle: number;
+  endAngle: number;
   /** 도넛 구멍 안 합계 표시 */
   showTotal: boolean;
   /** hover 툴팁 (Preview/Publish 전용 — Skia 는 정적) */

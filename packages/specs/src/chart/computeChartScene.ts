@@ -77,6 +77,8 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   gridRings: 0,
   fillGrid: false,
   fillArea: true,
+  startAngle: 0,
+  endAngle: 360,
   showTotal: false,
   showTooltip: false,
   showAxis: true,
@@ -206,7 +208,11 @@ function computePolarScene(
       domain: ticks.domain,
       seriesCount: metrics.seriesCount,
       stackMode,
+      startAngle: props.startAngle,
+      endAngle: props.endAngle,
       showValueLabels: props.showValueLabels,
+      showTotal: props.showTotal,
+      totalCaption: props.metric,
       fontSize,
     });
     marks.push(...radial.marks);
