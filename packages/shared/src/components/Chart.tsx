@@ -31,6 +31,7 @@ import type {
   ChartStackType,
   ChartType,
   Mark,
+  PolarGridType,
   TextMark,
   TooltipBand,
 } from "@composition/specs";
@@ -50,6 +51,8 @@ export interface ChartProps {
   showValueLabels?: boolean;
   colorBy?: ChartColorBy;
   innerRadius?: number;
+  /** radar 격자 모양 (ADR-207) */
+  gridType?: PolarGridType;
   showTotal?: boolean;
   showTooltip?: boolean;
   showAxis?: boolean;
@@ -144,11 +147,20 @@ function renderMark(mark: Mark, key: string): React.ReactElement | null {
           fillOpacity={mark.fillSeries !== undefined ? 0.85 : undefined}
           fillRule={mark.fillRule}
           stroke={
-            mark.strokeSeries !== undefined
-              ? seriesVar(mark.strokeSeries)
-              : "none"
+            // 격자·축 path (ADR-207 극좌표) 는 축 토큰 — Skia 쪽 `pushMark` 와 같은 규약.
+            mark.role !== undefined
+              ? mark.role === "grid"
+                ? "var(--chart-grid, currentColor)"
+                : "var(--chart-axis, currentColor)"
+              : mark.strokeSeries !== undefined
+                ? seriesVar(mark.strokeSeries)
+                : "none"
           }
-          strokeWidth={mark.strokeWidth}
+          strokeWidth={
+            mark.role !== undefined
+              ? (mark.strokeWidth ?? 1)
+              : mark.strokeWidth
+          }
           strokeLinejoin="round"
           strokeLinecap="round"
         />
@@ -256,6 +268,7 @@ export function Chart({
   showValueLabels,
   colorBy,
   innerRadius,
+  gridType,
   showTotal,
   showTooltip,
   showAxis,
@@ -296,6 +309,7 @@ export function Chart({
         showValueLabels ?? CHART_DEFAULT_PROPS.showValueLabels,
       colorBy: colorBy ?? CHART_DEFAULT_PROPS.colorBy,
       innerRadius: innerRadius ?? CHART_DEFAULT_PROPS.innerRadius,
+      gridType: gridType ?? CHART_DEFAULT_PROPS.gridType,
       showTotal: showTotal ?? CHART_DEFAULT_PROPS.showTotal,
       showTooltip: showTooltip ?? CHART_DEFAULT_PROPS.showTooltip,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
@@ -315,6 +329,7 @@ export function Chart({
       showValueLabels,
       colorBy,
       innerRadius,
+      gridType,
       showTotal,
       showTooltip,
       showAxis,

@@ -33,6 +33,7 @@ ADR-194 의 잔여 영역 분리이므로 `.claude/rules/adr-writing.md` §"ADR 
 | F15 | **유니온 확장은 컴파일 신호를 남기지 않는다** — `AxisScene` 을 `axis` 4종 + `grid: Array<LineMark \| PathMark>` 로 넓히고 `pnpm type-check` 시 **0 error** (리뷰 round 1 first nail 실측 2026-09-08). 소비처가 `pushMark(mark: Mark)` / `renderMark(mark: Mark)` 로 넘기기 때문 | `skiaPrimitives.ts:3510` · `Chart.tsx:185` | 유니온 1줄 확장 후 `pnpm type-check` |
 | F16 | `computeChartScene` 의 마지막 분기가 `else` (line) — 신규 chartType 은 분기 없으면 **line 으로 렌더된다** | `computeChartScene.ts:296-325` | `grep -n 'chartType === ' packages/specs/src/chart/computeChartScene.ts` |
 | F17 | 타입별 "무시 계약" 테스트 선례가 있다 | `packages/specs/src/chart/__tests__/labels.test.ts:120` | 같음 |
+| F18 | **`pnpm type-check` 는 `@composition/specs` 를 돌지 않는다** — specs `package.json` 의 스크립트 이름이 `typecheck` (하이픈 없음) 라 turbo 의 `type-check` 태스크가 건너뛴다. specs 소스의 타입 오류는 `pnpm -F @composition/specs build` (tsup `--dts`) 에서만 드러난다. 그 스크립트를 그냥 추가하면 기존 오류 103 건 (대부분 `src/__tests__/**` · shared 교차 import) 이 한꺼번에 열려 ADR-207 밖이다 | `packages/specs/package.json` scripts · `turbo.json` tasks.type-check | `pnpm -F @composition/specs exec tsc --noEmit \| grep -c "error TS"` |
 | F14 | 현재 게이트 규모 — 기하 단위 106 · 대칭 parity 64 · CanvasKit 픽셀 7 | `packages/specs/src/chart/__tests__/**` · `packages/shared/src/components/__tests__/chartParity.test.tsx` · `apps/builder/src/builder/workspace/canvas/skia/nodeRendererPath.integration.test.ts` | `pnpm -F @composition/specs exec vitest run src/chart` |
 
 **F3 이 본 ADR 의 존재 이유다**: ADR-194 가 "chartType 추가 = 마크 파일 1개" 를 확장 기준으로 뒀는데 (`Chart.binding.ts` R5 근거 주석), radar 의 동심원 격자는 `LineMark[]` 에 안 들어가므로 그 기준을 넘는다.
@@ -134,8 +135,8 @@ function assertNever(x: never): never { throw new Error(`unhandled chartType: ${
 
 ## 5. 검증 체크리스트
 
-- [ ] **G0** — 기존 4종 baseline 기록 (스냅샷 4 · parity 64 · 기하 106 · 번들 gz 현재값)
-- [ ] **G1** — 스키마 확장 후 기존 4종 좌표 **byte 무변경** (스냅샷 4 GREEN, 갱신 금지) + `tooltip.test.ts` 12 GREEN + `chartType` exhaustive switch 도입 (R7) + type-check 0. **컴파일 통과는 통과 근거가 아니다** (F15)
+- [x] **G0** — 기존 4종 baseline 기록 (스냅샷 4 · parity 64 · 기하 106 · 번들 gz 현재값)
+- [x] **G1** — 스키마 확장 후 기존 4종 좌표 **byte 무변경** (스냅샷 4 GREEN, 갱신 금지) + `tooltip.test.ts` 12 GREEN + `chartType` exhaustive switch 도입 (R7) + type-check 0. **컴파일 통과는 통과 근거가 아니다** (F15). R7 의 집행 게이트는 `pnpm type-check` 가 아니라 **`pnpm -F @composition/specs build`** 다 (F18) — 원복 RED 로 `TS2322 ... not assignable to type '"line" | "area" | "bar"'` 확인. 런타임 절반은 `polar.test.ts` 의 "미처리 chartType 은 throw"
 - [ ] **G2** — radar/radial 기하 단위: 좌표 유한성 (4종 경계 — 행 0 · 값 전부 비수치 · 크기 0 · 단일 범주) · 결정성 (같은 입력 = 같은 scene) · 반지름 음수 0건 · `d` 에 `NaN`/`Infinity` 0건 · **무시 계약** (R8 — `orientation`/`curve`/`showDots`/`colorBy` 가 radar/radial 좌표를 안 바꾼다, 선례 F17) · **범주 50 각도 레이블 겹침 0** (R9)
 - [ ] **G3** — 대칭: parity 케이스 4개 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일**
 - [ ] **G4** — 번들 각 앱 **+5KB gz 이내** · 200행 × 4시리즈 frame p95 **Δ ≤ +1ms** (불리 케이스 = 줌 드라이버, ADR-194 G4 하니스 재사용)

@@ -9,6 +9,7 @@ Accepted — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — 
 | Phase | 상태 | 날짜 |
 | --- | --- | --- |
 | P0 인벤토리 freeze · baseline | Implemented | 2026-09-08 |
+| P1 극좌표 축 (`polar.ts` · `AxisScene` 가산 확장 · 두 consumer 결선) | Implemented | 2026-09-08 |
 
 ## Context
 

@@ -10,8 +10,14 @@
  * consumer 가 각자 catalog rule 에서 같은 토큰을 해소하도록 (ADR-193 정합).
  */
 
-/** 마크 종류 — RSC `<Bar/>`·`<Line/>`·`<Area/>` 를 노코드 팔레트용 단일 enum 으로 평탄화. */
-export type ChartType = "bar" | "line" | "area" | "pie";
+/**
+ * 마크 종류 — RSC `<Bar/>`·`<Line/>`·`<Area/>` 를 노코드 팔레트용 단일 enum 으로 평탄화.
+ * `radar`/`radial` 은 극좌표 계열 (ADR-207) — 직교 축 대신 `buildPolarAxes` 를 쓴다.
+ */
+export type ChartType = "bar" | "line" | "area" | "pie" | "radar" | "radial";
+
+/** radar 격자 모양 (shadcn `chart-radar-grid-circle` 축). */
+export type PolarGridType = "polygon" | "circle";
 
 export type ChartOrientation = "vertical" | "horizontal";
 
@@ -57,8 +63,13 @@ export interface ChartProps {
   showValueLabels: boolean;
   /** 색을 가르는 축 (bar 전용 — pie 는 항상 범주, line/area 는 시리즈) */
   colorBy: ChartColorBy;
-  /** pie 안쪽 반지름 비율 (0~90%). 0 보다 크면 도넛 */
+  /**
+   * 안쪽 반지름 비율 (0~90%). pie 는 0 보다 크면 도넛, radial 은 첫 링의 시작
+   * 반지름이다 (ADR-207 — 극좌표 두 계열이 같은 prop 을 쓴다).
+   */
   innerRadius: number;
+  /** radar 격자 모양 (ADR-207) */
+  gridType: PolarGridType;
   /** 도넛 구멍 안 합계 표시 */
   showTotal: boolean;
   /** hover 툴팁 (Preview/Publish 전용 — Skia 는 정적) */
@@ -123,6 +134,11 @@ export interface PathMark {
   strokeSeries?: number;
   strokeWidth?: number;
   fillRule?: "nonzero" | "evenodd";
+  /**
+   * 축/격자 역할 (ADR-207). 있으면 두 consumer 가 시리즈 팔레트가 아니라
+   * `--chart-grid` / `--chart-axis` 토큰으로 긋는다 — `LineMark.role` 과 같은 규약.
+   */
+  role?: LineRole;
 }
 
 export interface TextMark {
@@ -151,12 +167,25 @@ export interface LineMark {
 
 export type Mark = RectMark | PathMark | TextMark | LineMark;
 
+/**
+ * 축 종류. 직교 2종 + 극좌표 2종 (ADR-207 가산 확장 — 기존 값의 뜻은 그대로다).
+ * `angular` 는 각도 축 (radar 스포크 + 범주 레이블), `radial` 은 반지름 축 (격자).
+ */
+export type AxisKind = "x" | "y" | "angular" | "radial";
+
 export interface AxisScene {
-  axis: "x" | "y";
+  axis: AxisKind;
   /** 축선 (showAxis=false 면 null) */
   line: LineMark | null;
-  /** grid line (showGrid=false 면 빈 배열) */
-  grid: LineMark[];
+  /**
+   * grid 원소 (showGrid=false 면 빈 배열).
+   *
+   * 직교 축은 `LineMark` 만 넣는다. 극좌표 축은 동심 다각형·원을 `PathMark` 로
+   * 넣는다 — 이 유니온이 ADR-207 의 존재 이유다 (`LineMark[]` 로는 원을 못 담는다).
+   * **유니온을 넓혀도 컴파일러는 소비처 갱신을 요구하지 않는다** (두 consumer 가
+   * generic mark 렌더러로 넘긴다 — breakdown F15). 감시자는 스냅샷·parity 다.
+   */
+  grid: Array<LineMark | PathMark>;
   /** tick 레이블 — 폭 초과 시 every-nth 로 솎아낸 뒤의 잔여 (ADR-194 R3) */
   ticks: TextMark[];
 }

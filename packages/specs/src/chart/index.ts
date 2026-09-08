@@ -44,6 +44,16 @@ export type { AreaMarks } from "./marks/area";
 export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
 export { curveCommands, toScreen } from "./curves";
 export type { AxialPoint, ScreenPoint } from "./curves";
+export {
+  angleScale,
+  circlePathAt,
+  polarPoint,
+  polygonPath,
+  radiusScale,
+} from "./polar";
+export type { AngleScale, PolarPoint, RadiusScale } from "./polar";
+export { buildPolarAxes, polarLabelAnchor, polarLabelStride } from "./polarAxes";
+export type { PolarAxesInput, PolarCenter } from "./polarAxes";
 export { arcPath, arcSlicePath, buildPieMarks } from "./marks/pie";
 export type { PieHit, PieMarks } from "./marks/pie";
 export { buildAxes, labelStride } from "./axes";

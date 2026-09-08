@@ -9,6 +9,7 @@
  * (shadcn `chart-pie-stacked` 의 이중 링). 안쪽 반지름(innerRadius)이 0 보다
  * 크면 도넛이고, 그 구멍에 합계를 적을 수 있다 (`chart-pie-donut-text`).
  */
+import { polarPoint } from "../polar";
 import { formatTick, r2 } from "../scales";
 import type { SeriesGrid, StackMode } from "../series";
 import type { PathMark, Rect, TextMark } from "../types";
@@ -50,18 +51,19 @@ export interface PieMarks {
 /** 링 사이 간격 — 붙여 그리면 두 링의 경계가 조각 경계처럼 보인다. */
 const RING_GAP = 2;
 
-/** 각도(도) → 원 위의 점. 12시 방향을 0° 로 두고 시계 방향. */
+/**
+ * 각도(도) → 원 위의 점. 12시 방향을 0° 로 두고 시계 방향.
+ * 규약 정본은 `polar.ts` 의 `polarPoint` 다 (ADR-207) — 여기서는 튜플로만 바꿔 쓴다.
+ * 두 극좌표 계열(파이 · radar/radial)이 같은 각도 원점을 갖도록 구현을 하나로 둔다.
+ */
 function polar(
   cx: number,
   cy: number,
   radius: number,
   degrees: number,
 ): [number, number] {
-  const radians = ((degrees - 90) * Math.PI) / 180;
-  return [
-    r2(cx + radius * Math.cos(radians)),
-    r2(cy + radius * Math.sin(radians)),
-  ];
+  const point = polarPoint(cx, cy, radius, degrees);
+  return [point.x, point.y];
 }
 
 function circleCommands(

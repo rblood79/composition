@@ -6,6 +6,8 @@
  * 도 "Skia 가 기준" 도 아니고 이 함수가 기준이다 (ssot-hierarchy §1 D3 대칭).
  */
 import { buildAxes } from "./axes";
+import { buildPolarAxes } from "./polarAxes";
+import { angleScale, radiusScale } from "./polar";
 import { toScreen } from "./curves";
 import { buildLegend, legendExtent } from "./legend";
 import type { LegendEntry } from "./legend";
@@ -23,6 +25,7 @@ import {
   r2,
 } from "./scales";
 import { buildSeriesGrid, valueExtent } from "./series";
+import type { SeriesGrid } from "./series";
 import { buildBandTooltip, buildRadialTooltip } from "./tooltip";
 import type { StackMode } from "./series";
 import type {
@@ -61,6 +64,7 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   showValueLabels: false,
   colorBy: "series",
   innerRadius: 0,
+  gridType: "polygon",
   showTotal: false,
   showTooltip: false,
   showAxis: true,
@@ -88,6 +92,102 @@ function emptyScene(size: ChartSize, plot: Rect): ChartScene {
     legend: null,
     tooltip: null,
     empty: true,
+  };
+}
+
+/**
+ * R7 — 신규 `chartType` 이 분기 없이 통과하는 자리를 컴파일 오류로 바꾼다.
+ * 유니온 확장 자체는 컴파일 신호를 남기지 않으므로 (breakdown F15) 이 함수가
+ * `ChartType` 확장에 대한 유일한 기계 방어선이다.
+ */
+function assertNever(value: never): never {
+  throw new Error(`unhandled chartType: ${String(value)}`);
+}
+
+/** 극좌표 계열 (radar/radial) 의 중심·반지름 — plot 사각형에 내접시킨다. */
+interface PolarSceneInput {
+  size: ChartSize;
+  outer: Rect;
+  plot: Rect;
+  legendBox: Rect | null;
+  legendEntries: readonly LegendEntry[];
+  metrics: ChartMetrics;
+  fontSize: number;
+}
+
+/**
+ * ADR-207 — 극좌표 scene.
+ *
+ * radar 는 **범주가 각도 · 값이 반지름**, radial 은 **범주가 링 · 값이 각도**다.
+ * 둘의 축 구성이 갈리므로 (radar 만 스포크·동심 격자를 갖는다) 여기서 나뉜다.
+ */
+function computePolarScene(
+  props: ChartProps,
+  grid: SeriesGrid,
+  input: PolarSceneInput,
+): ChartScene {
+  const { size, outer, plot, legendBox, legendEntries, fontSize } = input;
+
+  // 각도 레이블이 바깥으로 나가므로 그만큼 반지름을 줄인다 (radar 만).
+  const labelRoom =
+    props.chartType === "radar" && props.showAxis
+      ? fontSize * 2.2
+      : fontSize * 0.5;
+  const radius = Math.min(plot.w, plot.h) / 2 - labelRoom;
+  if (radius <= 0) return emptyScene(size, outer);
+
+  const center = {
+    x: r2(plot.x + plot.w / 2),
+    y: r2(plot.y + plot.h / 2),
+    outer: r2(radius),
+    inner: r2((radius * Math.min(90, Math.max(0, props.innerRadius))) / 100),
+  };
+
+  const stackMode: StackMode =
+    grid.series.length > 1 && props.stackType !== "dodged"
+      ? props.stackType
+      : "none";
+  const extent = valueExtent(grid, stackMode);
+  const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
+  const angle = angleScale(grid.categories.length);
+  const value = radiusScale(ticks.domain, [center.inner, center.outer]);
+
+  const marks: Mark[] = [];
+  const labels: Mark[] = [];
+  const axes =
+    props.chartType === "radar"
+      ? buildPolarAxes({
+          categories: grid.categories,
+          angle,
+          center,
+          ticks,
+          gridType: props.gridType,
+          fontSize,
+          showAxis: props.showAxis,
+          showGrid: props.showGrid,
+        })
+      : // radial 은 트랙 호가 격자 노릇을 한다 — 축을 따로 그리면 이중선이 된다
+        //   (shadcn `chart-radial-*` 도 PolarGrid 를 쓰지 않는다).
+        [];
+
+  void value;
+  void stackMode;
+
+  return {
+    size,
+    plot,
+    marks: [...marks, ...labels],
+    axes,
+    legend: legendBox
+      ? buildLegend({
+          entries: legendEntries,
+          box: legendBox,
+          position: props.legendPosition,
+          fontSize,
+        })
+      : null,
+    tooltip: null,
+    empty: false,
   };
 }
 
@@ -225,6 +325,19 @@ export function computeChartScene(
     };
   }
 
+  // ── 극좌표 (radar/radial) 는 직교 축이 없다 ──────────────────────────────
+  if (props.chartType === "radar" || props.chartType === "radial") {
+    return computePolarScene(props, grid, {
+      size: normalizedSize,
+      outer,
+      plot,
+      legendBox,
+      legendEntries,
+      metrics,
+      fontSize,
+    });
+  }
+
   // ── 축 자리 확보 ─────────────────────────────────────────────────────────
   // 누적은 시리즈가 2개 이상일 때만 의미가 있다 (1개면 expand 가 전부 100% 가 된다).
   const stackMode: StackMode =
@@ -293,7 +406,11 @@ export function computeChartScene(
 
   let marks: Mark[];
   let labels: Mark[] = [];
-  if (props.chartType === "bar") {
+  // R7 — 분기를 `else` 로 닫으면 신규 chartType 이 조용히 line 으로 그려진다.
+  //   `assertNever` 가 그 자리를 컴파일 오류로 바꾼다 (유니온 확장 자체는 컴파일
+  //   신호를 안 남기므로 — breakdown F15 — 방어선은 여기 하나뿐이다).
+  const cartesianType: "bar" | "area" | "line" = props.chartType;
+  if (cartesianType === "bar") {
     const bar = buildBarMarks({
       grid,
       band,
@@ -308,7 +425,7 @@ export function computeChartScene(
     });
     marks = [...bar.marks];
     labels = bar.labels;
-  } else if (props.chartType === "area") {
+  } else if (cartesianType === "area") {
     const area = buildAreaMarks({
       grid,
       band,
@@ -323,7 +440,7 @@ export function computeChartScene(
     marks = [...area.marks];
     labels = area.labels;
     if (props.showDots) area.upper.forEach((points, si) => pushDots(points, si));
-  } else {
+  } else if (cartesianType === "line") {
     const line = buildLineMarks({
       grid,
       band,
@@ -347,6 +464,8 @@ export function computeChartScene(
         );
       }
     }
+  } else {
+    return assertNever(cartesianType);
   }
 
   // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.

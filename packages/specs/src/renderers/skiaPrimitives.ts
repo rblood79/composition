@@ -51,6 +51,7 @@ import type {
   ChartRuleChannel,
   ChartStackType,
   ChartType,
+  PolarGridType,
   Mark,
   TextMark,
 } from "../chart";
@@ -3363,6 +3364,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       innerRadius:
         (props.innerRadius as number | undefined) ??
         CHART_DEFAULT_PROPS.innerRadius,
+      gridType:
+        (props.gridType as PolarGridType | undefined) ??
+        CHART_DEFAULT_PROPS.gridType,
       showTotal:
         (props.showTotal as boolean | undefined) ??
         CHART_DEFAULT_PROPS.showTotal,
@@ -3476,6 +3480,14 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
           height: mark.bbox.y + mark.bbox.h,
           ...(mark.fillSeries !== undefined
             ? { fill: seriesToken(mark.fillSeries), fillAlpha: 0.85 }
+            : {}),
+          // 격자·축 path (ADR-207 극좌표) 는 시리즈 팔레트가 아니라 축 토큰으로 긋는다
+          //   — `LineMark.role` 과 같은 규약이라 DOM 쪽과 색이 갈리지 않는다.
+          ...(mark.role !== undefined
+            ? {
+                stroke: mark.role === "grid" ? gridToken : axisToken,
+                strokeWidth: mark.strokeWidth ?? 1,
+              }
             : {}),
           ...(mark.strokeSeries !== undefined
             ? {
