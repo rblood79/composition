@@ -225,6 +225,23 @@ async function main() {
       p2bar.filter((c) => /Spokes|Grid Rings|Fill /.test(c)).join(",") || "없음",
     );
 
+    // ── P3 — 각도 범위는 radial 만, 중앙 합계는 pie·radial ──
+    await setProps(page, chartId, { chartType: "radial" });
+    const p3 = await panelControls(page);
+    record(
+      "P3 radial 에서 각도 범위 2프롭 + 중앙 합계가 온다",
+      ["Start Angle (deg)", "End Angle (deg)", "Show Total (donut · radial)"]
+        .every((c) => p3.includes(c)),
+      p3.filter((c) => /Angle|Show Total/.test(c)).join(", "),
+    );
+    await setProps(page, chartId, { chartType: "radar" });
+    const p3radar = await panelControls(page);
+    record(
+      "P3 각도 범위는 radar 에서 안 보인다 (radial 만 읽는다)",
+      !p3radar.some((c) => /Start Angle|End Angle/.test(c)),
+      p3radar.filter((c) => /Angle/.test(c)).join(",") || "없음",
+    );
+
     record(
       "③ Card 결선 회귀는 단위 seam 커버 (live 팔레트 진입 경로 미확보)",
       true,

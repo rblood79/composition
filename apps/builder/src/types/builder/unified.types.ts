@@ -2214,6 +2214,8 @@ export function createDefaultChartProps(): BaseElementProps {
     gridRings: 0,
     fillGrid: false,
     fillArea: true,
+    startAngle: 0,
+    endAngle: 360,
     showTotal: false,
     showTooltip: false,
     showAxis: true,

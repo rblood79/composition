@@ -195,13 +195,33 @@ export const chartBinding: PrimitiveBinding = {
         // computeChartScene.ts:219 — ADR-207:190 이 지목한 항목.
         visibleWhen: { key: "chartType", equals: "radar" },
       },
+      /**
+       * 극좌표 각도 범위 (ADR-208 P3) — 도, **12시=0 시계**. Recharts 는 3시=0 반시계라
+       * 같은 그림이라도 숫자가 다르다. **radial 만 읽는다** (`computeChartScene.ts:211-212`)
+       * — radar·pie 에 열어 두면 "바꿔도 아무 일이 안 일어나는 값" 이 되어 본 ADR 이
+       * 없애려던 바로 그 혼란을 만든다.
+       */
+      startAngle: {
+        kind: "number",
+        label: "Start Angle (deg)",
+        section: "appearance",
+        default: 0,
+        visibleWhen: { key: "chartType", equals: "radial" },
+      },
+      endAngle: {
+        kind: "number",
+        label: "End Angle (deg)",
+        section: "appearance",
+        default: 360,
+        visibleWhen: { key: "chartType", equals: "radial" },
+      },
       showTotal: {
         kind: "boolean",
-        label: "Show Total (donut)",
+        label: "Show Total (donut · radial)",
         section: "appearance",
         default: false,
-        // computeChartScene.ts:359. P3 에서 radial 로 확장하면 조건도 함께 넓힌다.
-        visibleWhen: { key: "chartType", equals: "pie" },
+        // computeChartScene.ts:359 + radial 확장 (P3 — centerTotalLabels 공유).
+        visibleWhen: { key: "chartType", oneOf: ["pie", "radial"] },
       },
       /**
        * radar 격자·선 제어 (ADR-208 P2). 넷 다 radar 전용이라 조건을 단다 — 조건이
@@ -299,6 +319,8 @@ export const chartBinding: PrimitiveBinding = {
       "innerRadius",
       "gridType",
       "showTotal",
+      "startAngle",
+      "endAngle",
       "showSpokes",
       "gridRings",
       "fillGrid",

@@ -65,6 +65,8 @@ export function renderChart(element: PreviewElement): ReactNode {
       gridRings={props.gridRings as number | undefined}
       fillGrid={props.fillGrid as boolean | undefined}
       fillArea={props.fillArea as boolean | undefined}
+      startAngle={props.startAngle as number | undefined}
+      endAngle={props.endAngle as number | undefined}
       showTotal={props.showTotal as boolean | undefined}
       showTooltip={props.showTooltip as boolean | undefined}
       showAxis={props.showAxis as boolean | undefined}

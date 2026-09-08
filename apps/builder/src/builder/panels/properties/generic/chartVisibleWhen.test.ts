@@ -93,6 +93,9 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   gridRings: [3],
   fillGrid: [true],
   fillArea: [false],
+  // ADR-208 P3 — 각도 범위.
+  startAngle: [90],
+  endAngle: [180],
   showTotal: [true],
   showAxis: [false],
   showTooltip: [true],
@@ -152,6 +155,25 @@ describe("ADR-208 G2 ① — 소비되는 prop 은 반드시 보인다", () => {
       const visible = visibleFor(chartType);
       const hiddenButConsumed = [...consumed].filter((k) => !visible.has(k));
       expect(hiddenButConsumed).toEqual([]);
+    });
+  }
+
+  /**
+   * 반대 방향 — **조건을 단 prop 이 보이는데 안 읽히면** 그것도 결함이다. 조건을 달았다는
+   * 것은 "이 종류 전용" 이라고 선언한 것이므로, 그 종류에서 아무 반응이 없으면 선언이 넓다.
+   * 조건이 **없는** prop 은 여기서 보지 않는다 — 그건 의도적으로 전 종류 공통이다.
+   */
+  for (const chartType of CHART_TYPES) {
+    it(`${chartType} — 조건을 단 prop 이 보이면 실제로 읽힌다`, () => {
+      const consumed = consumedBy(chartType);
+      const contracts = acceptsContracts();
+      const visibleButInert = [...visibleFor(chartType)].filter(
+        (k) =>
+          contracts[k]?.visibleWhen !== undefined &&
+          ALTERNATIVES[k] !== undefined &&
+          !consumed.has(k),
+      );
+      expect(visibleButInert).toEqual([]);
     });
   }
 
