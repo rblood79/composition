@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+  body{margin:0}
+  *{box-sizing:border-box}
+  .root{
+    --paper:oklch(96.8% 0.004 90);--paper-2:oklch(93.8% 0.006 90);
+    --ink:oklch(24% 0.012 65);--ink-2:oklch(48% 0.012 70);--ink-3:oklch(63% 0.01 75);
+    --rule:oklch(86% 0.008 85);--blue:oklch(46% 0.13 250);
+    --b-bg:oklch(92.2% 0 none);--b-raised:oklch(98.5% 0.002 247.839);--b-overlay:#fff;
+    --b-muted:oklch(92.8% 0.006 264.531);--b-emph:oklch(87.2% 0.01 258.338);
+    --b-fg:oklch(27.8% 0.033 256.848);--b-fg-muted:oklch(55.1% 0.027 264.364);
+    --b-border:oklch(92.8% 0.006 264.531);--b-accent:oklch(37.3% 0.034 259.733);
+    --b-focus:oklch(70.7% 0.165 254.624);--b-neg:oklch(63.7% 0.237 25.331);
+    --b-notice:oklch(64.6% 0.222 41.116);--b-pos:oklch(62.7% 0.194 149.214);
+    --b-info:oklch(54.6% 0.245 262.881);--b-purple:oklch(62.7% 0.265 303.9);
+    --b-g400:oklch(70.7% 0.022 261.325);
+    background:var(--paper);color:var(--ink);
+    font-family:"Gothic A1","Apple SD Gothic Neo",system-ui,sans-serif;
+    font-size:13px;line-height:1.55;
+  }
+  .root.dark{
+    --paper:oklch(19% 0.008 70);--paper-2:oklch(23.5% 0.008 70);
+    --ink:oklch(93% 0.006 85);--ink-2:oklch(72% 0.008 80);--ink-3:oklch(56% 0.008 80);
+    --rule:oklch(32% 0.008 75);--blue:oklch(74% 0.11 250);
+    --b-bg:oklch(21% 0.006 285.885);--b-raised:#202023;--b-overlay:oklch(27.4% 0.006 286.033);
+    --b-muted:oklch(37% 0.013 285.805);--b-emph:oklch(44.2% 0.017 285.786);
+    --b-fg:oklch(96.7% 0.001 286.375);--b-fg-muted:oklch(70.5% 0.015 286.067);
+    --b-border:oklch(37% 0.013 285.805);--b-accent:oklch(92% 0.004 286.32);
+    --b-neg:oklch(70.4% 0.191 22.216);--b-notice:oklch(75% 0.183 55.934);
+    --b-pos:oklch(72% 0.17 149);--b-info:oklch(70.7% 0.165 254.624);
+    --b-purple:oklch(74% 0.2 304);--b-g400:oklch(70.5% 0.015 286.067);
+  }
+  .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+  .sheet{padding:26px 28px;display:flex;flex-direction:column;gap:16px;height:100%}
+  .hd{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:9px}
+  .num{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--blue);border:1px solid var(--blue);border-radius:2px;padding:1px 6px;line-height:1.5}
+  .hd h1{font-size:19px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .hd .where{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-left:auto;padding-bottom:2px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;flex-grow:1;min-height:0}
+  .col{display:flex;flex-direction:column;gap:7px;min-height:0}
+  .clab{display:flex;align-items:baseline;gap:8px}
+  .clab b{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .clab.a b{color:var(--ink-3)}
+  .clab.b b{color:var(--blue)}
+  .clab span{font-size:11.5px;color:var(--ink-2)}
+  .fr{flex-grow:1;border:1px solid var(--rule);background:var(--b-bg);position:relative;overflow:hidden;min-height:0}
+  .verd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--rule)}
+  .v{padding:10px 14px 2px;border-right:1px solid var(--rule)}
+  .v:last-child{border-right:0;padding-right:0}
+  .v:first-child{padding-left:0}
+  .v h3{margin:0 0 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+  .v.g h3{color:var(--b-pos)}.v.w h3{color:var(--b-notice)}.v.f h3{color:var(--blue)}
+  .v p{margin:0 0 4px;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+  .v p b{color:var(--ink);font-weight:700}
+  .pnl{width:233px;background:var(--b-raised);display:flex;flex-direction:column;flex:none;
+    font-family:"Pretendard","Apple SD Gothic Neo",system-ui,sans-serif;color:var(--b-fg);
+    box-shadow:0 1px 4px rgba(0,0,0,.12);border-radius:4px;overflow:hidden;position:relative}
+  .phd{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;
+    border-bottom:1px solid var(--b-border);font-size:12px;font-weight:600;flex:none}
+  .ico{display:flex;gap:2px}
+  .ico i{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    color:var(--b-fg-muted);font-size:11px;font-style:normal}
+  .ico i.off{opacity:.26}
+  .ico i.act{background:var(--b-muted);color:var(--b-fg)}
+  .ptabs{height:32px;display:flex;border-bottom:1px solid var(--b-border);flex:none}
+  .ptab{flex:1;display:flex;align-items:center;justify-content:center;position:relative;
+    color:var(--b-fg-muted);font-size:10.5px;letter-spacing:.01em}
+  .ptab.on{color:var(--b-fg);font-weight:600;box-shadow:inset 0 -2px 0 var(--b-accent)}
+  .ptab s{position:absolute;top:6px;right:7px;width:5px;height:5px;border-radius:50%;
+    background:var(--b-accent);text-decoration:none}
+  .sec{flex:none}
+  .shd{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;
+    border-bottom:1px solid var(--b-border)}
+  .shd b{font-size:11.5px;font-weight:600}
+  .sct{padding:8px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--b-border)}
+  .fg{display:flex;flex-direction:column;gap:3px}
+  .lg{font-size:10.5px;color:var(--b-fg-muted);display:flex;align-items:center;gap:5px;min-height:14px}
+  .src{width:3px;height:11px;border-radius:1px;flex:none;display:block}
+  .s-in{background:var(--b-info)}.s-ov{background:var(--b-purple)}.s-ih{background:var(--b-notice)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .ct{height:28px;border:1px solid var(--b-border);border-radius:6px;background:var(--b-overlay);
+    display:flex;align-items:center;justify-content:space-between;padding:0 7px;font-size:11.5px;
+    font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap}
+  .ct u{color:var(--b-fg-muted);text-decoration:none;font-size:10.5px;flex:none}
+  .ct.sel::after{content:"⌄";color:var(--b-fg-muted);font-size:11px}
+  .ct.act{border-color:var(--b-focus);box-shadow:0 0 0 2px color-mix(in oklch,var(--b-focus) 28%,transparent)}
+  .ct.err{border-color:var(--b-neg);color:var(--b-neg)}
+  .sw{width:14px;height:14px;border-radius:3px;border:1px solid var(--b-border);flex:none}
+  .seg{height:28px;display:flex;border:1px solid var(--b-border);border-radius:6px;overflow:hidden;background:var(--b-overlay)}
+  .seg span{flex:1;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--b-fg-muted)}
+  .seg span.on{background:var(--b-muted);color:var(--b-fg);font-weight:600}
+  .chips{height:32px;display:flex;align-items:center;gap:5px;padding:0 8px;border-bottom:1px solid var(--b-border)}
+  .chip{height:20px;display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;font-size:10.5px;
+    border:1px solid var(--b-border);background:var(--b-overlay);color:var(--b-fg-muted);white-space:nowrap}
+  .chip.on{background:var(--b-accent);color:var(--b-raised);border-color:var(--b-accent);font-weight:600}
+  .hint{margin:0 8px 8px;padding:6px 8px;border-radius:6px;font-size:10.5px;line-height:1.45;
+    background:color-mix(in oklch,var(--b-neg) 9%,var(--b-overlay));
+    border:1px solid color-mix(in oklch,var(--b-neg) 38%,var(--b-border));color:var(--b-fg)}
+  .mrow{display:flex;align-items:center;gap:8px;min-height:28px;padding:0 8px;font-size:11.5px}
+  .mrow span:first-child{color:var(--b-fg-muted);min-width:82px}
+  .mrow span:last-child{font-family:"JetBrains Mono",monospace;font-size:10.5px}
+  .bdg{position:absolute;width:17px;height:17px;border-radius:50%;background:var(--blue);color:#fff;
+    font-family:"JetBrains Mono",monospace;font-size:10px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 2px var(--paper);z-index:2}
+  .lay{display:flex;gap:22px;align-items:flex-start;flex-grow:1;min-height:0}
+  .stack{display:flex;flex-direction:column;gap:7px}
+  .plab{display:flex;align-items:baseline;gap:7px}
+  .plab b{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .plab.a b{color:var(--ink-3)}.plab.b b{color:var(--blue)}
+  .plab span{font-size:10.5px;color:var(--ink-2)}
+  .notes{flex-grow:1;display:flex;flex-direction:column;gap:11px;min-width:0}
+  .nt{display:grid;grid-template-columns:19px 1fr;gap:9px;align-items:start}
+  .nt em{width:17px;height:17px;border-radius:50%;background:var(--blue);color:#fff;font-style:normal;
+    font-family:"JetBrains Mono",monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .nt h4{margin:0 0 2px;font-size:12px;font-weight:700}
+  .nt p{margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+  .nt p b{color:var(--ink);font-weight:700}
+  .nt p.why{color:var(--ink-3);margin-top:3px}
+  .srcleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-2);align-items:center}
+  .srcleg span{display:flex;align-items:center;gap:5px}
+  .fr{border:1px solid var(--rule);background:var(--b-bg);position:relative;overflow:hidden}
+  .canv{background:var(--b-bg);height:100%;position:relative;overflow:hidden}
+  .pg{position:absolute;background:var(--b-overlay);border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,.10)}
+  .el{position:absolute;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    font-family:"Pretendard",system-ui,sans-serif;font-size:12px;color:#fff;background:var(--b-accent)}
+  .sel{outline:2px solid var(--b-focus);outline-offset:1px}
+  .hnd{position:absolute;width:7px;height:7px;background:var(--b-overlay);border:1.5px solid var(--b-focus);border-radius:1px}
+  .gho{position:absolute;border:1.5px dashed var(--b-focus);border-radius:6px;opacity:.55}
+  .cap{position:absolute;left:12px;bottom:9px;right:12px;font-size:11px;color:var(--b-fg-muted);
+    font-family:"Pretendard",system-ui,sans-serif}
+  </style>
+</helmet>
+<div class="root {{themeClass}}">
+<div class="sheet" style="gap:17px">
+  <div class="hd" style="border-bottom-width:2px"><span class="num">개요</span><h1>Styles 패널에 무엇을 얹을 것인가</h1><span class="where">webstudio 패턴 대조 · 2026-09-08</span></div>
+
+  <p style="margin:0;max-width:760px;color:var(--ink-2);font-size:13px;line-height:1.6">
+    가져올 만하다고 판정한 11개 중 화면에 나타나는 것은 7개고, 그중 <b style="color:var(--ink)">4개가 Styles 패널</b> 안에서 일어난다. 아래 아트보드는 패널의 <b style="color:var(--ink)">탭 5개를 전부</b> 지금과 적용 후로 그렸다. 필드를 하나도 빼지 않았으므로 새 표시가 실제로 얼마나 늘어나는지 그대로 읽힌다.
+  </p>
+
+  <div style="display:grid;grid-template-columns:40px 1fr 132px 66px 1fr;column-gap:0;font-size:12px">
+    <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding:0 16px 6px 0;border-bottom:1px solid var(--ink)">번호</div>
+    <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding:0 16px 6px 0;border-bottom:1px solid var(--ink)">패턴</div>
+    <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding:0 16px 6px 0;border-bottom:1px solid var(--ink)">바뀌는 곳</div>
+    <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding:0 16px 6px 0;border-bottom:1px solid var(--ink)">체감</div>
+    <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding:0 16px 6px 0;border-bottom:1px solid var(--ink)">불편 리스크와 완화</div>
+    <div class="mono" style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--blue)">03</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);font-weight:700">스크럽 중 캔버스 미리보기</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)">캔버스</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--b-pos);font-weight:700">크다</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)"><b style="color:var(--b-notice)">중간</b> · 요소 많으면 자동 제한</div><div class="mono" style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--blue)">04</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);font-weight:700">값 출처 막대</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)">패널 전 탭</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--b-pos);font-weight:700">크다</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)"><b style="color:var(--b-notice)">중간</b> · 기본값은 표시 없음 · 점 대신 막대</div><div class="mono" style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--blue)">07</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);font-weight:700">잘못된 값 표시</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)">스타일 · 텍스트 탭</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-weight:700">보통</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)"><b style="color:var(--b-notice)">중간</b> · 입력 마쳤을 때만 · 그대로 저장 남김</div><div class="mono" style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--blue)">09</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);font-weight:700">중첩 규칙 경고</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)">캔버스 끌어놓기</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-weight:700">보통</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)"><b style="color:var(--b-neg)">높다</b> · 막지 말고 옮긴 뒤 되돌리기</div><div class="mono" style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--blue)">10</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);font-weight:700">공유 스타일 세트</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)">패널 헤더 아래</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--b-pos);font-weight:700">크다</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)"><b style="color:var(--b-neg)">높다</b> · 항상 Local 복귀 · 적용 개수 표시</div><div class="mono" style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--blue)">06</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);font-weight:700">일괄 변경 되돌리기 묶음</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)">History</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2);font-weight:700">보통</div><div style="padding:10px 16px 10px 0;border-bottom:1px solid var(--rule);color:var(--ink-2)"><b style="color:var(--b-notice)">중간</b> · 부른 쪽이 지정할 때만 묶음</div><div class="mono" style="padding:10px 16px 10px 0;color:var(--blue)">08</div><div style="padding:10px 16px 10px 0;font-weight:700">브라우저 기본 간격</div><div style="padding:10px 16px 10px 0;color:var(--ink-2)">캔버스 텍스트</div><div style="padding:10px 16px 10px 0;color:var(--ink-3);font-weight:700">조건부</div><div style="padding:10px 16px 10px 0;color:var(--ink-2)"><b style="color:var(--b-notice)">중간</b> · 측정 먼저 · 격차 있을 때만</div>
+  </div>
+
+  <div>
+    <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding-bottom:7px;border-bottom:1px solid var(--ink)">제안이 따른 기존 어법 — 코드에서 읽은 것</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:11px">
+      <div style="padding-right:22px;border-right:1px solid var(--rule)">
+        <h3 style="margin:0 0 4px;font-size:12px">높이는 두 단뿐이다</h3>
+        <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)">패널 헤더 · 탭 줄 · 섹션 헤더가 <b style="color:var(--ink)">32px</b>, 컨트롤이 <b style="color:var(--ink)">28px</b>. 스타일 세트 줄은 32px 로 맞췄다. 새 높이를 만들지 않았다.</p>
+      </div>
+      <div style="padding:0 22px;border-right:1px solid var(--rule)">
+        <h3 style="margin:0 0 4px;font-size:12px">점은 이미 뜻이 있다</h3>
+        <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)">탭의 점은 "이 그룹에 수정된 값이 있다" 다. 출처는 <b style="color:var(--ink)">3px 세로 막대</b> 로 어법을 갈랐다. 같은 모양에 두 뜻을 얹지 않는다.</p>
+      </div>
+      <div style="padding-left:22px">
+        <h3 style="margin:0 0 4px;font-size:12px">되돌리기는 섹션 단위다</h3>
+        <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)">필드마다 버튼을 달지 않는다. 233px 에서 컨트롤이 좁아진다. 섹션 되돌리기는 탭의 점과 <b style="color:var(--ink)">같은 판정</b> 을 이미 공유한다.</p>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div>
+      <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding-bottom:7px;border-bottom:1px solid var(--rule)">화면 변화가 없는 것</div>
+      <p style="margin:9px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)">생성물 검사 · 번들 크기 검사 · AI 도구 정의 생성 · AI 평가 회귀. 사용자가 느끼는 건 오래된 CSS 가 커밋되지 않는다는 정도다.</p>
+    </div>
+    <div>
+      <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding-bottom:7px;border-bottom:1px solid var(--rule)">먼저 물어야 하는 것</div>
+      <p style="margin:9px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)"><b style="color:var(--ink)">09 중첩 규칙</b> 과 <b style="color:var(--ink)">10 공유 스타일 세트</b> 는 리스크가 가장 크고 둘 다 SSOT 경계를 다시 긋는다. <b style="color:var(--ink)">03</b> 과 <b style="color:var(--ink)">04</b> 는 리스크가 낮고 체감이 커서 먼저 할 만하다.</p>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1400,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { themeClass: this.props.dark ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

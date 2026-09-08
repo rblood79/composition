@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+  body{margin:0}
+  *{box-sizing:border-box}
+  .root{
+    --paper:oklch(96.8% 0.004 90);--paper-2:oklch(93.8% 0.006 90);
+    --ink:oklch(24% 0.012 65);--ink-2:oklch(48% 0.012 70);--ink-3:oklch(63% 0.01 75);
+    --rule:oklch(86% 0.008 85);--blue:oklch(46% 0.13 250);
+    --b-bg:oklch(92.2% 0 none);--b-raised:oklch(98.5% 0.002 247.839);--b-overlay:#fff;
+    --b-muted:oklch(92.8% 0.006 264.531);--b-emph:oklch(87.2% 0.01 258.338);
+    --b-fg:oklch(27.8% 0.033 256.848);--b-fg-muted:oklch(55.1% 0.027 264.364);
+    --b-border:oklch(92.8% 0.006 264.531);--b-accent:oklch(37.3% 0.034 259.733);
+    --b-focus:oklch(70.7% 0.165 254.624);--b-neg:oklch(63.7% 0.237 25.331);
+    --b-notice:oklch(64.6% 0.222 41.116);--b-pos:oklch(62.7% 0.194 149.214);
+    --b-info:oklch(54.6% 0.245 262.881);--b-purple:oklch(62.7% 0.265 303.9);
+    --b-g400:oklch(70.7% 0.022 261.325);
+    background:var(--paper);color:var(--ink);
+    font-family:"Gothic A1","Apple SD Gothic Neo",system-ui,sans-serif;
+    font-size:13px;line-height:1.55;
+  }
+  .root.dark{
+    --paper:oklch(19% 0.008 70);--paper-2:oklch(23.5% 0.008 70);
+    --ink:oklch(93% 0.006 85);--ink-2:oklch(72% 0.008 80);--ink-3:oklch(56% 0.008 80);
+    --rule:oklch(32% 0.008 75);--blue:oklch(74% 0.11 250);
+    --b-bg:oklch(21% 0.006 285.885);--b-raised:#202023;--b-overlay:oklch(27.4% 0.006 286.033);
+    --b-muted:oklch(37% 0.013 285.805);--b-emph:oklch(44.2% 0.017 285.786);
+    --b-fg:oklch(96.7% 0.001 286.375);--b-fg-muted:oklch(70.5% 0.015 286.067);
+    --b-border:oklch(37% 0.013 285.805);--b-accent:oklch(92% 0.004 286.32);
+    --b-neg:oklch(70.4% 0.191 22.216);--b-notice:oklch(75% 0.183 55.934);
+    --b-pos:oklch(72% 0.17 149);--b-info:oklch(70.7% 0.165 254.624);
+    --b-purple:oklch(74% 0.2 304);--b-g400:oklch(70.5% 0.015 286.067);
+  }
+  .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+  .sheet{padding:26px 28px;display:flex;flex-direction:column;gap:16px;height:100%}
+  .hd{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:9px}
+  .num{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--blue);border:1px solid var(--blue);border-radius:2px;padding:1px 6px;line-height:1.5}
+  .hd h1{font-size:19px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .hd .where{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-left:auto;padding-bottom:2px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;flex-grow:1;min-height:0}
+  .col{display:flex;flex-direction:column;gap:7px;min-height:0}
+  .clab{display:flex;align-items:baseline;gap:8px}
+  .clab b{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .clab.a b{color:var(--ink-3)}
+  .clab.b b{color:var(--blue)}
+  .clab span{font-size:11.5px;color:var(--ink-2)}
+  .fr{flex-grow:1;border:1px solid var(--rule);background:var(--b-bg);position:relative;overflow:hidden;min-height:0}
+  .verd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--rule)}
+  .v{padding:10px 14px 2px;border-right:1px solid var(--rule)}
+  .v:last-child{border-right:0;padding-right:0}
+  .v:first-child{padding-left:0}
+  .v h3{margin:0 0 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+  .v.g h3{color:var(--b-pos)}.v.w h3{color:var(--b-notice)}.v.f h3{color:var(--blue)}
+  .v p{margin:0 0 4px;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+  .v p b{color:var(--ink);font-weight:700}
+  .pnl{width:233px;background:var(--b-raised);display:flex;flex-direction:column;flex:none;
+    font-family:"Pretendard","Apple SD Gothic Neo",system-ui,sans-serif;color:var(--b-fg);
+    box-shadow:0 1px 4px rgba(0,0,0,.12);border-radius:4px;overflow:hidden;position:relative}
+  .phd{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;
+    border-bottom:1px solid var(--b-border);font-size:12px;font-weight:600;flex:none}
+  .ico{display:flex;gap:2px}
+  .ico i{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+    color:var(--b-fg-muted);font-size:11px;font-style:normal}
+  .ico i.off{opacity:.26}
+  .ico i.act{background:var(--b-muted);color:var(--b-fg)}
+  .ptabs{height:32px;display:flex;border-bottom:1px solid var(--b-border);flex:none}
+  .ptab{flex:1;display:flex;align-items:center;justify-content:center;position:relative;
+    color:var(--b-fg-muted);font-size:10.5px;letter-spacing:.01em}
+  .ptab.on{color:var(--b-fg);font-weight:600;box-shadow:inset 0 -2px 0 var(--b-accent)}
+  .ptab s{position:absolute;top:6px;right:7px;width:5px;height:5px;border-radius:50%;
+    background:var(--b-accent);text-decoration:none}
+  .sec{flex:none}
+  .shd{height:32px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;
+    border-bottom:1px solid var(--b-border)}
+  .shd b{font-size:11.5px;font-weight:600}
+  .sct{padding:8px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--b-border)}
+  .fg{display:flex;flex-direction:column;gap:3px}
+  .lg{font-size:10.5px;color:var(--b-fg-muted);display:flex;align-items:center;gap:5px;min-height:14px}
+  .src{width:3px;height:11px;border-radius:1px;flex:none;display:block}
+  .s-in{background:var(--b-info)}.s-ov{background:var(--b-purple)}.s-ih{background:var(--b-notice)}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+  .ct{height:28px;border:1px solid var(--b-border);border-radius:6px;background:var(--b-overlay);
+    display:flex;align-items:center;justify-content:space-between;padding:0 7px;font-size:11.5px;
+    font-variant-numeric:tabular-nums;overflow:hidden;white-space:nowrap}
+  .ct u{color:var(--b-fg-muted);text-decoration:none;font-size:10.5px;flex:none}
+  .ct.sel::after{content:"⌄";color:var(--b-fg-muted);font-size:11px}
+  .ct.act{border-color:var(--b-focus);box-shadow:0 0 0 2px color-mix(in oklch,var(--b-focus) 28%,transparent)}
+  .ct.err{border-color:var(--b-neg);color:var(--b-neg)}
+  .sw{width:14px;height:14px;border-radius:3px;border:1px solid var(--b-border);flex:none}
+  .seg{height:28px;display:flex;border:1px solid var(--b-border);border-radius:6px;overflow:hidden;background:var(--b-overlay)}
+  .seg span{flex:1;display:flex;align-items:center;justify-content:center;font-size:10.5px;color:var(--b-fg-muted)}
+  .seg span.on{background:var(--b-muted);color:var(--b-fg);font-weight:600}
+  .chips{height:32px;display:flex;align-items:center;gap:5px;padding:0 8px;border-bottom:1px solid var(--b-border)}
+  .chip{height:20px;display:flex;align-items:center;gap:5px;padding:0 8px;border-radius:5px;font-size:10.5px;
+    border:1px solid var(--b-border);background:var(--b-overlay);color:var(--b-fg-muted);white-space:nowrap}
+  .chip.on{background:var(--b-accent);color:var(--b-raised);border-color:var(--b-accent);font-weight:600}
+  .hint{margin:0 8px 8px;padding:6px 8px;border-radius:6px;font-size:10.5px;line-height:1.45;
+    background:color-mix(in oklch,var(--b-neg) 9%,var(--b-overlay));
+    border:1px solid color-mix(in oklch,var(--b-neg) 38%,var(--b-border));color:var(--b-fg)}
+  .mrow{display:flex;align-items:center;gap:8px;min-height:28px;padding:0 8px;font-size:11.5px}
+  .mrow span:first-child{color:var(--b-fg-muted);min-width:82px}
+  .mrow span:last-child{font-family:"JetBrains Mono",monospace;font-size:10.5px}
+  .bdg{position:absolute;width:17px;height:17px;border-radius:50%;background:var(--blue);color:#fff;
+    font-family:"JetBrains Mono",monospace;font-size:10px;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 0 0 2px var(--paper);z-index:2}
+  .lay{display:flex;gap:22px;align-items:flex-start;flex-grow:1;min-height:0}
+  .stack{display:flex;flex-direction:column;gap:7px}
+  .plab{display:flex;align-items:baseline;gap:7px}
+  .plab b{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .plab.a b{color:var(--ink-3)}.plab.b b{color:var(--blue)}
+  .plab span{font-size:10.5px;color:var(--ink-2)}
+  .notes{flex-grow:1;display:flex;flex-direction:column;gap:11px;min-width:0}
+  .nt{display:grid;grid-template-columns:19px 1fr;gap:9px;align-items:start}
+  .nt em{width:17px;height:17px;border-radius:50%;background:var(--blue);color:#fff;font-style:normal;
+    font-family:"JetBrains Mono",monospace;font-size:10px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+  .nt h4{margin:0 0 2px;font-size:12px;font-weight:700}
+  .nt p{margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+  .nt p b{color:var(--ink);font-weight:700}
+  .nt p.why{color:var(--ink-3);margin-top:3px}
+  .srcleg{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--ink-2);align-items:center}
+  .srcleg span{display:flex;align-items:center;gap:5px}
+  </style>
+</helmet>
+<div class="root {{themeClass}}">
+<div class="sheet" style="gap:15px">
+  <div class="hd"><span class="num">탭 4/5</span><h1>화면 — Responsive</h1><span class="where">Styles 패널 233px · 전체 필드</span></div>
+  <div class="lay">
+    <div class="stack"><div class="plab a"><b>지금</b><span>어느 값이 재정의됐는지 이 탭에서 알 수 없다</span></div><div class="pnl">
+  
+  <div class="phd"><span>Button</span><em class="ico"><i>⧉</i><i>⎘</i></em></div>
+  
+  <div class="ptabs"><div class="ptab">배치<s></s></div><div class="ptab">스타일</div><div class="ptab">텍스트<s></s></div><div class="ptab on">화면</div><div class="ptab">수정</div></div>
+  <div class="sec">
+  <div class="shd"><b>Responsive</b><em class="ico"><i>↺</i><i>⌃</i></em></div>
+  <div class="sct">
+    <div class="fg"><div class="lg">Breakpoint</div><div class="seg"><span>Desktop</span><span class="on">Tablet</span><span>Mobile</span></div></div>
+    <div class="fg"><div class="lg">Visibility</div><div class="seg"><span class="on">표시</span><span>숨김</span></div></div>
+  </div>
+  
+</div>
+</div></div>
+    <div class="stack"><div class="plab b"><b>적용 후</b><span>재정의 목록이 여기 모인다</span></div><div class="pnl">
+  <div class="bdg" style="left:-9px;top:170px">13</div>
+  <div class="phd"><span>Button</span><em class="ico"><i>⧉</i><i>⎘</i></em></div>
+  <div class="chips"><span class="chip on">Local</span><span class="chip"><i class="src s-ov"></i>card-base · 12</span><span class="chip">+</span></div>
+  <div class="ptabs"><div class="ptab">배치<s></s></div><div class="ptab">스타일</div><div class="ptab">텍스트<s></s></div><div class="ptab on">화면</div><div class="ptab">수정</div></div>
+  <div class="sec">
+  <div class="shd"><b>Responsive</b><em class="ico"><i>↺</i><i>⌃</i></em></div>
+  <div class="sct">
+    <div class="fg"><div class="lg">Breakpoint</div><div class="seg"><span>Desktop</span><span class="on">Tablet</span><span>Mobile</span></div></div>
+    <div class="fg"><div class="lg"><i class="src s-ov"></i>Visibility</div><div class="seg"><span class="on">표시</span><span>숨김</span></div></div>
+  </div>
+  <div class="sct" style="gap:5px">
+    <div class="lg" style="margin-bottom:2px">Tablet 에서 재정의된 값</div>
+    <div class="mrow" style="padding:0"><span>Font Size</span><span>16 → 14px</span></div>
+    <div class="mrow" style="padding:0"><span>Align Items</span><span>start → center</span></div>
+    <div class="mrow" style="padding:0"><span>Padding</span><span>16 → 12px</span></div>
+  </div>
+</div>
+</div></div>
+    <div class="notes">
+      <div class="nt"><em>13</em><div>
+        <h4>보라 막대가 가리키는 곳을 이 탭이 목록으로 받는다</h4>
+        <p>다른 탭에서 보라 막대를 본 사용자가 <b>"그럼 이 breakpoint 에서 뭘 바꿨지"</b> 를 물을 자리가 지금은 없다. 화면 탭 아래에 재정의된 값 목록을 둔다. 원래 값과 바뀐 값을 한 줄에 같이 보여준다.</p>
+        <p class="why">왜 여기인가 — 화면 탭은 지금 컨트롤이 둘뿐이라 가장 비어 있다. 새 섹션을 만들 필요 없이 남는 자리에 들어간다.</p>
+      </div></div>
+      <div class="nt"><em>14</em><div>
+        <h4>목록 행은 Modified 뷰와 같은 어법을 쓴다</h4>
+        <p>왼쪽에 속성 이름, 오른쪽에 값을 고정폭 글자로. 이미 Modified 뷰가 쓰는 <b>같은 행 모양</b> 이라 새로 배울 게 없다.</p>
+        <p class="why">왜 — 같은 성격의 목록이 패널 안에서 두 모양을 가지면 안 된다.</p>
+      </div></div>
+      <div class="nt"><em>15</em><div>
+        <h4>Desktop 을 보고 있을 때는 목록이 비어 있다</h4>
+        <p>Desktop 이 기준선이라 재정의라는 개념이 없다. 목록 자리에 <b>"Tablet · Mobile 에서 각각 3개 · 1개 재정의됨"</b> 한 줄만 둔다.</p>
+        <p class="why">왜 — 빈 목록을 그대로 두면 고장으로 읽힌다. 다른 breakpoint 의 개수를 알려주면 그리로 가는 이유가 된다.</p>
+      </div></div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1400,"height":620}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { themeClass: this.props.dark ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>

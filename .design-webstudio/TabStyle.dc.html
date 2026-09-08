@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+  body{margin:0}
+  *{box-sizing:border-box}
+  .root{
+    --paper:oklch(96.8% 0.004 90);--paper-2:oklch(93.8% 0.006 90);
+    --ink:oklch(24% 0.012 65);--ink-2:oklch(48% 0.012 70);--ink-3:oklch(63% 0.01 75);
+    --rule:oklch(86% 0.008 85);--blue:oklch(46% 0.13 250);
+    --b-bg:oklch(92.2% 0 none);--b-raised:oklch(98.5% 0.002 247.839);--b-overlay:#fff;
+    --b-muted:oklch(92.8% 0.006 264.531);--b-emph:oklch(87.2% 0.01 258.338);
+    --b-fg:oklch(27.8% 0.033 256.848);--b-fg-muted:oklch(55.1% 0.027 264.364);
+    --b-border:oklch(92.8% 0.006 264.531);--b-accent:oklch(37.3% 0.034 259.733);
+    --b-focus:oklch(70.7% 0.165 254.624);--b-neg:oklch(63.7% 0.237 25.331);
+    --b-notice:oklch(64.6% 0.222 41.116);--b-pos:oklch(62.7% 0.194 149.214);
+    --b-info:oklch(54.6% 0.245 262.881);--b-purple:oklch(62.7% 0.265 303.9);
+    --b-g400:oklch(70.7% 0.022 261.325);
+    background:var(--paper);color:var(--ink);
+    font-family:"Gothic A1","Apple SD Gothic Neo",system-ui,sans-serif;
+    font-size:13px;line-height:1.55;
+  }
+  .root.dark{
+    --paper:oklch(19% 0.008 70);--paper-2:oklch(23.5% 0.008 70);
+    --ink:oklch(93% 0.006 85);--ink-2:oklch(72% 0.008 80);--ink-3:oklch(56% 0.008 80);
+    --rule:oklch(32% 0.008 75);--blue:oklch(74% 0.11 250);
+    --b-bg:oklch(21% 0.006 285.885);--b-raised:#202023;--b-overlay:oklch(27.4% 0.006 286.033);
+    --b-muted:oklch(37% 0.013 285.805);--b-emph:oklch(44.2% 0.017 285.786);
+    --b-fg:oklch(96.7% 0.001 286.375);--b-fg-muted:oklch(70.5% 0.015 286.067);
+    --b-border:oklch(37% 0.013 285.805);--b-accent:oklch(92% 0.004 286.32);
+    --b-neg:oklch(70.4% 0.191 22.216);--b-notice:oklch(75% 0.183 55.934);
+    --b-pos:oklch(72% 0.17 149);--b-info:oklch(70.7% 0.165 254.624);
+    --b-purple:oklch(74% 0.2 304);--b-g400:oklch(70.5% 0.015 286.067);
+  }
+  .mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace}
+  .sheet{padding:26px 28px;display:flex;flex-direction:column;gap:16px;height:100%}
+  .hd{display:flex;align-items:flex-end;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:9px}
+  .num{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.1em;color:var(--blue);border:1px solid var(--blue);border-radius:2px;padding:1px 6px;line-height:1.5}
+  .hd h1{font-size:19px;font-weight:800;margin:0;letter-spacing:-.01em}
+  .hd .where{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);margin-left:auto;padding-bottom:2px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:24px;flex-grow:1;min-height:0}
+  .col{display:flex;flex-direction:column;gap:7px;min-height:0}
+  .clab{display:flex;align-items:baseline;gap:8px}
+  .clab b{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;font-weight:500}
+  .clab.a b{color:var(--ink-3)}
+  .clab.b b{color:var(--blue)}
+  .clab span{font-size:11.5px;color:var(--ink-2)}
+  .fr{flex-grow:1;border:1px solid var(--rule);background:var(--b-bg);position:relative;overflow:hidden;min-height:0}
+  .verd{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--rule)}
+  .v{padding:10px 14px 2px;border-right:1px solid var(--rule)}
+  .v:last-child{border-right:0;padding-right:0}
+  .v:first-child{padding-left:0}
+  .v h3{margin:0 0 4px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;font-weight:500}
+  .v.g h3{color:var(--b-pos)}.v.w h3{color:var(--b-notice)}.v.f h3{color:var(--blue)}
+  .v p{margin:0 0 4px;font-size:11.5px;line-height:1.5;color:var(--ink-2)}
+  .v p b{color:var(--ink);font-weight:700}
+<function panel at 0x10033a8d0>  </style>
+</helmet>
+<div class="root {{themeClass}}">
+<div class="sheet" style="gap:15px">
+  <div class="hd"><span class="num">탭 2/5</span><h1>스타일 — Appearance</h1><span class="where">Styles 패널 233px · 전체 필드</span></div>
+  <div class="lay">
+    <div class="stack"><div class="plab a"><b>지금</b><span>Radius 에 "12p" 를 입력한 상태</span></div><div class="pnl">
+  
+  <div class="phd"><span>Button</span><em class="ico"><i>⧉</i><i>⎘</i></em></div>
+  
+  <div class="ptabs"><div class="ptab">배치<s></s></div><div class="ptab on">스타일</div><div class="ptab">텍스트<s></s></div><div class="ptab">화면</div><div class="ptab">수정</div></div>
+  <div class="sec">
+  <div class="shd"><b>Appearance</b><em class="ico"><i>↺</i><i>⌃</i></em></div>
+  <div class="sct">
+    <div class="fg"><div class="lg">Background</div><div class="ct"><span>gray-100</span><span class="sw" style="background:oklch(96.7% 0.001 286.375)"></span></div></div>
+    <div class="fg"><div class="lg">Opacity</div><div class="ct">100<u>%</u></div></div>
+    <div class="fg"><div class="lg">Border Color</div><div class="ct"><span>gray-300</span><span class="sw" style="background:oklch(87.2% 0.01 258.338)"></span></div></div>
+    <div class="fg"><div class="lg">Border Width / Radius</div><div class="g2"><div class="ct">1<u>px</u></div><div class="ct act">12p</div></div></div>
+  </div>
+  
+  <div class="sct" style="padding-top:0">
+    <div class="fg"><div class="lg">Border Style</div><div class="ct sel">solid</div></div>
+    <div class="fg"><div class="lg">Box Shadow</div><div class="g2" style="grid-template-columns:1fr 44px"><div class="ct sel">sm</div><div class="ct" style="justify-content:center;color:var(--b-fg-muted)">inset</div></div></div>
+    <div class="fg"><div class="lg">Overflow</div><div class="ct sel">visible</div></div>
+  </div>
+</div>
+</div></div>
+    <div class="stack"><div class="plab b"><b>적용 후</b><span>같은 입력</span></div><div class="pnl">
+  <div class="bdg" style="left:-9px;top:186px">5</div>
+  <div class="phd"><span>Button</span><em class="ico"><i>⧉</i><i>⎘</i></em></div>
+  <div class="chips"><span class="chip on">Local</span><span class="chip"><i class="src s-ov"></i>card-base · 12</span><span class="chip">+</span></div>
+  <div class="ptabs"><div class="ptab">배치<s></s></div><div class="ptab on">스타일</div><div class="ptab">텍스트<s></s></div><div class="ptab">화면</div><div class="ptab">수정</div></div>
+  <div class="sec">
+  <div class="shd"><b>Appearance</b><em class="ico"><i>↺</i><i>⌃</i></em></div>
+  <div class="sct">
+    <div class="fg"><div class="lg"><i class="src s-in"></i>Background</div><div class="ct"><span>gray-100</span><span class="sw" style="background:oklch(96.7% 0.001 286.375)"></span></div></div>
+    <div class="fg"><div class="lg">Opacity</div><div class="ct">100<u>%</u></div></div>
+    <div class="fg"><div class="lg"><i class="src s-ih"></i>Border Color</div><div class="ct"><span>gray-300</span><span class="sw" style="background:oklch(87.2% 0.01 258.338)"></span></div></div>
+    <div class="fg"><div class="lg">Border Width / Radius</div><div class="g2"><div class="ct">1<u>px</u></div><div class="ct err">12p</div></div></div>
+  </div>
+  <div class="hint">저장되지 않음 — "12p" 는 길이 값이 아닙니다. <b>12px</b> 또는 <b>12%</b> 로 입력하세요. <span style="color:var(--b-info);border-bottom:1px solid currentColor">그대로 저장</span></div>
+  <div class="sct" style="padding-top:0">
+    <div class="fg"><div class="lg">Border Style</div><div class="ct sel">solid</div></div>
+    <div class="fg"><div class="lg"><i class="src s-in"></i>Box Shadow</div><div class="g2" style="grid-template-columns:1fr 44px"><div class="ct sel">sm</div><div class="ct" style="justify-content:center;color:var(--b-fg-muted)">inset</div></div></div>
+    <div class="fg"><div class="lg">Overflow</div><div class="ct sel">visible</div></div>
+  </div>
+</div>
+</div></div>
+    <div class="notes">
+      <div class="nt"><em>5</em><div>
+        <h4>잘못된 값은 필드 테두리와 그 아래 한 줄로만</h4>
+        <p>필드는 <b>negative 토큰</b> 으로 테두리와 글자색이 바뀌고, 안내는 팝오버가 아니라 <b>그 필드 바로 아래 한 줄</b> 에 붙는다. 값은 화면에 남고 문서에는 들어가지 않는다.</p>
+        <p class="why">왜 팝오버가 아닌가 — 233px 패널에서 팝오버는 자기가 설명하는 필드를 가린다. 아래 한 줄은 섹션 안에서 자리를 밀 뿐 아무것도 덮지 않는다.</p>
+        <p class="why">왜 새 색을 안 만드나 — 패널에 negative · notice · informative 세 상태색이 이미 있다. 오류는 negative 하나로 끝난다.</p>
+      </div></div>
+      <div class="nt"><em>6</em><div>
+        <h4>검증은 입력을 마쳤을 때만</h4>
+        <p>"12" → "12p" → "12px" 로 타이핑하는 중에는 <b>색이 변하지 않는다</b>. 포커스가 빠지거나 Enter 를 눌렀을 때 한 번 판정한다.</p>
+        <p class="why">왜 — 글자마다 빨개지는 필드는 사용자를 재촉한다. 기존 ScrubInput 도 같은 규칙이다. 드래그 중에는 표시만 바꾸고 손을 뗄 때 커밋한다.</p>
+      </div></div>
+      <div class="nt"><em>7</em><div>
+        <h4>"그대로 저장" 은 남긴다</h4>
+        <p>검증 데이터가 브라우저 구현보다 뒤처져 멀쩡한 최신 값이 막힐 수 있다. 그때 <b>원래 문자열로 저장</b> 할 길을 준다. 대신 그 값의 출처 막대는 경고색으로 남는다.</p>
+        <p class="why">왜 — 검증이 사용자를 이기면 안 된다. 막을 수 없는 값이 하나라도 있으면 기능 전체가 불신을 산다.</p>
+      </div></div>
+      <div class="nt"><em>8</em><div>
+        <h4>Background 는 Fill 스택이라 막대가 필드 단위로 붙는다</h4>
+        <p>배경은 색 하나가 아니라 <b>Fill 레이어 스택</b> 이다. 막대는 스택 전체에 하나만 붙이고, 레이어별 출처는 Fill 상세를 열었을 때 보여준다.</p>
+        <p class="why">왜 — 레이어마다 막대를 달면 233px 안에서 색 견본과 막대가 붙어 서로를 방해한다.</p>
+      </div></div>
+    </div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"dark":{"editor":"boolean","default":false},"$preview":{"width":1400,"height":720}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { themeClass: this.props.dark ? 'dark' : '' };
+  }
+}
+</script>
+</body>
+</html>
