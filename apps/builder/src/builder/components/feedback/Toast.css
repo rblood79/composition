@@ -24,7 +24,7 @@
        올려 둔다. 바를 자유 배치·pin 한 경우의 충돌까지는 보지 않는다. */
     bottom: calc(
       var(--spacing-lg) + var(--control-size) + var(--chrome-padding) * 2 +
-        var(--spacing-sm)
+        var(--spacing-sm) + var(--toast-action-bar-clearance, 0px)
     );
     right: var(--spacing-lg);
     z-index: 9999;

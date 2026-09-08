@@ -6,7 +6,10 @@
  * - 글로벌 store 기반 토스트 지원 (Action 버튼 포함)
  */
 
+import { useRef, type CSSProperties } from "react";
+
 import { Toast } from "./Toast";
+import { useActionBarClearance } from "./useActionBarClearance";
 import { useToastStore } from "../../stores/toast";
 import type { Toast as HookToastType } from "@/builder/hooks";
 import type { Toast as StoreToastType, ToastAction } from "../../stores/toast";
@@ -25,6 +28,7 @@ export function ToastContainer({
   onDismiss,
 }: ToastContainerProps) {
   const { t } = useI18n();
+  const containerRef = useRef<HTMLDivElement>(null);
   // 글로벌 store 토스트
   const storeToasts = useToastStore((state) => state.toasts);
   const dismissStoreToast = useToastStore((state) => state.dismissToast);
@@ -35,7 +39,11 @@ export function ToastContainer({
     ...storeToasts.map((t) => ({ ...t, source: "store" as const })),
   ];
 
-  if (allToasts.length === 0) {
+  // 훅은 조기 반환보다 위에 있어야 한다 — 토스트 유무로 호출 순서가 바뀌면 안 된다.
+  const hasToasts = allToasts.length > 0;
+  const clearance = useActionBarClearance(containerRef, hasToasts);
+
+  if (!hasToasts) {
     return null;
   }
 
@@ -52,7 +60,20 @@ export function ToastContainer({
   };
 
   return (
-    <div className="toast-container" role="region" aria-label="Notifications">
+    <div
+      ref={containerRef}
+      className="toast-container"
+      role="region"
+      aria-label="Notifications"
+      // action bar 가 토스트 자리로 들어왔을 때만 그만큼 더 올린다 (평소 0).
+      style={
+        clearance > 0
+          ? ({
+              "--toast-action-bar-clearance": `${clearance}px`,
+            } as CSSProperties)
+          : undefined
+      }
+    >
       {allToasts.map((toast) => (
         <Toast
           key={toast.id}
