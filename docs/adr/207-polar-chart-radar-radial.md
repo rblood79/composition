@@ -2,7 +2,13 @@
 
 ## Status
 
-Proposed — 2026-09-08
+Accepted — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — `docs/adr/reviews/207.md`)
+
+### 진행 로그
+
+| Phase | 상태 | 날짜 |
+| --- | --- | --- |
+| P0 인벤토리 freeze · baseline | Implemented | 2026-09-08 |
 
 ## Context
 

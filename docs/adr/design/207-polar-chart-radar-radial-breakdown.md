@@ -117,6 +117,19 @@ function assertNever(x: never): never { throw new Error(`unhandled chartType: ${
 | **P4** | 결선 — binding enum 2종 · factory 기본값 · 툴팁 · 범례 축 · 값 레이블 | 등록 경로 | G3 |
 | **P5** | 게이트 — 대칭 parity 케이스 추가 · 번들/프레임 측정 · live · 문서 | 게이트 + CHANGELOG | G4·G5 |
 
+### P0 baseline 실측 (2026-09-08, HEAD `61a38ab36`)
+
+| 항목 | 값 | 명령 |
+| --- | --- | --- |
+| 기하 단위 | 106 PASS / 7 파일 | `pnpm -F @composition/specs exec vitest run src/chart` |
+| 대칭 parity | 64 PASS | `pnpm -F @composition/shared exec vitest run src/components/__tests__/chartParity.test.tsx` |
+| 좌표 스냅샷 | 4 | `computeChartScene.test.ts.snap` |
+| 기하 모듈 | 2,639 줄 / 14 파일 | `wc -l packages/specs/src/chart/*.ts packages/specs/src/chart/marks/*.ts` |
+| 번들 gz (builder) | 1,758,730 B | `find apps/builder/dist -name '*.js' -o -name '*.css' \| xargs -I{} sh -c 'gzip -c "{}" \| wc -c' \| awk '{s+=$1} END {print s}'` |
+| 번들 gz (publish) | 502,756 B | 같음 (`apps/publish/dist`) |
+
+§2 코드 사실 표 F1~F17 은 같은 HEAD 에서 재확인 완료 (F15 는 리뷰 round 1 first nail 실측 그대로).
+
 각 Phase 종료 시 commit 가능 상태를 유지한다. P1 이 유일하게 기존 파일을 건드리는 phase 이므로 여기서만 원복 RED 매트릭스를 전량 돌린다.
 
 ## 5. 검증 체크리스트
