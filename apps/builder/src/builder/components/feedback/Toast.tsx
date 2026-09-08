@@ -9,7 +9,7 @@ import { X, CircleAlert, AlertTriangle, CircleCheck, Info } from "lucide-react";
 import { Button } from "react-aria-components";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import type { ToastType } from "@/builder/hooks";
-import type { ToastAction } from "../../stores/toast";
+import { useToastStore, type ToastAction } from "../../stores/toast";
 import "./Toast.css";
 
 const ICONS = {
@@ -30,6 +30,8 @@ interface ToastProps {
 
 export function Toast({ id, type, message, onDismiss, action }: ToastProps) {
   const Icon = ICONS[type];
+  const pauseToast = useToastStore((state) => state.pauseToast);
+  const resumeToast = useToastStore((state) => state.resumeToast);
 
   const handleAction = () => {
     action?.onClick();
@@ -37,7 +39,21 @@ export function Toast({ id, type, message, onDismiss, action }: ToastProps) {
   };
 
   return (
-    <div className="toast" data-type={type} role="alert" aria-live="polite">
+    <div
+      className="toast"
+      data-type={type}
+      role="alert"
+      aria-live="polite"
+      // 읽는 중·조작하려는 중에는 자동 해제를 멈춘다 (되돌리기 도달성).
+      onPointerEnter={() => pauseToast(id)}
+      onPointerLeave={() => resumeToast(id)}
+      onFocusCapture={() => pauseToast(id)}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          resumeToast(id);
+        }
+      }}
+    >
       <Icon size={iconProps.size} className="toast-icon" aria-hidden="true" />
       <span className="toast-message">{message}</span>
       {action && (

@@ -67,12 +67,54 @@ interface ToastActions {
   dismissToast: (id: string) => void;
 
   /**
+   * 자동 해제 타이머 정지 — 포인터가 올라가 있거나 포커스가 안에 있는 동안.
+   *
+   * Why: 액션이 달린 토스트 (되돌리기) 는 사용자가 문구를 읽고 버튼까지 가야 한다.
+   * 읽는 동안 사라지면 회복 수단 자체가 없어진다.
+   */
+  pauseToast: (id: string) => void;
+
+  /** 정지했던 타이머를 남은 시간으로 다시 건다. */
+  resumeToast: (id: string) => void;
+
+  /**
    * 모든 Toast 해제
    */
   dismissAll: () => void;
 }
 
 const COOLDOWN_MS = 5 * 60 * 1000; // 5분 쿨다운
+
+/** 자동 해제 타이머 — id 별 상태. 정지 중이면 `handle` 이 없고 `remaining` 만 남는다. */
+interface ToastTimer {
+  handle?: ReturnType<typeof setTimeout>;
+  /** 이번 구간이 시작된 시각. 정지 시 남은 시간 계산에 쓴다. */
+  startedAt: number;
+  remaining: number;
+}
+
+const timers = new Map<string, ToastTimer>();
+
+function clearTimer(id: string): ToastTimer | undefined {
+  const timer = timers.get(id);
+  if (timer) {
+    clearTimeout(timer.handle);
+    timers.delete(id);
+  }
+  return timer;
+}
+
+function armTimer(id: string, remaining: number, onExpire: () => void): void {
+  if (remaining <= 0) return;
+  timers.set(id, {
+    handle: setTimeout(() => {
+      timers.delete(id);
+      onExpire();
+    }, remaining),
+    startedAt: Date.now(),
+    remaining,
+  });
+}
 
 export const useToastStore = create<ToastState & ToastActions>((set, get) => ({
   toasts: [],
@@ -121,24 +163,47 @@ export const useToastStore = create<ToastState & ToastActions>((set, get) => ({
     }));
 
     // 자동 해제 (duration > 0인 경우)
-    if (duration > 0) {
-      setTimeout(() => {
-        set((state) => ({
-          toasts: state.toasts.filter((t) => t.id !== id),
-        }));
-      }, duration);
-    }
+    armTimer(id, duration, () => {
+      set((state) => ({
+        toasts: state.toasts.filter((t) => t.id !== id),
+      }));
+    });
 
     return id;
   },
 
   dismissToast: (id) => {
+    clearTimer(id);
     set((state) => ({
       toasts: state.toasts.filter((t) => t.id !== id),
     }));
   },
 
+  pauseToast: (id) => {
+    const timer = timers.get(id);
+    if (!timer?.handle) return; // 없거나 이미 정지
+    clearTimeout(timer.handle);
+    // 남은 시간을 보존한다 — 재개 때 처음부터 다시 세면 hover 만으로 수명이 늘어난다.
+    const elapsed = Date.now() - timer.startedAt;
+    timers.set(id, {
+      startedAt: 0,
+      remaining: Math.max(0, timer.remaining - elapsed),
+    });
+  },
+
+  resumeToast: (id) => {
+    const paused = timers.get(id);
+    if (!paused || paused.handle) return; // 없거나 이미 돌고 있음
+    timers.delete(id);
+    armTimer(id, paused.remaining, () => {
+      set((state) => ({
+        toasts: state.toasts.filter((t) => t.id !== id),
+      }));
+    });
+  },
+
   dismissAll: () => {
+    for (const id of [...timers.keys()]) clearTimer(id);
     set({ toasts: [] });
   },
 }));

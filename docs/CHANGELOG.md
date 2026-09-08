@@ -19,6 +19,11 @@ All notable changes to composition will be documented in this file.
 
 ## [중첩 제약 — Pen 구조 · RAC 합성 · HTML 의미] - 2026-09-08
 
+### Changed
+
+- **토스트가 빌더 chrome 어법을 따릅니다** — 캔버스 위에 뜨는 알림이 rail · 뷰포트 컨트롤 · contextual action bar · 패널 프레임과 다른 자기만의 디자인이었습니다 (지면색 표면 · 1px 테두리 · 타입별 좌측 3px 스트라이프 · 14px 글자 · 채운 파란 액션 버튼). 이제 같은 chrome island 토큰을 씁니다. 테두리 없이 raised 표면 + 그림자 단계로 분리하고, 모서리·여백·간격은 chrome 토큰, 글자는 크롬 기준 12px, 되돌리기와 닫기는 28px 컨트롤 어법 (hover 8% wash, press accent) 입니다. 타입 구분은 아이콘 색이 합니다.
+- **되돌리기를 누를 시간이 생겼습니다** — 알림이 5초 만에 사라져 문구를 읽고 버튼까지 가기 어려웠습니다. 되돌리기가 달린 알림은 12초, 거부 안내는 8초로 늘리고, **포인터가 올라가 있거나 안에 포커스가 있는 동안 타이머가 멈춥니다** (벗어나면 남은 시간부터 재개 — hover 만으로 수명이 늘지 않습니다). 하단 액션 바를 덮지 않도록 알림 위치도 한 줄 위로 올렸습니다.
+
 ### Fixed
 
 - **RAC 가 그릴 수 없는 중첩을 빌더가 만들어 내던 결함** — Button 안에 Button, Link 안에 Checkbox, Form 안에 Form, Text 안에 무엇이든, Select 안에 Button, Tabs 밖의 TabPanel 이 끌어놓기·붙여넣기·AI 도구 어디서든 통과해 문서에 남았습니다. 캔버스는 RAC 를 그리는 도구라 세 층의 제약을 **상속**합니다. Pen 구조 (`Text`·`Icon` 은 잎 — `.pen` 으로 나갈 때 `text`/`icon_font` 라 자식을 가질 수 없음) · RAC 합성 (컬렉션 컨테이너는 자기 item 만 읽고, 합성 부품은 소유자 안에서만 뜻이 있음) · HTML 의미 (interactive 는 `<button>`/`<a>` 자손 금지, `<form>` 안 `<form>` 금지, `<p>`/`<h1-6>`/`<label>` 안 블록 금지). 규칙은 canonical 스키마가 아니라 catalog 층에 있어 canonical 은 Pen 형태를 그대로 유지합니다.

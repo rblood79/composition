@@ -1,31 +1,51 @@
 /**
  * Toast Notification Styles
+ *
+ * 빌더 chrome 어법을 따른다 — 토스트는 캔버스 위에 자유 배치되는 floating island 라
+ * rail · viewport controls · contextual action bar · panel frame 과 **같은 디자인 요소**로
+ * 읽혀야 한다 (`builder-system.css` §Chrome island).
+ *
+ * 확정 어법 3가지를 그대로 소비한다:
+ * - 표면은 `--chrome-surface`, **테두리 없음**, 분리는 그림자 단계로만 (자유 배치라 floating)
+ * - 모서리는 `--chrome-radius`, 여백·간격은 `--chrome-padding` / `--chrome-gap`
+ * - 크롬 텍스트는 12px (`--text-xs`), 아이콘 버튼은 `--control-size` 정사각 + hover 8% wash
+ *
+ * 2026-09-08 이전 값 (bg-overlay 표면 · 1px 테두리 · radius-md · 14px 텍스트 · 타입별
+ * 좌측 3px 스트라이프 · 채운 accent 액션 버튼) 은 위 다섯과 갈린 자기만의 어법이었다.
+ * 타입 구분은 아이콘 색이 이미 하므로 스트라이프는 제거한다 (chrome 에 새 테두리 금지).
  */
 
 @layer builder-system {
-  /* Toast Container - Fixed position in viewport */
+  /* Toast Container — 캔버스 우하단 floating */
   .toast-container {
     position: fixed;
-    bottom: var(--spacing-lg);
+    /* contextual action bar 는 캔버스 하단에 떠 있다 — 같은 띠에 두면 토스트가 그 위를
+       덮어 표시되는 동안 바 조작이 막힌다. 바 한 줄 높이 (컨트롤 + chrome 여백) 만큼
+       올려 둔다. 바를 자유 배치·pin 한 경우의 충돌까지는 보지 않는다. */
+    bottom: calc(
+      var(--spacing-lg) + var(--control-size) + var(--chrome-padding) * 2 +
+        var(--spacing-sm)
+    );
     right: var(--spacing-lg);
     z-index: 9999;
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
-    max-width: 400px;
+    max-width: 380px;
     pointer-events: none;
   }
 
-  /* Individual Toast */
+  /* Individual Toast — chrome island (floating 고도) */
   .toast {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm) var(--spacing);
-    background-color: var(--bg-overlay);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
+    gap: var(--chrome-gap);
+    padding: var(--chrome-padding);
+    padding-inline-start: var(--spacing-sm);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius);
+    box-shadow: var(--chrome-shadow-floating);
     pointer-events: auto;
     animation: toast-slide-in 200ms ease-out;
   }
@@ -41,106 +61,110 @@
     }
   }
 
-  /* Toast Types */
-  .toast[data-type="success"] {
-    border-left: 3px solid var(--positive);
+  @media (prefers-reduced-motion: reduce) {
+    .toast {
+      animation: none;
+    }
+  }
+
+  /* Toast Icon — 타입 구분은 아이콘 색 하나로 한다 */
+  .toast-icon {
+    flex-shrink: 0;
+    color: var(--fg-muted);
   }
 
   .toast[data-type="success"] .toast-icon {
     color: var(--positive);
   }
 
-  .toast[data-type="warning"] {
-    border-left: 3px solid var(--notice);
-  }
-
   .toast[data-type="warning"] .toast-icon {
     color: var(--notice);
-  }
-
-  .toast[data-type="error"] {
-    border-left: 3px solid var(--negative);
   }
 
   .toast[data-type="error"] .toast-icon {
     color: var(--negative);
   }
 
-  .toast[data-type="info"] {
-    border-left: 3px solid var(--informative);
-  }
-
   .toast[data-type="info"] .toast-icon {
     color: var(--informative);
   }
 
-  /* Toast Icon */
-  .toast-icon {
-    flex-shrink: 0;
-  }
-
-  /* Toast Message */
+  /* Toast Message — 크롬 텍스트 기준 12px */
   .toast-message {
     flex: 1;
-    font-size: var(--text-sm);
+    min-width: 0;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
     color: var(--fg);
-    line-height: 1.4;
   }
 
-  /* Toast Action Button (Undo 등) */
+  /* Toast Action Button (Undo 등) — 크롬 island 안의 quiet 버튼.
+     rail·action bar 와 같은 상호작용 어법 (hover 8% wash, press accent 채움). */
   .toast-action {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: var(--spacing-xs) var(--spacing-sm);
-    border: none;
-    background: var(--accent);
-    border-radius: var(--radius-sm);
+    height: var(--control-size);
+    padding: 0 var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--fg);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
     cursor: pointer;
-    color: var(--fg-on-accent);
-    font-size: var(--text-sm);
-    font-weight: 500;
-    transition:
-      background-color 150ms ease,
-      opacity 150ms ease;
     flex-shrink: 0;
     white-space: nowrap;
+    transition:
+      background 150ms ease,
+      color 150ms ease;
   }
 
-  .toast-action:hover {
-    opacity: 0.9;
+  .toast-action[data-hovered] {
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
   }
 
-  .toast-action:focus-visible {
+  .toast-action[data-pressed] {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--fg-on-accent);
+  }
+
+  .toast-action[data-focus-visible] {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
 
-  /* Toast Dismiss Button */
+  /* Toast Dismiss Button — rail 아이콘 버튼 어법 (28px 정사각, muted 기본) */
   .toast-dismiss {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: var(--control-size);
+    height: var(--control-size);
     padding: 0;
     border: none;
     background: transparent;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
+    border-radius: var(--radius-md);
     color: var(--fg-muted);
-    transition:
-      background-color 150ms ease,
-      color 150ms ease;
+    cursor: pointer;
     flex-shrink: 0;
+    transition:
+      background 150ms ease,
+      color 150ms ease;
   }
 
-  .toast-dismiss:hover {
-    background-color: var(--accent-subtle);
+  .toast-dismiss[data-hovered] {
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
     color: var(--fg);
   }
 
-  .toast-dismiss:focus-visible {
+  .toast-dismiss[data-pressed] {
+    background: var(--accent);
+    color: var(--fg-on-accent);
+  }
+
+  .toast-dismiss[data-focus-visible] {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
