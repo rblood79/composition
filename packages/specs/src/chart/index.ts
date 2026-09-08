@@ -55,6 +55,8 @@ export type { AngleScale, PolarPoint, RadiusScale } from "./polar";
 export { buildPolarAxes, polarLabelAnchor, polarLabelStride } from "./polarAxes";
 export type { PolarAxesInput, PolarCenter } from "./polarAxes";
 export { arcPath, arcSlicePath, buildPieMarks } from "./marks/pie";
+export { buildRadarMarks } from "./marks/radar";
+export type { RadarMarkInput, RadarMarks } from "./marks/radar";
 export type { PieHit, PieMarks } from "./marks/pie";
 export { buildAxes, labelStride } from "./axes";
 export {

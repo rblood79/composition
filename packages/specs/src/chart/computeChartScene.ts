@@ -16,6 +16,7 @@ import { buildBarMarks } from "./marks/bar";
 import { buildDotMarks, dotRadius } from "./marks/dots";
 import { buildLineMarks, seriesAxialPoints } from "./marks/line";
 import { buildPieMarks } from "./marks/pie";
+import { buildRadarMarks } from "./marks/radar";
 import {
   approxTextWidth,
   bandScale,
@@ -126,7 +127,8 @@ function computePolarScene(
   grid: SeriesGrid,
   input: PolarSceneInput,
 ): ChartScene {
-  const { size, outer, plot, legendBox, legendEntries, fontSize } = input;
+  const { size, outer, plot, legendBox, legendEntries, metrics, fontSize } =
+    input;
 
   // 각도 레이블이 바깥으로 나가므로 그만큼 반지름을 줄인다 (radar 만).
   const labelRoom =
@@ -143,8 +145,13 @@ function computePolarScene(
     inner: r2((radius * Math.min(90, Math.max(0, props.innerRadius))) / 100),
   };
 
+  // R8 — radar 는 `stackType` 을 **무시한다**. 다각형은 시리즈끼리 겹쳐 보이는 것이
+  //   표현이라 누적할 축이 없다 (Recharts `Radar` 도 stackId 를 받지 않는다).
+  //   radial 은 호가 쌓이므로 누적이 뜻을 갖는다 (shadcn `chart-radial-stacked`).
   const stackMode: StackMode =
-    grid.series.length > 1 && props.stackType !== "dodged"
+    props.chartType === "radial" &&
+    grid.series.length > 1 &&
+    props.stackType !== "dodged"
       ? props.stackType
       : "none";
   const extent = valueExtent(grid, stackMode);
@@ -154,6 +161,31 @@ function computePolarScene(
 
   const marks: Mark[] = [];
   const labels: Mark[] = [];
+
+  if (props.chartType === "radar") {
+    const radar = buildRadarMarks({
+      grid,
+      angle,
+      value,
+      center,
+      strokeWidth: metrics.strokeWidth,
+      showValueLabels: props.showValueLabels,
+      fontSize,
+    });
+    marks.push(...radar.marks);
+    labels.push(...radar.labels);
+    if (props.showDots) {
+      radar.vertices.forEach((points, si) => {
+        const dot = buildDotMarks(
+          points,
+          grid.series[si].seriesIndex,
+          dotRadius(metrics.strokeWidth),
+        );
+        if (dot) marks.push(dot);
+      });
+    }
+  }
+
   const axes =
     props.chartType === "radar"
       ? buildPolarAxes({
@@ -169,9 +201,6 @@ function computePolarScene(
       : // radial 은 트랙 호가 격자 노릇을 한다 — 축을 따로 그리면 이중선이 된다
         //   (shadcn `chart-radial-*` 도 PolarGrid 를 쓰지 않는다).
         [];
-
-  void value;
-  void stackMode;
 
   return {
     size,
