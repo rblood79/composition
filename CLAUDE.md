@@ -105,7 +105,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 | 측정·검증 무결성 | [.claude/rules/measurement-validity.md](.claude/rules/measurement-validity.md) | Gate 수치 leakage 8-패턴 + 착수 전 5-질문 + 실패 record (`docs/adr/**`·performance 자동 로드)                 |
 | 판독 루프 종결   | [.claude/rules/review-loop-closure.md](.claude/rules/review-loop-closure.md)   | 라운드 상한 · 커버리지 지적 판정 (가설 1 + 반증 1) · 변경 종류별 절차 · 판독 프롬프트 필수 문구 (상시 로드)   |
 | CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                |
-| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 연도별 아카이브 (`CHANGELOG-YYYY-archived.md`) 로 이관                                          |
+| CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 500KB 초과 시 구간 아카이브 (`CHANGELOG-2026-Q3-archived.md` 등) 로 이관                        |
 
 ## 마이그레이션/리네임/삭제 작업 원칙 (CRITICAL)
 

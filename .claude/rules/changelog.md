@@ -90,10 +90,13 @@ git log --since="<위 날짜>" --oneline | wc -l
   - 위치: `packages/specs/src/components/{ProgressBarValue,MeterValue,SliderOutput}.spec.ts`
 ```
 
-## 4. 아카이빙 — 연도 컷오프
+## 4. 아카이빙 — 크기 우선, 연도는 보조
 
-- `docs/CHANGELOG.md` 가 **500KB 초과** 또는 **연도 바뀜 직후 첫 주** 에 전년도 엔트리를 `docs/CHANGELOG-YYYY-archived.md` 로 이동
-- `CHANGELOG.md` 최상단에 `> 이전 기록: [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md)` 링크 유지
+- `docs/CHANGELOG.md` 가 **500KB 초과** 또는 **연도 바뀜 직후 첫 주** 에 오래된 엔트리를 아카이브로 이동
+- 파일명: 연도 경계면 `docs/CHANGELOG-YYYY-archived.md`, 연중 크기 초과로 자르면 구간을 이름에 담는다 (`CHANGELOG-2026-H1-archived.md` · `CHANGELOG-2026-Q3-archived.md`). 한 해가 500KB 를 훌쩍 넘길 수 있어 연도 단위만으로는 기준을 지킬 수 없다 — 2026-09-09 에 본문이 1,979KB (652 엔트리) 로 기준의 4배였다
+- 자를 위치는 **본문이 500KB 아래로 내려가는 가장 이른 경계** 로 잡고 월 중간을 쪼개지 않는다
+- 옮길 때 엔트리 본문은 한 글자도 고치지 않는다 — 이동 전후 엔트리 합의 해시가 같은지 확인한다
+- `CHANGELOG.md` 최상단에 아카이브 전부의 링크를 목록으로 유지 (구간·엔트리 수 병기)
 - 아카이브 파일은 **append-only** — 재편집 금지
 
 ## 5. Catch-up 진행 시 권장 절차
@@ -133,6 +136,8 @@ git log --since="<위 날짜>" --oneline | wc -l
 ## 관련 파일
 
 - `docs/CHANGELOG.md` — 현재 엔트리
+- `docs/CHANGELOG-2026-Q3-archived.md` — 2026-07-01 ~ 08-31 아카이브 (append-only)
+- `docs/CHANGELOG-2026-H1-archived.md` — 2026-02-22 ~ 06-30 아카이브 (append-only)
 - `docs/CHANGELOG-2025-archived.md` — 2025 년 아카이브 (append-only)
 - `AGENTS.md` §Commit & Pull Request Guidelines — Codex 엔트리포인트 요약
 - `CLAUDE.md` §자동 품질 게이트 — Claude 엔트리포인트 요약
