@@ -66,6 +66,54 @@ describe("nestingRules — 층 2 RAC 합성", () => {
     expect(canNest("frame", "Radio", ["frame", "body"])).toBe(false);
   });
 
+  it("self-compose 컨테이너는 인식하는 sub-part 만 — 자기 자신도 래퍼도 불가 (2026-09-08 재현)", () => {
+    expect(
+      resolveNestingViolation({
+        parentType: "ButtonGroup",
+        childType: "ButtonGroup",
+      }),
+    ).toMatchObject({ layer: "rac-composition", allowedChildren: ["Button"] });
+    expect(
+      resolveNestingViolation({
+        parentType: "TextField",
+        childType: "TextField",
+      }),
+    ).toMatchObject({ layer: "rac-composition", parentType: "TextField" });
+    expect(canNest("TextField", "frame")).toBe(false);
+    expect(canNest("TextField", "Label", ["TextField", "body"])).toBe(true);
+    expect(canNest("TextField", "FieldError", ["TextField", "body"])).toBe(
+      true,
+    );
+    expect(canNest("ButtonGroup", "Button")).toBe(true);
+    expect(canNest("AvatarGroup", "Avatar")).toBe(true);
+    expect(canNest("AvatarGroup", "Button")).toBe(false);
+    expect(canNest("Select", "Select")).toBe(false);
+    expect(canNest("Checkbox", "Checkbox")).toBe(false);
+    expect(canNest("Checkbox", "Label")).toBe(true);
+    expect(canNest("TableView", "Button")).toBe(false);
+    expect(canNest("Row", "Cell", ["Row", "TableBody", "TableView"])).toBe(
+      true,
+    );
+  });
+
+  it("DOM void/self-contained 타입은 자식을 가질 수 없다", () => {
+    expect(
+      resolveNestingViolation({ parentType: "Image", childType: "Text" }),
+    ).toMatchObject({ layer: "html-content", leafParent: true });
+    expect(canNest("Input", "Text")).toBe(false);
+    expect(canNest("Chart", "frame")).toBe(false);
+    expect(canNest("Avatar", "Icon")).toBe(false);
+    // 열린 컨테이너는 그대로 — Card · Dialog · Disclosure 는 자유 자식
+    expect(canNest("Card", "Button")).toBe(true);
+    expect(canNest("Dialog", "TextField")).toBe(true);
+    expect(
+      canNest("DisclosureContent", "frame", [
+        "DisclosureContent",
+        "Disclosure",
+      ]),
+    ).toBe(true);
+  });
+
   it("위반 결과는 문구용 구조 필드를 싣는다", () => {
     expect(
       resolveNestingViolation({ parentType: "ListBox", childType: "Button" })

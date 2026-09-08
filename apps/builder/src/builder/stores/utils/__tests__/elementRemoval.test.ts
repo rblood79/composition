@@ -29,9 +29,11 @@ describe("removeElements skipHistory option (ADR-073 P5)", () => {
       order_num: 0,
       props: { items: [] },
     };
+    // 2026-09-08: legacy "SelectItem" (ADR-073 에서 props.items 로 흡수, 저장 데이터에 없음) 은
+    // Select 의 self-compose 중첩 규칙에 걸려 canonical 에 안 실린다 → 실제 sub-part 로.
     const child = {
       id: "si-1",
-      type: "SelectItem",
+      type: "SelectTrigger",
       parent_id: "sel-1",
       page_id: "p1",
       order_num: 0,

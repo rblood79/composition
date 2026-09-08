@@ -34,8 +34,10 @@ export interface NestingViolation {
   reason: string;
   /** 합성 부품이 필요로 하는 소유자 (층 2-b). */
   owners?: readonly string[];
-  /** 컬렉션 컨테이너가 읽는 자식 (층 2-a). */
+  /** 컬렉션 컨테이너가 읽는 자식 (층 2-a) 또는 self-compose 컨테이너가 인식하는 sub-part. */
   allowedChildren?: readonly string[];
+  /** 부모가 자식을 전혀 가질 수 없는 leaf 다 (Pen leaf 또는 DOM void/self-contained). */
+  leafParent?: true;
 }
 
 export interface NestingCheckInput {
@@ -212,6 +214,105 @@ export const RAC_SUBPART_OWNER_TYPES: Readonly<
   ],
 };
 
+/**
+ * DOM 렌더러가 canonical 자식을 **인식하는 sub-part 만** 그리는 self-compose 컨테이너
+ * (`renderFacetDeclaration.ts` 의 delegating-rac / delegating-internal — field 가족은
+ * parent props 로 self-compose 하고 자식 Label/Input/FieldError 를 읽지 않는다, ADR-923).
+ * 여기 없는 자식은 Preview 에서 통째로 사라지고 Skia 만 그린다 (비대칭) — 그래서 이
+ * 표는 strict 다 (레이아웃 래퍼도 불가). RSP 계약이 같은 말을 한다 (ButtonGroup
+ * `children: ReactElement<ButtonProps>[]` · AvatarGroup ⊃ Avatar · TextField ⊃ Label/Input).
+ *
+ * 항목은 `factoryNestingOracle.test.ts` 가 팩토리 트리로 검증한다 (2026-09-08 사용자
+ * 재현: ButtonGroup ⊃ ButtonGroup · TextField ⊃ TextField 가 통과했다).
+ */
+export const SELF_COMPOSED_CONTAINER_CHILD_TYPES: Readonly<
+  Record<string, readonly string[]>
+> = {
+  // field 가족 — Label/Input/Description/FieldError 만 (DOM 은 이마저 props 로 self-compose)
+  TextField: ["Label", "Input", "Description", "FieldError"],
+  TextArea: ["Label", "Input", "Description", "FieldError"],
+  NumberField: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
+  SearchField: ["Label", "SelectTrigger", "Input", "Description", "FieldError"],
+  DateField: ["Label", "DateInput", "Description", "FieldError"],
+  TimeField: ["Label", "DateInput", "Description", "FieldError"],
+  ColorField: ["Label", "Input", "ColorSwatch", "Description", "FieldError"],
+  Select: ["Label", "SelectTrigger", "Description", "FieldError"],
+  ComboBox: ["Label", "SelectTrigger", "Description", "FieldError"],
+  DatePicker: [
+    "Label",
+    "SelectTrigger",
+    "Calendar",
+    "Description",
+    "FieldError",
+  ],
+  DateRangePicker: [
+    "Label",
+    "SelectTrigger",
+    "Calendar",
+    "RangeCalendar",
+    "Description",
+    "FieldError",
+  ],
+  SelectTrigger: ["DateInput", "SelectIcon", "SelectValue", "Input"],
+  // 단일 control 의 label 슬롯 — RSP `children` 은 label 텍스트다
+  Checkbox: ["Label", "Text", "Icon"],
+  Radio: ["Label", "Text", "Icon"],
+  Switch: ["Label", "Text", "Icon"],
+  // 자식 묶음 컨테이너 — RSP 계약 + renderX(childrenByParent) self-compose
+  ButtonGroup: ["Button"],
+  AvatarGroup: ["Avatar"],
+  CardView: ["Card"],
+  Pagination: ["Button"],
+  Toast: ["Heading", "Description"],
+  ColorSwatchPicker: ["ColorSwatch"],
+  ColorPicker: [
+    "ColorArea",
+    "ColorSlider",
+    "ColorWheel",
+    "ColorField",
+    "ColorSwatchPicker",
+    "ColorSwatch",
+  ],
+  TableView: ["TableHeader", "TableBody"],
+  TableHeader: ["Column"],
+  TableBody: ["Row"],
+  Row: ["Cell"],
+  Tree: ["TreeItem"],
+  TreeItem: ["TreeItem"],
+};
+
+/**
+ * DOM 이 자식을 그릴 자리가 없는 타입 — `<img>`·`<input>`·`<hr>` 같은 void 요소, SVG/데이터
+ * 로만 그리는 컴포넌트, 값을 props 로만 받는 합성 부품. canonical 자식을 넣어도 Preview 에
+ * 도달하지 않는다.
+ */
+export const DOM_LEAF_TYPES: ReadonlySet<string> = new Set([
+  "Image",
+  "Avatar",
+  "Chart",
+  "ProgressCircle",
+  "DataTable",
+  "Separator",
+  "Skeleton",
+  "Input",
+  "DateInput",
+  "SelectIcon",
+  "SelectValue",
+  "ColorSwatch",
+  "ColorArea",
+  "ColorSlider",
+  "ColorWheel",
+  "TailSwatch",
+  "SliderThumb",
+  "SliderOutput",
+  "MeterValue",
+  "MeterTrack",
+  "ProgressBarValue",
+  "ProgressBarTrack",
+  "CalendarGrid",
+  "CalendarHeader",
+]);
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 층 3 — HTML 의미
 // ─────────────────────────────────────────────────────────────────────────────
@@ -355,7 +456,33 @@ export function resolveNestingViolation(
       parentType,
       childType,
       reason: `${parentType} is a leaf in the Pen schema (exports as text/icon_font, no children)`,
+      leafParent: true,
     };
+  }
+
+  // 층 3 (선행) — DOM void/self-contained: 자식을 그릴 자리가 없다.
+  if (parentType !== null && DOM_LEAF_TYPES.has(parentType)) {
+    return {
+      layer: "html-content",
+      parentType,
+      childType,
+      reason: `${parentType} renders a void or self-contained element and cannot hold children`,
+      leafParent: true,
+    };
+  }
+
+  // 층 2 — RAC 합성 (0): self-compose 컨테이너는 인식하는 sub-part 만 그린다 (strict).
+  if (parentType !== null && !isOpaque(parentType)) {
+    const allowed = SELF_COMPOSED_CONTAINER_CHILD_TYPES[parentType];
+    if (allowed && !allowed.includes(childType)) {
+      return {
+        layer: "rac-composition",
+        parentType,
+        childType,
+        reason: `${parentType} self-composes from ${allowed.join(" · ")} only (RSP/RAC contract — other children never reach the DOM)`,
+        allowedChildren: allowed,
+      };
+    }
   }
 
   // 층 2 — RAC 합성 (a): 컬렉션 컨테이너는 자기 item 만 읽는다. strict 컬렉션이 아니면

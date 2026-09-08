@@ -266,6 +266,51 @@ describe("canonical nesting guard — merge (insert)", () => {
     });
   });
 
+  it("ButtonGroup 아래 ButtonGroup · TextField 아래 TextField 를 삽입하지 못한다 (2026-09-08 재현)", () => {
+    setup(
+      makeDocument([
+        {
+          id: "body",
+          type: "body",
+          children: [
+            {
+              id: "bg",
+              type: "ButtonGroup",
+              children: [{ id: "b1", type: "Button" }],
+            },
+            {
+              id: "tf",
+              type: "TextField",
+              children: [{ id: "lb", type: "Label" }],
+            },
+          ],
+        },
+      ]),
+    );
+    const bg = mergeElementsCanonicalPrimary([
+      makeElement("bg2", "ButtonGroup", "bg"),
+    ]);
+    expect(bg.changed).toBe(false);
+    expect(bg.nestingViolation).toMatchObject({
+      parentType: "ButtonGroup",
+      childType: "ButtonGroup",
+    });
+    const tf = mergeElementsCanonicalPrimary([
+      makeElement("tf2", "TextField", "tf"),
+    ]);
+    expect(tf.changed).toBe(false);
+    expect(tf.nestingViolation).toMatchObject({
+      parentType: "TextField",
+      childType: "TextField",
+    });
+    // 인식하는 sub-part 는 통과
+    const ok = mergeElementsCanonicalPrimary([
+      makeElement("fe", "FieldError", "tf"),
+    ]);
+    expect(ok.changed).toBe(true);
+    expect(ok.nestingViolation).toBeUndefined();
+  });
+
   it("새 요소를 Text 아래 삽입하지 못한다", () => {
     const result = mergeElementsCanonicalPrimary([
       makeElement("icon-new", "Icon", "text-lone"),

@@ -26,7 +26,8 @@ All notable changes to composition will be documented in this file.
 - **AI 도구** `create_element` · `batch_design` 은 잘못된 `parentId` 를 받으면 이유와 함께 실패를 돌려줍니다 (에이전트는 토스트를 못 봅니다).
 - **canonical 변이 경계가 fail-closed 백스톱** — preflight 를 거치지 않은 경로가 위반 이동·삽입을 요청하면 `changed: false` + `nestingViolation` 으로 거부합니다. 기존 노드의 제자리 prop 갱신은 검사하지 않아 옛 문서의 위반이 무관한 편집을 막지 않습니다.
 - **pencil export 경계에 가드** — `Text`·`Icon` 에 자식이 있는 옛 문서는 스키마 위반 `.pen` 이 되므로 export 함수가 어느 노드인지 말하며 거부합니다 (아직 UI 에 연결된 export 경로는 없어 지금은 코드 경계의 보호입니다).
-- 규칙 표 (`RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES`) 는 손으로 썼지만 팩토리가 실제로 만드는 합성 트리 52개 전부가 통과하는지 오라클 테스트가 고정합니다 — 표가 틀리면 표를 고칩니다.
+- **자기 자신을 다시 담던 컨테이너 (같은 날 후속)** — ButtonGroup 안에 ButtonGroup, TextField 안에 TextField 가 팔레트 추가·끌어놓기·붙여넣기로 들어갔습니다. RAC 컬렉션 표만 상속해 composition 자체 추상 (ButtonGroup · AvatarGroup · CardView · Pagination · Toast) 과 DOM 이 parent props 로만 self-compose 하는 field 가족 (TextField · TextArea · NumberField · SearchField · DateField · TimeField · ColorField · Select · ComboBox · DatePicker · DateRangePicker) 을 빠뜨린 것이 원인입니다. 이들은 인식하는 sub-part 밖의 자식을 Preview 에 그리지 않으므로 (Skia 만 그림 → 비대칭) 새 표 `SELF_COMPOSED_CONTAINER_CHILD_TYPES` 가 strict 로 막고, `<img>`·`<input>` 같은 void/self-contained 타입 (`DOM_LEAF_TYPES` — Image · Avatar · Chart · Input · DateInput · ColorSwatch 등 24종) 은 자식을 아예 받지 않습니다. Checkbox · Radio · Switch 는 label 슬롯 (Label · Text · Icon) 만, TableView → TableHeader/TableBody → Column/Row → Cell, Tree → TreeItem 도 같은 표에 있습니다. Card · Dialog · Popover · Disclosure 같은 열린 컨테이너는 그대로입니다.
+- 규칙 표 (`RAC_COLLECTION_CHILD_TYPES` · `RAC_SUBPART_OWNER_TYPES` · `SELF_COMPOSED_CONTAINER_CHILD_TYPES`) 는 손으로 썼지만 팩토리가 실제로 만드는 합성 트리 52개 전부가 통과하는지 오라클 테스트가 고정합니다 — 표가 틀리면 표를 고칩니다.
 
 ## [차트 — radar · radial (극좌표 2종)] - 2026-09-08
 

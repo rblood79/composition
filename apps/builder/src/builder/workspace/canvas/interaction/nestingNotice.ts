@@ -12,7 +12,7 @@ import type { NestingRelocation } from "./nestingRelocation";
 type NoticeKind = "leaf" | "owner" | "notAllowed";
 
 function classify(v: NestingViolation): NoticeKind {
-  if (v.layer === "pen-structure") return "leaf";
+  if (v.leafParent || v.layer === "pen-structure") return "leaf";
   if (v.owners && v.owners.length > 0) return "owner";
   return "notAllowed";
 }
