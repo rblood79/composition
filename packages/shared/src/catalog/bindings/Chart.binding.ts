@@ -202,6 +202,16 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         default: 360,
       },
+      labelKey: {
+        kind: "enum",
+        label: "Label Content",
+        section: "appearance",
+        default: "value",
+        options: [
+          { value: "value", label: "Value" },
+          { value: "category", label: "Category Name" },
+        ],
+      },
       showTotal: {
         kind: "boolean",
         label: "Show Total (donut · radial)",
@@ -277,6 +287,7 @@ export const chartBinding: PrimitiveBinding = {
       "fillArea",
       "startAngle",
       "endAngle",
+      "labelKey",
       "showTotal",
       "showTooltip",
       "showAxis",

@@ -37,6 +37,7 @@ import {
 } from "./tooltip";
 import type { StackMode } from "./series";
 import type {
+  ChartLabelFormatter,
   ChartMetrics,
   ChartProps,
   ChartRow,
@@ -79,6 +80,7 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   fillArea: true,
   startAngle: 0,
   endAngle: 360,
+  labelKey: "value",
   showTotal: false,
   showTooltip: false,
   showAxis: true,
@@ -127,6 +129,7 @@ interface PolarSceneInput {
   legendEntries: readonly LegendEntry[];
   metrics: ChartMetrics;
   fontSize: number;
+  labelText: ChartLabelFormatter;
 }
 
 /**
@@ -140,8 +143,16 @@ function computePolarScene(
   grid: SeriesGrid,
   input: PolarSceneInput,
 ): ChartScene {
-  const { size, outer, plot, legendBox, legendEntries, metrics, fontSize } =
-    input;
+  const {
+    size,
+    outer,
+    plot,
+    legendBox,
+    legendEntries,
+    metrics,
+    fontSize,
+    labelText,
+  } = input;
 
   // 각도 레이블이 바깥으로 나가므로 그만큼 반지름을 줄인다 (radar 만).
   const labelRoom =
@@ -184,6 +195,7 @@ function computePolarScene(
       strokeWidth: metrics.strokeWidth,
       fillArea: props.fillArea,
       showValueLabels: props.showValueLabels,
+      labelText,
       fontSize,
     });
     marks.push(...radar.marks);
@@ -211,6 +223,7 @@ function computePolarScene(
       startAngle: props.startAngle,
       endAngle: props.endAngle,
       showValueLabels: props.showValueLabels,
+      labelText,
       showTotal: props.showTotal,
       totalCaption: props.metric,
       fontSize,
@@ -320,6 +333,13 @@ export function computeChartScene(
         colorIndex: series.seriesIndex,
       }));
 
+  // 레이블 내용 규칙은 **여기 한 곳**이다 — 마크 빌더 6개는 자리만 정하고 무엇을
+  //   적을지는 모른다 (빌더마다 분기를 두면 타입별로 규칙이 갈린다).
+  const labelText: ChartLabelFormatter =
+    props.labelKey === "category"
+      ? (categoryIndex) => grid.categories[categoryIndex] ?? ""
+      : (_categoryIndex, raw) => formatTick(raw);
+
   // ── 범례 자리 확보 ───────────────────────────────────────────────────────
   const wantsLegend = props.showLegend && legendEntries.length > 0;
   let legendBox: Rect | null = null;
@@ -369,6 +389,7 @@ export function computeChartScene(
       plot,
       seriesCount: metrics.seriesCount,
       showValueLabels: props.showValueLabels,
+      labelText,
       innerRadius: props.innerRadius,
       showTotal: props.showTotal,
       totalCaption: props.metric,
@@ -417,6 +438,7 @@ export function computeChartScene(
       legendEntries,
       metrics,
       fontSize,
+      labelText,
     });
   }
 
@@ -503,6 +525,7 @@ export function computeChartScene(
       colorBy: props.colorBy,
       seriesCount: metrics.seriesCount,
       showValueLabels: props.showValueLabels,
+      labelText,
       fontSize,
     });
     marks = [...bar.marks];
@@ -518,6 +541,7 @@ export function computeChartScene(
       stackMode,
       curve: props.curve,
       showValueLabels: props.showValueLabels,
+      labelText,
     });
     marks = [...area.marks];
     labels = area.labels;
@@ -532,6 +556,7 @@ export function computeChartScene(
       strokeWidth: metrics.strokeWidth,
       curve: props.curve,
       showValueLabels: props.showValueLabels,
+      labelText,
       fontSize,
     });
     marks = [...line.marks];

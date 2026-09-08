@@ -8,12 +8,13 @@
  * 값 레이블은 **원래 값**을 쓴다 (expand 로 정규화한 길이가 아니라). 비중으로
  * 그린 막대에 비중을 또 적으면 사용자가 준 숫자가 화면에서 사라진다.
  */
-import { approxTextWidth, formatTick, r2 } from "../scales";
+import { approxTextWidth, r2 } from "../scales";
 import type { LinearScale, BandScale } from "../scales";
 import { stackBands } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
 import type {
   ChartColorBy,
+  ChartLabelFormatter,
   ChartOrientation,
   Rect,
   RectMark,
@@ -31,6 +32,8 @@ export interface BarMarkInput {
   /** 팔레트 길이 — colorBy="category" 의 modulo 기준 */
   seriesCount: number;
   showValueLabels: boolean;
+  /** 레이블 텍스트 생성기 — 값/범주명 판정은 호출부(`computeChartScene`)가 한다 */
+  labelText: ChartLabelFormatter;
   fontSize: number;
 }
 
@@ -76,12 +79,14 @@ function rect(
  */
 function valueLabel(
   mark: RectMark,
+  text: string,
+  /** 값 **부호** — 레이블을 막대 어느 쪽에 둘지 정한다 (내용은 `text` 가 갖는다) */
   raw: number,
   orientation: ChartOrientation,
   inside: boolean,
   fontSize: number,
 ): TextMark | null {
-  const text = formatTick(raw);
+  if (text === "") return null;
   if (text === "") return null;
   const centerX = r2(mark.x + mark.w / 2);
   const centerY = r2(mark.y + mark.h / 2);
@@ -156,6 +161,7 @@ export function buildBarMarks(input: BarMarkInput): BarMarks {
     colorBy,
     seriesCount,
     showValueLabels,
+    labelText,
     fontSize,
   } = input;
   const marks: RectMark[] = [];
@@ -163,10 +169,22 @@ export function buildBarMarks(input: BarMarkInput): BarMarks {
   const palette = Math.max(1, seriesCount);
   const zero = value(0);
 
-  const push = (mark: RectMark, raw: number, inside: boolean): void => {
+  const push = (
+    mark: RectMark,
+    raw: number,
+    inside: boolean,
+    categoryIndex: number,
+  ): void => {
     marks.push(mark);
     if (!showValueLabels) return;
-    const label = valueLabel(mark, raw, orientation, inside, fontSize);
+    const label = valueLabel(
+      mark,
+      labelText(categoryIndex, raw),
+      raw,
+      orientation,
+      inside,
+      fontSize,
+    );
     if (label) labels.push(label);
   };
 
@@ -188,6 +206,7 @@ export function buildBarMarks(input: BarMarkInput): BarMarks {
           ),
           series.values.get(ci) ?? 0,
           true,
+          ci,
         );
       }
       continue;
@@ -212,6 +231,7 @@ export function buildBarMarks(input: BarMarkInput): BarMarks {
         ),
         v,
         false,
+        ci,
       );
     }
   }

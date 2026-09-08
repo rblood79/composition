@@ -12,7 +12,12 @@
 import { polarPoint } from "../polar";
 import { formatTick, r2 } from "../scales";
 import type { SeriesGrid, StackMode } from "../series";
-import type { PathMark, Rect, TextMark } from "../types";
+import type {
+  ChartLabelFormatter,
+  PathMark,
+  Rect,
+  TextMark,
+} from "../types";
 
 export interface PieMarkInput {
   grid: SeriesGrid;
@@ -20,6 +25,8 @@ export interface PieMarkInput {
   /** 팔레트 길이 — 파이는 **범주**가 색을 가르므로 범주 인덱스를 여기로 modulo 한다. */
   seriesCount: number;
   showValueLabels: boolean;
+  /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
+  labelText: ChartLabelFormatter;
   /** 바깥 반지름 대비 안쪽 반지름 비율 (0~90, %) */
   innerRadius: number;
   /** 구멍 안 합계 표시 (도넛일 때만) */
@@ -204,6 +211,7 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
     plot,
     seriesCount,
     showValueLabels,
+    labelText,
     innerRadius,
     showTotal,
     totalCaption,
@@ -280,7 +288,7 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
       });
 
       if (showValueLabels) {
-        const text = formatTick(slice.raw);
+        const text = labelText(slice.categoryIndex, slice.raw);
         if (text !== "") {
           // 링 두께의 중앙 — 속이 찬 파이는 반지름의 62% (중심은 조각끼리 겹치고
           //   테두리는 잘린다).
