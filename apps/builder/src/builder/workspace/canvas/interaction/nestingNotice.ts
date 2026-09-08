@@ -5,7 +5,7 @@
  */
 import type { NestingViolation } from "@composition/shared";
 
-import { historyManager } from "../../../stores/history";
+import { useStore } from "../../../stores";
 import { useToastStore } from "../../../stores/toast";
 import type { NestingRelocation } from "./nestingRelocation";
 
@@ -72,7 +72,11 @@ export function notifyNestingRelocation(
             label: "Undo",
             labelKey: "errors.undo",
             onClick: () => {
-              historyManager.undo();
+              // 스토어 action 이어야 한다 — `historyManager.undo()` 는 엔트리를 꺼내
+              // 포인터만 옮기고 문서·스토어에 역적용을 하지 않는다 (적용은
+              // `historyActions.createUndoAction` 이 한다). 2026-09-08 사용자 재현:
+              // "undo 를 클릭해도 추가된 요소가 다시 제거되지 않는다".
+              void useStore.getState().undo();
             },
           },
         }),
