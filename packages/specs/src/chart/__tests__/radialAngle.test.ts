@@ -35,6 +35,7 @@ function marks(patch: Partial<Parameters<typeof buildRadialMarks>[0]> = {}) {
     endAngle: 360,
     showValueLabels: false,
     showTotal: false,
+    labelText: (_ci: number, raw: number) => String(raw),
     totalCaption: "value",
     fontSize: 11,
     ...patch,

@@ -50,6 +50,7 @@ import type {
   ChartRow,
   ChartRuleChannel,
   ChartStackType,
+  ChartProps,
   ChartType,
   PolarGridType,
   Mark,
@@ -3385,6 +3386,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       endAngle:
         (props.endAngle as number | undefined) ??
         CHART_DEFAULT_PROPS.endAngle,
+      labelKey:
+        (props.labelKey as ChartProps["labelKey"] | undefined) ??
+        CHART_DEFAULT_PROPS.labelKey,
       showTotal:
         (props.showTotal as boolean | undefined) ??
         CHART_DEFAULT_PROPS.showTotal,

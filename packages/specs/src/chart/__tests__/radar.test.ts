@@ -33,6 +33,7 @@ function build(rows = ROWS, opts: Partial<Parameters<typeof buildRadarMarks>[0]>
     center: CENTER,
     strokeWidth: 2,
     fillArea: true,
+    labelText: (_ci: number, raw: number) => String(raw),
     showValueLabels: false,
     fontSize: 11,
     ...opts,

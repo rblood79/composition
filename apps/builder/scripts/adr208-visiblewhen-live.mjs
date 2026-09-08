@@ -242,6 +242,20 @@ async function main() {
       p3radar.filter((c) => /Angle/.test(c)).join(",") || "없음",
     );
 
+    // ── P4 — 레이블 내용은 레이블을 켰을 때만 (chartType 아닌 조건 축 첫 사례) ──
+    await setProps(page, chartId, {
+      chartType: "bar",
+      showValueLabels: false,
+    });
+    const p4off = await panelControls(page);
+    await setProps(page, chartId, { showValueLabels: true });
+    const p4on = await panelControls(page);
+    record(
+      "P4 Label Content 는 값 레이블을 켜야 나온다 (조건 축 = showValueLabels)",
+      !p4off.includes("Label Content") && p4on.includes("Label Content"),
+      `off=${p4off.includes("Label Content")} · on=${p4on.includes("Label Content")}`,
+    );
+
     record(
       "③ Card 결선 회귀는 단위 seam 커버 (live 팔레트 진입 경로 미확보)",
       true,

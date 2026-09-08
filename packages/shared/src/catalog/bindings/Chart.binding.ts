@@ -164,6 +164,23 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         default: false,
       },
+      /**
+       * 레이블 **내용** (ADR-208 P4) — 켜는 스위치는 `showValueLabels` 가 그대로 갖고
+       * 여기서는 무엇을 적을지만 가른다. 스위치를 하나 더 만들면 "값도 이름도 안 나오는"
+       * 조합이 생긴다. 조건 축이 `chartType` 이 아닌 첫 사례 — 레이블을 끈 상태에서는
+       * 내용 선택이 아무 일도 안 하므로 그때는 숨긴다.
+       */
+      labelKey: {
+        kind: "enum",
+        label: "Label Content",
+        section: "appearance",
+        default: "value",
+        options: [
+          { value: "value", label: "Value" },
+          { value: "category", label: "Category Name" },
+        ],
+        visibleWhen: { key: "showValueLabels", truthy: true },
+      },
       colorBy: {
         kind: "enum",
         label: "Color By",
@@ -315,6 +332,7 @@ export const chartBinding: PrimitiveBinding = {
       "curve",
       "showDots",
       "showValueLabels",
+      "labelKey",
       "colorBy",
       "innerRadius",
       "gridType",

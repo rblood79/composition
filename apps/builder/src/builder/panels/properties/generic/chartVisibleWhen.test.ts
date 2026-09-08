@@ -71,6 +71,7 @@ function baseProps(chartType: ChartType): ChartProps {
   props.showGrid = true;
   props.showLegend = true;
   props.innerRadius = 40;
+  props.showValueLabels = true;
   return props as unknown as ChartProps;
 }
 
@@ -83,7 +84,7 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   stackType: ["stacked", "expand"],
   curve: ["monotone", "step"],
   showDots: [true],
-  showValueLabels: [true],
+  showValueLabels: [false],
   colorBy: ["category"],
   innerRadius: [0, 70],
   gridType: ["circle"],
@@ -96,6 +97,8 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   // ADR-208 P3 — 각도 범위.
   startAngle: [90],
   endAngle: [180],
+  // ADR-208 P4 — 레이블 내용.
+  labelKey: ["category"],
   showTotal: [true],
   showAxis: [false],
   showTooltip: [true],
@@ -139,6 +142,7 @@ function visibleFor(chartType: ChartType): Set<string> {
   conditionValues.showGrid = true;
   conditionValues.showLegend = true;
   conditionValues.innerRadius = 40;
+  conditionValues.showValueLabels = true;
   const visible = new Set<string>();
   for (const [key, contract] of Object.entries(contracts)) {
     if (evaluateVisibility(contract.visibleWhen as never, conditionValues)) {
