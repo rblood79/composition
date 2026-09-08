@@ -203,6 +203,38 @@ export const chartBinding: PrimitiveBinding = {
         // computeChartScene.ts:359. P3 에서 radial 로 확장하면 조건도 함께 넓힌다.
         visibleWhen: { key: "chartType", equals: "pie" },
       },
+      /**
+       * radar 격자·선 제어 (ADR-208 P2). 넷 다 radar 전용이라 조건을 단다 — 조건이
+       * 소비와 어긋나면 `chartVisibleWhen.test.ts` 의 차등 오라클이 잡는다.
+       */
+      showSpokes: {
+        kind: "boolean",
+        label: "Show Spokes",
+        section: "appearance",
+        default: true,
+        visibleWhen: { key: "chartType", equals: "radar" },
+      },
+      gridRings: {
+        kind: "number",
+        label: "Grid Rings (0=auto)",
+        section: "appearance",
+        default: 0,
+        visibleWhen: { key: "chartType", equals: "radar" },
+      },
+      fillGrid: {
+        kind: "boolean",
+        label: "Fill Grid",
+        section: "appearance",
+        default: false,
+        visibleWhen: { key: "chartType", equals: "radar" },
+      },
+      fillArea: {
+        kind: "boolean",
+        label: "Fill Area (radar)",
+        section: "appearance",
+        default: true,
+        visibleWhen: { key: "chartType", equals: "radar" },
+      },
       showTooltip: {
         kind: "boolean",
         label: "Show Tooltip",
@@ -267,6 +299,10 @@ export const chartBinding: PrimitiveBinding = {
       "innerRadius",
       "gridType",
       "showTotal",
+      "showSpokes",
+      "gridRings",
+      "fillGrid",
+      "fillArea",
       "showTooltip",
       "showAxis",
       "showGrid",

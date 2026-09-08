@@ -40,6 +40,16 @@ export interface PolarAxesInput {
   fontSize: number;
   showAxis: boolean;
   showGrid: boolean;
+  /**
+   * 스포크 표시. `showAxis` 안의 하위 스위치다 — shadcn 은 `PolarAngleAxis`(레이블) 와
+   * `PolarGrid`(스포크+링) 로 나누지만, 우리는 `showAxis` 가 각도 축 전체를 켜는 기존
+   * 계약을 지키고 그 안에서만 스포크를 가른다 (기본 true → 기존 그림 무변경).
+   */
+  showSpokes: boolean;
+  /** 링 개수. 0 이면 값 눈금 개수를 따른다 */
+  gridRings: number;
+  /** 가장 바깥 링만 채운다 — 모두 채우면 겹쳐서 안쪽이 진해진다 */
+  fillGrid: boolean;
 }
 
 /**
@@ -131,6 +141,9 @@ export function buildPolarAxes(input: PolarAxesInput): AxisScene[] {
     fontSize,
     showAxis,
     showGrid,
+    showSpokes,
+    gridRings,
+    fillGrid,
   } = input;
 
   // ── 각도 축 — 스포크 + 범주 레이블 ────────────────────────────────────────
@@ -140,7 +153,7 @@ export function buildPolarAxes(input: PolarAxesInput): AxisScene[] {
 
   for (let i = 0; i < categories.length; i++) {
     const deg = angle(i);
-    if (showAxis) {
+    if (showAxis && showSpokes) {
       const from = polarPoint(center.x, center.y, center.inner, deg);
       const to = polarPoint(center.x, center.y, center.outer, deg);
       spokes.push({
@@ -169,15 +182,30 @@ export function buildPolarAxes(input: PolarAxesInput): AxisScene[] {
   // ── 반지름 축 — 동심 격자 + 값 눈금 ──────────────────────────────────────
   const rings: PathMark[] = [];
   if (showGrid) {
-    const [d0, d1] = ticks.domain;
-    const span = d1 - d0;
-    for (const tick of ticks.ticks) {
-      // 눈금 값 → 반지름. 중심(값 = domain 하한)은 격자가 없다.
-      const t = span === 0 ? 1 : (tick - d0) / span;
-      if (t <= 0) continue;
+    // 링 반지름 비율 목록 — **안쪽에서 바깥 순서**를 유지한다 (기존 규약).
+    //   `gridRings` 가 있으면 균등 N 개, 없으면 값 눈금을 따른다.
+    const fractions: number[] = [];
+    const count = Math.floor(gridRings);
+    if (count > 0) {
+      for (let i = 1; i <= count; i++) fractions.push(i / count);
+    } else {
+      const [d0, d1] = ticks.domain;
+      const span = d1 - d0;
+      for (const tick of ticks.ticks) {
+        // 눈금 값 → 반지름 비율. 중심(값 = domain 하한)은 격자가 없다.
+        const t = span === 0 ? 1 : (tick - d0) / span;
+        if (t > 0) fractions.push(t);
+      }
+    }
+    for (const t of fractions) {
       const radius = center.inner + (center.outer - center.inner) * t;
       const ring = gridRing(center, radius, gridType, categories.length, angle.start);
       if (ring) rings.push(ring);
+    }
+    // 가장 바깥 링 **하나만** 채운다 (전부 채우면 겹쳐서 안쪽이 진해지고 값
+    //   다각형을 가린다). 배열 마지막이 바깥이다.
+    if (fillGrid && rings.length > 0) {
+      rings[rings.length - 1].fillRole = "grid";
     }
   }
   return [

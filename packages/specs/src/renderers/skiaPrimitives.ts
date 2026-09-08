@@ -3367,6 +3367,18 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       gridType:
         (props.gridType as PolarGridType | undefined) ??
         CHART_DEFAULT_PROPS.gridType,
+      showSpokes:
+        (props.showSpokes as boolean | undefined) ??
+        CHART_DEFAULT_PROPS.showSpokes,
+      gridRings:
+        (props.gridRings as number | undefined) ??
+        CHART_DEFAULT_PROPS.gridRings,
+      fillGrid:
+        (props.fillGrid as boolean | undefined) ??
+        CHART_DEFAULT_PROPS.fillGrid,
+      fillArea:
+        (props.fillArea as boolean | undefined) ??
+        CHART_DEFAULT_PROPS.fillArea,
       showTotal:
         (props.showTotal as boolean | undefined) ??
         CHART_DEFAULT_PROPS.showTotal,

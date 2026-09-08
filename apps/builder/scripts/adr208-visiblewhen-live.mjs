@@ -92,16 +92,24 @@ async function panelControls(page) {
         r.querySelector('[aria-label="Chart Type"]'),
       );
     if (!panel) return [];
-    return [...panel.querySelectorAll("[aria-label]")]
-      .map((e) => e.getAttribute("aria-label") ?? "")
-      .filter(
-        (s) =>
-          s &&
-          s !== "Collapse section" &&
-          s !== "Expand section" &&
-          s !== "Decrease" &&
-          s !== "Increase",
-      );
+    // 컨트롤 종류마다 이름이 어디 있는지 다르다 — enum/number 는 `aria-label`,
+    //   boolean(스위치)은 `<label>` 텍스트다. 한쪽만 모으면 그쪽 종류의 필드가
+    //   "원래 없는 것" 처럼 보여 숨김 검사가 통과해 버린다 (P2 1차 실행이 그랬다).
+    const names = [
+      ...[...panel.querySelectorAll("[aria-label]")].map(
+        (e) => e.getAttribute("aria-label") ?? "",
+      ),
+      ...[...panel.querySelectorAll("label")].map((e) =>
+        (e.textContent ?? "").trim(),
+      ),
+    ];
+    const noise = new Set([
+      "Collapse section",
+      "Expand section",
+      "Decrease",
+      "Increase",
+    ]);
+    return [...new Set(names)].filter((s) => s && !noise.has(s));
   });
 }
 
@@ -200,6 +208,23 @@ async function main() {
     //   돌려 Card `isSelectable` 왕복을 확인하고, 원복 RED 로 반응도 확인했다. live 에서
     //   Card 를 팔레트로 놓는 경로는 이 하니스에서 응답이 없어(2회 재현) 여기서는 다루지
     //   않는다 — 없는 결과를 만들지 않고, 커버 위치를 명시한다.
+    // ── P2 — radar 격자·선 제어 4프롭이 패널에 오고 화면을 바꾸는가 ──
+    await setProps(page, chartId, { chartType: "radar", showGrid: true });
+    const p2 = await panelControls(page);
+    record(
+      "P2 radar 격자·선 제어 4프롭이 패널에 온다",
+      ["Show Spokes", "Grid Rings (0=auto)", "Fill Grid", "Fill Area (radar)"]
+        .every((c) => p2.includes(c)),
+      p2.filter((c) => /Spokes|Grid Rings|Fill /.test(c)).join(", "),
+    );
+    await setProps(page, chartId, { chartType: "bar" });
+    const p2bar = await panelControls(page);
+    record(
+      "P2 프롭은 bar 에서 전부 사라진다",
+      !p2bar.some((c) => /Spokes|Grid Rings|Fill /.test(c)),
+      p2bar.filter((c) => /Spokes|Grid Rings|Fill /.test(c)).join(",") || "없음",
+    );
+
     record(
       "③ Card 결선 회귀는 단위 seam 커버 (live 팔레트 진입 경로 미확보)",
       true,

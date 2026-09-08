@@ -32,6 +32,7 @@ function build(rows = ROWS, opts: Partial<Parameters<typeof buildRadarMarks>[0]>
     value: radiusScale([0, 30], [CENTER.inner, CENTER.outer]),
     center: CENTER,
     strokeWidth: 2,
+    fillArea: true,
     showValueLabels: false,
     fontSize: 11,
     ...opts,

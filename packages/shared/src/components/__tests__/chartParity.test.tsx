@@ -149,6 +149,27 @@ const CASES: Array<[string, ChartProps]> = [
     "radial / 누적 + 값 레이블",
     props({ chartType: "radial", stackType: "stacked", showValueLabels: true }),
   ],
+  // shadcn 대조 후속 #1 — radar 격자·선 제어. 격자 링에 `fillRole` 이 실리는
+  //   유일한 자리이고, `fillArea:false` 는 `fillSeries` 자체를 빼는 자리다.
+  [
+    "radar / lines-only (fillArea off, 스포크 off)",
+    props({
+      chartType: "radar",
+      showGrid: true,
+      showSpokes: false,
+      fillArea: false,
+    }),
+  ],
+  [
+    "radar / 격자 채우기 + 링 1개",
+    props({
+      chartType: "radar",
+      showGrid: true,
+      fillGrid: true,
+      gridRings: 1,
+      gridType: "circle",
+    }),
+  ],
 ];
 
 describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {

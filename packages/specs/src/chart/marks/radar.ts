@@ -21,6 +21,8 @@ export interface RadarMarkInput {
   value: RadiusScale;
   center: PolarCenter;
   strokeWidth: number;
+  /** 다각형을 채울지. false 면 선만 (shadcn `chart-radar-lines-only`) */
+  fillArea: boolean;
   showValueLabels: boolean;
   fontSize: number;
 }
@@ -48,8 +50,16 @@ function bboxOfPoints(points: ReadonlyArray<{ x: number; y: number }>): Rect {
 }
 
 export function buildRadarMarks(input: RadarMarkInput): RadarMarks {
-  const { grid, angle, value, center, strokeWidth, showValueLabels, fontSize } =
-    input;
+  const {
+    grid,
+    angle,
+    value,
+    center,
+    strokeWidth,
+    fillArea,
+    showValueLabels,
+    fontSize,
+  } = input;
   const marks: PathMark[] = [];
   const labels: TextMark[] = [];
   const vertices: Array<Array<{ x: number; y: number }>> = [];
@@ -77,7 +87,9 @@ export function buildRadarMarks(input: RadarMarkInput): RadarMarks {
       kind: "path",
       d: `${d} Z`,
       bbox: bboxOfPoints(points),
-      fillSeries: series.seriesIndex,
+      // 채우기를 끄면 `fillSeries` 자체를 싣지 않는다 — 두 consumer 가 "없으면 안
+      //   칠한다" 로 이미 합의돼 있어 알파 0 을 따로 운반할 필요가 없다.
+      ...(fillArea ? { fillSeries: series.seriesIndex } : {}),
       strokeSeries: series.seriesIndex,
       strokeWidth,
     });

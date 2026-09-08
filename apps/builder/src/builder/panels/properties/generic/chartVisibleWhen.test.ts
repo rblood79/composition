@@ -87,6 +87,12 @@ const ALTERNATIVES: Record<string, unknown[]> = {
   colorBy: ["category"],
   innerRadius: [0, 70],
   gridType: ["circle"],
+  // ADR-208 P2 — radar 격자·선 제어. 신규 prop 을 여기 안 넣으면 오라클이 그 축을
+  //   아예 못 본다 (조건이 틀려도 조용히 통과).
+  showSpokes: [false],
+  gridRings: [3],
+  fillGrid: [true],
+  fillArea: [false],
   showTotal: [true],
   showAxis: [false],
   showTooltip: [true],
