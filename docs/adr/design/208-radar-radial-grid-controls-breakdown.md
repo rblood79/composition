@@ -78,15 +78,17 @@ P2~P4 의 구현 내용은 revert 된 커밋 `b4896379d` · `40184921f` · `ca05
 
 ### P1 상세 — 어느 prop 에 어떤 조건을 다는가
 
-| prop          | 조건                                                        | 근거                                                           |
-| ------------- | ----------------------------------------------------------- | -------------------------------------------------------------- |
-| `orientation` | `oneOf: ["bar","line","area"]`                              | 극좌표·pie 는 읽지 않는다 (`computeChartScene.ts:417,487,502`) |
-| `stackType`   | `oneOf: ["bar","area","radial"]`                            | radar 는 무시 (`computeChartScene.ts:155`), pie 는 미소비      |
-| `curve`       | `oneOf: ["line","area"]`                                    | `computeChartScene.ts:505,519`                                 |
-| `showDots`    | `oneOf: ["line","area","radar"]`                            | `computeChartScene.ts:184,510,525`                             |
-| `innerRadius` | `oneOf: ["pie","radial"]`                                   | `computeChartScene.ts:152,358`                                 |
-| `gridType`    | `equals: "radar"`                                           | `computeChartScene.ts:219` — ADR-207:190 이 지목한 항목        |
-| `showTotal`   | `equals: "pie"` (P3 에서 `oneOf: ["pie","radial"]` 로 확장) | `computeChartScene.ts:359`                                     |
+| prop          | 조건                                                        | 근거                                                                                                                                                                                                          |
+| ------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `orientation` | `oneOf: ["bar","line","area"]`                              | 극좌표·pie 는 읽지 않는다 (`computeChartScene.ts:417,487,502`)                                                                                                                                                |
+| `stackType`   | `oneOf: ["bar","line","area","pie","radial"]`               | radar 만 무시 (ADR-207 R8, `computeChartScene.ts:155`). cartesian 3종은 같은 분기(`:411-413`), pie 는 값 축이 없어 링 분할을 따로 판정한다(`:363-365`) — **P1 실측 정정** (착수 전 표는 line·pie 를 빠뜨렸다) |
+| `curve`       | `oneOf: ["line","area"]`                                    | `computeChartScene.ts:505,519`                                                                                                                                                                                |
+| `showDots`    | `oneOf: ["line","area","radar"]`                            | `computeChartScene.ts:184,510,525`                                                                                                                                                                            |
+| `innerRadius` | `oneOf: ["pie","radial","radar"]`                           | `computeChartScene.ts:152,358`. radar 의 `center.inner` 는 결측 꼭짓점을 접는 반지름이자 격자 안쪽 경계 — **P1 실측 정정**                                                                                    |
+| `gridType`    | `equals: "radar"`                                           | `computeChartScene.ts:219` — ADR-207:190 이 지목한 항목                                                                                                                                                       |
+| `showTotal`   | `equals: "pie"` (P3 에서 `oneOf: ["pie","radial"]` 로 확장) | `computeChartScene.ts:359`                                                                                                                                                                                    |
+
+> **P1 실측이 표를 두 곳 고쳤다.** 착수 전 표는 `computeChartScene` 을 grep 으로 읽어 썼는데, G2 차등 오라클(값을 바꿔 scene 이 달라지는지)이 `stackType`(line·pie 누락)과 `innerRadius`(radar 누락) 을 잡았다. R2 가 예고한 형태 그대로이며, **선언을 선언으로 대조했다면 통과했을** 어긋남이다.
 
 **조건을 달지 않는 것**: `showAxis`·`showGrid`·`showLegend`·`legendPosition`·`showValueLabels`·`colorBy`·`showTooltip` — 두 계열 모두가 읽거나(`showAxis` 는 cartesian·radar 양쪽) 전 종류 공통이다. 억지로 조건을 달면 표가 커지고 뜻이 흐려진다.
 

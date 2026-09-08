@@ -434,3 +434,52 @@ describe("resolveEditContract — semantic ∪ universal style (ADR-912 1A-(4))"
     });
   });
 });
+
+/**
+ * ADR-208 P1ⓐ — `visibleWhen` 운반.
+ *
+ * 계약은 조건을 **싣기만** 하고 필드를 지우지 않는다. 판정은 view 레이어가 한다
+ * (`GenericFieldRenderer`). 이 운반이 빠져 있어 `Card.binding.ts` 의 `isSelected`
+ * 조건이 live 패널에서 무동작이었다.
+ */
+describe("resolveEditContract — visibleWhen 운반 (ADR-208 P1ⓐ)", () => {
+  const cardNode = (props: Record<string, unknown>): CanonicalNode => ({
+    id: "card-1",
+    type: "Card",
+    props,
+  });
+
+  it("binding 이 선언한 조건이 ResolvedField 에 실린다", () => {
+    const { fields } = resolveEditContract(cardNode({}));
+    const isSelected = fields.find(
+      (f) => f.key === "isSelected" && f.origin === "semantic",
+    );
+    expect(isSelected?.visibleWhen).toEqual({
+      key: "isSelectable",
+      equals: true,
+    });
+  });
+
+  it("조건 미선언 필드는 undefined 로 남는다 (즉시 통과 대상)", () => {
+    const { fields } = resolveEditContract(cardNode({}));
+    const isDisabled = fields.find(
+      (f) => f.key === "isDisabled" && f.origin === "semantic",
+    );
+    expect(isDisabled).toBeDefined();
+    expect(isDisabled?.visibleWhen).toBeUndefined();
+  });
+
+  it("계약은 조건이 거짓이어도 필드를 지우지 않는다 (판정은 view 책임)", () => {
+    const { fields } = resolveEditContract(cardNode({ isSelectable: false }));
+    expect(
+      fields.some((f) => f.key === "isSelected" && f.origin === "semantic"),
+    ).toBe(true);
+  });
+
+  it("universal style 필드는 조건이 없다", () => {
+    const { fields } = resolveEditContract(cardNode({}));
+    const style = fields.filter((f) => f.origin === "style");
+    expect(style.length).toBeGreaterThan(0);
+    expect(style.every((f) => f.visibleWhen === undefined)).toBe(true);
+  });
+});

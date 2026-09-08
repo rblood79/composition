@@ -34,6 +34,7 @@ import {
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 import { resolvePropertyFieldIcon } from "../../../config/propertyFieldIcons";
+import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
@@ -334,9 +335,26 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
     ) : null;
   }
 
+  /**
+   * 조건 판정 입력 (ADR-208 P1ⓐ) — **`currentValue`(override ?? base)** 를 쓴다.
+   *
+   * 원시 `node.props[key]` 로 하면 기본값이 저장되지 않은 노드에서 조건 키가 `undefined`
+   * 가 되어 `oneOf` 가 전부 거짓이 되고, 그 종류의 유효한 필드가 통째로 사라진다 (R7).
+   * 계약이 이미 `override ?? default` 를 해소해 두었으므로 그것을 그대로 읽는다.
+   *
+   * 같은 계약 안의 형제 필드만 본다 — 조건 키가 계약 밖이면 `undefined` 로 판정되고,
+   * `parentTag` 축은 이 경로에 입력이 없다(현재 선언 0건). 둘 다 생기면 조건을 추가하기
+   * 전에 입력부터 잇는다.
+   */
+  const conditionValues: Record<string, unknown> = {};
+  for (const field of fields) conditionValues[field.key] = field.currentValue;
+
   // section 순서 보존 그룹핑 (Map 삽입 순서 = 계약 순서).
+  // 조건 미선언 필드는 `evaluateVisibility` 가 즉시 통과시킨다 — 결선의 노출면은
+  //   `visibleWhen` 을 실제로 선언한 필드뿐이다.
   const groups = new Map<string, ResolvedField[]>();
   for (const field of fields) {
+    if (!evaluateVisibility(field.visibleWhen, conditionValues)) continue;
     const section = field.section || "content";
     const bucket = groups.get(section);
     if (bucket) bucket.push(field);

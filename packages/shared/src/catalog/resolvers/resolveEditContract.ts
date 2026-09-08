@@ -29,7 +29,12 @@
 import type { CanonicalNode } from "../../types/composition-document.types";
 import type { CompositionDocument } from "../../types/composition-document.types";
 import type { ResolvedNode } from "../../types/canonical-resolver.types";
-import type { InspectorFieldKind, PropContract, PropsSchema } from "../types";
+import type {
+  InspectorFieldKind,
+  PropContract,
+  PropsSchema,
+  VisibilityCondition,
+} from "../types";
 import { getCatalogEntry, getReusableEntries } from "../componentCatalog";
 import { readPropsSchema } from "../templateBinding";
 import { resolveComponentRule } from "./resolveComponentRule";
@@ -76,6 +81,15 @@ export interface ResolvedField {
   options?: PropContract["options"];
   /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema (PropContract 통과). */
   itemsManager?: PropContract["itemsManager"];
+  /**
+   * 조건부 노출 (PropContract 통과 — ADR-208 P1ⓐ).
+   *
+   * 계약은 **필드를 지우지 않는다** — 조건을 실어 보내기만 하고, 판정은 view 레이어
+   * (`GenericFieldRenderer`) 가 한다. 여기서 걸러 버리면 계약이 "이 노드에 없는 prop" 이라
+   * 거짓말을 하게 되고, 같은 계약을 쓰는 다른 소비처(Style view · 테스트)가 조건을 볼
+   * 방법이 사라진다.
+   */
+  visibleWhen?: VisibilityCondition;
 }
 
 /** 노드 1개의 편집 계약 — 두 source 합집합. */
@@ -321,6 +335,7 @@ export function resolveEditContract(
         step: contract.step,
         options: deriveOptions(contract, originRule, reusable.origin, key),
         itemsManager: contract.itemsManager,
+        visibleWhen: contract.visibleWhen,
       });
     }
   }
@@ -346,6 +361,7 @@ export function resolveEditContract(
         step: contract.step,
         options: deriveOptions(contract, rule, node, key),
         itemsManager: contract.itemsManager,
+        visibleWhen: contract.visibleWhen,
       });
     }
   }
@@ -398,6 +414,7 @@ export function resolveEditContract(
           step: contract.step,
           options: deriveOptions(contract, originRule, origin, key),
           itemsManager: contract.itemsManager,
+          visibleWhen: contract.visibleWhen,
         });
       }
     }
@@ -425,6 +442,7 @@ export function resolveEditContract(
       max: contract.max,
       step: contract.step,
       options: deriveOptions(contract, rule, node, key),
+      visibleWhen: contract.visibleWhen,
     });
   }
 

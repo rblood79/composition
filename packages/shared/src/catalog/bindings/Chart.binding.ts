@@ -95,7 +95,18 @@ export const chartBinding: PrimitiveBinding = {
         },
       },
 
-      // ── appearance ──
+      /**
+       * ── appearance ──
+       *
+       * **차트 종류 전용 prop 은 `visibleWhen` 으로 가른다** (ADR-208 P1ⓑ). 조건의 근거는
+       * `computeChartScene` 의 실제 소비뿐이다 — 어떤 종류가 그 값을 읽는가. 읽는데 숨기면
+       * 사용자가 편집 수단 자체를 못 찾으므로(R2), 조건 표는 소비 경로와 1:1 이어야 하고
+       * 그 정합은 `chartVisibleWhen.test.ts` 가 값 변화로 확인한다 (선언 대조 아님).
+       *
+       * 조건을 **달지 않는 것**: `showAxis`·`showGrid`·`showLegend`·`legendPosition`·
+       * `showValueLabels`·`colorBy`·`showTooltip`. 두 계열이 함께 읽거나 전 종류 공통이다 —
+       * 억지 조건은 표만 키우고 뜻을 흐린다.
+       */
       orientation: {
         kind: "enum",
         label: "Orientation",
@@ -105,6 +116,8 @@ export const chartBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
           { value: "horizontal", label: "Horizontal" },
         ],
+        // 극좌표·pie 는 읽지 않는다 (computeChartScene.ts:417,487,502).
+        visibleWhen: { key: "chartType", oneOf: ["bar", "line", "area"] },
       },
       stackType: {
         kind: "enum",
@@ -116,6 +129,13 @@ export const chartBinding: PrimitiveBinding = {
           { value: "stacked", label: "Stacked" },
           { value: "expand", label: "Stacked 100%" },
         ],
+        // radar 만 무시한다 (ADR-207 R8, computeChartScene.ts:155). pie 도 읽는다 —
+        //   값 축이 없어 링 분할을 따로 판정하는 자리가 있다 (:363-365). cartesian 은
+        //   bar·line·area 가 같은 분기(:411-413)라 셋 다.
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["bar", "line", "area", "pie", "radial"],
+        },
       },
       curve: {
         kind: "enum",
@@ -127,12 +147,16 @@ export const chartBinding: PrimitiveBinding = {
           { value: "monotone", label: "Monotone" },
           { value: "step", label: "Step" },
         ],
+        // computeChartScene.ts:505,519.
+        visibleWhen: { key: "chartType", oneOf: ["line", "area"] },
       },
       showDots: {
         kind: "boolean",
         label: "Show Dots",
         section: "appearance",
         default: false,
+        // computeChartScene.ts:184,510,525 (radar 는 꼭짓점에 찍는다).
+        visibleWhen: { key: "chartType", oneOf: ["line", "area", "radar"] },
       },
       showValueLabels: {
         kind: "boolean",
@@ -155,6 +179,9 @@ export const chartBinding: PrimitiveBinding = {
         label: "Inner Radius (%)",
         section: "appearance",
         default: 0,
+        // computeChartScene.ts:152,358. radar 도 읽는다 — center.inner 가 결측 꼭짓점을
+        //   접는 반지름이자 격자 안쪽 경계다.
+        visibleWhen: { key: "chartType", oneOf: ["pie", "radial", "radar"] },
       },
       gridType: {
         kind: "enum",
@@ -165,12 +192,16 @@ export const chartBinding: PrimitiveBinding = {
           { value: "polygon", label: "Polygon" },
           { value: "circle", label: "Circle" },
         ],
+        // computeChartScene.ts:219 — ADR-207:190 이 지목한 항목.
+        visibleWhen: { key: "chartType", equals: "radar" },
       },
       showTotal: {
         kind: "boolean",
         label: "Show Total (donut)",
         section: "appearance",
         default: false,
+        // computeChartScene.ts:359. P3 에서 radial 로 확장하면 조건도 함께 넓힌다.
+        visibleWhen: { key: "chartType", equals: "pie" },
       },
       showTooltip: {
         kind: "boolean",
