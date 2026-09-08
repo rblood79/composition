@@ -19,19 +19,6 @@ export type ChartType = "bar" | "line" | "area" | "pie" | "radar" | "radial";
 /** radar 격자 모양 (shadcn `chart-radar-grid-circle` 축). */
 export type PolarGridType = "polygon" | "circle";
 
-/** 마크 위 레이블에 무엇을 적을지 (shadcn `LabelList dataKey`). */
-export type ChartLabelKey = "value" | "category";
-
-/**
- * 레이블 텍스트 생성기. 규칙을 `computeChartScene` 한 곳에 두고 각 마크 빌더는
- * **무엇을 적을지 모른 채** 자리만 정한다 — 빌더마다 분기를 두면 타입 6개에서
- * 규칙이 갈린다 (실제로 pie 만 값을 적고 나머지는 이름을 적는 식).
- */
-export type ChartLabelFormatter = (
-  categoryIndex: number,
-  raw: number,
-) => string;
-
 export type ChartOrientation = "vertical" | "horizontal";
 
 /**
@@ -102,8 +89,6 @@ export interface ChartProps {
    */
   startAngle: number;
   endAngle: number;
-  /** 마크 위 레이블 내용 — 값 또는 범주명 (shadcn `LabelList dataKey`) */
-  labelKey: ChartLabelKey;
   /** 도넛 구멍 안 합계 표시 */
   showTotal: boolean;
   /** hover 툴팁 (Preview/Publish 전용 — Skia 는 정적) */

@@ -9,14 +9,9 @@
  */
 import { polarPoint } from "../polar";
 import type { AngleScale, RadiusScale } from "../polar";
-import { r2 } from "../scales";
+import { formatTick, r2 } from "../scales";
 import type { SeriesGrid } from "../series";
-import type {
-  ChartLabelFormatter,
-  PathMark,
-  Rect,
-  TextMark,
-} from "../types";
+import type { PathMark, Rect, TextMark } from "../types";
 import { polarLabelAnchor } from "../polarAxes";
 import type { PolarCenter } from "../polarAxes";
 
@@ -29,8 +24,6 @@ export interface RadarMarkInput {
   /** 다각형을 채울지. false 면 선만 (shadcn `chart-radar-lines-only`) */
   fillArea: boolean;
   showValueLabels: boolean;
-  /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
-  labelText: ChartLabelFormatter;
   fontSize: number;
 }
 
@@ -65,7 +58,6 @@ export function buildRadarMarks(input: RadarMarkInput): RadarMarks {
     strokeWidth,
     fillArea,
     showValueLabels,
-    labelText,
     fontSize,
   } = input;
   const marks: PathMark[] = [];
@@ -115,7 +107,7 @@ export function buildRadarMarks(input: RadarMarkInput): RadarMarks {
         kind: "text",
         x: at.x,
         y: at.y,
-        text: labelText(ci, raw),
+        text: formatTick(raw),
         anchor,
         baseline,
         role: "value",

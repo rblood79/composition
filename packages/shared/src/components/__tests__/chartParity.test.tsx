@@ -183,16 +183,6 @@ const CASES: Array<[string, ChartProps]> = [
       showTotal: true,
     }),
   ],
-  // 후속 #7 — 레이블 내용 축. 좌표는 그대로고 **글자만** 바뀌는 자리라, text 대칭
-  //   검사가 내용까지 보는지 여기서 확인된다.
-  [
-    "pie / 조각 안 범주명 (label-list)",
-    props({ chartType: "pie", showValueLabels: true, labelKey: "category" }),
-  ],
-  [
-    "bar / 막대 위 범주명 (negative 계열)",
-    props({ showValueLabels: true, labelKey: "category" }),
-  ],
 ];
 
 describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {

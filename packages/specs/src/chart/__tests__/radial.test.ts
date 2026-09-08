@@ -29,7 +29,6 @@ function build(rows = ROWS, patch: Partial<Parameters<typeof buildRadialMarks>[0
     endAngle: 360,
     showValueLabels: false,
     showTotal: false,
-    labelText: (_ci: number, raw: number) => String(raw),
     totalCaption: "value",
     fontSize: 11,
     ...patch,
@@ -85,8 +84,6 @@ describe("buildRadialMarks", () => {
       endAngle: 360,
       showValueLabels: false,
       showTotal: false,
-      labelText: (_ci: number, raw: number) => String(raw),
-    labelText: (_ci: number, raw: number) => String(raw),
       totalCaption: "value",
       fontSize: 11,
     });

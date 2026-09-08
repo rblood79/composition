@@ -2216,7 +2216,6 @@ export function createDefaultChartProps(): BaseElementProps {
     fillArea: true,
     startAngle: 0,
     endAngle: 360,
-    labelKey: "value",
     showTotal: false,
     showTooltip: false,
     showAxis: true,

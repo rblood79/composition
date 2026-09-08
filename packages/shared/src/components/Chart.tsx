@@ -30,7 +30,6 @@ import type {
   ChartScene,
   ChartStackType,
   ChartType,
-  ChartLabelKey,
   Mark,
   PolarGridType,
   TextMark,
@@ -65,8 +64,6 @@ export interface ChartProps {
   /** radial 값 호의 각도 범위 (도, 12시=0 시계). 반원 게이지 = 0~180 */
   startAngle?: number;
   endAngle?: number;
-  /** 마크 위 레이블 내용 — 값 또는 범주명 */
-  labelKey?: ChartLabelKey;
   showTotal?: boolean;
   showTooltip?: boolean;
   showAxis?: boolean;
@@ -302,7 +299,6 @@ export function Chart({
   fillArea,
   startAngle,
   endAngle,
-  labelKey,
   showTotal,
   showTooltip,
   showAxis,
@@ -350,7 +346,6 @@ export function Chart({
       fillArea: fillArea ?? CHART_DEFAULT_PROPS.fillArea,
       startAngle: startAngle ?? CHART_DEFAULT_PROPS.startAngle,
       endAngle: endAngle ?? CHART_DEFAULT_PROPS.endAngle,
-      labelKey: labelKey ?? CHART_DEFAULT_PROPS.labelKey,
       showTotal: showTotal ?? CHART_DEFAULT_PROPS.showTotal,
       showTooltip: showTooltip ?? CHART_DEFAULT_PROPS.showTooltip,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
@@ -377,7 +372,6 @@ export function Chart({
       fillArea,
       startAngle,
       endAngle,
-      labelKey,
       showTotal,
       showTooltip,
       showAxis,

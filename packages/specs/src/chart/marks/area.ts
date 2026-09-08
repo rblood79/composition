@@ -19,7 +19,6 @@ import type { LinearScale, BandScale } from "../scales";
 import { stackRangesBySeries } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
 import type {
-  ChartLabelFormatter,
   ChartCurve,
   ChartOrientation,
   PathMark,
@@ -38,8 +37,6 @@ export interface AreaMarkInput {
   stackMode: StackMode;
   curve: ChartCurve;
   showValueLabels: boolean;
-  /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
-  labelText: ChartLabelFormatter;
 }
 
 export interface AreaMarks {
@@ -67,7 +64,6 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
     stackMode,
     curve,
     showValueLabels,
-    labelText,
   } = input;
   const baseline = r2(value(0));
   const ranges =
@@ -140,11 +136,7 @@ export function buildAreaMarks(input: AreaMarkInput): AreaMarks {
     upperPoints.push(upper);
     if (showValueLabels) {
       upper.forEach((point, i) => {
-        const label = pointValueLabel(
-          point,
-          labelText(bands[i].categoryIndex, bands[i].raw),
-          orientation,
-        );
+        const label = pointValueLabel(point, bands[i].raw, orientation);
         if (label) labels.push(label);
       });
     }

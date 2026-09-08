@@ -10,10 +10,10 @@
  * 값 축에 적용하는 것과 같은 함수다 (shadcn `chart-radial-stacked`).
  */
 import { arcSlicePath, centerTotalLabels } from "./pie";
-import { r2 } from "../scales";
+import { formatTick, r2 } from "../scales";
 import { stackBands } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
-import type { ChartLabelFormatter, PathMark, TextMark } from "../types";
+import type { PathMark, TextMark } from "../types";
 import type { PolarCenter } from "../polarAxes";
 
 /** 링 사이 간격 — 붙여 그리면 두 링의 경계가 사라진다 (pie 의 RING_GAP 동형). */
@@ -33,8 +33,6 @@ export interface RadialMarkInput {
   startAngle: number;
   endAngle: number;
   showValueLabels: boolean;
-  /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
-  labelText: ChartLabelFormatter;
   /** 구멍 안 합계 표시 (shadcn `chart-radial-text` · `-shape` · `-stacked`) */
   showTotal: boolean;
   /** 합계 아래 설명 — metric 필드명 */
@@ -97,7 +95,6 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
     startAngle,
     endAngle,
     showValueLabels,
-    labelText,
     showTotal,
     totalCaption,
     fontSize,
@@ -172,7 +169,7 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
         kind: "text",
         x: r2(center.x),
         y: r2(center.y - (outer + inner) / 2 + fontSize * 0.35),
-        text: labelText(ci, raw),
+        text: formatTick(raw),
         anchor: "middle",
         baseline: "middle",
         role: "value",

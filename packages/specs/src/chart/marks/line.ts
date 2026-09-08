@@ -6,11 +6,10 @@
  */
 import { curveCommands, toScreen } from "../curves";
 import type { AxialPoint, ScreenPoint } from "../curves";
-import { r2 } from "../scales";
+import { formatTick, r2 } from "../scales";
 import type { LinearScale, BandScale } from "../scales";
 import type { SeriesGrid } from "../series";
 import type {
-  ChartLabelFormatter,
   ChartCurve,
   ChartOrientation,
   PathMark,
@@ -27,8 +26,6 @@ export interface LineMarkInput {
   strokeWidth: number;
   curve: ChartCurve;
   showValueLabels: boolean;
-  /** 레이블 텍스트 생성기 (값/범주명 판정은 `computeChartScene`) */
-  labelText: ChartLabelFormatter;
   fontSize: number;
 }
 
@@ -127,9 +124,10 @@ export function bboxOf(points: ReadonlyArray<SeriesPoint>): Rect {
  */
 export function pointValueLabel(
   point: ScreenPoint,
-  text: string,
+  raw: number,
   orientation: ChartOrientation,
 ): TextMark | null {
+  const text = formatTick(raw);
   if (text === "") return null;
   return orientation === "horizontal"
     ? {
@@ -153,16 +151,8 @@ export function pointValueLabel(
 }
 
 export function buildLineMarks(input: LineMarkInput): LineMarks {
-  const {
-    grid,
-    band,
-    value,
-    orientation,
-    strokeWidth,
-    curve,
-    showValueLabels,
-    labelText,
-  } = input;
+  const { grid, band, value, orientation, strokeWidth, curve, showValueLabels } =
+    input;
   const marks: PathMark[] = [];
   const labels: TextMark[] = [];
   for (let si = 0; si < grid.series.length; si++) {
@@ -185,11 +175,7 @@ export function buildLineMarks(input: LineMarkInput): LineMarks {
     });
     if (showValueLabels) {
       screen.forEach((point, i) => {
-        const label = pointValueLabel(
-          point,
-          labelText(points[i].categoryIndex, points[i].raw),
-          orientation,
-        );
+        const label = pointValueLabel(point, points[i].raw, orientation);
         if (label) labels.push(label);
       });
     }
