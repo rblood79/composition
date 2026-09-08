@@ -48,6 +48,8 @@ export const chartBinding: PrimitiveBinding = {
           { value: "line", label: "Line" },
           { value: "area", label: "Area" },
           { value: "pie", label: "Pie" },
+          { value: "radar", label: "Radar" },
+          { value: "radial", label: "Radial" },
         ],
       },
       dimension: {
@@ -154,6 +156,16 @@ export const chartBinding: PrimitiveBinding = {
         section: "appearance",
         default: 0,
       },
+      gridType: {
+        kind: "enum",
+        label: "Grid Type",
+        section: "appearance",
+        default: "polygon",
+        options: [
+          { value: "polygon", label: "Polygon" },
+          { value: "circle", label: "Circle" },
+        ],
+      },
       showTotal: {
         kind: "boolean",
         label: "Show Total (donut)",
@@ -222,6 +234,7 @@ export const chartBinding: PrimitiveBinding = {
       "showValueLabels",
       "colorBy",
       "innerRadius",
+      "gridType",
       "showTotal",
       "showTooltip",
       "showAxis",

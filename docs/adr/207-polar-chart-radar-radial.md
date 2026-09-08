@@ -12,6 +12,7 @@ Accepted — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — 
 | P1 극좌표 축 (`polar.ts` · `AxisScene` 가산 확장 · 두 consumer 결선) | Implemented | 2026-09-08 |
 | P2 radar 마크 + `gridType` | Implemented | 2026-09-08 |
 | P3 radial 마크 (트랙 + 값 호 + 누적) + 극좌표 툴팁 | Implemented | 2026-09-08 |
+| P4 결선 (binding enum · `gridType` · factory 기본값 · 범례 축 · 문서 로드 경로) | Implemented | 2026-09-08 |
 
 ## Context
 

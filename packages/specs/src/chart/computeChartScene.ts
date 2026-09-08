@@ -292,6 +292,9 @@ export function computeChartScene(
   const palette = Math.max(1, metrics.seriesCount);
   const byCategory =
     props.chartType === "pie" ||
+    // radial 은 링이 범주다 — 단일 시리즈면 호마다 색이 갈리므로 범례도 범주여야
+    //   화면의 색과 이름이 맞는다 (radar 는 다각형이 시리즈라 그대로).
+    (props.chartType === "radial" && grid.series.length <= 1) ||
     (props.chartType === "bar" && props.colorBy === "category");
   const legendEntries: LegendEntry[] = byCategory
     ? grid.categories.map((label, ci) => ({

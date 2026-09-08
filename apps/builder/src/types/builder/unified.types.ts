@@ -2209,6 +2209,7 @@ export function createDefaultChartProps(): BaseElementProps {
     showValueLabels: false,
     colorBy: "series",
     innerRadius: 0,
+    gridType: "polygon",
     showTotal: false,
     showTooltip: false,
     showAxis: true,

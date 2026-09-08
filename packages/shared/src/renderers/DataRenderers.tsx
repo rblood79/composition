@@ -51,6 +51,18 @@ export function renderChart(element: PreviewElement): ReactNode {
       color={props.color as string | undefined}
       orientation={props.orientation as never}
       stackType={props.stackType as never}
+      // ADR-194 후속 확장 + ADR-207 극좌표 prop 은 **여기를 지나야** 문서 로드
+      //   경로(Preview/Publish)에 도달한다. binding accepts 에만 선언하면 팔레트
+      //   드롭은 되고 저장된 문서를 열 때만 기본값 차트가 나온다 — 한쪽만 깨지는
+      //   형태라 캔버스(Skia, scene props 직독)가 알리바이가 된다.
+      curve={props.curve as never}
+      showDots={props.showDots as boolean | undefined}
+      showValueLabels={props.showValueLabels as boolean | undefined}
+      colorBy={props.colorBy as never}
+      innerRadius={props.innerRadius as number | undefined}
+      gridType={props.gridType as never}
+      showTotal={props.showTotal as boolean | undefined}
+      showTooltip={props.showTooltip as boolean | undefined}
       showAxis={props.showAxis as boolean | undefined}
       showGrid={props.showGrid as boolean | undefined}
       showLegend={props.showLegend as boolean | undefined}
