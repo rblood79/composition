@@ -70,7 +70,7 @@ describe("addElementsToStore canonical/derived index sync contract (ADR-184 러�
     // no-op 되어 복합 컴포넌트 생성이 undo 불가였다 (2026-08-15 수리). history
     // 는 store 측 addComplexElement 와 동일하게 canonical insert event 로 기록.
     expect(source).toContain(
-      "buildCanonicalInsertEvents([parent, ...children])",
+      "buildCanonicalInsertEvents(acceptedElements)",
     );
     expect(source).toContain('type: "add"');
     expect(source).not.toContain("saveSnapshot");
@@ -92,7 +92,7 @@ describe("addElementsToStore canonical/derived index sync contract (ADR-184 러�
     // 구조 변경이므로 elements 에 parent + children 추가 + layoutVersion 증가 (레이아웃
     // 재계산 트리거). createAddElementAction 의 검증된 형태와 동일.
     expect(setStateBlock).toContain(
-      "elements: [...prev.elements, parent, ...children]",
+      "elements: [...prev.elements, ...acceptedElements]",
     );
     expect(setStateBlock).toContain("layoutVersion: prev.layoutVersion + 1");
   });

@@ -7,6 +7,10 @@ import { applyFactoryPropagation } from "../../utils/propagationEngine";
 import { resolveOwnerPageId } from "../../../adapters/canonical/legacyMetadata";
 // ADR-116 Phase 3 G4 — mutation reverse pilot caller (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
+import {
+  reportCanonicalNestingRejection,
+  withoutRejectedElements,
+} from "../../stores/utils/canonicalNestingRejection";
 // ADR-184 파일럿 — 4단 순서 (canonical → set → rebuild → history → persist)
 // 는 러너가 소유. 종전 수동 순서 + 로컬 persist 헬퍼를 러너가 대체한다.
 import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunner";
@@ -126,7 +130,9 @@ export function addElementsToStore(
 ): Element[] {
   const store = useStore.getState();
   const currentElements = store.elements;
-  const newElements = [...currentElements, parent, ...children];
+  // 중첩 규칙이 거부한 element 는 store · history · 반환값 어디에도 넣지 않는다 —
+  // canonical 에 없는 것을 legacy 배열에만 남기면 새로고침 전까지 유령이 된다.
+  let acceptedElements: Element[] = [parent, ...children];
 
   // ADR-184 파일럿 — 종전 수동 4단 순서 (본 함수가 러너 순서의 기준형이었다)
   // 를 러너 경유로 전환. rebuild(③) 와 persist(⑤, 백그라운드 fire-and-forget)
@@ -135,15 +141,24 @@ export function addElementsToStore(
     // ① canonical document 1차 갱신 — ADR-116 G4 wrapper 경유.
     //    mergeElementsCanonicalPrimary 는 "canonical store mutation only.
     //    Derived store cache updates are caller-owned" 계약 (canonicalMutations.ts).
-    canonical: () => mergeElementsCanonicalPrimary([parent, ...children]),
+    canonical: () => {
+      const result = mergeElementsCanonicalPrimary([parent, ...children]);
+      const rejectedIds = reportCanonicalNestingRejection(
+        result,
+        "addElementsToStore",
+      );
+      acceptedElements = withoutRejectedElements(acceptedElements, rejectedIds);
+      return result;
+    },
     // ② derived store cache 갱신 — 단순 컴포넌트 경로 createAddElementAction 과 동일.
     //    이 단계를 누락하면 복합 컴포넌트(NumberField/Select 등)가 canonical 에는
     //    들어가 Skia 화면엔 보이지만 legacy elementsMap 에는 없어, Delete 핸들러의
     //    elementsMap.get(id) 가 undefined → "Only body elements selected" 로 삭제
     //    불가 (새로고침 후에야 hydrate 로 회복되던 버그).
     store: () => {
+      if (acceptedElements.length === 0) return;
       useStore.setState((prev) => ({
-        elements: [...prev.elements, parent, ...children],
+        elements: [...prev.elements, ...acceptedElements],
         layoutVersion: prev.layoutVersion + 1,
       }));
     },
@@ -152,18 +167,19 @@ export function addElementsToStore(
     //    위치를 조회하므로 이 슬롯 (canonical/rebuild 뒤) 이어야 한다.
     history: (result) => {
       if (!result.changed || !hasCanonicalNodeLocation(parent.id)) return;
+      if (acceptedElements.length === 0) return;
       historyManager.addEntry({
         type: "add",
         elementId: parent.id,
-        elementIds: [parent, ...children].map((element) => element.id),
+        elementIds: acceptedElements.map((element) => element.id),
         data: {
-          canonicalEvents: buildCanonicalInsertEvents([parent, ...children]),
+          canonicalEvents: buildCanonicalInsertEvents(acceptedElements),
         },
       });
     },
   });
 
-  return newElements;
+  return [...currentElements, ...acceptedElements];
 }
 
 /**

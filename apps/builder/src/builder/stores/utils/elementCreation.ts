@@ -24,6 +24,10 @@ import {
   areCanonicalMutationStoreActionsRegistered,
   mergeElementsCanonicalPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import {
+  reportCanonicalNestingRejection,
+  withoutRejectedElements,
+} from "./canonicalNestingRejection";
 import { COMPONENT_MASTER_ID_MIRROR_FIELD } from "@/adapters/canonical/componentSemanticsMirror";
 import { emitStoreStructureCommitDescriptors } from "../../presentation/storeCommitEmitter";
 import { generateCustomId, getCustomIdBase } from "../../utils/idGeneration";
@@ -99,9 +103,17 @@ function isReusableContextFrame(
   return node?.type === "frame" && node.reusable === true;
 }
 
-function mergeCreatedElementsIntoCanonicalDocument(elements: Element[]): void {
-  if (!areCanonicalMutationStoreActionsRegistered()) return;
-  mergeElementsCanonicalPrimary(elements);
+/**
+ * canonical 1차 갱신. 중첩 규칙이 거부한 element 의 id 를 돌려준다 — 호출자는 그
+ * id 를 legacy store 쓰기와 history 이벤트에서 빼야 한다 (빼지 않으면 canonical 에
+ * 없는 유령이 `elements` 배열에만 남는다).
+ */
+function mergeCreatedElementsIntoCanonicalDocument(
+  elements: Element[],
+): ReadonlySet<string> {
+  if (!areCanonicalMutationStoreActionsRegistered()) return new Set();
+  const result = mergeElementsCanonicalPrimary(elements);
+  return reportCanonicalNestingRejection(result, "addElement");
 }
 
 function getRefMasterType<TElement extends Element>(
@@ -200,7 +212,10 @@ export const createAddElementAction =
     const isPageContext = isPageContextFrame(parentContext);
     const isReusableContext = isReusableContextFrame(parentContext);
 
-    mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);
+    const rejectedIds = mergeCreatedElementsIntoCanonicalDocument([
+      elementToAdd,
+    ]);
+    if (rejectedIds.has(elementToAdd.id)) return;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
     // 1. 히스토리 추가 — page/reusable context 외에 merge 후 canonical 에 실제
@@ -299,7 +314,9 @@ export const createAddComplexElementAction =
     const isPageContext = isPageContextFrame(parentContext);
     const isReusableContext = isReusableContextFrame(parentContext);
 
-    mergeCreatedElementsIntoCanonicalDocument(allElements);
+    const rejectedIds = mergeCreatedElementsIntoCanonicalDocument(allElements);
+    const acceptedElements = withoutRejectedElements(allElements, rejectedIds);
+    if (acceptedElements.length === 0) return;
 
     // 🚀 Phase 1: Immer → 함수형 업데이트
     // 1. 히스토리 추가 — page/reusable context 또는 merge 후 canonical 위치
@@ -312,9 +329,9 @@ export const createAddComplexElementAction =
       historyManager.addEntry({
         type: "add",
         elementId: parentToAdd.id,
-        elementIds: allElements.map((element) => element.id),
+        elementIds: acceptedElements.map((element) => element.id),
         data: {
-          canonicalEvents: buildCanonicalInsertEvents(allElements),
+          canonicalEvents: buildCanonicalInsertEvents(acceptedElements),
         },
       });
     }
@@ -322,7 +339,7 @@ export const createAddComplexElementAction =
     // ADR-190 Phase 2: 부모와 자식이 한 편집의 결과이므로 **한 번에** 넘긴다.
     // 요소마다 따로 queue 하면 pendingCommit 단일 슬롯이 앞선 patch 를 덮어쓴다.
     emitStoreStructureCommitDescriptors(
-      allElements.map((element) => ({
+      acceptedElements.map((element) => ({
         elementId: element.id,
         parentId: element.parent_id,
       })),
@@ -331,7 +348,7 @@ export const createAddComplexElementAction =
     // 2. derived store cache 업데이트 (불변 - 새로운 배열 참조 생성)
     // ADR-006 P3-1: 구조 변경 → layoutVersion 무조건 증가
     set((prevState) => ({
-      elements: [...prevState.elements, ...allElements],
+      elements: [...prevState.elements, ...acceptedElements],
       layoutVersion: prevState.layoutVersion + 1,
     }));
 

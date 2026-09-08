@@ -15,6 +15,7 @@ import {
   hasNonPropsCanonicalHistoryChange,
 } from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
+import { reportCanonicalNestingRejection } from "./canonicalNestingRejection";
 import type { ElementsState } from "../elements";
 import { getDB } from "../../../lib/db";
 import { globalToast } from "../toast";
@@ -248,7 +249,10 @@ function syncLocationUpdatedElementToCanonical(
     applyElementOrderCanonicalPrimary([element]);
     return;
   }
-  mergeElementsCanonicalPrimary([element]);
+  reportCanonicalNestingRejection(
+    mergeElementsCanonicalPrimary([element]),
+    "updateElement",
+  );
 }
 
 function isStructuralOrderMirrorPatch(updates: Partial<Element>): boolean {

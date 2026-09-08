@@ -64,8 +64,10 @@ describe("ADR-190 commit lane producer separation", () => {
       resolve(__dirname, "../stores/utils/elementCreation.ts"),
       "utf-8",
     );
+    // 호출이 거부 id 집합을 받으면서 여러 줄이 됐다 — 순서 계약은 그대로라
+    // 앵커만 호출 시작으로 줄인다 (canonicalNestingRejection, 2026-09-09).
     const addSyncIndex = creation.indexOf(
-      "mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);",
+      "mergeCreatedElementsIntoCanonicalDocument([",
     );
     const addEmitIndex = creation.indexOf(
       "emitStoreStructureCommitDescriptors([",

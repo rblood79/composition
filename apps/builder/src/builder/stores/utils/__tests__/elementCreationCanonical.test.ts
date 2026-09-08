@@ -501,8 +501,10 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
       const filePath = path.resolve(__dirname, "../elementCreation.ts");
       const source = await fs.readFile(filePath, "utf-8");
 
+      // 거부 id 집합을 받으면서 호출이 여러 줄이 됐다 (canonicalNestingRejection,
+      // 2026-09-09) — 앵커만 호출 시작으로 줄이고 순서 계약은 그대로 본다.
       const singleCanonicalIndex = source.indexOf(
-        "mergeCreatedElementsIntoCanonicalDocument([elementToAdd]);",
+        "mergeCreatedElementsIntoCanonicalDocument([",
       );
       const singleStoreIndex = source.indexOf(
         "elements: [...prevState.elements, elementToAdd],",
@@ -515,7 +517,7 @@ describe("P3-D-2: elementCreation 히스토리 조건 교체 (RED phase)", () =>
         "mergeCreatedElementsIntoCanonicalDocument(allElements);",
       );
       const complexStoreIndex = source.indexOf(
-        "elements: [...prevState.elements, ...allElements],",
+        "elements: [...prevState.elements, ...acceptedElements],",
       );
       expect(complexCanonicalIndex).toBeGreaterThanOrEqual(0);
       expect(complexStoreIndex).toBeGreaterThanOrEqual(0);

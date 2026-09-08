@@ -21,6 +21,10 @@ import {
   captureCanonicalReplaceSources,
 } from "../history/canonicalHistoryEvents";
 import { createCompleteProps } from "./elementHelpers";
+import {
+  reportCanonicalNestingRejection,
+  withoutRejectedElements,
+} from "./canonicalNestingRejection";
 import { buildIdPathContext } from "../../../adapters/canonical/idPath";
 import {
   getEditingSemanticsImpactInstanceIds,
@@ -250,9 +254,19 @@ function persistElementsAfterInstanceMutation(_elements: Element[]): void {
  * 후속 작업 분리. 상세는 `.claude/rules/state-management.md` 의 "Canonical sync
  * 호출 순서" 섹션 + § 잔존 영역 표 참조.
  */
-function syncInstanceElementsToCanonical(elements: Element[]): void {
-  if (!areCanonicalMutationStoreActionsRegistered()) return;
-  mergeElementsCanonicalPrimary(elements);
+/**
+ * canonical 동기화. 중첩 규칙이 거부한 element id 를 돌려준다 — 호출자는 legacy
+ * `elements` 배열에서 그 id 를 빼야 한다 (canonical 에 없는 유령이 배열에만 남는다).
+ */
+function syncInstanceElementsToCanonical(
+  elements: Element[],
+): ReadonlySet<string> {
+  if (!areCanonicalMutationStoreActionsRegistered()) return new Set();
+  const result = mergeElementsCanonicalPrimary(elements);
+  return reportCanonicalNestingRejection(
+    result,
+    "syncInstanceElementsToCanonical",
+  );
 }
 
 function createMaterializedElementFromOverride(
@@ -610,17 +624,18 @@ function applyElementSnapshotBatch(
     previousElements.map((element) => element.id),
   );
 
-  syncInstanceElementsToCanonical(nextElements);
+  const rejectedIds = syncInstanceElementsToCanonical(nextElements);
+  const acceptedElements = withoutRejectedElements(nextElements, rejectedIds);
 
   if (state.currentPageId) {
     historyManager.addEntry({
       type: "batch",
       elementId,
-      elementIds: nextElements.map((element) => element.id),
+      elementIds: acceptedElements.map((element) => element.id),
       data: {
         canonicalEvents: buildCanonicalReplaceEvents(
           previousElements,
-          nextElements,
+          acceptedElements,
           prevCaptures,
         ),
       },
@@ -633,10 +648,10 @@ function applyElementSnapshotBatch(
     const retained = sourceElements.filter(
       (element) => !removeIds.has(element.id),
     );
-    const updatedElements = [...retained, ...nextElements];
+    const updatedElements = [...retained, ...acceptedElements];
     const selectedElementProps = prevState.selectedElementId
       ? (() => {
-          const selected = nextElements.find(
+          const selected = acceptedElements.find(
             (element) => element.id === prevState.selectedElementId,
           );
           return selected
@@ -708,7 +723,16 @@ export function createInstance(
   }));
   // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
   // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
-  syncInstanceElementsToCanonical([instanceElement]);
+  const instanceRejectedIds = syncInstanceElementsToCanonical([
+    instanceElement,
+  ]);
+  if (instanceRejectedIds.size > 0) {
+    set((prevState) => ({
+      elements: prevState.elements.filter(
+        (element) => !instanceRejectedIds.has(element.id),
+      ),
+    }));
+  }
   // 히스토리 — canonical insert event (sync 후 doc 조회 기반 빌드)
   if (state.currentPageId) {
     historyManager.addEntry({
@@ -990,7 +1014,14 @@ export function resetInstanceOverrideField(
   });
   // ADR-122 §Residual: set 1차 → sync → _rebuildIndexes (canonical-first 아님,
   // race 회피용 sync 선행) — syncInstanceElementsToCanonical JSDoc 참조
-  syncInstanceElementsToCanonical([nextElement]);
+  const nextRejectedIds = syncInstanceElementsToCanonical([nextElement]);
+  if (nextRejectedIds.size > 0) {
+    set((prevState) => ({
+      elements: prevState.elements.filter(
+        (element) => !nextRejectedIds.has(element.id),
+      ),
+    }));
+  }
   get()._rebuildIndexes();
   const persistedSourceElements = getInstanceActionSourceElements();
   const _persistedElement =

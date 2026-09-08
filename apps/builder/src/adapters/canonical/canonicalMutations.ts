@@ -115,13 +115,22 @@ export type CanonicalMutationResult = {
   changed: boolean;
   document: CompositionDocument | null;
   /**
-   * 중첩 규칙 위반으로 변이를 **거부**했을 때만 실린다 (`changed: false`). 캔버스는
-   * RAC 를 그리는 도구라 Pen 구조 · RAC 합성 · HTML 의미 세 층을 상속한다 — 여기가
-   * 그 fail-closed 백스톱이다. 소비처 (drop · paste · AI) 는 이 경계에 오기 전에
-   * `resolveNestingViolation` 로 preflight 해서 가까운 유효 부모로 옮기고 사용자에게
-   * 알린다. 여기서 걸리는 건 preflight 를 거치지 않은 경로뿐이다.
+   * 중첩 규칙 위반으로 변이를 거부했을 때 실린다 — 배치의 **일부만** 거부돼
+   * `changed: true` 인 경우에도 실린다. 캔버스는 RAC 를 그리는 도구라 Pen 구조 ·
+   * RAC 합성 · HTML 의미 세 층을 상속한다 — 여기가 그 fail-closed 백스톱이다.
+   * 소비처 (drop · paste · AI) 는 이 경계에 오기 전에 `resolveNestingViolation` 로
+   * preflight 해서 가까운 유효 부모로 옮기고 사용자에게 알린다. 여기서 걸리는 건
+   * preflight 를 거치지 않은 경로뿐이다.
    */
   nestingViolation?: NestingViolation;
+  /**
+   * 위 위반으로 canonical 에 **들어가지 못한** element id. 부분 거부에서 특히
+   * 중요하다 — 호출자가 이 id 를 빼지 않고 legacy store 에 쓰면 canonical 에도
+   * `elementsMap` 에도 없고 저장도 안 되는 유령이 `elements` 배열에만 남는다
+   * (2026-09-09 재현). 첫 위반 하나만 오는 `nestingViolation` 과 달리 거부된
+   * 전부를 담는다.
+   */
+  rejectedElementIds?: readonly string[];
 };
 
 /**
@@ -178,7 +187,11 @@ function resolveMoveNestingViolation(
 function partitionMergeByNesting(
   doc: CompositionDocument,
   elements: readonly Element[],
-): { accepted: Element[]; violation: NestingViolation | null } {
+): {
+  accepted: Element[];
+  violation: NestingViolation | null;
+  rejectedIds: string[];
+} {
   const index = createCanonicalNestingIndex(doc);
   const batchById = new Map(elements.map((el) => [el.id, el] as const));
   const skipped = new Set<string>();
@@ -240,7 +253,11 @@ function partitionMergeByNesting(
   }
   // 부모가 먼저 오도록 정렬돼 있지 않을 수 있어 자손 제거는 한 번 더 훑는다
   const survivors = accepted.filter((el) => !hasSkippedAncestorInBatch(el));
-  return { accepted: survivors, violation };
+  const survivorIds = new Set(survivors.map((el) => el.id));
+  const rejectedIds = elements
+    .map((el) => el.id)
+    .filter((id) => !survivorIds.has(id));
+  return { accepted: survivors, violation, rejectedIds };
 }
 
 export type CanonicalMoveTarget =
@@ -2340,18 +2357,23 @@ export function mergeElementsCanonicalPrimary(
   if (!projectId) return applyCanonicalPrimaryMerge(elements);
 
   const currentDoc = getCurrentDocument(projectId);
-  const { accepted, violation } = partitionMergeByNesting(currentDoc, elements);
+  const { accepted, violation, rejectedIds } = partitionMergeByNesting(
+    currentDoc,
+    elements,
+  );
   if (!violation) return applyCanonicalPrimaryMerge(elements);
   if (accepted.length === 0) {
     return {
       changed: false,
       document: currentDoc,
       nestingViolation: violation,
+      rejectedElementIds: rejectedIds,
     };
   }
   return {
     ...applyCanonicalPrimaryMerge(accepted),
     nestingViolation: violation,
+    rejectedElementIds: rejectedIds,
   };
 }
 

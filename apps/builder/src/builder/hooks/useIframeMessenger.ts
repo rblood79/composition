@@ -43,6 +43,7 @@ import { Element } from "../../types/core/store.types";
 import { MessageService } from "../../utils/messaging";
 // ADR-116 Phase 3 G4 — mutation reverse wrapper (D18=A 정합)
 import { mergeElementsCanonicalPrimary } from "@/adapters/canonical/canonicalMutations";
+import { reportCanonicalNestingRejection } from "../stores/utils/canonicalNestingRejection";
 import { useCompareModeStore } from "../workspace/canvas/stores";
 import {
   getNullablePageFrameBindingId,
@@ -222,7 +223,12 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     // mutation 만으로 IndexedDB persistence 흐름 완결.
     // history 미기록 (ADR-185 의도적 생략) — preview 런타임 생성물의 ingress
     // 로, builder 사용자 편집이 아니라 undo 단위를 만들지 않는다.
-    mergeElementsCanonicalPrimary(queuedElements);
+    // ingress 는 legacy store 를 쓰지 않아 유령은 생기지 않지만, 규칙 위반으로
+    // 버려진 preview 생성물이 무음으로 사라지지 않게 사유를 남긴다.
+    reportCanonicalNestingRejection(
+      mergeElementsCanonicalPrimary(queuedElements),
+      "previewGeneratedElements",
+    );
   }, []);
 
   const enqueuePreviewGeneratedElements = useCallback(
