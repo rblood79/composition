@@ -36,7 +36,7 @@ describe("buildRadialMarks", () => {
     const { marks } = build();
     // 3 범주 × (트랙 + 값) = 6
     expect(marks).toHaveLength(6);
-    const tracks = marks.filter((m) => m.role === "grid");
+    const tracks = marks.filter((m) => m.fillRole === "grid");
     expect(tracks).toHaveLength(3);
   });
 
@@ -56,8 +56,8 @@ describe("buildRadialMarks", () => {
       { category: "A", value: 50 },
       { category: "B", value: "x" },
     ]);
-    expect(marks.filter((m) => m.role === "grid")).toHaveLength(2);
-    expect(marks.filter((m) => m.role === undefined)).toHaveLength(1);
+    expect(marks.filter((m) => m.fillRole === "grid")).toHaveLength(2);
+    expect(marks.filter((m) => m.fillRole === undefined)).toHaveLength(1);
   });
 
   it("누적 — 같은 링에서 시리즈가 각도로 이어 붙는다", () => {

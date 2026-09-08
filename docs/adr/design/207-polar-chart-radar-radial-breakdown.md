@@ -84,7 +84,7 @@ function assertNever(x: never): never { throw new Error(`unhandled chartType: ${
 ### 3-3. 마크
 
 - **`marks/radar.ts`** — 시리즈당 닫힌 다각형 1개 (`fillSeries` + `strokeSeries`, area 와 같은 알파). 값 없는 범주는 **꼭짓점을 건너뛰지 않고** 중심(반지름 0) 으로 접는다 — 다각형은 닫힌 도형이라 subpath 를 나누면 도형이 깨진다 (line/area 의 끊기 규약과 갈리는 자리이므로 본문 R3 에 기록). 점 표시는 기존 `buildDotMarks` 재사용.
-- **`marks/radial.ts`** — 범주(또는 시리즈)당 호 막대. 배경 트랙 호 + 값 호 2겹, 둘 다 `arcSlicePath` 재사용. 누적은 `stackBands`(F9) 를 각도 축에 적용.
+- **`marks/radial.ts`** — 범주(또는 시리즈)당 호 막대. 배경 트랙 호 + 값 호 2겹, 둘 다 `arcSlicePath` 재사용. 누적은 `stackBands`(F9) 를 각도 축에 적용. 트랙은 **채운다** — `PathMark.fillRole` 신설 (P5 live 1차가 잡은 결함: 선으로만 그으면 두께 있는 고리가 동심원 2개로 읽힌다. 좌표는 옳아서 단위·parity 는 통과했다).
 
 ### 3-4. 축 — `buildPolarAxes`
 
@@ -92,6 +92,7 @@ function assertNever(x: never): never { throw new Error(`unhandled chartType: ${
 - **격자**: `gridType="polygon"` 이면 값 눈금마다 다각형 `PathMark`, `"circle"` 이면 원 `PathMark`. **여기가 F3 이 막고 있던 자리다.**
 - **각도 레이블**: 각도별로 `anchor`/`baseline` 을 6방향으로 고른다 — 위(middle/bottom) · 우상~우하(start) · 아래(middle/top) · 좌상~좌하(end). **회전 불요** (F5 유지). Recharts `PolarAngleAxis` 기본 tick 도 수평이다. **솎아내기는 따로 만든다** (R9) — `labelStride`(`axes.ts:35`) 는 band step 기준이라 극좌표에 안 쓰인다. 원둘레를 범주 수로 나눈 호 길이를 slot 으로 삼는 각도판 stride 가 필요하다 (범주 200 이면 스포크·레이블이 겹친다).
 - **반지름 축 눈금** (radial 의 `PolarRadiusAxis`): v1 은 중앙 텍스트만 (`showTotal` 재사용), 눈금 표시는 비스코프.
+- **radial 은 극좌표 축을 아예 안 그린다** (P3 실측 판정): 트랙 호가 "여기까지가 100%" 를 보여 주는 축 노릇을 하므로 동심 격자를 더하면 이중선이 된다. shadcn `chart-radial-*` 도 `PolarGrid` 를 쓰지 않는다. 그래서 `buildPolarAxes` 는 radar 전용이다.
 
 ### 3-5. 두 consumer 델타
 
@@ -137,11 +138,11 @@ function assertNever(x: never): never { throw new Error(`unhandled chartType: ${
 
 - [x] **G0** — 기존 4종 baseline 기록 (스냅샷 4 · parity 64 · 기하 106 · 번들 gz 현재값)
 - [x] **G1** — 스키마 확장 후 기존 4종 좌표 **byte 무변경** (스냅샷 4 GREEN, 갱신 금지) + `tooltip.test.ts` 12 GREEN + `chartType` exhaustive switch 도입 (R7) + type-check 0. **컴파일 통과는 통과 근거가 아니다** (F15). R7 의 집행 게이트는 `pnpm type-check` 가 아니라 **`pnpm -F @composition/specs build`** 다 (F18) — 원복 RED 로 `TS2322 ... not assignable to type '"line" | "area" | "bar"'` 확인. 런타임 절반은 `polar.test.ts` 의 "미처리 chartType 은 throw"
-- [ ] **G2** — radar/radial 기하 단위: 좌표 유한성 (4종 경계 — 행 0 · 값 전부 비수치 · 크기 0 · 단일 범주) · 결정성 (같은 입력 = 같은 scene) · 반지름 음수 0건 · `d` 에 `NaN`/`Infinity` 0건 · **무시 계약** (R8 — `orientation`/`curve`/`showDots`/`colorBy` 가 radar/radial 좌표를 안 바꾼다, 선례 F17) · **범주 50 각도 레이블 겹침 0** (R9)
-- [ ] **G3** — 대칭: parity 케이스 4개 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일**
-- [ ] **G4** — 번들 각 앱 **+5KB gz 이내** · 200행 × 4시리즈 frame p95 **Δ ≤ +1ms** (불리 케이스 = 줌 드라이버, ADR-194 G4 하니스 재사용)
-- [ ] **G5** — live: 팔레트에서 radar/radial 전환 → Skia 픽셀 변화 + Preview DOM (`polygon`/`circle` 격자 · 호 트랙) 양쪽 확인. **Skia 픽셀은 Compare Mode 를 끄고 먼저 잰다** (메모리 `feedback-compare-mode-halves-canvas-hides-area-delta`)
-- [ ] CanvasKit 실픽셀 — 다각형 격자·호 트랙이 실제로 그려지는지 (`nodeRendererPath.integration.test.ts` 에 1건 추가)
+- [x] **G2** — radar/radial 기하 단위: 좌표 유한성 (4종 경계 — 행 0 · 값 전부 비수치 · 크기 0 · 단일 범주) · 결정성 (같은 입력 = 같은 scene) · 반지름 음수 0건 · `d` 에 `NaN`/`Infinity` 0건 · **무시 계약** (R8 — `orientation`/`curve`/`showDots`/`colorBy` 가 radar/radial 좌표를 안 바꾼다, 선례 F17) · **범주 50 각도 레이블 겹침 0** (R9)
+- [x] **G3** — 대칭: parity 케이스 4개 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일**
+- [x] **G4** — 번들 각 앱 **+5KB gz 이내** · 200행 × 4시리즈 frame p95 **Δ ≤ +1ms** (불리 케이스 = 줌 드라이버, ADR-194 G4 하니스 재사용)
+- [x] **G5** — live: 팔레트에서 radar/radial 전환 → Skia 픽셀 변화 + Preview DOM (`polygon`/`circle` 격자 · 호 트랙) 양쪽 확인. **Skia 픽셀은 Compare Mode 를 끄고 먼저 잰다** (메모리 `feedback-compare-mode-halves-canvas-hides-area-delta`)
+- [x] CanvasKit 실픽셀 — 다각형 격자·호 트랙이 실제로 그려지는지 (`nodeRendererPath.integration.test.ts` 에 1건 추가)
 
 ### 측정 착수 전 5-질문 (`.claude/rules/measurement-validity.md` §1)
 

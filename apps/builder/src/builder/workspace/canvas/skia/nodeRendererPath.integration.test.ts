@@ -190,6 +190,43 @@ describe("renderPath 실제 CanvasKit 렌더 (ADR-194 G1)", () => {
     surface.delete();
   });
 
+  it("ADR-207 — 다각형 격자는 stroke 만, 호 트랙은 고리로 그려진다", () => {
+    // polygonPath(32,32, r=24, count=6, start=0) 와 같은 구조 — 채우지 않고 선만.
+    const hexagon =
+      "M 32 8 L 52.78 20 L 52.78 44 L 32 56 L 11.22 44 L 11.22 20 Z";
+    draw(
+      pathNode({
+        d: hexagon,
+        offsetX: 0,
+        offsetY: 0,
+        strokeColor: Float32Array.of(1, 0, 0, 1),
+        strokeWidth: 2,
+      }),
+    );
+    // 꼭짓점(32,8) 근처 선 위는 칠해지고, 가운데는 비어 있다 (fill 없음).
+    expect(readPixel(ck, surface, 32, 8)[0]).toBeGreaterThan(200);
+    expect(readPixel(ck, surface, 32, 32)[3]).toBe(0);
+    surface.delete();
+
+    // radial 트랙 — arcSlicePath(32,32, 28, 18, 0, 360). 링만 칠해진다.
+    const track =
+      "M 32 4 A 28 28 0 1 1 32 60 A 28 28 0 1 1 32 4 Z " +
+      "M 32 14 A 18 18 0 1 0 32 50 A 18 18 0 1 0 32 14 Z";
+    draw(
+      pathNode({
+        d: track,
+        offsetX: 0,
+        offsetY: 0,
+        fillColor: Float32Array.of(0, 1, 0, 1),
+        fillRule: "evenodd",
+        strokeWidth: 0,
+      }),
+    );
+    expect(readPixel(ck, surface, 32, 9)[1]).toBeGreaterThan(200); // 링 두께 안
+    expect(readPixel(ck, surface, 32, 32)[3]).toBe(0); // 안쪽 구멍
+    surface.delete();
+  });
+
   it("offset 이 그리는 위치를 옮긴다 (노드는 원점 유지)", () => {
     draw(
       pathNode({

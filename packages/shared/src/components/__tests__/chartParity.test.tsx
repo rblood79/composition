@@ -129,6 +129,26 @@ const CASES: Array<[string, ChartProps]> = [
   //   GREEN 이라는 것은 툴팁이 **정적 마크를 건드리지 않는다**는 뜻이다.
   ["bar / tooltip on", props({ showTooltip: true })],
   ["pie / legend right", props({ chartType: "pie", showLegend: true, legendPosition: "right" })],
+  // ADR-207 극좌표 — 격자가 `PathMark` 로 오는 유일한 자리다 (`AxisScene.grid` 유니온
+  //   확장이 두 leg 을 실제로 지나는지 여기서 확인한다).
+  [
+    "radar / polygon grid",
+    props({ chartType: "radar", showGrid: true, gridType: "polygon" }),
+  ],
+  [
+    "radar / circle grid + legend",
+    props({
+      chartType: "radar",
+      showGrid: true,
+      gridType: "circle",
+      showLegend: true,
+    }),
+  ],
+  ["radial / 단일 시리즈", props({ chartType: "radial", color: "" })],
+  [
+    "radial / 누적 + 값 레이블",
+    props({ chartType: "radial", stackType: "stacked", showValueLabels: true }),
+  ],
 ];
 
 describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {

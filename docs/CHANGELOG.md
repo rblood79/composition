@@ -2,6 +2,21 @@
 
 All notable changes to composition will be documented in this file.
 
+## [차트 — radar · radial (극좌표 2종)] - 2026-09-08
+
+### Added
+
+- **Radar** — 범주가 원둘레에 놓이고 값이 중심에서의 거리가 됩니다. 시리즈마다 닫힌 다각형 하나로 그려져 여러 시리즈의 모양을 겹쳐 봅니다. **Grid Type** 으로 격자를 다각형/원 중에 고릅니다. 값이 없는 범주는 그 꼭짓점이 중심으로 접힙니다 (선 차트처럼 끊으면 닫힌 도형이 깨져 없는 면적이 생깁니다). 범주가 많으면 각도 레이블을 겹쳐 그리는 대신 일부만 그립니다.
+- **Radial** — 범주가 링이 되고 값이 호의 각도가 됩니다. 링마다 옅은 트랙(=100% 자리)과 값 호가 겹쳐 그려집니다. 누적을 켜면 한 링 안에서 시리즈가 각도로 이어 붙습니다. Inner Radius 로 가운데 구멍 크기를 조절합니다.
+- **툴팁** 은 radar 는 범주 부채꼴 (그 안의 시리즈 전부), radial 은 **링** 단위로 뜹니다 — 누적 radial 은 같은 각도에 시리즈가 쌓이므로 가리키는 대상을 반지름이 가릅니다.
+- radar 는 Orientation · Curve · Show Dots 외 · Color By · Stack Type 을, radial 은 Orientation · Curve · Show Dots · Grid Type 을 **무시합니다** (각 차트에 뜻이 없는 축). 무시한다는 사실 자체를 테스트로 고정했습니다.
+
+### Fixed
+
+- **저장된 문서를 다시 열면 차트의 새 설정이 기본값으로 돌아가던 결함**을 고쳤습니다. 2026-09-08 확장에서 추가한 Curve · Show Dots · Show Value Labels · Color By · Inner Radius · Show Total · Show Tooltip 이 문서 로드 경로를 지나지 않아, 팔레트에서 놓을 때는 되고 저장 후 Preview·배포본에서만 기본값 차트가 나왔습니다 (빌더 캔버스는 정상이라 눈에 안 띄었습니다).
+
+- 근거: ADR-207. 좌표 대칭 게이트 64 → **84** (radar polygon/circle · radial 단일/누적 4케이스, path `d` byte 동일) · 기하 단위 106 → **160** · 실제 CanvasKit 픽셀 8 · live 빌더 **17/17** (팔레트 전환이 캔버스 픽셀을 바꾸는지 → Preview DOM 의 격자·트랙 → 툴팁이 반지름으로 갈리는지). 번들 증가 builder +2.40KB gz · publish +2.11KB gz (한도 각 +5KB). 200행 × 4시리즈 프레임 p95 Δ radar −0.2ms / radial +0.3ms (대조군 = 같은 문서의 막대 차트, 재측정 편차 ±0.2ms, 한도 +1ms). live 1차가 잡은 결함 1건 — radial 트랙이 선으로만 그려져 고리가 동심원 2개로 읽히던 것 (좌표는 옳아서 단위·대칭 테스트는 통과했습니다).
+
 ## [차트 — 누적·곡선·점·값 레이블·도넛·툴팁 (shadcn charts 대조 반영)] - 2026-09-08
 
 ### Added

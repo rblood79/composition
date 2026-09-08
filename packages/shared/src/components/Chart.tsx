@@ -142,9 +142,22 @@ function renderMark(mark: Mark, key: string): React.ReactElement | null {
           key={key}
           d={mark.d}
           fill={
-            mark.fillSeries !== undefined ? seriesVar(mark.fillSeries) : "none"
+            // 축 토큰 채우기 (ADR-207 radial 트랙) — Skia 의 fillRole 분기와 같은 규약.
+            mark.fillRole !== undefined
+              ? mark.fillRole === "grid"
+                ? "var(--chart-grid, currentColor)"
+                : "var(--chart-axis, currentColor)"
+              : mark.fillSeries !== undefined
+                ? seriesVar(mark.fillSeries)
+                : "none"
           }
-          fillOpacity={mark.fillSeries !== undefined ? 0.85 : undefined}
+          fillOpacity={
+            mark.fillRole !== undefined
+              ? 0.35
+              : mark.fillSeries !== undefined
+                ? 0.85
+                : undefined
+          }
           fillRule={mark.fillRule}
           stroke={
             // 격자·축 path (ADR-207 극좌표) 는 축 토큰 — Skia 쪽 `pushMark` 와 같은 규약.

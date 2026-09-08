@@ -136,9 +136,15 @@ export interface PathMark {
   fillRule?: "nonzero" | "evenodd";
   /**
    * 축/격자 역할 (ADR-207). 있으면 두 consumer 가 시리즈 팔레트가 아니라
-   * `--chart-grid` / `--chart-axis` 토큰으로 긋는다 — `LineMark.role` 과 같은 규약.
+   * `--chart-grid` / `--chart-axis` 토큰으로 **긋는다** — `LineMark.role` 과 같은 규약.
    */
   role?: LineRole;
+  /**
+   * 같은 토큰으로 **채운다** (ADR-207 radial 트랙). 선만 그으면 두께 있는 고리가
+   * 동심원 2개로 보여 트랙이 아니라 격자처럼 읽힌다 — 트랙은 "여기까지가 100%" 를
+   * 나타내는 면이므로 채워야 한다.
+   */
+  fillRole?: LineRole;
 }
 
 export interface TextMark {

@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — `docs/adr/reviews/207.md`)
+Implemented — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — `docs/adr/reviews/207.md`)
 
 ### 진행 로그
 
@@ -13,10 +13,11 @@ Accepted — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — 
 | P2 radar 마크 + `gridType` | Implemented | 2026-09-08 |
 | P3 radial 마크 (트랙 + 값 호 + 누적) + 극좌표 툴팁 | Implemented | 2026-09-08 |
 | P4 결선 (binding enum · `gridType` · factory 기본값 · 범례 축 · 문서 로드 경로) | Implemented | 2026-09-08 |
+| P5 게이트 (parity 4 · CanvasKit 픽셀 1 · 번들·프레임 · live 17/17 · 문서) | Implemented | 2026-09-08 |
 
 ## Context
 
-[ADR-194](completed/194-chart-component-headless-geometry.md) 로 차트 4종 (bar/line/area/pie) 을 반영하고, 2026-09-08 shadcn/ui charts 대조로 누적·보간·점·값 레이블·도넛·툴팁을 후속 확장했다 (ADR-194 §후속 확장). 남은 격차는 **radar (예제 14) · radial (예제 6)** 둘뿐이다.
+[ADR-194](194-chart-component-headless-geometry.md) 로 차트 4종 (bar/line/area/pie) 을 반영하고, 2026-09-08 shadcn/ui charts 대조로 누적·보간·점·값 레이블·도넛·툴팁을 후속 확장했다 (ADR-194 §후속 확장). 남은 격차는 **radar (예제 14) · radial (예제 6)** 둘뿐이다.
 
 **본 ADR 이 별도로 서는 이유** — ADR-194 가 스스로 확장/분리 기준을 써 뒀다:
 
@@ -122,7 +123,7 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 
 **축 레이블 회전 판정 (ADR-194 비스코프 재시험)**: 원 둘레 레이블은 앵커 3종 × baseline 3종의 **6방향 배치로 충분**하다 — Recharts `PolarAngleAxis` 기본 tick 도 회전을 쓰지 않는다. 따라서 `TextShape` 회전 신설은 본 ADR 범위 밖이며 ADR-194 의 비스코프를 유지한다.
 
-> 구현 상세: [207-polar-chart-radar-radial-breakdown.md](design/207-polar-chart-radar-radial-breakdown.md) — 전제 lock-in(§1), 코드 사실 표(§2), 타입 델타·극좌표 스케일·마크·축(§3), Phase 0~5(§4), 검증 체크리스트 + 측정 5-질문(§5), 위험 매핑(§6), 비스코프(§7)
+> 구현 상세: [207-polar-chart-radar-radial-breakdown.md](../design/207-polar-chart-radar-radial-breakdown.md) — 전제 lock-in(§1), 코드 사실 표(§2), 타입 델타·극좌표 스케일·마크·축(§3), Phase 0~5(§4), 검증 체크리스트 + 측정 5-질문(§5), 위험 매핑(§6), 비스코프(§7)
 
 ## Risks
 
@@ -148,6 +149,31 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 | G3 | P4 종료 | 대칭 parity 케이스 4 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일** | 대칭 위반 — 어느 leg 이 기하를 안 따랐는지 조사 |
 | G4 | P5 | 번들 각 앱 +5KB gz 이내 · 200행×4시리즈 frame p95 Δ ≤ +1ms (줌 드라이버 불리 케이스 + 차트 추가 전 대조군) | radial 을 후속으로 분리 (R5) |
 | G5 | P5 | live: 팔레트 전환 → Skia 픽셀 변화 + Preview DOM 격자/호 확인. **Skia 픽셀은 Compare Mode 를 끄고 먼저 측정** | Implemented 승격 차단 |
+
+### Gate 실측 (2026-09-08)
+
+| Gate | 결과 | 근거 |
+| ---- | ---- | ---- |
+| G0 | PASS | 기하 106 · parity 64 · 스냅샷 4 · 번들 gz builder 1,758,730 B / publish 502,756 B (breakdown §4) |
+| G1 | PASS | 스냅샷 4 갱신 0 (git status 변경 없음) · tooltip 12 GREEN · exhaustive switch 도입, 원복 RED 로 `TS2322` 확인 · type-check 0. **집행 게이트는 `pnpm -F @composition/specs build` (dts)** — `pnpm type-check` 는 specs 를 돌지 않는다 (breakdown F18) |
+| G2 | PASS | radar 20 · radial 17 — 경계 4종 · 결정성 · 반지름 음수 0 · `d` 에 NaN/Infinity 0 · 무시 계약 (orientation/curve/colorBy/stackType, `stackType` 은 원복 RED 로 비-vacuous 확인) · 범주 50 레이블 솎아내기 |
+| G3 | PASS | parity 64 → **84** (극좌표 4 케이스 × 5). falsify: DOM leg 이 격자 path 를 빠뜨리게 하면 radar 2건 RED — 게이트가 비어 있지 않다. CanvasKit 실픽셀 1건 추가 (다각형 stroke · 트랙 고리) |
+| G4 | PASS | 번들 gz **builder +2,454 B / publish +2,160 B** (예산 각 5,120 B). frame p95 Δ (200행×4시리즈, 줌 드라이버, 워밍업 arm 폐기, 대조군 = bar): **radar −0.200 ms · radial +0.300 ms**, 대조군 재측정 drift +0.200 ms — 두 Δ 모두 예산 안이고 run 잡음(±0.2 ms) 규모 |
+| G5 | PASS | live 17/17 — 아래 §Live Exercise |
+
+### Live Exercise
+
+**2026-09-08 · Playwright 하니스** (`apps/builder/scripts/adr207-polar-chart-live.mjs`, headless, CPU throttle 1x) — 실제 빌더에 프로젝트를 만들고 팔레트에서 Chart 를 놓은 뒤 `chartType` 을 바꿔 가며 두 leg 을 같이 잰다. Skia 픽셀은 **Compare Mode 를 끄고 전체 폭에서 먼저** 재고 (Compare Mode 는 캔버스를 반폭으로 줄여 면적 변화를 지운다), DOM 은 그 뒤 Compare Mode 로 본다.
+
+결과 **17/17 PASS** (`/private/tmp/adr207-polar-live/result.json`):
+
+- **enum 이 실제로 도달**: bar → radar → radial 로 Skia 픽셀 해시가 갈린다 (1283359972 → 840917088 → 1348193692). 등록만 되고 렌더가 안 바뀌는 형태(R6)가 아니다.
+- **`gridType` 이 그림을 가른다**: Skia 해시 840917088 → 1232462363. DOM 에서 polygon 격자 `d` 에는 호 명령 `A` 가 없고 circle 격자에는 있다 — 개수는 6으로 같다 (같은 눈금 수, 다른 모양).
+- **격자 `PathMark` 가 두 leg 에 도달**: Preview DOM 에 격자 path 6 + 스포크 `line` 4. `AxisScene.grid` 유니온 확장이 실제로 지나간다.
+- **radial 트랙**: `--chart-grid` 로 **채워진** path 4개, 시리즈 fill path 7개, 극좌표 축 0 · `line` 0 (트랙이 격자 노릇). 누적 전환 시 해시 1348193692 → 695418593.
+- **툴팁 히트가 반지름으로 갈린다**: 같은 12시 각도에서 `y` 만 바꾸니 `MonA12B20` → `WedA18B25`. 각도만으로는 못 가르는 축(round 1 이슈 #5)이 실제로 동작한다.
+
+live 1차 실행(15/16)이 잡은 결함 1건: radial **트랙이 선으로만** 그려져 두께 있는 고리가 동심원 2개로 읽혔다. `PathMark.fillRole` 가산 필드로 축 토큰 채우기를 분리해 수리 (두 leg 동시). 단위·parity 테스트는 이 결함을 통과시켰다 — 좌표가 옳았기 때문이다.
 
 ## Consequences
 

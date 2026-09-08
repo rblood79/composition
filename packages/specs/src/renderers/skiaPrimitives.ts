@@ -3481,8 +3481,14 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
           ...(mark.fillSeries !== undefined
             ? { fill: seriesToken(mark.fillSeries), fillAlpha: 0.85 }
             : {}),
-          // 격자·축 path (ADR-207 극좌표) 는 시리즈 팔레트가 아니라 축 토큰으로 긋는다
+          // 격자·축 path (ADR-207 극좌표) 는 시리즈 팔레트가 아니라 축 토큰을 쓴다
           //   — `LineMark.role` 과 같은 규약이라 DOM 쪽과 색이 갈리지 않는다.
+          ...(mark.fillRole !== undefined
+            ? {
+                fill: mark.fillRole === "grid" ? gridToken : axisToken,
+                fillAlpha: 0.35,
+              }
+            : {}),
           ...(mark.role !== undefined
             ? {
                 stroke: mark.role === "grid" ? gridToken : axisToken,

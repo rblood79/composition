@@ -57,7 +57,7 @@ function arcMark(
   inner: number,
   start: number,
   sweep: number,
-  paint: { fillSeries: number } | { role: "grid" },
+  paint: { fillSeries: number } | { fillRole: "grid" },
 ): PathMark | null {
   const d = arcSlicePath(center.x, center.y, outer, inner, start, sweep);
   if (!d) return null;
@@ -115,7 +115,9 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
     const outer = r2(center.outer - ringSpan * ci);
     const inner = r2(outer - thickness);
 
-    const track = arcMark(center, outer, inner, 0, 360, { role: "grid" });
+    // 트랙은 **채운다** — 두께 있는 고리를 선으로만 그으면 동심원 2개가 되어
+    //   격자처럼 읽힌다 (`fillRole`, ADR-207).
+    const track = arcMark(center, outer, inner, 0, 360, { fillRole: "grid" });
     if (track) marks.push(track);
 
     const bands = stackBands(grid, ci, stackMode);
