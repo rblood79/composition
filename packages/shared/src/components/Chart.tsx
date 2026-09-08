@@ -53,6 +53,14 @@ export interface ChartProps {
   innerRadius?: number;
   /** radar 격자 모양 (ADR-207) */
   gridType?: PolarGridType;
+  /** radar 스포크 표시 (shadcn `PolarGrid radialLines`) */
+  showSpokes?: boolean;
+  /** 동심 격자 링 개수 (0=값 눈금 따름) */
+  gridRings?: number;
+  /** 가장 바깥 격자 링 채우기 */
+  fillGrid?: boolean;
+  /** radar 다각형 채우기 (false=선만) */
+  fillArea?: boolean;
   showTotal?: boolean;
   showTooltip?: boolean;
   showAxis?: boolean;
@@ -282,6 +290,10 @@ export function Chart({
   colorBy,
   innerRadius,
   gridType,
+  showSpokes,
+  gridRings,
+  fillGrid,
+  fillArea,
   showTotal,
   showTooltip,
   showAxis,
@@ -323,6 +335,10 @@ export function Chart({
       colorBy: colorBy ?? CHART_DEFAULT_PROPS.colorBy,
       innerRadius: innerRadius ?? CHART_DEFAULT_PROPS.innerRadius,
       gridType: gridType ?? CHART_DEFAULT_PROPS.gridType,
+      showSpokes: showSpokes ?? CHART_DEFAULT_PROPS.showSpokes,
+      gridRings: gridRings ?? CHART_DEFAULT_PROPS.gridRings,
+      fillGrid: fillGrid ?? CHART_DEFAULT_PROPS.fillGrid,
+      fillArea: fillArea ?? CHART_DEFAULT_PROPS.fillArea,
       showTotal: showTotal ?? CHART_DEFAULT_PROPS.showTotal,
       showTooltip: showTooltip ?? CHART_DEFAULT_PROPS.showTooltip,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
@@ -343,6 +359,10 @@ export function Chart({
       colorBy,
       innerRadius,
       gridType,
+      showSpokes,
+      gridRings,
+      fillGrid,
+      fillArea,
       showTotal,
       showTooltip,
       showAxis,

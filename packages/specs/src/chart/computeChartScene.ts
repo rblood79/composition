@@ -73,6 +73,10 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   colorBy: "series",
   innerRadius: 0,
   gridType: "polygon",
+  showSpokes: true,
+  gridRings: 0,
+  fillGrid: false,
+  fillArea: true,
   showTotal: false,
   showTooltip: false,
   showAxis: true,
@@ -176,6 +180,7 @@ function computePolarScene(
       value,
       center,
       strokeWidth: metrics.strokeWidth,
+      fillArea: props.fillArea,
       showValueLabels: props.showValueLabels,
       fontSize,
     });
@@ -220,6 +225,9 @@ function computePolarScene(
           fontSize,
           showAxis: props.showAxis,
           showGrid: props.showGrid,
+          showSpokes: props.showSpokes,
+          gridRings: props.gridRings,
+          fillGrid: props.fillGrid,
         })
       : // radial 은 트랙 호가 격자 노릇을 한다 — 축을 따로 그리면 이중선이 된다
         //   (shadcn `chart-radial-*` 도 PolarGrid 를 쓰지 않는다).
