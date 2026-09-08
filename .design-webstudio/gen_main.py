@@ -10,13 +10,13 @@ def row(n, name, where, feel, feelc, risk, riskc, fix, last=False):
             f'<div style="{p}color:var(--ink-2)"><b style="color:var(--{riskc})">{risk}</b> · {fix}</div>')
 
 rows = "".join([
- row("03","스크럽 중 캔버스 미리보기","캔버스","크다","b-pos","중간","b-notice","요소 많으면 자동 제한"),
- row("04","값 출처 막대","패널 전 탭","크다","b-pos","중간","b-notice","기본값은 표시 없음 · 점 대신 막대"),
- row("07","잘못된 값 표시","스타일 · 텍스트 탭","보통","ink-2","중간","b-notice","입력 마쳤을 때만 · 그대로 저장 남김"),
- row("09","중첩 규칙 경고","캔버스 끌어놓기","보통","ink-2","높다","b-neg","막지 말고 옮긴 뒤 되돌리기"),
- row("10","공유 스타일 세트","패널 헤더 아래","크다","b-pos","높다","b-neg","항상 Local 복귀 · 적용 개수 표시"),
- row("06","일괄 변경 되돌리기 묶음","History","보통","ink-2","중간","b-notice","부른 쪽이 지정할 때만 묶음"),
- row("08","브라우저 기본 간격","캔버스 텍스트","조건부","ink-3","중간","b-notice","측정 먼저 · 격차 있을 때만", True),
+  row("09","중첩 제약 — Pen 구조 · RAC 합성 · HTML 의미","캔버스 끌어놓기","결함","b-neg","필수","b-neg","편의가 아니다 · 지금은 RAC 가 못 그리는 트리를 만든다 · 세 층을 관찰로 유도"),
+  row("03","스크럽 중 캔버스 미리보기","캔버스","크다","b-pos","중간","b-notice","요소 많으면 자동 제한"),
+  row("04","값 출처 막대","패널 전 탭","크다","b-pos","중간","b-notice","기본값은 표시 없음 · 점 대신 막대"),
+  row("07","잘못된 값 표시","스타일 · 텍스트 탭","보통","ink-2","중간","b-notice","입력 마쳤을 때만 · 그대로 저장 남김"),
+  row("10","공유 스타일 세트","패널 헤더 아래","크다","b-pos","높다","b-neg","항상 Local 복귀 · 적용 개수 표시"),
+  row("06","일괄 변경 되돌리기 묶음","History","보통","ink-2","중간","b-notice","부른 쪽이 지정할 때만 묶음"),
+  row("08","브라우저 기본 간격","캔버스 텍스트","조건부","ink-3","중간","b-notice","측정 먼저 · 격차 있을 때만", True),
 ])
 
 hp='padding:0 16px 6px 0;border-bottom:1px solid var(--ink)'
@@ -60,8 +60,8 @@ body = f'''<div class="sheet" style="gap:17px">
       <p style="margin:9px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)">생성물 검사 · 번들 크기 검사 · AI 도구 정의 생성 · AI 평가 회귀. 사용자가 느끼는 건 오래된 CSS 가 커밋되지 않는다는 정도다.</p>
     </div>
     <div>
-      <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding-bottom:7px;border-bottom:1px solid var(--rule)">먼저 물어야 하는 것</div>
-      <p style="margin:9px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)"><b style="color:var(--ink)">09 중첩 규칙</b> 과 <b style="color:var(--ink)">10 공유 스타일 세트</b> 는 리스크가 가장 크고 둘 다 SSOT 경계를 다시 긋는다. <b style="color:var(--ink)">03</b> 과 <b style="color:var(--ink)">04</b> 는 리스크가 낮고 체감이 커서 먼저 할 만하다.</p>
+      <div class="mono" style="font-size:9.5px;letter-spacing:.11em;color:var(--ink-3);padding-bottom:7px;border-bottom:1px solid var(--rule)">순서</div>
+      <p style="margin:9px 0 0;font-size:12px;line-height:1.6;color:var(--ink-2)"><b style="color:var(--ink)">09 중첩 제약이 맨 앞이다.</b> 나머지는 없어도 빌더가 틀리지 않지만 이건 없으면 RAC 가 그릴 수 없는 트리를 빌더가 만들어 낸다. 편의가 아니라 결함이다. 결정을 기다릴 것은 <b style="color:var(--ink)">10 공유 스타일 세트</b> 하나뿐이고, 편의 항목 중에서는 <b style="color:var(--ink)">03</b> 과 <b style="color:var(--ink)">04</b> 가 먼저다.</p>
     </div>
   </div>
 </div>'''

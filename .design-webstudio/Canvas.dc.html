@@ -160,7 +160,7 @@
     </div>
 
     <div class="stack" style="min-height:0">
-      <div class="plab b"><b>중첩 경고</b><span>끌어놓기</span></div>
+      <div class="plab b"><b>중첩 제약 — 결함</b><span>끌어놓기 · 붙여넣기 · 세 층을 한 곳에서</span></div>
       <div class="fr" style="flex-grow:1;min-height:0">
         <div class="canv">
           <div class="pg" style="left:16px;top:16px;right:16px;bottom:72px"></div>
@@ -174,7 +174,7 @@
           </div>
         </div>
       </div>
-      <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)">막지 않는다. 가까운 유효한 부모에 넣고 되돌릴 길을 준다.</p>
+      <p style="margin:0;font-size:11.5px;line-height:1.5;color:var(--ink-2)">규칙은 빌더가 정하지 않는다. <b style="color:var(--ink)">Pen 구조</b> (Text · Icon 은 잎) · <b style="color:var(--ink)">RAC 합성</b> (Select 안엔 ListBox, Tabs 안엔 TabList 와 TabPanel) · <b style="color:var(--ink)">HTML 의미</b> (button 안 button 금지) 세 층을 읽어서 같은 경고로 낸다. 막지 않고 옮긴 뒤 되돌릴 길을 준다.</p>
     </div>
 
     <div class="stack" style="min-height:0">
@@ -197,8 +197,8 @@
 
   <div class="verd">
     <div class="v g"><h3>공통 원칙</h3><p>이 셋은 <b>패널에 UI 를 더하지 않는다</b>. 캔버스에서 일어나는 일은 캔버스에서 답한다.</p></div>
-    <div class="v w"><h3>가장 큰 리스크</h3><p>중첩 경고에서 끌어놓기를 <b>거부</b>하면 좌절을 부른다. 옮기고 되돌릴 길을 주는 쪽이 옳다.</p></div>
-    <div class="v f"><h3>착수 순서</h3><p>스크럽 미리보기가 가장 싸고 체감이 크다. 기본 간격은 측정 한 건이 먼저다. 중첩 경고는 결정을 받고 나서.</p></div>
+    <div class="v w"><h3>가장 큰 리스크</h3><p>중첩 경고에서 끌어놓기를 <b>거부</b>하면 좌절을 부른다. 옮기고 되돌릴 길을 주는 쪽이 옳다. 캔버스는 RAC 를 그리는 도구라 세 층 모두 이미 아래에 있는 제약이고, 빌더는 관찰만 한다.</p></div>
+    <div class="v f"><h3>착수 순서</h3><p><b>중첩 제약이 맨 앞이다.</b> 셋 중 유일한 결함이고 다른 둘은 편의다. Pen 잎 검사 → RAC 합성 → HTML 의미 순. 그 다음 스크럽 미리보기, 기본 간격은 측정 한 건 뒤.</p></div>
   </div>
 </div>
 </div>
