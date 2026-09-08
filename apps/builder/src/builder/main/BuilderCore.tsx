@@ -80,6 +80,7 @@ import {
 } from "@/adapters/canonical/canonicalMutations";
 // ADR-184 — mutation 순서 러너 bridge (rebuildIndexes DI)
 import { registerCanonicalMutationRunnerBridge } from "@/adapters/canonical/canonicalMutationRunner";
+import { useToastStore } from "@/builder/stores/toast";
 import { PanelWorkspace } from "../layout";
 import {
   ToastContainer,
@@ -94,7 +95,6 @@ import {
   usePageLoader,
   useAdjacentPagePreload,
   useAutoRecovery,
-  useToast,
   useIframeMessenger,
   useGlobalKeyboardShortcuts,
 } from "@/builder/hooks";
@@ -442,8 +442,10 @@ export const BuilderCore: React.FC = () => {
   // 인접 페이지 프리로드 (백그라운드)
   useAdjacentPagePreload();
 
-  // 🚀 Phase 7: Toast 알림
-  const { toasts, showToast, dismissToast } = useToast();
+  // Toast 는 빌더 전역 store 하나로 낸다 — 컨테이너도 아래 `<ToastContainer />` 하나뿐이다.
+  // (2026-09-08: 컴포넌트별 로컬 목록 + 컨테이너 중복 마운트로 전역 토스트가 두 번 그려지던
+  // 구조를 정리. 되돌리기 버튼 · hover 정지 · 쿨다운 전부 store 가 소유한다.)
+  const showToast = useToastStore((state) => state.showToast);
 
   // 🚀 Phase 7: 전역 키보드 단축키 (Undo/Redo, Zoom)
   useGlobalKeyboardShortcuts();
@@ -452,7 +454,9 @@ export const BuilderCore: React.FC = () => {
   const { stats: recoveryStats } = useAutoRecovery({
     onRecovery: useCallback(
       (reason: string) => {
-        showToast("info", t("messages.perfRecovered", { reason }), 8000);
+        showToast("info", t("messages.perfRecovered", { reason }), {
+          duration: 8000,
+        });
       },
       [showToast, t],
     ),
@@ -461,7 +465,7 @@ export const BuilderCore: React.FC = () => {
         showToast(
           "warning",
           t("messages.perfWarning", { health: metrics.healthScore }),
-          5000,
+          { duration: 5000 },
         );
       },
       [showToast, t],
@@ -1180,7 +1184,9 @@ export const BuilderCore: React.FC = () => {
       showToast("success", t("header.exportProjectSuccess"));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      showToast("error", t("header.exportProjectFailed", { message }), 8000);
+      showToast("error", t("header.exportProjectFailed", { message }), {
+        duration: 8000,
+      });
     }
   }, [projectId, projectInfo, showToast, t]);
 
@@ -1199,7 +1205,7 @@ export const BuilderCore: React.FC = () => {
             t("header.importProjectFailed", {
               message: result.error.message,
             }),
-            8000,
+            { duration: 8000 },
           );
           return;
         }
@@ -1250,7 +1256,9 @@ export const BuilderCore: React.FC = () => {
         showToast("success", t("header.importProjectSuccess"));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        showToast("error", t("header.importProjectFailed", { message }), 8000);
+        showToast("error", t("header.importProjectFailed", { message }), {
+          duration: 8000,
+        });
       }
     },
     [projectId, showToast, t],
@@ -1453,7 +1461,7 @@ export const BuilderCore: React.FC = () => {
       </PanelWorkspace>
 
       {/* 🚀 Phase 7: Toast 알림 컨테이너 */}
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+      <ToastContainer />
 
       {/* 🚀 Phase 7: 커맨드 팔레트 (Cmd+K) */}
       <CommandPalette />

@@ -74,5 +74,3 @@ export { useErrorHandler } from "./useErrorHandler";
 
 // Utilities
 export { useInitialMountDetection } from "./useInitialMountDetection";
-export { useToast } from "./useToast";
-export type { Toast, ToastType } from "./useToast";

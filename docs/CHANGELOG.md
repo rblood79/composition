@@ -12,6 +12,7 @@ All notable changes to composition will be documented in this file.
 ### Fixed
 
 - **RAC 가 그릴 수 없는 중첩을 빌더가 만들어 내던 결함** — Button 안에 Button, Link 안에 Checkbox, Form 안에 Form, Text 안에 무엇이든, Select 안에 Button, Tabs 밖의 TabPanel 이 끌어놓기·붙여넣기·AI 도구 어디서든 통과해 문서에 남았습니다. 캔버스는 RAC 를 그리는 도구라 세 층의 제약을 **상속**합니다. Pen 구조 (`Text`·`Icon` 은 잎 — `.pen` 으로 나갈 때 `text`/`icon_font` 라 자식을 가질 수 없음) · RAC 합성 (컬렉션 컨테이너는 자기 item 만 읽고, 합성 부품은 소유자 안에서만 뜻이 있음) · HTML 의미 (interactive 는 `<button>`/`<a>` 자손 금지, `<form>` 안 `<form>` 금지, `<p>`/`<h1-6>`/`<label>` 안 블록 금지). 규칙은 canonical 스키마가 아니라 catalog 층에 있어 canonical 은 Pen 형태를 그대로 유지합니다.
+- **알림 경로를 빌더 전역 하나로 통합** — 빌더 안에 알림 경로가 둘이었습니다 (전역 store · 컴포넌트별 로컬 훅). 렌더 컨테이너는 둘을 합쳐 그리는데 BuilderCore 와 Monitor 패널이 각자 컨테이너를 마운트해, Monitor 패널 (Ctrl+Alt+M) 을 열면 전역 알림이 **두 번씩** 떴습니다 (컨테이너 2 · 알림 4 · 같은 이름의 Notifications 랜드마크 2). 로컬 훅을 삭제하고 발신은 전역 store, 렌더는 BuilderCore 의 컨테이너 하나로 고정했습니다. 성능 복구 · 프로젝트 내보내기/가져오기 · 메모리 경고 알림도 이제 되돌리기 버튼 · hover 정지 같은 전역 기능을 같이 받습니다. 미리보기/publish 의 런타임 토스트는 사용자 사이트 표면이라 별개로 둡니다.
 - **알림의 되돌리기가 실제로 되돌립니다** — 버튼을 눌러도 옮겨 놓인 요소가 그대로 남았습니다. 히스토리 매니저의 `undo()` 는 엔트리를 꺼내 포인터만 옮기고 문서·스토어 역적용은 스토어 action 이 하는데, 알림이 매니저를 직접 불렀습니다. 되돌리는 것이 없으면서 히스토리 위치만 어긋나던 상태입니다. 자식이 딸린 복합 요소 (ButtonGroup · TextField) 도 한 번에 되돌아갑니다.
 - **끌어놓기·붙여넣기는 거부하지 않고 옮깁니다** — 넣을 수 없는 자리에 놓으면 가장 가까운 유효한 조상에 넣고 토스트로 알리며 **되돌리기** 를 줍니다. 조상 어디에도 못 두면 (예: Tabs 가 없는 곳의 TabPanel) 취소하고 이유를 알립니다.
 - **AI 도구** `create_element` · `batch_design` 은 잘못된 `parentId` 를 받으면 이유와 함께 실패를 돌려줍니다 (에이전트는 토스트를 못 봅니다).

@@ -40,12 +40,11 @@ import {
   loadThresholdConfig,
   type ThresholdConfig,
 } from "./utils/thresholdConfig";
-import { useToast } from "@/builder/hooks";
+import { useToastStore } from "@/builder/stores/toast";
 import {
   ActionIconButton,
   PanelHeader,
   Section,
-  ToastContainer,
   panelContents,
 } from "../../components";
 import { translateKey, useOptionalI18n } from "../../../i18n";
@@ -63,7 +62,9 @@ export function MonitorPanel() {
   const [thresholdConfig, setThresholdConfig] =
     useState<ThresholdConfig>(loadThresholdConfig);
   const prevStatsRef = useRef<ReturnType<typeof useMemoryStats>["stats"]>(null);
-  const { toasts, showToast, dismissToast } = useToast();
+  // 전역 store — 컨테이너는 BuilderCore 의 하나뿐 (패널이 자기 컨테이너를 겹쳐 두면
+  // 전역 토스트가 두 번 그려진다, 2026-09-08 live 재현).
+  const showToast = useToastStore((state) => state.showToast);
 
   // Monitor Panel 활성화 시 로그 출력 활성화
   useEffect(() => {
@@ -162,7 +163,6 @@ export function MonitorPanel() {
 
   return (
     <div className="panel monitor-panel">
-      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <PanelHeader
         title={i18n ? i18n.t("panels.monitor") : "Monitor"}
         icon={<Activity size={iconProps.size} aria-hidden="true" />}

@@ -8,8 +8,11 @@
 import { X, CircleAlert, AlertTriangle, CircleCheck, Info } from "lucide-react";
 import { Button } from "react-aria-components";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
-import type { ToastType } from "@/builder/hooks";
-import { useToastStore, type ToastAction } from "../../stores/toast";
+import {
+  useToastStore,
+  type ToastAction,
+  type ToastType,
+} from "../../stores/toast";
 import "./Toast.css";
 
 const ICONS = {
