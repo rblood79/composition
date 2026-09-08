@@ -170,19 +170,6 @@ const CASES: Array<[string, ChartProps]> = [
       gridType: "circle",
     }),
   ],
-  // 후속 #5 — 극좌표 각도 범위. 트랙·값 호가 같은 부분 범위만 도는지, 중앙 합계가
-  //   두 leg 에 같은 자리로 오는지 (fontScale 1.8 채널 포함).
-  [
-    "radial / 반원 게이지 + 중앙 합계",
-    props({
-      chartType: "radial",
-      color: "",
-      startAngle: 0,
-      endAngle: 180,
-      innerRadius: 60,
-      showTotal: true,
-    }),
-  ],
 ];
 
 describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {

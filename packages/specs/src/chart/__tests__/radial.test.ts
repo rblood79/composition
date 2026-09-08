@@ -25,11 +25,7 @@ function build(rows = ROWS, patch: Partial<Parameters<typeof buildRadialMarks>[0
     domain: [0, 100],
     seriesCount: 8,
     stackMode: "none",
-    startAngle: 0,
-    endAngle: 360,
     showValueLabels: false,
-    showTotal: false,
-    totalCaption: "value",
     fontSize: 11,
     ...patch,
   });
@@ -80,11 +76,7 @@ describe("buildRadialMarks", () => {
       domain: [0, 100],
       seriesCount: 8,
       stackMode: "stacked",
-      startAngle: 0,
-      endAngle: 360,
       showValueLabels: false,
-      showTotal: false,
-      totalCaption: "value",
       fontSize: 11,
     });
     const slices = rings[0].slices;

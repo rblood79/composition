@@ -61,9 +61,6 @@ export interface ChartProps {
   fillGrid?: boolean;
   /** radar 다각형 채우기 (false=선만) */
   fillArea?: boolean;
-  /** radial 값 호의 각도 범위 (도, 12시=0 시계). 반원 게이지 = 0~180 */
-  startAngle?: number;
-  endAngle?: number;
   showTotal?: boolean;
   showTooltip?: boolean;
   showAxis?: boolean;
@@ -297,8 +294,6 @@ export function Chart({
   gridRings,
   fillGrid,
   fillArea,
-  startAngle,
-  endAngle,
   showTotal,
   showTooltip,
   showAxis,
@@ -344,8 +339,6 @@ export function Chart({
       gridRings: gridRings ?? CHART_DEFAULT_PROPS.gridRings,
       fillGrid: fillGrid ?? CHART_DEFAULT_PROPS.fillGrid,
       fillArea: fillArea ?? CHART_DEFAULT_PROPS.fillArea,
-      startAngle: startAngle ?? CHART_DEFAULT_PROPS.startAngle,
-      endAngle: endAngle ?? CHART_DEFAULT_PROPS.endAngle,
       showTotal: showTotal ?? CHART_DEFAULT_PROPS.showTotal,
       showTooltip: showTooltip ?? CHART_DEFAULT_PROPS.showTooltip,
       showAxis: showAxis ?? CHART_DEFAULT_PROPS.showAxis,
@@ -370,8 +363,6 @@ export function Chart({
       gridRings,
       fillGrid,
       fillArea,
-      startAngle,
-      endAngle,
       showTotal,
       showTooltip,
       showAxis,

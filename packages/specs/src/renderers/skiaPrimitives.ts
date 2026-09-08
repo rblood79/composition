@@ -3379,12 +3379,6 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       fillArea:
         (props.fillArea as boolean | undefined) ??
         CHART_DEFAULT_PROPS.fillArea,
-      startAngle:
-        (props.startAngle as number | undefined) ??
-        CHART_DEFAULT_PROPS.startAngle,
-      endAngle:
-        (props.endAngle as number | undefined) ??
-        CHART_DEFAULT_PROPS.endAngle,
       showTotal:
         (props.showTotal as boolean | undefined) ??
         CHART_DEFAULT_PROPS.showTotal,

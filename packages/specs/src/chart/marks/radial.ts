@@ -9,7 +9,7 @@
  * 누적은 `stackBands`(ADR-194 의 `StackMode`) 를 **각도 축**에 적용한다 — bar 가
  * 값 축에 적용하는 것과 같은 함수다 (shadcn `chart-radial-stacked`).
  */
-import { arcSlicePath, centerTotalLabels } from "./pie";
+import { arcSlicePath } from "./pie";
 import { formatTick, r2 } from "../scales";
 import { stackBands } from "../series";
 import type { SeriesGrid, StackMode } from "../series";
@@ -26,17 +26,7 @@ export interface RadialMarkInput {
   domain: readonly [number, number];
   seriesCount: number;
   stackMode: StackMode;
-  /**
-   * 값 호가 도는 각도 범위 (도, 12시=0 시계). `endAngle - startAngle` 이 값 상한이
-   * 차지하는 각도다 — 0 이하·360 초과는 한 바퀴로 접는다.
-   */
-  startAngle: number;
-  endAngle: number;
   showValueLabels: boolean;
-  /** 구멍 안 합계 표시 (shadcn `chart-radial-text` · `-shape` · `-stacked`) */
-  showTotal: boolean;
-  /** 합계 아래 설명 — metric 필드명 */
-  totalCaption: string;
   fontSize: number;
 }
 
@@ -92,11 +82,7 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
     domain,
     seriesCount,
     stackMode,
-    startAngle,
-    endAngle,
     showValueLabels,
-    showTotal,
-    totalCaption,
     fontSize,
   } = input;
   const marks: PathMark[] = [];
@@ -114,15 +100,10 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
   const d0 = Math.max(0, domain[0]);
   const d1 = Math.max(d0, domain[1]);
   const width = d1 - d0;
-  // 값이 도는 각도 폭. 뒤집힌 범위·0·한 바퀴 초과는 전부 한 바퀴로 접는다 —
-  //   반원 게이지(0~180) 같은 부분 범위만 그대로 쓴다.
-  const rawSweep = endAngle - startAngle;
-  const totalSweep = rawSweep > 0 && rawSweep < 360 ? rawSweep : 360;
-  const originAngle = Number.isFinite(startAngle) ? startAngle : 0;
   const toAngle = (value: number): number => {
     if (!Number.isFinite(value) || width === 0) return 0;
     const t = Math.min(1, Math.max(0, (value - d0) / width));
-    return r2(t * totalSweep);
+    return r2(t * 360);
   };
   const palette = Math.max(1, seriesCount);
   // 시리즈가 하나면 색을 가르는 축이 **범주**다 (pie 와 같은 규약 — 링 하나에
@@ -136,18 +117,14 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
 
     // 트랙은 **채운다** — 두께 있는 고리를 선으로만 그으면 동심원 2개가 되어
     //   격자처럼 읽힌다 (`fillRole`, ADR-207).
-    // 트랙도 **같은 범위만** 돈다 — 반원 차트에서 트랙만 한 바퀴면 값이 안 찬
-    //   나머지 반원이 배경으로 남아 게이지가 아니라 도넛으로 읽힌다.
-    const track = arcMark(center, outer, inner, originAngle, totalSweep, {
-      fillRole: "grid",
-    });
+    const track = arcMark(center, outer, inner, 0, 360, { fillRole: "grid" });
     if (track) marks.push(track);
 
     const bands = stackBands(grid, ci, stackMode);
     const slices: RadialRing["slices"] = [];
     for (const band of bands) {
-      const start = r2(originAngle + toAngle(band.from));
-      const end = r2(originAngle + toAngle(band.to));
+      const start = toAngle(band.from);
+      const end = toAngle(band.to);
       const sweep = r2(end - start);
       const raw = band.to - band.from;
       if (sweep <= 0) continue;
@@ -183,25 +160,6 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
       outer,
       slices,
     });
-  }
-
-  if (showTotal) {
-    // 합계는 **모든 링의 값**을 더한다 — 링 하나가 범주 하나라 도넛의 조각 합과
-    //   같은 뜻이다. 자리·크기 규약은 pie 와 한 함수를 공유한다.
-    let grandTotal = 0;
-    for (const ring of rings) {
-      for (const slice of ring.slices) grandTotal += slice.raw;
-    }
-    labels.push(
-      ...centerTotalLabels(
-        center.x,
-        center.y,
-        center.inner,
-        grandTotal,
-        totalCaption,
-        fontSize,
-      ),
-    );
   }
 
   return { marks, labels, rings };
