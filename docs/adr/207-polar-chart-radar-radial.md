@@ -15,6 +15,8 @@ Proposed — 2026-09-08
 
 radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y"` 이고 `grid: LineMark[]` 인데 (`packages/specs/src/chart/types.ts:154-162`), radar 의 동심원·다각형 격자는 **선이 아니라 path** 라 담을 수 없다. 즉 마크 파일 추가가 아니라 **두 consumer 가 함께 읽는 scene 계약의 변경**이다. 방금의 후속 확장 5건이 전부 선택적 필드 추가였던 것과 갈리는 지점이다.
 
+**확장 표면은 둘이다** (리뷰 round 1): ① `AxisScene` (위), ② `TooltipScene.center` (`types.ts:206` — 단일 `{x,y,outer,inner}`). 누적 radial 은 같은 각도에 시리즈가 반지름으로 쌓여 각도만으로 히트가 안 갈리므로 링별 반지름 밴드가 필요하다. ②는 스냅샷 4가 전부 `showTooltip=false` 라 **좌표 스냅샷의 감시 밖**이며, `tooltip.test.ts` 12건이 그 축의 감시자다 (G1 통과 조건에 반영).
+
 **SSOT domain**: 본 ADR 은 **D3 (시각 스타일) 단독**이다. D1 은 ADR-194 가 부여한 `role="img"` 를 그대로 쓰고 (새 ARIA 작성 0), D2 는 Recharts/RSC prop 명을 참조한다 (`gridType` ← `PolarGrid.gridType`). SSOT 경계 이동 없음.
 
 **base / 응용**: ADR-194 = base (기하 SSOT · `PathShape` · 대칭 consumer, Implemented), 본 ADR = 응용 + base schema 의 가산 확장. 의존 방향은 단방향이며 역전 가능성 없음 (fork 4 질문 lock-in: design breakdown §1).
@@ -30,7 +32,7 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 1. **신규 런타임 의존 0** — ADR-194 HC1 승계. d3-shape / recharts 도입 금지, 극좌표 스케일도 자작한다.
 2. **`ChartScene` 확장은 가산적** — 기존 4종 (bar/line/area/pie) 의 좌표가 **1 byte 도 바뀌지 않아야** 한다. 스냅샷 4 + 대칭 parity 64 가 갱신 없이 GREEN 이어야 한다.
 3. **두 leg 대칭 유지** — path `d` byte 동일 계약 (ADR-194 G3) 을 극좌표 마크에도 그대로 적용한다.
-4. **번들** — builder / publish 각각 **+5KB gz 이내** (ADR-194 가 각 +6.71 / +5.90KB 를 이미 썼다).
+4. **번들** — builder / publish 각각 **+5KB gz 이내**. ADR-194 의 한도 +15KB 중 이미 각 +6.71 / +5.90KB 를 썼으므로 잔여는 +8.3 / +9.1KB 이고, 그 잔여를 한 번에 다 쓰지 않도록 **잔여의 약 60%** 를 상한으로 잡았다 (남은 shadcn 격차 — 그라디언트·범례 아이콘·상호작용 — 몫을 남긴다).
 5. **프레임** — 200행 × 4시리즈에서 p95 **Δ ≤ +1ms** (ADR-194 G4 동형, 불리 케이스 = 줌 드라이버).
 
 **Soft Constraints**:
@@ -46,7 +48,7 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 - 설명: 축 개념을 하나로 유지한 채 담을 수 있는 것만 넓힌다. `axis: "x"|"y"|"angular"|"radial"`, `grid` 가 path 도 받는다. 극좌표 스케일은 `polar.ts` 신설, 마크는 `marks/radar.ts` · `marks/radial.ts`.
 - 근거: **d3-shape** 는 `line`/`area` 에 `lineRadial`/`areaRadial` 을 더할 뿐 축 타입을 나누지 않는다 — 좌표계만 바꾸는 모델. **Vega-Lite** 도 `theta`/`radius` 를 채널로 확장하지 별도 스펙 타입을 만들지 않는다. 우리 scene 은 이미 "마크 + 축 + 범례" 3분할이라 같은 확장이 자연스럽다.
 - 위험:
-  - 기술: **L** — 유니온 확장 + 소비처 2곳 (`skiaPrimitives.chartScene` · `Chart.tsx renderChartScene`). 둘 다 이미 4종 마크 분기를 갖고 있어 `grid` 원소를 그 분기로 넘기면 끝이고, 누락은 컴파일러가 전수 검출한다.
+  - 기술: **L** — 소비처는 2곳뿐이고 (`packages/specs/src/renderers/skiaPrimitives.ts:3510` `pushMark(line)` · `packages/shared/src/components/Chart.tsx:185` `renderMark(line, …)`) **둘 다 이미 `Mark` 를 받는 generic 렌더러로 넘긴다** — 유니온을 넓혀도 코드 변경이 **0줄**이다 (리뷰 round 1 실측: 유니온 1줄 확장 후 `pnpm type-check` 0 error). 뒤집으면 **컴파일 신호도 0** 이라는 뜻이므로, 방어는 컴파일러가 아니라 스냅샷 4 + parity 64 + P1 의 `chartType` exhaustive switch 가 한다 (R1·R7).
   - 성능: **L** — 마크 수만 늘어난다 (격자 원 N개). 기존 경로 비용 변화 0.
   - 유지보수: **L** — 축이 한 타입으로 남아 향후 축 관련 변경이 한 곳이다.
   - 마이그레이션: **L** — 가산이라 기존 4종 코드·좌표 무변경. 스냅샷이 감시자.
@@ -116,20 +118,23 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 
 | ID  | 위험 | 심각도 | 대응 |
 | --- | ---- | :----: | ---- |
-| R1  | `grid` 유니온 확장이 두 consumer 의 기존 순회를 건드려 직교 차트가 회귀 | MED | 컴파일러 전수 검출 + 스냅샷 4 **갱신 금지** + parity 64 GREEN 유지 (G1) |
+| R1  | `grid` 유니온 확장이 두 consumer 의 기존 순회를 건드려 직교 차트가 회귀 | MED | **컴파일러는 이 확장에 신호를 주지 않는다** (round 1 실측: 유니온 확장 후 type-check 0 error — 소비처가 이미 generic). 방어는 스냅샷 4 **갱신 금지** + parity 64 + `tooltip.test.ts` 12 GREEN 유지 (G1) |
 | R2  | 극좌표에서 음수 값 → 반지름 음수 → 도형이 중심을 뚫고 반대편에 그려짐 | MED | `radiusScale` 의 domain 하한을 0 으로 clamp. pie 의 "절대값" 규약과 **다른 선택**임을 기하 주석에 명시하고 G2 에서 반지름 음수 0건 단언 |
 | R3  | radar 다각형의 결측 꼭짓점 규약이 line/area 의 "끊기" 와 갈린다 | MED | 다각형은 닫힌 도형이라 subpath 를 나눌 수 없다 → 결측은 반지름 0(중심) 으로 접는다. 규약 차이를 기하 주석 + G2 케이스로 고정 |
 | R4  | radial 각도 범위(startAngle/endAngle) prop 증식 | LOW | v1 은 0~360 고정. shadcn 의 반원 형태는 비스코프 (breakdown §7) |
 | R5  | 번들·프레임 예산 초과 | MED | G4 에서 측정. 초과 시 radial 을 후속 phase 로 미루고 radar 만 반영 |
 | R6  | 등록 경로 미결선 — enum 값만 늘고 렌더가 안 바뀜 | MED | G5 live 에서 Skia 픽셀 + Preview DOM 양쪽 확인 (ADR-194 live 가 잡은 결함 3건이 전부 이 형태였다) |
+| R7  | `computeChartScene` 의 마지막 분기가 `else` (line) 라 (`computeChartScene.ts:296-325`), 신규 `chartType` 을 추가하고 분기를 안 넣으면 **line 차트가 조용히 그려진다**. G2 의 유한성·결정성은 line 도 통과시켜 못 잡는다 | MED | P1 에서 `chartType` **exhaustive switch** (`never` 소진) 도입 — R1 이 잃은 컴파일러 방어선을 여기서 되찾는다. G1 통과 조건 |
+| R8  | 기존 prop × 신규 타입 조합이 조용히 무응답 (`orientation`·`curve`·`showDots`·`colorBy`·`stackType` 이 radar/radial 에서 뭘 하는지 미정) | MED | 타입별 **무시 계약을 테스트로 고정** — 선례 `labels.test.ts:120` ("line 은 colorBy 를 무시한다"). G2 케이스 |
+| R9  | 극좌표 각도 레이블 솎아내기 부재 — `labelStride` (`axes.ts:35`) 는 band step 기준이라 극좌표에 안 쓰인다. 범주가 많으면 (`CHART_SAMPLE_ROWS` 200) 스포크·레이블이 겹친다 | LOW | 각도 간격 기준 stride 를 P1 축 산출에 포함. G2 에 범주 50 케이스 |
 
 ## Gates
 
 | Gate | 시점 | 통과 조건 | 실패 시 대안 |
 | ---- | ---- | --------- | ------------ |
 | G0 | P0 종료 | 기존 4종 baseline 기록 (스냅샷 4 · parity 64 · 기하 106 · 번들 gz 현재값) | 기록 없이 P1 진입 금지 |
-| G1 | P1 종료 | 기존 4종 좌표 **byte 무변경** (스냅샷 갱신 없이 GREEN) + type-check 0 + 두 consumer 컴파일 통과 | 확장을 가산이 아닌 형태로 했다는 뜻 — 설계 되돌림 |
-| G2 | P2·P3 종료 | radar/radial 기하 단위: 경계 4종 유한성 · 결정성 · 반지름 음수 0건 · `d` 에 NaN/Infinity 0건 | 해당 마크 phase 미종결 |
+| G1 | P1 종료 | 기존 4종 좌표 **byte 무변경** (스냅샷 4 갱신 없이 GREEN) + `tooltip.test.ts` 12 GREEN (스냅샷 밖 축) + `chartType` exhaustive switch 도입 (R7) + type-check 0 | 확장을 가산이 아닌 형태로 했다는 뜻 — 설계 되돌림. **컴파일 통과 자체는 통과 근거가 아니다** (R1) |
+| G2 | P2·P3 종료 | radar/radial 기하 단위: 경계 4종 유한성 · 결정성 · 반지름 음수 0건 · `d` 에 NaN/Infinity 0건 · **무시 계약** (R8 — 무관 prop 이 좌표를 안 바꾼다) · **범주 50 레이블 겹침** (R9) | 해당 마크 phase 미종결 |
 | G3 | P4 종료 | 대칭 parity 케이스 4 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일** | 대칭 위반 — 어느 leg 이 기하를 안 따랐는지 조사 |
 | G4 | P5 | 번들 각 앱 +5KB gz 이내 · 200행×4시리즈 frame p95 Δ ≤ +1ms (줌 드라이버 불리 케이스 + 차트 추가 전 대조군) | radial 을 후속으로 분리 (R5) |
 | G5 | P5 | live: 팔레트 전환 → Skia 픽셀 변화 + Preview DOM 격자/호 확인. **Skia 픽셀은 Compare Mode 를 끄고 먼저 측정** | Implemented 승격 차단 |
@@ -141,10 +146,10 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 - shadcn/ui charts 7 범주 중 미반영이 0 이 된다 (툴팁 세부 변형·상호작용 변형 제외).
 - `packages/specs/src/chart/polar.ts` 가 생기면서 `marks/pie.ts` 안에 갇혀 있던 `polar()` 가 공용 계층으로 올라온다 — pie/도넛/radar/radial 이 같은 각도 규약(12시=0, 시계)을 공유한다.
 - `AxisScene.grid` 가 path 를 받게 되면서, 앞으로 곡선 격자·비직교 축이 필요할 때 스키마를 다시 열지 않아도 된다.
-- 두 consumer 의 변경이 각 1줄 수준이라, 대칭 계약을 새로 검증할 표면이 거의 늘지 않는다.
+- 두 consumer 의 코드 변경이 **0줄**이라 (round 1 실측), 대칭 계약을 새로 검증할 표면이 늘지 않는다 — 늘어나는 것은 기하 쪽뿐이다.
 
 ### Negative
 
-- `AxisScene.grid` 를 읽는 쪽은 이제 원소 종류를 판정해야 한다 (`LineMark | PathMark`) — 직교 차트만 다루던 코드도 유니온을 통과해야 한다.
+- `AxisScene.grid` 의 유니온화는 **컴파일 신호를 남기지 않는다** — 소비처가 generic 이라 아무 곳도 갱신을 요구받지 않고, 따라서 앞으로 grid 에 새 마크 종류를 넣어도 소비처가 조용히 통과한다. 회귀 감시가 타입이 아니라 테스트에만 걸린다.
 - `ChartProps` 에 `gridType` 이 늘어 Properties 패널 항목이 하나 더 붙는다 (radar 전용인데 모든 차트에 보인다 — 조건부 표시는 패널의 별도 축이라 본 ADR 범위 밖).
 - radar 의 결측값 규약(중심으로 접기)이 line/area 의 규약(끊기)과 달라, 차트 종류를 바꾸면 같은 데이터가 다르게 읽힌다. 규약 차이를 문서와 테스트로만 고정한다.
