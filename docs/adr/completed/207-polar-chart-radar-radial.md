@@ -175,6 +175,39 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 
 live 1차 실행(15/16)이 잡은 결함 1건: radial **트랙이 선으로만** 그려져 두께 있는 고리가 동심원 2개로 읽혔다. `PathMark.fillRole` 가산 필드로 축 토큰 채우기를 분리해 수리 (두 leg 동시). 단위·parity 테스트는 이 결함을 통과시켰다 — 좌표가 옳았기 때문이다.
 
+## 후속 확장 — shadcn charts 예제 단위 재대조 (2026-09-08)
+
+본 ADR 종결 직후 shadcn charts **예제 70개 전량**을 레지스트리 소스(`shadcn-ui/ui@main` `apps/v4/registry/new-york-v4/charts`)에서 뽑아 다시 대조했다. 종결 시점 판정은 범주 단위였고, 예제 단위로 보니 radar 14종 중 5종만 커버되고 있었다. 사용자 지시로 권장 순서(#1 → #5 → #7)대로 착수해 **12종을 추가 커버**했다.
+
+| 축 | 신규 prop | 커버된 예제 | 커밋 |
+| --- | --- | --- | --- |
+| #1 radar 격자·선 제어 | `showSpokes` · `gridRings` · `fillGrid` · `fillArea` | radar-lines-only · grid-none · grid-circle-no-lines · grid-fill · grid-circle-fill · grid-custom (6) | `b4896379d` |
+| #5 극좌표 각도 범위 | `startAngle` · `endAngle` + `showTotal` 의 radial 확장 | radial-stacked(반원) · radial-text · radial-shape (3) | `40184921f` |
+| #7 레이블 내용 | `labelKey` | pie-label-list · radial-label · bar-negative(월 이름) (3) | `ca0565967` |
+
+설계 판정 3건:
+
+- **`showSpokes` 는 `showAxis` 의 하위 스위치다.** shadcn 은 `PolarAngleAxis`(레이블) 와 `PolarGrid`(스포크+링) 로 나누지만, 그 매핑을 그대로 옮기면 `showAxis=false` 의 뜻이 바뀐다 (지금은 스포크도 같이 사라진다). 기존 계약을 지키고 그 안에서만 가른다 — 기본값에서 그림 1px 무변경.
+- **`fillGrid` 는 가장 바깥 링 하나만 채운다.** 전부 채우면 알파가 겹쳐 안쪽이 진해지고 값 다각형을 가린다.
+- **레이블 내용 규칙을 `computeChartScene` 한 곳에 모았다** (`ChartLabelFormatter`). 마크 빌더 6개는 무엇을 적을지 모른 채 자리만 정한다 — 빌더마다 분기를 두면 타입별로 규칙이 갈린다. 이 리팩터로 `formatTick` 직접 호출이 빌더에서 사라졌다 (중앙 합계만 예외 — 범주가 없는 값).
+
+**parity 게이트에 색 채널 대칭 신설**: 종전 게이트는 좌표만 비교해 "같은 자리 다른 색" 을 통과시켰다 — falsify(DOM leg 의 격자 채우기 제거)가 94/94 그대로 통과했다. 토큰 표현이 leg 마다 달라(`var(--chart-grid)` vs `{color.border}`) 문자열을 못 대므로 **역할로 분류해 개수를 맞춘다**. 재falsify 로 RED 3건 확인. 본 ADR P5 의 live 1차가 잡았던 radial 트랙 결함(좌표는 옳고 채우기만 빠짐)이 이제 정적 게이트에 걸린다.
+
+측정 (같은 하니스, ADR-207 종결 시점 대비):
+
+| 항목 | 종결 시점 | 후속 반영 후 | 판정 |
+| --- | --- | --- | --- |
+| 기하 단위 | 160 | **212** | — |
+| 대칭 parity | 84 | **151** | — |
+| 번들 gz (builder) | 1,761,184 B | 1,766,074 B (**+4,890**) | 예산 5,120 안 |
+| 번들 gz (publish) | 504,916 B | 505,539 B (**+623**) | 예산 안 |
+| frame p95 Δ (대조군 bar) | radar −0.2 / radial +0.3 | radar **+0.5** / radial **+0.2** | 한도 +1ms 안 · 대조군 drift +0.5ms 와 같은 규모 |
+| live | 17/17 | **25/25** | — |
+
+live 1차(24/25)가 잡은 것은 코드 결함이 아니라 **측정 조건 결함**이었다: `fillArea` 의 Skia 픽셀을 Compare Mode 를 켠 뒤에 재서 해시가 완전히 동일하게 나왔다 (메모리 `feedback-compare-mode-halves-canvas-hides-area-delta` 를 다시 밟음). 검사를 Compare Mode 이전 구간으로 옮기니 잉크 54,716 → 48,825 로 갈렸다.
+
+**남은 격차 20종** (커버 45 / 부분 5 / 미지원 20): 툴팁 세부 제어 8 · 인터랙티브 6 · 커스텀 레이블 렌더 4(부분) · 범례 아이콘 3 · 점 커스텀 2 · area 그라디언트 1 · `PolarRadiusAxis` 눈금 2 · 값 부호별 색 1. 이 중 **인터랙티브와 커스텀 렌더는 노코드 단일 leaf 평탄화와 정면으로 상충**한다 (임의 React 노드를 canonical 에 실어야 함 — ADR-194 R5 가 조합 모델을 기각한 자리). 착수하려면 별도 전제 판정이 먼저다.
+
 ## Consequences
 
 ### Positive

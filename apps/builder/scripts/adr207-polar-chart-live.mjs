@@ -234,6 +234,25 @@ async function main() {
       `hash ${radialInk.hash} → ${radialStackedInk.hash}`,
     );
 
+    // 후속 #1 — `fillArea` 는 **Compare Mode 를 켜기 전에** 잰다. Compare Mode 는
+    //   캔버스를 반폭으로 줄여 픽셀 변화를 지운다 (실제로 1차 실행에서 해시가
+    //   완전히 동일하게 나왔다 — 메모리 `feedback-compare-mode-halves-canvas-...`).
+    const fillOnInk = await inkOf({
+      chartType: "radar",
+      gridType: "polygon",
+      showGrid: true,
+      fillArea: true,
+    });
+    const fillOffInk = await inkOf({ fillArea: false });
+    record(
+      "#1 fillArea — Skia 잉크가 준다 (DOM 만 반응하는 형태가 아니다)",
+      fillOffInk.ink < fillOnInk.ink &&
+        fillOffInk.ink > 0 &&
+        fillOnInk.hash !== fillOffInk.hash,
+      `ink ${fillOnInk.ink} → ${fillOffInk.ink} (hash ${fillOnInk.hash} → ${fillOffInk.hash})`,
+    );
+    await setProps(page, id, { fillArea: true });
+
     // ── Phase B — Compare Mode 로 Preview DOM 대조 ────────────────────────
     const previewTab = page
       .locator('[aria-label="Compare Mode (Preview + Skia)"]')
@@ -355,6 +374,98 @@ async function main() {
       "P4 툴팁 — 밖으로 나가면 닫힌다",
       left.tooltip === null,
       `tooltip=${left.tooltip}`,
+    );
+
+    // ── shadcn 대조 후속 #1 · #5 · #7 ─────────────────────────────────────
+    await setProps(page, id, {
+      chartType: "radar",
+      showTooltip: false,
+      showGrid: true,
+      gridType: "polygon",
+      showSpokes: true,
+      gridRings: 0,
+      fillGrid: false,
+      fillArea: true,
+    });
+    const radarBase = await previewInfo(page);
+    await setProps(page, id, { showSpokes: false });
+    const noSpokes = await previewInfo(page);
+    record(
+      "#1 showSpokes=false — 스포크만 사라지고 각도 레이블은 남는다",
+      noSpokes.lineCount === 0 &&
+        radarBase.lineCount > 0 &&
+        noSpokes.textCount === radarBase.textCount,
+      `line ${radarBase.lineCount} → ${noSpokes.lineCount}, text ${radarBase.textCount} → ${noSpokes.textCount}`,
+    );
+
+    await setProps(page, id, { showSpokes: true, gridRings: 1 });
+    const oneRing = await previewInfo(page);
+    record(
+      "#1 gridRings=1 — 격자 링이 하나만 남는다",
+      oneRing.gridCount === 1 && radarBase.gridCount > 1,
+      `grid ${radarBase.gridCount} → ${oneRing.gridCount}`,
+    );
+
+    await setProps(page, id, { gridRings: 0, fillGrid: true });
+    const filled = await previewInfo(page);
+    record(
+      "#1 fillGrid — 가장 바깥 링 **하나만** 축 토큰으로 채워진다",
+      filled.trackCount === 1,
+      `채운 링 ${filled.trackCount} / 격자 ${filled.gridCount}`,
+    );
+
+    await setProps(page, id, { fillGrid: false, fillArea: false });
+    const linesOnly = await previewInfo(page);
+    record(
+      "#1 fillArea=false — 다각형 채우기가 사라진다 (좌표는 그대로)",
+      linesOnly.dataCount === 0 && radarBase.dataCount > 0,
+      `series fill ${radarBase.dataCount} → ${linesOnly.dataCount}`,
+    );
+
+    await setProps(page, id, { fillArea: true });
+
+    await setProps(page, id, {
+      chartType: "radial",
+      innerRadius: 60,
+      startAngle: 0,
+      endAngle: 360,
+      showTotal: false,
+    });
+    const fullRing = await previewInfo(page);
+    await setProps(page, id, { endAngle: 180 });
+    const halfRing = await previewInfo(page);
+    record(
+      "#5 반원 게이지 — 트랙도 같은 범위만 돈다 (한 바퀴 트랙이면 도넛으로 읽힌다)",
+      halfRing.allD !== fullRing.allD && halfRing.trackCount === fullRing.trackCount,
+      `track ${fullRing.trackCount} → ${halfRing.trackCount}, d 동일=${halfRing.allD === fullRing.allD}`,
+    );
+
+    await setProps(page, id, { showTotal: true });
+    const withTotal = await previewInfo(page);
+    record(
+      "#5 radial 중앙 합계 — em 배율 텍스트가 온다 (pie 와 같은 자리)",
+      withTotal.textCount > halfRing.textCount,
+      `text ${halfRing.textCount} → ${withTotal.textCount}: ${withTotal.textContent.join("/")}`,
+    );
+
+    await setProps(page, id, {
+      chartType: "pie",
+      startAngle: 0,
+      endAngle: 360,
+      showTotal: false,
+      innerRadius: 0,
+      showValueLabels: true,
+      labelKey: "value",
+    });
+    const byValue = await previewInfo(page);
+    await setProps(page, id, { labelKey: "category" });
+    const byCategory = await previewInfo(page);
+    record(
+      "#7 labelKey — 좌표는 그대로고 글자만 값→범주명으로 바뀐다",
+      byCategory.allD === byValue.allD &&
+        byCategory.textContent.join() !== byValue.textContent.join() &&
+        byCategory.textContent.some((t) => t === "Mon"),
+      `값="${byValue.textContent.join("/")}" 범주="${byCategory.textContent.join("/")}"`,
     );
 
     await page.screenshot({ path: `${OUT_DIR}/final.png`, fullPage: false });
