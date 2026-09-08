@@ -70,17 +70,6 @@ export interface ChartProps {
   innerRadius: number;
   /** radar 격자 모양 (ADR-207) */
   gridType: PolarGridType;
-  /**
-   * radar 스포크 (중심 → 각 범주 방향의 선). shadcn `PolarGrid radialLines`.
-   * `showAxis` 안의 하위 스위치다 — `showAxis=false` 면 레이블과 함께 통째로 사라진다.
-   */
-  showSpokes: boolean;
-  /** 동심 격자 링 개수. 0 이면 값 눈금 개수를 따른다 (shadcn `polarRadius`) */
-  gridRings: number;
-  /** 가장 바깥 격자 링을 축 토큰으로 채운다 (shadcn `PolarGrid fill`) */
-  fillGrid: boolean;
-  /** radar 다각형을 채운다. false 면 선만 (shadcn `chart-radar-lines-only`) */
-  fillArea: boolean;
   /** 도넛 구멍 안 합계 표시 */
   showTotal: boolean;
   /** hover 툴팁 (Preview/Publish 전용 — Skia 는 정적) */

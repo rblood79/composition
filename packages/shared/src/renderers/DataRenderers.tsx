@@ -61,10 +61,6 @@ export function renderChart(element: PreviewElement): ReactNode {
       colorBy={props.colorBy as never}
       innerRadius={props.innerRadius as number | undefined}
       gridType={props.gridType as never}
-      showSpokes={props.showSpokes as boolean | undefined}
-      gridRings={props.gridRings as number | undefined}
-      fillGrid={props.fillGrid as boolean | undefined}
-      fillArea={props.fillArea as boolean | undefined}
       showTotal={props.showTotal as boolean | undefined}
       showTooltip={props.showTooltip as boolean | undefined}
       showAxis={props.showAxis as boolean | undefined}

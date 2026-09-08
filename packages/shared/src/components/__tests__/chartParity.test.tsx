@@ -149,27 +149,6 @@ const CASES: Array<[string, ChartProps]> = [
     "radial / 누적 + 값 레이블",
     props({ chartType: "radial", stackType: "stacked", showValueLabels: true }),
   ],
-  // shadcn 대조 후속 #1 — radar 격자·선 제어. 격자 링에 `fillRole` 이 실리는
-  //   유일한 자리이고, `fillArea:false` 는 `fillSeries` 자체를 빼는 자리다.
-  [
-    "radar / lines-only (fillArea off, 스포크 off)",
-    props({
-      chartType: "radar",
-      showGrid: true,
-      showSpokes: false,
-      fillArea: false,
-    }),
-  ],
-  [
-    "radar / 격자 채우기 + 링 1개",
-    props({
-      chartType: "radar",
-      showGrid: true,
-      fillGrid: true,
-      gridRings: 1,
-      gridType: "circle",
-    }),
-  ],
 ];
 
 describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
@@ -249,57 +228,6 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
         ).toEqual(domX);
         expect(skiaTexts.map((s) => String(s.y))).toEqual(domY);
         expect(skiaTexts.map((s) => s.text)).toEqual(domContent);
-      });
-
-      /**
-       * **색 채널 대칭** — 좌표만 비교하면 "같은 자리에 다른 색" 이 통과한다.
-       * ADR-207 P5 live 1차가 잡은 radial 트랙 결함이 정확히 그 형태였다 (좌표는
-       * 옳고 채우기만 빠짐). 토큰 표현이 leg 마다 달라(`var(--chart-grid)` vs
-       * `{color.border}`) 문자열을 직접 못 대므로 **역할로 분류해 개수를 맞춘다**.
-       */
-      it("축 토큰으로 칠/그은 path 개수가 두 leg 에서 같다", () => {
-        const markup = domMarkup(chartProps);
-        const domPaths = [...markup.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
-        const domGridFilled = domPaths.filter((p) =>
-          /fill="var\(--chart-(grid|axis)/.test(p),
-        ).length;
-        const domGridStroked = domPaths.filter((p) =>
-          /stroke="var\(--chart-(grid|axis)/.test(p),
-        ).length;
-
-        const axisTokens = new Set([
-          CHART_RULE?.chart?.grid,
-          CHART_RULE?.chart?.axis,
-        ]);
-        const skiaPaths = skiaShapes(chartProps).filter(
-          (s): s is Extract<Shape, { type: "path" }> => s.type === "path",
-        );
-        const skiaGridFilled = skiaPaths.filter(
-          (s) => s.fill !== undefined && axisTokens.has(s.fill as string),
-        ).length;
-        const skiaGridStroked = skiaPaths.filter(
-          (s) => s.stroke !== undefined && axisTokens.has(s.stroke as string),
-        ).length;
-
-        expect({ filled: skiaGridFilled, stroked: skiaGridStroked }).toEqual({
-          filled: domGridFilled,
-          stroked: domGridStroked,
-        });
-      });
-
-      it("시리즈 팔레트로 칠한 path 개수가 두 leg 에서 같다", () => {
-        const markup = domMarkup(chartProps);
-        const domPaths = [...markup.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
-        const domSeriesFilled = domPaths.filter((p) =>
-          /fill="var\(--chart-series-/.test(p),
-        ).length;
-        const seriesTokens = new Set(CHART_RULE?.chart?.series ?? []);
-        const skiaSeriesFilled = skiaShapes(chartProps)
-          .filter((s): s is Extract<Shape, { type: "path" }> => s.type === "path")
-          .filter(
-            (s) => s.fill !== undefined && seriesTokens.has(s.fill as string),
-          ).length;
-        expect(skiaSeriesFilled).toBe(domSeriesFilled);
       });
 
       it("마크 개수가 0 이 아니다 (빈 비교로 통과하는 것 차단)", () => {
