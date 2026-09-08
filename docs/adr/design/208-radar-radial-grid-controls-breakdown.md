@@ -30,7 +30,7 @@ ADR-207 은 Implemented 로 닫혔고 본 ADR 은 그 잔여 영역(예제 단�
 | **생성부 3곳도 복사하지 않는다** (primitive accepts · reusable propsSchema · ref fallback)                                                        | `resolveEditContract.ts:335-349` · `:310-324`                                                             | 같은 파일                                                                                     |
 | **`evaluateVisibility` 호출부 2곳은 둘 다 죽은 경로** — `CatalogInspectorFields`(주석이 "레거시 Inspector") · `GenericPropertyEditor`(import 0건) | `CatalogInspectorFields.tsx:256` · `GenericPropertyEditor.tsx:93,146` · `useOwnerCollectionColumns.ts:26` | `grep -rn "GenericPropertyEditor" --include=*.tsx apps/builder/src` 의 import 0건             |
 | 판정 입력의 기본값 해소는 `currentValue` 가 이미 한다 (R7 처방)                                                                                   | `resolveEditContract.ts:343`                                                                              | 같은 파일                                                                                     |
-| Chart 기본 props 는 `chartType:"bar"` 를 저장한다                                                                                                 | `apps/builder/src/types/builder/unified.types.ts:2200`                                                    | 같은 파일                                                                                     |
+| Chart 기본 props 는 `chartType:"bar"` 를 저장한다                                                                                                 | `apps/builder/src/types/builder/unified.types.ts:2201`                                                    | 같은 파일                                                                                     |
 | radar 는 `stackType` 을 무시한다 (ADR-207 R8)                                                                                                     | `packages/specs/src/chart/computeChartScene.ts:155-162`                                                   | 같은 파일                                                                                     |
 | ADR-207 이 남긴 Negative — "radar 전용인데 모든 차트에 보인다"                                                                                    | `docs/adr/completed/207-polar-chart-radar-radial.md:190`                                                  | 같은 파일                                                                                     |
 
@@ -50,14 +50,16 @@ PY
 
 ### 2.2 기준선 (Phase 1 착수 시점에 재측정해 갱신)
 
-revert 직후 main (`6a34439d1`) 기준:
+P0 실측 (2026-09-09, `5cd41d321` 기준):
 
 | 항목                                         | 값                          |
 | -------------------------------------------- | --------------------------- |
-| 기하 단위 (`@composition/specs` `src/chart`) | 160 PASS                    |
+| 기하 단위 (`@composition/specs` `src/chart`) | 160 PASS (10 파일)          |
 | 대칭 parity (`chartParity.test.tsx`)         | 116 PASS (색 채널 2축 포함) |
-| 번들 gz builder / publish                    | 1,761,184 B / 504,916 B     |
-| live 하니스 (`adr207-polar-chart-live.mjs`)  | 17/17                       |
+| `pnpm type-check`                            | PASS (baseline 0)           |
+| 번들 gz builder / publish                    | 1,590,771 B / 426,716 B     |
+
+> 번들 측정 방법: `find apps/{builder,publish}/dist/assets -name "*.js" -exec gzip -c {} \; | wc -c` (production build 후). ADR 본문 Hard Constraint 3 이 인용한 되돌린 구현의 수치(1,761,184 / 504,916)는 ADR-207 하니스의 다른 집계라 **절대값이 다르다** — G5 는 절대값이 아니라 **같은 명령으로 잰 delta** 로 판정한다.
 
 ## 3. Phase 분해
 
