@@ -279,8 +279,11 @@ describe("FrameSlotSection", () => {
   });
 
   it("inserts a recommended component as default slot content", async () => {
+    // CardFooter 는 Card 자손일 때만 뜻이 있다 (2026-09-08 중첩 규칙 — 층 2 RAC 합성).
+    // root 에 둔 CardFooter 는 canonical 투영에서 빠져 섹션이 아예 렌더되지 않는다.
     const footer = makeElement("footer", {
       type: "CardFooter",
+      parent_id: "card",
       slot: ["origin"],
     });
     const origin = makeElement("origin", {
@@ -327,6 +330,7 @@ describe("FrameSlotSection", () => {
   it("inserts the same recommended component multiple times as slot content", async () => {
     const footer = makeElement("footer", {
       type: "CardFooter",
+      parent_id: "card",
       slot: ["origin"],
     });
     const origin = makeElement("origin", {
