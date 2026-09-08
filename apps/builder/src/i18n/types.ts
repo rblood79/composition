@@ -133,7 +133,6 @@ export interface TranslationKeys {
     toggleEvents: string;
     toggleHistory: string;
     toggleWorkflowOverlay: string;
-    toggleMonitor: string;
     toggleRulers: string;
     openSettings: string;
     openProject: string;
@@ -940,7 +939,6 @@ export interface TranslationKeys {
     showWorkflowOverlay: string;
     hideWorkflowOverlay: string;
     preview: string;
-    monitor: string;
     desktop: string;
     tablet: string;
     mobile: string;
@@ -983,7 +981,6 @@ export interface TranslationKeys {
     styles: string;
     interactions: string;
     history: string;
-    monitor: string;
   };
   navigator: {
     pages: string;
@@ -1066,7 +1063,6 @@ export interface TranslationKeys {
     undo: string;
   };
   datatable: Record<string, string>;
-  monitor: Record<string, string>;
   debugger: Record<string, string>;
   components: {
     // Content

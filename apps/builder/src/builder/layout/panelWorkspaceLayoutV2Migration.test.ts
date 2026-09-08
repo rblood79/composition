@@ -21,7 +21,7 @@ function createV1Layout(): PanelLayoutState {
     rightPanels: ["properties", "history"],
     activeLeftPanels: ["navigator"],
     activeRightPanels: ["properties"],
-    bottomPanels: ["monitor"],
+    bottomPanels: ["theme"],
     activeBottomPanels: [],
     showLeft: true,
     showRight: true,
@@ -65,7 +65,7 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
     });
     expect(result.visibility.navigator).toBe(true);
     expect(result.visibility.properties).toBe(true);
-    expect(result.visibility.monitor).toBe(false);
+    expect(result.visibility.theme).toBe(false);
     expect(new Set(placementIds(result)).size).toBe(
       PANEL_WORKSPACE_TEST_REGISTRY.length,
     );
@@ -138,18 +138,18 @@ describe("ADR-922 v1 -> v2 migration fixtures", () => {
 
   it("Monitor bottom active", () => {
     const input = createV1Layout();
-    input.activeBottomPanels = ["monitor"];
+    input.activeBottomPanels = ["theme"];
     input.showBottom = true;
     input.bottomHeight = 280;
 
     const result = migrate(input);
-    const monitor = result.clusters
+    const bottomPanel = result.clusters
       .find((cluster) => cluster.anchor === "bottom")
       ?.columns.flatMap((column) => column.rows)
-      .find((row) => row.panelId === "monitor");
+      .find((row) => row.panelId === "theme");
 
-    expect(result.visibility.monitor).toBe(true);
-    expect(monitor?.height).toBe(280);
+    expect(result.visibility.theme).toBe(true);
+    expect(bottomPanel?.height).toBe(280);
   });
 
   it("floating only", () => {

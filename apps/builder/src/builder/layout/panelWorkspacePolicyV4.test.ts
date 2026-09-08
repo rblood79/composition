@@ -44,7 +44,7 @@ const REGISTRY: PanelWorkspaceRegistryEntry[] = [
   registryEntry("properties", "right"),
   registryEntry("styles", "right"),
   registryEntry("history", "right"),
-  registryEntry("monitor", "bottom"),
+  registryEntry("theme", "bottom"),
 ];
 
 function registryEntry(
@@ -130,7 +130,7 @@ function singleZoneLayout(
     railOrder: {
       left: ["navigator", "components", "settings"],
       right: ["properties", "styles", "history"],
-      bottom: ["monitor"],
+      bottom: ["theme"],
     },
     clusters: [
       {
@@ -295,7 +295,7 @@ describe("ADR-186 G4 v4 panel policy", () => {
     moved.railOrder = {
       left: ["properties"],
       right: ["navigator", "components", "settings", "styles", "history"],
-      bottom: ["monitor"],
+      bottom: ["theme"],
     };
     moved.clusters[0]!.columns[0]!.width = 333;
     moved.clusters[0]!.columns[0]!.rows[0]!.height = 177;

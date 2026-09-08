@@ -179,7 +179,6 @@ export const COMMAND_META: Readonly<Record<ShortcutId, CommandMeta>> = {
   toggleEvents: view(),
   toggleHistory: view(),
   toggleWorkflowOverlay: view(false),
-  toggleMonitor: view(false), // 개발 계측 패널
   toggleRulers: view(),
   openSettings: view(),
   toggleAI: view(false), // agent 가 자기 host 패널을 닫는다

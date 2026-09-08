@@ -47,7 +47,7 @@ const TEST_PANELS: PanelConfig[] = [
     defaultHeight: 520,
   },
   {
-    id: "monitor",
+    id: "theme",
     name: "모니터",
     icon: PanelTop,
     component: () => null,
@@ -68,7 +68,7 @@ function createV1Layout(): PanelLayoutState {
     rightPanels: ["properties", "styles"],
     activeLeftPanels: [],
     activeRightPanels: ["properties"],
-    bottomPanels: ["monitor"],
+    bottomPanels: ["theme"],
     activeBottomPanels: [],
     panelSizes: {},
     modalPanels: [],
@@ -150,7 +150,7 @@ describe("usePanelLayout Photoshop식 v4 panel commands", () => {
   it("focus command는 zone cluster order만 갱신한다", () => {
     const { result } = renderHook(() => usePanelLayout());
 
-    act(() => result.current.focusPanel("monitor"));
+    act(() => result.current.focusPanel("theme"));
     act(() => result.current.focusPanel("properties"));
     const layout = useStore.getState().panelWorkspaceLayout!;
 

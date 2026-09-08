@@ -27,8 +27,8 @@ function createRepresentativeV1Layout(): PanelLayoutState {
     rightPanels: ["properties", "history"],
     activeLeftPanels: ["navigator", "settings"],
     activeRightPanels: ["properties", "history"],
-    bottomPanels: ["monitor"],
-    activeBottomPanels: ["monitor"],
+    bottomPanels: ["theme"],
+    activeBottomPanels: ["theme"],
     showLeft: true,
     showRight: true,
     showBottom: true,
@@ -36,7 +36,7 @@ function createRepresentativeV1Layout(): PanelLayoutState {
     panelSizes: {},
     modalPanels: [
       {
-        panelId: "monitor",
+        panelId: "theme",
         mode: "floating",
         position: { x: 400, y: 650 },
         size: { width: 600, height: 200 },

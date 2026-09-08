@@ -5,7 +5,6 @@
  */
 
 import {
-  Activity,
   Blocks,
   Bot,
   Database,
@@ -41,7 +40,6 @@ import { HistoryPanel } from "../history/HistoryPanel";
 // L2 고급 토글로 흡수 예정 (Phase 3). document.actions 는 canonical read view.
 
 // Bottom panels
-import { MonitorPanel } from "../monitor/MonitorPanel";
 
 /**
  * 패널 설정
@@ -224,24 +222,6 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   // Font Family 피커가 여는 모달(`FontManagerDialog`)이 담당한다. 저빈도 작업이라
   // 인스펙터 레일 한 칸을 상주로 차지할 이유가 없다 (Figma/Pen 도 그렇게 안 한다).
 
-  // Bottom panels
-  {
-    id: "monitor",
-    name: "모니터",
-    nameEn: "Monitor",
-    icon: Activity,
-    component: MonitorPanel,
-    category: "system",
-    defaultPosition: "bottom",
-    minWidth: 233,
-    maxWidth: 1600,
-    defaultWidth: 600,
-    minHeight: 150,
-    maxHeight: 600,
-    defaultHeight: 240,
-    description: "메모리 사용량 모니터링 및 최적화",
-    shortcutId: "toggleMonitor",
-  },
 ];
 
 /**

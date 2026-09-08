@@ -204,7 +204,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
   it("railOrder가 빈 side는 rendered rail inset을 0으로 파생한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     layout.railOrder.bottom = [];
-    layout.railOrder.right.push("monitor");
+    layout.railOrder.right.push("theme");
 
     const result = solvePanelWorkspaceLayoutV2(
       layout,
@@ -337,7 +337,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
 
   it("bottom demand가 main reservation을 침범하면 persisted size를 바꾸지 않고 overlay한다", () => {
     const layout = createPanelWorkspaceLayoutV2();
-    layout.visibility.monitor = true;
+    layout.visibility.theme = true;
     const persistedBefore = structuredClone(layout);
 
     const result = solvePanelWorkspaceLayoutV2(
@@ -359,7 +359,7 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
   it("workspace가 panel min보다 작아도 emergency presentation geometry는 viewport를 넘지 않는다", () => {
     const layout = createPanelWorkspaceLayoutV2();
     for (const panelId of Object.keys(layout.visibility) as PanelId[]) {
-      layout.visibility[panelId] = panelId === "monitor";
+      layout.visibility[panelId] = panelId === "theme";
     }
 
     const result = solvePanelWorkspaceLayoutV2(
@@ -372,10 +372,10 @@ describe("ADR-922 PanelWorkspaceLayoutV2 constrained solver", () => {
     );
     expect(result.ok).toBe(true);
     if (!result.ok) return;
-    const monitor = result.value.frameGeometries.get("monitor");
-    expect(monitor).toBeDefined();
-    expect((monitor?.x ?? 0) + (monitor?.width ?? 0)).toBeLessThanOrEqual(200);
-    expect((monitor?.y ?? 0) + (monitor?.height ?? 0)).toBeLessThanOrEqual(120);
+    const bottomPanel = result.value.frameGeometries.get("theme");
+    expect(bottomPanel).toBeDefined();
+    expect((bottomPanel?.x ?? 0) + (bottomPanel?.width ?? 0)).toBeLessThanOrEqual(200);
+    expect((bottomPanel?.y ?? 0) + (bottomPanel?.height ?? 0)).toBeLessThanOrEqual(120);
     expect(result.value.mainContentRect.width).toBeGreaterThanOrEqual(0);
     expect(result.value.mainContentRect.height).toBeGreaterThanOrEqual(0);
   });

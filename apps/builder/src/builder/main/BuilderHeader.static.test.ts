@@ -42,17 +42,15 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).toContain("void onImportProject(file)");
   });
 
-  it("Workflow와 Monitor를 우측 토글 그룹에서 제거하고 Settings 패턴의 메뉴 액션으로 이동한다", async () => {
+  it("Workflow를 우측 토글 그룹에서 제거하고 Settings 패턴의 메뉴 액션으로 둔다", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderHeader.tsx"),
       "utf-8",
     );
     const workflowItemIndex = source.indexOf('<MenuItem id="workflow"');
-    const monitorItemIndex = source.indexOf('<MenuItem id="monitor"');
     const settingsItemIndex = source.indexOf('<MenuItem id="settings"');
 
     expect(source).not.toContain('<ToggleButton id="workflow"');
-    expect(source).not.toContain('<ToggleButton id="monitor"');
     expect(source).not.toContain("<MenuSection");
     expect(source).toContain(
       'if (key === "workflow") onWorkflowOverlayToggle();',
@@ -60,12 +58,8 @@ describe("BuilderHeader chrome control groups", () => {
     expect(source).toContain('<span>{t("header.workflow")}</span>');
     expect(source).toContain('shortcutDisplayFor("toggleWorkflowOverlay")');
     expect(source).not.toContain("workflowLabel");
-    expect(source).toContain('if (key === "monitor") togglePanel("monitor");');
     expect(workflowItemIndex).toBeGreaterThan(-1);
-    expect(workflowItemIndex).toBeLessThan(monitorItemIndex);
-    expect(source).toContain('togglePanel("monitor")');
-    expect(monitorItemIndex).toBeGreaterThan(-1);
-    expect(monitorItemIndex).toBeLessThan(settingsItemIndex);
+    expect(workflowItemIndex).toBeLessThan(settingsItemIndex);
   });
 
   it("Reset Panel Layout 메뉴는 LayoutDashboard 아이콘을 사용한다", async () => {

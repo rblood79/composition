@@ -101,8 +101,7 @@ describe("ADR-922 G6 legacy panel removal", () => {
     expect(styleIndex).not.toContain("panel-container.css");
     expect(workspace).toContain('["left", "right", "bottom"] as const');
     expect(workspace).toContain("if (panelIds.length === 0) return null");
-    expect(panelConfigs).toMatch(
-      /id: "monitor",[\s\S]*?defaultPosition: "bottom"/,
-    );
+    // bottom rail 은 구조로 남아 있고 등록 패널은 없다 — Monitor 제거(2026-09-09).
+    expect(panelConfigs).not.toContain('defaultPosition: "bottom"');
   });
 });

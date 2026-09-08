@@ -206,7 +206,7 @@ describe("ADR-186 G0 placement contract fixtures", () => {
     expect(mixed?.columns.flatMap((column) => column.rows)).toEqual([
       { panelId: "navigator", height: 100 },
       { panelId: "properties", height: 100 },
-      { panelId: "monitor", height: 120 },
+      { panelId: "theme", height: 120 },
     ]);
     expect(layout.floatingFocusOrder[0]).toBe(mixedRailClusterId);
     expect(layout.floatingFocusOrder.at(-1)).toBe("floating:bottom-right");

@@ -649,7 +649,6 @@ export function projectV2ToLegacyView(
   const activeLeftPanels = visibleOnRail("left");
   const activeRightPanels = visibleOnRail("right");
   const activeBottomPanels = visibleOnRail("bottom");
-  const monitorHeight = preferredSizes.monitor?.height;
 
   return {
     source: "projected-v2",
@@ -663,7 +662,7 @@ export function projectV2ToLegacyView(
       showLeft: activeLeftPanels.length > 0,
       showRight: activeRightPanels.length > 0,
       showBottom: activeBottomPanels.length > 0,
-      bottomHeight: monitorHeight ?? defaults.bottomHeight,
+      bottomHeight: defaults.bottomHeight,
       panelSizes,
       modalPanels,
       panelClusters,

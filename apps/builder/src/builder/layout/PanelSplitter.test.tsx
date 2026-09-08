@@ -158,7 +158,7 @@ describe("PanelSplitter accessibility and interaction contract", () => {
       <PanelSplitter
         edge="top"
         label="Monitor 패널 상단 크기 조절"
-        controls="panel-monitor-content"
+        controls="panel-styles-content"
         value={300}
         minValue={160}
         maxValue={800}

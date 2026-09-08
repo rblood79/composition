@@ -197,7 +197,7 @@ describe("ADR-186 PanelWorkspaceLayoutV4 model", () => {
             {
               id: "right:2",
               width: 400,
-              rows: [{ panelId: "monitor", height: 240 }],
+              rows: [{ panelId: "theme", height: 240 }],
             },
           ],
         },

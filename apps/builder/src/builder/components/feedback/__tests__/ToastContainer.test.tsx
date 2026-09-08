@@ -24,7 +24,7 @@ describe("ToastContainer", () => {
 
   it("store 토스트 1건 → 화면 1개", () => {
     render(
-      <I18nProvider initialLocale="en">
+      <I18nProvider initialLocale="en-US">
         <ToastContainer />
       </I18nProvider>,
     );
@@ -34,7 +34,7 @@ describe("ToastContainer", () => {
 
   it("컨테이너를 두 번 마운트하면 같은 토스트가 두 번 뜬다 (그래서 하나만 둔다)", () => {
     render(
-      <I18nProvider initialLocale="en">
+      <I18nProvider initialLocale="en-US">
         <ToastContainer />
         <ToastContainer />
       </I18nProvider>,

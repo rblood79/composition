@@ -1,5 +1,4 @@
 import {
-  Activity,
   Menu as MenuIcon,
   Eye,
   Monitor,
@@ -148,7 +147,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 if (key === "export") void onExportProject();
                 if (key === "reset-panel-layout") resetWorkspaceLayout();
                 if (key === "workflow") onWorkflowOverlayToggle();
-                if (key === "monitor") togglePanel("monitor");
                 if (key === "settings") togglePanel("settings");
                 if (key === "shortcuts")
                   window.dispatchEvent(new CustomEvent("open-command-palette"));
@@ -183,13 +181,6 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 <Keyboard>
                   {shortcutDisplayFor("toggleWorkflowOverlay")}
                 </Keyboard>
-              </MenuItem>
-              <MenuItem id="monitor" className="header-menu-item">
-                {/* Monitor 패널 정체 아이콘 = rail/패널 헤더와 같은 `Activity`.
-                    `Monitor`(디스플레이)는 같은 헤더의 desktop breakpoint 가 쓴다. */}
-                <Activity size={14} />
-                <span>{t("header.monitor")}</span>
-                <Keyboard>{shortcutDisplayFor("toggleMonitor")}</Keyboard>
               </MenuItem>
               <MenuItem id="settings" className="header-menu-item">
                 <Settings size={14} />

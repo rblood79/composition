@@ -60,10 +60,10 @@ describe("ADR-186 Phase 5 production panel layout store", () => {
       ...DEFAULT_PANEL_LAYOUT,
       leftPanels: ["nodes"],
       rightPanels: ["properties", "history"],
-      bottomPanels: ["monitor"],
+      bottomPanels: ["theme"],
       activeLeftPanels: ["nodes"],
       activeRightPanels: ["properties", "history"],
-      activeBottomPanels: ["monitor"],
+      activeBottomPanels: ["theme"],
     });
     localStorage.setItem(PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY, raw);
     const store = createPanelLayoutStore();

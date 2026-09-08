@@ -24,7 +24,7 @@
  *    문자로 바꾼다 (⌥A→å, ⌥M→µ). `key` 로만 맞추면 실물 키보드에서 영영
  *    동작하지 않는데, synthetic 입력은 그 변환을 거치지 않아 검사에서
  *    "등록됨" 으로 보인다. 억제하는 것은 ⌘ 뿐이라 `cmdAlt` 는 대상이 아니다 —
- *    `ctrlAlt` 가 그 예외에 딸려 빠졌던 자리다 (`toggleMonitor`, 2026-08-27).
+ *    `ctrlAlt` 가 그 예외에 딸려 빠졌던 자리다 (2026-08-27).
  * 4. **팔레트에 노출되는 정의는 전부 등록을 갖는다** (ADR-195) — 팔레트는 정의 표를
  *    통째로 나열하고 실행은 `commandRegistry` 조회로 한다. 등록이 없는 정의는
  *    목록에는 뜨는데 골라도 실행되지 않으므로, `palette !== false` 인 정의 각각이
@@ -187,7 +187,7 @@ describe("단축키 표기 SSOT", () => {
     const exposedIds = Object.entries(SHORTCUT_DEFINITIONS)
       .filter(([, def]) => (def as { palette?: false }).palette !== false)
       .map(([id]) => id);
-    expect(exposedIds).toHaveLength(63);
+    expect(exposedIds).toHaveLength(62);
 
     const unregistered = exposedIds.filter((id) => !registered.has(id));
     expect(unregistered).toEqual([]);

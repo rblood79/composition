@@ -132,12 +132,12 @@ describe("ADR-200 후속 — 빌더 chrome 한국어 리터럴", () => {
   });
 
   /**
-   * `datatable` / `monitor` / `debugger` 는 `Record<string, string>` 이라 타입이
+   * `datatable` / `debugger` 는 `Record<string, string>` 이라 타입이
    * ko/en 대칭을 강제하지 못한다 — 한쪽에만 키를 넣어도 컴파일된다. 그 자리에서
    * 빠진 키는 화면에 키 문자열 (`datatable.tabs`) 로 그대로 나온다.
    */
   it("타입이 강제하지 못하는 네임스페이스도 ko/en 키 집합이 같다", () => {
-    for (const namespace of ["datatable", "monitor", "debugger"]) {
+    for (const namespace of ["datatable", "debugger"]) {
       const keysOf = (locale: "ko-KR" | "en-US") =>
         Object.keys(localizedStrings[locale])
           .filter((key) => key.startsWith(`${namespace}.`))

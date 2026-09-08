@@ -78,9 +78,7 @@ export type PanelId =
   | "properties"
   | "styles"
   | "events"
-  | "history"
-  // Bottom panels
-  | "monitor";
+  | "history";
 
 /**
  * 패널 설정
@@ -278,7 +276,7 @@ export const DEFAULT_PANEL_LAYOUT: PanelLayoutState = {
   showLeft: true,
   showRight: true,
   // Bottom panel defaults
-  bottomPanels: ["monitor"],
+  bottomPanels: [],
   activeBottomPanels: [], // 기본 닫힘
   showBottom: false,
   bottomHeight: 200,

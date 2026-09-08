@@ -23,7 +23,7 @@
     animation: spin 1s linear infinite;
   }
 
-  /* 파일 자기완결성 유지 — monitor-panel.css / variable-debugger.css /
+  /* 파일 자기완결성 유지 — variable-debugger.css /
      ScopedErrorBoundary.css 도 각자 동일 정의를 두는 기존 관례. index.css 의
      `.spin` 유틸 정의에 의존하지 않는다. */
   @keyframes spin {

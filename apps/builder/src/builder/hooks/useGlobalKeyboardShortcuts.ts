@@ -115,10 +115,6 @@ export function useGlobalKeyboardShortcuts() {
   // Panel Handlers
   // ----------------------------------------
 
-  const handleToggleMonitor = useCallback(() => {
-    togglePanel("monitor");
-  }, [togglePanel]);
-
   const handleToggleWorkflowOverlay = useCallback(() => {
     useStore.getState().toggleWorkflowOverlay();
   }, []);
@@ -526,7 +522,6 @@ export function useGlobalKeyboardShortcuts() {
       zoom100: handleZoom100,
       zoom200: handleZoom200,
       toggleWorkflowOverlay: handleToggleWorkflowOverlay,
-      toggleMonitor: handleToggleMonitor,
       toggleNavigator: handleToggleNavigator,
       toggleComponents: handleToggleComponents,
       toggleDatatable: handleToggleDatatable,
@@ -574,7 +569,6 @@ export function useGlobalKeyboardShortcuts() {
       handleZoom100,
       handleZoom200,
       handleToggleWorkflowOverlay,
-      handleToggleMonitor,
       handleToggleNavigator,
       handleToggleComponents,
       handleToggleDatatable,
@@ -633,7 +627,6 @@ export function useGlobalKeyboardShortcuts() {
       "zoom200",
       // Panels
       "toggleWorkflowOverlay",
-      "toggleMonitor",
       "toggleRulers",
       "toggleNavigator",
       "toggleComponents",

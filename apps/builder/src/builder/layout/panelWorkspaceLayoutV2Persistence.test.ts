@@ -24,7 +24,7 @@ function createV1Layout(): PanelLayoutState {
     rightPanels: ["properties", "history"],
     activeLeftPanels: ["navigator"],
     activeRightPanels: ["properties"],
-    bottomPanels: ["monitor"],
+    bottomPanels: ["theme"],
     activeBottomPanels: [],
     showLeft: true,
     showRight: true,

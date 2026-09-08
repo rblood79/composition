@@ -23,12 +23,12 @@ const LABEL_NAMESPACES = [
   "componentAction",
 ] as const;
 
-/** Phase 0 freeze (`evidence/200-label-channel-inventory.md` §2-2, 총 118). */
+/** Phase 0 freeze (`evidence/200-label-channel-inventory.md` §2-2, 총 118 — Monitor 패널 제거로 command 1 감소, 총 117). */
 const FROZEN_KEY_COUNTS: Partial<
   Record<(typeof LABEL_NAMESPACES)[number], number>
 > = {
   contextMenu: 25,
-  command: 72,
+  command: 71,
   commandPalette: 26,
 };
 

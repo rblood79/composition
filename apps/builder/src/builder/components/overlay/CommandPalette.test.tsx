@@ -170,13 +170,13 @@ describe("CommandPalette — registry 소비", () => {
     expect(rowTranslations).not.toHaveBeenCalled();
     rerender(<CommandPalette isOpen />);
     expect(rowTranslations).toHaveBeenCalled();
-    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(63);
+    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(62);
   });
 
-  it("palette:false 정의는 목록에서 빠진다 (63개)", () => {
+  it("palette:false 정의는 목록에서 빠진다 (62개)", () => {
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
 
-    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(63);
+    expect(document.querySelectorAll(".command-palette-item")).toHaveLength(62);
     expect(screen.queryByText("명령 팔레트 열기")).toBeNull();
     expect(screen.queryByText("다음 항목")).toBeNull();
   });
@@ -387,6 +387,6 @@ describe("CommandPalette — registry 소비", () => {
     });
 
     renderWithI18n(<CommandPalette isOpen onOpenChange={() => {}} />);
-    expect(screen.getByText("1 of 63 available")).toBeTruthy();
+    expect(screen.getByText("1 of 62 available")).toBeTruthy();
   });
 });

@@ -252,7 +252,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
   it("bottom placement는 유지하되 rail order가 비면 빈 rail DOM을 만들지 않는다", () => {
     const layout = migrateFixture();
     layout.railOrder.bottom = [];
-    layout.railOrder.right.push("monitor");
+    layout.railOrder.right.push("theme");
     useStore.setState({ panelWorkspaceLayout: layout });
 
     const { container } = renderPanelWorkspace(
@@ -266,11 +266,11 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     ).toBeNull();
     expect(
       container.querySelector(
-        '.panel-toggle-rail[data-side="right"] button[aria-label="Monitor"]',
+        '.panel-toggle-rail[data-side="right"] button[aria-label="Theme"]',
       ),
     ).not.toBeNull();
     expect(
-      container.querySelector('.workspace-panel-frame[data-panel="monitor"]'),
+      container.querySelector('.workspace-panel-frame[data-panel="theme"]'),
     ).not.toBeNull();
   });
 

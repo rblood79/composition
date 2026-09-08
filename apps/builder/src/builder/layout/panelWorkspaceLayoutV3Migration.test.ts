@@ -159,7 +159,7 @@ describe("ADR-186 v2 -> v3 measured-surface migration", () => {
     ]);
     expect(panelIdsAtZone(first.value, "bottom")).toEqual([
       "events",
-      "monitor",
+      "theme",
     ]);
     expect(first.value.clusterFocusOrder).toEqual([
       "floating:top-left",
@@ -187,7 +187,7 @@ describe("ADR-186 v2 -> v3 measured-surface migration", () => {
   it("registry add/remove 뒤에도 등록 panel을 row와 rail에 정확히 한 번 둔다", () => {
     const registry: PanelWorkspaceRegistryEntry[] = [
       ...PANEL_WORKSPACE_TEST_REGISTRY.filter(
-        (entry) => entry.id !== "monitor",
+        (entry) => entry.id !== "theme",
       ),
       {
         id: "ai",
@@ -218,7 +218,7 @@ describe("ADR-186 v2 -> v3 measured-surface migration", () => {
     expect(new Set(placed).size).toBe(registry.length);
     expect(new Set(rails)).toEqual(new Set(placed));
     expect(placed).toContain("ai");
-    expect(placed).not.toContain("monitor");
+    expect(placed).not.toContain("theme");
   });
 
   it("malformed v2, empty migrationId와 non-zero가 아닌 measured surface를 거부한다", () => {

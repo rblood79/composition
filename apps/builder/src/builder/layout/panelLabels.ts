@@ -12,7 +12,6 @@ export const PANEL_TRANSLATION_KEYS: Partial<Record<PanelId, string>> = {
   styles: "panels.styles",
   events: "panels.interactions",
   history: "panels.history",
-  monitor: "panels.monitor",
 };
 
 export function getPanelLabel(

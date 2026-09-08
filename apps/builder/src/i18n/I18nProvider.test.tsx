@@ -44,7 +44,6 @@ describe("I18nProvider", () => {
     expect(result.current.t("missing.translation")).toBe("missing.translation");
     expect(result.current.t("labels.Width")).toBe("labels.Width");
     expect(result.current.t("datatable.tables")).toBe("Tables");
-    expect(result.current.t("monitor.memoryUsage")).toBe("Memory Usage");
     expect(result.current.t("debugger.title")).toBe("⌨️ Shortcut Debugger");
 
     act(() => {
@@ -65,7 +64,6 @@ describe("I18nProvider", () => {
     expect(result.current.t("messages.itemCount", { count: 1 })).toBe("1개");
     expect(result.current.t("messages.itemCount", { count: 2 })).toBe("2개");
     expect(result.current.t("datatable.tables")).toBe("테이블");
-    expect(result.current.t("monitor.memoryUsage")).toBe("메모리 사용량");
     expect(result.current.t("debugger.title")).toBe("⌨️ 단축키 디버거");
     expect(localStorage.getItem("composition-locale")).toBe("ko-KR");
     expect(document.documentElement.lang).toBe("ko-KR");

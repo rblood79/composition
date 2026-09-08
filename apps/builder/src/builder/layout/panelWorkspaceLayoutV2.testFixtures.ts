@@ -55,7 +55,7 @@ export const PANEL_WORKSPACE_TEST_REGISTRY: PanelWorkspaceRegistryEntry[] = [
     defaultHeight: 450,
   },
   {
-    id: "monitor",
+    id: "theme",
     defaultPosition: "bottom",
     minWidth: 233,
     maxWidth: 1600,
@@ -75,12 +75,12 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
       settings: false,
       properties: true,
       history: false,
-      monitor: false,
+      theme: false,
     },
     railOrder: {
       left: ["navigator", "datatableEditor", "settings"],
       right: ["properties", "history"],
-      bottom: ["monitor"],
+      bottom: ["theme"],
     },
     clusters: [
       {
@@ -119,7 +119,7 @@ export function createPanelWorkspaceLayoutV2(): PanelWorkspaceLayoutV2 {
           {
             id: "anchor:bottom:column:0",
             width: 600,
-            rows: [{ panelId: "monitor", height: 240 }],
+            rows: [{ panelId: "theme", height: 240 }],
           },
         ],
       },
