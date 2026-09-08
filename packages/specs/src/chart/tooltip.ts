@@ -119,6 +119,45 @@ export function buildRadialTooltip(
   return { bands, center };
 }
 
+export interface RingTooltipInput {
+  rings: ReadonlyArray<{
+    categoryIndex: number;
+    label: string;
+    inner: number;
+    outer: number;
+    slices: ReadonlyArray<{ colorIndex: number; start: number; sweep: number; raw: number }>;
+  }>;
+  seriesKeys: readonly string[];
+  center: { x: number; y: number; outer: number; inner: number };
+}
+
+/**
+ * ADR-207 — radial 툴팁. **링 하나 = 밴드 하나**이고 히트는 반지름으로 갈린다
+ * (각도로 갈리는 pie 와 다른 축이다 — 누적이면 한 링 안에 시리즈가 각도로 쌓여
+ * 있어 각도 히트는 시리즈를 가리키지 범주를 가리키지 않는다).
+ */
+export function buildRingTooltip(
+  input: RingTooltipInput,
+): TooltipScene | null {
+  const { rings, seriesKeys, center } = input;
+  if (rings.length === 0) return null;
+  const bands: TooltipBand[] = rings.map((ring) => ({
+    categoryIndex: ring.categoryIndex,
+    label: ring.label,
+    rect: null,
+    arc: { start: 0, end: 360 },
+    ring: { inner: r2(ring.inner), outer: r2(ring.outer) },
+    // 링 위쪽 가운데 — 12시 방향이 값 호의 시작이라 커서가 어디 있든 같은 자리다.
+    anchor: { x: r2(center.x), y: r2(center.y - (ring.inner + ring.outer) / 2) },
+    entries: ring.slices.map((slice, si) => ({
+      label: seriesKeys[si] ?? ring.label,
+      colorIndex: slice.colorIndex,
+      text: formatTick(slice.raw),
+    })),
+  }));
+  return { bands, center };
+}
+
 /** 12시=0, 시계 방향의 각도 (0~360). */
 function angleOf(dx: number, dy: number): number {
   const degrees = (Math.atan2(dy, dx) * 180) / Math.PI + 90;
@@ -147,7 +186,17 @@ export function hitTooltipBand(
     const angle = angleOf(dx, dy);
     for (const band of tooltip.bands) {
       if (!band.arc) continue;
-      if (angle >= band.arc.start && angle < band.arc.end) return band;
+      // 반지름 밴드가 있으면 그것이 먼저다 (ADR-207 radial — 링이 히트 단위).
+      if (band.ring) {
+        if (distance >= band.ring.inner && distance <= band.ring.outer) {
+          return band;
+        }
+        continue;
+      }
+      // 부채꼴이 12시를 넘어 감기는 경우 (radar 의 첫 범주 — start 300, end 420):
+      //   각도를 한 바퀴 올려 같은 구간 안으로 되돌린다.
+      const a = angle < band.arc.start ? angle + 360 : angle;
+      if (a >= band.arc.start && a < band.arc.end) return band;
     }
     // 마지막 조각이 360 에 닿는 부동소수 경계
     const last = tooltip.bands[tooltip.bands.length - 1];
@@ -167,4 +216,55 @@ export function hitTooltipBand(
     }
   }
   return null;
+}
+
+export interface PolarBandTooltipInput {
+  grid: SeriesGrid;
+  angle: { (index: number): number; readonly step: number };
+  center: { x: number; y: number; outer: number; inner: number };
+  seriesCount: number;
+}
+
+/**
+ * ADR-207 — radar 툴팁. **범주 하나 = 각도 부채꼴 하나**이고, 그 부채꼴 안에서는
+ * 시리즈 전부를 한 줄씩 보여 준다 (직교 `buildBandTooltip` 의 기둥과 같은 뜻 —
+ * 축만 각도로 바뀐 것이다).
+ */
+export function buildPolarBandTooltip(
+  input: PolarBandTooltipInput,
+): TooltipScene | null {
+  const { grid, angle, center, seriesCount } = input;
+  const count = grid.categories.length;
+  if (count === 0 || center.outer <= 0) return null;
+  const palette = Math.max(1, seriesCount);
+  const half = angle.step / 2;
+
+  const bands: TooltipBand[] = [];
+  for (let ci = 0; ci < count; ci++) {
+    const mid = angle(ci);
+    const start = ((mid - half) % 360 + 360) % 360;
+    const entries: TooltipEntry[] = [];
+    for (const series of grid.series) {
+      const raw = series.values.get(ci);
+      if (raw === undefined) continue;
+      entries.push({
+        label: series.key || "series",
+        colorIndex: series.seriesIndex % palette,
+        text: formatTick(raw),
+      });
+    }
+    const radians = ((mid - 90) * Math.PI) / 180;
+    bands.push({
+      categoryIndex: ci,
+      label: grid.categories[ci] || "",
+      rect: null,
+      arc: { start: r2(start), end: r2(start + angle.step) },
+      anchor: {
+        x: r2(center.x + center.outer * Math.cos(radians)),
+        y: r2(center.y + center.outer * Math.sin(radians)),
+      },
+      entries,
+    });
+  }
+  return { bands, center };
 }

@@ -17,6 +17,8 @@ import { buildDotMarks, dotRadius } from "./marks/dots";
 import { buildLineMarks, seriesAxialPoints } from "./marks/line";
 import { buildPieMarks } from "./marks/pie";
 import { buildRadarMarks } from "./marks/radar";
+import { buildRadialMarks } from "./marks/radial";
+import type { RadialRing } from "./marks/radial";
 import {
   approxTextWidth,
   bandScale,
@@ -27,7 +29,12 @@ import {
 } from "./scales";
 import { buildSeriesGrid, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
-import { buildBandTooltip, buildRadialTooltip } from "./tooltip";
+import {
+  buildBandTooltip,
+  buildPolarBandTooltip,
+  buildRingTooltip,
+  buildRadialTooltip,
+} from "./tooltip";
 import type { StackMode } from "./series";
 import type {
   ChartMetrics,
@@ -186,6 +193,22 @@ function computePolarScene(
     }
   }
 
+  let radialRings: readonly RadialRing[] = [];
+  if (props.chartType === "radial") {
+    const radial = buildRadialMarks({
+      grid,
+      center,
+      domain: ticks.domain,
+      seriesCount: metrics.seriesCount,
+      stackMode,
+      showValueLabels: props.showValueLabels,
+      fontSize,
+    });
+    marks.push(...radial.marks);
+    labels.push(...radial.labels);
+    radialRings = radial.rings;
+  }
+
   const axes =
     props.chartType === "radar"
       ? buildPolarAxes({
@@ -215,7 +238,20 @@ function computePolarScene(
           fontSize,
         })
       : null,
-    tooltip: null,
+    tooltip: !props.showTooltip
+      ? null
+      : radialRings.length > 0
+        ? buildRingTooltip({
+            rings: radialRings,
+            seriesKeys: grid.series.map((series) => series.key || "series"),
+            center,
+          })
+        : buildPolarBandTooltip({
+            grid,
+            angle,
+            center,
+            seriesCount: metrics.seriesCount,
+          }),
     empty: false,
   };
 }

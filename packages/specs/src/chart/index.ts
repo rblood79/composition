@@ -56,12 +56,16 @@ export { buildPolarAxes, polarLabelAnchor, polarLabelStride } from "./polarAxes"
 export type { PolarAxesInput, PolarCenter } from "./polarAxes";
 export { arcPath, arcSlicePath, buildPieMarks } from "./marks/pie";
 export { buildRadarMarks } from "./marks/radar";
+export { buildRadialMarks } from "./marks/radial";
+export type { RadialMarkInput, RadialMarks, RadialRing } from "./marks/radial";
 export type { RadarMarkInput, RadarMarks } from "./marks/radar";
 export type { PieHit, PieMarks } from "./marks/pie";
 export { buildAxes, labelStride } from "./axes";
 export {
   buildBandTooltip,
+  buildPolarBandTooltip,
   buildRadialTooltip,
+  buildRingTooltip,
   hitTooltipBand,
 } from "./tooltip";
 export type { LegendEntry } from "./legend";

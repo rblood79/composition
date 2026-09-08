@@ -226,6 +226,12 @@ export interface TooltipBand {
   arc: { start: number; end: number } | null;
   /** 기준점 — 커서 선/툴팁 위치 */
   anchor: { x: number; y: number };
+  /**
+   * 반지름 밴드 (ADR-207 radial 전용). 누적 radial 은 같은 각도에 시리즈가
+   * 반지름으로 쌓이므로 각도만으로 히트가 안 갈린다 — 링별 반지름 범위가 있어야
+   * 어느 범주를 가리키는지 정해진다. 없으면 `TooltipScene.center` 의 범위를 쓴다.
+   */
+  ring?: { inner: number; outer: number };
   entries: TooltipEntry[];
 }
 
