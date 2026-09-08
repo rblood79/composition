@@ -320,7 +320,7 @@ pnpm install  # lockfile 자동 재생성
 | `README.md`                  | 프로젝트명, 설명                 |
 | `CLAUDE.md`                  | 프로젝트명, 구조 설명            |
 | `CHANGELOG.md`               | 프로젝트명                       |
-| `docs/COMPONENT_SPEC.md`     | `@composition/specs` 참조 (30곳) |
+| `docs/reference/components/COMPONENT_SPEC.md`     | `@composition/specs` 참조 (30곳) |
 | `docs/reference/MONOREPO.md` | 패키지 구조 설명 (85곳)          |
 | `docs/adr/*.md`              | ADR 내 참조 (~20곳)              |
 | `.claude/**/*.md`            | 규칙/스킬 문서                   |

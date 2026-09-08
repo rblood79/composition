@@ -144,7 +144,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 | ADR 리뷰 저장소 (Layer 0)  | [docs/adr/reviews/](../../../docs/adr/reviews/) — `review-adr` Phase 4.5 자동 영속화                                            |
 | 렌더링 아키텍처 결정       | [ADR-900](../../../docs/adr/completed/900-unified-skia-rendering-engine.md) — PixiJS 제거, 대안/결정/Gate                       |
 | 렌더링 구현 상세           | [ADR-900 breakdown](../../../docs/adr/design/900-unified-skia-engine-breakdown.md) — SceneGraph, Rust Layout, CSS3 렌더링 Phase |
-| 컴포넌트 스펙 (잔존 3개)   | [COMPONENT_SPEC.md](../../../docs/COMPONENT_SPEC.md) — 일반 컴포넌트는 catalog                                                  |
+| 컴포넌트 스펙 (잔존 3개)   | [COMPONENT_SPEC.md](../../../docs/reference/components/COMPONENT_SPEC.md) — 일반 컴포넌트는 catalog                                                  |
 | CSS 상세                   | [CSS_ARCHITECTURE.md](../../../docs/features/completed/CSS_ARCHITECTURE.md) — ITCSS + tv()                                      |
 | Spec↔CSS 경계              | [SPEC_CSS_BOUNDARY.md](../../../docs/reference/components/SPEC_CSS_BOUNDARY.md) — Leaf vs Container 분류표 (잔존 spec 3개 한정) |
 
@@ -209,7 +209,7 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 
 - **[ADR-001](../../../docs/adr/completed/001-state-management.md)** Zustand | **[ADR-002](../../../docs/adr/completed/002-styling-approach.md)** ITCSS+tv() | **[ADR-003](../../../docs/adr/completed/003-canvas-rendering.md)** Canvas
 - **[ADR-004](../../../docs/adr/completed/004-preview-isolation.md)** iframe | **[ADR-005](../../../docs/adr/completed/005-css-text-wrapping.md)** Text Wrap | **[ADR-008](../../../docs/adr/completed/008-layout-engine.md)** Taffy (레이아웃 엔진은 이후 [ADR-916](../../../docs/adr/completed/916-unified-rust-engine.md) 자체 Rust 엔진 `packages/composition-engine` 으로 대체)
-- **[Component Spec](../../../docs/COMPONENT_SPEC.md)** 단일 소스 아키텍처 (spec 시대 기록, DEPRECATED — 현재 D3 SSOT는 [ADR-142](../../../docs/adr/completed/142-starter-spec-component-system-cutover.md) catalog `COMPONENT_RULES_TABLE`)
+- **[Component Spec](../../../docs/reference/components/COMPONENT_SPEC.md)** 단일 소스 아키텍처 (spec 시대 기록, DEPRECATED — 현재 D3 SSOT는 [ADR-142](../../../docs/adr/completed/142-starter-spec-component-system-cutover.md) catalog `COMPONENT_RULES_TABLE`)
 
 ## 규칙 효과 측정
 

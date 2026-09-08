@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * `docs/CSS_SUPPORT_MATRIX.md` 의 엔진 절을 코드에서 생성한다.
+ * `docs/reference/CSS_SUPPORT_MATRIX.md` 의 엔진 절을 코드에서 생성한다.
  *
  * 정본은 `apps/builder/src/builder/workspace/canvas/layout/engines/layoutCapabilityMatrix.ts` —
  * 엔진이 CSS 의미를 그대로 구현하지 않는 자리를 property × value 로 선언하고, 값마다 Chrome 격차
@@ -23,7 +23,7 @@ const SOURCE = resolve(
   ROOT,
   "apps/builder/src/builder/workspace/canvas/layout/engines/layoutCapabilityMatrix.ts",
 );
-const DOC = resolve(ROOT, "docs/CSS_SUPPORT_MATRIX.md");
+const DOC = resolve(ROOT, "docs/reference/CSS_SUPPORT_MATRIX.md");
 const BEGIN = "<!-- engine-matrix:begin -->";
 const END = "<!-- engine-matrix:end -->";
 
@@ -127,7 +127,7 @@ const next = doc.slice(0, b) + block + doc.slice(e + END.length);
 if (process.argv.includes("--check")) {
   if (next !== doc) {
     console.error(
-      "[engine-matrix] DRIFT — docs/CSS_SUPPORT_MATRIX.md 의 엔진 절이 layoutCapabilityMatrix.ts 와 다르다.\n" +
+      "[engine-matrix] DRIFT — docs/reference/CSS_SUPPORT_MATRIX.md 의 엔진 절이 layoutCapabilityMatrix.ts 와 다르다.\n" +
         "  고치기: node scripts/generate-engine-matrix.mjs",
     );
     process.exit(1);

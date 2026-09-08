@@ -2,7 +2,7 @@
 
 > **작성일**: 2026-02-24
 > **상태**: Implemented — 전환 완료 (Table, Tree 2개 보류)
-> **관련**: `docs/COMPONENT_SPEC.md` §9.13
+> **관련**: `docs/reference/components/COMPONENT_SPEC.md` §9.13
 
 ---
 

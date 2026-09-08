@@ -19,7 +19,7 @@ composition 프로젝트에서 구현 완료된 주요 기능들의 상세 문�
 
 - [**Keyboard Shortcuts**](KEYBOARD_SHORTCUTS.md) - 키보드 단축키 시스템
 - [**Layout Presets**](LAYOUT_PRESETS.md) - 레이아웃 프리셋 시스템
-- [**Monitor Panel**](MONITOR_PANEL.md) - 성능 모니터링 패널
+- [**Monitor Panel**](../../legacy/MONITOR_PANEL.md) - 성능 모니터링 패널
 - [**Multi Select**](MULTI_SELECT.md) - 다중 선택 시스템
 - [**Nested Routes**](NESTED_ROUTES.md) - 중첩 라우팅 시스템
 

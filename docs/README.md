@@ -9,17 +9,20 @@ composition 프로젝트의 기술 문서를 [Diátaxis 프레임워크](https:/
 ```
 docs/
 ├── adr/                    # Architecture Decision Records
-│   ├── completed/          # 완료된 ADR (221개)
-│   ├── design/              # ADR 상세 구현 breakdown (SSOT)
+│   ├── completed/          # 완료된 ADR (229개)
+│   ├── design/              # ADR 상세 구현 breakdown (SSOT, md 255)
 │   │   ├── completed/      # 완료된 breakdown
 │   │   └── *-breakdown.md   # 진행 중 breakdown
-│   └── *.md                 # 진행 중/미구현 ADR (14개, README 제외)
+│   ├── reviews/            # ADR 리뷰 기록 (Layer 0, 104개)
+│   ├── evidence/           # ADR 근거·측정 산출물
+│   └── *.md                 # 진행 중/미구현 ADR (12개, README 제외)
 ├── features/               # 기능별 상세 문서
 │   └── completed/          # 완료된 기능 문서 (20개, README 제외)
 ├── reference/              # 참조 문서
 │   ├── architecture/       # 아키텍처 문서 (MONOREPO, STRUCTURE_*)
 │   ├── api/                # API 문서
-│   ├── components/         # 컴포넌트 참조 (진행 중/계획)
+│   ├── components/         # 컴포넌트 참조 (COMPONENT_SPEC · COLOR_PICKER 포함)
+│   ├── audits/             # 감사 기록
 │   ├── schemas/            # DB 스키마
 │   └── status/             # 상태별 문서 (COMPLETED, PLANNED, UNIMPLEMENTED)
 ├── explanation/            # 설명 및 분석 문서
@@ -31,10 +34,14 @@ docs/
 │   └── troubleshooting/    # 문제 해결
 ├── tutorials/              # 학습 중심 실습 가이드
 ├── legacy/                 # 완료/폐기된 과거 문서
+├── migrations/             # 마이그레이션 기록 + 측정 산출물
+├── audit/ · bug/           # 감사 · 버그 기록
+├── pencil-copy/            # Pencil 참조 사본
 ├── pencil-extracted/       # Pencil Desktop 역공학 분석
-├── CHANGELOG.md            # 변경 이력 (2026년~)
-├── CHANGELOG-2025-archived.md  # 2025년 이전 이력
-├── DOCUMENT_STRUCTURE.md   # 문서 구조 가이드
+├── CHANGELOG.md            # 변경 이력 (2026-09~)
+├── CHANGELOG-2026-Q3-archived.md   # 2026-07-01 ~ 08-31
+├── CHANGELOG-2026-H1-archived.md   # 2026-02-22 ~ 06-30
+├── CHANGELOG-2025-archived.md      # 2025년 이전 이력
 └── README.md               # 문서 인덱스
 ```
 
@@ -48,8 +55,8 @@ docs/
 - [Skia 렌더링 아키텍처](adr/completed/900-unified-skia-rendering-engine.md) - CanvasKit/Skia 현행 렌더링 결정
 - [컴포넌트 SSOT](adr/completed/142-starter-spec-component-system-cutover.md) - catalog 기반 D3 시각 SSOT
 - [레이아웃 엔진 ADR](adr/completed/916-unified-rust-engine.md) - composition-engine 단일 Rust 엔진
-- [CSS 속성 지원 체크리스트](./CSS_SUPPORT_MATRIX.md) - CSS 속성별 지원 상태
-- [컬러 피커 + Fill 시스템](./COLOR_PICKER.md) - Color/Gradient/EyeDropper/BlendMode/ImageFill
+- [CSS 속성 지원 체크리스트](reference/CSS_SUPPORT_MATRIX.md) - CSS 속성별 지원 상태
+- [컬러 피커 + Fill 시스템](reference/components/COLOR_PICKER.md) - Color/Gradient/EyeDropper/BlendMode/ImageFill
 
 ### ADR (Architecture Decision Records)
 
@@ -57,7 +64,7 @@ docs/
 >
 > **구조**:
 >
-> - **완료된 ADR**: [`adr/completed/`](./adr/completed/) (221개)
+> - **완료된 ADR**: [`adr/completed/`](./adr/completed/) (229개)
 > - **진행 중/미구현**: [`adr/*.md`](./adr/) (14개, README 제외)
 > - **Breakdown 문서**: [`adr/design/`](./adr/design/) (상세 구현 설계)
 
@@ -154,7 +161,7 @@ docs/
 - [Keyboard Shortcuts](./features/completed/KEYBOARD_SHORTCUTS.md) - 키보드 단축키
 - [Layout Presets](./features/completed/LAYOUT_PRESETS.md) - 레이아웃 프리셋
 - [Layout Slots](./features/completed/LAYOUT_SLOTS.md) - 레이아웃 슬롯
-- [Monitor Panel](./features/completed/MONITOR_PANEL.md) - 성능 모니터링
+- [Monitor Panel](legacy/MONITOR_PANEL.md) - 성능 모니터링 (**2026-09-09 패널 제거** — 기록 보존용)
 - [Multi Select](./features/completed/MULTI_SELECT.md) - 다중 선택
 - [Nested Routes](./features/completed/NESTED_ROUTES.md) - 중첩 라우팅
 - [Nodes Panel Design](./features/completed/NODES_PANEL_DESIGN.md) - Nodes 패널
@@ -229,7 +236,7 @@ docs/
 
 ## 문서 작성 가이드
 
-> 상세한 문서 구조 및 작성 원칙은 **[DOCUMENT_STRUCTURE.md](./DOCUMENT_STRUCTURE.md)** 참조
+> 상세한 문서 구조 및 작성 원칙은 **[DOCUMENT_STRUCTURE.md](reference/DOCUMENT_STRUCTURE.md)** 참조
 
 새로운 문서를 추가할 때는 Diátaxis 프레임워크에 따라 적절한 폴더에 배치해주세요:
 

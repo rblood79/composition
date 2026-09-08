@@ -23,7 +23,7 @@ env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABAS
 
 **구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/composition-engine` (Rust 레이아웃) · `packages/config`
 
-**핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/stores/` (Zustand) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT 생성물) · `apps/publish/src/main.tsx` (런타임)
+**핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/stores/` (Zustand) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 
 **테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 parity 는 `scripts/visual-parity-gate.mjs` (smoke/full). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 

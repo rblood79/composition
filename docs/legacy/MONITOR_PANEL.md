@@ -1,5 +1,14 @@
 # Monitor Panel 완전 재구축 - Phase별 상세 설계 문서
 
+> **폐기 (2026-09-09)**: Monitor 패널은 빌더에서 **제거**됐다 — 패널 디렉터리 · 레지스트리 등록 ·
+> 단축키 ⌃⌥M · 헤더 메뉴 항목 · i18n 키 전부. 판정 근거는 패널의 Optimize 가 회수할 메모리가
+> 없다는 실측이다 (history 10.6KB vs 렌더러 물리 메모리 production 206MB, Skia 캐시 전량 해제 시
+> RSS 변화 노이즈 이하, CanvasKit WASM 예약 128MB 중 상주 26.2MB). 상세는
+> [CHANGELOG](../CHANGELOG.md) 의 "Monitor 패널 제거" 항목. 아래 본문은 **2025-12-04 시점의 구현
+> 기록**이며 현재 코드와 대응하지 않는다 — 기록 보존용이다.
+
+---
+
 ---
 
 ## ✅ Implementation Status (2025-12-04)
@@ -2490,9 +2499,10 @@ export function BuilderHeader() {
 ```
 
 **단축키 사양**:
-| 플랫폼 | 단축키 | 동작 |
-|--------|--------|------|
-| macOS | `Cmd+Shift+M` | Monitor 패널 토글 |
+
+| 플랫폼        | 단축키         | 동작              |
+| ------------- | -------------- | ----------------- |
+| macOS         | `Cmd+Shift+M`  | Monitor 패널 토글 |
 | Windows/Linux | `Ctrl+Shift+M` | Monitor 패널 토글 |
 
 **참고**: `useKeyboardShortcutsRegistry`는 기존 프로젝트의 키보드 단축키 훅을 재사용합니다. 존재하지 않는 경우 Phase 2의 Esc 키 핸들러와 통합하여 구현합니다.

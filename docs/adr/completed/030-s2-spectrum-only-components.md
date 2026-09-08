@@ -424,6 +424,6 @@ apps/builder/src/builder/styles/*.css                  — CSS 스타일
 | React Aria 스킬        | `.claude/skills/react-aria/references/components/`        |
 | S2 색상 토큰           | `docs/adr/022-s2-color-token-migration.md`                |
 | S2 Variant Props       | `docs/adr/023-s2-component-variant-props.md`              |
-| 컴포넌트 Spec 아키텍처 | `docs/COMPONENT_SPEC.md`                                  |
+| 컴포넌트 Spec 아키텍처 | `docs/reference/components/COMPONENT_SPEC.md`                                  |
 | 렌더링 아키텍처        | `docs/RENDERING_ARCHITECTURE.md`                          |
 | 아이콘 시스템          | `docs/adr/019-icon-system.md`                             |

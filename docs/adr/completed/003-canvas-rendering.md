@@ -12,7 +12,7 @@
 >
 > - [`docs/RENDERING_ARCHITECTURE.md`](../../legacy/RENDERING_ARCHITECTURE.md) — CanvasKit/Skia WASM 렌더링 아키텍처 (현행 기준 문서)
 > - [`docs/adr/008-layout-engine.md`](008-layout-engine.md) — Taffy 단일 레이아웃 엔진 전략 (Dropflow 제거, TaffyBlockEngine 통합)
-> - [`docs/CSS_SUPPORT_MATRIX.md`](../../CSS_SUPPORT_MATRIX.md) — CSS Level 3 지원 현황
+> - [`docs/reference/CSS_SUPPORT_MATRIX.md`](../../reference/CSS_SUPPORT_MATRIX.md) — CSS Level 3 지원 현황
 >
 > **참고:** 본 ADR의 Updates 섹션(2026-02-01~02-18, 30+ 항목)은 전환 과정의 상세 이력입니다.
 > 현행 아키텍처는 `docs/RENDERING_ARCHITECTURE.md`를 기준으로 참조하세요.
@@ -141,7 +141,7 @@ Skia `renderBox()`의 stroke가 요소 바운드 밖으로 넘쳐 인접 요소 
 | **투명 variant** | 미지원                         | outline/ghost → `bgAlpha=0`, ghost → 테두리 없음 |
 | **우선순위**     | 없음                           | `style.backgroundColor > variant > 기본값`       |
 
-**상세:** `apps/builder/src/.../sprites/ElementSprite.tsx`, `docs/COMPONENT_SPEC.md` §4.5
+**상세:** `apps/builder/src/.../sprites/ElementSprite.tsx`, `docs/reference/components/COMPONENT_SPEC.md` §4.5
 
 ## Update: Skia 렌더 트리 계층화 (2026-02-02)
 
@@ -530,7 +530,7 @@ function getSpecForTag(tag: string): ComponentSpec<any> | null {
 | `skia/aiEffects.ts`              | `borderRadius` 튜플 타입 호환성 패치 (`number \| readonly [number, number, number, number]`)     |
 | `types/builder/unified.types.ts` | `createDefaultCheckboxProps`/`RadioProps`/`SwitchProps`에 `variant`, `size`, `style` 기본값 추가 |
 
-**상세:** `apps/builder/src/.../skia/specShapeConverter.ts`, `apps/builder/src/.../sprites/ElementSprite.tsx`, `apps/builder/src/.../skia/nodeRenderers.ts`, `docs/COMPONENT_SPEC.md`
+**상세:** `apps/builder/src/.../skia/specShapeConverter.ts`, `apps/builder/src/.../sprites/ElementSprite.tsx`, `apps/builder/src/.../skia/nodeRenderers.ts`, `docs/reference/components/COMPONENT_SPEC.md`
 
 ## Update: Spec Shapes props.style 오버라이드 패턴 (2026-02-12)
 

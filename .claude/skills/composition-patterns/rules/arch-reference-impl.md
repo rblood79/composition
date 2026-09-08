@@ -25,7 +25,7 @@ tags: [architecture, reference, patterns]
 | 그림자 토큰           | `specs/src/primitives/shadows.ts`                                    | 그림자 토큰 정의                                         |
 | Skia Shape 변환기     | `(apps/builder) builder/workspace/canvas/skia/specShapeConverter.ts` | Shape[] → SkiaNodeData 변환                              |
 
-자세한 설계는 `docs/COMPONENT_SPEC.md` 참조.
+자세한 설계는 `docs/reference/components/COMPONENT_SPEC.md` 참조.
 
 ## 컴포넌트 패턴
 

@@ -12,8 +12,8 @@
 | 대상                        | 건수                                    |
 | --------------------------- | --------------------------------------- |
 | builder 비테스트 소스       | 35 파일 · 약 135 줄                     |
-| `docs/CSS_SUPPORT_MATRIX.md`| 71 건 (전부 ADR-916 에서 삭제된 파일 인용) |
-| `docs/COMPONENT_SPEC.md`    | 30+ 건 (서술 26 · 변경 이력 4)          |
+| `docs/reference/CSS_SUPPORT_MATRIX.md`| 71 건 (전부 ADR-916 에서 삭제된 파일 인용) |
+| `docs/reference/components/COMPONENT_SPEC.md`    | 30+ 건 (서술 26 · 변경 이력 4)          |
 
 ### 판정 기준
 
@@ -33,7 +33,7 @@
 
 `scripts/generate-engine-matrix.mjs` 가 `layoutCapabilityMatrix.ts` (import 0 인 자족 모듈 —
 builder 모듈 그래프를 끌어오지 않으려는 의도적 선택, §A5-5) 를 정규식으로 읽어
-`docs/CSS_SUPPORT_MATRIX.md` 의 `<!-- engine-matrix:begin/end -->` 블록을 쓴다. 행 3개
+`docs/reference/CSS_SUPPORT_MATRIX.md` 의 `<!-- engine-matrix:begin/end -->` 블록을 쓴다. 행 3개
 (S4 `display:inline` · S7 `float` · S8 `subgrid`/`dense`) + Chrome 격차 실측치.
 
 **정본 범위 확인 (문서가 요구한 선행 확인)**: `layoutCapabilityMatrix.ts` 는 **seed** 다 —
