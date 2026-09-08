@@ -2,15 +2,15 @@
 
 ## Status
 
-Accepted — 2026-09-09 (리뷰 round 1 승인 — `docs/adr/reviews/208.md`, pending 0 · HIGH/MED 전부 fixed)
+Implemented — 2026-09-09 (리뷰 round 1 승인 — `docs/adr/reviews/208.md`, pending 0 · HIGH/MED 전부 fixed. P0~P5 반영: `f53e1385a` · `882e958c5` · `78f5313c9` · `f491d979b` · `2e4c02a25`)
 
 ## Context
 
-[ADR-207](completed/207-polar-chart-radar-radial.md) 로 radar/radial 을 반영한 뒤, shadcn charts 예제 **70개를 레지스트리 소스에서 전량** 뽑아 다시 대조했다. ADR-207 종결 시점의 판정은 범주 단위("radar 지원 · radial 지원")였는데, 예제 단위로 보니 **radar 14종 중 5종만** 커버되고 있었다. 격자를 끄거나(`grid-none`), 링만 남기거나(`grid-circle-no-lines`), 다각형을 안 채우거나(`lines-only`), 반원 게이지를 만들거나(`radial-stacked`), 값 대신 범주명을 적는(`pie-label-list`) 것이 전부 빠져 있었다.
+[ADR-207](207-polar-chart-radar-radial.md) 로 radar/radial 을 반영한 뒤, shadcn charts 예제 **70개를 레지스트리 소스에서 전량** 뽑아 다시 대조했다. ADR-207 종결 시점의 판정은 범주 단위("radar 지원 · radial 지원")였는데, 예제 단위로 보니 **radar 14종 중 5종만** 커버되고 있었다. 격자를 끄거나(`grid-none`), 링만 남기거나(`grid-circle-no-lines`), 다각형을 안 채우거나(`lines-only`), 반원 게이지를 만들거나(`radial-stacked`), 값 대신 범주명을 적는(`pie-label-list`) 것이 전부 빠져 있었다.
 
 이 격차를 메우는 데 필요한 것은 새 기하가 아니다. ADR-207 이 만든 극좌표 scene 계약(`AxisScene.grid` 유니온 · `PathMark.role`/`fillRole` · 12시=0 시계 각도 규약) 위에서 **값만 고르면 된다**. 실제로 2026-09-08 에 이 세 축을 구현해 12종을 추가 커버했고 게이트를 전부 통과했으나, ADR 없이 진행한 절차 결함으로 되돌렸다(`018657233` 외 3건). 그 구현과 실측은 남아 있어 본 ADR 의 대안 평가에 근거로 쓴다.
 
-되돌리며 드러난 진짜 문제는 따로 있다. 세 축은 `ChartProps` 에 **prop 7개**를 더한다. Chart binding 의 `accepts` 는 지금 22개(차트 prop 20 + `variant`/`size`)이고, Properties 패널은 이를 **차트 종류와 무관하게 전부** 보여준다. ADR-207 은 이 문제를 스스로 기록해 두었다 — "`gridType` 이 radar 전용인데 모든 차트에 보인다 (조건부 표시는 패널의 별도 축이라 본 ADR 범위 밖)" (`docs/adr/completed/207-polar-chart-radar-radial.md:190`).
+되돌리며 드러난 진짜 문제는 따로 있다. 세 축은 `ChartProps` 에 **prop 7개**를 더한다. Chart binding 의 `accepts` 는 지금 22개(차트 prop 20 + `variant`/`size`)이고, Properties 패널은 이를 **차트 종류와 무관하게 전부** 보여준다. ADR-207 은 이 문제를 스스로 기록해 두었다 — "`gridType` 이 radar 전용인데 모든 차트에 보인다 (조건부 표시는 패널의 별도 축이라 본 ADR 범위 밖)" (`207-polar-chart-radar-radial.md:190`).
 
 **그 서술은 절반만 맞다.** 조건부 표시는 패널의 별도 축이 아니라 **binding 의 기존 필드**다 — `PropContract.visibleWhen` (`packages/shared/src/catalog/types.ts:212`) 이 `key`/`equals`/`oneOf`/`truthy` 를 받고(`types.ts:184-189`), 평가기 `evaluateVisibility` 가 형제 prop 값을 읽어 판정하며(`apps/builder/src/builder/panels/properties/generic/evaluateVisibility.ts:21,32`), `Card.binding.ts:110` 이 이미 선언해 두었다. 어휘도 배관도 이미 있다.
 
@@ -97,7 +97,7 @@ Accepted — 2026-09-09 (리뷰 round 1 승인 — `docs/adr/reviews/208.md`, pe
 
 **HIGH 잔존 1건(R2)의 phase 분리 판정**: R2 를 별도 ADR 로 떼어낼 수 있는가 — **없다**. R2 는 `visibleWhen` 을 쓰기로 한 Decision 자체가 낳는 위험이라 결정과 같은 문서에 있어야 한다. 대신 **phase 로 격리**한다 — P1 이 신규 prop 0 으로 R2 만 검사하는 first nail 이고, G2 가 실패하면 P2~P4 착수 전에 Decision 을 대안 A 로 되돌린다. 위험을 나중 phase 에 누적시키지 않는 배치다.
 
-> 구현 상세: [208-radar-radial-grid-controls-breakdown.md](design/208-radar-radial-grid-controls-breakdown.md)
+> 구현 상세: [208-radar-radial-grid-controls-breakdown.md](../design/208-radar-radial-grid-controls-breakdown.md)
 
 ## Risks
 
@@ -121,6 +121,49 @@ Accepted — 2026-09-09 (리뷰 round 1 승인 — `docs/adr/reviews/208.md`, pe
 | G3   | P2~P4 각 phase  | 신규 prop 마다 registration 8지점(카탈로그 · binding `accepts`+`propPassthrough` · rule · 팔레트/오라클 · factory · `createDefaultChartProps` · `rendererMap`/`DataRenderers` · publish registry) 전부 존재. parity 는 색 채널 포함 GREEN 이고 falsify 로 RED 재현                                                                                                                             | 누락 지점을 채우기 전에 phase 를 닫지 않는다                                                                                            |
 | G4   | P2~P4 각 phase  | 신규 prop 미지정 시 스냅샷 4종 1px 무변경                                                                                                                                                                                                                                                                                                                                                      | 기본값이 그림을 바꿨으면 기본값을 고친다 (계약 2)                                                                                       |
 | G5   | P5              | 번들 gz builder ≤ +5,120 B / publish ≤ +2,048 B · frame p95 Δ ≤ +1ms (같은 실행의 대조군 bar 재측정 drift 병기)                                                                                                                                                                                                                                                                                | 예산 초과 시 `labelKey` 축(P4)을 먼저 분리해 별도 판정                                                                                  |
+
+### Live Exercise
+
+2026-09-09, Playwright 하니스 `apps/builder/scripts/adr208-visiblewhen-live.mjs` (dev 서버 실측, Chrome MCP 아님). 실제 빌더에 프로젝트를 만들고 팔레트로 Chart 를 놓은 뒤 Properties 패널을 열어 **화면에 그려진 컨트롤 이름**을 읽었다 — `resolveEditContract` 를 직접 부르는 단위와 달리 `PropertiesPanel` → `useEditContract` → `GenericFieldRenderer` 를 전부 지난다.
+
+| #   | 시나리오                                                 | 결과                                              |
+| --- | -------------------------------------------------------- | ------------------------------------------------- |
+| 1   | `chartType` 저장 여부와 무관하게 bar 전용 필드 노출 (R7) | PASS — controls 21, Orientation·Stack Type 있음   |
+| 2   | bar 에서 Grid Type·Inner Radius 미노출                   | PASS                                              |
+| 3   | radar 로 전환 시 Grid Type·Inner Radius 노출             | PASS                                              |
+| 4   | radar 에서 Orientation·Stack Type 사라짐 (ADR-207 R8)    | PASS                                              |
+| 5   | 종류 왕복 후 숨겨졌던 값 보존 (G2 ②)                     | PASS — `orientation=horizontal` 유지, 다시 노출   |
+| 6   | P2 4프롭이 radar 에만 노출                               | PASS — Show Spokes·Grid Rings·Fill Grid·Fill Area |
+| 7   | P2 프롭이 bar 에서 전부 사라짐                           | PASS                                              |
+| 8   | P3 radial 에서 각도 2프롭 + 중앙 합계 노출               | PASS                                              |
+| 9   | P3 각도 범위가 radar 에서 미노출 (radial 만 소비)        | PASS                                              |
+| 10  | P4 Label Content 가 `showValueLabels` 토글로 왕복        | PASS                                              |
+| 11  | Card 결선 회귀                                           | 단위 seam 커버 (아래)                             |
+
+**11/11.** Card 의 `isSelectable` → `isSelected` 왕복은 live 팔레트 진입 경로가 이 하니스에서 응답이 없어(2회 재현) 단위 seam 3케이스(`GenericFieldRenderer.test.tsx` — `resolveEditContract` 를 실제로 돌린다)로 커버를 명시하고 뺐다. 없는 결과를 만들지 않는다.
+
+**하니스 결함 2건이 먼저 잡혔다** — 둘 다 "필드가 없다" 를 조용히 통과시키는 형태였다: ① Properties 패널을 열지 않은 채 엉뚱한 `.panel-contents` 를 집어 `controls=0` · ② boolean 컨트롤은 이름이 `aria-label` 이 아니라 `<label>` 텍스트라 3프롭이 "원래 없는 것" 으로 읽힘. 앵커를 `[aria-label="Variant"]` 로 잡고 두 소스를 합쳐 수집하도록 고쳤다.
+
+## Gate 실측 (2026-09-09)
+
+| Gate | 조건                                                     | 실측                                                                                                                   | 판정 |
+| ---- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- | ---- |
+| G0   | 코드 사실 표 + 기준선 일치                               | 사실 9건 전부 일치 · 기하 160 / parity 116 / 번들 1,590,771 · 426,716                                                  | PASS |
+| G1   | scene 계약 무변경 (`AxisScene`·`PathMark`·`Mark` 유니온) | ADR-207 이 만든 계약 그대로, 새 마크 종류 0                                                                            | PASS |
+| G2   | 소비 ⊆ 노출 · 왕복 값 보존 · 결선 회귀 · 미저장 노드     | 차등 오라클 14케이스 (정방향 6 + 역방향 6 + 공허 방지 2) · live 11/11                                                  | PASS |
+| G3   | registration 8지점 · 색 채널 parity + falsify            | 신규 7 prop 전부 8지점 · parity 151 · falsify RED 3                                                                    | PASS |
+| G4   | 신규 prop 미지정 시 스냅샷 4종 무변경                    | 갱신 0 (기하 212 GREEN)                                                                                                | PASS |
+| G5   | 번들 gz ≤ +5,120 / +2,048 · frame p95 Δ ≤ +1ms           | builder **+1,183 B** · publish **+696 B** · frame p95 Δ radar **−0.3ms** / radial **−0.5ms** (대조군 bar drift −0.1ms) | PASS |
+
+> 번들은 `find apps/{builder,publish}/dist/assets -name "*.js" -exec gzip -c {} \; | wc -c` 로 P0·P5 를 같은 명령으로 쟀다. ADR-207 하니스의 절대값(1,761,184 / 504,916)과 집계가 다르므로 **delta 만** 비교한다 (breakdown §2.2).
+
+**G2 가 조건 표를 세 번 고쳤다** — 이것이 이 ADR 에서 가장 값어치 있는 결과다. 착수 전 표는 `computeChartScene` 을 grep 으로 읽어 썼는데 전부 어긋나 있었다:
+
+1. `stackType` — line(`:411-413` 공용 분기)과 pie(`:363-365` 링 분할)도 읽는다 (P1)
+2. `innerRadius` — radar 의 `center.inner` 도 읽는다 (P1)
+3. `startAngle`/`endAngle` — radial **만** 읽는데 radar·pie 에도 열었다 (P3)
+
+앞의 둘은 "읽히는데 숨김"(R2), 셋째는 "보이는데 안 읽힘" 이다. 셋째를 잡으려고 **역방향 오라클**을 추가했다 — 조건을 단 prop 이 그 종류에서 아무 반응이 없으면 FAIL. 선언을 선언으로 대조했다면 셋 다 통과했을 것이다.
 
 ## Consequences
 

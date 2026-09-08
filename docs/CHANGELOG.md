@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [차트 속성 — 고른 차트에 쓰이는 값만 보입니다] - 2026-09-09
+
+### Added
+
+- **radar/radial 제어 7종** (ADR-208). 격자 모양을 링만 남기거나 전부 끄고(`Show Spokes` · `Grid Rings` · `Fill Grid`), 다각형을 선만으로 그리고(`Fill Area`), 반원 게이지를 만들고(`Start Angle` · `End Angle`), 값 대신 범주 이름을 적을 수 있습니다(`Label Content`). shadcn/ui charts 예제 기준 커버리지가 33 → 45종(70 중), radar 는 5/14 → 11/14 입니다.
+
+### Changed
+
+- **속성 패널이 고른 차트 종류에 맞는 항목만 보여 줍니다.** 막대 차트를 편집하는데 `Grid Type`·`Inner Radius` 처럼 극좌표에서만 쓰이는 값이 함께 보이던 것을 없앴습니다. 값을 바꿔도 그림이 안 바뀌는 항목은 이제 화면에 나오지 않고, 종류를 바꿨다 되돌리면 숨어 있던 값은 그대로 돌아옵니다 — 숨김은 표시에만 적용되고 저장된 값은 지우지 않습니다.
+- 같은 규칙으로 `Label Content` 는 값 레이블을 켰을 때만, Card 의 `Selected` 는 선택 가능으로 둔 카드에서만 보입니다. Card 쪽은 조건이 예전부터 선언돼 있었으나 화면까지 이어져 있지 않아 동작하지 않던 것을 이번에 이었습니다.
+
+### Fixed
+
+- 차트 속성 3종의 노출 조건이 실제 동작과 어긋나 있던 것을 바로잡았습니다 — `Stack Type` 은 선·파이 차트에서도 쓰이고, `Inner Radius` 는 radar 도 씁니다.
+
 ## [중첩 거부 — 부분 거부도 알리고 유령을 남기지 않습니다] - 2026-09-09
 
 ### Fixed
