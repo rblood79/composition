@@ -6,7 +6,7 @@
  * 그것이 production 에서도 그런지, 아니면 레이아웃 pass 가 중간에 정규화하는지는
  * live 만 가른다 (memory: infra-exists-vs-wired-consumption-path).
  */
-import { chromium } from "@playwright/test";
+import { chromium } from "playwright";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
 const TEXT = "ab cd ef gh ij kl mn op";

@@ -19,7 +19,7 @@
  * 사용: node apps/builder/scripts/adr205-live-letterspacing.mjs [--headed]
  */
 
-import { chromium } from "@playwright/test";
+import { chromium } from "playwright";
 
 const BASE_URL = process.env.BASE_URL ?? "http://localhost:5173";
 const HEADED = process.argv.includes("--headed");

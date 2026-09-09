@@ -63,26 +63,26 @@
     "@composition/specs": "workspace:*",
     "@internationalized/date": "^3.12.4",
     "@internationalized/number": "^3.6.8",
-    "@react-aria/focus": "^3.22.1",
-    "@react-aria/i18n": "^3.13.1",
+    "@react-aria/focus": "catalog:",
+    "@react-aria/i18n": "catalog:",
     "@react-aria/utils": "^3.34.1",
     "@tanstack/react-table": "^8.21.3",
-    "@tanstack/react-virtual": "^3.14.10",
-    "@types/node": "catalog:",
+    "@tanstack/react-virtual": "catalog:",
     "jszip": "^3.10.1",
-    "lucide-react": "^1.33.0",
+    "lucide-react": "catalog:",
     "react-aria-components": "catalog:",
-    "react-stately": "^3.50.0",
+    "react-stately": "catalog:",
     "recharts": "3.10.1",
-    "tailwind-merge": "^3.6.0"
+    "tailwind-merge": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@composition/config": "workspace:*",
+    "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
-    "eslint": "^10.8.1",
+    "eslint": "catalog:",
     "typescript": "catalog:",
-    "vitest": "catalog:",
-    "zod": "^4.4.3"
+    "vitest": "catalog:"
   }
 }

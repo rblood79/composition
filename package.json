@@ -39,8 +39,7 @@
     "test": "turbo run test",
     "test:coverage": "pnpm -F @composition/specs test:coverage",
     "clean": "turbo run clean && rm -rf node_modules",
-    "playwright:install": "npx playwright install",
-    "test:e2e": "playwright test",
+    "playwright:install": "pnpm -F @composition/builder exec playwright install",
     "wasm:build:engine": "wasm-pack build packages/composition-engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg",
     "prepare:wasm": "node scripts/prepare-wasm.mjs",
     "prepare:specs": "node packages/specs/scripts/extract-lucide-icons.mjs && pnpm run build:specs",
@@ -51,12 +50,9 @@
     "perf:baseline": "node apps/builder/scripts/perf-baseline.mjs"
   },
   "devDependencies": {
-    "@playwright/test": "^1.62.1",
     "gray-matter": "^4.0.3",
-    "playwright": "^1.62.1",
     "prettier": "^3.9.6",
-    "turbo": "^2.10.11",
-    "vitest": "catalog:"
+    "turbo": "^2.10.11"
   },
   "packageManager": "pnpm@10.26.2",
   "pnpm": {
