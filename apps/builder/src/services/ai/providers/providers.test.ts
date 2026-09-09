@@ -648,3 +648,179 @@ describe("에이전트 프로파일 레지스트리", () => {
     }
   });
 });
+
+/**
+ * Prompt caching · usage 계측 · refusal fallback · 구조화 출력 (PROMPT_AUDIT_2026-09 D1·D3·D6).
+ *
+ * 렌더 순서는 tools → system → messages 라 system 블록의 breakpoint 하나가 tools 까지 덮고,
+ * 최상위 자동 breakpoint 가 자라는 대화 꼬리를 따라간다. 캐시가 실제로 도는지는 `usage`
+ * 필드만이 근거라 stop 이벤트에 그대로 노출한다.
+ */
+describe("Anthropic 어댑터 — caching · usage · fallback · structured output", () => {
+  const anthropic = (model = "claude-sonnet-5") =>
+    new AnthropicProvider({
+      baseUrl: "https://api.anthropic.com",
+      model,
+      allowRemoteDirect: true,
+    });
+
+  it("system 은 cache_control 이 붙은 블록 배열로, 요청 최상위에 자동 breakpoint 가 실린다", () => {
+    const body = anthropic().buildRequestBody(MESSAGES, { tools: [TOOL] });
+    expect(body.system).toEqual([
+      {
+        type: "text",
+        text: "you are a builder agent",
+        cache_control: { type: "ephemeral" },
+      },
+    ]);
+    expect(body.cache_control).toEqual({ type: "ephemeral" });
+    // 도구 정의 자체에는 marker 를 두지 않는다 — system 블록이 앞의 tools 까지 덮는다
+    const tools = body.tools as Array<Record<string, unknown>>;
+    expect(tools[0].cache_control).toBeUndefined();
+  });
+
+  it("system 이 없으면 system 블록도, 최상위 breakpoint 도 없다", () => {
+    const body = anthropic().buildRequestBody(
+      MESSAGES.filter((m) => m.role !== "system"),
+    );
+    expect(body.system).toBeUndefined();
+    expect(body.cache_control).toBeUndefined();
+  });
+
+  it("message_start / message_delta 의 usage 를 stop 이벤트 usage 로 돌려준다", async () => {
+    const capture = captureFetch(() =>
+      sseResponse([
+        {
+          type: "message_start",
+          message: {
+            usage: {
+              input_tokens: 12,
+              cache_creation_input_tokens: 3000,
+              cache_read_input_tokens: 1500,
+            },
+          },
+        },
+        {
+          type: "content_block_start",
+          index: 0,
+          content_block: { type: "text", text: "" },
+        },
+        {
+          type: "content_block_delta",
+          index: 0,
+          delta: { type: "text_delta", text: "ok" },
+        },
+        {
+          type: "message_delta",
+          delta: { stop_reason: "end_turn" },
+          usage: { output_tokens: 7 },
+        },
+      ]),
+    );
+    const events = await collect(
+      new AnthropicProvider({
+        baseUrl: "https://api.anthropic.com",
+        model: "claude-sonnet-5",
+        allowRemoteDirect: true,
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES),
+    );
+    const stop = events.find((e) => e.type === "stop");
+    expect(stop).toMatchObject({
+      type: "stop",
+      reason: "end",
+      usage: {
+        inputTokens: 12,
+        outputTokens: 7,
+        cacheCreationInputTokens: 3000,
+        cacheReadInputTokens: 1500,
+      },
+    });
+  });
+
+  it("usage 가 오지 않으면 stop 에 usage 필드를 만들지 않는다", async () => {
+    const capture = captureFetch(() => sseResponse([]));
+    const events = await collect(
+      new AnthropicProvider({
+        baseUrl: "https://api.anthropic.com",
+        model: "claude-sonnet-5",
+        allowRemoteDirect: true,
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES),
+    );
+    const stop = events.find((e) => e.type === "stop");
+    expect(stop && "usage" in stop).toBe(false);
+  });
+
+  it("안전 분류기가 붙는 모델 (opus-5 · fable · mythos) 에는 fallbacks default + beta 헤더를 보낸다", async () => {
+    const capture = captureFetch(() => sseResponse([]));
+    await collect(
+      new AnthropicProvider({
+        baseUrl: "https://api.anthropic.com",
+        model: "claude-opus-5",
+        allowRemoteDirect: true,
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES),
+    );
+    expect(capture.body().fallbacks).toBe("default");
+    const headers = capture.calls[0].init.headers as Record<string, string>;
+    expect(headers["anthropic-beta"]).toBe("server-side-fallback-2026-07-01");
+  });
+
+  it("sonnet-5 · haiku 에는 fallbacks 도 beta 헤더도 붙이지 않는다", async () => {
+    const capture = captureFetch(() => sseResponse([]));
+    await collect(
+      new AnthropicProvider({
+        baseUrl: "https://api.anthropic.com",
+        model: "claude-sonnet-5",
+        allowRemoteDirect: true,
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES),
+    );
+    expect(capture.body().fallbacks).toBeUndefined();
+    const headers = capture.calls[0].init.headers as Record<string, string>;
+    expect(headers["anthropic-beta"]).toBeUndefined();
+  });
+
+  it("responseSchema 는 output_config.format (json_schema) 으로, effort 와 같은 객체에 합쳐진다", () => {
+    const schema = {
+      type: "object",
+      properties: { ok: { type: "boolean" } },
+      required: ["ok"],
+      additionalProperties: false,
+    };
+    const body = anthropic().buildRequestBody(MESSAGES, {
+      responseSchema: schema,
+      reasoningEffort: "medium",
+    });
+    expect(body.output_config).toEqual({
+      effort: "medium",
+      format: { type: "json_schema", schema },
+    });
+  });
+
+  it("responseSchema 만 있으면 output_config 에 format 만 실린다", () => {
+    const schema = { type: "object", properties: {} };
+    const body = anthropic().buildRequestBody(MESSAGES, {
+      responseSchema: schema,
+    });
+    expect(body.output_config).toEqual({
+      format: { type: "json_schema", schema },
+    });
+  });
+
+  it("OpenAI 호환 어댑터는 responseSchema 를 무시한다 (파서 폴백 경로)", async () => {
+    const capture = captureFetch(() => sseResponse([]));
+    await collect(
+      new OpenAICompatibleProvider({
+        baseUrl: "http://localhost:11434/v1",
+        model: "m",
+        fetchImpl: capture.impl,
+      }).completeWithTools(MESSAGES, {
+        responseSchema: { type: "object", properties: {} },
+      }),
+    );
+    expect(capture.body().output_config).toBeUndefined();
+    expect(capture.body().response_format).toBeUndefined();
+  });
+});
