@@ -309,7 +309,7 @@ export function generateCSS<Props>(
     for (const variantName of Object.keys(spec.variants)) {
       // ADR-912 단계5: variant 색상은 정본 table 파생(_variantSource)만 source.
       //   구 `?? variantToVisual(spec.variants[name])` fallback 제거 — production 은
-      //   generateAllCSS 가 variantSourceFor 로 _variantSource 를 전량 주입(spec.variants 와
+      //   generate-css.ts 가 variantSourceFor 로 _variantSource 를 전량 주입(spec.variants 와
       //   _variantSource 는 둘 다 rule.variants 파생이라 키 1:1). 미주입(embed 재귀·test)
       //   variant 는 skip — embed 재귀는 production 도달 0(childSpecs 보유 spec 전수 삭제),
       //   test 는 variantSource 명시 주입.
@@ -1799,35 +1799,4 @@ function generateAnimationAtRules<Props>(spec: ComponentSpec<Props>): string[] {
   }
 
   return lines;
-}
-
-// ─── Batch Generator ────────────────────────────────────────────────────────
-
-/**
- * 모든 스펙에서 CSS 파일 생성
- *
- * ADR-912 ②-6-A (1A-(a)): `variantSourceFor` 콜백이 주어지면 각 spec 의 variant 색상을 정본 table 에서
- * 변환한 `ComponentVisualRule` 맵으로 주입(build script 가 shared table import 후 전달). 미제공 시 기존
- * spec.variants fallback. 이로써 DOM CSS variant 색상이 Skia runtime rule 과 같은 정본 table 파생.
- */
-export async function generateAllCSS(
-  specs: ComponentSpec<unknown>[],
-  outputDir: string,
-  variantSourceFor?: (
-    specName: string,
-  ) => Record<string, ComponentVisualRule> | undefined,
-): Promise<void> {
-  const fs = await import("fs/promises");
-  const path = await import("path");
-
-  for (const spec of specs) {
-    const css = generateCSS(spec, variantSourceFor?.(spec.name));
-    if (css === null) {
-      console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);
-      continue;
-    }
-    const filePath = path.join(outputDir, `${spec.name}.css`);
-    await fs.writeFile(filePath, css, "utf-8");
-    console.log(`Generated: ${filePath}`);
-  }
 }

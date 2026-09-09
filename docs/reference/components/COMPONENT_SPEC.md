@@ -131,7 +131,7 @@ COMPONENT_RULES_TABLE (+ theme/tokens, PrimitiveBinding)
 
 ### 2.2 Preview / Publish (DOM + CSS) leg
 
-**build-time (색·크기 base)**: `packages/specs/scripts/generate-css.ts` 가 `getComponentRulesTable()` 을 직접 import 해서(`:16-24`) variant 색상을 주입하고, `CSSGenerator.ts:1813` `generateAllCSS` 로 CSS 파일을 쓴다. 출력 위치는 `generate-css.ts:32-35` → `packages/shared/src/components/styles/generated/` — 현재 **94개 `.css`** (`ls .../generated/*.css | wc -l`). 이 스크립트는 `pnpm install` postinstall 체인(`package.json:45-47` `prepare:specs` → `build:specs` → specs `build` → `generate:css`)에서 돈다.
+**build-time (색·크기 base)**: `packages/specs/scripts/generate-css.ts` 가 `getComponentRulesTable()` 을 직접 import 해서(`:16-24`) variant 색상을 주입하고, Node 전용 `generateAllCSS` 로 CSS 파일을 쓴다. 출력 위치는 `generate-css.ts:32-35` → `packages/shared/src/components/styles/generated/` — 현재 **94개 `.css`** (`ls .../generated/*.css | wc -l`). 이 스크립트는 `pnpm install` postinstall 체인(`package.json:45-47` `prepare:specs` → `build:specs` → specs `build` → `generate:css`)에서 돈다.
 
 **runtime (구조·override)**: `apps/builder/src/preview/components/CanonicalNodeRenderer.tsx:270` 가 진입점이고 3단으로 갈린다.
 

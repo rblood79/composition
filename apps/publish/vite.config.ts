@@ -1,35 +1,18 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import path from "path";
+
+const dir = import.meta.dirname;
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      "@composition/shared/components": path.resolve(
-        __dirname,
-        "../../packages/shared/src/components/index.ts",
-      ),
-      "@composition/shared/renderers": path.resolve(
-        __dirname,
-        "../../packages/shared/src/renderers/index.ts",
-      ),
-      "@composition/shared/types": path.resolve(
-        __dirname,
-        "../../packages/shared/src/types/index.ts",
-      ),
-      "@composition/shared/hooks": path.resolve(
-        __dirname,
-        "../../packages/shared/src/hooks/index.ts",
-      ),
-      "@composition/shared/utils": path.resolve(
-        __dirname,
-        "../../packages/shared/src/utils/index.ts",
-      ),
-      "@composition/shared": path.resolve(
-        __dirname,
-        "../../packages/shared/src/index.ts",
-      ),
+      "@composition/shared/components": `${dir}/../../packages/shared/src/components/index.ts`,
+      "@composition/shared/renderers": `${dir}/../../packages/shared/src/renderers/index.ts`,
+      "@composition/shared/types": `${dir}/../../packages/shared/src/types/index.ts`,
+      "@composition/shared/hooks": `${dir}/../../packages/shared/src/hooks/index.ts`,
+      "@composition/shared/utils": `${dir}/../../packages/shared/src/utils/index.ts`,
+      "@composition/shared": `${dir}/../../packages/shared/src/index.ts`,
     },
   },
   build: {
@@ -39,7 +22,7 @@ export default defineConfig({
     cssMinify: "esbuild",
     rolldownOptions: {
       input: {
-        main: path.resolve(__dirname, "index.html"),
+        main: `${dir}/index.html`,
       },
     },
   },

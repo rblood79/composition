@@ -40,9 +40,11 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
     text: c.text as ComponentVisualRule["text"],
     textHover: c.textHover as ComponentVisualRule["textHover"],
     textWeight: v.textWeight,
+    fontFamily: v.fontFamily,
     border: c.border as ComponentVisualRule["border"],
     borderHover: c.borderHover as ComponentVisualRule["borderHover"],
     borderStyle: v.borderStyle,
+    fillBar: v.fillBar as ComponentVisualRule["fillBar"],
     outlineText: c.outlineText as ComponentVisualRule["outlineText"],
     outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
     subtleText: c.subtleText as ComponentVisualRule["subtleText"],
@@ -52,6 +54,12 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
       c.emphasizedSelectedText as ComponentVisualRule["emphasizedSelectedText"],
     emphasizedSelectedBorder:
       c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
+    leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
+    leadingAvatar: v.leadingAvatar as ComponentVisualRule["leadingAvatar"],
+    selectionCheckbox:
+      v.selectionCheckbox as ComponentVisualRule["selectionCheckbox"],
+    trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],
+    textAlign: v.textAlign,
   };
 }
 

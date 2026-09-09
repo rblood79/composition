@@ -10,7 +10,7 @@
 export { getVariantColors, getSizePreset } from "./utils/variantColors";
 
 // CSS Generator
-export { generateCSS, generateAllCSS } from "./CSSGenerator";
+export { generateCSS } from "./CSSGenerator";
 
 // ADR-912 Δ7: layout token table 단일 source (CSSGenerator + shared resolver 공용)
 export { LAYOUT_TOKEN_STYLES, layoutTokenToCssLines } from "./layoutTokens";

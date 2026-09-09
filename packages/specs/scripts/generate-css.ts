@@ -6,9 +6,14 @@
  * Usage: pnpm generate:css
  */
 
-import { generateAllCSS } from "../src/renderers/CSSGenerator";
+import { generateCSS } from "../src/renderers/CSSGenerator";
 import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
-import type { ComponentSpec } from "../src/types";
+import type {
+  ArchetypeId,
+  ComponentSpec,
+  SizeSpec,
+  VariantSpec,
+} from "../src/types";
 import {
   validateDelegationPrefixes,
   formatViolations,
@@ -21,7 +26,6 @@ import {
   getPrimitiveBinding,
   type ComponentRuleVariant,
 } from "../../shared/src/index";
-import type { SizeSpec, VariantSpec } from "../src/types";
 import * as fs from "fs/promises";
 import * as path from "path";
 import { fileURLToPath } from "url";
@@ -42,14 +46,18 @@ const OUTPUT_DIR = path.join(
  */
 function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
   const c = v.colors ?? {};
+  // fill 은 ComponentRuleFill(string) 과 FillTokenSpec(TokenRef) 가 동형 — 구조 그대로 캐스팅.
+  // builder `ruleVariantToVisual` 과 동일 필드 — ComponentVisualRule 은 전 필드 필수(| undefined).
   return {
     fill: v.fill as unknown as ComponentVisualRule["fill"],
     text: c.text as ComponentVisualRule["text"],
     textHover: c.textHover as ComponentVisualRule["textHover"],
     textWeight: v.textWeight,
+    fontFamily: v.fontFamily,
     border: c.border as ComponentVisualRule["border"],
     borderHover: c.borderHover as ComponentVisualRule["borderHover"],
     borderStyle: v.borderStyle,
+    fillBar: v.fillBar as ComponentVisualRule["fillBar"],
     outlineText: c.outlineText as ComponentVisualRule["outlineText"],
     outlineBorder: c.outlineBorder as ComponentVisualRule["outlineBorder"],
     subtleText: c.subtleText as ComponentVisualRule["subtleText"],
@@ -59,7 +67,33 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
       c.emphasizedSelectedText as ComponentVisualRule["emphasizedSelectedText"],
     emphasizedSelectedBorder:
       c.emphasizedSelectedBorder as ComponentVisualRule["emphasizedSelectedBorder"],
+    leadingIcon: v.leadingIcon as ComponentVisualRule["leadingIcon"],
+    leadingAvatar: v.leadingAvatar as ComponentVisualRule["leadingAvatar"],
+    selectionCheckbox:
+      v.selectionCheckbox as ComponentVisualRule["selectionCheckbox"],
+    trailingIcon: v.trailingIcon as ComponentVisualRule["trailingIcon"],
+    textAlign: v.textAlign,
   };
+}
+
+const ARCHETYPE_IDS: ReadonlySet<string> = new Set<ArchetypeId>([
+  "simple",
+  "button",
+  "input-base",
+  "toggle-indicator",
+  "progress",
+  "slider",
+  "tabs-indicator",
+  "collection",
+  "overlay",
+  "calendar",
+  "alert",
+  "text",
+]);
+
+/** catalog `structure.archetype` 은 string("default" 포함). spec 에 없는 값은 미지정과 같다. */
+function toArchetypeId(value: string): ArchetypeId | undefined {
+  return ARCHETYPE_IDS.has(value) ? (value as ArchetypeId) : undefined;
 }
 
 /**
@@ -76,6 +110,28 @@ function variantSourceFor(
     map[name] = ruleVariantToVisual(variant);
   }
   return map;
+}
+
+/**
+ * 모든 스펙에서 CSS 파일 생성. Node 전용 — 브라우저 번들(`CSSGenerator`)에 두지 않는다.
+ */
+async function generateAllCSS(
+  specs: ComponentSpec<unknown>[],
+  outputDir: string,
+  variantSource: (
+    specName: string,
+  ) => Record<string, ComponentVisualRule> | undefined,
+): Promise<void> {
+  for (const spec of specs) {
+    const css = generateCSS(spec, variantSource(spec.name));
+    if (css === null) {
+      console.log(`  ⏭ Skipped: ${spec.name} (skipCSSGeneration)`);
+      continue;
+    }
+    const filePath = path.join(outputDir, `${spec.name}.css`);
+    await fs.writeFile(filePath, css, "utf-8");
+    console.log(`Generated: ${filePath}`);
+  }
 }
 
 // ─── TEXT_LEAF virtual spec 합성 ─────────────────────────────────────────────
@@ -323,21 +379,22 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
 
     const virtualSpec: ComponentSpec<unknown> = {
       name,
-      archetype: meta.archetype,
+      archetype: toArchetypeId(meta.archetype),
       element: meta.element as ComponentSpec<unknown>["element"],
-      containerStyles: meta.containerStyles,
+      containerStyles:
+        meta.containerStyles as ComponentSpec<unknown>["containerStyles"],
       defaultVariant: rule.defaultVariant,
       defaultSize: rule.defaultSize ?? "md",
       variants,
       sizes,
       // states: 기본 hover/pressed/disabled(opacity)/focusVisible. meta.states 설정 시 override
       //   (ProgressBarTrack 처럼 disabled 에 pointerEvents:none 추가 필요한 군).
-      states: meta.states ?? {
+      states: (meta.states ?? {
         hover: {},
         pressed: {},
         disabled: { opacity: 0.38 },
         focusVisible: {},
-      },
+      }) as ComponentSpec<unknown>["states"],
       // cssEmitMode: Button/ToggleButton 의 button-base(변수 + color-mix 파생). 미설정 시 direct.
       ...(meta.cssEmitMode ? { cssEmitMode: meta.cssEmitMode } : {}),
       // composition: rule 에 없는 CSS selector 메타(Link underline 등). 미설정 시 미적용.
@@ -347,11 +404,19 @@ function buildVirtualSpecs(): ComponentSpec<unknown>[] {
       //   SSOT 를 본다. densities 미정의 컴포넌트는 합성 자체가 없어 CSS diff 0.
       ...(meta.composition || rule.densities
         ? {
-            composition: mergeDensityVariants(meta.composition, rule.densities),
+            composition: mergeDensityVariants(
+              meta.composition as ComponentSpec<unknown>["composition"],
+              rule.densities,
+            ),
           }
         : {}),
       // indicatorMode: ToggleButtonGroup 의 selection indicator 구조. 미설정 시 미emit.
-      ...(meta.indicatorMode ? { indicatorMode: meta.indicatorMode } : {}),
+      ...(meta.indicatorMode
+        ? {
+            indicatorMode:
+              meta.indicatorMode as unknown as ComponentSpec<unknown>["indicatorMode"],
+          }
+        : {}),
       // chart (ADR-194): 시리즈 팔레트·축 색을 CSS custom property 로 내보낸다.
       //   variants/sizes 두 축에 안 들어가는 **순서 있는 색 목록** 이라 rule top-level
       //   채널을 그대로 실어 보낸다. 미보유 rule 은 emit 0 (CSS diff 0).

@@ -221,7 +221,6 @@ export {
   getSizePreset,
   // CSS Generator
   generateCSS,
-  generateAllCSS,
   // ADR-108 P1: containerVariants 런타임 helper
   resolveContainerVariants,
   matchNestedSelector,
