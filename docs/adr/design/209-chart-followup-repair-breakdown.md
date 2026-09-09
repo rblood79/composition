@@ -426,3 +426,43 @@ node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독
 - 기록 보존 사고: 같은 디렉터리 detached checkout 이 `31dff0c50` 이 추적하던 gitignored `docs/adr/evidence/` 파일 90개를 덮어썼다가 main 복귀 때 삭제했다. 마지막 추적본 `dcfaec4b0^` 에서 90개를 복원했다 — **추적본 복원**이지 그 이후 로컬 편집까지 복구된 것은 아니다 (2026-09-09 untracking 뒤 그 파일들에 로컬 편집이 있었다면 소실). 이 세션이 만든 209-\* evidence 는 영향 없음. 재발 방지는 §8.2 측정 환경 규칙(별도 작업 디렉터리).
 
 **판정.** 이번 수정의 필수 회귀 T1–T8 (§10.4) 과 기존 계약 확인 T9·T10·T11·T12 (§10.4 + 본 절), §10.1 rollback 이 실측으로 닫혔다. T13(animation on/off·reduced-motion·tooltip·키보드·해제 후 데이터 교체)은 이 revision 에서 chart browser 스위트(`chartInteraction.browser.test.tsx` 의 native animation 재전송·키보드 tooltip, `chartTheme.browser.test.tsx`)와 2026-09-09 P3/P4 live(DPR2/dark/reduced-motion 149) 로만 확인했고 최종 revision live 는 F3 의 최종 revision 측정에 같이 싣는다. 그 조건으로 **F2 닫힘.** 남은 것은 F3(최종 revision 번들·성능 manifest + T13 live) · F4(production 로그인 boot 요청 0) · §8.5 예산 A/B 사용자 결정 · F5 종결이며 ADR-209 는 In Progress 유지.
+
+### 10.6 F3·F4 실행 기록 (2026-09-10) — 최종 revision 측정 manifest
+
+원 수치·측정 조건·원시 JSON 위치는 `docs/adr/evidence/209-f3-final-manifest.md`(로컬). 여기에는 판정에 쓴 값과 재현 방법만 남긴다.
+
+**측정 환경 (§8.2 규칙 적용).** 최종 revision 은 F3 하니스 커밋 `24a33d157` 이고 (이후 커밋은 docs 만), 과거 기준 빌드와 **최종 revision 모두** **별도 worktree** (`/Users/admin/work/composition-baseline`, `git worktree add --detach`) 에서 각 commit 의 lockfile 로 `pnpm install --frozen-lockfile` 해 재현했다 (shim 0, postinstall 이 재생성한 `lucideIconData.generated.ts` 는 추적본으로 되돌려 dirty 0). 엔진은 31dff0c50..HEAD diff 0 이라 같은 wasm (sha256 `7b0f593f…`). gzip 은 node:zlib level 9 파일별 합산 — 2026-09-09 기록과 **raw byte 가 세 entry 모두 바이트 동일** (5,044,894 / 2,618,818 / 1,698,865) 하고 gzip 만 압축기 차이 (+0.4%) 로 다르다. 기기 Apple M4 Pro · macOS 26.6.2 · Playwright Chromium 151 headed · 1440×900 · DPR 1 · visible. 측정 중 main 작업 트리에 사용자의 미커밋 변경 139 파일 (`react-aria-components` 서브패스 import 등) 이 들어와, main 에서 잰 값은 폐기하고 최종 revision 을 별도 clean worktree (`composition-final`) 에 올려 다시 쟀다 — 그 미커밋 변경은 커밋되면 같은 스크립트로 재측정할 대상이다 (dirty 트리 참고값: Builder 1,289,950 / Preview 626,181 / Publish 390,415 B).
+
+**번들 (§8.3).** entry html 의 정적 import closure = initial, `RechartsChart-*.js` 정적 closure − initial = lazy. RechartsChart 는 세 entry 모두 initial 밖이고 동적 import 로만 도달한다.
+
+| initial JS gzip B | 31dff0c50 (ADR 전 기준) | 51184c8bd (해제 직전) | a2afa2f4f (해제) |      최종 | 국소 Δ | ADR 전체 Δ | lazy chart graph |
+| ----------------- | ----------------------: | --------------------: | ---------------: | --------: | -----: | ---------: | ---------------: |
+| Builder           |               1,369,147 |             1,377,590 |        1,377,932 | 1,351,567 |   +342 |    −17,580 |          119,091 |
+| Preview           |                 689,260 |               696,162 |          696,353 |   696,378 |   +191 |     +7,118 |          120,180 |
+| Publish           |                 426,170 |               425,987 |          425,987 |   425,953 |      0 |       −217 |          119,986 |
+
+구간 분해: 31dff0c50→51184c8bd (Recharts runtime 도입 + 09-09 후속) Builder +8,443 / Preview +6,902 / Publish −183 · 51184c8bd→a2afa2f4f (**이번 Series 해제 국소**) +342 / +191 / 0 · a2afa2f4f→최종 (무관한 의존성 정리 `55f7a4aed`·`d1d67c369`·vite 설정 `3f5af7daf` + 이 세션의 docs·scripts 커밋) −26,385 / +10 / −34 — 차트 비용으로 귀속하지 않는다. 판정: 초기 순증 ≤ 10 KiB 통과 (ADR 전체·국소 모두), lazy ≤ 200 KiB 통과 (119–120 KB). **전체 초기 < 500 KB 는 Builder 1,351,547 B · Preview 696,363 B 로 미충족** (기준 31dff0c50 부터 초과, Publish 425,953 B 충족) → §8.5 사용자 결정 (A/B) 대기.
+
+**runtime (§8.4).** production 빌드 Chart, 6종 × 200행×4series, resize+데이터 교체 표본 12 (3 warm-up). 정적 p95: area 17.1 · bar 37.1 · line 17.1 · pie 17.1 · radar 17.3 · radial 39.6 ms — 전부 ≤ 100 통과 (해제 직전 51184c8bd 와 표본 오차 안 동일). animation on(160ms) 은 duration 을 빼지 않은 실측 200–228 ms 로 별도 기록. 5000행 규모 한계: bar 586 / radial 801 / pie 197 / radar 131 / area 33 / line 39 ms (longtask 동반, SLA 아님).
+
+**Builder 프레임 A/B (§8.4).** before 51184c8bd (worktree DEV 5174) / after 최종 24a33d157 (clean worktree DEV 5175), 6 Chart × 200행, Properties 열림, select → showGrid 편집 → 불리한 resize → zoom 순환 54회, 5쌍 순서 교대, `render.frame` inclusive CPU p95: 10.7→10.8 · 10.8→10.6 · 11.3→11.1 · 10.8→11.0 · 10.7→10.6 (Δ +0.1 / −0.2 / −0.2 / +0.2 / −0.1) — **Δ ≤ 1ms 통과**. rAF gap p95 는 vsync 바닥.
+
+**T13 live (§7.2, 최종 revision).** `adr209-t13-live.mjs` (실제 Builder + Compare Mode Preview): **13/13 PASS**. 연결·`status/num/role`·해제(`color:""`) 를 세운 뒤 Data 연결을 끊고 rows 를 교체해도 `color:""` 키 유지·Skia 갱신·Preview fill 1종 · animation off 는 데이터 교체가 중간 프레임 0 (distinct 2), on(600ms) 은 중간 프레임 73 · 마지막 기하 변경 657ms 이고 완료 기하 = off 의 정적 기하 · 애니메이션·hover·키보드 프레임 동안 canonical 문서 JSON 불변 (write 0) · reduced-motion 이면 on 이어도 distinct 2 · showTooltip off 는 hover 에 tooltip 없음 / on 은 값 tooltip · `svg[role="application"]` focus + ArrowRight 가 tooltip 을 열고 다음 ArrowRight 가 항목을 옮김 (b542→c549) · 그동안 Canvas 픽셀 서명 불변. 팔레트 초기값은 `isAnimationActive:true`·`showTooltip:true` (기록).
+
+**F4 production network (§8.3, 9/9).** production dist 를 로컬 정적 서버로 띄우고 **실제 Supabase 세션으로 로그인**한 populated 프로젝트 (Chart 2 + Button): cold boot (hydration → Skia ready, 요청 50 · script 33) 차트 runtime chunk 0 · 선택·showGrid 편집·재선택 0 · 차트 포함 Preview 최초 진입 `RechartsChart` 1회 + `.recharts-surface` 222 marks · 재선택·데이터 교체 재다운로드 0 · 차트 없는 Builder boot + Preview 0 · 독립 Publish cold: 차트 없는 export 0, 차트 export 1 + 완료 그림. 2026-09-09 의 "로그인된 production Builder 미검증" 이 닫혔다 (인증 우회 0).
+
+**판정.** F3 의 §8.4 성능 조건 (Builder Δ≤1ms · runtime ≤100ms · 편집 불변성 write 0) 과 순증·lazy 예산은 최종 revision 에서 통과했고 T13 live 도 닫혔다. F4 는 9/9 로 닫혔다. 남은 G5 조건은 **전체 초기 500KB 하나**이며 §8.5 의 사용자 결정 (A: 기존 전체 예산 유지 → G5 미통과 유지 / B: 기존 초과 한정 명시적 예외 — 최신 측정값 Builder 1,351,567 B · Preview 696,378 B 기준으로 entry·상한·유효 기간을 정한다) 뒤에만 G5/G6 을 닫는다. F5 (ADR 상태·README·CHANGELOG·evidence 정합) 는 그 결정 뒤 진행. ADR-209 는 In Progress 유지.
+
+재현:
+
+```sh
+# 번들 (기준은 별도 worktree 에서 같은 명령)
+pnpm -F @composition/builder build && pnpm -F @composition/publish build
+node apps/builder/scripts/adr209-bundle-closure.mjs --repo . --dist apps/builder/dist --entry index.html --label builder --out /tmp/head-builder.json
+node apps/builder/scripts/adr209-bundle-closure.mjs --compare /tmp/base-builder.json /tmp/head-builder.json
+# runtime · Builder A/B · T13 · F4
+node apps/builder/scripts/adr209-runtime-perf.mjs --repo . --label head
+node apps/builder/scripts/adr209-builder-frame-ab.mjs --before http://localhost:5174 --after http://localhost:5173 --pairs 5 --headed
+node apps/builder/scripts/adr209-t13-live.mjs --headed
+node apps/builder/scripts/adr209-f4-production-network.mjs --headed
+```
