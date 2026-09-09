@@ -22,7 +22,10 @@ import type {
   PolarGridType,
 } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
-import { useCollectionData } from "../hooks";
+import {
+  asPropertyBinding,
+  useCollectionData,
+} from "../hooks/useCollectionData";
 import type { DataBinding } from "../types";
 
 export interface ChartProps {
@@ -89,24 +92,37 @@ export { renderChartScene, seriesVar } from "./chart/svgDecorations";
  * 컨테이너 실측 크기. scene 은 **실제 박스 크기** 위에 그려져야 Skia(엔진 layout 이
  * 준 w/h) 와 같은 좌표가 나온다 — 고정 viewBox 로 늘리면 텍스트만 왜곡돼 비대칭이 된다.
  */
-function useBoxSize(
-  ref: React.RefObject<HTMLDivElement | null>,
-  fallback: { width: number; height: number },
-): { width: number; height: number; borderLeft: number; borderTop: number } {
-  const [size, setSize] = React.useState({...fallback, borderLeft:0, borderTop:0});
+function useBoxSize(ref: React.RefObject<HTMLDivElement | null>): {
+  width: number;
+  height: number;
+  borderLeft: number;
+  borderTop: number;
+} {
+  const [size, setSize] = React.useState({
+    width: 0,
+    height: 0,
+    borderLeft: 0,
+    borderTop: 0,
+  });
 
   React.useEffect(() => {
     const node = ref.current;
     if (!node || typeof ResizeObserver === "undefined") return;
     const measure = (): void => {
       const rect = node.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        setSize((prev) =>
-          prev.width === rect.width && prev.height === rect.height && prev.borderLeft === node.clientLeft && prev.borderTop === node.clientTop
-            ? prev
-            : { width: rect.width, height: rect.height, borderLeft: node.clientLeft, borderTop: node.clientTop },
-        );
-      }
+      setSize((prev) =>
+        prev.width === rect.width &&
+        prev.height === rect.height &&
+        prev.borderLeft === node.clientLeft &&
+        prev.borderTop === node.clientTop
+          ? prev
+          : {
+              width: rect.width,
+              height: rect.height,
+              borderLeft: node.clientLeft,
+              borderTop: node.clientTop,
+            },
+      );
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -117,11 +133,17 @@ function useBoxSize(
   return size;
 }
 
-const FALLBACK_WIDTH = 320;
-const RechartsRuntime = React.lazy(() => import("./chart/RechartsChart").then((module) => ({ default: module.RechartsChart })));
+const RechartsRuntime = React.lazy(() =>
+  import("./chart/RechartsChart").then((module) => ({
+    default: module.RechartsChart,
+  })),
+);
 
 export function Chart({
-  isAnimationActive, animationBegin, animationDuration, animationEasing,
+  isAnimationActive,
+  animationBegin,
+  animationDuration,
+  animationEasing,
   chartType,
   dimension,
   metric,
@@ -159,18 +181,18 @@ export function Chart({
   const ref = React.useRef<HTMLDivElement>(null);
   const rule = resolveComponentRule("Chart");
   const sizeKey = String(size).toLowerCase();
-  const ruleHeight = rule?.sizes?.[sizeKey]?.height;
-  const fallbackHeight =
-    typeof ruleHeight === "number" && ruleHeight > 0 ? ruleHeight : 240;
-  const box = useBoxSize(ref, {
-    width: FALLBACK_WIDTH,
-    height: fallbackHeight,
-  });
+  const box = useBoxSize(ref);
 
-  const chartSize = React.useMemo(() => ({width:box.width,height:box.height}), [box.width,box.height]);
+  const chartSize = React.useMemo(
+    () => ({ width: box.width, height: box.height }),
+    [box.width, box.height],
+  );
   const chartProps = React.useMemo(
     () => ({
-      isAnimationActive, animationBegin, animationDuration, animationEasing,
+      isAnimationActive,
+      animationBegin,
+      animationDuration,
+      animationEasing,
       chartType: chartType ?? CHART_DEFAULT_PROPS.chartType,
       dimension: dimension ?? CHART_DEFAULT_PROPS.dimension,
       metric: metric ?? CHART_DEFAULT_PROPS.metric,
@@ -179,8 +201,7 @@ export function Chart({
       stackType: stackType ?? CHART_DEFAULT_PROPS.stackType,
       curve: curve ?? CHART_DEFAULT_PROPS.curve,
       showDots: showDots ?? CHART_DEFAULT_PROPS.showDots,
-      showValueLabels:
-        showValueLabels ?? CHART_DEFAULT_PROPS.showValueLabels,
+      showValueLabels: showValueLabels ?? CHART_DEFAULT_PROPS.showValueLabels,
       colorBy: colorBy ?? CHART_DEFAULT_PROPS.colorBy,
       innerRadius: innerRadius ?? CHART_DEFAULT_PROPS.innerRadius,
       gridType: gridType ?? CHART_DEFAULT_PROPS.gridType,
@@ -199,7 +220,10 @@ export function Chart({
       legendPosition: legendPosition ?? CHART_DEFAULT_PROPS.legendPosition,
     }),
     [
-      isAnimationActive, animationBegin, animationDuration, animationEasing,
+      isAnimationActive,
+      animationBegin,
+      animationDuration,
+      animationEasing,
       chartType,
       dimension,
       metric,
@@ -234,28 +258,75 @@ export function Chart({
     [rule, sizeKey],
   );
 
-  const { data: boundRows, loading, error, reload } = useCollectionData({
+  const {
+    data: boundRows,
+    loading,
+    error,
+    reload,
+  } = useCollectionData({
     dataBinding: dataBinding as DataBinding,
     componentName: "Chart",
     elementId: rest["data-element-id"] as string | undefined,
   });
   const rows = dataBinding ? boundRows : (data ?? []);
   const label = ariaLabel ?? getChartDescriptor(chartProps.chartType).label;
-  const status = dataBinding && loading ? "loading" : dataBinding && error ? "error" : rows.length === 0 ? "empty" : "ready";
+  const status =
+    dataBinding && loading
+      ? "loading"
+      : dataBinding && error
+        ? "error"
+        : rows.length === 0
+          ? "empty"
+          : "ready";
   return (
-    <div {...rest} ref={ref} role="group" aria-label={label}
-      className={className ? `react-aria-Chart ${className}` : "react-aria-Chart"}
-      data-variant={variant} data-size={size} data-chart-status={status} data-chart-row-count={rows.length}
-      style={{ position: "relative", ...style }}>
-      {status === "error" ? <div role="alert">{error}<button type="button" onClick={reload}>Retry</button></div>
-        : status === "loading" ? <div role="status">Loading…</div>
-        : <React.Suspense fallback={<div role="status">Loading chart…</div>}>
+    <div
+      {...rest}
+      ref={ref}
+      role="group"
+      aria-label={label}
+      className={
+        className ? `react-aria-Chart ${className}` : "react-aria-Chart"
+      }
+      data-variant={variant}
+      data-size={size}
+      data-chart-status={status}
+      data-chart-row-count={rows.length}
+      style={{ position: "relative", ...style }}
+    >
+      {status === "error" ? (
+        <div role="alert">
+          {error}
+          {asPropertyBinding(dataBinding)?.source !== "dataTable" && (
+            <button type="button" onClick={reload}>
+              Retry
+            </button>
+          )}
+        </div>
+      ) : status === "loading" ? (
+        <div role="status">Loading…</div>
+      ) : box.width > 0 && box.height > 0 ? (
+        <React.Suspense fallback={<div role="status">Loading chart…</div>}>
           {/* scene은 border box 좌표다. CSS padding과 border가 native SVG를 다시
               밀거나 축소하지 않도록 같은 원점에 viewport를 둔다. */}
-          <div style={{position:"absolute",left:-box.borderLeft,top:-box.borderTop,width:box.width,height:box.height}}>
-            <RechartsRuntime props={chartProps} rows={rows} size={chartSize} metrics={metrics} label={label} />
+          <div
+            style={{
+              position: "absolute",
+              left: -box.borderLeft,
+              top: -box.borderTop,
+              width: box.width,
+              height: box.height,
+            }}
+          >
+            <RechartsRuntime
+              props={chartProps}
+              rows={rows}
+              size={chartSize}
+              metrics={metrics}
+              label={label}
+            />
           </div>
-        </React.Suspense>}
+        </React.Suspense>
+      ) : null}
     </div>
   );
 }

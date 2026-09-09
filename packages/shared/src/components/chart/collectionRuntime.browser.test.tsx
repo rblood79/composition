@@ -15,11 +15,18 @@ let root: Root;
 let host: HTMLDivElement;
 afterEach(() => {
   root?.unmount();
-  host?.remove(); host = undefined!;
+  host?.remove();
+  host = undefined!;
 });
-const binding = { source: "dataTable", name: "sales" } as unknown as DataBinding;
+const binding = {
+  source: "dataTable",
+  name: "sales",
+} as unknown as DataBinding;
 function Probe() {
-  const chart = useCollectionData({ dataBinding: binding, componentName: "Chart" });
+  const chart = useCollectionData({
+    dataBinding: binding,
+    componentName: "Chart",
+  });
   const list = useResolvedCollectionItems({
     dataBinding: binding,
     componentName: "ListBox",
@@ -28,7 +35,14 @@ function Probe() {
   });
   return (
     <>
-      <Chart dataBinding={binding} isAnimationActive={false} dimension="id" metric="value" chartType="line" style={{width:320, height:240}} />
+      <Chart
+        dataBinding={binding}
+        isAnimationActive={false}
+        dimension="id"
+        metric="value"
+        chartType="line"
+        style={{ width: 320, height: 240 }}
+      />
       <output data-probe="chart">
         {JSON.stringify({
           count: chart.data.length,
@@ -97,8 +111,23 @@ describe("ADR-209 공통 collection runtime 공급", () => {
       await vi.waitFor(() => expect(result("chart").count).toBe(count));
       expect(result("list").count).toBe(count);
       expect(result("list").first).toEqual(result("chart").first);
-      await vi.waitFor(() => expect(host.querySelector(".react-aria-Chart")?.getAttribute("data-chart-row-count")).toBe(String(count)));
-      await vi.waitFor(() => expect((host.querySelector(".recharts-line-curve")?.getAttribute("d")?.match(/L/g) ?? []).length).toBe(count - 1));
+      await vi.waitFor(() =>
+        expect(
+          host
+            .querySelector(".react-aria-Chart")
+            ?.getAttribute("data-chart-row-count"),
+        ).toBe(String(count)),
+      );
+      await vi.waitFor(() =>
+        expect(
+          (
+            host
+              .querySelector(".recharts-line-curve")
+              ?.getAttribute("d")
+              ?.match(/L/g) ?? []
+          ).length,
+        ).toBe(count - 1),
+      );
       renderTable({ ...table, runtimeData: [] });
       await vi.waitFor(() => expect(result("chart").count).toBe(0));
       expect(result("list").count).toBe(0);
@@ -120,6 +149,8 @@ describe("ADR-209 공통 collection runtime 공급", () => {
     renderTable({ ...table, status: "error", error: "offline" });
     await vi.waitFor(() => expect(result("chart").error).toBe("offline"));
     expect(result("list").error).toBe("offline");
+    // DataTable snapshot은 공급자의 갱신을 기다린다. 동작하지 않는 재시도 버튼을 노출하지 않는다.
+    expect(host.querySelector(".react-aria-Chart button")).toBeNull();
     renderTable({ ...table, useMockData: true });
     await vi.waitFor(() =>
       expect(result("chart").first).toEqual({ id: "mock" }),

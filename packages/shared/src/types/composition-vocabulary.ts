@@ -40,6 +40,7 @@ export type ComponentTag =
   //   유니온에서 누락 — cardTemplateOrigins(Phase 3) 가 canonical 자식 type 으로 사용.
   | "CardPreview"
   | "CardView"
+  | "Chart"
   | "Checkbox"
   | "CheckboxGroup"
   | "CheckboxItems"

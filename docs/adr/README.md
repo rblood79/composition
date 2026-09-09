@@ -92,7 +92,7 @@
 #### [209](209-chart-authoring-canvas-recharts-runtime.md) — 차트별 편집 경험과 Canvas·Recharts 런타임 분리
 
 - **상태**: In Progress — 2026-09-09
-- **규모**: Charts 6종 생성 항목·동적 Properties·기존 collection/dataBinding 유지. Builder Canvas 정적 표현과 Preview/Publish 실제 Recharts 실행 분리. ADR-194·207·208 일부 결정 변경. P0 Recharts 9건 PASS, P1 진행. G1~G6 미실행.
+- **규모**: Charts 6종 생성 항목·동적 Properties·기존 collection/dataBinding 유지. Builder Canvas 정적 표현과 Preview/Publish 실제 Recharts 실행 분리. ADR-194·207·208 일부 결정 변경. P0~~P4 구현·검증/G0~~G4 PASS. P5 성능·번들·호환 검사 수행. 기존 전체 번들 기준 결정 및 로그인된 production Builder 부트 검증 후 G5/G6 종결.
 - **우선순위**: P1
 
 ### 부분 완료

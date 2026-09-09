@@ -18,6 +18,7 @@ import {
   PropertyIconPicker,
 } from "../../../components";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
+import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
 
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -350,6 +351,10 @@ export const ItemsManager = memo(function ItemsManager({
       ? (val as Record<string, unknown>[])
       : EMPTY_ITEMS;
   }, [element, itemsKey]);
+  const identities = useMemo(
+    () => resolveItemEditorIdentities(rawItems),
+    [rawItems],
+  );
 
   const handleAdd = useCallback(() => {
     void useStore
@@ -370,14 +375,14 @@ export const ItemsManager = memo(function ItemsManager({
   }, [elementId, itemsKey]);
 
   const handleRemove = useCallback(
-    (itemId: string) => {
+    (itemId: string | number) => {
       void useStore.getState().removeItem(elementId, itemsKey, itemId);
     },
     [elementId, itemsKey],
   );
 
   const handleUpdate = useCallback(
-    (itemId: string, patch: Record<string, unknown>) => {
+    (itemId: string | number, patch: Record<string, unknown>) => {
       void useStore.getState().updateItem(elementId, itemsKey, itemId, patch);
     },
     [elementId, itemsKey],
@@ -432,8 +437,9 @@ export const ItemsManager = memo(function ItemsManager({
 
       {rawItems.length > 0 && (
         <div className="tabs-list">
-          {rawItems.map((entry) => {
+          {rawItems.map((entry, index) => {
             const entryId = String(entry.id ?? "");
+            const identity = identities[index];
 
             // Section 엔트리
             if (entry.type === "section") {
@@ -474,13 +480,13 @@ export const ItemsManager = memo(function ItemsManager({
             // 일반 item 엔트리 (type 미지정 포함)
             return (
               <ItemRow
-                key={entryId}
-                itemId={entryId}
+                key={identity.key}
+                itemId={identity.key}
                 item={entry}
                 schema={field.itemSchema}
                 labelKey={labelKey}
-                onUpdate={(patch) => handleUpdate(entryId, patch)}
-                onRemove={() => handleRemove(entryId)}
+                onUpdate={(patch) => handleUpdate(identity.target, patch)}
+                onRemove={() => handleRemove(identity.target)}
               />
             );
           })}

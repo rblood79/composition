@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [차트 생성과 실행 분리 — ADR-209 구현, 종결 검증 진행 중] - 2026-09-09
+
+### Added
+
+- Charts 섹션에서 Area·Bar·Line·Pie·Radar·Radial을 바로 추가하고 종류에 맞는 속성과 프리셋을 편집한다. 저장 타입은 기존 `Chart`를 유지한다.
+- Preview·Publish는 공통 lazy Recharts 3.10.1 runtime을 사용한다. 새 차트에는 애니메이션을 기본 활성화하며, 설정이 없는 기존 차트는 정적 기본값을 유지한다. reduced-motion을 존중한다.
+
+### Changed
+
+- Builder Canvas는 기존 기하와 원본 앞 200행 샘플을 유지한다. Preview·Publish는 전체 현재 collection rows를 사용하며 200행 이후 값도 합계에 반영한다.
+- Chart와 기존 데이터 컴포넌트가 같은 DataTable/API provider를 사용한다. Export/Import와 독립 Publish에 공통 데이터 소스를 전달한다. 새 데이터 envelope의 구 버전 strict Import와 메모리 전용 runtimeData의 리로드 한계는 ADR에 명시했다.
+
+### Fixed
+
+- ID 없는 차트 행을 선택할 때 발생하던 중복 key 콘솔 오류와 행 편집·삭제 실패를 수정했다. 원본 데이터에 ID를 강제로 추가하지 않는다.
+- API 정의가 늦게 도착하거나 재시도가 성공한 뒤 이전 오류가 남던 공통 collection 상태 판정을 수정했다. DataTable 오류에는 동작하지 않는 재시도 버튼을 표시하지 않는다.
+- 숨김/0 크기 차트의 가짜 기본 크기를 제거하고 실제 크기로 렌더한다. Publish의 페이지 body 레이아웃 중복 적용을 수정했다.
+
+### Validation
+
+- 실제 Recharts 기하·옵션, light/dark 토큰, DPR 1/2, reduced-motion 및 canonical/ref 보존을 검증했다. G5 전체 번들 기준 결정과 production Builder 로그인 후 부트 검증이 남아 ADR 상태는 In Progress다.
+
 ## [차트 속성 — 고른 차트에 쓰이는 값만 보입니다] - 2026-09-09
 
 ### Added

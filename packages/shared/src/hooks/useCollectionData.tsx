@@ -301,7 +301,10 @@ export function useCollectionData({
       propertyBinding.source === "dataTable" &&
       propertyBinding.name
     ) {
-      const table = collections.find((dt) => dt.name === propertyBinding.name || dt.id === propertyBinding.name);
+      const table = collections.find(
+        (dt) =>
+          dt.name === propertyBinding.name || dt.id === propertyBinding.name,
+      );
       if (table) {
         const snapshot = resolveCollectionSnapshot(table);
         const schema: SchemaField[] = (table.schema || []).map((field) => ({
@@ -316,7 +319,10 @@ export function useCollectionData({
   }, [propertyBinding, collections]);
 
   // 이름이 같아도 endpoint 정의/id가 바뀌면 이전 source 캐시를 소비하지 않는다.
-  const boundEndpoint = propertyBinding?.source === "api" ? apiEndpoints.find((endpoint) => endpoint.name === propertyBinding.name) : undefined;
+  const boundEndpoint =
+    propertyBinding?.source === "api"
+      ? apiEndpoints.find((endpoint) => endpoint.name === propertyBinding.name)
+      : undefined;
   const bindingCacheKey = `${createCacheKey(stableDataBinding)}${boundEndpoint ? `:${JSON.stringify(boundEndpoint)}` : ""}`;
 
   const list = useAsyncList<Record<string, unknown>>({
@@ -376,7 +382,10 @@ export function useCollectionData({
 
             result = await response.json();
           } else if (apiEndpointService?.executeApiEndpoint) {
-            result = await apiEndpointService.executeApiEndpoint(endpoint.id, signal);
+            result = await apiEndpointService.executeApiEndpoint(
+              endpoint.id,
+              signal,
+            );
           } else {
             throw new Error("API 실행 서비스가 연결되지 않았습니다");
           }
@@ -439,7 +448,11 @@ export function useCollectionData({
   useEffect(() => {
     const previous = loadedSource.current;
     loadedSource.current = { key: dataBindingKey, apiEndpoints };
-    if (previous.key !== dataBindingKey || (isApiBinding && previous.apiEndpoints !== apiEndpoints)) list.reload();
+    if (
+      previous.key !== dataBindingKey ||
+      (isApiBinding && previous.apiEndpoints !== apiEndpoints)
+    )
+      list.reload();
     // useAsyncList.load가 현재 signal을 취소하고 새 source를 로드한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataBindingKey, apiEndpoints, isApiBinding]);
@@ -530,7 +543,14 @@ export function useCollectionData({
       return;
     }
     list.reload();
-  }, [datatableId, dataTableService, list, propertyBinding, stableDataBinding, bindingCacheKey]);
+  }, [
+    datatableId,
+    dataTableService,
+    list,
+    propertyBinding,
+    stableDataBinding,
+    bindingCacheKey,
+  ]);
 
   // Auto-refresh 기능
   useEffect(() => {
@@ -547,7 +567,11 @@ export function useCollectionData({
     }
   }, [refreshMode, refreshInterval, isApiBinding, reload, componentName]);
 
-  const isDataTablePending = isDataTableBinding && (!dataTableService || dataTableResult?.status === "loading" || dataTableResult?.status === "idle");
+  const isDataTablePending =
+    isDataTableBinding &&
+    (!dataTableService ||
+      dataTableResult?.status === "loading" ||
+      dataTableResult?.status === "idle");
 
   const loading = propertyBindingFormat
     ? isApiBinding
@@ -559,15 +583,17 @@ export function useCollectionData({
 
   const error = propertyBindingFormat
     ? isApiBinding
-      ? list.error
+      ? list.loadingState === "error" && list.error
         ? list.error.message
         : null
-      : dataTableResult?.status === "error" ? dataTableResult.error || "데이터를 불러오지 못했습니다" : !dataTableResult && stableDataBinding && !isDataTablePending
-        ? `DataTable을 찾을 수 없습니다`
-        : null
+      : dataTableResult?.status === "error"
+        ? dataTableResult.error || "데이터를 불러오지 못했습니다"
+        : !dataTableResult && stableDataBinding && !isDataTablePending
+          ? `DataTable을 찾을 수 없습니다`
+          : null
     : datatableId
       ? datatableState?.error || null
-      : list.error
+      : list.loadingState === "error" && list.error
         ? list.error.message
         : null;
 

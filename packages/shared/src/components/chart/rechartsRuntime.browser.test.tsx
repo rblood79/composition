@@ -45,6 +45,13 @@ async function check(patch: Partial<ChartProps>, source = rows) {
     isAnimationActive: false,
   };
   host = document.createElement("div");
+  const palette = Array.from(
+    { length: 12 },
+    (_, i) => `rgb(${20 + i * 15}, ${30 + i * 10}, ${180 - i * 10})`,
+  );
+  palette.forEach((paint, i) =>
+    host.style.setProperty(`--chart-series-${i + 1}`, paint),
+  );
   document.body.append(host);
   root = createRoot(host);
   root.render(
@@ -85,20 +92,48 @@ async function check(patch: Partial<ChartProps>, source = rows) {
   const actual = Array.from(
     host.querySelectorAll<SVGPathElement>(selector[props.chartType]),
   );
-  const actualLabels = Array.from(host.querySelectorAll<SVGTextElement>("svg text")).filter((text) => !text.closest("[data-chart-decoration]"));
-  expect(actualLabels.length, `value label count ${props.chartType}`).toBe(scene.marks.filter((mark) => mark.kind === "text").length);
-  const remainingLabels = [...scene.marks.filter((mark) => mark.kind === "text")];
+  const actualLabels = Array.from(
+    host.querySelectorAll<SVGTextElement>("svg text"),
+  ).filter((text) => !text.closest("[data-chart-decoration]"));
+  expect(actualLabels.length, `value label count ${props.chartType}`).toBe(
+    scene.marks.filter((mark) => mark.kind === "text").length,
+  );
+  const remainingLabels = [
+    ...scene.marks.filter((mark) => mark.kind === "text"),
+  ];
   for (const text of actualLabels) {
-    const at = remainingLabels.findIndex((label) => label.text === text.textContent &&
-      Math.abs(label.x - Number(text.getAttribute("x"))) <= 1 && Math.abs(label.y - Number(text.getAttribute("y"))) <= 1);
-    expect(at, JSON.stringify({type: props.chartType, text: text.outerHTML, expected: remainingLabels})).toBeGreaterThanOrEqual(0);
+    const at = remainingLabels.findIndex(
+      (label) =>
+        label.text === text.textContent &&
+        Math.abs(label.x - Number(text.getAttribute("x"))) <= 1 &&
+        Math.abs(label.y - Number(text.getAttribute("y"))) <= 1,
+    );
+    expect(
+      at,
+      JSON.stringify({
+        type: props.chartType,
+        text: text.outerHTML,
+        expected: remainingLabels,
+      }),
+    ).toBeGreaterThanOrEqual(0);
     remainingLabels.splice(at, 1);
   }
   const remaining = [...wanted];
   const deltas = actual.map((path) => {
     const distances = remaining.map((mark) => compareBoundaries(path, mark));
     const best = Math.min(...distances);
-    remaining.splice(distances.indexOf(best), 1);
+    const [mark] = remaining.splice(distances.indexOf(best), 1);
+    const paint = getComputedStyle(path);
+    const fillSeries =
+      mark.kind === "rect" ? mark.seriesIndex : mark.fillSeries;
+    if (fillSeries !== undefined)
+      expect(paint.fill, `${props.chartType} fill`).toBe(
+        palette[fillSeries % palette.length],
+      );
+    if (mark.kind === "path" && mark.strokeSeries !== undefined)
+      expect(paint.stroke, `${props.chartType} stroke`).toBe(
+        palette[mark.strokeSeries % palette.length],
+      );
     return best;
   });
   expect(
@@ -108,6 +143,55 @@ async function check(patch: Partial<ChartProps>, source = rows) {
 }
 
 describe("ADR-209 실제 runtime adapter의 최종 기하", () => {
+  for (const chartType of [
+    "bar",
+    "line",
+    "area",
+    "pie",
+    "radar",
+    "radial",
+  ] as const) {
+    const cases: Partial<ChartProps>[] = [
+      { showAxis: false, showGrid: false, showLegend: false },
+      { showLegend: true, legendPosition: "top" },
+      { showLegend: true, legendPosition: "right" },
+      { showLegend: true, legendPosition: "left" },
+      { colorBy: "category", showValueLabels: true, labelKey: "category" },
+      { stackType: "stacked" },
+      { stackType: "expand" },
+    ];
+    for (const [index, patch] of cases.entries())
+      it(`${chartType} 옵션 조합 ${index}`, () =>
+        check({ chartType, ...patch }));
+  }
+  for (const gridType of ["polygon", "circle"] as const)
+    for (const fillArea of [false, true])
+      it(`radar ${gridType} fillArea=${fillArea}`, () =>
+        check({
+          chartType: "radar",
+          gridType,
+          fillArea,
+          fillGrid: true,
+          showSpokes: false,
+          gridRings: 3,
+          showDots: true,
+          innerRadius: 30,
+        }));
+  for (const [startAngle, endAngle] of [
+    [0, 180],
+    [90, 270],
+    [270, 90],
+    [0, 360],
+  ])
+    it(`radial angles ${startAngle}/${endAngle}`, () =>
+      check({
+        chartType: "radial",
+        startAngle,
+        endAngle,
+        innerRadius: 40,
+        showValueLabels: true,
+        showTotal: true,
+      }));
   for (const descriptor of CHART_DESCRIPTORS) {
     for (const preset of descriptor.presets)
       it(`${descriptor.chartType} / ${preset.id}`, async () => {
@@ -122,13 +206,39 @@ describe("ADR-209 실제 runtime adapter의 최종 기하", () => {
       for (const curve of ["linear", "monotone", "step"] as const)
         it(`${chartType} ${orientation} ${curve} 경계`, async () =>
           check({ chartType, orientation, curve }));
-  for (const chartType of ["bar", "line", "area", "pie", "radar", "radial"] as const)
+  for (const chartType of [
+    "bar",
+    "line",
+    "area",
+    "pie",
+    "radar",
+    "radial",
+  ] as const)
     for (const orientation of ["vertical", "horizontal"] as const)
-      it(`${chartType} ${orientation} 값 레이블`, async () => check({chartType, orientation, showValueLabels: true, innerRadius: 30}, rows.map((row, i) => ({...row, value: i === 2 ? -12 : row.value}))));
-  for (const chartType of ["bar", "line", "area", "pie", "radar", "radial"] as const)
-    it(`${chartType} 한 범주`, async () => check({chartType, showValueLabels: true, showTotal: true, innerRadius: 30}, rows.filter((row) => row.category === "A")));
+      it(`${chartType} ${orientation} 값 레이블`, async () =>
+        check(
+          { chartType, orientation, showValueLabels: true, innerRadius: 30 },
+          rows.map((row, i) => ({ ...row, value: i === 2 ? -12 : row.value })),
+        ));
+  for (const chartType of [
+    "bar",
+    "line",
+    "area",
+    "pie",
+    "radar",
+    "radial",
+  ] as const)
+    it(`${chartType} 한 범주`, async () =>
+      check(
+        { chartType, showValueLabels: true, showTotal: true, innerRadius: 30 },
+        rows.filter((row) => row.category === "A"),
+      ));
   for (const chartType of ["radar", "radial"] as const)
-    it(`${chartType} 전체 음수`, async () => check({chartType, innerRadius: 30}, rows.map((row) => ({...row, value: -row.value}))));
+    it(`${chartType} 전체 음수`, async () =>
+      check(
+        { chartType, innerRadius: 30 },
+        rows.map((row) => ({ ...row, value: -row.value })),
+      ));
   for (const chartType of [
     "bar",
     "line",

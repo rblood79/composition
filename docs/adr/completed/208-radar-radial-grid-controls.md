@@ -1,5 +1,7 @@
 # ADR-208: radar/radial 제어 prop 과 차트 종류별 조건부 노출
 
+> 부분 대체 진행: [ADR-209](../209-chart-authoring-canvas-recharts-runtime.md)는 Charts 6종 저작 UI와 Preview/Publish의 Recharts runtime을 도입한다. 이 ADR의 Canvas 기하·데이터 의미·기존 저장 props는 보존한다. ADR-209는 현재 In Progress이며 원 결정의 완료 이력은 유지한다.
+
 ## Status
 
 Implemented — 2026-09-09 (리뷰 round 1 승인 — `docs/adr/reviews/208.md`, pending 0 · HIGH/MED 전부 fixed. P0~P5 반영: `f53e1385a` · `882e958c5` · `78f5313c9` · `f491d979b` · `2e4c02a25`)

@@ -1,4 +1,7 @@
-import type { DataTableDefinition, ApiEndpointDefinition } from "../types/collection.types";
+import type {
+  DataTableDefinition,
+  ApiEndpointDefinition,
+} from "../types/collection.types";
 /**
  * Export Utilities
  *
@@ -117,8 +120,7 @@ export interface ProjectImportResultSuccess {
 }
 
 export type ProjectImportResult =
-  | ProjectImportResultSuccess
-  | Extract<ImportResult, { success: false }>;
+  ProjectImportResultSuccess | Extract<ImportResult, { success: false }>;
 
 // ============================================
 // Error Helpers
@@ -801,8 +803,8 @@ export function serializeProjectData(
     currentPageId,
     fontRegistry,
     metadata,
-    collections,
-    apiEndpoints,
+    ...(collections?.length ? { collections } : {}),
+    ...(apiEndpoints?.length ? { apiEndpoints } : {}),
   };
 
   return JSON.stringify(exportData, null, 2);

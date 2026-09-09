@@ -350,12 +350,12 @@ export interface ElementsState {
   removeItem: (
     elementId: string,
     itemsKey: string,
-    itemId: string,
+    itemId: string | number,
   ) => Promise<void>;
   updateItem: (
     elementId: string,
     itemsKey: string,
-    itemId: string,
+    itemId: string | number,
     patch: Record<string, unknown>,
   ) => Promise<void>;
 
@@ -2557,7 +2557,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = getItemsForAction(el, itemsKey);
-      const next = currentItems.filter((it) => it.id !== itemId);
+      const next = currentItems.filter((it, index) =>
+        typeof itemId === "number" ? index !== itemId : it.id !== itemId,
+      );
       await get().updateElementProps(elementId, { [itemsKey]: next });
     },
 
@@ -2565,8 +2567,10 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       const el = getElementForItemsAction(get, elementId);
       if (!el) return;
       const currentItems = getItemsForAction(el, itemsKey);
-      const next = currentItems.map((it) =>
-        it.id === itemId ? { ...it, ...patch } : it,
+      const next = currentItems.map((it, index) =>
+        (typeof itemId === "number" ? index === itemId : it.id === itemId)
+          ? { ...it, ...patch }
+          : it,
       );
       await get().updateElementProps(elementId, { [itemsKey]: next });
     },

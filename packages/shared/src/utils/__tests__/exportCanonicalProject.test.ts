@@ -33,6 +33,23 @@ const document: CompositionDocument = {
 };
 
 describe("project export canonical CompositionDocument payload", () => {
+  it("빈 데이터 소스 envelope는 구 버전 Import의 strict schema에 추가하지 않는다", () => {
+    const exported = JSON.parse(
+      serializeProjectData(
+        projectId,
+        "Chart",
+        document,
+        "page-home",
+        undefined,
+        undefined,
+        [],
+        [],
+      ),
+    );
+    expect(exported).not.toHaveProperty("collections");
+    expect(exported).not.toHaveProperty("apiEndpoints");
+    expect(exported.document).toEqual(document);
+  });
   it("serializes CompositionDocument as the primary project payload", () => {
     const json = serializeProjectData(
       projectId,

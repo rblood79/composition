@@ -1,19 +1,21 @@
 # ADR-207: 극좌표 차트 — radar · radial (ADR-194 기하 SSOT 의 극좌표 확장)
 
+> 부분 대체 진행: [ADR-209](../209-chart-authoring-canvas-recharts-runtime.md)는 Charts 6종 저작 UI와 Preview/Publish의 Recharts runtime을 도입한다. 이 ADR의 Canvas 기하·데이터 의미·기존 저장 props는 보존한다. ADR-209는 현재 In Progress이며 원 결정의 완료 이력은 유지한다.
+
 ## Status
 
 Implemented — 2026-09-08 (리뷰 round 1 이슈 7건 전부 fixed, pending 0 — `docs/adr/reviews/207.md`)
 
 ### 진행 로그
 
-| Phase | 상태 | 날짜 |
-| --- | --- | --- |
-| P0 인벤토리 freeze · baseline | Implemented | 2026-09-08 |
-| P1 극좌표 축 (`polar.ts` · `AxisScene` 가산 확장 · 두 consumer 결선) | Implemented | 2026-09-08 |
-| P2 radar 마크 + `gridType` | Implemented | 2026-09-08 |
-| P3 radial 마크 (트랙 + 값 호 + 누적) + 극좌표 툴팁 | Implemented | 2026-09-08 |
+| Phase                                                                           | 상태        | 날짜       |
+| ------------------------------------------------------------------------------- | ----------- | ---------- |
+| P0 인벤토리 freeze · baseline                                                   | Implemented | 2026-09-08 |
+| P1 극좌표 축 (`polar.ts` · `AxisScene` 가산 확장 · 두 consumer 결선)            | Implemented | 2026-09-08 |
+| P2 radar 마크 + `gridType`                                                      | Implemented | 2026-09-08 |
+| P3 radial 마크 (트랙 + 값 호 + 누적) + 극좌표 툴팁                              | Implemented | 2026-09-08 |
 | P4 결선 (binding enum · `gridType` · factory 기본값 · 범례 축 · 문서 로드 경로) | Implemented | 2026-09-08 |
-| P5 게이트 (parity 4 · CanvasKit 픽셀 1 · 번들·프레임 · live 17/17 · 문서) | Implemented | 2026-09-08 |
+| P5 게이트 (parity 4 · CanvasKit 픽셀 1 · 번들·프레임 · live 17/17 · 문서)       | Implemented | 2026-09-08 |
 
 ## Context
 
@@ -96,12 +98,12 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 
 ### Risk Threshold Check
 
-| 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
-| ---- | :--: | :--: | :------: | :----------: | :--------: |
-| A `AxisScene` 가산 확장 |  L   |  L   |    L     |      L       |   **0**    |
-| B 극좌표 축 별도 타입 |  L   |  L   |    H     |      L       |     1      |
+| 대안                       | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
+| -------------------------- | :--: | :--: | :------: | :----------: | :--------: |
+| A `AxisScene` 가산 확장    |  L   |  L   |    L     |      L       |   **0**    |
+| B 극좌표 축 별도 타입      |  L   |  L   |    H     |      L       |     1      |
 | C 스키마 무변경 (marks 로) |  L   |  L   |    H     |      L       |     1      |
-| D 별도 컴포넌트 |  M   |  L   |    H     |      M       |     1      |
+| D 별도 컴포넌트            |  M   |  L   |    H     |      M       |     1      |
 
 루프 판정: **A 가 HIGH 0** 으로 임계를 통과하므로 새 대안 추가 없이 종료한다. 선택안에 HIGH+ 가 없으므로 "이 Phase 를 별도 ADR 로 분리해야 하는가" 질문도 해당 없다 — 분리 판정은 본 ADR 자체의 fork 4 질문에서 이미 끝났다 (breakdown §1).
 
@@ -127,39 +129,39 @@ radar/radial 은 이 기준을 넘는다. 현행 `AxisScene` 은 `axis: "x" | "y
 
 ## Risks
 
-| ID  | 위험 | 심각도 | 대응 |
-| --- | ---- | :----: | ---- |
-| R1  | `grid` 유니온 확장이 두 consumer 의 기존 순회를 건드려 직교 차트가 회귀 | MED | **컴파일러는 이 확장에 신호를 주지 않는다** (round 1 실측: 유니온 확장 후 type-check 0 error — 소비처가 이미 generic). 방어는 스냅샷 4 **갱신 금지** + parity 64 + `tooltip.test.ts` 12 GREEN 유지 (G1) |
-| R2  | 극좌표에서 음수 값 → 반지름 음수 → 도형이 중심을 뚫고 반대편에 그려짐 | MED | `radiusScale` 의 domain 하한을 0 으로 clamp. pie 의 "절대값" 규약과 **다른 선택**임을 기하 주석에 명시하고 G2 에서 반지름 음수 0건 단언 |
-| R3  | radar 다각형의 결측 꼭짓점 규약이 line/area 의 "끊기" 와 갈린다 | MED | 다각형은 닫힌 도형이라 subpath 를 나눌 수 없다 → 결측은 반지름 0(중심) 으로 접는다. 규약 차이를 기하 주석 + G2 케이스로 고정 |
-| R4  | radial 각도 범위(startAngle/endAngle) prop 증식 | LOW | v1 은 0~360 고정. shadcn 의 반원 형태는 비스코프 (breakdown §7) |
-| R5  | 번들·프레임 예산 초과 | MED | G4 에서 측정. 초과 시 radial 을 후속 phase 로 미루고 radar 만 반영 |
-| R6  | 등록 경로 미결선 — enum 값만 늘고 렌더가 안 바뀜 | MED | G5 live 에서 Skia 픽셀 + Preview DOM 양쪽 확인 (ADR-194 live 가 잡은 결함 3건이 전부 이 형태였다) |
-| R7  | `computeChartScene` 의 마지막 분기가 `else` (line) 라 (`computeChartScene.ts:296-325`), 신규 `chartType` 을 추가하고 분기를 안 넣으면 **line 차트가 조용히 그려진다**. G2 의 유한성·결정성은 line 도 통과시켜 못 잡는다 | MED | P1 에서 `chartType` **exhaustive switch** (`never` 소진) 도입 — R1 이 잃은 컴파일러 방어선을 여기서 되찾는다. G1 통과 조건 |
-| R8  | 기존 prop × 신규 타입 조합이 조용히 무응답 (`orientation`·`curve`·`showDots`·`colorBy`·`stackType` 이 radar/radial 에서 뭘 하는지 미정) | MED | 타입별 **무시 계약을 테스트로 고정** — 선례 `labels.test.ts:120` ("line 은 colorBy 를 무시한다"). G2 케이스 |
-| R9  | 극좌표 각도 레이블 솎아내기 부재 — `labelStride` (`axes.ts:35`) 는 band step 기준이라 극좌표에 안 쓰인다. 범주가 많으면 (`CHART_SAMPLE_ROWS` 200) 스포크·레이블이 겹친다 | LOW | 각도 간격 기준 stride 를 P1 축 산출에 포함. G2 에 범주 50 케이스 |
+| ID  | 위험                                                                                                                                                                                                                    | 심각도 | 대응                                                                                                                                                                                                    |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | `grid` 유니온 확장이 두 consumer 의 기존 순회를 건드려 직교 차트가 회귀                                                                                                                                                 |  MED   | **컴파일러는 이 확장에 신호를 주지 않는다** (round 1 실측: 유니온 확장 후 type-check 0 error — 소비처가 이미 generic). 방어는 스냅샷 4 **갱신 금지** + parity 64 + `tooltip.test.ts` 12 GREEN 유지 (G1) |
+| R2  | 극좌표에서 음수 값 → 반지름 음수 → 도형이 중심을 뚫고 반대편에 그려짐                                                                                                                                                   |  MED   | `radiusScale` 의 domain 하한을 0 으로 clamp. pie 의 "절대값" 규약과 **다른 선택**임을 기하 주석에 명시하고 G2 에서 반지름 음수 0건 단언                                                                 |
+| R3  | radar 다각형의 결측 꼭짓점 규약이 line/area 의 "끊기" 와 갈린다                                                                                                                                                         |  MED   | 다각형은 닫힌 도형이라 subpath 를 나눌 수 없다 → 결측은 반지름 0(중심) 으로 접는다. 규약 차이를 기하 주석 + G2 케이스로 고정                                                                            |
+| R4  | radial 각도 범위(startAngle/endAngle) prop 증식                                                                                                                                                                         |  LOW   | v1 은 0~360 고정. shadcn 의 반원 형태는 비스코프 (breakdown §7)                                                                                                                                         |
+| R5  | 번들·프레임 예산 초과                                                                                                                                                                                                   |  MED   | G4 에서 측정. 초과 시 radial 을 후속 phase 로 미루고 radar 만 반영                                                                                                                                      |
+| R6  | 등록 경로 미결선 — enum 값만 늘고 렌더가 안 바뀜                                                                                                                                                                        |  MED   | G5 live 에서 Skia 픽셀 + Preview DOM 양쪽 확인 (ADR-194 live 가 잡은 결함 3건이 전부 이 형태였다)                                                                                                       |
+| R7  | `computeChartScene` 의 마지막 분기가 `else` (line) 라 (`computeChartScene.ts:296-325`), 신규 `chartType` 을 추가하고 분기를 안 넣으면 **line 차트가 조용히 그려진다**. G2 의 유한성·결정성은 line 도 통과시켜 못 잡는다 |  MED   | P1 에서 `chartType` **exhaustive switch** (`never` 소진) 도입 — R1 이 잃은 컴파일러 방어선을 여기서 되찾는다. G1 통과 조건                                                                              |
+| R8  | 기존 prop × 신규 타입 조합이 조용히 무응답 (`orientation`·`curve`·`showDots`·`colorBy`·`stackType` 이 radar/radial 에서 뭘 하는지 미정)                                                                                 |  MED   | 타입별 **무시 계약을 테스트로 고정** — 선례 `labels.test.ts:120` ("line 은 colorBy 를 무시한다"). G2 케이스                                                                                             |
+| R9  | 극좌표 각도 레이블 솎아내기 부재 — `labelStride` (`axes.ts:35`) 는 band step 기준이라 극좌표에 안 쓰인다. 범주가 많으면 (`CHART_SAMPLE_ROWS` 200) 스포크·레이블이 겹친다                                                |  LOW   | 각도 간격 기준 stride 를 P1 축 산출에 포함. G2 에 범주 50 케이스                                                                                                                                        |
 
 ## Gates
 
-| Gate | 시점 | 통과 조건 | 실패 시 대안 |
-| ---- | ---- | --------- | ------------ |
-| G0 | P0 종료 | 기존 4종 baseline 기록 (스냅샷 4 · parity 64 · 기하 106 · 번들 gz 현재값) | 기록 없이 P1 진입 금지 |
-| G1 | P1 종료 | 기존 4종 좌표 **byte 무변경** (스냅샷 4 갱신 없이 GREEN) + `tooltip.test.ts` 12 GREEN (스냅샷 밖 축) + `chartType` exhaustive switch 도입 (R7) + type-check 0 | 확장을 가산이 아닌 형태로 했다는 뜻 — 설계 되돌림. **컴파일 통과 자체는 통과 근거가 아니다** (R1) |
-| G2 | P2·P3 종료 | radar/radial 기하 단위: 경계 4종 유한성 · 결정성 · 반지름 음수 0건 · `d` 에 NaN/Infinity 0건 · **무시 계약** (R8 — 무관 prop 이 좌표를 안 바꾼다) · **범주 50 레이블 겹침** (R9) | 해당 마크 phase 미종결 |
-| G3 | P4 종료 | 대칭 parity 케이스 4 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일** | 대칭 위반 — 어느 leg 이 기하를 안 따랐는지 조사 |
-| G4 | P5 | 번들 각 앱 +5KB gz 이내 · 200행×4시리즈 frame p95 Δ ≤ +1ms (줌 드라이버 불리 케이스 + 차트 추가 전 대조군) | radial 을 후속으로 분리 (R5) |
-| G5 | P5 | live: 팔레트 전환 → Skia 픽셀 변화 + Preview DOM 격자/호 확인. **Skia 픽셀은 Compare Mode 를 끄고 먼저 측정** | Implemented 승격 차단 |
+| Gate | 시점       | 통과 조건                                                                                                                                                                        | 실패 시 대안                                                                                      |
+| ---- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| G0   | P0 종료    | 기존 4종 baseline 기록 (스냅샷 4 · parity 64 · 기하 106 · 번들 gz 현재값)                                                                                                        | 기록 없이 P1 진입 금지                                                                            |
+| G1   | P1 종료    | 기존 4종 좌표 **byte 무변경** (스냅샷 4 갱신 없이 GREEN) + `tooltip.test.ts` 12 GREEN (스냅샷 밖 축) + `chartType` exhaustive switch 도입 (R7) + type-check 0                    | 확장을 가산이 아닌 형태로 했다는 뜻 — 설계 되돌림. **컴파일 통과 자체는 통과 근거가 아니다** (R1) |
+| G2   | P2·P3 종료 | radar/radial 기하 단위: 경계 4종 유한성 · 결정성 · 반지름 음수 0건 · `d` 에 NaN/Infinity 0건 · **무시 계약** (R8 — 무관 prop 이 좌표를 안 바꾼다) · **범주 50 레이블 겹침** (R9) | 해당 마크 phase 미종결                                                                            |
+| G3   | P4 종료    | 대칭 parity 케이스 4 추가 (radar polygon/circle · radial 단일/누적), path `d` **byte 동일**                                                                                      | 대칭 위반 — 어느 leg 이 기하를 안 따랐는지 조사                                                   |
+| G4   | P5         | 번들 각 앱 +5KB gz 이내 · 200행×4시리즈 frame p95 Δ ≤ +1ms (줌 드라이버 불리 케이스 + 차트 추가 전 대조군)                                                                       | radial 을 후속으로 분리 (R5)                                                                      |
+| G5   | P5         | live: 팔레트 전환 → Skia 픽셀 변화 + Preview DOM 격자/호 확인. **Skia 픽셀은 Compare Mode 를 끄고 먼저 측정**                                                                    | Implemented 승격 차단                                                                             |
 
 ### Gate 실측 (2026-09-08)
 
-| Gate | 결과 | 근거 |
-| ---- | ---- | ---- |
-| G0 | PASS | 기하 106 · parity 64 · 스냅샷 4 · 번들 gz builder 1,758,730 B / publish 502,756 B (breakdown §4) |
-| G1 | PASS | 스냅샷 4 갱신 0 (git status 변경 없음) · tooltip 12 GREEN · exhaustive switch 도입, 원복 RED 로 `TS2322` 확인 · type-check 0. **집행 게이트는 `pnpm -F @composition/specs build` (dts)** — `pnpm type-check` 는 specs 를 돌지 않는다 (breakdown F18) |
-| G2 | PASS | radar 20 · radial 17 — 경계 4종 · 결정성 · 반지름 음수 0 · `d` 에 NaN/Infinity 0 · 무시 계약 (orientation/curve/colorBy/stackType, `stackType` 은 원복 RED 로 비-vacuous 확인) · 범주 50 레이블 솎아내기 |
-| G3 | PASS | parity 64 → **84** (극좌표 4 케이스 × 5). falsify: DOM leg 이 격자 path 를 빠뜨리게 하면 radar 2건 RED — 게이트가 비어 있지 않다. CanvasKit 실픽셀 1건 추가 (다각형 stroke · 트랙 고리) |
-| G4 | PASS | 번들 gz **builder +2,454 B / publish +2,160 B** (예산 각 5,120 B). frame p95 Δ (200행×4시리즈, 줌 드라이버, 워밍업 arm 폐기, 대조군 = bar): **radar −0.200 ms · radial +0.300 ms**, 대조군 재측정 drift +0.200 ms — 두 Δ 모두 예산 안이고 run 잡음(±0.2 ms) 규모 |
-| G5 | PASS | live 17/17 — 아래 §Live Exercise |
+| Gate | 결과 | 근거                                                                                                                                                                                                                                                             |
+| ---- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | PASS | 기하 106 · parity 64 · 스냅샷 4 · 번들 gz builder 1,758,730 B / publish 502,756 B (breakdown §4)                                                                                                                                                                 |
+| G1   | PASS | 스냅샷 4 갱신 0 (git status 변경 없음) · tooltip 12 GREEN · exhaustive switch 도입, 원복 RED 로 `TS2322` 확인 · type-check 0. **집행 게이트는 `pnpm -F @composition/specs build` (dts)** — `pnpm type-check` 는 specs 를 돌지 않는다 (breakdown F18)             |
+| G2   | PASS | radar 20 · radial 17 — 경계 4종 · 결정성 · 반지름 음수 0 · `d` 에 NaN/Infinity 0 · 무시 계약 (orientation/curve/colorBy/stackType, `stackType` 은 원복 RED 로 비-vacuous 확인) · 범주 50 레이블 솎아내기                                                         |
+| G3   | PASS | parity 64 → **84** (극좌표 4 케이스 × 5). falsify: DOM leg 이 격자 path 를 빠뜨리게 하면 radar 2건 RED — 게이트가 비어 있지 않다. CanvasKit 실픽셀 1건 추가 (다각형 stroke · 트랙 고리)                                                                          |
+| G4   | PASS | 번들 gz **builder +2,454 B / publish +2,160 B** (예산 각 5,120 B). frame p95 Δ (200행×4시리즈, 줌 드라이버, 워밍업 arm 폐기, 대조군 = bar): **radar −0.200 ms · radial +0.300 ms**, 대조군 재측정 drift +0.200 ms — 두 Δ 모두 예산 안이고 run 잡음(±0.2 ms) 규모 |
+| G5   | PASS | live 17/17 — 아래 §Live Exercise                                                                                                                                                                                                                                 |
 
 ### Live Exercise
 
