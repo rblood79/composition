@@ -50,6 +50,14 @@ interface LegacyElementWithExtension {
   props?: Record<string, unknown> | unknown;
   events?: unknown;
   dataBinding?: unknown;
+  /**
+   * canonical 노드의 extension namespace — `dataBinding` 의 실제 저장 위치다
+   * (`PROPS_FORBIDDEN_KEYS` 가 props 를 막고 `updateNodeExtension` 만 쓴다).
+   * legacy mirror 요소에는 없고 canonical 노드에만 있으므로, canonical 을 직접
+   * 읽는 소비처 (Skia scene `sourceNode`) 를 위해 shared helper 가 최종 fallback
+   * 으로 읽는다. 근거: shared `readExtensionDataBinding` 주석.
+   */
+  "x-composition"?: { dataBinding?: unknown } | unknown;
 }
 
 // `getElementEvents` 는 삭제됐다 (2026-08-17).

@@ -30,9 +30,7 @@
 import type { DataBinding } from "../types/element.types";
 
 export type ExtensionReadPriority =
-  | "legacy-first"
-  | "props-first"
-  | "legacy-only";
+  "legacy-first" | "props-first" | "legacy-only";
 
 /**
  * Generic legacy element shape — packages/shared 의 다양한 caller (TableRenderer
@@ -45,6 +43,34 @@ interface LegacyElementWithExtension {
   props?: Record<string, unknown> | unknown;
   events?: unknown;
   dataBinding?: unknown;
+  /**
+   * canonical 노드의 extension namespace. legacy mirror 요소에는 없고 canonical
+   * 노드에만 있다 — 아래 `readExtensionDataBinding` 주석 참조.
+   */
+  "x-composition"?: { dataBinding?: unknown } | unknown;
+}
+
+/**
+ * canonical 노드의 `x-composition.dataBinding` — **세 번째 저장 위치**.
+ *
+ * `canonicalDocumentStore` 의 `PROPS_FORBIDDEN_KEYS` 가 `dataBinding` 을 props 에
+ * 넣지 못하게 막으므로, 유일한 쓰기 경로인 `updateNodeExtension` 이 여기에 쓴다.
+ * legacy mirror 요소는 그 값을 top-level `dataBinding` 으로 복제해 갖지만
+ * **canonical 노드 자체를 읽는 소비처** (Skia scene 의 `sourceNode`) 에는 복제본이
+ * 없어 binding 을 통째로 보지 못한다.
+ *
+ * 읽기 순서에서 **최종 fallback** 인 이유: 기존 두 위치를 가진 요소의 결과를
+ * 하나도 바꾸지 않기 위해서다. mirror 의 top-level 값은 extension 에서 파생된
+ * 복제본이라 둘이 어긋날 일이 없고, priority 계약 3종 (`legacy-first` /
+ * `props-first` / `legacy-only`) 의 기존 동작도 그대로 남는다.
+ */
+function readExtensionDataBinding(
+  element: LegacyElementWithExtension,
+): DataBinding | undefined {
+  const extension = element["x-composition"];
+  if (!extension || typeof extension !== "object") return undefined;
+  const binding = (extension as { dataBinding?: unknown }).dataBinding;
+  return binding === undefined ? undefined : (binding as DataBinding);
 }
 
 // `getElementEvents` 는 삭제됐다 (2026-08-17) — ADR-158(Implemented 2026-08-16)이
@@ -58,8 +84,10 @@ interface LegacyElementWithExtension {
  * legacy `Element.dataBinding` 영역 — read-through priority.
  *
  * default priority = `'legacy-first'` (packages/shared 영역 renderers 기존 패턴 보존).
- * Phase 5 G7 closure 시 helper 내부 reverse —
- * `node.extension['x-composition'].dataBinding` 우선 read.
+ *
+ * priority 3종은 legacy(`element.dataBinding`) 와 props(`element.props.dataBinding`)
+ * 사이의 순서만 정한다. canonical 의 `x-composition.dataBinding` 은 세 모드 모두에서
+ * **최종 fallback** 으로 읽는다 (2026-09-09) — 근거는 `readExtensionDataBinding` 주석.
  *
  * return type `DataBinding | undefined` — caller 가 `?.type / ?.source / ?.config`
  * direct access 시 type-narrow 안전. 단 legacy/props 의 raw 값이 `DataBinding`
@@ -73,7 +101,7 @@ export function getElementDataBinding(
   if (priority === "legacy-only") {
     if (element.dataBinding !== undefined)
       return element.dataBinding as DataBinding;
-    return undefined;
+    return readExtensionDataBinding(element);
   }
   const props = element.props as Record<string, unknown> | undefined;
   const propsBinding = props?.dataBinding;
@@ -81,11 +109,11 @@ export function getElementDataBinding(
     if (element.dataBinding !== undefined)
       return element.dataBinding as DataBinding;
     if (propsBinding !== undefined) return propsBinding as DataBinding;
-    return undefined;
+    return readExtensionDataBinding(element);
   }
   // props-first
   if (propsBinding !== undefined) return propsBinding as DataBinding;
   if (element.dataBinding !== undefined)
     return element.dataBinding as DataBinding;
-  return undefined;
+  return readExtensionDataBinding(element);
 }
