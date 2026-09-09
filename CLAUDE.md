@@ -106,6 +106,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 | 판독 루프 종결   | [.claude/rules/review-loop-closure.md](.claude/rules/review-loop-closure.md)   | 라운드 상한 · 커버리지 지적 판정 (가설 1 + 반증 1) · 변경 종류별 절차 · 판독 프롬프트 필수 문구 (상시 로드)   |
 | CHANGELOG 규칙   | [.claude/rules/changelog.md](.claude/rules/changelog.md)                       | 트리거·Drift 감시·catch-up·Keep a Changelog 포맷 (`docs/CHANGELOG*` 자동 로드)                                |
 | CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 500KB 초과 시 구간 아카이브 (`CHANGELOG-2026-Q3-archived.md` 등) 로 이관                        |
+| 디자인 캔버스    | [docs/design/](docs/design/)                                                   | `/design` 산출물 — 새 캔버스는 `docs/design/<주제>/` 에만. 저장소 루트에 `design/`·`.design*/` 생성 금지      |
 
 ## 마이그레이션/리네임/삭제 작업 원칙 (CRITICAL)
 

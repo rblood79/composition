@@ -7,7 +7,7 @@
 
 - `docs/` 전체 `.md` 파일: **827개** (gitignore 대상 `pencil-extracted/` 제외)
 - `docs/` 최상위 `.md` 파일: **5개** (CHANGELOG 4 + README)
-- `docs/` 직속 하위 디렉터리: **10개** (`adr` `explanation` `features` `how-to` `legacy` `migrations` `pencil-copy` `pencil-extracted` `reference` `tutorials`)
+- `docs/` 직속 하위 디렉터리: **11개** (`adr` `design` `explanation` `features` `how-to` `legacy` `migrations` `pencil-copy` `pencil-extracted` `reference` `tutorials`)
 
 > **2026-09-09 변경**: `audit/` · `bug/` · `how-to/migration/` 은 각각 1~2개 파일만 두고 5개월 이상
 > 갱신이 없어 해체하고 `legacy/` 로 통합했습니다. `reference/status/` 는 안내판 2개만 남았습니다.
@@ -52,6 +52,7 @@ docs/
 ├── migrations/                 # DB 마이그레이션 SQL + 성능·부팅 조사 노트 — md 8 + 비-md 5
 │   └── frame-performance/      # 프레임 성능 조사 보존 노트 5 + README (원시 631MB 는 2026-09-09 삭제)
 │
+├── design/                     # /design 캔버스 3 + README — canvas.json + *.dc.html + 합본 HTML
 ├── legacy/                     # 폐기·역사 문서 (md 49 = README 1 + 문서 48, 각 파일에 폐기 사유 배너)
 ├── pencil-copy/                # Pencil 호환성 dossier (md 8 = README 1 + 문서 7) + fixtures/ JSON 1
 ├── pencil-extracted/           # Pencil Desktop 번들 역공학 추출물 (gitignore, 390 파일)
@@ -139,6 +140,10 @@ docs/
 
 - **`docs/pencil-copy/`** (md 8): Pencil 포맷 모델, 슬롯 모델, composition 매핑, drag-drop 분석 + `fixtures/` 합성 JSON 1개
 - **`docs/pencil-extracted/`**: Pencil Desktop 앱 번들 역공학 추출물 (전체 390 파일, md 2 — 대부분 `Frameworks/` · `Resources/` 바이너리·에셋)
+
+### 디자인 캔버스
+
+- **`docs/design/`** (캔버스 3 + README): `/design` 스킬 산출물. 한 캔버스 = 한 디렉토리 = `canvas.json` (아트보드 배치·주석) + `*.dc.html` (아트보드) + 합본 HTML. `canvas.json` 이 아트보드를 파일명으로만 참조하므로 디렉토리째 옮겨도 동작한다. **새 캔버스는 `docs/design/<주제>/` 에만** — 스킬 자체가 출력 위치를 정하지 않아 2026-09-09 이전에는 저장소 루트에 `design/` · `.design/` · `.design-webstudio/` 로 흩어져 있었다.
 
 ### 레거시
 
@@ -267,7 +272,6 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 ## 🗂️ 현재 비어 있는 디렉터리
 
 파일이 하나도 없는 디렉터리 **2개** (둘 다 측정 산출물 자리):
-
 
 직속 파일 없이 **하위 디렉터리만** 가진 곳 (구조상 정상):
 

@@ -23,6 +23,7 @@ docs/
 ├── explanation/            # 개념 설명 — architecture · research
 ├── how-to/                 # 실용 가이드 — development · troubleshooting
 ├── tutorials/              # 학습 중심 실습 가이드
+├── design/                 # /design 캔버스 (canvas.json + *.dc.html) — 주제별 디렉토리
 ├── legacy/                 # 폐기·역사 문서 (48 + README, 각 파일에 폐기 사유 배너)
 ├── migrations/             # 마이그레이션 기록 · frame-performance/ 분석 노트
 ├── pencil-copy/            # Pencil 호환성 dossier (clean-room)
@@ -166,6 +167,17 @@ Properties Panel · ToggleButtonGroup
 ### Pencil 호환성
 
 - [pencil-copy/](pencil-copy/) — clean-room 호환성 dossier (추출 소스·번들 보관 금지)
+
+---
+
+## 디자인 캔버스
+
+`/design` 스킬이 만든 다중 아트보드 캔버스: [design/](design/) — 새 캔버스는 반드시
+`docs/design/<주제>/` 에 만듭니다 (저장소 루트에 흩어져 있던 3건을 2026-09-09 에 통합).
+
+- [nodes-panel-states/](design/nodes-panel-states/) — Navigator 트리 항목 상호작용 상태 (2026-08-21)
+- [builder-tab-pattern-unification/](design/builder-tab-pattern-unification/) — 빌더 탭 패턴 통일 (2026-08-30)
+- [builder-ui-webstudio/](design/builder-ui-webstudio/) — Styles 패널 5탭 before/after (2026-09-08)
 
 ---
 

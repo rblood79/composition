@@ -2,7 +2,7 @@
 
 이 문서는 첫 P0 단위의 당시 기록이다. 후속 구현·판정은 [P1 반복 측정](p1-measurements.md), [종결 검증](closure.md)을 따른다. 아래 미착수·미수집 표기는 최초 단위의 상태를 보존한 것이다.
 
-2026-09-06. [실행 설계](../../../adr/react-skia-zustand-frame-performance-design.md)의 P0 **진행 중**이며 P0 종료/G0 통과 또는 P1 착수를 의미하지 않는다.
+2026-09-06. [실행 설계](../../adr/react-skia-zustand-frame-performance-design.md)의 P0 **진행 중**이며 P0 종료/G0 통과 또는 P1 착수를 의미하지 않는다.
 
 ## 반영 범위
 
@@ -24,7 +24,7 @@
 
 HEAD `4ae4ff43b` + 이번 계측 변경. Chrome `152.0.7977.82`, development, headed, visible, viewport 1440×900, DPR 1, canvas device size 1440×900, Navigator/Properties 열림. seed 600 + body = 현재 페이지 element projection 601개. 실제 resolved/render node 수는 미수집이다. RAF 표본은 약 120Hz이며 물리 display Hz·GPU 장치·CPU throttle metadata는 아직 수집하지 않았다.
 
-동일 격리 프로젝트와 IndexedDB snapshot에서 각 run을 새 browser context로 시작했다. 각 10초 idle을 on→off 순서로 5쌍 직렬 실행했다. 10개 run의 fixture SHA-256은 모두 `176cc167dd8d` 접두사로 일치하며 전체 값은 [요약 JSON](idle-summary.json)에 있다. pair 1~5 사이 다른 테스트·빌드는 실행하지 않았다. 각 run의 page/console error 및 longtask는 모두 0이다.
+동일 격리 프로젝트와 IndexedDB snapshot에서 각 run을 새 browser context로 시작했다. 각 10초 idle을 on→off 순서로 5쌍 직렬 실행했다. 10개 run의 fixture SHA-256은 모두 `176cc167dd8d` 접두사로 일치하며 전체 값은 [요약 JSON](../evidence/frame-performance/idle-summary.json)에 있다. pair 1~5 사이 다른 테스트·빌드는 실행하지 않았다. 각 run의 page/console error 및 longtask는 모두 0이다.
 
 | pair | on task ms/s | off task ms/s | on Builder RAF 전체 호출 | on content build ms/s |
 | ---- | -----------: | ------------: | -----------------------: | --------------------: |
