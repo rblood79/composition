@@ -1,3 +1,4 @@
+import { resolveCollectionSnapshot } from "./collectionSnapshot";
 /**
  * collection items 단일 계약 (ADR-912 영역 B 연장) — DOM wrapper / Skia projector 공통 source.
  *
@@ -122,7 +123,7 @@ function readSourceRows(
   const dataBindingRows = isProjectionRowsInput(input)
     ? readDataBindingRows(input.dataBinding, input.collections)
     : [];
-  if (dataBindingRows.length > 0) return dataBindingRows;
+  if (isProjectionRowsInput(input) && input.dataBinding) return dataBindingRows;
   return Array.isArray(props?.items) ? props.items : [];
 }
 
@@ -131,6 +132,8 @@ function readSourceRows(
  * row 데이터 출처. ListBox/GridList/Table 공통.
  */
 export type CollectionDataSource = {
+  status?: "idle" | "loading" | "success" | "error";
+  error?: string | null;
   id?: string;
   mockData?: Record<string, unknown>[];
   name?: string;
@@ -224,9 +227,7 @@ export function readDataBindingRows(
         collection.id === dataBinding.name,
     );
     if (!table) return [];
-    if (table.useMockData === true) return readArray(table.mockData);
-    const runtimeData = readArray(table.runtimeData);
-    return runtimeData.length > 0 ? runtimeData : readArray(table.mockData);
+    return resolveCollectionSnapshot(table).data;
   }
 
   if (dataBinding.type === "collection") {
@@ -408,7 +409,7 @@ export function resolveCollectionItems(
     : [];
 
   let sourceKind: ResolvedCollectionItems["sourceKind"];
-  if (dataBindingRows.length > 0) {
+  if (isProjectionRowsInput(input) && input.dataBinding) {
     // dataTable/static/collection 세부 — readDataBindingRows 와 동일 판정 로직.
     const dataBinding = isProjectionRowsInput(input) ? input.dataBinding : null;
     sourceKind =
@@ -576,7 +577,7 @@ export function getTableProjectionRows(
   // data 0행이면 resolveDataBoundTableProjection 이 null 반환(standalone 유지)하여
   // Skia 도 CSS 와 동일하게 빈 테이블을 그린다.
   const sourceRows =
-    dataBindingRows.length > 0
+    isProjectionRowsInput(input) && input.dataBinding
       ? dataBindingRows
       : propRows.length > 0
         ? propRows

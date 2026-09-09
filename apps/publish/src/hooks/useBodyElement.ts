@@ -30,7 +30,7 @@ function camelToKebab(str: string): string {
  * Publish 페이지의 body element 를 document.body 에 동기화한다.
  *
  * - `react-aria-Body` className 주입 (spec-backed CSS selector 매칭)
- * - body element 의 style 직접 주입 (backgroundColor / color 등 CSS var)
+ * - body element의 배경/상속 스타일 주입 (layout은 페이지 Body 컨테이너가 적용)
  * - D3: fills 배열은 무시하고 Spec TokenRef 경로 (style.backgroundColor) 만 사용
  */
 export function useBodyElement(elements: Element[]): void {
@@ -72,6 +72,10 @@ export function useBodyElement(elements: Element[]): void {
     if (adaptedBody.props?.style) {
       const style = adaptedBody.props.style as Record<string, string | number>;
       Object.entries(style).forEach(([key, value]) => {
+        // Publish는 앱 shell 안의 Body 컨테이너가 실제 페이지 레이아웃을 소유한다.
+        // document.body에도 grid/flex/width/padding을 적용하면 #root가 첫 grid 칸에
+        // 갇히거나 padding이 두 번 적용된다. 전역에는 배경/상속 속성만 전달한다.
+        if (!key.startsWith("--") && !/^(background|font|text|lineHeight|letterSpacing|wordSpacing|color|cursor|direction|writingMode)/.test(key)) return;
         const cssKey = camelToKebab(key);
         const cssValue =
           typeof value === "number" && !CSS_UNITLESS.has(key)

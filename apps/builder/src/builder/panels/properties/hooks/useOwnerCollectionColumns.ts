@@ -50,8 +50,8 @@ function columnsFromCollection(table: DataTable | undefined): string[] | null {
   return recordKeys(table.mockData?.[0]);
 }
 
-function columnsFromOwner(
-  owner: PanelNode,
+export function columnsFromOwner(
+  owner: Pick<PanelNode, "props">,
   collectionsByName: ReadonlyMap<string, DataTable>,
 ): string[] | null {
   const binding = owner.props?.dataBinding;

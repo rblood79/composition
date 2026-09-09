@@ -40,7 +40,7 @@ export function toScreen(
  * 접선을 0 으로 눕혀 **데이터에 없는 봉우리**가 생기지 않게 한다 (곡선 차트가
  * 값을 과장하지 않는다는 것이 monotone 을 쓰는 유일한 이유다).
  */
-function monotoneTangents(
+export function monotoneTangents(
   along: readonly number[],
   across: readonly number[],
 ): number[] {
@@ -91,7 +91,9 @@ export function curveCommands(
 ): string {
   if (points.length === 0) return "";
   const screen = points.map((p) => toScreen(orientation, p));
-  let d = move ? `M ${screen[0].x} ${screen[0].y}` : ` L ${screen[0].x} ${screen[0].y}`;
+  let d = move
+    ? `M ${screen[0].x} ${screen[0].y}`
+    : ` L ${screen[0].x} ${screen[0].y}`;
   if (points.length === 1) return d;
 
   if (curve === "step") {

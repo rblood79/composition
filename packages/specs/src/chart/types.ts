@@ -55,10 +55,18 @@ export type ChartColorBy = "series" | "category";
 /** RSC `Legend.position`. */
 export type ChartLegendPosition = "bottom" | "top" | "left" | "right";
 
+export type ChartAnimationEasing =
+  "linear" | "ease" | "ease-in" | "ease-out" | "ease-in-out";
+
 /** 데이터 행 — dataBinding 이 준 그대로의 임의 레코드. */
 export type ChartRow = Readonly<Record<string, unknown>>;
 
 export interface ChartProps {
+  /** 기존 저장 문서는 미지정 시 정적, 신규 palette 생성은 명시적으로 활성화한다. */
+  isAnimationActive?: boolean;
+  animationBegin?: number;
+  animationDuration?: number;
+  animationEasing?: ChartAnimationEasing;
   chartType: ChartType;
   /** 범주 축 필드 키 (RSC `Bar.dimension`) */
   dimension: string;

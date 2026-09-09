@@ -1,3 +1,4 @@
+import { toRuntimeApiEndpoint } from "@composition/shared";
 /**
  * useIframeMessenger - iframe 기반 Preview 통신 훅
  *
@@ -458,7 +459,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         name: dt.name,
         schema: dt.schema, // schema도 함께 전송
         mockData: dt.mockData || [],
-        runtimeData: dt.runtimeData || [], // ⭐ runtimeData도 전송 (API 데이터)
+        runtimeData: dt.runtimeData, // undefined와 성공한 []를 구분한다 (ADR-209)
         useMockData: dt.useMockData,
       };
     });
@@ -491,16 +492,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     const currentApiEndpoints = apiEndpoints;
 
     // RuntimeApiEndpoint 형태로 변환
-    const runtimeApiEndpoints = currentApiEndpoints.map((ep) => ({
-      id: ep.id,
-      name: ep.name,
-      method: ep.method,
-      baseUrl: ep.baseUrl,
-      path: ep.path,
-      headers: ep.headers,
-      params: ep.queryParams,
-      body: ep.bodyTemplate,
-    }));
+    const runtimeApiEndpoints = currentApiEndpoints.map(toRuntimeApiEndpoint);
 
     const message = {
       type: "UPDATE_API_ENDPOINTS",
@@ -1156,6 +1148,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         id: dt.id,
         name: dt.name,
         mockData: dt.mockData,
+        schema: dt.schema,
+        runtimeData: dt.runtimeData,
         useMockData: dt.useMockData,
       })),
     );
@@ -1175,15 +1169,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
 
   useEffect(() => {
     // JSON 문자열로 비교
-    const apiEndpointsJson = JSON.stringify(
-      apiEndpoints.map((ep) => ({
-        id: ep.id,
-        name: ep.name,
-        method: ep.method,
-        baseUrl: ep.baseUrl,
-        path: ep.path,
-      })),
-    );
+    const apiEndpointsJson = JSON.stringify(apiEndpoints.map(toRuntimeApiEndpoint));
 
     // 이전 값과 같으면 스킵
     if (lastSentApiEndpointsRef.current === apiEndpointsJson) {

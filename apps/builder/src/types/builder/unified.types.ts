@@ -1,6 +1,7 @@
 // 통합된 타입 정의 파일
 import React from "react";
 import type { StoredMenuItem, StoredTagItem } from "@composition/specs";
+import { createChartInitialProps } from "@composition/specs";
 import type { DataBinding as SharedDataBinding } from "@composition/shared";
 // ADR-912 6 registry collapse #3 — createDefault*Props 파생 SSOT.
 // defaultPropsDerivation 의 ComponentElementProps import 는 type-only → 런타임 순환 없음.
@@ -2197,46 +2198,7 @@ export function createDefaultCardViewProps(): BaseElementProps {
 // ADR-194: Chart 기본 props. factory(createChartDefinition) 와 같은 값 — 팔레트 드롭과
 //   getDefaultProps 두 경로가 갈리면 같은 컴포넌트가 진입로마다 다르게 보인다.
 export function createDefaultChartProps(): BaseElementProps {
-  return {
-    chartType: "bar",
-    dimension: "category",
-    metric: "value",
-    color: "series",
-    orientation: "vertical",
-    stackType: "dodged",
-    curve: "linear",
-    showDots: false,
-    showValueLabels: false,
-    colorBy: "series",
-    innerRadius: 0,
-    gridType: "polygon",
-    showSpokes: true,
-    gridRings: 0,
-    fillGrid: false,
-    fillArea: true,
-    startAngle: 0,
-    endAngle: 360,
-    labelKey: "value",
-    showTotal: false,
-    showTooltip: false,
-    showAxis: true,
-    showGrid: false,
-    showLegend: true,
-    legendPosition: "bottom",
-    variant: "default",
-    size: "md",
-    data: [
-      { category: "Mon", value: 12, series: "A" },
-      { category: "Tue", value: 30, series: "A" },
-      { category: "Wed", value: 18, series: "A" },
-      { category: "Thu", value: 24, series: "A" },
-      { category: "Mon", value: 20, series: "B" },
-      { category: "Tue", value: 8, series: "B" },
-      { category: "Wed", value: 25, series: "B" },
-      { category: "Thu", value: 14, series: "B" },
-    ],
-    style: { width: 320 },
-  };
+  return { ...createChartInitialProps() };
 }
 
 export function createDefaultColorSwatchPickerProps(): BaseElementProps {

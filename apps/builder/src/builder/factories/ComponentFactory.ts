@@ -191,6 +191,7 @@ export class ComponentFactory {
     elements: ComponentCreationSourceNode[],
     layoutId: string | null | undefined,
     doc: CompositionDocument,
+    initialProps?: Record<string, unknown>,
   ): Promise<ComponentCreationResult> {
     const creator = this.creators[type];
     if (!creator) {
@@ -203,6 +204,7 @@ export class ComponentFactory {
       elements,
       layoutId,
       doc,
+      initialProps,
     };
 
     return await creator.call(this, context);

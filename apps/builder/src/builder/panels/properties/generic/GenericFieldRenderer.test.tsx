@@ -240,7 +240,7 @@ describe("GenericFieldRenderer — ADR-208 결선 seam (resolveEditContract → 
       resolveEditContract({
         id: "chart-1",
         type: "Chart",
-        props: { chartType },
+        props: { chartType, showGrid: true },
       } as never).fields.filter((f) => f.origin === "semantic");
 
     // enum/number 컨트롤의 이름은 `<label>` 이 아니라 `aria-label` 에 있다 (PropertySelect).
@@ -261,5 +261,23 @@ describe("GenericFieldRenderer — ADR-208 결선 seam (resolveEditContract → 
     expect(radar).not.toContain("Orientation");
     // radar 는 stackType 을 무시한다 (ADR-207 R8) — 유일하게 빠지는 종류.
     expect(radar).not.toContain("Stack Type");
+  });
+});
+
+
+describe("ADR-209 숨긴 종류와 AND 조건", () => {
+  it("숨긴 필드도 조건 입력에는 남고 두 조건을 모두 만족해야 노출한다", () => {
+    ownerColumnsMock.mockReturnValue(null);
+    const fields = [
+      { ...enumField("chartType", "radar"), editorHidden: true },
+      boolField("showGrid", true),
+      boolField("fillGrid", false, { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] }),
+    ];
+    const { container, rerender } = renderFields(fields);
+    expect(container.textContent).not.toContain("chartType");
+    expect(container.textContent).toContain("fillGrid");
+    fields[1] = boolField("showGrid", false);
+    rerender(<GenericFieldRenderer fields={fields} onSemanticUpdate={vi.fn()} onStyleUpdate={vi.fn()} elementId="text-1" />);
+    expect(container.textContent).not.toContain("fillGrid");
   });
 });

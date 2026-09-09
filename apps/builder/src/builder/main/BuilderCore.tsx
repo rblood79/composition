@@ -1,3 +1,5 @@
+import { importCollectionEnvelope } from "../utils/importCollectionEnvelope";
+import { toRuntimeApiEndpoint } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router";
@@ -1150,6 +1152,8 @@ export const BuilderCore: React.FC = () => {
       },
       document,
       currentPageId: storeCurrentPageId,
+      collections: Array.from(useDataStore.getState().collections.values()),
+      apiEndpoints: Array.from(useDataStore.getState().apiEndpoints.values()).map(toRuntimeApiEndpoint),
       themeConfig: { tint, neutral, radiusScale },
       fontRegistry: loadFontRegistry(),
     };
@@ -1180,6 +1184,9 @@ export const BuilderCore: React.FC = () => {
         document,
         useStore.getState().currentPageId,
         loadFontRegistry(),
+        undefined,
+        Array.from(useDataStore.getState().collections.values()),
+        Array.from(useDataStore.getState().apiEndpoints.values()).map(toRuntimeApiEndpoint),
       );
       showToast("success", t("header.exportProjectSuccess"));
     } catch (error) {
@@ -1218,10 +1225,11 @@ export const BuilderCore: React.FC = () => {
           // 현재 프로젝트의 로컬 identity 는 유지하고 파일의 canonical document 만
           // 전체 교체한다. 복원 SSOT 경로가 page/element 파생과 IndexedDB 저장까지
           // 같은 순서로 수행한다.
+          const importedDocument = await importCollectionEnvelope(projectId, result.data, useDataStore.getState());
           await applySnapshotDocument(
             useStore.getState,
             projectId,
-            result.data.document,
+            importedDocument,
           );
 
           if (result.data.fontRegistry) {

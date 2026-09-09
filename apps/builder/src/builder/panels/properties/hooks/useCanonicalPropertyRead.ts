@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
+import { getChartDescriptor } from "@composition/specs";
 import type { FieldOrigin } from "@composition/shared";
 import { getActiveCanonicalElementById } from "../../../stores/canonical/canonicalElementsView";
 import {
@@ -80,6 +81,22 @@ export function useCanonicalPropertyElementType(
     () => readCanonicalPropertyElementType(elementId ?? ""),
     [elementId],
   );
+  return useSyncExternalStore(subscribeCanonicalStore, read, () => null);
+}
+
+/** 이름 변경/차트 종류 변경만 header를 갱신하는 scalar snapshot. */
+export function useCanonicalPropertyDisplayName(elementId: string | null): string | null {
+  const read = useCallback(() => {
+    if (!elementId) return null;
+    const node = getLastProjectableNodeById(elementId);
+    if (!node) return null;
+    const type = readCanonicalPropertyElementType(elementId);
+    if (type !== "Chart") return type;
+    if (node.name) return node.name;
+    const reference = getCanonicalRefTarget(node);
+    const origin = reference ? getFirstProjectableNodeLookupByReference(reference)?.node : undefined;
+    return getChartDescriptor(node.props?.chartType ?? origin?.props?.chartType).label;
+  }, [elementId]);
   return useSyncExternalStore(subscribeCanonicalStore, read, () => null);
 }
 

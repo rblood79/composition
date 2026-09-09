@@ -30,6 +30,8 @@ export interface SchemaField {
  * DataTable 정의
  */
 export interface DataTableDefinition {
+  status?: CollectionState["status"];
+  error?: string | null;
   id: string;
   name: string;
   schema?: SchemaField[];
@@ -70,6 +72,12 @@ export interface ApiEndpointDefinition {
   path: string;
   method?: string;
   headers?: ApiEndpointHeader[] | Record<string, string>;
+  queryParams?: Array<{key: string; value: string}>;
+  bodyType?: string;
+  bodyTemplate?: string;
+  responseMapping?: {dataPath: string; fieldMappings?: Array<{sourceKey: string; targetKey: string}>};
+  executionMode?: "client" | "server";
+  timeout?: number;
 }
 
 // ============================================
@@ -150,7 +158,7 @@ export interface ApiEndpointService {
   /** API Endpoint 목록 조회 */
   getApiEndpoints: () => ApiEndpointDefinition[];
   /** API Endpoint 실행 */
-  executeApiEndpoint?: (endpointId: string) => Promise<unknown>;
+  executeApiEndpoint?: (endpointId: string, signal?: AbortSignal) => Promise<unknown>;
 }
 
 /**

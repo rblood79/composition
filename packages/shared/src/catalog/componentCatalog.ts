@@ -14,6 +14,7 @@
  * 설계: docs/adr/design/142-starter-spec-component-system-cutover-breakdown.md §3
  */
 
+import { CHART_DESCRIPTORS, createChartInitialProps } from "@composition/specs";
 import { getPrimitiveBinding } from "./bindings";
 import type {
   ComponentCatalogEntry,
@@ -36,7 +37,7 @@ function primitiveEntry(
   cutover: CutoverState,
   // placeable: 기본 true. 동명 reusable entry 가 있는 type(Toolbar/Form)만 false —
   //   placeable 단일성 (ADR-148 HC#3: 같은 type 의 primitive/reusable 중 한쪽만 palette).
-  panel: { category: string; label: string; icon: string; placeable?: boolean },
+  panel: Omit<PanelMeta, "placeable"> & { placeable?: boolean },
 ): Extract<ComponentCatalogEntry, { kind: "primitive" }> {
   const binding = getPrimitiveBinding(type) as PrimitiveBinding;
   return {
@@ -445,10 +446,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "table view",
     icon: "Table",
   }),
-  // ADR-194 (2026-09-08): 차트. category 는 collections — dataTable 바인딩을 소비하는
-  //   데이터 컴포넌트라 TableView/CardView 와 같은 묶음이 사용자 탐색 경로에 맞다.
+  // ADR-209: canonical primitive 는 하나, 저작 진입점만 6종으로 분리.
   primitiveEntry("Chart", "primitives", FAMILY_1_CUTOVER, {
-    category: "collections",
+    category: "charts",
+    creationVariants: CHART_DESCRIPTORS.map((descriptor) => ({
+      ...descriptor,
+      initialProps: { ...createChartInitialProps(descriptor.chartType) },
+    })),
     label: "chart",
     icon: "BarChart3",
   }),

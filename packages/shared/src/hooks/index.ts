@@ -22,3 +22,5 @@ export { useCollectionDataServices } from "./collectionDataContext";
 export { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
 
 export { default as CollectionDataCache } from "./useCollectionDataCache";
+
+export { createCollectionSnapshotServices, toRuntimeApiEndpoint, resolveCollectionSnapshot } from "../collections/collectionSnapshot";

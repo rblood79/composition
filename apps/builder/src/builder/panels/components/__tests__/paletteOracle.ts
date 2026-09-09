@@ -342,12 +342,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     label: "table view",
     icon: "TableProperties",
   },
-  {
-    type: "Chart",
-    category: "collections",
-    label: "chart",
-    icon: "BarChart3",
-  },
+  { type: "chart-area", category: "charts", label: "Area Chart", icon: "ChartArea" },
+  { type: "chart-bar", category: "charts", label: "Bar Chart", icon: "BarChart3" },
+  { type: "chart-line", category: "charts", label: "Line Chart", icon: "ChartLine" },
+  { type: "chart-pie", category: "charts", label: "Pie Chart", icon: "ChartPie" },
+  { type: "chart-radar", category: "charts", label: "Radar Chart", icon: "Radar" },
+  { type: "chart-radial", category: "charts", label: "Radial Chart", icon: "Gauge" },
   {
     type: "Calendar",
     category: "dateTime",

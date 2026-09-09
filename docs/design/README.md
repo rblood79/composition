@@ -1,7 +1,7 @@
 # 디자인 캔버스 (`/design` 산출물)
 
 `/design` 스킬이 만드는 다중 아트보드 캔버스를 모아 둔다. 한 캔버스 = 한 디렉토리 =
-`canvas.json` (아트보드 배치·주석) + `*.dc.html` (아트보드) + 필요 시 합본 HTML.
+`canvas.json` (아트보드 배치·주석) + `*.dc.html` (아트보드). 합본 HTML 은 커밋하지 않는다 (아래).
 
 > **배치 규칙**: 새 캔버스는 `docs/design/<주제-kebab-case>/` 에 만든다. 저장소 루트에
 > `design/` · `.design/` 처럼 흩어 두지 않는다 — `/design` 스킬 자체는 출력 위치를 정하지
@@ -36,6 +36,15 @@ Styles 패널 5개 탭 (배치 · 스타일 · 텍스트 · 화면 · 수정) �
 cd docs/design/builder-ui-webstudio
 python3 gen_layout.py      # → TabLayout.dc.html
 ```
+
+### [header-contextual-island/](header-contextual-island/) — 헤더 컨텍스트 아일랜드 (2026-09-09)
+
+헤더의 `.builder-viewport-controls` Group **그 요소가** 선택 대상에 따라 변형되고 토스트·알림도
+같은 자리에서 뜨는 안 (iPhone Dynamic Island 어법). 아트보드 6 — 제안 (선택 6 × 알림 6 × 크기 3단,
+클릭 가능) · 한 요소의 변형 t0→t4 · 토스트 이전 · 크기 어법 4단 · 벤치마크 · 현재 대조군.
+
+치수는 Apple HIG 기준 (compact 36px · expanded 최대 144pt ≈ 192px), 색·간격·컨트롤 크기는
+`builder-system.css` §Chrome island 토큰 실측값이다. 아직 시안 — 코드 변경 없음.
 
 ---
 

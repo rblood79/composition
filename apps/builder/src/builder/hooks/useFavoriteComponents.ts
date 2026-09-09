@@ -6,14 +6,14 @@ const FAVORITE_COMPONENTS_KEY = 'composition_favorite_components';
 /**
  * localStorage에서 즐겨찾기 로드
  */
-function loadFavoritesFromStorage(): { id: string; type: string }[] {
+export function loadFavoritesFromStorage(): { id: string; type: string }[] {
     try {
         const stored = localStorage.getItem(FAVORITE_COMPONENTS_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
             if (Array.isArray(parsed)) {
                 // string[] → { id, type }[] 변환
-                return parsed.map((type) => ({ id: type, type }));
+                return Array.from(new Set<string>(parsed.filter((type) => typeof type === 'string').map((type) => type === 'Chart' ? 'chart-bar' : type))).map((type) => ({ id: type, type }));
             }
         }
     } catch (error) {

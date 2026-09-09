@@ -27,7 +27,7 @@ const DeleteIcon = ACTION_ICONS.delete;
 // import { ToggleButton, ToggleButtonGroup, Button, TextField, Label, Input, Description, FieldError, Checkbox, CheckboxGroup } from '../components/list';
 
 interface ComponentListProps {
-  handleAddElement: (type: string, parentId?: string) => void;
+  handleAddElement: (type: string, parentId?: string, initialProps?: Record<string, unknown>) => void;
   selectedElementId?: string | null;
 }
 
@@ -43,6 +43,7 @@ const categoryConfig = {
   buttons: { label: "Buttons", description: "Actions and triggers" },
   forms: { label: "Forms", description: "Inputs and controls" },
   collections: { label: "Collections", description: "Lists and data display" },
+  charts: { label: "Charts", description: "Data visualization" },
   dateTime: { label: "Date & Time", description: "Date and time pickers" },
   overlays: { label: "Overlays", description: "Dialogs and popups" },
 } as const;
@@ -114,7 +115,8 @@ const ComponentList = memo(
     // 이벤트 핸들러를 메모이제이션
     const handleComponentAdd = useCallback(
       (type: string, parentId?: string) => {
-        handleAddElement(type, parentId);
+        const item = getPaletteItems().find((candidate) => candidate.type === type);
+        handleAddElement(item?.componentType ?? type, parentId, item?.initialProps);
         addRecentComponent(type); // Recent에 추가
       },
       [handleAddElement, addRecentComponent],
@@ -159,7 +161,7 @@ const ComponentList = memo(
         const i18nKey =
           specialTagMap[comp.type] ??
           comp.type[0].toLowerCase() + comp.type.slice(1);
-        const labels: string[] = [];
+        const labels: string[] = (comp.searchLabels ?? []).map((label) => label.toLowerCase());
         for (const locale of allLocales) {
           const label = (
             locale.components as Record<string, string | undefined>

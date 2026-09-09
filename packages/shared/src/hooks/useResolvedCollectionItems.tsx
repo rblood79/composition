@@ -91,7 +91,7 @@ export function useResolvedCollectionItems(
   // dataBinding 이 실제 행을 산출했는지 — 산출했으면 boundData, 아니면 정적 items.
   //   resolveCollectionItems 순수 계약의 우선순위와 동일 (dataBinding 우선 → props.items).
   //   단 DOM 은 dataBinding 해소가 useCollectionData 책임이므로 boundData.length 로 판정.
-  const hasBoundRows = Array.isArray(boundData) && boundData.length > 0;
+  const hasBoundRows = Boolean(dataBinding || datatableId);
   const hasStaticItems = Array.isArray(items) && items.length > 0;
 
   return useMemo<UseResolvedCollectionItemsResult>(() => {

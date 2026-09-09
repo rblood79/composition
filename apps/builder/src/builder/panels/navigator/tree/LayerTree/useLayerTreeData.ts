@@ -1,3 +1,4 @@
+import { getChartDescriptor } from "@composition/specs";
 import { useMemo, useCallback } from "react";
 import { buildTreeFromElements } from "../../../../utils/treeUtils";
 import type { ElementTreeItem } from "../../../../../types/builder/stately.types";
@@ -296,7 +297,7 @@ function convertToLayerTreeNodes(
 
     const baseNode: LayerTreeNode = {
       id: item.id,
-      name: getDisplayName(item),
+      name: item.type === "Chart" ? (element.name || getChartDescriptor(item.props?.chartType).label) : getDisplayName(item),
       type: item.type,
       parentId: item.parent_id ?? null,
       depth,

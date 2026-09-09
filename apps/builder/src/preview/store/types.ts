@@ -6,7 +6,7 @@
  */
 
 import type { CSSProperties } from "react";
-import type { CompositionDocument } from "@composition/shared";
+import type { CompositionDocument, ApiEndpointDefinition } from "@composition/shared";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 import type {
   EditorPresentationCancelMessage,
@@ -74,6 +74,8 @@ export interface DataSource {
 
 // DataTable 타입 (Canvas Runtime용 - Builder의 DataTable 경량 버전)
 export interface RuntimeDataTable {
+  status?: "idle" | "loading" | "success" | "error";
+  error?: string | null;
   id: string;
   name: string;
   /** 스키마 정의 (Field 자동 생성용) */
@@ -88,18 +90,7 @@ export interface RuntimeDataTable {
 }
 
 // ApiEndpoint 타입 (Canvas Runtime용 - Builder의 ApiEndpoint 경량 버전)
-export interface RuntimeApiEndpoint {
-  id: string;
-  name: string;
-  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-  baseUrl: string;
-  path: string;
-  headers?: Record<string, string>;
-  params?: Record<string, unknown>;
-  body?: Record<string, unknown>;
-  /** 마지막 호출 결과 캐시 */
-  cachedResponse?: Record<string, unknown>[] | null;
-}
+export type RuntimeApiEndpoint = ApiEndpointDefinition;
 
 // Variable 타입 (Canvas Runtime용 - Builder의 Variable 경량 버전)
 export interface RuntimeVariable {

@@ -55,7 +55,14 @@ function rowsOf(count: number): Array<Record<string, unknown>> {
   }));
 }
 
-describe("Chart 행 주입 (ADR-194 Phase 5)", () => {
+describe("Chart 행 주입 (ADR-194/209)", () => {
+  for (const count of [201, 5000]) it(`정적 ${count}행도 Canvas 원본 200행 샘플과 전체 개수를 보존한다`, () => {
+    const rows = rowsOf(count);
+    const props = chartProps(makeDocument({data:rows}));
+    expect(props._chartRows).toEqual(rows.slice(0, CHART_SAMPLE_ROWS));
+    expect(props._chartSourceRowCount).toBe(count);
+    expect(props.data).toHaveLength(count);
+  });
   it("dataBinding 이 없으면 _chartRows 를 넣지 않는다 (primitive 가 props.data 샘플로 떨어진다)", () => {
     const props = chartProps(makeDocument({ data: SAMPLE }));
     expect(props._chartRows).toBeUndefined();
@@ -77,13 +84,14 @@ describe("Chart 행 주입 (ADR-194 Phase 5)", () => {
     });
   });
 
-  it("바인딩이 0행이면 주입하지 않는다 — 빈 차트 대신 샘플이 보인다", () => {
+  it("바인딩이 성공한 0행이면 빈 배열을 주입해 샘플 재대체를 막는다", () => {
     const doc = makeDocument({
       data: SAMPLE,
       dataBinding: { type: "collection", source: "dataTable", name: "sales" },
     });
     const props = chartProps(doc, [{ name: "sales", useMockData: true, mockData: [] }] as never);
-    expect(props._chartRows).toBeUndefined();
+    expect(props._chartRows).toEqual([]);
+    expect(props._chartSourceRowCount).toBe(0);
   });
 
   it("빌더 행 상한 200 을 넘으면 앞 200 만 싣는다 (R4 — Shape 수 폭발 차단)", () => {

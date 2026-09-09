@@ -146,6 +146,24 @@ export const ExportedProjectSchema = z
     document: CompositionDocumentSchema,
     currentPageId: z.string().nullable().optional(),
     fontRegistry: z.unknown().optional(),
+    collections: z.array(z.object({
+      id: z.string(), name: z.string(),
+      schema: z.array(z.object({ key: z.string(), type: z.string(), label: z.string().optional() })).optional(),
+      mockData: z.array(z.record(z.string(), z.unknown())).optional(),
+      runtimeData: z.array(z.record(z.string(), z.unknown())).optional(),
+      useMockData: z.boolean().optional(),
+      status: z.enum(["idle", "loading", "success", "error"]).optional(),
+      error: z.string().nullable().optional(),
+    })).optional(),
+    apiEndpoints: z.array(z.object({
+      id: z.string(), name: z.string(), baseUrl: z.string(), path: z.string(),
+      method: z.string().optional(),
+      headers: z.union([z.record(z.string(), z.string()), z.array(z.object({key:z.string(), value:z.string(), enabled:z.boolean()}))]).optional(),
+      queryParams: z.array(z.object({key: z.string(), value: z.string()})).optional(),
+      bodyType: z.string().optional(), bodyTemplate: z.string().optional(),
+      responseMapping: z.object({dataPath: z.string(), fieldMappings: z.array(z.object({sourceKey: z.string(), targetKey: z.string()})).optional()}).optional(),
+      executionMode: z.enum(["client", "server"]).optional(), timeout: z.number().optional(),
+    })).optional(),
     metadata: MetadataSchema,
   })
   .strict();

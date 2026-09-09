@@ -7,6 +7,8 @@
  * skiaPrimitives → shared 가 순환이 된다 (review round 1 h1).
  */
 export * from "./types";
+export * from "./authoring";
+export * from "./runtimeData";
 export {
   approxTextWidth,
   bandScale,
@@ -23,12 +25,7 @@ export {
   stackRangesBySeries,
   valueExtent,
 } from "./series";
-export type {
-  SeriesData,
-  SeriesGrid,
-  StackMode,
-  StackRange,
-} from "./series";
+export type { SeriesData, SeriesGrid, StackMode, StackRange } from "./series";
 export { buildBarMarks } from "./marks/bar";
 export type { BarMarks } from "./marks/bar";
 export {
@@ -42,7 +39,7 @@ export type { AxialSeriesPoint, LineMarks, SeriesPoint } from "./marks/line";
 export { buildAreaMarks } from "./marks/area";
 export type { AreaMarks } from "./marks/area";
 export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
-export { curveCommands, toScreen } from "./curves";
+export { curveCommands, monotoneTangents, toScreen } from "./curves";
 export type { AxialPoint, ScreenPoint } from "./curves";
 export {
   angleScale,
@@ -52,9 +49,13 @@ export {
   radiusScale,
 } from "./polar";
 export type { AngleScale, PolarPoint, RadiusScale } from "./polar";
-export { buildPolarAxes, polarLabelAnchor, polarLabelStride } from "./polarAxes";
+export {
+  buildPolarAxes,
+  polarLabelAnchor,
+  polarLabelStride,
+} from "./polarAxes";
 export type { PolarAxesInput, PolarCenter } from "./polarAxes";
-export { arcPath, arcSlicePath, buildPieMarks } from "./marks/pie";
+export { arcPath, arcSlicePath, buildPieMarks, centerTotalLabels } from "./marks/pie";
 export { buildRadarMarks } from "./marks/radar";
 export { buildRadialMarks } from "./marks/radial";
 export type { RadialMarkInput, RadialMarks, RadialRing } from "./marks/radial";
@@ -84,11 +85,9 @@ export {
   CHART_SAMPLE_ROWS,
   CHART_TICK_COUNT,
   computeChartScene,
+  resolveChartLayout,
   resolveChartMetrics,
   skiaTextAnchorX,
   toSkiaTextGeometry,
 } from "./computeChartScene";
-export type {
-  ChartRuleChannel,
-  SkiaTextGeometry,
-} from "./computeChartScene";
+export type { ChartRuleChannel, SkiaTextGeometry } from "./computeChartScene";

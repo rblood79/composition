@@ -283,12 +283,26 @@ function computePolarScene(
   };
 }
 
-export function computeChartScene(
+export interface ChartLayout {
+  normalizedSize: ChartSize;
+  outer: Rect;
+  plot: Rect;
+  legendBox: Rect | null;
+  legendEntries: readonly LegendEntry[];
+  labelText: ChartLabelFormatter;
+  fontSize: number;
+  stackMode: StackMode;
+  ticks: ReturnType<typeof niceTicks>;
+  horizontal: boolean;
+}
+
+/** 공유하는 것은 여백·축 단위·표시 정책이며, 마크 path는 각 렌더러가 생성한다. */
+export function resolveChartLayout(
   props: ChartProps,
-  rows: readonly ChartRow[],
+  grid: SeriesGrid,
   size: ChartSize,
-  metrics: ChartMetrics = CHART_DEFAULT_METRICS,
-): ChartScene {
+  metrics: ChartMetrics,
+): ChartLayout {
   const width = Number.isFinite(size.width) ? Math.max(0, size.width) : 0;
   const height = Number.isFinite(size.height) ? Math.max(0, size.height) : 0;
   const normalizedSize: ChartSize = { width: r2(width), height: r2(height) };
@@ -302,16 +316,6 @@ export function computeChartScene(
     h: r2(Math.max(0, height - pad * 2)),
   };
 
-  const grid = buildSeriesGrid(rows, props, metrics.seriesCount);
-
-  if (
-    outer.w <= 0 ||
-    outer.h <= 0 ||
-    grid.categories.length === 0 ||
-    !grid.hasValues
-  ) {
-    return emptyScene(normalizedSize, outer);
-  }
 
   // ── 범례 항목 — 색을 가르는 축을 따라간다 ────────────────────────────────
   //   pie 는 조각(범주)이, bar mixed 는 막대(범주)가 색을 가른다. 여기를 시리즈로
@@ -382,6 +386,60 @@ export function computeChartScene(
     }
   }
 
+  // ── 축 자리 확보 ─────────────────────────────────────────────────────────
+  // 누적은 시리즈가 2개 이상일 때만 의미가 있다 (1개면 expand 가 전부 100% 가 된다).
+  const stackMode: StackMode =
+    grid.series.length > 1 && props.stackType !== "dodged"
+      ? props.stackType
+      : "none";
+  const extent = valueExtent(grid, stackMode);
+  const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
+  const horizontal = props.orientation === "horizontal";
+
+  if (props.showAxis && ["bar", "line", "area"].includes(props.chartType)) {
+    // 값 축 레이블이 차지하는 폭/높이 — tick 문자열 길이로 정한다.
+    let widestTick = 0;
+    for (const tick of ticks.ticks) {
+      const w = approxTextWidth(formatTick(tick), fontSize);
+      if (w > widestTick) widestTick = w;
+    }
+    let widestCategory = 0;
+    for (const label of grid.categories) {
+      const w = approxTextWidth(label, fontSize);
+      if (w > widestCategory) widestCategory = w;
+    }
+
+    // 세로 막대: 좌측 = 값 레이블, 하단 = 범주 레이블
+    // 가로 막대: 좌측 = 범주 레이블, 하단 = 값 레이블
+    const leftGutter =
+      (horizontal ? widestCategory : widestTick) + fontSize * 0.8;
+    const bottomGutter = fontSize * 1.6;
+    const nextW = plot.w - leftGutter;
+    const nextH = plot.h - bottomGutter;
+    if (nextW > 0 && nextH > 0) {
+      plot = {
+        x: r2(plot.x + leftGutter),
+        y: plot.y,
+        w: r2(nextW),
+        h: r2(nextH),
+      };
+    }
+  }
+
+
+  return { normalizedSize, outer, plot, legendBox, legendEntries, labelText, fontSize, stackMode, ticks, horizontal };
+}
+
+export function computeChartScene(
+  props: ChartProps,
+  rows: readonly ChartRow[],
+  size: ChartSize,
+  metrics: ChartMetrics = CHART_DEFAULT_METRICS,
+): ChartScene {
+  const grid = buildSeriesGrid(rows, props, metrics.seriesCount);
+  const { normalizedSize, outer, plot, legendBox, legendEntries, labelText, fontSize, stackMode, ticks, horizontal } = resolveChartLayout(props, grid, size, metrics);
+  if (outer.w <= 0 || outer.h <= 0 || grid.categories.length === 0 || !grid.hasValues || plot.w <= 0 || plot.h <= 0) return emptyScene(normalizedSize, outer);
+
   // ── 파이는 축이 없다 ─────────────────────────────────────────────────────
   if (props.chartType === "pie") {
     const pie = buildPieMarks({
@@ -441,48 +499,6 @@ export function computeChartScene(
       labelText,
     });
   }
-
-  // ── 축 자리 확보 ─────────────────────────────────────────────────────────
-  // 누적은 시리즈가 2개 이상일 때만 의미가 있다 (1개면 expand 가 전부 100% 가 된다).
-  const stackMode: StackMode =
-    grid.series.length > 1 && props.stackType !== "dodged"
-      ? props.stackType
-      : "none";
-  const extent = valueExtent(grid, stackMode);
-  const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
-  const horizontal = props.orientation === "horizontal";
-
-  if (props.showAxis) {
-    // 값 축 레이블이 차지하는 폭/높이 — tick 문자열 길이로 정한다.
-    let widestTick = 0;
-    for (const tick of ticks.ticks) {
-      const w = approxTextWidth(formatTick(tick), fontSize);
-      if (w > widestTick) widestTick = w;
-    }
-    let widestCategory = 0;
-    for (const label of grid.categories) {
-      const w = approxTextWidth(label, fontSize);
-      if (w > widestCategory) widestCategory = w;
-    }
-
-    // 세로 막대: 좌측 = 값 레이블, 하단 = 범주 레이블
-    // 가로 막대: 좌측 = 범주 레이블, 하단 = 값 레이블
-    const leftGutter =
-      (horizontal ? widestCategory : widestTick) + fontSize * 0.8;
-    const bottomGutter = fontSize * 1.6;
-    const nextW = plot.w - leftGutter;
-    const nextH = plot.h - bottomGutter;
-    if (nextW > 0 && nextH > 0) {
-      plot = {
-        x: r2(plot.x + leftGutter),
-        y: plot.y,
-        w: r2(nextW),
-        h: r2(nextH),
-      };
-    }
-  }
-
-  if (plot.w <= 0 || plot.h <= 0) return emptyScene(normalizedSize, outer);
 
   const band = bandScale(
     grid.categories.length,

@@ -1,3 +1,4 @@
+import { CollectionDataProvider, createCollectionSnapshotServices, type DataTableDefinition, type ApiEndpointDefinition } from "@composition/shared";
 /**
  * Publish App
  *
@@ -10,7 +11,7 @@
  * @updated 2026-01-02 Phase 1 - 검증 강화, Phase 2 - 멀티 페이지 네비게이션
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import type { Element, Page } from "@composition/shared";
 import {
   deriveProjectRenderModelFromDocument,
@@ -43,6 +44,8 @@ import "./styles/index.css";
 // ============================================
 
 interface ProjectData {
+  collections: DataTableDefinition[];
+  apiEndpoints: ApiEndpointDefinition[];
   pages: Page[];
   elements: Element[];
   currentPageId: string | null;
@@ -253,6 +256,7 @@ export function App() {
   const t = usePublishStrings();
   usePublishDocumentLanguage();
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
+  const collectionServices = useMemo(() => createCollectionSnapshotServices(projectData?.collections ?? [], projectData?.apiEndpoints ?? []), [projectData?.collections, projectData?.apiEndpoints]);
   const [loadingState, setLoadingState] = useState<LoadingState>("idle");
   const [error, setError] = useState<PublishLoadError | null>(null);
   const [errors, setErrors] = useState<ExportError[] | undefined>(undefined);
@@ -310,6 +314,8 @@ export function App() {
         projectName: data.project.name,
         version: data.version,
         events: data.document.events ?? [],
+        collections: data.collections ?? [],
+        apiEndpoints: data.apiEndpoints ?? [],
       };
 
       // ADR-014 Phase D: fontRegistry → @font-face 주입
@@ -385,6 +391,8 @@ export function App() {
             projectName: parsed.project?.name || "Preview",
             version: parsed.version,
             events: parsed.document.events ?? [],
+            collections: parsed.collections ?? [],
+            apiEndpoints: parsed.apiEndpoints ?? [],
           };
           setProjectData(projectData);
           setLoadingState("loaded");
@@ -546,6 +554,7 @@ export function App() {
   // 프로젝트 렌더링 — 인터랙션 규칙은 preview 와 같은 shared dispatcher 로 실행
   // (toast capability 를 위해 ToastProvider 가 바깥).
   return (
+    <CollectionDataProvider services={collectionServices}>
     <ToastProvider>
       <InteractionRuntimeProvider
         rules={projectData.events}
@@ -589,6 +598,7 @@ export function App() {
         </div>
       </InteractionRuntimeProvider>
     </ToastProvider>
+    </CollectionDataProvider>
   );
 }
 

@@ -25,6 +25,7 @@ export interface ComponentCreationSourceNode {
  * 컴포넌트 생성 컨텍스트
  */
 export interface ComponentCreationContext {
+  initialProps?: Record<string, unknown>;
   parentElement: ComponentCreationSourceNode | null;
   pageId: string;
   elements: ComponentCreationSourceNode[];

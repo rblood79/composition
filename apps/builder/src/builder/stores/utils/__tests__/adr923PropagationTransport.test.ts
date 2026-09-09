@@ -357,7 +357,7 @@ describe("ADR-923 fe3m1·fe4m1 — propagation 부분 style patch 의 transport 
     expect(readChildStyle(state)).toEqual({ display: "block" });
   });
 
-  it("PropertiesPanel.handleSemanticUpdate 는 store 액션을 직접 부르지 않고 dispatch 함수에 state 를 넘긴다 (AST)", async () => {
+  it("PropertiesPanel.handleSemanticPatch 는 store 액션을 직접 부르지 않고 dispatch 함수에 state 를 넘긴다 (AST)", async () => {
     const source = await readFile(PANEL_PATH, "utf-8");
     const sf = ts.createSourceFile(
       PANEL_PATH,
@@ -367,13 +367,13 @@ describe("ADR-923 fe3m1·fe4m1 — propagation 부분 style patch 의 transport 
       ts.ScriptKind.TSX,
     );
 
-    // 1) `const handleSemanticUpdate = useCallback((key, value) => { ... }, deps)` 의 콜백 본문
+    // 1) `const handleSemanticPatch = useCallback((patch) => { ... }, deps)` 의 콜백 본문
     let callback: ts.ArrowFunction | ts.FunctionExpression | undefined;
     const findCallback = (node: ts.Node) => {
       if (
         ts.isVariableDeclaration(node) &&
         ts.isIdentifier(node.name) &&
-        node.name.text === "handleSemanticUpdate" &&
+        node.name.text === "handleSemanticPatch" &&
         node.initializer &&
         ts.isCallExpression(node.initializer) &&
         ts.isIdentifier(node.initializer.expression) &&
@@ -387,7 +387,10 @@ describe("ADR-923 fe3m1·fe4m1 — propagation 부분 style patch 의 transport 
       ts.forEachChild(node, findCallback);
     };
     findCallback(sf);
-    expect(callback, "handleSemanticUpdate useCallback").toBeDefined();
+    expect(callback, "handleSemanticPatch useCallback").toBeDefined();
+    // ADR-209: 단일 필드도 multi-key patch writer로 진입해야 propagation seam이 유지된다.
+    expect(source).toContain("handleSemanticPatch({ [key]: value })");
+    expect(source).toContain("onPatch={handleSemanticPatch}");
 
     // 2) 본문 안: `dispatchSemanticUpdateWithPropagation({ ..., actions: state })` 정확히 1회,
     //    `state` 는 같은 본문에서 `useStore.getState()` 로 선언

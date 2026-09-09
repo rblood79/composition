@@ -182,6 +182,7 @@ export interface ItemsManagerSchema {
 
 /** 필드 가시성 조건 — 다른 prop 값에 따라 조건부 노출. */
 export interface VisibilityCondition {
+  all?: VisibilityCondition[];
   key?: string;
   equals?: string | number | boolean;
   oneOf?: Array<string | number | boolean>;
@@ -210,6 +211,7 @@ export interface PropContract {
   /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema. */
   itemsManager?: ItemsManagerSchema;
   visibleWhen?: VisibilityCondition;
+  editorHidden?: boolean;
 }
 
 /**
@@ -221,6 +223,13 @@ export type PropsSchema = Record<string, PropContract>;
 
 /** 컴포넌트 팔레트 표시 메타. */
 export interface PanelMeta {
+  creationVariants?: readonly {
+    paletteId: string;
+    label: string;
+    icon: string;
+    searchLabels: readonly string[];
+    initialProps: Record<string, unknown>;
+  }[];
   category: string;
   label: string;
   icon: string;

@@ -41,6 +41,7 @@ export const chartBinding: PrimitiveBinding = {
       chartType: {
         kind: "enum",
         label: "Chart Type",
+        editorHidden: true,
         section: "content",
         default: "bar",
         options: [
@@ -210,7 +211,7 @@ export const chartBinding: PrimitiveBinding = {
           { value: "circle", label: "Circle" },
         ],
         // computeChartScene.ts:219 — ADR-207:190 이 지목한 항목.
-        visibleWhen: { key: "chartType", equals: "radar" },
+        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] },
       },
       /**
        * 극좌표 각도 범위 (ADR-208 P3) — 도, **12시=0 시계**. Recharts 는 3시=0 반시계라
@@ -249,21 +250,21 @@ export const chartBinding: PrimitiveBinding = {
         label: "Show Spokes",
         section: "appearance",
         default: true,
-        visibleWhen: { key: "chartType", equals: "radar" },
+        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showAxis", truthy: true }] },
       },
       gridRings: {
         kind: "number",
         label: "Grid Rings (0=auto)",
         section: "appearance",
         default: 0,
-        visibleWhen: { key: "chartType", equals: "radar" },
+        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] },
       },
       fillGrid: {
         kind: "boolean",
         label: "Fill Grid",
         section: "appearance",
         default: false,
-        visibleWhen: { key: "chartType", equals: "radar" },
+        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] },
       },
       fillArea: {
         kind: "boolean",
@@ -275,7 +276,7 @@ export const chartBinding: PrimitiveBinding = {
       showTooltip: {
         kind: "boolean",
         label: "Show Tooltip",
-        section: "appearance",
+        section: "interaction",
         default: false,
       },
       showAxis: {
@@ -283,12 +284,14 @@ export const chartBinding: PrimitiveBinding = {
         label: "Show Axis",
         section: "appearance",
         default: true,
+        visibleWhen: { key: "chartType", oneOf: ["bar", "line", "area", "radar"] },
       },
       showGrid: {
         kind: "boolean",
         label: "Show Grid",
         section: "appearance",
         default: false,
+        visibleWhen: { key: "chartType", oneOf: ["bar", "line", "area", "radar"] },
       },
       showLegend: {
         kind: "boolean",
@@ -299,6 +302,7 @@ export const chartBinding: PrimitiveBinding = {
       legendPosition: {
         kind: "enum",
         label: "Legend Position",
+        visibleWhen: { key: "showLegend", truthy: true },
         section: "appearance",
         default: "bottom",
         options: [
@@ -307,6 +311,22 @@ export const chartBinding: PrimitiveBinding = {
           { value: "left", label: "Left" },
           { value: "right", label: "Right" },
         ],
+      },
+      isAnimationActive: {
+        kind: "boolean", label: "Animation", section: "interaction", default: false,
+      },
+      animationBegin: {
+        kind: "number", label: "Animation Delay (ms)", section: "interaction", default: 0, min: 0,
+        visibleWhen: { key: "isAnimationActive", truthy: true },
+      },
+      animationDuration: {
+        kind: "number", label: "Animation Duration (ms)", section: "interaction", default: 600, min: 0,
+        visibleWhen: { key: "isAnimationActive", truthy: true },
+      },
+      animationEasing: {
+        kind: "enum", label: "Animation Easing", section: "interaction", default: "ease-out",
+        options: ["linear", "ease", "ease-in", "ease-out", "ease-in-out"].map((value) => ({ value, label: value })),
+        visibleWhen: { key: "isAnimationActive", truthy: true },
       },
       variant: {
         kind: "variant",
@@ -348,10 +368,14 @@ export const chartBinding: PrimitiveBinding = {
       "showGrid",
       "showLegend",
       "legendPosition",
+      "isAnimationActive",
+      "animationBegin",
+      "animationDuration",
+      "animationEasing",
       "variant",
       "size",
     ],
   },
   skiaPrimitive: "chart_scene",
-  staticAttrs: { role: "img" },
+  staticAttrs: {},
 };

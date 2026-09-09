@@ -1,0 +1,198 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif; }
+    a { color: oklch(70.7% 0.165 254.624); } a:hover { color: oklch(80% 0.12 254.624); }
+    .sheet {
+      --bg-overlay: oklch(27.4% 0.006 286.033); --bg-raised: #202023; --bg-inset: oklch(21% 0.006 285.885);
+      --bg-muted: oklch(37% 0.013 285.805); --fg: oklch(96.7% 0.001 286.375); --fg-muted: oklch(70.5% 0.015 286.067);
+      --border: oklch(37% 0.013 285.805); --accent: oklch(92% 0.004 286.32); --focus: oklch(70.7% 0.165 254.624);
+      --sh-float: 0 12px 16px rgb(0 0 0 / 0.24), 0 6px 8px rgb(0 0 0 / 0.12), 0 0 6px rgb(0 0 0 / 0.48);
+      width: 1440px; height: 1080px; background: var(--bg-overlay); color: var(--fg); font-size: 12px;
+      padding: 40px 48px; box-sizing: border-box; overflow: hidden;
+    }
+    h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+    h2 { margin: 0 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-muted); }
+    .lede { margin: 0 0 26px; color: var(--fg-muted); max-width: 940px; line-height: 1.6; text-wrap: pretty; }
+    .band { display: grid; grid-template-columns: 380px minmax(0, 1fr); gap: 36px; padding-bottom: 26px; border-bottom: 1px solid color-mix(in oklab, var(--border) 70%, transparent); }
+    .di { display: flex; align-items: center; gap: 14px; }
+    .phone { width: 108px; height: 132px; border-radius: 16px; background: var(--bg-inset); position: relative; display: flex; justify-content: center; padding-top: 10px; box-sizing: border-box; }
+    .phone .cap { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 10px; color: var(--fg-muted); }
+    .isl { background: #0a0a0c; box-shadow: 0 2px 6px rgb(0 0 0 / .5); display: flex; align-items: center; justify-content: center; }
+    .cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 24px; }
+    .c h3 { margin: 0 0 3px; font-size: 13px; font-weight: 600; }
+    .c .src { color: var(--fg-muted); font-size: 11px; margin-bottom: 8px; }
+    .c p { margin: 8px 0 0; color: var(--fg-muted); line-height: 1.6; text-wrap: pretty; }
+    .c .take { margin-top: 7px; color: var(--fg); line-height: 1.6; }
+    .c .take b { font-weight: 400; color: oklch(79.2% 0.209 151.711); }
+    .c .drop b { font-weight: 400; color: oklch(70.4% 0.191 22.216); }
+    .dia { height: 82px; border-radius: 10px; background: var(--bg-inset); position: relative; overflow: hidden; }
+    .dia i { position: absolute; background: var(--bg-muted); border-radius: 3px; display: block; }
+    .dia i.hot { background: var(--focus); }
+    .dia i.pale { background: color-mix(in oklab, var(--bg-muted) 55%, transparent); }
+    .rules { display: flex; flex-direction: column; gap: 9px; }
+    .rules div { display: flex; gap: 9px; color: var(--fg-muted); line-height: 1.55; }
+    .rules b { color: var(--fg); font-weight: 500; flex: none; }
+    .k { color: var(--fg); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .verdict { margin-top: 24px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+    .verdict ul { margin: 0; padding-left: 18px; color: var(--fg-muted); line-height: 1.75; }
+    .verdict li b { color: var(--fg); font-weight: 500; }
+  </style>
+</helmet>
+
+<div class="sheet">
+  <h1>벤치마크 — 아일랜드는 한 줄이 아니다</h1>
+  <p class="lede">Apple HIG 가 규정한 세 표현과, 캔버스 도구들이 "선택 대상에 맞춰 UI 를 바꾸는" 문제를 푼 방식들. 각 항목의 도해는 배치 구조만 옮긴 것이고 실제 화면을 옮긴 것이 아니다.</p>
+
+  <div class="band">
+    <div>
+      <h2>Apple — Dynamic Island</h2>
+      <div class="di">
+        <div class="phone">
+          <span class="isl" style="width: 42px; height: 14px; border-radius: 999px;"></span>
+          <span class="cap">compact</span>
+        </div>
+        <div class="phone">
+          <span class="isl" style="width: 14px; height: 14px; border-radius: 999px; margin-right: 34px;"></span>
+          <span class="isl" style="position: absolute; top: 10px; right: 22px; width: 14px; height: 14px; border-radius: 999px;"></span>
+          <span class="cap">minimal · 2건</span>
+        </div>
+        <div class="phone">
+          <span class="isl" style="width: 84px; height: 56px; border-radius: 16px; align-items: flex-start; padding: 7px; box-sizing: border-box; gap: 5px;">
+            <i style="width: 20px; height: 20px; border-radius: 5px; background: #2c2c34; display: block;"></i>
+            <i style="flex: 1; height: 6px; border-radius: 3px; background: #2c2c34; display: block; margin-top: 3px;"></i>
+          </span>
+          <span class="cap">expanded</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h2>HIG 가 못박은 규칙</h2>
+      <div class="rules">
+        <div><b>치수</b><span>compact 높이 <b class="k">36px</b>, 아이콘 <b class="k">24px</b>, 글자 15pt / 줄높이 22. expanded 최대 높이 <b class="k">144pt ≈ 192px</b>. 크기는 3단이지 무한 확장이 아니다.</span></div>
+        <div><b>한 덩어리</b><span>카메라가 갈라놓은 leading·trailing 은 <b class="k">하나의 정보</b>로 읽혀야 하고, 색으로 그 관계를 강화한다. 둘 중 어느 쪽을 눌러도 같은 곳으로 간다.</span></div>
+        <div><b>예측 가능한 확대</b><span>expanded 는 compact 의 <b class="k">확대판</b>이다 — 요소가 같은 자리에서 자라야 하고, 내용이 재배치되면 morph 가 아니라 화면 전환으로 읽힌다.</span></div>
+        <div><b>minimal 은 2건일 때</b><span>활동이 둘이면 하나는 붙고 하나는 <b class="k">떨어져</b> 원 또는 타원으로 뜬다. 우리 Split 단계가 여기 대응한다.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h2 style="margin-top: 26px;">도구들이 같은 문제를 푼 방식</h2>
+  <div class="cards">
+
+    <div class="c">
+      <h3>Photoshop — Contextual Task Bar</h3>
+      <div class="src">캔버스 하단 · 떠 있는 바 · 대상별 액션</div>
+      <div class="dia">
+        <i class="pale" style="inset: 8px 8px auto 8px; height: 10px;"></i>
+        <i class="pale" style="left: 8px; top: 26px; bottom: 8px; width: 14px;"></i>
+        <i class="pale" style="right: 8px; top: 26px; bottom: 8px; width: 14px;"></i>
+        <i class="hot" style="left: 50%; transform: translateX(-50%); bottom: 12px; width: 130px; height: 14px; border-radius: 7px;"></i>
+      </div>
+      <p>선택하면 그 대상에 맞는 액션만 커서 근처에 뜬다. 우리 현재 action bar 가 이 모델이다.</p>
+      <div class="take"><b>가져옴</b> — 대상별로 액션 세트를 바꾼다는 발상 자체</div>
+      <div class="take drop"><b>버림</b> — 위치. 상단으로 올리면 이동 거리가 늘지만, 알림과 같은 자리를 쓰려면 상단이어야 한다</div>
+    </div>
+
+    <div class="c">
+      <h3>Figma UI3 — 하단 툴바 + 우측 인스펙터</h3>
+      <div class="src">2024 개편 · 컨텍스트 도구를 하단 플로팅으로</div>
+      <div class="dia">
+        <i class="pale" style="left: 8px; top: 8px; bottom: 8px; width: 40px;"></i>
+        <i class="pale" style="right: 8px; top: 8px; bottom: 8px; width: 40px;"></i>
+        <i class="hot" style="left: 50%; transform: translateX(-50%); bottom: 10px; width: 90px; height: 14px; border-radius: 7px;"></i>
+      </div>
+      <p>상단 바를 없애고 도구를 하단 플로팅으로 옮겼다. 포럼에는 "컨텍스트 도구가 보이지 않고 숨겨졌다"는 반발이 남아 있다.</p>
+      <div class="take"><b>가져옴</b> — 떠 있는 단일 표면</div>
+      <div class="take drop"><b>버림</b> — 자주 쓰는 컨트롤을 숨기는 것. 아일랜드는 <b class="k" style="color: var(--fg);">항상 보이되 내용만</b> 바뀐다</div>
+    </div>
+
+    <div class="c">
+      <h3>Cavalry — Attribute Editor + Tool Settings</h3>
+      <div class="src">우측 고정 속성 편집기, 도구 설정은 별도</div>
+      <div class="dia">
+        <i class="pale" style="left: 8px; top: 8px; bottom: 8px; width: 34px;"></i>
+        <i class="hot" style="right: 8px; top: 8px; bottom: 8px; width: 46px;"></i>
+      </div>
+      <p>선택 대상의 전부를 우측 패널에 싣는 정통 방식. 빠짐은 없지만 시선이 캔버스를 떠난다.</p>
+      <div class="take"><b>가져옴</b> — 전부를 담는 자리는 그대로 둔다 (우리 Properties 패널)</div>
+      <div class="take drop"><b>버림</b> — 자주 쓰는 3~5개까지 거기 두는 것</div>
+    </div>
+
+    <div class="c">
+      <h3>명령 팔레트 (Raycast·Arc 계열)</h3>
+      <div class="src">입력에 따라 높이가 자라는 단일 표면</div>
+      <div class="dia">
+        <i class="hot" style="left: 50%; transform: translateX(-50%); top: 12px; width: 120px; height: 12px; border-radius: 6px;"></i>
+        <i class="pale" style="left: 50%; transform: translateX(-50%); top: 30px; width: 120px; height: 8px;"></i>
+        <i class="pale" style="left: 50%; transform: translateX(-50%); top: 42px; width: 120px; height: 8px;"></i>
+        <i class="pale" style="left: 50%; transform: translateX(-50%); top: 54px; width: 120px; height: 8px;"></i>
+      </div>
+      <p>하나의 알약이 아래로만 자란다. 폭은 고정, 높이는 내용에 따라 — 우리가 폭 문제를 푸는 방식과 같다.</p>
+      <div class="take"><b>가져옴</b> — <b class="k" style="color: var(--fg);">폭 고정, 세로 성장</b></div>
+      <div class="take drop"><b>버림</b> — 모달 오버레이. 아일랜드는 작업을 가리지 않는다</div>
+    </div>
+
+    <div class="c">
+      <h3>미디어 HUD (재생·타이머류)</h3>
+      <div class="src">아트워크 + 진행 + 컨트롤을 한 카드에</div>
+      <div class="dia">
+        <i class="hot" style="left: 24px; top: 20px; width: 34px; height: 34px; border-radius: 8px;"></i>
+        <i class="pale" style="left: 66px; top: 24px; width: 90px; height: 8px;"></i>
+        <i class="pale" style="left: 66px; top: 38px; width: 62px; height: 6px;"></i>
+        <i class="pale" style="left: 24px; top: 62px; right: 24px; height: 5px; border-radius: 3px;"></i>
+      </div>
+      <p>왼쪽에 큰 미리보기, 가운데 정체, 오른쪽 수치, 아래 전폭 진행 — Live Activity 확장의 표준 골격.</p>
+      <div class="take"><b>가져옴</b> — Expanded 의 <b class="k" style="color: var(--fg);">4구역 격자</b> (lead / mid / trail / bottom)</div>
+      <div class="take drop"><b>버림</b> — 앨범아트 같은 장식. 우리 lead 는 <b class="k" style="color: var(--fg);">실제 렌더 미리보기</b>다</div>
+    </div>
+
+    <div class="c">
+      <h3>우리 캔버스가 이미 가진 것</h3>
+      <div class="src">chrome island 토큰 · ADR-192 action bar</div>
+      <div class="dia">
+        <i class="pale" style="inset: 8px 8px auto 8px; height: 12px; border-radius: 4px;"></i>
+        <i class="pale" style="left: 8px; top: 26px; bottom: 8px; width: 14px;"></i>
+        <i class="pale" style="right: 8px; top: 26px; bottom: 8px; width: 14px;"></i>
+        <i class="hot" style="left: 50%; transform: translateX(-50%); top: 8px; width: 120px; height: 12px; border-radius: 6px;"></i>
+      </div>
+      <p>표면·그림자·반경이 이미 <b class="k">--chrome-*</b> 토큰 한 곳에 모여 있다. 아일랜드는 새 표면이 아니라 그 토큰의 <b class="k">반경만 다른 변종</b>이면 된다.</p>
+      <div class="take"><b>가져옴</b> — 표면·그림자·컨트롤 크기 전부 기존 토큰</div>
+      <div class="take drop"><b>버림</b> — 하단 action bar 는 남길지 별도 판정 (아일랜드와 역할이 겹친다)</div>
+    </div>
+
+  </div>
+
+  <div class="verdict">
+    <div>
+      <h2>결론 — 아일랜드에 담는 것</h2>
+      <ul>
+        <li><b>대상별 자주 쓰는 컨트롤 3~5개</b> — 전부가 아니다</li>
+        <li><b>라이브 미리보기</b> — 실제 렌더된 버튼·글자·이미지·표</li>
+        <li><b>측정값과 상태</b> — 원본 크기, 행 수, 상태 4종</li>
+        <li><b>스케일·목록</b> — 타입 램프, 컬럼 칩, 줌 프리셋 (전폭 bottom)</li>
+        <li><b>알림</b> — 저장·진행·오류. 선택은 축약으로 함께 남는다</li>
+      </ul>
+    </div>
+    <div>
+      <h2>담지 않는 것</h2>
+      <ul>
+        <li><b>대상의 모든 속성</b> — Properties·Styles 패널의 몫</li>
+        <li><b>192px 를 넘는 편집</b> — 벽을 넘으면 패널로</li>
+        <li><b>구조 변경</b> — 삭제·이동·부모 바꾸기는 캔버스와 Navigator</li>
+        <li><b>영구적으로 남는 알림</b> — 오류 목록의 본체는 Monitor 패널</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

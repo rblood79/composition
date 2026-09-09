@@ -38,6 +38,7 @@ export interface InspectorField {
   /** `kind:"items-manager"` 전용 — 정적 items 배열 편집 schema (PropContract 에서 그대로 전달). */
   itemsManager?: ItemsManagerSchema;
   visibleWhen?: VisibilityCondition;
+  editorHidden?: boolean;
 }
 
 export interface InspectorFieldGroup {
@@ -77,6 +78,7 @@ export function buildInspectorFields(
       step: contract.step,
       itemsManager: contract.itemsManager,
       visibleWhen: contract.visibleWhen,
+      editorHidden: contract.editorHidden,
     };
 
     const section = contract.section ?? DEFAULT_SECTION;

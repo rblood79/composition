@@ -19,6 +19,10 @@ import {
   AppWindow,
   AppWindowMac,
   BarChart3,
+  ChartArea,
+  ChartLine,
+  ChartPie,
+  Radar,
   Calendar,
   CalendarCheck,
   CalendarDays,
@@ -71,6 +75,9 @@ import {
 } from "@composition/shared";
 
 export interface PaletteItem {
+  componentType?: string;
+  initialProps?: Record<string, unknown>;
+  searchLabels?: readonly string[];
   type: string;
   category: string;
   label: string;
@@ -93,6 +100,10 @@ export const ICON_MAP: Record<
   AppWindow,
   AppWindowMac,
   BarChart3,
+  ChartArea,
+  ChartLine,
+  ChartPie,
+  Radar,
   Calendar,
   CalendarCheck,
   CalendarDays,
@@ -272,7 +283,7 @@ function resolveIcon(
  * 순서 = PALETTE_ORDER(palette UI 표시 순서).
  */
 export function getPaletteItems(): PaletteItem[] {
-  return PALETTE_ORDER.map(({ type, source }) => {
+  return PALETTE_ORDER.flatMap(({ type, source }) => {
     const meta =
       source === "catalog"
         ? // ADR-148 Phase 1: 동명 primitive/reusable 공존 type(Toolbar/Form)은 placeable
@@ -283,6 +294,17 @@ export function getPaletteItems(): PaletteItem[] {
       throw new Error(
         `[paletteItems] PALETTE_ORDER type "${type}" 의 panel 메타 없음 (catalog 미등록).`,
       );
+    }
+    if (meta.creationVariants) {
+      return meta.creationVariants.map((variant): PaletteItem => ({
+        type: variant.paletteId,
+        componentType: type,
+        category: meta.category,
+        label: variant.label,
+        icon: resolveIcon(variant.icon),
+        searchLabels: variant.searchLabels,
+        initialProps: variant.initialProps,
+      }));
     }
     const item: PaletteItem = {
       type,

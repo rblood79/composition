@@ -90,6 +90,7 @@ export interface ResolvedField {
    * 방법이 사라진다.
    */
   visibleWhen?: VisibilityCondition;
+  editorHidden?: boolean;
 }
 
 /** 노드 1개의 편집 계약 — 두 source 합집합. */
@@ -336,6 +337,7 @@ export function resolveEditContract(
         options: deriveOptions(contract, originRule, reusable.origin, key),
         itemsManager: contract.itemsManager,
         visibleWhen: contract.visibleWhen,
+      editorHidden: contract.editorHidden,
       });
     }
   }
@@ -362,6 +364,7 @@ export function resolveEditContract(
         options: deriveOptions(contract, rule, node, key),
         itemsManager: contract.itemsManager,
         visibleWhen: contract.visibleWhen,
+      editorHidden: contract.editorHidden,
       });
     }
   }
@@ -415,6 +418,7 @@ export function resolveEditContract(
           options: deriveOptions(contract, originRule, origin, key),
           itemsManager: contract.itemsManager,
           visibleWhen: contract.visibleWhen,
+      editorHidden: contract.editorHidden,
         });
       }
     }
@@ -443,6 +447,7 @@ export function resolveEditContract(
       step: contract.step,
       options: deriveOptions(contract, rule, node, key),
       visibleWhen: contract.visibleWhen,
+      editorHidden: contract.editorHidden,
     });
   }
 

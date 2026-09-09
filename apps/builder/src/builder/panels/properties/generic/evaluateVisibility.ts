@@ -6,6 +6,7 @@ export function evaluateVisibility(
   parentTag?: string,
 ): boolean {
   if (!condition) return true;
+  if (condition.all && !condition.all.every((part) => evaluateVisibility(part, currentProps, parentTag))) return false;
 
   const value = condition.key
     ? condition.key.includes(".")

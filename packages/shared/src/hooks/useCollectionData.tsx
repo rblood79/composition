@@ -10,7 +10,8 @@
  * @since 2025-01-02
  */
 
-import { useMemo, useState, useCallback, useEffect } from "react";
+import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
+import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useAsyncList } from "react-stately";
 import type {
   DataBinding,
@@ -300,25 +301,23 @@ export function useCollectionData({
       propertyBinding.source === "dataTable" &&
       propertyBinding.name
     ) {
-      const table = collections.find((dt) => dt.name === propertyBinding.name);
+      const table = collections.find((dt) => dt.name === propertyBinding.name || dt.id === propertyBinding.name);
       if (table) {
-        const hasRuntimeData =
-          table.runtimeData && table.runtimeData.length > 0;
-        const data = table.useMockData
-          ? table.mockData
-          : hasRuntimeData
-            ? table.runtimeData
-            : table.mockData;
+        const snapshot = resolveCollectionSnapshot(table);
         const schema: SchemaField[] = (table.schema || []).map((field) => ({
           key: field.key,
           type: field.type,
           label: field.label,
         }));
-        return { data, schema };
+        return { ...snapshot, schema };
       }
     }
     return null;
   }, [propertyBinding, collections]);
+
+  // 이름이 같아도 endpoint 정의/id가 바뀌면 이전 source 캐시를 소비하지 않는다.
+  const boundEndpoint = propertyBinding?.source === "api" ? apiEndpoints.find((endpoint) => endpoint.name === propertyBinding.name) : undefined;
+  const bindingCacheKey = `${createCacheKey(stableDataBinding)}${boundEndpoint ? `:${JSON.stringify(boundEndpoint)}` : ""}`;
 
   const list = useAsyncList<Record<string, unknown>>({
     async load({ signal }: AsyncListLoadOptions) {
@@ -338,7 +337,7 @@ export function useCollectionData({
             );
           }
 
-          const cacheKey = createCacheKey(stableDataBinding);
+          const cacheKey = bindingCacheKey;
           if (cacheKey) {
             const cachedData =
               collectionDataCache.get<Record<string, unknown>[]>(cacheKey);
@@ -376,10 +375,10 @@ export function useCollectionData({
             }
 
             result = await response.json();
+          } else if (apiEndpointService?.executeApiEndpoint) {
+            result = await apiEndpointService.executeApiEndpoint(endpoint.id, signal);
           } else {
-            result = await apiEndpointService?.executeApiEndpoint?.(
-              endpoint.id,
-            );
+            throw new Error("API 실행 서비스가 연결되지 않았습니다");
           }
 
           const items = normalizeApiResponse(result);
@@ -436,13 +435,14 @@ export function useCollectionData({
   const isApiBinding = propertyBinding?.source === "api";
   const isDataTableBinding = propertyBinding?.source === "dataTable";
 
+  const loadedSource = useRef({ key: dataBindingKey, apiEndpoints });
   useEffect(() => {
-    if (isApiBinding) {
-      list.reload();
-    }
-    // list 는 stable instance, dependency 에서 제외 (eslint-disable)
+    const previous = loadedSource.current;
+    loadedSource.current = { key: dataBindingKey, apiEndpoints };
+    if (previous.key !== dataBindingKey || (isApiBinding && previous.apiEndpoints !== apiEndpoints)) list.reload();
+    // useAsyncList.load가 현재 signal을 취소하고 새 source를 로드한다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collections, isApiBinding]);
+  }, [dataBindingKey, apiEndpoints, isApiBinding]);
 
   // 정렬 함수
   const sort = useCallback(
@@ -458,7 +458,7 @@ export function useCollectionData({
     const dataTableData = dataTableResult?.data;
     let sourceData: Record<string, unknown>[];
 
-    if (dataTableData && dataTableData.length > 0) {
+    if (dataTableData) {
       sourceData = dataTableData;
     } else if (datatableId && datatableState) {
       sourceData = datatableState.data;
@@ -522,7 +522,7 @@ export function useCollectionData({
       propertyBinding.source === "api" &&
       propertyBinding.name
     ) {
-      const cacheKey = createCacheKey(stableDataBinding);
+      const cacheKey = bindingCacheKey;
       if (cacheKey) {
         collectionDataCache.invalidate(cacheKey);
       }
@@ -530,7 +530,7 @@ export function useCollectionData({
       return;
     }
     list.reload();
-  }, [datatableId, dataTableService, list, propertyBinding, stableDataBinding]);
+  }, [datatableId, dataTableService, list, propertyBinding, stableDataBinding, bindingCacheKey]);
 
   // Auto-refresh 기능
   useEffect(() => {
@@ -547,7 +547,7 @@ export function useCollectionData({
     }
   }, [refreshMode, refreshInterval, isApiBinding, reload, componentName]);
 
-  const isDataTablePending = isDataTableBinding && collections.length === 0;
+  const isDataTablePending = isDataTableBinding && (!dataTableService || dataTableResult?.status === "loading" || dataTableResult?.status === "idle");
 
   const loading = propertyBindingFormat
     ? isApiBinding
@@ -562,7 +562,7 @@ export function useCollectionData({
       ? list.error
         ? list.error.message
         : null
-      : !dataTableResult && stableDataBinding && !isDataTablePending
+      : dataTableResult?.status === "error" ? dataTableResult.error || "데이터를 불러오지 못했습니다" : !dataTableResult && stableDataBinding && !isDataTablePending
         ? `DataTable을 찾을 수 없습니다`
         : null
     : datatableId
@@ -573,11 +573,11 @@ export function useCollectionData({
 
   // 캐시 삭제 함수
   const clearCache = useCallback(() => {
-    const cacheKey = createCacheKey(stableDataBinding);
+    const cacheKey = bindingCacheKey;
     if (cacheKey) {
       collectionDataCache.invalidate(cacheKey);
     }
-  }, [stableDataBinding]);
+  }, [stableDataBinding, bindingCacheKey]);
 
   return {
     data: processedData,

@@ -41,7 +41,7 @@ function ComponentsPanelContent() {
   // handleAddElement wrapper - 필요한 모든 데이터 자동 전달
   // ⭐ Layout/Slot System: Page 모드와 Layout 모드 분기 처리
   const handleAddElement = useCallback(
-    async (type: string, parentId?: string) => {
+    async (type: string, parentId?: string, initialProps?: Record<string, unknown>) => {
       // 🆕 콜백 실행 시점에 최신 값을 가져옴 (구독 대신 getState 사용)
       // ADR-116 projection 제거: element creation path 는 active canonical document 만 사용.
       const doc = getActiveCanonicalDocument();
@@ -87,6 +87,7 @@ function ComponentsPanelContent() {
           addElement,
           selectedReusableFrameId, // layoutId 전달
           doc,
+          initialProps,
         );
         return;
       }
@@ -108,6 +109,7 @@ function ComponentsPanelContent() {
         addElement,
         null,
         doc,
+        initialProps,
       );
     },
     [

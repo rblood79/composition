@@ -103,6 +103,7 @@ export interface UseElementCreatorReturn {
     addElement: (element: Element) => void,
     layoutId: string | null | undefined,
     doc: CompositionDocument,
+    initialProps?: Record<string, unknown>,
   ) => Promise<void>;
   getPerformanceStats: () => {
     cacheSize: number;
@@ -193,6 +194,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
       addElement: (element: Element) => void,
       layoutId: string | null | undefined,
       doc: CompositionDocument,
+    initialProps?: Record<string, unknown>,
     ) => {
       if (isProcessingRef.current) return;
       isProcessingRef.current = true;
@@ -292,6 +294,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                 elements,
                 layoutId, // ⭐ Layout/Slot System: layoutId 전달
                 doc,
+                initialProps,
               );
               complexParent.notify();
               return result.parent.id;
@@ -350,7 +353,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                   id: crypto.randomUUID(), // UUID 생성
                   type,
                   customId: generateCustomId(type, elements),
-                  props: getDefaultProps(type),
+                  props: { ...getDefaultProps(type), ...initialProps },
                   // Layout 모드면 legacy layout binding 사용, 아니면 page_id 사용
                   page_id: layoutId ? null : currentPageId,
                   parent_id: parentId,

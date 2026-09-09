@@ -253,7 +253,7 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
 
       {groups.map((group, groupIndex) => {
         const visible = group.fields.filter((f) =>
-          evaluateVisibility(f.visibleWhen, currentProps, parentTag),
+          !f.editorHidden && evaluateVisibility(f.visibleWhen, currentProps, parentTag),
         );
         const showCustomId =
           groupIndex === contentIndex && customIdControl != null;

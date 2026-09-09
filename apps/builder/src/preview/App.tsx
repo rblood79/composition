@@ -1,3 +1,4 @@
+import { CollectionDataProvider, createCollectionSnapshotServices } from "@composition/shared";
 /**
  * Canvas App - Canvas Runtime 메인 컴포넌트
  *
@@ -1338,6 +1339,9 @@ function CanvasContent() {
 
 export function App() {
   const [isInitialized, setIsInitialized] = useState(false);
+  const collections = useRuntimeStore((state) => state.collections);
+  const apiEndpoints = useRuntimeStore((state) => state.apiEndpoints);
+  const collectionServices = useMemo(() => createCollectionSnapshotServices(collections, apiEndpoints), [collections, apiEndpoints]);
   const messageHandlerRef = useRef<MessageHandler | null>(null);
 
   // 스토어에서 필요한 함수들 가져오기
@@ -1405,11 +1409,13 @@ export function App() {
   return (
     // ADR-158 Phase 3 — `toast` 앱 액션의 표시 표면. ToastProvider 가 region 까지
     // 렌더하므로 별도 오버레이가 필요 없다.
+    <CollectionDataProvider services={collectionServices}>
     <ToastProvider position="bottom-right">
       <CanvasRouter renderElements={renderElements}>
         {/* 추가 오버레이나 UI 요소는 여기에 */}
       </CanvasRouter>
     </ToastProvider>
+    </CollectionDataProvider>
   );
 }
 

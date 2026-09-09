@@ -13,23 +13,23 @@ interface RecentComponent {
 /**
  * localStorage에서 최근 컴포넌트 로드
  */
-function loadRecentFromStorage(): RecentComponent[] {
+export function loadRecentFromStorage(): RecentComponent[] {
     try {
         const stored = localStorage.getItem(RECENT_COMPONENTS_KEY);
         if (stored) {
             const parsed = JSON.parse(stored);
             if (Array.isArray(parsed)) {
-                // 하위 호환성: string[] 또는 { id, type }[] 형식 지원
-                return parsed.map((item) => {
-                    if (typeof item === 'string') {
-                        // string[] → { id, type, count }[] 변환
-                        return { id: item, type: item, count: 1 };
-                    } else if (item.type && typeof item.type === 'string') {
-                        // { id, type }[] → { id, type, count }[] 변환
-                        return { id: item.id || item.type, type: item.type, count: item.count || 1 };
-                    }
-                    return { id: item.id, type: item.type, count: item.count || 1 };
-                });
+                const merged = new Map<string, RecentComponent>();
+                for (const item of parsed) {
+                    const original = typeof item === 'string' ? item : item?.type;
+                    if (typeof original !== 'string') continue;
+                    const type = original === 'Chart' ? 'chart-bar' : original;
+                    const count = typeof item === 'object' && item?.count > 0 ? item.count : 1;
+                    const previous = merged.get(type);
+                    if (previous) previous.count += count;
+                    else merged.set(type, { id: type, type, count });
+                }
+                return Array.from(merged.values()).slice(0, MAX_RECENT_ITEMS);
             }
         }
     } catch (error) {

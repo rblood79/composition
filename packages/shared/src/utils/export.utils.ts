@@ -1,3 +1,4 @@
+import type { DataTableDefinition, ApiEndpointDefinition } from "../types/collection.types";
 /**
  * Export Utilities
  *
@@ -95,6 +96,8 @@ function readCanonicalMetadataCustomId(
 }
 
 export interface ProjectExportData {
+  collections?: DataTableDefinition[];
+  apiEndpoints?: ApiEndpointDefinition[];
   version: string;
   exportedAt: string;
   project: {
@@ -784,6 +787,8 @@ export function serializeProjectData(
   currentPageId?: string | null,
   fontRegistry?: FontRegistryV2,
   metadata?: ProjectMetadata,
+  collections?: DataTableDefinition[],
+  apiEndpoints?: ApiEndpointDefinition[],
 ): string {
   const exportData: ProjectExportData = {
     version: CURRENT_VERSION,
@@ -796,6 +801,8 @@ export function serializeProjectData(
     currentPageId,
     fontRegistry,
     metadata,
+    collections,
+    apiEndpoints,
   };
 
   return JSON.stringify(exportData, null, 2);
@@ -811,6 +818,8 @@ export function downloadProjectAsJson(
   currentPageId?: string | null,
   fontRegistry?: FontRegistryV2,
   metadata?: ProjectMetadata,
+  collections?: DataTableDefinition[],
+  apiEndpoints?: ApiEndpointDefinition[],
 ): void {
   const jsonString = serializeProjectData(
     projectId,
@@ -819,6 +828,8 @@ export function downloadProjectAsJson(
     currentPageId,
     fontRegistry,
     metadata,
+    collections,
+    apiEndpoints,
   );
 
   const blob = new Blob([jsonString], { type: "application/json" });

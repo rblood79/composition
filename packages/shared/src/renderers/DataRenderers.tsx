@@ -45,6 +45,10 @@ export function renderChart(element: PreviewElement): ReactNode {
       key={element.id}
       data-element-id={element.id}
       data-custom-id={element.customId}
+      isAnimationActive={props.isAnimationActive as boolean | undefined}
+      animationBegin={props.animationBegin as number | undefined}
+      animationDuration={props.animationDuration as number | undefined}
+      animationEasing={props.animationEasing as never}
       chartType={props.chartType as never}
       dimension={props.dimension as string | undefined}
       metric={props.metric as string | undefined}

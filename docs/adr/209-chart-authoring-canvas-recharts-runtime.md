@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-09. Round 2 검토 후 사용자가 P0~P5 전체 구현·검증을 승인했다. P0 착수, 구현 게이트는 아래 진행 기록에 따라 판정한다.
+In Progress — 2026-09-09. Round 2 후 사용자가 P0~P5 전체 구현·검증 승인. P0의 실제 Recharts 9건과 타입 검사 통과, P1 착수. 기존 전체 번들 예산 초과는 사용자 기준 확인 중.
 
 관련 결정: [ADR-194](completed/194-chart-component-headless-geometry.md), [ADR-207](completed/207-polar-chart-radar-radial.md), [ADR-208](completed/208-radar-radial-grid-controls.md). 본 ADR이 Accepted되면 아래 표의 일부 결정을 대체한다. 세 ADR 전체를 Superseded로 바꾸지는 않는다.
 
@@ -149,3 +149,7 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 - chart runtime 번들과 lazy 로딩/오류 처리가 추가된다. chart가 있는 Publish 페이지의 최초 사용 비용은 없어지지 않는다.
 - 공통 collection 서비스의 실제 연결이 선행 조건이다. 라이브러리 교체가 기존 provider 결손을 자동으로 해결하지 않는다.
 - runtime의 200행 절삭 제거 및 animation 신규 기본값은 사용자 가시 변화이므로 구현 종결 때 CHANGELOG에 기록한다.
+
+## 실행 기록
+
+- 2026-09-09 P0: 실제 Recharts 3.10.1 Chromium 9/9 및 타입 검사 PASS. [입력·매핑·baseline·데이터 결선 inventory](evidence/209-p0-recharts-spike.md). 기존 초기 번들 초과 처리는 미확정이며 G5 미실행. P1 착수.

@@ -354,7 +354,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   //   `visibleWhen` 을 실제로 선언한 필드뿐이다.
   const groups = new Map<string, ResolvedField[]>();
   for (const field of fields) {
-    if (!evaluateVisibility(field.visibleWhen, conditionValues)) continue;
+    if (field.editorHidden || !evaluateVisibility(field.visibleWhen, conditionValues)) continue;
     const section = field.section || "content";
     const bucket = groups.get(section);
     if (bucket) bucket.push(field);

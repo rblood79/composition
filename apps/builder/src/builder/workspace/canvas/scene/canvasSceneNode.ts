@@ -2567,11 +2567,11 @@ export function buildCanvasSceneGraph(
       //   dataBinding 이 없거나 0행이면 주입하지 않는다: primitive 가 props.data 샘플로
       //   떨어져 팔레트에서 갓 놓은 차트가 빈 상자로 보이지 않는다.
       if (sceneNode.type === "Chart") {
-        const chartRows = readDataBindingRows(
-          getElementDataBinding(node),
-          options.collections ?? [],
-        );
-        if (chartRows.length > 0) {
+        const binding = getElementDataBinding(node);
+        const chartRows = binding ? readDataBindingRows(binding, options.collections ?? [])
+          : Array.isArray(sceneNode.props.data) ? sceneNode.props.data : [];
+        if (binding || chartRows.length > CHART_SAMPLE_ROWS) {
+          (sceneNode.props as Record<string, unknown>)._chartSourceRowCount = chartRows.length;
           (sceneNode.props as Record<string, unknown>)._chartRows =
             chartRows.length > CHART_SAMPLE_ROWS
               ? chartRows.slice(0, CHART_SAMPLE_ROWS)

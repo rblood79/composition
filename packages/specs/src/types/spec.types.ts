@@ -319,6 +319,7 @@ export interface BaseFieldDef {
 }
 
 export type VisibilityCondition = {
+  all?: VisibilityCondition[];
   key?: string;
   equals?: string | number | boolean;
   notEquals?: string | number | boolean;
