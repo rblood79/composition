@@ -173,8 +173,6 @@ export interface LinkElementProps extends BaseElementProps {
   isQuiet?: boolean;
   staticColor?: "auto" | "black" | "white";
   isDisabled?: boolean;
-  isExternal?: boolean;
-  showExternalIcon?: boolean;
   target?: string;
   rel?: string;
 }

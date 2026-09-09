@@ -67,7 +67,11 @@ import {
 //   TextArea 인데 여러 줄이 아니었고 `rows` 도 시각에 반영되지 않았다. RAC 에는 TextArea
 //   **컨테이너** primitive 가 없고 `<TextField>` 안에 `<TextArea>` control 을 넣는 것이 D1
 //   계약이라, TextField 선례대로 wrapper self-compose 위임으로 등록.
-const INVENTORY = { delegatingInternal: 31, delegatingRac: 13 } as const;
+// rac 13 → 15 (2026-09-10): ColorField/FileTrigger 추가 (Properties 패널 D2 대조). ColorField 는
+//   field 가족 중 유일하게 generic 경로라 parent description/errorMessage 가 DOM 에 안 닿았고,
+//   FileTrigger 는 raw RAC.FileTrigger 가 DOM 을 안 만들어 className/data-*/isDisabled 가 전부
+//   버려졌다(Skia 는 catalog rule box) — 둘 다 wrapper self-compose 위임으로 등록.
+const INVENTORY = { delegatingInternal: 31, delegatingRac: 15 } as const;
 
 describe("ADR-914 Phase 3-A — render facet declaration parity", () => {
   it("parity A — 파생 internal set == CanonicalNodeRenderer DELEGATING_INTERNAL (멤버 + 순서)", () => {

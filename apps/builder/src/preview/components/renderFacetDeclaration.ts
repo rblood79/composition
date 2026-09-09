@@ -274,7 +274,7 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
       "renderRangeCalendar — calendar 동형. 자식 CalendarHeader/CalendarGrid self-compose, headerStyle 전달 위해 DELEGATING 경유.",
   },
 
-  // ── delegating-rac (12) — binding.source.kind==="rac" self-compose ──
+  // ── delegating-rac (15) — binding.source.kind==="rac" self-compose ──
   {
     key: "Slider",
     kind: "delegating-rac",
@@ -352,6 +352,20 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
     kind: "delegating-rac",
     reason:
       'renderCheckbox 가 <div className="checkbox">(box) + svg(checkmark) DOM 자식을 자기완결 합성. generic rac 경로는 그 자식 div 미생성 → checkmark 미렌더. Radio 는 ::before pseudo-element ring 모델이라 DOM 자식 불요 → 제외(generic 정상).',
+  },
+  // rac 13 → 15 (2026-09-10, Properties 패널 D2 대조): field 가족에서 ColorField 만, button 가족에서
+  //   FileTrigger 만 generic 경로에 남아 있었다.
+  {
+    key: "ColorField",
+    kind: "delegating-rac",
+    reason:
+      "renderColorField 가 composition ColorField wrapper 로 self-compose (TextField/NumberField/SearchField/DateField 와 같은 field 가족 계약). generic 경로(raw RAC.ColorField + canonical Label/Input 자식)는 parent `description`/`errorMessage` 를 RAC 가 모르는 raw prop 으로 흘려 DOM 에 닿지 않았고, label 도 propagation 다리로만 자식에 닿았다.",
+  },
+  {
+    key: "FileTrigger",
+    kind: "delegating-rac",
+    reason:
+      "renderFileTrigger 가 RAC FileTrigger(DOM 없음 — hidden input + PressResponder) 안에 `.react-aria-FileTrigger` Button 을 self-compose 한다. generic 경로는 raw RAC.FileTrigger 에 문자열 자식만 들어가 pressable 이 없었고 className/data-*/isDisabled 가 전부 버려져 Skia(catalog rule box) 와 비대칭이었다.",
   },
 ];
 

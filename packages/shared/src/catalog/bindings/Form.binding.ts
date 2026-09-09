@@ -117,12 +117,8 @@ export const formBinding: PrimitiveBinding = {
           { value: "_top", label: "Top" },
         ],
       },
-      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
-      restoreFocus: {
-        kind: "boolean",
-        label: "Restore Focus",
-        section: "state",
-      },
+      // autoFocus/restoreFocus 는 2026-09-10 제거 — RAC FormProps 에 없고 RSP 미규정 custom.
+      //   canonical Preview 는 raw RAC.Form 이라 패널에서 켜도 아무 일도 없었다.
     },
     toRacProps: "default",
   },

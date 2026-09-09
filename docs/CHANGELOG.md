@@ -11,6 +11,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 동작하지 않던 항목 정리와 ColorField·FileTrigger Preview 복구] - 2026-09-10
+
+### Fixed
+
+- ColorField 의 **Description / Error Message** 가 Preview 에 반영된다. field 계열 중 ColorField 만 wrapper 위임이 빠져 있어 parent 값이 RAC 가 모르는 prop 으로 버려지고 있었다 (Label 은 propagation 다리로만 닿았다).
+- FileTrigger 가 Preview 에 실제 버튼 (`.react-aria-FileTrigger`, variant·size·**Disabled** 반영) 으로 그려진다. 종전에는 RAC FileTrigger 가 DOM 을 만들지 않아 글자만 남고 클릭할 요소도 없었다.
+
+### Removed
+
+- Properties 패널에서 켜도 아무 일도 없던 항목 12개를 뺐다 (DOM·Skia 어느 쪽도 읽지 않던 surface). 저장된 문서의 값은 무시된다.
+  - Link `External Link` · `Show External Icon` — 외부 링크는 `Target` · `Rel` 로 표현한다.
+  - Form `Auto Focus` · `Restore Focus` (RAC Form 에 없는 prop)
+  - Breadcrumbs `Show Root` · `Multiline` (RSP v3 개념, 미구현)
+  - TableView `Allow Resizing Columns` · CardView `Columns`
+  - ListBox · GridList · Tree · TagGroup 의 컬렉션 전체 `Disabled` — RAC/RSP 컬렉션은 항목별 Disabled (Items 편집) 와 `disabledKeys` 만 둔다.
+
+### Validation
+
+- 대조 자체: 팔레트 66 → Properties 항목 619 를 RAC 1.21.0 · RSP S2 1.7.1 타입과 대조 (RAC 275 · RSP 개념 249 · custom 84 · builder 11), custom 은 소비처 grep 으로 확인.
+- 새 회귀 게이트: 제거 항목 12 (`deadSurfaceRemoval.test.ts`) · 위임 등록 2 (`CanonicalNodeRenderer.colorFieldFileTrigger.test.tsx`) · 위임 선언 parity INVENTORY rac 13→15. 필드 아이콘 레지스트리에서 단일 사용이 된 `columns` 제거, ColorField wrapper 가 `data-label-align` 기본값 `start` 를 명시 emit (ADR-923 r24m1 기본값 계약 게이트).
+- shared 1,171 · builder 5,664 통과, type-check PASS. live (`apps/builder/scripts/panel-d2-audit-live.mjs`, headed Playwright): 제거 항목 11 타입 패널 부재 + ColorField Preview DOM 에 description/errorMessage 텍스트 + FileTrigger `button.react-aria-FileTrigger[data-disabled]`.
+- 남은 것 (별도): FileTrigger 의 catalog rule 크기 (md 높이 40 · paddingX 24) 가 생성 CSS 와 Skia 어느 쪽에도 실리지 않는다 — 두 leg 모두 ~24px 로 대칭이라 이번 범위 밖.
+
 ## [Publish·Preview 번들 — RAC 로케일 축소와 서브패스 import] - 2026-09-10
 
 ### Changed

@@ -57,7 +57,9 @@ export function ColorField({
   errorMessage,
   necessityIndicator,
   labelPosition = "top",
-  labelAlign,
+  // 2026-09-10: 기본값을 binding 기본(`start`)과 같이 명시 emit — 부재/명시 두 입력의 DOM 이 같아야
+  //   ADR-923 r24m1 기본값 계약 게이트를 통과한다 (CSS 는 center/end 만 규칙이 있어 시각 동일).
+  labelAlign = "start",
   isQuiet,
   ...props
 }: ColorFieldProps) {

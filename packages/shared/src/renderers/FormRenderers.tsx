@@ -22,6 +22,7 @@ import {
 } from "../components/list";
 import { MyColorSwatches } from "../components/TailSwatch";
 import { parseColor, type Color } from "react-aria-components/ColorPicker";
+import { Button as AriaButton } from "react-aria-components/Button";
 import type { ElementProps, PreviewElement, RenderContext } from "../types";
 import { getSelectedChildIds } from "./selection";
 
@@ -1043,6 +1044,24 @@ export const renderFileTrigger = (
   const { renderElement } = context;
 
   const children = context.childrenByParent.get(element.id) ?? [];
+  // 2026-09-10 (Properties 패널 D2 대조): RAC FileTrigger 는 DOM 을 만들지 않는다(hidden input +
+  //   PressResponder). canonical FileTrigger 는 자식 없는 leaf 라 pressable 이 없었고 catalog rule
+  //   (`.react-aria-FileTrigger[data-variant][data-size]`) 도 걸릴 요소가 없어 Skia box 와 비대칭이었다.
+  //   자식이 없으면 `.react-aria-FileTrigger` Button 을 self-compose 해 variant/size/isDisabled 를
+  //   그 요소에 싣는다 — isDisabled 는 RAC FileTrigger 가 모르는 prop 이라 Button 이 유일한 도달점.
+  const isDisabled = Boolean(element.props.isDisabled);
+  const triggerLabel = resolveTextSourceText("FileTrigger", element.props);
+  const fallbackButton = (
+    <AriaButton
+      className="react-aria-FileTrigger"
+      data-variant={String(element.props.variant || "default")}
+      data-size={String(element.props.size || "md")}
+      isDisabled={isDisabled}
+      style={element.props.style}
+    >
+      {triggerLabel}
+    </AriaButton>
+  );
 
   return (
     <FileTrigger
@@ -1067,7 +1086,7 @@ export const renderFileTrigger = (
     >
       {children.length > 0
         ? children.map((child) => renderElement(child, child.id))
-        : null}
+        : fallbackButton}
     </FileTrigger>
   );
 };

@@ -56,8 +56,6 @@ export const DEFAULT_PROPS_ORACLE: readonly DefaultPropsOracleItem[] = [
       children: "Link",
       href: "#",
       isDisabled: false,
-      isExternal: false,
-      showExternalIcon: true,
     },
   },
   {

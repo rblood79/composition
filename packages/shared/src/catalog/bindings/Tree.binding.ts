@@ -42,7 +42,9 @@ export const treeBinding: PrimitiveBinding = {
           { value: "multiple", label: "Multiple" },
         ],
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
+      //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
+      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 items-manager itemSchema 에 있다.
       // RSP TreeView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21).
       //   기본이 GridList 와 다른 `highlight` 인 것은 renderTree 가 오래 selectionBehavior:
       //   "replace" 를 넘겨 체크박스 없는 상태가 실질 기본이었기 때문 — 무지정 문서의 시각을

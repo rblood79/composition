@@ -28,7 +28,8 @@ import type { PrimitiveBinding } from "../types";
  *   TableView 는 renderTableView/factory 정규화로 variant:quiet 매핑(시각 동일 — border none).
  *
  * D1: composition `<div>` (internal source, generic DOM). role="grid" 는 전용 renderTableView 부여.
- * D2: variant/density(appearance) + selectionMode/allowsSorting/allowsResizingColumns(state) surface.
+ * D2: variant/density(appearance) + selectionMode/allowsSorting(state) surface.
+ *     allowsResizingColumns 는 2026-09-10 제거 — 소비처 0 (미구현 surface).
  * D3: 시각(variant default: layer-1+border / quiet: transparent)은 theme rule
  *     (COMPONENT_RULES_TABLE.TableView). Skia generic box shell ↔ DOM `react-aria-TableView
  *     [data-variant]` 시각 대칭.
@@ -80,11 +81,6 @@ export const tableViewBinding: PrimitiveBinding = {
       allowsSorting: {
         kind: "boolean",
         label: "Allow Sorting",
-        section: "state",
-      },
-      allowsResizingColumns: {
-        kind: "boolean",
-        label: "Allow Resizing Columns",
         section: "state",
       },
     },

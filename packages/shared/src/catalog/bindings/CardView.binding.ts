@@ -29,7 +29,9 @@ import type { PrimitiveBinding } from "../types";
  *
  * D1: composition `<div>` (internal source, generic DOM). role="grid" 는 D2 prop(staticAttrs 미사용 —
  *     factory/renderer 가 부여).
- * D2: layout/variant/size/density/columns/gap(appearance) + selectionMode/selectionStyle(state) surface.
+ * D2: layout/variant/size/density/gap(appearance) + selectionMode/selectionStyle(state) surface.
+ *     columns 는 2026-09-10 제거 — renderCardView 는 flex-wrap + gap 만 읽고 Skia 도 안 읽는 dead surface 였다
+ *     (S2 CardView 에도 columns 없음 — layout/density 축).
  * D3: 시각(variant transparent + radius 0)은 theme rule(COMPONENT_RULES_TABLE.CardView).
  *     Skia generic box shell ↔ DOM `react-aria-CardView[data-size]` 시각 대칭.
  */
@@ -77,12 +79,6 @@ export const cardViewBinding: PrimitiveBinding = {
           { value: "regular", label: "Regular" },
           { value: "spacious", label: "Spacious" },
         ],
-      },
-      columns: {
-        kind: "number",
-        label: "Columns",
-        section: "appearance",
-        default: 3,
       },
       gap: {
         kind: "number",

@@ -37,12 +37,8 @@ export const breadcrumbsBinding: PrimitiveBinding = {
         label: "Separator",
         section: "appearance",
       },
-      showRoot: { kind: "boolean", label: "Show Root", section: "appearance" },
-      isMultiline: {
-        kind: "boolean",
-        label: "Multiline",
-        section: "appearance",
-      },
+      // showRoot/isMultiline 은 2026-09-10 제거 — RSP v3 개념이나 DOM·Skia 어느 쪽도 읽지 않는
+      //   미구현 surface 였다. 채택하려면 collapse/multiline 렌더를 두 leg 에 같이 구현한 뒤 되살린다.
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
     },
     toRacProps: "default",

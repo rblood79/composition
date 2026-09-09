@@ -87,7 +87,9 @@ export const gridListBinding: PrimitiveBinding = {
           { value: "multiple", label: "Multiple" },
         ],
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
+      //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
+      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 items-manager itemSchema 에 있다.
       // RSP ListView `selectionStyle` (design-data 감사 §1-2 축②, 2026-08-21).
       //   선택을 무엇으로 표시하는가 — checkbox(행 체크박스) | highlight(배경 강조만).
       //   RAC 는 같은 축을 `selectionBehavior`("toggle"|"replace") 로 부르고, 변환은

@@ -102,7 +102,9 @@ export const tagGroupBinding: PrimitiveBinding = {
         label: "Allows Removing",
         section: "state",
       },
-      isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
+      // 컬렉션 전체 isDisabled 는 2026-09-10 제거 — RAC/RSP 컬렉션은 `disabledKeys`·항목별
+      //   isDisabled 만 두고(D2), 이 값은 DOM(wrapper 미소비)·Skia(항목 투영에 부모 상태 없음)
+      //   어느 쪽도 읽지 않던 dead surface 였다. 항목별 Disabled 는 items-manager itemSchema 에 있다.
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — renderTagGroup 기소비.
       disallowEmptySelection: {
         kind: "boolean",

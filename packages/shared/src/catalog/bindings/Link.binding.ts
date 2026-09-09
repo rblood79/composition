@@ -5,7 +5,9 @@
  * de-risk 그룹(box+text): Separator(divider) 다음으로 단순. icon/children 합성 없음.
  *
  * D1: RAC `Link` 가 `<a>` 를 emit. href/target/rel/isDisabled 는 RAC props 통과.
- * D2: variant(primary·secondary)/size/staticColor/isQuiet/isExternal 등 편집 surface.
+ * D2: variant(primary·secondary)/size/staticColor/isQuiet 등 편집 surface.
+ *     isExternal/showExternalIcon 은 2026-09-10 제거 — RSP 미규정 custom 이고 canonical Preview 는
+ *     raw RAC.Link 라 소비처가 없었다(외부 링크는 RAC `target`/`rel` 로 표현).
  * D3: 시각(text 색/underline)은 theme/tokens data-* rules. underline 은 Skia 가
  *     buildCatalogShapes 의 spec.composition.rootSelectors text-decoration 데이터로 재현.
  */
@@ -89,13 +91,6 @@ export const linkBinding: PrimitiveBinding = {
         ],
       },
       rel: { kind: "string", label: "Rel", section: "state" },
-      isExternal: { kind: "boolean", label: "External Link", section: "state" },
-      // live consumer: LayoutRenderers.tsx renderLink line 1030
-      showExternalIcon: {
-        kind: "boolean",
-        label: "Show External Icon",
-        section: "state",
-      },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — generic toRacProps 경로.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },

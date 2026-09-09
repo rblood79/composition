@@ -56,8 +56,6 @@ const FACTORY_LOCAL_DEFAULTS: Readonly<
     children: "Link",
     href: "#",
     isDisabled: false,
-    isExternal: false,
-    showExternalIcon: true,
   },
   ToggleButton: {
     children: "Toggle Button",

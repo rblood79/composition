@@ -10,7 +10,6 @@ import {
   CircleAlert,
   CircleMinus,
   Clock,
-  Columns3,
   Droplet,
   Equal,
   ExternalLink,
@@ -176,7 +175,6 @@ export const PROP_KEY_ICONS: Record<string, PropertyFieldIcon> = {
   placement: Move,
   layout: Grid3x3,
   density: Rows3,
-  columns: Columns3,
 
   // 수치
   minValue: Minus,
