@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [차트 속성의 종류 변경 버튼이 다른 패널 버튼과 같아집니다] - 2026-09-09
+
+### Fixed
+
+- 차트 Properties 패널의 "Change chart type" 버튼만 테두리도 배경도 없이 맨 버튼으로 보이던 문제를 수정했다. 패널 버튼 정본을 쓰게 해서 높이가 다른 패널 필드와 같은 격자에 맞고 hover·누름·포커스 표시도 같아진다.
+
 ## [데이터 연결 — 연결한 데이터가 실제로 그려집니다] - 2026-09-09
 
 ### Fixed

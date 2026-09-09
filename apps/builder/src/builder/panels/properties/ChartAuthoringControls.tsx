@@ -49,10 +49,13 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
           if (preset) onPatch({ ...preset.patch });
         }}
       />
+      {/* 패널 라벨 액션 버튼 정본은 `.control-button` 이고 중립(취소·토글)은 무게 변형을
+          지정하지 않는다 (panel-system.css · controlButton.static.test.ts).
+          종전에는 RAC 기본 클래스에 `quiet` 무게를 얹었는데, 빌더 문서는 생성 CSS 를
+          로드하지 않고 그 무게의 규칙도 어디에도 없어 무스타일 버튼이었다. */}
       <Button
         type="button"
-        className="react-aria-Button"
-        data-variant="quiet"
+        className="control-button"
         onPress={() => setChangingType((value) => !value)}
         aria-expanded={changingType}
       >

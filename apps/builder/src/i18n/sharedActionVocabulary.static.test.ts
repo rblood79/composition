@@ -21,6 +21,8 @@ const HOMONYMS = new Set([
   "Level", // 직급 preset 필드 ↔ 레벨 preset 필드
   "Visibility", // 공개범위 preset 필드 ↔ 반응형 표시 여부
   "Transform", // DataTable 값 변환 ↔ CSS transform
+  "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음 · preset 데이터 열)
+  "Total", // 도넛 중앙의 합계 표시 ↔ 주문 preset 의 총액 열
 ]);
 
 /**
