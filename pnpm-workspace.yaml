@@ -5,8 +5,13 @@ packages:
 
 catalogs:
   default:
+    '@internationalized/date': ^3.12.4
+    '@internationalized/number': ^3.6.8
     '@react-aria/focus': ^3.22.1
     '@react-aria/i18n': ^3.13.1
+    '@react-aria/utils': ^3.34.1
+    '@tanstack/react-query': ^5.101.4
+    '@tanstack/react-table': ^8.21.3
     '@tanstack/react-virtual': ^3.14.10
     '@types/node': 24.13.3
     '@types/react': ^19.2.18
@@ -16,6 +21,7 @@ catalogs:
     eslint: ^10.8.1
     lucide-react: ^1.33.0
     react: ^19.2.8
+    react-aria: ^3.52.0
     react-aria-components: ^1.21.0
     react-dom: ^19.2.8
     react-router: ^8.3.0

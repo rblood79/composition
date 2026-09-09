@@ -10,7 +10,6 @@
  * @see docs/WASM_DOC_IMPACT_ANALYSIS.md §G.1
  */
 
-import { v4 as uuidv4 } from "uuid";
 import type { Element } from "../../../types/core/store.types";
 import type { ElementsState } from "../elements";
 import { mergePropsWithStyleDeep } from "../../../utils/component/instanceResolver";
@@ -335,8 +334,8 @@ function buildCanonicalDetachSnapshot(
       usedIds.add(preferredId);
       return preferredId;
     }
-    let id = uuidv4();
-    while (usedIds.has(id)) id = uuidv4();
+    let id = crypto.randomUUID();
+    while (usedIds.has(id)) id = crypto.randomUUID();
     usedIds.add(id);
     return id;
   };
@@ -704,7 +703,7 @@ export function createInstance(
   // 저장하지 않음 (read site 는 isRecord 검사 후 fallback 으로 안전).
   // legacy role 분기 자체는 ADR-111 P3 cleanup 영역.
   const instanceElement: CanonicalElement = {
-    id: uuidv4(),
+    id: crypto.randomUUID(),
     type: master.type,
     customId: generateCustomId(master.type, sourceElements),
     props: {},

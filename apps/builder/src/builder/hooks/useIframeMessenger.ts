@@ -22,7 +22,6 @@ import {
   useRef,
   startTransition,
 } from "react";
-import { debounce, DebouncedFunc } from "lodash";
 import { markBegin, markEnd } from "../utils/perfMarks";
 import { useStore } from "../stores";
 import { useEditModeStore } from "../stores/editMode";
@@ -110,12 +109,37 @@ function filterNewPreviewGeneratedElements(elements: Element[]): Element[] {
   return elements.filter((element) => !elementsMap.has(element.id));
 }
 
+type CancellableDebounced<T extends (...args: never[]) => unknown> = ((
+  ...args: Parameters<T>
+) => void) & { cancel: () => void };
+
+function debounce<T extends (...args: never[]) => unknown>(
+  fn: T,
+  wait: number,
+): CancellableDebounced<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const wrapped = ((...args: Parameters<T>) => {
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = undefined;
+      fn(...args);
+    }, wait);
+  }) as CancellableDebounced<T>;
+  wrapped.cancel = () => {
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+  };
+  return wrapped;
+}
+
 export interface UseIframeMessengerReturn {
   iframeReadyState: IframeReadyState;
   handleIframeLoad: () => void;
   handleMessage: (event: MessageEvent) => void;
-  handleUndo: DebouncedFunc<() => Promise<void>>;
-  handleRedo: DebouncedFunc<() => Promise<void>>;
+  handleUndo: CancellableDebounced<() => Promise<void>>;
+  handleRedo: CancellableDebounced<() => Promise<void>>;
   sendElementSelectedMessage: (elementId: string, props?: ElementProps) => void;
   sendLayoutsToIframe: () => void;
   sendPagesToIframe: () => void;
@@ -1169,7 +1193,9 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
 
   useEffect(() => {
     // JSON 문자열로 비교
-    const apiEndpointsJson = JSON.stringify(apiEndpoints.map(toRuntimeApiEndpoint));
+    const apiEndpointsJson = JSON.stringify(
+      apiEndpoints.map(toRuntimeApiEndpoint),
+    );
 
     // 이전 값과 같으면 스킵
     if (lastSentApiEndpointsRef.current === apiEndpointsJson) {

@@ -9,20 +9,18 @@
  * @see apps/builder/src/builder/workspace/canvas/skia/types.ts (Skia FillStyle)
  */
 
-import { nanoid } from 'nanoid';
-
 // ============================================
 // Fill Type Enum
 // ============================================
 
 /** Fill 타입 열거형 (Pencil 6종 대응) */
 export enum FillType {
-  Color = 'color',
-  Image = 'image',
-  LinearGradient = 'linear-gradient',
-  RadialGradient = 'radial-gradient',
-  AngularGradient = 'angular-gradient',
-  MeshGradient = 'mesh-gradient',
+  Color = "color",
+  Image = "image",
+  LinearGradient = "linear-gradient",
+  RadialGradient = "radial-gradient",
+  AngularGradient = "angular-gradient",
+  MeshGradient = "mesh-gradient",
 }
 
 // ============================================
@@ -31,8 +29,8 @@ export enum FillType {
 
 /** 그래디언트 색상 스톱 */
 export interface GradientStop {
-  color: string;      // "#RRGGBBAA"
-  position: number;   // 0.0 ~ 1.0
+  color: string; // "#RRGGBBAA"
+  position: number; // 0.0 ~ 1.0
 }
 
 // ============================================
@@ -41,9 +39,9 @@ export interface GradientStop {
 
 /** 기본 Fill 아이템 (모든 타입 공통) */
 export interface BaseFillItem {
-  id: string;         // nanoid()
-  enabled: boolean;   // on/off 토글
-  opacity: number;    // 0.0 ~ 1.0 (Fill 레벨 불투명도)
+  id: string;
+  enabled: boolean; // on/off 토글
+  opacity: number; // 0.0 ~ 1.0 (Fill 레벨 불투명도)
   blendMode: BlendMode;
 }
 
@@ -54,21 +52,21 @@ export interface BaseFillItem {
 /** 단색 Fill */
 export interface ColorFillItem extends BaseFillItem {
   type: FillType.Color;
-  color: string;      // "#RRGGBBAA"
+  color: string; // "#RRGGBBAA"
 }
 
 /** 선형 그래디언트 Fill */
 export interface LinearGradientFillItem extends BaseFillItem {
   type: FillType.LinearGradient;
   stops: GradientStop[];
-  rotation: number;   // 0 ~ 360 degrees
+  rotation: number; // 0 ~ 360 degrees
 }
 
 /** 방사형 그래디언트 Fill */
 export interface RadialGradientFillItem extends BaseFillItem {
   type: FillType.RadialGradient;
   stops: GradientStop[];
-  center: { x: number; y: number };  // 0.0 ~ 1.0 (비율)
+  center: { x: number; y: number }; // 0.0 ~ 1.0 (비율)
   radius: { width: number; height: number };
 }
 
@@ -84,7 +82,7 @@ export interface AngularGradientFillItem extends BaseFillItem {
 export interface ImageFillItem extends BaseFillItem {
   type: FillType.Image;
   url: string;
-  mode: 'stretch' | 'fill' | 'fit';
+  mode: "stretch" | "fill" | "fit";
 }
 
 /** 메쉬 그래디언트 Fill (Phase 4) */
@@ -123,25 +121,25 @@ export type FillItem =
 
 /** 블렌드 모드 (CanvasKit 대응) */
 export type BlendMode =
-  | 'normal'     // SrcOver
-  | 'multiply'
-  | 'screen'
-  | 'overlay'
-  | 'darken'
-  | 'lighten'
-  | 'color-dodge'
-  | 'color-burn'
-  | 'hard-light'
-  | 'soft-light'
-  | 'difference'
-  | 'exclusion';
+  | "normal" // SrcOver
+  | "multiply"
+  | "screen"
+  | "overlay"
+  | "darken"
+  | "lighten"
+  | "color-dodge"
+  | "color-burn"
+  | "hard-light"
+  | "soft-light"
+  | "difference"
+  | "exclusion";
 
 // ============================================
 // Color Input Mode
 // ============================================
 
 /** 색상 입력 모드 */
-export type ColorInputMode = 'rgba' | 'hex' | 'css' | 'hsl' | 'hsb';
+export type ColorInputMode = "rgba" | "hex" | "css" | "hsl" | "hsb";
 
 // ============================================
 // Border Config (CSS border 기반)
@@ -157,30 +155,35 @@ export interface BorderConfig {
 
 /** 보더 너비 (CSS borderWidth 매핑) */
 export type BorderWidth =
-  | string
-  | { top: string; right: string; bottom: string; left: string };
+  string | { top: string; right: string; bottom: string; left: string };
 
 /** 보더 스타일 */
-export type BorderStyleValue = 'none' | 'solid' | 'dashed' | 'dotted' | 'double' | 'groove' | 'ridge';
+export type BorderStyleValue =
+  "none" | "solid" | "dashed" | "dotted" | "double" | "groove" | "ridge";
 
 /** 보더 반경 (CSS borderRadius 매핑) */
 export type BorderRadius =
   | string
-  | { topLeft: string; topRight: string; bottomRight: string; bottomLeft: string };
+  | {
+      topLeft: string;
+      topRight: string;
+      bottomRight: string;
+      bottomLeft: string;
+    };
 
 // ============================================
 // Factory Functions
 // ============================================
 
 /** 기본 ColorFillItem 생성 */
-export function createDefaultColorFill(color = '#000000FF'): ColorFillItem {
+export function createDefaultColorFill(color = "#000000FF"): ColorFillItem {
   return {
-    id: nanoid(),
+    id: crypto.randomUUID(),
     type: FillType.Color,
     color,
     enabled: true,
     opacity: 1,
-    blendMode: 'normal',
+    blendMode: "normal",
   };
 }
 
@@ -191,70 +194,70 @@ export function createDefaultFill(type: FillType = FillType.Color): FillItem {
       return createDefaultColorFill();
     case FillType.LinearGradient:
       return {
-        id: nanoid(),
+        id: crypto.randomUUID(),
         type: FillType.LinearGradient,
         stops: [
-          { color: '#000000FF', position: 0 },
-          { color: '#FFFFFFFF', position: 1 },
+          { color: "#000000FF", position: 0 },
+          { color: "#FFFFFFFF", position: 1 },
         ],
         rotation: 0,
         enabled: true,
         opacity: 1,
-        blendMode: 'normal',
+        blendMode: "normal",
       };
     case FillType.RadialGradient:
       return {
-        id: nanoid(),
+        id: crypto.randomUUID(),
         type: FillType.RadialGradient,
         stops: [
-          { color: '#000000FF', position: 0 },
-          { color: '#FFFFFFFF', position: 1 },
+          { color: "#000000FF", position: 0 },
+          { color: "#FFFFFFFF", position: 1 },
         ],
         center: { x: 0.5, y: 0.5 },
         radius: { width: 0.5, height: 0.5 },
         enabled: true,
         opacity: 1,
-        blendMode: 'normal',
+        blendMode: "normal",
       };
     case FillType.AngularGradient:
       return {
-        id: nanoid(),
+        id: crypto.randomUUID(),
         type: FillType.AngularGradient,
         stops: [
-          { color: '#000000FF', position: 0 },
-          { color: '#FFFFFFFF', position: 1 },
+          { color: "#000000FF", position: 0 },
+          { color: "#FFFFFFFF", position: 1 },
         ],
         center: { x: 0.5, y: 0.5 },
         rotation: 0,
         enabled: true,
         opacity: 1,
-        blendMode: 'normal',
+        blendMode: "normal",
       };
     case FillType.Image:
       return {
-        id: nanoid(),
+        id: crypto.randomUUID(),
         type: FillType.Image,
-        url: '',
-        mode: 'fill',
+        url: "",
+        mode: "fill",
         enabled: true,
         opacity: 1,
-        blendMode: 'normal',
+        blendMode: "normal",
       };
     case FillType.MeshGradient:
       return {
-        id: nanoid(),
+        id: crypto.randomUUID(),
         type: FillType.MeshGradient,
         rows: 2,
         columns: 2,
         points: [
-          { position: [0, 0], color: '#FF0000FF' },
-          { position: [1, 0], color: '#FFFF00FF' },
-          { position: [0, 1], color: '#0000FFFF' },
-          { position: [1, 1], color: '#00FF00FF' },
+          { position: [0, 0], color: "#FF0000FF" },
+          { position: [1, 0], color: "#FFFF00FF" },
+          { position: [0, 1], color: "#0000FFFF" },
+          { position: [1, 1], color: "#00FF00FF" },
         ],
         enabled: true,
         opacity: 1,
-        blendMode: 'normal',
+        blendMode: "normal",
       };
   }
 }

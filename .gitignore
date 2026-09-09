@@ -1,133 +1,88 @@
-docs/react-aria-starter
-docs/react-aria
-docs/pencil-extracted
-node_modules
-
-# Kiro / Windsurf — 로컬 스킬 심링크(원본은 .agents/skills). 사용하지 않으면 무시.
-.kiro/
-.windsurf/
-
-# Roo Code — 프로젝트 규칙 등(로컬 전용)
-.roo/
-
-# macOS
+# OS
 .DS_Store
-dist
-/.cache
-/build
+Thumbs.db
+
+# Env
 .env
 .env.local
 .env*.local
 
-# Turborepo
-.turbo
+# Dependencies (pnpm — npm 실수로 생기는 lock 은 추적하지 않음)
+node_modules/
+.pnpm-store/
+.npm-cache/
+package-lock.json
 
-# TypeScript
+# Build / cache
+dist/
+.turbo/
+.cache/
+.vercel
+.output
 *.tsbuildinfo
+/build/
 
+# WASM — canvaskit 복사본 · wasm-pack 산출물 (pnpm prepare:wasm / wasm:build:engine)
+apps/builder/public/wasm/
+apps/builder/src/builder/workspace/canvas/wasm/target/
+apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg/
+target-install/
+
+# Tests / coverage / Playwright
 test-results/
 playwright-report/
 blob-report/
 coverage/
-
-# Playwright CLI raw page snapshots (runtime output; local evidence is docs/adr/evidence, gitignored)
 .playwright-cli/
 /output/
+# 하니스 덤프. 디렉토리 자체는 열어둠 — visual-parity 의 .gitignore 가 추적됨
+**/.artifacts/**
+!**/.artifacts/.gitignore
 
-.cache
-.vercel
-.output
-.npm-cache
-
-/build/
-/public/build
-/api/index.js
-/api/index.js.map
-/api/_assets
-/public/s/uploads
-/public/cgi/asset
-*storybook.log
-storybook-static
-
-/src_bak
-# Added by Claude Task Master
-# Logs
-logs
+# Logs / temp
+logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-dev-debug.log
-# Dependency directories
-node_modules/
-.pnpm-store/
-# Environment variables
-# Editor directories and files
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-# OS specific
-.DS_Store
-Thumbs.db
 *.bak
 *.tmp
-*.swp
 *~
 
-# Task files
-tasks.json
-tasks/
-package-lock.json
+# Editors / local agent IDEs
+.idea/
+*.sw?
+.kiro/
+.windsurf/
+.roo/
 
-# WASM binaries (copied from node_modules by prepare:wasm)
-apps/builder/public/wasm/
+# Storybook
+storybook-static/
 
-# Rust WASM build artifacts
-apps/builder/src/builder/workspace/canvas/wasm/target/
-target-install/
-
-# composition-engine wasm-pack 산출물 (로컬 빌드, git 미추적 — pnpm wasm:build:engine 로 생성)
-apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg/
-
-# TypeScript compiled output (tsc -b) alongside source files
+# tsc -b 가 src 옆에 emit 한 산출물.
+# Vite 가 .ts 대신 .js 를 우선 로드해 HMR 이 오염됨 (ADR-915, 커밋 367fe7b3b).
 apps/builder/src/**/*.js
 !apps/builder/src/**/*.config.js
-# packages/shared: composite tsc 가 src 옆에 emit 한 산출물 (Vite 가 .ts 대신 .js 우선 로드 → HMR 오염).
-# 원본 .ts/.tsx 만 추적, .js/.d.ts/.map 산출물은 무시 (ADR-915 발견 2026-06-25, 커밋 367fe7b3b 오염 정리)
 packages/shared/src/**/*.js
 packages/shared/src/**/*.js.map
 packages/shared/src/**/*.d.ts
 packages/shared/src/**/*.d.ts.map
 !packages/shared/src/**/*.config.js
-# 손수 작성 ambient 선언(컴파일 산출물 아님) — CSS/에셋 side-effect import 타입 제공
+# 손수 작성 ambient 선언 (컴파일 산출물 아님)
 !packages/shared/src/css-modules.d.ts
 
-# Git worktrees (superpowers skill + agent isolation)
+# Agent / worktree / local settings
 .worktrees/
+.agent/runs/
+.claude/settings.local.json
 .claude/.spec-rebuild-pending
 .claude/.css-regen-pending
 .claude/.adr-split-commit-allowed
-# run manifest + evidence ledger (local-only — pnpm agent:run)
-.agent/runs/
-.claude/settings.local.json
-
-# 개인 로컬 지침 (공식 권장: 비추적)
 CLAUDE.local.md
-
-# Codex/외부 도구가 옛 .claude/commands/*.md 를 자동 이관해 만드는 잔재 — 정본은 .claude/skills/ (commands 는 2026-09-02 skills 로 병합). 승인 삭제 후 sweep 커밋으로 2회 재유입 (7dcbce1d6·a0cba1b4d 참조)
+# 옛 .claude/commands 자동 이관 잔재 (정본은 .claude/skills/, 승인 삭제 후 2회 재유입)
 .agents/skills/source-command-*/
 
-# 테스트 하니스 raw captures (local-only — ADR-923 G0/G3, visual-parity, 커밋 금지)
-**/.artifacts/
-
-
-docs/migrations/evidence
-
-# 로컬 참조용 Pen 복사본 (원본은 /Users/admin/work/pencil — 추적 대상 아님)
+# Local docs / evidence (커밋 금지)
+docs/react-aria-starter/
+docs/react-aria/
+docs/pencil-extracted/
 docs/pencil-copy/
-
-# ADR evidence (local-only — live 측정·하니스 산출물, 커밋 금지)
+docs/migrations/evidence/
 docs/adr/evidence/
