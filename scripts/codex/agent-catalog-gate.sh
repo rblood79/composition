@@ -237,23 +237,15 @@ XSS=".codex/hooks/session-start.sh"
 CODEX_ROSTER_SKILLS=$(sh_section "$XSS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
 report_set_eq "Codex live roster §핵심 Skills" "Codex roster" "$CODEX_ROSTER_SKILLS" ".claude/skills" "$SKILLS"
 
-# ---------- 8. prompt router ×2 — skill 커버리지 대칭 ----------
-section "8. prompt router — .claude/hooks/route-prompt.sh ↔ scripts/codex/route-prompt.sh (skill 커버리지 대칭)"
-CR=".claude/hooks/route-prompt.sh"; XR="scripts/codex/route-prompt.sh"
-CR_REFS=$(grep -oE '\\`/?[a-z][a-z0-9-]+\\`' "$CR" | tr -d '`\\/' | sort -u || true)
+# ---------- 8. prompt router — Codex 만 ----------
+# Claude 라우터 (.claude/hooks/route-prompt.sh) 는 2026-09-09 삭제 (PROMPT_AUDIT_2026-09 A7) — 힌트가 CLAUDE.md·시스템 프롬프트 재삽입이었다.
+# Codex 는 그 상시 context 가 없어 라우터가 1차 표면 — 유지.
+section "8. prompt router — scripts/codex/route-prompt.sh (Claude 라우터는 2026-09-09 제거)"
+XR="scripts/codex/route-prompt.sh"
 XR_REFS=$(grep 'add_hint' "$XR" | grep -oE '[a-z][a-z0-9]*(-[a-z0-9]+)+' | sort -u || true)
-CR_SKILLS=$(comm -12 <(norm "$CR_REFS") <(norm "$SKILLS"))
 XR_SKILLS=$(comm -12 <(norm "$XR_REFS") <(norm "$SKILLS"))
-# 2026-08-31: 대칭(집합 일치) → 포함(claude ⊆ codex). Claude 라우터는 CLAUDE.md·path rule·skill description 이 이미 싣는 것을 빼고
-# 시점 신호 3종만 남겼다 (실측 42% 프롬프트 897B → 오탐 다수). Codex 는 그 상시 context 가 없어 라우터가 1차 표면 — 축소 대상 아님.
-claude_only=$(set_minus "$CR_SKILLS" "$XR_SKILLS")
-if [ -n "$claude_only" ]; then fail "router skill 커버리지 — claude 만 라우팅 (codex 누락): $(printf '%s' "$claude_only" | tr '\n' ' ')"; else ok "router skill 커버리지 — claude($(norm "$CR_SKILLS" | wc -l | tr -d ' ')) ⊆ codex($(norm "$XR_SKILLS" | wc -l | tr -d ' '))"; fi
-codex_only=$(set_minus "$XR_SKILLS" "$CR_SKILLS")
-[ -n "$codex_only" ] && info "codex 만 라우팅 (의도됨 — Claude 는 상시 context 가 대신): $(printf '%s' "$codex_only" | tr '\n' ' ')"
-CR_AGENTS=$(comm -12 <(norm "$CR_REFS") <(norm "$KNOWN_AGENTS"))
-unreg=$(set_minus "$AGENTS" "$CR_AGENTS")
-[ -n "$unreg" ] && info "claude router 가 힌트하지 않는 agent: $(printf '%s' "$unreg" | tr '\n' ' ')"
-info "라우팅되지 않는 skill (양쪽 공통): $(set_minus "$SKILLS" "$CR_SKILLS" | tr '\n' ' ')"
+ok "codex router skill 커버리지 — $(norm "$XR_SKILLS" | wc -l | tr -d ' ')개 (Claude 는 상시 context 가 대신)"
+info "라우팅되지 않는 skill (codex): $(set_minus "$SKILLS" "$XR_SKILLS" | tr '\n' ' ')"
 
 # ---------- 9. hooks — host별 등록 ↔ 파일, self-test, package.json codex:* ----------
 section "9. hooks — Claude settings + Codex hooks.json 등록·실행권한·self-test"

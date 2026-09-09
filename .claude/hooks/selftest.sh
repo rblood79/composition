@@ -147,29 +147,7 @@ rm -f "$SPEC_FLAG" "$CSS_FLAG"
 run_hook spec-rebuild-flag.sh "$(tool_json Edit '{"file_path":"/r/packages/shared/src/components/styles/generated/button.css"}')"
 if [ ! -f "$CSS_FLAG" ] && [ ! -f "$SPEC_FLAG" ]; then pass; else fail "flag 가 생기면 안 됨"; fi
 
-# ---------- route-prompt.sh (UserPromptSubmit) ----------
-printf '\n== route-prompt.sh ==\n'
-prompt_json() { jq -nc --arg p "$1" '{hook_event_name:"UserPromptSubmit",prompt:$p}'; }
-case_start "'렌더링 버그' → cross-check + debugger 힌트"
-run_hook route-prompt.sh "$(prompt_json '캔버스 렌더링 버그 고쳐줘')"; assert_contains '/cross-check'
-case_start "  (동일 입력) debugger"
-assert_contains 'debugger'
-case_start "'ADR-195 다음 Phase 실행' → execute-adr"
-run_hook route-prompt.sh "$(prompt_json 'ADR-195 다음 Phase 실행해줘')"; assert_contains 'execute-adr'
-case_start "'ADR-195 리뷰' → review-adr, execute-adr 아님"
-run_hook route-prompt.sh "$(prompt_json 'ADR-195 리뷰해줘')"; assert_contains 'review-adr'
-case_start "  (동일 입력) execute-adr 미주입"
-assert_not_contains 'execute-adr'
-case_start "'ADR 생성해줘' → create-adr 사용자 전용 안내"
-run_hook route-prompt.sh "$(prompt_json '명령 팔레트 ADR 생성해줘')"; assert_contains '사용자 전용'
-case_start "인사말 → 힌트 없음"
-run_hook route-prompt.sh "$(prompt_json '안녕하세요')"; assert_allow
-case_start "'6. … 진행해' (ADR 번호 없음) → execute-adr 오탐 없음"
-run_hook route-prompt.sh "$(prompt_json '6. route-prompt.sh 축소 진행해')"; assert_not_contains 'execute-adr'
-case_start "'preview props 정리 후 커밋' → 영어 부분 문자열(pr/test) 오탐 없음"
-run_hook route-prompt.sh "$(prompt_json 'preview 패널 props 정리하고 latest 커밋해줘')"; assert_allow
-case_start "skill 본문 주입(Base directory …) → 분석 제외"
-run_hook route-prompt.sh "$(prompt_json 'Base directory for this skill: /x — 렌더링 ADR-195 실행 정정')"; assert_allow
+# route-prompt.sh 는 2026-09-09 삭제 (PROMPT_AUDIT_2026-09 A7 — 힌트 3종이 CLAUDE.md·시스템 프롬프트 재삽입). Codex 라우터는 scripts/codex/hook-selftest.sh 가 본다.
 
 # ---------- session-start.sh / precompact-snapshot.sh / type-check-gate.sh ----------
 printf '\n== session-start.sh · precompact-snapshot.sh · type-check-gate.sh ==\n'

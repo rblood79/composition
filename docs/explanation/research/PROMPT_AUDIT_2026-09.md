@@ -138,7 +138,7 @@ const COMPONENT_TAGS = getAiComponentCatalog()
 
 ### A harness (`.claude/`, `CLAUDE.md`)
 
-> **적용 상태 (2026-09-09)**: A1~A8 전부 적용. A1 은 `agent-catalog-gate.sh` §7 이 로스터 부재를 허용하도록 같이 고쳤고 `selftest.sh` 는 새 태그 `<composition-session-warnings>` 를 본다. A7 은 settings 등록만 제거 — `route-prompt.sh` 파일과 그 selftest 는 남겨 두었다 (파일 삭제는 별도 승인). A8 은 같은 패턴의 `canvas-rendering.md` · `css-tokens.md` · `match-target/SKILL.md` · `composition-patterns/SKILL.md` 블록인용 표지까지 포함. Codex 쪽 로스터 (`.codex/hooks/session-start.sh`) 는 범위 밖.
+> **적용 상태 (2026-09-09)**: A1~A8 전부 적용. A1 은 `agent-catalog-gate.sh` §7 이 로스터 부재를 허용하도록 같이 고쳤고 `selftest.sh` 는 새 태그 `<composition-session-warnings>` 를 본다. A7 은 settings 등록 제거 후 사용자 승인으로 `route-prompt.sh` 파일도 삭제 (selftest 8 케이스 · agent-catalog-gate §8 Claude 라우터 대조 함께 제거, Codex 라우터는 유지). A8 은 같은 패턴의 `canvas-rendering.md` · `css-tokens.md` · `match-target/SKILL.md` · `composition-patterns/SKILL.md` 블록인용 표지까지 포함. Codex 쪽 로스터 (`.codex/hooks/session-start.sh`) 는 범위 밖.
 
 **A1 · H4** — `session-start.sh:56-75`: `<composition-workflow-roster>` 의 "## 핵심 Skills" 12줄 삭제. drift·memory 경고 블록만 남긴다.
 
