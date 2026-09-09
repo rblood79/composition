@@ -13,7 +13,7 @@
  *
  * **의존 방향 (Δ7)**: layout token 은 CSS vocabulary(D3 시각 어휘)이므로 framework-free 하위
  * 레이어 `specs` 에 산다. `shared` 가 이를 import 하는 것은 `shared → specs` 정상 방향이며,
- * 금지되는 `specs → shared` 역의존이 아니다(specs deps = colord 만, shared deps 에 specs 선언).
+ * 금지되는 `specs → shared` 역의존이 아니다(shared deps 에 specs 선언).
  */
 
 /** 컴포넌트 root layout token. composition.layout 의 값 집합. */

@@ -69,7 +69,6 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.14.10",
     "@types/node": "catalog:",
-    "clsx": "^2.1.1",
     "jszip": "^3.10.1",
     "lucide-react": "^1.33.0",
     "react-aria-components": "catalog:",

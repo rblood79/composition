@@ -35,7 +35,6 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
-    "test:visual": "playwright test",
     "generate:css": "tsx scripts/generate-css.ts",
     "generate:palette": "tsx scripts/generate-palette.ts",
     "validate:palette": "tsx scripts/generate-palette.ts --check",
@@ -46,19 +45,13 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {
-    "colord": "^2.10.0"
-  },
   "devDependencies": {
     "@composition/config": "workspace:*",
-    "@playwright/test": "^1.62.1",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@vitest/coverage-v8": "^4.1.11",
     "eslint": "^10.8.1",
     "lucide-react": "^1.33.0",
-    "pixelmatch": "^7.2.0",
-    "pngjs": "^7.0.0",
     "tsup": "^8.5.1",
     "tsx": "^4.23.12",
     "typescript": "^5.9.3",

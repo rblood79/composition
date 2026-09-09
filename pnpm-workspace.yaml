@@ -10,7 +10,6 @@ catalogs:
     '@types/react-dom': ^19.2.4
     '@vitejs/plugin-react': ^6.1.0
     cross-env: ^10.1.0
-    immer: ^11.1.18
     react: ^19.2.8
     react-aria-components: ^1.21.0
     react-dom: ^19.2.8
@@ -23,7 +22,6 @@ catalogs:
 onlyBuiltDependencies:
   - '@swc/core'
   - esbuild
-  - puppeteer
 
 patchedDependencies:
   react-aria@3.52.0: patches/react-aria@3.52.0.patch

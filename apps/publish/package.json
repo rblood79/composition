@@ -21,7 +21,6 @@
     "@composition/shared": "workspace:*",
     "@react-aria/i18n": "^3.13.1",
     "react": "catalog:",
-    "react-aria-components": "catalog:",
     "react-dom": "catalog:"
   },
   "devDependencies": {
