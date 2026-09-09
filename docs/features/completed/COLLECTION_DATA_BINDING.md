@@ -1,5 +1,20 @@
 # Collection Components Data Binding
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 5개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 5개</summary>
+>
+> - `src/builder/inspector/data/APICollectionEditor.tsx`
+> - `src/builder/inspector/data/DataSourceSelector.tsx`
+> - `src/builder/inspector/properties/editors/TagGroupEditor.tsx`
+> - `src/builder/preview/renderers/CollectionRenderers.tsx`
+> - `src/builder/preview/renderers/SelectionRenderers.tsx`
+>
+> </details>
+
+
 ## 개요
 
 Collection 컴포넌트들(ListBox, GridList, Select, ComboBox, TagGroup 등)의 동적 데이터 렌더링 시스템 구현 문서입니다. 이 시스템은 REST API, MOCK_DATA, Supabase 등 다양한 데이터 소스를 지원하며, Field 기반 템플릿 렌더링을 통해 일관된 패턴을 제공합니다.

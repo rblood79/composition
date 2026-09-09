@@ -1,5 +1,25 @@
 # Multi-Element Selection: Future Improvements
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 10개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 10개</summary>
+>
+> - `apps/builder/src/builder/workspace/canvas/selection/SelectionLayer.utils.ts`
+> - `src/builder/panels/common/BatchPropertyEditor.tsx`
+> - `src/builder/panels/common/KeyboardShortcutsHelp.tsx`
+> - `src/builder/panels/common/MultiSelectStatusIndicator.tsx`
+> - `src/builder/panels/common/SelectionFilter.tsx`
+> - `src/builder/panels/common/SelectionMemory.tsx`
+> - `src/builder/panels/common/SmartSelection.tsx`
+> - `src/builder/panels/common/index.css`
+> - `src/builder/panels/common/index.ts`
+> - `src/builder/stores/README.md`
+>
+> </details>
+
+
 **Last Updated**: 2026-02-14
 **Current Status**: ✅ **ALL PHASES COMPLETE** - Phase 2 (Multi-Element Editing) + Phase 3 (Keyboard Shortcuts + Selection Filters) + Phase 4 (Grouping & Organization) + Phase 5 (Alignment & Distribution) + Phase 6 (Copy/Paste/Duplicate) + Phase 7 (History Integration) + Phase 8 (Performance Optimization) + Phase 9 (Advanced Features)
 

@@ -1,5 +1,17 @@
 # Properties Panel 최적화 및 성능 개선 계획
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 2개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 2개</summary>
+>
+> - `src/builder/hooks/useEditor.ts`
+> - `src/builder/panels/properties/EditorErrorBoundary.tsx`
+>
+> </details>
+
+
 > **최종 검증일**: 2025-01-21
 > **React 버전**: 19.0.0 (use() hook 사용 가능)
 > **Zustand 버전**: 5.0.8

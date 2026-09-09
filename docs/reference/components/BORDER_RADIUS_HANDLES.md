@@ -1,5 +1,22 @@
 # WebGL BorderRadius 핸들 구현 설계서
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 7개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 7개</summary>
+>
+> - `apps/builder/src/builder/workspace/canvas/selection/BorderRadiusHandle.tsx`
+> - `apps/builder/src/builder/workspace/canvas/selection/BorderRadiusHandles.tsx`
+> - `apps/builder/src/builder/workspace/canvas/selection/SelectionBox.tsx`
+> - `apps/builder/src/builder/workspace/canvas/selection/SelectionLayer.tsx`
+> - `apps/builder/src/builder/workspace/canvas/selection/borderRadiusTypes.ts`
+> - `apps/builder/src/builder/workspace/canvas/selection/useBorderRadiusDragPixi.ts`
+> - `src/builder/constants/timing.ts`
+>
+> </details>
+
+
 > **작성일**: 2025-12-24
 > **상태**: ⚠️ 구현 보류 (성능 문제)
 > **참조**: Adobe XD, Figma border-radius 조절 UX

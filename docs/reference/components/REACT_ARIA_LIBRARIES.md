@@ -1,5 +1,23 @@
 # React Aria Libraries Integration Guide
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 8개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 8개</summary>
+>
+> - `src/builder/inspector/properties/editors/CalendarEditor.tsx`
+> - `src/builder/inspector/properties/editors/MeterEditor.tsx`
+> - `src/builder/inspector/properties/editors/ProgressBarEditor.tsx`
+> - `src/builder/inspector/properties/editors/SliderEditor.tsx`
+> - `src/builder/inspector/properties/editors/TimeFieldEditor.tsx`
+> - `src/utils/dateUtils.ts`
+> - `src/utils/focusUtils.ts`
+> - `src/utils/numberUtils.ts`
+>
+> </details>
+
+
 ## Overview
 
 This document describes the comprehensive integration of Adobe's React Aria libraries into the composition project, enhancing accessibility, internationalization, and focus management across all components.

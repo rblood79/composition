@@ -1,5 +1,20 @@
 # ToggleButtonGroup Indicator Enhancement
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 5개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 5개</summary>
+>
+> - `apps/builder/src/builder/workspace/canvas/layout/styleToLayout.ts`
+> - `apps/builder/src/builder/workspace/canvas/ui/PixiTabs.tsx`
+> - `apps/builder/src/builder/workspace/canvas/ui/PixiToggleButtonGroup.tsx`
+> - `src/builder/components/components.css`
+> - `src/builder/inspector/sections/StyleSection.tsx`
+>
+> </details>
+
+
 ## 개요
 
 ToggleButtonGroup 컴포넌트의 indicator가 선택되지 않은 상태일 때 자동으로 사라지도록 개선하여, mutually exclusive button groups에서 올바르게 동작하도록 수정했습니다.

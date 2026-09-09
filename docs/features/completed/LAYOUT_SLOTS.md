@@ -1,5 +1,30 @@
 # Layout/Slot System - 완전한 구현 계획 V2
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 15개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 15개</summary>
+>
+> - `src/builder/components/styles/Slot.css`
+> - `src/builder/hooks/useLayoutEditMode.ts`
+> - `src/builder/inspector/editors/registry.ts`
+> - `src/builder/inspector/properties/editors/SlotEditor.tsx`
+> - `src/builder/panels/properties/editors/SlotEditor.tsx`
+> - `src/builder/preview/hooks/useLayoutResolution.ts`
+> - `src/builder/preview/index.tsx`
+> - `src/builder/preview/utils/layoutResolver.ts`
+> - `src/builder/providers/BreakpointProvider.tsx`
+> - `src/builder/stores/layouts.ts`
+> - `src/builder/stores/utils/layoutActions.ts`
+> - `src/builder/stores/utils/slotCleanup.ts`
+> - `src/builder/utils/layoutValidation.ts`
+> - `src/builder/utils/responsiveCSS.ts`
+> - `src/types/builder/layout.types.ts`
+>
+> </details>
+
+
 **작성일:** 2025-11-21
 **버전:** 2.0
 **우선순위:** 🔴 Critical

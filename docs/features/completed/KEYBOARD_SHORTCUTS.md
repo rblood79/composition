@@ -1,5 +1,26 @@
 # composition Keyboard Shortcuts System
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 11개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 11개</summary>
+>
+> - `src/builder/components/CommandPalette.tsx`
+> - `src/builder/components/help/KeyboardHelpPanel.tsx`
+> - `src/builder/components/menu/MenuItem.tsx`
+> - `src/builder/components/settings/ShortcutCustomizer.tsx`
+> - `src/builder/config/featureFlags.ts`
+> - `src/builder/config/keyboardLayouts.ts`
+> - `src/builder/hooks/useKeyboardShortcuts.ts`
+> - `src/builder/stores/shortcutCustomization.ts`
+> - `src/builder/utils/keyboardLayout.ts`
+> - `src/builder/utils/keyboardUtils.ts`
+> - `src/builder/workspace/useZoomShortcuts.ts`
+>
+> </details>
+
+
 > **Version:** 3.1
 > **Last Updated:** 2026-02-06
 > **Status:** ✅ Phase 0-7 구현 완료

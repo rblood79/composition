@@ -1,5 +1,20 @@
 # Inspector Style Management System
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 5개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 5개</summary>
+>
+> - `src/builder/inspector/hooks/useInspectorState.ts`
+> - `src/builder/inspector/hooks/useSyncWithBuilder.ts`
+> - `src/builder/inspector/sections/StyleSection.tsx`
+> - `src/builder/preview/index.tsx`
+> - `src/types/unified.ts`
+>
+> </details>
+
+
 ## 개요
 
 Inspector에 inline styles 기반 스타일 편집 시스템을 구현하고, Preview iframe으로부터 computed styles를 수집하여 양방향 동기화를 완성했습니다.

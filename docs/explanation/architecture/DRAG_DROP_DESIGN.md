@@ -1,5 +1,17 @@
 # Drag & Drop 레이어 트리 구현 계획서 (초기 설계)
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 2개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 2개</summary>
+>
+> - `src/builder/nodes/index.css`
+> - `src/builder/sidebar/VirtualizedLayerTree.tsx`
+>
+> </details>
+
+
 > **작성일**: 2025-12-25
 > **수정일**: 2025-12-25 (react-aria-components v1.14 기준 API 업데이트)
 > **상태**: 초기 설계 문서 (보관)

@@ -1,5 +1,18 @@
 # DataTable Preset System
 
+> **경로 대조 (2026-09-09)**: 아래 본문이 인용하는 코드 경로 중 3개는 현재 저장소에 없다.
+> 문서가 기술하는 기능 자체는 남아 있으나 파일 위치·이름이 이후 구조 변경으로 달라졌다.
+> 구조가 바뀐 자리는 이렇게 대응한다 — `builder/inspector/**` → `builder/panels/**`, `builder/panels/data/**` → `builder/panels/datatable/**`, `builder/panels/nodes/**` · `builder/nodes/**` → `builder/panels/navigator/**`. 나머지는 삭제됐다.
+>
+> <details><summary>존재하지 않는 경로 3개</summary>
+>
+> - `src/builder/hooks/useColumnLoader.ts`
+> - `src/builder/panels/dataset/presets/dataTablePresets.ts`
+> - `src/builder/panels/dataset/presets/types.ts`
+>
+> </details>
+
+
 ## 개요
 
 DataTable Preset System은 Data Panel에서 사용자가 빠르게 DataTable을 생성할 수 있도록 미리 정의된 스키마와 샘플 데이터를 제공합니다. Layout Preset 패턴과 동일한 UX를 따릅니다.
