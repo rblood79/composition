@@ -30,7 +30,7 @@ dist
 /coverage
 packages/*/coverage/
 
-# Playwright CLI raw page snapshots (runtime output; curated evidence belongs in docs/adr/evidence)
+# Playwright CLI raw page snapshots (runtime output; local evidence is docs/adr/evidence, gitignored)
 .playwright-cli/
 output/playwright/**/.playwright-cli/
 
@@ -128,3 +128,6 @@ docs/migrations/evidence
 
 # 로컬 참조용 Pen 복사본 (원본은 /Users/admin/work/pencil — 추적 대상 아님)
 docs/pencil-copy/
+
+# ADR evidence (local-only — live 측정·하니스 산출물, 커밋 금지)
+docs/adr/evidence/
