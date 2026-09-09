@@ -119,7 +119,7 @@ flowchart LR
   H --> J[Preview 및 Publish Recharts]
 ```
 
-`dataBinding`의 canonical 원천은 `x-composition` extension이다. wrapper가 받는 `dataBinding` prop은 `extractCanonicalPropsFromResolved`의 소비용 투영이다. 이번 변경으로 이를 canonical props에 중복 저장하거나 Chart 전용 공급 경로를 만들지 않는다.
+`dataBinding` 저장 계약 (2026-09-10 F2 실측으로 정정 — 이전 문구 "canonical 원천은 `x-composition` extension" 은 저장 위치 서술로는 틀렸다). **현재 authoring 이 저장하는 형태는 `props.dataBinding`** 이다: Properties Data 컨트롤은 다른 semantic 필드와 같은 `updateSelectedProperties` → `updateAndSave` → `replaceNodeProps` 경로를 타고, `PROPS_FORBIDDEN_KEYS` 는 `updateNodeProps` 한 경로만 막는다. `x-composition.dataBinding` 확장은 legacy/import 변환이 남기는 **두 번째 저장 형태**이며 그것을 쓰는 `updateSelectedDataBinding` 은 UI 소비자가 없다. **읽기 우선순위**는 `getElementDataBinding` 하나가 정한다 — builder 편집 계약·패널 leaf 읽기·wrapper 투영은 `props-first` (props → legacy `element.dataBinding` → 확장), shared renderer 기본은 `legacy-first` (legacy → props → 확장). 확장은 세 모드 모두에서 최종 fallback 이다. wrapper 가 받는 `dataBinding` prop 은 `extractCanonicalPropsFromResolved` 가 이 helper 결과를 prop 자리에 올려놓는 소비용 투영이다. 이번 변경은 두 저장 형태를 서로 복사하거나 일괄 변환하지 않고 Chart 전용 공급 경로도 만들지 않는다. 근거 `file:line` 은 §10.5.
 
 ### 4.4 집계와 화면 결과
 
@@ -267,6 +267,8 @@ pnpm run codex:preflight
 
 차트 도입 전 기준과의 전체 순증, 이번 D1 수정 전후의 국소 차이를 구분한다. 기존 기록의 기준 `31dff0c50`을 사용할 때에는 해당 worktree·lockfile을 실제로 복원해 같은 도구/환경으로 재측정한다. 중간의 무관한 변경을 모두 차트 비용으로 귀속하거나, 마지막 작은 수정만 비교해서 ADR 전체 순증이라고 부르지 않는다. baseline 재현이 불가능하면 그 비교는 미검증으로 기록한다.
 
+**측정 환경 규칙 (2026-09-10 추가).** 과거 기준 빌드는 현재 작업 트리와 **별도 작업 디렉터리**(`git worktree add <dir> <sha>`)에서 그 commit 의 lockfile 로 의존성을 원래대로 설치해(`pnpm install --frozen-lockfile`, 엔진 wasm 도 그 commit 에서 빌드) 재현한다. 같은 디렉터리 detached checkout 은 (a) 이후 의존성 정리로 사라진 패키지를 node_modules 임시 shim 으로 메우게 되고 (b) 옛 commit 이 추적하던 gitignored 파일을 덮어썼다가 복귀 시 삭제한다(§10.5 기록) — 두 이유로 번들·성능 기준 빌드에 쓰지 않는다. F2 rollback 프로브의 shim 은 importer·store 동작 확인용이었고, 그 트리에서 잰 어떤 수치도 F3 기준값으로 쓰지 않는다. 기준 worktree 의 SHA·lockfile hash·node_modules 설치 방식은 §8.2 표의 "재현 환경" 에 같이 적는다.
+
 ### 8.3 번들 계산과 network 시나리오
 
 production 산출물은 Builder, Preview, Publish를 각각 만든다. 단일 JS 파일 이름이나 Recharts 이름 포함 여부만으로 경계를 판정하지 않는다.
@@ -337,7 +339,7 @@ F5에서 갱신할 문서는 ADR-209 상태/실행 기록, ADR README, 원 break
 
 해제 저장은 기존 string prop의 빈 값이므로 새로운 문서 schema migration은 0이다. 단순히 호환된다고 추정하지 않고, 이전 버전의 실제 store/renderer에서 빈 값·숨긴 옵션·animation·ref 해소가 보존되는지 F2로 확인한다. UI 보완을 되돌리더라도 저장된 빈 값을 일괄 삭제하거나 source 행을 복구 명목으로 재작성하지 않는다.
 
-과거 evidence에서 확인된 호환 범위는 구 버전 store의 문서 유지/편집/Undo와 새 export envelope의 구 strict importer 수용을 구분한다. 새 data-source envelope를 구 importer가 거부하는 제한을 `color: ""` 문제로 취급하거나 이번 작업에서 무조건 해결하지 않는다. G6 판정 시 실제 구 importer 결과와 지원할 rollback 경로를 명시한다. 기존 데이터 손실·강제 재직렬화가 재현되면 해당 gate를 통과시키지 않는다.
+과거 evidence에서 확인된 호환 범위는 구 버전 store의 문서 유지/편집/Undo와 새 export envelope의 구 strict importer 수용을 구분한다. 새 data-source envelope를 구 importer가 거부하는 제한을 `color: ""` 문제로 취급하거나 이번 작업에서 무조건 해결하지 않는다. G6 판정 시 실제 구 importer 결과와 지원할 rollback 경로를 명시한다. 기존 데이터 손실·강제 재직렬화가 재현되면 해당 gate를 통과시키지 않는다. F2 실측 결과와 조건부 호환의 조건(collection 재생성)은 §10.5 rollback 항목이다.
 
 실행 중 canonical/origin 변경 누수, 잘못된 원본 key 저장, Chart 전용 데이터 우회, Builder의 Recharts 유입이 발견되면 해당 단계의 후속 전환을 중지하고 근거가 있는 경계를 수리한다. 전체 초기 예산 미결정과 production 인증 미확인은 구현 실패와 구별해 남긴다. 기존 행 데이터를 손상시키거나 gate 기준을 낮춰 종결하지 않는다.
 
@@ -404,7 +406,7 @@ node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독
 
 §10.4 가 남긴 세 항목을 같은 날 실측으로 닫았다. 원 수치·측정 조건은 `docs/adr/evidence/209-f2-residual-live.md`(로컬).
 
-**binding 저장 경로.** 실제 Properties Data 컨트롤은 다른 semantic 필드와 같은 `updateSelectedProperties` → `updateAndSave` → `replaceNodeProps` 경로라 `props.dataBinding` 에 저장된다 (`GenericFieldRenderer.tsx:304-312` · `inspectorActions.ts:1252-1257` · `canonicalHistoryEvents.ts:218`). `PROPS_FORBIDDEN_KEYS` 는 `updateNodeProps` 한 경로만 막고(`canonicalDocumentStore.ts:164,334`), `x-composition` 확장을 쓰는 `updateSelectedDataBinding` 은 훅 `useUpdateDataBinding` 의 UI 소비처가 0 이다 (`stores/index.ts:385`). 즉 현재 authoring 문서는 props 형태, 확장 형태는 legacy/import 변환이 만드는 두 번째 형태이며 두 형태를 `getElementDataBinding` 한 계약이 읽는다. §4.3 의 "canonical 원천은 확장" 은 저장 위치 규칙이 아니라 읽기 우선순위 서술로 읽어야 하고, 이번 변경은 저장 형태를 바꾸지 않았다.
+**binding 저장 경로.** 실제 Properties Data 컨트롤은 다른 semantic 필드와 같은 `updateSelectedProperties` → `updateAndSave` → `replaceNodeProps` 경로라 `props.dataBinding` 에 저장된다 (`GenericFieldRenderer.tsx:304-312` · `inspectorActions.ts:1252-1257` · `canonicalHistoryEvents.ts:218`). `PROPS_FORBIDDEN_KEYS` 는 `updateNodeProps` 한 경로만 막고(`canonicalDocumentStore.ts:164,334`), `x-composition` 확장을 쓰는 `updateSelectedDataBinding` 은 훅 `useUpdateDataBinding` 의 UI 소비처가 0 이다 (`stores/index.ts:385`). 즉 현재 authoring 문서는 props 형태, 확장 형태는 legacy/import 변환이 만드는 두 번째 형태이며 두 형태를 `getElementDataBinding` 한 계약이 읽는다. §4.3 은 이 사실(현재 저장 형태 = props · 확장 = legacy/import 형태 · 읽기 우선순위 = `getElementDataBinding` 의 `props-first`/`legacy-first`)로 같은 날 정정했고, `extractCanonicalProps.ts:22-24` 의 "props 에 저장될 수 없다" 주석도 같이 고쳤다. 이번 변경은 저장 형태를 바꾸지 않았다.
 
 **rollback (§10.1).** 새 빌드의 실제 메뉴 Export(`color:""` + `collections` envelope)를 같은 디렉터리 detached checkout 의 실제 importer·boot 정규화·store 액션·history·재직렬화에 통과시켰다 (`apps/builder/scripts/adr209-rollback-probe.test.ts`, 체크아웃마다 `src/.../__tests__/` 로 복사해 실행).
 
@@ -414,12 +416,13 @@ node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독
 | `51184c8bd` (Series 해제 `a2afa2f4f` 직전)   | 수용                                     | 동일                                                                              |
 | `58ccff2cb` (현재, 대조군)                   | 수용                                     | 동일                                                                              |
 
-지원하는 rollback 경로: 직전 릴리스로는 문서 읽기·편집·Import 전부 그대로. envelope 이전 빌드로는 JSON Import 만 `collections` 키에서 거부되므로 (§10.1 이 예고한 envelope 경계, `color:""` 무관) 그 파일은 `collections`/`apiEndpoints` 를 벗겨 넣고 collection 은 Data 패널에서 다시 만든다. DB 의 canonical 문서 읽기는 어느 빌드에서도 강제 재직렬화 0 (내용 기준). 구 트리는 이후 의존성 정리로 사라진 `uuid`·`lodash`·`nanoid` 를 import 하므로 임시 shim 이 필요했다 (프로브 머리말).
+지원하는 rollback 경로는 **조건부 호환**이다. (a) 직전 릴리스(`51184c8bd` 계열)로는 문서 읽기·편집·Import 전부 그대로. (b) envelope 이전 빌드(`31dff0c50` 이전)로는 DB 의 canonical 문서 읽기·편집·Undo 가 그대로이고 강제 재직렬화 0 (내용 기준) — 단 프로브가 잰 것은 문서 보존까지이며 구 빌드에서 차트가 데이터를 실제로 그리는지는 미측정이다. JSON Import 는 `collections` 키에서 거부되므로 `collections`/`apiEndpoints` 를 벗겨야 하는데, 구 빌드에는 `importCollectionEnvelope`(`baacf782b` 추가) 이 없어 **collection 이 복원되지 않는다**. 차트 binding 은 `{source:"dataTable", name}` 으로 collection 을 **이름**으로 가리키고 없으면 빈 행이 되므로(`readDataBindingRows`), 같은 이름·같은 컬럼(`category/value/series`)의 collection 을 Data 패널에서 다시 만들기 전까지 차트는 비어 있다. 이 경계는 §10.1 이 예고한 envelope 경계이지 `color:""` 문제가 아니다. 구 트리는 이후 의존성 정리로 사라진 `uuid`·`lodash`·`nanoid` 를 import 하므로 임시 shim 이 필요했다 (프로브 머리말) — shim 은 동작 프로브 한정이며 §8.2 측정 환경 규칙대로 번들·성능 기준에는 쓰지 않는다.
 
 **T11 · T12 live.** `node apps/builder/scripts/adr209-f2-residual-live.mjs --headed` 21/21 + `node apps/builder/scripts/adr209-f2-residual-publish.mjs --headed` 5/5 (headed Playwright, 새 프로젝트, 로그인 세션).
 
 - T11: 기본 행 8 이 id 없이 나열 → 행 1 Value/Category 편집은 그 행만 변경(id 주입 0) → 행 2 삭제는 그 행만 → store undo/redo 8↔7 → 재선택 시 편집기 7행 → 중복 id `same`×2·id 없음·숫자 id 를 실제 store 액션으로 싣고 실제 편집기에서 편집/삭제해도 위치 기준으로만 바뀌고 원본 id 필드 그대로 → console error/warning 0.
 - T12: Styles Width/Height 360×260 → 4방향 padding A(T8 L40 R16 B24)·B(T24 L8 R40 B8) 를 실제 4방향 입력으로 → **Skia 원 bbox 이동량 = Preview 원 bbox 이동량 = 손계산 기대값** `{left −28, top +16, right −28, bottom +16}` (±0) · Preview computed padding = 입력값 · 원 ⊂ content box → Themes 스위치로 dark: Preview `data-theme` 과 `--chart-series-1`·배경 토큰 변경, path 수·padding 불변, Skia 픽셀 서명도 변경, light 복귀 → 실제 메뉴 Export → 독립 Publish 가 360×260·computed padding 8/16/24/40·원 지름 228 = content 짧은 변·중심 = content 중심으로 그림. Publish 는 `data-theme` 을 세우지 않아 light 만 (기존 계약, 기록).
 - 관찰 (LOW deferred): padding 값이 presentation lane 에서는 숫자, immediate lane 에서는 `"Npx"` 로 저장된다 (`LayoutSection.tsx:224-231`). 두 형태를 `parsePadding4Way` 가 같게 읽어 화면·Export 가 일치했다. 측정 함정: 캔버스 스크린샷은 DOM overlay(패널·툴바)를 포함하고 범례 색 견본이 Skia bbox 에 섞이므로 패널 닫기·상단 48px 제외·범례 off·선택 해제 뒤 잰다.
+- 기록 보존 사고: 같은 디렉터리 detached checkout 이 `31dff0c50` 이 추적하던 gitignored `docs/adr/evidence/` 파일 90개를 덮어썼다가 main 복귀 때 삭제했다. 마지막 추적본 `dcfaec4b0^` 에서 90개를 복원했다 — **추적본 복원**이지 그 이후 로컬 편집까지 복구된 것은 아니다 (2026-09-09 untracking 뒤 그 파일들에 로컬 편집이 있었다면 소실). 이 세션이 만든 209-\* evidence 는 영향 없음. 재발 방지는 §8.2 측정 환경 규칙(별도 작업 디렉터리).
 
 **판정.** 이번 수정의 필수 회귀 T1–T8 (§10.4) 과 기존 계약 확인 T9·T10·T11·T12 (§10.4 + 본 절), §10.1 rollback 이 실측으로 닫혔다. T13(animation on/off·reduced-motion·tooltip·키보드·해제 후 데이터 교체)은 이 revision 에서 chart browser 스위트(`chartInteraction.browser.test.tsx` 의 native animation 재전송·키보드 tooltip, `chartTheme.browser.test.tsx`)와 2026-09-09 P3/P4 live(DPR2/dark/reduced-motion 149) 로만 확인했고 최종 revision live 는 F3 의 최종 revision 측정에 같이 싣는다. 그 조건으로 **F2 닫힘.** 남은 것은 F3(최종 revision 번들·성능 manifest + T13 live) · F4(production 로그인 boot 요청 0) · §8.5 예산 A/B 사용자 결정 · F5 종결이며 ADR-209 는 In Progress 유지.

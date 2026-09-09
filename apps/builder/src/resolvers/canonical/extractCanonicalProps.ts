@@ -19,9 +19,10 @@ export function extractCanonicalPropsFromResolved(
     ? { ...resolved.props }
     : {};
 
-  // `dataBinding` 은 canonical props 에 저장될 수 없다 —
-  // `canonicalDocumentStore` 의 `PROPS_FORBIDDEN_KEYS` 가 막고, 저장 위치는
-  // `x-composition` extension 이다 (`updateNodeExtension`). 반면 DOM collection
+  // `dataBinding` 은 두 형태로 저장된다 — 현재 authoring 은 `props.dataBinding`
+  // (`replaceNodeProps` 경로; `PROPS_FORBIDDEN_KEYS` 는 `updateNodeProps` 만 막는다),
+  // legacy/import 변환은 `x-composition` extension (`updateNodeExtension`) —
+  // ADR-209 후속 §4.3, 2026-09-10 정정. 반면 DOM collection
   // wrapper 의 공개 계약은 `dataBinding` **prop** 이다
   // (`useCollectionData({ dataBinding })` — ADR-132). 그 사이를 잇는 자리가
   // 여기다. Skia 축은 같은 일을 `getElementDataBinding(sourceNode)` 로 한다.
