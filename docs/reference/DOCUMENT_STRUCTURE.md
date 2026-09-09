@@ -1,13 +1,16 @@
 # docs 디렉토리 구조 가이드
 
-> **최종 검증**: 2026-09-09
-> **검증 방법**: 파일시스템 실측 (`find` / `ls` 로 디렉터리별 `.md` 개수와 전체 파일 수를 직접 셈). 아래 숫자는 전부 이 시점의 실측값이며, 추정치는 없습니다.
+> **최종 검증**: 2026-09-09 (관리 정지 디렉토리 정리 반영)
+> **검증 방법**: 파일시스템 실측 (`find` / `ls` 로 디렉터리별 `.md` 개수를 직접 셈). 아래 숫자는 전부 이 시점의 실측값이며, 추정치는 없습니다.
 
 이 문서는 `docs/` 디렉토리의 구조와 각 하위 디렉토리의 목적을 설명합니다.
 
-- `docs/` 전체 `.md` 파일: **827개**
-- `docs/` 최상위 `.md` 파일: **9개**
-- `docs/` 직속 하위 디렉터리: **12개** (`adr` `audit` `bug` `explanation` `features` `how-to` `legacy` `migrations` `pencil-copy` `pencil-extracted` `reference` `tutorials`)
+- `docs/` 전체 `.md` 파일: **827개** (gitignore 대상 `pencil-extracted/` 제외)
+- `docs/` 최상위 `.md` 파일: **5개** (CHANGELOG 4 + README)
+- `docs/` 직속 하위 디렉터리: **10개** (`adr` `explanation` `features` `how-to` `legacy` `migrations` `pencil-copy` `pencil-extracted` `reference` `tutorials`)
+
+> **2026-09-09 변경**: `audit/` · `bug/` · `how-to/migration/` 은 각각 1~2개 파일만 두고 5개월 이상
+> 갱신이 없어 해체하고 `legacy/` 로 통합했습니다. `reference/status/` 는 안내판 2개만 남았습니다.
 
 ---
 
@@ -15,56 +18,48 @@
 
 ```
 docs/
-├── adr/                        # Architecture Decision Records — 직속 md 13 (README 1 + 진행 중/미구현 ADR 12)
-│   ├── completed/              # 완료된 ADR (229개)
-│   ├── design/                 # ADR 상세 구현 breakdown (SSOT) — md 255 (그중 *-breakdown.md 174) + JSON 3
-│   │   └── completed/          # 완료된 ADR 의 breakdown (10개)
-│   ├── evidence/               # 실행 근거 (측정 로그·스크린샷) — md 48 + PNG 1, 하위 디렉터리 3
+├── adr/                        # Architecture Decision Records — 직속 md 12 (README 1 + 진행 중/미구현 11)
+│   ├── completed/              # 완료된 ADR (230)
+│   ├── design/                 # ADR 상세 구현 breakdown (SSOT) — md 255
+│   │   └── completed/          # 완료된 ADR 의 breakdown (10)
+│   ├── evidence/               # 실행 근거 (측정 로그·스크린샷) — md 48, 하위 디렉터리 3
 │   │   ├── 203-g1-final/       # 비-md 산출물 10 파일
 │   │   ├── 203-phase1/         # 비-md 산출물 23 파일
 │   │   └── 203-phase3/         # 비-md 산출물 8 파일
 │   └── reviews/                # ADR 리뷰 기록 Layer 0 (md 105 = README 1 + 리뷰 104)
 │
-├── features/                   # 기능별 상세 문서 — 직속 md 0 (하위 디렉터리만)
-│   └── completed/              # 완료된 기능 문서 (md 21 = README 1 + 문서 20)
+├── features/completed/         # 완료된 기능 구현 기록 (md 18 = README 1 + 문서 17)
 │
-├── reference/                  # 참조 문서 — 직속 md 2 (WORKFLOW.md · adr-912-prop-parity-audit.md)
-│   ├── api/                    # API 문서 (1개)
-│   ├── architecture/           # 아키텍처 참조 (4개 — MONOREPO / MULTIPAGE / STRUCTURE_HOOKS / STRUCTURE_STORE)
-│   ├── audits/                 # 날짜 붙은 감사 보고서 (12개, 2026-05-17 ~ 08-21)
-│   ├── components/             # 컴포넌트 참조 문서 (진행 중/계획, 13개)
-│   ├── schemas/                # 스키마 문서 (3개 — INDEXDB / SUPABASE / ADR_REVIEW_LAYER0)
-│   └── status/                 # 상태별 문서 (6개 — COMPLETED / PLANNED / UNIMPLEMENTED / DB_COMPATIBILITY / STYLE_SYSTEM / REACT_ARIA_1.13)
+├── reference/                  # 참조 문서 — 직속 md 4
+│   │                           #   (CSS_SUPPORT_MATRIX · DOCUMENT_STRUCTURE · WORKFLOW · adr-912-prop-parity-audit)
+│   ├── api/                    # API 문서 (1)
+│   ├── architecture/           # 아키텍처 참조 (4 — MONOREPO / MULTIPAGE / STRUCTURE_HOOKS / STRUCTURE_STORE)
+│   ├── audits/                 # 날짜 붙은 감사 보고서 (12, 2026-05-17 ~ 08-21)
+│   ├── components/             # 컴포넌트 참조 (12)
+│   ├── schemas/                # 스키마 (3 — INDEXDB / SUPABASE / ADR_REVIEW_LAYER0)
+│   └── status/                 # 이동 안내판만 (2 — STYLE_SYSTEM · REACT_ARIA_1.13, 본문은 legacy/)
 │
-├── explanation/                # 설명 및 분석 문서 — 직속 md 0 (하위 디렉터리만)
-│   ├── architecture/           # 아키텍처 설명 (3개)
-│   └── research/               # 리서치·외부 대조 문서 (28개)
+├── explanation/                # 설명 및 분석 — 직속 md 0
+│   ├── architecture/           # 아키텍처 설명 (3)
+│   └── research/               # 리서치·외부 대조 (26)
 │
-├── how-to/                     # 실용 가이드 — 직속 md 0 (하위 디렉터리만)
-│   ├── development/            # 개발 가이드 (10개)
-│   ├── migration/              # 마이그레이션 가이드 (1개)
-│   └── troubleshooting/        # 문제 해결 (1개)
+├── how-to/                     # 실용 가이드 — 직속 md 0
+│   ├── development/            # 개발 가이드 (4 — CONTRIBUTING / README_WRITING / BENCHMARK_TEMPLATE / ai-local-endpoint)
+│   └── troubleshooting/        # 문제 해결 (1)
 │
-├── tutorials/                  # 학습 중심 실습 가이드 — 직속 md 0 (하위 디렉터리만)
-│   └── features/               # 기능 튜토리얼 (1개 — TREE_COMPONENT.md)
+├── tutorials/features/         # 기능 튜토리얼 (1 — TREE_COMPONENT.md)
 │
-├── migrations/                 # DB 마이그레이션 SQL + 성능·부팅 조사 노트 — md 8 + SQL 2 + JSON 3
-│   └── evidence/               # 측정 산출물 (직속 파일 0, 하위 디렉터리 3, 전체 539 파일 / md 5)
+├── migrations/                 # DB 마이그레이션 SQL + 성능·부팅 조사 노트 — md 8 + 비-md 5
+│   └── evidence/               # 측정 산출물 539 파일 (gitignore)
 │
-├── legacy/                     # 역사적 참조를 위한 레거시 문서 (md 25 = README 1 + 문서 24)
-├── audit/                      # 단발 감사 보고서 (1개 — component-audit-report.md)
-├── bug/                        # 개별 버그 조사 노트 (2개)
-├── pencil-copy/                # Pencil 포맷·슬롯 모델 분석 (md 8 = README 1 + 문서 7) + fixtures/ JSON 1
-├── pencil-extracted/           # Pencil Desktop 앱 번들 역공학 추출물 (전체 390 파일, md 2)
+├── legacy/                     # 폐기·역사 문서 (md 49 = README 1 + 문서 48, 각 파일에 폐기 사유 배너)
+├── pencil-copy/                # Pencil 호환성 dossier (md 8 = README 1 + 문서 7) + fixtures/ JSON 1
+├── pencil-extracted/           # Pencil Desktop 번들 역공학 추출물 (gitignore, 390 파일)
 │
-├── CHANGELOG.md                    # 현재 변경 이력 (2026-09-01 ~ 09-09, 97 엔트리, 148KB)
-├── CHANGELOG-2026-Q3-archived.md   # 2026-07-01 ~ 08-31 (346 엔트리, 968KB, append-only)
-├── CHANGELOG-2026-H1-archived.md   # 2026-02-22 ~ 06-30 (209 엔트리, 872KB, append-only)
-├── CHANGELOG-2025-archived.md      # 2025-10-27 ~ 2026-03-27 (124 항목, 252KB, append-only)
-├── COMPONENT_SPEC.md               # 컴포넌트 스펙 참조 (349KB)
-├── CSS_SUPPORT_MATRIX.md           # CSS 지원 매트릭스 (132KB)
-├── COLOR_PICKER.md                 # Color Picker + Fill 시스템 설계 (49KB)
-├── DOCUMENT_STRUCTURE.md           # 이 문서
+├── CHANGELOG.md                    # 현재 변경 이력 (2026-09-01 ~, 145KB)
+├── CHANGELOG-2026-Q3-archived.md   # 2026-07-01 ~ 08-31 (967KB, append-only)
+├── CHANGELOG-2026-H1-archived.md   # 2026-02-22 ~ 06-30 (868KB, append-only)
+├── CHANGELOG-2025-archived.md      # 2025-10-27 ~ 2026-03-27 (251KB, append-only)
 └── README.md                       # 문서 메인 인덱스
 ```
 
@@ -88,43 +83,46 @@ docs/
 
 **완료된 기능**:
 
-- **위치**: `docs/features/completed/` (md 21 = README 1 + 문서 20)
+- **위치**: `docs/features/completed/` (md 18 = README 1 + 문서 17)
 - **내용**: 구현 완료된 주요 기능의 상세 설계 및 구현 문서
 - **인덱스**: `features/completed/README.md`
-- **요약**: `reference/status/COMPLETED.md`
+- **요약**: 완료 이력의 정본은 `docs/CHANGELOG.md` 와 `adr/README.md` 입니다
 
 `docs/features/` 직속에는 파일이 없습니다 — `completed/` 하나만 있습니다.
 
 **계획 중 기능**:
 
-- **상세 계획**: `reference/status/PLANNED.md`
-- **개요**: `reference/status/UNIMPLEMENTED.md`
+- 계획 관리의 정본은 **ADR** (`docs/adr/*.md`) 입니다. 2026-09-09 에 `reference/status/`
+  의 계획 목록 (PLANNED · UNIMPLEMENTED) 을 `legacy/` 로 옮겼습니다 — 2025-12 / 2026-05 이후
+  갱신이 없었고 어떤 ADR 에도 연결돼 있지 않았습니다.
 
 ### 참조 문서
 
-**위치**: `docs/reference/` (직속 md 2 — `WORKFLOW.md` · `adr-912-prop-parity-audit.md`)
+**위치**: `docs/reference/` (직속 md 4 — `CSS_SUPPORT_MATRIX.md` · `DOCUMENT_STRUCTURE.md` · `WORKFLOW.md` · `adr-912-prop-parity-audit.md`)
 
 - **`api/`** (1개): API 엔드포인트 문서
 - **`architecture/`** (4개): 모노레포 구조, 다중 페이지 렌더링, Builder hooks / Zustand store 구조
 - **`audits/`** (12개): 날짜 접두 감사 보고서 — RAC/spec SSOT 감사, canonical 컴포넌트 인벤토리, design-data props 감사, interaction registry 커버리지 등
-- **`components/`** (13개): 개별 컴포넌트/기능 참조 문서 (진행 중/계획)
+- **`components/`** (12개): 개별 컴포넌트/기능 참조 문서
 - **`schemas/`** (3개): IndexedDB 현행 스키마, Supabase (역사 기록), ADR 리뷰 Layer 0 스키마
-- **`status/`** (6개): 구현 상태별 문서 + 과거 호환성·스타일 시스템 기록
+- **`status/`** (2개): 이동 안내판만 남았습니다 (`STYLE_SYSTEM` · `REACT_ARIA_1.13` — 본문은 `legacy/`)
 
 ### 설명 문서
 
 **위치**: `docs/explanation/` (직속 md 0)
 
 - **`architecture/`** (3개): 페이지 타입 분리, 데이터 아키텍처, Drag & Drop 설계
-- **`research/`** (28개): 기술 리서치와 외부 프로젝트 대조 — 빌더 비교, Pen / open-pencil / pretext / Taffy / webstudio 델타 분석, 성능 baseline (`BUILDER_PERF_BASELINE_2026-09.md` · `BUILDER_FRAME_DROP_BASELINE_5K.md`) 등
+- **`research/`** (26개): 기술 리서치와 외부 프로젝트 대조 — 빌더 비교, Pen / open-pencil / pretext / Taffy / webstudio 델타 분석, 성능 baseline (`BUILDER_PERF_BASELINE_2026-09.md` · `BUILDER_FRAME_DROP_BASELINE_5K.md`) 등
 
 ### 실용 가이드
 
 **위치**: `docs/how-to/` (직속 md 0)
 
-- **`development/`** (10개): 기여 가이드, 성능·Long Task 최적화, 벤치마크 템플릿, AI 로컬 엔드포인트 등
-- **`migration/`** (1개): React Query 스타일 마이그레이션
+- **`development/`** (4개): 기여 가이드, README 작성 가이드, 벤치마크 템플릿, AI 로컬 엔드포인트
 - **`troubleshooting/`** (1개): Rate Limit 해결
+
+2026-09-09 에 성능·패널 최적화 계획 5건과 `migration/` 을 `legacy/` 로 옮겼습니다 — PixiJS 시대
+계획이거나 전제한 서비스 계층이 제거된 문서입니다.
 
 ### 튜토리얼
 
@@ -136,7 +134,6 @@ docs/
 
 - **`docs/migrations/`**: DB 마이그레이션 SQL 2개 + shadcn 참조 JSON 3개 + 성능·부팅 조사 노트 8개 (2026-09-07 작성분 — worker WebGL surface, Skia 폰트 포맷, Styles 패널 rAF, 외부 성능 감사 등)
 - **`docs/migrations/evidence/`**: 직속 파일 0, 하위 3개 디렉터리(`frame-performance` · `worker-product-20260907` · `worker-assets-20260907`)에 측정 산출물 총 539 파일 (그중 md 5)
-- **`docs/audit/`** (1개) · **`docs/bug/`** (2개): 단발 감사·버그 조사 노트
 
 ### Pencil 분석
 
@@ -145,7 +142,7 @@ docs/
 
 ### 레거시
 
-- **`docs/legacy/`** (md 25 = README 1 + 문서 24): 완료된 리팩토링·마이그레이션 기록과 폐기된 문서. `WORKFLOW.md` · `STYLE_SYSTEM.md` · `REACT_ARIA_1.13.md` 는 `reference/` 쪽에도 같은 이름의 파일이 있으나 **내용이 서로 다릅니다** (`diff` 확인) — 인용 시 경로를 정확히 적어야 합니다
+- **`docs/legacy/`** (md 49 = README 1 + 문서 48): 폐기·역사 문서. 각 파일 상단에 **폐기 사유 배너**가 있고, 대체 정본은 `legacy/README.md` 표에 있습니다. `WORKFLOW.md` · `STYLE_SYSTEM.md` · `REACT_ARIA_1.13.md` 는 `reference/` 쪽에도 같은 이름이 있으나 그쪽은 **이동 안내판**입니다 — 본문은 `legacy/` 가 정본
 
 ---
 
@@ -178,8 +175,8 @@ docs/
 ### 1. 계획 단계
 
 ```
-reference/status/PLANNED.md (상세 계획)
-reference/status/UNIMPLEMENTED.md (개요)
+adr/NNN-*.md (ADR 작성 — 계획의 정본)
+adr/design/NNN-*-breakdown.md (다단계 계획)
 ```
 
 ### 2. 구현 중
@@ -198,7 +195,6 @@ reference/components/*.md (참조 문서)
 adr/*.md → adr/completed/ (이동)
 adr/design/*-breakdown.md → adr/design/completed/ (이동)
 reference/components/*.md → features/completed/ (이동)
-reference/status/COMPLETED.md (요약 업데이트)
 docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 ```
 
@@ -210,7 +206,7 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 
 - ✅ 완료된 문서는 `completed/` 디렉토리로 이동
 - ✅ ADR 과 breakdown 은 항상 쌍으로 관리
-- ✅ 상태 변경 시 인덱스 문서 업데이트 (README.md, COMPLETED.md, CHANGELOG.md)
+- ✅ 상태 변경 시 인덱스 문서 업데이트 (docs/README.md, adr/README.md, CHANGELOG.md)
 - ✅ 문서 간 상호 참조는 상대 경로 사용
 - ✅ 개수를 적을 때는 실제로 세고, 센 날짜를 함께 적기
 
@@ -220,6 +216,7 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 - ❌ **아카이브된 CHANGELOG 재편집 금지** (append-only)
 - ❌ 중복 내용 작성 (기존 문서 참조 링크 사용)
 - ❌ 레거시 문서 재사용 (`legacy/` 는 역사적 참조 전용)
+- ❌ 관리 주체 없는 새 최상위 디렉토리 신설 — 갱신이 끊기면 `legacy/` 로 통합됩니다
 - ❌ 일반 컴포넌트용 신규 spec 파일 생성 (D3 SSOT 는 catalog — `.claude/rules/ssot-hierarchy.md`)
 
 ---
@@ -228,15 +225,14 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 
 ### 특정 기능 찾기
 
-1. **완료된 기능**: `features/completed/README.md` 또는 `reference/status/COMPLETED.md`
-2. **계획 중 기능**: `reference/status/PLANNED.md`
-3. **미구현 기능**: `reference/status/UNIMPLEMENTED.md`
+1. **완료된 기능**: `features/completed/README.md` · `docs/CHANGELOG.md`
+2. **계획 중/미구현 기능**: `adr/README.md` 와 `adr/*.md`
 
 ### ADR 찾기
 
 1. **전체 ADR 목록**: `adr/README.md`
-2. **완료된 ADR**: `adr/completed/` (229개)
-3. **진행 중/미구현 ADR**: `adr/*.md` (12개, README 제외)
+2. **완료된 ADR**: `adr/completed/` (230개)
+3. **진행 중/미구현 ADR**: `adr/*.md` (11개, README 제외)
 4. **리뷰 종결 상태**: `adr/reviews/{NNN}.md` (104개)
 
 ### 구현 상세 찾기
@@ -284,15 +280,13 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 
 ## 🔗 주요 인덱스 문서
 
-- [`README.md`](../../README.md) — 문서 메인 인덱스
+- [`docs/README.md`](../README.md) — 문서 메인 인덱스
 - [`adr/README.md`](../adr/README.md) — ADR 전체 현황
 - [`adr/reviews/README.md`](../adr/reviews/README.md) — 리뷰 기록 인덱스
 - [`features/completed/README.md`](../features/completed/README.md) — 완료 기능 목록
-- [`reference/status/COMPLETED.md`](../legacy/STATUS_COMPLETED-2025-11.md) — 완료 기능 요약
-- [`reference/status/PLANNED.md`](../legacy/STATUS_PLANNED-2025-12.md) — 계획 중 기능
-- [`reference/status/UNIMPLEMENTED.md`](../legacy/STATUS_UNIMPLEMENTED-2026-05.md) — 미구현 기능
 - [`legacy/README.md`](../legacy/README.md) — 레거시 문서 인덱스
-- [`pencil-copy/README.md`](../pencil-copy/README.md) — Pencil 포맷 분석 인덱스
+- [`pencil-copy/README.md`](../pencil-copy/README.md) — Pencil 호환성 dossier 인덱스
+- [`CHANGELOG.md`](../CHANGELOG.md) — 사용자-가시 변경의 정본
 
 ---
 
