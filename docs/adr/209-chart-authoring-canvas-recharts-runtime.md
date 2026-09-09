@@ -158,6 +158,7 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 - 2026-09-09 P3/P4: 공통 collection provider와 JSON envelope, 실제 native Recharts 6종으로 전환. production Preview/독립 Publish의 전체 행·빈 값·오류·업데이트를 확인했다. 기본 Chromium 140건+실제 CSS/Skia token 24건, DPR2/dark/reduced-motion 149건 PASS. G3/G4 PASS.
 - 2026-09-09 P5: 5쌍 Builder p95 증가 최대 0.4ms, warm runtime 200행 p95 40.0~48.5ms. 초기 JS/lazy 순증은 예산 이내. Chart ref의 편집·Undo·Export/Import·재저장은 현재 및 baseline 코드에서 확인했다. 기존 전체 초기 <500KB 초과 처리와 production Builder 로그인 후 부트 네트워크 검증은 미종결. Implemented 승격·커밋·배포는 수행하지 않았다.
 - 2026-09-09 추가 오류 수리: ID 없는 차트 행 선택 시 중복 React key, 해당 행 편집/삭제 target 오류를 수정했다. 새 차트 생성→행 수정→삭제→Undo→reload에서 값 보존과 console warn/error 0을 확인했다. Preview API hydration/재시도 후 남던 이전 오류도 공통 hook의 현재 loadingState 판정으로 수정했다.
+- 2026-09-09 padding 후속 수리: Styles 값은 저장됐지만 chart metrics가 catalog 기본 여백만 읽던 누락을 수정했다. 공통 4방향 해석을 Canvas와 Recharts에 연결하고 값이 같은 style 재전송 시 애니메이션 재시작을 방지했다. Chromium 170건, 기존 parity 151건, 기하 34건 및 preflight PASS. 기존 차트 padding 편집→Undo→방향별 편집→reload에서 저장·렌더 반영과 console 0을 확인했다. G5/G6 잔여 조건은 유지하며 앞선 번들 수치는 이 후속 수정 전 측정이다.
 
 ### Live Exercise
 

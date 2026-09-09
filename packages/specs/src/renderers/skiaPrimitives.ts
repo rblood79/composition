@@ -3326,7 +3326,11 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     typeof size.height === "number" ? size.height : 0,
   );
   const sizeKey = (props.size as string | undefined) ?? "md";
-  const metrics = resolveChartMetrics(channel, String(sizeKey).toLowerCase());
+  const metrics = resolveChartMetrics(
+    channel,
+    String(sizeKey).toLowerCase(),
+    style,
+  );
 
   const rows = Array.isArray(props._chartRows)
     ? (props._chartRows as ChartRow[])

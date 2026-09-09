@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 기존 차트의 Styles → Layout padding이 그림에 적용되지 않던 오류를 수정했다. Canvas와 Preview·Publish의 공통 기하가 전체·방향별 여백을 읽으며, 미지정 방향은 기존 기본값을 유지한다.
 - ID 없는 차트 행을 선택할 때 발생하던 중복 key 콘솔 오류와 행 편집·삭제 실패를 수정했다. 원본 데이터에 ID를 강제로 추가하지 않는다.
 - API 정의가 늦게 도착하거나 재시도가 성공한 뒤 이전 오류가 남던 공통 collection 상태 판정을 수정했다. DataTable 오류에는 동작하지 않는 재시도 버튼을 표시하지 않는다.
 - 숨김/0 크기 차트의 가짜 기본 크기를 제거하고 실제 크기로 렌더한다. Publish의 페이지 body 레이아웃 중복 적용을 수정했다.

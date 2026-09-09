@@ -253,9 +253,26 @@ export function Chart({
   );
 
   // metrics 해석은 두 consumer 공용 (resolveChartMetrics) — 각자 풀면 좌표가 갈린다.
+  const { padding, paddingTop, paddingRight, paddingBottom, paddingLeft } =
+    style ?? {};
   const metrics = React.useMemo(
-    () => resolveChartMetrics(rule?.chart, sizeKey),
-    [rule, sizeKey],
+    () =>
+      resolveChartMetrics(rule?.chart, sizeKey, {
+        padding,
+        paddingTop,
+        paddingRight,
+        paddingBottom,
+        paddingLeft,
+      }),
+    [
+      rule,
+      sizeKey,
+      padding,
+      paddingTop,
+      paddingRight,
+      paddingBottom,
+      paddingLeft,
+    ],
   );
 
   const {
@@ -306,8 +323,8 @@ export function Chart({
         <div role="status">Loading…</div>
       ) : box.width > 0 && box.height > 0 ? (
         <React.Suspense fallback={<div role="status">Loading chart…</div>}>
-          {/* scene은 border box 좌표다. CSS padding과 border가 native SVG를 다시
-              밀거나 축소하지 않도록 같은 원점에 viewport를 둔다. */}
+          {/* viewport는 border box 원점을 공유한다. 사용자 padding은 공통 metrics가
+              내부 plot/범례에 적용하므로 CSS가 viewport를 한 번 더 밀지 않는다. */}
           <div
             style={{
               position: "absolute",

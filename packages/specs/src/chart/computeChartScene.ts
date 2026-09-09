@@ -6,6 +6,7 @@
  * 도 "Skia 가 기준" 도 아니고 이 함수가 기준이다 (ssot-hierarchy §1 D3 대칭).
  */
 import { buildAxes } from "./axes";
+import { parsePadding4Way } from "../primitives/cssValueParser";
 import { buildPolarAxes } from "./polarAxes";
 import { angleScale, radiusScale } from "./polar";
 import { toScreen } from "./curves";
@@ -306,14 +307,22 @@ export function resolveChartLayout(
   const width = Number.isFinite(size.width) ? Math.max(0, size.width) : 0;
   const height = Number.isFinite(size.height) ? Math.max(0, size.height) : 0;
   const normalizedSize: ChartSize = { width: r2(width), height: r2(height) };
-  const pad = metrics.padding;
+  const pad =
+    typeof metrics.padding === "number"
+      ? {
+          top: metrics.padding,
+          right: metrics.padding,
+          bottom: metrics.padding,
+          left: metrics.padding,
+        }
+      : metrics.padding;
   const fontSize = metrics.fontSize;
 
   const outer: Rect = {
-    x: r2(pad),
-    y: r2(pad),
-    w: r2(Math.max(0, width - pad * 2)),
-    h: r2(Math.max(0, height - pad * 2)),
+    x: r2(pad.left),
+    y: r2(pad.top),
+    w: r2(Math.max(0, width - pad.left - pad.right)),
+    h: r2(Math.max(0, height - pad.top - pad.bottom)),
   };
 
 
@@ -425,7 +434,6 @@ export function resolveChartLayout(
       };
     }
   }
-
 
   return { normalizedSize, outer, plot, legendBox, legendEntries, labelText, fontSize, stackMode, ticks, horizontal };
 }
@@ -652,10 +660,15 @@ export interface ChartRuleChannel {
 export function resolveChartMetrics(
   channel: ChartRuleChannel | undefined,
   sizeKey: string,
+  style?: Parameters<typeof parsePadding4Way>[0],
 ): ChartMetrics {
   const entry = channel?.metrics?.[sizeKey];
+  const padding = entry?.padding ?? CHART_DEFAULT_METRICS.padding;
   return {
-    padding: entry?.padding ?? CHART_DEFAULT_METRICS.padding,
+    // 사용자 longhand > shorthand > catalog 기본값. 미지정 방향은 기본값 유지.
+    padding: style
+      ? parsePadding4Way({ ...style, padding: style.padding ?? padding })
+      : padding,
     fontSize: entry?.fontSize ?? CHART_DEFAULT_METRICS.fontSize,
     strokeWidth: channel?.strokeWidth ?? CHART_DEFAULT_METRICS.strokeWidth,
     seriesCount:

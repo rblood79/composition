@@ -10,10 +10,33 @@ import {
   CHART_DEFAULT_METRICS,
   CHART_DEFAULT_PROPS,
   computeChartScene,
+  resolveChartMetrics,
 } from "../computeChartScene";
 import type { ChartProps, ChartRow, ChartScene, Mark } from "../types";
 
 const SIZE = { width: 320, height: 240 };
+
+describe("차트 스타일 padding", () => {
+  it.each([
+    [
+      { padding: "8px 16px 24px 32px", paddingLeft: 0 },
+      { x: 0, y: 8, w: 304, h: 208 },
+    ],
+    [{ paddingTop: 0 }, { x: 12, y: 0, w: 296, h: 228 }],
+    [{ padding: 200 }, { x: 200, y: 200, w: 0, h: 0 }],
+  ])(
+    "longhand 우선·미지정 방향 기본값·과대 여백을 해석한다 (%j)",
+    (style, plot) => {
+      const scene = computeChartScene(
+        { ...CHART_DEFAULT_PROPS, showAxis: false, showLegend: false },
+        [{ category: "A", value: 1 }],
+        SIZE,
+        resolveChartMetrics(undefined, "md", style),
+      );
+      expect(scene.plot).toEqual(plot);
+    },
+  );
+});
 
 const ROWS: ChartRow[] = [
   { category: "Mon", value: 12, series: "A" },

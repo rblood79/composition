@@ -133,7 +133,8 @@ export interface ChartSize {
  */
 export interface ChartMetrics {
   /** plot 바깥 여백 */
-  padding: number;
+  padding:
+    number | { top: number; right: number; bottom: number; left: number };
   /** tick·범례 글자 크기 */
   fontSize: number;
   /** line/area 선 두께 */
