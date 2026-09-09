@@ -107,6 +107,8 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 
 > 구현 상세: [209-chart-authoring-canvas-recharts-runtime-breakdown.md](design/209-chart-authoring-canvas-recharts-runtime-breakdown.md)
 
+> 후속 보완 상세: [시리즈 해제와 G5/G6 종결](design/209-chart-followup-repair-breakdown.md). 원본 필드 키·ref·공통 collection 계약을 보존하는 해제 설계와 잔여 검증 조건을 정의한다. 제품 구현과 G5/G6 통과는 별도이며, shadcn 대비 신규 기능 확장은 이 보완 범위에 포함하지 않는다.
+
 ## Risks
 
 | ID  | 위험                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | 심각도 | 대응                                                                                                                                                                                                                       |
