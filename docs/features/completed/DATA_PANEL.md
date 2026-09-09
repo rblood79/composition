@@ -1770,19 +1770,19 @@ function renderListBox(element: Element, children: React.ReactNode) {
 
 | 컴포넌트          | 파일 위치                                     | 특이사항                       |
 | ----------------- | --------------------------------------------- | ------------------------------ |
-| ListBox           | `src/shared/components/ListBox.tsx`           | 기본 리스트 컴포넌트           |
-| GridList          | `src/shared/components/GridList.tsx`          | 그리드 레이아웃                |
-| Select            | `src/shared/components/Select.tsx`            | 드롭다운 선택                  |
-| ComboBox          | `src/shared/components/ComboBox.tsx`          | 검색 가능한 드롭다운           |
-| Menu              | `src/shared/components/Menu.tsx`              | 메뉴 리스트                    |
-| Tree              | `src/shared/components/Tree.tsx`              | 계층적 트리 구조               |
-| Table             | `src/shared/components/Table.tsx`             | 테이블 데이터                  |
-| TagGroup          | `src/shared/components/TagGroup.tsx`          | 태그 그룹, removedItemIds 지원 |
-| RadioGroup        | `src/shared/components/RadioGroup.tsx`        | 라디오 버튼 그룹               |
-| CheckboxGroup     | `src/shared/components/CheckboxGroup.tsx`     | 체크박스 그룹                  |
-| Tabs              | `src/shared/components/Tabs.tsx`              | 탭 네비게이션                  |
-| Breadcrumbs       | `src/shared/components/Breadcrumbs.tsx`       | 경로 탐색                      |
-| ToggleButtonGroup | `src/shared/components/ToggleButtonGroup.tsx` | 토글 버튼 그룹                 |
+| ListBox           | `packages/shared/src/components/ListBox.tsx`           | 기본 리스트 컴포넌트           |
+| GridList          | `packages/shared/src/components/GridList.tsx`          | 그리드 레이아웃                |
+| Select            | `packages/shared/src/components/Select.tsx`            | 드롭다운 선택                  |
+| ComboBox          | `packages/shared/src/components/ComboBox.tsx`          | 검색 가능한 드롭다운           |
+| Menu              | `packages/shared/src/components/Menu.tsx`              | 메뉴 리스트                    |
+| Tree              | `packages/shared/src/components/Tree.tsx`              | 계층적 트리 구조               |
+| Table             | `packages/shared/src/components/Table.tsx`             | 테이블 데이터                  |
+| TagGroup          | `packages/shared/src/components/TagGroup.tsx`          | 태그 그룹, removedItemIds 지원 |
+| RadioGroup        | `packages/shared/src/components/RadioGroup.tsx`        | 라디오 버튼 그룹               |
+| CheckboxGroup     | `packages/shared/src/components/CheckboxGroup.tsx`     | 체크박스 그룹                  |
+| Tabs              | `packages/shared/src/components/Tabs.tsx`              | 탭 네비게이션                  |
+| Breadcrumbs       | `packages/shared/src/components/Breadcrumbs.tsx`       | 경로 탐색                      |
+| ToggleButtonGroup | `packages/shared/src/components/ToggleButtonGroup.tsx` | 토글 버튼 그룹                 |
 
 #### DataBinding 형식
 

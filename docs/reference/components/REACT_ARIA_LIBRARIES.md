@@ -170,7 +170,7 @@ const releaseTrap = createFocusTrap(container, {
 
 #### DatePicker Component
 
-**File:** `src/builder/components/DatePicker.tsx`
+**File:** `packages/shared/src/components/DatePicker.tsx`
 
 **New Features:**
 
@@ -231,7 +231,7 @@ interface DatePickerProps<T extends DateValue> {
 
 #### Calendar Component
 
-**File:** `src/builder/components/Calendar.tsx`
+**File:** `packages/shared/src/components/Calendar.tsx`
 
 **New Features:** Same as DatePicker (timezone, defaultToday, string date parsing)
 
@@ -248,7 +248,7 @@ interface DatePickerProps<T extends DateValue> {
 
 #### NumberField Component
 
-**File:** `src/builder/components/NumberField.tsx`
+**File:** `packages/shared/src/components/NumberField.tsx`
 
 **New Features:**
 
@@ -326,7 +326,7 @@ interface NumberFieldProps {
 
 #### Meter Component
 
-**File:** `src/builder/components/Meter.tsx`
+**File:** `packages/shared/src/components/Meter.tsx`
 
 **New Features:**
 
@@ -377,7 +377,7 @@ interface MeterProps {
 
 #### ProgressBar Component
 
-**File:** `src/builder/components/ProgressBar.tsx`
+**File:** `packages/shared/src/components/ProgressBar.tsx`
 
 **New Features:** Same as Meter (number/percent formatting, custom formatter)
 
@@ -393,7 +393,7 @@ interface MeterProps {
 
 #### Modal Component
 
-**File:** `src/builder/components/Modal.tsx`
+**File:** `packages/shared/src/components/Modal.tsx`
 
 **New Features:**
 
@@ -446,7 +446,7 @@ interface ModalProps {
 
 #### Dialog Component
 
-**File:** `src/builder/components/Dialog.tsx`
+**File:** `packages/shared/src/components/Dialog.tsx`
 
 **Documentation Update:**
 
@@ -461,7 +461,7 @@ interface ModalProps {
 
 #### DateField Component
 
-**File:** `src/builder/components/DateField.tsx`
+**File:** `packages/shared/src/components/DateField.tsx`
 
 **New Features:** Same as DatePicker (timezone, defaultToday, string date parsing)
 
@@ -478,7 +478,7 @@ interface ModalProps {
 
 #### TimeField Component
 
-**File:** `src/builder/components/TimeField.tsx`
+**File:** `packages/shared/src/components/TimeField.tsx`
 
 **New Features:**
 
@@ -519,7 +519,7 @@ interface TimeFieldProps<T extends TimeValue> {
 
 #### Slider Component
 
-**File:** `src/builder/components/Slider.tsx`
+**File:** `packages/shared/src/components/Slider.tsx`
 
 **New Features:**
 
@@ -595,7 +595,7 @@ interface SliderProps<T> {
 
 #### Button Component
 
-**File:** `src/builder/components/Button.tsx`
+**File:** `packages/shared/src/components/Button.tsx`
 
 **New Features:**
 
@@ -660,7 +660,7 @@ export function Button(props: ButtonProps) {
 
 #### Form Component
 
-**File:** `src/builder/components/Form.tsx`
+**File:** `packages/shared/src/components/Form.tsx`
 
 **New Features:**
 
@@ -718,7 +718,7 @@ export function Form({ autoFocus = false, restoreFocus = false, children, ...pro
 
 #### Popover Component
 
-**File:** `src/builder/components/Popover.tsx`
+**File:** `packages/shared/src/components/Popover.tsx`
 
 **New Features:**
 
@@ -1016,7 +1016,7 @@ test("Modal focus trap works", async ({ page }) => {
 - `apps/builder/src/i18n/I18nProvider.tsx` - I18n Provider component
 - `apps/builder/src/i18n/useI18n.ts` - useI18n custom hook
 - `apps/builder/src/i18n/LanguageSwitcher.tsx` - Language switcher component
-- `src/i18n/index.ts` - Module exports
+- `apps/builder/src/i18n/index.ts` - Module exports
 
 #### Supported Locales
 

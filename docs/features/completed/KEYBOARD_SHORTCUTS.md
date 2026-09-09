@@ -1886,7 +1886,7 @@ src/builder/components/overlay/
 ├── apps/builder/src/builder/main/BuilderHeader.tsx      # Undo/Redo에 ShortcutTooltip 적용
 ├── apps/builder/src/builder/panels/history/HistoryPanel.tsx  # Undo/Redo에 ShortcutTooltip 적용
 ├── apps/builder/src/builder/main/BuilderCore.tsx        # CommandPalette 통합
-└── src/shared/components/Menu.tsx          # MenuItem shortcutId 지원
+└── packages/shared/src/components/Menu.tsx          # MenuItem shortcutId 지원
 ```
 
 ---

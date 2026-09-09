@@ -1416,7 +1416,7 @@ export function ThenElseBlock({
 
 ## 10. 컴포넌트별 지원 이벤트 레퍼런스
 
-> **참조**: `src/shared/components/metadata.ts`
+> **참조**: `packages/shared/src/components/metadata.ts`
 > **기준**: React Aria Components 공식 문서 (2025-12)
 
 ### 10.1 Actions 컴포넌트

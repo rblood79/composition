@@ -75,7 +75,7 @@
 
 ### Phase 1: Entry Points 정리
 
-- **Action**: `src/hooks/index.ts` 생성 (App 공용 훅만 노출)
+- **Action**: `apps/builder/src/hooks/index.ts` 생성 (App 공용 훅만 노출)
   - `src/hooks/*.ts` export
   - `src/hooks/theme/index.ts` re-export (명시적 export 권장)
 - **Status**: ✅ 완료 (2025-12-30)

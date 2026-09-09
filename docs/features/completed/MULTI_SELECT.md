@@ -2465,7 +2465,7 @@ export function resolveEditingContextForTreeSelection(
 }
 ```
 
-**레이어 트리에서의 사용** (`src/builder/panels/nodes/LayersSection.tsx`):
+**레이어 트리에서의 사용** (`apps/builder/src/builder/panels/navigator/LayersSection.tsx`):
 
 ```typescript
 const handleItemClick = useCallback(
@@ -2501,7 +2501,7 @@ const handleItemClick = useCallback(
 | `apps/builder/src/builder/stores/selection.ts`                | editingContextId 상태 및 enter/exit/set 액션 정의                                                                  |
 | `apps/builder/src/builder/utils/hierarchicalSelection.ts`     | `resolveClickTarget`, `resolveEditingContextForTreeSelection`, `getAncestorChain`, `hasEditableChildren` 순수 함수 |
 | `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx` | 캔버스 클릭/더블클릭 시 `resolveClickTarget` 호출, `enterEditingContext` 트리거                                    |
-| `src/builder/panels/nodes/LayersSection.tsx`     | 레이어 트리 선택 시 `resolveEditingContextForTreeSelection`으로 context 자동 조정                                  |
+| `apps/builder/src/builder/panels/navigator/LayersSection.tsx`     | 레이어 트리 선택 시 `resolveEditingContextForTreeSelection`으로 context 자동 조정                                  |
 
 ---
 

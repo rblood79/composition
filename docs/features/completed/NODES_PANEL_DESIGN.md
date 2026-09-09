@@ -89,7 +89,7 @@ src/builder/panels/nodes/           # ✅ 통합 완료 (2025-12-26)
 
 ### LayerTreeNode (현재 구현)
 
-> 파일: `src/builder/panels/nodes/tree/LayerTree/types.ts`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/LayerTree/types.ts`
 
 ```tsx
 export type VirtualChildType =
@@ -199,7 +199,7 @@ interface TreeState {
 
 ### DnD Validation 규칙 (LayerTree 현재 구현)
 
-> 파일: `src/builder/panels/nodes/tree/LayerTree/validation.ts`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/LayerTree/validation.ts`
 
 | 규칙 | reason | 설명 |
 |------|--------|------|
@@ -250,7 +250,7 @@ export function isValidDrop(
 
 ### DnD 업데이트 로직 (현재 구현)
 
-> 파일: `src/builder/panels/nodes/tree/LayerTree/useLayerTreeDnd.ts`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/LayerTree/useLayerTreeDnd.ts`
 
 ```tsx
 export function calculateMoveUpdates({
@@ -454,7 +454,7 @@ src/builder/panels/nodes/tree/PageTree/
 
 ### PageTreeNode 타입 정의
 
-> 파일: `src/builder/panels/nodes/tree/PageTree/types.ts`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/PageTree/types.ts`
 
 ```tsx
 import type { Key } from 'react-stately';
@@ -491,7 +491,7 @@ export interface PageTreeProps {
 
 ### usePageTreeData 훅 설계
 
-> 파일: `src/builder/panels/nodes/tree/PageTree/usePageTreeData.ts`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/PageTree/usePageTreeData.ts`
 
 ```tsx
 import { useMemo, useCallback } from 'react';
@@ -583,7 +583,7 @@ function convertToPageTreeNodes(
 
 ### PageTree DnD Validation
 
-> 파일: `src/builder/panels/nodes/tree/PageTree/validation.ts`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/PageTree/validation.ts`
 
 ```tsx
 import type { Key } from 'react-stately';
@@ -658,7 +658,7 @@ function isDescendant(
 
 ### PageTree 컴포넌트
 
-> 파일: `src/builder/panels/nodes/tree/PageTree/PageTree.tsx`
+> 파일: `apps/builder/src/builder/panels/navigator/tree/PageTree/PageTree.tsx`
 
 ```tsx
 import React, { useCallback, useMemo, useRef, useState } from 'react';
@@ -964,7 +964,7 @@ export interface TreeItemState {
 ### TreeBase 컴포넌트 구현
 
 ```tsx
-// src/builder/panels/nodes/tree/TreeBase/TreeBase.tsx
+// apps/builder/src/builder/panels/navigator/tree/TreeBase/TreeBase.tsx
 
 import React, { useState, useRef, useCallback } from 'react';
 import { Tree, DropIndicator, useDragAndDrop } from 'react-aria-components';
@@ -1196,7 +1196,7 @@ export function LayerTree({ elements, selectedElementId, ... }: LayerTreeProps) 
 ### 스타일 계약
 
 ```css
-/* src/builder/panels/nodes/tree/TreeBase/styles.css */
+/* apps/builder/src/builder/panels/navigator/tree/TreeBase/styles.css */
 
 /* 공통 트리 스타일 */
 .tree-item {
@@ -1732,7 +1732,7 @@ function VirtualDropIndicator({
 ### 스타일 추가
 
 ```css
-/* src/builder/panels/nodes/tree/TreeBase/styles.css */
+/* apps/builder/src/builder/panels/navigator/tree/TreeBase/styles.css */
 
 /* 가상화 컨테이너 */
 .tree-virtual-container {
@@ -1888,7 +1888,7 @@ Sidebar 코드 제거 후에는 git revert로 복구.
 
 ## treeHelpers 이관
 
-- `src/builder/sidebar/treeHelpers.ts` -> `src/builder/panels/nodes/tree/helpers.ts`
+- `src/builder/sidebar/treeHelpers.ts` -> `apps/builder/src/builder/panels/navigator/tree/helpers.ts`
 - 현재 `useLayerTreeData.ts`에서 `childrenAs` 등 일부 함수 사용 중
 - Sidebar/VirtualizedLayerTree는 임시로 새 helpers를 참조하도록 수정
 - 최종적으로 Sidebar 제거 시 helpers는 단일 위치만 유지

@@ -1254,7 +1254,7 @@ export const useEditModeStore = create<EditModeState>((set) => ({
 
 ## Component Implementation
 
-### 파일: `src/builder/components/Slot.tsx`
+### 파일: `packages/shared/src/components/Slot.tsx`
 
 ```tsx
 /**
@@ -1510,7 +1510,7 @@ export function Slot({
 }
 ```
 
-### 파일: `src/builder/components/metadata.ts` (추가)
+### 파일: `packages/shared/src/components/metadata.ts` (추가)
 
 ```typescript
 // 기존 componentMetadata에 추가
@@ -1924,7 +1924,7 @@ export function SlotEditor({
 }
 ```
 
-### 파일: `src/builder/inspector/properties/editors/ElementSlotSelector.tsx`
+### 파일: `apps/builder/src/builder/panels/properties/editors/ElementSlotSelector.tsx`
 
 ```tsx
 /**
@@ -2016,7 +2016,7 @@ export function ElementSlotSelector({
 }
 ```
 
-### 파일: `src/builder/inspector/properties/editors/PageLayoutSelector.tsx`
+### 파일: `apps/builder/src/builder/panels/properties/editors/PageLayoutSelector.tsx`
 
 ```tsx
 /**

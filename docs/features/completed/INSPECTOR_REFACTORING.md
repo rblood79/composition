@@ -294,7 +294,7 @@ export function CustomGrid(props: CustomGridProps) {
 ### 2. 메타데이터 등록
 
 ```typescript
-// src/builder/components/metadata.ts
+// packages/shared/src/components/metadata.ts
 {
   type: 'CustomGrid',
   label: 'Custom Grid',

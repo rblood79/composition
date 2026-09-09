@@ -36,7 +36,7 @@ if (selectedButton) {
 
 선택된 버튼이 없을 때 `--indicator-opacity: 0`으로 설정:
 
-**파일**: `src/builder/components/ToggleButtonGroup.tsx`
+**파일**: `packages/shared/src/components/ToggleButtonGroup.tsx`
 
 ```typescript
 const selectedButton = group.querySelector('[data-selected]') as HTMLElement;
@@ -460,7 +460,7 @@ const drawIndicator = useCallback(
 
 ## 관련 파일
 
-- `src/builder/components/ToggleButtonGroup.tsx` - Indicator 로직 (line 47-68)
+- `packages/shared/src/components/ToggleButtonGroup.tsx` - Indicator 로직 (line 47-68)
 - `src/builder/components/components.css` - Indicator CSS (line 390-411)
 - `src/builder/inspector/sections/StyleSection.tsx` - Flexbox controls 사용 예시
 - `apps/builder/src/builder/workspace/canvas/ui/PixiToggleButtonGroup.tsx` - 캔버스 구현

@@ -350,7 +350,7 @@ export const handleNavigateToPage = (
 1. **퍼블리시 라우트 생성**
 
    ```typescript
-   // src/main.tsx
+   // apps/builder/src/main.tsx
    <Route path="/site/:projectId/*" element={<PublishedSite />} />
    ```
 

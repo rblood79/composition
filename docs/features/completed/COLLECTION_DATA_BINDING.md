@@ -241,10 +241,10 @@ ListBox → 1 ListBoxItem
 
 ### 컴포넌트
 
-- `src/builder/components/TagGroup.tsx` - TagGroup 컴포넌트
-- `src/builder/components/ComboBox.tsx` - ComboBox 컴포넌트
-- `src/builder/components/Select.tsx` - Select 컴포넌트
-- `src/builder/components/GridList.tsx` - GridList 컴포넌트
+- `packages/shared/src/components/TagGroup.tsx` - TagGroup 컴포넌트
+- `packages/shared/src/components/ComboBox.tsx` - ComboBox 컴포넌트
+- `packages/shared/src/components/Select.tsx` - Select 컴포넌트
+- `packages/shared/src/components/GridList.tsx` - GridList 컴포넌트
 
 ### 렌더러
 
