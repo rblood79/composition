@@ -1,0 +1,326 @@
+# DataTable 패널 · DataTable Editor 패널 개선 방향 리서치 (2026-09-10)
+
+> `apps/builder/src/builder/panels/datatable/` 두 패널 (목록 `datatable` · 편집 `datatableEditor`) 의 현재 구조와 동작을 코드·live 로 실측하고, 외부 제품 리서치를 대조해 **UI · UX · AI · AX** 네 관점의 개선 방향을 제안하는 문서. 결정 문서 (ADR) 가 아니라 ADR 작성 전 판단 재료다. 근거는 경로:라인과 headless Playwright 캡처 (`datatable-research-*` 임시 프로젝트, 2026-09-10).
+>
+> - 관련 ADR: [ADR-131](../../adr/completed/131-events-data-actions-first-class-collections.md) (데이터 SSOT = collections) · [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) (read 진입점 단일화) · [ADR-159](../../adr/completed/159-collection-field-template-binding.md) (`{field}` 템플릿 + dataTable 단일 소스) · [ADR-152](../../adr/152-data-panel-collection-binding-integration.md) (Proposed — 바인딩 계약 v2, 착수 금지 상태) · [ADR-013](../../adr/013-quick-connect-data-binding.md) (Proposed — Quick Connect, 152 선행) · [ADR-209](../../adr/209-chart-authoring-canvas-recharts-runtime.md) (차트 dataBinding · data-source envelope)
+> - 어휘: UI 표면은 `DataTable`, 내부 구조는 `Collection*` (ADR-132 옵션 1). 이 문서도 같다.
+
+## 0. 요약
+
+- **현재**: 목록 패널 (Tables / APIs / Variables) + 모드형 편집 패널. 스키마·행은 원시 `<table>` 격자, API 는 5탭 폼, 생성 2종은 `window.prompt`. 두 패널이 233px 로 열려 탭 라벨과 격자가 잘린다. 저장은 IndexedDB 즉시 쓰기, undo 없음, store 3중 (§1).
+- **재현된 결함 5** (§2-1): 새 API 의 기본 `dataPath:"data"` 가 최상위 배열 응답을 `undefined` 로 만들어 "Success + 빈 본문" (D1) · 필드 key 변경 시 행 값 고아 (D2) · 테이블 이름 변경 시 바인딩 파손 (D3, ADR-152 격차 1) · production 은 CORS 프록시 없음 (D4) · Field Mapping · pagination · serverConfig · retryCount 는 저장만 되고 소비처 0 (D5).
+- **외부 대조에서 가장 큰 격차 3** (§3): ① 안정 참조 부재 (id 가 아니라 이름) — 다른 제품은 예외 없이 id · primary field · back-link 로 간다 ② 격자와 API 편집기가 업계 수렴 패턴 (헤더 `+` 팝오버 · 붙여넣기/CSV 미리보기 · `[Method][URL][Send]` 바 · 응답 Schema 표 · auth 프리셋 · secret 마스킹) 에 못 미친다 ③ 에이전트 표면 0 — `get_editor_state` 에 데이터가 없고, 유일한 데이터 tool 은 사람 UI 와 다른 legacy 형상.
+- **제안 구조** (§4-0): 참조는 id · 테이블 = 스키마 + 소스 + 샘플 · 모든 데이터 변경은 `DataChange` 적용기 하나 (검증 → rename 파급 → History → DB → canvas) · 무증상 실패 금지 · store 하나. 그 위에 **UI** (dock 560px · RAC `role=grid` + 셀 edit mode/팝오버 · 헤더 `+` 필드 팝오버 · 요청 도구형 API 편집기 · Dialog/Toast) · **UX** (인스펙터에서 끝나는 첫 경로 · API→테이블 한 방향 · 붙여넣기/CSV 미리보기 · undo · 스키마 파급 · 소스 전환 · auth/secret) · **AI** (제안→검토→적용 계약 · 설명으로 테이블 · 붙여넣기 이해 · "왜 실패했지?" · 반복 편집) · **AX** (읽기 tool fine-grained + 쓰기 `propose_data_change` 1개 + diff 승인 + provenance · `bind_collection` 형상 정정 · agent 명령 · a11y 검수 항목).
+- **착수 순서** (§5): Track 0 결함 수리 (지금, ADR 불필요) → Track 1 참조 계약 (ADR-152 재리뷰, **사용자 결정 필요**) → Track 2 편집기 ADR · Track 3 AI/AX ADR (첫 출시 = "왜 실패했지?" + 읽기 tool + bind 정정) → Track 4 후순위 (relation · pagination · OAuth2 · 서버 실행 · MCP).
+
+---
+
+## 1. 현행 구조 — 코드 사실
+
+### 1-1. 두 패널의 역할 분담
+
+| 패널                     | 파일                                   | 역할                                                                                                                                                                               |
+| ------------------------ | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `datatable` (목록)       | `DataTablePanel.tsx` (246행)           | 탭 3개 Tables / APIs / Variables. 각 탭은 `DataTableList` · `ApiEndpointList` · `VariableList` 목록 + "Add" 버튼. 항목 클릭이 편집 패널을 연다                                     |
+| `datatableEditor` (편집) | `DataTableEditorPanel.tsx` (477행)     | `dataTableEditorStore.mode` 에 따라 6 모드 중 하나를 렌더 — `table-create` / `table-edit` / `api-create` / `api-edit` / `variable-create` / `variable-edit`                        |
+| 편집 패널 열기·닫기      | `stores/dataTableEditorStore.ts:39-72` | store 액션이 `panelWorkspaceLayout.visibility.datatableEditor` 를 직접 토글 — 목록 패널이 편집 패널의 생명주기를 소유                                                              |
+| 등록                     | `panels/core/panelConfigs.ts:78-102`   | 두 패널 모두 `minWidth: 233`, `maxWidth: "100%"`, **`defaultWidth` 없음** → `panelWorkspaceLayoutV2.ts:256-258` 의 `config.defaultWidth ?? config.minWidth` 로 **233px 로 열린다** |
+
+모드별 본문 (`editors/`):
+
+| 모드            | 컴포넌트                        | 탭                                      | 상태                                                                                         |
+| --------------- | ------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------- |
+| table-create    | `DataTableCreator.tsx` (295행)  | Preset / Empty                          | preset 14종 5카테고리 (`presets/dataTablePresets.ts` 718행) · 빈 테이블은 이름만 입력        |
+| table-edit      | `DataTableEditor.tsx` (833행)   | Schema / Table / Settings               | 원시 `<table>` + `<input>` 격자 · CSV import/export (papaparse) · `useMockData` 토글         |
+| api-edit        | `ApiEndpointEditor.tsx` (885행) | Basic / Headers / Body / Response / Run | Run 탭에서 실행 → `columnDetector` 로 컬럼 감지 → `ColumnSelector` 로 새 DataTable import    |
+| variable-edit   | `VariableEditor.tsx` (478행)    | Basic / Validation / Transform          |                                                                                              |
+| api-create      | —                               | —                                       | **TODO EmptyState** (`DataTableEditorPanel.tsx:334-344`). 실제 생성은 목록의 `window.prompt` |
+| variable-create | —                               | —                                       | **TODO EmptyState** (`:365-375`). 실제 생성은 목록의 `window.prompt`                         |
+
+### 1-2. 데이터 모델 (`apps/builder/src/types/builder/data.types.ts`)
+
+```
+DataTable   { id, name, project_id, schema: DataField[], mockData: row[], runtimeData?: row[], useMockData }
+DataField   { key, type: DataFieldType(10종), label?, required?, defaultValue?, children? }
+ApiEndpoint { method, baseUrl, path, headers[], queryParams[], bodyType, bodyTemplate,
+              responseMapping { dataPath, fieldMappings?, pagination? }, targetCollection?: string(이름),
+              executionMode, serverConfig?, timeout?, retryCount? }
+Variable    { name, type(5종), defaultValue, persist, scope, validation?, transform? }
+```
+
+- 필드 타입 10종: string / number / boolean / date / datetime / email / url / image / array / object. **primary key · select(enum) · relation(다른 테이블 참조) · computed 개념 없음**. `id` 는 키 이름이 `"id"` 인지로만 특별 취급 (`DataTableEditor.tsx:123-129`).
+- `targetCollection` 과 `PropertyDataBinding.name` 모두 **이름 문자열 참조** — rename 시 조용히 끊긴다 (ADR-152 격차 1, 미해결).
+- `runtimeData` 는 메모리 전용 (DB 미저장) — 새로고침하면 API 결과가 사라지고 `useMockData:false` 테이블은 빈 상태로 시작한다.
+
+### 1-3. 저장·상태 경로
+
+```
+패널 UI ──► useDataStore (stores/data.ts, Zustand)
+              └ factory 액션 (stores/utils/dataActions.ts 929행) ──► IndexedDB (lib/db) 즉시 쓰기
+              └ syncCollectionsToCanvas → iframe postMessage (WebGL-only 모드면 skip)
+DataTablePanel ──► useDataPanelQuery (React Query, 5분 stale) + 위 store fetch 3종을 **같이** 호출 (:71-108)
+stores/datatable.ts (useDataTableStore, 643행) ── legacy 별도 상태 기계 (cache/transform/consumers) — ADR-152 격차 5, 잔존
+```
+
+- 데이터 편집은 **undo 히스토리를 거치지 않는다** (`stores/history*` 에 `useDataStore` 참조 0건). 셀 하나를 잘못 지워도 되돌릴 수 없고 CSV import 는 전량 교체다 (`DataTableEditor.tsx:158-164`).
+- 같은 프로젝트 데이터를 React Query 캐시와 Zustand store 가 각각 들고 있다 — 새로고침 버튼은 둘 다 다시 부른다 (`DataTablePanel.tsx:143-152`).
+
+### 1-4. API 실행 경로 (`dataActions.ts:531-690`)
+
+```
+executeApiEndpoint(id, params?)
+  → URL = baseUrl + path, `{{key}}` 치환은 **인자 params 에서만** (:555-607) — variables store 는 읽지 않는다
+  → dev 이면 /api/proxy?url= (vite 미들웨어, import.meta.env.DEV 한정 :611-618) / production 은 직접 fetch
+  → timeout AbortController (:622-624)
+  → responseMapping.dataPath 를 "." split 해서 reduce (:644-648)
+  → targetCollection 이 있으면 그 이름의 collection.runtimeData 에 sink (:650-661)
+```
+
+선언만 있고 **소비처가 없는 필드**: `responseMapping.pagination` (0건) · `fieldMappings` (schema 검증 외 0건 — Response 탭 "Field Mapping" UI 는 저장만 하고 아무 데도 적용되지 않는다) · `serverConfig` / `executionMode:"server"` (저장만) · `retryCount` (저장만). 헤더 값의 `Bearer {{authToken}}` 힌트 (`ApiEndpointEditor.tsx:490`) 는 빌더 Run 에서 치환되지 않는다.
+
+### 1-5. 컴포넌트 연동 (바인딩)
+
+- 인스펙터 `kind:"binding"` 필드 → `PropertyDataBinding.tsx` — **collection 이름 Select 하나** (ADR-159 P4b 로 소스 4종 → dataTable 단일). path / refreshMode 오소링은 제거됨 (`:123-125`).
+- 텍스트 표시는 ADR-159 `{field}` 템플릿 (`PropertyFieldTemplateInput` + `useOwnerCollectionColumns`), 비텍스트 역할 (icon/value) 매핑은 ADR-152 Phase 2 예정 — 미구현.
+- 소비 컴포넌트 12종 catalog binding (`packages/shared/src/catalog/bindings/`: Breadcrumbs · ComboBox · GridList · ListBox · Menu · Select · Table · Tabs · TagGroup · Tree · TableCell · Chart). read 진입점은 `useCollectionData` 하나 (ADR-132) 지만 내부 입력 경로는 아직 3중 (`dataBinding` / `datatableId` / legacy `type:"collection"`, `useCollectionData.tsx:329-437`).
+- `CollectionDataProvider` 는 ADR-209 시점에 `preview/App.tsx` · `publish/App.tsx` 에 마운트됐다 (ADR-152 격차 4·7 "provider 미마운트" 는 그 범위에서 해소). 격차 1·2·3·5·6 은 그대로다.
+- Data 패널 쪽에는 "이 테이블을 쓰는 요소" 역참조가 없다. 반대로 인스펙터에서 Data 패널로 가는 동선도 없다 (바인딩 Select 옆에 "테이블 열기/만들기" 없음).
+
+### 1-6. AI · agent 표면 (AX 현황)
+
+| 표면                                                                  | 데이터 관련 내용                                                                                                                                                                                                                                                                                                                                          |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI 패널 tool 10종 (`services/ai/tools/definitions.ts`)                | 데이터 관련은 `bind_collection` 하나. 형상이 **legacy `source: static\|api\|supabase` + config 인라인** (`bindCollection.ts:24`) — 사람이 UI 로 기록하는 `{source:"dataTable", name}` 과 다른 형상을 쓴다. 이미 있는 DataTable 에 요소를 잇는 tool 이 없다. collection 생성·필드 추가·행 삽입·API 정의 tool 0건 (파일 주석이 "이 도구 범위 밖" 으로 명시) |
+| `get_editor_state`                                                    | pages · elements · selection 만 — **collections / apiEndpoints / variables 를 모델에 노출하지 않는다**. 모델은 어떤 테이블이 있는지 모른 채 바인딩을 시도한다                                                                                                                                                                                             |
+| agent 명령 allowlist (ADR-196, `services/agent/agentCommands.ts`)     | 캔버스·패널·뷰포트 명령만. 데이터 명령 0건. `AgentCommandConfirmDialog` (승인 게이트) · `EditingSemanticsImpactDialog` (영향 안내) 인프라는 있다                                                                                                                                                                                                          |
+| 시스템 프롬프트 동적 주입 (`services/ai/catalog/dynamicInjection.ts`) | "컬렉션" 이 팔레트 카테고리 `collections` 로만 매핑 — 데이터 테이블 목록 주입 없음                                                                                                                                                                                                                                                                        |
+| Export / Import envelope (ADR-209)                                    | `collections` · `apiEndpoints` 가 문서 envelope 에 실린다 — 에이전트가 문서 단위로 데이터 정의를 읽을 수 있는 유일한 채널                                                                                                                                                                                                                                 |
+
+---
+
+## 2. 실측 문제 목록
+
+live 캡처 (233px 기본 폭, 영어 UI) 와 코드를 함께 본 결과. **P0 = production 재현 결함, P1 = 사용성 차단, P2 = 개선 여지** (`.claude/rules/review-loop-closure.md` §2 — 재현 시나리오가 있는 것만 결함으로 센다).
+
+### 2-1. 결함 (P0 — 재현됨)
+
+| #   | 증상                                                                                          | 원인 (경로:라인)                                                                                                                                          | 재현                                                                                |
+| --- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| D1  | 새 API 를 만들고 Run 하면 "✓ Success" 인데 본문이 비어 있고 컬럼 감지·Import 가 나오지 않는다 | 생성 기본값 `responseMapping: { dataPath: "data" }` (`dataActions.ts:396`) → 최상위 배열 응답에 `["data"].reduce` → `undefined` 반환 (`:644-648`)         | Add API → `https://jsonplaceholder.typicode.com/users` → Run. 캡처 `14-api-run.png` |
+| D2  | Schema 탭에서 필드 key 를 바꾸면 그 컬럼의 행 값이 전부 사라진다 (Table 탭에서 빈 셀)         | `handleUpdateField` 가 schema 만 갱신 (`DataTableEditor.tsx:95-103`), `mockData` 행의 key 는 그대로 → 고아 값. 바인딩 `{field}` 템플릿도 옛 key 로 남는다 | Users preset 생성 → `name` key 를 `fullName` 으로 blur → Table 탭                   |
+| D3  | 테이블 이름을 바꾸면 그 테이블을 쓰던 컴포넌트가 "DataTable을 찾을 수 없습니다" 로 떨어진다   | 바인딩·`targetCollection` 이 이름 참조 (`useCollectionData.tsx:304-307`, `DataTableList.tsx:63-66`) — ADR-152 격차 1                                      | ListBox 바인딩 후 Settings 탭 이름 변경                                             |
+| D4  | production 빌드에서 외부 API 실행이 CORS 로 실패한다 (dev 에서만 성공)                        | proxy 가 vite dev 미들웨어 + `import.meta.env.DEV` 게이트 (`dataActions.ts:611-618`) — 배포 환경 실행 경로가 없다. `executionMode:"server"` 는 저장만     | `pnpm build` 후 preview 에서 Run                                                    |
+| D5  | Response 탭 Field Mapping · pagination 을 설정해도 아무 효과가 없다                           | 소비처 0건 (§1-4)                                                                                                                                         | 매핑 추가 후 Run — 결과 key 불변                                                    |
+
+### 2-2. 사용성 차단 (P1)
+
+| #   | 관찰                                                                                                                                                                                                                                             | 근거                                                                                                              |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| U1  | 편집 패널이 233px 로 열려 탭 라벨이 "Sche… / Ta… / Settin…", API 탭은 "B… / H… / B… / Re… / R" 로 잘린다. 격자는 2컬럼만 보이고 나머지는 가로 스크롤                                                                                             | `panelConfigs.ts` `defaultWidth` 부재. 캡처 `05-editor-schema.png` · `06-editor-data.png` · `10-api-basic.png`    |
+| U2  | 생성 3종 중 2종 (API · Variable) 이 `window.prompt` 한 줄 입력이고, 삭제는 `window.confirm`, import 결과는 `alert` — 빌더의 Toast 인프라 (`stores/toast.ts`) 가 있는데 쓰지 않는다. prompt 는 Chrome MCP · Playwright 자동화도 막는다            | `ApiEndpointList.tsx:49,80` · `VariableList.tsx:54,73` · `DataTableList.tsx:72` · `ApiEndpointEditor.tsx:281,293` |
+| U3  | API 이름 기본값이 URL 전체 — 목록에서 "h…" 로 잘린다. method 배지 외 상태 (마지막 실행 성공/실패 · 연결된 테이블) 가 없다                                                                                                                        | `ApiEndpointList.tsx:66-72`. 캡처 `09-apis-list.png`                                                              |
+| U4  | API → 테이블 흐름이 순환한다: Response 탭 "Target DataTable" 은 자유 텍스트 (placeholder `pokemon_list`), Run 탭 Import 는 **새** 테이블을 만들되 endpoint.targetCollection 을 채워 주지 않는다. 사용자가 이름을 정확히 다시 타이핑해야 연결된다 | `ApiEndpointEditor.tsx:687-692` · `:267-274`. 캡처 `13-api-response.png`                                          |
+| U5  | 격자에 키보드 셀 이동 · 다중 선택 · 붙여넣기 · 정렬 · 열 폭 조절 · 열 고정이 없다. 필터는 전체 문자열 substring 하나                                                                                                                             | `DataTableEditor.tsx:397-612` (원시 `<table>`)                                                                    |
+| U6  | 셀 편집이 blur 시점 commit 이라 Tab 으로 다음 셀로 가면 방금 값이 저장되지만 Enter 는 아무 일도 없고, IME 조합 중 리렌더를 피하려 `key` 에 값 JSON 을 넣어 셀마다 리마운트한다                                                                   | `:579-588` · `:684-696`                                                                                           |
+| U7  | CSV import 가 미리보기 없이 전량 교체, 헤더 불일치 컬럼은 조용히 기본값, 숫자 파싱 실패는 0                                                                                                                                                      | `:429-470` · `:615-672`                                                                                           |
+| U8  | 데이터 편집에 undo 가 없다 (§1-3)                                                                                                                                                                                                                |                                                                                                                   |
+| U9  | Data 패널 ↔ 인스펙터 간 동선 부재: 테이블에서 "누가 쓰는지" 못 보고, 바인딩 Select 옆에 "새 테이블 만들기" 가 없다. 빈 캔버스 사용자의 첫 경로 (컴포넌트 놓기 → 데이터 연결) 가 패널 2개 + 탭 3개를 거친다                                       | ADR-013 Context 의 3단계 수동 작업 그대로                                                                         |
+| U10 | "Use Table Data" 토글 (`useMockData`) 이 테이블 단위 전역이라, 같은 테이블을 한 화면에서는 mock 으로 다른 화면에서는 API 로 볼 수 없다. 이름 "Table Data vs API response" 가 사용자 언어가 아니다                                                | `:754-806`. 캡처 `07-editor-settings.png`                                                                         |
+
+### 2-3. 접근성 (AX 로 읽을 때 — a11y)
+
+| #   | 관찰                                                                                                                                                                   | 근거                                                        |
+| --- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| A1  | 격자가 `role=grid` 가 아니라 `<table>` 안의 독립 `<input>` 들 — 스크린리더는 "편집 가능한 격자" 를 인식하지 못하고, Tab 이 셀 수만큼 (10행 × 10열 = 100 stop) 늘어난다 | `DataTableEditor.tsx:563-603`                               |
+| A2  | 셀 입력에 label 이 없다 (열 헤더와 `aria-labelledby` 미연결). 행 삭제 버튼도 `title` 없이 아이콘만                                                                     | `:579-588` · `:592-598`                                     |
+| A3  | Schema 탭 Type `<select>` · Required 체크박스가 시각 라벨 없이 열 헤더에만 의존                                                                                        | `:275-321`                                                  |
+| A4  | 저장 완료 · 행 추가 · Run 결과 · import 완료를 알리는 live region 이 없다 (alert 대체 후 필요)                                                                         |                                                             |
+| A5  | 목록 항목이 `div role=listitem` + `onClick` — 키보드로 열 수 없다 (내부 Edit 아이콘 버튼만 포커스 가능)                                                                | `DataTableList.tsx:110-115` · `ApiEndpointList.tsx:122-127` |
+| A6  | 타입 배지 (`ColumnSelector.css` type-\* 색) 가 색만으로 타입을 구분하고 텍스트가 같이 있어 통과하지만, 격자 안 타입 아이콘은 없다                                      |                                                             |
+
+### 2-4. 아키텍처 부채 (P2 — 재설계 시 같이 정리)
+
+- store 3중 (`useDataStore` + `useDataTableStore` + React Query) — ADR-152 격차 5.
+- 편집 패널이 목록 패널 store 에 생명주기를 위임 (`dataTableEditorStore` 가 layout store 를 직접 만짐). 다른 패널 (Properties 등) 과 다른 예외 패턴.
+- 프리셋 14종이 코드 상수 — 사용자 정의 프리셋 · 프로젝트 간 복사 불가.
+- `DataTableEditor` 833행 · `ApiEndpointEditor` 885행 단일 파일에 서브 에디터 5~6개 내장.
+- i18n 은 `datatable.*` 키로 정비돼 있다 (ADR-200) — 재설계 시 자산.
+
+---
+
+## 3. 외부 리서치 대조
+
+세 갈래로 조사했다 — ① 노코드 빌더의 데이터 모델링·편집·연결 UX (Airtable · Notion · Webflow · Framer · Retool · Bubble · Glide · Softr · WeWeb · Budibase · Appsmith · NocoDB · Baserow · Supabase · Plasmic), ② AI · 에이전트 데이터 기능 (Airtable Omni · NocoDB NocoAI · Bubble AI · Base44 · Lovable · Supabase Assistant · Retool Assist · Xano · Zapier Copilot · Webflow/Notion/Airtable/Supabase/Figma MCP · Anthropic tool 가이드 · MCP spec), ③ 편집 격자 접근성 + REST 연결 UX (WAI-ARIA APG · RAC Table · AG Grid · MUI · Postman · Hoppscotch · Bruno · Insomnia · n8n · Make · FlutterFlow). 출처 URL 은 각 조사 보고 원문에 있고, 여기서는 **수렴 패턴 → composition 현재 → 판정** 만 적는다. 판정: **도입** (재현된 결함이나 명백한 격차) · **조건부** (ADR 판정 필요) · **비적용**.
+
+### 3-1. 데이터 모델링 · 편집
+
+| #   | 수렴 패턴 (제품 수)                                                                                                       | composition 현재                                                                         | 판정                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| M1  | 헤더 우측 `+` → 팝오버 (이름 · 검색 가능한 타입 목록 + 아이콘 · 타입별 옵션 · default · description) (7)                  | Schema 탭 별도 표에서 "Add Column" → `field_<timestamp>` 행 추가 후 셀 편집              | 도입                                                                                               |
+| M2  | 붙여넣기 = 행 자동 생성 + 타입 강제 · CSV import = 헤더행 토글 · 타입 자동 감지 · 열별 "기존/새/무시" 매핑 · 미리보기 (8) | CSV 만, 미리보기 없이 전량 교체, 숫자 실패 0                                             | 도입                                                                                               |
+| M3  | Primary / display field (첫 열 · 삭제 불가 · 관계 chip 표시값) (6)                                                        | `id` 키 이름 휴리스틱만. `resolveCollectionItems` 의 label 휴리스틱이 그 자리를 대신한다 | 조건부 — ADR-159 `{field}` 템플릿이 표시값을 이미 담당, "display field" 는 기본값 역할로 축소 도입 |
+| M4  | 관계 필드 + back-link 자동 + picker 모달 (6) · computed 열이 같은 타입 picker 안 (6)                                      | 없음 (타입 10종은 전부 스칼라/JSON)                                                      | 조건부 — 후순위 ADR. Skia 투영·DOM 렌더 양쪽 계약 확장이라 범위가 크다                             |
+| M5  | 설정 중 live 미리보기 (계산 결과 · relation preview · AI 생성 미리보기) (6)                                               | Preset 스키마 미리보기만                                                                 | 도입 (import · API 스키마 · AI 제안에 공통 적용)                                                   |
+| M6  | Undo `⌘Z` + "Find uses" 참조 추적 (3)                                                                                     | undo 없음 · 역참조 없음                                                                  | 도입                                                                                               |
+| M7  | 안정 field id — 이름이 바뀌어도 바인딩 유지 (Framer 교훈: id 가 바뀌면 캔버스 바인딩이 깨진다)                            | 이름 참조 (D2 · D3)                                                                      | 도입 — ADR-152 계약 v2 의 `collectionId` 에 `fieldId` 를 더한다                                    |
+| M8  | 하드 한계·무증상 실패가 최다 불만 (Framer 항목 미표시 · Baserow 셀 오류 무표시 · Notion CSV 중복)                         | 0행·오류가 목록에도 캔버스에도 안 보인다 (D1 의 "Success + 빈 본문" 이 그 예)            | 도입 — 상태 표시 원칙                                                                              |
+
+### 3-2. API 연결
+
+| #   | 수렴 패턴 (제품 수)                                                                                                                    | composition 현재                                                                            | 판정                                                                                  |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| P1  | 상단 `[Method ▾][URL][Send]` 바 + Params / Headers / Body / Auth 탭 (전 제품)                                                          | Basic 탭에 Method · Base URL · Path 세 필드, 실행은 Run 탭에서만                            | 도입                                                                                  |
+| P2  | 테스트 실행 → **응답 스키마 표** (키 · 타입 드롭다운 · 포함 체크 · ID 필드) + raw JSON 병기 (6). Softr 는 실행 성공이 저장 조건        | Run 탭 `ColumnSelector` 가 유사 — 단 새 테이블 생성만 하고 endpoint 와 연결하지 않는다 (U4) | 도입 — 기존 `columnDetector` · `ColumnSelector` 재사용                                |
+| P3  | datasource (base URL · 인증 · 전역 헤더) / query (엔드포인트 · 파라미터) 2계층 (5)                                                     | 엔드포인트마다 baseUrl · headers 를 반복 입력                                               | 조건부 — 엔드포인트 2~3개 이상 쓰는 프로젝트가 생기면. 스키마는 additive 로 준비      |
+| P4  | Auth 프리셋 None / Basic / Bearer / API Key (header·query) / OAuth2 (5)                                                                | 헤더 자유 입력                                                                              | 도입 (OAuth2 는 후순위)                                                               |
+| P5  | secret 3층 — 마스킹 · 동기화/export 제외 · 서버 프록시 (브라우저 도구 전부). WeWeb 은 "프록시는 CORS 용, 비밀키 보호가 아니다" 를 명시 | 평문 IndexedDB + export envelope 에 실림 (ADR-209) · production 프록시 없음 (D4)            | 도입 (마스킹 · export 제외) / 조건부 (서버 실행 — publish 방침에 종속)                |
+| P6  | 응답 뷰어 status · time · size + Pretty/Raw + Headers, 결과 한 줄 `role=status`                                                        | `<pre>` 하나                                                                                | 도입                                                                                  |
+| P7  | 응답 path 는 텍스트 입력 + 즉시 preview 기본, 노드 클릭/드래그는 보조, "Recommended" 자동 제안 (FlutterFlow · WayFinder · n8n)         | 텍스트 + Auto-detect 버튼 (고정 키 목록 9개)                                                | 도입 — 배열 후보 전수 탐색으로 추천, 미리보기 동반                                    |
+| P8  | pagination 프리셋 offset/page + cursor/next-URL (4) · 실행 정책 (GET 자동 / 변이 수동 / periodic / 캐시 TTL) (4)                       | 타입만 선언, 소비 0                                                                         | 조건부 — 실제 pagination 이 필요한 컴포넌트 (Table `TableLoadMoreItem`) 작업과 묶는다 |
+| P9  | cURL import (5) · OpenAPI import (4)                                                                                                   | 없음                                                                                        | 도입 (cURL) / 조건부 (OpenAPI)                                                        |
+
+### 3-3. 컴포넌트 바인딩
+
+| #   | 수렴 패턴 (제품 수)                                                                  | composition 현재                                                  | 판정                                                               |
+| --- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------ |
+| B1  | 테이블/쿼리에서 UI 자동 생성 + 스키마 변경 후 "다시 생성" (6)                        | 없음 — ADR-013 Quick Connect 가 이 자리 (Proposed, 152 선행)      | 조건부 — 152 뒤                                                    |
+| B2  | 반복 요소에 filter · sort · limit · offset 을 요소 속성으로 (6)                      | `useCollectionData` 에 sort/filter 내부 상태만, 오소링 없음       | 조건부 — 인스펙터 binding 필드 확장 (D2 props 계약)                |
+| B3  | 캔버스 위 바인딩 상태 시각 표시 (Webflow 보라 · Framer CMS 아이콘 · Budibase ⚡) (4) | 없음 — 바인딩된 ListBox 와 정적 ListBox 가 캔버스에서 같아 보인다 | 도입 — Skia overlay 배지 (Preview 는 D1 무관, 빌더 편집 보조 표시) |
+| B4  | 인스펙터 ↔ 데이터 패널 왕복 동선 ("새 테이블" · "테이블 열기" · "사용처 N")          | 없음 (U9)                                                         | 도입                                                               |
+
+### 3-4. AI (사람이 AI 를 부른다)
+
+| #   | 수렴 패턴 (제품 수)                                                                                                                                            | composition 현재                                    | 판정                                                |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------- |
+| I1  | **Propose → Review → Apply** 가 기본 계약 (Bubble plan approve · NocoDB Suggest→Create · Lovable SQL 승인 · Supabase diff · Base44 import 승인 — 8, 예외 없음) | AI 패널은 요소 생성/편집만, 데이터 제안 없음        | 도입 — 데이터 AI 의 유일한 진입 형식으로 고정       |
+| I2  | 삭제 · 타입 변경은 AI 에서 기본 차단 (Bubble · Base44 append-only · Supabase read_only)                                                                        | 해당 tool 없음                                      | 도입 — 처음부터 쓰기 tool 에 delete 를 넣지 않는다  |
+| I3  | 샘플 행은 관계 정합 + 스키마 검증 후 삽입, FK 는 코드가 채운다 (Glide 연구: "스키마에 없는 컬럼" 이 최다 오류)                                                 | preset 생성기가 코드로 같은 일을 한다 (재사용 가능) | 도입 — preset 생성기 = 검증기 역할 승격             |
+| I4  | cURL / OpenAPI / JSON 샘플 붙여넣기 → guided form + 상수 → input 승격 + Test 필수 (Xano · Retool · Zapier)                                                     | 없음                                                | 도입 (P9 와 같은 기능의 AI 층)                      |
+| I5  | 오류 → "Debug?" (query + schema + error 컨텍스트) (Retool · Supabase · Postman)                                                                                | 없음                                                | 도입 — 비용 최저, API 편집기 응답 패널의 첫 AI 기능 |
+| I6  | NL 질문은 답변 전용, 뷰·바인딩 변경과 분리 (Airtable Omni · Softr Ask AI)                                                                                      | —                                                   | 도입 원칙                                           |
+| I7  | LLM 에는 스키마만 + 필요 시 샘플 N 행, 행 전량 금지 · 권한 미러링 (Supabase · Airtable · Softr)                                                                | —                                                   | 도입 원칙                                           |
+| I8  | 생성 전 객관식 clarifying 1~3 문항 + 도메인 컨텍스트 (Bubble · NocoDB · Cobuilder)                                                                             | —                                                   | 조건부                                              |
+| I9  | AI 컬럼 (Text→Choice 등, 셀별 실행 · 과금) (Glide · Baserow · Notion)                                                                                          | —                                                   | 비적용 (당장) — M4 computed 열 뒤                   |
+
+### 3-5. AX (에이전트가 빌더를 조작한다)
+
+| #   | 수렴 패턴                                                                                                                                                | composition 현재                                                                                                                           | 판정                                                    |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- |
+| X1  | 읽기는 fine-grained · 쓰기는 워크플로 단위 소수 (Anthropic "few high-impact workflow tools" · Webflow 21 tools 는 op 단위 분리 · Supabase feature group) | 데이터 tool 1개 (`bind_collection`, legacy 형상)                                                                                           | 도입                                                    |
+| X2  | 스키마 계약 = 컴팩트 JSON Schema (enum · required · description), `strict: true` + `output_config.format` (Anthropic) · `outputSchema` (MCP)             | `data.types.ts` 는 있으나 tool 노출 없음. Anthropic 경로 구조화 출력은 ADR-134 후속으로 이미 적용 (`project-prompt-audit-2026-09-applied`) | 도입 — Ollama 는 zod 로 동등화                          |
+| X3  | 사람이 읽는 이름 우선, `response_format: concise\|detailed` (Anthropic)                                                                                  | `get_editor_state` 에 데이터 없음                                                                                                          | 도입                                                    |
+| X4  | Undo + 수행 단계 로그 provenance (Airtable Undo icon + checklist · Retool checkpoints · Framer 자동 branch)                                              | `agentCommandLog` 있음, 데이터는 History 밖 (U8)                                                                                           | 도입 — "AI 변경 묶음 1개 = History 1 entry + 단계 목록" |
+| X5  | Human-in-the-loop: 호출 전 tool inputs 표시 + 확인 + 감사 로그 (MCP spec SHOULD)                                                                         | `AgentCommandConfirmDialog` 있음 (명령 id · 되돌림 가능 여부)                                                                              | 도입 — 스키마 diff 뷰로 확장                            |
+| X6  | MCP annotations (`readOnlyHint` / `destructiveHint` / `idempotentHint`) 는 힌트일 뿐, 클라이언트가 신뢰하지 않는다                                       | 빌더 MCP 노출 없음                                                                                                                         | 조건부 — 노출 시 원칙                                   |
+| X7  | 자동화 차단 요소 제거 — `window.prompt/confirm/alert` 는 Playwright · Chrome MCP 를 멈춘다 (본 조사에서 `page.on("dialog")` 우회로 캡처)                 | 6곳 (U2)                                                                                                                                   | 도입 (U2 와 동일 수리)                                  |
+
+### 3-6. 접근성 (a11y)
+
+| #   | 체크리스트 (출처)                                                                                                            | composition 현재                              | 판정                       |
+| --- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- | -------------------------- |
+| Y1  | 편집 격자는 `role=grid` 단일 tab stop + Arrow/Home/End 이동, Enter·F2 편집 진입, Esc 취소 (APG grid)                         | `<table>` + 독립 input (A1)                   | 도입                       |
+| Y2  | RAC Table 은 인라인 셀 편집을 제공하지 않는다 — 공식 권고는 **셀 → Popover/Dialog 편집** (adobe/react-spectrum #6382, #2328) | —                                             | 도입 방식 결정 재료 (§4-1) |
+| Y3  | 가상화 시 `aria-rowcount/colcount` + `aria-rowindex/colindex` (AG Grid)                                                      | 가상화 없음 (100행 preset 이 전부 DOM)        | 도입 — 격자 교체 시 같이   |
+| Y4  | 행 추가 · 저장 · import · Run 결과를 `role=status` 로, 오류는 `role=alert` (WCAG 4.1.3). RAC Toast 는 landmark + F6          | 없음 (A4)                                     | 도입                       |
+| Y5  | dialog 닫힘 시 호출 요소로 포커스 복귀, 행 삭제로 사라지면 다음 행/추가 버튼 (APG dialog)                                    | prompt/confirm 이라 해당 없음                 | 도입 (U2 수리와 함께)      |
+| Y6  | key-value 편집기 — 행별 Remove 에 고유 이름 ("Remove header Authorization"), Add 후 새 key 로 포커스, Bulk Edit 텍스트 대안  | 아이콘 버튼만, 포커스 이동 없음               | 도입                       |
+| Y7  | 타입 아이콘은 텍스트 동반 · 색 단독 구분 금지 (WCAG 1.4.1 / 1.4.11)                                                          | 배지는 텍스트 동반 (통과), 격자엔 아이콘 없음 | 도입 (M1 팝오버에서)       |
+| Y8  | code/JSON 편집기는 `aria-label` + `aria-multiline` 명시 (CodeMirror 기본 미전파)                                             | Body 는 원시 textarea (label 없음)            | 도입                       |
+
+## 4. 개선 방향 — UI · UX · AI · AX
+
+> AX 는 두 뜻으로 읽었다 — **Agent eXperience** (에이전트가 빌더를 대신 조작하는 경험, §4-4) 와 **Accessibility** (§4-5). 네 관점은 독립이 아니라 한 구조 위에 얹힌다 — **안정 참조 (collectionId · fieldId) + 단일 데이터 모델 + 변경을 "제안 → 검토 → 적용" 으로 통과시키는 파이프라인** 이 그 구조다. 사람이 격자에서 하는 편집도, AI 가 만드는 스키마도, 에이전트 tool 호출도 같은 파이프라인을 탄다.
+
+### 4-0. 구조 원칙 (네 관점의 공통 기반)
+
+1. **참조는 id, 표시는 이름.** `DataTable.id` · `DataField.id` (신설) 를 바인딩 · `targetCollection` · `{field}` 템플릿 · fieldMap 이 참조한다. 이름 변경은 표시만 바꾼다. ADR-152 계약 v2 (`collectionId`) 를 `fieldId` 까지 넓힌 것 — D2 · D3 · M7 의 근본 수리.
+2. **테이블 = 스키마 + 소스 + 샘플.** `useMockData` 토글을 "데이터 소스" 개념으로 바꾼다 — 소스는 `manual` (사용자 입력) · `api` (엔드포인트 참조) · (후순위) `supabase`. 샘플 행은 소스와 무관하게 항상 있어서 빌더 캔버스가 빈 상자가 되지 않는다 (ADR-209 차트가 이미 이 규칙: "바인딩이 없거나 0행이면 샘플"). 사용자 언어는 "샘플 데이터 사용 / 실제 데이터 사용".
+3. **데이터 변경은 하나의 변경 객체를 지난다.** `DataChange = { ops: DataOp[], origin: "user" | "import" | "ai" | "agent" }` 로 셀 편집 · 붙여넣기 · CSV import · AI 제안 · agent tool 을 같은 적용기에 태운다. 적용기가 (a) 스키마 검증 (b) rename 파급 (행 key migrate + 참조 갱신) (c) History entry 1개 (d) IndexedDB 쓰기 (e) canvas sync 를 순서대로 한다. `Memory → Index → History → DB → Preview` 순서 (CLAUDE.md §상태 변경 파이프라인) 를 데이터에도 적용하는 것.
+4. **무증상 실패 금지.** 0행 · 오류 · 로딩 · "이름으로 못 찾음" 은 목록 배지 · 편집기 상단 · 캔버스 오버레이 세 곳에 같은 상태로 보인다.
+5. **store 는 하나.** `useDataStore` 로 통합하고 `useDataTableStore` (legacy) · React Query 병행 fetch 를 제거한다 (ADR-152 격차 5 · 2 흡수).
+
+### 4-1. UI — 표면과 레이아웃
+
+| #    | 제안                                                                                                                                                                                                                                                                                                                                                                                        | 근거                             |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| UI-1 | **편집 패널 기본 폭 560px** (`defaultWidth`), 목록 패널은 그대로 (좁은 rail 역할). 탭 라벨 잘림 금지 규칙 — 패널 폭 < 360 이면 아이콘 + tooltip 로 자동 전환 (Navigator · Styles 와 같은 `panel-tab` 계열에 공통 적용 가능)                                                                                                                                                                 | U1 · 캡처 05/06/10               |
+| UI-2 | **격자를 RAC `Table` 기반 `role=grid` 로 교체.** 셀 편집은 두 층 — (a) 기본: 셀 선택 후 Enter/F2/타이핑으로 **셀 내 edit mode** (자체 구현, `keyboardNavigationBehavior="tab"` + 셀 input `onKeyDown` 격리, Esc 취소 · Enter commit + 아래 이동 · Tab commit + 오른쪽 이동) (b) 긴 값 · JSON · date 는 **Popover 편집** (RAC 공식 권고). `Virtualizer` + `aria-rowcount` 로 100행 이상 대비 | Y1 · Y2 · Y3 · U5 · U6 · A1 · A2 |
+| UI-3 | **헤더 `+` 팝오버로 필드 추가** — 이름 · 검색 가능한 타입 목록 (아이콘 + 라벨) · required · default · description. 헤더 클릭 → 같은 팝오버로 편집 · "사용처 N" · 삭제 (사용처 0 일 때만 즉시, 아니면 확인). Schema 탭은 사라지고 **격자 하나가 스키마와 데이터를 같이 편집**한다 (Airtable · Notion · Glide 방식)                                                                           | M1 · M6 · Y7 · A3                |
+| UI-4 | **API 편집기를 요청 도구 형태로.** 상단 고정 `[GET ▾][URL][Send]` 바 (이름은 URL 에서 자동 — host + path 마지막 세그먼트, 예 `typicode · users`), 탭 Params / Headers / Body / Auth / Response. 응답 뷰어는 status · time · size 한 줄 (`role=status`) + Pretty / Raw / **Schema** (키 · 타입 · 포함 · ID) 탭                                                                               | P1 · P2 · P6 · U3 · U4           |
+| UI-5 | **`window.prompt/confirm/alert` 6곳 → RAC Dialog + Toast.** 생성은 팝오버/다이얼로그 (테이블: 이름 + "빈 테이블 / 프리셋 / 붙여넣기 / CSV / API / AI 로" 진입 6종 · API: URL 또는 cURL 붙여넣기 · 변수: 이름 + 타입), 삭제는 "사용처 N개" 를 보여 주는 확인 다이얼로그, 결과는 `role=status` Toast                                                                                          | U2 · X7 · Y4 · Y5                |
+| UI-6 | **목록 항목에 상태 배지** — 테이블: 필드 수 · 행 수 · 소스 (샘플/API) · **사용처 요소 수** · 0행/오류 표시. API: method · 마지막 실행 (200 · 132ms · 2분 전 / 실패) · 연결된 테이블. 항목 자체가 버튼 (키보드로 열림)                                                                                                                                                                       | U3 · M8 · A5                     |
+| UI-7 | **캔버스 바인딩 배지** — 바인딩된 collection 요소에 Skia overlay 로 작은 데이터 아이콘 + 테이블 이름, 0행/오류면 상태색. 편집 보조 표시라 Preview/Publish 에는 없다 (D1/D3 무관)                                                                                                                                                                                                            | B3                               |
+| UI-8 | 편집 패널이 목록 패널 store 에 생명주기를 위임하는 예외 구조 정리 — 편집 패널을 일반 패널로 (`open(mode)` 는 layout store 의 일반 활성화 경로 사용)                                                                                                                                                                                                                                         | §2-4                             |
+
+### 4-2. UX — 흐름
+
+| #    | 제안                                                                                                                                                                                                                                                                                                                                    | 근거                        |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| UX-1 | **첫 경로를 인스펙터에서 끝낸다.** 바인딩 Select 에 "새 테이블 만들기 (프리셋/붙여넣기/AI)" · "이 테이블 열기" · "사용처 N" 을 붙인다. 컴포넌트를 놓은 뒤 데이터 패널을 열지 않고도 연결까지 간다. ADR-013 Quick Connect 의 1클릭 자동 생성은 이 위에 얹는 응용                                                                         | U9 · B4 · B1                |
+| UX-2 | **API → 테이블을 한 방향으로.** URL/cURL 붙여넣기 → 자동 실행 → 응답 Schema 탭에서 배열 후보 **추천** (전수 탐색, 텍스트 path + 미리보기) → 키·타입·포함 체크 → "테이블로 저장" 이 **collection 생성 + `targetCollection` 연결 + 소스 = api** 를 한 번에. 기존 테이블에 잇는 선택지도 같은 자리. 기본 dataPath 는 빈 값 (추천이 채운다) | D1 · U4 · P2 · P7 · I4      |
+| UX-3 | **데이터 유입 3경로** — 격자에 붙여넣기 (행 자동 생성 · 타입 강제 · 초과 열은 "새 필드로 추가?" 제안) · CSV/JSON import 미리보기 (헤더행 토글 · 열별 기존/새/무시 매핑 · append vs replace) · 프리셋. 파싱 실패 셀은 비우고 **셀 단위 표시** (0 으로 바꾸지 않는다)                                                                     | M2 · U7                     |
+| UX-4 | **Undo.** `DataChange` 를 History 에 태운다 — 셀 · 행 · 붙여넣기 · import · 스키마 변경이 `⌘Z` 로 돌아온다. 데이터 패널 포커스 중에는 캔버스 undo 와 같은 단축키가 데이터 스택을 향한다 (하나의 History 에 origin 태그로 구분)                                                                                                          | U8 · M6 · X4                |
+| UX-5 | **스키마 변경 파급.** key 변경 → 행 migrate + `{field}` 템플릿 · fieldMap 참조 갱신 (fieldId 참조면 표시만 바뀐다) · 타입 변경 → 변환 미리보기 ("12행 중 3행이 숫자가 아님 — 비움/유지") · 삭제 → "사용처 N" 확인                                                                                                                       | D2 · M7 · M5                |
+| UX-6 | **소스 전환을 테이블 속성으로.** "샘플 데이터 사용 / 실제 데이터 사용" + 실제 소스 = API 선택 (엔드포인트 picker, 자유 텍스트 금지) + 실행 정책 (열 때 자동 · 수동 · N초마다). `runtimeData` 를 마지막 성공 응답으로 IndexedDB 에 저장해 새로고침 후 빈 화면을 없앤다 (캐시 표시 + "다시 불러오기")                                     | U10 · P8 · §1-2 runtimeData |
+| UX-7 | **Auth 프리셋 + secret 처리.** Auth 탭 None / Bearer / API Key (header·query) / Basic. 값은 마스킹 표시, export envelope 에서 제외 (자리표시자 `{{secret.NAME}}`), 프로젝트 로컬 vault (IndexedDB 별도 store) 에 저장. 변수 치환은 `variables` store 값도 읽는다 (지금은 인자 params 만)                                                | P4 · P5 · §1-4              |
+| UX-8 | **production 실행 경로 결정을 명시.** dev 는 vite 프록시, production 은 (a) CORS 허용 API 만 직접 (b) 서버 프록시/Edge Function — publish 는 "빌더 안정화 후" 방침 (`project-publish-link-only-defer-until-builder-stable`) 이라 지금은 **경고 표시** ("이 API 는 배포 환경에서 CORS 설정이 필요합니다") 까지만                         | D4                          |
+| UX-9 | 프리셋을 코드 상수에서 **문서 형식** (`DataTablePreset` JSON + 생성기 규칙) 으로 — 사용자 정의 프리셋 저장 · AI 제안 결과를 프리셋으로 저장 · 프로젝트 간 복사                                                                                                                                                                          | §2-4                        |
+
+### 4-3. AI — 사람이 부르는 AI
+
+| #    | 제안                                                                                                                                                                                                                                                                                                                                     | 근거              |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| AI-1 | **"설명으로 테이블 만들기".** 프롬프트 (+ 선택: 도메인 컨텍스트 1줄, 객관식 1~2문항) → 모델은 **스키마 + 샘플 행 생성 규칙** 만 낸다 (구조화 출력 · `strict`) → 샘플 행은 코드가 생성 (프리셋 생성기 재사용, FK/enum 정합) → **미리보기 (스키마 표 + 샘플 5행) → 수정 → 적용** (`DataChange origin:"ai"`). 관계 있는 다중 테이블은 M4 뒤 | I1 · I3 · I8 · M5 |
+| AI-2 | **붙여넣기 이해.** cURL · OpenAPI 조각 · JSON 샘플 · 표 텍스트를 한 입력창에 — 규칙 파서 (cURL · JSON) 먼저, 실패하면 모델. 결과는 항상 UX-2/UX-3 의 미리보기 화면으로 들어간다 (모델이 직접 적용하지 않는다)                                                                                                                            | I4 · P9           |
+| AI-3 | **"왜 실패했지?"** — 응답 패널 오류 옆 버튼. 요청 · 스키마 · 오류 · (있으면) 응답 본문 앞 2KB 를 컨텍스트로 원인 + 수정 제안 (헤더 추가 · path 변경) 을 제안 형식으로. 비용 최저, 첫 출시 후보                                                                                                                                           | I5                |
+| AI-4 | **반복 편집.** 편집기가 열린 테이블/엔드포인트가 프롬프트에 자동 첨부 ("status 필드 추가해", "email 을 required 로") → 제안 diff → 적용. 삭제 · 타입 변경은 제안에 포함되되 **적용 시 사용처 N 확인** 을 사람 경로와 같이 거친다                                                                                                         | I1 · I2 · UX-5    |
+| AI-5 | **질문은 답만.** "이 테이블에 상태가 active 인 행 몇 개?" 류는 스키마 + 샘플/현재 행 (사용자 승인 시) 로 답하고 뷰·바인딩을 바꾸지 않는다. 답 뒤에 "이 조건을 필터로 저장" (B2 뒤) 만 제안                                                                                                                                               | I6 · I7           |
+| AI-6 | **컨텍스트 예산.** 시스템 프롬프트 동적 주입에 테이블 목록 (이름 · 필드 수 · 행 수) 만, 스키마는 요청된 테이블만, 행은 샘플 5개까지. Anthropic 경로는 캐시 prefix 에 스키마 블록을 둔다                                                                                                                                                  | I7 · X3           |
+
+### 4-4. AX — 에이전트가 조작하는 빌더
+
+| #    | 제안                                                                                                                                                                                                                                                                                                                                                                                                                | 근거                        |
+| ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| AX-1 | **읽기 tool (fine-grained, 읽기 전용):** `list_collections` (이름 · id · 필드 수 · 행 수 · 소스 · 사용처 수) · `get_collection` (스키마 + 샘플 N행, `format: concise\|detailed`) · `list_api_endpoints` · `get_api_endpoint` (secret 마스킹). `get_editor_state` 에는 collections 요약만 추가                                                                                                                       | X1 · X3 · §1-6              |
+| AX-2 | **쓰기 tool 1개: `propose_data_change`** — `ops: DataOp[]` (`create_collection` · `add_field` · `update_field` · `rename_field` · `insert_rows` · `set_source` · `define_endpoint` · `bind_element`). **delete 계열 없음** (사람 UI 전용). 실행은 `AgentCommandConfirmDialog` 를 **스키마 diff 뷰** 로 확장해 승인 → 4-0 ③ 적용기 → History 1 entry + 단계 목록 (provenance) → 결과는 `outputSchema` 로 검증된 구조 | X1 · X2 · X4 · X5 · I1 · I2 |
+| AX-3 | **`bind_collection` 정정** — 사람 UI 와 같은 `{ source: "dataTable", collectionId }` 형상으로. legacy `static\|api\|supabase` 인라인 config 는 read 호환만 (ADR-159 P4c residual 과 같은 처리)                                                                                                                                                                                                                      | §1-6                        |
+| AX-4 | **agent 명령 allowlist 확장** (ADR-196 방식 — handler 가 부르는 같은 심볼 호출): `data.openTable` · `data.openEndpoint` · `data.runEndpoint` · `data.importPaste`. UI 가 prompt/confirm 을 안 쓰게 되면 Playwright · Chrome MCP · MCP 클라이언트가 같은 경로로 조작 가능                                                                                                                                            | X7 · UI-5                   |
+| AX-5 | **스키마 계약 문서화** — `DataOp` · `DataTable` · `ApiEndpoint` 의 JSON Schema 를 `packages/shared/src/schemas/` (`project.schema.ts` 옆) 에 두고 tool `input_schema` · zod 검증 · export envelope 검증이 **같은 스키마** 를 쓴다. Anthropic strict 제약 (재귀 · min/max 불가) 은 description 으로                                                                                                                  | X2                          |
+| AX-6 | **MCP 노출 시 원칙** (후순위): `readOnlyHint` / `destructiveHint` annotations · 사람이 읽는 이름 (UUID 는 detailed 에만) · pagination 기본 · 오류에 다음 행동 안내. ADR-202 (compiler-first) 의 recipe 체계에 "data recipe" 로 편입하면 AI 패널 · agent · MCP 가 같은 IR 을 쓴다                                                                                                                                    | X6 · ADR-202                |
+| AX-7 | **감사 로그** — `agentCommandLog` 에 데이터 변경 묶음 (origin · ops 수 · 승인자 · 되돌림 여부) 기록. Airtable Omni 의 "Undo icon + checklist" 에 해당                                                                                                                                                                                                                                                               | X4                          |
+
+### 4-5. AX — 접근성
+
+UI-2 · UI-3 · UI-5 · UI-6 에 이미 포함된 것을 검수 항목으로 모은다 (출처는 §3-6).
+
+- 격자: `role=grid` 단일 tab stop · Arrow/Home/End/Ctrl+Home · Enter/F2/타이핑 진입 · Esc 취소 · `aria-readonly` (computed/id 셀) · `aria-rowcount/colcount` (가상화) · 셀 input 은 열 헤더로 `aria-labelledby`.
+- 알림: 행 추가 · 저장 · import · Run 결과 `role=status`, 오류 `role=alert`. Toast 는 RAC Toast (landmark · F6 · hover 시 timer 정지).
+- 다이얼로그/팝오버: 열림 시 첫 필드, 닫힘 시 호출 요소 복귀, 삭제로 호출 요소가 사라지면 다음 항목/추가 버튼.
+- key-value 편집기: 행별 Remove 고유 이름 · Add 후 새 key 포커스 · Bulk Edit 텍스트 대안. Body/JSON 편집기 `aria-label` + `aria-multiline`.
+- 타입 아이콘은 라벨 동반, 색 단독 구분 금지. `prefers-reduced-motion` 준수.
+- 목록 항목은 버튼 (키보드로 열림), 아이콘 버튼 전부 접근 가능한 이름.
+
+## 5. 착수 순서 제안
+
+의존 관계로 나눈다. Track 0 은 ADR 없이 결함 수리로 지금 가능하고, Track 1 이 나머지의 전제다. 각 Track 은 독립 커밋 단위로 쪼갤 수 있다.
+
+| Track | 내용                                                                                                                                                                                                                                                                                | 절차 · 전제                                                                                                                                            |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0     | **결함 수리 (동작 변경, 각각 독립)** — D1 기본 dataPath 빈 값 + 배열 응답 통과 · D2 key rename 시 행 migrate · U1 `defaultWidth` 560 · U2 prompt/confirm/alert 6곳 → Dialog/Toast (+ Y5 포커스 복귀 · Y4 status) · D5 의 dead UI (Field Mapping · pagination) 는 숨기거나 소비 연결 | `/fix` 절차 (원복 RED · 회귀 · live) · CHANGELOG 사용자-가시. ADR 불필요                                                                               |
+| 1     | **참조 계약 (ADR-152 재리뷰 후 착수)** — `collectionId` + **`fieldId`** 안정 참조 · resolve 단일 헬퍼 · lazy upgrade · store 통합 (`useDataTableStore` · React Query 병행 제거) · `DataChange` 적용기 + History 연결 (UX-4 · 4-0 ③)                                                 | 152 는 사용자 착수 금지 (2026-07-16) + scope 변경 재리뷰 대상 — **착수 해제와 fieldId 추가는 사용자 결정** (결정 지점 4 · 1). 013 은 그 뒤             |
+| 2     | **편집기 재설계 (신규 ADR — Data 패널 UI)** — UI-1~~8 · UX-1~~3 · UX-5~7 · a11y 검수 항목. 격자 (RAC grid + edit mode + 팝오버 필드) 와 API 편집기 (Send 바 · Schema 탭 · Auth · secret) 두 Phase 로                                                                                | Track 1 의 id 참조 위에서. Phase 당 live exercise · `/cross-check` 는 UI-7 (Skia 오버레이) 만 해당. 리뷰 루프는 `.claude/rules/review-loop-closure.md` |
+| 3     | **AI · AX (신규 ADR — 데이터 tool 계약)** — AX-1~~5 · AI-1~~4 · AI-6. 첫 출시는 AI-3 ("왜 실패했지?") + AX-1 (읽기 tool) + AX-3 (bind 정정) — 셋 다 승인 UI 가 필요 없다. `propose_data_change` + diff 승인은 그 다음                                                               | Track 1 의 `DataChange` 가 적용기. ADR-202 (compiler-first) 와의 관계 (recipe 편입 여부) 는 그 ADR 판정에 종속 — 결정 지점 2 후보                      |
+| 4     | **후순위** — M4 select/relation/computed 타입 · P3 datasource 2계층 · P8 pagination · OAuth2 · UX-8 서버 실행 · AI-5 질문 · AI 컬럼 · MCP 노출                                                                                                                                      | 각각 트리거 (사용자 요청 · publish 방침 해제 · 엔드포인트 수 증가) 전 보류                                                                             |
+
+**사용자 판정이 필요한 것 (제안 아님, 질문)**:
+
+1. ADR-152 착수 금지 해제 여부, 그리고 계약 v2 에 `fieldId` 를 더하는 scope 확장 (결정 지점 4).
+2. 편집 패널을 넓은 dock (UI-1, 기본 560px) 으로 둘지, 데이터 워크스페이스를 별도 전체 화면/모달로 뺄지. 이 문서는 dock 을 제안한다 — 캔버스와 같이 보며 바인딩하는 흐름 (UX-1) 이 우선이라서.
+3. Track 2 와 3 을 ADR 하나로 묶을지 둘로 나눌지 (결정 지점 1). 이 문서는 둘을 제안한다 — 2 는 D3 표면, 3 은 D2 계약이라 실패 원인 분리가 된다.
+4. relation 타입 (M4) 을 로드맵에 올릴지. 올리면 Skia 투영 · DOM 렌더 · 엔진 계약이 같이 커진다.
+
+## 6. 부록
+
+- 캡처: `/private/tmp/claude-501/-Users-admin-work-composition/347ba028-2839-4937-a62f-ac4709e6b72a/scratchpad/shots/` (세션 임시 — 00 워크스페이스 · 01 목록 빈 상태 · 02/03 프리셋 선택 · 05 Schema · 06 Table · 07 Settings · 08/09 API 목록 · 10~14 API 탭 5종 · 15 Variables). 재현 스크립트 `datatable-shots.mjs` (headless Playwright, `perf-baseline.mjs` 의 `waitReady` 재사용, `page.on("dialog")` 로 prompt 우회).
+- live 캡처가 만든 프로젝트 `datatable-research-1788979546836` (Users 프리셋 1 · API 1) 은 로컬 IndexedDB 에 남아 있다 — dashboard 에서 삭제 가능.
+- 외부 리서치 원문 (출처 URL 포함) 은 세션 서브에이전트 보고 3건 — 필요하면 이 문서 옆에 `DATA_PANEL_EXTERNAL_SOURCES_2026-09.md` 로 옮긴다.
