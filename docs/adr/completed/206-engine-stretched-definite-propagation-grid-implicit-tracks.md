@@ -8,7 +8,7 @@ Implemented — 2026-09-07 (Proposed 2026-09-07 · 리뷰 round 1 승인 · Phas
 
 **Domain: D3 (시각 스타일).** Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 catalog SSOT 의 대등 consumer 다 (ADR-063 · ADR-142). Preview 는 실제 Chrome 이 배치하므로, 자체 레이아웃 엔진 (`packages/composition-engine`, ADR-916) 이 CSS 명세와 어긋나면 그 자체가 **대칭 위반**이다. D1/D2 무관 — DOM 구조·props 는 건드리지 않는다.
 
-Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지의 변경 37건과 대조하고 Chrome 차등 하니스로 실측했다 ([TAFFY_UPSTREAM_DELTA_2026-09.md](../explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md) §2 — 24 케이스 중 19 어긋남). 그중 production 에 도달하면서 격차가 큰 항목이 넷이고, A 묶음 (③ absolute clamp · ⑤ 빈 상자 aspect) 은 `0b1cecb4a` 로 닫았다. 본 ADR 은 남은 세 항목이다.
+Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지의 변경 37건과 대조하고 Chrome 차등 하니스로 실측했다 ([TAFFY_UPSTREAM_DELTA_2026-09.md](../../explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md) §2 — 24 케이스 중 19 어긋남). 그중 production 에 도달하면서 격차가 큰 항목이 넷이고, A 묶음 (③ absolute clamp · ⑤ 빈 상자 aspect) 은 `0b1cecb4a` 로 닫았다. 본 ADR 은 남은 세 항목이다.
 
 | #   | 결함 (Chrome vs 엔진)                                                                                                          | 원인 위치 (`0b1cecb4a`)                                                                           | Taffy                        |
 | --- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ---------------------------- |

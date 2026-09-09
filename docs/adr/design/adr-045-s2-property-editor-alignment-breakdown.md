@@ -1,6 +1,6 @@
 # ADR-045 Breakdown: S2 Property Editor 정합성 정렬
 
-이 문서는 ADR-045의 구현 메모를 관리한다. 결정 자체는 [ADR-045](/Users/admin/work/composition/docs/adr/045-s2-property-editor-alignment.md)에 있고, 여기에는 컴포넌트별 실행 후보와 계약 확장 후보만 기록한다.
+이 문서는 ADR-045의 구현 메모를 관리한다. 결정 자체는 [ADR-045](../completed/045-s2-property-editor-alignment.md)에 있고, 여기에는 컴포넌트별 실행 후보와 계약 확장 후보만 기록한다.
 
 ## 목적
 

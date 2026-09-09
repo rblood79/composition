@@ -1,6 +1,6 @@
 # composition AI 기능 업그레이드 설계
 
-> **Status: Deprecated — 2026-05-13** (Replaced by [ADR-134](../134-ai-assistant-llm-infrastructure-unification.md) — AI Assistant 차세대 아키텍처)
+> **Status: Deprecated — 2026-05-13** (Replaced by [ADR-134](134-ai-assistant-llm-infrastructure-unification.md) — AI Assistant 차세대 아키텍처)
 >
 > **사유**: 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 land 된 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical vocabulary (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합. 이전 marker "Superseded by ADR-054" 도 ADR-054 Proposed 영역과 함께 ADR-134 로 통합 흡수.
 >

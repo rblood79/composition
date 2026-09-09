@@ -1,6 +1,6 @@
 # ADR-208 구현 분해 — radar/radial 제어 prop 과 차트 종류별 조건부 노출
 
-> 본 문서는 [ADR-208](../208-radar-radial-grid-controls.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문이 정본이며, 여기서 다시 판정하지 않는다.
+> 본 문서는 [ADR-208](../completed/208-radar-radial-grid-controls.md) 의 구현 상세다. 결정·대안·위험은 ADR 본문이 정본이며, 여기서 다시 판정하지 않는다.
 
 ## 1. Fork 4 질문 lock-in
 

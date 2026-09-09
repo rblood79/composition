@@ -60,7 +60,7 @@
 # Proposed → Superseded by ADR-115
 
 # 2) Superseded 행 추가 (본문 최상단)
-# > Superseded by [ADR-115](115-remove-designkit-system.md) — DesignKit 시스템 전수 제거 결정
+# > Superseded by [ADR-115](../completed/115-remove-designkit-system.md) — DesignKit 시스템 전수 제거 결정
 
 # 3) completed/ 이동
 git mv docs/adr/020-design-kit-improvement.md docs/adr/completed/020-design-kit-improvement.md

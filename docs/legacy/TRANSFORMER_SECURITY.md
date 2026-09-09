@@ -11,7 +11,7 @@
 > - **Level 1 (노코드 Response Mapping)**: `ApiEndpoint.responseMapping` 필드가 흡수. `apps/builder/src/builder/stores/utils/dataActions.ts:executeApiEndpoint` 의 `endpoint.responseMapping.dataPath` 처리 참조
 > - **Level 2/3 (JS / Custom TS)**: 제거됨. 향후 필요 시 별 ADR 재도입
 >
-> **참조**: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [ADR-132 breakdown](../../adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md) §3 Phase 7
+> **참조**: [ADR-132](../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [ADR-132 breakdown](../adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md) §3 Phase 7
 >
 > ---
 >
@@ -813,9 +813,9 @@ const result = await executeTransformer(transformerId, inputData);
 
 ### Related Documentation
 
-- [CLAUDE.md](../../../CLAUDE.md) - Project guidelines (Dataset Component section)
-- [PLANNED_FEATURES.md](../status/PLANNED.md) - Dataset Component details
-- [WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md](../../explanation/architecture/DATA_ARCHITECTURE.md) - Data architecture
+- [CLAUDE.md](../../CLAUDE.md) - Project guidelines (Dataset Component section)
+- [PLANNED_FEATURES.md](STATUS_PLANNED-2025-12.md) - Dataset Component details
+- [WEB_BUILDER_DATA_ARCHITECTURE_ANALYSIS.md](../explanation/architecture/DATA_ARCHITECTURE.md) - Data architecture
 
 ### External Resources
 

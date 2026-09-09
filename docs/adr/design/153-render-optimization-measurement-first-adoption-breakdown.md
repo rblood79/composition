@@ -1,6 +1,6 @@
 # ADR-153 구현 상세 — 유사 빌더 렌더링 최적화 도입 (측정 보강 우선 + Picture 캐시 단계 도입)
 
-> 본문: [153-render-optimization-measurement-first-adoption.md](../153-render-optimization-measurement-first-adoption.md)
+> 본문: [153-render-optimization-measurement-first-adoption.md](../completed/153-render-optimization-measurement-first-adoption.md)
 > 상태: Accepted — 착수 승인 2026-07-27 (`/execute-adr 153` 사용자 호출), Phase 1 부터 진행
 
 ---

@@ -1,6 +1,6 @@
 # ADR-046 Breakdown: Form, ColorField, Tabs 계약 확장
 
-이 문서는 [ADR-046](/Users/admin/work/composition/docs/adr/046-s2-contract-expansion-form-colorfield-tabs.md)의 구현 전 검토 메모다.
+이 문서는 [ADR-046](../completed/046-s2-contract-expansion-form-colorfield-tabs.md)의 구현 전 검토 메모다.
 
 ## 목표
 

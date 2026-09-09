@@ -2,7 +2,7 @@
 
 composition 프로젝트에서 구현 완료된 주요 기능들의 상세 문서입니다.
 
-> **Note**: 전체 완료 기능 목록은 [`docs/reference/status/COMPLETED.md`](../../reference/status/COMPLETED.md)를 참조하세요.
+> **Note**: 전체 완료 기능 목록은 [`docs/reference/status/COMPLETED.md`](../../legacy/STATUS_COMPLETED-2025-11.md)를 참조하세요.
 
 ---
 
@@ -12,7 +12,7 @@ composition 프로젝트에서 구현 완료된 주요 기능들의 상세 문�
 
 - [**Canvas Isolation**](CANVAS_ISOLATION.md) - Preview Runtime 격리 시스템
 - [**Data Panel**](DATA_PANEL.md) - DataTable 패널 시스템 (v2.3)
-- [**Events Panel**](EVENTS_PANEL.md) - 이벤트 시스템 및 패널
+- [**Events Panel**](../../legacy/EVENTS_PANEL-2025-12.md) - 이벤트 시스템 및 패널
 - [**Inspector Refactoring**](INSPECTOR_REFACTORING.md) - Inspector 리팩토링 완료
 
 ### UI/UX 기능
@@ -26,17 +26,17 @@ composition 프로젝트에서 구현 완료된 주요 기능들의 상세 문�
 ### 스타일 & 디자인
 
 - [**CSS Architecture**](CSS_ARCHITECTURE.md) - ITCSS 기반 CSS 아키텍처
-- [**Page Navigation**](PAGE_NAVIGATION.md) - 페이지 네비게이션 시스템
+- [**Page Navigation**](../../legacy/PAGE_NAVIGATION-2025.md) - 페이지 네비게이션 시스템
 - [**Panel Modal**](PANEL_MODAL.md) - 패널 모달 시스템
 
 ---
 
 ## 📚 관련 문서
 
-- [`docs/reference/status/COMPLETED.md`](../../reference/status/COMPLETED.md) - 전체 완료 기능 목록 및 요약
+- [`docs/reference/status/COMPLETED.md`](../../legacy/STATUS_COMPLETED-2025-11.md) - 전체 완료 기능 목록 및 요약
 - [`docs/reference/components/`](../../reference/components/) - 진행 중/계획 중 기능 문서
-- [`docs/reference/status/PLANNED.md`](../../reference/status/PLANNED.md) - 계획 중인 기능
-- [`docs/reference/status/UNIMPLEMENTED.md`](../../reference/status/UNIMPLEMENTED.md) - 미구현 기능
+- [`docs/reference/status/PLANNED.md`](../../legacy/STATUS_PLANNED-2025-12.md) - 계획 중인 기능
+- [`docs/reference/status/UNIMPLEMENTED.md`](../../legacy/STATUS_UNIMPLEMENTED-2026-05.md) - 미구현 기능
 
 ---
 

@@ -2,7 +2,7 @@
 
 > [webstudio-is/webstudio](https://github.com/webstudio-is/webstudio) 로컬 체크아웃 `/Users/admin/work/webstudio` (main `05706b542`, 2026-09-06) 를 composition 의 현재 상태 (before) 와 적용 후 형태 (after) 로 대조한 문서. 라이브러리·플러그인 도입이 아니라 **설계·규칙만** 판정한다. 근거는 양쪽 저장소의 파일 경로. 형식은 [EXTERNAL_PATTERN_DELTA_2026-09.md](EXTERNAL_PATTERN_DELTA_2026-09.md) 를 따른다.
 >
-> webstudio 는 iframe DOM 캔버스 + Remix 빌더 + 코드 생성 publish 구조다. composition 은 Skia 캔버스 + DOM Preview/Publish + Rust 레이아웃 엔진이라 **캔버스 층은 대부분 비적용**이고, 적용 가치는 데이터 모델 · 스타일 시스템 · 품질 게이트 · AI 도구 계약에 몰려 있다. 이전 기록: [STYLE_PARSING.md](STYLE_PARSING.md) §3.1 (2025-12, css-data · atomic CSS 언급) — 그때 표시한 gap (css-tree · mdn-data 부재) 은 2026-09-08 현재도 그대로다 (`apps/builder/package.json` · `packages/*/package.json` 에 두 의존성 0건).
+> webstudio 는 iframe DOM 캔버스 + Remix 빌더 + 코드 생성 publish 구조다. composition 은 Skia 캔버스 + DOM Preview/Publish + Rust 레이아웃 엔진이라 **캔버스 층은 대부분 비적용**이고, 적용 가치는 데이터 모델 · 스타일 시스템 · 품질 게이트 · AI 도구 계약에 몰려 있다. 이전 기록: [STYLE_PARSING.md](../../legacy/STYLE_PARSING.md) §3.1 (2025-12, css-data · atomic CSS 언급) — 그때 표시한 gap (css-tree · mdn-data 부재) 은 2026-09-08 현재도 그대로다 (`apps/builder/package.json` · `packages/*/package.json` 에 두 의존성 0건).
 
 ## 0. 요약
 
@@ -130,7 +130,7 @@
 ## 5. 관련
 
 - [EXTERNAL_PATTERN_DELTA_2026-09.md](EXTERNAL_PATTERN_DELTA_2026-09.md) — fulgur · pretext 대조 (형식 정본)
-- [STYLE_PARSING.md](STYLE_PARSING.md) §3.1 · §3.5 — webstudio css-data 최초 언급 (2025-12)
+- [STYLE_PARSING.md](../../legacy/STYLE_PARSING.md) §3.1 · §3.5 — webstudio css-data 최초 언급 (2025-12)
 - [PEN_V1.2.8_DELTA_2026-09.md](PEN_V1.2.8_DELTA_2026-09.md) — Pen 대조 (canonical 스키마 정합 기준)
 - `.claude/rules/premise-decision-points.md` — ⑩ 질문 규약
 - `/Users/admin/work/pencil/Resources/app.asar.unpacked/out/skills/pen-dev/{pen-schema.md,SKILL.md}` — Pen 중첩 정의 원본 (⑨ 층 ①)

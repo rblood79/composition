@@ -1,6 +1,6 @@
 # ADR-207 구현 상세 — 극좌표 차트 (radar · radial)
 
-> 본문: [207-polar-chart-radar-radial.md](../207-polar-chart-radar-radial.md)
+> 본문: [207-polar-chart-radar-radial.md](../completed/207-polar-chart-radar-radial.md)
 
 ## 1. 전제 lock-in (fork 4 질문 — 2026-09-08 사용자 confirm)
 

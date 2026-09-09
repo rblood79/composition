@@ -288,9 +288,9 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 - [`adr/README.md`](../adr/README.md) — ADR 전체 현황
 - [`adr/reviews/README.md`](../adr/reviews/README.md) — 리뷰 기록 인덱스
 - [`features/completed/README.md`](../features/completed/README.md) — 완료 기능 목록
-- [`reference/status/COMPLETED.md`](status/COMPLETED.md) — 완료 기능 요약
-- [`reference/status/PLANNED.md`](status/PLANNED.md) — 계획 중 기능
-- [`reference/status/UNIMPLEMENTED.md`](status/UNIMPLEMENTED.md) — 미구현 기능
+- [`reference/status/COMPLETED.md`](../legacy/STATUS_COMPLETED-2025-11.md) — 완료 기능 요약
+- [`reference/status/PLANNED.md`](../legacy/STATUS_PLANNED-2025-12.md) — 계획 중 기능
+- [`reference/status/UNIMPLEMENTED.md`](../legacy/STATUS_UNIMPLEMENTED-2026-05.md) — 미구현 기능
 - [`legacy/README.md`](../legacy/README.md) — 레거시 문서 인덱스
 - [`pencil-copy/README.md`](../pencil-copy/README.md) — Pencil 포맷 분석 인덱스
 

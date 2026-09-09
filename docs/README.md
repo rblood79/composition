@@ -105,7 +105,7 @@ docs/
 
 ### Migration (마이그레이션)
 
-- [React Query 스타일 마이그레이션](./how-to/migration/REACT_QUERY_STYLE.md)
+- [React Query 스타일 마이그레이션](legacy/REACT_QUERY_STYLE.md)
 
 ### Troubleshooting (문제 해결)
 
@@ -115,13 +115,13 @@ docs/
 
 - [기여 가이드](./how-to/development/CONTRIBUTING.md)
 - [README 작성 가이드](./how-to/development/README_WRITING.md)
-- [Skeleton 시스템 구현](./how-to/development/SKELETON_SYSTEM.md)
-- [P7 구현 계획](./how-to/development/P7_IMPLEMENTATION.md)
-- [패널 최적화](./how-to/development/PANEL_OPTIMIZATION.md)
-- [성능 구현 가이드](./how-to/development/PERFORMANCE_IMPLEMENTATION.md)
-- [Long Task 최적화](./how-to/development/LONG_TASK_OPTIMIZATION.md)
+- [Skeleton 시스템 구현](legacy/SKELETON_SYSTEM.md)
+- [P7 구현 계획](legacy/P7_IMPLEMENTATION.md)
+- [패널 최적화](legacy/PANEL_OPTIMIZATION.md)
+- [성능 구현 가이드](legacy/PERFORMANCE_IMPLEMENTATION.md)
+- [Long Task 최적화](legacy/LONG_TASK_OPTIMIZATION.md)
 - [벤치마크 템플릿](./how-to/development/BENCHMARK_TEMPLATE.md)
-- [컴포넌트 통합](./how-to/development/COMPONENT_CONSOLIDATION.md)
+- [컴포넌트 통합](legacy/COMPONENT_CONSOLIDATION.md)
 
 ---
 
@@ -155,7 +155,7 @@ docs/
 - [CSS Architecture](./features/completed/CSS_ARCHITECTURE.md) - ITCSS 기반 CSS 아키텍처
 - [Canvas Isolation](./features/completed/CANVAS_ISOLATION.md) - Preview Runtime 격리
 - [Data Panel](./features/completed/DATA_PANEL.md) - DataTable 패널 시스템
-- [Events Panel](./features/completed/EVENTS_PANEL.md) - 이벤트 시스템
+- [Events Panel](legacy/EVENTS_PANEL-2025-12.md) - 이벤트 시스템
 - [Inspector Refactoring](./features/completed/INSPECTOR_REFACTORING.md) - Inspector 리팩토링
 - [Inspector Style](./features/completed/INSPECTOR_STYLE.md) - 스타일 패널
 - [Keyboard Shortcuts](./features/completed/KEYBOARD_SHORTCUTS.md) - 키보드 단축키
@@ -165,7 +165,7 @@ docs/
 - [Multi Select](./features/completed/MULTI_SELECT.md) - 다중 선택
 - [Nested Routes](./features/completed/NESTED_ROUTES.md) - 중첩 라우팅
 - [Nodes Panel Design](./features/completed/NODES_PANEL_DESIGN.md) - Nodes 패널
-- [Page Navigation](./features/completed/PAGE_NAVIGATION.md) - 페이지 네비게이션
+- [Page Navigation](legacy/PAGE_NAVIGATION-2025.md) - 페이지 네비게이션
 - [Panel Modal](./features/completed/PANEL_MODAL.md) - 패널 모달
 - [Properties Panel](./features/completed/PROPERTIES_PANEL.md) - 속성 패널
 - [Collection Data Binding](./features/completed/COLLECTION_DATA_BINDING.md) - 컬렉션 바인딩
@@ -177,24 +177,24 @@ docs/
 
 - [패널 시스템](./reference/components/PANEL_SYSTEM.md)
 - [React Aria 라이브러리 통합](./reference/components/REACT_ARIA_LIBRARIES.md)
-- ~~[Transformer 보안](./reference/components/TRANSFORMER_SECURITY.md)~~ ⚫ Superseded (ADR-132 Phase 7)
+- ~~[Transformer 보안](legacy/TRANSFORMER_SECURITY.md)~~ ⚫ Superseded (ADR-132 Phase 7)
 - [Custom ID 패턴](./reference/components/CUSTOM_ID_PATTERN.md)
 - [SaveService](./reference/components/SAVESERVICE.md)
 - [Canvas Interactions](./reference/components/CANVAS_INTERACTIONS.md)
 - [Canvas Scrollbar](./reference/components/CANVAS_SCROLLBAR.md)
-- [Workflow 동기화](./reference/components/WORKFLOW_SYNC.md)
+- [Workflow 동기화](legacy/WORKFLOW_SYNC.md)
 - [Border Radius Handles](./reference/components/BORDER_RADIUS_HANDLES.md)
 - [Drag & Drop Layer](./reference/components/DRAG_DROP_LAYER.md)
-- [Project File Web](./reference/components/PROJECT_FILE_WEB.md)
+- [Project File Web](legacy/PROJECT_FILE_WEB.md)
 - [Spec CSS Boundary](./reference/components/SPEC_CSS_BOUNDARY.md)
 
 ### Status (상태)
 
-- [완료된 기능 요약](./reference/status/COMPLETED.md) - 전체 완료 기능 인덱스
-- [계획된 기능 상세](./reference/status/PLANNED.md) - Context Menu, DataTable 등
-- [미구현 기능 개요](./reference/status/UNIMPLEMENTED.md) - Server-side Action 등 (Transformer 보안 ⚫ Superseded ADR-132 Phase 7)
+- [완료된 기능 요약](legacy/STATUS_COMPLETED-2025-11.md) - 전체 완료 기능 인덱스
+- [계획된 기능 상세](legacy/STATUS_PLANNED-2025-12.md) - Context Menu, DataTable 등
+- [미구현 기능 개요](legacy/STATUS_UNIMPLEMENTED-2026-05.md) - Server-side Action 등 (Transformer 보안 ⚫ Superseded ADR-132 Phase 7)
 - [IndexedDB 현행 스키마](./reference/schemas/INDEXDB.md)
-- [과거 DB 호환성 분석](./reference/status/DB_COMPATIBILITY.md) (legacy)
+- [과거 DB 호환성 분석](legacy/DB_COMPATIBILITY-2025-11.md) (legacy)
 - [과거 Style 시스템 설계](./legacy/STYLE_SYSTEM.md) (legacy)
 - [React Aria 1.13 계획](./legacy/REACT_ARIA_1.13.md) (legacy)
 
@@ -214,10 +214,10 @@ docs/
 
 - [빌더 아키텍처 비교](./explanation/research/BUILDER_COMPARISON.md)
 - [React Spectrum 비교](./explanation/research/REACT_SPECTRUM_COMPARISON.md)
-- [스타일 파싱 최적화](./explanation/research/STYLE_PARSING.md)
+- [스타일 파싱 최적화](legacy/STYLE_PARSING.md)
 - [Visual Builder 데이터](./explanation/research/VISUAL_BUILDER_DATA.md)
 - [Claude Code UI 영감](./explanation/research/CLAUDECODE_UI.md)
-- [PGlite vs SQLite](./explanation/research/PGLITE_VS_SQLITE.md)
+- [PGlite vs SQLite](legacy/PGLITE_VS_SQLITE.md)
 - [Photoshop 벤치마크](./explanation/research/PHOTOSHOP_BENCHMARK.md)
 
 ### Pencil 분석

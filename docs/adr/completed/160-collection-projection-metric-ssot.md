@@ -18,7 +18,7 @@ data-bound collection(ListBox / GridList)의 projection 행은 텍스트(label /
 
 이 문제는 레이아웃 엔진(composition-engine, ADR-916)이나 Skia 렌더 엔진(ADR-900)의 코어 결함이 **아니다**. 엔진은 텍스트를 측정하지 않는다 — 노드 height 는 JS 가 계산해 주입하고, 엔진은 배치만 한다. 근본 원인은 **flat-props projection 이라는 설계 선택**(대용량 collection 성능을 위해 실제 노드 unfold 를 피한 것)의 본질적 취약점이며, **escape(M3)가 패키지 경계로 layout-util 측정 함수를 재사용하지 못해 별도 재측정한다는 점**이다.
 
-**3-Domain 귀속**: 본 ADR 은 [D3(시각 스타일)](../../.claude/rules/ssot-hierarchy.md) 내부의 구현 방식 결정이다. Skia(escape) ↔ CSS(DOM) symmetric consumer 의 **시각 결과 동일성**을 측정 SSOT 단일화로 보장한다. D1(DOM 구조)·D2(props/API) 무변경.
+**3-Domain 귀속**: 본 ADR 은 [D3(시각 스타일)](../../../.claude/rules/ssot-hierarchy.md) 내부의 구현 방식 결정이다. Skia(escape) ↔ CSS(DOM) symmetric consumer 의 **시각 결과 동일성**을 측정 SSOT 단일화로 보장한다. D1(DOM 구조)·D2(props/API) 무변경.
 
 **Hard Constraints**:
 

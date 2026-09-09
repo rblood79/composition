@@ -28,7 +28,7 @@
 
 Transformer 시스템은 외부 caller 0건 검증 후 dead infrastructure 로 판정되어 전수 제거됨. Level 1 (노코드 Response Mapping) 기능은 `ApiEndpoint.responseMapping` 필드가 흡수. Level 2/3 (JS / Custom TS) 는 향후 필요 시 별 ADR 재도입 — 그때 안전 패턴 (Web Worker 격리 / WASM sandbox) 채택 필수. 아래 historical 내용은 제거 이전 시점 (2025-12-02) 의 분석 기록.
 
-**참조**: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [TRANSFORMER_SECURITY.md](../components/TRANSFORMER_SECURITY.md) (historical)
+**참조**: [ADR-132](../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [TRANSFORMER_SECURITY.md](TRANSFORMER_SECURITY.md) (historical)
 
 ---
 
@@ -246,7 +246,7 @@ Element/Area/Multi-select에 대한 컨텍스트 메뉴 시스템
 
 ### 상세 설계
 
-[`docs/reference/status/PLANNED.md`](PLANNED.md) 참조 (Context Menu System 섹션)
+[`docs/reference/status/PLANNED.md`](STATUS_PLANNED-2025-12.md) 참조 (Context Menu System 섹션)
 
 ---
 
@@ -281,7 +281,7 @@ CREATE TABLE custom_presets (
 
 ### 상세 설계
 
-[`docs/reference/status/PLANNED.md`](PLANNED.md) 참조 (Layout Preset 개선 계획 섹션)
+[`docs/reference/status/PLANNED.md`](STATUS_PLANNED-2025-12.md) 참조 (Layout Preset 개선 계획 섹션)
 
 ---
 

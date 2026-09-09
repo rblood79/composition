@@ -213,7 +213,7 @@ CSS 변환:
 
 ## Part 3: StyleValues 분할 최적화
 
-> **참조**: [STYLE_PANEL_PARSING_OPTIMIZATION.md](../explanation/research/STYLE_PARSING.md)
+> **참조**: [STYLE_PANEL_PARSING_OPTIMIZATION.md](STYLE_PARSING.md)
 
 ### 3.1 현재 문제
 

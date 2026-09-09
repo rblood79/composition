@@ -1,6 +1,6 @@
 # ADR-170 Design Breakdown: 엔진 기본 축 전수 정합 격자 (display×size conformance sweep)
 
-> 본문: [ADR-170](../170-engine-basic-axis-conformance-sweep.md)
+> 본문: [ADR-170](../completed/170-engine-basic-axis-conformance-sweep.md)
 > 구현 상세 전용 문서 — Phase 목록 / 축 설계 / 커버리지 맵 / 사각 목록 / 체크리스트는 여기에만 둔다.
 
 ## §0. 배경 요약

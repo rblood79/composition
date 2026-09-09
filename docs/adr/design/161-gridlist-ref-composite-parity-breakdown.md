@@ -1,6 +1,6 @@
 # ADR-161 구현 상세 — GridList ref 기반 재사용 composite 전환
 
-> 본 문서는 [ADR-161](../161-gridlist-ref-composite-parity.md) 의 구현 상세(Phase 분해 / 파일 변경 / 체크리스트) 전용. 결정·위험·Gate 는 ADR 본문 참조.
+> 본 문서는 [ADR-161](../completed/161-gridlist-ref-composite-parity.md) 의 구현 상세(Phase 분해 / 파일 변경 / 체크리스트) 전용. 결정·위험·Gate 는 ADR 본문 참조.
 
 ## §0 참조 baseline — ListBox 완성 경로 (복제 대상)
 

@@ -11,7 +11,7 @@
 > **파생 후속 작업 2건** (본 ADR 없이 개별 처리 — 아래 §파생 작업):
 >
 > 1. `performanceMonitor.startFPSMeasurement` 의 상시 rAF 루프 제거 — **완료 2026-07-26** (DEV 게이트 대신 버스트 측정)
-> 2. 렌더링 CPU 최적화의 질량은 유휴가 아니라 **상호작용 프레임** — [ADR-153](../153-render-optimization-measurement-first-adoption.md) 우선순위 근거로 본 실측 인용. **완료 2026-07-26** (ADR-153 Context + G1 계측 방법 주의)
+> 2. 렌더링 CPU 최적화의 질량은 유휴가 아니라 **상호작용 프레임** — [ADR-153](153-render-optimization-measurement-first-adoption.md) 우선순위 근거로 본 실측 인용. **완료 2026-07-26** (ADR-153 Context + G1 계측 방법 주의)
 
 ## Status
 
@@ -61,7 +61,7 @@ composition 의 wake 배선 구조 (2026-07-26 실코드 확인 — **리뷰 rou
 2. **콘텐츠·오버레이 축은 허브가 아니라 폴링이다** — `recordInvalidation` (`skia/renderInvalidation.ts:85`) 호출 25곳 중 **16곳이 `renderFrameCore` 내부** (`SkiaCanvas.tsx:449-750`) 의 **변경 감지기**다. 프레임이 signature/version 을 ref 와 비교해 차이를 발견한 *결과*로 기록하는 것이라, 루프가 멈춘 상태에서는 실행 자체가 안 된다 — **`recordInvalidation` 후킹은 이 16곳에 대해 순환 (wake 불가)**. 프레임 밖 9곳 (`useSkiaNode.ts:67,83` / `SkiaCanvas.tsx:276,436,773,800,811,843,863`) 만 유효 wake 지점.
 3. 따라서 **wake 는 폴링이 감지하던 상류 mutation 지점에 새로 심어야 한다** — 주요 2 경로가 현재 무기록: ① 콘텐츠 편집은 `StoreRenderBridge` 자체 구독 → `resync` → `registerSkiaNode` (`useSkiaNode.ts:40,46`) 로 `registryVersion` 만 올리고 `recordInvalidation` 을 호출하지 않는다 ② 선택/편집 컨텍스트·AI 는 `invalidationPacket` useMemo (`SkiaCanvas.tsx:173`) → `useEffect [invalidationPacket]` (`:279-281`) 가 ref 만 갱신한다. 이 두 지점이 Phase 1 의 실제 1차 배선 대상 (breakdown §3 갱신).
 
-**인접 ADR 직교성**: [ADR-153](../153-render-optimization-measurement-first-adoption.md) (Picture 캐시 + GPU 측정 보강, Proposed) 은 **content 프레임 내부 비용** 축이고, 본 ADR 은 **프레임 실행 여부** 축 — scope 비중첩. 둘 다 측정 우선 게이트 (본 ADR G0 ↔ 153 Phase 1) 라는 방법론만 공유한다.
+**인접 ADR 직교성**: [ADR-153](153-render-optimization-measurement-first-adoption.md) (Picture 캐시 + GPU 측정 보강, Proposed) 은 **content 프레임 내부 비용** 축이고, 본 ADR 은 **프레임 실행 여부** 축 — scope 비중첩. 둘 다 측정 우선 게이트 (본 ADR G0 ↔ 153 Phase 1) 라는 방법론만 공유한다.
 
 **SSOT 3-domain 판정**: 비대상 — builder 렌더링 인프라 (프레임 스케줄링). 시각 결과 불변이 hard constraint 이므로 D3 대칭에 영향 없음.
 

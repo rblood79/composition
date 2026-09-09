@@ -9,11 +9,11 @@ Implemented — 2026-08-24 (Phase 0~~4 / G1~~G4 전건 통과)
 > (G1) · Phase 2 structure emitter (G2) · Phase 3 경로 분류·R4 판정 (G3) ·
 > Phase 4 live 검증 (G4) → Implemented 2026-08-24.
 >
-> 종결 증적: [Phase 0](design/190-phase-0-emitter-inventory.md) ·
-> [Phase 1](design/190-phase-1-g1-style-emitter.md) ·
-> [Phase 2](design/190-phase-2-g2-structure-emitter.md) ·
-> [Phase 3](design/190-phase-3-g3-path-classification.md) ·
-> [Phase 4](design/190-phase-4-g4-closure.md)
+> 종결 증적: [Phase 0](../design/190-phase-0-emitter-inventory.md) ·
+> [Phase 1](../design/190-phase-1-g1-style-emitter.md) ·
+> [Phase 2](../design/190-phase-2-g2-structure-emitter.md) ·
+> [Phase 3](../design/190-phase-3-g3-path-classification.md) ·
+> [Phase 4](../design/190-phase-4-g4-closure.md)
 
 ## Context
 
@@ -135,7 +135,7 @@ Builder(Skia) consumer 내부 렌더 파이프라인 성능 메커니즘이다. 
   constraint 1 을 완결할 수 없고, 표면별 중복이 유지보수 HIGH.
 - **대안 C 기각**: O(N) diff 가 N-비결합이라는 본 ADR 의 목적 자체와 모순.
 
-> 구현 상세: [190-commit-descriptor-emitter-expansion-breakdown.md](design/190-commit-descriptor-emitter-expansion-breakdown.md)
+> 구현 상세: [190-commit-descriptor-emitter-expansion-breakdown.md](../design/190-commit-descriptor-emitter-expansion-breakdown.md)
 
 ## Risks
 

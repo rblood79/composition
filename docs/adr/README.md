@@ -764,23 +764,23 @@ ADR-098 Charter + ADR-099 (098-c Collection Section/Header) / ADR-100 (098-a Sel
 
 - [ADR-032](completed/032-events-data-integration.md): 이벤트 플랫폼 상위 아키텍처
 - [ADR-034](completed/034-events-panel-renovation.md): Events Panel 전면 UX 개편 결정
-- [events-panel-wireframe.md](/Users/admin/work/composition/docs/adr/design/events-panel-wireframe.md): 화면 구조 와이어프레임
-- [events-panel-state-model.md](/Users/admin/work/composition/docs/adr/design/events-panel-state-model.md): 패널 상태 모델
-- [events-panel-recipe-system.md](/Users/admin/work/composition/docs/adr/design/events-panel-recipe-system.md): recipe 시스템 상세 설계
-- [events-panel-binding-diagnostics.md](/Users/admin/work/composition/docs/adr/design/events-panel-binding-diagnostics.md): binding diagnostics 설계
-- [events-panel-review-checklist.md](/Users/admin/work/composition/docs/adr/design/events-panel-review-checklist.md): 설계 리뷰 체크리스트
+- [events-panel-wireframe.md](design/events-panel-wireframe.md): 화면 구조 와이어프레임
+- [events-panel-state-model.md](design/events-panel-state-model.md): 패널 상태 모델
+- [events-panel-recipe-system.md](design/events-panel-recipe-system.md): recipe 시스템 상세 설계
+- [events-panel-binding-diagnostics.md](design/events-panel-binding-diagnostics.md): binding diagnostics 설계
+- [events-panel-review-checklist.md](design/events-panel-review-checklist.md): 설계 리뷰 체크리스트
 
 ## Workspace Runtime 설계 문서군
 
 - [ADR-035](completed/035-workspace-canvas-refactor.md): 1차 runtime 구조 정리
-- [workspace-canvas-refactor-breakdown.md](/Users/admin/work/composition/docs/adr/design/workspace-canvas-refactor-breakdown.md): ADR-035 작업 분해
+- [workspace-canvas-refactor-breakdown.md](design/workspace-canvas-refactor-breakdown.md): ADR-035 작업 분해
 - [ADR-037](completed/037-workspace-scene-runtime-rearchitecture.md): Scene Snapshot/Interaction Model 후속 구조 재구성 완료
 - [ADR-039](completed/039-page-scoped-rendering.md): visible page 중심 page-scoped rendering 완료
 - [ADR-040](completed/040-visible-page-delta-runtime.md): visible page + delta update 모델로 상태 동기화 계약 전환 완료
 - [039-phase-0-baseline.md](completed/039-phase-0-baseline.md): ADR-039 baseline 및 budget
 - [037-phase-0-baseline.md](completed/037-phase-0-baseline.md): ADR-037 phase gate 기준
-- [workspace-scene-runtime-breakdown.md](/Users/admin/work/composition/docs/adr/design/workspace-scene-runtime-breakdown.md): ADR-037 실행 분해
-- [workspace-scene-phase-1-scenesnapshot.md](/Users/admin/work/composition/docs/adr/design/workspace-scene-phase-1-scenesnapshot.md): Phase 1 상세 구현 설계
+- [workspace-scene-runtime-breakdown.md](design/workspace-scene-runtime-breakdown.md): ADR-037 실행 분해
+- [workspace-scene-phase-1-scenesnapshot.md](design/workspace-scene-phase-1-scenesnapshot.md): Phase 1 상세 구현 설계
 
 ---
 

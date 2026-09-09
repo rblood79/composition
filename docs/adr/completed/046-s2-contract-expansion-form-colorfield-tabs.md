@@ -152,7 +152,7 @@ ADR-045는 자동 생성 기반 Property Editor(ADR-041) 이전에 필요한 전
 
 - [ADR-045](045-s2-property-editor-alignment.md): 기존 계약과 editor surface 정렬
 - [ADR-041](041-spec-driven-property-editor.md): 자동 생성 기반 Property Editor
-- [ADR-046 Breakdown](/Users/admin/work/composition/docs/adr/design/adr-046-s2-contract-expansion-form-colorfield-tabs-breakdown.md)
+- [ADR-046 Breakdown](../design/adr-046-s2-contract-expansion-form-colorfield-tabs-breakdown.md)
 - [React Spectrum S2 Form](/Users/admin/work/composition/.agents/skills/react-spectrum-s2/references/components/Form.md)
 - [React Spectrum S2 ColorField](/Users/admin/work/composition/.agents/skills/react-spectrum-s2/references/components/ColorField.md)
 - [React Spectrum S2 Tabs](/Users/admin/work/composition/.agents/skills/react-spectrum-s2/references/components/Tabs.md)

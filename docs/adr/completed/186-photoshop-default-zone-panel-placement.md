@@ -54,7 +54,7 @@ min/max와 pointer/keyboard splitter를 한 owner에서 관리한다. 이는 zon
 - [Photoshop Online](https://photoshop.adobe.com/)
 - [Pen](https://www.pen.dev/) — 사용자가 직접 확인한 9-zone interaction reference
 - [Adobe Spectrum Web Components Split View](https://opensource.adobe.com/spectrum-web-components/components/split-view/)
-- [ADR-922](completed/922-photoshop-style-panel-layout-coordinator.md)
+- [ADR-922](922-photoshop-style-panel-layout-coordinator.md)
 
 ### ADR-922 fork 전제
 

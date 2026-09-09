@@ -625,8 +625,8 @@ Page
 
 > **관련 문서**:
 >
-> - [LAYOUT_PRESET_SYSTEM.md](../../features/completed/LAYOUT_PRESETS.md) - Phase 6 완료 상세
-> - [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../../features/completed/LAYOUT_SLOTS.md) - 전체 Layout/Slot 시스템 계획
+> - [LAYOUT_PRESET_SYSTEM.md](../features/completed/LAYOUT_PRESETS.md) - Phase 6 완료 상세
+> - [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](../features/completed/LAYOUT_SLOTS.md) - 전체 Layout/Slot 시스템 계획
 
 ### 1. SlotEditor 구현 ✅ COMPLETE
 

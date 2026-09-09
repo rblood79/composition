@@ -1388,7 +1388,7 @@ export function ThenElseBlock({
 ### 8.2 관련 프로젝트 문서
 
 - [CLAUDE.md - Event System Section](/CLAUDE.md#event-system-inspector-events-tab)
-- [PANEL_SYSTEM.md](/docs/PANEL_SYSTEM.md)
+- [PANEL_SYSTEM.md](../reference/components/PANEL_SYSTEM.md)
 - [COMPLETED_FEATURES.md](/docs/COMPLETED_FEATURES.md)
 
 ---

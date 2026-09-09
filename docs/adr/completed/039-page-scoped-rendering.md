@@ -31,7 +31,7 @@ composition Team
 
 ### 문제 1. Scene 파생 계산이 전체 페이지 기준이다
 
-[buildSceneSnapshot.ts](/Users/admin/workspace/composition/docs/adr/039-page-scoped-rendering.md) 단계에서
+[buildSceneSnapshot.ts](039-page-scoped-rendering.md) 단계에서
 매번 다음 값이 전체 페이지 기준으로 재생성된다.
 
 - `allPageData`

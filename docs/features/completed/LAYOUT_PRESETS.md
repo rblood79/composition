@@ -336,5 +336,5 @@ slotContent = pageElements
 ## 관련 문서
 
 - [LAYOUT_SLOT_SYSTEM_PLAN_V2.md](LAYOUT_SLOTS.md) - 전체 Layout/Slot 시스템 계획
-- [PLANNED_FEATURES.md](../../reference/status/PLANNED.md) - 계획 중인 기능들
+- [PLANNED_FEATURES.md](../../legacy/STATUS_PLANNED-2025-12.md) - 계획 중인 기능들
 - [PANEL_SYSTEM.md](../../reference/components/PANEL_SYSTEM.md) - 패널 시스템 아키텍처
