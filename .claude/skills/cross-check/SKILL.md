@@ -4,14 +4,14 @@ description: CSS↔Skia 2-way 렌더링 정합성 검증에 사용. spec/catalog
 user-invocable: true
 ---
 
-## SSOT 체인 내 위상 (CRITICAL)
+## SSOT 체인 내 위상
 
 본 skill은 [ssot-hierarchy.md](../../rules/ssot-hierarchy.md) 3-domain 중 **D3(시각 스타일) symmetric consumer 대칭 집행 수단**. Builder(Skia)와 Preview(DOM+CSS)가 동일 Spec source에서 **시각 결과의 동일성**을 생성하는지 검증. 한쪽을 다른 쪽의 "기준"으로 취급 금지.
 
 ## 호출 시점 (중요)
 
 - 버그 추적 중 rendering parity 관련 이슈 발견 시 **즉시** 이 skill 호출
-- TDD (RED-GREEN-REFACTOR) 사이클의 REFACTOR 단계 종료 후 **반드시** cross-check 실행
+- TDD (RED-GREEN-REFACTOR) 사이클의 REFACTOR 단계 종료 후 cross-check 를 실행한다
 - 렌더링 관련 작업이면 계획 단계에서 cross-check 를 검증 step 으로 미리 포함
 - CRITICAL 이슈 발견 시 즉시 수정 후 `pnpm build:specs && pnpm type-check` 실행
 
@@ -35,7 +35,7 @@ user-invocable: true
 
 ## Phase 2: 컴포넌트별 5-레이어 교차 검증
 
-**Step 0 — catalog 등록 선판정 (CRITICAL)**: 컴포넌트 키가 `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE` 에 존재하면 **catalog 경로** (variants/sizes/containerStyles 해당 키), 미존재 시에만 잔존 spec 경로 (Frame/Group/Slot 3개). 판정 후 아래 테이블 작성:
+**Step 0 — catalog 등록 선판정**: 컴포넌트 키가 `packages/shared/src/catalog/generated/componentRulesTable.ts` 의 `COMPONENT_RULES_TABLE` 에 존재하면 **catalog 경로** (variants/sizes/containerStyles 해당 키), 미존재 시에만 잔존 spec 경로 (Frame/Group/Slot 3개). 판정 후 아래 테이블 작성:
 
 | 레이어               | 파일                                                                                                                                         | 검증 항목                                                                          | 상태 |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ---- |
@@ -91,7 +91,7 @@ user-invocable: true
 
 발견된 이슈는 즉시 수정합니다. 수정 후 `pnpm build:specs && pnpm type-check`로 검증합니다.
 
-### Phase 4.1: Validate → Fix → Repeat 루프 (CRITICAL)
+### Phase 4.1: Validate → Fix → Repeat 루프
 
 단발성 검증이 아닌 **수렴 루프**로 실행합니다.
 
@@ -117,11 +117,11 @@ while (이슈 테이블에 미해결 CRITICAL/HIGH 존재):
 
 개발 서버(`localhost:5173`)가 실행 중이면 Chrome MCP로 **Skia Canvas ↔ Preview iframe ↔ Style Panel** 세 축 대칭을 프로그래매틱 + visual 이중 확증합니다. 세션 16 (2026-04-22) ADR-082 G4 / ADR-056 / ADR-064 재확증에서 확립된 패턴.
 
-### 5.0 사전 게이트 — dist 신선도 확인 (CRITICAL)
+### 5.0 사전 게이트 — dist 신선도 확인
 
 > **Why**: spec source 변경 후 `pnpm build:specs` 누락 시 dev 서버는 stale dist 를 서빙하여 Phase 5 시각 검증이 거짓 통과/거짓 실패를 낳음. ADR-057/058 verification 중 "stale specs/dist requiring rebuild" hidden cause 재발 방지.
 
-Chrome MCP 진입 전 반드시 아래 절차 수행:
+Chrome MCP 진입 전 아래 절차를 거친다:
 
 ```bash
 # 1) flag 파일 확인 (PostToolUse spec-rebuild-flag.sh 가 생성)

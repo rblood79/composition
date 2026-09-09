@@ -4,7 +4,7 @@ composition는 **노코드 웹 빌더** 애플리케이션입니다 (pnpm monore
 
 - `packages/react-aria-starter` 는 RAC starter upstream 스냅샷 — **read-only 참조 baseline** (편집 금지)
 
-> **⚠️ 필수**: 코드 작업 시작 전 반드시 `.claude/skills/composition-patterns/SKILL.md`를 읽으세요.
+> 코드 작업 전 `.claude/skills/composition-patterns/SKILL.md` 를 읽는다 — 규칙 인덱스가 거기 있다.
 
 ## 명령 · 환경
 
@@ -27,7 +27,7 @@ env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABAS
 
 **테스트 배치**: unit 은 모듈 옆 `*.test.ts` / `__tests__/` (`vitest.config.ts`) · 엔진 parity 는 `apps/builder/tests/parity/` (browser, `vitest.browser.config.ts`) · 시각 parity 는 `scripts/visual-parity-gate.mjs` (smoke/full). 실패 count 는 `pnpm -F <pkg> test` 로만 정확 (turbo 합산 금지).
 
-## SSOT 체인 정본 — 3-Domain 분할 (CRITICAL)
+## SSOT 체인 정본 — 3-Domain 분할
 
 **D1 DOM/접근성** (Adobe RAC 절대 권위) / **D2 Props/API** (RSP 참조 + custom — 타입만) / **D3 시각 스타일** (catalog `COMPONENT_RULES_TABLE` + theme/tokens SSOT — 잔존 spec 3개 Frame/Group/Slot 예외). Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 D3 의 **대등 symmetric consumer** — 대칭 = 시각 결과의 동일성.
 
@@ -60,7 +60,7 @@ env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABAS
 - CRITICAL/HIGH 이슈: 즉시 수정, 스킵 금지
 - **판독 루프 종결**: phase 당 판독 1 + 수리 검증 1, HIGH 0 이면 실행자가 닫힘 선언 · production 재현 없는 커버리지 지적은 LOW deferred · 동작 변경 0 커밋은 축소 절차 — 정본 `.claude/rules/review-loop-closure.md` (상시 로드)
 
-### 완료 기준 — test/type-check PASS 단독으로 ADR·task 종결 금지 (CRITICAL)
+### 완료 기준 — test/type-check PASS 단독으로 ADR·task 종결 금지
 
 unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합한가" 만 확인한다 — live behavior 는 검증하지 않는다. ADR Implemented 승격 또는 task "완료" 선언 전:
 
@@ -81,7 +81,7 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 
 `Memory → Index → History (즉시) → DB → Preview (백그라운드)` — 순서 필수 보존. 요소 순서는 canonical `children[]` 배열이 SSOT (ADR-118), `order_num` 은 export mirror 파생. 상세: `.claude/rules/state-management.md`
 
-## CHANGELOG 관리 (CRITICAL)
+## CHANGELOG 관리
 
 `docs/CHANGELOG.md` 는 사용자-가시 변경의 SSOT — 같은 커밋 또는 바로 다음 커밋에 반영. **트리거**: ADR Implemented 승격 / 사용자-가시 버그 수정 / 신규 컴포넌트·prop·public API / 3+ 파일 아키텍처 변경·Breaking·성능 회귀 수정 / Phase 다단계 작업 완결. **면제**: typo / 주석 / 내부 리팩터 / 테스트만 / stats / hook 튜닝.
 
@@ -108,13 +108,13 @@ unit-test / type-check / codex:preflight 는 "코드가 자기 자신과 정합�
 | CHANGELOG 본문   | [docs/CHANGELOG.md](docs/CHANGELOG.md)                                         | 현재 엔트리 — 500KB 초과 시 구간 아카이브 (`CHANGELOG-2026-Q3-archived.md` 등) 로 이관                        |
 | 디자인 캔버스    | [docs/design/](docs/design/)                                                   | 디자인 산출물 — 새 캔버스는 `docs/design/<주제>/` 에만. 저장소 루트에 `design/`·`.design*/` 생성 금지         |
 
-## 마이그레이션/리네임/삭제 작업 원칙 (CRITICAL)
+## 마이그레이션/리네임/삭제 작업 원칙
 
 - **원본 파일 삭제는 명시적 승인 필요**: "ok", "좋아", "진행해" 같은 일반적 동의는 삭제 승인이 아님. 삭제 전 "원본 파일 `X` 를 삭제해도 되나요?" 로 별도 확인
 - 마이그레이션 중 원본은 사용자가 검증 완료를 명시할 때까지 유지
 - 대규모 이동/리네임: 새 경로 생성 → 검증 → (승인 후) 원본 삭제 — 3단계 분리
 
-## Git Push 정책 (CRITICAL — 로컬 작업 환경 절대 정책)
+## Git Push 정책 — 로컬 작업 환경
 
 **web PR 자체 금지. 예외 없음.** default = `git add` → `git commit` → `git push origin main`. 분기·PR·차단 시 대응·worktree 통합 절차는 상시 로드되는 `.claude/rules/git-workflow.md` 가 정본.
 
@@ -137,4 +137,4 @@ CSS/Skia 두 타겟 × 5 레이어 (spec/factory/CSS renderer/Skia renderer/edit
 
 ---
 
-**전제·관점 의문 처리 — 결정 지점 한정 (CRITICAL)**: AskUserQuestion 은 아래 4개 결정 지점에서만 — (1) ADR fork / 분리 / 통합 · (2) ADR 간 의존 방향 반전 · (3) SSOT 경계 재판정 (D1/D2/D3 소속 변경) · (4) 사용자가 승인한 scope 자체의 변경. 그 외 (승인된 ADR phase 의 통상 구현 판단 · 추정 vs 실측 gap · 이미 확정된 전제) 는 질문 금지. 리뷰 종결 기록 (`docs/adr/reviews/{NNN}.md`) 또는 fork checkpoint confirm 이 있으면 전제는 세션을 넘어 확정. 호출 규약 · 종결 계약 · 재개 조건 · 깊은 사고 의무 전문: `.claude/rules/premise-decision-points.md` (상시 로드)
+**전제·관점 의문 처리 — 결정 지점 한정**: AskUserQuestion 은 아래 4개 결정 지점에서만 — (1) ADR fork / 분리 / 통합 · (2) ADR 간 의존 방향 반전 · (3) SSOT 경계 재판정 (D1/D2/D3 소속 변경) · (4) 사용자가 승인한 scope 자체의 변경. 그 외 (승인된 ADR phase 의 통상 구현 판단 · 추정 vs 실측 gap · 이미 확정된 전제) 는 질문 금지. 리뷰 종결 기록 (`docs/adr/reviews/{NNN}.md`) 또는 fork checkpoint confirm 이 있으면 전제는 세션을 넘어 확정. 호출 규약 · 종결 계약 · 재개 조건 · 결정 지점의 판단 재료 전문: `.claude/rules/premise-decision-points.md` (상시 로드)

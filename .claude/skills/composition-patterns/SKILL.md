@@ -11,7 +11,7 @@ composition Builder의 코드 패턴, 규칙 및 모범 사례 통합 스킬.
 > **상세 규칙은 `.claude/rules/`에 glob-scoped로 자동 로드됩니다.**
 > 이 파일은 규칙 인덱스 + 에이전트 프로토콜을 제공합니다.
 
-## 최상위 원칙 — SSOT 체인 3-Domain 분할 (CRITICAL)
+## 최상위 원칙 — SSOT 체인 3-Domain 분할
 
 모든 코드 작업은 아래 분할을 준수. 정본: [`.claude/rules/ssot-hierarchy.md`](../../rules/ssot-hierarchy.md) / 공식 결정: [ADR-063](../../../docs/adr/completed/063-ssot-chain-charter.md)
 

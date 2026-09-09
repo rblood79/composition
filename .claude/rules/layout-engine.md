@@ -13,7 +13,7 @@ paths:
 
 > 구현 상세: [layout-details.md](../skills/composition-patterns/reference/layout-details.md) · 아키텍처/WASM 경계: [layout-engine.md](../skills/composition-patterns/reference/layout-engine.md) · **엔진 CSS 정합 실측 기록 23절 전문**: [layout-css-parity-ledger.md](../skills/composition-patterns/reference/layout-css-parity-ledger.md)
 
-## layoutVersion 계약 (CRITICAL)
+## layoutVersion 계약
 
 - `fullTreeLayoutMap` useMemo는 `layoutVersion` 카운터에 의존
 - 레이아웃 영향 **모든 코드 경로**에서 `layoutVersion + 1` 필수
@@ -62,7 +62,7 @@ paths:
 - **field 가족의 FieldError · Label · Input · DateInput 자식, SelectTrigger 래퍼 (6 parent), 그룹 (CheckboxGroup·RadioGroup·Meter·ProgressBar·Slider) Label, picker 의 `SelectTrigger > DateInput` 은 read-only sub-part** (판정 A × 4, 2026-09-03): `projectReadOnlySubpart` (`layout/engines/readOnlySubpart.ts`, 술어는 shared `resolveDelegatedSubpartOwnerType` — 직계가 래퍼면 조부모) 하나를 **세 곳이 같이 읽는다** — (a) 자식 visit (인라인 통째 무시 → 투영 `display` + FieldError delegation fontSize + field 직계 Input/DateInput `width:100%`; 줄 높이 명시 주입 금지 — 빈 FieldError 높이 0) · (b) **implicitStyles 입력 자식** (`rawChildren.map`) · (c) 3.6 implicit 패치의 delta 기준. Why (b): implicit 은 `cs.X ?? 기본값` 으로 주입하므로 raw junk 를 보면 기본값 주입 (래퍼 width 100% · padding, Label gridArea) 이 막히고 delta 는 그 키를 못 건진다. Why (c): 3.6 의 fit-content 재측정은 raw `children` 텍스트로 폭을 다시 재 propagation 된 텍스트로 잰 visit 값을 덮는다 (Meter Label "Storage" 54 vs "Name" 40 = DOM 39, 실측) — sub-part 는 투영 기준이라 건너뛴다. 한 곳에서 걷어낸 인라인이 다른 곳에서 되살아나는 것 (3.6 전체 재패치, Label/Input 실측) 이 이 셋을 한 함수로 묶는 이유다. 래퍼·그룹 Label 의 구조값은 implicitStyles read-through 주입 (`fieldTriggerRowStyle` — field 분기와 picker 분기 공용, Δ11 grep gate ≤ 3 · progressbar/meter Label 숫자 grid line) 이 유일 채널이다. overlay margin 보고도 batch 를 읽는다. **TextArea 의 Input 높이는 parent `rows`** (implicit `textAreaInputHeight` — catalog `Input.sizes[size]` 한 줄 상자에서 줄 높이 = height − paddingY×2 − border×2, md 3줄 = 70 = DOM `<textarea rows>`; Skia 는 placeholder `verticalAlign: "top"` 투영, catalog `TextArea.sizes.height` 는 dead). **layout 모드 Slot placeholder 높이** 는 잔존 spec `Slot.spec` sizes.height 를 implicit 이 `minHeight` 로 주입 (`_slotChrome hidden` = page 모드 제외; 템플릿 인라인 `minHeight 60 · flex 1` 계약과 동형 — Preview 는 layout 모드를 안 그린다). 게이트: bridge `read-only sub-part` 3 · browser FieldError 옛 문서 케이스 · `adr923FieldSubpartProjection.browser.test.ts` · `adr923WrapperSubpartProjection.browser.test.ts` (junk == clean · baseline DOM 대조 · 래퍼 폭 = root 폭).
 - **`asStyle` propagation patch 는 바꾸는 키만 담고 병합은 소비처가 한다**: store 쓰기 (`batchUpdateElementProps`) 는 props 최상위 얕은 병합이라 부분 style 을 그대로 보내면 자식의 fontSize/color/width 가 사라진다 — `PropagationUpdate.mergeStyle` → `BatchPropsUpdate.mergeStyle` → `applyBatchStylePatch` 로 그 자리에서만 병합한다 (factory 는 `applyFactoryPropagation` 안에서). **생산자가 현재 style 전체를 복사해 보존하면 안 된다** — 그 복사본은 `sanitizePropsPatch` 를 다시 지나 fill 파생 키 (`backgroundColor`/`backgroundImage`/`backgroundSize`) 가 지워진다. 기본 (플래그 없음) 통째 교체 의미는 Inspector 의 style 키 삭제가 의존하므로 유지. **패널의 store 호출 흐름은 `semanticUpdateDispatch.dispatchSemanticUpdateWithPropagation` 한 벌** — `PropertiesPanel` 은 `actions: state` 로 넘기기만 하고 store 액션을 직접 부르지 않는다. 화면 콜백 안에 흐름이 인라인으로 있으면 어떤 테스트도 그 콜백을 실행하지 못한다 (helper 호출 후 반환값을 버려도 단위 테스트 전부 통과). seam 게이트는 `adr923PropagationTransport.test.ts` (dispatch 함수를 실제 slice 위에서 실행 + `typescript` AST 로 패널 호출 형태 고정 + `toBatchPropsUpdates` 단일 호출자)
 
-## Label size delegation (CRITICAL)
+## Label size delegation
 
 - DFS 진입 시 조상 탐색으로 `fontSize`/`lineHeight` 인라인 주입
 - 주입 조건: `labelStyle.lineHeight == null` 기준. **Why**: fontSize 조건 → factory 기본값과 충돌 → lineHeight 미주입 → 1.5배 fallback
@@ -70,7 +70,7 @@ paths:
 - LABEL_DELEGATION_PARENT_TAGS: DatePicker/DateRangePicker 포함 필수. **Why**: 누락 → Label 24px 오계산
 - batch height override: `Math.ceil(fontSize * 1.5)` 대신 LABEL_SIZE_STYLE lineHeight 역참조
 
-## PersistentLayoutTree display/grid 전환 감지 (CRITICAL)
+## PersistentLayoutTree display/grid 전환 감지
 
 - display 변경 및 gridTemplateColumns 변경 → **full rebuild 필수**. **Why**: 엔진(composition-engine) 증분 갱신이 처리 불가
 - `affectedNodeIds` 필터 시 `undefined` 조건 누락 금지. **Why**: 캐시 미스 시 undefined 전달 가능
@@ -78,7 +78,7 @@ paths:
 - **신규 컨테이너(자식 서브트리 보유) → full rebuild 필수** (grid 아니어도). **Why**: `addComplexElement`(부모+자식 트리 일괄 등록, 예 Select/ComboBox) 시 한 batch 에 부모+자식 다수 신규 노드가 들어오면 `addNode` 증분이 자식 layout 을 produce 못 함(layout=undefined) → 자식이 (0,0) 겹침 + 부모 height 가 자식 합산 미만으로 degrade(Select 등록 직후 34, 새로고침 full rebuild 후 54). `!prevJson && filteredChildIdsMap.get(id)?.length > 0` 에서 needsFullRebuild=true 강제 (grid 조건과 동일 게이트). ADR-912 R1 후속 (2026-06-12)
 - **기존 grid container 의 layout-영향 20-key 변경 → full rebuild 필수**: gridTemplateColumns/Rows/Areas/AutoColumns/AutoRows/AutoFlow + padding/padding{Top,Right,Bottom,Left} + gap/rowGap/columnGap + **width/height/min{Width,Height}/max{Width,Height}**. **Why**: `updateStyleRaw`(=set_style) 는 grid track/placement 캐시 invalidation 실패 → padding 변경 시 1줄 degrade / gap 변경 미반영 / **width 변경 시 1fr·auto track 이 변경 전 컨테이너 폭 기준으로 stale degrade (1줄로 무너짐) → 새로고침(buildFull) 후에만 정상 2행**. 비-grid 는 증분 유지 (Flex/Block `updateStyleRaw` 정상 동작 — dimension 변경 시 full rebuild 는 `isGridDisplay(curDisplay)` 분기 안에서만). `GRID_REBUILD_TRIGGER_KEYS` (`fullTreeLayout.ts`) 비교 키는 `engineStyleToRecord` 출력 = camelCase 단일 키 (`width`/`minWidth` 등). `fullTreeLayout.static.test.ts` 가 dimension 6키 누락을 정적 가드. 2026-06-16 추가
 
-## gridTemplate 직렬화 경로 (CRITICAL)
+## gridTemplate 직렬화 경로
 
 - composition-engine WASM binary_protocol 은 `gridTemplateColumns`/`Rows`/`AutoColumns`/`AutoRows` 를 **track array** (`["1fr", "auto"]`) 로 기대. CSS 표준 string (`"1fr auto"`) 통과 시 `invalid type: string, expected a sequence` parse error → persistent tree 리셋 + 재빌드 루프. **3 직렬화 경로 모두 정규화 필수**:
   - `fullTreeLayout.engineStyleToRecord` (flex via elementToEngineStyle)
@@ -87,13 +87,13 @@ paths:
 - 정규화 헬퍼: `parseGridTemplate(template: string)` (`gridStyleAdapter.ts` export). 괄호 depth 기반 토큰화 → `repeat(auto-fill, minmax(...))` 복합 표현 정확 분해
 - 이미 array 면 그대로 통과: `Array.isArray(val) ? val : parseGridTemplate(val)`
 
-## Grid area 이름 해석 (CRITICAL)
+## Grid area 이름 해석
 
 - `buildNodeStyle` grid branch 는 **gridArea 이름 해석 미지원** (`gridStyleAdapter.ts` 는 `parseGridTemplate` 트랙 토큰화만 export — gridArea 이름 → line 해석기는 파이프라인에 없다)
 - 자식에 `gridArea: "label"` 같은 이름만 주입하면 엔진이 string 그대로 받아 auto-placement 로 degrade → 자식이 container 밖으로 흘러나감
 - **Factory 패턴**: gridArea 이름과 **gridColumnStart/End + gridRowStart/End 숫자 line 병기**. CSS 경로는 spec `composition.staticSelectors` 의 `grid-area` 이름, Skia 경로는 숫자 line — 시각 대칭 유지 + 배치 정확성
 
-## CSS shorthand ↔ longhand store 정책 (CRITICAL)
+## CSS shorthand ↔ longhand store 정책
 
 - `gap`/`padding`/`margin` shorthand 와 `rowGap`/`columnGap`/`paddingTop`/... longhand 가 element.props.style 에 **공존 시**:
   - React `setValueForStyles` rerender 경고 "Removing a style property during rerender"
@@ -102,7 +102,7 @@ paths:
 - Factory 초기값은 longhand 로 저장 (예: ProgressBar `rowGap: 4, columnGap: 12`). React inline style 은 항상 longhand 만 직렬화 → collision 완전 제거
 - `useLayoutValues.gap` 표시는 `firstDefined(s.rowGap ?? s.columnGap ?? s.gap, numToPx(specPreset.gap), "0px")` — longhand 우선, legacy shorthand fallback
 
-## 2-Pass re-enrichment (CRITICAL)
+## 2-Pass re-enrichment
 
 - Step 4.5에서 **`processedElementsMap` 우선 사용**. **Why**: store 원본은 DFS injection/implicit styles 없음 → 잘못된 height 계산
 - merge 시 DFS injection 값을 base로 implicit styles merge (덮어쓰기 금지)
@@ -166,7 +166,7 @@ paths:
 | 29  | grid `[name]` 은 트랙이 아니다 (`tokenize_template_with_line_names` → 이름은 tree.rs 가 번호로) · auto-repeat 반복 수 = 트랙당 "definite 한 쪽" (max definite 면 max, 아니면 min) 으로 세고 **반복 밖 트랙 + gutter 를 먼저 뺀다**, 미결정 컨테이너는 1 · auto-fit 빈 트랙은 토큰 삭제 (gutter 포함) + 배치 인덱스 당김 + `placement_spec` 숫자 재작성 (upstream 대조 ⑥) | `tokenize_template_with_line_names` · `resolve_line_name` · `auto_repeat_count` · `expand_auto_repeat_tokens` · `solve_grid` collapse 블록 · `build_grid_placement_spec` | gridLineNamesAutoRepeat |
 | 30  | flex `align-items/self: baseline` 은 **그룹** (참여 = baseline 해소 ∧ cross auto margin 없음, column 은 start) — item 거리 `margin_start + (baseline ∨ border-box 아래)`, 그룹 `max b` 에 맞추고 라인 cross = `max(outer, extent)`, 슬롯 21 `baseline_plus_one` (`FLEX_FIELD_COUNT` 22) · `safe` 접두는 넘칠 때만 start (별도 코드), 접두 없음은 unsafe · `self-start`/`self-end` = start/end (upstream 대조 ⑦) | `flex::baseline_group` · `item_baseline_metrics` · `place_line_cross_axis` · `parse_align_items/self/content` · `parse_justify_content` · `write_flex_item` 슬롯 21 | flexBaselineSafeAlign |
 
-## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다 (CRITICAL)
+## 배치 직렬화 계약 — 숫자 하나가 페이지 레이아웃을 끈다
 
 엔진 `NodeStyle` 의 길이 필드는 전부 `Option<String>` 이라 숫자가 들어오면 `build_tree_batch` 가 **배치 전체**를 거부한다 (`invalid type: integer, expected a string`) → `calculateFullTreeLayout` 이 `null` → **그 페이지 레이아웃이 통째로 사라진다**. 요소 하나의 값 하나가 페이지 전체를 끄는 구조다.
 

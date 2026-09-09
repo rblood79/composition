@@ -24,7 +24,7 @@ ADR + design breakdown 파일을 읽어 미반영 phase 를 순차 자율 실행
 
 **mode default 판정 (2026-07-11 종결 계약 — CLAUDE.md §전제·관점 의문 처리, 사용자 승인)**: `docs/adr/reviews/{NNN}.md` 최신 round 가 이슈 0건, 또는 모든 이슈 outcome 이 종결 상태 (`fixed`/`deferred`/`rejected` — `pending` 0건) 이고 CRITICAL/HIGH 는 전부 `fixed` 면 default `auto` — phase 시작/종료 surface 생략. **HIGH+ phase surface 는 auto 에서도 유지** (해당 phase 단위 판정 — §HIGH+ 차단 룰). 리뷰 승인 기록이 없으면 default `confirm-each-phase`. 사용자 명시 지정이 항상 우선.
 
-## Phase 0: 사전 조건 (CRITICAL — 미충족 시 즉시 종료)
+## Phase 0: 사전 조건 — 미충족 시 즉시 종료
 
 Phase 1 진입 전 모두 통과:
 
@@ -95,7 +95,7 @@ phase 종료 marking 전 모두 통과:
   - Phase 5.0 dist 신선도 게이트 통과
   - 5-레이어 정합성 0 CRITICAL/HIGH
   - **Why (ADR-144 사례)**: "렌더링 영향 phase 만 필수" 로 좁히면 Inspector/registration/wiring 변경이 게이트를 빠져나간다. ADR-144 Wave C 가 test/type-check PASS 로 Implemented 승격됐으나 live builder 에서 composite registration 이 동작 안 함 → closure rollback → 34 commit revert. **비-렌더 wiring 변경도 live 검증 대상.**
-- [ ] **live behavior 확인 (CRITICAL — test/type-check PASS 단독으로 phase 종료 금지)**: 사용자-가시 동작이 실제 builder 에서 작동하는지 확인. registration / resolved-tree wiring / schema 변경은 unit-test 가 통과해도 live 에서 깨질 수 있음. Chrome MCP (builder 탭 조작) 또는 사용자 confirm 으로 실동작 1회 exercise. **무엇을 실제로 exercise 했는지 commit 검증 블록에 명시** + ledger 기록 `pnpm agent:run -- evidence live-exercise pass --detail "<시나리오·결과>"` + ADR 본문 `### Live Exercise` 절 기재 (Implemented 승격 시 `adr-status-sync-check.sh` 가 이 절 / `docs/adr/evidence/NNN-*live*.md` / ledger 기록 중 하나를 요구 — 없으면 block)
+- [ ] **live behavior 확인 — test/type-check PASS 단독으로 phase 종료 금지**: 사용자-가시 동작이 실제 builder 에서 작동하는지 확인. registration / resolved-tree wiring / schema 변경은 unit-test 가 통과해도 live 에서 깨질 수 있음. Chrome MCP (builder 탭 조작) 또는 사용자 confirm 으로 실동작 1회 exercise. **무엇을 실제로 exercise 했는지 commit 검증 블록에 명시** + ledger 기록 `pnpm agent:run -- evidence live-exercise pass --detail "<시나리오·결과>"` + ADR 본문 `### Live Exercise` 절 기재 (Implemented 승격 시 `adr-status-sync-check.sh` 가 이 절 / `docs/adr/evidence/NNN-*live*.md` / ledger 기록 중 하나를 요구 — 없으면 block)
 - [ ] design breakdown 의 phase Gate 조건 충족 (Gate 표가 있으면)
 - [ ] ADR Risks 섹션의 해당 phase 관련 위험 R{ID} 잔존 평가 — 새 위험 발견 시 ADR 본문 update
 
@@ -153,7 +153,7 @@ fi
 - 미반영 phase 잔존 + max_phases 미초과 → Phase 1 으로 복귀
 - max_phases 도달 → "본 세션 budget 종료. 다음 세션 진입점 = Phase {Y}" 보고 후 종료
 
-## 안전 가드 (CRITICAL — 위반 시 즉시 종료)
+## 안전 가드 — 위반 시 즉시 종료
 
 - ❌ **PR 생성 절대 금지** — gh pr create / GitHub web UI / PR URL 출력 모두 금지 (git-workflow.md §1)
 - ❌ **자동 branch 분리 금지** — main push 차단 시 자동 우회 금지, 사용자 직접 실행 요청

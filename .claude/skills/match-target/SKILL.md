@@ -27,7 +27,7 @@ disable-model-invocation: true
 - **mutation scope**: `catalog` / `spec` / `tokens` / `manual-css` / `factory` 중 허용 layer 명시 (default: `catalog` + `tokens`). `catalog` = `componentRulesTable.ts` + `catalog/bindings/*.binding.ts`, `spec` 은 잔존 3개 (Frame/Group/Slot) 한정
 - **stuck strategy**: 동일 점수 3회 연속 시 alternative 시도. default `switch-layer` (다른 mutation scope 로 전환)
 
-## Phase 0: 사전 조건 (CRITICAL)
+## Phase 0: 사전 조건
 
 Phase 1 진입 전 반드시 통과:
 
@@ -117,7 +117,7 @@ default `switch-layer`. 사용자가 명시 시 override.
   - 비수렴: ask-user 모드 재진입 또는 mutation scope 확장 (factory 허용)
 ```
 
-## 안전 가드 (CRITICAL)
+## 안전 가드
 
 - ❌ **D1 침범 금지**: HTML 태그 / ARIA / 키보드 동작 변경 금지. 시각 차이가 DOM 구조에서 기인하면 즉시 stop + ask-user
 - ❌ **D2 침범 금지**: RSP 미규정 prop 신규 도입 금지

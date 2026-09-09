@@ -216,7 +216,12 @@ if [ -n "$unknown" ]; then fail "CLAUDE.md 가 언급하는 agent 에 실체 없
 section "7. SessionStart roster — Claude live · Codex live · Codex manual"
 SS=".claude/hooks/session-start.sh"
 ROSTER_SKILLS=$(sh_section "$SS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
-report_set_eq "roster §핵심 Skills" "roster" "$ROSTER_SKILLS" ".claude/skills" "$SKILLS"
+ROSTER_PRESENT=1; [ -z "$ROSTER_SKILLS" ] && ROSTER_PRESENT=0
+if [ "$ROSTER_PRESENT" = 0 ]; then
+  ok "roster §핵심 Skills — 제거됨 (PROMPT_AUDIT_2026-09 A1: 시스템 프롬프트 skill description 과 중복), 대조 대상 없음"
+else
+  report_set_eq "roster §핵심 Skills" "roster" "$ROSTER_SKILLS" ".claude/skills" "$SKILLS"
+fi
 # roster §Agents / §Slash 는 2026-08-31 제거 (CLAUDE.md·시스템 프롬프트와 3중 중복). 남은 \`/name\` 언급은 실존만 본다.
 ROSTER_SLASH=$(grep -oE '`/[a-z][a-z0-9-]*\\?`' "$SS" | tr -d '`\\/' | sort -u || true)
 unknown=$(set_minus "$ROSTER_SLASH" "$KNOWN_SKILLISH")
@@ -336,6 +341,8 @@ while IFS= read -r s; do
   grep -q "사용자 전용" <<<"$c_row" && c_has=1
   grep -q "user-only" <<<"$x_row" && x_has=1
   grep -q "사용자 전용" <<<"$r_line" && r_has=1
+  # Claude 로스터가 없으면 (PROMPT_AUDIT_2026-09 A1) 그 표면은 대조에서 뺀다 — 기대값과 같게 둔다.
+  if [ "$ROSTER_PRESENT" = 0 ]; then r_has=0; [ "$dmi" = "true" ] && r_has=1; fi
   grep -q "user-only" <<<"$live_line" && live_has=1
   if [ "$dmi" = "true" ]; then
     [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && [ "$live_has" = 1 ] && ok "$s — 사용자 전용 (4표면 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has codex roster=$live_has"

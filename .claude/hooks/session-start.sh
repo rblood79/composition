@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SessionStart hook — 세션 시작 시 composition 전용 agent/skill 로스터 및 권장 워크플로 주입
+# SessionStart hook — CHANGELOG drift · MEMORY.md 비대화 경고 (상시 컨텍스트가 계산 못 하는 시점 신호만)
 set -euo pipefail
 
 # CHANGELOG drift 자동 감시 (rules/changelog.md §2 명시 — 14일/100 commit 초과 시 catch-up 권고)
@@ -50,29 +50,12 @@ MEMORY_EOF
   fi
 fi
 
-# 로스터는 §핵심 Skills 하나만 게시한다 (agent-catalog-gate §7·§12 의 catalog 대조 표면 + 사용자 전용 표기).
-# 프로세스 규율·agent 라우팅·slash 목록·hook 게이트는 CLAUDE.md 와 시스템 프롬프트의 skill/agent description 이 정본이라
-# 여기 중복 게시하지 않는다 (2026-08-31 — 3중 중복 제거, 세션당 ~1k tok).
+# 로스터 (skill 목록) 는 2026-09-09 제거 — 시스템 프롬프트의 skill description · CLAUDE.md §작업 워크플로 와
+# 같은 정보였다 (PROMPT_AUDIT_2026-09 A1, 세션당 ~1k tok). 상시 컨텍스트가 계산하지 못하는 두 경고만 낸다.
 cat <<EOF
-<composition-workflow-roster>
-# composition 전용 워크플로 (자동 주입 — SessionStart)
-
-## 핵심 Skills (표시 없으면 자연어 발동 + \`/\` 호출 모두 가능 — "사용자 전용" 은 \`/\` 직접 입력만, 모델 자동 호출 비활성)
-- \`composition-patterns\` — 코드 규칙/패턴 (코드 작업 전 확인)
-- \`cross-check\` — CSS↔Skia 렌더링 정합성 (렌더링 수정 후 필수)
-- \`parallel-verify\` — 컴포넌트 패밀리 일괄 검증
-- \`component-design\` — 새 컴포넌트 설계 (React Aria/Spectrum 참조)
-- \`create-adr\` — 새 ADR 작성 — 사용자 전용 (\`/create-adr <제목>\` 직접 입력)
-- \`review-adr\` — ADR 검증
-- \`react-aria\` / \`react-spectrum\` — 공식 API 레퍼런스
-- \`match-target\` — Vision-based visual tuning 루프 (참조 이미지 + budget) — 사용자 전용 (\`/match-target\` 직접 입력)
-- \`execute-adr\` — ADR design breakdown 의 미반영 phase 자율 실행 (type-check + cross-check + main 직접 push) — 사용자 전용 (\`/execute-adr NNN\` 직접 입력)
-- \`fix\` — 버그 수정 파이프라인 (root-cause 4단계 → 수정 → cross-check → live exercise)
-- \`review\` — 완료 직전 코드 리뷰 (reviewer 격리 fork, 9개 체크리스트)
-- \`evaluate\` — 런타임 검증 (Chrome MCP 4축 채점, 격리 fork)
-
+<composition-session-warnings>
 ${drift_block}${memory_block}
-</composition-workflow-roster>
+</composition-session-warnings>
 EOF
 
 exit 0

@@ -2,7 +2,7 @@
 
 > **2026-04-27 강화 (절대 정책)**. 로컬 작업 환경에서 web PR 자체 금지. 예외 없음. 사용자 자동화 흐름 차단 방지가 본질.
 
-## 1. 정책 (CRITICAL)
+## 1. 정책
 
 **default 흐름**:
 
@@ -22,13 +22,6 @@ git push origin main
 - ❌ "안전 차원에서 PR" / "CRITICAL 이니 PR" / "worktree 라 PR 자연" — 모두 **틀림**
 
 ## 2. 왜 — 자동화 흐름 차단이 본질 손실
-
-사용자 지적 (2026-04-27):
-
-- "어느순간 부터 계속 작은 것하나도 웹으로 PR머지 시키는 이유가뭐지?"
-- "PR web 머지 때문에 작업 흐름 부터 자동화 작업이 계속 끊긴다"
-- "아예 web PR 자체를 금지 시켜라 로컬에서 작업 환경에서는"
-- "worktree 인경우도 브런치 분기해서 커밋 하면 되는 문제지않나"
 
 PR 패턴이 일으키는 실제 손실:
 
@@ -96,17 +89,13 @@ PR/push 정책 의문 발생 시 **settings 4 파일 + protect-files hook 직접
 - "CRITICAL 이라 PR" — **CRITICAL 도 main 직접**
 - "worktree 라 PR 자연" — **틀림**. worktree = branch 분기 + commit. main merge + push 면 끝
 
-## 8. 위반 이력 (재발 8회+ 누적)
+## 8. 이력
 
-- 2026-04-14~15 ADR-059 closure docs-only PR 반복
-- 2026-04-16 ADR-059 B5 PR 반복 → "PR 생성 하지마!!"
-- 2026-04-26 세션 31 — Phase C 자동 push + docs branch + PR URL → "강제 PR 생성 그만해라"
-- 2026-04-27 세션 37~43 — settings 변경 인지 못 한 채 7+ PR 머지 (#250/#262/#268/#269/#270/#271/#272/#273) → "어느순간 부터 작은 것하나도 웹으로 PR머지 시키는 이유가뭐지?"
-- 2026-04-27 정책 강화 → "아예 web PR 자체를 금지 시켜라" (예외 제거, 절대 금지로 전환)
+2026-04 한 달에 8회 재발한 뒤 절대 정책으로 전환했다. 사건별 기록과 사용자 지적 원문: `~/.claude/projects/-Users-admin-work-composition/memory/feedback-pr-vs-direct-push.md`.
 
 ## 관련
 
 - 메모리: `~/.claude/projects/-Users-admin-work-composition/memory/feedback-pr-vs-direct-push.md`
 - 메모리: `~/.claude/projects/-Users-admin-work-composition/memory/feedback-settings-precedence-over-stale-memory.md`
-- CLAUDE.md §"Git Push 정책 (CRITICAL)"
+- CLAUDE.md §"Git Push 정책"
 - AGENTS.md §"Commit & Push Guidelines"
