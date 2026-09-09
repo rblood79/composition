@@ -28,7 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - F0 실패 재현 → 수리: 확장에만 연결이 있는 canonical 문서로 실제 옵션 생산자를 통과시켜 문자열 입력 fallback 을 먼저 고정했다 (5건 RED → GREEN).
 - 신규/보강 테스트 29건 (패널 옵션 생산자 17 · PropertySelect 두 모드 5 · ref/Undo/Redo 실제 inspector store 3 · 문서 왕복 2 · 집계 손계산 2), builder 5,661 · shared 1,157 · specs 1,108 · chart browser 170 통과, type-check·preflight PASS.
 - 실제 Builder live 24건 통과 (F2 주요 구간) — 연결 전 문자열 입력 → 연결 후 컬럼 Select, 해제가 canonical `color: ""` 로 저장, Undo/Redo, 저장 후 reload, 실제 메뉴 Export, 독립 publish 런타임까지. 재현: `node apps/builder/scripts/adr209-series-release-live.mjs --headed` · `node apps/builder/scripts/adr209-publish-live.mjs --headed`.
-- 상세 설계: `docs/adr/design/209-chart-followup-repair-breakdown.md` §10.4. rollback (구 importer) · T11 · T12 live 와 번들·성능 종결 (F3–F5) 은 후속이라 ADR 은 In Progress 유지.
+- F2 잔여 live 26건 통과 (2026-09-10) — 기본 행 편집·삭제·Undo/Redo·재선택과 중복/누락/숫자 id 행 (UI id 주입 0, key 경고 0) · 4방향 padding 이 Canvas 원 이동량 = Preview 원 이동량 = 손계산 기대값 · Themes 스위치 dark 에서 Preview/Skia 토큰 변경·라벨 유지 · 독립 publish 의 content box = 입력 padding. 재현: `node apps/builder/scripts/adr209-f2-residual-live.mjs --headed` · `node apps/builder/scripts/adr209-f2-residual-publish.mjs --headed`.
+- rollback 실측 (`apps/builder/scripts/adr209-rollback-probe.test.ts`, 과거 빌드 체크아웃): 직전 릴리스 `51184c8bd` 는 새 Export 를 그대로 받고, data-source envelope 이전 빌드 `31dff0c50` 은 JSON Import 만 `Unrecognized key: "collections"` 로 거부한다 — 두 빌드 모두 저장 문서의 `color: ""`·연결·미편집 노드를 편집/Undo/재저장에서 그대로 보존한다. Import 가 필요하면 `collections`/`apiEndpoints` 를 벗긴 파일을 쓴다.
+- 상세 설계: `docs/adr/design/209-chart-followup-repair-breakdown.md` §10.4–10.5 (F2 닫힘). 번들·성능 최종 측정과 예산 결정 (F3–F5) 은 후속이라 ADR 은 In Progress 유지.
 
 ## [AI 어시스턴트 — Claude 요청의 prompt caching · 구조화 출력 · 도구 계약 정합] - 2026-09-09
 

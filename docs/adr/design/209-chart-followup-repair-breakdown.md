@@ -399,3 +399,27 @@ node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독
 측정 조건 주의: Chrome MCP 탭은 `visibilityState=hidden`이라 rAF가 멈춰 첫 프레임이 제출되지 않고 부트가 95%에 머문다. Builder live는 headed Playwright로만 판정한다.
 
 **F2에 남은 항목.** §10.1의 rollback(구 버전 store·구 strict importer)은 과거 빌드 체크아웃이 필요해 미실행이고, T11 기본 행 편집과 T12 padding·light/dark·resize는 이번 변경이 건드리지 않는 기존 계약이라 자동 스위트로만 확인했다. 따라서 **F2는 아직 열려 있고** F3–F5도 미착수다.
+
+### 10.5 F2 잔여 실행 기록 (2026-09-10) — F2 닫힘
+
+§10.4 가 남긴 세 항목을 같은 날 실측으로 닫았다. 원 수치·측정 조건은 `docs/adr/evidence/209-f2-residual-live.md`(로컬).
+
+**binding 저장 경로.** 실제 Properties Data 컨트롤은 다른 semantic 필드와 같은 `updateSelectedProperties` → `updateAndSave` → `replaceNodeProps` 경로라 `props.dataBinding` 에 저장된다 (`GenericFieldRenderer.tsx:304-312` · `inspectorActions.ts:1252-1257` · `canonicalHistoryEvents.ts:218`). `PROPS_FORBIDDEN_KEYS` 는 `updateNodeProps` 한 경로만 막고(`canonicalDocumentStore.ts:164,334`), `x-composition` 확장을 쓰는 `updateSelectedDataBinding` 은 훅 `useUpdateDataBinding` 의 UI 소비처가 0 이다 (`stores/index.ts:385`). 즉 현재 authoring 문서는 props 형태, 확장 형태는 legacy/import 변환이 만드는 두 번째 형태이며 두 형태를 `getElementDataBinding` 한 계약이 읽는다. §4.3 의 "canonical 원천은 확장" 은 저장 위치 규칙이 아니라 읽기 우선순위 서술로 읽어야 하고, 이번 변경은 저장 형태를 바꾸지 않았다.
+
+**rollback (§10.1).** 새 빌드의 실제 메뉴 Export(`color:""` + `collections` envelope)를 같은 디렉터리 detached checkout 의 실제 importer·boot 정규화·store 액션·history·재직렬화에 통과시켰다 (`apps/builder/scripts/adr209-rollback-probe.test.ts`, 체크아웃마다 `src/.../__tests__/` 로 복사해 실행).
+
+| 빌드                                         | strict importer                          | envelope 제거 후 boot·편집·Undo/Redo·재저장                                       |
+| -------------------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
+| `31dff0c50` (envelope 커밋 `baacf782b` 직전) | 거부 — `Unrecognized key: "collections"` | `color:""` 키 유지 · binding 유지 · 미편집 54 노드 바이트 동일 · 정규화 내용 동일 |
+| `51184c8bd` (Series 해제 `a2afa2f4f` 직전)   | 수용                                     | 동일                                                                              |
+| `58ccff2cb` (현재, 대조군)                   | 수용                                     | 동일                                                                              |
+
+지원하는 rollback 경로: 직전 릴리스로는 문서 읽기·편집·Import 전부 그대로. envelope 이전 빌드로는 JSON Import 만 `collections` 키에서 거부되므로 (§10.1 이 예고한 envelope 경계, `color:""` 무관) 그 파일은 `collections`/`apiEndpoints` 를 벗겨 넣고 collection 은 Data 패널에서 다시 만든다. DB 의 canonical 문서 읽기는 어느 빌드에서도 강제 재직렬화 0 (내용 기준). 구 트리는 이후 의존성 정리로 사라진 `uuid`·`lodash`·`nanoid` 를 import 하므로 임시 shim 이 필요했다 (프로브 머리말).
+
+**T11 · T12 live.** `node apps/builder/scripts/adr209-f2-residual-live.mjs --headed` 21/21 + `node apps/builder/scripts/adr209-f2-residual-publish.mjs --headed` 5/5 (headed Playwright, 새 프로젝트, 로그인 세션).
+
+- T11: 기본 행 8 이 id 없이 나열 → 행 1 Value/Category 편집은 그 행만 변경(id 주입 0) → 행 2 삭제는 그 행만 → store undo/redo 8↔7 → 재선택 시 편집기 7행 → 중복 id `same`×2·id 없음·숫자 id 를 실제 store 액션으로 싣고 실제 편집기에서 편집/삭제해도 위치 기준으로만 바뀌고 원본 id 필드 그대로 → console error/warning 0.
+- T12: Styles Width/Height 360×260 → 4방향 padding A(T8 L40 R16 B24)·B(T24 L8 R40 B8) 를 실제 4방향 입력으로 → **Skia 원 bbox 이동량 = Preview 원 bbox 이동량 = 손계산 기대값** `{left −28, top +16, right −28, bottom +16}` (±0) · Preview computed padding = 입력값 · 원 ⊂ content box → Themes 스위치로 dark: Preview `data-theme` 과 `--chart-series-1`·배경 토큰 변경, path 수·padding 불변, Skia 픽셀 서명도 변경, light 복귀 → 실제 메뉴 Export → 독립 Publish 가 360×260·computed padding 8/16/24/40·원 지름 228 = content 짧은 변·중심 = content 중심으로 그림. Publish 는 `data-theme` 을 세우지 않아 light 만 (기존 계약, 기록).
+- 관찰 (LOW deferred): padding 값이 presentation lane 에서는 숫자, immediate lane 에서는 `"Npx"` 로 저장된다 (`LayoutSection.tsx:224-231`). 두 형태를 `parsePadding4Way` 가 같게 읽어 화면·Export 가 일치했다. 측정 함정: 캔버스 스크린샷은 DOM overlay(패널·툴바)를 포함하고 범례 색 견본이 Skia bbox 에 섞이므로 패널 닫기·상단 48px 제외·범례 off·선택 해제 뒤 잰다.
+
+**판정.** 이번 수정의 필수 회귀 T1–T8 (§10.4) 과 기존 계약 확인 T9·T10·T11·T12 (§10.4 + 본 절), §10.1 rollback 이 실측으로 닫혔다. T13(animation on/off·reduced-motion·tooltip·키보드·해제 후 데이터 교체)은 이 revision 에서 chart browser 스위트(`chartInteraction.browser.test.tsx` 의 native animation 재전송·키보드 tooltip, `chartTheme.browser.test.tsx`)와 2026-09-09 P3/P4 live(DPR2/dark/reduced-motion 149) 로만 확인했고 최종 revision live 는 F3 의 최종 revision 측정에 같이 싣는다. 그 조건으로 **F2 닫힘.** 남은 것은 F3(최종 revision 번들·성능 manifest + T13 live) · F4(production 로그인 boot 요청 0) · §8.5 예산 A/B 사용자 결정 · F5 종결이며 ADR-209 는 In Progress 유지.
