@@ -52,7 +52,7 @@ docs/
 ├── migrations/                 # DB 마이그레이션 SQL + 성능·부팅 조사 노트 — md 8 + 비-md 5
 │   └── frame-performance/      # 프레임 성능 조사 보존 노트 5 + README (원시 631MB 는 2026-09-09 삭제)
 │
-├── design/                     # /design 캔버스 3 + README — canvas.json + *.dc.html + 합본 HTML
+├── design/                     # /design 캔버스 3 + README — canvas.json + *.dc.html (합본 번들 미보관)
 ├── legacy/                     # 폐기·역사 문서 (md 49 = README 1 + 문서 48, 각 파일에 폐기 사유 배너)
 ├── pencil-copy/                # Pencil 호환성 dossier (md 8 = README 1 + 문서 7) + fixtures/ JSON 1
 ├── pencil-extracted/           # Pencil Desktop 번들 역공학 추출물 (gitignore, 390 파일)
@@ -143,7 +143,7 @@ docs/
 
 ### 디자인 캔버스
 
-- **`docs/design/`** (캔버스 3 + README): `/design` 스킬 산출물. 한 캔버스 = 한 디렉토리 = `canvas.json` (아트보드 배치·주석) + `*.dc.html` (아트보드) + 합본 HTML. `canvas.json` 이 아트보드를 파일명으로만 참조하므로 디렉토리째 옮겨도 동작한다. **새 캔버스는 `docs/design/<주제>/` 에만** — 스킬 자체가 출력 위치를 정하지 않아 2026-09-09 이전에는 저장소 루트에 `design/` · `.design/` · `.design-webstudio/` 로 흩어져 있었다.
+- **`docs/design/`** (캔버스 3 + README): `/design` 스킬 산출물. 한 캔버스 = 한 디렉토리 = `canvas.json` (아트보드 배치·주석) + `*.dc.html` (아트보드). `canvas.json` 이 아트보드를 파일명으로만 참조하므로 디렉토리째 옮겨도 동작한다. **새 캔버스는 `docs/design/<주제>/` 에만** — 스킬 자체가 출력 위치를 정하지 않아 2026-09-09 이전에는 저장소 루트에 `design/` · `.design/` · `.design-webstudio/` 로 흩어져 있었다. 게시 번들 HTML (편집기 런타임 포함, 건당 2.2~2.6MB) 은 커밋하지 않는다 — 2026-09-09 에 3건 삭제.
 
 ### 레거시
 
