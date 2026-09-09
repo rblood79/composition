@@ -53,7 +53,6 @@ ${t("aiPrompt.rule2")}
 ${t("aiPrompt.rule3")}
 ${t("aiPrompt.rule4")}
 ${t("aiPrompt.rule5")}
-${t("aiPrompt.rule6")}
 
 ${t("aiPrompt.canonicalHeading")}
 ${t("aiPrompt.canonicalBody")}

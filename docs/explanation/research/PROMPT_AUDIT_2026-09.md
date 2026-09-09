@@ -80,6 +80,8 @@
 
 ### D 앱 (`apps/builder`)
 
+> **적용 상태 (2026-09-09)**: D1~D6 전부 적용. usage 는 `AgentService` 가 DEV 콘솔에 표시. 실제 캐시 hit 는 `AnthropicProvider.live.test.ts` 키 게이트 케이스 (이 환경 키 없음 — 미실행). CHANGELOG 동일 날짜 엔트리.
+
 **D1 · H1 caching + usage** — `providers/AnthropicProvider.ts`
 
 ```ts

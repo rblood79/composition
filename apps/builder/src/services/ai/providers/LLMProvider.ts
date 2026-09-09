@@ -76,6 +76,18 @@ export type LLMMessage =
 export type LLMStopReason =
   "end" | "tool-calls" | "max-tokens" | "refusal" | "aborted" | "other";
 
+/**
+ * 요청 1건의 토큰 사용량. prompt cache 가 실제로 도는지는 `cacheReadInputTokens` 만이
+ * 근거다 — 요청은 성공하고 청구서만 커지는 회귀는 이 값 말고는 드러나지 않는다.
+ * 전체 입력 = `inputTokens + cacheCreationInputTokens + cacheReadInputTokens`.
+ */
+export interface LLMUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+}
+
 /** 스트리밍 이벤트 — 텍스트 조각, 완성된 도구 호출, 종료. */
 export type LLMStreamEvent =
   | { type: "text-delta"; delta: string }
@@ -87,6 +99,8 @@ export type LLMStreamEvent =
       detail?: string;
       /** 이 턴의 원문 — 호출자가 assistant 메시지에 실어 다음 요청에 replay 한다. */
       assistantTurn?: LLMAssistantTurn;
+      /** provider 가 알려 준 사용량 (없으면 필드 자체가 없다). */
+      usage?: LLMUsage;
     };
 
 export interface LLMCompletionOptions {
@@ -95,6 +109,12 @@ export interface LLMCompletionOptions {
   temperature?: number;
   maxTokens?: number;
   reasoningEffort?: ReasoningEffort;
+  /**
+   * 응답을 이 JSON Schema 로 강제한다 (구조화 출력). Anthropic 어댑터는
+   * `output_config.format` 으로 보내고, OpenAI 호환 어댑터는 무시한다 — 호출자는 텍스트
+   * 파서 폴백을 유지한다.
+   */
+  responseSchema?: Record<string, unknown>;
   signal?: AbortSignal;
 }
 

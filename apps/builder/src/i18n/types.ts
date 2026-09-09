@@ -759,7 +759,6 @@ export interface TranslationKeys {
     rule3: string;
     rule4: string;
     rule5: string;
-    rule6: string;
     canonicalHeading: string;
     canonicalBody: string;
     bindingHeading: string;
@@ -816,6 +815,7 @@ export interface TranslationKeys {
     plannerRule3: string;
     plannerRule4: string;
     plannerRule5: string;
+    plannerJsonOnly: string;
     plannerTemplates: string;
   };
   aiTurn: {

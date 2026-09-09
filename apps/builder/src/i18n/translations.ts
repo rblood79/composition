@@ -750,15 +750,13 @@ const koKR: TranslationKeys = {
     selectedParent: "- 부모 ID: {parent}",
     rulesHeading: "## 규칙",
     rule1:
-      "1. 요소를 생성/수정하기 전에 get_editor_state나 get_selection으로 현재 상태를 파악하세요.",
+      '1. **elementId 는 지어내지 마세요.** 방금 만든 요소를 이어서 다룰 때는 "last-created",\n   현재 선택된 요소는 "selected" 를 쓰세요. 그 외에는 create_element 결과의\n   data.elementId 를 그대로 옮기거나, 실제 id 가 필요할 때만 search_elements /\n   get_editor_state 로 조회한 id 를 쓸 수 있습니다. created-element-id / cardId 같은\n   자리표시자는 실패합니다.',
     rule2:
-      '2. **elementId 는 지어내지 마세요.** 방금 만든 요소를 이어서 다룰 때는 "last-created",\n   현재 선택된 요소는 "selected" 를 쓰세요. 그 외에는 create_element 결과의\n   data.elementId 를 그대로 옮기거나 search_elements / get_editor_state 로 조회한 실제\n   id 만 쓸 수 있습니다. created-element-id / cardId 같은 자리표시자는 실패합니다.',
-    rule3:
-      "3. props 값은 카탈로그가 알려 준 허용 값에서만 고르세요. 목록에 없는 값은 만들지 마세요.",
-    rule4: "4. 항상 한국어로 응답하세요.",
-    rule5: "5. 작업 완료 후 사용자에게 무엇을 했는지 간략히 설명하세요.",
-    rule6:
-      "6. 여러 작업을 한 번에 할 때는 batch_design 을 쓰세요 — 사용자가 실행 취소 한 번으로 전부 되돌릴 수 있습니다.",
+      "2. props 값은 카탈로그가 알려 준 허용 값에서만 고르세요. 목록에 없는 값은 만들지 마세요.",
+    rule3: "3. 항상 한국어로 응답하세요.",
+    rule4: "4. 작업 완료 후 사용자에게 무엇을 했는지 간략히 설명하세요.",
+    rule5:
+      "5. 여러 작업을 한 번에 할 때는 batch_design 을 쓰세요 — 사용자가 실행 취소 한 번으로 전부 되돌릴 수 있습니다.",
     canonicalHeading:
       "## canonical 1차 필드 (create_element / update_element 의 canonical 인자)",
     canonicalBody:
@@ -814,7 +812,7 @@ const koKR: TranslationKeys = {
   },
   aiAgent: {
     plannerRole:
-      "당신은 composition 웹 빌더의 설계 담당입니다.\n사용자 요청을 실행 가능한 단계로 쪼개고, **JSON 만** 출력합니다.",
+      "당신은 composition 웹 빌더의 설계 담당입니다.\n사용자 요청을 실행 가능한 단계로 쪼갭니다.",
     plannerFormat: "형식:",
     plannerShape:
       '{"goal": "요청 재진술", "steps": [{"index": 1, "instruction": "...", "done": "..."}]}',
@@ -827,8 +825,8 @@ const koKR: TranslationKeys = {
       "- done 은 그 단계가 끝났는지 눈으로 확인할 수 있는 조건을 씁니다.",
     plannerRule4:
       "- 단순한 요청 (요소 하나 만들기 / prop 하나 바꾸기) 이면 steps 는 1개입니다.",
-    plannerRule5:
-      "- 단계는 최대 6개입니다. 설명이나 코드 블록 없이 JSON 만 출력하세요.",
+    plannerRule5: "- 단계는 최대 6개입니다.",
+    plannerJsonOnly: "- 설명이나 코드 블록 없이 JSON 만 출력하세요.",
     plannerTemplates: "자주 쓰는 골격 (요청이 맞으면 출발점으로 쓰세요):",
   },
   aiTurn: {
@@ -837,7 +835,7 @@ const koKR: TranslationKeys = {
     requestHeading: "요청:",
   },
   aiVerify: {
-    role: "당신은 composition 웹 빌더의 검증 담당입니다.\n계획과 실행 기록을 보고 요청이 실제로 이행됐는지 판정하고 **JSON 만** 출력합니다.",
+    role: "당신은 composition 웹 빌더의 검증 담당입니다.\n계획과 실행 기록을 보고 요청이 실제로 이행됐는지 판정합니다.",
     shape:
       '형식: {"ok": true} 또는 {"ok": false, "issues": ["무엇이 어긋났는지", "..."]}',
     rulesHeading: "규칙:",
@@ -885,7 +883,8 @@ const koKR: TranslationKeys = {
     slot: "slot 선언. false = 비활성, 문자열 배열 = 삽입 가능한 reusable component id 목록.",
     reusable:
       "이 노드를 재사용 가능한 원본으로 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 된다 — 페이지에 보이는 컨테이너를 만들 때는 켜지 말 것.",
-    updateElement: "기존 요소의 속성이나 스타일을 수정합니다.",
+    updateElement:
+      "기존 요소의 속성이나 스타일을 수정합니다. props 와 styles 는 기존 값에 병합됩니다 (주지 않은 키는 유지). fills 는 주어지면 배열 전체가 교체됩니다. 요소의 type 은 바꿀 수 없습니다 — 다른 컴포넌트가 필요하면 delete_element 뒤 create_element 를 쓰세요.",
     updateProps:
       "변경할 컴포넌트 속성 — 표시 텍스트는 children 에 (ListBoxItem·GridListItem·Menu 만 label, 입력 필드는 placeholder)",
     updateStyles:
@@ -897,7 +896,7 @@ const koKR: TranslationKeys = {
     includeStyles: "스타일 정보 포함 여부. false면 토큰 절약.",
     maxDepth: "트리 탐색 최대 깊이. 기본 5.",
     getSelection:
-      "현재 선택된 요소의 상세 정보를 조회합니다. 태그, 속성, 스타일, 부모/자식 관계를 반환합니다.",
+      "현재 선택된 요소의 상세 정보를 조회합니다. 태그, 속성, 스타일, 부모/자식 관계를 반환합니다. 선택 요소의 type · id · props 는 이미 요청 컨텍스트에 있으므로, 자식 목록이나 스타일까지 필요할 때만 호출하세요.",
     searchElements:
       "조건에 맞는 요소를 검색합니다. 태그, 속성명, 속성값, 스타일 속성으로 필터링할 수 있습니다.",
     searchTag: "검색할 컴포넌트 태그 (예: Button, TextField)",
@@ -2204,15 +2203,13 @@ const enUS: TranslationKeys = {
     selectedParent: "- Parent ID: {parent}",
     rulesHeading: "## Rules",
     rule1:
-      "1. Before creating or updating an element, read the current state with get_editor_state or get_selection.",
+      '1. **Never invent an elementId.** Use "last-created" for the element you just made and\n   "selected" for the current selection. Otherwise copy data.elementId from the\n   create_element result verbatim, or — only when you need a real id — read one via\n   search_elements or get_editor_state. Placeholders like created-element-id or cardId will fail.',
     rule2:
-      '2. **Never invent an elementId.** Use "last-created" for the element you just made and\n   "selected" for the current selection. Otherwise copy data.elementId from the\n   create_element result verbatim, or use a real id you read via search_elements or\n   get_editor_state. Placeholders like created-element-id or cardId will fail.',
-    rule3:
-      "3. Choose prop values only from what the catalog lists. Do not invent values that are not there.",
-    rule4: "4. Always reply in English.",
-    rule5: "5. When you finish, briefly tell the user what you did.",
-    rule6:
-      "6. For several changes at once use batch_design — the user can then undo all of them in one step.",
+      "2. Choose prop values only from what the catalog lists. Do not invent values that are not there.",
+    rule3: "3. Always reply in English.",
+    rule4: "4. When you finish, briefly tell the user what you did.",
+    rule5:
+      "5. For several changes at once use batch_design — the user can then undo all of them in one step.",
     canonicalHeading:
       "## Canonical first-class fields (the canonical argument of create_element / update_element)",
     canonicalBody:
@@ -2268,7 +2265,7 @@ const enUS: TranslationKeys = {
   },
   aiAgent: {
     plannerRole:
-      "You are the planner for the composition web builder.\nBreak the user's request into executable steps and output **JSON only**.",
+      "You are the planner for the composition web builder.\nBreak the user's request into executable steps.",
     plannerFormat: "Format:",
     plannerShape:
       '{"goal": "restate the request", "steps": [{"index": 1, "instruction": "...", "done": "..."}]}',
@@ -2281,8 +2278,8 @@ const enUS: TranslationKeys = {
       "- Write done as a condition you can check by eye to see the step finished.",
     plannerRule4:
       "- For a simple request (create one element / change one prop) use a single step.",
-    plannerRule5:
-      "- At most six steps. Output JSON only — no prose, no code fences.",
+    plannerRule5: "- At most six steps.",
+    plannerJsonOnly: "- Output JSON only — no prose, no code fences.",
     plannerTemplates:
       "Common skeletons (use one as a starting point when it fits the request):",
   },
@@ -2292,7 +2289,7 @@ const enUS: TranslationKeys = {
     requestHeading: "Request:",
   },
   aiVerify: {
-    role: "You are the verifier for the composition web builder.\nRead the plan and the execution log, judge whether the request was actually carried out, and output **JSON only**.",
+    role: "You are the verifier for the composition web builder.\nRead the plan and the execution log, judge whether the request was actually carried out.",
     shape:
       'Format: {"ok": true} or {"ok": false, "issues": ["what went wrong", "..."]}',
     rulesHeading: "Rules:",
@@ -2341,7 +2338,8 @@ const enUS: TranslationKeys = {
     slot: "Slot declaration. false disables it; a string array lists reusable component ids that may be inserted.",
     reusable:
       "Marks this node as a reuse origin. On a frame it drops out of the page element list and becomes a layout definition — leave it off for containers meant to be visible.",
-    updateElement: "Updates the props or styles of an existing element.",
+    updateElement:
+      "Updates the props or styles of an existing element. props and styles are merged into the current values (keys you omit are kept); fills, when given, replace the whole array. The element's type cannot be changed — use delete_element then create_element for a different component.",
     updateProps:
       "The component props to change — visible text goes in children (label only for ListBoxItem/GridListItem/Menu, placeholder for input fields)",
     updateStyles:
@@ -2353,7 +2351,7 @@ const enUS: TranslationKeys = {
     includeStyles: "Whether to include style data. false saves tokens.",
     maxDepth: "Maximum tree depth to walk. Default 5.",
     getSelection:
-      "Reads the current selection in detail — tag, props, styles and parent/child relations.",
+      "Reads the current selection in detail — tag, props, styles and parent/child relations. The selected element's type, id and props are already in the request context, so call this only when you also need its children or styles.",
     searchElements:
       "Searches for elements. Filter by tag, prop name, prop value or style property.",
     searchTag: "Component tag to search for (Button, TextField, …)",

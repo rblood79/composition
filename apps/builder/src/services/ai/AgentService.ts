@@ -103,6 +103,11 @@ export class AgentService {
           }
         }
 
+        // 토큰 계측 — prompt cache 가 도는지는 이 값만이 근거다 (PROMPT_AUDIT_2026-09 D1).
+        if (stop?.usage && import.meta.env.DEV) {
+          console.debug("[AgentService] usage", stop.usage);
+        }
+
         // 안전 분류기 거절 — 재시도 대상이 아니다. 사유를 그대로 보여 주고 끝낸다.
         if (stop?.reason === "refusal") {
           yield {

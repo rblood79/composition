@@ -32,10 +32,39 @@ import {
   type LLMStopReason,
   type LLMStreamEvent,
   type LLMToolCall,
+  type LLMUsage,
 } from "./LLMProvider";
 
 const PROVIDER_ID = "anthropic" as const;
 const ANTHROPIC_VERSION = "2023-06-01";
+
+/** `fallbacks: "default"` (scalar 형) 를 여는 beta — 배열 형의 `-2026-06-01` 과 다르다. */
+const REFUSAL_FALLBACK_BETA = "server-side-fallback-2026-07-01";
+
+/**
+ * 안전 분류기가 붙어 `stop_reason: "refusal"` 을 낼 수 있는 모델 — Opus 5 · Fable · Mythos.
+ * 여기에만 `fallbacks` 를 보낸다.
+ */
+export function modelHasRefusalFallbacks(model: string): boolean {
+  return /^claude-(opus-5|fable|mythos)/.test(model);
+}
+
+/** Messages API `usage` (message_start 의 입력 3종 + message_delta 의 output_tokens). */
+interface WireUsage {
+  input_tokens?: number;
+  output_tokens?: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+}
+
+function toUsage(raw: WireUsage): LLMUsage {
+  return {
+    inputTokens: raw.input_tokens ?? 0,
+    outputTokens: raw.output_tokens ?? 0,
+    cacheCreationInputTokens: raw.cache_creation_input_tokens ?? 0,
+    cacheReadInputTokens: raw.cache_read_input_tokens ?? 0,
+  };
+}
 
 /**
  * 기본 `max_tokens` — adaptive thinking 이 이 한도 **안에서** 돌아간다. 레퍼런스의
@@ -209,13 +238,36 @@ export class AnthropicProvider implements LLMProvider {
     const { system, messages: wire } = toAnthropicMessages(messages);
     const tools = toAnthropicTools(options);
 
+    // output_config 는 effort 와 format 이 같은 객체를 나눠 쓴다.
+    const outputConfig: Record<string, unknown> = {
+      ...(options.reasoningEffort ? { effort: options.reasoningEffort } : {}),
+      ...(options.responseSchema
+        ? { format: { type: "json_schema", schema: options.responseSchema } }
+        : {}),
+    };
+
     // `thinking` · `temperature` 는 보내지 않는다 (파일 상단 계약). `options.temperature`
     // 는 OpenAI 호환 어댑터 전용이다.
     return {
       model: this.config.model,
       max_tokens: options.maxTokens ?? ANTHROPIC_DEFAULT_MAX_TOKENS,
       stream: true,
-      ...(system ? { system } : {}),
+      // Prompt cache — 렌더 순서는 tools → system → messages 라 system 블록의 breakpoint
+      // 하나가 앞의 tools 까지 덮는다. 최상위 자동 breakpoint 는 자라는 대화 꼬리를 따라간다
+      // (agent loop 권장 조합). 5분 TTL — AI 패널 턴 간격이 그 안이라 1h 의 write 2× 가
+      // 이득이 없다.
+      ...(system
+        ? {
+            system: [
+              {
+                type: "text",
+                text: system,
+                cache_control: { type: "ephemeral" },
+              },
+            ],
+            cache_control: { type: "ephemeral" },
+          }
+        : {}),
       messages: wire,
       ...(tools
         ? {
@@ -225,8 +277,13 @@ export class AnthropicProvider implements LLMProvider {
             },
           }
         : {}),
-      ...(options.reasoningEffort
-        ? { output_config: { effort: options.reasoningEffort } }
+      ...(Object.keys(outputConfig).length > 0
+        ? { output_config: outputConfig }
+        : {}),
+      // 안전 분류기가 거절하면 같은 호출 안에서 권장 fallback 모델로 다시 돈다. 분류기가
+      // 붙는 모델에만 — 다른 모델은 허용 fallback 목록이 없어 400 위험이 있다.
+      ...(modelHasRefusalFallbacks(this.config.model)
+        ? { fallbacks: "default" }
         : {}),
     };
   }
@@ -237,6 +294,9 @@ export class AnthropicProvider implements LLMProvider {
   ): AsyncGenerator<LLMStreamEvent> {
     const headers: Record<string, string> = {
       "anthropic-version": ANTHROPIC_VERSION,
+      ...(modelHasRefusalFallbacks(this.config.model)
+        ? { "anthropic-beta": REFUSAL_FALLBACK_BETA }
+        : {}),
       ...this.config.headers,
     };
     if (this.config.apiKey) headers["x-api-key"] = this.config.apiKey;
@@ -254,9 +314,16 @@ export class AnthropicProvider implements LLMProvider {
     const blocks = new Map<number, PendingBlock>();
     let stopReason: LLMStopReason = "end";
     let stopDetail: string | undefined;
+    let usage: WireUsage | undefined;
 
     for await (const event of parseSSEStream(response)) {
       const type = event.type as string | undefined;
+
+      if (type === "message_start") {
+        const message = event.message as { usage?: WireUsage } | undefined;
+        if (message?.usage) usage = { ...usage, ...message.usage };
+        continue;
+      }
 
       if (type === "content_block_start") {
         const index = event.index as number;
@@ -346,6 +413,9 @@ export class AnthropicProvider implements LLMProvider {
         if (delta?.stop_reason) stopReason = toStopReason(delta.stop_reason);
         const category = delta?.stop_details?.category;
         if (typeof category === "string") stopDetail = category;
+        // message_delta 의 usage 는 누적값 — 마지막 것이 최종.
+        const deltaUsage = event.usage as WireUsage | undefined;
+        if (deltaUsage) usage = { ...usage, ...deltaUsage };
       }
     }
 
@@ -371,6 +441,7 @@ export class AnthropicProvider implements LLMProvider {
       reason: calls.length > 0 ? "tool-calls" : stopReason,
       ...(stopDetail !== undefined ? { detail: stopDetail } : {}),
       ...(assistantTurn ? { assistantTurn } : {}),
+      ...(usage ? { usage: toUsage(usage) } : {}),
     };
   }
 }

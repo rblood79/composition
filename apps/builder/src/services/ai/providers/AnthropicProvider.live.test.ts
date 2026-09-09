@@ -120,4 +120,44 @@ describe.skipIf(!API_KEY)(`Anthropic live (${MODEL})`, () => {
       .join("");
     expect(answer.toLowerCase()).toMatch(/sunny|25/);
   }, 120_000);
+
+  // PROMPT_AUDIT_2026-09 D1 — 캐시가 실제로 도는지는 usage 만이 근거다. 같은 system prompt 로
+  // 두 번 보내면 둘째 요청의 cache_read_input_tokens 가 0 보다 커야 한다.
+  it("같은 system prompt 의 둘째 요청은 prompt cache 를 읽는다 (cache_read_input_tokens > 0)", async () => {
+    const provider = new AnthropicProvider({
+      baseUrl: "https://api.anthropic.com",
+      model: MODEL,
+      apiKey: API_KEY,
+      allowRemoteDirect: true,
+    });
+    // Sonnet 5 의 최소 캐시 prefix 는 1024 tok — filler 로 넘긴다.
+    const filler = Array.from(
+      { length: 120 },
+      (_, i) =>
+        `Rule ${i}: keep answers short and factual; this line pads the prefix past the caching minimum.`,
+    ).join("\n");
+    const history: LLMMessage[] = [
+      { role: "system", content: `You are a test agent.\n${filler}` },
+      { role: "user", content: "Reply with the single word OK." },
+    ];
+    const run = () =>
+      collect(
+        provider.completeWithTools(history, {
+          reasoningEffort: "low",
+          maxTokens: 200,
+        }),
+      );
+
+    const first = (await run()).at(-1);
+    const second = (await run()).at(-1);
+    if (first?.type !== "stop" || second?.type !== "stop") {
+      throw new Error("stop 이벤트 없음");
+    }
+    expect(first.usage).toBeDefined();
+    expect(
+      (first.usage?.cacheCreationInputTokens ?? 0) +
+        (first.usage?.cacheReadInputTokens ?? 0),
+    ).toBeGreaterThan(0);
+    expect(second.usage?.cacheReadInputTokens ?? 0).toBeGreaterThan(0);
+  }, 120_000);
 });

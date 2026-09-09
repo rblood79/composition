@@ -299,7 +299,10 @@ describe("Anthropic 어댑터", () => {
 
     expect(capture.calls[0].url).toBe("https://api.anthropic.com/v1/messages");
     const body = capture.body();
-    expect(body.system).toBe("you are a builder agent");
+    // system 은 cache_control 이 붙은 블록 배열 (PROMPT_AUDIT_2026-09 D1)
+    expect(body.system).toEqual([
+      expect.objectContaining({ type: "text", text: "you are a builder agent" }),
+    ]);
     expect(body.tools[0]).toMatchObject({
       name: "run_command",
       input_schema: TOOL.parameters,

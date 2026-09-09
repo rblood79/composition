@@ -7,6 +7,7 @@
 
 import type { LLMToolDefinition } from "../providers/LLMProvider";
 import type { PromptTranslate } from "../promptTranslate";
+import { getAiComponentCatalog } from "../catalog/componentCatalog";
 
 /**
  * 도구 정의의 중첩 형태 (OpenAI function calling wire 형태).
@@ -25,40 +26,14 @@ interface ChatCompletionTool {
 }
 
 /**
- * AI가 생성할 수 있는 컴포넌트 태그 목록
- * getDefaultProps() (unified.types.ts:1023)의 키와 동기화
+ * AI 가 생성할 수 있는 컴포넌트 type — system prompt 의 카탈로그 인덱스와 같은 집합
+ * (`getCatalogByCategory` 도 placeable 만 싣는다). 손으로 적은 목록은 카탈로그와 갈라져
+ * 프롬프트 ("아래 목록만") 와 스키마 (enum) 가 다른 말을 했다 (PROMPT_AUDIT_2026-09 D2).
+ * frame 은 catalog native entry 라 여기 포함된다 (ADR-130).
  */
-const COMPONENT_TAGS = [
-  "Button",
-  "TextField",
-  "Checkbox",
-  "Radio",
-  "ToggleButton",
-  "ToggleButtonGroup",
-  "CheckboxGroup",
-  "RadioGroup",
-  "Select",
-  "ComboBox",
-  "Slider",
-  "Tabs",
-  "Tree",
-  "Calendar",
-  "DatePicker",
-  "DateRangePicker",
-  "Switch",
-  "Table",
-  "Card",
-  "TagGroup",
-  "ListBox",
-  "GridList",
-  "Text",
-  "Div",
-  "Section",
-  "Nav",
-  // ADR-130 canonical layout container — ARIA Group 이 아니라 frame 이 layout 진입점.
-  // ADR-134 Phase 3 에서 도구 어휘로 노출.
-  "frame",
-] as const;
+const COMPONENT_TAGS: readonly string[] = getAiComponentCatalog()
+  .filter((entry) => entry.placeable)
+  .map((entry) => entry.type);
 
 export const toolDefinitions: ChatCompletionTool[] = [
   {

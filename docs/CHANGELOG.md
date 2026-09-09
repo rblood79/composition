@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [AI 어시스턴트 — Claude 요청의 prompt caching · 구조화 출력 · 도구 계약 정합] - 2026-09-09
+
+### Changed
+
+- AI 패널이 Claude API 를 부를 때 system prompt 와 도구 정의를 prompt cache 에 올린다. 같은 세션의 두 번째 요청부터 이 부분은 캐시 read 로 청구된다 (입력가의 1/10, Fable 5.1 은 1/40). 응답의 토큰 사용량 (`cache_read_input_tokens` 포함) 을 provider 가 읽어 개발 빌드 콘솔에 표시한다.
+- planner·verifier 가 Anthropic provider 에서는 구조화 출력 (`output_config.format`) 으로 JSON 을 받는다. 프롬프트의 "JSON 만 출력" 강제와 코드 펜스 추출은 OpenAI 호환 (Ollama) 경로에만 남는다.
+- 안전 분류기가 붙는 모델 (Opus 5 · Fable) 에는 `fallbacks: "default"` 를 보내, 거절되면 같은 호출 안에서 권장 모델로 다시 돈다.
+
+### Fixed
+
+- `create_element` 도구의 type 목록이 손으로 적은 28개라 system prompt 의 카탈로그 (124) 와 어긋나던 문제를 수정했다. 골격 힌트가 만들라는 Heading·ProgressBar 가 스키마에 없었다. 이제 카탈로그의 placeable type 에서 파생한다.
+- 매 요청 전에 get_editor_state 호출을 강제하던 규칙을 뺐다. 요청 컨텍스트가 이미 페이지·선택 요소를 싣는다. update_element·get_selection 도구 설명에 병합/교체 의미와 호출 시점을 적었다.
+
+### Validation
+
+- 요청 본문 모양·usage 파싱·구조화 출력·enum 파생을 덮는 테스트 15개 추가, AI 서비스·i18n 스위트 281개 통과, type-check PASS. 실제 캐시 hit 는 `AnthropicProvider.live.test.ts` 의 키 게이트 케이스로 잰다 — 이 환경에 Anthropic 키가 없어 미실행.
+- 근거와 전체 감사 결과: `docs/explanation/research/PROMPT_AUDIT_2026-09.md` (Claude Platform 블로그 2026-09-08 권장 3축 적용).
+
 ## [차트 속성의 종류 변경 버튼이 다른 패널 버튼과 같아집니다] - 2026-09-09
 
 ### Fixed

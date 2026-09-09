@@ -8,16 +8,30 @@
 import type { LLMMessage, LLMProvider } from "../providers/LLMProvider";
 import type { AgentPlan, VerifyOutcome } from "./types";
 import type { PromptTranslate } from "../promptTranslate";
+import { supportsStructuredOutput } from "./PlannerAgent";
 
-const verifierSystem = (t: PromptTranslate): string => `${t("aiVerify.role")}
+/** 구조화 출력 스키마 (PROMPT_AUDIT_2026-09 D3) — PlannerAgent 의 스키마와 같은 규약. */
+export const VERDICT_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    ok: { type: "boolean" },
+    issues: { type: "array", items: { type: "string" } },
+  },
+  required: ["ok", "issues"],
+  additionalProperties: false,
+};
+
+const verifierSystem = (
+  t: PromptTranslate,
+  structured: boolean,
+): string => `${t("aiVerify.role")}
 
 ${t("aiVerify.shape")}
 
 ${t("aiVerify.rulesHeading")}
 ${t("aiVerify.rule1")}
 ${t("aiVerify.rule2")}
-${t("aiVerify.rule3")}
-${t("aiVerify.rule4")}`;
+${t("aiVerify.rule3")}${structured ? "" : `\n${t("aiVerify.rule4")}`}`;
 
 export function parseVerdict(raw: string): VerifyOutcome {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -56,8 +70,9 @@ export class VerifierAgent {
     executionLog: readonly string[],
     signal?: AbortSignal,
   ): Promise<VerifyOutcome> {
+    const structured = supportsStructuredOutput(this.provider);
     const messages: LLMMessage[] = [
-      { role: "system", content: verifierSystem(this.t) },
+      { role: "system", content: verifierSystem(this.t, structured) },
       {
         role: "user",
         content: [
@@ -79,6 +94,7 @@ export class VerifierAgent {
     for await (const event of this.provider.completeWithTools(messages, {
       toolChoice: "none",
       signal,
+      ...(structured ? { responseSchema: VERDICT_RESPONSE_SCHEMA } : {}),
     })) {
       if (event.type === "text-delta") text += event.delta;
     }

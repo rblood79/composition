@@ -12,8 +12,41 @@ import { formatTemplateHints } from "../templates/layoutTemplates";
 import type { AgentPlan, PlanStep } from "./types";
 import type { PromptTranslate } from "../promptTranslate";
 
+/**
+ * 구조화 출력 스키마 (PROMPT_AUDIT_2026-09 D3). provider 가 지원하면 이것이 형식을 보장하고
+ * 프롬프트의 "JSON 만 출력" 줄은 싣지 않는다. 지원 집합 — 모든 객체 `additionalProperties:
+ * false`, 배열 길이 제약 없음 (상한 6 은 `parsePlan` 의 slice 가 집행).
+ */
+export const PLAN_RESPONSE_SCHEMA: Record<string, unknown> = {
+  type: "object",
+  properties: {
+    goal: { type: "string" },
+    steps: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          index: { type: "integer" },
+          instruction: { type: "string" },
+          done: { type: "string" },
+        },
+        required: ["index", "instruction", "done"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["goal", "steps"],
+  additionalProperties: false,
+};
+
+/** 구조화 출력을 보장하는 provider — 나머지는 프롬프트 + 텍스트 파서로 형식을 지킨다. */
+export function supportsStructuredOutput(provider: LLMProvider): boolean {
+  return provider.id === "anthropic";
+}
+
 const plannerSystem = (
   t: PromptTranslate,
+  structured: boolean,
 ): string => `${t("aiAgent.plannerRole")}
 
 ${t("aiAgent.plannerFormat")}
@@ -24,7 +57,7 @@ ${t("aiAgent.plannerRule1")}
 ${t("aiAgent.plannerRule2")}
 ${t("aiAgent.plannerRule3")}
 ${t("aiAgent.plannerRule4")}
-${t("aiAgent.plannerRule5")}
+${t("aiAgent.plannerRule5")}${structured ? "" : `\n${t("aiAgent.plannerJsonOnly")}`}
 
 ${t("aiAgent.plannerTemplates")}
 ${formatTemplateHints(t)}`;
@@ -89,8 +122,9 @@ export class PlannerAgent {
     history: readonly string[] = [],
     signal?: AbortSignal,
   ): Promise<AgentPlan | null> {
+    const structured = supportsStructuredOutput(this.provider);
     const messages: LLMMessage[] = [
-      { role: "system", content: plannerSystem(this.t) },
+      { role: "system", content: plannerSystem(this.t, structured) },
       {
         role: "user",
         content: [
@@ -109,6 +143,7 @@ export class PlannerAgent {
     for await (const event of this.provider.completeWithTools(messages, {
       toolChoice: "none",
       signal,
+      ...(structured ? { responseSchema: PLAN_RESPONSE_SCHEMA } : {}),
     })) {
       if (event.type === "text-delta") text += event.delta;
     }
