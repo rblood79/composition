@@ -172,7 +172,7 @@ coordinator의 로컬 상태는 `pendingRaf`, `dirtyReasons`, `generation`, `sus
 - render RAF 간격과 display cadence는 별개다. on-demand의 idle 제출 간격을 dropped frame으로 계산하지 않는다. 일정 시간 display sampling을 켠 진단 run과 scheduler wake를 검증하는 계측 최소화 run을 분리한다.
 - production GPU 계측은 기본 배포 설정에 켜지지 않는 명시적 계측 옵션으로 준비한다. Canvas flag가 필요하면 기존 `featureFlags.ts` registry에만 정의한다. React Profiler 수치는 지원하는 profiling 빌드에서 보조 수집하고 일반 production frame 수치와 혼합하지 않는다.
 
-evidence 경로: `docs/migrations/evidence/frame-performance/`. 최초 [baseline](../migrations/evidence/frame-performance/baseline.md), [입력·자원 경계](../migrations/evidence/frame-performance/wake-sources.md), [P1 반복 실측](../migrations/evidence/frame-performance/p1-measurements.md), [종결 검증](../migrations/evidence/frame-performance/closure.md)을 구분한다. 전체 호출·누적 시간·p99, GPU/RAF/input 원시 표본을 보존한다. 600 fixture 5쌍으로 상대 효과를 판정하고 다른 규모·text/ref 문서는 정합성 smoke 대조로 한정한다.
+evidence 경로: `docs/migrations/frame-performance/`. 최초 [baseline](../migrations/frame-performance/baseline.md), [입력·자원 경계](../migrations/frame-performance/wake-sources.md), [P1 반복 실측](../migrations/frame-performance/p1-measurements.md), [종결 검증](../migrations/frame-performance/closure.md)을 구분한다. (원시 JSON·trace·PNG 631MB 는 2026-09-09 삭제 — gitignore 로컬 파일이었다.) 전체 호출·누적 시간·p99, GPU/RAF/input 원시 표본을 보존한다. 600 fixture 5쌍으로 상대 효과를 판정하고 다른 규모·text/ref 문서는 정합성 smoke 대조로 한정한다.
 
 기존 하니스로 가능한 초기 기준선 명령 예시(기본은 dev 서버이며 production 판정을 대신하지 않음):
 

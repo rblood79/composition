@@ -24,7 +24,7 @@ docs/
 ├── how-to/                 # 실용 가이드 — development · troubleshooting
 ├── tutorials/              # 학습 중심 실습 가이드
 ├── legacy/                 # 폐기·역사 문서 (48 + README, 각 파일에 폐기 사유 배너)
-├── migrations/             # 마이그레이션 기록 (evidence/ 는 gitignore)
+├── migrations/             # 마이그레이션 기록 · frame-performance/ 분석 노트
 ├── pencil-copy/            # Pencil 호환성 dossier (clean-room)
 ├── CHANGELOG.md            # 변경 이력 (2026-09~)
 ├── CHANGELOG-2026-Q3-archived.md   # 2026-07-01 ~ 08-31
@@ -171,8 +171,9 @@ Properties Panel · ToggleButtonGroup
 
 ## Migrations
 
-작업 단위 마이그레이션 기록: [migrations/](migrations/) — 측정 산출물 `migrations/evidence/` 는
-gitignore 대상 로컬 파일입니다.
+작업 단위 마이그레이션 기록: [migrations/](migrations/). 프레임 성능 조사의 보존된 분석 노트는
+[migrations/frame-performance/](migrations/frame-performance/) 에 있습니다 — 원시 산출물 631MB
+(`migrations/evidence/`, gitignore 대상 로컬 파일) 은 2026-09-09 에 삭제했습니다.
 
 ---
 

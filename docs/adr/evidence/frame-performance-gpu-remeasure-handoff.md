@@ -3,7 +3,7 @@
 작성: Claude 세션. 수신: 재측정 하니스를 쥔 세션.
 
 후속 실행: [2026-09-06 재검증](frame-performance-remeasurement-20260906.md). GPU reset/context-loss 추가 수리와 동일 소스 3개 대조 빌드 × GPU off/on 재측정을 완료했다. CPU/G1은 통과했으나 10초 edit GPU tail 실패와 30초 추가검증 통과가 달라 G5/전체 종결은 보류한다. 아래 내용은 최초 인수인계 시점의 요청과 철회 사유다.
-선행 문서: `docs/migrations/evidence/frame-performance/review-verification/findings.md`
+선행 문서: `docs/migrations/frame-performance/review-verification-findings.md`
 (CPU 재검증 결과 — 이 문서는 그 위에 남은 2건). 그 경로는 `.gitignore:127` 로 로컬 전용
 raw evidence 영역이라 저장소에 없다. 이 인수인계만 추적 대상으로 둔다.
 실행 설계 본문: [react-skia-zustand-frame-performance-design.md](../react-skia-zustand-frame-performance-design.md).

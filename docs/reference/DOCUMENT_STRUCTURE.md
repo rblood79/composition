@@ -50,7 +50,7 @@ docs/
 ├── tutorials/features/         # 기능 튜토리얼 (1 — TREE_COMPONENT.md)
 │
 ├── migrations/                 # DB 마이그레이션 SQL + 성능·부팅 조사 노트 — md 8 + 비-md 5
-│   └── evidence/               # 측정 산출물 539 파일 (gitignore)
+│   └── frame-performance/      # 프레임 성능 조사 보존 노트 5 + README (원시 631MB 는 2026-09-09 삭제)
 │
 ├── legacy/                     # 폐기·역사 문서 (md 49 = README 1 + 문서 48, 각 파일에 폐기 사유 배너)
 ├── pencil-copy/                # Pencil 호환성 dossier (md 8 = README 1 + 문서 7) + fixtures/ JSON 1
@@ -133,7 +133,7 @@ docs/
 ### 조사·마이그레이션 산출물
 
 - **`docs/migrations/`**: DB 마이그레이션 SQL 2개 + shadcn 참조 JSON 3개 + 성능·부팅 조사 노트 8개 (2026-09-07 작성분 — worker WebGL surface, Skia 폰트 포맷, Styles 패널 rAF, 외부 성능 감사 등)
-- **`docs/migrations/evidence/`**: 직속 파일 0, 하위 3개 디렉터리(`frame-performance` · `worker-product-20260907` · `worker-assets-20260907`)에 측정 산출물 총 539 파일 (그중 md 5)
+- **`docs/migrations/frame-performance/`**: 2026-09-06~07 프레임 성능 조사의 분석 노트 5건 + README. 원시 산출물 (`evidence/`, 631MB / 539 파일, gitignore) 은 2026-09-09 삭제 — 재측정은 `pnpm perf:baseline`
 
 ### Pencil 분석
 
@@ -268,12 +268,10 @@ docs/CHANGELOG.md (Implemented 승격 엔트리 반영)
 
 파일이 하나도 없는 디렉터리 **2개** (둘 다 측정 산출물 자리):
 
-- `migrations/evidence/frame-performance/p0-prod-smoke/`
-- `migrations/evidence/frame-performance/remeasure-20260906-final/gpu-diagnostic-1-full/`
 
 직속 파일 없이 **하위 디렉터리만** 가진 곳 (구조상 정상):
 
-- `features/` · `how-to/` · `tutorials/` · `explanation/` (`.DS_Store` 제외) · `migrations/evidence/`
+- `features/` · `how-to/` · `tutorials/` · `explanation/` (`.DS_Store` 제외)
 - `adr/evidence/203-g1-final/` · `203-phase1/` · `203-phase3/` 는 md 가 없고 비-md 산출물만 있습니다
 
 ---
