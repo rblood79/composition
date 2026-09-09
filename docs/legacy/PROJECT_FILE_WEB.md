@@ -1,5 +1,7 @@
 # 프로젝트별 파일 모드 + 웹 브라우저 하이브리드 아키텍처
 
+> **폐기 (2026-09-09)**: Electron 파일 모드를 전제한 2025-11 설계다. Electron 은 채택되지 않았고 ([ELECTRON_SETUP](ELECTRON_SETUP.md)), 인용된 `dashboard/` · `dialogs/` · `services/database/` 계층도 존재하지 않는다. 현행 저장 구조는 IndexedDB canonical + Supabase 인증 전용 ([ADR-128](../adr/completed/128-supabase-backend-decommission.md)). 기록 보존용.
+
 **작성일**: 2025-11-07
 **목적**: Electron 파일 모드와 웹 브라우저 접근의 완벽한 통합
 

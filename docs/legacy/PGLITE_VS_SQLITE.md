@@ -1,5 +1,7 @@
 # PGlite vs SQLite 비교 분석
 
+> **폐기 (2026-09-09)**: 2025-11-07 Electron/PGlite 검토 기록이다 (`docs/explanation/research/` 에서 이동 — 같은 검토의 짝 문서 [DB_COMPATIBILITY-2025-11](DB_COMPATIBILITY-2025-11.md) 과 함께 보관). 현행 구조는 IndexedDB canonical + Supabase 인증 전용 ([ADR-128](../adr/completed/128-supabase-backend-decommission.md)). 기록 보존용.
+
 > **역사 문서 — 현행 구현 아님**
 >
 > 이 문서는 2025-11-07의 Electron/PGlite 검토 기록입니다. 현재 Builder의

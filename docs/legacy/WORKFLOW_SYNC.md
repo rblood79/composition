@@ -1,5 +1,7 @@
 # Workflow View Sync
 
+> **폐기 (2026-09-09)**: 본문이 지목하는 `src/workflow/store/workflowStore.ts` 와 `BuilderWorkflow.tsx` 는 삭제됐다 ([WORKFLOW.md](WORKFLOW.md) 참조 — ReactFlow 의존성 제거, CanvasKit 오버레이로 전환). 현행 워크플로우 렌더는 `apps/builder/src/builder/workspace/canvas/skia/workflowRenderer*`. 기록 보존용.
+
 빌더 상단 헤더의 `Switch to Workflow` 토글로 진입하는 워크플로우 뷰가 실제 프로젝트 데이터와 어떻게 동기화되는지 요약합니다. (기본 코드 위치: `src/builder/main/BuilderWorkflow.tsx`, `src/workflow/store/workflowStore.ts`)
 
 ## 동작 개요

@@ -1,5 +1,7 @@
 # 스타일 패널 파싱 최적화 리서치
 
+> **폐기 (2026-09-09)**: 결론의 전제가 "현재 빌더는 WebGL(PixiJS) 기반" 인데, PixiJS 는 ADR-900 통합 Skia 로 대체돼 저장소에 남아 있지 않다. 인용된 `components/panels/style/**` 구조도 소멸했다. 스타일 패널의 현행 비용 실측은 [BUILDER_PERF_BASELINE_2026-09](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md). 기록 보존용.
+
 ## 요약
 
 현재 시스템은 JavaScript 객체 기반 + WebGL(PixiJS) 렌더링이므로 CSS 파싱 라이브러리(Lightning CSS, CSSTree, PostCSS)는 **부적합**합니다.

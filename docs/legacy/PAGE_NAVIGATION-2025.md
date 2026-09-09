@@ -1,5 +1,7 @@
 # 페이지 내비게이션 구현
 
+> **폐기 (2026-09-09)**: 이 구현이 딛고 있던 이벤트 계층 (`utils/eventEngine.ts` · `types/events.ts` · `builder/inspector/events/`) 이 전부 제거됐다. 현재 런타임 페이지 이동은 `apps/publish/src/components/PageNav.tsx` 가 담당한다. 기록 보존용.
+
 ## 개요
 
 composition 빌더에서 Button onClick 이벤트를 통한 페이지 간 내비게이션 기능을 구현했습니다.

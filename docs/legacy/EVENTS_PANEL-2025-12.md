@@ -1,5 +1,7 @@
 # Events Panel 재설계 문서
 
+> **폐기 (2026-09-09)**: 문서가 기술하는 `panels/events/` 는 저장소에 없다. 이벤트 저작은 `apps/builder/src/builder/panels/interactions/` (InteractionsPanel · TriggerPicker) 로 대체됐고, `eventEngine` · `events.registry` 도 남아 있지 않다. 후속 방향은 [ADR-149](../adr/completed/149-events-panel-canonical-simplification.md). 기록 보존용.
+
 > **상태**: ✅ Phase 5 완료 (블록 기반 UI + Navigate 액션 수정)
 > **작성일**: 2025-12-07
 > **최종 수정**: 2025-12-08

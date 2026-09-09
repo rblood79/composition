@@ -69,6 +69,19 @@
 | BUG_TAG_VERTICAL_STACKING-2026-03.md | 2026-03-06 해결 완료. 병인 정본은 `.claude/rules/`                    |
 | BUG_SKIA_BUTTON_LINEBREAK-2026-03.md | 2026-03-05 해결 완료. 병인 정본은 `.claude/rules/canvas-rendering.md` |
 
+## 기능이 제거된 문서 (2026-09-09 이동)
+
+| 파일                     | 레거시 사유                                                                                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------- |
+| EVENTS_PANEL-2025-12.md  | `panels/events/` 부재. 이벤트 저작은 `panels/interactions/` 로 대체, `eventEngine` 도 제거됨       |
+| PAGE_NAVIGATION-2025.md  | 딛고 있던 이벤트 계층 전부 제거. 런타임 이동은 `apps/publish/src/components/PageNav.tsx`           |
+| TRANSFORMER_SECURITY.md  | Transformer 3-Level 시스템 전수 제거 (ADR-132 Phase 7). 관련 파일 0건                             |
+| PROJECT_FILE_WEB.md      | Electron 파일 모드 전제. Electron 미채택, `dashboard/` · `services/database/` 부재                |
+| WORKFLOW_SYNC.md         | `src/workflow/` 삭제. 현행은 `canvas/skia/workflowRenderer*`                                      |
+| STYLE_PARSING.md         | "빌더는 PixiJS 기반" 전제. PixiJS 는 ADR-900 통합 Skia 로 대체됨                                 |
+| PGLITE_VS_SQLITE.md      | 2025-11-07 PGlite 검토. DB_COMPATIBILITY-2025-11.md 와 짝                                         |
+| MONOREPO_MIGRATION-2025-12.md | 2025-12-31 완료된 전환 실행 계획서 (2,465줄). 현행 구조는 reference/architecture/MONOREPO.md |
+
 ## 기타
 
 | 파일                   | 레거시 사유             |

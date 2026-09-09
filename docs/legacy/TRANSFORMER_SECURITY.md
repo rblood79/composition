@@ -1,5 +1,7 @@
 # Transformer Security Analysis & Solutions
 
+> **폐기 (2026-09-09)**: Transformer 3-Level 시스템은 ADR-132 Phase 7 (2026-05-13) 에서 외부 caller 0건 확인 후 전수 제거됐다 — 저장소에 transformer 관련 파일이 하나도 없다. Level 1 (노코드 Response Mapping) 기능은 `ApiEndpoint.responseMapping` 이 흡수했다. 기록 보존용.
+
 > **Status**: ⚫ **SUPERSEDED — Transformer 3-Level 시스템 전수 제거 (ADR-132 Phase 7, 2026-05-13)**
 >
 > Transformer 시스템은 외부 caller 0건 검증 후 dead infrastructure 로 판정되어 전수 제거됨 (commit `c52fd344f`, ~800 LOC). 본 문서의 보안 우려 (Level 2 `new Function()` 패턴) 는 더 이상 해당 없음. 향후 데이터 변환 로직 재도입 시 본 문서를 reference 로 활용하되, 새 ADR 발의 후 안전 패턴 (Level 1 mapping 우선 / Web Worker 격리 / WASM sandbox) 채택 필수.
