@@ -19,6 +19,7 @@ import {
 } from "../../../components";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
+import { useOptionalI18n } from "@/i18n";
 
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -59,6 +60,7 @@ const ItemRow = memo(function ItemRow({
   onUpdate,
   onRemove,
 }: ItemRowProps) {
+  const i18n = useOptionalI18n();
   const [expanded, setExpanded] = useState(false);
   const label = String(item[labelKey] ?? "—");
 
@@ -74,7 +76,11 @@ const ItemRow = memo(function ItemRow({
       <div className="items-manager-row-header">
         <button
           className="editor-item-action items-manager-expand"
-          aria-label={expanded ? "Collapse" : "Expand"}
+          aria-label={
+            i18n?.t(
+              expanded ? "itemsManager.collapse" : "itemsManager.expand",
+            ) ?? (expanded ? "Collapse" : "Expand")
+          }
           onClick={() => setExpanded((prev) => !prev)}
         >
           {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
@@ -82,7 +88,7 @@ const ItemRow = memo(function ItemRow({
         <span className="editor-item-title">{label}</span>
         <button
           className="editor-item-action"
-          aria-label="Remove item"
+          aria-label={i18n?.t("itemsManager.removeItem") ?? "Remove item"}
           onClick={onRemove}
         >
           <DeleteIcon size={12} />
@@ -336,6 +342,7 @@ export const ItemsManager = memo(function ItemsManager({
   elementId,
   field,
 }: ItemsManagerProps) {
+  const i18n = useOptionalI18n();
   const itemsKey = field.itemsKey;
   const labelKey = field.labelKey ?? "label";
   const allowSections = field.allowSections ?? false;
@@ -432,7 +439,10 @@ export const ItemsManager = memo(function ItemsManager({
   return (
     <div className="children-manager">
       <div className="editor-overview">
-        <p className="editor-overview-text">Total: {totalCount}</p>
+        <p className="editor-overview-text">
+          {i18n?.t("itemsManager.total", { count: totalCount }) ??
+            `Total: ${totalCount}`}
+        </p>
       </div>
 
       {rawItems.length > 0 && (
@@ -500,7 +510,12 @@ export const ItemsManager = memo(function ItemsManager({
           onClick={handleAdd}
         >
           <AddIcon size={14} />
-          Add {field.itemTypeName}
+          {i18n?.t("itemsManager.addItem", {
+            type:
+              field.itemTypeName === "ChartRow"
+                ? i18n.t("chart.row")
+                : field.itemTypeName,
+          }) ?? `Add ${field.itemTypeName}`}
         </button>
         {allowSections && (
           <button

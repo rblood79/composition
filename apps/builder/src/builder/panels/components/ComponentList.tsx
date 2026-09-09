@@ -1,5 +1,11 @@
 import { useMemo, useCallback, memo, useState, useEffect } from "react";
-import { translations } from "../../../i18n";
+import {
+  localizedStrings,
+  semanticLabelKeys,
+  translations,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 // ADR-912 collapse: palette icon 은 getPaletteItems() 가 catalog entry.panel.icon → lucide 매핑.
 // 아래 lucide import 는 ComponentList 자체 UI(검색/휴지통/접기 등) 전용으로만 잔존.
 import { Blocks, SearchX } from "lucide-react";
@@ -66,6 +72,12 @@ const ComponentItem = ({
   isRecent?: boolean;
   count?: number;
 }) => {
+  const i18n = useOptionalI18n();
+  const labelKey = semanticLabelKeys[component.label];
+  const displayLabel =
+    i18n && labelKey
+      ? translateKey(i18n.t, labelKey, component.label)
+      : component.label;
   const handleClick = useCallback(() => {
     onAdd(component.type, selectedElementId || undefined);
   }, [component.type, onAdd, selectedElementId]);
@@ -74,13 +86,17 @@ const ComponentItem = ({
     <button
       className="list-item"
       onClick={handleClick}
-      title={`Add ${component.label} element`}
+      title={
+        i18n && labelKey
+          ? `${i18n.t("common.addElement")}: ${displayLabel}`
+          : `Add ${component.label} element`
+      }
     >
       <div className="list-item-icon">
         <component.icon strokeWidth={1.5} width={16} height={16} />
       </div>
       {isRecent && count > 0 && <Badge>{count}</Badge>}
-      <span className="list-item-name">{component.label}</span>
+      <span className="list-item-name">{displayLabel}</span>
     </button>
   );
 };
@@ -161,7 +177,14 @@ const ComponentList = memo(
         const i18nKey =
           specialTagMap[comp.type] ??
           comp.type[0].toLowerCase() + comp.type.slice(1);
-        const labels: string[] = (comp.searchLabels ?? []).map((label) => label.toLowerCase());
+        const labels: string[] = (comp.searchLabels ?? []).map((label) =>
+          label.toLowerCase(),
+        );
+        const labelKey = semanticLabelKeys[comp.label];
+        for (const locale of Object.values(localizedStrings)) {
+          const label = locale[labelKey];
+          if (typeof label === "string") labels.push(label.toLowerCase());
+        }
         for (const locale of allLocales) {
           const label = (
             locale.components as Record<string, string | undefined>

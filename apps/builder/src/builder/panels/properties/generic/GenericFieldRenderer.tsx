@@ -77,6 +77,8 @@ export interface GenericFieldRouting {
 interface GenericFieldRendererProps extends GenericFieldRouting {
   /** caller 가 origin 으로 필터한 필드 (Properties view = semantic / Style view = style). */
   fields: ResolvedField[];
+  /** enum 옵션이 UI 문구가 아닌 원본 데이터 키인 필드. */
+  literalOptionFields?: readonly string[];
   /**
    * "content" 그룹 선두에 끼워 넣을 비-catalog 컨트롤 (Button 의 Icon/Text 자식 편집 등).
    * catalog 계약으로 표현 불가한 **자식 element 축**이라 별도 컴포넌트가 공급하지만, 사용자에겐
@@ -91,6 +93,7 @@ function capitalize(s: string): string {
 
 interface GenericFieldProps extends GenericFieldRouting {
   field: ResolvedField;
+  translateOptions?: boolean;
   /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
   ownerColumns?: string[] | null;
 }
@@ -128,6 +131,7 @@ function areGenericFieldPropsEqual(
     previous.elementId === next.elementId &&
     previous.onSemanticUpdate === next.onSemanticUpdate &&
     previous.onStyleUpdate === next.onStyleUpdate &&
+    previous.translateOptions === next.translateOptions &&
     areStringArraysEqual(previous.ownerColumns, next.ownerColumns) &&
     a.key === b.key &&
     a.kind === b.kind &&
@@ -150,6 +154,7 @@ const GenericField = memo(function GenericField({
   onStyleUpdate,
   elementId,
   ownerColumns,
+  translateOptions,
 }: GenericFieldProps) {
   const value = useCanonicalPropertyValue(
     elementId,
@@ -180,6 +185,7 @@ const GenericField = memo(function GenericField({
           value={String(value ?? field.baseValue ?? "")}
           onChange={(v) => update(v)}
           options={field.options ?? []}
+          translateOptions={translateOptions}
         />
       );
 
@@ -324,6 +330,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   onStyleUpdate,
   elementId,
   contentExtras,
+  literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
   const ownerColumns = useOwnerCollectionColumns(elementId);
@@ -380,6 +387,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               onStyleUpdate={onStyleUpdate}
               elementId={elementId}
               ownerColumns={ownerColumns}
+              translateOptions={!literalOptionFields?.includes(field.key)}
             />
           ))}
         </PropertySection>

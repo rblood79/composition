@@ -25,6 +25,8 @@ interface PropertySelectProps {
   value: string;
   onChange: (value: string) => void;
   options: ReadonlyArray<{ value: string; label: string }>;
+  /** 컬렉션 컬럼명 등 사용자 데이터는 번역하지 않는다. */
+  translateOptions?: boolean;
   icon?: React.ComponentType<{
     color?: string;
     size?: number;
@@ -42,6 +44,7 @@ export const PropertySelect = memo(
     value,
     onChange,
     options,
+    translateOptions = true,
     icon: Icon,
     className,
     popoverWidthMode = "fit-content",
@@ -126,7 +129,7 @@ export const PropertySelect = memo(
                     id={option.value}
                     className="react-aria-ListBoxItem"
                     textValue={
-                      i18n
+                      i18n && translateOptions
                         ? translateKey(
                             i18n.t,
                             semanticLabelKeys[option.label] ?? option.label,
@@ -135,7 +138,7 @@ export const PropertySelect = memo(
                         : option.label
                     }
                   >
-                    {i18n
+                    {i18n && translateOptions
                       ? translateKey(
                           i18n.t,
                           semanticLabelKeys[option.label] ?? option.label,
@@ -159,6 +162,7 @@ export const PropertySelect = memo(
       prevProps.className === nextProps.className &&
       prevProps.icon === nextProps.icon &&
       prevProps.options === nextProps.options &&
+      prevProps.translateOptions === nextProps.translateOptions &&
       prevProps.popoverWidthMode === nextProps.popoverWidthMode
     );
   },

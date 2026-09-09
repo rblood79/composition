@@ -55,19 +55,19 @@ export const chartBinding: PrimitiveBinding = {
       },
       dimension: {
         kind: "string",
-        label: "Dimension",
+        label: "Category",
         section: "content",
         default: "category",
       },
       metric: {
         kind: "string",
-        label: "Metric",
+        label: "Value",
         section: "content",
         default: "value",
       },
       color: {
         kind: "string",
-        label: "Series Field",
+        label: "Series",
         section: "content",
       },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).

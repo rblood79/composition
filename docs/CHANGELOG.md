@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- 차트의 컬렉션 필드 선택과 기본 데이터 행 편집 명칭을 `Category / Value / Series`(한국어 `범주 / 값 / 시리즈`)로 통일했다. 실제 데이터 키와 저장 매핑은 유지하며, `Value`·`Series`처럼 번역어와 겹치는 컬렉션 키도 원문 그대로 표시한다.
+- Settings의 언어 변경이 차트 속성·프리셋·옵션·안내·행 편집과 차트 추가 목록·최근 사용 항목·검색 결과에 즉시 반영된다. 누락된 번역 키와 고정 문자열을 기존 번역 경로에 연결했다.
 - 기존 차트의 Styles → Layout padding이 그림에 적용되지 않던 오류를 수정했다. Canvas와 Preview·Publish의 공통 기하가 전체·방향별 여백을 읽으며, 미지정 방향은 기존 기본값을 유지한다.
 - ID 없는 차트 행을 선택할 때 발생하던 중복 key 콘솔 오류와 행 편집·삭제 실패를 수정했다. 원본 데이터에 ID를 강제로 추가하지 않는다.
 - API 정의가 늦게 도착하거나 재시도가 성공한 뒤 이전 오류가 남던 공통 collection 상태 판정을 수정했다. DataTable 오류에는 동작하지 않는 재시도 버튼을 표시하지 않는다.
@@ -32,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Validation
 
+- 필드 명칭·언어 전환·원본 키 보존·팔레트 생성 계약 관련 35개 테스트와 preflight를 통과했다. 전용 Builder에서 컬렉션 차트와 기본 행 편집의 한국어↔영어 전환, 한국어 검색, 검증용 차트 생성 Undo를 확인했다.
 - 실제 Recharts 기하·옵션, light/dark 토큰, DPR 1/2, reduced-motion 및 canonical/ref 보존을 검증했다. G5 전체 번들 기준 결정과 production Builder 로그인 후 부트 검증이 남아 ADR 상태는 In Progress다.
 
 ## [차트 속성 — 고른 차트에 쓰이는 값만 보입니다] - 2026-09-09

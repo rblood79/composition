@@ -150,7 +150,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       const columns = columnsFromOwner({ props }, new Map(collections.flatMap((table) => [[table.name, table], [table.id, table]])));
       return fields.filter((field) => field.key !== "data" || !props.dataBinding).map((field) =>
         columns && ["dimension", "metric", "color"].includes(field.key)
-          ? { ...field, kind: "enum" as const, options: Array.from(new Set([String(field.currentValue ?? ""), ...columns])).map((value) => ({ value, label: value || "None" })) }
+          ? { ...field, kind: "enum" as const, options: Array.from(new Set([String(field.currentValue ?? ""), ...columns])).map((value) => ({ value, label: value || t("chart.none") })) }
           : field,
       );
     }
@@ -167,7 +167,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       }
     }
     return fields;
-  }, [contract, elementType, selectedChildren, collections]);
+  }, [contract, elementType, selectedChildren, collections, t]);
 
   // semantic write — ADR-048 propagation + canonical ref 해소 보존 (legacy handleUpdate 동일).
   const handleSemanticPatch = useCallback(
@@ -264,6 +264,9 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       return (
         <GenericFieldRenderer
           fields={semanticFields}
+          literalOptionFields={
+            elementType === "Chart" ? ["dimension", "metric", "color"] : undefined
+          }
           onSemanticUpdate={handleSemanticUpdate}
           onStyleUpdate={handleStyleUpdate}
           elementId={elementId}
@@ -285,6 +288,9 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   return (
     <GenericFieldRenderer
       fields={semanticFields}
+      literalOptionFields={
+        elementType === "Chart" ? ["dimension", "metric", "color"] : undefined
+      }
       onSemanticUpdate={handleSemanticUpdate}
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}

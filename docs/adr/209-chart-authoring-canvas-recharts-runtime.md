@@ -99,6 +99,8 @@ ADR-194 대안 C(`:62-69`)는 **Recharts hidden DOM → SVG 해석 → Skia**였
 
 Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish는 같은 Recharts runtime adapter를 사용해 실제 애니메이션·tooltip·지원되는 접근성을 실행한다. 공통 데이터 source와 필드 매핑, 색·글꼴·격자 토큰, 직렬화된 animation 설정은 함께 읽는다. 애니메이션 중간 프레임·hover는 runtime의 로컬 상태다.
 
+컬렉션 필드 선택과 기본 데이터 행 편집의 역할 라벨은 **Category / Value / Series**로 통일하고, 한국어에서는 **범주 / 값 / 시리즈**로 표시한다. Recharts의 [`dataKey`](https://recharts.github.io/en-US/api/XAxis/)와 [`nameKey`](https://recharts.github.io/en-US/api/Pie/)는 원본 필드를 선택하는 API이며 `category/value/series`라는 데이터 키를 강제하지 않는다. 따라서 기존 저장 prop `dimension/metric/color`와 원본 행의 키를 유지한다. 차트 추가 목록·검색·Properties·프리셋·행 편집은 Settings 언어를 따르며 원본 컬렉션 키와 데이터 값은 번역하지 않는다.
+
 **위험 수용 근거**: 기존 Canvas 구현을 전부 버리지 않고 데이터 의미/토큰/공개 옵션을 공통 계약으로 묶을 수 있다. 다만 legacy 옵션이 Recharts로 보존되는지는 아직 증명되지 않았다. G0에서 6종의 기본·고위험 조합을 실제 Recharts와 비교하고, 성공 전 전체 UI 전환이나 기존 DOM 렌더러 삭제에 진입하지 않는다.
 
 기각 사유: A는 지정 runtime 요구를 충족하지 않고, B는 라이브러리 내부 SVG 구조를 편집 엔진에 결합하며, D는 Builder Canvas 표현 전제를 바꾼다. C도 통과하지 못하면 무단으로 A/D로 바꾸거나 정합 허용치를 완화하지 않고 실패 옵션·오차·가능한 조정 범위를 제시한다.
@@ -159,6 +161,7 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 - 2026-09-09 P5: 5쌍 Builder p95 증가 최대 0.4ms, warm runtime 200행 p95 40.0~48.5ms. 초기 JS/lazy 순증은 예산 이내. Chart ref의 편집·Undo·Export/Import·재저장은 현재 및 baseline 코드에서 확인했다. 기존 전체 초기 <500KB 초과 처리와 production Builder 로그인 후 부트 네트워크 검증은 미종결. Implemented 승격·커밋·배포는 수행하지 않았다.
 - 2026-09-09 추가 오류 수리: ID 없는 차트 행 선택 시 중복 React key, 해당 행 편집/삭제 target 오류를 수정했다. 새 차트 생성→행 수정→삭제→Undo→reload에서 값 보존과 console warn/error 0을 확인했다. Preview API hydration/재시도 후 남던 이전 오류도 공통 hook의 현재 loadingState 판정으로 수정했다.
 - 2026-09-09 padding 후속 수리: Styles 값은 저장됐지만 chart metrics가 catalog 기본 여백만 읽던 누락을 수정했다. 공통 4방향 해석을 Canvas와 Recharts에 연결하고 값이 같은 style 재전송 시 애니메이션 재시작을 방지했다. Chromium 170건, 기존 parity 151건, 기하 34건 및 preflight PASS. 기존 차트 padding 편집→Undo→방향별 편집→reload에서 저장·렌더 반영과 console 0을 확인했다. G5/G6 잔여 조건은 유지하며 앞선 번들 수치는 이 후속 수정 전 측정이다.
+- 2026-09-09 명칭·언어 후속 수리: 필드 선택과 기본 행 명칭을 통일하고 차트 UI 전체의 ko/en 번역을 기존 i18n 경로에 연결했다. 컬렉션 필드 옵션은 원문으로 표시하며 언어 전환은 canonical 값을 수정하지 않는다. 관련 35개 테스트 및 preflight PASS. 전용 Builder에서 기본 행과 컬렉션 차트의 Settings 언어 왕복·차트 한국어 검색·생성 Undo를 확인했다. 개발 모듈 갱신 중 DOM 제거 오류를 관측했지만 최종 코드 새로고침 후 같은 조작에서는 새 warn/error가 없었다. G5/G6 잔여 조건은 유지한다.
 
 ### Live Exercise
 

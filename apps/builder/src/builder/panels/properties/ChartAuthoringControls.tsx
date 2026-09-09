@@ -9,6 +9,7 @@ import {
 } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components";
+import { useI18n } from "@/i18n";
 
 /** 프리셋/종류 변경은 일반 필드와 같은 canonical batch writer를 한 번 호출한다. */
 export const ChartAuthoringControls = memo(function ChartAuthoringControls({
@@ -20,6 +21,7 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
   sourceRowCount: number;
   onPatch: (patch: Record<string, unknown>) => void;
 }) {
+  const { t } = useI18n();
   const [changingType, setChangingType] = useState(false);
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
@@ -54,11 +56,11 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
         onPress={() => setChangingType((value) => !value)}
         aria-expanded={changingType}
       >
-        차트 종류 변경
+        {t("chart.changeType")}
       </Button>
       {changingType && (
         <PropertySelect
-          label="변경할 차트"
+          label={t("chart.changeTarget")}
           value={descriptor.chartType}
           options={CHART_DESCRIPTORS.map((item) => ({
             value: item.chartType,
@@ -70,10 +72,15 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
           }}
         />
       )}
-      {sourceRowCount > CHART_SAMPLE_ROWS && <p className="chart-authoring-hint" role="status">Canvas: {CHART_SAMPLE_ROWS} / {sourceRowCount}행 샘플 · 미리보기는 전체 행</p>}
-      <p className="chart-authoring-hint">
-        애니메이션과 툴팁은 미리보기에서 확인합니다.
-      </p>
+      {sourceRowCount > CHART_SAMPLE_ROWS && (
+        <p className="chart-authoring-hint" role="status">
+          {t("chart.sampleHint", {
+            sample: CHART_SAMPLE_ROWS,
+            total: sourceRowCount,
+          })}
+        </p>
+      )}
+      <p className="chart-authoring-hint">{t("chart.runtimeHint")}</p>
     </>
   );
 });
