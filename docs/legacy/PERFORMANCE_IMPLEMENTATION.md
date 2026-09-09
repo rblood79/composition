@@ -1,5 +1,7 @@
 # 구현 순서 및 체크리스트
 
+> **폐기 (2026-09-09)**: 2025-12-11 최종 수정된 구현 체크리스트다. 머리말이 참조하는 `05-supplement.md` · `07-decisions.md` 는 저장소에 존재하지 않고, 본문 경로도 모노레포 전환 이전 것이다. 현행 성능 기준은 CLAUDE.md §성능 기준 과 [BUILDER_PERF_BASELINE_2026-09](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md). 기록 보존용.
+
 > **관련 문서**: 05-supplement.md | 07-decisions.md
 > **작성일**: 초안(2025-12-09) | **최종 수정**: 2025-12-11 (Phase 4 폐기, Phase 10 추가)
 

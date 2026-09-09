@@ -1,5 +1,7 @@
 # Migration Guide - React Query 스타일 최적화 시스템 적용
 
+> **폐기 (2026-09-09)**: 이 가이드가 전제하는 서비스 계층 (`BaseApiService` · `PagesApiService` · `ProjectsApiService` · `ThemeService` · `TokenService`) 은 전부 제거됐다. React Query 자체는 현재도 쓰지만 (`apps/builder/src/builder/hooks/useDataQueries.ts` · `useAsyncData.ts` · `QueryPersister.ts`) 그 사용 형태가 이 문서와 다르다. 기록 보존용.
+
 **작성일**: 2025-11-17
 **상태**: ✅ Production Ready
 

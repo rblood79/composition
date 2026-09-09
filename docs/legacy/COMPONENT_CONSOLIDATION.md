@@ -1,5 +1,7 @@
 # Builder 구조 통합 계획
 
+> **폐기 (2026-09-09)**: 2026-02 의 builder 모듈 통합 계획이다. 이후 ADR-912 catalog cutover 와 모노레포 분리로 대상 구조 자체가 바뀌어 인용 경로가 남아 있지 않다. 현행 컴포넌트 정본은 catalog `COMPONENT_RULES_TABLE` — [COMPONENT_SPEC](../reference/components/COMPONENT_SPEC.md). 기록 보존용.
+
 ## 개요
 
 현재 builder 내 여러 모듈들이 분산되어 있어 관리 및 사용에 혼란이 발생하고 있습니다.

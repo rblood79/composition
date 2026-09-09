@@ -1,5 +1,10 @@
 # 미구현 기능 목록
 
+> **폐기 (2026-09-09)**: 2026-05-13 이후 갱신이 없다 (`docs/reference/status/` 에서 이동 — 해당
+> 디렉토리는 안내판만 남기고 해체했다). 5개 항목 중 2개는 이미 취소선 (Superseded / 완료) 이고, 남은
+> 3개 (Server-side Action · Context Menu System · Layout Preset 개선) 는 어떤 ADR 에도 연결돼 있지
+> 않다. 미구현 계획의 현행 정본은 ADR (`docs/adr/`) 이다. 기록 보존용.
+
 > **Note**: 현재 비활성화되어 있거나 향후 구현 예정인 기능들입니다.
 > 구현 완료 시 해당 섹션을 `docs/features/`로 이동합니다.
 

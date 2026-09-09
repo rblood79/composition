@@ -1,5 +1,7 @@
 # composition Builder 패널 최적화 종합 계획
 
+> **폐기 (2026-09-09)**: 2025-12-09 의 패널 최적화 계획이다. 아래 본문이 이미 달고 있던 2026-05-13 Historical Notice (Transformer 전수 제거) 에 더해, 인용된 `src/builder/panels/…` 경로 전체가 모노레포 전환으로 소멸했다. 현행 패널 프레임 비용의 실측 정본은 [BUILDER_PERF_BASELINE_2026-09](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md). 기록 보존용.
+
 > **⚠ Historical Notice (2026-05-13)**: 본 가이드의 코드 예시 중 `useTransformersQuery` / `fetchTransformers` / `activeTab === "transformers"` 분기 / Transformer 관련 패턴은 **ADR-132 Phase 7 (2026-05-13)** 에서 Transformer 시스템 전수 제거로 더 이상 유효하지 않음. React Query 최적화 패턴 자체 (캐싱 / dedupe / conditional fetch) 는 여전히 유효 — DataTables / API Endpoints / Variables 3-tab 에만 적용. `dataTables` 어휘는 `collections` 로 rename 됨 (ADR-132 Phase 5). 참조: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md).
 >
 > **작성일**: 2025-12-09

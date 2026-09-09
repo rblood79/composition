@@ -1,5 +1,7 @@
 # composition - Completed Features Documentation
 
+> **폐기 (2026-09-09)**: 2025-11 시점의 완료 기능 목록이다 (`docs/reference/status/COMPLETED.md` 에서 이동). 인용 경로가 모두 모노레포 전환 이전의 최상위 `src/…` 라 현행 코드와 대응하지 않는다. 완료 이력의 현행 정본은 [CHANGELOG](../CHANGELOG.md) 와 [ADR 대시보드](../adr/README.md). 기록 보존용.
+
 이 문서는 composition 프로젝트에서 구현 완료된 주요 기능들을 정리합니다. CLAUDE.md에서 분리하여 별도 관리합니다.
 
 ---

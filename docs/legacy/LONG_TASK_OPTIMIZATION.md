@@ -1,5 +1,7 @@
 # WebGL Canvas Long Task 최적화 실행 계획
 
+> **폐기 (2026-09-09)**: 2025-12-23 의 WebGL(PixiJS) 캔버스 Long Task 계획이다. PixiJS 는 전량 제거됐고 (ADR-900), 현행 프레임 예산·측정 정본은 [BUILDER_PERF_BASELINE_2026-09](../explanation/research/BUILDER_PERF_BASELINE_2026-09.md) 와 `pnpm perf:baseline` 하니스다. 기록 보존용.
+
 > 작성일: 2025-12-23
 > 상태: 계획 완료, 실행 대기
 

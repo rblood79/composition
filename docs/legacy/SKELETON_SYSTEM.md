@@ -1,5 +1,7 @@
 # Skeleton Loading System Implementation Plan
 
+> **폐기 (2026-09-09)**: 설계의 핵심인 `withSkeleton` HOC 와 `useSkeleton` 훅은 구현되지 않았고 저장소에 존재하지 않는다. 실제로 남은 것은 `packages/shared/src/components/Skeleton.tsx` 와 그 catalog binding 뿐이다. 미구현 설계 문서로 보존한다.
+
 > **Status**: ✅ Complete
 > **Created**: 2025-12-09
 > **Target**: src/shared/components/

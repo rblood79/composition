@@ -1,5 +1,7 @@
 # P7 StylePanel ↔ Canvas 스타일 동기화 구현 계획
 
+> **폐기 (2026-09-09)**: 2025-12-13 시점의 StylePanel↔Canvas 동기화 실행 계획이다. 당시 대상이던 PixiJS 캔버스는 ADR-900 (통합 Skia 렌더링) 으로 대체됐고, 인용된 `src/…` 경로는 모노레포 전환 (`apps/builder/src/…`) 이전 것이라 하나도 남아 있지 않다. 현행 스타일 채널은 catalog D3 SSOT — [ssot-hierarchy](../../.claude/rules/ssot-hierarchy.md). 기록 보존용.
+
 > **생성일**: 2025-12-13
 > **목표**: StylePanel에서 설정한 CSS 속성이 Canvas에서 정확히 렌더링되도록 동기화
 > **범위**: 9개 미구현/불일치 속성

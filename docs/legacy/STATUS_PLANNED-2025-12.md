@@ -1,5 +1,7 @@
 # Planned Features
 
+> **폐기 (2026-09-09)**: 2025-12-11 최종 갱신된 계획 목록이다 (`docs/reference/status/PLANNED.md` 에서 이동). 인용된 Context Menu · Dataset · Transformer 계열 경로는 전부 소멸했고, 계획 관리의 현행 정본은 ADR (`docs/adr/`) 이다. 기록 보존용.
+
 > **Note**: 이 문서는 CLAUDE.md에서 분리된 계획 중인 기능들입니다.
 > 구현 완료 시 해당 섹션을 `docs/features/`로 이동합니다.
 
