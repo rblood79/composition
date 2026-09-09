@@ -196,4 +196,6 @@ const COMPONENT_TAGS = getAiComponentCatalog()
 - D1: 같은 system+tools 로 2회 요청 시 2번째 `usage.cache_read_input_tokens > 0` — `AnthropicProvider.live.test.ts` (키 게이트) 에 assertion 추가. 키 없으면 요청 본문 스냅샷 테스트만.
 - D2·D3·D4·D5: unit (RED→GREEN) + AI 패널 live 1회 — "대시보드 만들어줘" 로 Heading 생성 여부 (D2) · planner JSON 파싱 실패 0 (D3).
 - A1~A8: 동작 변경 0 (텍스트) — `pnpm hooks:selftest` + `pnpm codex:agent-catalog` 게이트 통과. 행동 회귀는 다음 세션 관찰 (PR 정책 위반 · cross-check 누락 발생 시 해당 hunk 원복).
+- **A1~A8 실측 (2026-09-09, 방법 1 = Claude Code transcript)**: 세션 transcript (`~/.claude/projects/<프로젝트>/<세션>.jsonl`) 의 턴별 `message.usage` 가 캐시 근거다. 같은 모델 (`claude-fable-5-1`) · 같은 메모리 · 같은 프롬프트로 `claude -p` 를 두 번 돌려 첫 턴 prefix 를 비교했다 — 변경 전 4 파일 (CLAUDE.md · git-workflow · premise-decision-points · session-start.sh, 01fbab325) 58,290 tok → 변경 후 57,164 tok, **Δ −1,126 tok/세션 (약 2%)**. 정적 바이트 Δ −2,138 (session-start 출력 1,355 → 64 · git-workflow −775 · CLAUDE.md −70) 과 부합. 크기 이득은 작고, harness hunk 의 가치는 register·안티패턴 제거 쪽이다 — 세션당 prefix 57K 의 큰 몫은 MEMORY.md (27KB) · ssot-hierarchy (15KB) · CLAUDE.md (14.6KB) · skill 목록 · 도구 스키마.
+- 참고: 이 감사 세션 (176 턴) 의 입력 중 캐시 read 비율 97.5% (read 49.5M · write 1.26M · uncached 5K) — 구독 1h TTL 에서 harness 캐시는 정상.
 - 재감사 시점: 다음 모델 세대 이전 시 (`shared/model-migration.md` 새 절 추가가 트리거).
