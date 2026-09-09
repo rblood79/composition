@@ -1899,10 +1899,10 @@ function isTagListSceneSource(
  * owner TagGroup lookup — TagList sourceNode 를 자식으로 갖는 TagGroup 노드의 props 를 역추적.
  * findOwnerTabsProps 대칭 (Tab 선례).
  */
-function findOwnerTagGroupProps(
+function findOwnerTagGroupNode(
   tagListSourceId: string,
   getDocumentNodesById: () => Map<string, CanonicalNode>,
-): Record<string, unknown> | null {
+): CanonicalNode | null {
   for (const node of getDocumentNodesById().values()) {
     if (node.type !== "TagGroup") continue;
     const children = node.children;
@@ -1910,7 +1910,7 @@ function findOwnerTagGroupProps(
       Array.isArray(children) &&
       children.some((c) => c.id === tagListSourceId)
     ) {
-      return (node.props ?? null) as Record<string, unknown> | null;
+      return node;
     }
   }
   return null;
@@ -1939,16 +1939,25 @@ function resolveDataBoundTagProjection(
 ): { rows: ListBoxProjectionRow[]; sourceNode: CanonicalNode } | null {
   if (!isTagListSceneSource(tagListSceneNode, sourceNode)) return null;
 
-  const dataBinding = getElementDataBinding(sourceNode);
+  const ownerNode = findOwnerTagGroupNode(sourceNode.id, getDocumentNodesById);
+
+  // dataBinding 도 owner 소유다 — Inspector 의 Data 필드가 TagGroup 의 것이고 DOM
+  //   wrapper 도 `TagGroup` 이 `useCollectionData({ dataBinding })` 로 소비한다.
+  //   자식 TagList 만 보면 owner 에 걸린 binding 을 놓쳐 캔버스가 정적 chip 을
+  //   그리고 preview 는 바인딩 행을 그리는 D3 비대칭이 된다 (2026-09-09 live).
+  //   TagList 자신에 걸린 값(legacy 문서)도 그대로 존중하려고 자식을 먼저 본다.
+  const dataBinding =
+    getElementDataBinding(sourceNode) ??
+    (ownerNode ? getElementDataBinding(ownerNode) : undefined);
 
   // owner-first: dataBinding 없을 때만 owner TagGroup.items 로 stale TagList.items 를 대체.
-  //   dataBinding(collection/api) 이 있으면 그 경로가 items 보다 우선하므로 owner 조회 skip.
+  //   dataBinding(collection/api) 이 있으면 그 경로가 items 보다 우선하므로 items 대체 skip.
   let resolvedProps = tagListSceneNode.props;
   if (!dataBinding) {
-    const ownerProps = findOwnerTagGroupProps(
-      sourceNode.id,
-      getDocumentNodesById,
-    );
+    const ownerProps = (ownerNode?.props ?? null) as Record<
+      string,
+      unknown
+    > | null;
     if (ownerProps && Array.isArray(ownerProps.items)) {
       // TagList.props 우선 + owner TagGroup.items 로 override(정본). variant/size/allowsRemoving 등
       //   나머지 chip 속성은 기존 TagList.props 를 존중(propagation 정상 동작 시 이미 채워짐).
@@ -2568,10 +2577,14 @@ export function buildCanvasSceneGraph(
       //   떨어져 팔레트에서 갓 놓은 차트가 빈 상자로 보이지 않는다.
       if (sceneNode.type === "Chart") {
         const binding = getElementDataBinding(node);
-        const chartRows = binding ? readDataBindingRows(binding, options.collections ?? [])
-          : Array.isArray(sceneNode.props.data) ? sceneNode.props.data : [];
+        const chartRows = binding
+          ? readDataBindingRows(binding, options.collections ?? [])
+          : Array.isArray(sceneNode.props.data)
+            ? sceneNode.props.data
+            : [];
         if (binding || chartRows.length > CHART_SAMPLE_ROWS) {
-          (sceneNode.props as Record<string, unknown>)._chartSourceRowCount = chartRows.length;
+          (sceneNode.props as Record<string, unknown>)._chartSourceRowCount =
+            chartRows.length;
           (sceneNode.props as Record<string, unknown>)._chartRows =
             chartRows.length > CHART_SAMPLE_ROWS
               ? chartRows.slice(0, CHART_SAMPLE_ROWS)

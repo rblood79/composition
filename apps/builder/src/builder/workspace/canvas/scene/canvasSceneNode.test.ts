@@ -1810,6 +1810,134 @@ describe("buildCanvasSceneGraph — page + reusable frame 시나리오", () => {
     expect(chips).toHaveLength(2);
   });
 
+  // ─── TagGroup dataBinding 도 owner 소유다 (Skia↔DOM 비대칭 회귀) ─────────────
+  //
+  // `dataBinding` 은 owner TagGroup 에 걸린다 — Inspector 의 Data 필드가 TagGroup 의
+  // 것이고, DOM wrapper 도 `TagGroup` 이 `useCollectionData({ dataBinding })` 로
+  // 소비한다. 그런데 Skia projection 은 자식 TagList 노드에서만 binding 을 찾아
+  // owner 의 값을 못 보고 정적 items 로 회귀했다 — DOM 은 바인딩 행을, 캔버스는
+  // 정적 chip 을 그리는 D3 비대칭 (2026-09-09 live 실측).
+  //
+  // items 축은 이미 owner-first 인데 binding 축만 빠져 있던 것이라, 같은 owner
+  // lookup 을 binding 에도 적용한다.
+  it("TagGroup chip projection 이 owner TagGroup 의 dataBinding 을 읽는다", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "taggroup-bound",
+                  type: "TagGroup",
+                  props: { items: [{ id: "stale", label: "Stale" }] },
+                  // 실제 저장 위치 — props 가 아니라 extension (PROPS_FORBIDDEN_KEYS).
+                  "x-composition": {
+                    dataBinding: { source: "dataTable", name: "tags_dt" },
+                  },
+                  children: [
+                    {
+                      id: "taglist-bound",
+                      type: "TagList",
+                      props: {
+                        items: [
+                          { id: "a", label: "Stale A" },
+                          { id: "b", label: "Stale B" },
+                        ],
+                      },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, {
+      collections: [
+        {
+          name: "tags_dt",
+          useMockData: true,
+          mockData: [
+            { id: 1, label: "ALPHA" },
+            { id: 2, label: "BRAVO" },
+            { id: 3, label: "CHARLIE" },
+          ],
+        },
+      ] as never,
+    });
+
+    const chips = [...graph.nodesMap.values()].filter(
+      (node) => node.projection?.kind === "tag-row",
+    );
+    expect(chips).toHaveLength(3);
+    expect(
+      chips.map((c) => (c.props as { children?: unknown }).children),
+    ).toEqual(["ALPHA", "BRAVO", "CHARLIE"]);
+  });
+
+  it("owner 에 dataBinding 이 없으면 기존 items 경로 그대로 (회귀 0)", () => {
+    const doc: CompositionDocument = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            {
+              id: "body-1",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "taggroup-plain",
+                  type: "TagGroup",
+                  props: {
+                    items: [
+                      { id: "a", label: "A" },
+                      { id: "b", label: "B" },
+                    ],
+                  },
+                  children: [
+                    {
+                      id: "taglist-plain",
+                      type: "TagList",
+                      props: { items: [{ id: "stale", label: "Stale" }] },
+                      children: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    } as unknown as CompositionDocument;
+
+    const graph = buildCanvasSceneGraph(doc, {
+      collections: [
+        { name: "tags_dt", useMockData: true, mockData: [{ id: 1 }] },
+      ] as never,
+    });
+    const chips = [...graph.nodesMap.values()].filter(
+      (node) => node.projection?.kind === "tag-row",
+    );
+    expect(
+      chips.map((c) => (c.props as { children?: unknown }).children),
+    ).toEqual(["A", "B"]);
+  });
+
   // ─── TagList chip gap = catalog SSOT (Skia↔CSS gap 비대칭 회귀) ───────────────
   //
   // 버그: appendTagRowProjection 이 rowsGroup gap 을 `props.gap ?? 4` 하드코딩으로 설정해

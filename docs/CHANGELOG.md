@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 연결 — 연결한 데이터가 실제로 그려집니다] - 2026-09-09
+
+### Fixed
+
+- Data 패널에서 만든 DataTable이나 API를 컴포넌트에 연결해도 Preview가 연결을 무시하고 예시 항목만 그리던 문제를 수정했다. ListBox·TagGroup 등 컬렉션 컴포넌트가 연결한 데이터 행을 그린다. 연결 정보는 문서의 `x-composition` 자리에 저장되는데 Preview로 넘어가는 props에 실리지 않아, 화면을 그리는 쪽이 연결 자체를 보지 못했다.
+- Builder 캔버스에서 TagGroup만 연결을 놓치고 예시 태그를 그리던 문제를 함께 수정했다. 연결은 TagGroup이 갖는데 캔버스는 자식 태그 목록에서만 찾고 있었다. 이제 캔버스와 Preview가 같은 연결에서 같은 행을 그린다.
+
+### Validation
+
+- 실제 Builder에서 5행짜리 DataTable을 만들어 TagGroup과 ListBox에 연결하고, Preview DOM과 Skia 캔버스가 모두 같은 5행을 그리는 것을 확인했다. 연결 전 화면을 대조군으로 같이 캡처했다.
+- 읽기 우선순위 계약과 캔버스 투영 회귀를 덮는 테스트 11개를 추가했다. builder 5,620개와 shared 1,155개 통과.
+
 ## [차트 생성과 실행 분리 — ADR-209 구현, 종결 검증 진행 중] - 2026-09-09
 
 ### Added
