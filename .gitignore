@@ -125,3 +125,6 @@ apps/builder/tests/parity/.artifacts/
 
 
 docs/migrations/evidence
+
+# 로컬 참조용 Pen 복사본 (원본은 /Users/admin/work/pencil — 추적 대상 아님)
+docs/pencil-copy/
