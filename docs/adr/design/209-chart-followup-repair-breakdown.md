@@ -375,3 +375,27 @@ F5에서 갱신할 문서는 ADR-209 상태/실행 기록, ADR README, 원 break
 이 근거로 M1을 반증되어 deferred된 항목으로 내리지 않는다. 현재 구현 계획의 첫 검증 대상으로 유지한다. 특히 **schema가 있는 DataTable의 연결을 읽지 못한 상태를 schema 없음으로 허용하는 해석은 채택하지 않는다.** 신규 컬럼 추론 기능과 기존 canonical binding 소비 누락을 구분하기 위한 보강이다. 제품 코드·원 리뷰 로그·ADR 상태는 이 보강에서 변경하지 않는다.
 
 Round 3 보강 검증: 소유 문서의 포맷·guard·링크·diff 검사 통과. preflight 구성 중 agent-catalog FAIL 0/WARN 0, engine/text-axis matrix 일치, typecheck/registration은 TS 변경 없음으로 스킵. Claude 리뷰 로그는 작업 전후 SHA-256 동일함을 확인했다. 전체 preflight의 전역 formatter는 실행하지 않고 소유 문서에만 포맷을 적용했다. 추가 실행은 위 resolver probe이며 제품 구현·브라우저·build 검증은 수행하지 않았다.
+
+### 10.4 F0·F1·F2 실행 기록 (2026-09-10)
+
+구현 착수 후의 실행 기록이다. §10.3까지는 설계 작성·판독 기록이고, 이 절부터는 제품 변경과 그 검증이다.
+
+**F0 (실패 재현 → 수리, `a2afa2f4f`).** extension에만 binding이 있는 canonical Chart를 실제 옵션 생산자에 통과시켜 컬럼 Select 대신 문자열 입력이 나오는 것을 먼저 고정했다(5건 RED). `contract.fields[dataBinding].currentValue`는 미정의였고 source schema는 존재했으므로 §4.1 4항의 정상 fallback이 아니라 바인딩 소비 누락으로 판정했다. 수리는 `resolveEditContract`가 `dataBinding`에 한해 공통 확장 읽기 계약(`getElementDataBinding`, props→legacy→extension)을 함께 읽는 것이며, 패널 leaf 읽기(`useCanonicalPropertyRead`)에도 같은 fallback을 넣었다. UI를 위해 canonical `props.dataBinding`을 다시 저장하지 않는다.
+
+**D1 구현.** 패널 인라인이던 Chart 옵션 생성을 `chartFieldOptions.ts`로 분리해 실제 생산자를 테스트가 통과하게 했다. Series에만 해제 항목을 첫 자리에 두고, Category/Value는 기존 빈 값 항목만 유지한다. `PropertySelect`에 opt-in `optionValueMode="literal"`(item key = `value:<JSON>`, 선택 시 options 역매핑)을 추가했고 기본값은 `legacy`다. None 라벨과 이름이 같은 컬럼에는 `chart.columnQualifier` 보조 표시를 라벨에만 붙인다.
+
+**F1.** 신규·보강 29건 — 옵션 생산자 17, PropertySelect 두 모드 5, ref/Undo/Redo를 실제 inspector store로 도는 3, 문서 왕복 2, 손계산 집계 2. builder 5,661 · shared 1,157 · specs 1,108 · chart browser 170 통과, type-check·preflight FAIL 0.
+
+**F2.** 하니스 두 벌로 24건 전부 PASS. 재현 명령:
+
+```sh
+node apps/builder/scripts/adr209-series-release-live.mjs --headed   # 21건 (Builder + Preview)
+pnpm -F @composition/publish dev                                     # 3001
+node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독립 Publish)
+```
+
+핵심 확인값: 연결 전 세 필드 문자열 입력 → Data 연결 후 컬럼 Select · Series 옵션 첫 자리 `None` · item key 전부 literal·중복 0 · 해제가 canonical `color: ""`(키 존재) · Undo/Redo `"role"` ↔ `""` · Preview fill 1종 ↔ 재연결 6종 · 6종 유지(pie 4 / radial 5는 범주가 색을 가르는 기존 계약) · ko 전환은 해제 라벨만 · reload 후 `""` 유지 · 실제 메뉴 Export 파일 보존 · 독립 publish 런타임에서 fill 1종. 기록: `docs/adr/evidence/209-f2-live.md`(로컬, gitignored) + `/private/tmp/adr209-live/`.
+
+측정 조건 주의: Chrome MCP 탭은 `visibilityState=hidden`이라 rAF가 멈춰 첫 프레임이 제출되지 않고 부트가 95%에 머문다. Builder live는 headed Playwright로만 판정한다.
+
+**F2에 남은 항목.** §10.1의 rollback(구 버전 store·구 strict importer)은 과거 빌드 체크아웃이 필요해 미실행이고, T11 기본 행 편집과 T12 padding·light/dark·resize는 이번 변경이 건드리지 않는 기존 계약이라 자동 스위트로만 확인했다. 따라서 **F2는 아직 열려 있고** F3–F5도 미착수다.

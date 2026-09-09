@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - F0 실패 재현 → 수리: 확장에만 연결이 있는 canonical 문서로 실제 옵션 생산자를 통과시켜 문자열 입력 fallback 을 먼저 고정했다 (5건 RED → GREEN).
 - 신규/보강 테스트 29건 (패널 옵션 생산자 17 · PropertySelect 두 모드 5 · ref/Undo/Redo 실제 inspector store 3 · 문서 왕복 2 · 집계 손계산 2), builder 5,661 · shared 1,157 · specs 1,108 · chart browser 170 통과, type-check·preflight PASS.
-- 상세 설계: `docs/adr/design/209-chart-followup-repair-breakdown.md` (F0/F1). 실제 Builder live 확인 (F2) 과 번들·성능 종결 (F3–F5) 은 후속.
+- 실제 Builder live 24건 통과 (F2 주요 구간) — 연결 전 문자열 입력 → 연결 후 컬럼 Select, 해제가 canonical `color: ""` 로 저장, Undo/Redo, 저장 후 reload, 실제 메뉴 Export, 독립 publish 런타임까지. 재현: `node apps/builder/scripts/adr209-series-release-live.mjs --headed` · `node apps/builder/scripts/adr209-publish-live.mjs --headed`.
+- 상세 설계: `docs/adr/design/209-chart-followup-repair-breakdown.md` §10.4. rollback (구 importer) · T11 · T12 live 와 번들·성능 종결 (F3–F5) 은 후속이라 ADR 은 In Progress 유지.
 
 ## [AI 어시스턴트 — Claude 요청의 prompt caching · 구조화 출력 · 도구 계약 정합] - 2026-09-09
 
