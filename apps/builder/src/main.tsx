@@ -8,8 +8,6 @@ import {
   useLocation,
 } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { isReactQueryDevtoolsEnabled } from "./utils/featureFlags";
 import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
 
@@ -148,13 +146,6 @@ ReactDOM.createRoot(root!).render(
           <AppLayout />
         </ParticleBackgroundProvider>
       </BrowserRouter>
-      {import.meta.env.DEV && isReactQueryDevtoolsEnabled() && (
-        <ReactQueryDevtools
-          initialIsOpen={false}
-          buttonPosition="top-right"
-          position="right"
-        />
-      )}
     </I18nProvider>
   </QueryClientProvider>,
 );

@@ -23,7 +23,6 @@ vi.mock("../../../utils/featureFlags", () => ({
   isWebGLCanvas: () => false,
   enableDebugLogs: () => false,
   isCanvasCompareMode: () => false,
-  isReactQueryDevtoolsEnabled: () => false,
 }));
 
 import { FillType } from "../../../types/builder/fill.types";

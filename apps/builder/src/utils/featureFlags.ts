@@ -67,19 +67,3 @@ export function enableDebugLogs(): boolean {
 export function isCanvasCompareMode(): boolean {
   return parseBoolean(import.meta.env.VITE_CANVAS_COMPARE_MODE, false);
 }
-
-/**
- * React Query Devtools 활성화 여부
- *
- * @returns true if React Query Devtools should be displayed
- *
- * @example
- * ```typescript
- * if (isReactQueryDevtoolsEnabled()) {
- *   return <ReactQueryDevtools />;
- * }
- * ```
- */
-export function isReactQueryDevtoolsEnabled(): boolean {
-  return parseBoolean(import.meta.env.VITE_ENABLE_REACT_QUERY_DEVTOOLS, false);
-}

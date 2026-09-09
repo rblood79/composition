@@ -100,15 +100,15 @@ packages/shared/src/utils/
 
 **문서 옛 서술 대비 없어진 것** (모두 2026-09-09 확인):
 
-| 옛 문서 표기                                                      | 현재 사실                                                                                                                                      |
-| ----------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BlendModeSelector.tsx / .css`                                    | **파일 없음.** blend mode UI 는 `FillDetailPopover.tsx:204-211` 의 `PropertySelect` + `constants/styleOptions.ts:43` `BLEND_MODE_OPTIONS`      |
-| `VariableBindingButton.tsx / .css`                                | **파일 없음.** `apps/builder/src` 전체에 식별자 0건                                                                                            |
-| `FillTypeSelector.css`                                            | **파일 없음** (`.tsx` 만 존재, 클래스는 공용 `properties-aria` 어법 사용)                                                                      |
-| `workspace/canvas/sprites/BoxSprite.tsx`                          | **디렉터리째 없음.** 후신은 `skia/buildBoxNodeData.ts` (파일 헤더 :1-6 이 "BoxSprite SkiaNodeData 빌드 로직 추출 (ADR-100 Phase 6)" 로 명시)   |
-| `workspace/canvas/ui/PixiColorPicker.tsx`                         | **디렉터리째 없음** (`workspace/canvas/ui/` 부재)                                                                                              |
-| `apps/builder/src/utils/featureFlags.ts` 의 Fill always-on helper | **없음.** 현재 export 는 `isWebGLCanvas`(:40) / `enableDebugLogs`(:49) / `isCanvasCompareMode`(:67) / `isReactQueryDevtoolsEnabled`(:83) 4개뿐 |
-| `inspectorActions.updateSelectedFillsPreview()`                   | **제거됨.** `presentation/editorPresentationPhase6.static.test.ts:26-30` 이 이 식별자의 재등장을 실패로 만든다                                 |
+| 옛 문서 표기                                                      | 현재 사실                                                                                                                                    |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BlendModeSelector.tsx / .css`                                    | **파일 없음.** blend mode UI 는 `FillDetailPopover.tsx:204-211` 의 `PropertySelect` + `constants/styleOptions.ts:43` `BLEND_MODE_OPTIONS`    |
+| `VariableBindingButton.tsx / .css`                                | **파일 없음.** `apps/builder/src` 전체에 식별자 0건                                                                                          |
+| `FillTypeSelector.css`                                            | **파일 없음** (`.tsx` 만 존재, 클래스는 공용 `properties-aria` 어법 사용)                                                                    |
+| `workspace/canvas/sprites/BoxSprite.tsx`                          | **디렉터리째 없음.** 후신은 `skia/buildBoxNodeData.ts` (파일 헤더 :1-6 이 "BoxSprite SkiaNodeData 빌드 로직 추출 (ADR-100 Phase 6)" 로 명시) |
+| `workspace/canvas/ui/PixiColorPicker.tsx`                         | **디렉터리째 없음** (`workspace/canvas/ui/` 부재)                                                                                            |
+| `apps/builder/src/utils/featureFlags.ts` 의 Fill always-on helper | **없음.** 현재 export 는 `isWebGLCanvas`(:40) / `enableDebugLogs`(:49) / `isCanvasCompareMode`(:67) 3개뿐                                    |
+| `inspectorActions.updateSelectedFillsPreview()`                   | **제거됨.** `presentation/editorPresentationPhase6.static.test.ts:26-30` 이 이 식별자의 재등장을 실패로 만든다                               |
 
 ### 0.3 설계 vs 구현 차이점 (2026-09-09 재확인)
 
