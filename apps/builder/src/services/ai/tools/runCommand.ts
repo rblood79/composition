@@ -5,7 +5,7 @@
  * 도구 목록이 따로 낡지 않는다. 실행은 executor 를 그대로 지난다 (allowlist →
  * precondition → 승인 → 기록). 도구가 store 를 직접 만지지 않는다.
  *
- * ADR-134 Phase 2 가 Groq 를 걷어내면서 정의는 provider 중립 `LLMToolDefinition` 이 됐다 —
+ * ADR-134 Phase 2 이후 정의는 provider 중립 `LLMToolDefinition` 이다 —
  * D11 이 MCP tool 로 옮길 때 형태 변환이 더 필요하지 않다.
  */
 import type { LLMToolDefinition } from "../providers/LLMProvider";

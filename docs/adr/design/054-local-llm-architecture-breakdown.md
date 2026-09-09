@@ -9,7 +9,7 @@
 Phase 0: Ollama + 로컬 모델 설치 및 검증
 
 ═══ LLM 인프라 ═══
-Phase 1: LLM Provider 추상화 레이어 + Groq 완전 제거
+Phase 1: LLM Provider 추상화 레이어 + 벤더 SDK 완전 제거
 Phase 2: Ollama Provider 구현 + 난이도 라우팅 (현재 개발 환경)
 Phase 3: node-llama-cpp Provider 구현 (Electron 전환 후)
 Phase 4: 모델 관리 + 선택 UI
@@ -493,7 +493,7 @@ ollama show qwen3:7b --modelfile
 
 ### 목표
 
-`groq-sdk` 및 관련 코드를 완전 제거하고, Ollama/node-llama-cpp를 위한 Provider 인터페이스를 도입한다.
+`클라우드 LLM SDK` 및 관련 코드를 완전 제거하고, Ollama/node-llama-cpp를 위한 Provider 인터페이스를 도입한다.
 
 ### 핵심 인터페이스
 
@@ -577,11 +577,11 @@ export interface LLMToolCall {
 | `services/ai/providers/anthropic.ts`      | 신규 | Claude API Provider (cloud)                               |
 | `services/ai/providers/openai.ts`         | 신규 | OpenAI-compatible Provider (cloud)                        |
 | `services/ai/AgentService.ts`             | 신규 | Provider-agnostic Agent Loop                              |
-| `services/ai/GroqAgentService.ts`         | 삭제 | groq-sdk 의존 코드 완전 제거                              |
-| `services/ai/GroqService.ts`              | 삭제 | deprecated 서비스 완전 제거                               |
+| `services/ai/AgentService.ts`         | 삭제 | 클라우드 LLM SDK 의존 코드 완전 제거                              |
+| `services/ai/AgentService.ts`              | 삭제 | deprecated 서비스 완전 제거                               |
 | `builder/panels/ai/hooks/useAgentLoop.ts` | 수정 | AgentService 참조로 전환                                  |
-| `types/integrations/ai.types.ts`          | 수정 | AgentEvent → LLM-agnostic으로 정리, Groq 타입 제거        |
-| `package.json`                            | 수정 | `groq-sdk` 삭제, optional: `@anthropic-ai/sdk` + `openai` |
+| `types/integrations/ai.types.ts`          | 수정 | AgentEvent → LLM-agnostic으로 정리, 클라우드 LLM 타입 제거        |
+| `package.json`                            | 수정 | `클라우드 LLM SDK` 삭제, optional: `@anthropic-ai/sdk` + `openai` |
 
 ### Agent Loop 분리 패턴
 
@@ -1151,7 +1151,7 @@ interface AISettings {
 | `services/ai/providers/index.ts`               | 수정 | Ollama Provider 등록                      |
 | `builder/panels/ai/components/LLMSettings.tsx` | 신규 | Provider 설정 UI                          |
 | `builder/stores/aiSettings.ts`                 | 신규 | Provider 설정 상태 (Zustand)              |
-| `package.json`                                 | 수정 | `groq-sdk` 삭제 확인 (Phase 1에서 제거됨) |
+| `package.json`                                 | 수정 | `클라우드 LLM SDK` 삭제 확인 (Phase 1에서 제거됨) |
 
 ---
 
@@ -2344,7 +2344,7 @@ ThemeStore에 저장 → Preview/Canvas 즉시 반영
 ## Phase 의존성 그래프
 
 ```
-Phase 1 (Provider 추상화 + Groq 제거) ← 선행 필수
+Phase 1 (Provider 추상화 + 벤더 SDK 제거) ← 선행 필수
   ↓
 Phase 2 (Ollama)     Phase 5 (컴포넌트 지능 + 텍스트 편집) ← 병렬 가능
   ↓                    ↓

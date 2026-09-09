@@ -43,7 +43,7 @@
 | 데이터/CMS | DataTable·REST·mock 기반. collection binding 경로가 여러 개이고 Publish 소비가 불완전 | HIGH |
 | 협업/권한 | 인증 + 로컬 IndexedDB. workspace/project membership, presence, comments, ACL 부재 | CRITICAL |
 | Publish/Hosting | JSON viewer와 JS runtime 중심. custom domain/CDN/atomic release/rollback/SEO pipeline 부재 | CRITICAL |
-| 보안 | `new Function`, browser-side Groq SDK, 개발용 범용 proxy가 존재 | CRITICAL |
+| 보안 | `new Function`, browser-side LLM SDK, 개발용 범용 proxy가 존재 | CRITICAL |
 | 운영 품질 | type-error baseline 67개, 배포 workflow가 builder build 중심 | HIGH |
 
 ## 2. 현재 구조와 목표 구조
@@ -328,7 +328,7 @@ Organization
 - [Collection binding ADR-152](https://github.com/rblood79/composition/blob/main/docs/adr/152-data-panel-collection-binding-integration.md)
 - [Data source runtime](https://github.com/rblood79/composition/blob/main/apps/builder/src/preview/hooks/useDataSource.ts)
 - [Publish action executor](https://github.com/rblood79/composition/blob/main/packages/shared/src/runtime/ActionExecutor.ts)
-- [Browser-side Groq agent](https://github.com/rblood79/composition/blob/main/apps/builder/src/services/ai/GroqAgentService.ts)
+- [Browser-side LLM agent](https://github.com/rblood79/composition/blob/main/apps/builder/src/services/ai/AgentService.ts)
 - [Deployment workflow](https://github.com/rblood79/composition/blob/main/.github/workflows/deploy.yml)
 - [Current type-error baseline](https://github.com/rblood79/composition/blob/main/apps/builder/.type-errors-baseline.txt)
 

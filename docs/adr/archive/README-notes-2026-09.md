@@ -1573,7 +1573,7 @@
 #### [196](../completed/196-agent-command-surface.md) — command registry 의 agent 호출 표면 — metadata 분리 · allowlist · 승인 · 기록
 
 - **상태**: Implemented — 2026-08-28
-- **완료일**: Phase 0~~4 / G0~~G4 당일 종결. ADR-195 registry 의 entry `(id→handler)` 는 마운트된 React 클로저라 headless 계약이 없다는 실측에서 출발 — 정의 71 전부에 `COMMAND_META` (`agentCallable`/`mutation`/`undo`/`confirm`/`precondition`) 를 두고(누락 = type error), agent 가 부를 수 있는 40 개만 `AGENT_COMMANDS` adapter 가 **handler 와 같은 store 심볼**(`canvasActions` · `historyManager` · `moveElementToSiblingEdge` · `zoomViewportAtContainerCenter` · `activatePanelWorkspacePanelV3`) 로 바인딩. `executeAgentCommand` 하나가 모든 호스트의 진입점 — 기본 거부 → precondition → 승인 Promise → 실행 → 기록 1건. 정적 게이트 5조항(노출↔adapter 양방향 · 되돌릴 수 없으면 승인 필수 · external/palette:false 노출 금지 · adapter 값 export 1개) + 민감도 4건 RED. live(Chrome MCP) 45 호출에서 키보드 경로와 12쌍 대조 차이 0, `delete` 승인 거부 시 문서 무변경 · 승인 시 키보드와 동일, agent `duplicate` 를 사용자 ⌘Z 1회로 복원. HC1(키보드·팔레트·registry diff 0) 유지, 초기 번들 +1,255B gz. G4(AI 패널 end-to-end)는 2026-08-28 에 Groq 모델 id 만료 + 사용자 결정 "Groq 미사용" 으로 실패 시 대안 적용했다가, **2026-08-29 원 조건으로 통과** — ADR-134 가 세운 OpenAI 호환 provider(로컬 Ollama `qwen3:14b`)로 패널 경로 실측: descriptor `run_command` id enum 40 = allowlist 동수, "확대해줘" → `run_command {"id":"zoomIn"}` → 기록 `status ok / host ai-panel`, 선택 없는 정렬 요청 → `precondition-failed / multi-select-mode-off` 가 채팅과 기록 목록에 표시. `host` 가 `ai-panel` 로 08-28 측정의 `chrome-mcp` 와 구분된다
+- **완료일**: Phase 0~~4 / G0~~G4 당일 종결. ADR-195 registry 의 entry `(id→handler)` 는 마운트된 React 클로저라 headless 계약이 없다는 실측에서 출발 — 정의 71 전부에 `COMMAND_META` (`agentCallable`/`mutation`/`undo`/`confirm`/`precondition`) 를 두고(누락 = type error), agent 가 부를 수 있는 40 개만 `AGENT_COMMANDS` adapter 가 **handler 와 같은 store 심볼**(`canvasActions` · `historyManager` · `moveElementToSiblingEdge` · `zoomViewportAtContainerCenter` · `activatePanelWorkspacePanelV3`) 로 바인딩. `executeAgentCommand` 하나가 모든 호스트의 진입점 — 기본 거부 → precondition → 승인 Promise → 실행 → 기록 1건. 정적 게이트 5조항(노출↔adapter 양방향 · 되돌릴 수 없으면 승인 필수 · external/palette:false 노출 금지 · adapter 값 export 1개) + 민감도 4건 RED. live(Chrome MCP) 45 호출에서 키보드 경로와 12쌍 대조 차이 0, `delete` 승인 거부 시 문서 무변경 · 승인 시 키보드와 동일, agent `duplicate` 를 사용자 ⌘Z 1회로 복원. HC1(키보드·팔레트·registry diff 0) 유지, 초기 번들 +1,255B gz. G4(AI 패널 end-to-end)는 2026-08-28 에 클라우드 LLM 모델 id 만료 + 사용자 결정 "해당 벤더 미사용" 으로 실패 시 대안 적용했다가, **2026-08-29 원 조건으로 통과** — ADR-134 가 세운 OpenAI 호환 provider(로컬 Ollama `qwen3:14b`)로 패널 경로 실측: descriptor `run_command` id enum 40 = allowlist 동수, "확대해줘" → `run_command {"id":"zoomIn"}` → 기록 `status ok / host ai-panel`, 선택 없는 정렬 요청 → `precondition-failed / multi-select-mode-off` 가 채팅과 기록 목록에 표시. `host` 가 `ai-panel` 로 08-28 측정의 `chrome-mcp` 와 구분된다
 
 #### [199](../completed/199-component-semantics-action-registry.md) — 컴포넌트 시맨틱 액션 레지스트리 + 투영 불변식
 
@@ -1596,7 +1596,7 @@
 
 - **상태**: Implemented (delivered scope)
 - **완료일**: 2026-08-29
-- **비고**: **delivered scope = Phase 0–8** (사용자 confirm). Groq 완전 제거 + `LLMProvider` 추상화 (Anthropic / OpenAI 호환 — Ollama·vLLM·LM Studio·사내 gateway 를 baseUrl 로 포섭) + 에이전트 프로파일 6종 BYOK (키 값 미보관, 원격 직접 호출 차단 HC13/R12) + AI 도구 canonical 어휘 정합 (frame·clip/placeholder/slot/reusable, `InteractionRule`, `collections`) + catalog SSOT 파생 컴포넌트 카탈로그 (G5) + Plan→Execute→Verify 오케스트레이션 + 작업 유형별 프로파일 라우팅 (**G6 통과** — 2026-08-29 Ollama 0.33.0 + `qwen3:14b` 실물 endpoint wire 정합 확인) + AIPanel 기본 표면 depth 4→2. **Phase 9 (외부 에이전트 ACP/SDK embed, G7) 는 별도 ADR 이관** — 전제인 Electron 이 코드에 부재 (의존성 0 · `apps/desktop` 부재), G7 은 embed 없이 측정 불가. **잔여 3건 종결 (2026-08-29, Ollama 실측)**: ① G6 통과 (실물 wire 정합) ② **G5 통과** (props 키 정확도 18/18 = 1.000, 절삭 카탈로그 대조군 포함) ③ Phase 6 시나리오 4기준 중 3 충족 — 미충족 1건 "도구 오류 0" 의 단일 원인(요소 id 자리표시자)은 2026-08-29 `646e2b8c2` 로 수정, 시나리오 전체 재측정은 미실시
+- **비고**: **delivered scope = Phase 0–8** (사용자 confirm). 벤더 SDK 완전 제거 + `LLMProvider` 추상화 (Anthropic / OpenAI 호환 — Ollama·vLLM·LM Studio·사내 gateway 를 baseUrl 로 포섭) + 에이전트 프로파일 6종 BYOK (키 값 미보관, 원격 직접 호출 차단 HC13/R12) + AI 도구 canonical 어휘 정합 (frame·clip/placeholder/slot/reusable, `InteractionRule`, `collections`) + catalog SSOT 파생 컴포넌트 카탈로그 (G5) + Plan→Execute→Verify 오케스트레이션 + 작업 유형별 프로파일 라우팅 (**G6 통과** — 2026-08-29 Ollama 0.33.0 + `qwen3:14b` 실물 endpoint wire 정합 확인) + AIPanel 기본 표면 depth 4→2. **Phase 9 (외부 에이전트 ACP/SDK embed, G7) 는 별도 ADR 이관** — 전제인 Electron 이 코드에 부재 (의존성 0 · `apps/desktop` 부재), G7 은 embed 없이 측정 불가. **잔여 3건 종결 (2026-08-29, Ollama 실측)**: ① G6 통과 (실물 wire 정합) ② **G5 통과** (props 키 정확도 18/18 = 1.000, 절삭 카탈로그 대조군 포함) ③ Phase 6 시나리오 4기준 중 3 충족 — 미충족 1건 "도구 오류 0" 의 단일 원인(요소 id 자리표시자)은 2026-08-29 `646e2b8c2` 로 수정, 시나리오 전체 재측정은 미실시
 
 #### [204](../completed/204-virtualized-collection-min-content-floor.md) — 가상화 collection 의 min-content floor — 투영 행이 §4.5 자동 최소 크기에 도달하는 경로
 
@@ -1797,7 +1797,7 @@
 
 #### - — ADR-011
 
-- **내용**: AI Assistant 설계 (Groq Tool Calling) — Phase A1~A4 land → ADR-134 Phase 2/3/8 점진 전환 (2026-05-13)
+- **내용**: AI Assistant 설계 (Tool Calling) — Phase A1~A4 land → ADR-134 Phase 2/3/8 점진 전환 (2026-05-13)
 - **규모**: -
 - **상태**: **Deprecated**
 

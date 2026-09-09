@@ -4,12 +4,12 @@
 >
 > **사유**: 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 land 된 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical vocabulary (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합. 이전 marker "Superseded by ADR-054" 도 ADR-054 Proposed 영역과 함께 ADR-134 로 통합 흡수.
 >
-> **Phase A1~A4 land 산출물 보존 영역**: 7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback. ADR-134 Phase 2 (Groq 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환.
+> **Phase A1~A4 land 산출물 보존 영역**: 7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback. ADR-134 Phase 2 (벤더 SDK 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환.
 
 > 작성일: 2026-01-31
 > 참고: `docs/RENDERING_ARCHITECTURE.md` (렌더링 전환 계획)
 > 대상: `apps/builder/src/services/ai/`, `apps/builder/src/builder/panels/ai/`
-> LLM 공급자: Groq SDK (무료 tier, llama-3.3-70b-versatile)
+> LLM 공급자: 클라우드 LLM SDK (무료 tier, llama-3.3-70b-versatile)
 
 ---
 
@@ -30,9 +30,9 @@ apps/builder/src/
 ├── types/theme/
 │   └── generation.types.ts      # 테마 생성 타입
 ├── services/ai/
-│   ├── GroqAgentService.ts      # ✅ Tool Calling + Agent Loop 핵심 서비스
+│   ├── AgentService.ts      # ✅ Tool Calling + Agent Loop 핵심 서비스
 │   │                            #    (MAX_TURNS=10, MAX_RETRIES=3, temperature=0.7, max_tokens=2048)
-│   ├── GroqService.ts           # ⚠️ deprecated — IntentParser fallback 전용
+│   ├── AgentService.ts           # ⚠️ deprecated — IntentParser fallback 전용
 │   ├── IntentParser.ts          # 유지 (최후 fallback)
 │   ├── systemPrompt.ts          # ✅ 동적 시스템 프롬프트 빌더
 │   │                            #    (컴포넌트 목록, Mock 엔드포인트, 현재 빌더 상태 포함)
@@ -74,15 +74,15 @@ apps/builder/src/
 
 | 문제                      | 상세                                                              | 해결                                                     |
 | ------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
-| **JSON 텍스트 파싱 방식** | AI가 JSON 텍스트를 출력 → `parseIntent()`로 파싱 → 형식 깨짐 빈번 | ✅ Tool Calling으로 대체 (GroqAgentService)              |
+| **JSON 텍스트 파싱 방식** | AI가 JSON 텍스트를 출력 → `parseIntent()`로 파싱 → 형식 깨짐 빈번 | ✅ Tool Calling으로 대체 (AgentService)              |
 | **대화 히스토리 미전달**  | 매 메시지가 독립적 — AI에 이전 대화 컨텍스트 없음                 | ✅ 전체 대화 히스토리 전달 (runAgentLoop)                |
 | **컨텍스트 부족**         | 최근 5개 요소의 간략 정보만 전달                                  | ✅ get_editor_state/get_selection 도구로 풍부한 컨텍스트 |
-| **Tool Calling 미사용**   | groq-sdk가 tool calling을 지원하지만 활용하지 않음                | ✅ 7개 도구 정의 + tool_choice: 'auto'                   |
+| **Tool Calling 미사용**   | 클라우드 LLM SDK가 tool calling을 지원하지만 활용하지 않음                | ✅ 7개 도구 정의 + tool_choice: 'auto'                   |
 | **단일 메시지 구조**      | tool 실행 과정, 중간 결과 표시 불가                               | ✅ ToolCallMessage/ToolResultMessage 컴포넌트            |
 | **에이전트 제어 없음**    | 중단 버튼, 재시도 등 제어 기능 없음                               | ✅ AgentControls + AbortController                       |
 | **시각 피드백 없음**      | AI 작업 중 캔버스 레벨 피드백 없음                                | ✅ G.3 완전 구현 (generating + flash)                    |
 | **배치 작업 미지원**      | 복수 요소 일괄 생성/수정 불가                                     | ✅ batch_design 도구 (최대 20개 작업)                    |
-| **Rate Limit 미대응**     | Groq 무료 tier 30 req/min 제한 시 에러                            | ✅ 429 지수 백오프 (3회 재시도)                          |
+| **Rate Limit 미대응**     | 클라우드 LLM tier 30 req/min 제한 시 에러                            | ✅ 429 지수 백오프 (3회 재시도)                          |
 
 ### 1.3 미해결 한계점 (Phase A 완료 후)
 
@@ -129,7 +129,7 @@ apps/builder/src/
 
 | 항목                | 현재 상태                           | 문제                                       |
 | ------------------- | ----------------------------------- | ------------------------------------------ |
-| **모델**            | llama-3.3-70b-versatile (Groq 무료) | Tool Calling 정확도 낮음, 디자인 추론 부족 |
+| **모델**            | llama-3.3-70b-versatile (클라우드 LLM) | Tool Calling 정확도 낮음, 디자인 추론 부족 |
 | **시스템 프롬프트** | 51줄, 규칙 5개                      | 디자인 원칙/레이아웃 패턴 가이드 전무      |
 | **max_tokens**      | 2048                                | 복잡한 batch 작업 시 응답 잘림             |
 | **temperature**     | 0.7                                 | Tool Calling에는 과도 (0.3~0.5 권장)       |
@@ -157,7 +157,7 @@ Phase B 목표: "도구를 제대로 활용하는 지능" ← 미구현
     ↓
 addUserMessage() → Conversation Store
     ↓
-[GroqService] chatStream() — 시스템 프롬프트에 JSON 형식 강제
+[AgentService] chatStream() — 시스템 프롬프트에 JSON 형식 강제
     ↓
 AI가 JSON 텍스트 출력 (형식 깨짐 가능)
     ↓
@@ -275,18 +275,18 @@ executeIntent() — 단일 요소 생성/수정/삭제
 
 ---
 
-## 3. Groq SDK 역량 분석
+## 3. 클라우드 LLM SDK 역량 분석
 
 ### 3.1 현재 버전
 
-- **패키지**: `groq-sdk` v0.37.0
-- **환경변수**: `VITE_GROQ_API_KEY`
+- **패키지**: `클라우드 LLM SDK` v0.37.0
+- **환경변수**: `빌드타임 API 키`
 - **사용 모델**: `llama-3.3-70b-versatile`
 - **브라우저 사용**: `dangerouslyAllowBrowser: true`
 
 ### 3.2 Pencil Claude Agent SDK 대체 가능성
 
-| Claude Agent SDK 기능  | groq-sdk 대응                         | 가능 여부                       |
+| Claude Agent SDK 기능  | 클라우드 LLM SDK 대응                         | 가능 여부                       |
 | ---------------------- | ------------------------------------- | ------------------------------- |
 | Tool Calling           | `tools` + `tool_choice` 파라미터 지원 | **가능**                        |
 | Streaming              | `stream: true` 지원                   | **가능**                        |
@@ -296,12 +296,12 @@ executeIntent() — 단일 요소 생성/수정/삭제
 | MCP Protocol           | 미지원                                | **별도 구현 필요** (후순위)     |
 | 이미지 입력 (스크린샷) | llama 모델 미지원                     | **불가** (텍스트 컨텍스트 우선) |
 
-### 3.3 groq-sdk Tool Calling 지원 확인
+### 3.3 클라우드 LLM SDK Tool Calling 지원 확인
 
-groq-sdk v0.37.0의 `ChatCompletionCreateParams`에서 확인된 타입:
+클라우드 LLM SDK v0.37.0의 `ChatCompletionCreateParams`에서 확인된 타입:
 
 ```typescript
-// groq-sdk/src/resources/chat/completions.ts
+// 클라우드 LLM SDK/src/resources/chat/completions.ts
 interface ChatCompletionCreateParams {
   tools?: Array<ChatCompletionTool> | null;
   tool_choice?: ChatCompletionToolChoiceOption | null;
@@ -332,7 +332,7 @@ type ChatCompletionToolChoiceOption =
 | Token Limit     | 30,000 tokens/min                           |
 | 모델            | llama-3.3-70b-versatile (tool calling 지원) |
 | 컨텍스트 윈도우 | 128K tokens                                 |
-| 속도            | Groq LPU 기반 — 매우 빠름 (장점)            |
+| 속도            | 클라우드 LLM 기반 — 매우 빠름 (장점)            |
 
 ### 3.5 위험 완화 전략
 
@@ -352,7 +352,7 @@ type ChatCompletionToolChoiceOption =
 
 ```
 User → "빨간 버튼 만들어"
-  → Groq chatStream() — 시스템 프롬프트에 JSON 강제
+  → 클라우드 LLM chatStream() — 시스템 프롬프트에 JSON 강제
   → AI가 JSON 텍스트 출력 (파싱 실패 가능)
   → parseIntent() → executeIntent()
 ```
@@ -361,7 +361,7 @@ User → "빨간 버튼 만들어"
 
 ```
 User → "빨간 버튼 만들어"
-  → Groq chat.completions.create({ tools, messages })
+  → 클라우드 LLM chat.completions.create({ tools, messages })
   → AI가 tool_calls 반환: [{ name: "create_element", arguments: {...} }]
   → 도구 실행 → 결과를 messages에 추가
   → AI가 추가 도구 호출 or 최종 텍스트 응답
@@ -380,7 +380,7 @@ addUserMessage() → Conversation Store
     ↓
 ┌─── Agent Loop ─────────────────────────────────┐
 │                                                 │
-│  Groq chat.completions.create({                 │
+│  클라우드 LLM chat.completions.create({                 │
 │    tools: [create_element, update_element, ...], │
 │    messages: [...대화 히스토리, 시스템 프롬프트]    │
 │  })                                              │
@@ -402,7 +402,7 @@ addUserMessage() → Conversation Store
 
 ### 4.3 AI 도구 정의
 
-Pencil의 IPC Handle을 참고하여 Groq tool calling에 등록할 도구:
+Pencil의 IPC Handle을 참고하여 Tool Calling에 등록할 도구:
 
 | 도구                | 역할                                       | Pencil 대응                 | 상태     |
 | ------------------- | ------------------------------------------ | --------------------------- | -------- |
@@ -715,7 +715,7 @@ apps/builder/src/
 │   ├── ai.types.ts              # ★ 재작성: AITool, AgentLoop, ToolCall 타입
 │   └── chat.types.ts            # ★ 확장: ToolCallMessage, ToolResultMessage 추가
 ├── services/ai/
-│   ├── GroqAgentService.ts      # ★ 신규: Tool Calling + Agent Loop 핵심 서비스
+│   ├── AgentService.ts      # ★ 신규: Tool Calling + Agent Loop 핵심 서비스
 │   ├── tools/                   # ★ 신규: 도구 구현 디렉토리
 │   │   ├── index.ts             # 도구 등록 레지스트리
 │   │   ├── definitions.ts       # 도구 JSON Schema 정의
@@ -728,7 +728,7 @@ apps/builder/src/
 │   │   └── batchDesign.ts       # batch_design 구현
 │   ├── styleAdapter.ts          # ★ 신규: CSS-like → 내부 스키마 변환 레이어
 │   ├── systemPrompt.ts          # ★ 신규: 시스템 프롬프트 관리
-│   ├── GroqService.ts           # ⚠️ deprecated — IntentParser fallback 전용으로 유지
+│   ├── AgentService.ts           # ⚠️ deprecated — IntentParser fallback 전용으로 유지
 │   └── IntentParser.ts          # 유지 (최후 fallback)
 ├── builder/panels/ai/
 │   ├── AIPanel.tsx              # ★ 재작성: Tool 실행 피드백, 중단 버튼
@@ -747,13 +747,13 @@ apps/builder/src/
 
 ## 6. 핵심 구현 설계
 
-### 6.1 Agent Loop (GroqAgentService)
+### 6.1 Agent Loop (AgentService)
 
 ```typescript
-// services/ai/GroqAgentService.ts
+// services/ai/AgentService.ts
 
-class GroqAgentService {
-  private client: Groq;
+class AgentService {
+  private client: LLMClient;
   private tools: ChatCompletionTool[];
   private toolExecutors: Map<string, ToolExecutor>;
   private abortController: AbortController | null = null;
@@ -776,7 +776,7 @@ class GroqAgentService {
 
       turn++;
 
-      // Groq API 호출 (streaming)
+      // 클라우드 LLM API 호출 (streaming)
       const stream = await this.client.chat.completions.create({
         model: "llama-3.3-70b-versatile",
         messages: conversationMessages,
@@ -1221,7 +1221,7 @@ AI 도구 출력 → adaptStyles() → Element.props.style ($-- 유지)
 
 ```
 ┌─────────────────────────────────────────────────┐
-│  AI Layer (Groq Tool Calling + Agent Loop)       │ ← AI 전환 범위
+│  AI Layer (Tool Calling + Agent Loop)       │ ← AI 전환 범위
 │  ┌───────────────────────────────────────────┐   │
 │  │  Tool Definitions                         │   │
 │  │  (create_element, update_element, ...)     │   │
@@ -1244,7 +1244,7 @@ AI는 **데이터 레이어**(요소 CRUD)를 조작하고, 렌더링은 **표�
 
 | AI 전환 항목                    | 이유                          |
 | ------------------------------- | ----------------------------- |
-| Groq tool calling 아키텍처      | API 호출 패턴은 렌더링과 독립 |
+| Tool Calling 아키텍처      | API 호출 패턴은 렌더링과 독립 |
 | Agent loop 구현                 | AI 내부 루프                  |
 | Conversation store 개선         | 채팅 상태 관리                |
 | 대화 히스토리 전달              | 텍스트 데이터                 |
@@ -1329,7 +1329,7 @@ Pencil의 AI는 `get-screenshot`으로 뷰포트 캡처를 컨텍스트로 사�
 | -------------------------------------- | --------------------------------------- |
 | PixiJS `app.renderer.extract.canvas()` | CanvasKit `surface.makeImageSnapshot()` |
 
-단, Groq의 llama 모델은 **이미지 입력을 지원하지 않으므로** 당장 불필요하다.
+단, 클라우드 LLM의 llama 모델은 **이미지 입력을 지원하지 않으므로** 당장 불필요하다.
 텍스트 기반 컨텍스트(요소 트리, 스타일 정보)가 우선이다.
 
 ### 7.6 영향 매트릭스
@@ -1364,7 +1364,7 @@ Phase A1: 기반 구조 구축 ✅ (2026-02-06 완료)
   └── services/ai/styleAdapter.ts (스타일 변환 레이어)
 
 Phase A2: Agent 서비스 구현 ✅ (2026-02-06 완료)
-  └── services/ai/GroqAgentService.ts (Tool Calling + Agent Loop + 429 지수 백오프)
+  └── services/ai/AgentService.ts (Tool Calling + Agent Loop + 429 지수 백오프)
   └── services/ai/tools/*.ts (7개 도구: CRUD 5개 + search + batch)
   └── builder/stores/conversation.ts 확장 (agent 상태, tool events)
 
@@ -1384,7 +1384,7 @@ Phase A5: 캔버스 통합 (Phase 5-6 이후)
   └── ✅ AI 생성 시각 피드백 (CanvasKit renderGeneratingEffects — G.3 완료, 2026-02-02)
   └── ✅ AI-A5a: styleAdapter.ts CSS 단위 정규화 (rem/em/vh/vw → px, resolveCSSSizeValue 사용, 2026-03-03)
   └── ⏸ styleAdapter.ts → CanvasKit fills/effects/stroke 스키마 변환 (차단됨: ENGINE_CHECKLIST RC-3 단위 정규화 선행 필요)
-  └── ⏸ 스크린샷 기반 컨텍스트 (차단됨: 멀티모달 LLM 전환 — Groq Vision API 미지원 대기)
+  └── ⏸ 스크린샷 기반 컨텍스트 (차단됨: 멀티모달 LLM 전환 — Vision API 미지원 대기)
   └── 📋 get_style_guide, get_variables, set_variables 도구 (보류: 컴포넌트 인스턴스 시스템 Phase 5+ 선행 필요)
 
 ═══════════════════════════════════════════════════════════════
@@ -1877,7 +1877,7 @@ Section(display:flex, flexDirection:row, gap:16, padding:24)
 
 | 항목              | 값                                              |
 | ----------------- | ----------------------------------------------- |
-| 모델              | llama-3.3-70b-versatile (Groq 무료)             |
+| 모델              | llama-3.3-70b-versatile (클라우드 LLM)             |
 | API 호출          | 브라우저 직접 (`dangerouslyAllowBrowser: true`) |
 | 비용              | $0                                              |
 | Tool Calling 품질 | 낮음 (복잡한 파라미터에서 오류 빈번)            |
@@ -1915,13 +1915,13 @@ Pencil AI가 Claude를 사용하는 것처럼, 서버 프록시를 통해 Claude
 | **스트리밍** | Server-Sent Events (SSE)                     |
 
 ```typescript
-// GroqAgentService → AIAgentService로 추상화
+// AgentService → AIAgentService로 추상화
 interface AIAgentService {
   runAgentLoop(messages, context): AsyncGenerator<AgentEvent>;
   stop(): void;
 }
 
-class GroqAgentService implements AIAgentService {
+class AgentService implements AIAgentService {
   /* 기존 */
 }
 class ClaudeProxyService implements AIAgentService {
@@ -1939,7 +1939,7 @@ Pencil AI처럼 사용자가 모델을 선택할 수 있는 UI:
 | Claude Sonnet | 일반 디자인 요청 (기본)          | $3/$15 per MTok      |
 | Claude Haiku  | 단순 수정, 빠른 응답             | $0.25/$1.25 per MTok |
 | Claude Opus   | 복잡한 대시보드/전체 페이지 생성 | $15/$75 per MTok     |
-| Groq llama    | 무료 fallback                    | $0                   |
+| llama    | 무료 fallback                    | $0                   |
 
 ```typescript
 // AIPanel.tsx에 모델 선택기 추가
@@ -1948,7 +1948,7 @@ Pencil AI처럼 사용자가 모델을 선택할 수 있는 UI:
     { id: 'sonnet', label: 'Sonnet', description: '일반 (권장)', default: true },
     { id: 'haiku', label: 'Haiku', description: '빠르고 저렴' },
     { id: 'opus', label: 'Opus', description: '복잡한 작업' },
-    { id: 'groq', label: 'Groq (무료)', description: '기본 작업' },
+    { id: 'cloud-llm', label: '클라우드 LLM', description: '기본 작업' },
   ]}
   onChange={(modelId) => setSelectedModel(modelId)}
 />
@@ -2046,8 +2046,8 @@ export function validateCreateArgs(args: CreateElementArgs): ValidationResult {
 #### 현재 문제
 
 ```typescript
-// GroqAgentService.ts
-new Groq({ apiKey, dangerouslyAllowBrowser: true });
+// AgentService.ts
+new LLMClient({ apiKey, dangerouslyAllowBrowser: true });
 // → API 키가 브라우저 DevTools에서 노출됨
 ```
 
@@ -2094,7 +2094,7 @@ serve(async (req) => {
 | `services/ai/tools/definitions.ts`                   | 신규: 7개 도구 JSON Schema 정의                                          | A1    | ✅   |
 | `services/ai/systemPrompt.ts`                        | 신규: `buildSystemPrompt(context)` 동적 프롬프트                         | A1    | ✅   |
 | `services/ai/styleAdapter.ts`                        | 신규: CSS-like → 내부 스키마 변환 (adaptStyles, adaptPropsForElement)    | A1    | ✅   |
-| `services/ai/GroqAgentService.ts`                    | 신규: Tool Calling + Agent Loop + 429 지수 백오프                        | A2    | ✅   |
+| `services/ai/AgentService.ts`                    | 신규: Tool Calling + Agent Loop + 429 지수 백오프                        | A2    | ✅   |
 | `services/ai/tools/createElement.ts`                 | 신규: create_element 도구 (G.3 flash 연동)                               | A2    | ✅   |
 | `services/ai/tools/updateElement.ts`                 | 신규: update_element 도구 (G.3 flash 연동)                               | A2    | ✅   |
 | `services/ai/tools/deleteElement.ts`                 | 신규: delete_element 도구 (body 보호)                                    | A2    | ✅   |
@@ -2103,7 +2103,7 @@ serve(async (req) => {
 | `services/ai/tools/index.ts`                         | 신규: 도구 레지스트리 (7개 도구)                                         | A2    | ✅   |
 | `services/ai/tools/searchElements.ts`                | 신규: search_elements 도구 (tag/prop/style 필터)                         | A4    | ✅   |
 | `services/ai/tools/batchDesign.ts`                   | 신규: batch_design 도구 (일괄 create/update/delete)                      | A4    | ✅   |
-| `services/ai/GroqService.ts`                         | deprecated: IntentParser fallback 전용으로 유지                          | A2    | ✅   |
+| `services/ai/AgentService.ts`                         | deprecated: IntentParser fallback 전용으로 유지                          | A2    | ✅   |
 | `services/ai/IntentParser.ts`                        | 유지 (최후 fallback)                                                     | -     | ✅   |
 | `builder/stores/conversation.ts`                     | 확장: agent 상태, tool events, appendToLastMessage                       | A2    | ✅   |
 | `builder/panels/ai/AIPanel.tsx`                      | 재작성: useAgentLoop hook 기반, Tool 피드백 UI                           | A3    | ✅   |
@@ -2118,8 +2118,8 @@ serve(async (req) => {
 | `services/ai/tools/applyLayout.ts`                   | 신규: 레이아웃 템플릿 적용 도구                                          | B3    | 📋   |
 | `services/ai/tools/validation.ts`                    | 신규: Props/styles 검증 레이어                                           | B5    | 📋   |
 | `services/ai/tools/index.ts`                         | 확장: 도구 레지스트리 (7 → 10+ 도구)                                     | B2    | 📋   |
-| `services/ai/GroqAgentService.ts`                    | 변경: temperature 0.7→0.3, max_tokens 2048→4096                          | B4-1  | 📋   |
-| `services/ai/AIAgentService.ts`                      | 신규: 추상 인터페이스 (GroqAgentService/ClaudeProxyService 공통)         | B4-2  | 📋   |
+| `services/ai/AgentService.ts`                    | 변경: temperature 0.7→0.3, max_tokens 2048→4096                          | B4-1  | 📋   |
+| `services/ai/AIAgentService.ts`                      | 신규: 추상 인터페이스 (AgentService/ClaudeProxyService 공통)         | B4-2  | 📋   |
 | `services/ai/ClaudeProxyService.ts`                  | 신규: Supabase Edge Function 경유 Claude API 호출                        | B4-2  | 📋   |
 | `supabase/functions/ai-proxy/index.ts`               | 신규: Claude API 서버 프록시 (JWT 인증, Rate Limit)                      | B4-2  | 📋   |
 | `builder/panels/ai/AIPanel.tsx`                      | 확장: 모델 선택기 UI                                                     | B4-3  | 📋   |
@@ -2151,8 +2151,8 @@ serve(async (req) => {
 
 - Pencil AI 분석: (삭제됨 — git history 참조)
 - 렌더링 전환 계획: `docs/RENDERING_ARCHITECTURE.md` Phase 5-6
-- Groq SDK 문서: https://console.groq.com/docs
-- Groq Tool Use: https://console.groq.com/docs/tool-use
+- 클라우드 LLM SDK 문서: https://platform.openai.com/docs
+- AI Tool Use: https://platform.openai.com/docs/guides/function-calling
 
 ---
 
@@ -2166,7 +2166,7 @@ serve(async (req) => {
 
 | 파일                                                 | 검증 결과                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `services/ai/GroqAgentService.ts`                    | ✅ 문서와 일치. MAX_TURNS=10, MAX_RETRIES=3, 지수 백오프 구현 확인               |
+| `services/ai/AgentService.ts`                    | ✅ 문서와 일치. MAX_TURNS=10, MAX_RETRIES=3, 지수 백오프 구현 확인               |
 | `services/ai/tools/index.ts`                         | ✅ 7개 도구 레지스트리 정확히 일치                                               |
 | `services/ai/tools/createElement.ts`                 | ✅ HierarchyManager.calculateNextOrderNum, G.3 flash 연동 확인                   |
 | `services/ai/tools/batchDesign.ts`                   | ✅ 최대 20개, 실패 시 나머지 중단 구현 확인                                      |

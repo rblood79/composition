@@ -499,10 +499,10 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 - **Deprecated 일자**: 2026-05-13
 - **사유 / 후속 처리**: 사용자 결정: "현재 불필요하며 ADR 설계 규칙에 의거하여 설계되지 않아 필요시 재설계 해야 한다". 향후 재제안 시 adr-writing.md Risk-First 템플릿 + framing checkpoint 4 질문 + 3-domain 분류 절차 통과 의무
 
-#### [011](completed/011-ai-assistant-design.md) — AI Assistant 설계 (Groq Tool Calling)
+#### [011](completed/011-ai-assistant-design.md) — AI Assistant 설계 (Tool Calling)
 
 - **Deprecated 일자**: 2026-05-13
-- **사유 / 후속 처리**: **Replaced by ADR-134**. Phase A1~A4 land 산출물 (7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback) 은 ADR-134 Phase 2 (Groq 제거 + secret isolation — 2026-08-18 노선 개정) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환. 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합
+- **사유 / 후속 처리**: **Replaced by ADR-134**. Phase A1~A4 land 산출물 (7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback) 은 ADR-134 Phase 2 (벤더 SDK 제거 + secret isolation — 2026-08-18 노선 개정) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환. 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합
 
 #### [054](completed/054-local-llm-architecture.md) — 로컬 LLM 아키텍처 (Ollama → node-llama-cpp)
 

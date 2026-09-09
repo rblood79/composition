@@ -189,7 +189,7 @@ ADR-134 를 **Phase 0–8 delivered scope** 로 종결했습니다. 사용자가
 
 ### Changed
 
-- **모델을 직접 고른다**: Groq 고정이 사라지고 Anthropic · OpenAI 호환 endpoint (Ollama / vLLM / LM Studio / 사내 gateway) 를 주소만으로 연결합니다. 역할별(기본 / 계획 / 실행 / 검증 / 분류)로 다른 모델을 쓸 수 있습니다.
+- **모델을 직접 고른다**: 단일 벤더 고정이 사라지고 Anthropic · OpenAI 호환 endpoint (Ollama / vLLM / LM Studio / 사내 gateway) 를 주소만으로 연결합니다. 역할별(기본 / 계획 / 실행 / 검증 / 분류)로 다른 모델을 쓸 수 있습니다.
 - **키는 설정과 함께 저장되지 않습니다**: 기본은 현재 세션에서만 기억하고, 브라우저에 남기려면 명시로 켜야 합니다. 원격 상용 provider 는 프록시가 준비되기 전까지 브라우저에서 직접 호출되지 않습니다 — 로컬·사설망 endpoint 는 그대로 동작합니다.
 
 ### Known limitations
@@ -299,14 +299,14 @@ ADR-134 를 **Phase 0–8 delivered scope** 로 종결했습니다. 사용자가
 - 신규 26건: canonical 필드 검증·스키마 어휘·patch 반영 · batch 1 entry + undo 복원 · 바인딩/규칙 도구 12 · **소비자 경로 4** (ListBox 가 바인딩으로 항목을 그리는지, Preview dispatcher 가 규칙으로 알림을 띄우는지).
 - live: AI 패널에서 frame 생성 · 규칙 · 바인딩을 실행하고 저장까지 확인한 뒤 원복.
 
-## [ADR-134 Phase 1~2 — AI 어시스턴트가 provider 를 고른다 + Groq 제거] - 2026-08-28
+## [ADR-134 Phase 1~2 — AI 어시스턴트가 provider 를 고른다 + 벤더 SDK 제거] - 2026-08-28
 
 ### Changed
 
-- **AI 어시스턴트의 모델·endpoint 를 사용자가 정한다** (Breaking): Groq 고정 연결을 걷어내고 에이전트 프로파일 (`main`/`planner`/`executor`/`verifier`/`fast` + `vision` 예약) 이 provider·endpoint·모델을 정한다. 프리셋 3종 (Anthropic / OpenAI 호환 / 로컬 Ollama) 제공.
+- **AI 어시스턴트의 모델·endpoint 를 사용자가 정한다** (Breaking): 단일 벤더 고정 연결을 걷어내고 에이전트 프로파일 (`main`/`planner`/`executor`/`verifier`/`fast` + `vision` 예약) 이 provider·endpoint·모델을 정한다. 프리셋 3종 (Anthropic / OpenAI 호환 / 로컬 Ollama) 제공.
   - **모델이 정해지기 전에는 AI 패널이 동작하지 않는다** — 이전에는 만료된 모델 id 가 코드에 박혀 있어 요청이 `404 model_not_found` 로 조용히 실패했다. 이제 미구성 상태를 분명히 드러낸다.
   - 로컬/사내 endpoint (Ollama · vLLM · LM Studio · 사설망 gateway) 는 전용 어댑터 없이 base URL 만으로 연결된다 — 폐쇄망에서 그대로 쓸 수 있다.
-- **API 키가 브라우저 번들에 실리지 않는다**: `VITE_GROQ_API_KEY` 환경변수 경로와 `dangerouslyAllowBrowser` 를 제거했다. 키는 기본적으로 **세션 메모리** 에만 있고, 브라우저 저장은 사용자가 명시적으로 켠 뒤에만 열리며 끄면 함께 지워진다.
+- **API 키가 브라우저 번들에 실리지 않는다**: `빌드타임 API 키` 환경변수 경로와 `dangerouslyAllowBrowser` 를 제거했다. 키는 기본적으로 **세션 메모리** 에만 있고, 브라우저 저장은 사용자가 명시적으로 켠 뒤에만 열리며 끄면 함께 지워진다.
 - **원격 provider 직접 호출 차단**: 프록시 경로가 준비되기 전까지 브라우저는 로컬·사설망 endpoint 만 직접 부른다. 원격 주소는 요청 자체가 나가지 않는다.
 
 ### Added

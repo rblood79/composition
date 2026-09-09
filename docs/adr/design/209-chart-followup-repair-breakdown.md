@@ -37,6 +37,8 @@ shadcn 대비 추가 요구사항 D2–D4, C1–C7, V1–V6, X1–X5는 이번 �
 
 현재 값이 있는 Series의 해제 항목 누락과 `reset` 충돌은 코드로 확인했다. 이 설계 작성 중 실제 화면에서 해제 실패를 재현하거나 수정 후 통과를 측정한 것은 아니다. 첫 구현 단계에서 실제 옵션 생산자와 사용자 선택을 통과하는 실패 증거를 먼저 남긴다.
 
+**Round 3 보강 — 옵션 생산자의 입력 채널(M1).** `PropertiesPanel.tsx:149-153`의 `columns`는 `contract.fields`의 `currentValue`를 모은 `props.dataBinding`에서 온다. `useEditContract.ts:37-43`는 canonical 노드를 직접 `resolveEditContract`에 전달하고, `packages/shared/src/catalog/resolvers/resolveEditContract.ts:146-152,350-360`은 `node.props`만 읽는다. runtime의 `extractCanonicalPropsFromResolved` 투영이 이 편집 계약에도 적용된다고 가정하면 안 된다. extension-only와 props 대조 입력의 실제 resolver 호출 결과 및 남은 화면 검증은 §10.3에 기록한다.
+
 ### 1.3 외부 참조의 적용 범위
 
 React Aria는 collection item의 고유 `id`로 선택과 항목 갱신을 추적하며, `array.map` 사용 시 `key`와 `id`를 지정한다. 따라서 표시 라벨·업무 데이터 값과 UI item 식별자를 분리하는 것은 기존 collection 모델 안에서 가능한 설계다. 이 원칙을 적용하되, 현재 설치된 RAC의 `selectedKey/onSelectionChange` 경로를 유지한다. 최신 문서의 API 이름을 이유로 RAC 버전을 올리지 않는다. [React Aria Collections](https://react-aria.adobe.com/collections#unique-ids), [Select](https://react-aria.adobe.com/Select) (2026-09-09 확인).
@@ -59,8 +61,8 @@ A는 해제 결함을 부분적으로만 가리고 저장 값도 잘못 바꿀 �
 
 1. 컬럼 목록이 있는 Chart의 **Series**에 `없음 / None`을 항상 첫 항목으로 제공한다. 저장 값은 `""`이며 라벨은 기존 `chart.none` 번역을 사용한다.
 2. 그 뒤에 비어 있지 않은 현재 값과 source 컬럼을 중복 없이 표시한다. 현재 필드가 source에서 사라져도 현재 값을 보존하며, 화면을 열거나 source schema가 바뀐 것만으로 다른 필드를 자동 선택하지 않는다.
-3. Category/Value에는 새 해제 명령을 추가하지 않는다. 기존의 미설정 값 표현은 유지하고, 원본 키 `reset` 등이 손상 없이 선택되도록 literal 모드는 세 매핑 필드에 공통 적용한다.
-4. schema가 없는 API·정적 데이터 등은 기존 문자열 입력을 유지한다. Series 입력을 비우면 같은 해제 계약을 적용한다. 새 비동기 schema 탐색이나 다른 데이터 컴포넌트의 컬럼 추론 변경은 하지 않는다.
+3. Category/Value에는 새 해제 명령을 추가하지 않는다. 기존의 미설정 값 표현은 유지하고, 원본 키 `reset` 등이 손상 없이 선택되도록 literal 모드는 세 매핑 필드에 공통 적용한다. 현재 값이 `""`여서 기존 옵션에 이미 포함된 항목은 literal 모드에서 선택 가능한 빈 값 항목이 되며 저장 값은 그대로 `""`다. 현재 값이 비어 있지 않으면 새 빈 값 항목을 추가하지 않는다(L2).
+4. schema가 없는 API·정적 데이터 등은 기존 문자열 입력을 유지한다. Series 입력을 비우면 같은 해제 계약을 적용한다. 새 비동기 schema 탐색이나 다른 데이터 컴포넌트의 컬럼 추론 변경은 하지 않는다. 단, 연결된 DataTable과 schema가 실제로 존재하는데 extension의 binding을 편집 계약이 읽지 못해 문자열 입력이 된 경우는 정상 fallback으로 통과시키지 않는다. F0에서 기존 바인딩 소비 경로의 누락으로 판정한다(M1).
 5. None 선택 후 트리거에도 `없음 / None`이 표시되고 팝업이 닫힌다. 키보드 선택·Escape 취소·닫힌 뒤 focus 복원은 공통 컨트롤 동작을 따른다. 취소는 데이터 변경이 아니다.
 6. 언어 전환은 역할 라벨·None 라벨만 바꾼다. `Value`, `Series`, `reset`, 한글 컬럼명 등 원본 키와 행 값은 번역하거나 정규화하지 않는다.
 
@@ -127,14 +129,15 @@ Builder는 정적 완료 모습을 표시하고 animation·hover는 Preview/Publ
 
 ## 5. Risks — 잔존 위험
 
-| ID   | 위험                                                                        | 심각도 | 대응/게이트                                                 |
-| ---- | --------------------------------------------------------------------------- | ------ | ----------------------------------------------------------- |
-| F-R1 | 삭제와 빈 값이 섞여 ref 수화 뒤 그룹이 복구되거나 origin이 바뀜             | HIGH   | §4.3 명시적 빈 값, F1/F2 원본·ref·저장 대조                 |
-| F-R2 | 공통 Select 변경이 스타일 reset·focus·memo 또는 실제 `reset` 필드를 깨뜨림  | MEDIUM | 기본 legacy 유지, F1 두 모드 상호 회귀와 키보드 조작        |
-| F-R3 | UI unit test만 통과하고 실제 옵션 생산자·쓰기 경로를 통과하지 않음          | HIGH   | F0 실제 패널 실패 재현, F1 실제 store, F2 가시 Builder 흐름 |
-| F-R4 | 구 revision 숫자를 최신 결과로 쓰거나 로그인 실패를 Builder 요청 0으로 처리 | HIGH   | F3/F4 revision·manifest·network·readiness 묶음              |
-| F-R5 | 전체 초기 500KB 초과를 작은 순증으로 자동 면제                              | HIGH   | F3 예산별 판정, 명시적 정책 결정 없으면 G5/G6 열림          |
-| F-R6 | 새 export envelope의 구 importer 실패를 문서 rollback과 혼동                | MEDIUM | F2 구 버전 store와 importer를 별도 판정, §10 호환 범위 명시 |
+| ID        | 위험                                                                                   | 심각도 | 대응/게이트                                                                  |
+| --------- | -------------------------------------------------------------------------------------- | ------ | ---------------------------------------------------------------------------- |
+| F-R1      | 삭제와 빈 값이 섞여 ref 수화 뒤 그룹이 복구되거나 origin이 바뀜                        | HIGH   | §4.3 명시적 빈 값, F1/F2 원본·ref·저장 대조                                  |
+| F-R2      | 공통 Select 변경이 스타일 reset·focus·memo 또는 실제 `reset` 필드를 깨뜨림             | MEDIUM | 기본 legacy 유지, F1 두 모드 상호 회귀와 키보드 조작                         |
+| F-R3      | UI unit test만 통과하고 실제 옵션 생산자·쓰기 경로를 통과하지 않음                     | HIGH   | F0 실제 패널 실패 재현, F1 실제 store, F2 가시 Builder 흐름                  |
+| F-R4      | 구 revision 숫자를 최신 결과로 쓰거나 로그인 실패를 Builder 요청 0으로 처리            | HIGH   | F3/F4 revision·manifest·network·readiness 묶음                               |
+| F-R5      | 전체 초기 500KB 초과를 작은 순증으로 자동 면제                                         | HIGH   | F3 예산별 판정, 명시적 정책 결정 없으면 G5/G6 열림                           |
+| F-R6      | 새 export envelope의 구 importer 실패를 문서 rollback과 혼동                           | MEDIUM | F2 구 버전 store와 importer를 별도 판정, §10 호환 범위 명시                  |
+| F-R7 (M1) | props에 binding을 심은 fixture가 extension-only canonical 입력의 편집 계약 누락을 가림 | MEDIUM | F0의 extension-only 실제 패널 검증. schema 존재와 binding 도달을 분리해 판정 |
 
 ## 6. 구현 경계와 실행 순서
 
@@ -156,17 +159,21 @@ Builder는 정적 완료 모습을 표시하고 animation·hover는 Preview/Publ
 
 순서는 다음 세 단계로 묶는다. 중간마다 새 ADR을 만들거나 별도 데이터 모델을 추가하지 않는다.
 
-1. **실패 재현과 D1 수리**: F0 → 옵션/선택 값 경계 수정 → F1. 먼저 origin의 Series 해제와 실제 `reset` 필드 선택을 고정하고 같은 경로로 ref를 검증한다.
+1. **실패 재현과 D1 수리**: F0 → 옵션/선택 값 경계 수정 → F1. 먼저 extension-only 바인딩의 실제 패널 입력 채널을 확인한다. schema가 있는 source의 소비 누락이 재현되면 기존 편집 계약의 읽기 경계를 수리한 뒤 origin의 Series 해제와 실제 `reset` 필드 선택을 고정하고 같은 경로로 ref를 검증한다.
 2. **기존 계약 회귀 확인**: F2. 실제 저장·재열기·Preview·독립 Publish에서 같은 source를 대조하고, 발견된 회귀만 해당 경계에서 수리한다.
 3. **종결 근거 작성**: 최종 후보 revision에서 F3/F4 → 정책 판정 → F5. 예산 결정이나 실제 인증 환경이 없어도 독립적으로 가능한 측정·호환 검증은 먼저 끝내고, 미충족 gate만 열린 채 보고한다.
 
-이번 보완의 제품 변경 핵심은 세 UI 파일이다. canonical/data/runtime 파일은 우선 검증 대상이다. 근거 없이 공통 데이터·렌더 구조를 다시 설계하는 작업으로 확대하지 않는다.
+이번 보완의 제품 변경 핵심은 세 UI 파일이다. M1이 실제 패널에서 재현되면 `useEditContract`/`resolveEditContract`의 기존 바인딩 소비 경계도 최소 수리 후보가 된다. 공통 extension 읽기 계약을 재사용하고 ref의 유효 binding을 보존하며, UI를 위해 canonical `props.dataBinding`을 다시 저장하는 방식은 금지한다. canonical/data/runtime 파일은 우선 검증 대상이다. 근거 없이 공통 데이터·렌더 구조를 다시 설계하는 작업으로 확대하지 않는다.
 
 ## 7. 회귀 검증과 독립 오라클
 
 ### 7.1 첫 실패와 핵심 fixture
 
-첫 실패는 컬럼 `category/value/series`를 가진 공통 DataTable에 연결된 Chart에서 `color="series"`인 상태로 Properties의 Series를 여는 것이다. **실제 Properties 옵션 생성 결과에 None이 없다는 실패**를 먼저 고정한다. 테스트가 None을 직접 만들어 GenericFieldRenderer에 전달하는 방식만으로는 원인 생산자를 검증할 수 없다.
+F0의 첫 확인은 컬럼 `category/value/series`를 가진 공통 DataTable을 준비하고, **binding을 `x-composition.dataBinding`에만 둔 Chart**를 canonical document에 넣어 실제 Properties를 여는 것이다. `props.dataBinding`이 없음을 fixture 전제와 저장 문서 양쪽에서 확인한다. `useEditContract`나 옵션 배열을 mock하지 않고, 선택된 Chart의 실제 패널 또는 실제 패널이 호출하는 옵션 생산자를 통과한다. legacy 변환 helper를 거칠 경우 extension-only 전제가 유지됐는지도 확인한다(M1).
+
+기록할 값은 canonical binding 위치, `contract.fields[dataBinding].currentValue`, source의 schema 존재 여부, 최종 Series 컨트롤 종류다. schema가 존재하면 컬럼 Select가 기대 결과이며, 편집 계약의 binding 누락으로 문자열 입력이 나오면 바인딩 소비 누락의 실패를 고정한다. source 자체에 schema가 없을 때만 §4.1 4항의 문자열 fallback으로 판정한다. 추가로 `updateSelectedDataBinding`으로 연결한 Chart의 저장 결과·재열기를 확인해 import fixture와 실제 저작 경로를 대조한다.
+
+컬럼 Select 경로에서 `color="series"`일 때 **실제 Properties 옵션 생성 결과에 None이 없다는 실패**를 고정한다. 테스트가 `props.dataBinding`을 별도로 심거나 None 옵션을 직접 만들어 GenericFieldRenderer에 전달한 결과만으로 F0를 통과시킬 수 없다. props에 binding을 둔 입력은 원인 비교용 대조군이며 canonical 성공 fixture가 아니다.
 
 두 번째 실패는 원본 컬럼명을 `reset`으로 두고 Category/Value/Series에서 선택했을 때 저장 값이 `"reset"`인지 확인한다. 현재 code path의 치환을 재현하되, 이 설계가 이미 live 실패를 관측했다고 기록하지 않는다.
 
@@ -186,25 +193,27 @@ Builder는 정적 완료 모습을 표시하고 animation·hover는 Preview/Publ
 
 ### 7.2 회귀 매트릭스
 
-| ID  | 입력/사용자 흐름                                                                    | 독립 확인값과 통과 조건                                                                        |
-| --- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| T1  | 연결된 Series → None → 다른 필드                                                    | 실제 트리거 라벨, canonical `color`, 집계가 함께 전환. 팝업 닫힘/focus 유지                    |
-| T2  | `reset`, `Value`, `Series`, 한글, UI key 형태의 원본 키; None 라벨과 같은 이름      | key 무손실, None과 실제 필드 구분, 중복 item key/선택 경고 없음                                |
-| T3  | 기존 스타일 Select의 reset, 일반 enum 선택                                          | 기존 빈 값 전달·선택 표시·키보드 흐름 유지                                                     |
-| T4  | origin/ref/다른 ref, 해제·Undo·Redo                                                 | 대상 ref만 빈 값 override, origin/다른 ref 불변. store의 `undo()/redo()` 사용                  |
-| T5  | 저장 완료 → refresh → export/import → 재선택                                        | 빈 값·차트 종류·기존 숨긴 옵션·animation·binding 보존, 미편집 문서 강제 재직렬화 0             |
-| T6  | ko ↔ en, 선택 이동, panel 재열기                                                    | 역할/None/보조 라벨만 변경, 원본 key·row·canonical version/history 불변                        |
-| T7  | schema의 현재 필드 삭제/추가, 컬럼 없음, legacy color 생략                          | 기존 값 유지, 기존 문자열 입력 fallback, 자동 필드 선택·문서 patch 없음                        |
-| T8  | 6종, 프리셋 적용·유형 변경 전후 해제                                                | 데이터 매핑 유지, 타입에 유효한 옵션만 노출, Chart Type 기본 dropdown 재등장 없음              |
-| T9  | 동일 source를 Chart와 기존 collection 소비 컴포넌트에 연결                          | 같은 source revision/행 값, source 업데이트 전파. Chart 전용 fetch/샘플 fallback 없음          |
-| T10 | Preview cold reload 및 독립 Publish, 정적/DataTable/실제 API의 로딩·빈 값·오류·회복 | 공통 공급 상태 일치, canonical extension binding 소비 확인, 실패를 샘플 데이터로 대체하지 않음 |
-| T11 | 기본 행 편집/삭제/Undo, id 없는 행·중복 id, Chart 재선택                            | 올바른 행 변경, 원본에 UI id 주입 0, 해당 재현의 React key/선택 경고 0                         |
-| T12 | 외부 padding 네 방향, light/dark, resize                                            | Canvas plot 경계와 Preview/Publish content box 정합, 역할 라벨 및 기존 토큰 유지               |
-| T13 | animation on/off, reduced-motion, tooltip·키보드, 해제 후 데이터 교체               | Canvas 정적 결과와 runtime 완료 결과 정합, runtime 애니메이션 프레임의 canonical write 0       |
+| ID  | 입력/사용자 흐름                                                                    | 독립 확인값과 통과 조건                                                                                        |
+| --- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| T1  | 연결된 Series → None → 다른 필드                                                    | 실제 트리거 라벨, canonical `color`, 집계가 함께 전환. 팝업 닫힘/focus 유지                                    |
+| T2  | `reset`, `Value`, `Series`, 한글, UI key 형태의 원본 키; None 라벨과 같은 이름      | key 무손실, None과 실제 필드 구분, 중복 item key/선택 경고 없음                                                |
+| T3  | 기존 스타일 Select의 reset, 일반 enum 선택                                          | 기존 빈 값 전달·선택 표시·키보드 흐름 유지                                                                     |
+| T4  | origin/ref/다른 ref, 패널/semantic dispatch → 실제 inspector store로 해제·Undo·Redo | 대상 ref만 빈 값 override, origin/다른 ref 불변. sanitize·override map 경유 확인 후 store의 undo()/redo() 사용 |
+| T5  | 저장 완료 → refresh → export/import → 재선택                                        | 빈 값·차트 종류·기존 숨긴 옵션·animation·binding 보존, 미편집 문서 강제 재직렬화 0                             |
+| T6  | ko ↔ en, 선택 이동, panel 재열기                                                    | 역할/None/보조 라벨만 변경, 원본 key·row·canonical version/history 불변                                        |
+| T7  | schema의 현재 필드 삭제/추가, 컬럼 없음, legacy color 생략                          | 기존 값 유지, 기존 문자열 입력 fallback, 자동 필드 선택·문서 patch 없음                                        |
+| T8  | 6종, 프리셋 적용·유형 변경 전후 해제                                                | 데이터 매핑 유지, 타입에 유효한 옵션만 노출, Chart Type 기본 dropdown 재등장 없음                              |
+| T9  | 동일 source를 Chart와 기존 collection 소비 컴포넌트에 연결                          | 같은 source revision/행 값, source 업데이트 전파. Chart 전용 fetch/샘플 fallback 없음                          |
+| T10 | Preview cold reload 및 독립 Publish, 정적/DataTable/실제 API의 로딩·빈 값·오류·회복 | 공통 공급 상태 일치, canonical extension binding 소비 확인, 실패를 샘플 데이터로 대체하지 않음                 |
+| T11 | 기본 행 편집/삭제/Undo, id 없는 행·중복 id, Chart 재선택                            | 올바른 행 변경, 원본에 UI id 주입 0, 해당 재현의 React key/선택 경고 0                                         |
+| T12 | 외부 padding 네 방향, light/dark, resize                                            | Canvas plot 경계와 Preview/Publish content box 정합, 역할 라벨 및 기존 토큰 유지                               |
+| T13 | animation on/off, reduced-motion, tooltip·키보드, 해제 후 데이터 교체               | Canvas 정적 결과와 runtime 완료 결과 정합, runtime 애니메이션 프레임의 canonical write 0                       |
 
 T1–T8은 이번 수정의 필수 회귀다. T9–T13은 ADR-209 기존 계약과 과거 수정의 최종 revision 확인이다. 과거의 padding·라벨·중복 key·dataBinding 수리를 새로운 미구현 기능으로 세지 않는다. 사용자 콘솔 붙여넣기 전체 원문이 현재 근거에 없으므로 그 로그 전체를 해결했다고 판정하지 않는다.
 
 T5의 DB 검증은 in-memory serialize/parse 테스트와 별도로 실제 저장 완료 후 refresh를 수행한다. ref의 해소 결과뿐 아니라 저장 문서에 `color: ""`가 남는지도 확인한다. 네트워크 API 검증에는 현재 지원 transport를 사용하며, server execution을 지원하지 않는 환경에서 임의의 client fallback이나 credential 이동을 만들지 않는다.
+
+T4는 패널의 `updateSelectedProperties`, 또는 `dispatchSemanticUpdateWithPropagation`에서 **실제 store의 inspector action**으로 이어지는 경로를 사용한다. 기존 `chartInstanceCompatibility.test.ts:48-50`의 `updateElementProps` 검증은 유지할 수 있지만 이 경로를 대신하지 않는다. 선택 상태를 설정하고 sanitize·ref override map·canonical 갱신을 확인한 뒤 store의 Undo/Redo를 실행한다(L1).
 
 ### 7.3 시각·행 수 오라클
 
@@ -309,14 +318,14 @@ entry의 정적 imports를 재귀 추적한 집합을 initial로 잡는다. Char
 
 F0–F5는 이번 보완의 확인 순서이며 상위 G0–G6를 대체하지 않는다. 과거 통과한 G0–G4를 전부 미통과로 되돌리지 않되 변경으로 영향을 받는 계약은 다시 검증한다.
 
-| Gate | 시점 / 연결             | 통과 조건                                                                                                            | 실패 시 처리                                              |
-| ---- | ----------------------- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| F0   | 수정 전 / G2            | 실제 옵션 생산자의 None 누락과 `reset` 오선택 실패를 고정                                                            | 합성 옵션만 통과하면 패널 경로 재현부터 보완              |
-| F1   | D1 구현 후 / G2         | T1–T8의 UI·store 자동 검증, 두 값 모드와 ref 명시적 해제, 신규 helper가 실제 소비 경로에 연결                        | 해당 UI/쓰기 경계 수리, renderer 우회 금지                |
-| F2   | 회귀 완료 / G3·G4·G6    | §7의 저장/수화·실제 공통 source·6종 Canvas/Recharts·독립 Publish·rollback 검증과 live 증거                           | 관련 계약만 수리하고 실패 조합 재검증                     |
-| F3   | 최종 후보 / G5          | exact revision manifest, initial/lazy 전이 graph, 순증·전체 예산 각 판정, §8.4 성능 기준 충족                        | 초과 원인 수리 또는 §8.5 명시적 예산 결정. 자동 예외 금지 |
-| F4   | production 검증 / G5·G6 | 로그인된 populated Builder boot/편집의 runtime 요청 0, 차트 없는 Preview/Publish 요청 0, 실제 runtime lazy 로드 증거 | 인증/환경·경계 실패를 구별해 기록하고 미통과 유지         |
-| F5   | 종결 / G6               | F1–F4 충족, 최종 revision의 focused tests·cross-check·preflight·Live Exercise, 호환 제한과 관련 문서 일치            | 필수 조건이 남으면 In Progress 유지                       |
+| Gate | 시점 / 연결             | 통과 조건                                                                                                                                    | 실패 시 처리                                                                                                                               |
+| ---- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| F0   | 수정 전 / G2·G3         | extension-only binding과 실제 schema로 패널 입력 채널 확인. binding 누락 여부와 실제 옵션 생산자의 None 누락·reset 오선택 실패를 구분해 고정 | schema가 있는데 문자열 입력이면 정상 fallback으로 통과시키지 않고 F1의 선행 수리로 연결. props binding/합성 옵션만 검증한 결과로 대체 금지 |
+| F1   | D1 구현 후 / G2         | T1–T8의 UI·store 자동 검증, 두 값 모드와 ref 명시적 해제, 신규 helper가 실제 소비 경로에 연결                                                | 해당 UI/쓰기 경계 수리, renderer 우회 금지                                                                                                 |
+| F2   | 회귀 완료 / G3·G4·G6    | §7의 저장/수화·실제 공통 source·6종 Canvas/Recharts·독립 Publish·rollback 검증과 live 증거                                                   | 관련 계약만 수리하고 실패 조합 재검증                                                                                                      |
+| F3   | 최종 후보 / G5          | exact revision manifest, initial/lazy 전이 graph, 순증·전체 예산 각 판정, §8.4 성능 기준 충족                                                | 초과 원인 수리 또는 §8.5 명시적 예산 결정. 자동 예외 금지                                                                                  |
+| F4   | production 검증 / G5·G6 | 로그인된 populated Builder boot/편집의 runtime 요청 0, 차트 없는 Preview/Publish 요청 0, 실제 runtime lazy 로드 증거                         | 인증/환경·경계 실패를 구별해 기록하고 미통과 유지                                                                                          |
+| F5   | 종결 / G6               | F1–F4 충족, 최종 revision의 focused tests·cross-check·preflight·Live Exercise, 호환 제한과 관련 문서 일치                                    | 필수 조건이 남으면 In Progress 유지                                                                                                        |
 
 F5에서 갱신할 문서는 ADR-209 상태/실행 기록, ADR README, 원 breakdown의 현재 상태, CHANGELOG, 검증 evidence다. `.claude/skills/component-design/SKILL.md:86`의 Recharts 범위 예외는 현재 이미 반영되어 있으므로 다시 작성할 과제로 세지 않고 최종 내용의 정합만 확인한다. ADR-194/207/208 전체를 Superseded로 바꾸지 않는다.
 
@@ -343,3 +352,26 @@ F5에서 갱신할 문서는 ADR-209 상태/실행 기록, ADR README, 원 break
 - [x] 상위 ADR은 In Progress, 제품 구현/테스트 미실행으로 상태 일치
 
 2026-09-09 문서 검증: 소유 문서 2개의 `codex:guard`·명시 경로 `codex:format`, 로컬 링크/참조 경로/코드 fence/과거 번들 수치 대조, tracked·신규 파일 `git diff --check` 통과. `codex:agent-catalog` FAIL 0/WARN 0, `codex:engine-matrix` 일치, `codex:text-axis-matrix` drift 0. `codex:typecheck`·`codex:registration`은 TS 변경 없음으로 스킵됐다. 병행 작업의 전역 포맷을 피하기 위해 preflight 구성 명령을 개별 실행했다. 제품 focused tests·build·live 측정은 이 문서 작성 범위에서 실행하지 않았다.
+
+### 10.3 Claude Code Round 3 반영과 M1 추가 확인
+
+[리뷰 기록](../reviews/209.md)의 Round 3은 `93d5a8fc2` 기준 **구현 착수 가능**, HIGH 0 / MEDIUM 1 / LOW 2로 판정했다. 다음은 그 지적에 대한 작성자 보강이며, 원 리뷰 로그의 판정을 덮어쓰거나 새 전체 리뷰 라운드를 선언하지 않는다.
+
+| 지적                                | 설계 반영                                                                           | 남은 구현 검증                                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| M1: 옵션 생산자의 binding 입력 채널 | §1.2 채널 명시, §7.1 extension-only fixture와 schema 유무에 따른 판정, F0 선행 조건 | 실제 Properties와 `updateSelectedDataBinding` → 저장/재열기 경로. 소비 누락이 재현되면 해당 경계 수리 |
+| L1: ref 테스트의 쓰기 경로          | T4를 패널/semantic dispatch → 실제 inspector store 경유로 명시                      | sanitize·override map·Undo/Redo를 그 경로에서 확인                                                    |
+| L2: Category/Value의 기존 빈 값     | §4.1 3항에 기존 `""` 항목의 literal 선택 의미 명시                                  | 기존 빈 값 선택 유지, 비어 있지 않은 값에 새 해제 옵션을 추가하지 않음                                |
+
+**코드·소규모 실행 근거 (`93d5a8fc2`).** `pnpm exec tsx -e`에서 실제 `resolveEditContract`를 import하고 동일 Chart props에 binding 위치만 바꾼 두 입력을 전달했다. 아래 `null`은 출력 시 미정의 값을 `?? null`로 표시한 것이며 저장 값이 아니다. 이 probe는 편집 계약 경계만 실행한 결과로, 실제 패널·store·DB 검증은 아니다.
+
+| 입력                                                                                                                            | semantic dataBinding.currentValue       | color.kind |
+| ------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ---------- |
+| `props={dimension:"category",metric:"value",color:"series"}`, `x-composition.dataBinding={source:"dataTable",name:"review-m1"}` | 미정의 (`null`로 출력)                  | `string`   |
+| 동일 props에 `dataBinding`을 넣은 대조군                                                                                        | `{source:"dataTable",name:"review-m1"}` | `string`   |
+
+`color.kind=string`은 패널의 enum 변환 전 단계이므로 두 입력에서 같다는 것만으로 최종 컨트롤을 판정하지 않는다. 첫 입력의 **편집 계약 binding 누락은 실행 확인**됐고, 그 결과의 실제 화면 fallback은 F0에서 확인한다. `useCanonicalNode` → `selectCanonicalNode`는 저장 노드를 그대로 반환한다(`canonicalElementsBridge.ts:50-51,102-106`, `canonicalDocumentStore.ts:997-1003`). `updateSelectedDataBinding`은 top-level binding 추가 갱신을 넘기며(`inspectorActions.ts:1316-1324`), canonical 변환은 기존 `element.props`와 top-level binding의 extension을 별도로 싣는다(`canonicalMutations.ts:887-892,1104-1118`). 따라서 모든 진입 경로에서 자동으로 `props.dataBinding`이 채워진다고 가정할 수 없다.
+
+이 근거로 M1을 반증되어 deferred된 항목으로 내리지 않는다. 현재 구현 계획의 첫 검증 대상으로 유지한다. 특히 **schema가 있는 DataTable의 연결을 읽지 못한 상태를 schema 없음으로 허용하는 해석은 채택하지 않는다.** 신규 컬럼 추론 기능과 기존 canonical binding 소비 누락을 구분하기 위한 보강이다. 제품 코드·원 리뷰 로그·ADR 상태는 이 보강에서 변경하지 않는다.
+
+Round 3 보강 검증: 소유 문서의 포맷·guard·링크·diff 검사 통과. preflight 구성 중 agent-catalog FAIL 0/WARN 0, engine/text-axis matrix 일치, typecheck/registration은 TS 변경 없음으로 스킵. Claude 리뷰 로그는 작업 전후 SHA-256 동일함을 확인했다. 전체 preflight의 전역 formatter는 실행하지 않고 소유 문서에만 포맷을 적용했다. 추가 실행은 위 resolver probe이며 제품 구현·브라우저·build 검증은 수행하지 않았다.

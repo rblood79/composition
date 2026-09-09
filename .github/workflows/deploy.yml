@@ -187,7 +187,6 @@ jobs:
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          # VITE_GROQ_API_KEY: 클라이언트 번들에 포함되면 보안 위험 — 런타임 입력 또는 백엔드 프록시 사용
           VITE_USE_WEBGL_CANVAS: "true"
           VITE_FEATURE_FILL_V2: "true"
           # VITE_CANVAS_COMPARE_MODE: 프로덕션에서는 기본값 false 사용 (디버그 전용)

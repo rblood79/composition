@@ -25,7 +25,7 @@
 
 ### 확인된 구현 현황 (2026-03-03 기준)
 - AI Tool Calling (7개 도구): 구현 완료
-- Agent Loop (GroqAgentService): 구현 완료
+- Agent Loop (AgentService): 구현 완료
 - Color Picker Phase 1~4: 구현 완료 (문서 일부에 미착수 오기재)
 - ScrubInput: 구현 완료 (문서에 미구현 오기재)
 - @dnd-kit/sortable: 설치 및 사용 중 (문서에 미설치 오기재)

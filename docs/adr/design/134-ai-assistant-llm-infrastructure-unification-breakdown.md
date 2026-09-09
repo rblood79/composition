@@ -44,13 +44,13 @@
 
 ## 2. Phase 0 — inventory baseline freeze
 
-**목적**: ADR-011 반영 영역 + 4 격차 측정 + **Groq 표면 실측**의 baseline freeze. Phase scope inflation 1.5x gap 차단 ([adr-writing.md M4](../../../.claude/rules/adr-writing.md)).
+**목적**: ADR-011 반영 영역 + 4 격차 측정 + **클라우드 LLM 표면 실측**의 baseline freeze. Phase scope inflation 1.5x gap 차단 ([adr-writing.md M4](../../../.claude/rules/adr-writing.md)).
 
 ### Phase 0 산출물
 
 - `~/.claude/plans/adr-134-baseline-inventory.md` (작업 시 신규 작성)
 - ADR-011 Phase A1~A4 반영 산출물 인벤토리 (7개 도구 / AIPanel / AbortController / G.3 / IntentParser fallback / aiVisualFeedback)
-- **Groq 표면 실측**: `groq-sdk` import 지점 / `dangerouslyAllowBrowser` / `llama-3.3-70b-versatile` 하드코딩 / API 키 취득 경로 (env/localStorage) 전수 grep
+- **클라우드 LLM 표면 실측**: `클라우드 LLM SDK` import 지점 / `dangerouslyAllowBrowser` / `llama-3.3-70b-versatile` 하드코딩 / API 키 취득 경로 (env/localStorage) 전수 grep
 - 4 격차 영역 measure (2026-08-26 리뷰 round 1 이 1차 실측 — Phase 0 은 이를 baseline 으로 확정·보강):
   - 격차 1 — canonical document: read 는 `services/ai/tools/canonicalToolReadModel.ts` (canonical 순회, 6개 도구 import), write 는 facade `addElement / updateElement / removeElement` → `stores/utils/elementCreation.ts` / `elementUpdate.ts` / `elementRemoval.ts` → `adapters/canonical/canonicalMutations.ts` canonical-primary. 잔존 = 도구 schema 에 frame / slot / componentSemantics 1차 필드 어휘 부재. store action 실존 표면: `insertNode / updateNode / updateNodeProps / updateNodeExtension / moveNode / removeNode / updateDescendant` (`canonicalDocumentStore.ts`)
   - 격차 2 — collections: `useCollectionData({ datatableId | dataBinding })` (`packages/shared/src/hooks/useCollectionData.tsx`) 진입점 + `collections.runtimeData` sink (`DataTable.runtimeData?`, `types/builder/data.types.ts`) + `useDataTableStore` (`builder/stores/datatable.ts`) CRUD. canonical document 에 `collections` / `data` root 없음 (ADR-131 P8 revert)
@@ -64,12 +64,12 @@
 
 정본 산출물: `~/.claude/plans/adr-134-baseline-inventory.md` (local-only). 아래는 후속 Phase 판정을 바꾸는 사실만 옮긴 요약이다.
 
-1. **Groq 결합은 파일 1개에 국소화** — `groq-sdk` 참조 3건 중 값 import 는 `GroqAgentService.ts:8` 하나뿐이고 `definitions.ts:8` · `runCommand.ts:11` 은 `ChatCompletionTool` **type-only**. `dangerouslyAllowBrowser`(`:35`) · 모델 id `llama-3.3-70b-versatile`(`:225`) · `VITE_GROQ_API_KEY`(`:322`) 전부 같은 파일. 서비스 소비자는 `useAgentLoop.ts` 1곳. → Phase 2 "완전 제거" 의 코드 표면은 추정 7 file 보다 작다.
-2. **`AIAgentProvider` 인터페이스는 이미 존재하지만 소비자 0** — `types/integrations/ai.types.ts:59` (`runAgentLoop` + `stop`). `GroqAgentService` 는 `implements` 선언이 없고 `useAgentLoop.ts:36` 은 구현체 팩토리 `createGroqAgentService()` 를 직접 부른다 (3-grep 미통과 = dormant). → **Phase 1 은 추상화 신설이 아니라 기존 인터페이스에 구현을 붙이고 소비 경로를 인터페이스로 돌리는 작업**이다 (메모리 `feedback-infra-exists-vs-wired-consumption-path`).
+1. **클라우드 LLM 결합은 파일 1개에 국소화** — `클라우드 LLM SDK` 참조 3건 중 값 import 는 `AgentService.ts:8` 하나뿐이고 `definitions.ts:8` · `runCommand.ts:11` 은 `ChatCompletionTool` **type-only**. `dangerouslyAllowBrowser`(`:35`) · 모델 id `llama-3.3-70b-versatile`(`:225`) · `빌드타임 API 키`(`:322`) 전부 같은 파일. 서비스 소비자는 `useAgentLoop.ts` 1곳. → Phase 2 "완전 제거" 의 코드 표면은 추정 7 file 보다 작다.
+2. **`AIAgentProvider` 인터페이스는 이미 존재하지만 소비자 0** — `types/integrations/ai.types.ts:59` (`runAgentLoop` + `stop`). `AgentService` 는 `implements` 선언이 없고 `useAgentLoop.ts:36` 은 구현체 팩토리 `createAgentService()` 를 직접 부른다 (3-grep 미통과 = dormant). → **Phase 1 은 추상화 신설이 아니라 기존 인터페이스에 구현을 붙이고 소비 경로를 인터페이스로 돌리는 작업**이다 (메모리 `feedback-infra-exists-vs-wired-consumption-path`).
 3. **Supabase Edge Function 인프라 미존재** — 저장소에 `supabase/` · `functions/` 디렉터리 없음. Supabase 는 클라이언트 SDK 만 사용 (`src/env/supabase.client.ts`). → D10 "원격 provider 프록시 경유" 를 Edge Function 으로 실현하려면 **Phase 2 에 배포 인프라 스캐폴딩 자체가 포함**된다 (추정 7 file 에 없던 항목 — Phase 2 착수 시 사용자 confirm 대상). 대안 축: (a) Edge Function 프록시 (streaming SSE 전달 확인 필요) / (b) 폐쇄망 OpenAI-compatible endpoint 직결 / (c) Electron main process 경유 (Phase 9 의존 — 지금 채택 불가).
-4. **`systemPrompt.ts` 는 이미 provider 중립** — 모델명 · Groq 문자열 0건. §13 의 "provider 중립 갱신" 은 카탈로그 hook 만 남는다.
+4. **`systemPrompt.ts` 는 이미 provider 중립** — 모델명 · 클라우드 LLM 문자열 0건. §13 의 "provider 중립 갱신" 은 카탈로그 hook 만 남는다.
 5. **회귀 gate baseline 확정** — `services/ai` 전수에서 `Transform` 0 · `props.events` 0 · `group_N` 0 · `SerializedEvent` 0. G3/G4 grep gate 의 기준선은 전부 **0** (도입 금지 조건).
-6. **live 결함 (Phase 0 실측)** — 현행 모델 id 가 Groq 에서 만료돼 `404 model_not_found`, AI 패널 도구 8종 전부 도달 불가. 사용자 결정 (2026-08-28) "Groq 는 더 이상 사용하지 않는다" 와 합쳐, **Phase 1+2 가 곧 AI 패널 복구 경로**다. 임시 모델 id 교체는 하지 않는다.
+6. **live 결함 (Phase 0 실측)** — 현행 모델 id 가 클라우드 LLM 에서 만료돼 `404 model_not_found`, AI 패널 도구 8종 전부 도달 불가. 사용자 결정 (2026-08-28) "클라우드 LLM 는 더 이상 사용하지 않는다" 와 합쳐, **Phase 1+2 가 곧 AI 패널 복구 경로**다. 임시 모델 id 교체는 하지 않는다.
 7. **보존 산출물 실재 확인** — 도구 7종 · `definitions.ts`/`index.ts` · `useAgentLoop.ts`(217) · AIPanel 4 파일 · `AbortController` · G.3 `aiVisualFeedback` 소비 4곳 (`SkiaCanvas.tsx:73` · `useAgentLoop.ts:13` · `tools/updateElement.ts:12` · `tools/createElement.ts:14`) · `IntentParser.ts`(363) · `styleAdapter.ts`. AI 서비스+패널 합계 27 파일 / 3,115 LOC.
 
 ### Phase 0 Gate
@@ -98,14 +98,14 @@
 - 기존 7개 도구 시그니처 보존 + 통합 인터페이스 통과
 - type-check + vitest PASS
 
-## 4. Phase 2 — Groq 완전 제거 + secret isolation (D10, G2)
+## 4. Phase 2 — 벤더 SDK 완전 제거 + secret isolation (D10, G2)
 
-**목적**: `groq-sdk` 완전 제거 + `dangerouslyAllowBrowser: true` 제거 + **키 보관·경유 경계 확정** + 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과.
+**목적**: `클라우드 LLM SDK` 완전 제거 + `dangerouslyAllowBrowser: true` 제거 + **키 보관·경유 경계 확정** + 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과.
 
 ### Phase 2 산출물
 
-- `groq-sdk` 패키지 제거 (`pnpm remove groq-sdk`)
-- `apps/builder/src/services/ai/GroqAgentService.ts` → `apps/builder/src/services/ai/AgentService.ts` rename (AgentProfileRegistry → LLMProvider 경유, `llama-3.3-70b-versatile` 하드코딩 제거)
+- 벤더 SDK 패키지 제거
+- `apps/builder/src/services/ai/AgentService.ts` → `apps/builder/src/services/ai/AgentService.ts` rename (AgentProfileRegistry → LLMProvider 경유, `llama-3.3-70b-versatile` 하드코딩 제거)
 - **원격 provider 프록시 경계 확정** (Phase 0 조사 기반): Supabase Edge Function 경유안 채택 여부 + streaming relay + 키 보관 (서버측 secret / 사용자 세션 연계). 로컬 endpoint (localhost) 는 직접 호출 허용
 - 키 저장 정책 구현: 브라우저 localStorage 평문 금지 — 명시 opt-in 경로만
 - `apps/builder/src/services/ai/IntentParser.ts` 보존 (최후 fallback) or 제거 검토
@@ -115,12 +115,12 @@
 
 ### Phase 2 Gate G2
 
-- **Implemented 2026-08-28 (G2 통과)** — `AgentService.ts` (rename) · `providers/byokKeyStore.ts` · `providers/agentProfiles.ts` 신규 · `LLMProvider` 에 `assertBrowserCallAllowed` 게이트 · `definitions.ts`/`runCommand.ts` 의 Groq 타입 제거 (정의는 provider 중립 `LLMToolDefinition` 으로 평탄화) · `useAgentLoop` 배선 · `groq-sdk` 의존 제거.
+- **Implemented 2026-08-28 (G2 통과)** — `AgentService.ts` (rename) · `providers/byokKeyStore.ts` · `providers/agentProfiles.ts` 신규 · `LLMProvider` 에 `assertBrowserCallAllowed` 게이트 · `definitions.ts`/`runCommand.ts` 의 벤더 타입 제거 (정의는 provider 중립 `LLMToolDefinition` 으로 평탄화) · `useAgentLoop` 배선 · 벤더 SDK 의존 제거.
   - **프록시 축 결정 반영 (사용자 2026-08-28)**: Supabase Edge Function 은 **보류**, 1차 축은 폐쇄망/로컬 endpoint 직결. 그래서 D10 은 "원격은 프록시 경유" 를 **코드 게이트**로 구현했다 — 로컬·사설망(10./172.16-31./192.168./*.local)만 허용하고 원격은 fetch 이전에 차단한다. 개발 빌드 opt-in(`allowRemoteDirect`)은 프로덕션 번들에서 접힌다 (실측 확인). Edge Function 스캐폴딩은 이번 Phase 에 포함하지 않았다 → **Phase 0 이 예고한 "신규 배포 인프라" 는 발생하지 않음**.
   - 키 정책: 기본 세션 메모리, 브라우저 저장은 명시 opt-in 후에만, opt-in 해제 시 저장분 삭제. env 키 읽기 0 (정적 게이트).
   - 검증: vitest 신규 26 + 회귀 포함 59 · type-check 0 · 프로덕션 빌드 grep 4항 0 · live (§ADR 본문 Live Exercise) — 로컬 endpoint 로 도구 8종 전달 → `run_command(zoomIn)` → zoom 74%→84%.
   - 관찰 (Phase 8 이월): 도구 실행 뒤 턴의 assistant 텍스트가 `appendToLastMessage` 대상이 도구 메시지라 화면에 안 보인다 — provider 교체와 무관한 기존 동작.
-- `groq-sdk` 0 grep gate (production runtime)
+- 이전 벤더 SDK 0 grep gate (production runtime)
 - `dangerouslyAllowBrowser` 0 grep gate + browser 번들 내 원격 provider 직접 호출 0 (R12)
 - 대체 provider (에이전트 프로파일 경유) 로 기존 7개 도구 전수 통과 (createElement / updateElement / deleteElement / getEditorState / getSelection / searchElements / batchDesign)
 - AbortController 동작 검증 + G.3 시각 피드백 회귀 없음
@@ -201,14 +201,14 @@
 
 **측정 결과 (2026-08-28)**
 
-| 조건                  | 측정                                                                                                                                     | 결과                     |
-| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| 65+ 컴포넌트          | catalog SSOT 파생 — `componentCatalog` 122 entry → type 118 (동명 4 fold)                                                                | **118** ≥ 65 ✅          |
-| SSOT 매핑             | 118 컴포넌트 전수 대조: variant/size 값 = `COMPONENT_RULES_TABLE` keys, enum 값 = `accepts.options`, prop 집합 = `accepts` 정확히 일치   | 불일치 **0** ✅          |
-| RAC / RSP 문서 대조   | 표본 4종 41 props (Button 9 · ProgressBar 11 · Checkbox 12 · Slider 9) 를 Spectrum design-data + RAC API 로 대조                        | **40/41 = 97.6%** ✅     |
-| 동적 주입 정확도      | 15 시나리오 45 항목 (type 상세 · prop 이름 · enum 값) recall. 기대값은 `resolveEditContract` 로 실재 검증 후 사용 (순환 차단)            | **45/45 = 100%** ✅      |
-| context 예산 (R3)     | 전체 카탈로그 상세 6,454 tok vs 주입 프롬프트 1,389 tok (Tier 1 인덱스 391)                                                              | **4.6x 축소** ✅         |
-| type-check / vitest   | type-check 0 · AI+dispatcher 150 passed (18 file, 신규 44)                                                                              | PASS ✅                  |
+| 조건                | 측정                                                                                                                                   | 결과                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| 65+ 컴포넌트        | catalog SSOT 파생 — `componentCatalog` 122 entry → type 118 (동명 4 fold)                                                              | **118** ≥ 65 ✅      |
+| SSOT 매핑           | 118 컴포넌트 전수 대조: variant/size 값 = `COMPONENT_RULES_TABLE` keys, enum 값 = `accepts.options`, prop 집합 = `accepts` 정확히 일치 | 불일치 **0** ✅      |
+| RAC / RSP 문서 대조 | 표본 4종 41 props (Button 9 · ProgressBar 11 · Checkbox 12 · Slider 9) 를 Spectrum design-data + RAC API 로 대조                       | **40/41 = 97.6%** ✅ |
+| 동적 주입 정확도    | 15 시나리오 45 항목 (type 상세 · prop 이름 · enum 값) recall. 기대값은 `resolveEditContract` 로 실재 검증 후 사용 (순환 차단)          | **45/45 = 100%** ✅  |
+| context 예산 (R3)   | 전체 카탈로그 상세 6,454 tok vs 주입 프롬프트 1,389 tok (Tier 1 인덱스 391)                                                            | **4.6x 축소** ✅     |
+| type-check / vitest | type-check 0 · AI+dispatcher 150 passed (18 file, 신규 44)                                                                             | PASS ✅              |
 
 **측정이 잡아낸 결함 3건** (모두 수정 반영):
 
@@ -242,13 +242,13 @@
 
 **반영 결과 (2026-08-28)**
 
-| 항목                | 상태                                                                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 역할별 프로파일 호출 | **live 확인** — 한 요청에서 planner 1 → executor 2 (단계별) → verifier → 수리 executor 1 → verifier 1. 역할마다 다른 system prompt 가 갔다 (mock 로그)      |
-| 자기 수정 ≤ 1회      | live 시나리오에서 **1회**. 상한은 2회이고 test 가 상한 정지를 고정 (`repair-attempt` 2건 후 `final`)                                                        |
-| 진행 이벤트          | `agent-start` / `agent-end` / `plan-ready` / `repair-attempt` — 기존 `AgentEvent` 와 합집합. 패널 표시는 Phase 8                                            |
-| 2개 시나리오 통과    | **미측정** — "대시보드/상품 카탈로그를 잘 만드는가" 는 모델 품질 판정이라 구성된 executor 프로파일이 필요하다. G5 의 모델-루프 측정과 함께 **G6 로 이월**   |
-| type-check / vitest  | type-check 0 · AI·dispatcher·패널 **188 passed** (23 file, 신규 38)                                                                                          |
+| 항목                 | 상태                                                                                                                                                      |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 역할별 프로파일 호출 | **live 확인** — 한 요청에서 planner 1 → executor 2 (단계별) → verifier → 수리 executor 1 → verifier 1. 역할마다 다른 system prompt 가 갔다 (mock 로그)    |
+| 자기 수정 ≤ 1회      | live 시나리오에서 **1회**. 상한은 2회이고 test 가 상한 정지를 고정 (`repair-attempt` 2건 후 `final`)                                                      |
+| 진행 이벤트          | `agent-start` / `agent-end` / `plan-ready` / `repair-attempt` — 기존 `AgentEvent` 와 합집합. 패널 표시는 Phase 8                                          |
+| 2개 시나리오 통과    | **미측정** — "대시보드/상품 카탈로그를 잘 만드는가" 는 모델 품질 판정이라 구성된 executor 프로파일이 필요하다. G5 의 모델-루프 측정과 함께 **G6 로 이월** |
+| type-check / vitest  | type-check 0 · AI·dispatcher·패널 **188 passed** (23 file, 신규 38)                                                                                       |
 
 **산출물 이름 변경 — `createComposite` 도구 → `create_element` 내부 분기**
 
@@ -277,13 +277,13 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 **측정 결과**
 
-| 조건                | 측정                                                                                                                                                        | 결과                    |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| 라우팅 분기         | 프로파일마다 **다른 모델 id** (`g6-planner` / `g6-executor` / `g6-verifier`) 를 넣고 한 요청 실행 → endpoint 로그에 역할별로 그 모델이 그대로 찍혔다        | **PASS** ✅             |
-| 도구 전수 통과      | 같은 로컬 endpoint 로 **도구 10종** (7종 + Phase 4 신규 2 + `run_command`) 실행 — 12 tool result, **오류 0**. 문서는 71 → 71 로 복귀 (생성분 자체 삭제)     | **PASS** ✅ (7 → 10 확대) |
-| 로컬 endpoint 바인딩 | 전 프로파일을 `127.0.0.1` OpenAI 호환 endpoint 로 바인딩. 원격 차단(HC13) 경로를 타지 않고 정상 실행                                                        | **PASS** ✅             |
-| **Ollama 실물 대조** | 이 환경에 Ollama 미설치 (`which ollama` → not found). 실제 서버의 wire 동작 (chunk 모양 · keep-alive · 오류 body) 은 **미검증**                            | **미실시** ⚠️           |
-| type-check / vitest | type-check 0 · AI·라우팅·패널 **215 passed** (25 file, 신규 27)                                                                                             | **PASS** ✅             |
+| 조건                 | 측정                                                                                                                                                    | 결과                      |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
+| 라우팅 분기          | 프로파일마다 **다른 모델 id** (`g6-planner` / `g6-executor` / `g6-verifier`) 를 넣고 한 요청 실행 → endpoint 로그에 역할별로 그 모델이 그대로 찍혔다    | **PASS** ✅               |
+| 도구 전수 통과       | 같은 로컬 endpoint 로 **도구 10종** (7종 + Phase 4 신규 2 + `run_command`) 실행 — 12 tool result, **오류 0**. 문서는 71 → 71 로 복귀 (생성분 자체 삭제) | **PASS** ✅ (7 → 10 확대) |
+| 로컬 endpoint 바인딩 | 전 프로파일을 `127.0.0.1` OpenAI 호환 endpoint 로 바인딩. 원격 차단(HC13) 경로를 타지 않고 정상 실행                                                    | **PASS** ✅               |
+| **Ollama 실물 대조** | 이 환경에 Ollama 미설치 (`which ollama` → not found). 실제 서버의 wire 동작 (chunk 모양 · keep-alive · 오류 body) 은 **미검증**                         | **미실시** ⚠️             |
+| type-check / vitest  | type-check 0 · AI·라우팅·패널 **215 passed** (25 file, 신규 27)                                                                                         | **PASS** ✅               |
 
 **G6 를 통과로 선언하지 않는 이유**: 게이트가 지정한 것은 "Ollama OpenAI-compatible endpoint" 다. 로컬 OpenAI 호환 endpoint 로 경로는 전부 통과했지만, 실물 서버와의 wire 대조가 빠진 것은 이 자리에서 메울 수 없다 (설치는 사용자 환경 결정). **Phase 7 구현은 완료**, G6 는 사용자가 로컬 endpoint 를 띄운 뒤 1회 실행으로 종결한다 — 가이드: [ai-local-endpoint.md](../../how-to/development/ai-local-endpoint.md).
 
@@ -318,13 +318,13 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 **depth 측정 정의** (ADR-149 P1 과 같은 규칙): *기본 표면*에서 어떤 기능에 닿기까지 여는 중첩 표면 수. 패널 자체 = 1, overlay 는 0 이어야 한다. 고급 모드는 명시적 opt-in 이라 이 계산 밖 (D9 의 "L4 격리").
 
-| 기능             | 이전 (기본 표면)                                          | 이후                  |
-| ---------------- | --------------------------------------------------------- | --------------------- |
-| 요청 보내기      | 1                                                         | 1                     |
-| 결과 확인        | 1 (단 도구 3종은 "도구 실행 완료" 로 뭉뚱그려짐)          | 1                     |
-| 실행 중단        | 1                                                         | 1                     |
-| 프로파일 설정    | **4** (톱니 → 설정 화면 → 프로파일 fieldset → 프리셋/필드) | 고급 모드 (기본 밖)  |
-| 계획·수리 진행   | 표시 없음                                                 | 고급 모드 (기본 밖)  |
+| 기능           | 이전 (기본 표면)                                           | 이후                |
+| -------------- | ---------------------------------------------------------- | ------------------- |
+| 요청 보내기    | 1                                                          | 1                   |
+| 결과 확인      | 1 (단 도구 3종은 "도구 실행 완료" 로 뭉뚱그려짐)           | 1                   |
+| 실행 중단      | 1                                                          | 1                   |
+| 프로파일 설정  | **4** (톱니 → 설정 화면 → 프로파일 fieldset → 프리셋/필드) | 고급 모드 (기본 밖) |
+| 계획·수리 진행 | 표시 없음                                                  | 고급 모드 (기본 밖) |
 
 기본 표면 최대 depth **4 → 2**. "4" 는 톱니가 기본 표면 헤더에 상시 노출돼 프로파일 경로 전체가 기본 표면에 매달려 있던 상태.
 
@@ -342,10 +342,10 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 사전 등록한 4기준 (계획 2단계 이상 / 도구 오류 0 / 핵심 컴포넌트 포함 / 검증 판정 산출) 중 **3 충족**.
 
-| 시나리오 | 계획 | 도구 | 오류 | 검증 흐름 | 생성 | 판정 |
-| --- | --- | --- | --- | --- | --- | --- |
-| A 사용자 관리 대시보드 | 6단계 | 28 | **2** | 5건 지적 → 수리1 → 3건 지적 → 수리2 → **이상 없음** | 32 요소 (Heading·Table·TableHeader/Body·Pagination·ProgressBar×3·Metric·Button×9) | 3/4 |
-| B 이커머스 상품 카탈로그 | 6단계 | 38 | **7** | 4건 지적 → 수리1 → 1건 지적 → 수리2 → **6건 지적 잔존** (상한 도달, 사람에게 넘김 = 설계대로) | 41 요소 (Heading×2·Table×2·ref×5(Card/GridList)·Pagination×3·Image×2·Metric×2·Button×17) | 3/4 |
+| 시나리오                 | 계획  | 도구 | 오류  | 검증 흐름                                                                                     | 생성                                                                                     | 판정 |
+| ------------------------ | ----- | ---- | ----- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---- |
+| A 사용자 관리 대시보드   | 6단계 | 28   | **2** | 5건 지적 → 수리1 → 3건 지적 → 수리2 → **이상 없음**                                           | 32 요소 (Heading·Table·TableHeader/Body·Pagination·ProgressBar×3·Metric·Button×9)        | 3/4  |
+| B 이커머스 상품 카탈로그 | 6단계 | 38   | **7** | 4건 지적 → 수리1 → 1건 지적 → 수리2 → **6건 지적 잔존** (상한 도달, 사람에게 넘김 = 설계대로) | 41 요소 (Heading×2·Table×2·ref×5(Card/GridList)·Pagination×3·Image×2·Metric×2·Button×17) | 3/4  |
 
 **미충족 기준은 하나이고, 원인도 하나다 (재현 3/3)**: 모델이 `create_element` 결과의 `data.elementId` 대신 자리표시자 id 를 다음 도구에 넘긴다 — `created-element-id` / `gridListId` / `paginationId` / `cardId` / `created_table_id` / `Table-123` / `Pagination-789`. 도구가 "요소를 찾을 수 없습니다" 로 안전하게 실패하고 모델이 `get_editor_state` / `search_elements` 로 복구하므로 문서는 깨지지 않지만, 턴·시간이 크게 낭비된다.
 
@@ -374,17 +374,17 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 ## 12. baseline freeze 표 (Phase 0 작업 시 채움 — 2026-08-18 재편 반영)
 
-| 영역                      | 추정 file count                                                                                           | 실측 file count                                                                                                                                                | gap (실측/추정) | 1.5x 초과 여부                                            |
-| ------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------- |
-| Phase 1 Provider+프로파일 | ~6 file                                                                                                   | **5 기존** (`GroqAgentService.ts` · `useAgentLoop.ts` · `ai.types.ts` · `definitions.ts` · `runCommand.ts`) + 신규 3~4 (provider 구현 2 + 프로파일 registry 1) | 0.83            | 아니오                                                    |
-| Phase 2 Groq 제거+secret  | ~7 file                                                                                                   | **4 기존** (`GroqAgentService.ts` · `definitions.ts` · `runCommand.ts` · `apps/builder/package.json`) + **Edge Function 스캐폴딩 신규** (추정에 없던 항목)     | 0.57            | 아니오 — 단 신규 배포 인프라 1건은 착수 시 사용자 confirm |
-| Phase 3 도구 어휘 확장    | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | **9** (도구 7 + `definitions.ts` + `index.ts`)                                                                                                                 | 1.13            | 아니오                                                    |
-| Phase 4 격차 정합         | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | **3 기존** (`createElement.ts` · `definitions.ts` · `systemPrompt.ts`) + 신규 도구 2                                                                           | 1.00            | 아니오                                                    |
-| Phase 5 카탈로그          | ~8 file                                                                                                   | **2 기존** (`systemPrompt.ts` · `AgentService.ts`) + 신규 4 (`catalog/` 3 + barrel)                                                                            | 0.75            | 아니오                                                    |
-| Phase 6 Plan→E→V+역할     | ~15 file                                                                                                  | **3 기존** (`createElement.ts` · `useAgentLoop.ts` · `PlannerAgent` 경유 systemPrompt) + 신규 9 (`agents/` 6 + `templates/` 1 + `compositeCreation` + runner)   | 0.80            | 아니오                                                    |
-| Phase 7 라우팅+폐쇄망     | ~6 file                                                                                                   | **2 기존** (`createAgentRunner.ts` · `AIPanel.tsx`+css) + 신규 4 (`routing/` 1 + 패널 컴포넌트 2 + 가이드 문서 1)                                              | 1.00            | 아니오                                                    |
-| Phase 8 AIPanel UX        | ~10 file                                                                                                  | **8** (`builder/panels/ai/**` 전체)                                                                                                                            | 0.80            | 아니오                                                    |
-| Phase 9 외부 에이전트     | ~10 file                                                                                                  | TBD (Electron 의존)                                                                                                                                            | —               | —                                                         |
+| 영역                         | 추정 file count                                                                                           | 실측 file count                                                                                                                                               | gap (실측/추정) | 1.5x 초과 여부                                            |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- | --------------------------------------------------------- |
+| Phase 1 Provider+프로파일    | ~6 file                                                                                                   | **5 기존** (`AgentService.ts` · `useAgentLoop.ts` · `ai.types.ts` · `definitions.ts` · `runCommand.ts`) + 신규 3~4 (provider 구현 2 + 프로파일 registry 1)    | 0.83            | 아니오                                                    |
+| Phase 2 벤더 SDK 제거+secret | ~7 file                                                                                                   | **4 기존** (`AgentService.ts` · `definitions.ts` · `runCommand.ts` · `apps/builder/package.json`) + **Edge Function 스캐폴딩 신규** (추정에 없던 항목)        | 0.57            | 아니오 — 단 신규 배포 인프라 1건은 착수 시 사용자 confirm |
+| Phase 3 도구 어휘 확장       | ~8 file (7 도구 + definitions; store 전환 없음 — 2026-08-26 재산정)                                       | **9** (도구 7 + `definitions.ts` + `index.ts`)                                                                                                                | 1.13            | 아니오                                                    |
+| Phase 4 격차 정합            | ~5 file (신규 도구 2 + createElement + definitions + systemPrompt — createAction 삭제, 2026-08-26 재산정) | **3 기존** (`createElement.ts` · `definitions.ts` · `systemPrompt.ts`) + 신규 도구 2                                                                          | 1.00            | 아니오                                                    |
+| Phase 5 카탈로그             | ~8 file                                                                                                   | **2 기존** (`systemPrompt.ts` · `AgentService.ts`) + 신규 4 (`catalog/` 3 + barrel)                                                                           | 0.75            | 아니오                                                    |
+| Phase 6 Plan→E→V+역할        | ~15 file                                                                                                  | **3 기존** (`createElement.ts` · `useAgentLoop.ts` · `PlannerAgent` 경유 systemPrompt) + 신규 9 (`agents/` 6 + `templates/` 1 + `compositeCreation` + runner) | 0.80            | 아니오                                                    |
+| Phase 7 라우팅+폐쇄망        | ~6 file                                                                                                   | **2 기존** (`createAgentRunner.ts` · `AIPanel.tsx`+css) + 신규 4 (`routing/` 1 + 패널 컴포넌트 2 + 가이드 문서 1)                                             | 1.00            | 아니오                                                    |
+| Phase 8 AIPanel UX           | ~10 file                                                                                                  | **8** (`builder/panels/ai/**` 전체)                                                                                                                           | 0.80            | 아니오                                                    |
+| Phase 9 외부 에이전트        | ~10 file                                                                                                  | TBD (Electron 의존)                                                                                                                                           | —               | —                                                         |
 
 1.5x 초과 시 [adr-writing.md M4](../../../.claude/rules/adr-writing.md) sub-group N≥3 분할 / scope inflation 사용자 confirm 의무 적용.
 
@@ -392,7 +392,7 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 | 산출물                                                                    | Phase 2 처리                                                                                          |
 | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `GroqAgentService.ts`                                                     | `AgentService.ts` rename + AgentProfileRegistry→LLMProvider 경유                                      |
+| `AgentService.ts`                                                         | `AgentService.ts` rename + AgentProfileRegistry→LLMProvider 경유                                      |
 | 7개 도구 (createElement 등)                                               | Phase 3 canonical 어휘 확장 (store 경로는 이미 canonical-primary) + Phase 4 격차 정합 + MCP 호환 유지 |
 | `AIPanel.tsx` + `AgentControls` / `ToolCallMessage` / `ToolResultMessage` | Phase 8 depth 4→2 축소 + 1년차 신입 baseline 적용                                                     |
 | `useAgentLoop.ts`                                                         | Provider 추상화 경유 정합 갱신                                                                        |
@@ -405,15 +405,15 @@ breakdown 은 `tools/createComposite.ts` 를 별도 도구로 적었으나 `tool
 
 ## 14. ADR-054 Proposed 영역 흡수 매핑 (2026-08-18 개정)
 
-| ADR-054 Phase                    | ADR-134 매핑                                                          |
-| -------------------------------- | --------------------------------------------------------------------- |
-| Phase 1 (Groq 제거 + Provider)   | Phase 1 + Phase 2                                                     |
-| Phase 2 (로컬 모델 Tool Calling) | **승계 종료** — 로컬 모델은 OpenAI-compatible endpoint BYOK (Phase 7) |
-| Phase 3 (Canvas FPS)             | Phase 9 (외부 에이전트 실행 중 60fps — 대상 교체)                     |
-| Phase 4 (컴포넌트 카탈로그)      | Phase 5                                                               |
-| Phase 5 (Props 정확도)           | Phase 5 G5 (executor 프로파일 기준으로 재규정)                        |
-| Phase 6 (디자인 지능)            | Phase 6                                                               |
-| Phase 7 (접근성 감사)            | **ADR-134 scope 밖** (후속 응용 ADR)                                  |
+| ADR-054 Phase                      | ADR-134 매핑                                                          |
+| ---------------------------------- | --------------------------------------------------------------------- |
+| Phase 1 (벤더 SDK 제거 + Provider) | Phase 1 + Phase 2                                                     |
+| Phase 2 (로컬 모델 Tool Calling)   | **승계 종료** — 로컬 모델은 OpenAI-compatible endpoint BYOK (Phase 7) |
+| Phase 3 (Canvas FPS)               | Phase 9 (외부 에이전트 실행 중 60fps — 대상 교체)                     |
+| Phase 4 (컴포넌트 카탈로그)        | Phase 5                                                               |
+| Phase 5 (Props 정확도)             | Phase 5 G5 (executor 프로파일 기준으로 재규정)                        |
+| Phase 6 (디자인 지능)              | Phase 6                                                               |
+| Phase 7 (접근성 감사)              | **ADR-134 scope 밖** (후속 응용 ADR)                                  |
 
 ## 15. 사용자 plan review 후 진입 절차
 

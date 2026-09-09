@@ -199,7 +199,7 @@ export function isLocalEndpoint(baseUrl: string): boolean {
  *
  * 로컬·사설망은 허용, 원격은 프록시가 생기기 전까지 **차단**한다. 개발 빌드에서만
  * `allowRemoteDirect` 로 뚫을 수 있다 — 프로덕션 번들에는 우회 경로가 없다.
- * Groq 시절 `dangerouslyAllowBrowser: true` 로 키가 번들에 실리던 구조의 재발 차단이다.
+ * 브라우저 SDK 로 키가 번들에 실리던 구조의 재발 차단이다.
  */
 export function assertBrowserCallAllowed(
   config: LLMProviderConfig,
@@ -216,7 +216,7 @@ export function assertBrowserCallAllowed(
 }
 
 /**
- * OpenAI 호환 어댑터의 기본값 — 기존 `GroqAgentService` 값을 그대로 승계한다.
+ * OpenAI 호환 어댑터의 기본값.
  * Anthropic 어댑터는 쓰지 않는다: Claude 5 계열은 비기본 `temperature` 가 400 이고,
  * adaptive thinking 이 `max_tokens` 안에서 돌아 2048 로는 모자란다
  * (`ANTHROPIC_DEFAULT_MAX_TOKENS`).

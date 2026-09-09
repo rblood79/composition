@@ -70,7 +70,7 @@ export interface AgentCommandRequest {
   args?: unknown;
 }
 
-/** consumer (Groq tool · window · 134 D11) 가 노출하는 descriptor — allowlist 만. */
+/** consumer (AI tool · window · 134 D11) 가 노출하는 descriptor — allowlist 만. */
 export interface AgentCommandDescriptor {
   id: ShortcutId;
   description: string;

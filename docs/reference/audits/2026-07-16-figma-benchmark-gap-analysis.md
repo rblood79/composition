@@ -74,7 +74,7 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 3. **이벤트/액션 시스템** — 25종 액션 + WHEN→IF→THEN/ELSE 조건 분기 + debounce/throttle/delay + 변수 바인딩 (`events.registry.ts`, `eventBlockTypes.ts`) — Figma 프로토타이핑의 조건 로직을 능가. 단 publish 런타임은 8종으로 축소되는 내부 격차 존재 (`packages/shared/src/runtime/ActionExecutor.ts`).
 4. **데이터 계층** — DataTable/REST API/변수 바인딩 + form 액션 (`useDataSource.ts`, `useCollectionData`) — Sites CMS 보다 범용적 방향. Supabase/GraphQL 데이터소스는 스텁.
 5. **컴포넌트 인스턴스 모델** — origin/instance + pencil 3-mode descendants override (속성 patch/노드 교체/children 교체) + nested ref + reset (`instanceActions.ts`) — Figma override 모델과 대등 이상.
-6. **AI 에이전트** — tool-calling 루프로 캔버스 요소 직접 CRUD, 26종 컴포넌트 + fills + dataBinding 설정 (`GroqAgentService.ts`).
+6. **AI 에이전트** — tool-calling 루프로 캔버스 요소 직접 CRUD, 26종 컴포넌트 + fills + dataBinding 설정 (`AgentService.ts`).
 7. **.pen 양방향 어댑터** — canonical format == pencil format (`adapters/pencil/`) — 디자인 파일 생태계 연동 기반.
 8. **RAC 컴포넌트 카탈로그 폭** — binding 115개 / palette 노출 ~61종 (7 카테고리).
 
@@ -120,7 +120,7 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 | 명명 스타일 프리셋          | 없음     | `figma.types.ts` 타입 스캐폴드만 (Figma Variables/스타일 import·export·충돌해결까지 타입 설계, 런타임 0건) |
 | 카탈로그 폭                 | **지원** | binding 115 / palette ~61 (7 카테고리)                                                                     |
 | 아이콘/에셋                 | 부분     | Lucide 피커 + 폰트 업로드 지원 / 이미지 에셋 라이브러리·업로드 없음                                        |
-| AI 생성                     | **지원** | Groq tool-calling 루프 (create/update/delete/batch_design, 26종 + fills + dataBinding)                     |
+| AI 생성                     | **지원** | AI tool-calling 루프 (create/update/delete/batch_design, 26종 + fills + dataBinding)                     |
 | .pen 연동                   | **지원** | import/export/schemaMap + roundtrip 테스트                                                                 |
 
 ### 3-4. 인터랙션·퍼블리시·협업·데이터

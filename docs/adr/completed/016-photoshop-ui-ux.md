@@ -17,7 +17,7 @@
 | 공용 액션 시스템        | §5.1 `builder/actions/{types,elementActions,handlers}`    | ADR-182 가 `canvas/actions/canvasActions.ts` 공유 계층(copy/cut/paste/duplicate/delete/group/ungroup/align/distribute 9종)을 추출                                                                                                                                     | **절반 반영** — 태그별 액션 매핑은 ADR-192 소관           |
 | Contextual Action Bar   | §5.2 `workspace/overlay/ContextualActionBar.tsx`          | 코드 0건, 타 ADR 계획 0건                                                                                                                                                                                                                                             | **ADR-192 로 재설계** — §5.2 설계안 미승계                |
 | History Panel UI        | §5.4 "258줄 기본 UI" 개선                                 | **ADR-180 Implemented (2026-08-13)** — `HistoryPanel.tsx` 551줄. 재실측(08-26): 아이콘 `ENTRY_TYPE_ICONS` 12종(원 계획 7종 초과) ✅ · redo 구간 `data-future` opacity 0.45 ✅ · 점프 ✅ · Skeleton 은 `historyOperationInProgress`/`restoring` disabled 패턴으로 대체 | **반영 완료 — 범위 제외**                                 |
-| AI Variations           | §6.1 `GroqAgentService` + 7 도구 위에 Variations          | **ADR-134** Phase 2 가 Groq 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정                                                                                                                                                                    | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
+| AI Variations           | §6.1 `AgentService` + 7 도구 위에 Variations          | **ADR-134** Phase 2 가 벤더 SDK 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정                                                                                                                                                                    | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
 | Comments Panel          | §6.2 Supabase Realtime                                    | **ADR-128** Supabase backend decommission (Implemented 2026-05-12)                                                                                                                                                                                                    | **폐기 — 전제 소멸**                                      |
 | Floating Panel          | §6.3 `PanelDisplayMode` 확장 + `ModalPanelContainer` 수정 | **ADR-922 (2026-08-18)** `PanelDisplayMode = "panel" \| "modal" \| "floating"` + **ADR-186 (2026-08-19)** 9-zone placement. `ModalPanelContainer.tsx` 는 현존하지 않음                                                                                                | **반영 완료 — 범위 제외**                                 |
 | PixiJS 우클릭 연동      | §4.2/§5.3/§8                                              | **ADR-900** Phase 8-9 로 PixiJS 제거                                                                                                                                                                                                                                  | **폐기**                                                  |
@@ -103,7 +103,7 @@ Taffy WASM (레이아웃 엔진)
 | History 스토어         | `stores/history.ts`, `stores/history/historyActions.ts`         |
 | History UI             | `panels/history/HistoryPanel.tsx`                               |
 | AI 패널                | `panels/ai/AIPanel.tsx`                                         |
-| AI 서비스              | `../../services/ai/GroqAgentService.ts` (7개 도구)              |
+| AI 서비스              | `../../services/ai/AgentService.ts` (7개 도구)              |
 | 패널 시스템            | `panels/core/types.ts` (PanelId, PanelConfig, PanelDisplayMode) |
 | 모달 패널              | `layout/ModalPanelContainer.tsx`                                |
 | 키보드 단축키          | `config/keyboardShortcuts.ts` (85+ 단축키)                      |
@@ -119,7 +119,7 @@ ADR-016 구현 시 활용할 이미 구현된 시스템:
 | History 점프       | `goToHistoryIndex(idx)` 구현됨 (elements.ts)           | UI 개선에만 집중 (API 신규 불필요) |
 | History Entry 타입 | 7종 — add, remove, update, move, batch, group, ungroup | 유형별 아이콘 매핑                 |
 | Modal Panel        | `ModalPanelContainer.tsx` — 드래그/리사이즈/z-index    | Floating Panel 확장 기반           |
-| AI Agent Loop      | `useAgentLoop.ts` + `GroqAgentService.ts` + 7개 도구   | Variations 추가에 집중             |
+| AI Agent Loop      | `useAgentLoop.ts` + `AgentService.ts` + 7개 도구   | Variations 추가에 집중             |
 | 키보드 단축키      | `SHORTCUT_DEFINITIONS` 85+ 등록, scope 기반 활성화     | Action Bar/Context Menu에서 참조   |
 | CommandPalette     | `Cmd+K` 글로벌 검색                                    | 공용 액션 시스템 연동              |
 | Inspector Preview  | `prePreviewElement` 스냅샷 패턴 (inspectorActions.ts)  | AI Variations 미리보기에 재활용    |
@@ -306,7 +306,7 @@ apps/builder/src/builder/panels/history/
 
 ### 6.1 AI Variations & Preview
 
-**현재 상태**: AIPanel + useAgentLoop + GroqAgentService (Tool Calling + Agent Loop) 구현됨. 단일 결과, 미리보기 없음.
+**현재 상태**: AIPanel + useAgentLoop + AgentService (Tool Calling + Agent Loop) 구현됨. 단일 결과, 미리보기 없음.
 
 **개선 목표**:
 
@@ -458,7 +458,7 @@ export interface ModalPanelState {
 
 ### Phase 1
 
-- [ ] AI Variations — **보류** (Groq 전제가 ADR-134 Phase 2 와 충돌, 134 후속 판정)
+- [ ] AI Variations — **보류** (단일 벤더 전제가 ADR-134 Phase 2 와 충돌, 134 후속 판정)
 - ~~Comments Panel + PanelId 등록 + Supabase Realtime~~ — 폐기 (ADR-128 Supabase decommission)
 - [x] Floating Panel — **ADR-922 (2026-08-18) + ADR-186 (2026-08-19)** 로 반영 (`PanelDisplayMode "floating"`)
 

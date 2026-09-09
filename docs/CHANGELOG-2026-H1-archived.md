@@ -1151,7 +1151,7 @@ ADR-120~128(canonical-only-runtime)과 ADR-912(catalog cutover) Implemented 후�
 ### Architecture
 
 - **type-only + AI-services 잔재 제거** (배치 1·2):
-  - `ai.types.ts`: `AIProvider`/`AIResponse`/`IntentParserResult`/`GroqConfig` interface 제거(live AI 는 `GroqAgentService` + `AIAgentProvider`). `services/ai/GroqService.ts` 파일 삭제(외부 import 0).
+  - `ai.types.ts`: `AIProvider`/`AIResponse`/`IntentParserResult`/`클라우드 LLMConfig` interface 제거(live AI 는 `AgentService` + `AIAgentProvider`). `services/ai/AgentService.ts` 파일 삭제(외부 import 0).
   - `lib/db`: `closeDB`/`isDBInitialized`/`getCacheStats`/`clearCache`/`db.batch.*`/`getByTargetDataTable` 제거. `getDB`(35 import) 보존.
 - **preview-utils orphan 클러스터 제거** (배치 3):
   - `preview/utils/{layoutResolver,responsiveCSS,propsConverter,eventHandlers}.ts` 파일 삭제 — 활성 preview 렌더는 `@composition/shared/renderers` 의 `toRacProps`/EventEngine 경유, 미사용. `computedStyleExtractor.ts` 는 dead 7심볼 제거 후 live `camelToKebab` 만 잔존.
@@ -2619,10 +2619,10 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 
 ### Deprecated
 
-- **ADR-011 (AI Assistant 설계, Groq Tool Calling) — Replaced by ADR-134**:
+- **ADR-011 (AI Assistant 설계, Tool Calling) — Replaced by ADR-134**:
   - 위치: `docs/adr/011-ai-assistant-design.md` → `docs/adr/completed/011-ai-assistant-design.md`
   - **Why**: 작성 시점 (2026-01-31) 의 legacy `elementsMap`/`childrenMap` mutable subscription 기반 도구 시그니처가 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 와 미정합
-  - 보존 영역 — Phase A1~A4 land 산출물 (7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback) 은 ADR-134 Phase 2 (Groq 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환
+  - 보존 영역 — Phase A1~A4 land 산출물 (7개 도구 + AIPanel + AbortController + G.3 시각 피드백 + IntentParser fallback + aiVisualFeedback) 은 ADR-134 Phase 2 (벤더 SDK 제거 + Ollama Provider 1st) + Phase 3 (canonical 정합) + Phase 8 (AIPanel UX 단순화) 에서 점진 전환
   - 이전 P5 ADR-011 A5 (CanvasKit 스키마 변환 / 멀티모달 / 인스턴스/변수 도구) 영역 → ADR-136+ 응용 ADR 이관 (미발의)
 
 - **ADR-054 (로컬 LLM 아키텍처, Ollama → node-llama-cpp) — Replaced by ADR-134**:

@@ -242,7 +242,7 @@ Code reduction and architecture improvement through reusable hooks.
 - Created `useInitialMountDetection` hook (106 lines)
 - EventsPanel: 62 lines → 16 lines (76% reduction)
 - DataPanel: Replaced hardcoded HTML with EmptyState
-- AIPanel: useMemo for Groq service
+- AIPanel: useMemo for 클라우드 LLM service
 - Fixed EventType import path conflicts
 
 ### Phase 2: Performance (37-50% Code Reduction)

@@ -13,7 +13,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 | 0     | Implemented (08-28) | G0 통과 — 재grep 6/6 일치 (정규식 1건 정정, baseline 정정 2건: `useSectionCollapse` 전역 store · 패널 토글 `dispatchPanelWorkspaceActivation` 선행) · 71 id 분류 확정 allowlist **40** (상한 40) · handler→심볼+부가 동작 표 · **액션별 history entry 실측 전부 1** (canonical 경로 재현 jsdom — paste 는 global ⌘V 가 N entry 라 adapter 는 batch 옵션; `detachInstance` 는 `irreversible`→`history` 정정) · AI 도구 승인 0·기록 0. breakdown §2·§3-3·§4·§5 갱신                                          |
 | 1     | Implemented (08-28) | G1 통과 — `COMMAND_META` 71 (누락 type error) · 정적 게이트 5조항 + 민감도 4건 RED · `AGENT_COMMANDS` 40 adapter (값 export 1개) · 정적 심볼 대조 20 import + 금지 7 · jsdom spy 40 · HC1 diff 0 · type-check 0. `usePanelLayout.togglePanelWorkspace` 순수 함수 export (hook 은 1줄 위임) · undo/redo 되돌림 종류 `inverse` 추가 (entry 0, 조항 2 예외). 195 키보드 oracle live 재실행은 Phase 3                                                                                                          |
 | 2     | Implemented (08-28) | G2 통과 — executor (`executeAgentCommand` / 배치 `executeAgentCommands` / descriptor `listAgentCommands` / `buildAgentReadModel`) · jsdom 14: denied 3종 · precondition-failed · declined (adapter 0, 승인 전 store 변경 0) · ok (undoable + historyIndex) · error · 배치 원소별 승인 + 첫 non-ok 중단 · 기록 1:1 5 status · history 계약 12: `undo: history` 명령 전부 entry 1 (canonical 경로 재현, executor 경유), undo/redo 0 + 복원 · type-check 0. `agentCommandLog` 는 독립 store (root 편입 안 함) |
-| 3     | Implemented (08-28) | consumer 반영: Groq `run_command` (지연 로딩) · `window.__compositionAgent` (DEV) · `AgentCommandConfirmDialogHost` 승인 UI · AI 패널 실행 기록 목록. live 45 호출 · 키보드 대조 12쌍 일치 · delete 승인/거부 실측 · undo 복원 · 팔레트 62항목 정상. G3 통과 — 번들 Δ **초기 번들 +1,255B (1.23KB gz)** ≤ HC6 3KB (전체 자산 합계 +4,252B 는 지연 로딩으로 초기 번들 밖. HC6 을 초기 번들 기준으로 확정 — 2026-08-28 사용자 판정). G4 는 실패 시 대안으로 종결 (§Live Exercise)                            |
+| 3     | Implemented (08-28) | consumer 반영: 클라우드 LLM `run_command` (지연 로딩) · `window.__compositionAgent` (DEV) · `AgentCommandConfirmDialogHost` 승인 UI · AI 패널 실행 기록 목록. live 45 호출 · 키보드 대조 12쌍 일치 · delete 승인/거부 실측 · undo 복원 · 팔레트 62항목 정상. G3 통과 — 번들 Δ **초기 번들 +1,255B (1.23KB gz)** ≤ HC6 3KB (전체 자산 합계 +4,252B 는 지연 로딩으로 초기 번들 밖. HC6 을 초기 번들 기준으로 확정 — 2026-08-28 사용자 판정). G4 는 실패 시 대안으로 종결 (§Live Exercise)                            |
 | 4     | Implemented (08-28) | 종결 문서 — CHANGELOG (신규 public 표면 R7) · README 카운트/착수 순서 · ADR-134 D11 "본 ADR descriptor 소비" 1줄 정합 (R6) · 본문 archive 이동 · `### Live Exercise` 기재 완료                                                                                                                                                                                                                                                                                                                             |
 
 ## Context
@@ -25,7 +25,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 2026-08-28 실측 (breakdown §2):
 
 - ADR-195 로 실행 축 SSOT `commandRegistry` 가 생겼지만 entry 는 `(id → handler)` 뿐이다 (`stores/commandRegistry.ts` `CommandEntry`). handler 는 등록 hook `useKeyboardShortcutsRegistry.ts:317-382` (effect 안 `handleKeyEvent` 클로저 + `registerCommand` `:368`) 의 **마운트된 React 클로저** — StylesPanel 의 `collapsedSections`, BuilderCanvas 의 `frameAreas`, PropertiesPanel 의 속성 클립보드 같은 로컬 state 를 잡고 있고, 컴포넌트가 언마운트되면 등록도 사라지며 (`StylesPanel` 은 선택이 없으면 `EmptyState`), `escape` 류는 DOM 포커스를 읽는다. **headless 호출 API 가 아니다** — precondition · mutation 범위 · undo 가능 여부 · 승인 필요 여부를 표현할 자리가 없다.
-- 그런데 agent 는 이미 빌더를 바꾼다. AI 패널의 Groq 도구 7종 (`services/ai/tools/` — `create/update/delete_element`, `batch_design`, 읽기 3) 은 canonical 연산만 노출한다: **승인 게이트 0** (`deleteElement.ts` 는 body 보호뿐), **실행 기록 0** (대화 로그만), undo 는 개별 store 호출이 남기는 history 에 의존. 정렬·분배·그룹·복제·z-order·undo·줌·패널 토글은 **도달 불가** — "버튼 3개 왼쪽 정렬" 을 agent 가 하려면 geometry 를 스스로 계산해 `update_element` 를 N 회 부른다 (사람 경로 `canvasActions.alignSelection` 과 의미가 갈린다 — 팔레트가 71 을 나열하고 12 만 실행하던 195 이전 형태의 재발).
+- 그런데 agent 는 이미 빌더를 바꾼다. AI 패널의 클라우드 LLM 도구 7종 (`services/ai/tools/` — `create/update/delete_element`, `batch_design`, 읽기 3) 은 canonical 연산만 노출한다: **승인 게이트 0** (`deleteElement.ts` 는 body 보호뿐), **실행 기록 0** (대화 로그만), undo 는 개별 store 호출이 남기는 history 에 의존. 정렬·분배·그룹·복제·z-order·undo·줌·패널 토글은 **도달 불가** — "버튼 3개 왼쪽 정렬" 을 agent 가 하려면 geometry 를 스스로 계산해 `update_element` 를 N 회 부른다 (사람 경로 `canvasActions.alignSelection` 과 의미가 갈린다 — 팔레트가 71 을 나열하고 12 만 실행하던 195 이전 형태의 재발).
 - 외부 agent (Chrome MCP 로 빌더를 조작하는 Claude/Codex — CLAUDE.md §완료 기준의 live exercise 경로) 도 같다: 키보드·클릭을 흉내낼 뿐 명령을 부를 수 없고, 무엇을 실행했는지 앱 안에 남지 않는다.
 - ADR-134 D11 은 "MCP 호환 도구 표면" 을 Phase 9 (Electron 시점) 로 두었다. 그때 노출할 **명령 집합·안전 규칙·기록 형식** 이 없으면 Phase 9 는 도구 7종을 그대로 옮기는 것 이상이 될 수 없다.
 
@@ -42,7 +42,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 
 **Soft Constraints**:
 
-- ADR-134 는 Proposed·미착수이고 Groq 제거가 예정돼 있다. 본 ADR 의 consumer 는 Groq tool 1개 (`run_command`) 로 최소 노출하되, descriptor 는 `COMMAND_META` 에서 생성해 134 D11 이 MCP tool 로 옮길 때 재정의가 없게 한다.
+- ADR-134 는 Proposed·미착수이고 벤더 SDK 제거가 예정돼 있다. 본 ADR 의 consumer 는 AI tool 1개 (`run_command`) 로 최소 노출하되, descriptor 는 `COMMAND_META` 에서 생성해 134 D11 이 MCP tool 로 옮길 때 재정의가 없게 한다.
 - 승인 흐름은 `detachInstance` 의 `requestEditingSemanticsDetachConfirmation` (`utils/editingSemanticsImpactConfirmation.ts:69-71`, 이미 `Promise<boolean>`) 을 재사용한다 — agent 가 결과를 기다리는 형태가 이미 있다. jsdom 선례 `EditingSemanticsImpactDialog.test.tsx`.
 - **adapter 는 handler 가 부르는 심볼을 그대로 부른다** (다른 store 의 같은 이름 함수 금지 — `canvasStore.setZoom` `:41` 은 viewport 경로가 아니다, 소비자 12곳 별도 store = split-brain 위험). Phase 0 이 allowlist 각 id 의 "handler → 호출 심볼" 표를 만들고 adapter 는 그 표를 따른다.
 - 패널 로컬 state 에 묶인 명령 (`toggleSections` · 속성/스타일 클립보드) 은 195 대안 C 를 기각한 같은 이유로 store 승격하지 않는다 → 노출 금지.
@@ -69,7 +69,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
   - 유지보수: M — handler 가 바뀌면 agent 동작이 조용히 바뀐다 (계약 없음).
   - 마이그레이션: L.
 
-### 대안 C: AI 도구 개별 확장 — 명령마다 Groq tool 을 추가 (`align_elements` · `group_elements` · …)
+### 대안 C: AI 도구 개별 확장 — 명령마다 AI tool 을 추가 (`align_elements` · `group_elements` · …)
 
 - 설명: 134 의 현행 방식 그대로 도구 7 → 40. 각 도구가 canonical 연산을 스스로 조립.
 - 근거: 134 Phase 3 (도구 canonical 정합) 의 연장선. 도구 스키마가 LLM 에게 가장 서술적.
@@ -77,7 +77,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
   - 기술: M — geometry·그룹 의미를 도구 안에서 재구현 → `canvasActions` 와 drift (팔레트 12/71 사례의 재발 형태).
   - 성능: L.
   - 유지보수: **H** — 명령 40 × 도구 정의·검증·프롬프트 중복. 정의가 늘 때 도구가 안 따라오는 195 이전 구조.
-  - 마이그레이션: M — 134 Groq 제거 시 40 도구를 다시 옮긴다.
+  - 마이그레이션: M — 134 벤더 SDK 제거 시 40 도구를 다시 옮긴다.
 
 ### 대안 D: 명령 전부를 headless 명령 모듈로 승격 — UI handler 폐지, 키보드·팔레트·agent 가 같은 함수 (195 대안 C 재등장)
 
@@ -115,7 +115,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 기각 사유:
 
 - **대안 B 기각**: handler 는 마운트 클로저라 headless 계약이 없다 — 언마운트 시 조용히 없어지고, 포커스·다이얼로그 의존 handler 는 agent 가 기다릴 수 없다. allowlist 를 얹어도 "실행됐는데 다른 일을 했다" 를 막지 못한다.
-- **대안 C 기각**: 명령 의미를 도구 안에서 재구현하는 것이 곧 drift 다 (195 이전의 팔레트 switch 와 같은 구조). 134 의 Groq 제거 때 전부 다시 옮긴다.
+- **대안 C 기각**: 명령 의미를 도구 안에서 재구현하는 것이 곧 drift 다 (195 이전의 팔레트 switch 와 같은 구조). 134 의 벤더 SDK 제거 때 전부 다시 옮긴다.
 - **대안 D 기각**: 195 가 같은 이유로 기각한 전면 개편이며 HC1 위반. agent 표면 문제의 크기를 넘는다.
 
 > 구현 상세: [196-agent-command-surface-breakdown.md](../design/196-agent-command-surface-breakdown.md)
@@ -130,7 +130,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 | R4  | precondition 이 판정 후 실행 전에 stale (선택이 바뀜)                                                                                                                                                                                                          |  LOW   | executor 가 실행 직전 재판정 — 판정과 실행 사이 await 는 승인 Promise 뿐                                                                                                                                                                                                                                        |
 | R5  | 기록이 세션 메모리라 재현·감사 불가                                                                                                                                                                                                                            |  LOW   | AIPanel 가시 + DEV `window.__compositionAgent.log()` 를 Chrome MCP 가 읽어 dev ledger 에 옮긴다. 영속화는 §7 후속                                                                                                                                                                                               |
 | R6  | 134 와 descriptor 이중화 — 134 가 다른 스키마로 MCP tool 을 만들면 표 2벌                                                                                                                                                                                      |  LOW   | `COMMAND_META` 에서 descriptor 생성 (JSON Schema 호환). Phase 4 에서 134 D11 에 "본 ADR descriptor 소비" 1줄 정합                                                                                                                                                                                               |
-| R7  | 신규 public 표면 (Groq tool `run_command`) 이 사용자-가시 — AI 패널이 새 동작을 한다                                                                                                                                                                           |  LOW   | CHANGELOG 필수 (신규 public API 트리거). 기본 거부라 allowlist 밖 동작 변화 0                                                                                                                                                                                                                                   |
+| R7  | 신규 public 표면 (AI tool `run_command`) 이 사용자-가시 — AI 패널이 새 동작을 한다                                                                                                                                                                           |  LOW   | CHANGELOG 필수 (신규 public API 트리거). 기본 거부라 allowlist 밖 동작 변화 0                                                                                                                                                                                                                                   |
 
 잔존 HIGH 위험 없음.
 
@@ -142,7 +142,7 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 | G1   | Phase 1 | `COMMAND_META` 71 전부 (누락 type error) · 정적 게이트 5조항 PASS + 민감도 (allowlist id 의 adapter 제거 → RED · external id `agentCallable: true` → RED · irreversible document 명령 `confirm: false` → RED) · 정적 대조: allowlist 각 adapter 의 호출 심볼 = Phase 0 표의 handler 호출 심볼 (import grep) · jsdom: adapter 가 그 심볼을 정확히 1회 부른다 (spy) · 195 키보드 oracle 26/26 · 입력창 7 · 정적 게이트 기존 조항 PASS · type-check · HC1 diff 0 | 실패 조항만 수정. 심볼 불일치 명령은 노출 금지로 내린다 (allowlist 축소는 scope 변경 아님)                 |
 | G2   | Phase 2 | jsdom: denied (allowlist 밖) · precondition-failed · declined (승인 거부 시 store 무변경) · ok · 배치 원소별 승인 · 기록 1:1 (5 status 전부) · `undo: "history"` 명령은 entry 수 = 1 (Phase 0 실측 표와 일치) · 승인 전 store 변경 0                                                                                                                                                                                                                          | 실패 분기만 수정. 승인 Promise 가 기존 다이얼로그와 결합 불가면 agent 전용 confirm 컴포넌트 (최소) 로 대체 |
 | G3   | Phase 3 | live (Chrome MCP · 사용자 confirm 구분 기재): agent 호출 ≥ 15 (정렬 6 · 분배 2 · 그룹/해제 · 복제 · z-order 2 · undo/redo · 줌 · 패널 토글 2) 전부 **같은 문서에서 키보드 경로를 먼저 실행해 얻은 store 상태와 대조** (parity oracle = handler 경로) · `delete` 승인 다이얼로그 실측 (거부 → 무변경, 승인 → 삭제 + 기록) · undo 1회 복원 1건 · 팔레트 G3 23건 재실행 동일 · **초기 번들** Δ ≤ +3KB gz · `pnpm agent:work -- verify` 통과                      | 다른 결과가 나온 명령은 R1 — 부가 동작 재현 또는 노출 금지. 3건 이상이면 Phase 1 분류표 재검토             |
-| G4   | Phase 3 | AI 패널 경유 `run_command` 1회 실측 (Groq) — allowlist enum 이 도구 정의에 반영, allowlist 밖 id 요청은 denied 로 기록. **2026-08-28: 실패 시 대안 적용** — Groq 모델 id 만료(404 `model_not_found`) + 사용자 결정 "Groq 는 더 이상 사용하지 않는다" 로 패널 end-to-end 는 측정 대상에서 제외, descriptor 실측 + 테스트로 종결 (§Live Exercise). **2026-08-29: 원 조건 충족** — ADR-134 가 세운 OpenAI 호환 provider(로컬 Ollama)로 패널 end-to-end 실측 (§Live Exercise 2026-08-29)                                                                                                               | Groq 경로 실패는 134 선행 문제가 아니라 descriptor 생성 결함 — descriptor 테스트 추가                      |
+| G4   | Phase 3 | AI 패널 경유 `run_command` 1회 실측 (클라우드 LLM) — allowlist enum 이 도구 정의에 반영, allowlist 밖 id 요청은 denied 로 기록. **2026-08-28: 실패 시 대안 적용** — 클라우드 LLM 모델 id 만료(404 `model_not_found`) + 사용자 결정 "클라우드 LLM 는 더 이상 사용하지 않는다" 로 패널 end-to-end 는 측정 대상에서 제외, descriptor 실측 + 테스트로 종결 (§Live Exercise). **2026-08-29: 원 조건 충족** — ADR-134 가 세운 OpenAI 호환 provider(로컬 Ollama)로 패널 end-to-end 실측 (§Live Exercise 2026-08-29)                                                                                                               | 클라우드 LLM 경로 실패는 134 선행 문제가 아니라 descriptor 생성 결함 — descriptor 테스트 추가                      |
 
 ### Live Exercise
 
@@ -157,10 +157,10 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 - **가시성** — AI 패널에 "AGENT 실행 명령 (4)" 목록이 실행/거부/조건 미충족을 각각 표시.
 - **정리** — 실측용 요소 3개를 만들고 agent `delete`(승인)로 제거, 문서 요소 수 71 로 복귀.
 - **번들** — 프로덕션 빌드에 `__compositionAgent` 0건(DEV 전용 확인). gz Δ: 초기 번들 **+1,255B**, 전체 자산 합계 **+4,252B**. HC6 판정 기준을 **초기 번들** 로 확정 (2026-08-28 사용자) → **+1.23KB ≤ 3KB 충족**. 합계 쪽 차이는 `run_command` 지연 로딩 청크 + 승인 다이얼로그 + 기록 UI 로, 초기 로드에 들어가지 않는다.
-- **G4 (AI 패널 경유) — 실패 시 대안으로 종결.** 제품 코드가 쓰는 Groq 모델 `llama-3.3-70b-versatile` 이 만료돼 (`404 model_not_found`) 패널 도구 8종 전부 도달 불가 — ADR-196 이 만든 결함이 아니라 호스트 쪽 기존 결함이고, 사용자 결정으로 **Groq 자체를 더 이상 쓰지 않는다** (2026-08-28). 게이트의 "실패 시 대안 = descriptor 생성 결함 검사" 를 적용해 (a) 코드가 만든 `run_command` 정의(enum 40, allowlist 파생)를 유효 모델에 실제로 보내 tool call `run_command {"id":"zoomIn"}` 수신 (http 200) 확인, (b) descriptor·지연 로딩·거부 경로를 `runCommand.test.ts` 로 고정. 패널 end-to-end 는 [ADR-134](134-ai-assistant-llm-infrastructure-unification.md) D11 이 새 provider/MCP host 를 세울 때 측정한다.
+- **G4 (AI 패널 경유) — 실패 시 대안으로 종결.** 제품 코드가 쓰는 클라우드 LLM 모델 `llama-3.3-70b-versatile` 이 만료돼 (`404 model_not_found`) 패널 도구 8종 전부 도달 불가 — ADR-196 이 만든 결함이 아니라 호스트 쪽 기존 결함이고, 사용자 결정으로 **클라우드 LLM 자체를 더 이상 쓰지 않는다** (2026-08-28). 게이트의 "실패 시 대안 = descriptor 생성 결함 검사" 를 적용해 (a) 코드가 만든 `run_command` 정의(enum 40, allowlist 파생)를 유효 모델에 실제로 보내 tool call `run_command {"id":"zoomIn"}` 수신 (http 200) 확인, (b) descriptor·지연 로딩·거부 경로를 `runCommand.test.ts` 로 고정. 패널 end-to-end 는 [ADR-134](134-ai-assistant-llm-infrastructure-unification.md) D11 이 새 provider/MCP host 를 세울 때 측정한다.
 **2026-08-29 · Chrome MCP** — G4 유예분 (패널 end-to-end) 실측. 위 2026-08-28 기재가 "패널 end-to-end 는 ADR-134 가 새 provider 를 세울 때 측정한다" 로 남겨 둔 항목이고, 134 종결(Phase 0~8)로 OpenAI 호환 provider 가 생겨 조건이 갖춰졌다.
 
-- **provider**: 로컬 Ollama `qwen3:14b` (`http://localhost:11434/v1`) — `main` 프로파일. Groq 는 쓰지 않는다.
+- **provider**: 로컬 Ollama `qwen3:14b` (`http://localhost:11434/v1`) — `main` 프로파일. 클라우드 LLM 는 쓰지 않는다.
 - **descriptor 실측** — 실제 요청 본문의 도구 10종 중 `run_command` 존재, `id` enum **40** (allowlist 와 동수), `openProject`·`escape` 등 비-allowlist 명령 부재.
 - **ok 경로** — "캔버스를 확대해줘" → 모델이 `run_command {"id":"zoomIn"}` 호출. 기록 `{id:"zoomIn", host:"ai-panel", status:"ok", mutation:"view", undoable:false, seq:1, durationMs:54.4}`. 채팅에는 "빌더 명령 실행 · 실행함".
 - **거부 경로** — 선택 해제 후 "선택한 요소들을 왼쪽 정렬해줘" → `{id:"alignLeft", host:"ai-panel", status:"precondition-failed", reason:"multi-select-mode-off", seq:2}`. 채팅에 "빌더 명령 실행 실패 · multi-select-mode-off" 로 사유까지 표시되고, 모델이 `get_editor_state` 로 상태를 다시 읽어 복구했다.
@@ -183,4 +183,4 @@ Implemented — 2026-08-28 (Phase 0~~4 / G0~~G4 종결). Accepted 2026-08-28 (�
 - 명령당 metadata 1행 + allowlist 명령당 adapter 1개가 새로 생긴다 — 같은 동작의 바인딩이 UI 와 agent 두 벌 (정적 게이트가 누락은 잡지만 의미 drift 는 parity 테스트 범위 안에서만 잡는다, R1).
 - `agentCommandLog` 슬라이스와 AIPanel 로그 UI 가 늘어난다. 세션 메모리라 감사 용도는 아니다 (R5).
 - external 명령 (DB/publish/navigation) 과 패널 로컬 state 명령은 agent 에게 닫힌 채 남는다 — 요구가 생기면 별도 결정 (breakdown §7).
-- Groq tool `run_command` 는 134 의 Groq 제거 때 MCP tool 로 옮겨야 한다 (descriptor 재사용이라 정의는 유지되지만 배선은 1회 이동).
+- AI tool `run_command` 는 134 의 벤더 SDK 제거 때 MCP tool 로 옮겨야 한다 (descriptor 재사용이라 정의는 유지되지만 배선은 1회 이동).

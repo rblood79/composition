@@ -308,7 +308,7 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 | 멀티스레드      | 없음 (pthread/SAB 0건)                                                                       | 없음 (동일)                                                                                 |
 | 스크립트 확장   | QuickJS WASM 샌드박스 (메모리/스택 제한 + 시드 RNG)                                          | 해당 없음                                                                                   |
 | 컴포넌트 모델   | `reusable` + `slot` + `Ref/descendants` override                                             | canonical `reusable`/Ref 모델 — **1:1 정합** (ADR-142 계열)                                 |
-| AI              | 5계열 에이전트 + spawn_agents + 스트리밍 라이브 렌더 + MCP 생태계 주입                       | Groq tool calling (ADR-134 로 LLM 통합 재설계 제안 중)                                      |
+| AI              | 5계열 에이전트 + spawn_agents + 스트리밍 라이브 렌더 + MCP 생태계 주입                       | Tool Calling (ADR-134 로 LLM 통합 재설계 제안 중)                                      |
 
 ## 6-1. 렌더링 축 상세 비교 — composition 관점 장단점
 

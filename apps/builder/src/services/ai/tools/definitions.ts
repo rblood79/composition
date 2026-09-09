@@ -1,7 +1,7 @@
 /**
  * AI Tool Definitions
  *
- * Groq Tool Calling용 JSON Schema 정의
+ * Tool Calling용 JSON Schema 정의.
  * unified.types.ts의 getDefaultProps() 키 목록과 동기화
  */
 
@@ -12,7 +12,7 @@ import { getAiComponentCatalog } from "../catalog/componentCatalog";
 /**
  * 도구 정의의 중첩 형태 (OpenAI function calling wire 형태).
  *
- * ADR-134 Phase 2 에서 `groq-sdk` 타입 의존을 걷어내고 로컬 선언으로 대체했다 — 아래
+ * ADR-134 Phase 2 에서 벤더 SDK 타입 의존을 걷어내고 로컬 선언으로 대체했다 — 아래
  * 배열의 구조는 그대로다. 평평한 `LLMToolDefinition` 으로의 정리는 Phase 3 (도구 어휘
  * 확장 + MCP 호환 형태 갱신) 소관이라, 지금은 `toLLMToolDefinitions()` 가 경계에서 옮긴다.
  */

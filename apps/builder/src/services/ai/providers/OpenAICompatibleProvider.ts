@@ -5,7 +5,7 @@
  * 전부 이 어댑터 + `baseUrl` 로 포섭한다 (breakdown §3). 폐쇄망/로컬 endpoint 직결이
  * 1차 축이므로 (2026-08-28 사용자 결정) `apiKey` 는 선택이다.
  *
- * function calling 포맷은 기존 Groq 경로와 동일한 wire 형태라, 도구 7종 + `run_command`
+ * function calling 포맷은 OpenAI Chat Completions wire 형태라, 도구 7종 + `run_command`
  * 의 JSON Schema 가 변환 없이 그대로 실린다.
  */
 import {

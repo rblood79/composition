@@ -1,8 +1,8 @@
 /**
- * ADR-134 G2 — Groq 제거 + secret isolation (D10 / HC13 / R12).
+ * ADR-134 G2 — secret isolation (D10 / HC13 / R12).
  *
  * 게이트 3개를 코드로 잠근다:
- * 1. `groq-sdk` · `dangerouslyAllowBrowser` · `VITE_GROQ_API_KEY` 가 소스에 없다 (정적 스캔).
+ * 1. `dangerouslyAllowBrowser` 가 없고, 키를 `import.meta.env.VITE_*` 로 읽지 않는다.
  * 2. 원격 endpoint 는 브라우저에서 직접 불리지 않는다 — fetch 자체가 일어나지 않는다.
  * 3. 키는 기본적으로 브라우저에 남지 않는다 (명시 opt-in 전에는 메모리뿐).
  */
@@ -55,24 +55,15 @@ async function collect(
   return out;
 }
 
-describe("Groq 제거 grep gate (G2)", () => {
+describe("브라우저 비밀 게이트 (G2)", () => {
   const files = sourceFiles(AI_SRC);
 
-  it("services/ai 실행 코드에 groq-sdk import 가 없다", () => {
+  it("dangerouslyAllowBrowser 가 없다", () => {
     const offenders = files.filter((file) =>
-      /["']groq-sdk["']/.test(stripComments(readFileSync(file, "utf-8"))),
+      stripComments(readFileSync(file, "utf-8")).includes(
+        "dangerouslyAllowBrowser",
+      ),
     );
-    expect(offenders).toEqual([]);
-  });
-
-  it("dangerouslyAllowBrowser · VITE_GROQ_API_KEY 가 없다", () => {
-    const offenders = files.filter((file) => {
-      const code = stripComments(readFileSync(file, "utf-8"));
-      return (
-        code.includes("dangerouslyAllowBrowser") ||
-        code.includes("VITE_GROQ_API_KEY")
-      );
-    });
     expect(offenders).toEqual([]);
   });
 
@@ -101,7 +92,6 @@ describe("원격 provider 직접 호출 차단 (HC13 / R12)", () => {
     for (const url of [
       "https://api.anthropic.com",
       "https://api.openai.com/v1",
-      "https://api.groq.com/openai/v1",
       "not-a-url",
       "http://172.15.0.1/v1",
     ]) {

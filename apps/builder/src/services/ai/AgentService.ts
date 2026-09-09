@@ -1,13 +1,13 @@
 /**
  * Agent Service — Tool Calling + Agent Loop (ADR-134 Phase 2).
  *
- * `GroqAgentService` 의 후신이다. 루프 자체 (최대 턴 · 도구 실행 · 429 백오프 ·
- * AbortController) 는 그대로 두고, **모델 호출만 `LLMProvider` 뒤로 옮겼다** — 어느
- * provider 인지, 로컬인지 원격인지 이 파일은 모른다.
+ * 루프 자체 (최대 턴 · 도구 실행 · 429 백오프 · AbortController) 는 이 파일이 맡고,
+ * **모델 호출만 `LLMProvider` 뒤로 옮긴다** — 어느 provider 인지, 로컬인지 원격인지
+ * 이 파일은 모른다.
  *
- * 사라진 것: `groq-sdk` · `dangerouslyAllowBrowser` · 하드코딩된 모델 id ·
- * `VITE_GROQ_API_KEY`. 모델과 endpoint 는 에이전트 프로파일이 정하고 (D1/D8), 키는
- * `byokKeyStore` 가 호출 시점에만 넘긴다 (D10).
+ * 모델과 endpoint 는 에이전트 프로파일이 정하고 (D1/D8), 키는 `byokKeyStore` 가
+ * 호출 시점에만 넘긴다 (D10). 벤더 SDK · 브라우저 직접 호출 · 하드코딩된 모델 id ·
+ * `VITE_*` 키는 쓰지 않는다.
  */
 import type {
   AgentEvent,

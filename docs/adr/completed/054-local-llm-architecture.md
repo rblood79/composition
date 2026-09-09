@@ -4,7 +4,7 @@
 >
 > **사유**: Proposed 상태로 land 0건. 본 ADR 의 Provider 추상화 base 영역 + Hard Constraints 7개 + Gates G1-G6 은 ADR-134 (단일 통합) 에 정합 갱신되어 흡수. 작성 시점 (2026-04-05) 이후 land 된 canonical document SSOT (ADR-116/122) / data_tables SSOT (ADR-132) / events/actions root collection (ADR-131) / frame canonical (ADR-130) / AIPanel UX 1년차 신입 baseline (ADR-133) 정합 미반영.
 >
-> **ADR-054 → ADR-134 매핑** (design breakdown §14 참조): Phase 1 (Groq 제거 + Provider) → ADR-134 Phase 1+2 / Phase 2 (로컬 모델 Tool Calling) → Phase 2+5 / Phase 3 (Canvas FPS) → Phase 9 / Phase 4-5 (카탈로그) → Phase 5 / Phase 6 (디자인 지능) → Phase 6 / Phase 7 (접근성 감사) → ADR-136+ 응용 (scope 밖)
+> **ADR-054 → ADR-134 매핑** (design breakdown §14 참조): Phase 1 (벤더 SDK 제거 + Provider) → ADR-134 Phase 1+2 / Phase 2 (로컬 모델 Tool Calling) → Phase 2+5 / Phase 3 (Canvas FPS) → Phase 9 / Phase 4-5 (카탈로그) → Phase 5 / Phase 6 (디자인 지능) → Phase 6 / Phase 7 (접근성 감사) → ADR-136+ 응용 (scope 밖)
 
 > Supersedes [ADR-011](011-ai-assistant-design.md) — 함께 Deprecated, ADR-134 로 통합 흡수
 
@@ -14,15 +14,15 @@ Deprecated — 2026-05-13 (Replaced by [ADR-134](134-ai-assistant-llm-infrastruc
 
 ## Context
 
-composition AI 어시스턴트는 현재 Groq Cloud SDK(`groq-sdk`)를 통해 `llama-3.3-70b-versatile` 모델을 사용한다 (ADR-011, Phase A1~A4 구현 완료). 이 아키텍처에는 다음 근본적 한계가 있다:
+composition AI 어시스턴트는 현재 클라우드 LLM SDK(`클라우드 LLM SDK`)를 통해 `llama-3.3-70b-versatile` 모델을 사용한다 (ADR-011, Phase A1~A4 구현 완료). 이 아키텍처에는 다음 근본적 한계가 있다:
 
 1. **API 키 브라우저 노출**: `dangerouslyAllowBrowser: true`로 클라이언트에서 직접 호출 — 키 탈취 위험
-2. **클라우드 의존**: 네트워크 불가 시 AI 기능 전체 불능, Groq 서비스 장애 시 동일
+2. **클라우드 의존**: 네트워크 불가 시 AI 기능 전체 불능, 클라우드 LLM 서비스 장애 시 동일
 3. **Rate Limit**: 무료 tier 30 req/min, 30K tokens/min — 복잡한 Agent Loop에서 쉽게 소진
 4. **프라이버시**: 사용자 디자인 데이터가 외부 서버로 전송
 5. **비용 확장성**: 유료 전환 시 사용량 비례 과금, 사용자에게 API 키 요구 필요
 
-composition는 Electron 데스크톱 앱으로 마이그레이션이 계획되어 있으며, 이 전환 시점에서 LLM을 앱 내부에 직접 내장할 수 있다. **기존 Groq SDK 의존은 완전 제거하고 로컬 LLM으로 전환한다.**
+composition는 Electron 데스크톱 앱으로 마이그레이션이 계획되어 있으며, 이 전환 시점에서 LLM을 앱 내부에 직접 내장할 수 있다. **기존 클라우드 LLM SDK 의존은 완전 제거하고 로컬 LLM으로 전환한다.**
 
 ### 기능 목표
 
@@ -79,7 +79,7 @@ Pencil, Google Stitch처럼 자연어로 페이지 전체를 디자인할 수 �
 
 ### 대안 A: Ollama 브릿지 → node-llama-cpp 내장 (2-Phase 전환)
 
-- 설명: LLMProvider 추상화 레이어를 도입하고, 로컬(Ollama → node-llama-cpp)을 기본으로 하면서 온라인 모델(Claude API, OpenAI API 등)도 선택 가능하게 한다. 기존 `groq-sdk` 의존은 완전 제거. 사용자가 용도에 따라 로컬/온라인 모델을 자유롭게 전환할 수 있다.
+- 설명: LLMProvider 추상화 레이어를 도입하고, 로컬(Ollama → node-llama-cpp)을 기본으로 하면서 온라인 모델(Claude API, OpenAI API 등)도 선택 가능하게 한다. 기존 `클라우드 LLM SDK` 의존은 완전 제거. 사용자가 용도에 따라 로컬/온라인 모델을 자유롭게 전환할 수 있다.
 - 근거: Ollama는 로컬 LLM 서버의 사실상 표준 (GitHub 120K+ stars). node-llama-cpp v3는 Electron Utility Process 지원, Metal/CUDA GPU 가속, 내장 tool calling을 제공한다. Pencil(Claude 모델 선택), Google Stitch(모델 선택)처럼 온라인 모델 지원은 사용자 경험의 핵심이다.
 - 위험:
   - 기술: **LOW** — Ollama REST API는 안정적이고 단순. Anthropic/OpenAI API도 성숙한 표준
@@ -132,7 +132,7 @@ Pencil, Google Stitch처럼 자연어로 페이지 전체를 디자인할 수 �
 3. **모델 포맷 통일**: Ollama와 node-llama-cpp 모두 GGUF 포맷 사용 → 하드웨어에 맞는 모델(14B/35B-A3B/32B)로 전환 무마찰
 4. **하드웨어 티어별 모델 전략**: 16GB=Qwen3 14B, 36GB=Qwen3.5-35B-A3B(권장), 64GB=Qwen3 32B. 품질 평가 결과 T2(36GB)에서 AI 기능 53% 합격, 7B(0%)에서 극적 개선
 5. **난이도 기반 자동 라우팅**: 단순 작업은 로컬 모델(T2 기준 87~90%), 복합 작업(대시보드 설계)은 온라인 모델 전환 자동 제안. 폐쇄망에서는 복합 작업을 단순 작업으로 자동 분할
-6. **Groq 완전 제거**: `groq-sdk` 의존 및 관련 코드를 전부 삭제. 온라인 모델은 표준 API(Anthropic Messages API, OpenAI Chat Completions API)로 통일
+6. **벤더 SDK 완전 제거**: `클라우드 LLM SDK` 의존 및 관련 코드를 전부 삭제. 온라인 모델은 표준 API(Anthropic Messages API, OpenAI Chat Completions API)로 통일
 7. **모델 선택의 자유**: Pencil/Google Stitch처럼 사용자가 로컬/온라인 모델을 자유롭게 전환. Provider 인터페이스가 모든 백엔드를 동일하게 추상화
 
 기각 사유:
@@ -146,7 +146,7 @@ Pencil, Google Stitch처럼 자연어로 페이지 전체를 디자인할 수 �
 
 | Gate                           | 시점         | 통과 조건                                                          | 실패 시 대안                                             |
 | ------------------------------ | ------------ | ------------------------------------------------------------------ | -------------------------------------------------------- |
-| G1: Groq 제거 + Provider 도입  | Phase 1 완료 | groq-sdk 완전 제거, Ollama Provider로 기존 7개 도구 전수 통과      | Provider 인터페이스 재설계                               |
+| G1: 벤더 SDK 제거 + Provider 도입  | Phase 1 완료 | 클라우드 LLM SDK 완전 제거, Ollama Provider로 기존 7개 도구 전수 통과      | Provider 인터페이스 재설계                               |
 | G2: 로컬 모델 Tool Calling     | Phase 2 완료 | 권장 모델(35B-A3B)의 tool calling 성공률 ≥ 75%, 14B ≥ 68%          | 모델 업그레이드 (32B), thinking mode 강제, 프롬프트 튜닝 |
 | G3: Canvas FPS 영향            | Phase 3 완료 | Utility Process 추론 중 Canvas 60fps 유지 (±5fps 이내)             | Utility Process 우선순위 조정, 추론 배치 크기 제한       |
 | G4: 컴포넌트 지능 Props 정확도 | Phase 5 완료 | 카탈로그 기반 props 성공률 ≥ 90%, 텍스트 편집 정상 동작            | 카탈로그 형식 재설계, 문서 로딩 전략 변경                |
@@ -157,7 +157,7 @@ Pencil, Google Stitch처럼 자연어로 페이지 전체를 디자인할 수 �
 
 ### Positive
 
-- `groq-sdk` 완전 제거 → 벤더 종속 해소, 번들 크기 감소
+- `클라우드 LLM SDK` 완전 제거 → 벤더 종속 해소, 번들 크기 감소
 - `dangerouslyAllowBrowser: true` 제거 → API 키 브라우저 노출 위험 해소
 - 로컬 기본: 오프라인 AI 사용, Rate Limit 없음, 디자인 데이터 외부 전송 없음
 - 온라인 선택: Claude/GPT 등 고성능 모델로 전환 가능 — 복잡한 디자인 요청에 적합

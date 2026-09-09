@@ -12,7 +12,7 @@ tags: [supabase, service, architecture, adr-128]
 | `services/api/index.ts`        | **mock data API** — `apiConfig`/`fetchMockData` (countries/products 등 목업 엔드포인트) + `handleApiError` |
 | `services/api/ErrorHandler.ts` | `classifyError` 등 에러 분류 유틸 (`useErrorHandler` hook 이 소비)                                         |
 | `services/save/saveService.ts` | 저장 파이프라인 — `getDB()`(IndexedDB adapter) 경유                                                        |
-| `services/ai/*`                | Groq Agent (Tool Calling)                                                                                  |
+| `services/ai/*`                | AI Agent (Tool Calling)                                                                                    |
 
 ## Incorrect
 
