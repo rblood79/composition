@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import { getChartDescriptor } from "@composition/specs";
-import type { FieldOrigin } from "@composition/shared";
+import { getElementDataBinding, type FieldOrigin } from "@composition/shared";
 import { getActiveCanonicalElementById } from "../../../stores/canonical/canonicalElementsView";
 import {
   subscribeCanonicalStore,
@@ -85,7 +85,9 @@ export function useCanonicalPropertyElementType(
 }
 
 /** 이름 변경/차트 종류 변경만 header를 갱신하는 scalar snapshot. */
-export function useCanonicalPropertyDisplayName(elementId: string | null): string | null {
+export function useCanonicalPropertyDisplayName(
+  elementId: string | null,
+): string | null {
   const read = useCallback(() => {
     if (!elementId) return null;
     const node = getLastProjectableNodeById(elementId);
@@ -94,8 +96,11 @@ export function useCanonicalPropertyDisplayName(elementId: string | null): strin
     if (type !== "Chart") return type;
     if (node.name) return node.name;
     const reference = getCanonicalRefTarget(node);
-    const origin = reference ? getFirstProjectableNodeLookupByReference(reference)?.node : undefined;
-    return getChartDescriptor(node.props?.chartType ?? origin?.props?.chartType).label;
+    const origin = reference
+      ? getFirstProjectableNodeLookupByReference(reference)?.node
+      : undefined;
+    return getChartDescriptor(node.props?.chartType ?? origin?.props?.chartType)
+      .label;
   }, [elementId]);
   return useSyncExternalStore(subscribeCanonicalStore, read, () => null);
 }
@@ -120,7 +125,14 @@ function readCanonicalPropertyValue(
       : baseValue;
   }
 
-  return Object.hasOwn(props, key) ? props[key] : baseValue;
+  if (Object.hasOwn(props, key)) return props[key];
+  // dataBinding 은 `x-composition` 에만 저장된 노드가 있다 — 편집 계약과 같은 공통 읽기
+  //   계약으로 보강한다 (읽기 전용, canonical props 재저장 금지).
+  if (key === "dataBinding") {
+    const binding = getElementDataBinding(node, "props-first");
+    if (binding !== undefined) return binding;
+  }
+  return baseValue;
 }
 
 /**

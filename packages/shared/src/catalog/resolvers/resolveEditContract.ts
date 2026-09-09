@@ -35,6 +35,7 @@ import type {
   PropsSchema,
   VisibilityCondition,
 } from "../types";
+import { getElementDataBinding } from "../../utils/compositionExtensionFields";
 import { getCatalogEntry, getReusableEntries } from "../componentCatalog";
 import { readPropsSchema } from "../templateBinding";
 import { resolveComponentRule } from "./resolveComponentRule";
@@ -142,13 +143,27 @@ export const UNIVERSAL_STYLE_CONTRACTS: Record<string, PropContract> = {
   height: { kind: "number", label: "Height", section: "layout" },
 };
 
-/** node.props 를 Record 로 안전 추출. */
-function readProps(node: CanonicalNode): Record<string, unknown> {
-  const props = node.props;
-  if (props && typeof props === "object" && !Array.isArray(props)) {
-    return props as Record<string, unknown>;
-  }
-  return {};
+/**
+ * node.props 를 Record 로 안전 추출하고, `dataBinding` 은 공통 extension 읽기 계약으로 보강한다.
+ *
+ * canonical 의 데이터 연결은 `props.dataBinding` 과 `x-composition.dataBinding` 두 곳에
+ * 저장된다 (`PROPS_FORBIDDEN_KEYS` 때문에 `updateNodeExtension` 경로는 후자에만 쓴다).
+ * props 만 읽으면 extension 에만 연결이 있는 노드의 편집 계약에서 binding 이 통째로
+ * 사라지고, 그 값을 입력으로 쓰는 Properties 컨트롤(Chart 의 컬럼 Select 등)이 연결이
+ * 없는 것처럼 동작한다. 읽기 순서는 공통 helper 와 같고 (props → legacy → extension),
+ * **읽기 전용 보강** 이다 — UI 를 위해 canonical props 에 다시 저장하지 않는다.
+ */
+function readProps(
+  node: CanonicalNode | ResolvedNode,
+): Record<string, unknown> {
+  const raw = node.props;
+  const props =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  if (Object.hasOwn(props, "dataBinding")) return props;
+  const binding = getElementDataBinding(node, "props-first");
+  return binding === undefined ? props : { ...props, dataBinding: binding };
 }
 
 /** node.props.style 을 Record 로 안전 추출 (object 아니면 빈 객체). */
@@ -337,7 +352,7 @@ export function resolveEditContract(
         options: deriveOptions(contract, originRule, reusable.origin, key),
         itemsManager: contract.itemsManager,
         visibleWhen: contract.visibleWhen,
-      editorHidden: contract.editorHidden,
+        editorHidden: contract.editorHidden,
       });
     }
   }
@@ -364,7 +379,7 @@ export function resolveEditContract(
         options: deriveOptions(contract, rule, node, key),
         itemsManager: contract.itemsManager,
         visibleWhen: contract.visibleWhen,
-      editorHidden: contract.editorHidden,
+        editorHidden: contract.editorHidden,
       });
     }
   }
@@ -418,7 +433,7 @@ export function resolveEditContract(
           options: deriveOptions(contract, originRule, origin, key),
           itemsManager: contract.itemsManager,
           visibleWhen: contract.visibleWhen,
-      editorHidden: contract.editorHidden,
+          editorHidden: contract.editorHidden,
         });
       }
     }

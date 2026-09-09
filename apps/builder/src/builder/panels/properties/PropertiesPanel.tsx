@@ -15,7 +15,7 @@ import { useDebouncedSelectedElementData } from "../../stores";
 import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
 import { useCollections } from "../../stores/data";
-import { columnsFromOwner } from "./hooks/useOwnerCollectionColumns";
+import { buildChartSemanticFields } from "./chartFieldOptions";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { GenericFieldRenderer } from "./generic/GenericFieldRenderer";
 import {
@@ -146,13 +146,10 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   const semanticFields = useMemo(() => {
     const fields = contract.fields.filter((f) => f.origin === "semantic");
     if (elementType === "Chart") {
-      const props = Object.fromEntries(fields.map((field) => [field.key, field.currentValue]));
-      const columns = columnsFromOwner({ props }, new Map(collections.flatMap((table) => [[table.name, table], [table.id, table]])));
-      return fields.filter((field) => field.key !== "data" || !props.dataBinding).map((field) =>
-        columns && ["dimension", "metric", "color"].includes(field.key)
-          ? { ...field, kind: "enum" as const, options: Array.from(new Set([String(field.currentValue ?? ""), ...columns])).map((value) => ({ value, label: value || t("chart.none") })) }
-          : field,
-      );
+      return buildChartSemanticFields(fields, collections, {
+        none: t("chart.none"),
+        columnQualifier: t("chart.columnQualifier"),
+      });
     }
     // icon Button/ToggleButton: label 이 RSP 공식대로 `<Text>` 자식 element 로 이관되어
     //   Button.children 이 비므로, GenericFieldRenderer 의 "Text"(children) 필드를 제외한다.
@@ -193,7 +190,11 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
         unknown
       >;
       // 실제 변경된 경우만 — stale 덮어쓰기 방지(legacy handleUpdate 동일).
-      const changedProps = Object.fromEntries(Object.entries(patch).filter(([key, value]) => baselineProps[key] !== value));
+      const changedProps = Object.fromEntries(
+        Object.entries(patch).filter(
+          ([key, value]) => baselineProps[key] !== value,
+        ),
+      );
       if (Object.keys(changedProps).length === 0) return;
 
       const isComponentInstanceSelection =
@@ -243,11 +244,30 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
     (key: string, value: unknown) => handleSemanticPatch({ [key]: value }),
     [handleSemanticPatch],
   );
-  const chartValues = elementType === "Chart" ? Object.fromEntries(contract.fields.map((field) => [field.key, field.currentValue])) : {};
-  const sourceRowCount = chartValues.dataBinding ? readDataBindingRows(chartValues.dataBinding, collections).length : Array.isArray(chartValues.data) ? chartValues.data.length : 0;
-  const editorExtras = elementType === "Chart" ? (
-    <>{contentExtras}<ChartAuthoringControls fields={semanticFields} onPatch={handleSemanticPatch} sourceRowCount={sourceRowCount} /></>
-  ) : contentExtras;
+  const chartValues =
+    elementType === "Chart"
+      ? Object.fromEntries(
+          contract.fields.map((field) => [field.key, field.currentValue]),
+        )
+      : {};
+  const sourceRowCount = chartValues.dataBinding
+    ? readDataBindingRows(chartValues.dataBinding, collections).length
+    : Array.isArray(chartValues.data)
+      ? chartValues.data.length
+      : 0;
+  const editorExtras =
+    elementType === "Chart" ? (
+      <>
+        {contentExtras}
+        <ChartAuthoringControls
+          fields={semanticFields}
+          onPatch={handleSemanticPatch}
+          sourceRowCount={sourceRowCount}
+        />
+      </>
+    ) : (
+      contentExtras
+    );
 
   // style write — Style view 전환(후속)까지는 미사용. updateSelectedStyle 단일 prop + distributeShorthand.
   const handleStyleUpdate = useCallback((key: string, value: unknown) => {
@@ -265,7 +285,9 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
         <GenericFieldRenderer
           fields={semanticFields}
           literalOptionFields={
-            elementType === "Chart" ? ["dimension", "metric", "color"] : undefined
+            elementType === "Chart"
+              ? ["dimension", "metric", "color"]
+              : undefined
           }
           onSemanticUpdate={handleSemanticUpdate}
           onStyleUpdate={handleStyleUpdate}

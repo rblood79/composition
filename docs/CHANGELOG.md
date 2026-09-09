@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [차트 — 시리즈 연결을 해제할 수 있습니다] - 2026-09-09
+
+### Added
+
+- 차트 Properties 의 **Series** 목록 첫 자리에 `없음 / None` 이 항상 나온다. 고른 시리즈 컬럼을 다시 해제해 하나의 시리즈로 합칠 수 있다 (범주별 합계로 접힌다). 해제 상태는 저장·재열기·Undo/Redo 에서 유지된다.
+- 컬럼 이름이 화면의 `없음` 라벨과 같으면 데이터 항목 쪽에 `없음 (필드)` 처럼 보조 표시를 붙여 해제 항목과 구별한다. 저장되는 값은 원본 컬럼명 그대로다.
+
+### Fixed
+
+- `reset` 이라는 이름의 실제 데이터 컬럼을 Category/Value/Series 에서 고르면 빈 값으로 저장되던 문제를 수정했다. 속성 Select 에 값 그대로 다루는 모드를 두어 원본 문자열 (`reset`, 한글 컬럼명 등) 이 손실 없이 저장된다. 스타일 패널의 기존 "초기화" 항목 동작은 그대로다.
+- 데이터 연결이 `x-composition` 확장에만 저장된 요소에서 Properties 가 연결을 못 읽어, 스키마가 있는데도 차트 필드가 컬럼 목록 대신 문자열 입력으로 나오던 문제를 수정했다. 편집 계약이 공통 확장 읽기 계약을 함께 쓴다 (읽기 전용 — 화면을 위해 값을 다시 저장하지 않는다).
+
+### Validation
+
+- F0 실패 재현 → 수리: 확장에만 연결이 있는 canonical 문서로 실제 옵션 생산자를 통과시켜 문자열 입력 fallback 을 먼저 고정했다 (5건 RED → GREEN).
+- 신규/보강 테스트 29건 (패널 옵션 생산자 17 · PropertySelect 두 모드 5 · ref/Undo/Redo 실제 inspector store 3 · 문서 왕복 2 · 집계 손계산 2), builder 5,661 · shared 1,157 · specs 1,108 · chart browser 170 통과, type-check·preflight PASS.
+- 상세 설계: `docs/adr/design/209-chart-followup-repair-breakdown.md` (F0/F1). 실제 Builder live 확인 (F2) 과 번들·성능 종결 (F3–F5) 은 후속.
+
 ## [AI 어시스턴트 — Claude 요청의 prompt caching · 구조화 출력 · 도구 계약 정합] - 2026-09-09
 
 ### Changed

@@ -94,6 +94,11 @@ function capitalize(s: string): string {
 interface GenericFieldProps extends GenericFieldRouting {
   field: ResolvedField;
   translateOptions?: boolean;
+  /**
+   * enum 값 해석 모드 — `literal` 은 옵션 값이 원본 데이터 키인 필드에 쓴다
+   * (`PropertySelect.optionValueMode` 주석 참조). 라벨 번역 정책과 독립이다.
+   */
+  optionValueMode?: "legacy" | "literal";
   /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
   ownerColumns?: string[] | null;
 }
@@ -132,6 +137,7 @@ function areGenericFieldPropsEqual(
     previous.onSemanticUpdate === next.onSemanticUpdate &&
     previous.onStyleUpdate === next.onStyleUpdate &&
     previous.translateOptions === next.translateOptions &&
+    previous.optionValueMode === next.optionValueMode &&
     areStringArraysEqual(previous.ownerColumns, next.ownerColumns) &&
     a.key === b.key &&
     a.kind === b.kind &&
@@ -155,6 +161,7 @@ const GenericField = memo(function GenericField({
   elementId,
   ownerColumns,
   translateOptions,
+  optionValueMode,
 }: GenericFieldProps) {
   const value = useCanonicalPropertyValue(
     elementId,
@@ -186,6 +193,7 @@ const GenericField = memo(function GenericField({
           onChange={(v) => update(v)}
           options={field.options ?? []}
           translateOptions={translateOptions}
+          optionValueMode={optionValueMode}
         />
       );
 
@@ -361,7 +369,11 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   //   `visibleWhen` 을 실제로 선언한 필드뿐이다.
   const groups = new Map<string, ResolvedField[]>();
   for (const field of fields) {
-    if (field.editorHidden || !evaluateVisibility(field.visibleWhen, conditionValues)) continue;
+    if (
+      field.editorHidden ||
+      !evaluateVisibility(field.visibleWhen, conditionValues)
+    )
+      continue;
     const section = field.section || "content";
     const bucket = groups.get(section);
     if (bucket) bucket.push(field);
@@ -388,6 +400,9 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               elementId={elementId}
               ownerColumns={ownerColumns}
               translateOptions={!literalOptionFields?.includes(field.key)}
+              optionValueMode={
+                literalOptionFields?.includes(field.key) ? "literal" : "legacy"
+              }
             />
           ))}
         </PropertySection>

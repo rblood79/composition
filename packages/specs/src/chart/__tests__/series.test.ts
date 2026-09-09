@@ -68,8 +68,9 @@ describe("stackBands", () => {
       8,
     );
     const bands = stackBands(zero, 0, "expand");
-    expect(bands.every((b) => Number.isFinite(b.from) && Number.isFinite(b.to)))
-      .toBe(true);
+    expect(
+      bands.every((b) => Number.isFinite(b.from) && Number.isFinite(b.to)),
+    ).toBe(true);
   });
 });
 
@@ -104,5 +105,53 @@ describe("valueExtent", () => {
 
   it("expand 는 항상 0~100 이다 (범주 합과 무관)", () => {
     expect(valueExtent(grid, "expand")).toEqual({ min: 0, max: 100 });
+  });
+});
+
+/**
+ * ADR-209 후속 — 시리즈 해제(`color: ""`)의 집계.
+ *
+ * 기대값은 손계산이다 (production helper 출력을 복사하지 않는다). 같은 (범주, 시리즈)
+ * 조합이 여러 행이면 합산하므로, 시리즈를 비우면 범주별 합계 하나로 접힌다.
+ */
+describe("시리즈 해제 집계", () => {
+  const ROWS_7: ChartRow[] = [
+    { category: "Jan", series: "A", value: 10 },
+    { category: "Jan", series: "B", value: 20 },
+    { category: "Jan", series: "A", value: 3 },
+    { category: "Feb", series: "A", value: 5 },
+    { category: "Feb", series: "B", value: 7 },
+    { category: "Mar", series: "A", value: 2 },
+    { category: "Mar", series: "B", value: 4 },
+  ];
+  const read = (g: ReturnType<typeof buildSeriesGrid>, key: string) => {
+    const s = g.series.find((entry) => entry.key === key)!;
+    return g.categories.map((_, ci) => s.values.get(ci));
+  };
+
+  it("시리즈 지정 시 그룹별로 합산한다", () => {
+    const grouped = buildSeriesGrid(
+      ROWS_7,
+      { dimension: "category", metric: "value", color: "series" },
+      8,
+    );
+    expect(grouped.categories).toEqual(["Jan", "Feb", "Mar"]);
+    expect(grouped.series.map((s) => s.key)).toEqual(["A", "B"]);
+    expect(read(grouped, "A")).toEqual([13, 5, 2]);
+    expect(read(grouped, "B")).toEqual([20, 7, 4]);
+  });
+
+  it("해제하면 범주별 단일 시리즈로 합산한다", () => {
+    const released = buildSeriesGrid(
+      ROWS_7,
+      { dimension: "category", metric: "value", color: "" },
+      8,
+    );
+    expect(released.categories).toEqual(["Jan", "Feb", "Mar"]);
+    expect(released.series).toHaveLength(1);
+    expect(read(released, "")).toEqual([33, 12, 6]);
+    // 전체 합계는 두 형태에서 같다 — 해제는 행을 버리지 않는다.
+    expect([33, 12, 6].reduce((a, b) => a + b, 0)).toBe(51);
+    expect(released.hasValues).toBe(true);
   });
 });

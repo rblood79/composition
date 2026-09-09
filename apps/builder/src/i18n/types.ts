@@ -543,6 +543,8 @@ export interface TranslationKeys {
     half: string;
     total: string;
     none: string;
+    /** None 라벨과 같은 이름의 데이터 컬럼을 구분하는 보조 표시. */
+    columnQualifier: string;
     variant: string;
     size: string;
     data: string;
