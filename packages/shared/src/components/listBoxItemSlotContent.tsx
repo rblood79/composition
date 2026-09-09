@@ -1,5 +1,5 @@
 import React from "react";
-import { Text as AriaText } from "react-aria-components";
+import { Text as AriaText } from "react-aria-components/Text";
 
 import { Icon } from "./Icon";
 import { isSlotEnabled, type SlotComposition } from "../catalog/slotRoles";

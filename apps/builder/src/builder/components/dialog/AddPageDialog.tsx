@@ -8,16 +8,13 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  DialogTrigger,
-  Modal,
-  Dialog,
-  Heading,
-  Button,
-  Label,
-  Input,
-  TextField,
-} from "react-aria-components";
+import { DialogTrigger, Dialog } from "react-aria-components/Dialog";
+import { Modal } from "react-aria-components/Modal";
+import { Heading } from "react-aria-components/Heading";
+import { Button } from "react-aria-components/Button";
+import { Label } from "react-aria-components/Label";
+import { Input } from "react-aria-components/Input";
+import { TextField } from "react-aria-components/TextField";
 import { FolderTree, Layout, Link, CircleAlert } from "lucide-react";
 import { useStore } from "../../stores";
 import { useCanonicalReusableFrameLayouts } from "../../stores/canonical/canonicalFrameStore";
@@ -294,10 +291,7 @@ export function AddPageDialog({
 
           {/* Actions */}
           <div className="add-page-actions">
-            <Button
-              className="control-button"
-              onPress={() => setIsOpen(false)}
-            >
+            <Button className="control-button" onPress={() => setIsOpen(false)}>
               Cancel
             </Button>
             <Button

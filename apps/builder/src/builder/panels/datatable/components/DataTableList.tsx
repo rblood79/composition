@@ -8,7 +8,7 @@
 
 import { useMemo } from "react";
 import { Table2, SquarePen, Link } from "lucide-react";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import { useDataStore } from "../../../stores/data";
 import { EmptyState, Section } from "../../../components";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";

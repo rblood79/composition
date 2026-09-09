@@ -1,4 +1,4 @@
-import { Form as RACForm, FormProps } from "react-aria-components";
+import { Form as RACForm, FormProps } from "react-aria-components/Form";
 import { ContentFocusScope } from "./ContentFocusScope";
 import "./styles/generated/Form.css";
 

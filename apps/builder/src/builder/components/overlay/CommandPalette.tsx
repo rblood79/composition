@@ -21,13 +21,9 @@ import {
   useEffect,
   useSyncExternalStore,
 } from "react";
-import {
-  Modal,
-  Dialog,
-  ListBox,
-  ListBoxItem,
-  ModalOverlay,
-} from "react-aria-components";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
+import { Dialog } from "react-aria-components/Dialog";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { Command, SearchX, X } from "lucide-react";
 import {
   SHORTCUT_DEFINITIONS,

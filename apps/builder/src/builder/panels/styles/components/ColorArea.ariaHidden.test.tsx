@@ -1,5 +1,5 @@
 import { act, render } from "@testing-library/react";
-import { parseColor } from "react-aria-components";
+import { parseColor } from "react-aria-components/ColorPicker";
 import { describe, expect, it, vi } from "vitest";
 
 import { ColorArea } from "@composition/shared/components/ColorArea";

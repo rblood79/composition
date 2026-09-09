@@ -1,15 +1,17 @@
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   RangeCalendar as AriaRangeCalendar,
+  RangeCalendarProps as AriaRangeCalendarProps,
+} from "react-aria-components/RangeCalendar";
+import {
   CalendarCell,
   CalendarGrid,
-  RangeCalendarProps as AriaRangeCalendarProps,
   DateValue,
-  Heading,
-  I18nProvider,
-  Text,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Calendar";
+import { Heading } from "react-aria-components/Heading";
+import { I18nProvider } from "react-aria-components/I18nProvider";
+import { Text } from "react-aria-components/Text";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { safeParseDateString } from "../utils/core/dateUtils";

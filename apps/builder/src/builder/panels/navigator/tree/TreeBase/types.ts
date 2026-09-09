@@ -1,5 +1,5 @@
 import type { Key } from "react-stately";
-import type { DragAndDropOptions } from "react-aria-components";
+import type { DragAndDropOptions } from "react-aria-components/useDragAndDrop";
 
 // ============================================
 // 공통 타입

@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import {
   ToggleButton as RACToggleButton,
   ToggleButtonProps,
-  SelectionIndicator,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/ToggleButton";
+import { SelectionIndicator } from "react-aria-components/SelectionIndicator";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset, StaticColor } from "../types";
 import {
   useToggleButtonGroupEmphasized,

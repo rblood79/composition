@@ -2,8 +2,17 @@ import { resolve } from "path";
 import { defineConfig } from "vite";
 import type { Connect, ViteDevServer } from "vite";
 import react from "@vitejs/plugin-react";
+import optimizeLocales from "@react-aria/optimize-locales-plugin";
 import wasm from "vite-plugin-wasm";
 import type { IncomingMessage, ServerResponse } from "http";
+
+/** Builder UI i18n (`SupportedLocale`) 과 같은 en-US / ko-KR 만 RAC 문자열에 남긴다. */
+function racLocalesPlugin() {
+  return {
+    ...optimizeLocales.vite({ locales: ["en-US", "ko-KR"] }),
+    enforce: "pre" as const,
+  };
+}
 
 /**
  * 범용 API 프록시 미들웨어
@@ -132,7 +141,7 @@ export default defineConfig(({ command }) => {
   return {
     logLevel: "warn", // HMR 로그 및 불필요한 콘솔 로그 최소화
     clearScreen: false, // 화면 클리어 비활성화
-    plugins: [wasm(), apiProxyPlugin(), react()],
+    plugins: [racLocalesPlugin(), wasm(), apiProxyPlugin(), react()],
     worker: {
       format: "es",
       plugins: () => [wasm()],

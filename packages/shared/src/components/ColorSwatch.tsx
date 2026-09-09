@@ -1,7 +1,7 @@
 import {
   ColorSwatch as AriaColorSwatch,
   ColorSwatchProps as AriaColorSwatchProps,
-} from "react-aria-components";
+} from "react-aria-components/ColorSwatch";
 
 import "./styles/ColorSwatch.css";
 

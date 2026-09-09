@@ -1,14 +1,10 @@
 import { useEffect, useRef } from "react";
 import { Check, ChevronRight } from "lucide-react";
-import {
-  Keyboard,
-  Menu,
-  MenuItem,
-  Popover,
-  Separator,
-  SubmenuTrigger,
-  Text,
-} from "react-aria-components";
+import { Keyboard } from "react-aria-components/Keyboard";
+import { Menu, MenuItem, SubmenuTrigger } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
+import { Separator } from "react-aria-components/Separator";
+import { Text } from "react-aria-components/Text";
 import { useI18n } from "@/i18n";
 import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
 import { formatShortcut } from "../../../hooks";
@@ -104,7 +100,10 @@ function renderContextMenuItems(
    * 라벨은 여기서 만든다 — 항목은 키만 싣는다 (ADR-200). 이 함수는 컴포넌트가
    * 아니라 훅을 못 쓰므로 오버레이가 받은 `t` 를 내려 준다.
    */
-  t: (key: string, params?: Record<string, string | number | boolean>) => string,
+  t: (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => string,
 ) {
   const reservesIconColumn = items.some(
     (item) => item.kind !== "separator" && item.icon !== undefined,

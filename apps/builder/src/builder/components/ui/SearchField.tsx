@@ -6,13 +6,13 @@
  */
 
 import { forwardRef } from "react";
+import { Button } from "react-aria-components/Button";
+import { Group } from "react-aria-components/Group";
+import { Input } from "react-aria-components/Input";
 import {
-  Button,
-  Group,
-  Input,
   SearchField as AriaSearchField,
   type SearchFieldProps as AriaSearchFieldProps,
-} from "react-aria-components";
+} from "react-aria-components/SearchField";
 import { getIconData } from "@composition/specs";
 import "./SearchField.css";
 

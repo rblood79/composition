@@ -1,7 +1,7 @@
 import {
   FileTrigger as AriaFileTrigger,
   FileTriggerProps as AriaFileTriggerProps,
-} from "react-aria-components";
+} from "react-aria-components/FileTrigger";
 
 import "./styles/generated/FileTrigger.css";
 

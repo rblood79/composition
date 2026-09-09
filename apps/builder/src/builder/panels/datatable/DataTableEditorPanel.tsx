@@ -14,7 +14,7 @@
  */
 
 import { useState, useMemo } from "react";
-import { Tab, TabList, Tabs } from "react-aria-components";
+import { Tab, TabList, Tabs } from "react-aria-components/Tabs";
 import {
   Code,
   Database,

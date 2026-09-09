@@ -46,7 +46,7 @@ export * from "./Modal";
 export * from "./Popover";
 export * from "./Skeleton";
 export * from "./types";
-export type { Key } from "react-aria-components";
+export type { Key } from "react-aria-components/Collection";
 
 // Missing re-exports (index.tsx에는 있지만 list.ts에 누락됐던 항목)
 export * from "./Form";

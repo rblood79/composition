@@ -5,7 +5,11 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
-import { Tree, DropIndicator, useDragAndDrop } from "react-aria-components";
+import { Tree } from "react-aria-components/Tree";
+import {
+  DropIndicator,
+  useDragAndDrop,
+} from "react-aria-components/useDragAndDrop";
 import type { Key } from "react-stately";
 import type { TreeBaseProps, BaseTreeNode, DropPosition } from "./types";
 import { TreeBaseItem } from "./TreeBaseItem";

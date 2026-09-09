@@ -5,12 +5,12 @@
  * Based on React Aria Components Meter
  */
 
+import { Label } from "react-aria-components/Label";
 import {
-  Label,
   Meter as AriaMeter,
   MeterProps as AriaMeterProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Meter";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset, MeterVariant } from "../types";
 import { formatPercent } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";

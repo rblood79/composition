@@ -69,7 +69,7 @@ export { ColorWheel } from "./ColorWheel";
 export { ListBox, ListBoxItem } from "./ListBox";
 export { GridList, GridListItem } from "./GridList";
 export { MenuButton, MenuItem } from "./Menu";
-export { Menu, MenuTrigger, SubmenuTrigger } from "react-aria-components";
+export { Menu, MenuTrigger, SubmenuTrigger } from "react-aria-components/Menu";
 export { TagGroup, Tag } from "./TagGroup";
 export { Tree, TreeItem } from "./Tree";
 export { default as Table } from "./Table";
@@ -89,7 +89,7 @@ export { Heading, Text as ContentText } from "./Content";
 export { Card } from "./Card";
 export { Slot } from "./Slot";
 export { Disclosure } from "./Disclosure";
-export { DisclosurePanel } from "react-aria-components";
+export { DisclosurePanel } from "react-aria-components/Disclosure";
 export { DisclosureGroup } from "./DisclosureGroup";
 
 // Icon Component
@@ -120,4 +120,4 @@ export { Dialog } from "./Dialog";
 export { Modal } from "./Modal";
 export { Popover } from "./Popover";
 export { Tooltip } from "./Tooltip";
-export { TooltipTrigger } from "react-aria-components";
+export { TooltipTrigger } from "react-aria-components/Tooltip";

@@ -1,15 +1,15 @@
 import {
-    Radio as AriaRadio,
-    RadioProps as AriaRadioProps,
-    composeRenderProps
-} from 'react-aria-components';
-import { useFocusRing } from '@react-aria/focus';
-import { mergeProps } from '@react-aria/utils';
+  Radio as AriaRadio,
+  RadioProps as AriaRadioProps,
+} from "react-aria-components/RadioGroup";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
+import { useFocusRing } from "@react-aria/focus";
+import { mergeProps } from "@react-aria/utils";
 
-import './styles/Radio.css';
+import "./styles/Radio.css";
 
 export interface RadioProps extends AriaRadioProps {
-    children?: React.ReactNode;
+  children?: React.ReactNode;
 }
 
 /**
@@ -17,22 +17,18 @@ export interface RadioProps extends AriaRadioProps {
  * - tailwind-variants 제거
  * - data-focus-visible 속성 사용
  */
-export function Radio({
-    children,
-    ...props
-}: RadioProps) {
-    const { focusProps, isFocusVisible } = useFocusRing();
+export function Radio({ children, ...props }: RadioProps) {
+  const { focusProps, isFocusVisible } = useFocusRing();
 
-    return (
-        <AriaRadio
-            {...mergeProps(props, focusProps)}
-            data-focus-visible={isFocusVisible || undefined}
-            className={composeRenderProps(
-                props.className,
-                (className) => className ? `react-aria-Radio ${className}` : 'react-aria-Radio'
-            )}
-        >
-            {children}
-        </AriaRadio>
-    );
-} 
+  return (
+    <AriaRadio
+      {...mergeProps(props, focusProps)}
+      data-focus-visible={isFocusVisible || undefined}
+      className={composeRenderProps(props.className, (className) =>
+        className ? `react-aria-Radio ${className}` : "react-aria-Radio",
+      )}
+    >
+      {children}
+    </AriaRadio>
+  );
+}

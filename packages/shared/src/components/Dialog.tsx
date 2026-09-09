@@ -1,4 +1,4 @@
-import { Dialog as RACDialog, DialogProps } from "react-aria-components";
+import { Dialog as RACDialog, DialogProps } from "react-aria-components/Dialog";
 import type { ComponentSize } from "../types";
 import "./styles/generated/Dialog.css";
 

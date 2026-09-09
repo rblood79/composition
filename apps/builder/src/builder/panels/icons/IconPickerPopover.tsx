@@ -7,7 +7,9 @@
 
 import { memo, useCallback, useRef, useEffect, useState } from "react";
 import type { CSSProperties } from "react";
-import { Dialog, DialogTrigger, Popover, Input } from "react-aria-components";
+import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
+import { Popover } from "react-aria-components/Popover";
+import { Input } from "react-aria-components/Input";
 import { IconPreview } from "./components/IconPreview";
 import { useIconSearch } from "./hooks/useIconSearch";
 

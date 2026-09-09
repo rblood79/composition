@@ -10,11 +10,9 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import {
-  Checkbox as AriaCheckbox,
-  DialogTrigger,
-  Button as AriaButton,
-} from "react-aria-components";
+import { Checkbox as AriaCheckbox } from "react-aria-components/Checkbox";
+import { DialogTrigger } from "react-aria-components/Dialog";
+import { Button as AriaButton } from "react-aria-components/Button";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import type {

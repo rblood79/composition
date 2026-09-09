@@ -27,7 +27,8 @@ import {
   PinOff,
   RotateCcw,
 } from "lucide-react";
-import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
 import { Button, Toolbar } from "@composition/shared/components";
 import { useI18n } from "@/i18n";
 import { useStore } from "../../../stores";

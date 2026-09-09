@@ -12,7 +12,9 @@
 import { memo, useCallback } from "react";
 import { AlertTriangle, Merge, X } from "lucide-react";
 import { Button } from "@composition/shared/components";
-import { Dialog, DialogTrigger, Modal, Heading } from "react-aria-components";
+import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
+import { Modal } from "react-aria-components/Modal";
+import { Heading } from "react-aria-components/Heading";
 import type { ExistingSlotInfo, PresetApplyMode } from "./types";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../../config/actionIcons";

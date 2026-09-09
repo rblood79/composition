@@ -25,18 +25,17 @@
  */
 
 import { memo, useCallback, useMemo, useState } from "react";
+import { Button } from "react-aria-components/Button";
+import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
+import { Header } from "react-aria-components/Header";
+import { Input } from "react-aria-components/Input";
 import {
-  Button,
-  Dialog,
-  DialogTrigger,
-  Header,
-  Input,
   ListBox,
   ListBoxItem,
   ListBoxSection,
-  Popover,
-  type Key,
-} from "react-aria-components";
+} from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
+import type { Key } from "react-aria-components/Collection";
 import { ChevronDown, Settings2, Type } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";

@@ -4,7 +4,7 @@ import {
   SliderTrack,
   SliderThumb,
   SliderOutput,
-} from "react-aria-components";
+} from "react-aria-components/Slider";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   semanticLabelKeys,

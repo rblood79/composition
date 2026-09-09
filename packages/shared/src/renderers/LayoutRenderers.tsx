@@ -27,7 +27,7 @@ import {
   ColorSwatchPicker,
   ColorSwatchPickerItem,
 } from "../components/ColorSwatchPicker";
-import { parseColor } from "react-aria-components";
+import { parseColor } from "react-aria-components/ColorPicker";
 import { Slot } from "../components/Slot";
 import {
   resolveTextSourceText,

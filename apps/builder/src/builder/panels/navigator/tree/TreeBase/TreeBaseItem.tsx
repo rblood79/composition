@@ -1,5 +1,6 @@
 import React from "react";
-import { Collection, TreeItem, TreeItemContent } from "react-aria-components";
+import { Collection } from "react-aria-components/Collection";
+import { TreeItem, TreeItemContent } from "react-aria-components/Tree";
 import type { Key } from "react-stately";
 import type { BaseTreeNode, TreeItemState } from "./types";
 

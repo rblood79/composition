@@ -2,7 +2,7 @@
 
 import { useState, type Key } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { TabPanel, Tabs } from "react-aria-components";
+import { TabPanel, Tabs } from "react-aria-components/Tabs";
 import { afterEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "../../../i18n";
 import {

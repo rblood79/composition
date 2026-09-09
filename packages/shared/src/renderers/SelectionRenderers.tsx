@@ -11,13 +11,13 @@ import {
   Slider,
   Icon,
 } from "../components/list";
+import { ListBoxSection as AriaListBoxSection } from "react-aria-components/ListBox";
+import { Header as AriaHeader } from "react-aria-components/Header";
 import {
-  ListBoxSection as AriaListBoxSection,
-  Header as AriaHeader,
   GridListSection as AriaGridListSection,
   GridListHeader as AriaGridListHeader,
-  Text as AriaText,
-} from "react-aria-components";
+} from "react-aria-components/GridList";
+import { Text as AriaText } from "react-aria-components/Text";
 import { DataField } from "../components/Field";
 import { resolveSelectionBehavior } from "../components/selectionStyle";
 import {

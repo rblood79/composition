@@ -2,8 +2,8 @@ import React from "react";
 import {
   Modal as RACModal,
   ModalOverlayProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Modal";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { ContentFocusScope } from "./ContentFocusScope";
 import type { ComponentSize } from "../types";
 import "./styles/generated/Modal.css";

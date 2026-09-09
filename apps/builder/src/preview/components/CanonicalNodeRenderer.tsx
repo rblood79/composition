@@ -18,6 +18,7 @@
 
 import React from "react";
 import { resolveTextSourceText } from "@composition/specs";
+// catalog binding 이 RAC 컴포넌트 이름을 런타임에 고른다. 서브패스 정적 import 로는 대체할 수 없다.
 import * as RAC from "react-aria-components";
 import { rendererMap } from "@composition/shared/renderers";
 import { useRuntimeStore } from "../store";

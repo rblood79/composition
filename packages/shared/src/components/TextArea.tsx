@@ -16,16 +16,16 @@
  * size/labelPosition/quiet 가 여기서 빠지면 theme CSS 가 통째로 안 걸린다.
  */
 
+import { FieldError } from "react-aria-components/FieldError";
+import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
+import { TextArea as AriaTextArea } from "react-aria-components/TextArea";
 import {
-  FieldError,
-  Label,
-  Text,
-  TextArea as AriaTextArea,
   TextField as AriaTextField,
   TextFieldProps as AriaTextFieldProps,
   ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,

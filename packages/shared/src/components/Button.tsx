@@ -1,9 +1,9 @@
 import { forwardRef } from "react";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import {
-  composeRenderProps,
   Button as RACButton,
   ButtonProps as RACButtonProps,
-} from "react-aria-components";
+} from "react-aria-components/Button";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ButtonVariant, ComponentSize, StaticColor } from "../types";

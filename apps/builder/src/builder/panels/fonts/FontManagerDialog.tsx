@@ -10,13 +10,10 @@
  * 반대로 폰트 "선택" 은 고빈도라 Typography 섹션에 그대로 남는다.
  */
 
-import {
-  Button,
-  Dialog,
-  Heading,
-  Modal,
-  ModalOverlay,
-} from "react-aria-components";
+import { Button } from "react-aria-components/Button";
+import { Dialog } from "react-aria-components/Dialog";
+import { Heading } from "react-aria-components/Heading";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
 import { X } from "lucide-react";
 import { FONT_LIMITS } from "@composition/shared";
 import { iconProps } from "../../../utils/ui/uiConstants";

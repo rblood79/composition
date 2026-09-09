@@ -1,14 +1,10 @@
-import type {
-  ColorAreaProps,
-  ColorSliderProps,
-  ColorSwatchPickerProps,
-} from "react-aria-components";
-import {
-  ColorArea as AriaColorArea,
-  ColorSlider as AriaColorSlider,
-  SliderTrack,
-  ColorThumb,
-} from "react-aria-components";
+import type { ColorAreaProps } from "react-aria-components/ColorArea";
+import type { ColorSliderProps } from "react-aria-components/ColorSlider";
+import type { ColorSwatchPickerProps } from "react-aria-components/ColorSwatchPicker";
+import { ColorArea as AriaColorArea } from "react-aria-components/ColorArea";
+import { ColorSlider as AriaColorSlider } from "react-aria-components/ColorSlider";
+import { SliderTrack } from "react-aria-components/Slider";
+import { ColorThumb } from "react-aria-components/ColorThumb";
 
 import {
   MyColorSwatchPicker,

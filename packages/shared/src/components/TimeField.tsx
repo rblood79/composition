@@ -5,18 +5,17 @@
  * Sizes: sm, md, lg
  */
 
+import { DateInput, DateSegment } from "react-aria-components/DateField";
+import { FieldError } from "react-aria-components/FieldError";
+import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
 import {
-  DateInput,
-  DateSegment,
-  FieldError,
-  Label,
-  Text,
   TimeField as AriaTimeField,
   TimeFieldProps as AriaTimeFieldProps,
   TimeValue,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/TimeField";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { Time } from "@internationalized/date";
 import type { ComponentSize } from "../types";
 import {

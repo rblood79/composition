@@ -6,14 +6,14 @@
  */
 
 import React from "react";
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   GridList as AriaGridList,
   GridListItem as AriaGridListItem,
   GridListItemProps,
   GridListProps,
-  Text,
-} from "react-aria-components";
+} from "react-aria-components/GridList";
+import { Text } from "react-aria-components/Text";
 import { MyCheckbox } from "./Checkbox";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 

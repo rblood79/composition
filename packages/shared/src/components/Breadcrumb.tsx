@@ -1,8 +1,8 @@
 import {
   Breadcrumb as RACBreadcrumb,
   BreadcrumbProps,
-  Link,
-} from "react-aria-components";
+} from "react-aria-components/Breadcrumbs";
+import { Link } from "react-aria-components/Link";
 import "./styles/Breadcrumbs.css";
 
 export interface BreadcrumbItemProps extends BreadcrumbProps {

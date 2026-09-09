@@ -14,7 +14,7 @@ import {
   type Key,
 } from "react";
 import { FileText, ListTree } from "lucide-react";
-import { TabPanel, Tabs } from "react-aria-components";
+import { TabPanel, Tabs } from "react-aria-components/Tabs";
 import { useParams } from "react-router";
 import "./NavigatorPanel.css";
 import { useStore } from "../../stores";

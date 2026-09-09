@@ -1,16 +1,12 @@
 import React from "react";
 import {
   FieldErrorProps,
-  Group,
-  GroupProps,
-  InputProps,
-  LabelProps,
   FieldError as RACFieldError,
-  Input as RACInput,
-  Label as RACLabel,
-  TextProps,
-  Text as RACText,
-} from "react-aria-components";
+} from "react-aria-components/FieldError";
+import { Group, GroupProps } from "react-aria-components/Group";
+import { InputProps, Input as RACInput } from "react-aria-components/Input";
+import { LabelProps, Label as RACLabel } from "react-aria-components/Label";
+import { TextProps, Text as RACText } from "react-aria-components/Text";
 import type { FieldType } from "../types";
 
 import "./styles/Field.css";

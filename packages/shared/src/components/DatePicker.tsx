@@ -1,24 +1,25 @@
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   Calendar,
   CalendarCell,
   CalendarGrid,
-  DateInput,
+  DateValue,
+} from "react-aria-components/Calendar";
+import { DateInput, DateSegment } from "react-aria-components/DateField";
+import {
   DatePicker as AriaDatePicker,
   DatePickerProps as AriaDatePickerProps,
-  DateSegment,
-  DateValue,
-  FieldError,
-  Group,
-  Heading,
-  I18nProvider,
-  Label,
-  Popover,
-  Text,
-  TimeField,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/DatePicker";
+import { FieldError } from "react-aria-components/FieldError";
+import { Group } from "react-aria-components/Group";
+import { Heading } from "react-aria-components/Heading";
+import { I18nProvider } from "react-aria-components/I18nProvider";
+import { Label } from "react-aria-components/Label";
+import { Popover } from "react-aria-components/Popover";
+import { Text } from "react-aria-components/Text";
+import { TimeField } from "react-aria-components/TimeField";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getLocalTimeZone, today, now } from "@internationalized/date";

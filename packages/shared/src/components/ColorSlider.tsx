@@ -1,9 +1,9 @@
 import {
   ColorSlider as AriaColorSlider,
   ColorSliderProps as AriaColorSliderProps,
-  SliderTrack,
-  ColorThumb,
-} from "react-aria-components";
+} from "react-aria-components/ColorSlider";
+import { SliderTrack } from "react-aria-components/Slider";
+import { ColorThumb } from "react-aria-components/ColorThumb";
 
 import "./styles/ColorSlider.css";
 

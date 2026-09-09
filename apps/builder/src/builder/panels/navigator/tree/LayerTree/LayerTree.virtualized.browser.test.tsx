@@ -1,6 +1,6 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import { afterEach, expect, it, vi } from "vitest";
 import { userEvent } from "vitest/browser";
 import { I18nProvider } from "@/i18n";

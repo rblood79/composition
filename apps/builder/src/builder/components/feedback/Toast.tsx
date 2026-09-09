@@ -6,7 +6,7 @@
  */
 
 import { X, CircleAlert, AlertTriangle, CircleCheck, Info } from "lucide-react";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import {
   useToastStore,

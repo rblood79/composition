@@ -8,8 +8,8 @@
 import {
   Checkbox as AriaCheckbox,
   CheckboxProps as AriaCheckboxProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Checkbox";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { CheckIcon, Minus } from "lucide-react";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";

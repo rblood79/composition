@@ -15,16 +15,12 @@ import {
   LayoutDashboard,
   Settings,
 } from "lucide-react";
-import {
-  MenuTrigger,
-  Menu,
-  MenuItem,
-  Popover,
-  Separator,
-  Keyboard,
-  Button,
-} from "react-aria-components";
-import type { Key } from "react-aria-components";
+import { MenuTrigger, Menu, MenuItem } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
+import { Separator } from "react-aria-components/Separator";
+import { Keyboard } from "react-aria-components/Keyboard";
+import { Button } from "react-aria-components/Button";
+import type { Key } from "react-aria-components/Collection";
 import {
   ToggleButtonGroup,
   ToggleButton,

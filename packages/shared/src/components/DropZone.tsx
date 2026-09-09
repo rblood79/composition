@@ -1,14 +1,14 @@
 import {
   DropZone as AriaDropZone,
   DropZoneProps as AriaDropZoneProps,
-  Text,
-  composeRenderProps
-} from 'react-aria-components';
+} from "react-aria-components/DropZone";
+import { Text } from "react-aria-components/Text";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 
-import { Upload } from 'lucide-react';
-import type { ComponentSize } from '../types';
+import { Upload } from "lucide-react";
+import type { ComponentSize } from "../types";
 
-import './styles/generated/DropZone.css';
+import "./styles/generated/DropZone.css";
 
 export interface DropZoneProps extends AriaDropZoneProps {
   /**
@@ -41,7 +41,7 @@ export interface DropZoneProps extends AriaDropZoneProps {
  * </DropZone>
  */
 export function DropZone({
-  size = 'md',
+  size = "md",
   label,
   description,
   children,
@@ -50,20 +50,16 @@ export function DropZone({
   const dropZoneClassName = composeRenderProps(
     props.className,
     (className, renderProps) => {
-      const classes = ['react-aria-DropZone'];
+      const classes = ["react-aria-DropZone"];
       if (className) classes.push(className);
-      if (renderProps.isDropTarget) classes.push('is-drop-target');
-      if (renderProps.isFocusVisible) classes.push('is-focus-visible');
-      return classes.join(' ');
-    }
+      if (renderProps.isDropTarget) classes.push("is-drop-target");
+      if (renderProps.isFocusVisible) classes.push("is-focus-visible");
+      return classes.join(" ");
+    },
   );
 
   return (
-    <AriaDropZone
-      {...props}
-      className={dropZoneClassName}
-      data-size={size}
-    >
+    <AriaDropZone {...props} className={dropZoneClassName} data-size={size}>
       {children || (
         <div className="dropzone-content">
           <Upload className="dropzone-icon" />

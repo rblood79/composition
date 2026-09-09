@@ -5,18 +5,18 @@
  * Sizes: sm, md, lg
  */
 
+import { Button } from "react-aria-components/Button";
+import { FieldError } from "react-aria-components/FieldError";
+import { Group } from "react-aria-components/Group";
+import { Input } from "react-aria-components/Input";
+import { Label } from "react-aria-components/Label";
 import {
-  Button,
-  FieldError,
-  Group,
-  Input,
-  Label,
   NumberField as AriaNumberField,
   NumberFieldProps as AriaNumberFieldProps,
-  Text,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/NumberField";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 import { Plus, Minus } from "lucide-react";
 import {

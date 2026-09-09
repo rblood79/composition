@@ -10,7 +10,7 @@
 
 import { useState, useCallback } from "react";
 import { Check, Square, CheckSquare, Table2, Upload } from "lucide-react";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import type { DetectedColumn } from "../utils/columnDetector";
 import "./ColumnSelector.css";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";

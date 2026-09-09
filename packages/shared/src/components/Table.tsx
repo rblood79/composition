@@ -17,7 +17,7 @@ import {
   Tag,
   TagGroup as AriaTagGroup,
   TagList as AriaTagList,
-} from "react-aria-components";
+} from "react-aria-components/TagGroup";
 import { classifyTableCellDisplay } from "../collections/cellValue";
 import "./styles/TagGroup.css";
 import { Button, Select, SelectItem } from "./list";

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Color } from "react-aria-components";
+import type { Color } from "react-aria-components/ColorPicker";
 import type { PreviewElement, RenderContext } from "../types";
 import { ColorField } from "../components/ColorField";
 import { resolveInheritedFormFieldProps } from "./FormRenderers";

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import {
   ChevronRight,
   File,

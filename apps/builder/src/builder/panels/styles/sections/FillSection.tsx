@@ -23,7 +23,8 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DialogTrigger, Button as AriaButton } from "react-aria-components";
+import { DialogTrigger } from "react-aria-components/Dialog";
+import { Button as AriaButton } from "react-aria-components/Button";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { PropertySection } from "../../../components";

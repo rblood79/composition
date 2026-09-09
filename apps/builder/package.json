@@ -54,6 +54,7 @@
   },
   "devDependencies": {
     "@composition/config": "workspace:*",
+    "@react-aria/optimize-locales-plugin": "catalog:",
     "@tailwindcss/postcss": "^4.3.3",
     "@testing-library/react": "^16.3.2",
     "@types/node": "catalog:",

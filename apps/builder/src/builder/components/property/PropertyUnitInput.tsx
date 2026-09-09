@@ -1,12 +1,9 @@
 import React, { useRef, memo, useState, useMemo, useEffect } from "react";
-import {
-  ComboBox as AriaComboBox,
-  Button,
-  Input,
-  ListBox,
-  ListBoxItem,
-  Popover,
-} from "react-aria-components";
+import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
+import { Button } from "react-aria-components/Button";
+import { Input } from "react-aria-components/Input";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";

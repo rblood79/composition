@@ -6,13 +6,9 @@
  * 텍스트 자체의 저장 규약은 PropertyInput 과 동일 (blur/Enter commit).
  */
 import React, { useRef, useState } from "react";
-import {
-  Button,
-  Menu,
-  MenuItem,
-  MenuTrigger,
-  Popover,
-} from "react-aria-components";
+import { Button } from "react-aria-components/Button";
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
 import { Braces } from "lucide-react";
 import { iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";

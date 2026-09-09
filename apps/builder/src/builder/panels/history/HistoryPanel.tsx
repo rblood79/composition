@@ -14,7 +14,8 @@ import {
   Undo,
   type LucideIcon,
 } from "lucide-react";
-import { Menu, MenuItem, MenuTrigger, Popover } from "react-aria-components";
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
 import { ACTION_ICONS } from "../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본. */

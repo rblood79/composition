@@ -1,16 +1,16 @@
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   Menu,
   MenuItem as AriaMenuItem,
   MenuItemProps,
   MenuProps,
   MenuTrigger,
   MenuTriggerProps,
-  Popover,
-  Selection,
   SubmenuTrigger,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
+import { Selection } from "react-aria-components/ListBox";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type {
   ComponentSize,
   DataBinding,

@@ -18,7 +18,7 @@
  */
 
 import { Frame, Paintbrush, PencilRuler, Smartphone, Type } from "lucide-react";
-import { Tab, TabList } from "react-aria-components";
+import { Tab, TabList } from "react-aria-components/Tabs";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import type { StyleGroupId, StyleViewId } from "../constants/styleGroups";
 import { isStyleGroupId, STYLE_VIEW_IDS } from "../constants/styleGroups";
@@ -68,10 +68,7 @@ export function StylesPanelTabs({
   };
 
   return (
-    <TabList
-      className="panel-tablist"
-      aria-label={t("styles.view")}
-    >
+    <TabList className="panel-tablist" aria-label={t("styles.view")}>
       {STYLE_VIEW_IDS.map((id) => {
         const { label, hint, Icon } = viewMeta[id];
         const isGroup = isStyleGroupId(id);

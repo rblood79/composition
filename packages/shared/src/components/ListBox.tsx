@@ -26,8 +26,8 @@ import {
   ListBoxItem as AriaListBoxItem,
   ListBoxItemProps,
   ListBoxProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/ListBox";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 

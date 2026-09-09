@@ -6,7 +6,7 @@ import {
   DateField,
   TimeField,
 } from "../components/list";
-import { I18nProvider } from "react-aria-components";
+import { I18nProvider } from "react-aria-components/I18nProvider";
 import type { PreviewElement, RenderContext } from "../types";
 import { resolvePropagatedText } from "./utils/propagatedLabel";
 import { today, now, getLocalTimeZone, Time } from "@internationalized/date";

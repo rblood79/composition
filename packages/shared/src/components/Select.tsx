@@ -6,21 +6,23 @@
  */
 
 import React, { useRef, useState, useEffect } from "react";
+import { Button } from "react-aria-components/Button";
+import { FieldError } from "react-aria-components/FieldError";
+import { Label } from "react-aria-components/Label";
 import {
-  Button,
-  FieldError,
-  Label,
   ListBox,
   ListBoxItem,
   ListBoxItemProps,
-  Popover,
+} from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
+import {
   Select as AriaSelect,
   SelectProps as AriaSelectProps,
   SelectValue,
-  Text,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Select";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { getIconData } from "@composition/specs";
 import type {
   ComponentSize,

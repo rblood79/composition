@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Tree as AriaTree } from "react-aria-components";
+import { Tree as AriaTree } from "react-aria-components/Tree";
 import { describe, expect, it } from "vitest";
 
 import { Tree, TreeItem } from "../Tree";

@@ -216,7 +216,7 @@ describe("NavigatorPanel shared panel style contract", () => {
         readFile(resolve(__dirname, "PagesSection.tsx"), "utf-8"),
       ]);
 
-    expect(treeBaseSource).toContain('from "react-aria-components"');
+    expect(treeBaseSource).toMatch(/from "react-aria-components\//);
     expect(treeBaseSource).not.toContain("@composition/shared/components/Tree");
     expect(treeBaseSource).not.toContain("data-composition-tree");
     expect(virtualizedTreeSource).toContain("className={`virtual-tree-item");

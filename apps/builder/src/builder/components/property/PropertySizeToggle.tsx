@@ -1,5 +1,5 @@
 import { memo, useCallback } from "react";
-import type { Key } from "react-aria-components";
+import type { Key } from "react-aria-components/Collection";
 import {
   ToggleButton,
   ToggleButtonGroup,

@@ -1,12 +1,11 @@
 import React, { memo, useState, useCallback } from "react";
 import {
   Select as AriaSelect,
-  Button,
   SelectValue,
-  Popover,
-  ListBox,
-  ListBoxItem,
-} from "react-aria-components";
+} from "react-aria-components/Select";
+import { Button } from "react-aria-components/Button";
+import { Popover } from "react-aria-components/Popover";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";

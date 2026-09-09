@@ -1,12 +1,12 @@
+import { Label } from "react-aria-components/Label";
 import {
-  Label,
   Slider as AriaSlider,
   SliderOutput,
   SliderProps as AriaSliderProps,
   SliderThumb,
   SliderTrack,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Slider";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset } from "../types";
 import { formatNumber } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";

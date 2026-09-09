@@ -8,8 +8,8 @@
 import {
   Switch as AriaSwitch,
   SwitchProps as AriaSwitchProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Switch";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";

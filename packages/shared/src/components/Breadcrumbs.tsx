@@ -2,8 +2,8 @@ import {
   Breadcrumbs as RACBreadcrumbs,
   BreadcrumbsProps,
   Breadcrumb,
-  Link,
-} from "react-aria-components";
+} from "react-aria-components/Breadcrumbs";
+import { Link } from "react-aria-components/Link";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";

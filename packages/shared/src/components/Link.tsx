@@ -1,8 +1,8 @@
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import {
-  composeRenderProps,
   Link as RACLink,
   LinkProps as RACLinkProps,
-} from "react-aria-components";
+} from "react-aria-components/Link";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { LinkVariant, ComponentSize, StaticColor } from "../types";

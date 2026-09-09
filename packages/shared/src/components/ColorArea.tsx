@@ -1,8 +1,8 @@
 import {
   ColorArea as AriaColorArea,
   ColorAreaProps as AriaColorAreaProps,
-  ColorThumb,
-} from "react-aria-components";
+} from "react-aria-components/ColorArea";
+import { ColorThumb } from "react-aria-components/ColorThumb";
 
 import "./styles/ColorArea.css";
 

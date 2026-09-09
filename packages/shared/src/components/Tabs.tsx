@@ -8,10 +8,10 @@ import {
   TabProps,
   TabPanel as RACTabPanel,
   TabPanelProps,
-  SelectionIndicator,
-  SharedElementTransition,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Tabs";
+import { SelectionIndicator } from "react-aria-components/SelectionIndicator";
+import { SharedElementTransition } from "react-aria-components/SharedElementTransition";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type {
   ComponentSize,
   DataBinding,
@@ -192,7 +192,9 @@ export function Tabs({
           <RACTabList className="react-aria-TabList">
             <RACTab className="react-aria-Tab">{t("loading")}</RACTab>
           </RACTabList>
-          <RACTabPanel className="react-aria-TabPanel">{t("loadingPlain")}</RACTabPanel>
+          <RACTabPanel className="react-aria-TabPanel">
+            {t("loadingPlain")}
+          </RACTabPanel>
         </RACTabs>
       );
     }
@@ -240,7 +242,9 @@ export function Tabs({
           <RACTabList className="react-aria-TabList">
             <RACTab className="react-aria-Tab">{t("loading")}</RACTab>
           </RACTabList>
-          <RACTabPanel className="react-aria-TabPanel">{t("loadingPlain")}</RACTabPanel>
+          <RACTabPanel className="react-aria-TabPanel">
+            {t("loadingPlain")}
+          </RACTabPanel>
         </RACTabs>
       );
     }

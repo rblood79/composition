@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 import type { Key } from "react-stately";
-import { ListLayout, Virtualizer } from "react-aria-components";
+import { ListLayout, Virtualizer } from "react-aria-components/Virtualizer";
 import { TreeBase } from "../TreeBase";
 import type { TreeBaseDndConfig, TreeItemState } from "../TreeBase/types";
 import type { PanelNode } from "../../../panelNode";

@@ -8,7 +8,7 @@
  */
 
 import { memo, useCallback } from "react";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import { X } from "lucide-react";
 import { IconPreview } from "../../panels/icons/components/IconPreview";
 import { IconPickerPopover } from "../../panels/icons/IconPickerPopover";

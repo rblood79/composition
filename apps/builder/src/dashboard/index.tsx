@@ -17,14 +17,10 @@ import {
   ToggleButtonGroup,
   ToggleButton,
 } from "@composition/shared/components";
-import {
-  Button as AriaButton,
-  Menu,
-  MenuItem,
-  MenuTrigger,
-  Popover,
-} from "react-aria-components";
-import type { Key } from "react-aria-components";
+import { Button as AriaButton } from "react-aria-components/Button";
+import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
+import { Popover } from "react-aria-components/Popover";
+import type { Key } from "react-aria-components/Collection";
 import { useAsyncMutation } from "../builder/hooks/useAsyncMutation";
 import {
   formatShortcut,

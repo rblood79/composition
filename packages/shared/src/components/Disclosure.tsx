@@ -1,11 +1,11 @@
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   Disclosure as AriaDisclosure,
   DisclosurePanel,
   DisclosureProps as AriaDisclosureProps,
-  Heading,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Disclosure";
+import { Heading } from "react-aria-components/Heading";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 
 import "./styles/generated/Disclosure.css";
@@ -64,11 +64,7 @@ export function Disclosure({
   );
 
   return (
-    <AriaDisclosure
-      {...props}
-      className={disclosureClassName}
-      data-size={size}
-    >
+    <AriaDisclosure {...props} className={disclosureClassName} data-size={size}>
       <Heading>
         <Button slot="trigger">
           <svg viewBox="0 0 24 24" className="disclosure-chevron">

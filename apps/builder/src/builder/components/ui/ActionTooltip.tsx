@@ -11,7 +11,8 @@
  * 대신 아예 툴팁이 없었다.
  */
 
-import { Tooltip, TooltipTrigger, OverlayArrow } from "react-aria-components";
+import { Tooltip, TooltipTrigger } from "react-aria-components/Tooltip";
+import { OverlayArrow } from "react-aria-components/Popover";
 import type { ReactElement, ReactNode } from "react";
 import { type ShortcutId } from "../../config/keyboardShortcuts";
 import { useI18n } from "@/i18n";

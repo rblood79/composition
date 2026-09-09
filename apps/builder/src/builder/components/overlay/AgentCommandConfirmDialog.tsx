@@ -9,13 +9,10 @@
 import { useEffect, useState } from "react";
 import { SHORTCUT_DEFINITIONS } from "../../config/keyboardShortcuts";
 import { formatShortcut } from "../../hooks/useKeyboardShortcutsRegistry";
-import {
-  Button,
-  Dialog,
-  Heading,
-  Modal,
-  ModalOverlay,
-} from "react-aria-components";
+import { Button } from "react-aria-components/Button";
+import { Dialog } from "react-aria-components/Dialog";
+import { Heading } from "react-aria-components/Heading";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
 import { ShieldAlert } from "lucide-react";
 import {
   resolveAgentCommandConfirmation,

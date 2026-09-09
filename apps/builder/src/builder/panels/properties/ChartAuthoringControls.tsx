@@ -1,5 +1,5 @@
 import "./ChartAuthoringControls.css";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import { memo, useState } from "react";
 import {
   CHART_DESCRIPTORS,

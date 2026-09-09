@@ -12,7 +12,7 @@
 
 import React, { useCallback, useMemo } from "react";
 import type { Key } from "react-stately";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import { Minimize, ChevronRight, Box, Layers3, Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 

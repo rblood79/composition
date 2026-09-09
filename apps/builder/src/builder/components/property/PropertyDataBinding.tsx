@@ -19,12 +19,11 @@
 import React, { useCallback, memo } from "react";
 import {
   Select as AriaSelect,
-  Button,
   SelectValue,
-  Popover,
-  ListBox,
-  ListBoxItem,
-} from "react-aria-components";
+} from "react-aria-components/Select";
+import { Button } from "react-aria-components/Button";
+import { Popover } from "react-aria-components/Popover";
+import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { ChevronDown, Link2, X } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";

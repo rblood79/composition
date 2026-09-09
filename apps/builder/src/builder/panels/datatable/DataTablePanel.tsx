@@ -20,7 +20,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { Table2, Globe, Variable, RefreshCw, Database } from "lucide-react";
-import { Tab, TabList, TabPanel, Tabs } from "react-aria-components";
+import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";
 import { useDataStore } from "../../stores/data";

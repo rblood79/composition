@@ -8,17 +8,11 @@
  */
 
 import { useState, useMemo, useCallback } from "react";
-import {
-  Dialog,
-  DialogTrigger,
-  Modal,
-  ModalOverlay,
-  Heading,
-  Button,
-  Tab,
-  TabList,
-  Tabs,
-} from "react-aria-components";
+import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
+import { Heading } from "react-aria-components/Heading";
+import { Button } from "react-aria-components/Button";
+import { Tab, TabList, Tabs } from "react-aria-components/Tabs";
 import {
   X,
   User,

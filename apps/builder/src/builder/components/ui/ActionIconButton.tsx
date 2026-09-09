@@ -1,9 +1,11 @@
 import {
   Button as RACButton,
   type ButtonProps as RACButtonProps,
+} from "react-aria-components/Button";
+import {
   ToggleButton as RACToggleButton,
   type ToggleButtonProps as RACToggleButtonProps,
-} from "react-aria-components";
+} from "react-aria-components/ToggleButton";
 import type { ShortcutId } from "../../config/keyboardShortcuts";
 import { ActionTooltipTrigger } from "./ActionTooltip";
 import "./ActionIconButton.css";

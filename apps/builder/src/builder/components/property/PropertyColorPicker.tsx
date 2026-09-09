@@ -5,7 +5,7 @@
 
 import { useState } from "react";
 import { TAILWIND_PALETTE } from "@composition/specs";
-import { parseColor, type Color } from "react-aria-components";
+import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { MyColorSwatches } from "@composition/shared/components/TailSwatch";
 import { Paintbrush } from "lucide-react";
 import { iconEditProps } from "../../../utils/ui/uiConstants";

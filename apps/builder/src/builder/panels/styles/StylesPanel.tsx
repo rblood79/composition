@@ -13,7 +13,7 @@
  */
 
 import { useState, useMemo, useCallback, memo, type ReactElement } from "react";
-import { Tabs, TabPanel } from "react-aria-components";
+import { Tabs, TabPanel } from "react-aria-components/Tabs";
 import { useStore, useDebouncedSelectedElementData } from "../../stores";
 import { ActionIconButton } from "../../components/ui";
 import { PaintRoller } from "lucide-react";

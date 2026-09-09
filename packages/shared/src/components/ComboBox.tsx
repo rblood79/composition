@@ -6,20 +6,22 @@
  */
 
 import React, { useRef, useState, useEffect } from "react";
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   ComboBox as AriaComboBox,
   ComboBoxProps as AriaComboBoxProps,
-  FieldError,
-  Input,
-  Label,
+} from "react-aria-components/ComboBox";
+import { FieldError } from "react-aria-components/FieldError";
+import { Input } from "react-aria-components/Input";
+import { Label } from "react-aria-components/Label";
+import {
   ListBox,
   ListBoxItem,
   ListBoxItemProps,
-  Popover,
-  Text,
-  ValidationResult,
-} from "react-aria-components";
+} from "react-aria-components/ListBox";
+import { Popover } from "react-aria-components/Popover";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
 import { getIconData } from "@composition/specs";
 import type { ComponentSize } from "../types";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
@@ -318,7 +320,11 @@ export function ComboBox<T extends object>({
       </div>
       {description && <Text slot="description">{description}</Text>}
       {isLoadingState && <Text slot="description">{t("loadingData")}</Text>}
-      {isErrorState && <FieldError>{t("errorWithMessage", { message: String(error) })}</FieldError>}
+      {isErrorState && (
+        <FieldError>
+          {t("errorWithMessage", { message: String(error) })}
+        </FieldError>
+      )}
       {errorMessage && !isErrorState && <FieldError>{errorMessage}</FieldError>}
       {shouldRenderPopover && (
         <Popover

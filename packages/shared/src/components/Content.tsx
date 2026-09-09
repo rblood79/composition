@@ -1,11 +1,10 @@
 import {
   Heading as AriaHeading,
   HeadingProps,
-  Text as AriaText,
-  TextProps,
-} from "react-aria-components";
+} from "react-aria-components/Heading";
+import { Text as AriaText, TextProps } from "react-aria-components/Text";
 
-import './styles/Content.css';
+import "./styles/Content.css";
 
 export function Heading(props: HeadingProps) {
   return <AriaHeading {...props} className="react-aria-Heading" />;

@@ -9,6 +9,7 @@ catalogs:
     '@internationalized/number': ^3.6.8
     '@react-aria/focus': ^3.22.1
     '@react-aria/i18n': ^3.13.1
+    '@react-aria/optimize-locales-plugin': ^2.0.2
     '@react-aria/utils': ^3.34.1
     '@tanstack/react-query': ^5.101.4
     '@tanstack/react-table': ^8.21.3

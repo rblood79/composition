@@ -5,17 +5,17 @@
  * React Aria SearchField 기반
  */
 
+import { Button } from "react-aria-components/Button";
+import { FieldError } from "react-aria-components/FieldError";
+import { Input } from "react-aria-components/Input";
+import { Label } from "react-aria-components/Label";
 import {
-  Button,
-  FieldError,
-  Input,
-  Label,
   SearchField as AriaSearchField,
   SearchFieldProps as AriaSearchFieldProps,
-  Text,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/SearchField";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 import { getIconData } from "@composition/specs";
 import { resolveTriggerIconSize } from "../catalog/resolvers/resolveTriggerIconSize";

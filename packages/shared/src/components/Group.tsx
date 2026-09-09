@@ -8,9 +8,16 @@
  */
 
 import { ReactNode } from "react";
-import { Group as AriaGroup, type GroupProps as AriaGroupProps, composeRenderProps } from "react-aria-components";
+import {
+  Group as AriaGroup,
+  type GroupProps as AriaGroupProps,
+} from "react-aria-components/Group";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 
-export interface GroupProps extends Omit<AriaGroupProps, 'className' | 'style'> {
+export interface GroupProps extends Omit<
+  AriaGroupProps,
+  "className" | "style"
+> {
   /** Group content (children elements) */
   children?: ReactNode;
   /** CSS class name */

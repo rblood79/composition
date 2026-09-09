@@ -13,7 +13,7 @@ import {
   ColorPicker as AriaColorPicker,
   parseColor,
   type Color,
-} from "react-aria-components";
+} from "react-aria-components/ColorPicker";
 import { ColorArea } from "@composition/shared/components/ColorArea";
 import { ColorSlider } from "@composition/shared/components/ColorSlider";
 import { ColorInputModeSelector } from "./ColorInputModeSelector";

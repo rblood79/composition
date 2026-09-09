@@ -13,7 +13,7 @@ import {
   ToggleButton,
   ToggleButtonGroup,
 } from "@composition/shared/components";
-import { Input } from "react-aria-components";
+import { Input } from "react-aria-components/Input";
 import { SwatchIconButton } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {

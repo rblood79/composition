@@ -5,12 +5,12 @@
  * Based on React Aria Components ProgressBar
  */
 
+import { Label } from "react-aria-components/Label";
 import {
-  Label,
   ProgressBar as AriaProgressBar,
   ProgressBarProps as AriaProgressBarProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/ProgressBar";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSizeSubset } from "../types";
 import { formatPercent } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";

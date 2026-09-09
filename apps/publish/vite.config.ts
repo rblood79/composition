@@ -1,10 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import optimizeLocales from "@react-aria/optimize-locales-plugin";
 
 const dir = import.meta.dirname;
 
+/** Publish 런타임 i18n 과 같은 en-US / ko-KR 만 RAC 문자열에 남긴다. */
+function racLocalesPlugin() {
+  return {
+    ...optimizeLocales.vite({ locales: ["en-US", "ko-KR"] }),
+    enforce: "pre" as const,
+  };
+}
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [racLocalesPlugin(), react()],
   resolve: {
     alias: {
       "@composition/shared/components": `${dir}/../../packages/shared/src/components/index.ts`,

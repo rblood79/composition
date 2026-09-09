@@ -1,9 +1,9 @@
+import { OverlayArrow } from "react-aria-components/Popover";
 import {
-  OverlayArrow,
   Tooltip as AriaTooltip,
   TooltipProps as AriaTooltipProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Tooltip";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 
 import "./styles/Tooltip.css";

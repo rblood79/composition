@@ -7,11 +7,9 @@
 
 import { memo, useCallback } from "react";
 import { SwatchBook, Check, Sun, Moon } from "lucide-react";
-import {
-  Button,
-  ToggleButton as RAToggleButton,
-  parseColor,
-} from "react-aria-components";
+import { Button } from "react-aria-components/Button";
+import { ToggleButton as RAToggleButton } from "react-aria-components/ToggleButton";
+import { parseColor } from "react-aria-components/ColorPicker";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {

@@ -1,10 +1,7 @@
 import React, { memo, useCallback } from "react";
-import {
-  DialogTrigger,
-  Button as AriaButton,
-  parseColor,
-  type Color,
-} from "react-aria-components";
+import { DialogTrigger } from "react-aria-components/Dialog";
+import { Button as AriaButton } from "react-aria-components/Button";
+import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { ColorPickerPanel } from "../../panels/styles/components/ColorPickerPanel";

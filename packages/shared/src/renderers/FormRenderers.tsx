@@ -21,7 +21,7 @@ import {
   DropZone,
 } from "../components/list";
 import { MyColorSwatches } from "../components/TailSwatch";
-import { parseColor, type Color } from "react-aria-components";
+import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import type { ElementProps, PreviewElement, RenderContext } from "../types";
 import { getSelectedChildIds } from "./selection";
 

@@ -15,7 +15,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { Button } from "react-aria-components";
+import { Button } from "react-aria-components/Button";
 import {
   User,
   Key,

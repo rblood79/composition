@@ -2,8 +2,8 @@ import {
   OverlayArrow,
   Popover as AriaPopover,
   PopoverProps as AriaPopoverProps,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Popover";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { ContentFocusScope } from "./ContentFocusScope";
 import type { ComponentSize } from "../types";
 

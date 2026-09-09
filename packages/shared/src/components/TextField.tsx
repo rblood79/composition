@@ -5,16 +5,16 @@
  * Sizes: sm, md, lg
  */
 
+import { FieldError } from "react-aria-components/FieldError";
+import { Input } from "react-aria-components/Input";
+import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
 import {
-  FieldError,
-  Input,
-  Label,
-  Text,
   TextField as AriaTextField,
   TextFieldProps as AriaTextFieldProps,
   ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 import {
   type NecessityIndicator,

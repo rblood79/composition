@@ -12,7 +12,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { Key } from "react-aria-components";
+import type { Key } from "react-aria-components/Collection";
 import {
   PropertySection,
   PropertyUnitInput,

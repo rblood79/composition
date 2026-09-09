@@ -1,18 +1,18 @@
 import React, { JSX, useState, useRef, useEffect, useCallback } from "react";
 import { flushSync } from "react-dom";
+import { Button } from "react-aria-components/Button";
+import { Label } from "react-aria-components/Label";
 import {
-  Button,
-  Label,
   Tag as AriaTag,
   TagGroup as AriaTagGroup,
   TagGroupProps as AriaTagGroupProps,
   TagList,
   TagListProps,
   TagProps,
-  Text,
-  type Key,
-  type Selection,
-} from "react-aria-components";
+} from "react-aria-components/TagGroup";
+import { Text } from "react-aria-components/Text";
+import type { Key } from "react-aria-components/Collection";
+import type { Selection } from "react-aria-components/ListBox";
 import { X } from "lucide-react";
 // chip leading icon glyph — DOM 아이콘은 프로젝트 관례상 고정 크기(14px), Skia 는
 //   Tag rule `sizes[*].iconSize`(전 size 14)로 같은 값을 쓴다.
@@ -342,7 +342,9 @@ export function TagGroup<T extends object>({
         >
           {label && <Label>{label}</Label>}
           <TagList className="react-aria-TagList">
-            <AriaTag textValue={t("errorLabel")}>{t("errorWithMessage", { message: String(error) })}</AriaTag>
+            <AriaTag textValue={t("errorLabel")}>
+              {t("errorWithMessage", { message: String(error) })}
+            </AriaTag>
           </TagList>
           {description && <Text slot="description">{description}</Text>}
         </AriaTagGroup>
@@ -453,7 +455,9 @@ export function TagGroup<T extends object>({
         >
           {label && <Label>{label}</Label>}
           <TagList className="react-aria-TagList">
-            <AriaTag textValue={t("errorLabel")}>{t("errorWithMessage", { message: String(error) })}</AriaTag>
+            <AriaTag textValue={t("errorLabel")}>
+              {t("errorWithMessage", { message: String(error) })}
+            </AriaTag>
           </TagList>
           {description && <Text slot="description">{description}</Text>}
         </AriaTagGroup>

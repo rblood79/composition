@@ -1,11 +1,8 @@
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Dialog,
-  Heading,
-  Modal,
-  ModalOverlay,
-} from "react-aria-components";
+import { Button } from "react-aria-components/Button";
+import { Dialog } from "react-aria-components/Dialog";
+import { Heading } from "react-aria-components/Heading";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
 import { AlertTriangle } from "lucide-react";
 import {
   resolveEditingSemanticsImpactConfirmation,
@@ -101,10 +98,7 @@ export function EditingSemanticsImpactDialogHost() {
             )}
           </div>
           <div className="editing-impact-actions">
-            <Button
-              className="control-button"
-              onPress={handleCancel}
-            >
+            <Button className="control-button" onPress={handleCancel}>
               Cancel
             </Button>
             <Button

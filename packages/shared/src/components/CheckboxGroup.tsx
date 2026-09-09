@@ -1,13 +1,13 @@
+import { Checkbox as AriaCheckbox } from "react-aria-components/Checkbox";
 import {
-  Checkbox as AriaCheckbox,
   CheckboxGroup as AriaCheckboxGroup,
   CheckboxGroupProps as AriaCheckboxGroupProps,
-  FieldError,
-  Label,
-  Text,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/CheckboxGroup";
+import { FieldError } from "react-aria-components/FieldError";
+import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { CheckIcon, Minus } from "lucide-react";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 

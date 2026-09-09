@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Publish·Preview 번들 — RAC 로케일 축소와 서브패스 import] - 2026-09-10
+
+### Changed
+
+- Builder 와 Publish Vite 가 React Aria 번역 문자열을 `en-US`·`ko-KR` 만 남긴다. 앱 i18n (`SupportedLocale`) 과 같은 두 로케일이다.
+- shared 컴포넌트와 Builder chrome 이 `react-aria-components` barrel 대신 컴포넌트 서브패스 (`/Button`, `/Select` 등) 에서 가져온다. Preview 의 `CanonicalNodeRenderer` 만 catalog 이름이 런타임에 RAC 컴포넌트를 고르므로 barrel `import *` 을 유지한다.
+
+### Performance
+
+- 독립 Publish 프로덕션 빌드 `main` JS: 1,697 kB (gzip 431 kB) → 1,587 kB (gzip 396 kB). Recharts 청크(436 kB)와 CSS(636 kB)는 그대로다. 압축 전 500 kB 경고는 `main` 이 아직 그 위에 있어 남는다.
+
 ## [차트 — 시리즈 연결을 해제할 수 있습니다] - 2026-09-09
 
 ### Added

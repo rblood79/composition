@@ -1,5 +1,5 @@
+import { Button } from "react-aria-components/Button";
 import {
-  Button,
   Tree as AriaTree,
   TreeItem as AriaTreeItem,
   TreeItemContent as AriaTreeItemContent,
@@ -7,9 +7,9 @@ import {
   TreeItemContentRenderProps,
   TreeItemProps as AriaTreeItemProps,
   TreeProps,
-  Collection,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/Tree";
+import { Collection } from "react-aria-components/Collection";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { InfoIcon, ChevronRightIcon, Minus } from "lucide-react";
 import { MyCheckbox } from "./Checkbox";
 import { resolveSelectionBehavior } from "./selectionStyle";

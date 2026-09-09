@@ -1,6 +1,6 @@
 import React, { memo } from "react";
 
-import { Switch as AriaSwitch } from "react-aria-components";
+import { Switch as AriaSwitch } from "react-aria-components/Switch";
 import { PropertyFieldset } from "./PropertyFieldset";
 import {
   semanticLabelKeys,

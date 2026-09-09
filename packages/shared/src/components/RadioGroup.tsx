@@ -5,16 +5,16 @@
  * Based on React Aria Components RadioGroup
  */
 
+import { FieldError } from "react-aria-components/FieldError";
+import { Label } from "react-aria-components/Label";
 import {
-  FieldError,
-  Label,
   Radio as AriaRadio,
   RadioGroup as AriaRadioGroup,
   RadioGroupProps as AriaRadioGroupProps,
-  Text,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/RadioGroup";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import type { ComponentSizeSubset } from "../types";

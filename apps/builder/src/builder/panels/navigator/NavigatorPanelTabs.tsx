@@ -6,7 +6,7 @@
  */
 
 import { FileText, Layout } from "lucide-react";
-import { Tab, TabList } from "react-aria-components";
+import { Tab, TabList } from "react-aria-components/Tabs";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useI18n } from "../../../i18n";
 
@@ -34,10 +34,7 @@ export function NavigatorPanelTabs() {
   ];
 
   return (
-    <TabList
-      className="panel-tablist"
-      aria-label={t("navigator.panelTabs")}
-    >
+    <TabList className="panel-tablist" aria-label={t("navigator.panelTabs")}>
       {tabs.map(({ id, label, Icon }) => (
         <Tab key={id} id={id} className="panel-tab navigator-panel-tab">
           <Icon

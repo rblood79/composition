@@ -2,14 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router";
 import { useAsyncMutation } from "../builder/hooks/useAsyncMutation";
 import { supabase } from "../env/supabase.client";
-import {
-  TextField,
-  Input,
-  Label,
-  Text,
-  FieldError,
-  Button,
-} from "react-aria-components";
+import { TextField } from "react-aria-components/TextField";
+import { Input } from "react-aria-components/Input";
+import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
+import { FieldError } from "react-aria-components/FieldError";
+import { Button } from "react-aria-components/Button";
 import "./index.css";
 
 interface AuthCredentials {

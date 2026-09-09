@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, memo } from "react";
-import { NumberField, Input, Group, Button } from "react-aria-components";
+import { NumberField } from "react-aria-components/NumberField";
+import { Input } from "react-aria-components/Input";
+import { Group } from "react-aria-components/Group";
+import { Button } from "react-aria-components/Button";
 import { Minus, Plus } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";

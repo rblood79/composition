@@ -1,13 +1,9 @@
 /** 줌 레벨 표시 input + 프리셋 액션 메뉴 (MenuTrigger 패턴) */
 
 import { useCallback, useRef, memo, useState, useLayoutEffect } from "react";
-import {
-  MenuTrigger,
-  Menu,
-  MenuItem,
-  Button,
-  Popover,
-} from "react-aria-components";
+import { MenuTrigger, Menu, MenuItem } from "react-aria-components/Menu";
+import { Button } from "react-aria-components/Button";
+import { Popover } from "react-aria-components/Popover";
 import { ChevronDown } from "lucide-react";
 import { useViewportSyncStore } from "./canvas/stores";
 import {

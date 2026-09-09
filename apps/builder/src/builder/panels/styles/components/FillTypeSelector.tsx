@@ -16,7 +16,7 @@ import {
   ToggleButton,
 } from "@composition/shared/components";
 import { Circle, Blend, Image } from "lucide-react";
-import type { Selection } from "react-aria-components";
+import type { Selection } from "react-aria-components/ListBox";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 
 /** 대분류 Fill 카테고리 */

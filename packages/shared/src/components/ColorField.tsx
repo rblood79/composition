@@ -2,10 +2,10 @@
 import {
   ColorField as AriaColorField,
   ColorFieldProps as AriaColorFieldProps,
-  Input,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/ColorField";
+import { Input } from "react-aria-components/Input";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { Text } from "./Content";
 import { Label, FieldError } from "./Field";
 import type { ComponentSize } from "../types";

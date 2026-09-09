@@ -17,11 +17,9 @@ import {
   resolveBindingSelectionMode,
   resolveBindingSelectionStyle,
 } from "../catalog/bindings";
-import {
-  MenuSection as AriaMenuSection,
-  Header as AriaMenuHeader,
-  Separator as AriaMenuSeparator,
-} from "react-aria-components";
+import { MenuSection as AriaMenuSection } from "react-aria-components/Menu";
+import { Header as AriaMenuHeader } from "react-aria-components/Header";
+import { Separator as AriaMenuSeparator } from "react-aria-components/Separator";
 import { DataField } from "../components/Field";
 import type {
   PreviewElement,
@@ -148,8 +146,7 @@ export const renderTree = (
       //   실질 기본이었기 때문 — 무지정 문서의 시각을 보존한다(GridList 는 "toggle").
       selectionBehavior={resolveSelectionBehavior({
         selectionStyle:
-          element.props.selectionStyle ??
-          resolveBindingSelectionStyle("Tree"),
+          element.props.selectionStyle ?? resolveBindingSelectionStyle("Tree"),
         selectionBehavior: element.props.selectionBehavior,
         fallback: "replace",
       })}

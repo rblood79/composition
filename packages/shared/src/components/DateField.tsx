@@ -10,13 +10,13 @@ import {
   DateFieldProps as AriaDateFieldProps,
   DateInput,
   DateSegment,
-  DateValue,
-  FieldError,
-  Label,
-  Text,
-  ValidationResult,
-  composeRenderProps,
-} from "react-aria-components";
+} from "react-aria-components/DateField";
+import { DateValue } from "react-aria-components/Calendar";
+import { FieldError } from "react-aria-components/FieldError";
+import { Label } from "react-aria-components/Label";
+import { Text } from "react-aria-components/Text";
+import { ValidationResult } from "react-aria-components/TextField";
+import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { safeParseDateString } from "../utils/core/dateUtils";
