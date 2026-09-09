@@ -388,7 +388,7 @@ dataBinding: {
 | [src/builder/components/Tree.tsx](../../../packages/react-aria-starter/src/Tree.tsx) | Tree component with DataBinding support |
 | [src/builder/preview/renderers/CollectionRenderers.tsx](../../../packages/shared/src/renderers/CollectionRenderers.tsx) | Tree renderer in preview iframe |
 | [src/builder/components/metadata.ts](../../../packages/shared/src/components/metadata.ts) | Tree metadata (enables Data Section) |
-| [src/services/api/index.ts](../../../apps/publish/src/index.ts) | Mock data endpoints |
+| [apps/builder/src/services/api/index.ts](../../../apps/publish/src/index.ts) | Mock data endpoints |
 
 ### Key Functions
 

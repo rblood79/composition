@@ -6,7 +6,7 @@
 >
 > **현재 대체 경로**:
 >
-> - **Level 1 (노코드 Response Mapping)**: `ApiEndpoint.responseMapping` 필드가 흡수. `src/builder/stores/utils/dataActions.ts:executeApiEndpoint` 의 `endpoint.responseMapping.dataPath` 처리 참조
+> - **Level 1 (노코드 Response Mapping)**: `ApiEndpoint.responseMapping` 필드가 흡수. `apps/builder/src/builder/stores/utils/dataActions.ts:executeApiEndpoint` 의 `endpoint.responseMapping.dataPath` 처리 참조
 > - **Level 2/3 (JS / Custom TS)**: 제거됨. 향후 필요 시 별 ADR 재도입
 >
 > **참조**: [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) §Phase 7 / [ADR-132 breakdown](../../adr/design/132-usecollectiondata-useasynclist-alignment-breakdown.md) §3 Phase 7
@@ -21,9 +21,9 @@
 >
 > **Related Files (historical, 모두 ADR-132 Phase 7 에서 제거됨)**:
 >
-> - `src/builder/stores/utils/dataActions.ts:1066` - Vulnerable code location
+> - `apps/builder/src/builder/stores/utils/dataActions.ts:1066` - Vulnerable code location
 > - `src/builder/panels/dataset/components/TransformerList.tsx` - UI component
-> - `src/types/builder/data.types.ts` - Type definitions
+> - `apps/builder/src/types/builder/data.types.ts` - Type definitions
 
 ---
 
@@ -46,7 +46,7 @@ The Dataset Panel's **Transformer** system allows users to transform data using 
 
 ### Affected Code
 
-**File**: `src/builder/stores/utils/dataActions.ts`
+**File**: `apps/builder/src/builder/stores/utils/dataActions.ts`
 
 ```typescript
 case "level2_transformer":
@@ -162,7 +162,7 @@ self.addEventListener("message", (event) => {
   }
 });
 
-// 2. Use in Store: src/builder/stores/utils/dataActions.ts
+// 2. Use in Store: apps/builder/src/builder/stores/utils/dataActions.ts
 import TransformerWorker from "@/workers/transformer.worker.ts?worker";
 
 const worker = new TransformerWorker();
@@ -403,7 +403,7 @@ const executeTransformer = async (code, data, context) => {
 | Task                                               | File                                                          | Estimated Time |
 | -------------------------------------------------- | ------------------------------------------------------------- | -------------- |
 | 1. Create `createSafeContext()` helper             | `src/builder/stores/utils/transformContext.ts`                | 1 hour         |
-| 2. Update `executeTransformer` to use safe context | `src/builder/stores/utils/dataActions.ts`                     | 30 min         |
+| 2. Update `executeTransformer` to use safe context | `apps/builder/src/builder/stores/utils/dataActions.ts`                     | 30 min         |
 | 3. Add tests for context restrictions              | `src/builder/stores/utils/__tests__/transformContext.test.ts` | 1 hour         |
 | 4. Update documentation                            | `CLAUDE.md`, `TRANSFORMER_SECURITY.md`                        | 30 min         |
 
@@ -468,7 +468,7 @@ export function createSafeContext(
 }
 ```
 
-**Modified**: `src/builder/stores/utils/dataActions.ts`
+**Modified**: `apps/builder/src/builder/stores/utils/dataActions.ts`
 
 ```typescript
 import { createSafeContext } from './transformContext';
@@ -511,7 +511,7 @@ case "level2_transformer":
 | --------------------------------- | -------------------------------------------------- | -------------- |
 | 1. Create transformer worker      | `src/workers/transformer.worker.ts`                | 2 hours        |
 | 2. Create worker manager          | `src/utils/transformerWorkerManager.ts`            | 2 hours        |
-| 3. Update executeTransformer      | `src/builder/stores/utils/dataActions.ts`          | 1 hour         |
+| 3. Update executeTransformer      | `apps/builder/src/builder/stores/utils/dataActions.ts`          | 1 hour         |
 | 4. Add worker tests               | `src/workers/__tests__/transformer.worker.test.ts` | 2 hours        |
 | 5. Update Vite config (if needed) | `vite.config.ts`                                   | 30 min         |
 
@@ -826,10 +826,10 @@ const result = await executeTransformer(transformerId, inputData);
 
 | File                                                        | Line      | Description                 |
 | ----------------------------------------------------------- | --------- | --------------------------- |
-| `src/builder/stores/utils/dataActions.ts`                   | 1063-1069 | Current vulnerable code     |
-| `src/builder/stores/utils/dataActions.ts`                   | 945-1083  | executeTransformer function |
+| `apps/builder/src/builder/stores/utils/dataActions.ts`                   | 1063-1069 | Current vulnerable code     |
+| `apps/builder/src/builder/stores/utils/dataActions.ts`                   | 945-1083  | executeTransformer function |
 | `src/builder/panels/dataset/components/TransformerList.tsx` | 1-166     | Transformer UI              |
-| `src/types/builder/data.types.ts`                           | -         | Type definitions            |
+| `apps/builder/src/types/builder/data.types.ts`                           | -         | Type definitions            |
 
 ---
 

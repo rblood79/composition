@@ -840,7 +840,7 @@ export interface LayoutsStoreActions {
 export type LayoutsStore = LayoutsStoreState & LayoutsStoreActions;
 ```
 
-### 파일: `src/types/builder/unified.types.ts` (수정)
+### 파일: `apps/builder/src/types/builder/unified.types.ts` (수정)
 
 ```typescript
 // 기존 Element 타입에 추가
@@ -1203,7 +1203,7 @@ export const useLayoutsStore = create<LayoutsStore>((set, get) => ({
 }));
 ```
 
-### 파일: `src/builder/stores/editMode.ts`
+### 파일: `apps/builder/src/builder/stores/editMode.ts`
 
 ```typescript
 /**
@@ -2430,7 +2430,7 @@ function getDefaultSlotName(): string {
 표준 브레이크포인트 시스템 도입.
 
 ```typescript
-// src/types/builder/responsive.types.ts
+// apps/builder/src/types/builder/responsive.types.ts
 
 /**
  * 브레이크포인트 정의
@@ -2821,7 +2821,7 @@ export function ResponsiveVisibilityEditor({
 ### Type Definitions 추가
 
 ```typescript
-// src/types/builder/responsive.types.ts
+// apps/builder/src/types/builder/responsive.types.ts
 
 export type Breakpoint = "desktop" | "tablet" | "mobile";
 
@@ -3360,7 +3360,7 @@ export async function getEditor(
 **PropertyEditorWrapper 수정:**
 
 ```typescript
-// src/builder/panels/properties/PropertiesPanel.tsx
+// apps/builder/src/builder/panels/properties/PropertiesPanel.tsx
 // PropertyEditorWrapper 내부 수정
 
 const PropertyEditorWrapper = memo(function PropertyEditorWrapper({
@@ -3476,7 +3476,7 @@ src/builder/panels/properties/editors/
 #### 6.2 PageBodyEditor 구현
 
 ```typescript
-// src/builder/panels/properties/editors/PageBodyEditor.tsx
+// apps/builder/src/builder/panels/properties/editors/PageBodyEditor.tsx
 
 import { memo, useCallback, useMemo } from "react";
 import { Type, Layout, Hash } from "lucide-react";
@@ -3580,7 +3580,7 @@ export default PageBodyEditor;
 #### 6.3 LayoutBodyEditor 구현
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutBodyEditor.tsx
+// apps/builder/src/builder/panels/properties/editors/LayoutBodyEditor.tsx
 
 import { memo, useCallback, useMemo } from "react";
 import { Type, Layout, Hash, Maximize2, AlignCenter } from "lucide-react";
@@ -3743,7 +3743,7 @@ export default LayoutBodyEditor;
 ##### 6.4.1 타입 정의
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutPresetSelector/types.ts
+// apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/types.ts
 
 export interface SlotDefinition {
   name: string;
@@ -3786,7 +3786,7 @@ export interface ExistingSlotInfo {
 ##### 6.4.2 프리셋 정의
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutPresetSelector/presetDefinitions.ts
+// apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/presetDefinitions.ts
 
 import type { LayoutPreset } from "./types";
 
@@ -4128,7 +4128,7 @@ export const PRESET_ORDER = [
 ##### 6.4.3 PresetPreview 컴포넌트 (SVG 썸네일)
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx
+// apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx
 
 import { memo, useMemo } from 'react';
 import type { PreviewArea } from './types';
@@ -4238,7 +4238,7 @@ export const PresetPreview = memo(function PresetPreview({
 ##### 6.4.4 ExistingSlotDialog (기존 Slot 처리)
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx
+// apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx
 
 import { memo, useCallback } from 'react';
 import { AlertTriangle, Trash2, Merge, X } from 'lucide-react';
@@ -4355,7 +4355,7 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
 ##### 6.4.5 usePresetApply 훅 (핵심 로직)
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts
+// apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts
 
 import { useCallback, useMemo } from "react";
 import { useStore } from "../../../../stores";
@@ -4553,7 +4553,7 @@ export function usePresetApply({
 ##### 6.4.6 LayoutPresetSelector 메인 컴포넌트
 
 ```typescript
-// src/builder/panels/properties/editors/LayoutPresetSelector/index.tsx
+// apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/index.tsx
 
 import { memo, useState, useCallback, useMemo } from 'react';
 import { LayoutGrid, Check } from 'lucide-react';
@@ -4696,7 +4696,7 @@ export default LayoutPresetSelector;
 ##### 6.4.7 CSS 스타일
 
 ```css
-/* src/builder/panels/properties/editors/LayoutPresetSelector/styles.css */
+/* apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/styles.css */
 
 @layer components {
   .preset-selector {
@@ -4917,7 +4917,7 @@ export default LayoutPresetSelector;
 
 ```typescript
 // 핵심: addComplexElement는 단일 History 엔트리 생성
-// src/builder/stores/utils/elementCreation.ts 참조
+// apps/builder/src/builder/stores/utils/elementCreation.ts 참조
 
 // 프리셋 적용 시:
 const [firstSlot, ...restSlots] = slotElements;
@@ -5555,7 +5555,7 @@ Undo 실행 시 Slot Element는 복원되지만 cleanup된 메타데이터는 �
 **해결책: History Entry에 Cleanup 메타데이터 스냅샷 포함**
 
 ```typescript
-// src/builder/stores/utils/elementRemoval.ts
+// apps/builder/src/builder/stores/utils/elementRemoval.ts
 
 interface SlotRemovalHistoryData {
   element: Element;
@@ -5625,7 +5625,7 @@ export const createRemoveElementAction =
 **Undo Handler 확장:**
 
 ```typescript
-// src/builder/stores/history/historyActions.ts
+// apps/builder/src/builder/stores/history/historyActions.ts
 
 export const createUndoAction = (set, get) => async () => {
   const entry = historyManager.undo();
@@ -5854,9 +5854,9 @@ parent: {
 
 **Modified Files**:
 
-- `src/builder/factories/types/index.ts` - `layoutId` 추가
-- `src/builder/factories/ComponentFactory.ts` - `layoutId` 파라미터 전달
-- `src/builder/hooks/useElementCreator.ts` - `layoutId` 전달
+- `apps/builder/src/builder/factories/types/index.ts` - `layoutId` 추가
+- `apps/builder/src/builder/factories/ComponentFactory.ts` - `layoutId` 파라미터 전달
+- `apps/builder/src/builder/hooks/useElementCreator.ts` - `layoutId` 전달
 - `src/builder/factories/definitions/*.ts` - 모든 정의 함수 업데이트
 
 ---

@@ -1339,7 +1339,7 @@ export function ThenElseBlock({
 - `src/builder/panels/events/editors/BlockActionEditor.tsx`
 - `src/utils/events/eventEngine.ts`
 - `src/builder/events/actions/NavigateActionEditor.tsx`
-- `src/builder/main/BuilderCore.tsx`
+- `apps/builder/src/builder/main/BuilderCore.tsx`
 
 #### 🔄 향후 작업
 

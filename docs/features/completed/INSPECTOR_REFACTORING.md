@@ -62,7 +62,7 @@ src/builder/stores/
 ### 새로운 API
 
 ```typescript
-// src/builder/stores/index.ts
+// apps/builder/src/builder/stores/index.ts
 
 // 1. 선택된 요소 데이터 가져오기 (읽기)
 export const useSelectedElementData = (): SelectedElement | null => {
@@ -95,7 +95,7 @@ export const useInspectorActions = () => ({
 ### inspectorActions.ts 슬라이스
 
 ```typescript
-// src/builder/stores/inspectorActions.ts
+// apps/builder/src/builder/stores/inspectorActions.ts
 
 export interface InspectorActionsState {
   updateSelectedStyle: (property: string, value: string) => void;

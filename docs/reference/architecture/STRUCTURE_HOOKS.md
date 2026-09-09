@@ -34,7 +34,7 @@
 ### B. Builder Core Hooks (`src/builder/hooks`)
 
 - **파일 수**: 38개 (Phase 2 승격 후)
-- **특징**: `src/builder/hooks/index.ts`로 이미 배럴 관리
+- **특징**: `apps/builder/src/builder/hooks/index.ts`로 이미 배럴 관리
 - **주요 영역**: async/data, page/element, keyboard, messenger, theme, performance, recovery
 
 ### C. 기능 스코프 Hooks (로컬 유지 권장)
@@ -79,7 +79,7 @@
   - `src/hooks/*.ts` export
   - `src/hooks/theme/index.ts` re-export (명시적 export 권장)
 - **Status**: ✅ 완료 (2025-12-30)
-- **유지**: `src/builder/hooks/index.ts`는 그대로 사용 (`@/builder/hooks`)
+- **유지**: `apps/builder/src/builder/hooks/index.ts`는 그대로 사용 (`@/builder/hooks`)
 - **비권장**: `@/hooks/builder` 추가는 stores/types 관례와 어긋나므로 하지 않음
 
 ### Phase 2: 승격 후보 선정

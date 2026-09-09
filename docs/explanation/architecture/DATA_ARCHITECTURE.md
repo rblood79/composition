@@ -1162,7 +1162,7 @@ interface DatasetState {
 **Sync to Preview:**
 
 ```typescript
-// src/builder/hooks/useIframeMessenger.ts
+// apps/builder/src/builder/hooks/useIframeMessenger.ts
 useEffect(() => {
   const datasets = useDatasetStore.getState().datasets;
 

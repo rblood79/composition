@@ -1010,12 +1010,12 @@ test("Modal focus trap works", async ({ page }) => {
 
 **Files Created:**
 
-- `src/i18n/types.ts` - Type definitions for I18n system
-- `src/i18n/translations.ts` - Translation files for all supported locales
-- `src/i18n/locales.ts` - Locale configurations and utilities
-- `src/i18n/I18nProvider.tsx` - I18n Provider component
-- `src/i18n/useI18n.ts` - useI18n custom hook
-- `src/i18n/LanguageSwitcher.tsx` - Language switcher component
+- `apps/builder/src/i18n/types.ts` - Type definitions for I18n system
+- `apps/builder/src/i18n/translations.ts` - Translation files for all supported locales
+- `apps/builder/src/i18n/locales.ts` - Locale configurations and utilities
+- `apps/builder/src/i18n/I18nProvider.tsx` - I18n Provider component
+- `apps/builder/src/i18n/useI18n.ts` - useI18n custom hook
+- `apps/builder/src/i18n/LanguageSwitcher.tsx` - Language switcher component
 - `src/i18n/index.ts` - Module exports
 
 #### Supported Locales

@@ -82,7 +82,7 @@ PanelWorkspace
 
 ### 상태 관리
 
-**Zustand Store** (`src/builder/stores/panelLayout.ts`):
+**Zustand Store** (`apps/builder/src/builder/stores/panelLayout.ts`):
 
 ```typescript
 interface PanelWorkspaceLayoutV4 {
@@ -159,7 +159,7 @@ export function ExamplePanel({ isActive }: PanelProps) {
 ### 2. panelConfigs.ts에 등록
 
 ```typescript
-// src/builder/panels/core/panelConfigs.ts
+// apps/builder/src/builder/panels/core/panelConfigs.ts
 import { ExamplePanel } from "../example/ExamplePanel";
 
 export const PANEL_CONFIGS: PanelConfig[] = [
@@ -183,14 +183,14 @@ export const PANEL_CONFIGS: PanelConfig[] = [
 ### 3. panels/index.ts에 export 추가
 
 ```typescript
-// src/builder/panels/index.ts
+// apps/builder/src/builder/panels/index.ts
 export { ExamplePanel } from "./example/ExamplePanel";
 ```
 
 ### 4. 타입 업데이트 (필요시)
 
 ```typescript
-// src/builder/panels/core/types.ts
+// apps/builder/src/builder/panels/core/types.ts
 export type PanelId =
   | "navigator"
   | "components"
@@ -394,8 +394,8 @@ export function PropertiesPanel({ isActive }: PanelProps) {
 ## 참고 자료
 
 - **코드 위치**: `src/builder/panels/`, `src/builder/layout/`
-- **상태 관리**: `src/builder/stores/panelLayout.ts`
-- **타입 정의**: `src/builder/panels/core/types.ts`
+- **상태 관리**: `apps/builder/src/builder/stores/panelLayout.ts`
+- **타입 정의**: `apps/builder/src/builder/panels/core/types.ts`
 - **CSS**: `src/builder/sidebar/index.css`, `src/builder/inspector/index.css`
 
 ## 기여 가이드

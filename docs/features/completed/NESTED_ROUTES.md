@@ -161,7 +161,7 @@ export type LayoutUpdate = Partial<
 ### 2.3 Page Type (기존 유지)
 
 ```typescript
-// src/types/builder/unified.types.ts (기존)
+// apps/builder/src/types/builder/unified.types.ts (기존)
 
 export interface Page {
   id: string;
@@ -208,7 +208,7 @@ CREATE INDEX idx_layout_order
 ### 2.5 IndexedDB Schema Update
 
 ```typescript
-// src/lib/db/indexedDB/adapter.ts
+// apps/builder/src/lib/db/indexedDB/adapter.ts
 
 // ⚠️ DB_VERSION 증가 필요 (현재 5 → 6)
 const DB_VERSION = 6;
@@ -336,7 +336,7 @@ Page: { slug: "/special-post", layout_id: "layout-1" }  // 절대 경로
 ### 3.3 URL 생성 유틸리티
 
 ```typescript
-// src/utils/urlGenerator.ts
+// apps/builder/src/utils/urlGenerator.ts
 
 import type { Page } from "../types/builder/unified.types";
 import type { Layout } from "../types/builder/layout.types";
@@ -470,7 +470,7 @@ export function getNestingDepth(pageId: string, allPages: Page[]): number {
 ### Page 타입 확장
 
 ```typescript
-// src/types/builder/unified.types.ts
+// apps/builder/src/types/builder/unified.types.ts
 
 export interface Page {
   id: string;
@@ -767,7 +767,7 @@ export function useRouteDataBinding(page: Page) {
 ### 4.3 usePageManager 수정
 
 ```typescript
-// src/builder/hooks/usePageManager.ts
+// apps/builder/src/builder/hooks/usePageManager.ts
 
 // ✅ 새로운 타입 정의
 export interface AddPageParams {
@@ -836,7 +836,7 @@ const addPage = async (params: AddPageParams): Promise<ApiResult<ApiPage>> => {
 ### 4.4 Slug Validation Rules
 
 ```typescript
-// src/utils/slugValidator.ts
+// apps/builder/src/utils/slugValidator.ts
 
 export interface SlugValidationResult {
   valid: boolean;
@@ -1167,7 +1167,7 @@ case 'UPDATE_LAYOUTS': {
 ### 6.5 Builder에서 layouts 전송
 
 ```typescript
-// src/builder/hooks/useIframeMessenger.ts (또는 적절한 위치)
+// apps/builder/src/builder/hooks/useIframeMessenger.ts (또는 적절한 위치)
 
 // Layout 변경 시 Canvas에 전송
 const sendLayoutsToCanvas = useCallback((layouts: Layout[]) => {
@@ -1361,9 +1361,9 @@ function PageTreeItem({ node, onSelect, selectedPageId }: PageTreeItemProps) {
 | Task                                   | File                                | Description                             |
 | -------------------------------------- | ----------------------------------- | --------------------------------------- |
 | Layout 타입에 `order_num`, `slug` 추가 | `src/types/builder/layout.types.ts` | Layout, LayoutCreate, LayoutUpdate 수정 |
-| IndexedDB 스키마 업데이트              | `src/lib/db/indexedDB/adapter.ts`   | DB_VERSION 증가 (5→6), 인덱스 추가      |
-| IndexedDB layouts API 타입 수정        | `src/lib/db/indexedDB/adapter.ts`   | 인라인 타입 → Layout 타입 import        |
-| types.ts 타입 일치 확인                | `src/lib/db/types.ts`               | Layout 타입 import 확인                 |
+| IndexedDB 스키마 업데이트              | `apps/builder/src/lib/db/indexedDB/adapter.ts`   | DB_VERSION 증가 (5→6), 인덱스 추가      |
+| IndexedDB layouts API 타입 수정        | `apps/builder/src/lib/db/indexedDB/adapter.ts`   | 인라인 타입 → Layout 타입 import        |
+| types.ts 타입 일치 확인                | `apps/builder/src/lib/db/types.ts`               | Layout 타입 import 확인                 |
 | Supabase 마이그레이션                  | `supabase/migrations/`              | (Supabase 사용 시)                      |
 
 ### Phase 2: Page Creation UI - P1
@@ -1371,9 +1371,9 @@ function PageTreeItem({ node, onSelect, selectedPageId }: PageTreeItemProps) {
 | Task                         | File                                       | Description                                            |
 | ---------------------------- | ------------------------------------------ | ------------------------------------------------------ |
 | AddPageDialog 컴포넌트       | `src/builder/components/AddPageDialog.tsx` | 다이얼로그 UI                                          |
-| usePageManager 수정          | `src/builder/hooks/usePageManager.ts`      | AddPageParams, generatePageDefaults 추가               |
-| slug 검증 유틸리티           | `src/utils/slugValidator.ts`               | validateSlug, generateSlugFromTitle                    |
-| URL 생성 유틸리티            | `src/utils/urlGenerator.ts`                | generatePageUrl, hasCircularReference, getNestingDepth |
+| usePageManager 수정          | `apps/builder/src/builder/hooks/usePageManager.ts`      | AddPageParams, generatePageDefaults 추가               |
+| slug 검증 유틸리티           | `apps/builder/src/utils/slugValidator.ts`               | validateSlug, generateSlugFromTitle                    |
+| URL 생성 유틸리티            | `apps/builder/src/utils/urlGenerator.ts`                | generatePageUrl, hasCircularReference, getNestingDepth |
 | NodesPanel과 다이얼로그 연동 | `src/builder/panels/nodes/NodesPanel.tsx`  | Add 버튼 → 다이얼로그 열기                             |
 
 ### Phase 3: Property Editors - P1
@@ -1390,8 +1390,8 @@ function PageTreeItem({ node, onSelect, selectedPageId }: PageTreeItemProps) {
 | Task                | File                                                           | Status | Description             |
 | ------------------- | -------------------------------------------------------------- | ------ | ----------------------- |
 | LayoutSlugEditor    | `src/builder/panels/properties/editors/LayoutSlugEditor.tsx`   | ✅     | Layout slug 편집        |
-| PageParentSelector  | `src/builder/panels/properties/editors/PageParentSelector.tsx` | ✅     | Parent 선택 + slug 편집 |
-| PageBodyEditor 통합 | `src/builder/panels/properties/editors/PageBodyEditor.tsx`     | ✅     | Layout/Parent 통합 UI   |
+| PageParentSelector  | `apps/builder/src/builder/panels/properties/editors/PageParentSelector.tsx` | ✅     | Parent 선택 + slug 편집 |
+| PageBodyEditor 통합 | `apps/builder/src/builder/panels/properties/editors/PageBodyEditor.tsx`     | ✅     | Layout/Parent 통합 UI   |
 | URL 미리보기        | `generatePageUrl` 사용                                         | ✅     | 실시간 URL 표시         |
 
 #### Phase 4 구현 상세
@@ -1518,14 +1518,14 @@ const renderTree = <
 
 | Task                         | File                                 | Status | Description                      |
 | ---------------------------- | ------------------------------------ | ------ | -------------------------------- |
-| 동적 라우트 유틸리티 확장    | `src/utils/urlGenerator.ts`          | ✅     | 동적 파라미터 추출/매칭 함수     |
+| 동적 라우트 유틸리티 확장    | `apps/builder/src/utils/urlGenerator.ts`          | ✅     | 동적 파라미터 추출/매칭 함수     |
 | Canvas 라우트 파라미터 훅    | `src/canvas/router/CanvasRouter.tsx` | ✅     | useCanvasParams 훅               |
 | RuntimeStore 라우트 파라미터 | `src/canvas/store/runtimeStore.ts`   | ✅     | routeParams 상태/액션            |
 | 라우트 정렬 (정적 우선)      | `src/canvas/router/CanvasRouter.tsx` | ✅     | 정적 라우트가 동적보다 먼저 매칭 |
 
 #### Phase 7 구현 세부 내용
 
-**1. urlGenerator.ts 확장** (`src/utils/urlGenerator.ts`)
+**1. urlGenerator.ts 확장** (`apps/builder/src/utils/urlGenerator.ts`)
 
 ```typescript
 // 동적 파라미터 추출
@@ -1601,7 +1601,7 @@ routeConfigs.sort((a, b) => {
 | 자동 API 엔드포인트 생성 | `src/stores/dataPanel/`              | DataBinding 설정 시 자동 API 생성 |
 | 라우트 검증              | `src/utils/routeValidator.ts`        | 라우트 파라미터 유효성 검증       |
 | 404 페이지 처리          | `src/canvas/router/`                 | 잘못된 파라미터 시 에러 페이지    |
-| SSG/SSR 프리렌더링 힌트  | `src/types/builder/unified.types.ts` | 정적 경로 목록 생성 지원          |
+| SSG/SSR 프리렌더링 힌트  | `apps/builder/src/types/builder/unified.types.ts` | 정적 경로 목록 생성 지원          |
 
 ### 구현 일정 요약
 

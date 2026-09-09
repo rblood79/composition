@@ -10,8 +10,8 @@
 
 | 항목            | 현재 (As-Is)                         | 목표 (To-Be)                                      | 진단                                 |
 | :-------------- | :----------------------------------- | :------------------------------------------------ | :----------------------------------- |
-| **uiStore**     | 미존재                               | **To-Be**: `src/stores/uiStore.ts` 신설           | **필수**: 글로벌 설정 격리 필요      |
-| **빌더 설정**   | **As-Is**: `settings.ts` (명칭 모호) | **To-Be**: `src/builder/stores/canvasSettings.ts` | **개선**: 책임 범위 명확화           |
+| **uiStore**     | 미존재                               | **To-Be**: `apps/builder/src/stores/uiStore.ts` 신설           | **필수**: 글로벌 설정 격리 필요      |
+| **빌더 설정**   | **As-Is**: `settings.ts` (명칭 모호) | **To-Be**: `apps/builder/src/builder/stores/canvasSettings.ts` | **개선**: 책임 범위 명확화           |
 | **디렉토리**    | `src/builder/stores`                 | `src/builder/stores` (유지)                       | **유지**: 기존 구조 보존             |
 | **테마 스토어** | 단일 거대 파일 (736줄)               | Store / Actions / Selectors 분할                  | **Future Work**: Phase 1-4 이후 진행 |
 
@@ -93,7 +93,7 @@
 ```mermaid
 graph TD
     ROOT((App Root)) --> GLOBAL[src/stores]
-    ROOT --> ENGINE[src/builder/stores/index.ts]
+    ROOT --> ENGINE[apps/builder/src/builder/stores/index.ts]
 
     GLOBAL --> TS[themeStore]
 
@@ -134,9 +134,9 @@ apps/builder/src/builder/workspace/canvas/       # WebGL 캔버스 렌더링 전
 
 - **상태**: 🟢 완료
 - **작업**:
-  - `src/stores/uiStore.ts` 신설 ✅
+  - `apps/builder/src/stores/uiStore.ts` 신설 ✅
   - `themeMode`, `uiScale`을 `settings.ts`에서 `uiStore`로 이관 ✅
-  - `src/stores/index.ts` 신설 (통합 export 추가) ✅
+  - `apps/builder/src/stores/index.ts` 신설 (통합 export 추가) ✅
 - **목표**: 빌더 엔진 스토어에서 비-도메인 필드 제거 및 글로벌 통합 관리
 - **검증**: 타입 체크 통과 ✅
 
@@ -185,10 +185,10 @@ Builder는 WebGL 모드(PixiJS)를 사용합니다. 각 Phase별 영향 범위�
 
 | 파일                                            | 변경 내용   |
 | ----------------------------------------------- | ----------- |
-| `src/stores/uiStore.ts`                         | 신설        |
+| `apps/builder/src/stores/uiStore.ts`                         | 신설        |
 | `src/builder/stores/settings.ts`                | 필드 제거   |
-| `src/builder/panels/settings/SettingsPanel.tsx` | import 변경 |
-| `src/builder/main/BuilderCore.tsx`              | import 변경 |
+| `apps/builder/src/builder/panels/settings/SettingsPanel.tsx` | import 변경 |
+| `apps/builder/src/builder/main/BuilderCore.tsx`              | import 변경 |
 
 - **영향 파일**: 4개
 - **복잡도**: ⭐ 낮음
@@ -201,14 +201,14 @@ Builder는 WebGL 모드(PixiJS)를 사용합니다. 각 Phase별 영향 범위�
 | 파일                                                           | 사용 필드                   |
 | -------------------------------------------------------------- | --------------------------- |
 | `src/builder/stores/settings.ts`                               | 정의 (SSoT)                 |
-| `src/builder/stores/index.ts`                                  | import                      |
-| `src/builder/panels/settings/SettingsPanel.tsx`                | 모든 필드 UI                |
-| `src/builder/main/BuilderCore.tsx`                             | showOverlay                 |
-| `src/builder/overlay/index.tsx`                                | showOverlay, overlayOpacity |
+| `apps/builder/src/builder/stores/index.ts`                                  | import                      |
+| `apps/builder/src/builder/panels/settings/SettingsPanel.tsx`                | 모든 필드 UI                |
+| `apps/builder/src/builder/main/BuilderCore.tsx`                             | showOverlay                 |
+| `apps/builder/src/builder/overlay/index.tsx`                                | showOverlay, overlayOpacity |
 | `src/builder/grid/index.tsx`                                   | showGrid                    |
 | `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx`  | useStore 직접 사용          |
 | `apps/builder/src/builder/workspace/canvas/grid/GridLayer.tsx` | showGrid, gridSize          |
-| `src/builder/stores/canvasStore.ts`                            | canvasSettings.ts 위임      |
+| `apps/builder/src/builder/stores/canvasStore.ts`                            | canvasSettings.ts 위임      |
 
 - **영향 파일**: 9개 (WebGL 관련)
 - **복잡도**: ⭐⭐ 중간

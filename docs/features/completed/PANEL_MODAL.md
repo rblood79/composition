@@ -35,17 +35,17 @@
 
 | 파일 | 변경 내용 |
 |------|----------|
-| `src/builder/panels/core/types.ts` | `PanelDisplayMode`, `ModalPanelState` 타입 추가, `PanelConfig`/`PanelProps` 확장 |
-| `src/builder/panels/core/PanelRegistry.ts` | `getPanelsByDisplayMode`, `supportsDisplayMode`, `getDisplayModes` 메서드 추가 |
-| `src/builder/panels/core/panelConfigs.ts` | Settings, AI, History 패널에 `displayModes` 설정 |
-| `src/builder/hooks/usePanelLayout.ts` | Modal 액션 6개 구현 |
-| `src/builder/layout/types.ts` | `UsePanelLayoutReturn` 확장 |
+| `apps/builder/src/builder/panels/core/types.ts` | `PanelDisplayMode`, `ModalPanelState` 타입 추가, `PanelConfig`/`PanelProps` 확장 |
+| `apps/builder/src/builder/panels/core/PanelRegistry.ts` | `getPanelsByDisplayMode`, `supportsDisplayMode`, `getDisplayModes` 메서드 추가 |
+| `apps/builder/src/builder/panels/core/panelConfigs.ts` | Settings, AI, History 패널에 `displayModes` 설정 |
+| `apps/builder/src/builder/hooks/usePanelLayout.ts` | Modal 액션 6개 구현 |
+| `apps/builder/src/builder/layout/types.ts` | `UsePanelLayoutReturn` 확장 |
 | `src/builder/layout/ModalPanelContainer.tsx` | Modal 렌더링 컴포넌트 (신규) |
 | `src/builder/layout/ModalPanelContainer.css` | Modal 스타일 (신규) |
-| `src/builder/layout/index.ts` | `ModalPanelContainer` export 추가 |
-| `src/builder/main/BuilderCore.tsx` | `ModalPanelContainer` 마운트 |
-| `src/builder/main/BuilderHeader.tsx` | Settings 버튼에 `openPanelAsModal('settings')` 연결 |
-| `src/builder/components/overlay/CommandPalette.tsx` | Modal 열기 명령 추가 |
+| `apps/builder/src/builder/layout/index.ts` | `ModalPanelContainer` export 추가 |
+| `apps/builder/src/builder/main/BuilderCore.tsx` | `ModalPanelContainer` 마운트 |
+| `apps/builder/src/builder/main/BuilderHeader.tsx` | Settings 버튼에 `openPanelAsModal('settings')` 연결 |
+| `apps/builder/src/builder/components/overlay/CommandPalette.tsx` | Modal 열기 명령 추가 |
 
 ---
 
@@ -53,7 +53,7 @@
 
 ### Phase 1: 타입 시스템 확장 ✅
 
-**파일**: `src/builder/panels/core/types.ts`
+**파일**: `apps/builder/src/builder/panels/core/types.ts`
 
 ```typescript
 // PanelDisplayMode 타입
@@ -103,7 +103,7 @@ const DEFAULT_PANEL_LAYOUT = {
 
 ### Phase 2: PanelRegistry 확장 ✅
 
-**파일**: `src/builder/panels/core/PanelRegistry.ts`
+**파일**: `apps/builder/src/builder/panels/core/PanelRegistry.ts`
 
 ```typescript
 // 특정 표시 모드를 지원하는 패널 조회
@@ -120,7 +120,7 @@ getDisplayModes(panelId: PanelId): PanelDisplayMode[]
 
 ### Phase 3: usePanelLayout 훅 확장 ✅
 
-**파일**: `src/builder/hooks/usePanelLayout.ts`
+**파일**: `apps/builder/src/builder/hooks/usePanelLayout.ts`
 
 구현된 Modal 액션:
 - `openPanelAsModal(panelId)` - Modal로 패널 열기 (중앙 배치, 중복 시 포커스)
@@ -130,7 +130,7 @@ getDisplayModes(panelId: PanelId): PanelDisplayMode[]
 - `updateModalPanelSize(panelId, size)` - 크기 업데이트 (min/max 제약 적용)
 - `closeAllModalPanels()` - 모든 Modal 닫기
 
-**파일**: `src/builder/layout/types.ts`
+**파일**: `apps/builder/src/builder/layout/types.ts`
 
 ```typescript
 interface UsePanelLayoutReturn extends PanelLayoutActions {

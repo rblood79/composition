@@ -26,7 +26,7 @@
 
 ### 1.1 memo 비교 함수 수정
 
-**파일**: `src/builder/panels/properties/PropertiesPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`
 **위치**: 124-130줄
 
 #### 현재 코드 (문제점)
@@ -94,7 +94,7 @@
 
 ### 1.2 useMemo 제거
 
-**파일**: `src/builder/panels/properties/PropertiesPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`
 **위치**: 238-241줄
 
 #### 현재 코드 (문제점)
@@ -186,7 +186,7 @@ const elements = useStore.getState().elements;
 
 ### 벤치마크 코드 추가
 
-**파일**: `src/builder/panels/properties/PropertiesPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`
 **위치**: PropertyEditorWrapper 내부 (useEffect 안)
 
 ```typescript
@@ -477,7 +477,7 @@ export function getEditorCacheStats() {
 
 ### PropertyEditorWrapper 리팩토링
 
-**파일**: `src/builder/panels/properties/PropertiesPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`
 **위치**: 39-131줄
 
 #### Before (92줄 - 복잡한 수동 로딩)
@@ -613,7 +613,7 @@ const PropertyEditorWrapper = memo(function PropertyEditorWrapper({
 
 ### Suspense 래핑
 
-**파일**: `src/builder/panels/properties/PropertiesPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`
 **위치**: 1010줄
 
 ```typescript
@@ -747,7 +747,7 @@ export class EditorErrorBoundary extends Component<Props, State> {
 
 ### 4.3 Error Boundary 적용
 
-**파일**: `src/builder/panels/properties/PropertiesPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx`
 **위치**: 1010줄
 
 ```typescript

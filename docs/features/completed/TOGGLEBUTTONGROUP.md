@@ -318,7 +318,7 @@ return (
 
 - `apps/builder/src/builder/workspace/canvas/ui/PixiToggleButtonGroup.tsx` - 선택, 크기 적용
 - `apps/builder/src/builder/workspace/canvas/layout/styleToLayout.ts` - auto 기본값 명시
-- `src/builder/components/property/PropertyUnitInput.tsx` - 키워드 유닛 버그 수정
+- `apps/builder/src/builder/components/property/PropertyUnitInput.tsx` - 키워드 유닛 버그 수정
 
 ## 캔버스 SelectionIndicator 구현 계획
 

@@ -82,7 +82,7 @@ src/builder/panels/properties/editors/
 
 ### LayoutPresetSelector
 
-**위치**: `src/builder/panels/properties/editors/LayoutPresetSelector/index.tsx`
+**위치**: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/index.tsx`
 
 ```tsx
 interface LayoutPresetSelectorProps {
@@ -101,7 +101,7 @@ interface LayoutPresetSelectorProps {
 
 ### usePresetApply Hook
 
-**위치**: `src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts`
+**위치**: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts`
 
 ```typescript
 interface UsePresetApplyReturn {
@@ -125,7 +125,7 @@ type PresetApplyMode = "replace" | "merge" | "cancel";
 
 ### PresetPreview
 
-**위치**: `src/builder/panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx`
+**위치**: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/PresetPreview.tsx`
 
 SVG 기반 레이아웃 썸네일 컴포넌트.
 
@@ -147,7 +147,7 @@ interface PresetPreviewProps {
 
 ### ExistingSlotDialog
 
-**위치**: `src/builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx`
+**위치**: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/ExistingSlotDialog.tsx`
 
 기존 Slot 처리 확인 다이얼로그.
 
@@ -166,7 +166,7 @@ interface PresetPreviewProps {
 
 ## 타입 정의
 
-**위치**: `src/builder/panels/properties/editors/LayoutPresetSelector/types.ts`
+**위치**: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/types.ts`
 
 ```typescript
 // Slot 정의
@@ -204,7 +204,7 @@ interface LayoutPreset {
 
 ## CSS 스타일
 
-**위치**: `src/builder/panels/properties/editors/LayoutPresetSelector/styles.css`
+**위치**: `apps/builder/src/builder/panels/properties/editors/LayoutPresetSelector/styles.css`
 
 **준수 사항**:
 - ✅ `@layer components` 래퍼 사용

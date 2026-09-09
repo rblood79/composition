@@ -39,7 +39,7 @@
 | 레이어 트리 | 커스텀 `VirtualizedLayerTree` (497줄) | `src/builder/sidebar/VirtualizedLayerTree.tsx` |
 | 세로 라인 | `elementItemIndent` + `linear-gradient` | `src/builder/nodes/index.css:40-49` |
 | Collection 가상 자식 | 8가지 타입 지원 | `VirtualizedLayerTree.tsx:70-122` |
-| Tabs 특수 정렬 | `sortTabsChildren` | `src/builder/utils/treeUtils.ts:132-186` |
+| Tabs 특수 정렬 | `sortTabsChildren` | `apps/builder/src/builder/utils/treeUtils.ts:132-186` |
 | 빌더 액션 버튼 | Settings2, Trash | `VirtualizedLayerTree.tsx:375-390` |
 
 ### 보존 필수 UI 요소: 세로 라인

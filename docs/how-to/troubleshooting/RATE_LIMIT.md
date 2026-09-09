@@ -173,7 +173,7 @@ To verify the fix:
 1. `src/services/api/BaseApiService.ts`
    - Lines 129-156: Reordered cache/deduplication/rate-limit checks
 
-2. `src/builder/hooks/usePageManager.ts` (Updated 2x)
+2. `apps/builder/src/builder/hooks/usePageManager.ts` (Updated 2x)
    - Line 1: Added `useCallback` import
    - Lines 35-38: Updated documentation
    - Lines 69-133: Wrapped `fetchElements` in `useCallback` with minimal dependencies

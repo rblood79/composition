@@ -506,16 +506,16 @@ export function mapElementToSelected(element: Element) {
 - `src/builder/inspector/hooks/useInspectorState.ts` - Inspector 상태 관리
 - `src/builder/inspector/hooks/useSyncWithBuilder.ts` - 양방향 동기화
 - `src/builder/inspector/sections/StyleSection.tsx` - 스타일 편집 UI
-- `src/builder/inspector/types.ts` - 타입 정의 (style, computedStyle 추가)
+- `apps/builder/src/builder/inspector/types.ts` - 타입 정의 (style, computedStyle 추가)
 
 ### Preview
 - `src/builder/preview/index.tsx` - Computed styles 수집 (line 189-246)
 
 ### Store
-- `src/builder/stores/elements.ts` - setSelectedElement 시그니처 업데이트
+- `apps/builder/src/builder/stores/elements.ts` - setSelectedElement 시그니처 업데이트
 
 ### Utils
-- `src/builder/inspector/utils/elementMapper.ts` - Element 매핑 (style 처리)
+- `apps/builder/src/builder/inspector/utils/elementMapper.ts` - Element 매핑 (style 처리)
 
 ### Types
 - `src/types/unified.ts` - BaseElementProps에 computedStyle 추가

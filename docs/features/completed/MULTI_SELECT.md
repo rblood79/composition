@@ -85,9 +85,9 @@ export function BatchPropertyEditor({ selectedElements, onBatchUpdate }) {
 **Files Created/Modified**:
 
 - `src/builder/panels/common/BatchPropertyEditor.tsx` - Main component (303 lines)
-- `src/builder/panels/properties/utils/batchPropertyUtils.ts` - Utility functions (243 lines)
+- `apps/builder/src/builder/panels/properties/utils/batchPropertyUtils.ts` - Utility functions (243 lines)
 - `src/builder/panels/common/index.css` - Batch editor styles
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Integration with handleBatchUpdate
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Integration with handleBatchUpdate
 
 **Features Implemented**:
 
@@ -182,7 +182,7 @@ export function BatchPropertyEditor({ selectedElements, onBatchUpdate }) {
 
 - `src/builder/panels/common/MultiSelectStatusIndicator.tsx` - Enhanced component (310 lines)
 - `src/builder/panels/common/index.css` - Added badge, group, shortcut styles
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Pass primary element props
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Pass primary element props
 
 **Features Implemented**:
 
@@ -284,7 +284,7 @@ export function BatchPropertyEditor({ selectedElements, onBatchUpdate }) {
 **Implementation**:
 
 ```typescript
-// src/builder/panels/properties/PropertiesPanel.tsx
+// apps/builder/src/builder/panels/properties/PropertiesPanel.tsx
 const shortcuts = useMemo(
   () => [
     {
@@ -406,7 +406,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }) {
 - `src/builder/panels/common/KeyboardShortcutsHelp.tsx` (NEW - 228 lines)
 - `src/builder/panels/common/index.css` (UPDATED - added 176 lines of styles)
 - `src/builder/panels/common/index.ts` (UPDATED - export added)
-- `src/builder/panels/properties/PropertiesPanel.tsx` (UPDATED - integrated help UI)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` (UPDATED - integrated help UI)
 
 **Features Implemented**:
 
@@ -572,7 +572,7 @@ export function SelectionFilter({
 
 - `src/builder/panels/common/index.css` - Added selection filter styles (lines 1110-1160)
 - `src/builder/panels/common/index.ts` - Export SelectionFilter
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Integration (line 801-804)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Integration (line 801-804)
 
 **Features Implemented**:
 
@@ -658,7 +658,7 @@ export function SelectionFilter({
 **Implementation**:
 
 ```typescript
-// src/builder/stores/utils/elementGrouping.ts
+// apps/builder/src/builder/stores/utils/elementGrouping.ts
 export function createGroupFromSelection(
   elementIds: string[],
   elementsMap: Map<string, Element>,
@@ -723,11 +723,11 @@ export function createGroupFromSelection(
 
 **Files Created**:
 
-- `src/builder/stores/utils/elementGrouping.ts` (228 lines)
+- `apps/builder/src/builder/stores/utils/elementGrouping.ts` (228 lines)
 
 **Files Modified**:
 
-- `src/builder/panels/properties/PropertiesPanel.tsx` - handleGroupSelection (lines 399-437)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - handleGroupSelection (lines 399-437)
 - `src/builder/panels/common/MultiSelectStatusIndicator.tsx` - Group button with Cmd+G shortcut
 
 **Features Implemented**:
@@ -763,7 +763,7 @@ export function createGroupFromSelection(
 **Implementation**:
 
 ```typescript
-// src/builder/stores/utils/elementGrouping.ts
+// apps/builder/src/builder/stores/utils/elementGrouping.ts
 export function ungroupElement(
   groupId: string,
   elementsMap: Map<string, Element>,
@@ -808,7 +808,7 @@ export function ungroupElement(
 
 **Files Modified**:
 
-- `src/builder/panels/properties/PropertiesPanel.tsx` - handleUngroupSelection (lines 439-462)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - handleUngroupSelection (lines 439-462)
 
 **Features Implemented**:
 
@@ -840,7 +840,7 @@ export function ungroupElement(
 **Implementation**:
 
 ```typescript
-// src/builder/stores/utils/elementAlignment.ts
+// apps/builder/src/builder/stores/utils/elementAlignment.ts
 export type AlignmentType =
   | "left"
   | "center"
@@ -876,12 +876,12 @@ function calculateAlignmentTarget(
 
 **Files Created**:
 
-- `src/builder/stores/utils/elementAlignment.ts` (241 lines)
+- `apps/builder/src/builder/stores/utils/elementAlignment.ts` (241 lines)
 
 **Files Modified**:
 
 - `src/builder/panels/common/MultiSelectStatusIndicator.tsx` - Added 6 alignment buttons
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Added handleAlign handler + 6 keyboard shortcuts
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Added handleAlign handler + 6 keyboard shortcuts
 
 **Keyboard Shortcuts**:
 | Shortcut | Alignment | Description |
@@ -916,7 +916,7 @@ function calculateAlignmentTarget(
 **Implementation**:
 
 ```typescript
-// src/builder/stores/utils/elementDistribution.ts
+// apps/builder/src/builder/stores/utils/elementDistribution.ts
 export type DistributionType = "horizontal" | "vertical";
 
 function distributeHorizontally(bounds: ElementBounds[]): DistributionUpdate[] {
@@ -952,12 +952,12 @@ function distributeHorizontally(bounds: ElementBounds[]): DistributionUpdate[] {
 
 **Files Created**:
 
-- `src/builder/stores/utils/elementDistribution.ts` (276 lines)
+- `apps/builder/src/builder/stores/utils/elementDistribution.ts` (276 lines)
 
 **Files Modified**:
 
 - `src/builder/panels/common/MultiSelectStatusIndicator.tsx` - Added 2 distribution buttons
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Added handleDistribute handler + 2 keyboard shortcuts
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Added handleDistribute handler + 2 keyboard shortcuts
 
 **Keyboard Shortcuts**:
 | Shortcut | Distribution | Description |
@@ -999,7 +999,7 @@ function distributeHorizontally(bounds: ElementBounds[]): DistributionUpdate[] {
 **Implementation**:
 
 ```typescript
-// src/builder/utils/multiElementCopy.ts
+// apps/builder/src/builder/utils/multiElementCopy.ts
 
 /**
  * Copy multiple elements with relationship preservation
@@ -1162,11 +1162,11 @@ export function deserializeCopiedElements(
 
 **Files Created**:
 
-- `src/builder/utils/multiElementCopy.ts` (264 lines)
+- `apps/builder/src/builder/utils/multiElementCopy.ts` (264 lines)
 
 **Files Modified**:
 
-- `src/builder/panels/properties/PropertiesPanel.tsx` - handleCopyAll, handlePasteAll (lines 120-212)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - handleCopyAll, handlePasteAll (lines 120-212)
 - `src/builder/panels/common/MultiSelectStatusIndicator.tsx` - Copy/Paste buttons with shortcuts
 
 **Features Implemented**:
@@ -1233,7 +1233,7 @@ export function deserializeCopiedElements(
 **Implementation**:
 
 ```typescript
-// src/builder/panels/properties/PropertiesPanel.tsx
+// apps/builder/src/builder/panels/properties/PropertiesPanel.tsx
 const handleDuplicate = useCallback(async () => {
   if (!multiSelectMode || selectedElementIds.length === 0 || !currentPageId) {
     console.warn("[Duplicate] No elements selected or no page active");
@@ -1304,7 +1304,7 @@ const shortcuts = useMemo(
 
 **Files Modified**:
 
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Enhanced duplicate handler (lines 279-321)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Enhanced duplicate handler (lines 279-321)
 
 **Features Implemented**:
 
@@ -1366,7 +1366,7 @@ const shortcuts = useMemo(
 **Implementation**:
 
 ```typescript
-// src/builder/stores/utils/historyHelpers.ts
+// apps/builder/src/builder/stores/utils/historyHelpers.ts
 
 /**
  * Track batch property update (used for Alignment & Distribution)
@@ -1582,8 +1582,8 @@ const handleDeleteAll = async () => {
 
 **Files Created/Modified**:
 
-- `src/builder/stores/utils/historyHelpers.ts` (EXISTING - 255 lines)
-- `src/builder/panels/properties/PropertiesPanel.tsx` (UPDATED - added trackMultiDelete)
+- `apps/builder/src/builder/stores/utils/historyHelpers.ts` (EXISTING - 255 lines)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` (UPDATED - added trackMultiDelete)
 
 **Features Implemented**:
 
@@ -1684,8 +1684,8 @@ const visibleOverlays = useMemo(() => {
 
 **Files Created**:
 
-- `src/builder/overlay/hooks/useVisibleOverlays.ts` (175 lines)
-- `src/builder/hooks/useRAFThrottle.ts` (115 lines)
+- `apps/builder/src/builder/overlay/hooks/useVisibleOverlays.ts` (175 lines)
+- `apps/builder/src/builder/hooks/useRAFThrottle.ts` (115 lines)
 
 **Performance Results**:
 
@@ -1785,7 +1785,7 @@ export function useRAFThrottle<T>(value: T): T {
 **Implementation**:
 
 ```typescript
-// src/builder/utils/selectionMemory.ts
+// apps/builder/src/builder/utils/selectionMemory.ts
 
 /**
  * Selection history entry
@@ -1911,14 +1911,14 @@ export function SelectionMemory({
 
 **Files Created**:
 
-- `src/builder/utils/selectionMemory.ts` (194 lines)
+- `apps/builder/src/builder/utils/selectionMemory.ts` (194 lines)
 - `src/builder/panels/common/SelectionMemory.tsx` (150 lines)
 
 **Files Modified**:
 
 - `src/builder/panels/common/index.css` - Added selection memory styles (lines 1282-1421)
 - `src/builder/panels/common/index.ts` - Export SelectionMemory
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Integration with tracking (lines 827-836)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Integration with tracking (lines 827-836)
 
 **Features Implemented**:
 
@@ -2021,7 +2021,7 @@ Selection memory automatically tracks when:
 **Implementation**:
 
 ```typescript
-// src/builder/utils/smartSelection.ts
+// apps/builder/src/builder/utils/smartSelection.ts
 
 /**
  * Find similar elements (same tag and className)
@@ -2171,14 +2171,14 @@ export function SmartSelection({
 
 **Files Created**:
 
-- `src/builder/utils/smartSelection.ts` (316 lines)
+- `apps/builder/src/builder/utils/smartSelection.ts` (316 lines)
 - `src/builder/panels/common/SmartSelection.tsx` (113 lines)
 
 **Files Modified**:
 
 - `src/builder/panels/common/index.css` - Added smart selection styles (lines 1159-1281)
 - `src/builder/panels/common/index.ts` - Export SmartSelection
-- `src/builder/panels/properties/PropertiesPanel.tsx` - Integration (lines 807-824)
+- `apps/builder/src/builder/panels/properties/PropertiesPanel.tsx` - Integration (lines 807-824)
 
 **Features Implemented**:
 
@@ -2330,7 +2330,7 @@ Smart selections automatically tracked in selection memory for quick restore.
 | `null`             | 루트 레벨          | body의 직계 자식만 선택 가능     |
 | `string` (요소 ID) | 해당 컨테이너 내부 | 컨테이너의 직계 자식만 선택 가능 |
 
-**상태 정의** (`src/builder/stores/selection.ts`):
+**상태 정의** (`apps/builder/src/builder/stores/selection.ts`):
 
 ```typescript
 export interface SelectionState {
@@ -2357,7 +2357,7 @@ export interface SelectionState {
 
 캔버스에서 클릭이 발생하면 PixiJS EventBoundary가 가장 깊은(leaf) 요소를 감지한다. 그러나 사용자가 실제로 선택해야 하는 요소는 **현재 editingContext의 직계 자식**이다. `resolveClickTarget`은 이 변환을 수행한다.
 
-**위치**: `src/builder/utils/hierarchicalSelection.ts`
+**위치**: `apps/builder/src/builder/utils/hierarchicalSelection.ts`
 
 ```typescript
 export function resolveClickTarget(
@@ -2445,7 +2445,7 @@ enterEditingContext: (elementId) => {
 
 레이어 트리(Layers Panel)에서 요소를 직접 클릭하면 캔버스 클릭과 동일한 계층적 모델을 따라야 한다. 그러나 레이어 트리에서는 어떤 깊이의 요소든 직접 선택할 수 있으므로, editingContext를 해당 요소의 깊이에 맞게 **자동 조정**해야 한다.
 
-**`resolveEditingContextForTreeSelection`** (`src/builder/utils/hierarchicalSelection.ts`):
+**`resolveEditingContextForTreeSelection`** (`apps/builder/src/builder/utils/hierarchicalSelection.ts`):
 
 ```typescript
 export function resolveEditingContextForTreeSelection(
@@ -2498,9 +2498,9 @@ const handleItemClick = useCallback(
 
 | 파일                                             | 역할                                                                                                               |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
-| `src/builder/stores/selection.ts`                | editingContextId 상태 및 enter/exit/set 액션 정의                                                                  |
-| `src/builder/utils/hierarchicalSelection.ts`     | `resolveClickTarget`, `resolveEditingContextForTreeSelection`, `getAncestorChain`, `hasEditableChildren` 순수 함수 |
-| `src/builder/workspace/canvas/BuilderCanvas.tsx` | 캔버스 클릭/더블클릭 시 `resolveClickTarget` 호출, `enterEditingContext` 트리거                                    |
+| `apps/builder/src/builder/stores/selection.ts`                | editingContextId 상태 및 enter/exit/set 액션 정의                                                                  |
+| `apps/builder/src/builder/utils/hierarchicalSelection.ts`     | `resolveClickTarget`, `resolveEditingContextForTreeSelection`, `getAncestorChain`, `hasEditableChildren` 순수 함수 |
+| `apps/builder/src/builder/workspace/canvas/BuilderCanvas.tsx` | 캔버스 클릭/더블클릭 시 `resolveClickTarget` 호출, `enterEditingContext` 트리거                                    |
 | `src/builder/panels/nodes/LayersSection.tsx`     | 레이어 트리 선택 시 `resolveEditingContextForTreeSelection`으로 context 자동 조정                                  |
 
 ---
@@ -2532,7 +2532,7 @@ const handleItemClick = useCallback(
 - **Implementation Guide**: `CLAUDE.md` (Multi-Element Selection section)
 - **Architecture**: `docs/CSS_ARCHITECTURE.md`
 - **Store Pattern**: `src/builder/stores/README.md`
-- **Keyboard Shortcuts**: `src/builder/hooks/useKeyboardShortcutsRegistry.ts`
+- **Keyboard Shortcuts**: `apps/builder/src/builder/hooks/useKeyboardShortcutsRegistry.ts`
 - **Canvas Interactions**: `docs/reference/components/CANVAS_INTERACTIONS.md`
 
 ---

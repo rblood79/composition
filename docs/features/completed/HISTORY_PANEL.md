@@ -102,9 +102,9 @@ Photoshop Web 벤치마크 기반으로 정리한 히스토리 패널의 설계�
 
 관련 파일
 
-- `src/builder/panels/core/panelConfigs.ts`
-- `src/builder/panels/core/types.ts`
-- `src/builder/stores/panelLayout.ts`
+- `apps/builder/src/builder/panels/core/panelConfigs.ts`
+- `apps/builder/src/builder/panels/core/types.ts`
+- `apps/builder/src/builder/stores/panelLayout.ts`
 
 ### 히스토리 매니저 구독 API
 
@@ -113,7 +113,7 @@ Photoshop Web 벤치마크 기반으로 정리한 히스토리 패널의 설계�
 
 관련 파일
 
-- `src/builder/stores/history.ts`
+- `apps/builder/src/builder/stores/history.ts`
 
 ### BuilderCore 헤더 동기화
 
@@ -121,7 +121,7 @@ Photoshop Web 벤치마크 기반으로 정리한 히스토리 패널의 설계�
 
 관련 파일
 
-- `src/builder/main/BuilderCore.tsx`
+- `apps/builder/src/builder/main/BuilderCore.tsx`
 
 ### HistoryPanel UI
 
@@ -132,8 +132,8 @@ Photoshop Web 벤치마크 기반으로 정리한 히스토리 패널의 설계�
 
 관련 파일
 
-- `src/builder/panels/history/HistoryPanel.tsx`
-- `src/builder/panels/history/HistoryPanel.css`
+- `apps/builder/src/builder/panels/history/HistoryPanel.tsx`
+- `apps/builder/src/builder/panels/history/HistoryPanel.css`
 
 ## UI/UX 스펙 요약
 

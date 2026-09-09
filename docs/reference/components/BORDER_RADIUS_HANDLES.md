@@ -641,7 +641,7 @@ export function useBorderRadiusDragPixi(
 > - `updateSelectedStylesPreview(styles)`
 >
 > 이 함수는 `elementsMap`/`selectedElementProps`만 갱신하고 `saveService` 및 `historyManager` 호출을 건너뜁니다.
-> 구현 위치는 `src/builder/stores/inspectorActions.ts` (또는 selection 전용 slice)로 둡니다.
+> 구현 위치는 `apps/builder/src/builder/stores/inspectorActions.ts` (또는 selection 전용 slice)로 둡니다.
 >
 > **⚠️ 구현 필요 여부 및 우선순위:**
 > | 방식 | 우선순위 | 설명 |

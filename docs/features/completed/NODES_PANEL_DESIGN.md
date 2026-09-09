@@ -325,7 +325,7 @@ export function calculateMoveUpdates({
 
 **현재 구현 (Fire-and-Forget + Undo 지원):**
 
-> 파일: `src/builder/stores/utils/elementUpdate.ts:326-413`
+> 파일: `apps/builder/src/builder/stores/utils/elementUpdate.ts:326-413`
 
 ```tsx
 // batchUpdateElements 현재 흐름

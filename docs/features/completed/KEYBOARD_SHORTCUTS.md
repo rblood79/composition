@@ -367,7 +367,7 @@ src/builder/
 ### 3.1 Enhanced Registry Interface
 
 ```typescript
-// src/builder/hooks/useKeyboardShortcutsRegistry.ts
+// apps/builder/src/builder/hooks/useKeyboardShortcutsRegistry.ts
 
 export type KeyboardModifier =
   | "cmd"
@@ -592,7 +592,7 @@ if (FEATURE_FLAGS.USE_NEW_KEYBOARD_SYSTEM) {
 #### 0.1 타입 정의 확장
 
 ```typescript
-// src/builder/hooks/useKeyboardShortcutsRegistry.ts
+// apps/builder/src/builder/hooks/useKeyboardShortcutsRegistry.ts
 
 export type KeyboardModifier =
   | "cmd"
@@ -851,7 +851,7 @@ test.describe("Keyboard Shortcuts Migration", () => {
 #### 2.1 설정 파일 구조
 
 ```typescript
-// src/builder/config/keyboardShortcuts.ts
+// apps/builder/src/builder/config/keyboardShortcuts.ts
 export const SHORTCUT_DEFINITIONS = {
   // System
   undo: {
@@ -903,7 +903,7 @@ export type ShortcutId = keyof typeof SHORTCUT_DEFINITIONS;
 #### 3.1 통합 훅 구조
 
 ```typescript
-// src/builder/hooks/useGlobalKeyboardShortcuts.ts
+// apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts
 
 import { SHORTCUT_DEFINITIONS } from "../config/keyboardShortcuts";
 
@@ -963,7 +963,7 @@ export function useGlobalKeyboardShortcuts() {
 #### 3.2 BuilderCore에 적용
 
 ```typescript
-// src/builder/main/BuilderCore.tsx
+// apps/builder/src/builder/main/BuilderCore.tsx
 
 export function BuilderCore() {
   useGlobalKeyboardShortcuts(); // 단일 등록 포인트 (기존 useKeyboardShortcuts 대체)
@@ -975,7 +975,7 @@ export function BuilderCore() {
   );
 }
 
-// src/builder/workspace/Workspace.tsx
+// apps/builder/src/builder/workspace/Workspace.tsx
 // useZoomShortcuts() 호출 제거 (useGlobalKeyboardShortcuts로 통합됨)
 ```
 
@@ -999,7 +999,7 @@ export function BuilderCore() {
 #### 4.1 스코프 정의
 
 ```typescript
-// src/builder/types/keyboard.ts
+// apps/builder/src/builder/types/keyboard.ts
 
 export type ShortcutScope =
   | "global" // 항상 활성
@@ -1095,7 +1095,7 @@ export function formatShortcutForPlatform(
 #### 4.2 활성 스코프 감지 훅
 
 ```typescript
-// src/builder/hooks/useActiveScope.ts
+// apps/builder/src/builder/hooks/useActiveScope.ts
 
 export function useActiveScope(): ShortcutScope {
   const activePanel = useActivePanelStore((s) => s.activePanel);
@@ -1168,7 +1168,7 @@ const shortcuts = [
 #### 5.1 Shortcut Debugger (개발 전용)
 
 ```typescript
-// src/builder/devtools/ShortcutDebugger.tsx
+// apps/builder/src/builder/devtools/ShortcutDebugger.tsx
 
 export function ShortcutDebugger() {
   const [lastEvent, setLastEvent] = useState<KeyboardEvent | null>(null);
@@ -1256,7 +1256,7 @@ export function KeyboardHelpPanel() {
 #### 5.3 충돌 감지 (개발 시점)
 
 ```typescript
-// src/builder/utils/detectShortcutConflicts.ts
+// apps/builder/src/builder/utils/detectShortcutConflicts.ts
 
 export function detectConflicts(): ConflictInfo[] {
   const conflicts: ConflictInfo[] = [];
@@ -1481,8 +1481,8 @@ src/builder/
 
 ### Phase 2: JSON Config ✅
 
-- `src/builder/config/keyboardShortcuts.ts` 생성 (51개 단축키 정의)
-- `src/builder/types/keyboard.ts` 생성 (타입 정의)
+- `apps/builder/src/builder/config/keyboardShortcuts.ts` 생성 (51개 단축키 정의)
+- `apps/builder/src/builder/types/keyboard.ts` 생성 (타입 정의)
 - 설정과 핸들러 분리 구조
 
 ### Phase 3: Single Registration Point ✅
@@ -1541,7 +1541,7 @@ src/builder/
 #### 6.2 구현 계획
 
 ```typescript
-// src/builder/hooks/useGlobalKeyboardShortcuts.ts 확장
+// apps/builder/src/builder/hooks/useGlobalKeyboardShortcuts.ts 확장
 
 export function useGlobalKeyboardShortcuts() {
   const activeScope = useActiveScope();
@@ -1639,7 +1639,7 @@ describe("Phase 6: 패널 단축키 통합", () => {
 > **Note:** `react-aria-components`의 `TooltipTrigger`와 `Tooltip` 사용
 
 ```typescript
-// src/builder/components/overlay/ShortcutTooltip.tsx
+// apps/builder/src/builder/components/overlay/ShortcutTooltip.tsx
 
 import { TooltipTrigger, Tooltip } from 'react-aria-components';
 import { SHORTCUT_DEFINITIONS, type ShortcutId } from '../../config/keyboardShortcuts';
@@ -1696,7 +1696,7 @@ import { ShortcutTooltip } from "../components/overlay/ShortcutTooltip";
 #### 7.2.1 CSS 스타일
 
 ```css
-/* src/builder/components/overlay/ShortcutTooltip.css */
+/* apps/builder/src/builder/components/overlay/ShortcutTooltip.css */
 /*
  * ShortcutTooltip 컴포넌트 스타일
  * react-aria-components Tooltip 스타일링
@@ -1883,9 +1883,9 @@ src/builder/components/overlay/
 └── index.ts                  # 모듈 export
 
 수정된 파일:
-├── src/builder/main/BuilderHeader.tsx      # Undo/Redo에 ShortcutTooltip 적용
-├── src/builder/panels/history/HistoryPanel.tsx  # Undo/Redo에 ShortcutTooltip 적용
-├── src/builder/main/BuilderCore.tsx        # CommandPalette 통합
+├── apps/builder/src/builder/main/BuilderHeader.tsx      # Undo/Redo에 ShortcutTooltip 적용
+├── apps/builder/src/builder/panels/history/HistoryPanel.tsx  # Undo/Redo에 ShortcutTooltip 적용
+├── apps/builder/src/builder/main/BuilderCore.tsx        # CommandPalette 통합
 └── src/shared/components/Menu.tsx          # MenuItem shortcutId 지원
 ```
 
@@ -2052,7 +2052,7 @@ export function KeyboardShortcutsHelp() {
 #### 9.1 저장 구조
 
 ```typescript
-// src/builder/types/keyboard.ts
+// apps/builder/src/builder/types/keyboard.ts
 
 interface UserShortcutOverride {
   shortcutId: ShortcutId;

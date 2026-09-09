@@ -68,7 +68,7 @@ export type ApiPage = Page; // Type alias for clarity
 
 ### Store Layer: Page
 
-**위치**: `src/types/builder/unified.types.ts`
+**위치**: `apps/builder/src/types/builder/unified.types.ts`
 
 ```typescript
 export interface Page {
@@ -199,7 +199,7 @@ const apiPageData = storePageToApiPage(storePage);
 
 ### Example 1: usePageManager Hook
 
-**파일**: `src/builder/hooks/usePageManager.ts`
+**파일**: `apps/builder/src/builder/hooks/usePageManager.ts`
 
 ```typescript
 import { useState, useCallback } from "react";
@@ -303,7 +303,7 @@ export function Pages({ pages, onDelete }: PagesProps) {
 
 ### Example 3: NavigatorPanel (Type Wrapper)
 
-**파일**: `src/builder/panels/navigator/NavigatorPanel.tsx`
+**파일**: `apps/builder/src/builder/panels/navigator/NavigatorPanel.tsx`
 
 Sidebar 컴포넌트가 `UnifiedPage` (title 필드)를 기대하는 경우:
 
@@ -478,7 +478,7 @@ function isStorePage(page: unknown): page is Page {
 
 | 항목          | API Layer (ApiPage)                                 | Store Layer (Page)                   |
 | ------------- | --------------------------------------------------- | ------------------------------------ |
-| **위치**      | `src/services/api/PagesApiService.ts`               | `src/types/builder/unified.types.ts` |
+| **위치**      | `src/services/api/PagesApiService.ts`               | `apps/builder/src/types/builder/unified.types.ts` |
 | **주요 필드** | `title` (String)                                    | `name` (String)                      |
 | **기타 필드** | `project_id`, `created_at`, `updated_at`, `is_home` | 최소 필드만 유지                     |
 | **사용처**    | API 요청/응답, Supabase                             | Zustand Store, UI Components         |
@@ -491,13 +491,13 @@ function isStorePage(page: unknown): page is Page {
 ### Type Definitions
 
 - `src/services/api/PagesApiService.ts` - ApiPage 정의
-- `src/types/builder/unified.types.ts` - Store Page 정의
+- `apps/builder/src/types/builder/unified.types.ts` - Store Page 정의
 
 ### Conversion Points (변환 발생 위치)
 
-- `src/builder/hooks/usePageManager.ts` - API → Store 변환
+- `apps/builder/src/builder/hooks/usePageManager.ts` - API → Store 변환
 - `src/builder/nodes/Pages.tsx` - 삭제 시 Store → API 변환
-- `src/builder/panels/navigator/NavigatorPanel.tsx` - Store → UnifiedPage 래퍼
+- `apps/builder/src/builder/panels/navigator/NavigatorPanel.tsx` - Store → UnifiedPage 래퍼
 
 ### Tests (추가 권장)
 

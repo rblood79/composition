@@ -729,7 +729,7 @@ CREATE POLICY "Users can manage own project variables"
 ### 4.2 IndexedDB Schema
 
 ```typescript
-// src/lib/db/indexedDB/adapter.ts 확장
+// apps/builder/src/lib/db/indexedDB/adapter.ts 확장
 
 // Store 생성
 const dataTablesStore = db.createObjectStore("dataTables", { keyPath: "id" });
@@ -753,7 +753,7 @@ variablesStore.createIndex("page_id", "page_id", { unique: false });
 ## 5. Type Definitions
 
 ```typescript
-// src/types/builder/data.types.ts
+// apps/builder/src/types/builder/data.types.ts
 
 export interface DataTable {
   id: string;
@@ -952,7 +952,7 @@ export interface TransformUtilsContext {
 ## 6. Zustand Store
 
 ```typescript
-// src/builder/stores/data.ts
+// apps/builder/src/builder/stores/data.ts
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -1859,10 +1859,10 @@ const labelField = config?.columnMapping?.label || config?.dataMapping?.labelFie
 
 | Task               | File                              | Priority |
 | ------------------ | --------------------------------- | -------- |
-| Type definitions   | `src/types/builder/data.types.ts` | P0       |
+| Type definitions   | `apps/builder/src/types/builder/data.types.ts` | P0       |
 | Database migration | `supabase/migrations/`            | P0       |
-| IndexedDB schema   | `src/lib/db/indexedDB/adapter.ts` | P0       |
-| Zustand store      | `src/builder/stores/data.ts`      | P0       |
+| IndexedDB schema   | `apps/builder/src/lib/db/indexedDB/adapter.ts` | P0       |
+| Zustand store      | `apps/builder/src/builder/stores/data.ts`      | P0       |
 
 ### Phase 2: DataTable UI - 1주
 

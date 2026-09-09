@@ -730,7 +730,7 @@ git mv .env.example apps/builder/.env.example
 git mv apps/builder/src/canvas/ apps/builder/src/preview/
 
 # vite.preview.config.ts 내 경로 업데이트
-# entry: 'src/canvas/index.tsx' → 'src/preview/index.tsx'
+# entry: 'src/canvas/index.tsx' → 'apps/builder/src/preview/index.tsx'
 ```
 
 > **이유**: `src/canvas/`는 React 기반 프리뷰 앱이지만, 이름이 Pixi.js의

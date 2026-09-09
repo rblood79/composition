@@ -259,7 +259,7 @@ ListBox → 1 ListBoxItem
 
 ### 팩토리
 
-- `src/builder/factories/definitions/SelectionComponents.ts` - 초기 컴포넌트 생성
+- `apps/builder/src/builder/factories/definitions/SelectionComponents.ts` - 초기 컴포넌트 생성
 
 ## 사용 예제
 

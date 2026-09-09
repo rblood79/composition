@@ -229,7 +229,7 @@ src/builder/panels/dataset/
 ## 참고
 
 - Layout Preset: `src/builder/panels/properties/editors/LayoutPresetSelector/`
-- Mock Data: `src/services/api/mocks/mockLargeDataV2.ts`
-- DataTable 타입: `src/types/builder/data.types.ts`
-- Data Store: `src/builder/stores/data.ts`
+- Mock Data: `apps/builder/src/services/api/mocks/mockLargeDataV2.ts`
+- DataTable 타입: `apps/builder/src/types/builder/data.types.ts`
+- Data Store: `apps/builder/src/builder/stores/data.ts`
 - useColumnLoader Hook: `src/builder/hooks/useColumnLoader.ts`

@@ -43,7 +43,7 @@ export default {
 
 #### 5. 컴포넌트 스타일링
 - 컴포넌트별 스타일은 해당 컴포넌트의 CSS 파일에 정의
-- 전역 스타일은 src/index.css에 정의
+- 전역 스타일은 apps/builder/src/index.css에 정의
 
 #### 6. 반응형 디자인
 - Tailwind의 반응형 접두사 사용 (sm:, md:, lg:, xl:)
