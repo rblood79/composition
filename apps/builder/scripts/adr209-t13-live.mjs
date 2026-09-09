@@ -10,13 +10,15 @@
 // Compare Mode(Preview iframe) 에서 animation off/on/reduced-motion 의 프레임 수, tooltip hover,
 // 키보드 ArrowRight 를 실제로 돌리고 그때마다 canonical 문서 JSON 이 그대로인지 본다.
 //
-// 사용: node apps/builder/scripts/adr209-t13-live.mjs [--headed]
+// 사용: node apps/builder/scripts/adr209-t13-live.mjs [--headed] [--base http://localhost:5175]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
 
-const BASE_URL = "http://localhost:5173";
+const baseIdx = process.argv.indexOf("--base");
+const BASE_URL =
+  baseIdx >= 0 ? process.argv[baseIdx + 1] : "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = "/private/tmp/adr209-f3/t13";
 const headed = process.argv.includes("--headed");
@@ -234,7 +236,15 @@ const rowsFor = (revision) =>
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   const browser = await chromium.launch({ headless: !headed });
+  // storage state 의 localStorage 는 origin 별 — --base 가 다른 포트면 같은 세션을 그 origin 에도 싣는다.
   const storageState = JSON.parse(readFileSync(STORAGE_STATE, "utf8"));
+  const origin = new URL(BASE_URL).origin;
+  const source = storageState.origins?.[0];
+  if (source && !storageState.origins.some((o) => o.origin === origin))
+    storageState.origins.push({
+      origin,
+      localStorage: source.localStorage.map((e) => ({ ...e })),
+    });
   const { page, errors } = await createInstrumentedContext(browser, {
     storageState,
     cpuThrottle: 1,
@@ -333,13 +343,11 @@ async function main() {
     // bar 로 고정한다 — tooltip/키보드는 `.recharts-bar-rectangle` 를 hover 하므로 (팔레트 기본 종류에 기대지 않는다).
     await page.evaluate(
       ({ id, rows }) =>
-        window.__composition_STORE__
-          .getState()
-          .updateElementProps(id, {
-            chartType: "bar",
-            data: rows,
-            style: { width: 480, height: 320 },
-          }),
+        window.__composition_STORE__.getState().updateElementProps(id, {
+          chartType: "bar",
+          data: rows,
+          style: { width: 480, height: 320 },
+        }),
       { id: chartId, rows: rowsFor(1) },
     );
     await page.waitForTimeout(2000);
@@ -412,13 +420,11 @@ async function main() {
     // ── animation on ────────────────────────────────────────────────────────
     await page.evaluate(
       (id) =>
-        window.__composition_STORE__
-          .getState()
-          .updateElementProps(id, {
-            isAnimationActive: true,
-            animationDuration: 600,
-            animationBegin: 0,
-          }),
+        window.__composition_STORE__.getState().updateElementProps(id, {
+          isAnimationActive: true,
+          animationDuration: 600,
+          animationBegin: 0,
+        }),
       chartId,
     );
     await page.waitForTimeout(2500);
@@ -477,12 +483,10 @@ async function main() {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.evaluate(
       (id) =>
-        window.__composition_STORE__
-          .getState()
-          .updateElementProps(id, {
-            isAnimationActive: true,
-            animationDuration: 600,
-          }),
+        window.__composition_STORE__.getState().updateElementProps(id, {
+          isAnimationActive: true,
+          animationDuration: 600,
+        }),
       chartId,
     );
     await page.waitForTimeout(2500);
