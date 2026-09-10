@@ -11,7 +11,7 @@
 // 인증은 `.auth-session.json` 의 실제 Supabase 세션을 production origin 으로 옮겨 쓴다 (우회 없음).
 // 준비: `pnpm -F @composition/builder build` · `pnpm -F @composition/publish build` 가 끝난 dist.
 //
-// 사용: node apps/builder/scripts/adr209-f4-production-network.mjs [--headed]
+// 사용: node apps/builder/scripts/adr209-f4-production-network.mjs [--headed] [--repo <worktree>] [--out <dir>]
 import {
   readFileSync,
   writeFileSync,
@@ -30,9 +30,14 @@ import {
 } from "./perf-baseline.mjs";
 
 const headed = process.argv.includes("--headed");
-const OUT_DIR = "/private/tmp/adr209-f3/f4";
-const BUILDER_DIST = resolve("apps/builder/dist");
-const PUBLISH_DIST = resolve("apps/publish/dist");
+const opt = (name, fallback) => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1] : fallback;
+};
+const REPO = resolve(opt("repo", "."));
+const OUT_DIR = resolve(opt("out", "/private/tmp/adr209-f3/f4"));
+const BUILDER_DIST = resolve(REPO, "apps/builder/dist");
+const PUBLISH_DIST = resolve(REPO, "apps/publish/dist");
 const BUILDER_PORT = 4177,
   PUBLISH_PORT = 4178;
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
@@ -263,7 +268,7 @@ async function main() {
   await new Promise((r) => publishServer.listen(PUBLISH_PORT, "127.0.0.1", r));
   const BASE = `http://localhost:${BUILDER_PORT}/composition`;
   const ORIGIN = `http://localhost:${BUILDER_PORT}`;
-  const revision = execSync("git rev-parse HEAD", { encoding: "utf8" }).trim();
+  const revision = execSync("git rev-parse HEAD", { cwd: REPO, encoding: "utf8" }).trim();
   const browser = await chromium.launch({ headless: !headed });
   const { context, page, errors } = await createInstrumentedContext(browser, {
     storageState: storageStateFor(ORIGIN),

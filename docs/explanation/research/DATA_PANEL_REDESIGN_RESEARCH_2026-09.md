@@ -2,7 +2,7 @@
 
 > `apps/builder/src/builder/panels/datatable/` 두 패널 (목록 `datatable` · 편집 `datatableEditor`) 의 현재 구조와 동작을 코드·live 로 실측하고, 외부 제품 리서치를 대조해 **UI · UX · AI · AX** 네 관점의 개선 방향을 제안하는 문서. 결정 문서 (ADR) 가 아니라 ADR 작성 전 판단 재료다. 근거는 경로:라인과 headless Playwright 캡처 (`datatable-research-*` 임시 프로젝트, 2026-09-10).
 >
-> - 관련 ADR: [ADR-131](../../adr/completed/131-events-data-actions-first-class-collections.md) (데이터 SSOT = collections) · [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) (read 진입점 단일화) · [ADR-159](../../adr/completed/159-collection-field-template-binding.md) (`{field}` 템플릿 + dataTable 단일 소스) · [ADR-152](../../adr/152-data-panel-collection-binding-integration.md) (Proposed — 바인딩 계약 v2, 착수 금지 상태) · [ADR-013](../../adr/013-quick-connect-data-binding.md) (Proposed — Quick Connect, 152 선행) · [ADR-209](../../adr/209-chart-authoring-canvas-recharts-runtime.md) (차트 dataBinding · data-source envelope)
+> - 관련 ADR: [ADR-131](../../adr/completed/131-events-data-actions-first-class-collections.md) (데이터 SSOT = collections) · [ADR-132](../../adr/completed/132-usecollectiondata-useasynclist-alignment.md) (read 진입점 단일화) · [ADR-159](../../adr/completed/159-collection-field-template-binding.md) (`{field}` 템플릿 + dataTable 단일 소스) · [ADR-152](../../adr/152-data-panel-collection-binding-integration.md) (Proposed — 바인딩 계약 v2, 착수 금지 상태) · [ADR-013](../../adr/013-quick-connect-data-binding.md) (Proposed — Quick Connect, 152 선행) · [ADR-209](../../adr/completed/209-chart-authoring-canvas-recharts-runtime.md) (차트 dataBinding · data-source envelope)
 > - 어휘: UI 표면은 `DataTable`, 내부 구조는 `Collection*` (ADR-132 옵션 1). 이 문서도 같다.
 
 ## 0. 요약

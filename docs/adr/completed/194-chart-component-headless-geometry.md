@@ -1,6 +1,6 @@
 # ADR-194: 차트 컴포넌트 — headless 기하 SSOT + Skia/DOM 대칭 consumer
 
-> 부분 대체 진행: [ADR-209](../209-chart-authoring-canvas-recharts-runtime.md)는 Charts 6종 저작 UI와 Preview/Publish의 Recharts runtime을 도입한다. 이 ADR의 Canvas 기하·데이터 의미·기존 저장 props는 보존한다. ADR-209는 현재 In Progress이며 원 결정의 완료 이력은 유지한다.
+> 부분 대체 완료: [ADR-209](209-chart-authoring-canvas-recharts-runtime.md)는 Charts 6종 저작 UI와 Preview/Publish의 Recharts runtime을 도입한다. 이 ADR의 Canvas 기하·데이터 의미·기존 저장 props는 보존한다. ADR-209는 2026-09-10 Implemented이며 원 결정의 완료 이력은 유지한다.
 
 ## Status
 

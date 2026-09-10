@@ -7,7 +7,7 @@
 > 쌓여 있던 세션별 갱신 공지 · 완료 ADR 비고 · 2026-04 기준 우선순위 계획 · 변경 이력은
 > [archive/README-notes-2026-09.md](archive/README-notes-2026-09.md) 로 **무손실 이관**했다.
 >
-> **최종 대조**: 2026-09-09 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다.
+> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다.
 
 ---
 
@@ -15,16 +15,16 @@
 
 | 구분                      |    개수 |
 | ------------------------- | ------: |
-| 완료 (`completed/`)       |     225 |
-| ├ Implemented             |     189 |
+| 완료 (`completed/`)       |     226 |
+| ├ Implemented             |     190 |
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      12 |
-| ├ Proposed                |      10 |
+| 열려 있는 것 (`adr/*.md`) |      10 |
+| ├ Proposed                |       8 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
-| **합계**                  | **237** |
+| **합계**                  | **236** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -88,12 +88,6 @@
 - **상태**: Proposed
 - **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
 - **우선순위**: **P1**
-
-#### [209](209-chart-authoring-canvas-recharts-runtime.md) — 차트별 편집 경험과 Canvas·Recharts 런타임 분리
-
-- **상태**: In Progress — 2026-09-09
-- **규모**: Charts 6종 생성 항목·동적 Properties·기존 collection/dataBinding 유지. Builder Canvas 정적 표현과 Preview/Publish 실제 Recharts 실행 분리. ADR-194·207·208 일부 결정 변경. P0~~P4 구현·검증/G0~~G4 PASS. P5 성능·번들·호환 검사 수행. 기존 전체 번들 기준 결정 및 로그인된 production Builder 부트 검증 후 G5/G6 종결.
-- **우선순위**: P1
 
 ### 부분 완료
 
@@ -195,7 +189,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 
 ---
 
-## 완료 ADR (225)
+## 완료 ADR (226)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -220,6 +214,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 | [903](completed/903-ref-descendants-slot-composition-format-migration-plan.md)      | ref/descendants + slot 기본 composition 포맷 전환 계획                          | Implemented | 2026-04-26                                                           |
 | [902](completed/902-workspace-dot-background-layer.md)                              | Workspace Dot Background Layer                                                  | Implemented | 2026-04-25                                                           |
 | [900](completed/900-unified-skia-rendering-engine.md)                               | Unified Skia Rendering Engine — PixiJS/Taffy 제거 및 CSS3 단일 렌더러           | Implemented | 2026-04-07                                                           |
+| [209](completed/209-chart-authoring-canvas-recharts-runtime.md)                     | 차트별 편집 경험과 Canvas·Recharts 런타임 분리                                  | Implemented | 2026-09-10                                                           |
 | [208](completed/208-radar-radial-grid-controls.md)                                  | radar/radial 제어 prop 과 차트 종류별 조건부 노출                               | Implemented | 2026-09-09                                                           |
 | [207](completed/207-polar-chart-radar-radial.md)                                    | 극좌표 차트 — radar · radial (ADR-194 기하 SSOT 의 극좌표 확장)                 | Implemented | 2026-09-08                                                           |
 | [206](completed/206-engine-stretched-definite-propagation-grid-implicit-tracks.md)  | 엔진 늘어난 크기 definite 전파 + grid 암묵 트랙 준수                            | Implemented | 2026-09-07                                                           |

@@ -10,7 +10,7 @@
 // Compare Mode(Preview iframe) 에서 animation off/on/reduced-motion 의 프레임 수, tooltip hover,
 // 키보드 ArrowRight 를 실제로 돌리고 그때마다 canonical 문서 JSON 이 그대로인지 본다.
 //
-// 사용: node apps/builder/scripts/adr209-t13-live.mjs [--headed] [--base http://localhost:5175]
+// 사용: node apps/builder/scripts/adr209-t13-live.mjs [--headed] [--base http://localhost:5175] [--out <dir>]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -20,7 +20,8 @@ const baseIdx = process.argv.indexOf("--base");
 const BASE_URL =
   baseIdx >= 0 ? process.argv[baseIdx + 1] : "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
-const OUT_DIR = "/private/tmp/adr209-f3/t13";
+const outIdx = process.argv.indexOf("--out");
+const OUT_DIR = outIdx >= 0 ? process.argv[outIdx + 1] : "/private/tmp/adr209-f3/t13";
 const headed = process.argv.includes("--headed");
 const log = (...a) => console.log("[ADR-209 T13]", ...a);
 const findings = [];
@@ -443,7 +444,7 @@ async function main() {
     const onFinal = await previewSig(frame);
     const docAfterOn = (await chartState(page, chartId)).docJson;
     record(
-      "animation on(600ms) — 중간 프레임이 실제로 여러 개 그려지고 600ms 안에 끝난다",
+      "animation on(설정 600ms) — 중간 기하 4종 이상, 실제 마지막 변경은 관측 상한 1400ms 이내",
       onFrames.distinct >= 4 && onFrames.lastChangeAt <= 1400,
       `distinct ${onFrames.distinct} · lastChange ${onFrames.lastChangeAt}ms`,
     );

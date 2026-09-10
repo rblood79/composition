@@ -83,7 +83,7 @@ composition-patterns 스킬의 규칙을 따르며 구현한다.
 
 ### React Aria 내재화 원칙
 
-- 외부 라이브러리 추가 설치 금지 (번들 500KB 제약). 범위 예외: [ADR-209](../../../docs/adr/209-chart-authoring-canvas-recharts-runtime.md)의 Preview/Publish 차트 lazy 경계 뒤 Recharts 및 전이 의존만 허용한다. 전체 초기 번들 <500KB, 신규 초기 JS 순증 ≤10 KiB gzip, 차트 lazy 그래프 순증 ≤200 KiB gzip은 각각 별도 게이트이며, 기존 초과를 이 예외로 자동 승인하지 않는다.
+- 외부 라이브러리 추가 설치 금지 (번들 500KB 제약). 범위 예외: [ADR-209](../../../docs/adr/completed/209-chart-authoring-canvas-recharts-runtime.md)의 Preview/Publish 차트 lazy 경계 뒤 Recharts 및 전이 의존만 허용한다. 전체 초기 번들 <500KB, 신규 초기 JS 순증 ≤10 KiB gzip, 차트 lazy 그래프 순증 ≤200 KiB gzip은 각각 별도 게이트이며, 기존 초과를 이 예외로 자동 승인하지 않는다. 별도 명시적 승인: ADR-209 후속 §10.8의 B안(2026-09-10)은 Builder/Preview 초기 JS에만 한시적 상한을 적용하며, 정확한 상한·만료·후속 책임은 해당 승인 기록을 따른다.
 - React Aria hooks/components는 이미 프로젝트 의존성 — 직접 import 가능
 - React Aria 패턴을 composition 컨벤션에 맞게 변환:
   - 스타일링 → tv() + CSS

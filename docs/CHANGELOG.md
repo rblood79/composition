@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-209 후속 완료 — B안 승인 및 G5/G6 종결] - 2026-09-10
+
+### Validation
+
+- clean `651c2a363`에서 Builder/Preview/Publish 초기 JS gzip **1,289,801 / 626,424 / 390,293 B**. 이전 확정 `24a33d157`보다 감소했고 차트 lazy graph는 동일하다. 기존 의존성 최적화의 결과이며 새 차트 기능 변경은 없다.
+- runtime 6종×200행 정적 p95 **40.5–43.5ms**, Builder 프레임 A/B 5쌍 최악 Δ **+0.8ms**. 실제 로그인된 production F4 **9/9**, 전이 의존성 요청 대조 **7/7**, T13 **13/13**, focused tests **43/43**, chart Chromium **170/170**, preflight PASS. Settings 실제 한국어 선택·reload·Export를 포함한 Series live **21/21** PASS.
+- 하니스의 측정 worktree/출력 경로를 지정할 수 있어 이전 증거를 보존한다. T13의 설정 600ms와 실제 관측 상한 1400ms를 구분하도록 결과 문구를 정정했다(검사 조건 유지).
+- 사용자 **“B 안으로 승인”**(2026-09-10)에 따라 Builder ≤1,289,801 B / Preview ≤626,424 B의 한시적 초기 gzip 상한을 확정했다. Publish <500,000 B와 차트 순증·lazy·성능 기준은 유지한다. 만료는 2026-10-10 또는 초기 closure 영향 변경 중 먼저 도래하는 시점이며, Composition 유지보수 담당이 재측정 및 축소 계획/재승인을 맡는다.
+- **G5/G6·F5 완료, ADR Implemented 승격 및 completed 이관.** 전체 500KB 목표 자체를 달성한 것은 아니며 예외 자동 연장은 없다. [승인 계약과 종결 근거](adr/design/209-chart-followup-repair-breakdown.md#108-b안-승인-및-g5g6f5-종결-2026-09-10).
+
 ## [Properties 패널 — 동작하지 않던 항목 정리와 ColorField·FileTrigger Preview 복구] - 2026-09-10
 
 ### Fixed

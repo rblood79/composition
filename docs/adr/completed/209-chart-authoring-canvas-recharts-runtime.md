@@ -2,9 +2,11 @@
 
 ## Status
 
-In Progress — 2026-09-09. P0~~P4 구현·검증과 P5 호환성·성능 측정을 수행했다. G0~~G4 통과. G5의 기존 전체 초기 번들 예산 결정과 로그인된 production Builder 부트 검증이 남아 G5/G6 종결은 보류한다. [실행 근거](evidence/209-execution-live.md).
+Implemented — 2026-09-10. P0~~P5 및 후속 F0~~F5 완료, G0~~G6 PASS. 최신 제품 검증 revision은 `651c2a363`. 사용자의 B안 승인으로 Builder/Preview 전체 초기 번들에만 한시적 상한을 적용한다. [승인 조건과 종결 근거](../design/209-chart-followup-repair-breakdown.md#108-b안-승인-및-g5g6f5-종결-2026-09-10).
 
-관련 결정: [ADR-194](completed/194-chart-component-headless-geometry.md), [ADR-207](completed/207-polar-chart-radar-radial.md), [ADR-208](completed/208-radar-radial-grid-controls.md). 본 ADR이 Accepted되면 아래 표의 일부 결정을 대체한다. 세 ADR 전체를 Superseded로 바꾸지는 않는다.
+관련 결정: [ADR-194](194-chart-component-headless-geometry.md), [ADR-207](207-polar-chart-radar-radial.md), [ADR-208](208-radar-radial-grid-controls.md). 본 ADR은 아래 표의 일부 결정을 대체한다. 세 ADR 전체를 Superseded로 바꾸지는 않는다.
+
+**승인된 전체 초기 예산 예외 (B, 2026-09-10).** gzip 파일별 합계 기준 Builder ≤1,289,801 B, Preview ≤626,424 B. Publish <500,000 B 유지. 유효 기간은 2026-10-10 또는 초기 closure 영향 변경 중 먼저 도래하는 시점까지이며, Composition 유지보수 담당이 재측정 및 축소 계획/재승인을 담당한다. 차트 순증·lazy·성능 조건은 유지한다.
 
 ## Context
 
@@ -34,7 +36,7 @@ ADR-194 대안 C(`:62-69`)는 **Recharts hidden DOM → SVG 해석 → Skia**였
 
 `componentCatalog.ts:450`과 `paletteItems.ts:243`은 Chart 하나를 등재한다. `GenericFieldRenderer.tsx:350-357`에는 ADR-208 조건 필터가 이미 배선돼 있다. `Chart.tsx:398-414`는 `useCollectionData` 결과를 최대 200행으로 잘라 공통 기하 함수에 전달하고, 빈 바인딩 결과는 `props.data`로 대체한다. 이것은 **현재 DOM에도 있는 제한**이며 Builder에만 있다고 설명하면 틀린다.
 
-`useCollectionData.tsx:220,322`는 React Stately `useAsyncList`와 DI 서비스를 사용한다. 그러나 작성 시 `rg -l 'CollectionDataProvider|CollectionDataContext' apps packages` 결과에서 provider 장착은 shared 정의 외에 발견되지 않았다. 훅 재사용은 VERIFIED, 실제 앱의 DataTable/API 공급 종결은 UNVERIFIED다. [ADR-152](152-data-panel-collection-binding-integration.md)의 공통 데이터 연결 범위와 대조하고 실제 문서 reload/배포 산출물에서 입증해야 한다. 정적 샘플 성공으로 바인딩 성공을 대신하지 않는다.
+`useCollectionData.tsx:220,322`는 React Stately `useAsyncList`와 DI 서비스를 사용한다. 그러나 작성 시 `rg -l 'CollectionDataProvider|CollectionDataContext' apps packages` 결과에서 provider 장착은 shared 정의 외에 발견되지 않았다. 훅 재사용은 VERIFIED, 실제 앱의 DataTable/API 공급 종결은 UNVERIFIED다. [ADR-152](../152-data-panel-collection-binding-integration.md)의 공통 데이터 연결 범위와 대조하고 실제 문서 reload/배포 산출물에서 입증해야 한다. 정적 샘플 성공으로 바인딩 성공을 대신하지 않는다.
 
 **Hard Constraints** — 아래 수치는 실측 성과가 아닌 제안된 구현 통과 기준이다.
 
@@ -45,7 +47,7 @@ ADR-194 대안 C(`:62-69`)는 **Recharts hidden DOM → SVG 해석 → Skia**였
 5. 동일한 데이터 revision·설정·크기·폰트·테마에서 정적 완성 상태의 주요 좌표/외곽 **오차 ≤1 CSS px**, 표시 값·축 눈금·범례·색 역할 일치. SVG path 문자열 일치는 요구하지 않는다. Builder 샘플과 Publish 전체 행을 비교한 차이는 렌더 오차로 집계하지 않는다. **데이터 앵커와 plot 외곽은 두 구현이 구조적으로 일치하는 지점이므로 그것만으로 정합을 판정하지 않는다** — 곡선 제어점·arc 세그먼트처럼 앵커 사이에서만 갈리는 기하는 구간 중간점 좌표를 별도 표본으로 잰다 (R10).
 6. 기존 설정은 뜻을 유지한다. 특히 누적 100% 단위, duplicate 합산, 결측, 극좌표 각도 규약은 adapter에서 명시한다. Recharts 기본값을 그대로 받아 기존 그림을 바꾸지 않는다.
 7. 의존 예외는 차트 runtime의 Recharts와 필요한 전이 의존에 한정한다. React 중복 탑재 0. Builder 편집 부트에서 Recharts chunk 요청 0; 차트 없는 Preview/Publish의 Recharts chunk 요청 0. 추가 초기 공통 JS ≤10 KiB gzip, 차트 lazy 전이 그래프의 순증 ≤200 KiB gzip을 제안 예산으로 둔다. 과거 ADR의 148KB 등은 현재 예산 검증값이 아니다.
-   - **기존 금지 규칙과의 관계**: `.claude/skills/component-design/SKILL.md:86` "외부 라이브러리 추가 설치 금지 (번들 500KB 제약)" 과 `CLAUDE.md` 초기 번들 <500KB 는 [ADR-194](completed/194-chart-component-headless-geometry.md):25 가 "신규 런타임 의존 0" 의 근거로 인용한 규칙이다. 본 ADR은 그 금지를 **폐기하지 않고 차트 runtime 한 곳에 범위 예외를 둔다** — 기존 전체 초기 번들 <500KB와 신규 초기 JS ≤10 KiB gzip 순증을 별도 조건으로 지키고, 예외 대상은 lazy 경계 뒤의 Recharts와 그 전이 의존뿐이다. 이 예외가 성립하려면 규칙 문서 쪽도 같은 문장을 가져야 하므로 **SKILL.md 해당 항목 갱신을 G6 산출물에 포함**한다 (문서와 결정이 갈린 채로 Implemented 승격 금지).
+   - **기존 금지 규칙과의 관계**: `.claude/skills/component-design/SKILL.md:86` "외부 라이브러리 추가 설치 금지 (번들 500KB 제약)" 과 `CLAUDE.md` 초기 번들 <500KB 는 [ADR-194](194-chart-component-headless-geometry.md):25 가 "신규 런타임 의존 0" 의 근거로 인용한 규칙이다. 본 ADR은 그 금지를 **폐기하지 않고 차트 runtime 한 곳에 범위 예외를 둔다** — 전체 초기 번들 예산(아래 B안 승인 범위 예외 포함)과 신규 초기 JS ≤10 KiB gzip 순증을 별도 조건으로 지키고, 예외 대상은 lazy 경계 뒤의 Recharts와 그 전이 의존뿐이다. 이 예외가 성립하려면 규칙 문서 쪽도 같은 문장을 가져야 하므로 **SKILL.md 해당 항목 갱신을 G6 산출물에 포함**한다 (문서와 결정이 갈린 채로 Implemented 승격 금지).
 8. Builder 200행×4시리즈의 가시 편집/줌에서 frame 총비용 p95 증가 ≤1ms. 애니메이션 프레임마다 canonical/store write **0**, 편집 부트 readiness의 timeout·가짜 진행률 추가 **0**. warm runtime 200행×4시리즈 데이터 교체의 최종 정적 render p95 ≤100ms(설정한 animation 지연/시간은 별도 측정)를 제안한다.
 
 **Generator 판정**: 팔레트 구분·애니메이션은 CSS 생성 대상이 아니다. 기존 `ComponentRule.chart` → `--chart-*` 전달을 재사용한다. 프리셋이 요구하는 gradient 등 새 시각 채널은 현재 지원 여부를 먼저 확인하고, 필요 시 catalog·generator·Canvas·DOM 네 경계를 함께 확장한다. 한쪽에만 존재하는 스타일 프리셋은 노출하지 않는다.
@@ -105,9 +107,9 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 
 기각 사유: A는 지정 runtime 요구를 충족하지 않고, B는 라이브러리 내부 SVG 구조를 편집 엔진에 결합하며, D는 Builder Canvas 표현 전제를 바꾼다. C도 통과하지 못하면 무단으로 A/D로 바꾸거나 정합 허용치를 완화하지 않고 실패 옵션·오차·가능한 조정 범위를 제시한다.
 
-> 구현 상세: [209-chart-authoring-canvas-recharts-runtime-breakdown.md](design/209-chart-authoring-canvas-recharts-runtime-breakdown.md)
+> 구현 상세: [209-chart-authoring-canvas-recharts-runtime-breakdown.md](../design/209-chart-authoring-canvas-recharts-runtime-breakdown.md)
 
-> 후속 보완 상세: [시리즈 해제와 G5/G6 종결](design/209-chart-followup-repair-breakdown.md). 원본 필드 키·ref·공통 collection 계약을 보존하는 해제 설계와 잔여 검증 조건을 정의한다. 제품 구현과 G5/G6 통과는 별도이며, shadcn 대비 신규 기능 확장은 이 보완 범위에 포함하지 않는다.
+> 후속 보완 상세: [시리즈 해제와 G5/G6 종결](../design/209-chart-followup-repair-breakdown.md). 원본 필드 키·ref·공통 collection 계약을 보존하는 해제 설계와 잔여 검증 조건을 정의한다. 제품 구현과 G5/G6 통과는 별도이며, shadcn 대비 신규 기능 확장은 이 보완 범위에 포함하지 않는다.
 
 ## Risks
 
@@ -137,7 +139,7 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 | G5   | 성능/번들                | HC7/8 충족, 모든 신규 chunk 포함한 같은 기준 순증, 가시 populated Builder A/B, 불리 편집/resize와 runtime 데이터 교체 비용 보고                                                                                                                                                                                                                                                                                                                                            | lazy graph·변환 비용 수리, 예산 초과를 자동 승인하지 않음            |
 | G6   | 전환 종결                | 기존 문서 0 강제 재직렬화, legacy/new/ref 문서 reload·export/import·Undo·rollback, Preview/Publish 같은 runtime, 관련 focused tests·cross-check·preflight·실사용 증거                                                                                                                                                                                                                                                                                                      | 이전 릴리스 유지, Implemented 승격 금지                              |
 
-측정 표본·불리 조건·대조군·oracle·기기 조건은 breakdown §6에 정의한다. 작성 시점에는 전부 미실행이었다. 현재 G0~G4는 통과했으며 G5/G6의 잔여 조건은 실행 기록과 evidence를 따른다.
+측정 표본·불리 조건·대조군·oracle·기기 조건은 breakdown §6에 정의한다. 작성 시점에는 전부 미실행이었다. 현재 G0~G6는 통과했으며 G5의 B안 승인 조건과 실행 근거는 후속 breakdown §10.8을 따른다.
 
 ## Consequences
 
@@ -156,7 +158,7 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 
 ## 실행 기록
 
-- 2026-09-09 P0: 실제 Recharts 3.10.1 Chromium 9/9 및 타입 검사 PASS. [입력·매핑·baseline·데이터 결선 inventory](evidence/209-p0-recharts-spike.md). 기존 초기 번들 초과 처리는 미확정이며 G5 미실행. P1 착수.
+- 2026-09-09 P0: 실제 Recharts 3.10.1 Chromium 9/9 및 타입 검사 PASS. [입력·매핑·baseline·데이터 결선 inventory](../evidence/209-p0-recharts-spike.md). 기존 초기 번들 초과 처리는 미확정이며 G5 미실행. P1 착수.
 
 - 2026-09-09 P1/P2: 공통 row/layout/descriptor 계약, Charts 6종 생성·조건부 Properties·프리셋·Undo/Redo·검색/재열기 구현. G1/G2 PASS.
 - 2026-09-09 P3/P4: 공통 collection provider와 JSON envelope, 실제 native Recharts 6종으로 전환. production Preview/독립 Publish의 전체 행·빈 값·오류·업데이트를 확인했다. 기본 Chromium 140건+실제 CSS/Skia token 24건, DPR2/dark/reduced-motion 149건 PASS. G3/G4 PASS.
@@ -165,6 +167,8 @@ Builder는 정적 Canvas와 동적 Properties를 담당한다. Preview/Publish�
 - 2026-09-09 padding 후속 수리: Styles 값은 저장됐지만 chart metrics가 catalog 기본 여백만 읽던 누락을 수정했다. 공통 4방향 해석을 Canvas와 Recharts에 연결하고 값이 같은 style 재전송 시 애니메이션 재시작을 방지했다. Chromium 170건, 기존 parity 151건, 기하 34건 및 preflight PASS. 기존 차트 padding 편집→Undo→방향별 편집→reload에서 저장·렌더 반영과 console 0을 확인했다. G5/G6 잔여 조건은 유지하며 앞선 번들 수치는 이 후속 수정 전 측정이다.
 - 2026-09-09 명칭·언어 후속 수리: 필드 선택과 기본 행 명칭을 통일하고 차트 UI 전체의 ko/en 번역을 기존 i18n 경로에 연결했다. 컬렉션 필드 옵션은 원문으로 표시하며 언어 전환은 canonical 값을 수정하지 않는다. 관련 35개 테스트 및 preflight PASS. 전용 Builder에서 기본 행과 컬렉션 차트의 Settings 언어 왕복·차트 한국어 검색·생성 Undo를 확인했다. 개발 모듈 갱신 중 DOM 제거 오류를 관측했지만 최종 코드 새로고침 후 같은 조작에서는 새 warn/error가 없었다. G5/G6 잔여 조건은 유지한다.
 
+- 2026-09-10 후속 종결: 최신 `651c2a363` 기술 검증 후 사용자 “B 안으로 승인”을 기록했다. G5/G6·F5 PASS, Implemented 승격 및 completed 이관. [예산 상한·기간·후속 책임](../design/209-chart-followup-repair-breakdown.md#108-b안-승인-및-g5g6f5-종결-2026-09-10).
+
 ### Live Exercise
 
-전용 Chrome Builder에서 Charts 6종 생성·조건부 속성·프리셋·종류 변경·Undo/Redo·리로드, 추가된 차트 행 수정/삭제/Undo 후 저장 값과 console 0을 확인했다. production Preview/독립 Publish에서 API·DataTable·static rows 갱신과 201/5000행 보존, 빈 값/오류, dark·키보드 tooltip을 확인했다. [실행 조건과 근거](evidence/209-execution-live.md). 로그인된 production Builder 부트와 기존 전체 번들 기준 결정은 미완료로 남긴다.
+전용 Chrome Builder에서 Charts 6종 생성·조건부 속성·프리셋·종류 변경·Undo/Redo·리로드, 추가된 차트 행 수정/삭제/Undo 후 저장 값과 console 0을 확인했다. production Preview/독립 Publish에서 API·DataTable·static rows 갱신과 201/5000행 보존, 빈 값/오류, dark·키보드 tooltip을 확인했다. [실행 조건과 근거](../evidence/209-execution-live.md). 로그인된 production Builder 부트는 2026-09-10 후속 F4에서 통과했고 `651c2a363`에서도 9/9로 확인했다. 같은 revision T13은 13/13이며 canonical write/console error 0이다. Settings 실제 한국어 선택·reload·Export를 포함한 Series 흐름도 21/21로 확인했다. 전체 번들 기준 결정은 [후속 §10.7](../design/209-chart-followup-repair-breakdown.md#107-최신-제품-revision-재검증-2026-09-10--f5-준비)을 따른다.

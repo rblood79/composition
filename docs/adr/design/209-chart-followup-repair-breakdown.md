@@ -1,8 +1,8 @@
 # ADR-209 후속 보완 상세 설계 — 시리즈 해제와 G5/G6 종결
 
-작성: 2026-09-09. 문서 상태: 상세 설계 작성 완료, **제품 구현 미착수**. 코드 조사 기준: `2e0b0fab8` 및 당시 작업 트리. 조사 중 병행된 AI·i18n 변경은 이 설계의 구현 또는 검증 결과에 포함하지 않는다.
+작성: 2026-09-09. 상태 갱신: 2026-09-10 — **F0~~F5 완료, 사용자 B안 승인으로 G5/G6 종결**. 설계 당시 코드 조사 기준은 `2e0b0fab8`이며 아래 원인 분석 표는 그 시점 기록이다. 현재 구현·검증 판정은 §10.4 이후, 최신 측정 `651c2a363`은 §10.7을 따른다.
 
-상위 결정은 [ADR-209](../209-chart-authoring-canvas-recharts-runtime.md), 기존 전체 구현 계획은 [원 설계 breakdown](209-chart-authoring-canvas-recharts-runtime-breakdown.md)이다. 본 문서는 ADR-209의 남은 보완·검증을 구체화한다. ADR 상태는 **In Progress**, G5/G6는 미종결로 유지한다.
+상위 결정은 [ADR-209](../completed/209-chart-authoring-canvas-recharts-runtime.md), 기존 전체 구현 계획은 [원 설계 breakdown](209-chart-authoring-canvas-recharts-runtime-breakdown.md)이다. 본 문서는 ADR-209의 남은 보완·검증을 구체화한다. ADR 상태는 **Implemented**이며 G5/G6는 §10.8의 명시적 예산 승인에 따라 종결했다.
 
 ## 1. Context — 범위와 현재 근거
 
@@ -305,7 +305,7 @@ entry의 정적 imports를 재귀 추적한 집합을 initial로 잡는다. Char
 
 성능 수정이 필요하면 먼저 총 frame 비용에서 비싼 실제 단계를 특정한다. 이번 UI key 변환을 이유로 추측성 캐시, RAF 분산, downsampling을 추가하지 않는다. 기존 G4와 동일하게 샘플과 실제 입력의 출처를 기록한다.
 
-### 8.5 전체 초기 500KB의 미결정 사항
+### 8.5 전체 초기 500KB의 정책 결정
 
 기존 ADR은 전체 초기 `<500KB`와 초기 순증 `≤10 KiB gzip`, lazy 순증 `≤200 KiB gzip`을 별도 조건으로 둔다. 현재 증거는 gzip byte 기준이며, 전체 조건의 정확한 KB 단위/압축 기준도 최종 예산 기록에 명시해야 한다. 단위 선택으로 현재 Builder/Preview 초과가 해소되는 수준은 아니다.
 
@@ -313,6 +313,8 @@ entry의 정적 imports를 재귀 추적한 집합을 initial로 잡는다. Char
 | --------------------------------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
 | A. 기존 전체 예산 유지            | 전체 초기 기준을 충족하기 전 G5 미통과                                                              | 광범위한 초기 번들 축소가 필요하면 별도 범위 승인 필요   |
 | B. 기존 초과에 한정한 명시적 예외 | 승인된 대상 entry·baseline B·최종 상한·유효 기간/후속 책임과 차트 순증 조건을 충족할 때만 판정 가능 | 차트 도입 비용과 기존 부채를 분리하되 예외를 문서에 기록 |
+
+**2026-09-10 결정: 사용자 “B 안으로 승인”. §10.8의 상한·기간·후속 책임을 적용한다.** 아래는 승인 전 대안 검토 기록이다.
 
 후속 보완의 범위를 유지하려면 **B를 제안**한다. 다만 이 문서 자체는 예외 승인이 아니며 수치 상한도 임의로 확정하지 않는다. 최종 manifest를 만든 뒤 A/B에 대한 사용자 결정을 받는다. 결정 전에는 순증 통과 사실만 기록하고 G5/G6 및 Implemented 승격을 닫지 않는다. 이 결정 대기는 상세 설계 작성이나 독립적인 회귀 검증을 막지 않는다.
 
@@ -431,14 +433,14 @@ node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독
 
 원 수치·측정 조건·원시 JSON 위치는 `docs/adr/evidence/209-f3-final-manifest.md`(로컬). 여기에는 판정에 쓴 값과 재현 방법만 남긴다.
 
-**측정 환경 (§8.2 규칙 적용).** 최종 revision 은 F3 하니스 커밋 `24a33d157` 이고 (이후 커밋은 docs 만), 과거 기준 빌드와 **최종 revision 모두** **별도 worktree** (`/Users/admin/work/composition-baseline`, `git worktree add --detach`) 에서 각 commit 의 lockfile 로 `pnpm install --frozen-lockfile` 해 재현했다 (shim 0, postinstall 이 재생성한 `lucideIconData.generated.ts` 는 추적본으로 되돌려 dirty 0). 엔진은 31dff0c50..HEAD diff 0 이라 같은 wasm (sha256 `7b0f593f…`). gzip 은 node:zlib level 9 파일별 합산 — 2026-09-09 기록과 **raw byte 가 세 entry 모두 바이트 동일** (5,044,894 / 2,618,818 / 1,698,865) 하고 gzip 만 압축기 차이 (+0.4%) 로 다르다. 기기 Apple M4 Pro · macOS 26.6.2 · Playwright Chromium 151 headed · 1440×900 · DPR 1 · visible. 측정 중 main 작업 트리에 사용자의 미커밋 변경 139 파일 (`react-aria-components` 서브패스 import 등) 이 들어와, main 에서 잰 값은 폐기하고 최종 revision 을 별도 clean worktree (`composition-final`) 에 올려 다시 쟀다 — 그 미커밋 변경은 커밋되면 같은 스크립트로 재측정할 대상이다 (dirty 트리 참고값: Builder 1,289,950 / Preview 626,181 / Publish 390,415 B).
+**측정 환경 (§8.2 규칙 적용).** 이 절의 측정 revision 은 F3 하니스 커밋 `24a33d157` 이며, 이후 의존성·Properties 변경을 포함한 `651c2a363` 재검증은 §10.7에서 구분한다. 과거 기준 빌드와 **최종 revision 모두** **별도 worktree** (`/Users/admin/work/composition-baseline`, `git worktree add --detach`) 에서 각 commit 의 lockfile 로 `pnpm install --frozen-lockfile` 해 재현했다 (shim 0, postinstall 이 재생성한 `lucideIconData.generated.ts` 는 추적본으로 되돌려 dirty 0). 엔진은 31dff0c50..HEAD diff 0 이라 같은 wasm (sha256 `7b0f593f…`). gzip 은 node:zlib level 9 파일별 합산 — 2026-09-09 기록과 **raw byte 가 세 entry 모두 바이트 동일** (5,044,894 / 2,618,818 / 1,698,865) 하고 gzip 만 압축기 차이 (+0.4%) 로 다르다. 기기 Apple M4 Pro · macOS 26.6.2 · Playwright Chromium 151 headed · 1440×900 · DPR 1 · visible. 측정 중 main 작업 트리에 사용자의 미커밋 변경 139 파일 (`react-aria-components` 서브패스 import 등) 이 들어와, main 에서 잰 값은 폐기하고 최종 revision 을 별도 clean worktree (`composition-final`) 에 올려 다시 쟀다 — 그 미커밋 변경은 커밋되면 같은 스크립트로 재측정할 대상이다 (dirty 트리 참고값: Builder 1,289,950 / Preview 626,181 / Publish 390,415 B).
 
 **번들 (§8.3).** entry html 의 정적 import closure = initial, `RechartsChart-*.js` 정적 closure − initial = lazy. RechartsChart 는 세 entry 모두 initial 밖이고 동적 import 로만 도달한다.
 
 | initial JS gzip B | 31dff0c50 (ADR 전 기준) | 51184c8bd (해제 직전) | a2afa2f4f (해제) |      최종 | 국소 Δ | ADR 전체 Δ | lazy chart graph |
 | ----------------- | ----------------------: | --------------------: | ---------------: | --------: | -----: | ---------: | ---------------: |
-| Builder           |               1,369,147 |             1,377,590 |        1,377,932 | 1,351,567 |   +342 |    −17,580 |          119,091 |
-| Preview           |                 689,260 |               696,162 |          696,353 |   696,378 |   +191 |     +7,118 |          120,180 |
+| Builder           |               1,369,147 |             1,377,590 |        1,377,932 | 1,351,547 |   +342 |    −17,600 |          119,089 |
+| Preview           |                 689,260 |               696,162 |          696,353 |   696,363 |   +191 |     +7,103 |          120,178 |
 | Publish           |                 426,170 |               425,987 |          425,987 |   425,953 |      0 |       −217 |          119,986 |
 
 구간 분해: 31dff0c50→51184c8bd (Recharts runtime 도입 + 09-09 후속) Builder +8,443 / Preview +6,902 / Publish −183 · 51184c8bd→a2afa2f4f (**이번 Series 해제 국소**) +342 / +191 / 0 · a2afa2f4f→최종 (무관한 의존성 정리 `55f7a4aed`·`d1d67c369`·vite 설정 `3f5af7daf` + 이 세션의 docs·scripts 커밋) −26,385 / +10 / −34 — 차트 비용으로 귀속하지 않는다. 판정: 초기 순증 ≤ 10 KiB 통과 (ADR 전체·국소 모두), lazy ≤ 200 KiB 통과 (119–120 KB). **전체 초기 < 500 KB 는 Builder 1,351,547 B · Preview 696,363 B 로 미충족** (기준 31dff0c50 부터 초과, Publish 425,953 B 충족) → §8.5 사용자 결정 (A/B) 대기.
@@ -451,7 +453,7 @@ node apps/builder/scripts/adr209-publish-live.mjs --headed           # 3건 (독
 
 **F4 production network (§8.3, 9/9).** production dist 를 로컬 정적 서버로 띄우고 **실제 Supabase 세션으로 로그인**한 populated 프로젝트 (Chart 2 + Button): cold boot (hydration → Skia ready, 요청 50 · script 33) 차트 runtime chunk 0 · 선택·showGrid 편집·재선택 0 · 차트 포함 Preview 최초 진입 `RechartsChart` 1회 + `.recharts-surface` 222 marks · 재선택·데이터 교체 재다운로드 0 · 차트 없는 Builder boot + Preview 0 · 독립 Publish cold: 차트 없는 export 0, 차트 export 1 + 완료 그림. 2026-09-09 의 "로그인된 production Builder 미검증" 이 닫혔다 (인증 우회 0).
 
-**판정.** F3 의 §8.4 성능 조건 (Builder Δ≤1ms · runtime ≤100ms · 편집 불변성 write 0) 과 순증·lazy 예산은 최종 revision 에서 통과했고 T13 live 도 닫혔다. F4 는 9/9 로 닫혔다. 남은 G5 조건은 **전체 초기 500KB 하나**이며 §8.5 의 사용자 결정 (A: 기존 전체 예산 유지 → G5 미통과 유지 / B: 기존 초과 한정 명시적 예외 — 최신 측정값 Builder 1,351,567 B · Preview 696,378 B 기준으로 entry·상한·유효 기간을 정한다) 뒤에만 G5/G6 을 닫는다. F5 (ADR 상태·README·CHANGELOG·evidence 정합) 는 그 결정 뒤 진행. ADR-209 는 In Progress 유지.
+**판정.** F3 의 §8.4 성능 조건 (Builder Δ≤1ms · runtime ≤100ms · 편집 불변성 write 0) 과 순증·lazy 예산은 최종 revision 에서 통과했고 T13 live 도 닫혔다. F4 는 9/9 로 닫혔다. 남은 G5 조건은 **전체 초기 500KB 하나**이며 §8.5 의 사용자 결정 (A: 기존 전체 예산 유지 → G5 미통과 유지 / B: 기존 초과 한정 명시적 예외 — 당시 측정값 Builder 1,351,547 B · Preview 696,363 B 기준으로 entry·상한·유효 기간을 정한다) 뒤에만 G5/G6 을 닫는다. F5 (ADR 상태·README·CHANGELOG·evidence 정합) 는 그 결정 뒤 진행. ADR-209 는 In Progress 유지.
 
 재현:
 
@@ -466,3 +468,45 @@ node apps/builder/scripts/adr209-builder-frame-ab.mjs --before http://localhost:
 node apps/builder/scripts/adr209-t13-live.mjs --headed
 node apps/builder/scripts/adr209-f4-production-network.mjs --headed
 ```
+
+### 10.7 최신 제품 revision 재검증 (2026-09-10) — F5 준비
+
+`651c2a3632024307eff6c54d342ec4c8b9c734e6`을 별도 worktree `composition-adr209-651c2a363`에 고정했다. §10.6 이후 `10b93f35e` 의존성/locale 최적화와 `651c2a363` Properties 변경을 포함한다. 기존 dirty 측정값을 재사용하지 않았다. `pnpm install --frozen-lockfile --ignore-scripts` 후 CanvasKit 준비·specs build·해당 revision의 엔진 WASM build·Builder/Publish production build를 실행했다. Builder build는 `index.html`과 `preview.html`을 함께 생성한다. 추적 파일 dirty 0, shim 0, lock SHA256 `1196b859e4db8ffbf3ce252fbc021e80731280ddfba3711b8ad67c8e1fe2f80f`, WASM SHA256 `7b0f593f11efa754bbb1453d092262d29314afb5702f8d26bff2c8d5713ba214`이다. 환경 파일은 수정하지 않고 기존 설정을 빌드/서버 프로세스에 주입했다.
+
+| entry   | initial JS raw B | initial JS gzip B | §10.6 확정값 대비 Δ B | ADR 전 기준 대비 Δ B | lazy graph gzip B |
+| ------- | ---------------: | ----------------: | --------------------: | -------------------: | ----------------: |
+| Builder |        4,755,264 |         1,289,801 |               −61,746 |              −79,346 |           119,089 |
+| Preview |        2,371,226 |           626,424 |               −69,939 |              −62,836 |           120,178 |
+| Publish |        1,585,872 |           390,293 |               −35,660 |              −35,877 |           119,986 |
+
+차트 lazy graph는 §10.6과 바이트 동일하다. 이 감소는 후속 의존성 최적화 등의 결과이며 Series 해제 비용으로 귀속하지 않는다. Series 해제 국소 순증 +342/+191/0 B는 §10.6의 별도 대조를 유지한다. 초기 순증 ≤10 KiB, lazy ≤200 KiB는 충족하지만 Builder/Preview의 전체 초기 예산은 미충족이다.
+
+**현재 검증 기록.** production runtime 6종×200행 정적 p95 40.5–43.5ms (≤100ms), animation 160ms 설정의 실제 마지막 기하 변경 p95 259.8–280.6ms. 안정화 대기는 별도이며 animation 시간에서 설정 duration을 빼서 PASS를 만들지 않았다. 5000행은 Area 40.7 / Bar 679.3 / Line 42.7 / Pie 213.7 / Radar 137.0 / Radial 813.2ms로 규모 한계를 유지한다. 전 표본 visible, page error 0.
+
+F4 production 9/9 PASS: 실제 로그인, Chart 2개가 저장된 프로젝트 cold boot의 Skia ready까지 차트 runtime 요청 0, 선택/편집 0, Preview 첫 진입만 로드, 재선택/데이터 교체 재요청 0, 차트 없는 Preview/Publish 0, 차트 Publish 완료 그림. console/page error 0. 요청 로그를 closure JSON의 실제 파일 집합과 frame별로 추가 대조했다(7/7): Preview lazy 2개(`RechartsChart`, `eventemitter3`)는 child frame의 첫 차트 진입에만 요청된다. `eventemitter3`의 main frame 요청은 Builder의 기존 initial 공용 의존성이므로 Preview 요청으로 잘못 세지 않는다.
+
+T13 13/13 PASS: animation off 중간 기하 0, on(600ms 설정, 기존 관측 상한 1400ms)은 중간 기하 31종·마지막 변경 686ms, 완료 결과는 정적 기하와 동일, reduced-motion 중간 기하 0, tooltip/키보드 이동, canonical write 0, 해제 뒤 데이터 교체에도 `color:""` 보존. console/page error 0. 관련 패널/store 20건·시리즈 집계 10건·문서 호환 8건 PASS.
+
+Builder 프레임 A/B는 `51184c8bd`와 `651c2a363`의 clean DEV 서버를 5쌍 순서 교대해 측정했다. p95는 11.5→11.0 / 11.2→11.6 / 10.7→11.5 / 10.9→11.4 / 11.3→11.3ms, Δ −0.5/+0.4/+0.8/+0.5/0.0ms로 전부 ≤1ms이다. 각 쌍 입력 hash 동일, visible, page error 0. 과거 baseline의 원래 lock SHA256 `a9deaaaaf13dc2d43c660a23a42b840f5991489f6df32ade3abb5b57fe4c4b01`과 동일 WASM을 확인했다. chart browser suite 170/170, PropertySelect 추가 5건을 포함한 focused tests 43/43, preflight PASS. 이번 TS 변경은 없어 preflight typecheck는 skip이며, clean 제품 build의 `tsc -b`/`tsc`는 실제 통과했다. Settings 실제 Language 선택 직후 및 reload 후 Series 트리거가 “없음”이고 원본 키/저장 값이 보존됨을 포함해 Series live 21/21 PASS. 첫 시도는 T9에서 ListBox를 선택한 채 Chart 필드를 읽어 timeout이 났고 스크린샷으로 하니스 선택 누락을 확인했다. Chart 재선택을 추가한 재실행(`series-r2`)이 통과했으며 첫 시도(`series`)는 폐기하지 않고 보존한다. 제품 코드는 수정하지 않았다. 원시 증거는 `/private/tmp/adr209-651c2a363/` 및 로컬 보관본 `docs/adr/evidence/209-f5-651c2a363/`이고 요약 manifest는 `docs/adr/evidence/209-f5-latest-manifest.md`이다. 기존 `/private/tmp/adr209-f3/` 증거를 덮어쓰지 않는다. 하니스에 `--out`, F4 `--repo`, A/B `--after-dir`, Series `--base`를 추가해 측정 대상과 출력 위치를 분리했다. 측정 제품 revision과 하니스 workingtree 변경은 별개로 기록한다. T13의 기존 결과 라벨 “600ms 안에 끝난다”는 실제 assertion(`lastChangeAt <= 1400`)과 달라 라벨만 정정했다. 이미 저장된 원시 findings의 라벨은 당시 출력으로 보존하며, 기준을 완화하거나 재측정값으로 덮어쓰지 않는다.
+
+**§8.5 B 승인안 — 작성 당시 미승인, 이후 §10.8에서 승인.** 전체 초기 JS는 파일별 gzip level 9 합계로 정의하고 `500KB = 500,000 B`로 명시한다. 예외 대상은 Builder/Preview 두 entry뿐이며 상한은 각각 이 측정값 **1,289,801 B / 626,424 B**(추가 여유 0)로 제안한다. Publish는 `<500,000 B`를 유지한다. 예외 유효 기간은 승인일부터 **2026-10-10까지**, 또는 초기 closure에 영향을 주는 다음 제품/의존성 변경 중 먼저 도래하는 시점까지로 제안한다. 변경 시 clean revision 재측정, 만료 시 유지보수 담당자가 전체 500KB 축소 계획 또는 재승인안을 사용자에게 제출한다. 후속 책임은 Composition 유지보수 담당 역할에 두는 안이며, 예외 수락과 함께 사용자 승인 기록에 확정한다. 차트 순증/lazy/성능/network 기준은 면제하지 않는다. A 선택 시 전체 기준이 충족될 때까지 G5를 계속 열어 둔다.
+
+**승인 전 상태(§10.8에서 해소):** F3/F4의 기술 검증과 F5의 ADR·README·CHANGELOG·Live Exercise 정합 준비를 완료했다. F2 rollback·T11/T12는 §10.5의 확정 근거를 유지한다(이후 해당 저장/레이아웃 계약 변경 없음). 남은 필수 조건은 §8.5 정책 결정이다. G5/G6·F5 종결 및 Implemented 승격은 그 결정 전까지 보류한다. 이 문단은 사용자 승인 기록이 아니다.
+
+### 10.8 B안 승인 및 G5/G6·F5 종결 (2026-09-10)
+
+사용자 승인 원문: **“B 안으로 승인”**. §10.7에서 제시한 B안을 다음 조건으로 확정한다. 이는 전체 500KB 목표의 달성이 아니라 **기존 초과 두 entry의 한시적 예외 승인**이다.
+
+| 항목      | 승인된 계약                                                                                                                                     |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| 측정 기준 | 제품 `651c2a3632024307eff6c54d342ec4c8b9c734e6`, clean worktree, 파일별 gzip level 9 합계, 500KB = 500,000 B                                    |
+| Builder   | 초기 JS 상한 **1,289,801 B**, 실측 동일 (추가 여유 0)                                                                                           |
+| Preview   | 초기 JS 상한 **626,424 B**, 실측 동일 (추가 여유 0)                                                                                             |
+| Publish   | 기존 **<500,000 B** 유지, 실측 390,293 B                                                                                                        |
+| 유효 기간 | 2026-09-10 승인일부터 **2026-10-10**, 또는 초기 closure에 영향을 주는 다음 제품/의존성 변경 중 먼저 도래하는 시점까지                           |
+| 후속 책임 | **Composition 유지보수 담당**: 변경 시 clean revision 재측정, 만료 시 전체 500KB 축소 계획 또는 예외 재승인안을 사용자에게 제출. 자동 연장 없음 |
+| 유지 조건 | 차트 초기 순증 ≤10 KiB, lazy 순증 ≤200 KiB, runtime 200행 p95 ≤100ms, Builder frame p95 Δ≤1ms, production network 경계는 면제하지 않음          |
+
+G5는 §10.7의 기술 검증과 위 승인된 예산 계약 충족으로 **PASS**. G6는 F2의 조건부 rollback/저장 호환 근거, 최신 focused 43/43·Chromium 170/170·Series 21/21·T13 13/13·F4 9/9, cross-check 및 preflight 근거로 **PASS**. F5는 승인 기록·ADR Implemented 승격·completed 이동·README/CHANGELOG/Live Exercise/관련 링크 정합으로 **완료**한다. 제품 코드가 바뀌지 않아 직전 clean revision의 build·성능·live 결과를 재사용하며, 이번 승인 반영에는 문서 게이트를 적용한다.
+
+envelope 이전 importer의 collection 복원 제한과 5000행 성능 한계는 §10.5/§10.7대로 유지한다. shadcn 대비 별도 신규 기능 확장은 이번 종결 범위에 포함하지 않는다. 전체 번들 축소는 위 후속 책임으로 남기되 ADR-209의 미완료 phase로 계산하지 않는다.

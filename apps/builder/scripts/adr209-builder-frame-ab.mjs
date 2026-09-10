@@ -10,7 +10,7 @@
 //
 // 인증: `.auth-session.json` 의 localStorage 를 두 origin 모두에 싣는다 (같은 Supabase 세션).
 //
-// 사용: node apps/builder/scripts/adr209-builder-frame-ab.mjs --before http://localhost:5174 --after http://localhost:5173 [--pairs 5] [--headed]
+// 사용: node apps/builder/scripts/adr209-builder-frame-ab.mjs --before http://localhost:5174 --after http://localhost:5173 [--pairs 5] [--headed] [--before-dir <worktree>] [--after-dir <worktree>] [--out <dir>]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { execSync } from "node:child_process";
@@ -32,7 +32,7 @@ const BEFORE = opt("before", "http://localhost:5174");
 const AFTER = opt("after", "http://localhost:5173");
 const PAIRS = Number(opt("pairs", "5"));
 const headed = args.includes("--headed");
-const OUT_DIR = "/private/tmp/adr209-f3";
+const OUT_DIR = opt("out", "/private/tmp/adr209-f3");
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const WARMUP = 18,
   OPS = 54,
@@ -242,7 +242,7 @@ async function main() {
   const meta = {
     date: new Date().toISOString(),
     before: { url: BEFORE, sha: revision(beforeDir) },
-    after: { url: AFTER, sha: revision(process.cwd()) },
+    after: { url: AFTER, sha: revision(opt("after-dir", process.cwd())) },
     mode: "DEV",
     cpuThrottle: 1,
     viewport: [1440, 900],

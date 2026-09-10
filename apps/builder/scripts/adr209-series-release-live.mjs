@@ -11,15 +11,19 @@
 //   7) 언어 전환이 None 라벨만 바꾸고 저장 값·원본 키는 그대로다 (T6)
 //   8) Preview(Compare Mode) 가 같은 문서로 Recharts 를 그리고 시리즈 수가 함께 줄어든다 (T10)
 //
-// 사용: node apps/builder/scripts/adr209-series-release-live.mjs [--headed]
+// 사용: node apps/builder/scripts/adr209-series-release-live.mjs [--headed] [--base <url>] [--out <dir>]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
 import { waitReady, createInstrumentedContext } from "./perf-baseline.mjs";
 
-const BASE_URL = "http://localhost:5173";
+const opt = (name, fallback) => {
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1] : fallback;
+};
+const BASE_URL = opt("base", "http://localhost:5173");
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
-const OUT_DIR = "/private/tmp/adr209-live";
+const OUT_DIR = opt("out", "/private/tmp/adr209-live");
 const headed = process.argv.includes("--headed");
 
 const log = (...a) => console.log("[ADR-209 F2]", ...a);
@@ -154,6 +158,14 @@ async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   const browser = await chromium.launch({ headless: !headed });
   const storageState = JSON.parse(readFileSync(STORAGE_STATE, "utf8"));
+  const origin = new URL(BASE_URL).origin;
+  const source = storageState.origins?.[0];
+  if (source && !storageState.origins.some((entry) => entry.origin === origin)) {
+    storageState.origins.push({
+      origin,
+      localStorage: source.localStorage.map((entry) => ({ ...entry })),
+    });
+  }
   const { page } = await createInstrumentedContext(browser, { storageState, cpuThrottle: 1 });
 
   try {
@@ -472,8 +484,17 @@ async function main() {
     );
 
     // ── 8) 언어 전환 ─────────────────────────────────────────────────────
+    // T9에서 ListBox가 선택됐으므로 언어 전환 전 Chart의 실제 컨트롤로 돌아온다.
+    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), chartId);
+    await setPanel(page, "properties", true);
+    await fieldset(page, "Series").waitFor({ state: "visible" });
     const beforeLocale = await chartProps(page, chartId);
-    await page.evaluate(() => localStorage.setItem("composition-locale", "ko-KR"));
+    await page.locator("button.header-menu-button").first().click();
+    await page.locator('.header-menu-item').filter({ hasText: /^Settings/ }).first().click();
+    await fieldset(page, "Language").locator("button.react-aria-Button").first().click();
+    await page.getByRole("option", { name: "한국어", exact: true }).click();
+    await page.waitForFunction(() => localStorage.getItem("composition-locale") === "ko-KR");
+    const immediateKoTrigger = await triggerText(page, "시리즈");
     await page.reload({ waitUntil: "networkidle" });
     await waitReady(page);
     await page.waitForTimeout(2500);
@@ -488,10 +509,11 @@ async function main() {
     record(
       "언어 전환은 해제 라벨만 바꾸고 원본 키·저장 값은 그대로다 (T6)",
       koTrigger === "없음" &&
+        immediateKoTrigger === "없음" &&
         koOptions[0]?.text.trim() === "없음" &&
         koOptions.slice(1).every((o) => /^[a-zA-Z]+$/.test(o.text.trim())) &&
         afterLocale.canonicalProps?.color === beforeLocale.canonicalProps?.color,
-      `trigger="${koTrigger}" 옵션=${koOptions.map((o) => o.text).join("|")} color=${JSON.stringify(afterLocale.canonicalProps?.color)}`,
+      `Settings 실제 선택 직후="${immediateKoTrigger}" reload trigger="${koTrigger}" 옵션=${koOptions.map((o) => o.text).join("|")} color=${JSON.stringify(afterLocale.canonicalProps?.color)}`,
     );
 
     // ── 9) 저장 → reload (T5) ────────────────────────────────────────────

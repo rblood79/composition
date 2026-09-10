@@ -1,6 +1,6 @@
 # ADR-209 구현 상세: 차트별 편집 경험과 Canvas·Recharts 런타임 분리
 
-> 정본 결정: [ADR-209](../209-chart-authoring-canvas-recharts-runtime.md). 상태 **In Progress**, 2026-09-09. P0~P4 구현·검증 후 P5 종결 조건 확인 중. 아래 경로 inventory와 `(신규 제안)` 표시는 설계 작성 당시 기준이며, 실제 구현·검증 현황은 [실행 근거](../evidence/209-execution-live.md)를 따른다. 설계 조사 기준 HEAD `f2779b7d2`, 실행 baseline `31dff0c50`. 기존 readiness 작업의 goal/guard/stop은 보존한다.
+> 정본 결정: [ADR-209](../completed/209-chart-authoring-canvas-recharts-runtime.md). 상태 **Implemented**, 2026-09-10. P0~~P5 및 후속 F0~~F5 완료. B안 승인과 최신 검증 근거는 [후속 종결 기록](209-chart-followup-repair-breakdown.md#108-b안-승인-및-g5g6f5-종결-2026-09-10)을 따른다. 아래 경로 inventory와 `(신규 제안)` 표시는 설계 작성 당시 기준이며, 실제 구현·검증 현황은 [실행 근거](../evidence/209-execution-live.md)를 따른다. 설계 조사 기준 HEAD `f2779b7d2`, 실행 baseline `31dff0c50`. 기존 readiness 작업의 goal/guard/stop은 보존한다.
 
 ## 1. 사용자 요구와 전제
 
