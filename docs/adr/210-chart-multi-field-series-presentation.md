@@ -92,6 +92,10 @@ HIGH 위험은 단계 분리만으로 줄었다고 판단하지 않는다. 매�
 | G4   | P4   | G4-engineering: R5 성능/순증/network PASS. G4-policy: 전체 기본 예산 충족 또는 초과 시 사용자 예외 재승인. 두 판정 별도 기록                      | 최적화 또는 명시적 예산 재승인; 자동 PASS 금지 |
 | G5   | P5   | 회귀·preflight·live·호환 제한·문서 정합, 열린 필수 조건 0                                                                                         | Proposed/Accepted 상태에 맞게 미완료 기록      |
 
+## 실행 기록
+
+- 2026-09-10 P0: pinned Recharts 3.10.1 wide(columns) spike Chromium **10/10 PASS** (Bar dodged/horizontal/stacked/expand · Line · Area/expand · Radar, max Δ 0.94px — 기존 `computeChartScene` grid 모델과 일치, 새 기하 없음) · 현행 expand raw 값 라벨 오라클 **6/6 PASS** (h1 first nail) · catalog/semantic/ref/token/배열 동일성/disabled Select/Color By 결선 inventory 완료 (새 CSS·generator·공통 kind 변경 0 으로 가능) · before 기준선 `baf535258` + lock hash 고정 · shadcn 대표 예제 4건 revision/screenshot 고정. 테스트: `packages/shared/src/components/chart/rechartsWideSpike.browser.test.tsx`, `packages/specs/src/chart/__tests__/adr210ExpandLabelOracle.test.ts`. 근거 [P0 evidence](evidence/210-p0-wide-spike-and-wiring-inventory.md) (로컬). 제품 코드 변경 0. **G0 PASS — P1 착수 가능.** 성능·live·구버전 probe 는 미실행 (P1/P4).
+
 ## Consequences
 
 ### Positive
