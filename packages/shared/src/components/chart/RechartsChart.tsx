@@ -1,4 +1,4 @@
-import { useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import {
   AreaChart,
   Area,
@@ -56,6 +56,13 @@ import {
   legacyLinear,
 } from "./legacyMonotone";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
+import { Slider } from "../Slider";
+
+/**
+ * ADR-211 창 트랙 접근성 이름 — 두 leg 가 같은 영문 상수를 쓰는 `CHART_INVALID_SETTINGS_TEXT`
+ * 와 같은 규약 (breakdown §2.7: 독립 Publish 는 i18n 런타임이 없다).
+ */
+export const CHART_WINDOW_TRACK_LABEL = "Visible range";
 
 /**
  * 막대 하나 = `<path>` 하나 (ADR-210 P4). Recharts 기본 `Rectangle` 은 막대마다 ref 5개 · state ·
@@ -151,18 +158,36 @@ export function RechartsChart({
   // ADR-210 — 배열 props 는 직렬화 키로 (Chart.tsx 가 이미 안정화하지만 이 경계도 같은 규칙).
   const valueFieldsKey = JSON.stringify(props.valueFields ?? null);
   const seriesConfigKey = JSON.stringify(props.seriesConfig ?? null);
+  // ADR-211 — 창 시작 `start` 는 **저장하지 않는 뷰 상태** (canonical write 0, breakdown §2.5).
+  //   데이터 identity · 차트 종류 · dataMode · overflow 가 바뀌면 0 으로 reset — 결정적 문자열 키로
+  //   판정한다 (memo 참조 동일성은 성능 힌트지 의미 보증이 아니다). `size` 만 바뀌면 모델의 clamp
+  //   (`clampWindowStart`) 가 자리를 맞춘다.
+  const resetKey = `${props.chartType}|${props.dataMode ?? ""}|${props.budgetOverflow ?? ""}|${rowsKey}`;
+  const [windowState, setWindowState] = useState<{
+    key: string;
+    start: number;
+  }>({ key: resetKey, start: 0 });
+  const windowStart = windowState.key === resetKey ? windowState.start : 0;
   // ADR-211 — Canvas 와 같은 `resolveChartModel` 경로: 행 상한 `R` · 슬롯 예산 `fit` · 창을
-  //   같은 입력 (`size` · metrics) 으로 푼다. 창 `start` 는 뷰 상태 (P3) — P1 은 0.
+  //   같은 입력 (`size` · metrics) 으로 푼다. 창 `start` 만 두 leg 가 갈린다 (Canvas 0).
   //   `props` 는 Chart.tsx 가 memo 로 안정화한 객체라 값이 같으면 identity 도 같다.
   const model = useMemo(
     () =>
       resolveChartData(rows, props, metrics.seriesCount, {
         size,
         metrics,
-        windowStart: 0,
+        windowStart,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [rowsKey, props, valueFieldsKey, seriesConfigKey, size, metrics],
+    [
+      rowsKey,
+      props,
+      valueFieldsKey,
+      seriesConfigKey,
+      size,
+      metrics,
+      windowStart,
+    ],
   );
   const { grid, keys, bands, ticks, stackMode, presentation } = model;
   // ADR-210/211 — layout 은 모델이 input 격자로 이미 풀었다 (Canvas 와 같은 입력). 다시 풀면
@@ -226,7 +251,7 @@ export function RechartsChart({
       radarFlatDomain,
     ],
   );
-  return useMemo(() => {
+  const chart = useMemo(() => {
     // 설정 오류 (ADR-210) 는 데이터 유무보다 먼저다 — Canvas 의 `CHART_INVALID_SETTINGS_TEXT`
     //   scene 과 같은 뜻. rows 는 그대로라 데이터는 보존된다.
     if (!presentation.ok)
@@ -998,4 +1023,45 @@ export function RechartsChart({
     label,
     reducedMotion,
   ]);
+  // ADR-211 창 트랙 — layout 이 예약한 자리 (플롯 아래) 에 뷰 상태 Slider. shared RAC Slider 를
+  //   그대로 쓴다 (변경 0): thumb 하나 · `0 … n − fitEff` · step 1 — 화살표 1 슬롯, Home/End 끝,
+  //   PageUp/Down 은 RAC 기본. 창 길이는 불변 (마지막 창은 `n − fitEff` 에서 시작).
+  const track = model.layout.windowTrack;
+  const win = model.budget.window;
+  const maxStart = model.budget.n - model.budget.fitEff;
+  if (!track || !win || maxStart <= 0 || !presentation.ok) return chart;
+  return (
+    <>
+      {chart}
+      <Slider
+        aria-label={CHART_WINDOW_TRACK_LABEL}
+        className="chart-window-track"
+        data-chart-window-start={win.start}
+        data-chart-window-max={maxStart}
+        minValue={0}
+        maxValue={maxStart}
+        step={1}
+        value={win.start}
+        onChange={(value) =>
+          setWindowState({
+            key: resetKey,
+            start: Array.isArray(value) ? value[0] : value,
+          })
+        }
+        showValueLabel={false}
+        style={{
+          position: "absolute",
+          left: track.x,
+          top: track.y,
+          width: track.w,
+          height: track.h,
+          // 라벨·값 행이 없다 — 트랙 한 줄을 예약 높이 가운데에 (thumb 18 이 24 안에 든다).
+          gridTemplateAreas: '"track"',
+          gridTemplateColumns: "1fr",
+          gap: 0,
+          alignContent: "center",
+        }}
+      />
+    </>
+  );
 }

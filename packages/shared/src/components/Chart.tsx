@@ -76,6 +76,11 @@ export interface ChartProps {
   valueFractionDigits?: number;
   valueCurrency?: string;
   valuePercentUnit?: SpecChartProps["valuePercentUnit"];
+  // ── ADR-211 — 표시 예산 4 키 (전부 선택적, 스칼라).
+  budgetOverflow?: SpecChartProps["budgetOverflow"];
+  budgetAggregate?: SpecChartProps["budgetAggregate"];
+  budgetAxis?: SpecChartProps["budgetAxis"];
+  budgetOthersLabel?: string;
   variant?: string;
   size?: "sm" | "md" | "lg";
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
@@ -188,6 +193,10 @@ export function Chart({
   valueFractionDigits,
   valueCurrency,
   valuePercentUnit,
+  budgetOverflow,
+  budgetAggregate,
+  budgetAxis,
+  budgetOthersLabel,
   variant = "default",
   size = "md",
   data,
@@ -258,6 +267,10 @@ export function Chart({
       ...(valueFractionDigits !== undefined ? { valueFractionDigits } : {}),
       ...(valueCurrency !== undefined ? { valueCurrency } : {}),
       ...(valuePercentUnit !== undefined ? { valuePercentUnit } : {}),
+      ...(budgetOverflow !== undefined ? { budgetOverflow } : {}),
+      ...(budgetAggregate !== undefined ? { budgetAggregate } : {}),
+      ...(budgetAxis !== undefined ? { budgetAxis } : {}),
+      ...(budgetOthersLabel !== undefined ? { budgetOthersLabel } : {}),
     }),
     [
       isAnimationActive,
@@ -297,6 +310,10 @@ export function Chart({
       valueFractionDigits,
       valueCurrency,
       valuePercentUnit,
+      budgetOverflow,
+      budgetAggregate,
+      budgetAxis,
+      budgetOthersLabel,
     ],
   );
 

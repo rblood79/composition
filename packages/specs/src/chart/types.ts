@@ -438,4 +438,9 @@ export interface ChartScene {
    * 상태 (`CHART_INVALID_SETTINGS_TEXT`), warning 은 렌더하되 알릴 것 (중복 first-wins 등).
    */
   diagnostics?: readonly ChartDiagnostic[];
+  /**
+   * ADR-211 — 창 트랙 자리 (창 모드에서 범주가 넘칠 때만). `marks` 끝에 비활성 트랙 마크
+   * (`fillRole`) 가 같이 실린다 — DOM leg 는 이 자리에 뷰 상태 Slider 를 얹는다.
+   */
+  windowTrack?: Rect;
 }

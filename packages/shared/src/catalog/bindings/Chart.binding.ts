@@ -166,6 +166,56 @@ export const chartBinding: PrimitiveBinding = {
           { value: "percentagePoints", label: "Points (25 = 25%)" },
         ],
       },
+      /**
+       * ADR-211 — 표시 예산 4 키 (breakdown §2.4 · §2.6). 평면 키 · 전부 선택적 (미설정 = `auto`
+       * / `sum` / `auto` / 영문 상수 "Other"). 지원표 밖 조합 (pie + window 등) 은 specs validator
+       * 가 거부한다 (`presentation.ok=false`). 편집은 Chart 전용 컨트롤 (`ChartBudgetControls`).
+       */
+      budgetOverflow: {
+        kind: "enum",
+        label: "When Categories Overflow",
+        section: "content",
+        default: "auto",
+        editorHidden: true,
+        options: [
+          { value: "auto", label: "Auto (by chart & axis)" },
+          { value: "window", label: "Window" },
+          { value: "aggregate", label: "Aggregate buckets" },
+          { value: "extrema", label: "Keep extrema" },
+          { value: "others", label: "Group the rest" },
+        ],
+      },
+      budgetAggregate: {
+        kind: "enum",
+        label: "Aggregate",
+        section: "content",
+        default: "sum",
+        editorHidden: true,
+        options: [
+          { value: "sum", label: "Sum" },
+          { value: "mean", label: "Mean" },
+          { value: "max", label: "Maximum" },
+          { value: "min", label: "Minimum" },
+        ],
+      },
+      budgetAxis: {
+        kind: "enum",
+        label: "Category Axis",
+        section: "content",
+        default: "auto",
+        editorHidden: true,
+        options: [
+          { value: "auto", label: "Auto (detect dates)" },
+          { value: "category", label: "Category" },
+          { value: "ordinal", label: "Ordinal (time / sequence)" },
+        ],
+      },
+      budgetOthersLabel: {
+        kind: "string",
+        label: "Group Label",
+        section: "content",
+        editorHidden: true,
+      },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).
       dataBinding: { kind: "binding", label: "Data", section: "content" },
       /**
@@ -317,7 +367,12 @@ export const chartBinding: PrimitiveBinding = {
           { value: "circle", label: "Circle" },
         ],
         // computeChartScene.ts:219 — ADR-207:190 이 지목한 항목.
-        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] },
+        visibleWhen: {
+          all: [
+            { key: "chartType", equals: "radar" },
+            { key: "showGrid", truthy: true },
+          ],
+        },
       },
       /**
        * 극좌표 각도 범위 (ADR-208 P3) — 도, **12시=0 시계**. Recharts 는 3시=0 반시계라
@@ -356,21 +411,36 @@ export const chartBinding: PrimitiveBinding = {
         label: "Show Spokes",
         section: "appearance",
         default: true,
-        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showAxis", truthy: true }] },
+        visibleWhen: {
+          all: [
+            { key: "chartType", equals: "radar" },
+            { key: "showAxis", truthy: true },
+          ],
+        },
       },
       gridRings: {
         kind: "number",
         label: "Grid Rings (0=auto)",
         section: "appearance",
         default: 0,
-        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] },
+        visibleWhen: {
+          all: [
+            { key: "chartType", equals: "radar" },
+            { key: "showGrid", truthy: true },
+          ],
+        },
       },
       fillGrid: {
         kind: "boolean",
         label: "Fill Grid",
         section: "appearance",
         default: false,
-        visibleWhen: { all: [{ key: "chartType", equals: "radar" }, { key: "showGrid", truthy: true }] },
+        visibleWhen: {
+          all: [
+            { key: "chartType", equals: "radar" },
+            { key: "showGrid", truthy: true },
+          ],
+        },
       },
       fillArea: {
         kind: "boolean",
@@ -390,14 +460,20 @@ export const chartBinding: PrimitiveBinding = {
         label: "Show Axis",
         section: "appearance",
         default: true,
-        visibleWhen: { key: "chartType", oneOf: ["bar", "line", "area", "radar"] },
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["bar", "line", "area", "radar"],
+        },
       },
       showGrid: {
         kind: "boolean",
         label: "Show Grid",
         section: "appearance",
         default: false,
-        visibleWhen: { key: "chartType", oneOf: ["bar", "line", "area", "radar"] },
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["bar", "line", "area", "radar"],
+        },
       },
       showLegend: {
         kind: "boolean",
@@ -419,19 +495,35 @@ export const chartBinding: PrimitiveBinding = {
         ],
       },
       isAnimationActive: {
-        kind: "boolean", label: "Animation", section: "interaction", default: false,
+        kind: "boolean",
+        label: "Animation",
+        section: "interaction",
+        default: false,
       },
       animationBegin: {
-        kind: "number", label: "Animation Delay (ms)", section: "interaction", default: 0, min: 0,
+        kind: "number",
+        label: "Animation Delay (ms)",
+        section: "interaction",
+        default: 0,
+        min: 0,
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
       animationDuration: {
-        kind: "number", label: "Animation Duration (ms)", section: "interaction", default: 600, min: 0,
+        kind: "number",
+        label: "Animation Duration (ms)",
+        section: "interaction",
+        default: 600,
+        min: 0,
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
       animationEasing: {
-        kind: "enum", label: "Animation Easing", section: "interaction", default: "ease-out",
-        options: ["linear", "ease", "ease-in", "ease-out", "ease-in-out"].map((value) => ({ value, label: value })),
+        kind: "enum",
+        label: "Animation Easing",
+        section: "interaction",
+        default: "ease-out",
+        options: ["linear", "ease", "ease-in", "ease-out", "ease-in-out"].map(
+          (value) => ({ value, label: value }),
+        ),
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
       variant: {
@@ -461,6 +553,10 @@ export const chartBinding: PrimitiveBinding = {
       "valueFractionDigits",
       "valueCurrency",
       "valuePercentUnit",
+      "budgetOverflow",
+      "budgetAggregate",
+      "budgetAxis",
+      "budgetOthersLabel",
       "orientation",
       "stackType",
       "curve",

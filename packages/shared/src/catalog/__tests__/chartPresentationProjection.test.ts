@@ -64,6 +64,37 @@ describe("ADR-210 Chart binding — 표시 설정 투영", () => {
     expect(bare.seriesConfig).toBeUndefined();
   });
 
+  // ADR-211 — 예산 4키 (breakdown §2.6 결선 inventory: accepts → toRacProps → Chart.tsx → Skia allowlist).
+  it("ADR-211 예산 4키가 accepts·propPassthrough 에 있고 저장값은 통과, 미설정은 enum default 만 채운다", () => {
+    for (const key of [
+      "budgetOverflow",
+      "budgetAggregate",
+      "budgetAxis",
+      "budgetOthersLabel",
+    ] as const) {
+      expect(binding.props.accepts[key], key).toBeDefined();
+      expect(binding.props.accepts[key].editorHidden, key).toBe(true);
+      expect(binding.props.propPassthrough, key).toContain(key);
+    }
+    const props = {
+      chartType: "line",
+      budgetOverflow: "extrema",
+      budgetAggregate: "mean",
+      budgetAxis: "ordinal",
+      budgetOthersLabel: "기타",
+    };
+    const out = toRacProps({ id: "c", type: "Chart", props } as never, binding);
+    expect(out).toMatchObject(props);
+    const bare = toRacProps(
+      { id: "c", type: "Chart", props: { chartType: "pie" } } as never,
+      binding,
+    );
+    expect(bare.budgetOverflow).toBe("auto");
+    expect(bare.budgetAggregate).toBe("sum");
+    expect(bare.budgetAxis).toBe("auto");
+    expect(bare.budgetOthersLabel).toBeUndefined();
+  });
+
   it("columns 모드에서 metric/color/colorBy 는 편집 화면에서 숨고 (visibleWhen) 투영은 유지된다", () => {
     for (const key of ["metric", "color", "colorBy"] as const) {
       expect(binding.props.accepts[key].visibleWhen).toBeDefined();

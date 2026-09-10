@@ -133,28 +133,46 @@ export function resolveChartModel(
     metrics.seriesCount,
     presentation,
   );
-  const baseLayout = resolveChartLayout(
-    props,
-    input,
-    view.size,
-    metrics,
-    presentation,
-  );
   const settings = presentation.budget;
-  const stacked = baseLayout.stackMode !== "none";
-  const decided = resolveDisplayBudget({
-    kind: props.chartType,
-    geometry: budgetGeometry(props, baseLayout),
-    series: input.series.length,
-    stacked,
-    n: input.categories.length,
-    k: markFactor(props.chartType, props),
-    metrics,
-    axisKind: resolveAxisKind(input.categories, settings.axis),
-    overflow: settings.overflow,
-    aggregate: settings.aggregate,
-    windowStart: view.windowStart,
-  });
+  const axisKind = resolveAxisKind(input.categories, settings.axis);
+  const decide = (
+    layout: ChartLayout,
+  ): { layout: ChartLayout; decided: DisplayBudget; stacked: boolean } => {
+    const stacked = layout.stackMode !== "none";
+    return {
+      layout,
+      stacked,
+      decided: resolveDisplayBudget({
+        kind: props.chartType,
+        geometry: budgetGeometry(props, layout),
+        series: input.series.length,
+        stacked,
+        n: input.categories.length,
+        k: markFactor(props.chartType, props),
+        metrics,
+        axisKind,
+        overflow: settings.overflow,
+        aggregate: settings.aggregate,
+        windowStart: view.windowStart,
+      }),
+    };
+  };
+  let pass = decide(
+    resolveChartLayout(props, input, view.size, metrics, presentation),
+  );
+  // 창 트랙 (§2.5): 창 모드에서 범주가 넘치면 트랙 높이를 예약하고 한 번 더 푼다 — 플롯이
+  //   줄면 fit 은 같거나 작아지므로 (수평 bar 만) 창 판정은 뒤집히지 않는다 (순환 0, 최대 2회).
+  if (
+    pass.decided.mode === "window" &&
+    input.categories.length > pass.decided.fitEff
+  ) {
+    pass = decide(
+      resolveChartLayout(props, input, view.size, metrics, presentation, {
+        windowTrack: true,
+      }),
+    );
+  }
+  const { layout: baseLayout, decided, stacked } = pass;
   // 변환 — 창 · bucket 집계 · 극값 선택 · others · pie 링 상한 (§2.4 · §2.5).
   const { budget, transformed, visible } = applyBudget(input, decided, {
     kind: props.chartType,

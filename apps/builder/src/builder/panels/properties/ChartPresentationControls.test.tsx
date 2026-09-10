@@ -23,6 +23,7 @@ import {
 } from "../../stores/canonical/canonicalElementsBridge";
 import { useDataStore } from "../../stores/data";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
+import { ChartBudgetControls } from "./ChartBudgetControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
 import { ChartSeriesControls } from "./ChartSeriesControls";
@@ -32,6 +33,12 @@ import {
   chartPresentationPatch,
 } from "./chartPresentationPatch";
 import { GenericFieldRenderer } from "./generic/GenericFieldRenderer";
+import * as layoutEngine from "../../workspace/canvas/layout/engines/fullTreeLayout";
+import {
+  CHART_DEFAULT_METRICS,
+  CHART_DEFAULT_PROPS,
+  resolveChartModel,
+} from "@composition/specs";
 
 const WIDE_TABLE: DataTable = {
   id: "table-wide",
@@ -460,13 +467,23 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
     fireEvent.change(input, { target: { value: "Mobile" } });
     fireEvent.blur(input);
     expect(spy.mock.calls).toEqual([
-      [{ seriesConfig: [{ key: F("desktop") }, { key: F("mobile"), label: "Mobile" }] }],
+      [
+        {
+          seriesConfig: [
+            { key: F("desktop") },
+            { key: F("mobile"), label: "Mobile" },
+          ],
+        },
+      ],
     ]);
     // 그 저장본을 다시 읽어도 순서가 desktop, mobile 이다 (specs 정렬 규칙과 정합).
     seedChart({
       dataMode: "columns",
       valueFields: ["desktop", "mobile"],
-      seriesConfig: [{ key: F("desktop") }, { key: F("mobile"), label: "Mobile" }],
+      seriesConfig: [
+        { key: F("desktop") },
+        { key: F("mobile"), label: "Mobile" },
+      ],
     });
     cleanup();
     const view2 = ui(
@@ -486,10 +503,17 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
     seedChart({ dataMode: "columns", valueFields: ["desktop"] });
     const { spy, onPatch } = patchSpy();
     const view = ui(
-      <ChartDataMappingControls fields={fields()} columns={null} onPatch={onPatch} />,
+      <ChartDataMappingControls
+        fields={fields()}
+        columns={null}
+        onPatch={onPatch}
+      />,
     );
     const remove = view.getByRole("button", { name: "제거 desktop" });
-    expect(remove.getAttribute("aria-disabled") ?? String(remove.hasAttribute("disabled"))).not.toBe("false");
+    expect(
+      remove.getAttribute("aria-disabled") ??
+        String(remove.hasAttribute("disabled")),
+    ).not.toBe("false");
     fireEvent.click(remove);
     expect(spy).not.toHaveBeenCalled();
   });
@@ -579,5 +603,166 @@ describe("숫자 형식 — 통화/단위 묶음 Apply · 취소 write 0 · Auto
       expect(Object.keys(call[0])).not.toContain("valueCurrency");
       expect(Object.keys(call[0])).not.toContain("valueFractionDigits");
     }
+  });
+});
+
+describe("ADR-211 P3 — 표시 예산 컨트롤: 스칼라 patch · 지원표 비활성 · 라벨 비우기 = 키 삭제", () => {
+  it("overflow/aggregate/axis 는 키마다 스칼라 1개 patch, 같은 값 재적용은 write 0", () => {
+    seedChart();
+    const { spy, onPatch } = patchSpy();
+    const view = ui(
+      <ChartBudgetControls fields={fields()} onPatch={onPatch} />,
+    );
+    pick(view.getByRole("group", { name: "범주 초과 시" }), "구간 집계");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ budgetOverflow: "aggregate" });
+    pick(view.getByRole("group", { name: "집계 통계" }), "평균");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ budgetAggregate: "mean" });
+    pick(view.getByRole("group", { name: "범주 축" }), "순서 (기간·순번)");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ budgetAxis: "ordinal" });
+    expect(spy).toHaveBeenCalledTimes(3);
+    // 저장값 (auto/sum/auto) 과 같은 값은 컨트롤·패널 필터 양쪽에서 write 0.
+    pick(
+      view.getByRole("group", { name: "범주 초과 시" }),
+      "자동 (종류·축 기준)",
+    );
+    pick(view.getByRole("group", { name: "집계 통계" }), "합계");
+    expect(spy).toHaveBeenCalledTimes(3);
+  });
+
+  it("bar 는 극값이, pie 는 창·집계·극값이 비활성이고 pie 에는 묶음 라벨만 남는다", () => {
+    seedChart();
+    const { spy, onPatch } = patchSpy();
+    const view = ui(
+      <ChartBudgetControls fields={fields()} onPatch={onPatch} />,
+    );
+    fireEvent.click(
+      within(view.getByRole("group", { name: "범주 초과 시" })).getByRole(
+        "button",
+      ),
+    );
+    const extrema = within(document.body).getByRole("option", {
+      name: "구간 극값 유지",
+    });
+    expect(extrema.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(extrema);
+    expect(spy).not.toHaveBeenCalled();
+    cleanup();
+
+    seedChart({ chartType: "pie" });
+    const view2 = ui(
+      <ChartBudgetControls fields={fields()} onPatch={onPatch} />,
+    );
+    expect(view2.queryByRole("group", { name: "집계 통계" })).toBeNull();
+    expect(view2.queryByRole("group", { name: "범주 축" })).toBeNull();
+    expect(view2.getByRole("group", { name: "묶음 라벨" })).toBeDefined();
+    fireEvent.click(
+      within(view2.getByRole("group", { name: "범주 초과 시" })).getByRole(
+        "button",
+      ),
+    );
+    for (const name of ["창", "구간 집계", "구간 극값 유지"]) {
+      expect(
+        within(document.body)
+          .getByRole("option", { name })
+          .getAttribute("aria-disabled"),
+        name,
+      ).toBe("true");
+    }
+    expect(
+      within(document.body)
+        .getByRole("option", { name: "나머지 묶음" })
+        .getAttribute("aria-disabled"),
+    ).not.toBe("true");
+  });
+
+  it("묶음 라벨은 저장값을 보이고, 비우면 undefined patch (키 삭제 → 영문 상수 Other)", () => {
+    seedChart({ chartType: "pie", budgetOthersLabel: "기타" });
+    const { spy, onPatch } = patchSpy();
+    const view = ui(
+      <ChartBudgetControls fields={fields()} onPatch={onPatch} />,
+    );
+    const input = within(
+      view.getByRole("group", { name: "묶음 라벨" }),
+    ).getByRole("textbox") as HTMLInputElement;
+    expect(input.value).toBe("기타");
+    expect(input.placeholder).toBe("Other");
+    fireEvent.change(input, { target: { value: "나머지" } });
+    fireEvent.blur(input);
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ budgetOthersLabel: "나머지" });
+    fireEvent.change(input, { target: { value: "  " } });
+    fireEvent.blur(input);
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({
+      budgetOthersLabel: undefined,
+    });
+  });
+});
+
+describe("ADR-211 P3 — 예산 안내는 Canvas 크기의 같은 모델을 읽는다", () => {
+  it("1,000 범주 bar: '표시 fitEff / 1000 — 창', 크기가 없으면 안내 없음, 넘치지 않으면 '전부 표시'", () => {
+    const rows = Array.from({ length: 1000 }, (_, i) => ({
+      category: `c${i}`,
+      value: i % 7,
+    }));
+    seedChart({ dimension: "category", metric: "value" }, "none");
+    // 안내는 `size` 필드로 metrics 를 고른다 — semantic 필드에 size 가 있어야 sm/lg 에서도 Canvas 와 같다.
+    expect(fields().some((f) => f.key === "size")).toBe(true);
+    const size = { width: 400, height: 300 };
+    const expected = resolveChartModel(
+      rows,
+      { ...CHART_DEFAULT_PROPS, dimension: "category", metric: "value" },
+      { size, metrics: CHART_DEFAULT_METRICS, windowStart: 0 },
+    ).budget;
+    expect(expected.n).toBe(1000);
+    expect(expected.applied).toBe("window");
+    const map = new Map([["chart", { ...size, x: 0, y: 0 }]]);
+    vi.spyOn(layoutEngine, "getSharedLayoutMap").mockImplementation(
+      () => map as ReturnType<typeof layoutEngine.getSharedLayoutMap>,
+    );
+    vi.spyOn(layoutEngine, "onLayoutPublished").mockImplementation(
+      () => () => {},
+    );
+    const view = ui(
+      <ChartAuthoringControls
+        elementId="chart"
+        fields={fields()}
+        rows={rows}
+        onPatch={() => {}}
+        sourceRowCount={rows.length}
+      />,
+    );
+    const hint = view.container.querySelector("[data-chart-budget-hint]");
+    expect(hint?.getAttribute("data-chart-budget-hint")).toBe("window");
+    expect(hint?.textContent).toBe(
+      `표시 ${expected.fitEff} / 1000 — 창 (미리보기에서 슬라이더로 이동)`,
+    );
+    cleanup();
+
+    const few = rows.slice(0, 5);
+    const view2 = ui(
+      <ChartAuthoringControls
+        elementId="chart"
+        fields={fields()}
+        rows={few}
+        onPatch={() => {}}
+        sourceRowCount={few.length}
+      />,
+    );
+    expect(
+      view2.container.querySelector("[data-chart-budget-hint]")?.textContent,
+    ).toBe("전부 표시 (5)");
+    cleanup();
+
+    const view3 = ui(
+      <ChartAuthoringControls
+        elementId="missing"
+        fields={fields()}
+        rows={rows}
+        onPatch={() => {}}
+        sourceRowCount={rows.length}
+      />,
+    );
+    expect(
+      view3.container.querySelector("[data-chart-budget-hint]"),
+    ).toBeNull();
   });
 });

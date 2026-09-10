@@ -32,6 +32,7 @@ import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartSeriesControls } from "./ChartSeriesControls";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
+import { ChartBudgetControls } from "./ChartBudgetControls";
 import {
   chartColumnCandidates,
   chartPresentationPatch,
@@ -151,6 +152,11 @@ const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
   "valueFractionDigits",
   "valueCurrency",
   "valuePercentUnit",
+  // ADR-211 — 표시 예산 4 키 (ChartBudgetControls).
+  "budgetOverflow",
+  "budgetAggregate",
+  "budgetAxis",
+  "budgetOthersLabel",
   "dataBinding",
 ]);
 const EMPTY_FIELDS: ResolvedField[] = [];
@@ -187,9 +193,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   const isChartRefInstance =
     elementType === "Chart" &&
     selectedCanonicalNode !== undefined &&
-    isCanonicalRefElement(
-      panelNodeToCanonicalRefNode(selectedCanonicalNode),
-    );
+    isCanonicalRefElement(panelNodeToCanonicalRefNode(selectedCanonicalNode));
 
   // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
   const contract = useEditContract(elementId);
@@ -385,7 +389,9 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       <>
         {contentExtras}
         <ChartAuthoringControls
+          elementId={elementId}
           fields={semanticFields}
+          rows={chartRows}
           onPatch={handleSemanticPatch}
           sourceRowCount={sourceRowCount}
         />
@@ -409,6 +415,10 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
         />
         <ChartNumberFormatControls
           elementId={elementId}
+          fields={chartControlFields}
+          onPatch={handleChartPatch}
+        />
+        <ChartBudgetControls
           fields={chartControlFields}
           onPatch={handleChartPatch}
         />

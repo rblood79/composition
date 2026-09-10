@@ -71,6 +71,11 @@ export type { AxialSeriesPoint, LineMarks, SeriesPoint } from "./marks/line";
 export { buildAreaMarks } from "./marks/area";
 export type { AreaMarks } from "./marks/area";
 export { buildDotMarks, circlePath, dotRadius } from "./marks/dots";
+export {
+  buildWindowTrackMarks,
+  CHART_WINDOW_THUMB,
+  CHART_WINDOW_TRACK_BAR,
+} from "./marks/windowTrack";
 export { curveCommands, monotoneTangents, toScreen } from "./curves";
 export type { AxialPoint, ScreenPoint } from "./curves";
 export {

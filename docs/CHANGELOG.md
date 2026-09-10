@@ -11,12 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-211 P0–P2 — 차트 표시 예산: 슬롯 fit · 창 0 정적 · 행 상한 R · 집계/극값/others (In Progress)] - 2026-09-11
+## [ADR-211 P0–P3 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 (In Progress)] - 2026-09-11
+
+### Added
+
+- (P3) **창 이동 Slider (Preview/Publish)**: 범주 축 차트의 범주가 예산을 넘치면 플롯 아래에 창 트랙이 생긴다 — thumb 하나로 창을 옮기고 (화살표 1 범주 · Home/End 끝 · PageUp/Down 1/10) 창 길이는 항상 같다. 창 위치는 저장하지 않는 뷰 상태 (문서 write 0) 라 데이터·차트 종류·overflow 가 바뀌면 처음으로, 크기가 바뀌면 자리에 맞춘다. Builder 캔버스는 같은 높이 (`windowTrackHeight 24`) 를 예약하고 비활성 트랙 (창 0) 을 그린다 — 두 화면의 플롯이 같다. 트랙 접근성 이름은 "Visible range".
+- (P3) Chart Properties **표시 예산 설정** 4종: `범주 초과 시` (자동 / 창 / 구간 집계 / 구간 극값 유지 / 나머지 묶음 — 차트 종류가 지원하지 않는 항목은 비활성 + 사유) · `집계 통계` (합계 / 평균 / 최대 / 최소) · `범주 축` (자동 · 범주 · 순서) · `묶음 라벨` (기본 "Other", 비우면 기본으로). 저장 키 `budgetOverflow` · `budgetAggregate` · `budgetAxis` · `budgetOthersLabel` 은 전부 선택적 (기존 문서 변경 0) 이고 Builder 캔버스 · Preview · 독립 publish 가 같은 값을 읽는다. 패널 안내 `표시 {fitEff} / {n} — 창 · 구간 집계 (sum) · 구간 극값 유지 · 나머지를 하나로 묶음` (캔버스 크기 기준) 이 예산 상태를 알린다.
+- (P3) 검증: specs 6 · Chromium Slider 2 · 패널 4 · 투영 1 · live 13/13 — Canvas 트랙 픽셀 · Preview/publish Slider End 로 마지막 창 (write 0) · 5,000일 line 극값 점 685 ≤ M · 누적 집계 접미 tooltip · pie 200 → "기타" · dark `--chart-others` 대비 3.42 · Properties → reload → 두 화면 → Export → publish (`docs/adr/evidence/211-p3-window-wiring.md`).
 
 ### Changed
 
 - (P2) **사용자-가시 (B) 확장**: 범주가 예산을 넘칠 때 종류·축별로 다르게 처리한다 — 범주 축 (이름) 은 창 (P1), **기간 축** (범주가 전부 엄격 ISO-8601 날짜이고 순서가 단조일 때만 자동 판정, `budgetAxis` 로 강제 가능) 은 bar 와 누적 line/area 가 **bucket 집계** (`sum` 기본, `mean/max/min`; 범주 라벨 `첫 ~ 끝`, tooltip·값 라벨에 `sum` 접미), 비누적 line/area 는 **bucket 극값 선택** (시리즈별 최소·최대 원본 점을 보존, 결측 구간은 그대로 끊김, 점 수는 `P 5,000`/`M 800` 안으로 적응), pie/radar/radial 은 **others** (상위 범주 + "Other" 묶음, 색 `--chart-others`, 라벨 `budgetOthersLabel`). 값 축 범위는 변환 뒤 전체 데이터에서. Builder 캔버스와 Preview/Publish 가 같은 모델을 그린다.
-- (P2) rule chart 채널 `others` 토큰 (catalog Chart `{color.neutral-subdued}` → CSS `--chart-others`, Skia 같은 토큰) · 설정 검증 `budgetOverflow/budgetAggregate/budgetAxis/budgetOthersLabel` (지원되지 않는 조합은 설정 오류 안내). 검증: 원본 스캔 오라클 (집계 합·평균, 극값 index 보존, gap sentinel, 적응 B 단계, others ranking, `[60,60]` → 120 domain) 전부 PASS · live 400일 bar 집계 / 3,000일 line 극값 / pie 40 → Other 세 모드 두 화면 일치 (`docs/adr/evidence/211-p2-overflow.md`). 저장 키 4개의 Properties 컨트롤·창 이동 Slider 는 P3.
+- (P2) rule chart 채널 `others` 토큰 (catalog Chart `{color.neutral-subdued}` → CSS `--chart-others`, Skia 같은 토큰) · 설정 검증 `budgetOverflow/budgetAggregate/budgetAxis/budgetOthersLabel` (지원되지 않는 조합은 설정 오류 안내). 검증: 원본 스캔 오라클 (집계 합·평균, 극값 index 보존, gap sentinel, 적응 B 단계, others ranking, `[60,60]` → 120 domain) 전부 PASS · live 400일 bar 집계 / 3,000일 line 극값 / pie 40 → Other 세 모드 두 화면 일치 (`docs/adr/evidence/211-p2-overflow.md`). 저장 키 4개의 Properties 컨트롤·창 이동 Slider 는 P3 (위 Added).
 
 - (P1) 차트가 **표시 예산**을 계산한다 (`packages/specs/src/chart/budget.ts` · `model.ts`, Builder Skia 와 Preview/Publish Recharts 가 같은 `resolveChartModel` 을 부른다): 플롯 픽셀 폭 / 최소 슬롯 간격 (`minSlot 8` · `minPointGap 3` · `minArc 5` · `minAxisGap 12` · `minRing 5`, P0 light/dark 실측) 으로 슬롯 수 `fit` 을 정하고 요소 마크 `M 800` · 경로 점 `P 5,000` 으로 깎는다. **사용자-가시 (B)**: bar/line/area 의 범주가 `fitEff` 를 넘으면 두 화면 모두 앞 `fitEff` 범주만 그린다 (창 0 — 창 이동 Slider 는 P3). 값 축은 전체 데이터 범위를 유지한다.
 - (P1) **사용자-가시 (A)**: Canvas 전용 200행 샘플 (`CHART_SAMPLE_ROWS`) 삭제 — Builder 캔버스도 Preview 와 같은 전체 행 합계를 그린다 (5,000행이면 5,000행 합). 행 상한은 두 화면 공통 `R 20,000` (초과 시 앞 20,000행 + 진단 `budget.rowsTruncated`, Properties 안내 `chart.rowCapHint`). 플롯이 한 슬롯보다 좁으면 마크 0 + 진단 `budget.plotTooSmall` (데이터 보존).

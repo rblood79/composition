@@ -23,6 +23,7 @@ import type { ChartLayout } from "./layout";
 import { resolveChartModel } from "./model";
 import { buildAreaMarks } from "./marks/area";
 import { buildBarMarks } from "./marks/bar";
+import { buildWindowTrackMarks } from "./marks/windowTrack";
 import { buildDotMarks, dotRadius } from "./marks/dots";
 import { buildLineMarks, seriesAxialPoints } from "./marks/line";
 import { buildPieMarks } from "./marks/pie";
@@ -339,6 +340,7 @@ export function computeChartScene(
     horizontal,
     tickText,
     formatValue,
+    windowTrack,
   } = model.layout;
   const { ticks } = model;
   const withDiagnostics = diagnostics.length > 0 ? { diagnostics } : {};
@@ -539,6 +541,8 @@ export function computeChartScene(
 
   // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.
   if (labels.length > 0) marks = [...marks, ...labels];
+  // ADR-211 창 트랙 — DOM 은 같은 자리에 Slider 를 얹고 Canvas 는 비활성 트랙을 그린다.
+  if (windowTrack) marks = [...marks, ...buildWindowTrackMarks(windowTrack)];
 
   return {
     size: normalizedSize,
@@ -575,6 +579,7 @@ export function computeChartScene(
         })
       : null,
     empty: false,
+    ...(windowTrack ? { windowTrack } : {}),
     ...withDiagnostics,
   };
 }

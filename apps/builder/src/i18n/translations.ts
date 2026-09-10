@@ -127,6 +127,33 @@ const koKR: TranslationKeys = {
     settingsInvalid: "차트 설정을 확인하세요",
     localeEnUS: "en-US",
     localeKoKR: "ko-KR",
+    // ADR-211 — 표시 예산 (overflow · 집계 · 축 · 기타 라벨 · 안내)
+    budgetHint: "표시 {fitEff} / {n} — {mode}",
+    budgetModeWindow: "창 (미리보기에서 슬라이더로 이동)",
+    budgetModeAggregate: "구간 집계 ({aggregate})",
+    budgetModeExtrema: "구간 극값 유지",
+    budgetModeOthers: "나머지를 하나로 묶음",
+    budgetFits: "전부 표시 ({n})",
+    budgetOverflow: "범주 초과 시",
+    overflowAuto: "자동 (종류·축 기준)",
+    overflowWindow: "창",
+    overflowAggregate: "구간 집계",
+    overflowExtrema: "구간 극값 유지",
+    overflowOthers: "나머지 묶음",
+    overflowUnsupported: "이 차트 종류에서는 사용할 수 없습니다",
+    budgetAggregate: "집계 통계",
+    aggregateSum: "합계",
+    aggregateMean: "평균",
+    aggregateMax: "최대",
+    aggregateMin: "최소",
+    budgetAxis: "범주 축",
+    axisAuto: "자동 (날짜 감지)",
+    axisCategory: "범주",
+    axisOrdinal: "순서 (기간·순번)",
+    othersLabel: "묶음 라벨",
+    othersLabelPlaceholder: "Other",
+    budgetSettingsHint:
+      "집계·극값·묶음은 화면 폭에 맞춰 두 화면에서 같은 규칙으로 정해집니다.",
   },
   itemsManager: {
     total: "총 {count}개",
@@ -1618,6 +1645,33 @@ const enUS: TranslationKeys = {
     settingsInvalid: "Check chart settings",
     localeEnUS: "en-US",
     localeKoKR: "ko-KR",
+    // ADR-211 — display budget (overflow · aggregate · axis · other label · hint)
+    budgetHint: "Showing {fitEff} / {n} — {mode}",
+    budgetModeWindow: "window (slide in Preview)",
+    budgetModeAggregate: "bucket aggregate ({aggregate})",
+    budgetModeExtrema: "bucket extrema kept",
+    budgetModeOthers: "rest grouped into one",
+    budgetFits: "all shown ({n})",
+    budgetOverflow: "When Categories Overflow",
+    overflowAuto: "Auto (by chart & axis)",
+    overflowWindow: "Window",
+    overflowAggregate: "Aggregate buckets",
+    overflowExtrema: "Keep extrema",
+    overflowOthers: "Group the rest",
+    overflowUnsupported: "Not available for this chart type",
+    budgetAggregate: "Aggregate",
+    aggregateSum: "Sum",
+    aggregateMean: "Mean",
+    aggregateMax: "Max",
+    aggregateMin: "Min",
+    budgetAxis: "Category Axis",
+    axisAuto: "Auto (detect dates)",
+    axisCategory: "Category",
+    axisOrdinal: "Ordinal (time / sequence)",
+    othersLabel: "Group Label",
+    othersLabelPlaceholder: "Other",
+    budgetSettingsHint:
+      "Aggregation, extrema and grouping follow the chart width with the same rule in both views.",
   },
   itemsManager: {
     total: "Total: {count}",
@@ -3449,6 +3503,11 @@ const formattedMessages: Record<
   "ko-KR": {
     "chart.rowCapHint": (args) =>
       `${String(args?.cap ?? 0)} / ${String(args?.total ?? 0)}행만 차트에 반영 (두 화면 동일)`,
+    "chart.budgetHint": (args) =>
+      `표시 ${String(args?.fitEff ?? 0)} / ${String(args?.n ?? 0)} — ${String(args?.mode ?? "")}`,
+    "chart.budgetModeAggregate": (args) =>
+      `구간 집계 (${String(args?.aggregate ?? "sum")})`,
+    "chart.budgetFits": (args) => `전부 표시 (${String(args?.n ?? 0)})`,
     "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
     "itemsManager.addItem": (args) => `${String(args?.type ?? "")} 추가`,
     "errors.withContext": (args) =>
@@ -3717,6 +3776,11 @@ const formattedMessages: Record<
   "en-US": {
     "chart.rowCapHint": (args) =>
       `Charting the first ${String(args?.cap ?? 0)} of ${String(args?.total ?? 0)} rows (same in both views)`,
+    "chart.budgetHint": (args) =>
+      `Showing ${String(args?.fitEff ?? 0)} / ${String(args?.n ?? 0)} — ${String(args?.mode ?? "")}`,
+    "chart.budgetModeAggregate": (args) =>
+      `bucket aggregate (${String(args?.aggregate ?? "sum")})`,
+    "chart.budgetFits": (args) => `all shown (${String(args?.n ?? 0)})`,
     "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
     "itemsManager.addItem": (args) => `Add ${String(args?.type ?? "")}`,
     "errors.withContext": (args) =>

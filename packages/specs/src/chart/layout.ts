@@ -40,6 +40,17 @@ export interface ChartLayout {
   tickText: (tick: number) => string;
   /** raw 값 문자열 — 값 라벨·tooltip·합계. */
   formatValue: (raw: number) => string;
+  /**
+   * ADR-211 창 트랙 자리 (플롯 아래, 축 레이블과 하단 범례 사이) — 창 모드에서 `n > fitEff`
+   * 일 때만. 두 leg 가 같은 높이 (`metrics.windowTrackHeight`) 를 예약해야 `plot` 이 같다:
+   * DOM 은 여기에 뷰 상태 Slider 를 얹고 Canvas 는 비활성 트랙을 그린다.
+   */
+  windowTrack: Rect | null;
+}
+
+export interface ChartLayoutOptions {
+  /** 창 트랙 예약 (모델이 창 판정 뒤 두 번째 호출에서 켠다) */
+  windowTrack?: boolean;
 }
 
 /** 공유하는 것은 여백·축 단위·표시 정책이며, 마크 path는 각 렌더러가 생성한다. */
@@ -52,6 +63,7 @@ export function resolveChartLayout(
   //   같은 정규화 결과를 본다. 기본 인자로 다시 풀면 렌더당 최대 3회 계산이고, 호출자가
   //   grid 와 다른 props 로 부르는 실수를 타입이 못 잡는다.
   presentation: ResolvedChartPresentation,
+  options: ChartLayoutOptions = {},
 ): ChartLayout {
   const width = Number.isFinite(size.width) ? Math.max(0, size.width) : 0;
   const height = Number.isFinite(size.height) ? Math.max(0, size.height) : 0;
@@ -152,6 +164,16 @@ export function resolveChartLayout(
     }
   }
 
+  // ── 창 트랙 자리 확보 (ADR-211) ──────────────────────────────────────────
+  //   범례 다음, 축 여백 전 — 축 레이블은 줄어든 플롯 아래에 붙고 트랙은 그 아래다. 폭은
+  //   최종 플롯 폭에 맞춘다 (thumb 위치 = 창 위치가 같은 축 위에 놓인다).
+  let trackY: number | null = null;
+  const trackH = metrics.windowTrackHeight;
+  if (options.windowTrack && trackH > 0 && plot.h > trackH) {
+    plot = { ...plot, h: r2(plot.h - trackH) };
+    trackY = r2(plot.y + plot.h);
+  }
+
   // ── 축 자리 확보 ─────────────────────────────────────────────────────────
   // 누적은 시리즈가 2개 이상일 때만 의미가 있다 (1개면 expand 가 전부 100% 가 된다).
   const stackMode: StackMode =
@@ -215,5 +237,9 @@ export function resolveChartLayout(
     presentation,
     tickText,
     formatValue,
+    windowTrack:
+      trackY === null
+        ? null
+        : { x: plot.x, y: trackY, w: plot.w, h: r2(trackH) },
   };
 }

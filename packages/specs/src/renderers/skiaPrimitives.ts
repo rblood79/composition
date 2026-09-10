@@ -3327,6 +3327,11 @@ const CHART_PRESENTATION_KEYS = [
   "valueFractionDigits",
   "valueCurrency",
   "valuePercentUnit",
+  // ADR-211 — 표시 예산 4 키 (breakdown §2.6 결선 inventory · Skia allowlist 단계).
+  "budgetOverflow",
+  "budgetAggregate",
+  "budgetAxis",
+  "budgetOthersLabel",
 ] as const;
 
 function pickChartPresentationProps(
@@ -3431,7 +3436,7 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       legendPosition:
         (props.legendPosition as ChartLegendPosition | undefined) ??
         CHART_DEFAULT_PROPS.legendPosition,
-      // ADR-210 — 표시 설정 8키. 미설정은 싣지 않는다 (specs 가 group/auto 로 읽는다).
+      // ADR-210 표시 설정 8키 + ADR-211 예산 4키. 미설정은 싣지 않는다 (specs 가 group/auto 로 읽는다).
       //   검증은 `resolveChartPresentation` 이 하므로 여기서는 값을 그대로 넘긴다.
       ...pickChartPresentationProps(props),
     },
