@@ -22,7 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **편집 패널이 233px 로 열리던 문제 (U1)**: `datatableEditor` 에 `defaultWidth: 560` 을 주고, workspace 가 패널을 overflow 로 새 column 에 놓을 때 원래 column 폭만 물려받던 것을 패널의 `defaultWidth` 하한으로 고쳤다 (`panelWorkspacePolicyV4.ts`). 리사이즈 · 폭 저장은 그대로.
 - **`window.prompt` · `confirm` · `alert` 6곳 제거 (U2)**: "Add API" · "Add Variable" 은 편집 패널 자리에 스냅되는 생성 패널 (`ApiEndpointCreator` — URL · 메서드 · URL 에서 자동 제안한 이름, 만들면 Run 탭으로 · `VariableCreator` — 이름 · 타입 · 범위, 중복 이름 거부) 로, 삭제 3곳은 RAC `ConfirmDialog` (항목 이름 표시 · Esc 닫기 · 확인 버튼 포커스) 로, Import 결과 2곳은 Toast 로 바꿨다. 자동화 (Playwright · Chrome MCP) 를 막던 native dialog 가 데이터 패널에서 0 이 됐다.
 
-## [ADR-211 P0–P3 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 (In Progress)] - 2026-09-11
+## [ADR-211 P0–P4 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 · 성능 (In Progress)] - 2026-09-11
+
+### Performance
+
+- (P4) **Builder 캔버스 차트 프레임**: Skia `renderPath` 가 SVG path 문자열 파싱 결과 (`Path`) 를 LRU 캐시 (개수 4,096 · 4 MB, 퇴출 시 해제) — 행 상한 200 이 사라져 선/영역 차트 path 가 33~65 KB 가 되자 내용 재기록마다 재파싱해 `render.frame` p95 가 +8ms 났던 것을 되돌린다 (6 Chart 800행 문서 select→편집→resize→zoom p95 10 → 6–7.6ms · 200행 × 4필드 22.4 → 4.8–5.9ms). runtime static W800 4종 16.6–17.6ms (bar 63.7 → 16.7) · 5,000행 columns bar 1,446 → 15.5ms · 5,000행 × 4 시리즈 모델 계산 최대 4.9ms · 폭 2,000 × 8 시리즈 창 이동 20회 p95 33.6ms. 측정: `docs/adr/evidence/211-p4-perf-bundle.md` (before `53c761c8b` / after 별도 clean worktree).
+- (P4) **번들**: Preview 창 Slider 를 `Chart.tsx` (initial) 가 render prop 으로 넘겨 lazy Recharts 청크의 shared Slider import 가 만들던 청크 분리 (initial gzip +2.5 KiB) 제거. 순증 (gzip): Builder +6,762 B · Preview +5,653 · Publish +5,314 — Builder 는 ADR 한도 6 KiB 를 +618 B 넘고, Builder/Preview 전체 initial 은 ADR-210 승인 상한을 +6,719 / +5,643 B 넘는다 (사용자 결정 대기).
 
 ### Added
 
