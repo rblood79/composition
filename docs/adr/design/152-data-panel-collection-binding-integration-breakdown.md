@@ -96,7 +96,7 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 ```ts
 // apps/builder/src/types/builder/data.types.ts — additive
 export interface DataField {
-  /** v2.1: 안정 참조 — 로드 시 lazy 부여 (`useDataStore` hydrate 한 곳), 저장 시 기록 */
+  /** v2.1: 안정 참조 — store 진입 경계 정규화 함수 `normalizeCollection` 이 부여 (7 경로 전부), id 없던 collection 은 hydrate 직후 1회 write-back (round 3 정정) */
   id?: string;
   key: string; // 행 key · 표시 이름 (rename 은 key 만 바꾼다)
   // … 기존 필드
@@ -108,6 +108,10 @@ targetCollectionId?: string; // v2.1 — targetCollection(이름) 은 read fallb
 ```
 
 resolve: `resolveField(schema, ref)` — `id` 매치 → `key` 매치 (v1 fallback) → null. **직접 `schema.find(f => f.key === …)` 패턴은 grep 가드** (Phase 1 정적 가드에 추가).
+
+**부여 · 영속 규칙 (round 3 정정 — 사용자 선택 (a))**: `normalizeCollection(dt)` 하나가 `dataActions.ts` 의 collections set 6곳 (`:109 fetch · :158 create · :223 update · :273 delete · :327 setRuntimeData · :661 실행기 sink`) 과 `importCollectionEnvelope.ts:9` 를 지난다. `fetchCollections` 직후 id 가 새로 부여된 collection 목록을 모아 `db.collections.update` 1회 (프로젝트당 1회, 이후 0). preview snapshot · export envelope 은 store 의 정규화된 schema 만 받는다. 템플릿 저장형 변환기는 id 없는 필드를 만나면 이름 저장형으로 두지 않고 정규화 누락으로 **throw** (개발 중 검출).
+
+**Map 재키잉 (round 3 추가)**: `useDataStore.collections` 는 name 키 (`dataActions.ts:105`) → Phase 1 에서 **id 키** 로. `useCollection(name)` (`data.ts:315`) 은 `useCollectionById(id)` 신설 + 기존 시그니처는 name fallback wrapper 로 유지. `.get(name)` 소비처 (`dataActions.ts:295,317,654,657` · `importCollectionEnvelope.ts:10`) 는 `resolveBoundCollection` 경유. rename re-key (`:200-215`) 삭제.
 
 ### 2-2. `{field}` 템플릿 저장형 (v2.1)
 
@@ -147,6 +151,7 @@ interface DataChange {
 - [ ] legacy 경로 실사용 실측: 프로젝트 DB/저장 문서에서 ① `datatableId` prop 보유 element ② `dataBinding.type === "collection"` element ③ legacy top-level `element.dataBinding`(props 밖) 보유 element 건수 집계
 - [ ] `PropertyDataBinding` 소비처 전수 grep (`asPropertyBinding` / `getElementDataBinding` / `propertyBinding.name` 직접 접근)
 - [ ] `apps/publish` 의 ProjectData 직렬화 현황 확인 (elements 외 데이터 포함 여부)
+- [ ] (round 3) `useDataStore.collections` name 키 소비처 전수 — `.get(` / `.has(` / `.delete(` / `useCollection(` 표 + `syncCollectionsToCanvas` 배열 변환 확인 (R11)
 - [ ] 10 binding 컴포넌트별 items 소비 방식 표 (useCollectionData 직접 / useResolvedCollectionItems 경유 구분 — GridList/ComboBox 는 후자)
 
 ### Phase 1 — Binding 계약 v2 + resolve 단일화
@@ -157,7 +162,8 @@ interface DataChange {
 - [ ] Skia 측 소비 (`getElementDataBinding` 하류 — `resolveCollectionItems` 입력 정규화 지점) 동일 헬퍼 경유
 - [ ] Inspector commit 시 collectionId upgrade 반영 (`PropertyDataBinding.tsx` onChange)
 - [ ] binding write 저장 위치 정규화 — `props.dataBinding` 단일 위치 (legacy top-level `element.dataBinding` 은 read fallback 만 유지). **Why**: scene projection signature 는 `props` 만 포함 (`buildSceneSnapshot.ts:49-66`) — top-level 만 가진 요소는 binding 변경이 sceneVersion 미감지 (격차6)
-- [ ] (v2.1) `DataField.id` additive + hydrate 한 곳 lazy 부여 (`useDataStore` load) — preview/publish/export 는 부여된 schema 만 받음 (R8 test: snapshot 생성 전 부여)
+- [ ] (v2.1, round 3 정정) `DataField.id` additive + `normalizeCollection` 을 store 진입 7 경로에 + hydrate 직후 id 없던 collection 1회 write-back — test: 7 경로 각각 id 없는 schema 입력 → store 에 id 없는 필드 0 · write-back 은 1회만 · 두 번째 로드 write 0 (R8)
+- [ ] (round 3) collections Map id 키 재키잉 + `useCollectionById` + `collections.get(` 직접 호출 grep 0 가드 (R11)
 - [ ] (v2.1) `resolveField` 헬퍼 + `schema.find(key)` 직접 패턴 grep 가드
 - [ ] (v2.1) `ApiEndpoint.targetCollectionId` additive — 실행기 sink 는 id 우선 · 이름 fallback
 - [ ] 정적 가드: `propertyBinding.name` 으로 collections find 하는 직접 패턴 grep 0건 test
@@ -168,7 +174,7 @@ interface DataChange {
 - [ ] `PropertyFieldTemplateInput` 이 편집 시 이름 문법 ↔ 저장형 변환 (사용자는 id 를 보지 않는다)
 - [ ] `resolveFieldTemplate` 렌더 경로가 저장형을 id 로 읽음 — Skia projection · DOM wrapper 같은 함수
 - [ ] ADR-210 차트 시리즈 필드 지정 (`packages/specs/src/chart/` 정규화 입력) 을 fieldId 로 — 이름 fallback
-- [ ] G4 live: rename 후 Skia · DOM · 차트 값 유지 + 구 문서 로드 재직렬화 0
+- [ ] G4 live: rename 후 Skia · DOM · 차트 값 유지 + 구 문서 로드 시 collection 1회 write-back (바인딩 재직렬화 0) + 템플릿만 저장 → 재로드 → 템플릿 유지
 
 ### Phase 1c — `DataChange` 적용기 + History (게이트 G5)
 
