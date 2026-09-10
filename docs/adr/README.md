@@ -15,13 +15,13 @@
 
 | 구분                      |    개수 |
 | ------------------------- | ------: |
-| 완료 (`completed/`)       |     226 |
-| ├ Implemented             |     190 |
+| 완료 (`completed/`)       |     227 |
+| ├ Implemented             |     191 |
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      11 |
-| ├ Proposed                |       9 |
+| 열려 있는 것 (`adr/*.md`) |      10 |
+| ├ Proposed                |       8 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
 | **합계**                  | **237** |
@@ -34,13 +34,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
-
-#### [210](210-chart-multi-field-series-presentation.md) — 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약
-
-- **상태**: In Progress (2026-09-10) — P0–P4 PASS (G0–G3 · G4-engineering), 최종 revision `53c761c8b`. **열린 조건 1**: G4-policy (Builder/Preview 초기 번들이 ADR-209 B 상한 +7,510/+4,201 B 초과 → 사용자 예외 재승인 또는 축소). 승인되면 Implemented 승격
-- **범위**: Bar/Line/Area/Radar 다중 수치 컬럼, 시리즈 이름·토큰 색·순서, 공통 숫자 포맷. 기존 collection 공급과 ADR-209 계약 보존. P0–P5 / G0–G5.
-- **상세 설계**: [breakdown](design/210-chart-multi-field-series-presentation-breakdown.md)
-- **우선순위**: P1 — 후속 차트 확장 설계
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 
@@ -196,7 +189,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 
 ---
 
-## 완료 ADR (226)
+## 완료 ADR (227)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -221,6 +214,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 | [903](completed/903-ref-descendants-slot-composition-format-migration-plan.md)      | ref/descendants + slot 기본 composition 포맷 전환 계획                          | Implemented | 2026-04-26                                                           |
 | [902](completed/902-workspace-dot-background-layer.md)                              | Workspace Dot Background Layer                                                  | Implemented | 2026-04-25                                                           |
 | [900](completed/900-unified-skia-rendering-engine.md)                               | Unified Skia Rendering Engine — PixiJS/Taffy 제거 및 CSS3 단일 렌더러           | Implemented | 2026-04-07                                                           |
+| [210](completed/210-chart-multi-field-series-presentation.md)                       | 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약 — 예산 예외 승인                  | Implemented | 2026-09-10                                                           |
 | [209](completed/209-chart-authoring-canvas-recharts-runtime.md)                     | 차트별 편집 경험과 Canvas·Recharts 런타임 분리                                  | Implemented | 2026-09-10                                                           |
 | [208](completed/208-radar-radial-grid-controls.md)                                  | radar/radial 제어 prop 과 차트 종류별 조건부 노출                               | Implemented | 2026-09-09                                                           |
 | [207](completed/207-polar-chart-radar-radial.md)                                    | 극좌표 차트 — radar · radial (ADR-194 기하 SSOT 의 극좌표 확장)                 | Implemented | 2026-09-08                                                           |

@@ -1,6 +1,6 @@
 # ADR-210 상세 설계 — 다중 수치 컬럼과 시리즈 표시
 
-2026-09-10 · **round 2 수리 검증 승인 · P0/G0 · P1/G1 · P2/G2 · P3/G3 PASS · P4/G4-engineering PASS (G4-policy 사용자 결정 대기) · P5 미실행**. [상위 ADR](../210-chart-multi-field-series-presentation.md), [대상 조사](../../explanation/research/CHART_EXTENSION_SCOPE_RESEARCH_2026-09.md). 아래 함수/새 필드/파일명은 제안이며 현행 구현으로 인용하지 않는다.
+2026-09-10 · **round 2 수리 검증 승인 · P0–P5 완료, G0–G5 PASS · G4-policy 사용자 승인 (2026-09-10) · Implemented**. [상위 ADR](../completed/210-chart-multi-field-series-presentation.md), [대상 조사](../../explanation/research/CHART_EXTENSION_SCOPE_RESEARCH_2026-09.md). 아래 함수/새 필드/파일명은 제안이며 현행 구현으로 인용하지 않는다.
 
 ## 1. 범위·선행 관계
 
@@ -133,14 +133,14 @@ P0에서 실제 paint 소비자 경로·필요 파일을 확정한다. 공통 ki
 
 ## 6. 단계·산출물
 
-| Phase | 작업과 완료 산출물                                                                                                                                                | Gate              |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| P0    | 공식 대표 shadcn multiple/format 예제 source revision과 screenshot 고정, pinned Recharts4종 spike, catalog/semantic/ref/token 결선 inventory, 기존 group baseline | G0 **PASS** (2026-09-10, ADR 실행 기록) |
-| P1    | 신규 optional props validator·공통 model·identity·format·정규화·diagnostics. T01–05/T08/T12                                                                       | G1 **PASS** (2026-09-10, ADR 실행 기록) |
-| P2    | 실제 Properties mode/fields/series/format, 타입 안내, semantic patch/Undo/ref/hydration. T06/T07/T09                                                              | G2 **PASS** (2026-09-10, ADR 실행 기록) |
-| P3    | Canvas/Preview/Publish 소비·메모 의존성·theme/label/tooltip·locale·accessibility. T10/T11 및4종wide+6종legacy                                                     | G3 **PASS** (2026-09-10, ADR 실행 기록) |
-| P4    | 최종clean revision 번들/성능/production network. T13; 전체 예산 정책 재판정                                                                                       | G4-engineering **PASS** (2026-09-10, ADR 실행 기록) · G4-policy 사용자 결정 대기 |
-| P5    | focused suite/preflight/live/review·rollback 제한·ADR/README/CHANGELOG 정합                                                                                       | G5                |
+| Phase | 작업과 완료 산출물                                                                                                                                                | Gate                                                                                         |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| P0    | 공식 대표 shadcn multiple/format 예제 source revision과 screenshot 고정, pinned Recharts4종 spike, catalog/semantic/ref/token 결선 inventory, 기존 group baseline | G0 **PASS** (2026-09-10, ADR 실행 기록)                                                      |
+| P1    | 신규 optional props validator·공통 model·identity·format·정규화·diagnostics. T01–05/T08/T12                                                                       | G1 **PASS** (2026-09-10, ADR 실행 기록)                                                      |
+| P2    | 실제 Properties mode/fields/series/format, 타입 안내, semantic patch/Undo/ref/hydration. T06/T07/T09                                                              | G2 **PASS** (2026-09-10, ADR 실행 기록)                                                      |
+| P3    | Canvas/Preview/Publish 소비·메모 의존성·theme/label/tooltip·locale·accessibility. T10/T11 및4종wide+6종legacy                                                     | G3 **PASS** (2026-09-10, ADR 실행 기록)                                                      |
+| P4    | 최종clean revision 번들/성능/production network. T13; 전체 예산 정책 재판정                                                                                       | G4-engineering **PASS** (2026-09-10, ADR 실행 기록) · G4-policy 사용자 승인 **PASS** (§10.5) |
+| P5    | focused suite/preflight/live/review·rollback 제한·ADR/README/CHANGELOG 정합                                                                                       | G5 **PASS** (2026-09-10, §10.5)                                                              |
 
 P0 결과가 제안 schema나 4종 범위를 부정하면 Decision을 수정하고 리뷰한다. 제품 구현은 설계 리뷰 및 P0 경계 확인 후 진행한다. 이 문서의 phase 표가 실행 증거는 아니다.
 
@@ -181,16 +181,23 @@ manifest는 SHA/lock hash/dirty/도구·브라우저·기기/entry 정적·dynam
 
 원본 [리뷰 로그](../reviews/210.md)의 판정과 내용은 보존한다. preflight의 Prettier가 로그의 표/공백 형식도 정리했다. 다음은 설계 수정 기록이며 독립 리뷰의 종결 판정이 아니다.
 
-| 항목     | 반영                                                        | 남은 확인                                              |
-| -------- | ----------------------------------------------------------- | ------------------------------------------------------ |
-| h1       | §3.1 값 라벨 raw 유지, T05 독립 기대값                      | G0 현행 expand 라벨 probe; P1 수리 검증                |
-| m1       | §7 W200/W800·셀/마크 구분                                   | P0 workload inventory, P4 실측                         |
-| m2       | §2.2 의미 동일성·명시 ref 고정 예외                         | G0 write 0/animation 재시작 0                          |
-| m3       | §2.3·§3 Color By 및 disabled Select 경계                    | G0 UI wiring/공통 Select 회귀 범위                     |
-| m4       | §2 순서=grid 기하 순서, 기본 색 분리                        | T04 stack/dodge 실제 기대값                            |
-| m5       | 상위 ADR Risks별 경로 연결                                  | 수리 재리뷰                                            |
-| l1/l2/l3 | default 비저장·isOverridden 한계·최소0/최대2·현행 주입 순서 | G0/P1 실제 소비                                        |
+| 항목     | 반영                                                        | 남은 확인                                                                     |
+| -------- | ----------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| h1       | §3.1 값 라벨 raw 유지, T05 독립 기대값                      | G0 현행 expand 라벨 probe; P1 수리 검증                                       |
+| m1       | §7 W200/W800·셀/마크 구분                                   | P0 workload inventory, P4 실측                                                |
+| m2       | §2.2 의미 동일성·명시 ref 고정 예외                         | G0 write 0/animation 재시작 0                                                 |
+| m3       | §2.3·§3 Color By 및 disabled Select 경계                    | G0 UI wiring/공통 Select 회귀 범위                                            |
+| m4       | §2 순서=grid 기하 순서, 기본 색 분리                        | T04 stack/dodge 실제 기대값                                                   |
+| m5       | 상위 ADR Risks별 경로 연결                                  | 수리 재리뷰                                                                   |
+| l1/l2/l3 | default 비저장·isOverridden 한계·최소0/최대2·현행 주입 순서 | G0/P1 실제 소비                                                               |
 | l4       | T07에 descendant ref 선택→편집→reset→Undo→reload 추가       | P2 종결: 반증 실패 (origin·형제 불변, `adr210ChartPresentationStore.test.ts`) |
-| l5/l6    | before SHA·분리 worktree·G4 공학/정책 분리                  | P4 측정 및 필요한 사용자 결정                          |
+| l5/l6    | before SHA·분리 worktree·G4 공학/정책 분리                  | P4 측정 및 필요한 사용자 결정                                                 |
 
 P1 진입 전 h1/m1/m4/m5에 대한 수리 검증 1회가 필요하다. P0·제품 테스트·build·live는 이번 문서 반영에서 실행하지 않았다.
+
+### 10.5 G4-policy 승인 및 G5 종결 (2026-09-10)
+
+- **승인된 전체 초기 예산 예외.** gzip 파일별 합계 기준 Builder ≤1,297,311 B, Preview ≤630,625 B — 최종 revision `53c761c8b` 의 실측값을 그대로 상한으로 둔다 (여유분 없음). Publish <500,000 B 유지. 유효 기간은 2026-10-10 또는 초기 번들에 영향을 주는 변경 중 먼저 오는 시점까지. 그 뒤에는 재측정과 축소 계획 또는 재승인이 필요하며 Composition 유지보수 담당이 맡는다. ADR-209 B 안 상한 (1,289,801 / 626,424) 은 이 승인이 대체한다. 차트 순증 ≤10 KiB · lazy ≤200 KiB · runtime 조건은 유지.
+- 기각한 대안: (a) 축소 — ADR-209 B 상한 이하로 되돌리기 (P4 재측정 필요) · (b) 상한에 +10 KiB 여유분.
+- G5: 열린 필수 조건 0 → PASS. Implemented 승격, `completed/` 이관. ADR-209 Series 하니스 재실행 17/18 의 Export 단계 FAIL 1 은 타이밍 flake 로 분류하되 미통과 기록을 유지한다 (P5 evidence §2.1).
+- 후속 조사 (별도, 이 ADR 범위 밖): ① Canvas 표시 비용 — columns 에서 `CHART_SAMPLE_ROWS=200` 이 행만 잘라 표시 셀이 늘어나 `render.frame` p95 24 vs 10 ms; 셀 기준 cap 은 데이터가 달리 보일 수 있으므로 표시 정확성과 성능을 같이 비교해 정책을 정한다. ② Chart 선택 시 Properties 컨트롤 mount 비용 (select 당 ≈10 ms DEV). 새 표현 옵션 확장은 두 비용의 대응 범위를 정한 뒤.

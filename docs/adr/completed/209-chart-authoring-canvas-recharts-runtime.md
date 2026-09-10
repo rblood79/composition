@@ -6,7 +6,7 @@ Implemented — 2026-09-10. P0~~P5 및 후속 F0~~F5 완료, G0~~G6 PASS. 최신
 
 관련 결정: [ADR-194](194-chart-component-headless-geometry.md), [ADR-207](207-polar-chart-radar-radial.md), [ADR-208](208-radar-radial-grid-controls.md). 본 ADR은 아래 표의 일부 결정을 대체한다. 세 ADR 전체를 Superseded로 바꾸지는 않는다.
 
-**승인된 전체 초기 예산 예외 (B, 2026-09-10).** gzip 파일별 합계 기준 Builder ≤1,289,801 B, Preview ≤626,424 B. Publish <500,000 B 유지. 유효 기간은 2026-10-10 또는 초기 closure 영향 변경 중 먼저 도래하는 시점까지이며, Composition 유지보수 담당이 재측정 및 축소 계획/재승인을 담당한다. 차트 순증·lazy·성능 조건은 유지한다.
+**승인된 전체 초기 예산 예외 (B, 2026-09-10).** gzip 파일별 합계 기준 Builder ≤1,289,801 B, Preview ≤626,424 B. Publish <500,000 B 유지. 유효 기간은 2026-10-10 또는 초기 closure 영향 변경 중 먼저 도래하는 시점까지이며, Composition 유지보수 담당이 재측정 및 축소 계획/재승인을 담당한다. 차트 순증·lazy·성능 조건은 유지한다. **2026-09-10 갱신**: ADR-210 승인으로 상한이 Builder ≤1,297,311 / Preview ≤630,625 B 로 대체됐다 (만료 조건 동일, [ADR-210](210-chart-multi-field-series-presentation.md)).
 
 ## Context
 

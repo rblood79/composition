@@ -118,4 +118,4 @@ E01/E03/E06/E08/E23/E24는 예제 외관을 복제해서 얻을 수 없는 Compo
 
 ## 후속 설계
 
-이 조사에 따른 [ADR-210](../../adr/210-chart-multi-field-series-presentation.md)과 [상세 설계](../../adr/design/210-chart-multi-field-series-presentation-breakdown.md)를 Proposed로 작성했다. 리뷰·P0 실증·제품 구현은 아직 실행하지 않았다.
+이 조사에 따른 [ADR-210](../../adr/completed/210-chart-multi-field-series-presentation.md)과 [상세 설계](../../adr/design/210-chart-multi-field-series-presentation-breakdown.md)를 Proposed로 작성했다. 리뷰·P0 실증·제품 구현은 아직 실행하지 않았다.
