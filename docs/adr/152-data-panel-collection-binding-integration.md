@@ -188,6 +188,10 @@ Proposed — 2026-07-16
 | G4   | Phase 1b 완료 | (2026-09-11) 필드 rename live: Users 프리셋 · ListBox `{name}` 템플릿 바인딩 · 차트 시리즈 필드 지정 후 Schema 에서 `name → fullName` — 캔버스 Skia · preview DOM · 차트 모두 값 유지, 템플릿 편집기에 새 이름 표시, 저장 문서에 `fieldId` 기록. 기존 (id 없는) 프로젝트 로드 시 재직렬화 0 | id 부여 지점 또는 템플릿 변환기 수정 — **재작성기 추가로 우회 금지** (대안 D 회귀)                                     |
 | G5   | Phase 1c 완료 | (2026-09-11) 셀 편집 · 행 삭제 · CSV import · 필드 rename 각 1회 후 `⌘Z` 4회 → 원상, `⌘⇧Z` 4회 → 재적용. History 패널에 data entry 4개, element entry 0개. 요소 편집 entry 와 섞여도 각자 되돌아감                                                                                          | undo dispatcher 분기 수정. 데이터 entry 가 element 경로로 들어가면 G5 FAIL                                             |
 
+### Live Exercise
+
+(Implemented 승격 시 기재 — G1 ~ G5 시나리오 · 결과 · 날짜 · Playwright/Chrome MCP/사용자 confirm 구분.)
+
 ## Consequences
 
 ### Positive

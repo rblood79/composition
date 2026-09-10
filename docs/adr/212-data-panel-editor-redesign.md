@@ -134,7 +134,7 @@ Proposed — 2026-09-11
 | G1   | Phase 2 완료 | 키보드만으로 셀 3개 편집 · 행 추가 · `⌘Z` 원상 (마우스 0) · axe critical 0 · 100행 프리셋 입력 프레임 p95 ≤ 16ms · Tab stop 이 격자 1개 — Playwright headless live | 충돌 키 격리 수정 · 가상화 임계 조정. 프레임 회귀는 R2 경로 점검 |
 | G2   | Phase 3 완료 | 필드 패널 rename → 152 G4 시나리오 재확인 (Skia · DOM · 차트 값 유지 · 템플릿 새 이름) + 삭제 시 사용처 N 표시 + 닫힘 포커스 복귀                                  | 역참조 헬퍼 수정 (152 몫이면 152 로 회귀)                        |
 | G3   | Phase 4 완료 | URL 붙여넣기 → Send → Schema 탭 추천 path → "테이블로 저장" → 캔버스 ListBox 바인딩에 행 표시 · export 산출물에 Auth 값 0 · production 빌드에서 CORS 경고 배너     | 추천기 · vault 수정. 서버 실행은 범위 밖 — 경고까지              |
-| G4   | Phase 7 완료 | native dialog 0 (Playwright `page.on("dialog")` 카운터) · `role=status`/`alert` 발화 확인 · 키보드만 시나리오 5 · 패널 폭 233 / 300 / 636 에서 라벨 잘림 0         | 해당 표면 수리                                                   |
+| G4   | Phase 7 완료 | native dialog 0 (Playwright `page.on("dialog")` 카운터) · `role=status`/`alert` 발생 확인 · 키보드만 시나리오 5 · 패널 폭 233 / 300 / 636 에서 라벨 잘림 0         | 해당 표면 수리                                                   |
 | G5   | Phase 7 완료 | 초기 번들 (Builder) 증가 0 — 편집기 chunk 만 증가 · 패널 열림/닫힘 프레임 전후 동일                                                                                | lazy 경계 재조정                                                 |
 
 ### Live Exercise
