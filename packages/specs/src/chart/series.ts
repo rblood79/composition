@@ -32,6 +32,11 @@ export interface SeriesGrid {
   series: SeriesData[];
   /** 값이 하나라도 있는가 — false 면 empty scene */
   hasValues: boolean;
+  /**
+   * ADR-211 others — synthetic "기타" 범주의 index (묶였을 때만). 범주색 자리는
+   * `categoryColorIndex` 로 이 범주를 `--chart-others` 토큰으로 보낸다.
+   */
+  othersIndex?: number;
 }
 
 function readField(row: ChartRow, key: string): unknown {
@@ -48,9 +53,15 @@ function toLabel(value: unknown): string {
   return "";
 }
 
-export type SeriesGridProps = Pick<ChartProps, "dimension" | "metric" | "color"> &
+export type SeriesGridProps = Pick<
+  ChartProps,
+  "dimension" | "metric" | "color"
+> &
   Partial<
-    Pick<ChartProps, "dataMode" | "valueFields" | "seriesConfig" | "chartType" | "colorBy">
+    Pick<
+      ChartProps,
+      "dataMode" | "valueFields" | "seriesConfig" | "chartType" | "colorBy"
+    >
   >;
 
 /**
@@ -157,7 +168,8 @@ function applySeriesConfig(
     const target = byId.get(config.key);
     if (!target || placed.has(target)) continue;
     if (config.label !== undefined) target.label = config.label;
-    if (config.paletteIndex !== undefined) target.seriesIndex = config.paletteIndex;
+    if (config.paletteIndex !== undefined)
+      target.seriesIndex = config.paletteIndex;
     ordered.push(target);
     placed.add(target);
   }

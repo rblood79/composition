@@ -313,6 +313,7 @@ describe("ADR-211 G1 — 창 clamp · 진단", () => {
       n: 10,
       k: 1,
       metrics: U,
+      axisKind: "category",
     });
     expect(budget.fitEff).toBe(0);
     expect(budget.window).toEqual({ start: 0, end: 0 });
@@ -330,6 +331,7 @@ describe("ADR-211 G1 — 창 clamp · 진단", () => {
       n: 0,
       k: 1,
       metrics: U,
+      axisKind: "category",
     });
     expect(budget.diagnostics).toEqual([]);
     expect(budget.overflow).toBe(false);
@@ -349,6 +351,7 @@ describe("ADR-211 G1 — 창 clamp · 진단", () => {
         n: 3,
         k: 1,
         metrics: U,
+        axisKind: "category",
         overflow,
       }).mode;
     expect(mode("bar")).toBe("window");
@@ -681,38 +684,25 @@ describe("ADR-211 G1 — 판독 수리 (labelText 창 offset · ticks 원천 · 
     expect(mergeBudgetMetrics(undefined)).toEqual(U);
   });
 
-  it("pie/radar/radial (P1 미적용 모드) 은 fitEff 0 이어도 plotTooSmall 을 내지 않는다", () => {
-    const budget = resolveDisplayBudget({
+  it("pie 도 fitEff 0 이면 plotTooSmall (P2: others 가 적용되므로 모든 모드에서 진단)", () => {
+    const tiny = resolveDisplayBudget({
       kind: "pie",
       geometry: {
-        plot: plot(20, 20),
+        plot: plot(4, 4),
         horizontal: false,
-        radius: { outer: 2, inner: 0 },
+        radius: { outer: 0.5, inner: 0 },
       },
       series: 1,
       stacked: false,
       n: 10,
       k: 1,
       metrics: U,
-    });
-    expect(budget.fitEff).toBe(2);
-    const tiny = resolveDisplayBudget({
-      ...{
-        kind: "pie" as const,
-        geometry: {
-          plot: plot(4, 4),
-          horizontal: false,
-          radius: { outer: 0.5, inner: 0 },
-        },
-        series: 1,
-        stacked: false,
-        n: 10,
-        k: 1,
-        metrics: U,
-      },
+      axisKind: "category",
     });
     expect(tiny.fitEff).toBe(0);
-    expect(tiny.diagnostics).toEqual([]);
+    expect(tiny.diagnostics.map((d) => d.code)).toEqual([
+      "budget.plotTooSmall",
+    ]);
   });
 });
 

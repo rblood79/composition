@@ -11,19 +11,26 @@
  * `plot` → `fit` → 창이 서로를 다시 정하는 순환이 생긴다.
  */
 import {
-  applyWindow,
+  applyBudget,
   budgetSweep,
   capRows,
+  categoryColorIndex,
   markFactor,
   polarGeometry,
+  resolveAxisKind,
   resolveDisplayBudget,
 } from "./budget";
 import type { ChartBudgetGeometry, DisplayBudget } from "./budget";
 import { CHART_TICK_COUNT, resolveChartLayout } from "./layout";
 import type { ChartLayout } from "./layout";
-import { niceTicks } from "./scales";
+import { niceTicks, r2 } from "./scales";
 import type { TickResult } from "./scales";
-import { resolveChartPresentation } from "./presentation";
+import { legendExtent } from "./legend";
+import type { LegendEntry } from "./legend";
+import {
+  CHART_AGGREGATE_SUFFIX,
+  resolveChartPresentation,
+} from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
 import { buildSeriesGrid, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
@@ -33,6 +40,7 @@ import type {
   ChartProps,
   ChartRow,
   ChartSize,
+  Rect,
 } from "./types";
 
 export interface ChartModelView {
@@ -63,6 +71,31 @@ export interface ChartModel {
   sourceRowCount: number;
   /** 표시 설정 진단 + 예산 진단 (순서: presentation → 행 상한 → 예산) */
   diagnostics: ChartDiagnostic[];
+}
+
+/**
+ * 범주색 범례가 줄어들면 (others) input 으로 예약한 상자 안에서 필요한 만큼만 차지한다 —
+ * bottom/right 는 바깥쪽에 붙고 top/left 는 그대로. plot 은 바꾸지 않는다 (plot → fit →
+ * others 수 → 범례 크기의 순환을 끊는다; 남는 자리는 빈 여백).
+ */
+function shrinkLegendBox(
+  box: Rect | null,
+  position: ChartProps["legendPosition"],
+  entries: readonly LegendEntry[],
+  fontSize: number,
+): Rect | null {
+  if (!box) return null;
+  const vertical = position === "left" || position === "right";
+  const needed = Math.min(
+    vertical ? box.w : box.h,
+    legendExtent(entries, position, box.w, fontSize),
+  );
+  if (needed <= 0) return null;
+  if (position === "bottom")
+    return { ...box, y: r2(box.y + box.h - needed), h: r2(needed) };
+  if (position === "top") return { ...box, h: r2(needed) };
+  if (position === "left") return { ...box, w: r2(needed) };
+  return { ...box, x: r2(box.x + box.w - needed), w: r2(needed) };
 }
 
 /** budget 이 읽는 기하 — scene 이 쓰는 반지름 식 (`polarGeometry`) 그대로. */
@@ -107,32 +140,77 @@ export function resolveChartModel(
     metrics,
     presentation,
   );
-  // P1: transformed = input (창 모드). 집계 · 극값 · others 는 P2 가 여기서 갈라 넣는다.
-  const transformed = input;
-  const budget = resolveDisplayBudget({
+  const settings = presentation.budget;
+  const stacked = baseLayout.stackMode !== "none";
+  const decided = resolveDisplayBudget({
     kind: props.chartType,
     geometry: budgetGeometry(props, baseLayout),
     series: input.series.length,
-    stacked: baseLayout.stackMode !== "none",
-    n: transformed.categories.length,
+    stacked,
+    n: input.categories.length,
     k: markFactor(props.chartType, props),
     metrics,
-    overflow: props.budgetOverflow,
+    axisKind: resolveAxisKind(input.categories, settings.axis),
+    overflow: settings.overflow,
+    aggregate: settings.aggregate,
     windowStart: view.windowStart,
   });
-  const visible = budget.window
-    ? applyWindow(transformed, budget.window)
-    : transformed;
+  // 변환 — 창 · bucket 집계 · 극값 선택 · others · pie 링 상한 (§2.4 · §2.5).
+  const { budget, transformed, visible } = applyBudget(input, decided, {
+    kind: props.chartType,
+    stacked,
+    othersLabel: settings.othersLabel,
+    metrics,
+  });
   const start = budget.window?.start ?? 0;
+  // 실제 적용 (`applied`) 으로 판정한다 — 극값 fallback 은 요청 `mode` 가 extrema 여도 집계다.
+  const suffix =
+    budget.applied === "aggregate"
+      ? ` ${CHART_AGGREGATE_SUFFIX[budget.aggregate]}`
+      : "";
+  // 값 문자열 — 집계면 접미 (`합계`/`평균`…) 로 통계를 밝힌다 (tooltip · 값 라벨 · 합계; 눈금은
+  //   숫자 그대로). 라벨 텍스트는 visible 격자를 읽는다 (창 offset · 집계 라벨 `첫 ~ 끝` · others).
+  const formatValue = suffix
+    ? (raw: number) => `${baseLayout.formatValue(raw)}${suffix}`
+    : baseLayout.formatValue;
+  const labelText =
+    props.labelKey === "category"
+      ? (ci: number) => visible.categories[ci] ?? ""
+      : (_ci: number, raw: number) => formatValue(raw);
+  // 범주색 범례 (pie · radial 단일 시리즈 · bar 범주색) 는 transformed 범주 — others 가 포함되고
+  //   묶인 원본은 빠진다. 상자는 input 으로 예약한 자리 안에서 필요한 만큼만 (plot 불변 — 순환 0).
+  const byCategoryLegend =
+    baseLayout.legendEntries.length > 0 &&
+    baseLayout.legendEntries.length === input.categories.length &&
+    (props.chartType === "pie" ||
+      (props.chartType === "radial" && input.series.length <= 1) ||
+      (props.chartType === "bar" && props.colorBy === "category"));
+  const palette = Math.max(1, metrics.seriesCount);
+  const legendEntries: readonly LegendEntry[] =
+    byCategoryLegend && transformed !== input
+      ? transformed.categories.map((label, ci) => ({
+          label: label || "category",
+          colorIndex: categoryColorIndex(ci, palette, transformed.othersIndex),
+        }))
+      : baseLayout.legendEntries;
+  const legendBox =
+    legendEntries === baseLayout.legendEntries
+      ? baseLayout.legendBox
+      : shrinkLegendBox(
+          baseLayout.legendBox,
+          props.legendPosition,
+          legendEntries,
+          baseLayout.fontSize,
+        );
   const layout: ChartLayout =
-    start === 0
+    start === 0 &&
+    !suffix &&
+    legendEntries === baseLayout.legendEntries &&
+    transformed === input
       ? baseLayout
-      : {
-          ...baseLayout,
-          labelText: (ci, raw) => baseLayout.labelText(ci + start, raw),
-        };
-  // domain 은 transformed 전체 — P1 은 input 과 같아 `layout.ticks` 와 값이 같고, P2 의
-  //   집계/others/극값은 여기서 갈린다 (여백 폭은 input 눈금 기준 그대로 — 두 leg 같은 값).
+      : { ...baseLayout, formatValue, labelText, legendEntries, legendBox };
+  // domain 은 transformed 전체 — 창은 input 과 같아 `layout.ticks` 와 값이 같고, 집계/others/
+  //   극값은 여기서 갈린다 (여백 폭은 input 눈금 기준 그대로 — 두 leg 같은 값).
   const extent = valueExtent(transformed, baseLayout.stackMode);
   const ticks =
     transformed === input

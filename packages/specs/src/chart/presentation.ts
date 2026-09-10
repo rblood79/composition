@@ -16,6 +16,9 @@
  */
 import { formatTick } from "./scales";
 import type {
+  ChartBudgetAggregate,
+  ChartBudgetAxis,
+  ChartBudgetOverflow,
   ChartDataMode,
   ChartDiagnostic,
   ChartDiagnosticCode,
@@ -24,6 +27,7 @@ import type {
   ChartValueFormat,
   ChartValueLocale,
 } from "./types";
+import { supportsBudgetMode } from "./budget";
 
 // ── identity ────────────────────────────────────────────────────────────────
 
@@ -152,10 +156,53 @@ export interface ResolvedChartPresentation {
   /** key 중복 제거 (first-wins) 뒤의 설정. 배열 순서 = 표시 순서. */
   seriesConfig: readonly ResolvedSeriesConfig[];
   numberFormat: ResolvedNumberFormat;
+  /** ADR-211 — 정규화된 예산 설정 (`auto` · `sum` · `auto` · 상수 라벨 기본). */
+  budget: ResolvedBudgetSettings;
   diagnostics: readonly ChartDiagnostic[];
   /** error 진단이 없는가 — false 면 소비자는 설정 오류 상태를 보여 준다. */
   ok: boolean;
 }
+
+export interface ResolvedBudgetSettings {
+  overflow: ChartBudgetOverflow;
+  aggregate: ChartBudgetAggregate;
+  axis: ChartBudgetAxis;
+  /** 사용자 라벨 (없으면 `CHART_OTHERS_LABEL`) */
+  othersLabel: string;
+}
+
+/**
+ * ADR-211 §2.7 — 두 leg 가 같은 **영문 상수** 를 그린다 (번역을 export 에 싣지 않는다).
+ * others 라벨은 저장 필드 `budgetOthersLabel` 로 문서 언어에 맞춰 덮는다.
+ */
+export const CHART_OTHERS_LABEL = "Other";
+/** 집계 접미 — tooltip · 값 라벨 · 합계가 `formatValue(v) + " " + 접미` 로 통계를 밝힌다. */
+export const CHART_AGGREGATE_SUFFIX: Readonly<
+  Record<ChartBudgetAggregate, string>
+> = {
+  sum: "sum",
+  mean: "mean",
+  max: "max",
+  min: "min",
+};
+export const CHART_BUDGET_OVERFLOWS: readonly ChartBudgetOverflow[] = [
+  "auto",
+  "window",
+  "aggregate",
+  "extrema",
+  "others",
+];
+export const CHART_BUDGET_AGGREGATES: readonly ChartBudgetAggregate[] = [
+  "sum",
+  "mean",
+  "max",
+  "min",
+];
+export const CHART_BUDGET_AXES: readonly ChartBudgetAxis[] = [
+  "auto",
+  "category",
+  "ordinal",
+];
 
 const DEFAULT_LOCALE: ChartValueLocale = "en-US";
 
@@ -180,6 +227,10 @@ export function resolveChartPresentation(
     | "valueFractionDigits"
     | "valueCurrency"
     | "valuePercentUnit"
+    | "budgetOverflow"
+    | "budgetAggregate"
+    | "budgetAxis"
+    | "budgetOthersLabel"
   > &
     Partial<Pick<ChartProps, "chartType" | "colorBy">>,
   paletteLength: number,
@@ -385,7 +436,11 @@ export function resolveChartPresentation(
       );
     }
   }
-  if (format === "currency" && currency === undefined && rawCurrency === undefined) {
+  if (
+    format === "currency" &&
+    currency === undefined &&
+    rawCurrency === undefined
+  ) {
     error("valueCurrency.missing", "currency format needs a currency code");
   }
   let percentUnit: ChartPercentUnit | undefined;
@@ -404,11 +459,91 @@ export function resolveChartPresentation(
       );
     }
   }
-  if (format === "percent" && percentUnit === undefined && rawUnit === undefined) {
+  if (
+    format === "percent" &&
+    percentUnit === undefined &&
+    rawUnit === undefined
+  ) {
     error(
       "valuePercentUnit.missing",
       "percent format needs the input unit (ratio or percentagePoints)",
     );
+  }
+
+  // ── ADR-211 budget* (§2.4 지원표) — 잘못된 값은 error (다른 뜻으로 그리지 않는다).
+  const budget: ResolvedBudgetSettings = {
+    overflow: "auto",
+    aggregate: "sum",
+    axis: "auto",
+    othersLabel: CHART_OTHERS_LABEL,
+  };
+  const rawOverflow = props.budgetOverflow as unknown;
+  if (rawOverflow !== undefined) {
+    if (
+      typeof rawOverflow === "string" &&
+      (CHART_BUDGET_OVERFLOWS as readonly string[]).includes(rawOverflow)
+    ) {
+      budget.overflow = rawOverflow as ChartBudgetOverflow;
+      if (
+        budget.overflow !== "auto" &&
+        props.chartType !== undefined &&
+        !supportsBudgetMode(props.chartType, budget.overflow)
+      ) {
+        error(
+          "budget.overflow.unsupported",
+          `budgetOverflow "${budget.overflow}" is not supported for ${props.chartType} charts`,
+          budget.overflow,
+        );
+      }
+    } else {
+      error(
+        "budget.overflow.invalid",
+        "budgetOverflow must be auto, window, aggregate, extrema or others",
+        String(rawOverflow),
+      );
+    }
+  }
+  const rawAggregate = props.budgetAggregate as unknown;
+  if (rawAggregate !== undefined) {
+    if (
+      typeof rawAggregate === "string" &&
+      (CHART_BUDGET_AGGREGATES as readonly string[]).includes(rawAggregate)
+    ) {
+      budget.aggregate = rawAggregate as ChartBudgetAggregate;
+    } else {
+      error(
+        "budget.aggregate.invalid",
+        "budgetAggregate must be sum, mean, max or min",
+        String(rawAggregate),
+      );
+    }
+  }
+  const rawAxis = props.budgetAxis as unknown;
+  if (rawAxis !== undefined) {
+    if (
+      typeof rawAxis === "string" &&
+      (CHART_BUDGET_AXES as readonly string[]).includes(rawAxis)
+    ) {
+      budget.axis = rawAxis as ChartBudgetAxis;
+    } else {
+      error(
+        "budget.axis.invalid",
+        "budgetAxis must be auto, category or ordinal",
+        String(rawAxis),
+      );
+    }
+  }
+  const rawOthers = props.budgetOthersLabel as unknown;
+  if (rawOthers !== undefined) {
+    if (typeof rawOthers === "string" && rawOthers.trim().length > 0) {
+      budget.othersLabel = rawOthers;
+    } else {
+      error(
+        "budget.othersLabel.invalid",
+        "budgetOthersLabel must be a non-empty string",
+        String(rawOthers),
+      );
+    }
   }
 
   const numberFormat: ResolvedNumberFormat = { format, locale };
@@ -422,6 +557,7 @@ export function resolveChartPresentation(
     valueFields,
     seriesConfig,
     numberFormat,
+    budget,
     diagnostics,
     ok: !diagnostics.some((d) => d.severity === "error"),
   };

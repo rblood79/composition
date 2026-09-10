@@ -6,6 +6,7 @@
  * 각 렌더러가 생성한다.
  */
 import { legendExtent } from "./legend";
+import { categoryColorIndex } from "./budget";
 import type { LegendEntry } from "./legend";
 import { approxTextWidth, formatTick, niceTicks, r2 } from "./scales";
 import { formatChartNumber } from "./presentation";
@@ -86,7 +87,8 @@ export function resolveChartLayout(
   const legendEntries: LegendEntry[] = byCategory
     ? grid.categories.map((label, ci) => ({
         label: label || "category",
-        colorIndex: ci % palette,
+        // input 격자는 `othersIndex` 가 없다 — others 범례는 model 이 transformed 로 다시 만든다.
+        colorIndex: categoryColorIndex(ci, palette, grid.othersIndex),
       }))
     : grid.series.map((series) => ({
         label: seriesLabel(series, "series"),

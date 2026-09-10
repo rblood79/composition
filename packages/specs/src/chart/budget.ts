@@ -14,6 +14,8 @@
  */
 import type { SeriesGrid, SeriesData } from "./series";
 import type {
+  ChartBudgetAggregate,
+  ChartBudgetAxis,
   ChartBudgetOverflow,
   ChartDiagnostic,
   ChartMetrics,
@@ -170,6 +172,9 @@ export function slotFit(
     case "radial":
       raw = (outer - inner) / units.minRing;
       break;
+    default:
+      // R7 — 신규 chartType 이 조용히 예산 0 으로 통과하지 않게 (scene 의 assertNever 와 같은 방어선).
+      throw new Error(`unhandled chartType: ${String(kind)}`);
   }
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
 }
@@ -192,6 +197,8 @@ export function markFactor(
     case "line":
     case "area":
       return (props.showDots ? 1 : 0) + labels;
+    default:
+      throw new Error(`unhandled chartType: ${String(kind)}`);
   }
 }
 
@@ -215,11 +222,346 @@ export function resolveFitEff(
   return Math.max(0, eff);
 }
 
-/** §2.4 지원표의 "기본" — `auto` 를 종류에 따라 푼다. 축 종류 (`ordinal`) 분기는 P2. */
-export function defaultBudgetMode(kind: ChartType): ChartBudgetMode {
-  return kind === "bar" || kind === "line" || kind === "area"
-    ? "window"
-    : "others";
+/** §2.3 — 범주 축 종류. `ordinal` 은 기간 (bucket 이 인접 index 구간), `category` 는 이름. */
+export type ChartAxisKind = "category" | "ordinal";
+
+/**
+ * 엄격 ISO-8601: `YYYY-MM-DD` 또는 `YYYY-MM-DDTHH:mm[:ss[.sss]][Z|±hh:mm]`. 숫자형 문자열
+ * (`"001"`, `"2024"`) 은 통과하지 않는다 — ID 를 기간처럼 묶는 사고 방지 (§2.3).
+ */
+const ISO_8601 =
+  /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2})?)?$/;
+
+/** ISO 문자열 → epoch ms (엄격 형식 + 실제 달력 검사). 아니면 null. */
+export function parseIsoStrict(label: string): number | null {
+  const m = ISO_8601.exec(label);
+  if (!m) return null;
+  const [, y, mo, d, h = "00", mi = "00", sec = "00", ms = "0", tz] = m;
+  const month = Number(mo);
+  const day = Number(d);
+  const hour = Number(h);
+  const minute = Number(mi);
+  const second = Number(sec);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  if (hour > 23 || minute > 59 || second > 59) return null;
+  const utc = Date.UTC(
+    Number(y),
+    month - 1,
+    day,
+    hour,
+    minute,
+    second,
+    Number(ms.padEnd(3, "0")),
+  );
+  // 2월 30일 같은 날짜는 UTC 가 다음 달로 넘겨 버린다 — 되돌려 검사.
+  const back = new Date(utc);
+  if (back.getUTCMonth() !== month - 1 || back.getUTCDate() !== day)
+    return null;
+  if (!tz || tz === "Z") return utc;
+  const sign = tz.startsWith("-") ? 1 : -1;
+  const [tzh, tzm] = tz.slice(1).split(":").map(Number);
+  return utc + sign * (tzh * 60 + tzm) * 60_000;
+}
+
+/**
+ * §2.3 — 축 종류 자동 판정은 **보수적**이다: 결측 (`""`) 을 뺀 모든 범주가 엄격 ISO-8601 로
+ * 파싱되고 첫 출현 순서가 단조 (오름 또는 내림) 일 때만 `ordinal`. 하나라도 실패하면
+ * `category`. `budgetAxis` 가 명시되면 그대로.
+ */
+export function resolveAxisKind(
+  categories: readonly string[],
+  axis: ChartBudgetAxis | undefined,
+): ChartAxisKind {
+  if (axis === "category" || axis === "ordinal") return axis;
+  let prev: number | null = null;
+  let direction = 0;
+  let parsed = 0;
+  for (const label of categories) {
+    if (label === "") continue;
+    const t = parseIsoStrict(label);
+    if (t === null) return "category";
+    parsed++;
+    if (prev !== null) {
+      const step = Math.sign(t - prev);
+      if (step !== 0) {
+        if (direction === 0) direction = step;
+        else if (direction !== step) return "category";
+      }
+    }
+    prev = t;
+  }
+  return parsed > 0 ? "ordinal" : "category";
+}
+
+/**
+ * §2.4 지원표의 "기본" — `auto` 를 종류 · 축 · 누적 여부로 푼다.
+ * bar: 범주 창 · 순서 집계. line/area: 범주 창 · 순서 비누적 극값 · 순서 누적/expand 집계.
+ * pie/radar/radial: others.
+ */
+export function defaultBudgetMode(
+  kind: ChartType,
+  axisKind: ChartAxisKind = "category",
+  stacked = false,
+): ChartBudgetMode {
+  if (kind === "pie" || kind === "radar" || kind === "radial") return "others";
+  if (axisKind === "category") return "window";
+  if (kind === "bar") return "aggregate";
+  return stacked ? "aggregate" : "extrema";
+}
+
+/** §2.4 지원표 — 종류가 받는 명시 overflow. ✗ 조합은 validator 가 거부한다. */
+export function supportsBudgetMode(
+  kind: ChartType,
+  mode: ChartBudgetMode,
+): boolean {
+  switch (kind) {
+    case "bar":
+      return mode !== "extrema";
+    case "line":
+    case "area":
+      return mode !== "others";
+    case "pie":
+    case "radar":
+    case "radial":
+      return mode === "others";
+  }
+}
+
+// ── 변환 (transformed 층) ───────────────────────────────────────────────────
+
+/** bucket 경계 `[start, end)` — 크기 `ceil(n / B)`, 마지막만 작을 수 있다 (§2.4). */
+export function bucketBounds(n: number, B: number): Array<[number, number]> {
+  const size = Math.ceil(n / Math.max(1, B));
+  const out: Array<[number, number]> = [];
+  for (let s = 0; s < n; s += size) out.push([s, Math.min(n, s + size)]);
+  return out;
+}
+
+function statOf(
+  values: number[],
+  stat: ChartBudgetAggregate,
+): number | undefined {
+  if (values.length === 0) return undefined;
+  if (stat === "sum") return values.reduce((a, b) => a + b, 0);
+  if (stat === "mean") return values.reduce((a, b) => a + b, 0) / values.length;
+  if (stat === "max") return Math.max(...values);
+  return Math.min(...values);
+}
+
+/**
+ * bucket 라벨 — 하나면 그대로, 여럿이면 `첫 ~ 끝`. 결측 (`""`) 범주가 경계에 오면 bucket 안의
+ * 비어 있지 않은 첫/끝 라벨을 쓴다 (`" ~ B"` 같은 문자열 방지); 전부 비면 `""`.
+ */
+export function bucketLabel(
+  categories: readonly string[],
+  a: number,
+  b: number,
+): string {
+  if (b - a === 1) return categories[a];
+  let first = a;
+  while (first < b && categories[first] === "") first++;
+  let last = b - 1;
+  while (last > first && categories[last] === "") last--;
+  if (first >= b) return "";
+  return first === last
+    ? categories[first]
+    : `${categories[first]} ~ ${categories[last]}`;
+}
+
+/**
+ * §2.4 bucket 집계 — `B` 개 bucket, 시리즈마다 같은 경계, 값 = 명시 통계. 결측은 제외
+ * (0 이 아니다), 음수는 그대로. `mean` 은 bucket 안 **범주 값** 의 평균이다 (범주 값은
+ * 이미 행 합산이라 "행 평균" 이 아니다).
+ */
+export function aggregateBuckets(
+  grid: SeriesGrid,
+  B: number,
+  stat: ChartBudgetAggregate,
+): SeriesGrid {
+  const bounds = bucketBounds(grid.categories.length, B);
+  const categories = bounds.map(([a, b]) => bucketLabel(grid.categories, a, b));
+  const series: SeriesData[] = grid.series.map((sd) => {
+    const values = new Map<number, number>();
+    bounds.forEach(([a, b], bi) => {
+      const vals: number[] = [];
+      for (let ci = a; ci < b; ci++) {
+        const v = sd.values.get(ci);
+        if (v !== undefined) vals.push(v);
+      }
+      const r = statOf(vals, stat);
+      if (r !== undefined) values.set(bi, r);
+    });
+    return { ...sd, values };
+  });
+  return {
+    categories,
+    series,
+    hasValues: series.some((sd) => sd.values.size > 0),
+  };
+}
+
+export interface ExtremaStep {
+  B: number;
+  U: number;
+  /** 경로 점 `S × |U|` — `P` 축 판정값 */
+  pathPoints: number;
+  /** 요소 마크 `S × |U| × k` — `M` 축 판정값 (`k = 0` 이면 0, M 축 미적용) */
+  marks: number;
+}
+
+export interface ExtremaSelection {
+  /** 선택 index (오름차순) — 시리즈마다 이 index 의 원본 값을 그린다 */
+  indices: number[];
+  B: number;
+  steps: ExtremaStep[];
+  /** `B = 1` 에서도 넘쳤다 — 호출자는 bucket 집계로 fallback 한다 */
+  fallback: boolean;
+}
+
+/**
+ * §2.4 bucket 극값 선택 — 시리즈마다 bucket 안 min·max 의 범주 index (같으면 1개) + 결측
+ * run 이 있으면 첫 결측 index (gap sentinel). 합집합 `U` 를 모든 시리즈가 원본 값으로
+ * 그린다. **적응 B**: `S × |U| > P` 또는 (`k > 0`) `S × |U| × k > M` 이면 `B ← ceil(B / 2)`
+ * 로 다시 고른다 — bucket 이 줄면 선택도 줄어 단조 감소, 입력이 같으면 두 leg 가 같은 B.
+ * `B = 1` 에서도 넘치면 `fallback`.
+ */
+export function selectExtrema(
+  grid: SeriesGrid,
+  fitEff: number,
+  k: number,
+  budget: Pick<ChartBudgetMetrics, "markBudget" | "pointBudget">,
+): ExtremaSelection {
+  const n = grid.categories.length;
+  const S = Math.max(1, grid.series.length);
+  const steps: ExtremaStep[] = [];
+  let B = Math.max(1, fitEff);
+  for (;;) {
+    const U = new Set<number>();
+    for (const [a, b] of bucketBounds(n, B)) {
+      for (const sd of grid.series) {
+        let minI = -1;
+        let maxI = -1;
+        let gapI = -1;
+        for (let ci = a; ci < b; ci++) {
+          const v = sd.values.get(ci);
+          if (v === undefined) {
+            if (gapI < 0) gapI = ci;
+            continue;
+          }
+          if (minI < 0 || v < sd.values.get(minI)!) minI = ci;
+          if (maxI < 0 || v > sd.values.get(maxI)!) maxI = ci;
+        }
+        if (minI >= 0) U.add(minI);
+        if (maxI >= 0) U.add(maxI);
+        if (gapI >= 0) U.add(gapI);
+      }
+    }
+    const pathPoints = S * U.size;
+    const marks = S * U.size * k;
+    steps.push({ B, U: U.size, pathPoints, marks });
+    const overP = pathPoints > budget.pointBudget;
+    const overM = k > 0 && marks > budget.markBudget;
+    const indices = [...U].sort((x, y) => x - y);
+    if (!overP && !overM) return { indices, B, steps, fallback: false };
+    if (B === 1) return { indices, B, steps, fallback: true };
+    B = Math.ceil(B / 2);
+  }
+}
+
+/** 선택 index 만 남긴 격자 (원본 라벨·원본 값, index 는 0 부터 다시). */
+export function pickCategories(
+  grid: SeriesGrid,
+  keep: readonly number[],
+): SeriesGrid {
+  const categories = keep.map((ci) => grid.categories[ci]);
+  const series = grid.series.map((sd) => {
+    const values = new Map<number, number>();
+    keep.forEach((ci, i) => {
+      const v = sd.values.get(ci);
+      if (v !== undefined) values.set(i, v);
+    });
+    return { ...sd, values };
+  });
+  return {
+    categories,
+    series,
+    hasValues: series.some((sd) => sd.values.size > 0),
+  };
+}
+
+/** others synthetic 범주의 identity key — 원본 라벨 (예: "기타") 과 충돌하지 않는다. */
+export const CHART_OTHERS_KEY = "__others__";
+
+export interface OthersResult extends Omit<SeriesGrid, "othersIndex"> {
+  /** synthetic 범주의 index (묶을 것이 없으면 null) */
+  othersIndex: number | null;
+  /** ranking key 내림차순의 원본 index (동률은 출현 순) */
+  ranking: number[];
+}
+
+/**
+ * §2.4 others — ranking key = 범주별 `Σ_series |value|`, 상위 `fitEff − 1` 을 남기고 나머지를
+ * synthetic 범주 하나로 **시리즈별 sum** (원본 부호). `fitEff < 2` 면 others 없이 상위
+ * `fitEff` 만. 남긴 범주는 원본 출현 순서, others 는 맨 뒤.
+ */
+export function groupOthers(
+  grid: SeriesGrid,
+  fitEff: number,
+  label: string,
+): OthersResult {
+  const n = grid.categories.length;
+  const key = (ci: number) =>
+    grid.series.reduce((a, sd) => a + Math.abs(sd.values.get(ci) ?? 0), 0);
+  const ranking = [...Array(n).keys()].sort((a, b) => key(b) - key(a) || a - b);
+  if (n <= fitEff) return { ...grid, othersIndex: null, ranking };
+  if (fitEff < 2) {
+    const keep = ranking.slice(0, Math.max(1, fitEff)).sort((a, b) => a - b);
+    return { ...pickCategories(grid, keep), othersIndex: null, ranking };
+  }
+  const keep = ranking.slice(0, fitEff - 1).sort((a, b) => a - b);
+  const rest = ranking.slice(fitEff - 1);
+  const base = pickCategories(grid, keep);
+  const othersIndex = keep.length;
+  const series = base.series.map((sd, si) => {
+    let sum = 0;
+    let any = false;
+    for (const ci of rest) {
+      const v = grid.series[si].values.get(ci);
+      if (v !== undefined) {
+        sum += v;
+        any = true;
+      }
+    }
+    const values = new Map(sd.values);
+    if (any) values.set(othersIndex, sum);
+    return { ...sd, values };
+  });
+  return {
+    categories: [...base.categories, label],
+    series,
+    hasValues: series.some((sd) => sd.values.size > 0),
+    othersIndex,
+    ranking,
+  };
+}
+
+/**
+ * others 범주의 팔레트 index — 시리즈 팔레트가 아니라 `--chart-others` 토큰. 두 consumer
+ * (Skia `seriesToken` · DOM `seriesVar`) 가 이 값을 보고 토큰을 고른다.
+ */
+export const CHART_OTHERS_COLOR_INDEX = -1;
+/** rule 채널에 `others` 가 없을 때의 토큰 — 두 consumer 가 같은 상수를 본다. */
+export const CHART_OTHERS_FALLBACK_TOKEN = "{color.neutral-subdued}";
+
+/** 범주색 (`ci % palette`) — others 범주면 `CHART_OTHERS_COLOR_INDEX`. 범주색 자리 전부가 이것을 쓴다. */
+export function categoryColorIndex(
+  ci: number,
+  palette: number,
+  othersIndex: number | null | undefined,
+): number {
+  if (othersIndex !== null && othersIndex !== undefined && ci === othersIndex)
+    return CHART_OTHERS_COLOR_INDEX;
+  return ci % Math.max(1, palette);
 }
 
 export interface ChartWindow {
@@ -237,13 +579,28 @@ export interface DisplayBudget {
   /** 슬롯당 시리즈당 요소 수 */
   k: number;
   series: number;
-  /** transformed 범주 수 (창의 입력 n) */
+  /** input 범주 수 (넘침 판정의 n) */
   n: number;
   /** `n > fitEff` — 넘쳐서 처리가 필요한가 */
   overflow: boolean;
+  axisKind: ChartAxisKind;
+  /** 요청된 (또는 auto 로 풀린) 처리 */
   mode: ChartBudgetMode;
+  /**
+   * 실제로 적용된 변환 — 넘치지 않으면 null, 극값 fallback 이면 `"aggregate"` (요청 `mode` 는
+   * `extrema` 그대로). 접미 · 진단 · UI 는 이것으로 판정한다.
+   */
+  applied: ChartBudgetMode | null;
+  /** 집계 통계 (aggregate · 극값 fallback) */
+  aggregate: ChartBudgetAggregate;
   /** 창 모드의 visible 구간 (다른 모드는 null — transformed = visible) */
   window: ChartWindow | null;
+  /** bucket 수 (aggregate · extrema 적용 시) */
+  B: number | null;
+  /** 극값 선택의 적응 단계 (extrema 적용 시) */
+  extremaSteps: ExtremaStep[] | null;
+  /** others synthetic 범주 index (others 적용 시) */
+  othersIndex: number | null;
   diagnostics: ChartDiagnostic[];
 }
 
@@ -252,11 +609,13 @@ export interface DisplayBudgetInput {
   geometry: ChartBudgetGeometry;
   series: number;
   stacked: boolean;
-  /** transformed 범주 수 */
+  /** input 범주 수 */
   n: number;
   k: number;
   metrics: ChartBudgetMetrics;
+  axisKind: ChartAxisKind;
   overflow?: ChartBudgetOverflow;
+  aggregate?: ChartBudgetAggregate;
   /** 창 시작 (Canvas 0 · DOM 뷰 상태). clamp 는 여기서. */
   windowStart?: number;
 }
@@ -273,21 +632,20 @@ export function clampWindowStart(
 }
 
 /**
- * §3 — 예산 결정 하나. `fit` → `fitEff` → 모드 → 창 구간 · 진단.
+ * §3 — 예산 결정 하나. `fit` → `fitEff` → 모드 → 창 구간 · 진단. 변환 (집계 · 극값 ·
+ * others) 자체는 `applyBudget` 이 이 결과를 받아 한다.
  * `fitEff = 0` 이면 `plot-too-small` (warning — 데이터 보존, scene 진단 경로).
  */
 export function resolveDisplayBudget(input: DisplayBudgetInput): DisplayBudget {
-  const { kind, geometry, series, stacked, n, k, metrics } = input;
+  const { kind, geometry, series, stacked, n, k, metrics, axisKind } = input;
   const fit = slotFit(kind, geometry, series, stacked, metrics);
   const fitEff = resolveFitEff(kind, fit, series, k, metrics);
   const mode =
     input.overflow && input.overflow !== "auto"
       ? input.overflow
-      : defaultBudgetMode(kind);
+      : defaultBudgetMode(kind, axisKind, stacked);
   const diagnostics: ChartDiagnostic[] = [];
-  // 진단은 예산이 실제로 그림을 깎는 모드에서만 — P1 은 창뿐이다. P2 가 others/집계/극값을
-  //   적용하면 조건을 넓힌다 (진단과 화면이 다른 말을 하지 않게).
-  if (n > 0 && fitEff === 0 && mode === "window") {
+  if (n > 0 && fitEff === 0) {
     diagnostics.push({
       code: "budget.plotTooSmall",
       severity: "warning",
@@ -309,9 +667,124 @@ export function resolveDisplayBudget(input: DisplayBudgetInput): DisplayBudget {
     series,
     n,
     overflow: n > fitEff,
+    axisKind,
     mode,
+    applied: null,
+    aggregate: input.aggregate ?? "sum",
     window,
+    B: null,
+    extremaSteps: null,
+    othersIndex: null,
     diagnostics,
+  };
+}
+
+export interface AppliedBudget {
+  budget: DisplayBudget;
+  transformed: SeriesGrid;
+  visible: SeriesGrid;
+}
+
+/**
+ * §2.5 — 모드에 따라 input → transformed → visible. 창은 input 그대로 + 자르기, 집계는
+ * bucket 통계 전체, 극값은 선택 index 의 원본 값 전체 (`B = 1` 에서도 넘치면
+ * `too-many-series` + 집계 fallback), others 는 묶은 뒤 전체. 넘치지 않으면 (`n ≤ fitEff`)
+ * 변환 0. pie 링 (누적 시리즈) 이 `S × 범주 > M` 이면 앞 `floor(M / 범주)` 시리즈만
+ * (`too-many-series`).
+ */
+export function applyBudget(
+  input: SeriesGrid,
+  budget: DisplayBudget,
+  options: {
+    kind: ChartType;
+    stacked: boolean;
+    othersLabel: string;
+    metrics: Pick<ChartBudgetMetrics, "markBudget" | "pointBudget">;
+  },
+): AppliedBudget {
+  const diagnostics = [...budget.diagnostics];
+  let transformed = input;
+  let applied: ChartBudgetMode | null = null;
+  let B: number | null = null;
+  let extremaSteps: ExtremaStep[] | null = null;
+  let othersIndex: number | null = null;
+  const tooManySeries = (value: string, message: string): void => {
+    diagnostics.push({
+      code: "budget.tooManySeries",
+      severity: "warning",
+      message,
+      value,
+    });
+  };
+  if (budget.overflow && budget.fitEff > 0) {
+    if (budget.mode === "window") {
+      applied = "window";
+    } else if (budget.mode === "aggregate") {
+      applied = "aggregate";
+      B = budget.fitEff;
+      transformed = aggregateBuckets(input, B, budget.aggregate);
+    } else if (budget.mode === "extrema") {
+      const picked = selectExtrema(
+        input,
+        budget.fitEff,
+        budget.k,
+        options.metrics,
+      );
+      extremaSteps = picked.steps;
+      if (picked.fallback) {
+        tooManySeries(
+          String(budget.series),
+          `${budget.series} series exceed the point budget even at one bucket — aggregated (${budget.aggregate})`,
+        );
+        applied = "aggregate";
+        B = budget.fitEff;
+        transformed = aggregateBuckets(input, B, budget.aggregate);
+      } else {
+        applied = "extrema";
+        B = picked.B;
+        transformed = pickCategories(input, picked.indices);
+      }
+    } else if (budget.mode === "others") {
+      const grouped = groupOthers(input, budget.fitEff, options.othersLabel);
+      applied = grouped.othersIndex !== null ? "others" : null;
+      othersIndex = grouped.othersIndex;
+      transformed = {
+        categories: grouped.categories,
+        series: grouped.series,
+        hasValues: grouped.hasValues,
+        ...(othersIndex !== null ? { othersIndex } : {}),
+      };
+    }
+  }
+  // pie 의 동심 링 = 누적 시리즈 수 — 범주 fit 과 무관하고 비용만 `S × 범주 ≤ M` 으로 제한.
+  if (
+    options.kind === "pie" &&
+    options.stacked &&
+    transformed.series.length > 1
+  ) {
+    const slices = Math.max(1, transformed.categories.length);
+    const maxRings = Math.max(
+      1,
+      Math.floor(options.metrics.markBudget / slices),
+    );
+    if (transformed.series.length > maxRings) {
+      tooManySeries(
+        String(transformed.series.length),
+        `${transformed.series.length} pie rings × ${slices} slices exceed the mark budget — showing the first ${maxRings}`,
+      );
+      transformed = {
+        ...transformed,
+        series: transformed.series.slice(0, maxRings),
+      };
+    }
+  }
+  const visible = budget.window
+    ? applyWindow(transformed, budget.window)
+    : transformed;
+  return {
+    budget: { ...budget, applied, B, extremaSteps, othersIndex, diagnostics },
+    transformed,
+    visible,
   };
 }
 

@@ -27,6 +27,7 @@ import {
   type LabelProps,
 } from "recharts";
 import {
+  categoryColorIndex,
   resolveChartData,
   resolveChartAnimation,
   bandScale,
@@ -629,7 +630,13 @@ export function RechartsChart({
                     ? data.map((_, ci) => (
                         <Cell
                           key={ci}
-                          fill={seriesVar(ci % metrics.seriesCount)}
+                          fill={seriesVar(
+                            categoryColorIndex(
+                              ci,
+                              metrics.seriesCount,
+                              grid.othersIndex,
+                            ),
+                          )}
                         />
                       ))
                     : null}
@@ -735,7 +742,13 @@ export function RechartsChart({
             {slices.map((slice) => (
               <Cell
                 key={slice.categoryIndex}
-                fill={seriesVar(slice.categoryIndex % metrics.seriesCount)}
+                fill={seriesVar(
+                  categoryColorIndex(
+                    slice.categoryIndex,
+                    metrics.seriesCount,
+                    grid.othersIndex,
+                  ),
+                )}
               />
             ))}
             {props.showValueLabels && (
@@ -905,7 +918,11 @@ export function RechartsChart({
                 key={ci}
                 fill={seriesVar(
                   keys.length === 1
-                    ? ci % metrics.seriesCount
+                    ? categoryColorIndex(
+                        ci,
+                        metrics.seriesCount,
+                        grid.othersIndex,
+                      )
                     : grid.series[si].seriesIndex,
                 )}
               />

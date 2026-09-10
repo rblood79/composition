@@ -37,6 +37,8 @@ import {
 import type { BorderStyleValue, Shape, SizeSpec, TokenRef } from "../types";
 import {
   CHART_DEFAULT_PROPS,
+  CHART_OTHERS_COLOR_INDEX,
+  CHART_OTHERS_FALLBACK_TOKEN,
   computeChartScene,
   r2,
   resolveChartMetrics,
@@ -3368,7 +3370,8 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       dimension:
         (props.dimension as string | undefined) ??
         CHART_DEFAULT_PROPS.dimension,
-      metric: (props.metric as string | undefined) ?? CHART_DEFAULT_PROPS.metric,
+      metric:
+        (props.metric as string | undefined) ?? CHART_DEFAULT_PROPS.metric,
       ...(typeof props.color === "string" && props.color
         ? { color: props.color }
         : {}),
@@ -3401,17 +3404,14 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
         (props.gridRings as number | undefined) ??
         CHART_DEFAULT_PROPS.gridRings,
       fillGrid:
-        (props.fillGrid as boolean | undefined) ??
-        CHART_DEFAULT_PROPS.fillGrid,
+        (props.fillGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.fillGrid,
       fillArea:
-        (props.fillArea as boolean | undefined) ??
-        CHART_DEFAULT_PROPS.fillArea,
+        (props.fillArea as boolean | undefined) ?? CHART_DEFAULT_PROPS.fillArea,
       startAngle:
         (props.startAngle as number | undefined) ??
         CHART_DEFAULT_PROPS.startAngle,
       endAngle:
-        (props.endAngle as number | undefined) ??
-        CHART_DEFAULT_PROPS.endAngle,
+        (props.endAngle as number | undefined) ?? CHART_DEFAULT_PROPS.endAngle,
       labelKey:
         (props.labelKey as ChartProps["labelKey"] | undefined) ??
         CHART_DEFAULT_PROPS.labelKey,
@@ -3421,8 +3421,10 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       // 툴팁은 hover(D1) 라 Preview/Publish 소유다 — 캔버스는 정적이므로 히트
       //   기하를 계산할 이유가 없다. 마크는 이 값과 무관하다 (parity 유지).
       showTooltip: false,
-      showAxis: (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
-      showGrid: (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
+      showAxis:
+        (props.showAxis as boolean | undefined) ?? CHART_DEFAULT_PROPS.showAxis,
+      showGrid:
+        (props.showGrid as boolean | undefined) ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend:
         (props.showLegend as boolean | undefined) ??
         CHART_DEFAULT_PROPS.showLegend,
@@ -3439,6 +3441,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   );
 
   const seriesToken = (index: number): TokenRef => {
+    // ADR-211 others 범주 — 시리즈 팔레트가 아니라 `chart.others` 토큰 (DOM 은 `--chart-others`).
+    if (index === CHART_OTHERS_COLOR_INDEX)
+      return (channel?.others ?? CHART_OTHERS_FALLBACK_TOKEN) as TokenRef;
     const palette = channel?.series ?? [];
     if (palette.length === 0) return "{color.accent}" as TokenRef;
     return palette[index % palette.length] as TokenRef;

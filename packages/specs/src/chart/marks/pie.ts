@@ -10,14 +10,10 @@
  * 크면 도넛이고, 그 구멍에 합계를 적을 수 있다 (`chart-pie-donut-text`).
  */
 import { polarPoint } from "../polar";
+import { categoryColorIndex } from "../budget";
 import { formatTick, r2 } from "../scales";
 import type { SeriesGrid, StackMode } from "../series";
-import type {
-  ChartLabelFormatter,
-  PathMark,
-  Rect,
-  TextMark,
-} from "../types";
+import type { ChartLabelFormatter, PathMark, Rect, TextMark } from "../types";
 
 export interface PieMarkInput {
   grid: SeriesGrid;
@@ -187,7 +183,10 @@ interface Slice {
   raw: number;
 }
 
-function slicesOf(grid: SeriesGrid, seriesIdx: number): {
+function slicesOf(
+  grid: SeriesGrid,
+  seriesIdx: number,
+): {
   slices: Slice[];
   total: number;
 } {
@@ -254,7 +253,12 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
 
     if (si === 0) {
       hit = {
-        center: { x: r2(cx), y: r2(cy), outer: r2(ringOuter), inner: r2(ringInner) },
+        center: {
+          x: r2(cx),
+          y: r2(cy),
+          outer: r2(ringOuter),
+          inner: r2(ringInner),
+        },
         slices: [],
       };
     }
@@ -286,7 +290,11 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
           h: r2(ringOuter * 2),
         },
         // 파이는 시리즈가 아니라 **범주**가 색을 가른다 (조각마다 다른 색).
-        fillSeries: slice.categoryIndex % palette,
+        fillSeries: categoryColorIndex(
+          slice.categoryIndex,
+          palette,
+          grid.othersIndex,
+        ),
         // 고리는 바깥/안쪽 두 경로가 겹친다 — evenodd 라야 구멍이 뚫린다.
         ...(ringInner > 0 ? { fillRule: "evenodd" as const } : {}),
       });
@@ -317,7 +325,9 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
 
   // 구멍 안 합계 — 구멍이 글자보다 작으면 그리지 않는다.
   const innermost =
-    ringCount > 1 ? outerRadius - ringBand * (ringCount - 1) - ringBand + RING_GAP : holeRadius;
+    ringCount > 1
+      ? outerRadius - ringBand * (ringCount - 1) - ringBand + RING_GAP
+      : holeRadius;
   if (showTotal) {
     labels.push(
       ...centerTotalLabels(

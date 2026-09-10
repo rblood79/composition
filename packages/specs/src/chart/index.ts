@@ -34,7 +34,12 @@ export type {
   StackRange,
 } from "./series";
 export {
+  CHART_AGGREGATE_SUFFIX,
   CHART_AUTO_NUMBER_FORMAT,
+  CHART_BUDGET_AGGREGATES,
+  CHART_BUDGET_AXES,
+  CHART_BUDGET_OVERFLOWS,
+  CHART_OTHERS_LABEL,
   CHART_CURRENCY_CANDIDATES,
   CHART_SERIES_TOKEN_PREFIX,
   formatChartNumber,
@@ -48,6 +53,7 @@ export {
 export type {
   ChartNumberContext,
   ChartSeriesSource,
+  ResolvedBudgetSettings,
   ResolvedChartPresentation,
   ResolvedNumberFormat,
   ResolvedSeriesConfig,
@@ -130,7 +136,21 @@ export type {
 // ADR-211 — 표시 예산 · 모델 층
 export {
   CHART_BUDGET_DEFAULTS,
+  CHART_OTHERS_COLOR_INDEX,
+  CHART_OTHERS_FALLBACK_TOKEN,
+  CHART_OTHERS_KEY,
+  aggregateBuckets,
+  applyBudget,
   applyWindow,
+  bucketBounds,
+  bucketLabel,
+  categoryColorIndex,
+  groupOthers,
+  parseIsoStrict,
+  pickCategories,
+  resolveAxisKind,
+  selectExtrema,
+  supportsBudgetMode,
   budgetSweep,
   capRows,
   clampWindowStart,
@@ -143,9 +163,14 @@ export {
   slotFit,
 } from "./budget";
 export type {
+  AppliedBudget,
+  ChartAxisKind,
   ChartBudgetGeometry,
   ChartBudgetMetrics,
   ChartBudgetMode,
+  ExtremaSelection,
+  ExtremaStep,
+  OthersResult,
   ChartWindow,
   DisplayBudget,
   DisplayBudgetInput,

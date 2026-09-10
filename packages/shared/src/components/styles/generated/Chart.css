@@ -68,6 +68,7 @@
   --chart-series-8: var(--hue-indigo);
   --chart-axis: var(--fg-muted);
   --chart-grid: var(--border);
+  --chart-others: var(--fg-muted);
   --chart-stroke-width: 2px;
   --chart-tooltip-bg: var(--bg-muted);
   --chart-tooltip-border: var(--border);

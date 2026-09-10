@@ -108,7 +108,12 @@ export type ChartDiagnosticCode =
   // ADR-211 — 표시 예산 진단 (breakdown §2.1 `rows-truncated` · `plot-too-small` · `too-many-series`).
   | "budget.rowsTruncated"
   | "budget.plotTooSmall"
-  | "budget.tooManySeries";
+  | "budget.tooManySeries"
+  | "budget.overflow.invalid"
+  | "budget.overflow.unsupported"
+  | "budget.aggregate.invalid"
+  | "budget.axis.invalid"
+  | "budget.othersLabel.invalid";
 
 /**
  * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —

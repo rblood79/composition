@@ -23,12 +23,7 @@ import type { LucideIcon } from "lucide-react";
  * - disabled: 비활성화
  */
 export type ComponentState =
-  | "default"
-  | "hover"
-  | "pressed"
-  | "focused"
-  | "focusVisible"
-  | "disabled";
+  "default" | "hover" | "pressed" | "focused" | "focusVisible" | "disabled";
 
 /**
  * ADR-036: CSS 생성 시 Archetype 템플릿 선택에 사용
@@ -199,6 +194,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     tooltipBackground?: string;
     tooltipBorder?: string;
     tooltipText?: string;
+    /** ADR-211 — others 범주 토큰 (`--chart-others`) */
+    others?: string;
   };
 
   /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음) */

@@ -589,6 +589,8 @@ export interface ChartRuleChannel {
   tooltipBackground?: string;
   tooltipBorder?: string;
   tooltipText?: string;
+  /** ADR-211 — others 범주 토큰 */
+  others?: string;
   /** ADR-211 — 표시 예산 (최소 단위 5종 · `M` · `P` · `R` · 창 트랙 높이). 없는 키는 P0 확정값. */
   budget?: Partial<ChartBudgetMetrics>;
 }

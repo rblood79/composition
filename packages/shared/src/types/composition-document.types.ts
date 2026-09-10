@@ -516,6 +516,8 @@ export interface ComponentRuleChart {
   tooltipBackground?: string;
   tooltipBorder?: string;
   tooltipText?: string;
+  /** ADR-211 — others ("기타") 범주의 색 토큰. DOM `--chart-others` · Skia `chart.others`. */
+  others?: string;
   /**
    * ADR-211 — 표시 예산 (px · 개수, 테마 무관 상수). 최소 슬롯 간격 5종 · 요소 마크 상한 `M`
    * (`markBudget`) · 경로 점 상한 `P` (`pointBudget`) · 행 상한 `R` (`rowCap`) · 창 트랙 높이.

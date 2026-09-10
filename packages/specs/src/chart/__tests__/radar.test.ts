@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { buildRadarMarks } from "../marks/radar";
 import { angleScale, radiusScale } from "../polar";
 import { buildSeriesGrid } from "../series";
-import { CHART_DEFAULT_PROPS, computeChartScene } from "../computeChartScene";
+import {
+  CHART_DEFAULT_METRICS,
+  CHART_DEFAULT_PROPS,
+  computeChartScene,
+} from "../computeChartScene";
+import { resolveChartModel } from "../model";
 import type { ChartRow } from "../types";
 
 const CENTER = { x: 100, y: 100, outer: 80, inner: 0 };
@@ -24,7 +29,10 @@ const ROWS: ChartRow[] = [
   { category: "C", value: 20, series: "s2" },
 ];
 
-function build(rows = ROWS, opts: Partial<Parameters<typeof buildRadarMarks>[0]> = {}) {
+function build(
+  rows = ROWS,
+  opts: Partial<Parameters<typeof buildRadarMarks>[0]> = {},
+) {
   const grid = gridOf(rows, "series");
   return buildRadarMarks({
     grid,
@@ -161,11 +169,15 @@ describe("radar scene — R8 무시 계약 · G2 경계", () => {
   });
 
   it("반지름 음수 0건 — 음수 값이 섞여도 bbox 가 중심 밖으로 안 뒤집힌다", () => {
-    const out = computeChartScene(base, [
-      { category: "A", value: -100 },
-      { category: "B", value: 50 },
-      { category: "C", value: 100 },
-    ], size);
+    const out = computeChartScene(
+      base,
+      [
+        { category: "A", value: -100 },
+        { category: "B", value: 50 },
+        { category: "C", value: 100 },
+      ],
+      size,
+    );
     for (const mark of out.marks) {
       if (mark.kind === "path") {
         expect(mark.bbox.w).toBeGreaterThanOrEqual(0);
@@ -187,7 +199,8 @@ describe("radar scene — R8 무시 계약 · G2 경계", () => {
     const cGrid = radialAxis(circle)?.grid ?? [];
     expect(pGrid.length).toBeGreaterThan(0);
     expect(pGrid.length).toBe(cGrid.length);
-    for (const g of pGrid) if (g.kind === "path") expect(g.d).not.toContain("A ");
+    for (const g of pGrid)
+      if (g.kind === "path") expect(g.d).not.toContain("A ");
     for (const g of cGrid) if (g.kind === "path") expect(g.d).toContain("A ");
   });
 
@@ -198,7 +211,15 @@ describe("radar scene — R8 무시 계약 · G2 경계", () => {
     }));
     const out = computeChartScene(base, many, size);
     const angular = out.axes.find((a) => a.axis === "angular");
-    expect(angular?.grid.length).toBe(50);
-    expect(angular!.ticks.length).toBeLessThan(50);
+    // ADR-211: 축 (스포크) 은 둘레 / minAxisGap 의 예산 안에서만 — 넘치는 범주는 others 로
+    //   묶인다 (50 → fitEff − 1 + "Other"). 레이블 솎아내기 (R9) 는 그 위에서 그대로 동작한다.
+    const model = resolveChartModel(many, base, {
+      size,
+      metrics: CHART_DEFAULT_METRICS,
+    });
+    expect(model.budget.fitEff).toBeLessThan(50);
+    expect(angular?.grid.length).toBe(model.budget.fitEff);
+    expect(out.axes.length).toBeGreaterThan(0);
+    expect(angular!.ticks.length).toBeLessThan(angular!.grid.length);
   });
 });

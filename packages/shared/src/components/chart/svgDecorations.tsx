@@ -1,7 +1,11 @@
 import React from "react";
+import { CHART_OTHERS_COLOR_INDEX } from "@composition/specs";
 import type { Mark, TextMark, ChartScene } from "@composition/specs";
 /** scene 의 series 인덱스 → CSS 변수. 1-based (shadcn `--chart-1..N` 관례). */
 export function seriesVar(index: number): string {
+  // ADR-211 others 범주 (`CHART_OTHERS_COLOR_INDEX` −1) — 팔레트가 아니라 `--chart-others`.
+  if (index === CHART_OTHERS_COLOR_INDEX)
+    return "var(--chart-others, currentColor)";
   return `var(--chart-series-${index + 1}, currentColor)`;
 }
 
@@ -90,9 +94,7 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
                 : "none"
           }
           strokeWidth={
-            mark.role !== undefined
-              ? (mark.strokeWidth ?? 1)
-              : mark.strokeWidth
+            mark.role !== undefined ? (mark.strokeWidth ?? 1) : mark.strokeWidth
           }
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -154,4 +156,3 @@ export function renderChartScene(scene: ChartScene): React.ReactElement[] {
 
   return nodes;
 }
-

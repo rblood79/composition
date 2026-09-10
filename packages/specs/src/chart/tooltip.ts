@@ -8,6 +8,7 @@
  * 기하 함수가 내고, DOM 은 판정 함수를 호출만** 한다.
  */
 import { formatTick, r2 } from "./scales";
+import { categoryColorIndex } from "./budget";
 import type { BandScale } from "./scales";
 import { seriesLabel } from "./series";
 import type { SeriesGrid } from "./series";
@@ -92,7 +93,12 @@ export function buildBandTooltip(input: BandTooltipInput): TooltipScene | null {
 export interface RadialTooltipInput {
   grid: SeriesGrid;
   /** 조각 각도 — buildPieMarks 와 같은 순서·같은 각도여야 한다 */
-  slices: Array<{ categoryIndex: number; start: number; sweep: number; raw: number }>;
+  slices: Array<{
+    categoryIndex: number;
+    start: number;
+    sweep: number;
+    raw: number;
+  }>;
   seriesCount: number;
   center: { x: number; y: number; outer: number; inner: number };
   formatValue?: TooltipValueFormatter;
@@ -122,7 +128,11 @@ export function buildRadialTooltip(
       entries: [
         {
           label,
-          colorIndex: slice.categoryIndex % palette,
+          colorIndex: categoryColorIndex(
+            slice.categoryIndex,
+            palette,
+            grid.othersIndex,
+          ),
           text: formatValue(slice.raw),
         },
       ],
@@ -137,7 +147,12 @@ export interface RingTooltipInput {
     label: string;
     inner: number;
     outer: number;
-    slices: ReadonlyArray<{ colorIndex: number; start: number; sweep: number; raw: number }>;
+    slices: ReadonlyArray<{
+      colorIndex: number;
+      start: number;
+      sweep: number;
+      raw: number;
+    }>;
   }>;
   seriesKeys: readonly string[];
   center: { x: number; y: number; outer: number; inner: number };
@@ -149,9 +164,7 @@ export interface RingTooltipInput {
  * (각도로 갈리는 pie 와 다른 축이다 — 누적이면 한 링 안에 시리즈가 각도로 쌓여
  * 있어 각도 히트는 시리즈를 가리키지 범주를 가리키지 않는다).
  */
-export function buildRingTooltip(
-  input: RingTooltipInput,
-): TooltipScene | null {
+export function buildRingTooltip(input: RingTooltipInput): TooltipScene | null {
   const { rings, seriesKeys, center } = input;
   const formatValue = input.formatValue ?? formatTick;
   if (rings.length === 0) return null;
@@ -162,7 +175,10 @@ export function buildRingTooltip(
     arc: { start: 0, end: 360 },
     ring: { inner: r2(ring.inner), outer: r2(ring.outer) },
     // 링 위쪽 가운데 — 12시 방향이 값 호의 시작이라 커서가 어디 있든 같은 자리다.
-    anchor: { x: r2(center.x), y: r2(center.y - (ring.inner + ring.outer) / 2) },
+    anchor: {
+      x: r2(center.x),
+      y: r2(center.y - (ring.inner + ring.outer) / 2),
+    },
     entries: ring.slices.map((slice, si) => ({
       label: seriesKeys[si] ?? ring.label,
       colorIndex: slice.colorIndex,
@@ -258,7 +274,7 @@ export function buildPolarBandTooltip(
   const bands: TooltipBand[] = [];
   for (let ci = 0; ci < count; ci++) {
     const mid = angle(ci);
-    const start = ((mid - half) % 360 + 360) % 360;
+    const start = (((mid - half) % 360) + 360) % 360;
     const entries: TooltipEntry[] = [];
     for (const series of grid.series) {
       const raw = series.values.get(ci);
