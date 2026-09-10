@@ -1,6 +1,7 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo } from "react";
+import { useOwnedState } from "./useOwnedState";
 import {
   buildSeriesGrid,
   seriesLabel,
@@ -27,12 +28,15 @@ import { readSeriesConfig } from "./chartPresentationPatch";
  * 설정이 적용되지 않으므로 컨트롤을 사유와 함께 접는다 (저장 config 는 휴면 보존).
  */
 export const ChartSeriesControls = memo(function ChartSeriesControls({
+  elementId = "",
   fields,
   rows,
   paletteLength,
   isRefInstance,
   onPatch,
 }: {
+  /** 로컬 상태 (휴면 펼침) 의 소유 요소 — 요소가 바뀌면 초기화 */
+  elementId?: string;
   fields: ResolvedField[];
   rows: readonly ChartRow[];
   /** rule chart 채널의 팔레트 길이 — 토큰 후보 `--chart-series-1..N`. */
@@ -42,7 +46,7 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
   onPatch: (patch: Record<string, unknown>, force?: readonly string[]) => void;
 }) {
   const { t } = useI18n();
-  const [showDormant, setShowDormant] = useState(false);
+  const [showDormant, setShowDormant] = useOwnedState(elementId, false);
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
   ) as Record<string, unknown>;

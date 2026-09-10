@@ -1,6 +1,7 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
-import { memo, useState } from "react";
+import { memo } from "react";
+import { useOwnedState } from "./useOwnedState";
 import type { ChartDataMode } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyCheckbox, PropertySelect } from "../../components";
@@ -25,11 +26,16 @@ const COLUMNS_MODE_KEY: readonly string[] = ["columns"];
  * - 값 필드 목록은 추가/삭제/위·아래 (버튼 — drag 없이 키보드 가능). 컬럼 타입은 schema
  *   에서만 읽고, 원본에 없는 필드는 "원본에 없음" 으로 표시하되 키는 보존한다.
  */
+const EMPTY_PICKED: string[] = [];
+
 export const ChartDataMappingControls = memo(function ChartDataMappingControls({
+  elementId = "",
   fields,
   columns,
   onPatch,
 }: {
+  /** 로컬 상태 (선택 화면) 의 소유 요소 — 요소가 바뀌면 초기화 */
+  elementId?: string;
   fields: ResolvedField[];
   /** 데이터 원천의 컬럼 후보 (타입 안내). 원천이 없으면 null. */
   columns: ChartColumnCandidate[] | null;
@@ -44,8 +50,8 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
   const dataMode: ChartDataMode =
     props.dataMode === "columns" ? "columns" : "group";
   const valueFields = readValueFields(props.valueFields);
-  const [picking, setPicking] = useState(false);
-  const [picked, setPicked] = useState<string[]>([]);
+  const [picking, setPicking] = useOwnedState(elementId, false);
+  const [picked, setPicked] = useOwnedState<string[]>(elementId, EMPTY_PICKED);
 
   const typeLabel = (type: ChartColumnCandidate["type"]): string =>
     type === "number"

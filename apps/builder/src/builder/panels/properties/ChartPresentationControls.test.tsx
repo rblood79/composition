@@ -232,6 +232,49 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
     });
   });
 
+  it("선택 화면은 요소마다 새로 시작한다 — remount 없이 elementId 만 바뀌어도 (P4 owner 상태)", () => {
+    seedChart();
+    const { spy, onPatch } = patchSpy();
+    const columns = chartColumnCandidates(
+      values(),
+      Array.from(useDataStore.getState().collections.values()),
+    );
+    const element = (elementId: string) => (
+      <ChartDataMappingControls
+        elementId={elementId}
+        fields={fields()}
+        columns={columns}
+        onPatch={onPatch}
+      />
+    );
+    const view = ui(element("chart-a"));
+    pick(view.getByRole("group", { name: "시리즈 원천" }), "값 컬럼");
+    const picker = view.getByRole("group", { name: "값 필드 선택" });
+    fireEvent.click(
+      within(picker).getByRole("checkbox", { name: "desktop · 수치형" }),
+    );
+    // 다른 요소로 전환 (같은 컴포넌트 인스턴스, key 없음) — A 의 선택 화면·체크가 B 에 남지 않는다.
+    view.rerender(
+      <I18nProvider initialLocale="ko-KR">{element("chart-b")}</I18nProvider>,
+    );
+    expect(view.queryByRole("group", { name: "값 필드 선택" })).toBeNull();
+    // 다시 A 로 돌아와도 초기 상태다 (이전 선택은 버려진다).
+    view.rerender(
+      <I18nProvider initialLocale="ko-KR">{element("chart-a")}</I18nProvider>,
+    );
+    expect(view.queryByRole("group", { name: "값 필드 선택" })).toBeNull();
+    pick(view.getByRole("group", { name: "시리즈 원천" }), "값 컬럼");
+    expect(
+      (
+        within(view.getByRole("group", { name: "값 필드 선택" })).getByRole(
+          "checkbox",
+          { name: "desktop · 수치형" },
+        ) as HTMLInputElement
+      ).checked,
+    ).toBe(false);
+    expect(spy).not.toHaveBeenCalled();
+  });
+
   it("columns→group 은 dataMode 만 쓴다 (valueFields 보존)", () => {
     seedChart({ dataMode: "columns", valueFields: ["desktop", "mobile"] });
     const { spy, onPatch } = patchSpy();

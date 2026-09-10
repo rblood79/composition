@@ -1,6 +1,7 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
-import { memo, useState } from "react";
+import { memo } from "react";
+import { useOwnedState } from "./useOwnedState";
 import {
   CHART_CURRENCY_CANDIDATES,
   type ChartPercentUnit,
@@ -23,9 +24,12 @@ const LOCALES: readonly ChartValueLocale[] = ["en-US", "ko-KR"];
  */
 export const ChartNumberFormatControls = memo(
   function ChartNumberFormatControls({
+    elementId = "",
     fields,
     onPatch,
   }: {
+    /** 로컬 상태 (pending 통화/단위) 의 소유 요소 — 요소가 바뀌면 초기화 */
+    elementId?: string;
     fields: ResolvedField[];
     onPatch: (patch: Record<string, unknown>) => void;
   }) {
@@ -39,16 +43,27 @@ export const ChartNumberFormatControls = memo(
       props.valueFormat === "percent"
         ? props.valueFormat
         : "auto";
-    const [pending, setPending] = useState<"currency" | "percent" | null>(null);
-    const [pendingCurrency, setPendingCurrency] = useState<string>(
-      typeof props.valueCurrency === "string" ? props.valueCurrency : "",
+    const [pending, setPending] = useOwnedState<"currency" | "percent" | null>(
+      elementId,
+      null,
     );
-    const [pendingUnit, setPendingUnit] = useState<ChartPercentUnit | "">(
+    // 사용자가 고르기 전에는 요소의 저장값 (휴면 포함) 을 보여 준다 — 아래 `||` 폴백.
+    const [pendingCurrencyState, setPendingCurrency] = useOwnedState<string>(
+      elementId,
+      "",
+    );
+    const [pendingUnitState, setPendingUnit] = useOwnedState<
+      ChartPercentUnit | ""
+    >(elementId, "");
+    const savedCurrency =
+      typeof props.valueCurrency === "string" ? props.valueCurrency : "";
+    const savedUnit: ChartPercentUnit | "" =
       props.valuePercentUnit === "ratio" ||
-        props.valuePercentUnit === "percentagePoints"
+      props.valuePercentUnit === "percentagePoints"
         ? props.valuePercentUnit
-        : "",
-    );
+        : "";
+    const pendingCurrency = pendingCurrencyState || savedCurrency;
+    const pendingUnit = pendingUnitState || savedUnit;
 
     const formatOptions = [
       { value: "auto", label: t("chart.formatAuto") },

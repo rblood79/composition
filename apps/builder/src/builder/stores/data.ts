@@ -20,6 +20,7 @@
  * @see docs/features/DATA_PANEL_SYSTEM.md
  */
 
+import { useMemo } from "react";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { StateCreator } from "zustand";
@@ -301,7 +302,9 @@ export const useDataStore = create<DataStore>()(
  */
 export const useCollections = (): DataTable[] => {
   const collections = useDataStore((state) => state.collections);
-  return Array.from(collections.values());
+  // Map 이 그대로면 같은 배열을 돌려준다 — 렌더마다 새 배열이면 이를 deps 로 둔 memo 가 전부
+  //   무효화돼 Properties 의 Chart 컨트롤이 showGrid/resize 마다 다시 그렸다 (ADR-210 P4 실측).
+  return useMemo(() => Array.from(collections.values()), [collections]);
 };
 
 /**

@@ -1,4 +1,8 @@
-import { readDataBindingRows, resolveComponentRule } from "@composition/shared";
+import {
+  readDataBindingRows,
+  resolveComponentRule,
+  type ResolvedField,
+} from "@composition/shared";
 import { CHART_DEFAULT_SERIES_COUNT, type ChartRow } from "@composition/specs";
 /**
  * PropertiesPanel - 속성 편집 패널
@@ -11,7 +15,7 @@ import { CHART_DEFAULT_SERIES_COUNT, type ChartRow } from "@composition/specs";
  * 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
  */
 
-import { useCallback, useMemo, memo, type ReactNode } from "react";
+import { useCallback, useMemo, useRef, memo, type ReactNode } from "react";
 import { useDebouncedSelectedElementData } from "../../stores";
 import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
@@ -120,6 +124,30 @@ function panelNodeToCanonicalRefNode(node: PanelNode): PanelCanonicalRefNode {
     ...(name != null ? { name } : {}),
   };
 }
+
+/**
+ * ADR-210 컨트롤 3개가 읽는 필드 — `buildSeriesGrid`/`resolveChartPresentation` 입력 + 종류/색 축.
+ * 이 밖의 필드 (showGrid · 크기 …) 변경은 컨트롤을 다시 그리지 않는다.
+ */
+const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
+  "chartType",
+  "dimension",
+  "metric",
+  "color",
+  "colorBy",
+  "stackType",
+  "dataMode",
+  "valueFields",
+  "seriesConfig",
+  "valueFormat",
+  "valueLocale",
+  "valueFractionDigits",
+  "valueCurrency",
+  "valuePercentUnit",
+  "dataBinding",
+]);
+const EMPTY_FIELDS: ResolvedField[] = [];
+const EMPTY_ROWS: readonly ChartRow[] = [];
 
 /**
  * CatalogEditContractEditor - ADR-912 단계 2 generic Properties view.
@@ -267,27 +295,78 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           contract.fields.map((field) => [field.key, field.currentValue]),
         )
       : {};
-  const chartRows: readonly ChartRow[] = chartValues.dataBinding
-    ? (readDataBindingRows(chartValues.dataBinding, collections) as ChartRow[])
-    : Array.isArray(chartValues.data)
-      ? (chartValues.data as ChartRow[])
-      : [];
+  // ADR-210 P4 — Chart 전용 컨트롤 3개 (RAC Select/Input 십여 개) 는 **자기 입력이 바뀔 때만**
+  //   다시 그린다. contract 는 showGrid 편집·resize 마다 새 객체라 그대로 넘기면 매 op 마다
+  //   컨트롤 전체가 재렌더돼 Builder longtask 가 2배가 됐다 (frame A/B 실측). 컨트롤이 읽는
+  //   필드만 골라 값·override 가 같으면 이전 배열을 돌려준다 (memo 가 참조로 비교한다).
+  const dataBindingKey = JSON.stringify(chartValues.dataBinding ?? null);
+  const chartControlKey =
+    elementType === "Chart"
+      ? JSON.stringify(
+          contract.fields
+            .filter((field) => CHART_CONTROL_FIELD_KEYS.has(field.key))
+            .map((field) => [
+              field.key,
+              field.currentValue,
+              field.isOverridden,
+              field.options,
+            ]),
+        )
+      : "";
+  const chartControlFields = useMemo(
+    () =>
+      elementType === "Chart"
+        ? semanticFields.filter((field) =>
+            CHART_CONTROL_FIELD_KEYS.has(field.key),
+          )
+        : EMPTY_FIELDS,
+    // semanticFields 는 contract 마다 새 배열 — 실제 의존은 chartControlKey 다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [chartControlKey, elementType],
+  );
+  const chartData = Array.isArray(chartValues.data)
+    ? (chartValues.data as ChartRow[])
+    : null;
+  const chartRows: readonly ChartRow[] = useMemo(
+    () =>
+      chartValues.dataBinding
+        ? (readDataBindingRows(
+            chartValues.dataBinding,
+            collections,
+          ) as ChartRow[])
+        : (chartData ?? EMPTY_ROWS),
+    // dataBinding 객체는 contract 마다 새 참조 — 직렬화 키로 본다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [dataBindingKey, collections, chartData],
+  );
   const sourceRowCount = chartRows.length;
   // ADR-210 — Chart 전용 컨트롤의 patch 는 배열을 **의미 비교**해 변경분만 남긴다 (공통
   //   패널의 `!==` 필터는 스칼라 전제 — breakdown §2.2). `force` 는 ref 명시 고정 1회.
+  //   baseline 은 ref 로 읽어 콜백 참조를 요소당 하나로 고정한다 (컨트롤 memo 유지).
+  const chartValuesRef = useRef(chartValues);
+  chartValuesRef.current = chartValues;
   const handleChartPatch = useCallback(
     (patch: Record<string, unknown>, force?: readonly string[]) => {
-      const changed = chartPresentationPatch(chartValues, patch, force);
+      const changed = chartPresentationPatch(
+        chartValuesRef.current,
+        patch,
+        force,
+      );
       if (Object.keys(changed).length > 0) handleSemanticPatch(changed);
     },
-    // chartValues 는 contract 에서 파생 — contract 가 바뀌면 같이 바뀐다.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [contract, handleSemanticPatch],
+    [handleSemanticPatch],
   );
-  const chartColumns =
-    elementType === "Chart"
-      ? chartColumnCandidates(chartValues, collections)
-      : null;
+  const chartColumns = useMemo(
+    () =>
+      elementType === "Chart"
+        ? chartColumnCandidates(
+            { dataBinding: chartValues.dataBinding, data: chartData },
+            collections,
+          )
+        : null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [elementType, dataBindingKey, chartData, collections],
+  );
   const chartPaletteLength =
     resolveComponentRule("Chart")?.chart?.series.length ??
     CHART_DEFAULT_SERIES_COUNT;
@@ -300,26 +379,27 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           onPatch={handleSemanticPatch}
           sourceRowCount={sourceRowCount}
         />
-        {/* ADR-210 — 컨트롤의 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다:
-            key 가 없으면 Chart A 의 선택 화면이 Chart B 위에 남아 B 에 A 의 필드를 쓸 수 있다
-            (P2 판독 MEDIUM, ADR-137 stale selection 축). */}
+        {/* ADR-210 — 컨트롤의 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다
+            (`useOwnedState(elementId)`): Chart A 의 선택 화면이 Chart B 위에 남아 B 에 A 의 필드를
+            쓰면 안 된다 (P2 판독 MEDIUM, ADR-137 stale selection 축). key remount 는 RAC 컨트롤을
+            선택마다 다시 mount 해 longtask 를 늘려 P4 에서 owner 상태로 바꿨다. */}
         <ChartDataMappingControls
-          key={`mapping:${elementId}`}
-          fields={semanticFields}
+          elementId={elementId}
+          fields={chartControlFields}
           columns={chartColumns}
           onPatch={handleChartPatch}
         />
         <ChartSeriesControls
-          key={`series:${elementId}`}
-          fields={semanticFields}
+          elementId={elementId}
+          fields={chartControlFields}
           rows={chartRows}
           paletteLength={chartPaletteLength}
           isRefInstance={isChartRefInstance}
           onPatch={handleChartPatch}
         />
         <ChartNumberFormatControls
-          key={`format:${elementId}`}
-          fields={semanticFields}
+          elementId={elementId}
+          fields={chartControlFields}
           onPatch={handleChartPatch}
         />
       </>
