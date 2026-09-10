@@ -39,7 +39,8 @@ import {
   centerTotalLabels,
   approxTextWidth,
   polarLabelAnchor,
-  formatTick,
+  seriesLabel,
+  CHART_INVALID_SETTINGS_TEXT,
   type ChartProps,
   type ChartRow,
   type ChartMetrics,
@@ -114,13 +115,22 @@ export function RechartsChart({
       metrics.seriesCount,
     ],
   );
-  const { grid, keys, bands, ticks, stackMode } = model;
+  const { grid, keys, bands, ticks, stackMode, presentation } = model;
+  // ADR-210 — grid 를 만든 그 presentation 으로 layout 을 푼다 (Canvas 와 같은 입력).
   const layout = useMemo(
-    () => resolveChartLayout(props, grid, size, metrics),
-    [props, grid, size, metrics],
+    () => resolveChartLayout(props, grid, size, metrics, presentation),
+    [props, grid, size, metrics, presentation],
   );
-  const { plot, fontSize, horizontal, legendBox, legendEntries, labelText } =
-    layout;
+  const {
+    plot,
+    fontSize,
+    horizontal,
+    legendBox,
+    legendEntries,
+    labelText,
+    tickText,
+    formatValue,
+  } = layout;
   const animation = resolveChartAnimation(props);
   animation.isAnimationActive &&= !reducedMotion;
   const isBar = props.chartType === "bar";
@@ -157,6 +167,25 @@ export function RechartsChart({
     [model, keys, bands, grid, isRange, props.chartType, labelText, radarFlatDomain],
   );
   return useMemo(() => {
+  // 설정 오류 (ADR-210) 는 데이터 유무보다 먼저다 — Canvas 의 `CHART_INVALID_SETTINGS_TEXT`
+  //   scene 과 같은 뜻. rows 는 그대로라 데이터는 보존된다.
+  if (!presentation.ok)
+    return (
+      <div
+        role="status"
+        data-chart-diagnostics={presentation.diagnostics
+          .map((diagnostic) => diagnostic.code)
+          .join(" ")}
+        style={{
+          height: "100%",
+          display: "grid",
+          placeItems: "center",
+          fontSize,
+        }}
+      >
+        {CHART_INVALID_SETTINGS_TEXT}
+      </div>
+    );
   const band = bandScale(
     n,
     horizontal ? [plot.y, plot.y + plot.h] : [plot.x, plot.x + plot.w],
@@ -200,6 +229,7 @@ export function RechartsChart({
             fontSize,
             showAxis: props.showAxis,
             showGrid: props.showGrid,
+            tickText,
           })
         : [];
   const legend = legendBox
@@ -276,8 +306,16 @@ export function RechartsChart({
                   key={`${String(entry.dataKey)}-${i}`}
                   style={{ display: "flex", gap: 6 }}
                 >
-                  <span>{si >= 0 ? grid.series[si].key : entry.name}</span>
-                  <span>{typeof raw === "number" ? formatTick(raw) : String(raw ?? "")}</span>
+                  <span>
+                    {si >= 0
+                      ? seriesLabel(grid.series[si], "series")
+                      : entry.name}
+                  </span>
+                  <span>
+                    {typeof raw === "number"
+                      ? formatValue(raw)
+                      : String(raw ?? "")}
+                  </span>
                 </div>
               );
             })}
@@ -442,7 +480,7 @@ export function RechartsChart({
               <Bar
                 key={key}
                 dataKey={key}
-                name={grid.series[si].key}
+                name={seriesLabel(grid.series[si], "series")}
                 fill={paint}
                 barSize={isRange ? band.bandwidth : undefined}
                 {...animation}
@@ -462,7 +500,7 @@ export function RechartsChart({
             );
           const lineProps = {
             dataKey: key,
-            name: grid.series[si].key,
+            name: seriesLabel(grid.series[si], "series"),
             type: curve,
             stroke: paint,
             strokeWidth: metrics.strokeWidth,
@@ -559,6 +597,7 @@ export function RechartsChart({
                   total,
                   props.metric,
                   fontSize,
+                  formatValue,
                 ).map((mark, i) => renderText(mark, `total-${i}`))}
               </g>
             )}
@@ -591,7 +630,7 @@ export function RechartsChart({
           <Radar
             key={key}
             dataKey={key}
-            name={grid.series[si].key}
+            name={seriesLabel(grid.series[si], "series")}
             fill={
               props.fillArea ? seriesVar(grid.series[si].seriesIndex) : "none"
             }
@@ -680,7 +719,7 @@ export function RechartsChart({
         <RadialBar
           key={key}
           dataKey={key}
-          name={grid.series[si].key}
+          name={seriesLabel(grid.series[si], "series")}
           shape={<NonEmptyRadialSector />}
           barSize={thickness}
           fillOpacity={0.85}
@@ -727,6 +766,7 @@ export function RechartsChart({
                 total,
                 props.metric,
                 fontSize,
+                formatValue,
               ).map((mark, i) => renderText(mark, `total-${i}`))}
             </g>
           )}
@@ -734,5 +774,5 @@ export function RechartsChart({
       )}
     </RadialBarChart>
   );
-  }, [props, data, grid, keys, bands, ticks, stackMode, layout, metrics, size, label, reducedMotion]);
+  }, [props, data, grid, keys, bands, ticks, stackMode, presentation, layout, metrics, size, label, reducedMotion]);
 }

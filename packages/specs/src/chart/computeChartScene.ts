@@ -331,10 +331,10 @@ export function resolveChartLayout(
   grid: SeriesGrid,
   size: ChartSize,
   metrics: ChartMetrics,
-  presentation: ResolvedChartPresentation = resolveChartPresentation(
-    props,
-    metrics.seriesCount,
-  ),
+  // 필수 인자다 (ADR-210 P3) — grid 를 만든 그 presentation 을 넘겨야 두 consumer 가
+  //   같은 정규화 결과를 본다. 기본 인자로 다시 풀면 렌더당 최대 3회 계산이고, 호출자가
+  //   grid 와 다른 props 로 부르는 실수를 타입이 못 잡는다.
+  presentation: ResolvedChartPresentation,
 ): ChartLayout {
   const width = Number.isFinite(size.width) ? Math.max(0, size.width) : 0;
   const height = Number.isFinite(size.height) ? Math.max(0, size.height) : 0;
