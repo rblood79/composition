@@ -20,11 +20,11 @@
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      10 |
-| ├ Proposed                |       8 |
+| 열려 있는 것 (`adr/*.md`) |      11 |
+| ├ Proposed                |       9 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
-| **합계**                  | **237** |
+| **합계**                  | **238** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -34,6 +34,13 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [211](211-chart-display-budget-pixel-fit-window-decimation.md) — 차트 표시 예산 — 픽셀 폭 기준 마크 수와 창·축약 계약
+
+- **상태**: Proposed (2026-09-10) — 사용자 방향·제목 확정, 리뷰 전. ADR-194/209/210 위의 응용 (분리 4질문 breakdown §1)
+- **범위**: 차트 6종 전부 — `fit = 예산 축 / 최소 단위` 를 spec 이 종류별로 계산 (플롯 폭 · 둘레 · 축 간격 · 링 두께), 넘치면 범주 축은 창 (Canvas 창 0 정적 · Preview/Publish 스크롤), 순서/기간 축은 집계·LTTB, 극좌표는 "기타" 묶기. `CHART_SAMPLE_ROWS=200` 폐지. P0–P5 / G0–G5.
+- **상세 설계**: [breakdown](design/211-chart-display-budget-pixel-fit-window-decimation-breakdown.md)
+- **우선순위**: P1 — 새 표현 옵션 확장과 ADR-210 후속 ② (컨트롤 mount 비용) 보다 앞
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 
