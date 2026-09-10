@@ -22,7 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **편집 패널이 233px 로 열리던 문제 (U1)**: `datatableEditor` 에 `defaultWidth: 560` 을 주고, workspace 가 패널을 overflow 로 새 column 에 놓을 때 원래 column 폭만 물려받던 것을 패널의 `defaultWidth` 하한으로 고쳤다 (`panelWorkspacePolicyV4.ts`). 리사이즈 · 폭 저장은 그대로.
 - **`window.prompt` · `confirm` · `alert` 6곳 제거 (U2)**: "Add API" · "Add Variable" 은 편집 패널 자리에 스냅되는 생성 패널 (`ApiEndpointCreator` — URL · 메서드 · URL 에서 자동 제안한 이름, 만들면 Run 탭으로 · `VariableCreator` — 이름 · 타입 · 범위, 중복 이름 거부) 로, 삭제 3곳은 RAC `ConfirmDialog` (항목 이름 표시 · Esc 닫기 · 확인 버튼 포커스) 로, Import 결과 2곳은 Toast 로 바꿨다. 자동화 (Playwright · Chrome MCP) 를 막던 native dialog 가 데이터 패널에서 0 이 됐다.
 
-## [ADR-211 P0–P4 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 · 성능 (In Progress)] - 2026-09-11
+## [ADR-211 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 · 성능 (Implemented)] - 2026-09-11
+
+### Changed
+
+- (P5) **Implemented** — G5: preflight FAIL 0 · builder 5,710 · shared 1,175 · specs 1,233 · chart Chromium 214 · live P3 하니스 13/13 (최종 main) · 구버전 프로브. 사용자 승인: Builder 번들 순증 한도 7 KiB · 전체 initial Builder 1,304,030 B / Preview 636,268 B 한시 재승인 (Publish <500,000 B 유지 · 만료 2026-10-10 또는 initial 영향 변경 시) — ADR-210 상한 대체. **호환**: `budget*` 키는 선택적 (기존 문서 재직렬화 0) · 구버전은 키를 무시하고 예산 없이 전부 그린다 (Preview) / Canvas 는 200행 샘플로 (데이터 손실 0) · 창 위치는 저장하지 않는다 · 행 상한 20,000 은 두 화면 동일. 사용자-가시 변경 (A) 행 > 200 Canvas 합계 · (B) 범주 > fitEff 창/집계/극값/others · (C) 마크 > M fitEff 축소.
 
 ### Performance
 

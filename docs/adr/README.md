@@ -15,8 +15,8 @@
 
 | 구분                      |    개수 |
 | ------------------------- | ------: |
-| 완료 (`completed/`)       |     227 |
-| ├ Implemented             |     191 |
+| 완료 (`completed/`)       |     228 |
+| ├ Implemented             |     192 |
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
@@ -34,19 +34,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
-
-#### [211](211-chart-display-budget-pixel-fit-window-decimation.md) — 차트 표시 예산 — 픽셀 폭 기준 마크 수와 창·축약 계약
-
-- **상태**: In Progress (2026-09-11) — Proposed 2026-09-10, round 1 (HIGH 3 · MEDIUM 6) · round 2 수리 검증 (HIGH 1 · MEDIUM 3 · LOW 1) 반영, 판독 루프 실행자 종결 (사용자 지시). **P0 spike PASS (G0, 2026-09-10)** — 최소 단위 5종 실측 (`8/3/5/12/5`) · `M 800`/`P 5,000`/`R 20,000`/`windowTrackHeight 24` · 계약 보정 2 (M/P 분리 · `budget*` 평면 키 4개) · 오라클 39/39 · 영향 집합 0. **P1 PASS (G1, 2026-09-11)** — `budget.ts`/`model.ts` (두 leg 공용 input→transformed→visible) · 창 0 정적 · 행 상한 `R` spec 적용 · `CHART_SAMPLE_ROWS` 삭제 · 오라클 18/18 · 두 leg byte 동일 · live 1,000 범주 → 41 막대 양쪽 동일 (`evidence/211-p1-budget-model.md`). **P2 PASS (G2, 2026-09-11)** — 축 종류 (ISO 단조) · bucket 집계 (접미) · 극값 선택 (적응 B · gap sentinel · fallback) · others (`--chart-others`, 두 leg) · transformed domain · `budget*` validator; R3 원본 스캔 오라클 전부 PASS · live 세 모드 두 leg 일치 (`evidence/211-p2-overflow.md`). **P3 PASS (G3, 2026-09-11)** — Preview/Publish 창 Slider (뷰 상태 · write 0 · `windowTrackHeight` 두 leg 예약) · Canvas 비활성 트랙 · `budget*` 4 키 결선 (accepts · Skia allowlist · `ChartBudgetControls`) · `chart.budgetHint`; live 13/13 (Canvas 트랙 픽셀 · Slider End · 극값/집계/others · dark · Properties → reload → publish) (`evidence/211-p3-window-wiring.md`). **P4 측정 완료 (2026-09-11)** — G4-engineering 4/5 PASS (frame columns/group 5쌍 ±1.5 · before 이하 · static W800 ≤17.6 · 모델 4.9ms · network 9/9) · 번들 Builder +6,762 B (한도 6 KiB +618 초과) · G4-policy ADR-210 상한 초과 (+6,719 / +5,643); 수리 2건 (창 Slider render prop · Skia path LRU 캐시) (`evidence/211-p4-perf-bundle.md`). **사용자 결정 2건 (번들 Builder 초과 · G4-policy) 뒤 P5**. ADR-194/209/210 위의 응용 (분리 4질문 breakdown §1)
-- **범위**: 차트 6종 전부 — 예산 (슬롯 `fit` · 요소 마크 `M` · 경로 점 `P` · 두 leg 동일 행 상한 `R`) 을 spec 이 종류별로 계산, 넘치면 범주 축은 창 (Canvas 창 0 정적 · Preview/Publish RAC Slider 트랙), 순서 축은 bucket 집계 (명시 통계) 또는 시리즈별 bucket 극값 선택, 극좌표는 "기타" 묶기. `CHART_SAMPLE_ROWS=200` 폐지. P0–P5 / G0–G5.
-- **상세 설계**: [breakdown](design/211-chart-display-budget-pixel-fit-window-decimation-breakdown.md)
-- **우선순위**: P1 — 새 표현 옵션 확장과 ADR-210 후속 ② (컨트롤 mount 비용) 보다 앞
-
-#### [212](212-data-panel-editor-redesign.md) — Data 패널 편집기 재설계 — 스냅 패널 · `role=grid` 격자 · 요청 도구형 API 편집기
-
-- **상태**: Proposed (2026-09-11) — 리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) Track 2 · 시안 artifact `f7d8327e`
-- **규모**: 사용성 차단 11 · 접근성 6 의 구조 수리 — 격자를 RAC `Table` `role=grid` + 셀 edit mode + Popover 로, 생성·필드 편집은 옆에 스냅되는 workspace 패널 (사용자 판정 2026-09-10), API 편집기는 `[Method][URL][Send]` 바 + 응답 Schema 추천 + "테이블로 저장" 한 방향, 목록 배지 · 캔버스 Skia overlay 배지 · secret vault. Phase 0~~7 / R1~~R7 / G0~~G5, HIGH 0. **선행: ADR-152 개정안 Phase 1c (Phase 1 표면 골격만 독립)**. design breakdown `design/212-data-panel-editor-redesign-breakdown.md`
-- **우선순위**: P2 — 152 뒤, 013 앞 (013 은 본 ADR Phase 6 인스펙터 동선 위의 응용)
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 
@@ -202,7 +189,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 
 ---
 
-## 완료 ADR (227)
+## 완료 ADR (228)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -227,6 +214,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 | [903](completed/903-ref-descendants-slot-composition-format-migration-plan.md)      | ref/descendants + slot 기본 composition 포맷 전환 계획                          | Implemented | 2026-04-26                                                           |
 | [902](completed/902-workspace-dot-background-layer.md)                              | Workspace Dot Background Layer                                                  | Implemented | 2026-04-25                                                           |
 | [900](completed/900-unified-skia-rendering-engine.md)                               | Unified Skia Rendering Engine — PixiJS/Taffy 제거 및 CSS3 단일 렌더러           | Implemented | 2026-04-07                                                           |
+| [211](completed/211-chart-display-budget-pixel-fit-window-decimation.md)            | 차트 표시 예산 — 픽셀 폭 기준 마크 수와 창·축약 계약 (번들 한도 7 KiB · initial 재승인)  | Implemented | 2026-09-11                                                           |
 | [210](completed/210-chart-multi-field-series-presentation.md)                       | 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약 — 예산 예외 승인                  | Implemented | 2026-09-10                                                           |
 | [209](completed/209-chart-authoring-canvas-recharts-runtime.md)                     | 차트별 편집 경험과 Canvas·Recharts 런타임 분리                                  | Implemented | 2026-09-10                                                           |
 | [208](completed/208-radar-radial-grid-controls.md)                                  | radar/radial 제어 prop 과 차트 종류별 조건부 노출                               | Implemented | 2026-09-09                                                           |
