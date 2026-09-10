@@ -20,11 +20,11 @@
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      11 |
-| ├ Proposed                |       9 |
+| 열려 있는 것 (`adr/*.md`) |      12 |
+| ├ Proposed                |      10 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
-| **합계**                  | **238** |
+| **합계**                  | **239** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -41,6 +41,12 @@
 - **범위**: 차트 6종 전부 — 예산 (슬롯 `fit` · 요소 마크 `M` · 경로 점 `P` · 두 leg 동일 행 상한 `R`) 을 spec 이 종류별로 계산, 넘치면 범주 축은 창 (Canvas 창 0 정적 · Preview/Publish RAC Slider 트랙), 순서 축은 bucket 집계 (명시 통계) 또는 시리즈별 bucket 극값 선택, 극좌표는 "기타" 묶기. `CHART_SAMPLE_ROWS=200` 폐지. P0–P5 / G0–G5.
 - **상세 설계**: [breakdown](design/211-chart-display-budget-pixel-fit-window-decimation-breakdown.md)
 - **우선순위**: P1 — 새 표현 옵션 확장과 ADR-210 후속 ② (컨트롤 mount 비용) 보다 앞
+
+#### [212](212-data-panel-editor-redesign.md) — Data 패널 편집기 재설계 — 스냅 패널 · `role=grid` 격자 · 요청 도구형 API 편집기
+
+- **상태**: Proposed (2026-09-11) — 리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) Track 2 · 시안 artifact `f7d8327e`
+- **규모**: 사용성 차단 11 · 접근성 6 의 구조 수리 — 격자를 RAC `Table` `role=grid` + 셀 edit mode + Popover 로, 생성·필드 편집은 옆에 스냅되는 workspace 패널 (사용자 판정 2026-09-10), API 편집기는 `[Method][URL][Send]` 바 + 응답 Schema 추천 + "테이블로 저장" 한 방향, 목록 배지 · 캔버스 Skia overlay 배지 · secret vault. Phase 0~~7 / R1~~R7 / G0~~G5, HIGH 0. **선행: ADR-152 개정안 Phase 1c (Phase 1 표면 골격만 독립)**. design breakdown `design/212-data-panel-editor-redesign-breakdown.md`
+- **우선순위**: P2 — 152 뒤, 013 앞 (013 은 본 ADR Phase 6 인스펙터 동선 위의 응용)
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 
