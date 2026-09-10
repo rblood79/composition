@@ -15,7 +15,14 @@ import { CHART_DEFAULT_SERIES_COUNT, type ChartRow } from "@composition/specs";
  * 비활성 gating 은 PanelWorkspace 의 <Activity mode="hidden"> 이 담당 (ADR-922)
  */
 
-import { useCallback, useMemo, useRef, memo, type ReactNode } from "react";
+import {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  memo,
+  type ReactNode,
+} from "react";
 import { useDebouncedSelectedElementData } from "../../stores";
 import type { SelectedElement } from "../../inspector/types";
 import { useEditContract } from "./hooks/useEditContract";
@@ -344,7 +351,10 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   //   패널의 `!==` 필터는 스칼라 전제 — breakdown §2.2). `force` 는 ref 명시 고정 1회.
   //   baseline 은 ref 로 읽어 콜백 참조를 요소당 하나로 고정한다 (컨트롤 memo 유지).
   const chartValuesRef = useRef(chartValues);
-  chartValuesRef.current = chartValues;
+  // 커밋 뒤에 기록한다 — 폐기된 transition 렌더의 값이 남지 않게 (콜백은 커밋 뒤 사용자 이벤트에서만 읽는다).
+  useLayoutEffect(() => {
+    chartValuesRef.current = chartValues;
+  });
   const handleChartPatch = useCallback(
     (patch: Record<string, unknown>, force?: readonly string[]) => {
       const changed = chartPresentationPatch(

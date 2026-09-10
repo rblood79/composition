@@ -18,8 +18,16 @@
       "title": "한 요소의 변형 t0→t4"
     },
     {
-      "file": "Toasts.dc.html",
+      "file": "Notch.dc.html",
       "x": 0,
+      "y": 1360,
+      "w": 1440,
+      "h": 1100,
+      "title": "보충 — 노치 (supaste.com)"
+    },
+    {
+      "file": "Toasts.dc.html",
+      "x": 1560,
       "y": 1360,
       "w": 1440,
       "h": 1060,
@@ -27,24 +35,24 @@
     },
     {
       "file": "Sizes.dc.html",
-      "x": 1560,
-      "y": 1360,
+      "x": 0,
+      "y": 2680,
       "w": 1440,
       "h": 1000,
       "title": "크기 어법 4단"
     },
     {
       "file": "Benchmark.dc.html",
-      "x": 0,
-      "y": 2660,
+      "x": 1560,
+      "y": 2680,
       "w": 1440,
       "h": 1080,
       "title": "벤치마크"
     },
     {
       "file": "Current.dc.html",
-      "x": 1560,
-      "y": 2660,
+      "x": 0,
+      "y": 3980,
       "w": 1440,
       "h": 900,
       "title": "현재 — Photoshop 어법"
@@ -56,7 +64,7 @@
       "x": 0,
       "y": -260,
       "w": 700,
-      "text": "제안 — Contextual Island\n\n헤더 flex 행의 `.builder-viewport-controls` Group **그 요소가** 변형된다. 뜨는 별개 층이 아니다 — 좌/우 그룹이 flex:1 이라 아일랜드가 자라면 프로젝트명이 말줄임으로 양보한다.\n\n스트립 오른쪽에 그 요소의 aria-label 이 상태마다 어떻게 바뀌는지 같이 표시했다. 지금 코드는 t(\"header.viewportControls\") 고정이라 뷰포트가 아닌 컨트롤을 담고도 \"Viewport controls\" 로 읽힌다 — 같이 바꿔야 한다.\n\n선택 6종 × 알림 6종 × 크기 3단. 아일랜드를 클릭하면 크기가 순환한다."
+      "text": "제안 — Contextual Island\n\n헤더 flex 행의 `.builder-viewport-controls` Group 그 요소가 변형된다. 형태는 알약이 아니라 앱 상단 edge 에 붙은 노치 — 위 여백 0, 아래 모서리만 둥글고, 20px 어깨가 edge 와 잇는다 (supaste.com 보충). 트윅 `form` 으로 notch / pill 을 바로 비교할 수 있다.\n\n선택 6종 × 알림 6종 × 크기 3단. 아일랜드를 클릭하면 크기가 순환한다. 스트립 오른쪽에 그 요소의 aria-label 이 상태마다 어떻게 바뀌는지 표시했다."
     },
     {
       "id": "note-morph",
@@ -66,30 +74,37 @@
       "text": "한 요소의 변형 — 이 판이 정정의 핵심\n\n앞 판은 아일랜드를 헤더 위에 겹쳐 띄웠다 (position: absolute + z-index). 그건 오버랩이지 변형이 아니다.\n\n여기서는 파선이 요소 경계다 — t0 부터 t4 까지 같은 요소, 같은 자리이고 자식과 크기만 바뀐다. 가로는 헤더 흐름이 처리하고 (좌/우가 양보), 세로만 헤더 밴드를 넘어 캔버스 위로 자란다.\n\n세로를 넘기는 이유는 아래 규칙 3에 — 헤더 행을 키우면 .panel-dock chrome 행이 auto 라 stage 가 줄어 선택할 때마다 캔버스가 리플로우된다."
     },
     {
-      "id": "note-toasts",
+      "id": "note-notch",
       "x": 0,
-      "y": 2280,
+      "y": 2600,
+      "w": 700,
+      "text": "보충 — supaste.com 의 상단\n\n실측: <nav> fixed top 0, 검정, radius 0 0 18 18, 높이 53, 어깨 20×20 절대 배치 div 2개 (SVG data-URI, 한쪽 90° 회전). 스크롤·호버·클릭에 형태 변화 없음 — 인터랙션이 아니라 형태 언어다: 헤더는 떠 있는 바가 아니라 edge 의 일부.\n\n핵심 발견: 같은 기법이 우리 header.css 의 `.header_contents.screen` 에 주석으로 이미 있다 (같은 경로, rotate 90°, left/right -32). 누군가 뷰포트 컨트롤 Group 에 어깨를 붙이려다 접었다 — fill 이 rgb(0,0,0) 고정이라 chrome-surface 와 안 맞은 것이 원인 후보.\n\n알약 → 노치로 바뀌면 달라지는 것 5개와 트레이드오프 2개(좌/우 그룹 세로 정렬 · 라이트 테마 대비)는 시트에."
+    },
+    {
+      "id": "note-toasts",
+      "x": 1560,
+      "y": 2600,
       "w": 660,
       "text": "토스트 이전 — 그렇다, 포함시키는 게 맞다\n\n지금 알림이 두 군데로 갈려 있다: 헤더에는 자리가 없고, 토스트는 우하단. 아일랜드가 \"시스템이 말하는 자리\" 라는 전제가 서면 토스트가 거기 있어야 한다.\n\n부수 이득이 하나 더 있다. 토스트는 하단 contextual action bar 와 자리를 다퉈 useActionBarClearance 훅으로 겹침을 실시간으로 재고 있다 (Toast.css 의 bottom 계산식). 상단으로 옮기면 그 충돌과 훅이 함께 사라진다.\n\n지켜야 할 것 4가지와 종류별 수명 재조정(error 는 5초 자동 해제를 없애고 지속)은 시트에."
     },
     {
       "id": "note-sizes",
-      "x": 1560,
-      "y": 2280,
+      "x": 0,
+      "y": 3800,
       "w": 660,
       "text": "크기 어법 4단\n\nApple HIG: compact 높이 36px, expanded 최대 144pt(≈192px), \"expanded 는 compact 의 확대판\".\n\n폭 문제의 답이 여기 있다 — 옆으로 늘리는 게 아니라 Expanded 로 승격해 아래로 자란다. 192px 를 넘으면 아일랜드가 아니라 Properties 패널의 몫이다."
     },
     {
       "id": "note-bench",
-      "x": 0,
-      "y": 3780,
+      "x": 1560,
+      "y": 3800,
       "w": 660,
       "text": "벤치마크\n\nApple HIG 규칙 4개와, 같은 문제를 푼 도구 5종. 가장 크게 가져온 둘: 명령 팔레트의 \"폭 고정, 세로 성장\", 미디어 HUD 의 4구역 격자.\n\n도해는 배치 구조만 옮긴 것이고 실제 화면을 옮긴 것이 아니다."
     },
     {
       "id": "note-current",
-      "x": 1560,
-      "y": 3780,
+      "x": 0,
+      "y": 5000,
       "w": 460,
       "text": "현재 (대조군)\n\nchrome island 토큰 그대로 — bg-raised #202023, radius 8, 테두리 0, shadow-sm, 컨트롤 32px, gap 4px. 헤더 중앙은 선택과 무관하게 고정이고, 알림은 이 화면 밖 우하단에 뜬다."
     }

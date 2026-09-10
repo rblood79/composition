@@ -21,6 +21,7 @@ import {
   Customized,
   LabelList,
   Sector,
+  Rectangle,
   Dot,
   type SectorProps,
   type LabelProps,
@@ -66,12 +67,18 @@ function PlainBarShape(props: {
   y?: number;
   width?: number;
   height?: number;
+  radius?: number | readonly number[];
   fill?: string;
   fillOpacity?: number | string;
   stroke?: string;
   strokeWidth?: number | string;
 }) {
-  const { x, y, width, height, fill, fillOpacity, stroke, strokeWidth } = props;
+  const { x, y, width, height, radius, fill, fillOpacity, stroke, strokeWidth } =
+    props;
+  // 모서리 radius 채널이 열리면 (catalog 미도입) 기하는 Recharts 기본에 맡긴다 — 여기서 조용히
+  //   버리면 DOM leg 만 각진 막대가 돼 Skia 와 갈린다.
+  if (radius && (typeof radius === "number" ? radius > 0 : radius.some((r) => r > 0)))
+    return <Rectangle {...(props as object)} />;
   if (
     typeof x !== "number" || typeof y !== "number" ||
     typeof width !== "number" || typeof height !== "number" ||

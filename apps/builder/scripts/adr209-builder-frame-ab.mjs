@@ -33,6 +33,11 @@ const AFTER = opt("after", "http://localhost:5173");
 const PAIRS = Number(opt("pairs", "5"));
 const headed = args.includes("--headed");
 const OUT_DIR = opt("out", "/private/tmp/adr209-f3");
+// ADR-210 P4 — 장면 선택 (기본 group200 = ADR-209 와 같은 6종 × 50범주×4시리즈). columns800 은
+//   wide 4종 (bar/line/area/radar 순환) × 200행×4필드, group800 은 같은 마크 수의 group 표현.
+const SCENE = opt("scene", "group200");
+const SCENE_BEFORE = opt("scene-before", SCENE);
+const SCENE_AFTER = opt("scene-after", SCENE);
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const WARMUP = 18,
   OPS = 54,
@@ -73,6 +78,36 @@ function rows200() {
       });
   return rows;
 }
+const FIELDS = ["desktop", "mobile", "tablet", "tv"];
+function sceneInput(scene) {
+  if (scene === "group200")
+    return { rows: rows200(), kinds: ["bar", "line", "area", "pie", "radar", "radial"], extra: {} };
+  const categories = 200;
+  if (scene === "group800" || scene === "group800wide") {
+    const rows = [];
+    for (let i = 0; i < categories; i++)
+      for (const s of ["A", "B", "C", "D"])
+        rows.push({ category: `c${i}`, value: ((i * 7 + s.charCodeAt(0)) % 40) + 1, series: s });
+    // group800wide = columns800 과 같은 종류 배치 (같은 마크 수의 group 표현 — §7 동등 비교)
+    return {
+      rows,
+      kinds: scene === "group800wide" ? ["bar", "line", "area", "radar", "bar", "line"] : ["bar", "line", "area", "pie", "radar", "radial"],
+      extra: {},
+    };
+  }
+  if (scene === "columns800") {
+    const rows = Array.from({ length: categories }, (_, i) => ({
+      category: `c${i}`,
+      ...Object.fromEntries(FIELDS.map((f, s) => [f, ((i * 7 + 65 + s) % 40) + 1])),
+    }));
+    return {
+      rows,
+      kinds: ["bar", "line", "area", "radar", "bar", "line"],
+      extra: { dataMode: "columns", valueFields: FIELDS },
+    };
+  }
+  throw new Error(`unknown scene ${scene}`);
+}
 
 /** storage state 의 origin 을 대상 base URL 로 복제한다 (localStorage 는 origin 별). */
 function storageStateFor(baseUrl) {
@@ -91,7 +126,7 @@ function storageStateFor(baseUrl) {
   return state;
 }
 
-async function runOnce(browser, baseUrl, tag) {
+async function runOnce(browser, baseUrl, tag, scene = "group200") {
   const { context, page, errors } = await createInstrumentedContext(browser, {
     storageState: storageStateFor(baseUrl),
     cpuThrottle: 1,
@@ -118,17 +153,18 @@ async function runOnce(browser, baseUrl, tag) {
       await page.waitForTimeout(700);
     }
     await page.waitForTimeout(1500);
-    const ids = await page.evaluate((rows) => {
+    const sceneData = sceneInput(scene);
+    const ids = await page.evaluate(({ rows, kinds, extra }) => {
       const st = window.__composition_STORE__.getState();
       const charts = st.elements
         .filter((e) => e.type === "Chart")
         .map((e) => e.id);
-      const kinds = ["bar", "line", "area", "pie", "radar", "radial"];
       charts.forEach((id, i) =>
         st.updateElementProps(id, {
           data: rows,
           chartType: kinds[i % kinds.length],
           color: "series",
+          ...extra,
           showLegend: true,
           showGrid: true,
           showAxis: true,
@@ -136,14 +172,15 @@ async function runOnce(browser, baseUrl, tag) {
         }),
       );
       return charts;
-    }, rows200());
+    }, sceneData);
     if (ids.length !== 6) throw new Error(`Chart 6개 기대, ${ids.length}개`);
     await setPanel(page, "components", false);
     await setPanel(page, "properties", true);
     await page.waitForTimeout(2500);
 
     const inputHash = execSync(
-      `printf '%s' '${JSON.stringify({ ids: ids.length, rows: 200, kinds: 6 })}' | shasum -a 256 | cut -c1-16`,
+      // 기본 장면은 ADR-209 manifest 와 같은 payload 를 유지한다 (해시 비교 가능성).
+      `printf '%s' '${JSON.stringify(scene === "group200" ? { ids: ids.length, rows: 200, kinds: 6 } : { ids: ids.length, rows: sceneData.rows.length, kinds: sceneData.kinds, scene })}' | shasum -a 256 | cut -c1-16`,
       { encoding: "utf8" },
     ).trim();
 
@@ -208,6 +245,7 @@ async function runOnce(browser, baseUrl, tag) {
     return {
       baseUrl,
       tag,
+      scene,
       projectUrl: page.url(),
       inputHash,
       renderFrameP95: summary.renderFrame?.p95 ?? null,
@@ -241,8 +279,8 @@ async function main() {
   const beforeDir = opt("before-dir", "/Users/admin/work/composition-baseline");
   const meta = {
     date: new Date().toISOString(),
-    before: { url: BEFORE, sha: revision(beforeDir) },
-    after: { url: AFTER, sha: revision(opt("after-dir", process.cwd())) },
+    before: { url: BEFORE, sha: revision(beforeDir), scene: SCENE_BEFORE },
+    after: { url: AFTER, sha: revision(opt("after-dir", process.cwd())), scene: SCENE_AFTER },
     mode: "DEV",
     cpuThrottle: 1,
     viewport: [1440, 900],
@@ -260,6 +298,7 @@ async function main() {
           browser,
           side === "before" ? BEFORE : AFTER,
           side,
+          side === "before" ? SCENE_BEFORE : SCENE_AFTER,
         );
         log(
           `  render.frame p95 ${result[side].renderFrameP95} ms · rAF gap p95 ${result[side].rafGapP95} · longtasks ${result[side].longTasks} · frames ${result[side].renderFrameCount}`,

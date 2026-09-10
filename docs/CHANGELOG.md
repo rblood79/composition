@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-210 P1–P3 — 차트 다중 수치 컬럼 · 시리즈 표시 · 숫자 형식 (In Progress)] - 2026-09-10
+## [ADR-210 P1–P4 — 차트 다중 수치 컬럼 · 시리즈 표시 · 숫자 형식 (In Progress)] - 2026-09-10
 
 ### Added
 
@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - specs chart 274/274 · shared catalog 517/517 · builder unit 714 files/5,685 · chart Chromium 180/180 · type-check PASS. 실제 빌더 live (`apps/builder/scripts/adr210-chart-p2-live.mjs`) 6/6 — 패널 mount → 값 컬럼 적용 (canonical 단일 patch, Skia 픽셀 변화) → Undo 1회 복귀 → 통화 묶음 저장 → reload 보존.
 - 구버전 (`305e4c4f7`) 은 새 설정을 무시한다: 기존 문서는 byte 동일, 새 columns 문서는 빈 차트 또는 legacy 값 필드 단일 시리즈 (데이터 손실 0, 무손실 rollback 미지원 — 업데이트 전 백업 복원이 지원 경로).
+- (P4) 성능: Preview/Publish 의 Bar 차트가 막대를 단순 path 로 그려 800 막대 정적 렌더 p95 116 → 75ms (legacy 800행 bar 118 → 77ms, 5000행 625 → 323ms) — 기하는 그대로 (Chromium 212/212 ≤1px). Properties 의 Chart 컨트롤 3개가 값 필드·시리즈·형식 입력이 바뀔 때만 다시 그려 showGrid 편집·크기 변경 때 재렌더 0 (다른 차트로 전환하면 선택 화면·pending 통화는 여전히 초기화). 측정 (before `baf535258` / after 별도 worktree): columns W800 4종 static p95 41–75ms (≤100) · Builder W200 6-chart frame p95 Δ −0.5…−0.6ms (≤+1) · initial gzip 순증 Builder +7,473 / Preview +4,196 / Publish +2,820 B (≤10 KiB) · lazy +305 B · production network 9/9. 전체 initial 예산 (500 KB) 은 Publish 만 충족 — Builder/Preview 는 ADR-209 한시 상한도 넘어 재승인 대기.
 - (P3) chart Chromium 212/212 (신규 32: 4종 wide × 누적 방식 × 크기 × 긴 한글 이름/KRW 에서 DOM 축 눈금·범례·값 라벨의 문자열과 좌표 ≤1px, 마크 경계 ≤1px, 지정 팔레트 토큰 light/dark 실제 CSS ↔ Skia 토큰 일치, legacy 6종 문자열 보존) · dark/reduced-motion 대조군 149/149. 실제 빌더 live (`apps/builder/scripts/adr210-chart-p3-live.mjs`) 7/7 — 패널로 값 컬럼·표시 이름·`--chart-series-5`·USD 설정 → Skia 주색 변화 → Themes dark 스위치 → Compare Mode Preview 의 문자열/fill 이 Skia 픽셀과 일치 (light/dark) → hover·키보드 툴팁 canonical write 0 → 메뉴 Export → 독립 publish (3001) 같은 문자열·fill. 성능 (P4) · 문서 정합/rollback 제한 (P5) 미완.
 
 ## [ADR-209 후속 완료 — B안 승인 및 G5/G6 종결] - 2026-09-10

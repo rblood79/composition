@@ -30,8 +30,8 @@
     .cap .aria { margin-left: auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--fg-muted); background: #1c1c20; border-radius: 6px; padding: 3px 9px; }
     .cap .aria b { color: var(--fg); font-weight: 400; }
     .stage { background: var(--bg-overlay); border-radius: 10px; position: relative; overflow: hidden; }
-    .hdr { position: absolute; left: 4px; right: 4px; top: 4px; height: 48px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
-    .side { flex: 1 1 0; min-width: 0; height: 48px; display: flex; align-items: center; gap: 8px; }
+    .hdr { position: absolute; left: 4px; right: 4px; top: 0; height: 52px; display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+    .side { flex: 1 1 0; min-width: 0; height: 48px; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
     .side.right { justify-content: flex-end; }
     .proj { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .sq { width: 32px; height: 32px; border-radius: 6px; flex: none; }
@@ -39,9 +39,11 @@
     .ctl { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--fg-muted); flex: none; }
 
     /* 변형하는 그 요소 */
-    .island { flex: 0 0 auto; margin-top: 6px; display: flex; align-items: center; outline: 1.5px dashed color-mix(in oklab, var(--focus) 70%, transparent); outline-offset: 3px; }
-    .compact { display: flex; align-items: center; height: 36px; padding: 3px 6px; overflow: hidden; }
-    .pill { background: var(--bg-raised); border-radius: 18px; box-shadow: var(--sh-float); }
+    .island { position: relative; flex: 0 0 auto; display: flex; align-items: center; outline: 1.5px dashed color-mix(in oklab, var(--focus) 70%, transparent); outline-offset: 3px; }
+    .compact { display: flex; align-items: center; height: 36px; padding: 3px 6px; }
+    .pill { background: var(--bg-raised); border-radius: 0 0 18px 18px; box-shadow: 0 12px 16px rgb(0 0 0 / 0.24), 0 6px 8px rgb(0 0 0 / 0.12); }
+    .shoulder { position: absolute; top: 0; width: 20px; height: 20px; color: var(--bg-raised); pointer-events: none; }
+    .shoulder.l { left: -20px; } .shoulder.r { right: -20px; }
     .seg { display: flex; align-items: center; gap: 2px; background: var(--bg-overlay); border-radius: 999px; padding: 2px; flex: none; }
     .seg-i { height: 26px; padding: 0 12px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: var(--fg-muted); white-space: nowrap; }
     .seg-i.on { background: var(--accent); color: var(--fg-on-accent); font-weight: 500; }
@@ -69,15 +71,15 @@
 </helmet>
 
 <div class="sheet">
-  <h1>변형하는 것은 <span class="k" style="font-size: 18px;">.builder-viewport-controls</span> 하나다</h1>
-  <p class="lede">새 레이어를 띄워 헤더를 덮는 것이 아니라, 헤더 flex 행에 이미 있는 <span class="k">&lt;Group className="header_contents screen builder-viewport-controls" aria-label="Viewport controls"&gt;</span> 그 요소가 자란다. 아래 파선이 그 요소의 경계다 — 다섯 컷 내내 같은 요소, 같은 자리이고 자식과 크기만 바뀐다.</p>
+  <h1>변형하는 것은 <span class="k" style="font-size: 18px;">.builder-viewport-controls</span> 하나다 — 그리고 그건 노치다</h1>
+  <p class="lede">새 레이어를 띄워 헤더를 덮는 것이 아니라, 헤더 flex 행에 이미 있는 <span class="k">&lt;Group className="header_contents screen builder-viewport-controls" aria-label="Viewport controls"&gt;</span> 그 요소가 자란다. 형태는 떠 있는 알약이 아니라 <b>앱 상단 edge 에 붙은 노치</b> — 위 여백 0, 아래 모서리만 둥글고, 양옆 20px 어깨(fillet)가 edge 와 잇는다 (supaste.com 네비게이션과 같은 기법, 우리 <span class="k">header.css</span> 에 주석으로 이미 있다). 아래 파선이 그 요소의 경계다 — 다섯 컷 내내 같은 요소, 같은 자리이고 자식과 크기만 바뀐다.</p>
 
   <div class="step">
     <div class="cap"><span class="t">t0</span><b>선택 없음</b><span class="n">지금과 같다 — 뷰포트 토글 + 줌</span><span class="aria">aria-label=<b>"Viewport controls"</b></span></div>
     <div class="stage" style="height: 56px;">
       <div class="hdr">
         <div class="side"><div class="sq" style="background: var(--bg-muted);"></div><div class="sq" style="background: linear-gradient(140deg, oklch(70.7% 0.165 254.624), oklch(60% 0.2 290));"></div><div class="proj">Acme Storefront</div></div>
-        <div class="island"><div class="compact pill">
+        <div class="island"><span class="shoulder l"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="shoulder r"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span><div class="compact pill">
           <div class="seg"><div class="seg-i ic on"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div><div class="seg-i ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M12 18h.01"/></svg></div><div class="seg-i ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg></div></div>
           <div class="d"></div><div class="zoom"><span>100%</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></div>
         </div></div>
@@ -91,7 +93,7 @@
     <div class="stage" style="height: 56px;">
       <div class="hdr">
         <div class="side"><div class="sq" style="background: var(--bg-muted);"></div><div class="sq" style="background: linear-gradient(140deg, oklch(70.7% 0.165 254.624), oklch(60% 0.2 290));"></div><div class="proj">Acme Storefront</div></div>
-        <div class="island"><div class="compact pill">
+        <div class="island"><span class="shoulder l"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="shoulder r"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span><div class="compact pill">
           <div class="nm"><span class="dot"></span>Button</div>
           <div class="seg"><div class="seg-i on">Primary</div><div class="seg-i">Ghost</div></div>
           <div class="d"></div>
@@ -108,7 +110,7 @@
     <div class="stage" style="height: 56px;">
       <div class="hdr">
         <div class="side"><div class="sq" style="background: var(--bg-muted);"></div><div class="sq" style="background: linear-gradient(140deg, oklch(70.7% 0.165 254.624), oklch(60% 0.2 290));"></div><div class="proj">Acme Storefront</div></div>
-        <div class="island"><div class="compact pill">
+        <div class="island"><span class="shoulder l"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="shoulder r"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span><div class="compact pill">
           <div class="nm"><span class="dot"></span>Button</div>
           <div class="seg"><div class="seg-i on">Primary</div><div class="seg-i">Secondary</div><div class="seg-i">Ghost</div></div>
           <div class="d"></div>
@@ -129,7 +131,7 @@
     <div class="stage" style="height: 56px;">
       <div class="hdr">
         <div class="side"><div class="sq" style="background: var(--bg-muted);"></div><div class="sq" style="background: linear-gradient(140deg, oklch(70.7% 0.165 254.624), oklch(60% 0.2 290));"></div><div class="proj">Acme Storefront</div></div>
-        <div class="island"><div class="compact pill" style="padding: 3px 6px 3px 12px; gap: 10px;">
+        <div class="island"><span class="shoulder l"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="shoulder r"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span><div class="compact pill" style="padding: 3px 6px 3px 12px; gap: 10px;">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--notice)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0"/><path d="M12 9v4M12 17h.01"/></svg>
           <span>Table 밖으로 옮겼습니다</span>
           <span style="height: 26px; border-radius: 999px; background: var(--accent); color: var(--fg-on-accent); display: flex; align-items: center; padding: 0 13px; font-weight: 500;">되돌리기</span>
@@ -142,13 +144,13 @@
   </div>
 
   <div class="step">
-    <div class="cap"><span class="t">t4</span><b>Expanded — 같은 요소가 아래로 자란다</b><span class="n">헤더 48px 밴드를 넘어 캔버스 위로. 헤더 행 높이는 그대로다</span><span class="aria">aria-label=<b>"Button controls"</b></span></div>
+    <div class="cap"><span class="t">t4</span><b>Expanded — 같은 요소가 아래로 자란다</b><span class="n">노치가 edge 에서 아래로 자란다 — 맥북 노치에 사는 앱이 펼쳐지는 것과 같다. 헤더 행 높이는 그대로</span><span class="aria">aria-label=<b>"Button controls"</b></span></div>
     <div class="stage" style="height: 218px;">
       <div class="band"><span>헤더 밴드 48px 경계</span></div>
       <div class="hdr">
         <div class="side"><div class="sq" style="background: var(--bg-muted);"></div><div class="sq" style="background: linear-gradient(140deg, oklch(70.7% 0.165 254.624), oklch(60% 0.2 290));"></div><div class="proj">Acme…</div></div>
-        <div class="island">
-          <div class="xc pill" style="border-radius: 24px;">
+        <div class="island"><span class="shoulder l"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="shoulder r"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span>
+          <div class="xc pill" style="border-radius: 0 0 24px 24px;">
             <div style="grid-area: lead;"><div class="prev" style="width: 150px; height: 70px;"><div style="width: 108px; height: 34px; border-radius: 6px; background: #1b1b1f; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600;">Shop now</div></div></div>
             <div style="grid-area: mid; display: flex; flex-direction: column; gap: 8px; min-width: 0;">
               <div style="font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px;"><span class="dot"></span>Button</div>

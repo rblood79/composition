@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+    body { margin: 0; font-family: Pretendard, -apple-system, BlinkMacSystemFont, system-ui, "Helvetica Neue", sans-serif; }
+    a { color: oklch(70.7% 0.165 254.624); } a:hover { color: oklch(80% 0.12 254.624); }
+    .sheet {
+      --bg-overlay: oklch(27.4% 0.006 286.033); --bg-raised: #202023; --bg-inset: oklch(21% 0.006 285.885);
+      --bg-muted: oklch(37% 0.013 285.805); --fg: oklch(96.7% 0.001 286.375); --fg-muted: oklch(70.5% 0.015 286.067);
+      --border: oklch(37% 0.013 285.805); --accent: oklch(92% 0.004 286.32); --fg-on-accent: oklch(21% 0.006 285.885); --focus: oklch(70.7% 0.165 254.624);
+      width: 1440px; height: 1100px; background: var(--bg-overlay); color: var(--fg); font-size: 12px;
+      padding: 40px 48px; box-sizing: border-box; overflow: hidden;
+    }
+    h1 { margin: 0 0 6px; font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+    h2 { margin: 0 0 12px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--fg-muted); }
+    .lede { margin: 0 0 24px; color: var(--fg-muted); max-width: 980px; line-height: 1.6; text-wrap: pretty; }
+    .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+    .stage { height: 190px; border-radius: 12px; position: relative; overflow: hidden; }
+    .dim { position: absolute; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; color: var(--focus); white-space: nowrap; }
+    .dim i { position: absolute; background: var(--focus); }
+    .facts { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; }
+    .facts div { display: flex; gap: 10px; align-items: baseline; line-height: 1.5; }
+    .facts b { width: 88px; flex: none; font-weight: 400; color: var(--fg-muted); font-size: 11px; }
+    .facts span { color: var(--fg); }
+    .k { color: var(--fg); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+    pre { margin: 12px 0 0; padding: 12px 14px; border-radius: 10px; background: var(--bg-inset); color: var(--fg-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; line-height: 1.55; overflow: hidden; white-space: pre; }
+    pre b { color: var(--fg); font-weight: 400; }
+    .rules { margin-top: 24px; padding-top: 20px; border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 22px; }
+    .rules h3 { margin: 0 0 7px; font-size: 12px; font-weight: 600; display: flex; gap: 8px; align-items: baseline; }
+    .rules h3 span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--focus); font-weight: 400; }
+    .rules p { margin: 0; color: var(--fg-muted); line-height: 1.6; text-wrap: pretty; }
+    .trade { margin-top: 20px; padding-top: 18px; border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px; }
+    .trade p { margin: 0; color: var(--fg-muted); line-height: 1.6; text-wrap: pretty; }
+    .sh { position: absolute; top: 0; width: 20px; height: 20px; pointer-events: none; }
+  </style>
+</helmet>
+
+<div class="sheet">
+  <h1>보충 — 알약이 아니라 노치 (supaste.com)</h1>
+  <p class="lede">supaste.com 의 상단 네비게이션은 떠 있는 바가 아니라 <b class="k">화면 edge 에 매달린 노치</b>다. 위 여백이 없고, 아래 모서리만 둥글고, 양옆 20px 어깨(오목 fillet)가 edge 와 잇는다. 스크롤·호버·클릭에 형태는 바뀌지 않는다 — 인터랙션이 아니라 <b>형태 언어</b>가 요점이다: "헤더는 화면의 일부다". 그리고 이 기법은 우리 <span class="k">header.css</span> 에 주석으로 이미 들어 있다.</p>
+
+  <div class="two">
+
+    <div>
+      <h2>supaste.com — 네비게이션 실측 (2026-09-10)</h2>
+      <div class="stage" style="background: linear-gradient(180deg, oklch(45% 0.18 262), oklch(72% 0.12 240));">
+        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 0; width: 520px; height: 53px; background: #000; border-radius: 0 0 18px 18px; display: flex; align-items: center; padding: 10px; box-sizing: border-box; gap: 18px; color: #fff;">
+          <span class="sh" style="left: -20px; color: #000;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span>
+          <span class="sh" style="right: -20px; color: #000;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span>
+          <span style="width: 24px; height: 24px; border-radius: 6px; background: linear-gradient(180deg, #7ab6ff, #1d5bff);"></span>
+          <span style="font-weight: 600;">Supaste</span>
+          <span style="display: flex; gap: 14px; color: #b9b9c2; font-size: 11px; margin-left: 10px;"><span>Features</span><span>FAQ</span><span>Updates</span><span>Pricing</span></span>
+          <span style="margin-left: auto; height: 26px; border-radius: 999px; background: #fff; color: #000; display: flex; align-items: center; padding: 0 12px; font-size: 11px; font-weight: 600;">Download</span>
+        </div>
+        <div class="dim" style="left: calc(50% - 260px); top: 62px; width: 520px; text-align: center;"><i style="left: 0; right: 0; top: -4px; height: 1px;"></i>710 (CSS px · 화면 1833)</div>
+        <div class="dim" style="left: calc(50% + 276px); top: 18px;"><i style="left: -8px; top: -18px; width: 1px; height: 53px;"></i>53</div>
+        <div class="dim" style="left: calc(50% - 300px); top: 6px;">어깨 20 × 20 →</div>
+        <div class="dim" style="left: calc(50% + 226px); top: 40px;">r 18</div>
+      </div>
+      <div class="facts">
+        <div><b>요소</b><span><span class="k">&lt;nav&gt;</span> · <span class="k">position: fixed; top: 0</span> · 배경 <span class="k">#000</span></span></div>
+        <div><b>모서리</b><span><span class="k">border-radius: 0 0 18px 18px</span> · 안쪽 padding 10</span></div>
+        <div><b>어깨</b><span>절대 배치 <span class="k">20 × 20</span> div 2개 — <span class="k">left: -20</span> / <span class="k">right: -20</span>, <span class="k">top: 0</span>, SVG data-URI 배경, 한쪽은 90° 회전</span></div>
+        <div><b>동작</b><span>스크롤 0 → 1600 에서 rect·class·opacity 무변화. 호버는 글자색만. 메뉴 드롭다운 없음</span></div>
+        <div><b>제품</b><span>맥북 노치에 사는 클립보드 앱 ("notch shelf") — 노치가 아래로 펼쳐지는 것이 제품 자체다</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h2>우리 코드에 이미 있다 — header.css</h2>
+      <div class="stage" style="background: var(--bg-inset);">
+        <div style="position: absolute; left: 50%; transform: translateX(-50%); top: 0; width: 300px; height: 36px; background: var(--bg-raised); border-radius: 0 0 18px 18px; box-shadow: 0 12px 16px rgb(0 0 0 / 0.24), 0 6px 8px rgb(0 0 0 / 0.12); display: flex; align-items: center; padding: 3px 6px; box-sizing: border-box; gap: 6px;">
+          <span class="sh" style="left: -20px; color: var(--bg-raised);"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span>
+          <span class="sh" style="right: -20px; color: var(--bg-raised);"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span>
+          <span style="display: flex; gap: 2px; background: var(--bg-overlay); border-radius: 999px; padding: 2px;">
+            <span style="width: 26px; height: 26px; border-radius: 999px; background: var(--accent);"></span>
+            <span style="width: 26px; height: 26px; border-radius: 999px;"></span>
+            <span style="width: 26px; height: 26px; border-radius: 999px;"></span>
+          </span>
+          <span style="width: 1px; height: 16px; background: var(--border); margin: 0 6px;"></span>
+          <span class="k">100%</span>
+        </div>
+        <div class="dim" style="left: calc(50% - 150px); top: 46px; width: 300px; text-align: center;">.header_contents.screen.builder-viewport-controls</div>
+        <div class="dim" style="left: calc(50% + 166px); top: 10px;"><i style="left: -8px; top: -10px; width: 1px; height: 36px;"></i>36</div>
+        <div class="dim" style="left: calc(50% - 60px); top: 90px; width: 120px; text-align: center; color: var(--fg-muted);">↓ Expanded 는 여기서 아래로만</div>
+      </div>
+<pre>/* apps/builder/src/builder/styles/layout/header.css — 주석 처리된 채로 남아 있다 */
+.header_contents.screen {
+  /*
+  &amp;::before {
+    width: 32px; height: 32px;
+    background-image: url("data:image/svg+xml,&lt;svg viewBox='0 0 20 20'&gt;
+      &lt;path d='<b>M 0 0 L 20 0 C 8.954 0 0 8.954 0 20 Z</b>' fill='<b>rgb(0, 0, 0)</b>'/&gt;&lt;/svg&gt;");
+    transform: rotate(90deg);
+    position: absolute; top: 0; <b>left: -32px</b>;
+  }
+  &amp;::after  { … position: absolute; top: 0; <b>right: -32px</b>; }
+  */
+}</pre>
+      <div class="facts" style="margin-top: 10px;">
+        <div><b>같은 기법</b><span>같은 경로, 같은 회전, 같은 자리 — 뷰포트 컨트롤 Group 에 어깨를 붙이려던 흔적</span></div>
+        <div><b>실패 원인 후보</b><span><span class="k">fill='rgb(0, 0, 0)'</span> 고정 — 표면이 <span class="k">--chrome-surface</span> 인데 어깨만 검정. 32px 은 36px 노치엔 크다</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="rules">
+    <div>
+      <h3><span>1</span>위 여백 0</h3>
+      <p>헤더 밴드 안에 6px 띄워 두던 것을 앱 상단 edge 에 붙인다. <span class="k">.panel-dock</span> 이 <span class="k">margin: 4px</span> 라 지금 헤더는 y=4 부터다 — 노치만 4px 위로 당기거나, chrome 행엔 dock 여백을 주지 않는다 (구현 시 판정).</p>
+    </div>
+    <div>
+      <h3><span>2</span>그림자는 아래로만</h3>
+      <p><span class="k">--shadow-lg</span> 의 세 층 중 ambient <span class="k">0 0 6px</span> 을 뺀다. 남기면 edge 위로 번져 "떠 있음" 으로 되돌아간다.</p>
+    </div>
+    <div>
+      <h3><span>3</span>어깨는 표면색</h3>
+      <p>20 × 20, <span class="k">currentColor</span> 로 그려 <span class="k">--chrome-surface</span> 를 따르게 한다. 다크 <span class="k">#202023</span> / 라이트 <span class="k">gray-50</span> 어느 쪽에서도 노치와 한 몸이어야 한다.</p>
+    </div>
+    <div>
+      <h3><span>4</span>아래로만 자란다</h3>
+      <p>Expanded 는 노치가 늘어나는 것 — 맥북 노치 앱이 펼쳐지는 것과 같다. 위로 자랄 곳이 없으니 방향이 하나뿐이고 morph 가 단순해진다.</p>
+    </div>
+    <div>
+      <h3><span>5</span>토큰은 그대로</h3>
+      <p>표면색·컨트롤 크기·간격은 chrome island 토큰 그대로. 반경만 하단 18 / 24. rail·action bar 와의 구분은 색이 아니라 <b style="color: var(--fg);">부착</b>이다.</p>
+    </div>
+  </div>
+
+  <div class="trade">
+    <div>
+      <h2>트레이드오프 1 — 좌/우 그룹과의 세로 정렬</h2>
+      <p>노치(36px) 는 y=0 에 붙어 세로 중앙이 18 인데, 좌/우 그룹(48px) 은 y=4 부터라 중앙이 28 — 10px 어긋난다. 좌/우 그룹을 노치 밴드에 맞춰 위로 올리거나 (32px 컨트롤이라 padding 여지 4px), 어긋남을 두고 노치를 "다른 층" 으로 읽히게 두는 두 길이 있다. 제안 아트보드는 후자로 그렸다 — 판단은 라이트 테마까지 본 뒤.</p>
+    </div>
+    <div>
+      <h2>트레이드오프 2 — 라이트 테마의 "구멍" 느낌</h2>
+      <p>supaste 는 검정 노치라 edge 에 뚫린 구멍으로 읽힌다. 우리 라이트 테마는 <span class="k">bg-raised = gray-50</span> 위에 <span class="k">bg-overlay = white</span> 라 대비가 약하다. 아래 그림자 + 어깨만으로 "붙어 있음" 이 읽히는지 라이트에서 확인해야 한다 — 제안 아트보드의 다크 토글로 바로 볼 수 있다.</p>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # ADR-210 상세 설계 — 다중 수치 컬럼과 시리즈 표시
 
-2026-09-10 · **round 2 수리 검증 승인 · P0/G0 · P1/G1 · P2/G2 · P3/G3 PASS · P4 이후 미실행**. [상위 ADR](../210-chart-multi-field-series-presentation.md), [대상 조사](../../explanation/research/CHART_EXTENSION_SCOPE_RESEARCH_2026-09.md). 아래 함수/새 필드/파일명은 제안이며 현행 구현으로 인용하지 않는다.
+2026-09-10 · **round 2 수리 검증 승인 · P0/G0 · P1/G1 · P2/G2 · P3/G3 PASS · P4/G4-engineering PASS (G4-policy 사용자 결정 대기) · P5 미실행**. [상위 ADR](../210-chart-multi-field-series-presentation.md), [대상 조사](../../explanation/research/CHART_EXTENSION_SCOPE_RESEARCH_2026-09.md). 아래 함수/새 필드/파일명은 제안이며 현행 구현으로 인용하지 않는다.
 
 ## 1. 범위·선행 관계
 
@@ -139,7 +139,7 @@ P0에서 실제 paint 소비자 경로·필요 파일을 확정한다. 공통 ki
 | P1    | 신규 optional props validator·공통 model·identity·format·정규화·diagnostics. T01–05/T08/T12                                                                       | G1 **PASS** (2026-09-10, ADR 실행 기록) |
 | P2    | 실제 Properties mode/fields/series/format, 타입 안내, semantic patch/Undo/ref/hydration. T06/T07/T09                                                              | G2 **PASS** (2026-09-10, ADR 실행 기록) |
 | P3    | Canvas/Preview/Publish 소비·메모 의존성·theme/label/tooltip·locale·accessibility. T10/T11 및4종wide+6종legacy                                                     | G3 **PASS** (2026-09-10, ADR 실행 기록) |
-| P4    | 최종clean revision 번들/성능/production network. T13; 전체 예산 정책 재판정                                                                                       | G4                |
+| P4    | 최종clean revision 번들/성능/production network. T13; 전체 예산 정책 재판정                                                                                       | G4-engineering **PASS** (2026-09-10, ADR 실행 기록) · G4-policy 사용자 결정 대기 |
 | P5    | focused suite/preflight/live/review·rollback 제한·ADR/README/CHANGELOG 정합                                                                                       | G5                |
 
 P0 결과가 제안 schema나 4종 범위를 부정하면 Decision을 수정하고 리뷰한다. 제품 구현은 설계 리뷰 및 P0 경계 확인 후 진행한다. 이 문서의 phase 표가 실행 증거는 아니다.

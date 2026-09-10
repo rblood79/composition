@@ -24,8 +24,10 @@
     .col { display: flex; flex-direction: column; gap: 12px; }
     .tier { font-size: 15px; font-weight: 600; display: flex; align-items: baseline; gap: 8px; }
     .tier span { font-size: 11px; font-weight: 400; color: var(--fg-muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .stage { height: 210px; border-radius: 12px; background: var(--bg-inset); display: flex; align-items: center; justify-content: center; padding: 14px; box-sizing: border-box; }
-    .pill { background: var(--bg-raised); box-shadow: var(--sh-float); display: flex; align-items: center; }
+    .stage { height: 210px; border-radius: 12px; background: var(--bg-inset); display: flex; align-items: flex-start; justify-content: center; padding: 0 14px 14px; box-sizing: border-box; overflow: hidden; }
+    .pill { position: relative; background: var(--bg-raised); box-shadow: 0 12px 16px rgb(0 0 0 / 0.24), 0 6px 8px rgb(0 0 0 / 0.12); display: flex; align-items: center; }
+    .pill.detached { box-shadow: var(--sh-float); }
+    .sh { position: absolute; top: 0; color: var(--bg-raised); pointer-events: none; }
     .dl { display: flex; flex-direction: column; gap: 7px; }
     .dl div { display: flex; gap: 10px; align-items: baseline; }
     .dl b { width: 74px; flex: none; font-weight: 400; color: var(--fg-muted); font-size: 11px; }
@@ -41,14 +43,14 @@
 
 <div class="sheet">
   <h1>크기 어법 4단 — 아이폰 아일랜드 대응</h1>
-  <p class="lede">아이폰 아일랜드는 한 가지 크기가 아니다. Apple HIG 는 <b class="k">compact(leading·trailing)</b> · <b class="k">minimal</b> · <b class="k">expanded</b> 세 가지 표현을 규정하고, compact 높이는 <b class="k">36px</b>, expanded 는 최대 <b class="k">144pt ≈ 192px</b> 다. 그리고 "expanded 는 compact 의 확대판이며 예측 가능하게 펼쳐져야 한다" 는 것이 핵심 규칙이다. 빌더에 그대로 옮기면 아래 4단이 된다 — 폭이 모자라면 옆이 아니라 <b class="k">아래로</b> 자란다.</p>
+  <p class="lede">아이폰 아일랜드는 한 가지 크기가 아니다. Apple HIG 는 <b class="k">compact(leading·trailing)</b> · <b class="k">minimal</b> · <b class="k">expanded</b> 세 가지 표현을 규정하고, compact 높이는 <b class="k">36px</b>, expanded 는 최대 <b class="k">144pt ≈ 192px</b> 다. 그리고 "expanded 는 compact 의 확대판이며 예측 가능하게 펼쳐져야 한다" 는 것이 핵심 규칙이다. 빌더에 그대로 옮기면 아래 4단이 된다 — 폭이 모자라면 옆이 아니라 <b class="k">아래로</b> 자란다. 형태는 떠 있는 알약이 아니라 <b class="k">edge 에 붙은 노치</b>: 위 여백 0, 아래 모서리만 둥글고, 20px 어깨가 edge 와 잇는다.</p>
 
   <div class="grid">
 
     <div class="col">
-      <div class="tier">① Dot <span>28 × 28</span></div>
+      <div class="tier">① Dot <span>44 × 22 · edge 에 붙은 탭</span></div>
       <div class="stage">
-        <div class="pill" style="width: 28px; height: 28px; border-radius: 999px; justify-content: center;">
+        <div class="pill" style="width: 44px; height: 22px; border-radius: 0 0 11px 11px; justify-content: center;"><span class="sh l" style="width: 12px; height: 12px; left: -12px;"><svg width="12" height="12" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="sh r" style="width: 12px; height: 12px; right: -12px;"><svg width="12" height="12" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span>
           <span style="width: 8px; height: 8px; border-radius: 50%; background: oklch(79.2% 0.209 151.711);"></span>
         </div>
       </div>
@@ -63,12 +65,12 @@
     <div class="col">
       <div class="tier">② Split <span>2 × 36</span></div>
       <div class="stage">
-        <div style="display: flex; align-items: center; gap: 64px;">
-          <div class="pill" style="height: 36px; border-radius: 18px; padding: 0 13px; gap: 8px;">
+        <div style="display: flex; align-items: flex-start; gap: 64px;">
+          <div class="pill" style="height: 36px; border-radius: 0 0 18px 18px; padding: 0 13px; gap: 8px;"><span class="sh l" style="width: 20px; height: 20px; left: -20px;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="sh r" style="width: 20px; height: 20px; right: -20px;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span>
             <span style="width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--bg-muted); border-top-color: var(--focus);"></span>
             <span class="mono">79%</span>
           </div>
-          <div class="pill" style="height: 36px; border-radius: 18px; padding: 0 13px; gap: 8px;">
+          <div class="pill detached" style="height: 36px; border-radius: 18px; padding: 0 13px; gap: 8px; margin-top: 8px;">
             <span style="width: 8px; height: 8px; border-radius: 50%; background: var(--focus);"></span>
             <span style="font-weight: 500;">Button</span>
           </div>
@@ -79,13 +81,13 @@
         <div><b>담는 것</b><span>진행 1 + 선택 1</span></div>
         <div><b>쓰는 때</b><span>알림 + 선택이 겹칠 때</span></div>
       </div>
-      <div class="rule">두 알약 사이로 캔버스가 보인다. HIG 규칙대로 두 조각은 <b class="k">한 덩어리로 읽혀야</b> 하므로 색을 공유한다 — 진행 링과 선택 점이 같은 파랑.</div>
+      <div class="rule">붙은 쪽은 노치, 떨어진 쪽은 알약 — 그 사이로 캔버스가 보인다. HIG 규칙대로 두 조각은 <b class="k">한 덩어리로 읽혀야</b> 하므로 색을 공유한다 — 진행 링과 선택 점이 같은 파랑.</div>
     </div>
 
     <div class="col">
       <div class="tier">③ Compact <span>h 36 · w ≤ 960</span></div>
       <div class="stage">
-        <div class="pill" style="height: 36px; border-radius: 18px; padding: 3px 6px; gap: 8px;">
+        <div class="pill" style="height: 36px; border-radius: 0 0 18px 18px; padding: 3px 6px; gap: 8px;"><span class="sh l" style="width: 20px; height: 20px; left: -20px;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="sh r" style="width: 20px; height: 20px; right: -20px;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span>
           <span style="display: flex; align-items: center; gap: 7px; padding: 0 6px 0 6px; font-weight: 500;"><span style="width: 8px; height: 8px; border-radius: 50%; background: var(--focus);"></span>Button</span>
           <span style="display: flex; gap: 2px; background: var(--bg-overlay); border-radius: 999px; padding: 2px;">
             <span style="height: 26px; padding: 0 12px; border-radius: 999px; background: var(--accent); color: oklch(21% 0.006 285.885); display: flex; align-items: center; font-weight: 500;">Primary</span>
@@ -105,7 +107,7 @@
     <div class="col">
       <div class="tier">④ Expanded <span>h ≤ 192 · 4구역</span></div>
       <div class="stage">
-        <div class="pill" style="width: 300px; border-radius: 20px; padding: 10px; display: grid; grid-template-areas: 'l m t' 'b b b'; grid-template-columns: auto 1fr auto; gap: 8px 10px;">
+        <div class="pill" style="width: 300px; border-radius: 0 0 20px 20px; padding: 10px; display: grid;<span class="sh l" style="width: 20px; height: 20px; left: -20px;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M20 0L0 0C11.046 0 20 8.954 20 20Z" fill="currentColor"/></svg></span><span class="sh r" style="width: 20px; height: 20px; right: -20px;"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M0 0L20 0C8.954 0 0 8.954 0 20Z" fill="currentColor"/></svg></span> grid-template-areas: 'l m t' 'b b b'; grid-template-columns: auto 1fr auto; gap: 8px 10px;">
           <div style="grid-area: l; width: 56px; height: 44px; border-radius: 8px; background: var(--bg-inset); display: flex; align-items: center; justify-content: center;"><span style="width: 34px; height: 14px; border-radius: 3px; background: var(--fg);"></span></div>
           <div style="grid-area: m; display: flex; flex-direction: column; gap: 5px;">
             <span style="font-weight: 600;">Button</span>

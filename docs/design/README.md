@@ -40,8 +40,10 @@ python3 gen_layout.py      # → TabLayout.dc.html
 ### [header-contextual-island/](header-contextual-island/) — 헤더 컨텍스트 아일랜드 (2026-09-09)
 
 헤더의 `.builder-viewport-controls` Group **그 요소가** 선택 대상에 따라 변형되고 토스트·알림도
-같은 자리에서 뜨는 안 (iPhone Dynamic Island 어법). 아트보드 6 — 제안 (선택 6 × 알림 6 × 크기 3단,
-클릭 가능) · 한 요소의 변형 t0→t4 · 토스트 이전 · 크기 어법 4단 · 벤치마크 · 현재 대조군.
+같은 자리에서 뜨는 안 (iPhone Dynamic Island 어법). 형태는 앱 상단 edge 에 붙은 **노치** — supaste.com
+네비게이션과 같은 기법이고, `header.css` 에 주석으로 남아 있던 어깨(fillet) 블록이 그 흔적이다.
+아트보드 7 — 제안 (선택 6 × 알림 6 × 크기 3단, notch/pill 트윅, 클릭 가능) · 한 요소의 변형 t0→t4 ·
+노치 보충 · 토스트 이전 · 크기 어법 4단 · 벤치마크 · 현재 대조군.
 
 치수는 Apple HIG 기준 (compact 36px · expanded 최대 144pt ≈ 192px), 색·간격·컨트롤 크기는
 `builder-system.css` §Chrome island 토큰 실측값이다. 아직 시안 — 코드 변경 없음.
