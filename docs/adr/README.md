@@ -37,7 +37,7 @@
 
 #### [210](210-chart-multi-field-series-presentation.md) — 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약
 
-- **상태**: Proposed (2026-09-10), round 1 설계 수정 반영·수리 재리뷰/P0/구현 미착수
+- **상태**: In Progress (2026-09-10) — P0–P4 PASS (G0–G3 · G4-engineering), 최종 revision `53c761c8b`. **열린 조건 1**: G4-policy (Builder/Preview 초기 번들이 ADR-209 B 상한 +7,510/+4,201 B 초과 → 사용자 예외 재승인 또는 축소). 승인되면 Implemented 승격
 - **범위**: Bar/Line/Area/Radar 다중 수치 컬럼, 시리즈 이름·토큰 색·순서, 공통 숫자 포맷. 기존 collection 공급과 ADR-209 계약 보존. P0–P5 / G0–G5.
 - **상세 설계**: [breakdown](design/210-chart-multi-field-series-presentation-breakdown.md)
 - **우선순위**: P1 — 후속 차트 확장 설계
