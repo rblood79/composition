@@ -8,6 +8,7 @@ import {
   renderArc,
   renderIconPath,
   renderPartialBorder,
+  renderPath,
 } from "./nodeRendererShapes";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 
@@ -151,5 +152,41 @@ describe("nodeRendererShapes 실제 CanvasKit 통합", () => {
     });
     expect(recorder.paths[0].path.isDeleted()).toBe(true);
     expect(recorder.circles).toEqual([[12, 12, 3]]);
+  });
+
+  // ADR-211 P4 — 같은 `d` 는 wasm 파싱 1회 · Path 공유 (그리기 뒤 delete 하지 않는다) ·
+  //   fillRule 이 다르면 다른 Path.
+  it("renderPath 는 같은 SVG d 를 한 번만 파싱해 재사용한다", () => {
+    const recorder = createCanvasRecorder();
+    const make = ck.Path.MakeFromSVGString.bind(ck.Path);
+    let parsed = 0;
+    ck.Path.MakeFromSVGString = (d: string) => {
+      parsed++;
+      return make(d);
+    };
+    try {
+      const node = (fillRule?: "nonzero" | "evenodd"): SkiaNodeData => ({
+        ...createNode(),
+        path: {
+          d: "M0 0 L10 0 L10 10 Z",
+          offsetX: 0,
+          offsetY: 0,
+          fillColor: Float32Array.of(1, 0, 0, 1),
+          strokeWidth: 0,
+          ...(fillRule ? { fillRule } : {}),
+        },
+      });
+      renderPath(ck, recorder.canvas, node());
+      renderPath(ck, recorder.canvas, node());
+      expect(parsed).toBe(1);
+      expect(recorder.paths).toHaveLength(2);
+      expect(recorder.paths[0].path).toBe(recorder.paths[1].path);
+      expect(recorder.paths[0].path.isDeleted()).toBe(false);
+      renderPath(ck, recorder.canvas, node("evenodd"));
+      expect(parsed).toBe(2);
+      expect(recorder.paths[2].path).not.toBe(recorder.paths[0].path);
+    } finally {
+      ck.Path.MakeFromSVGString = make;
+    }
   });
 });
