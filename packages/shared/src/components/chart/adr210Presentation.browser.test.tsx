@@ -31,6 +31,7 @@ import { SKIA_PRIMITIVES } from "@composition/specs/renderers";
 import { COMPONENT_RULES_TABLE } from "../../catalog/generated/componentRulesTable";
 import { Chart } from "../Chart";
 import { RechartsChart } from "./RechartsChart";
+import { renderChartWindowTrack } from "./windowTrack";
 import { compareBoundaries } from "./chartBoundaryOracle";
 import "../styles/theme/preview-system.css";
 import "../styles/theme/shared-tokens.css";
@@ -104,6 +105,7 @@ function mountRuntime(
   root = createRoot(host);
   root.render(
     <RechartsChart
+      renderWindowTrack={renderChartWindowTrack}
       props={props}
       rows={rows}
       size={size}

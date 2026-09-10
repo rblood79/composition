@@ -110,6 +110,44 @@ function sceneInput(scene) {
 }
 
 /** storage state 의 origin 을 대상 base URL 로 복제한다 (localStorage 는 origin 별). */
+const PROFILE = args.includes("--profile");
+/** CDP 프로파일 → 함수별 self time (ms) 상위 40 + 파일별 합계 상위 20. */
+function summarizeProfile(profile) {
+  const byId = new Map(profile.nodes.map((n) => [n.id, n]));
+  const self = new Map();
+  const deltas = profile.timeDeltas ?? [];
+  for (let i = 0; i < profile.samples.length; i++) {
+    const node = byId.get(profile.samples[i]);
+    const f = node?.callFrame;
+    if (!f) continue;
+    const url = (f.url || "").replace(/^.*\/(src|node_modules)\//, "$1/").split("?")[0];
+    const key = `${f.functionName || "(anon)"} ${url}:${f.lineNumber + 1}`;
+    self.set(key, (self.get(key) ?? 0) + (deltas[i] ?? 0) / 1000);
+  }
+  // wasm(CanvasKit) self time 을 가장 가까운 src/ 조상 함수로 귀속 (누가 그리게 했나).
+  const parent = new Map();
+  for (const n of profile.nodes) for (const c of n.children ?? []) parent.set(c, n.id);
+  const wasmByCaller = new Map();
+  for (let i = 0; i < profile.samples.length; i++) {
+    let node = byId.get(profile.samples[i]);
+    if (!node || !/wasm/.test(node.callFrame.url || "")) continue;
+    let cur = node, owner = "(none)";
+    while (cur) {
+      const f = cur.callFrame;
+      if (f?.url && /\/src\//.test(f.url)) { owner = `${f.functionName || "(anon)"} ${f.url.replace(/^.*\/src\//, "src/").split("?")[0]}:${f.lineNumber + 1}`; break; }
+      cur = byId.get(parent.get(cur.id));
+    }
+    wasmByCaller.set(owner, (wasmByCaller.get(owner) ?? 0) + (deltas[i] ?? 0) / 1000);
+  }
+  const files = new Map();
+  for (const [k, v] of self) {
+    const file = k.slice(k.indexOf(" ") + 1).replace(/:\d+$/, "");
+    files.set(file, (files.get(file) ?? 0) + v);
+  }
+  const top = (m, n) => [...m].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k, v]) => [k, Number(v.toFixed(1))]);
+  return { totalMs: Number(([...self.values()].reduce((a, b) => a + b, 0)).toFixed(1)), functions: top(self, 40), files: top(files, 20), wasmByCaller: top(wasmByCaller, 20) };
+}
+
 function storageStateFor(baseUrl) {
   const state = loadStorageState(STORAGE_STATE);
   const origin = new URL(baseUrl).origin;
@@ -234,9 +272,21 @@ async function runOnce(browser, baseUrl, tag, scene = "group200") {
     const heapBefore = await page.evaluate(
       () => performance.memory?.usedJSHeapSize ?? null,
     );
+    // ADR-211 P4 — `--profile`: 측정 구간의 CDP CPU 프로파일 (함수별 self time 상위) 를 같이 남긴다.
+    const cdp = PROFILE ? await context.newCDPSession(page) : null;
+    if (cdp) {
+      await cdp.send("Profiler.enable");
+      await cdp.send("Profiler.setSamplingInterval", { interval: 200 });
+      await cdp.send("Profiler.start");
+    }
     await page.evaluate(() => window.__perfRecorder.start());
     await drive(OPS);
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
+    if (cdp) {
+      const { profile } = await cdp.send("Profiler.stop");
+      rec.profileTop = summarizeProfile(profile);
+      await cdp.detach();
+    }
     const heapAfter = await page.evaluate(
       () => performance.memory?.usedJSHeapSize ?? null,
     );
@@ -248,6 +298,9 @@ async function runOnce(browser, baseUrl, tag, scene = "group200") {
       scene,
       projectUrl: page.url(),
       inputHash,
+      // 프로파일 실행은 계측 비용이 섞인다 — 판정 집계에서 제외할 표지.
+      profiled: PROFILE,
+      ...(rec.profileTop ? { profileTop: rec.profileTop } : {}),
       renderFrameP95: summary.renderFrame?.p95 ?? null,
       renderFrameP50: summary.renderFrame?.p50 ?? null,
       renderFrameCount: summary.renderFrame?.count ?? null,

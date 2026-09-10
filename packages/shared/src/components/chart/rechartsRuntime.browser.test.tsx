@@ -11,6 +11,7 @@ import {
   type RectMark,
 } from "@composition/specs";
 import { RechartsChart } from "./RechartsChart";
+import { renderChartWindowTrack } from "./windowTrack";
 import { compareBoundaries } from "./chartBoundaryOracle";
 
 let root: Root;
@@ -56,6 +57,7 @@ async function check(patch: Partial<ChartProps>, source = rows) {
   root = createRoot(host);
   root.render(
     <RechartsChart
+      renderWindowTrack={renderChartWindowTrack}
       props={props}
       rows={source}
       size={size}

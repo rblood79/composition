@@ -254,6 +254,90 @@ export function renderIconPath(
 }
 
 /**
+ * ADR-211 P4 — SVG `d` → `Path` 캐시 (LRU · 개수/바이트 상한 · 퇴출 시 `delete()`).
+ *
+ * `MakeFromSVGString` 은 문자열 길이에 비례하는 wasm 파싱이다. 행 상한 200 을 없애자
+ * 640px 선/영역 차트 하나가 200 범주 × 4 시리즈 = path 문자열 33~65 KB 가 되고, 내용
+ * 재기록 때마다 다시 파싱해 `render.frame` p95 가 +8ms 났다 (group800 frame A/B,
+ * `renderPath` wasm 13 → 261 ms / 54 op). 같은 `d` 는 노드 데이터가 바뀌지 않는 한
+ * 같으므로 파싱 결과를 재사용한다. Path 는 그리기에 불변이라 공유해도 안전하다
+ * (`drawPath` 는 SkPath 를 값 복사 — 퇴출이 record 된 picture 를 깨지 않는다;
+ * `setFillType` 은 생성 시 한 번, 키에 포함).
+ *
+ * 상한은 자연 소멸이 없는 캐시의 규칙 (메모리 `feedback-content-key-cache-has-no-natural-death`).
+ * 개수와 바이트를 같이 건다 — 개수만 걸면 조각당 path 1개인 pie (200 범주 × 3개 = 600)
+ * 가 순차 접근에서 매 pass 전량 miss 하는 LRU 절벽이 생기고, 바이트만 걸면 소형
+ * path 수천 개가 Map churn 을 만든다. 4 MB 는 65 KB 급 path 60개 + 소형 수천 개.
+ */
+const SVG_PATH_CACHE_MAX_ENTRIES = 4096;
+const SVG_PATH_CACHE_MAX_BYTES = 4 * 1024 * 1024;
+interface SvgPathCache {
+  paths: Map<string, Path>;
+  bytes: number;
+}
+const svgPathCaches = new WeakMap<CanvasKit, SvgPathCache>();
+
+function svgPathCacheFor(ck: CanvasKit): SvgPathCache {
+  let cache = svgPathCaches.get(ck);
+  if (!cache) {
+    cache = { paths: new Map(), bytes: 0 };
+    svgPathCaches.set(ck, cache);
+  }
+  return cache;
+}
+
+/** 캐시 비우기 — 테스트 격리 · CanvasKit 인스턴스를 유지한 채 캔버스를 내릴 때. */
+export function clearSvgPathCache(ck: CanvasKit): void {
+  const cache = svgPathCaches.get(ck);
+  if (!cache) return;
+  for (const path of cache.paths.values()) path.delete();
+  cache.paths.clear();
+  cache.bytes = 0;
+}
+
+function acquireSvgPath(
+  ck: CanvasKit,
+  d: string,
+  fillRule: string | undefined,
+): Path | null {
+  const cache = svgPathCacheFor(ck);
+  const key = fillRule === "evenodd" ? `e|${d}` : d;
+  const hit = cache.paths.get(key);
+  if (hit) {
+    // LRU — 최근 사용을 뒤로.
+    cache.paths.delete(key);
+    cache.paths.set(key, hit);
+    if (process.env.NODE_ENV === "development") {
+      getCacheMetrics("svgPath").recordHit();
+    }
+    return hit;
+  }
+  const path = ck.Path.MakeFromSVGString(d);
+  if (!path) return null;
+  if (fillRule === "evenodd") path.setFillType(ck.FillType.EvenOdd);
+  cache.paths.set(key, path);
+  cache.bytes += key.length;
+  const metrics =
+    process.env.NODE_ENV === "development" ? getCacheMetrics("svgPath") : null;
+  while (
+    cache.paths.size > SVG_PATH_CACHE_MAX_ENTRIES ||
+    cache.bytes > SVG_PATH_CACHE_MAX_BYTES
+  ) {
+    const oldest = cache.paths.keys().next().value;
+    if (oldest === undefined) break;
+    cache.paths.get(oldest)?.delete();
+    cache.paths.delete(oldest);
+    cache.bytes -= oldest.length;
+    metrics?.recordEviction();
+  }
+  if (metrics) {
+    metrics.recordMiss("parse");
+    metrics.setSize(cache.paths.size);
+  }
+  return path;
+}
+
+/**
  * ADR-194 Phase 1 — 임의 SVG path 렌더.
  *
  * `Path.MakeFromSVGString` 은 CanvasKit 0.42.0 유지 API (ADR-117 Implemented 후에도
@@ -264,60 +348,6 @@ export function renderIconPath(
  * fill 과 stroke 는 배타가 아니라 가산 — 둘 다 지정되면 fill 후 stroke 를 얹는다
  * (SVG `<path fill stroke>` 동형).
  */
-/**
- * ADR-211 P4 — SVG `d` → `Path` 캐시 (LRU, 상한 고정 · 퇴출 시 `delete()`).
- *
- * `MakeFromSVGString` 은 문자열 길이에 비례하는 wasm 파싱이다. 행 상한 200 을 없애자
- * 640px 선/영역 차트 하나가 200 범주 × 4 시리즈 = path 문자열 33~65 KB 가 되고, 내용
- * 재기록 때마다 다시 파싱해 `render.frame` p95 가 +8ms 났다 (group800 frame A/B,
- * `renderPath` wasm 13 → 261 ms / 54 op). 같은 `d` 는 노드 데이터가 바뀌지 않는 한
- * 같으므로 파싱 결과를 재사용한다. Path 는 그리기에 불변이라 공유해도 안전하다
- * (`setFillType` 은 생성 시 한 번, 키에 포함). 상한은 자연 소멸이 없는 캐시의 규칙
- * (메모리 `feedback-content-key-cache-has-no-natural-death`).
- */
-const SVG_PATH_CACHE_LIMIT = 512;
-const svgPathCaches = new WeakMap<CanvasKit, Map<string, Path>>();
-
-function acquireSvgPath(
-  ck: CanvasKit,
-  d: string,
-  fillRule: string | undefined,
-): Path | null {
-  let cache = svgPathCaches.get(ck);
-  if (!cache) {
-    cache = new Map();
-    svgPathCaches.set(ck, cache);
-  }
-  const key = fillRule === "evenodd" ? `e|${d}` : d;
-  const hit = cache.get(key);
-  if (hit) {
-    // LRU — 최근 사용을 뒤로.
-    cache.delete(key);
-    cache.set(key, hit);
-    if (process.env.NODE_ENV === "development") {
-      getCacheMetrics("svgPath").recordHit();
-    }
-    return hit;
-  }
-  const path = ck.Path.MakeFromSVGString(d);
-  if (!path) return null;
-  if (fillRule === "evenodd") path.setFillType(ck.FillType.EvenOdd);
-  cache.set(key, path);
-  if (cache.size > SVG_PATH_CACHE_LIMIT) {
-    const oldest = cache.keys().next().value;
-    if (oldest !== undefined) {
-      cache.get(oldest)?.delete();
-      cache.delete(oldest);
-    }
-  }
-  if (process.env.NODE_ENV === "development") {
-    const metrics = getCacheMetrics("svgPath");
-    metrics.recordMiss("parse");
-    metrics.setSize(cache.size);
-  }
-  return path;
-}
-
 export function renderPath(
   ck: CanvasKit,
   canvas: Canvas,

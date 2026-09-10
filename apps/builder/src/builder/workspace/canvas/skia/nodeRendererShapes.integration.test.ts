@@ -2,13 +2,14 @@
 
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Canvas, CanvasKit, Paint, Path } from "canvaskit-wasm";
 import {
   renderArc,
   renderIconPath,
   renderPartialBorder,
   renderPath,
+  clearSvgPathCache,
 } from "./nodeRendererShapes";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 
@@ -85,6 +86,9 @@ describe("nodeRendererShapes 실제 CanvasKit 통합", () => {
 
   beforeAll(async () => {
     ck = await loadCanvasKit();
+  });
+  beforeEach(() => {
+    clearSvgPathCache(ck);
   });
 
   it("arc와 radius가 있는 partial border 4변 geometry 및 Path 해제를 보존한다", () => {

@@ -59,11 +59,6 @@ import { renderMark, renderText, seriesVar } from "./svgDecorations";
 import type { RenderChartWindowTrack } from "./windowTrack";
 
 /**
- * ADR-211 창 트랙 접근성 이름 — 두 leg 가 같은 영문 상수를 쓰는 `CHART_INVALID_SETTINGS_TEXT`
- * 와 같은 규약 (breakdown §2.7: 독립 Publish 는 i18n 런타임이 없다).
- */
-
-/**
  * 막대 하나 = `<path>` 하나 (ADR-210 P4). Recharts 기본 `Rectangle` 은 막대마다 ref 5개 · state ·
  * mount effect 의 `getTotalLength()` (강제 layout) · animationId 를 든다 — W800 에서 800번이라
  * static p95 가 100ms 를 넘겼다. 기하는 `getRectanglePath` 의 radius 0 분기와 같다.
@@ -147,8 +142,11 @@ export function RechartsChart({
   size: ChartSize;
   metrics: ChartMetrics;
   label: string;
-  /** ADR-211 창 트랙 — `Chart.tsx` 가 shared Slider 를 initial 번들에서 넘긴다 (`windowTrack.tsx`). */
-  renderWindowTrack?: RenderChartWindowTrack;
+  /**
+   * ADR-211 창 트랙 — `Chart.tsx` 가 shared Slider 를 initial 번들에서 넘긴다 (`windowTrack.tsx`).
+   * 필수: 이 청크가 Slider 를 직접 import 하면 청크 분리 (P4 번들 +2.5 KiB) 가 되돌아온다.
+   */
+  renderWindowTrack: RenderChartWindowTrack;
 }) {
   const reducedMotion = useSyncExternalStore(
     subscribeMotion,
@@ -1029,8 +1027,7 @@ export function RechartsChart({
   const track = model.layout.windowTrack;
   const win = model.budget.window;
   const maxStart = model.budget.n - model.budget.fitEff;
-  if (!track || !win || maxStart <= 0 || !presentation.ok || !renderWindowTrack)
-    return chart;
+  if (!track || !win || maxStart <= 0 || !presentation.ok) return chart;
   return (
     <>
       {chart}
