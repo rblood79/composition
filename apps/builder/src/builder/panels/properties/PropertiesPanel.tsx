@@ -1,4 +1,5 @@
-import { readDataBindingRows } from "@composition/shared";
+import { readDataBindingRows, resolveComponentRule } from "@composition/shared";
+import { CHART_DEFAULT_SERIES_COUNT, type ChartRow } from "@composition/specs";
 /**
  * PropertiesPanel - 속성 편집 패널
  *
@@ -17,6 +18,13 @@ import { useEditContract } from "./hooks/useEditContract";
 import { useCollections } from "../../stores/data";
 import { buildChartSemanticFields } from "./chartFieldOptions";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
+import { ChartDataMappingControls } from "./ChartDataMappingControls";
+import { ChartSeriesControls } from "./ChartSeriesControls";
+import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
+import {
+  chartColumnCandidates,
+  chartPresentationPatch,
+} from "./chartPresentationPatch";
 import { GenericFieldRenderer } from "./generic/GenericFieldRenderer";
 import {
   EmptyState,
@@ -83,6 +91,7 @@ import {
 } from "../../utils/canonicalRefResolution";
 import {
   useCanonicalPropertyChildren,
+  useCanonicalPropertyElement,
   useCanonicalPropertyElementType,
   useCanonicalPropertyDisplayName,
   useCanonicalPropertyElementsMap,
@@ -138,6 +147,14 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
 }) {
   const { t } = useI18n();
   const selectedChildren = useCanonicalPropertyChildren(elementId);
+  const selectedCanonicalNode = useCanonicalPropertyElement(elementId);
+  // ADR-210 — ref 인스턴스 여부 (시리즈 배열의 "명시 고정" 버튼 노출 조건).
+  const isChartRefInstance =
+    elementType === "Chart" &&
+    selectedCanonicalNode !== undefined &&
+    isCanonicalRefElement(
+      panelNodeToCanonicalRefNode(selectedCanonicalNode),
+    );
 
   // 편집 계약 단일 진입점 — semantic ∪ style 필드를 origin 태그와 함께 산출.
   const contract = useEditContract(elementId);
@@ -250,11 +267,30 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           contract.fields.map((field) => [field.key, field.currentValue]),
         )
       : {};
-  const sourceRowCount = chartValues.dataBinding
-    ? readDataBindingRows(chartValues.dataBinding, collections).length
+  const chartRows: readonly ChartRow[] = chartValues.dataBinding
+    ? (readDataBindingRows(chartValues.dataBinding, collections) as ChartRow[])
     : Array.isArray(chartValues.data)
-      ? chartValues.data.length
-      : 0;
+      ? (chartValues.data as ChartRow[])
+      : [];
+  const sourceRowCount = chartRows.length;
+  // ADR-210 — Chart 전용 컨트롤의 patch 는 배열을 **의미 비교**해 변경분만 남긴다 (공통
+  //   패널의 `!==` 필터는 스칼라 전제 — breakdown §2.2). `force` 는 ref 명시 고정 1회.
+  const handleChartPatch = useCallback(
+    (patch: Record<string, unknown>, force?: readonly string[]) => {
+      const changed = chartPresentationPatch(chartValues, patch, force);
+      if (Object.keys(changed).length > 0) handleSemanticPatch(changed);
+    },
+    // chartValues 는 contract 에서 파생 — contract 가 바뀌면 같이 바뀐다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contract, handleSemanticPatch],
+  );
+  const chartColumns =
+    elementType === "Chart"
+      ? chartColumnCandidates(chartValues, collections)
+      : null;
+  const chartPaletteLength =
+    resolveComponentRule("Chart")?.chart?.series.length ??
+    CHART_DEFAULT_SERIES_COUNT;
   const editorExtras =
     elementType === "Chart" ? (
       <>
@@ -263,6 +299,28 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           fields={semanticFields}
           onPatch={handleSemanticPatch}
           sourceRowCount={sourceRowCount}
+        />
+        {/* ADR-210 — 컨트롤의 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다:
+            key 가 없으면 Chart A 의 선택 화면이 Chart B 위에 남아 B 에 A 의 필드를 쓸 수 있다
+            (P2 판독 MEDIUM, ADR-137 stale selection 축). */}
+        <ChartDataMappingControls
+          key={`mapping:${elementId}`}
+          fields={semanticFields}
+          columns={chartColumns}
+          onPatch={handleChartPatch}
+        />
+        <ChartSeriesControls
+          key={`series:${elementId}`}
+          fields={semanticFields}
+          rows={chartRows}
+          paletteLength={chartPaletteLength}
+          isRefInstance={isChartRefInstance}
+          onPatch={handleChartPatch}
+        />
+        <ChartNumberFormatControls
+          key={`format:${elementId}`}
+          fields={semanticFields}
+          onPatch={handleChartPatch}
         />
       </>
     ) : (

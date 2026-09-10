@@ -3315,6 +3315,28 @@ const avatar: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
  * 행과 rule chart 채널은 scene-node 층이 `_chartRows` / `_chartRule` 로 주입한다
  * (`buildSpecNodeData` 의 `_containerWidth` 주입과 같은 자리, ADR-194 R8).
  */
+/** ADR-210 표시 설정 키 — DOM `Chart.tsx` destructure 와 같은 8개. */
+const CHART_PRESENTATION_KEYS = [
+  "dataMode",
+  "valueFields",
+  "seriesConfig",
+  "valueFormat",
+  "valueLocale",
+  "valueFractionDigits",
+  "valueCurrency",
+  "valuePercentUnit",
+] as const;
+
+function pickChartPresentationProps(
+  props: Record<string, unknown>,
+): Partial<ChartProps> {
+  const out: Record<string, unknown> = {};
+  for (const key of CHART_PRESENTATION_KEYS) {
+    if (props[key] !== undefined) out[key] = props[key];
+  }
+  return out as Partial<ChartProps>;
+}
+
 const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   const channel = props._chartRule as ChartRuleChannel | undefined;
   const width = parsePxValue(
@@ -3407,6 +3429,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       legendPosition:
         (props.legendPosition as ChartLegendPosition | undefined) ??
         CHART_DEFAULT_PROPS.legendPosition,
+      // ADR-210 — 표시 설정 8키. 미설정은 싣지 않는다 (specs 가 group/auto 로 읽는다).
+      //   검증은 `resolveChartPresentation` 이 하므로 여기서는 값을 그대로 넘긴다.
+      ...pickChartPresentationProps(props),
     },
     rows,
     { width, height },

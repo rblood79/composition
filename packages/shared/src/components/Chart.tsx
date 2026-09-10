@@ -19,6 +19,7 @@ import type {
   ChartStackType,
   ChartType,
   ChartLabelKey,
+  ChartProps as SpecChartProps,
   PolarGridType,
 } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
@@ -65,6 +66,16 @@ export interface ChartProps {
   showGrid?: boolean;
   showLegend?: boolean;
   legendPosition?: ChartLegendPosition;
+  // ── ADR-210 — 전부 선택적 (specs `ChartProps` 와 같은 뜻). 명시 destructure 가 필수다:
+  //   빠뜨리면 `...rest` 로 `<div>` 속성에 새어 나간다 (P0 inventory `Chart.tsx:300`).
+  dataMode?: SpecChartProps["dataMode"];
+  valueFields?: SpecChartProps["valueFields"];
+  seriesConfig?: SpecChartProps["seriesConfig"];
+  valueFormat?: SpecChartProps["valueFormat"];
+  valueLocale?: SpecChartProps["valueLocale"];
+  valueFractionDigits?: number;
+  valueCurrency?: string;
+  valuePercentUnit?: SpecChartProps["valuePercentUnit"];
   variant?: string;
   size?: "sm" | "md" | "lg";
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
@@ -169,6 +180,14 @@ export function Chart({
   showGrid,
   showLegend,
   legendPosition,
+  dataMode,
+  valueFields,
+  seriesConfig,
+  valueFormat,
+  valueLocale,
+  valueFractionDigits,
+  valueCurrency,
+  valuePercentUnit,
   variant = "default",
   size = "md",
   data,
@@ -187,6 +206,10 @@ export function Chart({
     () => ({ width: box.width, height: box.height }),
     [box.width, box.height],
   );
+  // 배열 props 는 **직렬화 키**로 안정화한다 — postMessage 가 같은 내용을 새 참조로
+  //   재전송해도 model·animation 이 재시작하지 않는다 (`rowsKey` 선례, breakdown §2.2).
+  const valueFieldsKey = JSON.stringify(valueFields ?? null);
+  const seriesConfigKey = JSON.stringify(seriesConfig ?? null);
   const chartProps = React.useMemo(
     () => ({
       isAnimationActive,
@@ -218,6 +241,23 @@ export function Chart({
       showGrid: showGrid ?? CHART_DEFAULT_PROPS.showGrid,
       showLegend: showLegend ?? CHART_DEFAULT_PROPS.showLegend,
       legendPosition: legendPosition ?? CHART_DEFAULT_PROPS.legendPosition,
+      // ADR-210 — 미설정 키는 싣지 않는다 (specs 가 미설정 = group/auto 로 읽는다).
+      ...(dataMode !== undefined ? { dataMode } : {}),
+      ...(valueFields !== undefined
+        ? { valueFields: JSON.parse(valueFieldsKey) as string[] }
+        : {}),
+      ...(seriesConfig !== undefined
+        ? {
+            seriesConfig: JSON.parse(
+              seriesConfigKey,
+            ) as SpecChartProps["seriesConfig"],
+          }
+        : {}),
+      ...(valueFormat !== undefined ? { valueFormat } : {}),
+      ...(valueLocale !== undefined ? { valueLocale } : {}),
+      ...(valueFractionDigits !== undefined ? { valueFractionDigits } : {}),
+      ...(valueCurrency !== undefined ? { valueCurrency } : {}),
+      ...(valuePercentUnit !== undefined ? { valuePercentUnit } : {}),
     }),
     [
       isAnimationActive,
@@ -249,6 +289,14 @@ export function Chart({
       showGrid,
       showLegend,
       legendPosition,
+      dataMode,
+      valueFieldsKey,
+      seriesConfigKey,
+      valueFormat,
+      valueLocale,
+      valueFractionDigits,
+      valueCurrency,
+      valuePercentUnit,
     ],
   );
 

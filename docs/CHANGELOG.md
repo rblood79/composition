@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-210 P1/P2 — 차트 다중 수치 컬럼 · 시리즈 표시 · 숫자 형식 (In Progress)] - 2026-09-10
+
+### Added
+
+- Chart Properties 에 **시리즈 원천** (그룹 필드 / 값 컬럼) 이 생겼다. 값 컬럼 모드는 `{month, desktop, mobile}` 같은 wide 표의 수치 컬럼을 골라 각 컬럼을 시리즈로 그린다 (Bar/Line/Area/Radar — Pie/Radial 은 비활성 + 사유). 원본 행은 변환·저장하지 않고, 같은 범주는 기존처럼 합산한다. 기존 그룹 모드 문서는 아무것도 바뀌지 않는다 (opt-in).
+- **시리즈 설정**: 시리즈 표시 이름 · 팔레트 색 (`--chart-series-1..8` 토큰) · 순서 (위/아래). 순서는 누적·묶음 배치·범례·툴팁에 같이 적용된다. 숨은 시리즈의 설정은 보존됐다가 재등장 시 회복된다. 범주별 색 모드 (Pie · 단일 시리즈 Radial · Bar Color By=Category) 에서는 사유만 보인다.
+- **숫자 형식**: Auto / 소수 / 통화 (ISO 코드) / 퍼센트 (비율·퍼센트 값 단위) + 숫자 로케일 (en-US/ko-KR) + 소수 자릿수. 값 라벨·축·툴팁·도넛 합계 문자열만 바뀌고 기하는 그대로다. 100% 누적 축은 형식을 켜면 항상 `%` 다. Auto 는 기존 문자열 그대로.
+- 잘못된 설정 (값 필드 없음 · Pie+값 컬럼 · 통화 코드 없음 등) 은 조용히 다른 뜻으로 그리지 않고 "Check chart settings" 안내로 멈춘다 (데이터 보존).
+
+### Validation
+
+- specs chart 274/274 · shared catalog 517/517 · builder unit 714 files/5,685 · chart Chromium 180/180 · type-check PASS. 실제 빌더 live (`apps/builder/scripts/adr210-chart-p2-live.mjs`) 6/6 — 패널 mount → 값 컬럼 적용 (canonical 단일 patch, Skia 픽셀 변화) → Undo 1회 복귀 → 통화 묶음 저장 → reload 보존.
+- 구버전 (`305e4c4f7`) 은 새 설정을 무시한다: 기존 문서는 byte 동일, 새 columns 문서는 빈 차트 또는 legacy 값 필드 단일 시리즈 (데이터 손실 0, 무손실 rollback 미지원 — 업데이트 전 백업 복원이 지원 경로). Preview 의 축 눈금·툴팁 이름 형식 결선과 접근성·publish 검증은 P3 (미완).
+
 ## [ADR-209 후속 완료 — B안 승인 및 G5/G6 종결] - 2026-09-10
 
 ### Validation

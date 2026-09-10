@@ -1,6 +1,6 @@
 # ADR-210 상세 설계 — 다중 수치 컬럼과 시리즈 표시
 
-2026-09-10 · **round 2 수리 검증 승인 · P0/G0 · P1/G1 PASS · P2 이후 미실행**. [상위 ADR](../210-chart-multi-field-series-presentation.md), [대상 조사](../../explanation/research/CHART_EXTENSION_SCOPE_RESEARCH_2026-09.md). 아래 함수/새 필드/파일명은 제안이며 현행 구현으로 인용하지 않는다.
+2026-09-10 · **round 2 수리 검증 승인 · P0/G0 · P1/G1 · P2/G2 PASS · P3 이후 미실행**. [상위 ADR](../210-chart-multi-field-series-presentation.md), [대상 조사](../../explanation/research/CHART_EXTENSION_SCOPE_RESEARCH_2026-09.md). 아래 함수/새 필드/파일명은 제안이며 현행 구현으로 인용하지 않는다.
 
 ## 1. 범위·선행 관계
 
@@ -137,7 +137,7 @@ P0에서 실제 paint 소비자 경로·필요 파일을 확정한다. 공통 ki
 | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
 | P0    | 공식 대표 shadcn multiple/format 예제 source revision과 screenshot 고정, pinned Recharts4종 spike, catalog/semantic/ref/token 결선 inventory, 기존 group baseline | G0 **PASS** (2026-09-10, ADR 실행 기록) |
 | P1    | 신규 optional props validator·공통 model·identity·format·정규화·diagnostics. T01–05/T08/T12                                                                       | G1 **PASS** (2026-09-10, ADR 실행 기록) |
-| P2    | 실제 Properties mode/fields/series/format, 타입 안내, semantic patch/Undo/ref/hydration. T06/T07/T09                                                              | G2                |
+| P2    | 실제 Properties mode/fields/series/format, 타입 안내, semantic patch/Undo/ref/hydration. T06/T07/T09                                                              | G2 **PASS** (2026-09-10, ADR 실행 기록) |
 | P3    | Canvas/Preview/Publish 소비·메모 의존성·theme/label/tooltip·locale·accessibility. T10/T11 및4종wide+6종legacy                                                     | G3                |
 | P4    | 최종clean revision 번들/성능/production network. T13; 전체 예산 정책 재판정                                                                                       | G4                |
 | P5    | focused suite/preflight/live/review·rollback 제한·ADR/README/CHANGELOG 정합                                                                                       | G5                |
@@ -190,7 +190,7 @@ manifest는 SHA/lock hash/dirty/도구·브라우저·기기/entry 정적·dynam
 | m4       | §2 순서=grid 기하 순서, 기본 색 분리                        | T04 stack/dodge 실제 기대값                            |
 | m5       | 상위 ADR Risks별 경로 연결                                  | 수리 재리뷰                                            |
 | l1/l2/l3 | default 비저장·isOverridden 한계·최소0/최대2·현행 주입 순서 | G0/P1 실제 소비                                        |
-| l4       | T07에 descendant ref 선택→편집→reset→Undo→reload 추가       | P2: origin 불변 가설을 실제 synthetic 선택 경로로 반증 |
+| l4       | T07에 descendant ref 선택→편집→reset→Undo→reload 추가       | P2 종결: 반증 실패 (origin·형제 불변, `adr210ChartPresentationStore.test.ts`) |
 | l5/l6    | before SHA·분리 worktree·G4 공학/정책 분리                  | P4 측정 및 필요한 사용자 결정                          |
 
 P1 진입 전 h1/m1/m4/m5에 대한 수리 검증 1회가 필요하다. P0·제품 테스트·build·live는 이번 문서 반영에서 실행하지 않았다.

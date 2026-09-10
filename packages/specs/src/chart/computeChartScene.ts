@@ -29,10 +29,7 @@ import {
   r2,
 } from "./scales";
 import { formatChartNumber, resolveChartPresentation } from "./presentation";
-import type {
-  ChartDiagnostic,
-  ResolvedChartPresentation,
-} from "./presentation";
+import type { ResolvedChartPresentation } from "./presentation";
 import { buildSeriesGrid, seriesLabel, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
 import {
@@ -43,6 +40,7 @@ import {
 } from "./tooltip";
 import type { StackMode } from "./series";
 import type {
+  ChartDiagnostic,
   ChartLabelFormatter,
   ChartMetrics,
   ChartProps,

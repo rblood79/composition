@@ -40,6 +40,12 @@ interface PropertySelectProps {
    * 활성화하지 않는다.
    */
   optionValueMode?: "legacy" | "literal";
+  /**
+   * 선택 불가 항목의 **옵션 값** (ADR-210 — columns 모드의 Pie/Radial). RAC `Select`
+   * 의 `disabledKeys` 로 그대로 전달하며 (literal 모드는 UI key 로 변환) reset/literal/
+   * 키보드 계약은 바꾸지 않는다. 사유 문구는 호출부가 별도 hint 로 둔다.
+   */
+  disabledKeys?: readonly string[];
   icon?: React.ComponentType<{
     color?: string;
     size?: number;
@@ -69,6 +75,7 @@ export const PropertySelect = memo(
     options,
     translateOptions = true,
     optionValueMode = "legacy",
+    disabledKeys,
     icon: Icon,
     className,
     popoverWidthMode = "fit-content",
@@ -137,6 +144,13 @@ export const PropertySelect = memo(
             }
             onSelectionChange={handleChange}
             aria-label={displayLabel}
+            disabledKeys={
+              disabledKeys && disabledKeys.length > 0
+                ? disabledKeys.map((key) =>
+                    optionValueMode === "literal" ? literalKey(key) : key,
+                  )
+                : undefined
+            }
           >
             <Button className="react-aria-Button" ref={triggerRef}>
               {Icon && (
@@ -207,6 +221,7 @@ export const PropertySelect = memo(
       prevProps.options === nextProps.options &&
       prevProps.translateOptions === nextProps.translateOptions &&
       prevProps.optionValueMode === nextProps.optionValueMode &&
+      prevProps.disabledKeys === nextProps.disabledKeys &&
       prevProps.popoverWidthMode === nextProps.popoverWidthMode
     );
   },

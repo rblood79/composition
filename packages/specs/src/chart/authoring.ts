@@ -6,7 +6,23 @@ import type {
   ChartAnimationEasing,
 } from "./types";
 
-type VisualPatch = Partial<ChartProps>;
+/**
+ * 프리셋/종류 변경 patch — **시각 props 만**. ADR-210 의 표시 설정 (모드·필드·시리즈·
+ * 형식) 은 프리셋이 덮어쓰지 않는다 (breakdown §2.3 4).
+ */
+type VisualPatch = Partial<
+  Omit<
+    ChartProps,
+    | "dataMode"
+    | "valueFields"
+    | "seriesConfig"
+    | "valueFormat"
+    | "valueLocale"
+    | "valueFractionDigits"
+    | "valueCurrency"
+    | "valuePercentUnit"
+  >
+>;
 export interface ChartPreset {
   id: string;
   label: string;

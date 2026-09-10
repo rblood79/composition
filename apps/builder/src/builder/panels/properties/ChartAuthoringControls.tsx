@@ -11,6 +11,9 @@ import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
 
+/** ADR-210 — columns 모드가 지원하지 않는 종류 (breakdown §2.3 3). */
+const COLUMNS_UNSUPPORTED_TYPES: readonly string[] = ["pie", "radial"];
+
 /** 프리셋/종류 변경은 일반 필드와 같은 canonical batch writer를 한 번 호출한다. */
 export const ChartAuthoringControls = memo(function ChartAuthoringControls({
   fields,
@@ -28,6 +31,10 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
   );
   const descriptor = getChartDescriptor(props.chartType);
   const presetId = getChartPresetId(descriptor.chartType, props);
+  // ADR-210 — columns 모드에서 Pie/Radial 은 지원하지 않는다: 항목을 비활성화하고 사유를
+  //   둔다 (조용히 group 으로 바꾸지 않는다). group 으로 전환한 뒤에는 고를 수 있다.
+  const columnsMode = props.dataMode === "columns";
+  const unsupportedTypes = columnsMode ? COLUMNS_UNSUPPORTED_TYPES : undefined;
   return (
     <>
       <PropertySelect
@@ -69,11 +76,18 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
             value: item.chartType,
             label: item.label,
           }))}
+          disabledKeys={unsupportedTypes}
           onChange={(value) => {
+            if (unsupportedTypes?.includes(value)) return;
             onPatch({ chartType: value });
             setChangingType(false);
           }}
         />
+      )}
+      {changingType && columnsMode && (
+        <p className="chart-authoring-hint" role="note">
+          {t("chart.typeUnavailableInColumns")}
+        </p>
       )}
       {sourceRowCount > CHART_SAMPLE_ROWS && (
         <p className="chart-authoring-hint" role="status">

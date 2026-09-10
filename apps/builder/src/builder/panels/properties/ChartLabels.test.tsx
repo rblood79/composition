@@ -163,8 +163,10 @@ it("collection 선택 값 Value/Series는 한국어 라벨과 별개로 원문 �
     page_id: "page-1",
   };
   seedPanelElements([element]);
+  // `dataMode` 는 조건 키 (ADR-210 `metric/color.visibleWhen`) — 계약 밖이면 `undefined` 로
+  //   판정돼 두 필드가 숨는다. 패널은 semantic 필드 전부를 넘기므로 여기서도 같이 넘긴다.
   const fields = resolveEditContract(element)
-    .fields.filter((f) => ["metric", "color"].includes(f.key))
+    .fields.filter((f) => ["metric", "color", "dataMode"].includes(f.key))
     .map((field) => ({
       ...field,
       kind: "enum" as const,

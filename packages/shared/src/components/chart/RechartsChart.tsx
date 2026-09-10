@@ -89,6 +89,9 @@ export function RechartsChart({
   );
   // postMessage가 같은 배열 내용을 재전송해도 Recharts의 animation identity를 유지한다.
   const rowsKey = useMemo(() => JSON.stringify(rows), [rows]);
+  // ADR-210 — 배열 props 는 직렬화 키로 (Chart.tsx 가 이미 안정화하지만 이 경계도 같은 규칙).
+  const valueFieldsKey = JSON.stringify(props.valueFields ?? null);
+  const seriesConfigKey = JSON.stringify(props.seriesConfig ?? null);
   const model = useMemo(
     () => resolveChartData(rows, props, metrics.seriesCount),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -99,6 +102,15 @@ export function RechartsChart({
       props.color,
       props.chartType,
       props.stackType,
+      props.colorBy,
+      props.dataMode,
+      valueFieldsKey,
+      seriesConfigKey,
+      props.valueFormat,
+      props.valueLocale,
+      props.valueFractionDigits,
+      props.valueCurrency,
+      props.valuePercentUnit,
       metrics.seriesCount,
     ],
   );

@@ -4,3 +4,44 @@
   font-size: var(--text-xs);
   line-height: 1.4;
 }
+
+/* ADR-210 — 값 필드 목록 · 시리즈 설정 · 형식 묶음 Apply */
+.chart-authoring-actions {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-xs) 0;
+}
+
+.chart-value-fields-list,
+.chart-series-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.chart-value-field,
+.chart-series-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.chart-value-field-name,
+.chart-series-key {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+}
+
+.chart-authoring-square {
+  width: var(--inspector-control-size);
+  padding: 0;
+}

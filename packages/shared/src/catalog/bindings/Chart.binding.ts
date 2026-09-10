@@ -64,11 +64,107 @@ export const chartBinding: PrimitiveBinding = {
         label: "Value",
         section: "content",
         default: "value",
+        // ADR-210 — columns 모드는 값 필드 목록(`valueFields`)이 값 축이다. legacy metric
+        //   은 휴면 보존되지만 편집 화면에서는 숨긴다 (breakdown §4.1).
+        visibleWhen: { key: "dataMode", equals: "group" },
       },
       color: {
         kind: "string",
         label: "Series",
         section: "content",
+        visibleWhen: { key: "dataMode", equals: "group" },
+      },
+      /**
+       * ── ADR-210 — 다중 수치 컬럼·시리즈 표시·숫자 형식 ──
+       *
+       * 전부 **선택적**이고 catalog default 는 투영/편집 화면의 읽기 기본값일 뿐 canonical
+       * 에 쓰지 않는다 (`CHART_DEFAULT_PROPS` 에도 없다). 여기 선언하는 것이 DOM 투영의
+       * 통과 조건이다 (`toRacProps` 는 accepts 키만 투영 — 위 `data` 주석의 같은 함정).
+       * 복합 편집 (모드 전환 popover · 시리즈 목록 · 형식 묶음 Apply) 은 Chart 전용
+       * 컨트롤 (`ChartDataMappingControls` 등) 이 맡으므로 generic 필드는 `editorHidden`.
+       * 검증·정규화는 specs `resolveChartPresentation` 한 곳이다.
+       */
+      dataMode: {
+        kind: "enum",
+        label: "Data Mode",
+        section: "content",
+        default: "group",
+        editorHidden: true,
+        options: [
+          { value: "group", label: "Group Field" },
+          { value: "columns", label: "Value Columns" },
+        ],
+      },
+      valueFields: {
+        kind: "string-array",
+        label: "Value Fields",
+        section: "content",
+        editorHidden: true,
+      },
+      seriesConfig: {
+        kind: "items-manager",
+        label: "Series",
+        section: "content",
+        editorHidden: true,
+        itemsManager: {
+          itemsKey: "seriesConfig",
+          itemTypeName: "ChartSeriesConfig",
+          defaultItem: { key: "" },
+          itemSchema: [
+            { key: "key", type: "string", label: "Series" },
+            { key: "label", type: "string", label: "Display Name" },
+            { key: "colorToken", type: "string", label: "Palette Color" },
+          ],
+          labelKey: "label",
+        },
+      },
+      valueFormat: {
+        kind: "enum",
+        label: "Number Format",
+        section: "content",
+        default: "auto",
+        editorHidden: true,
+        options: [
+          { value: "auto", label: "Auto (default)" },
+          { value: "decimal", label: "Decimal" },
+          { value: "currency", label: "Currency" },
+          { value: "percent", label: "Percent" },
+        ],
+      },
+      valueLocale: {
+        kind: "enum",
+        label: "Number Locale",
+        section: "content",
+        editorHidden: true,
+        options: [
+          { value: "en-US", label: "en-US" },
+          { value: "ko-KR", label: "ko-KR" },
+        ],
+      },
+      valueFractionDigits: {
+        kind: "number",
+        label: "Fraction Digits",
+        section: "content",
+        editorHidden: true,
+        min: 0,
+        max: 6,
+        step: 1,
+      },
+      valueCurrency: {
+        kind: "string",
+        label: "Currency Code",
+        section: "content",
+        editorHidden: true,
+      },
+      valuePercentUnit: {
+        kind: "enum",
+        label: "Percent Unit",
+        section: "content",
+        editorHidden: true,
+        options: [
+          { value: "ratio", label: "Ratio (0.25 = 25%)" },
+          { value: "percentagePoints", label: "Points (25 = 25%)" },
+        ],
       },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).
       dataBinding: { kind: "binding", label: "Data", section: "content" },
@@ -191,6 +287,16 @@ export const chartBinding: PrimitiveBinding = {
           { value: "series", label: "Series" },
           { value: "category", label: "Category" },
         ],
+        // ADR-210 — columns 는 시리즈 색뿐이다 (범주색 조합 미지원, breakdown §3). 미설정
+        //   dataMode 는 default "group" 이 conditionValues 에 채워져 기존 노출 그대로다.
+        //   bar 조건은 오라클 (`chartVisibleWhen.test.ts` "조건을 단 prop 은 읽힌다") 의
+        //   요구다 — `colorBy` 는 bar 만 읽는다 (computeChartScene legend/buildBarMarks).
+        visibleWhen: {
+          all: [
+            { key: "chartType", equals: "bar" },
+            { key: "dataMode", equals: "group" },
+          ],
+        },
       },
       innerRadius: {
         kind: "number",
@@ -347,6 +453,14 @@ export const chartBinding: PrimitiveBinding = {
       "dimension",
       "metric",
       "color",
+      "dataMode",
+      "valueFields",
+      "seriesConfig",
+      "valueFormat",
+      "valueLocale",
+      "valueFractionDigits",
+      "valueCurrency",
+      "valuePercentUnit",
       "orientation",
       "stackType",
       "curve",
