@@ -40,6 +40,22 @@ useDataStore (stores/data.ts)          (field.key === "dataBinding")   Preview D
 - `getElementDataBinding` (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts`) — canonical node → dataBinding 단일 추출점.
 - ListBox 등의 data-bound authoring mode + template anchor (`layers/listBoxRowProjection.ts`) — item 템플릿 구조 기존재.
 
+### 1-5. 재측정 정정 (2026-09-11 — 착수 금지 해제 + scope 확장)
+
+| 항목                           | 실측 (경로:라인)                                                                                                                                                                                | 영향                                                                          |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| collection DI provider         | `apps/builder/src/preview/App.tsx:1412` · `apps/publish/src/App.tsx:1` — `CollectionDataProvider` + `createCollectionSnapshotServices` (ADR-209)                                                | Phase 3 선행 항목 2개 **삭제** · Phase 6 provider 항목 삭제 (snapshot 형식만) |
+| name resolve                   | `packages/shared/src/hooks/useCollectionData.tsx:306` (dataTable) · `:324,338` (api)                                                                                                            | Phase 1 원안 유지                                                             |
+| `DataField`                    | `apps/builder/src/types/builder/data.types.ts:31` — `{ key, type, label?, required?, defaultValue?, children? }` id 없음                                                                        | **Phase 1 에 `id` 추가** (§2-1)                                               |
+| `{field}` 템플릿 저장형        | `packages/shared/src/collections/fieldTemplate.ts` (ADR-159) — 이름 문자열 파싱                                                                                                                 | 저장형 변환기 (§2-2)                                                          |
+| `ApiEndpoint.targetCollection` | `data.types.ts` 이름 문자열 · sink `stores/utils/dataActions.ts` 실행기                                                                                                                         | `targetCollectionId` additive                                                 |
+| History                        | `builder/stores/history.ts:108` `HistoryEntry { type: 13종, elementId 필수 }` · `useDataStore` 참조 0                                                                                           | **Phase 1c** `type:"data"` entry (§2-3)                                       |
+| legacy store 소비처            | `stores/datatable.ts` · `components/data/DataTable.tsx:47-50` · `main/BuilderCore.tsx:883,1007,1085`                                                                                            | Phase 5 소비처 3 파일 대체                                                    |
+| React Query 병행               | `hooks/useDataQueries.ts` (`useDataPanelQuery`) · `panels/datatable/DataTablePanel.tsx` (store fetch 3종과 동시 호출)                                                                           | Phase 5 에 포함                                                               |
+| Track 0 선수리                 | `66f9cb28b` — 기본 dataPath 빈 값 + 응답 배열 자동 감지 (`utils/data/responseData.ts`) · key rename 시 행 migrate (`utils/data/schemaMigration.ts`) · 편집기 폭 560 · prompt/confirm/alert 제거 | rename 행 migrate 는 적용기의 한 op 로 흡수                                   |
+
+**Fork 4 질문 lock-in (사용자 confirm 2026-09-11 — 리서치 §5 판정 ①·③)**: ① 본 ADR = **base** (참조 계약 + 적용기), ADR-212 (편집기 UI) · 213 (tool 계약) · 214 (Variables) = 응용. ② schema 직교 — 본 ADR 은 `PropertyDataBinding` · `DataField` · `DataChange`, 응용은 이를 소비만. ③ 의존 방향: 152 → 212/213, 214 는 canonical 문서 (요소 소유 변수) 축이라 152 와 직교, `Data` 패널 표면만 212 와 공유. ④ codex 1차 진입 전 본 lock-in 완료.
+
 ## 2. Binding 계약 v2 (Phase 1 산출물)
 
 ```ts
@@ -75,6 +91,55 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 저장 시점 upgrade: Inspector 에서 binding 편집 commit 시 `collectionId` 를 항상 채움 — 기존 프로젝트는 로드만으로 재직렬화 0건 (lazy).
 
+### 2-1. `DataField.id` (v2.1, 2026-09-11)
+
+```ts
+// apps/builder/src/types/builder/data.types.ts — additive
+export interface DataField {
+  /** v2.1: 안정 참조 — 로드 시 lazy 부여 (`useDataStore` hydrate 한 곳), 저장 시 기록 */
+  id?: string;
+  key: string; // 행 key · 표시 이름 (rename 은 key 만 바꾼다)
+  // … 기존 필드
+}
+// fieldMap 값 · 차트 시리즈 필드 · targetCollection 은 id 를 담는다:
+fieldMap?: { value?: string /* fieldId */; icon?: string /* fieldId */ };
+// ApiEndpoint
+targetCollectionId?: string; // v2.1 — targetCollection(이름) 은 read fallback
+```
+
+resolve: `resolveField(schema, ref)` — `id` 매치 → `key` 매치 (v1 fallback) → null. **직접 `schema.find(f => f.key === …)` 패턴은 grep 가드** (Phase 1 정적 가드에 추가).
+
+### 2-2. `{field}` 템플릿 저장형 (v2.1)
+
+사용자 문법은 ADR-159 그대로 `{name}` · `{name.first}` — 편집기가 보여주는 것도 이름. 저장형만 `{#<fieldId>}` (ADR-159 파서에 `#` prefix 분기 1개). 변환기 `templateToStored(template, schema)` / `storedToTemplate(stored, schema)` 는 `packages/shared/src/collections/fieldTemplate.ts` 옆 1개 모듈. 렌더 경로 (`resolveFieldTemplate`) 는 저장형을 받아 id 로 행을 읽는다 — rename 시 렌더가 바뀔 것이 없다. id 가 없는 필드 (구 문서) 는 이름 그대로 통과.
+
+### 2-3. `DataChange` 적용기 (v2.1)
+
+```ts
+// packages/shared/src/schemas/dataChange.ts (ADR-213 tool input_schema · export envelope 검증과 같은 스키마)
+type DataOp =
+  | { op: "create_collection"; name; schema: DataField[]; rows?; source? }
+  | { op: "add_field"; collectionId; field: DataField; index? }
+  | { op: "update_field"; collectionId; fieldId; patch: Partial<DataField> } // key 변경 = rename
+  | { op: "remove_field"; collectionId; fieldId } // 사람 UI 전용 (213 tool 은 노출 안 함)
+  | { op: "set_cell"; collectionId; rowIndex; fieldId; value }
+  | { op: "insert_rows"; collectionId; rows; at? }
+  | { op: "remove_rows"; collectionId; rowIndexes }
+  | { op: "replace_rows"; collectionId; rows } // CSV replace
+  | { op: "set_source"; collectionId; source: "manual" | "api"; endpointId? }
+  | { op: "define_endpoint"; endpoint: ApiEndpointDraft }
+  | { op: "bind_element"; elementId; collectionId; fieldMap? };
+interface DataChange {
+  ops: DataOp[];
+  origin: "user" | "import" | "ai" | "agent";
+  label?: string;
+}
+```
+
+적용기 `applyDataChange(change)` (`apps/builder/src/builder/stores/utils/dataChange.ts`) 순서: (a) 스키마 검증 (zod, 같은 스키마) → (b) 파급 — `update_field.key` 는 `renameRowsKey` 로 행 migrate (Track 0 자산), 참조는 id 라 무변경; `remove_field` 는 사용처 수 반환 (UI 가 확인) → (c) `HistoryEntry { type: "data", elementId: collectionId, data: { dataChange, inverse } }` 1개 → (d) `useDataStore` 갱신 + IndexedDB → (e) `syncCollectionsToCanvas`. undo = `inverse` ops 를 origin `"user"` 로 재적용 (History 기록 없이).
+
+기존 액션 (`updateCollection` · `createDataTable` · `deleteDataTable` · `createApiEndpoint` …) 은 적용기의 얇은 wrapper 로 남긴다 — 호출부 변경 0.
+
 ## 3. Phase 계획
 
 ### Phase 0 — Inventory freeze (착수 게이트 G0)
@@ -92,7 +157,26 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 - [ ] Skia 측 소비 (`getElementDataBinding` 하류 — `resolveCollectionItems` 입력 정규화 지점) 동일 헬퍼 경유
 - [ ] Inspector commit 시 collectionId upgrade 반영 (`PropertyDataBinding.tsx` onChange)
 - [ ] binding write 저장 위치 정규화 — `props.dataBinding` 단일 위치 (legacy top-level `element.dataBinding` 은 read fallback 만 유지). **Why**: scene projection signature 는 `props` 만 포함 (`buildSceneSnapshot.ts:49-66`) — top-level 만 가진 요소는 binding 변경이 sceneVersion 미감지 (격차6)
+- [ ] (v2.1) `DataField.id` additive + hydrate 한 곳 lazy 부여 (`useDataStore` load) — preview/publish/export 는 부여된 schema 만 받음 (R8 test: snapshot 생성 전 부여)
+- [ ] (v2.1) `resolveField` 헬퍼 + `schema.find(key)` 직접 패턴 grep 가드
+- [ ] (v2.1) `ApiEndpoint.targetCollectionId` additive — 실행기 sink 는 id 우선 · 이름 fallback
 - [ ] 정적 가드: `propertyBinding.name` 으로 collections find 하는 직접 패턴 grep 0건 test
+
+### Phase 1b — `{field}` 템플릿 저장형 + 차트 시리즈 fieldId (게이트 G4)
+
+- [ ] `fieldTemplate.ts` 파서 `{#id}` 분기 + `templateToStored` / `storedToTemplate` 변환기 (id 없는 필드는 통과)
+- [ ] `PropertyFieldTemplateInput` 이 편집 시 이름 문법 ↔ 저장형 변환 (사용자는 id 를 보지 않는다)
+- [ ] `resolveFieldTemplate` 렌더 경로가 저장형을 id 로 읽음 — Skia projection · DOM wrapper 같은 함수
+- [ ] ADR-210 차트 시리즈 필드 지정 (`packages/specs/src/chart/` 정규화 입력) 을 fieldId 로 — 이름 fallback
+- [ ] G4 live: rename 후 Skia · DOM · 차트 값 유지 + 구 문서 로드 재직렬화 0
+
+### Phase 1c — `DataChange` 적용기 + History (게이트 G5)
+
+- [ ] `packages/shared/src/schemas/dataChange.ts` (zod + JSON Schema 동일 소스 — ADR-213 이 tool `input_schema` 로 재사용)
+- [ ] `applyDataChange` 적용기 + `inverse` 생성 (op 별 역연산 표)
+- [ ] `HistoryEntry.type` 에 `"data"` 추가 — undo/redo dispatcher 가 type 으로 먼저 분기 (R9 test: data entry 가 element 경로 미도달)
+- [ ] 기존 `dataActions.ts` 액션을 적용기 wrapper 로 (호출부 변경 0) — `DataTableEditor` 셀/행/CSV 경로가 자동으로 History 에 실림
+- [ ] G5 live: 4종 편집 → `⌘Z` × 4 원상 · `⌘⇧Z` × 4 재적용
 
 ### Phase 2 — Inspector column mapping UI
 
@@ -106,8 +190,7 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 > **선행 조건 (2026-08-17 추가 — ADR 본문 격차 7 / R7)**: 아래 fieldMap 작업 **전에** collection DI provider 를 preview 에 마운트해야 한다. 현재 `CollectionDataProvider` 는 repo 어디에도 렌더되지 않아 `dataTableService` 가 항상 `undefined` 이고, 그 결과 `source:"dataTable"` 바인딩이 DOM 에서 **0행 + 영구 loading** 이다 (Skia 는 같은 바인딩을 100행으로 투영 — 실측 대조는 본문 §격차 7 실측 근거). 이 상태로 G2 `/cross-check` 를 돌리면 fieldMap 과 무관한 이유로 실패하므로 **fieldMap 을 고치는 오진**으로 이어진다.
 
-- [ ] **(선행)** preview 에 collection DI provider 마운트 — `apps/builder/src/preview/App.tsx` 가 `CollectionDataProvider` 로 트리를 감싸고 `dataTableService` 를 runtime 의 collections(`runtimeStore.collections`, postMessage 수신본)로 공급. Skia 축이 `useDataStore.collections` 를 직접 읽는 것(`BuilderCanvas.tsx:234`)과 **동일 스냅샷**을 보게 하는 것이 목적
-- [ ] **(선행)** 배선 직후 대칭 확인 — 같은 바인딩에서 Skia row 수 == DOM row 수 (실측 기준값: `Users` 100 / `Roles` 5 / `Invitations` 5)
+- [x] ~~**(선행)** preview 에 collection DI provider 마운트~~ → **ADR-209 로 완료 (2026-09-11 확인, `preview/App.tsx:1412`)**. 위 선행 조건 문단은 이력. Phase 3 첫 항목은 대칭 재확인 1회 (Skia row 수 == DOM row 수) 로 축소
 - [ ] `resolveCollectionItems.ts` — `getItemLabel/Value/Description/Icon` 에 fieldMap 인자 추가 (미지정 시 기존 휴리스틱 그대로 — 시그니처 BC 유지 방식은 options 객체)
 - [ ] Skia projector 경로 + DOM wrapper 경로 양쪽이 fieldMap 을 동일 지점에서 전달하는지 확인 (단일 계약이므로 호출부 2곳)
 - [ ] ListBox / Table / Select 3종: mockData + fieldMap 지정 → Builder Skia ↔ Preview DOM label 동일 — `/cross-check` PASS (G2)
@@ -124,12 +207,14 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 - [ ] `datatableId` 경로: 실사용 0~4건이면 `useCollectionData` 에서 deprecate 주석 + 신규 진입 차단 (호출부 제거), 5건+ 이면 데이터 마이그레이션 단계 추가 (사용자 확인 후)
 - [ ] legacy `DataBinding type:"collection"` static/api 분기: PropertyDataBinding 형식으로 변환 헬퍼 제공 후 load callback 분기 축소
+- [ ] (v2.1) legacy `useDataTableStore` 소비처 3 파일 대체 — `components/data/DataTable.tsx:47-50` (register/load/updateConfig → `useDataStore` + `useCollectionData`) · `main/BuilderCore.tsx:883,1007,1085` (dataTableStates · consumers 동기화 → `syncCollectionsToCanvas` 단일). 대체 직후 대칭 확인 (R10)
+- [ ] (v2.1) React Query 병행 제거 — `useDataPanelQuery` (`hooks/useDataQueries.ts`) 소비처를 store selector 로, `DataTablePanel.tsx` 새로고침은 store fetch 만
 - [ ] `stores/datatable.ts` (useDataTableStore): 소비처 0 도달 시 제거는 **별도 커밋** — 원본 삭제 승인 규칙 준수 (CLAUDE.md §마이그레이션 원칙)
 
 ### Phase 6 — publish 연동
 
 - [ ] 프로젝트 publish 시 data snapshot 직렬화: `collections`(schema+mockData, `runtimeData` 제외) + `api_endpoints` 정의를 publish payload 에 포함
-- [ ] `apps/publish` 에 read-only collections provider + 동일 `resolveCollectionItems` 소비 (shared 계약 재사용 — 신규 로직 최소화). **2026-08-17**: Phase 3 선행 조건에서 preview 에 붙이는 provider 와 **같은 부품**(`CollectionDataProvider` + `dataTableService`)이다 — snapshot 을 소스로 삼는 것만 다르므로 Phase 3 배선을 재사용하고 여기서 새로 만들지 말 것
+- [x] ~~`apps/publish` 에 read-only collections provider~~ → **ADR-209 로 마운트 완료** (`apps/publish/src/App.tsx:1`) — 남은 것은 snapshot 에 `fieldId` 가 실리는지 확인뿐. **2026-08-17**: Phase 3 선행 조건에서 preview 에 붙이는 provider 와 **같은 부품**(`CollectionDataProvider` + `dataTableService`)이다 — snapshot 을 소스로 삼는 것만 다르므로 Phase 3 배선을 재사용하고 여기서 새로 만들지 말 것
 - [ ] live 게이트 G3: publish 된 프로젝트에서 dataTable 바인딩 ListBox/Table 이 snapshot 데이터 렌더 확인
 - [ ] ~~API source 는 publish 런타임에서 직접 fetch~~ → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — api/variable/route 오소링 제거(159 P4c, G4 소비처 0 확증 게이트) 확정 시 본 항목 소멸, publish 는 collections snapshot 만 소비. 159 G4 실패(잔존 소비처 발견) 시에만 본 항목 원안 복귀 판정
 
@@ -140,18 +225,24 @@ resolve 규칙 (단일 헬퍼 `resolveBoundCollection(binding, collections)` 신
 
 ## 4. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
-| 파일                                                                   | Phase | 변경                                               |
-| ---------------------------------------------------------------------- | :---: | -------------------------------------------------- |
-| `packages/shared/src/types/collection.types.ts`                        |   1   | PropertyDataBinding v2 (additive)                  |
-| `packages/shared/src/collections/resolveBoundCollection.ts` (신규)     |   1   | id 우선 resolve 헬퍼                               |
-| `apps/builder/src/builder/hooks/useCollectionData.ts`                  |  1,5  | 헬퍼 경유 + legacy 분기 축소                       |
-| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx` |  1,2  | collectionId upgrade + fieldMap UI                 |
-| `packages/shared/src/collections/resolveCollectionItems.ts`            |   3   | fieldMap options 소비                              |
-| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`   |   3   | fieldMap 전달 (projection 호출부)                  |
-| `packages/shared/src/components/*` (collection wrapper 10종 호출부)    |  3,4  | fieldMap 전달                                      |
-| `apps/builder/src/builder/stores/datatable.ts`                         |   5   | deprecate → (승인 후) 제거                         |
-| `apps/builder/src/preview/App.tsx`                                     |   3   | collection DI provider 마운트 (선행 조건 — 격차 7) |
-| `apps/publish/src/*` (provider + renderer 소비)                        |   6   | snapshot read 경로 신설 (Phase 3 provider 재사용)  |
+| 파일                                                                      | Phase | 변경                                                  |
+| ------------------------------------------------------------------------- | :---: | ----------------------------------------------------- |
+| `packages/shared/src/types/collection.types.ts`                           |   1   | PropertyDataBinding v2 (additive)                     |
+| `packages/shared/src/collections/resolveBoundCollection.ts` (신규)        |   1   | id 우선 resolve 헬퍼                                  |
+| `apps/builder/src/builder/hooks/useCollectionData.ts`                     |  1,5  | 헬퍼 경유 + legacy 분기 축소                          |
+| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx`    |  1,2  | collectionId upgrade + fieldMap UI                    |
+| `packages/shared/src/collections/resolveCollectionItems.ts`               |   3   | fieldMap options 소비                                 |
+| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`      |   3   | fieldMap 전달 (projection 호출부)                     |
+| `packages/shared/src/components/*` (collection wrapper 10종 호출부)       |  3,4  | fieldMap 전달                                         |
+| `apps/builder/src/builder/stores/datatable.ts`                            |   5   | deprecate → (승인 후) 제거                            |
+| `apps/builder/src/preview/App.tsx`                                        |   3   | collection DI provider 마운트 (선행 조건 — 격차 7)    |
+| `apps/publish/src/*` (provider + renderer 소비)                           |   6   | snapshot read 경로 신설 (Phase 3 provider 재사용)     |
+| `apps/builder/src/types/builder/data.types.ts`                            |   1   | (v2.1) `DataField.id` · `targetCollectionId` additive |
+| `packages/shared/src/collections/fieldTemplate.ts` (+ 변환기 모듈)        |  1b   | (v2.1) `{#id}` 저장형 + 이름 ↔ id 변환기              |
+| `packages/shared/src/schemas/dataChange.ts` (신규)                        |  1c   | (v2.1) `DataOp` / `DataChange` zod + JSON Schema      |
+| `apps/builder/src/builder/stores/utils/dataChange.ts` (신규)              |  1c   | (v2.1) 적용기 + inverse                               |
+| `apps/builder/src/builder/stores/history.ts`                              |  1c   | (v2.1) `type:"data"` entry + dispatcher 분기          |
+| `apps/builder/src/builder/hooks/useDataQueries.ts` · `DataTablePanel.tsx` |   5   | (v2.1) React Query 병행 제거                          |
 
 ## 5. 검증 전략
 

@@ -28,6 +28,17 @@ Proposed — 2026-07-16
 6. **binding 이중 저장 위치** — `getElementDataBinding` 이 `props.dataBinding` 우선 + legacy top-level `element.dataBinding` fallback 의 2 위치를 읽는다 (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts:74-94`). scene projection signature 는 `props` 만 포함하므로 (`buildSceneSnapshot.ts:49-66`) legacy top-level 위치만 가진 요소는 binding 변경이 sceneVersion 에 미감지되는 사각이 있다.
 7. **DI provider 부재 → Skia ↔ DOM 대칭이 이미 깨져 있다 (실측 2026-08-17)** — `CollectionDataProvider` / `CollectionDataContext.Provider` 가 **repo 어디에도 렌더되지 않는다** (전 확장자 grep 0건 + `git log -S --all` 결과 2건 모두 ADR 문서의 코드 예시 — 한 번도 마운트된 적 없음). 따라서 `useCollectionDataServices()` 는 항상 context 기본값 `{}` 를 반환하고 `dataTableService` / `apiEndpointService` / `mockApiService` 가 영구히 `undefined` 다. 상세는 아래 §"격차 7 실측 근거".
 
+**재측정 (2026-09-11, 개정 근거 — [리서치](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1 · §2)**:
+
+| 격차 | 2026-08-17 상태                         | 2026-09-11 실측                                                                                                                                                                                                                                                                                                   | 본 ADR 처리                                                          |
+| ---- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| 1    | name 참조                               | 그대로 — `packages/shared/src/hooks/useCollectionData.tsx:306` `dt.name === propertyBinding.name \|\| dt.id === propertyBinding.name` (id 도 `name` 필드에 실려야 맞는다) · `:324,338` api 도 name. `PropertyDataBinding` (`collection.types.ts:233`) 에 `collectionId` 없음                                      | Phase 1 (원안)                                                       |
+| 4·7  | provider 미마운트 → preview/publish 0행 | **해소** — ADR-209 가 `preview/App.tsx:1412` · `apps/publish/src/App.tsx:1` 에 `CollectionDataProvider` + `createCollectionSnapshotServices` 를 마운트했다. R7 · G2 전제 · breakdown Phase 3 선행 조건은 **충족 상태**로 바뀐다. Phase 6 의 publish provider 도 이미 있다 — 남는 것은 snapshot 직렬화 형식 확인뿐 | R7 종결, Phase 3 선행 항목 삭제, Phase 6 축소                        |
+| 5    | store 이중화                            | `useDataTableStore` 소비처 3 파일 (`stores/datatable.ts` 자신 · `components/data/DataTable.tsx` · `main/BuilderCore.tsx:883,1007,1085`) + **React Query 병행** (`useDataPanelQuery`, `DataTablePanel.tsx` 가 store fetch 3종과 같이 호출) — 3중                                                                   | Phase 5 확장 (React Query 포함)                                      |
+| 8    | (신규) **field 이름 참조**              | `DataField` (`data.types.ts:31`) 에 id 없음 — `{field}` 템플릿 (ADR-159) · fieldMap · mockData/runtimeData 행 key · `ColumnSelector` 가 전부 `key` 문자열. key 변경 시 행 값 고아 (Track 0 D2 로 행 migrate 만 수리 `66f9cb28b`) · 템플릿은 옛 key 로 남는다                                                      | **scope 확장 — `fieldId`** (사용자 결정 2026-09-11)                  |
+| 9    | (신규) 데이터 편집이 History 밖         | `stores/history.ts` `HistoryEntry.type` 13종이 전부 element/page 계열, `elementId` 필수 — `useDataStore` 참조 0. 셀 편집 · CSV 전량 교체 (`DataTableEditor.tsx:158-164`) 가 undo 불가. 사람 편집 · import · AI 제안 · agent tool 이 각자 store 를 직접 만진다                                                     | **scope 확장 — `DataChange` 적용기 + History** (리서치 4-0 ③ · UX-4) |
+| 10   | (신규) `targetCollection` 이름 참조     | `ApiEndpoint.targetCollection?: string` 이 collection **이름** — sink 는 `dataActions.ts` 실행기가 이름으로 찾는다. 격차 1 과 같은 병                                                                                                                                                                             | Phase 1 에 포함 (`targetCollectionId`)                               |
+
 **격차 7 실측 근거 (2026-08-17, 양축 대조)**
 
 같은 프로젝트(`148ccd1e…`)·같은 바인딩으로 두 축을 실행해 대조했다. 대상 데이터: IndexedDB `collections` 3건(`Users` mock 100행 / `Roles` 5 / `Invitations` 5), 라이브 store 에 `source:"dataTable"` 바인딩 **8건**(전부 `ref` 노드).
@@ -52,6 +63,9 @@ Proposed — 2026-07-16
 3. **Skia ↔ DOM 대칭** — 동일 collections 스냅샷에서 Builder Skia projection 과 Preview DOM wrapper 가 동일 row/label 을 산출해야 한다 (`/cross-check` 검증 가능). → **정정 2026-08-17**: 이 제약은 **보존 대상이 아니라 복구 대상**이다. 격차 7 실측대로 `source:"dataTable"` 에서 이미 깨져 있다 (Skia 100행 ↔ DOM 0행). 따라서 Decision §선택 근거 2 의 "D3 대칭을 **구조적으로 보존**" 은 fieldMap 축에 한해 성립하는 서술이고, 대칭 자체는 provider 배선으로 **먼저 복구**되어야 그 위에서 유효하다.
 4. **하위 호환** — 저장된 name 기반 `dataBinding` 을 가진 기존 프로젝트는 로드만으로 파손 0건이어야 한다 (lazy resolve — 로드 시점 재직렬화 0 파일, 저장 시에만 upgrade).
 5. **성능** — collections 변경 → scene rebuild 는 기존 구독 구조(`BuilderCanvas.tsx:197-205` useMemo) 유지. pointer hot path 에 데이터 resolve 추가 금지 (60fps 기준).
+
+6. **(2026-09-11 추가) 스키마 변경 파급은 한 적용기를 지난다** — 필드 rename/type/delete 가 행 · 템플릿 · fieldMap · `targetCollection` 참조를 한 트랜잭션으로 갱신하고 History entry 1개를 남긴다. 셀 편집 · 붙여넣기 · import · AI 제안 · agent tool 이 같은 적용기를 쓴다 (`Memory → Index → History → DB → Preview` 순서를 데이터에도 적용).
+7. **(2026-09-11 추가) `fieldId` 는 additive** — 기존 저장 문서의 `DataField` 에 id 가 없어도 로드만으로 파손 0. id 는 lazy 부여 (로드 시 메모리에서 채우고 저장 시에만 기록), `{field}` 템플릿의 사용자 문법은 **이름 그대로** 유지 — id 는 저장 형식에만 나타난다.
 
 **Soft Constraints**:
 
@@ -90,6 +104,26 @@ Proposed — 2026-07-16
   - 유지보수: M — 데이터 CRUD 가 문서 mutation/history 파이프라인에 편입되는 비용
   - 마이그레이션: **H** — 기존 프로젝트 전수의 `data_tables` → document 이관 + Supabase 스키마 이중화 기간. 무엇보다 ADR-131 Phase 8 에서 **사용자가 명시 revert 로 확정한 전제(데이터 SSOT = `data_tables`)를 반전**시키는 SSOT 경계 재판정이라, 확정 전제의 재개 조건(사용자 재제기/scope 변경/코드 증거) 없이 채택 불가
 
+### 대안 D (2026-09-11 추가): 대안 B + `fieldId` 없이 rename 파급만 (이름 참조 유지 + 적용기가 참조를 재작성)
+
+- 설명: `collectionId` 는 도입하되 필드는 계속 `key` 문자열로 참조하고, rename 시 적용기가 행 · 템플릿 · fieldMap 안의 옛 key 를 새 key 로 전부 재작성한다 (Track 0 D2 수리 `renameRowsKey` 의 확장).
+- 근거: Notion · Airtable 은 내부적으로 field id 를 쓰지만 (M7), Baserow 의 formula 참조는 이름 재작성 방식이다 — 둘 다 존재하는 패턴.
+- 위험:
+  - 기술: M — 템플릿 문자열 안의 `{name}` 을 정규식으로 재작성해야 하고 (`{name.first}` · 포맷 파이프 · literal 충돌), 재작성 누락은 무증상
+  - 성능: L
+  - 유지보수: **H** — 참조를 담는 곳이 늘 때마다 (fieldMap · targetCollection · 차트 시리즈 필드 (ADR-210) · 향후 filter/sort 오소링 B2 · agent tool 인자) 재작성기를 같이 넓혀야 하고, 하나라도 빠지면 격차 1 이 필드 축에서 재발한다. Framer 가 이 방식에서 id 로 옮긴 이유 (M7)
+  - 마이그레이션: L — 저장 형식 변화 없음
+
+### 대안 E (2026-09-11 추가): 대안 B + `DataField.id` 안정 참조 + `DataChange` 적용기 + store 단일화 — **개정안**
+
+- 설명: 대안 B 에 세 가지를 더한다. ① `DataField.id` 신설 (lazy 부여) — `{field}` 템플릿 저장형 · fieldMap · `targetCollectionId` · 차트 시리즈 필드가 id 를 참조하고 이름은 표시 전용. ② `DataChange { ops: DataOp[], origin }` 적용기 하나 — 검증 → 참조 파급 (id 참조면 표시만) → History entry 1개 (`type:"data"`, `elementId` 대신 `collectionId`) → IndexedDB → canvas sync. ③ `useDataStore` 단일 (legacy `useDataTableStore` 소비처 3 파일 + React Query 병행 제거).
+- 근거: Framer CMS (field id 안정 참조, M7) · Airtable/Notion (내부 field id) · Retool/Appsmith (변경 객체 → 적용기 → undo) — 리서치 §3-1 M6 · M7, §3-5 X4.
+- 위험:
+  - 기술: M — id/name 이중 resolve 전환기 (대안 B 와 같음) + 템플릿 저장형 이중 (이름 문법 ↔ id 저장) 변환기 1개
+  - 성능: L — 적용기는 편집 이벤트 단위, hot path 아님. History entry 는 diff 만
+  - 유지보수: L — 참조 담는 곳이 늘어도 id 는 불변이라 재작성기 불필요. 적용기 하나가 사람 · import · AI · agent 를 받으므로 후속 ADR (212 · 213) 의 진입점이 한 곳
+  - 마이그레이션: M — `DataField.id` lazy 부여 (로드 재직렬화 0, 저장 시 기록) + History entry 타입 추가 (기존 entry 는 무변경) + store 통합은 원본 삭제 승인 규칙 준수. React Query 제거는 소비처 3 파일
+
 ### Risk Threshold Check
 
 | 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
@@ -97,51 +131,62 @@ Proposed — 2026-07-16
 | A    |  L   |  L   |  **H**   |      L       |     1      |
 | B    |  M   |  L   |    L     |      M       |     0      |
 | C    |  M   |  L   |    M     |    **H**     |     1      |
+| D    |  M   |  L   |  **H**   |      L       |     1      |
+| E    |  M   |  L   |    L     |      M       |     0      |
 
-루프 판정: 대안 B 가 HIGH 0 으로 존재 — 추가 대안 탐색 불필요.
+루프 판정: 대안 B · E 가 HIGH 0 — 추가 대안 탐색 불필요. E 는 B 의 상위 집합이며 (B 의 잔존 위험을 늘리지 않고 격차 8 · 9 · 10 을 흡수) 2026-09-11 개정으로 B 를 대체한다.
 
 ## Decision
 
-**대안 B: id 참조 바인딩 계약 v2 + fieldMap + 읽기 경로 일원화 + publish 직렬화**를 선택한다.
+~~**대안 B: id 참조 바인딩 계약 v2 + fieldMap + 읽기 경로 일원화 + publish 직렬화**를 선택한다.~~ → **개정 2026-09-11 (사용자 결정 — 착수 금지 해제 + scope 확장)**: **대안 E: 대안 B + `DataField.id` 안정 참조 + `DataChange` 적용기 + store 단일화**를 선택한다. 아래 선택 근거 1~~3 은 B 기준으로 쓰였고 E 에도 그대로 성립한다; 4~~5 가 E 의 추가 근거다.
 
 선택 근거:
 
 1. 잔존 위험이 기술 M / 마이그레이션 M 뿐이며, 둘 다 단일 resolve 헬퍼와 lazy upgrade(로드 시 재직렬화 0 파일, 기존 프로젝트 파손 0)로 국소화된다.
 2. `resolveCollectionItems` 단일 계약을 Skia projector 전체와 DOM wrapper 7/10 이 이미 공유하고, fieldMap 은 dataBinding 에 실려 projection rows 입력으로 이미 전달되므로(`getFlatProjectionRows({collections, dataBinding, props})`) shared 함수 내부 소비 시 기존 호출부 변경이 0 에 수렴한다 — D3 대칭(Hard Constraint 3)을 구조적으로 보존. raw 소비 잔여 3종(Table/Tree/Tabs DOM wrapper — `Table.tsx:206`/`Tree.tsx:93`/`Tabs.tsx:124`)은 Phase 3/4 에서 shared 계약 경유로 정렬한다.
 3. ADR-131(데이터 SSOT)·ADR-132(read 진입점) 의 확정 전제를 그대로 준수하면서 그 위의 미완 영역만 채운다.
+4. (2026-09-11) `collectionId` 만 안정화하고 필드를 이름으로 두면 격차 1 이 필드 축에서 그대로 재발한다 — Track 0 D2 수리 (`renameRowsKey`) 는 행만 옮기고 `{field}` 템플릿은 옛 key 로 남는 것이 실측됐다. 참조를 담는 곳 (fieldMap · targetCollection · 차트 시리즈 · 후속 filter/sort · agent tool 인자) 이 늘어날수록 재작성 방식 (대안 D) 의 누락 표면이 커진다.
+5. (2026-09-11) 후속 ADR-212 (편집기 UI) · ADR-213 (데이터 tool 계약) · ADR-214 (Variables) 가 전부 "변경을 한 적용기에 태운다" 를 전제로 한다 — 적용기와 History 연결이 본 ADR 에 있어야 세 ADR 이 같은 진입점을 쓴다 (base ↔ 응용 분류: 본 ADR = base).
 
 기각 사유:
 
 - **대안 A 기각**: rename 파손과 3중 경로가 영구 잔존해 유지보수 HIGH. "연동" 의 사용자 완결점(배포 앱에서 데이터가 보임)을 달성하지 못한다.
+- **대안 D 기각** (2026-09-11): 참조 재작성기는 참조를 담는 표면이 늘 때마다 같이 넓혀야 하고 누락이 무증상이다 — 유지보수 HIGH. Framer 가 같은 이유로 id 참조로 옮겼다 (리서치 M7).
 - **대안 C 기각**: ADR-131 Phase 8 에서 사용자가 확정한 데이터 SSOT 전제를 반전시키는 SSOT 경계 재판정(전제 확정 종결 계약의 재개 조건 미충족)이며, 그 이득(publish 직렬화 단순화)은 대안 B 의 snapshot 직렬화로 동등하게 달성 가능하다. 마이그레이션 비용도 HIGH.
 
 > 구현 상세: [152-data-panel-collection-binding-integration-breakdown.md](design/152-data-panel-collection-binding-integration-breakdown.md)
 
 ## Risks
 
-| ID  | 위험                                                                                                                        | 심각도 | 대응                                                                                                                                                                                                                                                     |
-| --- | --------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | id/name 이중 resolve 전환기에 기존 name 바인딩 프로젝트 회귀                                                                |  MED   | `resolveBoundCollection` 단일 헬퍼 (id 우선 + name fallback) + 직접 `name` find 패턴 grep 가드 + G1 live 확인                                                                                                                                            |
-| R2  | fieldMap 을 Skia projector / DOM wrapper 중 한쪽만 반영해 label 비대칭                                                      |  MED   | fieldMap 소비를 shared 함수 내부(dataBinding 이 이미 projection rows 입력에 포함)로 한정해 기존 호출부 변경 0 유지 + raw 소비 3종(Table/Tree/Tabs DOM)은 Phase 3/4 에서 shared 계약 경유로 정렬 + G2 `/cross-check`                                      |
-| R3  | publish data snapshot 형식 결정 부담 (runtimeData 포함 여부 / API source 처리)                                              |  MED   | snapshot = schema + mockData 한정 (runtimeData 제외). ~~API 는 publish 런타임 직접 fetch~~ → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — API source 오소링 제거(159 P4) 확정 시 publish 는 collections snapshot 만 소비, 본 항목은 159 G4 결과에 종속 |
-| R4  | legacy 경로(datatableId / `type:"collection"`) 실사용 존재 시 제거 파손                                                     |  MED   | Phase 0 실측 → G0 조건부 (0~4건 흡수 / 5건+ 마이그레이션 단계 확장). `useDataTableStore` 제거는 원본 삭제 승인 규칙 준수                                                                                                                                 |
-| R5  | 10 컴포넌트 일괄 반영 중 scope inflation                                                                                    |  LOW   | 대표 3종(ListBox/Table/Select) 선행 검증 후 패밀리 sweep — Phase 3/4 분리                                                                                                                                                                                |
-| R6  | legacy top-level `element.dataBinding` 저장 위치 잔존 시 scene signature 사각 (격차 6) — binding 변경이 sceneVersion 미감지 |  MED   | Phase 1 lazy upgrade 시 write 를 `props.dataBinding` 단일 위치로 정규화 (top-level 은 read fallback 만 유지) + Phase 0 에서 top-level 보유 element 실측                                                                                                  |
-
-| R7 | **DI provider 부재(격차 7)로 D3 대칭이 착수 시점에 이미 깨져 있음** — fieldMap 을 아무리 정확히 전달해도 DOM 쪽은 행이 0이라 G2 `/cross-check` 가 fieldMap 과 무관한 이유로 실패한다 (추가 2026-08-17) | MED | provider 배선을 **Phase 3 선행 조건**으로 승격 — G2 통과 조건에 전제 명시. 심각도를 HIGH 로 두지 않는 이유: 본 ADR 이 도입하는 위험이 아니라 ADR-132 가 기록·이연한 선행 결함이고, 설계(대안 B)의 정합성이 아니라 **작업 순서**만 바꾼다 |
+| ID  | 위험                                                                                                                                                                                                        | 심각도 | 대응                                                                                                                                                                                                                                                     |
+| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | id/name 이중 resolve 전환기에 기존 name 바인딩 프로젝트 회귀                                                                                                                                                |  MED   | `resolveBoundCollection` 단일 헬퍼 (id 우선 + name fallback) + 직접 `name` find 패턴 grep 가드 + G1 live 확인                                                                                                                                            |
+| R2  | fieldMap 을 Skia projector / DOM wrapper 중 한쪽만 반영해 label 비대칭                                                                                                                                      |  MED   | fieldMap 소비를 shared 함수 내부(dataBinding 이 이미 projection rows 입력에 포함)로 한정해 기존 호출부 변경 0 유지 + raw 소비 3종(Table/Tree/Tabs DOM)은 Phase 3/4 에서 shared 계약 경유로 정렬 + G2 `/cross-check`                                      |
+| R3  | publish data snapshot 형식 결정 부담 (runtimeData 포함 여부 / API source 처리)                                                                                                                              |  MED   | snapshot = schema + mockData 한정 (runtimeData 제외). ~~API 는 publish 런타임 직접 fetch~~ → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — API source 오소링 제거(159 P4) 확정 시 publish 는 collections snapshot 만 소비, 본 항목은 159 G4 결과에 종속 |
+| R4  | legacy 경로(datatableId / `type:"collection"`) 실사용 존재 시 제거 파손                                                                                                                                     |  MED   | Phase 0 실측 → G0 조건부 (0~4건 흡수 / 5건+ 마이그레이션 단계 확장). `useDataTableStore` 제거는 원본 삭제 승인 규칙 준수                                                                                                                                 |
+| R5  | 10 컴포넌트 일괄 반영 중 scope inflation                                                                                                                                                                    |  LOW   | 대표 3종(ListBox/Table/Select) 선행 검증 후 패밀리 sweep — Phase 3/4 분리                                                                                                                                                                                |
+| R6  | legacy top-level `element.dataBinding` 저장 위치 잔존 시 scene signature 사각 (격차 6) — binding 변경이 sceneVersion 미감지                                                                                 |  MED   | Phase 1 lazy upgrade 시 write 를 `props.dataBinding` 단일 위치로 정규화 (top-level 은 read fallback 만 유지) + Phase 0 에서 top-level 보유 element 실측                                                                                                  |
+| R7  | **DI provider 부재(격차 7)로 D3 대칭이 착수 시점에 이미 깨져 있음** — fieldMap 을 아무리 정확히 전달해도 DOM 쪽은 행이 0이라 G2 `/cross-check` 가 fieldMap 과 무관한 이유로 실패한다 (추가 2026-08-17)      |  MED   | provider 배선을 **Phase 3 선행 조건**으로 승격 — G2 통과 조건에 전제 명시. 심각도를 HIGH 로 두지 않는 이유: 본 ADR 이 도입하는 위험이 아니라 ADR-132 가 기록·이연한 선행 결함이고, 설계(대안 B)의 정합성이 아니라 **작업 순서**만 바꾼다                 |
+| R8  | (2026-09-11) `DataField.id` lazy 부여가 같은 schema 를 두 곳에서 동시에 로드할 때 다른 id 를 만든다 (빌더 store ↔ preview snapshot ↔ export envelope)                                                       |  MED   | id 부여를 **로드 지점 하나** (`useDataStore` hydrate) 로 고정하고 preview/publish/export 는 부여된 schema 만 받는다 — snapshot 생성 전 부여 보장 test + G4                                                                                               |
+| R9  | (2026-09-11) `HistoryEntry` 가 element 중심 (`elementId` 필수, `type` 13종) — 데이터 entry 를 억지로 끼우면 undo/redo 경로 (`canonicalEvents` 우선) 가 데이터 entry 를 element 로 해석한다                  |  MED   | `type:"data"` entry 는 `data.dataChange` 에 역연산 (`inverse: DataOp[]`) 을 담고 undo/redo dispatcher 가 type 으로 먼저 분기 — element 경로에 도달하지 않음을 test 로 고정. 단축키 라우팅 (데이터 패널 포커스 시 데이터 스택) 은 ADR-212 몫              |
+| R10 | (2026-09-11) store 단일화가 `BuilderCore.tsx:883,1007,1085` 의 legacy `useDataTableStore` 접근 (dataTableStates · consumers) 을 끊으면 canvas ↔ preview 동기화 (`syncCollectionsToCanvas`) 가 조용히 멈춘다 |  MED   | Phase 5 를 "소비처 대체 → 대칭 확인 (Skia row 수 == DOM row 수) → 원본 삭제 승인" 3단계로, 삭제는 별도 커밋                                                                                                                                              |
 
 잔존 HIGH 위험 없음.
+
+> **R7 종결 (2026-09-11)**: ADR-209 가 preview · publish 양쪽에 `CollectionDataProvider` 를 마운트해 격차 7 이 해소됐다 (`preview/App.tsx:1412` · `apps/publish/src/App.tsx:1`). G2 의 전제는 충족 상태이며 아래 2026-08-17 주의는 이력으로만 남긴다.
 
 > **R7 주의 (2026-08-17)**: 위 "잔존 HIGH 위험 없음" 은 본 ADR 이 **새로 도입하는** 위험 기준이다. 착수 시점에 이미 존재하는 결함(격차 7 — 실데이터 8건 바인딩에서 캔버스 100행 ↔ preview 0행)은 사용자 관점 심각도가 이보다 높다. 재리뷰 시 이 결함을 본 ADR 안에서 처리할지, 선행 수리로 분리할지 판정 대상.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                             | 실패 시 대안                                                                                                           |
-| ---- | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| G0   | Phase 0 완료 | legacy 경로 실사용 실측 완료 — `datatableId` / `type:"collection"` 보유 element 0~4건이면 Phase 5 흡수 진행                                                                                                                                                           | 5건+ 이면 Phase 5 에 데이터 마이그레이션 단계 추가 (사용자 확인)                                                       |
-| G1   | Phase 1 직후 | 기존 name 기반 바인딩 프로젝트 로드 → collection 렌더 회귀 0 — live builder 1회 exercise                                                                                                                                                                              | fallback resolve 보강 후 재검증                                                                                        |
-| G2   | Phase 3 완료 | **전제(2026-08-17 추가)**: collection DI provider 가 preview 에 마운트되어 `source:"dataTable"` 바인딩이 DOM 에서 행을 산출할 것 (격차 7 / R7). 그 위에서 — ListBox/Table/Select 에 fieldMap 지정 시 Builder Skia ↔ Preview DOM 동일 label/컬럼 — `/cross-check` PASS | 비대칭 경로 수정 후 재실행. **전제 미충족이면 fieldMap 결함이 아니므로 fieldMap 을 고치지 말 것** — provider 배선 선행 |
-| G3   | Phase 6 완료 | publish 된 프로젝트에서 dataTable 바인딩 collection 이 snapshot 데이터 렌더 — 실기동 확인                                                                                                                                                                             | snapshot 직렬화 형식 재설계                                                                                            |
+| Gate | 시점          | 통과 조건                                                                                                                                                                                                                                                                                   | 실패 시 대안                                                                                                           |
+| ---- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| G0   | Phase 0 완료  | legacy 경로 실사용 실측 완료 — `datatableId` / `type:"collection"` 보유 element 0~4건이면 Phase 5 흡수 진행                                                                                                                                                                                 | 5건+ 이면 Phase 5 에 데이터 마이그레이션 단계 추가 (사용자 확인)                                                       |
+| G1   | Phase 1 직후  | 기존 name 기반 바인딩 프로젝트 로드 → collection 렌더 회귀 0 — live builder 1회 exercise                                                                                                                                                                                                    | fallback resolve 보강 후 재검증                                                                                        |
+| G2   | Phase 3 완료  | **전제(2026-08-17 추가)**: collection DI provider 가 preview 에 마운트되어 `source:"dataTable"` 바인딩이 DOM 에서 행을 산출할 것 (격차 7 / R7). 그 위에서 — ListBox/Table/Select 에 fieldMap 지정 시 Builder Skia ↔ Preview DOM 동일 label/컬럼 — `/cross-check` PASS                       | 비대칭 경로 수정 후 재실행. **전제 미충족이면 fieldMap 결함이 아니므로 fieldMap 을 고치지 말 것** — provider 배선 선행 |
+| G3   | Phase 6 완료  | publish 된 프로젝트에서 dataTable 바인딩 collection 이 snapshot 데이터 렌더 — 실기동 확인 (provider 는 ADR-209 로 이미 마운트 — 확인 대상은 snapshot 형식뿐)                                                                                                                                | snapshot 직렬화 형식 재설계                                                                                            |
+| G4   | Phase 1b 완료 | (2026-09-11) 필드 rename live: Users 프리셋 · ListBox `{name}` 템플릿 바인딩 · 차트 시리즈 필드 지정 후 Schema 에서 `name → fullName` — 캔버스 Skia · preview DOM · 차트 모두 값 유지, 템플릿 편집기에 새 이름 표시, 저장 문서에 `fieldId` 기록. 기존 (id 없는) 프로젝트 로드 시 재직렬화 0 | id 부여 지점 또는 템플릿 변환기 수정 — **재작성기 추가로 우회 금지** (대안 D 회귀)                                     |
+| G5   | Phase 1c 완료 | (2026-09-11) 셀 편집 · 행 삭제 · CSV import · 필드 rename 각 1회 후 `⌘Z` 4회 → 원상, `⌘⇧Z` 4회 → 재적용. History 패널에 data entry 4개, element entry 0개. 요소 편집 entry 와 섞여도 각자 되돌아감                                                                                          | undo dispatcher 분기 수정. 데이터 entry 가 element 경로로 들어가면 G5 FAIL                                             |
 
 ## Consequences
 
@@ -151,9 +196,11 @@ Proposed — 2026-07-16
 - 사용자가 schema 컬럼을 역할별(label/value/description/icon)로 매핑 가능 — 휴리스틱 의존 제거, Inspector `PropertyDataBinding` UX 완결.
 - 읽기 경로가 `useCollectionData` + `resolveBoundCollection` 단일 계약으로 수렴 — 신규 collection 컴포넌트 추가 비용 감소.
 - 배포 앱(publish)에서 바인딩된 collection 이 실제 데이터를 렌더 — 빌더→배포 연동 완결 (ADR-132 W4 해소).
+- (2026-09-11) 필드 이름 변경이 템플릿 · fieldMap · 차트 · targetCollection 을 파손하지 않음 (`fieldId`). 데이터 편집 · import 가 `⌘Z` 로 돌아옴. ADR-212/213/214 가 같은 `DataChange` 적용기를 진입점으로 씀.
 
 ### Negative
 
 - 전환기 동안 id/name 이중 resolve 코드 유지 (`resolveBoundCollection` 내부로 국소화).
 - `PropertyDataBinding` v2 필드 추가로 binding 계약 문서화 부담 (`.claude/rules/state-management.md` §Collections read 진입점 갱신 필요).
+- (2026-09-11) `{field}` 템플릿이 사용자 문법 (이름) 과 저장형 (id) 으로 갈려 변환기 1개를 유지해야 한다. `HistoryEntry` 에 데이터 타입이 추가돼 undo/redo dispatcher 가 2분기가 된다.
 - publish payload 에 data snapshot 이 추가되어 배포 산출물 크기 증가 (mockData 규모에 비례 — schema+mockData 한정으로 상한 관리).
