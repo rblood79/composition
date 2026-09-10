@@ -8,6 +8,8 @@ Proposed — 2026-07-16
 
 > **실측 추가 2026-08-17 (scope 무변경 — 근거 보강 + 사실 정정)**: `source:"dataTable"` 바인딩이 **빌더 캔버스에서는 렌더되고 preview 에서는 0행**인 것을 양축 대조로 확인했다 (격차 7). 원인은 `CollectionDataProvider` 가 repo 어디에도 마운트되지 않는 것이고, ADR-132 가 R2/G3-1 로 식별·이연한 바로 그 항목이되 범위가 더 넓다 (`dataTableService` 축 포함, 전 앱). 이에 따라 **Hard Constraint 3(Skia↔DOM 대칭)은 보존 대상이 아니라 복구 대상으로 정정**했고, provider 배선을 Phase 3 선행 조건으로 올렸다 (R7 / G2 전제 / breakdown Phase 3). 대안·Decision·Phase 구성은 변경하지 않았다 — 재리뷰 시 이 결함을 본 ADR 안에서 처리할지 선행 수리로 분리할지가 판정 대상.
 
+> **착수 금지 해제 + scope 확장 (사용자 결정 2026-09-11)**: 2026-07-16 의 "생성까지만 — 착수 금지" 지시를 해제하고, 계약 v2 를 `collectionId` 에 더해 **`fieldId` (안정 field 참조 — `DataField.id` 신설)** 까지 넓힌다. 근거는 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §4-0 ① · §5 Track 1 (D2 key rename 고아 · D3 이름 참조 파손 · M7 Framer 교훈). 같은 Track 1 에 store 통합 (`useDataTableStore` · React Query 병행 제거 — 격차 5 · 2) 과 `DataChange` 적용기 + History 연결 (UX-4) 이 들어온다. **scope 변경이므로 Accepted 전 Risk-First 개정 (Phase 0 inventory 재측정 포함) → 재리뷰** 순. relation 타입은 로드맵 밖 (같은 날 결정) — `DataField.type` 확장 여지만 둔다.
+
 ## Context
 
 빌더 Data 패널(`panels/datatable/`)에서 정의한 DataTable(collections)과 컴포넌트 collection(ListBox/Table/Select 등 10종 catalog binding)의 연동은 ADR-131(데이터 SSOT = `data_tables` 확정) / ADR-132(read 진입점 `useCollectionData` 단일화)로 골격이 완성됐으나, ADR-132 가 scope 밖으로 명시한 후속 영역(Data 패널 UX / publish 직렬화 / binding 계약 정합)이 미해결로 남아 있다. 본 ADR 은 그 후속으로, 바인딩 계약과 소비 경로를 완결한다.
