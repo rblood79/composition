@@ -39,6 +39,8 @@ export interface RadialMarkInput {
   showTotal: boolean;
   /** 합계 아래 설명 — metric 필드명 */
   totalCaption: string;
+  /** 합계 문자열 (ADR-210 raw 형식). 미지정이면 기존 `formatTick`. */
+  totalText?: (total: number) => string;
   fontSize: number;
 }
 
@@ -100,6 +102,7 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
     labelText,
     showTotal,
     totalCaption,
+    totalText,
     fontSize,
   } = input;
   const marks: PathMark[] = [];
@@ -203,6 +206,7 @@ export function buildRadialMarks(input: RadialMarkInput): RadialMarks {
         grandTotal,
         totalCaption,
         fontSize,
+        totalText,
       ),
     );
   }

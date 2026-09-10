@@ -33,6 +33,8 @@ export interface PieMarkInput {
   showTotal: boolean;
   /** 합계 아래 설명 — metric 필드명 */
   totalCaption: string;
+  /** 합계 문자열 (ADR-210 raw 형식). 미지정이면 기존 `formatTick`. */
+  totalText?: (total: number) => string;
   /** 시리즈를 링으로 나눌지 (dodged 면 첫 시리즈만 그린다) */
   stackMode: StackMode;
   fontSize: number;
@@ -72,6 +74,7 @@ export function centerTotalLabels(
   total: number,
   caption: string,
   fontSize: number,
+  totalText: (total: number) => string = formatTick,
 ): TextMark[] {
   if (hole < fontSize) return [];
   const labels: TextMark[] = [
@@ -79,7 +82,7 @@ export function centerTotalLabels(
       kind: "text",
       x: r2(cx),
       y: r2(cy - fontSize * 0.2),
-      text: formatTick(total),
+      text: totalText(total),
       anchor: "middle",
       baseline: "middle",
       role: "value",
@@ -215,6 +218,7 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
     innerRadius,
     showTotal,
     totalCaption,
+    totalText,
     stackMode,
     fontSize,
   } = input;
@@ -316,7 +320,15 @@ export function buildPieMarks(input: PieMarkInput): PieMarks {
     ringCount > 1 ? outerRadius - ringBand * (ringCount - 1) - ringBand + RING_GAP : holeRadius;
   if (showTotal) {
     labels.push(
-      ...centerTotalLabels(cx, cy, innermost, grandTotal, totalCaption, fontSize),
+      ...centerTotalLabels(
+        cx,
+        cy,
+        innermost,
+        grandTotal,
+        totalCaption,
+        fontSize,
+        totalText,
+      ),
     );
   }
 

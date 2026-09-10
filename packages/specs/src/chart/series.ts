@@ -6,11 +6,22 @@
  * 바닥에 붙어 그려져 데이터에 없는 사실이 화면에 생긴다).
  */
 import { toFiniteNumber } from "./scales";
+import { resolveChartPresentation, seriesIdentity } from "./presentation";
+import type { ResolvedChartPresentation } from "./presentation";
 import type { ChartProps, ChartRow } from "./types";
 
 export interface SeriesData {
+  /**
+   * 원본 키 — group 은 `color` 필드의 문자열화 값, columns 는 필드 키. 표시명이
+   * 아니다 (표시명은 `label`). 기존 consumer 의 `key || "series"` 기본 이름 규칙은
+   * 그대로다.
+   */
   key: string;
-  /** 팔레트 인덱스 (seriesCount 로 modulo 됨) */
+  /** identity (`seriesIdentity`) — `seriesConfig.key` 와 대조하는 값. 영속 저장하지 않는다. */
+  id: string;
+  /** 설정된 표시명. 속성 부재 = 기본 이름 (`key`), 빈 문자열 = 명시적 빈 이름. */
+  label?: string;
+  /** 팔레트 인덱스 (seriesCount 로 modulo 됨, 또는 검증된 토큰 인덱스) */
   seriesIndex: number;
   /** 범주 인덱스 → 값. 없는 조합은 키 자체가 없다. */
   values: Map<number, number>;
@@ -37,15 +48,29 @@ function toLabel(value: unknown): string {
   return "";
 }
 
+export type SeriesGridProps = Pick<ChartProps, "dimension" | "metric" | "color"> &
+  Partial<
+    Pick<ChartProps, "dataMode" | "valueFields" | "seriesConfig" | "chartType" | "colorBy">
+  >;
+
 /**
  * 행을 (범주 × 시리즈) 격자로 접는다. 같은 (범주, 시리즈) 가 여러 행이면 **합산**
  * (dataTable 이 이미 집계돼 있지 않은 흔한 형태 — 집계 없이 마지막 행만 남기면
  * 사용자가 준 값의 일부가 조용히 사라진다).
+ *
+ * ADR-210: `dataMode:"columns"` 면 `valueFields` 의 필드마다 시리즈 하나다 — 같은
+ * 행에서 필드 수만큼 값을 읽는다 (O(rows × fields), long 배열 복제 없음). 원본 wide
+ * 행을 그대로 Recharts 에 주면 중복 범주가 합산되지 않으므로 (P0 spike) columns 도
+ * 이 격자를 거친다. `seriesConfig` 는 **격자를 만든 뒤** 순서·이름·색만 바꾼다.
  */
 export function buildSeriesGrid(
   rows: readonly ChartRow[],
-  props: Pick<ChartProps, "dimension" | "metric" | "color">,
+  props: SeriesGridProps,
   seriesCount: number,
+  presentation: ResolvedChartPresentation = resolveChartPresentation(
+    props,
+    seriesCount,
+  ),
 ): SeriesGrid {
   const categories: string[] = [];
   const categoryIndex = new Map<string, number>();
@@ -53,6 +78,33 @@ export function buildSeriesGrid(
   const orderedSeries: SeriesData[] = [];
   const palette = Math.max(1, seriesCount);
   let hasValues = false;
+
+  const columns = presentation.dataMode === "columns";
+  const addSeries = (key: string, id: string): SeriesData => {
+    const series: SeriesData = {
+      key,
+      id,
+      seriesIndex: orderedSeries.length % palette,
+      values: new Map(),
+    };
+    seriesByKey.set(key, series);
+    orderedSeries.push(series);
+    return series;
+  };
+  // columns — 시리즈는 필드 선택 순서로 **미리** 만든다 (값이 없는 필드도 시리즈다:
+  //   행 출현에 따라 순서가 흔들리면 팔레트 색이 데이터에 좌우된다).
+  if (columns) {
+    for (const field of presentation.valueFields) {
+      addSeries(field, seriesIdentity("field", field));
+    }
+  }
+
+  const accumulate = (series: SeriesData, ci: number, raw: unknown): void => {
+    const value = toFiniteNumber(raw);
+    if (value === null) return;
+    series.values.set(ci, (series.values.get(ci) ?? 0) + value);
+    hasValues = true;
+  };
 
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
@@ -65,25 +117,57 @@ export function buildSeriesGrid(
       categoryIndex.set(label, ci);
     }
 
-    const seriesKey = props.color ? toLabel(readField(row, props.color)) : "";
-    let series = seriesByKey.get(seriesKey);
-    if (!series) {
-      series = {
-        key: seriesKey,
-        seriesIndex: orderedSeries.length % palette,
-        values: new Map(),
-      };
-      seriesByKey.set(seriesKey, series);
-      orderedSeries.push(series);
+    if (columns) {
+      for (const series of orderedSeries) {
+        accumulate(series, ci, readField(row, series.key));
+      }
+      continue;
     }
 
-    const value = toFiniteNumber(readField(row, props.metric));
-    if (value === null) continue;
-    series.values.set(ci, (series.values.get(ci) ?? 0) + value);
-    hasValues = true;
+    const seriesKey = props.color ? toLabel(readField(row, props.color)) : "";
+    const series =
+      seriesByKey.get(seriesKey) ??
+      addSeries(seriesKey, seriesIdentity("group", seriesKey));
+    accumulate(series, ci, readField(row, props.metric));
   }
 
-  return { categories, series: orderedSeries, hasValues };
+  return {
+    categories,
+    series: applySeriesConfig(orderedSeries, presentation),
+    hasValues,
+  };
+}
+
+/**
+ * `seriesConfig` 적용 — 설정된 시리즈를 배열 순서대로 앞에, 미설정 시리즈를 출현
+ * (group) / valueFields (columns) 순서대로 뒤에 둔다. 팔레트 인덱스는 **정렬 전**
+ * 출현 순서로 이미 배정돼 있어 config 만 재정렬해도 색은 그대로다 (breakdown §2);
+ * 검증된 토큰만 그 인덱스를 덮는다. 보이지 않는 시리즈의 설정은 건드리지 않는다
+ * (휴면 보존 — 저장 배열은 여기서 읽기만 한다).
+ */
+function applySeriesConfig(
+  series: SeriesData[],
+  presentation: ResolvedChartPresentation,
+): SeriesData[] {
+  if (presentation.seriesConfig.length === 0) return series;
+  const byId = new Map(series.map((s) => [s.id, s]));
+  const ordered: SeriesData[] = [];
+  const placed = new Set<SeriesData>();
+  for (const config of presentation.seriesConfig) {
+    const target = byId.get(config.key);
+    if (!target || placed.has(target)) continue;
+    if (config.label !== undefined) target.label = config.label;
+    if (config.paletteIndex !== undefined) target.seriesIndex = config.paletteIndex;
+    ordered.push(target);
+    placed.add(target);
+  }
+  for (const s of series) if (!placed.has(s)) ordered.push(s);
+  return ordered;
+}
+
+/** 시리즈 표시명 — 설정 label (빈 문자열 포함) > 원본 키 > 기본 이름. */
+export function seriesLabel(series: SeriesData, fallback: string): string {
+  return series.label ?? (series.key || fallback);
 }
 
 export interface ValueExtent {

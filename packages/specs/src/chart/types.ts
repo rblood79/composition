@@ -61,6 +61,64 @@ export type ChartAnimationEasing =
 /** 데이터 행 — dataBinding 이 준 그대로의 임의 레코드. */
 export type ChartRow = Readonly<Record<string, unknown>>;
 
+/**
+ * ADR-210 — 시리즈를 무엇에서 얻는가.
+ * - `group` (기존·미설정): 행의 `color` 필드 값이 시리즈, `metric` 하나가 값.
+ * - `columns`: `valueFields` 의 **필드 하나가 시리즈 하나** (wide 표 `{month, desktop, mobile}`).
+ *   원본 행을 long 으로 변환해 저장하지 않는다 — 집계에서 필드를 읽는다.
+ */
+export type ChartDataMode = "group" | "columns";
+
+/**
+ * 시리즈 표시 설정 한 항목. `key` 는 `seriesIdentity()` 가 만드는 identity 문자열
+ * (`["group", 그룹값]` / `["field", 필드키]` 의 JSON) 이며 표시명이 아니다. 배열 순서가
+ * 시리즈 표시 순서 (stack 누적·dodge 슬롯·legend·tooltip 모두) 다.
+ * `label` 이 있으면 빈 문자열도 **명시적 빈 이름**이다 — 속성 부재만 기본 이름이다.
+ * `colorToken` 은 팔레트 토큰 이름 (`--chart-series-N`) — 임의 CSS 색을 싣지 않는다.
+ */
+export interface ChartSeriesConfig {
+  key: string;
+  label?: string;
+  colorToken?: string;
+}
+
+/** 숫자 표시 형식. `auto`/미설정은 기존 `formatTick` 문자열 그대로다. */
+export type ChartValueFormat = "auto" | "decimal" | "currency" | "percent";
+export type ChartValueLocale = "en-US" | "ko-KR";
+/** percent 입력 단위 — `ratio` 는 0.25 → 25%, `percentagePoints` 는 25 → 25%. */
+export type ChartPercentUnit = "ratio" | "percentagePoints";
+
+export type ChartDiagnosticCode =
+  | "dataMode.invalid"
+  | "valueFields.invalid"
+  | "valueFields.empty"
+  | "valueFields.duplicate"
+  | "seriesConfig.invalid"
+  | "seriesConfig.duplicateKey"
+  | "seriesConfig.colorToken.invalid"
+  | "valueFormat.invalid"
+  | "valueLocale.invalid"
+  | "valueFractionDigits.invalid"
+  | "valueCurrency.missing"
+  | "valueCurrency.unsupported"
+  | "valuePercentUnit.missing"
+  | "valuePercentUnit.invalid"
+  | "columns.unsupportedChartType"
+  | "columns.colorByCategory";
+
+/**
+ * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —
+ * scene 은 안내 텍스트만 내고 (`ChartScene.empty`) 데이터는 보존한다. `warning` 은
+ * first-wins 등으로 렌더는 하되 사용자에게 알린다.
+ */
+export interface ChartDiagnostic {
+  code: ChartDiagnosticCode;
+  severity: "error" | "warning";
+  message: string;
+  /** 문제 값 (중복 키·잘못된 토큰 등). UI 가 해당 항목을 가리킬 때 쓴다. */
+  value?: string;
+}
+
 export interface ChartProps {
   /** 기존 저장 문서는 미지정 시 정적, 신규 palette 생성은 명시적으로 활성화한다. */
   isAnimationActive?: boolean;
@@ -120,6 +178,23 @@ export interface ChartProps {
   showGrid: boolean;
   showLegend: boolean;
   legendPosition: ChartLegendPosition;
+
+  // ── ADR-210 — 전부 선택적. 기존 문서·`CHART_DEFAULT_PROPS` 에는 없고 opt-in 으로만 저장된다.
+  /** 시리즈 원천. 미설정 = `group`. */
+  dataMode?: ChartDataMode;
+  /** `columns` 의 값 필드 순서. 빈 배열은 미완성 설정 (legacy metric 으로 되돌리지 않는다). */
+  valueFields?: readonly string[];
+  /** 시리즈 이름·팔레트 토큰·순서. 보이지 않는 시리즈의 항목도 휴면 보존한다. */
+  seriesConfig?: readonly ChartSeriesConfig[];
+  valueFormat?: ChartValueFormat;
+  /** 새 format 의 숫자 locale. UI 언어와 연동하지 않는다. 미설정 = en-US. */
+  valueLocale?: ChartValueLocale;
+  /** 정수 0–6. 명시하면 minimum = maximum. */
+  valueFractionDigits?: number;
+  /** ISO 4217 코드 (`currency` 필수). 미설정은 진단 — 통화를 추정하지 않는다. */
+  valueCurrency?: string;
+  /** `percent` 의 raw 입력 단위 (필수). 값 크기로 추론하지 않는다. */
+  valuePercentUnit?: ChartPercentUnit;
 }
 
 export interface ChartSize {
@@ -310,4 +385,9 @@ export interface ChartScene {
    * 예외가 아니라 scene 의 한 상태로 표현한다 (ADR-194 G2 대안).
    */
   empty: boolean;
+  /**
+   * ADR-210 — 표시 설정 진단 (없으면 생략). `empty` 와 함께 오는 error 는 설정 오류
+   * 상태 (`CHART_INVALID_SETTINGS_TEXT`), warning 은 렌더하되 알릴 것 (중복 first-wins 등).
+   */
+  diagnostics?: readonly ChartDiagnostic[];
 }

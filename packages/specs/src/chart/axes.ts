@@ -26,6 +26,8 @@ export interface AxesInput {
   fontSize: number;
   showAxis: boolean;
   showGrid: boolean;
+  /** 값 눈금 문자열 (ADR-210). 미지정이면 기존 `formatTick`. */
+  tickText?: (tick: number) => string;
 }
 
 /**
@@ -114,6 +116,7 @@ function categoryAxis(input: AxesInput): AxisScene {
 function valueAxis(input: AxesInput): AxisScene {
   const { value, ticks, plot, orientation, fontSize, showAxis, showGrid } =
     input;
+  const tickText = input.tickText ?? formatTick;
   const horizontal = orientation === "horizontal";
   const labels: TextMark[] = [];
   const grid: LineMark[] = [];
@@ -148,7 +151,7 @@ function valueAxis(input: AxesInput): AxisScene {
               kind: "text",
               x: pos,
               y: r2(plot.y + plot.h + fontSize * 0.4),
-              text: formatTick(tick),
+              text: tickText(tick),
               anchor: "middle",
               baseline: "top",
               role: "tick",
@@ -157,7 +160,7 @@ function valueAxis(input: AxesInput): AxisScene {
               kind: "text",
               x: r2(plot.x - fontSize * 0.4),
               y: pos,
-              text: formatTick(tick),
+              text: tickText(tick),
               anchor: "end",
               baseline: "middle",
               role: "tick",

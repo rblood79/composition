@@ -21,11 +21,37 @@ export {
 export type { BandScale, LinearScale, TickResult } from "./scales";
 export {
   buildSeriesGrid,
+  seriesLabel,
   stackBands,
   stackRangesBySeries,
   valueExtent,
 } from "./series";
-export type { SeriesData, SeriesGrid, StackMode, StackRange } from "./series";
+export type {
+  SeriesData,
+  SeriesGrid,
+  SeriesGridProps,
+  StackMode,
+  StackRange,
+} from "./series";
+export {
+  CHART_AUTO_NUMBER_FORMAT,
+  CHART_CURRENCY_CANDIDATES,
+  CHART_SERIES_TOKEN_PREFIX,
+  formatChartNumber,
+  isSupportedCurrency,
+  parseSeriesIdentity,
+  resolveChartPresentation,
+  seriesIdentity,
+  seriesTokenIndex,
+  seriesTokenName,
+} from "./presentation";
+export type {
+  ChartNumberContext,
+  ChartSeriesSource,
+  ResolvedChartPresentation,
+  ResolvedNumberFormat,
+  ResolvedSeriesConfig,
+} from "./presentation";
 export { buildBarMarks } from "./marks/bar";
 export type { BarMarks } from "./marks/bar";
 export {
@@ -70,6 +96,7 @@ export {
   hitTooltipBand,
 } from "./tooltip";
 export type { LegendEntry } from "./legend";
+export type { TooltipValueFormatter } from "./tooltip";
 export {
   buildLegend,
   legendExtent,
@@ -82,6 +109,7 @@ export {
   CHART_DEFAULT_METRICS,
   CHART_DEFAULT_PROPS,
   CHART_DEFAULT_SERIES_COUNT,
+  CHART_INVALID_SETTINGS_TEXT,
   CHART_SAMPLE_ROWS,
   CHART_TICK_COUNT,
   computeChartScene,
@@ -90,4 +118,8 @@ export {
   skiaTextAnchorX,
   toSkiaTextGeometry,
 } from "./computeChartScene";
-export type { ChartRuleChannel, SkiaTextGeometry } from "./computeChartScene";
+export type {
+  ChartLayout,
+  ChartRuleChannel,
+  SkiaTextGeometry,
+} from "./computeChartScene";

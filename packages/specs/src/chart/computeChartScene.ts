@@ -28,7 +28,12 @@ import {
   niceTicks,
   r2,
 } from "./scales";
-import { buildSeriesGrid, valueExtent } from "./series";
+import { formatChartNumber, resolveChartPresentation } from "./presentation";
+import type {
+  ChartDiagnostic,
+  ResolvedChartPresentation,
+} from "./presentation";
+import { buildSeriesGrid, seriesLabel, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
 import {
   buildBandTooltip,
@@ -90,7 +95,12 @@ export const CHART_DEFAULT_PROPS: ChartProps = {
   legendPosition: "bottom",
 };
 
-function emptyScene(size: ChartSize, plot: Rect): ChartScene {
+function emptyScene(
+  size: ChartSize,
+  plot: Rect,
+  text = "No data",
+  diagnostics?: readonly ChartDiagnostic[],
+): ChartScene {
   return {
     size,
     plot,
@@ -99,7 +109,7 @@ function emptyScene(size: ChartSize, plot: Rect): ChartScene {
         kind: "text",
         x: r2(plot.x + plot.w / 2),
         y: r2(plot.y + plot.h / 2),
-        text: "No data",
+        text,
         anchor: "middle",
         baseline: "middle",
         role: "empty",
@@ -109,8 +119,16 @@ function emptyScene(size: ChartSize, plot: Rect): ChartScene {
     legend: null,
     tooltip: null,
     empty: true,
+    ...(diagnostics && diagnostics.length > 0 ? { diagnostics } : {}),
   };
 }
+
+/**
+ * ADR-210 — 설정 오류 상태의 안내 문구. 데이터는 보존되고 (props 불변) 다른 뜻으로
+ * 렌더하지 않는다 — 두 consumer 가 `empty` 텍스트 마크를 그대로 그리므로 Canvas 와
+ * DOM 이 같은 안내를 낸다.
+ */
+export const CHART_INVALID_SETTINGS_TEXT = "Check chart settings";
 
 /**
  * R7 — 신규 `chartType` 이 분기 없이 통과하는 자리를 컴파일 오류로 바꾼다.
@@ -131,6 +149,7 @@ interface PolarSceneInput {
   metrics: ChartMetrics;
   fontSize: number;
   labelText: ChartLabelFormatter;
+  formatValue: (raw: number) => string;
 }
 
 /**
@@ -227,6 +246,7 @@ function computePolarScene(
       labelText,
       showTotal: props.showTotal,
       totalCaption: props.metric,
+      totalText: input.formatValue,
       fontSize,
     });
     marks.push(...radial.marks);
@@ -271,14 +291,18 @@ function computePolarScene(
       : radialRings.length > 0
         ? buildRingTooltip({
             rings: radialRings,
-            seriesKeys: grid.series.map((series) => series.key || "series"),
+            seriesKeys: grid.series.map((series) =>
+              seriesLabel(series, "series"),
+            ),
             center,
+            formatValue: input.formatValue,
           })
         : buildPolarBandTooltip({
             grid,
             angle,
             center,
             seriesCount: metrics.seriesCount,
+            formatValue: input.formatValue,
           }),
     empty: false,
   };
@@ -295,6 +319,12 @@ export interface ChartLayout {
   stackMode: StackMode;
   ticks: ReturnType<typeof niceTicks>;
   horizontal: boolean;
+  /** ADR-210 — 정규화된 표시 설정 (두 consumer 가 같은 것을 본다). */
+  presentation: ResolvedChartPresentation;
+  /** 값 축 눈금 문자열 — expand 면 정규화 퍼센트 context, 아니면 raw. */
+  tickText: (tick: number) => string;
+  /** raw 값 문자열 — 값 라벨·tooltip·합계. */
+  formatValue: (raw: number) => string;
 }
 
 /** 공유하는 것은 여백·축 단위·표시 정책이며, 마크 path는 각 렌더러가 생성한다. */
@@ -303,6 +333,10 @@ export function resolveChartLayout(
   grid: SeriesGrid,
   size: ChartSize,
   metrics: ChartMetrics,
+  presentation: ResolvedChartPresentation = resolveChartPresentation(
+    props,
+    metrics.seriesCount,
+  ),
 ): ChartLayout {
   const width = Number.isFinite(size.width) ? Math.max(0, size.width) : 0;
   const height = Number.isFinite(size.height) ? Math.max(0, size.height) : 0;
@@ -342,16 +376,24 @@ export function resolveChartLayout(
         colorIndex: ci % palette,
       }))
     : grid.series.map((series) => ({
-        label: series.key || "series",
+        label: seriesLabel(series, "series"),
         colorIndex: series.seriesIndex,
       }));
+
+  // 값 문자열은 **raw** 하나뿐이다 (값 라벨·tooltip·합계 — expand 에서도 정규화하지
+  //   않는다, breakdown §3.1). `auto` 면 기존 `formatTick` 과 같은 문자열이다.
+  const numberFormat = presentation.numberFormat;
+  const formatValue = (raw: number): string =>
+    numberFormat.format === "auto"
+      ? formatTick(raw)
+      : formatChartNumber(raw, numberFormat, "raw");
 
   // 레이블 내용 규칙은 **여기 한 곳**이다 — 마크 빌더 6개는 자리만 정하고 무엇을
   //   적을지는 모른다 (빌더마다 분기를 두면 타입별로 규칙이 갈린다).
   const labelText: ChartLabelFormatter =
     props.labelKey === "category"
       ? (categoryIndex) => grid.categories[categoryIndex] ?? ""
-      : (_categoryIndex, raw) => formatTick(raw);
+      : (_categoryIndex, raw) => formatValue(raw);
 
   // ── 범례 자리 확보 ───────────────────────────────────────────────────────
   const wantsLegend = props.showLegend && legendEntries.length > 0;
@@ -404,12 +446,21 @@ export function resolveChartLayout(
   const extent = valueExtent(grid, stackMode);
   const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
   const horizontal = props.orientation === "horizontal";
+  // expand 축만 정규화 단위다 — opt-in 형식이면 항상 퍼센트, auto 면 기존 문자열.
+  const tickText = (tick: number): string =>
+    numberFormat.format === "auto"
+      ? formatTick(tick)
+      : formatChartNumber(
+          tick,
+          numberFormat,
+          stackMode === "expand" ? "normalizedPercent" : "raw",
+        );
 
   if (props.showAxis && ["bar", "line", "area"].includes(props.chartType)) {
     // 값 축 레이블이 차지하는 폭/높이 — tick 문자열 길이로 정한다.
     let widestTick = 0;
     for (const tick of ticks.ticks) {
-      const w = approxTextWidth(formatTick(tick), fontSize);
+      const w = approxTextWidth(tickText(tick), fontSize);
       if (w > widestTick) widestTick = w;
     }
     let widestCategory = 0;
@@ -435,7 +486,21 @@ export function resolveChartLayout(
     }
   }
 
-  return { normalizedSize, outer, plot, legendBox, legendEntries, labelText, fontSize, stackMode, ticks, horizontal };
+  return {
+    normalizedSize,
+    outer,
+    plot,
+    legendBox,
+    legendEntries,
+    labelText,
+    fontSize,
+    stackMode,
+    ticks,
+    horizontal,
+    presentation,
+    tickText,
+    formatValue,
+  };
 }
 
 export function computeChartScene(
@@ -444,9 +509,42 @@ export function computeChartScene(
   size: ChartSize,
   metrics: ChartMetrics = CHART_DEFAULT_METRICS,
 ): ChartScene {
-  const grid = buildSeriesGrid(rows, props, metrics.seriesCount);
-  const { normalizedSize, outer, plot, legendBox, legendEntries, labelText, fontSize, stackMode, ticks, horizontal } = resolveChartLayout(props, grid, size, metrics);
-  if (outer.w <= 0 || outer.h <= 0 || grid.categories.length === 0 || !grid.hasValues || plot.w <= 0 || plot.h <= 0) return emptyScene(normalizedSize, outer);
+  const presentation = resolveChartPresentation(props, metrics.seriesCount);
+  const grid = buildSeriesGrid(rows, props, metrics.seriesCount, presentation);
+  const {
+    normalizedSize,
+    outer,
+    plot,
+    legendBox,
+    legendEntries,
+    labelText,
+    fontSize,
+    stackMode,
+    ticks,
+    horizontal,
+    tickText,
+    formatValue,
+  } = resolveChartLayout(props, grid, size, metrics, presentation);
+  // 설정 오류 (ADR-210) 는 데이터 유무보다 먼저다 — 잘못된 설정으로 그린 그림은
+  //   "다른 뜻" 이라 아예 그리지 않는다. 진단은 scene 에 실어 UI 가 읽는다.
+  if (!presentation.ok) {
+    return emptyScene(
+      normalizedSize,
+      outer,
+      CHART_INVALID_SETTINGS_TEXT,
+      presentation.diagnostics,
+    );
+  }
+  if (
+    outer.w <= 0 ||
+    outer.h <= 0 ||
+    grid.categories.length === 0 ||
+    !grid.hasValues ||
+    plot.w <= 0 ||
+    plot.h <= 0
+  ) {
+    return emptyScene(normalizedSize, outer, "No data", presentation.diagnostics);
+  }
 
   // ── 파이는 축이 없다 ─────────────────────────────────────────────────────
   if (props.chartType === "pie") {
@@ -459,6 +557,7 @@ export function computeChartScene(
       innerRadius: props.innerRadius,
       showTotal: props.showTotal,
       totalCaption: props.metric,
+      totalText: formatValue,
       // 파이의 링 분할은 값 축이 없어 여기서 따로 판정한다 (bar/area 의 stackMode
       //   는 축 계산 뒤에 나온다 — 파이 분기는 그보다 앞이다).
       stackMode:
@@ -488,9 +587,13 @@ export function computeChartScene(
               slices: pie.hit.slices,
               seriesCount: metrics.seriesCount,
               center: pie.hit.center,
+              formatValue,
             })
           : null,
       empty: false,
+      ...(presentation.diagnostics.length > 0
+        ? { diagnostics: presentation.diagnostics }
+        : {}),
     };
   }
 
@@ -505,6 +608,7 @@ export function computeChartScene(
       metrics,
       fontSize,
       labelText,
+      formatValue,
     });
   }
 
@@ -616,6 +720,7 @@ export function computeChartScene(
       fontSize,
       showAxis: props.showAxis,
       showGrid: props.showGrid,
+      tickText,
     }),
     legend: legendBox
       ? buildLegend({
@@ -632,9 +737,13 @@ export function computeChartScene(
           plot,
           orientation: props.orientation,
           seriesCount: metrics.seriesCount,
+          formatValue,
         })
       : null,
     empty: false,
+    ...(presentation.diagnostics.length > 0
+      ? { diagnostics: presentation.diagnostics }
+      : {}),
   };
 }
 

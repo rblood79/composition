@@ -9,6 +9,7 @@
  */
 import { formatTick, r2 } from "./scales";
 import type { BandScale } from "./scales";
+import { seriesLabel } from "./series";
 import type { SeriesGrid } from "./series";
 import { bandCenter } from "./marks/line";
 import type {
@@ -19,27 +20,35 @@ import type {
   TooltipScene,
 } from "./types";
 
+/**
+ * 값 문자열 (ADR-210) — 미지정이면 기존 `formatTick`. tooltip 값은 stack 모드와
+ * 무관하게 **raw** 라 정규화 context 가 없다 (breakdown §3.1).
+ */
+export type TooltipValueFormatter = (raw: number) => string;
+
 export interface BandTooltipInput {
   grid: SeriesGrid;
   band: BandScale;
   plot: Rect;
   orientation: ChartOrientation;
   seriesCount: number;
+  formatValue?: TooltipValueFormatter;
 }
 
 function entriesOf(
   grid: SeriesGrid,
   categoryIndex: number,
   fallbackLabel: string,
+  formatValue: TooltipValueFormatter,
 ): TooltipEntry[] {
   const entries: TooltipEntry[] = [];
   for (const series of grid.series) {
     const v = series.values.get(categoryIndex);
     if (v === undefined) continue;
     entries.push({
-      label: series.key || fallbackLabel,
+      label: seriesLabel(series, fallbackLabel),
       colorIndex: series.seriesIndex,
-      text: formatTick(v),
+      text: formatValue(v),
     });
   }
   return entries;
@@ -51,11 +60,12 @@ function entriesOf(
  */
 export function buildBandTooltip(input: BandTooltipInput): TooltipScene | null {
   const { grid, band, plot, orientation, seriesCount } = input;
+  const formatValue = input.formatValue ?? formatTick;
   if (grid.categories.length === 0) return null;
 
   const bands: TooltipBand[] = [];
   for (let ci = 0; ci < grid.categories.length; ci++) {
-    const entries = entriesOf(grid, ci, "value");
+    const entries = entriesOf(grid, ci, "value", formatValue);
     if (entries.length === 0) continue;
     const start = band.at(ci) - (band.step - band.bandwidth) / 2;
     const center = bandCenter(band, ci);
@@ -85,12 +95,14 @@ export interface RadialTooltipInput {
   slices: Array<{ categoryIndex: number; start: number; sweep: number; raw: number }>;
   seriesCount: number;
   center: { x: number; y: number; outer: number; inner: number };
+  formatValue?: TooltipValueFormatter;
 }
 
 export function buildRadialTooltip(
   input: RadialTooltipInput,
 ): TooltipScene | null {
   const { grid, slices, seriesCount, center } = input;
+  const formatValue = input.formatValue ?? formatTick;
   if (slices.length === 0) return null;
   const palette = Math.max(1, seriesCount);
   const bands: TooltipBand[] = slices.map((slice) => {
@@ -111,7 +123,7 @@ export function buildRadialTooltip(
         {
           label,
           colorIndex: slice.categoryIndex % palette,
-          text: formatTick(slice.raw),
+          text: formatValue(slice.raw),
         },
       ],
     };
@@ -129,6 +141,7 @@ export interface RingTooltipInput {
   }>;
   seriesKeys: readonly string[];
   center: { x: number; y: number; outer: number; inner: number };
+  formatValue?: TooltipValueFormatter;
 }
 
 /**
@@ -140,6 +153,7 @@ export function buildRingTooltip(
   input: RingTooltipInput,
 ): TooltipScene | null {
   const { rings, seriesKeys, center } = input;
+  const formatValue = input.formatValue ?? formatTick;
   if (rings.length === 0) return null;
   const bands: TooltipBand[] = rings.map((ring) => ({
     categoryIndex: ring.categoryIndex,
@@ -152,7 +166,7 @@ export function buildRingTooltip(
     entries: ring.slices.map((slice, si) => ({
       label: seriesKeys[si] ?? ring.label,
       colorIndex: slice.colorIndex,
-      text: formatTick(slice.raw),
+      text: formatValue(slice.raw),
     })),
   }));
   return { bands, center };
@@ -223,6 +237,7 @@ export interface PolarBandTooltipInput {
   angle: { (index: number): number; readonly step: number };
   center: { x: number; y: number; outer: number; inner: number };
   seriesCount: number;
+  formatValue?: TooltipValueFormatter;
 }
 
 /**
@@ -234,6 +249,7 @@ export function buildPolarBandTooltip(
   input: PolarBandTooltipInput,
 ): TooltipScene | null {
   const { grid, angle, center, seriesCount } = input;
+  const formatValue = input.formatValue ?? formatTick;
   const count = grid.categories.length;
   if (count === 0 || center.outer <= 0) return null;
   const palette = Math.max(1, seriesCount);
@@ -248,9 +264,9 @@ export function buildPolarBandTooltip(
       const raw = series.values.get(ci);
       if (raw === undefined) continue;
       entries.push({
-        label: series.key || "series",
+        label: seriesLabel(series, "series"),
         colorIndex: series.seriesIndex % palette,
-        text: formatTick(raw),
+        text: formatValue(raw),
       });
     }
     const radians = ((mid - 90) * Math.PI) / 180;
