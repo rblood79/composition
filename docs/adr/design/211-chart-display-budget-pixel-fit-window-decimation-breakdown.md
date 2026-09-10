@@ -1,105 +1,146 @@
 # ADR-211 상세 설계 — 차트 표시 예산 (픽셀 폭 기준 마크 수와 창·축약)
 
-2026-09-10 · **Proposed — 리뷰 전.** [상위 ADR](../211-chart-display-budget-pixel-fit-window-decimation.md). 아래 함수/필드/파일명은 제안이며 현행 구현으로 인용하지 않는다. 현행 코드 사실은 상위 ADR §Context 의 표가 정본이다.
+2026-09-10 · **Proposed — round 1 (codex, HIGH 3 · MEDIUM 6) 반영, 수리 검증 대기.** [상위 ADR](../211-chart-display-budget-pixel-fit-window-decimation.md) · [리뷰 로그](../reviews/211.md). 아래 함수/필드/파일명은 제안이며 현행 구현으로 인용하지 않는다. 현행 코드 사실은 상위 ADR §Context 의 표가 정본이다.
 
 ## 1. 범위 · 선행 관계 (분리 4질문 lock-in)
 
-- **범위**: 차트 6종 (bar · line · area · pie/donut · radar · radial) 전부. "몇 개를 그릴 수 있는가" 를 데이터 행 수 상수가 아니라 **차트가 차지한 픽셀 공간**에서 파생하고, 넘치는 부분을 창(window) · 축약(decimation/집계) · 묶기(others) 로 처리하는 계약. 두 leg (Skia Canvas · Recharts Preview/Publish) 는 같은 계약 결과를 소비한다.
-- **범위 밖**: 새 표현 옵션 (tooltip/legend 확장), 데이터 공급 (collection 식별자 — ADR-152), Properties 컨트롤 mount 비용 (ADR-210 후속 ②), 실시간 스트리밍 데이터.
-- **분리 4질문** (adr-writing.md §Fork): (1) base/응용 — ADR-194 (기하 SSOT) · ADR-209 (Canvas·Recharts 분리) · ADR-210 (다중 컬럼·표시) 이 base, 본 ADR 은 그 위의 **표시 예산 계약** (응용). 셋을 전제로 하고 역방향 의존은 없다. (2) schema — 새 저장 props 는 `displayBudget` 한 묶음 (선택적) 뿐이며 ADR-210 의 `valueFields/seriesConfig/valueFormat` 을 specialization 하지 않는다 (직교). (3) 선행 전제 reverse — ADR-157 의 "샘플 N행" 표시 정책은 collection 목록용이고 `CHART_SAMPLE_ROWS` 는 그 동형 이식 (`computeChartScene.ts:56` 주석) 이다. 본 ADR 은 차트에 한해 그 동형을 **폐기**하되 ADR-157 자체는 건드리지 않는다 — grep `CHART_SAMPLE_ROWS` 소비처 4곳 (§4) 이 전부 차트 전용임을 확인. (4) 3차 리뷰까지 미루지 않음 — 이 lock-in 을 round 1 에 낸다. **사용자 confirm**: 2026-09-10 사용자가 방향 ("픽셀 공간에 몇 개가 들어가나", 스크롤·기간 축 축약, "모든 차트에 포함") 과 제목을 직접 정했다 — 세션 기록 (ADR-210 종결 직후).
+- **범위**: 차트 6종 (bar · line · area · pie/donut · radar · radial) 전부. "몇 개를 그릴 수 있는가" 를 데이터 행 수 상수가 아니라 **차트가 차지한 픽셀 공간과 시리즈 수**에서 파생하고, 넘치는 부분을 창(window) · 축약(bucket 집계 / bucket 극값 선택) · 묶기(others) 로 처리하는 계약. 두 leg (Skia Canvas · Recharts Preview/Publish) 는 같은 계약 결과를 소비한다.
+- **범위 밖**: 새 표현 옵션 (tooltip/legend 확장), 데이터 공급 (collection 식별자 — ADR-152), Properties 컨트롤 mount 비용 (ADR-210 후속 ②), 실시간 스트리밍, 시간 거리 비례 x 배치 (현행 band scale 도 index 배치 — §2.3).
+- **분리 4질문** (adr-writing.md §Fork): (1) base/응용 — ADR-194 (기하 SSOT) · ADR-209 (Canvas·Recharts 분리) · ADR-210 (다중 컬럼·표시) 이 base, 본 ADR 은 그 위의 **표시 예산 계약** (응용). 역방향 의존 없음. (2) schema — 새 저장 props 는 `displayBudget` 한 묶음 (선택적) 뿐이며 ADR-210 의 `valueFields/seriesConfig/valueFormat` 을 specialization 하지 않는다 (직교). (3) 선행 전제 reverse — ADR-157 의 "샘플 N행" 은 collection 목록용이고 `CHART_SAMPLE_ROWS` 는 그 동형 이식 (`computeChartScene.ts:56` 주석). 본 ADR 은 차트에 한해 그 동형을 **폐기**하되 ADR-157 은 건드리지 않는다 — 제품 코드 소비처 3곳 + 테스트 1 (§4) 이 전부 차트 전용. (4) 3차 리뷰까지 미루지 않음 — round 1 에 냈다. **사용자 confirm**: 2026-09-10 사용자가 방향 ("픽셀 공간에 몇 개가 들어가나", 스크롤·기간 축 축약, "모든 차트에 포함") 과 제목을 직접 정했다.
 
-## 2. 계약 — `fit` · 창 · 축약 · 묶기
+## 2. 계약
 
-### 2.1 예산 축과 `fit` (종류별)
+### 2.1 세 가지 예산을 구분한다 (round 1 h3)
 
-| 종류        | 예산 축                                 | `fit` (정수)                                              | 넘칠 때 기본 동작                                    |
-| ----------- | --------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------- |
-| bar         | 플롯 폭 (horizontal 이면 높이) `plot.w` | `floor(plot.w / (minSlot × 묶음 슬롯 수))`, 누적은 슬롯 1 | 범주 축: 창 · 순서/기간 축: 집계                     |
-| line / area | 플롯 폭                                 | `floor(plot.w / minPointGap)`                             | 순서/기간 축: 점 축약 (LTTB) · 범주 축: 창           |
-| pie / donut | 둘레 `2π × r` (donut 은 바깥 반지름)    | `floor(2πr / minArc)`                                     | 작은 조각부터 "기타" 로 묶기                         |
-| radar       | 둘레 (축 간 호 길이)                    | `floor(2πr / minAxisGap)`                                 | 축 "기타" 묶기 (범주 축) — 창은 극좌표에 쓰지 않는다 |
-| radial      | 반지름 (링 두께) `r − innerR`           | `floor((r − innerR) / minRing)`                           | 링 "기타" 묶기                                       |
+| 예산                | 뜻                                                                       | 보장                                                                                                                                                  |
+| ------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **슬롯 예산 `fit`** | 예산 축 / 최소 슬롯 간격 — 범주(슬롯) 를 몇 개까지 두는가                | 슬롯 **간격**의 하한. 값 비례 마크 (pie 호 · radial 링 길이 · bar 높이) 의 크기는 보장하지 않는다                                                     |
+| **마크 예산 `M`**   | 차트 하나가 만드는 마크 총수 상한 (rule 채널, 후보 2,000)                | 총비용 상한 — 시리즈 수 `S` 를 포함: `fitEff = min(fit, floor(M / (S × k)))`, `k` = 슬롯당 시리즈당 마크 수 (§2.2)                                    |
+| **행 상한 `R`**     | 모델 계산에 넣는 원본 행 상한 (rule 채널, 후보 20,000) — **두 leg 동일** | 모델 계산 비용 상한. 초과 시 두 leg 모두 앞 `R` 행 + 진단 `rows-truncated` (사용자-가시 안내). P0 실측이 불필요하다고 판정하면 상수만 두고 `Infinity` |
 
-- `minSlot / minPointGap / minArc / minAxisGap / minRing` 은 `ChartMetrics` 확장 (rule chart 채널, D3 SSOT) — 기본값은 Phase 0 에서 실측으로 정한다 (후보: 8 / 2 / 6 / 12 / 4 px). 저장 props 가 아니다.
-- `fit` 은 `size` (두 leg 모두 이미 픽셀 `ChartSize` 를 가진다 — Canvas 는 layout rect, DOM 은 `ResizeObserver`) 에서 파생하므로 같은 크기면 같은 값이다. 크기가 다르면 (Compare Mode 반폭 등) `fit` 도 달라진다 — 이것은 결함이 아니라 계약이다 (§5 fixture 에 명시).
+- 최소 마크 크기 (예: pie 의 작은 조각 호 0.377px) 는 **보장하지 않는다** — 값 비중을 이유로 묶으면 데이터 의미가 바뀌므로 (`[1000, 1]` 은 조각 2개가 정답). 이 사실을 ADR Decision 에 명시한다.
+- `fitEff = 0` (플롯이 최소 슬롯보다 좁음): 마크 0 + 진단 `plot-too-small` (warning — 데이터 보존, ADR-210 `presentation.ok=false` 경로가 아니라 scene.diagnostics 경로). `fitEff = 1`: 창은 1 슬롯, 집계는 bucket 1개 (전체 합), 극값 선택은 bucket 1개 (min/max 2점), others 는 적용하지 않고 상위 1개만 (others 는 `fitEff ≥ 2` 부터: 실제 `fitEff − 1` + 기타 1). `fitEff = 2`: 정상 규칙.
 
-### 2.2 축 종류 판정
+### 2.2 종류별 예산 축과 `fit` · `k`
 
-- **범주 축**: 카테고리 필드가 문자열이고 날짜/숫자로 파싱되지 않음 → 창.
-- **순서/기간 축**: 카테고리 값이 전부 ISO 날짜 또는 유한 숫자 → 축약. 판정은 `resolveChartData` 의 정규화 단계에서 1회, 결과를 `presentation` 옆 `axisKind` 로 실어 두 leg 가 같이 읽는다.
-- 저장 props `displayBudget.overflow: "auto" | "window" | "aggregate" | "others"` (기본 `auto` = 위 표). 사용자가 명시하면 판정을 덮는다. Pie/radar/radial 에 `window` 는 validator 가 거부한다 (ADR-210 `presentation.ok=false` 경로 재사용).
+| 종류        | 예산 축 (픽셀)                                     | `fit`                                                                                | `k` (슬롯당 시리즈당 마크)     | 넘칠 때 기본 (§2.4)                                                    |
+| ----------- | -------------------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------ | ---------------------------------------------------------------------- |
+| bar         | `plot.w` (horizontal 이면 `plot.h`)                | 묶음: `floor(plot.w / (minSlot × S))` · 누적/expand: `floor(plot.w / minSlot)`       | 1 (+ 값 라벨 1)                | 범주: 창 · 순서: bucket 집계                                           |
+| line / area | `plot.w`                                           | `floor(plot.w / minPointGap)`                                                        | 1 점 (+ dot 1), 극값 선택 시 2 | 순서: 비누적 → bucket 극값 선택 · 누적/expand → bucket 집계 · 범주: 창 |
+| pie / donut | 바깥 링 둘레 × sweep 비율 `2π r_outer × sweep/360` | `min(floor(둘레 / minArc), floor((r_outer − r_inner) / minRing))` (동심 링 = 시리즈) | 1 조각                         | others                                                                 |
+| radar       | 둘레 `2π r × sweep/360` (축 간 호)                 | `floor(둘레 / minAxisGap)`                                                           | 1 점 (+ 면 1)                  | others (축)                                                            |
+| radial      | 반지름 `r_outer − r_inner` (링 두께)               | `floor((r_outer − r_inner) / minRing)`                                               | 1 링                           | others (링)                                                            |
 
-### 2.3 창 (window)
+- `minSlot / minPointGap / minArc / minAxisGap / minRing` 은 `ChartMetrics` 확장 (rule chart 채널, D3 SSOT). 기본값은 P0 에서 light/dark 실측으로 정한다 (후보 8 / 2 / 6 / 12 / 4 px). 저장 props 가 아니다.
+- `fit` 은 `size` (두 leg 모두 픽셀 `ChartSize` 를 가진다 — Canvas layout rect, DOM `ResizeObserver`) 에서 파생하므로 같은 크기·같은 `S` 면 같은 값. 크기가 다르면 (Compare Mode 반폭) 다른 것이 계약이다 (§5 fixture).
+- 창 트랙 (§2.5) 이 플롯 높이를 차지하면 **두 leg 가 같은 높이를 예약**해야 `plot` 이 같다 — 예약 여부는 `n > fitEff` 로 결정되고 두 leg 가 같은 입력에서 같은 판정을 내린다 (Canvas 는 비활성 트랙을 그린다).
 
-- 창 크기 = `fit`, 창 위치 = 첫 범주 index (0 기준). **저장하지 않는 뷰 상태** — Preview/Publish 의 컴포넌트 state 로만 존재하고 canonical write 0 (ADR-210 T11 의 "tooltip write 0" 과 같은 규율).
-- Canvas 는 항상 창 0 을 정적으로 그린다 (빌더는 상호작용 표면이 아니다 — 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview`).
-- Preview/Publish 는 Recharts `Brush` (3.10.1 export 확인) 또는 자체 스크롤 트랙 — Phase 0 spike 에서 Brush 가 `PlainBarShape`·`accessibilityLayer` 와 공존하는지 확인 후 결정. 키보드: 좌우 화살표로 창 이동 (D1 — RAC 가 아니라 Recharts accessibilityLayer 범위, 별도 ARIA 작성 금지).
-- 창 밖 데이터는 **모델에는 남고 마크만 안 만든다** — 집계·domain(축 범위) 은 전체 데이터로 계산해 창을 옮겨도 축이 흔들리지 않는다.
+### 2.3 축 종류 판정 (round 1 m1)
 
-### 2.4 축약 (aggregate / LTTB)
+- 판정은 `resolveChartData` 정규화 단계에서 1회, 결과 `axisKind: "category" | "ordinal"` 을 모델·scene 에 실어 두 leg 가 같이 읽는다.
+- **`ordinal` 자동 판정은 보수적이다**: dimension 의 모든 값 (결측 제외) 이 엄격 ISO-8601 (`YYYY-MM-DD` 또는 `YYYY-MM-DDTHH:mm[:ss[.sss]][Z|±hh:mm]`) 로 파싱되고 **첫 출현 순서가 단조 (오름 또는 내림)** 일 때만. 숫자형 문자열 (`"001"`, `"2024"`) 은 자동으로 `ordinal` 이 되지 않는다 (ID 를 기간처럼 묶는 사고 방지) — 사용자가 `displayBudget.axis: "ordinal"` 로 opt-in. 파싱 실패 하나라도 있으면 `category`.
+- x 는 **범주 index** (첫 출현 순서, 현행 `series.ts:112-118`) 다. 시간 거리 비례 배치·불규칙 간격 재현은 범위 밖 — 현행 band scale 도 index 배치이므로 계약이 바뀌지 않는다. 내림차순 날짜는 그대로 내림차순 index 로 두고 bucket 은 인접 index 로 묶는다 (기간 = 인접 index 구간, 라벨은 `첫 ~ 끝`).
+- 결측 dimension (`""`) 은 현행대로 빈 라벨 범주 1개 — bucket 안에서는 다른 범주와 같이 묶인다.
 
-- bar 순서 축: 인접 `ceil(n / fit)` 개 범주를 한 묶음으로 합산 (sum) — 값 필드가 비율/퍼센트면 평균. 묶음 라벨은 `첫~끝` (예: `2026-01-01 ~ 2026-01-07`).
-- line/area 기간 축: LTTB 로 `fit` 개 점 선택 (모양 보존). 시리즈가 여럿이면 시리즈마다 독립 LTTB 가 아니라 **공통 x 집합** (첫 시리즈 기준 또는 합산 시리즈 기준) 을 뽑아 x 를 공유한다 — 누적(stack) 이 깨지지 않게.
-- 축약된 값의 tooltip/축 문자열은 ADR-210 `formatValue` 를 그대로 쓰되 단위 접미 (`합계` / `평균`) 를 `seriesLabel` 옆에 붙인다 — 문자열 SSOT 는 `presentation.ts`.
+### 2.4 overflow — 종류 × 축 지원표
 
-### 2.5 묶기 (others)
+| `overflow`                   | bar               | line / area                   | pie / donut | radar  | radial |
+| ---------------------------- | ----------------- | ----------------------------- | ----------- | ------ | ------ |
+| `window` (창)                | ✓ 기본 (category) | ✓ 기본 (category)             | ✗           | ✗      | ✗      |
+| `aggregate` (bucket 집계)    | ✓ 기본 (ordinal)  | ✓ 기본 (ordinal, 누적/expand) | ✗           | ✗      | ✗      |
+| `extrema` (bucket 극값 선택) | ✗                 | ✓ 기본 (ordinal, 비누적)      | ✗           | ✗      | ✗      |
+| `others` (묶기)              | ✓ (명시 시)       | ✗                             | ✓ 기본      | ✓ 기본 | ✓ 기본 |
 
-- pie/radar/radial: 값 내림차순으로 `fit − 1` 개를 남기고 나머지를 "기타" 1개로 합산. "기타" 는 팔레트 마지막 토큰 (`--chart-series-8`) 이 아니라 전용 토큰 `--chart-others` (rule chart 채널 신설, light/dark 둘 다) — Skia 와 CSS 가 같은 토큰을 읽는다.
-- 라벨 문자열 `chart.others` 는 i18n 키 (`translations.ts`), 두 leg 가 같은 문자열을 받도록 `presentation` 에 실린다 (Publish 는 i18n 런타임이 없으므로 export 시점 문자열로 고정 — ADR-210 `CHART_INVALID_SETTINGS_TEXT` 와 같은 방식).
+- 저장 `displayBudget.overflow: "auto" | "window" | "aggregate" | "extrema" | "others"` (기본 `auto` = 표의 "기본"). 표에 ✗ 인 조합은 validator 가 거부 → ADR-210 `presentation.ok=false` + `CHART_INVALID_SETTINGS_TEXT` 경로 재사용.
+- **집계 연산은 표시 형식과 분리한다** (round 1 h1): `displayBudget.aggregate: "sum" | "mean" | "max" | "min"` (기본 `sum` — 현행 범주 합산 `series.ts:102-107` 과 같은 의미). `valueFormat` (ADR-210) 은 문자열만 바꾸고 집계에 영향을 주지 않는다. `mean` 은 **bucket 안 범주 값의 평균** (범주 값은 이미 행 합산이므로 "행 평균" 이 아니다 — 문서에 명시). 결측은 제외 (0 아님), 음수는 그대로 합산. 극값 선택·창은 원본 점이라 집계 접미가 붙지 않는다.
+- **bucket 집계** (`aggregate`): `B = fitEff` 개 bucket, bucket 크기 `ceil(n / B)` (마지막 bucket 만 작을 수 있음). 시리즈마다 같은 bucket 경계. 라벨 `첫 ~ 끝`. tooltip/축 값 문자열 = `formatValue(v)` + 접미 (`합계` / `평균` / `최대` / `최소`, 문자열 SSOT `presentation.ts`, i18n 은 §2.7).
+- **bucket 극값 선택** (`extrema`, round 1 h2 — LTTB 대체): 같은 bucket 경계에서 **시리즈마다** bucket 안 `min` 과 `max` 의 범주 index 를 고른다 (같으면 1개). 선택 집합 = 모든 시리즈 선택의 합집합, 각 시리즈는 합집합의 모든 index 에서 **원본 값** 을 그린다 (합집합 index 에 값이 있으므로 null 이 없다 — 원본 결측은 현행대로 결측). 보장: 시리즈별 전역 max/min 과 bucket 별 max/min 이 **정확히** 보존된다 (선택 규칙에 의해, 오차 0). 마크 수 ≤ `2 × S × B` 로 마크 예산 `M` 에 들어간다 (§2.1 `k = 2`). LTTB 는 채택하지 않는다 — 대표 시리즈 하나의 모양으로 다른 시리즈 spike 를 잃는 반례가 있어서다.
+- **others**: 범주 단위로 묶는다 (시리즈가 여럿이어도 범주 목록은 공유). ranking key = 범주별 `Σ_series |value|` (pie 는 현행 절댓값 면적 규약 `marks/pie.ts:201-204` 와 같은 축, radar/radial 도 같은 key). 상위 `fitEff − 1` 을 남기고 나머지를 synthetic 범주 (`key: "__others__"`, 원본 라벨과 충돌하지 않는 별도 key — 원본에 "기타" 라벨이 있어도 다른 범주로 유지) 로 **시리즈별 sum** 합산. 부호: 합산은 원본 부호로 (pie 는 그 결과의 절댓값을 면적으로 — `+10/−10` 이 0 이 되면 조각이 사라지는 것은 현행 pie 의 0 값 규약과 같다; 대신 tooltip 은 원본 합을 보인다). radial 은 others 합산 **뒤** domain 을 다시 계산한다 (clamp 는 그 domain 기준).
+
+### 2.5 창 (window)
+
+- 모델 두 층: **full model** (전체 범주·값·domain·집계) → **visible model** (창 `[start, start + fitEff)` 의 범주만 마크로). domain·집계·범례는 full model 에서 — 창을 옮겨도 축이 흔들리지 않는다.
+- 창 위치 `start` 는 **저장하지 않는 뷰 상태** (Preview/Publish 컴포넌트 state, canonical write 0). Canvas 는 항상 `start = 0` 을 정적으로 그린다 (빌더는 상호작용 표면이 아니다 — 메모리 `feedback-skia-builder-not-frontend-interaction-belongs-to-preview`).
+- clamp/reset (round 1 m3): `start = clamp(start, 0, max(0, n − fitEff))`. 데이터 identity (`rowsKey`) · 차트 종류 · `dataMode` · `overflow` 가 바뀌면 0 으로 reset, `size` 만 바뀌면 clamp. 마지막 창은 `n − fitEff` 에서 시작 (창 길이 불변).
+- **컨트롤은 Recharts `Brush` 가 아니다** (round 1 m3: 3.10.1 `Brush` 는 손잡이 둘의 index 를 각각 움직여 창 길이가 변한다). 창 트랙 = shared 의 RAC `Slider` (`packages/shared/src/components/Slider.tsx`, D1 은 RAC 소유) 단일 thumb, `minValue 0 · maxValue n − fitEff · step 1` — 화살표 키 1 슬롯, PageUp/Down `fitEff` 슬롯, Home/End 끝. 별도 ARIA 작성 없음. 트랙은 플롯 **아래** 에 `windowTrackHeight` (metrics) 를 예약하고 Canvas 는 같은 높이의 비활성 트랙을 그린다 (§2.2 마지막 항).
+- 접근성: 창 이동은 Slider 가, 마크 탐색은 기존 Recharts `accessibilityLayer` 가 (visible model 범위). tooltip 은 visible model 의 원본 값.
+
+### 2.6 props 결선 inventory (round 1 m2)
+
+`displayBudget` 은 선언만으로 화면에 닿지 않는다 — 아래 전부가 통과 조건이다 (ADR-210 `valueFields` 선례).
+
+| 단계               | 위치                                                                                                                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| catalog `accepts`  | `packages/shared/src/catalog/bindings/Chart.binding.ts:39` (kind · default · 순서/숨김)                                                                                  |
+| DOM 투영           | `packages/shared/src/catalog/outputs/toRacProps.ts:88` (accepts 키만 투영)                                                                                               |
+| shared Chart props | `packages/shared/src/components/Chart.tsx` 추출·memo (객체는 `JSON.stringify` 키 — ADR-210 규칙)                                                                         |
+| Skia allowlist     | `packages/specs/src/renderers/skiaPrimitives.ts:3330` `pickChartPresentationProps`                                                                                       |
+| Properties editor  | `ChartDataMappingControls.tsx` 에 `overflow`/`aggregate`/`axis`/`othersLabel` 컨트롤 mount                                                                               |
+| 저장 규칙          | `displayBudget` 은 **객체 전체 교체** (ADR-210 `seriesConfig` 배열 전체 교체와 같은 규칙), ref override 는 effective 값 복사, reset 은 키 삭제, 같은 값 재적용은 write 0 |
+| 경로 테스트        | Properties → semantic write → canonical → DB → reload → Skia · Recharts → Export → publish (G3 live)                                                                     |
+
+### 2.7 문자열 (round 1 m5)
+
+- `CHART_INVALID_SETTINGS_TEXT` 는 두 leg 가 같은 **영문 상수**를 그린다 (`computeChartScene.ts:129` · `RechartsChart.tsx:227`) — 번역을 export 에 싣는 선례가 아니다. others 라벨과 집계 접미도 같은 방식: 기본은 영문 상수 (`"Other"` · `"sum"` / `"mean"` / `"max"` / `"min"`), 저장 필드 `displayBudget.othersLabel` (선택) 로 사용자가 문서 언어에 맞춰 덮는다. Properties 의 placeholder 만 i18n (`chart.othersLabel`). 독립 Publish 는 저장 문자열 또는 상수만 본다 (i18n 런타임 없음). 테스트: ko/en 문서 · reload · Export → publish 에서 같은 문자열.
+- 패널 안내 (`ChartAuthoringControls.tsx:92-98`): `chart.sampleHint` 삭제, `chart.budgetHint` 신설 — "표시 {fitEff}/{n} — {창·집계·극값·기타}" + `rows-truncated` 시 "{R}/{rows}행".
 
 ## 3. 계산 위치 (SSOT) 와 소비
 
-- `packages/specs/src/chart/budget.ts` (신규): `resolveDisplayBudget(kind, size, metrics, model) → { fit, axisKind, overflow, window: {start, size} | null, groups: ... }`. 순수 함수, Recharts import 0.
-- `computeChartScene` 은 `bandScale(grid.categories.length, …)` (`computeChartScene.ts:613`) 대신 **예산이 남긴 범주 목록** 으로 band/angle scale 을 만든다. `angleScale` (`polar.ts:28`) 도 같은 목록을 받는다.
-- `resolveChartData` (`runtimeData.ts:29`) 가 DOM leg 의 같은 입력 — 창/축약/묶기를 적용한 `rows` 와 `axisKind` 를 모델에 싣는다. RechartsChart 는 모델의 행만 그린다.
-- Canvas 주입 (`canvasSceneNode.ts:2585-2591`): `CHART_SAMPLE_ROWS` slice 제거, **전체 행**을 `_chartRows` 로 넘기고 예산은 scene 계산이 적용한다. 대신 행 상한이 없어지므로 **모델 계산 비용**이 행 수에 비례한다 — 5,000행 이상은 Phase 0 에서 재고 필요하면 `_chartRows` 에 하드 상한 (예: 20,000) 을 별도 상수로 둔다 (표시 예산과 무관한 안전장치, 안내 문구 별도).
-- 패널 안내 (`ChartAuthoringControls.tsx:92-98`): "Canvas: 200/total 행 샘플" → "표시 {fit}/{total} — 나머지는 {창·집계·기타}" 로 교체. i18n `chart.sampleHint` 는 삭제하고 `chart.budgetHint` 신설 (ko/en).
+- `packages/specs/src/chart/budget.ts` (신규): `resolveDisplayBudget(kind, size, metrics, model, props) → { fit, fitEff, axisKind, overflow, aggregate, buckets | window | others, diagnostics }`. 순수 함수, Recharts import 0. 창 `start` 는 입력 (Canvas 0, DOM 뷰 상태).
+- `computeChartScene` 은 `bandScale(grid.categories.length, …)` (`computeChartScene.ts:613`) 대신 **예산이 남긴 범주 목록 (visible)** 으로 band/angle scale 을 만든다 (`angleScale`, `polar.ts:28` 도 같은 목록). domain 은 full model.
+- `resolveChartData` (`runtimeData.ts:29`) 가 DOM leg 의 같은 입력 — full/visible 두 층과 `axisKind` 를 모델에 싣는다. RechartsChart 는 visible 만 그린다.
+- Canvas 주입 (`canvasSceneNode.ts:2585-2591`): `CHART_SAMPLE_ROWS` slice 제거, 행 상한 `R` 은 spec 안에서 두 leg 에 똑같이 적용 (Canvas 전용 slice 를 두지 않는다 — round 1 m4).
 
 ## 4. 변경 파일 (예상)
 
-| 파일                                                                                                        | 변경                                                                            |
-| ----------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `packages/specs/src/chart/budget.ts` (신규)                                                                 | `resolveDisplayBudget` · axisKind 판정 · LTTB · 집계 · others                   |
-| `packages/specs/src/chart/computeChartScene.ts`                                                             | `CHART_SAMPLE_ROWS` 삭제 · 예산 적용 범주로 scale 생성 · scene 에 `budget` 메타 |
-| `packages/specs/src/chart/runtimeData.ts` · `series.ts`                                                     | 모델에 `axisKind` · 창/축약 결과 행                                             |
-| `packages/specs/src/chart/presentation.ts` · `types.ts` · `authoring.ts`                                    | `displayBudget` props validator · `ChartMetrics` 최소 단위 5종 · others 문자열  |
-| `packages/specs/src/chart/polar.ts` · `marks/pie.ts` · `radar.ts` · `radial.ts`                             | others 조각/축/링                                                               |
-| `packages/specs/src/renderers/skiaPrimitives.ts:3357`                                                       | 전체 행 수신 (slice 없음)                                                       |
-| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts:2585`                                   | slice 제거 · 안전 상한 상수                                                     |
-| `apps/builder/src/builder/panels/properties/ChartAuthoringControls.tsx:92` · `ChartDataMappingControls.tsx` | 안내 문구 · `overflow` 선택 컨트롤 (auto/창/집계/기타)                          |
-| `apps/builder/src/i18n/translations.ts` · `types.ts`                                                        | `chart.sampleHint` → `chart.budgetHint` · `chart.others`                        |
-| `packages/shared/src/components/chart/RechartsChart.tsx` · `Chart.tsx`                                      | 창 상태 (뷰) · Brush/스크롤 · 키보드 창 이동 · others 토큰                      |
-| catalog rule chart 채널 (`componentRulesTable.ts`) · theme tokens                                           | `--chart-others` light/dark · 최소 단위 5종                                     |
-| `apps/builder/src/builder/workspace/canvas/scene/chartRowInjection.test.ts` (6)                             | 200행 slice 검증 → 전체 행 + 예산 검증으로 교체                                 |
+| 파일                                                                                                        | 변경                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `packages/specs/src/chart/budget.ts` (신규)                                                                 | `resolveDisplayBudget` · axisKind · bucket 집계 · bucket 극값 선택 · others · 창 clamp                                 |
+| `packages/specs/src/chart/computeChartScene.ts`                                                             | `CHART_SAMPLE_ROWS` 삭제 · visible 범주로 scale · 창 트랙 예약 · scene 에 `budget` 메타 · 진단 2종                     |
+| `packages/specs/src/chart/runtimeData.ts` · `series.ts`                                                     | full/visible 모델 · `axisKind` · `aggregate` 연산                                                                      |
+| `packages/specs/src/chart/presentation.ts` · `types.ts` · `authoring.ts`                                    | `displayBudget` validator (지원표) · `ChartMetrics` 최소 단위 5종 + `M` + `R` + `windowTrackHeight` · 접미/others 상수 |
+| `packages/specs/src/chart/polar.ts` · `marks/pie.ts` · `radar.ts` · `radial.ts`                             | others 조각/축/링 · radial domain 재계산                                                                               |
+| `packages/specs/src/renderers/skiaPrimitives.ts:3330, 3357`                                                 | allowlist 에 `displayBudget` · 행 수신은 그대로 (slice 는 spec)                                                        |
+| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts:2585`                                   | slice 제거                                                                                                             |
+| `packages/shared/src/catalog/bindings/Chart.binding.ts:39` · `outputs/toRacProps.ts` (변경 0, 확인)         | `accepts.displayBudget`                                                                                                |
+| `apps/builder/src/builder/panels/properties/ChartAuthoringControls.tsx:92` · `ChartDataMappingControls.tsx` | 안내 문구 · `overflow`/`aggregate`/`axis`/`othersLabel` 컨트롤                                                         |
+| `apps/builder/src/i18n/translations.ts` · `types.ts`                                                        | `chart.sampleHint` → `chart.budgetHint` · `chart.othersLabel`                                                          |
+| `packages/shared/src/components/chart/RechartsChart.tsx` · `Chart.tsx`                                      | 창 뷰 상태 · Slider 트랙 · visible 모델 · others 토큰                                                                  |
+| `packages/shared/src/components/Slider.tsx` (변경 0, 재사용)                                                | 창 트랙                                                                                                                |
+| catalog rule chart 채널 (`componentRulesTable.ts`) · theme tokens                                           | `--chart-others` light/dark · 최소 단위 5종 · `M` · `R` · `windowTrackHeight`                                          |
+| `apps/builder/src/builder/workspace/canvas/scene/chartRowInjection.test.ts` (6)                             | 200행 slice 검증 → 전체 행 + `R` 검증으로 교체                                                                         |
 
 ## 5. 검증 fixture 와 판정
 
-- **손계산 오라클** (Q5 독립성): 폭 500px · minSlot 8 → bar `fit = 62`; 시리즈 3 묶음 → 20; 반지름 60 · minArc 6 → pie `fit = 62`. 결과는 spec 함수와 별개로 표에 먼저 적고 테스트가 그 표를 읽는다.
-- **두 leg 동일성**: 같은 `size` 에서 Canvas scene 의 범주 목록 · Recharts 모델의 행 = byte 동일 (창 0, 축약 결과, others 합산값). 크기가 다른 경우 (Compare Mode) 는 **다른 것이 정답**임을 fixture 에 명시하고 각 leg 를 자기 크기의 손계산과 대조한다.
-- **모양 보존** (축약): LTTB 결과와 원본을 같은 픽셀 폭에 그렸을 때 y 극값 위치 오차 ≤ 1 슬롯, 합계 집계는 원본 합과 동일.
-- **회귀 0**: 데이터가 `fit` 이하인 기존 문서 (스냅샷 4건 · ADR-210 T10 32건 · legacy 6종) 는 scene byte 동일 — 예산은 넘칠 때만 개입한다.
-- **live**: 실제 빌더에서 1,000행 범주 bar → Canvas 창 0 · 패널 안내 문구 · Preview 스크롤로 끝까지 이동 (write 0) · 기간 축 5,000행 line → 축약 점 수 = `fit` · pie 40 조각 → others 1 · dark 토큰 · Export → publish 같은 결과. 하니스 `apps/builder/scripts/adr211-chart-budget-live.mjs` (ADR-210 P3 하니스 패턴 재사용).
-- **성능** (측정 5-질문): 대상 = 합성 행 (규모 전용 — 분포 인용 금지) · 불리 케이스 = 폭 2,000px (fit 최대) + 시리즈 8 + 창 이동 연속 · 대조군 = ADR-210 최종 `53c761c8b` clean worktree (원래 lockfile) · 조건 = headed Chromium 1440×900 DPR 1, 기록. 지표: Builder `render.frame` p95 (columns800 24ms → 목표 ≤ group800 과 ±2ms), runtime static W800 4종 p95 ≤100ms 유지, **5,000행 모델 계산** ≤ 20ms (새 지표, 행 상한 제거의 대가), 번들 순증 ≤ 6 KiB (LTTB 포함) — ADR-210 승인 상한 (Builder ≤1,297,311 / Preview ≤630,625 B, 만료 2026-10-10) 안에서 흡수 가능한지 P4 에서 재판정, 초과 시 사용자 재승인.
+- **손계산 오라클** (Q5 독립성) — 표를 먼저 적고 테스트가 표를 읽는다: 폭 500 · minSlot 8 · S 1 → bar `fit 62`; S 3 묶음 → 20; 누적 S 3 → 62 이지만 `M 2,000 / (3×1)` → 666 이라 `fitEff 62`; 폭 4 → `fit 0` (진단); 반지름 60 · minArc 6 → pie `fit 62`, 값 `[1000, 1]` 은 조각 2 (작은 호 0.377px 허용 — 최소 크기 미보장 fixture); 반지름 60 · 링 3 · minRing 4 → `fit = min(62, 15)`.
+- **극값 보존** (extrema): 평탄한 시리즈 A + 서로 다른 위치에 spike 가 있는 B/C + 부호 반대 spike (상쇄) + 결측 gap — 각 시리즈의 전역 max/min index 가 선택 집합에 **정확히** 포함 (오차 0), 선택 알고리즘과 무관한 원본 스캔 오라클.
+- **집계**: sum → bucket 합 = 원본 합 (시리즈별) · mean → bucket 안 범주 평균 (손계산) · `valueFormat` 을 바꿔도 집계값 byte 동일 (h1 반례를 fixture 로).
+- **others**: 다중 시리즈 ranking key 손계산 · 원본 "기타" 라벨과 synthetic key 공존 · pie `+10/−10` → 면적 0 + tooltip 합 0 · radial domain 재계산.
+- **두 leg 동일성**: 같은 `size` 에서 Canvas visible 범주 목록·값 = Recharts visible 모델 byte 동일 (창 0 · 집계 · 극값 · others). 크기가 다른 경우 (Compare Mode) 는 다른 것이 정답 — 각 leg 를 자기 크기의 손계산과 대조.
+- **회귀 (round 1 m4 로 범위를 좁힘)**: byte 동일은 **행 ≤ 200 · 범주 ≤ fitEff · 마크 ≤ M** 인 문서만 (스냅샷 4 · ADR-210 T10 32 · legacy 6 은 전부 이 집합). 그 밖은 바뀌는 것이 목적: (A) 행 > 200 — Canvas 합계가 전체 행 합계로 (Preview 와 같아짐), (B) 범주 > fitEff — 창/집계/극값/others.
+- **live**: 실제 빌더 1,000행 범주 bar → Canvas 창 0 + 비활성 트랙 · 패널 안내 · Preview Slider 화살표/PageDown/End 로 끝까지 (창 길이 불변, canonical write 0) · 기간 축 5,000행 line 비누적 → 극값 선택 점 수 ≤ 2·S·B · 같은 데이터 누적 → bucket 집계 + 접미 · pie 40 조각 → others 1 · dark 토큰 · Properties `overflow` 변경 → 두 leg 반영 · reload · Export → publish 같은 결과. 하니스 `apps/builder/scripts/adr211-chart-budget-live.mjs` (ADR-210 P3 하니스 패턴).
+- **성능** (측정 5-질문, round 1 m6 로 조건 고정): Q1 대상 = 합성 행 (규모 전용, 분포 인용 금지) · Q2 불리 = 폭 2,000px (fit 최대) + S 8 + 창 이동 20회 연속 + cold (첫 렌더) / warm 구분 · Q3 대조군 = ADR-210 최종 `53c761c8b` clean worktree (원래 lockfile), **before 총비용도 기록** (±2ms 상대 비교만으로 두 arm 동반 악화를 통과시키지 않는다) · Q4 소비 경로 = §2.6 inventory · Q5 오라클 = 손계산 표. 조건: headed Chromium 1440×900 DPR 1, 3 warmup + 12 표본, 기록. 지표: Builder `render.frame` p95 columns800 vs group800 ±2ms **그리고** 각각 before 이하 · runtime static W800 4종 p95 ≤100ms · 5,000행 × S 4 균등 분포 모델 계산 ≤20ms · 번들 순증 ≤6 KiB gzip — **G4-engineering**. ADR-210 승인 상한 (Builder ≤1,297,311 / Preview ≤630,625 B, 만료 2026-10-10) 초과 여부는 **G4-policy** 로 분리해 사용자 결정.
 
 ## 6. 단계 · 산출물
 
-| Phase | 내용                                                                                                                                                | Gate |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
-| P0    | spike: 최소 단위 5종 실측 (사람이 구분 가능한 최소 px, light/dark) · Brush 공존 확인 · 5,000행 모델 비용 · `CHART_SAMPLE_ROWS` 소비처 4곳 inventory | G0   |
-| P1    | `budget.ts` + scene/모델 적용 (창 0 정적) — Canvas·DOM 두 leg 가 같은 범주 목록. `CHART_SAMPLE_ROWS` 삭제. 손계산 fixture                           | G1   |
-| P2    | 축약 (집계·LTTB) + others + `--chart-others` 토큰 + 문자열 SSOT                                                                                     | G2   |
-| P3    | Preview/Publish 창 이동 (스크롤/키보드, 뷰 상태) + Properties `overflow` 컨트롤 + 안내 문구                                                         | G3   |
-| P4    | 성능·번들 (§5) · production network                                                                                                                 | G4   |
-| P5    | preflight · 전체 스위트 · live · rollback 제한 · README/CHANGELOG                                                                                   | G5   |
+| Phase | 내용                                                                                                                                                                                      | Gate |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| P0    | spike: 최소 단위 5종 light/dark 실측 · `M`/`R` 필요 여부 (5,000 · 20,000행 모델 비용) · Slider 트랙 공존 (창 길이 불변·끝까지 접근) · §2.6 결선 inventory · 극값/others 반례 fixture 초안 | G0   |
+| P1    | `budget.ts` + full/visible 모델 + scale 적용 (창 0 정적) · `CHART_SAMPLE_ROWS` 삭제 · 손계산 fixture · 두 leg byte 동일                                                                   | G1   |
+| P2    | bucket 집계 (sum/mean/max/min) · bucket 극값 선택 · others · `--chart-others` · 문자열 상수/othersLabel · radial domain 재계산                                                            | G2   |
+| P3    | Preview/Publish 창 (Slider 트랙, 뷰 상태, clamp/reset) · Canvas 비활성 트랙 · Properties 컨트롤 4종 · 안내 문구 · 결선 경로 live                                                          | G3   |
+| P4    | 성능·번들 (§5, engineering/policy 분리) · production network                                                                                                                              | G4   |
+| P5    | preflight · 전체 스위트 · live · rollback 제한 · README/CHANGELOG (사용자-가시 변경 (A)/(B) 기록)                                                                                         | G5   |
 
-## 7. 마이그레이션 · rollback
+## 7. 마이그레이션 · rollback (round 1 m4)
 
-- 새 props `displayBudget` 은 선택적 — 기존 문서는 재직렬화 0, `fit` 이하 문서는 scene byte 동일. `fit` 초과 문서 (현재 200행 초과 문서) 는 **보이는 결과가 바뀐다** (앞 200행 → 창/축약) — 이것이 목적이므로 CHANGELOG 에 사용자-가시 변경으로 기록.
-- 구버전은 `displayBudget` 을 무시하고 200행 샘플로 돌아간다 (데이터 손실 0). others/축약은 표시 계산이라 저장 데이터에 흔적이 없다.
+- **데이터 보존**과 **시각 동일성**을 분리한다. 데이터: `displayBudget` 은 선택적, 기존 문서 재직렬화 0, 구버전은 무시 (손실 0). 시각: 영향 집합은 세 축으로 나뉜다 — raw 행 수 > 200 (A: Canvas 합계가 바뀜, Preview 는 이미 전체 행이라 동일), 집계 후 범주 수 > fitEff (B: 창/축약/others — 행 수와 무관, 폭이 좁은 50범주도 해당), 표시 마크 > M (C: `fitEff` 축소). 건수는 P0 inventory 에서 dataBinding 차트별로 (행 수 · 범주 수 · 폭) 집계한다 (로컬 프로젝트라 사전 % 없음).
+- 구버전 rollback: Canvas 는 200행 샘플로, Preview 는 전체 행으로 **각각** 돌아간다 (두 leg 가 다시 달라진다) — "구버전 200행 복귀" 는 Canvas 한정임을 명시.
+- 행 상한 `R` 은 P0 실측 없이 자동 도입하지 않는다. 도입하면 두 leg 동일 적용 + 안내 + 사용자 결정 기록.
 - rollback = 커밋 revert. 토큰 `--chart-others` 는 theme 에 남아도 무해.
 
 ## 8. 미검증 · 열린 항목
 
-- 최소 단위 기본값 5종은 실측 전 후보다.
-- LTTB 의 공통 x 집합 방식 (첫 시리즈 vs 합산) 은 P0 spike 에서 결정.
-- 20,000행 안전 상한의 필요 여부는 P0 모델 비용 실측이 정한다.
+- 최소 단위 기본값 5종 · `M` · `R` · `windowTrackHeight` 는 실측 전 후보다.
+- 극좌표 others 의 ranking key (`Σ|value|`) 가 radar 에서 직관과 맞는지는 P0 fixture 로 본다.
+- 창 트랙을 플롯 아래 예약하는 대신 플롯 밖 (차트 상자 밖) 에 두는 안은 `size` 계약과 충돌해 채택하지 않았다 — P0 에서 트랙 높이 비용 (fit 감소량) 을 기록한다.
