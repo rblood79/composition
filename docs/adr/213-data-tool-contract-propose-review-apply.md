@@ -1,0 +1,154 @@
+# ADR-213: 데이터 tool 계약 — 읽기 tool · `propose_data_change` 승인 경로 · `bind_collection` 정정 · "왜 실패했지?"
+
+## Status
+
+Proposed — 2026-09-11
+
+> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기 (Phase 1c). 본 ADR 의 Phase 2 이후는 152 G5 PASS 가 착수 조건이고, Phase 1 (읽기 tool) 은 독립이다. [ADR-212](212-data-panel-editor-redesign.md) 와는 같은 base 위의 형제 — 표면 접점은 "왜 실패했지?" 버튼 자리와 승인 diff overlay 뿐. [ADR-202](202-builder-ai-compiler-first-command-execution.md) (compiler-first, Proposed) 에는 **의존하지 않는다** — 202 착수 시 `DataChange` 를 감싸는 statement 어댑터로 편입 (breakdown §1 ③, 결정 지점 2 후보 — 202 착수 시 사용자 confirm 1회). fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③).
+
+## Context
+
+빌더의 AI · 에이전트 표면이 데이터를 다루는 방법은 실측상 다음과 같다 (리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1-6):
+
+- AI 패널 tool 9 + `run_command` 중 데이터 tool 은 `bind_collection` 하나이고, 그 형상이 legacy `source: "static" | "api" | "supabase"` + config 인라인 (`services/ai/tools/bindCollection.ts:24`) 이다 — 사람이 UI 로 기록하는 `{ source: "dataTable", name }` (ADR-159 P4b) 과 달라 **이미 있는 DataTable 에 요소를 잇는 tool 이 없다**. collection 생성 · 필드 추가 · 행 삽입 · API 정의 tool 은 0 (파일 주석이 "이 도구 범위 밖" 으로 명시).
+- `get_editor_state` 는 pages · elements · selection 만 — 모델은 어떤 테이블이 있는지 모른 채 바인딩을 시도한다. 시스템 프롬프트 동적 주입 (`services/ai/catalog/dynamicInjection.ts`) 도 "컬렉션" 을 팔레트 카테고리로만 안다.
+- agent 명령 allowlist 40 (ADR-196, `services/agent/agentCommands.ts`) 은 캔버스 · 패널 · 뷰포트만. 승인 게이트 (`AgentCommandConfirmDialog` — 명령 id · 되돌림 가능 여부) 와 감사 로그 (`agentCommandLog`) 인프라는 있으나 스키마 diff 를 보여 주지 못한다.
+- 데이터 편집은 History 밖이라 (152 격차 9) AI 가 만든 변경을 되돌릴 수단이 없다.
+
+외부 대조 (리서치 §3-4 · §3-5) 는 예외 없이 한 계약으로 수렴한다 — **Propose → Review → Apply** (Bubble plan approve · NocoDB Suggest→Create · Lovable SQL 승인 · Supabase diff · Base44 import 승인, 8/8), 삭제 · 타입 변경은 AI 에서 기본 차단 (I2), 읽기는 fine-grained · 쓰기는 워크플로 단위 소수 (Anthropic "few high-impact workflow tools", Webflow · Supabase MCP), 스키마 계약은 컴팩트 JSON Schema + `strict` (Anthropic) / `outputSchema` (MCP), LLM 에는 스키마 + 샘플 N 행만 (I7). 비용이 가장 낮고 승인 UI 가 필요 없는 첫 출시 후보는 "왜 실패했지?" (Retool · Supabase · Postman, I5) 다.
+
+**Domain 분류**: 본 ADR 은 **D2 (Props/API — tool 입력 계약 · `dataBinding` prop 형상)** 다. tool 이 만드는 결과는 152 적용기를 지나므로 데이터 SSOT (`data_tables`, ADR-131) 와 D3 대칭 (152 가 담당) 에 새 경로를 만들지 않는다. D1 무변경. 승인 UI 는 빌더 chrome (RAC Dialog).
+
+**Hard Constraints**:
+
+1. **쓰기 tool 은 `propose_data_change` 하나** — `DataChange` (152 §2-3) 를 받고, 사용자 승인 없이는 적용되지 않는다. `remove_field` · `remove_rows` op 는 tool 스키마에서 제외 (사람 UI 전용). grep 가드: `applyDataChange({ origin: "ai" | "agent" })` 호출은 승인 dispatcher 1곳.
+2. **스키마 단일 소스** — tool `input_schema` (Anthropic strict) · zod 검증 (Ollama 경로) · `outputSchema` · export envelope 검증이 `packages/shared/src/schemas/dataChange.ts` 에서 생성된다. 손으로 쓴 두 번째 JSON Schema 금지.
+3. **컨텍스트 예산** — 시스템 프롬프트에는 테이블 목록 (이름 · 필드 수 · 행 수) 만, 스키마는 요청된 테이블만, 행은 샘플 ≤ 5. 행 전량을 노출하는 tool 은 없다. Anthropic 경로는 캐시 prefix 안 (`project-prompt-audit-2026-09-applied` 의 caching 구조 유지).
+4. **provenance** — 승인된 변경 묶음 1개 = History entry 1개 (`origin: "ai" | "agent"`) + `agentCommandLog` entry 1개 (ops 수 · 승인 여부 · historyId). `⌘Z` 1회로 묶음 전체가 돌아온다.
+5. **secret** — `get_api_endpoint` 출력과 프롬프트 주입에 Auth 값이 실리지 않는다 (`{{secret.NAME}}` 자리표시자, ADR-212 vault).
+6. **양쪽 provider 동등** — Ollama 경로에서 스키마 밖 op 가 적용기에 도달하지 않는다 (zod 가 Anthropic strict 와 같은 스키마로 거른다).
+
+**Soft Constraints**:
+
+- Anthropic strict 는 재귀 · `minimum/maximum` · 깊은 `oneOf` 를 제한한다 — `DataOp` union 은 평면 tagged union 으로 유지하고 제약은 description 으로.
+- ADR-202 는 Proposed 미착수 — 그 IR 위에 쌓으면 일정 종속. 본 ADR 은 202 없이 완결되고, 202 가 나중에 감싼다.
+- AI 패널 live 는 Ollama 로 가능하고 Anthropic wire 는 키 게이트 (`AnthropicProvider.live.test.ts`) — 메모리 `reference-ai-panel-agent-runner-memo-needs-reload-after-profile-config`.
+- 시안 "AgentReview" 아트보드 (스키마 diff 승인) 가 승인 UI 정본.
+
+## Alternatives Considered
+
+### 대안 A: op 단위 쓰기 tool 다수 + 즉시 적용 (현 `bind_collection` 방식 확장)
+
+- 설명: `create_collection` · `add_field` · `insert_rows` · `define_endpoint` … 를 각각 tool 로 두고, 호출 즉시 store 에 적용한다 (현재 `bind_collection` 이 이렇게 동작).
+- 근거: Webflow MCP 는 op 단위 21 tool 이다.
+- 위험:
+  - 기술: L
+  - 성능: L
+  - 유지보수: **H** — tool N 개 × 스키마 N 개 · 모델이 op 를 잘게 나눠 호출해 부분 적용 상태가 생김 (테이블은 만들었는데 필드는 실패) · 승인 없음은 외부 대조 8/8 (I1) 위반이라 나중에 승인을 얹으면 tool 마다 다시 손댄다
+  - 마이그레이션: M — 즉시 적용된 변경은 History 밖이라 되돌릴 수 없음 (152 전)
+
+### 대안 B: 읽기 tool 4 (fine-grained) + 쓰기 tool 1 `propose_data_change` → 승인 diff → 152 적용기 + `bind_collection` 정정 + "왜 실패했지?" + agent 명령 4
+
+- 설명: 읽기는 `list_collections` · `get_collection` · `list_api_endpoints` · `get_api_endpoint` (secret 마스킹, `format: concise|detailed`) + `get_editor_state` 요약 + 프롬프트 주입 (예산). 쓰기는 `propose_data_change(DataChange)` 하나 — `AgentCommandConfirmDialog` 를 스키마 diff 뷰로 확장해 승인 → `applyDataChange` → History 1 + 감사 로그 1 → `outputSchema` 로 검증된 결과. `bind_collection` 은 `{ collectionId, fieldMap? }` 형상으로 정정 (legacy read 호환). `explain_request_failure` 는 코드가 컨텍스트를 조립하고 모델이 원인 + `define_endpoint` patch 제안을 낸다 (적용은 같은 승인 경로). agent allowlist 에 `data.*` 4 명령. 사람이 부르는 AI 3종 (설명으로 테이블 · 붙여넣기 이해 · 반복 편집) 은 전부 제안 → 미리보기 → 같은 경로.
+- 근거: Propose → Review → Apply 8/8 (I1) · 삭제 차단 (I2, Bubble · Base44 append-only · Supabase read_only) · Anthropic tool 가이드 (few high-impact workflow tools · `strict` · `response_format`) · MCP spec (`outputSchema` · human-in-the-loop SHOULD) · Airtable Omni (Undo + checklist) · Retool/Supabase/Postman "Debug?" (I5) — 리서치 §3-4 I1 ~ I7, §3-5 X1 ~ X5 · X7.
+- 위험:
+  - 기술: M — 두 provider 의 구조화 출력 동등화 (Anthropic strict ↔ Ollama zod) · strict 제약과 union 스키마의 마찰
+  - 성능: L — tool 은 편집 이벤트 단위, 프롬프트 예산은 HC 3 으로 상한
+  - 유지보수: L — 스키마 1 소스 · 쓰기 진입점 1 · 승인 UI 1
+  - 마이그레이션: L — `bind_collection` legacy 입력 read 호환, 새 tool 은 additive
+
+### 대안 C: ADR-202 typed IR 안의 `data` statement 로 편입 — 202 먼저
+
+- 설명: `BuilderCommandProgram` 에 data statement kind 를 추가하고 AI 패널 · agent · MCP 가 같은 IR 로 데이터를 다룬다. 본 ADR 은 202 Implemented 뒤에 착수.
+- 근거: 202 의 "closed typed IR — 모든 mutation 은 tagged union" 원칙과 정합.
+- 위험:
+  - 기술: **H** — 202 는 Proposed 미착수 (2026-09-02). 미검증 IR 위에 데이터 계약을 쌓으면 202 의 설계 변경마다 본 ADR 이 흔들리고, 202 의 착수 시점이 본 ADR 의 시점이 된다
+  - 성능: L
+  - 유지보수: M — IR 하나로 수렴하는 이득은 있으나 202 완료 전엔 얻을 수 없다
+  - 마이그레이션: M — 202 가 IR 버전을 올리면 데이터 statement 도 재직렬화
+
+### 대안 D: MCP 서버로 외부 노출을 먼저 — AI 패널은 그 클라이언트
+
+- 설명: 빌더가 MCP 서버를 열고 데이터 tool 을 노출, AI 패널 · Claude Code · 외부 에이전트가 같은 서버를 쓴다.
+- 근거: Webflow · Notion · Airtable · Supabase · Figma 가 MCP 로 데이터를 연다.
+- 위험:
+  - 기술: M — 브라우저 앱이 MCP 서버가 되려면 transport (WebSocket/SSE) 계층이 필요
+  - 성능: L
+  - 유지보수: **H** — 표면 둘 (AI 패널 내부 tool + MCP) 을 같은 계약으로 유지 · annotations 는 클라이언트가 신뢰하지 않으므로 서버 승인 게이트를 따로 — 첫 출시 대상 (AI-3 · 읽기) 에는 필요 없는 층
+  - 마이그레이션: M
+
+### Risk Threshold Check
+
+| 대안 | 기술  | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
+| ---- | :---: | :--: | :------: | :----------: | :--------: |
+| A    |   L   |  L   |  **H**   |      M       |     1      |
+| B    |   M   |  L   |    L     |      L       |     0      |
+| C    | **H** |  L   |    M     |      M       |     1      |
+| D    |   M   |  L   |  **H**   |      M       |     1      |
+
+루프 판정: B 가 HIGH 0 — 추가 대안 불필요. D 는 후순위 원칙으로만 기록 (breakdown §6).
+
+## Decision
+
+**대안 B: 읽기 tool 4 + `propose_data_change` 승인 경로 + `bind_collection` 정정 + "왜 실패했지?" + agent 명령 4**를 선택한다.
+
+선택 근거:
+
+1. 잔존 위험이 기술 M (provider 동등화) 하나이고, 스키마를 한 소스에서 생성하면 (HC 2) Anthropic strict 와 Ollama zod 가 같은 것을 거른다 — 스냅샷 test 로 고정.
+2. 쓰기 진입점이 하나라 승인 · History · 감사 로그가 한 곳에 붙는다. 사람이 부르는 AI 3종과 agent tool 이 같은 경로를 쓰므로 후속 기능은 제안기만 추가한다.
+3. 첫 출시 (Phase 1 읽기 · Phase 3 "왜 실패했지?") 는 승인 UI 없이 가능하고 152 와 독립이라 (Phase 1) 즉시 가치를 낸다.
+4. ADR-202 와 직교 — 202 가 착수하면 어댑터 1개로 편입되고, 그 전에도 완결된다.
+
+기각 사유:
+
+- **대안 A 기각**: 승인 없음 (I1 위반) · 부분 적용 상태 · tool N 개 유지 — 유지보수 HIGH. 나중에 승인을 얹으면 tool 마다 재작업.
+- **대안 C 기각**: 202 미착수에 일정 종속 — 기술 HIGH. 편입은 어댑터로 나중에 같은 결과를 얻는다.
+- **대안 D 기각**: 첫 출시에 필요 없는 transport · 이중 표면 — 유지보수 HIGH. 원칙만 기록 (AX-6).
+
+> 구현 상세: [213-data-tool-contract-propose-review-apply-breakdown.md](design/213-data-tool-contract-propose-review-apply-breakdown.md)
+
+## Risks
+
+| ID  | 위험                                                                                                         | 심각도 | 대응                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------ | :----: | ------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Anthropic strict 가 `DataOp` union 의 일부 (재귀 `DataField.children` · `minimum`) 를 거부해 tool 등록이 400 |  MED   | Phase 0 에서 제약 대조 → 위반 항목은 description 으로 이전, `children` 은 깊이 1 로 평면화. strict 스냅샷 test                  |
+| R2  | Ollama 경로에 zod 가 빠지면 스키마 밖 op (예: `remove_field`) 가 적용기에 도달                               |  MED   | `OpenAICompatibleProvider` tool 인자 지점에 같은 스키마의 zod 삽입 + 부정 케이스 test (delete op → invalid)                     |
+| R3  | diff 뷰가 큰 `insert_rows` (수백 행) 를 전부 렌더해 승인 다이얼로그가 느리다                                 |  LOW   | 요약 (행 수 · 필드) + 샘플 3행 + "전체 보기" 접힘                                                                               |
+| R4  | `update_field` type 변경은 delete 가 아니어도 파괴적 (값 손실) — tool 이 승인 한 번으로 통과                 |  MED   | diff 뷰가 사용처 N + 변환 미리보기 (212 UX-5 와 같은 계산) 를 보여 주고, 손실 행 > 0 이면 별도 체크 필요                        |
+| R5  | 프롬프트 주입이 테이블 수에 비례해 커진다 (100 테이블 프로젝트)                                              |  LOW   | 목록은 이름 · 수치만 · 상한 50 + "더 있음" · 스키마는 요청 시                                                                   |
+| R6  | ADR-202 착수 시 `DataChange` 와 `BuilderCommandProgram` 이 이중 IR                                           |  MED   | 202 가 `data` statement 1종으로 `DataChange` 를 감싼다 (어댑터, 본 ADR 은 무변경). 결정 지점 2 — 202 착수 시 사용자 confirm 1회 |
+| R7  | 승인 없이 적용되는 경로가 실수로 생긴다 (테스트 · dev entry `devAgentEntry.ts`)                              |  MED   | grep 가드 (`origin: "ai" \| "agent"` 호출 1곳) + dev entry 는 confirm `"skip"` 이 데이터 명령에는 적용 안 되게 precondition     |
+
+잔존 HIGH 위험 없음.
+
+## Gates
+
+| Gate | 시점         | 통과 조건                                                                                                                                                          | 실패 시 대안                                       |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| G0   | Phase 0 완료 | strict 제약 대조표 · Ollama 검증 지점 · 승인 dialog props · 주입 예산 실측 freeze + ADR-152 G5 PASS (Phase 2 이후 착수 조건)                                       | 152 미완이면 Phase 1 · 3 (제안 텍스트만) 까지      |
+| G1   | Phase 1 완료 | AI 패널 "어떤 테이블이 있어?" → `list_collections` 호출 → 이름 · 행 수 답변 (Ollama live) · `get_api_endpoint` 출력 Auth 값 0 · 프롬프트 주입 토큰 상한 내         | 주입 예산 조정                                     |
+| G2   | Phase 4 완료 | "Users 에 status 필드 추가하고 샘플 3행" → diff 뷰 (필드 1 · 행 3 · 사용처) → 승인 → 격자 반영 → `⌘Z` 1회 원상 · 거부 시 store 무변경 · delete op 입력 → `invalid` | 승인 dispatcher · inverse 수정 (152 몫이면 152 로) |
+| G3   | Phase 3 완료 | Bearer 없는 엔드포인트 401 → "왜 실패했지?" → 원인 + `define_endpoint` patch 제안 → (Phase 4 후) 적용 → 재실행 200                                                 | 컨텍스트 조립 보강 (본문 2KB · 헤더)               |
+| G4   | Phase 2 완료 | "이 ListBox 를 Users 에 연결해" → 캔버스 Skia 행 + preview DOM 행 · legacy `{source:"static", config}` 입력 회귀 0                                                 | 형상 변환기 수정                                   |
+| G5   | Phase 6 완료 | "블로그 글 테이블 만들어 …" → 미리보기 (필드 5 · 샘플 5행 · enum 정합) → 적용 → 바인딩 가능 · 스키마에 없는 컬럼 0 (I3)                                            | 생성기-검증기 보강                                 |
+
+### Live Exercise
+
+(Implemented 승격 시 기재 — G1 ~ G5 시나리오 · 결과 · 날짜 · provider (Ollama/Anthropic) · Playwright/사용자 confirm 구분.)
+
+## Consequences
+
+### Positive
+
+- 모델이 어떤 테이블이 있는지 알고 (읽기 4 + 요약), 있는 테이블에 요소를 잇는다 (`bind_collection` 정정).
+- AI · agent 의 데이터 변경이 전부 승인 diff 를 지나고 `⌘Z` 1회로 돌아온다 — 사람 편집과 같은 적용기 · History.
+- "왜 실패했지?" 가 API 편집기의 첫 AI 기능 — 비용 최저, 승인 UI 불요.
+- 스키마 1 소스 — tool · 검증 · export 가 같은 정의. ADR-202 편입은 어댑터 1개.
+- Playwright · Chrome MCP · MCP 클라이언트가 `data.*` agent 명령으로 같은 경로를 조작.
+
+### Negative
+
+- 승인 diff 뷰 (스키마 · 행 · 바인딩 · 사용처) 를 유지해야 한다 — 152 op 종류가 늘면 diff 렌더러도 늘어난다.
+- provider 둘의 구조화 출력 동등화 test 를 스키마 변경마다 재실행.
+- 삭제는 AI 로 못 한다 (의도된 제약) — 사용자가 UI 로 해야 한다.
+- 202 편입 전까지 데이터 IR 과 명령 IR 이 별개 — 202 착수 시 어댑터 작업 1회.
