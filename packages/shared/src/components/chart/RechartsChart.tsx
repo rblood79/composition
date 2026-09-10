@@ -56,6 +56,40 @@ import {
 } from "./legacyMonotone";
 import { renderMark, renderText, seriesVar } from "./svgDecorations";
 
+/**
+ * 막대 하나 = `<path>` 하나 (ADR-210 P4). Recharts 기본 `Rectangle` 은 막대마다 ref 5개 · state ·
+ * mount effect 의 `getTotalLength()` (강제 layout) · animationId 를 든다 — W800 에서 800번이라
+ * static p95 가 100ms 를 넘겼다. 기하는 `getRectanglePath` 의 radius 0 분기와 같다.
+ */
+function PlainBarShape(props: {
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fill?: string;
+  fillOpacity?: number | string;
+  stroke?: string;
+  strokeWidth?: number | string;
+}) {
+  const { x, y, width, height, fill, fillOpacity, stroke, strokeWidth } = props;
+  if (
+    typeof x !== "number" || typeof y !== "number" ||
+    typeof width !== "number" || typeof height !== "number" ||
+    !Number.isFinite(x + y + width + height) || width === 0 || height === 0
+  )
+    return null;
+  return (
+    <path
+      className="recharts-rectangle"
+      d={`M ${x},${y} h ${width} v ${height} h ${-width} Z`}
+      fill={fill}
+      fillOpacity={fillOpacity}
+      stroke={stroke}
+      strokeWidth={strokeWidth}
+    />
+  );
+}
+
 function NonEmptyRadialSector(props: SectorProps) {
   if (Math.abs(Number(props.endAngle) - Number(props.startAngle)) < 0.000001) return null;
   return <Sector {...props} />;
@@ -483,18 +517,19 @@ export function RechartsChart({
                 name={seriesLabel(grid.series[si], "series")}
                 fill={paint}
                 barSize={isRange ? band.bandwidth : undefined}
+                shape={PlainBarShape}
                 {...animation}
               >
-                {data.map((_, ci) => (
-                  <Cell
-                    key={ci}
-                    fill={seriesVar(
-                      props.colorBy === "category"
-                        ? ci % metrics.seriesCount
-                        : grid.series[si].seriesIndex,
-                    )}
-                  />
-                ))}
+                {/* 범주별 색일 때만 셀마다 Cell — 시리즈 색이면 Bar 의 fill 하나로 충분하다.
+                    W800 에서 Cell 800개는 React 요소·props 병합 비용만 더한다 (ADR-210 P4). */}
+                {props.colorBy === "category"
+                  ? data.map((_, ci) => (
+                      <Cell
+                        key={ci}
+                        fill={seriesVar(ci % metrics.seriesCount)}
+                      />
+                    ))
+                  : null}
                 {labels}
               </Bar>
             );
