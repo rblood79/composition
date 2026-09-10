@@ -23,6 +23,7 @@ import type {
   PolarGridType,
 } from "@composition/specs";
 import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
+import { renderChartWindowTrack } from "./chart/windowTrack";
 import {
   asPropertyBinding,
   useCollectionData,
@@ -405,6 +406,7 @@ export function Chart({
               size={chartSize}
               metrics={metrics}
               label={label}
+              renderWindowTrack={renderChartWindowTrack}
             />
           </div>
         </React.Suspense>
