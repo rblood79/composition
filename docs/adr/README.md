@@ -20,11 +20,11 @@
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      10 |
-| ├ Proposed                |       8 |
+| 열려 있는 것 (`adr/*.md`) |      11 |
+| ├ Proposed                |       9 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
-| **합계**                  | **236** |
+| **합계**                  | **237** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -34,6 +34,13 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [210](210-chart-multi-field-series-presentation.md) — 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약
+
+- **상태**: Proposed (2026-09-10), round 1 설계 수정 반영·수리 재리뷰/P0/구현 미착수
+- **범위**: Bar/Line/Area/Radar 다중 수치 컬럼, 시리즈 이름·토큰 색·순서, 공통 숫자 포맷. 기존 collection 공급과 ADR-209 계약 보존. P0–P5 / G0–G5.
+- **상세 설계**: [breakdown](design/210-chart-multi-field-series-presentation-breakdown.md)
+- **우선순위**: P1 — 후속 차트 확장 설계
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 
