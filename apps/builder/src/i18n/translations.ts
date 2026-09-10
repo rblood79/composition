@@ -1303,7 +1303,7 @@ const koKR: TranslationKeys = {
     apiCreateFailed: "API 를 만들지 못했습니다",
     variable: "변수",
     variableName: "이름",
-    variableType: "타입",
+    variableType: "유형",
     variableScope: "범위",
     variableNameExists: "같은 이름의 변수가 이미 있습니다.",
     variableCreateHint:
