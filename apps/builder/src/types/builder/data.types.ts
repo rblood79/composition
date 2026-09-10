@@ -88,7 +88,10 @@ export type DataTableCreate = Pick<DataTable, "name" | "project_id"> & {
  * DataTable 업데이트용 타입
  */
 export type DataTableUpdate = Partial<
-  Pick<DataTable, "name" | "schema" | "mockData" | "useMockData">
+  Pick<
+    DataTable,
+    "name" | "schema" | "mockData" | "runtimeData" | "useMockData"
+  >
 >;
 
 // ============================================

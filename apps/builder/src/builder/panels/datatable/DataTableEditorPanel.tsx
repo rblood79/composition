@@ -37,6 +37,8 @@ import {
   DataTableEditor,
   ApiEndpointEditor,
   VariableEditor,
+  ApiEndpointCreator,
+  VariableCreator,
 } from "./editors";
 import { EmptyState, PanelHeader, PanelContents } from "../../components";
 import type {
@@ -292,7 +294,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
           </Tabs>
         );
 
-      // 다른 create 모드들은 TODO 상태이므로 탭 없음
+      // 생성 패널 2종은 자체 폼이라 탭 없음
       case "api-create":
       case "variable-create":
       default:
@@ -332,15 +334,8 @@ function EditorContent({ mode, close }: EditorContentProps) {
       }
 
       case "api-create":
-        // TODO: ApiEndpointCreator 구현 필요
         return (
-          <EmptyState
-            icon={<Globe size={32} />}
-            message={localize(
-              "apiCreationPending",
-              "API creation is not ready yet",
-            )}
-          />
+          <ApiEndpointCreator projectId={mode.projectId} onClose={close} />
         );
 
       case "api-edit": {
@@ -363,16 +358,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
       }
 
       case "variable-create":
-        // TODO: VariableCreator 구현 필요
-        return (
-          <EmptyState
-            icon={<Variable size={32} />}
-            message={localize(
-              "variableCreationPending",
-              "Variable creation is not ready yet",
-            )}
-          />
-        );
+        return <VariableCreator projectId={mode.projectId} onClose={close} />;
 
       case "variable-edit": {
         const variable = variables.find((v) => v.id === mode.variableId);

@@ -6,11 +6,12 @@
  * @see docs/features/DATATABLE_PRESET_SYSTEM.md
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table2, SquarePen, Link } from "lucide-react";
 import { Button } from "react-aria-components/Button";
 import { useDataStore } from "../../../stores/data";
 import { EmptyState, Section } from "../../../components";
+import { ConfirmDialog } from "../../../components/overlay";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
@@ -67,10 +68,17 @@ export function DataTableList({
     [apiEndpoints],
   );
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirm(t("confirmDelete"))) return;
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
+  const handleDelete = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPendingDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    if (!id) return;
     try {
       await deleteCollection(id);
       if (editingId === id) {
@@ -169,6 +177,15 @@ export function DataTableList({
         <AddIcon {...iconProps} />
         <span>{localize("addTable", "Add Table")}</span>
       </Button>
+      <ConfirmDialog
+        isOpen={pendingDeleteId !== null}
+        title={localize("deleteTitle", "Delete")}
+        message={t("deleteMessage", {
+          name: collections.find((c) => c.id === pendingDeleteId)?.name ?? "",
+        })}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </Section>
   );
 }

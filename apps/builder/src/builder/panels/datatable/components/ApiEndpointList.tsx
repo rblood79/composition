@@ -10,6 +10,7 @@ import { Globe, SquarePen, Play } from "lucide-react";
 import { useDataStore, useApiEndpoints } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { EmptyState, Section } from "../../../components";
+import { ConfirmDialog } from "../../../components/overlay";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
@@ -33,7 +34,6 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
     params?: Record<string, string | number | boolean>,
   ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   const apiEndpoints = useApiEndpoints();
-  const createApiEndpoint = useDataStore((state) => state.createApiEndpoint);
   const deleteApiEndpoint = useDataStore((state) => state.deleteApiEndpoint);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -45,40 +45,25 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
   const editingApiId =
     editorMode?.type === "api-edit" ? editorMode.endpointId : null;
 
-  const handleCreate = async () => {
-    const url = prompt(t("promptApiUrl"));
-    if (!url) return;
+  const openApiCreator = useDataTableEditorStore(
+    (state) => state.openApiCreator,
+  );
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-    // URL 파싱하여 baseUrl과 path 분리
-    let baseUrl: string;
-    let path: string;
-    try {
-      const parsedUrl = new URL(url);
-      baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
-      path = parsedUrl.pathname || "/";
-    } catch {
-      // 유효하지 않은 URL인 경우 전체를 path로 사용
-      baseUrl = "https://api.example.com";
-      path = url.startsWith("/") ? url : `/${url}`;
-    }
-
-    try {
-      await createApiEndpoint({
-        name: url,
-        project_id: projectId,
-        method: "GET",
-        baseUrl,
-        path,
-      });
-    } catch (error) {
-      console.error("API Endpoint 생성 실패:", error);
-    }
+  // 생성은 목록 옆에 스냅되는 패널에서 (리서치 U2 — window.prompt 제거)
+  const handleCreate = () => {
+    openApiCreator(projectId);
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(t("confirmDelete"))) return;
+    setPendingDeleteId(id);
+  };
 
+  const confirmDelete = async () => {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    if (!id) return;
     try {
       await deleteApiEndpoint(id);
       if (selectedId === id) {
@@ -178,6 +163,16 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
         <AddIcon {...iconProps} />
         <span>{localize("addApi", "Add API")}</span>
       </button>
+      <ConfirmDialog
+        isOpen={pendingDeleteId !== null}
+        title={localize("deleteTitle", "Delete")}
+        message={t("deleteMessage", {
+          name:
+            apiEndpoints.find((api) => api.id === pendingDeleteId)?.name ?? "",
+        })}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </Section>
   );
 }

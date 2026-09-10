@@ -157,6 +157,7 @@ function placeOverflowRow(
   placement: PanelPlacementV4,
   side: "left" | "right",
   surfaceRect: PanelWorkspaceRect,
+  entry?: PanelWorkspaceRegistryEntry,
 ): void {
   const sourceColumn = cluster.columns[placement.columnIndex];
   const row = sourceColumn?.rows[placement.rowIndex];
@@ -164,7 +165,10 @@ function placeOverflowRow(
   if (visibleColumnHeight(layout, sourceColumn) <= surfaceRect.height) return;
 
   sourceColumn.rows.splice(placement.rowIndex, 1);
-  const sourceWidth = sourceColumn.width;
+  // overflow 로 옮겨 가는 패널이 자기 `defaultWidth` 를 가지면 그 폭이 하한이다.
+  // Why (2026-09-11, 리서치 U1): 종전엔 원래 column 폭만 물려받아, 편집기 (560) 가 목록
+  // column (233) 에서 넘쳐 나올 때 233 으로 열렸다 — 등록값 defaultWidth 가 무시됐다.
+  const sourceWidth = Math.max(sourceColumn.width, entry?.defaultWidth ?? 0);
   const orderedColumns =
     side === "left" ? [...cluster.columns] : [...cluster.columns].reverse();
   const target = orderedColumns.find(
@@ -231,7 +235,14 @@ export function activatePanelWorkspacePanelV4(
     (side === "left" || side === "right") &&
     cluster.placementZone === PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL[side]
   ) {
-    placeOverflowRow(next, cluster, placement, side, surfaceRect);
+    placeOverflowRow(
+      next,
+      cluster,
+      placement,
+      side,
+      surfaceRect,
+      entry ?? undefined,
+    );
   }
   next.clusterFocusOrder = [
     ...next.clusterFocusOrder.filter((clusterId) => clusterId !== cluster.id),

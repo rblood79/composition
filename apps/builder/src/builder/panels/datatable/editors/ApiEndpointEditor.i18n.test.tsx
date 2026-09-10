@@ -26,6 +26,7 @@ vi.mock("../../../stores/data", () => ({
 
 import type { ReactNode } from "react";
 import { ApiEndpointEditor } from "./ApiEndpointEditor";
+import { globalToast } from "../../../stores/toast";
 import { I18nProvider } from "@/i18n";
 import type { SupportedLocale } from "@/i18n";
 import { localizedStrings } from "@/i18n/translations";
@@ -135,8 +136,10 @@ describe("ApiEndpointEditor — 라이브로 못 만든 분기의 locale 해소"
         { id: 2, name: "second" },
       ]);
       createDataTable.mockRejectedValue(new Error("quota exceeded"));
-      const alerted = vi.fn();
-      vi.stubGlobal("alert", alerted);
+      // 2026-09-11: window.alert → 빌더 Toast (리서치 U2). 문구는 error 토스트에 실린다.
+      const alerted = vi
+        .spyOn(globalToast, "error")
+        .mockImplementation(() => "");
 
       const { container } = renderEditor(locale, "run");
 
@@ -158,7 +161,7 @@ describe("ApiEndpointEditor — 라이브로 못 만든 분기의 locale 해소"
       expect(alerted.mock.calls[0][0], locale).toContain("quota exceeded");
 
       seen[locale] = String(alerted.mock.calls[0][0]);
-      vi.unstubAllGlobals();
+      alerted.mockRestore();
       cleanup();
     }
 

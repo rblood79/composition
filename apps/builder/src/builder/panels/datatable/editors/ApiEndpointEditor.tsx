@@ -21,6 +21,8 @@ import type {
 } from "../../../../types/builder/data.types";
 import { PropertyInput, PropertySelect } from "../../../components";
 import { ColumnSelector } from "../components/ColumnSelector";
+import { resolveResponseData } from "../../../../utils/data/responseData";
+import { globalToast } from "../../../stores/toast";
 import {
   detectColumns,
   columnsToSchema,
@@ -117,7 +119,6 @@ export function ApiEndpointEditor({
 
   // 테스트 실행
   const handleTest = useCallback(async () => {
-    const responseMapping = endpoint.responseMapping;
     setIsExecuting(true);
     setTestResult(null);
     setDetectedColumns([]);
@@ -137,41 +138,9 @@ export function ApiEndpointEditor({
       // 여기서는 다시 적용하지 않음
       let dataToAnalyze = result;
 
-      // 응답이 객체인 경우 배열 필드 자동 탐색
-      if (
-        !Array.isArray(dataToAnalyze) &&
-        typeof dataToAnalyze === "object" &&
-        dataToAnalyze !== null
-      ) {
-        // 응답 객체에서 배열 필드 찾기 (예: results, data, items, records 등)
-        const commonArrayFields = [
-          "results",
-          "data",
-          "items",
-          "records",
-          "list",
-          "rows",
-          "entries",
-        ];
-        for (const field of commonArrayFields) {
-          const fieldValue = (dataToAnalyze as Record<string, unknown>)[field];
-          if (Array.isArray(fieldValue) && fieldValue.length > 0) {
-            console.log(
-              `🔍 Auto-detected array field: "${field}" with ${fieldValue.length} items`,
-            );
-            dataToAnalyze = fieldValue;
-
-            // 🆕 dataPath가 비어있으면 자동 설정
-            if (!responseMapping?.dataPath) {
-              console.log(`📝 Auto-setting dataPath to "${field}"`);
-              handleBasicUpdate({
-                responseMapping: { ...responseMapping, dataPath: field },
-              });
-            }
-            break;
-          }
-        }
-      }
+      // 실행기가 이미 행 배열을 돌려준다 (utils/data/responseData). 객체 1건 응답 등
+      // 배열이 아닐 때만 여기서 한 번 더 관례 키를 찾는다.
+      dataToAnalyze = resolveResponseData(dataToAnalyze, "").data;
 
       console.log("🔍 Column detection - dataToAnalyze:", {
         isArray: Array.isArray(dataToAnalyze),
@@ -187,12 +156,7 @@ export function ApiEndpointEditor({
     } finally {
       setIsExecuting(false);
     }
-  }, [
-    endpoint.id,
-    endpoint.responseMapping,
-    executeApiEndpoint,
-    handleBasicUpdate,
-  ]);
+  }, [endpoint.id, endpoint.responseMapping, executeApiEndpoint]);
 
   // activeTab="run"으로 열렸을 때 자동으로 API 실행 (초기 1회만)
   useEffect(() => {
@@ -219,33 +183,7 @@ export function ApiEndpointEditor({
         // 따라서 dataPath를 다시 적용하지 않습니다.
         let dataToImport = testResult?.data;
 
-        // 만약 데이터가 아직 배열이 아니고 객체인 경우에만 배열 필드 찾기
-        // (handleTest에서 자동 감지했지만, 여기서 한번 더 확인)
-        if (
-          !Array.isArray(dataToImport) &&
-          typeof dataToImport === "object" &&
-          dataToImport !== null
-        ) {
-          const commonArrayFields = [
-            "results",
-            "data",
-            "items",
-            "records",
-            "list",
-            "rows",
-            "entries",
-          ];
-          for (const field of commonArrayFields) {
-            const fieldValue = (dataToImport as Record<string, unknown>)[field];
-            if (Array.isArray(fieldValue) && fieldValue.length > 0) {
-              console.log(
-                `🔍 handleImport: Auto-detected array field "${field}"`,
-              );
-              dataToImport = fieldValue;
-              break;
-            }
-          }
-        }
+        dataToImport = resolveResponseData(dataToImport, "").data;
 
         console.log(`🔍 handleImport: dataToImport`, {
           isArray: Array.isArray(dataToImport),
@@ -277,8 +215,7 @@ export function ApiEndpointEditor({
           `✅ DataTable "${tableName}" 생성 완료 (${schema.length} 컬럼, ${mockData.length} 행)`,
         );
 
-        // 성공 알림 (간단한 alert - 추후 Toast로 개선)
-        alert(
+        globalToast.success(
           t("importSucceeded", {
             name: tableName,
             columns: schema.length,
@@ -290,7 +227,9 @@ export function ApiEndpointEditor({
         setDetectedColumns([]);
       } catch (error) {
         console.error("❌ DataTable Import 실패:", error);
-        alert(t("importFailed", { message: (error as Error).message }));
+        globalToast.error(
+          t("importFailed", { message: (error as Error).message }),
+        );
       } finally {
         setIsImporting(false);
       }

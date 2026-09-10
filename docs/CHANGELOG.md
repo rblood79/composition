@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [데이터 패널 Track 0 결함 수리 — 응답 행 자동 감지 · 필드 key 변경 시 행 이전 · 편집기 첫 열림 폭 · prompt/confirm/alert 제거] - 2026-09-11
+
+> 근거: `docs/explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md` §2 (D1 · D2 · U1 · U2) · §5 Track 0. ADR 없이 `/fix` 로 처리한 동작 수리 4건. live 13/13 (headless 빌더 — API 생성 → Run 컬럼 8 감지 · 변수 생성/삭제 다이얼로그 · key 변경 후 값 유지 · 편집기 560px).
+
+### Fixed
+
+- **API 응답에서 행을 못 찾던 문제 (D1)**: 새 엔드포인트의 기본 `dataPath` 가 `"data"` 라 jsonplaceholder 처럼 최상위가 배열인 응답이 `undefined` 가 되어 Run 탭이 "Success" 인데 본문이 비고 컬럼 감지가 안 됐다. 기본값은 빈 경로 (응답 전체) 로 바꾸고, 실행기가 경로 결과가 배열이 아니면 응답 자체 → 관례 키 (`results` · `data` · `items` …) 순으로 행 배열을 찾는다 (`utils/data/responseData.ts`, 순수 함수 + 실행기 회귀 테스트). API 편집기의 중복 감지 블록 2개도 같은 함수를 쓴다.
+- **필드 key 를 바꾸면 그 컬럼 값이 사라지던 문제 (D2)**: Schema 탭에서 key 를 바꾸면 schema 만 갱신돼 `mockData` · `runtimeData` 의 값이 옛 key 아래 고아로 남았다. 이제 행 값을 새 key 로 옮기고 (열 순서 보존), 빈 key 나 이미 있는 key 로 바꾸려 하면 토스트로 거부한다. `updateCollection` 이 `runtimeData` 도 받는다.
+- **편집 패널이 233px 로 열리던 문제 (U1)**: `datatableEditor` 에 `defaultWidth: 560` 을 주고, workspace 가 패널을 overflow 로 새 column 에 놓을 때 원래 column 폭만 물려받던 것을 패널의 `defaultWidth` 하한으로 고쳤다 (`panelWorkspacePolicyV4.ts`). 리사이즈 · 폭 저장은 그대로.
+- **`window.prompt` · `confirm` · `alert` 6곳 제거 (U2)**: "Add API" · "Add Variable" 은 편집 패널 자리에 스냅되는 생성 패널 (`ApiEndpointCreator` — URL · 메서드 · URL 에서 자동 제안한 이름, 만들면 Run 탭으로 · `VariableCreator` — 이름 · 타입 · 범위, 중복 이름 거부) 로, 삭제 3곳은 RAC `ConfirmDialog` (항목 이름 표시 · Esc 닫기 · 확인 버튼 포커스) 로, Import 결과 2곳은 Toast 로 바꿨다. 자동화 (Playwright · Chrome MCP) 를 막던 native dialog 가 데이터 패널에서 0 이 됐다.
+
 ## [ADR-211 P0–P3 — 차트 표시 예산: 슬롯 fit · 창 Slider · 행 상한 R · 집계/극값/others · 예산 설정 (In Progress)] - 2026-09-11
 
 ### Added

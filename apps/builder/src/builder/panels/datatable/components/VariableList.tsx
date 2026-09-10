@@ -5,10 +5,12 @@
  * 편집 UI는 DataTableEditorPanel에서 처리
  */
 
+import { useState } from "react";
 import { Variable, SquarePen } from "lucide-react";
 import { useDataStore, useVariables } from "../../../stores/data";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { EmptyState, Section } from "../../../components";
+import { ConfirmDialog } from "../../../components/overlay";
 import type { Variable as VariableType } from "../../../../types/builder/data.types";
 import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -33,7 +35,6 @@ export function VariableList({ projectId }: VariableListProps) {
     params?: Record<string, string | number | boolean>,
   ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
   const variables = useVariables();
-  const createVariable = useDataStore((state) => state.createVariable);
   const deleteVariable = useDataStore((state) => state.deleteVariable);
 
   // Editor Store 액션
@@ -50,28 +51,25 @@ export function VariableList({ projectId }: VariableListProps) {
   const globalVariables = variables.filter((v) => v.scope === "global");
   const pageVariables = variables.filter((v) => v.scope === "page");
 
-  const handleCreate = async () => {
-    const name = prompt(t("promptVariableName"));
-    if (!name) return;
+  const openVariableCreator = useDataTableEditorStore(
+    (state) => state.openVariableCreator,
+  );
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
-    try {
-      await createVariable({
-        name,
-        project_id: projectId,
-        type: "string",
-        defaultValue: "",
-        persist: false,
-        scope: "global",
-      });
-    } catch (error) {
-      console.error("Variable 생성 실패:", error);
-    }
+  // 생성은 목록 옆에 스냅되는 패널에서 (리서치 U2 — window.prompt 제거)
+  const handleCreate = () => {
+    openVariableCreator(projectId);
   };
 
-  const handleDelete = async (id: string, e: React.MouseEvent) => {
+  const handleDelete = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm(t("confirmDelete"))) return;
+    setPendingDeleteId(id);
+  };
 
+  const confirmDelete = async () => {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    if (!id) return;
     try {
       await deleteVariable(id);
     } catch (error) {
@@ -191,6 +189,15 @@ export function VariableList({ projectId }: VariableListProps) {
         <AddIcon {...iconProps} />
         <span>{localize("addVariable", "Add Variable")}</span>
       </button>
+      <ConfirmDialog
+        isOpen={pendingDeleteId !== null}
+        title={localize("deleteTitle", "Delete")}
+        message={t("deleteMessage", {
+          name: variables.find((v) => v.id === pendingDeleteId)?.name ?? "",
+        })}
+        onConfirm={() => void confirmDelete()}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </Section>
   );
 }

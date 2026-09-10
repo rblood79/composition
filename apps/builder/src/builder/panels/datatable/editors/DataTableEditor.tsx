@@ -18,6 +18,8 @@ import type {
   DataFieldType,
 } from "../../../../types/builder/data.types";
 import { PropertySwitch } from "../../../components";
+import { globalToast } from "../../../stores/toast";
+import { renameRowsKey } from "../../../../utils/data/schemaMigration";
 import "./DataTableEditor.css";
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -58,6 +60,13 @@ export function DataTableEditor({
 }: DataTableEditorProps) {
   const updateCollection = useDataStore((state) => state.updateCollection);
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
+  const rootI18n = useOptionalI18n();
+  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
+  const localizeRoot = useCallback(
+    (key: string, params?: Record<string, string | number | boolean>) =>
+      rootI18n ? rootI18n.t(`datatable.${key}`, params) : key,
+    [rootI18n],
+  );
 
   // Schema 업데이트
   const handleSchemaUpdate = useCallback(
@@ -91,15 +100,46 @@ export function DataTableEditor({
     [dataTable.schema, handleSchemaUpdate],
   );
 
-  // 필드 업데이트
+  // 필드 업데이트 — key 가 바뀌면 행 값도 같이 옮긴다 (리서치 D2: schema 만 갱신하면
+  // mockData · runtimeData 의 그 컬럼이 옛 key 아래에 고아로 남는다)
   const handleUpdateField = useCallback(
-    (fieldKey: string, updates: Partial<DataField>) => {
+    async (fieldKey: string, updates: Partial<DataField>) => {
+      const newKey = updates.key;
+      const renaming = newKey !== undefined && newKey !== fieldKey;
+      if (renaming) {
+        if (!newKey || dataTable.schema.some((f) => f.key === newKey)) {
+          globalToast.warning(
+            localizeRoot("fieldKeyExists", { key: newKey ?? "" }),
+          );
+          return;
+        }
+      }
       const newSchema = dataTable.schema.map((f) =>
         f.key === fieldKey ? { ...f, ...updates } : f,
       );
-      handleSchemaUpdate(newSchema);
+      if (!renaming) {
+        handleSchemaUpdate(newSchema);
+        return;
+      }
+      try {
+        await updateCollection(dataTable.id, {
+          schema: newSchema,
+          mockData: renameRowsKey(dataTable.mockData, fieldKey, newKey) ?? [],
+          runtimeData: renameRowsKey(dataTable.runtimeData, fieldKey, newKey),
+        });
+      } catch (error) {
+        console.error("필드 key 변경 실패:", error);
+      }
     },
-    [dataTable.schema, handleSchemaUpdate],
+    [
+      dataTable.id,
+      dataTable.schema,
+      dataTable.mockData,
+      dataTable.runtimeData,
+      handleSchemaUpdate,
+      updateCollection,
+      localizeRoot,
+    ],
   );
 
   // Mock 데이터 업데이트
@@ -373,7 +413,12 @@ function SchemaEditor({
         </div>
       </div>
 
-      <button type="button" className="control-button" data-variant="add" onClick={onAddField}>
+      <button
+        type="button"
+        className="control-button"
+        data-variant="add"
+        onClick={onAddField}
+      >
         <AddIcon {...iconEditProps} />
         {localize("addColumn", "Add Column")}
       </button>
@@ -603,7 +648,12 @@ function MockDataEditor({
           </table>
         </div>
       </div>
-      <button type="button" className="control-button" data-variant="add" onClick={onAddRow}>
+      <button
+        type="button"
+        className="control-button"
+        data-variant="add"
+        onClick={onAddRow}
+      >
         <AddIcon {...iconEditProps} />
         Add Row
       </button>

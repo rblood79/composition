@@ -1,0 +1,70 @@
+/* 목록 항목 삭제 등 되돌리기 힘든 액션의 확인 다이얼로그 — agent 명령 승인 다이얼로그와 같은 형태.
+   Why (2026-09-11, 리서치 U2): 데이터 패널 3곳이 window.confirm 이라 Toast 인프라와 어긋나고
+   Chrome MCP · Playwright 자동화를 막았다. */
+
+.confirm-dialog-overlay {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.38);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 10000;
+}
+
+.confirm-dialog-modal {
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.28);
+  color: var(--fg);
+  max-width: 400px;
+  width: min(100%, 400px);
+}
+
+.confirm-dialog-header {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+  padding: 14px 18px 12px;
+}
+
+.confirm-dialog-header svg {
+  color: var(--negative);
+  flex: 0 0 auto;
+}
+
+.confirm-dialog-title {
+  color: var(--fg);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  margin: 0;
+}
+
+.confirm-dialog-body {
+  color: var(--fg-muted);
+  font-size: 13px;
+  line-height: 18px;
+  padding: 14px 18px;
+}
+
+.confirm-dialog-body p {
+  margin: 0;
+}
+
+.confirm-dialog-actions {
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding: 12px 18px 14px;
+}
+
+.confirm-dialog-actions .control-button[data-variant="danger"] {
+  background: var(--negative);
+  border-color: var(--negative);
+  color: var(--fg-on-accent);
+}

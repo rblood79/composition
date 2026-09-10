@@ -209,6 +209,32 @@ describe("ADR-186 G4 v4 panel policy", () => {
     ]);
   });
 
+  it("overflow 로 새 column 을 얻는 패널은 자기 defaultWidth 를 받는다 (리서치 U1)", () => {
+    const registry = REGISTRY.map((entry) =>
+      entry.id === "settings" ? { ...entry, defaultWidth: 560 } : entry,
+    );
+    let layout = requireLayout(
+      createDefaultPanelWorkspaceLayoutV4(registry, SURFACE_RECT),
+    );
+    for (const id of ["navigator", "components", "settings"] as const) {
+      const result = activatePanelWorkspacePanelV4(
+        layout,
+        registry,
+        id,
+        SURFACE_RECT,
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.error);
+      layout = result.value.layout;
+    }
+    const cluster = layout.clusters.find((c) => c.placementZone === "top-left");
+    expect(
+      cluster?.columns.map((column) => column.rows.map((r) => r.panelId)),
+    ).toEqual([["navigator", "components"], ["settings"]]);
+    expect(cluster?.columns[0]?.width).toBe(200);
+    expect(cluster?.columns[1]?.width).toBe(560);
+  });
+
   it("hidden panel은 마지막 zone/row와 rail identity를 보존해 reopen한다", () => {
     const base = singleZoneLayout("center");
     const hidden = activate(base, "properties");

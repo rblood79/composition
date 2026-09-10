@@ -98,6 +98,8 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultPosition: "left",
     minWidth: 233,
     maxWidth: "100%",
+    // 격자 + 탭 라벨이 잘리지 않는 첫 열림 폭 (리서치 U1). 리사이즈 · 폭 저장은 그대로.
+    defaultWidth: 560,
     defaultHeight: 600,
     description: "DataTable, API, Variable 편집",
   },
@@ -221,7 +223,6 @@ export const PANEL_CONFIGS: PanelConfig[] = [
   // 구 "폰트" 도킹 패널은 2026-08-25 에 등록 해제했다 — 폰트 관리는 Typography 의
   // Font Family 피커가 여는 모달(`FontManagerDialog`)이 담당한다. 저빈도 작업이라
   // 인스펙터 레일 한 칸을 상주로 차지할 이유가 없다 (Figma/Pen 도 그렇게 안 한다).
-
 ];
 
 /**

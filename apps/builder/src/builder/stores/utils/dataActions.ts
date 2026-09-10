@@ -10,6 +10,7 @@
  */
 
 import type { StateCreator } from "zustand";
+import { resolveResponseData } from "../../../utils/data/responseData";
 import { getDB } from "../../../lib/db";
 import type {
   DataTable,
@@ -393,7 +394,8 @@ export const createCreateApiEndpointAction =
         queryParams: data.queryParams || [],
         bodyType: data.bodyType || "none",
         bodyTemplate: data.bodyTemplate,
-        responseMapping: data.responseMapping || { dataPath: "data" },
+        // 빈 경로 = 응답 전체 (실행기가 배열을 자동 감지한다 — utils/data/responseData.ts)
+        responseMapping: data.responseMapping || { dataPath: "" },
         targetCollection: data.targetCollection,
         executionMode: data.executionMode || "client",
         serverConfig: data.serverConfig,
@@ -639,12 +641,12 @@ export const createExecuteApiEndpointAction =
 
       const result = await response.json();
 
-      // Response Mapping 적용
-      let mappedData = result;
-      if (endpoint.responseMapping.dataPath) {
-        const paths = endpoint.responseMapping.dataPath.split(".");
-        mappedData = paths.reduce((obj, path) => obj?.[path], result);
-      }
+      // Response Mapping 적용 — 경로가 비었거나 배열을 못 가리키면 응답 자체 /
+      // 관례 키 (results · data · items …) 에서 행 배열을 찾는다 (리서치 D1).
+      const mappedData = resolveResponseData(
+        result,
+        endpoint.responseMapping?.dataPath,
+      ).data;
 
       // Target DataTable에 데이터 설정
       if (endpoint.targetCollection && mappedData) {
