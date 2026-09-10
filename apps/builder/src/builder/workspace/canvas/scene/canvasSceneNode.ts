@@ -45,7 +45,6 @@ import {
 import { GRIDLIST_ITEM_DEFAULT_ORIGIN_ID } from "../../../components/gridlist/gridListTemplateOrigins";
 // ADR-907 Layer D: chip gap 정본 = TagList catalog rule. projection 배치와 layout
 //   height 계산이 동일 resolver(resolveTagListGap)를 공유해 size 별 gap(lg=6) 을 정합.
-import { CHART_SAMPLE_ROWS } from "@composition/specs";
 import { resolveTagListGap } from "../layout/engines/utils";
 // ADR-157 gap 배선 (② 정정): ListBox gap 은 catalog containerStyles.gap(theme 토큰 → px)에서
 //   오고 CSS 가 이를 소비한다. rowsGroup 이 element.props.style 만 읽으면 catalog gap 을 놓쳐
@@ -2573,22 +2572,15 @@ export function buildCanvasSceneGraph(
       // ADR-194 Phase 5 — Chart 는 leaf 라 projected 자식이 없다. 행 해석은 다른 컬렉션과
       //   같은 지점(scene-node 층, options.collections)에서 하고 결과만 props 로 넣는다 —
       //   `chart_scene` primitive 의 ctx 에는 데이터 채널이 없기 때문이다 (R8).
-      //   dataBinding 이 없거나 0행이면 주입하지 않는다: primitive 가 props.data 샘플로
-      //   떨어져 팔레트에서 갓 놓은 차트가 빈 상자로 보이지 않는다.
+      //   dataBinding 이 없으면 주입하지 않는다: primitive 가 props.data 로 떨어져
+      //   팔레트에서 갓 놓은 차트가 빈 상자로 보이지 않는다.
+      //   ADR-211: Canvas 전용 행 slice (구 200행 샘플 상수) 는 없다 — 행 상한 `R`
+      //   은 spec 의 `resolveChartModel` 이 두 leg 에 똑같이 적용한다 (breakdown §3).
       if (sceneNode.type === "Chart") {
         const binding = getElementDataBinding(node);
-        const chartRows = binding
-          ? readDataBindingRows(binding, options.collections ?? [])
-          : Array.isArray(sceneNode.props.data)
-            ? sceneNode.props.data
-            : [];
-        if (binding || chartRows.length > CHART_SAMPLE_ROWS) {
-          (sceneNode.props as Record<string, unknown>)._chartSourceRowCount =
-            chartRows.length;
+        if (binding) {
           (sceneNode.props as Record<string, unknown>)._chartRows =
-            chartRows.length > CHART_SAMPLE_ROWS
-              ? chartRows.slice(0, CHART_SAMPLE_ROWS)
-              : chartRows;
+            readDataBindingRows(binding, options.collections ?? []);
         }
       }
       addSceneNode(sceneNode, graph);

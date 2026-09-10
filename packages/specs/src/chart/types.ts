@@ -104,7 +104,11 @@ export type ChartDiagnosticCode =
   | "valuePercentUnit.missing"
   | "valuePercentUnit.invalid"
   | "columns.unsupportedChartType"
-  | "columns.colorByCategory";
+  | "columns.colorByCategory"
+  // ADR-211 — 표시 예산 진단 (breakdown §2.1 `rows-truncated` · `plot-too-small` · `too-many-series`).
+  | "budget.rowsTruncated"
+  | "budget.plotTooSmall"
+  | "budget.tooManySeries";
 
 /**
  * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —
@@ -195,7 +199,26 @@ export interface ChartProps {
   valueCurrency?: string;
   /** `percent` 의 raw 입력 단위 (필수). 값 크기로 추론하지 않는다. */
   valuePercentUnit?: ChartPercentUnit;
+
+  // ── ADR-211 — 표시 예산. 평면 키 4개 (P0 계약 보정 — 객체 kind 가 catalog 에 없다),
+  //   전부 선택적·직교. 미설정 = `auto` (종류·축별 기본, breakdown §2.4 지원표).
+  /** 넘칠 때 무엇을 하는가. `auto` = bar/line/area 범주 창 · pie/radar/radial others. */
+  budgetOverflow?: ChartBudgetOverflow;
+  /** bucket 집계 통계 (`aggregate` 전용). 표시 형식 `valueFormat` 과 분리된다. */
+  budgetAggregate?: ChartBudgetAggregate;
+  /** 축 종류 강제. `auto` 는 엄격 ISO-8601 단조일 때만 `ordinal`. */
+  budgetAxis?: ChartBudgetAxis;
+  /** others 합산 범주의 표시 라벨 (기본 영문 상수 `"Other"`). */
+  budgetOthersLabel?: string;
 }
+
+/** ADR-211 §2.4 — 넘칠 때의 처리. */
+export type ChartBudgetOverflow =
+  "auto" | "window" | "aggregate" | "extrema" | "others";
+/** ADR-211 §2.4 — bucket 집계 통계. `mean` 은 bucket 안 **범주 값** 의 평균이다. */
+export type ChartBudgetAggregate = "sum" | "mean" | "max" | "min";
+/** ADR-211 §2.3 — 범주 축 종류. */
+export type ChartBudgetAxis = "auto" | "category" | "ordinal";
 
 export interface ChartSize {
   width: number;
@@ -216,6 +239,26 @@ export interface ChartMetrics {
   strokeWidth: number;
   /** 팔레트 길이 — series 인덱스 순환(modulo)의 기준 */
   seriesCount: number;
+  // ── ADR-211 — 표시 예산 (rule chart 채널, D3 SSOT). 테마 채널이 아니라 상수다 —
+  //   P0 실측에서 light/dark 가 같았다 (`docs/adr/evidence/211-p0-spike.md` §1).
+  /** bar 슬롯 (막대 + 틈) 최소 폭 px */
+  minSlot: number;
+  /** line/area 점 간 최소 간격 px */
+  minPointGap: number;
+  /** pie 조각 최소 호 길이 px (바깥 둘레 기준) */
+  minArc: number;
+  /** radar 축(스포크) 간 최소 호 길이 px */
+  minAxisGap: number;
+  /** radial 링 최소 두께 px (`RING_GAP` 포함) */
+  minRing: number;
+  /** `M` — 차트 하나의 요소 마크 총수 상한 (rect · 조각 · 점 · 링 · dot · 값 라벨) */
+  markBudget: number;
+  /** `P` — line/area 경로 점 총수 상한 (`S × 그려지는 슬롯`) */
+  pointBudget: number;
+  /** `R` — 모델 계산에 넣는 원본 행 상한 (두 leg 동일) */
+  rowCap: number;
+  /** 창 트랙이 플롯 아래에 예약하는 높이 px (두 leg 동일 예약) */
+  windowTrackHeight: number;
 }
 
 export interface Rect {

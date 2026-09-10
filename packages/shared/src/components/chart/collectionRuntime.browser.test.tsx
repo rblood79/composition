@@ -10,6 +10,12 @@ import {
   serializeProjectData,
 } from "../../utils/export.utils";
 import type { DataBinding, DataTableDefinition } from "../../types";
+import {
+  CHART_DEFAULT_PROPS,
+  resolveChartData,
+  resolveChartMetrics,
+} from "@composition/specs";
+import { resolveComponentRule } from "../../catalog/resolvers/resolveComponentRule";
 
 let root: Root;
 let host: HTMLDivElement;
@@ -118,6 +124,25 @@ describe("ADR-209 공통 collection runtime 공급", () => {
             ?.getAttribute("data-chart-row-count"),
         ).toBe(String(count)),
       );
+      // ADR-211 — 범주 > fitEff 면 창 (breakdown §2.4 (B)): 그려지는 점은 전체가 아니라
+      //   같은 크기의 spec 모델이 정한 visible 수다. 행은 전부 읽었다 (data-chart-row-count).
+      const metrics = resolveChartMetrics(
+        resolveComponentRule("Chart")?.chart,
+        "md",
+      );
+      const model = resolveChartData(
+        rows,
+        {
+          ...CHART_DEFAULT_PROPS,
+          chartType: "line",
+          dimension: "id",
+          metric: "value",
+        },
+        metrics.seriesCount,
+        { size: { width: 320, height: 240 }, metrics },
+      );
+      expect(model.budget.fitEff).toBeLessThan(count);
+      expect(model.rows).toHaveLength(model.budget.fitEff);
       await vi.waitFor(() =>
         expect(
           (
@@ -126,7 +151,7 @@ describe("ADR-209 공통 collection runtime 공급", () => {
               ?.getAttribute("d")
               ?.match(/L/g) ?? []
           ).length,
-        ).toBe(count - 1),
+        ).toBe(model.budget.fitEff - 1),
       );
       renderTable({ ...table, runtimeData: [] });
       await vi.waitFor(() => expect(result("chart").count).toBe(0));

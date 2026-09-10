@@ -11738,6 +11738,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         md: { padding: 12, fontSize: 11 },
         lg: { padding: 16, fontSize: 12 },
       },
+      // ADR-211 표시 예산 — P0 실측 확정값 (docs/adr/evidence/211-p0-spike.md). light/dark 동일.
+      budget: {
+        minSlot: 8,
+        minPointGap: 3,
+        minArc: 5,
+        minAxisGap: 12,
+        minRing: 5,
+        markBudget: 800,
+        pointBudget: 5000,
+        rowCap: 20000,
+        windowTrackHeight: 24,
+      },
     },
     structure: {
       // "text" archetype = block + width 100% + border-box. "default" 를 쓰면

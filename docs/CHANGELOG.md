@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-211 P0–P1 — 차트 표시 예산: 슬롯 fit · 창 0 정적 · 행 상한 R (In Progress)] - 2026-09-11
+
+### Changed
+
+- (P1) 차트가 **표시 예산**을 계산한다 (`packages/specs/src/chart/budget.ts` · `model.ts`, Builder Skia 와 Preview/Publish Recharts 가 같은 `resolveChartModel` 을 부른다): 플롯 픽셀 폭 / 최소 슬롯 간격 (`minSlot 8` · `minPointGap 3` · `minArc 5` · `minAxisGap 12` · `minRing 5`, P0 light/dark 실측) 으로 슬롯 수 `fit` 을 정하고 요소 마크 `M 800` · 경로 점 `P 5,000` 으로 깎는다. **사용자-가시 (B)**: bar/line/area 의 범주가 `fitEff` 를 넘으면 두 화면 모두 앞 `fitEff` 범주만 그린다 (창 0 — 창 이동 Slider 는 P3). 값 축은 전체 데이터 범위를 유지한다.
+- (P1) **사용자-가시 (A)**: Canvas 전용 200행 샘플 (`CHART_SAMPLE_ROWS`) 삭제 — Builder 캔버스도 Preview 와 같은 전체 행 합계를 그린다 (5,000행이면 5,000행 합). 행 상한은 두 화면 공통 `R 20,000` (초과 시 앞 20,000행 + 진단 `budget.rowsTruncated`, Properties 안내 `chart.rowCapHint`). 플롯이 한 슬롯보다 좁으면 마크 0 + 진단 `budget.plotTooSmall` (데이터 보존).
+- (P1) rule chart 채널 `budget` (catalog Chart 항목, `ComponentRuleChart.budget?`) 이 예산 상수의 정본 — `ChartMetrics` 9 필드. 검증: 손계산 오라클 18/18 · 같은 크기 두 leg visible 범주·값 byte 동일 · 행 ≤ 200 · 범주 ≤ fitEff 문서는 scene byte 동일 (스냅샷 4 · specs 315 · shared 668 · chart Chromium 212) · live 1,000 범주 bar → Canvas/Preview 41 막대, 5,000행 → 두 화면 같은 합 (`docs/adr/evidence/211-p1-budget-model.md`).
+- (P0, 2026-09-10) spike 만 (제품 코드 0): 하니스 `apps/builder/scripts/adr211-budget-{model,pixel}-spike.mjs` · `adr211-impact-inventory.mjs`.
+
 ## [ADR-210 P1–P5 — 차트 다중 수치 컬럼 · 시리즈 표시 · 숫자 형식 (Implemented)] - 2026-09-10
 
 ### Added

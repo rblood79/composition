@@ -37,7 +37,7 @@
 
 #### [211](211-chart-display-budget-pixel-fit-window-decimation.md) — 차트 표시 예산 — 픽셀 폭 기준 마크 수와 창·축약 계약
 
-- **상태**: Proposed (2026-09-10) — round 1 (HIGH 3 · MEDIUM 6) · round 2 수리 검증 (HIGH 1 · MEDIUM 3 · LOW 1) 반영, 판독 루프 실행자 종결 (사용자 지시). **P0 spike PASS (G0, 2026-09-10)** — 최소 단위 5종 실측 (`8/3/5/12/5`) · `M 800`/`P 5,000`/`R 20,000`/`windowTrackHeight 24` · 계약 보정 2 (M/P 분리 · `budget*` 평면 키 4개) · 오라클 39/39 · 영향 집합 0. **다음: P1**. ADR-194/209/210 위의 응용 (분리 4질문 breakdown §1)
+- **상태**: In Progress (2026-09-11) — Proposed 2026-09-10, round 1 (HIGH 3 · MEDIUM 6) · round 2 수리 검증 (HIGH 1 · MEDIUM 3 · LOW 1) 반영, 판독 루프 실행자 종결 (사용자 지시). **P0 spike PASS (G0, 2026-09-10)** — 최소 단위 5종 실측 (`8/3/5/12/5`) · `M 800`/`P 5,000`/`R 20,000`/`windowTrackHeight 24` · 계약 보정 2 (M/P 분리 · `budget*` 평면 키 4개) · 오라클 39/39 · 영향 집합 0. **P1 PASS (G1, 2026-09-11)** — `budget.ts`/`model.ts` (두 leg 공용 input→transformed→visible) · 창 0 정적 · 행 상한 `R` spec 적용 · `CHART_SAMPLE_ROWS` 삭제 · 오라클 18/18 · 두 leg byte 동일 · live 1,000 범주 → 41 막대 양쪽 동일 (`evidence/211-p1-budget-model.md`). **다음: P2** (집계 · 극값 · others). ADR-194/209/210 위의 응용 (분리 4질문 breakdown §1)
 - **범위**: 차트 6종 전부 — 예산 (슬롯 `fit` · 요소 마크 `M` · 경로 점 `P` · 두 leg 동일 행 상한 `R`) 을 spec 이 종류별로 계산, 넘치면 범주 축은 창 (Canvas 창 0 정적 · Preview/Publish RAC Slider 트랙), 순서 축은 bucket 집계 (명시 통계) 또는 시리즈별 bucket 극값 선택, 극좌표는 "기타" 묶기. `CHART_SAMPLE_ROWS=200` 폐지. P0–P5 / G0–G5.
 - **상세 설계**: [breakdown](design/211-chart-display-budget-pixel-fit-window-decimation-breakdown.md)
 - **우선순위**: P1 — 새 표현 옵션 확장과 ADR-210 후속 ② (컨트롤 mount 비용) 보다 앞

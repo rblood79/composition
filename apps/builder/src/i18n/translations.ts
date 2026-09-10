@@ -82,7 +82,7 @@ const koKR: TranslationKeys = {
     radialChart: "라디얼 차트",
     changeType: "차트 종류 변경",
     changeTarget: "변경할 차트",
-    sampleHint: "Canvas: {sample} / {total}행 샘플 · 미리보기는 전체 행",
+    rowCapHint: "{cap} / {total}행만 차트에 반영 (두 화면 동일)",
     runtimeHint: "애니메이션과 툴팁은 미리보기에서 확인합니다.",
     row: "데이터 행",
     // ADR-210 — 시리즈 원천 · 시리즈 설정 · 숫자 형식
@@ -99,8 +99,7 @@ const koKR: TranslationKeys = {
     fieldTypeNumber: "수치형",
     fieldTypeText: "문자형",
     fieldTypeUnknown: "타입 불명",
-    columnsUnsupported:
-      "원형·라디얼 차트는 값 컬럼 모드를 지원하지 않습니다.",
+    columnsUnsupported: "원형·라디얼 차트는 값 컬럼 모드를 지원하지 않습니다.",
     typeUnavailableInColumns: "값 컬럼 모드에서는 사용할 수 없습니다",
     colorBySeriesNote: "막대 색은 시리즈별로 구분됩니다.",
     seriesSettings: "시리즈 설정",
@@ -1573,8 +1572,7 @@ const enUS: TranslationKeys = {
     radialChart: "Radial Chart",
     changeType: "Change chart type",
     changeTarget: "Chart type",
-    sampleHint:
-      "Canvas: {sample} / {total} sampled rows · Preview uses all rows",
+    rowCapHint: "Charting the first {cap} of {total} rows (same in both views)",
     runtimeHint: "Animations and tooltips are available in Preview.",
     row: "row",
     // ADR-210 — series source · series settings · number format
@@ -3449,8 +3447,8 @@ const formattedMessages: Record<
   Record<string, (args: FormatterVariables | undefined) => string>
 > = {
   "ko-KR": {
-    "chart.sampleHint": (args) =>
-      `Canvas: ${String(args?.sample ?? 0)} / ${String(args?.total ?? 0)}행 샘플 · 미리보기는 전체 행`,
+    "chart.rowCapHint": (args) =>
+      `${String(args?.cap ?? 0)} / ${String(args?.total ?? 0)}행만 차트에 반영 (두 화면 동일)`,
     "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
     "itemsManager.addItem": (args) => `${String(args?.type ?? "")} 추가`,
     "errors.withContext": (args) =>
@@ -3717,8 +3715,8 @@ const formattedMessages: Record<
     "messages.itemCount": (args) => `${String(args?.count ?? 0)}개`,
   },
   "en-US": {
-    "chart.sampleHint": (args) =>
-      `Canvas: ${String(args?.sample ?? 0)} / ${String(args?.total ?? 0)} sampled rows · Preview uses all rows`,
+    "chart.rowCapHint": (args) =>
+      `Charting the first ${String(args?.cap ?? 0)} of ${String(args?.total ?? 0)} rows (same in both views)`,
     "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
     "itemsManager.addItem": (args) => `Add ${String(args?.type ?? "")}`,
     "errors.withContext": (args) =>

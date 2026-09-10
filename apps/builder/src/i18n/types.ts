@@ -564,7 +564,7 @@ export interface TranslationKeys {
     radialChart: string;
     changeType: string;
     changeTarget: string;
-    sampleHint: string;
+    rowCapHint: string;
     runtimeHint: string;
     row: string;
     dataMode: string;

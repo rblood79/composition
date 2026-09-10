@@ -6,11 +6,11 @@
  * props/size/visual/paint/style). 그래서 행 해석은 다른 컬렉션과 같은 자리 —
  * scene-node 층 — 에서 하고 결과만 `_chartRows` 로 넣는다. 이 테스트가 그 배선을
  * 고정한다: 바인딩이 실제로 행을 실어 보내는지, 없으면 **주입하지 않아서** primitive 가
- * 샘플로 떨어지는지, 상한이 실제로 걸리는지.
+ * 샘플로 떨어지는지, 그리고 **Canvas 전용 slice 가 없는지** (ADR-211 — 구 200행 샘플 상수는
+ * 삭제됐고 행 상한 `R` 은 spec `resolveChartModel` 이 두 leg 에 같이 건다).
  */
 import { describe, expect, it } from "vitest";
 import type { CompositionDocument } from "@composition/shared";
-import { CHART_SAMPLE_ROWS } from "@composition/specs";
 import { buildCanvasSceneGraph } from "./canvasSceneNode";
 
 const SAMPLE = [
@@ -55,14 +55,14 @@ function rowsOf(count: number): Array<Record<string, unknown>> {
   }));
 }
 
-describe("Chart 행 주입 (ADR-194/209)", () => {
-  for (const count of [201, 5000]) it(`정적 ${count}행도 Canvas 원본 200행 샘플과 전체 개수를 보존한다`, () => {
-    const rows = rowsOf(count);
-    const props = chartProps(makeDocument({data:rows}));
-    expect(props._chartRows).toEqual(rows.slice(0, CHART_SAMPLE_ROWS));
-    expect(props._chartSourceRowCount).toBe(count);
-    expect(props.data).toHaveLength(count);
-  });
+describe("Chart 행 주입 (ADR-194/209/211)", () => {
+  for (const count of [201, 5000])
+    it(`정적 ${count}행은 주입 없이 props.data 전체가 primitive 로 간다 (Canvas slice 0)`, () => {
+      const rows = rowsOf(count);
+      const props = chartProps(makeDocument({ data: rows }));
+      expect(props._chartRows).toBeUndefined();
+      expect(props.data).toHaveLength(count);
+    });
   it("dataBinding 이 없으면 _chartRows 를 넣지 않는다 (primitive 가 props.data 샘플로 떨어진다)", () => {
     const props = chartProps(makeDocument({ data: SAMPLE }));
     expect(props._chartRows).toBeUndefined();
@@ -89,33 +89,23 @@ describe("Chart 행 주입 (ADR-194/209)", () => {
       data: SAMPLE,
       dataBinding: { type: "collection", source: "dataTable", name: "sales" },
     });
-    const props = chartProps(doc, [{ name: "sales", useMockData: true, mockData: [] }] as never);
+    const props = chartProps(doc, [
+      { name: "sales", useMockData: true, mockData: [] },
+    ] as never);
     expect(props._chartRows).toEqual([]);
-    expect(props._chartSourceRowCount).toBe(0);
   });
 
-  it("빌더 행 상한 200 을 넘으면 앞 200 만 싣는다 (R4 — Shape 수 폭발 차단)", () => {
+  it("바인딩 행은 몇 행이든 전부 싣는다 — 구 200행 slice 가 없다 (ADR-211 G1 — 구 샘플 상수 참조 0)", () => {
     const doc = makeDocument({
       dataBinding: { type: "collection", source: "dataTable", name: "sales" },
     });
     const props = chartProps(doc, [
-      { name: "sales", useMockData: true, mockData: rowsOf(CHART_SAMPLE_ROWS + 50) },
+      { name: "sales", useMockData: true, mockData: rowsOf(250) },
     ] as never);
-    expect(props._chartRows).toHaveLength(CHART_SAMPLE_ROWS);
-    // 자르는 위치가 앞쪽인지 — 뒤에서 자르면 사용자가 보는 구간이 달라진다.
+    expect(props._chartRows).toHaveLength(250);
     expect(
-      (props._chartRows as Array<Record<string, unknown>>)[0].category,
-    ).toBe("c0");
-  });
-
-  it("상한 이하면 그대로 싣는다 (불필요한 복사 없음)", () => {
-    const doc = makeDocument({
-      dataBinding: { type: "collection", source: "dataTable", name: "sales" },
-    });
-    const props = chartProps(doc, [
-      { name: "sales", useMockData: true, mockData: rowsOf(CHART_SAMPLE_ROWS) },
-    ] as never);
-    expect(props._chartRows).toHaveLength(CHART_SAMPLE_ROWS);
+      (props._chartRows as Array<Record<string, unknown>>)[249].category,
+    ).toBe("c249");
   });
 
   it("Chart 가 아닌 노드에는 _chartRows 가 붙지 않는다", () => {
@@ -144,7 +134,9 @@ describe("Chart 행 주입 (ADR-194/209)", () => {
       ],
     } as unknown as CompositionDocument;
     const graph = buildCanvasSceneGraph(doc, {
-      collections: [{ name: "sales", useMockData: true, mockData: rowsOf(3) }] as never,
+      collections: [
+        { name: "sales", useMockData: true, mockData: rowsOf(3) },
+      ] as never,
     });
     expect(
       (graph.nodesMap.get("text-1")!.props as Record<string, unknown>)

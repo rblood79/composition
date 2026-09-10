@@ -81,7 +81,12 @@ export {
   polarLabelStride,
 } from "./polarAxes";
 export type { PolarAxesInput, PolarCenter } from "./polarAxes";
-export { arcPath, arcSlicePath, buildPieMarks, centerTotalLabels } from "./marks/pie";
+export {
+  arcPath,
+  arcSlicePath,
+  buildPieMarks,
+  centerTotalLabels,
+} from "./marks/pie";
 export { buildRadarMarks } from "./marks/radar";
 export { buildRadialMarks } from "./marks/radial";
 export type { RadialMarkInput, RadialMarks, RadialRing } from "./marks/radial";
@@ -110,7 +115,6 @@ export {
   CHART_DEFAULT_PROPS,
   CHART_DEFAULT_SERIES_COUNT,
   CHART_INVALID_SETTINGS_TEXT,
-  CHART_SAMPLE_ROWS,
   CHART_TICK_COUNT,
   computeChartScene,
   resolveChartLayout,
@@ -123,3 +127,28 @@ export type {
   ChartRuleChannel,
   SkiaTextGeometry,
 } from "./computeChartScene";
+// ADR-211 — 표시 예산 · 모델 층
+export {
+  CHART_BUDGET_DEFAULTS,
+  applyWindow,
+  budgetSweep,
+  capRows,
+  clampWindowStart,
+  defaultBudgetMode,
+  markFactor,
+  mergeBudgetMetrics,
+  polarGeometry,
+  resolveDisplayBudget,
+  resolveFitEff,
+  slotFit,
+} from "./budget";
+export type {
+  ChartBudgetGeometry,
+  ChartBudgetMetrics,
+  ChartBudgetMode,
+  ChartWindow,
+  DisplayBudget,
+  DisplayBudgetInput,
+} from "./budget";
+export { resolveChartModel } from "./model";
+export type { ChartModel, ChartModelView } from "./model";

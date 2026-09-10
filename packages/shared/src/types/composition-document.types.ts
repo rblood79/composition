@@ -516,6 +516,22 @@ export interface ComponentRuleChart {
   tooltipBackground?: string;
   tooltipBorder?: string;
   tooltipText?: string;
+  /**
+   * ADR-211 — 표시 예산 (px · 개수, 테마 무관 상수). 최소 슬롯 간격 5종 · 요소 마크 상한 `M`
+   * (`markBudget`) · 경로 점 상한 `P` (`pointBudget`) · 행 상한 `R` (`rowCap`) · 창 트랙 높이.
+   * 두 consumer 가 `resolveChartMetrics` 로 같이 읽는다 — 없는 키는 specs 의 P0 확정값.
+   */
+  budget?: Partial<{
+    minSlot: number;
+    minPointGap: number;
+    minArc: number;
+    minAxisGap: number;
+    minRing: number;
+    markBudget: number;
+    pointBudget: number;
+    rowCap: number;
+    windowTrackHeight: number;
+  }>;
 }
 
 export interface ComponentRule {

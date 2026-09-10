@@ -3,10 +3,11 @@ import { Button } from "react-aria-components/Button";
 import { memo, useState } from "react";
 import {
   CHART_DESCRIPTORS,
-  CHART_SAMPLE_ROWS,
   getChartDescriptor,
   getChartPresetId,
 } from "@composition/specs";
+import { resolveChartMetrics } from "@composition/specs";
+import { resolveComponentRule } from "@composition/shared";
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
@@ -26,6 +27,11 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
 }) {
   const { t } = useI18n();
   const [changingType, setChangingType] = useState(false);
+  // 행 상한 `R` — 절단 (`resolveChartModel`) 과 같은 rule 채널 읽기 (size 무관 상수).
+  const rowCap = resolveChartMetrics(
+    resolveComponentRule("Chart")?.chart,
+    "md",
+  ).rowCap;
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
   );
@@ -89,12 +95,11 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
           {t("chart.typeUnavailableInColumns")}
         </p>
       )}
-      {sourceRowCount > CHART_SAMPLE_ROWS && (
+      {/* ADR-211 — 행 상한 `R` 은 두 leg 동일 (rule chart 채널 `budget.rowCap`, 절단과 같은
+          읽기 경로 `resolveChartMetrics`). 예산 안내 (`chart.budgetHint`) 는 P3. */}
+      {sourceRowCount > rowCap && (
         <p className="chart-authoring-hint" role="status">
-          {t("chart.sampleHint", {
-            sample: CHART_SAMPLE_ROWS,
-            total: sourceRowCount,
-          })}
+          {t("chart.rowCapHint", { cap: rowCap, total: sourceRowCount })}
         </p>
       )}
       <p className="chart-authoring-hint">{t("chart.runtimeHint")}</p>
