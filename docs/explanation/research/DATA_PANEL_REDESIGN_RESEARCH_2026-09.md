@@ -126,6 +126,7 @@ live 캡처 (초기 폭 233px, 영어 UI — 2026-09-10 에 560px 로 리사이�
 | U8  | 데이터 편집에 undo 가 없다 (§1-3)                                                                                                                                                                                                                |                                                                                                                   |
 | U9  | Data 패널 ↔ 인스펙터 간 동선 부재: 테이블에서 "누가 쓰는지" 못 보고, 바인딩 Select 옆에 "새 테이블 만들기" 가 없다. 빈 캔버스 사용자의 첫 경로 (컴포넌트 놓기 → 데이터 연결) 가 패널 2개 + 탭 3개를 거친다                                       | ADR-013 Context 의 3단계 수동 작업 그대로                                                                         |
 | U10 | "Use Table Data" 토글 (`useMockData`) 이 테이블 단위 전역이라, 같은 테이블을 한 화면에서는 mock 으로 다른 화면에서는 API 로 볼 수 없다. 이름 "Table Data vs API response" 가 사용자 언어가 아니다                                                | `:754-806`. 캡처 `07-editor-settings.png`                                                                         |
+| U11 | **Variables 탭은 정의 · 전달 · 초기화까지만 있고 소비처가 0 이다** (사용자 제기 2026-09-10 — "초기에 어디 둘지 몰라 저기 뒀다"). `Variable { name, type 5종, defaultValue, persist, scope global/page/component }` 는 `useIframeMessenger` 가 preview 로 보내고 `runtimeStore.setVariables` 가 `appState`/`pageStates` 기본값으로 넣는데, 그 상태를 **읽는 곳** (템플릿 보간 · 컴포넌트 prop) 과 **쓰는 액션** (interactions 패널 action) 이 둘 다 없다. publish 런타임도 0. `PropertyDataBinding.source:"variable"` 은 ADR-159 P4b 로 read 호환 잔존. 즉 자리 문제 이전에 역할이 비어 있다 — 메모리 `feedback-infra-exists-vs-wired-consumption-path` 의 사례 | `preview/store/runtimeStore.ts:606-720` (setVariables · setState · getState 만) · `panels/interactions` grep 0 · `apps/publish` grep 0 |
 
 ### 2-3. 접근성 (AX 로 읽을 때 — a11y)
 
@@ -265,6 +266,7 @@ live 캡처 (초기 폭 233px, 영어 UI — 2026-09-10 에 560px 로 리사이�
 | UX-7 | **Auth 프리셋 + secret 처리.** Auth 탭 None / Bearer / API Key (header·query) / Basic. 값은 마스킹 표시, export envelope 에서 제외 (자리표시자 `{{secret.NAME}}`), 프로젝트 로컬 vault (IndexedDB 별도 store) 에 저장. 변수 치환은 `variables` store 값도 읽는다 (지금은 인자 params 만)                                                | P4 · P5 · §1-4              |
 | UX-8 | **production 실행 경로 결정을 명시.** dev 는 vite 프록시, production 은 (a) CORS 허용 API 만 직접 (b) 서버 프록시/Edge Function — publish 는 "빌더 안정화 후" 방침 (`project-publish-link-only-defer-until-builder-stable`) 이라 지금은 **경고 표시** ("이 API 는 배포 환경에서 CORS 설정이 필요합니다") 까지만                         | D4                          |
 | UX-9 | 프리셋을 코드 상수에서 **문서 형식** (`DataTablePreset` JSON + 생성기 규칙) 으로 — 사용자 정의 프리셋 저장 · AI 제안 결과를 프리셋으로 저장 · 프로젝트 간 복사                                                                                                                                                                          | §2-4                        |
+| UX-10 | **Variables 는 역할을 둘로 나눈 뒤 자리를 정한다.** 지금 한 타입에 섞인 두 용도 — ① **런타임 상태** (currentUser · theme · 선택값: scope global/page · persist) ② **환경값 · secret** (authToken · base URL). ②는 APIs 쪽 **Environment** (dev/prod 값 · 마스킹 · export 제외 — UX-7 vault 의 자리) 로 옮기고 Auth 탭 · URL · 헤더의 `{{env.NAME}}` 이 읽는다. ①은 목록 패널을 **"Data"** 로 이름을 바꾸고 세 번째 탭으로 두되 (WeWeb 이 Data 패널에 Collections · Variables · Formulas 를 나란히 두는 방식 · FlutterFlow App State / Page State 구분), 소비처를 먼저 잇는다 — interactions 액션 "상태 설정 / 토글 / 증가" 가 변수를 고르고 (그 자리에서 "새 변수" 스냅 패널), 텍스트 · prop 템플릿 `{{state.NAME}}` 자동완성이 변수를 나열하고, 변수 편집기가 "사용처 N (액션 · 템플릿)" 을 보인다. page scope 변수는 Navigator 의 페이지 항목에서도 열린다. 소비처가 붙기 전에는 탭을 **숨긴다** (4-0 ④ 무증상 실패 금지 — 아무것도 안 하는 탭은 오해를 만든다). 새 rail 패널은 만들지 않는다 (빈도 낮음) | U11 · UX-7 · §1-6 |
 
 ### 4-3. AI — 사람이 부르는 AI
 
@@ -318,6 +320,7 @@ UI-2 · UI-3 · UI-5 · UI-6 에 이미 포함된 것을 검수 항목으로 모
 2. 편집 패널을 dock 으로 둘지, 데이터 워크스페이스를 별도 전체 화면/모달로 뺄지. 정정 (2026-09-10): dock 은 이미 리사이즈 · 폭 저장이 되므로 "폭" 은 판정 근거가 아니다 — 남는 질문은 캔버스와 분리된 작업 공간이 필요한가뿐이다. 이 문서는 dock 유지를 제안한다 — 캔버스와 같이 보며 바인딩하는 흐름 (UX-1) 이 우선이라서. 시안 검토 (2026-09-10, 사용자 관찰): 생성 · 필드 편집을 스냅 패널로 바꾸면 목록 | 격자 | 필드 3열이 dock 안에서 그대로 생기므로 전체 화면 대안과의 차이는 캔버스가 뒤에 보이느냐뿐 — 판정 ② 는 dock 으로 수렴, 별도 결정 불필요. 시안: claude.ai artifact f7d8327e.
 3. Track 2 와 3 을 ADR 하나로 묶을지 둘로 나눌지 (결정 지점 1). 이 문서는 둘을 제안한다 — 2 는 D3 표면, 3 은 D2 계약이라 실패 원인 분리가 된다.
 4. relation 타입 (M4) 을 로드맵에 올릴지. 올리면 Skia 투영 · DOM 렌더 · 엔진 계약이 같이 커진다.
+5. Variables 를 어느 쪽으로 살릴지 (결정 지점 4 — scope): (a) 런타임 상태로 wiring (interactions 액션 + 템플릿 읽기, Track 2/3 에 편입) + 환경값은 APIs Environment 로 분리 (UX-10, 이 문서의 제안) · (b) 환경값 · secret 만 남기고 런타임 상태는 로드맵에서 내림 (탭 제거, 타입은 read 호환) · (c) 현상 유지. 어느 쪽이든 소비처 0 인 탭을 그대로 노출하지는 않는다.
 
 ## 6. 부록
 
