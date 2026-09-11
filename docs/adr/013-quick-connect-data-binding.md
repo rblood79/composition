@@ -4,7 +4,7 @@
 
 Proposed — 2026-03-02 (원문) / **2026-07-16 Risk-First 재작성** (reviews/013.md round 1 반영 — legacy 형식 + stale 전제 7건 정정)
 
-> **선행 의존 (2026-07-16 확정)**: [ADR-152](152-data-panel-collection-binding-integration.md)(바인딩 계약 v2 — `collectionId`+`fieldMap`, `props.dataBinding` 정규화) 완료가 착수 조건이다 (Hard Constraint 1 + R1/G0). ADR-152 로의 병합 여부는 2026-07-16 사용자 확인으로 **분리 유지** 확정 (계약 layer ↔ UX 자동화 layer 직교).
+> **선행 의존 (2026-07-16 확정)**: [ADR-152](completed/152-data-panel-collection-binding-integration.md)(바인딩 계약 v2 — `collectionId`+`fieldMap`, `props.dataBinding` 정규화) 완료가 착수 조건이다 (Hard Constraint 1 + R1/G0). ADR-152 로의 병합 여부는 2026-07-16 사용자 확인으로 **분리 유지** 확정 (계약 layer ↔ UX 자동화 layer 직교).
 
 ## Context
 

@@ -3,7 +3,7 @@
 > 작성: 2026-08-20
 > 대상: `packages/shared/src/interactions/capabilityRegistry.ts` ↔ `.agents/skills/react-aria/references/components` (RAC 52종) + `.agents/skills/react-spectrum/references/components` (RSP 71종)
 > 계기: React Aria 공식 예제 "Filterable CRUD Table"(식물 추적 앱 — 검색·필터·정렬·열 리사이즈·추가/수정/삭제 다이얼로그·폼 검증)을 컴포넌트 패널의 컴포넌트 추가 + 인터랙션 패널의 이벤트 추가만으로 재현할 수 있는지 판정 요청
-> 참조: [ADR-158](../../adr/completed/158-interactions-rules-capability-registry.md)(Implemented), [ADR-152](../../adr/152-data-panel-collection-binding-integration.md)(Proposed), [ADR-159](../../adr/completed/159-collection-field-template-binding.md)(Implemented), `.claude/rules/ssot-hierarchy.md`
+> 참조: [ADR-158](../../adr/completed/158-interactions-rules-capability-registry.md)(Implemented), [ADR-152](../../adr/completed/152-data-panel-collection-binding-integration.md)(Proposed), [ADR-159](../../adr/completed/159-collection-field-template-binding.md)(Implemented), `.claude/rules/ssot-hierarchy.md`
 
 ## 결론
 

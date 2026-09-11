@@ -2,15 +2,15 @@
 
 ## Status
 
-Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11, 개정안 이슈 0 — `reviews/152.md` · 사용자 착수 승인 `/execute-adr 152`)
+Implemented — 2026-09-11 (Proposed 2026-07-16 · Accepted 2026-09-11 · 리뷰 round 4 승인 2026-09-11, 개정안 이슈 0 — `../reviews/152.md` · 사용자 착수 승인 `/execute-adr 152` · Phase 0 ~ 7 전부 반영, 같은 날 closure)
 
-**Phase 진행 로그**: Phase 0 Inventory freeze — Implemented 2026-09-11 (G0 = 0건, breakdown §1-6) · Phase 1 계약 v2 + resolve 단일화 + `DataField.id` + Map id 키 — Implemented 2026-09-11 (G1 PASS, breakdown §Phase 1) · Phase 1b `{#id}` 템플릿 저장형 + 차트 `#id` — Implemented 2026-09-11 (G4 PASS 14/14, breakdown §Phase 1b) · Phase 1c `DataChange` 적용기 + History `type:"data"` — Implemented 2026-09-11 (G5 PASS 14/14, breakdown §Phase 1c) · Phase 2 Inspector fieldMap (value/icon) Select — Implemented 2026-09-11 (live 10/10, breakdown §Phase 2) · Phase 3 fieldMap 소비 (Skia · DOM 단일 resolver) — Implemented 2026-09-11 (G2 PASS 9/9, breakdown §Phase 3 — Table wrapper 정렬 1건 deferred) · Phase 4 패밀리 sweep 7종 (Tabs · Tree 정렬 + TagGroup key 결함 수리) — Implemented 2026-09-11 (sweep 12/12, breakdown §Phase 4) · Phase 5 legacy 경로 흡수 (datatableId · legacy binding normalize · useDataTableStore/React Query 소비처 0) — Implemented 2026-09-11 (live 6/6, legacy 파일 3건 삭제 완료 — 사용자 승인, breakdown §Phase 5) · Phase 6 publish snapshot (`toRuntimeCollection` · export schema fieldId 통과) — Implemented 2026-09-11 (G3 PASS 5/5, breakdown §Phase 6)
+**Phase 진행 로그**: Phase 0 Inventory freeze — Implemented 2026-09-11 (G0 = 0건, breakdown §1-6) · Phase 1 계약 v2 + resolve 단일화 + `DataField.id` + Map id 키 — Implemented 2026-09-11 (G1 PASS, breakdown §Phase 1) · Phase 1b `{#id}` 템플릿 저장형 + 차트 `#id` — Implemented 2026-09-11 (G4 PASS 14/14, breakdown §Phase 1b) · Phase 1c `DataChange` 적용기 + History `type:"data"` — Implemented 2026-09-11 (G5 PASS 14/14, breakdown §Phase 1c) · Phase 2 Inspector fieldMap (value/icon) Select — Implemented 2026-09-11 (live 10/10, breakdown §Phase 2) · Phase 3 fieldMap 소비 (Skia · DOM 단일 resolver) — Implemented 2026-09-11 (G2 PASS 9/9, breakdown §Phase 3 — Table wrapper 정렬 1건 deferred) · Phase 4 패밀리 sweep 7종 (Tabs · Tree 정렬 + TagGroup key 결함 수리) — Implemented 2026-09-11 (sweep 12/12, breakdown §Phase 4) · Phase 5 legacy 경로 흡수 (datatableId · legacy binding normalize · useDataTableStore/React Query 소비처 0) — Implemented 2026-09-11 (live 6/6, legacy 파일 3건 삭제 완료 — 사용자 승인, breakdown §Phase 5) · Phase 6 publish snapshot (`toRuntimeCollection` · export schema fieldId 통과) — Implemented 2026-09-11 (G3 PASS 5/5, breakdown §Phase 6) · Phase 7 closure — Implemented 2026-09-11 (CHANGELOG Features + Architecture · README Implemented 이관 · `.claude/rules/state-management.md` §Collections read 진입점 v2 계약 · 본문 `completed/` 이동 + 참조 경로 9 파일 정합화, 코드 변경 0)
 
-> **개정 2026-07-21 (사용자 confirm — ADR-159 와 경계 재획정)**: 텍스트 표시 축(label/description 컬럼 선택)은 [ADR-159](completed/159-collection-field-template-binding.md)(`{field}` 템플릿 바인딩)로 이관 — 본 ADR 의 fieldMap 은 **비텍스트 역할(icon/value) 한정**으로 축소. 데이터 소스는 ADR-159 의 dataTable 단일 방향(api/variable/route 오소링 표면 제거, 159 P4)을 전제로 개정 — 본 ADR 의 API source 관련 항목(R3, breakdown Phase 6)은 159 G4 게이트 결과에 종속. **scope 변경이므로 착수 전 재리뷰 대상** (기존 round 1 승인은 구 scope 기준).
+> **개정 2026-07-21 (사용자 confirm — ADR-159 와 경계 재획정)**: 텍스트 표시 축(label/description 컬럼 선택)은 [ADR-159](159-collection-field-template-binding.md)(`{field}` 템플릿 바인딩)로 이관 — 본 ADR 의 fieldMap 은 **비텍스트 역할(icon/value) 한정**으로 축소. 데이터 소스는 ADR-159 의 dataTable 단일 방향(api/variable/route 오소링 표면 제거, 159 P4)을 전제로 개정 — 본 ADR 의 API source 관련 항목(R3, breakdown Phase 6)은 159 G4 게이트 결과에 종속. **scope 변경이므로 착수 전 재리뷰 대상** (기존 round 1 승인은 구 scope 기준).
 
 > **실측 추가 2026-08-17 (scope 무변경 — 근거 보강 + 사실 정정)**: `source:"dataTable"` 바인딩이 **빌더 캔버스에서는 렌더되고 preview 에서는 0행**인 것을 양축 대조로 확인했다 (격차 7). 원인은 `CollectionDataProvider` 가 repo 어디에도 마운트되지 않는 것이고, ADR-132 가 R2/G3-1 로 식별·이연한 바로 그 항목이되 범위가 더 넓다 (`dataTableService` 축 포함, 전 앱). 이에 따라 **Hard Constraint 3(Skia↔DOM 대칭)은 보존 대상이 아니라 복구 대상으로 정정**했고, provider 배선을 Phase 3 선행 조건으로 올렸다 (R7 / G2 전제 / breakdown Phase 3). 대안·Decision·Phase 구성은 변경하지 않았다 — 재리뷰 시 이 결함을 본 ADR 안에서 처리할지 선행 수리로 분리할지가 판정 대상.
 
-> **착수 금지 해제 + scope 확장 (사용자 결정 2026-09-11)**: 2026-07-16 의 "생성까지만 — 착수 금지" 지시를 해제하고, 계약 v2 를 `collectionId` 에 더해 **`fieldId` (안정 field 참조 — `DataField.id` 신설)** 까지 넓힌다. 근거는 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §4-0 ① · §5 Track 1 (D2 key rename 고아 · D3 이름 참조 파손 · M7 Framer 교훈). 같은 Track 1 에 store 통합 (`useDataTableStore` · React Query 병행 제거 — 격차 5 · 2) 과 `DataChange` 적용기 + History 연결 (UX-4) 이 들어온다. **scope 변경이므로 Accepted 전 Risk-First 개정 (Phase 0 inventory 재측정 포함) → 재리뷰** 순. relation 타입은 로드맵 밖 (같은 날 결정) — `DataField.type` 확장 여지만 둔다.
+> **착수 금지 해제 + scope 확장 (사용자 결정 2026-09-11)**: 2026-07-16 의 "생성까지만 — 착수 금지" 지시를 해제하고, 계약 v2 를 `collectionId` 에 더해 **`fieldId` (안정 field 참조 — `DataField.id` 신설)** 까지 넓힌다. 근거는 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §4-0 ① · §5 Track 1 (D2 key rename 고아 · D3 이름 참조 파손 · M7 Framer 교훈). 같은 Track 1 에 store 통합 (`useDataTableStore` · React Query 병행 제거 — 격차 5 · 2) 과 `DataChange` 적용기 + History 연결 (UX-4) 이 들어온다. **scope 변경이므로 Accepted 전 Risk-First 개정 (Phase 0 inventory 재측정 포함) → 재리뷰** 순. relation 타입은 로드맵 밖 (같은 날 결정) — `DataField.type` 확장 여지만 둔다.
 
 ## Context
 
@@ -18,7 +18,7 @@ Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11
 
 **Domain 분류**: 본 결정은 **D2(Props/API — `dataBinding` prop 계약)** 중심이며, 데이터 자체의 SSOT 는 3-domain 밖의 데이터 도메인(ADR-131 이 `data_tables` 로 확정)이다. D3 는 소비 대칭(Builder Skia projector ↔ Preview DOM wrapper 가 동일 row/label 산출)으로만 관여하고, D1(RAC DOM/접근성)은 무변경. CSS Generator emit 과 무관한 ADR 이다 (inspector `kind:"binding"` 필드만 관여).
 
-**후속 응용 ADR**: [ADR-013](013-quick-connect-data-binding.md)(Quick Connect — 바인딩 생성 1클릭 UX)은 본 ADR 의 계약 v2 write 경로(`collectionId`+`fieldMap`, `props.dataBinding` 정규화)를 소비하는 응용이며, 본 ADR 완료가 선행 조건이다. 병합 여부는 2026-07-16 사용자 확인으로 **분리 유지** 확정 — 계약 layer(본 ADR)와 UX 자동화 layer(013)는 직교하고, 합치면 실패 시 원인 분리가 불가한 위험 누적 구조가 된다.
+**후속 응용 ADR**: [ADR-013](../013-quick-connect-data-binding.md)(Quick Connect — 바인딩 생성 1클릭 UX)은 본 ADR 의 계약 v2 write 경로(`collectionId`+`fieldMap`, `props.dataBinding` 정규화)를 소비하는 응용이며, 본 ADR 완료가 선행 조건이다. 병합 여부는 2026-07-16 사용자 확인으로 **분리 유지** 확정 — 계약 layer(본 ADR)와 UX 자동화 layer(013)는 직교하고, 합치면 실패 시 원인 분리가 불가한 위험 누적 구조가 된다.
 
 **실측 현행 격차 (2026-07-16)**:
 
@@ -30,7 +30,7 @@ Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11
 6. **binding 이중 저장 위치** — `getElementDataBinding` 이 `props.dataBinding` 우선 + legacy top-level `element.dataBinding` fallback 의 2 위치를 읽는다 (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts:74-94`). scene projection signature 는 `props` 만 포함하므로 (`buildSceneSnapshot.ts:49-66`) legacy top-level 위치만 가진 요소는 binding 변경이 sceneVersion 에 미감지되는 사각이 있다.
 7. **DI provider 부재 → Skia ↔ DOM 대칭이 이미 깨져 있다 (실측 2026-08-17)** — `CollectionDataProvider` / `CollectionDataContext.Provider` 가 **repo 어디에도 렌더되지 않는다** (전 확장자 grep 0건 + `git log -S --all` 결과 2건 모두 ADR 문서의 코드 예시 — 한 번도 마운트된 적 없음). 따라서 `useCollectionDataServices()` 는 항상 context 기본값 `{}` 를 반환하고 `dataTableService` / `apiEndpointService` / `mockApiService` 가 영구히 `undefined` 다. 상세는 아래 §"격차 7 실측 근거".
 
-**재측정 (2026-09-11, 개정 근거 — [리서치](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1 · §2)**:
+**재측정 (2026-09-11, 개정 근거 — [리서치](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1 · §2)**:
 
 | 격차 | 2026-08-17 상태                         | 2026-09-11 실측                                                                                                                                                                                                                                                                                                   | 본 ADR 처리                                                          |
 | ---- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -159,7 +159,7 @@ Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11
 - **대안 D 기각** (2026-09-11): 참조 재작성기는 참조를 담는 표면이 늘 때마다 같이 넓혀야 하고 누락이 무증상이다 — 유지보수 HIGH. Framer 가 같은 이유로 id 참조로 옮겼다 (리서치 M7).
 - **대안 C 기각**: ADR-131 Phase 8 에서 사용자가 확정한 데이터 SSOT 전제를 반전시키는 SSOT 경계 재판정(전제 확정 종결 계약의 재개 조건 미충족)이며, 그 이득(publish 직렬화 단순화)은 대안 B 의 snapshot 직렬화로 동등하게 달성 가능하다. 마이그레이션 비용도 HIGH.
 
-> 구현 상세: [152-data-panel-collection-binding-integration-breakdown.md](design/152-data-panel-collection-binding-integration-breakdown.md)
+> 구현 상세: [152-data-panel-collection-binding-integration-breakdown.md](../design/152-data-panel-collection-binding-integration-breakdown.md)
 
 ## Risks
 

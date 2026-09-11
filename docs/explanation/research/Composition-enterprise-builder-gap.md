@@ -325,7 +325,7 @@ Organization
 - [Responsive type system](https://github.com/rblood79/composition/blob/main/apps/builder/src/types/builder/responsive.types.ts)
 - [Responsive authoring ADR-154](https://github.com/rblood79/composition/blob/main/docs/adr/154-responsive-breakpoint-authoring.md)
 - [Unimplemented features](https://github.com/rblood79/composition/blob/main/docs/reference/status/UNIMPLEMENTED.md)
-- [Collection binding ADR-152](https://github.com/rblood79/composition/blob/main/docs/adr/152-data-panel-collection-binding-integration.md)
+- [Collection binding ADR-152](https://github.com/rblood79/composition/blob/main/docs/adr/completed/152-data-panel-collection-binding-integration.md)
 - [Data source runtime](https://github.com/rblood79/composition/blob/main/apps/builder/src/preview/hooks/useDataSource.ts)
 - [Publish action executor](https://github.com/rblood79/composition/blob/main/packages/shared/src/runtime/ActionExecutor.ts)
 - [Browser-side LLM agent](https://github.com/rblood79/composition/blob/main/apps/builder/src/services/ai/AgentService.ts)

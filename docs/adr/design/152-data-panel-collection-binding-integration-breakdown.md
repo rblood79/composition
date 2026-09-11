@@ -1,6 +1,6 @@
 # ADR-152 구현 상세 — Data 패널 ↔ Collections ↔ 컴포넌트 Collection 바인딩 통합
 
-> 본 문서는 [ADR-152](../152-data-panel-collection-binding-integration.md)의 구현 상세(Phase, 파일 변경표, 체크리스트)를 담는다. 결정/위험/게이트는 ADR 본문이 정본.
+> 본 문서는 [ADR-152](../completed/152-data-panel-collection-binding-integration.md)의 구현 상세(Phase, 파일 변경표, 체크리스트)를 담는다. 결정/위험/게이트는 ADR 본문이 정본.
 
 ## 1. 현행 실측 인벤토리 (2026-07-16 기준)
 
@@ -301,8 +301,11 @@ interface DataChange {
 
 ### Phase 7 — closure
 
-- [ ] CHANGELOG (Features + Architecture) / ADR README Status 갱신
-- [ ] `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 반영
+> **Implemented 2026-09-11** — 코드 변경 0 (문서 closure).
+
+- [x] CHANGELOG (Added · Changed · Architecture) / ADR README — Status Implemented · 현황 카운트 · 완료 표 행 · 착수 순서 표에서 152 행 제거 + 013 · 212/213/214 의 선행 조건 충족 표기
+- [x] `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 (`collectionId` · `fieldId` · fieldMap · `normalizeDataBinding`) · `DataChange` 적용기 + History `data` · publish snapshot 규칙 반영
+- [x] 본문 `docs/adr/completed/` 이동 + 참조 경로 정합화 (013 · 212 · 213 · 159 · 209 · README · breakdown · 리서치 2 · 감사 1)
 
 ## 4. 파일 변경표 (추정 — Phase 0 에서 freeze)
 

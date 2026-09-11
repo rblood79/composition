@@ -36,7 +36,7 @@ ADR-194 대안 C(`:62-69`)는 **Recharts hidden DOM → SVG 해석 → Skia**였
 
 `componentCatalog.ts:450`과 `paletteItems.ts:243`은 Chart 하나를 등재한다. `GenericFieldRenderer.tsx:350-357`에는 ADR-208 조건 필터가 이미 배선돼 있다. `Chart.tsx:398-414`는 `useCollectionData` 결과를 최대 200행으로 잘라 공통 기하 함수에 전달하고, 빈 바인딩 결과는 `props.data`로 대체한다. 이것은 **현재 DOM에도 있는 제한**이며 Builder에만 있다고 설명하면 틀린다.
 
-`useCollectionData.tsx:220,322`는 React Stately `useAsyncList`와 DI 서비스를 사용한다. 그러나 작성 시 `rg -l 'CollectionDataProvider|CollectionDataContext' apps packages` 결과에서 provider 장착은 shared 정의 외에 발견되지 않았다. 훅 재사용은 VERIFIED, 실제 앱의 DataTable/API 공급 종결은 UNVERIFIED다. [ADR-152](../152-data-panel-collection-binding-integration.md)의 공통 데이터 연결 범위와 대조하고 실제 문서 reload/배포 산출물에서 입증해야 한다. 정적 샘플 성공으로 바인딩 성공을 대신하지 않는다.
+`useCollectionData.tsx:220,322`는 React Stately `useAsyncList`와 DI 서비스를 사용한다. 그러나 작성 시 `rg -l 'CollectionDataProvider|CollectionDataContext' apps packages` 결과에서 provider 장착은 shared 정의 외에 발견되지 않았다. 훅 재사용은 VERIFIED, 실제 앱의 DataTable/API 공급 종결은 UNVERIFIED다. [ADR-152](152-data-panel-collection-binding-integration.md)의 공통 데이터 연결 범위와 대조하고 실제 문서 reload/배포 산출물에서 입증해야 한다. 정적 샘플 성공으로 바인딩 성공을 대신하지 않는다.
 
 **Hard Constraints** — 아래 수치는 실측 성과가 아닌 제안된 구현 통과 기준이다.
 

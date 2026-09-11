@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-152 — Data 패널 ↔ Collections ↔ 컴포넌트 Collection 바인딩 통합: `collectionId` · `fieldId` 안정 참조 · fieldMap · `DataChange` 적용기 + History · publish snapshot (Implemented)] - 2026-09-11
+
+> 근거: `docs/adr/completed/152-data-panel-collection-binding-integration.md` (리뷰 round 4 승인, Phase 0 ~ 7 같은 날 반영). 데이터 편집 4종 · rename · 바인딩 · publish 를 실제 빌더에서 headed Playwright 하니스 8종 (`apps/builder/scripts/adr152-p{1,1b,1c,2,3,4,5,6}-live.mjs`) 으로 exercise — 10/10 · 14/14 · 14/14 · 10/10 · 9/9 · 12/12 · 6/6 · 5/5. 코드 변경은 Phase 1 ~ 6 커밋, 이 엔트리는 closure.
+
+### Added
+
+- **Data 패널 편집이 `⌘Z` 로 돌아온다**: 셀 편집 · 행 삭제 · CSV import · 필드 rename · collection 생성/삭제/schema 변경이 History 패널에 data entry (`Edit cell` · `Delete rows (1)` · `Replace data (2 rows)` · `Rename field — name → fullName` …, Database 아이콘) 로 남고 `⌘Z` / `⌘⇧Z` 가 요소 편집 entry 와 섞여도 각자 되돌아간다. 모든 데이터 편집은 `DataChange` (13 op, zod 단일 소스 `packages/shared/src/schemas/dataChange.ts` — JSON Schema 도 같은 소스에서) 를 지나는 적용기 `applyDataChange` 하나로 들어가며 all-or-nothing + inverse 동시 산출 (`stores/utils/dataChange.ts`). ADR-213 의 AI `propose_data_change` 가 같은 진입점을 쓴다.
+- **Properties › Data 에 Value field · Icon field 선택**: collection 을 고르면 fieldMap 행 2개 (기본 `Auto`) 가 보이고, 고른 필드는 행 key (`data-key` · Select option value · Table 행 key) 와 아이콘 역할로 쓰인다 — Builder Skia 투영과 Preview DOM 이 같은 shared resolver (`resolveFieldRoles`) 를 지나 같은 key 를 낸다 (ListBox · Select · Table · Breadcrumbs · ComboBox · GridList · Menu · Tabs · TagGroup · Tree 10종).
+- **필드 key 를 바꿔도 바인딩 · 템플릿 · 차트가 살아 있다**: 필드마다 안정 id (`DataField.id`) 를 부여하고 (기존 프로젝트는 로드 직후 id 없는 collection 만 1회 write-back, 이후 write 0) fieldMap · `{field}` 템플릿 저장형 (`{#<fieldId>}`, 편집기는 이름 표시) · 차트 dimension/metric 이 id 를 참조한다. `name → fullName` rename 후 재로드해도 캔버스 · Preview · 차트 · Properties 표시가 유지된다.
+- **collection 이름을 바꿔도 바인딩이 유지**: `dataBinding.collectionId` (id 참조) 가 정본, `name` 은 legacy fallback. legacy `{ type:"collection", config:{…} }` 바인딩은 읽기 경계에서 v2 로 정규화 (문서 재직렬화 0).
+
+### Changed
+
+- **publish · export 의 collection snapshot**: 헤더 Preview payload 와 export JSON 이 `{ id, name, schema, mockData, useMockData }` 만 담는다 (runtimeData · 저장소 메타 제외). export schema 가 필드 `id` · `required` · `defaultValue` 를 strip 하던 결함 수리 — import 후에도 fieldId 참조가 유지된다.
+- **TagGroup Preview 행 key**: DOM 이 raw `id` 로 정규화 key 를 덮어 Skia (`U-1..3`) 와 달랐던 것 (`auto-1..3`) 을 spread 순서 수리로 대칭.
+
+### Architecture
+
+- collections read 경로 단일화: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` (Tabs · Tree 도 정렬), `datatableId` · `elementId` 옵션과 `DataTableService.addConsumer/removeConsumer/loadDataTable` · supabase 분기 제거. `useDataStore.collections` Map 은 id 키, resolve 는 `resolveBoundCollection` 하나.
+- store 단일화: legacy `stores/datatable.ts` · `components/data/DataTable.tsx` · `hooks/useDataQueries.ts` 삭제 (사용자 승인) — `BuilderCore` 의 `LOAD_DATA_TABLE` / `SAVE_TO_DATA_TABLE` 과 `DataTablePanel` 이 `useDataStore` 만 읽는다 (React Query 병행 제거).
+- `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 잔여 (기록만): `types/datatable.types.ts` 고아 · `main.tsx` `QueryClientProvider` 소비처 0 · Table DOM wrapper 의 `useResolvedCollectionItems` 정렬 (LOW) · publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
+
 ## [데이터 패널 Track 0 결함 수리 — 응답 행 자동 감지 · 필드 key 변경 시 행 이전 · 편집기 첫 열림 폭 · prompt/confirm/alert 제거] - 2026-09-11
 
 > 근거: `docs/explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md` §2 (D1 · D2 · U1 · U2) · §5 Track 0. ADR 없이 `/fix` 로 처리한 동작 수리 4건. live 13/13 (headless 빌더 — API 생성 → Run 컬럼 8 감지 · 변수 생성/삭제 다이얼로그 · key 변경 후 값 유지 · 편집기 560px).

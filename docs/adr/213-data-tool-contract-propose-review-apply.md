@@ -4,7 +4,7 @@
 
 Proposed — 2026-09-11
 
-> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기 (Phase 1c). 본 ADR 의 Phase 2 이후는 152 G5 PASS 가 착수 조건이고, Phase 1 (읽기 tool) 은 독립이다. [ADR-212](212-data-panel-editor-redesign.md) 와는 같은 base 위의 형제 — 표면 접점은 "왜 실패했지?" 버튼 자리와 승인 diff overlay 뿐. [ADR-202](202-builder-ai-compiler-first-command-execution.md) (compiler-first, Proposed) 에는 **의존하지 않는다** — 202 착수 시 `DataChange` 를 감싸는 statement 어댑터로 편입 (breakdown §1 ③, 결정 지점 2 후보 — 202 착수 시 사용자 confirm 1회). fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③).
+> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기 (Phase 1c). 본 ADR 의 Phase 2 이후는 152 G5 PASS 가 착수 조건이고, Phase 1 (읽기 tool) 은 독립이다. [ADR-212](212-data-panel-editor-redesign.md) 와는 같은 base 위의 형제 — 표면 접점은 "왜 실패했지?" 버튼 자리와 승인 diff overlay 뿐. [ADR-202](202-builder-ai-compiler-first-command-execution.md) (compiler-first, Proposed) 에는 **의존하지 않는다** — 202 착수 시 `DataChange` 를 감싸는 statement 어댑터로 편입 (breakdown §1 ③, 결정 지점 2 후보 — 202 착수 시 사용자 confirm 1회). fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③).
 
 ## Context
 

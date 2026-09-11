@@ -104,9 +104,13 @@ ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이
 - ADR-116 §3 `x-composition.events|actions` extension field 는 본 root field 로 partial supersede 됨
 - **data 영역 제외**: ADR-131 Phase 8 사용자 관점 revert — `data_tables` (→ `collections`) 가 데이터 SSOT 유지, `CompositionDocument.data` root field 미도입
 
-## Collections read 진입점 (ADR-132 Implemented 2026-05-13)
+## Collections read 진입점 (ADR-132 Implemented 2026-05-13 · ADR-152 v2 계약 Implemented 2026-09-11)
 
-- RAC collection 컴포넌트 (Table/ListBox/GridList/ComboBox/Select/Tree/Breadcrumbs) 의 items read 는 `useCollectionData({ datatableId | dataBinding })` **단일 경유**
+- RAC collection 컴포넌트 (Table/ListBox/GridList/ComboBox/Select/Tree/Breadcrumbs/Tabs/TagGroup/Menu) 의 items read 는 `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` **단일 경유** (`datatableId` · `elementId` 옵션은 ADR-152 Phase 5 에서 제거)
+- **바인딩 계약 v2 (ADR-152)**: `props.dataBinding = { source:"dataTable", collectionId, name?, fieldMap?: { value?, icon? } }` — resolve 는 `resolveBoundCollection` (id 우선 · `name` 은 legacy fallback, `useDataStore.collections` Map 은 **id 키**) 하나. `fieldMap` 값과 `{#<fieldId>}` 템플릿 토큰은 **`DataField.id`** (key 아님) — key rename 이 바인딩·템플릿·차트 참조를 파손하지 않는다. legacy `{ type:"collection", config:{ collectionId | datatableId | name } }` 는 `normalizeDataBinding` 이 읽기 경계에서 v2 로 정규화 (재직렬화 0). **금지**: `collections` 를 name 으로 직접 find · `fieldMap` 에 key 저장 · `datatableId` 분기 재도입
+- **역할 소비**: `resolveFieldRoles(dataBinding, schema?)` → `{ value?, icon? }` (행 key) 를 `resolveCollectionItems` 계열 getter 와 `interpolateCollectionRowTemplate` 이 받는다 — Skia projection (`canvasSceneNode`) 과 DOM wrapper 가 같은 shared 함수를 지나야 한다 (대칭). `DataField.id` 는 store 진입 경계 `normalizeCollection` 이 부여하고 hydrate 직후 id 없는 collection 만 1회 write-back
+- **데이터 편집 = `DataChange`**: collection 생성·삭제·schema·행·source 변경은 `useDataStore.applyDataChange(change)` (`stores/utils/dataChange.ts` — `reduceDataOps` 순수 적용기, all-or-nothing, inverse 동시 산출) 하나로 들어가며 History `type:"data"` entry (`elementId = collectionId`, `dataChangeEvent { change, inverse }`) 를 남긴다 — undo/redo dispatcher 는 `data` 를 element 경로 앞에서 분기 (`historyActions.ts`). `create/update/deleteCollection` 은 이 적용기의 얇은 wrapper (`collectionUpdateToOps` diff). **금지**: `set()` 으로 `collections` 직접 mutation · History 없는 데이터 편집 · `remove_field` / `remove_rows` 를 AI 경로에 노출 (`HUMAN_ONLY_DATA_OPS`)
+- **publish snapshot**: `toRuntimeCollection(table)` → `{ id, name, schema (id 포함), mockData, useMockData }` 만 (runtimeData · 저장소 메타 제외) — 헤더 Preview payload 와 export JSON 공통, `ExportedProjectSchema` 는 schema 필드 `id` 를 통과시켜야 한다
 - source="api" 는 `useAsyncList.load` callback 안에서 `executeApiEndpoint` 호출 → `collections.runtimeData` sink → `list.items` read. **금지**: useEffect + local useState 로 endpoint 결과 보관 (legacy 우회 패턴)
 - rename: `data_tables` (snake/DB) / `dataTables` (camel/store) → `collections` (canonical). internal type 도 `CollectionsMap` / `CollectionState` / `targetCollection`
 - **UI surface 심볼은 유지**: `DataTable*` (DataTableEditor / DataTablePanel / panels/datatable/ 등) 은 사용자 노출이라 rename 제외

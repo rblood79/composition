@@ -26,7 +26,7 @@ data-bound collection(ListBox/GridList/Table 등)의 행 텍스트는 현재 **�
 
 동시에 컴포넌트 패널의 데이터 소스 피커는 4종(dataTable/api/variable/route — `apps/builder/src/builder/components/property/PropertyDataBinding.tsx:108-112` `SOURCE_OPTIONS`)을 노출하지만, composition 의 데이터 방향은 **모든 동적·정적 데이터를 RAC/RSP 레퍼런스인 collection 방식으로 처리** — dataTable(=canonical `collections`, ADR-132) 단일이다. api/variable/route 는 사용하지 않는 표면이다.
 
-**ADR-152 경계 (2026-07-21 사용자 confirm — 경계 재획정)**: [ADR-152](../152-data-panel-collection-binding-integration.md)(바인딩 통합)는 같은 문제 공간의 **계약 인프라 축**(id 참조 계약 v2 / 읽기 경로 일원화 / publish 직렬화 / store 이중화 정리)을 담당하고, 본 ADR 은 **표시 축**(텍스트 슬롯 템플릿 + 오소링 + dataTable 단일 소스)을 담당한다. 152 의 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 개정되고(텍스트 label/description 은 본 ADR 템플릿이 정본), 152 의 API source 유지 전제는 본 ADR 방향으로 개정된다 (152 는 scope 변경으로 재리뷰 대상). 상세 경계: breakdown §1-5.
+**ADR-152 경계 (2026-07-21 사용자 confirm — 경계 재획정)**: [ADR-152](152-data-panel-collection-binding-integration.md)(바인딩 통합)는 같은 문제 공간의 **계약 인프라 축**(id 참조 계약 v2 / 읽기 경로 일원화 / publish 직렬화 / store 이중화 정리)을 담당하고, 본 ADR 은 **표시 축**(텍스트 슬롯 템플릿 + 오소링 + dataTable 단일 소스)을 담당한다. 152 의 fieldMap 은 비텍스트 역할(icon/value) 한정으로 축소 개정되고(텍스트 label/description 은 본 ADR 템플릿이 정본), 152 의 API source 유지 전제는 본 ADR 방향으로 개정된다 (152 는 scope 변경으로 재리뷰 대상). 상세 경계: breakdown §1-5.
 
 **ADR-162 소비 관계 (2026-07-24 사용자 confirm — "159 base 의존 재획정")**: [ADR-162](../162-gridlist-template-subtree-projection.md)(GridList composed 카드)가 본 ADR 을 base 로 소비한다 — P1 resolver 를 실체화된 임의 템플릿 자식의 string prop 보간에, P4 오소링 패턴을 임의 자식 prop 편집면에 확장 적용. 본 ADR 의 계약·범위 무변 (소비 확장 정보 — P1 API 는 slot 텍스트 특정이 아닌 string 일반이어야 함, §2-2 시그니처 그대로 충족).
 

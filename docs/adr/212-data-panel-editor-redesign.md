@@ -4,7 +4,7 @@
 
 Proposed — 2026-09-11
 
-> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 (대안 E — `fieldId` · `DataChange` 적용기 · store 단일화). 본 ADR 의 Phase 2 이후는 152 Phase 1c (적용기 + History, G5) Implemented 가 착수 조건이다. Phase 1 (표면 골격) 은 152 와 독립. base/응용 분류와 fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③ "Track 2 · 3 을 ADR 둘로").
+> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 (대안 E — `fieldId` · `DataChange` 적용기 · store 단일화). 본 ADR 의 Phase 2 이후는 152 Phase 1c (적용기 + History, G5) Implemented 가 착수 조건이다. Phase 1 (표면 골격) 은 152 와 독립. base/응용 분류와 fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③ "Track 2 · 3 을 ADR 둘로").
 
 ## Context
 
