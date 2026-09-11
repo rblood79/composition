@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Variables — 페이지 변수는 소유 페이지를 갖는다 (ADR-214 판정 C + 생성 경로 차단)] - 2026-09-11
 
-> 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 55 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더에서 exercise (page_id 없는 page 변수 로드 → Home 귀속 + write-back · Add Variable Page → page_id 저장 · 편집기 "Owner page: Home").
+> 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 54 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더에서 exercise (page_id 없는 page 변수 로드 → Home 귀속 + write-back · Add Variable Page → page_id 저장 · 편집기 "Owner page: Home").
 
 ### Fixed
 
