@@ -1,0 +1,18 @@
+/* GENERATED — 편집 금지. 원천: packages/specs/src/primitives/chartPaletteMap.ts
+ * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)
+ * ADR-215: Chart categorical 팔레트 — Adobe Spectrum 1 categorical 1~8 리터럴 (테마 공용).
+ * semantic-palette.css 의 hex 0 규칙의 유일한 예외 — Tailwind 단계에 없는 값. ThemeStudio 는 이 var 자체를 덮는다.
+ */
+
+@layer shared-tokens {
+  :root {
+    --chart-categorical-1: #0fb5ae;
+    --chart-categorical-2: #4046ca;
+    --chart-categorical-3: #f68511;
+    --chart-categorical-4: #de3d82;
+    --chart-categorical-5: #7e84fa;
+    --chart-categorical-6: #72e06a;
+    --chart-categorical-7: #147af3;
+    --chart-categorical-8: #7326d3;
+  }
+}

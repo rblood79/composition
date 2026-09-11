@@ -19,6 +19,10 @@ import {
   SEMANTIC_PALETTE_MAP,
   type SemanticPaletteEntry,
 } from "../src/primitives/semanticPaletteMap";
+import {
+  CHART_CATEGORICAL_HEX,
+  chartCategoricalCssVar,
+} from "../src/primitives/chartPaletteMap";
 
 export interface PaletteEntry {
   family: string;
@@ -235,6 +239,37 @@ export function renderSemanticCss(
     "",
     '  [data-theme="dark"] {',
     ...block("dark"),
+    "  }",
+    "}",
+    "",
+  ].join("\n");
+}
+
+// ============================================================================
+// ADR-215 — Chart categorical 팔레트 CSS (Spectrum 리터럴, 테마 공용)
+// ============================================================================
+
+/**
+ * `@layer shared-tokens { :root { --chart-categorical-1: #0fb5ae; … } }`
+ *
+ * semantic-palette.css 와 **다른 파일**로 낸다 — 그 파일의 "팔레트 var 참조만, hex 0" 불변식
+ * (`tailwindPalette.drift.test.ts`) 은 ThemeStudio `--color-*` override 훅을 지키기 위한 것이고,
+ * categorical 은 Tailwind 단계에 없는 Spectrum 값이라 예외다 (ADR-215 R3 — 예외를 이 파일 하나로
+ * 격리). ThemeStudio 는 `--chart-categorical-N` 자체를 덮는다. 테마 공용이라 dark 블록이 없다.
+ */
+export function renderChartPaletteCss(
+  categorical: readonly string[] = CHART_CATEGORICAL_HEX,
+): string {
+  return [
+    "/* GENERATED — 편집 금지. 원천: packages/specs/src/primitives/chartPaletteMap.ts",
+    " * 재생성: pnpm generate:palette  (검증: pnpm validate:palette)",
+    " * ADR-215: Chart categorical 팔레트 — Adobe Spectrum 1 categorical 1~8 리터럴 (테마 공용).",
+    " * semantic-palette.css 의 hex 0 규칙의 유일한 예외 — Tailwind 단계에 없는 값. ThemeStudio 는 이 var 자체를 덮는다.",
+    " */",
+    "",
+    "@layer shared-tokens {",
+    "  :root {",
+    ...categorical.map((hex, i) => `    ${chartCategoricalCssVar(i)}: ${hex};`),
     "  }",
     "}",
     "",

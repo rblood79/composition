@@ -162,6 +162,20 @@ export interface ColorTokens {
   "gray-subtle": string;
   "green-named": string;
   "green-named-subtle": string;
+  // Chart 시리즈 팔레트 (chartPaletteMap.ts) — categorical 은 Spectrum 리터럴 (테마 공용),
+  // accent 는 `--tint` 명도 사다리 (tintToSkiaColors 가 런타임에 덮어쓴다)
+  "chart-categorical-1": string;
+  "chart-categorical-2": string;
+  "chart-categorical-3": string;
+  "chart-categorical-4": string;
+  "chart-categorical-5": string;
+  "chart-categorical-6": string;
+  "chart-categorical-7": string;
+  "chart-categorical-8": string;
+  "chart-accent-1": string;
+  "chart-accent-2": string;
+  "chart-accent-3": string;
+  "chart-accent-4": string;
 }
 
 /**

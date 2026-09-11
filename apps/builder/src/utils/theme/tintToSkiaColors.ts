@@ -11,7 +11,12 @@
  * @see ADR-021 Phase A
  */
 
-import { lightColors, darkColors } from "@composition/specs";
+import {
+  lightColors,
+  darkColors,
+  CHART_ACCENT_STEPS,
+  CHART_ACCENT_TOKENS,
+} from "@composition/specs";
 
 import { oklchToHex } from "./oklchToHex";
 
@@ -145,12 +150,21 @@ function createAccentColorTokens(
   const accentHex = oklchToHex(ls.highlight, c, h);
   const subtleL = mode === "light" ? 0.95 : 0.25;
   const subtleC = c * 0.3;
+  // Chart mono 팔레트 — chartPaletteMap.ts 의 (L, chroma 계수) 표. CSS `--chart-accent-N`
+  //   (`oklch(from var(--tint) L calc(c × f) h)`) 과 같은 공식이라 두 leg 가 같은 단계를 본다.
+  const chart = Object.fromEntries(
+    CHART_ACCENT_STEPS.map((step, i) => [
+      CHART_ACCENT_TOKENS[i],
+      oklchToHex(step.lightness, c * step.chromaFactor, h),
+    ]),
+  ) as Record<(typeof CHART_ACCENT_TOKENS)[number], string>;
   return {
     accent: accentHex,
     "accent-hover": mixWithBlackSrgb(accentHex, 85),
     "accent-pressed": mixWithBlackSrgb(accentHex, 75),
     "on-accent": mode === "light" ? "#ffffff" : "#171717",
     "accent-subtle": oklchToHex(subtleL, subtleC, h),
+    ...chart,
   };
 }
 
@@ -165,6 +179,10 @@ export interface AccentColorTokens {
   "accent-pressed": string;
   "on-accent": string;
   "accent-subtle": string;
+  "chart-accent-1": string;
+  "chart-accent-2": string;
+  "chart-accent-3": string;
+  "chart-accent-4": string;
 }
 
 const ACCENT_KEYS: (keyof AccentColorTokens)[] = [
@@ -173,6 +191,7 @@ const ACCENT_KEYS: (keyof AccentColorTokens)[] = [
   "accent-pressed",
   "on-accent",
   "accent-subtle",
+  ...CHART_ACCENT_TOKENS,
 ];
 
 /** 현재 accent 토큰을 스냅샷 */
@@ -183,6 +202,10 @@ function snapshotAccent(colors: typeof lightColors): AccentColorTokens {
     "accent-pressed": colors["accent-pressed"],
     "on-accent": colors["on-accent"],
     "accent-subtle": colors["accent-subtle"],
+    "chart-accent-1": colors["chart-accent-1"],
+    "chart-accent-2": colors["chart-accent-2"],
+    "chart-accent-3": colors["chart-accent-3"],
+    "chart-accent-4": colors["chart-accent-4"],
   };
 }
 

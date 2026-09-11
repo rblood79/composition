@@ -30,7 +30,7 @@
 CHART_CATEGORICAL_HEX = ["#0fb5ae","#4046ca","#f68511","#de3d82","#7e84fa","#72e06a","#147af3","#7326d3"] // RSC spectrumColors categorical-100..800
 CHART_ACCENT_STEPS   = [{L:.40,f:1},{L:.55,f:1},{L:.70,f:.85},{L:.85,f:.5}]                                // oklch(from --tint L calc(c×f) h)
 // 토큰: {color.chart-categorical-1..8} · {color.chart-accent-1..4}  (ColorTokens · tokenResolver · colors.ts)
-// CSS: semantic-palette.css :root --chart-categorical-N: #hex  ·  preview-system.css --chart-accent-N: oklch(from var(--tint) …)
+// CSS: generated/chart-palette.css :root --chart-categorical-N: #hex  ·  preview-system.css --chart-accent-N: oklch(from var(--tint) …)
 // Skia: tintToSkiaColors ACCENT_KEYS += chart-accent-1..4 (같은 (L,f) 표)
 
 // rule (componentRulesTable Chart.chart)
@@ -52,13 +52,13 @@ palettes: { mono: [chart-accent-1..4, neutral-subdued, gray, silver, border] }  
 
 ### Phase 0 — Inventory (완료 2026-09-11, §2)
 
-### Phase 1 — 토큰 원천 (작업 트리 작성됨, 미커밋)
+### Phase 1 — 토큰 원천 (완료 2026-09-11)
 
 - [x] `chartPaletteMap.ts` · `primitives/index.ts` · `specs/index.ts` export
 - [x] `ColorTokens` 12 키 · `colors.ts` 스프레드 · `tokenResolver.ts` 12 매핑
-- [x] `paletteGenerator.renderSemanticCss` categorical 블록 + `pnpm generate:palette`
+- [x] `paletteGenerator.renderChartPaletteCss` → 생성 `theme/generated/chart-palette.css` (semantic-palette.css 의 hex 0 불변식은 그대로 — 예외를 파일로 격리, R3) + `theme.css` import
 - [x] `preview-system.css` `--chart-accent-1..4` · `tintToSkiaColors` ACCENT_KEYS + 계산
-- [ ] 테스트: 스냅샷 12 키 추가 · 신규 `chartPaletteMap.test.ts` (CSS 블록 hex == 표 · colors.ts == 표 · 기본 tint 공식 == `CHART_ACCENT_DEFAULT_HEX`)
+- [x] 테스트: 스냅샷 12 키 추가 · `chartPaletteMap.test.ts` (생성 CSS == 표 · colors.ts == 표 · tokenResolver 12) · `tintToSkiaColors.test.ts` (기본 tint 공식 == `CHART_ACCENT_DEFAULT_HEX` · pink 추종 · light == dark)
 
 ### Phase 2 — rule · 생성기 · 두 leg · binding (G1 · G2)
 

@@ -11,6 +11,7 @@
 import type { ColorTokens } from "../types/token.types";
 import { TAILWIND_PALETTE } from "./generated/tailwindPalette";
 import { resolveSemanticColors } from "./semanticPaletteMap";
+import { resolveChartPaletteColors } from "./chartPaletteMap";
 
 /**
  * Light 모드 색상 토큰
@@ -42,6 +43,8 @@ export const lightColors: ColorTokens = {
 
   // --- Status + Named hue (+subtle) — semanticPaletteMap 파생 ---
   ...resolveSemanticColors("light"),
+  // --- Chart 시리즈 팔레트 — chartPaletteMap 파생 (테마 공용) ---
+  ...resolveChartPaletteColors(),
 
   // --- Surface / Layer ---
   base: "#ffffff",
@@ -88,6 +91,8 @@ export const darkColors: ColorTokens = {
 
   // --- Status + Named hue (+subtle) — semanticPaletteMap 파생 (본색 한 단계 밝게 / subtle 900) ---
   ...resolveSemanticColors("dark"),
+  // --- Chart 시리즈 팔레트 — chartPaletteMap 파생 (테마 공용) ---
+  ...resolveChartPaletteColors(),
 
   // --- Surface / Layer ---
   base: TAILWIND_PALETTE.neutral[900], // neutral-900

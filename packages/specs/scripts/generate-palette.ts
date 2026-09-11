@@ -20,6 +20,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   parseThemeCss,
+  renderChartPaletteCss,
   renderPaletteCss,
   renderPaletteTs,
   renderSemanticCss,
@@ -43,6 +44,11 @@ export const SEMANTIC_CSS_OUT = resolve(
   repoRoot,
   "packages/shared/src/components/styles/theme/generated/semantic-palette.css",
 );
+/** ADR-215 — Chart categorical 팔레트 (원천: chartPaletteMap.ts, 테마 공용 리터럴) */
+export const CHART_PALETTE_CSS_OUT = resolve(
+  repoRoot,
+  "packages/shared/src/components/styles/theme/generated/chart-palette.css",
+);
 
 /** Builder 가 로드하는 tailwindcss 의 theme.css + version */
 export function loadPaletteSource(): PaletteSource {
@@ -57,11 +63,13 @@ export function renderOutputs(source: PaletteSource): {
   css: string;
   ts: string;
   semanticCss: string;
+  chartPaletteCss: string;
 } {
   return {
     css: renderPaletteCss(source),
     ts: renderPaletteTs(source),
     semanticCss: renderSemanticCss(),
+    chartPaletteCss: renderChartPaletteCss(),
   };
 }
 
@@ -72,12 +80,13 @@ function readOrEmpty(path: string): string {
 function main(): void {
   const check = process.argv.includes("--check");
   const source = loadPaletteSource();
-  const { css, ts, semanticCss } = renderOutputs(source);
+  const { css, ts, semanticCss, chartPaletteCss } = renderOutputs(source);
 
   const targets: Array<[string, string]> = [
     [PALETTE_CSS_OUT, css],
     [PALETTE_TS_OUT, ts],
     [SEMANTIC_CSS_OUT, semanticCss],
+    [CHART_PALETTE_CSS_OUT, chartPaletteCss],
   ];
 
   if (check) {

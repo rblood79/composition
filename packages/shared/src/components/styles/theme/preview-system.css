@@ -214,6 +214,13 @@
       --color-highlight-overlay,
       oklch(from var(--tint-1000) l c h / 15%)
     );
+    /* Chart mono 팔레트 — accent 명도 사다리 (L · chroma 계수 는 packages/specs
+     * chartPaletteMap.ts CHART_ACCENT_STEPS 가 정본, Skia tintToSkiaColors 가 같은 표로 계산).
+     * 2 는 --accent 와 같은 L 55%. 테마 공용. */
+    --chart-accent-1: oklch(from var(--tint) 40% c h);
+    --chart-accent-2: oklch(from var(--tint) 55% c h);
+    --chart-accent-3: oklch(from var(--tint) 70% calc(c * 0.85) h);
+    --chart-accent-4: oklch(from var(--tint) 85% calc(c * 0.5) h);
 
     /* Focus (ADR-061) */
     --focus-ring: var(--color-focus-ring, var(--tint-1000));

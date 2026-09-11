@@ -25,6 +25,21 @@ export type {
   SemanticPaletteEntry,
   PaletteRef,
 } from "./semanticPaletteMap";
+// Chart 시리즈 팔레트 표 (categorical 리터럴 · accent 명도 사다리)
+export {
+  CHART_CATEGORICAL_HEX,
+  CHART_CATEGORICAL_COUNT,
+  CHART_CATEGORICAL_TOKENS,
+  CHART_ACCENT_STEPS,
+  CHART_ACCENT_TOKENS,
+  CHART_ACCENT_DEFAULT_HEX,
+  chartCategoricalCssVar,
+  resolveChartPaletteColors,
+} from "./chartPaletteMap";
+export type {
+  ChartCategoricalToken,
+  ChartAccentToken,
+} from "./chartPaletteMap";
 export type {
   TailwindPaletteFamily,
   TailwindPaletteStep,

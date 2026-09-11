@@ -92,6 +92,19 @@ const LIGHT_SNAPSHOT = {
   "negative-strong": "#82181a",
   "positive-strong": "#0d542b",
   "informative-strong": "#1c398e",
+  // ADR-215 — chart 팔레트 (chartPaletteMap.ts, 테마 공용)
+  "chart-categorical-1": "#0fb5ae",
+  "chart-categorical-2": "#4046ca",
+  "chart-categorical-3": "#f68511",
+  "chart-categorical-4": "#de3d82",
+  "chart-categorical-5": "#7e84fa",
+  "chart-categorical-6": "#72e06a",
+  "chart-categorical-7": "#147af3",
+  "chart-categorical-8": "#7326d3",
+  "chart-accent-1": "#142bbb",
+  "chart-accent-2": "#3660f0",
+  "chart-accent-3": "#6896ff",
+  "chart-accent-4": "#acccff",
   "notice-strong": "#7e2a0c",
 } as const;
 
@@ -170,6 +183,19 @@ const DARK_SNAPSHOT = {
   "negative-strong": "#ffc9c9",
   "positive-strong": "#b9f8cf",
   "informative-strong": "#bedbff",
+  // ADR-215 — chart 팔레트 (chartPaletteMap.ts, 테마 공용)
+  "chart-categorical-1": "#0fb5ae",
+  "chart-categorical-2": "#4046ca",
+  "chart-categorical-3": "#f68511",
+  "chart-categorical-4": "#de3d82",
+  "chart-categorical-5": "#7e84fa",
+  "chart-categorical-6": "#72e06a",
+  "chart-categorical-7": "#147af3",
+  "chart-categorical-8": "#7326d3",
+  "chart-accent-1": "#142bbb",
+  "chart-accent-2": "#3660f0",
+  "chart-accent-3": "#6896ff",
+  "chart-accent-4": "#acccff",
   "notice-strong": "#ffd6a7",
 } as const;
 
