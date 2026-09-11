@@ -1482,6 +1482,29 @@ const koKR: TranslationKeys = {
     sendToAi: "AI 에게 묻기",
     tableCreated: '테이블 "{name}" 을(를) 만들었습니다.',
     createFailed: "테이블 생성 실패: {message}",
+    gridAddRow: "행 추가",
+    gridDeleteRows: "{count}개 행 삭제",
+    gridRowAdded: "행을 추가했습니다.",
+    gridRowsDeleted: "{count}개 행을 삭제했습니다.",
+    gridCellCleared: "셀을 비웠습니다.",
+    gridCellInvalid: "{type} 값이 아닙니다 — 고치거나 Esc 로 취소하세요.",
+    gridReadonlyCell: "읽기 전용",
+    gridSelectRow: "행 선택",
+    gridSelectAllRows: "모든 행 선택",
+    gridCellEditorTitle: "{key} 편집",
+    gridJsonHint: "JSON 형식",
+    gridDateHint: "YYYY-MM-DD",
+    gridDatetimeHint: "ISO 8601 (예: 2026-09-12T10:00:00Z)",
+    gridPasted: "{rows}개 행 · {cells}개 셀을 붙여넣었습니다.",
+    gridPasteInvalid: "{count}개 셀은 타입에 맞지 않아 비웠습니다.",
+    gridPasteEmpty: "붙여넣을 표 데이터가 없습니다.",
+    gridPasteExtraTitle: "새 필드 추가",
+    gridPasteExtraMessage:
+      "붙여넣은 데이터에 열이 {count}개 더 있습니다 ({keys}). 새 필드로 추가할까요?",
+    gridPasteAddFields: "필드 추가",
+    gridPasteSkipFields: "추가하지 않고 붙여넣기",
+    gridNoRows: "행이 없습니다 — 행 추가 또는 붙여넣기 (⌘V) 로 시작하세요.",
+    gridImported: "CSV {rows}개 행으로 교체했습니다.",
     confirmDelete: "정말 삭제하시겠습니까?",
     promptVariableName: "Variable 이름을 입력하세요:",
     promptApiUrl:
@@ -3236,6 +3259,30 @@ const enUS: TranslationKeys = {
     sendToAi: "Ask AI",
     tableCreated: 'Created table "{name}".',
     createFailed: "Failed to create table: {message}",
+    gridAddRow: "Add row",
+    gridDeleteRows: "Delete {count} rows",
+    gridRowAdded: "Row added.",
+    gridRowsDeleted: "Deleted {count} rows.",
+    gridCellCleared: "Cell cleared.",
+    gridCellInvalid: "Not a valid {type} — fix it or press Esc to cancel.",
+    gridReadonlyCell: "Read-only",
+    gridSelectRow: "Select row",
+    gridSelectAllRows: "Select all rows",
+    gridCellEditorTitle: "Edit {key}",
+    gridJsonHint: "JSON",
+    gridDateHint: "YYYY-MM-DD",
+    gridDatetimeHint: "ISO 8601 (e.g. 2026-09-12T10:00:00Z)",
+    gridPasted: "Pasted {rows} rows · {cells} cells.",
+    gridPasteInvalid:
+      "{count} cells did not match the field type and were left empty.",
+    gridPasteEmpty: "Nothing tabular to paste.",
+    gridPasteExtraTitle: "Add new fields",
+    gridPasteExtraMessage:
+      "The pasted data has {count} extra columns ({keys}). Add them as new fields?",
+    gridPasteAddFields: "Add fields",
+    gridPasteSkipFields: "Paste without them",
+    gridNoRows: "No rows yet — add a row or paste (⌘V) to start.",
+    gridImported: "Replaced with {rows} rows from CSV.",
     confirmDelete: "Are you sure you want to delete this?",
     promptVariableName: "Enter a variable name:",
     promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",
@@ -4015,6 +4062,22 @@ const formattedMessages: Record<
       `테이블 "${String(args?.name ?? "")}" 을(를) 만들었습니다.`,
     "datatable.createFailed": (args) =>
       `테이블 생성 실패: ${String(args?.message ?? "")}`,
+    "datatable.gridDeleteRows": (args) =>
+      `${String(args?.count ?? 0)}개 행 삭제`,
+    "datatable.gridRowsDeleted": (args) =>
+      `${String(args?.count ?? 0)}개 행을 삭제했습니다.`,
+    "datatable.gridCellInvalid": (args) =>
+      `${String(args?.type ?? "")} 값이 아닙니다 — 고치거나 Esc 로 취소하세요.`,
+    "datatable.gridCellEditorTitle": (args) =>
+      `${String(args?.key ?? "")} 편집`,
+    "datatable.gridPasted": (args) =>
+      `${String(args?.rows ?? 0)}개 행 · ${String(args?.cells ?? 0)}개 셀을 붙여넣었습니다.`,
+    "datatable.gridPasteInvalid": (args) =>
+      `${String(args?.count ?? 0)}개 셀은 타입에 맞지 않아 비웠습니다.`,
+    "datatable.gridPasteExtraMessage": (args) =>
+      `붙여넣은 데이터에 열이 ${String(args?.count ?? 0)}개 더 있습니다 (${String(args?.keys ?? "")}). 새 필드로 추가할까요?`,
+    "datatable.gridImported": (args) =>
+      `CSV ${String(args?.rows ?? 0)}개 행으로 교체했습니다.`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}"이(가) 생성되었습니다.\n${String(args?.columns ?? 0)}개 컬럼, ${String(args?.rows ?? 0)}개 행`,
     "datatable.importFailed": (args) =>
@@ -4404,6 +4467,22 @@ const formattedMessages: Record<
       `Created table "${String(args?.name ?? "")}".`,
     "datatable.createFailed": (args) =>
       `Failed to create table: ${String(args?.message ?? "")}`,
+    "datatable.gridDeleteRows": (args) =>
+      `Delete ${String(args?.count ?? 0)} rows`,
+    "datatable.gridRowsDeleted": (args) =>
+      `Deleted ${String(args?.count ?? 0)} rows.`,
+    "datatable.gridCellInvalid": (args) =>
+      `Not a valid ${String(args?.type ?? "")} — fix it or press Esc to cancel.`,
+    "datatable.gridCellEditorTitle": (args) =>
+      `Edit ${String(args?.key ?? "")}`,
+    "datatable.gridPasted": (args) =>
+      `Pasted ${String(args?.rows ?? 0)} rows · ${String(args?.cells ?? 0)} cells.`,
+    "datatable.gridPasteInvalid": (args) =>
+      `${String(args?.count ?? 0)} cells did not match the field type and were left empty.`,
+    "datatable.gridPasteExtraMessage": (args) =>
+      `The pasted data has ${String(args?.count ?? 0)} extra columns (${String(args?.keys ?? "")}). Add them as new fields?`,
+    "datatable.gridImported": (args) =>
+      `Replaced with ${String(args?.rows ?? 0)} rows from CSV.`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}" created.\n${String(args?.columns ?? 0)} columns, ${String(args?.rows ?? 0)} rows`,
     "datatable.importFailed": (args) =>

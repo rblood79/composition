@@ -51,6 +51,8 @@ export interface GridPastePlan {
   insertAt: number;
   /** 붙여넣은 행 수 (기존 행에 얹힌 수 + 새 행 수) — extraColumns.values 의 길이 */
   pastedRowCount: number;
+  /** 첫 붙여넣은 행의 index (anchor) — extraColumns.values[r - anchorRowIndex] */
+  anchorRowIndex: number;
   extraColumns: ExtraColumn[];
   invalidCount: number;
 }
@@ -95,6 +97,7 @@ export function planGridPaste({
       extraColumns,
       invalidCount,
       pastedRowCount: 0,
+      anchorRowIndex: anchor.rowIndex,
     };
   }
 
@@ -150,6 +153,7 @@ export function planGridPaste({
     extraColumns,
     invalidCount,
     pastedRowCount: grid.length,
+    anchorRowIndex: anchor.rowIndex,
   };
 }
 
@@ -180,7 +184,6 @@ export function gridPasteToOps(
     });
   }
 
-  const firstPastedRow = plan.insertAt - onExistingRows;
   const byRow = new Map<number, PastedCell[]>();
   for (const cell of plan.cells) {
     const bucket = byRow.get(cell.rowIndex) ?? [];
@@ -199,7 +202,7 @@ export function gridPasteToOps(
       });
     }
     for (const column of extras) {
-      const value = column.values[rowIndex - firstPastedRow];
+      const value = column.values[rowIndex - plan.anchorRowIndex];
       if (value === undefined) continue;
       ops.push({
         op: "set_cell",
