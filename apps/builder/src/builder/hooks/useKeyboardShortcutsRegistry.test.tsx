@@ -149,6 +149,47 @@ describe("useKeyboardShortcutsRegistry — command registry 게시", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("`data-shortcut-local` 이 든 input 안에서는 그 id 의 allowInInput 단축키를 건너뛴다 (ADR-212 ⌘Z 라우팅)", () => {
+    const undo = vi.fn();
+    const selectAll = vi.fn();
+    const shortcuts = bindHandlersToDefinitions(["undo", "selectAll"], {
+      undo,
+      selectAll,
+    });
+    renderHook(() =>
+      useKeyboardShortcutsRegistry(shortcuts, [shortcuts], { capture: true }),
+    );
+
+    const input = document.createElement("input");
+    input.setAttribute("data-shortcut-local", "undo redo");
+    document.body.appendChild(input);
+    input.focus();
+
+    const undoEvent = new KeyboardEvent("keydown", {
+      key: "z",
+      metaKey: true,
+      bubbles: true,
+      cancelable: true,
+    });
+    input.dispatchEvent(undoEvent);
+    expect(undo).not.toHaveBeenCalled();
+    expect(undoEvent.defaultPrevented).toBe(false);
+
+    // 목록에 없는 id 는 종전대로 (allowInInput 정의를 따른다)
+    const plain = document.createElement("input");
+    document.body.appendChild(plain);
+    plain.focus();
+    plain.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "z",
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(undo).toHaveBeenCalledTimes(1);
+  });
+
   it("scope 불일치면 keydown 은 무시되지만 게시는 유지된다", () => {
     const duplicate = vi.fn();
     const shortcuts = bindHandlersToDefinitions(["duplicate"], { duplicate });

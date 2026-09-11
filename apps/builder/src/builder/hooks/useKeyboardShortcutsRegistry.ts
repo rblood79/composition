@@ -179,6 +179,22 @@ function isInputElement(target: EventTarget | null): boolean {
 }
 
 /**
+ * ADR-212 — 입력 요소가 `data-shortcut-local="undo redo"` 처럼 단축키 id 목록을 들면, 그
+ * id 의 `allowInInput` 단축키는 그 input 안에서 전역으로 가지 않는다 (격자 셀 편집 중 ⌘Z 는
+ * 초안 되돌리기 — History 스택이 아니라). 목록에 없는 id 는 종전 그대로다.
+ */
+function isShortcutKeptLocal(
+  target: EventTarget | null,
+  shortcut: KeyboardShortcut,
+): boolean {
+  if (!shortcut.id || !(target instanceof Element)) return false;
+  const holder = target.closest("[data-shortcut-local]");
+  if (!holder) return false;
+  const ids = (holder.getAttribute("data-shortcut-local") ?? "").split(/\s+/);
+  return ids.includes(shortcut.id);
+}
+
+/**
  * 스코프가 매칭되는지 확인
  */
 function matchesScope(
@@ -327,6 +343,9 @@ export function useKeyboardShortcutsRegistry(
       for (const shortcut of sortedShortcuts) {
         // 입력 필드에서 allowInInput이 false면 스킵
         if (isInput && !shortcut.allowInInput) {
+          continue;
+        }
+        if (isInput && isShortcutKeptLocal(event.target, shortcut)) {
           continue;
         }
 
