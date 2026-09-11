@@ -12,13 +12,14 @@ import {
   DataOpSchema,
   HUMAN_ONLY_DATA_OPS,
   dataChangeJsonSchema,
+  modelFacingDataChangeJsonSchema,
   parseDataChange,
 } from "../dataChange";
 
 const field = { id: "f1", key: "name", type: "string" as const };
 
 describe("DataOpSchema", () => {
-  it("14 op 전부 파싱된다", () => {
+  it("15 op 전부 파싱된다", () => {
     const ops = [
       { op: "create_collection", name: "Users", schema: [field] },
       { op: "delete_collection", collectionId: "c1" },
@@ -46,6 +47,7 @@ describe("DataOpSchema", () => {
       { op: "remove_rows", collectionId: "c1", rowIndexes: [0, 2] },
       { op: "replace_rows", collectionId: "c1", rows: [] },
       { op: "set_source", collectionId: "c1", source: "manual" },
+      { op: "delete_endpoint", endpointId: "ep1" },
       {
         op: "define_endpoint",
         endpoint: {
@@ -142,6 +144,54 @@ describe("dataChangeJsonSchema — 같은 소스에서 생성", () => {
     expect(kinds).not.toContain("remove_field");
     expect(kinds).not.toContain("remove_rows");
     expect(kinds).not.toContain("define_variable"); // ADR-214 — 변수 AI 쓰기는 범위 밖
+    expect(kinds).not.toContain("delete_collection"); // ADR-213 — delete 계열 전부
+    expect(kinds).not.toContain("delete_endpoint");
     expect(kinds).toContain("set_cell");
+    expect(kinds).toContain("define_endpoint");
+  });
+
+  it("modelFacing: origin 을 빼고 (executor 가 stamp) 내부 필드 (bind_element.restore) 를 뺀다 — ADR-213 HC2", () => {
+    const json = modelFacingDataChangeJsonSchema() as {
+      properties: Record<string, unknown> & {
+        ops: {
+          items: {
+            oneOf: {
+              properties: Record<string, unknown> & { op: { const: string } };
+              required?: string[];
+            }[];
+          };
+        };
+      };
+      required?: string[];
+    };
+    expect(json.properties).not.toHaveProperty("origin");
+    expect(json.required ?? []).not.toContain("origin");
+    expect(json.properties).toHaveProperty("ops");
+    expect(json.properties).toHaveProperty("label");
+    const bind = json.properties.ops.items.oneOf.find(
+      (o) => o.properties.op.const === "bind_element",
+    )!;
+    expect(bind.properties).not.toHaveProperty("restore");
+    expect(bind.properties).toHaveProperty("collectionId");
+    const kinds = json.properties.ops.items.oneOf.map(
+      (o) => o.properties.op.const,
+    );
+    for (const human of HUMAN_ONLY_DATA_OPS) expect(kinds).not.toContain(human);
+    // 파생 결과는 그 자체로 유효한 JSON Schema 문서 — 손으로 쓴 두 번째 스키마 없음
+    expect(JSON.stringify(json)).not.toContain('"origin"');
+  });
+});
+
+describe("delete_endpoint — 사람 전용 (define_endpoint 생성의 역연산)", () => {
+  it("스키마에 있고 HUMAN_ONLY 에 등재", () => {
+    expect(DATA_OP_KINDS).toContain("delete_endpoint");
+    expect(HUMAN_ONLY_DATA_OPS).toContain("delete_endpoint");
+    expect(HUMAN_ONLY_DATA_OPS).toContain("delete_collection");
+    expect(
+      parseDataChange({
+        ops: [{ op: "delete_endpoint", endpointId: "ep1" }],
+        origin: "user",
+      }).ops[0],
+    ).toEqual({ op: "delete_endpoint", endpointId: "ep1" });
   });
 });

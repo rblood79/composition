@@ -5,6 +5,10 @@
  * `EditingSemanticsImpactDialogHost` 와 같은 구조지만 별도 채널인 이유: 저쪽은 origin
  * 편집 영향/detach 라는 특정 편집 의미를 설명하는 다이얼로그이고, 이쪽은 "agent 가 무엇을
  * 하려는가" 를 보여 준다 (호출자·명령 id·되돌림 가능 여부).
+ *
+ * ADR-213 Phase 4 — 데이터 proposal (`id === "data.propose"`) 은 요약 문장 아래에
+ * **스키마 diff 뷰** (`DataChangeDiffView`) 를 그린다: 테이블별 필드/행/바인딩/endpoint
+ * 변경 + 사용처 N. 승인·거부 채널은 같다.
  */
 import { useEffect, useState } from "react";
 import { SHORTCUT_DEFINITIONS } from "../../config/keyboardShortcuts";
@@ -20,6 +24,9 @@ import {
   type AgentCommandConfirmationRequest,
 } from "../../../services/agent/agentCommandConfirmation";
 import { useI18n } from "@/i18n";
+import type { DataOp } from "@composition/shared";
+import { DATA_PROPOSAL_COMMAND_ID } from "../../../services/ai/data/dataProposalDispatcher";
+import { DataChangeDiffView } from "./DataChangeDiffView";
 import "./AgentCommandConfirmDialog.css";
 
 /** 호출자 표기 — 키만 두고 문구는 카탈로그가 갖는다 (ADR-200 후속). */
@@ -58,6 +65,11 @@ export function AgentCommandConfirmDialogHost() {
     summary: SUMMARY_SLOT,
   }).split(SUMMARY_SLOT);
 
+  const proposalOps =
+    request?.id === DATA_PROPOSAL_COMMAND_ID
+      ? ((request.args as { ops?: readonly DataOp[] } | undefined)?.ops ?? null)
+      : null;
+
   return (
     <ModalOverlay
       className="agent-confirm-overlay"
@@ -65,7 +77,10 @@ export function AgentCommandConfirmDialogHost() {
       isOpen={Boolean(request)}
       onOpenChange={handleOpenChange}
     >
-      <Modal className="agent-confirm-modal">
+      <Modal
+        className="agent-confirm-modal"
+        data-kind={proposalOps ? "data-proposal" : "command"}
+      >
         <Dialog aria-label="Agent command approval">
           <div className="agent-confirm-header">
             <ShieldAlert aria-hidden="true" size={18} />
@@ -79,6 +94,7 @@ export function AgentCommandConfirmDialogHost() {
               <strong>{request?.summary ?? ""}</strong>
               {bodyAfter}
             </p>
+            {proposalOps ? <DataChangeDiffView ops={proposalOps} /> : null}
             <p className="agent-confirm-meta" data-testid="agent-confirm-meta">
               {request?.id} · {request?.mutation} ·{" "}
               {request?.undo === "history"

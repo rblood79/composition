@@ -183,10 +183,16 @@ export const DataOpSchema = z.discriminatedUnion("op", [
     source: SourceSchema,
     endpointId: z.string().optional(),
   }),
+  /**
+   * ADR-213 Phase 4 — API endpoint 정의. `endpoint.id` 가 있고 store 에 있으면 그 정의를
+   * 바꾸고, 없으면 생성 (적용기가 id 를 발급해 `applied` 에 싣는다). 생성의 역연산은
+   * `delete_endpoint` (사람 전용 — tool 스키마에서 제외).
+   */
   z.object({
     op: z.literal("define_endpoint"),
     endpoint: ApiEndpointDraftSchema,
   }),
+  z.object({ op: z.literal("delete_endpoint"), endpointId: z.string().min(1) }),
   z.object({
     op: z.literal("bind_element"),
     elementId: z.string().min(1),
@@ -201,7 +207,10 @@ export const DataOpSchema = z.discriminatedUnion("op", [
      * 보존). tool 노출 스키마 (`dataChangeJsonSchema`) 에서는 제거된다.
      */
     restore: z
-      .object({ props: z.unknown().optional(), extension: z.unknown().optional() })
+      .object({
+        props: z.unknown().optional(),
+        extension: z.unknown().optional(),
+      })
       .optional(),
   }),
   z.object({
@@ -229,13 +238,17 @@ export const DATA_OP_KINDS = DataOpSchema.options.map(
  * 전체를 사람 전용으로 둔다.
  */
 export const HUMAN_ONLY_DATA_OPS: readonly DataOpKind[] = [
+  "delete_collection",
   "remove_field",
   "remove_rows",
+  "delete_endpoint",
   "define_variable",
 ];
 
 /** 적용기 내부 (inverse) 전용 필드 — tool 입력 스키마에서 뺀다 (ADR-213 HC2). */
-export const INTERNAL_DATA_OP_FIELDS: Readonly<Record<string, readonly string[]>> = {
+export const INTERNAL_DATA_OP_FIELDS: Readonly<
+  Record<string, readonly string[]>
+> = {
   bind_element: ["restore"],
 };
 
@@ -256,19 +269,41 @@ export function parseDataChange(input: unknown): DataChange {
 
 /**
  * JSON Schema (draft 2020-12) — zod 스키마에서 생성. `excludeOps` 로 tool 에 노출하지
- * 않을 op 를 뺀 변형을 만든다 (ADR-213: `remove_field` · `remove_rows` 제외).
+ * 않을 op 를 뺀 변형을 만든다 (ADR-213: `HUMAN_ONLY_DATA_OPS` 제외). `omitOrigin` 은
+ * 모델 대면 변형 — origin 은 executor 가 stamp 한다 (HC2). `omitFields` 는 op 별 내부
+ * 필드 (`INTERNAL_DATA_OP_FIELDS`) 를 뺀다.
  */
 export function dataChangeJsonSchema(options?: {
   excludeOps?: readonly DataOpKind[];
+  omitOrigin?: boolean;
+  omitFields?: Readonly<Record<string, readonly string[]>>;
 }): Record<string, unknown> {
   const exclude = new Set(options?.excludeOps ?? []);
-  const ops = DataOpSchema.options.filter(
-    (option) => !exclude.has(option.shape.op.value),
-  );
+  const omitFields = options?.omitFields ?? {};
+  const ops = DataOpSchema.options
+    .filter((option) => !exclude.has(option.shape.op.value))
+    .map((option) => {
+      const fields = omitFields[option.shape.op.value];
+      if (!fields || fields.length === 0) return option;
+      const mask = Object.fromEntries(fields.map((f) => [f, true as const]));
+      return (option as z.ZodObject<z.ZodRawShape>).omit(mask as never);
+    });
   const schema = z.object({
     ops: z.array(z.discriminatedUnion("op", ops as never)).min(1),
-    origin: z.enum(DATA_CHANGE_ORIGINS),
+    ...(options?.omitOrigin ? {} : { origin: z.enum(DATA_CHANGE_ORIGINS) }),
     label: z.string().optional(),
   });
   return z.toJSONSchema(schema) as Record<string, unknown>;
+}
+
+/**
+ * 모델 대면 `propose_data_change` 입력 스키마 — 사람 전용 op 제외 · origin 없음 · 내부
+ * 필드 없음. Anthropic / Ollama 어댑터가 같은 이 파생을 쓰고 executor 만 origin 을 stamp 한다.
+ */
+export function modelFacingDataChangeJsonSchema(): Record<string, unknown> {
+  return dataChangeJsonSchema({
+    excludeOps: HUMAN_ONLY_DATA_OPS,
+    omitOrigin: true,
+    omitFields: INTERNAL_DATA_OP_FIELDS,
+  });
 }

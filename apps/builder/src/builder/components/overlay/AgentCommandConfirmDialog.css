@@ -21,6 +21,12 @@
   width: min(100%, 420px);
 }
 
+/* ADR-213 Phase 4 — 데이터 proposal 은 diff 표가 있어 더 넓게 */
+.agent-confirm-modal[data-kind="data-proposal"] {
+  max-width: 560px;
+  width: min(100%, 560px);
+}
+
 .agent-confirm-header {
   align-items: center;
   border-bottom: 1px solid var(--border);
@@ -67,4 +73,3 @@
   justify-content: flex-end;
   padding: 12px 18px 14px;
 }
-

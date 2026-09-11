@@ -1,0 +1,125 @@
+/* ADR-213 Phase 4 — 데이터 proposal 승인 diff 뷰 (agent-confirm 본문 안) */
+
+.data-diff {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 16px;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.data-diff-heading {
+  align-items: center;
+  background: var(--bg-subtle, var(--bg));
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  font-weight: 600;
+  justify-content: space-between;
+  padding: 6px 10px;
+  position: sticky;
+  top: 0;
+}
+
+.data-diff-count {
+  color: var(--fg-muted);
+  font-weight: 400;
+}
+
+.data-diff-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.data-diff-item {
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+}
+
+.data-diff-item:last-child {
+  border-bottom: 0;
+}
+
+.data-diff-line {
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.data-diff-op {
+  background: var(--bg-subtle, var(--bg));
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--fg-muted);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  line-height: 14px;
+  padding: 0 4px;
+}
+
+.data-diff-text {
+  color: var(--fg);
+  word-break: break-all;
+}
+
+.data-diff-badge {
+  background: color-mix(in oklab, var(--accent, #2563eb) 14%, transparent);
+  border-radius: 4px;
+  color: var(--accent, #2563eb);
+  font-size: 10px;
+  line-height: 14px;
+  padding: 0 4px;
+}
+
+.data-diff-detail {
+  color: var(--fg-muted);
+  padding-left: 2px;
+}
+
+.data-diff-sample-label {
+  color: var(--fg-muted);
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.data-diff-sample-scroll {
+  overflow-x: auto;
+}
+
+.data-diff-sample table {
+  border-collapse: collapse;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.data-diff-sample th,
+.data-diff-sample td {
+  border: 1px solid var(--border);
+  max-width: 160px;
+  overflow: hidden;
+  padding: 2px 6px;
+  text-align: left;
+  text-overflow: ellipsis;
+}
+
+.data-diff-sample th {
+  background: var(--bg-subtle, var(--bg));
+  color: var(--fg-muted);
+  font-weight: 500;
+}
+
+.data-diff-usage {
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  list-style: none;
+  margin: 0;
+  padding: 6px 10px;
+}

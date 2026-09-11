@@ -404,6 +404,8 @@ const koKR: TranslationKeys = {
     entryDataCollectionDelete: "컬렉션 삭제 — {name}",
     entryDataCollectionUpdate: "컬렉션 변경 — {name}",
     entryDataSource: "데이터 소스 변경",
+    entryDataEndpoint: "API 정의 — {name}",
+    entryDataBinding: "데이터 연결 — {name}",
     entryDefault: "변경",
     entryDeletedSubject: "{id} (삭제됨)",
     currentState: "현재 상태",
@@ -684,6 +686,8 @@ const koKR: TranslationKeys = {
     getApiEndpointDone: "읽음",
     explainRequestFailure: "실패 원인 분석",
     explainRequestFailureDone: "컨텍스트 수집됨",
+    proposeDataChange: "데이터 변경 제안",
+    proposeDataChangeDone: "제안 처리됨",
     genericDone: "{name} 완료",
     selectedElement: "선택한 요소",
     callWithDetail: "{intent} · {detail}",
@@ -1055,6 +1059,8 @@ const koKR: TranslationKeys = {
       "API endpoint 의 마지막 실행이 왜 실패했는지 설명할 컨텍스트를 모읍니다 — 정의 · 보낸 요청 · 응답 status/headers · 응답 본문 앞 2KB · 대상 테이블 스키마 (인증 값은 {{secret.KEY}} 로 가려짐). 참조 없이 부르면 가장 최근 실패 실행. 결과의 guidance 에 맞춰 원인과 제안을 답하세요.",
     runIdRef:
       "실행 id (list_api_endpoints 의 lastRun.runId). 생략하면 그 endpoint 의 마지막 실행.",
+    proposeDataChange:
+      "데이터 변경을 제안합니다 — collection 생성/필드/행/소스 · API endpoint 정의 (define_endpoint, 인증 값은 {{secret.KEY}} placeholder) · 요소↔collection 바인딩 (bind_element). 사용자가 diff 를 보고 승인해야 적용되며 ⌘Z 로 되돌릴 수 있습니다. 삭제 계열 op 는 제안할 수 없습니다. 먼저 list_collections / get_collection / list_api_endpoints 로 id 를 확인하세요.",
   },
   aiDataProposal: {
     summary: "데이터 변경 {count}건: {ops}",
@@ -1150,6 +1156,10 @@ const koKR: TranslationKeys = {
       "이 세션에서 실행된 API endpoint 가 없습니다. 먼저 실행하세요 (API 편집기 Run 또는 데이터 새로고침).",
     runNotFound:
       "실행 {runId} 는 남아 있지 않습니다 (endpoint 당 마지막 1건만 보관 — 현재 {latest}). runId 를 빼고 다시 부르세요.",
+    proposalOpsRequired:
+      "ops 배열이 비어 있습니다 — 제안할 변경을 1개 이상 넣으세요.",
+    proposalOriginForbidden:
+      "origin 은 입력할 수 없습니다 (호출 주체가 정합니다). ops 와 label 만 보내세요.",
     unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
     bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
     notDeleted:
@@ -1325,6 +1335,36 @@ const koKR: TranslationKeys = {
     hostChromeMcp: "외부 agent (Chrome MCP)",
     hostMcp: "외부 agent (MCP)",
     hostUnknown: "agent",
+  },
+  dataDiff: {
+    heading: "변경 내용",
+    opsCount: "{count}개 변경",
+    createCollection:
+      "테이블 만들기 {name} — 필드 {fieldCount} · 행 {rowCount}",
+    updateCollection: "테이블 {name} 설정 변경",
+    deleteCollection: "테이블 {name} 삭제",
+    setSource: "테이블 {name}: 소스 → {source}",
+    addField: "{name}: 필드 추가 {key} ({type})",
+    updateField: "{name}: 필드 변경 {key}",
+    removeField: "{name}: 필드 삭제 {key}",
+    typeChange: "유형 {from} → {to}",
+    insertRows: "{name}: 행 {count}개 추가",
+    replaceRows: "{name}: 행 전체 교체 ({count}개)",
+    removeRows: "{name}: 행 {count}개 삭제",
+    setCell: "{name}: 셀 편집 (행 {row} · {key})",
+    defineEndpointNew: "API 만들기 {name} — {method} {url}",
+    defineEndpointUpdate: "API 변경 {name} — {method} {url}",
+    deleteEndpoint: "API 삭제 {name}",
+    headerKeys: "헤더: {keys}",
+    bindElement: "{element} → 테이블 {name} 연결",
+    unbindElement: "{element} 연결 해제",
+    fieldMap: "필드 역할: {map}",
+    defineVariable: "변수 정의 {name}",
+    removeVariable: "변수 삭제 {name}",
+    usedBy: "사용처 {count}개 요소 — 바인딩된 요소가 함께 바뀝니다",
+    usedByNone: "사용처 없음",
+    sampleRows: "샘플 (앞 {count}행)",
+    newBadge: "신규",
   },
   dashboard: {
     confirmDeleteProject: "정말로 이 프로젝트를 삭제하시겠습니까?",
@@ -2025,6 +2065,8 @@ const enUS: TranslationKeys = {
     entryDataCollectionDelete: "Delete collection — {name}",
     entryDataCollectionUpdate: "Change collection — {name}",
     entryDataSource: "Change data source",
+    entryDataEndpoint: "API definition — {name}",
+    entryDataBinding: "Data binding — {name}",
     entryDefault: "Change",
     entryDeletedSubject: "{id} (deleted)",
     currentState: "Current state",
@@ -2305,6 +2347,8 @@ const enUS: TranslationKeys = {
     getApiEndpointDone: "read",
     explainRequestFailure: "Analyze request failure",
     explainRequestFailureDone: "context collected",
+    proposeDataChange: "Propose data change",
+    proposeDataChangeDone: "proposal handled",
     genericDone: "{name} done",
     selectedElement: "the selected element",
     callWithDetail: "{intent} · {detail}",
@@ -2689,6 +2733,8 @@ const enUS: TranslationKeys = {
       "Collects the context to explain why an API endpoint's last run failed — definition, the request as sent, response status/headers, first 2KB of the response body, and the target table schema (auth values masked as {{secret.KEY}}). Without a reference it picks the most recent failed run. Answer following the guidance in the result.",
     runIdRef:
       "Run id (lastRun.runId from list_api_endpoints). Omit for that endpoint's last run.",
+    proposeDataChange:
+      "Proposes a data change — collection create/fields/rows/source, API endpoint definition (define_endpoint; auth values as {{secret.KEY}} placeholders), element↔collection binding (bind_element). Nothing is applied until the user approves the diff; the change is undoable with ⌘Z. Delete-type ops cannot be proposed. Check ids first with list_collections / get_collection / list_api_endpoints.",
   },
   aiDataProposal: {
     summary: "{count} data change(s): {ops}",
@@ -2780,6 +2826,10 @@ const enUS: TranslationKeys = {
       "No API endpoint has been run in this session. Run one first (API editor Run, or refresh the data).",
     runNotFound:
       "Run {runId} is no longer kept (only the last run per endpoint is retained — currently {latest}). Call again without runId.",
+    proposalOpsRequired:
+      "ops is empty — include at least one change to propose.",
+    proposalOriginForbidden:
+      "origin cannot be provided (the caller decides it). Send only ops and label.",
     unknownAction:
       "Unknown action: {action}. Only create, update and delete are allowed.",
     bodyUndeletable: "The body element cannot be deleted.",
@@ -2956,6 +3006,36 @@ const enUS: TranslationKeys = {
     hostChromeMcp: "External agent (Chrome MCP)",
     hostMcp: "External agent (MCP)",
     hostUnknown: "agent",
+  },
+  dataDiff: {
+    heading: "Changes",
+    opsCount: "{count} changes",
+    createCollection:
+      "Create table {name} — {fieldCount} fields · {rowCount} rows",
+    updateCollection: "Change settings of table {name}",
+    deleteCollection: "Delete table {name}",
+    setSource: "Table {name}: source → {source}",
+    addField: "{name}: add field {key} ({type})",
+    updateField: "{name}: change field {key}",
+    removeField: "{name}: remove field {key}",
+    typeChange: "type {from} → {to}",
+    insertRows: "{name}: insert {count} rows",
+    replaceRows: "{name}: replace all rows ({count})",
+    removeRows: "{name}: remove {count} rows",
+    setCell: "{name}: edit cell (row {row} · {key})",
+    defineEndpointNew: "Create API {name} — {method} {url}",
+    defineEndpointUpdate: "Change API {name} — {method} {url}",
+    deleteEndpoint: "Delete API {name}",
+    headerKeys: "headers: {keys}",
+    bindElement: "{element} → bind to table {name}",
+    unbindElement: "{element}: unbind",
+    fieldMap: "field roles: {map}",
+    defineVariable: "Define variable {name}",
+    removeVariable: "Remove variable {name}",
+    usedBy: "Used by {count} elements — bound elements change with it",
+    usedByNone: "not used by any element",
+    sampleRows: "Sample (first {count} rows)",
+    newBadge: "new",
   },
   dashboard: {
     confirmDeleteProject: "Delete this project?",
@@ -3765,6 +3845,49 @@ const formattedMessages: Record<
       `✗ API 호출 실패: ${String(args?.message ?? "")}`,
     "agentConfirm.body": (args) =>
       `${String(args?.host ?? "")} 가 ${String(args?.summary ?? "")} 를 실행하려 합니다.`,
+    "dataDiff.opsCount": (args) => `${String(args?.count ?? "")}개 변경`,
+    "dataDiff.createCollection": (args) =>
+      `테이블 만들기 ${String(args?.name ?? "")} — 필드 ${String(args?.fieldCount ?? "")} · 행 ${String(args?.rowCount ?? "")}`,
+    "dataDiff.updateCollection": (args) =>
+      `테이블 ${String(args?.name ?? "")} 설정 변경`,
+    "dataDiff.deleteCollection": (args) =>
+      `테이블 ${String(args?.name ?? "")} 삭제`,
+    "dataDiff.setSource": (args) =>
+      `테이블 ${String(args?.name ?? "")}: 소스 → ${String(args?.source ?? "")}`,
+    "dataDiff.addField": (args) =>
+      `${String(args?.name ?? "")}: 필드 추가 ${String(args?.key ?? "")} (${String(args?.type ?? "")})`,
+    "dataDiff.updateField": (args) =>
+      `${String(args?.name ?? "")}: 필드 변경 ${String(args?.key ?? "")}`,
+    "dataDiff.removeField": (args) =>
+      `${String(args?.name ?? "")}: 필드 삭제 ${String(args?.key ?? "")}`,
+    "dataDiff.typeChange": (args) =>
+      `유형 ${String(args?.from ?? "")} → ${String(args?.to ?? "")}`,
+    "dataDiff.insertRows": (args) =>
+      `${String(args?.name ?? "")}: 행 ${String(args?.count ?? "")}개 추가`,
+    "dataDiff.replaceRows": (args) =>
+      `${String(args?.name ?? "")}: 행 전체 교체 (${String(args?.count ?? "")}개)`,
+    "dataDiff.removeRows": (args) =>
+      `${String(args?.name ?? "")}: 행 ${String(args?.count ?? "")}개 삭제`,
+    "dataDiff.setCell": (args) =>
+      `${String(args?.name ?? "")}: 셀 편집 (행 ${String(args?.row ?? "")} · ${String(args?.key ?? "")})`,
+    "dataDiff.defineEndpointNew": (args) =>
+      `API 만들기 ${String(args?.name ?? "")} — ${String(args?.method ?? "")} ${String(args?.url ?? "")}`,
+    "dataDiff.defineEndpointUpdate": (args) =>
+      `API 변경 ${String(args?.name ?? "")} — ${String(args?.method ?? "")} ${String(args?.url ?? "")}`,
+    "dataDiff.deleteEndpoint": (args) => `API 삭제 ${String(args?.name ?? "")}`,
+    "dataDiff.headerKeys": (args) => `헤더: ${String(args?.keys ?? "")}`,
+    "dataDiff.bindElement": (args) =>
+      `${String(args?.element ?? "")} → 테이블 ${String(args?.name ?? "")} 연결`,
+    "dataDiff.unbindElement": (args) =>
+      `${String(args?.element ?? "")} 연결 해제`,
+    "dataDiff.fieldMap": (args) => `필드 역할: ${String(args?.map ?? "")}`,
+    "dataDiff.defineVariable": (args) =>
+      `변수 정의 ${String(args?.name ?? "")}`,
+    "dataDiff.removeVariable": (args) =>
+      `변수 삭제 ${String(args?.name ?? "")}`,
+    "dataDiff.usedBy": (args) =>
+      `사용처 ${String(args?.count ?? "")}개 요소 — 바인딩된 요소가 함께 바뀝니다`,
+    "dataDiff.sampleRows": (args) => `샘플 (앞 ${String(args?.count ?? "")}행)`,
     "agentConfirm.undoable": (args) =>
       `실행 취소(${String(args?.shortcut ?? "")}) 1회로 복원`,
     "styles.responsiveNoOverrides": (args) =>
@@ -3821,6 +3944,10 @@ const formattedMessages: Record<
       `필드 삭제 — ${String(args?.key ?? "")}`,
     "history.entryDataCollectionCreate": (args) =>
       `컬렉션 추가 — ${String(args?.name ?? "")}`,
+    "history.entryDataEndpoint": (args) =>
+      `API 정의 — ${String(args?.name ?? "")}`,
+    "history.entryDataBinding": (args) =>
+      `데이터 연결 — ${String(args?.name ?? "")}`,
     "history.entryDataCollectionDelete": (args) =>
       `컬렉션 삭제 — ${String(args?.name ?? "")}`,
     "history.entryDataCollectionUpdate": (args) =>
@@ -4077,6 +4204,51 @@ const formattedMessages: Record<
       `✗ API request failed: ${String(args?.message ?? "")}`,
     "agentConfirm.body": (args) =>
       `${String(args?.host ?? "")} wants to run ${String(args?.summary ?? "")}.`,
+    "dataDiff.opsCount": (args) => `${String(args?.count ?? "")} changes`,
+    "dataDiff.createCollection": (args) =>
+      `Create table ${String(args?.name ?? "")} — ${String(args?.fieldCount ?? "")} fields · ${String(args?.rowCount ?? "")} rows`,
+    "dataDiff.updateCollection": (args) =>
+      `Change settings of table ${String(args?.name ?? "")}`,
+    "dataDiff.deleteCollection": (args) =>
+      `Delete table ${String(args?.name ?? "")}`,
+    "dataDiff.setSource": (args) =>
+      `Table ${String(args?.name ?? "")}: source → ${String(args?.source ?? "")}`,
+    "dataDiff.addField": (args) =>
+      `${String(args?.name ?? "")}: add field ${String(args?.key ?? "")} (${String(args?.type ?? "")})`,
+    "dataDiff.updateField": (args) =>
+      `${String(args?.name ?? "")}: change field ${String(args?.key ?? "")}`,
+    "dataDiff.removeField": (args) =>
+      `${String(args?.name ?? "")}: remove field ${String(args?.key ?? "")}`,
+    "dataDiff.typeChange": (args) =>
+      `type ${String(args?.from ?? "")} → ${String(args?.to ?? "")}`,
+    "dataDiff.insertRows": (args) =>
+      `${String(args?.name ?? "")}: insert ${String(args?.count ?? "")} rows`,
+    "dataDiff.replaceRows": (args) =>
+      `${String(args?.name ?? "")}: replace all rows (${String(args?.count ?? "")})`,
+    "dataDiff.removeRows": (args) =>
+      `${String(args?.name ?? "")}: remove ${String(args?.count ?? "")} rows`,
+    "dataDiff.setCell": (args) =>
+      `${String(args?.name ?? "")}: edit cell (row ${String(args?.row ?? "")} · ${String(args?.key ?? "")})`,
+    "dataDiff.defineEndpointNew": (args) =>
+      `Create API ${String(args?.name ?? "")} — ${String(args?.method ?? "")} ${String(args?.url ?? "")}`,
+    "dataDiff.defineEndpointUpdate": (args) =>
+      `Change API ${String(args?.name ?? "")} — ${String(args?.method ?? "")} ${String(args?.url ?? "")}`,
+    "dataDiff.deleteEndpoint": (args) =>
+      `Delete API ${String(args?.name ?? "")}`,
+    "dataDiff.headerKeys": (args) => `headers: ${String(args?.keys ?? "")}`,
+    "dataDiff.bindElement": (args) =>
+      `${String(args?.element ?? "")} → bind to table ${String(args?.name ?? "")}`,
+    "dataDiff.unbindElement": (args) =>
+      `${String(args?.element ?? "")}: unbind`,
+    "dataDiff.fieldMap": (args) => `field roles: ${String(args?.map ?? "")}`,
+    "dataDiff.defineVariable": (args) =>
+      `Define variable ${String(args?.name ?? "")}`,
+    "dataDiff.removeVariable": (args) =>
+      `Remove variable ${String(args?.name ?? "")}`,
+    "dataDiff.usedBy": (args) =>
+      `Used by ${String(args?.count ?? "")} elements — bound elements change with it`,
+    "dataDiff.sampleRows": (args) =>
+      `Sample (first ${String(args?.count ?? "")} rows)`,
     "agentConfirm.undoable": (args) =>
       `Restorable with a single undo (${String(args?.shortcut ?? "")})`,
     "styles.responsiveNoOverrides": (args) =>
@@ -4133,6 +4305,10 @@ const formattedMessages: Record<
       `Delete field — ${String(args?.key ?? "")}`,
     "history.entryDataCollectionCreate": (args) =>
       `Add collection — ${String(args?.name ?? "")}`,
+    "history.entryDataEndpoint": (args) =>
+      `API definition — ${String(args?.name ?? "")}`,
+    "history.entryDataBinding": (args) =>
+      `Data binding — ${String(args?.name ?? "")}`,
     "history.entryDataCollectionDelete": (args) =>
       `Delete collection — ${String(args?.name ?? "")}`,
     "history.entryDataCollectionUpdate": (args) =>

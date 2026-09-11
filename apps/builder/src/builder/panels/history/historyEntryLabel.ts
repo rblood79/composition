@@ -124,9 +124,15 @@ function dataChangeLabel(entry: HistoryEntry, t: TranslateFn): string {
           candidate.op === "update_field" && candidate.fieldId === op.fieldId,
       );
       const from = inverse?.patch.key;
-      if (op.patch.key !== undefined && from !== undefined && from !== op.patch.key)
+      if (
+        op.patch.key !== undefined &&
+        from !== undefined &&
+        from !== op.patch.key
+      )
         return t("history.entryDataFieldRename", { from, to: op.patch.key });
-      return t("history.entryDataFieldUpdate", { key: op.patch.key ?? from ?? op.fieldId });
+      return t("history.entryDataFieldUpdate", {
+        key: op.patch.key ?? from ?? op.fieldId,
+      });
     }
     case "remove_field": {
       const inverse = event?.inverse.find(
@@ -141,7 +147,9 @@ function dataChangeLabel(entry: HistoryEntry, t: TranslateFn): string {
       return t("history.entryDataCollectionCreate", { name: op.name });
     case "delete_collection": {
       const inverse = event?.inverse.find(
-        (candidate): candidate is Extract<DataOp, { op: "create_collection" }> =>
+        (
+          candidate,
+        ): candidate is Extract<DataOp, { op: "create_collection" }> =>
           candidate.op === "create_collection",
       );
       return t("history.entryDataCollectionDelete", {
@@ -154,6 +162,15 @@ function dataChangeLabel(entry: HistoryEntry, t: TranslateFn): string {
       });
     case "set_source":
       return t("history.entryDataSource");
+    // ADR-213 Phase 4 — endpoint 정의 · 요소 바인딩도 data entry 로 온다
+    case "define_endpoint":
+      return t("history.entryDataEndpoint", { name: op.endpoint.name });
+    case "delete_endpoint":
+      return t("history.entryDataEndpoint", { name: op.endpointId });
+    case "bind_element":
+      return t("history.entryDataBinding", {
+        name: op.collectionId ?? op.elementId,
+      });
     default:
       return t("history.entryData");
   }

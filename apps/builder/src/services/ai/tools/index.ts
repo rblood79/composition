@@ -22,6 +22,7 @@ import { getCollectionTool } from "./getCollection";
 import { listApiEndpointsTool } from "./listApiEndpoints";
 import { getApiEndpointTool } from "./getApiEndpoint";
 import { explainRequestFailureTool } from "./explainRequestFailure";
+import { proposeDataChangeTool } from "./proposeDataChange";
 
 export { toolDefinitions, getToolDefinitions } from "./definitions";
 
@@ -59,6 +60,7 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
     listApiEndpointsTool,
     getApiEndpointTool,
     explainRequestFailureTool,
+    proposeDataChangeTool,
     runCommandLazyTool,
   ];
 

@@ -508,6 +508,10 @@ export interface DataStoreActions {
     applied: DataOp[];
     inverse: DataOp[];
     collectionIds: string[];
+    /** ADR-214 — 영향 프로젝트 변수 id */
+    variableIds: string[];
+    /** ADR-213 Phase 4 — 영향 API endpoint id */
+    endpointIds: string[];
   }>;
 
   // ApiEndpoint CRUD

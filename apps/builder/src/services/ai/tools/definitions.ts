@@ -5,6 +5,7 @@
  * unified.types.ts의 getDefaultProps() 키 목록과 동기화
  */
 
+import { modelFacingDataChangeJsonSchema } from "@composition/shared";
 import type { LLMToolDefinition } from "../providers/LLMProvider";
 import type { PromptTranslate } from "../promptTranslate";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
@@ -445,6 +446,17 @@ export const toolDefinitions: ChatCompletionTool[] = [
           },
         },
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "propose_data_change",
+      description: "aiToolDef.proposeDataChange",
+      // ADR-213 HC2 — 손으로 쓴 두 번째 스키마 금지: dataChange.ts 에서 파생 (사람 전용 op
+      //   제외 · origin 없음 · 내부 필드 없음). executor 가 origin 을 stamp 한다.
+      parameters:
+        modelFacingDataChangeJsonSchema() as ChatCompletionTool["function"]["parameters"],
     },
   },
 ];

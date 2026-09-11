@@ -274,6 +274,8 @@ export interface TranslationKeys {
     entryDataCollectionDelete: string;
     entryDataCollectionUpdate: string;
     entryDataSource: string;
+    entryDataEndpoint: string;
+    entryDataBinding: string;
     entryDefault: string;
     entryDeletedSubject: string;
     currentState: string;
@@ -700,6 +702,8 @@ export interface TranslationKeys {
     getApiEndpointDone: string;
     explainRequestFailure: string;
     explainRequestFailureDone: string;
+    proposeDataChange: string;
+    proposeDataChangeDone: string;
   };
   presetData: {
     companies: string;
@@ -1005,6 +1009,7 @@ export interface TranslationKeys {
     endpointNameRef: string;
     explainRequestFailure: string;
     runIdRef: string;
+    proposeDataChange: string;
     bindFieldMap: string;
   };
   aiDataProposal: {
@@ -1071,6 +1076,8 @@ export interface TranslationKeys {
     noRunRecorded: string;
     noRunAtAll: string;
     runNotFound: string;
+    proposalOpsRequired: string;
+    proposalOriginForbidden: string;
     bindLegacySourceUnsupported: string;
     unknownAction: string;
     bodyUndeletable: string;
@@ -1241,6 +1248,36 @@ export interface TranslationKeys {
     hostChromeMcp: string;
     hostMcp: string;
     hostUnknown: string;
+  };
+  /** ADR-213 Phase 4 — 데이터 proposal 승인 diff 뷰 */
+  dataDiff: {
+    heading: string;
+    opsCount: string;
+    createCollection: string;
+    updateCollection: string;
+    deleteCollection: string;
+    setSource: string;
+    addField: string;
+    updateField: string;
+    removeField: string;
+    typeChange: string;
+    insertRows: string;
+    replaceRows: string;
+    removeRows: string;
+    setCell: string;
+    defineEndpointNew: string;
+    defineEndpointUpdate: string;
+    deleteEndpoint: string;
+    headerKeys: string;
+    bindElement: string;
+    unbindElement: string;
+    fieldMap: string;
+    defineVariable: string;
+    removeVariable: string;
+    usedBy: string;
+    usedByNone: string;
+    sampleRows: string;
+    newBadge: string;
   };
   dashboard: {
     confirmDeleteProject: string;

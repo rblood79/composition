@@ -78,6 +78,10 @@ export const TOOL_LABEL_KEYS: Record<string, ToolLabelKeys> = {
     intent: "aiTool.explainRequestFailure",
     done: "aiTool.explainRequestFailureDone",
   },
+  propose_data_change: {
+    intent: "aiTool.proposeDataChange",
+    done: "aiTool.proposeDataChangeDone",
+  },
 };
 
 /** 표시 시점 해소기 — 이 모듈은 순수 `.ts` 라 훅을 못 쓴다 (ADR-200 어법). */

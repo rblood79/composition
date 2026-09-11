@@ -18,6 +18,7 @@ import type { StateCreator } from "zustand";
 import {
   collectDocumentVariableNames,
   resolveField,
+  type ApiEndpointDraft,
   type DataChange,
   type DataChangeOrigin,
   type DataOp,
@@ -28,6 +29,7 @@ import { getActiveCanonicalDocument } from "../canonical/canonicalElementsBridge
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import type {
+  ApiEndpoint,
   DataField,
   DataStoreActions,
   DataStoreState,
@@ -69,6 +71,11 @@ export interface ReduceContext {
    * 가시성 사슬의 끝이라 문서 안 어떤 이름과도 겹치면 안 된다. 적용기가 활성 문서에서 모은다.
    */
   documentVariableNames?: ReadonlySet<string>;
+  /**
+   * ADR-213 Phase 4 — API endpoint (store 의 name 키 Map). `define_endpoint` ·
+   * `delete_endpoint` 축의 시작 상태. 생략하면 빈 Map.
+   */
+  apiEndpoints?: ReadonlyMap<string, ApiEndpoint>;
 }
 
 export interface ReduceResult {
@@ -84,6 +91,10 @@ export interface ReduceResult {
   variables: Map<string, Variable>;
   variablesUpserted: Set<string>;
   variablesDeleted: Set<string>;
+  /** ADR-213 Phase 4 — API endpoint 축 (name 키 Map · 저장 대상은 endpoint id). */
+  apiEndpoints: Map<string, ApiEndpoint>;
+  endpointsUpserted: Set<string>;
+  endpointsDeleted: Set<string>;
 }
 
 // ============================================
@@ -328,6 +339,211 @@ function reduceDefineVariable(
     op: "define_variable",
     variableId: id,
     definition: null,
+  });
+}
+
+// ============================================
+// ADR-213 Phase 4 — API endpoint 축 (`define_endpoint` · `delete_endpoint`)
+// ============================================
+
+function findEndpointById(
+  endpoints: ReadonlyMap<string, ApiEndpoint>,
+  endpointId: string,
+): ApiEndpoint | undefined {
+  for (const endpoint of endpoints.values()) {
+    if (endpoint.id === endpointId) return endpoint;
+  }
+  return undefined;
+}
+
+/** 저장된 `ApiEndpoint` → op 의 `endpoint` draft (inverse 에 싣는 형태 — 전체 정의). */
+export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
+  return {
+    id: endpoint.id,
+    name: endpoint.name,
+    ...(endpoint.description !== undefined
+      ? { description: endpoint.description }
+      : {}),
+    method: endpoint.method,
+    baseUrl: endpoint.baseUrl,
+    path: endpoint.path,
+    headers: endpoint.headers,
+    queryParams: endpoint.queryParams,
+    bodyType: endpoint.bodyType,
+    ...(endpoint.bodyTemplate !== undefined
+      ? { bodyTemplate: endpoint.bodyTemplate }
+      : {}),
+    dataPath: endpoint.responseMapping?.dataPath ?? "",
+    ...(endpoint.targetCollectionId !== undefined
+      ? { targetCollectionId: endpoint.targetCollectionId }
+      : {}),
+  };
+}
+
+function assertEndpointNameAvailable(
+  endpoints: ReadonlyMap<string, ApiEndpoint>,
+  name: string,
+  selfId: string | null,
+  op: DataOp,
+): void {
+  for (const endpoint of endpoints.values()) {
+    if (endpoint.id !== selfId && endpoint.name.trim() === name) {
+      throw new DataChangeError(
+        `endpoint 이름이 이미 있습니다: ${name} (${endpoint.id})`,
+        op,
+      );
+    }
+  }
+}
+
+/**
+ * ADR-213 HC5 후반 — AI 는 redactor 를 지난 정의 (`{{secret.KEY}}`) 만 보므로, 제안 patch 의
+ * placeholder 값은 "이 값은 그대로" 라는 뜻이다. 같은 키의 기존 원문이 있으면 보존하고,
+ * 새 키의 placeholder 는 그대로 둔다 (ADR-212 Phase 4 vault 참조 문법과 같다). live 에서
+ * AI 가 돌려준 정의를 그대로 적용해 X-API-Key · Cookie 원문이 placeholder 로 덮인 것을 보고
+ * 넣었다.
+ */
+const SECRET_PLACEHOLDER =
+  /^\s*(?:bearer\s+|basic\s+)?\{\{secret\.[^}]+\}\}\s*$/i;
+
+function preserveSecrets<T extends { key: string; value: string }>(
+  incoming: readonly T[],
+  existing: readonly { key: string; value: string }[],
+): T[] {
+  const byKey = new Map(
+    existing.map((entry) => [entry.key.trim().toLowerCase(), entry.value]),
+  );
+  return incoming.map((entry) => {
+    if (!SECRET_PLACEHOLDER.test(entry.value)) return entry;
+    const previous = byKey.get(entry.key.trim().toLowerCase());
+    if (previous === undefined || SECRET_PLACEHOLDER.test(previous))
+      return entry;
+    return { ...entry, value: previous };
+  });
+}
+
+function reduceDefineEndpoint(
+  op: Extract<DataOp, { op: "define_endpoint" }>,
+  ctx: ReduceContext,
+  out: ReduceResult,
+): void {
+  const { apiEndpoints } = out;
+  const draft = op.endpoint;
+  const stamp = new Date().toISOString();
+  const name = draft.name.trim();
+  if (!name) throw new DataChangeError("endpoint 이름은 비울 수 없습니다", op);
+  const existing = draft.id
+    ? findEndpointById(apiEndpoints, draft.id)
+    : undefined;
+  assertEndpointNameAvailable(apiEndpoints, name, existing?.id ?? null, op);
+
+  if (existing) {
+    // update — draft 가 준 필드만 덮는다 (headers/queryParams 는 배열 교체). 나머지
+    //   (project_id · executionMode · serverConfig · timeout · retryCount · targetCollection
+    //   이름 · created_at) 는 보존.
+    const next: ApiEndpoint = {
+      ...existing,
+      name,
+      method: draft.method,
+      baseUrl: draft.baseUrl,
+      path: draft.path,
+      ...(draft.description !== undefined
+        ? { description: draft.description }
+        : {}),
+      ...(draft.headers !== undefined
+        ? { headers: preserveSecrets(draft.headers, existing.headers) }
+        : {}),
+      ...(draft.queryParams !== undefined
+        ? {
+            queryParams: preserveSecrets(
+              draft.queryParams,
+              existing.queryParams,
+            ),
+          }
+        : {}),
+      ...(draft.bodyType !== undefined ? { bodyType: draft.bodyType } : {}),
+      ...(draft.bodyTemplate !== undefined
+        ? { bodyTemplate: draft.bodyTemplate }
+        : {}),
+      ...(draft.dataPath !== undefined
+        ? {
+            responseMapping: {
+              ...existing.responseMapping,
+              dataPath: draft.dataPath,
+            },
+          }
+        : {}),
+      ...(draft.targetCollectionId !== undefined
+        ? { targetCollectionId: draft.targetCollectionId }
+        : {}),
+      updated_at: stamp,
+    };
+    apiEndpoints.delete(existing.name);
+    apiEndpoints.set(name, next);
+    out.endpointsUpserted.add(existing.id);
+    out.applied.push({ ...op, endpoint: { ...draft, id: existing.id } });
+    out.inverse.unshift({
+      op: "define_endpoint",
+      endpoint: toEndpointDraft(existing),
+    });
+    return;
+  }
+
+  // create (draft.id 가 있으면 undo 가 같은 id 로 되살리는 경우 — 참조 보존)
+  const projectId = ctx.projectId ?? [...apiEndpoints.values()][0]?.project_id;
+  if (!projectId) throw new DataChangeError("projectId 를 알 수 없습니다", op);
+  const id = draft.id ?? crypto.randomUUID();
+  const created: ApiEndpoint = {
+    id,
+    name,
+    project_id: projectId,
+    ...(draft.description !== undefined
+      ? { description: draft.description }
+      : {}),
+    method: draft.method,
+    baseUrl: draft.baseUrl,
+    path: draft.path,
+    headers: draft.headers ?? [],
+    queryParams: draft.queryParams ?? [],
+    bodyType: draft.bodyType ?? "none",
+    ...(draft.bodyTemplate !== undefined
+      ? { bodyTemplate: draft.bodyTemplate }
+      : {}),
+    responseMapping: { dataPath: draft.dataPath ?? "" },
+    ...(draft.targetCollectionId !== undefined
+      ? { targetCollectionId: draft.targetCollectionId }
+      : {}),
+    executionMode: "client",
+    timeout: 30000,
+    retryCount: 0,
+    created_at: stamp,
+    updated_at: stamp,
+  };
+  apiEndpoints.set(name, created);
+  out.endpointsUpserted.add(id);
+  out.endpointsDeleted.delete(id);
+  out.applied.push({ ...op, endpoint: { ...draft, id } });
+  out.inverse.unshift({ op: "delete_endpoint", endpointId: id });
+}
+
+function reduceDeleteEndpoint(
+  op: Extract<DataOp, { op: "delete_endpoint" }>,
+  out: ReduceResult,
+): void {
+  const existing = findEndpointById(out.apiEndpoints, op.endpointId);
+  if (!existing) {
+    throw new DataChangeError(
+      `endpoint 를 찾을 수 없습니다: ${op.endpointId}`,
+      op,
+    );
+  }
+  out.apiEndpoints.delete(existing.name);
+  out.endpointsDeleted.add(existing.id);
+  out.endpointsUpserted.delete(existing.id);
+  out.applied.push(op);
+  out.inverse.unshift({
+    op: "define_endpoint",
+    endpoint: toEndpointDraft(existing),
   });
 }
 
@@ -590,11 +806,12 @@ function reduceOne(
         op,
       );
     case "define_endpoint":
-      // ADR-213 Phase 4 — apiEndpoints 축 consumer
-      throw new DataChangeError(
-        `${op.op} 는 Phase 1c 적용기 범위 밖입니다 (ADR-213 Phase 4 에서 배선)`,
-        op,
-      );
+      // ADR-213 Phase 4 — apiEndpoints 축 (collections 무변경)
+      reduceDefineEndpoint(op, ctx, out);
+      return;
+    case "delete_endpoint":
+      reduceDeleteEndpoint(op, out);
+      return;
     case "define_variable":
       // ADR-214 Phase 1 — 프로젝트 변수 축 (collections 무변경)
       reduceDefineVariable(op, ctx, out);
@@ -620,6 +837,9 @@ export function reduceDataOps(
     variables: new Map(ctx.variables ?? []),
     variablesUpserted: new Set(),
     variablesDeleted: new Set(),
+    apiEndpoints: new Map(ctx.apiEndpoints ?? []),
+    endpointsUpserted: new Set(),
+    endpointsDeleted: new Set(),
   };
   for (const op of ops) reduceOne(out.collections, op, ctx, out);
   return out;
@@ -744,12 +964,15 @@ function inverseOfBinding(
   op: BindElementOp,
   previous: DataBindingSnapshot,
 ): BindElementOp {
-  const prevProps = previous.props as Partial<DataTableBindingValue> | undefined;
+  const prevProps = previous.props as
+    Partial<DataTableBindingValue> | undefined;
   return {
     op: "bind_element",
     elementId: op.elementId,
     collectionId:
-      typeof prevProps?.collectionId === "string" ? prevProps.collectionId : null,
+      typeof prevProps?.collectionId === "string"
+        ? prevProps.collectionId
+        : null,
     restore: { props: previous.props, extension: previous.extension },
   };
 }
@@ -767,6 +990,8 @@ export interface ApplyDataChangeResult {
   collectionIds: string[];
   /** ADR-214 — 영향 프로젝트 변수 id (upsert + delete). */
   variableIds: string[];
+  /** ADR-213 Phase 4 — 영향 API endpoint id (upsert + delete). */
+  endpointIds: string[];
 }
 
 export interface DataChangeHistoryPayload {
@@ -783,6 +1008,11 @@ type CollectionsDB = {
   variables?: {
     insert: (v: Variable) => Promise<Variable>;
     update: (id: string, updates: Partial<Variable>) => Promise<Variable>;
+    delete: (id: string) => Promise<void>;
+  };
+  api_endpoints?: {
+    insert: (ep: ApiEndpoint) => Promise<ApiEndpoint>;
+    update: (id: string, updates: Partial<ApiEndpoint>) => Promise<ApiEndpoint>;
     delete: (id: string) => Promise<void>;
   };
 };
@@ -805,6 +1035,7 @@ export const createApplyDataChangeAction =
   ): Promise<ApplyDataChangeResult> => {
     const before = get().collections;
     const beforeVariables = get().variables;
+    const beforeEndpoints = get().apiEndpoints;
     // 1. preflight (순수) — collections · variables reduce 전량 + binding 검증. 실패는 무변경.
     const { collectionOps, bindingOps } = partitionDataOps(change.ops);
     const touchesVariables = collectionOps.some(
@@ -813,6 +1044,7 @@ export const createApplyDataChangeAction =
     const result = reduceDataOps(before, collectionOps, {
       projectId: options.projectId,
       variables: beforeVariables,
+      apiEndpoints: beforeEndpoints,
       // ADR-214 HC5 — 문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다.
       ...(touchesVariables
         ? {
@@ -825,11 +1057,19 @@ export const createApplyDataChangeAction =
     const consumer = preflightBindingOps(bindingOps, result.collections);
     const variablesChanged =
       result.variablesUpserted.size > 0 || result.variablesDeleted.size > 0;
+    const endpointsChanged =
+      result.endpointsUpserted.size > 0 || result.endpointsDeleted.size > 0;
+    const statePatch = (reduced: ReduceResult): Partial<DataStoreState> => ({
+      collections: reduced.collections,
+      ...(variablesChanged ? { variables: reduced.variables } : {}),
+      ...(endpointsChanged ? { apiEndpoints: reduced.apiEndpoints } : {}),
+    });
 
     const persist = async (
       prev: Map<string, DataTable>,
       prevVariables: Map<string, Variable>,
       reduced: ReduceResult,
+      prevEndpoints: ReadonlyMap<string, ApiEndpoint> = beforeEndpoints,
     ): Promise<void> => {
       const db = (await getDB()) as unknown as CollectionsDB;
       const store = db.collections;
@@ -849,9 +1089,7 @@ export const createApplyDataChangeAction =
         const variablesStore = db.variables;
         if (!variablesStore)
           throw new Error("variables store not found in database");
-        const beforeIds = new Set(
-          [...prevVariables.values()].map((v) => v.id),
-        );
+        const beforeIds = new Set([...prevVariables.values()].map((v) => v.id));
         for (const id of reduced.variablesDeleted)
           await variablesStore.delete(id);
         for (const id of reduced.variablesUpserted) {
@@ -859,6 +1097,24 @@ export const createApplyDataChangeAction =
           if (!next) continue;
           if (beforeIds.has(id)) await variablesStore.update(id, next);
           else await variablesStore.insert(next);
+        }
+      }
+      // ADR-213 Phase 4 — API endpoint 축 저장 (IndexedDB `api_endpoints`, keyPath id)
+      if (
+        reduced.endpointsUpserted.size > 0 ||
+        reduced.endpointsDeleted.size > 0
+      ) {
+        const endpointsStore = db.api_endpoints;
+        if (!endpointsStore)
+          throw new Error("api_endpoints store not found in database");
+        const beforeIds = new Set([...prevEndpoints.values()].map((e) => e.id));
+        for (const id of reduced.endpointsDeleted)
+          await endpointsStore.delete(id);
+        for (const id of reduced.endpointsUpserted) {
+          const next = findEndpointById(reduced.apiEndpoints, id);
+          if (!next) continue;
+          if (beforeIds.has(id)) await endpointsStore.update(id, next);
+          else await endpointsStore.insert(next);
         }
       }
     };
@@ -875,11 +1131,7 @@ export const createApplyDataChangeAction =
       });
       throw error;
     }
-    set(
-      variablesChanged
-        ? { collections: result.collections, variables: result.variables }
-        : { collections: result.collections },
-    );
+    set(statePatch(result));
 
     // 3. canonical 축 commit — 실패 시 앞서 적용한 binding 과 collections·variables 를 역순 rollback
     const appliedBindings: BindElementOp[] = [];
@@ -910,14 +1162,16 @@ export const createApplyDataChangeAction =
         const rollback = reduceDataOps(result.collections, result.inverse, {
           projectId: options.projectId,
           variables: result.variables,
+          apiEndpoints: result.apiEndpoints,
         });
-        set(
-          variablesChanged
-            ? { collections: rollback.collections, variables: rollback.variables }
-            : { collections: rollback.collections },
-        );
+        set(statePatch(rollback));
         try {
-          await persist(result.collections, result.variables, rollback);
+          await persist(
+            result.collections,
+            result.variables,
+            rollback,
+            result.apiEndpoints,
+          );
         } catch (persistError) {
           console.error("❌ DataChange rollback 저장 실패:", persistError);
         }
@@ -933,9 +1187,14 @@ export const createApplyDataChangeAction =
       ...result.variablesUpserted,
       ...result.variablesDeleted,
     ];
+    const endpointIds = [
+      ...result.endpointsUpserted,
+      ...result.endpointsDeleted,
+    ];
     const affectedIds = [
       ...collectionIds,
       ...variableIds,
+      ...endpointIds,
       ...appliedBindings.map((op) => op.elementId),
     ];
 
@@ -961,5 +1220,5 @@ export const createApplyDataChangeAction =
     //   `useIframeMessenger` 의 variables useEffect (JSON 비교) 가 맡는다.
     if (collectionIds.length > 0) syncCollectionsToCanvas(result.collections);
 
-    return { applied, inverse, collectionIds, variableIds };
+    return { applied, inverse, collectionIds, variableIds, endpointIds };
   };

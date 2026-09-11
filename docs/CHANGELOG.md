@@ -24,6 +24,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Properties › Appearance › Palette** (`categorical` 기본 · `mono`): `mono` 는 테마 accent (`--tint`) 명도 사다리 4단 + neutral 4단 — Themes 패널에서 tint 를 바꾸면 차트도 따라간다 (CSS `oklch(from var(--tint) …)` ↔ Skia 같은 (L, chroma) 표). Series 섹션의 색 Select 는 선택된 팔레트의 순번을 보여 준다.
 - 토큰 `{color.chart-categorical-1..8}` · `{color.chart-accent-1..4}` (`--chart-categorical-N` 은 생성 `theme/generated/chart-palette.css`, `--chart-accent-N` 은 `preview-system.css`). rule `Chart.chart.palettes.{id}` → 생성 CSS `.react-aria-Chart[data-palette="id"]` 블록.
 
+## [ADR-213 Phase 1~4 — AI 데이터 tool 계약: 읽기 4 · "왜 실패했지?" · `propose_data_change` 승인 diff · bind_collection 정정] - 2026-09-11
+
+> 근거: `docs/adr/213-data-tool-contract-propose-review-apply.md` (리뷰 Round 2 승인) · evidence `docs/adr/evidence/213-p0-inventory.md` (로컬, G0·G1·G4·G3·G2 live 기록). Phase 5~7 (agent 명령 · 사람이 부르는 AI 3종 · closure) 는 진행 중 — Implemented 승격은 Phase 7.
+
+### Added
+
+- **AI 가 데이터를 읽는다**: `list_collections` · `get_collection` (스키마 + 샘플 ≤5행) · `list_api_endpoints` · `get_api_endpoint` (인증 header/query/기존 평문 토큰은 `{{secret.KEY}}` 로 가려짐) + 시스템 프롬프트에 collection 요약 절 (50개 · 이름 80자 · 8,192 B · 2,048 토큰 상한, 넘치면 "더 있음 N").
+- **AI 가 데이터를 바꾸려면 승인 diff 를 지난다**: 모델 대면 쓰기 tool 은 `propose_data_change` 하나 (스키마는 `dataChange.ts` 에서 파생 — 삭제 계열 op 없음 · origin 없음). 승인 다이얼로그가 테이블별 필드 추가/변경 · 행 수 + 샘플 3행 · 요소↔테이블 연결 · API 정의 (신규/변경, 헤더 키) · "사용처 N" 을 보여 주고, 승인하면 History 1건 (⌘Z 1회로 전체 원상). 거부하면 문서 무변경. `bind_collection` 도 같은 승인 경로 (종전 즉시 적용 · History 0 정정).
+- **"왜 실패했지?"** — AI 패널에서 "마지막 API 실행이 왜 실패했어?" 라고 물으면 `explain_request_failure` 가 정의 · 보낸 요청 · 응답 status/headers · 본문 앞 2KB · 대상 테이블 스키마를 (전부 가린 뒤) 모아 원인과 `define_endpoint` 패치 제안을 답한다. 제안은 `propose_data_change` 승인으로 적용 — 승인 시 `{{secret.KEY}}` 자리는 기존 값을 그대로 둔다 (AI 가 원문을 본 적이 없으므로).
+- **API 실행 스냅샷**: 실행 (성공/실패) 마다 endpoint 당 마지막 1건 (최종 URL · 헤더 · 응답 status/headers · 본문 앞 2KB) 을 세션에 남긴다. `list_api_endpoints` 의 `lastRun` 이 이것을 요약한다.
+- History 패널 라벨: "API 정의 — {name}" · "데이터 연결 — {name}".
+
+### Changed
+
+- `bind_collection` (AI tool): `{ elementId, collectionId | collectionName, fieldMap? }` 로 정정 — legacy `source:"static"` + 행은 새 테이블 생성 + 연결 한 묶음 (승인 1회), `source:"api"|"supabase"` 는 안내 오류.
+- `define_endpoint` 가 데이터 적용기에 들어왔다 (IndexedDB · 메모리 · History · rollback 이 collection · 바인딩과 한 트랜잭션). `delete_endpoint` 는 사람 전용 op (되돌리기 용).
+
 ## [Variables — 페이지 변수는 소유 페이지를 갖는다 (ADR-214 판정 C + 생성 경로 차단)] - 2026-09-11
 
 > 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 54 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더에서 exercise (page_id 없는 page 변수 로드 → Home 귀속 + write-back · Add Variable Page → page_id 저장 · 편집기 "Owner page: Home").
