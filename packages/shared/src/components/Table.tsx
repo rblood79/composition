@@ -27,7 +27,8 @@ import type {
   ColumnMapping,
   DataBindingValue,
 } from "../types";
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
+import type { CollectionProjectionRow } from "../collections";
 import { generateId } from "../utils";
 import "./styles/Table.css";
 import {
@@ -109,6 +110,28 @@ export function renderTableCellValue(value: unknown): React.ReactNode {
  * - tailwind-variants 제거
  * - data-variant, data-size 속성 사용
  */
+
+/**
+ * ADR-152 (Phase 3 deferred 후속): DOM Table 행 id = shared 정규화 행 key (`itemKey` —
+ * fieldMap value 역할 → 없으면 `id` 컬럼 휴리스틱). Skia `getTableProjectionRows` 의
+ * `getItemKey(item, i, roles)` 와 같은 값이라 두 leg 의 행 identity 가 일치한다.
+ * TanStack `getRowId` 는 정렬·페이지 slice 뒤의 index 를 주므로 원본 index 가 아니라
+ * item 참조로 찾는다 (object 가 아닌 행은 index 폴백).
+ */
+export function buildTableRowIdResolver(
+  rows: readonly CollectionProjectionRow[],
+): (item: unknown, index: number) => string {
+  const byItem = new WeakMap<object, string>();
+  for (const row of rows) {
+    if (typeof row.item === "object" && row.item !== null) {
+      byItem.set(row.item, row.itemKey);
+    }
+  }
+  return (item, index) =>
+    (typeof item === "object" && item !== null
+      ? byItem.get(item)
+      : undefined) ?? String(index);
+}
 
 export type PaginationMode = "pagination" | "infinite";
 
@@ -261,25 +284,25 @@ export default React.memo(function Table<T extends { id: string | number }>(
     skeletonRowCount = 5,
   } = props;
 
-  // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
-  const { data: boundData } = useCollectionData({
+  // ADR-152: raw useCollectionData → shared 정규화 (useResolvedCollectionItems, 다른 9종과
+  //   같은 DOM 진입점). 셀은 raw `row.item` 을 읽고 (TanStack accessor), 행 id 는 `itemKey`.
+  //   window limit 은 Table 이 자체 pagination/virtualizer 를 가지므로 해제.
+  //   legacy `{ type:"collection" }` 판별은 hook 안 normalizeDataBinding 몫 — 여기서 분류하지 않는다.
+  const { rows: resolvedRows } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
     componentName: "Table",
     fallbackData: [],
+    windowLimit: Number.MAX_SAFE_INTEGER,
   });
-
-  // PropertyDataBinding 형식 감지
-  const isPropertyBinding =
-    dataBinding &&
-    "source" in dataBinding &&
-    "name" in dataBinding &&
-    !("type" in dataBinding);
-  const hasDataBinding =
-    (!isPropertyBinding &&
-      dataBinding &&
-      "type" in dataBinding &&
-      dataBinding.type === "collection") ||
-    isPropertyBinding;
+  const boundData = React.useMemo(
+    () => resolvedRows.map((row) => row.item),
+    [resolvedRows],
+  );
+  const resolveBoundRowId = React.useMemo(
+    () => buildTableRowIdResolver(resolvedRows),
+    [resolvedRows],
+  );
+  const hasDataBinding = Boolean(dataBinding);
 
   // DataBinding 데이터가 있으면 사용, 없으면 staticData 사용
   const effectiveStaticData = React.useMemo(() => {
@@ -1186,6 +1209,8 @@ export default React.memo(function Table<T extends { id: string | number }>(
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    // ADR-152: 바인딩 행은 shared 행 key 를 id 로 (Skia 행 key 와 동일). 정적/async 행은 기존 index.
+    getRowId: hasDataBinding ? resolveBoundRowId : undefined,
     enableColumnResizing: enableResize,
     columnResizeMode: "onChange",
     debugTable: process.env.NODE_ENV === "development",
@@ -1543,6 +1568,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                 return (
                   <tr
                     key={row.id}
+                    data-key={row.id}
                     className="react-aria-Row"
                     role="row"
                     aria-rowindex={virtualRow.index + 1}

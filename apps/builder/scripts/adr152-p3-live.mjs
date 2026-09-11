@@ -68,9 +68,10 @@ async function readPreviewDom(page) {
         // 페이지에 select 가 여럿 (Table 의 페이지당 행 수 등) — Table 밖의 RAC Select hidden native select 만
         const selects = [...document.querySelectorAll("select")].filter((sel) => !sel.closest(".react-aria-Table, .table-pagination, [class*=pagination]"));
         const options = (selects[0] ? [...selects[0].options] : []).map((o) => o.value).filter((v) => v !== "");
-        // Table DOM 행은 data-key 가 없다 — body 행 수 (aria-rowcount) 로 Skia data 행 수와 대조
+        // Table DOM 행: aria-rowcount (행 수) + `tr.react-aria-Row[data-key]` (ADR-152 후속 — 행 id = shared itemKey)
         const tableEl = document.querySelector(".react-aria-Table");
         const tableRows = tableEl ? Number(tableEl.getAttribute("aria-rowcount") ?? 0) : 0;
+        const tableKeys = [...document.querySelectorAll(".react-aria-Table tr.react-aria-Row[data-key]")].map((n) => n.getAttribute("data-key")).sort();
         return {
           listTexts: items.map((n) => n.textContent.trim()),
           listKeys: items.map((n) => n.getAttribute("data-key")).sort(),
@@ -78,6 +79,7 @@ async function readPreviewDom(page) {
           imgs: items.reduce((acc, n) => acc + n.querySelectorAll("img").length, 0),
           options: options.sort(),
           tableRows,
+          tableKeys,
           tableCells: document.querySelectorAll(".react-aria-Table [role=gridcell], .react-aria-Table [role=rowheader]").length,
         };
       }).catch(() => null);
@@ -179,6 +181,8 @@ try {
   record("G2 ListBox icon 역할 (glyph 컬럼): Preview DOM 행 텍스트 `{label} [{icon}] {value}` = `User n [star|moon|sun] U-n`", JSON.stringify(domTpl?.listTexts) === JSON.stringify(["User 1 [star] U-1", "User 2 [moon] U-2", "User 3 [sun] U-3"]), JSON.stringify(domTpl?.listTexts));
   record("G2 Select: Preview DOM option value = uid 컬럼 (같은 useResolvedCollectionItems 행)", JSON.stringify(dom?.options) === JSON.stringify(["U-1", "U-2", "U-3"]), JSON.stringify(dom?.options));
   record("G2 Table: Skia 행 key = uid 컬럼 (value 역할) · data 행 3 = Preview DOM aria-rowcount 3 (columns 자동 감지)", JSON.stringify((skiaTable ?? []).filter((k) => k.startsWith("U-"))) === JSON.stringify(["U-1", "U-2", "U-3"]) && dom?.tableRows === 3, `skia ${JSON.stringify(skiaTable)} · dom rows ${dom?.tableRows} cells ${dom?.tableCells}`);
+  const domTableKeys = await pollUntil(() => readPreviewDom(page), (r) => r?.tableKeys?.length === 3, 20_000);
+  record("Table 후속: Preview DOM `tr[data-key]` = Skia 행 key (useResolvedCollectionItems → TanStack getRowId)", JSON.stringify(domTableKeys?.tableKeys) === JSON.stringify(["U-1", "U-2", "U-3"]), `dom ${JSON.stringify(domTableKeys?.tableKeys)}`);
   await page.screenshot({ path: `${OUT_DIR}/01-fieldmap-uid-glyph.png` });
 
   // icon 을 이미지 컬럼으로 → DOM img (glyph 0)

@@ -94,7 +94,11 @@ export function useResolvedCollectionItems(
   const hasBoundRows = Boolean(dataBinding);
   const hasStaticItems = Array.isArray(items) && items.length > 0;
 
-  return useMemo<UseResolvedCollectionItemsResult>(() => {
+  // 행 정규화는 데이터 deps 로만 memo — `reload` 는 useAsyncList 가 렌더마다 새 객체를 주므로
+  //   (useCollectionData 의 useCallback 이 `list` 를 dep 으로 갖는다) 한 memo 에 묶으면 rows 가
+  //   렌더마다 새 배열이 되고, rows 변경에 setState 하는 소비자 (Table 의 컬럼 자동 감지) 가
+  //   "Maximum update depth exceeded" 로 돈다 (ADR-152 Table 정렬 live 실측).
+  const resolved = useMemo(() => {
     const sourceRows: unknown[] = hasBoundRows
       ? boundData
       : hasStaticItems
@@ -122,9 +126,6 @@ export function useResolvedCollectionItems(
       rows,
       sourceKind,
       totalRows: sourceRows.length,
-      loading,
-      error,
-      reload,
       fieldRoles: roles,
     };
     // boundData/items 참조 동일성 + 길이 기반 — hasBoundRows/hasStaticItems 가 deps 대표.
@@ -136,8 +137,10 @@ export function useResolvedCollectionItems(
     windowLimit,
     dataBinding,
     schema,
-    loading,
-    error,
-    reload,
   ]);
+
+  return useMemo<UseResolvedCollectionItemsResult>(
+    () => ({ ...resolved, loading, error, reload }),
+    [resolved, loading, error, reload],
+  );
 }

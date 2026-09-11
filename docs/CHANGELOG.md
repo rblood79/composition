@@ -25,13 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **publish · export 의 collection snapshot**: 헤더 Preview payload 와 export JSON 이 `{ id, name, schema, mockData, useMockData }` 만 담는다 (runtimeData · 저장소 메타 제외). export schema 가 필드 `id` · `required` · `defaultValue` 를 strip 하던 결함 수리 — import 후에도 fieldId 참조가 유지된다.
+- **Table Preview 행 identity**: Table DOM wrapper 가 다른 9종과 같은 `useResolvedCollectionItems` 를 지나 행 id (`tr[data-key]` · 선택 key) 가 fieldMap value 역할 (없으면 `id` 컬럼) 을 따른다 — Builder Skia 행 key 와 동일. 셀 값은 그대로. 같이 수리: `useResolvedCollectionItems` 의 rows 가 렌더마다 새 배열이던 것 (reload identity 에 묶임) — rows 에 반응해 setState 하는 소비자가 "Maximum update depth exceeded" 로 돌 수 있었다 (Table 정렬 live 에서 실측, 회귀 테스트 추가).
 - **TagGroup Preview 행 key**: DOM 이 raw `id` 로 정규화 key 를 덮어 Skia (`U-1..3`) 와 달랐던 것 (`auto-1..3`) 을 spread 순서 수리로 대칭.
 
 ### Architecture
 
 - collections read 경로 단일화: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` (Tabs · Tree 도 정렬), `datatableId` · `elementId` 옵션과 `DataTableService.addConsumer/removeConsumer/loadDataTable` · supabase 분기 제거. `useDataStore.collections` Map 은 id 키, resolve 는 `resolveBoundCollection` 하나.
 - store 단일화: legacy `stores/datatable.ts` · `components/data/DataTable.tsx` · `hooks/useDataQueries.ts` 삭제 (사용자 승인) — `BuilderCore` 의 `LOAD_DATA_TABLE` / `SAVE_TO_DATA_TABLE` 과 `DataTablePanel` 이 `useDataStore` 만 읽는다 (React Query 병행 제거).
-- `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 잔여 (기록만): `types/datatable.types.ts` 고아 · `main.tsx` `QueryClientProvider` 소비처 0 · Table DOM wrapper 의 `useResolvedCollectionItems` 정렬 (LOW) · publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
+- `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 잔여 (기록만): `types/datatable.types.ts` 고아 · `main.tsx` `QueryClientProvider` 소비처 0 · publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
 
 ## [데이터 패널 Track 0 결함 수리 — 응답 행 자동 감지 · 필드 key 변경 시 행 이전 · 편집기 첫 열림 폭 · prompt/confirm/alert 제거] - 2026-09-11
 
