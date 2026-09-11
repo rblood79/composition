@@ -56,12 +56,14 @@ interface VariableDef {
 
 ### Phase 0 — Inventory freeze (게이트 G0)
 
-- [ ] `runtimeStore` appState/pageStates 실제 형상 · `UPDATE_VARIABLES` payload · publish 런타임 store 유무
-- [ ] ADR-112 projected instance id 규약 실측 (`canvasSceneNode.ts` · preview 렌더 노드 key) → `instanceKey` 정의 (R3)
-- [ ] `CAPABILITY_REGISTRY` 에서 암묵 상태 후보 표 (컴포넌트별 RAC value/selection prop)
-- [ ] Properties 패널 fieldset/legend 절 패턴 (메모리 `feedback-panel-field-group-fieldset-legend-pattern`) · Navigator 페이지 항목 설정 진입 유무
-- [ ] 기존 프로젝트의 `Variable.scope` 분포 (global/page/component 건수) — lazy 변환 대상
-- [ ] component scope의 프로젝트별·전체 비율, canonical→legacy copy/duplicate/paste 경로, 현재 localStorage persist key와 project 전환 동작
+> 완료 2026-09-11 — 실측 표: `docs/adr/evidence/214-p0-inventory.md` (local-only). scope 분포는 fixture 0 · IndexedDB 는 CLI 계수 불가 → 계수기 `countVariableOwnerMigration` 으로 메인 세션이 live 1회 계수. `page` without `page_id` 사례 (HC3 미정의) 는 project + `owner-unresolved` 로 결정 (evidence §5).
+
+- [x] `runtimeStore` appState/pageStates 실제 형상 · `UPDATE_VARIABLES` payload · publish 런타임 store 유무
+- [x] ADR-112 projected instance id 규약 실측 (`canvasSceneNode.ts` · preview 렌더 노드 key) → `instanceKey` 정의 (R3)
+- [x] `CAPABILITY_REGISTRY` 에서 암묵 상태 후보 표 (컴포넌트별 RAC value/selection prop)
+- [x] Properties 패널 fieldset/legend 절 패턴 (메모리 `feedback-panel-field-group-fieldset-legend-pattern`) · Navigator 페이지 항목 설정 진입 유무
+- [x] 기존 프로젝트의 `Variable.scope` 분포 (global/page/component 건수) — lazy 변환 대상
+- [x] component scope의 프로젝트별·전체 비율, canonical→legacy copy/duplicate/paste 경로, 현재 localStorage persist key와 project 전환 동작
 
 ### Phase 1 — 모델 + 가시성 + 저장 (게이트 G1)
 
