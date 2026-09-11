@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import {
   categoryColorIndex,
+  clampWindowRange,
   resolveChartData,
   resolveChartAnimation,
   resolveCategoryBand,
@@ -163,11 +164,16 @@ export function RechartsChart({
   //   판정한다 (memo 참조 동일성은 성능 힌트지 의미 보증이 아니다). `size` 만 바뀌면 모델의 clamp
   //   (`clampWindowStart`) 가 자리를 맞춘다.
   const resetKey = `${props.chartType}|${props.dataMode ?? ""}|${props.budgetOverflow ?? ""}|${rowsKey}`;
+  //   ADR-216: `[start, end]` — end 는 뷰 상태 (미지정 = start + fitEff, 211 과 같은 창); 최소 창·
+  //   resize 는 모델의 `clampWindowRange` 가 맞춘다.
   const [windowState, setWindowState] = useState<{
     key: string;
     start: number;
+    end?: number;
   }>({ key: resetKey, start: 0 });
-  const windowStart = windowState.key === resetKey ? windowState.start : 0;
+  const windowLive = windowState.key === resetKey;
+  const windowStart = windowLive ? windowState.start : 0;
+  const windowEnd = windowLive ? windowState.end : undefined;
   // ADR-211 — Canvas 와 같은 `resolveChartModel` 경로: 행 상한 `R` · 슬롯 예산 `fit` · 창을
   //   같은 입력 (`size` · metrics) 으로 푼다. 창 `start` 만 두 leg 가 갈린다 (Canvas 0).
   //   `props` 는 Chart.tsx 가 memo 로 안정화한 객체라 값이 같으면 identity 도 같다.
@@ -177,6 +183,7 @@ export function RechartsChart({
         size,
         metrics,
         windowStart,
+        windowEnd,
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -187,6 +194,7 @@ export function RechartsChart({
       size,
       metrics,
       windowStart,
+      windowEnd,
     ],
   );
   const { grid, keys, bands, ticks, stackMode, presentation } = model;
@@ -1034,18 +1042,24 @@ export function RechartsChart({
     reducedMotion,
   ]);
   // ADR-211 창 트랙 — layout 이 예약한 자리 (플롯 아래) 에 뷰 상태 Slider (`windowTrack.tsx`).
+  //   ADR-216: thumb 2 — 손잡이 = 한쪽 경계, 본체 드래그 = 길이 보존 이동. clamp 는 모델과 같은 함수.
   const track = model.layout.windowTrack;
   const win = model.budget.window;
-  const maxStart = model.budget.n - model.budget.fitEff;
-  if (!track || !win || maxStart <= 0 || !presentation.ok) return chart;
+  const total = model.budget.n;
+  const fitEff = model.budget.fitEff;
+  if (!track || !win || total <= fitEff || !presentation.ok) return chart;
   return (
     <>
       {chart}
       {renderWindowTrack({
         track,
         start: win.start,
-        maxStart,
-        onChange: (start) => setWindowState({ key: resetKey, start }),
+        end: win.end,
+        n: total,
+        onChange: (start, end) => {
+          const next = clampWindowRange(start, end, total, fitEff);
+          setWindowState({ key: resetKey, start: next.start, end: next.end });
+        },
       })}
     </>
   );

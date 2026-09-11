@@ -85,6 +85,6 @@
 - [x] P2 모델 분기 + `positions` 보존 + 손계산 oracle 3 fixture + validator + 진단 (파싱 실패 제외) (2026-09-12 — `adr216TimeScale.test.ts` 18: window·extrema·aggregate 손계산 x · 두 leg axes JSON 동일 · bar/pie 거부 · 파싱 실패 3 진단 · HC1 byte 동일; 손계산 정정 1: extrema 는 domain 끝이 transformed max (Jan 9))
 - [x] P3 두 leg 소비 + parity byte 동일 (2026-09-12 — Skia allowlist 3 키 · DOM `RechartsChart` position=epoch + `resolveCategoryBand` 공용 + `Chart.tsx` 결선; `adr216TimeScale.browser.test.tsx` 3 (Recharts 꼭짓점 x = scene ±0.5 · 2단 라벨 byte 동일 · category 무변경) · `chartParity.test.tsx` +2 (Skia path d = DOM d))
 - [x] P4 props 결선 9 지점 + 패널 + i18n (2026-09-12 — accepts 3 · propPassthrough · toRacProps 투영 테스트 · Chart.tsx · Skia allowlist · validator · `ChartTimeAxisControls.tsx` (신규, dimension 매핑 아래 — ADR 의 `ChartPresentationControls.tsx` 는 실재하지 않는 파일명, 정정) + PropertiesPanel 1 지점 · i18n ko/en 10 키 + labels 맵 · 패널 테스트 2)
-- [ ] P5 가변 창 + 최소 창 `min(fitEff, n)` 불변식 (n < fitEff · resize) + 극값 재추출 + 트랙 thumb 2 (211 기대값 갱신)
+- [x] P5 가변 창 + 최소 창 `min(fitEff, n)` 불변식 (n < fitEff · resize) + 극값 재추출 + 트랙 thumb 2 (211 기대값 갱신) (2026-09-12 — `clampWindowRange` · `windowEnd` 뷰 상태 · `windowReduced` (창 조각 극값/집계) · Canvas thumb 2 + 채움 (`index / n` 매핑 — 문서의 "track.x + track.w" 는 end = n 일 때의 자리, 정정) · DOM 2-thumb Slider + 본체 드래그 (MODE_DRAG) · `adr216Window.test.ts` 9 · adr211 unit/browser 기대값 갱신 (thumb 추가 diff 뿐) · chart browser 223)
 - [ ] P6 번들·프레임 실측 + live 하니스
 - [ ] P7 closure (evidence · README · CHANGELOG · Live Exercise · T12)

@@ -546,7 +546,18 @@ export function computeChartScene(
   // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.
   if (labels.length > 0) marks = [...marks, ...labels];
   // ADR-211 창 트랙 — DOM 은 같은 자리에 Slider 를 얹고 Canvas 는 비활성 트랙을 그린다.
-  if (windowTrack) marks = [...marks, ...buildWindowTrackMarks(windowTrack)];
+  //   ADR-216: thumb 2 — Canvas 는 초기 창 `[0, min(fitEff, n)]` (Preview 초기 상태와 같은 자리).
+  if (windowTrack) {
+    const win = model.budget.window ?? { start: 0, end: 0 };
+    marks = [
+      ...marks,
+      ...buildWindowTrackMarks(windowTrack, {
+        start: win.start,
+        end: win.end,
+        n: model.budget.n,
+      }),
+    ];
+  }
 
   return {
     size: normalizedSize,

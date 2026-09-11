@@ -589,7 +589,10 @@ export function categoryColorIndex(
 export interface ChartWindow {
   /** 시작 범주 index (clamp 뒤) */
   start: number;
-  /** 끝 (exclusive) — `min(n, start + fitEff)` */
+  /**
+   * 끝 (exclusive). ADR-211 은 `min(n, start + fitEff)` 고정, ADR-216 부터 뷰 상태 (`windowEnd`) —
+   * 불변식 `0 ≤ start < end ≤ n` · `end − start ≥ min(fitEff, n)` (`clampWindowRange`).
+   */
   end: number;
 }
 
@@ -617,6 +620,11 @@ export interface DisplayBudget {
   aggregate: ChartBudgetAggregate;
   /** 창 모드의 visible 구간 (다른 모드는 null — transformed = visible) */
   window: ChartWindow | null;
+  /**
+   * ADR-216 — 창이 fitEff 보다 넓어 visible 을 극값/집계로 다시 맞췄는가 (`[start, end)` 구간이 입력,
+   * 211 §2.4 적응 B 그대로). 창 길이 ≤ fitEff 면 null.
+   */
+  windowReduced: "extrema" | "aggregate" | null;
   /** bucket 수 (aggregate · extrema 적용 시) */
   B: number | null;
   /** 극값 선택의 적응 단계 (extrema 적용 시) */
@@ -640,9 +648,49 @@ export interface DisplayBudgetInput {
   aggregate?: ChartBudgetAggregate;
   /** 창 시작 (Canvas 0 · DOM 뷰 상태). clamp 는 여기서. */
   windowStart?: number;
+  /** ADR-216 — 창 끝 (exclusive, 뷰 상태). 미지정 = `start + fitEff` (211 과 같은 창). */
+  windowEnd?: number;
 }
 
-/** §2.5 clamp — `clamp(start, 0, max(0, n − fitEff))`. 마지막 창도 길이가 같다. */
+/**
+ * ADR-216 §2.3 — 창 `[start, end]` 의 불변식 `0 ≤ start < end ≤ n` · `end − start ≥ min(fitEff, n)`.
+ * `anchor` 가 `start` (기본) 면 start 를 지키고 end 를 밀고, `end` 면 end 를 지키고 start 를 당긴다
+ * (DOM 은 움직인 thumb 의 반대쪽을 anchor 로 준다). `end` 미지정 = `start + fitEff` (211 과 같은 창).
+ * `n = 0` 이면 `[0, 0]`, `fitEff = 0` (plot-too-small) 이면 211 처럼 `[start, start)` 빈 창. resize 로
+ * fitEff 가 커져 창이 최소보다 좁아지면 end 를 늘리고, n 에서 부족한 만큼 start 를 줄인다 (m4).
+ */
+export function clampWindowRange(
+  start: number,
+  end: number | undefined,
+  n: number,
+  fitEff: number,
+  anchor: "start" | "end" = "start",
+): ChartWindow {
+  if (n <= 0) return { start: 0, end: 0 };
+  const minWin = Math.max(0, Math.min(fitEff, n));
+  let s = Number.isFinite(start) ? Math.floor(start) : 0;
+  let e =
+    end !== undefined && Number.isFinite(end) ? Math.floor(end) : s + fitEff;
+  s = Math.min(Math.max(0, s), n);
+  e = Math.min(Math.max(0, e), n);
+  if (anchor === "end") {
+    if (e < minWin) e = minWin;
+    if (e - s < minWin) s = e - minWin;
+    if (s < 0) {
+      s = 0;
+      e = minWin;
+    }
+    return { start: s, end: e };
+  }
+  if (e - s < minWin) e = s + minWin;
+  if (e > n) {
+    e = n;
+    s = Math.max(0, n - minWin);
+  }
+  return { start: s, end: e };
+}
+
+/** §2.5 clamp — `clamp(start, 0, max(0, n − fitEff))`. 마지막 창도 길이가 같다 (211 — `clampWindowRange` 의 end 미지정과 같은 값). */
 export function clampWindowStart(
   start: number,
   n: number,
@@ -675,12 +723,10 @@ export function resolveDisplayBudget(input: DisplayBudgetInput): DisplayBudget {
       value: String(fit),
     });
   }
+  // ADR-216 — `[start, end]` 뷰 상태 (end 미지정 = 211 의 고정 길이 창과 같은 값).
   const window: ChartWindow | null =
     mode === "window"
-      ? (() => {
-          const start = clampWindowStart(input.windowStart ?? 0, n, fitEff);
-          return { start, end: Math.min(n, start + fitEff) };
-        })()
+      ? clampWindowRange(input.windowStart ?? 0, input.windowEnd, n, fitEff)
       : null;
   return {
     fit,
@@ -694,6 +740,7 @@ export function resolveDisplayBudget(input: DisplayBudgetInput): DisplayBudget {
     applied: null,
     aggregate: input.aggregate ?? "sum",
     window,
+    windowReduced: null,
     B: null,
     extremaSteps: null,
     othersIndex: null,
@@ -800,11 +847,51 @@ export function applyBudget(
       };
     }
   }
-  const visible = budget.window
+  let visible = budget.window
     ? applyWindow(transformed, budget.window)
     : transformed;
+  // ADR-216 §2.3 — 넓힌 창: `[start, end)` 조각이 fitEff 를 넘으면 그 조각을 입력으로 극값 (line/area
+  //   비누적) 또는 집계 (bar · 누적) 로 fitEff 슬롯에 맞춘다. 예산 (M · P) 은 창 크기와 무관하게 유지.
+  let windowReduced: DisplayBudget["windowReduced"] = null;
+  if (
+    budget.window &&
+    budget.fitEff > 0 &&
+    visible.categories.length > budget.fitEff
+  ) {
+    const reduce = defaultBudgetMode(options.kind, "ordinal", options.stacked);
+    if (reduce === "extrema") {
+      const picked = selectExtrema(
+        visible,
+        budget.fitEff,
+        budget.k,
+        options.metrics,
+      );
+      extremaSteps = picked.steps;
+      if (picked.fallback) {
+        windowReduced = "aggregate";
+        B = budget.fitEff;
+        visible = aggregateBuckets(visible, B, budget.aggregate);
+      } else {
+        windowReduced = "extrema";
+        B = picked.B;
+        visible = pickCategories(visible, picked.indices);
+      }
+    } else {
+      windowReduced = "aggregate";
+      B = budget.fitEff;
+      visible = aggregateBuckets(visible, B, budget.aggregate);
+    }
+  }
   return {
-    budget: { ...budget, applied, B, extremaSteps, othersIndex, diagnostics },
+    budget: {
+      ...budget,
+      applied,
+      windowReduced,
+      B,
+      extremaSteps,
+      othersIndex,
+      diagnostics,
+    },
     transformed,
     visible,
   };

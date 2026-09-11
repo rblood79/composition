@@ -160,6 +160,7 @@ export {
   supportsBudgetMode,
   budgetSweep,
   capRows,
+  clampWindowRange,
   clampWindowStart,
   defaultBudgetMode,
   markFactor,

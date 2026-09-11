@@ -50,6 +50,8 @@ export interface ChartModelView {
   metrics: ChartMetrics;
   /** 창 시작 — Canvas 는 항상 0, DOM 은 뷰 상태. 미지정 0. */
   windowStart?: number;
+  /** ADR-216 — 창 끝 (exclusive). 미지정 = `start + fitEff` (Canvas · 211 과 같은 창). */
+  windowEnd?: number;
 }
 
 export interface ChartModel {
@@ -166,6 +168,7 @@ export function resolveChartModel(
         overflow: settings.overflow,
         aggregate: settings.aggregate,
         windowStart: view.windowStart,
+        windowEnd: view.windowEnd,
       }),
     };
   };

@@ -139,7 +139,7 @@ describe("ADR-211 P3 — 창 트랙 예약", () => {
 });
 
 describe("ADR-211 P3 — Canvas 비활성 트랙 마크", () => {
-  it("scene 끝에 트랙 막대 (grid 채움) + 창 0 thumb (axis 채움) 가 실리고 scene.windowTrack 이 자리다", () => {
+  it("scene 끝에 트랙 막대 (grid 채움) + 창 채움 + thumb 2 (axis 채움 — ADR-216 HC1 예외) 가 실리고 scene.windowTrack 이 자리다", () => {
     const size = { width: 400, height: 300 };
     const props = bar();
     const scene = computeChartScene(props, categoryRows(200), size, metrics);
@@ -148,12 +148,15 @@ describe("ADR-211 P3 — Canvas 비활성 트랙 마크", () => {
       metrics,
     });
     expect(scene.windowTrack).toEqual(model.layout.windowTrack);
-    const tail = scene.marks.slice(-2);
+    // ADR-216: [막대, 창 채움, thumb start, thumb end] — 211 의 [막대, thumb] 에 채움·thumb 하나가 더해진 것뿐.
+    const tail = scene.marks.slice(-4);
     expect(tail.map((m) => (m.kind === "path" ? m.fillRole : null))).toEqual([
       "grid",
       "axis",
+      "axis",
+      "axis",
     ]);
-    const [barMark, thumb] = tail as Array<
+    const [barMark, fill, thumb0, thumb1] = tail as Array<
       Extract<(typeof tail)[number], { kind: "path" }>
     >;
     const track = scene.windowTrack!;
@@ -162,9 +165,15 @@ describe("ADR-211 P3 — Canvas 비활성 트랙 마크", () => {
     expect(barMark.bbox.y + barMark.bbox.h / 2).toBeCloseTo(
       track.y + track.h / 2,
     );
-    expect(thumb.bbox.w).toBe(CHART_WINDOW_THUMB);
-    // thumb 중심 = 트랙 왼쪽 끝 (창 0 = Slider 0%).
-    expect(thumb.bbox.x + thumb.bbox.w / 2).toBeCloseTo(track.x);
+    expect(thumb0.bbox.w).toBe(CHART_WINDOW_THUMB);
+    // thumb 중심 = 트랙 왼쪽 끝 (창 0 = Slider 0%) — 211 과 같은 자리.
+    expect(thumb0.bbox.x + thumb0.bbox.w / 2).toBeCloseTo(track.x);
+    // 끝 thumb = fitEff / n (Slider `maxValue n` 의 같은 매핑) · 채움은 두 thumb 사이.
+    const { fitEff, n } = model.budget;
+    const endX = track.x + (track.w * fitEff) / n;
+    expect(thumb1.bbox.x + thumb1.bbox.w / 2).toBeCloseTo(endX, 1);
+    expect(fill.bbox.x).toBeCloseTo(track.x);
+    expect(fill.bbox.w).toBeCloseTo(endX - track.x, 1);
     // 데이터 마크 (rect) 수는 트랙과 무관하게 fitEff 다.
     expect(scene.marks.filter((m) => m.kind === "rect")).toHaveLength(
       model.budget.fitEff,
