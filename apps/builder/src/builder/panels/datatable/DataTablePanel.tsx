@@ -25,7 +25,6 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import type { PanelProps } from "../core/types";
 import { useDataStore } from "../../stores/data";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
-import { useDataPanelQuery } from "@/builder/hooks";
 import {
   PanelHeader,
   EmptyState,
@@ -64,15 +63,9 @@ export function DataTablePanel({ isActive }: PanelProps) {
   // 초기 로딩 트래킹 - 프로젝트별로 한 번만 로드
   const initialLoadedRef = useRef<string | null>(null);
 
-  // 🚀 Phase 6: React Query로 데이터 fetching
-  // - enabled: isActive && !!currentProjectId → 패널 비활성 시 fetching 안함
-  // - staleTime: 5분 캐싱 → 중복 요청 방지
-  // - 자동 dedupe → 같은 요청 동시 발생 시 1회만 실행
-  const { isLoading, refetch } = useDataPanelQuery(currentProjectId, {
-    enabled: isActive,
-  });
-
-  // Zustand Store는 여전히 사용 (mutations 및 Canvas 동기화)
+  // ADR-152 Phase 5: React Query 병행 제거 — store 가 IndexedDB 의 유일한 읽기 경로다
+  //   (같은 DB 를 두 캐시가 따로 읽어 새로고침이 두 번 돌고, 패널은 query 결과를 쓰지 않았다).
+  const isLoading = useDataStore((state) => state.isLoading);
   const fetchCollections = useDataStore((state) => state.fetchCollections);
   const fetchApiEndpoints = useDataStore((state) => state.fetchApiEndpoints);
   const fetchVariables = useDataStore((state) => state.fetchVariables);
@@ -142,9 +135,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
 
   const handleRefresh = () => {
     if (currentProjectId) {
-      // 🚀 Phase 6: React Query refetch + Zustand store 동기화
-      refetch();
-      // Zustand Store도 업데이트 (Canvas 동기화용)
+      // store fetch 만 (IndexedDB → 메모리 → Canvas 동기화)
       fetchCollections(currentProjectId);
       fetchApiEndpoints(currentProjectId);
       fetchVariables(currentProjectId);

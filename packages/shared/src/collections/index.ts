@@ -11,5 +11,6 @@ export * from "./cellValue";
 export * from "./fieldTemplate";
 export * from "./fieldTemplateStorage";
 export * from "./resolveBoundCollection";
+export * from "./normalizeDataBinding";
 export * from "./resolveCollectionItems";
 export * from "./selectDisplayValue";

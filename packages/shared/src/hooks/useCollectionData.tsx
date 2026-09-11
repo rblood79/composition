@@ -13,6 +13,7 @@
 import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
 import { registerFieldIds } from "@composition/specs";
 import { resolveBoundCollection } from "../collections/resolveBoundCollection";
+import { normalizeDataBinding } from "../collections/normalizeDataBinding";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useAsyncList } from "react-stately";
 import type {
@@ -224,8 +225,6 @@ export function useCollectionData({
   dataBinding,
   componentName,
   fallbackData = [],
-  datatableId,
-  elementId,
 }: UseCollectionDataOptions): UseCollectionDataResult {
   // DI 서비스 접근
   const services = useCollectionDataServices();
@@ -235,11 +234,6 @@ export function useCollectionData({
     mockApiService,
     isCanvasContext,
   } = services;
-
-  // DataTable 상태 조회
-  const datatableState = datatableId
-    ? dataTableService?.getDataTableState(datatableId)
-    : undefined;
 
   // DataTable 목록 조회
   const collections = useMemo(
@@ -252,22 +246,6 @@ export function useCollectionData({
     () => apiEndpointService?.getApiEndpoints() ?? [],
     [apiEndpointService],
   );
-
-  // DataTable consumer 등록/해제
-  useEffect(() => {
-    if (datatableId && elementId && dataTableService) {
-      dataTableService.addConsumer?.(datatableId, elementId);
-
-      // DataTable이 아직 로드되지 않았으면 로드
-      if (!datatableState || datatableState.status === "idle") {
-        dataTableService.loadDataTable?.(datatableId);
-      }
-
-      return () => {
-        dataTableService.removeConsumer?.(datatableId, elementId);
-      };
-    }
-  }, [datatableId, elementId, dataTableService, datatableState]);
 
   // 정렬 상태
   const [sortDescriptor, setSortDescriptor] = useState<{
@@ -288,7 +266,12 @@ export function useCollectionData({
     }
   }, [dataBinding]);
 
-  const stableDataBinding = useMemo(() => dataBinding, [dataBindingKey]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ADR-152 Phase 5: legacy `{ type:"collection" }` 가 collection 을 가리키면 v2 로 올린다 —
+  //   아래 propertyBinding 경로 (resolveBoundCollection) 하나로 읽는다. inline static/api 는 그대로.
+  const stableDataBinding = useMemo(
+    () => normalizeDataBinding(dataBinding) as typeof dataBinding,
+    [dataBindingKey], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   const propertyBinding = asPropertyBinding(stableDataBinding);
   const propertyBindingFormat = propertyBinding !== null;
@@ -405,32 +388,27 @@ export function useCollectionData({
         return { items: [] };
       }
 
-      // datatableId가 있으면 DataTable Store에서 데이터 사용
-      if (datatableId) {
-        return { items: [] };
-      }
-
-      // Legacy collection 흐름
-      if (!dataBinding || dataBinding.type !== "collection") {
+      // Legacy collection 흐름 — inline static · api 만 (collection 참조는 위 normalize 가 v2 로
+      //   올렸다. datatableId 경로는 Phase 5 에서 제거 — 소비처 0, G0).
+      const legacyBinding = stableDataBinding;
+      if (!legacyBinding || legacyBinding.type !== "collection") {
         return { items: [] };
       }
 
       try {
         let items: Record<string, unknown>[] = [];
 
-        if (dataBinding.source === "static") {
-          items = await loadStaticData(dataBinding);
-        } else if (dataBinding.source === "api") {
+        if (legacyBinding.source === "static") {
+          items = await loadStaticData(legacyBinding);
+        } else if (legacyBinding.source === "api") {
           items = await loadApiData(
-            dataBinding,
+            legacyBinding,
             fallbackData,
             signal,
             mockApiService,
           );
-        } else if (dataBinding.source === "supabase") {
-          throw new Error("Supabase data binding not yet implemented");
         } else {
-          throw new Error(`Unknown data source: ${dataBinding.source}`);
+          throw new Error(`Unknown data source: ${legacyBinding.source}`);
         }
 
         return { items };
@@ -477,8 +455,6 @@ export function useCollectionData({
 
     if (dataTableData) {
       sourceData = dataTableData;
-    } else if (datatableId && datatableState) {
-      sourceData = datatableState.data;
     } else {
       sourceData = list.items;
     }
@@ -515,14 +491,7 @@ export function useCollectionData({
     }
 
     return result;
-  }, [
-    list.items,
-    filterText,
-    sortDescriptor,
-    datatableId,
-    datatableState,
-    dataTableResult,
-  ]);
+  }, [list.items, filterText, sortDescriptor, dataTableResult]);
 
   // 페이지네이션 지원 (향후 구현)
   const loadMore = undefined;
@@ -530,10 +499,6 @@ export function useCollectionData({
 
   // reload 함수
   const reload = useCallback(() => {
-    if (datatableId && dataTableService) {
-      dataTableService.loadDataTable?.(datatableId);
-      return;
-    }
     if (
       propertyBinding &&
       propertyBinding.source === "api" &&
@@ -547,14 +512,7 @@ export function useCollectionData({
       return;
     }
     list.reload();
-  }, [
-    datatableId,
-    dataTableService,
-    list,
-    propertyBinding,
-    stableDataBinding,
-    bindingCacheKey,
-  ]);
+  }, [list, propertyBinding, stableDataBinding, bindingCacheKey]);
 
   // Auto-refresh 기능
   useEffect(() => {
@@ -581,9 +539,7 @@ export function useCollectionData({
     ? isApiBinding
       ? list.isLoading
       : isDataTablePending
-    : datatableId
-      ? datatableState?.status === "loading"
-      : list.isLoading;
+    : list.isLoading;
 
   const error = propertyBindingFormat
     ? isApiBinding
@@ -595,9 +551,7 @@ export function useCollectionData({
         : !dataTableResult && stableDataBinding && !isDataTablePending
           ? `DataTable을 찾을 수 없습니다`
           : null
-    : datatableId
-      ? datatableState?.error || null
-      : list.loadingState === "error" && list.error
+    : list.loadingState === "error" && list.error
         ? list.error.message
         : null;
 

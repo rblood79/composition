@@ -1,6 +1,7 @@
 import { registerFieldIds, resolveFieldRef } from "@composition/specs";
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
 import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
+import { normalizeDataBinding } from "./normalizeDataBinding";
 /**
  * collection items 단일 계약 (ADR-912 영역 B 연장) — DOM wrapper / Skia projector 공통 source.
  *
@@ -216,9 +217,11 @@ export function isProjectionRowsInput(
  * collections store 에서 mockData/runtimeData 선택.
  */
 export function readDataBindingRows(
-  dataBinding: unknown,
+  rawDataBinding: unknown,
   collections: readonly CollectionDataSource[] = [],
 ): unknown[] {
+  // ADR-152 Phase 5: legacy collection 참조 → v2 (DOM useCollectionData 와 같은 normalize)
+  const dataBinding = normalizeDataBinding(rawDataBinding);
   if (!isRecord(dataBinding)) return [];
 
   if (

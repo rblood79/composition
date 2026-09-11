@@ -349,7 +349,6 @@ export function Chart({
   } = useCollectionData({
     dataBinding: dataBinding as DataBinding,
     componentName: "Chart",
-    elementId: rest["data-element-id"] as string | undefined,
   });
   const rows = dataBinding ? boundRows : (data ?? []);
   const label = ariaLabel ?? getChartDescriptor(chartProps.chartType).label;

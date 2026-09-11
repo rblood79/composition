@@ -40,10 +40,6 @@ export interface UseResolvedCollectionItemsOptions {
   componentName: string;
   /** dataBinding 미해소 시 fallback (useCollectionData 경유). */
   fallbackData?: Record<string, unknown>[];
-  /** DataTable ID (dataBinding 대신). */
-  datatableId?: string;
-  /** 컴포넌트 ID (DataTable consumer 등록용). */
-  elementId?: string;
   /** window limit (기본 100). */
   windowLimit?: number;
 }
@@ -76,8 +72,6 @@ export function useResolvedCollectionItems(
     items,
     componentName,
     fallbackData = [],
-    datatableId,
-    elementId,
     windowLimit = COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   } = options;
 
@@ -92,14 +86,12 @@ export function useResolvedCollectionItems(
     dataBinding,
     componentName,
     fallbackData,
-    datatableId,
-    elementId,
   });
 
   // dataBinding 이 실제 행을 산출했는지 — 산출했으면 boundData, 아니면 정적 items.
   //   resolveCollectionItems 순수 계약의 우선순위와 동일 (dataBinding 우선 → props.items).
   //   단 DOM 은 dataBinding 해소가 useCollectionData 책임이므로 boundData.length 로 판정.
-  const hasBoundRows = Boolean(dataBinding || datatableId);
+  const hasBoundRows = Boolean(dataBinding);
   const hasStaticItems = Array.isArray(items) && items.length > 0;
 
   return useMemo<UseResolvedCollectionItemsResult>(() => {

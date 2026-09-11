@@ -282,11 +282,13 @@ interface DataChange {
 
 ### Phase 5 — legacy 경로 흡수 (G0 결과 조건부)
 
-- [ ] `datatableId` 경로: 실사용 0~4건이면 `useCollectionData` 에서 deprecate 주석 + 신규 진입 차단 (호출부 제거), 5건+ 이면 데이터 마이그레이션 단계 추가 (사용자 확인 후)
-- [ ] legacy `DataBinding type:"collection"` static/api 분기: PropertyDataBinding 형식으로 변환 헬퍼 제공 후 load callback 분기 축소
-- [ ] (v2.1) legacy `useDataTableStore` 소비처 3 파일 대체 — `components/data/DataTable.tsx:47-50` (register/load/updateConfig → `useDataStore` + `useCollectionData`) · `main/BuilderCore.tsx:883,1007,1085` (dataTableStates · consumers 동기화 → `syncCollectionsToCanvas` 단일). 대체 직후 대칭 확인 (R10)
-- [ ] (v2.1) React Query 병행 제거 — `useDataPanelQuery` (`hooks/useDataQueries.ts`) 소비처를 store selector 로, `DataTablePanel.tsx` 새로고침은 store fetch 만
-- [ ] `stores/datatable.ts` (useDataTableStore): 소비처 0 도달 시 제거는 **별도 커밋** — 원본 삭제 승인 규칙 준수 (CLAUDE.md §마이그레이션 원칙)
+> **Implemented 2026-09-11** (파일 삭제 3건은 별도 승인 대기 — 아래) — live 6/6 (`apps/builder/scripts/adr152-p5-live.mjs`, ADR 본문 §Live Exercise).
+
+- [x] `datatableId` 경로 (G0 = 0): `useCollectionData` 에서 상태 조회 · consumer 등록 effect · load/reload/loading/error 분기 제거, `UseCollectionDataOptions.datatableId/elementId` · `useResolvedCollectionItems` 옵션 · `DataTableService.addConsumer/removeConsumer/loadDataTable` 제거 (Chart 의 `elementId` 전달 1건 정리). `importCollectionEnvelope` 의 `datatableId` 키 remap 은 구 문서 read 호환으로 유지
+- [x] legacy `{ type:"collection" }` 분기: `normalizeDataBinding` (`packages/shared/src/collections/normalizeDataBinding.ts`) — `config.collectionId / datatableId / name` 이 있으면 v2 `{ source:"dataTable", collectionId, name }` 로 (DOM `useCollectionData` 안정화 지점 · Skia `readDataBindingRows` 입구 둘 다), inline static (`config.data`) · api (`config.endpoint`) 는 변환 불가라 legacy loader 유지 · `supabase` 분기 (throw 뿐) 제거
+- [x] `useDataTableStore` 소비처: `BuilderCore.tsx` `LOAD_DATA_TABLE` → `useDataStore` (이름 resolve 헬퍼 → 연결 endpoint `targetCollectionId`·이름 → `executeApiEndpoint`, mock 전용은 no-op) · `SAVE_TO_DATA_TABLE` → `getDataTableData` + `setRuntimeData` (Canvas 동기화 포함 — R10: syncCollectionsToCanvas 단일). `components/data/DataTable.tsx` 는 렌더 소비처 0 (export 만) — 대체 없이 삭제 대상
+- [x] React Query 병행 제거: `DataTablePanel.tsx` 가 `useDataStore.isLoading` + store fetch 만 (새로고침 1회 = fetch 1회), `hooks/index.ts` 의 `useDataPanelQuery` export 제거 → `useDataQueries.ts` 소비처 0
+- [ ] **원본 삭제 (별도 승인)**: `apps/builder/src/builder/stores/datatable.ts` · `apps/builder/src/builder/components/data/DataTable.tsx` (+ `components/data/index.ts` · `components/index.ts` export 행) · `apps/builder/src/builder/hooks/useDataQueries.ts` — 전부 소비처 0. 승인 후 별도 커밋 + 정적 가드 ② 의 `ALLOW_LEGACY_STORE` 예외 제거
 
 ### Phase 6 — publish 연동
 

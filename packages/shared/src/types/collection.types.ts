@@ -96,10 +96,8 @@ export interface UseCollectionDataOptions {
   componentName: string;
   /** Mock API 실패 시 사용할 기본 데이터 */
   fallbackData?: Record<string, unknown>[];
-  /** DataTable ID (dataBinding 대신 사용) */
-  datatableId?: string;
-  /** 컴포넌트 ID (DataTable consumer 등록용) */
-  elementId?: string;
+  // `datatableId` / `elementId` (legacy DataTable store consumer 등록) 는 ADR-152 Phase 5 에서
+  //   제거 — 소비처 0 (G0). collection 참조는 dataBinding (v2 collectionId) 하나.
 }
 
 /**
@@ -141,16 +139,12 @@ export interface UseCollectionDataResult {
  * DataTable 서비스 인터페이스
  */
 export interface DataTableService {
-  /** DataTable 상태 조회 */
+  /** DataTable 상태 조회 (id · name) */
   getDataTableState: (datatableId: string) => CollectionState | undefined;
   /** DataTable 목록 조회 */
   getDataTables: () => DataTableDefinition[];
-  /** Consumer 등록 */
-  addConsumer?: (datatableId: string, elementId: string) => void;
-  /** Consumer 해제 */
-  removeConsumer?: (datatableId: string, elementId: string) => void;
-  /** DataTable 로드 */
-  loadDataTable?: (datatableId: string) => void;
+  // addConsumer / removeConsumer / loadDataTable (legacy DataTable store 소비자 등록) 는
+  //   ADR-152 Phase 5 에서 제거 — 호출처 0.
 }
 
 /**

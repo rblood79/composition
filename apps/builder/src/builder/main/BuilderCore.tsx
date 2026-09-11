@@ -117,8 +117,8 @@ import type { TintPreset } from "../../utils/theme/tintToSkiaColors";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { getCanonicalReusableFrameLayouts } from "../stores/canonical/canonicalFrameStore";
-import { useDataTableStore } from "../stores/datatable";
 import { useDataStore } from "../stores/data";
+import { resolveCollectionByName } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
 
 import { MessageService } from "../../utils/messaging";
@@ -879,31 +879,33 @@ export const BuilderCore: React.FC = () => {
       targetVariable?: string;
     }) {
       const { dataTableName, forceRefresh } = payload;
-      const { collections, loadDataTable, refreshDataTable } =
-        useDataTableStore.getState();
-
-      // DataTable을 이름으로 검색
-      let targetDataTableId: string | null = null;
-      collections.forEach((config, id) => {
-        if (config.name === dataTableName) {
-          targetDataTableId = id;
-        }
-      });
-
-      if (!targetDataTableId) {
+      // ADR-152 Phase 5: legacy useDataTableStore → useDataStore (id 키 Map · 이름 resolve 는 헬퍼).
+      //   "로드" = collection 에 연결된 API endpoint (targetCollectionId · 이름) 실행 → runtimeData.
+      //   mock 전용 collection 은 이미 메모리에 있어 할 일이 없다 (forceRefresh 도 같은 실행).
+      const dataStore = useDataStore.getState();
+      const target = resolveCollectionByName(
+        dataTableName,
+        Array.from(dataStore.collections.values()),
+      );
+      if (!target) {
         console.warn(`[BuilderCore] DataTable '${dataTableName}' not found`);
         return;
       }
-
-      // DataTable 로드 또는 새로고침
-      if (forceRefresh) {
-        await refreshDataTable(targetDataTableId);
-      } else {
-        await loadDataTable(targetDataTableId);
+      const linked = Array.from(dataStore.apiEndpoints.values()).find(
+        (endpoint) =>
+          endpoint.targetCollectionId === target.id ||
+          (!endpoint.targetCollectionId &&
+            endpoint.targetCollection === target.name),
+      );
+      if (!linked) {
+        if (forceRefresh)
+          console.warn(
+            `[BuilderCore] DataTable '${dataTableName}' 에 연결된 API endpoint 없음 — mock 데이터 유지`,
+          );
+        return;
       }
-
-      // TODO: Canvas iframe에 업데이트된 데이터 전송
-      // sendDataTablesToIframe();
+      // 실행기가 runtimeData sink + Canvas 동기화까지 수행한다 (dataActions executeApiEndpoint).
+      await dataStore.executeApiEndpoint(linked.id);
     }
 
     /**
@@ -1004,19 +1006,14 @@ export const BuilderCore: React.FC = () => {
         keyField,
         transform,
       } = payload;
-      const { collections, dataTableStates } = useDataTableStore.getState();
-
-      // DataTable을 이름으로 검색
-      let targetDataTableId: string | null = null;
-      let targetConfig = null;
-      collections.forEach((config, id) => {
-        if (config.name === dataTableName) {
-          targetDataTableId = id;
-          targetConfig = config;
-        }
-      });
-
-      if (!targetDataTableId || !targetConfig) {
+      // ADR-152 Phase 5: legacy useDataTableStore → useDataStore. 저장 결과는 runtimeData
+      //   (메모리 전용 — 편집 데이터 mockData 는 History 가 관리하는 축이라 건드리지 않는다).
+      const dataStore = useDataStore.getState();
+      const targetCollection = resolveCollectionByName(
+        dataTableName,
+        Array.from(dataStore.collections.values()),
+      );
+      if (!targetCollection) {
         console.warn(`[BuilderCore] DataTable '${dataTableName}' not found`);
         return;
       }
@@ -1051,9 +1048,8 @@ export const BuilderCore: React.FC = () => {
         }
       }
 
-      // 현재 DataTable 데이터
-      const currentState = dataTableStates.get(targetDataTableId);
-      const currentData = currentState?.data || [];
+      // 현재 DataTable 데이터 (mock/runtime 중 표시되는 쪽)
+      const currentData = dataStore.getDataTableData(targetCollection.name);
       let newData: Record<string, unknown>[];
 
       // saveMode에 따라 DataTable 업데이트
@@ -1081,21 +1077,8 @@ export const BuilderCore: React.FC = () => {
           newData = currentData;
       }
 
-      // DataTable 상태 업데이트 (직접 상태 업데이트)
-      useDataTableStore.setState((state) => {
-        const newDataTableStates = new Map(state.dataTableStates);
-        const existingState = newDataTableStates.get(targetDataTableId!);
-
-        if (existingState) {
-          newDataTableStates.set(targetDataTableId!, {
-            ...existingState,
-            data: newData,
-            lastLoadedAt: Date.now(),
-          });
-        }
-
-        return { dataTableStates: newDataTableStates };
-      });
+      // runtimeData 갱신 — setRuntimeData 가 Canvas 동기화까지 수행
+      dataStore.setRuntimeData(targetCollection.name, newData);
     }
 
     window.addEventListener("message", handleDataMessage);
