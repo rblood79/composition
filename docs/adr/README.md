@@ -15,13 +15,13 @@
 
 | 구분                      |    개수 |
 | ------------------------- | ------: |
-| 완료 (`completed/`)       |     230 |
-| ├ Implemented             |     194 |
+| 완료 (`completed/`)       |     231 |
+| ├ Implemented             |     195 |
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      13 |
-| ├ Proposed                |      11 |
+| 열려 있는 것 (`adr/*.md`) |      12 |
+| ├ Proposed                |      10 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
 | **합계**                  | **242** |
@@ -34,12 +34,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
-
-#### [213](213-data-tool-contract-propose-review-apply.md) — 데이터 tool 계약 — 읽기 tool · `propose_data_change` 승인 경로 · `bind_collection` 정정 · "왜 실패했지?"
-
-- **상태**: Proposed (2026-09-11) — 리서치 Track 3 (AI · AX)
-- **규모**: 읽기 tool 4 (`list/get_collections` · `list/get_api_endpoints`, secret 마스킹) + `get_editor_state` 요약 + 프롬프트 주입 예산 · 쓰기 tool 1 `propose_data_change(DataChange)` → `AgentCommandConfirmDialog` 스키마 diff 뷰 승인 → 152 적용기 → History 1 + 감사 로그 (delete 계열 없음) · `bind_collection` 을 `{collectionId}` 형상으로 정정 · `explain_request_failure` ("왜 실패했지?") · agent 명령 `data.*` 4 · 사람이 부르는 AI 3종 (설명으로 테이블 · 붙여넣기 이해 · 반복 편집). 스키마는 152 `dataChange.ts` 단일 소스 (Anthropic strict ↔ Ollama zod). Phase 0~~7 / R1~~R7 / G0~~G5, HIGH 0. **선행: 152 Phase 1c (Phase 1 읽기 tool 은 독립)** · ADR-202 에는 의존하지 않음 (착수 시 어댑터 편입 — 결정 지점 2 후보). design breakdown `design/213-data-tool-contract-propose-review-apply-breakdown.md`
-- **우선순위**: P2 — 212 와 병렬 가능 (형제), 첫 출시 = Phase 1 + Phase 3
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
@@ -135,14 +129,14 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 **중요도**이고, 본 표는 **준비도(리뷰 종결 여부)·의존 그래프·즉시 가치**로 재산정한 **실행 순서**다. 리뷰 파일(`reviews/{NNN}.md`)의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                                                                                  | 착수 준비도                                                                                          | 차단 · 선행                                                                             |
-| :--: | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-|  1   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                                                                         | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(시각 확인 대기) · A3 미착수          | A2 live 확인 + ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 후 A3                      |
-|  2   | [162](162-gridlist-template-subtree-projection.md)                                                                                                   | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                           | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요                         |
-|  3   | [921](921-render-scene-backend-integration.md)                                                                                                       | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~190 이후 §6-2 파일 대량 변경) | 재freeze 전 착수 금지                                                                   |
-|  4   | [013](013-quick-connect-data-binding.md)                                                                                                             | Risk-First 재작성 완료(round 2 전부 fixed)                                                           | 착수 조건 G0 의 **152 Implemented 는 2026-09-11 충족** — 남은 것은 Phase 0 재-inventory |
-|  5   | [212](212-data-panel-editor-redesign.md) · [213](213-data-tool-contract-propose-review-apply.md) · [214](214-variables-owner-model-runtime-state.md) | Proposed 2026-09-11 (리서치 DATA_PANEL_REDESIGN Track 2 · 3 · Variables) — 리뷰 전                   | 152 Implemented (2026-09-11) 로 선행 의존 전부 충족 — 리뷰 후 착수 가능                 |
-|  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md)                                             | 착수 대상 아님 (비착수 비교 기록 / 비실행 목표 참조)                                                 | 실행 owner = ADR-912 Implemented                                                        |
+| 순위 | ADR                                                                                                      | 착수 준비도                                                                                          | 차단 · 선행                                                                                    |
+| :--: | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+|  1   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                             | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(시각 확인 대기) · A3 미착수          | A2 live 확인 + ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 후 A3                             |
+|  2   | [162](162-gridlist-template-subtree-projection.md)                                                       | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                           | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요                                |
+|  3   | [921](921-render-scene-backend-integration.md)                                                           | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~190 이후 §6-2 파일 대량 변경) | 재freeze 전 착수 금지                                                                          |
+|  4   | [013](013-quick-connect-data-binding.md)                                                                 | Risk-First 재작성 완료(round 2 전부 fixed)                                                           | 착수 조건 G0 의 **152 Implemented 는 2026-09-11 충족** — 남은 것은 Phase 0 재-inventory        |
+|  5   | [212](212-data-panel-editor-redesign.md) · [214](214-variables-owner-model-runtime-state.md)             | 리뷰 승인 2026-09-11 · **213 Implemented 2026-09-12** (212 Phase 4 선행 충족) · 214 Phase 0~1 merge  | 212 착수 가능 (213 G1~G4 PASS) · 214 Phase 2+ 잔여 (CRUD undo/redo · sceneVersion · id 재발급) |
+|  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md) | 착수 대상 아님 (비착수 비교 기록 / 비실행 목표 참조)                                                 | 실행 owner = ADR-912 Implemented                                                               |
 
 **착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함)
 
@@ -178,7 +172,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 
 ---
 
-## 완료 ADR (230)
+## 완료 ADR (231)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -203,6 +197,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 | [903](completed/903-ref-descendants-slot-composition-format-migration-plan.md)      | ref/descendants + slot 기본 composition 포맷 전환 계획                                                                                                         | Implemented | 2026-04-26                                                           |
 | [902](completed/902-workspace-dot-background-layer.md)                              | Workspace Dot Background Layer                                                                                                                                 | Implemented | 2026-04-25                                                           |
 | [900](completed/900-unified-skia-rendering-engine.md)                               | Unified Skia Rendering Engine — PixiJS/Taffy 제거 및 CSS3 단일 렌더러                                                                                          | Implemented | 2026-04-07                                                           |
+| [213](completed/213-data-tool-contract-propose-review-apply.md)                     | 데이터 tool 계약 — 읽기 4 · `propose_data_change` 승인 diff · "왜 실패했지?" · agent `data.*` 4 · 설명으로 테이블 · 붙여넣기 이해 · 반복 편집 (ADR-213)        | Implemented | 2026-09-12                                                           |
 | [215](completed/215-chart-series-palette.md)                                        | Chart 시리즈 팔레트 — categorical (Spectrum) · mono (accent) 선택 축 (initial 상한 재승인 1,313,600 / 643,758)                                                 | Implemented | 2026-09-11                                                           |
 | [211](completed/211-chart-display-budget-pixel-fit-window-decimation.md)            | 차트 표시 예산 — 픽셀 폭 기준 마크 수와 창·축약 계약 (번들 한도 7 KiB · initial 재승인)                                                                        | Implemented | 2026-09-11                                                           |
 | [210](completed/210-chart-multi-field-series-presentation.md)                       | 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약 — 예산 예외 승인                                                                                                 | Implemented | 2026-09-10                                                           |

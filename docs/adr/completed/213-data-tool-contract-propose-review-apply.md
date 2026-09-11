@@ -2,13 +2,13 @@
 
 ## Status
 
-Proposed — 2026-09-11
+Implemented — 2026-09-12 (Proposed 2026-09-11 · 리뷰 Round 2 승인 · Phase 0~~7 완료 2026-09-11~~12, evidence [213-p0-inventory.md](../evidence/213-p0-inventory.md) 로컬)
 
-> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 는 Implemented 이며 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기가 base 다. Phase 1 읽기 tool은 독립이고, Phase 2 이후는 G0에서 현 consumer 격차를 freeze한 뒤 착수한다. [ADR-212](212-data-panel-editor-redesign.md) Phase 4는 본 ADR G1·G3의 공유 redactor와 G2·G4의 `define_endpoint` · `bind_element` consumer/coordinator에 의존한다. 실패 설명 UI는 공유 redactor가 먼저 적용되므로 역방향 의존 없이 먼저 제공할 수 있다. [ADR-202](202-builder-ai-compiler-first-command-execution.md)에는 의존하지 않으며, 202 착수 시 `DataChange`를 감싸는 statement 어댑터로 편입한다.
+> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 는 Implemented 이며 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기가 base 다. Phase 1 읽기 tool은 독립이고, Phase 2 이후는 G0에서 현 consumer 격차를 freeze한 뒤 착수한다. [ADR-212](../212-data-panel-editor-redesign.md) Phase 4는 본 ADR G1·G3의 공유 redactor와 G2·G4의 `define_endpoint` · `bind_element` consumer/coordinator에 의존한다. 실패 설명 UI는 공유 redactor가 먼저 적용되므로 역방향 의존 없이 먼저 제공할 수 있다. [ADR-202](../202-builder-ai-compiler-first-command-execution.md)에는 의존하지 않으며, 202 착수 시 `DataChange`를 감싸는 statement 어댑터로 편입한다.
 
 ## Context
 
-빌더의 AI · 에이전트 표면이 데이터를 다루는 방법은 실측상 다음과 같다 (리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1-6):
+빌더의 AI · 에이전트 표면이 데이터를 다루는 방법은 실측상 다음과 같다 (리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1-6):
 
 - AI 패널 tool 9 + `run_command` 중 데이터 tool 은 `bind_collection` 하나이고, 그 형상이 legacy `source: "static" | "api" | "supabase"` + config 인라인 (`services/ai/tools/bindCollection.ts:24`) 이다 — 사람이 UI 로 기록하는 `{ source: "dataTable", name }` (ADR-159 P4b) 과 달라 **이미 있는 DataTable 에 요소를 잇는 tool 이 없다**. collection 생성 · 필드 추가 · 행 삽입 · API 정의 tool 은 0 (파일 주석이 "이 도구 범위 밖" 으로 명시).
 - `get_editor_state` 는 pages · elements · selection 만 — 모델은 어떤 테이블이 있는지 모른 채 바인딩을 시도한다. 시스템 프롬프트 동적 주입 (`services/ai/catalog/dynamicInjection.ts`) 도 "컬렉션" 을 팔레트 카테고리로만 안다.
@@ -105,7 +105,7 @@ Proposed — 2026-09-11
 - **대안 C 기각**: 202 미착수에 일정 종속 — 기술 HIGH. 편입은 어댑터로 나중에 같은 결과를 얻는다.
 - **대안 D 기각**: 첫 출시에 필요 없는 transport · 이중 표면 — 유지보수 HIGH. 원칙만 기록 (AX-6).
 
-> 구현 상세: [213-data-tool-contract-propose-review-apply-breakdown.md](design/213-data-tool-contract-propose-review-apply-breakdown.md)
+> 구현 상세: [213-data-tool-contract-propose-review-apply-breakdown.md](../design/213-data-tool-contract-propose-review-apply-breakdown.md)
 
 ## Risks
 
@@ -135,7 +135,18 @@ R7은 `services/ai/tools/bindCollection.ts`, `services/agent/executeAgentCommand
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G1 ~ G5 시나리오 · 결과 · 날짜 · provider (Ollama/Anthropic) · Playwright/사용자 confirm 구분.)
+전부 Chrome MCP (실제 builder · 프로젝트 "ADR-213 live" / "DDF") · provider Ollama qwen3:14b (Anthropic 키 없음 — Anthropic wire 는 `AnthropicProvider.live.test.ts` 키 게이트 미실행) · 2026-09-11 ~ 09-12. 상세 · 발견 · 수리는 evidence [213-p0-inventory.md](../evidence/213-p0-inventory.md) 의 Phase 절.
+
+| Gate | 시나리오 (실제로 한 것)                                                                                                                                                                                                                                                                       | 결과                                                                               | 일자  |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | ----- |
+| G1   | 50×80 fixture 8,192 B · 2,048 token 이중 상한 (단위) · AI 패널 "list_collections 로 …" → 주입 절 → `list_collections` → `get_collection` → 답변 (Ollama 6 호출 · canary 0)                                                                                                                    | PASS                                                                               | 09-11 |
+| G4   | `bind_collection` 정상 입력 · legacy `source:"static"` 입력 → 승인 diff → Skia · DOM 행 표시 → History 1 → ⌘Z 원상 · 거부 무변경                                                                                                                                                              | PASS                                                                               | 09-11 |
+| G3   | `bearerCheck` 401 (canary 3종: header · cookie · query) → "왜 실패했어?" → `explain_request_failure` → 원인 + `define_endpoint` 제안 · provider payload 4건 canary 원문 0 · (승인 → 200 은 Phase 4 에서)                                                                                      | PASS                                                                               | 09-11 |
+| G2   | 401 제안 → `propose_data_change` → diff 다이얼로그 (define_endpoint · 헤더 키) → Run → IndexedDB 갱신 (**secret 원문 보존 — live 발견 후 `preserveSecrets` 수리**) → Test 200 → ⌘Z 원상 · canary 0. 거부 · failure injection 은 단위 (dispatcher · cross-store rollback)                      | PASS                                                                               | 09-11 |
+| AX-4 | `window.__compositionAgent.run("data.*")` — openTable (precondition-failed / ok) · openEndpoint (Headers 탭) · runEndpoint (GET, 401 스냅샷) · importPaste (탭 표 → diff → Run → 테이블 → undo · Reject → declined) · 호출 7 = 기록 7                                                         | PASS                                                                               | 09-11 |
+| G5   | "블로그 글 테이블 만들어 — 제목 · 본문 · 작성자 · 게시일 · 상태" → `create_table_from_description` (필드 5 · enum 정합 · 한글 라벨) → diff (스키마 표 + 샘플 행) → BlogPosts (컬럼 = 스키마 키, I3) · AI-4 "이 테이블에 tags 추가" → add_field · AI-2 쉼표 표 → Members · 10 payload canary 0 | PASS (환경: `ollama serve` 기본 num_ctx 4096 이면 프롬프트 절단 — 32768 로 재기동) | 09-11 |
+
+정적 게이트 (매 커밋): `dataProposalDispatcher.static.test.ts` (origin 적용 호출 = dispatcher 1곳) · `proposeDataChange.test.ts` (tool parameters = `modelFacingDataChangeJsonSchema()` toEqual) · `dataCommandMeta.static.test.ts` · redactor canary 단위. 사용자 confirm 으로 대체한 항목 없음.
 
 ## Consequences
 
