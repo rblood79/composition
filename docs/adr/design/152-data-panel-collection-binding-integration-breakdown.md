@@ -262,12 +262,14 @@ interface DataChange {
 
 > **선행 조건 (2026-08-17 추가 — ADR 본문 격차 7 / R7)**: 아래 fieldMap 작업 **전에** collection DI provider 를 preview 에 마운트해야 한다. 현재 `CollectionDataProvider` 는 repo 어디에도 렌더되지 않아 `dataTableService` 가 항상 `undefined` 이고, 그 결과 `source:"dataTable"` 바인딩이 DOM 에서 **0행 + 영구 loading** 이다 (Skia 는 같은 바인딩을 100행으로 투영 — 실측 대조는 본문 §격차 7 실측 근거). 이 상태로 G2 `/cross-check` 를 돌리면 fieldMap 과 무관한 이유로 실패하므로 **fieldMap 을 고치는 오진**으로 이어진다.
 
-- [x] ~~**(선행)** preview 에 collection DI provider 마운트~~ → **ADR-209 로 완료 (2026-09-11 확인, `preview/App.tsx:1412`)**. 위 선행 조건 문단은 이력. Phase 3 첫 항목은 대칭 재확인 1회 (Skia row 수 == DOM row 수) 로 축소
-- [ ] `resolveCollectionItems.ts` — `getItemLabel/Value/Description/Icon` 에 fieldMap 인자 추가 (미지정 시 기존 휴리스틱 그대로 — 시그니처 BC 유지 방식은 options 객체)
-- [ ] Skia projector 경로 + DOM wrapper 경로 양쪽이 fieldMap 을 동일 지점에서 전달하는지 확인 (단일 계약이므로 호출부 2곳)
-- [ ] ListBox / Table / Select 3종: mockData + fieldMap 지정 → Builder Skia ↔ Preview DOM label 동일 — `/cross-check` PASS (G2)
-- [ ] Table 은 fieldMap 대신 columns(schema 파생) 경로 — `getTableProjectionRows` 에 schema 컬럼 순서/표시명 반영 확인
-- [ ] Table DOM wrapper 는 useCollectionData raw 소비 (`packages/shared/src/components/Table.tsx:206`) — fieldMap/columns 소비를 shared 계약 경유로 정렬
+> **Implemented 2026-09-11** (Table wrapper 정렬 1건 deferred — 아래) — G2 9/9 (`apps/builder/scripts/adr152-p3-live.mjs`, ADR 본문 §Live Exercise).
+
+- [x] ~~**(선행)** preview 에 collection DI provider 마운트~~ → **ADR-209 로 완료 (2026-09-11 확인, `preview/App.tsx:1412`)**. 대칭 재확인: ListBox Skia 행 3 = DOM 3 · Table Skia data 행 3 = DOM `aria-rowcount` 3 (G2 하니스)
+- [x] `resolveCollectionItems.ts` — `CollectionFieldRoles { value?; icon? }` (역할 → **행 key**) + `resolveFieldRoles(dataBinding, schema?)` (fieldId → key: schema 의 `resolveField`, 없으면 렌더 resolve 지점이 등록한 `fieldIdIndex`, 둘 다 miss 면 v1 key 로 간주). `getItemKey/Value/Icon/Avatar` · `toItemProjectionRow` 에 `roles?` 인자 — 지정 역할 컬럼 우선, 미지정은 기존 휴리스틱 (BC). value 역할 = itemKey (선택 키) + `{value}`, icon 역할 = glyph 면 icon slot · 이미지 참조면 avatar slot (한 값이 두 slot 에 안 잡힌다). label/description 은 인자 없음 (ADR-159 템플릿 정본)
+- [x] 호출부 2 + DOM 보간 4 — Skia `getFlatProjectionRows` · `getTableProjectionRows` (binding + collections 에서 table schema 로 roles) · DOM `useResolvedCollectionItems` (`useCollectionData` 의 schema) · `interpolateCollectionRowTemplate(compiled, item, roles?)` 를 `SelectionRenderers` (ListBox 템플릿 행 · GridList 카드) · `ListBox.tsx` · `GridList.tsx` 가 호출 시점에 `resolveFieldRoles(dataBinding)` 로 (id 색인은 같은 wrapper 의 resolve 가 등록)
+- [x] G2 live 9/9 — ListBox Skia 행 key (layout map `projection:listbox-row:<id>:<itemKey>`) = DOM `data-key` = uid 컬럼 · Select DOM option value · Table Skia 행 key · `{label} [{icon}] {value}` 템플릿이 DOM 행 `User 1 [star] U-1` · 이미지 컬럼 → `{icon}` 빈 문자열 · rename + 재로드 양 leg 유지 · 대조군 (fieldMap 없음) 양 leg `id` 컬럼. 팔레트 ListBox master 는 icon slot 을 구성하지 않아 아이콘 자체는 두 leg 다 안 그린다 — icon 역할 소비는 가상 필드로 잰다
+- [x] Table 은 fieldMap 대신 columns 경로 — `readTableColumns(props.columns)` (TableHeader > Column) 가 컬럼 차원, value 역할은 rowKey 에만 적용. columns 없는 바인딩은 Skia 가 빈 셀 행 · DOM 이 데이터에서 컬럼 자동 감지 (행 수 대칭, 셀 차원은 다름 — 기존)
+- [ ] **deferred** — Table DOM wrapper (`packages/shared/src/components/Table.tsx`, 2003줄: pagination · 가상화 · async 경로) 를 `useResolvedCollectionItems` 로 옮기는 정렬. 행 source 는 이미 shared resolve (`useCollectionData` → `resolveBoundCollection` · `resolveCollectionSnapshot`) 라 Skia 와 같은 행을 읽고, fieldMap 은 Table 에 해당 없음 — 사용자-가시 변경 0 인 wrapper 리팩터라 production 재현 시나리오 없음 (review-loop-closure §2, LOW deferred). Phase 4 의 Tree/Tabs raw 소비 정렬과 같은 판정 대상
 
 ### Phase 4 — 패밀리 sweep (나머지 7종)
 

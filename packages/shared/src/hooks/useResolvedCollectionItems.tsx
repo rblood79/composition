@@ -22,6 +22,7 @@
 import { useMemo } from "react";
 import type { DataBinding } from "../types";
 import {
+  resolveFieldRoles,
   toItemProjectionRow,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
   type CollectionProjectionRow,
@@ -80,6 +81,7 @@ export function useResolvedCollectionItems(
     loading,
     error,
     reload,
+    schema,
   } = useCollectionData({
     dataBinding,
     componentName,
@@ -107,9 +109,14 @@ export function useResolvedCollectionItems(
         ? "static-items"
         : "empty";
 
+    // ADR-152 Phase 3: fieldMap 역할 (value/icon) — Skia `getFlatProjectionRows` 와 같은
+    //   resolver (`resolveFieldRoles`) 로 id → key. schema 는 useCollectionData 가 준다.
+    const roles = hasBoundRows
+      ? resolveFieldRoles(dataBinding, schema)
+      : undefined;
     const rows: CollectionProjectionRow[] = sourceRows
       .slice(0, windowLimit)
-      .map((item, rowIndex) => toItemProjectionRow(item, rowIndex));
+      .map((item, rowIndex) => toItemProjectionRow(item, rowIndex, roles));
 
     // ADR-150 A2: totalRows = window/cap 전 원본 전체 수. DOM(Preview)은 RAC 브라우저
     //   스크롤이라 canvas window 와 무관하나, 계약 필드는 대칭 노출(캔버스 소비자 정합).
@@ -128,6 +135,8 @@ export function useResolvedCollectionItems(
     hasBoundRows,
     hasStaticItems,
     windowLimit,
+    dataBinding,
+    schema,
     loading,
     error,
     reload,

@@ -67,6 +67,7 @@ import {
 import {
   getItemDescription,
   getItemIcon,
+  resolveFieldRoles,
   getItemLabel,
 } from "../collections/resolveCollectionItems";
 
@@ -370,17 +371,20 @@ export const renderListBox = (
       : null;
 
     const renderItemFunction = (item: Record<string, unknown>) => {
+      // ADR-152 Phase 3: fieldMap 역할 (value/icon) — 행마다 호출 시점에 푼다 (id 색인은
+      //   ListBox wrapper 의 collection resolve 가 등록; Skia projection 과 같은 resolver).
+      const fieldRoles = resolveFieldRoles(element.props.dataBinding);
       const label = getItemLabel(item, String(item.id ?? ""), 0);
       const templateLabel = rowLabelTemplate
-        ? interpolateRowTemplate(rowLabelTemplate, item)
+        ? interpolateRowTemplate(rowLabelTemplate, item, fieldRoles)
         : label;
       const templateDescription = rowDescriptionTemplate
-        ? interpolateRowTemplate(rowDescriptionTemplate, item)
+        ? interpolateRowTemplate(rowDescriptionTemplate, item, fieldRoles)
         : getItemDescription(item);
       // ADR-147: icon slot — template binding({icon}) 또는 data field(heuristic) 결과.
       const templateIcon = rowIconTemplate
-        ? interpolateRowTemplate(rowIconTemplate, item)
-        : (iconTemplateSource ?? getItemIcon(item));
+        ? interpolateRowTemplate(rowIconTemplate, item, fieldRoles)
+        : (iconTemplateSource ?? getItemIcon(item, fieldRoles));
 
       const renderFieldChildren = () =>
         fieldChildren.map((field) => {
@@ -898,10 +902,18 @@ export const renderGridList = (
                 //   모든 카드에 반복 표시했다 (행 데이터 미소비). 템플릿 없으면 휴리스틱 (BC).
                 renderGridListItemSlotContent({
                   label: cardLabelTemplate
-                    ? interpolateRowTemplate(cardLabelTemplate, item)
+                    ? interpolateRowTemplate(
+                        cardLabelTemplate,
+                        item,
+                        resolveFieldRoles(element.props.dataBinding),
+                      )
                     : getItemLabel(item, String(item.id ?? ""), 0),
                   description: cardDescriptionTemplate
-                    ? interpolateRowTemplate(cardDescriptionTemplate, item)
+                    ? interpolateRowTemplate(
+                        cardDescriptionTemplate,
+                        item,
+                        resolveFieldRoles(element.props.dataBinding),
+                      )
                     : getItemDescription(item),
                   slotComposition: templateSlotComposition,
                 })}

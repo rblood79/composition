@@ -19,6 +19,7 @@ import {
   getItemIcon,
   getItemLabel,
   getItemValue,
+  type CollectionFieldRoles,
 } from "./resolveCollectionItems";
 
 export type CompiledTemplatePart =
@@ -276,6 +277,7 @@ export function buildCollectionRowTemplateItem(row: {
 export function interpolateCollectionRowTemplate(
   compiled: CompiledTemplate,
   item: Record<string, unknown>,
+  roles?: CollectionFieldRoles,
 ): string {
   const itemKey = typeof item.id === "string" ? item.id : String(item.id ?? "");
   return interpolateFieldTemplate(
@@ -284,8 +286,9 @@ export function interpolateCollectionRowTemplate(
       item,
       label: getItemLabel(item, itemKey, 0),
       description: getItemDescription(item),
-      icon: getItemIcon(item),
-      value: getItemValue(item),
+      // ADR-152 Phase 3: fieldMap 역할 — Skia projection row 의 icon/value 와 같은 resolver
+      icon: getItemIcon(item, roles),
+      value: getItemValue(item, roles),
     }),
   );
 }

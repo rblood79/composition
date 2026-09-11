@@ -1,6 +1,6 @@
-import { registerFieldIds } from "@composition/specs";
+import { registerFieldIds, resolveFieldRef } from "@composition/specs";
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
-import { resolveBoundCollection } from "./resolveBoundCollection";
+import { resolveBoundCollection, resolveField } from "./resolveBoundCollection";
 /**
  * collection items 단일 계약 (ADR-912 영역 B 연장) — DOM wrapper / Skia projector 공통 source.
  *
@@ -245,6 +245,57 @@ export function readDataBindingRows(
   return [];
 }
 
+/**
+ * ADR-152 Phase 3 — 바인딩 `fieldMap` 의 역할별 **행 key** (id 를 key 로 푼 뒤).
+ * `value` = item key/value 컬럼 (선택 키 · `{value}`), `icon` = 좌측 slot 컬럼 (glyph 면
+ * icon, 이미지 참조면 avatar). label/description 은 ADR-159 `{field}` 템플릿이 정본이라 없다.
+ * 미지정 역할은 기존 고정 필드 휴리스틱 그대로 (BC).
+ */
+export interface CollectionFieldRoles {
+  value?: string;
+  icon?: string;
+}
+
+const FIELD_ROLE_KEYS = ["value", "icon"] as const;
+
+/**
+ * `dataBinding.fieldMap` (fieldId · v1 key) → 행 key. `schema` 가 있으면 `resolveField`
+ * (id → key fallback), 없으면 렌더 resolve 지점이 등록한 id 색인 (`resolveFieldRef`) —
+ * 둘 다 miss 면 값 자체를 key 로 본다 (v1 key 저장값). fieldMap 이 없거나 비면 undefined.
+ *
+ * Skia (`getFlatProjectionRows`) 와 DOM (`useResolvedCollectionItems` · 렌더러 보간) 이
+ * 같은 함수를 지나야 한 바인딩이 두 leg 에서 같은 컬럼을 읽는다 (G2).
+ */
+export function resolveFieldRoles(
+  dataBinding: unknown,
+  schema?: readonly { id?: string; key: string }[],
+): CollectionFieldRoles | undefined {
+  if (!isRecord(dataBinding) || !isRecord(dataBinding.fieldMap)) return undefined;
+  const fieldMap = dataBinding.fieldMap;
+  const roles: CollectionFieldRoles = {};
+  for (const role of FIELD_ROLE_KEYS) {
+    const ref = fieldMap[role];
+    if (typeof ref !== "string" || ref.length === 0) continue;
+    const key = schema
+      ? (resolveField(schema, ref)?.key ?? ref)
+      : (resolveFieldRef(`#${ref}`) ?? ref);
+    roles[role] = key;
+  }
+  return roles.value !== undefined || roles.icon !== undefined
+    ? roles
+    : undefined;
+}
+
+/** binding + collections (Skia 입력) 에서 roles — schema 는 resolve 한 table 의 것. */
+function resolveInputFieldRoles(
+  input: Record<string, unknown> | CollectionProjectionRowsInput | undefined,
+): CollectionFieldRoles | undefined {
+  if (!isProjectionRowsInput(input) || !isRecord(input.dataBinding))
+    return undefined;
+  const table = resolveBoundCollection(input.dataBinding, input.collections ?? []);
+  return resolveFieldRoles(input.dataBinding, table?.schema);
+}
+
 /** 고정 필드 우선순위로 string 값 추출 (number 는 String 변환). */
 export function readStringField(
   item: Record<string, unknown>,
@@ -258,9 +309,17 @@ export function readStringField(
   return null;
 }
 
-export function getItemKey(item: unknown, index: number): string {
+export function getItemKey(
+  item: unknown,
+  index: number,
+  roles?: CollectionFieldRoles,
+): string {
   if (isRecord(item)) {
-    return readStringField(item, ["id", "key", "value"]) ?? `row-${index + 1}`;
+    return (
+      (roles?.value ? readStringField(item, [roles.value]) : null) ??
+      readStringField(item, ["id", "key", "value"]) ??
+      `row-${index + 1}`
+    );
   }
   return `row-${index + 1}`;
 }
@@ -313,8 +372,17 @@ function isImageReference(value: string): boolean {
  * icon 이 아니라 **avatar slot** 으로 간다(`getItemAvatar`) — 한 값이 두 slot 에 동시에
  * 잡히면 chip 좌측 슬롯 판정과 폭이 어긋난다.
  */
-export function getItemIcon(item: unknown): string | null {
+export function getItemIcon(
+  item: unknown,
+  roles?: CollectionFieldRoles,
+): string | null {
   if (!isRecord(item)) return null;
+  // ADR-152 Phase 3: icon 역할 컬럼이 지정되면 그 값만 본다 (없으면 슬롯 비움 — 다른
+  //   컬럼으로 새지 않는다). glyph 면 icon, 이미지 참조면 avatar slot 몫.
+  if (roles?.icon) {
+    const chosen = readStringField(item, [roles.icon]);
+    return chosen == null || isImageReference(chosen) ? null : chosen;
+  }
   const raw = readStringField(item, ["icon", "iconName", "avatar", "image"]);
   if (raw == null) return null;
   return isImageReference(raw) ? null : raw;
@@ -326,8 +394,15 @@ export function getItemIcon(item: unknown): string | null {
  * icon slot 과 같은 좌측 슬롯을 공유하며(소비자에서 avatar 우선), 값이 이미지 참조로
  * 읽힐 때만 채워진다. glyph 이름이 들어 있으면 여기선 null 이고 icon slot 이 가져간다.
  */
-export function getItemAvatar(item: unknown): string | null {
+export function getItemAvatar(
+  item: unknown,
+  roles?: CollectionFieldRoles,
+): string | null {
   if (!isRecord(item)) return null;
+  if (roles?.icon) {
+    const chosen = readStringField(item, [roles.icon]);
+    return chosen != null && isImageReference(chosen) ? chosen : null;
+  }
   const raw = readStringField(item, [
     "avatar",
     "avatarUrl",
@@ -339,9 +414,15 @@ export function getItemAvatar(item: unknown): string | null {
   return isImageReference(raw) ? raw : null;
 }
 
-export function getItemValue(item: unknown): string | null {
+export function getItemValue(
+  item: unknown,
+  roles?: CollectionFieldRoles,
+): string | null {
   if (!isRecord(item)) return null;
-  return readStringField(item, ["value", "id", "key"]);
+  return (
+    (roles?.value ? readStringField(item, [roles.value]) : null) ??
+    readStringField(item, ["value", "id", "key"])
+  );
 }
 
 export function getItemDisabled(item: unknown): boolean {
@@ -356,19 +437,20 @@ export function getItemDisabled(item: unknown): boolean {
 export function toItemProjectionRow(
   item: unknown,
   rowIndex: number,
+  roles?: CollectionFieldRoles,
 ): CollectionProjectionRow {
-  const itemKey = getItemKey(item, rowIndex);
+  const itemKey = getItemKey(item, rowIndex, roles);
   return {
     kind: "item",
-    avatar: getItemAvatar(item),
+    avatar: getItemAvatar(item, roles),
     description: getItemDescription(item),
-    icon: getItemIcon(item),
+    icon: getItemIcon(item, roles),
     isDisabled: getItemDisabled(item),
     item,
     itemKey,
     label: getItemLabel(item, itemKey, rowIndex),
     rowIndex,
-    value: getItemValue(item),
+    value: getItemValue(item, roles),
   };
 }
 
@@ -386,9 +468,11 @@ export function getFlatProjectionRows(
 ): CollectionProjectionRow[] {
   const sourceRows = readSourceRows(input);
   const { start, end } = resolveSliceBounds(window, sourceRows.length);
+  // ADR-152 Phase 3: fieldMap 역할 — DOM `useResolvedCollectionItems` 와 같은 resolver.
+  const roles = resolveInputFieldRoles(input);
   return sourceRows
     .slice(start, end)
-    .map((item, i) => toItemProjectionRow(item, start + i));
+    .map((item, i) => toItemProjectionRow(item, start + i, roles));
 }
 
 /**
@@ -595,12 +679,13 @@ export function getTableProjectionRows(
   };
 
   const { start, end } = resolveSliceBounds(window, sourceRows.length);
+  const roles = resolveInputFieldRoles(input);
   const dataRows = sourceRows
     .slice(start, end)
     .map((item, i): TableProjectionRow => {
       const rowIndex = start + i;
       const record = isRecord(item) ? item : {};
-      const rowKey = getItemKey(item, rowIndex);
+      const rowKey = getItemKey(item, rowIndex, roles);
       const { cells, rawCells } = readRowCells(item, columns);
       return {
         kind: "data",

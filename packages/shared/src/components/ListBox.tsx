@@ -37,6 +37,7 @@ import {
   compileFieldTemplate,
   interpolateCollectionRowTemplate,
 } from "../collections/fieldTemplate";
+import { resolveFieldRoles } from "../collections/resolveCollectionItems";
 import {
   CollectionLoadingState,
   CollectionErrorDisplay,
@@ -132,9 +133,15 @@ export function ListBox<T extends object>({
   const rowLabelTemplate = rowTemplateSources?.label
     ? compileFieldTemplate(rowTemplateSources.label)
     : null;
+  // ADR-152 Phase 3: `{value}` · `{icon}` 가 fieldMap 역할을 보도록 — 호출 시점에 푼다
+  //   (id 색인은 아래 useResolvedCollectionItems 의 resolve 가 등록한다).
   const resolveRowLabel = (item: Record<string, unknown>): string =>
     rowLabelTemplate
-      ? interpolateCollectionRowTemplate(rowLabelTemplate, item)
+      ? interpolateCollectionRowTemplate(
+          rowLabelTemplate,
+          item,
+          resolveFieldRoles(dataBinding),
+        )
       : String((item as { label?: unknown }).label ?? "");
   // ================================================================
   // Hooks - 항상 최상단에서 무조건 호출 (Rules of Hooks)
