@@ -21,9 +21,7 @@ import {
   FileEdit,
   FileJson,
   FileOutput,
-  FilePlus2,
   Globe,
-  LayoutTemplate,
   Play,
   Settings,
   Shield,
@@ -80,24 +78,8 @@ const VARIABLE_TABS: TabConfig<VariableEditorTab>[] = [
 ];
 
 // Creator 모드 타입
-type CreatorMode = "empty" | "preset";
 
 // 생성 방식은 다른 에디터의 뷰 탭과 같은 축이라 같은 탭 패턴으로 둔다
-// (구 radio 바 `.datatable-creator-modes` 는 panel-header 크롬을 재정의하던 별도 계열).
-const CREATOR_TABS: {
-  id: CreatorMode;
-  label: string;
-  labelKey: string;
-  icon: typeof Database;
-}[] = [
-  {
-    id: "preset",
-    label: "Preset",
-    labelKey: "presetTab",
-    icon: LayoutTemplate,
-  },
-  { id: "empty", label: "Empty", labelKey: "emptyTab", icon: FilePlus2 },
-];
 
 /**
  * EditorContent - 모드별 상태를 관리하는 내부 컴포넌트
@@ -121,9 +103,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
     mode.type === "api-edit" && mode.initialTab ? mode.initialTab : "basic",
   );
   const [variableTab, setVariableTab] = useState<VariableEditorTab>("basic");
-
-  // DataTableCreator 모드 상태 (empty/preset) - key로 자동 초기화
-  const [creatorMode, setCreatorMode] = useState<CreatorMode>("preset");
 
   // 데이터 조회 - 개별 selector + useMemo로 리렌더링 최적화
   const dataTablesMap = useDataStore((state) => state.collections);
@@ -265,36 +244,8 @@ function EditorContent({ mode, close }: EditorContentProps) {
           </Tabs>
         );
 
+      // 생성 패널 3종은 자체 폼이라 탭 없음 (ADR-212 — 시작 방법 6 은 creator 안 RadioGroup)
       case "table-create":
-        return (
-          <Tabs
-            className="panel-tabs"
-            selectedKey={creatorMode}
-            onSelectionChange={(key) => setCreatorMode(key as CreatorMode)}
-          >
-            <div className="panel-header panel-tabrow">
-              <TabList
-                className="panel-tablist"
-                aria-label={localize("creatorTabs", "Creation mode")}
-              >
-                {CREATOR_TABS.map((tab) => (
-                  <Tab key={tab.id} id={tab.id} className="panel-tab">
-                    <tab.icon
-                      color="currentColor"
-                      strokeWidth={iconProps.strokeWidth}
-                      size={iconProps.size}
-                    />
-                    <span className="panel-tab-label">
-                      {localize(tab.labelKey, tab.label)}
-                    </span>
-                  </Tab>
-                ))}
-              </TabList>
-            </div>
-          </Tabs>
-        );
-
-      // 생성 패널 2종은 자체 폼이라 탭 없음
       case "api-create":
       case "variable-create":
       default:
@@ -306,13 +257,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const renderEditorContent = () => {
     switch (mode.type) {
       case "table-create":
-        return (
-          <DataTableCreator
-            projectId={mode.projectId}
-            onClose={close}
-            mode={creatorMode}
-          />
-        );
+        return <DataTableCreator projectId={mode.projectId} onClose={close} />;
 
       case "table-edit": {
         const dataTable = collections.find((t) => t.id === mode.tableId);

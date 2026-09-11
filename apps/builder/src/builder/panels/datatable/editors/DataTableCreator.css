@@ -156,3 +156,54 @@
 
 /* 푸터 버튼은 공용 라벨 액션 정본 `.control-button` (panel-system.css) —
    확정은 `data-variant="primary"`, 취소는 기본(중립) 이다. */
+
+/* ============================================
+   ADR-212 Phase 1 — 시작 방법 6 (RAC RadioGroup, Main 아트보드)
+   ============================================ */
+
+.creator-methods {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.creator-method {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-xs);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--fg-muted);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  text-align: center;
+}
+
+.creator-method[data-hovered] {
+  border-color: var(--color-primary-300);
+  color: var(--fg);
+}
+
+.creator-method[data-selected] {
+  border-color: var(--color-primary-500);
+  background: var(--color-primary-50);
+  color: var(--fg);
+}
+
+.creator-method[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.creator-paste-input {
+  width: 100%;
+  min-height: 96px;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  resize: vertical;
+}

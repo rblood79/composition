@@ -1455,6 +1455,33 @@ const koKR: TranslationKeys = {
     fieldPanel: "필드",
     fieldPanelEmpty: "편집할 열 헤더를 고르세요.",
     fieldPanelPending: "필드 편집은 Phase 3 에서 채워집니다.",
+    tableNameHint:
+      "표시 이름입니다. 바인딩은 id 로 참조하므로 나중에 바꿔도 됩니다.",
+    startMethod: "시작 방법",
+    methodEmpty: "빈 테이블",
+    methodPreset: "프리셋",
+    methodPaste: "붙여넣기",
+    methodFile: "CSV / JSON",
+    methodApi: "API 에서",
+    methodAi: "AI 로 설명",
+    pasteRows: "행 붙여넣기",
+    pastePlaceholder: "JSON 배열, 또는 헤더 줄이 있는 탭/쉼표 구분 행",
+    pasteNotTabular:
+      "행을 읽지 못했습니다. JSON 배열이나 헤더 줄 + 행을 붙여넣으세요.",
+    chooseFile: "CSV 또는 JSON 파일 선택",
+    fileUnreadable: "파일에서 행을 읽지 못했습니다.",
+    apiMethodHint:
+      "새 API 패널을 엽니다. 첫 실행 뒤 Schema 탭에서 응답을 테이블로 저장합니다.",
+    aiDescription: "테이블 설명",
+    aiPlaceholder: "예: 제목 · 작성자 · 태그 · 발행일이 있는 블로그 글",
+    aiMethodHint:
+      "AI 가 스키마와 샘플 행을 제안하고, 만들기 전에 diff 를 검토합니다.",
+    aiDraft: '"{name}" 테이블을 만들어 줘: {description}',
+    importPreview: "미리보기 — {fields}개 필드 · {rows}개 행",
+    continueToApi: "계속",
+    sendToAi: "AI 에게 묻기",
+    tableCreated: '테이블 "{name}" 을(를) 만들었습니다.',
+    createFailed: "테이블 생성 실패: {message}",
     confirmDelete: "정말 삭제하시겠습니까?",
     promptVariableName: "Variable 이름을 입력하세요:",
     promptApiUrl:
@@ -3180,6 +3207,35 @@ const enUS: TranslationKeys = {
     fieldPanel: "Field",
     fieldPanelEmpty: "Pick a column header to edit it.",
     fieldPanelPending: "Field editing arrives in Phase 3.",
+    tableNameHint:
+      "Display name. Bindings reference the id, so you can rename it later.",
+    startMethod: "How to start",
+    methodEmpty: "Empty table",
+    methodPreset: "Preset",
+    methodPaste: "Paste",
+    methodFile: "CSV / JSON",
+    methodApi: "From API",
+    methodAi: "Describe to AI",
+    pasteRows: "Paste rows",
+    pastePlaceholder:
+      "JSON array, or tab/comma separated rows with a header line",
+    pasteNotTabular:
+      "Could not read rows. Paste a JSON array or a header line plus rows.",
+    chooseFile: "Choose a CSV or JSON file",
+    fileUnreadable: "Could not read rows from the file.",
+    apiMethodHint:
+      "Opens the new API panel. After the first run, save the response as a table from the Schema tab.",
+    aiDescription: "Describe the table",
+    aiPlaceholder:
+      "e.g. blog posts with title, author, tags and a published date",
+    aiMethodHint:
+      "The AI proposes a schema and sample rows; you review the diff before anything is created.",
+    aiDraft: 'Create a table "{name}": {description}',
+    importPreview: "Preview — {fields} fields · {rows} rows",
+    continueToApi: "Continue",
+    sendToAi: "Ask AI",
+    tableCreated: 'Created table "{name}".',
+    createFailed: "Failed to create table: {message}",
     confirmDelete: "Are you sure you want to delete this?",
     promptVariableName: "Enter a variable name:",
     promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",
@@ -3289,7 +3345,7 @@ const enUS: TranslationKeys = {
     tableName: "Table Name",
     newTable: "New Table",
     emptyTableHint:
-      "After creating an empty table, add fields in the Schema tab.",
+      "Starts with a single id field. The editor opens right away so you can add fields in the grid.",
     useTableDataHint: "Using table data instead of the API response.",
     useApiDataHint: "Using the actual API response data.",
     createEmpty: "Create Empty Table",
@@ -3951,6 +4007,14 @@ const formattedMessages: Record<
       `테이블 "${String(args?.name ?? "")}" 을(를) 삭제했습니다.`,
     "datatable.apiDeleted": (args) =>
       `API "${String(args?.name ?? "")}" 을(를) 삭제했습니다.`,
+    "datatable.aiDraft": (args) =>
+      `"${String(args?.name ?? "")}" 테이블을 만들어 줘: ${String(args?.description ?? "")}`,
+    "datatable.importPreview": (args) =>
+      `미리보기 — ${String(args?.fields ?? 0)}개 필드 · ${String(args?.rows ?? 0)}개 행`,
+    "datatable.tableCreated": (args) =>
+      `테이블 "${String(args?.name ?? "")}" 을(를) 만들었습니다.`,
+    "datatable.createFailed": (args) =>
+      `테이블 생성 실패: ${String(args?.message ?? "")}`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}"이(가) 생성되었습니다.\n${String(args?.columns ?? 0)}개 컬럼, ${String(args?.rows ?? 0)}개 행`,
     "datatable.importFailed": (args) =>
@@ -4332,6 +4396,14 @@ const formattedMessages: Record<
       `Deleted table "${String(args?.name ?? "")}".`,
     "datatable.apiDeleted": (args) =>
       `Deleted API "${String(args?.name ?? "")}".`,
+    "datatable.aiDraft": (args) =>
+      `Create a table "${String(args?.name ?? "")}": ${String(args?.description ?? "")}`,
+    "datatable.importPreview": (args) =>
+      `Preview — ${String(args?.fields ?? 0)} fields · ${String(args?.rows ?? 0)} rows`,
+    "datatable.tableCreated": (args) =>
+      `Created table "${String(args?.name ?? "")}".`,
+    "datatable.createFailed": (args) =>
+      `Failed to create table: ${String(args?.message ?? "")}`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}" created.\n${String(args?.columns ?? 0)} columns, ${String(args?.rows ?? 0)} rows`,
     "datatable.importFailed": (args) =>

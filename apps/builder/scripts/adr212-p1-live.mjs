@@ -303,6 +303,69 @@ try {
     true,
     (await status.textContent()) ?? "",
   );
+
+  // 6) 생성 진입 6종 — Add Table → 방법 radio 6 → 붙여넣기로 만들기 → 편집기 · status
+  const addTable = panel.locator(
+    'button:has-text("Add Table"), button:has-text("테이블 추가")',
+  );
+  await addTable.click();
+  const creator = page.locator(".datatable-creator");
+  await creator.waitFor({ timeout: 10_000 });
+  const radios = creator.locator(".creator-method");
+  record(
+    "생성 패널: 시작 방법 radio 6",
+    (await radios.count()) === 6,
+    String(await radios.count()),
+  );
+  await radios.nth(2).click();
+  await creator.locator('input[type="text"]').first().fill("Members");
+  await creator
+    .locator("textarea")
+    .fill("name\temail\nAna\tana@x.test\nBo\tbo@x.test");
+  await creator.locator(".creator-footer button").last().click();
+  await page.waitForFunction(
+    () =>
+      /Members/.test(
+        document.querySelector(
+          '[data-panel-id="datatableEditor"] .panel-header',
+        )?.textContent ?? "",
+      ),
+    null,
+    { timeout: 10_000 },
+  );
+  const membersRow = panel
+    .locator('[role="grid"] [role="row"]')
+    .filter({ hasText: "Members" });
+  await membersRow.waitFor({ timeout: 5000 });
+  record(
+    "붙여넣기 생성: 목록에 Members (2 필드 · 2 행) + 편집기로 전환 + status",
+    /2/.test((await membersRow.textContent()) ?? "") &&
+      /Members/.test((await status.textContent()) ?? ""),
+    `${await membersRow.textContent()} | ${await status.textContent()}`,
+  );
+
+  // AI 로 설명 → AI 패널 입력창에 초안 (전송 0)
+  await addTable.click();
+  await creator.waitFor({ timeout: 10_000 });
+  await creator.locator(".creator-method").nth(5).click();
+  await creator.locator('input[type="text"]').first().fill("Posts");
+  await creator.locator("textarea").fill("blog posts with title and tags");
+  await creator.locator(".creator-footer button").last().click();
+  const composer = page.locator(".ai-composer textarea");
+  await composer.waitFor({ timeout: 10_000 });
+  await page.waitForFunction(
+    () =>
+      /Posts/.test(
+        document.querySelector(".ai-composer textarea")?.value ?? "",
+      ),
+    null,
+    { timeout: 5000 },
+  );
+  record(
+    "AI 로 설명: AI 패널 열림 + 입력창 초안 (전송 0)",
+    true,
+    (await composer.inputValue()).slice(0, 60),
+  );
   record("native dialog 0", dialogs === 0, String(dialogs));
   record("page error 0", errors.length === 0, errors.join(" | ").slice(0, 200));
   await page.screenshot({ path: resolve(OUT_DIR, "p1-final.png") });

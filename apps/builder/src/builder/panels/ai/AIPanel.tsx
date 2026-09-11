@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { useAiComposerDraftStore } from "./aiComposerDraft";
 import type { KeyboardEvent } from "react";
 import { ActionIconButton, PanelHeader, PanelContents } from "../../components";
 import { Button } from "@composition/shared/components";
@@ -95,6 +96,20 @@ function ChatInput({ onSend, disabled = false, placeholder }: ChatInputProps) {
   const askLabel = placeholder ?? t("ai.askPlaceholder");
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // 다른 표면이 넣은 초안 (ADR-212 "AI 로 설명") — 입력창에 채우고 포커스, 전송은 사용자
+  const draft = useAiComposerDraftStore((state) => state.draft);
+  useEffect(() => {
+    if (draft === null) return;
+    const text = useAiComposerDraftStore.getState().consume();
+    if (text === null) return;
+    setValue(text);
+    const el = textareaRef.current;
+    if (el) {
+      el.focus();
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
+  }, [draft]);
 
   const handleSend = () => {
     const trimmed = value.trim();
