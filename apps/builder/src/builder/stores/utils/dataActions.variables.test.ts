@@ -118,8 +118,43 @@ describe("fetchVariables — owner 읽기 변환", () => {
     const variables = state.variables as Map<string, Variable>;
     expect(variables.get("d")?.owner).toEqual({ kind: "page", pageId: "only" });
     expect(variables.get("d")).not.toHaveProperty("migrationStatus");
-    expect(dbMock.variables.update).not.toHaveBeenCalled();
+    // C 귀속은 1회 write-back 으로 고정한다 — 그 변수만, page_id 만
+    expect(variables.get("d")?.page_id).toBe("only");
+    expect(dbMock.variables.update).toHaveBeenCalledTimes(1);
+    expect(dbMock.variables.update).toHaveBeenCalledWith("d", {
+      page_id: "only",
+    });
     expect(console.warn).not.toHaveBeenCalled();
+  });
+
+  it("write-back 은 C 귀속 변수에 한정 — global · page_id 있는 page · component 는 IndexedDB 무변경", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    registerVariableOwnerPageSource(() => ["only"]);
+    dbMock.variables.getByProject.mockResolvedValue([
+      base({ id: "a", name: "a", scope: "global" }),
+      base({ id: "b", name: "b", scope: "page", page_id: "pg" }),
+      base({ id: "c", name: "c", scope: "component" }),
+      base({ id: "d", name: "d", scope: "page" }),
+    ]);
+    const { set } = makeStore();
+    await createFetchVariablesAction(set as never)("p");
+    expect(dbMock.variables.update).toHaveBeenCalledTimes(1);
+    expect(dbMock.variables.update.mock.calls[0][0]).toBe("d");
+  });
+
+  it("write-back 이 실패해도 로드는 성공한다 (메모리 귀속 유지 · warn 1회)", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    registerVariableOwnerPageSource(() => ["only"]);
+    dbMock.variables.getByProject.mockResolvedValue([
+      base({ id: "d", name: "d", scope: "page" }),
+    ]);
+    dbMock.variables.update.mockRejectedValueOnce(new Error("quota"));
+    const { set, state } = makeStore();
+    await createFetchVariablesAction(set as never)("p");
+    const variables = state.variables as Map<string, Variable>;
+    expect(variables.get("d")?.owner).toEqual({ kind: "page", pageId: "only" });
+    expect(state.isLoading).toBe(false);
+    expect(console.warn).toHaveBeenCalledTimes(1);
   });
 
   it("전부 global 이면 로그 0", async () => {

@@ -26,12 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Variables — 페이지 변수는 소유 페이지를 갖는다 (ADR-214 판정 C + 생성 경로 차단)] - 2026-09-11
 
-> 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 51 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더 exercise 는 dev 서버 stale (chart-palette.css ENOENT 캐시) 로 보류.
+> 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 55 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더에서 exercise (page_id 없는 page 변수 로드 → Home 귀속 + write-back · Add Variable Page → page_id 저장 · 편집기 "Owner page: Home").
 
 ### Fixed
 
 - **Data › Variables 에서 Page 범위 변수를 만들면 현재 페이지가 소유자로 저장된다** (`page_id`). 현재 페이지가 없으면 만들 수 없고 안내가 뜬다. 편집기에서 Global → Page 로 바꿔도 현재 페이지가 귀속되며, 소유 페이지가 없는 옛 page 변수에는 "현재 페이지에 귀속" 버튼이 보인다. `component` 범위는 새로 고를 수 없다 (소유 요소 id 가 없어 만들 수 없는 형태 — 이미 component 인 변수에만 표시).
-- **옛 page 변수 (page_id 없음) 의 로드 귀속**: 프로젝트 페이지가 1개뿐이면 그 페이지로 (콘솔 `[ADR-214] Variable page 귀속 N건` info 1회), 2개 이상이면 종전대로 project + `owner-unresolved` (warn 1회). 메모리 전용 변환 (IndexedDB 재직렬화 0) 이라 페이지가 늘면 다음 로드에서 unresolved 로 바뀐다 — Phase 5 관리 표면이 `page_id` 저장으로 고정.
+- **옛 page 변수 (page_id 없음) 의 로드 귀속**: 프로젝트 페이지가 1개뿐이면 그 페이지로 (콘솔 `[ADR-214] Variable page 귀속 N건` info 1회), 2개 이상이면 종전대로 project + `owner-unresolved` (warn 1회). 귀속된 변수만 `page_id` 를 1회 저장해 고정하므로 나중에 페이지를 추가해도 home 변수는 home 에 남는다 (그 외 변수는 재직렬화 0).
 
 ## [Chart Properties 섹션 재배치 — Content(정체·데이터) · Series · Appearance(숫자 형식) · Interaction(표시 예산) + 패널 표준 어법] - 2026-09-11
 

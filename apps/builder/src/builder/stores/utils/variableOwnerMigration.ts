@@ -12,13 +12,15 @@
  *   `{ kind: "project" }` + `owner-unresolved` (페이지를 알 수 없으니 지어내지 않는다).
  *
  * **로드 재직렬화 0** (G1): 변환 결과는 메모리 Map 에만 들어간다. IndexedDB 원본은 그 변수를
- * 다음에 저장할 때 (`define_variable` 적용기) 비로소 `owner` 를 갖는다. 따라서 C 자동 귀속도
- * 로드 시점의 페이지 수로 매번 다시 판정한다 — 페이지가 늘면 다음 로드에서 unresolved 로
- * 바뀐다 (Phase 5 관리 표면이 `page_id` 를 저장하면 고정된다).
+ * 다음에 저장할 때 (`define_variable` 적용기) 비로소 `owner` 를 갖는다. 예외 하나 — C 자동
+ * 귀속은 `fetchVariables` 가 그 변수의 `page_id` 만 1회 write-back 해 고정한다 (사용자 지시
+ * 2026-09-11; ADR-152 의 id 없는 collection 1회 write-back 과 같은 한정 예외). 그래서 페이지가
+ * 늘어도 귀속이 유지된다.
  * **조용한 변환 0**: unresolved 가 1건이라도 있으면 프로젝트당 warn 1회 + 배지
  * (`migrationStatus`), C 자동 귀속이 1건이라도 있으면 info 1회.
  */
 import { OWNER_UNRESOLVED, type VariableOwner } from "@composition/shared";
+import { isComponentsPageMirror } from "../../pages/systemComponentsPage";
 import type {
   Variable,
   VariableScope,
@@ -190,6 +192,19 @@ export function migrateVariableOwners(
 // ─────────────────────────────────────────────
 
 let pageIdsSource: (() => readonly string[]) | null = null;
+
+/**
+ * 판정 C 의 "프로젝트 페이지" = 사용자 페이지만. 시스템 Components 페이지 (`page-components`,
+ * 스토어 `pages` 에 항상 같이 실린다 — live 실측 2026-09-11) 를 세면 Home 뿐인 프로젝트도
+ * 2개가 되어 C 가 한 번도 동작하지 않는다.
+ */
+export function selectUserPageIds(
+  pages: readonly { id: string; slug?: string | null }[],
+): string[] {
+  return pages
+    .filter((page) => !isComponentsPageMirror(page))
+    .map((page) => page.id);
+}
 
 export function registerVariableOwnerPageSource(
   source: (() => readonly string[]) | null,

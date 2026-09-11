@@ -687,14 +687,45 @@ export const createFetchVariablesAction =
       //   component / page-without-page_id (페이지 2개 이상) 는 owner-unresolved 배지 + 로그 1회.
       //   page-without-page_id 는 프로젝트 페이지가 1개뿐이면 그 페이지 (판정 C, 2026-09-11) —
       //   페이지 목록은 `stores/index.ts` 가 등록한 공급자에서 읽는다.
-      const { variables: migrated } = migrateVariableOwners(data || [], {
-        projectId,
-        pageIds: readVariableOwnerPageIds(),
-      });
+      //   C 귀속만 1회 write-back (`page_id`) — 페이지가 늘어도 귀속이 고정되도록 (사용자
+      //   지시 2026-09-11). 대상은 "page_id 없는 page 변수 × 페이지 1개" 뿐이라 그 외 재직렬화 0.
+      const { variables: migrated, report } = migrateVariableOwners(
+        data || [],
+        {
+          projectId,
+          pageIds: readVariableOwnerPageIds(),
+        },
+      );
+      const assignedPageIds = new Map(
+        report.pageAssigned.map((entry) => [entry.id, entry.pageId]),
+      );
       const variablesMap = new Map<string, Variable>();
       migrated.forEach((v) => {
-        variablesMap.set(v.name, v);
+        const pageId = assignedPageIds.get(v.id);
+        variablesMap.set(v.name, pageId ? { ...v, page_id: pageId } : v);
       });
+      if (assignedPageIds.size > 0) {
+        const store = (
+          db as unknown as {
+            variables?: {
+              update: (
+                id: string,
+                updates: Partial<Variable>,
+              ) => Promise<Variable>;
+            };
+          }
+        ).variables;
+        for (const [id, page_id] of assignedPageIds) {
+          try {
+            await store?.update(id, { page_id });
+          } catch (error) {
+            console.warn(
+              `[ADR-214] Variable ${id} page_id write-back 실패 — 메모리 귀속은 유지:`,
+              error,
+            );
+          }
+        }
+      }
 
       set((state) => ({
         variables: variablesMap,

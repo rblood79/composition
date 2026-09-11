@@ -14,6 +14,7 @@ import {
   migrateVariableOwner,
   migrateVariableOwners,
   resolveVariableOwner,
+  selectUserPageIds,
 } from "./variableOwnerMigration";
 
 const base = (patch: Partial<Variable>): Variable => ({
@@ -184,5 +185,23 @@ describe("migrateVariableOwners + countVariableOwnerMigration — G0 계수 + �
     migrateVariableOwners([base({ scope: "global" })], { projectId: "p" });
     expect(warn).not.toHaveBeenCalled();
     expect(countVariableOwnerMigration([]).total).toBe(0);
+  });
+});
+
+describe("selectUserPageIds — 판정 C 의 페이지 수는 사용자 페이지만", () => {
+  it("시스템 Components 페이지 (id page-components · slug /__components) 는 제외한다", () => {
+    expect(
+      selectUserPageIds([
+        { id: "page-components", slug: "/__components" },
+        { id: "home", slug: "/" },
+      ]),
+    ).toEqual(["home"]);
+    expect(
+      selectUserPageIds([
+        { id: "sys", slug: "__components" },
+        { id: "home", slug: "/" },
+        { id: "about", slug: "/about" },
+      ]),
+    ).toEqual(["home", "about"]);
   });
 });
