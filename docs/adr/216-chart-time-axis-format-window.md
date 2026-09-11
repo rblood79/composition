@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-12. **round 1 (codex, HIGH 2 · MEDIUM 4 · LOW 1) 반영 2026-09-12** — h1 집계 epoch 보존 (HC8 · R1 · G2) · h2 HC1 범위를 데이터 기하로 한정하고 창 트랙 변경을 명시 · m3 `%y`/폭/달력 정책 정정 · m4 최소 창 = `min(fitEff, n)` · m5 파싱 실패 행 제외 정책 · m6 G5 측정 조건 5-질문 · l7 정렬 서술 정정 ([reviews/216.md](reviews/216.md)). 사용자가 범위 (시간축 + 지시자 형식/파싱 + 가변 창; ReferenceLine · Scatter 는 후속, zoom 제외) 와 제목을 AskUserQuestion 으로 선택 (분리 4질문 lock-in: [breakdown §1](design/216-chart-time-axis-format-window-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in)). 이론 원천: [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](../explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) (d3-time · d3-scale · d3-array · d3-brush · d3-time-format 소스 + RSC `vega-spec-builder`).
+Accepted — 2026-09-12 (Proposed 2026-09-12 → Accepted 2026-09-12: reviews/216.md round 2 승인 가능 · `pending` 0 → `/execute-adr 216` 착수, 사용자 지시 "종료까지"). **round 1 (codex, HIGH 2 · MEDIUM 4 · LOW 1) 반영 2026-09-12** — h1 집계 epoch 보존 (HC8 · R1 · G2) · h2 HC1 범위를 데이터 기하로 한정하고 창 트랙 변경을 명시 · m3 `%y`/폭/달력 정책 정정 · m4 최소 창 = `min(fitEff, n)` · m5 파싱 실패 행 제외 정책 · m6 G5 측정 조건 5-질문 · l7 정렬 서술 정정 ([reviews/216.md](reviews/216.md)). 사용자가 범위 (시간축 + 지시자 형식/파싱 + 가변 창; ReferenceLine · Scatter 는 후속, zoom 제외) 와 제목을 AskUserQuestion 으로 선택 (분리 4질문 lock-in: [breakdown §1](design/216-chart-time-axis-format-window-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in)). 이론 원천: [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](../explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) (d3-time · d3-scale · d3-array · d3-brush · d3-time-format 소스 + RSC `vega-spec-builder`).
 
 ## Context
 

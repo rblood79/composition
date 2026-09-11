@@ -21,8 +21,8 @@
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
 | 열려 있는 것 (`adr/*.md`) |      13 |
-| ├ Proposed                |      11 |
-| ├ Accepted (일부 착수)    |       1 |
+| ├ Proposed                |      10 |
+| ├ Accepted (일부 착수)    |       2 |
 | └ 부분 완료               |       1 |
 | **합계**                  | **243** |
 
@@ -37,9 +37,9 @@
 
 #### [216](216-chart-time-axis-format-window.md) — Chart 확장 — 시간축 · 지시자 형식 · 가변 창
 
-- **상태**: Proposed (2026-09-12) — 사용자 범위 선택 (시간축 + 형식/파싱 + 가변 창; ReferenceLine · Scatter 후속, zoom 제외). 이론 원천 `docs/explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md` (d3-time · d3-scale · d3-array · d3-brush · d3-time-format + RSC vega-spec-builder)
+- **상태**: **Accepted · In Progress (2026-09-12)** — round 2 승인 → `/execute-adr 216` 착수 (Phase 0 부터). 사용자 범위 선택 (시간축 + 형식/파싱 + 가변 창; ReferenceLine · Scatter 후속, zoom 제외). 이론 원천 `docs/explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md` (d3-time · d3-scale · d3-array · d3-brush · d3-time-format + RSC vega-spec-builder)
 - **규모**: line/area opt-in `dimensionScale:"time"` (linearScale on epoch · d3-time 18단 눈금 규칙 이식 · RSC 2단 라벨) · d3-time-format 지시자 부분집합 format/parse (`dimensionFormat` · `dimensionLabelFormat`, UTC · en/ko) · ADR-211 창 `[start, end]` thumb 2 (최소 창 = fitEff, 넓히면 극값 재추출). 외부 의존 0 (d3 는 devDependency 오라클). Phase 0~~7 / R1~~R6 (HIGH 3: 211 index 모델 · 이식 정합 · 번들) / G0~G5. design breakdown `design/216-chart-time-axis-format-window-breakdown.md`
-- **우선순위**: P2 — 212 뒤 (패널 파일 충돌 회피). 착수 조건 G0 inventory freeze + 번들 절대 상한 (215, 현재 212 P1 +3,149 초과) 사용자 재승인
+- **우선순위**: 사용자 지시로 212 와 병행 착수 (2026-09-12 "종료까지 시작") — 패널 변경은 `ChartPresentationControls.tsx` 한 파일. 번들 절대 상한 (215, 212 P1 +3,149 초과) 은 G5 보고 항목
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
