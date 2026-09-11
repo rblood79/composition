@@ -42,8 +42,11 @@ export interface TypeChangeOpsInput {
   field: DataField;
   newType: DataFieldType;
   invalidRowIndexes: readonly number[];
-  /** clear = 실패 셀을 null 로, keep = 값 그대로 (타입만) */
+  /** clear = 실패 셀을 null 로, keep = 값 그대로 (강제 실패 행만). 두 경우 모두 강제 성공 행은 새 타입 값으로 정규화 ("30" → 30). */
   mode: "keep" | "clear";
+  /** 강제 성공 행 정규화용 — 생략하면 update_field 만 (정규화 없음). */
+  rows?: readonly Record<string, unknown>[];
+  fieldKey?: string;
 }
 
 export function typeChangeToOps({
@@ -52,11 +55,33 @@ export function typeChangeToOps({
   newType,
   invalidRowIndexes,
   mode,
+  rows,
+  fieldKey,
 }: TypeChangeOpsInput): DataOp[] {
   const fieldId = field.id ?? field.key;
   const ops: DataOp[] = [
     { op: "update_field", collectionId, fieldId, patch: { type: newType } },
   ];
+  const invalid = new Set(invalidRowIndexes);
+  const key = fieldKey ?? field.key;
+  if (rows) {
+    // 강제 성공 행: 문자열 "30" 을 number 30 으로 정규화 (셀 값이 새 타입과 어긋나지 않게).
+    rows.forEach((row, rowIndex) => {
+      if (invalid.has(rowIndex)) return;
+      const raw = formatCellValue(row[key]);
+      if (raw.trim() === "") return;
+      const coerced = coerceCellValue(newType, raw);
+      if (coerced.ok && !Object.is(coerced.value, row[key])) {
+        ops.push({
+          op: "set_cell",
+          collectionId,
+          rowIndex,
+          fieldId,
+          value: coerced.value,
+        });
+      }
+    });
+  }
   if (mode === "clear") {
     for (const rowIndex of invalidRowIndexes) {
       ops.push({

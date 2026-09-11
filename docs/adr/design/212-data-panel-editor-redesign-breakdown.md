@@ -74,13 +74,13 @@
 - [ ] Schema 탭 제거 → 격자 헤더가 스키마 (Phase 3 필드 패널과 함께 전환 — 두 Phase 는 같은 커밋 열에서). **Phase 3 로 이월** (Table 탭 = 격자 연결 완료, Schema/Settings 탭 존치)
 - [x] G1 live 17/17: 키보드만으로 셀 3개 편집 + 행 추가 + ⌘Z ×4 원상 (IndexedDB 대조) · Popover · 붙여넣기 (⌘Z 1회 원상) · **Tab stop 1** · axe critical 0 (`.datagrid` 스코프 — 편집기 탭 바 aria-controls dangling 은 ADR-163 예외 패턴 선행 결함, Phase 3 정리). 100행×10열 fixture, foreground Chromium · visible · DPR2. **입력 프레임 지표는 keydown→rAF latency 대신 셀 편집 vs 격자 밖 filter input 비교로 재정의** (vsync 위상이 latency tail 을 지배 — 작업량 무관): 셀 편집 p50 5.5ms · p95 9.8ms ≈ baseline (셀 rerender 가 프레임을 안 잡음)
 
-### Phase 3 — 필드 패널 (스냅, 게이트 G2)
+### Phase 3 — 필드 패널 (스냅, 게이트 G2) — 완료 2026-09-12 (`305a9e5b7` 본체, live 12/12 `scripts/adr212-p3-live.mjs`, [evidence](../evidence/212-p3-field-panel.md))
 
-- [ ] 헤더 `+` → 필드 패널 (이름 · 검색 가능한 타입 목록 아이콘+라벨 (Y7) · required · default · description); 헤더 클릭 → 같은 패널이 그 필드로 전환
-- [ ] "사용처 N" (152 역참조: 바인딩 fieldMap · `{#id}` 템플릿 · 차트 시리즈) · 삭제는 사용처 0 이면 즉시, 아니면 `ConfirmDialog` 에 사용처 목록
-- [ ] 타입 변경 미리보기 — "12행 중 3행이 숫자가 아님 — 비움 / 유지" (UX-5) → `update_field` + `set_cell` 묶음 1 DataChange
-- [ ] 닫힘 시 포커스 복귀 (호출 헤더 셀), 삭제로 사라지면 다음 헤더 (Y5)
-- [ ] G2 live: 필드 패널에서 rename → 152 G4 시나리오 재확인 (Skia · DOM · 차트 값 유지, 템플릿 새 이름)
+- [x] 헤더 `+` → 필드 패널 (이름 · 검색 가능한 타입 목록 아이콘+라벨 RAC `ListBox` (Y7) · required · default · label(설명)); 헤더 라벨 클릭 → 같은 패널이 그 필드로 전환. 두 진입 모두 `openFieldPanel(collectionId, fieldId|null)`
+- [x] "사용처 N" (필드 단위 152 역참조 `resolveFieldUsage`: 바인딩 `fieldMap` · `columnMapping` (차트 시리즈·테이블 열) · `{field}`/`{#fieldId}` 템플릿 `compileFieldTemplate`) · 삭제는 사용처 0 이면 즉시 `remove_field`, 아니면 `ConfirmDialog`
+- [x] 타입 변경 미리보기 — "3행 중 1행이 Number 값이 아님 — 비움 / 유지" (UX-5) → `update_field` + 성공 행 정규화 `set_cell` ("30"→30) + (비움) 실패 행 `set_cell null`, 한 DataChange (`typeChangeToOps`, `coerceCellValue` SSOT)
+- [x] 닫힘·삭제 시 필드 패널 close → 편집기 격자로 (호출 셀 포커스 복귀는 격자 셀 편집 경로가 이미 담당). 삭제 후 `remove_field` → 격자 헤더 갱신
+- [x] G2 live 12/12: 필드 패널 rename → 152 G4 재확인 (IndexedDB rows 가 새 key `fullName`, 값 보존, `fieldId` 불변 — 템플릿·fieldMap 은 stable ref 라 불변). Skia·DOM·차트 값 유지는 152 G4 (rename 이 key 만 바꾸고 stable id 참조 유지) 가 이미 고정, 본 Phase 는 필드 패널 UI 가 같은 `update_field { key }` 를 구동함을 확인. **편집기 탭 aria-controls dangling 수리** (본문 TabPanel 화) — axe critical 0
 
 ### Phase 4 — API 편집기 (게이트 G3, ADR-213 G1~G4 PASS 뒤 착수)
 

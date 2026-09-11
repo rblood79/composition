@@ -84,6 +84,25 @@ describe("typeChangeToOps", () => {
       },
     ]);
   });
+  it("rows 를 주면 강제 성공 행을 새 타입으로 정규화한다 ('30'→30, ''는 건너뜀)", () => {
+    const ops = typeChangeToOps({
+      collectionId: "c1",
+      field,
+      newType: "number",
+      invalidRowIndexes: [1, 4],
+      mode: "clear",
+      rows,
+      fieldKey: "age",
+    });
+    expect(ops).toEqual([
+      { op: "update_field", collectionId: "c1", fieldId: "f-age", patch: { type: "number" } },
+      { op: "set_cell", collectionId: "c1", rowIndex: 0, fieldId: "f-age", value: 30 },
+      { op: "set_cell", collectionId: "c1", rowIndex: 3, fieldId: "f-age", value: 42 },
+      { op: "set_cell", collectionId: "c1", rowIndex: 1, fieldId: "f-age", value: null },
+      { op: "set_cell", collectionId: "c1", rowIndex: 4, fieldId: "f-age", value: null },
+    ]);
+  });
+
   it("실패 0 이면 mode 무관하게 update_field 하나", () => {
     const ops = typeChangeToOps({
       collectionId: "c1",

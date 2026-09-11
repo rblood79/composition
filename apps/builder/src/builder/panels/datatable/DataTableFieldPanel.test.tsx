@@ -140,6 +140,15 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
         fieldId: "f-age",
         patch: { type: "number" },
       },
+      // 강제 성공 행 정규화: "30" → 30
+      {
+        op: "set_cell",
+        collectionId: "c1",
+        rowIndex: 0,
+        fieldId: "f-age",
+        value: 30,
+      },
+      // 강제 실패 행 비움: "x" → null
       {
         op: "set_cell",
         collectionId: "c1",

@@ -285,6 +285,8 @@ function FieldForm({
       newType: pendingType.newType,
       invalidRowIndexes: pendingType.invalidRowIndexes,
       mode,
+      rows,
+      fieldKey: field.key,
     });
     setPendingType(null);
     await write(ops);
