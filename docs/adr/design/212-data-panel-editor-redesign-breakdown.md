@@ -95,12 +95,12 @@
 - [x] production CORS 경고 (UX-8): `!import.meta.env.DEV` 배너 (`isProd && <banner>`). dev live 는 DEV=true 라 코드 경로만
 - [x] G3 live 11/11: URL→Send (로컬 서버+proxy)→Schema 추천→저장 (collection api·3행 + targetCollectionId, 한 DataChange)→⌘Z 원상. Auth Bearer → 문서 `{{secret.NAME}}` (원문 0 HC6) · vault 에만 원문 · 실제 요청은 vault 원문. failure injection rollback 은 213 coordinator 소유 (213 G-live 고정) — 본 Phase 는 성공 History 1 + undo 원상 확인. 기존 평문 migration·production 배너는 후속/코드 경로
 
-### Phase 5 — 데이터 유입 · 소스 (Source 아트보드)
+### Phase 5 — 데이터 유입 · 소스 (Source 아트보드) — 부분 완료 2026-09-12 (`bf87e8caa`, live 6/6 `scripts/adr212-p5-live.mjs`, [evidence](../evidence/212-p5-import.md))
 
-- [ ] CSV / JSON import 미리보기 — 헤더행 토글 · 타입 자동 감지 · 열별 기존/새/무시 매핑 · append vs replace (UX-3, M2) → `DataChange` 1개 (`replace_rows` 또는 `insert_rows` + `add_field`)
-- [ ] Settings 탭 → "데이터 소스": 샘플 데이터 사용 / 실제 데이터 사용 + 엔드포인트 picker (자유 텍스트 금지) + 실행 정책 (열 때 자동 · 수동 · N초마다) (UX-6). `useMockData` 는 read 호환
-- [ ] `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 새로고침 후 빈 화면 없음, "캐시됨 · 다시 불러오기" 표시
-- [ ] 0행 · 오류 상태를 목록 배지 · 편집기 상단 · (Phase 6) 캔버스 배지에 같은 값으로 (Failure 아트보드)
+- [x] CSV / JSON import 미리보기 — 타입 자동 감지 · 열별 기존/새/무시 매핑 · append vs replace (UX-3, M2) → `DataChange` 1개 (`replace_rows` 또는 `insert_rows` + `add_field`). `importPlan.ts` (순수, test 5) + `ImportPreview.tsx` (격자 위 인라인 staging, HC2)
+- [ ] **이월** Settings 탭 → "데이터 소스": 엔드포인트 picker + 실행 정책 (열 때 자동 · 수동 · N초마다) (UX-6) — 실행 정책은 collection 신규 영속 필드 필요 (별도 리뷰). sample/real (`useMockData`) 토글은 현행 Settings 에 존재
+- [ ] **이월** `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화라 export/redactor/번들 영향 검토 전제 (별도 커밋)
+- [x] 0행 · 오류 상태를 목록 배지 · 편집기 상단에 같은 값으로 (`findLinkedApi`+`apiRuns`, `.datatable-editor-status`). 캔버스 배지는 Phase 6
 
 ### Phase 6 — 인스펙터 동선 + 캔버스 배지
 
