@@ -573,10 +573,32 @@ ADR-098 Charter + ADR-099 (098-c Collection Section/Header) / ADR-100 (098-a Sel
 
 ## 보류 항목
 
-| 출처       | 항목                      | 사유               | 재개 조건         |
-| ---------- | ------------------------- | ------------------ | ----------------- |
-| ADR-006    | Table/Tree 자식 조합 패턴 | 다단계 중첩 복잡도 | 별도 설계 필요    |
-| ADR-010 P2 | AI 이벤트 생성            | 장기 계획          | AI 인프라 성숙 후 |
+| 출처                         | 항목                                                                              | 사유                                                                                                                                   | 재개 조건                                                                            |
+| ---------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| ADR-006                      | Table/Tree 자식 조합 패턴                                                         | 다단계 중첩 복잡도                                                                                                                     | 별도 설계 필요                                                                       |
+| ADR-010 P2                   | AI 이벤트 생성                                                                    | 장기 계획                                                                                                                              | AI 인프라 성숙 후                                                                    |
+| ADR-152 P6 실측 (2026-09-11) | publish 의 canonical ref 확장 (reusable 인스턴스 · collection 템플릿) — 아래 초안 | publish 는 기능 링크만 (메모리 `project-publish-link-only-defer-until-builder-stable`) · builder 4 모듈 이동이 필요해 `/fix` 급이 아님 | publish 방침 해제 시 별도 ADR 또는 ADR-162 publish leg phase 로 착수 — 결정 지점 (1) |
+
+<details>
+<summary>ADR 초안 항목 — publish canonical ref 확장 (2026-09-11 실측, 착수 전 기록)</summary>
+
+**문제 (실측)**: `apps/publish/src/renderer/ElementRenderer.tsx:81` 은 `getComponent(element.type)` 로만 그리고 `type:"ref"` 분기가 없다 → export 에 실린 ref 노드 (`project.schema.ts:70` `ref?: string`) 는 `Unknown component` 경고 후 빈칸. **publish 의 모든 reusable 인스턴스**가 안 그려지고, ADR-152 G3 에서 본 "ref ListBox master slot 템플릿 미보간" 은 그 한 증상이다. builder preview 는 `preview/App.tsx:648-655` 에서 `resolveCanonicalRefTree` 로 확장한다.
+
+**범위 (포함)**:
+
+1. `resolveCanonicalRefTree` 와 의존 4 모듈을 `@composition/shared` 로 이동 — store 결합 0 (실측: `referenceResolution.ts` 45줄 import 0 · `renderProjectionIds.ts` 182줄 import 0 · `instanceResolver.ts` 170줄 shared 만 · `legacyElementFields.ts` 는 builder `Element` 타입만 → shared 의 element 타입으로 교체) · `canonicalRefResolution.ts` 790줄. builder import 14곳 재지정 (`resolvers/canonical/storeBridge` · `preview/App` · `preview/presentation/editorPresentationProjectionIndex` · `skia/StoreRenderBridge` · `scene/canonicalSceneModel` · `PropertiesPanel` · `ComponentSlotFillSection` · `useCanonicalPropertyRead` · `useLayerTreeData` · `stores/inspectorActions` · `stores/index` · `builder/utils/canonicalRefResolution` (re-export) · `iconButtonTemplateOrigins` · `editorPresentationCommitAdapter`)
+2. `apps/publish/src/App.tsx` 에 preview 와 같은 확장 호출 (`resolvedElements = resolveCanonicalRefTree({ elements, elementsMap }).elements`) — `PageRenderer` 입력을 확장 결과로
+3. preview 의 ref 부수 로직 중 publish 에 필요한 것 판정: `templateSlotCompositions` (`preview/App.tsx:284`, ADR-148 — ListBox master slot[0] · GridList/Menu origin → renderContext `:803,816`) 는 shared renderer 가 소비하므로 **필요** (없으면 ref ListBox 행 템플릿 자식이 없어 152 G3 격차 그대로) · `visibleCanonicalNodes` (`:246`, semantic target index 정합) 는 preview 편집 연동용 — publish 불필요 판정 후보
+
+**범위 (제외)**: publish 의 다른 기능 격차 (ADR-154 반응형은 이미 됨 · interactions 는 `InteractionRuntime`) · builder 쪽 동작 변경 0 (이동만)
+
+**Risk 후보**: R1 Publish 번들 예산 <500,000 B (ADR-211 승인) — ~1,200줄 + 템플릿 slot 구성이 initial 에 실린다 (측정 후 lazy 분리 여부) · R2 shared 로 올린 모듈이 builder 전용 개념 (`isRenderProjectionId` 의 projection id 접두) 을 끌고 가 D 경계가 흐려짐 — projection id 술어만 builder 에 남기고 주입하는 분리 검토 · R3 `legacyElementFields` 타입 교체로 builder `Element` ↔ shared element 타입 차이가 드러남
+
+**Gate 후보**: G0 이동 전후 builder 테스트 · type-check 무변경 (동작 변경 0 커밋 — review-loop-closure §3 축소 절차) · G1 publish 탭 live: reusable Button/ListBox 인스턴스 1개씩 → DOM 에 master 자식 렌더 + ref ListBox 행 텍스트가 `{#id}` 템플릿 보간 (ADR-152 P6 하니스 `adr152-p6-live.mjs` 재사용, "publish 미보간" 정보 항목을 PASS 조건으로 승격) · G2 Publish 번들 <500,000 B
+
+**의존**: ADR-148 (reusable/slot, Implemented) · ADR-162 (GridList 템플릿, Proposed — publish leg 를 어느 ADR 이 갖는지가 결정 지점 (1) fork/통합) · ADR-152 Implemented (데이터 계약은 이미 publish snapshot 에 실린다 — 확장기만 없음)
+
+</details>
 
 ---
 
