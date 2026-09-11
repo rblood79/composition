@@ -292,10 +292,12 @@ interface DataChange {
 
 ### Phase 6 — publish 연동
 
-- [ ] 프로젝트 publish 시 data snapshot 직렬화: `collections`(schema+mockData, `runtimeData` 제외) + `api_endpoints` 정의를 publish payload 에 포함
+> **Implemented 2026-09-11** — G3 5/5 (`apps/builder/scripts/adr152-p6-live.mjs`, ADR 본문 §Live Exercise).
+
+- [x] snapshot 직렬화: `toRuntimeCollection` (`packages/shared/src/collections/collectionSnapshot.ts`) — `{ id, name, schema (id 포함), mockData, useMockData }` 만, `runtimeData` · 저장소 메타 제외. `BuilderCore` 의 헤더 Preview payload (sessionStorage) 와 export JSON (`downloadProjectAsJson`) 둘 다 경유. **fieldId 통과 결함 수리**: `ExportedProjectSchema` 의 schema 필드가 `{ key, type, label }` 만 허용해 import (`validateExportedProject` → `result.data`) 에서 `id` 가 strip 됐다 → `id` · `required` · `defaultValue` 추가 (unit: 검증 결과에 id 잔존)
 - [x] ~~`apps/publish` 에 read-only collections provider~~ → **ADR-209 로 마운트 완료** (`apps/publish/src/App.tsx:1`) — 남은 것은 snapshot 에 `fieldId` 가 실리는지 확인뿐. **2026-08-17**: Phase 3 선행 조건에서 preview 에 붙이는 provider 와 **같은 부품**(`CollectionDataProvider` + `dataTableService`)이다 — snapshot 을 소스로 삼는 것만 다르므로 Phase 3 배선을 재사용하고 여기서 새로 만들지 말 것
-- [ ] live 게이트 G3: publish 된 프로젝트에서 dataTable 바인딩 ListBox/Table 이 snapshot 데이터 렌더 확인
-- [ ] ~~API source 는 publish 런타임에서 직접 fetch~~ → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — api/variable/route 오소링 제거(159 P4c, G4 소비처 0 확증 게이트) 확정 시 본 항목 소멸, publish 는 collections snapshot 만 소비. 159 G4 실패(잔존 소비처 발견) 시에만 본 항목 원안 복귀 판정
+- [x] G3 live 5/5 — publish 탭 ListBox 행 3 (key = fieldMap value 역할 uid) · Table `aria-rowcount` 3 + 셀 snapshot 값 · payload 키 검사. **범위 밖 (기록)**: publish 는 ref ListBox 의 master slot 템플릿을 (이름 문법 · `{#id}` 둘 다) 보간하지 않는다 — 원인은 `apps/publish/src/App.tsx` 가 builder preview 의 `resolveCanonicalRefTree` (ref → master subtree 확장) 를 돌리지 않아 `SelectionRenderers` 에 ListBoxItem 템플릿 자식이 없는 것 (ADR-162/159 publish leg · 메모리 `project-publish-link-only-defer-until-builder-stable`) — ADR-152 데이터 계약과 무관
+- [x] ~~API source 는 publish 런타임에서 직접 fetch~~ → 소멸 확정 (159 P4b 로 dataTable 단일; publish 는 `createCollectionSnapshotServices` 의 executor 가 endpoint 를 실행하고 그 전엔 `resolveCollectionSnapshot` 이 mockData 폴백) → 개정 2026-07-21: ADR-159 dataTable 단일 방향 — api/variable/route 오소링 제거(159 P4c, G4 소비처 0 확증 게이트) 확정 시 본 항목 소멸, publish 는 collections snapshot 만 소비. 159 G4 실패(잔존 소비처 발견) 시에만 본 항목 원안 복귀 판정
 
 ### Phase 7 — closure
 

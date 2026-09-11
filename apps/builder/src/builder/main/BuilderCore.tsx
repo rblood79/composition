@@ -1,5 +1,8 @@
 import { importCollectionEnvelope } from "../utils/importCollectionEnvelope";
-import { toRuntimeApiEndpoint } from "@composition/shared";
+import {
+  toRuntimeApiEndpoint,
+  toRuntimeCollection,
+} from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useParams } from "react-router";
@@ -1135,7 +1138,10 @@ export const BuilderCore: React.FC = () => {
       },
       document,
       currentPageId: storeCurrentPageId,
-      collections: Array.from(useDataStore.getState().collections.values()),
+      // ADR-152 Phase 6: 정의 + mockData 만 (runtimeData · 저장소 메타 제외) — 필드 id 는 통과
+      collections: Array.from(useDataStore.getState().collections.values()).map(
+        toRuntimeCollection,
+      ),
       apiEndpoints: Array.from(
         useDataStore.getState().apiEndpoints.values(),
       ).map(toRuntimeApiEndpoint),
@@ -1170,7 +1176,9 @@ export const BuilderCore: React.FC = () => {
         useStore.getState().currentPageId,
         loadFontRegistry(),
         undefined,
-        Array.from(useDataStore.getState().collections.values()),
+        Array.from(useDataStore.getState().collections.values()).map(
+          toRuntimeCollection,
+        ),
         Array.from(useDataStore.getState().apiEndpoints.values()).map(
           toRuntimeApiEndpoint,
         ),

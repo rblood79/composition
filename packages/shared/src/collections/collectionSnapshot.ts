@@ -25,6 +25,26 @@ export function resolveCollectionSnapshot(
   };
 }
 
+/**
+ * ADR-152 Phase 6 — publish/export data snapshot 의 collection 형. 정의 (`schema` — `id` 포함,
+ * `{#id}` · fieldMap · 차트 `#id` 참조가 publish 에서도 풀리도록) + `mockData` + `useMockData` 만.
+ * `runtimeData` (빌더 세션의 API 응답, 메모리 전용) · 저장소 메타 (project_id · created_at …) 는
+ * 싣지 않는다 — publish 는 API 를 스스로 실행하고 (`createCollectionEndpointExecutor`) 그 전에는
+ * `resolveCollectionSnapshot` 이 mockData 로 폴백한다.
+ */
+export function toRuntimeCollection(
+  table: DataTableDefinition,
+): DataTableDefinition {
+  const { id, name, schema, mockData, useMockData } = table;
+  return {
+    id,
+    name,
+    ...(schema !== undefined ? { schema } : {}),
+    ...(mockData !== undefined ? { mockData } : {}),
+    ...(useMockData !== undefined ? { useMockData } : {}),
+  };
+}
+
 /** 저장소의 관리 메타데이터/서버 비밀 매핑은 runtime envelope에 복사하지 않는다. */
 export function toRuntimeApiEndpoint(endpoint: ApiEndpointDefinition): ApiEndpointDefinition {
   const {id, name, baseUrl, path, method, headers, queryParams, bodyType, bodyTemplate,

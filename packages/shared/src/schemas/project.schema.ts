@@ -148,7 +148,8 @@ export const ExportedProjectSchema = z
     fontRegistry: z.unknown().optional(),
     collections: z.array(z.object({
       id: z.string(), name: z.string(),
-      schema: z.array(z.object({ key: z.string(), type: z.string(), label: z.string().optional() })).optional(),
+      // ADR-152 v2.1: `id` 는 안정 참조 (`{#id}` 템플릿 · fieldMap · 차트) — strip 되면 import 뒤 참조가 끊긴다
+      schema: z.array(z.object({ id: z.string().optional(), key: z.string(), type: z.string(), label: z.string().optional(), required: z.boolean().optional(), defaultValue: z.unknown().optional() })).optional(),
       mockData: z.array(z.record(z.string(), z.unknown())).optional(),
       runtimeData: z.array(z.record(z.string(), z.unknown())).optional(),
       useMockData: z.boolean().optional(),
