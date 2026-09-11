@@ -7,12 +7,13 @@
  * - useMockData 토글
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { TableEditorTab } from "../types/editorTypes";
 import { useDataStore } from "../../../stores/data";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { PropertySwitch } from "../../../components";
 import { DataGrid } from "../grid/DataGrid";
+import { findLinkedApi } from "../components/DataTableList";
 import "./DataTableEditor.css";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 
@@ -28,6 +29,10 @@ export function DataTableEditor({
   activeTab,
 }: DataTableEditorProps) {
   const updateCollection = useDataStore((state) => state.updateCollection);
+  const shellI18n = useOptionalI18n();
+  const rootI18nT = shellI18n
+    ? (key: string) => shellI18n.t(key)
+    : null;
 
   // useMockData 토글
   const handleUseMockDataToggle = useCallback(
@@ -56,9 +61,42 @@ export function DataTableEditor({
   // Note: onClose is handled by parent DataTableEditorPanel
   void onClose;
 
+  const apiEndpointsMap = useDataStore((state) => state.apiEndpoints);
+  const apiRuns = useDataStore((state) => state.apiRuns);
+  const editorStatus = useMemo(() => {
+    const rowCount = dataTable.useMockData
+      ? dataTable.mockData.length
+      : (dataTable.runtimeData?.length ?? dataTable.mockData.length);
+    const linked = findLinkedApi(
+      dataTable,
+      Array.from(apiEndpointsMap.values()),
+    );
+    const run = linked ? apiRuns.get(linked.id) : undefined;
+    if (run && (run.ok === false || (run.response && run.response.status >= 400)))
+      return { tone: "error" as const, key: "editorError" };
+    if (rowCount === 0) return { tone: "empty" as const, key: "editorEmpty" };
+    return null;
+  }, [dataTable, apiEndpointsMap, apiRuns]);
+
+  const localizeStatus = (key: string) =>
+    rootI18nT ? rootI18nT(`datatable.${key}`) : key;
+
   return (
     <>
-      {activeTab === "data" && <DataGrid table={dataTable} />}
+      {activeTab === "data" && (
+        <>
+          {editorStatus && (
+            <div
+              className="datatable-editor-status"
+              data-tone={editorStatus.tone}
+            >
+              {localizeStatus(editorStatus.key)}
+            </div>
+          )}
+          <DataGrid table={dataTable} />
+        </>
+      )}
+
 
       {activeTab === "settings" && (
         <SettingsEditor

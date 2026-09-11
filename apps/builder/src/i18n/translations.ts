@@ -1581,6 +1581,21 @@ const koKR: TranslationKeys = {
     apiSaveFailed: "저장 실패: {message}",
     apiCorsWarning: "프로덕션에서는 브라우저 CORS 로 외부 호출이 막힐 수 있습니다 — 개발 프록시는 여기서만 동작합니다.",
     apiCurlPasted: "cURL 을 요청으로 채웠습니다.",
+    importTitle: "가져오기 미리보기",
+    importRows: "{count}행",
+    importColumn: "열",
+    importAction: "매핑",
+    importActionExisting: "기존 필드",
+    importActionNew: "새 필드",
+    importActionIgnore: "무시",
+    importModeReplace: "전체 교체",
+    importModeAppend: "뒤에 추가",
+    importApply: "가져오기",
+    importCancel: "취소",
+    importDone: "{rows}행 가져왔습니다.",
+    importParseFailed: "파일을 읽지 못했습니다.",
+    editorEmpty: "행 없음",
+    editorError: "마지막 실행 오류",
     confirmDelete: "정말 삭제하시겠습니까?",
     promptVariableName: "Variable 이름을 입력하세요:",
     promptApiUrl:
@@ -3435,6 +3450,21 @@ const enUS: TranslationKeys = {
     apiSaveFailed: "Save failed: {message}",
     apiCorsWarning: "In production the browser may block this call (CORS) — the dev proxy only works here.",
     apiCurlPasted: "Filled the request from cURL.",
+    importTitle: "Import preview",
+    importRows: "{count} rows",
+    importColumn: "Source column",
+    importAction: "Map to",
+    importActionExisting: "Existing field",
+    importActionNew: "New field",
+    importActionIgnore: "Ignore",
+    importModeReplace: "Replace all",
+    importModeAppend: "Append",
+    importApply: "Import",
+    importCancel: "Cancel",
+    importDone: "Imported {rows} rows.",
+    importParseFailed: "Could not read the file.",
+    editorEmpty: "No rows",
+    editorError: "Last run failed",
     confirmDelete: "Are you sure you want to delete this?",
     promptVariableName: "Enter a variable name:",
     promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",
@@ -4253,6 +4283,9 @@ const formattedMessages: Record<
       `필드 "${String(args?.key ?? "")}" 를 추가했습니다.`,
     "datatable.apiSchemaCandidate": (args) =>
       `${String(args?.path ?? "")} · ${String(args?.count ?? 0)}행`,
+    "datatable.importRows": (args) => `${String(args?.count ?? 0)}행`,
+    "datatable.importDone": (args) =>
+      `${String(args?.rows ?? 0)}행 가져왔습니다.`,
     "datatable.apiSaved": (args) =>
       `"${String(args?.name ?? "")}" 테이블에 저장했습니다.`,
     "datatable.apiSaveFailed": (args) =>
@@ -4683,6 +4716,9 @@ const formattedMessages: Record<
       `Added field "${String(args?.key ?? "")}".`,
     "datatable.apiSchemaCandidate": (args) =>
       `${String(args?.path ?? "")} · ${String(args?.count ?? 0)} rows`,
+    "datatable.importRows": (args) => `${String(args?.count ?? 0)} rows`,
+    "datatable.importDone": (args) =>
+      `Imported ${String(args?.rows ?? 0)} rows.`,
     "datatable.apiSaved": (args) =>
       `Saved to table "${String(args?.name ?? "")}".`,
     "datatable.apiSaveFailed": (args) =>

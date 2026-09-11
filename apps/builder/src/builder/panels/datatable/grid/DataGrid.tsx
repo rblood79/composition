@@ -73,6 +73,8 @@ import {
   planGridPaste,
   type GridPastePlan,
 } from "./pasteGrid";
+import { ImportPreview } from "./ImportPreview";
+import { parsePastedRows } from "../utils/pasteRows";
 import "./DataGrid.css";
 
 const AddIcon = ACTION_ICONS.add;
@@ -151,6 +153,9 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const [filterText, setFilterText] = useState("");
   const [pendingPaste, setPendingPaste] = useState<GridPastePlan | null>(null);
   const [focusRequest, setFocusRequest] = useState<CellCoord | null>(null);
+  const [importRows, setImportRows] = useState<Record<string, unknown>[] | null>(
+    null,
+  );
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -484,37 +489,51 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     (event: ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
-      Papa.parse<Record<string, unknown>>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: async (results) => {
-          const imported = results.data.map((row) => {
-            const converted: Record<string, unknown> = {};
-            for (const field of schema) {
-              const raw = row[field.key];
-              converted[field.key] =
-                raw === undefined || raw === null
-                  ? null
-                  : coerceCellValue(field.type, String(raw)).value;
+      const finish = () => {
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      };
+      const isJson = /\.json$/i.test(file.name);
+      file
+        .text()
+        .then((text) => {
+          if (isJson) {
+            const parsed = parsePastedRows(text);
+            if (!parsed.ok || parsed.rows.length === 0) {
+              globalToast.error(t("importParseFailed"));
+              finish();
+              return;
             }
-            return converted;
+            setImportRows(parsed.rows);
+            finish();
+            return;
+          }
+          Papa.parse<Record<string, unknown>>(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              const rows = results.data.filter(
+                (r) => r && typeof r === "object",
+              );
+              if (rows.length === 0) {
+                globalToast.error(t("importParseFailed"));
+                finish();
+                return;
+              }
+              setImportRows(rows);
+              finish();
+            },
+            error: (error: Error) => {
+              globalToast.error(error.message);
+              finish();
+            },
           });
-          const ok = await write([
-            { op: "replace_rows", collectionId, rows: imported },
-          ]);
-          if (ok)
-            announceDataPanelStatus(
-              t("gridImported", { rows: imported.length }),
-              {
-                tone: "success",
-              },
-            );
-          if (fileInputRef.current) fileInputRef.current.value = "";
-        },
-        error: (error) => globalToast.error(error.message),
-      });
+        })
+        .catch(() => {
+          globalToast.error(t("importParseFailed"));
+          finish();
+        });
     },
-    [collectionId, schema, t, write],
+    [t],
   );
 
   const handleExportCSV = useCallback(() => {
@@ -668,7 +687,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.json,application/json,text/csv"
             onChange={handleFileSelect}
             style={{ display: "none" }}
           />
@@ -695,6 +714,22 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         <div className="filter-result-info">
           {items.length} / {rows.length}
         </div>
+      )}
+      {importRows && (
+        <ImportPreview
+          rows={importRows}
+          schema={schema}
+          collectionId={collectionId}
+          rowCount={rows.length}
+          write={write}
+          onDone={(imported) => {
+            setImportRows(null);
+            if (imported !== null)
+              announceDataPanelStatus(t("importDone", { rows: imported }), {
+                tone: "success",
+              });
+          }}
+        />
       )}
       {virtualized ? (
         <ResizableTableContainer className="datagrid-scroll">

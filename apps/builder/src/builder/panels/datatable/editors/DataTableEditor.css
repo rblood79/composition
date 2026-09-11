@@ -315,3 +315,18 @@
   color: var(--fg-muted);
   line-height: 1.5;
 }
+
+/* ADR-212 Phase 5 — 편집기 상단 상태 배지 (0행/오류, 목록 배지와 같은 값) */
+.datatable-editor-status {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  border-bottom: 1px solid var(--border);
+}
+.datatable-editor-status[data-tone="empty"] {
+  color: var(--fg-muted);
+  background: var(--bg-raised);
+}
+.datatable-editor-status[data-tone="error"] {
+  color: var(--negative);
+  background: var(--color-error-100);
+}

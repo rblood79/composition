@@ -1,0 +1,62 @@
+/** ImportPreview — ADR-212 Phase 5. 격자 위 인라인 staging (고유 클래스만). */
+.datatable-import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-overlay);
+}
+.datatable-import-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.datatable-import-title {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--text-sm);
+}
+.datatable-import-count {
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+}
+.datatable-import-cols {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  max-height: 240px;
+  overflow: auto;
+}
+.datatable-import-col {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--spacing-xs);
+  align-items: center;
+}
+.datatable-import-col-key {
+  font-size: var(--text-xs);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.datatable-import-col-type {
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+}
+.datatable-import-mode {
+  display: flex;
+  gap: var(--spacing-md);
+}
+.datatable-import-mode-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.datatable-import-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+}
