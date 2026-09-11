@@ -14,6 +14,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import { Play, Wand2 } from "lucide-react";
 import type { ApiEditorTab } from "../types/editorTypes";
 import { useDataStore } from "../../../stores/data";
+import { resolveCollectionByName } from "@composition/shared";
 import type {
   ApiEndpoint,
   HttpMethod,
@@ -626,7 +627,18 @@ function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
       <PropertyInput
         label="Target DataTable"
         value={endpoint.targetCollection || ""}
-        onChange={(value) => onUpdate({ targetCollection: value })}
+        onChange={(value) =>
+          // ADR-152 v2.1: 이름과 같이 안정 참조 (id) 도 기록 — 이름이 collection 에
+          // 없으면 id 는 비운다 (sink 는 id 우선 · 이름 fallback).
+          onUpdate({
+            targetCollection: value,
+            targetCollectionId:
+              resolveCollectionByName(
+                value,
+                Array.from(useDataStore.getState().collections.values()),
+              )?.id ?? undefined,
+          })
+        }
         placeholder="pokemon_list"
       />
       <p className="field-description">{t("targetTableHint")}</p>

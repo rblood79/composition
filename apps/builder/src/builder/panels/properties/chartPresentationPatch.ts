@@ -11,6 +11,7 @@
  * 않는다 (§4.1). schema 가 없으면 `unknown` 으로 표시하고 선택은 허용한다.
  */
 import type { ChartSeriesConfig } from "@composition/specs";
+import { resolveBoundCollection } from "@composition/shared";
 
 import type { DataTable } from "../../../types/builder/data.types";
 
@@ -42,11 +43,8 @@ export function chartColumnCandidates(
 ): ChartColumnCandidate[] | null {
   const binding = props.dataBinding;
   if (isRecord(binding)) {
-    if (binding.source === "dataTable" && typeof binding.name === "string") {
-      const table = collections.find(
-        (candidate) =>
-          candidate.name === binding.name || candidate.id === binding.name,
-      );
+    if (binding.source === "dataTable") {
+      const table = resolveBoundCollection(binding, collections);
       if (table) {
         const schema = (table.schema ?? []).filter(
           (field) => typeof field.key === "string" && field.key.length > 0,

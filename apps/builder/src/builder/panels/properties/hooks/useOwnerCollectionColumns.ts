@@ -13,6 +13,7 @@
  */
 import { useMemo } from "react";
 
+import { resolveBoundCollection } from "@composition/shared";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { useCollections } from "../../../stores/data";
 import { useCanonicalPropertyElementsMap } from "./useCanonicalPropertyRead";
@@ -52,14 +53,14 @@ function columnsFromCollection(table: DataTable | undefined): string[] | null {
 
 export function columnsFromOwner(
   owner: Pick<PanelNode, "props">,
-  collectionsByName: ReadonlyMap<string, DataTable>,
+  collections: readonly DataTable[],
 ): string[] | null {
   const binding = owner.props?.dataBinding;
   if (isRecord(binding)) {
-    // property binding — dataTable 단일 소스 (ADR-159 P4b)
-    if (binding.source === "dataTable" && typeof binding.name === "string") {
+    // property binding — dataTable 단일 소스 (ADR-159 P4b) · collectionId 우선 (ADR-152)
+    if (binding.source === "dataTable") {
       const fromTable = columnsFromCollection(
-        collectionsByName.get(binding.name),
+        resolveBoundCollection(binding, collections) ?? undefined,
       );
       if (fromTable) return fromTable;
     }
@@ -91,12 +92,12 @@ export function columnsFromOwner(
 function columnsFromMasterConsumers(
   elementsMap: ReadonlyMap<string, PanelNode>,
   masterRootId: string,
-  collectionsByName: ReadonlyMap<string, DataTable>,
+  collections: readonly DataTable[],
 ): string[] | null {
   const ownerColumnsFromChain = (startId: string): string[] | null => {
     let current = elementsMap.get(startId);
     for (let depth = 0; current && depth < MAX_ANCESTOR_DEPTH; depth += 1) {
-      const columns = columnsFromOwner(current, collectionsByName);
+      const columns = columnsFromOwner(current, collections);
       if (columns) return columns;
       const parentId = current.parent_id;
       current = parentId ? elementsMap.get(parentId) : undefined;
@@ -132,7 +133,7 @@ function columnsFromMasterConsumers(
 export function resolveOwnerCollectionColumns(
   elementsMap: ReadonlyMap<string, PanelNode>,
   elementId: string | undefined,
-  collectionsByName: ReadonlyMap<string, DataTable>,
+  collections: readonly DataTable[],
 ): string[] | null {
   if (!elementId) return null;
   let current = elementsMap.get(elementId);
@@ -142,7 +143,7 @@ export function resolveOwnerCollectionColumns(
   for (let depth = 0; current && depth < MAX_ANCESTOR_DEPTH; depth += 1) {
     if (depth > 0) {
       // 자기 자신(Text)은 소유자 아님 — 조상부터 판정.
-      const columns = columnsFromOwner(current, collectionsByName);
+      const columns = columnsFromOwner(current, collections);
       if (columns) return columns;
     }
     if (current.reusable) reusableAncestorIds.push(current.id);
@@ -154,7 +155,7 @@ export function resolveOwnerCollectionColumns(
     const columns = columnsFromMasterConsumers(
       elementsMap,
       masterId,
-      collectionsByName,
+      collections,
     );
     if (columns) return columns;
   }
@@ -167,8 +168,8 @@ export function useOwnerCollectionColumns(
   const elementsMap = useCanonicalPropertyElementsMap();
   const collections = useCollections();
 
-  return useMemo(() => {
-    const byName = new Map(collections.map((table) => [table.name, table]));
-    return resolveOwnerCollectionColumns(elementsMap, elementId, byName);
-  }, [elementsMap, elementId, collections]);
+  return useMemo(
+    () => resolveOwnerCollectionColumns(elementsMap, elementId, collections),
+    [elementsMap, elementId, collections],
+  );
 }

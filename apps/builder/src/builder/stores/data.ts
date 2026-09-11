@@ -21,6 +21,7 @@
  */
 
 import { useMemo } from "react";
+import { resolveCollectionByName } from "@composition/shared";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { StateCreator } from "zustand";
@@ -312,7 +313,21 @@ export const useCollections = (): DataTable[] => {
  */
 export const useCollection = (name: string): DataTable | undefined => {
   const collections = useDataStore((state) => state.collections);
-  return collections.get(name);
+  // Map 은 id 키 (ADR-152 HC8) — name 시그니처는 fallback wrapper 로 유지.
+  return useMemo(
+    () =>
+      resolveCollectionByName(name, Array.from(collections.values())) ??
+      undefined,
+    [collections, name],
+  );
+};
+
+/** id 로 DataTable 가져오기 — O(1) (ADR-152 v2 안정 참조). */
+export const useCollectionById = (
+  id: string | undefined,
+): DataTable | undefined => {
+  const collections = useDataStore((state) => state.collections);
+  return id ? collections.get(id) : undefined;
 };
 
 /**

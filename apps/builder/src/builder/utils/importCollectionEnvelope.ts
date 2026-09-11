@@ -1,4 +1,5 @@
 import type { CompositionDocument, ProjectExportData } from "@composition/shared";
+import { resolveCollectionByName } from "@composition/shared";
 import type { ApiEndpointCreate, DataField, DataStoreActions, DataStoreState } from "../../types/builder/data.types";
 
 type ImportStore = Pick<DataStoreActions, "createDataTable" | "updateCollection" | "setRuntimeData" | "createApiEndpoint" | "updateApiEndpoint"> & Pick<DataStoreState, "collections" | "apiEndpoints">;
@@ -7,7 +8,8 @@ type ImportStore = Pick<DataStoreActions, "createDataTable" | "updateCollection"
 export async function importCollectionEnvelope(projectId: string, data: ProjectExportData, store: ImportStore): Promise<CompositionDocument> {
   const ids = new Map<string, string>();
   for (const source of data.collections ?? []) {
-    const current = store.collections.get(source.name);
+    // store Map 은 id 키 (ADR-152 HC8) — envelope 은 이름이 정본이라 name resolve.
+    const current = resolveCollectionByName(source.name, Array.from(store.collections.values())) ?? undefined;
     const config = {name: source.name, schema: (source.schema ?? []) as DataField[], mockData: source.mockData ?? [], useMockData: source.useMockData ?? true};
     const target = current ?? await store.createDataTable({...config, project_id: projectId});
     if (current) await store.updateCollection(current.id, config);
@@ -34,8 +36,14 @@ export async function importCollectionEnvelope(projectId: string, data: ProjectE
     if (!value || typeof value !== "object") return value;
     return Object.fromEntries(Object.entries(value).map(([key, child])=> {
       if (key === "datatableId" && typeof child === "string" && ids.has(child)) return [key,ids.get(child)];
-      if (key === "dataBinding" && child && typeof child === "object" && "source" in child && child.source === "dataTable" && "name" in child && typeof child.name === "string" && ids.has(child.name))
-        return [key,{...child,name:ids.get(child.name)}];
+      if (key === "dataBinding" && child && typeof child === "object" && "source" in child && child.source === "dataTable") {
+        const binding = child as { collectionId?: unknown; name?: unknown };
+        const next = { ...binding };
+        // v2 `collectionId` 와 구 형식 (name 자리의 id) 둘 다 새 DB id 로 연결한다.
+        if (typeof binding.collectionId === "string" && ids.has(binding.collectionId)) next.collectionId = ids.get(binding.collectionId);
+        if (typeof binding.name === "string" && ids.has(binding.name)) next.name = ids.get(binding.name);
+        return [key, next];
+      }
       return [key,visit(child)];
     }));
   };

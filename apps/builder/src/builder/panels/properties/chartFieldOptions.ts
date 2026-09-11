@@ -47,15 +47,7 @@ export function buildChartSemanticFields(
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
   );
-  const columns = columnsFromOwner(
-    { props },
-    new Map(
-      collections.flatMap((table) => [
-        [table.name, table] as const,
-        [table.id, table] as const,
-      ]),
-    ),
-  );
+  const columns = columnsFromOwner({ props }, collections);
   return fields
     .filter((field) => field.key !== "data" || !props.dataBinding)
     .map((field) => {

@@ -11,6 +11,7 @@
  */
 
 import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
+import { resolveBoundCollection } from "../collections/resolveBoundCollection";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useAsyncList } from "react-stately";
 import type {
@@ -301,13 +302,12 @@ export function useCollectionData({
       propertyBinding.source === "dataTable" &&
       propertyBinding.name
     ) {
-      const table = collections.find(
-        (dt) =>
-          dt.name === propertyBinding.name || dt.id === propertyBinding.name,
-      );
+      // ADR-152 v2: collectionId 우선 · name fallback — 단일 헬퍼 (rename-safe).
+      const table = resolveBoundCollection(propertyBinding, collections);
       if (table) {
         const snapshot = resolveCollectionSnapshot(table);
         const schema: SchemaField[] = (table.schema || []).map((field) => ({
+          id: field.id,
           key: field.key,
           type: field.type,
           label: field.label,
@@ -321,7 +321,7 @@ export function useCollectionData({
   // 이름이 같아도 endpoint 정의/id가 바뀌면 이전 source 캐시를 소비하지 않는다.
   const boundEndpoint =
     propertyBinding?.source === "api"
-      ? apiEndpoints.find((endpoint) => endpoint.name === propertyBinding.name)
+      ? (resolveBoundCollection(propertyBinding, apiEndpoints) ?? undefined)
       : undefined;
   const bindingCacheKey = `${createCacheKey(stableDataBinding)}${boundEndpoint ? `:${JSON.stringify(boundEndpoint)}` : ""}`;
 
@@ -334,8 +334,9 @@ export function useCollectionData({
         }
 
         if (propertyBinding.source === "api" && propertyBinding.name) {
-          const endpoint = apiEndpoints.find(
-            (ep) => ep.name === propertyBinding.name,
+          const endpoint = resolveBoundCollection(
+            propertyBinding,
+            apiEndpoints,
           );
           if (!endpoint) {
             throw new Error(

@@ -60,10 +60,15 @@ export function DataTableList({
   // Silence unused variable warning
   void projectId;
 
-  // DataTable 이름으로 연결된 API Endpoint 찾기
+  // DataTable 에 연결된 API Endpoint 찾기 — id 우선 (ADR-152 v2.1) · 이름 fallback
   const getLinkedApi = useMemo(
-    () => (tableName: string) => {
-      return apiEndpoints.find((api) => api.targetCollection === tableName);
+    () => (table: { id: string; name: string }) => {
+      return (
+        apiEndpoints.find((api) => api.targetCollectionId === table.id) ??
+        apiEndpoints.find(
+          (api) => !api.targetCollectionId && api.targetCollection === table.name,
+        )
+      );
     },
     [apiEndpoints],
   );
@@ -113,7 +118,7 @@ export function DataTableList({
       ) : (
         <div className="list-group" role="list">
           {collections.map((table) => {
-            const linkedApi = getLinkedApi(table.name);
+            const linkedApi = getLinkedApi(table);
             return (
               <div
                 key={table.id}

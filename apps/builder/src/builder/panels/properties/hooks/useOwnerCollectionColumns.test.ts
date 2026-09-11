@@ -43,7 +43,7 @@ describe("resolveOwnerCollectionColumns", () => {
       resolveOwnerCollectionColumns(
         elements,
         "text",
-        new Map([["users", usersTable]]),
+        [usersTable],
       ),
     ).toEqual(["num", "name", "email"]);
   });
@@ -59,7 +59,7 @@ describe("resolveOwnerCollectionColumns", () => {
         },
       }),
     );
-    expect(resolveOwnerCollectionColumns(elements, "text", new Map())).toEqual([
+    expect(resolveOwnerCollectionColumns(elements, "text", [])).toEqual([
       "id",
       "label",
       "description",
@@ -80,7 +80,7 @@ describe("resolveOwnerCollectionColumns", () => {
         },
       }),
     );
-    expect(resolveOwnerCollectionColumns(elements, "text", new Map())).toEqual([
+    expect(resolveOwnerCollectionColumns(elements, "text", [])).toEqual([
       "num",
       "email",
     ]);
@@ -92,7 +92,7 @@ describe("resolveOwnerCollectionColumns", () => {
       node({ id: "frame" }),
     );
     expect(
-      resolveOwnerCollectionColumns(elements, "text", new Map()),
+      resolveOwnerCollectionColumns(elements, "text", []),
     ).toBeNull();
   });
 
@@ -111,7 +111,7 @@ describe("resolveOwnerCollectionColumns", () => {
       resolveOwnerCollectionColumns(
         elements,
         "master__label",
-        new Map([["users", usersTable]]),
+        [usersTable],
       ),
     ).toEqual(["num", "name", "email"]);
   });
@@ -145,7 +145,7 @@ describe("resolveOwnerCollectionColumns", () => {
       resolveOwnerCollectionColumns(
         elements,
         "gl-item__label",
-        new Map([["users", usersTable]]),
+        [usersTable],
       ),
     ).toEqual(["num", "name", "email"]);
   });
@@ -168,14 +168,14 @@ describe("resolveOwnerCollectionColumns", () => {
       }),
     );
     expect(
-      resolveOwnerCollectionColumns(elements, "gl-item__label", new Map()),
+      resolveOwnerCollectionColumns(elements, "gl-item__label", []),
     ).toEqual(["id", "label", "description"]);
   });
 
   it("자기 자신의 items 는 소유자 판정에서 제외 (조상만)", () => {
     const elements = mapOf(node({ id: "self", props: { items: [{ a: 1 }] } }));
     expect(
-      resolveOwnerCollectionColumns(elements, "self", new Map()),
+      resolveOwnerCollectionColumns(elements, "self", []),
     ).toBeNull();
   });
 });

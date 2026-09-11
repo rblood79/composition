@@ -29,7 +29,14 @@ export type DataFieldType =
  * 데이터 필드 정의
  */
 export interface DataField {
-  /** 필드 키 (예: "id", "name", "email") */
+  /**
+   * v2.1 (ADR-152): 안정 참조 — `{#id}` 템플릿 저장형 · fieldMap · 차트 시리즈가
+   * 참조. store 진입 경계 (`normalizeCollection`) 가 부여하고 id 없던 collection 은
+   * hydrate 직후 1회 write-back. rename 은 `key` 만 바꾼다.
+   */
+  id?: string;
+
+  /** 필드 키 (예: "id", "name", "email") — 행 key · 표시 이름 */
   key: string;
 
   /** 필드 타입 */
@@ -209,7 +216,9 @@ export interface ApiEndpoint {
   responseMapping: ResponseMapping;
 
   // Target DataTable
-  targetCollection?: string; // DataTable name to populate
+  /** v2.1 (ADR-152): 안정 참조 — sink 는 id 우선, `targetCollection` (이름) fallback */
+  targetCollectionId?: string;
+  targetCollection?: string; // DataTable name to populate (v1 잔존 · 표시용)
 
   // Server-side Execution (API key protection)
   executionMode: ExecutionMode;
@@ -235,6 +244,7 @@ export type ApiEndpointCreate = Pick<
   bodyType?: BodyType;
   bodyTemplate?: string;
   responseMapping?: ResponseMapping;
+  targetCollectionId?: string;
   targetCollection?: string;
   executionMode?: ExecutionMode;
   serverConfig?: ServerConfig;

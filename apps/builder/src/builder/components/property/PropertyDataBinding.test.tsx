@@ -4,8 +4,8 @@ import { describe, expect, it, vi } from "vitest";
 // collection 목록 hook mock — 단위 렌더용 (실제 hook 계약: DataTable[] 반환)
 vi.mock("../../stores/data", () => ({
   useCollections: () => [
-    { name: "Users", description: "Users collection" },
-    { name: "Roles", description: "Roles collection" },
+    { id: "c-users", name: "Users", description: "Users collection" },
+    { id: "c-roles", name: "Roles", description: "Roles collection" },
   ],
 }));
 
@@ -72,8 +72,9 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
     ) as HTMLSelectElement | null;
     expect(nativeSelect).not.toBeNull();
 
+    // 옵션 키는 collection id (ADR-152 v2) — 저장은 collectionId + name 둘 다.
     fireEvent.change(nativeSelect as HTMLSelectElement, {
-      target: { value: "Roles" },
+      target: { value: "c-roles" },
     });
 
     // 오소링 표면은 사라졌지만 값 자체는 read 호환으로 살아남아야 한다.
@@ -82,6 +83,7 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         source: "dataTable",
+        collectionId: "c-roles",
         name: "Roles",
         path: "items[0].name",
         refreshMode: "interval",

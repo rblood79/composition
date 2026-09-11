@@ -204,17 +204,21 @@ interface DataChange {
 
 ### Phase 1 — Binding 계약 v2 + resolve 단일화
 
-- [ ] `collection.types.ts` PropertyDataBinding 확장 (additive)
-- [ ] `resolveBoundCollection` 헬퍼 신설 (`packages/shared/src/collections/`) — id 우선 + name fallback
-- [ ] `useCollectionData.ts:292-316` (dataTableResult) 를 헬퍼 경유로 교체
-- [ ] Skia 측 소비 (`getElementDataBinding` 하류 — `resolveCollectionItems` 입력 정규화 지점) 동일 헬퍼 경유
-- [ ] Inspector commit 시 collectionId upgrade 반영 (`PropertyDataBinding.tsx` onChange)
-- [ ] binding write 저장 위치 정규화 — `props.dataBinding` 단일 위치 (legacy top-level `element.dataBinding` 은 read fallback 만 유지). **Why**: scene projection signature 는 `props` 만 포함 (`buildSceneSnapshot.ts:49-66`) — top-level 만 가진 요소는 binding 변경이 sceneVersion 미감지 (격차6)
-- [ ] (v2.1, round 3 정정) `DataField.id` additive + `normalizeCollection` 을 store 진입 7 경로에 + hydrate 직후 id 없던 collection 1회 write-back — test: 7 경로 각각 id 없는 schema 입력 → store 에 id 없는 필드 0 · write-back 은 1회만 · 두 번째 로드 write 0 (R8)
-- [ ] (round 3) collections Map id 키 재키잉 + `useCollectionById` + `collections.get(` 직접 호출 grep 0 가드 (R11)
-- [ ] (v2.1) `resolveField` 헬퍼 + `schema.find(key)` 직접 패턴 grep 가드
-- [ ] (v2.1) `ApiEndpoint.targetCollectionId` additive — 실행기 sink 는 id 우선 · 이름 fallback
-- [ ] 정적 가드: `propertyBinding.name` 으로 collections find 하는 직접 패턴 grep 0건 test
+> **Implemented 2026-09-11** — commit (본 phase). live: `apps/builder/scripts/adr152-p1-live.mjs` 10/10 PASS (headed Playwright, 실제 빌더) + DOM leg `collectionRuntime/collectionApi.browser.test.tsx` 6/6 (browser vitest). 실측 정정 2건은 아래 각 항목에.
+
+- [x] `collection.types.ts` PropertyDataBinding 확장 (additive — `collectionId?` · `fieldMap?`) + `SchemaField.id?`
+- [x] `resolveBoundCollection` / `resolveCollectionByName` / `resolveStoreCollection` / `resolveField` 헬퍼 신설 (`packages/shared/src/collections/resolveBoundCollection.ts`, 단위 테스트 11)
+- [x] `useCollectionData.tsx` dataTable (`:306`) + api (`:324,338`) 3곳 헬퍼 경유
+- [x] Skia 측 — `readDataBindingRows` (shared, Skia projector · DOM wrapper 공통 primitive) 헬퍼 경유 → 호출부 변경 0. Properties 패널 `chartPresentationPatch.ts` · `useOwnerCollectionColumns.ts` (`collectionsByName` Map 인자 → `readonly DataTable[]`) · `chartFieldOptions.ts` 도 헬퍼 경유
+- [x] Inspector commit 시 `collectionId` upgrade — `PropertyDataBinding.tsx` 옵션 키 = collection id · 저장 `{ collectionId, name }` · 표시는 `resolveBoundCollection` (v1 바인딩도 선택 상태 표시). **실측**: 같은 옵션 재선택은 RAC Select 가 change 를 내지 않아 upgrade 가 일어나지 않는다 — 로드/열람만으로 재직렬화 0 (HC4) 과 정합, upgrade 지점은 실제 편집 commit
+- [x] binding write 저장 위치 — **실측 결과 이미 단일**: Inspector 쓰기는 `GenericFieldRenderer` / `CatalogInspectorFields` 의 `update(v)` → `props.dataBinding` 뿐. legacy top-level writer `updateSelectedDataBinding` (`inspectorActions.ts:1316`) 은 호출자 0 (`useUpdateDataBinding` 소비처 0) — 삭제는 원본 삭제 승인 규칙에 따라 Phase 5 에서 별도 확인. AI tool `bindCollection.ts:104` 는 extension (`x-composition.dataBinding`, legacy `type:"collection"`) 에 쓴다 — Phase 5 정렬 대상 (§1-6)
+- [x] (v2.1) `DataField.id` additive + `normalizeCollection` (`apps/builder/src/utils/data/normalizeCollection.ts`) — store 진입 경로: fetch (`normalizeCollectionMap`) · create · update (`updates.schema` 정규화 후 DB write) · import envelope (create/update 경유) · delete / setRuntimeData / 실행기 sink 는 schema 무변경이라 정규화 대상 없음. hydrate 직후 `writeBackAssignedFieldIds` 1회 — test: 부여된 것만 write 1 · 두 번째 로드 write 0 · **write-back 실패 주입 → throw 0** (round 4 hate first_nail). live: 3 필드 id 부여 + `updated_at` 무변경 재로드 확인
+- [x] (round 3) collections Map **id 키** 재키잉 (fetch/create/update/delete/setRuntimeData/sink 6곳) + `useCollectionById` 신설 + `useCollection(name)` 은 name fallback wrapper 유지 (호출자 0) + `collections.get(` 직접 호출 grep 가드 (`collectionResolve.static.test.ts` ②, legacy `stores/datatable.ts` 는 Phase 5 까지 제외)
+- [x] (v2.1) `resolveField` 헬퍼 + `schema.find(key ===)` 직접 패턴 grep 가드 (③)
+- [x] (v2.1) `ApiEndpoint.targetCollectionId` additive — 실행기 sink id 우선 · 이름 fallback (test 2) · `ApiEndpointEditor` Target DataTable 입력 시 이름 → id 같이 기록 · `DataTableList.getLinkedApi` id 우선
+- [x] 정적 가드: 바인딩 `name` 으로 collection find 하는 직접 패턴 0건 (①)
+
+**G1 live (2026-09-11, headed Playwright `adr152-p1-live.mjs`, 새 프로젝트 · IndexedDB 에 id 없는 collection 2건 저장 형태로 시드)**: ① write-back 3/3 · ② 재로드 write 0 · ③ v1 (`{source:"dataTable", name:"Users"}`) ListBox → Skia `projection:listbox-row` 5 · ④ Inspector Roles 선택 → `{collectionId, name:"Roles"}` + 행 2 · ⑤ Users 복귀 → collectionId 갱신 · ⑥ v1 바인딩도 Inspector 선택 표시 "Users" · ⑦ IndexedDB rename Users → People + 재로드 → v2 행 5 유지 (rename-safe) · ⑧ Inspector 표시 "People" · ⑨ page error 0.
 
 ### Phase 1b — `{field}` 템플릿 저장형 + 차트 시리즈 fieldId (게이트 G4)
 

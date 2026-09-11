@@ -11,6 +11,14 @@
 
 import type { StateCreator } from "zustand";
 import { resolveResponseData } from "../../../utils/data/responseData";
+import {
+  normalizeCollection,
+  normalizeCollectionMap,
+} from "../../../utils/data/normalizeCollection";
+import {
+  resolveBoundCollection,
+  resolveCollectionByName,
+} from "@composition/shared";
 import { getDB } from "../../../lib/db";
 import type {
   DataTable,
@@ -77,6 +85,35 @@ function syncCollectionsToCanvas(collections: Map<string, DataTable>): void {
   }
 }
 
+type CollectionsDB = {
+  collections?: {
+    update: (id: string, updates: DataTableUpdate) => Promise<DataTable>;
+  };
+};
+
+/**
+ * `DataField.id` 가 새로 부여된 collection 의 schema 를 IndexedDB 에 되쓴다 (ADR-152 R8).
+ * 프로젝트당 id 없는 collection N건 · 1회, 이후 로드는 0건. 개별 실패는 로드를
+ * 막지 않는다 — 다음 로드에서 다시 부여·재시도된다 (같은 창에서는 메모리 id 로 동작).
+ */
+export async function writeBackAssignedFieldIds(
+  db: unknown,
+  assigned: readonly DataTable[],
+): Promise<number> {
+  const store = (db as CollectionsDB).collections;
+  if (!store || assigned.length === 0) return 0;
+  let written = 0;
+  for (const dt of assigned) {
+    try {
+      await store.update(dt.id, { schema: dt.schema });
+      written += 1;
+    } catch (error) {
+      console.warn(`⚠️ DataField.id write-back 실패 (${dt.name}):`, error);
+    }
+  }
+  return written;
+}
+
 // ============================================
 // DataTable Actions
 // ============================================
@@ -100,10 +137,10 @@ export const createFetchDataTablesAction =
           }
         ).collections?.getByProject(projectId)) || [];
 
-      const dataTablesMap = new Map<string, DataTable>();
-      (data || []).forEach((dt) => {
-        dataTablesMap.set(dt.name, dt);
-      });
+      // ADR-152 HC7/HC8: 진입 경계 정규화 (DataField.id 부여) + **id 키** Map.
+      const { collections: dataTablesMap, assigned } = normalizeCollectionMap(
+        data || [],
+      );
 
       set((state) => ({
         collections: dataTablesMap,
@@ -113,6 +150,10 @@ export const createFetchDataTablesAction =
 
       // 🆕 Canvas에 동기화 (기존 DataTable도 Canvas에 전송)
       syncCollectionsToCanvas(dataTablesMap);
+
+      // id 가 새로 부여된 collection 만 hydrate 직후 1회 write-back (R8) — 참조 (문서)
+      // 가 먼저 저장돼도 정의의 id 가 재생성되지 않게. 실패해도 로드는 유효하다 (경고만).
+      await writeBackAssignedFieldIds(db, assigned);
     } catch (error) {
       console.error("❌ DataTable 목록 조회 실패:", error);
       set((state) => {
@@ -133,7 +174,7 @@ export const createCreateDataTableAction =
 
     try {
       const db = await getDB();
-      const newDataTable: DataTable = {
+      const newDataTable: DataTable = normalizeCollection({
         id: crypto.randomUUID(),
         name: data.name,
         project_id: data.project_id,
@@ -142,7 +183,7 @@ export const createCreateDataTableAction =
         useMockData: data.useMockData ?? true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
+      }).collection;
 
       await (
         db as unknown as {
@@ -153,7 +194,7 @@ export const createCreateDataTableAction =
       // 메모리 상태 업데이트
       const { collections } = get();
       const newMap = new Map(collections);
-      newMap.set(newDataTable.name, newDataTable);
+      newMap.set(newDataTable.id, newDataTable);
 
       set({ collections: newMap, isLoading: false });
 
@@ -182,6 +223,16 @@ export const createUpdateDataTableAction =
   async (id: string, updates: DataTableUpdate): Promise<void> => {
     try {
       const db = await getDB();
+      // 새 필드 (편집기 "필드 추가") 는 id 없이 온다 — DB 에 쓰기 전에 부여 (HC7).
+      const normalizedUpdates: DataTableUpdate = updates.schema
+        ? {
+            ...updates,
+            schema: normalizeCollection({
+              ...(get().collections.get(id) ?? ({} as DataTable)),
+              schema: updates.schema,
+            }).collection.schema,
+          }
+        : updates;
       await (
         db as unknown as {
           collections: {
@@ -191,39 +242,22 @@ export const createUpdateDataTableAction =
             ) => Promise<DataTable>;
           };
         }
-      ).collections?.update(id, updates);
+      ).collections?.update(id, normalizedUpdates);
 
-      // 메모리 상태 업데이트
+      // 메모리 상태 업데이트 — id 키라 rename 시 re-key 없음 (HC8)
       const { collections } = get();
-      const newMap = new Map(collections);
-
-      // ID로 DataTable 찾기
-      let foundKey: string | undefined;
-      collections.forEach((dt, key) => {
-        if (dt.id === id) foundKey = key;
-      });
-
-      if (foundKey) {
-        const existing = newMap.get(foundKey)!;
-        const updated = {
+      const existing = collections.get(id);
+      if (existing) {
+        const newMap = new Map(collections);
+        newMap.set(id, {
           ...existing,
-          ...updates,
+          ...normalizedUpdates,
           updated_at: new Date().toISOString(),
-        };
-
-        // 이름이 변경된 경우 키도 업데이트
-        if (updates.name && updates.name !== foundKey) {
-          newMap.delete(foundKey);
-          newMap.set(updates.name, updated);
-        } else {
-          newMap.set(foundKey, updated);
-        }
+        });
+        set({ collections: newMap });
+        // 🆕 Canvas에 동기화
+        syncCollectionsToCanvas(newMap);
       }
-
-      set({ collections: newMap });
-
-      // 🆕 Canvas에 동기화
-      syncCollectionsToCanvas(newMap);
     } catch (error) {
       console.error("❌ DataTable 업데이트 실패:", error);
       set((state) => {
@@ -262,13 +296,7 @@ export const createDeleteDataTableAction =
       // 메모리 상태 업데이트
       const { collections } = get();
       const newMap = new Map(collections);
-
-      // ID로 DataTable 찾아서 삭제
-      collections.forEach((dt, key) => {
-        if (dt.id === id) {
-          newMap.delete(key);
-        }
-      });
+      newMap.delete(id);
 
       set({ collections: newMap, isLoading: false });
 
@@ -292,7 +320,11 @@ export const createGetDataTableDataAction =
   (get: GetState) =>
   (name: string): Record<string, unknown>[] => {
     const { collections } = get();
-    const dataTable = collections.get(name);
+    // 이름 (또는 id) 으로 — 공개 시그니처는 name 유지, resolve 는 단일 헬퍼 (R11).
+    const dataTable = resolveCollectionByName(
+      name,
+      Array.from(collections.values()),
+    );
 
     if (!dataTable) {
       console.warn(`⚠️ DataTable "${name}" not found`);
@@ -314,7 +346,10 @@ export const createSetRuntimeDataAction =
   (set: SetState, get: GetState) =>
   (name: string, data: Record<string, unknown>[]): void => {
     const { collections } = get();
-    const dataTable = collections.get(name);
+    const dataTable = resolveCollectionByName(
+      name,
+      Array.from(collections.values()),
+    );
 
     if (!dataTable) {
       console.warn(`⚠️ DataTable "${name}" not found`);
@@ -322,7 +357,7 @@ export const createSetRuntimeDataAction =
     }
 
     const newMap = new Map(collections);
-    newMap.set(name, { ...dataTable, runtimeData: data });
+    newMap.set(dataTable.id, { ...dataTable, runtimeData: data });
 
     set({ collections: newMap });
 
@@ -649,12 +684,19 @@ export const createExecuteApiEndpointAction =
       ).data;
 
       // Target DataTable에 데이터 설정
-      if (endpoint.targetCollection && mappedData) {
+      if ((endpoint.targetCollectionId || endpoint.targetCollection) && mappedData) {
         const { collections } = get();
-        const targetTable = collections.get(endpoint.targetCollection);
+        // ADR-152 v2.1: targetCollectionId 우선 · targetCollection (이름) fallback
+        const targetTable = resolveBoundCollection(
+          {
+            collectionId: endpoint.targetCollectionId,
+            name: endpoint.targetCollection,
+          },
+          Array.from(collections.values()),
+        );
         if (targetTable) {
           const newDataTables = new Map(collections);
-          newDataTables.set(endpoint.targetCollection, {
+          newDataTables.set(targetTable.id, {
             ...targetTable,
             runtimeData: Array.isArray(mappedData) ? mappedData : [mappedData],
           });

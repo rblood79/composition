@@ -1,4 +1,5 @@
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
+import { resolveBoundCollection } from "./resolveBoundCollection";
 /**
  * collection items 단일 계약 (ADR-912 영역 B 연장) — DOM wrapper / Skia projector 공통 source.
  *
@@ -221,11 +222,7 @@ export function readDataBindingRows(
     dataBinding.source === "dataTable" &&
     typeof dataBinding.name === "string"
   ) {
-    const table = collections.find(
-      (collection) =>
-        collection.name === dataBinding.name ||
-        collection.id === dataBinding.name,
-    );
+    const table = resolveBoundCollection(dataBinding, collections);
     if (!table) return [];
     return resolveCollectionSnapshot(table).data;
   }

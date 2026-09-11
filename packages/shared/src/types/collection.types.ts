@@ -17,6 +17,8 @@ import type { DataBinding } from "./element.types";
  * DataTable 스키마 필드
  */
 export interface SchemaField {
+  /** v2.1 (ADR-152): 안정 참조 — rename 해도 불변. 구 문서는 없을 수 있다 (key fallback). */
+  id?: string;
   key: string;
   type: string;
   label?: string;
@@ -241,8 +243,26 @@ export interface PropertyDataBinding {
    * 정리 — G4 게이트).
    */
   source: "dataTable" | "api" | "variable" | "route";
-  /** 소스 이름 */
+  /**
+   * v2 (ADR-152): 안정 참조 — `DataTable.id` / `ApiEndpoint.id`. resolve 는
+   * `resolveBoundCollection` 이 id 우선 · `name` fallback 으로 한다. 기존 문서는
+   * 로드만으로 재직렬화하지 않고 (HC4) Inspector 편집 commit 시 채워진다.
+   */
+  collectionId?: string;
+  /** 소스 이름 — v1 잔존 참조 · 표시용. `collectionId` 부재 시에만 resolve 에 쓴다. */
   name: string;
+  /**
+   * v2 (ADR-152): 역할별 컬럼 매핑 — 값은 `fieldId` (v2.1, `resolveField` 가 key
+   * fallback). 미지정 시 기존 휴리스틱. 텍스트 표시 (label/description) 는 ADR-159
+   * `{field}` 템플릿이 정본이라 신규 오소링은 `value` / `icon` 만 노출한다 — 두 텍스트
+   * 필드는 legacy 판독 호환용.
+   */
+  fieldMap?: {
+    label?: string;
+    value?: string;
+    description?: string;
+    icon?: string;
+  };
   /**
    * 데이터 경로 — **read 호환 전용 (오소링 UI 제거됨, 2026-07-24)**.
    *

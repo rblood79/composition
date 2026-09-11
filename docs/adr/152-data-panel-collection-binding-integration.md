@@ -4,7 +4,7 @@
 
 Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11, 개정안 이슈 0 — `reviews/152.md` · 사용자 착수 승인 `/execute-adr 152`)
 
-**Phase 진행 로그**: Phase 0 Inventory freeze — Implemented 2026-09-11 (G0 = 0건, breakdown §1-6)
+**Phase 진행 로그**: Phase 0 Inventory freeze — Implemented 2026-09-11 (G0 = 0건, breakdown §1-6) · Phase 1 계약 v2 + resolve 단일화 + `DataField.id` + Map id 키 — Implemented 2026-09-11 (G1 PASS, breakdown §Phase 1)
 
 > **개정 2026-07-21 (사용자 confirm — ADR-159 와 경계 재획정)**: 텍스트 표시 축(label/description 컬럼 선택)은 [ADR-159](completed/159-collection-field-template-binding.md)(`{field}` 템플릿 바인딩)로 이관 — 본 ADR 의 fieldMap 은 **비텍스트 역할(icon/value) 한정**으로 축소. 데이터 소스는 ADR-159 의 dataTable 단일 방향(api/variable/route 오소링 표면 제거, 159 P4)을 전제로 개정 — 본 ADR 의 API source 관련 항목(R3, breakdown Phase 6)은 159 G4 게이트 결과에 종속. **scope 변경이므로 착수 전 재리뷰 대상** (기존 round 1 승인은 구 scope 기준).
 
@@ -196,7 +196,8 @@ Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G1 ~ G5 시나리오 · 결과 · 날짜 · Playwright/Chrome MCP/사용자 confirm 구분.)
+- **G1 (Phase 1, 2026-09-11, headed Playwright `apps/builder/scripts/adr152-p1-live.mjs` — 실제 빌더, 새 프로젝트)**: IndexedDB 에 id 없는 collection 2건을 저장 형태로 시드 → 재로드 시 `DataField.id` 3/3 write-back · 두 번째 재로드 write 0 (`updated_at` 무변경) · v1 name 바인딩 ListBox 가 Skia 행 5 투영 (회귀 0) · Inspector 편집 commit 이 `collectionId` 를 기록 (Roles 2행 → Users 5행) · v1 바인딩도 Inspector 선택 표시 · IndexedDB 에서 rename (Users → People) 후 재로드해도 v2 바인딩 행 5 유지 + Inspector 새 이름 표시 · page error 0 — 10/10 PASS. DOM leg: `packages/shared/src/components/chart/collection{Runtime,Api}.browser.test.tsx` (browser vitest, `useCollectionData` v1 dataTable 바인딩 + `CollectionDataProvider`) 6/6.
+- G2 ~ G5: 해당 Phase 에서 기재.
 
 ## Consequences
 

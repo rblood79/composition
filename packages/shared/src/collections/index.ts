@@ -9,5 +9,6 @@
 
 export * from "./cellValue";
 export * from "./fieldTemplate";
+export * from "./resolveBoundCollection";
 export * from "./resolveCollectionItems";
 export * from "./selectDisplayValue";

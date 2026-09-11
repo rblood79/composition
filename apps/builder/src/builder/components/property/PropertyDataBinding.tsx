@@ -44,6 +44,7 @@ import "./PropertyDataBinding.css";
 // 있어 shared 사본을 보는 쪽에서는 계약을 알 수 없었다.
 export type { RefreshMode, DataBindingValue } from "@composition/shared";
 import type { DataBindingValue } from "@composition/shared";
+import { resolveBoundCollection } from "@composition/shared";
 import { useI18n } from "@/i18n";
 
 interface PropertyDataBindingProps {
@@ -84,25 +85,34 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
 
   // 직접 prop 값 사용 (fully controlled)
   const source = value?.source || "";
-  const name = value?.name || "";
   const path = value?.path || "";
   // 기존 저장 문서의 api/variable/route 바인딩 — read 표시만 (신규 기록은 dataTable 고정).
   const isLegacyNonTableBinding = Boolean(source) && source !== "dataTable";
 
+  // ADR-152 v2: 옵션 키는 collection **id** — 선택 표시는 id 우선 · name fallback
+  // (v1 바인딩도 같은 옵션을 가리킨다). 저장은 `collectionId` + `name` 둘 다.
   const nameOptions = collections.map((dt) => ({
-    value: dt.name,
+    value: dt.id,
     label: dt.name,
     description: dt.description,
   }));
+  const selectedCollectionId =
+    source === "dataTable"
+      ? (resolveBoundCollection(value, collections)?.id ?? null)
+      : null;
 
-  // collection(테이블명) 선택 — 신규 기록은 source:"dataTable" 고정 (ADR-159 P4b)
+  // collection 선택 — 신규 기록은 source:"dataTable" 고정 (ADR-159 P4b) + collectionId (ADR-152)
   const handleNameChange = useCallback(
     (key: React.Key | null) => {
-      const newName = key as string;
-      if (!newName) return;
+      const target = collections.find((dt) => dt.id === key);
+      if (!target) return;
       onChange({
         source: "dataTable",
-        name: newName,
+        collectionId: target.id,
+        name: target.name,
+        // fieldMap 은 같은 collection 안에서만 의미 — collection 이 바뀌면 비운다.
+        fieldMap:
+          value?.collectionId === target.id ? value?.fieldMap : undefined,
         // legacy 비-dataTable 바인딩에서 전환 시 path/갱신 설정은 초기화 (의미 소멸).
         path: isLegacyNonTableBinding ? undefined : path || undefined,
         refreshMode: isLegacyNonTableBinding ? undefined : value?.refreshMode,
@@ -112,8 +122,11 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       });
     },
     [
+      collections,
       isLegacyNonTableBinding,
       path,
+      value?.collectionId,
+      value?.fieldMap,
       value?.refreshMode,
       value?.refreshInterval,
       onChange,
@@ -163,7 +176,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             <AriaSelect
               className="react-aria-Select binding-name-select"
               ref={nameSelectPopover.controlRef}
-              selectedKey={source === "dataTable" ? name || null : null}
+              selectedKey={selectedCollectionId}
               onSelectionChange={handleNameChange}
               onOpenChange={nameSelectFocus.restoreFocusOnClose}
               aria-label={t("propertiesPanel.collection")}
