@@ -38,6 +38,7 @@ import {
   createFetchVariablesAction,
   createUpdateVariableAction,
 } from "./dataActions";
+import { registerVariableOwnerPageSource } from "./variableOwnerMigration";
 
 const base = (patch: Partial<Variable>): Variable => ({
   id: "v",
@@ -68,6 +69,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.restoreAllMocks();
+  registerVariableOwnerPageSource(null);
   dbMock.variables.getByProject.mockReset();
   dbMock.variables.insert.mockClear();
   dbMock.variables.update.mockClear();
@@ -103,6 +105,21 @@ describe("fetchVariables — owner 읽기 변환", () => {
     expect(dbMock.variables.update).not.toHaveBeenCalled();
     expect(dbMock.variables.insert).not.toHaveBeenCalled();
     expect(console.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it("페이지 공급자가 1개를 주면 page_id 없는 page 변수는 그 페이지 (판정 C) · IndexedDB 무변경", async () => {
+    vi.spyOn(console, "info").mockImplementation(() => {});
+    registerVariableOwnerPageSource(() => ["only"]);
+    dbMock.variables.getByProject.mockResolvedValue([
+      base({ id: "d", name: "d", scope: "page" }),
+    ]);
+    const { state, set } = makeStore();
+    await createFetchVariablesAction(set as never)("p");
+    const variables = state.variables as Map<string, Variable>;
+    expect(variables.get("d")?.owner).toEqual({ kind: "page", pageId: "only" });
+    expect(variables.get("d")).not.toHaveProperty("migrationStatus");
+    expect(dbMock.variables.update).not.toHaveBeenCalled();
+    expect(console.warn).not.toHaveBeenCalled();
   });
 
   it("전부 global 이면 로그 0", async () => {
@@ -144,7 +161,24 @@ describe("create / update / delete — ADR-152 적용기 wrapper (History 동봉
     );
   });
 
-  it("createVariable(page — legacy UI) 는 직접 저장 · History 0 · owner-unresolved 배지", async () => {
+  it("createVariable(page) 는 page_id 가 있어야 한다 — 없으면 throw · 저장 0", async () => {
+    const { set, get, state } = makeStore();
+    await expect(
+      createCreateVariableAction(
+        set as never,
+        get as never,
+      )({
+        name: "pv",
+        project_id: "p",
+        type: "string",
+        scope: "page",
+      }),
+    ).rejects.toThrow(/page_id/);
+    expect(dbMock.variables.insert).not.toHaveBeenCalled();
+    expect((state.variables as Map<string, Variable>).size).toBe(0);
+  });
+
+  it("createVariable(page + page_id — legacy 직접 저장) 는 History 0 · owner page (배지 없음)", async () => {
     const { set, get } = makeStore();
     const created = await createCreateVariableAction(
       set as never,
@@ -154,12 +188,14 @@ describe("create / update / delete — ADR-152 적용기 wrapper (History 동봉
       project_id: "p",
       type: "string",
       scope: "page",
+      page_id: "pg",
     });
     expect(created).toMatchObject({
       scope: "page",
-      owner: { kind: "project" },
-      migrationStatus: "owner-unresolved",
+      page_id: "pg",
+      owner: { kind: "page", pageId: "pg" },
     });
+    expect(created).not.toHaveProperty("migrationStatus");
     expect(addEntry).not.toHaveBeenCalled();
     expect(dbMock.variables.insert).toHaveBeenCalledTimes(1);
   });
@@ -180,6 +216,26 @@ describe("create / update / delete — ADR-152 적용기 wrapper (History 동봉
     expect(addEntry).toHaveBeenCalledTimes(1); // legacy 필드는 History 없음
     expect(dbMock.variables.update).toHaveBeenCalledTimes(2);
     expect(variables().get("b")?.transform).toBe("v => v");
+  });
+
+  it("updateVariable(scope/page_id) 는 메모리 owner 를 다시 판정한다 (global→page 는 page 소유 · page→global 은 project)", async () => {
+    const existing = base({ id: "v1", name: "a", owner: { kind: "project" } });
+    const { set, get, state } = makeStore(new Map([["a", existing]]));
+    const update = createUpdateVariableAction(set as never, get as never);
+    const variables = () => state.variables as Map<string, Variable>;
+
+    await update("v1", { scope: "page", page_id: "pg" });
+    expect(variables().get("a")).toMatchObject({
+      scope: "page",
+      page_id: "pg",
+      owner: { kind: "page", pageId: "pg" },
+    });
+    expect(variables().get("a")).not.toHaveProperty("migrationStatus");
+    expect(addEntry).not.toHaveBeenCalled();
+
+    await update("v1", { scope: "global", page_id: undefined });
+    expect(variables().get("a")?.owner).toEqual({ kind: "project" });
+    expect(variables().get("a")?.page_id).toBeUndefined();
   });
 
   it("updateVariable 이름 충돌 → throw · 상태 무변경", async () => {

@@ -1375,6 +1375,11 @@ const koKR: TranslationKeys = {
       "기본값 · 유지 · 유효성 검사는 만든 뒤 편집기에서 설정합니다.",
     createVariable: "변수 만들기",
     variableCreateFailed: "변수를 만들지 못했습니다",
+    variablePageOwner: "소유 페이지",
+    variablePageMissing: "현재 페이지가 없어 페이지 변수를 만들 수 없습니다.",
+    variablePageUnresolved:
+      "소유 페이지를 알 수 없습니다 — 현재 페이지에 귀속하거나 Global 로 바꾸세요.",
+    variableAssignCurrentPage: "현재 페이지에 귀속",
     bodyHint: "POST/PUT/PATCH 요청의 본문을 JSON 형식으로 입력합니다.",
     bodyVariableHint: "{{변수명}} 형식으로 변수를 참조할 수 있습니다.",
     detectFound: '✓ "{field}" 감지됨 ({count}개 항목)',
@@ -1634,15 +1639,15 @@ const enUS: TranslationKeys = {
     labelContent: "Label Content",
     categoryName: "Category Name",
     colorBy: "Color By",
+    palette: "Palette",
+    paletteCategorical: "Categorical",
+    paletteMono: "Mono",
     innerRadius: "Inner Radius (%)",
     gridType: "Grid Type",
     polygon: "Polygon",
     circle: "Circle",
     startAngle: "Start Angle (deg)",
     endAngle: "End Angle (deg)",
-    palette: "Palette",
-    paletteCategorical: "Categorical",
-    paletteMono: "Mono",
     showTotal: "Show Total (donut · radial)",
     showSpokes: "Show Spokes",
     gridRings: "Grid Rings (0=auto)",
@@ -2456,8 +2461,10 @@ const enUS: TranslationKeys = {
     selectedParent: "- Parent ID: {parent}",
     collectionsHeading:
       "## Available collections (data tables)\nBefore binding elements to data or changing data, confirm ids and fields with list_collections / get_collection.",
-    collectionsLine: "- {name} ({fieldCount} fields · {rowCount} rows · {source})",
-    collectionsMore: "… {count} more — read the full list with list_collections.",
+    collectionsLine:
+      "- {name} ({fieldCount} fields · {rowCount} rows · {source})",
+    collectionsMore:
+      "… {count} more — read the full list with list_collections.",
     collectionsNone: "(none)",
     rulesHeading: "## Rules",
     rule1:
@@ -2650,11 +2657,13 @@ const enUS: TranslationKeys = {
       "Lists the project's API endpoints — id, name, method, url, target table, last run error. Auth values are masked as {{secret.KEY}}.",
     getApiEndpoint:
       "Reads one API endpoint definition (method, url, headers, query, body, response mapping). Auth header/query values arrive as {{secret.KEY}} placeholders; the raw values are never exposed.",
-    readFormat: "concise (default) = summary only; detailed = includes field/key lists.",
+    readFormat:
+      "concise (default) = summary only; detailed = includes field/key lists.",
     collectionIdRef:
       "Collection id (from list_collections). Either this or name is required.",
     collectionNameRef: "Collection name — when the id is unknown.",
-    sampleRows: "Number of sample rows (0–5, default 3). Values above 5 are clamped.",
+    sampleRows:
+      "Number of sample rows (0–5, default 3). Values above 5 are clamped.",
     endpointIdRef:
       "Endpoint id (from list_api_endpoints). Either this or name is required.",
     endpointNameRef: "Endpoint name — when the id is unknown.",
@@ -2983,6 +2992,11 @@ const enUS: TranslationKeys = {
       "Default value, persistence and validation are set in the editor after creating.",
     createVariable: "Create Variable",
     variableCreateFailed: "Could not create the variable",
+    variablePageOwner: "Owner page",
+    variablePageMissing: "No current page — page variables need an owner page.",
+    variablePageUnresolved:
+      "Owner page unknown — assign the current page or switch to Global.",
+    variableAssignCurrentPage: "Assign to current page",
     bodyHint: "Enter the body of POST/PUT/PATCH requests as JSON.",
     bodyVariableHint: "Reference variables with the {{variableName}} syntax.",
     detectFound: '✓ Detected "{field}" ({count} items)',

@@ -23,6 +23,7 @@ import {
 import type { CanonicalNode } from "@composition/shared";
 import { canonicalNodeToElement } from "./canonical/canonicalElementsView";
 import { registerDataBindingConsumer } from "./utils/dataChange";
+import { registerVariableOwnerPageSource } from "./utils/variableOwnerMigration";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import {
   getFirstProjectableNodeLookupByReference,
@@ -94,6 +95,12 @@ registerDataBindingConsumer({
   apply: (elementId, write) =>
     useStore.getState().applyCanonicalDataBindingPatch(elementId, write),
 });
+
+// ADR-214 — `page` without `page_id` 의 판정 C (페이지 1개면 그 페이지) 에 쓰는 페이지 목록.
+// `initializeProject` 가 pages 를 채운 뒤 data store 가 초기화되므로 (BuilderCore) 로드 시점에 있다.
+registerVariableOwnerPageSource(() =>
+  useStore.getState().pages.map((page) => page.id),
+);
 
 // getState API export (SaveService 등 non-React 환경에서 사용)
 export const getStoreState = () => {

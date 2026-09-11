@@ -25,6 +25,7 @@ import { getDB } from "../../../lib/db";
 import {
   migrateVariableOwner,
   migrateVariableOwners,
+  readVariableOwnerPageIds,
 } from "./variableOwnerMigration";
 import type {
   DataTable,
@@ -683,9 +684,12 @@ export const createFetchVariablesAction =
         ).variables?.getByProject(projectId)) || [];
 
       // ADR-214 Phase 1 — `owner` 읽기 변환 (결정적 · 메모리만 · IndexedDB 재직렬화 0).
-      //   component / page-without-page_id 는 owner-unresolved 배지 + 로그 1회.
+      //   component / page-without-page_id (페이지 2개 이상) 는 owner-unresolved 배지 + 로그 1회.
+      //   page-without-page_id 는 프로젝트 페이지가 1개뿐이면 그 페이지 (판정 C, 2026-09-11) —
+      //   페이지 목록은 `stores/index.ts` 가 등록한 공급자에서 읽는다.
       const { variables: migrated } = migrateVariableOwners(data || [], {
         projectId,
+        pageIds: readVariableOwnerPageIds(),
       });
       const variablesMap = new Map<string, Variable>();
       migrated.forEach((v) => {
@@ -750,7 +754,14 @@ export const createCreateVariableAction =
         return created;
       }
 
-      // legacy scope (page / component) — 직접 저장 (Phase 5 표면 교체 전까지)
+      // legacy scope (page / component) — 직접 저장 (Phase 5 표면 교체 전까지).
+      // page 는 `page_id` 필수 (사용자 판정 2026-09-11) — 소유 페이지 없는 page 변수를 더
+      // 만들지 않는다 (구 UI 가 한 번도 안 채워 실 데이터가 전부 그 형태였다).
+      if (scope === "page" && !data.page_id) {
+        throw new Error(
+          "page 변수는 page_id (소유 페이지) 가 있어야 합니다 — 현재 페이지 id 를 넘기세요",
+        );
+      }
       const db = await getDB();
       const newVariable: Variable = migrateVariableOwner({
         id: crypto.randomUUID(),
@@ -874,11 +885,27 @@ export const createUpdateVariableAction =
       const current = findVariableByIdInMap(variables, id);
       if (!current) return;
       const newMap = new Map(variables);
-      newMap.set(current.name, {
+      const merged: Variable = {
         ...current,
         ...legacyUpdates,
         updated_at: new Date().toISOString(),
-      });
+      };
+      // scope / page_id 가 바뀌면 메모리 `owner` (로드 변환 결과) 를 다시 판정한다 —
+      // IndexedDB 는 owner 를 갖지 않으므로 여기서 지우고 같은 규칙으로 재계산.
+      const ownerTouched =
+        "scope" in legacyUpdates || "page_id" in legacyUpdates;
+      if (ownerTouched) {
+        delete merged.owner;
+        delete merged.migrationStatus;
+      }
+      newMap.set(
+        current.name,
+        ownerTouched
+          ? migrateVariableOwner(merged, {
+              pageIds: readVariableOwnerPageIds(),
+            }).variable
+          : merged,
+      );
       set({ variables: newMap });
     } catch (error) {
       console.error("❌ Variable 업데이트 실패:", error);

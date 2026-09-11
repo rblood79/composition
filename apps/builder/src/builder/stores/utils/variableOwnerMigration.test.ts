@@ -3,7 +3,9 @@
  *
  * global → project · page+page_id → page · component → project + owner-unresolved ·
  * page without page_id (UI 가 page_id 를 쓰지 않아 실 데이터의 흔한 형태 — Phase 0 §5) →
- * project + owner-unresolved. 조용한 변환 0: unresolved 는 status + 로그.
+ * 프로젝트 페이지가 **1개뿐이면 그 페이지** (유일하게 결정적인 경우 — 사용자 판정 C,
+ * 2026-09-11), 아니면 project + owner-unresolved. 조용한 변환 0: unresolved 는 status +
+ * 로그, 자동 귀속도 로그 1회.
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Variable } from "../../../types/builder/data.types";
@@ -49,7 +51,7 @@ describe("resolveVariableOwner — 결정적", () => {
       unresolved: true,
     });
   });
-  it("page without page_id → project + unresolved (HC3 미정의 사례의 가장 좁은 결정)", () => {
+  it("page without page_id → 페이지 목록을 모르거나 2개 이상이면 project + unresolved", () => {
     expect(resolveVariableOwner(base({ scope: "page" }))).toEqual({
       owner: { kind: "project" },
       unresolved: true,
@@ -58,6 +60,31 @@ describe("resolveVariableOwner — 결정적", () => {
       owner: { kind: "project" },
       unresolved: true,
     });
+    expect(
+      resolveVariableOwner(base({ scope: "page" }), { pageIds: ["p1", "p2"] }),
+    ).toEqual({ owner: { kind: "project" }, unresolved: true });
+    expect(
+      resolveVariableOwner(base({ scope: "page" }), { pageIds: [] }),
+    ).toEqual({ owner: { kind: "project" }, unresolved: true });
+  });
+  it("page without page_id + 프로젝트 페이지 1개 → 그 페이지 (판정 C — 결정적)", () => {
+    expect(
+      resolveVariableOwner(base({ scope: "page" }), { pageIds: ["only"] }),
+    ).toEqual({
+      owner: { kind: "page", pageId: "only" },
+      unresolved: false,
+      pageAssigned: true,
+    });
+    // page_id 가 있으면 페이지 목록과 무관하게 그 값
+    expect(
+      resolveVariableOwner(base({ scope: "page", page_id: "pg" }), {
+        pageIds: ["only"],
+      }),
+    ).toEqual({ owner: { kind: "page", pageId: "pg" }, unresolved: false });
+    // component 는 페이지가 1개여도 승격 안 함 (소유 요소를 알 수 없다)
+    expect(
+      resolveVariableOwner(base({ scope: "component" }), { pageIds: ["only"] }),
+    ).toEqual({ owner: { kind: "project" }, unresolved: true });
   });
   it("이미 owner 가 있으면 그대로 (재변환 없음 · status 유지)", () => {
     const v = base({
@@ -128,10 +155,28 @@ describe("migrateVariableOwners + countVariableOwnerMigration — G0 계수 + �
         { id: "c", name: "c", scope: "component" },
         { id: "d", name: "d", scope: "page" },
       ],
+      pageAssigned: [],
       unresolvedRatio: 0.5,
     });
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0][0])).toContain("owner-unresolved");
+  });
+
+  it("페이지 1개 프로젝트: page without page_id 는 그 페이지로 귀속 · 자동 귀속 로그 1회 (warn 아님)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const { variables, report } = migrateVariableOwners(
+      [base({ id: "d", name: "d", scope: "page" })],
+      { projectId: "p", pageIds: ["only"] },
+    );
+    expect(variables[0].owner).toEqual({ kind: "page", pageId: "only" });
+    expect(variables[0]).not.toHaveProperty("migrationStatus");
+    expect(report.unresolved).toEqual([]);
+    expect(report.pageAssigned).toEqual([
+      { id: "d", name: "d", pageId: "only" },
+    ]);
+    expect(warn).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledTimes(1);
   });
 
   it("unresolved 0 이면 로그 0", () => {

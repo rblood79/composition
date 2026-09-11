@@ -12,7 +12,9 @@
 
 import { useState, useCallback } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "react-aria-components/Button";
 import { useDataStore } from "../../../stores/data";
+import { useStore } from "../../../stores";
 import type {
   Variable as VariableType,
   VariableType as VarType,
@@ -46,11 +48,18 @@ const VARIABLE_TYPES: { value: VarType; label: string }[] = [
   { value: "array", label: "Array" },
 ];
 
+/**
+ * `component` 는 소유 요소 id 가 없어 만들 수 없다 (ADR-214 — owner-unresolved 만 늘린다).
+ * 이미 component 인 변수에만 현재 값으로 보여 준다.
+ */
 const VARIABLE_SCOPES: { value: VariableScope; label: string }[] = [
   { value: "global", label: "Global" },
   { value: "page", label: "Page" },
-  { value: "component", label: "Component" },
 ];
+const LEGACY_COMPONENT_SCOPE: { value: VariableScope; label: string } = {
+  value: "component",
+  label: "Component",
+};
 
 export function VariableEditor({
   variable,
@@ -126,6 +135,26 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  const currentPageId = useStore((state) => state.currentPageId);
+  const ownerPageTitle = useStore((state) =>
+    variable.scope === "page"
+      ? state.pages.find((page) => page.id === variable.page_id)?.title
+      : undefined,
+  );
+  const scopeOptions =
+    variable.scope === "component"
+      ? [...VARIABLE_SCOPES, LEGACY_COMPONENT_SCOPE]
+      : VARIABLE_SCOPES;
+  // page 로 바꾸면 현재 페이지가 소유자 (page_id 필수) · global 로 바꾸면 소유 페이지 해제
+  const handleScopeChange = (value: string) => {
+    const scope = value as VariableScope;
+    if (scope === "page") {
+      if (!currentPageId) return;
+      onUpdate({ scope, page_id: currentPageId });
+      return;
+    }
+    onUpdate({ scope, page_id: undefined });
+  };
   const defaultValueStr = formatDefaultValue(
     variable.defaultValue,
     variable.type,
@@ -148,20 +177,33 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
       <PropertySelect
         label="Scope"
         value={variable.scope}
-        onChange={(value) => onUpdate({ scope: value as VariableScope })}
-        options={VARIABLE_SCOPES}
+        onChange={handleScopeChange}
+        options={scopeOptions}
       />
       <p className="field-description">
         {variable.scope === "global" &&
           localize("globalHint", "Available on all pages.")}
         {variable.scope === "page" &&
-          localize("pageHint", "Available only on the current page.")}
+          (variable.page_id
+            ? `${localize("variablePageOwner", "Owner page")}: ${ownerPageTitle ?? variable.page_id}`
+            : localize(
+                "variablePageUnresolved",
+                "Owner page unknown — assign the current page or switch to Global.",
+              ))}
         {variable.scope === "component" &&
           localize(
             "componentHint",
             "Available only within a specific component.",
           )}
       </p>
+      {variable.scope === "page" && !variable.page_id && currentPageId ? (
+        <Button
+          className="control-button"
+          onPress={() => onUpdate({ page_id: currentPageId })}
+        >
+          {localize("variableAssignCurrentPage", "Assign to current page")}
+        </Button>
+      ) : null}
 
       <div className="section-divider" />
 
