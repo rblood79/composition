@@ -19,12 +19,6 @@ vi.mock("../../../lib/db", () => ({
   })),
 }));
 
-vi.mock("../../../env/supabase.client", () => ({
-  supabase: {
-    from: vi.fn(),
-  },
-}));
-
 function makeElement(
   id: string,
   props: Record<string, unknown>,

@@ -8,10 +8,6 @@ vi.mock("../../../../services/save", () => ({
   },
 }));
 
-vi.mock("../../../../env/supabase.client", () => ({
-  supabase: {},
-}));
-
 import type { CompositionDocument } from "@composition/shared";
 import { FillType } from "../../../../types/builder/fill.types";
 import type { FillItem } from "../../../../types/builder/fill.types";

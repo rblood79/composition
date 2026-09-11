@@ -21,8 +21,6 @@ vi.mock("../../../lib/db", () => ({
     },
   })),
 }));
-vi.mock("../../../env/supabase.client", () => ({ supabase: { from: vi.fn() } }));
-
 const users = (): DataTable => ({
   id: "c1",
   name: "Users",
@@ -79,16 +77,25 @@ describe("historyActions — data entry early-branch (R9)", () => {
 
   it("4종 편집 (셀 · 행 삭제 · CSV 교체 · rename) → ⌘Z 4회 원상 · ⌘⇧Z 4회 재적용 (G5 unit 판)", async () => {
     const store = useDataStore.getState();
-    await store.updateCollection("c1", { mockData: [{ name: "A" }, { name: "b" }] });
+    await store.updateCollection("c1", {
+      mockData: [{ name: "A" }, { name: "b" }],
+    });
     await store.updateCollection("c1", { mockData: [{ name: "A" }] });
-    await store.updateCollection("c1", { mockData: [{ name: "x" }, { name: "y" }, { name: "z" }] });
+    await store.updateCollection("c1", {
+      mockData: [{ name: "x" }, { name: "y" }, { name: "z" }],
+    });
     await store.updateCollection("c1", {
       schema: [{ id: "f_name", key: "fullName", type: "string" }],
       mockData: [{ fullName: "x" }, { fullName: "y" }, { fullName: "z" }],
     });
     const final = useDataStore.getState().collections.get("c1")!;
     expect(final.schema[0].key).toBe("fullName");
-    expect(historyManager.getCurrentPageEntries().map((e) => e.type)).toEqual(["data", "data", "data", "data"]);
+    expect(historyManager.getCurrentPageEntries().map((e) => e.type)).toEqual([
+      "data",
+      "data",
+      "data",
+      "data",
+    ]);
 
     for (let i = 0; i < 4; i++) await useStore.getState().undo();
     const restored = useDataStore.getState().collections.get("c1")!;
@@ -98,13 +105,19 @@ describe("historyActions — data entry early-branch (R9)", () => {
     for (let i = 0; i < 4; i++) await useStore.getState().redo();
     const again = useDataStore.getState().collections.get("c1")!;
     expect(again.schema[0].key).toBe("fullName");
-    expect(again.mockData).toEqual([{ fullName: "x" }, { fullName: "y" }, { fullName: "z" }]);
+    expect(again.mockData).toEqual([
+      { fullName: "x" },
+      { fullName: "y" },
+      { fullName: "z" },
+    ]);
     expect(applyCanonical).not.toHaveBeenCalled();
   });
 
   it("goToIndex 로 data entry 를 건너뛰어도 collection 만 움직인다", async () => {
     const store = useDataStore.getState();
-    await store.updateCollection("c1", { mockData: [{ name: "A" }, { name: "b" }] });
+    await store.updateCollection("c1", {
+      mockData: [{ name: "A" }, { name: "b" }],
+    });
     await store.updateCollection("c1", { name: "People" });
     await useStore.getState().goToHistoryIndex(-1);
     expect(useDataStore.getState().collections.get("c1")).toMatchObject({

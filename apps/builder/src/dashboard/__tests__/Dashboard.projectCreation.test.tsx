@@ -25,14 +25,6 @@ vi.mock("../../lib/db", () => ({
   })),
 }));
 
-vi.mock("../../env/supabase.client", () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn(),
-    },
-  },
-}));
-
 vi.mock("../../builder/stores/history/historyIndexedDB", () => ({
   historyIndexedDB: {
     clearPageHistory: vi.fn(),
@@ -79,7 +71,9 @@ describe("Dashboard project creation entry points", () => {
       const emptyTitle = await screen.findByText("No projects yet");
       const actionSurface =
         surface === "toolbar"
-          ? screen.getByRole("main").querySelector<HTMLElement>(".dashboard-toolbar")
+          ? screen
+              .getByRole("main")
+              .querySelector<HTMLElement>(".dashboard-toolbar")
           : emptyTitle.parentElement;
       if (!actionSurface)
         throw new Error("Project creation surface is required");

@@ -1419,6 +1419,28 @@ const koKR: TranslationKeys = {
   },
   dashboard: {
     confirmDeleteProject: "정말로 이 프로젝트를 삭제하시겠습니까?",
+    signOut: "로그아웃",
+  },
+  auth: {
+    title: "라이선스 인증",
+    subtitle: "라이선스 파일과 검증 코드를 입력하세요",
+    licenseFile: "라이선스 파일 (token.jwt)",
+    licenseFileDeployed: "서버 배포 라이선스 사용",
+    licenseFileChoose: "파일 선택",
+    licenseFileNone: "라이선스 파일을 선택하세요",
+    licenseFileInvalid: "라이선스 파일 형식이 아닙니다",
+    code: "검증 코드",
+    codeDescription: "라이선스와 함께 전달받은 6자리 숫자",
+    submit: "인증",
+    verifying: "검증 중…",
+    errorMalformed: "라이선스 파일을 읽을 수 없습니다",
+    errorAlgorithm: "지원하지 않는 서명 방식입니다",
+    errorSignature: "유효하지 않은 라이선스입니다 (서명 불일치)",
+    errorExpired: "만료된 라이선스입니다",
+    errorCode: "검증 코드가 일치하지 않습니다",
+    errorPublicKeyMissing:
+      "발급기 공개키가 설정되지 않았습니다 (VITE_LICENSE_PUBLIC_JWK)",
+    errorLocked: "시도 횟수를 초과했습니다. {seconds}초 후 다시 시도하세요",
   },
   errors: {
     unknown: "알 수 없는 오류",
@@ -1531,7 +1553,8 @@ const koKR: TranslationKeys = {
     fieldUsedByNone: "사용처 없음",
     fieldDelete: "필드 삭제",
     fieldDeleteConfirmTitle: '"{key}" 필드 삭제',
-    fieldDeleteConfirmUsed: '"{key}" 는 {count}곳에서 쓰입니다. 삭제하면 그 참조가 깨집니다. 삭제할까요?',
+    fieldDeleteConfirmUsed:
+      '"{key}" 는 {count}곳에서 쓰입니다. 삭제하면 그 참조가 깨집니다. 삭제할까요?',
     fieldDeleted: '필드 "{key}" 를 삭제했습니다.',
     fieldRenamed: '필드 "{from}" → "{to}"',
     fieldKeyEmpty: "필드 키는 비울 수 없습니다.",
@@ -1564,7 +1587,8 @@ const koKR: TranslationKeys = {
     apiAuthKeyName: "키 이름",
     apiAuthSecretName: "secret 이름",
     apiAuthValue: "값 (이 기기에만 저장)",
-    apiAuthValueHint: "값은 이 브라우저의 vault 에만 저장됩니다 — 문서·내보내기·AI 에는 {{secret.이름}} 참조만 실립니다.",
+    apiAuthValueHint:
+      "값은 이 브라우저의 vault 에만 저장됩니다 — 문서·내보내기·AI 에는 {{secret.이름}} 참조만 실립니다.",
     apiAuthSave: "저장",
     apiAuthSaved: "저장됨 · 이 기기",
     apiAuthUnset: "미설정",
@@ -1583,7 +1607,8 @@ const koKR: TranslationKeys = {
     apiAttachExisting: "기존 테이블에 잇기",
     apiSaved: '"{name}" 테이블에 저장했습니다.',
     apiSaveFailed: "저장 실패: {message}",
-    apiCorsWarning: "프로덕션에서는 브라우저 CORS 로 외부 호출이 막힐 수 있습니다 — 개발 프록시는 여기서만 동작합니다.",
+    apiCorsWarning:
+      "프로덕션에서는 브라우저 CORS 로 외부 호출이 막힐 수 있습니다 — 개발 프록시는 여기서만 동작합니다.",
     apiCurlPasted: "cURL 을 요청으로 채웠습니다.",
     importTitle: "가져오기 미리보기",
     importRows: "{count}행",
@@ -2026,7 +2051,8 @@ const enUS: TranslationKeys = {
     dimensionFormat: "Date Input Format",
     dimensionFormatPlaceholder: "Empty = ISO (e.g. %Y/%m/%d)",
     dimensionLabelFormat: "Axis Label Format",
-    dimensionLabelFormatPlaceholder: "Empty = two rows by tick unit (e.g. %m/%d)",
+    dimensionLabelFormatPlaceholder:
+      "Empty = two rows by tick unit (e.g. %m/%d)",
     parseFailedHint: "{count} row(s) skipped — not readable as dates.",
   },
   itemsManager: {
@@ -3289,6 +3315,28 @@ const enUS: TranslationKeys = {
   },
   dashboard: {
     confirmDeleteProject: "Delete this project?",
+    signOut: "Sign out",
+  },
+  auth: {
+    title: "License activation",
+    subtitle: "Provide your license file and verification code",
+    licenseFile: "License file (token.jwt)",
+    licenseFileDeployed: "Using server license",
+    licenseFileChoose: "Choose file",
+    licenseFileNone: "Choose a license file",
+    licenseFileInvalid: "Not a license file",
+    code: "Verification code",
+    codeDescription: "The 6-digit number delivered with your license",
+    submit: "Activate",
+    verifying: "Verifying…",
+    errorMalformed: "The license file could not be read",
+    errorAlgorithm: "Unsupported signature algorithm",
+    errorSignature: "Invalid license (signature mismatch)",
+    errorExpired: "This license has expired",
+    errorCode: "Verification code does not match",
+    errorPublicKeyMissing:
+      "Issuer public key is not configured (VITE_LICENSE_PUBLIC_JWK)",
+    errorLocked: "Too many attempts. Try again in {seconds}s",
   },
   errors: {
     unknown: "Unknown error",
@@ -3404,7 +3452,8 @@ const enUS: TranslationKeys = {
     fieldUsedByNone: "Not used",
     fieldDelete: "Delete field",
     fieldDeleteConfirmTitle: 'Delete field "{key}"',
-    fieldDeleteConfirmUsed: '"{key}" is used in {count} place(s). Deleting it breaks those references. Delete anyway?',
+    fieldDeleteConfirmUsed:
+      '"{key}" is used in {count} place(s). Deleting it breaks those references. Delete anyway?',
     fieldDeleted: 'Deleted field "{key}".',
     fieldRenamed: 'Field "{from}" → "{to}"',
     fieldKeyEmpty: "Field key cannot be empty.",
@@ -3419,7 +3468,8 @@ const enUS: TranslationKeys = {
     apiUrlPlaceholder: "https://api.example.com/users",
     apiTabParams: "Params",
     apiTabAuth: "Auth",
-    apiParamsHint: "Query parameters · path variables go in the URL as {{key}}.",
+    apiParamsHint:
+      "Query parameters · path variables go in the URL as {{key}}.",
     apiAddParam: "Add parameter",
     apiAddHeader: "Add header",
     apiKeyPlaceholder: "name",
@@ -3437,7 +3487,8 @@ const enUS: TranslationKeys = {
     apiAuthKeyName: "Key name",
     apiAuthSecretName: "Secret name",
     apiAuthValue: "Value (stored on this device only)",
-    apiAuthValueHint: "The value is stored only in this browser's vault — documents, exports and AI see a {{secret.NAME}} reference, never the value.",
+    apiAuthValueHint:
+      "The value is stored only in this browser's vault — documents, exports and AI see a {{secret.NAME}} reference, never the value.",
     apiAuthSave: "Save",
     apiAuthSaved: "Saved · this device",
     apiAuthUnset: "Not set",
@@ -3456,7 +3507,8 @@ const enUS: TranslationKeys = {
     apiAttachExisting: "Attach to existing table",
     apiSaved: 'Saved to table "{name}".',
     apiSaveFailed: "Save failed: {message}",
-    apiCorsWarning: "In production the browser may block this call (CORS) — the dev proxy only works here.",
+    apiCorsWarning:
+      "In production the browser may block this call (CORS) — the dev proxy only works here.",
     apiCurlPasted: "Filled the request from cURL.",
     importTitle: "Import preview",
     importRows: "{count} rows",
@@ -4196,6 +4248,8 @@ const formattedMessages: Record<
   Record<string, (args: FormatterVariables | undefined) => string>
 > = {
   "ko-KR": {
+    "auth.errorLocked": (args) =>
+      `시도 횟수를 초과했습니다. ${String(args?.seconds ?? 0)}초 후 다시 시도하세요`,
     "chart.rowCapHint": (args) =>
       `${String(args?.cap ?? 0)} / ${String(args?.total ?? 0)}행만 차트에 반영 (두 화면 동일)`,
     "chart.budgetHint": (args) =>
@@ -4231,7 +4285,8 @@ const formattedMessages: Record<
       `페이지를 찾을 수 없습니다: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override 해제됨`,
-    "propertiesPanel.bindingUsedBy": (args) => `사용처 ${String(args?.count ?? 0)}`,
+    "propertiesPanel.bindingUsedBy": (args) =>
+      `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.visibilityLockedBase": (args) =>
       `${String(args?.breakpoint ?? "")}: Base (Display 속성으로 제어)`,
     "fonts.deleteFace": (args) =>
@@ -4629,6 +4684,8 @@ const formattedMessages: Record<
     "messages.itemCount": (args) => `${String(args?.count ?? 0)}개`,
   },
   "en-US": {
+    "auth.errorLocked": (args) =>
+      `Too many attempts. Try again in ${String(args?.seconds ?? 0)}s`,
     "chart.rowCapHint": (args) =>
       `Charting the first ${String(args?.cap ?? 0)} of ${String(args?.total ?? 0)} rows (same in both views)`,
     "chart.budgetHint": (args) =>

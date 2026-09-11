@@ -8,16 +8,6 @@ import { __resetTraversalCache_TEST_ONLY__ } from "../canonical/canonicalTravers
 
 const mockGetByPage = vi.hoisted(() => vi.fn());
 const mockInsertMany = vi.hoisted(() => vi.fn());
-const mockSupabaseFrom = vi.hoisted(() =>
-  vi.fn(() => ({
-    select: vi.fn(() => ({
-      eq: vi.fn(() => ({
-        order: vi.fn(async () => ({ data: [], error: null })),
-      })),
-    })),
-  })),
-);
-
 vi.mock("../../../lib/db", () => ({
   getDB: vi.fn(async () => ({
     elements: {
@@ -25,12 +15,6 @@ vi.mock("../../../lib/db", () => ({
       insertMany: mockInsertMany,
     },
   })),
-}));
-
-vi.mock("../../../env/supabase.client", () => ({
-  supabase: {
-    from: mockSupabaseFrom,
-  },
 }));
 
 function makeElement(

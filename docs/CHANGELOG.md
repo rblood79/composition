@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Supabase 인증 제거 → 라이선스 파일 + 검증 코드 로컬 인증 (폐쇄망)] - 2026-09-12
+
+> 빌더가 인터넷 없는 사내망에서 동작해야 한다 (사용자 결정 2026-09-12). Supabase 는 실측상 **인증에만** 쓰였고 (프로젝트·문서는 이미 IndexedDB) 제거했다. 발급기 `/Users/admin/work/jwt` (`main.py` · `license_generator.html`, commit `8ff20bb`) 와 형식 계약 v1 (`docs/LICENSE_TOKEN_FORMAT.md`) 을 공유한다. live: `apps/builder/scripts/license-auth-live.mjs` 실제 빌더 10/10 (게이트 · 틀린 코드 · 통과 · 리로드/새 탭 · 만료 · 로그아웃 · 인증 중 외부 요청 0) + 서버 루트 `license.jwt` 자동 인식 1.
+
+### Added
+
+- **`/signin` 라이선스 활성화 화면** — 라이선스 파일 (`token.jwt`: 서버 루트 `public/license.jwt` 가 있으면 자동, 없으면 RAC `FileTrigger` 로 선택) + 6자리 검증 코드. 검증은 `auth/license/licenseToken.ts` 가 WebCrypto 만으로 (네트워크 0): `alg=ES256` 확인 → 번들 공개 JWK (`VITE_LICENSE_PUBLIC_JWK`) 로 서명 검증 → `exp` → 코드로 PBKDF2-SHA256(600k)→AES-GCM 복호화해 `license_key` 대조. 토큰에 코드 평문이 없어 파일만으로는 코드를 알 수 없다. 코드 5회 실패 시 60초 잠금 (서명·만료 오류는 잠금 대상 아님).
+- **로컬 인증 기록** (`auth/license/localAuth.ts`, localStorage `composition-license-auth` — `vc` 봉인은 저장하지 않음). `ProtectedRoute` 가 동기로 읽어 만료 전이면 즉시 통과, 없거나 만료면 `/signin`. 만료 = 라이선스 `exp` (Unlimited 는 무기한). 대시보드 헤더에 로그아웃 (기록 삭제).
+- i18n `auth.*` ko/en (18 키, `errorLocked` 는 `{seconds}` formatter 등록) · `dashboard.signOut`.
+
+### Removed
+
+- `@supabase/supabase-js` 의존성 · `env/supabase.client.ts` · `auth/devAutoLogin.ts` (email/password 로그인, dev 자동 로그인) · `.env` 의 `VITE_SUPABASE_*` / `VITE_DEV_EMAIL` / `VITE_DEV_PASSWORD`. 테스트 13개의 supabase mock 제거. `created_by` 는 라이선스 키.
+- `.gitignore`: `apps/builder/token` · `token.jwt` · `public/license.jwt` (코드가 평문이던 구형식 `apps/builder/token` 은 재발급 대상).
+
 ## [ADR-216 Implemented — Chart 시간축 · 날짜 지시자 형식/파싱 · 가변 창 (thumb 2)] - 2026-09-12
 
 > 근거: `docs/adr/completed/216-chart-time-axis-format-window.md` (codex round 1 → claude round 2 승인 → `/execute-adr 216` Phase 0~7 하루, `### Live Exercise` 실제 빌더 9/9 + G5 성능 5-질문 + 번들 worktree 2). 이론 원천 [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) — d3-time · d3-time-format · d3-brush 의 **규칙만** 이식, 런타임 의존 0 (d3 는 specs devDependency 오라클, 눈금 12 span × 3 count · 지시자 15 × 100 날짜 동일).

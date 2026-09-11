@@ -8,10 +8,6 @@ vi.mock("../../../services/save", () => ({
   },
 }));
 
-vi.mock("../../../env/supabase.client", () => ({
-  supabase: {},
-}));
-
 vi.mock("../../../lib/db", () => ({
   getDB: async () => ({
     documents: { put: vi.fn() },

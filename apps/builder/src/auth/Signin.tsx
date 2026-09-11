@@ -1,174 +1,203 @@
-import React, { useState } from "react";
+/**
+ * 라이선스 활성화 화면 — 서버 없는 폐쇄망 인증.
+ *
+ * 입력 2개: 라이선스 파일 (`token.jwt`, 서버 루트 배포본 자동 · 없으면 파일 선택)
+ * + 6자리 검증 코드. 검증은 `auth/license/licenseToken.ts` (WebCrypto, 네트워크 0).
+ * 통과하면 로컬 인증 기록을 남기고 대시보드로 간다.
+ */
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useAsyncMutation } from "../builder/hooks/useAsyncMutation";
-import { supabase } from "../env/supabase.client";
 import { TextField } from "react-aria-components/TextField";
 import { Input } from "react-aria-components/Input";
 import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import { FieldError } from "react-aria-components/FieldError";
 import { Button } from "react-aria-components/Button";
+import { FileTrigger } from "react-aria-components/FileTrigger";
+import { useOptionalI18n } from "../i18n";
+import {
+  LicenseVerifyError,
+  verifyLicenseToken,
+  type LicenseVerifyFailure,
+} from "./license/licenseToken";
+import {
+  fetchDeployedLicenseToken,
+  looksLikeJwt,
+  readBundledPublicJwk,
+} from "./license/licenseSource";
+import {
+  lockoutRemainingMs,
+  recordFailedAttempt,
+  resetAttempts,
+  saveAuth,
+} from "./license/localAuth";
 import "./index.css";
 
-interface AuthCredentials {
-  email: string;
-  password: string;
-}
+type LicenseSource =
+  | { kind: "loading" }
+  | { kind: "deployed"; token: string }
+  | { kind: "file"; token: string; name: string }
+  | { kind: "none" };
+
+const FAILURE_KEY: Record<LicenseVerifyFailure, string> = {
+  malformed: "errorMalformed",
+  algorithm: "errorAlgorithm",
+  signature: "errorSignature",
+  expired: "errorExpired",
+  code: "errorCode",
+};
 
 const Signin = () => {
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const i18n = useOptionalI18n();
+  const t = (key: string, params?: Record<string, string | number>) =>
+    i18n ? i18n.t(`auth.${key}`, params) : key;
 
-  // Sign Up mutation
-  const signUpMutation = useAsyncMutation<string, AuthCredentials>(
-    async ({ email, password }) => {
-      const { error } = await supabase.auth.signUp({ email, password });
+  const publicJwk = useMemo(() => readBundledPublicJwk(), []);
+  const [source, setSource] = useState<LicenseSource>({ kind: "loading" });
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lockedMs, setLockedMs] = useState(() => lockoutRemainingMs());
 
-      if (error) {
-        throw error;
-      }
+  // 서버 루트의 license.jwt — 폐쇄망 서버가 앱과 같이 배포한 경우 자동 입력
+  useEffect(() => {
+    let cancelled = false;
+    fetchDeployedLicenseToken().then((token) => {
+      if (cancelled) return;
+      setSource(token ? { kind: "deployed", token } : { kind: "none" });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-      return "회원가입이 완료되었습니다. 이메일을 확인해주세요.";
-    },
-    {
-      onSuccess: () => {
-        setEmail("");
-        setPassword("");
-      },
-    },
-  );
+  // 잠금 카운트다운
+  useEffect(() => {
+    if (lockedMs <= 0) return;
+    const id = window.setInterval(() => {
+      const remaining = lockoutRemainingMs();
+      setLockedMs(remaining);
+      if (remaining <= 0) setError(null);
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [lockedMs]);
 
-  // Sign In mutation
-  const signInMutation = useAsyncMutation<void, AuthCredentials>(
-    async ({ email, password }) => {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+  const token =
+    source.kind === "deployed" || source.kind === "file" ? source.token : null;
+  const codeValid = /^\d{6}$/.test(code);
+  const locked = lockedMs > 0;
+  const canSubmit =
+    !!publicJwk && !!token && codeValid && !verifying && !locked;
 
-      if (error) {
-        throw error;
-      }
-    },
-    {
-      onSuccess: () => {
-        navigate("/dashboard");
-      },
-    },
-  );
-
-  const loading = signUpMutation.isLoading || signInMutation.isLoading;
-  const error = signUpMutation.error || signInMutation.error;
-  const message = signUpMutation.data;
+  const handleFile = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    const text = (await file.text()).trim();
+    if (!looksLikeJwt(text)) {
+      setError(t("licenseFileInvalid"));
+      return;
+    }
+    setError(null);
+    setSource({ kind: "file", token: text, name: file.name });
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    const credentials = { email, password };
-
+    if (!canSubmit || !publicJwk || !token) return;
+    setVerifying(true);
+    setError(null);
     try {
-      if (isSignUp) {
-        await signUpMutation.execute(credentials);
-      } else {
-        await signInMutation.execute(credentials);
-      }
+      const payload = await verifyLicenseToken(token, code, publicJwk);
+      resetAttempts();
+      saveAuth(payload);
+      navigate("/dashboard");
     } catch (err) {
-      // 에러는 mutation.error에 자동 저장됨
-      console.error("[Signin] Auth failed:", err);
+      const reason =
+        err instanceof LicenseVerifyError ? err.reason : "malformed";
+      // 서명·만료는 파일 문제라 시도 제한 대상이 아니다 — 코드 추측만 늦춘다
+      if (reason === "code") {
+        const lock = recordFailedAttempt();
+        if (lock > 0) {
+          setLockedMs(lock);
+          setError(t("errorLocked", { seconds: Math.ceil(lock / 1000) }));
+          return;
+        }
+      }
+      setError(t(FAILURE_KEY[reason]));
+    } finally {
+      setVerifying(false);
     }
-  };
-
-  const toggleMode = () => {
-    setIsSignUp(!isSignUp);
-    signUpMutation.reset();
-    signInMutation.reset();
-    setEmail("");
-    setPassword("");
   };
 
   return (
     <main className="auth-container">
       <div className="auth-card">
         <div className="auth-header">
-          <h1 className="auth-title">{isSignUp ? "Sign Up" : "Sign In"}</h1>
-          <p className="auth-subtitle">
-            {isSignUp ? "Create a new account" : "Log in to your account"}
-          </p>
+          <h1 className="auth-title">{t("title")}</h1>
+          <p className="auth-subtitle">{t("subtitle")}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <TextField
-            className="auth-form-field"
-            value={email}
-            onChange={setEmail}
-            isRequired={true}
-            isInvalid={!!error}
-            validationBehavior="aria"
-          >
-            <Label>Email Address</Label>
-            <Input type="email" />
-            {error && <FieldError>{error.message}</FieldError>}
-          </TextField>
+          <div className="auth-form-field auth-license-file">
+            <span className="auth-field-label">{t("licenseFile")}</span>
+            <div className="auth-license-source" data-kind={source.kind}>
+              <span className="auth-license-status" role="status">
+                {source.kind === "deployed" && t("licenseFileDeployed")}
+                {source.kind === "file" && source.name}
+                {source.kind === "none" && t("licenseFileNone")}
+              </span>
+              <FileTrigger
+                acceptedFileTypes={[".jwt", "text/plain"]}
+                onSelect={(files) => void handleFile(files)}
+              >
+                <Button
+                  className="react-aria-Button"
+                  data-size="md"
+                  isDisabled={source.kind === "loading"}
+                >
+                  {t("licenseFileChoose")}
+                </Button>
+              </FileTrigger>
+            </div>
+          </div>
 
           <TextField
             className="auth-form-field"
-            value={password}
-            onChange={setPassword}
-            isRequired={true}
+            value={code}
+            onChange={(next) => setCode(next.replace(/\D/g, "").slice(0, 6))}
+            isRequired
+            isInvalid={!!error}
+            validationBehavior="aria"
+            isDisabled={locked}
           >
-            <Label>Password</Label>
-            <Input type="password" />
-            {isSignUp && (
-              <Text slot="description">
-                Enter a secure password with at least 8 characters.
-              </Text>
-            )}
-            {!isSignUp && (
-              <Text slot="description">Enter your account password.</Text>
-            )}
+            <Label>{t("code")}</Label>
+            <Input
+              inputMode="numeric"
+              pattern="[0-9]{6}"
+              maxLength={6}
+              autoComplete="one-time-code"
+              autoFocus
+            />
+            <Text slot="description">{t("codeDescription")}</Text>
+            {error && <FieldError>{error}</FieldError>}
           </TextField>
-          {message && (
-            <div className="success-message">
-              <p className="success-text">{message}</p>
-            </div>
+
+          {!publicJwk && (
+            <p className="auth-config-error" role="alert">
+              {t("errorPublicKeyMissing")}
+            </p>
           )}
 
           <Button
             type="submit"
             className="react-aria-Button"
-            isDisabled={loading}
+            isDisabled={!canSubmit}
             data-size="md"
             data-variant="primary"
           >
-            {loading
-              ? isSignUp
-                ? "Signing Up..."
-                : "Signing In..."
-              : isSignUp
-                ? "Sign Up"
-                : "Sign In"}
+            {verifying ? t("verifying") : t("submit")}
           </Button>
-
-          <div className="helper-text">
-            <Button
-              className="react-aria-Button"
-              data-size="md"
-              onPress={toggleMode}
-            >
-              {isSignUp ? "Log In" : "Sign Up"}
-            </Button>
-            {!isSignUp ? (
-              <Button
-                className="react-aria-Button"
-                data-size="md"
-                onPress={() => navigate("/forgot-password")}
-              >
-                Forgot Password?
-              </Button>
-            ) : null}
-          </div>
         </form>
       </div>
     </main>

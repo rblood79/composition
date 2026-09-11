@@ -17,7 +17,7 @@ import {
 import { useParticleBackground } from "./components/ParticleBackground";
 import { ParticleButton } from "./components/ParticleButton";
 import { ToggleButton } from "@composition/shared/components";
-import { isDevAutoLoginEnabled } from "./auth/devAutoLogin";
+import { readValidAuth } from "./auth/license/localAuth";
 
 // 회오리 성장 설정
 const VORTEX_GROWTH_RATE = 0.02;
@@ -162,7 +162,7 @@ function App() {
               className="react-aria-Button"
               variant="primary"
               onClick={() =>
-                navigate(isDevAutoLoginEnabled() ? "/dashboard" : "/signin")
+                navigate(readValidAuth() ? "/dashboard" : "/signin")
               }
             >
               Start App

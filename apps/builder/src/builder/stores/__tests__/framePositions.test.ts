@@ -7,10 +7,6 @@ vi.mock("../../../services/save", () => ({
   },
 }));
 
-vi.mock("../../../env/supabase.client", () => ({
-  supabase: {},
-}));
-
 import { useStore } from "../index";
 
 describe("ADR-111 P3-α framePositions store", () => {

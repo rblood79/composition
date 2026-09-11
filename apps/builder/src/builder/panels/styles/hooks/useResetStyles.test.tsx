@@ -9,10 +9,6 @@ vi.mock("../../../../services/save", () => ({
   },
 }));
 
-vi.mock("../../../../env/supabase.client", () => ({
-  supabase: {},
-}));
-
 import { useStore } from "../../../stores";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import {

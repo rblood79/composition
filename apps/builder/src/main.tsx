@@ -1,4 +1,4 @@
-import { useEffect, useState, JSX, lazy, Suspense } from "react";
+import { JSX, lazy, Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import {
   BrowserRouter,
@@ -28,35 +28,23 @@ import { I18nProvider } from "./i18n";
 
 // Lazy load PublishApp to prevent CSS conflicts (CSS loads only when route is accessed)
 const PublishApp = lazy(() => import("@composition/publish"));
-import { supabase } from "./env/supabase.client";
-import { Session } from "@supabase/supabase-js";
-import { isDevAutoLoginEnabled, tryDevAutoSignIn } from "./auth/devAutoLogin";
+import { readValidAuth } from "./auth/license/localAuth";
 import {
   ParticleBackground,
   ParticleBackgroundProvider,
 } from "./components/ParticleBackground";
 
+/**
+ * 로컬 라이선스 인증 게이트 — 서버 세션 없음 (폐쇄망).
+ * 기록이 있고 만료 전이면 즉시 통과, 아니면 /signin. 동기라 Loading 상태가 없다.
+ */
 export const ProtectedRoute = ({ children }: { children: JSX.Element }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchSession = async () => {
-      let current = (await supabase.auth.getSession()).data.session;
-      if (!current && isDevAutoLoginEnabled()) {
-        const ok = await tryDevAutoSignIn();
-        if (ok) {
-          current = (await supabase.auth.getSession()).data.session;
-        }
-      }
-      setSession(current);
-      setLoading(false);
-    };
-    fetchSession();
-  }, []);
-
-  if (loading) return <p>Loading...</p>;
-  if (!session) return <Navigate to="/signin" />;
+  const location = useLocation();
+  if (!readValidAuth()) {
+    return (
+      <Navigate to="/signin" replace state={{ from: location.pathname }} />
+    );
+  }
   return children;
 };
 

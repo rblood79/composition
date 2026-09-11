@@ -8,10 +8,6 @@ vi.mock("../../../../services/save", () => ({
   },
 }));
 
-vi.mock("../../../../env/supabase.client", () => ({
-  supabase: {},
-}));
-
 import { useStore } from "../../../stores";
 import {
   resetPanelFixture,

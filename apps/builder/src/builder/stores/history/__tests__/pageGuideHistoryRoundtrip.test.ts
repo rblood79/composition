@@ -30,10 +30,6 @@ vi.mock("../../../../lib/db", () => ({
   getDB: vi.fn(async () => ({ documents: { put: vi.fn() } })),
 }));
 
-vi.mock("../../../../env/supabase.client", () => ({
-  supabase: { from: vi.fn() },
-}));
-
 const PROJECT_ID = "guide-project";
 
 const g = (id: string, axis: "x" | "y", position: number): PageGuideLine => ({

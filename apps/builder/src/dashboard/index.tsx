@@ -10,7 +10,7 @@ import { getDB } from "../lib/db";
 import { getDefaultProps } from "../types/builder/unified.types";
 import { ElementProps } from "../types/integrations/supabase.types";
 import { ElementUtils } from "../utils/element/elementUtils";
-import { supabase } from "../env/supabase.client";
+import { clearAuth, getCurrentUserId } from "../auth/license/localAuth";
 import {
   Button,
   Badge,
@@ -34,6 +34,7 @@ import {
   LayoutGrid,
   LayoutTemplate,
   List as ListIcon,
+  LogOut,
   Moon,
   MoreHorizontal,
   Monitor,
@@ -102,16 +103,6 @@ function formatAbsoluteDate(date: Date | undefined | null): string {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleDateString();
-}
-
-async function getCurrentUserId(): Promise<string> {
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-  if (error) throw new Error(`Session error: ${error.message}`);
-  if (!session?.user) throw new Error("No authenticated user found");
-  return session.user.id;
 }
 
 /**
@@ -491,7 +482,7 @@ function Dashboard() {
   >(
     async ({ name }) => {
       const db = await getDB();
-      const userId = await getCurrentUserId();
+      const userId = getCurrentUserId();
 
       const newProject: LocalProject = {
         id: ElementUtils.generateId(),
@@ -707,6 +698,16 @@ function Dashboard() {
                 <Monitor size={16} aria-hidden />
               </ToggleButton>
             </ToggleButtonGroup>
+            <AriaButton
+              className="react-aria-Button dashboard-sign-out"
+              aria-label={t("signOut")}
+              onPress={() => {
+                clearAuth();
+                navigate("/signin", { replace: true });
+              }}
+            >
+              <LogOut size={16} aria-hidden />
+            </AriaButton>
           </div>
         </div>
       </header>
