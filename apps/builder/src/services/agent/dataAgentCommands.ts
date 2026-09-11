@@ -9,7 +9,7 @@
  * | `data.openTable`    | `DataTablePanel.handleEditingChange`               | `useDataTableEditorStore.openTableEditor`   |
  * | `data.openEndpoint` | `ApiEndpointList.handleEdit` / `handleExecute`     | `useDataTableEditorStore.openApiEditor`     |
  * | `data.runEndpoint`  | `ApiEndpointEditor.handleTest`                     | `useDataStore.executeApiEndpoint`           |
- * | `data.importPaste`  | (사람 UI 없음 — 212 Phase 4 · 213 Phase 6 AI-2 예정) | `dispatchDataProposal` (create/insert_rows) |
+ * | `data.importPaste`  | AI-2 `understand_paste` 와 같은 `buildPasteProposal`    | `dispatchDataProposal` (create/insert_rows · cURL 은 define_endpoint) |
  *
  * - 값 export 는 `DATA_AGENT_COMMANDS` 하나 — executor 의 allowlist → precondition → confirm
  *   게이트 밖에서 부를 수 없다 (ADR-196 정적 게이트 조항 5, `dataCommandMeta.static.test.ts`).
@@ -17,15 +17,10 @@
  *   지난다 (승인 diff · `origin:"agent"` stamp · History 1 · provenance 1). 여기서
  *   `applyDataChange` 를 직접 부르지 않는다 (`dataProposalDispatcher.static.test.ts`).
  */
-import type { DataOp } from "@composition/shared";
 import { useDataStore } from "../../builder/stores/data";
 import { useDataTableEditorStore } from "../../builder/panels/datatable/stores/dataTableEditorStore";
 import type { ApiEditorTab } from "../../builder/panels/datatable/types/editorTypes";
-import {
-  columnsToSchema,
-  detectColumns,
-} from "../../builder/panels/datatable/utils/columnDetector";
-import { parsePastedRows } from "../../builder/panels/datatable/utils/pasteRows";
+import { buildPasteProposal } from "../ai/data/pasteProposal";
 import {
   resolveDataRef,
   type DataAgentCommandId,
@@ -104,38 +99,25 @@ export const DATA_AGENT_COMMANDS: Readonly<
 
   "data.importPaste": async (args, { read, host, t }) => {
     const text = typeof args.text === "string" ? args.text : "";
-    const parsed = parsePastedRows(text);
-    if (!parsed.ok) return error(`paste-${parsed.reason}`);
-
-    const existing =
-      typeof args.collectionId === "string" && args.collectionId
-        ? collectionOf(args, read)
-        : null;
-    if (typeof args.collectionId === "string" && args.collectionId && !existing)
-      return error("collection-not-found");
-
-    const ops: DataOp[] = existing
-      ? [{ op: "insert_rows", collectionId: existing.id, rows: parsed.rows }]
-      : [
-          {
-            op: "create_collection",
-            name: String(args.name ?? "").trim(),
-            schema: columnsToSchema(detectColumns(parsed.rows)),
-            rows: parsed.rows,
-            source: "manual",
-          },
-        ];
+    const built = buildPasteProposal(text, {
+      name: typeof args.name === "string" ? args.name : undefined,
+      collectionId:
+        typeof args.collectionId === "string" && args.collectionId
+          ? args.collectionId
+          : undefined,
+      collections: read.collections,
+    });
+    if (built.kind === "error") return error(built.reason);
+    const label =
+      built.kind === "endpoint"
+        ? t("aiDataProposal.importCurlLabel", { name: built.draft.name })
+        : t("aiDataProposal.importPasteLabel", {
+            count: built.rows.length,
+            format: built.format,
+          });
 
     const result = await dispatchDataProposal(
-      {
-        ops,
-        label: t("aiDataProposal.importPasteLabel", {
-          count: parsed.rows.length,
-          format: parsed.format,
-        }),
-        host,
-        origin: "agent",
-      },
+      { ops: built.ops, label, host, origin: "agent" },
       t,
     );
     switch (result.status) {

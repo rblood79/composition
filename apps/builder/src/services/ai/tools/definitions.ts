@@ -6,6 +6,7 @@
  */
 
 import { modelFacingDataChangeJsonSchema } from "@composition/shared";
+import { tableSpecJsonSchema } from "../data/tableSpec";
 import type { LLMToolDefinition } from "../providers/LLMProvider";
 import type { PromptTranslate } from "../promptTranslate";
 import { getAiComponentCatalog } from "../catalog/componentCatalog";
@@ -457,6 +458,35 @@ export const toolDefinitions: ChatCompletionTool[] = [
       //   제외 · origin 없음 · 내부 필드 없음). executor 가 origin 을 stamp 한다.
       parameters:
         modelFacingDataChangeJsonSchema() as ChatCompletionTool["function"]["parameters"],
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_table_from_description",
+      description: "aiToolDef.createTableFromDescription",
+      // ADR-213 Phase 6 AI-1 — `TableSpecSchema` (zod) 에서 파생. 모델은 스키마 + 규칙만.
+      parameters:
+        tableSpecJsonSchema() as ChatCompletionTool["function"]["parameters"],
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "understand_paste",
+      description: "aiToolDef.understandPaste",
+      parameters: {
+        type: "object",
+        properties: {
+          text: { type: "string", description: "aiToolDef.pasteText" },
+          name: { type: "string", description: "aiToolDef.pasteName" },
+          collectionId: {
+            type: "string",
+            description: "aiToolDef.pasteCollectionId",
+          },
+        },
+        required: ["text"],
+      },
     },
   },
 ];

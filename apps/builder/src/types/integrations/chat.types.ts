@@ -88,6 +88,11 @@ export interface BuilderContext {
     source: "manual" | "api";
     usedBy: number;
   }>;
+  /**
+   * ADR-213 Phase 6 AI-4 — DataTable 편집기에 열린 테이블/endpoint (반복 편집 자동 첨부).
+   * 스키마 · 키만, 값 없음. 편집기가 닫혀 있으면 생략.
+   */
+  openDataEditor?: import("../../services/ai/data/dataToolReadModel").OpenDataEditor | null;
 }
 
 export interface ConversationState {

@@ -15,6 +15,7 @@
  *   없이, 그 밖의 method (POST/PUT/PATCH/DELETE) 는 바깥 상태를 바꿀 수 있어 승인을 묻는다
  *   (breakdown 의 "importPaste 만 confirm" 에서 한 칸 보수적으로).
  */
+import { looksLikeCurl } from "../../utils/data/curlCommand";
 import type {
   JsonSchema,
   MutationScope,
@@ -173,7 +174,7 @@ export const DATA_COMMAND_META: Readonly<
   },
   "data.importPaste": {
     description:
-      "Import pasted text (JSON array/object, or tab/comma table with a header row) as a new data table, or append rows to an existing one — proposed for approval with a diff",
+      "Import pasted text as a data proposal (approval diff): JSON array/object or tab/comma table with a header row → new table (or append rows to collectionId); a cURL command → API endpoint definition",
     mutation: "document",
     undo: "history",
     confirm: false,
@@ -202,6 +203,8 @@ export const DATA_COMMAND_META: Readonly<
           ? OK
           : fail("collection-not-found");
       }
+      // cURL 은 endpoint 초안이 host+경로에서 이름을 만든다 — name 선택
+      if (looksLikeCurl(str(args, "text") ?? "")) return OK;
       return str(args, "name") ? OK : fail("name-required");
     },
   },

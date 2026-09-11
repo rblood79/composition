@@ -111,10 +111,38 @@ ${t("aiPrompt.selectedParent", { parent: selectedElement.parent_id || "root" })}
     t,
   ).text;
 
+  // ADR-213 Phase 6 AI-4 — 편집기에 열린 테이블/endpoint 자동 첨부 (반복 편집: "이 테이블에
+  // 필드 추가해" 를 id 없이 받는다). 값은 없고 스키마 · 키만.
+  const openEditor = context.openDataEditor;
+  const openEditorSection = openEditor
+    ? openEditor.kind === "table"
+      ? `${t("aiPrompt.openEditorHeading")}
+${t("aiPrompt.openEditorTable", {
+  name: openEditor.name,
+  id: openEditor.id,
+  rowCount: openEditor.rowCount,
+  usedBy: openEditor.usedBy,
+  fields: openEditor.fields
+    .map((f) => `${f.key}:${f.type}${f.id ? ` (#${f.id})` : ""}`)
+    .join(", "),
+  more: openEditor.fieldsOmitted > 0 ? ` … +${openEditor.fieldsOmitted}` : "",
+})}
+${t("aiPrompt.openEditorTableGuide")}`
+      : `${t("aiPrompt.openEditorHeading")}
+${t("aiPrompt.openEditorEndpoint", {
+  name: openEditor.name,
+  id: openEditor.id,
+  method: openEditor.method,
+  url: openEditor.url,
+  headers: openEditor.headerKeys.join(", ") || "-",
+})}
+${t("aiPrompt.openEditorEndpointGuide")}`
+    : "";
+
   return `${detailSection}
 
 ${collectionsSection}
-
+${openEditorSection ? `\n${openEditorSection}\n` : ""}
 ${t("aiPrompt.stateHeading")}
 ${t("aiPrompt.statePageId", { id: String(currentPageId) })}
 ${t("aiPrompt.stateSelected", { value: selectedLine })}

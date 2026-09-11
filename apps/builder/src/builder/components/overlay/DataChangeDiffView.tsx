@@ -194,6 +194,13 @@ export function DataChangeDiffView({ ops, context }: DataChangeDiffViewProps) {
         ? t("dataDiff.usedBy", { count: item.usedBy })
         : t("dataDiff.usedByNone");
     }
+    if (item.kind === "collection" && item.fields && item.fields.length > 0) {
+      return t("dataDiff.fieldList", {
+        fields: item.fields
+          .map((f) => `${f.key}: ${f.type}${f.required ? " *" : ""}`)
+          .join(" · "),
+      });
+    }
     if (item.kind === "endpoint" && item.endpoint.headerKeys.length > 0) {
       return t("dataDiff.headerKeys", {
         keys: item.endpoint.headerKeys.join(", "),

@@ -7,6 +7,7 @@
  */
 import { resolveCollectionByName } from "@composition/shared";
 import { useDataStore } from "../../../builder/stores/data";
+import { useDataTableEditorStore } from "../../../builder/panels/datatable/stores/dataTableEditorStore";
 import type {
   ApiEndpoint,
   ApiRunRecord,
@@ -14,6 +15,8 @@ import type {
 } from "../../../types/builder/data.types";
 import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
 import { resolveCollectionUsage } from "./collectionReadModel";
+import { redactUrl } from "../security/redactEndpointAuth";
+import { joinEndpointUrl } from "../tools/listApiEndpoints";
 
 export interface DataToolReadModel {
   collections: DataTable[];
@@ -107,6 +110,72 @@ export function findEndpoint(
       endpoints.find((e) => e.id === name) ??
       null
     );
+  }
+  return null;
+}
+
+/** 프롬프트에 싣는 열린 편집기 필드 상한 */
+export const OPEN_EDITOR_FIELDS_MAX = 30;
+
+export type OpenDataEditor =
+  | {
+      kind: "table";
+      id: string;
+      name: string;
+      fields: { id: string | null; key: string; type: string }[];
+      fieldsOmitted: number;
+      rowCount: number;
+      usedBy: number;
+    }
+  | {
+      kind: "endpoint";
+      id: string;
+      name: string;
+      method: string;
+      /** redactor 를 지난 URL */
+      url: string;
+      headerKeys: string[];
+    };
+
+/**
+ * ADR-213 Phase 6 AI-4 — DataTable 편집기에 열린 테이블/endpoint (사람이 지금 보고 있는 것).
+ * 반복 편집의 자동 첨부 컨텍스트. 값은 싣지 않는다 (스키마 · 키만) — endpoint URL 은 redactor.
+ */
+export function readOpenDataEditor(): OpenDataEditor | null {
+  const mode = useDataTableEditorStore.getState().mode;
+  if (!mode) return null;
+  const { collections, apiEndpoints } = useDataStore.getState();
+  if (mode.type === "table-edit") {
+    const tableId = mode.tableId;
+    const table = collections.get(tableId);
+    if (!table) return null;
+    const usage = resolveCollectionUsage(getAiToolReadModel().elements, [table]);
+    const fields = table.schema.slice(0, OPEN_EDITOR_FIELDS_MAX).map((f) => ({
+      id: f.id ?? null,
+      key: f.key,
+      type: f.type,
+    }));
+    return {
+      kind: "table",
+      id: table.id,
+      name: table.name,
+      fields,
+      fieldsOmitted: Math.max(0, table.schema.length - fields.length),
+      rowCount: table.mockData?.length ?? 0,
+      usedBy: usage.get(table.id) ?? 0,
+    };
+  }
+  if (mode.type === "api-edit") {
+    const endpoint = apiEndpoints.get(mode.endpointId);
+    if (!endpoint) return null;
+    return {
+      kind: "endpoint",
+      id: endpoint.id,
+      name: endpoint.name,
+      method: endpoint.method,
+      url: redactUrl(joinEndpointUrl(endpoint.baseUrl, endpoint.path)),
+      headerKeys: endpoint.headers.map((h) => h.key),
+    };
   }
   return null;
 }

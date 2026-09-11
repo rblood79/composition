@@ -93,10 +93,10 @@ describe("run_command 도구 정의", () => {
   it("도구 레지스트리·정의 목록에 run_command 가 포함된다 (기존 13종 유지 — ADR-213 읽기 4 포함)", async () => {
     const registry = createToolRegistry();
     expect(registry.has("run_command")).toBe(true);
-    expect(registry.size).toBe(16);
+    expect(registry.size).toBe(18);
     const names = (await getToolDefinitions(tr)).map((d) => d.name);
     expect(names).toContain("run_command");
-    expect(names).toHaveLength(16);
+    expect(names).toHaveLength(18);
   });
 
   it("레지스트리의 run_command 는 지연 로딩 executor 다 (초기 번들 분리 — HC6)", async () => {

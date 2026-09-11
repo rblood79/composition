@@ -704,6 +704,10 @@ export interface TranslationKeys {
     explainRequestFailureDone: string;
     proposeDataChange: string;
     proposeDataChangeDone: string;
+    createTableFromDescription: string;
+    createTableFromDescriptionDone: string;
+    understandPaste: string;
+    understandPasteDone: string;
   };
   presetData: {
     companies: string;
@@ -857,6 +861,12 @@ export interface TranslationKeys {
     collectionsLine: string;
     collectionsMore: string;
     collectionsNone: string;
+    openEditorHeading: string;
+    openEditorTable: string;
+    openEditorTableGuide: string;
+    openEditorEndpoint: string;
+    openEditorEndpointGuide: string;
+    pasteFallbackGuidance: string;
     explainFailureGuidance: string;
     rulesHeading: string;
     rule1: string;
@@ -1010,12 +1020,20 @@ export interface TranslationKeys {
     explainRequestFailure: string;
     runIdRef: string;
     proposeDataChange: string;
+    createTableFromDescription: string;
+    understandPaste: string;
+    pasteText: string;
+    pasteName: string;
+    pasteCollectionId: string;
     bindFieldMap: string;
   };
   aiDataProposal: {
     summary: string;
     bindLabel: string;
     importPasteLabel: string;
+    importCurlLabel: string;
+    createTableLabel: string;
+    createTableRejected: string;
     rejected: string;
   };
   aiToolId: {
@@ -1080,6 +1098,9 @@ export interface TranslationKeys {
     runNotFound: string;
     proposalOpsRequired: string;
     proposalOriginForbidden: string;
+    collectionNameExists: string;
+    pasteTextRequired: string;
+    pasteNameRequired: string;
     bindLegacySourceUnsupported: string;
     unknownAction: string;
     bodyUndeletable: string;
@@ -1271,6 +1292,7 @@ export interface TranslationKeys {
     defineEndpointUpdate: string;
     deleteEndpoint: string;
     headerKeys: string;
+    fieldList: string;
     bindElement: string;
     unbindElement: string;
     fieldMap: string;

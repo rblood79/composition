@@ -45,6 +45,8 @@ export type DataChangeSummaryItem =
         | "set_source";
       collection: CollectionRef;
       fieldCount?: number;
+      /** create_collection — 스키마 표 (미리보기, Phase 6 AI-1) */
+      fields?: { key: string; type: string; required: boolean }[];
       rowCount?: number;
       sample?: RowSample;
       patch?: Record<string, unknown>;
@@ -164,6 +166,11 @@ export function summarizeDataChange(
           op: op.op,
           collection: { id: op.id ?? null, name: op.name, isNew: true },
           fieldCount: op.schema.length,
+          fields: op.schema.map((f) => ({
+            key: f.key,
+            type: f.type,
+            required: f.required === true,
+          })),
           rowCount: op.rows?.length ?? 0,
           ...(op.rows && op.rows.length > 0
             ? { sample: sampleOf(op.rows, keys) }

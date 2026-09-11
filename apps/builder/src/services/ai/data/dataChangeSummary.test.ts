@@ -54,6 +54,10 @@ describe("summarizeDataChange", () => {
       op: "create_collection",
       collection: { id: null, name: "Posts", isNew: true },
       fieldCount: 2,
+      fields: [
+        { key: "name", type: "string", required: false },
+        { key: "age", type: "number", required: false },
+      ],
       rowCount: 5,
       sample: {
         keys: ["name", "age"],

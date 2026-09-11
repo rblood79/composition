@@ -408,13 +408,13 @@ describe("레지스트리 등록", () => {
     const registry = createToolRegistry();
     expect(registry.has("bind_collection")).toBe(true);
     expect(registry.has("create_interaction_rule")).toBe(true);
-    expect(registry.size).toBe(16);
+    expect(registry.size).toBe(18);
 
     const names = (await getToolDefinitions(tr)).map((d) => d.name);
     expect(names).toContain("bind_collection");
     expect(names).toContain("create_interaction_rule");
     expect(names).toContain("list_collections");
-    expect(names).toHaveLength(16);
+    expect(names).toHaveLength(18);
   });
 });
 

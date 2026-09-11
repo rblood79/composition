@@ -16,7 +16,10 @@
  */
 import type { BuilderContext } from "../../types/integrations/chat.types";
 import { summarizeCollections } from "./data/collectionReadModel";
-import { getDataToolReadModel } from "./data/dataToolReadModel";
+import {
+  getDataToolReadModel,
+  readOpenDataEditor,
+} from "./data/dataToolReadModel";
 import { getAiToolReadModel } from "./tools/canonicalToolReadModel";
 
 /** 조립에 필요한 노드 모양만 — ADR-126: 신규 코드는 `Element` 대신 구조 계약을 쓴다. */
@@ -36,6 +39,8 @@ export interface BuilderContextSource {
   state: { currentPageId?: string | null; selectedElementId?: string | null };
   /** 생략 시 data store 에서 읽는다 (ADR-213). 테스트는 빈 배열로 대체한다. */
   collections?: BuilderContext["collections"];
+  /** 생략 시 편집기 store 에서 읽는다 (ADR-213 Phase 6 AI-4). 테스트는 null 로 대체한다. */
+  openDataEditor?: BuilderContext["openDataEditor"];
 }
 
 function readCollectionSummaries(): BuilderContext["collections"] {
@@ -48,6 +53,10 @@ export function buildBuilderContext(
 ): BuilderContext {
   const { elements, elementsById, state } = source;
   const collections = source.collections ?? readCollectionSummaries();
+  const openDataEditor =
+    source.openDataEditor === undefined
+      ? readOpenDataEditor()
+      : source.openDataEditor;
   const currentPageId = state.currentPageId || "default";
   const selectedElementId = state.selectedElementId ?? undefined;
   const selected = selectedElementId
@@ -69,5 +78,6 @@ export function buildBuilderContext(
         }
       : undefined,
     collections,
+    ...(openDataEditor ? { openDataEditor } : {}),
   };
 }

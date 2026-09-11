@@ -23,6 +23,8 @@ import { listApiEndpointsTool } from "./listApiEndpoints";
 import { getApiEndpointTool } from "./getApiEndpoint";
 import { explainRequestFailureTool } from "./explainRequestFailure";
 import { proposeDataChangeTool } from "./proposeDataChange";
+import { createTableFromDescriptionTool } from "./createTableFromDescription";
+import { understandPasteTool } from "./understandPaste";
 
 export { toolDefinitions, getToolDefinitions } from "./definitions";
 
@@ -61,6 +63,8 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
     getApiEndpointTool,
     explainRequestFailureTool,
     proposeDataChangeTool,
+    createTableFromDescriptionTool,
+    understandPasteTool,
     runCommandLazyTool,
   ];
 

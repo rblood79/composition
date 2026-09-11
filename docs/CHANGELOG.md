@@ -24,9 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Properties › Appearance › Palette** (`categorical` 기본 · `mono`): `mono` 는 테마 accent (`--tint`) 명도 사다리 4단 + neutral 4단 — Themes 패널에서 tint 를 바꾸면 차트도 따라간다 (CSS `oklch(from var(--tint) …)` ↔ Skia 같은 (L, chroma) 표). Series 섹션의 색 Select 는 선택된 팔레트의 순번을 보여 준다.
 - 토큰 `{color.chart-categorical-1..8}` · `{color.chart-accent-1..4}` (`--chart-categorical-N` 은 생성 `theme/generated/chart-palette.css`, `--chart-accent-N` 은 `preview-system.css`). rule `Chart.chart.palettes.{id}` → 생성 CSS `.react-aria-Chart[data-palette="id"]` 블록.
 
-## [ADR-213 Phase 1~5 — AI 데이터 tool 계약: 읽기 4 · "왜 실패했지?" · `propose_data_change` 승인 diff · bind_collection 정정 · agent `data.*` 명령 4] - 2026-09-11
+## [ADR-213 Phase 1~6 — AI 데이터 tool 계약: 읽기 4 · "왜 실패했지?" · `propose_data_change` 승인 diff · bind_collection 정정 · agent `data.*` 명령 4 · 설명으로 테이블 · 붙여넣기 이해 · 반복 편집] - 2026-09-11
 
-> 근거: `docs/adr/213-data-tool-contract-propose-review-apply.md` (리뷰 Round 2 승인) · evidence `docs/adr/evidence/213-p0-inventory.md` (로컬, G0·G1·G4·G3·G2·AX-4 live 기록). Phase 6~7 (사람이 부르는 AI 3종 · closure) 는 진행 중 — Implemented 승격은 Phase 7.
+> 근거: `docs/adr/213-data-tool-contract-propose-review-apply.md` (리뷰 Round 2 승인) · evidence `docs/adr/evidence/213-p0-inventory.md` (로컬, G0·G1·G4·G3·G2·AX-4·G5 live 기록). Phase 7 (closure) 는 진행 중 — Implemented 승격은 Phase 7.
 
 ### Added
 
@@ -35,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"왜 실패했지?"** — AI 패널에서 "마지막 API 실행이 왜 실패했어?" 라고 물으면 `explain_request_failure` 가 정의 · 보낸 요청 · 응답 status/headers · 본문 앞 2KB · 대상 테이블 스키마를 (전부 가린 뒤) 모아 원인과 `define_endpoint` 패치 제안을 답한다. 제안은 `propose_data_change` 승인으로 적용 — 승인 시 `{{secret.KEY}}` 자리는 기존 값을 그대로 둔다 (AI 가 원문을 본 적이 없으므로).
 - **API 실행 스냅샷**: 실행 (성공/실패) 마다 endpoint 당 마지막 1건 (최종 URL · 헤더 · 응답 status/headers · 본문 앞 2KB) 을 세션에 남긴다. `list_api_endpoints` 의 `lastRun` 이 이것을 요약한다.
 - History 패널 라벨: "API 정의 — {name}" · "데이터 연결 — {name}".
+- **설명으로 테이블 만들기** (`create_table_from_description`): "블로그 글 테이블 만들어 — 제목 · 본문 · 작성자 · 게시일 · 상태" 라고 하면 AI 는 스키마와 **샘플 행 생성 규칙** (enum 값 · 숫자/날짜 범위 · 다른 테이블 참조 …) 만 정하고, 샘플 행은 빌더가 규칙대로 만들어 검증한다 (스키마에 없는 컬럼 · enum 밖 값 · 깨진 참조 0). 승인 다이얼로그가 스키마 표 (`Fields: title: string · …`) 와 샘플 행을 미리 보여 주고, 거부하면 AI 가 지적을 반영해 다시 제안한다.
+- **붙여넣기 이해** (`understand_paste`): cURL 명령 · JSON · 쉼표/탭 표를 AI 패널에 붙이면 규칙 파서가 먼저 해석해 API 정의 또는 테이블 (새로/기존에 추가) 을 제안한다. 파서가 못 읽는 텍스트만 AI 가 직접 구조를 뽑는다.
+- **반복 편집**: DataTable 편집기에 열어 둔 테이블/API 가 AI 턴에 자동으로 첨부된다 — "이 테이블에 tags 필드 추가해" 처럼 id 없이 말하면 그 테이블의 변경 제안 (승인 diff · "사용처 N") 이 뜬다. API 는 URL 을 가리고 헤더 키만 첨부.
 - **agent 명령 `data.*` 4** (`window.__compositionAgent` · AI 패널 `run_command`): `data.openTable {name|collectionId}` · `data.openEndpoint {name|endpointId, tab?}` · `data.runEndpoint {name|endpointId}` (GET 은 Test 버튼과 같이 바로, 그 밖의 method 는 승인) · `data.importPaste {text, name|collectionId}` (JSON 배열/객체 · 탭/쉼표 표 → 새 테이블 또는 기존 테이블에 행 추가 — 승인 diff 를 지나고 `⌘Z` 1회로 원상). `run_command` 에 `args` 파라미터.
 
 ### Changed

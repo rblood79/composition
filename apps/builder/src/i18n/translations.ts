@@ -688,6 +688,10 @@ const koKR: TranslationKeys = {
     explainRequestFailureDone: "컨텍스트 수집됨",
     proposeDataChange: "데이터 변경 제안",
     proposeDataChangeDone: "제안 처리됨",
+    createTableFromDescription: "설명으로 테이블 만들기",
+    createTableFromDescriptionDone: "테이블 제안 처리됨",
+    understandPaste: "붙여넣기 이해",
+    understandPasteDone: "붙여넣기 처리됨",
     genericDone: "{name} 완료",
     selectedElement: "선택한 요소",
     callWithDetail: "{intent} · {detail}",
@@ -857,6 +861,17 @@ const koKR: TranslationKeys = {
     collectionsLine: "- {name} ({fieldCount} 필드 · {rowCount} 행 · {source})",
     collectionsMore: "… 더 있음 {count} — list_collections 로 전체를 읽으세요.",
     collectionsNone: "(없음)",
+    openEditorHeading: "## 지금 편집기에 열린 데이터",
+    openEditorTable:
+      "- 테이블 {name} (id {id}) · {rowCount}행 · 사용처 {usedBy} · 필드: {fields}{more}",
+    openEditorTableGuide:
+      '사용자가 "이 테이블" 이라고 하면 이것입니다. 고치려면 propose_data_change 의 add_field · update_field · update_collection · insert_rows · set_cell 을 위 collectionId · fieldId(#) 로 제안하세요. 타입 변경은 사용처 N 이 승인 다이얼로그에 표시됩니다. 필드/테이블 삭제는 AI 로 할 수 없으니 사용자가 UI 에서 하도록 안내하세요.',
+    openEditorEndpoint:
+      "- API endpoint {name} (id {id}) · {method} {url} · 헤더: {headers}",
+    openEditorEndpointGuide:
+      '사용자가 "이 endpoint" 라고 하면 이것입니다. 고치려면 propose_data_change 의 define_endpoint (같은 id · 전체 정의, 인증 값은 {{secret.KEY}} placeholder 그대로) 로 제안하세요. 왜 실패했는지는 explain_request_failure.',
+    pasteFallbackGuidance:
+      "규칙 파서가 이 텍스트를 해석하지 못했습니다. 텍스트를 직접 읽어 구조를 뽑으세요: 표/목록이면 컬럼과 행을 텍스트에 **있는 것만** 으로 propose_data_change (create_collection, rows 포함) 제안, 설명문이면 create_table_from_description 으로 스키마 + 규칙을 제안, API 호출 설명이면 propose_data_change 의 define_endpoint. 값을 지어내지 마세요.",
     explainFailureGuidance:
       "위 컨텍스트로 답하세요. 형식: (1) 원인 — status · 응답 본문 · 요청 정의에서 근거를 들어 1~2문장. (2) 제안 — 정의를 바꾸면 해결되는 경우 define_endpoint DataOp (endpoint 전체 정의, 인증 값은 {{secret.KEY}} placeholder 그대로) 를 JSON 코드 블록으로; 정의 밖 문제 (서버 · 네트워크 · 권한) 면 사용자가 할 일을 적으세요. 적용은 사용자가 승인해야 하므로 직접 적용하지 마세요.",
     rulesHeading: "## 규칙",
@@ -1061,11 +1076,22 @@ const koKR: TranslationKeys = {
       "실행 id (list_api_endpoints 의 lastRun.runId). 생략하면 그 endpoint 의 마지막 실행.",
     proposeDataChange:
       "데이터 변경을 제안합니다 — collection 생성/필드/행/소스 · API endpoint 정의 (define_endpoint, 인증 값은 {{secret.KEY}} placeholder) · 요소↔collection 바인딩 (bind_element). 사용자가 diff 를 보고 승인해야 적용되며 실행 취소 (undo) 로 되돌릴 수 있습니다. 삭제 계열 op 는 제안할 수 없습니다. 먼저 list_collections / get_collection / list_api_endpoints 로 id 를 확인하세요.",
+    createTableFromDescription:
+      "사용자의 설명으로 새 데이터 테이블을 제안합니다. 당신은 스키마와 샘플 행 **생성 규칙** 만 냅니다 (fields[].generate — enum 값, 숫자 범위, 날짜 범위, 다른 collection 참조(reference) 등). 샘플 행은 코드가 규칙대로 만들어 검증하므로 행을 직접 쓰지 마세요. 필드는 사용자가 말한 것만 (기본 id 필드 1개는 추가해도 됨). 제목·이름 같은 텍스트 필드에는 sentence, 사람 이름에만 name 규칙을 쓰고, sampleCount 는 사용자가 수를 말하지 않으면 생략하세요 (기본 5). 설명이 모호하면 (필드 수·상태 값·참조 대상) 객관식 1~2문항으로 먼저 물어보세요. 결과는 승인 다이얼로그 (스키마 표 + 샘플 행 미리보기) 를 지나 적용되고 실행 취소로 되돌릴 수 있습니다. 거부되면 사용자의 지적을 반영해 규칙을 고쳐 다시 부르세요. 같은 이름의 테이블이 이미 있으면 만들지 않습니다 — 그 테이블 수정은 propose_data_change.",
+    understandPaste:
+      "사용자가 붙여넣은 텍스트 (cURL 명령 · JSON 배열/객체 · 탭/쉼표 구분 표) 를 그대로 넘기면 규칙 파서가 해석합니다: cURL → API endpoint 정의 제안, 행 데이터 → 새 테이블 (name 필요) 또는 기존 테이블 행 추가 (collectionId). 승인 다이얼로그를 지나 적용됩니다. 텍스트를 요약하거나 고쳐 쓰지 말고 원문 그대로 text 에 넣으세요. parsed:false 가 돌아오면 안내 (guidance) 대로 직접 구조를 읽어 create_table_from_description 또는 propose_data_change 로 제안하세요.",
+    pasteText: "붙여넣은 원문 그대로",
+    pasteName: "새 테이블 이름 (cURL 이면 선택 — endpoint 이름)",
+    pasteCollectionId: "행을 추가할 기존 collection id (있으면 새 테이블 대신 추가)",
   },
   aiDataProposal: {
     summary: "데이터 변경 {count}건: {ops}",
     bindLabel: "{type} 를 {collection} 에 연결",
     importPasteLabel: "붙여넣기 가져오기 ({format} · {count}행)",
+    importCurlLabel: "cURL 에서 API 정의 — {name}",
+    createTableLabel: "설명으로 테이블 — {name} ({fields} 필드 · {rows}행)",
+    createTableRejected:
+      "사용자가 테이블 제안을 거부했습니다. 문서는 바뀌지 않았습니다. 무엇을 바꿔야 하는지 물어보고 (필드 · 타입 · 상태 값 · 샘플 규칙) 규칙을 고쳐 다시 제안하세요.",
     rejected: "사용자가 데이터 변경을 거부했습니다. 문서는 바뀌지 않았습니다.",
   },
   aiToolId: {
@@ -1096,6 +1122,11 @@ const koKR: TranslationKeys = {
   },
   aiToolError: {
     unknownTool: "알 수 없는 도구: {name}",
+    collectionNameExists:
+      '같은 이름의 collection "{name}" 이 이미 있습니다. 새로 만들지 않았습니다 — 그 테이블을 고치려면 propose_data_change (update 계열 op) 를 쓰고, 새 테이블이면 다른 이름을 쓰세요.',
+    pasteTextRequired: "text (붙여넣은 원문) 가 필요합니다.",
+    pasteNameRequired:
+      "새 테이블 이름 (name) 이 필요합니다 — 또는 기존 테이블에 추가하려면 collectionId 를 주세요.",
     navigateNeedsPath: "navigate 액션은 path 가 필요합니다.",
     toastNeedsMessage: "toast 액션은 message 가 필요합니다.",
     capabilityNeedsTarget:
@@ -1359,6 +1390,7 @@ const koKR: TranslationKeys = {
     defineEndpointUpdate: "API 변경 {name} — {method} {url}",
     deleteEndpoint: "API 삭제 {name}",
     headerKeys: "헤더: {keys}",
+    fieldList: "필드: {fields}",
     bindElement: "{element} → 테이블 {name} 연결",
     unbindElement: "{element} 연결 해제",
     fieldMap: "필드 역할: {map}",
@@ -2352,6 +2384,10 @@ const enUS: TranslationKeys = {
     explainRequestFailureDone: "context collected",
     proposeDataChange: "Propose data change",
     proposeDataChangeDone: "proposal handled",
+    createTableFromDescription: "Create table from description",
+    createTableFromDescriptionDone: "table proposal handled",
+    understandPaste: "Understand paste",
+    understandPasteDone: "paste handled",
     genericDone: "{name} done",
     selectedElement: "the selected element",
     callWithDetail: "{intent} · {detail}",
@@ -2529,6 +2565,17 @@ const enUS: TranslationKeys = {
     collectionsMore:
       "… {count} more — read the full list with list_collections.",
     collectionsNone: "(none)",
+    openEditorHeading: "## Data open in the editor right now",
+    openEditorTable:
+      "- Table {name} (id {id}) · {rowCount} rows · used by {usedBy} · fields: {fields}{more}",
+    openEditorTableGuide:
+      'When the user says "this table", this is it. To change it, propose add_field · update_field · update_collection · insert_rows · set_cell via propose_data_change with the collectionId and fieldId (#) above. A type change shows "used by N" in the approval dialog. Fields/tables cannot be deleted by AI — tell the user to do it in the UI.',
+    openEditorEndpoint:
+      "- API endpoint {name} (id {id}) · {method} {url} · headers: {headers}",
+    openEditorEndpointGuide:
+      'When the user says "this endpoint", this is it. To change it, propose define_endpoint via propose_data_change (same id, full definition, auth values kept as {{secret.KEY}} placeholders). For failures, use explain_request_failure.',
+    pasteFallbackGuidance:
+      "The rule parser could not interpret this text. Read it yourself and extract the structure: for a table/list, propose propose_data_change (create_collection with rows) using **only** the columns and rows present in the text; for a description, propose a schema + rules with create_table_from_description; for an API call description, propose define_endpoint via propose_data_change. Do not invent values.",
     explainFailureGuidance:
       "Answer from the context above. Format: (1) Cause — 1–2 sentences citing the status, response body, or request definition. (2) Suggestion — if a definition change fixes it, give a define_endpoint DataOp (the full endpoint definition, keeping {{secret.KEY}} placeholders as-is) in a JSON code block; if the problem is outside the definition (server, network, permissions), say what the user should do. Do not apply anything yourself — the user must approve.",
     rulesHeading: "## Rules",
@@ -2738,11 +2785,22 @@ const enUS: TranslationKeys = {
       "Run id (lastRun.runId from list_api_endpoints). Omit for that endpoint's last run.",
     proposeDataChange:
       "Proposes a data change — collection create/fields/rows/source, API endpoint definition (define_endpoint; auth values as {{secret.KEY}} placeholders), element↔collection binding (bind_element). Nothing is applied until the user approves the diff; the change can be reverted with undo. Delete-type ops cannot be proposed. Check ids first with list_collections / get_collection / list_api_endpoints.",
+    createTableFromDescription:
+      "Proposes a new data table from the user's description. You provide only the schema and the sample-row **generation rules** (fields[].generate — enum values, number/date ranges, a reference to another collection, …). Code generates and validates the sample rows from those rules, so do not write rows yourself. Include only the fields the user asked for (one default id field is fine). Use the sentence rule for text fields such as titles and the name rule only for people's names; omit sampleCount unless the user gave a number (default 5). If the description is ambiguous (field count, status values, reference target), first ask 1–2 multiple-choice questions. The result goes through the approval dialog (schema table + sample-row preview), is applied on approval and can be reverted with undo. If rejected, adjust the rules from the user's feedback and call again. If a table with the same name exists nothing is created — edit that table with propose_data_change.",
+    understandPaste:
+      "Pass the user's pasted text verbatim (a cURL command, a JSON array/object, or a tab/comma-separated table) and a rule parser interprets it: cURL → an API endpoint definition proposal; row data → a new table (name required) or rows appended to an existing table (collectionId). Applied through the approval dialog. Do not summarize or rewrite the text — put the original in text. If parsed:false comes back, follow the guidance: read the structure yourself and propose with create_table_from_description or propose_data_change.",
+    pasteText: "The pasted text, verbatim",
+    pasteName: "Name for the new table (optional for cURL — endpoint name)",
+    pasteCollectionId: "Existing collection id to append rows to (instead of a new table)",
   },
   aiDataProposal: {
     summary: "{count} data change(s): {ops}",
     bindLabel: "Bind {type} to {collection}",
     importPasteLabel: "Import pasted {format} ({count} rows)",
+    importCurlLabel: "API definition from cURL — {name}",
+    createTableLabel: "Table from description — {name} ({fields} fields · {rows} rows)",
+    createTableRejected:
+      "The user declined the table proposal. The document is unchanged. Ask what to change (fields, types, status values, sample rules), adjust the rules and propose again.",
     rejected: "The user declined the data change. The document is unchanged.",
   },
   aiToolId: {
@@ -2773,6 +2831,11 @@ const enUS: TranslationKeys = {
   },
   aiToolError: {
     unknownTool: "Unknown tool: {name}",
+    collectionNameExists:
+      'A collection named "{name}" already exists. Nothing was created — edit that table with propose_data_change (update ops), or pick another name for a new table.',
+    pasteTextRequired: "text (the pasted content) is required.",
+    pasteNameRequired:
+      "A name for the new table is required — or pass collectionId to append rows to an existing table.",
     navigateNeedsPath: "A navigate action needs a path.",
     toastNeedsMessage: "A toast action needs a message.",
     capabilityNeedsTarget: "A capability action needs targetId and capability.",
@@ -3033,6 +3096,7 @@ const enUS: TranslationKeys = {
     defineEndpointUpdate: "Change API {name} — {method} {url}",
     deleteEndpoint: "Delete API {name}",
     headerKeys: "headers: {keys}",
+    fieldList: "Fields: {fields}",
     bindElement: "{element} → bind to table {name}",
     unbindElement: "{element}: unbind",
     fieldMap: "field roles: {map}",
@@ -3881,6 +3945,7 @@ const formattedMessages: Record<
     "dataDiff.defineEndpointUpdate": (args) =>
       `API 변경 ${String(args?.name ?? "")} — ${String(args?.method ?? "")} ${String(args?.url ?? "")}`,
     "dataDiff.deleteEndpoint": (args) => `API 삭제 ${String(args?.name ?? "")}`,
+    "dataDiff.fieldList": (args) => `필드: ${String(args?.fields ?? "")}`,
     "dataDiff.headerKeys": (args) => `헤더: ${String(args?.keys ?? "")}`,
     "dataDiff.bindElement": (args) =>
       `${String(args?.element ?? "")} → 테이블 ${String(args?.name ?? "")} 연결`,
@@ -4066,6 +4131,16 @@ const formattedMessages: Record<
       `${String(args?.type ?? "")} 를 ${String(args?.collection ?? "")} 에 연결`,
     "aiDataProposal.importPasteLabel": (args) =>
       `붙여넣기 가져오기 (${String(args?.format ?? "")} · ${String(args?.count ?? 0)}행)`,
+    "aiDataProposal.importCurlLabel": (args) =>
+      `cURL 에서 API 정의 — ${String(args?.name ?? "")}`,
+    "aiDataProposal.createTableLabel": (args) =>
+      `설명으로 테이블 — ${String(args?.name ?? "")} (${String(args?.fields ?? 0)} 필드 · ${String(args?.rows ?? 0)}행)`,
+    "aiToolError.collectionNameExists": (args) =>
+      `같은 이름의 collection "${String(args?.name ?? "")}" 이 이미 있습니다. 새로 만들지 않았습니다 — 그 테이블을 고치려면 propose_data_change (update 계열 op) 를 쓰고, 새 테이블이면 다른 이름을 쓰세요.`,
+    "aiPrompt.openEditorTable": (args) =>
+      `- 테이블 ${String(args?.name ?? "")} (id ${String(args?.id ?? "")}) · ${String(args?.rowCount ?? 0)}행 · 사용처 ${String(args?.usedBy ?? 0)} · 필드: ${String(args?.fields ?? "")}${String(args?.more ?? "")}`,
+    "aiPrompt.openEditorEndpoint": (args) =>
+      `- API endpoint ${String(args?.name ?? "")} (id ${String(args?.id ?? "")}) · ${String(args?.method ?? "")} ${String(args?.url ?? "")} · 헤더: ${String(args?.headers ?? "")}`,
     "aiIntent.changeFill": (args) =>
       `배경 fill을 ${String(args?.color ?? "")}로 변경합니다.`,
     "aiVerify.goal": (args) => `목표: ${String(args?.goal ?? "")}`,
@@ -4243,6 +4318,7 @@ const formattedMessages: Record<
       `Change API ${String(args?.name ?? "")} — ${String(args?.method ?? "")} ${String(args?.url ?? "")}`,
     "dataDiff.deleteEndpoint": (args) =>
       `Delete API ${String(args?.name ?? "")}`,
+    "dataDiff.fieldList": (args) => `Fields: ${String(args?.fields ?? "")}`,
     "dataDiff.headerKeys": (args) => `headers: ${String(args?.keys ?? "")}`,
     "dataDiff.bindElement": (args) =>
       `${String(args?.element ?? "")} → bind to table ${String(args?.name ?? "")}`,
@@ -4430,6 +4506,16 @@ const formattedMessages: Record<
       `Bind ${String(args?.type ?? "")} to ${String(args?.collection ?? "")}`,
     "aiDataProposal.importPasteLabel": (args) =>
       `Import pasted ${String(args?.format ?? "")} (${String(args?.count ?? 0)} rows)`,
+    "aiDataProposal.importCurlLabel": (args) =>
+      `API definition from cURL — ${String(args?.name ?? "")}`,
+    "aiDataProposal.createTableLabel": (args) =>
+      `Table from description — ${String(args?.name ?? "")} (${String(args?.fields ?? 0)} fields · ${String(args?.rows ?? 0)} rows)`,
+    "aiToolError.collectionNameExists": (args) =>
+      `A collection named "${String(args?.name ?? "")}" already exists. Nothing was created — edit that table with propose_data_change (update ops), or pick another name for a new table.`,
+    "aiPrompt.openEditorTable": (args) =>
+      `- Table ${String(args?.name ?? "")} (id ${String(args?.id ?? "")}) · ${String(args?.rowCount ?? 0)} rows · used by ${String(args?.usedBy ?? 0)} · fields: ${String(args?.fields ?? "")}${String(args?.more ?? "")}`,
+    "aiPrompt.openEditorEndpoint": (args) =>
+      `- API endpoint ${String(args?.name ?? "")} (id ${String(args?.id ?? "")}) · ${String(args?.method ?? "")} ${String(args?.url ?? "")} · headers: ${String(args?.headers ?? "")}`,
     "aiIntent.changeFill": (args) =>
       `Changing the background fill to ${String(args?.color ?? "")}.`,
     "aiVerify.goal": (args) => `Goal: ${String(args?.goal ?? "")}`,

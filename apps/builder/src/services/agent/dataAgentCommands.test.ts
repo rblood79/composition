@@ -2,7 +2,8 @@
  * ADR-213 Phase 5 — `DATA_AGENT_COMMANDS` adapter parity (ADR-196 G1 어법).
  *
  * 1. 정적 대조 — adapter 파일이 import 하는 심볼 = 사람 경로 handler 가 부르는 심볼
- *    (`openTableEditor` · `openApiEditor` · `executeApiEndpoint` · `dispatchDataProposal`).
+ *    (`openTableEditor` · `openApiEditor` · `executeApiEndpoint` · `dispatchDataProposal` —
+ *    importPaste 의 op 조립은 AI-2 와 같은 `buildPasteProposal`).
  * 2. spy — 각 adapter 가 그 심볼을 정확히 1회, handler 와 같은 인자로 부른다.
  * 3. importPaste — proposal 은 `origin:"agent"` · host 그대로 · create_collection (스키마는
  *    `detectColumns` 추론) 또는 insert_rows (기존 collection) · dispatcher 결과 → outcome 매핑.
@@ -40,7 +41,7 @@ const input = (): DataAgentCommandInput => ({
 });
 
 describe("DATA_AGENT_COMMANDS — 정적 대조", () => {
-  it("adapter 파일은 handler 심볼만 import 한다 (dataTableEditorStore · data store · dispatcher)", async () => {
+  it("adapter 파일은 handler 심볼만 import 한다 (dataTableEditorStore · data store · pasteProposal · dispatcher)", async () => {
     const source = await readFile(
       resolve(__dirname, "dataAgentCommands.ts"),
       "utf-8",
@@ -50,8 +51,7 @@ describe("DATA_AGENT_COMMANDS — 정적 대조", () => {
       expect.arrayContaining([
         "../../builder/stores/data",
         "../../builder/panels/datatable/stores/dataTableEditorStore",
-        "../../builder/panels/datatable/utils/columnDetector",
-        "../../builder/panels/datatable/utils/pasteRows",
+        "../ai/data/pasteProposal",
         "../ai/data/dataProposalDispatcher",
       ]),
     );
