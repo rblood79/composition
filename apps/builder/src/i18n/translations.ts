@@ -1439,6 +1439,22 @@ const koKR: TranslationKeys = {
     variableTabs: "변수 탭",
     countItems: "{count}개",
     tableMeta: "{fields}개 필드 · {rows}개 행",
+    usedBy: "사용처 {count}",
+    sourceSample: "샘플",
+    sourceApi: "API",
+    runError: "오류 {status}",
+    runNetworkError: "네트워크 오류",
+    relJustNow: "방금",
+    relMinutesAgo: "{count}분 전",
+    relHoursAgo: "{count}시간 전",
+    relDaysAgo: "{count}일 전",
+    tableDeleted: '테이블 "{name}" 을(를) 삭제했습니다.',
+    apiDeleted: 'API "{name}" 을(를) 삭제했습니다.',
+    statusRegion: "데이터 패널 상태",
+    newField: "새 필드",
+    fieldPanel: "필드",
+    fieldPanelEmpty: "편집할 열 헤더를 고르세요.",
+    fieldPanelPending: "필드 편집은 Phase 3 에서 채워집니다.",
     confirmDelete: "정말 삭제하시겠습니까?",
     promptVariableName: "Variable 이름을 입력하세요:",
     promptApiUrl:
@@ -3148,6 +3164,22 @@ const enUS: TranslationKeys = {
     variableTabs: "Variable tabs",
     countItems: "{count}",
     tableMeta: "{fields} fields · {rows} rows",
+    usedBy: "used by {count}",
+    sourceSample: "Sample",
+    sourceApi: "API",
+    runError: "error {status}",
+    runNetworkError: "network error",
+    relJustNow: "just now",
+    relMinutesAgo: "{count} min ago",
+    relHoursAgo: "{count} h ago",
+    relDaysAgo: "{count} d ago",
+    tableDeleted: 'Deleted table "{name}".',
+    apiDeleted: 'Deleted API "{name}".',
+    statusRegion: "Data panel status",
+    newField: "New Field",
+    fieldPanel: "Field",
+    fieldPanelEmpty: "Pick a column header to edit it.",
+    fieldPanelPending: "Field editing arrives in Phase 3.",
     confirmDelete: "Are you sure you want to delete this?",
     promptVariableName: "Enter a variable name:",
     promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",
@@ -3910,6 +3942,15 @@ const formattedMessages: Record<
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}개`,
     "datatable.tableMeta": (args) =>
       `${String(args?.fields ?? 0)}개 필드 · ${String(args?.rows ?? 0)}개 행`,
+    "datatable.usedBy": (args) => `사용처 ${String(args?.count ?? 0)}`,
+    "datatable.runError": (args) => `오류 ${String(args?.status ?? "")}`,
+    "datatable.relMinutesAgo": (args) => `${String(args?.count ?? 0)}분 전`,
+    "datatable.relHoursAgo": (args) => `${String(args?.count ?? 0)}시간 전`,
+    "datatable.relDaysAgo": (args) => `${String(args?.count ?? 0)}일 전`,
+    "datatable.tableDeleted": (args) =>
+      `테이블 "${String(args?.name ?? "")}" 을(를) 삭제했습니다.`,
+    "datatable.apiDeleted": (args) =>
+      `API "${String(args?.name ?? "")}" 을(를) 삭제했습니다.`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}"이(가) 생성되었습니다.\n${String(args?.columns ?? 0)}개 컬럼, ${String(args?.rows ?? 0)}개 행`,
     "datatable.importFailed": (args) =>
@@ -4282,6 +4323,15 @@ const formattedMessages: Record<
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}`,
     "datatable.tableMeta": (args) =>
       `${String(args?.fields ?? 0)} fields · ${String(args?.rows ?? 0)} rows`,
+    "datatable.usedBy": (args) => `used by ${String(args?.count ?? 0)}`,
+    "datatable.runError": (args) => `error ${String(args?.status ?? "")}`,
+    "datatable.relMinutesAgo": (args) => `${String(args?.count ?? 0)} min ago`,
+    "datatable.relHoursAgo": (args) => `${String(args?.count ?? 0)} h ago`,
+    "datatable.relDaysAgo": (args) => `${String(args?.count ?? 0)} d ago`,
+    "datatable.tableDeleted": (args) =>
+      `Deleted table "${String(args?.name ?? "")}".`,
+    "datatable.apiDeleted": (args) =>
+      `Deleted API "${String(args?.name ?? "")}".`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}" created.\n${String(args?.columns ?? 0)} columns, ${String(args?.rows ?? 0)} rows`,
     "datatable.importFailed": (args) =>

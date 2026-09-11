@@ -161,3 +161,98 @@
 .panel-wrapper[data-panel="datatable"] .control-button[data-variant="add"] {
   margin-top: var(--spacing-sm);
 }
+
+/* ============================================
+   ADR-212 Phase 1 — 탭 아이콘 모드 (HC3) · 배지 · role=status 영역
+   ============================================ */
+
+/* 탭 줄 폭 < 360 이면 라벨을 시각만 숨긴다 (접근 가능한 이름은 남고 title 이 tooltip).
+   컨테이너 쿼리는 datatable 패널 루트에 한정 — Navigator · Styles 는 같은 클래스라도
+   영향 없음 (R7). 라벨이 "Sche…" 로 잘리는 대신 아이콘만 남는다. */
+.datatable-panel {
+  container-type: inline-size;
+  container-name: datatable-panel;
+}
+
+@container datatable-panel (max-width: 359px) {
+  .datatable-panel .panel-tab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .datatable-panel .panel-tab {
+    justify-content: center;
+    flex: 1;
+  }
+}
+
+.datatable-panel .panel-tab-icon {
+  display: inline-flex;
+  flex: none;
+}
+
+/* GridList 행 (RAC) — 공통 .list-item 위에 선택 · 포커스만 */
+.datatable-panel .list-item[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.datatable-panel .list-item[data-empty] .list-item-meta {
+  color: var(--color-warning-700);
+}
+
+.datatable-panel .list-item-badge.error,
+.datatable-panel .list-item-run.error {
+  background: var(--color-error-100);
+  color: var(--color-error-700);
+}
+
+.datatable-panel .list-item-usage,
+.datatable-panel .list-item-linked {
+  color: var(--fg-muted);
+}
+
+/* role=status 영역 — 비어 있어도 자리를 유지하지 않는다 (내용 있을 때만 높이) */
+.datatable-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-height: 0;
+  padding: 0 var(--spacing-sm);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--fg-muted);
+  border-top: 1px solid transparent;
+}
+
+.datatable-status:not([data-tone="none"]) {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-top-color: var(--border);
+}
+
+.datatable-status[data-tone="success"] {
+  color: var(--color-success-700);
+}
+
+.datatable-status-message {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datatable-status-action {
+  flex: none;
+  color: var(--accent);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+}

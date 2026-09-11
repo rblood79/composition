@@ -34,6 +34,7 @@ import {
 import { DataTableList } from "./components/DataTableList";
 import { ApiEndpointList } from "./components/ApiEndpointList";
 import { VariableList } from "./components/VariableList";
+import { DataPanelStatusRegion } from "./components/DataPanelStatusRegion";
 import "./DataTablePanel.css";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
@@ -122,7 +123,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
       <div className="panel datatable-panel">
         <PanelHeader
           icon={<Database size={iconProps.size} />}
-          title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
+          title={i18n ? i18n.t("panels.dataTable") : "Data"}
           panelId="datatable"
         />
         <EmptyState
@@ -142,6 +143,16 @@ export function DataTablePanel({ isActive }: PanelProps) {
     }
   };
 
+  const tabLabel = (tab: TabConfig) =>
+    localize(
+      tab.id === "tables"
+        ? "tables"
+        : tab.id === "endpoints"
+          ? "apis"
+          : "variables",
+      tab.label,
+    );
+
   const handleCreateClick = () => {
     openTableCreator(currentProjectId);
   };
@@ -156,7 +167,7 @@ export function DataTablePanel({ isActive }: PanelProps) {
     <div className="panel datatable-panel">
       <PanelHeader
         icon={<Database size={iconProps.size} />}
-        title={i18n ? i18n.t("panels.dataTable") : "DataTable"}
+        title={i18n ? i18n.t("panels.dataTable") : "Data"}
         panelId="datatable"
         actions={
           <button
@@ -190,21 +201,15 @@ export function DataTablePanel({ isActive }: PanelProps) {
           >
             {TABS.map((tab) => (
               <Tab key={tab.id} id={tab.id} className="panel-tab">
-                <tab.icon
-                  color="currentColor"
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                />
-                <span className="panel-tab-label">
-                  {localize(
-                    tab.id === "tables"
-                      ? "tables"
-                      : tab.id === "endpoints"
-                        ? "apis"
-                        : "variables",
-                    tab.label,
-                  )}
+                {/* 폭 < 360 아이콘 모드에서 tooltip (HC3) — 라벨은 시각만 숨겨 이름은 남는다 */}
+                <span className="panel-tab-icon" title={tabLabel(tab)}>
+                  <tab.icon
+                    color="currentColor"
+                    strokeWidth={iconProps.strokeWidth}
+                    size={iconProps.size}
+                  />
                 </span>
+                <span className="panel-tab-label">{tabLabel(tab)}</span>
               </Tab>
             ))}
           </TabList>
@@ -232,6 +237,8 @@ export function DataTablePanel({ isActive }: PanelProps) {
           <VariableList projectId={currentProjectId} />
         </TabPanel>
       </Tabs>
+      {/* ADR-212 HC4 — 저장 · 행 추가 · Run · import 결과의 `role=status` 영역 (항상 마운트) */}
+      <DataPanelStatusRegion />
     </div>
   );
 }
