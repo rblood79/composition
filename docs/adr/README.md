@@ -20,11 +20,11 @@
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      13 |
-| ├ Proposed                |      11 |
+| 열려 있는 것 (`adr/*.md`) |      14 |
+| ├ Proposed                |      12 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
-| **합계**                  | **241** |
+| **합계**                  | **242** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -40,6 +40,12 @@
 - **상태**: Proposed (2026-09-11) — 리서치 Track 3 (AI · AX)
 - **규모**: 읽기 tool 4 (`list/get_collections` · `list/get_api_endpoints`, secret 마스킹) + `get_editor_state` 요약 + 프롬프트 주입 예산 · 쓰기 tool 1 `propose_data_change(DataChange)` → `AgentCommandConfirmDialog` 스키마 diff 뷰 승인 → 152 적용기 → History 1 + 감사 로그 (delete 계열 없음) · `bind_collection` 을 `{collectionId}` 형상으로 정정 · `explain_request_failure` ("왜 실패했지?") · agent 명령 `data.*` 4 · 사람이 부르는 AI 3종 (설명으로 테이블 · 붙여넣기 이해 · 반복 편집). 스키마는 152 `dataChange.ts` 단일 소스 (Anthropic strict ↔ Ollama zod). Phase 0~~7 / R1~~R7 / G0~~G5, HIGH 0. **선행: 152 Phase 1c (Phase 1 읽기 tool 은 독립)** · ADR-202 에는 의존하지 않음 (착수 시 어댑터 편입 — 결정 지점 2 후보). design breakdown `design/213-data-tool-contract-propose-review-apply-breakdown.md`
 - **우선순위**: P2 — 212 와 병렬 가능 (형제), 첫 출시 = Phase 1 + Phase 3
+
+#### [215](215-chart-series-palette.md) — Chart 시리즈 팔레트 — categorical (Spectrum) · mono (accent) 선택 축
+
+- **상태**: Proposed (2026-09-11) — 리서치 [CHART_PALETTE_RESEARCH_2026-09](../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) · 시안 `docs/design/chart-series-palette/`
+- **규모**: 토큰 원천 `chartPaletteMap.ts` (Spectrum categorical 리터럴 8 · accent 명도 사다리 4 — ADR-193 hex 금지의 명시 예외 1건) + rule `chart.series` 교체 · `chart.palettes.mono` + binding `palette` enum (RSC `colors` 참조) + CSS `[data-palette]` 블록 · Skia `resolveChartPalette`. 저장 무변경 (`--chart-series-N` 순번 계약 유지), 기존 차트 색 100% 변화 (CHANGELOG). Phase 0·1 은 2026-09-11 작업 트리에 선행
+- **우선순위**: P2 — 독립 (194 · 210 · 211 Implemented 위), 213/214 와 병렬 가능
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
