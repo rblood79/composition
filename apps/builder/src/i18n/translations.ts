@@ -157,6 +157,17 @@ const koKR: TranslationKeys = {
     othersLabelPlaceholder: "Other",
     budgetSettingsHint:
       "집계·극값·묶음은 화면 폭에 맞춰 두 화면에서 같은 규칙으로 정해집니다.",
+    // ADR-216 — 시간축
+    dimensionScale: "범주 간격",
+    scaleCategory: "등간격",
+    scaleTime: "시간 (날짜 간격)",
+    timeOnlyLineArea: "시간축은 선·영역 차트에서만 씁니다.",
+    timeHint: "범주가 전부 날짜입니다 — 시간축으로 볼 수 있습니다.",
+    dimensionFormat: "날짜 입력 형식",
+    dimensionFormatPlaceholder: "비우면 ISO (예: %Y/%m/%d)",
+    dimensionLabelFormat: "축 라벨 형식",
+    dimensionLabelFormatPlaceholder: "비우면 눈금 단위별 두 줄 (예: %m/%d)",
+    parseFailedHint: "{count}행은 날짜로 읽지 못해 제외됩니다.",
   },
   itemsManager: {
     total: "총 {count}개",
@@ -1944,6 +1955,17 @@ const enUS: TranslationKeys = {
     othersLabelPlaceholder: "Other",
     budgetSettingsHint:
       "Aggregation, extrema and grouping follow the chart width with the same rule in both views.",
+    // ADR-216 — time axis
+    dimensionScale: "Category Spacing",
+    scaleCategory: "Even",
+    scaleTime: "Time (date spacing)",
+    timeOnlyLineArea: "The time axis is for line and area charts only.",
+    timeHint: "Every category is a date — you can switch to the time axis.",
+    dimensionFormat: "Date Input Format",
+    dimensionFormatPlaceholder: "Empty = ISO (e.g. %Y/%m/%d)",
+    dimensionLabelFormat: "Axis Label Format",
+    dimensionLabelFormatPlaceholder: "Empty = two rows by tick unit (e.g. %m/%d)",
+    parseFailedHint: "{count} row(s) skipped — not readable as dates.",
   },
   itemsManager: {
     total: "Total: {count}",
@@ -4057,6 +4079,8 @@ const formattedMessages: Record<
     "chart.budgetModeAggregate": (args) =>
       `구간 집계 (${String(args?.aggregate ?? "sum")})`,
     "chart.budgetFits": (args) => `전부 표시 (${String(args?.n ?? 0)})`,
+    "chart.parseFailedHint": (args) =>
+      `${String(args?.count ?? 0)}행은 날짜로 읽지 못해 제외됩니다.`,
     "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
     "itemsManager.addItem": (args) => `${String(args?.type ?? "")} 추가`,
     "errors.withContext": (args) =>
@@ -4478,6 +4502,8 @@ const formattedMessages: Record<
     "chart.budgetModeAggregate": (args) =>
       `bucket aggregate (${String(args?.aggregate ?? "sum")})`,
     "chart.budgetFits": (args) => `all shown (${String(args?.n ?? 0)})`,
+    "chart.parseFailedHint": (args) =>
+      `${String(args?.count ?? 0)} row(s) skipped — not readable as dates.`,
     "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
     "itemsManager.addItem": (args) => `Add ${String(args?.type ?? "")}`,
     "errors.withContext": (args) =>

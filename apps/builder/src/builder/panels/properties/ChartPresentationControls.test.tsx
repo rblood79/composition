@@ -24,6 +24,7 @@ import {
 import { useDataStore } from "../../stores/data";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartBudgetControls } from "./ChartBudgetControls";
+import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
 import {
@@ -777,3 +778,103 @@ describe("ADR-211 P3 — 예산 안내는 Canvas 크기의 같은 모델을 읽�
     ).toBeNull();
   });
 });
+
+describe("ADR-216 P4 — 시간축 컨트롤: line/area 만 · 스칼라 patch · 지시자 비우기 = 키 삭제 · 힌트", () => {
+  const DATE_TABLE: DataTable = {
+    id: "table-dates",
+    name: "dates",
+    project_id: "panel-fixture-test-project",
+    schema: [
+      { key: "date", type: "string" },
+      { key: "value", type: "number" },
+    ],
+    mockData: [
+      { date: "2026-01-01", value: 1 },
+      { date: "2026-01-02", value: 5 },
+      { date: "2026-01-04", value: 2 },
+    ],
+    useMockData: true,
+  };
+  const dateRows = DATE_TABLE.mockData as Record<string, unknown>[];
+
+  it("line: category → time 은 dimensionScale 1 키 patch, 되돌리면 undefined (키 삭제); 지시자 두 입력이 열린다", () => {
+    seedChart({ ...createChartInitialProps("line"), dimension: "date", metric: "value" });
+    const { spy, onPatch } = patchSpy();
+    const view = ui(
+      <ChartTimeAxisControls fields={fields()} rows={dateRows} onPatch={onPatch} />,
+    );
+    expect(view.queryByRole("group", { name: "날짜 입력 형식" })).toBeNull();
+    // 전부 ISO 날짜 → 힌트 (scene 무변경 — 문자열만).
+    expect(view.getByRole("status").textContent).toContain("시간축으로 볼 수 있습니다");
+    pick(view.getByRole("group", { name: "범주 간격" }), "시간 (날짜 간격)");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionScale: "time" });
+    cleanup();
+
+    seedChart({
+      ...createChartInitialProps("line"),
+      dimension: "date",
+      metric: "value",
+      dimensionScale: "time",
+    });
+    const view2 = ui(
+      <ChartTimeAxisControls fields={fields()} rows={dateRows} onPatch={onPatch} />,
+    );
+    const format = within(view2.getByRole("group", { name: "날짜 입력 형식" })).getByRole(
+      "textbox",
+    ) as HTMLInputElement;
+    expect(format.placeholder).toContain("ISO");
+    fireEvent.change(format, { target: { value: "%Y/%m/%d" } });
+    fireEvent.blur(format);
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionFormat: "%Y/%m/%d" });
+    const label = within(view2.getByRole("group", { name: "축 라벨 형식" })).getByRole(
+      "textbox",
+    ) as HTMLInputElement;
+    fireEvent.change(label, { target: { value: "%m/%d" } });
+    fireEvent.blur(label);
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionLabelFormat: "%m/%d" });
+    pick(view2.getByRole("group", { name: "범주 간격" }), "등간격");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionScale: undefined });
+  });
+
+  it("bar 는 time 항목 비활성 (write 0) · 저장된 time 은 사유 문구 · 지시자를 비우면 undefined patch · 파싱 실패 count", () => {
+    seedChart({ dimension: "date", metric: "value" });
+    const { spy, onPatch } = patchSpy();
+    const view = ui(
+      <ChartTimeAxisControls fields={fields()} rows={dateRows} onPatch={onPatch} />,
+    );
+    expect(view.queryByRole("status")).toBeNull();
+    fireEvent.click(within(view.getByRole("group", { name: "범주 간격" })).getByRole("button"));
+    const time = within(document.body).getByRole("option", { name: "시간 (날짜 간격)" });
+    expect(time.getAttribute("aria-disabled")).toBe("true");
+    fireEvent.click(time);
+    expect(spy).not.toHaveBeenCalled();
+    cleanup();
+
+    seedChart({
+      ...createChartInitialProps("line"),
+      dimension: "date",
+      metric: "value",
+      dimensionScale: "time",
+      dimensionFormat: "%Y/%m/%d",
+    });
+    const view2 = ui(
+      <ChartTimeAxisControls
+        fields={fields()}
+        rows={[...dateRows, { date: "not a date", value: 3 }]}
+        onPatch={onPatch}
+      />,
+    );
+    // ISO 행 3 + 잘못된 행 1 이 %Y/%m/%d 로는 전부 실패 → 4.
+    const status = view2.getByRole("status");
+    expect(status.getAttribute("data-chart-parse-failed")).toBe("4");
+    expect(status.textContent).toContain("4행");
+    const format = within(view2.getByRole("group", { name: "날짜 입력 형식" })).getByRole(
+      "textbox",
+    ) as HTMLInputElement;
+    expect(format.value).toBe("%Y/%m/%d");
+    fireEvent.change(format, { target: { value: "  " } });
+    fireEvent.blur(format);
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionFormat: undefined });
+  });
+});
+

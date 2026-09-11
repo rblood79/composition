@@ -216,6 +216,31 @@ export const chartBinding: PrimitiveBinding = {
         section: "interaction",
         editorHidden: true,
       },
+      // ADR-216 — 시간축 3 키 (line/area opt-in). 패널은 ChartTimeAxisControls (dimension 옆),
+      //   generic 렌더는 숨긴다. accepts 선언이 DOM 경로 (toRacProps) 의 통과 조건이다.
+      dimensionScale: {
+        kind: "enum",
+        label: "Category Spacing",
+        section: "content",
+        default: "category",
+        editorHidden: true,
+        options: [
+          { value: "category", label: "Even" },
+          { value: "time", label: "Time (date spacing)" },
+        ],
+      },
+      dimensionFormat: {
+        kind: "string",
+        label: "Date Input Format",
+        section: "content",
+        editorHidden: true,
+      },
+      dimensionLabelFormat: {
+        kind: "string",
+        label: "Axis Label Format",
+        section: "content",
+        editorHidden: true,
+      },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).
       dataBinding: { kind: "binding", label: "Data", section: "content" },
       /**
@@ -569,6 +594,9 @@ export const chartBinding: PrimitiveBinding = {
       "budgetAggregate",
       "budgetAxis",
       "budgetOthersLabel",
+      "dimensionScale",
+      "dimensionFormat",
+      "dimensionLabelFormat",
       "orientation",
       "stackType",
       "curve",

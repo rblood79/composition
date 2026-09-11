@@ -317,6 +317,10 @@ export const COMPONENT_KEY_ICONS: Record<
     budgetAggregate: Sigma,
     budgetAxis: Axis3d,
     budgetOthersLabel: Tag,
+    // content — ADR-216 시간축
+    dimensionScale: CalendarRange,
+    dimensionFormat: CalendarDays,
+    dimensionLabelFormat: Tag,
   },
 };
 

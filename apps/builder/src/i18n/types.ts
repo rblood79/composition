@@ -653,6 +653,17 @@ export interface TranslationKeys {
     othersLabel: string;
     othersLabelPlaceholder: string;
     budgetSettingsHint: string;
+    // ADR-216 — 시간축
+    dimensionScale: string;
+    scaleCategory: string;
+    scaleTime: string;
+    timeOnlyLineArea: string;
+    timeHint: string;
+    dimensionFormat: string;
+    dimensionFormatPlaceholder: string;
+    dimensionLabelFormat: string;
+    dimensionLabelFormatPlaceholder: string;
+    parseFailedHint: string;
   };
   itemsManager: {
     total: string;

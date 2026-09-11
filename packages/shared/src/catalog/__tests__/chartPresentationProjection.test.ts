@@ -95,6 +95,34 @@ describe("ADR-210 Chart binding — 표시 설정 투영", () => {
     expect(bare.budgetOthersLabel).toBeUndefined();
   });
 
+  // ADR-216 — 시간축 3키 (breakdown §2.5 결선 inventory).
+  it("ADR-216 시간축 3키가 accepts·propPassthrough 에 있고 저장값은 통과, 미설정은 enum default (category) 만 채운다", () => {
+    for (const key of [
+      "dimensionScale",
+      "dimensionFormat",
+      "dimensionLabelFormat",
+    ] as const) {
+      expect(binding.props.accepts[key], key).toBeDefined();
+      expect(binding.props.accepts[key].editorHidden, key).toBe(true);
+      expect(binding.props.propPassthrough, key).toContain(key);
+    }
+    const props = {
+      chartType: "line",
+      dimensionScale: "time",
+      dimensionFormat: "%Y/%m/%d",
+      dimensionLabelFormat: "%m/%d",
+    };
+    const out = toRacProps({ id: "c", type: "Chart", props } as never, binding);
+    expect(out).toMatchObject(props);
+    const bare = toRacProps(
+      { id: "c", type: "Chart", props: { chartType: "line" } } as never,
+      binding,
+    );
+    expect(bare.dimensionScale).toBe("category");
+    expect(bare.dimensionFormat).toBeUndefined();
+    expect(bare.dimensionLabelFormat).toBeUndefined();
+  });
+
   it("columns 모드에서 metric/color/colorBy 는 편집 화면에서 숨고 (visibleWhen) 투영은 유지된다", () => {
     for (const key of ["metric", "color", "colorBy"] as const) {
       expect(binding.props.accepts[key].visibleWhen).toBeDefined();

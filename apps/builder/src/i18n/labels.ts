@@ -52,6 +52,11 @@ export const semanticLabelKeys: Record<string, string> = {
   "ko-KR": "chart.localeKoKR",
   // ADR-211 — 표시 예산 (binding accepts 라벨/옵션)
   "When Categories Overflow": "chart.budgetOverflow",
+  "Category Spacing": "chart.dimensionScale",
+  Even: "chart.scaleCategory",
+  "Time (date spacing)": "chart.scaleTime",
+  "Date Input Format": "chart.dimensionFormat",
+  "Axis Label Format": "chart.dimensionLabelFormat",
   "Auto (by chart & axis)": "chart.overflowAuto",
   Window: "chart.overflowWindow",
   "Aggregate buckets": "chart.overflowAggregate",

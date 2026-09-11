@@ -34,6 +34,7 @@ import { useCollections } from "../../stores/data";
 import { buildChartSemanticFields } from "./chartFieldOptions";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
+import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
 import {
   ChartSeriesControls,
   chartSeriesConfigApplies,
@@ -164,6 +165,10 @@ const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
   "budgetAggregate",
   "budgetAxis",
   "budgetOthersLabel",
+  // ADR-216 — 시간축 3 키 (ChartTimeAxisControls).
+  "dimensionScale",
+  "dimensionFormat",
+  "dimensionLabelFormat",
   "dataBinding",
 ]);
 const EMPTY_FIELDS: ResolvedField[] = [];
@@ -422,6 +427,12 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           elementId={elementId}
           fields={chartControlFields}
           columns={chartColumns}
+          onPatch={handleChartPatch}
+        />
+        {/* ADR-216 — 범주 축 스케일 (시간축) · 입력/라벨 지시자. dimension 매핑 바로 아래. */}
+        <ChartTimeAxisControls
+          fields={chartControlFields}
+          rows={chartRows}
           onPatch={handleChartPatch}
         />
       </>
