@@ -1505,6 +1505,28 @@ const koKR: TranslationKeys = {
     gridPasteSkipFields: "추가하지 않고 붙여넣기",
     gridNoRows: "행이 없습니다 — 행 추가 또는 붙여넣기 (⌘V) 로 시작하세요.",
     gridImported: "CSV {rows}개 행으로 교체했습니다.",
+    fieldName: "필드 키",
+    fieldType: "유형",
+    fieldTypeSearch: "타입 검색…",
+    fieldRequired: "필수",
+    fieldDefault: "기본값",
+    fieldLabel: "레이블",
+    fieldAddTitle: "새 필드",
+    fieldUsedBy: "사용처 {count}",
+    fieldUsedByNone: "사용처 없음",
+    fieldDelete: "필드 삭제",
+    fieldDeleteConfirmTitle: '"{key}" 필드 삭제',
+    fieldDeleteConfirmUsed: '"{key}" 는 {count}곳에서 쓰입니다. 삭제하면 그 참조가 깨집니다. 삭제할까요?',
+    fieldDeleted: '필드 "{key}" 를 삭제했습니다.',
+    fieldRenamed: '필드 "{from}" → "{to}"',
+    fieldKeyEmpty: "필드 키는 비울 수 없습니다.",
+    fieldKeyDup: '필드 키 "{key}" 는 이미 있습니다.',
+    fieldTypeChangeTitle: '"{key}" 타입 변경',
+    fieldTypeChangeInvalid: "{total}행 중 {count}행이 {type} 값이 아닙니다.",
+    fieldTypeChangeClear: "비움 (그 셀을 빈 값으로)",
+    fieldTypeChangeKeep: "유지 (값 그대로)",
+    fieldAdded: '필드 "{key}" 를 추가했습니다.',
+    fieldPanelEmpty: "열 헤더를 눌러 편집하세요.",
     confirmDelete: "정말 삭제하시겠습니까?",
     promptVariableName: "Variable 이름을 입력하세요:",
     promptApiUrl:
@@ -3283,6 +3305,28 @@ const enUS: TranslationKeys = {
     gridPasteSkipFields: "Paste without them",
     gridNoRows: "No rows yet — add a row or paste (⌘V) to start.",
     gridImported: "Replaced with {rows} rows from CSV.",
+    fieldName: "Field key",
+    fieldType: "Type",
+    fieldTypeSearch: "Search types…",
+    fieldRequired: "Required",
+    fieldDefault: "Default value",
+    fieldLabel: "Label",
+    fieldAddTitle: "New field",
+    fieldUsedBy: "Used by {count}",
+    fieldUsedByNone: "Not used",
+    fieldDelete: "Delete field",
+    fieldDeleteConfirmTitle: 'Delete field "{key}"',
+    fieldDeleteConfirmUsed: '"{key}" is used in {count} place(s). Deleting it breaks those references. Delete anyway?',
+    fieldDeleted: 'Deleted field "{key}".',
+    fieldRenamed: 'Field "{from}" → "{to}"',
+    fieldKeyEmpty: "Field key cannot be empty.",
+    fieldKeyDup: 'Field key "{key}" already exists.',
+    fieldTypeChangeTitle: 'Change type of "{key}"',
+    fieldTypeChangeInvalid: "{count} of {total} rows are not valid {type}.",
+    fieldTypeChangeClear: "Clear (empty those cells)",
+    fieldTypeChangeKeep: "Keep (leave values)",
+    fieldAdded: 'Added field "{key}".',
+    fieldPanelEmpty: "Pick a column header to edit it.",
     confirmDelete: "Are you sure you want to delete this?",
     promptVariableName: "Enter a variable name:",
     promptApiUrl: "Enter the API URL (e.g. https://pokeapi.co/api/v2/pokemon):",
@@ -3749,6 +3793,7 @@ const semanticLabelTranslations: Record<
     "datatable.fields.jsonSchemaHint": "JSON Schema URL 또는 인라인 스키마",
     "datatable.fields.examples": "예시",
     "datatable.types.string": "문자열",
+    "datatable.types.number": "숫자",
     "datatable.types.boolean": "불리언",
     "datatable.types.object": "객체",
     "datatable.types.array": "배열",
@@ -3948,6 +3993,7 @@ const semanticLabelTranslations: Record<
     "datatable.fields.jsonSchemaHint": "JSON Schema URL or inline schema",
     "datatable.fields.examples": "Examples",
     "datatable.types.string": "String",
+    "datatable.types.number": "Number",
     "datatable.types.boolean": "Boolean",
     "datatable.types.object": "Object",
     "datatable.types.array": "Array",
@@ -4078,6 +4124,23 @@ const formattedMessages: Record<
       `붙여넣은 데이터에 열이 ${String(args?.count ?? 0)}개 더 있습니다 (${String(args?.keys ?? "")}). 새 필드로 추가할까요?`,
     "datatable.gridImported": (args) =>
       `CSV ${String(args?.rows ?? 0)}개 행으로 교체했습니다.`,
+    "datatable.fieldUsedBy": (args) => `사용처 ${String(args?.count ?? 0)}`,
+    "datatable.fieldDeleteConfirmTitle": (args) =>
+      `"${String(args?.key ?? "")}" 필드 삭제`,
+    "datatable.fieldDeleteConfirmUsed": (args) =>
+      `"${String(args?.key ?? "")}" 는 ${String(args?.count ?? 0)}곳에서 쓰입니다. 삭제하면 그 참조가 깨집니다. 삭제할까요?`,
+    "datatable.fieldDeleted": (args) =>
+      `필드 "${String(args?.key ?? "")}" 를 삭제했습니다.`,
+    "datatable.fieldRenamed": (args) =>
+      `필드 "${String(args?.from ?? "")}" → "${String(args?.to ?? "")}"`,
+    "datatable.fieldKeyDup": (args) =>
+      `필드 키 "${String(args?.key ?? "")}" 는 이미 있습니다.`,
+    "datatable.fieldTypeChangeTitle": (args) =>
+      `"${String(args?.key ?? "")}" 타입 변경`,
+    "datatable.fieldTypeChangeInvalid": (args) =>
+      `${String(args?.total ?? 0)}행 중 ${String(args?.count ?? 0)}행이 ${String(args?.type ?? "")} 값이 아닙니다.`,
+    "datatable.fieldAdded": (args) =>
+      `필드 "${String(args?.key ?? "")}" 를 추가했습니다.`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}"이(가) 생성되었습니다.\n${String(args?.columns ?? 0)}개 컬럼, ${String(args?.rows ?? 0)}개 행`,
     "datatable.importFailed": (args) =>
@@ -4483,6 +4546,23 @@ const formattedMessages: Record<
       `The pasted data has ${String(args?.count ?? 0)} extra columns (${String(args?.keys ?? "")}). Add them as new fields?`,
     "datatable.gridImported": (args) =>
       `Replaced with ${String(args?.rows ?? 0)} rows from CSV.`,
+    "datatable.fieldUsedBy": (args) => `Used by ${String(args?.count ?? 0)}`,
+    "datatable.fieldDeleteConfirmTitle": (args) =>
+      `Delete field "${String(args?.key ?? "")}"`,
+    "datatable.fieldDeleteConfirmUsed": (args) =>
+      `"${String(args?.key ?? "")}" is used in ${String(args?.count ?? 0)} place(s). Deleting it breaks those references. Delete anyway?`,
+    "datatable.fieldDeleted": (args) =>
+      `Deleted field "${String(args?.key ?? "")}".`,
+    "datatable.fieldRenamed": (args) =>
+      `Field "${String(args?.from ?? "")}" → "${String(args?.to ?? "")}"`,
+    "datatable.fieldKeyDup": (args) =>
+      `Field key "${String(args?.key ?? "")}" already exists.`,
+    "datatable.fieldTypeChangeTitle": (args) =>
+      `Change type of "${String(args?.key ?? "")}"`,
+    "datatable.fieldTypeChangeInvalid": (args) =>
+      `${String(args?.count ?? 0)} of ${String(args?.total ?? 0)} rows are not valid ${String(args?.type ?? "")}.`,
+    "datatable.fieldAdded": (args) =>
+      `Added field "${String(args?.key ?? "")}".`,
     "datatable.importSucceeded": (args) =>
       `DataTable "${String(args?.name ?? "")}" created.\n${String(args?.columns ?? 0)} columns, ${String(args?.rows ?? 0)} rows`,
     "datatable.importFailed": (args) =>

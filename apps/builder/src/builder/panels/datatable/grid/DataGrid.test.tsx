@@ -87,7 +87,7 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     );
     const grid = getByRole("grid", { name: "Users" });
     expect(grid).toBeTruthy();
-    expect(container.querySelectorAll("[role=columnheader]").length).toBe(5); // 선택 + 4
+    expect(container.querySelectorAll("[role=columnheader]").length).toBe(6); // 선택 + 4 + 추가
     expect(cell(container, 0, "id").getAttribute("aria-readonly")).toBe("true");
     expect(cell(container, 0, "name").getAttribute("aria-readonly")).toBeNull();
     expect(cell(container, 0, "name").textContent).toBe("Ann");

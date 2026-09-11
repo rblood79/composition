@@ -59,6 +59,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useDataStore } from "../../../stores/data";
 import { globalToast } from "../../../stores/toast";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
+import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import {
   coerceCellValue,
   formatCellValue,
@@ -79,6 +80,7 @@ const DeleteIcon = ACTION_ICONS.delete;
 
 const GRID_ROW_HEIGHT = 28;
 const SELECT_COLUMN = "__select";
+const ADD_COLUMN = "__add";
 
 /** `id` 필드는 행 정체 — 격자에서 고치지 않는다 (aria-readonly). */
 function isReadonlyField(field: DataField): boolean {
@@ -135,6 +137,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [i18n],
   );
   const applyDataChange = useDataStore((state) => state.applyDataChange);
+  const openFieldPanel = useDataTableEditorStore((state) => state.openFieldPanel);
   const schema = table.schema;
   const rows = table.mockData;
   const collectionId = table.id;
@@ -200,6 +203,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     () => [
       { id: SELECT_COLUMN, field: null as DataField | null },
       ...schema.map((field) => ({ id: field.key, field })),
+      { id: ADD_COLUMN, field: null as DataField | null },
     ],
     [schema],
   );
@@ -537,8 +541,23 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     >
       <TableHeader columns={columns}>
         {(column) =>
-          column.field === null ? (
+          column.id === SELECT_COLUMN ? (
             <SelectColumn label={t("gridSelectAllRows")} />
+          ) : column.id === ADD_COLUMN ? (
+            <Column
+              id={ADD_COLUMN}
+              width={36}
+              minWidth={36}
+              className="datagrid-column datagrid-column-add"
+            >
+              <Button
+                className="datagrid-add-field"
+                aria-label={t("fieldAddTitle")}
+                onPress={() => openFieldPanel(collectionId, null)}
+              >
+                <AddIcon size={iconSmall.size} />
+              </Button>
+            </Column>
           ) : (
             <Column
               id={column.id}
@@ -547,13 +566,14 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               minWidth={72}
               className="datagrid-column"
             >
-              <span
-                id={`${gridId}-h-${column.field.key}`}
+              <Button
+                id={`${gridId}-h-${column.field!.key}`}
                 className="datagrid-column-label"
-                data-field-type={column.field.type}
+                data-field-type={column.field!.type}
+                onPress={() => openFieldPanel(collectionId, column.field!.id ?? column.field!.key)}
               >
-                {column.field.key}
-              </span>
+                {column.field!.key}
+              </Button>
               <ColumnResizer className="datagrid-column-resizer" />
             </Column>
           )
@@ -574,7 +594,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
             className="datagrid-row"
           >
             {(column) =>
-              column.field === null ? (
+              column.id === SELECT_COLUMN ? (
                 <Cell className="datagrid-cell datagrid-cell-select">
                   <Checkbox
                     slot="selection"
@@ -584,6 +604,8 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                     <span className="datagrid-checkbox-box" />
                   </Checkbox>
                 </Cell>
+              ) : column.id === ADD_COLUMN ? (
+                <Cell className="datagrid-cell datagrid-cell-add" />
               ) : (
                 <DataGridCell
                   rowIndex={item.index}

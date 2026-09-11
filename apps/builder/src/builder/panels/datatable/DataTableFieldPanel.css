@@ -1,0 +1,99 @@
+/**
+ * DataTableFieldPanel — ADR-212 Phase 3. 구조 클래스 (panel-*/
+section-*/fieldset-*) 는
+ * 정의하지 않는다 — 필드 그룹은 표준 `fieldset.properties-aria` + `legend.fieldset-legend`,
+ * 고유 시각만 `datatable-field-*`.
+ */
+
+.datatable-field-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+}
+
+.datatable-field-empty {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.datatable-field-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--inspector-control-size, 28px);
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  color: var(--fg);
+  font-size: var(--text-xs);
+}
+
+.datatable-field-input:focus-visible {
+  outline: none;
+  border-color: var(--focus-ring);
+  box-shadow: 0 0 0 2px var(--color-primary-100);
+}
+
+.datatable-field-type-search {
+  margin-bottom: var(--spacing-xs);
+}
+
+.datatable-field-type-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  outline: none;
+}
+
+.datatable-field-type-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  height: var(--inspector-control-size, 28px);
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  outline: none;
+}
+
+.datatable-field-type-item[data-hovered] {
+  background: var(--bg-raised);
+}
+
+.datatable-field-type-item[data-selected] {
+  background: var(--color-primary-100);
+  color: var(--fg);
+}
+
+.datatable-field-type-item[data-focus-visible] {
+  box-shadow: inset 0 0 0 2px var(--focus-ring);
+}
+
+.datatable-field-check {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-xs);
+  color: var(--fg);
+  cursor: pointer;
+}
+
+.datatable-field-usage {
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  padding: var(--spacing-xs) 0;
+}
+
+.datatable-field-form .control-button[data-tone="danger"] {
+  color: var(--negative);
+}
