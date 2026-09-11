@@ -56,6 +56,52 @@ useDataStore (stores/data.ts)          (field.key === "dataBinding")   Preview D
 
 **Fork 4 질문 lock-in (사용자 confirm 2026-09-11 — 리서치 §5 판정 ①·③)**: ① 본 ADR = **base** (참조 계약 + 적용기), ADR-212 (편집기 UI) · 213 (tool 계약) · 214 (Variables) = 응용. ② schema 직교 — 본 ADR 은 `PropertyDataBinding` · `DataField` · `DataChange`, 응용은 이를 소비만. ③ 의존 방향: 152 → 212/213, 214 는 canonical 문서 (요소 소유 변수) 축이라 152 와 직교, `Data` 패널 표면만 212 와 공유. ④ codex 1차 진입 전 본 lock-in 완료.
 
+### 1-6. Phase 0 Inventory freeze (2026-09-11 실측 — G0 판정)
+
+**저장 문서 실사용 (로컬 IndexedDB `composition`, Chrome MCP 로 `document_parts` 121 node · `documents_backup` 10 · `collections` 1 전수 스캔)**:
+
+| 항목                                           | 건수  | 근거                                                                                                   |
+| ---------------------------------------------- | :---: | ------------------------------------------------------------------------------------------------------ |
+| ① `props.datatableId` 보유 element             | **0** | 프로젝트 2 (`2bb0f2f4…` RRR · `5a82d62a…`) node 121 전수                                               |
+| ② `dataBinding.type === "collection"` element  | **0** | 동상                                                                                                   |
+| ③ legacy top-level `element.dataBinding`       | **0** | 동상 (`x-composition*` 확장 안의 dataBinding 도 0)                                                     |
+| `props.dataBinding` (PropertyDataBinding) 보유 | **0** | 동상 — backup 10 건에도 `dataBinding` 문자열 0                                                         |
+| collection 정의                                | **1** | `Users` (schema 10 필드 · mockData 11 · runtimeData 0) — `DataField.id` **없음** (write-back 대상 1건) |
+| Chart 노드 3                                   |   —   | 전부 인라인 `data` (static) + `dimension/metric` 이름 참조 — collection 바인딩 없음                    |
+
+→ **G0 = 0건 → Phase 5 흡수 진행** (마이그레이션 단계 불요). 2026-08-17 실측의 프로젝트 `148ccd1e…` (바인딩 8건) 은 로컬 DB 에 더 이상 없다 — G1 live 는 Phase 1 에서 name 기반 바인딩을 **새로 만들어** (구 형식 fixture) 검증한다.
+
+**`PropertyDataBinding` 소비처 (grep `asPropertyBinding|getElementDataBinding|propertyBinding.name|PropertyDataBinding`, test 제외 — 파일 43)**: resolve 지점은 `packages/shared/src/hooks/useCollectionData.tsx:306` (dataTable — `dt.name === propertyBinding.name || dt.id === propertyBinding.name`) · `:324,338` (api — name 만) **2곳뿐**. 나머지는 타입 import · prop 전달 (`SelectionRenderers.tsx` 19 · `useIframeMessenger.ts` 15 · `canvasSceneNode.ts` 8 · `CollectionRenderers.tsx` 7 · `LayoutRenderers.tsx` 7 · `TableRenderer.tsx` 5 · `PropertyDataBinding.tsx` 5 …). legacy `type:"collection"` 판독 잔존: `TableRenderer.tsx:110-255` (6) · `ListBox/ComboBox/GridList/Table/Tabs/TagGroup.tsx` 의 이중 형식 허용 분기 · `useOwnerCollectionColumns.ts:67` · `chartPresentationPatch.ts:66` · AI tool `bindCollection.ts:104` (legacy 형식으로 **쓴다** — Phase 5 정렬 대상).
+
+**`useDataStore.collections` name 키 소비처 (R11 전수)**:
+
+| 위치                                                                     | 연산                                                           | Phase 1 처리                                   |
+| ------------------------------------------------------------------------ | -------------------------------------------------------------- | ---------------------------------------------- |
+| `stores/utils/dataActions.ts:105`                                        | `dataTablesMap.set(dt.name, dt)` (fetch)                       | id 키                                          |
+| `:156`                                                                   | `newMap.set(newDataTable.name, …)` (create)                    | id 키                                          |
+| `:198-223`                                                               | update — `forEach` 로 name 키 찾기 + rename 시 re-key          | id 키 `set(id)` — re-key 삭제                  |
+| `:264-273`                                                               | delete — `forEach` 로 id 매치 후 `delete(key)`                 | `delete(id)`                                   |
+| `:295, :317`                                                             | `collections.get(name)` (loadDataTable · setRuntimeData)       | `resolveBoundCollection` 경유                  |
+| `:325`                                                                   | `newMap.set(name, …)` (setRuntimeData)                         | id 키                                          |
+| `:654`                                                                   | `collections.get(endpoint.targetCollection)` (실행기 sink)     | `targetCollectionId` 우선 + 이름 fallback      |
+| `stores/data.ts:315`                                                     | `useCollection(name)` 공개 hook — **호출자 0**                 | `useCollectionById` 신설 + name wrapper 유지   |
+| `utils/importCollectionEnvelope.ts:10`                                   | `store.collections.get(source.name)`                           | name resolve 헬퍼 경유 (envelope 은 name 정본) |
+| `panels/datatable/DataTableList.tsx:52` · `DataTableEditorPanel.tsx:134` | `Array.from(dataTablesMap.values())`                           | 무변경 (키 무관)                               |
+| `stores/utils/dataActions.ts:49`                                         | `syncCollectionsToCanvas(Map)` → `Array.from(values())`        | 무변경                                         |
+| `stores/datatable.ts:340,366,482,615`                                    | legacy store 자체 Map (`get(dataTableId)` — 이미 id 키)        | Phase 5 제거                                   |
+| `hooks/useDataQueries.ts:343`                                            | `db.collections.delete(tableId)` (IndexedDB adapter, Map 아님) | 무변경                                         |
+
+**10 binding 컴포넌트 items 소비 방식**:
+
+| 경로                                                    | 컴포넌트                                                                   | fieldMap 주입 지점 (Phase 3/4)                  |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- | ----------------------------------------------- |
+| `useResolvedCollectionItems` → `resolveCollectionItems` | Breadcrumbs · ComboBox · GridList · ListBox · Menu · Select · TagGroup (7) | shared 함수 내부 1곳                            |
+| `useCollectionData` raw                                 | Table (`Table.tsx`) · Tabs (`Tabs.tsx`) · Tree (`Tree.tsx`) (3)            | Phase 3 (Table) · Phase 4 (Tabs/Tree) 정렬 대상 |
+
+**publish 직렬화 현황**: `BuilderCore.tsx:1153-1158` (preview 탭) · `:1185-1190` (`downloadProjectAsJson` export) 둘 다 `collections: Array.from(useDataStore.collections.values())` **전체 객체** (schema · mockData · **runtimeData 포함**) + `apiEndpoints` (`toRuntimeApiEndpoint`). publish 는 `apps/publish/src/App.tsx:47,317,394` `ProjectData.collections: DataTableDefinition[]` 로 받아 `createCollectionSnapshotServices` (`packages/shared/src/collections/collectionSnapshot.ts`) 에 넘긴다 — Phase 6 잔여 = runtimeData 제외 + `fieldId` 통과 확인 2건.
+
+**기타 확정 사실**: `DataField` (`apps/builder/src/types/builder/data.types.ts:31`) 에 `id` 없음 · `ApiEndpoint.targetCollection?: string` (`:212,238`) 이름 참조 · `HistoryEntry.type` 12종 (`history.ts:109-121`, "13종" 은 stale — 실측 12) · `useCollection(name)` 호출자 0.
+
 ## 2. Binding 계약 v2 (Phase 1 산출물)
 
 ```ts
@@ -148,11 +194,13 @@ interface DataChange {
 
 ### Phase 0 — Inventory freeze (착수 게이트 G0)
 
-- [ ] legacy 경로 실사용 실측: 프로젝트 DB/저장 문서에서 ① `datatableId` prop 보유 element ② `dataBinding.type === "collection"` element ③ legacy top-level `element.dataBinding`(props 밖) 보유 element 건수 집계
-- [ ] `PropertyDataBinding` 소비처 전수 grep (`asPropertyBinding` / `getElementDataBinding` / `propertyBinding.name` 직접 접근)
-- [ ] `apps/publish` 의 ProjectData 직렬화 현황 확인 (elements 외 데이터 포함 여부)
-- [ ] (round 3) `useDataStore.collections` name 키 소비처 전수 — `.get(` / `.has(` / `.delete(` / `useCollection(` 표 + `syncCollectionsToCanvas` 배열 변환 확인 (R11)
-- [ ] 10 binding 컴포넌트별 items 소비 방식 표 (useCollectionData 직접 / useResolvedCollectionItems 경유 구분 — GridList/ComboBox 는 후자)
+> **Implemented 2026-09-11** — 결과 §1-6. G0 = 0건 (Phase 5 흡수).
+
+- [x] legacy 경로 실사용 실측: ① `datatableId` 0 ② `dataBinding.type === "collection"` 0 ③ legacy top-level `element.dataBinding` 0 (§1-6)
+- [x] `PropertyDataBinding` 소비처 전수 grep — resolve 지점 2곳 (`useCollectionData.tsx:306,324/338`)
+- [x] `apps/publish` 의 ProjectData 직렬화 현황 — collections 전체 객체 (runtimeData 포함) + apiEndpoints
+- [x] (round 3) `useDataStore.collections` name 키 소비처 전수 표 (R11) — §1-6
+- [x] 10 binding 컴포넌트별 items 소비 방식 표 — 7 (`useResolvedCollectionItems`) / 3 raw (Table/Tabs/Tree)
 
 ### Phase 1 — Binding 계약 v2 + resolve 단일화
 

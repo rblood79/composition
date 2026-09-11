@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed — 2026-07-16 · **리뷰 round 4 승인 2026-09-11** (개정안 이슈 0 — `reviews/152.md`; Accepted 승격은 사용자 착수 승인 시)
+Accepted — 2026-09-11 (Proposed 2026-07-16 · 리뷰 round 4 승인 2026-09-11, 개정안 이슈 0 — `reviews/152.md` · 사용자 착수 승인 `/execute-adr 152`)
+
+**Phase 진행 로그**: Phase 0 Inventory freeze — Implemented 2026-09-11 (G0 = 0건, breakdown §1-6)
 
 > **개정 2026-07-21 (사용자 confirm — ADR-159 와 경계 재획정)**: 텍스트 표시 축(label/description 컬럼 선택)은 [ADR-159](completed/159-collection-field-template-binding.md)(`{field}` 템플릿 바인딩)로 이관 — 본 ADR 의 fieldMap 은 **비텍스트 역할(icon/value) 한정**으로 축소. 데이터 소스는 ADR-159 의 dataTable 단일 방향(api/variable/route 오소링 표면 제거, 159 P4)을 전제로 개정 — 본 ADR 의 API source 관련 항목(R3, breakdown Phase 6)은 159 G4 게이트 결과에 종속. **scope 변경이므로 착수 전 재리뷰 대상** (기존 round 1 승인은 구 scope 기준).
 
