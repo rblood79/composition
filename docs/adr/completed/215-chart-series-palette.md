@@ -114,6 +114,8 @@ Chart 의 시리즈 색 8개는 rule `Chart.chart.series` 가 named hue 토큰 8
 4. Themes › tint Pink → Skia 주색 `[183,57,132]` · Preview fill `[182,57,132]` / `[132,0,88]` ⊂ Skia bins (±1) — 양 leg 같은 공식 (R1 해소).
 5. Palette → Categorical + dark: Preview `data-palette` 없음 · fill `[15,181,174]` `[64,70,202]` 그대로 (테마 공용).
 
+2026-09-11 후속 검수 (사용자 "chart 들 color 변경 누락 있는지") — `adr215-chart-palette-types-live.mjs` 로 **6 종류 (bar·line·area·pie·radar·radial) × 2 팔레트 전수, 12/12 PASS** (`docs/adr/evidence/215-p4/live-types-findings.json`): 종류마다 Skia bins 에 categorical teal → mono accent-1 (`[20,43,187]`, 면 마크는 fillAlpha 0.85 흰 바탕 합성값) 전환 · Preview `data-palette` + 마크 fill/stroke 페인트 (line 은 stroke) 같은 전환. 하니스 함정: Skia 픽셀은 **Compare Mode 전** 전폭에서 잰다 — Compare Mode 는 캔버스를 반폭으로 밀어 Components 페이지·UI accent `[54,96,240]` 가 같이 잡혀 pie·radar 가 거짓 FAIL 났다.
+
 G2 번들 (clean worktree 2개 `926c44a07` → `9049698c7`, 원래 lockfile, `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,312,202 → 1,313,600 (+1,398) · CSS +274 · Preview JS 643,116 → 643,758 (+642) · CSS +329 · lazy chart graph +1 B. 본 ADR 순증 ≤ 2 KiB PASS. 절대 상한 초과분은 착수 전 이미 존재 (+8,172 / +6,848) — 본 ADR 밖 원인. 사용자 승인 (2026-09-11) 으로 상한 재승인 (Status 참조).
 
 ## Consequences
