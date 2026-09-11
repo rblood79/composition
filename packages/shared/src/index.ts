@@ -25,6 +25,9 @@ export * from "./catalog";
 // Collections (ADR-912 영역 B) — resolveCollectionItems 단일 계약 (DOM/Skia 공통 source)
 export * from "./collections";
 
+// ADR-152 §2-3 — DataChange IR (zod + JSON Schema 단일 소스)
+export * from "./schemas/dataChange";
+
 // Interactions (ADR-158) — CAPABILITY_REGISTRY (When/Do 어휘 SSOT) + InteractionRule
 export * from "./interactions";
 

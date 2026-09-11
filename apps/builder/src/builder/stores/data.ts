@@ -57,6 +57,7 @@ import {
   createClearErrorsAction,
   createResetAction,
 } from "./utils/dataActions";
+import { createApplyDataChangeAction } from "./utils/dataChange";
 
 // ============================================
 // Extended State (Runtime Values)
@@ -132,6 +133,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   const deleteCollection = createDeleteDataTableAction(set, get);
   const getDataTableData = createGetDataTableDataAction(get);
   const setRuntimeData = createSetRuntimeDataAction(set, get);
+  const applyDataChange = createApplyDataChangeAction(set, get);
 
   // ApiEndpoint Actions
   const fetchApiEndpoints = createFetchApiEndpointsAction(set);
@@ -257,6 +259,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     deleteCollection,
     getDataTableData,
     setRuntimeData,
+    applyDataChange,
 
     // ApiEndpoint CRUD
     fetchApiEndpoints,

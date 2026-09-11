@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArchiveRestore,
   Camera,
+  Database,
   Ellipsis,
   File,
   History,
@@ -70,6 +71,8 @@ const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
   // ADR-185 G-1 — 페이지 생성/삭제 (문서 단위 조작이라 File 계열)
   "page-lifecycle": File,
   "snapshot-restore": ArchiveRestore,
+  // ADR-152 Phase 1c — 데이터 편집 (collection 축)
+  data: Database,
 };
 
 // 더블클릭 rename 과 단일클릭 복원의 분리 지연 — 이 안에 두 번째 클릭이 오면

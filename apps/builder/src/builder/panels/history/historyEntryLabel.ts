@@ -7,7 +7,11 @@
  * 2. `entry.elementId` — sentinel(`batch_diff`/`drag-reorder`) 은 노출 금지
  */
 
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  CanonicalNode,
+  CompositionDocument,
+  DataOp,
+} from "@composition/shared";
 
 import type { HistoryEntry } from "../../stores/history";
 import {
@@ -88,6 +92,73 @@ function countBatchTargets(entry: HistoryEntry): number {
   return entry.elementIds?.length ?? entry.data.diffs?.length ?? 0;
 }
 
+/**
+ * ADR-152 Phase 1c — `data` entry 라벨. op 1개면 종류별, 여럿이면 개수. 필드 key ·
+ * 컬렉션 이름은 entry 에 담긴 사본 (이후 rename 돼도 그때의 이름) — 컬렉션 이름은
+ * op 에 없는 경우 (`set_cell` 등) 생략한다.
+ */
+function dataChangeLabel(entry: HistoryEntry, t: TranslateFn): string {
+  const event = entry.data.dataChangeEvent;
+  const ops = event?.change.ops ?? [];
+  if (event?.change.label) return event.change.label;
+  if (ops.length !== 1) {
+    return ops.length === 0
+      ? t("history.entryData")
+      : t("history.entryDataCount", { count: ops.length });
+  }
+  const op: DataOp = ops[0];
+  switch (op.op) {
+    case "set_cell":
+      return t("history.entryDataCell");
+    case "insert_rows":
+      return t("history.entryDataRowsInsert", { count: op.rows.length });
+    case "remove_rows":
+      return t("history.entryDataRowsRemove", { count: op.rowIndexes.length });
+    case "replace_rows":
+      return t("history.entryDataRowsReplace", { count: op.rows.length });
+    case "add_field":
+      return t("history.entryDataFieldAdd", { key: op.field.key });
+    case "update_field": {
+      const inverse = event?.inverse.find(
+        (candidate): candidate is Extract<DataOp, { op: "update_field" }> =>
+          candidate.op === "update_field" && candidate.fieldId === op.fieldId,
+      );
+      const from = inverse?.patch.key;
+      if (op.patch.key !== undefined && from !== undefined && from !== op.patch.key)
+        return t("history.entryDataFieldRename", { from, to: op.patch.key });
+      return t("history.entryDataFieldUpdate", { key: op.patch.key ?? from ?? op.fieldId });
+    }
+    case "remove_field": {
+      const inverse = event?.inverse.find(
+        (candidate): candidate is Extract<DataOp, { op: "add_field" }> =>
+          candidate.op === "add_field",
+      );
+      return t("history.entryDataFieldRemove", {
+        key: inverse?.field.key ?? op.fieldId,
+      });
+    }
+    case "create_collection":
+      return t("history.entryDataCollectionCreate", { name: op.name });
+    case "delete_collection": {
+      const inverse = event?.inverse.find(
+        (candidate): candidate is Extract<DataOp, { op: "create_collection" }> =>
+          candidate.op === "create_collection",
+      );
+      return t("history.entryDataCollectionDelete", {
+        name: inverse?.name ?? op.collectionId,
+      });
+    }
+    case "update_collection":
+      return t("history.entryDataCollectionUpdate", {
+        name: op.patch.name ?? op.collectionId,
+      });
+    case "set_source":
+      return t("history.entryDataSource");
+    default:
+      return t("history.entryData");
+  }
+}
+
 export function getHistoryEntryLabel(
   entry: HistoryEntry,
   doc: CompositionDocument | null,
@@ -164,6 +235,8 @@ export function getHistoryEntryLabel(
         ? t("history.entrySnapshotRestoreNamed", { name })
         : t("history.entrySnapshotRestore");
     }
+    case "data":
+      return dataChangeLabel(entry, t);
     case "page-lifecycle": {
       // ADR-185 G-1 — 페이지 생성/삭제 (제목은 entry 에 담긴 사본)
       const event = entry.data.pageLifecycleEvent;

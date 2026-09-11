@@ -239,11 +239,14 @@ interface DataChange {
 
 ### Phase 1c — `DataChange` 적용기 + History (게이트 G5)
 
-- [ ] `packages/shared/src/schemas/dataChange.ts` (zod + JSON Schema 동일 소스 — ADR-213 이 tool `input_schema` 로 재사용)
-- [ ] `applyDataChange` 적용기 + `inverse` 생성 (op 별 역연산 표)
-- [ ] `HistoryEntry.type` 에 `"data"` 추가 — undo/redo dispatcher 가 type 으로 먼저 분기 (R9 test: data entry 가 element 경로 미도달)
-- [ ] 기존 `dataActions.ts` 액션을 적용기 wrapper 로 (호출부 변경 0) — `DataTableEditor` 셀/행/CSV 경로가 자동으로 History 에 실림
-- [ ] G5 live: 4종 편집 → `⌘Z` × 4 원상 · `⌘⇧Z` × 4 재적용
+> **Implemented 2026-09-11** — G5 14/14 (`apps/builder/scripts/adr152-p1c-live.mjs`, ADR 본문 §Live Exercise).
+
+- [x] `packages/shared/src/schemas/dataChange.ts` — zod 정본 + `dataChangeJsonSchema({ excludeOps })` (`z.toJSONSchema`, 재귀 `children` 은 `$defs`). op 13종 = §2-3 의 11 + `delete_collection` · `update_collection` (deleteDataTable · rename 을 wrapper 로 올리려면 필요 — undo 가 **같은 id** 로 되살려야 바인딩 `collectionId` 가 산다). `HUMAN_ONLY_DATA_OPS` (`remove_field` · `remove_rows`) 를 ADR-213 이 뺀다. `DataFieldPatch` 의 `null` = 키 제거 (undo 를 직렬화 뒤에도 정확히 — `undefined` 는 JSON 에서 사라진다)
+- [x] `apps/builder/src/builder/stores/utils/dataChange.ts` — `reduceDataOps` (순수, all-or-nothing, op 별 역연산 · 왕복 불변식 테스트) + `createApplyDataChangeAction` (순서: 검증·파급 → IndexedDB → 메모리 → History → Canvas; `record:false` = undo/redo 재적용). `update_field.key` 는 `renameRowsKey` 로 mockData · runtimeData 를 옮긴다. `add_field` 는 id 를 부여해 **applied op 에 싣는다** — redo 가 같은 id 를 만든다. `remove_field` 는 schema 만 (행 값 유지 — 편집기 기존 동작, inverse = `add_field {index}`), `remove_rows` inverse 는 오름차순 `insert_rows` N개
+- [x] `HistoryEntry.type` `"data"` + `data.dataChangeEvent { change, inverse }` — `historyActions.ts` undo/redo/goToIndex early-branch (`applyDataHistoryEntry` → `useDataStore.applyDataChange(…, { record:false })`) · `syncDatabaseForEntries` skip · DEV guard 면제 · `isCanonicalHistoryEntry` 영속 · 패널 아이콘 `Database` · 라벨 (op 1개면 종류별 — rename 은 inverse 의 이전 key 로 `name → fullName`). R9: `historyActions.static.test.ts` 6곳 + `historyActions.data.test.ts` (`applyCanonicalHistoryEventsToActiveDocument` 미호출 · 4종 편집 ⌘Z×4/⌘⇧Z×4 · goToIndex)
+- [x] `dataActions.ts` create/update/deleteCollection 이 적용기 wrapper — 호출부 변경 0. `updateCollection(id, partial)` 은 `dataChangeDiff.ts` `collectionUpdateToOps` 가 patch → op: schema 는 필드 id 대조 (id 없는 대상 = 새 필드 · 순서 변경은 remove+add 쌍) → 그 중간 상태에 대해 행 diff (같은 길이 + 1행 1키 → `set_cell` · 부분열 → `remove_rows` · 접두 → `insert_rows` · 그 밖 → `replace_rows`, 같은 값 재입력은 op 0). `runtimeData` 는 History 밖 (메모리 전용, rename 이면 적용기가 옮긴다)
+- [x] G5 live 14/14 — 셀 · 행 삭제 · CSV · rename → History data 4 / element 0 → ⌘Z×4 원상 (IndexedDB + 편집기 DOM) → ⌘⇧Z×4 → ListBox 추가 섞어 ⌘Z×5 / ⌘⇧Z×5 각자
+- 범위 밖 (기록): `define_endpoint` · `bind_element` · `set_source.endpointId` 는 스키마에만 있고 적용기는 검증 단계에서 거부 (`DataChangeError`, 아무것도 안 바꿈) — ADR-213 이 배선. `remove_field` 사용처 수 반환 (UI 확인) 은 ADR-212 편집기 몫. API endpoint · Variable 액션은 적용기 밖 (collection 축만). History 는 페이지 스택이라 data entry 도 현재 페이지에 실린다 — 데이터 패널 포커스 시 스택 라우팅은 ADR-212
 
 ### Phase 2 — Inspector column mapping UI
 
@@ -294,6 +297,10 @@ interface DataChange {
 
 | 파일                                                                             | Phase | 변경                                                          |
 | -------------------------------------------------------------------------------- | :---: | ------------------------------------------------------------- |
+| `packages/shared/src/schemas/dataChange.ts` (신규)                               |  1c   | DataChange zod + JSON Schema (`z.toJSONSchema`)               |
+| `apps/builder/src/builder/stores/utils/dataChange.ts` (신규)                     |  1c   | reduceDataOps + applyDataChange (History `data` entry)        |
+| `apps/builder/src/builder/stores/utils/dataChangeDiff.ts` (신규)                 |  1c   | partial patch → DataOp[] (updateCollection wrapper)           |
+| `apps/builder/src/builder/stores/history/historyActions.ts`                      |  1c   | `data` early-branch ×3 + sync skip                            |
 | `packages/shared/src/types/collection.types.ts`                                  |   1   | PropertyDataBinding v2 (additive)                             |
 | `packages/shared/src/collections/resolveBoundCollection.ts` (신규)               |   1   | id 우선 resolve 헬퍼                                          |
 | `apps/builder/src/builder/hooks/useCollectionData.ts`                            |  1,5  | 헬퍼 경유 + legacy 분기 축소                                  |

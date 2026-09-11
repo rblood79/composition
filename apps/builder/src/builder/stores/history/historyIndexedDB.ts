@@ -78,6 +78,8 @@ export function isCanonicalHistoryEntry(entry: HistoryEntry): boolean {
       return entry.data.pageLifecycleEvent !== undefined;
     case "snapshot-restore":
       return entry.data.snapshotRestoreEvent !== undefined;
+    case "data":
+      return entry.data.dataChangeEvent !== undefined;
     default:
       return false;
   }

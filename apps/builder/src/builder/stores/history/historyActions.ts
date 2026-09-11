@@ -8,6 +8,7 @@ import {
 } from "../../../types/core/store.types";
 import { historyManager } from "../history";
 import { applySnapshotRestoreHistoryEntry } from "./snapshotRestore";
+import { useDataStore } from "../data";
 import { sanitizeElement } from "../../../adapters/canonical/legacyElementSanitizer";
 import { createCompleteProps } from "../utils/elementHelpers";
 import type { ElementsState } from "../elements";
@@ -230,6 +231,33 @@ function applyPageGuideHistoryEntry(
       console.error("[applyPageGuideHistoryEntry] DB persist:", error);
     });
   });
+}
+
+/**
+ * ADR-152 Phase 1c — `data` entry 적용 (undo/redo/goToIndex 공용).
+ *
+ * collection 축 — element 노드 · canonical 문서와 무관하다. undo 는 `inverse`,
+ * redo 는 `change.ops` 를 `applyDataChange` 로 재적용하되 History 는 만들지 않는다
+ * (`record:false`). 저장 (IndexedDB `collections`) · Canvas 동기화는 적용기가
+ * 자체 수행하므로 `syncDatabaseForEntries` 는 skip 한다 (elementId=collectionId
+ * 오인 차단). 적용 실패 (collection 이 이미 없음 등) 는 로그만 — 스택 이동은 이미
+ * 일어났고 element 축 상태는 무변경이다.
+ */
+async function applyDataHistoryEntry(
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+): Promise<void> {
+  const event = entry.data.dataChangeEvent;
+  if (!event) return;
+  const ops = direction === "undo" ? event.inverse : event.change.ops;
+  if (ops.length === 0) return;
+  try {
+    await useDataStore
+      .getState()
+      .applyDataChange({ ops, origin: "user" }, { record: false });
+  } catch (error) {
+    console.error(`[applyDataHistoryEntry] ${direction} 실패:`, error);
+  }
 }
 
 /**
@@ -536,6 +564,13 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch)
+    if (entry.type === "data") {
+      await applyDataHistoryEntry(entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     const currentState = get();
 
     let updatedElements = currentState.elements;
@@ -657,6 +692,13 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
 
     if (entry.type === "page-title") {
       applyPageTitleHistoryEntry(set, get, entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
+    // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch)
+    if (entry.type === "data") {
+      await applyDataHistoryEntry(entry, "redo");
       set({ historyOperationInProgress: false });
       return;
     }
@@ -791,6 +833,12 @@ export const createGoToHistoryIndexAction =
           updatedSelectedElementProps = refreshed.selectedElementProps;
           continue;
         }
+        // ADR-152: data entry 는 collection 축 — element 경로 미진입, canonical
+        // full-sync 판정 제외 (element 축 무변경).
+        if (entry.type === "data") {
+          await applyDataHistoryEntry(entry, direction);
+          continue;
+        }
         // ADR-180: snapshot-restore entry 는 문서 전체 교체 — 적용 후 누적
         // 기준(updatedElements)을 store 에서 재취득하고 계속 진행. canonical
         // full-sync 판정 제외 (applySnapshotDocument 가 canonical 1차 수행).
@@ -915,6 +963,9 @@ async function syncDatabaseForEntries(
     // ADR-185 G-1: page-lifecycle 도 동일 — persist 는
     // applyPageLifecycleHistoryEntry 가 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "page-lifecycle") continue;
+    // ADR-152: data 도 동일 — persist 는 applyDataChange 가 자체 수행
+    // (elementId=collectionId 오인 차단).
+    if (entry.type === "data") continue;
 
     const events = entry.data.canonicalEvents;
     if (!events || events.length === 0) continue;

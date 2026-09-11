@@ -261,3 +261,53 @@ describe("ADR-181: page-guide entry 소비 지점 6곳 (C4 커버리지)", () =>
     expect(block).not.toContain("invalidateContent");
   });
 });
+
+/**
+ * ADR-152 Phase 1c R9 — `data` entry 소비 지점 6곳 (ADR-181 C4 와 같은 형).
+ * 런타임 판은 `historyActions.data.test.ts` — 여기서는 분기의 **위치** 를 고정한다
+ * (element 경로 `const currentState = get()` 보다 앞).
+ */
+describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
+  const readSource = (relativePath: string) =>
+    readFile(resolve(__dirname, relativePath), "utf-8");
+
+  it("#1~#3 — undo/redo early-branch (element 경로 진입 전) + goToIndex continue", async () => {
+    const source = await readSource("historyActions.ts");
+    expect(source).toContain("function applyDataHistoryEntry");
+    expect(source).toContain('.applyDataChange({ ops, origin: "user" }, { record: false })');
+
+    for (const acquire of ["historyManager.undo()", "historyManager.redo()"]) {
+      const idx = source.indexOf(acquire);
+      expect(idx).toBeGreaterThan(-1);
+      const branch = source.indexOf('entry.type === "data"', idx);
+      const elementPath = source.indexOf("const currentState = get();", idx);
+      expect(branch).toBeGreaterThan(-1);
+      expect(branch).toBeLessThan(elementPath);
+    }
+    expect(source).toContain(
+      'if (entry.type === "data") {\n          await applyDataHistoryEntry(entry, direction);\n          continue;\n        }',
+    );
+  });
+
+  it("#4 — syncDatabaseForEntries skip (elementId=collectionId 오인 차단)", async () => {
+    const source = await readSource("historyActions.ts");
+    expect(source).toContain('if (entry.type === "data") continue;');
+  });
+
+  it("#5 — addEntry DEV guard 면제 + IndexedDB 영속 계약", async () => {
+    const history = await readSource("../history.ts");
+    const guardIdx = history.indexOf("import.meta.env?.DEV &&");
+    expect(history.slice(guardIdx, guardIdx + 400)).toContain('entry.type !== "data"');
+    const idb = await readSource("historyIndexedDB.ts");
+    expect(idb).toContain('case "data":\n      return entry.data.dataChangeEvent !== undefined;');
+  });
+
+  it("#6 — 패널 라벨/아이콘", async () => {
+    const label = await readSource("../../panels/history/historyEntryLabel.ts");
+    expect(label).toContain('case "data":');
+    for (const key of ["entryDataCell", "entryDataRowsRemove", "entryDataRowsReplace", "entryDataFieldRename"])
+      expect(label).toContain(`history.${key}`);
+    const panel = await readSource("../../panels/history/HistoryPanel.tsx");
+    expect(panel).toContain("data: Database");
+  });
+});

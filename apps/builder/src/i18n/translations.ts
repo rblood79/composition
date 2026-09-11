@@ -387,6 +387,20 @@ const koKR: TranslationKeys = {
     entryPageAdd: "페이지 추가",
     entryPageDelete: "페이지 삭제",
     entryPageLifecycleNamed: "{verb} — {title}",
+    entryData: "데이터 변경",
+    entryDataCount: "데이터 변경 ({count})",
+    entryDataCell: "셀 편집",
+    entryDataRowsInsert: "행 추가 ({count})",
+    entryDataRowsRemove: "행 삭제 ({count})",
+    entryDataRowsReplace: "데이터 교체 ({count}행)",
+    entryDataFieldAdd: "필드 추가 — {key}",
+    entryDataFieldRename: "필드 이름 변경 — {from} → {to}",
+    entryDataFieldUpdate: "필드 변경 — {key}",
+    entryDataFieldRemove: "필드 삭제 — {key}",
+    entryDataCollectionCreate: "컬렉션 추가 — {name}",
+    entryDataCollectionDelete: "컬렉션 삭제 — {name}",
+    entryDataCollectionUpdate: "컬렉션 변경 — {name}",
+    entryDataSource: "데이터 소스 변경",
     entryDefault: "변경",
     entryDeletedSubject: "{id} (삭제됨)",
     currentState: "현재 상태",
@@ -1924,6 +1938,20 @@ const enUS: TranslationKeys = {
     entryPageAdd: "Add page",
     entryPageDelete: "Delete page",
     entryPageLifecycleNamed: "{verb} — {title}",
+    entryData: "Data change",
+    entryDataCount: "Data changes ({count})",
+    entryDataCell: "Edit cell",
+    entryDataRowsInsert: "Add rows ({count})",
+    entryDataRowsRemove: "Delete rows ({count})",
+    entryDataRowsReplace: "Replace data ({count} rows)",
+    entryDataFieldAdd: "Add field — {key}",
+    entryDataFieldRename: "Rename field — {from} → {to}",
+    entryDataFieldUpdate: "Change field — {key}",
+    entryDataFieldRemove: "Delete field — {key}",
+    entryDataCollectionCreate: "Add collection — {name}",
+    entryDataCollectionDelete: "Delete collection — {name}",
+    entryDataCollectionUpdate: "Change collection — {name}",
+    entryDataSource: "Change data source",
     entryDefault: "Change",
     entryDeletedSubject: "{id} (deleted)",
     currentState: "Current state",
@@ -3631,6 +3659,28 @@ const formattedMessages: Record<
       `스냅샷 복원 — ${String(args?.name ?? "")}`,
     "history.entryPageLifecycleNamed": (args) =>
       `${String(args?.verb ?? "")} — ${String(args?.title ?? "")}`,
+    "history.entryDataCount": (args) =>
+      `데이터 변경 (${String(args?.count ?? 0)})`,
+    "history.entryDataRowsInsert": (args) =>
+      `행 추가 (${String(args?.count ?? 0)})`,
+    "history.entryDataRowsRemove": (args) =>
+      `행 삭제 (${String(args?.count ?? 0)})`,
+    "history.entryDataRowsReplace": (args) =>
+      `데이터 교체 (${String(args?.count ?? 0)}행)`,
+    "history.entryDataFieldAdd": (args) =>
+      `필드 추가 — ${String(args?.key ?? "")}`,
+    "history.entryDataFieldRename": (args) =>
+      `필드 이름 변경 — ${String(args?.from ?? "")} → ${String(args?.to ?? "")}`,
+    "history.entryDataFieldUpdate": (args) =>
+      `필드 변경 — ${String(args?.key ?? "")}`,
+    "history.entryDataFieldRemove": (args) =>
+      `필드 삭제 — ${String(args?.key ?? "")}`,
+    "history.entryDataCollectionCreate": (args) =>
+      `컬렉션 추가 — ${String(args?.name ?? "")}`,
+    "history.entryDataCollectionDelete": (args) =>
+      `컬렉션 삭제 — ${String(args?.name ?? "")}`,
+    "history.entryDataCollectionUpdate": (args) =>
+      `컬렉션 변경 — ${String(args?.name ?? "")}`,
     "history.entryDeletedSubject": (args) =>
       `${String(args?.id ?? "")} (삭제됨)`,
     "selection.batchCommonProps": (args) =>
@@ -3905,6 +3955,28 @@ const formattedMessages: Record<
       `Restore snapshot — ${String(args?.name ?? "")}`,
     "history.entryPageLifecycleNamed": (args) =>
       `${String(args?.verb ?? "")} — ${String(args?.title ?? "")}`,
+    "history.entryDataCount": (args) =>
+      `Data changes (${String(args?.count ?? 0)})`,
+    "history.entryDataRowsInsert": (args) =>
+      `Add rows (${String(args?.count ?? 0)})`,
+    "history.entryDataRowsRemove": (args) =>
+      `Delete rows (${String(args?.count ?? 0)})`,
+    "history.entryDataRowsReplace": (args) =>
+      `Replace data (${String(args?.count ?? 0)} rows)`,
+    "history.entryDataFieldAdd": (args) =>
+      `Add field — ${String(args?.key ?? "")}`,
+    "history.entryDataFieldRename": (args) =>
+      `Rename field — ${String(args?.from ?? "")} → ${String(args?.to ?? "")}`,
+    "history.entryDataFieldUpdate": (args) =>
+      `Change field — ${String(args?.key ?? "")}`,
+    "history.entryDataFieldRemove": (args) =>
+      `Delete field — ${String(args?.key ?? "")}`,
+    "history.entryDataCollectionCreate": (args) =>
+      `Add collection — ${String(args?.name ?? "")}`,
+    "history.entryDataCollectionDelete": (args) =>
+      `Delete collection — ${String(args?.name ?? "")}`,
+    "history.entryDataCollectionUpdate": (args) =>
+      `Change collection — ${String(args?.name ?? "")}`,
     "history.entryDeletedSubject": (args) =>
       `${String(args?.id ?? "")} (deleted)`,
     "selection.batchCommonProps": (args) =>

@@ -11,14 +11,16 @@
 
 import type { StateCreator } from "zustand";
 import { resolveResponseData } from "../../../utils/data/responseData";
-import {
-  normalizeCollection,
-  normalizeCollectionMap,
-} from "../../../utils/data/normalizeCollection";
+import { normalizeCollectionMap } from "../../../utils/data/normalizeCollection";
 import {
   resolveBoundCollection,
   resolveCollectionByName,
 } from "@composition/shared";
+import {
+  createApplyDataChangeAction,
+  syncCollectionsToCanvas,
+} from "./dataChange";
+import { collectionUpdateToOps } from "./dataChangeDiff";
 import { getDB } from "../../../lib/db";
 import type {
   DataTable,
@@ -33,11 +35,6 @@ import type {
   DataStoreState,
   DataStoreActions,
 } from "../../../types/builder/data.types";
-// 🚀 Phase 11: Feature Flags for WebGL-only mode
-import {
-  isWebGLCanvas,
-  isCanvasCompareMode,
-} from "../../../utils/featureFlags";
 
 // Type aliases for set/get
 type DataStore = DataStoreState & DataStoreActions;
@@ -48,42 +45,7 @@ type GetState = Parameters<StateCreator<DataStore>>[1];
 // Canvas Sync Helper
 // ============================================
 
-/**
- * DataTables를 Canvas iframe에 동기화
- * UPDATE_DATA_TABLES 메시지를 통해 전체 DataTables 전송
- *
- * 🚀 Phase 11: WebGL-only 모드에서는 postMessage 스킵
- */
-function syncCollectionsToCanvas(collections: Map<string, DataTable>): void {
-  // 🚀 Phase 11: WebGL-only 모드에서는 iframe 통신 불필요
-  const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
-  if (isWebGLOnly) return;
-
-  try {
-    // previewFrame ID로 Canvas iframe 찾기
-    const iframe = document.getElementById("previewFrame") as HTMLIFrameElement;
-    if (iframe?.contentWindow) {
-      const dataTablesArray = Array.from(collections.values()).map((dt) => ({
-        id: dt.id,
-        name: dt.name,
-        schema: dt.schema,
-        mockData: dt.mockData,
-        runtimeData: dt.runtimeData,
-        useMockData: dt.useMockData,
-      }));
-
-      iframe.contentWindow.postMessage(
-        {
-          type: "UPDATE_DATA_TABLES",
-          collections: dataTablesArray,
-        },
-        "*",
-      );
-    }
-  } catch (error) {
-    console.warn("⚠️ Canvas 동기화 실패:", error);
-  }
-}
+// `syncCollectionsToCanvas` 는 `./dataChange` 로 옮겨졌다 (적용기와 공유).
 
 type CollectionsDB = {
   collections?: {
@@ -165,43 +127,36 @@ export const createFetchDataTablesAction =
   };
 
 /**
- * 새 DataTable을 생성하는 액션
+ * 새 DataTable을 생성하는 액션 — `applyDataChange` 의 얇은 wrapper (ADR-152 Phase 1c).
+ * `create_collection` op 1개 → History `data` entry (undo = 삭제).
  */
 export const createCreateDataTableAction =
   (set: SetState, get: GetState) =>
   async (data: DataTableCreate): Promise<DataTable> => {
     set({ isLoading: true });
-
+    const apply = createApplyDataChangeAction(set, get);
     try {
-      const db = await getDB();
-      const newDataTable: DataTable = normalizeCollection({
-        id: crypto.randomUUID(),
-        name: data.name,
-        project_id: data.project_id,
-        schema: data.schema || [],
-        mockData: data.mockData || [],
-        useMockData: data.useMockData ?? true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      }).collection;
-
-      await (
-        db as unknown as {
-          collections: { insert: (dt: DataTable) => Promise<DataTable> };
-        }
-      ).collections?.insert(newDataTable);
-
-      // 메모리 상태 업데이트
-      const { collections } = get();
-      const newMap = new Map(collections);
-      newMap.set(newDataTable.id, newDataTable);
-
-      set({ collections: newMap, isLoading: false });
-
-      // 🆕 Canvas에 동기화 (UPDATE_DATA_TABLES)
-      syncCollectionsToCanvas(newMap);
-
-      return newDataTable;
+      const result = await apply(
+        {
+          ops: [
+            {
+              op: "create_collection",
+              projectId: data.project_id,
+              name: data.name,
+              schema: data.schema ?? [],
+              rows: data.mockData ?? [],
+              source: (data.useMockData ?? true) ? "manual" : "api",
+            },
+          ],
+          origin: "user",
+        },
+        { projectId: data.project_id },
+      );
+      const [collectionId] = result.collectionIds;
+      const created = get().collections.get(collectionId);
+      if (!created) throw new Error("생성된 collection 을 store 에서 찾을 수 없습니다");
+      set({ isLoading: false });
+      return created;
     } catch (error) {
       console.error("❌ DataTable 생성 실패:", error);
       set((state) => {
@@ -214,49 +169,36 @@ export const createCreateDataTableAction =
   };
 
 /**
- * DataTable을 업데이트하는 액션
+ * DataTable을 업데이트하는 액션 — `applyDataChange` 의 얇은 wrapper (ADR-152 Phase 1c).
+ *
+ * partial patch 를 `collectionUpdateToOps` 로 op 에 옮긴다 — 편집기의 셀 · 행 · CSV ·
+ * rename 경로가 호출부 변경 없이 History 에 실린다. `runtimeData` 만 History 밖
+ * (메모리 전용 — API 응답). 새 필드 (편집기 "필드 추가") 의 id 부여는 적용기가 한다 (HC7).
  *
  * ⚡ 개별 업데이트는 isLoading 표시 안함 (빠른 작업이므로)
  */
 export const createUpdateDataTableAction =
   (set: SetState, get: GetState) =>
   async (id: string, updates: DataTableUpdate): Promise<void> => {
+    const existing = get().collections.get(id);
+    if (!existing) {
+      console.warn("⚠️ updateCollection: collection 없음", id);
+      return;
+    }
     try {
-      const db = await getDB();
-      // 새 필드 (편집기 "필드 추가") 는 id 없이 온다 — DB 에 쓰기 전에 부여 (HC7).
-      const normalizedUpdates: DataTableUpdate = updates.schema
-        ? {
-            ...updates,
-            schema: normalizeCollection({
-              ...(get().collections.get(id) ?? ({} as DataTable)),
-              schema: updates.schema,
-            }).collection.schema,
-          }
-        : updates;
-      await (
-        db as unknown as {
-          collections: {
-            update: (
-              id: string,
-              updates: DataTableUpdate,
-            ) => Promise<DataTable>;
-          };
+      const { ops, runtimeData } = collectionUpdateToOps(existing, updates);
+      if (ops.length > 0) {
+        await createApplyDataChangeAction(set, get)({ ops, origin: "user" });
+      }
+      if (runtimeData !== undefined) {
+        const { collections } = get();
+        const current = collections.get(id);
+        if (current) {
+          const newMap = new Map(collections);
+          newMap.set(id, { ...current, runtimeData });
+          set({ collections: newMap });
+          syncCollectionsToCanvas(newMap);
         }
-      ).collections?.update(id, normalizedUpdates);
-
-      // 메모리 상태 업데이트 — id 키라 rename 시 re-key 없음 (HC8)
-      const { collections } = get();
-      const existing = collections.get(id);
-      if (existing) {
-        const newMap = new Map(collections);
-        newMap.set(id, {
-          ...existing,
-          ...normalizedUpdates,
-          updated_at: new Date().toISOString(),
-        });
-        set({ collections: newMap });
-        // 🆕 Canvas에 동기화
-        syncCollectionsToCanvas(newMap);
       }
     } catch (error) {
       console.error("❌ DataTable 업데이트 실패:", error);
@@ -270,38 +212,19 @@ export const createUpdateDataTableAction =
   };
 
 /**
- * DataTable을 삭제하는 액션
+ * DataTable을 삭제하는 액션 — `applyDataChange` 의 얇은 wrapper (ADR-152 Phase 1c).
+ * undo 는 같은 id 로 되살린다 (바인딩 `collectionId` 참조 보존).
  */
 export const createDeleteDataTableAction =
   (set: SetState, get: GetState) =>
   async (id: string): Promise<void> => {
     set({ isLoading: true });
-
     try {
-      const db = await getDB();
-
-      // ⚠️ Optional chaining 제거하고 명시적 호출
-      const dataTablesStore = (
-        db as unknown as {
-          collections: { delete: (id: string) => Promise<void> };
-        }
-      ).collections;
-
-      if (!dataTablesStore) {
-        throw new Error("collections store not found in database");
-      }
-
-      await dataTablesStore.delete(id);
-
-      // 메모리 상태 업데이트
-      const { collections } = get();
-      const newMap = new Map(collections);
-      newMap.delete(id);
-
-      set({ collections: newMap, isLoading: false });
-
-      // 🆕 Canvas에도 동기화 (삭제된 상태 반영)
-      syncCollectionsToCanvas(newMap);
+      await createApplyDataChangeAction(set, get)({
+        ops: [{ op: "delete_collection", collectionId: id }],
+        origin: "user",
+      });
+      set({ isLoading: false });
     } catch (error) {
       console.error("❌ DataTable 삭제 실패:", error);
       set((state) => {

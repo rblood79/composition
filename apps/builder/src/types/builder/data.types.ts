@@ -1,3 +1,5 @@
+import type { DataChange, DataOp } from "@composition/shared";
+
 /**
  * Data Panel System Type Definitions
  *
@@ -436,6 +438,18 @@ export interface DataStoreActions {
   deleteCollection: (id: string) => Promise<void>;
   getDataTableData: (name: string) => Record<string, unknown>[];
   setRuntimeData: (name: string, data: Record<string, unknown>[]) => void;
+  /**
+   * ADR-152 §2-3 — 데이터 편집 단일 진입점. create/update/deleteCollection 은 이
+   * 적용기의 wrapper 다. `record:false` 는 undo/redo 재적용 (History 없음).
+   */
+  applyDataChange: (
+    change: DataChange,
+    options?: { record?: boolean; projectId?: string },
+  ) => Promise<{
+    applied: DataOp[];
+    inverse: DataOp[];
+    collectionIds: string[];
+  }>;
 
   // ApiEndpoint CRUD
   fetchApiEndpoints: (projectId: string) => Promise<void>;

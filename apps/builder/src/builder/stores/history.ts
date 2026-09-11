@@ -2,6 +2,7 @@ import { Element, Page } from "../../types/builder/unified.types";
 import { type SerializableElementDiff } from "./utils/elementDiff";
 import { historyIndexedDB } from "./history/historyIndexedDB";
 import { type CanonicalHistoryNodeEvent } from "./history/canonicalHistoryEvents";
+import type { DataChangeHistoryPayload } from "./utils/dataChange";
 
 /**
  * 간단하고 효율적인 History 시스템
@@ -119,10 +120,11 @@ export interface HistoryEntry {
     | "page-position"
     | "page-guide"
     | "page-lifecycle"
-    | "snapshot-restore";
+    | "snapshot-restore"
+    | "data";
   /**
    * element 노드 id — `page-position` entry 는 첫 pageId 를 넣는다 (소비자
-   * 미해석 무해값, ADR-177 breakdown §5 C5).
+   * 미해석 무해값, ADR-177 breakdown §5 C5). `data` entry 는 첫 collectionId.
    */
   elementId: string;
   elementIds?: string[]; // For multi-element operations
@@ -172,6 +174,12 @@ export interface HistoryEntry {
      * 페이지별 스택이라 이관 없이는 반대 방향 (redo↔undo) 이 도달 불가.
      */
     pageLifecycleEvent?: PageLifecycleHistoryPayload;
+    /**
+     * **ADR-152 Phase 1c** — `type: "data"` 전용 payload. collection 축 (element
+     * 아님) — undo/redo 는 element 경로 진입 전 early-branch 로 `inverse` /
+     * `change.ops` 를 `applyDataChange(…, { record: false })` 로 재적용한다.
+     */
+    dataChangeEvent?: DataChangeHistoryPayload;
   };
   timestamp: number;
   /** Entry size tracking */
@@ -555,8 +563,8 @@ export class HistoryManager {
 
     // 회귀 감지 (DEV 전용): element 축 신규 entry 는 canonicalEvents 필수 —
     // 미부착 entry 는 undo 시 legacy full-replace fallback 을 유발한다.
-    // page-position(ADR-177)/page-guide(ADR-181)/snapshot-restore(ADR-180) 는
-    // 비-element 축 전용 payload 라 대상 아님.
+    // page-position(ADR-177)/page-guide(ADR-181)/snapshot-restore(ADR-180)/
+    // data(ADR-152) 는 비-element 축 전용 payload 라 대상 아님.
     if (
       import.meta.env?.DEV &&
       entry.type !== "page-position" &&
@@ -564,6 +572,7 @@ export class HistoryManager {
       entry.type !== "page-title" &&
       entry.type !== "page-lifecycle" &&
       entry.type !== "snapshot-restore" &&
+      entry.type !== "data" &&
       !entry.data.canonicalEvents?.length
     ) {
       console.warn(
