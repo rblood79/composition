@@ -10,7 +10,7 @@ import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { useI18n } from "../../../../i18n";
 import type { DataField } from "../../../../types/builder/data.types";
-import { PropertySelect } from "../../../components";
+import { CompactSelect } from "../editors/CompactSelect";
 import {
   importPlanToOps,
   planImport,
@@ -83,7 +83,7 @@ export function ImportPreview({
           <div className="datatable-import-col" key={col.sourceKey}>
             <span className="datatable-import-col-key">{col.sourceKey}</span>
             <span className="datatable-import-col-type">{col.type}</span>
-            <PropertySelect
+            <CompactSelect
               value={actions[col.sourceKey] ?? col.action}
               onChange={(v) =>
                 setActions((prev) => ({

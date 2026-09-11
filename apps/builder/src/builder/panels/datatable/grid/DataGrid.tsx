@@ -139,7 +139,9 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [i18n],
   );
   const applyDataChange = useDataStore((state) => state.applyDataChange);
-  const openFieldPanel = useDataTableEditorStore((state) => state.openFieldPanel);
+  const openFieldPanel = useDataTableEditorStore(
+    (state) => state.openFieldPanel,
+  );
   const schema = table.schema;
   const rows = table.mockData;
   const collectionId = table.id;
@@ -153,9 +155,9 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const [filterText, setFilterText] = useState("");
   const [pendingPaste, setPendingPaste] = useState<GridPastePlan | null>(null);
   const [focusRequest, setFocusRequest] = useState<CellCoord | null>(null);
-  const [importRows, setImportRows] = useState<Record<string, unknown>[] | null>(
-    null,
-  );
+  const [importRows, setImportRows] = useState<
+    Record<string, unknown>[] | null
+  >(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -589,7 +591,12 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                 id={`${gridId}-h-${column.field!.key}`}
                 className="datagrid-column-label"
                 data-field-type={column.field!.type}
-                onPress={() => openFieldPanel(collectionId, column.field!.id ?? column.field!.key)}
+                onPress={() =>
+                  openFieldPanel(
+                    collectionId,
+                    column.field!.id ?? column.field!.key,
+                  )
+                }
               >
                 {column.field!.key}
               </Button>
@@ -628,18 +635,18 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               ) : (
                 <DataGridCell
                   rowIndex={item.index}
-                  field={column.field}
-                  cellValue={item.row[column.field.key]}
-                  headerId={`${gridId}-h-${column.field.key}`}
+                  field={column.field!}
+                  cellValue={item.row[column.field!.key]}
+                  headerId={`${gridId}-h-${column.field!.key}`}
                   editing={
                     editing &&
                     editing.rowIndex === item.index &&
-                    editing.key === column.field.key
+                    editing.key === column.field!.key
                       ? editing
                       : null
                   }
                   invalid={invalidCells.has(
-                    cellId({ rowIndex: item.index, key: column.field.key }),
+                    cellId({ rowIndex: item.index, key: column.field!.key }),
                   )}
                   onStartEdit={startEdit}
                   onCommit={commitEdit}

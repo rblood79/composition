@@ -496,6 +496,9 @@ export interface TranslationKeys {
     collectionPlaceholder: string;
     collectionEmpty: string;
     removeBinding: string;
+    bindingOpenTable: string;
+    bindingNewTable: string;
+    bindingUsedBy: string;
     legacyBinding: string;
     fieldMapValue: string;
     fieldMapIcon: string;

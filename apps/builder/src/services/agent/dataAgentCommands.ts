@@ -56,11 +56,11 @@ const error = (reason: string): DataAgentCommandOutcome => ({
 });
 
 const API_EDITOR_TABS: readonly ApiEditorTab[] = [
-  "basic",
+  "params",
   "headers",
   "body",
+  "auth",
   "response",
-  "run",
 ];
 
 function collectionOf(args: DataCommandArgs, read: DataAgentReadModel) {

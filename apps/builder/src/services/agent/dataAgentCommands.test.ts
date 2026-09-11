@@ -85,12 +85,12 @@ describe("DATA_AGENT_COMMANDS — 호출 심볼 · 인자", () => {
     expect(openTableEditor).toHaveBeenCalledWith("c1");
   });
 
-  it("data.openEndpoint → openApiEditor(id, tab) — 모르는 tab 은 undefined (basic)", async () => {
+  it("data.openEndpoint → openApiEditor(id, tab) — 모르는 tab 은 undefined", async () => {
     await DATA_AGENT_COMMANDS["data.openEndpoint"](
-      { endpointId: "e1", tab: "run" },
+      { endpointId: "e1", tab: "response" },
       input(),
     );
-    expect(openApiEditor).toHaveBeenCalledWith("e1", "run");
+    expect(openApiEditor).toHaveBeenCalledWith("e1", "response");
     await DATA_AGENT_COMMANDS["data.openEndpoint"](
       { name: "getUsers", tab: "nope" },
       input(),

@@ -30,11 +30,11 @@ describe("DataTableEditorStore panel activation", () => {
       type: "table-create",
       projectId: "project-1",
     });
-    useDataTableEditorStore.getState().openApiEditor("ep-1", "run");
+    useDataTableEditorStore.getState().openApiEditor("ep-1", "response");
     expect(useDataTableEditorStore.getState().mode).toEqual({
       type: "api-edit",
       endpointId: "ep-1",
-      initialTab: "run",
+      initialTab: "response",
     });
   });
 

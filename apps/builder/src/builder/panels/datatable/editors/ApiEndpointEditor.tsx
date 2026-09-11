@@ -32,6 +32,7 @@ import type {
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { panelContents } from "../../../components/panel/panelContentsUtils";
 import { PropertySelect } from "../../../components";
+import { CompactSelect } from "./CompactSelect";
 import { useDataStore } from "../../../stores/data";
 import type { ApiRunRecord } from "../../../../types/builder/data.types";
 import { globalToast } from "../../../stores/toast";
@@ -174,11 +175,12 @@ export function ApiEndpointEditor({
   return (
     <div className="datatable-api-editor">
       <div className="datatable-api-bar">
-        <PropertySelect
+        <CompactSelect
           value={endpoint.method}
           onChange={(v) => void save({ method: v as HttpMethod })}
           options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
-          aria-label={dt("apiTabParams")}
+          aria-label="Method"
+          className="datatable-api-method"
         />
         <input
           type="text"
@@ -319,7 +321,9 @@ function KeyValueEditor({
     setDraft(next);
     const filled = next.filter((r) => r.key.trim() !== "");
     const filledJson = JSON.stringify(filled);
-    if (filledJson !== JSON.stringify(rows.filter((r) => r.key.trim() !== ""))) {
+    if (
+      filledJson !== JSON.stringify(rows.filter((r) => r.key.trim() !== ""))
+    ) {
       seedRef.current = JSON.stringify(next);
       onChange(filled);
     }
@@ -464,15 +468,12 @@ function BodyTab({
   const bodyId = useId();
   return (
     <div className="datatable-api-section">
-      <fieldset className="properties-aria">
-        <legend className="fieldset-legend">{dt("apiBodyType")}</legend>
-        <PropertySelect
-          value={endpoint.bodyType}
-          onChange={(v) => void save({ bodyType: v as BodyType })}
-          options={BODY_TYPES.map((b) => ({ value: b, label: b }))}
-          aria-label={dt("apiBodyType")}
-        />
-      </fieldset>
+      <PropertySelect
+        label={dt("apiBodyType")}
+        value={endpoint.bodyType}
+        onChange={(v) => void save({ bodyType: v as BodyType })}
+        options={BODY_TYPES.map((b) => ({ value: b, label: b }))}
+      />
       {endpoint.bodyType !== "none" && (
         <textarea
           className="datatable-api-body"
@@ -566,43 +567,37 @@ function AuthTab({
 
   return (
     <div className="datatable-api-section">
-      <fieldset className="properties-aria">
-        <legend className="fieldset-legend">{dt("apiAuthType")}</legend>
-        <PropertySelect
-          value={preset}
-          onChange={(v) => {
-            const type = v as AuthPreset["type"];
-            setPreset(type);
-            applyPreset(buildAuth(type));
-          }}
-          options={[
-            { value: "none", label: dt("apiAuthNone") },
-            { value: "bearer", label: dt("apiAuthBearer") },
-            { value: "apiKey", label: dt("apiAuthApiKey") },
-            { value: "basic", label: dt("basic") },
-          ]}
-          aria-label={dt("apiAuthType")}
-        />
-      </fieldset>
+      <PropertySelect
+        label={dt("apiAuthType")}
+        value={preset}
+        onChange={(v) => {
+          const type = v as AuthPreset["type"];
+          setPreset(type);
+          applyPreset(buildAuth(type));
+        }}
+        options={[
+          { value: "none", label: dt("apiAuthNone") },
+          { value: "bearer", label: dt("apiAuthBearer") },
+          { value: "apiKey", label: dt("apiAuthApiKey") },
+          { value: "basic", label: dt("basic") },
+        ]}
+      />
 
       {preset === "apiKey" && (
         <>
-          <fieldset className="properties-aria">
-            <legend className="fieldset-legend">{dt("apiAuthIn")}</legend>
-            <PropertySelect
-              value={where}
-              onChange={(v) => {
-                const w = v as "header" | "query";
-                setWhere(w);
-                applyPreset({ type: "apiKey", in: w, name, secretName });
-              }}
-              options={[
-                { value: "header", label: dt("apiAuthInHeader") },
-                { value: "query", label: dt("apiAuthInQuery") },
-              ]}
-              aria-label={dt("apiAuthIn")}
-            />
-          </fieldset>
+          <PropertySelect
+            label={dt("apiAuthIn")}
+            value={where}
+            onChange={(v) => {
+              const w = v as "header" | "query";
+              setWhere(w);
+              applyPreset({ type: "apiKey", in: w, name, secretName });
+            }}
+            options={[
+              { value: "header", label: dt("apiAuthInHeader") },
+              { value: "query", label: dt("apiAuthInQuery") },
+            ]}
+          />
           <fieldset className="properties-aria">
             <legend className="fieldset-legend">{dt("apiAuthKeyName")}</legend>
             <input
@@ -858,21 +853,18 @@ function SchemaView({
 
   return (
     <div className="datatable-api-schema">
-      <fieldset className="properties-aria">
-        <legend className="fieldset-legend">{dt("apiSchemaPath")}</legend>
-        <PropertySelect
-          value={path}
-          onChange={setPath}
-          options={candidates.map((c) => ({
-            value: c.path,
-            label: dt("apiSchemaCandidate", {
-              path: c.path === "" ? "/" : c.path,
-              count: c.count,
-            }),
-          }))}
-          aria-label={dt("apiSchemaPath")}
-        />
-      </fieldset>
+      <PropertySelect
+        label={dt("apiSchemaPath")}
+        value={path}
+        onChange={setPath}
+        options={candidates.map((c) => ({
+          value: c.path,
+          label: dt("apiSchemaCandidate", {
+            path: c.path === "" ? "/" : c.path,
+            count: c.count,
+          }),
+        }))}
+      />
       <ul className="datatable-api-schema-cols">
         {columns.map((c) => (
           <li key={c.key}>
