@@ -195,6 +195,66 @@ function placeOverflowRow(
   sourceColumn.rows.splice(placement.rowIndex, 0, row);
 }
 
+/**
+ * ADR-212 HC2 — `snapTo` 패널을 anchor 옆 열에 붙인다. anchor 가 같은 cluster 에 보일 때만
+ * 동작하고 (아니면 호출자가 일반 overflow 경로), 세로 자리가 남아 있어도 anchor 아래가 아니라
+ * **옆 column** 이 우선이다 (목록 | 격자 | 필드 3열 — Widths 아트보드). column 상한이면 anchor
+ * 바로 아래 행. 반환값은 "옮겼는가".
+ */
+function placeSnappedRow(
+  layout: PanelWorkspaceLayoutV4,
+  cluster: PanelWorkspaceClusterV4,
+  placement: PanelPlacementV4,
+  entry: PanelWorkspaceRegistryEntry,
+  side: "left" | "right",
+): boolean {
+  if (!entry.snapTo) return false;
+  const anchorPlacement = findPlacement(layout, entry.snapTo);
+  if (
+    !anchorPlacement ||
+    layout.visibility[entry.snapTo] !== true ||
+    layout.clusters[anchorPlacement.clusterIndex] !== cluster
+  ) {
+    return false;
+  }
+  const sourceColumn = cluster.columns[placement.columnIndex];
+  const row = sourceColumn?.rows[placement.rowIndex];
+  const anchorColumn = cluster.columns[anchorPlacement.columnIndex];
+  if (!sourceColumn || !row || !anchorColumn) return false;
+
+  // 이미 anchor 옆 column 에 혼자 있으면 (닫았다 다시 연 경우) 그대로 둔다.
+  const outward = side === "left" ? 1 : -1;
+  const neighbourIndex = anchorPlacement.columnIndex + outward;
+  const neighbour = cluster.columns[neighbourIndex];
+  if (
+    neighbour === sourceColumn &&
+    sourceColumn.rows.every(
+      (candidate) =>
+        candidate === row || layout.visibility[candidate.panelId] !== true,
+    )
+  ) {
+    sourceColumn.width = Math.max(sourceColumn.width, entry.defaultWidth);
+    return true;
+  }
+
+  sourceColumn.rows.splice(placement.rowIndex, 1);
+  const anchorIndex = cluster.columns.indexOf(anchorColumn);
+  const insertAt = side === "left" ? anchorIndex + 1 : anchorIndex;
+  if (cluster.columns.length < MAX_PANEL_WORKSPACE_COLUMNS) {
+    cluster.columns.splice(insertAt, 0, {
+      id: `${cluster.id}:column:${row.panelId}`,
+      width: entry.defaultWidth,
+      rows: [row],
+    });
+    return true;
+  }
+  const anchorRowIndex = anchorColumn.rows.findIndex(
+    (candidate) => candidate.panelId === entry.snapTo,
+  );
+  anchorColumn.rows.splice(anchorRowIndex + 1, 0, row);
+  return true;
+}
+
 export function activatePanelWorkspacePanelV4(
   layout: PanelWorkspaceLayoutV4,
   registry: readonly PanelWorkspaceRegistryEntry[],
@@ -231,7 +291,12 @@ export function activatePanelWorkspacePanelV4(
   }
   next.visibility[panelId] = true;
   const side = railSideForPanel(next, panelId);
+  const snapped =
+    entry !== null &&
+    (side === "left" || side === "right") &&
+    placeSnappedRow(next, cluster, placement, entry, side);
   if (
+    !snapped &&
     (side === "left" || side === "right") &&
     cluster.placementZone === PANEL_WORKSPACE_DEFAULT_ZONE_BY_RAIL[side]
   ) {

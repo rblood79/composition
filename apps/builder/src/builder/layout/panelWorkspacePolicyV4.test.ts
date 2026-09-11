@@ -16,7 +16,10 @@ import {
   commitPanelWorkspaceDragSession,
   updatePanelWorkspaceDragSession,
 } from "./panelWorkspaceZoneDrop";
-import type { PanelWorkspaceRegistryEntry } from "./panelWorkspaceLayoutV2";
+import {
+  MAX_PANEL_WORKSPACE_COLUMNS,
+  type PanelWorkspaceRegistryEntry,
+} from "./panelWorkspaceLayoutV2";
 
 const SURFACE_RECT = { width: 1200, height: 204 } as const;
 const ZONES = [
@@ -233,6 +236,138 @@ describe("ADR-186 G4 v4 panel policy", () => {
     ).toEqual([["navigator", "components"], ["settings"]]);
     expect(cluster?.columns[0]?.width).toBe(200);
     expect(cluster?.columns[1]?.width).toBe(560);
+  });
+
+  it("snapTo 패널은 anchor 옆 새 column 으로 스냅하고, column 상한이면 anchor 아래 행으로 간다 (ADR-212 HC2)", () => {
+    // 목록 233 · 편집기 560 · 필드 260 — Widths 아트보드. surface 는 세 패널이 한 column
+    // 에 세로로 다 들어갈 만큼 높다 (overflow 가 아니라 snapTo 가 옮기는지 본다).
+    const surface = { width: 1600, height: 2000 } as const;
+    const registry: PanelWorkspaceRegistryEntry[] = [
+      { ...registryEntry("datatable", "left"), defaultWidth: 233 },
+      { ...registryEntry("datatableEditor", "left"), defaultWidth: 560 },
+      {
+        ...registryEntry("datatableField", "left"),
+        defaultWidth: 260,
+        snapTo: "datatableEditor",
+      },
+      registryEntry("navigator", "left"),
+      registryEntry("components", "left"),
+    ];
+    const act = (layout: PanelWorkspaceLayoutV4, id: PanelId) => {
+      const result = activatePanelWorkspacePanelV4(
+        layout,
+        registry,
+        id,
+        surface,
+      );
+      expect(result.ok).toBe(true);
+      if (!result.ok) throw new Error(result.error);
+      return result.value.layout;
+    };
+    const columnsOf = (layout: PanelWorkspaceLayoutV4) =>
+      layout.clusters
+        .find((c) => c.placementZone === "top-left")!
+        .columns.map((column) => ({
+          width: column.width,
+          rows: column.rows
+            .filter((row) => layout.visibility[row.panelId] === true)
+            .map((row) => row.panelId),
+        }))
+        .filter((column) => column.rows.length > 0);
+
+    let layout = requireLayout(
+      createDefaultPanelWorkspaceLayoutV4(registry, surface),
+    );
+    layout = act(layout, "datatable");
+    layout = act(layout, "datatableEditor");
+    // 편집기는 목록 아래에 stack (surface 가 높아 overflow 없음 — column 폭은 목록 233 유지)
+    expect(columnsOf(layout)).toEqual([
+      { width: 233, rows: ["datatable", "datatableEditor"] },
+    ]);
+
+    layout = act(layout, "datatableField");
+    // 필드 패널은 세로 자리가 남아도 anchor 옆 새 column (자기 defaultWidth) 으로
+    expect(columnsOf(layout)).toEqual([
+      { width: 233, rows: ["datatable", "datatableEditor"] },
+      { width: 260, rows: ["datatableField"] },
+    ]);
+
+    // 닫았다 다시 열어도 같은 자리
+    layout = act(layout, "datatableField");
+    expect(columnsOf(layout)).toEqual([
+      { width: 233, rows: ["datatable", "datatableEditor"] },
+    ]);
+    layout = act(layout, "datatableField");
+    expect(columnsOf(layout)[1]).toEqual({
+      width: 260,
+      rows: ["datatableField"],
+    });
+
+    // anchor 가 안 보이면 일반 경로 — 마지막 자리 (자기 column) 를 그대로 보존한다
+    layout = act(layout, "datatableField");
+    layout = act(layout, "datatableEditor");
+    layout = act(layout, "datatableField");
+    expect(columnsOf(layout)).toEqual([
+      { width: 233, rows: ["datatable"] },
+      { width: 260, rows: ["datatableField"] },
+    ]);
+  });
+
+  it("snapTo 패널은 column 상한 (MAX) 에서 anchor 바로 아래 행으로 들어간다", () => {
+    const surface = { width: 4000, height: 2000 } as const;
+    const registry: PanelWorkspaceRegistryEntry[] = [
+      registryEntry("datatable", "left"),
+      registryEntry("datatableEditor", "left"),
+      {
+        ...registryEntry("datatableField", "left"),
+        defaultWidth: 260,
+        snapTo: "datatableEditor",
+      },
+    ];
+    let layout = requireLayout(
+      createDefaultPanelWorkspaceLayoutV4(registry, surface),
+    );
+    // column 상한까지 빈 column 을 채워 둔다
+    const cluster = layout.clusters.find(
+      (c) => c.placementZone === "top-left",
+    )!;
+    cluster.columns = [
+      { id: "c0", width: 200, rows: [{ panelId: "datatable", height: 100 }] },
+      {
+        id: "c1",
+        width: 200,
+        rows: [
+          { panelId: "datatableEditor", height: 100 },
+          { panelId: "datatableField", height: 100 },
+        ],
+      },
+    ];
+    while (cluster.columns.length < MAX_PANEL_WORKSPACE_COLUMNS) {
+      cluster.columns.push({
+        id: `filler-${cluster.columns.length}`,
+        width: 200,
+        rows: [],
+      });
+    }
+    layout.visibility.datatable = true;
+    layout.visibility.datatableEditor = true;
+    const result = activatePanelWorkspacePanelV4(
+      layout,
+      registry,
+      "datatableField",
+      surface,
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.error);
+    const column = result.value.layout.clusters
+      .find((c) => c.placementZone === "top-left")!
+      .columns.find((c) =>
+        c.rows.some((r) => r.panelId === "datatableEditor"),
+      )!;
+    expect(column.rows.map((r) => r.panelId)).toEqual([
+      "datatableEditor",
+      "datatableField",
+    ]);
   });
 
   it("hidden panel은 마지막 zone/row와 rail identity를 보존해 reopen한다", () => {

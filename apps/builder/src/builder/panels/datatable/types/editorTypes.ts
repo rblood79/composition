@@ -32,12 +32,22 @@ export type VariableEditorTab = "basic" | "validation" | "transform";
 export interface DataTableEditorState {
   /** 현재 에디터 모드 */
   mode: DataTableEditorMode;
+  /** ADR-212 — 편집기 옆에 스냅되는 필드 패널의 대상 (없으면 닫힘). `fieldId` null = 새 필드 */
+  fieldPanel: DataTableFieldPanelTarget | null;
+}
+
+export interface DataTableFieldPanelTarget {
+  collectionId: string;
+  fieldId: string | null;
 }
 
 /**
  * 에디터 액션 인터페이스
  */
 export interface DataTableEditorActions {
+  /** 일반 활성화 경로 (ADR-212 UI-8) — 아래 open* 은 이것의 얇은 wrapper */
+  open: (mode: NonNullable<DataTableEditorMode>) => void;
+
   // Table
   openTableCreator: (projectId: string) => void;
   openTableEditor: (tableId: string) => void;
@@ -49,6 +59,10 @@ export interface DataTableEditorActions {
   // Variable
   openVariableCreator: (projectId: string) => void;
   openVariableEditor: (variableId: string) => void;
+
+  // Field panel (ADR-212)
+  openFieldPanel: (collectionId: string, fieldId?: string | null) => void;
+  closeFieldPanel: () => void;
 
   // Common
   close: () => void;

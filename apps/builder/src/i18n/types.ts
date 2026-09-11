@@ -1213,6 +1213,7 @@ export interface TranslationKeys {
     components: string;
     dataTable: string;
     dataTableEditor: string;
+    dataTableField: string;
     theme: string;
     settings: string;
     ai: string;

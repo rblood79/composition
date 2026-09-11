@@ -461,3 +461,4 @@ export function DataTableEditorPanel() {
   // 이렇게 하면 useEffect에서 setState 호출 없이 상태가 자동 초기화됨
   return <EditorContent key={getModeKey(mode)} mode={mode} close={close} />;
 }
+export default DataTableEditorPanel;

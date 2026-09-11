@@ -24,6 +24,8 @@ export type PanelWorkspaceAnchorPresentation =
 export interface PanelWorkspaceRegistryEntry {
   id: PanelId;
   defaultPosition: PanelWorkspaceRailSide;
+  /** ADR-212 — 열릴 때 이 패널 옆 열에 스냅 (`PanelConfig.snapTo`). */
+  snapTo?: PanelId;
   minWidth: number;
   maxWidth: number;
   defaultWidth: number;
@@ -251,6 +253,7 @@ export function createPanelWorkspaceRegistryEntry(
   return {
     id: config.id,
     defaultPosition: config.defaultPosition,
+    ...(config.snapTo ? { snapTo: config.snapTo } : {}),
     minWidth,
     maxWidth,
     defaultWidth: clamp(

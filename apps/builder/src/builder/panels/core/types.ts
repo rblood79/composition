@@ -68,6 +68,7 @@ export type PanelId =
   | "library"
   | "datatable"
   | "datatableEditor" // DataTable 에디터 패널 (DataTablePanel과 함께 사용)
+  | "datatableField" // ADR-212 — 편집기 옆에 스냅되는 필드 패널
   // Tool panels
   | "theme"
   | "ai"
@@ -124,6 +125,12 @@ export interface PanelConfig {
 
   /** 최대 높이 (px 또는 surface 기준 %, modal 제약) */
   maxHeight?: PanelDimension;
+
+  /**
+   * ADR-212 — 열릴 때 이 패널의 **옆 열**에 스냅한다 (anchor 가 보이면 anchor column 바로
+   * 바깥쪽에 새 column, column 상한이면 anchor 아래 행). anchor 가 안 보이면 일반 overflow.
+   */
+  snapTo?: PanelId;
 
   /** 설명 (옵션) */
   description?: string;

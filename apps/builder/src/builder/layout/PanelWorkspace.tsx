@@ -1553,7 +1553,15 @@ function HydratedPanelWorkspace({
 
   useEffect(
     () =>
-      registerPanelWorkspaceActivationDispatcher((panelId) => {
+      registerPanelWorkspaceActivationDispatcher((panelId, visible) => {
+        // visible 이 주어지면 보장 — 정책 함수는 토글이라 같은 상태면 건너뛴다.
+        if (
+          visible !== undefined &&
+          runtime.coordinator.getSnapshot().visiblePanelIds.has(panelId) ===
+            visible
+        ) {
+          return true;
+        }
         const mutation = runtime.activatePanel(panelId);
         if (!mutation.ok) return false;
         return setWorkspaceLayout(runtime.endInteraction());

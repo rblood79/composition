@@ -369,7 +369,7 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
   });
 
   it("shortcut scope와 DataTable activation이 legacy active array 대신 v3 visibility를 소비한다", async () => {
-    const [activeScope, dataTableEditor] = await Promise.all([
+    const [activeScope, dataTableEditor, visibility] = await Promise.all([
       readFile(resolve(__dirname, "../hooks/useActiveScope.ts"), "utf-8"),
       readFile(
         resolve(
@@ -378,14 +378,19 @@ describe("Photoshop식 PanelWorkspace 계약", () => {
         ),
         "utf-8",
       ),
+      readFile(resolve(__dirname, "panelWorkspaceVisibility.ts"), "utf-8"),
     ]);
 
     expect(activeScope).toContain("state.panelWorkspaceLayout");
     expect(activeScope).not.toContain("state.panelLayout");
-    expect(dataTableEditor).toContain("setPanelWorkspaceLayout({");
+    // ADR-212 UI-8 — 편집기 store 는 layout 을 직접 쓰지 않고 표시 보장 한 경로만 부른다.
+    expect(dataTableEditor).toContain("setPanelWorkspacePanelVisibility(");
+    expect(dataTableEditor).not.toContain("setPanelWorkspaceLayout(");
     expect(dataTableEditor).not.toContain("activeLeftPanels");
-    expect(dataTableEditor).toContain('".panel-dock-stage"');
-    expect(dataTableEditor).not.toContain("panel-workspace-placement-surface");
+    expect(visibility).toContain('".panel-dock-stage"');
+    expect(visibility).toContain("activatePanelWorkspacePanelV4(");
+    expect(visibility).not.toContain("visibility: {");
+    expect(visibility).not.toContain("panel-workspace-placement-surface");
   });
 
   // 2026-08-27 code-review #14 — CSS gutter 는 rem(`--spacing-xs`), JS geometry 는

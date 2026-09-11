@@ -7,6 +7,7 @@
 import {
   Blocks,
   Bot,
+  Columns3,
   Database,
   FileEdit,
   History,
@@ -27,7 +28,7 @@ import { ThemesPanel } from "../themes/ThemesPanel";
 import { AIPanel } from "../ai/AIPanel";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import { DataTablePanel } from "../datatable/DataTablePanel";
-import { DataTableEditorPanel } from "../datatable/DataTableEditorPanel";
+import { lazyPanel } from "./lazyPanel";
 
 // Editor panels
 import { PropertiesPanel } from "../properties/PropertiesPanel";
@@ -38,6 +39,14 @@ import { HistoryPanel } from "../history/HistoryPanel";
 // ADR-131 Phase 8 (2026-05-13): DataPanel 제거 — DataTablePanel (기존) 가 data SSOT.
 // ADR-149 Phase 2c (2026-07-19): ActionsPanel 제거 — cross-event reuse 는 EventsPanel
 // L2 고급 토글로 흡수 예정 (Phase 3). document.actions 는 canonical read view.
+
+// ADR-212 HC5: 편집기 구현은 lazy 경계 뒤 — initial chunk 에 editor bytes 0.
+const DataTableEditorPanel = lazyPanel(
+  () => import("../datatable/DataTableEditorPanel"),
+);
+const DataTableFieldPanel = lazyPanel(
+  () => import("../datatable/DataTableFieldPanel"),
+);
 
 // Bottom panels
 
@@ -102,6 +111,24 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultWidth: 560,
     defaultHeight: 600,
     description: "DataTable, API, Variable 편집",
+  },
+  {
+    id: "datatableField",
+    name: "필드",
+    nameEn: "Field",
+    icon: Columns3,
+    component: DataTableFieldPanel,
+    category: "editor",
+    defaultPosition: "left",
+    minWidth: 240,
+    maxWidth: 480,
+    // ADR-212 HC2/HC3 — 편집기 옆 열에 스냅, 필드 패널 폭 260 (Widths 아트보드)
+    defaultWidth: 260,
+    defaultHeight: 600,
+    snapTo: "datatableEditor",
+    // 편집기 헤더 `+` / 헤더 클릭으로만 연다 — rail 진입점 없음
+    hiddenFromRail: true,
+    description: "테이블 필드 편집 (편집기 옆 스냅)",
   },
 
   // Tool panels

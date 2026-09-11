@@ -1082,7 +1082,8 @@ const koKR: TranslationKeys = {
       "사용자가 붙여넣은 텍스트 (cURL 명령 · JSON 배열/객체 · 탭/쉼표 구분 표) 를 그대로 넘기면 규칙 파서가 해석합니다: cURL → API endpoint 정의 제안, 행 데이터 → 새 테이블 (name 필요) 또는 기존 테이블 행 추가 (collectionId). 승인 다이얼로그를 지나 적용됩니다. 텍스트를 요약하거나 고쳐 쓰지 말고 원문 그대로 text 에 넣으세요. parsed:false 가 돌아오면 안내 (guidance) 대로 직접 구조를 읽어 create_table_from_description 또는 propose_data_change 로 제안하세요.",
     pasteText: "붙여넣은 원문 그대로",
     pasteName: "새 테이블 이름 (cURL 이면 선택 — endpoint 이름)",
-    pasteCollectionId: "행을 추가할 기존 collection id (있으면 새 테이블 대신 추가)",
+    pasteCollectionId:
+      "행을 추가할 기존 collection id (있으면 새 테이블 대신 추가)",
   },
   aiDataProposal: {
     summary: "데이터 변경 {count}건: {ops}",
@@ -1306,8 +1307,9 @@ const koKR: TranslationKeys = {
   panels: {
     navigator: "탐색기",
     components: "컴포넌트",
-    dataTable: "데이터테이블",
-    dataTableEditor: "데이터테이블 에디터",
+    dataTable: "데이터",
+    dataTableEditor: "데이터 편집기",
+    dataTableField: "필드",
     theme: "테마",
     settings: "설정",
     ai: "AI",
@@ -2791,14 +2793,16 @@ const enUS: TranslationKeys = {
       "Pass the user's pasted text verbatim (a cURL command, a JSON array/object, or a tab/comma-separated table) and a rule parser interprets it: cURL → an API endpoint definition proposal; row data → a new table (name required) or rows appended to an existing table (collectionId). Applied through the approval dialog. Do not summarize or rewrite the text — put the original in text. If parsed:false comes back, follow the guidance: read the structure yourself and propose with create_table_from_description or propose_data_change.",
     pasteText: "The pasted text, verbatim",
     pasteName: "Name for the new table (optional for cURL — endpoint name)",
-    pasteCollectionId: "Existing collection id to append rows to (instead of a new table)",
+    pasteCollectionId:
+      "Existing collection id to append rows to (instead of a new table)",
   },
   aiDataProposal: {
     summary: "{count} data change(s): {ops}",
     bindLabel: "Bind {type} to {collection}",
     importPasteLabel: "Import pasted {format} ({count} rows)",
     importCurlLabel: "API definition from cURL — {name}",
-    createTableLabel: "Table from description — {name} ({fields} fields · {rows} rows)",
+    createTableLabel:
+      "Table from description — {name} ({fields} fields · {rows} rows)",
     createTableRejected:
       "The user declined the table proposal. The document is unchanged. Ask what to change (fields, types, status values, sample rules), adjust the rules and propose again.",
     rejected: "The user declined the data change. The document is unchanged.",
@@ -3012,8 +3016,9 @@ const enUS: TranslationKeys = {
   panels: {
     navigator: "Navigator",
     components: "Components",
-    dataTable: "DataTable",
-    dataTableEditor: "DataTable Editor",
+    dataTable: "Data",
+    dataTableEditor: "Data Editor",
+    dataTableField: "Field",
     theme: "Theme",
     settings: "Settings",
     ai: "AI",

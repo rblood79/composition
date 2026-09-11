@@ -308,7 +308,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
 
     const clickRailButton = (side: "left" | "right", panelId: string) => {
       const panelLabels: Record<string, string> = {
-        datatableEditor: "DataTable Editor",
+        datatableEditor: "Data Editor",
         history: "History",
         settings: "Settings",
         styles: "Styles",
