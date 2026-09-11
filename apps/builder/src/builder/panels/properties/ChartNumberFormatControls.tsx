@@ -11,6 +11,10 @@ import {
 import type { ResolvedField } from "@composition/shared";
 import { PropertyNumberInput, PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
+import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
+
+const chartIcon = (key: string, kind: string) =>
+  resolvePropertyFieldIcon(key, kind, "Chart");
 
 const LOCALES: readonly ChartValueLocale[] = ["en-US", "ko-KR"];
 
@@ -98,6 +102,7 @@ export const ChartNumberFormatControls = memo(
       <>
         <PropertySelect
           label={t("chart.numberFormat")}
+          icon={chartIcon("valueFormat", "enum")}
           value={pending ?? format}
           options={formatOptions}
           translateOptions={false}
@@ -125,6 +130,7 @@ export const ChartNumberFormatControls = memo(
           <>
             <PropertySelect
               label={t("chart.currencyCode")}
+              icon={chartIcon("valueCurrency", "string")}
               value={pendingCurrency}
               options={currencyOptions}
               translateOptions={false}
@@ -161,6 +167,7 @@ export const ChartNumberFormatControls = memo(
           <>
             <PropertySelect
               label={t("chart.percentUnit")}
+              icon={chartIcon("valuePercentUnit", "enum")}
               value={pendingUnit}
               options={unitOptions}
               translateOptions={false}
@@ -197,6 +204,7 @@ export const ChartNumberFormatControls = memo(
             {format === "currency" && (
               <PropertySelect
                 label={t("chart.currencyCode")}
+                icon={chartIcon("valueCurrency", "string")}
                 value={
                   typeof props.valueCurrency === "string"
                     ? props.valueCurrency
@@ -211,6 +219,7 @@ export const ChartNumberFormatControls = memo(
             {format === "percent" && (
               <PropertySelect
                 label={t("chart.percentUnit")}
+                icon={chartIcon("valuePercentUnit", "enum")}
                 value={
                   props.valuePercentUnit === "ratio" ||
                   props.valuePercentUnit === "percentagePoints"
@@ -224,6 +233,7 @@ export const ChartNumberFormatControls = memo(
             )}
             <PropertySelect
               label={t("chart.numberLocale")}
+              icon={chartIcon("valueLocale", "enum")}
               value={locale}
               options={LOCALES.map((code) => ({ value: code, label: code }))}
               translateOptions={false}
@@ -231,6 +241,7 @@ export const ChartNumberFormatControls = memo(
             />
             <PropertyNumberInput
               label={t("chart.fractionDigits")}
+              icon={chartIcon("valueFractionDigits", "number")}
               value={
                 typeof props.valueFractionDigits === "number"
                   ? props.valueFractionDigits

@@ -1,5 +1,6 @@
 import "./ChartAuthoringControls.css";
 import { memo } from "react";
+import { LayoutTemplate } from "lucide-react";
 import {
   CHART_DESCRIPTORS,
   getChartDescriptor,
@@ -8,6 +9,10 @@ import {
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
+import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
+
+const chartIcon = (key: string, kind: string) =>
+  resolvePropertyFieldIcon(key, kind, "Chart");
 
 /** ADR-210 — columns 모드가 지원하지 않는 종류 (breakdown §2.3 3). */
 const COLUMNS_UNSUPPORTED_TYPES: readonly string[] = ["pie", "radial"];
@@ -43,6 +48,7 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
     <>
       <PropertySelect
         label={t("chart.changeTarget")}
+        icon={chartIcon("chartType", "enum")}
         value={descriptor.chartType}
         options={CHART_DESCRIPTORS.map((item) => ({
           value: item.chartType,
@@ -63,6 +69,7 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
       />
       <PropertySelect
         label="Preset"
+        icon={LayoutTemplate}
         value={presetId}
         options={[
           ...(presetId === "custom"

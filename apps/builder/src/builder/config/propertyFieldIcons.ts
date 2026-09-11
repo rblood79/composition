@@ -1,15 +1,22 @@
 import {
   Asterisk,
+  Axis3d,
   Ban,
   Blend,
   Braces,
+  Calculator,
   Calendar,
   CalendarDays,
   CalendarRange,
+  ChartColumn,
   Check,
   CircleAlert,
+  CircleDashed,
+  CircleDot,
   CircleMinus,
   Clock,
+  Columns3,
+  DollarSign,
   Droplet,
   Equal,
   ExternalLink,
@@ -18,32 +25,50 @@ import {
   FlipVertical2,
   Focus,
   Globe,
+  Grid2x2,
   Grid3x3,
   Hash,
   Heading,
+  Hexagon,
   Info,
   Keyboard,
   Layers,
+  LayoutList,
   Link,
   List,
   ListOrdered,
   Lock,
+  MessageSquare,
   Minus,
   MousePointerClick,
   Move,
   PaintBucket,
+  Paintbrush,
   Palette,
+  PanelBottom,
+  Percent,
+  Play,
+  Radius,
   Regex,
+  RotateCw,
   Rows3,
+  Scissors,
+  Sigma,
   Sparkles,
   SpellCheck,
+  Spline,
   SquareCheck,
+  SwatchBook,
   Tag,
+  Tags,
+  Target,
   TextAlignStart,
   TextCursorInput,
   TextQuote,
+  Timer,
   ToggleLeft,
   Type,
+  Waves,
 } from "lucide-react";
 import type { ComponentType } from "react";
 
@@ -71,9 +96,17 @@ import type { ComponentType } from "react";
  *
  * ## 등재 기준
  *
- * `actionIcons.ts` 와 같다 — **2개 이상 컴포넌트에 나오는 key** 만 등재한다. 단일
- * 컴포넌트 전용 key 55개(contract 55개)는 kind 기본에 맡긴다. 새 컴포넌트가 catalog
- * 에 추가돼도 kind 기본이 받아 주므로 커버리지는 항상 100% 다.
+ * `actionIcons.ts` 와 같다 — **2개 이상 컴포넌트에 나오는 key** 만 `PROP_KEY_ICONS` 에
+ * 등재한다. 단일 컴포넌트 전용 key 는 kind 기본에 맡긴다. 새 컴포넌트가 catalog 에
+ * 추가돼도 kind 기본이 받아 주므로 커버리지는 항상 100% 다.
+ *
+ * **예외 — 컴포넌트 스코프 표 (`COMPONENT_KEY_ICONS`, 2026-09-11)**: 단일 컴포넌트 전용
+ * key 라도 **그 컴포넌트 한 화면의 같은 섹션에 같은 kind 필드가 2개 이상** 서면 kind
+ * 기본이 같은 그림을 반복해 열의 정보가 0 이 된다 (panel-structure.md §아이콘 — Chart
+ * Appearance 의 boolean 7개가 전부 `ToggleLeft`, enum 10개가 전부 `List`). 이때만
+ * 컴포넌트 이름 아래에 key → 아이콘을 둔다. 판정 우선순위: 컴포넌트 표 → 공유 key 표 →
+ * kind 기본. 같은 섹션 안에서 두 key 가 같은 그림이면 등재하지 않은 것과 같다
+ * (`propertyFieldIcons.static.test.ts` 가 섹션별 중복을 잡는다).
  *
  * `ACTION_ICONS` 가 소유한 심볼(`Trash2`/`Plus`/`Copy`/`RulerDimensionLine` 등)은
  * 여기서 직접 import 하지 않는다 — `actionIcons.static.test.ts` 조항 ①.
@@ -223,16 +256,83 @@ export const PROP_KEY_ICONS: Record<string, PropertyFieldIcon> = {
 };
 
 /**
- * 필드 하나의 아이콘을 고른다 — key 재정의 우선, 없으면 kind 기본.
+ * 컴포넌트 스코프 재정의 — 단일 컴포넌트 전용 key 가 한 섹션에 같은 kind 로 몰리는 곳.
  *
- * 둘 다 없으면 `undefined` 를 돌려주고 위젯은 아이콘 슬롯을 렌더하지 않는다
+ * Chart (ADR-194/209/210/211): 한 화면에 전용 key 40개. 그림은 레퍼런스 층을 따른다 —
+ * 데이터 매핑은 필드 뜻 (범주 `Tag` · 값 `Hash` · 시리즈 `Layers`), Appearance 는 차트
+ * 구성 요소 (축 `Axis3d` · 격자 `Grid2x2` · 범례 `LayoutList` · 점 `CircleDot` · 곡선
+ * `Spline` · 라벨 `Tags` · 도넛 `CircleDashed` · 합계 `Sigma`), Interaction 은 동작
+ * (툴팁 `MessageSquare` · 애니메이션 `Play`/`Timer`/`Clock`/`Waves`). 숨은 key
+ * (`editorHidden`) 는 전용 컨트롤이 같은 표를 읽어 `PropertySelect.icon` 으로 단다 —
+ * 표의 key 는 전부 catalog 에 실재해야 한다 (정적 가드). 계약 밖 컨트롤 (프리셋 · 시리즈
+ * 행) 의 아이콘은 그 컨트롤 파일이 직접 고른다.
+ */
+export const COMPONENT_KEY_ICONS: Record<
+  string,
+  Record<string, PropertyFieldIcon>
+> = {
+  Chart: {
+    // content — 정체 · 데이터 매핑
+    chartType: ChartColumn,
+    dataMode: Columns3,
+    dimension: Tag,
+    metric: Hash,
+    // `color` 는 공유 key (색) 지만 Chart 에서는 시리즈를 가르는 **필드** 다 — 표가 덮는다.
+    color: Layers,
+    // appearance — 차트 구성 요소
+    stackType: Layers,
+    curve: Spline,
+    showDots: CircleDot,
+    showValueLabels: Tags,
+    labelKey: Tag,
+    colorBy: SwatchBook,
+    innerRadius: CircleDashed,
+    gridType: Hexagon,
+    startAngle: RotateCw,
+    endAngle: Radius,
+    showTotal: Sigma,
+    showSpokes: Asterisk,
+    gridRings: Target,
+    fillGrid: PaintBucket,
+    fillArea: Paintbrush,
+    showAxis: Axis3d,
+    showGrid: Grid2x2,
+    showLegend: LayoutList,
+    legendPosition: PanelBottom,
+    valueFormat: Calculator,
+    valueLocale: Globe,
+    valueFractionDigits: Hash,
+    valueCurrency: DollarSign,
+    valuePercentUnit: Percent,
+    // interaction — 동작 · 표시 예산
+    showTooltip: MessageSquare,
+    isAnimationActive: Play,
+    animationBegin: Timer,
+    animationDuration: Clock,
+    animationEasing: Waves,
+    budgetOverflow: Scissors,
+    budgetAggregate: Sigma,
+    budgetAxis: Axis3d,
+    budgetOthersLabel: Tag,
+  },
+};
+
+/**
+ * 필드 하나의 아이콘을 고른다 — 컴포넌트 표 → 공유 key 재정의 → kind 기본.
+ *
+ * 전부 없으면 `undefined` 를 돌려주고 위젯은 아이콘 슬롯을 렌더하지 않는다
  * (기존 동작 그대로). kind 는 항상 `KIND_ICONS` 에 있으므로 실제로는 계약에
  * 새 kind 가 추가된 순간에만 일어난다.
  */
 export function resolvePropertyFieldIcon(
   key: string,
   kind: string,
+  component?: string,
 ): PropertyFieldIcon | undefined {
   if (ICONLESS_FIELD_KINDS.has(kind)) return undefined;
-  return PROP_KEY_ICONS[key] ?? KIND_ICONS[kind];
+  return (
+    (component ? COMPONENT_KEY_ICONS[component]?.[key] : undefined) ??
+    PROP_KEY_ICONS[key] ??
+    KIND_ICONS[kind]
+  );
 }

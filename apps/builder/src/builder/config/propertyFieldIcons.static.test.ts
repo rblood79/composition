@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
+  COMPONENT_KEY_ICONS,
   ICONLESS_FIELD_KINDS,
   KIND_ICONS,
   PROP_KEY_ICONS,
@@ -66,6 +67,74 @@ async function readCatalogKeys(): Promise<{
   }
   return { keyComponents, keyKinds, kinds };
 }
+
+/** 한 컴포넌트 binding 의 key → section (inspector PropContract 만). */
+async function readComponentSections(
+  component: string,
+): Promise<Map<string, string>> {
+  const source = await readFile(
+    resolve(CATALOG_BINDINGS, `${component}.binding.ts`),
+    "utf8",
+  );
+  const out = new Map<string, string>();
+  const blocks = source.split(/\n {6}(?=[a-zA-Z]+: \{)/);
+  for (const block of blocks) {
+    const head = block.match(/^([a-zA-Z]+): \{\s*kind:\s*"([a-z-]+)"/);
+    if (!head || head[2] === "rac" || head[2] === "internal") continue;
+    const section = block.match(/section:\s*"([a-z]+)"/)?.[1] ?? "content";
+    out.set(head[1], section);
+  }
+  return out;
+}
+
+describe("Properties 필드 아이콘 컴포넌트 스코프 표", () => {
+  it("표의 key 는 그 컴포넌트 binding 에 실재한다 (dead entry 0)", async () => {
+    const { keyComponents } = await readCatalogKeys();
+    const problems: string[] = [];
+    for (const [component, table] of Object.entries(COMPONENT_KEY_ICONS)) {
+      for (const key of Object.keys(table)) {
+        if (!keyComponents.get(key)?.has(component))
+          problems.push(`${component}.${key}: binding 에 없음`);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it("같은 컴포넌트의 같은 섹션 안에서 두 key 가 같은 그림을 쓰지 않는다 (열의 정보 0 방지)", async () => {
+    const problems: string[] = [];
+    for (const [component, table] of Object.entries(COMPONENT_KEY_ICONS)) {
+      const sections = await readComponentSections(component);
+      const seen = new Map<string, string>();
+      for (const [key, icon] of Object.entries(table)) {
+        const section = sections.get(key) ?? "content";
+        const id = `${section}:${icon.displayName ?? icon.name}`;
+        const prior = seen.get(id);
+        if (prior) problems.push(`${component} ${section}: ${prior} ↔ ${key}`);
+        else seen.set(id, key);
+      }
+    }
+    expect(problems).toEqual([]);
+  });
+
+  it("컴포넌트 표 → 공유 key 표 → kind 기본 순으로 고른다", () => {
+    expect(resolvePropertyFieldIcon("showAxis", "boolean", "Chart")).toBe(
+      COMPONENT_KEY_ICONS.Chart.showAxis,
+    );
+    expect(resolvePropertyFieldIcon("showAxis", "boolean")).toBe(
+      KIND_ICONS.boolean,
+    );
+    expect(resolvePropertyFieldIcon("isDisabled", "boolean", "Chart")).toBe(
+      PROP_KEY_ICONS.isDisabled,
+    );
+    // 공유 key 라도 컴포넌트 표가 있으면 그쪽이 이긴다 (Chart 의 `color` 는 시리즈 필드).
+    expect(resolvePropertyFieldIcon("color", "string", "Chart")).toBe(
+      COMPONENT_KEY_ICONS.Chart.color,
+    );
+    expect(resolvePropertyFieldIcon("color", "string")).toBe(
+      PROP_KEY_ICONS.color,
+    );
+  });
+});
 
 describe("Properties 필드 아이콘 레지스트리", () => {
   it("등재 key 는 모두 catalog 에 존재한다 (dead entry 0)", async () => {

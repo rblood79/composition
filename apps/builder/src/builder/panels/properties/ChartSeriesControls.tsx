@@ -59,7 +59,8 @@ export function chartSeriesConfigApplies(
  *
  * DOM 은 패널 표준 (ADR-163): 시리즈 한 행 = `.fieldset-row` 안의 이름 입력 + 색 Select +
  * 행 메뉴 (`.fieldset-actions`). 이름·색은 범례·툴팁 표시만 바꾼다 — 그 설명은 Series 섹션이
- * Content(데이터) 와 분리된 것으로 대신한다.
+ * Content(데이터) 와 분리된 것으로 대신한다. 2열 행의 필드에는 아이콘을 두지 않는다 — legend
+ * 가 이미 정체를 말하고, 아이콘 칸이 값 폭의 1/4 을 먹는다.
  */
 export const ChartSeriesControls = memo(function ChartSeriesControls({
   elementId = "",
@@ -136,9 +137,11 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
   //   선택 시 `onChange("")` 로 돌려준다 (`value: ""` 옵션은 선택 표시가 안 된다).
   const tokenOptions = [
     { value: "reset", label: t("chart.defaultColor") },
+    // 표시는 순번 (`Series 3`) — 토큰 이름 `--chart-series-3` 은 2열 행 (필드당 ~86px) 에서
+    //   잘려 `--cha` 만 남는다. 저장값은 토큰 그대로.
     ...Array.from({ length: Math.max(1, paletteLength) }, (_, i) => ({
       value: seriesTokenName(i),
-      label: seriesTokenName(i),
+      label: `${t("chart.series")} ${i + 1}`,
     })),
   ];
 

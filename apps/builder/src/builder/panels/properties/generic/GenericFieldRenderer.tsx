@@ -73,6 +73,11 @@ export interface GenericFieldRouting {
   onStyleUpdate: (key: string, value: unknown) => void;
   /** `kind:"items-manager"`(ItemsManager) 가 store action(addItem/removeItem)에 필요. */
   elementId?: string;
+  /**
+   * 선택 요소의 catalog 컴포넌트 이름 — 필드 아이콘의 컴포넌트 스코프 표
+   * (`COMPONENT_KEY_ICONS`) 조회 키. 없으면 공유 key 표 → kind 기본만 본다.
+   */
+  componentType?: string;
 }
 
 interface GenericFieldRendererProps extends GenericFieldRouting {
@@ -145,6 +150,7 @@ function areGenericFieldPropsEqual(
   const b = next.field;
   return (
     previous.elementId === next.elementId &&
+    previous.componentType === next.componentType &&
     previous.onSemanticUpdate === next.onSemanticUpdate &&
     previous.onStyleUpdate === next.onStyleUpdate &&
     previous.translateOptions === next.translateOptions &&
@@ -170,6 +176,7 @@ const GenericField = memo(function GenericField({
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
+  componentType,
   ownerColumns,
   ownerFields,
   translateOptions,
@@ -190,7 +197,7 @@ const GenericField = memo(function GenericField({
   // 아이콘은 필드의 정체(key → kind)에서 파생한다 — catalog 계약에 icon 축이 없고,
   // key 73개가 contract 92% 를 덮으므로 binding 파일에 값을 복제할 이유가 없다.
   // 정본·근거: config/propertyFieldIcons.ts
-  const icon = resolvePropertyFieldIcon(field.key, field.kind);
+  const icon = resolvePropertyFieldIcon(field.key, field.kind, componentType);
 
   switch (field.kind) {
     // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
@@ -350,6 +357,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
+  componentType,
   contentExtras,
   sectionExtras,
   literalOptionFields,
@@ -445,6 +453,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
                 onSemanticUpdate={onSemanticUpdate}
                 onStyleUpdate={onStyleUpdate}
                 elementId={elementId}
+                componentType={componentType}
                 ownerColumns={ownerColumns}
                 ownerFields={ownerFields}
                 translateOptions={!literalOptionFields?.includes(field.key)}

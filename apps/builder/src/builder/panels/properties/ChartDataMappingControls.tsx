@@ -9,6 +9,10 @@ import type { ResolvedField } from "@composition/shared";
 import { PropertyRowMenu, PropertySelect } from "../../components";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
+import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
+
+const chartIcon = (key: string, kind: string) =>
+  resolvePropertyFieldIcon(key, kind, "Chart");
 import {
   moveItem,
   readValueFields,
@@ -84,6 +88,7 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
     <>
       <PropertySelect
         label={t("chart.dataMode")}
+        icon={chartIcon("dataMode", "enum")}
         value={picking ? "columns" : dataMode}
         options={[
           { value: "group", label: t("chart.modeGroup") },
@@ -222,6 +227,7 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
           {columns && columns.some((c) => !valueFields.includes(c.key)) && (
             <PropertySelect
               label={t("chart.addField")}
+              icon={ACTION_ICONS.add}
               value=""
               optionValueMode="literal"
               translateOptions={false}

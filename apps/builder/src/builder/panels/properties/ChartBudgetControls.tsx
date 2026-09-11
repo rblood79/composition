@@ -18,6 +18,10 @@ import { resolveComponentRule } from "@composition/shared";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput, PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
+import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
+
+const chartIcon = (key: string, kind: string) =>
+  resolvePropertyFieldIcon(key, kind, "Chart");
 import { useLayoutValue } from "../styles/hooks/useLayoutValue";
 
 const EMPTY_ROWS: readonly ChartRow[] = [];
@@ -173,6 +177,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
     <>
       <PropertySelect
         label={t("chart.budgetOverflow")}
+        icon={chartIcon("budgetOverflow", "enum")}
         value={overflow}
         options={OVERFLOWS.map((mode) => ({
           value: mode,
@@ -217,6 +222,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
       {cartesian && (
         <PropertySelect
           label={t("chart.budgetAggregate")}
+          icon={chartIcon("budgetAggregate", "enum")}
           value={aggregate}
           options={AGGREGATES.map((stat) => ({
             value: stat,
@@ -232,6 +238,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
       {cartesian && (
         <PropertySelect
           label={t("chart.budgetAxis")}
+          icon={chartIcon("budgetAxis", "enum")}
           value={axis}
           options={AXES.map((kind) => ({
             value: kind,
@@ -247,6 +254,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
       {othersApplies && (
         <PropertyInput
           label={t("chart.othersLabel")}
+          icon={chartIcon("budgetOthersLabel", "string")}
           value={
             typeof props.budgetOthersLabel === "string"
               ? props.budgetOthersLabel

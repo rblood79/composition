@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **힌트 문단 정리**: 정적 설명 `<p>` 7곳 제거 (i18n 키는 legend help 후속을 위해 유지). 값·데이터에 반응하는 상태 6종 (예산 적용 모드 · 행 상한 초과 · 원본에 없는 필드 · disabled 사유 3) 은 해당 필드 안 `slot="description"` 으로 이동 (`PropertySelect.afterControl` 슬롯 신규).
 - `GenericFieldRenderer.sectionExtras` — section 별 말미 주입 채널. 섹션 순서는 `editorHidden` 필드를 포함한 계약의 section 첫 등장 순서 (catalog 가 배치를 소유).
 - 시리즈 색 라벨 "Palette Color" → "Color" (233px 패널의 2열 행에서 잘리지 않게).
+- **필드 아이콘**: `propertyFieldIcons.ts` 에 **컴포넌트 스코프 표** (`COMPONENT_KEY_ICONS.Chart`, 38 키) 신설 — 단일 컴포넌트 전용 key 가 한 섹션에 같은 kind 로 몰리면 kind 기본 (`ToggleLeft`/`List`/`Hash`) 이 같은 그림을 반복해 열의 정보가 0 이 되던 것 (Show Axis · Show Grid · Show Legend · Show Dots 가 전부 토글 아이콘). 축 `Axis3d` · 격자 `Grid2x2` · 범례 `LayoutList` · 점 `CircleDot` · 곡선 `Spline` · 라벨 `Tags` · 툴팁 `MessageSquare` · 애니메이션 `Play`/`Timer`/`Clock`/`Waves` · 예산 `Scissors`/`Sigma`/`Axis3d`. 정적 가드: 표의 key 는 binding 에 실재 · 같은 섹션 안 같은 그림 0. 시리즈 색 옵션은 `--chart-series-N` 대신 `Series N` 으로 표시 (저장값 무변경).
 
 ## [ADR-152 — Data 패널 ↔ Collections ↔ 컴포넌트 Collection 바인딩 통합: `collectionId` · `fieldId` 안정 참조 · fieldMap · `DataChange` 적용기 + History · publish snapshot (Implemented)] - 2026-09-11
 

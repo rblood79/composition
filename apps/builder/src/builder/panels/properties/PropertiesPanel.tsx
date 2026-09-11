@@ -472,6 +472,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           onSemanticUpdate={handleSemanticUpdate}
           onStyleUpdate={handleStyleUpdate}
           elementId={elementId}
+          componentType={elementType}
           contentExtras={editorExtras}
           sectionExtras={sectionExtras}
         />
@@ -497,6 +498,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       onSemanticUpdate={handleSemanticUpdate}
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}
+      componentType={elementType}
       contentExtras={editorExtras}
       sectionExtras={sectionExtras}
     />
