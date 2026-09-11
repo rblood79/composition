@@ -40,20 +40,20 @@
 
 ## 4. Phase 계획
 
-### Phase 0 — Inventory freeze (게이트 G0)
+### Phase 0 — Inventory freeze (게이트 G0) — 완료 2026-09-12 ([evidence](../evidence/212-p0-inventory.md))
 
-- [ ] `DataTableEditor.tsx` · `ApiEndpointEditor.tsx` 분할 지도 — 서브 에디터 경계 (Schema/Table/Settings · Basic/Headers/Body/Response/Run) 와 공유 상태 목록
-- [ ] 두 편집기의 store 쓰기 호출 전수 (`updateCollection` · `updateApiEndpoint` · `createDataTable` …) → 152 적용기 wrapper 로 대체 가능 여부 표
-- [ ] 기존 테스트 인벤토리 (`*.i18n.test.tsx` · `fix-live.mjs` 13 체크) — 유지/대체 표
-- [ ] Toast 가 `role=status` 를 내는지, RAC Toast (landmark · F6) 여부 실측 → Y4 처리 방식 결정
-- [ ] `BuilderCore.tsx` → `panels/index.ts` → `panelConfigs.ts` 정적 import 체인과 production metafile에서 editor 구현의 initial bytes before arm 기록
-- [ ] `Authorization` · `Proxy-Authorization` · `X-API-Key` · `Api-Key` 기존 평문 endpoint 건수와 export/postMessage/AI payload 경로 기록
-- [ ] 아트보드 원본을 `docs/design/data-panel-redesign/` 로 이관 (canvas.json + `*.dc.html`)
-- [ ] **착수 조건**: Phase 2·3은 ADR-152 G5 PASS, Phase 4는 ADR-213 G1~G4 PASS 후
+- [x] `DataTableEditor.tsx` · `ApiEndpointEditor.tsx` 분할 지도 — 서브 에디터 경계 (Schema/Table/Settings · Basic/Headers/Body/Response/Run) 와 공유 상태 목록 (evidence §1 — Run 과 Response 가 실행 결과를 따로 든다)
+- [x] 두 편집기의 store 쓰기 호출 전수 (`updateCollection` · `updateApiEndpoint` · `createDataTable` …) → 152 적용기 wrapper 로 대체 가능 여부 표 (evidence §2 — collection 3종은 이미 wrapper, **endpoint 3종은 직접 쓰기 · History 0** → Phase 4 `define_endpoint` / `delete_endpoint`)
+- [x] 기존 테스트 인벤토리 (`*.i18n.test.tsx` · `fix-live.mjs` 13 체크) — 유지/대체 표 (evidence §3 — Track 0 live 스크립트는 scratchpad 소실, 본 ADR live 는 `scripts/adr212-*-live.mjs` 로 커밋)
+- [x] Toast 가 `role=status` 를 내는지, RAC Toast (landmark · F6) 여부 실측 → Y4 처리 방식 결정 (evidence §4 — 토스트는 전부 `role=alert`; `role=status` 영역은 Phase 1 에서 Data 패널에 신설, 토스트 전역 변경 없음)
+- [x] `BuilderCore.tsx` → `panels/index.ts` → `panelConfigs.ts` 정적 import 체인과 production metafile에서 editor 구현의 initial bytes before arm 기록 (evidence §5 — initial JS gzip 1,332,608 · 편집기 구현 40,392 raw B in initial, `scripts/adr212-editor-initial-bytes.mjs` sourcemap 귀속; **전체 initial 은 215 상한을 착수 전 +19,008 초과** — 사용자 보고 항목)
+- [x] `Authorization` · `Proxy-Authorization` · `X-API-Key` · `Api-Key` 기존 평문 endpoint 건수와 export/postMessage/AI payload 경로 기록 (evidence §6 — 평문 1 건, 운반 4 경로 + AI 는 213 redactor 로 이미 마스킹)
+- [x] 아트보드 원본을 `docs/design/data-panel-redesign/` 로 이관 (canvas.json + `*.dc.html`) — artifact `f7d8327e` 에서 추출 (13 아트보드 + 캡처 5, 로컬 전용)
+- [x] **착수 조건**: Phase 2·3은 ADR-152 G5 PASS, Phase 4는 ADR-213 G1~~G4 PASS 후 — 둘 다 충족 (152 G5 09-11 · 213 Implemented 09-12). R5 Variables 탭 조건부 숨김은 ADR-214 Phase 0~~1 merge (09-11) 로 폐기 — 탭은 214 소유, 현행 유지
 
 ### Phase 1 — 표면 골격 (152 독립)
 
-- [ ] 목록 패널 이름 "Data" (i18n `datatable.panelTitle`), 탭 Tables / APIs / Variables — Variables 탭은 **ADR-214 전까지 조건부 표시** (프로젝트에 변수 0 이면 숨김, 있으면 현행 유지 — R5)
+- [ ] 목록 패널 이름 "Data" (i18n `datatable.panelTitle`), 탭 Tables / APIs / Variables — Variables 탭은 ADR-214 (Phase 0~1 merge 09-11) 소유라 현행 유지 (R5 폐기, Phase 0)
 - [ ] 목록 항목을 버튼으로 (RAC `ListBox` 또는 `GridList` — 키보드 열림, A5) + 상태 배지 (UI-6): 테이블 = 필드 수 · 행 수 · 소스 · 사용처 수 (152 `resolveBoundCollection` 역참조) · 0행/오류; API = method · 마지막 실행 (status · ms · 상대 시각) · 연결 테이블
 - [ ] 탭 라벨 잘림 규칙 — `.panel-tablist` 컨테이너 폭 < 360 이면 아이콘 + tooltip (`panel-system.css`, Navigator · Styles 도 같은 클래스라 공통 적용 — 회귀 확인)
 - [ ] 편집 패널 생명주기 일반화 (UI-8) — `dataTableEditorStore.open(mode)` 가 `activatePanelWorkspacePanelV4` 경유, visibility 직접 토글 제거
