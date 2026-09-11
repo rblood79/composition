@@ -108,13 +108,30 @@ section-*) 는 건드리지 않는다 — 전부 `datagrid-*` 고유 클래스.
   outline: none;
 }
 
-.datagrid-add-field[data-hovered] {
+.datagrid-add-field:hover {
   background: var(--bg-raised);
   color: var(--fg);
 }
 
-.datagrid-add-field[data-focus-visible] {
+.datagrid-add-field:focus-visible {
   box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.datagrid-add-field-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 24px;
+  padding: 0 var(--spacing-xs);
+  border: 1px solid var(--focus-ring);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  color: var(--fg);
+  font-size: var(--text-xs);
+}
+
+.datagrid-add-field-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary-100);
 }
 
 .datagrid-cell-add {

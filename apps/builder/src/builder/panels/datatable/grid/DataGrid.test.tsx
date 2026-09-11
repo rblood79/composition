@@ -363,4 +363,59 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     );
     expect(container.querySelector("[data-testid=datagrid]")).toBeTruthy();
   });
+
+  it("헤더 + → 인라인 입력 → Enter = add_field(string), 입력은 연속 추가로 유지", async () => {
+    const { container, getByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const addBtn = getByRole("button", { name: "New field" });
+    await act(async () => {
+      fireEvent.pointerDown(addBtn, { pointerType: "mouse", button: 0 });
+      fireEvent.pointerUp(addBtn, { pointerType: "mouse", button: 0 });
+      fireEvent.click(addBtn);
+    });
+    const input = container.querySelector<HTMLInputElement>(
+      ".datagrid-add-field-input",
+    );
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { value: "email" } });
+    await act(async () => {
+      fireEvent.keyDown(input!, { key: "Enter" });
+    });
+    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
+    expect(lastOps()).toEqual([
+      {
+        op: "add_field",
+        collectionId: "c1",
+        field: { key: "email", type: "string" },
+      },
+    ]);
+    // 성공 후에도 입력이 남아 연속 추가할 수 있다
+    expect(container.querySelector(".datagrid-add-field-input")).not.toBeNull();
+  });
+
+  it("헤더 인라인 입력 중복 키 → 경고, 쓰기 0 · Esc = 취소", async () => {
+    const { container, getByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const addBtn = getByRole("button", { name: "New field" });
+    await act(async () => {
+      fireEvent.pointerDown(addBtn, { pointerType: "mouse", button: 0 });
+      fireEvent.pointerUp(addBtn, { pointerType: "mouse", button: 0 });
+      fireEvent.click(addBtn);
+    });
+    const input = container.querySelector<HTMLInputElement>(
+      ".datagrid-add-field-input",
+    )!;
+    fireEvent.change(input, { target: { value: "name" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(applyDataChange).not.toHaveBeenCalled();
+    // Esc 는 입력을 닫는다
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Escape" });
+    });
+    expect(container.querySelector(".datagrid-add-field-input")).toBeNull();
+  });
 });

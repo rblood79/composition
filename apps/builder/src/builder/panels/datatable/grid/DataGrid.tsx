@@ -7,7 +7,9 @@
  *   (JSON · 날짜 · 긴 값, `resolveCellEditorKind`). 키 라우팅은 `resolveGridKey` 한 표 (R1) —
  *   편집 중엔 `state.setKeyboardNavigationDisabled(true)` 로 RAC 셀 이동을 끄고 input 이 키를 갖는다.
  * - 모든 쓰기는 `applyDataChange` (`set_cell` · `insert_rows` · `remove_rows` · `replace_rows` ·
- *   붙여넣기의 `add_field`) — HC1. undo 는 152 History data entry.
+ *   헤더 `+` 인라인 입력·붙여넣기의 `add_field`) — HC1. undo 는 152 History data entry.
+ * - 새 필드: 헤더 `+` → 그 자리 인라인 `<input>` (Enter=생성 add_field string, Esc/blur=취소,
+ *   생성 후 입력 유지해 연속 추가). 팝오버·모달 없음 (HC2). 타입 변경은 열 라벨 클릭 → 필드 패널.
  * - 붙여넣기 (⌘V, 셀 포커스): `planGridPaste` → 넘치는 열은 `ConfirmDialog` "새 필드로 추가?".
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
@@ -83,6 +85,10 @@ const DeleteIcon = ACTION_ICONS.delete;
 const GRID_ROW_HEIGHT = 28;
 const SELECT_COLUMN = "__select";
 const ADD_COLUMN = "__add";
+// 인라인 입력 중엔 다른 열 키를 써서 RAC 가 헤더 셀을 다시 만들게 한다 (헤더 컬렉션은 키가
+// 바뀔 때만 rebuild — 같은 키로 내용만 바꾸면 캐시된 셀이 남는다).
+const ADD_COLUMN_EDIT = "__add_edit";
+const isAddColumn = (id: string) => id === ADD_COLUMN || id === ADD_COLUMN_EDIT;
 
 /** `id` 필드는 행 정체 — 격자에서 고치지 않는다 (aria-readonly). */
 function isReadonlyField(field: DataField): boolean {
@@ -158,8 +164,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const [importRows, setImportRows] = useState<
     Record<string, unknown>[] | null
   >(null);
+  const [addingField, setAddingField] = useState(false);
+  const [fieldDraft, setFieldDraft] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const addFieldInputRef = useRef<HTMLInputElement>(null);
 
   const fieldByKey = useMemo(
     () => new Map(schema.map((f) => [f.key, f])),
@@ -190,6 +199,35 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [applyDataChange],
   );
 
+  const cancelAddField = useCallback(() => {
+    setAddingField(false);
+    setFieldDraft("");
+  }, []);
+
+  const commitAddField = useCallback(async () => {
+    const next = fieldDraft.trim();
+    if (next === "") {
+      cancelAddField();
+      return;
+    }
+    if (schema.some((f) => f.key === next)) {
+      globalToast.warning(t("fieldKeyDup", { key: next }));
+      return;
+    }
+    const ok = await write(
+      [{ op: "add_field", collectionId, field: { key: next, type: "string" } }],
+      t("fieldAdded", { key: next }),
+    );
+    if (ok) {
+      announceDataPanelStatus(t("fieldAdded", { key: next }), {
+        tone: "success",
+      });
+      // 연속 추가: 입력을 비우고 유지, 다시 포커스.
+      setFieldDraft("");
+      requestAnimationFrame(() => addFieldInputRef.current?.focus());
+    }
+  }, [fieldDraft, schema, write, collectionId, t, cancelAddField]);
+
   const items = useMemo(() => {
     const all = rows.map((row, index) => ({ id: index, index, row }));
     const term = filterText.trim().toLowerCase();
@@ -210,9 +248,12 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     () => [
       { id: SELECT_COLUMN, field: null as DataField | null },
       ...schema.map((field) => ({ id: field.key, field })),
-      { id: ADD_COLUMN, field: null as DataField | null },
+      {
+        id: addingField ? ADD_COLUMN_EDIT : ADD_COLUMN,
+        field: null as DataField | null,
+      },
     ],
-    [schema],
+    [schema, addingField],
   );
 
   // 포커스 이동 — commit/취소/행 추가 뒤 대상 셀로. RAC 는 DOM focus 이벤트로 focusedKey 를 맞춘다.
@@ -564,20 +605,45 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         {(column) =>
           column.id === SELECT_COLUMN ? (
             <SelectColumn label={t("gridSelectAllRows")} />
-          ) : column.id === ADD_COLUMN ? (
+          ) : isAddColumn(column.id) ? (
             <Column
-              id={ADD_COLUMN}
-              width={36}
+              id={column.id}
+              width={addingField ? 160 : 36}
               minWidth={36}
               className="datagrid-column datagrid-column-add"
             >
-              <Button
-                className="datagrid-add-field"
-                aria-label={t("fieldAddTitle")}
-                onPress={() => openFieldPanel(collectionId, null)}
-              >
-                <AddIcon size={iconSmall.size} />
-              </Button>
+              {addingField ? (
+                <input
+                  ref={addFieldInputRef}
+                  className="datagrid-add-field-input"
+                  autoFocus
+                  aria-label={t("fieldAddTitle")}
+                  placeholder={t("fieldNamePlaceholder")}
+                  value={fieldDraft}
+                  data-shortcut-local="undo redo"
+                  onChange={(e) => setFieldDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void commitAddField();
+                    } else if (e.key === "Escape") {
+                      e.preventDefault();
+                      cancelAddField();
+                    }
+                  }}
+                  onBlur={cancelAddField}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="datagrid-add-field"
+                  aria-label={t("fieldAddTitle")}
+                  onClick={() => setAddingField(true)}
+                >
+                  <AddIcon size={iconSmall.size} />
+                </button>
+              )}
             </Column>
           ) : (
             <Column
@@ -630,7 +696,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                     <span className="datagrid-checkbox-box" />
                   </Checkbox>
                 </Cell>
-              ) : column.id === ADD_COLUMN ? (
+              ) : isAddColumn(column.id) ? (
                 <Cell className="datagrid-cell datagrid-cell-add" />
               ) : (
                 <DataGridCell

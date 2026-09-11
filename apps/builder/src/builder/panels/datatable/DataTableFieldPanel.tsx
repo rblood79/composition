@@ -1,7 +1,8 @@
 /**
  * DataTableFieldPanel — 편집기 옆에 스냅되는 필드 편집 패널 (ADR-212 Phase 3).
  *
- * 대상은 `dataTableEditorStore.fieldPanel` (헤더 `+` → 새 필드, 헤더 클릭 → 그 필드). 이름 ·
+ * 대상은 `dataTableEditorStore.fieldPanel` (헤더 열 라벨 클릭 → 그 필드 편집). 새 필드 생성은
+ * 격자 헤더 `+` 인라인 입력이 담당하고, 이 패널은 기존 필드 편집 전용이다. 이름 ·
  * 검색 가능한 타입 목록 (아이콘+라벨, Y7) · required · default · label · "사용처 N" (필드 단위
  * 152 역참조) · 삭제 (사용처 0 이면 즉시, 아니면 ConfirmDialog). 타입 변경은 미리보기 (UX-5) 로
  * "비움/유지" 를 물어 `update_field` + `set_cell` 을 한 DataChange 로 묶는다. 쓰기는 전부
@@ -95,8 +96,6 @@ export function DataTableFieldPanel(_props: PanelProps) {
     );
   }, [target, collection]);
 
-  const isCreate = target != null && !field;
-
   const usage = useMemo(() => {
     void elements; // 요소가 바뀌면 다시 센다 (읽기는 getAiToolReadModel 경유)
     if (!collection || !field) return [];
@@ -123,11 +122,7 @@ export function DataTableFieldPanel(_props: PanelProps) {
     [applyDataChange, collection],
   );
 
-  const title = field
-    ? field.key
-    : isCreate
-      ? dt("fieldAddTitle")
-      : dt("fieldPanel");
+  const title = field ? field.key : dt("fieldPanel");
 
   return (
     <div className="panel datatable-field-panel">
@@ -138,9 +133,9 @@ export function DataTableFieldPanel(_props: PanelProps) {
         onClose={closeFieldPanel}
       />
       <PanelContents>
-        {collection && (field || isCreate) ? (
+        {collection && field ? (
           <FieldForm
-            key={field?.id ?? field?.key ?? "__new__"}
+            key={field.id ?? field.key}
             collectionId={collection.id}
             existingKeys={collection.schema.map((f) => f.key)}
             rows={collection.mockData}
@@ -162,7 +157,7 @@ interface FieldFormProps {
   collectionId: string;
   existingKeys: string[];
   rows: readonly Record<string, unknown>[];
-  field: DataField | null;
+  field: DataField;
   usage: ReturnType<typeof resolveFieldUsage>;
   dt: (
     key: string,
@@ -182,15 +177,15 @@ function FieldForm({
   write,
   onClose,
 }: FieldFormProps) {
-  const [keyDraft, setKeyDraft] = useState(field?.key ?? "");
+  const [keyDraft, setKeyDraft] = useState(field.key);
   const [typeFilter, setTypeFilter] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [pendingType, setPendingType] = useState<PendingTypeChange | null>(
     null,
   );
 
-  const fieldId = field?.id ?? field?.key;
-  const type = field?.type ?? "string";
+  const fieldId = field.id ?? field.key;
+  const type = field.type;
   const filteredTypes = useMemo(() => {
     const q = typeFilter.trim().toLowerCase();
     if (q === "") return FIELD_TYPES;
@@ -201,70 +196,40 @@ function FieldForm({
 
   const commitKey = async () => {
     const next = keyDraft.trim();
-    if (field) {
-      if (next === field.key) return;
-      if (next === "") {
-        globalToast.warning(dt("fieldKeyEmpty"));
-        setKeyDraft(field.key);
-        return;
-      }
-      if (existingKeys.includes(next)) {
-        globalToast.warning(dt("fieldKeyDup", { key: next }));
-        setKeyDraft(field.key);
-        return;
-      }
-      const ok = await write(
-        [
-          {
-            op: "update_field",
-            collectionId,
-            fieldId: fieldId as string,
-            patch: { key: next },
-          },
-        ],
-        dt("fieldRenamed", { from: field.key, to: next }),
-      );
-      if (ok)
-        announceDataPanelStatus(
-          dt("fieldRenamed", { from: field.key, to: next }),
-        );
-    }
-  };
-
-  const createField = async () => {
-    const next = keyDraft.trim();
+    if (next === field.key) return;
     if (next === "") {
       globalToast.warning(dt("fieldKeyEmpty"));
+      setKeyDraft(field.key);
       return;
     }
     if (existingKeys.includes(next)) {
       globalToast.warning(dt("fieldKeyDup", { key: next }));
+      setKeyDraft(field.key);
       return;
     }
-    const ok = await write([
-      {
-        op: "add_field",
-        collectionId,
-        field: { key: next, type: "string" },
-      },
-    ]);
-    if (ok) {
-      announceDataPanelStatus(dt("fieldAdded", { key: next }), {
-        tone: "success",
-      });
-      onClose();
-    }
+    const ok = await write(
+      [
+        {
+          op: "update_field",
+          collectionId,
+          fieldId,
+          patch: { key: next },
+        },
+      ],
+      dt("fieldRenamed", { from: field.key, to: next }),
+    );
+    if (ok)
+      announceDataPanelStatus(
+        dt("fieldRenamed", { from: field.key, to: next }),
+      );
   };
 
   const patchField = async (patch: Record<string, unknown>) => {
-    if (!field) return;
-    await write([
-      { op: "update_field", collectionId, fieldId: fieldId as string, patch },
-    ]);
+    await write([{ op: "update_field", collectionId, fieldId, patch }]);
   };
 
   const requestTypeChange = (newType: DataFieldType) => {
-    if (!field || newType === field.type) return;
+    if (newType === field.type) return;
     const preview = previewTypeChange(field, newType, rows, field.key);
     if (preview.invalidCount === 0) {
       void patchField({ type: newType });
@@ -278,7 +243,7 @@ function FieldForm({
   };
 
   const applyTypeChange = async (mode: "keep" | "clear") => {
-    if (!field || !pendingType) return;
+    if (!pendingType) return;
     const ops = typeChangeToOps({
       collectionId,
       field,
@@ -293,7 +258,6 @@ function FieldForm({
   };
 
   const deleteField = async () => {
-    if (!field) return;
     if (usage.length > 0) {
       setConfirmDelete(true);
       return;
@@ -301,11 +265,8 @@ function FieldForm({
     await runDelete();
   };
   const runDelete = async () => {
-    if (!field) return;
     setConfirmDelete(false);
-    const ok = await write([
-      { op: "remove_field", collectionId, fieldId: fieldId as string },
-    ]);
+    const ok = await write([{ op: "remove_field", collectionId, fieldId }]);
     if (ok) {
       announceDataPanelStatus(dt("fieldDeleted", { key: field.key }), {
         tone: "success",
@@ -327,139 +288,118 @@ function FieldForm({
           onKeyDown={(e) => {
             if (e.key === "Enter") {
               e.preventDefault();
-              if (field) void commitKey();
-              else void createField();
+              void commitKey();
             }
           }}
-          onBlur={() => {
-            if (field) void commitKey();
+          onBlur={() => void commitKey()}
+        />
+      </fieldset>
+
+      <fieldset className="properties-aria datatable-field-type">
+        <legend className="fieldset-legend">{dt("fieldType")}</legend>
+        <input
+          type="text"
+          className="datatable-field-input datatable-field-type-search"
+          placeholder={dt("fieldTypeSearch")}
+          aria-label={dt("fieldTypeSearch")}
+          spellCheck={false}
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+        />
+        <ListBox
+          className="datatable-field-type-list"
+          aria-label={dt("fieldType")}
+          selectionMode="single"
+          selectedKeys={[type]}
+          onSelectionChange={(keys) => {
+            const next = [...(keys as Set<string>)][0] as DataFieldType;
+            if (next) requestTypeChange(next);
+          }}
+        >
+          {filteredTypes.map((ft) => {
+            const Icon = ft.icon;
+            return (
+              <ListBoxItem
+                key={ft.value}
+                id={ft.value}
+                textValue={dt(ft.i18n)}
+                className="datatable-field-type-item"
+              >
+                <Icon size={iconSmall.size} />
+                <span>{dt(ft.i18n)}</span>
+              </ListBoxItem>
+            );
+          })}
+        </ListBox>
+      </fieldset>
+
+      <fieldset className="properties-aria datatable-field-flags">
+        <legend className="fieldset-legend">{dt("fieldRequired")}</legend>
+        <label className="datatable-field-check">
+          <input
+            type="checkbox"
+            checked={field.required ?? false}
+            onChange={(e) => void patchField({ required: e.target.checked })}
+          />
+          <span>{dt("fieldRequired")}</span>
+        </label>
+      </fieldset>
+
+      <fieldset className="properties-aria datatable-field-label">
+        <legend className="fieldset-legend">{dt("fieldLabel")}</legend>
+        <input
+          type="text"
+          className="datatable-field-input"
+          defaultValue={field.label ?? ""}
+          key={`label-${field.id ?? field.key}`}
+          onBlur={(e) => {
+            const v = e.target.value;
+            if (v !== (field.label ?? ""))
+              void patchField({ label: v === "" ? null : v });
           }}
         />
       </fieldset>
 
-      {field ? (
-        <>
-          <fieldset className="properties-aria datatable-field-type">
-            <legend className="fieldset-legend">{dt("fieldType")}</legend>
-            <input
-              type="text"
-              className="datatable-field-input datatable-field-type-search"
-              placeholder={dt("fieldTypeSearch")}
-              aria-label={dt("fieldTypeSearch")}
-              spellCheck={false}
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            />
-            <ListBox
-              className="datatable-field-type-list"
-              aria-label={dt("fieldType")}
-              selectionMode="single"
-              selectedKeys={[type]}
-              onSelectionChange={(keys) => {
-                const next = [...(keys as Set<string>)][0] as DataFieldType;
-                if (next) requestTypeChange(next);
-              }}
-            >
-              {filteredTypes.map((ft) => {
-                const Icon = ft.icon;
-                return (
-                  <ListBoxItem
-                    key={ft.value}
-                    id={ft.value}
-                    textValue={dt(ft.i18n)}
-                    className="datatable-field-type-item"
-                  >
-                    <Icon size={iconSmall.size} />
-                    <span>{dt(ft.i18n)}</span>
-                  </ListBoxItem>
-                );
-              })}
-            </ListBox>
-          </fieldset>
+      <fieldset className="properties-aria datatable-field-default">
+        <legend className="fieldset-legend">{dt("fieldDefault")}</legend>
+        <input
+          type="text"
+          className="datatable-field-input"
+          defaultValue={
+            field.defaultValue === null || field.defaultValue === undefined
+              ? ""
+              : String(field.defaultValue)
+          }
+          key={`def-${field.id ?? field.key}`}
+          onBlur={(e) => {
+            const v = e.target.value;
+            void patchField({ defaultValue: v === "" ? null : v });
+          }}
+        />
+      </fieldset>
 
-          <fieldset className="properties-aria datatable-field-flags">
-            <legend className="fieldset-legend">{dt("fieldRequired")}</legend>
-            <label className="datatable-field-check">
-              <input
-                type="checkbox"
-                checked={field.required ?? false}
-                onChange={(e) =>
-                  void patchField({ required: e.target.checked })
-                }
-              />
-              <span>{dt("fieldRequired")}</span>
-            </label>
-          </fieldset>
+      <div className="datatable-field-usage">
+        {usage.length > 0
+          ? dt("fieldUsedBy", { count: usage.length })
+          : dt("fieldUsedByNone")}
+      </div>
 
-          <fieldset className="properties-aria datatable-field-label">
-            <legend className="fieldset-legend">{dt("fieldLabel")}</legend>
-            <input
-              type="text"
-              className="datatable-field-input"
-              defaultValue={field.label ?? ""}
-              key={`label-${field.id ?? field.key}`}
-              onBlur={(e) => {
-                const v = e.target.value;
-                if (v !== (field.label ?? ""))
-                  void patchField({ label: v === "" ? null : v });
-              }}
-            />
-          </fieldset>
-
-          <fieldset className="properties-aria datatable-field-default">
-            <legend className="fieldset-legend">{dt("fieldDefault")}</legend>
-            <input
-              type="text"
-              className="datatable-field-input"
-              defaultValue={
-                field.defaultValue === null || field.defaultValue === undefined
-                  ? ""
-                  : String(field.defaultValue)
-              }
-              key={`def-${field.id ?? field.key}`}
-              onBlur={(e) => {
-                const v = e.target.value;
-                void patchField({ defaultValue: v === "" ? null : v });
-              }}
-            />
-          </fieldset>
-
-          <div className="datatable-field-usage">
-            {usage.length > 0
-              ? dt("fieldUsedBy", { count: usage.length })
-              : dt("fieldUsedByNone")}
-          </div>
-
-          <Button
-            className="control-button"
-            data-tone="danger"
-            onPress={() => void deleteField()}
-          >
-            <DeleteIcon size={iconSmall.size} />
-            {dt("fieldDelete")}
-          </Button>
-        </>
-      ) : (
-        <Button
-          className="control-button"
-          data-variant="primary"
-          onPress={() => void createField()}
-        >
-          {dt("fieldAddTitle")}
-        </Button>
-      )}
+      <Button
+        className="control-button"
+        data-tone="danger"
+        onPress={() => void deleteField()}
+      >
+        <DeleteIcon size={iconSmall.size} />
+        {dt("fieldDelete")}
+      </Button>
 
       <ConfirmDialog
         isOpen={confirmDelete}
-        title={field ? dt("fieldDeleteConfirmTitle", { key: field.key }) : ""}
-        message={
-          field
-            ? dt("fieldDeleteConfirmUsed", {
-                key: field.key,
-                count: usage.length,
-              })
-            : ""
-        }
+        title={dt("fieldDeleteConfirmTitle", { key: field.key })}
+        message={dt("fieldDeleteConfirmUsed", {
+          key: field.key,
+          count: usage.length,
+        })}
         tone="danger"
         onConfirm={() => void runDelete()}
         onCancel={() => setConfirmDelete(false)}
@@ -467,7 +407,7 @@ function FieldForm({
 
       <ConfirmDialog
         isOpen={pendingType !== null}
-        title={field ? dt("fieldTypeChangeTitle", { key: field.key }) : ""}
+        title={dt("fieldTypeChangeTitle", { key: field.key })}
         message={
           pendingType
             ? dt("fieldTypeChangeInvalid", {

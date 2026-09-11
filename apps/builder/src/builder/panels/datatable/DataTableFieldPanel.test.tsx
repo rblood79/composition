@@ -184,24 +184,14 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
     ]);
   });
 
-  it("새 필드 (fieldId null) → add_field", async () => {
+  it("fieldId null → 빈 상태 (생성은 격자 헤더 인라인 담당)", () => {
     openField(null);
-    const { container, getByRole } = render(
+    const { container, queryByRole } = render(
       wrap(<DataTableFieldPanel isActive />),
     );
-    fireEvent.change(keyInput(container), { target: { value: "email" } });
-    const add = getByRole("button", { name: "New field" });
-    fireEvent.pointerDown(add, { pointerType: "mouse", button: 0 });
-    fireEvent.pointerUp(add, { pointerType: "mouse", button: 0 });
-    fireEvent.click(add);
-    await waitFor(() => expect(applyDataChange).toHaveBeenCalledTimes(1));
-    expect(lastOps()).toEqual([
-      {
-        op: "add_field",
-        collectionId: "c1",
-        field: { key: "email", type: "string" },
-      },
-    ]);
+    expect(container.querySelector(".datatable-field-empty")).not.toBeNull();
+    expect(keyInput(container)).toBeNull();
+    expect(queryByRole("button", { name: "New field" })).toBeNull();
   });
 
   it("required 토글 → update_field { required }", async () => {
