@@ -183,3 +183,44 @@ export type {
 } from "./budget";
 export { resolveChartModel } from "./model";
 export type { ChartModel, ChartModelView } from "./model";
+// ADR-216 — 시간 interval · 눈금 · 지시자 형식 (d3 규칙 이식, 외부 의존 0)
+export {
+  DURATION_DAY,
+  DURATION_HOUR,
+  DURATION_MINUTE,
+  DURATION_MONTH,
+  DURATION_SECOND,
+  DURATION_WEEK,
+  DURATION_YEAR,
+  millisecond,
+  unixDay,
+  utcDay,
+  utcDayOfYear,
+  utcHour,
+  utcMinute,
+  utcMonth,
+  utcSecond,
+  utcWeek,
+  utcYear,
+} from "./timeIntervals";
+export type { TimeInterval } from "./timeIntervals";
+export {
+  niceTime,
+  tickStep,
+  timeTickInterval,
+  timeTicks,
+} from "./timeTicks";
+export type {
+  TimeGranularity,
+  TimeTickInterval,
+  TimeTickResult,
+} from "./timeTicks";
+export {
+  TIME_LOCALE_EN_US,
+  TIME_LOCALE_KO_KR,
+  formatTime,
+  parseTime,
+  resolveTimeLocale,
+  timeLabelFormats,
+} from "./timeFormat";
+export type { TimeLabelFormats, TimeLocale } from "./timeFormat";

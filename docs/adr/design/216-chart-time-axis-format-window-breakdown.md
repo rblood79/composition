@@ -81,7 +81,7 @@
 ## 5. 체크리스트
 
 - [x] P0 inventory freeze (2026-09-12, `216-p0-inventory.md` 로컬) (evidence `216-p0-inventory.md`, 로컬) — 번들 baseline · Slider thumb 2 실측 · byte 동일 대상 목록 (스냅샷 4 · T10 32 에 창 트랙 마크 포함 여부를 나눠 기록)
-- [ ] P1 순수 모듈 + 오라클 (d3 대조 눈금 12 span × 3 count · format 100 · parse 성분 대조 · 달력 넘침 거부)
+- [x] P1 순수 모듈 + 오라클 (2026-09-12 — `adr216TimeOracle.test.ts` 76: 눈금 12×3 + 임의 60 · format 15 지시자 × 100 · parse 15 × 100 + 경계 15 · HC7 거부 · 정적 가드; d3 `unixDay` 로 일 눈금 정정) (d3 대조 눈금 12 span × 3 count · format 100 · parse 성분 대조 · 달력 넘침 거부)
 - [ ] P2 모델 분기 + `positions` 보존 + 손계산 oracle 3 fixture + validator + 진단 (파싱 실패 제외)
 - [ ] P3 두 leg 소비 + parity byte 동일
 - [ ] P4 props 결선 9 지점 + 패널 + i18n

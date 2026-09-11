@@ -47,9 +47,13 @@
   },
   "devDependencies": {
     "@composition/config": "workspace:*",
+    "@types/d3-time": "^3.0.4",
+    "@types/d3-time-format": "^4.0.3",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@vitest/coverage-v8": "^4.1.11",
+    "d3-time": "^3.1.0",
+    "d3-time-format": "^4.1.0",
     "eslint": "catalog:",
     "lucide-react": "catalog:",
     "tsup": "^8.5.1",
