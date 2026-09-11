@@ -682,6 +682,8 @@ const koKR: TranslationKeys = {
     listApiEndpointsDone: "읽음",
     getApiEndpoint: "API 정의 읽기",
     getApiEndpointDone: "읽음",
+    explainRequestFailure: "실패 원인 분석",
+    explainRequestFailureDone: "컨텍스트 수집됨",
     genericDone: "{name} 완료",
     selectedElement: "선택한 요소",
     callWithDetail: "{intent} · {detail}",
@@ -851,6 +853,8 @@ const koKR: TranslationKeys = {
     collectionsLine: "- {name} ({fieldCount} 필드 · {rowCount} 행 · {source})",
     collectionsMore: "… 더 있음 {count} — list_collections 로 전체를 읽으세요.",
     collectionsNone: "(없음)",
+    explainFailureGuidance:
+      "위 컨텍스트로 답하세요. 형식: (1) 원인 — status · 응답 본문 · 요청 정의에서 근거를 들어 1~2문장. (2) 제안 — 정의를 바꾸면 해결되는 경우 define_endpoint DataOp (endpoint 전체 정의, 인증 값은 {{secret.KEY}} placeholder 그대로) 를 JSON 코드 블록으로; 정의 밖 문제 (서버 · 네트워크 · 권한) 면 사용자가 할 일을 적으세요. 적용은 사용자가 승인해야 하므로 직접 적용하지 마세요.",
     rulesHeading: "## 규칙",
     rule1:
       '1. **elementId 는 지어내지 마세요.** 방금 만든 요소를 이어서 다룰 때는 "last-created",\n   현재 선택된 요소는 "selected" 를 쓰세요. 그 외에는 create_element 결과의\n   data.elementId 를 그대로 옮기거나, 실제 id 가 필요할 때만 search_elements /\n   get_editor_state 로 조회한 id 를 쓸 수 있습니다. created-element-id / cardId 같은\n   자리표시자는 실패합니다.',
@@ -1047,6 +1051,10 @@ const koKR: TranslationKeys = {
     endpointIdRef:
       "endpoint id (list_api_endpoints 결과의 id). name 과 둘 중 하나는 필수.",
     endpointNameRef: "endpoint 이름 — id 를 모를 때.",
+    explainRequestFailure:
+      "API endpoint 의 마지막 실행이 왜 실패했는지 설명할 컨텍스트를 모읍니다 — 정의 · 보낸 요청 · 응답 status/headers · 응답 본문 앞 2KB · 대상 테이블 스키마 (인증 값은 {{secret.KEY}} 로 가려짐). 참조 없이 부르면 가장 최근 실패 실행. 결과의 guidance 에 맞춰 원인과 제안을 답하세요.",
+    runIdRef:
+      "실행 id (list_api_endpoints 의 lastRun.runId). 생략하면 그 endpoint 의 마지막 실행.",
   },
   aiDataProposal: {
     summary: "데이터 변경 {count}건: {ops}",
@@ -1136,6 +1144,12 @@ const koKR: TranslationKeys = {
       "endpoint 를 찾을 수 없습니다: {ref}. 있는 이름: {names}. list_api_endpoints 로 다시 확인하세요.",
     bindLegacySourceUnsupported:
       "source api/supabase 는 더 이상 지원하지 않습니다. list_api_endpoints 로 endpoint 를 확인하고, 실행 결과 테이블에 collectionId 로 연결하세요.",
+    noRunRecorded:
+      "endpoint {name} 은 이 세션에서 실행된 적이 없습니다. 먼저 실행하세요 (API 편집기 Run 또는 데이터 새로고침).",
+    noRunAtAll:
+      "이 세션에서 실행된 API endpoint 가 없습니다. 먼저 실행하세요 (API 편집기 Run 또는 데이터 새로고침).",
+    runNotFound:
+      "실행 {runId} 는 남아 있지 않습니다 (endpoint 당 마지막 1건만 보관 — 현재 {latest}). runId 를 빼고 다시 부르세요.",
     unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
     bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
     notDeleted:
@@ -2289,6 +2303,8 @@ const enUS: TranslationKeys = {
     listApiEndpointsDone: "read",
     getApiEndpoint: "Read the API definition",
     getApiEndpointDone: "read",
+    explainRequestFailure: "Analyze request failure",
+    explainRequestFailureDone: "context collected",
     genericDone: "{name} done",
     selectedElement: "the selected element",
     callWithDetail: "{intent} · {detail}",
@@ -2466,6 +2482,8 @@ const enUS: TranslationKeys = {
     collectionsMore:
       "… {count} more — read the full list with list_collections.",
     collectionsNone: "(none)",
+    explainFailureGuidance:
+      "Answer from the context above. Format: (1) Cause — 1–2 sentences citing the status, response body, or request definition. (2) Suggestion — if a definition change fixes it, give a define_endpoint DataOp (the full endpoint definition, keeping {{secret.KEY}} placeholders as-is) in a JSON code block; if the problem is outside the definition (server, network, permissions), say what the user should do. Do not apply anything yourself — the user must approve.",
     rulesHeading: "## Rules",
     rule1:
       '1. **Never invent an elementId.** Use "last-created" for the element you just made and\n   "selected" for the current selection. Otherwise copy data.elementId from the\n   create_element result verbatim, or — only when you need a real id — read one via\n   search_elements or get_editor_state. Placeholders like created-element-id or cardId will fail.',
@@ -2667,6 +2685,10 @@ const enUS: TranslationKeys = {
     endpointIdRef:
       "Endpoint id (from list_api_endpoints). Either this or name is required.",
     endpointNameRef: "Endpoint name — when the id is unknown.",
+    explainRequestFailure:
+      "Collects the context to explain why an API endpoint's last run failed — definition, the request as sent, response status/headers, first 2KB of the response body, and the target table schema (auth values masked as {{secret.KEY}}). Without a reference it picks the most recent failed run. Answer following the guidance in the result.",
+    runIdRef:
+      "Run id (lastRun.runId from list_api_endpoints). Omit for that endpoint's last run.",
   },
   aiDataProposal: {
     summary: "{count} data change(s): {ops}",
@@ -2752,6 +2774,12 @@ const enUS: TranslationKeys = {
       "Endpoint not found: {ref}. Available names: {names}. Check again with list_api_endpoints.",
     bindLegacySourceUnsupported:
       "source api/supabase is no longer supported. Check the endpoint with list_api_endpoints and bind the element to its result table by collectionId.",
+    noRunRecorded:
+      "Endpoint {name} has not been run in this session. Run it first (API editor Run, or refresh the data).",
+    noRunAtAll:
+      "No API endpoint has been run in this session. Run one first (API editor Run, or refresh the data).",
+    runNotFound:
+      "Run {runId} is no longer kept (only the last run per endpoint is retained — currently {latest}). Call again without runId.",
     unknownAction:
       "Unknown action: {action}. Only create, update and delete are allowed.",
     bodyUndeletable: "The body element cannot be deleted.",
@@ -3955,6 +3983,10 @@ const formattedMessages: Record<
       `collection 을 찾을 수 없습니다: ${String(args?.ref ?? "")}. 있는 이름: ${String(args?.names ?? "")}. list_collections 로 다시 확인하세요.`,
     "aiToolError.endpointNotFound": (args) =>
       `endpoint 를 찾을 수 없습니다: ${String(args?.ref ?? "")}. 있는 이름: ${String(args?.names ?? "")}. list_api_endpoints 로 다시 확인하세요.`,
+    "aiToolError.noRunRecorded": (args) =>
+      `endpoint ${String(args?.name ?? "")} 은 이 세션에서 실행된 적이 없습니다. 먼저 실행하세요 (API 편집기 Run 또는 데이터 새로고침).`,
+    "aiToolError.runNotFound": (args) =>
+      `실행 ${String(args?.runId ?? "")} 는 남아 있지 않습니다 (endpoint 당 마지막 1건만 보관 — 현재 ${String(args?.latest ?? "")}). runId 를 빼고 다시 부르세요.`,
     "aiToolError.frameOnly": (args) =>
       `type: "frame" 노드에만 쓸 수 있습니다 (현재 ${String(args?.type ?? "")}).`,
     "aiToolError.unknownAction": (args) =>
@@ -4264,6 +4296,10 @@ const formattedMessages: Record<
       `Collection not found: ${String(args?.ref ?? "")}. Available names: ${String(args?.names ?? "")}. Check again with list_collections.`,
     "aiToolError.endpointNotFound": (args) =>
       `Endpoint not found: ${String(args?.ref ?? "")}. Available names: ${String(args?.names ?? "")}. Check again with list_api_endpoints.`,
+    "aiToolError.noRunRecorded": (args) =>
+      `Endpoint ${String(args?.name ?? "")} has not been run in this session. Run it first (API editor Run, or refresh the data).`,
+    "aiToolError.runNotFound": (args) =>
+      `Run ${String(args?.runId ?? "")} is no longer kept (only the last run per endpoint is retained — currently ${String(args?.latest ?? "")}). Call again without runId.`,
     "aiToolError.frameOnly": (args) =>
       `valid only on type: "frame" nodes (this one is ${String(args?.type ?? "")}).`,
     "aiToolError.unknownAction": (args) =>

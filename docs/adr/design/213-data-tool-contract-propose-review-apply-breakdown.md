@@ -64,12 +64,13 @@
 - [x] `bindCollectionRender.test.tsx` 갱신 + legacy 입력 회귀 test — `bindCollection.test.ts` (정규화 3 + dispatcher 경로 3) · `phase4Tools.test.ts` bind 4 (실 canonical 문서 + 실 consumer + 승인 host) · `dataChange.test.ts` bind 6. 기존 `bindCollectionRender.test.tsx` (extension 형태 렌더) 는 read 호환 증거로 유지
 - [x] G4 live: 정상/legacy 입력 모두 diff 승인 표시, 거부 무변경, 승인 시 Skia·DOM 행 + History 1, `⌘Z` 원상 — 2026-09-11 Ollama qwen3:14b. 별도 결함 1 발견 (같은 세션에서 만든 collection 은 Skia 가 새로고침 전까지 정적 chip — 사람 경로 동일, 213 범위 밖, 후속 `/fix`)
 
-### Phase 3 — "왜 실패했지?" (AI-3, 게이트 G3)
+### Phase 3 — "왜 실패했지?" (AI-3, 게이트 G3) — **완료 2026-09-11** (evidence `213-p0-inventory.md` "Phase 3 — G3")
 
-- [ ] `explain_request_failure` — 요청 정의 · 응답 status/headers · 본문 앞 2KB · 테이블 스키마를 조립한 뒤 공유 redactor를 적용하고서 provider에 전달. 모델은 `{ cause, suggestion: DataOp[] }` 구조화 출력
-- [ ] 표면: ADR-212 Phase 4 응답 패널 오류 옆 버튼 — 212 전에는 AI 패널 프롬프트 ("마지막 실행 왜 실패했어?") 로 같은 tool 호출
-- [ ] suggestion 적용은 Phase 4 승인 경로 (그 전엔 제안 텍스트만)
-- [ ] G3 live: headers/cookies/query/body의 canary 원문이 provider payload에 0임을 캡처. Bearer 없는 401 → patch 제안 → Phase 4 승인 → 재실행 200
+- [x] `explain_request_failure` — 요청 정의 · 응답 status/headers · 본문 앞 2KB · 테이블 스키마를 조립한 뒤 공유 redactor를 적용하고서 provider에 전달. 모델은 `{ cause, suggestion: DataOp[] }` 구조화 출력
+  > 실행 스냅샷이 없어 먼저 만들었다: `ApiRunRecord` (`useDataStore.apiRuns`, endpoint 당 마지막 1건 · 세션 전용 · 원문) 을 `executeApiEndpoint` 가 성공/실패/네트워크 오류 모두 기록 (응답은 `text()` 1회 → 본문 앞 2,048 B 미리보기 + JSON 파싱). tool 은 `buildRequestFailureContext` (순수 — 정의 · 요청 URL/헤더/본문 · 응답 헤더/본문 · error 전부 redactor) + `guidance` 로 원인 + `define_endpoint` DataOp JSON 제안을 유도한다. **이탈**: tool-calling 흐름에서는 구조화 출력 대신 guidance 자연어 (원인 + JSON 코드 블록) — 전용 구조화 호출은 212 Phase 4 버튼 표면이 같은 조립 함수로. `list/get_api_endpoint.lastRun` 은 스냅샷 요약으로 승격.
+- [x] 표면: ADR-212 Phase 4 응답 패널 오류 옆 버튼 — 212 전에는 AI 패널 프롬프트 ("마지막 실행 왜 실패했어?") 로 같은 tool 호출 (live 3: 자연어 → 모델이 인자 없이 호출 → 가장 최근 실패 실행)
+- [x] suggestion 적용은 Phase 4 승인 경로 (그 전엔 제안 텍스트만)
+- [x] G3 live: headers/cookies/query/body의 canary 원문이 provider payload에 0임을 캡처 (4 payload 전부 0 · placeholder 3종). Bearer 없는 401 → patch 제안 (`Authorization: Bearer {{secret.BEARER_TOKEN}}`) — **→ Phase 4 승인 → 재실행 200 은 Phase 4 에서 같은 시드로 이어서**
 
 ### Phase 4 — `propose_data_change` + 승인 diff 뷰 + provenance (AX-2 · X4 · X5 · AX-7, 게이트 G2)
 
@@ -103,18 +104,18 @@
 
 ## 5. 파일 변경표 (Phase 0 에서 freeze — 2026-09-11)
 
-| 파일 | Phase | 변경 |
-| --- | :---: | --- |
-| `services/ai/tools/{listCollections,getCollection,listApiEndpoints,getApiEndpoint}.ts` (신규) | 1 | 읽기 tool 4 |
-| `services/ai/tools/definitions.ts` · `index.ts` · `getEditorState.ts` | 1·4 | 등록 (정의 배열 + executor 배열 두 곳) · collections 요약 |
-| `services/ai/catalog/dynamicInjection.ts` · `services/ai/systemPrompt.ts` (`buildTurnContext`) · `services/ai/security/redactEndpointSecrets.ts` (신규) | 1·3 | 고정 예산 주입 (byte 절단 + "더 있음") · 공유 secret redactor |
-| `services/ai/tools/bindCollection.ts` · `builder/stores/utils/dataChange.ts` | 2·4 | alias 승인 정규화 · `define_endpoint` / `bind_element` case + coordinator `applyDataChangeTransaction` (ADR-214 `define_variable` 와 같은 파일 — 국소화) |
-| `services/ai/tools/explainRequestFailure.ts` (신규) | 3 | 컨텍스트 조립 + 구조화 출력 |
-| `services/ai/tools/proposeDataChange.ts` (신규) · `packages/shared/src/schemas/dataChange.ts` (`omitOrigin` 파생 추가) | 4 | 쓰기 tool 1 + executor 입구 zod (양 provider 공통 — provider 파일 변경 0) |
-| `services/agent/agentCommandConfirmation.ts` (`id` 축 확장) · `AgentCommandConfirmDialog` (+ `DataChangeDiffView.tsx` 신규) | 4 | 스키마 diff 뷰 |
-| `services/agent/executeAgentCommand.ts` (`agentCommandLog`) | 4 | 세션 provenance 데이터 묶음 entry |
-| `services/agent/agentCommands.ts` | 5 | `data.*` 4 명령 |
-| `services/ai/tools/{createTableFromDescription,understandPaste}.ts` (신규) · `presets/dataTablePresets.ts` (생성기 → 검증기) | 6 | AI-1 · AI-2 · AI-4 |
+| 파일                                                                                                                                                    | Phase | 변경                                                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | :---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `services/ai/tools/{listCollections,getCollection,listApiEndpoints,getApiEndpoint}.ts` (신규)                                                           |   1   | 읽기 tool 4                                                                                                                                                                                                     |
+| `services/ai/tools/definitions.ts` · `index.ts` · `getEditorState.ts`                                                                                   |  1·4  | 등록 (정의 배열 + executor 배열 두 곳) · collections 요약                                                                                                                                                       |
+| `services/ai/catalog/dynamicInjection.ts` · `services/ai/systemPrompt.ts` (`buildTurnContext`) · `services/ai/security/redactEndpointSecrets.ts` (신규) |  1·3  | 고정 예산 주입 (byte 절단 + "더 있음") · 공유 secret redactor                                                                                                                                                   |
+| `services/ai/tools/bindCollection.ts` · `builder/stores/utils/dataChange.ts`                                                                            |  2·4  | alias 승인 정규화 · `define_endpoint` / `bind_element` case + coordinator `applyDataChangeTransaction` (ADR-214 `define_variable` 와 같은 파일 — 국소화)                                                        |
+| `services/ai/tools/explainRequestFailure.ts` (신규)                                                                                                     |   3   | 컨텍스트 조립 (`buildRequestFailureContext` 순수) + guidance · `types/builder/data.types.ts` `ApiRunRecord` + `apiRuns` · `stores/utils/dataActions.ts` 실행 스냅샷 기록 · `dataToolReadModel.summarizeLastRun` |
+| `services/ai/tools/proposeDataChange.ts` (신규) · `packages/shared/src/schemas/dataChange.ts` (`omitOrigin` 파생 추가)                                  |   4   | 쓰기 tool 1 + executor 입구 zod (양 provider 공통 — provider 파일 변경 0)                                                                                                                                       |
+| `services/agent/agentCommandConfirmation.ts` (`id` 축 확장) · `AgentCommandConfirmDialog` (+ `DataChangeDiffView.tsx` 신규)                             |   4   | 스키마 diff 뷰                                                                                                                                                                                                  |
+| `services/agent/executeAgentCommand.ts` (`agentCommandLog`)                                                                                             |   4   | 세션 provenance 데이터 묶음 entry                                                                                                                                                                               |
+| `services/agent/agentCommands.ts`                                                                                                                       |   5   | `data.*` 4 명령                                                                                                                                                                                                 |
+| `services/ai/tools/{createTableFromDescription,understandPaste}.ts` (신규) · `presets/dataTablePresets.ts` (생성기 → 검증기)                            |   6   | AI-1 · AI-2 · AI-4                                                                                                                                                                                              |
 
 Phase 0 정정: `services/ai/providers/OpenAICompatibleProvider.ts` 행 삭제 — tool 인자 dispatch 가 provider 중립 1곳 (`AgentService.ts:157`) 이라 zod 는 executor 에 둔다.
 

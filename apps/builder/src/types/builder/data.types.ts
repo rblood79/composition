@@ -425,6 +425,42 @@ export interface ElementDataBinding {
 // ============================================
 
 /**
+ * API endpoint 실행 스냅샷 — ADR-213 Phase 3 ("왜 실패했지?" 의 컨텍스트 원천).
+ *
+ * `executeApiEndpoint` 가 성공 · 실패 모두 endpoint 당 **마지막 1건** 을 남긴다 (세션 전용 ·
+ * 저장 안 함). 값은 **원문** 이다 — AI 가 읽는 경로 (`explain_request_failure` ·
+ * `list/get_api_endpoint` lastRun) 는 공유 redactor 를 지난 뒤에만 provider 로 나간다 (HC5).
+ */
+export interface ApiRunRecord {
+  runId: string;
+  endpointId: string;
+  /** ISO — 요청 시작 시각 */
+  startedAt: string;
+  durationMs: number;
+  ok: boolean;
+  request: {
+    method: HttpMethod;
+    /** 변수 치환 · query 까지 붙은 최종 URL (proxy 경로 아님) */
+    url: string;
+    headers: Record<string, string>;
+    bodyType: BodyType;
+    body?: string;
+  };
+  /** fetch 가 응답을 받았을 때만 — 네트워크 오류 · timeout 은 `null` */
+  response: {
+    status: number;
+    statusText: string;
+    headers: Record<string, string>;
+    /** 본문 앞부분 (`API_RUN_BODY_PREVIEW_MAX_BYTES`) — 실패 응답도 남긴다 */
+    bodyPreview: string;
+    bodyTruncated: boolean;
+    bodyBytes: number;
+  } | null;
+  /** 실패 사유 (HTTP 상태 · 네트워크 · timeout · JSON 파싱) */
+  error?: string;
+}
+
+/**
  * Data Store State
  */
 export interface DataStoreState {
@@ -439,6 +475,9 @@ export interface DataStoreState {
 
   /** 현재 로딩 중인 API ID 목록 */
   loadingApis: Set<string>;
+
+  /** endpoint id → 마지막 실행 스냅샷 (ADR-213 Phase 3, 세션 전용) */
+  apiRuns: Map<string, ApiRunRecord>;
 
   /** 에러 상태 */
   errors: Map<string, Error>;

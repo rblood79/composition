@@ -8,7 +8,11 @@ import type {
   ToolExecutionResult,
   ToolExecutor,
 } from "../../../types/integrations/ai.types";
-import { findEndpoint, getDataToolReadModel } from "../data/dataToolReadModel";
+import {
+  findEndpoint,
+  getDataToolReadModel,
+  summarizeLastRun,
+} from "../data/dataToolReadModel";
 import { redactEndpointSecrets } from "../security/redactEndpointAuth";
 
 export const getApiEndpointTool: ToolExecutor = {
@@ -23,7 +27,8 @@ export const getApiEndpointTool: ToolExecutor = {
     }
 
     try {
-      const { apiEndpoints, lastErrors } = getDataToolReadModel();
+      const model = getDataToolReadModel();
+      const { apiEndpoints } = model;
       const endpoint = findEndpoint(apiEndpoints, args);
       if (!endpoint) {
         return {
@@ -34,12 +39,11 @@ export const getApiEndpointTool: ToolExecutor = {
           }),
         };
       }
-      const lastError = lastErrors.get(endpoint.id);
       return {
         success: true,
         data: {
           ...redactEndpointSecrets(endpoint),
-          lastRun: lastError ? { ok: false, error: lastError.message } : null,
+          lastRun: summarizeLastRun(endpoint.id, model),
         },
       };
     } catch (error) {

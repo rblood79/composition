@@ -50,6 +50,7 @@ function makeStore(init: Partial<Record<string, unknown>> = {}) {
     collections: new Map<string, DataTable>(),
     apiEndpoints: new Map<string, ApiEndpoint>(),
     loadingApis: new Set<string>(),
+    apiRuns: new Map(),
     errors: new Map(),
     isLoading: false,
     ...init,
@@ -201,7 +202,14 @@ describe("executeApiEndpoint sink — targetCollectionId 우선", () => {
   beforeEach(() => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => ({ ok: true, json: async () => rows })),
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        text: async () => JSON.stringify(rows),
+        json: async () => rows,
+      })),
     );
   });
   afterEach(() => vi.unstubAllGlobals());

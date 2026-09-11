@@ -78,6 +78,7 @@ beforeEach(() => {
   useDataStore.setState({
     collections: new Map([["users", users()]]),
     apiEndpoints: new Map([["ep1", endpoint()]]),
+    apiRuns: new Map(),
     errors: new Map([["executeApi_ep1", new Error("HTTP 401: Unauthorized")]]),
   });
 });

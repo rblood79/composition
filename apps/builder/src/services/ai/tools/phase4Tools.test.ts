@@ -283,15 +283,18 @@ describe("bind_collection (D3 → ADR-213 Phase 2 alias)", () => {
     expect(
       (
         useStore.getState().elements.find((e) => e.id === "list-1")?.props as
-          | { dataBinding?: unknown }
-          | undefined
+          { dataBinding?: unknown } | undefined
       )?.dataBinding,
     ).toBeUndefined();
 
     unsubscribe?.();
     mountHost(true);
     const approved = await bindCollectionTool.execute(
-      { elementId: "list-1", collectionId: "users", fieldMap: { value: "f_name" } },
+      {
+        elementId: "list-1",
+        collectionId: "users",
+        fieldMap: { value: "f_name" },
+      },
       tt,
     );
     expect(approved.success).toBe(true);
@@ -299,8 +302,7 @@ describe("bind_collection (D3 → ADR-213 Phase 2 alias)", () => {
     expect(
       (
         useStore.getState().elements.find((e) => e.id === "list-1")?.props as
-          | { dataBinding?: unknown }
-          | undefined
+          { dataBinding?: unknown } | undefined
       )?.dataBinding,
     ).toEqual({
       source: "dataTable",
@@ -406,13 +408,13 @@ describe("레지스트리 등록", () => {
     const registry = createToolRegistry();
     expect(registry.has("bind_collection")).toBe(true);
     expect(registry.has("create_interaction_rule")).toBe(true);
-    expect(registry.size).toBe(14);
+    expect(registry.size).toBe(15);
 
     const names = (await getToolDefinitions(tr)).map((d) => d.name);
     expect(names).toContain("bind_collection");
     expect(names).toContain("create_interaction_rule");
     expect(names).toContain("list_collections");
-    expect(names).toHaveLength(14);
+    expect(names).toHaveLength(15);
   });
 });
 

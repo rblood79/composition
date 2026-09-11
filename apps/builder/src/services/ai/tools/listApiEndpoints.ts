@@ -2,14 +2,17 @@
  * list_api_endpoints Tool — API endpoint 목록 (ADR-213 Phase 1, 읽기).
  *
  * url 은 baseUrl + path 를 합친 뒤 공유 redactor 를 지난다 (userinfo · auth query).
- * `lastRun` 은 현재 store 가 남기는 것 (마지막 실행 **오류**) 만 — 성공 기록은 Phase 3
- * 실행 스냅샷이 붙인다.
+ * `lastRun` 은 Phase 3 실행 스냅샷 요약 (`ok · status · at · runId · error`) — 자세한
+ * 것은 `explain_request_failure` 가 redactor 를 지나 준다.
  */
 import type {
   ToolExecutionResult,
   ToolExecutor,
 } from "../../../types/integrations/ai.types";
-import { getDataToolReadModel } from "../data/dataToolReadModel";
+import {
+  getDataToolReadModel,
+  summarizeLastRun,
+} from "../data/dataToolReadModel";
 import { redactUrl } from "../security/redactEndpointAuth";
 import { readFormat } from "./listCollections";
 
@@ -24,19 +27,19 @@ export const listApiEndpointsTool: ToolExecutor = {
 
   async execute(args): Promise<ToolExecutionResult> {
     try {
-      const { apiEndpoints, lastErrors } = getDataToolReadModel();
+      const model = getDataToolReadModel();
+      const { apiEndpoints } = model;
       const detailed = readFormat(args) === "detailed";
       return {
         success: true,
         data: apiEndpoints.map((endpoint) => {
-          const lastError = lastErrors.get(endpoint.id);
           return {
             id: endpoint.id,
             name: endpoint.name,
             method: endpoint.method,
             url: redactUrl(joinEndpointUrl(endpoint.baseUrl, endpoint.path)),
             targetCollectionId: endpoint.targetCollectionId ?? null,
-            lastRun: lastError ? { ok: false, error: lastError.message } : null,
+            lastRun: summarizeLastRun(endpoint.id, model),
             ...(detailed
               ? {
                   ...(endpoint.description

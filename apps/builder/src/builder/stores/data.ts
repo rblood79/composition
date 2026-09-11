@@ -28,6 +28,7 @@ import type { StateCreator } from "zustand";
 import type {
   DataTable,
   ApiEndpoint,
+  ApiRunRecord,
   Variable,
   DataStoreState,
   DataStoreActions,
@@ -240,6 +241,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     apiEndpoints: new Map<string, ApiEndpoint>(),
     variables: new Map<string, Variable>(),
     loadingApis: new Set<string>(),
+    apiRuns: new Map<string, ApiRunRecord>(),
     errors: new Map<string, Error>(),
     isLoading: false,
 

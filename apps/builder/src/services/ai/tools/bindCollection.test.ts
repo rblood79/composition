@@ -34,6 +34,7 @@ vi.mock("../data/dataToolReadModel", async (importOriginal) => {
       apiEndpoints: [],
       usage: new Map(),
       lastErrors: new Map(),
+      runs: new Map(),
     }),
   };
 });

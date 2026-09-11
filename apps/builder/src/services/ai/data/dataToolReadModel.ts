@@ -7,7 +7,11 @@
  */
 import { resolveCollectionByName } from "@composition/shared";
 import { useDataStore } from "../../../builder/stores/data";
-import type { ApiEndpoint, DataTable } from "../../../types/builder/data.types";
+import type {
+  ApiEndpoint,
+  ApiRunRecord,
+  DataTable,
+} from "../../../types/builder/data.types";
 import { getAiToolReadModel } from "../tools/canonicalToolReadModel";
 import { resolveCollectionUsage } from "./collectionReadModel";
 
@@ -15,12 +19,43 @@ export interface DataToolReadModel {
   collections: DataTable[];
   apiEndpoints: ApiEndpoint[];
   usage: Map<string, number>;
-  /** `executeApiEndpoint` 가 남긴 마지막 오류 (endpoint id → Error). 성공 기록은 없다 (Phase 3). */
+  /** `executeApiEndpoint` 가 남긴 마지막 오류 (endpoint id → Error) — 스냅샷 이전 형식 (호환). */
   lastErrors: Map<string, Error>;
+  /** endpoint id → 마지막 실행 스냅샷 (Phase 3, 원문 — 밖으로 낼 때는 redactor 를 지난다). */
+  runs: Map<string, ApiRunRecord>;
+}
+
+/** list/get 이 싣는 마지막 실행 요약 — 스냅샷 우선, 없으면 종전 오류 Map. 원문 secret 없음. */
+export function summarizeLastRun(
+  endpointId: string,
+  model: Pick<DataToolReadModel, "runs" | "lastErrors">,
+):
+  | {
+      ok: boolean;
+      status: number | null;
+      at: string;
+      runId: string;
+      error?: string;
+    }
+  | { ok: false; error: string }
+  | null {
+  const run = model.runs.get(endpointId);
+  if (run) {
+    return {
+      ok: run.ok,
+      status: run.response?.status ?? null,
+      at: run.startedAt,
+      runId: run.runId,
+      ...(run.error !== undefined ? { error: run.error } : {}),
+    };
+  }
+  const lastError = model.lastErrors.get(endpointId);
+  return lastError ? { ok: false, error: lastError.message } : null;
 }
 
 export function getDataToolReadModel(): DataToolReadModel {
-  const { collections, apiEndpoints, errors } = useDataStore.getState();
+  const { collections, apiEndpoints, errors, apiRuns } =
+    useDataStore.getState();
   const tables = [...collections.values()];
   const { elements } = getAiToolReadModel();
   const lastErrors = new Map<string, Error>();
@@ -34,6 +69,7 @@ export function getDataToolReadModel(): DataToolReadModel {
     apiEndpoints: [...apiEndpoints.values()],
     usage: resolveCollectionUsage(elements, tables),
     lastErrors,
+    runs: apiRuns,
   };
 }
 

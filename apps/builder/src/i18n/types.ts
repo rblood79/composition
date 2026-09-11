@@ -698,6 +698,8 @@ export interface TranslationKeys {
     listApiEndpointsDone: string;
     getApiEndpoint: string;
     getApiEndpointDone: string;
+    explainRequestFailure: string;
+    explainRequestFailureDone: string;
   };
   presetData: {
     companies: string;
@@ -851,6 +853,7 @@ export interface TranslationKeys {
     collectionsLine: string;
     collectionsMore: string;
     collectionsNone: string;
+    explainFailureGuidance: string;
     rulesHeading: string;
     rule1: string;
     rule2: string;
@@ -1000,6 +1003,8 @@ export interface TranslationKeys {
     sampleRows: string;
     endpointIdRef: string;
     endpointNameRef: string;
+    explainRequestFailure: string;
+    runIdRef: string;
     bindFieldMap: string;
   };
   aiDataProposal: {
@@ -1063,6 +1068,9 @@ export interface TranslationKeys {
     collectionNotFound: string;
     endpointRefRequired: string;
     endpointNotFound: string;
+    noRunRecorded: string;
+    noRunAtAll: string;
+    runNotFound: string;
     bindLegacySourceUnsupported: string;
     unknownAction: string;
     bodyUndeletable: string;

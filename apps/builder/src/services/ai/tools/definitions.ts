@@ -423,6 +423,30 @@ export const toolDefinitions: ChatCompletionTool[] = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "explain_request_failure",
+      description: "aiToolDef.explainRequestFailure",
+      parameters: {
+        type: "object",
+        properties: {
+          endpointId: {
+            type: "string",
+            description: "aiToolDef.endpointIdRef",
+          },
+          name: {
+            type: "string",
+            description: "aiToolDef.endpointNameRef",
+          },
+          runId: {
+            type: "string",
+            description: "aiToolDef.runIdRef",
+          },
+        },
+      },
+    },
+  },
 ];
 
 /**

@@ -34,6 +34,7 @@ import type {
   ApiEndpoint,
   ApiEndpointCreate,
   ApiEndpointUpdate,
+  ApiRunRecord,
   Variable,
   VariableCreate,
   VariableUpdate,
@@ -497,6 +498,44 @@ export const createDeleteApiEndpointAction =
 /**
  * ApiEndpoint을 실행하는 액션
  */
+/**
+ * 실행 스냅샷의 응답 본문 미리보기 상한 (ADR-213 Phase 3 — "왜 실패했지?" 컨텍스트의
+ * "본문 앞 2KB"). 바이트 기준, 멀티바이트 문자 경계에서 자른다.
+ */
+export const API_RUN_BODY_PREVIEW_MAX_BYTES = 2_048;
+
+const utf8 = new TextEncoder();
+
+/** 바이트 상한 안에서 code point 경계로 자른 앞부분 */
+function previewBody(text: string): {
+  bodyPreview: string;
+  bodyTruncated: boolean;
+  bodyBytes: number;
+} {
+  const bodyBytes = utf8.encode(text).length;
+  if (bodyBytes <= API_RUN_BODY_PREVIEW_MAX_BYTES) {
+    return { bodyPreview: text, bodyTruncated: false, bodyBytes };
+  }
+  let used = 0;
+  let out = "";
+  for (const ch of text) {
+    const n = utf8.encode(ch).length;
+    if (used + n > API_RUN_BODY_PREVIEW_MAX_BYTES) break;
+    used += n;
+    out += ch;
+  }
+  return { bodyPreview: out, bodyTruncated: true, bodyBytes };
+}
+
+function headersToRecord(headers: Headers | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!headers || typeof headers.forEach !== "function") return out;
+  headers.forEach((value, key) => {
+    out[key] = value;
+  });
+  return out;
+}
+
 export const createExecuteApiEndpointAction =
   (set: SetState, get: GetState) =>
   async (id: string, params?: Record<string, unknown>): Promise<unknown> => {
@@ -516,6 +555,34 @@ export const createExecuteApiEndpointAction =
     const newLoadingApis = new Set(loadingApis);
     newLoadingApis.add(id);
     set({ loadingApis: newLoadingApis });
+
+    // ADR-213 Phase 3 — 실행 스냅샷 (endpoint 당 마지막 1건 · 원문 · 세션 전용)
+    const startedAt = new Date();
+    const runId = `run_${startedAt.getTime().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    let requestSnapshot: ApiRunRecord["request"] = {
+      method: endpoint.method,
+      url: `${endpoint.baseUrl}${endpoint.path}`,
+      headers: {},
+      bodyType: endpoint.bodyType,
+    };
+    let responseSnapshot: ApiRunRecord["response"] = null;
+    const recordRun = (ok: boolean, error?: string) => {
+      const run: ApiRunRecord = {
+        runId,
+        endpointId: id,
+        startedAt: startedAt.toISOString(),
+        durationMs: Date.now() - startedAt.getTime(),
+        ok,
+        request: requestSnapshot,
+        response: responseSnapshot,
+        ...(error !== undefined ? { error } : {}),
+      };
+      set((state) => {
+        const apiRuns = new Map(state.apiRuns);
+        apiRuns.set(id, run);
+        return { apiRuns };
+      });
+    };
 
     try {
       // URL 구성
@@ -576,6 +643,14 @@ export const createExecuteApiEndpointAction =
         }
       }
 
+      requestSnapshot = {
+        method: endpoint.method,
+        url,
+        headers,
+        bodyType: endpoint.bodyType,
+        ...(body !== undefined ? { body } : {}),
+      };
+
       // 개발 환경에서 외부 API 호출 시 프록시 사용 (CORS 우회)
       let fetchUrl = url;
       const isExternalUrl =
@@ -602,11 +677,24 @@ export const createExecuteApiEndpointAction =
       });
       clearTimeout(timeoutId);
 
+      const responseText = await response.text();
+      responseSnapshot = {
+        status: response.status,
+        statusText: response.statusText,
+        headers: headersToRecord(response.headers),
+        ...previewBody(responseText),
+      };
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const result = await response.json();
+      let result: unknown;
+      try {
+        result = JSON.parse(responseText);
+      } catch {
+        throw new Error("응답 본문이 JSON 이 아닙니다");
+      }
 
       // Response Mapping 적용 — 경로가 비었거나 배열을 못 가리키면 응답 자체 /
       // 관례 키 (results · data · items …) 에서 행 배열을 찾는다 (리서치 D1).
@@ -642,9 +730,11 @@ export const createExecuteApiEndpointAction =
         }
       }
 
+      recordRun(true);
       return mappedData;
     } catch (error) {
       console.error(`❌ ApiEndpoint "${endpoint?.name}" 실행 실패:`, error);
+      recordRun(false, error instanceof Error ? error.message : String(error));
       set((state) => {
         const newErrors = new Map(state.errors);
         newErrors.set(`executeApi_${id}`, error as Error);

@@ -21,6 +21,7 @@ import { listCollectionsTool } from "./listCollections";
 import { getCollectionTool } from "./getCollection";
 import { listApiEndpointsTool } from "./listApiEndpoints";
 import { getApiEndpointTool } from "./getApiEndpoint";
+import { explainRequestFailureTool } from "./explainRequestFailure";
 
 export { toolDefinitions, getToolDefinitions } from "./definitions";
 
@@ -57,6 +58,7 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
     getCollectionTool,
     listApiEndpointsTool,
     getApiEndpointTool,
+    explainRequestFailureTool,
     runCommandLazyTool,
   ];
 
