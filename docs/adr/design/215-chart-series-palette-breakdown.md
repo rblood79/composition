@@ -1,6 +1,6 @@
 # ADR-215 Design Breakdown: Chart 시리즈 팔레트 — categorical (Spectrum) · mono (accent) 선택 축
 
-> 본문: [215-chart-series-palette.md](../215-chart-series-palette.md) · 리서치 정본: [CHART_PALETTE_RESEARCH_2026-09](../../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) · 시안: `docs/design/chart-series-palette/` (artifact `9188da6c` — 아트보드 "4안 한눈에" · "레퍼런스 실측" · Current · OptionA · OptionC)
+> 본문: [215-chart-series-palette.md](../completed/215-chart-series-palette.md) · 리서치 정본: [CHART_PALETTE_RESEARCH_2026-09](../../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) · 시안: `docs/design/chart-series-palette/` (artifact `9188da6c` — 아트보드 "4안 한눈에" · "레퍼런스 실측" · Current · OptionA · OptionC)
 
 ## 1. 전제 (완전 신규 주제 — fork 아님)
 
@@ -74,8 +74,8 @@ palettes: { mono: [chart-accent-1..4, neutral-subdued, gray, silver, border] }  
 - [x] `propertyFieldIcons.ts` `COMPONENT_KEY_ICONS.Chart.palette` (Appearance 안 중복 0 가드) · i18n 라벨 (`chart.palette` · 옵션 2)
 - [x] `PropertiesPanel.tsx` `chartPaletteLength` → 선택 팔레트 길이 · `ChartSeriesControls` 무변경 확인
 
-### Phase 4 — 종결 (G4 PASS 7/7 · G2 순증 PASS, 절대 상한 사용자 재승인 대기)
+### Phase 4 — 종결 (G4 PASS 7/7 · G2 PASS — 절대 상한 사용자 재승인 2026-09-11)
 
 - [x] 번들 delta — worktree 2개 (`926c44a07` → `9049698c7`): Builder +1,398 JS / +274 CSS · Preview +642 / +329 B gzip (본 ADR ≤ 2 KiB PASS). 절대 상한 (1,304,030 / 636,268) 은 착수 전 이미 1,312,202 / 643,116 — 152 P6 · 213 · 214 순증, 사용자 재승인 대기
 - [x] live: `adr215-chart-palette-live.mjs` 7/7 (bar · Skia 픽셀 + Preview fill · mono · tint Pink 추종 · dark categorical) — ADR `### Live Exercise`
-- [x] CHANGELOG · 리서치 문서 §3 → 결정 링크 · `docs/design/README.md` · ADR `### Live Exercise` — Implemented 는 G2 절대 상한 재승인 뒤
+- [x] CHANGELOG · 리서치 문서 §3 → 결정 링크 · `docs/design/README.md` · ADR `### Live Exercise` — Implemented 2026-09-11

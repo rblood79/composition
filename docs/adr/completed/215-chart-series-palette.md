@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted — 2026-09-11 (Phase 1~4 완료 `721fc8862` · `478108af6` + 종결 커밋; G1 · G3 · G4 PASS, **G2 는 본 ADR 순증 PASS (Builder +1,672 · Preview +971 B gzip) 이나 전체 initial 절대 상한 (ADR-211 한시 승인 1,304,030 / 636,268) 은 본 ADR 착수 전 (`926c44a07`) 에 이미 1,312,202 / 643,116 으로 초과 — ADR-152 P6 · 213 · 214 순증. 사용자 재승인 또는 상한 재산정 대기, Implemented 승격은 그 뒤**)
+Implemented — 2026-09-11 (Phase 1~4: `721fc8862` · `478108af6` · `f45a5d925`; G1 · G3 · G4 PASS. G2: 본 ADR 순증 Builder +1,672 · Preview +971 B gzip PASS — 전체 initial 절대 상한은 착수 전 (`926c44a07`) 에 ADR-152 P6 · 213 · 214 순증으로 이미 초과 (1,312,202 / 643,116) 였고, **2026-09-11 사용자 승인: 한시 상한을 실측값 Builder ≤ 1,313,600 / Preview ≤ 643,758 B 로 재승인** (ADR-211 의 상한 대체, 만료 조건 2026-10-10 또는 initial 영향 변경 시 유지))
 
 ## Context
 
 Chart 의 시리즈 색 8개는 rule `Chart.chart.series` 가 named hue 토큰 8개 (`blue purple green-named orange magenta cyan yellow indigo`) 를 나열한 것이고, 그 값은 `semanticPaletteMap.ts` 를 거쳐 Tailwind 600 단계로 해소된다 (light `#155dfc #9810fa #00a63e #f54900 #c6005c #0092b8 #f0b100 #432dd7`). 결과는 최대 채도 · 같은 명도의 무지개 나열이다 — 청색 사분면이 4개 (1·2·6·8) 라 시리즈 구분이 안 되고 yellow 는 흰 바탕 대비가 부족하다 (사용자 지적 2026-09-11 "shadcn 의 컬러 대비 색감이 촌스럽다" — 실측하면 shadcn 값도 아니다). 팔레트는 1개뿐이라 단일 시리즈 차트도 categorical 1번 색을 쓴다.
 
-레퍼런스 실측 ([CHART_PALETTE_RESEARCH_2026-09](../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md)): Adobe react-spectrum-charts 는 팔레트 이름 (`categorical6/12/16`, sequential, diverging) 을 `Chart.colors` 로 고르고 Spectrum 2 theme 도 기본 category 는 Spectrum 1 categorical 값 (light = dark 1벌) 이다. Pinterest Gestalt 는 순서 고정 12색 + `primary` (단일 시리즈용) + success/error 별도, Apple 은 팔레트 대신 "색만으로 구분 금지 · 브랜드 tint" 원칙이고 자사 앱은 단일 tint 차트가 주류다. 교집합 — ① 순서가 정본 ② 단일 시리즈 = primary/accent ③ 상태색은 팔레트 밖 ④ 개수 6~16.
+레퍼런스 실측 ([CHART_PALETTE_RESEARCH_2026-09](../../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md)): Adobe react-spectrum-charts 는 팔레트 이름 (`categorical6/12/16`, sequential, diverging) 을 `Chart.colors` 로 고르고 Spectrum 2 theme 도 기본 category 는 Spectrum 1 categorical 값 (light = dark 1벌) 이다. Pinterest Gestalt 는 순서 고정 12색 + `primary` (단일 시리즈용) + success/error 별도, Apple 은 팔레트 대신 "색만으로 구분 금지 · 브랜드 tint" 원칙이고 자사 앱은 단일 tint 차트가 주류다. 교집합 — ① 순서가 정본 ② 단일 시리즈 = primary/accent ③ 상태색은 팔레트 밖 ④ 개수 6~16.
 
 **3-Domain**: D3 (시각) 가 본체 — 토큰 원천 추가 + rule 채널 확장. D2 는 `palette` prop 1개 (RSC `colors` 참조). D1 무변경.
 
@@ -82,7 +82,7 @@ Chart 의 시리즈 색 8개는 rule `Chart.chart.series` 가 named hue 토큰 8
 - **대안 B 기각**: 값이 Tailwind 채도로 되돌아가 (ΔE 최대 0.046) 문제를 반만 고치고, 단일 시리즈 accent 관행을 담을 자리가 없다.
 - **대안 C 기각**: 팔레트 선택 축이 없으면 리서치 원칙 ② (단일 시리즈 = primary/accent) 와 대시보드 단색 어법을 표현할 수 없다. 사용자 판정 2026-09-11 "ABC 제공, C 는 accent 기준" — B 는 리서치 후 대응물 없음으로 제외 (사용자 동의 "리서치 후 제안 대로 착수해").
 
-> 구현 상세: [215-chart-series-palette-breakdown.md](design/215-chart-series-palette-breakdown.md)
+> 구현 상세: [215-chart-series-palette-breakdown.md](../design/215-chart-series-palette-breakdown.md)
 
 ## Risks
 
@@ -97,12 +97,12 @@ Chart 의 시리즈 색 8개는 rule `Chart.chart.series` 가 named hue 토큰 8
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                        | 실패 시 대안                                                          |
-| ---- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| G1   | Phase 2 종료 | browser 테스트: 팔레트 2 × 테마 2 × 시리즈 8 에서 Preview `--chart-series-N` 해소 hex == Skia `seriesToken` 해소 hex (±1/255) · tint 변경 시 mono 4 추종         | 갈리는 단계의 chroma 계수를 gamut 안으로 낮추고 표 갱신 (공식은 유지) |
-| G2   | Phase 4      | initial Builder ≤ 1,304,030 · Preview ≤ 636,268 (ADR-211) — **2026-09-11 실측: 본 ADR 순증 +1,672 / +971 B PASS, 절대 상한은 착수 전 초과 (사용자 재승인 대기)** | enum/토큰 외 원인 조사 — 본 ADR 순증 ≤ 2 KiB 가 아니면 중단           |
-| G3   | Phase 3      | 정적: `palettes.*` 길이 == `series` 길이 · 토큰 12 가 `ColorTokens` · tokenResolver · colors.ts 에 전부 존재 · Appearance 섹션 아이콘 중복 0                     | 누락 보강                                                             |
-| G4   | Implemented  | live (Chrome MCP): bar · pie · line 에서 `palette` 전환이 Skia 픽셀 + Preview 양 leg 에 반영, light/dark, tint pink 에서 mono 추종                               | 원인 leg 수리 후 재실행                                               |
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                          | 실패 시 대안                                                          |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| G1   | Phase 2 종료 | browser 테스트: 팔레트 2 × 테마 2 × 시리즈 8 에서 Preview `--chart-series-N` 해소 hex == Skia `seriesToken` 해소 hex (±1/255) · tint 변경 시 mono 4 추종                                                           | 갈리는 단계의 chroma 계수를 gamut 안으로 낮추고 표 갱신 (공식은 유지) |
+| G2   | Phase 4      | initial Builder ≤ 1,304,030 · Preview ≤ 636,268 (ADR-211) — **2026-09-11 실측: 본 ADR 순증 +1,672 / +971 B PASS, 절대 상한은 착수 전 초과 — 사용자 승인 (2026-09-11) 으로 상한 1,313,600 / 643,758 재승인 → PASS** | enum/토큰 외 원인 조사 — 본 ADR 순증 ≤ 2 KiB 가 아니면 중단           |
+| G3   | Phase 3      | 정적: `palettes.*` 길이 == `series` 길이 · 토큰 12 가 `ColorTokens` · tokenResolver · colors.ts 에 전부 존재 · Appearance 섹션 아이콘 중복 0                                                                       | 누락 보강                                                             |
+| G4   | Implemented  | live (Chrome MCP): bar · pie · line 에서 `palette` 전환이 Skia 픽셀 + Preview 양 leg 에 반영, light/dark, tint pink 에서 mono 추종                                                                                 | 원인 leg 수리 후 재실행                                               |
 
 ### Live Exercise
 
@@ -114,7 +114,7 @@ Chart 의 시리즈 색 8개는 rule `Chart.chart.series` 가 named hue 토큰 8
 4. Themes › tint Pink → Skia 주색 `[183,57,132]` · Preview fill `[182,57,132]` / `[132,0,88]` ⊂ Skia bins (±1) — 양 leg 같은 공식 (R1 해소).
 5. Palette → Categorical + dark: Preview `data-palette` 없음 · fill `[15,181,174]` `[64,70,202]` 그대로 (테마 공용).
 
-G2 번들 (clean worktree 2개 `926c44a07` → `9049698c7`, 원래 lockfile, `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,312,202 → 1,313,600 (+1,398) · CSS +274 · Preview JS 643,116 → 643,758 (+642) · CSS +329 · lazy chart graph +1 B. 본 ADR 순증 ≤ 2 KiB PASS. 절대 상한 초과분은 착수 전 이미 존재 (+8,172 / +6,848) — 본 ADR 밖 원인 (Status 참조).
+G2 번들 (clean worktree 2개 `926c44a07` → `9049698c7`, 원래 lockfile, `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,312,202 → 1,313,600 (+1,398) · CSS +274 · Preview JS 643,116 → 643,758 (+642) · CSS +329 · lazy chart graph +1 B. 본 ADR 순증 ≤ 2 KiB PASS. 절대 상한 초과분은 착수 전 이미 존재 (+8,172 / +6,848) — 본 ADR 밖 원인. 사용자 승인 (2026-09-11) 으로 상한 재승인 (Status 참조).
 
 ## Consequences
 
