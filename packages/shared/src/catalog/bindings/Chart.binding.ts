@@ -328,6 +328,18 @@ export const chartBinding: PrimitiveBinding = {
         ],
         visibleWhen: { key: "showValueLabels", truthy: true },
       },
+      // ADR-215 — 시리즈 팔레트 (RSC `Chart.colors` 팔레트 이름 참조). `variant` (상자) ·
+      //   `colorBy` (데이터→색 매핑) 와 다른 축 — 색 관련 두 필드가 패널에서 이웃하도록 colorBy 바로 앞에 둔다. 값은 rule `chart.series` / `chart.palettes` 가 푼다.
+      palette: {
+        kind: "enum",
+        label: "Palette",
+        section: "appearance",
+        default: "categorical",
+        options: [
+          { value: "categorical", label: "Categorical" },
+          { value: "mono", label: "Mono" },
+        ],
+      },
       colorBy: {
         kind: "enum",
         label: "Color By",
@@ -525,18 +537,6 @@ export const chartBinding: PrimitiveBinding = {
           (value) => ({ value, label: value }),
         ),
         visibleWhen: { key: "isAnimationActive", truthy: true },
-      },
-      // ADR-215 — 시리즈 팔레트 (RSC `Chart.colors` 팔레트 이름 참조). `variant` (상자) ·
-      //   `colorBy` (데이터→색 매핑) 와 다른 축. 값은 rule `chart.series` / `chart.palettes` 가 푼다.
-      palette: {
-        kind: "enum",
-        label: "Palette",
-        section: "appearance",
-        default: "categorical",
-        options: [
-          { value: "categorical", label: "Categorical" },
-          { value: "mono", label: "Mono" },
-        ],
       },
       variant: {
         kind: "variant",
