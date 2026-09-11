@@ -102,18 +102,18 @@
 - [ ] **이월** `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화라 export/redactor/번들 영향 검토 전제 (별도 커밋)
 - [x] 0행 · 오류 상태를 목록 배지 · 편집기 상단에 같은 값으로 (`findLinkedApi`+`apiRuns`, `.datatable-editor-status`). 캔버스 배지는 Phase 6
 
-### Phase 6 — 인스펙터 동선 + 캔버스 배지
+### Phase 6 — 인스펙터 동선 + 캔버스 배지 — 부분 완료 2026-09-12 (`98a9ed7d8`)
 
-- [ ] `PropertyDataBinding` Select 옆 "새 테이블 만들기 (프리셋 / 붙여넣기)" · "이 테이블 열기" · "사용처 N" (UX-1, B4) — 열기는 `dataTableEditorStore.open` (Phase 1 일반화 경로)
-- [ ] 캔버스 바인딩 배지 (UI-7): 바인딩된 collection 요소에 Skia overlay 아이콘 + 테이블 이름, 0행/오류면 상태색 — 선택/hover 마커와 같은 overlay 층, Preview/Publish 없음 (D3 대칭 대상 아님 — `/cross-check` 불요, Skia 픽셀 하니스로 존재만 확인)
-- [ ] 배지 hit 영역 클릭 → 편집기 열기
+- [x] `PropertyDataBinding` Select 옆 "이 테이블 열기" (`dataTableEditorStore.openTableEditor`, Phase 1 일반화 경로) · "사용처 N" (`resolveCollectionUsage` 152 역참조) · "새 테이블 만들기" (`openTableCreator`) (UX-1, B4). unit `PropertyDataBinding.test.tsx` 4 (죽은-오소링 계약 + 동선 행)
+- [ ] **이월** 캔버스 바인딩 배지 (UI-7, B3): Skia overlay 아이콘 + 테이블 이름 · 0행/오류 상태색 · hit 영역 클릭 → 편집기. canvas overlay 렌더러 통합 + hit region + Skia 픽셀 하니스가 필요해 별도 focused pass (렌더 회귀 위험 — 대규모 세션 말미에 끼워넣지 않음)
 
-### Phase 7 — a11y 검수 + closure
+### Phase 7 — a11y 검수 + closure — 대기 (Phase 5·6 이월분 착지 후)
 
-- [ ] 리서치 §4-5 검수 항목 전수 (격자 · 알림 · 다이얼로그 · key-value · 타입 아이콘 · 목록 버튼) — 키보드만 시나리오 5 + axe
+- [x] a11y (부분): 격자 axe critical 0 (G1) · 편집기 패널 axe critical 0 (G2, 탭 aria-controls 수리) · 필드 패널 axe critical 0. key-value 행별 Remove 고유 이름 · Body aria-multiline · 타입 목록 ListBox
+- [ ] 리서치 §4-5 전수 검수 (키보드만 시나리오 5 + axe 전 표면) — Phase 6 캔버스 배지 착지 후
 - [ ] `prefers-reduced-motion` · 아이콘 버튼 접근 가능한 이름 grep
-- [ ] 원본 삭제 승인: `DataTableEditor.tsx` Schema/Table 서브 에디터 · `ApiEndpointEditor.tsx` Run 탭 — 대체 확인 후 별도 커밋
-- [ ] CHANGELOG (Features · Accessibility) · ADR README · `### Live Exercise`
+- [x] 원본 삭제: `DataTableEditor.tsx` SchemaEditor/MockDataEditor 서브 에디터 (Phase 2·3 에서 in-file 제거, 파일 자체는 존속) · `ApiEndpointEditor.tsx` 전면 재작성 (Run 탭 → Send 바). 별도 "원본 파일 삭제" 대상 없음
+- [ ] **대기** CHANGELOG (Features · Accessibility) · ADR README Implemented 승격 · `### Live Exercise` — Phase 5 (runtimeData 영속·실행 정책) · Phase 6 (캔버스 배지) 이월분이 착지해야 Implemented. 그 전까지 ADR 은 진행 중 (Proposed 유지)
 
 ## 5. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
