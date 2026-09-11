@@ -13,9 +13,13 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { InfoIcon, ChevronRightIcon, Minus } from "lucide-react";
 import { MyCheckbox } from "./Checkbox";
 import { resolveSelectionBehavior } from "./selectionStyle";
-import type { DataBinding } from "../types";
+import type { DataBinding, DataBindingValue } from "../types";
 import type { ComponentSize } from "../types";
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
+import {
+  toItemProjectionRow,
+  type CollectionProjectionRow,
+} from "../collections/resolveCollectionItems";
 import { Skeleton } from "./Skeleton";
 
 import "./styles/Tree.css";
@@ -35,7 +39,7 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
   /**
    * Data binding configuration
    */
-  dataBinding?: DataBinding;
+  dataBinding?: DataBinding | DataBindingValue;
   /**
    * Show loading skeleton instead of tree
    * @default false
@@ -112,16 +116,21 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
     }),
   };
 
-  // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
+  // ADR-152 Phase 4: raw useCollectionData → shared 정규화 (useResolvedCollectionItems).
+  //   최상위 행은 hook 이, 자식 (`children` 고정 key — DataField.children 중첩 규약과 같은
+  //   이름, fieldMap.children 역할은 수요 발생 시 additive) 은 같은 toItemProjectionRow +
+  //   roles 로 정규화한다 — item key = fieldMap value 역할 · 휴리스틱, 라벨 = row.label.
   const {
-    data: treeData,
+    rows: treeRows,
     loading,
-    // error, // TODO: Add error handling UI
-  } = useCollectionData({
-    dataBinding,
+    fieldRoles,
+  } = useResolvedCollectionItems({
+    // hook 계약은 legacy DataBinding 타입이지만 useCollectionData 가 PropertyDataBinding 도 읽는다 (Tabs 동형)
+    dataBinding: dataBinding as DataBinding,
     componentName: "Tree",
     fallbackData: [],
   });
+  const treeData = treeRows;
 
   // External loading state - show skeleton tree
   if (externalLoading) {
@@ -159,29 +168,26 @@ export function Tree<T extends object>(props: MyTreeProps<T>) {
   // DataBinding이 있고 데이터가 로드된 경우
   if (dataBinding && treeData.length > 0) {
     const renderTreeItemsRecursively = (
-      items: Record<string, unknown>[],
+      rows: readonly CollectionProjectionRow[],
     ): React.ReactNode => {
-      return items.map((item) => {
-        const itemId = String(item.id || item.name || Math.random());
-        const displayTitle = String(
-          item.name || item.label || item.title || itemId,
-        );
-        const hasChildren =
-          Array.isArray(item.children) && item.children.length > 0;
+      return rows.map((row) => {
+        const item = (row.item ?? {}) as Record<string, unknown>;
+        const childItems = Array.isArray(item.children)
+          ? (item.children as unknown[]).map((child, index) =>
+              toItemProjectionRow(child, index, fieldRoles),
+            )
+          : [];
+        const hasChildren = childItems.length > 0;
 
         return (
           <TreeItem
-            key={itemId}
-            id={itemId}
-            title={displayTitle}
+            key={row.itemKey}
+            id={row.itemKey}
+            title={row.label}
             hasChildren={hasChildren}
             showInfoButton={false}
             childItems={
-              hasChildren
-                ? renderTreeItemsRecursively(
-                    item.children as Record<string, unknown>[],
-                  )
-                : undefined
+              hasChildren ? renderTreeItemsRecursively(childItems) : undefined
             }
           />
         );

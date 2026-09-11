@@ -356,9 +356,11 @@ export function TagGroup<T extends object>({
       // removedItemIds로 필터링 (map 전에 필터링). raw item 은 row.item 에 보존.
       const tagItems = filteredRows
         .filter((row) => !removedItemIds.includes(row.itemKey))
+        // ADR-152 Phase 4: raw item 을 먼저 펼치고 정규화 id 를 뒤에 — 반대 순서면 raw `id`
+        //   ("auto-1") 가 fieldMap value 역할 key 를 덮어 Skia 투영 key 와 갈렸다 (sweep 실측).
         .map((row) => ({
-          id: row.itemKey,
           ...(row.item as Record<string, unknown>),
+          id: row.itemKey,
         })) as T[];
 
       return (
@@ -466,10 +468,11 @@ export function TagGroup<T extends object>({
 
     // 데이터가 로드되었을 때 — 정규화 rows 사용 (label 휴리스틱은 normalizer 가 이미 적용).
     if (filteredRows.length > 0) {
+      // ADR-152 Phase 4: raw 먼저, 정규화 id/label 뒤에 (위 items 경로와 같은 이유)
       const tagItems = filteredRows.map((row) => ({
+        ...(row.item as Record<string, unknown>),
         id: row.itemKey,
         label: row.label,
-        ...(row.item as Record<string, unknown>),
       }));
 
       return (

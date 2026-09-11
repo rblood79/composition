@@ -25,6 +25,7 @@ import {
   resolveFieldRoles,
   toItemProjectionRow,
   COLLECTION_ROW_PROJECTION_WINDOW_LIMIT,
+  type CollectionFieldRoles,
   type CollectionProjectionRow,
   type ResolvedCollectionItems,
 } from "../collections";
@@ -54,6 +55,11 @@ export interface UseResolvedCollectionItemsResult extends ResolvedCollectionItem
   error: string | null;
   /** dataBinding 재로드 (useCollectionData 경유 — error retry UX). */
   reload: () => void;
+  /**
+   * ADR-152 Phase 3/4: 바인딩 fieldMap 의 역할 → 행 key (rows 에 이미 적용됨). 소비자가
+   * 행 밖의 데이터 (Tree 자식 재귀 등) 를 같은 normalizer 로 정규화할 때 넘긴다.
+   */
+  fieldRoles?: CollectionFieldRoles;
 }
 
 /**
@@ -127,6 +133,7 @@ export function useResolvedCollectionItems(
       loading,
       error,
       reload,
+      fieldRoles: roles,
     };
     // boundData/items 참조 동일성 + 길이 기반 — hasBoundRows/hasStaticItems 가 deps 대표.
   }, [

@@ -19,7 +19,7 @@ import type {
   DataBindingValue,
 } from "../types";
 
-import { useCollectionData } from "../hooks";
+import { useResolvedCollectionItems } from "../hooks";
 import { Skeleton } from "./Skeleton";
 import "./styles/generated/Tabs.css";
 import { useComponentStrings } from "../i18n";
@@ -118,12 +118,15 @@ export function Tabs({
   ...props
 }: TabsExtendedProps) {
   const t = useComponentStrings();
-  // useCollectionData Hook - 항상 최상단에서 호출 (Rules of Hooks)
+  // ADR-152 Phase 4: raw useCollectionData → shared 정규화 (useResolvedCollectionItems).
+  //   항목 key = row.itemKey (fieldMap value 역할 · 휴리스틱), 라벨 = row.label — ListBox 등
+  //   다른 collection 7종 · Skia projection (getFlatProjectionRows) 과 같은 normalizer.
+  //   패널 본문 (content/description/body) 은 Tabs 고유 축이라 raw item 에서 읽는다.
   const {
-    data: boundData,
+    rows: boundRows,
     loading,
     error,
-  } = useCollectionData({
+  } = useResolvedCollectionItems({
     dataBinding: dataBinding as DataBinding,
     componentName: "Tabs",
     fallbackData: [
@@ -131,6 +134,7 @@ export function Tabs({
       { id: "tab-2", title: "Tab 2", content: "Content 2" },
     ],
   });
+  const boundData = boundRows;
 
   // External loading state - show skeleton tabs
   if (externalLoading) {
@@ -266,6 +270,15 @@ export function Tabs({
     }
 
     if (boundData.length > 0) {
+      const panelBody = (row: (typeof boundData)[number], index: number) => {
+        const item = (row.item ?? {}) as Record<string, unknown>;
+        return String(
+          item.content ||
+            item.description ||
+            item.body ||
+            `Content ${index + 1}`,
+        );
+      };
       return (
         <RACTabs
           {...props}
@@ -274,30 +287,19 @@ export function Tabs({
           data-size={size}
         >
           <RACTabList className="react-aria-TabList">
-            {boundData.map((item, index) => (
-              <RACTab
-                key={String(item.id || index)}
-                id={String(item.id || index)}
-                className="react-aria-Tab"
-              >
-                {String(
-                  item.title || item.name || item.label || `Tab ${index + 1}`,
-                )}
+            {boundData.map((row) => (
+              <RACTab key={row.itemKey} id={row.itemKey} className="react-aria-Tab">
+                {row.label}
               </RACTab>
             ))}
           </RACTabList>
-          {boundData.map((item, index) => (
+          {boundData.map((row, index) => (
             <RACTabPanel
-              key={String(item.id || index)}
-              id={String(item.id || index)}
+              key={row.itemKey}
+              id={row.itemKey}
               className="react-aria-TabPanel"
             >
-              {String(
-                item.content ||
-                  item.description ||
-                  item.body ||
-                  `Content ${index + 1}`,
-              )}
+              {panelBody(row, index)}
             </RACTabPanel>
           ))}
         </RACTabs>

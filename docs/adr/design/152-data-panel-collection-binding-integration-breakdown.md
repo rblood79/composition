@@ -273,9 +273,12 @@ interface DataChange {
 
 ### Phase 4 — 패밀리 sweep (나머지 7종)
 
-- [ ] Breadcrumbs / ComboBox / GridList / Menu / Tabs / TagGroup / Tree 에 동일 fieldMap 전달 확인 + `/sweep` (parallel-verify)
-- [ ] Tree 는 계층 컬럼 (childrenKey) 필요 여부 판정 — 필요 시 fieldMap.children 추가는 이 Phase 안에서 additive
-- [ ] Tree/Tabs DOM wrapper raw 소비 (`Tree.tsx:93` / `Tabs.tsx:124`) 도 Table (Phase 3) 과 동일하게 shared 계약 경유로 정렬
+> **Implemented 2026-09-11** — sweep 12/12 (`apps/builder/scripts/adr152-p4-live.mjs`, ADR 본문 §Live Exercise).
+
+- [x] 7종 sweep (live 하니스 = parallel-verify 의 key 대조 판) — Skia 투영 (gridlist · tag · breadcrumb 는 `getListBoxProjectionRows(binding+collections)` 로 roles 자동) · Preview DOM (GridList · TagGroup · Tabs · Menu popover · ComboBox popover · Tree `data-key`, Breadcrumbs 는 `<li>` 가 key 를 안 내 라벨) 전부 uid 컬럼. **실측 결함 1 수리**: `TagGroup.tsx` 두 items 경로가 `{ id: row.itemKey, ...row.item }` 순서라 raw `id` 가 정규화 key 를 덮어 Skia 와 갈렸다 → raw 먼저 · id/label 뒤 (ListBox 와 같은 순서), RED 원복 확인
+- [x] Tree childrenKey 판정: **이 Phase 에서는 불필요** — Tree 자식은 `children` 고정 key (DataField.children 중첩 스키마 규약과 같은 이름) 로 재귀하고, 같은 `toItemProjectionRow` + hook 이 돌려주는 `fieldRoles` 로 정규화한다 (자식 key 도 value 역할). `fieldMap.children` 은 Inspector 에 역할 Select 가 하나 더 붙고 (Tree 외 가족엔 잡음) 수요가 없어 additive 후보로만 기록
+- [x] Tabs · Tree DOM wrapper → `useResolvedCollectionItems` (raw `useCollectionData` 제거): 항목 key = `row.itemKey`, 라벨 = `row.label` (Tabs 패널 본문 content/description/body 는 raw item — Tabs 고유 축). Tree `dataBinding` prop 타입을 `DataBinding | DataBindingValue` 로 (Tabs 동형). hook 결과에 `fieldRoles` 추가 (행 밖 데이터 정규화용)
+- 기존 가족 격차 (ADR-152 범위 밖, 기록): Tabs Skia 투영은 items SSOT 만 (dataBinding 미투영 — `resolveDataBoundTabProjection` 주석) · Tree 는 data-bound Skia 투영 없음 · Menu/ComboBox/Select 는 popover 라 캔버스 행 없음. Table wrapper 정렬은 Phase 3 deferred 그대로
 
 ### Phase 5 — legacy 경로 흡수 (G0 결과 조건부)
 
