@@ -60,22 +60,22 @@ palettes: { mono: [chart-accent-1..4, neutral-subdued, gray, silver, border] }  
 - [x] `preview-system.css` `--chart-accent-1..4` · `tintToSkiaColors` ACCENT_KEYS + 계산
 - [x] 테스트: 스냅샷 12 키 추가 · `chartPaletteMap.test.ts` (생성 CSS == 표 · colors.ts == 표 · tokenResolver 12) · `tintToSkiaColors.test.ts` (기본 tint 공식 == `CHART_ACCENT_DEFAULT_HEX` · pink 추종 · light == dark)
 
-### Phase 2 — rule · 생성기 · 두 leg · binding (G1 · G2)
+### Phase 2 — rule · 생성기 · 두 leg · binding (완료 `478108af6`, G1 PASS)
 
-- [ ] `ComponentRuleChart.palettes?: Record<string, string[]>` · rules table `series` 교체 + `palettes.mono`
-- [ ] `resolveChartPalette(channel, id)` (`chart/presentation.ts`) + 단위 테스트 (미지 id → series, 길이 0 → accent 폴백)
-- [ ] `CSSGenerator.generateChartVariables` `[data-palette="id"]` 블록 · `pnpm generate:css` → `Chart.css`
-- [ ] `skiaPrimitives.ts` `seriesToken` 팔레트 선택 · `CHART_PRESENTATION_KEYS`/scene 입력에 `palette`
-- [ ] `Chart.tsx` `data-palette` · `Chart.binding.ts` `palette` enum + `propPassthrough`
-- [ ] `chartTheme.browser.test.tsx` / `chartParity.test.tsx` 팔레트 2 × 테마 2 대조 (G1)
+- [x] `ComponentRuleChart.palettes?: Record<string, string[]>` · rules table `series` 교체 + `palettes.mono`
+- [x] `resolveChartPalette(channel, id)` (`chart/presentation.ts`) + 단위 테스트 (미지 id → series, 길이 0 → accent 폴백)
+- [x] `CSSGenerator.generateChartVariables` `[data-palette="id"]` 블록 · `pnpm generate:css` → `Chart.css`
+- [x] `skiaPrimitives.ts` `seriesToken` 팔레트 선택 · `CHART_PRESENTATION_KEYS`/scene 입력에 `palette`
+- [x] `Chart.tsx` `data-palette` · `Chart.binding.ts` `palette` enum + `propPassthrough`
+- [x] `chartTheme.browser.test.tsx` / `chartParity.test.tsx` 팔레트 2 × 테마 2 대조 (G1)
 
-### Phase 3 — 패널 (G3)
+### Phase 3 — 패널 (완료 `478108af6`, G3 PASS)
 
-- [ ] `propertyFieldIcons.ts` `COMPONENT_KEY_ICONS.Chart.palette` (Appearance 안 중복 0 가드) · i18n 라벨 (`chart.palette` · 옵션 2)
-- [ ] `PropertiesPanel.tsx` `chartPaletteLength` → 선택 팔레트 길이 · `ChartSeriesControls` 무변경 확인
+- [x] `propertyFieldIcons.ts` `COMPONENT_KEY_ICONS.Chart.palette` (Appearance 안 중복 0 가드) · i18n 라벨 (`chart.palette` · 옵션 2)
+- [x] `PropertiesPanel.tsx` `chartPaletteLength` → 선택 팔레트 길이 · `ChartSeriesControls` 무변경 확인
 
-### Phase 4 — 종결 (G4)
+### Phase 4 — 종결 (G4 PASS 7/7 · G2 순증 PASS, 절대 상한 사용자 재승인 대기)
 
-- [ ] 번들 delta (`pnpm build` Builder/Preview initial ≤ ADR-211 상한)
-- [ ] live: Chrome MCP — bar·pie·line 에서 `palette` 전환 → Skia 픽셀 + Preview `getComputedStyle(--chart-series-1)` 양 leg, light/dark, tint 변경 시 mono 추종
-- [ ] CHANGELOG (사용자-가시 색 변경) · 리서치 문서 §3 → 결정 링크 · `docs/design/README.md` · ADR `### Live Exercise` → Implemented
+- [x] 번들 delta — worktree 2개 (`926c44a07` → `9049698c7`): Builder +1,398 JS / +274 CSS · Preview +642 / +329 B gzip (본 ADR ≤ 2 KiB PASS). 절대 상한 (1,304,030 / 636,268) 은 착수 전 이미 1,312,202 / 643,116 — 152 P6 · 213 · 214 순증, 사용자 재승인 대기
+- [x] live: `adr215-chart-palette-live.mjs` 7/7 (bar · Skia 픽셀 + Preview fill · mono · tint Pink 추종 · dark categorical) — ADR `### Live Exercise`
+- [x] CHANGELOG · 리서치 문서 §3 → 결정 링크 · `docs/design/README.md` · ADR `### Live Exercise` — Implemented 는 G2 절대 상한 재승인 뒤

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-11
+Accepted — 2026-09-11 (Phase 1~4 완료 `721fc8862` · `478108af6` + 종결 커밋; G1 · G3 · G4 PASS, **G2 는 본 ADR 순증 PASS (Builder +1,672 · Preview +971 B gzip) 이나 전체 initial 절대 상한 (ADR-211 한시 승인 1,304,030 / 636,268) 은 본 ADR 착수 전 (`926c44a07`) 에 이미 1,312,202 / 643,116 으로 초과 — ADR-152 P6 · 213 · 214 순증. 사용자 재승인 또는 상한 재산정 대기, Implemented 승격은 그 뒤**)
 
 ## Context
 
@@ -97,16 +97,24 @@ Chart 의 시리즈 색 8개는 rule `Chart.chart.series` 가 named hue 토큰 8
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                | 실패 시 대안                                                          |
-| ---- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| G1   | Phase 2 종료 | browser 테스트: 팔레트 2 × 테마 2 × 시리즈 8 에서 Preview `--chart-series-N` 해소 hex == Skia `seriesToken` 해소 hex (±1/255) · tint 변경 시 mono 4 추종 | 갈리는 단계의 chroma 계수를 gamut 안으로 낮추고 표 갱신 (공식은 유지) |
-| G2   | Phase 4      | initial Builder ≤ 1,304,030 · Preview ≤ 636,268 (ADR-211)                                                                                                | enum/토큰 외 원인 조사 — 본 ADR 순증 ≤ 2 KiB 가 아니면 중단           |
-| G3   | Phase 3      | 정적: `palettes.*` 길이 == `series` 길이 · 토큰 12 가 `ColorTokens` · tokenResolver · colors.ts 에 전부 존재 · Appearance 섹션 아이콘 중복 0             | 누락 보강                                                             |
-| G4   | Implemented  | live (Chrome MCP): bar · pie · line 에서 `palette` 전환이 Skia 픽셀 + Preview 양 leg 에 반영, light/dark, tint pink 에서 mono 추종                       | 원인 leg 수리 후 재실행                                               |
+| Gate | 시점         | 통과 조건                                                                                                                                                        | 실패 시 대안                                                          |
+| ---- | ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| G1   | Phase 2 종료 | browser 테스트: 팔레트 2 × 테마 2 × 시리즈 8 에서 Preview `--chart-series-N` 해소 hex == Skia `seriesToken` 해소 hex (±1/255) · tint 변경 시 mono 4 추종         | 갈리는 단계의 chroma 계수를 gamut 안으로 낮추고 표 갱신 (공식은 유지) |
+| G2   | Phase 4      | initial Builder ≤ 1,304,030 · Preview ≤ 636,268 (ADR-211) — **2026-09-11 실측: 본 ADR 순증 +1,672 / +971 B PASS, 절대 상한은 착수 전 초과 (사용자 재승인 대기)** | enum/토큰 외 원인 조사 — 본 ADR 순증 ≤ 2 KiB 가 아니면 중단           |
+| G3   | Phase 3      | 정적: `palettes.*` 길이 == `series` 길이 · 토큰 12 가 `ColorTokens` · tokenResolver · colors.ts 에 전부 존재 · Appearance 섹션 아이콘 중복 0                     | 누락 보강                                                             |
+| G4   | Implemented  | live (Chrome MCP): bar · pie · line 에서 `palette` 전환이 Skia 픽셀 + Preview 양 leg 에 반영, light/dark, tint pink 에서 mono 추종                               | 원인 leg 수리 후 재실행                                               |
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-09-11 — headed-equivalent Playwright (Chromium, CPU throttle 1, 실제 builder dev 5173 + 로그인 세션; Chrome MCP 탭은 hidden 상태로 RAF 정지라 대체) · 하니스 `apps/builder/scripts/adr215-chart-palette-live.mjs` **7/7 PASS** (`docs/adr/evidence/215-p4/live-findings.json` + png, local-only):
+
+1. 새 프로젝트 → Components 에서 Chart 추가 → `chartType: bar` — 패널 닫고 Skia 픽셀: 주색 bin `[15,181,174]` = `#0fb5ae` · `[64,70,202]` = `#4046ca` (Spectrum categorical 1·2 정확히).
+2. Properties › Appearance › Palette → Mono (실제 RAC Select 조작) → canonical `palette:"mono"` · Skia 주색 `[20,43,187]` = `#142bbb` · `[54,96,240]` = `#3660f0` (accent 사다리 1·2), teal 소멸.
+3. Compare Mode (Preview iframe): `.react-aria-Chart[data-palette="mono"]` · fill `[20,43,187]` `[54,96,240]` — Skia 와 동일 · `--chart-series-1` = `oklch(from oklch(0.5 0.22049 266.315) 40% c h)`.
+4. Themes › tint Pink → Skia 주색 `[183,57,132]` · Preview fill `[182,57,132]` / `[132,0,88]` ⊂ Skia bins (±1) — 양 leg 같은 공식 (R1 해소).
+5. Palette → Categorical + dark: Preview `data-palette` 없음 · fill `[15,181,174]` `[64,70,202]` 그대로 (테마 공용).
+
+G2 번들 (clean worktree 2개 `926c44a07` → `9049698c7`, 원래 lockfile, `adr209-bundle-closure.mjs`): Builder initial JS gzip 1,312,202 → 1,313,600 (+1,398) · CSS +274 · Preview JS 643,116 → 643,758 (+642) · CSS +329 · lazy chart graph +1 B. 본 ADR 순증 ≤ 2 KiB PASS. 절대 상한 초과분은 착수 전 이미 존재 (+8,172 / +6,848) — 본 ADR 밖 원인 (Status 참조).
 
 ## Consequences
 

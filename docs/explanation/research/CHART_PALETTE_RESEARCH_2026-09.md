@@ -49,7 +49,7 @@
 5. **색만으로 구분 금지** — 모양·패턴·라벨 병행 (접근성). 팔레트 결정과 별개 후속.
 6. 개수: Adobe 6/12/16(/20) · Pinterest 12 · Apple ~7. 8 은 무난.
 
-## 3. 판정 재료 → 제안
+## 3. 판정 재료 → 제안 (→ 결정: [ADR-215](../../adr/215-chart-series-palette.md) — A categorical + C mono, B 제외 · 사용자 2026-09-11 "리서치 후 제안 대로 착수")
 
 - **`categorical` (기본)**: Adobe Spectrum 1 categorical 1~8 — RSC 의 S2 theme 도 이걸 기본으로 쓰는 것이 결정적 근거. light = dark 1벌 (theme 행 8개 `viz-categorical-1..8`).
 - **`mono`**: accent 명도 4단 + neutral 4단 — Pinterest primary · Apple tint 관행. accent 단계 행 신설 필요 (`accent` 계열은 현재 4 토큰뿐).

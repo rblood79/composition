@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart 시리즈 팔레트 — Spectrum categorical 기본 + mono (accent) 선택 (ADR-215)] - 2026-09-11
+
+> 근거: 리서치 [CHART_PALETTE_RESEARCH_2026-09](explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) — Adobe react-spectrum-charts (Spectrum 2 theme 도 기본 category 는 Spectrum 1 categorical) · Pinterest Gestalt (`primary` = 단일 시리즈) · Apple (tint). 종전 시리즈 색은 named hue 8개를 Tailwind 600 으로 나열한 무지개였다 (청색 4개 · yellow 대비 부족). ADR-215 Phase 1~4 (`721fc8862` · `478108af6`).
+
+### Changed
+
+- **Chart 시리즈 색 8개가 Adobe Spectrum categorical 1~8 로 바뀐다** (`#0fb5ae #4046ca #f68511 #de3d82 #7e84fa #72e06a #147af3 #7326d3`, 라이트·다크 공용) — 기존 프로젝트의 모든 차트 색이 바뀐다 (저장 무변경, `seriesConfig.colorToken` 순번 `--chart-series-N` 그대로). Builder(Skia) 와 Preview/Publish 가 같은 표 (`chartPaletteMap.ts`) 를 읽는다.
+
+### Added
+
+- **Properties › Appearance › Palette** (`categorical` 기본 · `mono`): `mono` 는 테마 accent (`--tint`) 명도 사다리 4단 + neutral 4단 — Themes 패널에서 tint 를 바꾸면 차트도 따라간다 (CSS `oklch(from var(--tint) …)` ↔ Skia 같은 (L, chroma) 표). Series 섹션의 색 Select 는 선택된 팔레트의 순번을 보여 준다.
+- 토큰 `{color.chart-categorical-1..8}` · `{color.chart-accent-1..4}` (`--chart-categorical-N` 은 생성 `theme/generated/chart-palette.css`, `--chart-accent-N` 은 `preview-system.css`). rule `Chart.chart.palettes.{id}` → 생성 CSS `.react-aria-Chart[data-palette="id"]` 블록.
+
 ## [Variables — 페이지 변수는 소유 페이지를 갖는다 (ADR-214 판정 C + 생성 경로 차단)] - 2026-09-11
 
 > 근거: ADR-214 Phase 0 evidence §5 — 구 Variables UI 가 `page_id` 를 한 번도 채우지 않아 저장된 `scope:"page"` 변수가 전부 소유 페이지 없이 남아 있었다. 사용자 판정 (2026-09-11 "C + 2"): 이미 저장된 것은 프로젝트 페이지가 1개뿐일 때만 그 페이지로 귀속 (유일하게 결정적), 아니면 project + `owner-unresolved` 배지 유지 · 새로 만드는 경로는 지금부터 소유 페이지 필수. 단위 51 PASS (`variableOwnerMigration` · `dataActions.variables` · `dataChange*`) · 실제 빌더 exercise 는 dev 서버 stale (chart-palette.css ENOENT 캐시) 로 보류.

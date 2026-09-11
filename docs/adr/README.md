@@ -43,8 +43,8 @@
 
 #### [215](215-chart-series-palette.md) — Chart 시리즈 팔레트 — categorical (Spectrum) · mono (accent) 선택 축
 
-- **상태**: Proposed (2026-09-11) — 리서치 [CHART_PALETTE_RESEARCH_2026-09](../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) · 시안 `docs/design/chart-series-palette/`
-- **규모**: 토큰 원천 `chartPaletteMap.ts` (Spectrum categorical 리터럴 8 · accent 명도 사다리 4 — ADR-193 hex 금지의 명시 예외 1건) + rule `chart.series` 교체 · `chart.palettes.mono` + binding `palette` enum (RSC `colors` 참조) + CSS `[data-palette]` 블록 · Skia `resolveChartPalette`. 저장 무변경 (`--chart-series-N` 순번 계약 유지), 기존 차트 색 100% 변화 (CHANGELOG). Phase 0·1 은 2026-09-11 작업 트리에 선행
+- **상태**: Accepted (2026-09-11) — Phase 1~4 완료, G1·G3·G4 PASS · G2 본 ADR 순증 PASS (절대 상한은 착수 전 초과 — 사용자 재승인 대기) — 리서치 [CHART_PALETTE_RESEARCH_2026-09](../explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) · 시안 `docs/design/chart-series-palette/`
+- **규모**: 토큰 원천 `chartPaletteMap.ts` (Spectrum categorical 리터럴 8 · accent 명도 사다리 4 — ADR-193 hex 금지의 명시 예외 1건) + rule `chart.series` 교체 · `chart.palettes.mono` + binding `palette` enum (RSC `colors` 참조) + CSS `[data-palette]` 블록 · Skia `resolveChartPalette`. 저장 무변경 (`--chart-series-N` 순번 계약 유지), 기존 차트 색 100% 변화 (CHANGELOG). live 7/7 (`adr215-chart-palette-live.mjs`)
 - **우선순위**: P2 — 독립 (194 · 210 · 211 Implemented 위), 213/214 와 병렬 가능
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
