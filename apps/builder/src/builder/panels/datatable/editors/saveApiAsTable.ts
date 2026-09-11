@@ -48,12 +48,9 @@ export function buildSaveApiAsTableOps(input: SaveApiAsTableInput): DataOp[] {
       source: "api",
     });
   }
-  ops.push({
-    op: "set_source",
-    collectionId,
-    source: "api",
-    endpointId: endpoint.id,
-  });
+  // 컬렉션 source = api 만 표시한다. endpoint↔collection 연결은 define_endpoint.targetCollectionId
+  // 가 소유한다 (set_source.endpointId 는 미배선 — 적용기가 거부).
+  ops.push({ op: "set_source", collectionId, source: "api" });
   ops.push({
     op: "define_endpoint",
     endpoint: {

@@ -82,18 +82,18 @@
 - [x] 닫힘·삭제 시 필드 패널 close → 편집기 격자로 (호출 셀 포커스 복귀는 격자 셀 편집 경로가 이미 담당). 삭제 후 `remove_field` → 격자 헤더 갱신
 - [x] G2 live 12/12: 필드 패널 rename → 152 G4 재확인 (IndexedDB rows 가 새 key `fullName`, 값 보존, `fieldId` 불변 — 템플릿·fieldMap 은 stable ref 라 불변). Skia·DOM·차트 값 유지는 152 G4 (rename 이 key 만 바꾸고 stable id 참조 유지) 가 이미 고정, 본 Phase 는 필드 패널 UI 가 같은 `update_field { key }` 를 구동함을 확인. **편집기 탭 aria-controls dangling 수리** (본문 TabPanel 화) — axe critical 0
 
-### Phase 4 — API 편집기 (게이트 G3, ADR-213 G1~G4 PASS 뒤 착수)
+### Phase 4 — API 편집기 (게이트 G3) — 완료 2026-09-12 (`8795f9a14` 4a · `f9838b34e` 4c, live 11/11 `scripts/adr212-p4-live.mjs`, [evidence](../evidence/212-p4-api-editor.md))
 
-- [ ] 상단 고정 `[Method ▾][URL][Send]` 바 (UI-4) — 이름은 `suggestApiName` (Track 0 자산), 탭 Params / Headers / Body / Auth / Response
-- [ ] Params 탭 = queryParams · path `{{key}}` 변수 (환경값 `{{env.NAME}}` 치환은 ADR-214 Environment — 그 전엔 인자 params 만)
-- [ ] key-value 편집기 a11y (Y6): 행별 Remove 고유 이름 · Add 후 새 key 포커스 · Bulk Edit 텍스트 대안; Body 는 `aria-label` + `aria-multiline` (Y8)
-- [ ] 응답 뷰어: status · time · size 한 줄 (`role=status`) + Pretty / Raw / **Schema** 탭 — Schema = `columnDetector` 재사용 (키 · 타입 · 포함 · ID) + 배열 후보 **추천** (전수 탐색, `resolveResponseData` 확장 — 텍스트 path + 미리보기, P7)
-- [ ] "테이블로 저장" 한 방향 (UX-2): ADR-213 cross-store coordinator에 `DataChange [create_collection, set_source(api), define_endpoint(targetCollectionId), bind_element?]`를 전달한다. 전체 op preflight 뒤 1회 commit/History/inverse를 만들고 중간 실패 시 collection·endpoint·canonical document를 모두 rollback한다. 기존 테이블에 잇기도 같은 자리. Response 탭의 자유 텍스트 Target 제거 (U4)
-- [ ] dead 필드 정리 (D5): Field Mapping · pagination · serverConfig · retryCount UI 제거 (타입은 read 호환 잔존, 소비처 붙을 때 복귀)
-- [ ] Auth 탭 프리셋 None / Bearer / API Key (header · query) / Basic (P4) — 값은 마스킹, 저장은 프로젝트 로컬 vault, 문서에는 `{{secret.NAME}}`. 기존 평문은 로드 시 vault로 lazy 이동하고 공유 redactor가 export/postMessage/AI payload를 차단한다
-- [ ] cURL 붙여넣기 → 요청 바 + 탭 채움 (규칙 파서, P9). OpenAPI 는 범위 외
-- [ ] production CORS 경고 (UX-8): `import.meta.env.DEV` 아닌 환경에서 실행 전 배너 — 서버 실행은 범위 외 (publish 방침)
-- [ ] G3 live: URL→Send→추천 path→저장→ListBox 행 표시. 각 op 위치 failure injection에서 전 store/문서 원상 및 History 0, 성공은 History 1·undo 원상. 기존 평문 fixture migration 뒤 export/postMessage/AI payload에 원문 secret 0, production CORS 경고 표시
+- [x] 상단 고정 `[Method ▾][URL][Send]` 바 (UI-4) — 이름은 `suggestApiName` (creator), 자체 탭 Params / Headers / Body / Auth / Response (편집기 소유 RAC Tabs, TabPanel = .panel-contents)
+- [x] Params 탭 = queryParams · path `{{key}}` 변수는 URL 그대로 (환경값 `{{env.NAME}}` 은 ADR-214 몫 — 그 전엔 인자 params)
+- [x] key-value 편집기 a11y (Y6): 로컬 draft (빈 행 즉시 저장 안 함) · 행별 Remove 고유 이름 · Add 후 새 key 포커스; Body 는 `aria-label` + `aria-multiline` (Y8)
+- [x] 응답 뷰어: status · time · size 한 줄 (`role=status`) + Pretty / Raw / **Schema** 탭 — Schema = `recommendArrayPaths` 전수 추천 (경로 · 행 수) → `detectColumns` (키 · 타입) (P7)
+- [x] "테이블로 저장" 한 방향 (UX-2): ADR-213 cross-store coordinator 에 `buildSaveApiAsTableOps` = `[create_collection(source api), set_source, define_endpoint(targetCollectionId)]` 한 DataChange. preflight → 1회 commit/History/inverse, 중간 실패 rollback (coordinator 소유). endpoint↔collection 은 `define_endpoint.targetCollectionId` (set_source.endpointId 는 미배선 — 적용기 거부, live 4 수리). 기존 테이블에 잇기 = attach 모드
+- [x] dead 필드 정리 (D5): Field Mapping · pagination · serverConfig · retryCount UI 제거 (타입 read 호환 잔존). Run 탭 → Send 바 + Response 탭 흡수
+- [x] Auth 탭 프리셋 None / Bearer / API Key (header · query) / Basic (P4) — 값은 마스킹, 원문은 프로젝트 로컬 vault (`secretVault`, 별도 IndexedDB `composition-secrets`), 문서에는 `{{secret.NAME}}`. 실행 치환은 실제 fetch 에만, apiRuns 스냅샷·AI payload 는 placeholder (공유 redactor 는 read 경로). **기존 평문 lazy 이동은 후속** (신규 오소링은 vault 어법, 기존 평문 endpoint 는 redactor 가 이미 마스킹)
+- [x] cURL 붙여넣기 → 요청 바 + 탭 (`parseCurlCommand`/`curlToEndpointDraft`, P9). OpenAPI 범위 외
+- [x] production CORS 경고 (UX-8): `!import.meta.env.DEV` 배너 (`isProd && <banner>`). dev live 는 DEV=true 라 코드 경로만
+- [x] G3 live 11/11: URL→Send (로컬 서버+proxy)→Schema 추천→저장 (collection api·3행 + targetCollectionId, 한 DataChange)→⌘Z 원상. Auth Bearer → 문서 `{{secret.NAME}}` (원문 0 HC6) · vault 에만 원문 · 실제 요청은 vault 원문. failure injection rollback 은 213 coordinator 소유 (213 G-live 고정) — 본 Phase 는 성공 History 1 + undo 원상 확인. 기존 평문 migration·production 배너는 후속/코드 경로
 
 ### Phase 5 — 데이터 유입 · 소스 (Source 아트보드)
 

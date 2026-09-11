@@ -45,8 +45,11 @@ describe("buildSaveApiAsTableOps", () => {
       op: "set_source",
       collectionId: "c-new",
       source: "api",
-      endpointId: "ep1",
     });
+    expect(
+      (ops.find((o) => o.op === "set_source") as { endpointId?: string })
+        .endpointId,
+    ).toBeUndefined();
     expect(ops.find((o) => o.op === "define_endpoint")).toMatchObject({
       op: "define_endpoint",
       endpoint: { id: "ep1", targetCollectionId: "c-new", dataPath: "data" },
@@ -66,7 +69,7 @@ describe("buildSaveApiAsTableOps", () => {
     expect(ops.some((o) => o.op === "create_collection")).toBe(false);
     expect(ops.find((o) => o.op === "set_source")).toMatchObject({
       collectionId: "c-exist",
-      endpointId: "ep1",
+      source: "api",
     });
     expect(ops.find((o) => o.op === "define_endpoint")).toMatchObject({
       endpoint: { targetCollectionId: "c-exist" },
