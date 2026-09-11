@@ -122,7 +122,13 @@ export type ChartDiagnosticCode =
   | "budget.overflow.unsupported"
   | "budget.aggregate.invalid"
   | "budget.axis.invalid"
-  | "budget.othersLabel.invalid";
+  | "budget.othersLabel.invalid"
+  // ADR-216 — 시간축 · 지시자 형식 (breakdown §2.1 · §2.2).
+  | "dimensionScale.invalid"
+  | "dimensionScale.unsupportedChartType"
+  | "dimensionFormat.invalid"
+  | "dimensionLabelFormat.invalid"
+  | "dimension.parse.failed";
 
 /**
  * 표시 설정 진단 (`resolveChartPresentation` 이 만든다). `error` 는 설정 오류 상태 —
@@ -227,7 +233,18 @@ export interface ChartProps {
 
   // ── ADR-215 — 시리즈 팔레트 선택. 미설정 = `categorical`. seriesConfig.colorToken 순번은 그대로다.
   palette?: ChartPalette;
+
+  // ── ADR-216 — 시간축 (line/area opt-in). 미설정 = `category` (현행 등간격 · byte 동일).
+  /** 범주 축 스케일. `time` 은 `dimension` 문자열을 epoch 으로 파싱해 시간 간격으로 놓는다 (RSC `scaleType`). */
+  dimensionScale?: ChartDimensionScale;
+  /** `time` 입력 파싱 지시자 (d3-time-format 부분집합, UTC). 미설정 = 엄격 ISO-8601. */
+  dimensionFormat?: string;
+  /** `time` 축 라벨 지시자 — 있으면 1단, 없으면 RSC 2단 표 (눈금 단위별). */
+  dimensionLabelFormat?: string;
 }
+
+/** ADR-216 — 범주 축 스케일 (RSC `ScaleType` 의 `band` · `time` 에 해당). */
+export type ChartDimensionScale = "category" | "time";
 
 /** ADR-211 §2.4 — 넘칠 때의 처리. */
 export type ChartBudgetOverflow =

@@ -22,6 +22,7 @@ import type {
   ChartDataMode,
   ChartDiagnostic,
   ChartDiagnosticCode,
+  ChartDimensionScale,
   ChartPercentUnit,
   ChartProps,
   ChartValueFormat,
@@ -175,6 +176,8 @@ export interface ResolvedChartPresentation {
   numberFormat: ResolvedNumberFormat;
   /** ADR-211 — 정규화된 예산 설정 (`auto` · `sum` · `auto` · 상수 라벨 기본). */
   budget: ResolvedBudgetSettings;
+  /** ADR-216 — 범주 축 스케일 (`category` 기본) + 파싱/라벨 지시자. */
+  dimension: ResolvedDimensionSettings;
   diagnostics: readonly ChartDiagnostic[];
   /** error 진단이 없는가 — false 면 소비자는 설정 오류 상태를 보여 준다. */
   ok: boolean;
@@ -187,6 +190,19 @@ export interface ResolvedBudgetSettings {
   /** 사용자 라벨 (없으면 `CHART_OTHERS_LABEL`) */
   othersLabel: string;
 }
+
+/** ADR-216 §2.1 · §2.2 — 시간축 설정. `format` 미설정 = 엄격 ISO (`parseIsoStrict`). */
+export interface ResolvedDimensionSettings {
+  scale: ChartDimensionScale;
+  /** 입력 파싱 지시자 (`time` 전용) */
+  format?: string;
+  /** 축 라벨 지시자 — 있으면 1단 */
+  labelFormat?: string;
+}
+export const CHART_DIMENSION_SCALES: readonly ChartDimensionScale[] = [
+  "category",
+  "time",
+];
 
 /**
  * ADR-211 §2.7 — 두 leg 가 같은 **영문 상수** 를 그린다 (번역을 export 에 싣지 않는다).
@@ -248,6 +264,9 @@ export function resolveChartPresentation(
     | "budgetAggregate"
     | "budgetAxis"
     | "budgetOthersLabel"
+    | "dimensionScale"
+    | "dimensionFormat"
+    | "dimensionLabelFormat"
   > &
     Partial<Pick<ChartProps, "chartType" | "colorBy">>,
   paletteLength: number,
@@ -563,6 +582,66 @@ export function resolveChartPresentation(
     }
   }
 
+  // ── ADR-216 dimensionScale · dimensionFormat · dimensionLabelFormat — line/area 만 시간축을 받는다
+  //   (Recharts · RSC 둘 다 bar 는 band). 지시자는 비어 있지 않은 문자열이면 받는다 — 모르는 지시자는
+  //   d3 처럼 글자로 남고 (format), parse 는 행 단위로 실패해 `dimension.parse.failed` 로 알린다.
+  const dimension: ResolvedDimensionSettings = { scale: "category" };
+  const rawScale = props.dimensionScale as unknown;
+  if (rawScale !== undefined) {
+    if (
+      typeof rawScale === "string" &&
+      (CHART_DIMENSION_SCALES as readonly string[]).includes(rawScale)
+    ) {
+      dimension.scale = rawScale as ChartDimensionScale;
+      if (
+        dimension.scale === "time" &&
+        props.chartType !== undefined &&
+        props.chartType !== "line" &&
+        props.chartType !== "area"
+      ) {
+        error(
+          "dimensionScale.unsupportedChartType",
+          `time scale is only supported for line and area charts, not ${props.chartType}`,
+          props.chartType,
+        );
+      }
+    } else {
+      error(
+        "dimensionScale.invalid",
+        "dimensionScale must be category or time",
+        String(rawScale),
+      );
+    }
+  }
+  const rawDimFormat = props.dimensionFormat as unknown;
+  if (rawDimFormat !== undefined) {
+    if (typeof rawDimFormat === "string" && rawDimFormat.trim().length > 0) {
+      dimension.format = rawDimFormat;
+    } else {
+      // 휴면 (category) 이면 알리기만 — 잘못된 휴면 값으로 현행 차트를 막지 않는다.
+      (dimension.scale === "time" ? error : warning)(
+        "dimensionFormat.invalid",
+        "dimensionFormat must be a non-empty specifier string",
+        String(rawDimFormat),
+      );
+    }
+  }
+  const rawLabelFormat = props.dimensionLabelFormat as unknown;
+  if (rawLabelFormat !== undefined) {
+    if (
+      typeof rawLabelFormat === "string" &&
+      rawLabelFormat.trim().length > 0
+    ) {
+      dimension.labelFormat = rawLabelFormat;
+    } else {
+      (dimension.scale === "time" ? error : warning)(
+        "dimensionLabelFormat.invalid",
+        "dimensionLabelFormat must be a non-empty specifier string",
+        String(rawLabelFormat),
+      );
+    }
+  }
+
   const numberFormat: ResolvedNumberFormat = { format, locale };
   if (fractionDigits !== undefined)
     numberFormat.fractionDigits = fractionDigits;
@@ -575,6 +654,7 @@ export function resolveChartPresentation(
     seriesConfig,
     numberFormat,
     budget,
+    dimension,
     diagnostics,
     ok: !diagnostics.some((d) => d.severity === "error"),
   };

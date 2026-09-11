@@ -6,6 +6,7 @@ import type { ChartModelView } from "./model";
 import { CHART_TICK_COUNT } from "./layout";
 import type { ChartLayout } from "./layout";
 import type { DisplayBudget } from "./budget";
+import type { ChartTimeAxisModel } from "./timeAxis";
 import type { ResolvedChartPresentation } from "./presentation";
 import type { ChartDiagnostic, ChartProps, ChartRow } from "./types";
 import type { SeriesGrid, StackMode, StackRange } from "./series";
@@ -36,6 +37,8 @@ export interface ChartDataModel {
   sourceRowCount: number;
   /** 표시 설정 진단 + 행 상한 + 예산 진단 */
   diagnostics: readonly ChartDiagnostic[];
+  /** ADR-216 — 시간 축 모델 (`view` + `dimensionScale:"time"` 일 때만) */
+  time?: ChartTimeAxisModel;
 }
 
 /** `view` 를 준 호출의 모델 — layout · budget · input 이 항상 있다. */
@@ -85,6 +88,7 @@ export function resolveChartData(
       budget: model.budget,
       sourceRowCount: model.sourceRowCount,
       diagnostics: model.diagnostics,
+      ...(model.time ? { time: model.time } : {}),
     });
   }
   const presentation = resolveChartPresentation(props, seriesCount);

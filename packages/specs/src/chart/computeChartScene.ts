@@ -39,6 +39,8 @@ import {
 } from "./scales";
 import { seriesLabel, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
+import { positionBand, timeScaleFor } from "./timeAxis";
+import type { ChartTimeAxisModel } from "./timeAxis";
 import {
   buildBandTooltip,
   buildPolarBandTooltip,
@@ -448,8 +450,10 @@ export function computeChartScene(
     );
   }
 
-  const band = bandScale(
-    grid.categories.length,
+  // ADR-216 — 시간 스케일이면 epoch 위 linearScale 을 BandScale 어댑터로 (마크 빌더 무변경).
+  const { band, timeAxis } = resolveCategoryBand(
+    model.time,
+    grid,
     horizontal ? [plot.y, r2(plot.y + plot.h)] : [plot.x, r2(plot.x + plot.w)],
   );
   const value = linearScale(
@@ -559,6 +563,7 @@ export function computeChartScene(
       showAxis: props.showAxis,
       showGrid: props.showGrid,
       tickText,
+      ...(timeAxis ? { time: timeAxis } : {}),
     }),
     legend: legendBox
       ? buildLegend({
@@ -582,6 +587,29 @@ export function computeChartScene(
     ...(windowTrack ? { windowTrack } : {}),
     ...withDiagnostics,
   };
+}
+
+/**
+ * ADR-216 — 범주 축 band. **두 leg 가 같이 부른다** (scene · `RechartsChart`): 시간 모델이 있으면
+ * epoch 위치 band (`positionBand`) + 축 입력 (`buildAxes.time`), 없으면 현행 등간격 `bandScale`.
+ * 각자 고르면 한쪽만 시간 간격이 된다.
+ */
+export function resolveCategoryBand(
+  time: ChartTimeAxisModel | undefined,
+  grid: Pick<SeriesGrid, "categories" | "positions">,
+  range: readonly [number, number],
+): {
+  band: ReturnType<typeof bandScale>;
+  timeAxis: { scale: ReturnType<typeof linearScale>; labels: ChartTimeAxisModel["labels"] } | null;
+} {
+  if (time && grid.positions) {
+    const scale = timeScaleFor(time, range);
+    return {
+      band: positionBand(grid.positions, scale),
+      timeAxis: { scale, labels: time.labels },
+    };
+  }
+  return { band: bandScale(grid.categories.length, range), timeAxis: null };
 }
 
 /** rule 의 `chart` 채널 모양 (shared `ComponentRuleChart` 미러 — specs 는 shared 를 import 하지 않는다). */

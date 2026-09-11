@@ -34,6 +34,8 @@ import {
 import type { ResolvedChartPresentation } from "./presentation";
 import { buildSeriesGrid, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
+import { resolveTimeAxisModel } from "./timeAxis";
+import type { ChartTimeAxisModel } from "./timeAxis";
 import type {
   ChartDiagnostic,
   ChartMetrics,
@@ -71,6 +73,11 @@ export interface ChartModel {
   sourceRowCount: number;
   /** 표시 설정 진단 + 예산 진단 (순서: presentation → 행 상한 → 예산) */
   diagnostics: ChartDiagnostic[];
+  /**
+   * ADR-216 — 시간 스케일 축 모델 (`dimensionScale:"time"` 일 때만). domain · 눈금 · 2단 라벨은
+   * **transformed 전체** 에서 (값 축 `ticks` 와 같은 자리) — 창을 옮겨도 x 축이 흔들리지 않는다.
+   */
+  time?: ChartTimeAxisModel;
 }
 
 /**
@@ -134,7 +141,12 @@ export function resolveChartModel(
     presentation,
   );
   const settings = presentation.budget;
-  const axisKind = resolveAxisKind(input.categories, settings.axis);
+  // ADR-216 — 시간 스케일은 정의상 기간 축 (인접 index = 인접 시각) 이라 `ordinal` 로 고정한다
+  //   (`resolveAxisKind` 의 ISO 판정은 category 스케일의 예산 힌트 — breakdown §1 (3)).
+  const axisKind =
+    presentation.dimension.scale === "time"
+      ? "ordinal"
+      : resolveAxisKind(input.categories, settings.axis);
   const decide = (
     layout: ChartLayout,
   ): { layout: ChartLayout; decided: DisplayBudget; stacked: boolean } => {
@@ -234,6 +246,18 @@ export function resolveChartModel(
     transformed === input
       ? baseLayout.ticks
       : niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
+  // ADR-216 — 시간 축: transformed 의 epoch 범위 (집계는 `t1` 까지) → domain · 눈금 · 라벨. 축 픽셀은
+  //   최종 plot (트랙 예약 뒤) — 두 leg 가 같은 plot 을 보므로 같은 눈금 수에 이른다.
+  const time =
+    presentation.dimension.scale === "time"
+      ? (resolveTimeAxisModel(
+          transformed,
+          baseLayout.horizontal ? baseLayout.plot.h : baseLayout.plot.w,
+          baseLayout.fontSize,
+          presentation,
+        ) ?? undefined)
+      : undefined;
+  const parseFailed = input.parseFailures ?? 0;
   return {
     presentation,
     input,
@@ -246,7 +270,18 @@ export function resolveChartModel(
     diagnostics: [
       ...presentation.diagnostics,
       ...(capped.diagnostic ? [capped.diagnostic] : []),
+      ...(parseFailed > 0
+        ? [
+            {
+              code: "dimension.parse.failed" as const,
+              severity: "warning" as const,
+              message: `${parseFailed} row${parseFailed === 1 ? "" : "s"} skipped — dimension value did not parse as a date`,
+              value: String(parseFailed),
+            },
+          ]
+        : []),
       ...budget.diagnostics,
     ],
+    ...(time ? { time } : {}),
   };
 }

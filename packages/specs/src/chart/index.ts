@@ -129,6 +129,7 @@ export {
   CHART_INVALID_SETTINGS_TEXT,
   CHART_TICK_COUNT,
   computeChartScene,
+  resolveCategoryBand,
   resolveChartLayout,
   resolveChartMetrics,
   skiaTextAnchorX,
@@ -224,3 +225,15 @@ export {
   timeLabelFormats,
 } from "./timeFormat";
 export type { TimeLabelFormats, TimeLocale } from "./timeFormat";
+export {
+  positionBand,
+  resolveTimeAxisModel,
+  timeAxisTwoTier,
+  timeBoundaryInterval,
+  timeScaleFor,
+  timeTickCount,
+} from "./timeAxis";
+export type { ChartTimeAxisModel, TimeTickLabel } from "./timeAxis";
+export { resolveDimensionParser } from "./series";
+export { CHART_DIMENSION_SCALES } from "./presentation";
+export type { ResolvedDimensionSettings } from "./presentation";

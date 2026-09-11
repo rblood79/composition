@@ -9,6 +9,8 @@ import { toFiniteNumber } from "./scales";
 import { resolveFieldRef } from "../data/fieldIdIndex";
 import { resolveChartPresentation, seriesIdentity } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
+import { parseIsoStrict } from "./budget";
+import { parseTime, resolveTimeLocale } from "./timeFormat";
 import type { ChartProps, ChartRow } from "./types";
 
 export interface SeriesData {
@@ -38,6 +40,15 @@ export interface SeriesGrid {
    * `categoryColorIndex` 로 이 범주를 `--chart-others` 토큰으로 보낸다.
    */
   othersIndex?: number;
+  /**
+   * ADR-216 시간 스케일 — 범주 index → epoch ms (UTC), 라벨과 **분리** 보존 (HC8). 범주는
+   * epoch 오름차순이다. 창 · 극값은 이 값을 그대로 옮기고, 집계는 bucket 의 첫 epoch (`t0`).
+   */
+  positions?: readonly number[];
+  /** 집계 bucket 의 `[t0, t1]` (bucket 안 첫·끝 범주의 epoch) — 집계에서만. */
+  positionRanges?: ReadonlyArray<readonly [number, number]>;
+  /** 시간 파싱에 실패해 제외한 행 수 (input 격자에만) — 진단 `dimension.parse.failed` 의 값. */
+  parseFailures?: number;
 }
 
 function readField(row: ChartRow, key: string): unknown {
@@ -65,9 +76,31 @@ export type SeriesGridProps = Pick<
   Partial<
     Pick<
       ChartProps,
-      "dataMode" | "valueFields" | "seriesConfig" | "chartType" | "colorBy"
+      | "dataMode"
+      | "valueFields"
+      | "seriesConfig"
+      | "chartType"
+      | "colorBy"
+      | "dimensionScale"
+      | "dimensionFormat"
+      | "dimensionLabelFormat"
+      | "valueLocale"
     >
   >;
+
+/**
+ * ADR-216 — 시간 스케일의 범주 파서. `dimensionFormat` 이 있으면 지시자 (`parseTime`), 없으면
+ * 엄격 ISO (`parseIsoStrict`). 둘 다 UTC · 달력 넘침 거부 (HC7). 실패는 null → 행 제외.
+ */
+export function resolveDimensionParser(
+  presentation: Pick<ResolvedChartPresentation, "dimension" | "numberFormat">,
+): ((label: string) => number | null) | null {
+  if (presentation.dimension.scale !== "time") return null;
+  const format = presentation.dimension.format;
+  if (!format) return parseIsoStrict;
+  const locale = resolveTimeLocale(presentation.numberFormat.locale);
+  return (label) => parseTime(format, label, locale);
+}
 
 /**
  * 행을 (범주 × 시리즈) 격자로 접는다. 같은 (범주, 시리즈) 가 여러 행이면 **합산**
@@ -94,6 +127,13 @@ export function buildSeriesGrid(
   const orderedSeries: SeriesData[] = [];
   const palette = Math.max(1, seriesCount);
   let hasValues = false;
+  // ADR-216 — 시간 스케일: 범주 key 는 epoch (같은 시각의 다른 표기는 한 범주 — 합산), 라벨은
+  //   첫 출현 문자열. 파싱 실패 행은 범주 push **전에** 걸러 categories 에 들어가지 않는다 (x 결측 —
+  //   y 결측 gap sentinel 과 다른 정책, breakdown §2.1).
+  const parseDimension = resolveDimensionParser(presentation);
+  const positions: number[] = [];
+  const epochIndex = new Map<number, number>();
+  let parseFailures = 0;
 
   const columns = presentation.dataMode === "columns";
   const addSeries = (key: string, id: string): SeriesData => {
@@ -126,11 +166,27 @@ export function buildSeriesGrid(
     if (!row || typeof row !== "object") continue;
 
     const label = toLabel(readField(row, props.dimension));
-    let ci = categoryIndex.get(label);
-    if (ci === undefined) {
-      ci = categories.length;
-      categories.push(label);
-      categoryIndex.set(label, ci);
+    let ci: number | undefined;
+    if (parseDimension) {
+      const t = parseDimension(label);
+      if (t === null) {
+        parseFailures++;
+        continue;
+      }
+      ci = epochIndex.get(t);
+      if (ci === undefined) {
+        ci = categories.length;
+        categories.push(label);
+        positions.push(t);
+        epochIndex.set(t, ci);
+      }
+    } else {
+      ci = categoryIndex.get(label);
+      if (ci === undefined) {
+        ci = categories.length;
+        categories.push(label);
+        categoryIndex.set(label, ci);
+      }
     }
 
     if (columns) {
@@ -147,10 +203,51 @@ export function buildSeriesGrid(
     accumulate(series, ci, readField(row, props.metric));
   }
 
+  if (!parseDimension) {
+    return {
+      categories,
+      series: applySeriesConfig(orderedSeries, presentation),
+      hasValues,
+    };
+  }
+  const sorted = sortByPosition(categories, positions, orderedSeries);
   return {
-    categories,
-    series: applySeriesConfig(orderedSeries, presentation),
+    categories: sorted.categories,
+    positions: sorted.positions,
+    series: applySeriesConfig(sorted.series, presentation),
     hasValues,
+    parseFailures,
+  };
+}
+
+/**
+ * ADR-216 — 시간 스케일은 **epoch 오름차순** 이 범주 순서다 (첫 출현 순이 아니다): 창 index ·
+ * 집계 bucket 이 "인접 index = 인접 시각" 을 전제한다. 시리즈 값 Map 의 index 도 같이 옮긴다.
+ */
+function sortByPosition(
+  categories: readonly string[],
+  positions: readonly number[],
+  series: readonly SeriesData[],
+): Pick<SeriesGrid, "categories" | "positions" | "series"> {
+  const order = positions.map((_, i) => i).sort((a, b) => positions[a] - positions[b]);
+  let sorted = true;
+  for (let i = 0; i < order.length; i++) {
+    if (order[i] !== i) {
+      sorted = false;
+      break;
+    }
+  }
+  if (sorted) return { categories: [...categories], positions: [...positions], series: [...series] };
+  const remap = new Map<number, number>();
+  order.forEach((oldIndex, newIndex) => remap.set(oldIndex, newIndex));
+  return {
+    categories: order.map((i) => categories[i]),
+    positions: order.map((i) => positions[i]),
+    series: series.map((sd) => {
+      const values = new Map<number, number>();
+      for (const [ci, v] of sd.values) values.set(remap.get(ci)!, v);
+      return { ...sd, values };
+    }),
   };
 }
 

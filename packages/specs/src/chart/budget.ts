@@ -380,6 +380,11 @@ export function aggregateBuckets(
 ): SeriesGrid {
   const bounds = bucketBounds(grid.categories.length, B);
   const categories = bounds.map(([a, b]) => bucketLabel(grid.categories, a, b));
+  // ADR-216 (HC8) — 시간 위치는 라벨과 분리 보존: bucket `[t0, t1]` = 첫·끝 범주의 epoch, 대표 x = t0.
+  const src = grid.positions;
+  const positionRanges = src
+    ? bounds.map(([a, b]) => [src[a], src[b - 1]] as const)
+    : undefined;
   const series: SeriesData[] = grid.series.map((sd) => {
     const values = new Map<number, number>();
     bounds.forEach(([a, b], bi) => {
@@ -397,6 +402,9 @@ export function aggregateBuckets(
     categories,
     series,
     hasValues: series.some((sd) => sd.values.size > 0),
+    ...(positionRanges
+      ? { positions: positionRanges.map(([t0]) => t0), positionRanges }
+      : {}),
   };
 }
 
@@ -486,7 +494,20 @@ export function pickCategories(
     categories,
     series,
     hasValues: series.some((sd) => sd.values.size > 0),
+    ...pickPositions(grid, keep),
   };
+}
+
+/** ADR-216 — 선택/창 index 를 따라 `positions` · `positionRanges` 를 같이 옮긴다 (없으면 없음). */
+function pickPositions(
+  grid: Pick<SeriesGrid, "positions" | "positionRanges">,
+  keep: readonly number[],
+): Pick<SeriesGrid, "positions" | "positionRanges"> {
+  const out: { positions?: number[]; positionRanges?: Array<readonly [number, number]> } = {};
+  if (grid.positions) out.positions = keep.map((ci) => grid.positions![ci]);
+  if (grid.positionRanges)
+    out.positionRanges = keep.map((ci) => grid.positionRanges![ci]);
+  return out;
 }
 
 /** others synthetic 범주의 identity key — 원본 라벨 (예: "기타") 과 충돌하지 않는다. */
@@ -536,6 +557,7 @@ export function groupOthers(
     if (any) values.set(othersIndex, sum);
     return { ...sd, values };
   });
+  // others synthetic 범주는 epoch 이 없다 — 시간 스케일은 others 를 받지 않으므로 (지원표) 위치를 싣지 않는다.
   return {
     categories: [...base.categories, label],
     series,
@@ -808,6 +830,10 @@ export function applyWindow(grid: SeriesGrid, window: ChartWindow): SeriesGrid {
     categories,
     series,
     hasValues: series.some((sd) => sd.values.size > 0),
+    ...(grid.positions ? { positions: grid.positions.slice(start, end) } : {}),
+    ...(grid.positionRanges
+      ? { positionRanges: grid.positionRanges.slice(start, end) }
+      : {}),
   };
 }
 

@@ -8,6 +8,7 @@
 import { approxTextWidth, formatTick, r2 } from "./scales";
 import type { BandScale, LinearScale, TickResult } from "./scales";
 import { bandCenter } from "./marks/line";
+import type { TimeTickLabel } from "./timeAxis";
 import type {
   AxisScene,
   ChartOrientation,
@@ -28,6 +29,11 @@ export interface AxesInput {
   showGrid: boolean;
   /** 값 눈금 문자열 (ADR-210). 미지정이면 기존 `formatTick`. */
   tickText?: (tick: number) => string;
+  /**
+   * ADR-216 — 시간 스케일이면 범주 축을 눈금 (epoch → `scale`) + 2단 라벨로 그린다.
+   * `categories` 는 읽지 않는다 (라벨은 눈금에서 나온다).
+   */
+  time?: { scale: LinearScale; labels: readonly TimeTickLabel[] };
 }
 
 /**
@@ -113,6 +119,79 @@ function categoryAxis(input: AxesInput): AxisScene {
   return { axis: horizontal ? "y" : "x", line, grid: [], ticks };
 }
 
+/**
+ * ADR-216 — 시간축. 눈금마다 secondary 라벨 (첫 줄), 큰 단위 경계에만 primary 라벨 (둘째 줄,
+ * `fontSize × 1.3` 아래). 가로 방향은 한 줄 (secondary 만 — 왼쪽 여백은 8 글자 폭). 눈금이 plot
+ * 밖 (nice 로 넓힌 domain 은 plot 안이지만 방어) 이면 건너뛴다. 격자는 값 축만 (현행과 같음).
+ */
+function timeAxis(
+  input: AxesInput,
+  time: NonNullable<AxesInput["time"]>,
+): AxisScene {
+  const { plot, orientation, fontSize, showAxis } = input;
+  const horizontal = orientation === "horizontal";
+  const ticks: TextMark[] = [];
+  if (showAxis) {
+    for (const label of time.labels) {
+      const pos = r2(time.scale(label.t));
+      if (horizontal) {
+        if (pos < plot.y - 0.01 || pos > plot.y + plot.h + 0.01) continue;
+        ticks.push({
+          kind: "text",
+          x: r2(plot.x - fontSize * 0.4),
+          y: pos,
+          text: label.tick,
+          anchor: "end",
+          baseline: "middle",
+          role: "tick",
+        });
+        continue;
+      }
+      if (pos < plot.x - 0.01 || pos > plot.x + plot.w + 0.01) continue;
+      ticks.push({
+        kind: "text",
+        x: pos,
+        y: r2(plot.y + plot.h + fontSize * 0.4),
+        text: label.tick,
+        anchor: "middle",
+        baseline: "top",
+        role: "tick",
+      });
+      if (label.boundary !== null) {
+        ticks.push({
+          kind: "text",
+          x: pos,
+          y: r2(plot.y + plot.h + fontSize * 1.7),
+          text: label.boundary,
+          anchor: "middle",
+          baseline: "top",
+          role: "tick",
+        });
+      }
+    }
+  }
+  const line: LineMark | null = showAxis
+    ? horizontal
+      ? {
+          kind: "line",
+          x1: r2(plot.x),
+          y1: r2(plot.y),
+          x2: r2(plot.x),
+          y2: r2(plot.y + plot.h),
+          role: "axis",
+        }
+      : {
+          kind: "line",
+          x1: r2(plot.x),
+          y1: r2(plot.y + plot.h),
+          x2: r2(plot.x + plot.w),
+          y2: r2(plot.y + plot.h),
+          role: "axis",
+        }
+    : null;
+  return { axis: horizontal ? "y" : "x", line, grid: [], ticks };
+}
+
 function valueAxis(input: AxesInput): AxisScene {
   const { value, ticks, plot, orientation, fontSize, showAxis, showGrid } =
     input;
@@ -194,5 +273,8 @@ function valueAxis(input: AxesInput): AxisScene {
 
 /** [범주 축, 값 축] 순. 축 배열 순서는 scene 계약이라 orientation 과 무관하게 고정. */
 export function buildAxes(input: AxesInput): AxisScene[] {
-  return [categoryAxis(input), valueAxis(input)];
+  return [
+    input.time ? timeAxis(input, input.time) : categoryAxis(input),
+    valueAxis(input),
+  ];
 }

@@ -11,6 +11,7 @@ import type { LegendEntry } from "./legend";
 import { approxTextWidth, formatTick, niceTicks, r2 } from "./scales";
 import { formatChartNumber } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
+import { timeAxisTwoTier } from "./timeAxis";
 import { seriesLabel, valueExtent } from "./series";
 import type { SeriesGrid, StackMode } from "./series";
 import type {
@@ -206,11 +207,21 @@ export function resolveChartLayout(
       if (w > widestCategory) widestCategory = w;
     }
 
+    // ADR-216 시간축 — 라벨은 범주 문자열이 아니라 눈금 (plot 을 알아야 정해진다) 이라 여백을 눈금
+    //   전에 상수로 둔다 (plot → count → 눈금 → 여백의 순환 차단): 세로는 2단이면 두 줄, 가로는
+    //   라벨 8 글자 폭. `dimensionLabelFormat` 이면 1단 (현행과 같은 한 줄).
+    const timeScale = presentation.dimension.scale === "time";
+    const twoTier = timeAxisTwoTier(presentation);
     // 세로 막대: 좌측 = 값 레이블, 하단 = 범주 레이블
     // 가로 막대: 좌측 = 범주 레이블, 하단 = 값 레이블
     const leftGutter =
-      (horizontal ? widestCategory : widestTick) + fontSize * 0.8;
-    const bottomGutter = fontSize * 1.6;
+      (horizontal
+        ? timeScale
+          ? fontSize * 0.55 * 8
+          : widestCategory
+        : widestTick) +
+      fontSize * 0.8;
+    const bottomGutter = fontSize * (twoTier && !horizontal ? 2.8 : 1.6);
     const nextW = plot.w - leftGutter;
     const nextH = plot.h - bottomGutter;
     if (nextW > 0 && nextH > 0) {
