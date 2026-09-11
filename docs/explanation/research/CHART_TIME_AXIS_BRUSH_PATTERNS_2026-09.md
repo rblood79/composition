@@ -2,7 +2,7 @@
 
 > 목적: 시간축 · 가변 창 (brush) ADR 을 설계하기 전에 d3 가 **무엇을 어떤 규칙으로** 계산하는지 소스에서 추출한다. 라이브러리는 가져오지 않는다 — `packages/specs/src/chart` 는 외부 의존 0 (ADR-194) 이고 Skia 가 같은 답을 내야 하므로 **이론·패턴만** 우리 모듈로 옮긴다. 선례: ADR-194 가 d3-path 의 "기하 = 렌더러 무관 path 문자열" 통찰만 채택했고, `scales.ts` `tickIncrement` 는 이미 d3-array 의 1·2·5 규칙을 그대로 이식한 것이다.
 >
-> 원천: d3-time · d3-scale · d3-array · d3-brush · d3-time-format `main` (2026-09-12 shallow clone, 스크래치 로컬). 인용은 파일:함수 단위.
+> 원천: d3-time · d3-scale · d3-array · d3-brush · d3-time-format `main` + react-spectrum-charts `vega-spec-builder` (D2 참조) (2026-09-12 shallow clone, 스크래치 로컬). 인용은 파일:함수 단위.
 
 ## 0. 우리 코드의 출발점 (실측)
 
@@ -82,7 +82,44 @@ else          → "%Y"
 
 즉 하루 경계 눈금은 날짜로, 그 사이 눈금은 시각으로 — 한 축에 두 형식이 섞이는 것이 의도다 (자정 눈금이 "Mar 05", 그 다음이 "06 AM").
 
-**우리 판정**: 형식 문자열 대신 `Intl.DateTimeFormat` 옵션 표로 옮긴다 (이미 `valueLocale` · `formatChartNumber` 가 Intl 경로). `timeZone: "UTC"` 고정. 두 leg 가 같은 Intl 을 쓰므로 문자열 동일 — 단 `TICK_FORMAT` 처럼 **locale 을 prop 으로 받고 기본은 en-US** 로 고정해야 스냅샷이 흔들리지 않는다.
+**우리 판정 (2026-09-12 정정)**: 처음엔 `Intl.DateTimeFormat` 옵션 표로 치환하려 했으나 §2.3 의 이유로 **d3-time-format 지시자 부분집합을 직접 이식**한다. 다단 규칙 자체 (가장 세밀한 변한 단위) 는 그대로 채택.
+
+### 2.3 d3-time-format — 지시자 형식·파싱 (같이 가져온다)
+
+**왜 Intl 이 아닌가** (셋 다 실측 근거):
+
+1. **D2 참조가 이 어법이다.** RSC 는 Vega 를 거쳐 d3-time-format 지시자를 쓰고, 축 `granularity` 마다 (secondary, primary) **2단 라벨 표**를 둔다 (`vega-spec-builder/src/axis/axisLabelUtils.ts:51-65`):
+
+   | granularity | secondary (눈금마다) | primary (경계마다) | tickCount           |
+   | ----------- | -------------------- | ------------------ | ------------------- |
+   | second      | `:%S`                | `%-I:%M %p`        | second              |
+   | minute      | `%-I:%M %p`          | `%b %-d`           | minute              |
+   | hour        | `%-I %p`             | `%b %-d`           | hour                |
+   | day · week  | `%-d`                | `%b`               | day · week          |
+   | month       | `%b`                 | `%Y`               | month               |
+   | quarter     | `Q%q`                | `%Y`               | month × 3           |
+   | year        | `%Y`                 | —                  | year                |
+
+   d3-scale 의 "한 줄 다단" 과 RSC 의 "2단 (작은 단위 눈금 + 큰 단위 경계)" 는 같은 규칙의 두 표현이다 — RSC 쪽이 축 아래 두 줄로 나와 더 읽기 쉽다. **RSC 표를 채택**하고 지시자 이식으로 그대로 재현한다.
+2. **ICU 의존이 두 leg 밖으로 샌다.** `Intl.DateTimeFormat` 결과는 ICU 판에 따라 바뀐다 (ICU 72+ 는 `"10 AM"` 의 공백이 U+202F narrow NBSP) — Builder/Preview 는 같은 Chrome 이라 parity 는 통과하지만 **publish 열람 브라우저 · Node 스냅샷** 이 다른 문자열을 낸다. 숫자 (`TICK_FORMAT` en-US, 소수 2자리) 는 ICU 간 안정하지만 날짜·시각은 아니다. 지시자 이식은 문자열이 코드에서 결정된다.
+3. **파싱이 필요하다.** `parseIsoStrict` 는 ISO 만 받는다. 사용자 데이터는 `2026/03/05` · `Mar 5, 2026` · `20260305` · epoch 초가 흔하고, d3 `timeParse("%Y/%m/%d")` 처럼 **같은 지시자로 입력 형식을 선언**하는 것이 가장 작은 UI 다 (prop 하나 `dimensionFormat`). Intl 에는 파서가 없다.
+
+**구조 (`locale.js` `formatLocale`)** — 로케일 객체 하나 (`dateTime/date/time/periods/days/shortDays/months/shortMonths`) 로 format 표와 parse 표를 같이 만든다:
+
+- `newFormat(specifier)`: `%` 다음 한 글자를 표에서 찾아 치환, 그 앞에 패딩 수정자 `-`(없음) `_`(공백) `0`(0) 하나 허용 (`pads`), `%e` 만 기본 공백 패딩. 나머지 문자는 리터럴. 재귀 지시자 `%c %x %X` 는 로케일 문자열로 다시 `newFormat`.
+- `newParse(specifier)`: 지시자마다 정규식 (`numberRe = /^\s*\d+/` — 폭 제한 없음, 다음 지시자 무시) 으로 필드를 모아 `{y,m,d,H,M,S,L,p,Z,q,V,W,U,w,u,Q,s}` 에 쌓고, 끝에서 한 번에 Date 로: `p` 로 12시간 보정, `q` → 월, `V/W/U` 주 번호 → 일, `Q/s` 는 epoch 직행, **utcParse 는 `Z` 없으면 0** 으로. 남은 문자열이 있으면 `null` (전체 일치 강제).
+- `pad(value, fill, width)`: 부호 분리 후 왼쪽 채움.
+
+**이식 범위 (부분집합 — 전량 697줄을 옮기지 않는다)**:
+
+| 채택 지시자                                                 | 이유                                                       |
+| ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `%Y %y %m %d %e %H %I %M %S %L %p %a %A %b %B %j %q %Z %%`  | RSC 표 + ISO 왕복 + 분기 + 일련일. `%-` `%_` `%0` 수정자 |
+| parse: 위 전부 + `%Q %s` (epoch ms/s)                       | 사용자 데이터 형태 4종 커버                                |
+| 로케일: `en-US` 기본 + `ko-KR` 표 (요일·월·오전/오후)       | 우리 i18n 2 언어; 축 라벨 로케일은 `valueLocale` 재사용    |
+| 기각: `%U %W %V %g %G %u %w %f %c %x %X`                    | 주 번호·ISO 주 연도·마이크로초·재귀 지시자 — 수요 없음     |
+
+UTC 벌만 (§1.4 와 같은 이유) — `utcFormats` / `utcParse` 경로만 옮기고 `localDate/utcDate` 의 0~99년 보정 (`newDate` — 두 자리 연도를 1900 대로 안 보내려는 `setFullYear`) 은 그대로 가져온다 (`%y` 파싱: `y < 68 ? 2000+ : 1900+`, `locale.js` `parseYear`).
 
 ## 3. d3-brush — 범위 선택의 상태 모델
 
@@ -124,11 +161,11 @@ else          → "%Y"
 | UTC interval 7종 (ms·s·min·h·day·week·month·year) `floor/offset/field` | `interval.js` 60줄 + 단위 8 파일 → **~90줄** (UTC 만) | `specs/chart/timeIntervals.ts`  | d3-time 을 **devDependency 로 두고 테스트에서만 대조** (differential oracle, 번들 0) |
 | 18 단 표 + `tickInterval` + `range` 포함 stop                          | `ticks.js` 58줄 → **~50줄**                           | `specs/chart/timeTicks.ts`      | 같은 오라클 + 손계산 표 (1시간·1일·1달·3년 span)                                     |
 | nice (floor/ceil)                                                      | 5줄                                                   | `niceTicks` 옆 `niceTime`       | 오라클                                                                               |
-| 다단 형식 → Intl 옵션 표                                               | `time.js` 20줄 → **~30줄**                            | `specs/chart/timeFormat.ts`     | 스냅샷 (en-US 고정)                                                                  |
+| 지시자 format + parse 부분집합 (§2.3) + en/ko 로케일 표 + RSC 2단 표   | `locale.js` 697줄 중 채택 지시자만 → **~180줄**       | `specs/chart/timeFormat.ts`     | d3-time-format devDependency 오라클 (채택 지시자 × 날짜 100 케이스 왕복 format∘parse = id) |
 | 시간 스케일                                                            | 0 (`linearScale` 재사용)                              | —                               | 기존                                                                                 |
 | 창 상태 `[start, end]`                                                 | windowTrack 확장                                      | `windowTrack.tsx` + `budget.ts` | 최소 창 = fitEff 불변식 테스트                                                       |
 
-번들: 위 합계 ~170줄은 Skia 가 읽으므로 **Builder initial** 순증 — ADR-211 이 7 KiB 한도를 썼던 자리. gzip 2 KiB 안팎으로 추정하되 **실측 전 수치 확정 금지** (measurement-validity).
+번들: 위 합계 ~350줄은 Skia 가 읽으므로 **Builder initial** 순증 — ADR-211 이 7 KiB 한도를 썼던 자리. gzip 2 KiB 안팎으로 추정하되 **실측 전 수치 확정 금지** (measurement-validity).
 
 ## 5. 채택 / 기각 요약
 
@@ -138,7 +175,9 @@ else          → "%Y"
 | 18 단 표 + 비율 bisect                               | 채택          | count 에서 단위를 고르는 규칙, 손계산 가능                   |
 | 연 단위 → 1·2·5 재귀                                 | 채택          | 이미 있는 `tickIncrement` 재사용                             |
 | 로컬 시간대 벌 · DST 보정                            | 기각          | UTC 단일 (parity 정의 유지)                                  |
-| 다단 형식 (가장 세밀한 변한 단위)                    | 채택          | Intl 옵션 표로 치환                                          |
+| 다단 형식 (가장 세밀한 변한 단위) → RSC 2단 표      | 채택          | D2 참조와 같은 어법                                          |
+| d3-time-format 지시자 format/parse 부분집합          | 채택          | ICU 비의존 문자열 · 파서 · RSC/Vega 와 같은 지시자 (§2.3)    |
+| `Intl.DateTimeFormat` 로 축 라벨                     | 기각          | ICU 판마다 문자열이 달라 publish·스냅샷이 흔들림 (U+202F)    |
 | brush px 저장                                        | 기각          | 데이터 좌표 저장 (우리 창 트랙 형태 유지)                    |
 | MODE_DRAG · MODE_HANDLE · dx clamp                   | 채택          | range Slider 2 thumb + 본체 드래그 = 창 이동                 |
 | MODE_CENTER · MODE_SPACE · overlay 신규 · shift 잠금 | 기각          | 1D 트랙 · 창 상시 존재 · RAC 키보드가 대체                   |
