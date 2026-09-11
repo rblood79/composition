@@ -71,7 +71,7 @@ export {
 export { AddPageDialog } from "./dialog";
 
 // Data 컴포넌트
-export { DataTable, DataTableMetadata } from "./data";
+export { DataTableMetadata } from "./data";
 
 // Help 컴포넌트
 

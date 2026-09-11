@@ -7,7 +7,7 @@
  *
  * 1. 바인딩 `name` 으로 collection 을 직접 find 하는 패턴 0건 (`resolveBoundCollection`).
  * 2. store Map `collections.get(...)` 직접 호출은 id 인자만 — name 인자 0건 (HC8 id 키).
- *    legacy `stores/datatable.ts` 는 자체 Map (이미 id 키) 이라 Phase 5 제거 전까지 제외.
+ *    (legacy `stores/datatable.ts` 예외는 Phase 5 삭제로 소멸.)
  * 3. schema 필드를 `key ===` 로 직접 find 하는 패턴 0건 (`resolveField` — v2.1 id 참조).
  *
  * 테스트 파일은 제외한다 (단언용 직접 조회는 정당).
@@ -45,7 +45,6 @@ const files = [
 }));
 
 const ALLOW_HELPER = /collections\/resolveBoundCollection\.ts$/;
-const ALLOW_LEGACY_STORE = /builder\/stores\/datatable\.ts$/;
 
 function offenders(pattern: RegExp, skip: (rel: string) => boolean): string[] {
   const hits: string[] = [];
@@ -71,10 +70,7 @@ describe("ADR-152 resolve 단일화 정적 가드", () => {
     const pattern =
       /\bcollections\.get\(\s*(?!id\b|collectionId\b|dataTableId\b|tableId\b|targetId\b)[^)]*\)/;
     expect(
-      offenders(
-        pattern,
-        (rel) => ALLOW_HELPER.test(rel) || ALLOW_LEGACY_STORE.test(rel),
-      ),
+      offenders(pattern, (rel) => ALLOW_HELPER.test(rel)),
     ).toEqual([]);
   });
 

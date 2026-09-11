@@ -23,7 +23,6 @@ export { useAsyncMutation } from "./useAsyncMutation";
 // `useCollectionItemManager`는 production caller 0이라 공개 export만 제거한다.
 // 원본 파일은 명시적 삭제 승인 전까지 보존한다.
 // ADR-912 후속 cleanup: useColumnLoader export 제거 — 외부 호출 0건 dead.
-// `useDataQueries` (React Query 병행) 는 ADR-152 Phase 5 에서 소비처 0 — 파일 삭제는 별도 승인.
 
 // Element & Page
 export { useElementCreator } from "./useElementCreator";

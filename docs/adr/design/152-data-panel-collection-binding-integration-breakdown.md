@@ -288,7 +288,7 @@ interface DataChange {
 - [x] legacy `{ type:"collection" }` 분기: `normalizeDataBinding` (`packages/shared/src/collections/normalizeDataBinding.ts`) — `config.collectionId / datatableId / name` 이 있으면 v2 `{ source:"dataTable", collectionId, name }` 로 (DOM `useCollectionData` 안정화 지점 · Skia `readDataBindingRows` 입구 둘 다), inline static (`config.data`) · api (`config.endpoint`) 는 변환 불가라 legacy loader 유지 · `supabase` 분기 (throw 뿐) 제거
 - [x] `useDataTableStore` 소비처: `BuilderCore.tsx` `LOAD_DATA_TABLE` → `useDataStore` (이름 resolve 헬퍼 → 연결 endpoint `targetCollectionId`·이름 → `executeApiEndpoint`, mock 전용은 no-op) · `SAVE_TO_DATA_TABLE` → `getDataTableData` + `setRuntimeData` (Canvas 동기화 포함 — R10: syncCollectionsToCanvas 단일). `components/data/DataTable.tsx` 는 렌더 소비처 0 (export 만) — 대체 없이 삭제 대상
 - [x] React Query 병행 제거: `DataTablePanel.tsx` 가 `useDataStore.isLoading` + store fetch 만 (새로고침 1회 = fetch 1회), `hooks/index.ts` 의 `useDataPanelQuery` export 제거 → `useDataQueries.ts` 소비처 0
-- [ ] **원본 삭제 (별도 승인)**: `apps/builder/src/builder/stores/datatable.ts` · `apps/builder/src/builder/components/data/DataTable.tsx` (+ `components/data/index.ts` · `components/index.ts` export 행) · `apps/builder/src/builder/hooks/useDataQueries.ts` — 전부 소비처 0. 승인 후 별도 커밋 + 정적 가드 ② 의 `ALLOW_LEGACY_STORE` 예외 제거
+- [x] **원본 삭제 (사용자 승인 2026-09-11)**: `stores/datatable.ts` · `components/data/DataTable.tsx` (index export 정리, `DataTableMetadata.ts` 는 잔존) · `hooks/useDataQueries.ts` 삭제, 정적 가드 ② `ALLOW_LEGACY_STORE` 예외 제거. 잔여 (승인 밖 — 기록): `types/datatable.types.ts` 는 import 0 (고아) · `main.tsx` 의 `QueryClientProvider` 는 소비처 0 — 다음 정리 때 판정
 
 ### Phase 6 — publish 연동
 
