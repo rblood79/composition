@@ -1,10 +1,13 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
+import { Checkbox } from "@composition/shared/components/list";
 import { memo } from "react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
 import type { ChartDataMode } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import { PropertyCheckbox, PropertySelect } from "../../components";
+import { PropertyRowMenu, PropertySelect } from "../../components";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 import {
   moveItem,
@@ -23,8 +26,11 @@ const COLUMNS_MODE_KEY: readonly string[] = ["columns"];
  *   취소는 write 0.
  * - columns→group 은 `dataMode` 만 쓴다 (legacy metric/color · 휴면 valueFields 보존).
  * - Pie/Radial 은 columns 를 지원하지 않는다 — 모드 항목을 비활성화하고 사유를 둔다.
- * - 값 필드 목록은 추가/삭제/위·아래 (버튼 — drag 없이 키보드 가능). 컬럼 타입은 schema
+ * - 값 필드 목록은 추가/삭제/위·아래 (행 메뉴 — drag 없이 키보드 가능). 컬럼 타입은 schema
  *   에서만 읽고, 원본에 없는 필드는 "원본에 없음" 으로 표시하되 키는 보존한다.
+ *
+ * DOM 은 패널 표준 (ADR-163): 라벨 그룹은 `fieldset.properties-aria` + legend, 행은
+ * `.fieldset-row` + `.fieldset-actions`(행 메뉴), 확정 액션은 `.control-button[primary]`.
  */
 const EMPTY_PICKED: string[] = [];
 
@@ -66,8 +72,8 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
       dataMode: "columns",
       valueFields: nextFields,
     };
-    // 범주색 bar 는 columns 와 조합할 수 없다 — 같은 patch 에서 시리즈색으로 바꾸고
-    //   (Undo 한 번에 같이 돌아간다) 화면에 그 사실을 표시한다 (§3).
+    // 범주색 bar 는 columns 와 조합할 수 없다 — 같은 patch 에서 시리즈색으로 바꾼다
+    //   (Undo 한 번에 같이 돌아간다).
     if (chartType === "bar" && props.colorBy === "category") {
       patch.colorBy = "series";
     }
@@ -96,44 +102,41 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
             setPicking(true);
           }
         }}
+        afterControl={
+          columnsUnsupported ? (
+            <span slot="description">{t("chart.columnsUnsupported")}</span>
+          ) : undefined
+        }
       />
-      {columnsUnsupported && (
-        <p className="chart-authoring-hint" role="note">
-          {t("chart.columnsUnsupported")}
-        </p>
-      )}
       {picking && (
-        <div
-          className="chart-field-picker"
-          role="group"
-          aria-label={t("chart.chooseFields")}
-        >
-          <p className="chart-authoring-hint">{t("chart.sameUnitHint")}</p>
-          {(columns ?? []).map((column) => (
-            <PropertyCheckbox
-              key={column.key}
-              label={`${column.key} · ${typeLabel(column.type)}`}
-              isSelected={picked.includes(column.key)}
-              onChange={(selected) =>
-                setPicked((current) =>
-                  selected
-                    ? current.includes(column.key)
-                      ? current
-                      : [...current, column.key]
-                    : current.filter((key) => key !== column.key),
-                )
-              }
-            />
-          ))}
-          {chartType === "bar" && props.colorBy === "category" && (
-            <p className="chart-authoring-hint">
-              {t("chart.colorBySeriesNote")}
-            </p>
-          )}
-          <div className="chart-authoring-actions">
+        <fieldset className="properties-aria chart-field-picker">
+          <legend className="fieldset-legend">{t("chart.chooseFields")}</legend>
+          {/* legend 가 그룹 이름을 공급한다 — RAC CheckboxGroup 을 겹치면 같은 이름의 group 이
+              둘이 된다. 각 Checkbox 는 자기 라벨로 독립 (controlled). */}
+          <div className="react-aria-control react-aria-Group chart-field-picker-list">
+            {(columns ?? []).map((column) => (
+              <Checkbox
+                key={column.key}
+                isSelected={picked.includes(column.key)}
+                onChange={(selected) =>
+                  setPicked((current) =>
+                    selected
+                      ? current.includes(column.key)
+                        ? current
+                        : [...current, column.key]
+                      : current.filter((key) => key !== column.key),
+                  )
+                }
+              >
+                {`${column.key} · ${typeLabel(column.type)}`}
+              </Checkbox>
+            ))}
+          </div>
+          <div className="chart-actions">
             <Button
               type="button"
               className="control-button"
+              data-variant="primary"
               isDisabled={picked.length === 0}
               onPress={() => {
                 applyColumns(picked);
@@ -150,66 +153,72 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
               {t("common.cancel")}
             </Button>
           </div>
-        </div>
+        </fieldset>
       )}
       {dataMode === "columns" && !picking && (
-        <div
-          className="chart-value-fields"
-          role="group"
-          aria-label={t("chart.valueFields")}
-        >
-          <ul className="chart-value-fields-list">
-            {valueFields.map((key, index) => {
-              const column = columnByKey.get(key);
-              return (
-                <li key={`${key}:${index}`} className="chart-value-field">
-                  <span className="chart-value-field-name">{key}</span>
-                  <span className="chart-authoring-hint">
-                    {columns && !column
-                      ? t("chart.missingField")
-                      : column
-                        ? typeLabel(column.type)
-                        : ""}
-                  </span>
-                  <Button
-                    type="button"
-                    className="control-button chart-authoring-square"
-                    aria-label={`${t("chart.moveUp")} ${key}`}
-                    isDisabled={index === 0}
-                    onPress={() =>
-                      applyColumns(moveItem(valueFields, index, index - 1))
-                    }
-                  >
-                    ↑
-                  </Button>
-                  <Button
-                    type="button"
-                    className="control-button chart-authoring-square"
-                    aria-label={`${t("chart.moveDown")} ${key}`}
-                    isDisabled={index === valueFields.length - 1}
-                    onPress={() =>
-                      applyColumns(moveItem(valueFields, index, index + 1))
-                    }
-                  >
-                    ↓
-                  </Button>
-                  <Button
-                    type="button"
-                    className="control-button chart-authoring-square"
-                    aria-label={`${t("common.remove")} ${key}`}
-                    // 마지막 필드는 지울 수 없다 — 빈 목록은 설정 오류 상태다 (§2.3 "빈 설정
-                    //   상태" 는 선택 화면이 맡는다). 바꾸려면 그룹 필드로 전환한다.
-                    isDisabled={valueFields.length <= 1}
-                    onPress={() =>
-                      applyColumns(valueFields.filter((_, i) => i !== index))
-                    }
-                  >
-                    ×
-                  </Button>
-                </li>
-              );
-            })}
-          </ul>
+        <>
+          {valueFields.map((key, index) => {
+            const column = columnByKey.get(key);
+            const status =
+              columns && !column
+                ? t("chart.missingField")
+                : column
+                  ? typeLabel(column.type)
+                  : "";
+            return (
+              <div
+                key={`${key}:${index}`}
+                className="fieldset-row chart-field-row"
+              >
+                <fieldset className="properties-aria chart-field">
+                  <legend className="fieldset-legend">{key}</legend>
+                  <div className="react-aria-control react-aria-Group">
+                    <span
+                      className="chart-field-type"
+                      data-missing={columns && !column ? "true" : undefined}
+                    >
+                      {status}
+                    </span>
+                  </div>
+                </fieldset>
+                <div className="fieldset-actions actions-chart-field">
+                  <PropertyRowMenu
+                    label={`${key} ${t("chart.rowActions")}`}
+                    items={[
+                      {
+                        id: "up",
+                        label: t("chart.moveUp"),
+                        icon: ArrowUp,
+                        isDisabled: index === 0,
+                      },
+                      {
+                        id: "down",
+                        label: t("chart.moveDown"),
+                        icon: ArrowDown,
+                        isDisabled: index === valueFields.length - 1,
+                      },
+                      {
+                        id: "remove",
+                        label: t("common.remove"),
+                        icon: ACTION_ICONS.delete,
+                        // 마지막 필드는 지울 수 없다 — 빈 목록은 설정 오류 상태다 (§2.3
+                        //   "빈 설정 상태" 는 선택 화면이 맡는다). 바꾸려면 그룹 필드로 전환한다.
+                        isDisabled: valueFields.length <= 1,
+                      },
+                    ]}
+                    onAction={(id) => {
+                      if (id === "up")
+                        applyColumns(moveItem(valueFields, index, index - 1));
+                      else if (id === "down")
+                        applyColumns(moveItem(valueFields, index, index + 1));
+                      else if (id === "remove")
+                        applyColumns(valueFields.filter((_, i) => i !== index));
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
           {columns && columns.some((c) => !valueFields.includes(c.key)) && (
             <PropertySelect
               label={t("chart.addField")}
@@ -225,7 +234,7 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
               onChange={(key) => applyColumns([...valueFields, key])}
             />
           )}
-        </div>
+        </>
       )}
     </>
   );

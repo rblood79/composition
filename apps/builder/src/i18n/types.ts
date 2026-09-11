@@ -579,7 +579,6 @@ export interface TranslationKeys {
     pieChart: string;
     radarChart: string;
     radialChart: string;
-    changeType: string;
     changeTarget: string;
     rowCapHint: string;
     runtimeHint: string;
@@ -593,6 +592,7 @@ export interface TranslationKeys {
     sameUnitHint: string;
     moveUp: string;
     moveDown: string;
+    rowActions: string;
     missingField: string;
     fieldTypeNumber: string;
     fieldTypeText: string;

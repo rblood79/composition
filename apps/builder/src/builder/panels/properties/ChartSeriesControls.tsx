@@ -1,6 +1,7 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
 import { memo, useMemo } from "react";
+import { ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
 import {
   buildSeriesGrid,
@@ -12,20 +13,53 @@ import {
   type ChartSeriesConfig,
 } from "@composition/specs";
 import type { ResolvedField } from "@composition/shared";
-import { PropertyInput, PropertySelect } from "../../components";
+import {
+  PropertyInput,
+  PropertyRowMenu,
+  PropertySelect,
+} from "../../components";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
 import { readSeriesConfig } from "./chartPresentationPatch";
 
 /**
+ * 범주가 색을 가르는 모드 (pie · 단일 시리즈 radial · bar colorBy=category) 에서는 시리즈
+ * 설정이 적용되지 않는다 — Series 섹션 자체를 열지 않는다 (저장 config 는 휴면 보존).
+ * `PropertiesPanel` 이 `sectionExtras.series` 를 넣을지 여기로 판정한다.
+ */
+export function chartSeriesConfigApplies(
+  fields: ResolvedField[],
+  rows: readonly ChartRow[],
+  paletteLength: number,
+): boolean {
+  const props = Object.fromEntries(
+    fields.map((field) => [field.key, field.currentValue]),
+  ) as Record<string, unknown>;
+  const chartType = String(props.chartType ?? "bar");
+  if (chartType === "pie") return false;
+  if (chartType === "bar" && props.colorBy === "category") return false;
+  if (chartType === "radial") {
+    const grid = buildSeriesGrid(
+      rows,
+      props as unknown as ChartProps,
+      Math.max(1, paletteLength),
+    );
+    return grid.series.length > 1;
+  }
+  return true;
+}
+
+/**
  * ADR-210 P2 — 시리즈 표시 설정 (이름 · 팔레트 토큰 · 순서 · 항목 초기화 · 휴면 설정).
+ * shadcn `ChartConfig` (`{ [dataKey]: { label, color } }`) 에 대응하는 시리즈별 레코드 편집.
  *
  * 현재 보이는 시리즈는 **실제 집계 (`buildSeriesGrid`)** 에서 읽는다 — 저장 config 를
  * 나열하는 것이 아니라 화면의 시리즈 순서를 그대로 보여 준다 (설정 순서 → 미설정 출현
- * 순서). 모든 편집은 `seriesConfig` 배열 **전체 교체** 한 번이다 (§2.1). 이름/색은 범례·
- * 툴팁 표시만 바꾼다 — 행 값을 고치는 도구로 오해시키지 않도록 안내를 둔다.
+ * 순서). 모든 편집은 `seriesConfig` 배열 **전체 교체** 한 번이다 (§2.1).
  *
- * 범주가 색을 가르는 모드 (pie · 단일 시리즈 radial · bar colorBy=category) 에서는
- * 설정이 적용되지 않으므로 컨트롤을 사유와 함께 접는다 (저장 config 는 휴면 보존).
+ * DOM 은 패널 표준 (ADR-163): 시리즈 한 행 = `.fieldset-row` 안의 이름 입력 + 색 Select +
+ * 행 메뉴 (`.fieldset-actions`). 이름·색은 범례·툴팁 표시만 바꾼다 — 그 설명은 Series 섹션이
+ * Content(데이터) 와 분리된 것으로 대신한다.
  */
 export const ChartSeriesControls = memo(function ChartSeriesControls({
   elementId = "",
@@ -68,19 +102,6 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields, rows, paletteLength]);
 
-  const chartType = String(props.chartType ?? "bar");
-  const byCategory =
-    chartType === "pie" ||
-    (chartType === "radial" && grid.series.length <= 1) ||
-    (chartType === "bar" && props.colorBy === "category");
-  if (byCategory) {
-    return (
-      <p className="chart-authoring-hint" role="note">
-        {t("chart.seriesUnavailable")}
-      </p>
-    );
-  }
-
   const visibleIds = new Set(grid.series.map((series) => series.id));
   const dormant = config.filter((entry) => !visibleIds.has(entry.key));
   const entryOf = (id: string): ChartSeriesConfig | undefined =>
@@ -122,138 +143,143 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
   ];
 
   return (
-    <div
-      className="chart-series-settings"
-      role="group"
-      aria-label={t("chart.seriesSettings")}
-    >
-      <p className="chart-authoring-hint">{t("chart.seriesPreviewHint")}</p>
-      <ul className="chart-series-list">
-        {grid.series.map((series, index) => {
-          const entry = entryOf(series.id);
-          const token =
-            entry?.colorToken !== undefined &&
-            seriesTokenIndex(entry.colorToken, paletteLength) !== null
-              ? entry.colorToken
-              : "";
-          return (
-            <li key={series.id} className="chart-series-item">
-              <span className="chart-series-key">
-                {seriesLabel(series, t("chart.series"))}
-              </span>
-              <PropertyInput
-                label={t("chart.seriesLabel")}
-                value={entry?.label ?? ""}
-                placeholder={series.key || t("chart.series")}
-                onChange={(value) =>
-                  write((entries) =>
-                    entries.map((e, i) =>
-                      i === index ? { ...e, label: value } : e,
-                    ),
-                  )
-                }
+    <>
+      {grid.series.map((series, index) => {
+        const entry = entryOf(series.id);
+        const token =
+          entry?.colorToken !== undefined &&
+          seriesTokenIndex(entry.colorToken, paletteLength) !== null
+            ? entry.colorToken
+            : "";
+        const name = seriesLabel(series, t("chart.series"));
+        return (
+          <div key={series.id} className="fieldset-row chart-series-row">
+            <PropertyInput
+              label={name}
+              className="chart-series-name"
+              value={entry?.label ?? ""}
+              placeholder={series.key || t("chart.series")}
+              onChange={(value) =>
+                write((entries) =>
+                  entries.map((e, i) =>
+                    i === index ? { ...e, label: value } : e,
+                  ),
+                )
+              }
+            />
+            <PropertySelect
+              label={t("chart.seriesColor")}
+              className="chart-series-color"
+              value={token}
+              options={tokenOptions}
+              translateOptions={false}
+              onChange={(value) =>
+                write((entries) =>
+                  entries.map((e, i) => {
+                    if (i !== index) return e;
+                    const { colorToken: _drop, ...rest } = e;
+                    return value ? { ...rest, colorToken: value } : rest;
+                  }),
+                )
+              }
+            />
+            <div className="fieldset-actions actions-chart-series">
+              <PropertyRowMenu
+                label={`${name} ${t("chart.rowActions")}`}
+                items={[
+                  {
+                    id: "up",
+                    label: t("chart.moveUp"),
+                    icon: ArrowUp,
+                    isDisabled: index === 0,
+                  },
+                  {
+                    id: "down",
+                    label: t("chart.moveDown"),
+                    icon: ArrowDown,
+                    isDisabled: index === grid.series.length - 1,
+                  },
+                  {
+                    id: "reset",
+                    label: t("common.reset"),
+                    icon: RotateCcw,
+                    isDisabled: !entry,
+                  },
+                ]}
+                onAction={(id) => {
+                  if (id === "up")
+                    write((entries) => swap(entries, index, index - 1));
+                  else if (id === "down")
+                    write((entries) => swap(entries, index, index + 1));
+                  else if (id === "reset")
+                    write((entries) =>
+                      entries.map((e, i) => (i === index ? { key: e.key } : e)),
+                    );
+                }}
               />
-              <PropertySelect
-                label={t("chart.seriesColor")}
-                value={token}
-                options={tokenOptions}
-                translateOptions={false}
-                onChange={(value) =>
-                  write((entries) =>
-                    entries.map((e, i) => {
-                      if (i !== index) return e;
-                      const { colorToken: _drop, ...rest } = e;
-                      return value ? { ...rest, colorToken: value } : rest;
-                    }),
-                  )
-                }
-              />
-              <Button
-                type="button"
-                className="control-button chart-authoring-square"
-                aria-label={`${t("chart.moveUp")} ${series.key}`}
-                isDisabled={index === 0}
-                onPress={() =>
-                  write((entries) => swap(entries, index, index - 1))
-                }
-              >
-                ↑
-              </Button>
-              <Button
-                type="button"
-                className="control-button chart-authoring-square"
-                aria-label={`${t("chart.moveDown")} ${series.key}`}
-                isDisabled={index === grid.series.length - 1}
-                onPress={() =>
-                  write((entries) => swap(entries, index, index + 1))
-                }
-              >
-                ↓
-              </Button>
-              <Button
-                type="button"
-                className="control-button"
-                aria-label={`${t("common.reset")} ${series.key}`}
-                isDisabled={!entry}
-                onPress={() =>
-                  write((entries) =>
-                    entries.map((e, i) => (i === index ? { key: e.key } : e)),
-                  )
-                }
-              >
-                {t("common.reset")}
-              </Button>
-            </li>
-          );
-        })}
-      </ul>
-      {isRefInstance && configField && !configField.isOverridden && (
-        <Button
-          type="button"
-          className="control-button"
-          onPress={() => onPatch({ seriesConfig: config }, ["seriesConfig"])}
-        >
-          {t("chart.pinToInstance")}
-        </Button>
-      )}
-      {dormant.length > 0 && (
-        <>
-          <Button
-            type="button"
-            className="control-button"
-            aria-expanded={showDormant}
-            onPress={() => setShowDormant((value) => !value)}
-          >
-            {t("chart.dormantSeries")} ({dormant.length})
-          </Button>
-          {showDormant && (
-            <ul className="chart-series-list">
-              {dormant.map((entry) => (
-                <li key={entry.key} className="chart-series-item">
-                  <span className="chart-series-key">
-                    {entry.label ?? entry.key}
-                  </span>
-                  <Button
-                    type="button"
-                    className="control-button"
-                    aria-label={`${t("common.remove")} ${entry.key}`}
-                    onPress={() =>
-                      onPatch({
-                        seriesConfig: config.filter(
-                          (candidate) => candidate.key !== entry.key,
-                        ),
-                      })
-                    }
-                  >
-                    {t("common.remove")}
-                  </Button>
-                </li>
-              ))}
-            </ul>
+            </div>
+          </div>
+        );
+      })}
+      {(isRefInstance && configField && !configField.isOverridden) ||
+      dormant.length > 0 ? (
+        <div className="chart-actions">
+          {isRefInstance && configField && !configField.isOverridden && (
+            <Button
+              type="button"
+              className="control-button"
+              onPress={() =>
+                onPatch({ seriesConfig: config }, ["seriesConfig"])
+              }
+            >
+              {t("chart.pinToInstance")}
+            </Button>
           )}
-        </>
-      )}
-    </div>
+          {dormant.length > 0 && (
+            <Button
+              type="button"
+              className="control-button"
+              aria-expanded={showDormant}
+              onPress={() => setShowDormant((value) => !value)}
+            >
+              {t("chart.dormantSeries")} ({dormant.length})
+            </Button>
+          )}
+        </div>
+      ) : null}
+      {showDormant &&
+        dormant.map((entry) => (
+          <div key={entry.key} className="fieldset-row chart-field-row">
+            <fieldset className="properties-aria chart-field">
+              <legend className="fieldset-legend">{entry.key}</legend>
+              <div className="react-aria-control react-aria-Group">
+                <span className="chart-field-type">
+                  {entry.label ?? entry.key}
+                </span>
+              </div>
+            </fieldset>
+            <div className="fieldset-actions actions-chart-field">
+              <PropertyRowMenu
+                label={`${entry.key} ${t("chart.rowActions")}`}
+                items={[
+                  {
+                    id: "remove",
+                    label: t("common.remove"),
+                    icon: ACTION_ICONS.delete,
+                  },
+                ]}
+                onAction={() =>
+                  onPatch({
+                    seriesConfig: config.filter(
+                      (candidate) => candidate.key !== entry.key,
+                    ),
+                  })
+                }
+              />
+            </div>
+          </div>
+        ))}
+    </>
   );
 });
 

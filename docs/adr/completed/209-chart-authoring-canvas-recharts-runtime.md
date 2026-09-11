@@ -41,6 +41,7 @@ ADR-194 대안 C(`:62-69`)는 **Recharts hidden DOM → SVG 해석 → Skia**였
 **Hard Constraints** — 아래 수치는 실측 성과가 아닌 제안된 구현 통과 기준이다.
 
 1. Charts의 기본 진입점은 **6개**이며 각 항목 1회 추가로 해당 종류가 만들어진다. 기본 Properties의 Chart Type 선택은 0개다.
+   > **2026-09-11 후속 정정**: "Chart Type 선택 0개" 는 팔레트 6종 결정의 부산물이지 패널에서 종류 변경을 막는 뜻이 아니다 — 종류 변경은 비파괴 (breakdown §종류 변경) 이므로 Properties Content 에 일반 `Chart type` Select 를 둔다. 종전 2단계 (버튼 → Select) 는 안전 이득 없이 클릭만 더해 제거 (사용자 판정).
 2. 기존 문서는 canonical의 Chart 식별자와 `props.chartType`·`dataBinding`을 그대로 읽는다. 강제 재직렬화 **0 파일**, DB schema 변경 **0**. 읽기만 한 기존 문서가 dirty가 되면 실패다. 실제 사용자 중 Chart 보유 비율은 미측정이며 0% 영향으로 주장하지 않는다.
 3. 차트 전용 fetch·API 자격증명 저장·독립 collection store는 **0개**. 기존 서비스가 제공한 행과 상태를 사용한다. Preview는 기존 검증된 postMessage 경계, Publish는 공통 서비스 계약을 따른다.
 4. Builder Canvas 모듈의 Recharts import/실행 **0**, 편집 화면의 hidden Recharts DOM **0**. Preview/Publish의 실제 차트 runtime은 Recharts이고, 자체 SVG를 감싼 이름뿐인 전환은 불가하다.

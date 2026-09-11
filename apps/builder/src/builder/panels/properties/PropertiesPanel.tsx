@@ -30,7 +30,10 @@ import { useCollections } from "../../stores/data";
 import { buildChartSemanticFields } from "./chartFieldOptions";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
-import { ChartSeriesControls } from "./ChartSeriesControls";
+import {
+  ChartSeriesControls,
+  chartSeriesConfigApplies,
+} from "./ChartSeriesControls";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
 import { ChartBudgetControls } from "./ChartBudgetControls";
 import {
@@ -384,16 +387,21 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   const chartPaletteLength =
     resolveComponentRule("Chart")?.chart?.series.length ??
     CHART_DEFAULT_SERIES_COUNT;
+  // ADR-210/211 컨트롤의 자리 — 레퍼런스 (shadcn `data` ↔ `ChartConfig` 분리 · Recharts 층)
+  //   에 맞춰 섹션을 가른다: Content = 정체 (종류·프리셋) + 데이터 (원천 모드·매핑) /
+  //   Series = 시리즈별 레코드 (ChartConfig 대응, 적용되지 않는 종류에서는 섹션 자체를 열지
+  //   않는다) / Appearance 말미 = 숫자 형식 (축·툴팁 표시 속성) / Interaction 말미 = 표시 예산
+  //   (composition 고유 — Brush 와 같은 층). 섹션 순서는 catalog `section` 첫 등장이 소유한다.
+  const seriesApplies =
+    elementType === "Chart" &&
+    chartSeriesConfigApplies(chartControlFields, chartRows, chartPaletteLength);
   const editorExtras =
     elementType === "Chart" ? (
       <>
         {contentExtras}
         <ChartAuthoringControls
-          elementId={elementId}
           fields={semanticFields}
-          rows={chartRows}
           onPatch={handleSemanticPatch}
-          sourceRowCount={sourceRowCount}
         />
         {/* ADR-210 — 컨트롤의 로컬 상태 (선택 화면 · pending 통화) 는 요소마다 새로 시작한다
             (`useOwnedState(elementId)`): Chart A 의 선택 화면이 Chart B 위에 남아 B 에 A 의 필드를
@@ -405,27 +413,41 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           columns={chartColumns}
           onPatch={handleChartPatch}
         />
-        <ChartSeriesControls
-          elementId={elementId}
-          fields={chartControlFields}
-          rows={chartRows}
-          paletteLength={chartPaletteLength}
-          isRefInstance={isChartRefInstance}
-          onPatch={handleChartPatch}
-        />
-        <ChartNumberFormatControls
-          elementId={elementId}
-          fields={chartControlFields}
-          onPatch={handleChartPatch}
-        />
-        <ChartBudgetControls
-          fields={chartControlFields}
-          onPatch={handleChartPatch}
-        />
       </>
     ) : (
       contentExtras
     );
+  const sectionExtras =
+    elementType === "Chart"
+      ? {
+          series: seriesApplies ? (
+            <ChartSeriesControls
+              elementId={elementId}
+              fields={chartControlFields}
+              rows={chartRows}
+              paletteLength={chartPaletteLength}
+              isRefInstance={isChartRefInstance}
+              onPatch={handleChartPatch}
+            />
+          ) : undefined,
+          appearance: (
+            <ChartNumberFormatControls
+              elementId={elementId}
+              fields={chartControlFields}
+              onPatch={handleChartPatch}
+            />
+          ),
+          interaction: (
+            <ChartBudgetControls
+              elementId={elementId}
+              fields={chartControlFields}
+              rows={chartRows}
+              sourceRowCount={sourceRowCount}
+              onPatch={handleChartPatch}
+            />
+          ),
+        }
+      : undefined;
 
   // style write — Style view 전환(후속)까지는 미사용. updateSelectedStyle 단일 prop + distributeShorthand.
   const handleStyleUpdate = useCallback((key: string, value: unknown) => {
@@ -451,6 +473,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           onStyleUpdate={handleStyleUpdate}
           elementId={elementId}
           contentExtras={editorExtras}
+          sectionExtras={sectionExtras}
         />
       );
     }
@@ -475,6 +498,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       onStyleUpdate={handleStyleUpdate}
       elementId={elementId}
       contentExtras={editorExtras}
+      sectionExtras={sectionExtras}
     />
   );
 });

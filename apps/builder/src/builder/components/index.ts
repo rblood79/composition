@@ -29,6 +29,8 @@ export {
   PropertyDataBinding,
   type DataBindingValue,
   PropertyListItem,
+  PropertyRowMenu,
+  type PropertyRowMenuItem,
   PropertySizeToggle,
   PropertyIconPicker,
 } from "./property";

@@ -61,6 +61,10 @@ paths:
 
   - **같은 액션 줄 안의 아이콘 전용 보조 버튼은 예외** — 라벨 버튼과 나란히 서는 보조 액션(Component 섹션의 Detach instance)은 `.iconButton` 이 아니라 같은 `.control-button` 에 조상 스코프 override 로 폭만 정사각(`--inspector-control-size`)으로 좁힌다. `.iconButton` 은 base 정의가 없고 맥락별로 chrome 을 각자 주는 클래스라, 한 줄 안에서 테두리·표면이 갈린다. `.iconButton` 이 맞는 자리는 축이 따로 있는 곳(패널 헤더, 섹션 헤더, 목록 행 액션)이다.
 
+- **목록 행의 보조 액션 2개 이상은 `PropertyRowMenu`** (`components/property/`) — `.fieldset-row` 의 `.fieldset-actions` 칸에 `⋮` 트리거 하나 + RAC Menu (Move Up / Move Down / Reset / Remove …). 인스펙터 행 템플릿의 아이콘 칸은 `--control-size` 하나라 버튼을 나란히 두면 필드가 폭을 잃는다 (233px 패널: 필드 2 + 아이콘 3 = 필드당 49px). 유니코드 화살표·`×` 를 버튼 라벨로 쓰지 않는다 (Chart 시리즈·값 필드 행, 2026-09-11).
+- **필드 상태 문구는 필드 안 `slot="description"`** (`PropertySelect.afterControl`) — 값·데이터에 반응하는 메시지 (disabled 사유 · 초과 · 누락) 만. 정적 설명 문단 (`<p class="…-hint">`) 은 섹션에 두지 않는다 — legend 뒤 help 어포던스는 후속 (i18n 키는 유지).
+- **catalog 파생 섹션에 비-catalog 컨트롤을 넣는 채널은 `GenericFieldRenderer` 의 `contentExtras` (content 선두) · `sectionExtras` (section 별 말미)** 둘뿐. 섹션 순서는 `editorHidden` 필드를 포함한 계약의 `section` 첫 등장 순서라 catalog 가 배치를 소유한다 — 패널 코드에서 `PropertySection` 을 직접 쌓아 순서를 만들지 않는다.
+
 
 ## 2. 클래스 네이밍 규칙
 

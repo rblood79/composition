@@ -21,6 +21,10 @@ const LOCALES: readonly ChartValueLocale[] = ["en-US", "ko-KR"];
  * — 형식만 먼저 쓰면 specs validator 가 `valueCurrency.missing` 설정 오류를 낸다. 그래서
  * 두 형식은 필요한 값까지 묶어 한 patch 로 Apply 하고, 취소는 write 0 이다. Auto 는 나머지
  * 옵션을 숨기되 저장된 휴면 설정 (통화·단위·자릿수) 은 지우지 않는다.
+ *
+ * 자리는 Appearance 섹션 말미 — 레퍼런스 (Recharts `tickFormatter`/`Tooltip.formatter`/
+ * `Bar.unit`, shadcn `formatter`) 에서 값 형식은 축·툴팁·시리즈에 붙는 표시 속성이지
+ * 데이터가 아니다. 문단 안내 없이 자리 자체가 "문자열만 바꾼다" 를 말한다.
  */
 export const ChartNumberFormatControls = memo(
   function ChartNumberFormatControls({
@@ -91,7 +95,7 @@ export const ChartNumberFormatControls = memo(
         : "en-US";
 
     return (
-      <div className="chart-number-format">
+      <>
         <PropertySelect
           label={t("chart.numberFormat")}
           value={pending ?? format}
@@ -127,10 +131,11 @@ export const ChartNumberFormatControls = memo(
               optionValueMode="literal"
               onChange={setPendingCurrency}
             />
-            <div className="chart-authoring-actions">
+            <div className="chart-actions">
               <Button
                 type="button"
                 className="control-button"
+                data-variant="primary"
                 isDisabled={pendingCurrency === ""}
                 onPress={() => {
                   onPatch({
@@ -161,10 +166,11 @@ export const ChartNumberFormatControls = memo(
               translateOptions={false}
               onChange={(value) => setPendingUnit(value as ChartPercentUnit)}
             />
-            <div className="chart-authoring-actions">
+            <div className="chart-actions">
               <Button
                 type="button"
                 className="control-button"
+                data-variant="primary"
                 isDisabled={pendingUnit === ""}
                 onPress={() => {
                   onPatch({
@@ -240,10 +246,9 @@ export const ChartNumberFormatControls = memo(
                 })
               }
             />
-            <p className="chart-authoring-hint">{t("chart.formatHint")}</p>
           </>
         )}
-      </div>
+      </>
     );
   },
 );

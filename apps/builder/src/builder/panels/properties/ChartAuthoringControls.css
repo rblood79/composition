@@ -1,47 +1,82 @@
-.chart-authoring-hint {
-  margin: var(--spacing-xs) 0;
-  color: var(--fg-muted);
-  font-size: var(--text-xs);
-  line-height: 1.4;
+/* Chart 전용 Properties 컨트롤 — 패널 표준 (ADR-163) 위의 인스턴스 override 만 둔다.
+   구조 클래스 (`fieldset-row` / `fieldset-actions` / `properties-aria`) 의 base 정의는
+   panel-system.css 가 소유하고, 여기서는 chart 행의 열 구성과 값 표시만 준다. */
+
+/* 값 필드 · 휴면 시리즈 행 — 필드 한 칸 + 행 메뉴 한 칸.
+   기본 3열 템플릿 (`--inspector-row-columns`) 은 필드 2개 전제라 열을 2개로 줄인다.
+   `.fieldset-actions` 의 `grid-area: icon` 이 여기서도 이름으로 붙도록 areas 를 선언한다. */
+.chart-field-row {
+  grid-template-columns: 1fr var(--control-size);
+  grid-template-areas: "field icon";
 }
 
-/* ADR-210 — 값 필드 목록 · 시리즈 설정 · 형식 묶음 Apply */
-.chart-authoring-actions {
-  display: flex;
-  gap: var(--spacing-xs);
-  margin: var(--spacing-xs) 0;
+.chart-field {
+  grid-area: field;
+  min-width: 0;
 }
 
-.chart-value-fields-list,
-.chart-series-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
+/* 시리즈 행 — 이름 · 색 · 행 메뉴 = 인스펙터 기본 3열 그대로. areas 만 이름 붙인다. */
+.chart-series-row {
+  grid-template-areas: "name color icon";
 }
 
-.chart-value-field,
-.chart-series-item {
+.chart-series-name {
+  grid-area: name;
+  min-width: 0;
+}
+
+.chart-series-color {
+  grid-area: color;
+  min-width: 0;
+}
+
+/* 행 메뉴는 legend 가 아니라 컨트롤 박스 줄에 맞춘다 (Transform/Appearance 의 actions 와 같다). */
+.actions-chart-field,
+.actions-chart-series {
+  align-self: end;
+}
+
+/* 읽기 전용 값 한 칸 — 필드 Input 과 같은 높이·글자로 컨트롤 박스 안에 놓인다. */
+.chart-field-type {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
+  min-height: var(--control-size);
   min-width: 0;
-}
-
-.chart-value-field-name,
-.chart-series-key {
-  flex: 1 1 auto;
-  min-width: 0;
+  padding: 0 var(--spacing-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--text-xs);
+  color: var(--fg-muted);
 }
 
-.chart-authoring-square {
-  width: var(--inspector-control-size);
-  padding: 0;
+.chart-field-type[data-missing="true"] {
+  color: var(--negative);
+}
+
+/* 값 필드 선택 — fieldset 안의 CheckboxGroup 과 확정/취소 줄. */
+.chart-field-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+/* 확정 · 취소 / 고정 · 휴면 토글 — 라벨 액션 줄. 확정은 `data-variant="primary"`. */
+.chart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.chart-field-picker-list {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* 패널 CheckboxGroup 밀도 규약 (form-controls.css) 과 같은 상자 크기. */
+.chart-field-picker-list .react-aria-Checkbox .checkbox {
+  width: var(--spacing-lg);
+  height: var(--spacing-lg);
 }

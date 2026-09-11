@@ -86,6 +86,14 @@ interface GenericFieldRendererProps extends GenericFieldRouting {
    * 같은 Content 축이므로 섹션을 따로 만들지 않는다 (같은 제목 섹션 2개 방지).
    */
   contentExtras?: ReactNode;
+  /**
+   * section 별 **말미**에 끼워 넣을 비-catalog 컨트롤 (`{ series: <…>, appearance: <…> }`).
+   * `contentExtras` 가 "content 선두" 한 슬롯인 것과 달리, 계약에 `editorHidden` 으로만 존재하는
+   * 섹션 (Chart 의 `series`) 도 여기로 연다 — 섹션 순서는 hidden 필드를 포함한 **계약의 section
+   * 첫 등장 순서**라 catalog 가 그대로 배치를 소유한다. 값이 `undefined`/`null` 인 키는 섹션을
+   * 만들지 않는다 (시리즈 설정이 적용되지 않는 차트 종류에서 빈 Series 섹션 방지).
+   */
+  sectionExtras?: Partial<Record<string, ReactNode>>;
 }
 
 function capitalize(s: string): string {
@@ -343,6 +351,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   onStyleUpdate,
   elementId,
   contentExtras,
+  sectionExtras,
   literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
@@ -352,11 +361,25 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
     [ownerFields],
   );
 
+  const extraSections = Object.entries(sectionExtras ?? {}).filter(
+    (entry): entry is [string, ReactNode] => entry[1] != null,
+  );
+
   if (fields.length === 0) {
     // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 Content 로 렌더한다.
-    return contentExtras != null ? (
-      <PropertySection title="Content">{contentExtras}</PropertySection>
-    ) : null;
+    if (contentExtras == null && extraSections.length === 0) return null;
+    return (
+      <>
+        {contentExtras != null && (
+          <PropertySection title="Content">{contentExtras}</PropertySection>
+        )}
+        {extraSections.map(([section, extras]) => (
+          <PropertySection key={section} title={capitalize(section)}>
+            {extras}
+          </PropertySection>
+        ))}
+      </>
+    );
   }
 
   /**
@@ -376,47 +399,66 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   // section 순서 보존 그룹핑 (Map 삽입 순서 = 계약 순서).
   // 조건 미선언 필드는 `evaluateVisibility` 가 즉시 통과시킨다 — 결선의 노출면은
   //   `visibleWhen` 을 실제로 선언한 필드뿐이다.
+  // 순서는 hidden 필드까지 포함해 잡는다 — `sectionExtras` 만으로 열리는 섹션 (필드가 전부
+  //   `editorHidden`) 도 catalog 가 정한 자리에 선다. 빈 그룹은 extras 가 없으면 렌더하지 않는다.
   const groups = new Map<string, ResolvedField[]>();
   for (const field of fields) {
+    const section = field.section || "content";
+    const bucket = groups.get(section) ?? [];
+    if (!groups.has(section)) groups.set(section, bucket);
     if (
       field.editorHidden ||
       !evaluateVisibility(field.visibleWhen, conditionValues)
     )
       continue;
-    const section = field.section || "content";
-    const bucket = groups.get(section);
-    if (bucket) bucket.push(field);
-    else groups.set(section, [field]);
+    bucket.push(field);
+  }
+  const extrasBySection = new Map(extraSections);
+  for (const [section] of extraSections) {
+    if (!groups.has(section)) groups.set(section, []);
   }
 
   // 주입 컨트롤은 content 그룹 선두. content 그룹이 없으면 Content 섹션을 앞에 만든다.
-  const hasContentGroup = groups.has("content");
+  const hasContentGroup =
+    groups.has("content") &&
+    ((groups.get("content")?.length ?? 0) > 0 ||
+      extrasBySection.has("content"));
 
   return (
     <>
       {contentExtras != null && !hasContentGroup && (
         <PropertySection title="Content">{contentExtras}</PropertySection>
       )}
-      {Array.from(groups.entries()).map(([section, sectionFields]) => (
-        <PropertySection key={section} title={capitalize(section)}>
-          {section === "content" && contentExtras}
-          {sectionFields.map((field) => (
-            <GenericField
-              key={`${field.origin}:${field.key}`}
-              field={field}
-              onSemanticUpdate={onSemanticUpdate}
-              onStyleUpdate={onStyleUpdate}
-              elementId={elementId}
-              ownerColumns={ownerColumns}
-              ownerFields={ownerFields}
-              translateOptions={!literalOptionFields?.includes(field.key)}
-              optionValueMode={
-                literalOptionFields?.includes(field.key) ? "literal" : "legacy"
-              }
-            />
-          ))}
-        </PropertySection>
-      ))}
+      {Array.from(groups.entries()).map(([section, sectionFields]) => {
+        const tail = extrasBySection.get(section);
+        const head =
+          section === "content" && hasContentGroup ? contentExtras : null;
+        if (sectionFields.length === 0 && tail == null && head == null)
+          return null;
+        return (
+          <PropertySection key={section} title={capitalize(section)}>
+            {head}
+            {sectionFields.map((field) => (
+              <GenericField
+                key={`${field.origin}:${field.key}`}
+                field={field}
+                onSemanticUpdate={onSemanticUpdate}
+                onStyleUpdate={onStyleUpdate}
+                elementId={elementId}
+                ownerColumns={ownerColumns}
+                ownerFields={ownerFields}
+                translateOptions={!literalOptionFields?.includes(field.key)}
+                optionValueMode={
+                  literalOptionFields?.includes(field.key)
+                    ? "literal"
+                    : "legacy"
+                }
+              />
+            ))}
+            {tail}
+          </PropertySection>
+        );
+      })}
     </>
   );
 });

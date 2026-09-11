@@ -26,7 +26,10 @@ import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartBudgetControls } from "./ChartBudgetControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
-import { ChartSeriesControls } from "./ChartSeriesControls";
+import {
+  ChartSeriesControls,
+  chartSeriesConfigApplies,
+} from "./ChartSeriesControls";
 import { buildChartSemanticFields } from "./chartFieldOptions";
 import {
   chartColumnCandidates,
@@ -118,6 +121,25 @@ const pick = (group: HTMLElement, option: string) => {
   fireEvent.click(within(group).getByRole("button"));
   fireEvent.click(within(document.body).getByRole("option", { name: option }));
 };
+/** 행 메뉴 (`PropertyRowMenu`) — 트리거 `"{행} 작업"` 을 열고 항목을 고른다. 항목 element 를 돌려준다. */
+const rowMenu = (view: ReturnType<typeof render>, row: string) => {
+  fireEvent.click(view.getByRole("button", { name: `${row} 작업` }));
+  return within(document.body).getByRole("menu", { name: `${row} 작업` });
+};
+const rowAction = (
+  view: ReturnType<typeof render>,
+  row: string,
+  action: string,
+) => {
+  const item = within(rowMenu(view, row)).getByRole("menuitem", {
+    name: action,
+  });
+  fireEvent.click(item);
+  return item;
+};
+/** 시리즈 행 (`.fieldset-row.chart-series-row`) — 이름 입력 + 색 Select + 행 메뉴. */
+const seriesRows = (view: ReturnType<typeof render>) =>
+  Array.from(view.container.querySelectorAll<HTMLElement>(".chart-series-row"));
 
 beforeEach(() => {
   resetPanelFixture();
@@ -192,9 +214,9 @@ describe("T06 — 실제 생산자: 후보·타입·None·키 보존", () => {
         onPatch={onPatch}
       />,
     );
-    const list = view.getByRole("group", { name: "값 필드" });
-    expect(within(list).getByText("원본에 없음")).toBeTruthy();
-    fireEvent.click(within(list).getByRole("button", { name: "아래로 gone" }));
+    const gone = view.getByRole("group", { name: "gone" });
+    expect(within(gone).getByText("원본에 없음")).toBeTruthy();
+    rowAction(view, "gone", "아래로");
     expect(spy).toHaveBeenCalledTimes(1);
     expect(spy.mock.calls[0][0]).toEqual({ valueFields: ["desktop", "gone"] });
   });
@@ -306,14 +328,13 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
         onPatch={onPatch}
       />,
     );
-    expect(view.getByRole("note").textContent).toContain(
-      "값 컬럼 모드를 지원하지 않습니다",
-    );
-    fireEvent.click(
-      within(view.getByRole("group", { name: "시리즈 원천" })).getByRole(
-        "button",
-      ),
-    );
+    const mode = view.getByRole("group", { name: "시리즈 원천" });
+    expect(
+      within(mode)
+        .getByText(/값 컬럼 모드를 지원하지 않습니다/)
+        .getAttribute("slot"),
+    ).toBe("description");
+    fireEvent.click(within(mode).getByRole("button"));
     const option = within(document.body).getByRole("option", {
       name: "값 컬럼",
     });
@@ -324,15 +345,10 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
 
     seedChart({ dataMode: "columns", valueFields: ["desktop"] });
     const view2 = ui(
-      <ChartAuthoringControls
-        fields={fields()}
-        onPatch={onPatch}
-        sourceRowCount={0}
-      />,
+      <ChartAuthoringControls fields={fields()} onPatch={onPatch} />,
     );
-    fireEvent.click(view2.getByRole("button", { name: "차트 종류 변경" }));
     fireEvent.click(
-      within(view2.getByRole("group", { name: "변경할 차트" })).getByRole(
+      within(view2.getByRole("group", { name: "차트 종류" })).getByRole(
         "button",
       ),
     );
@@ -392,7 +408,7 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         onPatch={onPatch}
       />,
     );
-    fireEvent.click(view.getByRole("button", { name: "아래로 desktop" }));
+    rowAction(view, "desktop", "아래로");
     expect(spy.mock.calls).toEqual([
       [{ seriesConfig: [{ key: F("mobile") }, { key: F("desktop") }] }],
     ]);
@@ -434,7 +450,7 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         onPatch={onPatch}
       />,
     );
-    const items = view.getAllByRole("listitem");
+    const items = seriesRows(view);
     expect(items[0].textContent).toContain("mobile");
     const input = within(items[1]).getByRole("textbox");
     fireEvent.change(input, { target: { value: "Desktop" } });
@@ -445,7 +461,7 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         { key: F("desktop"), label: "Desktop" },
       ],
     });
-    pick(within(items[0]).getByRole("group", { name: "팔레트 색" }), "기본 색");
+    pick(within(items[0]).getByRole("group", { name: "색상" }), "기본");
     expect(spy.mock.calls.at(-1)?.[0]).toEqual({
       seriesConfig: [{ key: F("mobile") }, { key: F("desktop") }],
     });
@@ -462,7 +478,7 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         onPatch={onPatch}
       />,
     );
-    const items = view.getAllByRole("listitem");
+    const items = seriesRows(view);
     const input = within(items[1]).getByRole("textbox");
     fireEvent.change(input, { target: { value: "Mobile" } });
     fireEvent.blur(input);
@@ -494,9 +510,10 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         onPatch={onPatch}
       />,
     );
+    // 행의 legend (시리즈 표시 이름) 순서 — 저장된 label 이 legend 가 된다.
     expect(
-      view2.getAllByRole("listitem").map((li) => li.textContent?.slice(0, 7)),
-    ).toEqual(["desktop", "Mobile표"]);
+      seriesRows(view2).map((row) => row.querySelector("legend")?.textContent),
+    ).toEqual(["desktop", "Mobile"]);
   });
 
   it("마지막 값 필드의 제거 버튼은 비활성이다 (빈 목록 = 설정 오류 상태 진입 금지)", () => {
@@ -509,16 +526,15 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         onPatch={onPatch}
       />,
     );
-    const remove = view.getByRole("button", { name: "제거 desktop" });
-    expect(
-      remove.getAttribute("aria-disabled") ??
-        String(remove.hasAttribute("disabled")),
-    ).not.toBe("false");
+    const remove = within(rowMenu(view, "desktop")).getByRole("menuitem", {
+      name: "제거",
+    });
+    expect(remove.getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(remove);
     expect(spy).not.toHaveBeenCalled();
   });
 
-  it("휴면 설정은 별도 펼침에서 제거할 수 있고, 범주색 모드에서는 사유만 보인다", () => {
+  it("휴면 설정은 별도 펼침에서 제거할 수 있고, 범주색 모드에서는 Series 섹션이 열리지 않는다", () => {
     seedChart({
       dataMode: "columns",
       valueFields: ["desktop"],
@@ -534,21 +550,16 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
       />,
     );
     fireEvent.click(view.getByRole("button", { name: /숨은 시리즈 설정/ }));
-    fireEvent.click(view.getByRole("button", { name: `제거 ${F("mobile")}` }));
+    rowAction(view, F("mobile"), "제거");
     expect(spy.mock.calls).toEqual([[{ seriesConfig: [] }]]);
     cleanup();
+    // 범주색 모드 — Series 섹션 자체가 열리지 않는다 (패널이 이 술어로 `sectionExtras.series` 를 뺀다).
     seedChart({ chartType: "pie", metric: "desktop" });
-    const view2 = ui(
-      <ChartSeriesControls
-        fields={fields()}
-        rows={rows}
-        paletteLength={8}
-        onPatch={onPatch}
-      />,
-    );
-    expect(view2.getByRole("note").textContent).toContain(
-      "시리즈 이름·색 설정이 적용되지 않습니다",
-    );
+    expect(chartSeriesConfigApplies(fields(), rows, 8)).toBe(false);
+    seedChart({ chartType: "bar", colorBy: "category" });
+    expect(chartSeriesConfigApplies(fields(), rows, 8)).toBe(false);
+    seedChart({ dataMode: "columns", valueFields: ["desktop", "mobile"] });
+    expect(chartSeriesConfigApplies(fields(), rows, 8)).toBe(true);
   });
 });
 
@@ -722,7 +733,7 @@ describe("ADR-211 P3 — 예산 안내는 Canvas 크기의 같은 모델을 읽�
       () => () => {},
     );
     const view = ui(
-      <ChartAuthoringControls
+      <ChartBudgetControls
         elementId="chart"
         fields={fields()}
         rows={rows}
@@ -739,7 +750,7 @@ describe("ADR-211 P3 — 예산 안내는 Canvas 크기의 같은 모델을 읽�
 
     const few = rows.slice(0, 5);
     const view2 = ui(
-      <ChartAuthoringControls
+      <ChartBudgetControls
         elementId="chart"
         fields={fields()}
         rows={few}
@@ -753,7 +764,7 @@ describe("ADR-211 P3 — 예산 안내는 Canvas 크기의 같은 모델을 읽�
     cleanup();
 
     const view3 = ui(
-      <ChartAuthoringControls
+      <ChartBudgetControls
         elementId="missing"
         fields={fields()}
         rows={rows}

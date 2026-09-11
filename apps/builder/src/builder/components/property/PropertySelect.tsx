@@ -53,6 +53,11 @@ interface PropertySelectProps {
   }>;
   className?: string;
   description?: string; // Optional description (not displayed)
+  /**
+   * 컨트롤 박스 아래 필드 상태 문구 슬롯 (RAC `<Text slot="description">` / `.react-aria-FieldError`).
+   * 값·데이터에 반응하는 메시지만 — 정적 설명은 여기 두지 않는다 (legend help 후속).
+   */
+  afterControl?: React.ReactNode;
   popoverWidthMode?: PopoverWidthMode;
 }
 
@@ -78,6 +83,7 @@ export const PropertySelect = memo(
     disabledKeys,
     icon: Icon,
     className,
+    afterControl,
     popoverWidthMode = "fit-content",
   }: PropertySelectProps) {
     const i18n = useOptionalI18n();
@@ -208,6 +214,7 @@ export const PropertySelect = memo(
             </Popover>
           </AriaSelect>
         </div>
+        {afterControl}
       </fieldset>
     );
   },
@@ -222,6 +229,7 @@ export const PropertySelect = memo(
       prevProps.translateOptions === nextProps.translateOptions &&
       prevProps.optionValueMode === nextProps.optionValueMode &&
       prevProps.disabledKeys === nextProps.disabledKeys &&
+      prevProps.afterControl === nextProps.afterControl &&
       prevProps.popoverWidthMode === nextProps.popoverWidthMode
     );
   },

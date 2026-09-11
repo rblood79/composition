@@ -1,0 +1,26 @@
+/* 행 액션 메뉴 팝오버 — 트리거(28px 아이콘 칸) 기준이 아니라 항목 라벨 폭으로 뜬다.
+   `.property-select-popover` 의 `min-width: 100%` 는 필드 박스 폭 정렬용이라 여기서는
+   28px 로 접히므로 되돌린다. 항목 밀도는 field-picker-menu 와 같은 ListBoxItem(md) 규약. */
+.property-row-menu-popover.property-select-popover {
+  min-width: max-content;
+}
+
+.react-aria-Menu.property-row-menu {
+  border-radius: var(--radius-lg);
+}
+
+.react-aria-Menu.property-row-menu .react-aria-MenuItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  height: auto;
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  font-weight: 600;
+}
+
+.react-aria-Menu.property-row-menu .react-aria-MenuItem[data-disabled] {
+  color: var(--fg-disabled);
+}

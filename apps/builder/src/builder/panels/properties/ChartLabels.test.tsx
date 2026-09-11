@@ -15,6 +15,7 @@ import {
 import { useStore } from "../../stores";
 import { GenericFieldRenderer } from "./generic/GenericFieldRenderer";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
+import { ChartBudgetControls } from "./ChartBudgetControls";
 import ComponentList from "../components/ComponentList";
 
 beforeEach(resetPanelFixture);
@@ -119,12 +120,17 @@ it("언어 전환은 기본 행/속성/프리셋/안내를 갱신하고 데이�
         onSemanticUpdate={patch}
         onStyleUpdate={patch}
         contentExtras={
-          <ChartAuthoringControls
-            fields={fields}
-            sourceRowCount={20001}
-            onPatch={patch}
-          />
+          <ChartAuthoringControls fields={fields} onPatch={patch} />
         }
+        sectionExtras={{
+          interaction: (
+            <ChartBudgetControls
+              fields={fields}
+              sourceRowCount={20001}
+              onPatch={patch}
+            />
+          ),
+        }}
       />
     </I18nProvider>,
   );
@@ -132,14 +138,14 @@ it("언어 전환은 기본 행/속성/프리셋/안내를 갱신하고 데이�
   expect(ui.getAllByText("범주", { selector: "legend" })).toHaveLength(2);
   expect(ui.getAllByText("값", { selector: "legend" })).toHaveLength(2);
   expect(ui.getAllByText("시리즈", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getByRole("button", { name: "차트 종류 변경" })).toBeTruthy();
+  expect(ui.getByRole("group", { name: "차트 종류" })).toBeTruthy();
   expect(ui.getByRole("button", { name: "데이터 행 추가" })).toBeTruthy();
   expect(ui.getByRole("status").textContent).toContain("20001행");
   fireEvent.click(ui.getByRole("button", { name: "Switch language" }));
   expect(ui.getAllByText("Category", { selector: "legend" })).toHaveLength(2);
   expect(ui.getAllByText("Value", { selector: "legend" })).toHaveLength(2);
   expect(ui.getAllByText("Series", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getByRole("button", { name: "Change chart type" })).toBeTruthy();
+  expect(ui.getByRole("group", { name: "Chart type" })).toBeTruthy();
   expect(ui.getByRole("button", { name: "Add row" })).toBeTruthy();
   expect(ui.getByRole("status").textContent).toContain("20001 rows");
   fireEvent.click(ui.getByRole("button", { name: "Switch language" }));

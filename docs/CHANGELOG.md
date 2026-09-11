@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart Properties 섹션 재배치 — Content(정체·데이터) · Series · Appearance(숫자 형식) · Interaction(표시 예산) + 패널 표준 어법] - 2026-09-11
+
+> 근거: Recharts API 층 (Chart / Series / Axis / General) 과 shadcn Chart 의 `data` ↔ `ChartConfig` 분리를 분류 축으로 삼았다. ADR-209/210/211 이 Content 한 슬롯에 append 한 커스텀 컨트롤 5개를 그 축으로 나눈다. 저장 키 · D2 타입 · 시각 SSOT 변경 0 — catalog `section` 문자열과 패널 주입 채널만 바뀐다. 실제 빌더에서 Bar Chart 선택 → Content 정체 줄 (읽기 전용 종류 + 변경 액션 · 프리셋) · Series 행 (이름 · 색 · 행 메뉴 Move Up/Down/Reset) · Appearance 말미 Number Format · Interaction 말미 예산 + 상태 문구 exercise.
+
+### Changed
+
+- **Chart Properties 섹션**: Content = 차트 종류 (일반 Select — 종전 "Change chart type" 2단계 제거, ADR-209 "선택 0개" 문구는 팔레트 결정의 부산물로 정정) · Preset · Series Source · Category/Value/Series · Data · Sample Rows. **Series 섹션 신설** = 시리즈별 이름 · 색 · 순서 (shadcn `ChartConfig` 대응 — 시리즈 설정이 적용되지 않는 pie/범주색 bar/단일 radial 에서는 섹션 자체가 열리지 않는다). Number Format 계열은 **Appearance 말미**, 표시 예산 4 키는 **Interaction 말미** 로 이동 (`Chart.binding.ts` `section` 변경).
+- **패널 표준 어법 (ADR-163) 적용**: `div[role=group][aria-label]` 4곳 → `fieldset.properties-aria` + legend · `ul/li` 목록 → `.fieldset-row` + `.fieldset-actions` 행 메뉴 (`PropertyRowMenu` 신규 공용 위젯 — `⋮` 트리거 + RAC Menu) · 유니코드 `↑↓×` → lucide (`ArrowUp`/`ArrowDown`/`ACTION_ICONS.delete`/`RotateCcw`) · Apply 는 `.control-button[data-variant="primary"]` · 폐기 토큰 `--inspector-control-size` 참조 제거.
+- **힌트 문단 정리**: 정적 설명 `<p>` 7곳 제거 (i18n 키는 legend help 후속을 위해 유지). 값·데이터에 반응하는 상태 6종 (예산 적용 모드 · 행 상한 초과 · 원본에 없는 필드 · disabled 사유 3) 은 해당 필드 안 `slot="description"` 으로 이동 (`PropertySelect.afterControl` 슬롯 신규).
+- `GenericFieldRenderer.sectionExtras` — section 별 말미 주입 채널. 섹션 순서는 `editorHidden` 필드를 포함한 계약의 section 첫 등장 순서 (catalog 가 배치를 소유).
+- 시리즈 색 라벨 "Palette Color" → "Color" (233px 패널의 2열 행에서 잘리지 않게).
+
 ## [ADR-152 — Data 패널 ↔ Collections ↔ 컴포넌트 Collection 바인딩 통합: `collectionId` · `fieldId` 안정 참조 · fieldMap · `DataChange` 적용기 + History · publish snapshot (Implemented)] - 2026-09-11
 
 > 근거: `docs/adr/completed/152-data-panel-collection-binding-integration.md` (리뷰 round 4 승인, Phase 0 ~ 7 같은 날 반영). 데이터 편집 4종 · rename · 바인딩 · publish 를 실제 빌더에서 headed Playwright 하니스 8종 (`apps/builder/scripts/adr152-p{1,1b,1c,2,3,4,5,6}-live.mjs`) 으로 exercise — 10/10 · 14/14 · 14/14 · 10/10 · 9/9 · 12/12 · 6/6 · 5/5. 코드 변경은 Phase 1 ~ 6 커밋, 이 엔트리는 closure.

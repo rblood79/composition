@@ -104,7 +104,7 @@ export const chartBinding: PrimitiveBinding = {
       seriesConfig: {
         kind: "items-manager",
         label: "Series",
-        section: "content",
+        section: "series",
         editorHidden: true,
         itemsManager: {
           itemsKey: "seriesConfig",
@@ -121,7 +121,7 @@ export const chartBinding: PrimitiveBinding = {
       valueFormat: {
         kind: "enum",
         label: "Number Format",
-        section: "content",
+        section: "appearance",
         default: "auto",
         editorHidden: true,
         options: [
@@ -134,7 +134,7 @@ export const chartBinding: PrimitiveBinding = {
       valueLocale: {
         kind: "enum",
         label: "Number Locale",
-        section: "content",
+        section: "appearance",
         editorHidden: true,
         options: [
           { value: "en-US", label: "en-US" },
@@ -144,7 +144,7 @@ export const chartBinding: PrimitiveBinding = {
       valueFractionDigits: {
         kind: "number",
         label: "Fraction Digits",
-        section: "content",
+        section: "appearance",
         editorHidden: true,
         min: 0,
         max: 6,
@@ -153,13 +153,13 @@ export const chartBinding: PrimitiveBinding = {
       valueCurrency: {
         kind: "string",
         label: "Currency Code",
-        section: "content",
+        section: "appearance",
         editorHidden: true,
       },
       valuePercentUnit: {
         kind: "enum",
         label: "Percent Unit",
-        section: "content",
+        section: "appearance",
         editorHidden: true,
         options: [
           { value: "ratio", label: "Ratio (0.25 = 25%)" },
@@ -174,7 +174,7 @@ export const chartBinding: PrimitiveBinding = {
       budgetOverflow: {
         kind: "enum",
         label: "When Categories Overflow",
-        section: "content",
+        section: "interaction",
         default: "auto",
         editorHidden: true,
         options: [
@@ -188,7 +188,7 @@ export const chartBinding: PrimitiveBinding = {
       budgetAggregate: {
         kind: "enum",
         label: "Aggregate",
-        section: "content",
+        section: "interaction",
         default: "sum",
         editorHidden: true,
         options: [
@@ -201,7 +201,7 @@ export const chartBinding: PrimitiveBinding = {
       budgetAxis: {
         kind: "enum",
         label: "Category Axis",
-        section: "content",
+        section: "interaction",
         default: "auto",
         editorHidden: true,
         options: [
@@ -213,7 +213,7 @@ export const chartBinding: PrimitiveBinding = {
       budgetOthersLabel: {
         kind: "string",
         label: "Group Label",
-        section: "content",
+        section: "interaction",
         editorHidden: true,
       },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).
