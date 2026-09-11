@@ -11,7 +11,7 @@
 import type { ResolvedField } from "@composition/shared";
 
 import type { DataTable } from "../../../types/builder/data.types";
-import { columnsFromOwner } from "./hooks/useOwnerCollectionColumns";
+import { fieldsFromOwner } from "./hooks/useOwnerCollectionColumns";
 
 /** collection 컬럼 Select 로 승격되는 매핑 필드. */
 export const CHART_MAPPING_FIELD_KEYS: readonly string[] = [
@@ -47,14 +47,29 @@ export function buildChartSemanticFields(
   const props = Object.fromEntries(
     fields.map((field) => [field.key, field.currentValue]),
   );
-  const columns = columnsFromOwner({ props }, collections);
+  const ownerFields = fieldsFromOwner({ props }, collections);
+  // ADR-152 1b: collection 필드는 저장 값 = `#<fieldId>` (rename-safe), 표시 = key.
+  //   id 없는 출처 (정적 items · legacy static) 는 key 그대로. 현재 값이 구 형식 (key) 이고
+  //   같은 key 에 id 가 있으면 `#id` 항목으로 접는다 (저장 값은 다음 편집 때 바뀐다).
+  const storedValue = (f: { key: string; id?: string }) =>
+    f.id ? `#${f.id}` : f.key;
+  const displayOf = (value: string): string => {
+    if (!value.startsWith("#")) return value;
+    const id = value.slice(1);
+    return ownerFields?.find((f) => f.id === id)?.key ?? value;
+  };
+  const columns = ownerFields?.map(storedValue) ?? null;
   return fields
     .filter((field) => field.key !== "data" || !props.dataBinding)
     .map((field) => {
       if (!columns || !CHART_MAPPING_FIELD_KEYS.includes(field.key)) {
         return field;
       }
-      const current = String(field.currentValue ?? "");
+      const rawCurrent = String(field.currentValue ?? "");
+      const currentField = ownerFields?.find(
+        (f) => f.key === rawCurrent && f.id,
+      );
+      const current = currentField ? storedValue(currentField) : rawCurrent;
       // Series 에만 해제 항목을 **항상 첫 자리**에 둔다. Category/Value 는 새 해제 명령을
       //   추가하지 않고, 현재 값이 이미 빈 값일 때의 기존 항목만 그대로 유지한다.
       const values =
@@ -63,10 +78,12 @@ export function buildChartSemanticFields(
           : [current, ...columns];
       return {
         ...field,
+        // 구 형식 (key) 현재 값은 `#id` 항목이 선택 상태로 보이도록 접는다.
+        ...(current !== rawCurrent ? { currentValue: current } : {}),
         kind: "enum" as const,
         options: Array.from(new Set(values)).map((value) => ({
           value,
-          label: optionLabel(value, labels),
+          label: optionLabel(displayOf(value), labels),
         })),
       };
     });

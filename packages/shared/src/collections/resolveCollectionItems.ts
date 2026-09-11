@@ -1,3 +1,4 @@
+import { registerFieldIds } from "@composition/specs";
 import { resolveCollectionSnapshot } from "./collectionSnapshot";
 import { resolveBoundCollection } from "./resolveBoundCollection";
 /**
@@ -138,6 +139,8 @@ export type CollectionDataSource = {
   id?: string;
   mockData?: Record<string, unknown>[];
   name?: string;
+  /** ADR-152 Phase 1b: `{#id}` 템플릿 · 차트 `#id` 참조를 위해 resolve 시 색인에 등록. */
+  schema?: readonly { id?: string; key: string }[];
   runtimeData?: Record<string, unknown>[];
   useMockData?: boolean;
 };
@@ -224,6 +227,8 @@ export function readDataBindingRows(
   ) {
     const table = resolveBoundCollection(dataBinding, collections);
     if (!table) return [];
+    // 렌더용 resolve 지점 — 템플릿 `{#id}` · 차트 `#id` 가 읽을 id → key 색인 등록.
+    registerFieldIds(table.schema);
     return resolveCollectionSnapshot(table).data;
   }
 

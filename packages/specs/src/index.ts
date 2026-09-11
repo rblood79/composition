@@ -595,3 +595,5 @@ export { resolveContainerStylesFallback } from "./runtime/containerStylesFallbac
 // ─── Chart 기하 SSOT (ADR-194) ───────────────────────────────────────────────
 // DOM(shared Chart.tsx) 과 Skia(chart_scene primitive) 가 같이 소비하는 순수 기하.
 export * from "./chart";
+// ADR-152 Phase 1b: DataField.id → 행 key 색인 (템플릿 `{#id}` · 차트 `#id` 참조 공통).
+export * from "./data/fieldIdIndex";

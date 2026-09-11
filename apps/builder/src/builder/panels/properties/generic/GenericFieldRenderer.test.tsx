@@ -20,6 +20,9 @@ vi.mock("../hooks/useOwnerCollectionColumns", async (importActual) => {
   return {
     ...actual,
     useOwnerCollectionColumns: () => ownerColumnsMock(),
+    // ADR-152 1b: 렌더러는 fields 훅을 읽고 columns 를 파생한다 — 같은 mock 을 key 로 승격.
+    useOwnerCollectionFields: () =>
+      ownerColumnsMock()?.map((key) => ({ key })) ?? null,
   };
 });
 

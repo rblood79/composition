@@ -8,7 +8,7 @@
  * cutover 게이트(`isCatalogCutover`)는 `GenericPropertyEditor` 가 적용한다. 본 컴포넌트는
  * 게이트와 무관하게 독립 렌더 가능 — 단위 테스트는 이를 직접 렌더한다.
  */
-import { memo } from "react";
+import { memo, useMemo } from "react";
 
 import {
   buildInspectorFields,
@@ -34,7 +34,8 @@ import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
-  useOwnerCollectionColumns,
+  useOwnerCollectionFields,
+  type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
 
 /**
@@ -82,6 +83,7 @@ const CatalogField = memo(function CatalogField({
   onUpdate,
   elementId,
   ownerColumns,
+  ownerFields,
 }: {
   field: InspectorField;
   currentProps: Record<string, unknown>;
@@ -89,6 +91,8 @@ const CatalogField = memo(function CatalogField({
   elementId?: string;
   /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
   ownerColumns?: string[] | null;
+  /** ADR-152 1b: 소유 collection 필드 (key + id) — `{#id}` 저장형 변환. */
+  ownerFields?: OwnerField[] | null;
 }) {
   const value = currentProps[field.key];
   const update = (v: unknown) => onUpdate({ [field.key]: v });
@@ -142,6 +146,7 @@ const CatalogField = memo(function CatalogField({
             value={String(value ?? "")}
             onChange={(v) => update(v === "" ? undefined : v)}
             columns={ownerColumns}
+            fields={ownerFields}
           />
         );
       }
@@ -243,7 +248,11 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
   const groups = buildInspectorFields(componentType, contracts, theme);
   const contentIndex = groups.findIndex((g) => g.section === "content");
   // ADR-159 P4a: 조상 collection 소유자의 컬럼 — 템플릿 텍스트 키 편집 시 필드 피커.
-  const ownerColumns = useOwnerCollectionColumns(elementId);
+  const ownerFields = useOwnerCollectionFields(elementId);
+  const ownerColumns = useMemo(
+    () => ownerFields?.map((f) => f.key) ?? null,
+    [ownerFields],
+  );
 
   return (
     <>
@@ -273,6 +282,7 @@ export const CatalogInspectorFields = memo(function CatalogInspectorFields({
                 onUpdate={onUpdate}
                 elementId={elementId}
                 ownerColumns={ownerColumns}
+                ownerFields={ownerFields}
               />
             ))}
           </PropertySection>

@@ -6,6 +6,7 @@
  * 바닥에 붙어 그려져 데이터에 없는 사실이 화면에 생긴다).
  */
 import { toFiniteNumber } from "./scales";
+import { resolveFieldRef } from "../data/fieldIdIndex";
 import { resolveChartPresentation, seriesIdentity } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
 import type { ChartProps, ChartRow } from "./types";
@@ -41,7 +42,11 @@ export interface SeriesGrid {
 
 function readField(row: ChartRow, key: string): unknown {
   if (!key) return undefined;
-  return (row as Record<string, unknown>)[key];
+  // ADR-152 Phase 1b: `#<fieldId>` 참조는 색인으로 행 key 를 얻는다 (rename-safe). key
+  //   참조 (v1) 는 그대로. 미등록 id 는 undefined (빈 범주 / 값 0 과 같은 규약).
+  const resolved = resolveFieldRef(key);
+  if (resolved === null) return undefined;
+  return (row as Record<string, unknown>)[resolved];
 }
 
 function toLabel(value: unknown): string {

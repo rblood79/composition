@@ -10,6 +10,7 @@ import { Button } from "react-aria-components/Button";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
 import { Braces } from "lucide-react";
+import { storedToTemplate, templateToStored } from "@composition/shared";
 import { iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
@@ -22,6 +23,11 @@ interface PropertyFieldTemplateInputProps {
   onChange: (value: string) => void;
   /** 소유 collection 의 컬럼(필드) 키 목록 — 피커 항목. */
   columns: string[];
+  /**
+   * ADR-152 1b: 소유 collection 필드 (key + id). 있으면 `value` (저장형 `{#id}`) 를 이름
+   * 문법으로 보여 주고, commit 은 저장형으로 변환한다 — 사용자는 id 를 보지 않는다.
+   */
+  fields?: readonly { key: string; id?: string }[] | null;
   placeholder?: string;
   disabled?: boolean;
   icon?: React.ComponentType<{
@@ -38,12 +44,14 @@ export function PropertyFieldTemplateInput({
   value,
   onChange,
   columns,
+  fields,
   placeholder,
   disabled,
 }: PropertyFieldTemplateInputProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
-  const normalizedValue = value ?? "";
+  // 표시는 이름 문법 — 저장형 `{#id}` 는 schema 로 되돌린다 (schema 없으면 그대로).
+  const normalizedValue = storedToTemplate(value ?? "", fields);
   const [draft, setDraft] = useState(() => ({
     sourceValue: normalizedValue,
     inputValue: normalizedValue,
@@ -61,7 +69,11 @@ export function PropertyFieldTemplateInput({
   const { controlRef, popoverStyle } = useControlPopoverMetrics();
 
   const commit = (next: string) => {
-    if (next !== value) onChange(next);
+    // 저장형으로 변환해 기록 (이름 → `#id`; schema 밖 이름은 그대로). 표시값과의 비교는
+    // 이름 문법끼리 — 같은 텍스트면 재기록 0.
+    if (next === normalizedValue) return;
+    const stored = templateToStored(next, fields);
+    if (stored !== value) onChange(stored);
   };
 
   const insertField = (key: string) => {

@@ -13,6 +13,7 @@
  * 키가 있으면 P1 과 동일하게 그 값을 쓰고, 없을 때만 경로 traversal (신규 가산).
  */
 
+import { resolveFieldRef } from "@composition/specs";
 import {
   getItemDescription,
   getItemIcon,
@@ -29,6 +30,11 @@ export type CompiledTemplatePart =
       path: readonly (string | number)[];
       /** P5: `{field|fmt}` 포맷 이름 — FIELD_TEMPLATE_FORMATTERS 조회 키. */
       format?: string;
+      /**
+       * ADR-152 Phase 1b 저장형 `{#<fieldId>}` — 보간 시 `resolveFieldRef` 색인으로 행
+       * key 를 얻는다 (`path` 는 id 뒤 세그먼트만). 미등록 id 는 빈 문자열.
+       */
+      fieldId?: string;
     };
 
 export interface CompiledTemplate {
@@ -44,8 +50,19 @@ export interface CompiledTemplate {
  * `{x|}` 등)은 literal 보존. 식별자는 경로 문자(`.` `[` `]`) 포함, 포맷은 `|` 뒤
  * 단순 이름 1개 (P5 최소셋 — 인자 문법은 확장 지점).
  */
-const TOKEN_PATTERN =
-  /\{\{|\}\}|\{([A-Za-z_$][\w$.[\]]*)(?:\|([A-Za-z]\w*))?\}/g;
+export const TOKEN_PATTERN =
+  /\{\{|\}\}|\{(#[\w-]+(?:[.[][\w$.[\]]*)?|[A-Za-z_$][\w$.[\]]*)(?:\|([A-Za-z]\w*))?\}/g;
+
+/** `#<id>[.path]` 저장형 토큰 분해 — id 는 UUID (하이픈 포함), 그 뒤 `.`/`[` 부터 경로. */
+function splitFieldIdRef(
+  raw: string,
+): { fieldId: string; rest: string } | null {
+  if (!raw.startsWith("#")) return null;
+  const end = raw.search(/[.[]/);
+  return end < 0
+    ? { fieldId: raw.slice(1), rest: "" }
+    : { fieldId: raw.slice(1, end), rest: raw.slice(end) };
+}
 
 /**
  * 필드 키 → 경로 세그먼트 (compile 시 1회). `a.b[0].c` → `["a","b",0,"c"]`.
@@ -145,11 +162,13 @@ export function compileFieldTemplate(text: string): CompiledTemplate | null {
       parts.push({ kind: "literal", text: "}" });
       hasEscape = true;
     } else {
+      const idRef = splitFieldIdRef(match[1]);
       parts.push({
         kind: "field",
         key: match[1],
-        path: parseFieldPath(match[1]),
+        path: idRef ? parseFieldPath(idRef.rest) : parseFieldPath(match[1]),
         ...(match[2] ? { format: match[2] } : {}),
+        ...(idRef ? { fieldId: idRef.fieldId } : {}),
       });
       tokenCount += 1;
     }
@@ -279,6 +298,23 @@ function resolveFieldPathValue(
   record: Record<string, unknown>,
   part: Extract<CompiledTemplatePart, { kind: "field" }>,
 ): unknown {
+  if (part.fieldId !== undefined) {
+    // 저장형 `{#id}` — 색인으로 key 를 얻는다 (등록은 collection resolve 지점, ADR-152).
+    const key = resolveFieldRef(`#${part.fieldId}`);
+    if (key === null) return undefined;
+    if (part.path.length === 0) return record[key];
+    let current: unknown = record[key];
+    for (const segment of part.path) {
+      if (current == null || typeof current !== "object") return undefined;
+      current =
+        typeof segment === "number"
+          ? Array.isArray(current)
+            ? current[segment]
+            : undefined
+          : (current as Record<string, unknown>)[segment];
+    }
+    return current;
+  }
   if (part.key in record) return record[part.key];
   if (part.path.length <= 1) return undefined;
   let current: unknown = record;

@@ -42,24 +42,34 @@ function recordKeys(value: unknown): string[] | null {
   return keys.length > 0 ? keys : null;
 }
 
-function columnsFromCollection(table: DataTable | undefined): string[] | null {
+/** 소유 collection 의 필드 — `id` 는 collection schema 출처에만 있다 (ADR-152 1b 저장형 변환용). */
+export type OwnerField = { key: string; id?: string };
+
+const toFields = (keys: string[] | null): OwnerField[] | null =>
+  keys ? keys.map((key) => ({ key })) : null;
+
+function fieldsFromCollection(
+  table: DataTable | undefined,
+): OwnerField[] | null {
   if (!table) return null;
-  const schemaKeys = (table.schema ?? [])
-    .map((field) => field.key)
-    .filter((key): key is string => typeof key === "string" && key.length > 0);
-  if (schemaKeys.length > 0) return schemaKeys;
-  return recordKeys(table.mockData?.[0]);
+  const schemaFields = (table.schema ?? [])
+    .filter(
+      (field) => typeof field.key === "string" && field.key.length > 0,
+    )
+    .map((field) => ({ key: field.key, id: field.id }));
+  if (schemaFields.length > 0) return schemaFields;
+  return toFields(recordKeys(table.mockData?.[0]));
 }
 
-export function columnsFromOwner(
+export function fieldsFromOwner(
   owner: Pick<PanelNode, "props">,
   collections: readonly DataTable[],
-): string[] | null {
+): OwnerField[] | null {
   const binding = owner.props?.dataBinding;
   if (isRecord(binding)) {
     // property binding — dataTable 단일 소스 (ADR-159 P4b) · collectionId 우선 (ADR-152)
     if (binding.source === "dataTable") {
-      const fromTable = columnsFromCollection(
+      const fromTable = fieldsFromCollection(
         resolveBoundCollection(binding, collections) ?? undefined,
       );
       if (fromTable) return fromTable;
@@ -68,16 +78,23 @@ export function columnsFromOwner(
     if (binding.type === "collection" && isRecord(binding.config)) {
       const data = binding.config.data;
       if (Array.isArray(data)) {
-        const fromStatic = recordKeys(data[0]);
+        const fromStatic = toFields(recordKeys(data[0]));
         if (fromStatic) return fromStatic;
       }
     }
   }
   const items = owner.props?.items;
   if (Array.isArray(items) && items.length > 0) {
-    return recordKeys(items[0]);
+    return toFields(recordKeys(items[0]));
   }
   return null;
+}
+
+export function columnsFromOwner(
+  owner: Pick<PanelNode, "props">,
+  collections: readonly DataTable[],
+): string[] | null {
+  return fieldsFromOwner(owner, collections)?.map((f) => f.key) ?? null;
 }
 
 /**
@@ -89,15 +106,15 @@ export function columnsFromOwner(
  * 2. container-slot: `slot[]` 에 masterRootId 를 가진 컨테이너 master(예: component-gridlist)
  *    → 그 컨테이너를 `ref` 하는 인스턴스 자신(또는 조상)의 items/binding
  */
-function columnsFromMasterConsumers(
+function fieldsFromMasterConsumers(
   elementsMap: ReadonlyMap<string, PanelNode>,
   masterRootId: string,
   collections: readonly DataTable[],
-): string[] | null {
-  const ownerColumnsFromChain = (startId: string): string[] | null => {
+): OwnerField[] | null {
+  const ownerColumnsFromChain = (startId: string): OwnerField[] | null => {
     let current = elementsMap.get(startId);
     for (let depth = 0; current && depth < MAX_ANCESTOR_DEPTH; depth += 1) {
-      const columns = columnsFromOwner(current, collections);
+      const columns = fieldsFromOwner(current, collections);
       if (columns) return columns;
       const parentId = current.parent_id;
       current = parentId ? elementsMap.get(parentId) : undefined;
@@ -129,12 +146,12 @@ function columnsFromMasterConsumers(
   return null;
 }
 
-/** 순수 판정 — vitest 대상. elementId 의 조상 체인에서 첫 collection 소유자의 컬럼. */
-export function resolveOwnerCollectionColumns(
+/** 순수 판정 — vitest 대상. elementId 의 조상 체인에서 첫 collection 소유자의 필드 (key + id). */
+export function resolveOwnerCollectionFields(
   elementsMap: ReadonlyMap<string, PanelNode>,
   elementId: string | undefined,
   collections: readonly DataTable[],
-): string[] | null {
+): OwnerField[] | null {
   if (!elementId) return null;
   let current = elementsMap.get(elementId);
   // 걷는 중 만난 reusable master (가까운 순) — 라이브 문서에서 master 는 Components
@@ -143,7 +160,7 @@ export function resolveOwnerCollectionColumns(
   for (let depth = 0; current && depth < MAX_ANCESTOR_DEPTH; depth += 1) {
     if (depth > 0) {
       // 자기 자신(Text)은 소유자 아님 — 조상부터 판정.
-      const columns = columnsFromOwner(current, collections);
+      const columns = fieldsFromOwner(current, collections);
       if (columns) return columns;
     }
     if (current.reusable) reusableAncestorIds.push(current.id);
@@ -152,7 +169,7 @@ export function resolveOwnerCollectionColumns(
   }
   // 조상에 소유자 없음 → reusable master 조상(가까운 순)의 소비자 인스턴스 역추적.
   for (const masterId of reusableAncestorIds) {
-    const columns = columnsFromMasterConsumers(
+    const columns = fieldsFromMasterConsumers(
       elementsMap,
       masterId,
       collections,
@@ -162,14 +179,35 @@ export function resolveOwnerCollectionColumns(
   return null;
 }
 
-export function useOwnerCollectionColumns(
+/** 순수 판정 — 컬럼 키만 (기존 시그니처 유지). */
+export function resolveOwnerCollectionColumns(
+  elementsMap: ReadonlyMap<string, PanelNode>,
   elementId: string | undefined,
+  collections: readonly DataTable[],
 ): string[] | null {
+  return (
+    resolveOwnerCollectionFields(elementsMap, elementId, collections)?.map(
+      (f) => f.key,
+    ) ?? null
+  );
+}
+
+/** 소유 collection 필드 (key + id) — `{field}` 템플릿 저장형 변환 (ADR-152 1b) 입력. */
+export function useOwnerCollectionFields(
+  elementId: string | undefined,
+): OwnerField[] | null {
   const elementsMap = useCanonicalPropertyElementsMap();
   const collections = useCollections();
 
   return useMemo(
-    () => resolveOwnerCollectionColumns(elementsMap, elementId, collections),
+    () => resolveOwnerCollectionFields(elementsMap, elementId, collections),
     [elementsMap, elementId, collections],
   );
+}
+
+export function useOwnerCollectionColumns(
+  elementId: string | undefined,
+): string[] | null {
+  const fields = useOwnerCollectionFields(elementId);
+  return useMemo(() => fields?.map((f) => f.key) ?? null, [fields]);
 }

@@ -16,7 +16,7 @@
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
-import { memo, type ReactNode } from "react";
+import { memo, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
@@ -38,7 +38,8 @@ import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
   TEMPLATE_TEXT_KEYS,
-  useOwnerCollectionColumns,
+  useOwnerCollectionFields,
+  type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
 import { useCanonicalPropertyValue } from "../hooks/useCanonicalPropertyRead";
 
@@ -101,6 +102,8 @@ interface GenericFieldProps extends GenericFieldRouting {
   optionValueMode?: "legacy" | "literal";
   /** ADR-159 P4a: 소유 collection 컬럼 (없으면 null — 일반 입력). */
   ownerColumns?: string[] | null;
+  /** ADR-152 1b: 소유 collection 필드 (key + id) — `{#id}` 저장형 변환. memo 는 ownerColumns 키로 판정 (id 는 key 에 종속). */
+  ownerFields?: OwnerField[] | null;
 }
 
 function areOptionsEqual(
@@ -160,6 +163,7 @@ const GenericField = memo(function GenericField({
   onStyleUpdate,
   elementId,
   ownerColumns,
+  ownerFields,
   translateOptions,
   optionValueMode,
 }: GenericFieldProps) {
@@ -236,6 +240,7 @@ const GenericField = memo(function GenericField({
             value={String(value ?? "")}
             onChange={(v) => update(v === "" ? undefined : v)}
             columns={ownerColumns}
+            fields={ownerFields}
           />
         );
       }
@@ -341,7 +346,11 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   literalOptionFields,
 }: GenericFieldRendererProps) {
   // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
-  const ownerColumns = useOwnerCollectionColumns(elementId);
+  const ownerFields = useOwnerCollectionFields(elementId);
+  const ownerColumns = useMemo(
+    () => ownerFields?.map((f) => f.key) ?? null,
+    [ownerFields],
+  );
 
   if (fields.length === 0) {
     // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 Content 로 렌더한다.
@@ -399,6 +408,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
               onStyleUpdate={onStyleUpdate}
               elementId={elementId}
               ownerColumns={ownerColumns}
+              ownerFields={ownerFields}
               translateOptions={!literalOptionFields?.includes(field.key)}
               optionValueMode={
                 literalOptionFields?.includes(field.key) ? "literal" : "legacy"

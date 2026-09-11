@@ -11,6 +11,7 @@
  */
 
 import { resolveCollectionSnapshot } from "../collections/collectionSnapshot";
+import { registerFieldIds } from "@composition/specs";
 import { resolveBoundCollection } from "../collections/resolveBoundCollection";
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
 import { useAsyncList } from "react-stately";
@@ -305,6 +306,8 @@ export function useCollectionData({
       // ADR-152 v2: collectionId 우선 · name fallback — 단일 헬퍼 (rename-safe).
       const table = resolveBoundCollection(propertyBinding, collections);
       if (table) {
+        // 렌더용 resolve 지점 — `{#id}` 템플릿 · 차트 `#id` 참조 색인 등록 (ADR-152 1b).
+        registerFieldIds(table.schema);
         const snapshot = resolveCollectionSnapshot(table);
         const schema: SchemaField[] = (table.schema || []).map((field) => ({
           id: field.id,

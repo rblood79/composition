@@ -222,11 +222,20 @@ interface DataChange {
 
 ### Phase 1b — `{field}` 템플릿 저장형 + 차트 시리즈 fieldId (게이트 G4)
 
-- [ ] `fieldTemplate.ts` 파서 `{#id}` 분기 + `templateToStored` / `storedToTemplate` 변환기 (id 없는 필드는 통과)
-- [ ] `PropertyFieldTemplateInput` 이 편집 시 이름 문법 ↔ 저장형 변환 (사용자는 id 를 보지 않는다)
-- [ ] `resolveFieldTemplate` 렌더 경로가 저장형을 id 로 읽음 — Skia projection · DOM wrapper 같은 함수
-- [ ] ADR-210 차트 시리즈 필드 지정 (`packages/specs/src/chart/` 정규화 입력) 을 fieldId 로 — 이름 fallback
-- [ ] G4 live: rename 후 Skia · DOM · 차트 값 유지 + 구 문서 로드 시 collection 1회 write-back (바인딩 재직렬화 0) + 템플릿만 저장 → 재로드 → 템플릿 유지
+> **Implemented 2026-09-11** — live: `apps/builder/scripts/adr152-p1b-live.mjs` 14/14 PASS (headed Playwright, 실제 빌더 + Preview iframe compare 모드). 설계 정정 1건 (아래 색인 방식) · 범위 밖 발견 1건 (publish leg).
+
+- [x] `fieldTemplate.ts` 파서 `{#<id>[.path][|fmt]}` 분기 (`fieldId` part) + `templateToStored` / `storedToTemplate` (`fieldTemplateStorage.ts`) — 첫 세그먼트만 치환, 경로·포맷·literal·`{{` 보존. schema 밖 key (가상 필드 label/description/icon/value · 정적 items) 는 이름 그대로. **정정**: key 는 있는데 id 가 없으면 throw 대신 이름 유지 + `console.warn` — 편집 UI 를 세우지 않고 정규화 누락은 store 진입 경계 test (Phase 1) 가 지킨다
+- [x] **id → key 색인 (`packages/specs/src/data/fieldIdIndex.ts`) — 설계 정정**: 렌더 소비처 (Skia projection · DOM wrapper · 차트 기하 — compile 7곳 · `readField` 1곳) 는 schema 를 들고 있지 않으므로, collection 이 렌더용으로 resolve 되는 두 지점 (`readDataBindingRows` · `useCollectionData.dataTableResult`) 이 schema 를 등록하고 보간·차트 read 는 색인만 본다 → **소비처 호출부 변경 0**. id 는 UUID 라 평면 Map 으로 충분, rename 은 같은 등록 지점을 다시 지나 갱신. specs 에 두는 이유: shared → specs 의존 방향 (차트 `readField` 가 specs 안). 미등록 id 는 빈 문자열 / undefined (throw 0)
+- [x] `PropertyFieldTemplateInput` — `fields` (key + id, `useOwnerCollectionFields` 신설 · `resolveOwnerCollectionFields` 순수 함수) 를 받아 표시는 `storedToTemplate`, commit 은 `templateToStored`. `GenericFieldRenderer` · `CatalogInspectorFields` 양쪽 mount. 사용자는 id 를 보지 않는다 (live: 편집기 `{name} <{email}>` ↔ 문서 `{#…} <{#…}>`)
+- [x] `resolveFieldTemplate` 렌더 경로 — `interpolateFieldTemplate` 가 `fieldId` part 를 색인으로 읽음 (Skia projection · DOM wrapper 같은 함수, 호출부 변경 0)
+- [x] ADR-210 차트 시리즈 — `packages/specs/src/chart/series.ts` `readField` (dimension/metric/color/valueFields 단일 접근점) 가 `#id` 를 색인으로 해석 · Properties `chartFieldOptions.ts` 는 collection 필드를 `#id` 값 · key 라벨로 (정적 items 출처는 key), 구 형식 현재 값은 같은 필드의 `#id` 항목으로 접음 (test `chartFieldOptions.fieldId.test.ts` · specs `adr152FieldIdRef.test.ts` — id 격자 == key 격자 · rename 유지 · 미등록 빈 범주)
+- [x] G4 live (아래)
+
+**G4 live (2026-09-11, `adr152-p1b-live.mjs`)**: 새 프로젝트 · IndexedDB 에 id 없는 Users (id/name/email/age, 3행) 시드 → 재로드 write-back 4/4 · 페이지 인스턴스 ListBox (ref) v2 바인딩 Skia 행 3 · Bar Chart `dimension/metric = #id` · 대조군 (key 참조 차트 Preview 렌더 · Preview 가 master slot `{label}!` 보간) · Components 페이지 seed label Text 를 Properties 에서 `{name} <{email}>` 로 편집 → 문서 `{#name} <{#email}>` · 편집기 이름 표시 · Preview DOM 행 `User 1 <u1@x.test>` · Preview 차트 범주 `User 1..3` · **템플릿만 저장 · collection 편집 0 · 재로드 → 저장형 유지** · IndexedDB 에서 `name → fullName` rename (행 migrate 포함, 저장 형태) + 재로드 → Skia 행 3 · 문서 저장형 불변 · 편집기 `{fullName} <{email}>` · Preview 행 · 차트 범주 값 유지 · 차트 props `#id` 불변 · page error 0 — 14/14. Skia 행 **텍스트**는 픽셀에서 못 읽는다 (memory `reference-skia-canvas-pixels-unreadable-in-page`) — Skia 는 행 수 + DOM 과 같은 shared 함수 (`interpolateFieldTemplate` 단위 테스트) 로 판정.
+
+**범위 밖 발견 (기록만)**: publish 런타임 (`/publish/`, sessionStorage 전달) 은 ref ListBox 인스턴스의 master slot 템플릿을 **이름 문법 (`{label}!`) 에서도 보간하지 않는다** (행 텍스트 = 휴리스틱 label) — 1b 이전부터의 ADR-159/162 publish leg 잔여. Preview iframe 은 보간한다. Phase 6 (publish 연동) 에서 다룬다.
+
+**dist 신선도 함정 (실측)**: `packages/specs/src` 변경 후 dist 를 다시 빌드하지 않으면 shared·앱은 옛 `readField` 를 읽는다 — 차트 `#id` 가 Preview 에서 "No data" 로 보였다 (unit test 는 source 를 읽어 PASS). `pnpm -F @composition/specs build` 후 재실행으로 해소.
 
 ### Phase 1c — `DataChange` 적용기 + History (게이트 G5)
 
@@ -283,24 +292,26 @@ interface DataChange {
 
 ## 4. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
-| 파일                                                                      | Phase | 변경                                                  |
-| ------------------------------------------------------------------------- | :---: | ----------------------------------------------------- |
-| `packages/shared/src/types/collection.types.ts`                           |   1   | PropertyDataBinding v2 (additive)                     |
-| `packages/shared/src/collections/resolveBoundCollection.ts` (신규)        |   1   | id 우선 resolve 헬퍼                                  |
-| `apps/builder/src/builder/hooks/useCollectionData.ts`                     |  1,5  | 헬퍼 경유 + legacy 분기 축소                          |
-| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx`    |  1,2  | collectionId upgrade + fieldMap UI                    |
-| `packages/shared/src/collections/resolveCollectionItems.ts`               |   3   | fieldMap options 소비                                 |
-| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`      |   3   | fieldMap 전달 (projection 호출부)                     |
-| `packages/shared/src/components/*` (collection wrapper 10종 호출부)       |  3,4  | fieldMap 전달                                         |
-| `apps/builder/src/builder/stores/datatable.ts`                            |   5   | deprecate → (승인 후) 제거                            |
-| `apps/builder/src/preview/App.tsx`                                        |   3   | collection DI provider 마운트 (선행 조건 — 격차 7)    |
-| `apps/publish/src/*` (provider + renderer 소비)                           |   6   | snapshot read 경로 신설 (Phase 3 provider 재사용)     |
-| `apps/builder/src/types/builder/data.types.ts`                            |   1   | (v2.1) `DataField.id` · `targetCollectionId` additive |
-| `packages/shared/src/collections/fieldTemplate.ts` (+ 변환기 모듈)        |  1b   | (v2.1) `{#id}` 저장형 + 이름 ↔ id 변환기              |
-| `packages/shared/src/schemas/dataChange.ts` (신규)                        |  1c   | (v2.1) `DataOp` / `DataChange` zod + JSON Schema      |
-| `apps/builder/src/builder/stores/utils/dataChange.ts` (신규)              |  1c   | (v2.1) 적용기 + inverse                               |
-| `apps/builder/src/builder/stores/history.ts`                              |  1c   | (v2.1) `type:"data"` entry + dispatcher 분기          |
-| `apps/builder/src/builder/hooks/useDataQueries.ts` · `DataTablePanel.tsx` |   5   | (v2.1) React Query 병행 제거                          |
+| 파일                                                                             | Phase | 변경                                                          |
+| -------------------------------------------------------------------------------- | :---: | ------------------------------------------------------------- |
+| `packages/shared/src/types/collection.types.ts`                                  |   1   | PropertyDataBinding v2 (additive)                             |
+| `packages/shared/src/collections/resolveBoundCollection.ts` (신규)               |   1   | id 우선 resolve 헬퍼                                          |
+| `apps/builder/src/builder/hooks/useCollectionData.ts`                            |  1,5  | 헬퍼 경유 + legacy 분기 축소                                  |
+| `apps/builder/src/builder/components/property/PropertyDataBinding.tsx`           |  1,2  | collectionId upgrade + fieldMap UI                            |
+| `packages/shared/src/collections/resolveCollectionItems.ts`                      |   3   | fieldMap options 소비                                         |
+| `apps/builder/src/builder/workspace/canvas/scene/canvasSceneNode.ts`             |   3   | fieldMap 전달 (projection 호출부)                             |
+| `packages/shared/src/components/*` (collection wrapper 10종 호출부)              |  3,4  | fieldMap 전달                                                 |
+| `apps/builder/src/builder/stores/datatable.ts`                                   |   5   | deprecate → (승인 후) 제거                                    |
+| `apps/builder/src/preview/App.tsx`                                               |   3   | collection DI provider 마운트 (선행 조건 — 격차 7)            |
+| `apps/publish/src/*` (provider + renderer 소비)                                  |   6   | snapshot read 경로 신설 (Phase 3 provider 재사용)             |
+| `apps/builder/src/types/builder/data.types.ts`                                   |   1   | (v2.1) `DataField.id` · `targetCollectionId` additive         |
+| `packages/shared/src/collections/fieldTemplate.ts` (+ `fieldTemplateStorage.ts`) |  1b   | (v2.1) `{#id}` 저장형 + 이름 ↔ id 변환기                      |
+| `packages/specs/src/data/fieldIdIndex.ts` (신규)                                 |  1b   | (v2.1) id → key 색인 — resolve 지점 등록, 보간·차트 read 소비 |
+| `packages/specs/src/chart/series.ts` · `apps/builder/.../chartFieldOptions.ts`   |  1b   | (v2.1) 차트 `#id` 참조 read · Properties `#id` 저장           |
+| `packages/shared/src/schemas/dataChange.ts` (신규)                               |  1c   | (v2.1) `DataOp` / `DataChange` zod + JSON Schema              |
+| `apps/builder/src/builder/stores/utils/dataChange.ts` (신규)                     |  1c   | (v2.1) 적용기 + inverse                                       |
+| `apps/builder/src/builder/stores/history.ts`                                     |  1c   | (v2.1) `type:"data"` entry + dispatcher 분기                  |
+| `apps/builder/src/builder/hooks/useDataQueries.ts` · `DataTablePanel.tsx`        |   5   | (v2.1) React Query 병행 제거                                  |
 
 ## 5. 검증 전략
 
