@@ -1023,6 +1023,28 @@ function canonicalResponsiveField(
   return hasStyles || hasVisibility ? { responsive } : {};
 }
 
+/**
+ * ADR-214: 노드 소유 상태 정의는 canonical 1차 필드 (`CanonicalNode.state`).
+ *
+ * Element mirror 가 `state` 를 실으면 그것이 정본 (빈 배열 = 제거). mirror 에 필드 자체가
+ * 없으면 (props 만 든 갱신 · state 를 모르는 호출자) **이전 노드의 state 를 보존**한다 —
+ * 이 함수가 노드를 통째로 다시 만들기 때문에 명시 보존이 없으면 props 편집 1회에 정의가
+ * 사라진다 (`children` 보존과 같은 이유). `responsive` 처럼 분기마다 손으로 복사하지 않고
+ * 한 곳에서 만든다.
+ */
+function canonicalStateField(
+  element: Element,
+  previousNode: CanonicalNode | null,
+): Pick<CanonicalNode, "state"> | Record<string, never> {
+  const mirror = (element as Element & { state?: unknown }).state;
+  if (Array.isArray(mirror)) {
+    return mirror.length > 0 ? { state: mirror as CanonicalNode["state"] } : {};
+  }
+  return previousNode?.state && previousNode.state.length > 0
+    ? { state: previousNode.state }
+    : {};
+}
+
 function legacyElementToCanonicalNode(
   element: Element,
   doc: CompositionDocument,
@@ -1112,6 +1134,7 @@ function legacyElementToCanonicalNode(
       ? { fills: element.fills }
       : {}),
     ...canonicalResponsiveField(element),
+    ...canonicalStateField(element, previousNode),
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
     metadata: buildCanonicalMutationMetadata(metadataElement),
@@ -2409,11 +2432,15 @@ export function moveElementCanonicalPrimary(
     return { changed: false, document: null };
   }
   const currentDoc = getCurrentDocument(projectId);
-  const nestingViolation = resolveMoveNestingViolation(currentDoc, [elementId], {
-    kind: "node-children",
-    parentId: targetParentId,
-    insertionIndex,
-  });
+  const nestingViolation = resolveMoveNestingViolation(
+    currentDoc,
+    [elementId],
+    {
+      kind: "node-children",
+      parentId: targetParentId,
+      insertionIndex,
+    },
+  );
   if (nestingViolation) {
     return { changed: false, document: currentDoc, nestingViolation };
   }
@@ -2511,7 +2538,12 @@ export function moveElementsToCanonicalTarget(
     target,
   );
   if (nestingViolation) {
-    return { changed: false, document: currentDoc, movedIds: [], nestingViolation };
+    return {
+      changed: false,
+      document: currentDoc,
+      movedIds: [],
+      nestingViolation,
+    };
   }
 
   let doc = currentDoc;

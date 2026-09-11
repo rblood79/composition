@@ -16,12 +16,15 @@
  */
 import type { StateCreator } from "zustand";
 import {
+  collectDocumentVariableNames,
   resolveField,
   type DataChange,
   type DataChangeOrigin,
   type DataOp,
+  type VariableDefinition,
 } from "@composition/shared";
 import { getDB } from "../../../lib/db";
+import { getActiveCanonicalDocument } from "../canonical/canonicalElementsBridge";
 import { normalizeCollection } from "../../../utils/data/normalizeCollection";
 import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import type {
@@ -30,9 +33,13 @@ import type {
   DataStoreState,
   DataTable,
   DataTableUpdate,
+  Variable,
 } from "../../../types/builder/data.types";
 import { historyManager } from "../history";
-import { isCanvasCompareMode, isWebGLCanvas } from "../../../utils/featureFlags";
+import {
+  isCanvasCompareMode,
+  isWebGLCanvas,
+} from "../../../utils/featureFlags";
 
 type DataStore = DataStoreState & DataStoreActions;
 type SetState = Parameters<StateCreator<DataStore>>[0];
@@ -50,8 +57,18 @@ export class DataChangeError extends Error {
 }
 
 export interface ReduceContext {
-  /** `create_collection` 에 projectId 가 없을 때의 기본값. */
+  /** `create_collection` / `define_variable` 에 projectId 가 없을 때의 기본값. */
   projectId?: string;
+  /**
+   * ADR-214 — 프로젝트 변수 (store 의 name 키 Map). `define_variable` 축의 시작 상태.
+   * 생략하면 빈 Map (collections 전용 호출 호환).
+   */
+  variables?: ReadonlyMap<string, Variable>;
+  /**
+   * ADR-214 HC5 — canonical 문서의 페이지 · 요소 변수 이름 (예약어). 프로젝트 변수는 모든
+   * 가시성 사슬의 끝이라 문서 안 어떤 이름과도 겹치면 안 된다. 적용기가 활성 문서에서 모은다.
+   */
+  documentVariableNames?: ReadonlySet<string>;
 }
 
 export interface ReduceResult {
@@ -63,6 +80,10 @@ export interface ReduceResult {
   /** 저장 대상 — upsert 는 결과 Map 에서, delete 는 이전 Map 에서 읽는다. */
   upserted: Set<string>;
   deleted: Set<string>;
+  /** ADR-214 — 프로젝트 변수 축 (name 키 Map · 저장 대상은 variable id). */
+  variables: Map<string, Variable>;
+  variablesUpserted: Set<string>;
+  variablesDeleted: Set<string>;
 }
 
 // ============================================
@@ -164,6 +185,152 @@ function inverseFieldPatch(
   return prev;
 }
 
+// ============================================
+// ADR-214 — 프로젝트 변수 축 (`define_variable`)
+// ============================================
+
+function findVariableById(
+  variables: ReadonlyMap<string, Variable>,
+  variableId: string,
+): Variable | undefined {
+  for (const variable of variables.values()) {
+    if (variable.id === variableId) return variable;
+  }
+  return undefined;
+}
+
+/** 저장된 `Variable` → op 의 `definition` (inverse 에 싣는 형태). */
+function toVariableDefinition(variable: Variable): VariableDefinition {
+  return {
+    name: variable.name,
+    type: variable.type,
+    ...(variable.defaultValue !== undefined
+      ? { defaultValue: variable.defaultValue }
+      : {}),
+    persist: variable.persist ?? false,
+  };
+}
+
+/**
+ * HC5 — 프로젝트 변수 이름은 store 의 다른 변수 · 문서 안 페이지/요소 state 이름과 겹칠 수 없다.
+ * 검증기 자체는 shared `findVariableNameConflict` 가 정본이나, 적용기는 문서 대신 미리 모은
+ * 이름 집합 (`ctx.documentVariableNames`) 을 받아 reduce 를 순수하게 유지한다.
+ */
+function assertVariableNameAvailable(
+  variables: ReadonlyMap<string, Variable>,
+  name: string,
+  selfId: string | null,
+  ctx: ReduceContext,
+  op: DataOp,
+): void {
+  for (const variable of variables.values()) {
+    if (variable.id !== selfId && variable.name.trim() === name) {
+      throw new DataChangeError(
+        `변수 이름이 이미 있습니다: ${name} (프로젝트 변수 ${variable.id})`,
+        op,
+      );
+    }
+  }
+  if (ctx.documentVariableNames?.has(name)) {
+    throw new DataChangeError(
+      `변수 이름이 이미 있습니다: ${name} (페이지 · 요소 변수와 겹칩니다 — 가시성 사슬 안 이름은 하나)`,
+      op,
+    );
+  }
+}
+
+function reduceDefineVariable(
+  op: Extract<DataOp, { op: "define_variable" }>,
+  ctx: ReduceContext,
+  out: ReduceResult,
+): void {
+  const { variables } = out;
+  const stamp = new Date().toISOString();
+
+  if (op.definition === null) {
+    if (!op.variableId)
+      throw new DataChangeError("삭제할 variableId 가 없습니다", op);
+    const existing = findVariableById(variables, op.variableId);
+    if (!existing)
+      throw new DataChangeError(
+        `변수를 찾을 수 없습니다: ${op.variableId}`,
+        op,
+      );
+    variables.delete(existing.name);
+    out.variablesDeleted.add(existing.id);
+    out.variablesUpserted.delete(existing.id);
+    out.applied.push(op);
+    out.inverse.unshift({
+      op: "define_variable",
+      variableId: existing.id,
+      definition: toVariableDefinition(existing),
+    });
+    return;
+  }
+
+  const name = op.definition.name.trim();
+  if (!name) throw new DataChangeError("변수 이름은 비울 수 없습니다", op);
+  const existing = op.variableId
+    ? findVariableById(variables, op.variableId)
+    : undefined;
+  assertVariableNameAvailable(variables, name, existing?.id ?? null, ctx, op);
+
+  if (existing) {
+    // update — name/type/defaultValue/persist 만 쓰고 나머지 (owner · scope · page_id ·
+    //   migrationStatus 배지 · validation · transform) 는 보존한다. 배지 해소는 Phase 5 의 명시 UI.
+    const next: Variable = {
+      ...existing,
+      name,
+      type: op.definition.type,
+      persist: op.definition.persist ?? existing.persist ?? false,
+      updated_at: stamp,
+    };
+    if (op.definition.defaultValue !== undefined) {
+      next.defaultValue = op.definition.defaultValue;
+    } else {
+      delete next.defaultValue;
+    }
+    variables.delete(existing.name);
+    variables.set(name, next);
+    out.variablesUpserted.add(existing.id);
+    out.applied.push({ ...op, variableId: existing.id });
+    out.inverse.unshift({
+      op: "define_variable",
+      variableId: existing.id,
+      definition: toVariableDefinition(existing),
+    });
+    return;
+  }
+
+  // create (variableId 가 있으면 undo 가 같은 id 로 되살리는 경우 — 참조 보존)
+  const projectId = ctx.projectId ?? [...variables.values()][0]?.project_id;
+  if (!projectId) throw new DataChangeError("projectId 를 알 수 없습니다", op);
+  const id = op.variableId ?? crypto.randomUUID();
+  const created: Variable = {
+    id,
+    name,
+    project_id: projectId,
+    type: op.definition.type,
+    ...(op.definition.defaultValue !== undefined
+      ? { defaultValue: op.definition.defaultValue }
+      : {}),
+    persist: op.definition.persist ?? false,
+    scope: "global",
+    owner: { kind: "project" },
+    created_at: stamp,
+    updated_at: stamp,
+  };
+  variables.set(name, created);
+  out.variablesUpserted.add(id);
+  out.variablesDeleted.delete(id);
+  out.applied.push({ ...op, variableId: id });
+  out.inverse.unshift({
+    op: "define_variable",
+    variableId: id,
+    definition: null,
+  });
+}
+
 function reduceOne(
   collections: Map<string, DataTable>,
   op: DataOp,
@@ -254,14 +421,18 @@ function reduceOne(
     }
     case "add_field": {
       const existing = requireCollection(collections, op);
-      const index = Math.min(op.index ?? existing.schema.length, existing.schema.length);
+      const index = Math.min(
+        op.index ?? existing.schema.length,
+        existing.schema.length,
+      );
       const schema = [...existing.schema];
       schema.splice(index, 0, op.field as DataField);
-      const normalized = normalizeCollection({ ...existing, schema }).collection;
+      const normalized = normalizeCollection({
+        ...existing,
+        schema,
+      }).collection;
       const field = normalized.schema[index];
-      if (
-        normalized.schema.some((f, i) => i !== index && f.key === field.key)
-      )
+      if (normalized.schema.some((f, i) => i !== index && f.key === field.key))
         throw new DataChangeError(`필드 key 중복: ${field.key}`, op);
       touch(normalized);
       out.applied.push({ ...op, field, index });
@@ -285,7 +456,9 @@ function reduceOne(
         existing.schema.some((f) => f.key === nextField.key)
       )
         throw new DataChangeError(`필드 key 중복: ${nextField.key}`, op);
-      const schema = existing.schema.map((f, i) => (i === index ? nextField : f));
+      const schema = existing.schema.map((f, i) =>
+        i === index ? nextField : f,
+      );
       const renamed = nextField.key !== field.key;
       touch({
         ...existing,
@@ -326,7 +499,8 @@ function reduceOne(
     case "set_cell": {
       const existing = requireCollection(collections, op);
       requireRowIndex(existing, op.rowIndex, op);
-      const field = existing.schema[requireFieldIndex(existing, op.fieldId, op)];
+      const field =
+        existing.schema[requireFieldIndex(existing, op.fieldId, op)];
       const prev = existing.mockData[op.rowIndex][field.key];
       touch({
         ...existing,
@@ -346,7 +520,10 @@ function reduceOne(
     }
     case "insert_rows": {
       const existing = requireCollection(collections, op);
-      const at = Math.min(op.at ?? existing.mockData.length, existing.mockData.length);
+      const at = Math.min(
+        op.at ?? existing.mockData.length,
+        existing.mockData.length,
+      );
       const mockData = [...existing.mockData];
       mockData.splice(at, 0, ...(op.rows as Row[]));
       touch({ ...existing, mockData });
@@ -418,6 +595,10 @@ function reduceOne(
         `${op.op} 는 Phase 1c 적용기 범위 밖입니다 (ADR-213 Phase 4 에서 배선)`,
         op,
       );
+    case "define_variable":
+      // ADR-214 Phase 1 — 프로젝트 변수 축 (collections 무변경)
+      reduceDefineVariable(op, ctx, out);
+      return;
     default: {
       const never: never = op;
       throw new DataChangeError(`알 수 없는 op: ${JSON.stringify(never)}`);
@@ -436,6 +617,9 @@ export function reduceDataOps(
     inverse: [],
     upserted: new Set(),
     deleted: new Set(),
+    variables: new Map(ctx.variables ?? []),
+    variablesUpserted: new Set(),
+    variablesDeleted: new Set(),
   };
   for (const op of ops) reduceOne(out.collections, op, ctx, out);
   return out;
@@ -581,6 +765,8 @@ export interface ApplyDataChangeResult {
   inverse: DataOp[];
   /** 영향 collection id (upsert + delete). */
   collectionIds: string[];
+  /** ADR-214 — 영향 프로젝트 변수 id (upsert + delete). */
+  variableIds: string[];
 }
 
 export interface DataChangeHistoryPayload {
@@ -592,6 +778,11 @@ type CollectionsDB = {
   collections?: {
     insert: (dt: DataTable) => Promise<DataTable>;
     update: (id: string, updates: DataTableUpdate) => Promise<DataTable>;
+    delete: (id: string) => Promise<void>;
+  };
+  variables?: {
+    insert: (v: Variable) => Promise<Variable>;
+    update: (id: string, updates: Partial<Variable>) => Promise<Variable>;
     delete: (id: string) => Promise<void>;
   };
 };
@@ -613,15 +804,31 @@ export const createApplyDataChangeAction =
     options: ApplyDataChangeOptions = {},
   ): Promise<ApplyDataChangeResult> => {
     const before = get().collections;
-    // 1. preflight (순수) — collections reduce 전량 + binding 검증. 실패는 무변경.
+    const beforeVariables = get().variables;
+    // 1. preflight (순수) — collections · variables reduce 전량 + binding 검증. 실패는 무변경.
     const { collectionOps, bindingOps } = partitionDataOps(change.ops);
+    const touchesVariables = collectionOps.some(
+      (op) => op.op === "define_variable",
+    );
     const result = reduceDataOps(before, collectionOps, {
       projectId: options.projectId,
+      variables: beforeVariables,
+      // ADR-214 HC5 — 문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다.
+      ...(touchesVariables
+        ? {
+            documentVariableNames: collectDocumentVariableNames(
+              getActiveCanonicalDocument(),
+            ),
+          }
+        : {}),
     });
     const consumer = preflightBindingOps(bindingOps, result.collections);
+    const variablesChanged =
+      result.variablesUpserted.size > 0 || result.variablesDeleted.size > 0;
 
     const persist = async (
       prev: Map<string, DataTable>,
+      prevVariables: Map<string, Variable>,
       reduced: ReduceResult,
     ): Promise<void> => {
       const db = (await getDB()) as unknown as CollectionsDB;
@@ -634,11 +841,31 @@ export const createApplyDataChangeAction =
         if (prev.has(id)) await store.update(id, persistablePatch(next));
         else await store.insert(next);
       }
+      // ADR-214 — 프로젝트 변수 축 저장 (IndexedDB `variables`, keyPath id)
+      if (
+        reduced.variablesUpserted.size > 0 ||
+        reduced.variablesDeleted.size > 0
+      ) {
+        const variablesStore = db.variables;
+        if (!variablesStore)
+          throw new Error("variables store not found in database");
+        const beforeIds = new Set(
+          [...prevVariables.values()].map((v) => v.id),
+        );
+        for (const id of reduced.variablesDeleted)
+          await variablesStore.delete(id);
+        for (const id of reduced.variablesUpserted) {
+          const next = findVariableById(reduced.variables, id);
+          if (!next) continue;
+          if (beforeIds.has(id)) await variablesStore.update(id, next);
+          else await variablesStore.insert(next);
+        }
+      }
     };
 
-    // 2. collections commit (IndexedDB → 메모리)
+    // 2. collections · variables commit (IndexedDB → 메모리)
     try {
-      await persist(before, result);
+      await persist(before, beforeVariables, result);
     } catch (error) {
       console.error("❌ DataChange 저장 실패:", error);
       set((state) => {
@@ -648,9 +875,13 @@ export const createApplyDataChangeAction =
       });
       throw error;
     }
-    set({ collections: result.collections });
+    set(
+      variablesChanged
+        ? { collections: result.collections, variables: result.variables }
+        : { collections: result.collections },
+    );
 
-    // 3. canonical 축 commit — 실패 시 앞서 적용한 binding 과 collections 를 역순 rollback
+    // 3. canonical 축 commit — 실패 시 앞서 적용한 binding 과 collections·variables 를 역순 rollback
     const appliedBindings: BindElementOp[] = [];
     const bindingInverse: BindElementOp[] = [];
     try {
@@ -670,15 +901,23 @@ export const createApplyDataChangeAction =
       }
     } catch (error) {
       for (const inverse of bindingInverse) {
-        consumer.apply(inverse.elementId, toBindingWrite(inverse, result.collections));
+        consumer.apply(
+          inverse.elementId,
+          toBindingWrite(inverse, result.collections),
+        );
       }
       if (result.applied.length > 0) {
         const rollback = reduceDataOps(result.collections, result.inverse, {
           projectId: options.projectId,
+          variables: result.variables,
         });
-        set({ collections: rollback.collections });
+        set(
+          variablesChanged
+            ? { collections: rollback.collections, variables: rollback.variables }
+            : { collections: rollback.collections },
+        );
         try {
-          await persist(result.collections, rollback);
+          await persist(result.collections, result.variables, rollback);
         } catch (persistError) {
           console.error("❌ DataChange rollback 저장 실패:", persistError);
         }
@@ -690,8 +929,13 @@ export const createApplyDataChangeAction =
     const applied: DataOp[] = [...result.applied, ...appliedBindings];
     const inverse: DataOp[] = [...bindingInverse, ...result.inverse];
     const collectionIds = [...result.upserted, ...result.deleted];
-    const elementIds = [
+    const variableIds = [
+      ...result.variablesUpserted,
+      ...result.variablesDeleted,
+    ];
+    const affectedIds = [
       ...collectionIds,
+      ...variableIds,
       ...appliedBindings.map((op) => op.elementId),
     ];
 
@@ -707,13 +951,15 @@ export const createApplyDataChangeAction =
       };
       historyManager.addEntry({
         type: "data",
-        elementId: elementIds[0] ?? "",
-        elementIds,
+        elementId: affectedIds[0] ?? "",
+        elementIds: affectedIds,
         data: { dataChangeEvent: payload },
       });
     }
 
-    if (result.applied.length > 0) syncCollectionsToCanvas(result.collections);
+    // 변수만 바뀐 change 는 collections postMessage 를 보내지 않는다 — 변수 전송은
+    //   `useIframeMessenger` 의 variables useEffect (JSON 비교) 가 맡는다.
+    if (collectionIds.length > 0) syncCollectionsToCanvas(result.collections);
 
-    return { applied, inverse, collectionIds };
+    return { applied, inverse, collectionIds, variableIds };
   };

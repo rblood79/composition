@@ -22,6 +22,10 @@ import {
 } from "./dataChange";
 import { collectionUpdateToOps } from "./dataChangeDiff";
 import { getDB } from "../../../lib/db";
+import {
+  migrateVariableOwner,
+  migrateVariableOwners,
+} from "./variableOwnerMigration";
 import type {
   DataTable,
   DataTableCreate,
@@ -154,7 +158,8 @@ export const createCreateDataTableAction =
       );
       const [collectionId] = result.collectionIds;
       const created = get().collections.get(collectionId);
-      if (!created) throw new Error("생성된 collection 을 store 에서 찾을 수 없습니다");
+      if (!created)
+        throw new Error("생성된 collection 을 store 에서 찾을 수 없습니다");
       set({ isLoading: false });
       return created;
     } catch (error) {
@@ -220,7 +225,10 @@ export const createDeleteDataTableAction =
   async (id: string): Promise<void> => {
     set({ isLoading: true });
     try {
-      await createApplyDataChangeAction(set, get)({
+      await createApplyDataChangeAction(
+        set,
+        get,
+      )({
         ops: [{ op: "delete_collection", collectionId: id }],
         origin: "user",
       });
@@ -607,7 +615,10 @@ export const createExecuteApiEndpointAction =
       ).data;
 
       // Target DataTable에 데이터 설정
-      if ((endpoint.targetCollectionId || endpoint.targetCollection) && mappedData) {
+      if (
+        (endpoint.targetCollectionId || endpoint.targetCollection) &&
+        mappedData
+      ) {
         const { collections } = get();
         // ADR-152 v2.1: targetCollectionId 우선 · targetCollection (이름) fallback
         const targetTable = resolveBoundCollection(
@@ -671,8 +682,13 @@ export const createFetchVariablesAction =
           }
         ).variables?.getByProject(projectId)) || [];
 
+      // ADR-214 Phase 1 — `owner` 읽기 변환 (결정적 · 메모리만 · IndexedDB 재직렬화 0).
+      //   component / page-without-page_id 는 owner-unresolved 배지 + 로그 1회.
+      const { variables: migrated } = migrateVariableOwners(data || [], {
+        projectId,
+      });
       const variablesMap = new Map<string, Variable>();
-      (data || []).forEach((v) => {
+      migrated.forEach((v) => {
         variablesMap.set(v.name, v);
       });
 
@@ -692,7 +708,12 @@ export const createFetchVariablesAction =
   };
 
 /**
- * 새 Variable을 생성하는 액션
+ * 프로젝트 변수 생성 — ADR-214 Phase 1: ADR-152 적용기 `define_variable` 의 얇은 wrapper
+ * (History `type:"data"` entry · IndexedDB · 메모리 · 이름 고유 검증을 적용기가 맡는다).
+ *
+ * 구 UI 가 `scope: "page" | "component"` 를 요청하면 (Phase 5 가 표면을 교체하기 전의
+ * legacy 경로) 적용기를 거치지 않고 종전 직접 저장을 유지한다 — 그 형태는 `define_variable`
+ * 로 표현되지 않으며 (프로젝트 변수 op), 로드 변환이 `owner-unresolved` 로 표시한다.
  */
 export const createCreateVariableAction =
   (set: SetState, get: GetState) =>
@@ -700,19 +721,49 @@ export const createCreateVariableAction =
     set({ isLoading: true });
 
     try {
+      const scope = data.scope || "global";
+      if (scope === "global") {
+        const result = await createApplyDataChangeAction(set, get)(
+          {
+            ops: [
+              {
+                op: "define_variable",
+                definition: {
+                  name: data.name,
+                  type: data.type,
+                  ...(data.defaultValue !== undefined
+                    ? { defaultValue: data.defaultValue }
+                    : {}),
+                  persist: data.persist ?? false,
+                },
+              },
+            ],
+            origin: "user",
+          },
+          { projectId: data.project_id },
+        );
+        const [variableId] = result.variableIds;
+        const created = findVariableByIdInMap(get().variables, variableId);
+        if (!created)
+          throw new Error("생성된 변수를 store 에서 찾을 수 없습니다");
+        set({ isLoading: false });
+        return created;
+      }
+
+      // legacy scope (page / component) — 직접 저장 (Phase 5 표면 교체 전까지)
       const db = await getDB();
-      const newVariable: Variable = {
+      const newVariable: Variable = migrateVariableOwner({
         id: crypto.randomUUID(),
         name: data.name,
         project_id: data.project_id,
         type: data.type,
         defaultValue: data.defaultValue,
         persist: data.persist ?? false,
-        scope: data.scope || "global",
+        scope,
         page_id: data.page_id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      };
+      }).variable;
 
       await (
         db as unknown as {
@@ -720,13 +771,10 @@ export const createCreateVariableAction =
         }
       ).variables?.insert(newVariable);
 
-      // 메모리 상태 업데이트
       const { variables } = get();
       const newMap = new Map(variables);
       newMap.set(newVariable.name, newVariable);
-
       set({ variables: newMap, isLoading: false });
-
       return newVariable;
     } catch (error) {
       console.error("❌ Variable 생성 실패:", error);
@@ -739,8 +787,28 @@ export const createCreateVariableAction =
     }
   };
 
+function findVariableByIdInMap(
+  variables: ReadonlyMap<string, Variable>,
+  id: string | undefined,
+): Variable | undefined {
+  if (!id) return undefined;
+  for (const variable of variables.values()) {
+    if (variable.id === id) return variable;
+  }
+  return undefined;
+}
+
+const VARIABLE_DEFINITION_KEYS = [
+  "name",
+  "type",
+  "defaultValue",
+  "persist",
+] as const satisfies readonly (keyof VariableUpdate)[];
+
 /**
- * Variable을 업데이트하는 액션
+ * 프로젝트 변수 갱신 — ADR-214 Phase 1: 정의 축 (name · type · defaultValue · persist) 은
+ * 적용기 `define_variable` (History 동봉). 그 밖의 legacy 필드 (scope · page_id · validation ·
+ * transform — Phase 5 에서 숨김/정리 대상) 만 종전 직접 저장 경로로 남긴다.
  *
  * ⚡ 개별 업데이트는 isLoading 표시 안함 (빠른 작업이므로)
  */
@@ -748,42 +816,69 @@ export const createUpdateVariableAction =
   (set: SetState, get: GetState) =>
   async (id: string, updates: VariableUpdate): Promise<void> => {
     try {
+      const existing = findVariableByIdInMap(get().variables, id);
+      if (!existing) {
+        console.warn("⚠️ updateVariable: variable 없음", id);
+        return;
+      }
+
+      const definitionTouched = VARIABLE_DEFINITION_KEYS.some(
+        (key) => key in updates,
+      );
+      if (definitionTouched) {
+        const defaultValue =
+          "defaultValue" in updates
+            ? updates.defaultValue
+            : existing.defaultValue;
+        await createApplyDataChangeAction(
+          set,
+          get,
+        )({
+          ops: [
+            {
+              op: "define_variable",
+              variableId: id,
+              definition: {
+                name: updates.name ?? existing.name,
+                type: updates.type ?? existing.type,
+                ...(defaultValue !== undefined ? { defaultValue } : {}),
+                persist: updates.persist ?? existing.persist ?? false,
+              },
+            },
+          ],
+          origin: "user",
+        });
+      }
+
+      const legacyUpdates: Partial<Variable> = {};
+      for (const [key, value] of Object.entries(updates)) {
+        if ((VARIABLE_DEFINITION_KEYS as readonly string[]).includes(key))
+          continue;
+        (legacyUpdates as Record<string, unknown>)[key] = value;
+      }
+      if (Object.keys(legacyUpdates).length === 0) return;
+
       const db = await getDB();
       await (
         db as unknown as {
           variables: {
-            update: (id: string, updates: VariableUpdate) => Promise<Variable>;
+            update: (
+              id: string,
+              updates: Partial<Variable>,
+            ) => Promise<Variable>;
           };
         }
-      ).variables?.update(id, updates);
+      ).variables?.update(id, legacyUpdates);
 
-      // 메모리 상태 업데이트
       const { variables } = get();
+      const current = findVariableByIdInMap(variables, id);
+      if (!current) return;
       const newMap = new Map(variables);
-
-      // ID로 Variable 찾기
-      let foundKey: string | undefined;
-      variables.forEach((v, key) => {
-        if (v.id === id) foundKey = key;
+      newMap.set(current.name, {
+        ...current,
+        ...legacyUpdates,
+        updated_at: new Date().toISOString(),
       });
-
-      if (foundKey) {
-        const existing = newMap.get(foundKey)!;
-        const updated = {
-          ...existing,
-          ...updates,
-          updated_at: new Date().toISOString(),
-        };
-
-        // 이름이 변경된 경우 키도 업데이트
-        if (updates.name && updates.name !== foundKey) {
-          newMap.delete(foundKey);
-          newMap.set(updates.name, updated);
-        } else {
-          newMap.set(foundKey, updated);
-        }
-      }
-
       set({ variables: newMap });
     } catch (error) {
       console.error("❌ Variable 업데이트 실패:", error);
@@ -797,7 +892,8 @@ export const createUpdateVariableAction =
   };
 
 /**
- * Variable을 삭제하는 액션
+ * 프로젝트 변수 삭제 — ADR-214 Phase 1: 적용기 `define_variable` (definition null) 의 wrapper.
+ * undo 는 같은 id 로 되살린다 (참조 보존).
  */
 export const createDeleteVariableAction =
   (set: SetState, get: GetState) =>
@@ -805,23 +901,14 @@ export const createDeleteVariableAction =
     set({ isLoading: true });
 
     try {
-      const db = await getDB();
-      await (
-        db as unknown as {
-          variables: { delete: (id: string) => Promise<void> };
-        }
-      ).variables?.delete(id);
-
-      // 메모리 상태 업데이트
-      const { variables } = get();
-      const newMap = new Map(variables);
-
-      // ID로 Variable 찾아서 삭제
-      variables.forEach((v, key) => {
-        if (v.id === id) newMap.delete(key);
+      await createApplyDataChangeAction(
+        set,
+        get,
+      )({
+        ops: [{ op: "define_variable", variableId: id, definition: null }],
+        origin: "user",
       });
-
-      set({ variables: newMap, isLoading: false });
+      set({ isLoading: false });
     } catch (error) {
       console.error("❌ Variable 삭제 실패:", error);
       set((state) => {

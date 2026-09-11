@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../../stores";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import type { CanvasActionElement } from "./canvasActions";
 import {
   alignSelection,
@@ -207,6 +208,96 @@ describe("duplicateSelection — ADR-182 후속 (2026-08-27)", () => {
     const created = addElement.mock.calls[0][0] as { id: string };
     expect(created.id).not.toBe("a");
     expect(setSelectedElements).toHaveBeenCalledWith([created.id]);
+  });
+
+  // ADR-214 Phase 1 (HC2 · R9): 복제는 canonical 노드의 state 를 읽어 새 id 로 싣는다 —
+  //   read model (scene node map) 에는 state 가 없다.
+  it("복제는 canonical 노드의 state 를 새 VariableDef id 로 싣는다 (read model 에 state 가 없어도)", async () => {
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "page" },
+          children: [
+            {
+              id: "body",
+              type: "Body",
+              props: {},
+              children: [
+                {
+                  id: "a",
+                  type: "Button",
+                  props: {},
+                  state: [
+                    {
+                      id: "v_a",
+                      name: "count",
+                      type: "number",
+                      defaultValue: 1,
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "a",
+      selectedElementIds: ["a"],
+    } as never);
+    const state = useStore.getState();
+    const addElement = vi
+      .spyOn(state, "addElement")
+      .mockResolvedValue(undefined as never);
+    vi.spyOn(state, "setSelectedElements");
+
+    try {
+      await duplicateSelection({
+        elementsMap: new Map<string, CanvasActionElement>([
+          ["a", makeElement("a", { parent_id: "body" })],
+        ]),
+      });
+    } finally {
+      useCanonicalDocumentStore.getState().setCurrentProject(null as never);
+    }
+
+    expect(addElement).toHaveBeenCalledTimes(1);
+    const created = addElement.mock.calls[0][0] as {
+      id: string;
+      state?: Array<{ id: string; name: string }>;
+    };
+    expect(created.state).toHaveLength(1);
+    expect(created.state![0].name).toBe("count");
+    expect(created.state![0].id).not.toBe("v_a");
+  });
+
+  it("복사는 read model 의 state 를 쓰지 않는다 — canonical 노드가 없으면 state 없이 복사한다", async () => {
+    useStore.setState({
+      currentPageId: "page-1",
+      selectedElementId: "a",
+      selectedElementIds: ["a"],
+    } as never);
+    const writeClipboardText = vi.fn(async (_text: string) => true);
+    await copySelection({
+      elementsMap: new Map<string, CanvasActionElement>([
+        [
+          "a",
+          {
+            ...makeElement("a"),
+            state: [{ id: "v_legacy", name: "x", type: "string" }],
+          } as CanvasActionElement,
+        ],
+      ]),
+      writeClipboardText,
+    });
+    const payload = JSON.parse(writeClipboardText.mock.calls[0][0] as string);
+    expect(payload.elements[0]).not.toHaveProperty("state");
   });
 
   // 2026-08-27 code-review #1 — multiSelectMode 게이트 제거로 body 단독 선택이

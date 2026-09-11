@@ -115,6 +115,15 @@ export interface Element {
    * resolve 는 `getResponsiveValueWithCascade` 단일 진입점.
    */
   responsive?: import("@composition/shared").ElementResponsiveConfig;
+
+  // --- ADR-214: 노드 소유 상태 정의 (페이지 · 요소 변수) ---
+  /**
+   * canonical `CanonicalNode.state` mirror (ADR-214 Phase 1). `responsive` 와 같은
+   * 1차 필드 규약 — projection (`canonicalNodeToElement`) 이 싣고 역변환
+   * (`legacyElementToCanonicalNode`) 이 되돌린다. 빈 배열은 필드 생략과 같다.
+   * 복제 · 붙여넣기의 id 재발급은 `remapClonedState` (`@composition/shared`) 하나.
+   */
+  state?: import("@composition/shared").VariableDef[];
 }
 
 // === G.1/G.2 타입 별칭 및 가드 ===

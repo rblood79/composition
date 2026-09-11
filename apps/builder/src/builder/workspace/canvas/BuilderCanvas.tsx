@@ -23,7 +23,7 @@ import {
   Suspense,
 } from "react";
 import { useStore } from "../../stores";
-import { useDataStore } from "../../stores/data";
+import { useDataStore, useProjectVariableDefs } from "../../stores/data";
 import {
   normalizePageLayoutDirection,
   type PageLayoutDirection,
@@ -327,6 +327,9 @@ export function BuilderCanvas({
   // ADR-154 Bug3: collection projection(gap/padding)이 owner responsive override 를
   //   activeBreakpoint 로 resolve 하도록 주입. dep 에 포함해 breakpoint 전환 시 scene 재빌드.
   const sceneActiveBreakpoint = useStore((state) => state.activeBreakpoint);
+  // ADR-214: 프로젝트 변수 정의 — `{{ name }}` 소비 노드의 stateDeps 해석 입력 (R8).
+  //   변수 Map 이 바뀌면 scene 재빌드 → 소비 노드만 signature 가 변한다 (미사용 편집은 +0).
+  const projectVariables = useProjectVariableDefs();
 
   const canonicalSceneModel = useMemo(() => {
     if (!activeCanonicalDocument) return null;
@@ -334,6 +337,7 @@ export function BuilderCanvas({
       collections,
       collectionWindows,
       activeBreakpoint: sceneActiveBreakpoint,
+      projectVariables,
     });
     // collectionWindows 는 window 경계 signature(collectionWindowSig)로 게이팅한다 — map
     //   identity 는 scroll 마다 바뀌지만 window 불변 구간은 rebuild 를 억제(pointer/scroll
@@ -344,6 +348,7 @@ export function BuilderCanvas({
     collections,
     collectionWindowSig,
     sceneActiveBreakpoint,
+    projectVariables,
   ]);
 
   const pages = useStore((state) => state.pages);

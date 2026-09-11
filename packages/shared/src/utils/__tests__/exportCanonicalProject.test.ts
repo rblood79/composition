@@ -87,6 +87,47 @@ describe("project export canonical CompositionDocument payload", () => {
     expect("elements" in result.data).toBe(false);
   });
 
+  it("carries CanonicalNode.state through the export envelope and rejects malformed state (ADR-214)", () => {
+    const withState: CompositionDocument = {
+      ...document,
+      children: [
+        {
+          ...document.children[0],
+          state: [
+            {
+              id: "v_page",
+              name: "pageVar",
+              type: "string",
+              defaultValue: "a",
+            },
+          ],
+          children: [
+            {
+              id: "heading-1",
+              type: "Heading",
+              props: { children: "Hello {{ pageVar }}" },
+              state: [
+                { id: "v_el", name: "count", type: "number", defaultValue: 0 },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const ok = parseProjectData(
+      serializeProjectData(projectId, "State", withState, "page-home"),
+    );
+    expect(ok.success).toBe(true);
+    if (!ok.success) return;
+    expect(ok.data.document).toEqual(withState);
+
+    const bad = JSON.parse(
+      serializeProjectData(projectId, "State", withState, "page-home"),
+    );
+    bad.document.children[0].state = [{ id: "x", name: "y", type: "date" }];
+    expect(parseProjectData(JSON.stringify(bad)).success).toBe(false);
+  });
+
   it("derives publish render model from CompositionDocument", () => {
     const renderModel = deriveProjectRenderModelFromDocument(
       document,

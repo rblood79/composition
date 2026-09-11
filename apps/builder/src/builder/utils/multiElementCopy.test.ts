@@ -175,6 +175,75 @@ describe("multiElementCopy", () => {
     expect(new Set(pasted.map((element) => element.customId)).size).toBe(2);
   });
 
+  // ADR-214 Phase 1 (HC2 · R9): 붙여넣기의 id 재발급 pass 가 VariableDef id 도 재발급한다.
+  it("붙여넣기는 복제 범위의 state VariableDef id 를 재발급한다 (요소 id 재발급과 같은 pass)", () => {
+    const state = [
+      { id: "v_card", name: "count", type: "number" as const, defaultValue: 0 },
+    ];
+    const card = makeElement("card", {
+      type: "Card",
+      customId: "card_1",
+      state,
+    });
+    const label = makeElement("label", {
+      type: "Text",
+      customId: "text_1",
+      parent_id: "card",
+      state: [{ id: "v_label", name: "hint", type: "string" as const }],
+    });
+    const copied = copyMultipleElements(
+      ["card"],
+      new Map([
+        ["card", card],
+        ["label", label],
+      ]),
+    );
+    // 클립보드 왕복 (JSON) 도 state 를 나른다
+    const pasted = pasteMultipleElements(
+      deserializeCopiedElements(serializeCopiedElements(copied))!,
+      "page-1",
+      { x: 10, y: 10 },
+      [card, label],
+    );
+
+    expect(pasted).toHaveLength(2);
+    const [newCard, newLabel] = pasted;
+    expect(newCard.state).toHaveLength(1);
+    expect(newCard.state![0]).toMatchObject({
+      name: "count",
+      type: "number",
+      defaultValue: 0,
+    });
+    expect(newCard.state![0].id).not.toBe("v_card");
+    expect(newLabel.state![0].id).not.toBe("v_label");
+    expect(newCard.state![0].id).not.toBe(newLabel.state![0].id);
+    // 원본 불변
+    expect(card.state![0].id).toBe("v_card");
+    // 두 번 붙여넣으면 매번 다른 id
+    const again = pasteMultipleElements(copied, "page-1", { x: 10, y: 10 }, [
+      card,
+      label,
+    ]);
+    expect(again[0].state![0].id).not.toBe(newCard.state![0].id);
+  });
+
+  it("reusable origin 을 인스턴스로 붙여넣을 때는 state 를 복제하지 않는다 (정의는 origin 소유)", () => {
+    const origin = makeElement("origin", {
+      type: "Card",
+      reusable: true,
+      state: [{ id: "v", name: "x", type: "string" as const }],
+    });
+    const pasted = pasteMultipleElements(
+      copyMultipleElements(["origin"], new Map([["origin", origin]])),
+      "page-1",
+      { x: 0, y: 0 },
+      [origin],
+    );
+    expect(pasted).toHaveLength(1);
+    expect(pasted[0].type).toBe("ref");
+    expect(pasted[0]).not.toHaveProperty("state");
+  });
+
   it("reparents a copied reusable origin instance into the target page body", () => {
     const page1Body = makeElement("page-1-body", {
       type: "body",

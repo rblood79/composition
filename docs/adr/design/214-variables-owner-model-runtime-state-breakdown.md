@@ -56,21 +56,34 @@ interface VariableDef {
 
 ### Phase 0 — Inventory freeze (게이트 G0)
 
-- [ ] `runtimeStore` appState/pageStates 실제 형상 · `UPDATE_VARIABLES` payload · publish 런타임 store 유무
-- [ ] ADR-112 projected instance id 규약 실측 (`canvasSceneNode.ts` · preview 렌더 노드 key) → `instanceKey` 정의 (R3)
-- [ ] `CAPABILITY_REGISTRY` 에서 암묵 상태 후보 표 (컴포넌트별 RAC value/selection prop)
-- [ ] Properties 패널 fieldset/legend 절 패턴 (메모리 `feedback-panel-field-group-fieldset-legend-pattern`) · Navigator 페이지 항목 설정 진입 유무
-- [ ] 기존 프로젝트의 `Variable.scope` 분포 (global/page/component 건수) — lazy 변환 대상
-- [ ] component scope의 프로젝트별·전체 비율, canonical→legacy copy/duplicate/paste 경로, 현재 localStorage persist key와 project 전환 동작
+> 완료 2026-09-11 — 실측 표: `docs/adr/evidence/214-p0-inventory.md` (local-only). scope 분포는 fixture 0 · IndexedDB 는 CLI 계수 불가 → 계수기 `countVariableOwnerMigration` 으로 메인 세션이 live 1회 계수. `page` without `page_id` 사례 (HC3 미정의) 는 project + `owner-unresolved` 로 결정 (evidence §5).
+
+- [x] `runtimeStore` appState/pageStates 실제 형상 · `UPDATE_VARIABLES` payload · publish 런타임 store 유무
+- [x] ADR-112 projected instance id 규약 실측 (`canvasSceneNode.ts` · preview 렌더 노드 key) → `instanceKey` 정의 (R3)
+- [x] `CAPABILITY_REGISTRY` 에서 암묵 상태 후보 표 (컴포넌트별 RAC value/selection prop)
+- [x] Properties 패널 fieldset/legend 절 패턴 (메모리 `feedback-panel-field-group-fieldset-legend-pattern`) · Navigator 페이지 항목 설정 진입 유무
+- [x] 기존 프로젝트의 `Variable.scope` 분포 (global/page/component 건수) — lazy 변환 대상
+- [x] component scope의 프로젝트별·전체 비율, canonical→legacy copy/duplicate/paste 경로, 현재 localStorage persist key와 project 전환 동작
 
 ### Phase 1 — 모델 + 가시성 + 저장 (게이트 G1)
 
-- [ ] `Variable.owner` additive: global→project, page+page_id→page, component→project로 전량 결정적 변환. component에는 `migrationStatus:"owner-unresolved"`와 인덱스 배지/로그를 남기고 silent migration 0
-- [ ] canonical `CanonicalNode.state?` · page `state?` 스키마 + adapter (export/import envelope 포함) + `isVariableDef` 가드
-- [ ] canonical-first clone/duplicate/paste가 VariableDef id를 재발급하고 같은 범위의 `SetStateAction.variableId`를 rewrite한 뒤 legacy view를 투영. legacy copy fallback 금지
-- [ ] `resolveVisibleVariables` + 이름 고유 검증기 (unit: 사슬 4단 · 충돌 거부 · 조상 변경 시 재검증)
-- [ ] 프로젝트 변수 CRUD는 기존 ADR-152 적용기 확장 op `define_variable`로 통합하고 History/inverse를 같은 경로에 둔다
-- [ ] G1: 로드 재직렬화 0. unused state edit sceneVersion +0, 소비 중 defaultValue/name/type edit는 해석 props 변경+sceneVersion +1. clone/paste id/reference 정합과 owner-unresolved 전량 표시
+> unit 완료 2026-09-11 (live 는 메인 세션 — 아래 "G1 live 잔여"). 구현 결정 (ADR 본문 무변경, Phase 0 evidence 와 정합):
+>
+> - `state` 는 `responsive` 와 같은 **canonical 1차 필드 + `Element.state` mirror** — projection (`canonicalNodeToElement`) 이 싣고 역변환 (`legacyElementToCanonicalNode`) 이 되돌리며, mirror 에 필드가 없으면 **이전 노드의 state 를 보존**한다 (Element 재구성 경로가 노드를 통째로 다시 만들어 props 편집 1회에 정의가 사라지는 것을 막는다). 복사 (`copySelection` · `duplicateSelection` · Alt 드래그 `cloneDragTargetsAtDrop`) 는 read model 값을 버리고 **canonical 노드에서** state 를 읽고 (`attachCanonicalStateToCopy`), 붙여넣기의 요소 id 재발급 pass 가 `remapClonedState` 로 VariableDef id 도 재발급한다. legacy Element 값을 쓰는 fallback 은 없다.
+> - `setState.variableId` rewrite 는 `rewriteVariableRefs` / `remapClonedState({ nodes, rules })` 로 두었으나 **붙여넣기는 interaction rule 을 복제하지 않으므로** (Phase 0 evidence §4) Phase 1 의 결선 대상은 0 이다 — Phase 4 가 rule 복제를 얹을 때 같은 지점을 지난다. `SetStateAction` 타입 자체는 Phase 4 (`{ kind:"setState", variableId }` 구조만 본다).
+> - G1 "소비 중 defaultValue/name/type edit → 해석 props 변경 + sceneVersion +1" 은 Phase 1 에서 **`CanvasSceneNode.stateDeps` digest** (참조 이름 → id · type · defaultValue, 가시성 사슬로 해석) 로 성립한다 — 정의 자체는 signature 밖, 소비 노드만 signature 입력이 바뀐다. Phase 3 이 해석 문자열을 `props` 에 얹을 때도 digest 는 name/type 축 감시로 남는다.
+> - HC3 미정의 사례 `scope:"page"` without `page_id` (현행 UI 가 `page_id` 를 쓰지 않아 실 데이터의 흔한 형태) → project + `owner-unresolved` (component 와 같은 규칙).
+> - `define_variable` 은 `{ variableId?, definition | null }` 한 op (null = 제거, 생성은 variableId 생략 → 적용기 발급). `HUMAN_ONLY_DATA_OPS` 에 등재 (변수 AI 쓰기는 범위 밖 — 삭제가 같은 op 라 분리 불가). `createVariable(global)` · `updateVariable(정의 축)` · `deleteVariable` 이 이 op 의 wrapper (History 동봉). 구 UI 의 `scope:"page"|"component"` 생성과 `validation`/`transform`/`scope` 편집은 Phase 5 표면 교체 전까지 종전 직접 저장 (History 없음) 을 유지한다.
+> - 프로젝트 변수 이름은 문서 안 페이지·요소 state 이름과도 겹칠 수 없다 (`collectDocumentVariableNames(getActiveCanonicalDocument())` 를 적용기 ctx 로 주입).
+>
+> **G1 live 잔여 (메인 세션)**: ① 기존 프로젝트 로드 → 콘솔 `[ADR-214] owner-unresolved` 로그 + `countVariableOwnerMigration` 계수 (evidence §5 채움) + IndexedDB `variables` 재직렬화 0 (DevTools Application 탭 `updated_at` 불변) ② Data 탭에서 변수 생성/이름 변경/삭제 → Undo/Redo 가 되돌린다 (History `type:"data"`) ③ `Hello {{ userName }}` Text 에서 프로젝트 변수 defaultValue 편집 → `__composition_LAYOUT_DEBUG__` 또는 sceneVersion 관찰로 소비 노드만 +1 (Phase 3 전이라 텍스트는 아직 `{{ userName }}` 원문) ④ state 를 가진 노드 복제 (⌘D · 컨텍스트 메뉴 · Alt 드래그) 후 IndexedDB 문서에서 새 VariableDef id 확인.
+
+- [x] `Variable.owner` additive: global→project, page+page_id→page, component→project로 전량 결정적 변환. component에는 `migrationStatus:"owner-unresolved"`와 인덱스 배지/로그를 남기고 silent migration 0
+- [x] canonical `CanonicalNode.state?` · page `state?` 스키마 + adapter (export/import envelope 포함) + `isVariableDef` 가드
+- [x] canonical-first clone/duplicate/paste가 VariableDef id를 재발급하고 같은 범위의 `SetStateAction.variableId`를 rewrite한 뒤 legacy view를 투영. legacy copy fallback 금지
+- [x] `resolveVisibleVariables` + 이름 고유 검증기 (unit: 사슬 4단 · 충돌 거부 · 조상 변경 시 재검증)
+- [x] 프로젝트 변수 CRUD는 기존 ADR-152 적용기 확장 op `define_variable`로 통합하고 History/inverse를 같은 경로에 둔다
+- [x] G1: 로드 재직렬화 0. unused state edit sceneVersion +0, 소비 중 defaultValue/name/type edit는 해석 props 변경+sceneVersion +1. clone/paste id/reference 정합과 owner-unresolved 전량 표시
 
 ### Phase 2 — 런타임 store (shared) + preview/publish 초기화 (게이트 G2 전반)
 
