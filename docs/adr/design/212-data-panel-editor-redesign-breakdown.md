@@ -5,8 +5,8 @@
 ## 1. 전제 lock-in (fork 4 질문 — 사용자 confirm 2026-09-11, 리서치 §5 판정 ③)
 
 1. **base / 응용**: ADR-152 (참조 계약 + `DataChange` 적용기) = base, 본 ADR = **응용** (사람이 쓰는 편집 표면). 본 ADR 의 모든 쓰기는 `applyDataChange` 를 지난다 — store 직접 mutate 코드 신설 금지.
-2. **schema 직교**: 본 ADR 은 저장 형식을 바꾸지 않는다. 신설 타입은 UI 상태 (`gridSelection` · `fieldPanelTarget` · `secretVault` 저장 위치) 뿐. ADR-213 (tool 계약) 과는 `DataChange` 를 공유하고 표면은 겹치지 않는다.
-3. **의존 방향**: 152 Phase 1c (적용기 + History) Implemented → 본 ADR Phase 2 착수. Phase 1 (표면 골격) 은 152 와 독립이라 먼저 가능. ADR-013 (Quick Connect) 은 본 ADR Phase 6 (인스펙터 동선) 위의 응용 — 방향 유지.
+2. **schema 직교**: 본 ADR 은 collection 저장 형식을 바꾸지 않는다. 신설 타입은 UI 상태 (`gridSelection` · `fieldPanelTarget` · `secretVault` 저장 위치)뿐이다. ADR-213과 `DataChange`를 공유하며, 본 ADR Phase 4는 ADR-213이 제공하는 redactor와 `define_endpoint` · `bind_element` consumer를 사용한다.
+3. **의존 방향**: ADR-152 G5 PASS → Phase 2·3. ADR-213 G1~G4 PASS → Phase 4. Phase 1의 표면 골격과 lazy loader는 독립적으로 먼저 가능하다. ADR-013 (Quick Connect) 은 본 ADR Phase 6 위의 응용이다.
 4. codex 1차 진입 전 본 lock-in 완료. 판정 ② (dock vs 전체 화면) 는 스냅 패널로 수렴해 대안 D 로만 기록.
 
 ## 2. 현행 인벤토리 (2026-09-10 실측 — Phase 0 에서 freeze)
@@ -46,8 +46,10 @@
 - [ ] 두 편집기의 store 쓰기 호출 전수 (`updateCollection` · `updateApiEndpoint` · `createDataTable` …) → 152 적용기 wrapper 로 대체 가능 여부 표
 - [ ] 기존 테스트 인벤토리 (`*.i18n.test.tsx` · `fix-live.mjs` 13 체크) — 유지/대체 표
 - [ ] Toast 가 `role=status` 를 내는지, RAC Toast (landmark · F6) 여부 실측 → Y4 처리 방식 결정
+- [ ] `BuilderCore.tsx` → `panels/index.ts` → `panelConfigs.ts` 정적 import 체인과 production metafile에서 editor 구현의 initial bytes before arm 기록
+- [ ] `Authorization` · `Proxy-Authorization` · `X-API-Key` · `Api-Key` 기존 평문 endpoint 건수와 export/postMessage/AI payload 경로 기록
 - [ ] 아트보드 원본을 `docs/design/data-panel-redesign/` 로 이관 (canvas.json + `*.dc.html`)
-- [ ] **착수 조건**: Phase 2 이후는 ADR-152 Phase 1c Implemented (G5 PASS) 후
+- [ ] **착수 조건**: Phase 2·3은 ADR-152 G5 PASS, Phase 4는 ADR-213 G1~G4 PASS 후
 
 ### Phase 1 — 표면 골격 (152 독립)
 
@@ -56,6 +58,7 @@
 - [ ] 탭 라벨 잘림 규칙 — `.panel-tablist` 컨테이너 폭 < 360 이면 아이콘 + tooltip (`panel-system.css`, Navigator · Styles 도 같은 클래스라 공통 적용 — 회귀 확인)
 - [ ] 편집 패널 생명주기 일반화 (UI-8) — `dataTableEditorStore.open(mode)` 가 `activatePanelWorkspacePanelV4` 경유, visibility 직접 토글 제거
 - [ ] 필드 패널 등록 (`panelConfigs.ts` `datatableField`: minWidth 240 · defaultWidth 260) + `placeOverflowRow` 가 편집기 옆 열에 스냅, 자리 없으면 아래 행 (Widths 아트보드) — 정책 test 1개
+- [ ] `panelConfigs.ts`에서 editor 구현을 `React.lazy` loader로 로드하고 `Suspense` fallback·열림 포커스 복귀를 고정 — production initial chunk에 editor 구현 bytes 0
 - [ ] 생성 패널 진입 6종 (Main 아트보드): 빈 테이블 · 프리셋 · 붙여넣기 · CSV · API 로 · AI 로 (AI 는 ADR-213 전까지 비활성 + tooltip)
 - [ ] `role=status` live region — Toast 가 담당하지 못하면 패널 하단 `aria-live="polite"` 1개 (Y4)
 
@@ -69,7 +72,7 @@
 - [ ] 모든 쓰기는 `applyDataChange({ op: "set_cell" | "insert_rows" | "remove_rows" })` — undo 는 152 G5 경로
 - [ ] 데이터 패널 포커스 중 `⌘Z` 가 History data 스택으로 (152 R9 dispatcher 위에 라우팅만)
 - [ ] Schema 탭 제거 → 격자 헤더가 스키마 (Phase 3 필드 패널과 함께 전환 — 두 Phase 는 같은 커밋 열에서)
-- [ ] G1 live: 키보드만으로 셀 3개 편집 + 행 추가 + undo · axe critical 0 · 100행 프리셋 입력 프레임 p95 ≤ 16ms (`perf-baseline.mjs` 계측 재사용)
+- [ ] G1 live: 키보드만으로 셀 3개 편집 + 행 추가 + undo · axe critical 0. 고정 100행×10열 fixture, foreground Chromium · visible · DPR2, cold 1+warm 30에서 입력 프레임 p95 ≤ 16ms
 
 ### Phase 3 — 필드 패널 (스냅, 게이트 G2)
 
@@ -79,18 +82,18 @@
 - [ ] 닫힘 시 포커스 복귀 (호출 헤더 셀), 삭제로 사라지면 다음 헤더 (Y5)
 - [ ] G2 live: 필드 패널에서 rename → 152 G4 시나리오 재확인 (Skia · DOM · 차트 값 유지, 템플릿 새 이름)
 
-### Phase 4 — API 편집기 (게이트 G3, Phase 2·3 과 독립 — 분리 실행 가능)
+### Phase 4 — API 편집기 (게이트 G3, ADR-213 G1~G4 PASS 뒤 착수)
 
 - [ ] 상단 고정 `[Method ▾][URL][Send]` 바 (UI-4) — 이름은 `suggestApiName` (Track 0 자산), 탭 Params / Headers / Body / Auth / Response
 - [ ] Params 탭 = queryParams · path `{{key}}` 변수 (환경값 `{{env.NAME}}` 치환은 ADR-214 Environment — 그 전엔 인자 params 만)
 - [ ] key-value 편집기 a11y (Y6): 행별 Remove 고유 이름 · Add 후 새 key 포커스 · Bulk Edit 텍스트 대안; Body 는 `aria-label` + `aria-multiline` (Y8)
 - [ ] 응답 뷰어: status · time · size 한 줄 (`role=status`) + Pretty / Raw / **Schema** 탭 — Schema = `columnDetector` 재사용 (키 · 타입 · 포함 · ID) + 배열 후보 **추천** (전수 탐색, `resolveResponseData` 확장 — 텍스트 path + 미리보기, P7)
-- [ ] "테이블로 저장" 한 방향 (UX-2): `DataChange [create_collection, set_source(api), define_endpoint(targetCollectionId)]` 1개 — 기존 테이블에 잇기도 같은 자리. Response 탭의 자유 텍스트 Target 제거 (U4)
+- [ ] "테이블로 저장" 한 방향 (UX-2): ADR-213 cross-store coordinator에 `DataChange [create_collection, set_source(api), define_endpoint(targetCollectionId), bind_element?]`를 전달한다. 전체 op preflight 뒤 1회 commit/History/inverse를 만들고 중간 실패 시 collection·endpoint·canonical document를 모두 rollback한다. 기존 테이블에 잇기도 같은 자리. Response 탭의 자유 텍스트 Target 제거 (U4)
 - [ ] dead 필드 정리 (D5): Field Mapping · pagination · serverConfig · retryCount UI 제거 (타입은 read 호환 잔존, 소비처 붙을 때 복귀)
-- [ ] Auth 탭 프리셋 None / Bearer / API Key (header · query) / Basic (P4) — 값은 마스킹, 저장은 프로젝트 로컬 vault (IndexedDB 별도 store, `secretVault`), 문서에는 `{{secret.NAME}}` 자리표시자, export envelope 제외 (R4 test: export 산출물 grep 0)
+- [ ] Auth 탭 프리셋 None / Bearer / API Key (header · query) / Basic (P4) — 값은 마스킹, 저장은 프로젝트 로컬 vault, 문서에는 `{{secret.NAME}}`. 기존 평문은 로드 시 vault로 lazy 이동하고 공유 redactor가 export/postMessage/AI payload를 차단한다
 - [ ] cURL 붙여넣기 → 요청 바 + 탭 채움 (규칙 파서, P9). OpenAPI 는 범위 외
 - [ ] production CORS 경고 (UX-8): `import.meta.env.DEV` 아닌 환경에서 실행 전 배너 — 서버 실행은 범위 외 (publish 방침)
-- [ ] G3 live: URL 붙여넣기 → Send → Schema 추천 path 선택 → 테이블로 저장 → 캔버스 ListBox 바인딩에 행 표시 · export 산출물에 secret 0
+- [ ] G3 live: URL→Send→추천 path→저장→ListBox 행 표시. 각 op 위치 failure injection에서 전 store/문서 원상 및 History 0, 성공은 History 1·undo 원상. 기존 평문 fixture migration 뒤 export/postMessage/AI payload에 원문 secret 0, production CORS 경고 표시
 
 ### Phase 5 — 데이터 유입 · 소스 (Source 아트보드)
 
@@ -114,28 +117,28 @@
 
 ## 5. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
-| 파일                                                                                    | Phase | 변경                                            |
-| --------------------------------------------------------------------------------------- | :---: | ----------------------------------------------- |
-| `panels/datatable/DataTablePanel.tsx` · `components/*List.tsx`                          |   1   | 패널명 · 버튼 항목 · 배지 · Variables 조건부 탭 |
-| `panels/core/panelConfigs.ts` · `layout/panelWorkspacePolicyV4.ts`                      |   1   | `datatableField` 등록 · 스냅 정책               |
-| `styles/panel-system.css` (`.panel-tablist`)                                            |   1   | < 360 아이콘 모드                               |
-| `stores/dataTableEditorStore.ts`                                                        |   1   | 일반 활성화 경로                                |
-| `panels/datatable/grid/DataGrid.tsx` (+ `cellEditMode.ts` · `paste.ts`) (신규)          |   2   | RAC Table `role=grid` + edit mode + Virtualizer |
-| `panels/datatable/editors/FieldPanel.tsx` (신규)                                        |   3   | 스냅 필드 패널                                  |
-| `panels/datatable/editors/DataTableEditor.tsx`                                          | 2·3·5 | Schema/Table 탭 → 격자 · Settings → 데이터 소스 |
-| `panels/datatable/editors/api/{RequestBar,ResponseViewer,SchemaTab,AuthTab}.tsx` (신규) |   4   | 요청 도구형 분할                                |
-| `panels/datatable/editors/ApiEndpointEditor.tsx`                                        |   4   | 분할 후 shell                                   |
-| `utils/data/responseData.ts` · `columnDetector.ts`                                      |   4   | 배열 후보 전수 추천                             |
-| `stores/secretVault.ts` (신규) · export envelope 필터                                   |   4   | secret 마스킹 · 제외                            |
-| `utils/data/csvImport.ts` (신규)                                                        |   5   | 미리보기 · 매핑                                 |
-| `stores/utils/dataActions.ts`                                                           |   5   | runtimeData 저장                                |
-| `components/property/PropertyDataBinding.tsx`                                           |   6   | 동선 3 버튼                                     |
-| `workspace/canvas/skia/overlay/*` (binding badge)                                       |   6   | Skia overlay 배지                               |
-| `i18n/translations.ts` (`datatable.*`)                                                  | 전부  | 키 추가                                         |
+| 파일                                                                                    | Phase | 변경                                                   |
+| --------------------------------------------------------------------------------------- | :---: | ------------------------------------------------------ |
+| `panels/datatable/DataTablePanel.tsx` · `components/*List.tsx`                          |   1   | 패널명 · 버튼 항목 · 배지 · Variables 조건부 탭        |
+| `panels/core/panelConfigs.ts` · `layout/panelWorkspacePolicyV4.ts`                      |   1   | editor lazy loader · `datatableField` 등록 · 스냅 정책 |
+| `styles/panel-system.css` (`.panel-tablist`)                                            |   1   | < 360 아이콘 모드                                      |
+| `stores/dataTableEditorStore.ts`                                                        |   1   | 일반 활성화 경로                                       |
+| `panels/datatable/grid/DataGrid.tsx` (+ `cellEditMode.ts` · `paste.ts`) (신규)          |   2   | RAC Table `role=grid` + edit mode + Virtualizer        |
+| `panels/datatable/editors/FieldPanel.tsx` (신규)                                        |   3   | 스냅 필드 패널                                         |
+| `panels/datatable/editors/DataTableEditor.tsx`                                          | 2·3·5 | Schema/Table 탭 → 격자 · Settings → 데이터 소스        |
+| `panels/datatable/editors/api/{RequestBar,ResponseViewer,SchemaTab,AuthTab}.tsx` (신규) |   4   | 요청 도구형 분할                                       |
+| `panels/datatable/editors/ApiEndpointEditor.tsx`                                        |   4   | 분할 후 shell                                          |
+| `utils/data/responseData.ts` · `columnDetector.ts`                                      |   4   | 배열 후보 전수 추천                                    |
+| `stores/secretVault.ts` (신규) · export envelope 필터                                   |   4   | secret 마스킹 · 제외                                   |
+| `utils/data/csvImport.ts` (신규)                                                        |   5   | 미리보기 · 매핑                                        |
+| `stores/utils/dataActions.ts`                                                           |   5   | runtimeData 저장                                       |
+| `components/property/PropertyDataBinding.tsx`                                           |   6   | 동선 3 버튼                                            |
+| `workspace/canvas/skia/overlay/*` (binding badge)                                       |   6   | Skia overlay 배지                                      |
+| `i18n/translations.ts` (`datatable.*`)                                                  | 전부  | 키 추가                                                |
 
 ## 6. 검증 전략
 
-- 정적: edit mode 키 충돌 매트릭스 test · 스냅 정책 test · export secret 0 test · 쓰기 경로 grep 가드 (`useDataStore.setState` / `updateCollection` 직접 호출 0 — 적용기 wrapper 만)
+- 정적: edit mode 키 충돌 매트릭스 · 스냅 정책 · production metafile editor initial bytes 0 · legacy secret migration 및 export/postMessage/AI payload 원문 0 · 쓰기 경로 grep 가드
 - live (게이트마다 1회, Playwright headless — Chrome MCP hidden 탭 우회 패턴 `datatable-shots-560.mjs` · `fix-live.mjs` 재사용): G1 키보드 격자 · G2 rename · G3 API 흐름 · G4 native dialog 0 + status live region
-- 성능: 100행 입력 프레임 p95 (`perf-baseline.mjs` frame lane 계측) · 패널 리사이즈 프레임 (메모리 `feedback-panel-resize-frame-cost-canvas-subscription-gc`) 회귀 0 · 초기 번들 무영향 (편집기 lazy chunk)
+- 성능: 고정 100행×10열, foreground Chromium/DPR2/visible, cold 1+warm 30의 입력 p95 ≤16ms. 패널 열기/닫기/리사이즈 p95 ≤ before +1ms, >50ms long task 추가 0. production metafile의 editor initial bytes 0과 실행 시 활성 bundle 정책 PASS
 - 판독 루프: `.claude/rules/review-loop-closure.md` — phase 당 1 + 수리 1

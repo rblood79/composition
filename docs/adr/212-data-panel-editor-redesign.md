@@ -4,7 +4,7 @@
 
 Proposed — 2026-09-11
 
-> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 (대안 E — `fieldId` · `DataChange` 적용기 · store 단일화). 본 ADR 의 Phase 2 이후는 152 Phase 1c (적용기 + History, G5) Implemented 가 착수 조건이다. Phase 1 (표면 골격) 은 152 와 독립. base/응용 분류와 fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③ "Track 2 · 3 을 ADR 둘로").
+> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 는 Implemented 이며 `fieldId` · `DataChange` 적용기 · store 단일화가 본 ADR 의 base 다. Phase 2·3 은 ADR-152 G5 PASS 를 재확인한 뒤 착수한다. Phase 4의 공유 redactor와 원자적 `define_endpoint` · `bind_element` 소비자는 [ADR-213](213-data-tool-contract-propose-review-apply.md) Phase 1~~4가 소유하므로 ADR-213 G1~~G4 PASS 뒤 착수한다. Phase 1 (표면 골격과 lazy 경계) 은 두 의존과 독립이다. base/응용 분류와 fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③ "Track 2 · 3 을 ADR 둘로").
 
 ## Context
 
@@ -23,8 +23,8 @@ Proposed — 2026-09-11
 2. **스냅 패널 어법** — 생성 · 필드 편집은 `panelConfigs.ts` 에 등록된 workspace 패널이고 `placeOverflowRow` 정책으로 편집기 옆 열에 스냅, 자리가 없으면 아래 행. 새 rail 패널 · 팝오버 · 모달 생성 화면 금지 (사용자 판정 2026-09-10). 리사이즈 · 폭 저장 (`stores/panelLayout.ts`) 은 그대로.
 3. **폭 반응** — 목록 233 · 편집기 `defaultWidth` 560 (Track 0) · 필드 패널 260. 탭 컨테이너 폭 < 360 이면 라벨 잘림 대신 아이콘 + tooltip. 어느 폭에서도 라벨이 "Sche…" 로 잘리지 않는다.
 4. **접근성** — 격자는 APG grid (`role=grid` 단일 tab stop · Arrow/Home/End · Enter/F2/타이핑 진입 · Esc) · `aria-rowcount/colcount` · 셀 `aria-labelledby`; 저장 · 행 추가 · Run · import 결과는 `role=status`, 오류는 `role=alert`; 다이얼로그 닫힘 시 포커스 복귀; `window.prompt/confirm/alert` 0 (Track 0 이후 유지). 키보드만으로 시나리오 5 완료 + axe critical 0.
-5. **성능** — 100행 프리셋 격자에서 입력 프레임 p95 ≤ 16ms, 1000행은 가상화; 패널 스냅/리사이즈로 BuilderCanvas 재렌더 비용 회귀 0 (메모리 `feedback-panel-resize-frame-cost-canvas-subscription-gc`); 초기 번들 무영향 (편집기는 lazy chunk).
-6. **secret** — Auth 값은 마스킹 표시 · 프로젝트 로컬 vault 저장 · export envelope (ADR-209) 에서 제외. export 산출물 grep 0 을 test 로 고정.
+5. **성능·번들** — 고정 100행×10열 fixture 에서 입력 프레임 p95 ≤ 16ms, 1000행은 가상화한다. 패널 열기/닫기/리사이즈 p95 는 before arm 대비 +1ms 이내이고 >50ms long task 추가 0이다. 동일 장비 · foreground Chromium · `document.visibilityState="visible"` · DPR 2에서 cold 1회 뒤 warm 30회를 측정한다. `panelConfigs` 의 editor 구현 정적 import를 `React.lazy` panel loader로 끊고, production metafile에서 editor 구현의 initial Builder chunk 포함 bytes = 0을 고정한다. 전체 initial bundle은 실행 시점의 활성 bundle 정책을 별도로 통과해야 한다.
+6. **secret** — Auth 값은 마스킹 표시하고 프로젝트 로컬 vault에 저장하며, 문서에는 `{{secret.NAME}}`만 둔다. `Authorization` · `Proxy-Authorization` · `X-API-Key` · `Api-Key` 기존 평문은 Phase 0에서 계수하고 Phase 4 로드 시 lazy 변환한다. 원문 secret은 export envelope (ADR-209) · preview `postMessage` · AI payload에 0건이어야 하며 공유 redactor와 산출물 검사를 test로 고정한다.
 7. **i18n** — 모든 신규 문자열은 `datatable.*` 키 (ADR-200 자산, ko/en).
 
 **Soft Constraints**:
@@ -99,7 +99,7 @@ Proposed — 2026-09-11
 
 선택 근거:
 
-1. 잔존 위험이 기술 M (edit mode ↔ RAC 키 충돌) 하나이고, 충돌 표면이 셀 `<input>` 의 `onKeyDown` 한 곳이라 키 × 상태 매트릭스 test 로 닫힌다. RAC 권고 (Popover) 를 긴 값에 그대로 쓰므로 자체 구현은 짧은 값 편집에 한정된다.
+1. edit mode ↔ RAC 키 충돌은 셀 `<input>`의 키 매트릭스로 국소화한다. HIGH R8은 ADR-213 G1~G4를 선행시키고 본 ADR G3의 cross-store failure injection을 통과하기 전 Phase 4를 열지 않는 방식으로 수용한다.
 2. 격자 · 필드 패널 · 요청 바가 독립 모듈이고 쓰기 진입점이 152 적용기 하나라, Phase 를 독립 커밋으로 낼 수 있고 (특히 Phase 4 API 편집기는 Phase 2·3 과 병렬) scope 가 부풀면 분리 실행이 가능하다.
 3. 빌더 chrome 의 D1 권위 (RAC) 안에 머문다 — 접근성 모델이 하나.
 4. 사용자 판정 (스냅 패널 · dock 유지) 을 그대로 구현한다.
@@ -114,28 +114,29 @@ Proposed — 2026-09-11
 
 ## Risks
 
-| ID  | 위험                                                                                                                                      | 심각도 | 대응                                                                                                                                                                   |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | 셀 edit mode 가 RAC `Table` 키 핸들러 (Arrow · Enter · Tab · Esc · Home/End) 와 충돌 — 편집 중 Arrow 가 셀을 옮기거나 Enter 가 두 번 처리 |  MED   | 셀 `<input>` `onKeyDown` 에서 편집 중 키를 격리, 키 × (편집/비편집) 매트릭스 test (`grid/cellEditMode.test.tsx`) + G1 키보드만 live                                    |
-| R2  | 필드 패널 스냅이 workspace column 을 추가해 `BuilderCanvas` 전체 재렌더 (패널 리사이즈 GC 병인과 같은 경로) — 프레임 회귀                 |  MED   | 스냅 정책은 `placeOverflowRow` 1회 배치 (드래그 아님) · 열림/닫힘 프레임을 `perf-baseline.mjs` frame lane 으로 전후 측정, 회귀 시 overlay leaf 구독으로                |
-| R3  | 152 Phase 1c 전에 Phase 2 를 시작하면 store 직접 mutate 코드가 편집기에 다시 생긴다 (HC 1 위반)                                           |  MED   | G0 착수 조건 = 152 G5 PASS. Phase 1 만 선행 허용. grep 가드는 Phase 2 첫 커밋에 포함                                                                                   |
-| R4  | secret vault 가 export envelope · IndexedDB `api_endpoints` · postMessage (preview 동기화) 세 경로 중 하나를 놓치면 평문 유출             |  MED   | 저장 시점에 `{{secret.NAME}}` 자리표시자로 치환 (vault 는 별도 store) → 세 경로가 문서 값만 실어도 안전 · export 산출물 grep 0 test · preview postMessage payload test |
-| R5  | Variables 탭 숨김 (ADR-214 전) 이 기존 변수를 가진 프로젝트의 접근을 끊는다                                                               |  LOW   | 조건부 표시 — 변수 0 이면 숨김, 있으면 현행 탭 유지. 214 가 대체                                                                                                       |
-| R6  | Phase 7개 — scope inflation (설계 추정 대비 1.5×) 시 리뷰 루프가 길어진다                                                                 |  MED   | Phase 4 (API) 는 Phase 2·3 과 독립 — inflation 감지 시 Phase 4·5 를 후속 ADR 로 분리 가능하게 파일 경계 유지 (breakdown §5). M4 규칙: 분할은 사용자 confirm            |
-| R7  | `.panel-tablist` 아이콘 모드가 Navigator · Styles 탭에도 걸린다 (같은 클래스)                                                             |  LOW   | 컨테이너 쿼리 조건을 `datatable` 패널 루트에 한정해 시작, 공통 적용은 회귀 확인 후 별도 커밋                                                                           |
+| ID  | 위험                                                                                                                                               | 심각도 | 대응                                                                                                                                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------- | :----: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | 셀 edit mode 가 RAC `Table` 키 핸들러 (Arrow · Enter · Tab · Esc · Home/End) 와 충돌 — 편집 중 Arrow 가 셀을 옮기거나 Enter 가 두 번 처리          |  MED   | 셀 `<input>` `onKeyDown` 에서 편집 중 키를 격리, 키 × (편집/비편집) 매트릭스 test (`grid/cellEditMode.test.tsx`) + G1 키보드만 live                                       |
+| R2  | 필드 패널 스냅이 workspace column 을 추가해 `BuilderCanvas` 전체 재렌더 (패널 리사이즈 GC 병인과 같은 경로) — 프레임 회귀                          |  MED   | 스냅 정책은 `placeOverflowRow` 1회 배치 (드래그 아님) · HC5의 고정 장비/fixture에서 열기·닫기·리사이즈 before/after p95와 long task를 측정, 회귀 시 overlay leaf 구독으로 |
+| R3  | 152 Phase 1c 전에 Phase 2 를 시작하면 store 직접 mutate 코드가 편집기에 다시 생긴다 (HC 1 위반)                                                    |  MED   | G0 착수 조건 = 152 G5 PASS. Phase 1 만 선행 허용. grep 가드는 Phase 2 첫 커밋에 포함                                                                                      |
+| R4  | secret vault가 export envelope · IndexedDB `api_endpoints` · preview postMessage · AI 컨텍스트 중 하나를 놓치거나 기존 평문을 변환하지 않으면 유출 |  MED   | 공유 redactor + vault 자리표시자 변환, 기존 평문 lazy migration, export/postMessage/AI payload 각각 원문 secret 0 test                                                    |
+| R5  | Variables 탭 숨김 (ADR-214 전) 이 기존 변수를 가진 프로젝트의 접근을 끊는다                                                                        |  LOW   | 조건부 표시 — 변수 0 이면 숨김, 있으면 현행 탭 유지. 214 가 대체                                                                                                          |
+| R6  | Phase 7개 — scope inflation (설계 추정 대비 1.5×) 시 리뷰 루프가 길어진다                                                                          |  MED   | Phase 4 (API) 는 Phase 2·3 과 독립 — inflation 감지 시 Phase 4·5 를 후속 ADR 로 분리 가능하게 파일 경계 유지 (breakdown §5). M4 규칙: 분할은 사용자 confirm               |
+| R7  | `.panel-tablist` 아이콘 모드가 Navigator · Styles 탭에도 걸린다 (같은 클래스)                                                                      |  LOW   | 컨테이너 쿼리 조건을 `datatable` 패널 루트에 한정해 시작, 공통 적용은 회귀 확인 후 별도 커밋                                                                              |
+| R8  | Phase 4가 현재 미지원인 `define_endpoint` · `bind_element`를 한 `DataChange`로 요청하면 일부 store만 변경되거나 throw한다                          |  HIGH  | ADR-213 G2·G4가 두 consumer와 cross-store preflight/commit/inverse/rollback을 먼저 구현하고, 본 ADR G3에서 failure injection까지 재검증                                   |
 
-잔존 HIGH 위험 없음.
+R8의 동적 seed는 `packages/shared/src/schemas/dataChange.ts`, `apps/builder/src/builder/stores/utils/dataChange.ts`, `apps/builder/src/services/ai/tools/bindCollection.ts` 세 경로다. R8은 G3에 1:1로 매핑한다.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                          | 실패 시 대안                                                     |
-| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| G0   | Phase 0 완료 | 인벤토리 freeze (분할 지도 · 쓰기 호출 전수 · Toast live region 실측) + ADR-152 G5 PASS 확인 — Phase 2 착수 조건                                                   | 152 미완이면 Phase 1 까지만 진행 후 대기                         |
-| G1   | Phase 2 완료 | 키보드만으로 셀 3개 편집 · 행 추가 · `⌘Z` 원상 (마우스 0) · axe critical 0 · 100행 프리셋 입력 프레임 p95 ≤ 16ms · Tab stop 이 격자 1개 — Playwright headless live | 충돌 키 격리 수정 · 가상화 임계 조정. 프레임 회귀는 R2 경로 점검 |
-| G2   | Phase 3 완료 | 필드 패널 rename → 152 G4 시나리오 재확인 (Skia · DOM · 차트 값 유지 · 템플릿 새 이름) + 삭제 시 사용처 N 표시 + 닫힘 포커스 복귀                                  | 역참조 헬퍼 수정 (152 몫이면 152 로 회귀)                        |
-| G3   | Phase 4 완료 | URL 붙여넣기 → Send → Schema 탭 추천 path → "테이블로 저장" → 캔버스 ListBox 바인딩에 행 표시 · export 산출물에 Auth 값 0 · production 빌드에서 CORS 경고 배너     | 추천기 · vault 수정. 서버 실행은 범위 밖 — 경고까지              |
-| G4   | Phase 7 완료 | native dialog 0 (Playwright `page.on("dialog")` 카운터) · `role=status`/`alert` 발생 확인 · 키보드만 시나리오 5 · 패널 폭 233 / 300 / 636 에서 라벨 잘림 0         | 해당 표면 수리                                                   |
-| G5   | Phase 7 완료 | 초기 번들 (Builder) 증가 0 — 편집기 chunk 만 증가 · 패널 열림/닫힘 프레임 전후 동일                                                                                | lazy 경계 재조정                                                 |
+| Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                                                        | 실패 시 대안                                 |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------- |
+| G0   | Phase 0 완료 | 분할 지도 · 쓰기 호출 전수 · Toast live region · ADR-152 G5를 freeze하고, production metafile의 editor 정적 import/initial bytes before arm과 민감 헤더 4종 평문 건수를 기록                                                                                                                     | 의존/기준선이 없으면 Phase 1 골격까지만 진행 |
+| G1   | Phase 2 완료 | 키보드 셀 3개 편집·행 추가·`⌘Z` 원상·axe critical 0·Tab stop 1개. 100행×10열 fixture, foreground Chromium/DPR2/visible, cold 1+warm 30에서 입력 p95 ≤16ms                                                                                                                                        | 충돌 키 격리 수정 · 가상화 임계 조정         |
+| G2   | Phase 3 완료 | 필드 패널 rename → 152 G4 시나리오 재확인 (Skia · DOM · 차트 값 유지 · 템플릿 새 이름) + 삭제 시 사용처 N 표시 + 닫힘 포커스 복귀                                                                                                                                                                | 역참조 헬퍼 수정 (152 몫이면 152 로 회귀)    |
+| G3   | Phase 4 완료 | ADR-213 G1~G4 PASS 뒤 URL→Send→추천 path→저장→ListBox 행 표시. create/set-source/define-endpoint/bind preflight와 commit이 1 History entry이며 각 op failure injection에서 store·문서가 모두 원상. 기존 평문 migration 뒤 export/postMessage/AI payload 원문 secret 0, production CORS 경고 표시 | consumer/coordinator·vault·redactor 수정     |
+| G4   | Phase 7 완료 | native dialog 0 (Playwright `page.on("dialog")` 카운터) · `role=status`/`alert` 발생 확인 · 키보드만 시나리오 5 · 패널 폭 233 / 300 / 636 에서 라벨 잘림 0                                                                                                                                       | 해당 표면 수리                               |
+| G5   | Phase 7 완료 | production metafile에서 editor 구현 initial bytes 0. HC5 조건의 열기/닫기/리사이즈 p95가 before +1ms 이내, long task 추가 0, 전체 initial은 실행 시 활성 bundle 정책 PASS                                                                                                                        | lazy 경계·구독 범위 재조정                   |
 
 ### Live Exercise
 

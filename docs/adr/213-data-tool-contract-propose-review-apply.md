@@ -4,7 +4,7 @@
 
 Proposed — 2026-09-11
 
-> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 2026-09-11 개정안 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기 (Phase 1c). 본 ADR 의 Phase 2 이후는 152 G5 PASS 가 착수 조건이고, Phase 1 (읽기 tool) 은 독립이다. [ADR-212](212-data-panel-editor-redesign.md) 와는 같은 base 위의 형제 — 표면 접점은 "왜 실패했지?" 버튼 자리와 승인 diff overlay 뿐. [ADR-202](202-builder-ai-compiler-first-command-execution.md) (compiler-first, Proposed) 에는 **의존하지 않는다** — 202 착수 시 `DataChange` 를 감싸는 statement 어댑터로 편입 (breakdown §1 ③, 결정 지점 2 후보 — 202 착수 시 사용자 confirm 1회). fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③).
+> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 는 Implemented 이며 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기가 base 다. Phase 1 읽기 tool은 독립이고, Phase 2 이후는 G0에서 현 consumer 격차를 freeze한 뒤 착수한다. [ADR-212](212-data-panel-editor-redesign.md) Phase 4는 본 ADR G1·G3의 공유 redactor와 G2·G4의 `define_endpoint` · `bind_element` consumer/coordinator에 의존한다. 실패 설명 UI는 공유 redactor가 먼저 적용되므로 역방향 의존 없이 먼저 제공할 수 있다. [ADR-202](202-builder-ai-compiler-first-command-execution.md)에는 의존하지 않으며, 202 착수 시 `DataChange`를 감싸는 statement 어댑터로 편입한다.
 
 ## Context
 
@@ -12,7 +12,7 @@ Proposed — 2026-09-11
 
 - AI 패널 tool 9 + `run_command` 중 데이터 tool 은 `bind_collection` 하나이고, 그 형상이 legacy `source: "static" | "api" | "supabase"` + config 인라인 (`services/ai/tools/bindCollection.ts:24`) 이다 — 사람이 UI 로 기록하는 `{ source: "dataTable", name }` (ADR-159 P4b) 과 달라 **이미 있는 DataTable 에 요소를 잇는 tool 이 없다**. collection 생성 · 필드 추가 · 행 삽입 · API 정의 tool 은 0 (파일 주석이 "이 도구 범위 밖" 으로 명시).
 - `get_editor_state` 는 pages · elements · selection 만 — 모델은 어떤 테이블이 있는지 모른 채 바인딩을 시도한다. 시스템 프롬프트 동적 주입 (`services/ai/catalog/dynamicInjection.ts`) 도 "컬렉션" 을 팔레트 카테고리로만 안다.
-- agent 명령 allowlist 40 (ADR-196, `services/agent/agentCommands.ts`) 은 캔버스 · 패널 · 뷰포트만. 승인 게이트 (`AgentCommandConfirmDialog` — 명령 id · 되돌림 가능 여부) 와 감사 로그 (`agentCommandLog`) 인프라는 있으나 스키마 diff 를 보여 주지 못한다.
+- agent 명령 allowlist 40 (ADR-196, `services/agent/agentCommands.ts`) 은 캔버스 · 패널 · 뷰포트만. 승인 게이트 (`AgentCommandConfirmDialog` — 명령 id · 되돌림 가능 여부) 와 세션 provenance 로그 (`agentCommandLog`)는 있으나 스키마 diff를 보여 주지 못한다. 이 로그는 durable audit store가 아니다.
 - 데이터 편집은 History 밖이라 (152 격차 9) AI 가 만든 변경을 되돌릴 수단이 없다.
 
 외부 대조 (리서치 §3-4 · §3-5) 는 예외 없이 한 계약으로 수렴한다 — **Propose → Review → Apply** (Bubble plan approve · NocoDB Suggest→Create · Lovable SQL 승인 · Supabase diff · Base44 import 승인, 8/8), 삭제 · 타입 변경은 AI 에서 기본 차단 (I2), 읽기는 fine-grained · 쓰기는 워크플로 단위 소수 (Anthropic "few high-impact workflow tools", Webflow · Supabase MCP), 스키마 계약은 컴팩트 JSON Schema + `strict` (Anthropic) / `outputSchema` (MCP), LLM 에는 스키마 + 샘플 N 행만 (I7). 비용이 가장 낮고 승인 UI 가 필요 없는 첫 출시 후보는 "왜 실패했지?" (Retool · Supabase · Postman, I5) 다.
@@ -21,11 +21,11 @@ Proposed — 2026-09-11
 
 **Hard Constraints**:
 
-1. **쓰기 tool 은 `propose_data_change` 하나** — `DataChange` (152 §2-3) 를 받고, 사용자 승인 없이는 적용되지 않는다. `remove_field` · `remove_rows` op 는 tool 스키마에서 제외 (사람 UI 전용). grep 가드: `applyDataChange({ origin: "ai" | "agent" })` 호출은 승인 dispatcher 1곳.
-2. **스키마 단일 소스** — tool `input_schema` (Anthropic strict) · zod 검증 (Ollama 경로) · `outputSchema` · export envelope 검증이 `packages/shared/src/schemas/dataChange.ts` 에서 생성된다. 손으로 쓴 두 번째 JSON Schema 금지.
-3. **컨텍스트 예산** — 시스템 프롬프트에는 테이블 목록 (이름 · 필드 수 · 행 수) 만, 스키마는 요청된 테이블만, 행은 샘플 ≤ 5. 행 전량을 노출하는 tool 은 없다. Anthropic 경로는 캐시 prefix 안 (`project-prompt-audit-2026-09-applied` 의 caching 구조 유지).
-4. **provenance** — 승인된 변경 묶음 1개 = History entry 1개 (`origin: "ai" | "agent"`) + `agentCommandLog` entry 1개 (ops 수 · 승인 여부 · historyId). `⌘Z` 1회로 묶음 전체가 돌아온다.
-5. **secret** — `get_api_endpoint` 출력과 프롬프트 주입에 Auth 값이 실리지 않는다 (`{{secret.NAME}}` 자리표시자, ADR-212 vault).
+1. **모델 대면 쓰기 tool은 `propose_data_change` 하나** — 사용자 승인 없이는 적용되지 않는다. `bind_collection`은 compatibility alias로 유지하되 입력을 `bind_element` DataChange로 정규화해 같은 proposal/confirm dispatcher를 지난다. `remove_field` · `remove_rows`는 tool 스키마에서 제외한다. `origin:"ai"|"agent"` 적용 호출은 dispatcher 1곳뿐이다.
+2. **스키마 단일 소스와 origin 권한** — tool 입력은 `packages/shared/src/schemas/dataChange.ts`에서 `origin`을 제외하고 delete op를 제한해 파생한다. executor가 인증된 호출 주체에 따라 `origin:"ai"|"agent"`를 stamp하며 모델 입력으로 받지 않는다. Anthropic JSON Schema · Ollama zod · output 검증은 같은 파생 스키마를 쓴다.
+3. **컨텍스트 예산** — 목록 최대 50개, 이름은 최대 80 code point로 자른다. 동적 주입은 직렬화 UTF-8 ≤8,192 bytes이면서 활성 provider tokenizer 기준 ≤2,048 tokens다. 스키마는 요청된 테이블만, 행은 샘플 ≤5다. worst-case fixture는 50개×80자이며 양 provider 측정값 중 큰 값을 쓴다.
+4. **provenance** — 승인된 변경 묶음 1개 = History entry 1개 (`origin:"ai"|"agent"`) + 세션 provenance entry 1개 (ops 수 · 승인 여부 · historyId). `⌘Z` 1회로 전체가 돌아온다. durable audit가 필요하면 별도 저장 계약을 추가한다.
+5. **secret** — `get/list` · 동적 주입 · `explain_request_failure`가 공유 순수 함수 `redactEndpointSecrets`를 provider 호출 전에 통과한다. 민감 header/cookie/query auth 값과 기존 평문을 placeholder로 바꾸며, 모델 payload의 원문 secret은 0건이다.
 6. **양쪽 provider 동등** — Ollama 경로에서 스키마 밖 op 가 적용기에 도달하지 않는다 (zod 가 Anthropic strict 와 같은 스키마로 거른다).
 
 **Soft Constraints**:
@@ -49,7 +49,7 @@ Proposed — 2026-09-11
 
 ### 대안 B: 읽기 tool 4 (fine-grained) + 쓰기 tool 1 `propose_data_change` → 승인 diff → 152 적용기 + `bind_collection` 정정 + "왜 실패했지?" + agent 명령 4
 
-- 설명: 읽기는 `list_collections` · `get_collection` · `list_api_endpoints` · `get_api_endpoint` (secret 마스킹, `format: concise|detailed`) + `get_editor_state` 요약 + 프롬프트 주입 (예산). 쓰기는 `propose_data_change(DataChange)` 하나 — `AgentCommandConfirmDialog` 를 스키마 diff 뷰로 확장해 승인 → `applyDataChange` → History 1 + 감사 로그 1 → `outputSchema` 로 검증된 결과. `bind_collection` 은 `{ collectionId, fieldMap? }` 형상으로 정정 (legacy read 호환). `explain_request_failure` 는 코드가 컨텍스트를 조립하고 모델이 원인 + `define_endpoint` patch 제안을 낸다 (적용은 같은 승인 경로). agent allowlist 에 `data.*` 4 명령. 사람이 부르는 AI 3종 (설명으로 테이블 · 붙여넣기 이해 · 반복 편집) 은 전부 제안 → 미리보기 → 같은 경로.
+- 설명: 읽기는 `list_collections` · `get_collection` · `list_api_endpoints` · `get_api_endpoint` (공유 redactor, `format: concise|detailed`) + `get_editor_state` 요약 + 예산 제한 주입이다. 모델 대면 쓰기는 `propose_data_change` 하나이고, `bind_collection` compatibility alias도 `bind_element` proposal로 정규화해 같은 diff 승인 경로를 지난다. 승인 뒤 executor가 origin을 stamp하고 원자적 적용기에서 History 1 + 세션 provenance 1을 만든다. `explain_request_failure`는 redacted context로 원인과 patch 제안을 만들며 적용은 같은 승인 경로다.
 - 근거: Propose → Review → Apply 8/8 (I1) · 삭제 차단 (I2, Bubble · Base44 append-only · Supabase read_only) · Anthropic tool 가이드 (few high-impact workflow tools · `strict` · `response_format`) · MCP spec (`outputSchema` · human-in-the-loop SHOULD) · Airtable Omni (Undo + checklist) · Retool/Supabase/Postman "Debug?" (I5) — 리서치 §3-4 I1 ~ I7, §3-5 X1 ~ X5 · X7.
 - 위험:
   - 기술: M — 두 provider 의 구조화 출력 동등화 (Anthropic strict ↔ Ollama zod) · strict 제약과 union 스키마의 마찰
@@ -94,8 +94,8 @@ Proposed — 2026-09-11
 
 선택 근거:
 
-1. 잔존 위험이 기술 M (provider 동등화) 하나이고, 스키마를 한 소스에서 생성하면 (HC 2) Anthropic strict 와 Ollama zod 가 같은 것을 거른다 — 스냅샷 test 로 고정.
-2. 쓰기 진입점이 하나라 승인 · History · 감사 로그가 한 곳에 붙는다. 사람이 부르는 AI 3종과 agent tool 이 같은 경로를 쓰므로 후속 기능은 제안기만 추가한다.
+1. provider 동등화는 한 파생 스키마로 고정한다. HIGH R7은 모든 alias를 승인 dispatcher에 모으는 G2·G4, HIGH R8은 provider 직전 공유 redactor를 검증하는 G1·G3을 통과하기 전 해당 Phase를 열지 않는 방식으로 수용한다.
+2. 모델 대면 쓰기와 compatibility alias가 같은 dispatcher를 지나므로 승인 · History · 세션 provenance가 한 곳에 붙는다. 사람이 부르는 AI 3종과 agent tool도 같은 경로를 쓴다.
 3. 첫 출시 (Phase 1 읽기 · Phase 3 "왜 실패했지?") 는 승인 UI 없이 가능하고 152 와 독립이라 (Phase 1) 즉시 가치를 낸다.
 4. ADR-202 와 직교 — 202 가 착수하면 어댑터 1개로 편입되고, 그 전에도 완결된다.
 
@@ -109,28 +109,29 @@ Proposed — 2026-09-11
 
 ## Risks
 
-| ID  | 위험                                                                                                         | 심각도 | 대응                                                                                                                            |
-| --- | ------------------------------------------------------------------------------------------------------------ | :----: | ------------------------------------------------------------------------------------------------------------------------------- |
-| R1  | Anthropic strict 가 `DataOp` union 의 일부 (재귀 `DataField.children` · `minimum`) 를 거부해 tool 등록이 400 |  MED   | Phase 0 에서 제약 대조 → 위반 항목은 description 으로 이전, `children` 은 깊이 1 로 평면화. strict 스냅샷 test                  |
-| R2  | Ollama 경로에 zod 가 빠지면 스키마 밖 op (예: `remove_field`) 가 적용기에 도달                               |  MED   | `OpenAICompatibleProvider` tool 인자 지점에 같은 스키마의 zod 삽입 + 부정 케이스 test (delete op → invalid)                     |
-| R3  | diff 뷰가 큰 `insert_rows` (수백 행) 를 전부 렌더해 승인 다이얼로그가 느리다                                 |  LOW   | 요약 (행 수 · 필드) + 샘플 3행 + "전체 보기" 접힘                                                                               |
-| R4  | `update_field` type 변경은 delete 가 아니어도 파괴적 (값 손실) — tool 이 승인 한 번으로 통과                 |  MED   | diff 뷰가 사용처 N + 변환 미리보기 (212 UX-5 와 같은 계산) 를 보여 주고, 손실 행 > 0 이면 별도 체크 필요                        |
-| R5  | 프롬프트 주입이 테이블 수에 비례해 커진다 (100 테이블 프로젝트)                                              |  LOW   | 목록은 이름 · 수치만 · 상한 50 + "더 있음" · 스키마는 요청 시                                                                   |
-| R6  | ADR-202 착수 시 `DataChange` 와 `BuilderCommandProgram` 이 이중 IR                                           |  MED   | 202 가 `data` statement 1종으로 `DataChange` 를 감싼다 (어댑터, 본 ADR 은 무변경). 결정 지점 2 — 202 착수 시 사용자 confirm 1회 |
-| R7  | 승인 없이 적용되는 경로가 실수로 생긴다 (테스트 · dev entry `devAgentEntry.ts`)                              |  MED   | grep 가드 (`origin: "ai" \| "agent"` 호출 1곳) + dev entry 는 confirm `"skip"` 이 데이터 명령에는 적용 안 되게 precondition     |
+| ID  | 위험                                                                                                         | 심각도 | 대응                                                                                                                                |
+| --- | ------------------------------------------------------------------------------------------------------------ | :----: | ----------------------------------------------------------------------------------------------------------------------------------- |
+| R1  | Anthropic strict 가 `DataOp` union 의 일부 (재귀 `DataField.children` · `minimum`) 를 거부해 tool 등록이 400 |  MED   | Phase 0 에서 제약 대조 → 위반 항목은 description 으로 이전, `children` 은 깊이 1 로 평면화. strict 스냅샷 test                      |
+| R2  | Ollama 경로에 zod 가 빠지면 스키마 밖 op (예: `remove_field`) 가 적용기에 도달                               |  MED   | `OpenAICompatibleProvider` tool 인자 지점에 같은 스키마의 zod 삽입 + 부정 케이스 test (delete op → invalid)                         |
+| R3  | diff 뷰가 큰 `insert_rows` (수백 행) 를 전부 렌더해 승인 다이얼로그가 느리다                                 |  LOW   | 요약 (행 수 · 필드) + 샘플 3행 + "전체 보기" 접힘                                                                                   |
+| R4  | `update_field` type 변경은 delete 가 아니어도 파괴적 (값 손실) — tool 이 승인 한 번으로 통과                 |  MED   | diff 뷰가 사용처 N + 변환 미리보기 (212 UX-5 와 같은 계산) 를 보여 주고, 손실 행 > 0 이면 별도 체크 필요                            |
+| R5  | 프롬프트 주입이 테이블 수와 이름 길이에 비례해 커진다                                                        |  LOW   | 50개×80자 worst-case, UTF-8 8,192 bytes와 활성 tokenizer 2,048 tokens 이중 상한, 초과 시 "더 있음"                                  |
+| R6  | ADR-202 착수 시 `DataChange` 와 `BuilderCommandProgram` 이 이중 IR                                           |  MED   | 202 가 `data` statement 1종으로 `DataChange` 를 감싼다 (어댑터, 본 ADR 은 무변경). 결정 지점 2 — 202 착수 시 사용자 confirm 1회     |
+| R7  | `bindCollection.ts` · dev/test entry가 승인 dispatcher를 우회해 데이터 쓰기를 직접 적용한다                  |  HIGH  | 모든 AI/agent 쓰기를 동일 dispatcher로 통합, `origin` 적용 호출 1곳 grep, 데이터 명령에는 confirm `skip` 금지, G2·G4 거부/undo 검증 |
+| R8  | 실패 설명 context의 request headers/cookies/query auth 또는 기존 endpoint 평문이 provider로 전송된다         |  HIGH  | 공유 `redactEndpointSecrets`를 context 조립 경계에 강제하고 canary secret으로 get/list/injection/explain payload 원문 0 검증        |
 
-잔존 HIGH 위험 없음.
+R7은 `services/ai/tools/bindCollection.ts`, `services/agent/executeAgentCommand.ts`, `services/agent/devAgentEntry.ts`를 동적 seed로 삼고 G2·G4에 매핑한다. R8은 G1·G3에 매핑한다.
 
 ## Gates
 
-| Gate | 시점         | 통과 조건                                                                                                                                                          | 실패 시 대안                                       |
-| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
-| G0   | Phase 0 완료 | strict 제약 대조표 · Ollama 검증 지점 · 승인 dialog props · 주입 예산 실측 freeze + ADR-152 G5 PASS (Phase 2 이후 착수 조건)                                       | 152 미완이면 Phase 1 · 3 (제안 텍스트만) 까지      |
-| G1   | Phase 1 완료 | AI 패널 "어떤 테이블이 있어?" → `list_collections` 호출 → 이름 · 행 수 답변 (Ollama live) · `get_api_endpoint` 출력 Auth 값 0 · 프롬프트 주입 토큰 상한 내         | 주입 예산 조정                                     |
-| G2   | Phase 4 완료 | "Users 에 status 필드 추가하고 샘플 3행" → diff 뷰 (필드 1 · 행 3 · 사용처) → 승인 → 격자 반영 → `⌘Z` 1회 원상 · 거부 시 store 무변경 · delete op 입력 → `invalid` | 승인 dispatcher · inverse 수정 (152 몫이면 152 로) |
-| G3   | Phase 3 완료 | Bearer 없는 엔드포인트 401 → "왜 실패했지?" → 원인 + `define_endpoint` patch 제안 → (Phase 4 후) 적용 → 재실행 200                                                 | 컨텍스트 조립 보강 (본문 2KB · 헤더)               |
-| G4   | Phase 2 완료 | "이 ListBox 를 Users 에 연결해" → 캔버스 Skia 행 + preview DOM 행 · legacy `{source:"static", config}` 입력 회귀 0                                                 | 형상 변환기 수정                                   |
-| G5   | Phase 6 완료 | "블로그 글 테이블 만들어 …" → 미리보기 (필드 5 · 샘플 5행 · enum 정합) → 적용 → 바인딩 가능 · 스키마에 없는 컬럼 0 (I3)                                            | 생성기-검증기 보강                                 |
+| Gate | 시점         | 통과 조건                                                                                                                                                     | 실패 시 대안                          |
+| ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| G0   | Phase 0 완료 | 현재 consumer/우회 호출 전수, strict/Ollama 검증 지점, 승인 props, 50×80 prompt before arm, cross-store preflight/commit/inverse seam을 freeze                | 격차가 남으면 해당 Phase 착수 금지    |
+| G1   | Phase 1 완료 | 50×80 fixture가 UTF-8 ≤8,192 bytes·양 provider 중 최대 ≤2,048 tokens. get/list/injection payload canary secret 0, 샘플 ≤5, Ollama 읽기 live                   | 절단·redactor·예산 조정               |
+| G2   | Phase 4 완료 | tool schema에 origin/delete 0, executor가 origin stamp. diff 승인→cross-store commit/History 1→undo 원상, 거부·각 op failure injection은 전 store/문서 무변경 | dispatcher·coordinator·inverse 수정   |
+| G3   | Phase 3 완료 | 401 실패의 headers/cookies/query/body canary를 redactor 뒤 provider payload에서 원문 0으로 확인하고 원인+`define_endpoint` 제안→승인→200                      | redactor·context 조립 보강            |
+| G4   | Phase 2 완료 | `bind_collection` 정상/legacy 입력 모두 diff 승인 표시, 거부 시 무변경, 승인 시 Skia·DOM 행 표시, History 1 및 `⌘Z` 원상                                      | alias 정규화·dispatcher·consumer 수정 |
+| G5   | Phase 6 완료 | "블로그 글 테이블 만들어 …" → 미리보기 (필드 5 · 샘플 5행 · enum 정합) → 적용 → 바인딩 가능 · 스키마에 없는 컬럼 0 (I3)                                       | 생성기-검증기 보강                    |
 
 ### Live Exercise
 
