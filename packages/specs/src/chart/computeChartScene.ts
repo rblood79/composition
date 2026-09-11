@@ -587,6 +587,8 @@ export function computeChartScene(
 /** rule 의 `chart` 채널 모양 (shared `ComponentRuleChart` 미러 — specs 는 shared 를 import 하지 않는다). */
 export interface ChartRuleChannel {
   series: readonly string[];
+  /** ADR-215 — 대안 팔레트 (id → 토큰 배열). `resolveChartPalette` 가 고른다. */
+  palettes?: Readonly<Record<string, readonly string[]>>;
   axis: string;
   grid: string;
   strokeWidth?: number;

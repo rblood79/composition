@@ -58,14 +58,14 @@
 
 
 .react-aria-Chart {
-  --chart-series-1: var(--hue-blue);
-  --chart-series-2: var(--hue-purple);
-  --chart-series-3: var(--hue-green);
-  --chart-series-4: var(--hue-orange);
-  --chart-series-5: var(--hue-magenta);
-  --chart-series-6: var(--hue-cyan);
-  --chart-series-7: var(--hue-yellow);
-  --chart-series-8: var(--hue-indigo);
+  --chart-series-1: var(--chart-categorical-1);
+  --chart-series-2: var(--chart-categorical-2);
+  --chart-series-3: var(--chart-categorical-3);
+  --chart-series-4: var(--chart-categorical-4);
+  --chart-series-5: var(--chart-categorical-5);
+  --chart-series-6: var(--chart-categorical-6);
+  --chart-series-7: var(--chart-categorical-7);
+  --chart-series-8: var(--chart-categorical-8);
   --chart-axis: var(--fg-muted);
   --chart-grid: var(--border);
   --chart-others: var(--fg-muted);
@@ -74,6 +74,18 @@
   --chart-tooltip-border: var(--border);
   --chart-tooltip-text: var(--fg);
 }
+
+.react-aria-Chart[data-palette="mono"] {
+  --chart-series-1: var(--chart-accent-1);
+  --chart-series-2: var(--chart-accent-2);
+  --chart-series-3: var(--chart-accent-3);
+  --chart-series-4: var(--chart-accent-4);
+  --chart-series-5: var(--fg-muted);
+  --chart-series-6: var(--hue-gray);
+  --chart-series-7: var(--hue-silver);
+  --chart-series-8: var(--border);
+}
+
 .react-aria-Chart[data-size="sm"] {
   height: 160px;
   padding: 8px 8px;

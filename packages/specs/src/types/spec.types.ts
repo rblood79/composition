@@ -187,6 +187,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
    */
   chart?: {
     series: string[];
+    /** ADR-215 — 대안 팔레트 (id → 토큰 배열) → `[data-palette="id"]` 블록 */
+    palettes?: Record<string, string[]>;
     axis: string;
     grid: string;
     strokeWidth?: number;

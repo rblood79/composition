@@ -49,6 +49,7 @@ export {
   seriesIdentity,
   seriesTokenIndex,
   seriesTokenName,
+  resolveChartPalette,
 } from "./presentation";
 export type {
   ChartNumberContext,

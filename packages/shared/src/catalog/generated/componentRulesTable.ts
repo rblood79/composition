@@ -11714,16 +11714,32 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       borderWidth: "1px",
     },
     chart: {
+      // ADR-215 — 기본 팔레트 = Spectrum categorical 1~8 (chartPaletteMap.ts 리터럴, 테마 공용).
+      //   순서 = 인접 대비 최대 (teal · indigo · orange · pink · periwinkle · green · blue · purple).
       series: [
-        "{color.blue}",
-        "{color.purple}",
-        "{color.green-named}",
-        "{color.orange}",
-        "{color.magenta}",
-        "{color.cyan}",
-        "{color.yellow}",
-        "{color.indigo}",
+        "{color.chart-categorical-1}",
+        "{color.chart-categorical-2}",
+        "{color.chart-categorical-3}",
+        "{color.chart-categorical-4}",
+        "{color.chart-categorical-5}",
+        "{color.chart-categorical-6}",
+        "{color.chart-categorical-7}",
+        "{color.chart-categorical-8}",
       ],
+      // ADR-215 — 대안 팔레트. mono = accent (`--tint`) 명도 사다리 4 + neutral 4 (단일 시리즈 ·
+      //   대시보드 단색 어법 — Pinterest `primary` / Apple tint 관행). 길이는 series 와 같다 (G3).
+      palettes: {
+        mono: [
+          "{color.chart-accent-1}",
+          "{color.chart-accent-2}",
+          "{color.chart-accent-3}",
+          "{color.chart-accent-4}",
+          "{color.neutral-subdued}",
+          "{color.gray}",
+          "{color.silver}",
+          "{color.border}",
+        ],
+      },
       axis: "{color.neutral-subdued}",
       grid: "{color.border}",
       strokeWidth: 2,

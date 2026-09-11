@@ -42,6 +42,7 @@ import {
   computeChartScene,
   r2,
   resolveChartMetrics,
+  resolveChartPalette,
   toSkiaTextGeometry,
 } from "../chart";
 import type {
@@ -3445,11 +3446,15 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
     metrics,
   );
 
+  // ADR-215 — 팔레트 선택 (DOM 은 `data-palette` 로 같은 배열의 CSS 블록을 고른다).
+  const palette = resolveChartPalette(
+    channel,
+    typeof props.palette === "string" ? props.palette : undefined,
+  );
   const seriesToken = (index: number): TokenRef => {
     // ADR-211 others 범주 — 시리즈 팔레트가 아니라 `chart.others` 토큰 (DOM 은 `--chart-others`).
     if (index === CHART_OTHERS_COLOR_INDEX)
       return (channel?.others ?? CHART_OTHERS_FALLBACK_TOKEN) as TokenRef;
-    const palette = channel?.series ?? [];
     if (palette.length === 0) return "{color.accent}" as TokenRef;
     return palette[index % palette.length] as TokenRef;
   };

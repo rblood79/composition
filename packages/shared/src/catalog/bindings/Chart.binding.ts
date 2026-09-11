@@ -526,6 +526,18 @@ export const chartBinding: PrimitiveBinding = {
         ),
         visibleWhen: { key: "isAnimationActive", truthy: true },
       },
+      // ADR-215 — 시리즈 팔레트 (RSC `Chart.colors` 팔레트 이름 참조). `variant` (상자) ·
+      //   `colorBy` (데이터→색 매핑) 와 다른 축. 값은 rule `chart.series` / `chart.palettes` 가 푼다.
+      palette: {
+        kind: "enum",
+        label: "Palette",
+        section: "appearance",
+        default: "categorical",
+        options: [
+          { value: "categorical", label: "Categorical" },
+          { value: "mono", label: "Mono" },
+        ],
+      },
       variant: {
         kind: "variant",
         label: "Variant",
@@ -582,6 +594,7 @@ export const chartBinding: PrimitiveBinding = {
       "animationBegin",
       "animationDuration",
       "animationEasing",
+      "palette",
       "variant",
       "size",
     ],

@@ -1057,12 +1057,27 @@ function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
       `  --chart-tooltip-border: ${tokenToCSSVar(chart.tooltipBorder as TokenRef)};`,
     );
   }
+  // ADR-215 — 대안 팔레트: `[data-palette="id"]` 가 같은 `--chart-series-N` 을 덮는다.
+  //   DOM 은 `data-palette` 속성만 바꾸고, Skia 는 `resolveChartPalette` 로 같은 배열을 읽는다.
+  const paletteBlocks: string[] = [];
+  for (const [id, tokens] of Object.entries(chart.palettes ?? {})) {
+    paletteBlocks.push(
+      `.react-aria-${spec.name}[data-palette="${id}"] {`,
+      ...tokens.map(
+        (token, index) =>
+          `  --chart-series-${index + 1}: ${tokenToCSSVar(token as TokenRef)};`,
+      ),
+      "}",
+      "",
+    );
+  }
   if (chart.tooltipText) {
     lines.push(
       `  --chart-tooltip-text: ${tokenToCSSVar(chart.tooltipText as TokenRef)};`,
     );
   }
   lines.push("}");
+  lines.push("", ...paletteBlocks);
   return lines;
 }
 

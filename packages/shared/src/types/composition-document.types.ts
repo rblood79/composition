@@ -492,8 +492,14 @@ export interface ComponentRuleDensity {
  * 인덱스만 실리므로 dark 전환 시 양쪽이 같은 단계를 따라간다 (ADR-193 정합).
  */
 export interface ComponentRuleChart {
-  /** 시리즈 팔레트 — 배열 인덱스가 곧 `Mark.seriesIndex`. 소진되면 순환한다. */
+  /** 시리즈 팔레트 (기본 = `categorical`) — 배열 인덱스가 곧 `Mark.seriesIndex`. 소진되면 순환한다. */
   series: string[];
+  /**
+   * ADR-215 — 대안 팔레트 (id → 토큰 배열). prop `palette` 가 id 를 고르고, generate-css 는
+   * `.react-aria-Chart[data-palette="id"] { --chart-series-N }` 블록을, Skia 는
+   * `resolveChartPalette(channel, id)` 로 같은 배열을 읽는다. 길이는 `series` 와 같아야 한다 (G3).
+   */
+  palettes?: Record<string, string[]>;
   /** 축선 색 */
   axis: string;
   /** grid line 색 */

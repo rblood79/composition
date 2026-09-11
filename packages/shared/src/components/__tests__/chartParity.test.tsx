@@ -376,12 +376,25 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
     expect(domMarkup(props())).toContain("var(--chart-series-1");
   });
 
-  it("팔레트 순서가 rule 과 같다 — 시리즈 1은 blue, 2는 purple", () => {
+  it("팔레트 순서가 rule 과 같다 — 시리즈 1·2 = Spectrum categorical 1·2 (ADR-215)", () => {
     const skiaFills = skiaShapes(props())
       .filter((s): s is Extract<Shape, { type: "rect" }> => s.type === "rect")
       .map((s) => String(s.fill));
     expect(new Set(skiaFills)).toEqual(
-      new Set(["{color.blue}", "{color.purple}"]),
+      new Set(["{color.chart-categorical-1}", "{color.chart-categorical-2}"]),
     );
+  });
+
+  it("palette=mono — Skia 는 accent 사다리 토큰, DOM 은 data-palette 로 같은 CSS 블록을 고른다 (ADR-215)", () => {
+    const mono = { ...props(), palette: "mono" as const };
+    const skiaFills = skiaShapes(mono)
+      .filter((s): s is Extract<Shape, { type: "rect" }> => s.type === "rect")
+      .map((s) => String(s.fill));
+    expect(new Set(skiaFills)).toEqual(
+      new Set(["{color.chart-accent-1}", "{color.chart-accent-2}"]),
+    );
+    // DOM 은 scene 이 아니라 wrapper 의 `data-palette` 로 블록을 고른다 — scene markup 은 팔레트 무관
+    //   (`var(--chart-series-N)` 그대로). wrapper 속성은 chartPalette.browser.test 가 본다.
+    expect(domMarkup(mono)).toBe(domMarkup(props()));
   });
 });

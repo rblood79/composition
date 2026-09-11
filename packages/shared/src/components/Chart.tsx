@@ -82,6 +82,8 @@ export interface ChartProps {
   budgetAggregate?: SpecChartProps["budgetAggregate"];
   budgetAxis?: SpecChartProps["budgetAxis"];
   budgetOthersLabel?: string;
+  /** ADR-215 — 시리즈 팔레트 (`categorical` 기본 · `mono`). `data-palette` 로 CSS 블록을 고른다. */
+  palette?: SpecChartProps["palette"];
   variant?: string;
   size?: "sm" | "md" | "lg";
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
@@ -198,6 +200,7 @@ export function Chart({
   budgetAggregate,
   budgetAxis,
   budgetOthersLabel,
+  palette,
   variant = "default",
   size = "md",
   data,
@@ -370,6 +373,7 @@ export function Chart({
         className ? `react-aria-Chart ${className}` : "react-aria-Chart"
       }
       data-variant={variant}
+      data-palette={palette && palette !== "categorical" ? palette : undefined}
       data-size={size}
       data-chart-status={status}
       data-chart-row-count={rows.length}

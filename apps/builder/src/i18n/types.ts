@@ -530,6 +530,9 @@ export interface TranslationKeys {
     labelContent: string;
     categoryName: string;
     colorBy: string;
+    palette: string;
+    paletteCategorical: string;
+    paletteMono: string;
     innerRadius: string;
     gridType: string;
     polygon: string;

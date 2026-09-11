@@ -72,6 +72,23 @@ export function parseSeriesIdentity(
  */
 export const CHART_SERIES_TOKEN_PREFIX = "--chart-series-";
 
+/**
+ * ADR-215 — rule chart 채널에서 팔레트 id 의 토큰 배열을 고른다.
+ * **세 consumer 가 같이 부른다** — Skia `seriesToken` · generate-css `[data-palette]` 블록 ·
+ * Properties 패널 (팔레트 길이). 미지 id 또는 미설정은 기본 팔레트 (`series`).
+ */
+export function resolveChartPalette(
+  channel: { series: readonly string[]; palettes?: Readonly<Record<string, readonly string[]>> } | undefined,
+  palette: string | undefined,
+): readonly string[] {
+  if (!channel) return [];
+  if (palette && palette !== "categorical") {
+    const alt = channel.palettes?.[palette];
+    if (alt && alt.length > 0) return alt;
+  }
+  return channel.series;
+}
+
 export function seriesTokenName(paletteIndex: number): string {
   return `${CHART_SERIES_TOKEN_PREFIX}${paletteIndex + 1}`;
 }

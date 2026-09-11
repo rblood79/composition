@@ -13,6 +13,7 @@ import {
   seriesIdentity,
   seriesTokenIndex,
   seriesTokenName,
+  resolveChartPalette,
 } from "../presentation";
 import type { ResolvedNumberFormat } from "../presentation";
 import { formatTick } from "../scales";
@@ -389,5 +390,24 @@ describe("ADR-210 formatChartNumber — raw/normalizedPercent (T05)", () => {
       "raw",
     );
     expect(value).toBe(0.25);
+  });
+});
+
+describe("ADR-215 팔레트 선택 — resolveChartPalette (Skia · generate-css · 패널 공용)", () => {
+  const channel = {
+    series: ["{color.chart-categorical-1}", "{color.chart-categorical-2}"],
+    palettes: { mono: ["{color.chart-accent-1}", "{color.chart-accent-2}"] },
+  };
+  it("미설정 · categorical · 미지 id → series, mono → palettes.mono, 채널 없음 → []", () => {
+    expect(resolveChartPalette(channel, undefined)).toBe(channel.series);
+    expect(resolveChartPalette(channel, "categorical")).toBe(channel.series);
+    expect(resolveChartPalette(channel, "nope")).toBe(channel.series);
+    expect(resolveChartPalette(channel, "mono")).toBe(channel.palettes.mono);
+    expect(resolveChartPalette(undefined, "mono")).toEqual([]);
+  });
+  it("빈 대안 배열은 기본 팔레트로 폴백 (길이 0 팔레트를 그리지 않는다)", () => {
+    expect(
+      resolveChartPalette({ series: channel.series, palettes: { mono: [] } }, "mono"),
+    ).toBe(channel.series);
   });
 });

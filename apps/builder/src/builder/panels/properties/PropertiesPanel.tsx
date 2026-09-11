@@ -3,7 +3,11 @@ import {
   resolveComponentRule,
   type ResolvedField,
 } from "@composition/shared";
-import { CHART_DEFAULT_SERIES_COUNT, type ChartRow } from "@composition/specs";
+import {
+  CHART_DEFAULT_SERIES_COUNT,
+  resolveChartPalette,
+  type ChartRow,
+} from "@composition/specs";
 /**
  * PropertiesPanel - 속성 편집 패널
  *
@@ -384,9 +388,16 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [elementType, dataBindingKey, chartData, collections],
   );
+  // ADR-215 — 선택된 팔레트 (`palette`) 의 길이. Series 섹션 색 Select 의 순번 후보 수.
   const chartPaletteLength =
-    resolveComponentRule("Chart")?.chart?.series.length ??
-    CHART_DEFAULT_SERIES_COUNT;
+    (elementType === "Chart"
+      ? resolveChartPalette(
+          resolveComponentRule("Chart")?.chart,
+          typeof chartValues.palette === "string"
+            ? chartValues.palette
+            : undefined,
+        ).length
+      : 0) || CHART_DEFAULT_SERIES_COUNT;
   // ADR-210/211 컨트롤의 자리 — 레퍼런스 (shadcn `data` ↔ `ChartConfig` 분리 · Recharts 층)
   //   에 맞춰 섹션을 가른다: Content = 정체 (종류·프리셋) + 데이터 (원천 모드·매핑) /
   //   Series = 시리즈별 레코드 (ChartConfig 대응, 적용되지 않는 종류에서는 섹션 자체를 열지

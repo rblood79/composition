@@ -45,6 +45,7 @@ import {
   PaintBucket,
   Paintbrush,
   Palette,
+  Rainbow,
   PanelBottom,
   Percent,
   Play,
@@ -286,6 +287,8 @@ export const COMPONENT_KEY_ICONS: Record<
     showValueLabels: Tags,
     labelKey: Tag,
     colorBy: SwatchBook,
+    // ADR-215 — 시리즈 팔레트 (`variant` 의 Palette 와 같은 섹션이라 다른 그림)
+    palette: Rainbow,
     innerRadius: CircleDashed,
     gridType: Hexagon,
     startAngle: RotateCw,

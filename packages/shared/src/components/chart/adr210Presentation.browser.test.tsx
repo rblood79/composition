@@ -37,6 +37,7 @@ import "../styles/theme/preview-system.css";
 import "../styles/theme/shared-tokens.css";
 import "../styles/theme/generated/tailwind-palette.css";
 import "../styles/theme/generated/semantic-palette.css";
+import "../styles/theme/generated/chart-palette.css";
 import "../styles/generated/Chart.css";
 
 let root: Root | undefined;

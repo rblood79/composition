@@ -70,6 +70,15 @@ export type ChartRow = Readonly<Record<string, unknown>>;
 export type ChartDataMode = "group" | "columns";
 
 /**
+ * ADR-215 — 시리즈 팔레트 id. `categorical` = rule `chart.series` (Spectrum categorical 8),
+ * `mono` = rule `chart.palettes.mono` (accent 명도 사다리 4 + neutral 4). 참조: RSC `Chart.colors`
+ * (팔레트 이름). `variant` (상자) · `colorBy` (데이터→색 매핑) 와 다른 축이다.
+ */
+export type ChartPalette = "categorical" | "mono";
+export const CHART_PALETTES: readonly ChartPalette[] = ["categorical", "mono"];
+export const CHART_DEFAULT_PALETTE: ChartPalette = "categorical";
+
+/**
  * 시리즈 표시 설정 한 항목. `key` 는 `seriesIdentity()` 가 만드는 identity 문자열
  * (`["group", 그룹값]` / `["field", 필드키]` 의 JSON) 이며 표시명이 아니다. 배열 순서가
  * 시리즈 표시 순서 (stack 누적·dodge 슬롯·legend·tooltip 모두) 다.
@@ -215,6 +224,9 @@ export interface ChartProps {
   budgetAxis?: ChartBudgetAxis;
   /** others 합산 범주의 표시 라벨 (기본 영문 상수 `"Other"`). */
   budgetOthersLabel?: string;
+
+  // ── ADR-215 — 시리즈 팔레트 선택. 미설정 = `categorical`. seriesConfig.colorToken 순번은 그대로다.
+  palette?: ChartPalette;
 }
 
 /** ADR-211 §2.4 — 넘칠 때의 처리. */

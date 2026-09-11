@@ -26,6 +26,10 @@ export const semanticLabelKeys: Record<string, string> = {
   "Label Content": "chart.labelContent",
   "Category Name": "chart.categoryName",
   "Color By": "chart.colorBy",
+  // ADR-215 — 시리즈 팔레트 (binding accepts 라벨/옵션)
+  Palette: "chart.palette",
+  Categorical: "chart.paletteCategorical",
+  Mono: "chart.paletteMono",
   // ADR-210 — 시리즈 원천 · 시리즈 설정 · 숫자 형식 (binding accepts 라벨/옵션)
   "Data Mode": "chart.dataMode",
   "Group Field": "chart.modeGroup",
