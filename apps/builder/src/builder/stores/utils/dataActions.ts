@@ -11,6 +11,10 @@
 
 import type { StateCreator } from "zustand";
 import { resolveResponseData } from "../../../utils/data/responseData";
+import {
+  getProjectSecrets,
+  substituteSecrets,
+} from "../../panels/datatable/utils/secretVault";
 import { normalizeCollectionMap } from "../../../utils/data/normalizeCollection";
 import {
   resolveBoundCollection,
@@ -643,6 +647,8 @@ export const createExecuteApiEndpointAction =
         }
       }
 
+      // requestSnapshot 은 secret 치환 **전** (placeholder 유지) — ADR-212 HC6: apiRuns 는
+      // AI/설명 경로가 읽으므로 원문 secret 을 담지 않는다 (redactor 이전에 애초에 안 넣는다).
       requestSnapshot = {
         method: endpoint.method,
         url,
@@ -651,14 +657,24 @@ export const createExecuteApiEndpointAction =
         ...(body !== undefined ? { body } : {}),
       };
 
+      // vault 치환은 실제 fetch 로 나가는 복사본에만 (원문은 composition-secrets DB 에만 존재).
+      const secrets = await getProjectSecrets(endpoint.project_id);
+      const fetchHeaders: Record<string, string> = {};
+      for (const [k, v] of Object.entries(headers)) {
+        fetchHeaders[k] = substituteSecrets(v, secrets);
+      }
+      const fetchBody =
+        body !== undefined ? substituteSecrets(body, secrets) : undefined;
+      const secretUrl = substituteSecrets(url, secrets);
+
       // 개발 환경에서 외부 API 호출 시 프록시 사용 (CORS 우회)
-      let fetchUrl = url;
+      let fetchUrl = secretUrl;
       const isExternalUrl =
-        url.startsWith("http://") || url.startsWith("https://");
+        secretUrl.startsWith("http://") || secretUrl.startsWith("https://");
       const isDevelopment = import.meta.env.DEV;
 
       if (isExternalUrl && isDevelopment) {
-        fetchUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
+        fetchUrl = `/api/proxy?url=${encodeURIComponent(secretUrl)}`;
       }
 
       // Timeout 설정 (AbortController 사용)
@@ -671,8 +687,8 @@ export const createExecuteApiEndpointAction =
       // Fetch 요청
       const response = await fetch(fetchUrl, {
         method: endpoint.method,
-        headers,
-        body,
+        headers: fetchHeaders,
+        body: fetchBody,
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
