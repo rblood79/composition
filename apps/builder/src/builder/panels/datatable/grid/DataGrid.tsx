@@ -207,11 +207,36 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   // 포커스 이동 — commit/취소/행 추가 뒤 대상 셀로. RAC 는 DOM focus 이벤트로 focusedKey 를 맞춘다.
   useLayoutEffect(() => {
     if (!focusRequest || !rootRef.current) return;
-    const target = rootRef.current.querySelector<HTMLElement>(
-      `[data-row-index="${focusRequest.rowIndex}"][data-field-key="${focusRequest.key.replace(/["\\]/g, "\\$&")}"]`,
-    );
-    target?.focus();
-    setFocusRequest(null);
+    const root = rootRef.current;
+    const selector = `[data-row-index="${focusRequest.rowIndex}"][data-field-key="${focusRequest.key.replace(/["\\]/g, "\\$&")}"]`;
+    const target = root.querySelector<HTMLElement>(selector);
+    if (target) {
+      target.focus();
+      setFocusRequest(null);
+      return;
+    }
+    // 가상화 — 대상 행이 아직 안 그려졌으면 (행 추가 뒤 마지막 행) 그 위치로 스크롤하고 다음 프레임에 재시도
+    const scroller = root.querySelector<HTMLElement>('[role="grid"]');
+    if (!scroller) {
+      setFocusRequest(null);
+      return;
+    }
+    scroller.scrollTop = Math.max(0, focusRequest.rowIndex * GRID_ROW_HEIGHT);
+    let attempts = 0;
+    let raf = 0;
+    const retry = () => {
+      const el = root.querySelector<HTMLElement>(selector);
+      if (el) {
+        el.focus();
+        setFocusRequest(null);
+      } else if (attempts++ < 5) {
+        raf = requestAnimationFrame(retry);
+      } else {
+        setFocusRequest(null);
+      }
+    };
+    raf = requestAnimationFrame(retry);
+    return () => cancelAnimationFrame(raf);
   }, [focusRequest, rows, editing]);
 
   const neighbor = useCallback(
@@ -801,6 +826,9 @@ const DataGridCell = memo(function DataGridCell({
 
   return (
     <Cell
+      // 안정 key — 래퍼 컴포넌트 안의 Cell 은 RAC 자동 id 를 받아 collection 이 다시 만들어질 때
+      // (dependencies) key 가 밀리고 Virtualizer 가 셀을 빠뜨린다 (live 실측: 99행 name 누락)
+      id={`${rowIndex}:${field.key}`}
       ref={attachCell}
       className="datagrid-cell"
       textValue={text}

@@ -65,6 +65,7 @@
     "@vitest/browser": "^4.1.11",
     "@vitest/browser-playwright": "^4.1.11",
     "autoprefixer": "^10.5.4",
+    "axe-core": "4.10.3",
     "eslint": "catalog:",
     "fake-indexeddb": "^6.2.5",
     "jsdom": "^30.0.1",

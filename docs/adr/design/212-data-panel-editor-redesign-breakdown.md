@@ -62,17 +62,17 @@
 - [x] 생성 패널 진입 6종 (Main 아트보드, RAC `RadioGroup`): 빈 테이블 (id 1 필드) · 프리셋 · 붙여넣기 (`parsePastedRows` → `detectColumns` 미리보기) · CSV / JSON 파일 · API 에서 (API 생성 패널로) · **AI 로 설명 — ADR-213 Implemented 라 활성**: AI 입력창 초안 (`aiComposerDraft`) + AI 패널 열기, 전송은 사용자 (`create_table_from_description` 이 승인 diff 로). 쓰기는 `createDataTable` 하나. 만들면 편집기로 전환. 생성 패널의 empty/preset 탭 제거
 - [x] `role=status` live region — 토스트는 전부 `role=alert` 라 (Phase 0 §4) Data 패널 하단 `DataPanelStatusRegion` (`aria-live=polite`, 항상 마운트, `announceDataPanelStatus`) 신설 — 생성 · 삭제 결과가 여기로. 오류는 토스트 유지
 
-### Phase 2 — 격자 (게이트 G1)
+### Phase 2 — 격자 (게이트 G1) — 완료 2026-09-12 (`6f580f8c3` 2a · `2385fda1b` 2b, live 17/17 `scripts/adr212-p2-live.mjs`, [evidence](../evidence/212-p2-grid.md))
 
-- [ ] `DataGrid` 신설 (`panels/datatable/grid/`) — RAC `Table` (`role=grid`, `keyboardNavigationBehavior="tab"`) + `Virtualizer` + `aria-rowcount/colcount`
-- [ ] 셀 edit mode 자체 구현 — 셀 선택 → Enter / F2 / 타이핑 진입, Esc 취소, Enter commit + 아래, Tab commit + 오른쪽; 셀 `<input>` `onKeyDown` 에서 RAC 키 전파 차단 (R1 — 충돌 매트릭스 test: Arrow · Home/End · Enter · Tab · Esc × 편집/비편집)
-- [ ] 긴 값 · JSON · date/datetime 은 Popover 편집 (RAC 권고 Y2)
-- [ ] 셀 input `aria-labelledby` = 열 헤더 (A2) · id/computed 셀 `aria-readonly`
-- [ ] 붙여넣기 → 행 자동 생성 + 타입 강제, 초과 열은 "새 필드로 추가?" (UX-3); 파싱 실패 셀은 비우고 셀 단위 표시 (0 으로 바꾸지 않음)
-- [ ] 모든 쓰기는 `applyDataChange({ op: "set_cell" | "insert_rows" | "remove_rows" })` — undo 는 152 G5 경로
-- [ ] 데이터 패널 포커스 중 `⌘Z` 가 History data 스택으로 (152 R9 dispatcher 위에 라우팅만)
-- [ ] Schema 탭 제거 → 격자 헤더가 스키마 (Phase 3 필드 패널과 함께 전환 — 두 Phase 는 같은 커밋 열에서)
-- [ ] G1 live: 키보드만으로 셀 3개 편집 + 행 추가 + undo · axe critical 0. 고정 100행×10열 fixture, foreground Chromium · visible · DPR2, cold 1+warm 30에서 입력 프레임 p95 ≤ 16ms
+- [x] `DataGrid` 신설 (`panels/datatable/grid/`) — RAC `Table` (`role=grid`, `keyboardNavigationBehavior="tab"`) + `Virtualizer`/`TableLayout` (행 높이 28 고정) · `aria-rowcount 101`/`aria-colcount 11` 는 RAC 제공 (live 1)
+- [x] 셀 edit mode 자체 구현 — 순수 함수 `resolveGridKey` 한 표 (R1, `gridKeys.test.ts` 20): 셀 선택 → Enter/F2/타이핑 진입, Esc 취소, Enter commit + 아래, Tab commit + 오른쪽; 편집 중 RAC 셀 이동은 `state.setKeyboardNavigationDisabled(true)` 로 끄고 input `onKeyDown` 이 `stop`/`commit`/`cancel`/`revert-draft` 를 실행
+- [x] 긴 값 (>80자·줄바꿈) · JSON · date/datetime 은 Popover 편집 (`resolveCellEditorKind`, Y2) — `⌘Enter` commit · Esc 취소
+- [x] 셀 input `aria-labelledby` = 열 헤더 span (A2) · id 셀 `aria-readonly` + 편집 진입 0
+- [x] 붙여넣기 (셀 포커스, TSV) → `planGridPaste`: anchor 부터 채움 · 넘치는 행 자동 생성 (스키마 모양, 빈 키 null) · 타입 강제 · 초과 열은 `ConfirmDialog` "새 필드로 추가?" (UX-3); 파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음)
+- [x] 모든 쓰기는 `applyDataChange` (`set_cell` · `insert_rows` · `remove_rows` · `replace_rows` · 붙여넣기 `add_field`) — HC1 grep 0 · undo 는 152 G5 data entry
+- [x] 데이터 패널 셀 편집 중 `⌘Z` = 초안 되돌리기 (전역 History 로 안 감), 비편집·격자 밖은 종전 History — 단축키 registry `data-shortcut-local="undo redo"` opt-out (R9 라우팅만, `useKeyboardShortcutsRegistry.test.tsx` +1)
+- [ ] Schema 탭 제거 → 격자 헤더가 스키마 (Phase 3 필드 패널과 함께 전환 — 두 Phase 는 같은 커밋 열에서). **Phase 3 로 이월** (Table 탭 = 격자 연결 완료, Schema/Settings 탭 존치)
+- [x] G1 live 17/17: 키보드만으로 셀 3개 편집 + 행 추가 + ⌘Z ×4 원상 (IndexedDB 대조) · Popover · 붙여넣기 (⌘Z 1회 원상) · **Tab stop 1** · axe critical 0 (`.datagrid` 스코프 — 편집기 탭 바 aria-controls dangling 은 ADR-163 예외 패턴 선행 결함, Phase 3 정리). 100행×10열 fixture, foreground Chromium · visible · DPR2. **입력 프레임 지표는 keydown→rAF latency 대신 셀 편집 vs 격자 밖 filter input 비교로 재정의** (vsync 위상이 latency tail 을 지배 — 작업량 무관): 셀 편집 p50 5.5ms · p95 9.8ms ≈ baseline (셀 rerender 가 프레임을 안 잡음)
 
 ### Phase 3 — 필드 패널 (스냅, 게이트 G2)
 
