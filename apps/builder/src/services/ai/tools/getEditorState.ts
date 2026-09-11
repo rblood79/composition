@@ -11,6 +11,8 @@ import type {
 import { getAiToolReadModel } from "./canonicalToolReadModel";
 import { readCanonicalFields } from "./canonicalNodeFields";
 import { useCanonicalDocumentStore } from "../../../builder/stores/canonical/canonicalDocumentStore";
+import { summarizeCollections } from "../data/collectionReadModel";
+import { getDataToolReadModel } from "../data/dataToolReadModel";
 
 export const getEditorStateTool: ToolExecutor = {
   name: "get_editor_state",
@@ -94,6 +96,19 @@ export const getEditorStateTool: ToolExecutor = {
         actionKind: rule.action?.kind,
       }));
 
+      // ADR-213 X3 — collection 요약만 (id · name · fieldCount · rowCount). 스키마·행은
+      // `get_collection` 이 맡는다 (I7).
+      const data = getDataToolReadModel();
+      const collections = summarizeCollections(
+        data.collections,
+        data.usage,
+      ).map(({ id, name, fieldCount, rowCount }) => ({
+        id,
+        name,
+        fieldCount,
+        rowCount,
+      }));
+
       return {
         success: true,
         data: {
@@ -103,6 +118,7 @@ export const getEditorStateTool: ToolExecutor = {
           pages: pages?.map((p) => ({ id: p.id, title: p.title })) || [],
           tree,
           interactionRules,
+          collections,
         },
       };
     } catch (error) {

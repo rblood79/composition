@@ -18,6 +18,7 @@ import { UNIVERSAL_STYLE_CONTRACTS } from "@composition/shared";
 import type { BuilderContext } from "../../types/integrations/chat.types";
 import { buildCatalogDetailSection, buildCatalogIndexSection } from "./catalog";
 import type { PromptTranslate } from "./promptTranslate";
+import { buildCollectionsSection } from "./data/collectionReadModel";
 
 /** `styles` 인자가 받는 보편 시각 키 — 컴포넌트마다 같아서 한 번만 적는다. */
 function universalStyleKeys(): string {
@@ -103,7 +104,16 @@ ${t("aiPrompt.selectedParent", { parent: selectedElement.parent_id || "root" })}
 `
     : "";
 
+  // ADR-213 Phase 1 — collection 요약 (예산 절단은 read model 이). 모델은 이 목록으로
+  // 이름을 고르고, 스키마·행은 `get_collection` 으로 읽는다.
+  const collectionsSection = buildCollectionsSection(
+    context.collections ?? [],
+    t,
+  ).text;
+
   return `${detailSection}
+
+${collectionsSection}
 
 ${t("aiPrompt.stateHeading")}
 ${t("aiPrompt.statePageId", { id: String(currentPageId) })}

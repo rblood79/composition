@@ -75,6 +75,19 @@ export interface BuilderContext {
     props: Record<string, unknown>;
     parent_id: string | null;
   };
+  /**
+   * ADR-213 Phase 1 — 프로젝트 collection 요약. `buildTurnContext` 가 예산
+   * (50개 · 이름 80 code point · UTF-8 8,192 bytes) 안에서 절단해 싣는다. 스키마·행은
+   * 도구 (`get_collection`) 로 읽는다.
+   */
+  collections?: Array<{
+    id: string;
+    name: string;
+    fieldCount: number;
+    rowCount: number;
+    source: "manual" | "api";
+    usedBy: number;
+  }>;
 }
 
 export interface ConversationState {

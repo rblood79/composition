@@ -322,6 +322,90 @@ export const toolDefinitions: ChatCompletionTool[] = [
       },
     },
   },
+  // ADR-213 Phase 1 — 데이터 읽기 tool 4. 행 전량 노출 tool 은 없다 (I7).
+  {
+    type: "function",
+    function: {
+      name: "list_collections",
+      description: "aiToolDef.listCollections",
+      parameters: {
+        type: "object",
+        properties: {
+          format: {
+            type: "string",
+            enum: ["concise", "detailed"],
+            description: "aiToolDef.readFormat",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_collection",
+      description: "aiToolDef.getCollection",
+      parameters: {
+        type: "object",
+        properties: {
+          collectionId: {
+            type: "string",
+            description: "aiToolDef.collectionIdRef",
+          },
+          name: {
+            type: "string",
+            description: "aiToolDef.collectionNameRef",
+          },
+          sampleRows: {
+            type: "integer",
+            description: "aiToolDef.sampleRows",
+          },
+          format: {
+            type: "string",
+            enum: ["concise", "detailed"],
+            description: "aiToolDef.readFormat",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "list_api_endpoints",
+      description: "aiToolDef.listApiEndpoints",
+      parameters: {
+        type: "object",
+        properties: {
+          format: {
+            type: "string",
+            enum: ["concise", "detailed"],
+            description: "aiToolDef.readFormat",
+          },
+        },
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_api_endpoint",
+      description: "aiToolDef.getApiEndpoint",
+      parameters: {
+        type: "object",
+        properties: {
+          endpointId: {
+            type: "string",
+            description: "aiToolDef.endpointIdRef",
+          },
+          name: {
+            type: "string",
+            description: "aiToolDef.endpointNameRef",
+          },
+        },
+      },
+    },
+  },
 ];
 
 /**

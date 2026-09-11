@@ -835,6 +835,11 @@ const koKR: TranslationKeys = {
     selectedTag: "- 태그: {type}",
     selectedProps: "- Props: {props}",
     selectedParent: "- 부모 ID: {parent}",
+    collectionsHeading:
+      "## 사용 가능한 collection (데이터 테이블)\n요소를 데이터에 잇거나 데이터를 바꾸기 전에 list_collections / get_collection 으로 id 와 필드를 확인하세요.",
+    collectionsLine: "- {name} ({fieldCount} 필드 · {rowCount} 행 · {source})",
+    collectionsMore: "… 더 있음 {count} — list_collections 로 전체를 읽으세요.",
+    collectionsNone: "(없음)",
     rulesHeading: "## 규칙",
     rule1:
       '1. **elementId 는 지어내지 마세요.** 방금 만든 요소를 이어서 다룰 때는 "last-created",\n   현재 선택된 요소는 "selected" 를 쓰세요. 그 외에는 create_element 결과의\n   data.elementId 를 그대로 옮기거나, 실제 id 가 필요할 때만 search_elements /\n   get_editor_state 로 조회한 id 를 쓸 수 있습니다. created-element-id / cardId 같은\n   자리표시자는 실패합니다.',
@@ -1014,6 +1019,22 @@ const koKR: TranslationKeys = {
       "컴포넌트가 노출하는 callback 이름 (예: onPress). onClick 같은 DOM 별칭은 쓰지 않습니다.",
     ruleAction:
       "수행할 동작. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+    listCollections:
+      "프로젝트의 데이터 테이블(collection) 목록을 읽습니다 — id · 이름 · 필드 수 · 행 수 · 소스 · 사용처 수. 행은 싣지 않습니다 (get_collection 의 sampleRows). 바인딩·데이터 변경 전에 먼저 호출하세요.",
+    getCollection:
+      "collection 1개의 스키마(필드 id · key · type · label · required) 와 샘플 행(최대 5) 을 읽습니다. propose_data_change 의 collectionId · fieldId 는 여기서 얻은 값을 그대로 씁니다.",
+    listApiEndpoints:
+      "프로젝트의 API endpoint 목록 — id · 이름 · method · url · 연결 테이블 · 마지막 실행 오류. 인증 값은 {{secret.KEY}} 로 가려집니다.",
+    getApiEndpoint:
+      "API endpoint 정의 1개 (method · url · headers · query · body · 응답 매핑). 인증 header/query 값은 {{secret.KEY}} placeholder 로 가려져 오며 원문은 볼 수 없습니다.",
+    readFormat: "concise(기본) = 요약만, detailed = 필드/키 목록 포함.",
+    collectionIdRef:
+      "collection id (list_collections 결과의 id). name 과 둘 중 하나는 필수.",
+    collectionNameRef: "collection 이름 — id 를 모를 때.",
+    sampleRows: "샘플 행 수 (0~5, 기본 3). 5 를 넘겨도 5 로 잘립니다.",
+    endpointIdRef:
+      "endpoint id (list_api_endpoints 결과의 id). name 과 둘 중 하나는 필수.",
+    endpointNameRef: "endpoint 이름 — id 를 모를 때.",
   },
   aiToolId: {
     canonicalCreate:
@@ -1088,6 +1109,14 @@ const koKR: TranslationKeys = {
       "알 수 없는 canonical 필드입니다 (가능: clip, placeholder, slot, reusable).",
     operationsRequired: "operations 배열이 필요합니다.",
     batchLimit: "한 번에 최대 20개 작업까지 가능합니다.",
+    collectionRefRequired:
+      "collectionId 또는 name 이 필요합니다. list_collections 로 목록을 먼저 읽으세요.",
+    collectionNotFound:
+      "collection 을 찾을 수 없습니다: {ref}. 있는 이름: {names}. list_collections 로 다시 확인하세요.",
+    endpointRefRequired:
+      "endpointId 또는 name 이 필요합니다. list_api_endpoints 로 목록을 먼저 읽으세요.",
+    endpointNotFound:
+      "endpoint 를 찾을 수 없습니다: {ref}. 있는 이름: {names}. list_api_endpoints 로 다시 확인하세요.",
     unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
     bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
     notDeleted:
@@ -2395,6 +2424,11 @@ const enUS: TranslationKeys = {
     selectedTag: "- Tag: {type}",
     selectedProps: "- Props: {props}",
     selectedParent: "- Parent ID: {parent}",
+    collectionsHeading:
+      "## Available collections (data tables)\nBefore binding elements to data or changing data, confirm ids and fields with list_collections / get_collection.",
+    collectionsLine: "- {name} ({fieldCount} fields · {rowCount} rows · {source})",
+    collectionsMore: "… {count} more — read the full list with list_collections.",
+    collectionsNone: "(none)",
     rulesHeading: "## Rules",
     rule1:
       '1. **Never invent an elementId.** Use "last-created" for the element you just made and\n   "selected" for the current selection. Otherwise copy data.elementId from the\n   create_element result verbatim, or — only when you need a real id — read one via\n   search_elements or get_editor_state. Placeholders like created-element-id or cardId will fail.',
@@ -2577,6 +2611,22 @@ const enUS: TranslationKeys = {
       "A callback name the component exposes (onPress, …). Do not use DOM aliases such as onClick.",
     ruleAction:
       "The action to run. kind: navigate(path) | toast(message) | capability(targetId, capability, value?).",
+    listCollections:
+      "Lists the project's data tables (collections) — id, name, field count, row count, source, and how many elements use each. Rows are not included (use get_collection sampleRows). Call this before binding or proposing data changes.",
+    getCollection:
+      "Reads one collection's schema (field id, key, type, label, required) and up to 5 sample rows. Use the returned collectionId and fieldId values verbatim in propose_data_change.",
+    listApiEndpoints:
+      "Lists the project's API endpoints — id, name, method, url, target table, last run error. Auth values are masked as {{secret.KEY}}.",
+    getApiEndpoint:
+      "Reads one API endpoint definition (method, url, headers, query, body, response mapping). Auth header/query values arrive as {{secret.KEY}} placeholders; the raw values are never exposed.",
+    readFormat: "concise (default) = summary only; detailed = includes field/key lists.",
+    collectionIdRef:
+      "Collection id (from list_collections). Either this or name is required.",
+    collectionNameRef: "Collection name — when the id is unknown.",
+    sampleRows: "Number of sample rows (0–5, default 3). Values above 5 are clamped.",
+    endpointIdRef:
+      "Endpoint id (from list_api_endpoints). Either this or name is required.",
+    endpointNameRef: "Endpoint name — when the id is unknown.",
   },
   aiToolId: {
     canonicalCreate:
@@ -2647,6 +2697,14 @@ const enUS: TranslationKeys = {
       "Unknown canonical field (allowed: clip, placeholder, slot, reusable).",
     operationsRequired: "An operations array is required.",
     batchLimit: "At most 20 operations at a time.",
+    collectionRefRequired:
+      "collectionId or name is required. Read the list with list_collections first.",
+    collectionNotFound:
+      "Collection not found: {ref}. Available names: {names}. Check again with list_collections.",
+    endpointRefRequired:
+      "endpointId or name is required. Read the list with list_api_endpoints first.",
+    endpointNotFound:
+      "Endpoint not found: {ref}. Available names: {names}. Check again with list_api_endpoints.",
     unknownAction:
       "Unknown action: {action}. Only create, update and delete are allowed.",
     bodyUndeletable: "The body element cannot be deleted.",
@@ -3785,6 +3843,10 @@ const formattedMessages: Record<
     "aiPrompt.selectedProps": (args) => `- Props: ${String(args?.props ?? "")}`,
     "aiPrompt.selectedParent": (args) =>
       `- 부모 ID: ${String(args?.parent ?? "")}`,
+    "aiPrompt.collectionsLine": (args) =>
+      `- ${String(args?.name ?? "")} (${String(args?.fieldCount ?? 0)} 필드 · ${String(args?.rowCount ?? 0)} 행 · ${String(args?.source ?? "")})`,
+    "aiPrompt.collectionsMore": (args) =>
+      `… 더 있음 ${String(args?.count ?? 0)} — list_collections 로 전체를 읽으세요.`,
     "aiIntent.changeFill": (args) =>
       `배경 fill을 ${String(args?.color ?? "")}로 변경합니다.`,
     "aiVerify.goal": (args) => `목표: ${String(args?.goal ?? "")}`,
@@ -3833,6 +3895,10 @@ const formattedMessages: Record<
       `canonical 필드가 반영되지 않았습니다: ${String(args?.fields ?? "")}. ${String(args?.type ?? "")} 이 지원하지 않는 필드일 수 있습니다.`,
     "aiToolError.sourceOneOf": (args) =>
       `source 는 ${String(args?.sources ?? "")} 중 하나여야 합니다.`,
+    "aiToolError.collectionNotFound": (args) =>
+      `collection 을 찾을 수 없습니다: ${String(args?.ref ?? "")}. 있는 이름: ${String(args?.names ?? "")}. list_collections 로 다시 확인하세요.`,
+    "aiToolError.endpointNotFound": (args) =>
+      `endpoint 를 찾을 수 없습니다: ${String(args?.ref ?? "")}. 있는 이름: ${String(args?.names ?? "")}. list_api_endpoints 로 다시 확인하세요.`,
     "aiToolError.frameOnly": (args) =>
       `type: "frame" 노드에만 쓸 수 있습니다 (현재 ${String(args?.type ?? "")}).`,
     "aiToolError.unknownAction": (args) =>
@@ -4082,6 +4148,10 @@ const formattedMessages: Record<
     "aiPrompt.selectedProps": (args) => `- Props: ${String(args?.props ?? "")}`,
     "aiPrompt.selectedParent": (args) =>
       `- Parent ID: ${String(args?.parent ?? "")}`,
+    "aiPrompt.collectionsLine": (args) =>
+      `- ${String(args?.name ?? "")} (${String(args?.fieldCount ?? 0)} fields · ${String(args?.rowCount ?? 0)} rows · ${String(args?.source ?? "")})`,
+    "aiPrompt.collectionsMore": (args) =>
+      `… ${String(args?.count ?? 0)} more — read the full list with list_collections.`,
     "aiIntent.changeFill": (args) =>
       `Changing the background fill to ${String(args?.color ?? "")}.`,
     "aiVerify.goal": (args) => `Goal: ${String(args?.goal ?? "")}`,
@@ -4130,6 +4200,10 @@ const formattedMessages: Record<
       `Canonical fields were not applied: ${String(args?.fields ?? "")}. ${String(args?.type ?? "")} may not support them.`,
     "aiToolError.sourceOneOf": (args) =>
       `source must be one of ${String(args?.sources ?? "")}.`,
+    "aiToolError.collectionNotFound": (args) =>
+      `Collection not found: ${String(args?.ref ?? "")}. Available names: ${String(args?.names ?? "")}. Check again with list_collections.`,
+    "aiToolError.endpointNotFound": (args) =>
+      `Endpoint not found: ${String(args?.ref ?? "")}. Available names: ${String(args?.names ?? "")}. Check again with list_api_endpoints.`,
     "aiToolError.frameOnly": (args) =>
       `valid only on type: "frame" nodes (this one is ${String(args?.type ?? "")}).`,
     "aiToolError.unknownAction": (args) =>

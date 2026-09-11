@@ -836,6 +836,10 @@ export interface TranslationKeys {
     selectedTag: string;
     selectedProps: string;
     selectedParent: string;
+    collectionsHeading: string;
+    collectionsLine: string;
+    collectionsMore: string;
+    collectionsNone: string;
     rulesHeading: string;
     rule1: string;
     rule2: string;
@@ -975,6 +979,16 @@ export interface TranslationKeys {
     createRule: string;
     ruleTrigger: string;
     ruleAction: string;
+    listCollections: string;
+    getCollection: string;
+    listApiEndpoints: string;
+    getApiEndpoint: string;
+    readFormat: string;
+    collectionIdRef: string;
+    collectionNameRef: string;
+    sampleRows: string;
+    endpointIdRef: string;
+    endpointNameRef: string;
   };
   aiToolId: {
     canonicalCreate: string;
@@ -1028,6 +1042,10 @@ export interface TranslationKeys {
     unknownCanonicalField: string;
     operationsRequired: string;
     batchLimit: string;
+    collectionRefRequired: string;
+    collectionNotFound: string;
+    endpointRefRequired: string;
+    endpointNotFound: string;
     unknownAction: string;
     bodyUndeletable: string;
     notDeleted: string;

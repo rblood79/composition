@@ -17,6 +17,10 @@ import { searchElementsTool } from "./searchElements";
 import { batchDesignTool } from "./batchDesign";
 import { bindCollectionTool } from "./bindCollection";
 import { createInteractionRuleTool } from "./createInteractionRule";
+import { listCollectionsTool } from "./listCollections";
+import { getCollectionTool } from "./getCollection";
+import { listApiEndpointsTool } from "./listApiEndpoints";
+import { getApiEndpointTool } from "./getApiEndpoint";
 
 export { toolDefinitions, getToolDefinitions } from "./definitions";
 
@@ -48,6 +52,11 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
     batchDesignTool,
     bindCollectionTool,
     createInteractionRuleTool,
+    // ADR-213 Phase 1 — 데이터 읽기 4 (쓰기는 `propose_data_change` 하나, Phase 4)
+    listCollectionsTool,
+    getCollectionTool,
+    listApiEndpointsTool,
+    getApiEndpointTool,
     runCommandLazyTool,
   ];
 

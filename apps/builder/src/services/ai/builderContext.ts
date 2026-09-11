@@ -15,6 +15,8 @@
  * 쓰는 자리에서 읽으면 준비 안 됨 상태도, 낡은 값도 존재하지 않는다.
  */
 import type { BuilderContext } from "../../types/integrations/chat.types";
+import { summarizeCollections } from "./data/collectionReadModel";
+import { getDataToolReadModel } from "./data/dataToolReadModel";
 import { getAiToolReadModel } from "./tools/canonicalToolReadModel";
 
 /** 조립에 필요한 노드 모양만 — ADR-126: 신규 코드는 `Element` 대신 구조 계약을 쓴다. */
@@ -32,12 +34,20 @@ export interface BuilderContextSource {
   elements: readonly BuilderContextNode[];
   elementsById: ReadonlyMap<string, BuilderContextNode>;
   state: { currentPageId?: string | null; selectedElementId?: string | null };
+  /** 생략 시 data store 에서 읽는다 (ADR-213). 테스트는 빈 배열로 대체한다. */
+  collections?: BuilderContext["collections"];
+}
+
+function readCollectionSummaries(): BuilderContext["collections"] {
+  const data = getDataToolReadModel();
+  return summarizeCollections(data.collections, data.usage);
 }
 
 export function buildBuilderContext(
   source: BuilderContextSource = getAiToolReadModel(),
 ): BuilderContext {
   const { elements, elementsById, state } = source;
+  const collections = source.collections ?? readCollectionSummaries();
   const currentPageId = state.currentPageId || "default";
   const selectedElementId = state.selectedElementId ?? undefined;
   const selected = selectedElementId
@@ -58,5 +68,6 @@ export function buildBuilderContext(
           parent_id: selected.parent_id ?? null,
         }
       : undefined,
+    collections,
   };
 }

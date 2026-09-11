@@ -49,13 +49,13 @@
 - [x] `dynamicInjection` 현재 주입량과 50개×80자 worst-case의 UTF-8 bytes/Anthropic/Ollama token 수 before arm — collection 주입 현재 0 bytes. 50×80 line 형식: ASCII 5,699 B (절단 0) · 한글 13,699 B (8,192 안에 29개) · emoji 17,699 B (22개) → byte 상한은 절단으로 집행. token 은 G1 에서 Ollama `prompt_eval_count` 차분 (Anthropic 키 부재 — 미측정 명시)
 - [x] `applyDataChange`의 `define_endpoint` · `bind_element` 미지원과 `bindCollection.ts` 직접 적용 경로, cross-store preflight/commit/inverse seam을 freeze — 두 op 는 `dataChange.ts:408-413` throw · `bindCollection.ts:103` 이 유일한 우회 쓰기 (`origin:"ai"|"agent"` 적용 호출 baseline 0) · seam 은 신규 coordinator `applyDataChangeTransaction` (preflight → staged commit → 역순 inverse → History 1)
 
-### Phase 1 — 읽기 tool 4 + `get_editor_state` 요약 + 프롬프트 주입 (152 독립, 게이트 G1)
+### Phase 1 — 읽기 tool 4 + `get_editor_state` 요약 + 프롬프트 주입 (152 독립, 게이트 G1) — **완료 2026-09-11** (G1 PASS, evidence `213-p0-inventory.md` §Phase 1)
 
-- [ ] `list_collections` · `get_collection` · `list_api_endpoints` · `get_api_endpoint` — `useDataStore` read 만, `format: concise|detailed` (X3), `sampleRows ≤ 5` (I7 · AI-6)
-- [ ] `get_editor_state.collections` 요약
-- [ ] `dynamicInjection`에 테이블 최대 50개, 이름 최대 80 code point, 스키마는 요청된 테이블만. 직렬화 UTF-8 ≤8,192 bytes와 활성 provider tokenizer ≤2,048 tokens를 모두 만족
-- [ ] 공유 순수 함수 `redactEndpointSecrets` — header/cookie/query auth 및 legacy 평문을 placeholder로 치환하고 get/list/injection payload에 canary 원문 0
-- [ ] G1 live: AI 패널 "어떤 테이블이 있어?" → `list_collections` 호출 → 이름 · 행 수 답변 (Ollama 경로, 메모리 `reference-ai-panel-agent-runner-memo-needs-reload-after-profile-config`)
+- [x] `list_collections` · `get_collection` · `list_api_endpoints` · `get_api_endpoint` — `useDataStore` read 만, `format: concise|detailed` (X3), `sampleRows ≤ 5` (I7 · AI-6)
+- [x] `get_editor_state.collections` 요약
+- [x] `dynamicInjection`에 테이블 최대 50개, 이름 최대 80 code point, 스키마는 요청된 테이블만. 직렬화 UTF-8 ≤8,192 bytes와 활성 provider tokenizer ≤2,048 tokens를 모두 만족 — 구현은 `services/ai/data/collectionReadModel.ts` (`buildCollectionsSection`, byte + `estimatePromptTokens` 이중 상한 · 절단 시 "더 있음 N"). qwen3 실측 4 fixture 전부 ≤ 2,048 (1,444 / 1,598 / 1,406 / 1,894). Anthropic 은 키 부재로 미측정 (가중치 여유로 대체)
+- [x] 공유 순수 함수 `redactEndpointSecrets` — 파일 `services/ai/security/redactEndpointAuth.ts` (`protect-files.sh` 가 "secret" 경로를 차단) · header/cookie/query auth 및 legacy 평문을 placeholder로 치환하고 get/list payload에 canary 원문 0
+- [x] G1 live: AI 패널 "list_collections 도구를 호출해서 …" → `list_collections` → `get_collection` → "Projects · 10 fields · 10 rows" (Ollama qwen3:14b, 2026-09-11). live 가 잡은 결함 1 — 인자 있는 i18n 메시지는 `formattedMessages` 함수 등록이 필요 (placeholder 원문이 모델에 감) → 수리 + 실제 사전 렌더 테스트
 
 ### Phase 2 — `bind_collection` 정정 (AX-3, 게이트 G4)
 
