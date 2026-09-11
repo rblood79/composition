@@ -1060,11 +1060,12 @@ const koKR: TranslationKeys = {
     runIdRef:
       "실행 id (list_api_endpoints 의 lastRun.runId). 생략하면 그 endpoint 의 마지막 실행.",
     proposeDataChange:
-      "데이터 변경을 제안합니다 — collection 생성/필드/행/소스 · API endpoint 정의 (define_endpoint, 인증 값은 {{secret.KEY}} placeholder) · 요소↔collection 바인딩 (bind_element). 사용자가 diff 를 보고 승인해야 적용되며 ⌘Z 로 되돌릴 수 있습니다. 삭제 계열 op 는 제안할 수 없습니다. 먼저 list_collections / get_collection / list_api_endpoints 로 id 를 확인하세요.",
+      "데이터 변경을 제안합니다 — collection 생성/필드/행/소스 · API endpoint 정의 (define_endpoint, 인증 값은 {{secret.KEY}} placeholder) · 요소↔collection 바인딩 (bind_element). 사용자가 diff 를 보고 승인해야 적용되며 실행 취소 (undo) 로 되돌릴 수 있습니다. 삭제 계열 op 는 제안할 수 없습니다. 먼저 list_collections / get_collection / list_api_endpoints 로 id 를 확인하세요.",
   },
   aiDataProposal: {
     summary: "데이터 변경 {count}건: {ops}",
     bindLabel: "{type} 를 {collection} 에 연결",
+    importPasteLabel: "붙여넣기 가져오기 ({format} · {count}행)",
     rejected: "사용자가 데이터 변경을 거부했습니다. 문서는 바뀌지 않았습니다.",
   },
   aiToolId: {
@@ -1089,6 +1090,8 @@ const koKR: TranslationKeys = {
     idParam: "실행할 명령 id",
     idsParam:
       "여러 명령을 순서대로 실행 (각 명령마다 승인을 따로 묻고, 실패하면 거기서 멈춥니다). id 대신 사용.",
+    argsParam:
+      "id 명령의 인자 (data.* 명령만 — 예: data.openTable {name}, data.runEndpoint {endpointId|name}, data.importPaste {text, name|collectionId}).",
     missingId: "id 또는 ids 가 필요합니다.",
   },
   aiToolError: {
@@ -2734,11 +2737,12 @@ const enUS: TranslationKeys = {
     runIdRef:
       "Run id (lastRun.runId from list_api_endpoints). Omit for that endpoint's last run.",
     proposeDataChange:
-      "Proposes a data change — collection create/fields/rows/source, API endpoint definition (define_endpoint; auth values as {{secret.KEY}} placeholders), element↔collection binding (bind_element). Nothing is applied until the user approves the diff; the change is undoable with ⌘Z. Delete-type ops cannot be proposed. Check ids first with list_collections / get_collection / list_api_endpoints.",
+      "Proposes a data change — collection create/fields/rows/source, API endpoint definition (define_endpoint; auth values as {{secret.KEY}} placeholders), element↔collection binding (bind_element). Nothing is applied until the user approves the diff; the change can be reverted with undo. Delete-type ops cannot be proposed. Check ids first with list_collections / get_collection / list_api_endpoints.",
   },
   aiDataProposal: {
     summary: "{count} data change(s): {ops}",
     bindLabel: "Bind {type} to {collection}",
+    importPasteLabel: "Import pasted {format} ({count} rows)",
     rejected: "The user declined the data change. The document is unchanged.",
   },
   aiToolId: {
@@ -2763,6 +2767,8 @@ const enUS: TranslationKeys = {
     idParam: "The id of the command to run",
     idsParam:
       "Runs several commands in order (each asks for approval separately and stops at the first failure). Use instead of id.",
+    argsParam:
+      "Arguments for the id command (data.* commands only — e.g. data.openTable {name}, data.runEndpoint {endpointId|name}, data.importPaste {text, name|collectionId}).",
     missingId: "Either id or ids is required.",
   },
   aiToolError: {
@@ -4058,6 +4064,8 @@ const formattedMessages: Record<
       `데이터 변경 ${String(args?.count ?? 0)}건: ${String(args?.ops ?? "")}`,
     "aiDataProposal.bindLabel": (args) =>
       `${String(args?.type ?? "")} 를 ${String(args?.collection ?? "")} 에 연결`,
+    "aiDataProposal.importPasteLabel": (args) =>
+      `붙여넣기 가져오기 (${String(args?.format ?? "")} · ${String(args?.count ?? 0)}행)`,
     "aiIntent.changeFill": (args) =>
       `배경 fill을 ${String(args?.color ?? "")}로 변경합니다.`,
     "aiVerify.goal": (args) => `목표: ${String(args?.goal ?? "")}`,
@@ -4420,6 +4428,8 @@ const formattedMessages: Record<
       `${String(args?.count ?? 0)} data change(s): ${String(args?.ops ?? "")}`,
     "aiDataProposal.bindLabel": (args) =>
       `Bind ${String(args?.type ?? "")} to ${String(args?.collection ?? "")}`,
+    "aiDataProposal.importPasteLabel": (args) =>
+      `Import pasted ${String(args?.format ?? "")} (${String(args?.count ?? 0)} rows)`,
     "aiIntent.changeFill": (args) =>
       `Changing the background fill to ${String(args?.color ?? "")}.`,
     "aiVerify.goal": (args) => `Goal: ${String(args?.goal ?? "")}`,

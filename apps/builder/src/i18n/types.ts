@@ -1015,6 +1015,7 @@ export interface TranslationKeys {
   aiDataProposal: {
     summary: string;
     bindLabel: string;
+    importPasteLabel: string;
     rejected: string;
   };
   aiToolId: {
@@ -1031,6 +1032,7 @@ export interface TranslationKeys {
     availableHeading: string;
     idParam: string;
     idsParam: string;
+    argsParam: string;
     missingId: string;
   };
   aiToolError: {

@@ -13,10 +13,14 @@
  */
 import type { ShortcutId } from "../../builder/config/keyboardShortcuts";
 import type { CommandMeta } from "../../builder/config/commandMeta";
+import type { DataAgentCommandId } from "../../builder/config/dataCommandMeta";
 import type { AgentHost } from "../../builder/stores/agentCommandLog";
 
-/** ADR-213 — 데이터 proposal 은 agent 명령 id 축 밖 (`"data.propose"`). */
-export type AgentConfirmationId = ShortcutId | "data.propose";
+/** ADR-213 — 데이터 proposal (`"data.propose"`) 과 `data.*` 명령은 단축키 id 축 밖. */
+export type AgentConfirmationId =
+  | ShortcutId
+  | DataAgentCommandId
+  | "data.propose";
 
 export interface AgentCommandConfirmationRequest {
   id: AgentConfirmationId;

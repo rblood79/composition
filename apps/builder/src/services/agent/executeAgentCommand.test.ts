@@ -10,13 +10,24 @@ import { useStore } from "../../builder/stores";
 import { historyManager } from "../../builder/stores/history";
 import { useViewportSyncStore } from "../../builder/workspace/canvas/stores";
 import { useAgentCommandLogStore } from "../../builder/stores/agentCommandLog";
+import { useDataStore } from "../../builder/stores/data";
 import { AGENT_COMMANDS } from "./agentCommands";
+import { DATA_AGENT_COMMANDS } from "./dataAgentCommands";
 import {
   executeAgentCommand,
   executeAgentCommands,
   listAgentCommands,
   type AgentExecutionContext,
 } from "./executeAgentCommand";
+
+vi.mock("./dataAgentCommands", () => ({
+  DATA_AGENT_COMMANDS: {
+    "data.openTable": vi.fn(async () => ({ ok: true })),
+    "data.openEndpoint": vi.fn(async () => ({ ok: true })),
+    "data.runEndpoint": vi.fn(async () => ({ ok: true })),
+    "data.importPaste": vi.fn(async () => ({ ok: true, historyIndex: 3 })),
+  },
+}));
 
 vi.mock("./agentCommands", () => ({
   AGENT_COMMANDS: {
@@ -252,10 +263,208 @@ describe("executeAgentCommands — 배치", () => {
   });
 });
 
+const dataSpies = DATA_AGENT_COMMANDS as unknown as Record<
+  string,
+  ReturnType<typeof vi.fn>
+>;
+
+function seedData(loaded = true) {
+  useDataStore.setState({
+    isInitialized: loaded,
+    currentProjectId: loaded ? "p1" : null,
+    collections: new Map([["c1", { id: "c1", name: "Users" }]]),
+    apiEndpoints: new Map([
+      ["e1", { id: "e1", name: "getUsers", method: "GET" }],
+      ["e2", { id: "e2", name: "createUser", method: "POST" }],
+    ]),
+  } as never);
+}
+
+describe("executeAgentCommand — data.* (ADR-213 Phase 5) 같은 게이트", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    useAgentCommandLogStore.getState().clear();
+    seed(["a"]);
+    seedData();
+  });
+
+  it("precondition-failed — 프로젝트 미로드 · 대상 없음은 adapter 호출 0, 기록 1", async () => {
+    seedData(false);
+    const r = await executeAgentCommand(
+      "data.openTable",
+      { name: "Users" },
+      ctx(),
+    );
+    expect(r).toMatchObject({
+      status: "precondition-failed",
+      reason: "no-project",
+    });
+    seedData();
+    const r2 = await executeAgentCommand(
+      "data.openTable",
+      { name: "Ghost" },
+      ctx(),
+    );
+    expect(r2).toMatchObject({
+      status: "precondition-failed",
+      reason: "collection-not-found",
+    });
+    expect(dataSpies["data.openTable"]).not.toHaveBeenCalled();
+    expect(log()).toHaveLength(2);
+    expect(log()[1]).toMatchObject({
+      id: "data.openTable",
+      mutation: "view",
+      args: { name: "Ghost" },
+    });
+  });
+
+  it("ok — openTable 은 confirm 0, adapter 가 읽기 모델 · host · t 를 받는다, 기록 1 (executor)", async () => {
+    const c = ctx();
+    const r = await executeAgentCommand(
+      "data.openTable",
+      { collectionId: "c1" },
+      c,
+    );
+    expect(c.requestConfirm).not.toHaveBeenCalled();
+    expect(dataSpies["data.openTable"]).toHaveBeenCalledWith(
+      { collectionId: "c1" },
+      expect.objectContaining({
+        host: "chrome-mcp",
+        t: expect.any(Function),
+        read: expect.objectContaining({
+          projectLoaded: true,
+          collections: [{ id: "c1", name: "Users" }],
+        }),
+      }),
+    );
+    expect(r).toMatchObject({
+      status: "ok",
+      id: "data.openTable",
+      undoable: false,
+    });
+    expect(log()).toHaveLength(1);
+    expect(log()[0]).toMatchObject({ status: "ok", id: "data.openTable" });
+  });
+
+  it("runEndpoint — GET 은 승인 0, POST 는 승인을 묻고 거부 시 adapter 0", async () => {
+    const get = ctx(false);
+    const r = await executeAgentCommand(
+      "data.runEndpoint",
+      { name: "getUsers" },
+      get,
+    );
+    expect(get.requestConfirm).not.toHaveBeenCalled();
+    expect(r).toMatchObject({ status: "ok" });
+
+    const post = ctx(false);
+    const r2 = await executeAgentCommand(
+      "data.runEndpoint",
+      { endpointId: "e2" },
+      post,
+    );
+    expect(post.requestConfirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: "data.runEndpoint",
+        meta: expect.objectContaining({ mutation: "none", confirm: true }),
+        args: { endpointId: "e2" },
+      }),
+    );
+    expect(r2).toMatchObject({ status: "declined", reason: "user-declined" });
+    expect(dataSpies["data.runEndpoint"]).toHaveBeenCalledTimes(1);
+  });
+
+  it("error — adapter throw (HTTP 실패) 는 error 로 기록, adapter 의 error outcome 도 같은 기록", async () => {
+    dataSpies["data.runEndpoint"].mockRejectedValueOnce(new Error("HTTP 401"));
+    const r = await executeAgentCommand(
+      "data.runEndpoint",
+      { name: "getUsers" },
+      ctx(),
+    );
+    expect(r).toMatchObject({ status: "error", reason: "HTTP 401" });
+    expect(log()[0]).toMatchObject({ status: "error", id: "data.runEndpoint" });
+  });
+
+  it("importPaste — 승인·기록은 dispatcher 몫: executor confirm 0, ok 기록 0, historyIndex 는 adapter 값", async () => {
+    const c = ctx(false);
+    const r = await executeAgentCommand(
+      "data.importPaste",
+      { text: "[{\"a\":1}]", name: "T" },
+      c,
+    );
+    expect(c.requestConfirm).not.toHaveBeenCalled();
+    expect(r).toMatchObject({
+      status: "ok",
+      id: "data.importPaste",
+      undoable: true,
+      historyIndex: 3,
+    });
+    expect(log()).toHaveLength(0);
+
+    dataSpies["data.importPaste"].mockResolvedValueOnce({
+      ok: false,
+      status: "declined",
+      reason: "user-declined",
+    });
+    const r2 = await executeAgentCommand(
+      "data.importPaste",
+      { text: "[{\"a\":1}]", name: "T" },
+      c,
+    );
+    expect(r2).toMatchObject({ status: "declined", reason: "user-declined" });
+    expect(log()).toHaveLength(0);
+  });
+
+  it("precondition — importPaste 필수 인자 (text · name|collectionId) 는 adapter 전에 막힌다", async () => {
+    const r = await executeAgentCommand("data.importPaste", { name: "T" }, ctx());
+    expect(r).toMatchObject({
+      status: "precondition-failed",
+      reason: "text-required",
+    });
+    const r2 = await executeAgentCommand("data.importPaste", "[]", ctx());
+    expect(r2).toMatchObject({ status: "precondition-failed" });
+    expect(dataSpies["data.importPaste"]).not.toHaveBeenCalled();
+  });
+
+  it("배치 — data.* 와 단축키 명령이 섞여도 원소별 게이트 · 첫 non-ok 중단", async () => {
+    const results = await executeAgentCommands(
+      [
+        { id: "data.openTable", args: { name: "Users" } },
+        { id: "zoomIn" },
+        { id: "data.openEndpoint", args: { name: "nope" } },
+        { id: "data.runEndpoint", args: { name: "getUsers" } },
+      ],
+      ctx(),
+    );
+    expect(results.map((r) => r.status)).toEqual([
+      "ok",
+      "ok",
+      "precondition-failed",
+    ]);
+    expect(dataSpies["data.runEndpoint"]).not.toHaveBeenCalled();
+  });
+});
+
 describe("listAgentCommands — descriptor", () => {
-  it("allowlist 40 만, external 0, confirm 필드 노출", () => {
+  it("allowlist 40 + data.* 4, external 0, confirm 필드 노출", () => {
     const list = listAgentCommands();
-    expect(list).toHaveLength(40);
+    expect(list).toHaveLength(44);
+    expect(list.slice(40).map((d) => d.id)).toEqual([
+      "data.openTable",
+      "data.openEndpoint",
+      "data.runEndpoint",
+      "data.importPaste",
+    ]);
+    expect(list.find((d) => d.id === "data.importPaste")).toMatchObject({
+      confirm: false,
+      undo: "history",
+      mutation: "document",
+      args: { type: "object", required: ["text"] },
+    });
+    // runEndpoint 는 method 로 판정 — descriptor 는 "물을 수 있음"
+    expect(list.find((d) => d.id === "data.runEndpoint")).toMatchObject({
+      confirm: true,
+      mutation: "none",
+    });
     expect(list.some((d) => d.mutation === "external")).toBe(false);
     expect(list.find((d) => d.id === "delete")).toMatchObject({
       confirm: true,

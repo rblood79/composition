@@ -42,10 +42,12 @@ export function buildRunCommandToolDefinition(
   t: PromptTranslate,
 ): LLMToolDefinition {
   const commands = listAgentCommands();
-  const lines = commands.map(
-    (c) =>
-      `${c.id}: ${c.description} (${c.mutation}${c.confirm ? t("aiRunCommand.needsApproval") : ""})`,
-  );
+  const lines = commands.map((c) => {
+    const params = c.args?.properties
+      ? ` args: {${Object.keys(c.args.properties).join(", ")}}`
+      : "";
+    return `${c.id}: ${c.description} (${c.mutation}${c.confirm ? t("aiRunCommand.needsApproval") : ""})${params}`;
+  });
   return {
     name: "run_command",
     description: `${t("aiRunCommand.description")}\n${t(
@@ -63,6 +65,10 @@ export function buildRunCommandToolDefinition(
           type: "array",
           items: { type: "string", enum: commands.map((c) => c.id) },
           description: t("aiRunCommand.idsParam"),
+        },
+        args: {
+          type: "object",
+          description: t("aiRunCommand.argsParam"),
         },
       },
     },
@@ -89,7 +95,7 @@ export const runCommandTool: ToolExecutor = {
       if (ids && ids.length > 0) {
         const results = await executeAgentCommands(
           ids.map((commandId) => ({ id: commandId })),
-          aiPanelAgentContext,
+          { ...aiPanelAgentContext, t },
         );
         const failed = results.find((result) => result.status !== "ok");
         return {
@@ -99,11 +105,10 @@ export const runCommandTool: ToolExecutor = {
         };
       }
 
-      const result = await executeAgentCommand(
-        id as string,
-        args.args,
-        aiPanelAgentContext,
-      );
+      const result = await executeAgentCommand(id as string, args.args, {
+        ...aiPanelAgentContext,
+        t,
+      });
       if (result.status !== "ok") {
         return { success: false, data: result, error: result.reason };
       }

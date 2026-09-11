@@ -65,7 +65,21 @@ describe("run_command 도구 정의", () => {
     };
     expect(parameters.properties.id.enum).toEqual(ids);
     expect(parameters.properties.ids.items.enum).toEqual(ids);
-    expect(ids).toHaveLength(40);
+    // ADR-196 allowlist 40 + ADR-213 Phase 5 `data.*` 4
+    expect(ids).toHaveLength(44);
+    expect(ids.slice(40)).toEqual([
+      "data.openTable",
+      "data.openEndpoint",
+      "data.runEndpoint",
+      "data.importPaste",
+    ]);
+    expect(
+      (parameters.properties as { args?: { type: string } }).args,
+    ).toMatchObject({ type: "object" });
+    expect(definition.description).toContain(
+      "data.importPaste: Import pasted text",
+    );
+    expect(definition.description).toContain("args: {text, name, collectionId}");
     expect(ids).not.toContain("openProject");
     expect(ids).not.toContain("escape");
   });
@@ -151,7 +165,7 @@ describe("window.__compositionAgent (DEV 진입점)", () => {
       undefined,
       expect.objectContaining({ host: "chrome-mcp" }),
     );
-    expect(entry.list()).toHaveLength(40);
+    expect(entry.list()).toHaveLength(44);
     expect(entry.hasConfirmHost()).toBe(false);
   });
 });

@@ -24,9 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Properties › Appearance › Palette** (`categorical` 기본 · `mono`): `mono` 는 테마 accent (`--tint`) 명도 사다리 4단 + neutral 4단 — Themes 패널에서 tint 를 바꾸면 차트도 따라간다 (CSS `oklch(from var(--tint) …)` ↔ Skia 같은 (L, chroma) 표). Series 섹션의 색 Select 는 선택된 팔레트의 순번을 보여 준다.
 - 토큰 `{color.chart-categorical-1..8}` · `{color.chart-accent-1..4}` (`--chart-categorical-N` 은 생성 `theme/generated/chart-palette.css`, `--chart-accent-N` 은 `preview-system.css`). rule `Chart.chart.palettes.{id}` → 생성 CSS `.react-aria-Chart[data-palette="id"]` 블록.
 
-## [ADR-213 Phase 1~4 — AI 데이터 tool 계약: 읽기 4 · "왜 실패했지?" · `propose_data_change` 승인 diff · bind_collection 정정] - 2026-09-11
+## [ADR-213 Phase 1~5 — AI 데이터 tool 계약: 읽기 4 · "왜 실패했지?" · `propose_data_change` 승인 diff · bind_collection 정정 · agent `data.*` 명령 4] - 2026-09-11
 
-> 근거: `docs/adr/213-data-tool-contract-propose-review-apply.md` (리뷰 Round 2 승인) · evidence `docs/adr/evidence/213-p0-inventory.md` (로컬, G0·G1·G4·G3·G2 live 기록). Phase 5~7 (agent 명령 · 사람이 부르는 AI 3종 · closure) 는 진행 중 — Implemented 승격은 Phase 7.
+> 근거: `docs/adr/213-data-tool-contract-propose-review-apply.md` (리뷰 Round 2 승인) · evidence `docs/adr/evidence/213-p0-inventory.md` (로컬, G0·G1·G4·G3·G2·AX-4 live 기록). Phase 6~7 (사람이 부르는 AI 3종 · closure) 는 진행 중 — Implemented 승격은 Phase 7.
 
 ### Added
 
@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **"왜 실패했지?"** — AI 패널에서 "마지막 API 실행이 왜 실패했어?" 라고 물으면 `explain_request_failure` 가 정의 · 보낸 요청 · 응답 status/headers · 본문 앞 2KB · 대상 테이블 스키마를 (전부 가린 뒤) 모아 원인과 `define_endpoint` 패치 제안을 답한다. 제안은 `propose_data_change` 승인으로 적용 — 승인 시 `{{secret.KEY}}` 자리는 기존 값을 그대로 둔다 (AI 가 원문을 본 적이 없으므로).
 - **API 실행 스냅샷**: 실행 (성공/실패) 마다 endpoint 당 마지막 1건 (최종 URL · 헤더 · 응답 status/headers · 본문 앞 2KB) 을 세션에 남긴다. `list_api_endpoints` 의 `lastRun` 이 이것을 요약한다.
 - History 패널 라벨: "API 정의 — {name}" · "데이터 연결 — {name}".
+- **agent 명령 `data.*` 4** (`window.__compositionAgent` · AI 패널 `run_command`): `data.openTable {name|collectionId}` · `data.openEndpoint {name|endpointId, tab?}` · `data.runEndpoint {name|endpointId}` (GET 은 Test 버튼과 같이 바로, 그 밖의 method 는 승인) · `data.importPaste {text, name|collectionId}` (JSON 배열/객체 · 탭/쉼표 표 → 새 테이블 또는 기존 테이블에 행 추가 — 승인 diff 를 지나고 `⌘Z` 1회로 원상). `run_command` 에 `args` 파라미터.
 
 ### Changed
 
