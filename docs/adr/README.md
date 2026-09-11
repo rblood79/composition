@@ -15,14 +15,14 @@
 
 | 구분                      |    개수 |
 | ------------------------- | ------: |
-| 완료 (`completed/`)       |     231 |
-| ├ Implemented             |     195 |
+| 완료 (`completed/`)       |     232 |
+| ├ Implemented             |     196 |
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      13 |
+| 열려 있는 것 (`adr/*.md`) |      12 |
 | ├ Proposed                |      10 |
-| ├ Accepted (일부 착수)    |       2 |
+| ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
 | **합계**                  | **243** |
 
@@ -34,12 +34,6 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
-
-#### [216](216-chart-time-axis-format-window.md) — Chart 확장 — 시간축 · 지시자 형식 · 가변 창
-
-- **상태**: **Accepted · In Progress (2026-09-12)** — round 2 승인 → `/execute-adr 216` 착수 (Phase 0 부터). 사용자 범위 선택 (시간축 + 형식/파싱 + 가변 창; ReferenceLine · Scatter 후속, zoom 제외). 이론 원천 `docs/explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md` (d3-time · d3-scale · d3-array · d3-brush · d3-time-format + RSC vega-spec-builder)
-- **규모**: line/area opt-in `dimensionScale:"time"` (linearScale on epoch · d3-time 18단 눈금 규칙 이식 · RSC 2단 라벨) · d3-time-format 지시자 부분집합 format/parse (`dimensionFormat` · `dimensionLabelFormat`, UTC · en/ko) · ADR-211 창 `[start, end]` thumb 2 (최소 창 = fitEff, 넓히면 극값 재추출). 외부 의존 0 (d3 는 devDependency 오라클). Phase 0~~7 / R1~~R6 (HIGH 3: 211 index 모델 · 이식 정합 · 번들) / G0~G5. design breakdown `design/216-chart-time-axis-format-window-breakdown.md`
-- **우선순위**: 사용자 지시로 212 와 병행 착수 (2026-09-12 "종료까지 시작") — 패널 변경은 `ChartPresentationControls.tsx` 한 파일. 번들 절대 상한 (215, 212 P1 +3,149 초과) 은 G5 보고 항목
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
@@ -205,6 +199,7 @@ Phase 0 재-inventory 후 Proposed → Accepted 승격 → /execute-adr 013
 | [900](completed/900-unified-skia-rendering-engine.md)                               | Unified Skia Rendering Engine — PixiJS/Taffy 제거 및 CSS3 단일 렌더러                                                                                          | Implemented | 2026-04-07                                                           |
 | [213](completed/213-data-tool-contract-propose-review-apply.md)                     | 데이터 tool 계약 — 읽기 4 · `propose_data_change` 승인 diff · "왜 실패했지?" · agent `data.*` 4 · 설명으로 테이블 · 붙여넣기 이해 · 반복 편집 (ADR-213)        | Implemented | 2026-09-12                                                           |
 | [215](completed/215-chart-series-palette.md)                                        | Chart 시리즈 팔레트 — categorical (Spectrum) · mono (accent) 선택 축 (initial 상한 재승인 1,313,600 / 643,758)                                                 | Implemented | 2026-09-11                                                           |
+| [216](completed/216-chart-time-axis-format-window.md) | Chart 확장 — 시간축 (`dimensionScale:"time"`, d3-time 눈금 규칙 이식 · RSC 2단 라벨) · d3-time-format 지시자 형식/파싱 (`dimensionFormat` · `dimensionLabelFormat`) · ADR-211 창 `[start, end]` thumb 2 (initial 상한 재승인 1,322,929 / 660,197 · Preview 순증 한도 6 KiB 개정) | Implemented | 2026-09-12 |
 | [211](completed/211-chart-display-budget-pixel-fit-window-decimation.md)            | 차트 표시 예산 — 픽셀 폭 기준 마크 수와 창·축약 계약 (번들 한도 7 KiB · initial 재승인)                                                                        | Implemented | 2026-09-11                                                           |
 | [210](completed/210-chart-multi-field-series-presentation.md)                       | 차트의 다중 수치 컬럼 매핑과 시리즈 표시 계약 — 예산 예외 승인                                                                                                 | Implemented | 2026-09-10                                                           |
 | [209](completed/209-chart-authoring-canvas-recharts-runtime.md)                     | 차트별 편집 경험과 Canvas·Recharts 런타임 분리                                                                                                                 | Implemented | 2026-09-10                                                           |

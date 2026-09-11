@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-12 (Proposed 2026-09-12 → Accepted 2026-09-12: reviews/216.md round 2 승인 가능 · `pending` 0 → `/execute-adr 216` 착수, 사용자 지시 "종료까지"). **round 1 (codex, HIGH 2 · MEDIUM 4 · LOW 1) 반영 2026-09-12** — h1 집계 epoch 보존 (HC8 · R1 · G2) · h2 HC1 범위를 데이터 기하로 한정하고 창 트랙 변경을 명시 · m3 `%y`/폭/달력 정책 정정 · m4 최소 창 = `min(fitEff, n)` · m5 파싱 실패 행 제외 정책 · m6 G5 측정 조건 5-질문 · l7 정렬 서술 정정 ([reviews/216.md](reviews/216.md)). 사용자가 범위 (시간축 + 지시자 형식/파싱 + 가변 창; ReferenceLine · Scatter 는 후속, zoom 제외) 와 제목을 AskUserQuestion 으로 선택 (분리 4질문 lock-in: [breakdown §1](design/216-chart-time-axis-format-window-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in)). 이론 원천: [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](../explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) (d3-time · d3-scale · d3-array · d3-brush · d3-time-format 소스 + RSC `vega-spec-builder`).
+**Implemented — 2026-09-12** (Proposed → Accepted 2026-09-12: reviews/216.md round 2 승인 가능 · `pending` 0 → `/execute-adr 216` Phase 0~7 하루, 커밋 `a409896da` · `c6e2a89c2` · `2911a37da` · `ad1a91965` · `6244779f9` · `cc5353791` · `0785c3d8f` + closure). **HC5 개정 (사용자 판정 2026-09-12)**: Preview initial 순증 한도 3 → **6 KiB** gzip (실측 +5,155 B = Preview 655 KB 의 +0.8%; ADR 의 실패 대안 parse·ko lazy ≈ 1.5 KiB 로는 3 KiB 에 못 미치고 시간 스택 전체 lazy 는 첫 페인트 flash 를 낳는다) + 절대 상한 (215) 초과분 Builder +9,329 / Preview +16,439 재승인 → **initial 절대 상한 정본 = 본 ADR 승인값 Builder 1,322,929 / Preview 660,197 (만료 2026-10-12)**. **round 1 (codex, HIGH 2 · MEDIUM 4 · LOW 1) 반영 2026-09-12** — h1 집계 epoch 보존 (HC8 · R1 · G2) · h2 HC1 범위를 데이터 기하로 한정하고 창 트랙 변경을 명시 · m3 `%y`/폭/달력 정책 정정 · m4 최소 창 = `min(fitEff, n)` · m5 파싱 실패 행 제외 정책 · m6 G5 측정 조건 5-질문 · l7 정렬 서술 정정 ([reviews/216.md](../reviews/216.md)). 사용자가 범위 (시간축 + 지시자 형식/파싱 + 가변 창; ReferenceLine · Scatter 는 후속, zoom 제외) 와 제목을 AskUserQuestion 으로 선택 (분리 4질문 lock-in: [breakdown §1](../design/216-chart-time-axis-format-window-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in)). 이론 원천: [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](../../explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) (d3-time · d3-scale · d3-array · d3-brush · d3-time-format 소스 + RSC `vega-spec-builder`).
 
 ## Context
 
@@ -28,7 +28,7 @@ Accepted — 2026-09-12 (Proposed 2026-09-12 → Accepted 2026-09-12: reviews/21
 2. **두 leg 동일**: 같은 크기 두 leg 에서 눈금 위치 · 라벨 문자열 · 창 초기 상태가 byte 동일. 축 라벨은 **ICU 비의존** (지시자 이식) — publish 열람 브라우저가 달라도 같은 문자열.
 3. **외부 의존 0**: `packages/specs/src/chart` 런타임 import 에 d3 계열 0 (ADR-194). d3 는 devDependency 오라클로만 (번들 0).
 4. **최소 창 = `min(fitEff, n)`**: 창 `[start, end]` 는 `0 ≤ start < end ≤ n` · `end − start ≥ min(fitEff, n)` — `n ≤ fitEff` 면 창 = `[0, n]` 이고 트랙이 없다 (211 그대로, `budget.ts:656-660` 의 `end = min(n, start + fitEff)` 와 정합). resize 로 fitEff 가 커지면 `end` 를 늘리고 부족하면 `start` 를 줄인다. ADR-211 예산 (마크 ≤ M · 점 ≤ P) 은 창 크기와 무관하게 유지 — 넓힌 창은 극값 재추출.
-5. **번들**: Builder initial 순증 ≤ 7 KiB gzip (ADR-211 과 같은 한도, 신규 모듈은 Skia 가 읽어 initial), Preview initial 순증 ≤ 3 KiB. 절대 상한은 ADR-215 승인값 (Builder 1,313,600 / Preview 643,758, 만료 2026-10-10) — **현재 ADR-212 P1 이 +3,149 초과 상태**라 본 ADR G5 는 순증 한도로 판정하고 절대 상한은 사용자 재승인 항목.
+5. **번들**: Builder initial 순증 ≤ 7 KiB gzip (ADR-211 과 같은 한도, 신규 모듈은 Skia 가 읽어 initial), Preview initial 순증 ≤ ~~3 KiB~~ **6 KiB (2026-09-12 사용자 개정 — 실측 +5,155 B, §Status)**. 절대 상한은 ADR-215 승인값 (Builder 1,313,600 / Preview 643,758, 만료 2026-10-10) — **현재 ADR-212 P1 이 +3,149 초과 상태**라 본 ADR G5 는 순증 한도로 판정하고 절대 상한은 사용자 재승인 항목.
 6. **성능**: 창 드래그 중 모델 재계산 (극값 재추출) p95 ≤ 20 ms **및** Preview 전체 프레임 p95 가 창 고정 대조군 대비 +4 ms 이내 — 측정 조건은 G5 에 5-질문 (measurement-validity §1) 으로 명시. 초과 시 release 정책 (드래그 중 트랙만 갱신, 릴리즈 ≤ 100 ms 안에 재추출, 그동안 표시 데이터 = 이전 창) 으로 전환하되 그 경우 **릴리즈 지연 ≤ 100 ms** 가 대체 기준이다.
 7. **UTC 단일 · 달력 엄격**: 파싱·눈금·라벨 전부 UTC. 로컬 시간대 없음. 사용자 형식 파싱도 ISO 경로와 같이 **달력 넘침을 거부** (`2026-02-30` → 실패 행) — d3 의 정규화 (`03-02`) 를 따르지 않는다 (의도된 차이, G1 오라클은 유효 날짜 한정).
 8. **집계 후 시간 좌표 보존**: 시간 스케일의 transformed 점은 라벨과 **분리된 epoch 위치** 를 갖는다 — 창·극값은 원본 epoch, 집계 bucket 은 `[첫 유효 epoch, 끝 유효 epoch]` 범위 + 대표 x = 첫 유효 epoch. 두 leg 일치가 아니라 **손계산 기대 x** 가 G2 의 oracle 이다.
@@ -93,7 +93,7 @@ Accepted — 2026-09-12 (Proposed 2026-09-12 → Accepted 2026-09-12: reviews/21
 - **대안 B 기각**: 두 leg 눈금 알고리즘이 갈려 비대칭이 상시화되고 "Skia 가 따라간다" 언어가 된다 (ssot-hierarchy §6). `Brush` 는 ADR-211 이 이미 기각한 이유 (인덱스 기반 · 창 길이 임의 · 마우스 전용) 가 그대로다.
 - **대안 C 기각**: ICU 의존 라벨은 publish 열람 브라우저·Node 스냅샷에서 문자열이 흔들리고, 비-ISO 입력을 못 받으며, 가변 창 요구를 충족하지 못한다.
 
-> 구현 상세: [216-chart-time-axis-format-window-breakdown.md](design/216-chart-time-axis-format-window-breakdown.md)
+> 구현 상세: [216-chart-time-axis-format-window-breakdown.md](../design/216-chart-time-axis-format-window-breakdown.md)
 
 ## Risks
 
@@ -119,7 +119,14 @@ Accepted — 2026-09-12 (Proposed 2026-09-12 → Accepted 2026-09-12: reviews/21
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-09-12 · 로컬 evidence `docs/adr/evidence/216-p6-perf-bundle.md` (+ `216-p0-inventory.md`, JSON·스크린샷 `216-p6/`). 실행 근거 ledger `.agent/runs/20260912-025434-adr-216-*`.
+
+- **실제 빌더 (dev 5173, headless Chromium, 프로젝트 신규 생성) — `apps/builder/scripts/adr216-chart-time-window-live.mjs` 9/9 PASS**. Skia (Compare Mode 전, 전폭 픽셀): 같은 일별 120 행 (50~61 일 결측) 을 `dimensionScale:"time"` 으로 바꾸면 선에 결측 자리 (곧은 선분 run 29 px / span 271, category 0) 와 2단 라벨 (`Jan / 2026 … May`, 잉크 띠 +2) 이 생긴다. Preview (Compare Mode DOM): 장식 텍스트 `Jan · 2026 · Feb · Mar · Apr · May`, Recharts 꼭짓점 결측 간격 = 13 슬롯, 420 행 창 모드에서 트랙 thumb 2 · 초기 `[0, 91]` · 시작 thumb ArrowRight → `[1, 92]` (창 이동) · 끝 thumb End → `[1, 420]` (넓힘, 극값 재추출로 경로 점 168 ≤ 2·fitEff) · 끝 thumb Home → `[1, 92]` (최소 창) · 채움 실제 마우스 드래그 +100 슬롯 → `[101, 192]` (길이 보존) · element props 에 창 상태 write 0 · `dimensionScale` 저장.
+- **G5 성능 (5-질문, `adr216-chart-time-window-perf.mjs`, headed DPR 2 · throttle 1 · 3 × 60 스텝)**: 모델 p95 12.4 ms (20,000 × S4, 확대 매 스텝) / 1.0 ms (사람형 1,940) ≤ 20 · 프레임 p95 드래그 − 고정 = +0.00 / −0.10 ms ≤ +4 → release 정책 불요. 사용자 환경 (DevTools throttle 4x) 은 ≈ 4배로 읽는다.
+- **G5 번들** (clean worktree 2 · 원래 lockfile · ADR-212 병행 커밋 제외 cherry-pick): Builder +5,636 B gzip (≤ 7 KiB PASS) · Preview +5,155 B (3 KiB 초과 → **사용자 개정 6 KiB 로 PASS**). 함정: 상대 `--dist` 가 main 의 오래된 dist 를 재 −544 B 가 나왔다 — 절대 경로로 재측정.
+- **T12 구버전 probe** (`49ff06eb1` 빌드 dist): 새 props 3 (`dimensionScale:"time"` · `dimensionFormat` · `dimensionLabelFormat`) 이 든 문서를 구버전 `computeChartScene` 이 열면 category band 로 그리고 (`empty false` · 눈금 ISO 문자열 · 경로 점 9) 미설정 scene 과 **byte 동일** — 데이터 손실 0.
+- 단위·parity: specs chart 454 (G1 d3 오라클 76 · G2 손계산 18 · G4 창 9 · 기존 352 무변경 = HC1) · shared chartParity +2 (Skia path d = DOM d) · chart browser 223 (Recharts 꼭짓점 x = scene ±0.5 · 2단 라벨 byte 동일 · 창 thumb 2 키/드래그) · Properties 패널 2 · projection 1.
+- 설계 대비 정정 3 (breakdown 체크리스트): d3 `utcTicks` 의 일 단위는 `unixDay` (epoch 일수) — 오라클이 잡음 · 극값 창의 domain 끝은 transformed max (손계산 정정) · 패널 파일은 실재하지 않는 `ChartPresentationControls.tsx` 가 아니라 신규 `ChartTimeAxisControls.tsx` + `PropertiesPanel.tsx` 1 지점 · Canvas thumb 위치는 `index / n` (문서의 `track.x + track.w` 는 end = n 의 자리).
 
 ## Consequences
 

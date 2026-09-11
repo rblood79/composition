@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-216 Implemented — Chart 시간축 · 날짜 지시자 형식/파싱 · 가변 창 (thumb 2)] - 2026-09-12
+
+> 근거: `docs/adr/completed/216-chart-time-axis-format-window.md` (codex round 1 → claude round 2 승인 → `/execute-adr 216` Phase 0~7 하루, `### Live Exercise` 실제 빌더 9/9 + G5 성능 5-질문 + 번들 worktree 2). 이론 원천 [CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09](explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md) — d3-time · d3-time-format · d3-brush 의 **규칙만** 이식, 런타임 의존 0 (d3 는 specs devDependency 오라클, 눈금 12 span × 3 count · 지시자 15 × 100 날짜 동일).
+
+### Added
+
+- **Properties › Content › 범주 간격 (Category Spacing)** — `등간격` (현행) / **`시간 (날짜 간격)`** (`dimensionScale:"time"`, line/area 만): `dimension` 문자열을 UTC 날짜로 읽어 **시간 간격대로** 놓는다 (빈 날은 빈 자리, 순서는 시간 순), 눈금은 달력 경계 (자정 · 월초 · 연초, d3 18단 표) 에 붙고 라벨은 **2단** (눈금마다 작은 단위 + 경계마다 큰 단위 — `1 2 3 … / Jan`, `Jan Feb … / 2026`; react-spectrum-charts 와 같은 표). Builder Canvas · Preview · Publish 가 같은 모듈을 읽는다. 범주가 전부 날짜면 패널이 "시간축으로 볼 수 있습니다" 를 안내한다 (자동 전환 아님).
+- **날짜 입력 형식** (`dimensionFormat`, d3-time-format 지시자 부분집합 `%Y %y %m %d %e %H %I %M %S %L %p %a %A %b %B %j %q %Z %Q %s %%` + 패딩 `- _ 0`) — `2026/03/05` · `Mar 5, 2026` · `20260305` · epoch 초 같은 비-ISO 열을 받는다 (비우면 엄격 ISO). 날짜로 읽지 못한 행은 그려지지 않고 (`2026-02-30` 도 거부) 패널이 "N행은 날짜로 읽지 못해 제외됩니다" 로 알린다. **축 라벨 형식** (`dimensionLabelFormat`) 을 주면 한 줄 라벨. 로케일은 숫자 형식의 `valueLocale` 을 같이 쓴다 (`ko-KR` 이면 `1월 · 오후`).
+- Chart binding · Preview · Skia · Properties 패널 · i18n ko/en 결선 (`ChartTimeAxisControls`).
+
+### Changed
+
+- **창 트랙 (ADR-211) 이 손잡이 둘 `[start, end]`** 로 바뀐다 — 시작 손잡이 = 창 이동 (화살표 1 슬롯, 최소 창 = 한 화면), 끝 손잡이 = 창 넓히기/좁히기 (End 로 전체까지 — 넓힌 창은 극값/집계로 한 화면 예산에 다시 맞춘다), 손잡이 사이를 끌면 창이 통째로 이동 (길이 보존). **창이 있는 기존 차트 (범주가 화면보다 많은 bar/line/area) 도 Canvas 의 정적 트랙에 손잡이가 둘로 보인다** (데이터 마크·축·격자·범례는 byte 동일 — ADR-216 HC1 예외). 창 상태는 저장하지 않는다.
+- 시간 스케일에서 집계 (`aggregate`) 는 bucket 의 `[첫 epoch, 끝 epoch]` 을 보존해 대표 x = 첫 epoch 에 놓는다 (라벨은 `첫 ~ 끝` 그대로).
+- initial 번들 상한 재승인 (사용자 2026-09-12): Builder 1,322,929 / Preview 660,197 B gzip (만료 2026-10-12) — ADR-216 순증 Builder +5,636 · Preview +5,155 (Preview 순증 한도 3 → 6 KiB 개정).
+
 ## [Chart 한국어 UI — "시리즈" → "계열"] - 2026-09-12
 
 ### Changed
