@@ -51,16 +51,16 @@
 - [x] 아트보드 원본을 `docs/design/data-panel-redesign/` 로 이관 (canvas.json + `*.dc.html`) — artifact `f7d8327e` 에서 추출 (13 아트보드 + 캡처 5, 로컬 전용)
 - [x] **착수 조건**: Phase 2·3은 ADR-152 G5 PASS, Phase 4는 ADR-213 G1~~G4 PASS 후 — 둘 다 충족 (152 G5 09-11 · 213 Implemented 09-12). R5 Variables 탭 조건부 숨김은 ADR-214 Phase 0~~1 merge (09-11) 로 폐기 — 탭은 214 소유, 현행 유지
 
-### Phase 1 — 표면 골격 (152 독립)
+### Phase 1 — 표면 골격 (152 독립) — 완료 2026-09-12 (`e475aca11` · `9adbd3a10` · `655ea46e1`, live 16/16 `scripts/adr212-p1-live.mjs`)
 
-- [ ] 목록 패널 이름 "Data" (i18n `datatable.panelTitle`), 탭 Tables / APIs / Variables — Variables 탭은 ADR-214 (Phase 0~1 merge 09-11) 소유라 현행 유지 (R5 폐기, Phase 0)
-- [ ] 목록 항목을 버튼으로 (RAC `ListBox` 또는 `GridList` — 키보드 열림, A5) + 상태 배지 (UI-6): 테이블 = 필드 수 · 행 수 · 소스 · 사용처 수 (152 `resolveBoundCollection` 역참조) · 0행/오류; API = method · 마지막 실행 (status · ms · 상대 시각) · 연결 테이블
-- [ ] 탭 라벨 잘림 규칙 — `.panel-tablist` 컨테이너 폭 < 360 이면 아이콘 + tooltip (`panel-system.css`, Navigator · Styles 도 같은 클래스라 공통 적용 — 회귀 확인)
-- [ ] 편집 패널 생명주기 일반화 (UI-8) — `dataTableEditorStore.open(mode)` 가 `activatePanelWorkspacePanelV4` 경유, visibility 직접 토글 제거
-- [ ] 필드 패널 등록 (`panelConfigs.ts` `datatableField`: minWidth 240 · defaultWidth 260) + `placeOverflowRow` 가 편집기 옆 열에 스냅, 자리 없으면 아래 행 (Widths 아트보드) — 정책 test 1개
-- [ ] `panelConfigs.ts`에서 editor 구현을 `React.lazy` loader로 로드하고 `Suspense` fallback·열림 포커스 복귀를 고정 — production initial chunk에 editor 구현 bytes 0
-- [ ] 생성 패널 진입 6종 (Main 아트보드): 빈 테이블 · 프리셋 · 붙여넣기 · CSV · API 로 · AI 로 (AI 는 ADR-213 전까지 비활성 + tooltip)
-- [ ] `role=status` live region — Toast 가 담당하지 못하면 패널 하단 `aria-live="polite"` 1개 (Y4)
+- [x] 목록 패널 이름 "Data" (`panels.dataTable` = Data / 데이터 — 헤더와 rail 라벨이 같은 키), 탭 Tables / APIs / Variables — Variables 탭은 ADR-214 (Phase 0~1 merge 09-11) 소유라 현행 유지 (R5 폐기, Phase 0)
+- [x] 목록 항목을 RAC `GridList` 행으로 (키보드 Enter 열림 · 행 안 버튼은 Arrow 로 도달, A5) + 상태 배지 (UI-6): 테이블 = 필드 수 · 행 수 · 소스 (샘플/API) · 사용처 수 (`resolveCollectionUsage` 152 역참조) · 0행 (`data-empty`) · 마지막 실행 오류 (`apiRuns`, `data-error`); API = method · 마지막 실행 (status · ms · 상대 시각) · 연결 테이블
+- [x] 탭 라벨 잘림 규칙 — 컨테이너 쿼리 `datatable-panel` < 360 이면 라벨 visually-hidden (이름 유지) + 아이콘 `title` tooltip. **datatable 패널 루트 한정** (R7 — Navigator · Styles 는 그대로, 공통 적용은 회귀 확인 뒤 별도)
+- [x] 편집 패널 생명주기 일반화 (UI-8) — `dataTableEditorStore.open(mode)` → `setPanelWorkspacePanelVisibility` (dispatcher `(id, visible)` 보장 → `activatePanelWorkspacePanelV4`; 폴백도 같은 정책 함수) — visibility 직접 쓰기 0 (`PanelWorkspace.static.test.ts` 고정)
+- [x] 필드 패널 등록 (`panelConfigs.ts` `datatableField`: minWidth 240 · defaultWidth 260 · `snapTo: "datatableEditor"` · `hiddenFromRail`) + `placeSnappedRow` 가 anchor 옆 새 column, column 상한이면 anchor 아래 행, 닫았다 열면 같은 자리 — 정책 test 2 (`panelWorkspacePolicyV4.test.ts`). 본문은 Phase 3
+- [x] `panelConfigs.ts` 의 편집기 · 필드 패널을 `lazyPanel(() => import(...))` 로 (`Suspense` fallback = 패널 골격 안 스피너, 포커스는 호출한 목록 버튼에 그대로) — production `655ea46e1`: initial 안 `panels/datatable/**` 71,164 → **16,024 raw B, 편집기 구현 0** (`adr212-editor-initial-bytes.mjs`), initial JS gzip 1,332,608 → **1,316,749 (−15,859)** — 215 상한 1,313,600 까지 +3,149 남음. `lazyPanelBoundary.static.test.ts` 가 정적 import 재유입 차단
+- [x] 생성 패널 진입 6종 (Main 아트보드, RAC `RadioGroup`): 빈 테이블 (id 1 필드) · 프리셋 · 붙여넣기 (`parsePastedRows` → `detectColumns` 미리보기) · CSV / JSON 파일 · API 에서 (API 생성 패널로) · **AI 로 설명 — ADR-213 Implemented 라 활성**: AI 입력창 초안 (`aiComposerDraft`) + AI 패널 열기, 전송은 사용자 (`create_table_from_description` 이 승인 diff 로). 쓰기는 `createDataTable` 하나. 만들면 편집기로 전환. 생성 패널의 empty/preset 탭 제거
+- [x] `role=status` live region — 토스트는 전부 `role=alert` 라 (Phase 0 §4) Data 패널 하단 `DataPanelStatusRegion` (`aria-live=polite`, 항상 마운트, `announceDataPanelStatus`) 신설 — 생성 · 삭제 결과가 여기로. 오류는 토스트 유지
 
 ### Phase 2 — 격자 (게이트 G1)
 
