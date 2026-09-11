@@ -687,6 +687,14 @@ export interface TranslationKeys {
     failedWithReason: string;
     resultWithDetail: string;
     resultPlain: string;
+    listCollections: string;
+    listCollectionsDone: string;
+    getCollection: string;
+    getCollectionDone: string;
+    listApiEndpoints: string;
+    listApiEndpointsDone: string;
+    getApiEndpoint: string;
+    getApiEndpointDone: string;
   };
   presetData: {
     companies: string;
@@ -989,6 +997,12 @@ export interface TranslationKeys {
     sampleRows: string;
     endpointIdRef: string;
     endpointNameRef: string;
+    bindFieldMap: string;
+  };
+  aiDataProposal: {
+    summary: string;
+    bindLabel: string;
+    rejected: string;
   };
   aiToolId: {
     canonicalCreate: string;
@@ -1046,6 +1060,7 @@ export interface TranslationKeys {
     collectionNotFound: string;
     endpointRefRequired: string;
     endpointNotFound: string;
+    bindLegacySourceUnsupported: string;
     unknownAction: string;
     bodyUndeletable: string;
     notDeleted: string;

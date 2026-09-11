@@ -15,8 +15,11 @@ import type { ShortcutId } from "../../builder/config/keyboardShortcuts";
 import type { CommandMeta } from "../../builder/config/commandMeta";
 import type { AgentHost } from "../../builder/stores/agentCommandLog";
 
+/** ADR-213 — 데이터 proposal 은 agent 명령 id 축 밖 (`"data.propose"`). */
+export type AgentConfirmationId = ShortcutId | "data.propose";
+
 export interface AgentCommandConfirmationRequest {
-  id: ShortcutId;
+  id: AgentConfirmationId;
   summary: string;
   mutation: CommandMeta["mutation"];
   undo: CommandMeta["undo"];

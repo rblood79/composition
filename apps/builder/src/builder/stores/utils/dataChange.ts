@@ -1,5 +1,5 @@
 /**
- * `DataChange` 적용기 (ADR-152 §2-3, Phase 1c).
+ * `DataChange` 적용기 (ADR-152 §2-3, Phase 1c · ADR-213 Phase 2 bind_element).
  *
  * 데이터 편집의 단일 진입점 — 사람 UI · import · AI (ADR-213) · agent 가 만든
  * `DataChange` 를 받아 (a) 검증 → (b) 파급 (rename 은 행도 옮긴다) → (c) History
@@ -405,11 +405,17 @@ function reduceOne(
       });
       return;
     }
-    case "define_endpoint":
     case "bind_element":
-      // ADR-213 (endpoint 정의 · 요소 바인딩은 각각 apiEndpoints · canonical 문서 축)
+      // canonical 문서 축 — 적용기 (`createApplyDataChangeAction`) 가 collections
+      // reduce 앞에서 나누어 `DataBindingConsumer` 로 보낸다. 여기 오면 계약 위반.
       throw new DataChangeError(
-        `${op.op} 는 Phase 1c 적용기 범위 밖입니다 (ADR-213 에서 배선)`,
+        "bind_element 는 collections reducer 범위 밖입니다 (적용기가 canonical 축으로 보낸다)",
+        op,
+      );
+    case "define_endpoint":
+      // ADR-213 Phase 4 — apiEndpoints 축 consumer
+      throw new DataChangeError(
+        `${op.op} 는 Phase 1c 적용기 범위 밖입니다 (ADR-213 Phase 4 에서 배선)`,
         op,
       );
     default: {
@@ -438,6 +444,131 @@ export function reduceDataOps(
 // ============================================
 // Store action
 // ============================================
+
+// ============================================
+// bind_element — canonical 축 consumer (ADR-213 Phase 2)
+// ============================================
+
+export type BindElementOp = Extract<DataOp, { op: "bind_element" }>;
+
+/** 사람 UI (`PropertyDataBinding`) 가 `props.dataBinding` 에 기록하는 것과 같은 형상. */
+export interface DataTableBindingValue {
+  source: "dataTable";
+  collectionId: string;
+  name: string;
+  fieldMap?: BindElementOp["fieldMap"];
+}
+
+export interface DataBindingWrite {
+  /** `null` = 해제. `restore` 가 있으면 무시된다. */
+  binding: DataTableBindingValue | null;
+  /** inverse 전용 — props · extension 원본을 그대로 되돌린다. */
+  restore?: BindElementOp["restore"];
+}
+
+export interface DataBindingSnapshot {
+  props?: unknown;
+  extension?: unknown;
+}
+
+/**
+ * canonical 문서에 바인딩을 쓰는 쪽 (elements store) 이 등록한다 — data store 가
+ * elements store 를 import 하면 순환이라 bridge 로 잇는다 (`stores/index.ts` 가 등록).
+ * History 는 만들지 않는다 — 이 적용기가 `type:"data"` entry 하나로 묶는다 (HC4).
+ */
+export interface DataBindingConsumer {
+  has: (elementId: string) => boolean;
+  /** @returns 적용 전 스냅샷. 요소가 없으면 null. */
+  apply: (
+    elementId: string,
+    write: DataBindingWrite,
+  ) => { previous: DataBindingSnapshot } | null;
+}
+
+let bindingConsumer: DataBindingConsumer | null = null;
+
+export function registerDataBindingConsumer(
+  consumer: DataBindingConsumer | null,
+): void {
+  bindingConsumer = consumer;
+}
+
+function isBindElementOp(op: DataOp): op is BindElementOp {
+  return op.op === "bind_element";
+}
+
+/** collection 축 / canonical 축 분리 — 순서는 각 축 안에서만 보존한다. */
+function partitionDataOps(ops: readonly DataOp[]): {
+  collectionOps: DataOp[];
+  bindingOps: BindElementOp[];
+} {
+  const collectionOps: DataOp[] = [];
+  const bindingOps: BindElementOp[] = [];
+  for (const op of ops) {
+    if (isBindElementOp(op)) bindingOps.push(op);
+    else collectionOps.push(op);
+  }
+  return { collectionOps, bindingOps };
+}
+
+/** 검증 (순수) — 요소 존재 · collection 존재 (같은 change 의 create 결과 포함). */
+function preflightBindingOps(
+  ops: readonly BindElementOp[],
+  collections: Map<string, DataTable>,
+): DataBindingConsumer {
+  if (ops.length === 0) return bindingConsumer as DataBindingConsumer;
+  if (!bindingConsumer) {
+    throw new DataChangeError(
+      "bind_element consumer 가 등록되지 않았습니다 (elements store 미초기화)",
+      ops[0],
+    );
+  }
+  for (const op of ops) {
+    if (!bindingConsumer.has(op.elementId)) {
+      throw new DataChangeError(`요소를 찾을 수 없습니다: ${op.elementId}`, op);
+    }
+    if (op.restore || op.collectionId === null) continue;
+    if (!collections.has(op.collectionId)) {
+      throw new DataChangeError(
+        `collection 을 찾을 수 없습니다: ${op.collectionId}`,
+        op,
+      );
+    }
+  }
+  return bindingConsumer;
+}
+
+function toBindingWrite(
+  op: BindElementOp,
+  collections: Map<string, DataTable>,
+): DataBindingWrite {
+  if (op.restore) return { binding: null, restore: op.restore };
+  if (op.collectionId === null) return { binding: null };
+  const collectionId = op.collectionId;
+  const collection = collections.get(collectionId);
+  return {
+    binding: {
+      source: "dataTable",
+      collectionId,
+      name: collection?.name ?? collectionId,
+      ...(op.fieldMap ? { fieldMap: op.fieldMap } : {}),
+    },
+  };
+}
+
+function inverseOfBinding(
+  op: BindElementOp,
+  previous: DataBindingSnapshot,
+): BindElementOp {
+  const prevProps = previous.props as Partial<DataTableBindingValue> | undefined;
+  return {
+    op: "bind_element",
+    elementId: op.elementId,
+    collectionId:
+      typeof prevProps?.collectionId === "string" ? prevProps.collectionId : null,
+    restore: { props: previous.props, extension: previous.extension },
+  };
+}
 
 export interface ApplyDataChangeOptions {
   /** false = History entry 를 만들지 않는다 (undo/redo 재적용). 기본 true. */
@@ -482,21 +613,32 @@ export const createApplyDataChangeAction =
     options: ApplyDataChangeOptions = {},
   ): Promise<ApplyDataChangeResult> => {
     const before = get().collections;
-    const result = reduceDataOps(before, change.ops, {
+    // 1. preflight (순수) — collections reduce 전량 + binding 검증. 실패는 무변경.
+    const { collectionOps, bindingOps } = partitionDataOps(change.ops);
+    const result = reduceDataOps(before, collectionOps, {
       projectId: options.projectId,
     });
+    const consumer = preflightBindingOps(bindingOps, result.collections);
 
-    try {
+    const persist = async (
+      prev: Map<string, DataTable>,
+      reduced: ReduceResult,
+    ): Promise<void> => {
       const db = (await getDB()) as unknown as CollectionsDB;
       const store = db.collections;
       if (!store) throw new Error("collections store not found in database");
-      for (const id of result.deleted) await store.delete(id);
-      for (const id of result.upserted) {
-        const next = result.collections.get(id);
+      for (const id of reduced.deleted) await store.delete(id);
+      for (const id of reduced.upserted) {
+        const next = reduced.collections.get(id);
         if (!next) continue;
-        if (before.has(id)) await store.update(id, persistablePatch(next));
+        if (prev.has(id)) await store.update(id, persistablePatch(next));
         else await store.insert(next);
       }
+    };
+
+    // 2. collections commit (IndexedDB → 메모리)
+    try {
+      await persist(before, result);
     } catch (error) {
       console.error("❌ DataChange 저장 실패:", error);
       set((state) => {
@@ -506,32 +648,72 @@ export const createApplyDataChangeAction =
       });
       throw error;
     }
-
     set({ collections: result.collections });
 
+    // 3. canonical 축 commit — 실패 시 앞서 적용한 binding 과 collections 를 역순 rollback
+    const appliedBindings: BindElementOp[] = [];
+    const bindingInverse: BindElementOp[] = [];
+    try {
+      for (const op of bindingOps) {
+        const outcome = consumer.apply(
+          op.elementId,
+          toBindingWrite(op, result.collections),
+        );
+        if (!outcome) {
+          throw new DataChangeError(
+            `요소를 찾을 수 없습니다: ${op.elementId}`,
+            op,
+          );
+        }
+        appliedBindings.push(op);
+        bindingInverse.unshift(inverseOfBinding(op, outcome.previous));
+      }
+    } catch (error) {
+      for (const inverse of bindingInverse) {
+        consumer.apply(inverse.elementId, toBindingWrite(inverse, result.collections));
+      }
+      if (result.applied.length > 0) {
+        const rollback = reduceDataOps(result.collections, result.inverse, {
+          projectId: options.projectId,
+        });
+        set({ collections: rollback.collections });
+        try {
+          await persist(result.collections, rollback);
+        } catch (persistError) {
+          console.error("❌ DataChange rollback 저장 실패:", persistError);
+        }
+      }
+      console.error("❌ DataChange 바인딩 적용 실패 (rollback):", error);
+      throw error;
+    }
+
+    const applied: DataOp[] = [...result.applied, ...appliedBindings];
+    const inverse: DataOp[] = [...bindingInverse, ...result.inverse];
+    const collectionIds = [...result.upserted, ...result.deleted];
+    const elementIds = [
+      ...collectionIds,
+      ...appliedBindings.map((op) => op.elementId),
+    ];
+
+    // 4. History 1 entry — 승인 묶음 = entry 1 (⌘Z 1회로 전체 원상, HC4)
     if (options.record !== false) {
-      const collectionIds = [...result.upserted, ...result.deleted];
       const payload: DataChangeHistoryPayload = {
         change: {
-          ops: result.applied,
+          ops: applied,
           origin: change.origin,
           ...(change.label !== undefined ? { label: change.label } : {}),
         },
-        inverse: result.inverse,
+        inverse,
       };
       historyManager.addEntry({
         type: "data",
-        elementId: collectionIds[0] ?? "",
-        elementIds: collectionIds,
+        elementId: elementIds[0] ?? "",
+        elementIds,
         data: { dataChangeEvent: payload },
       });
     }
 
-    syncCollectionsToCanvas(result.collections);
+    if (result.applied.length > 0) syncCollectionsToCanvas(result.collections);
 
-    return {
-      applied: result.applied,
-      inverse: result.inverse,
-      collectionIds: [...result.upserted, ...result.deleted],
-    };
+    return { applied, inverse, collectionIds };
   };

@@ -4,6 +4,7 @@ import { create } from "zustand";
 // import { produce } from "immer"; // REMOVED
 import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
+import type { SerializedDataBinding } from "@composition/shared";
 import { Element, ComponentElementProps } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
 import {
@@ -97,7 +98,12 @@ import { getNullablePageFrameBindingId } from "@/adapters/canonical/frameMirror"
 import {
   areCanonicalMutationStoreActionsRegistered,
   moveElementCanonicalPrimary,
+  updateCanonicalNodePropsPrimary,
 } from "@/adapters/canonical/canonicalMutations";
+import type {
+  DataBindingSnapshot,
+  DataBindingWrite,
+} from "./utils/dataChange";
 import { resolveAbsoluteFlowReparentProps } from "../utils/absolutePositioning";
 function pageLayoutId(page: Page): string | null {
   return getNullablePageFrameBindingId(page);
@@ -282,6 +288,19 @@ export interface ElementsState {
     elementId: string,
     patch: Record<string, unknown>,
   ) => boolean;
+
+  /**
+   * ADR-213 Phase 2 — `bind_element` consumer. `props.dataBinding` (사람 UI 형상 · 읽기
+   * 최우선) 을 쓰고 legacy `x-composition.dataBinding` 은 지운다. `restore` 는 두 자리를
+   * 원본 그대로 되돌린다 (inverse). History 는 만들지 않는다 — data 적용기가
+   * `type:"data"` entry 하나로 묶는다 (HC4).
+   *
+   * @returns 적용 전 스냅샷. 요소·문서가 없으면 null.
+   */
+  applyCanonicalDataBindingPatch: (
+    elementId: string,
+    write: DataBindingWrite,
+  ) => { previous: DataBindingSnapshot } | null;
 
   // 다중 선택 관련 액션
   toggleElementInSelection: (elementId: string) => void;
@@ -2106,6 +2125,71 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       });
 
       return result.changed;
+    },
+
+    applyCanonicalDataBindingPatch: (elementId, write) => {
+      if (isRenderProjectionId(elementId)) return null;
+      if (!areCanonicalMutationStoreActionsRegistered()) return null;
+      if (!isCanonicalMutationRunnerBridgeRegistered()) return null;
+
+      const canonicalStore = useCanonicalDocumentStore.getState();
+      const projectId = canonicalStore.currentProjectId;
+      if (!projectId || !canonicalStore.documents.get(projectId)) return null;
+
+      const node = getFirstProjectableNodeById(elementId);
+      if (!node) return null;
+      const extension = (node as { "x-composition"?: { dataBinding?: unknown } })[
+        "x-composition"
+      ];
+      const previous: DataBindingSnapshot = {
+        props: (node.props as Record<string, unknown> | undefined)?.dataBinding,
+        extension: extension?.dataBinding,
+      };
+
+      const nextProps: Record<string, unknown> = {
+        ...((node.props as Record<string, unknown> | undefined) ?? {}),
+      };
+      let nextExtensionBinding: unknown = undefined;
+      if (write.restore) {
+        if (write.restore.props === undefined) delete nextProps.dataBinding;
+        else nextProps.dataBinding = write.restore.props;
+        nextExtensionBinding = write.restore.extension;
+      } else if (write.binding === null) {
+        delete nextProps.dataBinding;
+      } else {
+        nextProps.dataBinding = write.binding;
+      }
+
+      runCanonicalMutation({
+        canonical: () => {
+          updateCanonicalNodePropsPrimary(elementId, nextProps);
+          useCanonicalDocumentStore
+            .getState()
+            .updateNodeExtension(elementId, {
+              // restore 는 원본 스냅샷 (직렬화 가능 값만 저장돼 있다) — 타입 축소만
+              dataBinding: nextExtensionBinding as SerializedDataBinding | undefined,
+            });
+          const next = useCanonicalDocumentStore.getState();
+          return {
+            changed: true,
+            document: next.documents.get(next.currentProjectId ?? "") ?? null,
+          };
+        },
+        // mirror 재파생 — `applyCanonicalExtensionPatch` 와 같은 이유 (캔버스가 옛 값을 그린다)
+        store: () => {
+          const nextElements = getCanonicalOrBootstrapElements(get());
+          set((state) => ({
+            elements: nextElements,
+            ...buildIndexes(nextElements),
+            layoutVersion: state.layoutVersion + 1,
+          }));
+        },
+        history: {
+          skip: "bind_element — data 적용기가 type:\"data\" entry 하나로 묶는다 (ADR-213 HC4)",
+        },
+      });
+
+      return { previous };
     },
 
     // 🚀 Phase 1: Immer → 함수형 업데이트 (High Risk)

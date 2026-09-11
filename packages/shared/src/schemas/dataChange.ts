@@ -161,9 +161,18 @@ export const DataOpSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("bind_element"),
     elementId: z.string().min(1),
-    ...collectionRef,
+    /** `null` = 바인딩 해제 (ADR-213 Phase 2 — inverse 와 사람 UI 의 "연결 끊기" 가 같은 op). */
+    collectionId: z.string().min(1).nullable(),
     fieldMap: z
       .object({ value: z.string().optional(), icon: z.string().optional() })
+      .optional(),
+    /**
+     * inverse 전용 — 적용 전 `props.dataBinding` · `x-composition.dataBinding` 원본
+     * 스냅샷. 있으면 `collectionId` 를 해석하지 않고 그대로 되돌린다 (legacy 형태
+     * 보존). tool 노출 스키마 (`dataChangeJsonSchema`) 에서는 제거된다.
+     */
+    restore: z
+      .object({ props: z.unknown().optional(), extension: z.unknown().optional() })
       .optional(),
   }),
 ]);
@@ -182,6 +191,11 @@ export const HUMAN_ONLY_DATA_OPS: readonly DataOpKind[] = [
   "remove_field",
   "remove_rows",
 ];
+
+/** 적용기 내부 (inverse) 전용 필드 — tool 입력 스키마에서 뺀다 (ADR-213 HC2). */
+export const INTERNAL_DATA_OP_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  bind_element: ["restore"],
+};
 
 export const DATA_CHANGE_ORIGINS = ["user", "import", "ai", "agent"] as const;
 export type DataChangeOrigin = (typeof DATA_CHANGE_ORIGINS)[number];

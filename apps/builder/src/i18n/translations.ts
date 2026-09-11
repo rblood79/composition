@@ -671,6 +671,14 @@ const koKR: TranslationKeys = {
     createInteractionRuleDone: "추가함",
     runCommand: "빌더 명령 실행",
     runCommandDone: "실행함",
+    listCollections: "테이블 목록 읽기",
+    listCollectionsDone: "읽음",
+    getCollection: "테이블 스키마·샘플 읽기",
+    getCollectionDone: "읽음",
+    listApiEndpoints: "API 목록 읽기",
+    listApiEndpointsDone: "읽음",
+    getApiEndpoint: "API 정의 읽기",
+    getApiEndpointDone: "읽음",
     genericDone: "{name} 완료",
     selectedElement: "선택한 요소",
     callWithDetail: "{intent} · {detail}",
@@ -1008,11 +1016,12 @@ const koKR: TranslationKeys = {
     batchArgs:
       "해당 작업의 인자. create: {type, props, styles, parentId}, update: {elementId, props, styles}, delete: {elementId}",
     bindCollection:
-      "요소에 collection 데이터 바인딩을 겁니다 (ListBox/GridList/Table 등). 데이터 소스(collection) 자체를 만들지는 않고, 이미 있는 데이터에 요소를 잇습니다.",
+      "요소(ListBox/GridList/Table 등)를 이미 있는 collection(데이터 테이블)에 잇습니다. collectionId 또는 collectionName 으로 대상을 고르세요 (list_collections 로 확인). 적용 전에 사용자 승인 다이얼로그가 뜨고, 거부되면 아무것도 바뀌지 않습니다.",
     bindSource:
-      "데이터 출처. static = config.data 배열 그대로, api = config.baseUrl+endpoint, supabase = config.table.",
-    bindConfig:
-      "source 별 설정. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
+      "(legacy) static = config.data 행을 새 collection 으로 만들어 잇습니다. api/supabase 는 지원하지 않습니다 — list_api_endpoints 로 endpoint 를 확인하세요.",
+    bindConfig: "(legacy) static: { data: [...], name? }.",
+    bindFieldMap:
+      "역할별 필드 매핑 — value / icon 에 fieldId (get_collection 의 schema[].id). 생략하면 휴리스틱.",
     createRule:
       "요소에 인터랙션 규칙을 추가합니다 (예: 버튼 누르면 toast 표시, 다른 요소의 기능 구동). trigger 와 capability 는 컴포넌트가 실제로 노출하는 것만 쓸 수 있고, 틀리면 사용 가능한 목록을 돌려줍니다.",
     ruleTrigger:
@@ -1035,6 +1044,11 @@ const koKR: TranslationKeys = {
     endpointIdRef:
       "endpoint id (list_api_endpoints 결과의 id). name 과 둘 중 하나는 필수.",
     endpointNameRef: "endpoint 이름 — id 를 모를 때.",
+  },
+  aiDataProposal: {
+    summary: "데이터 변경 {count}건: {ops}",
+    bindLabel: "{type} 를 {collection} 에 연결",
+    rejected: "사용자가 데이터 변경을 거부했습니다. 문서는 바뀌지 않았습니다.",
   },
   aiToolId: {
     canonicalCreate:
@@ -1117,6 +1131,8 @@ const koKR: TranslationKeys = {
       "endpointId 또는 name 이 필요합니다. list_api_endpoints 로 목록을 먼저 읽으세요.",
     endpointNotFound:
       "endpoint 를 찾을 수 없습니다: {ref}. 있는 이름: {names}. list_api_endpoints 로 다시 확인하세요.",
+    bindLegacySourceUnsupported:
+      "source api/supabase 는 더 이상 지원하지 않습니다. list_api_endpoints 로 endpoint 를 확인하고, 실행 결과 테이블에 collectionId 로 연결하세요.",
     unknownAction: "알 수 없는 action: {action}. create/update/delete만 가능.",
     bodyUndeletable: "body 요소는 삭제할 수 없습니다.",
     notDeleted:
@@ -2254,6 +2270,14 @@ const enUS: TranslationKeys = {
     createInteractionRuleDone: "added",
     runCommand: "Run a builder command",
     runCommandDone: "ran",
+    listCollections: "Read the table list",
+    listCollectionsDone: "read",
+    getCollection: "Read table schema and sample",
+    getCollectionDone: "read",
+    listApiEndpoints: "Read the API list",
+    listApiEndpointsDone: "read",
+    getApiEndpoint: "Read the API definition",
+    getApiEndpointDone: "read",
     genericDone: "{name} done",
     selectedElement: "the selected element",
     callWithDetail: "{intent} · {detail}",
@@ -2600,11 +2624,12 @@ const enUS: TranslationKeys = {
     batchArgs:
       "Arguments for the operation. create: {type, props, styles, parentId}; update: {elementId, props, styles}; delete: {elementId}",
     bindCollection:
-      "Binds collection data to an element (ListBox, GridList, Table, …). It does not create the collection itself — it wires the element to data that already exists.",
+      "Binds an element (ListBox, GridList, Table, …) to an existing collection (data table). Pick the target by collectionId or collectionName (see list_collections). A user approval dialog appears before anything is applied; if declined nothing changes.",
     bindSource:
-      "Where the data comes from. static = the config.data array as-is; api = config.baseUrl + endpoint; supabase = config.table.",
-    bindConfig:
-      "Per-source configuration. static: { data: [...] } · api: { baseUrl, endpoint, dataMapping } · supabase: { table }.",
+      "(legacy) static = turns config.data rows into a new collection and binds it. api/supabase are not supported — check endpoints with list_api_endpoints.",
+    bindConfig: "(legacy) static: { data: [...], name? }.",
+    bindFieldMap:
+      "Role-based field mapping — fieldId (schema[].id from get_collection) for value / icon. Omit to use heuristics.",
     createRule:
       "Adds an interaction rule to an element (press a button to show a toast, drive another element's capability, …). trigger and capability must be ones the component actually exposes; if they are wrong the tool returns the available list.",
     ruleTrigger:
@@ -2627,6 +2652,11 @@ const enUS: TranslationKeys = {
     endpointIdRef:
       "Endpoint id (from list_api_endpoints). Either this or name is required.",
     endpointNameRef: "Endpoint name — when the id is unknown.",
+  },
+  aiDataProposal: {
+    summary: "{count} data change(s): {ops}",
+    bindLabel: "Bind {type} to {collection}",
+    rejected: "The user declined the data change. The document is unchanged.",
   },
   aiToolId: {
     canonicalCreate:
@@ -2705,6 +2735,8 @@ const enUS: TranslationKeys = {
       "endpointId or name is required. Read the list with list_api_endpoints first.",
     endpointNotFound:
       "Endpoint not found: {ref}. Available names: {names}. Check again with list_api_endpoints.",
+    bindLegacySourceUnsupported:
+      "source api/supabase is no longer supported. Check the endpoint with list_api_endpoints and bind the element to its result table by collectionId.",
     unknownAction:
       "Unknown action: {action}. Only create, update and delete are allowed.",
     bodyUndeletable: "The body element cannot be deleted.",
@@ -3847,6 +3879,10 @@ const formattedMessages: Record<
       `- ${String(args?.name ?? "")} (${String(args?.fieldCount ?? 0)} 필드 · ${String(args?.rowCount ?? 0)} 행 · ${String(args?.source ?? "")})`,
     "aiPrompt.collectionsMore": (args) =>
       `… 더 있음 ${String(args?.count ?? 0)} — list_collections 로 전체를 읽으세요.`,
+    "aiDataProposal.summary": (args) =>
+      `데이터 변경 ${String(args?.count ?? 0)}건: ${String(args?.ops ?? "")}`,
+    "aiDataProposal.bindLabel": (args) =>
+      `${String(args?.type ?? "")} 를 ${String(args?.collection ?? "")} 에 연결`,
     "aiIntent.changeFill": (args) =>
       `배경 fill을 ${String(args?.color ?? "")}로 변경합니다.`,
     "aiVerify.goal": (args) => `목표: ${String(args?.goal ?? "")}`,
@@ -4152,6 +4188,10 @@ const formattedMessages: Record<
       `- ${String(args?.name ?? "")} (${String(args?.fieldCount ?? 0)} fields · ${String(args?.rowCount ?? 0)} rows · ${String(args?.source ?? "")})`,
     "aiPrompt.collectionsMore": (args) =>
       `… ${String(args?.count ?? 0)} more — read the full list with list_collections.`,
+    "aiDataProposal.summary": (args) =>
+      `${String(args?.count ?? 0)} data change(s): ${String(args?.ops ?? "")}`,
+    "aiDataProposal.bindLabel": (args) =>
+      `Bind ${String(args?.type ?? "")} to ${String(args?.collection ?? "")}`,
     "aiIntent.changeFill": (args) =>
       `Changing the background fill to ${String(args?.color ?? "")}.`,
     "aiVerify.goal": (args) => `Goal: ${String(args?.goal ?? "")}`,

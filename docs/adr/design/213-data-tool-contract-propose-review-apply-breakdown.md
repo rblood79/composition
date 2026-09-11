@@ -57,12 +57,12 @@
 - [x] 공유 순수 함수 `redactEndpointSecrets` — 파일 `services/ai/security/redactEndpointAuth.ts` (`protect-files.sh` 가 "secret" 경로를 차단) · header/cookie/query auth 및 legacy 평문을 placeholder로 치환하고 get/list payload에 canary 원문 0
 - [x] G1 live: AI 패널 "list_collections 도구를 호출해서 …" → `list_collections` → `get_collection` → "Projects · 10 fields · 10 rows" (Ollama qwen3:14b, 2026-09-11). live 가 잡은 결함 1 — 인자 있는 i18n 메시지는 `formattedMessages` 함수 등록이 필요 (placeholder 원문이 모델에 감) → 수리 + 실제 사전 렌더 테스트
 
-### Phase 2 — `bind_collection` 정정 (AX-3, 게이트 G4)
+### Phase 2 — `bind_collection` 정정 (AX-3, 게이트 G4) — **완료 2026-09-11** (G4 PASS, evidence `213-p0-inventory.md` §Phase 2)
 
-- [ ] 입력 `{ elementRef, collectionId, fieldMap? }`과 legacy 입력을 `bind_element` DataChange로 정규화한 뒤 같은 proposal/confirm dispatcher로 보낸다. 승인 뒤에만 executor가 origin stamp·적용·History를 수행한다
-- [ ] `applyDataChange` coordinator에 `bind_element` consumer와 canonical document inverse/rollback을 구현한다
-- [ ] `bindCollectionRender.test.tsx` 갱신 + legacy 입력 회귀 test
-- [ ] G4 live: 정상/legacy 입력 모두 diff 승인 표시, 거부 무변경, 승인 시 Skia·DOM 행 + History 1, `⌘Z` 원상
+- [x] 입력 `{ elementRef, collectionId, fieldMap? }`과 legacy 입력을 `bind_element` DataChange로 정규화한 뒤 같은 proposal/confirm dispatcher로 보낸다. 승인 뒤에만 executor가 origin stamp·적용·History를 수행한다 — dispatcher `services/ai/data/dataProposalDispatcher.ts` (Phase 4 의 `propose_data_change` 도 같은 함수). legacy `static` 은 `create_collection` + `bind_element` 한 묶음, `api|supabase` 는 안내 오류
+- [x] `applyDataChange` coordinator에 `bind_element` consumer와 canonical document inverse/rollback을 구현한다 — collections 축 / canonical 축 분리, `DataBindingConsumer` bridge (elements store `applyCanonicalDataBindingPatch`, `props.dataBinding` 사람 UI 형상 + legacy extension 제거), partial failure 시 역순 rollback, inverse 는 `restore` 스냅샷 (`bind_element.collectionId` nullable + `restore` 필드 — 152 스키마 additive)
+- [x] `bindCollectionRender.test.tsx` 갱신 + legacy 입력 회귀 test — `bindCollection.test.ts` (정규화 3 + dispatcher 경로 3) · `phase4Tools.test.ts` bind 4 (실 canonical 문서 + 실 consumer + 승인 host) · `dataChange.test.ts` bind 6. 기존 `bindCollectionRender.test.tsx` (extension 형태 렌더) 는 read 호환 증거로 유지
+- [x] G4 live: 정상/legacy 입력 모두 diff 승인 표시, 거부 무변경, 승인 시 Skia·DOM 행 + History 1, `⌘Z` 원상 — 2026-09-11 Ollama qwen3:14b. 별도 결함 1 발견 (같은 세션에서 만든 collection 은 Skia 가 새로고침 전까지 정적 chip — 사람 경로 동일, 213 범위 밖, 후속 `/fix`)
 
 ### Phase 3 — "왜 실패했지?" (AI-3, 게이트 G3)
 

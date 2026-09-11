@@ -28,6 +28,8 @@ import {
   DataChangeError,
   createApplyDataChangeAction,
   reduceDataOps,
+  registerDataBindingConsumer,
+  type DataBindingConsumer,
 } from "./dataChange";
 
 const users = (): DataTable => ({
@@ -139,6 +141,7 @@ describe("reduceDataOps — op 별 결과 + 역연산 왕복", () => {
     const m = seed();
     expect(() => reduceDataOps(m, [{ op: "set_cell", collectionId: "nope", rowIndex: 0, fieldId: "f_name", value: 1 }], {})).toThrow(DataChangeError);
     expect(() => reduceDataOps(m, [{ op: "set_cell", collectionId: "c1", rowIndex: 9, fieldId: "f_name", value: 1 }], {})).toThrow(DataChangeError);
+    // bind_element 는 canonical 축 — 순수 reducer 에 오면 계약 위반 (적용기가 먼저 나눈다)
     expect(() => reduceDataOps(m, [{ op: "bind_element", elementId: "e", collectionId: "c1" }], {})).toThrow(DataChangeError);
     expect(() => reduceDataOps(m, [{ op: "set_source", collectionId: "c1", source: "api", endpointId: "api_1" }], {})).toThrow(DataChangeError);
     expect(() => reduceDataOps(m, [{ op: "update_field", collectionId: "c1", fieldId: "f_name", patch: { key: "email" } }], {})).toThrow(/email/);
@@ -213,5 +216,123 @@ describe("applyDataChange — DB · 메모리 · History · record:false", () =>
     expect(collections().get("c1")!.mockData[0].name).toBe("a");
     expect(addEntry).not.toHaveBeenCalled();
     expect((state.errors as Map<string, Error>).has("applyDataChange")).toBe(true);
+  });
+});
+
+describe("applyDataChange — bind_element (ADR-213 Phase 2, canonical 축 consumer + cross-store 원자성)", () => {
+  type Snap = { props?: unknown; extension?: unknown };
+  /** 가짜 canonical — 요소별 props/extension dataBinding 자리 */
+  let nodes: Map<string, Snap>;
+  let failOn: string | null;
+  const consumer: DataBindingConsumer = {
+    has: (id) => nodes.has(id),
+    apply: (id, write) => {
+      if (id === failOn) throw new Error("canonical write failed");
+      const node = nodes.get(id);
+      if (!node) return null;
+      const previous: Snap = { props: node.props, extension: node.extension };
+      if (write.restore) {
+        nodes.set(id, { props: write.restore.props, extension: write.restore.extension });
+      } else if (write.binding === null) {
+        nodes.set(id, {});
+      } else {
+        nodes.set(id, { props: write.binding });
+      }
+      return { previous };
+    },
+  };
+
+  function makeStore() {
+    const state: Record<string, unknown> = { collections: seed(), errors: new Map() };
+    const set = (patch: unknown) => Object.assign(state, typeof patch === "function" ? patch(state) : patch);
+    const get = () => state;
+    return { state, apply: createApplyDataChangeAction(set as never, get as never), collections: () => state.collections as Map<string, DataTable> };
+  }
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    nodes = new Map([
+      ["e_free", {}],
+      ["e_legacy", { extension: { type: "collection", source: "static", config: { data: [] } } }],
+    ]);
+    failOn = null;
+    registerDataBindingConsumer(consumer);
+  });
+  afterEach(() => {
+    registerDataBindingConsumer(null);
+    vi.restoreAllMocks();
+  });
+
+  it("bind → props.dataBinding 이 사람 UI 형상 {source:dataTable, collectionId, name} 으로 기록 · History 1 · inverse 는 restore 스냅샷", async () => {
+    const { apply } = makeStore();
+    const result = await apply({ ops: [{ op: "bind_element", elementId: "e_free", collectionId: "c1", fieldMap: { value: "f_name" } }], origin: "ai" });
+    expect(nodes.get("e_free")).toEqual({ props: { source: "dataTable", collectionId: "c1", name: "Users", fieldMap: { value: "f_name" } } });
+    expect(addEntry).toHaveBeenCalledTimes(1);
+    const entry = addEntry.mock.calls[0][0] as { elementIds: string[]; data: { dataChangeEvent: { change: { origin: string } } } };
+    expect(entry.elementIds).toContain("e_free");
+    expect(entry.data.dataChangeEvent.change.origin).toBe("ai");
+    expect(result.inverse).toEqual([{ op: "bind_element", elementId: "e_free", collectionId: null, restore: { props: undefined, extension: undefined } }]);
+    expect(dbMock.collections.update).not.toHaveBeenCalled();
+  });
+
+  it("undo(inverse, record:false) 는 legacy extension 형태까지 원상 복구한다", async () => {
+    const { apply } = makeStore();
+    const before = structuredClone(nodes.get("e_legacy"));
+    const forward = await apply({ ops: [{ op: "bind_element", elementId: "e_legacy", collectionId: "c1" }], origin: "agent" });
+    expect(nodes.get("e_legacy")).toEqual({ props: { source: "dataTable", collectionId: "c1", name: "Users" } });
+    await apply({ ops: forward.inverse, origin: "agent" }, { record: false });
+    expect(nodes.get("e_legacy")).toEqual(before);
+    expect(addEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it("collectionId:null 은 해제 — inverse 로 다시 붙는다", async () => {
+    const { apply } = makeStore();
+    await apply({ ops: [{ op: "bind_element", elementId: "e_free", collectionId: "c1" }], origin: "user" });
+    const unbound = await apply({ ops: [{ op: "bind_element", elementId: "e_free", collectionId: null }], origin: "user" });
+    expect(nodes.get("e_free")).toEqual({});
+    await apply({ ops: unbound.inverse, origin: "user" }, { record: false });
+    expect(nodes.get("e_free")).toEqual({ props: { source: "dataTable", collectionId: "c1", name: "Users" } });
+  });
+
+  it("preflight — 없는 요소 · 없는 collection 은 아무것도 바꾸지 않고 throw (같은 change 안에서 만든 collection 은 허용)", async () => {
+    const { apply, collections } = makeStore();
+    await expect(apply({ ops: [{ op: "bind_element", elementId: "ghost", collectionId: "c1" }], origin: "ai" })).rejects.toThrow(DataChangeError);
+    await expect(apply({ ops: [{ op: "set_cell", collectionId: "c1", rowIndex: 0, fieldId: "f_name", value: "A" }, { op: "bind_element", elementId: "e_free", collectionId: "nope" }], origin: "ai" })).rejects.toThrow(DataChangeError);
+    expect(collections().get("c1")!.mockData[0].name).toBe("a");
+    expect(dbMock.collections.update).not.toHaveBeenCalled();
+    expect(addEntry).not.toHaveBeenCalled();
+
+    const created = await apply({ ops: [{ op: "create_collection", id: "c_new", name: "Roles", schema: [{ key: "r", type: "string" }] }, { op: "bind_element", elementId: "e_free", collectionId: "c_new" }], origin: "ai" });
+    expect(nodes.get("e_free")).toEqual({ props: { source: "dataTable", collectionId: "c_new", name: "Roles" } });
+    expect(created.inverse.map((o) => o.op)).toEqual(["bind_element", "delete_collection"]);
+    expect(addEntry).toHaveBeenCalledTimes(1);
+  });
+
+  it("두 번째 binding 이 실패하면 첫 binding 과 collection 변경을 전부 되돌리고 History 0", async () => {
+    const { apply, collections } = makeStore();
+    failOn = "e_legacy";
+    const before = structuredClone(nodes.get("e_legacy"));
+    await expect(
+      apply({
+        ops: [
+          { op: "set_cell", collectionId: "c1", rowIndex: 0, fieldId: "f_name", value: "A" },
+          { op: "bind_element", elementId: "e_free", collectionId: "c1" },
+          { op: "bind_element", elementId: "e_legacy", collectionId: "c1" },
+        ],
+        origin: "ai",
+      }),
+    ).rejects.toThrow("canonical write failed");
+    expect(nodes.get("e_free")).toEqual({});
+    expect(nodes.get("e_legacy")).toEqual(before);
+    expect(collections().get("c1")!.mockData[0].name).toBe("a");
+    // DB: 1회 commit + 1회 rollback update
+    expect(dbMock.collections.update).toHaveBeenCalledTimes(2);
+    expect(addEntry).not.toHaveBeenCalled();
+  });
+
+  it("consumer 미등록이면 binding op 는 throw (조용한 no-op 금지)", async () => {
+    registerDataBindingConsumer(null);
+    const { apply } = makeStore();
+    await expect(apply({ ops: [{ op: "bind_element", elementId: "e_free", collectionId: "c1" }], origin: "ai" })).rejects.toThrow(DataChangeError);
   });
 });

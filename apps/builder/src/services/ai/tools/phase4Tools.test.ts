@@ -2,7 +2,8 @@
  * ADR-134 G4 — collections 바인딩 · interaction rule · 회귀 어휘 gate.
  *
  * 검증 축 3개:
- * 1. `bind_collection` 이 `dataBinding` 을 **extension** 으로 쓴다 (props 로 쓰면 저장 시점에 걸린다).
+ * 1. `bind_collection` 은 ADR-213 Phase 2 부터 alias 다 — 승인 dispatcher → 152 적용기 →
+ *    `props.dataBinding` (사람 UI 형상). 승인 host 없으면 무변경.
  * 2. `create_interaction_rule` 이 ADR-158 `InteractionRule` 만 만들고, trigger·capability 를
  *    `capabilityRegistry` 로 검증한다 (dormant `SerializedEvent` / root `actions` 미사용 — R6).
  * 3. AI 도구 실행 코드에 은퇴 어휘가 들어오지 않는다 (baseline 0 회귀 gate).
@@ -21,6 +22,11 @@ import {
 import { registerCanonicalMutationRunnerBridge } from "../../../adapters/canonical/canonicalMutationRunner";
 import { __resetTraversalCache_TEST_ONLY__ } from "../../../builder/stores/canonical/canonicalTraversalHelpers";
 import { bindCollectionTool } from "./bindCollection";
+import { useDataStore } from "../../../builder/stores/data";
+import {
+  resolveAgentCommandConfirmation,
+  subscribeAgentCommandConfirmation,
+} from "../../agent/agentCommandConfirmation";
 import { createInteractionRuleTool } from "./createInteractionRule";
 import { createToolRegistry, getToolDefinitions } from "./index";
 import { localizedStrings } from "@/i18n/translations";
@@ -178,10 +184,28 @@ const tt: ToolTranslate = (key, params) => {
   return message ?? key;
 };
 
-describe("bind_collection (D3)", () => {
-  beforeEach(() => seed());
+describe("bind_collection (D3 → ADR-213 Phase 2 alias)", () => {
+  let unsubscribe: (() => void) | null = null;
+  beforeEach(() => {
+    seed();
+    useDataStore.setState({
+      collections: new Map(),
+      apiEndpoints: new Map(),
+      errors: new Map(),
+      currentProjectId: PROJECT_ID,
+    });
+    unsubscribe?.();
+    unsubscribe = null;
+  });
 
-  it("dataBinding 을 props 가 아니라 extension 에 쓴다", async () => {
+  function mountHost(decision: boolean) {
+    unsubscribe = subscribeAgentCommandConfirmation((request) => {
+      if (request)
+        queueMicrotask(() => resolveAgentCommandConfirmation(decision));
+    });
+  }
+
+  it("승인 host 가 없으면 거부 — canonical · mirror · History 무변경 (HC1)", async () => {
     const result = await bindCollectionTool.execute(
       {
         elementId: "list-1",
@@ -190,65 +214,113 @@ describe("bind_collection (D3)", () => {
       },
       tt,
     );
+    expect(result.success).toBe(false);
+    expect(nodeExtension("list-1")?.dataBinding).toBeUndefined();
+    expect(useDataStore.getState().collections.size).toBe(0);
+  });
 
+  it("legacy static 입력 → 승인 → collection 생성 + props.dataBinding (사람 UI 형상) · mirror 재파생 · legacy extension 없음", async () => {
+    mountHost(true);
+    const result = await bindCollectionTool.execute(
+      {
+        elementId: "list-1",
+        source: "static",
+        config: { data: [{ id: 1, name: "A" }], name: "AI Items" },
+      },
+      tt,
+    );
     expect(result.success).toBe(true);
-    const ext = nodeExtension("list-1");
-    expect(ext?.dataBinding).toMatchObject({
-      type: "collection",
-      source: "static",
-      config: { data: [{ id: 1, name: "A" }] },
+
+    const created = [...useDataStore.getState().collections.values()];
+    expect(created).toHaveLength(1);
+    expect(created[0]).toMatchObject({
+      name: "AI Items",
+      mockData: [{ id: 1, name: "A" }],
     });
+
+    const doc = activeDoc();
+    const list = (
+      doc?.children[0] as { children?: Array<{ children?: Node[] }> }
+    )?.children?.[0]?.children?.find((n) => n.id === "list-1");
+    expect(list?.props?.dataBinding).toEqual({
+      source: "dataTable",
+      collectionId: created[0].id,
+      name: "AI Items",
+    });
+    expect(nodeExtension("list-1")?.dataBinding).toBeUndefined();
 
     // legacy mirror 도 함께 재파생된다 — 캔버스가 옛 값을 그리지 않도록 (G4)
     const mirrored = useStore
       .getState()
       .elements.find((e) => e.id === "list-1");
-    expect(mirrored?.dataBinding).toMatchObject({
-      type: "collection",
-      source: "static",
-    });
-
-    // props 에는 들어가지 않는다 (저장 계약)
-    const doc = activeDoc();
-    const list = (
-      doc?.children[0] as { children?: Array<{ children?: Node[] }> }
-    )?.children?.[0]?.children?.find((n) => n.id === "list-1");
-    expect(list?.props ?? {}).not.toHaveProperty("dataBinding");
+    expect(
+      (mirrored?.props as { dataBinding?: unknown } | undefined)?.dataBinding,
+    ).toMatchObject({ source: "dataTable", name: "AI Items" });
   });
 
-  it("source 별 최소 config 를 검증한다", async () => {
-    await expect(
-      bindCollectionTool.execute(
-        {
-          elementId: "list-1",
-          source: "static",
-          config: {},
-        },
-        tt,
-      ),
-    ).resolves.toMatchObject({ success: false });
+  it("정상 입력 (collectionId) → 승인 → bind_element 1 op · 거부 → 무변경", async () => {
+    useDataStore.setState({
+      collections: new Map([
+        [
+          "users",
+          {
+            id: "users",
+            name: "Users",
+            project_id: PROJECT_ID,
+            schema: [{ id: "f_name", key: "name", type: "string" }],
+            mockData: [{ name: "a" }],
+            useMockData: true,
+          },
+        ],
+      ]),
+    });
+    mountHost(false);
+    const declined = await bindCollectionTool.execute(
+      { elementId: "list-1", collectionId: "users" },
+      tt,
+    );
+    expect(declined.success).toBe(false);
+    expect(
+      (
+        useStore.getState().elements.find((e) => e.id === "list-1")?.props as
+          | { dataBinding?: unknown }
+          | undefined
+      )?.dataBinding,
+    ).toBeUndefined();
 
-    await expect(
-      bindCollectionTool.execute(
-        {
-          elementId: "list-1",
-          source: "api",
-          config: { baseUrl: "MOCK_DATA" },
-        },
-        tt,
-      ),
-    ).resolves.toMatchObject({ success: false });
+    unsubscribe?.();
+    mountHost(true);
+    const approved = await bindCollectionTool.execute(
+      { elementId: "list-1", collectionId: "users", fieldMap: { value: "f_name" } },
+      tt,
+    );
+    expect(approved.success).toBe(true);
+    expect(approved.data).toMatchObject({ ops: ["bind_element"] });
+    expect(
+      (
+        useStore.getState().elements.find((e) => e.id === "list-1")?.props as
+          | { dataBinding?: unknown }
+          | undefined
+      )?.dataBinding,
+    ).toEqual({
+      source: "dataTable",
+      collectionId: "users",
+      name: "Users",
+      fieldMap: { value: "f_name" },
+    });
+  });
 
-    await expect(
-      bindCollectionTool.execute(
-        {
-          elementId: "list-1",
-          source: "graphql",
-          config: {},
-        },
-        tt,
-      ),
-    ).resolves.toMatchObject({ success: false });
+  it("legacy api/supabase · 알 수 없는 source 는 실패 (proposal 0)", async () => {
+    mountHost(true);
+    for (const source of ["api", "supabase", "graphql"]) {
+      await expect(
+        bindCollectionTool.execute(
+          { elementId: "list-1", source, config: { baseUrl: "MOCK_DATA" } },
+          tt,
+        ),
+      ).resolves.toMatchObject({ success: false });
+    }
+    expect(useDataStore.getState().collections.size).toBe(0);
   });
 });
 

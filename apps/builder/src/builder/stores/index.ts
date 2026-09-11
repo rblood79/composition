@@ -22,6 +22,7 @@ import {
 } from "../utils/canonicalRefResolution";
 import type { CanonicalNode } from "@composition/shared";
 import { canonicalNodeToElement } from "./canonical/canonicalElementsView";
+import { registerDataBindingConsumer } from "./utils/dataChange";
 import { useActiveCanonicalDocument } from "./canonical/canonicalElementsBridge";
 import {
   getFirstProjectableNodeLookupByReference,
@@ -85,6 +86,14 @@ if (hasExistingStore) {
 }
 
 export { useStore };
+
+// ADR-213 Phase 2 — data 적용기의 `bind_element` consumer (data store 가 elements store 를
+// import 하면 순환이라 여기서 잇는다).
+registerDataBindingConsumer({
+  has: (elementId) => useStore.getState().elementsMap.has(elementId),
+  apply: (elementId, write) =>
+    useStore.getState().applyCanonicalDataBindingPatch(elementId, write),
+});
 
 // getState API export (SaveService 등 non-React 환경에서 사용)
 export const getStoreState = () => {

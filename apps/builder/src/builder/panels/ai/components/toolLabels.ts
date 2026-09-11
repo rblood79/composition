@@ -57,6 +57,23 @@ export const TOOL_LABEL_KEYS: Record<string, ToolLabelKeys> = {
     done: "aiTool.createInteractionRuleDone",
   },
   run_command: { intent: "aiTool.runCommand", done: "aiTool.runCommandDone" },
+  // ADR-213 Phase 1 — 데이터 읽기 4
+  list_collections: {
+    intent: "aiTool.listCollections",
+    done: "aiTool.listCollectionsDone",
+  },
+  get_collection: {
+    intent: "aiTool.getCollection",
+    done: "aiTool.getCollectionDone",
+  },
+  list_api_endpoints: {
+    intent: "aiTool.listApiEndpoints",
+    done: "aiTool.listApiEndpointsDone",
+  },
+  get_api_endpoint: {
+    intent: "aiTool.getApiEndpoint",
+    done: "aiTool.getApiEndpointDone",
+  },
 };
 
 /** 표시 시점 해소기 — 이 모듈은 순수 `.ts` 라 훅을 못 쓴다 (ADR-200 어법). */

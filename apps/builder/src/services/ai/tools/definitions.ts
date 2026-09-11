@@ -272,6 +272,23 @@ export const toolDefinitions: ChatCompletionTool[] = [
             type: "string",
             description: "aiToolId.elementIdTarget",
           },
+          collectionId: {
+            type: "string",
+            description: "aiToolDef.collectionIdRef",
+          },
+          collectionName: {
+            type: "string",
+            description: "aiToolDef.collectionNameRef",
+          },
+          fieldMap: {
+            type: "object",
+            description: "aiToolDef.bindFieldMap",
+            properties: {
+              value: { type: "string" },
+              icon: { type: "string" },
+            },
+          },
+          // legacy (ADR-134) — static 은 collection 으로 승격, api/supabase 는 안내만
           source: {
             type: "string",
             enum: ["static", "api", "supabase"],
@@ -282,7 +299,7 @@ export const toolDefinitions: ChatCompletionTool[] = [
             description: "aiToolDef.bindConfig",
           },
         },
-        required: ["elementId", "source", "config"],
+        required: ["elementId"],
       },
     },
   },
