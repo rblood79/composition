@@ -246,17 +246,43 @@ try {
     String(saved.schema[1].required),
   );
 
-  // 6) 새 필드 (+ 열) → 필드 패널 (새) → key email → add_field
-  await editor.locator(".datagrid-add-field").click();
-  await page.waitForTimeout(400);
-  await fieldPanel.locator(".datatable-field-key input").fill("email");
-  await fieldPanel.locator("button", { hasText: /New field|새 필드/ }).click();
+  // 6) 새 필드 (+ 열) → 헤더 인라인 입력 → email + Enter → add_field (팝오버·패널 없음)
+  //    + 는 패널 리사이즈 separator 와 겹쳐 actionability 가 걸리므로 요소에 직접 press 를 쏜다.
+  await editor.locator(".datagrid-add-field").evaluate((el) => {
+    const opts = { bubbles: true, cancelable: true, pointerId: 1, button: 0 };
+    el.dispatchEvent(new PointerEvent("pointerdown", opts));
+    el.dispatchEvent(new PointerEvent("pointerup", opts));
+    el.dispatchEvent(new MouseEvent("click", opts));
+  });
+  const addInput = editor.locator(".datagrid-add-field-input");
+  await addInput.waitFor({ timeout: 5000 });
+  await addInput.fill("email");
+  await addInput.press("Enter");
   await page.waitForTimeout(700);
   saved = await idb(page, "collections", "get", usersId);
   record(
-    "새 필드 email 추가 (add_field, string)",
+    "헤더 인라인 새 필드 email 추가 (add_field, string)",
     saved.schema.some((f) => f.key === "email" && f.type === "string"),
     JSON.stringify(saved.schema.map((f) => f.key)),
+  );
+  // 6b) 성공 후 입력이 남아 연속 추가 (phone) 가능
+  const stillOpen = (await editor.locator(".datagrid-add-field-input").count()) > 0;
+  await editor.locator(".datagrid-add-field-input").fill("phone");
+  await editor.locator(".datagrid-add-field-input").press("Enter");
+  await page.waitForTimeout(700);
+  saved = await idb(page, "collections", "get", usersId);
+  record(
+    "연속 추가 — 입력 유지 + phone 추가",
+    stillOpen && saved.schema.some((f) => f.key === "phone"),
+    `stillOpen=${stillOpen} keys=${JSON.stringify(saved.schema.map((f) => f.key))}`,
+  );
+  // 6c) Esc → 인라인 입력 닫힘
+  await editor.locator(".datagrid-add-field-input").press("Escape");
+  await page.waitForTimeout(300);
+  record(
+    "Esc → 인라인 입력 닫힘",
+    (await editor.locator(".datagrid-add-field-input").count()) === 0,
+    "closed",
   );
 
   // 7) 삭제 (사용처 0) → 즉시 remove_field
