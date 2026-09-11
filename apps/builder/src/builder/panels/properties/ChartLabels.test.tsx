@@ -137,7 +137,7 @@ it("언어 전환은 기본 행/속성/프리셋/안내를 갱신하고 데이�
   fireEvent.click(ui.getAllByRole("button", { name: "펼치기" })[0]);
   expect(ui.getAllByText("범주", { selector: "legend" })).toHaveLength(2);
   expect(ui.getAllByText("값", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getAllByText("시리즈", { selector: "legend" })).toHaveLength(2);
+  expect(ui.getAllByText("계열", { selector: "legend" })).toHaveLength(2);
   expect(ui.getByRole("group", { name: "차트 종류" })).toBeTruthy();
   expect(ui.getByRole("button", { name: "데이터 행 추가" })).toBeTruthy();
   expect(ui.getByRole("status").textContent).toContain("20001행");
@@ -200,7 +200,7 @@ it("collection 선택 값 Value/Series는 한국어 라벨과 별개로 원문 �
       .textContent,
   ).toContain("Value");
   expect(
-    within(ui.getByRole("group", { name: "시리즈" })).getByRole("button")
+    within(ui.getByRole("group", { name: "계열" })).getByRole("button")
       .textContent,
   ).toContain("Series");
   fireEvent.click(ui.getByRole("button", { name: "Switch language" }));

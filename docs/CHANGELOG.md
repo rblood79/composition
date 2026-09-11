@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Chart 한국어 UI — "시리즈" → "계열"] - 2026-09-12
+
+### Changed
+
+- Properties 패널 Chart 의 한국어 라벨에서 "시리즈" 를 **"계열"** 로 바꿨다 (계열 · 계열 원천 · 계열 설정 · 숨은 계열 설정 · "막대 색은 계열별로 구분됩니다") — Excel · Google Sheets · Numbers 의 한국어 표기와 맞춘다. 영어 UI (Series) 와 저장 키 (`seriesConfig`, `--chart-series-N`) 는 그대로.
+- Properties 패널에서 **Palette 를 Color By 바로 앞**에 배치 — 색 관련 두 필드가 이웃한다 (`3ab6d66ce`).
+
 ## [Chart 시리즈 팔레트 — Spectrum categorical 기본 + mono (accent) 선택 (ADR-215)] - 2026-09-11
 
 > 근거: 리서치 [CHART_PALETTE_RESEARCH_2026-09](explanation/research/CHART_PALETTE_RESEARCH_2026-09.md) — Adobe react-spectrum-charts (Spectrum 2 theme 도 기본 category 는 Spectrum 1 categorical) · Pinterest Gestalt (`primary` = 단일 시리즈) · Apple (tint). 종전 시리즈 색은 named hue 8개를 Tailwind 600 으로 나열한 무지개였다 (청색 4개 · yellow 대비 부족). ADR-215 Phase 1~4 (`721fc8862` · `478108af6`).

@@ -237,13 +237,13 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
         onPatch={onPatch}
       />,
     );
-    pick(view.getByRole("group", { name: "시리즈 원천" }), "값 컬럼");
+    pick(view.getByRole("group", { name: "계열 원천" }), "값 컬럼");
     const picker = view.getByRole("group", { name: "값 필드 선택" });
     // 선택 전 취소 — write 0.
     fireEvent.click(within(picker).getByRole("button", { name: "취소" }));
     expect(spy).not.toHaveBeenCalled();
 
-    pick(view.getByRole("group", { name: "시리즈 원천" }), "값 컬럼");
+    pick(view.getByRole("group", { name: "계열 원천" }), "값 컬럼");
     const picker2 = view.getByRole("group", { name: "값 필드 선택" });
     fireEvent.click(
       within(picker2).getByRole("checkbox", { name: "desktop · 수치형" }),
@@ -277,7 +277,7 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
       />
     );
     const view = ui(element("chart-a"));
-    pick(view.getByRole("group", { name: "시리즈 원천" }), "값 컬럼");
+    pick(view.getByRole("group", { name: "계열 원천" }), "값 컬럼");
     const picker = view.getByRole("group", { name: "값 필드 선택" });
     fireEvent.click(
       within(picker).getByRole("checkbox", { name: "desktop · 수치형" }),
@@ -292,7 +292,7 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
       <I18nProvider initialLocale="ko-KR">{element("chart-a")}</I18nProvider>,
     );
     expect(view.queryByRole("group", { name: "값 필드 선택" })).toBeNull();
-    pick(view.getByRole("group", { name: "시리즈 원천" }), "값 컬럼");
+    pick(view.getByRole("group", { name: "계열 원천" }), "값 컬럼");
     expect(
       (
         within(view.getByRole("group", { name: "값 필드 선택" })).getByRole(
@@ -314,7 +314,7 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
         onPatch={onPatch}
       />,
     );
-    pick(view.getByRole("group", { name: "시리즈 원천" }), "그룹 필드");
+    pick(view.getByRole("group", { name: "계열 원천" }), "그룹 필드");
     expect(spy.mock.calls).toEqual([[{ dataMode: "group" }]]);
   });
 
@@ -328,7 +328,7 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
         onPatch={onPatch}
       />,
     );
-    const mode = view.getByRole("group", { name: "시리즈 원천" });
+    const mode = view.getByRole("group", { name: "계열 원천" });
     expect(
       within(mode)
         .getByText(/값 컬럼 모드를 지원하지 않습니다/)
@@ -377,7 +377,7 @@ describe("모드 전환 — 단일 patch · 취소 write 0 · Pie/Radial 비활�
     );
     expect(view.queryByRole("group", { name: "범주" })).toBeTruthy();
     expect(view.queryByRole("group", { name: "값" })).toBeNull();
-    expect(view.queryByRole("group", { name: "시리즈" })).toBeNull();
+    expect(view.queryByRole("group", { name: "계열" })).toBeNull();
     expect(view.queryByRole("group", { name: "색상 구분" })).toBeNull();
     cleanup();
     seedChart();
@@ -549,7 +549,7 @@ describe("시리즈 설정 — 순서/이름/색 patch · 같은 배열 재적�
         onPatch={onPatch}
       />,
     );
-    fireEvent.click(view.getByRole("button", { name: /숨은 시리즈 설정/ }));
+    fireEvent.click(view.getByRole("button", { name: /숨은 계열 설정/ }));
     rowAction(view, F("mobile"), "제거");
     expect(spy.mock.calls).toEqual([[{ seriesConfig: [] }]]);
     cleanup();

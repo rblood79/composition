@@ -13,7 +13,7 @@ const koKR: TranslationKeys = {
   chart: {
     section: "차트",
     category: "범주",
-    series: "시리즈",
+    series: "계열",
     type: "차트 종류",
     sampleRows: "샘플 데이터",
     orientation: "방향",
@@ -87,8 +87,8 @@ const koKR: TranslationKeys = {
     rowCapHint: "{cap} / {total}행만 차트에 반영 (두 화면 동일)",
     runtimeHint: "애니메이션과 툴팁은 미리보기에서 확인합니다.",
     row: "데이터 행",
-    // ADR-210 — 시리즈 원천 · 시리즈 설정 · 숫자 형식
-    dataMode: "시리즈 원천",
+    // ADR-210 — 계열 원천 · 계열 설정 · 숫자 형식
+    dataMode: "계열 원천",
     modeGroup: "그룹 필드",
     modeColumns: "값 컬럼",
     valueFields: "값 필드",
@@ -104,14 +104,14 @@ const koKR: TranslationKeys = {
     fieldTypeUnknown: "타입 불명",
     columnsUnsupported: "원형·라디얼 차트는 값 컬럼 모드를 지원하지 않습니다.",
     typeUnavailableInColumns: "값 컬럼 모드에서는 사용할 수 없습니다",
-    colorBySeriesNote: "막대 색은 시리즈별로 구분됩니다.",
-    seriesSettings: "시리즈 설정",
+    colorBySeriesNote: "막대 색은 계열별로 구분됩니다.",
+    seriesSettings: "계열 설정",
     seriesLabel: "표시 이름",
     seriesColor: "색상",
     defaultColor: "기본",
-    dormantSeries: "숨은 시리즈 설정",
+    dormantSeries: "숨은 계열 설정",
     seriesUnavailable:
-      "범주별 색 모드에서는 시리즈 이름·색 설정이 적용되지 않습니다.",
+      "범주별 색 모드에서는 계열 이름·색 설정이 적용되지 않습니다.",
     seriesPreviewHint:
       "이름·색은 범례·툴팁 표시만 바꾸고 원본 행은 바꾸지 않습니다.",
     pinToInstance: "이 인스턴스에 목록 고정",

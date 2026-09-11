@@ -161,7 +161,7 @@ describe("F0 — 원본 키 `reset`", () => {
         />
       </I18nProvider>,
     );
-    const group = ui.getByRole("group", { name: "시리즈" });
+    const group = ui.getByRole("group", { name: "계열" });
     fireEvent.click(within(group).getByRole("button"));
     fireEvent.click(ui.getByRole("option", { name: "reset" }));
     expect(update).toHaveBeenCalledWith("color", "reset");
@@ -181,7 +181,7 @@ describe("F0 — 원본 키 `reset`", () => {
         />
       </I18nProvider>,
     );
-    const group = ui.getByRole("group", { name: "시리즈" });
+    const group = ui.getByRole("group", { name: "계열" });
     fireEvent.click(within(group).getByRole("button"));
     fireEvent.click(ui.getByRole("option", { name: "없음" }));
     expect(update).toHaveBeenCalledWith("color", "");
