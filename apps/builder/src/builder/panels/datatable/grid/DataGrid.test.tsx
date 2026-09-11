@@ -2,7 +2,7 @@
 /**
  * ADR-212 Phase 2 (G1 unit) — DataGrid: RAC Table role=grid, 셀 편집 (Enter 진입 · Enter commit +
  * 아래 · Tab commit + 오른쪽 · Esc 취소 · 타이핑 진입), 쓰기는 전부 `applyDataChange` (HC1),
- * 강제 실패는 aria-invalid, 붙여넣기 → set_cell/insert_rows, 넘치는 열은 ConfirmDialog, 행 추가.
+ * 강제 실패는 aria-invalid + 오류 토스트, 붙여넣기 → set_cell/insert_rows, 넘치는 열은 ConfirmDialog, 행 추가.
  * Virtualizer 는 jsdom 뷰포트가 0 이라 끈다 (`virtualized={false}`) — 가상화 경로는 G1 live.
  */
 import {
@@ -14,13 +14,18 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { applyDataChange } = vi.hoisted(() => ({
+const { applyDataChange, toastError } = vi.hoisted(() => ({
   applyDataChange: vi.fn(async () => ({})),
+  toastError: vi.fn(),
 }));
 
 vi.mock("../../../stores/data", () => ({
   useDataStore: (selector: (s: Record<string, unknown>) => unknown) =>
     selector({ applyDataChange }),
+}));
+// 오류는 토스트 (Phase 1 결정 — role=status 는 결과만), 결과는 Data 패널 status 영역
+vi.mock("../../../stores/toast", () => ({
+  globalToast: { error: toastError, success: vi.fn(), warning: vi.fn() },
 }));
 
 import type { ReactNode } from "react";
@@ -183,7 +188,7 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     expect(applyDataChange).not.toHaveBeenCalled();
   });
 
-  it("number 셀에 글자를 commit 하면 aria-invalid + role=status 오류, 쓰기 0 (0 으로 바꾸지 않음)", async () => {
+  it("number 셀에 글자를 commit 하면 aria-invalid + 오류 토스트, 쓰기 0 (0 으로 바꾸지 않음)", async () => {
     const { container } = render(
       wrap(<DataGrid table={table} virtualized={false} />),
     );
@@ -199,10 +204,9 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       expect(input.getAttribute("aria-invalid")).toBe("true"),
     );
     expect(applyDataChange).not.toHaveBeenCalled();
-    expect(useDataPanelStatusStore.getState().status?.tone).toBe("error");
-    expect(useDataPanelStatusStore.getState().status?.message).toContain(
-      "number",
-    );
+    expect(toastError).toHaveBeenCalledTimes(1);
+    expect(String(toastError.mock.calls[0][0])).toContain("number");
+    expect(useDataPanelStatusStore.getState().status).toBeNull();
   });
 
   it("id 셀은 편집 진입 0 · Delete 는 셀 비우기 set_cell null", async () => {

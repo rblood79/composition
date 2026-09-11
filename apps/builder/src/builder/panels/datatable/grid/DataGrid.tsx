@@ -563,7 +563,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                 <DataGridCell
                   rowIndex={item.index}
                   field={column.field}
-                  value={item.row[column.field.key]}
+                  cellValue={item.row[column.field.key]}
                   headerId={`${gridId}-h-${column.field.key}`}
                   editing={
                     editing &&
@@ -749,7 +749,8 @@ function SelectColumn({ label }: { label: string }) {
 interface DataGridCellProps {
   rowIndex: number;
   field: DataField;
-  value: unknown;
+  /** `value` 라는 이름은 못 쓴다 — RAC Collection 이 렌더한 요소에 `value={item}` 을 덮어쓴다 */
+  cellValue: unknown;
   headerId: string;
   editing: EditingState | null;
   invalid: boolean;
@@ -769,7 +770,7 @@ interface DataGridCellProps {
 const DataGridCell = memo(function DataGridCell({
   rowIndex,
   field,
-  value,
+  cellValue,
   headerId,
   editing,
   invalid,
@@ -796,7 +797,7 @@ const DataGridCell = memo(function DataGridCell({
     () => ({ rowIndex, key: field.key }),
     [rowIndex, field.key],
   );
-  const text = formatCellValue(value);
+  const text = formatCellValue(cellValue);
 
   return (
     <Cell
@@ -825,7 +826,9 @@ const DataGridCell = memo(function DataGridCell({
         <span
           className="datagrid-cell-text"
           data-kind={
-            value === null || value === undefined ? "empty" : typeof value
+            cellValue === null || cellValue === undefined
+              ? "empty"
+              : typeof cellValue
           }
         >
           {text}
@@ -1024,6 +1027,7 @@ function PopoverCellEditor({
             autoFocus
             data-shortcut-local="undo redo"
             className="datagrid-popover-textarea"
+            aria-labelledby={headerId}
             aria-invalid={isInvalid || undefined}
             aria-multiline="true"
             rows={isJson ? 8 : 3}
