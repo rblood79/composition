@@ -7,7 +7,6 @@ import {
   Navigate,
   useLocation,
 } from "react-router";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { initPerformanceDiagnostics } from "./utils/performance/diagnostics";
 import { cleanupLegacyStorage } from "./lib/legacyStorageCleanup";
 
@@ -110,42 +109,18 @@ function AppLayout() {
   );
 }
 
-/**
- * React Query Client 설정
- *
- * 🚀 Phase 6: 서버 상태 관리 및 API 캐싱
- *
- * - staleTime: 5분 (데이터가 stale로 간주되기까지의 시간)
- * - gcTime: 30분 (캐시에서 제거되기까지의 시간, 구 cacheTime)
- * - retry: 2회 (실패 시 재시도)
- * - refetchOnWindowFocus: false (창 포커스 시 자동 refetch 비활성화)
- *
- * @since 2025-12-10 Phase 6 React Query
- */
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000, // 5분
-      gcTime: 30 * 60 * 1000, // 30분 (구 cacheTime)
-      retry: 2,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
 const root = document.getElementById("root");
 
 // GitHub Pages 배포 시 /composition/ 경로 사용
 const basename = import.meta.env.PROD ? "/composition" : "/";
 
+// ADR-152 Phase 5 후속: React Query 소비처 0 (useDataQueries 삭제) — QueryClientProvider 제거.
 ReactDOM.createRoot(root!).render(
-  <QueryClientProvider client={queryClient}>
-    <I18nProvider>
-      <BrowserRouter basename={basename}>
-        <ParticleBackgroundProvider>
-          <AppLayout />
-        </ParticleBackgroundProvider>
-      </BrowserRouter>
-    </I18nProvider>
-  </QueryClientProvider>,
+  <I18nProvider>
+    <BrowserRouter basename={basename}>
+      <ParticleBackgroundProvider>
+        <AppLayout />
+      </ParticleBackgroundProvider>
+    </BrowserRouter>
+  </I18nProvider>,
 );

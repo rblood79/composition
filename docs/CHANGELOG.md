@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - collections read 경로 단일화: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` (Tabs · Tree 도 정렬), `datatableId` · `elementId` 옵션과 `DataTableService.addConsumer/removeConsumer/loadDataTable` · supabase 분기 제거. `useDataStore.collections` Map 은 id 키, resolve 는 `resolveBoundCollection` 하나.
 - store 단일화: legacy `stores/datatable.ts` · `components/data/DataTable.tsx` · `hooks/useDataQueries.ts` 삭제 (사용자 승인) — `BuilderCore` 의 `LOAD_DATA_TABLE` / `SAVE_TO_DATA_TABLE` 과 `DataTablePanel` 이 `useDataStore` 만 읽는다 (React Query 병행 제거).
-- `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 잔여 (기록만): `types/datatable.types.ts` 고아 · `main.tsx` `QueryClientProvider` 소비처 0 · publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
+- `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 후속 정리 (같은 날): 고아 `types/datatable.types.ts` (import 0) 삭제 · `main.tsx` `QueryClientProvider` 와 `@tanstack/react-query` 의존 제거 (소비처 0). 잔여 (기록만): publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
 
 ## [데이터 패널 Track 0 결함 수리 — 응답 행 자동 감지 · 필드 key 변경 시 행 이전 · 편집기 첫 열림 폭 · prompt/confirm/alert 제거] - 2026-09-11
 

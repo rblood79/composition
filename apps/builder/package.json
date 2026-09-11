@@ -31,7 +31,6 @@
     "@react-aria/focus": "catalog:",
     "@react-aria/i18n": "catalog:",
     "@supabase/supabase-js": "^2.112.3",
-    "@tanstack/react-query": "catalog:",
     "@tanstack/react-virtual": "catalog:",
     "canvaskit-wasm": "^0.42.0",
     "clsx": "^2.1.1",
