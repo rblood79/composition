@@ -45,6 +45,11 @@ import "./PropertyDataBinding.css";
 export type { RefreshMode, DataBindingValue } from "@composition/shared";
 import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
+import { useParams } from "react-router";
+import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
+import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
+import { resolveCollectionUsage } from "../../../services/ai/data/collectionReadModel";
+import { Plus, Table2 } from "lucide-react";
 import type { DataField } from "../../../types/builder/data.types";
 import { useI18n } from "@/i18n";
 
@@ -170,6 +175,9 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const { t } = useI18n();
   // Data Store에서 collection 목록 가져오기 (dataTable 단일 소스 — ADR-159 P4b)
   const collections = useCollections();
+  const { projectId } = useParams<{ projectId: string }>();
+  const openTableEditor = useDataTableEditorStore((s) => s.openTableEditor);
+  const openTableCreator = useDataTableEditorStore((s) => s.openTableCreator);
 
   // 직접 prop 값 사용 (fully controlled)
   const source = value?.source || "";
@@ -228,6 +236,14 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     selectedCollectionId !== null
       ? (collections.find((dt) => dt.id === selectedCollectionId) ?? null)
       : null;
+  // "사용처 N" — 152 역참조 (collection 단위). 이 요소를 포함해 collection 에 매인 요소 수.
+  const usedByCount =
+    selectedCollectionId !== null
+      ? (resolveCollectionUsage(
+          getAiToolReadModel().elements,
+          collections,
+        ).get(selectedCollectionId) ?? 0)
+      : 0;
   const fieldOptions: readonly DataField[] = (
     selectedCollection?.schema ?? []
   ).filter((field) => typeof field.id === "string" && field.id.length > 0);
@@ -356,6 +372,39 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             </button>
           )}
         </div>
+
+        {/* ADR-212 Phase 6 (UX-1, B4) — 바인딩 옆 동선: 열기 · 사용처 N · 새 테이블 */}
+        {(selectedCollection || projectId) && (
+        <div className="binding-actions">
+          {selectedCollection && (
+            <button
+              type="button"
+              className="binding-action"
+              onClick={() => openTableEditor(selectedCollection.id)}
+              disabled={disabled}
+            >
+              <Table2 size={iconEditProps.size} />
+              {t("propertiesPanel.bindingOpenTable")}
+            </button>
+          )}
+          {selectedCollection && (
+            <span className="binding-usedby">
+              {t("propertiesPanel.bindingUsedBy", { count: usedByCount })}
+            </span>
+          )}
+          {projectId && (
+            <button
+              type="button"
+              className="binding-action"
+              onClick={() => openTableCreator(projectId)}
+              disabled={disabled}
+            >
+              <Plus size={iconEditProps.size} />
+              {t("propertiesPanel.bindingNewTable")}
+            </button>
+          )}
+        </div>
+        )}
 
         {fieldOptions.length > 0 &&
           FIELD_MAP_ROLES.map((role) => (

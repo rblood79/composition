@@ -646,6 +646,9 @@ const koKR: TranslationKeys = {
     collectionPlaceholder: "컬렉션 선택...",
     collectionEmpty: "등록된 Collection 이 없습니다.",
     removeBinding: "바인딩 제거",
+    bindingOpenTable: "이 테이블 열기",
+    bindingNewTable: "새 테이블 만들기",
+    bindingUsedBy: "사용처 {count}",
     fieldMapValue: "값 필드",
     fieldMapIcon: "아이콘 필드",
     fieldMapAuto: "자동",
@@ -2502,6 +2505,9 @@ const enUS: TranslationKeys = {
     collectionPlaceholder: "Choose a collection...",
     collectionEmpty: "No collections registered.",
     removeBinding: "Remove binding",
+    bindingOpenTable: "Open this table",
+    bindingNewTable: "New table",
+    bindingUsedBy: "Used by {count}",
     fieldMapValue: "Value field",
     fieldMapIcon: "Icon field",
     fieldMapAuto: "Auto",
@@ -4223,6 +4229,7 @@ const formattedMessages: Record<
       `페이지를 찾을 수 없습니다: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override 해제됨`,
+    "propertiesPanel.bindingUsedBy": (args) => `사용처 ${String(args?.count ?? 0)}`,
     "propertiesPanel.visibilityLockedBase": (args) =>
       `${String(args?.breakpoint ?? "")}: Base (Display 속성으로 제어)`,
     "fonts.deleteFace": (args) =>
@@ -4655,6 +4662,8 @@ const formattedMessages: Record<
       `Page not found: ${String(args?.path ?? "")}`,
     "propertiesPanel.overrideCleared": (args) =>
       `'${String(args?.label ?? "")}' override cleared`,
+    "propertiesPanel.bindingUsedBy": (args) =>
+      `Used by ${String(args?.count ?? 0)}`,
     "propertiesPanel.visibilityLockedBase": (args) =>
       `${String(args?.breakpoint ?? "")}: Base (controlled by the Display property)`,
     "fonts.deleteFace": (args) =>
