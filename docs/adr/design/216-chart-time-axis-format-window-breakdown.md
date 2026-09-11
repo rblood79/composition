@@ -83,7 +83,7 @@
 - [x] P0 inventory freeze (2026-09-12, `216-p0-inventory.md` 로컬) (evidence `216-p0-inventory.md`, 로컬) — 번들 baseline · Slider thumb 2 실측 · byte 동일 대상 목록 (스냅샷 4 · T10 32 에 창 트랙 마크 포함 여부를 나눠 기록)
 - [x] P1 순수 모듈 + 오라클 (2026-09-12 — `adr216TimeOracle.test.ts` 76: 눈금 12×3 + 임의 60 · format 15 지시자 × 100 · parse 15 × 100 + 경계 15 · HC7 거부 · 정적 가드; d3 `unixDay` 로 일 눈금 정정) (d3 대조 눈금 12 span × 3 count · format 100 · parse 성분 대조 · 달력 넘침 거부)
 - [x] P2 모델 분기 + `positions` 보존 + 손계산 oracle 3 fixture + validator + 진단 (파싱 실패 제외) (2026-09-12 — `adr216TimeScale.test.ts` 18: window·extrema·aggregate 손계산 x · 두 leg axes JSON 동일 · bar/pie 거부 · 파싱 실패 3 진단 · HC1 byte 동일; 손계산 정정 1: extrema 는 domain 끝이 transformed max (Jan 9))
-- [ ] P3 두 leg 소비 + parity byte 동일
+- [x] P3 두 leg 소비 + parity byte 동일 (2026-09-12 — Skia allowlist 3 키 · DOM `RechartsChart` position=epoch + `resolveCategoryBand` 공용 + `Chart.tsx` 결선; `adr216TimeScale.browser.test.tsx` 3 (Recharts 꼭짓점 x = scene ±0.5 · 2단 라벨 byte 동일 · category 무변경) · `chartParity.test.tsx` +2 (Skia path d = DOM d))
 - [ ] P4 props 결선 9 지점 + 패널 + i18n
 - [ ] P5 가변 창 + 최소 창 `min(fitEff, n)` 불변식 (n < fitEff · resize) + 극값 재추출 + 트랙 thumb 2 (211 기대값 갱신)
 - [ ] P6 번들·프레임 실측 + live 하니스

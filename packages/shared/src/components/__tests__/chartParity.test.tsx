@@ -398,3 +398,74 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
     expect(domMarkup(mono)).toBe(domMarkup(props()));
   });
 });
+
+describe("ADR-216 — 시간 스케일 두 leg (Skia allowlist · 2단 라벨 · 시간 간격)", () => {
+  const TIME_ROWS: ChartRow[] = [1, 2, 3, 4, 5, 7, 8, 9, 10].map((d, i) => ({
+    date: `2026-01-${String(d).padStart(2, "0")}`,
+    value: [1, 5, 2, 9, 3, 4, 8, 1, 6][i],
+  }));
+  const timeProps = (extra: Partial<ChartProps> = {}): ChartProps => ({
+    ...CHART_DEFAULT_PROPS,
+    chartType: "line",
+    dimension: "date",
+    metric: "value",
+    dimensionScale: "time",
+    ...extra,
+  });
+  const skiaTime = (chartProps: ChartProps): Shape[] =>
+    SKIA_PRIMITIVES.chart_scene!({
+      props: {
+        ...chartProps,
+        size: "md",
+        data: TIME_ROWS,
+        _containerWidth: SIZE.width,
+        _containerHeight: SIZE.height,
+        _chartRule: CHART_RULE.chart,
+      },
+      size: CHART_RULE.sizes.md as never,
+      visual: undefined,
+      paint: {
+        backgroundColor: "{color.layer-1}",
+        color: "{color.neutral}",
+        borderColor: "{color.border}",
+        backgroundAlpha: 1,
+        staticTrackWash: false,
+        hasVisibleBoxPaint: true,
+        hasOpaqueCatalogBackground: true,
+      },
+      style: undefined,
+    })!;
+  const texts = (shapes: Shape[]): string[] =>
+    shapes
+      .filter((s): s is Extract<Shape, { type: "text" }> => s.type === "text")
+      .map((s) => s.text);
+
+  it("Skia chart_scene 이 dimensionScale 을 읽는다 (allowlist) — 2단 라벨 'Jan' 이 나오고 미설정이면 ISO 문자열", () => {
+    const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+    const scene = computeChartScene(timeProps(), TIME_ROWS, SIZE, metrics);
+    const skia = texts(skiaTime(timeProps()));
+    expect(skia).toEqual(scene.axes.flatMap((a) => a.ticks.map((t) => t.text)));
+    expect(skia).toContain("Jan");
+    const category = texts(skiaTime({ ...timeProps(), dimensionScale: undefined }));
+    expect(category).not.toContain("Jan");
+    expect(category).toContain("2026-01-01");
+  });
+
+  it("두 leg path `d` byte 동일 · dimensionLabelFormat 한 줄 · 결측 Jan 6 은 빈 자리", () => {
+    for (const p of [timeProps(), timeProps({ dimensionLabelFormat: "%m/%d" }), timeProps({ chartType: "area" })]) {
+      const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+      const scene = computeChartScene(p, TIME_ROWS, SIZE, metrics);
+      const skiaD = skiaTime(p)
+        .filter((s): s is Extract<Shape, { type: "path" }> => s.type === "path")
+        .map((s) => s.d);
+      const domD = attr(renderToStaticMarkup(<svg>{renderChartScene(scene)}</svg>), "path", "d");
+      expect(skiaD.length).toBeGreaterThan(0);
+      expect(skiaD).toEqual(domD);
+    }
+    const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+    const one = computeChartScene(timeProps({ dimensionLabelFormat: "%m/%d" }), TIME_ROWS, SIZE, metrics);
+    expect(one.axes[0].ticks.map((t) => t.text)).not.toContain("Jan");
+    expect(one.axes[0].ticks[0].text).toBe("01/01");
+  });
+});
+

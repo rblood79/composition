@@ -30,7 +30,7 @@ import {
   categoryColorIndex,
   resolveChartData,
   resolveChartAnimation,
-  bandScale,
+  resolveCategoryBand,
   linearScale,
   buildAxes,
   buildPolarAxes,
@@ -211,11 +211,13 @@ export function RechartsChart({
   const isRange =
     (props.chartType === "area" || isBar || props.chartType === "radial") &&
     stackMode !== "none";
+  // ADR-216 — 시간 스케일이면 `position` 은 epoch (scene 의 x 와 같은 domain 위), 아니면 슬롯 중앙.
+  const positions = model.time ? grid.positions : undefined;
   const data = useMemo(
     () =>
       model.rows.map((row, ci) => ({
         ...row,
-        position: ci + 0.5,
+        position: positions ? positions[ci] : ci + 0.5,
         ...Object.fromEntries(
           keys.flatMap((key, si) => {
             const range = bands[si].get(ci);
@@ -249,6 +251,7 @@ export function RechartsChart({
       props.chartType,
       labelText,
       radarFlatDomain,
+      positions,
     ],
   );
   const chart = useMemo(() => {
@@ -271,8 +274,10 @@ export function RechartsChart({
           {CHART_INVALID_SETTINGS_TEXT}
         </div>
       );
-    const band = bandScale(
-      n,
+    // ADR-216 — scene 과 같은 helper: 시간 모델이 있으면 epoch band + 시간 축 입력.
+    const { band, timeAxis } = resolveCategoryBand(
+      model.time,
+      grid,
       horizontal ? [plot.y, plot.y + plot.h] : [plot.x, plot.x + plot.w],
     );
     const value = linearScale(
@@ -315,6 +320,7 @@ export function RechartsChart({
               showAxis: props.showAxis,
               showGrid: props.showGrid,
               tickText,
+              ...(timeAxis ? { time: timeAxis } : {}),
             })
           : [];
     const legend = legendBox
@@ -556,6 +562,10 @@ export function RechartsChart({
       right: size.width - plot.x - plot.w,
       bottom: size.height - plot.y - plot.h,
     };
+    // ADR-216 — 범주 축 domain: 시간이면 scene 과 같은 nice epoch domain, 아니면 슬롯 [0, n].
+    const positionDomain: [number, number] = model.time
+      ? [...model.time.domain]
+      : [0, n];
     // ADR-211 — `fitEff = 0` (플롯이 한 슬롯보다 좁다): Canvas scene 과 같이 마크·축 0 인 빈
     //   상자 + 진단만. "No data" 가 아니다 — 데이터는 있다 (`budget.plotTooSmall`).
     if (!n && model.input.categories.length > 0)
@@ -619,14 +629,14 @@ export function RechartsChart({
             hide
             type={horizontal ? "number" : isBar ? "category" : "number"}
             dataKey={horizontal ? undefined : isBar ? "category" : "position"}
-            domain={horizontal ? [...ticks.domain] : [0, n]}
+            domain={horizontal ? [...ticks.domain] : positionDomain}
             allowDataOverflow
           />
           <YAxis
             hide
             type={horizontal && isBar ? "category" : "number"}
             dataKey={horizontal ? (isBar ? "category" : "position") : undefined}
-            domain={horizontal ? [0, n] : [...ticks.domain]}
+            domain={horizontal ? positionDomain : [...ticks.domain]}
             allowDataOverflow
           />
           {backdrop}

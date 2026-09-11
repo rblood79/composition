@@ -3333,6 +3333,10 @@ const CHART_PRESENTATION_KEYS = [
   "budgetAggregate",
   "budgetAxis",
   "budgetOthersLabel",
+  // ADR-216 — 시간축 3 키 (breakdown §2.5 결선 inventory · Skia allowlist 단계).
+  "dimensionScale",
+  "dimensionFormat",
+  "dimensionLabelFormat",
 ] as const;
 
 function pickChartPresentationProps(

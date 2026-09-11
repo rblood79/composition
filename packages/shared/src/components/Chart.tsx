@@ -84,6 +84,10 @@ export interface ChartProps {
   budgetOthersLabel?: string;
   /** ADR-215 — 시리즈 팔레트 (`categorical` 기본 · `mono`). `data-palette` 로 CSS 블록을 고른다. */
   palette?: SpecChartProps["palette"];
+  // ── ADR-216 — 시간축 3 키 (전부 선택적, 스칼라). line/area 만.
+  dimensionScale?: SpecChartProps["dimensionScale"];
+  dimensionFormat?: string;
+  dimensionLabelFormat?: string;
   variant?: string;
   size?: "sm" | "md" | "lg";
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
@@ -200,6 +204,9 @@ export function Chart({
   budgetAggregate,
   budgetAxis,
   budgetOthersLabel,
+  dimensionScale,
+  dimensionFormat,
+  dimensionLabelFormat,
   palette,
   variant = "default",
   size = "md",
@@ -275,6 +282,10 @@ export function Chart({
       ...(budgetAggregate !== undefined ? { budgetAggregate } : {}),
       ...(budgetAxis !== undefined ? { budgetAxis } : {}),
       ...(budgetOthersLabel !== undefined ? { budgetOthersLabel } : {}),
+      // ADR-216 — 시간축 3 키 (미설정은 싣지 않는다 — specs 가 category 로 읽는다).
+      ...(dimensionScale !== undefined ? { dimensionScale } : {}),
+      ...(dimensionFormat !== undefined ? { dimensionFormat } : {}),
+      ...(dimensionLabelFormat !== undefined ? { dimensionLabelFormat } : {}),
     }),
     [
       isAnimationActive,
@@ -318,6 +329,9 @@ export function Chart({
       budgetAggregate,
       budgetAxis,
       budgetOthersLabel,
+      dimensionScale,
+      dimensionFormat,
+      dimensionLabelFormat,
     ],
   );
 
