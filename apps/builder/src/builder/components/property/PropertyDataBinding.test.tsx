@@ -92,3 +92,93 @@ describe("PropertyDataBinding — 죽은 오소링 표면 제거 계약 (2026-07
     );
   });
 });
+
+describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => {
+  // 위 mock 의 collection 은 schema 가 없어 fieldMap 행이 뜨지 않는다 (표면 1행 계약 유지).
+  // schema 가 있는 collection 은 모듈 mock 을 덮어 쓴다.
+  const withSchema = async () => {
+    vi.doMock("../../stores/data", () => ({
+      useCollections: () => [
+        {
+          id: "c-users",
+          name: "Users",
+          schema: [
+            { id: "f-id", key: "id", type: "string" },
+            { id: "f-name", key: "name", type: "string" },
+            { id: "f-avatar", key: "avatar", type: "image" },
+          ],
+        },
+      ],
+    }));
+    vi.resetModules();
+    // 모듈 재로드 뒤에는 i18n context 도 같은 인스턴스여야 한다
+    const [{ PropertyDataBinding: Comp }, { I18nProvider: Provider }] =
+      await Promise.all([import("./PropertyDataBinding"), import("@/i18n")]);
+    const renderFresh = (ui: ReactElement) =>
+      render(ui, { wrapper: Provider });
+    return { Comp, renderFresh };
+  };
+
+  it("schema 가 있는 collection 을 고르면 value / icon Select 가 뜨고 저장값은 fieldId", async () => {
+    const { Comp, renderFresh } = await withSchema();
+    const onChange = vi.fn();
+    const { container } = renderFresh(
+      <Comp
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={onChange}
+      />,
+    );
+    const valueSelect = container.querySelector(
+      ".binding-fieldmap-select[data-role='value'] select",
+    ) as HTMLSelectElement | null;
+    const iconSelect = container.querySelector(
+      ".binding-fieldmap-select[data-role='icon'] select",
+    ) as HTMLSelectElement | null;
+    expect(valueSelect).not.toBeNull();
+    expect(iconSelect).not.toBeNull();
+    // 옵션 = 자동 + 필드 3 (키는 fieldId)
+    expect([...valueSelect!.options].map((o) => o.value)).toEqual(
+      expect.arrayContaining(["f-id", "f-name", "f-avatar"]),
+    );
+
+    fireEvent.change(valueSelect!, { target: { value: "f-id" } });
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        collectionId: "c-users",
+        fieldMap: { value: "f-id" },
+      }),
+    );
+    // path 자유 입력은 노출하지 않는다 (2026-07-24 제거 유지 — "고급" 영역 없음)
+    expect(container.querySelector(".binding-path-input")).toBeNull();
+  });
+
+  it("저장된 fieldMap (id · v1 key) 을 현재 선택으로 표시하고, 자동 선택은 키를 지운다", async () => {
+    const { Comp, renderFresh } = await withSchema();
+    const onChange = vi.fn();
+    const { container } = renderFresh(
+      <Comp
+        value={{
+          source: "dataTable",
+          collectionId: "c-users",
+          name: "Users",
+          fieldMap: { value: "f-id", icon: "avatar" },
+        }}
+        onChange={onChange}
+      />,
+    );
+    const valueSelect = container.querySelector(
+      ".binding-fieldmap-select[data-role='value'] select",
+    ) as HTMLSelectElement;
+    const iconSelect = container.querySelector(
+      ".binding-fieldmap-select[data-role='icon'] select",
+    ) as HTMLSelectElement;
+    expect(valueSelect.value).toBe("f-id");
+    // v1 key 저장값도 id 로 해석돼 표시
+    expect(iconSelect.value).toBe("f-avatar");
+
+    fireEvent.change(iconSelect, { target: { value: "__auto__" } });
+    expect(onChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fieldMap: { value: "f-id" } }),
+    );
+  });
+});

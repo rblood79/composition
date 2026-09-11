@@ -56,6 +56,24 @@
   min-width: 0;
 }
 
+/* fieldMap 행 (ADR-152 Phase 2) — 역할 아이콘 + Select 1행, 컬렉션 행과 같은 높이 규약 */
+.binding-fieldmap-row {
+  flex-direction: row;
+  align-items: center;
+}
+
+.binding-fieldmap-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.binding-fieldmap-role {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  color: var(--fg-muted);
+}
+
 .binding-name-row .binding-empty {
   flex: 1;
 }

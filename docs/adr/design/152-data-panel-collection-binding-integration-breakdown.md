@@ -252,9 +252,11 @@ interface DataChange {
 
 > 개정 2026-07-21 (ADR-159 경계 재획정): 텍스트 표시(label/description) 매핑 UI 는 ADR-159 오소링(slot Text ComboBox 피커+`{field}` 입력)으로 이관. 본 Phase 의 fieldMap UI 는 **비텍스트 역할(icon/value) 한정**. 또한 159 P4b(SOURCE_OPTIONS → dataTable 단일)가 선행하면 본 Phase 는 축소된 표면 위에서 진행.
 
-- [ ] `PropertyDataBinding.tsx` — dataTable 선택 시 해당 DataTable schema 를 읽어 fieldMap(**value/icon 한정** — label/description 은 159 이관) Select 노출 (`PropertyDataBinding` 기존 Select 패턴 위 신규 구성 — ColumnSelector 는 목적 상이, 참고만)
-- [ ] `path` free-text 는 "고급" 접힘 영역으로 격하
-- [ ] Data 패널 쪽 진입 동선: DataTableEditor 에 "이 테이블을 사용하는 요소" 역참조 표시는 **범위 외** (후속 UX 과제로 기록만)
+> **Implemented 2026-09-11** — live 10/10 (`apps/builder/scripts/adr152-p2-live.mjs`, ADR 본문 §Live Exercise).
+
+- [x] `PropertyDataBinding.tsx` — 선택 collection 에 id 있는 필드가 있을 때만 `FieldMapSelect` × 2 (value · icon) 노출 (`.binding-fieldmap-select[data-role]`, 옵션 = 자동 + schema 필드, 키 = **fieldId** · 표시 = key). 저장 `fieldMap.value/icon = fieldId`; v1 key 저장값은 `resolveField` 가 id 로 올려 표시 · 자동 선택은 키 제거 (fieldMap 이 비면 `undefined`). collection 변경 시 fieldMap 은 같은 collection 일 때만 유지 (Phase 1). i18n `propertiesPanel.fieldMap{Value,Icon,Auto}`
+- [x] ~~`path` free-text 는 "고급" 접힘 영역으로 격하~~ → path · refreshMode 오소링은 2026-07-24 에 이미 제거됨 (read 호환만, `PropertyDataBinding.test.tsx` 계약) — "고급" 영역 신설 없음 (죽은 표면 부활 금지)
+- [x] Data 패널 쪽 "이 테이블을 사용하는 요소" 역참조 표시는 **범위 외** — ADR-212 편집기 몫으로 기록
 
 ### Phase 3 — fieldMap 소비 + 대표 3종 live 검증
 

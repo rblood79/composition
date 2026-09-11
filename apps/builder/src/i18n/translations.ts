@@ -630,6 +630,9 @@ const koKR: TranslationKeys = {
     collectionPlaceholder: "컬렉션 선택...",
     collectionEmpty: "등록된 Collection 이 없습니다.",
     removeBinding: "바인딩 제거",
+    fieldMapValue: "값 필드",
+    fieldMapIcon: "아이콘 필드",
+    fieldMapAuto: "자동",
     legacyBinding:
       "legacy {source} 바인딩 — 컬렉션 선택 시 dataTable 로 전환됩니다.",
     fieldTemplatePlaceholder: "텍스트 또는 {field}",
@@ -2182,6 +2185,9 @@ const enUS: TranslationKeys = {
     collectionPlaceholder: "Choose a collection...",
     collectionEmpty: "No collections registered.",
     removeBinding: "Remove binding",
+    fieldMapValue: "Value field",
+    fieldMapIcon: "Icon field",
+    fieldMapAuto: "Auto",
     legacyBinding:
       "Legacy {source} binding — choosing a collection switches it to dataTable.",
     fieldTemplatePlaceholder: "Text or {field}",

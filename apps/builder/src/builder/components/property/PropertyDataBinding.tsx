@@ -24,7 +24,7 @@ import {
 import { Button } from "react-aria-components/Button";
 import { Popover } from "react-aria-components/Popover";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
-import { ChevronDown, Link2, X } from "lucide-react";
+import { ChevronDown, Image, KeyRound, Link2, X } from "lucide-react";
 import { iconProps, iconEditProps } from "../../../utils/ui/uiConstants";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
@@ -44,7 +44,8 @@ import "./PropertyDataBinding.css";
 // 있어 shared 사본을 보는 쪽에서는 계약을 알 수 없었다.
 export type { RefreshMode, DataBindingValue } from "@composition/shared";
 import type { DataBindingValue } from "@composition/shared";
-import { resolveBoundCollection } from "@composition/shared";
+import { resolveBoundCollection, resolveField } from "@composition/shared";
+import type { DataField } from "../../../types/builder/data.types";
 import { useI18n } from "@/i18n";
 
 interface PropertyDataBindingProps {
@@ -70,6 +71,93 @@ interface PropertyDataBindingProps {
 // ============================================
 // ADR-159 P4b: SOURCE_OPTIONS 4종(dataTable/api/variable/route) 소스 선택 UI 제거 —
 //   데이터 소스는 dataTable(collection) 단일. 피커는 collection(테이블명) 선택만 노출.
+
+type FieldMapRole = "value" | "icon";
+const FIELD_MAP_ROLES: readonly FieldMapRole[] = ["value", "icon"];
+/** "자동" 옵션 키 — 선택 시 fieldMap 에서 그 역할을 지운다 (기존 휴리스틱). */
+const FIELD_MAP_AUTO_KEY = "__auto__";
+const FIELD_MAP_ROLE_ICON: Record<FieldMapRole, typeof KeyRound> = {
+  value: KeyRound,
+  icon: Image,
+};
+const FIELD_MAP_ROLE_LABEL: Record<FieldMapRole, "fieldMapValue" | "fieldMapIcon"> = {
+  value: "fieldMapValue",
+  icon: "fieldMapIcon",
+};
+
+/** 역할 1개 = Select 1행 — 옵션은 "자동" + schema 필드 (키 = fieldId, 표시 = key). */
+function FieldMapSelect({
+  role,
+  fields,
+  selectedFieldId,
+  onChange,
+  disabled,
+}: {
+  role: FieldMapRole;
+  fields: readonly DataField[];
+  selectedFieldId: string | null;
+  onChange: (role: FieldMapRole, key: React.Key | null) => void;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const focus = useSelectTriggerFocusRestore();
+  const popover = useControlPopoverMetrics();
+  const RoleIcon = FIELD_MAP_ROLE_ICON[role];
+  const label = t(`propertiesPanel.${FIELD_MAP_ROLE_LABEL[role]}`);
+  return (
+    <div className="binding-row binding-fieldmap-row">
+      <AriaSelect
+        className="react-aria-Select binding-fieldmap-select"
+        data-role={role}
+        ref={popover.controlRef}
+        selectedKey={selectedFieldId ?? FIELD_MAP_AUTO_KEY}
+        onSelectionChange={(key) => onChange(role, key)}
+        onOpenChange={focus.restoreFocusOnClose}
+        aria-label={label}
+        isDisabled={disabled}
+      >
+        <Button className="react-aria-Button" ref={focus.triggerRef}>
+          <span aria-hidden="true" className="binding-fieldmap-role">
+            <RoleIcon size={iconProps.size} />
+          </span>
+          <SelectValue>
+            {({ selectedText }) => `${label}: ${selectedText ?? ""}`}
+          </SelectValue>
+          <span aria-hidden="true" className="select-chevron">
+            <ChevronDown size={iconProps.size} />
+          </span>
+        </Button>
+        <Popover
+          className="react-aria-Popover property-select-popover"
+          style={popover.popoverStyle}
+        >
+          <ListBox className="react-aria-ListBox">
+            <ListBoxItem
+              id={FIELD_MAP_AUTO_KEY}
+              className="react-aria-ListBoxItem"
+              textValue={t("propertiesPanel.fieldMapAuto")}
+            >
+              {t("propertiesPanel.fieldMapAuto")}
+            </ListBoxItem>
+            {fields.map((field) => (
+              <ListBoxItem
+                key={field.id}
+                id={field.id as string}
+                className="react-aria-ListBoxItem"
+                textValue={field.key}
+              >
+                <div className="binding-option">
+                  <span className="binding-option-label">{field.key}</span>
+                  <span className="binding-option-desc">{field.type}</span>
+                </div>
+              </ListBoxItem>
+            ))}
+          </ListBox>
+        </Popover>
+      </AriaSelect>
+    </div>
+  );
+}
 
 export const PropertyDataBinding = memo(function PropertyDataBinding({
   label,
@@ -131,6 +219,30 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
       value?.refreshInterval,
       onChange,
     ],
+  );
+
+  // ADR-152 Phase 2 — fieldMap (value / icon 한정; label/description 은 ADR-159 `{field}`
+  // 템플릿이 정본). 값은 **fieldId** (v2.1) — v1 key 저장값은 resolveField 가 id 로 올린다.
+  // 노출 조건: 선택 collection 에 id 있는 필드가 있을 때만 (없으면 표면은 컬렉션 1행).
+  const selectedCollection =
+    selectedCollectionId !== null
+      ? (collections.find((dt) => dt.id === selectedCollectionId) ?? null)
+      : null;
+  const fieldOptions: readonly DataField[] = (
+    selectedCollection?.schema ?? []
+  ).filter((field) => typeof field.id === "string" && field.id.length > 0);
+  const handleFieldMapChange = useCallback(
+    (role: FieldMapRole, key: React.Key | null) => {
+      if (!value) return;
+      const next = { ...(value.fieldMap ?? {}) };
+      if (key === null || key === FIELD_MAP_AUTO_KEY) delete next[role];
+      else next[role] = String(key);
+      onChange({
+        ...value,
+        fieldMap: Object.keys(next).length > 0 ? next : undefined,
+      });
+    },
+    [value, onChange],
   );
 
   // 데이터 경로 / 갱신 모드 / 갱신 간격 오소링 핸들러는 제거됨 (2026-07-24) —
@@ -244,6 +356,21 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
             </button>
           )}
         </div>
+
+        {fieldOptions.length > 0 &&
+          FIELD_MAP_ROLES.map((role) => (
+            <FieldMapSelect
+              key={role}
+              role={role}
+              fields={fieldOptions}
+              selectedFieldId={
+                resolveField(fieldOptions, value?.fieldMap?.[role])?.id ??
+                null
+              }
+              onChange={handleFieldMapChange}
+              disabled={disabled}
+            />
+          ))}
 
         {/* 기존 문서의 비-dataTable 바인딩 안내 (read 호환 — 신규 기록은 dataTable 고정) */}
         {isLegacyNonTableBinding && (
