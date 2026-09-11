@@ -40,14 +40,14 @@
 
 ## 4. Phase 계획
 
-### Phase 0 — Inventory freeze (게이트 G0)
+### Phase 0 — Inventory freeze (게이트 G0) — **완료 2026-09-11** (evidence `docs/adr/evidence/213-p0-inventory.md`, 로컬)
 
-- [ ] tool 정의 · executor 등록 경로 · `ToolExecutionResult` 형상 표 (definitions.ts ↔ index.ts)
-- [ ] Anthropic strict 제약 목록 (재귀 · `minimum/maximum` · `oneOf` 깊이) 을 `DataOp` union 에 대조 — 위반 항목은 description 으로 이전 (R1)
-- [ ] Ollama (`OpenAICompatibleProvider`) tool 호출 인자 검증 지점 실측 — zod 삽입 위치 (R2)
-- [ ] `AgentCommandConfirmDialog` props · `agentCommandLog` entry 형상 · `EditingSemanticsImpactDialog` 재사용 가능 여부
-- [ ] `dynamicInjection` 현재 주입량과 50개×80자 worst-case의 UTF-8 bytes/Anthropic/Ollama token 수 before arm
-- [ ] `applyDataChange`의 `define_endpoint` · `bind_element` 미지원과 `bindCollection.ts` 직접 적용 경로, cross-store preflight/commit/inverse seam을 freeze
+- [x] tool 정의 · executor 등록 경로 · `ToolExecutionResult` 형상 표 (definitions.ts ↔ index.ts) — 정의 배열과 executor 배열이 별개 목록, dispatch 는 `AgentService.ts:157` provider 중립 1곳
+- [x] Anthropic strict 제약 목록 (재귀 · `minimum/maximum` · `oneOf` 깊이) 을 `DataOp` union 에 대조 — 현재 tool 정의에 strict 미사용 (`output_config.format` 만 구조화). **결정: tool strict 는 켜지 않고 executor zod 로 대체** (R1 은 strict 도입 시에만 발생)
+- [x] Ollama (`OpenAICompatibleProvider`) tool 호출 인자 검증 지점 실측 — provider 별 검증 지점 없음, `JSON.parse` 후 executor 로 직행. **zod 삽입 위치 = `proposeDataChange.ts` executor 입구** (양 provider 동시 충족, provider 파일 변경 0)
+- [x] `AgentCommandConfirmDialog` props · `agentCommandLog` entry 형상 · `EditingSemanticsImpactDialog` 재사용 가능 여부 — request `{ id: ShortcutId, summary, mutation, undo, host, args }` (id 축 확장 필요) · log entry 는 세션 관측 (상한 500) · Impact dialog 는 별도 채널이라 재사용 안 함
+- [x] `dynamicInjection` 현재 주입량과 50개×80자 worst-case의 UTF-8 bytes/Anthropic/Ollama token 수 before arm — collection 주입 현재 0 bytes. 50×80 line 형식: ASCII 5,699 B (절단 0) · 한글 13,699 B (8,192 안에 29개) · emoji 17,699 B (22개) → byte 상한은 절단으로 집행. token 은 G1 에서 Ollama `prompt_eval_count` 차분 (Anthropic 키 부재 — 미측정 명시)
+- [x] `applyDataChange`의 `define_endpoint` · `bind_element` 미지원과 `bindCollection.ts` 직접 적용 경로, cross-store preflight/commit/inverse seam을 freeze — 두 op 는 `dataChange.ts:408-413` throw · `bindCollection.ts:103` 이 유일한 우회 쓰기 (`origin:"ai"|"agent"` 적용 호출 baseline 0) · seam 은 신규 coordinator `applyDataChangeTransaction` (preflight → staged commit → 역순 inverse → History 1)
 
 ### Phase 1 — 읽기 tool 4 + `get_editor_state` 요약 + 프롬프트 주입 (152 독립, 게이트 G1)
 
@@ -101,21 +101,22 @@
 - [ ] ADR-202 편입 어댑터 자리 문서화 (R6)
 - [ ] CHANGELOG (Features — AI) · ADR README · `### Live Exercise`
 
-## 5. 파일 변경표 (추정 — Phase 0 에서 freeze)
+## 5. 파일 변경표 (Phase 0 에서 freeze — 2026-09-11)
 
-| 파일                                                                                                                         | Phase | 변경                                                 |
-| ---------------------------------------------------------------------------------------------------------------------------- | :---: | ---------------------------------------------------- |
-| `services/ai/tools/{listCollections,getCollection,listApiEndpoints,getApiEndpoint}.ts` (신규)                                |   1   | 읽기 tool 4                                          |
-| `services/ai/tools/definitions.ts` · `index.ts` · `getEditorState.ts`                                                        |  1·4  | 등록 · collections 요약                              |
-| `services/ai/catalog/dynamicInjection.ts` · `services/ai/security/redactEndpointSecrets.ts` (신규)                           |  1·3  | 고정 예산 주입 · 공유 secret redactor                |
-| `services/ai/tools/bindCollection.ts` · `builder/stores/utils/dataChange.ts`                                                 |  2·4  | alias 승인 정규화 · cross-store consumer/coordinator |
-| `services/ai/tools/explainRequestFailure.ts` (신규)                                                                          |   3   | 컨텍스트 조립 + 구조화 출력                          |
-| `services/ai/tools/proposeDataChange.ts` (신규) · `packages/shared/src/schemas/dataChange.ts` → JSON Schema 생성             |   4   | 쓰기 tool 1 + 스키마 파생                            |
-| `services/agent/agentCommandConfirmation.ts` · `AgentCommandConfirmDialog` (+ `DataChangeDiffView.tsx` 신규)                 |   4   | 스키마 diff 뷰                                       |
-| `services/agent/executeAgentCommand.ts` (`agentCommandLog`)                                                                  |   4   | 세션 provenance 데이터 묶음 entry                    |
-| `services/ai/providers/OpenAICompatibleProvider.ts`                                                                          |   4   | zod 인자 검증 (Ollama 동등화)                        |
-| `services/agent/agentCommands.ts`                                                                                            |   5   | `data.*` 4 명령                                      |
-| `services/ai/tools/{createTableFromDescription,understandPaste}.ts` (신규) · `presets/dataTablePresets.ts` (생성기 → 검증기) |   6   | AI-1 · AI-2 · AI-4                                   |
+| 파일 | Phase | 변경 |
+| --- | :---: | --- |
+| `services/ai/tools/{listCollections,getCollection,listApiEndpoints,getApiEndpoint}.ts` (신규) | 1 | 읽기 tool 4 |
+| `services/ai/tools/definitions.ts` · `index.ts` · `getEditorState.ts` | 1·4 | 등록 (정의 배열 + executor 배열 두 곳) · collections 요약 |
+| `services/ai/catalog/dynamicInjection.ts` · `services/ai/systemPrompt.ts` (`buildTurnContext`) · `services/ai/security/redactEndpointSecrets.ts` (신규) | 1·3 | 고정 예산 주입 (byte 절단 + "더 있음") · 공유 secret redactor |
+| `services/ai/tools/bindCollection.ts` · `builder/stores/utils/dataChange.ts` | 2·4 | alias 승인 정규화 · `define_endpoint` / `bind_element` case + coordinator `applyDataChangeTransaction` (ADR-214 `define_variable` 와 같은 파일 — 국소화) |
+| `services/ai/tools/explainRequestFailure.ts` (신규) | 3 | 컨텍스트 조립 + 구조화 출력 |
+| `services/ai/tools/proposeDataChange.ts` (신규) · `packages/shared/src/schemas/dataChange.ts` (`omitOrigin` 파생 추가) | 4 | 쓰기 tool 1 + executor 입구 zod (양 provider 공통 — provider 파일 변경 0) |
+| `services/agent/agentCommandConfirmation.ts` (`id` 축 확장) · `AgentCommandConfirmDialog` (+ `DataChangeDiffView.tsx` 신규) | 4 | 스키마 diff 뷰 |
+| `services/agent/executeAgentCommand.ts` (`agentCommandLog`) | 4 | 세션 provenance 데이터 묶음 entry |
+| `services/agent/agentCommands.ts` | 5 | `data.*` 4 명령 |
+| `services/ai/tools/{createTableFromDescription,understandPaste}.ts` (신규) · `presets/dataTablePresets.ts` (생성기 → 검증기) | 6 | AI-1 · AI-2 · AI-4 |
+
+Phase 0 정정: `services/ai/providers/OpenAICompatibleProvider.ts` 행 삭제 — tool 인자 dispatch 가 provider 중립 1곳 (`AgentService.ts:157`) 이라 zod 는 executor 에 둔다.
 
 ## 6. MCP 노출 원칙 (후순위 — 문서만, AX-6)
 
