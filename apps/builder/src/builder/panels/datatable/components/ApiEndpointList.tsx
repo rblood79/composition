@@ -163,7 +163,7 @@ export function ApiEndpointList({ projectId }: ApiEndpointListProps) {
                 <div className="list-item-actions">
                   <Button
                     className="iconButton"
-                    onPress={() => openApiEditor(endpoint.id, "run")}
+                    onPress={() => openApiEditor(endpoint.id, "response")}
                     aria-label={`${localize("test", "Test")} ${endpoint.name}`}
                   >
                     <Play {...iconEditProps} />

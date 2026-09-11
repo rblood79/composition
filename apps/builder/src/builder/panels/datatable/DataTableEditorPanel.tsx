@@ -19,10 +19,7 @@ import {
   Code,
   Database,
   FileEdit,
-  FileJson,
-  FileOutput,
   Globe,
-  Play,
   Settings,
   Shield,
   Table2,
@@ -42,7 +39,6 @@ import { EmptyState, PanelHeader, PanelContents } from "../../components";
 import { panelContents } from "../../components/panel/panelContentsUtils";
 import type {
   TableEditorTab,
-  ApiEditorTab,
   VariableEditorTab,
   DataTableEditorMode,
 } from "./types/editorTypes";
@@ -61,14 +57,6 @@ interface TabConfig<T extends string> {
 const TABLE_TABS: TabConfig<TableEditorTab>[] = [
   { id: "data", label: "Table", icon: Table2 },
   { id: "settings", label: "Settings", icon: Settings },
-];
-
-const API_TABS: TabConfig<ApiEditorTab>[] = [
-  { id: "basic", label: "Basic", icon: Settings },
-  { id: "headers", label: "Headers", icon: Code },
-  { id: "body", label: "Body", icon: FileJson },
-  { id: "response", label: "Response", icon: FileOutput },
-  { id: "run", label: "Run", icon: Play },
 ];
 
 const VARIABLE_TABS: TabConfig<VariableEditorTab>[] = [
@@ -98,10 +86,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 탭 상태 관리 - mode 변경 시 key가 바뀌어 자동 초기화됨
   const [tableTab, setTableTab] = useState<TableEditorTab>("data");
-  // API 에디터 초기 탭: mode.initialTab이 있으면 사용 (useEffect 대신 초기값으로)
-  const [apiTab, setApiTab] = useState<ApiEditorTab>(
-    mode.type === "api-edit" && mode.initialTab ? mode.initialTab : "basic",
-  );
   const [variableTab, setVariableTab] = useState<VariableEditorTab>("basic");
 
   // 데이터 조회 - 개별 selector + useMemo로 리렌더링 최적화
@@ -169,25 +153,16 @@ function EditorContent({ mode, close }: EditorContentProps) {
           labelKey: (id) => (id === "data" ? "table" : id),
           onChange: (key) => setTableTab(key as TableEditorTab),
         }
-      : mode.type === "api-edit"
+      : mode.type === "variable-edit"
         ? {
-            key: apiTab,
-            tabs: API_TABS,
-            aria: "apiTabs",
-            ariaFallback: "API tabs",
+            key: variableTab,
+            tabs: VARIABLE_TABS,
+            aria: "variableTabs",
+            ariaFallback: "Variable tabs",
             labelKey: (id) => id,
-            onChange: (key) => setApiTab(key as ApiEditorTab),
+            onChange: (key) => setVariableTab(key as VariableEditorTab),
           }
-        : mode.type === "variable-edit"
-          ? {
-              key: variableTab,
-              tabs: VARIABLE_TABS,
-              aria: "variableTabs",
-              ariaFallback: "Variable tabs",
-              labelKey: (id) => id,
-              onChange: (key) => setVariableTab(key as VariableEditorTab),
-            }
-          : null;
+        : null;
 
   // 모드에 따른 에디터 컨텐츠 렌더링
   const renderEditorContent = () => {
@@ -233,7 +208,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
           <ApiEndpointEditor
             endpoint={endpoint}
             onClose={close}
-            activeTab={apiTab}
+            initialTab={mode.initialTab}
           />
         );
       }

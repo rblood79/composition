@@ -23,7 +23,12 @@ export type DataTableEditorMode =
  * 에디터 탭 타입들
  */
 export type TableEditorTab = "data" | "settings";
-export type ApiEditorTab = "basic" | "headers" | "body" | "response" | "run";
+export type ApiEditorTab =
+  | "params"
+  | "headers"
+  | "body"
+  | "auth"
+  | "response";
 export type VariableEditorTab = "basic" | "validation" | "transform";
 
 /**

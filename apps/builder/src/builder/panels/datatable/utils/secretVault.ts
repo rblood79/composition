@@ -50,6 +50,10 @@ interface SecretRow {
 
 function openVault(): Promise<IDBDatabase> {
   return new Promise((res, rej) => {
+    if (typeof indexedDB === "undefined") {
+      rej(new Error("indexedDB unavailable"));
+      return;
+    }
     const req = indexedDB.open(DB_NAME, 1);
     req.onupgradeneeded = () => {
       const db = req.result;
@@ -103,7 +107,12 @@ export async function removeSecret(
 export async function getProjectSecrets(
   projectId: string,
 ): Promise<Map<string, string>> {
-  const db = await openVault();
+  let db: IDBDatabase;
+  try {
+    db = await openVault();
+  } catch {
+    return new Map();
+  }
   const rows = await new Promise<SecretRow[]>((res, rej) => {
     const tx = db.transaction(STORE, "readonly");
     const index = tx.objectStore(STORE).index("projectId");

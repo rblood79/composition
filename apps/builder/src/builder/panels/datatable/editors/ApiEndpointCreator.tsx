@@ -39,7 +39,7 @@ export function ApiEndpointCreator({
       i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback,
     [i18n],
   );
-  const createApiEndpoint = useDataStore((state) => state.createApiEndpoint);
+  const applyDataChange = useDataStore((state) => state.applyDataChange);
   const openApiEditor = useDataTableEditorStore((state) => state.openApiEditor);
 
   const [url, setUrl] = useState("");
@@ -56,14 +56,26 @@ export function ApiEndpointCreator({
     const { baseUrl, path } = splitApiUrl(url);
     setIsCreating(true);
     try {
-      const created = await createApiEndpoint({
-        name: effectiveName || url.trim(),
-        project_id: projectId,
-        method,
-        baseUrl,
-        path,
-      });
-      openApiEditor(created.id, "run");
+      // HC1 — 생성도 applyDataChange (define_endpoint). 적용기가 id 를 발급해 endpointIds 에 싣는다.
+      const result = await applyDataChange(
+        {
+          ops: [
+            {
+              op: "define_endpoint",
+              endpoint: {
+                name: effectiveName || url.trim(),
+                method,
+                baseUrl,
+                path,
+              },
+            },
+          ],
+          origin: "user",
+        },
+        { projectId },
+      );
+      const createdId = result.endpointIds[0];
+      if (createdId) openApiEditor(createdId, "response");
     } catch (error) {
       console.error("API Endpoint 생성 실패:", error);
       globalToast.error(
@@ -75,7 +87,7 @@ export function ApiEndpointCreator({
   }, [
     canCreate,
     url,
-    createApiEndpoint,
+    applyDataChange,
     effectiveName,
     projectId,
     method,

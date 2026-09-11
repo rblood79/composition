@@ -1,836 +1,914 @@
 /**
- * ApiEndpointEditor - API Endpoint 상세 편집 컴포넌트
+ * ApiEndpointEditor — 요청 도구형 API 편집기 (ADR-212 Phase 4, 게이트 G3).
  *
- * 기능:
- * - 기본 설정 (이름, 메서드, URL)
- * - Headers/Query Params 관리
- * - Request Body 설정
- * - Response Mapping 설정
- * - 테스트 실행
- * - Column Selection + Import to DataTable (Phase 4)
+ * 상단 고정 요청 바 `[Method ▾][URL][Send]` (UI-4) + 자체 탭 (Params / Headers / Body / Auth /
+ * Response). 모든 쓰기는 `applyDataChange({ op:"define_endpoint" })` (HC1) — 직접 store write 0.
+ * Auth 값은 vault 참조 `{{secret.NAME}}` 만 문서에 남고 원문은 `secretVault` (별도 IndexedDB,
+ * HC6). 응답 뷰어는 status·time·size (`role=status`) + Pretty/Raw/Schema, Schema 는 배열 후보
+ * 추천 (`recommendArrayPaths`) → 컬럼 감지 → "테이블로 저장" (ADR-213 cross-store DataChange).
+ * cURL 붙여넣기 → 요청 바·탭 채움. production 은 CORS 경고 (UX-8).
  */
-
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Play, Wand2 } from "lucide-react";
-import type { ApiEditorTab } from "../types/editorTypes";
-import { useDataStore } from "../../../stores/data";
-import { resolveCollectionByName } from "@composition/shared";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ClipboardEvent,
+} from "react";
+import { Play, Plus, Trash2 } from "lucide-react";
+import type { DataOp } from "@composition/shared";
+import { Button } from "react-aria-components/Button";
+import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
+import { useI18n } from "../../../../i18n";
 import type {
   ApiEndpoint,
-  HttpMethod,
   ApiHeader,
+  ApiParam,
+  BodyType,
+  HttpMethod,
 } from "../../../../types/builder/data.types";
-import { PropertyInput, PropertySelect } from "../../../components";
-import { ColumnSelector } from "../components/ColumnSelector";
-import { resolveResponseData } from "../../../../utils/data/responseData";
+import { iconSmall } from "../../../../utils/ui/uiConstants";
+import { panelContents } from "../../../components/panel/panelContentsUtils";
+import { PropertySelect } from "../../../components";
+import { useDataStore } from "../../../stores/data";
+import type { ApiRunRecord } from "../../../../types/builder/data.types";
 import { globalToast } from "../../../stores/toast";
+import { splitApiUrl } from "../../../../utils/data/apiUrl";
 import {
-  detectColumns,
-  columnsToSchema,
-  extractSelectedData,
-  type DetectedColumn,
-} from "../utils/columnDetector";
+  looksLikeCurl,
+  parseCurlCommand,
+  curlToEndpointDraft,
+} from "../../../../utils/data/curlCommand";
+import { detectColumns, type DetectedColumn } from "../utils/columnDetector";
+import {
+  readPath,
+  resolveResponseData,
+} from "../../../../utils/data/responseData";
+import { toEndpointDraft } from "../../../stores/utils/dataChange";
+import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
+import { authToEntries, detectAuthPreset, type AuthPreset } from "./authPreset";
+import { buildSaveApiAsTableOps } from "./saveApiAsTable";
+import { recommendArrayPaths } from "../utils/responseSchema";
+import { listSecretNames, setSecret } from "../utils/secretVault";
 import "./ApiEndpointEditor.css";
-import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
-import { ACTION_ICONS } from "../../../config/actionIcons";
-import { translateKey, useOptionalI18n } from "../../../../i18n";
-/** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
-const AddIcon = ACTION_ICONS.add;
-
-/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
-const DeleteIcon = ACTION_ICONS.delete;
 
 interface ApiEndpointEditorProps {
   endpoint: ApiEndpoint;
   onClose: () => void;
-  activeTab: ApiEditorTab;
+  initialTab?: string;
 }
 
-const HTTP_METHODS: { value: HttpMethod; label: string }[] = [
-  { value: "GET", label: "GET" },
-  { value: "POST", label: "POST" },
-  { value: "PUT", label: "PUT" },
-  { value: "PATCH", label: "PATCH" },
-  { value: "DELETE", label: "DELETE" },
+type ApiTab = "params" | "headers" | "body" | "auth" | "response";
+
+const HTTP_METHODS: HttpMethod[] = ["GET", "POST", "PUT", "DELETE", "PATCH"];
+const BODY_TYPES: BodyType[] = [
+  "none",
+  "json",
+  "form-data",
+  "x-www-form-urlencoded",
 ];
+
+/** endpoint + patch → define_endpoint draft. */
+function draftWith(endpoint: ApiEndpoint, patch: Partial<ApiEndpoint>): DataOp {
+  const merged = { ...endpoint, ...patch } as ApiEndpoint;
+  return { op: "define_endpoint", endpoint: toEndpointDraft(merged) };
+}
 
 export function ApiEndpointEditor({
   endpoint,
   onClose,
-  activeTab,
+  initialTab,
 }: ApiEndpointEditorProps) {
-  const i18n = useOptionalI18n();
-  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const t = useCallback(
+  const { t } = useI18n();
+  const dt = useCallback(
     (key: string, params?: Record<string, string | number | boolean>) =>
-      i18n ? i18n.t(`datatable.${key}`, params) : key,
-    [i18n],
+      t(`datatable.${key}`, params),
+    [t],
   );
-  const updateApiEndpoint = useDataStore((state) => state.updateApiEndpoint);
+  const applyDataChange = useDataStore((state) => state.applyDataChange);
   const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
-  const createDataTable = useDataStore((state) => state.createDataTable);
-
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    data: unknown;
-  } | null>(null);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [detectedColumns, setDetectedColumns] = useState<DetectedColumn[]>([]);
-  const [isImporting, setIsImporting] = useState(false);
-  const hasAutoTriggeredTest = useRef(false);
-
-  // 기본 정보 업데이트
-  const handleBasicUpdate = useCallback(
-    async (updates: Partial<ApiEndpoint>) => {
-      try {
-        await updateApiEndpoint(endpoint.id, updates);
-      } catch (error) {
-        console.error("API Endpoint 업데이트 실패:", error);
-      }
-    },
-    [endpoint.id, updateApiEndpoint],
+  const isLoading = useDataStore((state) => state.loadingApis.has(endpoint.id));
+  const run = useDataStore((state) => state.apiRuns.get(endpoint.id) ?? null);
+  const [tab, setTab] = useState<ApiTab>(
+    (initialTab as ApiTab | undefined) ?? "params",
   );
-
-  // Headers 업데이트 (ApiHeader[] 형식)
-  const handleAddHeader = useCallback(() => {
-    const newHeaders = [
-      ...(endpoint.headers || []),
-      { key: "", value: "", enabled: true },
-    ];
-    handleBasicUpdate({ headers: newHeaders });
-  }, [endpoint.headers, handleBasicUpdate]);
-
-  const handleUpdateHeader = useCallback(
-    (index: number, key: string, value: string) => {
-      const newHeaders = [...(endpoint.headers || [])];
-      newHeaders[index] = { ...newHeaders[index], key, value };
-      handleBasicUpdate({ headers: newHeaders });
-    },
-    [endpoint.headers, handleBasicUpdate],
+  const [urlDraft, setUrlDraft] = useState(
+    `${endpoint.baseUrl}${endpoint.path}`,
   );
-
-  const handleDeleteHeader = useCallback(
-    (index: number) => {
-      const newHeaders = [...(endpoint.headers || [])];
-      newHeaders.splice(index, 1);
-      handleBasicUpdate({ headers: newHeaders });
-    },
-    [endpoint.headers, handleBasicUpdate],
-  );
-
-  // 테스트 실행
-  const handleTest = useCallback(async () => {
-    setIsExecuting(true);
-    setTestResult(null);
-    setDetectedColumns([]);
-    try {
-      const result = await executeApiEndpoint(endpoint.id);
-
-      console.log("🔍 API result:", {
-        result,
-        resultType: typeof result,
-        dataPath: endpoint.responseMapping?.dataPath,
-      });
-
-      setTestResult({ success: true, data: result });
-
-      // 성공 시 컬럼 자동 감지
-      // executeApiEndpoint이 이미 dataPath를 적용한 결과를 반환하므로
-      // 여기서는 다시 적용하지 않음
-      let dataToAnalyze = result;
-
-      // 실행기가 이미 행 배열을 돌려준다 (utils/data/responseData). 객체 1건 응답 등
-      // 배열이 아닐 때만 여기서 한 번 더 관례 키를 찾는다.
-      dataToAnalyze = resolveResponseData(dataToAnalyze, "").data;
-
-      console.log("🔍 Column detection - dataToAnalyze:", {
-        isArray: Array.isArray(dataToAnalyze),
-        type: typeof dataToAnalyze,
-        length: Array.isArray(dataToAnalyze) ? dataToAnalyze.length : "N/A",
-      });
-
-      const columns = detectColumns(dataToAnalyze);
-      console.log("🔍 Detected columns:", columns);
-      setDetectedColumns(columns);
-    } catch (error) {
-      setTestResult({ success: false, data: (error as Error).message });
-    } finally {
-      setIsExecuting(false);
-    }
-  }, [endpoint.id, endpoint.responseMapping, executeApiEndpoint]);
-
-  // activeTab="run"으로 열렸을 때 자동으로 API 실행 (초기 1회만)
-  useEffect(() => {
-    if (activeTab === "run" && !hasAutoTriggeredTest.current && !isExecuting) {
-      hasAutoTriggeredTest.current = true;
-      handleTest();
-    }
-  }, [activeTab, handleTest, isExecuting]);
-
-  // DataTable Import 핸들러
-  const handleImport = useCallback(
-    async (columns: DetectedColumn[], tableName: string) => {
-      setIsImporting(true);
-      try {
-        // 스키마 생성
-        const schema = columnsToSchema(columns);
-        const selectedKeys = columns
-          .filter((c) => c.selected)
-          .map((c) => c.key);
-
-        // 데이터 추출
-        // ⚠️ 주의: executeApiEndpoint이 이미 dataPath를 적용하여 반환하므로
-        // testResult.data는 이미 추출된 배열입니다.
-        // 따라서 dataPath를 다시 적용하지 않습니다.
-        let dataToImport = testResult?.data;
-
-        dataToImport = resolveResponseData(dataToImport, "").data;
-
-        console.log(`🔍 handleImport: dataToImport`, {
-          isArray: Array.isArray(dataToImport),
-          length: Array.isArray(dataToImport) ? dataToImport.length : 0,
-          selectedKeys,
-        });
-
-        // 선택된 컬럼만 추출
-        const mockData = extractSelectedData(
-          dataToImport as unknown[],
-          selectedKeys,
-        );
-
-        console.log(`🔍 handleImport: mockData extracted`, {
-          mockDataLength: mockData.length,
-          firstItem: mockData[0],
-        });
-
-        // DataTable 생성
-        await createDataTable({
-          name: tableName,
-          project_id: endpoint.project_id,
-          schema,
-          mockData,
-          useMockData: false, // API 데이터이므로 mockData 사용 안함
-        });
-
-        console.log(
-          `✅ DataTable "${tableName}" 생성 완료 (${schema.length} 컬럼, ${mockData.length} 행)`,
-        );
-
-        globalToast.success(
-          t("importSucceeded", {
-            name: tableName,
-            columns: schema.length,
-            rows: mockData.length,
-          }),
-        );
-
-        // 컬럼 선택 초기화
-        setDetectedColumns([]);
-      } catch (error) {
-        console.error("❌ DataTable Import 실패:", error);
-        globalToast.error(
-          t("importFailed", { message: (error as Error).message }),
-        );
-      } finally {
-        setIsImporting(false);
-      }
-    },
-    [testResult, endpoint.project_id, createDataTable, t],
-  );
-
-  // Note: onClose is handled by parent DataTableEditorPanel
+  const autoRan = useRef(false);
   void onClose;
 
-  return (
-    <>
-      {activeTab === "basic" && (
-        <BasicEditor endpoint={endpoint} onUpdate={handleBasicUpdate} />
-      )}
-
-      {activeTab === "headers" && (
-        <HeadersEditor
-          headers={endpoint.headers || []}
-          onAdd={handleAddHeader}
-          onUpdate={handleUpdateHeader}
-          onDelete={handleDeleteHeader}
-        />
-      )}
-
-      {activeTab === "body" && (
-        <BodyEditor endpoint={endpoint} onUpdate={handleBasicUpdate} />
-      )}
-
-      {activeTab === "response" && (
-        <ResponseEditor endpoint={endpoint} onUpdate={handleBasicUpdate} />
-      )}
-
-      {activeTab === "run" && (
-        <TestEditor
-          endpoint={endpoint}
-          testResult={testResult}
-          isExecuting={isExecuting}
-          onTest={handleTest}
-          detectedColumns={detectedColumns}
-          onColumnsChange={setDetectedColumns}
-          onImport={handleImport}
-          isImporting={isImporting}
-        />
-      )}
-    </>
+  const save = useCallback(
+    async (patch: Partial<ApiEndpoint>) => {
+      try {
+        await applyDataChange({
+          ops: [draftWith(endpoint, patch)],
+          origin: "user",
+        });
+      } catch (error) {
+        globalToast.error(
+          error instanceof Error ? error.message : String(error),
+        );
+      }
+    },
+    [applyDataChange, endpoint],
   );
-}
 
-// ============================================
-// Basic Editor
-// ============================================
+  const send = useCallback(async () => {
+    try {
+      await executeApiEndpoint(endpoint.id);
+      setTab("response");
+    } catch {
+      setTab("response");
+    }
+  }, [executeApiEndpoint, endpoint.id]);
 
-interface BasicEditorProps {
-  endpoint: ApiEndpoint;
-  onUpdate: (updates: Partial<ApiEndpoint>) => void;
-}
+  // initialTab === "response" 로 열리면 (생성 직후) 1회 자동 실행
+  useEffect(() => {
+    if (initialTab === "response" && !autoRan.current) {
+      autoRan.current = true;
+      void send();
+    }
+  }, [initialTab, send]);
 
-function BasicEditor({ endpoint, onUpdate }: BasicEditorProps) {
-  const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  const commitUrl = useCallback(
+    (raw: string) => {
+      if (looksLikeCurl(raw)) {
+        const parsed = parseCurlCommand(raw);
+        if (parsed) {
+          const draft = curlToEndpointDraft(parsed);
+          setUrlDraft(`${draft.baseUrl}${draft.path}`);
+          void save({
+            method: draft.method,
+            baseUrl: draft.baseUrl,
+            path: draft.path,
+            headers: draft.headers,
+            queryParams: draft.queryParams,
+            bodyType: draft.bodyType,
+            bodyTemplate: draft.bodyTemplate,
+          });
+          announceDataPanelStatus(dt("apiCurlPasted"));
+          return;
+        }
+      }
+      const { baseUrl, path } = splitApiUrl(raw);
+      if (baseUrl !== endpoint.baseUrl || path !== endpoint.path) {
+        void save({ baseUrl, path });
+      }
+    },
+    [endpoint.baseUrl, endpoint.path, save, dt],
+  );
+
+  const handleUrlPaste = (e: ClipboardEvent<HTMLInputElement>) => {
+    const text = e.clipboardData.getData("text/plain");
+    if (looksLikeCurl(text)) {
+      e.preventDefault();
+      commitUrl(text);
+    }
+  };
+
+  const isProd = !import.meta.env.DEV;
+
   return (
-    <div className="basic-editor">
-      <PropertySelect
-        label="Method"
-        value={endpoint.method}
-        onChange={(value) => onUpdate({ method: value as HttpMethod })}
-        options={HTTP_METHODS}
-      />
+    <div className="datatable-api-editor">
+      <div className="datatable-api-bar">
+        <PropertySelect
+          value={endpoint.method}
+          onChange={(v) => void save({ method: v as HttpMethod })}
+          options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
+          aria-label={dt("apiTabParams")}
+        />
+        <input
+          type="text"
+          className="datatable-api-url"
+          value={urlDraft}
+          spellCheck={false}
+          placeholder={dt("apiUrlPlaceholder")}
+          aria-label="URL"
+          onChange={(e) => setUrlDraft(e.target.value)}
+          onPaste={handleUrlPaste}
+          onBlur={() => commitUrl(urlDraft)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              commitUrl(urlDraft);
+              void send();
+            }
+          }}
+        />
+        <Button
+          className="control-button"
+          data-variant="primary"
+          onPress={() => {
+            commitUrl(urlDraft);
+            void send();
+          }}
+          isDisabled={isLoading}
+        >
+          <Play size={iconSmall.size} />
+          {isLoading ? dt("apiSending") : dt("apiSend")}
+        </Button>
+      </div>
 
-      <PropertyInput
-        label="Base URL"
-        value={endpoint.baseUrl || ""}
-        onChange={(value) => onUpdate({ baseUrl: value })}
-        placeholder="https://api.example.com"
-      />
+      {isProd && (
+        <div className="datatable-api-cors" role="note">
+          {dt("apiCorsWarning")}
+        </div>
+      )}
 
-      <PropertyInput
-        label="Path"
-        value={endpoint.path}
-        onChange={(value) => onUpdate({ path: value })}
-        placeholder="/users/{{userId}}"
-      />
+      <Tabs
+        className="panel-tabs datatable-api-tabs"
+        selectedKey={tab}
+        onSelectionChange={(key) => setTab(key as ApiTab)}
+      >
+        <div className="panel-header panel-tabrow">
+          <TabList className="panel-tablist" aria-label={dt("apiTabParams")}>
+            <Tab id="params" className="panel-tab">
+              <span className="panel-tab-label">{dt("apiTabParams")}</span>
+            </Tab>
+            <Tab id="headers" className="panel-tab">
+              <span className="panel-tab-label">{dt("headers")}</span>
+            </Tab>
+            <Tab id="body" className="panel-tab">
+              <span className="panel-tab-label">{dt("body")}</span>
+            </Tab>
+            <Tab id="auth" className="panel-tab">
+              <span className="panel-tab-label">{dt("apiTabAuth")}</span>
+            </Tab>
+            <Tab id="response" className="panel-tab">
+              <span className="panel-tab-label">{dt("response")}</span>
+            </Tab>
+          </TabList>
+        </div>
 
-      <div className="section-divider" />
-
-      <h4 className="section-title">
-        {localize("queryParams", "Query Parameters")}
-      </h4>
-      <QueryParamsEditor endpoint={endpoint} onUpdate={onUpdate} />
+        <TabPanel id="params" className={panelContents()}>
+          <ParamsTab endpoint={endpoint} save={save} dt={dt} />
+        </TabPanel>
+        <TabPanel id="headers" className={panelContents()}>
+          <HeadersTab endpoint={endpoint} save={save} dt={dt} />
+        </TabPanel>
+        <TabPanel id="body" className={panelContents()}>
+          <BodyTab endpoint={endpoint} save={save} dt={dt} />
+        </TabPanel>
+        <TabPanel id="auth" className={panelContents()}>
+          <AuthTab endpoint={endpoint} save={save} dt={dt} />
+        </TabPanel>
+        <TabPanel id="response" className={panelContents()}>
+          <ResponseTab endpoint={endpoint} run={run} dt={dt} save={save} />
+        </TabPanel>
+      </Tabs>
     </div>
   );
 }
 
+type SaveFn = (patch: Partial<ApiEndpoint>) => Promise<void>;
+type DtFn = (
+  key: string,
+  params?: Record<string, string | number | boolean>,
+) => string;
+
 // ============================================
-// Query Params Editor (in Basic tab)
+// key-value 편집기 (a11y — Y6: 행별 Remove 고유 이름, Add 후 새 key 포커스)
 // ============================================
 
-interface QueryParamsEditorProps {
-  endpoint: ApiEndpoint;
-  onUpdate: (updates: Partial<ApiEndpoint>) => void;
+interface KeyValueRow {
+  key: string;
+  value: string;
 }
 
-function QueryParamsEditor({ endpoint, onUpdate }: QueryParamsEditorProps) {
-  const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  const params = endpoint.queryParams || [];
+function KeyValueEditor({
+  rows,
+  onChange,
+  addLabel,
+  removeLabel,
+  keyPlaceholder,
+  valuePlaceholder,
+}: {
+  rows: KeyValueRow[];
+  onChange: (rows: KeyValueRow[]) => void;
+  addLabel: string;
+  removeLabel: (key: string, index: number) => string;
+  keyPlaceholder: string;
+  valuePlaceholder: string;
+}) {
+  const groupId = useId();
+  // 로컬 draft — 빈 행을 즉시 store 에 쓰지 않는다 (define_endpoint 는 실제 값 편집에만).
+  // 외부 (endpoint) 가 바뀌면 (다른 편집·undo) 다시 seed 한다.
+  const [draft, setDraft] = useState<KeyValueRow[]>(rows);
+  const seedRef = useRef(JSON.stringify(rows));
+  useEffect(() => {
+    const next = JSON.stringify(rows);
+    if (next !== seedRef.current) {
+      seedRef.current = next;
+      setDraft(rows);
+    }
+  }, [rows]);
+  const focusNext = useRef(false);
+  const lastKeyRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focusNext.current) {
+      focusNext.current = false;
+      lastKeyRef.current?.focus();
+    }
+  });
 
-  const handleAdd = () => {
-    const newParams = [
-      ...params,
-      { key: "", value: "", type: "string" as const, required: false },
-    ];
-    onUpdate({ queryParams: newParams });
+  // 비어 있지 않은 (key 가 있는) 행만 상위로 — 빈 행은 draft 에만 남긴다.
+  const commit = (next: KeyValueRow[]) => {
+    setDraft(next);
+    const filled = next.filter((r) => r.key.trim() !== "");
+    const filledJson = JSON.stringify(filled);
+    if (filledJson !== JSON.stringify(rows.filter((r) => r.key.trim() !== ""))) {
+      seedRef.current = JSON.stringify(next);
+      onChange(filled);
+    }
   };
-
-  const handleUpdate = (index: number, key: string, value: string) => {
-    const newParams = [...params];
-    newParams[index] = { ...newParams[index], key, value };
-    onUpdate({ queryParams: newParams });
+  const update = (index: number, patch: Partial<KeyValueRow>) => {
+    commit(draft.map((r, i) => (i === index ? { ...r, ...patch } : r)));
   };
-
-  const handleDelete = (index: number) => {
-    const newParams = [...params];
-    newParams.splice(index, 1);
-    onUpdate({ queryParams: newParams });
+  const remove = (index: number) => commit(draft.filter((_, i) => i !== index));
+  const add = () => {
+    focusNext.current = true;
+    setDraft([...draft, { key: "", value: "" }]);
   };
 
   return (
-    <div className="query-params-editor">
-      {params.map((param, index) => (
-        <div key={index} className="kv-row">
+    <div className="datatable-kv" role="group" aria-labelledby={`${groupId}-h`}>
+      <span id={`${groupId}-h`} className="datatable-kv-heading" hidden>
+        {addLabel}
+      </span>
+      {draft.map((row, index) => (
+        <div className="datatable-kv-row" key={index}>
           <input
+            ref={index === draft.length - 1 ? lastKeyRef : undefined}
             type="text"
-            className="kv-input key"
-            value={param.key}
-            onChange={(e) => handleUpdate(index, e.target.value, param.value)}
-            placeholder="key"
+            className="datatable-api-input"
+            aria-label={`${keyPlaceholder} ${index + 1}`}
+            placeholder={keyPlaceholder}
+            spellCheck={false}
+            value={row.key}
+            onChange={(e) => update(index, { key: e.target.value })}
           />
           <input
             type="text"
-            className="kv-input value"
-            value={param.value}
-            onChange={(e) => handleUpdate(index, param.key, e.target.value)}
-            placeholder="value or {{variable}}"
+            className="datatable-api-input"
+            aria-label={`${valuePlaceholder} ${index + 1}`}
+            placeholder={valuePlaceholder}
+            spellCheck={false}
+            value={row.value}
+            onChange={(e) => update(index, { value: e.target.value })}
           />
-          <button
-            type="button"
-            className="kv-delete"
-            onClick={() => handleDelete(index)}
+          <Button
+            className="datatable-kv-remove"
+            aria-label={removeLabel(row.key, index)}
+            onPress={() => remove(index)}
           >
-            <DeleteIcon size={iconSmall.size} />
-          </button>
+            <Trash2 size={iconSmall.size} />
+          </Button>
         </div>
       ))}
+      <Button className="control-button" data-variant="add" onPress={add}>
+        <Plus size={iconSmall.size} />
+        {addLabel}
+      </Button>
+    </div>
+  );
+}
 
-      <button
-        type="button"
-        className="control-button"
-        data-variant="add"
-        onClick={handleAdd}
-      >
-        <AddIcon {...iconEditProps} />
-        {localize("addParameter", "Add Parameter")}
-      </button>
+function ParamsTab({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const rows = endpoint.queryParams.map((q) => ({
+    key: q.key,
+    value: q.value,
+  }));
+  return (
+    <div className="datatable-api-section">
+      <p className="datatable-api-hint">{dt("apiParamsHint")}</p>
+      <KeyValueEditor
+        rows={rows}
+        addLabel={dt("apiAddParam")}
+        keyPlaceholder={dt("apiKeyPlaceholder")}
+        valuePlaceholder={dt("apiValuePlaceholder")}
+        removeLabel={(key, i) =>
+          `${dt("apiRemoveRow")}: ${key || dt("apiKeyPlaceholder")} ${i + 1}`
+        }
+        onChange={(next) =>
+          void save({
+            queryParams: next.map<ApiParam>((r) => ({
+              key: r.key,
+              value: r.value,
+              type: "string",
+              required: false,
+            })),
+          })
+        }
+      />
+    </div>
+  );
+}
+
+function HeadersTab({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const rows = (endpoint.headers ?? []).map((h) => ({
+    key: h.key,
+    value: h.value,
+  }));
+  return (
+    <div className="datatable-api-section">
+      <KeyValueEditor
+        rows={rows}
+        addLabel={dt("apiAddHeader")}
+        keyPlaceholder={dt("apiKeyPlaceholder")}
+        valuePlaceholder={dt("apiValuePlaceholder")}
+        removeLabel={(key, i) =>
+          `${dt("apiRemoveRow")}: ${key || dt("apiKeyPlaceholder")} ${i + 1}`
+        }
+        onChange={(next) =>
+          void save({
+            headers: next.map<ApiHeader>((r) => ({
+              key: r.key,
+              value: r.value,
+              enabled: true,
+            })),
+          })
+        }
+      />
+    </div>
+  );
+}
+
+function BodyTab({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const bodyId = useId();
+  return (
+    <div className="datatable-api-section">
+      <fieldset className="properties-aria">
+        <legend className="fieldset-legend">{dt("apiBodyType")}</legend>
+        <PropertySelect
+          value={endpoint.bodyType}
+          onChange={(v) => void save({ bodyType: v as BodyType })}
+          options={BODY_TYPES.map((b) => ({ value: b, label: b }))}
+          aria-label={dt("apiBodyType")}
+        />
+      </fieldset>
+      {endpoint.bodyType !== "none" && (
+        <textarea
+          className="datatable-api-body"
+          aria-label={dt("body")}
+          aria-multiline="true"
+          spellCheck={false}
+          id={bodyId}
+          defaultValue={endpoint.bodyTemplate ?? ""}
+          key={`${endpoint.id}-body`}
+          placeholder={dt("apiBodyPlaceholder")}
+          rows={10}
+          onBlur={(e) => {
+            if (e.target.value !== (endpoint.bodyTemplate ?? ""))
+              void save({ bodyTemplate: e.target.value });
+          }}
+        />
+      )}
     </div>
   );
 }
 
 // ============================================
-// Headers Editor (ApiHeader[] format)
+// Auth 탭 — 프리셋 + vault (원문은 이 기기에만, HC6)
 // ============================================
 
-interface HeadersEditorProps {
-  headers: ApiHeader[];
-  onAdd: () => void;
-  onUpdate: (index: number, key: string, value: string) => void;
-  onDelete: (index: number) => void;
+function AuthTab({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const detected = useMemo(
+    () => detectAuthPreset(endpoint.headers ?? [], endpoint.queryParams ?? []),
+    [endpoint.headers, endpoint.queryParams],
+  );
+  const [preset, setPreset] = useState<AuthPreset["type"]>(detected.type);
+  const [name, setName] = useState(
+    "name" in detected ? detected.name : "X-API-Key",
+  );
+  const [where, setWhere] = useState<"header" | "query">(
+    detected.type === "apiKey" ? detected.in : "header",
+  );
+  const [secretName, setSecretName] = useState(
+    `${endpoint.name.replace(/[^A-Za-z0-9]+/g, "_").toUpperCase()}_KEY`,
+  );
+  const [secretValue, setSecretValue] = useState("");
+  const [savedNames, setSavedNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    void listSecretNames(endpoint.project_id).then(setSavedNames);
+  }, [endpoint.project_id]);
+
+  // 프리셋을 헤더/쿼리 항목으로 반영 (auth 계열만 교체, 나머지 헤더는 보존)
+  const applyPreset = (auth: AuthPreset) => {
+    const entries = authToEntries(auth);
+    const nonAuthHeaders = (endpoint.headers ?? []).filter(
+      (h) => !/^authorization$/i.test(h.key) && !isApiKeyHeader(h.key),
+    );
+    const nonAuthQuery = (endpoint.queryParams ?? []).filter(
+      (q) => !isApiKeyQuery(q.key),
+    );
+    void save({
+      headers: [...nonAuthHeaders, ...entries.headers],
+      queryParams: [...nonAuthQuery, ...entries.queryParams],
+    });
+  };
+
+  const buildAuth = (type: AuthPreset["type"]): AuthPreset => {
+    switch (type) {
+      case "none":
+        return { type: "none" };
+      case "bearer":
+        return { type: "bearer", secretName };
+      case "basic":
+        return { type: "basic", secretName };
+      case "apiKey":
+        return { type: "apiKey", in: where, name, secretName };
+    }
+  };
+
+  const saveSecret = async () => {
+    if (!secretName || secretValue === "") return;
+    await setSecret(endpoint.project_id, secretName, secretValue);
+    setSecretValue("");
+    setSavedNames(await listSecretNames(endpoint.project_id));
+    announceDataPanelStatus(dt("apiAuthSaved"), { tone: "success" });
+  };
+
+  return (
+    <div className="datatable-api-section">
+      <fieldset className="properties-aria">
+        <legend className="fieldset-legend">{dt("apiAuthType")}</legend>
+        <PropertySelect
+          value={preset}
+          onChange={(v) => {
+            const type = v as AuthPreset["type"];
+            setPreset(type);
+            applyPreset(buildAuth(type));
+          }}
+          options={[
+            { value: "none", label: dt("apiAuthNone") },
+            { value: "bearer", label: dt("apiAuthBearer") },
+            { value: "apiKey", label: dt("apiAuthApiKey") },
+            { value: "basic", label: dt("basic") },
+          ]}
+          aria-label={dt("apiAuthType")}
+        />
+      </fieldset>
+
+      {preset === "apiKey" && (
+        <>
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">{dt("apiAuthIn")}</legend>
+            <PropertySelect
+              value={where}
+              onChange={(v) => {
+                const w = v as "header" | "query";
+                setWhere(w);
+                applyPreset({ type: "apiKey", in: w, name, secretName });
+              }}
+              options={[
+                { value: "header", label: dt("apiAuthInHeader") },
+                { value: "query", label: dt("apiAuthInQuery") },
+              ]}
+              aria-label={dt("apiAuthIn")}
+            />
+          </fieldset>
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">{dt("apiAuthKeyName")}</legend>
+            <input
+              type="text"
+              className="datatable-api-input"
+              value={name}
+              spellCheck={false}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() =>
+                applyPreset({ type: "apiKey", in: where, name, secretName })
+              }
+            />
+          </fieldset>
+        </>
+      )}
+
+      {preset !== "none" && (
+        <>
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">
+              {dt("apiAuthSecretName")}
+            </legend>
+            <input
+              type="text"
+              className="datatable-api-input"
+              value={secretName}
+              spellCheck={false}
+              onChange={(e) => setSecretName(e.target.value)}
+              onBlur={() => applyPreset(buildAuth(preset))}
+            />
+          </fieldset>
+          <fieldset className="properties-aria">
+            <legend className="fieldset-legend">{dt("apiAuthValue")}</legend>
+            <div className="datatable-api-secret-row">
+              <input
+                type="password"
+                className="datatable-api-input"
+                value={secretValue}
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={
+                  savedNames.includes(secretName)
+                    ? dt("apiAuthSaved")
+                    : dt("apiAuthUnset")
+                }
+                onChange={(e) => setSecretValue(e.target.value)}
+              />
+              <Button
+                className="control-button"
+                onPress={() => void saveSecret()}
+                isDisabled={secretValue === "" || secretName === ""}
+              >
+                {dt("apiAuthSave")}
+              </Button>
+            </div>
+            <p className="datatable-api-hint">{dt("apiAuthValueHint")}</p>
+          </fieldset>
+        </>
+      )}
+    </div>
+  );
 }
 
-function HeadersEditor({
-  headers,
-  onAdd,
-  onUpdate,
-  onDelete,
-}: HeadersEditorProps) {
-  const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  return (
-    <div className="kv-editor">
-      <p className="kv-description">
-        {localize(
-          "headersHint",
-          "Configure HTTP headers. Reference variables with {{variable}}.",
-        )}
-      </p>
+const API_KEY_HEADERS = new Set([
+  "x-api-key",
+  "api-key",
+  "apikey",
+  "x-auth-token",
+]);
+const API_KEY_QUERIES = new Set([
+  "api_key",
+  "apikey",
+  "api-key",
+  "key",
+  "token",
+  "access_token",
+]);
+const isApiKeyHeader = (key: string) =>
+  API_KEY_HEADERS.has(key.trim().toLowerCase());
+const isApiKeyQuery = (key: string) =>
+  API_KEY_QUERIES.has(key.trim().toLowerCase());
 
-      <div className="kv-list">
-        {headers.map((header, index) => (
-          <div key={index} className="kv-row">
-            <input
-              type="text"
-              className="kv-input key"
-              value={header.key}
-              onChange={(e) => onUpdate(index, e.target.value, header.value)}
-              placeholder="Header Name"
-            />
-            <input
-              type="text"
-              className="kv-input value"
-              value={header.value}
-              onChange={(e) => onUpdate(index, header.key, e.target.value)}
-              placeholder="Value or {{variable}}"
-            />
-            <button
-              type="button"
-              className="kv-delete"
-              onClick={() => onDelete(index)}
-            >
-              <DeleteIcon size={iconSmall.size} />
-            </button>
-          </div>
+// ============================================
+// Response 탭 — status/time/size + Pretty/Raw/Schema + 테이블로 저장
+// ============================================
+
+function ResponseTab({
+  endpoint,
+  run,
+  dt,
+  save,
+}: {
+  endpoint: ApiEndpoint;
+  run: ApiRunRecord | null;
+  dt: DtFn;
+  save: SaveFn;
+}) {
+  const [view, setView] = useState<"pretty" | "raw" | "schema">("pretty");
+  if (!run || !run.response) {
+    return (
+      <div className="datatable-api-section">
+        <div className="datatable-api-empty">
+          {run && !run.response
+            ? (run.error ?? dt("apiResponseEmpty"))
+            : dt("apiResponseEmpty")}
+        </div>
+      </div>
+    );
+  }
+  const { response } = run;
+  const bytes = new Blob([response.bodyPreview]).size;
+  const sizeText =
+    bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;
+  let parsed: unknown = null;
+  try {
+    parsed = JSON.parse(response.bodyPreview);
+  } catch {
+    // 비-JSON 응답 — Raw 로만 본다
+  }
+
+  return (
+    <div className="datatable-api-section datatable-api-response">
+      <div
+        className="datatable-api-status"
+        role="status"
+        aria-live="polite"
+        data-ok={run.ok || undefined}
+      >
+        <span data-field="status">
+          {dt("apiResponseStatus")} {response.status} {response.statusText}
+        </span>
+        <span data-field="time">
+          {dt("apiResponseTime")} {run.durationMs} ms
+        </span>
+        <span data-field="size">
+          {dt("apiResponseSize")} {sizeText}
+          {response.bodyTruncated ? "+" : ""}
+        </span>
+      </div>
+
+      <div
+        className="datatable-api-response-tabs"
+        role="tablist"
+        aria-label="view"
+      >
+        {(["pretty", "raw", "schema"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={view === v}
+            className="datatable-api-response-tab"
+            data-selected={view === v || undefined}
+            onClick={() => setView(v)}
+          >
+            {dt(
+              v === "pretty"
+                ? "apiResponsePretty"
+                : v === "raw"
+                  ? "apiResponseRaw"
+                  : "apiResponseSchema",
+            )}
+          </button>
         ))}
       </div>
 
-      <button
-        type="button"
-        className="control-button"
-        data-variant="add"
-        onClick={onAdd}
-      >
-        <AddIcon {...iconEditProps} />
-        Add Header
-      </button>
+      {view === "raw" && (
+        <pre className="datatable-api-body-view">{response.bodyPreview}</pre>
+      )}
+      {view === "pretty" && (
+        <pre className="datatable-api-body-view">
+          {parsed !== null
+            ? JSON.stringify(parsed, null, 2)
+            : response.bodyPreview}
+        </pre>
+      )}
+      {view === "schema" && (
+        <SchemaView endpoint={endpoint} parsed={parsed} dt={dt} save={save} />
+      )}
     </div>
   );
 }
 
-// ============================================
-// Body Editor
-// ============================================
-
-interface BodyEditorProps {
+function SchemaView({
+  endpoint,
+  parsed,
+  dt,
+  save,
+}: {
   endpoint: ApiEndpoint;
-  onUpdate: (updates: Partial<ApiEndpoint>) => void;
-}
-
-function BodyEditor({ endpoint, onUpdate }: BodyEditorProps) {
-  const i18n = useOptionalI18n();
-  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const t = (
-    key: string,
-    params?: Record<string, string | number | boolean>,
-  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
-  // bodyTemplate is already a string (JSON template)
-  const bodyTemplate = endpoint.bodyTemplate || "";
-
-  const handleBodyChange = (value: string) => {
-    onUpdate({ bodyTemplate: value });
-  };
-
-  return (
-    <div className="body-editor">
-      <p className="editor-description">
-        {t("bodyHint")}
-        <br />
-        {t("bodyVariableHint")}
-      </p>
-
-      <textarea
-        className="body-textarea"
-        value={bodyTemplate}
-        onChange={(e) => handleBodyChange(e.target.value)}
-        placeholder='{"key": "value", "userId": "{{userId}}"}'
-        rows={10}
-      />
-    </div>
+  parsed: unknown;
+  dt: DtFn;
+  save: SaveFn;
+}) {
+  const applyDataChange = useDataStore((state) => state.applyDataChange);
+  const candidates = useMemo(() => recommendArrayPaths(parsed), [parsed]);
+  const [path, setPath] = useState(
+    () => endpoint.responseMapping?.dataPath ?? candidates[0]?.path ?? "",
   );
-}
+  const [tableName, setTableName] = useState(endpoint.name || "table");
+  const [attach, setAttach] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-// ============================================
-// Response Editor
-// ============================================
+  const rows = useMemo(() => {
+    const resolved = resolveResponseData(readPath(parsed, path), "");
+    return Array.isArray(resolved.data) ? resolved.data : [];
+  }, [parsed, path]);
+  const columns: DetectedColumn[] = useMemo(() => detectColumns(rows), [rows]);
 
-interface ResponseEditorProps {
-  endpoint: ApiEndpoint;
-  onUpdate: (updates: Partial<ApiEndpoint>) => void;
-}
+  if (candidates.length === 0) {
+    return <div className="datatable-api-empty">{dt("apiSchemaNoArray")}</div>;
+  }
 
-function ResponseEditor({ endpoint, onUpdate }: ResponseEditorProps) {
-  const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  /** 보간이 필요한 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const t = (
-    key: string,
-    params?: Record<string, string | number | boolean>,
-  ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
-  const executeApiEndpoint = useDataStore((state) => state.executeApiEndpoint);
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [detectResult, setDetectResult] = useState<string | null>(null);
-
-  // Data Path 자동 감지
-  const handleAutoDetect = async () => {
-    setIsDetecting(true);
-    setDetectResult(null);
-
+  const doSave = async () => {
+    setSaving(true);
     try {
-      // API 실행 (dataPath 없이)
-      const result = await executeApiEndpoint(endpoint.id);
-
-      // 응답에서 배열 필드 찾기
-      if (result && typeof result === "object" && !Array.isArray(result)) {
-        const commonArrayFields = [
-          "results",
-          "data",
-          "items",
-          "records",
-          "list",
-          "rows",
-          "entries",
-          "content",
-          "hits",
-        ];
-        for (const field of commonArrayFields) {
-          const fieldValue = (result as Record<string, unknown>)[field];
-          if (Array.isArray(fieldValue) && fieldValue.length > 0) {
-            onUpdate({
-              responseMapping: { ...endpoint.responseMapping, dataPath: field },
-            });
-            setDetectResult(
-              t("detectFound", { field, count: fieldValue.length }),
-            );
-            return;
-          }
-        }
-        setDetectResult(t("detectNoArray"));
-      } else if (Array.isArray(result)) {
-        // 이미 배열인 경우 dataPath 불필요
-        setDetectResult(t("detectAlreadyArray"));
-      } else {
-        setDetectResult(t("detectUnknownShape"));
-      }
+      const collectionId = crypto.randomUUID();
+      const schema = columns
+        .filter((c) => c.selected !== false)
+        .map((c) => ({ key: c.key, type: c.type }));
+      const selectedKeys = new Set(schema.map((s) => s.key));
+      const projectedRows = (rows as Record<string, unknown>[]).map((r) => {
+        const out: Record<string, unknown> = {};
+        for (const key of selectedKeys) out[key] = r[key];
+        return out;
+      });
+      const ops: DataOp[] = buildSaveApiAsTableOps({
+        projectId: endpoint.project_id,
+        collectionId,
+        tableName,
+        schema,
+        rows: projectedRows,
+        endpoint,
+        dataPath: path,
+        mode: attach ? "attach" : "create",
+      });
+      await applyDataChange({ ops, origin: "user" });
+      announceDataPanelStatus(dt("apiSaved", { name: tableName }), {
+        tone: "success",
+      });
     } catch (error) {
-      setDetectResult(
-        t("detectRequestFailed", { message: (error as Error).message }),
+      globalToast.error(
+        dt("apiSaveFailed", {
+          message: error instanceof Error ? error.message : String(error),
+        }),
       );
+      // set_source·define_endpoint 은 213 coordinator 가 이미 rollback 했다.
+      void save;
     } finally {
-      setIsDetecting(false);
+      setSaving(false);
     }
   };
 
   return (
-    <div className="response-editor">
-      <div className="field-with-action">
-        <PropertyInput
-          label="Data Path"
-          value={endpoint.responseMapping?.dataPath || ""}
-          onChange={(value) =>
-            onUpdate({
-              responseMapping: { ...endpoint.responseMapping, dataPath: value },
-            })
-          }
-          placeholder="results, data.items"
+    <div className="datatable-api-schema">
+      <fieldset className="properties-aria">
+        <legend className="fieldset-legend">{dt("apiSchemaPath")}</legend>
+        <PropertySelect
+          value={path}
+          onChange={setPath}
+          options={candidates.map((c) => ({
+            value: c.path,
+            label: dt("apiSchemaCandidate", {
+              path: c.path === "" ? "/" : c.path,
+              count: c.count,
+            }),
+          }))}
+          aria-label={dt("apiSchemaPath")}
         />
-        <button
-          type="button"
-          className="control-button"
-          onClick={handleAutoDetect}
-          disabled={isDetecting}
-          title={localize(
-            "autoDetect",
-            "Automatically detect array fields by calling the API",
-          )}
-        >
-          <Wand2 {...iconEditProps} />
-          {isDetecting
-            ? localize("detecting", "Detecting...")
-            : localize("autoDetectShort", "Auto-detect")}
-        </button>
-      </div>
-      {detectResult && (
-        <p
-          className={`detect-result ${detectResult.startsWith("✓") ? "success" : detectResult.startsWith("⚠") ? "warning" : "error"}`}
-        >
-          {detectResult}
-        </p>
-      )}
-      <p className="field-description">{t("dataPathHint")}</p>
-
-      <PropertyInput
-        label="Target DataTable"
-        value={endpoint.targetCollection || ""}
-        onChange={(value) =>
-          // ADR-152 v2.1: 이름과 같이 안정 참조 (id) 도 기록 — 이름이 collection 에
-          // 없으면 id 는 비운다 (sink 는 id 우선 · 이름 fallback).
-          onUpdate({
-            targetCollection: value,
-            targetCollectionId:
-              resolveCollectionByName(
-                value,
-                Array.from(useDataStore.getState().collections.values()),
-              )?.id ?? undefined,
-          })
-        }
-        placeholder="pokemon_list"
-      />
-      <p className="field-description">{t("targetTableHint")}</p>
-
-      <div className="section-divider" />
-
-      <h4 className="section-title">
-        {localize("fieldMapping", "Field Mapping")}
-      </h4>
-      <p className="field-description">{t("fieldMappingHint")}</p>
-
-      <FieldMappingEditor endpoint={endpoint} onUpdate={onUpdate} />
-    </div>
-  );
-}
-
-// ============================================
-// Field Mapping Editor
-// ============================================
-
-interface FieldMappingEditorProps {
-  endpoint: ApiEndpoint;
-  onUpdate: (updates: Partial<ApiEndpoint>) => void;
-}
-
-function FieldMappingEditor({ endpoint, onUpdate }: FieldMappingEditorProps) {
-  const i18n = useOptionalI18n();
-  const localize = (key: string, fallback: string) =>
-    i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  // fieldMappings is an array of { sourceKey, targetKey }
-  const fieldMappings = endpoint.responseMapping?.fieldMappings || [];
-
-  const handleAdd = () => {
-    const newMappings = [...fieldMappings, { sourceKey: "", targetKey: "" }];
-    onUpdate({
-      responseMapping: {
-        ...endpoint.responseMapping,
-        dataPath: endpoint.responseMapping?.dataPath || "",
-        fieldMappings: newMappings,
-      },
-    });
-  };
-
-  const handleUpdate = (
-    index: number,
-    sourceKey: string,
-    targetKey: string,
-  ) => {
-    const newMappings = [...fieldMappings];
-    newMappings[index] = { sourceKey, targetKey };
-    onUpdate({
-      responseMapping: {
-        ...endpoint.responseMapping,
-        dataPath: endpoint.responseMapping?.dataPath || "",
-        fieldMappings: newMappings,
-      },
-    });
-  };
-
-  const handleDelete = (index: number) => {
-    const newMappings = [...fieldMappings];
-    newMappings.splice(index, 1);
-    onUpdate({
-      responseMapping: {
-        ...endpoint.responseMapping,
-        dataPath: endpoint.responseMapping?.dataPath || "",
-        fieldMappings: newMappings,
-      },
-    });
-  };
-
-  return (
-    <div className="field-mapping-editor">
-      <div className="kv-list">
-        {fieldMappings.map((mapping, index) => (
-          <div key={index} className="kv-row">
-            <input
-              type="text"
-              className="kv-input key"
-              value={mapping.sourceKey}
-              onChange={(e) =>
-                handleUpdate(index, e.target.value, mapping.targetKey)
-              }
-              placeholder="API Field"
-            />
-            <span className="kv-arrow">→</span>
-            <input
-              type="text"
-              className="kv-input value"
-              value={mapping.targetKey}
-              onChange={(e) =>
-                handleUpdate(index, mapping.sourceKey, e.target.value)
-              }
-              placeholder="DataTable Field"
-            />
-            <button
-              type="button"
-              className="kv-delete"
-              onClick={() => handleDelete(index)}
-            >
-              <DeleteIcon size={iconSmall.size} />
-            </button>
-          </div>
+      </fieldset>
+      <ul className="datatable-api-schema-cols">
+        {columns.map((c) => (
+          <li key={c.key}>
+            <code>{c.key}</code>
+            <span className="datatable-api-schema-type">{c.type}</span>
+          </li>
         ))}
-      </div>
-
-      <button
-        type="button"
-        className="control-button"
-        data-variant="add"
-        onClick={handleAdd}
-      >
-        <AddIcon {...iconEditProps} />
-        {localize("addMapping", "Add Mapping")}
-      </button>
-    </div>
-  );
-}
-
-// ============================================
-// Test Editor
-// ============================================
-
-interface TestEditorProps {
-  endpoint: ApiEndpoint;
-  testResult: { success: boolean; data: unknown } | null;
-  isExecuting: boolean;
-  onTest: () => void;
-  detectedColumns: DetectedColumn[];
-  onColumnsChange: (columns: DetectedColumn[]) => void;
-  onImport: (columns: DetectedColumn[], tableName: string) => void;
-  isImporting: boolean;
-}
-
-function TestEditor({
-  endpoint,
-  testResult,
-  isExecuting,
-  onTest,
-  detectedColumns,
-  onColumnsChange,
-  onImport,
-  isImporting,
-}: TestEditorProps) {
-  return (
-    <div className="test-editor">
-      <div className="test-info">
-        <span className={`method-badge ${endpoint.method.toLowerCase()}`}>
-          {endpoint.method}
-        </span>
-        <span className="test-url">
-          {endpoint.baseUrl}
-          {endpoint.path}
-        </span>
-      </div>
-
-      <button
-        type="button"
+      </ul>
+      <label className="datatable-api-attach">
+        <input
+          type="checkbox"
+          checked={attach}
+          onChange={(e) => setAttach(e.target.checked)}
+        />
+        {dt("apiAttachExisting")}
+      </label>
+      <fieldset className="properties-aria">
+        <legend className="fieldset-legend">{dt("apiSaveTableName")}</legend>
+        <input
+          type="text"
+          className="datatable-api-input"
+          value={tableName}
+          spellCheck={false}
+          onChange={(e) => setTableName(e.target.value)}
+        />
+      </fieldset>
+      <Button
         className="control-button"
         data-variant="primary"
-        onClick={onTest}
-        disabled={isExecuting}
+        onPress={() => void doSave()}
+        isDisabled={saving || columns.length === 0 || tableName.trim() === ""}
       >
-        <Play {...iconEditProps} />
-        {isExecuting ? "Executing..." : "Execute Request"}
-      </button>
-
-      {testResult && (
-        <div
-          className={`test-result ${testResult.success ? "success" : "error"}`}
-        >
-          <div className="result-header">
-            {testResult.success ? "✓ Success" : "✗ Error"}
-          </div>
-          <pre className="result-data">
-            {typeof testResult.data === "string"
-              ? testResult.data
-              : JSON.stringify(testResult.data, null, 2)}
-          </pre>
-        </div>
-      )}
-
-      {/* Column Selector - API 성공 시 표시 */}
-      {testResult?.success && detectedColumns.length > 0 && (
-        <ColumnSelector
-          columns={detectedColumns}
-          onColumnsChange={onColumnsChange}
-          onImport={onImport}
-          isImporting={isImporting}
-          defaultTableName={endpoint.targetCollection || ""}
-        />
-      )}
+        {dt("apiSaveAsTable")}
+      </Button>
     </div>
   );
 }
+
+export default ApiEndpointEditor;
