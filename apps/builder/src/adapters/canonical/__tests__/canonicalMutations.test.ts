@@ -13,6 +13,7 @@ import {
   registerCanonicalMutationStoreActions,
   resetCanonicalMutationStoreActions,
   setElementsCanonicalPrimary,
+  updateCanonicalNodeFromElementPrimary,
 } from "../canonicalMutations";
 
 /**
@@ -959,6 +960,73 @@ describe("canonical mutation wrappers", () => {
       "child-b",
       "child-a",
     ]);
+  });
+
+  it("Element.state mirror 가 canonical state 로 왕복하고, state 없는 Element 갱신은 기존 state 를 보존한다 (ADR-214)", () => {
+    const page = makePage("page-1");
+    const body = makeElement("body", "body", { page_id: "page-1" });
+    const card = makeElement("card", "Card", {
+      parent_id: body.id,
+      page_id: "page-1",
+      props: { label: "A" },
+    });
+    const state = [
+      { id: "v_card", name: "count", type: "number" as const, defaultValue: 0 },
+    ];
+
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument(
+      "project-1",
+      makeDocument([
+        {
+          id: "page-1",
+          type: "frame",
+          metadata: { type: "legacy-page", pageId: "page-1" },
+          children: [
+            makeCanonicalElementNode(body, [makeCanonicalElementNode(card)]),
+          ],
+        },
+      ]),
+    );
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({
+        elements: [body, card],
+        pages: [page],
+        layouts: [],
+      }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    const findCard = () =>
+      useCanonicalDocumentStore
+        .getState()
+        .getDocument("project-1")
+        ?.children.find((node) => node.id === "page-1")
+        ?.children?.find((node) => node.id === body.id)
+        ?.children?.find((node) => node.id === card.id);
+
+    // 1) Element.state → canonical state
+    mergeElementsCanonicalPrimary([{ ...card, state } as Element]);
+    expect(findCard()?.state).toEqual(state);
+
+    // 2) projection 이 state 를 Element 로 되돌린다
+    const projected = canonicalDocumentToElements(
+      useCanonicalDocumentStore.getState().getDocument("project-1")!,
+    ).find((element) => element.id === card.id);
+    expect(projected?.state).toEqual(state);
+
+    // 3) state 없이 (props 만 든) Element 로 갱신해도 canonical state 는 남는다 —
+    //    Element 재구성 경로가 노드를 통째로 다시 만들기 때문에 명시 보존이 필요하다
+    updateCanonicalNodeFromElementPrimary({
+      ...card,
+      props: { label: "A updated" },
+    });
+    expect(findCard()?.props).toEqual({ label: "A updated" });
+    expect(findCard()?.state).toEqual(state);
+
+    // 4) 빈 배열은 필드 제거 (canonical 규약)
+    mergeElementsCanonicalPrimary([{ ...card, state: [] } as Element]);
+    expect(findCard()).not.toHaveProperty("state");
   });
 
   it("mergeElementsCanonicalPrimary preserves canonical order when props-only updates carry refreshed mirror order", () => {

@@ -1,4 +1,9 @@
-import type { DataChange, DataOp } from "@composition/shared";
+import type {
+  DataChange,
+  DataOp,
+  VariableMigrationStatus,
+  VariableOwner,
+} from "@composition/shared";
 
 /**
  * Data Panel System Type Definitions
@@ -314,6 +319,21 @@ export interface Variable {
 
   /** scope가 "page"인 경우 페이지 ID */
   page_id?: string;
+
+  /**
+   * 소유자 (ADR-214 Phase 1, additive). 이 store 의 변수는 전부 프로젝트 저장이므로
+   * 정상 값은 `{ kind: "project" }` 이고, `{ kind: "page" }` 는 `scope:"page" + page_id`
+   * 구 데이터의 읽기 변환 결과다 (페이지 변수의 정본은 canonical 페이지 노드 `state`).
+   * 로드 시 `migrateVariableOwners` 가 채우며 저장 전까지 IndexedDB 원본은 재직렬화하지 않는다.
+   * `scope` / `page_id` 는 하위 호환 (`isVariable` 가드 · 구 UI) 으로 남긴다.
+   */
+  owner?: VariableOwner;
+
+  /**
+   * HC3 — `scope:"component"` (및 `page` without `page_id`) 를 project 로 승격한 표식.
+   * 인덱스 배지 · 로그가 읽는다. 조용한 변환 0.
+   */
+  migrationStatus?: VariableMigrationStatus;
 
   /** 유효성 검사 규칙 */
   validation?: VariableValidation;

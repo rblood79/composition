@@ -71,6 +71,10 @@ function createNodeProjectionSignature(node: CanvasSceneNode | null) {
     props: node.props ?? {},
     ref: node.ref ?? null,
     reusable: node.reusable === true,
+    // ADR-214 — 소비 중인 상태 정의 digest (정의 자체는 signature 밖, HC4). 소비 정의의
+    // defaultValue/name/type 변경이 이 노드의 signature 만 바꾼다 (R8 · R5). 비소비 노드는
+    // 키 자체를 넣지 않아 기존 직렬화·hash 가 그대로다.
+    ...(node.stateDeps ? { stateDeps: node.stateDeps } : {}),
     type: node.type,
   };
 }

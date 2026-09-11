@@ -31,6 +31,9 @@ export * from "./schemas/dataChange";
 // Interactions (ADR-158) — CAPABILITY_REGISTRY (When/Do 어휘 SSOT) + InteractionRule
 export * from "./interactions";
 
+// State (ADR-214) — VariableDef / VariableOwner · 가시성 사슬 · 복제 재매핑 · 의존 digest
+export * from "./state";
+
 // 공유 컴포넌트가 스스로 그리는 상태 문구 (ADR-200 후속) — 주변 locale 로 해소된다
 export * from "./i18n";
 

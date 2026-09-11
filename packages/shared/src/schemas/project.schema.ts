@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { VariableDefSchema } from "../state/variable.types";
 import { EXPORT_LIMITS } from "../types/export.types";
 
 // ============================================
@@ -42,6 +43,8 @@ interface CanonicalNodeSchemaShape {
   descendants?: Record<string, unknown>;
   clip?: unknown;
   placeholder?: boolean;
+  /** ADR-214 — 노드 소유 상태 정의 (페이지 · 요소 변수) */
+  state?: unknown;
   [key: string]: unknown;
 }
 
@@ -71,6 +74,8 @@ export const CanonicalNodeSchema: z.ZodType<CanonicalNodeSchemaShape> = z.lazy(
         descendants: LooseRecordSchema.optional(),
         clip: z.unknown().optional(),
         placeholder: z.boolean().optional(),
+        // ADR-214 Phase 1 — 잘못된 state 는 import 경계에서 거부 (catchall 통과 금지)
+        state: z.array(VariableDefSchema).optional(),
       })
       .catchall(z.unknown()),
 );
@@ -146,25 +151,72 @@ export const ExportedProjectSchema = z
     document: CompositionDocumentSchema,
     currentPageId: z.string().nullable().optional(),
     fontRegistry: z.unknown().optional(),
-    collections: z.array(z.object({
-      id: z.string(), name: z.string(),
-      // ADR-152 v2.1: `id` 는 안정 참조 (`{#id}` 템플릿 · fieldMap · 차트) — strip 되면 import 뒤 참조가 끊긴다
-      schema: z.array(z.object({ id: z.string().optional(), key: z.string(), type: z.string(), label: z.string().optional(), required: z.boolean().optional(), defaultValue: z.unknown().optional() })).optional(),
-      mockData: z.array(z.record(z.string(), z.unknown())).optional(),
-      runtimeData: z.array(z.record(z.string(), z.unknown())).optional(),
-      useMockData: z.boolean().optional(),
-      status: z.enum(["idle", "loading", "success", "error"]).optional(),
-      error: z.string().nullable().optional(),
-    })).optional(),
-    apiEndpoints: z.array(z.object({
-      id: z.string(), name: z.string(), baseUrl: z.string(), path: z.string(),
-      method: z.string().optional(),
-      headers: z.union([z.record(z.string(), z.string()), z.array(z.object({key:z.string(), value:z.string(), enabled:z.boolean()}))]).optional(),
-      queryParams: z.array(z.object({key: z.string(), value: z.string()})).optional(),
-      bodyType: z.string().optional(), bodyTemplate: z.string().optional(),
-      responseMapping: z.object({dataPath: z.string(), fieldMappings: z.array(z.object({sourceKey: z.string(), targetKey: z.string()})).optional()}).optional(),
-      executionMode: z.enum(["client", "server"]).optional(), timeout: z.number().optional(),
-    })).optional(),
+    collections: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          // ADR-152 v2.1: `id` 는 안정 참조 (`{#id}` 템플릿 · fieldMap · 차트) — strip 되면 import 뒤 참조가 끊긴다
+          schema: z
+            .array(
+              z.object({
+                id: z.string().optional(),
+                key: z.string(),
+                type: z.string(),
+                label: z.string().optional(),
+                required: z.boolean().optional(),
+                defaultValue: z.unknown().optional(),
+              }),
+            )
+            .optional(),
+          mockData: z.array(z.record(z.string(), z.unknown())).optional(),
+          runtimeData: z.array(z.record(z.string(), z.unknown())).optional(),
+          useMockData: z.boolean().optional(),
+          status: z.enum(["idle", "loading", "success", "error"]).optional(),
+          error: z.string().nullable().optional(),
+        }),
+      )
+      .optional(),
+    apiEndpoints: z
+      .array(
+        z.object({
+          id: z.string(),
+          name: z.string(),
+          baseUrl: z.string(),
+          path: z.string(),
+          method: z.string().optional(),
+          headers: z
+            .union([
+              z.record(z.string(), z.string()),
+              z.array(
+                z.object({
+                  key: z.string(),
+                  value: z.string(),
+                  enabled: z.boolean(),
+                }),
+              ),
+            ])
+            .optional(),
+          queryParams: z
+            .array(z.object({ key: z.string(), value: z.string() }))
+            .optional(),
+          bodyType: z.string().optional(),
+          bodyTemplate: z.string().optional(),
+          responseMapping: z
+            .object({
+              dataPath: z.string(),
+              fieldMappings: z
+                .array(
+                  z.object({ sourceKey: z.string(), targetKey: z.string() }),
+                )
+                .optional(),
+            })
+            .optional(),
+          executionMode: z.enum(["client", "server"]).optional(),
+          timeout: z.number().optional(),
+        }),
+      )
+      .optional(),
     metadata: MetadataSchema,
   })
   .strict();

@@ -75,6 +75,8 @@ import {
 } from "../../../utils/multiElementCopy";
 import { trackMultiPaste } from "../../../stores/utils/historyHelpers";
 import { resolveAbsoluteFlowReparentProps } from "../../../utils/absolutePositioning";
+import { attachCanonicalStateToCopy } from "../../../utils/canonicalCopyState";
+import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 
 type SceneBoundsResolver = (
   elementId: string,
@@ -309,7 +311,11 @@ async function cloneDragTargetsAtDrop(
   const currentPageId = state.currentPageId;
   if (!currentPageId || targetIds.length === 0) return;
 
-  const copied = copyMultipleElements([...targetIds], state.elementsMap);
+  // ADR-214: state 는 canonical 노드에서 읽는다 (복제 3 진입점 — 메뉴/단축키/Alt 드래그 — 같은 규약).
+  const copied = attachCanonicalStateToCopy(
+    copyMultipleElements([...targetIds], state.elementsMap),
+    getActiveCanonicalDocument(),
+  );
   const newElements = pasteMultipleElements(
     copied,
     currentPageId,

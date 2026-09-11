@@ -58,6 +58,9 @@ const CANONICAL_DESCENDANTS_ALLOWLIST = new Set([
   // 과 같은 범위로 canonical `RefNode.descendants` children-mode 안까지 걷는다
   // (2026-09-08 중첩 결함 수리, 메모리 feedback-canvas-draws-rac-inherits-html-content-model).
   "packages/shared/src/utils/canonicalNestingContext.ts",
+  // ADR-214 가시성 사슬 인덱스 — page ref 의 descendants children-mode 자식도 사슬에 넣기
+  // 위해 canonical `RefNode.descendants` 를 걷는다 (canonicalNestingContext 와 같은 범위).
+  "packages/shared/src/state/visibility.ts",
 ]);
 
 const COMMENT_LINE_PATTERN = /^\s*(\/\/|\*|\/\*|\*\/)/;

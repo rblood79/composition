@@ -34,6 +34,7 @@
  */
 
 import type { InteractionRule } from "../interactions/interactionRule.types";
+import type { VariableDef } from "../state/variable.types";
 import type { ComponentTag } from "./composition-vocabulary";
 import type {
   BreakpointName,
@@ -852,6 +853,22 @@ export interface CanonicalNode {
    * (`PENCIL_NODE_FIELDS` 등재, clip/placeholder 선례).
    */
   responsive?: ElementResponsiveConfig;
+
+  /**
+   * 노드 소유 상태 정의 — canonical 1차 필드 (ADR-214 Phase 1).
+   *
+   * 페이지 노드 (`metadata.type:"page"` FrameNode/RefNode) 에 있으면 **페이지 변수**,
+   * 그 외 노드에 있으면 **요소 변수**다 (소유자 = 노드 자신). 삭제 · origin/instance
+   * 투영은 노드 생명주기를 그대로 따르고, 복제 · 붙여넣기는 canonical clone 단계에서
+   * `VariableDef.id` 를 재발급하고 같은 범위의 `setState.variableId` 를 rewrite 한다
+   * (`packages/shared/src/state/cloneState.ts`). 정의 자체는 scene signature 밖이며
+   * (HC4), 소비 중인 정의만 `CanvasSceneNode.stateDeps` digest 로 들어간다.
+   *
+   * `responsive` 와 같은 노드 레벨 1차 필드 규약 — 빈 배열 대신 필드 생략, legacy
+   * `Element.state` mirror 로 왕복, pencil roundtrip 은 direct field (`PENCIL_NODE_FIELDS`).
+   * 이름은 가시성 사슬 (요소 → 조상 → 페이지 → 프로젝트) 안에서 고유 (HC5).
+   */
+  state?: VariableDef[];
 
   /**
    * Extensibility hook — 메타데이터 저장소.

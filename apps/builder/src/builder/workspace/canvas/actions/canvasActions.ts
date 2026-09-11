@@ -27,6 +27,8 @@ import {
   trackMultiPaste,
   trackUngroup,
 } from "../../../stores/utils/historyHelpers";
+import { attachCanonicalStateToCopy } from "../../../utils/canonicalCopyState";
+import { getActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 
 type CanvasActionElementsMap = Parameters<typeof copyMultipleElements>[1];
 type CanvasActionStoreElement = NonNullable<
@@ -169,7 +171,11 @@ export async function copySelection(
   const copyableIds = selectableWithoutBody(selectedElementIds, elementsMap);
   if (copyableIds.length === 0) return false;
 
-  const copiedData = copyMultipleElements(copyableIds, elementsMap);
+  // ADR-214: state 는 canonical 노드에서 읽는다 (read model 값은 버린다 — 정본 하나).
+  const copiedData = attachCanonicalStateToCopy(
+    copyMultipleElements(copyableIds, elementsMap),
+    getActiveCanonicalDocument(),
+  );
   const serialized = serializeCopiedElements(copiedData);
   return await (context.writeClipboardText ?? writeClipboardText)(serialized);
 }
@@ -278,7 +284,11 @@ export async function duplicateSelection(
   const duplicableIds = selectableWithoutBody(selectedElementIds, elementsMap);
   if (duplicableIds.length === 0) return;
 
-  const copiedData = copyMultipleElements(duplicableIds, elementsMap);
+  // ADR-214: state 는 canonical 노드에서 읽고, paste 의 id 재발급 pass 가 새 id 를 발급한다.
+  const copiedData = attachCanonicalStateToCopy(
+    copyMultipleElements(duplicableIds, elementsMap),
+    getActiveCanonicalDocument(),
+  );
   const newElements = pasteMultipleElements(
     copiedData,
     currentPageId,

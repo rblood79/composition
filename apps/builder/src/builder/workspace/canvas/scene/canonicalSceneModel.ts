@@ -2,6 +2,7 @@ import type {
   BreakpointName,
   CanonicalNode,
   CompositionDocument,
+  VariableDef,
 } from "@composition/shared";
 
 import { canonicalDocumentToFrameElementScopes } from "../../../../adapters/canonical/frameElementScope";
@@ -61,6 +62,8 @@ export interface CanonicalSceneModel {
 
 type BuildCanonicalSceneModelOptions = {
   collections?: readonly ListBoxCollectionDataSource[];
+  /** ADR-214 — 프로젝트 변수 정의 (가시성 사슬 마지막 단 · `stateDeps` 해석 입력). */
+  projectVariables?: readonly VariableDef[];
   /**
    * ADR-150 A2: 가상화된 collection owner 의 window map (BuilderCanvas precompute).
    * 미제공 owner 는 legacy 정적 cap 투영(BC).
@@ -181,6 +184,7 @@ export function buildCanonicalSceneModel(
       collections: options.collections,
       collectionWindows: options.collectionWindows,
       activeBreakpoint: options.activeBreakpoint,
+      projectVariables: options.projectVariables,
       includeReusableFrames: true,
     }),
   );

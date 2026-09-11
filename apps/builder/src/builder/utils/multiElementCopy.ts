@@ -18,6 +18,7 @@ import {
   withFrameElementMirrorId,
 } from "../../adapters/canonical/frameMirror";
 import { generateCustomId, getCustomIdBase } from "./idGeneration";
+import { remapClonedState } from "@composition/shared";
 
 /**
  * Copied elements data structure
@@ -442,7 +443,11 @@ export function pasteMultipleElements(
     return newElement;
   });
 
-  return newElements;
+  // ADR-214 (HC2 · R9): 요소 id 를 새로 발급한 같은 pass 에서 복제 범위의 `state[].id` 도
+  //   재발급하고 같은 범위의 `setState.variableId` 참조를 rewrite 한다. 붙여넣기는 아직
+  //   interaction rule 을 복제하지 않으므로 (Phase 0 §4 실측) rule 입력은 비어 있다 —
+  //   Phase 4 가 rule 복제를 얹으면 여기서 같이 지난다. state 없는 배치는 no-op (같은 참조).
+  return [...remapClonedState({ nodes: newElements }).nodes];
 }
 
 /**

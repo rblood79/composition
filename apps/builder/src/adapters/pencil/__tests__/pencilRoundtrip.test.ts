@@ -71,6 +71,25 @@ describe("ADR-111 Pencil roundtrip adapter", () => {
     expect(node.props?.responsive).toBeUndefined();
   });
 
+  it("preserves CanonicalNode.state through export/import (ADR-214 Phase 1)", () => {
+    const state = [
+      { id: "v1", name: "count", type: "number" as const, defaultValue: 0 },
+    ];
+    const exported = exportPencilDocument({
+      version: "composition-1.0",
+      children: [{ id: "card", type: "frame", state, children: [] }],
+    });
+    expect(exported.children[0]).toEqual(expect.objectContaining({ state }));
+
+    const reimported = importPencilDocument(exported);
+    const node = reimported.children[0] as {
+      state?: unknown;
+      props?: Record<string, unknown>;
+    };
+    expect(node.state).toEqual(state);
+    expect(node.props?.state).toBeUndefined();
+  });
+
   it("keeps composition-only component identity in metadata.compositionType", () => {
     const exported = exportPencilDocument({
       version: "composition-1.0",

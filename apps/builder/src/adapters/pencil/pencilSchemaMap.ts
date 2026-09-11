@@ -20,6 +20,8 @@ export const PENCIL_DIRECT_NODE_FIELDS = [
   "placeholder",
   // ADR-154 — responsive breakpoint override (shared PENCIL_NODE_FIELDS 미러)
   "responsive",
+  // ADR-214 — 노드 소유 상태 정의 (shared PENCIL_NODE_FIELDS 미러)
+  "state",
 ] as const;
 
 export const PENCIL_TO_CANONICAL_TYPE = {

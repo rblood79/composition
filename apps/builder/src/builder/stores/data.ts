@@ -21,7 +21,7 @@
  */
 
 import { useMemo } from "react";
-import { resolveCollectionByName } from "@composition/shared";
+import { resolveCollectionByName, type VariableDef } from "@composition/shared";
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import type { StateCreator } from "zustand";
@@ -356,6 +356,36 @@ export const useVariables = (): Variable[] => {
   const variables = useDataStore((state) => state.variables);
   return Array.from(variables.values());
 };
+
+/**
+ * ADR-214 — 프로젝트 변수를 공용 `VariableDef` 로 투영 (가시성 사슬 마지막 단 · scene
+ * `stateDeps` 해석 입력). Map 이 그대로면 같은 배열 (scene 재빌드 memo 안정).
+ * 소유자가 page 인 legacy 항목 (`scope:"page" + page_id`) 은 제외한다 — 페이지 변수의
+ * 정본은 canonical 페이지 노드 `state` 이고, 이 store 의 page 항목은 읽기 변환 잔재다.
+ */
+export const useProjectVariableDefs = (): VariableDef[] => {
+  const variables = useDataStore((state) => state.variables);
+  return useMemo(() => toProjectVariableDefs(variables), [variables]);
+};
+
+export function toProjectVariableDefs(
+  variables: ReadonlyMap<string, Variable>,
+): VariableDef[] {
+  const out: VariableDef[] = [];
+  for (const variable of variables.values()) {
+    if (variable.owner && variable.owner.kind !== "project") continue;
+    out.push({
+      id: variable.id,
+      name: variable.name,
+      type: variable.type,
+      ...(variable.defaultValue !== undefined
+        ? { defaultValue: variable.defaultValue }
+        : {}),
+      ...(variable.persist ? { persist: true } : {}),
+    });
+  }
+  return out;
+}
 
 /**
  * 특정 Variable 가져오기

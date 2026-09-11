@@ -7,6 +7,16 @@ import type {
   CompositionDocument,
   DescendantOverride,
   RefNode,
+  StateDependency,
+  VariableDef,
+} from "@composition/shared";
+// ADR-214 Phase 1 — 소비 정의 digest (R8): 노드 string prop 의 `{{ name }}` 참조를 가시성
+//   사슬 (요소 → 조상 → 페이지 → 프로젝트) 로 해석해 scene node 에 싣는다. 정의 자체는
+//   signature 밖 (HC4) — 소비 중인 정의의 defaultValue/name/type 변경만 sceneVersion 을 올린다.
+import {
+  collectPropsStateRefs,
+  resolveStateDependencies,
+  resolveVisibleVariables,
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
 // ADR-159 P2 — 행 텍스트 `{field}` 템플릿 단일 resolver (G2: consumer 자체 파싱 금지).
@@ -139,6 +149,13 @@ export interface CanvasSceneNode {
    * canonical `CanonicalNode.responsive` 에서 복사.
    */
   responsive?: CanonicalNode["responsive"];
+  /**
+   * ADR-214 — 이 노드의 string prop 이 `{{ name }}` 으로 소비하는 상태 정의 digest
+   * (이름 → id · type · defaultValue). projection signature 입력 — 소비 정의가 바뀌면 이
+   * 노드만 갱신된다. 참조가 없으면 필드 생략 (비소비 노드 signature 무변경). Phase 3 이
+   * 기본값으로 해석한 문자열을 `props` 에 얹을 때도 name/type 축 감시로 남는다.
+   */
+  stateDeps?: StateDependency[];
   sourceNode: CanonicalNode;
 }
 
@@ -202,6 +219,11 @@ interface BuildCanvasSceneGraphOptions {
    * 재빌드는 BuilderCanvas useMemo 가 activeBreakpoint 를 dep 으로 물어 트리거한다.
    */
   activeBreakpoint?: BreakpointName;
+  /**
+   * ADR-214 — 프로젝트 변수 정의 (`useDataStore.variables` → VariableDef 투영). 가시성
+   * 사슬의 마지막 단. 미주입이면 프로젝트 이름은 미해결 항목으로 남는다 (`id: null`).
+   */
+  projectVariables?: readonly VariableDef[];
 }
 
 export interface CanvasSceneGraph {
@@ -2582,6 +2604,19 @@ export function buildCanvasSceneGraph(
           (sceneNode.props as Record<string, unknown>)._chartRows =
             readDataBindingRows(binding, options.collections ?? []);
         }
+      }
+      // ADR-214 Phase 1 (R8): `{{ name }}` 을 소비하는 노드만 가시성 사슬로 해석한 digest 를
+      //   싣는다 — 문자열에 `{{` 가 없으면 빠른 경로 (사슬 조회 0).
+      const stateRefs = collectPropsStateRefs(sceneNode.props);
+      if (stateRefs.length > 0) {
+        sceneNode.stateDeps = resolveStateDependencies(
+          stateRefs,
+          resolveVisibleVariables(
+            doc,
+            { kind: "element", elementId: node.id },
+            options.projectVariables ?? [],
+          ),
+        );
       }
       addSceneNode(sceneNode, graph);
     }

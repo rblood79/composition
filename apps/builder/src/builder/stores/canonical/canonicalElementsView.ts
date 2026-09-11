@@ -60,6 +60,7 @@ type CanonicalComponentMirrorFields = {
   reusable?: true;
   slot?: false | string[];
   responsive?: CanonicalNode["responsive"];
+  state?: CanonicalNode["state"];
 };
 
 const ROOT_SCOPE: CanonicalProjectionScope = {
@@ -152,6 +153,11 @@ function extractCanonicalComponentMirrorFields(
   // ADR-154: 반응형 override mirror (top-level canonical 필드 → Element)
   if (node.responsive) {
     out.responsive = node.responsive;
+  }
+  // ADR-214: 노드 소유 상태 정의 mirror (top-level canonical 필드 → Element) — 없으면
+  //   Element 재구성 경로 (`legacyElementToCanonicalNode`) 가 노드를 다시 만들 때 state 가 사라진다.
+  if (Array.isArray(node.state) && node.state.length > 0) {
+    out.state = node.state;
   }
   if (node.metadata) {
     out.metadata = node.metadata;
