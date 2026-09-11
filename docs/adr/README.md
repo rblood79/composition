@@ -20,11 +20,11 @@
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      12 |
-| ├ Proposed                |      10 |
+| 열려 있는 것 (`adr/*.md`) |      13 |
+| ├ Proposed                |      11 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
-| **합계**                  | **242** |
+| **합계**                  | **243** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -34,6 +34,12 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [216](216-chart-time-axis-format-window.md) — Chart 확장 — 시간축 · 지시자 형식 · 가변 창
+
+- **상태**: Proposed (2026-09-12) — 사용자 범위 선택 (시간축 + 형식/파싱 + 가변 창; ReferenceLine · Scatter 후속, zoom 제외). 이론 원천 `docs/explanation/research/CHART_TIME_AXIS_BRUSH_PATTERNS_2026-09.md` (d3-time · d3-scale · d3-array · d3-brush · d3-time-format + RSC vega-spec-builder)
+- **규모**: line/area opt-in `dimensionScale:"time"` (linearScale on epoch · d3-time 18단 눈금 규칙 이식 · RSC 2단 라벨) · d3-time-format 지시자 부분집합 format/parse (`dimensionFormat` · `dimensionLabelFormat`, UTC · en/ko) · ADR-211 창 `[start, end]` thumb 2 (최소 창 = fitEff, 넓히면 극값 재추출). 외부 의존 0 (d3 는 devDependency 오라클). Phase 0~~7 / R1~~R6 (HIGH 3: 211 index 모델 · 이식 정합 · 번들) / G0~G5. design breakdown `design/216-chart-time-axis-format-window-breakdown.md`
+- **우선순위**: P2 — 212 뒤 (패널 파일 충돌 회피). 착수 조건 G0 inventory freeze + 번들 절대 상한 (215, 현재 212 P1 +3,149 초과) 사용자 재승인
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
