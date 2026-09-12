@@ -102,7 +102,7 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 **G3 live 5/5** (`scripts/adr218-p3-runtime-live.mjs`, evidence `docs/adr/evidence/218-p3-runtime-live.md`): interval 주기 반복(응답<주기 자기 재예약)·정책 제거 후 타이머 0(R6)·채널 projection export(정책 포함·응답 제외, R5)·dialog 0·error 0. 유닛 runSeq A/B 1(늦은 A/빠른 B→B만)·toExportCollection 2, 회귀 0.
 
-- [x] **m5 수치 실측 (2026-09-13 후속)** — `scripts/adr218-m5-measure.mjs` (IDB p95 · 로드 A/B · interval 힙) + `adr218-m5-heapdiff.mjs` (스냅샷 diff) + 번들 before/after worktree, evidence `docs/adr/evidence/218-m5-measure.md`. 결과: IDB 5,000행 put/get p95 2.8/1.3 ms PASS · 로드 Δp95 −23 ms(캐시 3×5,000 hydration ≤ 31 ms, 재fetch 0) PASS · 힙 = JS 데이터 누적 0(raw usedSize 기울기는 JIT code space + 타임라인 버퍼 — raw 판정선 FAIL 수치와 분해를 evidence 에 그대로 둠, 재측정 판정선은 JS 데이터 Δ ≤ 1× payload) · 번들 Builder +2,111 / Preview +449 B gzip — 순증 한도 PASS, 217 절대 상한 초과(+1,798 / +548) 는 사용자 재승인 항목. 후속 후보(범위 밖): 5,000행 tick 당 `set({collections})` long task 1 (production 127 ms).
+- [x] **m5 수치 실측 (2026-09-13 후속)** — `scripts/adr218-m5-measure.mjs` (IDB p95 · 로드 A/B · interval 힙) + `adr218-m5-heapdiff.mjs` (스냅샷 diff) + 번들 before/after worktree, evidence `docs/adr/evidence/218-m5-measure.md`. 결과: IDB 5,000행 put/get p95 2.8/1.3 ms PASS · 로드 Δp95 −23 ms(캐시 3×5,000 hydration ≤ 31 ms, 재fetch 0) PASS · 힙 = JS 데이터 누적 0(raw usedSize 기울기는 JIT code space + 타임라인 버퍼 — raw 판정선 FAIL 수치와 분해를 evidence 에 그대로 둠, 재측정 판정선은 JS 데이터 Δ ≤ 1× payload) · 번들 Builder +2,111 / Preview +449 B gzip — 순증 한도 PASS, 217 절대 상한 초과(+1,798 / +548) 는 **사용자 재승인 2026-09-13 (새 상한 Builder 1,281,643 / Preview 666,309, 만료 2026-10-13)**. 후속 후보(범위 밖): 5,000행 tick 당 `set({collections})` long task 1 (production 127 ms).
 
 ## 4. 파일 변경표 (추정 — Phase 0 freeze)
 

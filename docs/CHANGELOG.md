@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 요청 경쟁 single-flight(`runSeq`): 같은 collection의 늦은 응답이 더 최신 실행의 결과를 덮지 않는다.
 - interval 정책은 자기 재예약 스케줄러 — 응답시간이 주기보다 길어도 매 tick 취소 없이 성공 응답을 갱신하고, 진행 중이면 skip(coalesce), 정리 훅으로 타이머 leak 0.
 - 채널별 projection 분리: export JSON은 `executionPolicy` 포함·runtimeData 제외(import 보존), Preview postMessage는 runtimeData 포함·정책 제외. 어느 채널에도 원문 secret 0.
+- initial 번들 상한 재승인 (사용자 판정 2026-09-13): Builder **1,281,643** / Preview **666,309** B gzip (만료 2026-10-13) — 217 상한 (1,279,845 / 665,761) 대체. 본 ADR 순증 Builder +2,111 / Preview +449 (순증 한도 3.5 / 6 KiB 안). m5 실측: IDB 5,000행 p95 2.8/1.3 ms · 캐시 hydration 로드 Δp95 −23 ms · interval 60 tick JS 데이터 누적 0.
 
 ## [Builder 초기 CSS 안정화 — 숨은 lazy 패널의 지연 마운트] - 2026-09-13
 
