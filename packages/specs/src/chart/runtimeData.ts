@@ -44,6 +44,8 @@ export interface ChartDataModel {
   diagnostics: readonly ChartDiagnostic[];
   /** ADR-216 — 시간 축 모델 (`view` + `dimensionScale:"time"` 일 때만) */
   time?: ChartTimeAxisModel;
+  /** ADR-217 — 산점도 linear x 축 (domain · 눈금, `view` + scatter 일 때만) */
+  linear?: TickResult;
 }
 
 /** `view` 를 준 호출의 모델 — layout · budget · input 이 항상 있다. */
@@ -94,6 +96,7 @@ export function resolveChartData(
       sourceRowCount: model.sourceRowCount,
       diagnostics: model.diagnostics,
       ...(model.time ? { time: model.time } : {}),
+      ...(model.linear ? { linear: model.linear } : {}),
     });
   }
   const presentation = resolveChartPresentation(props, seriesCount);

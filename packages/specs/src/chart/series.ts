@@ -95,6 +95,9 @@ export type SeriesGridProps = Pick<
 export function resolveDimensionParser(
   presentation: Pick<ResolvedChartPresentation, "dimension" | "numberFormat">,
 ): ((label: string) => number | null) | null {
+  // ADR-217 — 산점도 linear x: 숫자 문자열 (`toFiniteNumber`). 실패 행은 time 과 같은 정책.
+  if (presentation.dimension.scale === "linear")
+    return (label) => toFiniteNumber(label);
   if (presentation.dimension.scale !== "time") return null;
   const format = presentation.dimension.format;
   if (!format) return parseIsoStrict;
@@ -134,6 +137,8 @@ export function buildSeriesGrid(
   const positions: number[] = [];
   const epochIndex = new Map<number, number>();
   let parseFailures = 0;
+  // ADR-217 — 산점도는 **행 = 점**: 같은 x 를 합치지 않는다 (같은 x 두 행 = 점 두 개, HC9).
+  const pointPerRow = props.chartType === "scatter";
 
   const columns = presentation.dataMode === "columns";
   const addSeries = (key: string, id: string): SeriesData => {
@@ -173,12 +178,12 @@ export function buildSeriesGrid(
         parseFailures++;
         continue;
       }
-      ci = epochIndex.get(t);
+      ci = pointPerRow ? undefined : epochIndex.get(t);
       if (ci === undefined) {
         ci = categories.length;
         categories.push(label);
         positions.push(t);
-        epochIndex.set(t, ci);
+        if (!pointPerRow) epochIndex.set(t, ci);
       }
     } else {
       ci = categoryIndex.get(label);

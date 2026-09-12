@@ -28,6 +28,8 @@ export function buildDotMarks(
   points: readonly ScreenPoint[],
   seriesIndex: number,
   radius: number,
+  /** ADR-217 — 산점도는 1 (불투명). 미지정 = 현행 0.85 (마크에 키를 싣지 않는다 — byte 동일). */
+  fillOpacity?: number,
 ): PathMark | null {
   if (points.length === 0) return null;
   const d = points.map((p) => circlePath(p.x, p.y, radius)).join(" ");
@@ -42,5 +44,6 @@ export function buildDotMarks(
       h: r2(box.h + radius * 2),
     },
     fillSeries: seriesIndex,
+    ...(fillOpacity !== undefined ? { fillOpacity } : {}),
   };
 }

@@ -26,7 +26,11 @@ import { buildBarMarks } from "./marks/bar";
 import { buildWindowTrackMarks } from "./marks/windowTrack";
 import { buildDotMarks, dotRadius } from "./marks/dots";
 import { buildReferenceLineMarks } from "./marks/referenceLine";
-import { buildLineMarks, seriesAxialPoints } from "./marks/line";
+import {
+  buildLineMarks,
+  pointValueLabel,
+  seriesAxialPoints,
+} from "./marks/line";
 import { buildPieMarks } from "./marks/pie";
 import { buildRadarMarks } from "./marks/radar";
 import { buildRadialMarks } from "./marks/radial";
@@ -42,6 +46,7 @@ import { seriesLabel, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
 import { positionBand, timeScaleFor } from "./timeAxis";
 import type { ChartTimeAxisModel } from "./timeAxis";
+import type { TickResult } from "./scales";
 import {
   buildBandTooltip,
   buildPolarBandTooltip,
@@ -452,10 +457,11 @@ export function computeChartScene(
   }
 
   // ADR-216 — 시간 스케일이면 epoch 위 linearScale 을 BandScale 어댑터로 (마크 빌더 무변경).
-  const { band, timeAxis } = resolveCategoryBand(
+  const { band, timeAxis, linearAxis } = resolveCategoryBand(
     model.time,
     grid,
     horizontal ? [plot.y, r2(plot.y + plot.h)] : [plot.x, r2(plot.x + plot.w)],
+    model.linear,
   );
   const value = linearScale(
     ticks.domain,
@@ -481,8 +487,34 @@ export function computeChartScene(
   // R7 — 분기를 `else` 로 닫으면 신규 chartType 이 조용히 line 으로 그려진다.
   //   `assertNever` 가 그 자리를 컴파일 오류로 바꾼다 (유니온 확장 자체는 컴파일
   //   신호를 안 남기므로 — breakdown F15 — 방어선은 여기 하나뿐이다).
-  const cartesianType: "bar" | "area" | "line" = props.chartType;
-  if (cartesianType === "bar") {
+  const cartesianType: "bar" | "area" | "line" | "scatter" = props.chartType;
+  if (cartesianType === "scatter") {
+    // ADR-217 — 산점도: 시리즈당 점 path 1개 (subpath = 관측점), 선 없음, **불투명** (round 1 m3 —
+    //   DOM 점별 요소와 Skia union path 는 반투명에서만 합성이 갈린다). 값 라벨은 line 과 같은 자리.
+    marks = [];
+    for (let si = 0; si < grid.series.length; si++) {
+      const points = seriesAxialPoints(grid, si, band, value).map((point) =>
+        toScreen(props.orientation, point),
+      );
+      const dot = buildDotMarks(
+        points,
+        grid.series[si].seriesIndex,
+        dotRadius(metrics.strokeWidth),
+        1,
+      );
+      if (dot) marks.push(dot);
+      if (props.showValueLabels) {
+        seriesAxialPoints(grid, si, band, value).forEach((point) => {
+          const label = pointValueLabel(
+            toScreen(props.orientation, point),
+            labelText(point.categoryIndex, point.raw),
+            props.orientation,
+          );
+          if (label) labels.push(label);
+        });
+      }
+    }
+  } else if (cartesianType === "bar") {
     const bar = buildBarMarks({
       grid,
       band,
@@ -588,6 +620,7 @@ export function computeChartScene(
       showGrid: props.showGrid,
       tickText,
       ...(timeAxis ? { time: timeAxis } : {}),
+      ...(linearAxis ? { linear: linearAxis } : {}),
     }),
     legend: legendBox
       ? buildLegend({
@@ -597,16 +630,18 @@ export function computeChartScene(
           fontSize,
         })
       : null,
-    tooltip: props.showTooltip
-      ? buildBandTooltip({
-          grid,
-          band,
-          plot,
-          orientation: props.orientation,
-          seriesCount: metrics.seriesCount,
-          formatValue,
-        })
-      : null,
+    // ADR-217 — 산점도의 hover 는 DOM (Recharts `Scatter` 점 단위) 몫 — scene tooltip 은 없다.
+    tooltip:
+      props.showTooltip && props.chartType !== "scatter"
+        ? buildBandTooltip({
+            grid,
+            band,
+            plot,
+            orientation: props.orientation,
+            seriesCount: metrics.seriesCount,
+            formatValue,
+          })
+        : null,
     empty: false,
     ...(windowTrack ? { windowTrack } : {}),
     ...withDiagnostics,
@@ -622,11 +657,17 @@ export function resolveCategoryBand(
   time: ChartTimeAxisModel | undefined,
   grid: Pick<SeriesGrid, "categories" | "positions">,
   range: readonly [number, number],
+  /** ADR-217 — 산점도 linear x 축 (`model.linear`). time 이 없을 때만 읽는다. */
+  linear?: TickResult,
 ): {
   band: ReturnType<typeof bandScale>;
   timeAxis: {
     scale: ReturnType<typeof linearScale>;
     labels: ChartTimeAxisModel["labels"];
+  } | null;
+  linearAxis: {
+    scale: ReturnType<typeof linearScale>;
+    ticks: TickResult;
   } | null;
 } {
   if (time && grid.positions) {
@@ -634,9 +675,22 @@ export function resolveCategoryBand(
     return {
       band: positionBand(grid.positions, scale),
       timeAxis: { scale, labels: time.labels },
+      linearAxis: null,
     };
   }
-  return { band: bandScale(grid.categories.length, range), timeAxis: null };
+  if (linear && grid.positions) {
+    const scale = linearScale(linear.domain, range);
+    return {
+      band: positionBand(grid.positions, scale),
+      timeAxis: null,
+      linearAxis: { scale, ticks: linear },
+    };
+  }
+  return {
+    band: bandScale(grid.categories.length, range),
+    timeAxis: null,
+    linearAxis: null,
+  };
 }
 
 /** rule 의 `chart` 채널 모양 (shared `ComponentRuleChart` 미러 — specs 는 shared 를 import 하지 않는다). */

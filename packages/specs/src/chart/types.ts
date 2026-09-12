@@ -14,7 +14,9 @@
  * 마크 종류 — RSC `<Bar/>`·`<Line/>`·`<Area/>` 를 노코드 팔레트용 단일 enum 으로 평탄화.
  * `radar`/`radial` 은 극좌표 계열 (ADR-207) — 직교 축 대신 `buildPolarAxes` 를 쓴다.
  */
-export type ChartType = "bar" | "line" | "area" | "pie" | "radar" | "radial";
+/** ADR-217 — `scatter` (행 = 점, x 숫자/시간). */
+export type ChartType =
+  "bar" | "line" | "area" | "pie" | "radar" | "radial" | "scatter";
 /**
  * ADR-217 P1 — 값 목록 (validator 가 알 수 없는 종류를 진단 `chartType.unsupported` 로 낸다).
  * 유니온에 종류를 더하면 `satisfies` 가 여기도 고치게 한다.
@@ -26,6 +28,7 @@ export const CHART_TYPES = [
   "pie",
   "radar",
   "radial",
+  "scatter",
 ] as const satisfies readonly ChartType[];
 
 /** radar 격자 모양 (shadcn `chart-radar-grid-circle` 축). */
@@ -146,6 +149,8 @@ export type ChartDiagnosticCode =
   | "referenceLines.invalid"
   | "referenceLines.tooMany"
   | "referenceLines.unsupportedChartType"
+  // ADR-217 P4 — 산점도 희소 예산의 솎기 fallback (집계 대신 원본 점, HC9).
+  | "budget.thinned"
   | "dimension.parse.failed";
 
 /**
@@ -363,6 +368,11 @@ export interface PathMark {
   bbox: Rect;
   /** 채우기 팔레트 인덱스 (없으면 채우지 않음) */
   fillSeries?: number;
+  /**
+   * ADR-217 — 시리즈 채우기 불투명도 (미지정 = 현행 0.85). 산점도 점은 1 — Skia 의 시리즈당
+   * path 1개 (union) 와 DOM 의 점별 요소는 반투명에서만 합성이 갈린다 (round 1 m3).
+   */
+  fillOpacity?: number;
   /** 선 팔레트 인덱스 (없으면 긋지 않음) */
   strokeSeries?: number;
   strokeWidth?: number;

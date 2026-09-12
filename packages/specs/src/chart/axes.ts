@@ -34,6 +34,11 @@ export interface AxesInput {
    * `categories` 는 읽지 않는다 (라벨은 눈금에서 나온다).
    */
   time?: { scale: LinearScale; labels: readonly TimeTickLabel[] };
+  /**
+   * ADR-217 — 산점도 linear x: 범주 축을 값 축과 같은 규칙의 숫자 눈금으로 그린다 (`niceTicks` ·
+   * `tickText`). `categories` 는 읽지 않는다.
+   */
+  linear?: { scale: LinearScale; ticks: TickResult };
 }
 
 /**
@@ -272,9 +277,27 @@ function valueAxis(input: AxesInput): AxisScene {
 }
 
 /** [범주 축, 값 축] 순. 축 배열 순서는 scene 계약이라 orientation 과 무관하게 고정. */
+/** ADR-217 — linear x 축: 눈금 = `ticks.ticks` 를 `scale` 로, 문자열은 값 축과 같은 `tickText`. */
+function linearAxis(
+  input: AxesInput,
+  linear: NonNullable<AxesInput["linear"]>,
+): AxisScene {
+  const tickText = input.tickText ?? formatTick;
+  const labels: TimeTickLabel[] = linear.ticks.ticks.map((t) => ({
+    t,
+    tick: tickText(t),
+    boundary: null,
+  }));
+  return timeAxis(input, { scale: linear.scale, labels });
+}
+
 export function buildAxes(input: AxesInput): AxisScene[] {
   return [
-    input.time ? timeAxis(input, input.time) : categoryAxis(input),
+    input.time
+      ? timeAxis(input, input.time)
+      : input.linear
+        ? linearAxis(input, input.linear)
+        : categoryAxis(input),
     valueAxis(input),
   ];
 }

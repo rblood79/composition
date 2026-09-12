@@ -32,7 +32,7 @@ const unknown = {
 } satisfies ChartProps;
 
 describe("ADR-217 G1 — 미지원 chartType 안전 경로", () => {
-  it("CHART_TYPES 는 ChartType 유니온의 값 목록이다 (6종)", () => {
+  it("CHART_TYPES 는 ChartType 유니온의 값 목록이다 (7종 — P4 scatter 포함)", () => {
     expect([...CHART_TYPES]).toEqual([
       "bar",
       "line",
@@ -40,6 +40,7 @@ describe("ADR-217 G1 — 미지원 chartType 안전 경로", () => {
       "pie",
       "radar",
       "radial",
+      "scatter",
     ]);
   });
 
@@ -75,7 +76,7 @@ describe("ADR-217 G1 — 미지원 chartType 안전 경로", () => {
     expect(dom.grid.categories).toEqual(["1", "2"]);
   });
 
-  it("6종은 그대로 — 진단 없이 ok (HC1)", () => {
+  it("등록된 종류는 전부 진단 없이 ok (HC1)", () => {
     for (const chartType of CHART_TYPES) {
       const presentation = resolveChartPresentation(
         { ...CHART_DEFAULT_PROPS, chartType },

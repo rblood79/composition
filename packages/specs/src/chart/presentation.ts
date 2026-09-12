@@ -218,6 +218,7 @@ export const CHART_REFERENCE_LINE_TYPES_SUPPORTED: readonly ChartType[] = [
   "bar",
   "line",
   "area",
+  "scatter",
 ];
 
 export interface ResolvedBudgetSettings {
@@ -230,7 +231,11 @@ export interface ResolvedBudgetSettings {
 
 /** ADR-216 §2.1 · §2.2 — 시간축 설정. `format` 미설정 = 엄격 ISO (`parseIsoStrict`). */
 export interface ResolvedDimensionSettings {
-  scale: ChartDimensionScale;
+  /**
+   * 해석된 스케일. 저장 enum 은 `category | time` 둘뿐 — `linear` 는 **scatter 의 해석 결과**
+   * (ADR-217: 산점도에는 범주 스케일이 없어 미설정/`category` = linear). 다른 종류는 저장 값 그대로.
+   */
+  scale: ChartDimensionScale | "linear";
   /** 입력 파싱 지시자 (`time` 전용) */
   format?: string;
   /** 축 라벨 지시자 — 있으면 1단 */
@@ -648,11 +653,12 @@ export function resolveChartPresentation(
         dimension.scale === "time" &&
         props.chartType !== undefined &&
         props.chartType !== "line" &&
-        props.chartType !== "area"
+        props.chartType !== "area" &&
+        props.chartType !== "scatter"
       ) {
         error(
           "dimensionScale.unsupportedChartType",
-          `time scale is only supported for line and area charts, not ${props.chartType}`,
+          `time scale is only supported for line, area and scatter charts, not ${props.chartType}`,
           props.chartType,
         );
       }
@@ -664,6 +670,10 @@ export function resolveChartPresentation(
       );
     }
   }
+  // ADR-217 — 산점도는 범주 스케일이 없다: 미설정/`category` 는 linear 로 읽는다 (chartType 전환이
+  //   `{chartType}` 만 patch 하므로 이것이 오류 상태를 만들지 않는 유일한 길 — breakdown §2.3).
+  if (props.chartType === "scatter" && dimension.scale === "category")
+    dimension.scale = "linear";
   const rawDimFormat = props.dimensionFormat as unknown;
   if (rawDimFormat !== undefined) {
     if (typeof rawDimFormat === "string" && rawDimFormat.trim().length > 0) {

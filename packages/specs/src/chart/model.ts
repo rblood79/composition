@@ -84,6 +84,11 @@ export interface ChartModel {
    * **transformed 전체** 에서 (값 축 `ticks` 와 같은 자리) — 창을 옮겨도 x 축이 흔들리지 않는다.
    */
   time?: ChartTimeAxisModel;
+  /**
+   * ADR-217 — 산점도 linear x (`dimension.scale === "linear"`): transformed 전체 `positions` 의
+   * `niceTicks` domain · 눈금 (값 축과 같은 규칙 · 같은 자리). 창을 옮겨도 x 축이 흔들리지 않는다.
+   */
+  linear?: TickResult;
 }
 
 /**
@@ -126,6 +131,22 @@ function budgetGeometry(
     };
   }
   return { plot: layout.plot, horizontal: layout.horizontal };
+}
+
+/** ADR-217 — linear x 축 모델: positions 의 [min, max] 를 `niceTicks` 로 (단일 값은 ±1). */
+function linearAxisModel(positions: readonly number[]): TickResult | undefined {
+  if (positions.length === 0) return undefined;
+  let min = Number.POSITIVE_INFINITY;
+  let max = Number.NEGATIVE_INFINITY;
+  for (const p of positions) {
+    if (p < min) min = p;
+    if (p > max) max = p;
+  }
+  if (min === max) {
+    min -= 1;
+    max += 1;
+  }
+  return niceTicks(min, max, CHART_TICK_COUNT);
 }
 
 /** ADR-217 P1 — 설정 오류 모델의 budget: 넘침 없음 · 변환 없음 (`resolveDisplayBudget` 을 거치지 않는다). */
@@ -318,6 +339,11 @@ export function resolveChartModel(
           presentation,
         ) ?? undefined)
       : undefined;
+  // ADR-217 — 산점도 linear x: transformed `positions` 의 [min, max] → niceTicks (값 축과 같은 규칙).
+  const linear =
+    presentation.dimension.scale === "linear" && transformed.positions
+      ? linearAxisModel(transformed.positions)
+      : undefined;
   const parseFailed = input.parseFailures ?? 0;
   return {
     presentation,
@@ -344,5 +370,6 @@ export function resolveChartModel(
       ...budget.diagnostics,
     ],
     ...(time ? { time } : {}),
+    ...(linear ? { linear } : {}),
   };
 }

@@ -145,7 +145,12 @@ export function slotFit(
   stacked: boolean,
   units: Pick<
     ChartBudgetMetrics,
-    "minSlot" | "minPointGap" | "minArc" | "minAxisGap" | "minRing"
+    | "minSlot"
+    | "minPointGap"
+    | "minArc"
+    | "minAxisGap"
+    | "minRing"
+    | "pointBudget"
   >,
 ): number {
   const S = Math.max(1, series);
@@ -172,6 +177,10 @@ export function slotFit(
     case "radial":
       raw = (outer - inner) / units.minRing;
       break;
+    case "scatter":
+      // ADR-217 — 슬롯 = 점: 점은 겹쳐도 되므로 px 간격 제약이 없다. 예산 P 가 곧 슬롯 수 (HC9).
+      raw = units.pointBudget;
+      break;
     default:
       // R7 — 신규 chartType 이 조용히 예산 0 으로 통과하지 않게 (scene 의 assertNever 와 같은 방어선).
       throw new Error(`unhandled chartType: ${String(kind)}`);
@@ -197,6 +206,9 @@ export function markFactor(
     case "line":
     case "area":
       return (props.showDots ? 1 : 0) + labels;
+    case "scatter":
+      // ADR-217 — 점 path 는 시리즈당 1 (S ≤ M) 이라 슬롯당 요소는 값 라벨뿐.
+      return labels;
     default:
       throw new Error(`unhandled chartType: ${String(kind)}`);
   }
@@ -219,6 +231,8 @@ export function resolveFitEff(
   if (kind === "line" || kind === "area") {
     eff = Math.min(eff, Math.floor(budget.pointBudget / S));
   }
+  // ADR-217 — 산점도는 관측점 수로 P 를 잰다 (희소: 점 하나 = 시리즈 하나의 값).
+  if (kind === "scatter") eff = Math.min(eff, budget.pointBudget);
   return Math.max(0, eff);
 }
 
@@ -304,6 +318,8 @@ export function defaultBudgetMode(
   stacked = false,
 ): ChartBudgetMode {
   if (kind === "pie" || kind === "radar" || kind === "radial") return "others";
+  // ADR-217 — 산점도는 x 가 연속이라 항상 순서 축 · 비누적 극값 (bucket 별 min/max 원본 점).
+  if (kind === "scatter") return "extrema";
   if (axisKind === "category") return "window";
   if (kind === "bar") return "aggregate";
   return stacked ? "aggregate" : "extrema";
@@ -324,6 +340,9 @@ export function supportsBudgetMode(
     case "radar":
     case "radial":
       return mode === "others";
+    case "scatter":
+      // ADR-217 — 집계 (원본에 없는 좌표) · others 는 산점도의 뜻을 바꾼다 (HC9).
+      return mode === "window" || mode === "extrema";
   }
 }
 
@@ -438,6 +457,13 @@ export function selectExtrema(
   fitEff: number,
   k: number,
   budget: Pick<ChartBudgetMetrics, "markBudget" | "pointBudget">,
+  /**
+   * ADR-217 (HC9) — 점 계수. `dense` (기본 = 현행 line/area): 모든 시리즈가 모든 범주에 값을 가진
+   * 것으로 `S × |U|`. `sparse` (산점도): 선택 index 안의 **실제 관측점** 수 (`Σ |values ∩ U|`) — 희소
+   * 격자를 조밀 계수하면 600 점이 7,200 으로 세어져 집계로 떨어진다 (round 1 h1). sparse 는 gap
+   * index 도 더하지 않는다 (희소에서 결측은 정보가 아니다).
+   */
+  count: "dense" | "sparse" = "dense",
 ): ExtremaSelection {
   const n = grid.categories.length;
   const S = Math.max(1, grid.series.length);
@@ -445,26 +471,49 @@ export function selectExtrema(
   let B = Math.max(1, fitEff);
   for (;;) {
     const U = new Set<number>();
-    for (const [a, b] of bucketBounds(n, B)) {
+    let pathPoints = 0;
+    if (count === "sparse") {
+      // 점 순회 한 번 (O(관측점)) — bucket 마다 시리즈를 도는 dense 경로는 S 가 크면 (6,000 시리즈)
+      //   O(n × S) 라 B 반감 13 회에 초 단위가 든다.
+      const size = Math.ceil(n / Math.max(1, B));
       for (const sd of grid.series) {
-        let minI = -1;
-        let maxI = -1;
-        let gapI = -1;
-        for (let ci = a; ci < b; ci++) {
-          const v = sd.values.get(ci);
-          if (v === undefined) {
-            if (gapI < 0) gapI = ci;
-            continue;
-          }
-          if (minI < 0 || v < sd.values.get(minI)!) minI = ci;
-          if (maxI < 0 || v > sd.values.get(maxI)!) maxI = ci;
+        const minAt = new Map<number, number>();
+        const maxAt = new Map<number, number>();
+        for (const [ci, v] of sd.values) {
+          const bucket = Math.floor(ci / size);
+          const mi = minAt.get(bucket);
+          if (mi === undefined || v < sd.values.get(mi)!) minAt.set(bucket, ci);
+          const ma = maxAt.get(bucket);
+          if (ma === undefined || v > sd.values.get(ma)!) maxAt.set(bucket, ci);
         }
-        if (minI >= 0) U.add(minI);
-        if (maxI >= 0) U.add(maxI);
-        if (gapI >= 0) U.add(gapI);
+        const picked = new Set<number>();
+        for (const ci of minAt.values()) picked.add(ci);
+        for (const ci of maxAt.values()) picked.add(ci);
+        pathPoints += picked.size;
+        for (const ci of picked) U.add(ci);
       }
+    } else {
+      for (const [a, b] of bucketBounds(n, B)) {
+        for (const sd of grid.series) {
+          let minI = -1;
+          let maxI = -1;
+          let gapI = -1;
+          for (let ci = a; ci < b; ci++) {
+            const v = sd.values.get(ci);
+            if (v === undefined) {
+              if (gapI < 0) gapI = ci;
+              continue;
+            }
+            if (minI < 0 || v < sd.values.get(minI)!) minI = ci;
+            if (maxI < 0 || v > sd.values.get(maxI)!) maxI = ci;
+          }
+          if (minI >= 0) U.add(minI);
+          if (maxI >= 0) U.add(maxI);
+          if (gapI >= 0) U.add(gapI);
+        }
+      }
+      pathPoints = S * U.size;
     }
-    const pathPoints = S * U.size;
     const marks = S * U.size * k;
     steps.push({ B, U: U.size, pathPoints, marks });
     const overP = pathPoints > budget.pointBudget;
@@ -498,12 +547,42 @@ export function pickCategories(
   };
 }
 
+/**
+ * ADR-217 (HC9) — 희소 극값의 fallback: B=1 에서도 관측점이 P 를 넘으면 (시리즈 > P/2) 집계 대신
+ * **시리즈별 stride 솎기** — 각 시리즈의 점을 x 순서로 `ceil(size / quota)` 간격 샘플 (quota =
+ * `max(1, floor(P / S))`). 결과는 원본 점의 부분집합이며 index 는 0 부터 다시 (`pickCategories`).
+ */
+export function thinSeries(grid: SeriesGrid, pointBudget: number): SeriesGrid {
+  const S = Math.max(1, grid.series.length);
+  const quota = Math.max(1, Math.floor(pointBudget / S));
+  const keep = new Set<number>();
+  for (const sd of grid.series) {
+    const indices = [...sd.values.keys()].sort((a, b) => a - b);
+    if (indices.length <= quota) {
+      for (const ci of indices) keep.add(ci);
+      continue;
+    }
+    const stride = Math.ceil(indices.length / quota);
+    for (let i = 0; i < indices.length; i += stride) keep.add(indices[i]);
+  }
+  let indices = [...keep].sort((a, b) => a - b);
+  // 시리즈가 P 보다 많으면 (quota 1 로도 초과) 전체 x 순서에서 한 번 더 stride — 여전히 원본 점.
+  if (indices.length > pointBudget) {
+    const stride = Math.ceil(indices.length / pointBudget);
+    indices = indices.filter((_, i) => i % stride === 0);
+  }
+  return pickCategories(grid, indices);
+}
+
 /** ADR-216 — 선택/창 index 를 따라 `positions` · `positionRanges` 를 같이 옮긴다 (없으면 없음). */
 function pickPositions(
   grid: Pick<SeriesGrid, "positions" | "positionRanges">,
   keep: readonly number[],
 ): Pick<SeriesGrid, "positions" | "positionRanges"> {
-  const out: { positions?: number[]; positionRanges?: Array<readonly [number, number]> } = {};
+  const out: {
+    positions?: number[];
+    positionRanges?: Array<readonly [number, number]>;
+  } = {};
   if (grid.positions) out.positions = keep.map((ci) => grid.positions![ci]);
   if (grid.positionRanges)
     out.positionRanges = keep.map((ci) => grid.positionRanges![ci]);
@@ -785,6 +864,14 @@ export function applyBudget(
       value,
     });
   };
+  const thinned = (value: string): void => {
+    diagnostics.push({
+      code: "budget.thinned",
+      severity: "warning",
+      message: `${value} series exceed the point budget even at one bucket — every series thinned to a stride sample of its own points`,
+      value,
+    });
+  };
   if (budget.overflow && budget.fitEff > 0) {
     if (budget.mode === "window") {
       applied = "window";
@@ -798,9 +885,16 @@ export function applyBudget(
         budget.fitEff,
         budget.k,
         options.metrics,
+        options.kind === "scatter" ? "sparse" : "dense",
       );
       extremaSteps = picked.steps;
-      if (picked.fallback) {
+      if (picked.fallback && options.kind === "scatter") {
+        // ADR-217 (HC9) — 산점도는 집계로 떨어지지 않는다: 원본 점을 솎아 P 안에 넣고 알린다.
+        applied = "extrema";
+        B = picked.B;
+        transformed = thinSeries(input, options.metrics.pointBudget);
+        thinned(String(input.series.length));
+      } else if (picked.fallback) {
         tooManySeries(
           String(budget.series),
           `${budget.series} series exceed the point budget even at one bucket — aggregated (${budget.aggregate})`,
@@ -865,9 +959,15 @@ export function applyBudget(
         budget.fitEff,
         budget.k,
         options.metrics,
+        options.kind === "scatter" ? "sparse" : "dense",
       );
       extremaSteps = picked.steps;
-      if (picked.fallback) {
+      if (picked.fallback && options.kind === "scatter") {
+        windowReduced = "extrema";
+        B = picked.B;
+        visible = thinSeries(visible, options.metrics.pointBudget);
+        thinned(String(visible.series.length));
+      } else if (picked.fallback) {
         windowReduced = "aggregate";
         B = budget.fitEff;
         visible = aggregateBuckets(visible, B, budget.aggregate);

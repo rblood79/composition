@@ -81,7 +81,8 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
             mark.fillRole !== undefined
               ? 0.35
               : mark.fillSeries !== undefined
-                ? 0.85
+                ? // ADR-217 — 산점도 점은 1 (Skia `fillAlpha` 와 같은 기본값 규약).
+                  (mark.fillOpacity ?? 0.85)
                 : undefined
           }
           fillRule={mark.fillRule}
