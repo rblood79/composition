@@ -81,7 +81,6 @@ docs/
 
 - [API 엔드포인트](reference/api/ENDPOINTS.md)
 - [IndexedDB 스키마](reference/schemas/INDEXDB.md) — 현행
-- [Supabase 스키마](reference/schemas/SUPABASE.md) — cloud data layer 폐기 전 역사 기록
 - [ADR 리뷰 Layer 0 스키마](reference/schemas/ADR_REVIEW_LAYER0.md)
 
 ### Architecture

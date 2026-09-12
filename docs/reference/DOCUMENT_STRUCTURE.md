@@ -36,7 +36,7 @@ docs/
 │   ├── architecture/           # 아키텍처 참조 (4 — MONOREPO / MULTIPAGE / STRUCTURE_HOOKS / STRUCTURE_STORE)
 │   ├── audits/                 # 날짜 붙은 감사 보고서 (12, 2026-05-17 ~ 08-21)
 │   ├── components/             # 컴포넌트 참조 (12)
-│   ├── schemas/                # 스키마 (3 — INDEXDB / SUPABASE / ADR_REVIEW_LAYER0)
+│   ├── schemas/                # 스키마 (2 — INDEXDB / ADR_REVIEW_LAYER0)
 │   └── status/                 # 이동 안내판만 (2 — STYLE_SYSTEM · REACT_ARIA_1.13, 본문은 legacy/)
 │
 ├── explanation/                # 설명 및 분석 — 직속 md 0
@@ -105,7 +105,7 @@ docs/
 - **`architecture/`** (4개): 모노레포 구조, 다중 페이지 렌더링, Builder hooks / Zustand store 구조
 - **`audits/`** (12개): 날짜 접두 감사 보고서 — RAC/spec SSOT 감사, canonical 컴포넌트 인벤토리, design-data props 감사, interaction registry 커버리지 등
 - **`components/`** (12개): 개별 컴포넌트/기능 참조 문서
-- **`schemas/`** (3개): IndexedDB 현행 스키마, Supabase (역사 기록), ADR 리뷰 Layer 0 스키마
+- **`schemas/`** (2개): IndexedDB 현행 스키마, ADR 리뷰 Layer 0 스키마 (구 cloud 스키마 문서는 2026-09-12 삭제 — ADR-128 이 역사 기록)
 - **`status/`** (2개): 이동 안내판만 남았습니다 (`STYLE_SYSTEM` · `REACT_ARIA_1.13` — 본문은 `legacy/`)
 
 ### 설명 문서

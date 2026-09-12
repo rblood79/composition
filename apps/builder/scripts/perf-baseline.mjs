@@ -231,18 +231,15 @@ const PROBE_SCRIPT = `(() => {
 // ── boot ─────────────────────────────────────────────────────────────────────
 export function loadStorageState(path) {
   const storageState = JSON.parse(readFileSync(path, "utf8"));
-  for (const origin of storageState.origins ?? []) {
-    const devSession = origin.localStorage?.find(
-      (e) => e.name === "composition-auth-dev",
+  // 인증은 localStorage `composition-license-auth` 하나 (dev/prod 동일 키). 없으면 /signin 으로 튕겨
+  // 측정이 무의미하므로 여기서 끊는다 — `node apps/builder/scripts/capture-auth-session.mjs <code>` 로 만든다.
+  const hasLicenseAuth = (storageState.origins ?? []).some((origin) =>
+    origin.localStorage?.some((e) => e.name === "composition-license-auth"),
+  );
+  if (!hasLicenseAuth) {
+    throw new Error(
+      `${path} 에 composition-license-auth 가 없다 — capture-auth-session.mjs 로 다시 만들 것`,
     );
-    const hasProd = origin.localStorage?.some(
-      (e) => e.name === "composition-auth-prod",
-    );
-    if (devSession && !hasProd)
-      origin.localStorage.push({
-        name: "composition-auth-prod",
-        value: devSession.value,
-      });
   }
   return storageState;
 }

@@ -185,8 +185,6 @@ jobs:
       - name: Build project
         run: pnpm turbo run build --filter=@composition/builder
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_USE_WEBGL_CANVAS: "true"
           VITE_FEATURE_FILL_V2: "true"
           # VITE_CANVAS_COMPARE_MODE: 프로덕션에서는 기본값 false 사용 (디버그 전용)

@@ -8,7 +8,7 @@
 // `__composition_PERF__`) 이고, rAF timestamp gap p95·longtask·alloc 을 같이 적는다.
 // before/after 는 쌍마다 순서를 교대한다 (5쌍 기본). 대리 지표(재계산 횟수)가 아니라 총비용을 본다.
 //
-// 인증: `.auth-session.json` 의 localStorage 를 두 origin 모두에 싣는다 (같은 Supabase 세션).
+// 인증: `.auth-session.json` 의 localStorage (`composition-license-auth`) 를 두 origin 모두에 싣는다.
 //
 // 사용: node apps/builder/scripts/adr209-builder-frame-ab.mjs --before http://localhost:5174 --after http://localhost:5173 [--pairs 5] [--headed] [--before-dir <worktree>] [--after-dir <worktree>] [--out <dir>]
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";

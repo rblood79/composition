@@ -19,7 +19,7 @@ pnpm codex:preflight                                # guard + format + typecheck
 pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준선 하니스 (Playwright+CDP, docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md)
 ```
 
-env: `apps/builder/.env.example` → `.env`. `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` 필수. `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
+env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`). `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
 
 **구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/composition-engine` (Rust 레이아웃) · `packages/config`
 

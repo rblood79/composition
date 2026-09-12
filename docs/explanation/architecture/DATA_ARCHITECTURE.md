@@ -1200,7 +1200,7 @@ useEffect(() => {
 // ✅ GOOD - 명확한 Dataset ID
 <Dataset id="users-api-v1" />
 <Dataset id="products-mock-data" />
-<Dataset id="orders-supabase" />
+<Dataset id="orders-rest" />
 
 // ❌ BAD - 모호한 ID
 <Dataset id="data1" />

@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Supabase 잔재 완전 제거 — 코드 · 규칙 · CI · 문서] - 2026-09-12
+
+> 인증 교체 (아래 엔트리) 뒤 남아 있던 이름·타입·설정·규칙 전부. ADR-128 (cloud decommission) 이후에도 남았던 것들이다. ADR 본문·CHANGELOG 아카이브·`docs/legacy/`·`docs/features/completed/` 는 역사 기록이라 그대로 둔다.
+
+### Removed
+
+- **코드**: `types/integrations/supabase.types.ts` (→ `types/builder/elementProps.types.ts`, `ElementProps` 내용 무변경) · `utils/realtimeBatcher.ts` · `services/api/ErrorHandler.ts` (둘 다 소비처 0) · 데이터 바인딩 소스 축 `"supabase"` (inspector `Supabase*Config`, shared `DataBinding`, preview `DataSource`, workflow edge/색, `TableRenderer` supabase 분기, AI `bind_collection` enum·i18n `supabaseNeedsTable`) · `VITE_SUPABASE_*` env 타입 · vite optimizeDeps · vitest env stub.
+- **하니스**: `scripts/.auth-session.json` 을 추적 해제 (구 Supabase 세션 토큰이 커밋돼 있었다 — gitignore) · perf/A-B 하니스의 dev→prod 세션 미러 (storage key 가 하나가 됐다) 제거 · **`scripts/capture-auth-session.mjs <코드>`** 가 라이선스 로그인으로 세션 파일을 만든다.
+- **규칙·CI·문서**: `composition-patterns` 의 `supabase-*` 규칙 3 + 섹션 · `.github/instructions/supabase.instructions.md` · deploy.yml 의 `VITE_SUPABASE_*` secrets · protect-files 의 `supabase/config.toml` · `docs/reference/schemas/SUPABASE.md` · `docs/migrations/*.sql` (Supabase RLS 스키마) · AGENTS/CLAUDE/README/DOCUMENT_STRUCTURE/PAGE_TYPES/DRAG_DROP 의 Supabase 서술.
+
 ## [Supabase 인증 제거 → 라이선스 파일 + 검증 코드 로컬 인증 (폐쇄망)] - 2026-09-12
 
 > 빌더가 인터넷 없는 사내망에서 동작해야 한다 (사용자 결정 2026-09-12). Supabase 는 실측상 **인증에만** 쓰였고 (프로젝트·문서는 이미 IndexedDB) 제거했다. 발급기 `/Users/admin/work/jwt` (`main.py` · `license_generator.html`, commit `8ff20bb`) 와 형식 계약 v1 (`docs/LICENSE_TOKEN_FORMAT.md`) 을 공유한다. live: `apps/builder/scripts/license-auth-live.mjs` 실제 빌더 10/10 (게이트 · 틀린 코드 · 통과 · 리로드/새 탭 · 만료 · 로그아웃 · 인증 중 외부 요청 0) + 서버 루트 `license.jwt` 자동 인식 1.

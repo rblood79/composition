@@ -1070,13 +1070,9 @@ const syncToStore = useCallback((updates: ElementUpdate[]) => {
 - `batchUpdateElements`는 내부에서 IndexedDB 오류를 로깅하고 메모리는 유지합니다.
 - 실패 시 롤백이 필요하다면, **업데이트 전 스냅샷을 별도로 보관**한 후 재적용하는 방식으로 구성합니다.
 
-### 6.3 Supabase 동기화 (선택적)
+### 6.3 원격 동기화
 
-```typescript
-// 기존 projectSync.ts 활용
-// IndexedDB → Supabase 동기화는 별도 sync 레이어에서 자동 처리
-// DnD 작업에서는 IndexedDB만 직접 업데이트
-```
+없다 — IndexedDB 가 유일한 영속 계층이다 (cloud 백엔드 ADR-128 폐기). DnD 작업은 IndexedDB 만 갱신한다.
 
 ---
 

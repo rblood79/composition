@@ -9,7 +9,6 @@
 | 3    | `style-`       | CRITICAL      | 스타일/CSS 규칙           |
 | 4    | `type-`        | CRITICAL      | TypeScript 타입 규칙      |
 | 5    | `react-aria-`  | HIGH          | React-Aria 접근성 규칙    |
-| 6    | `supabase-`    | HIGH          | Supabase 데이터 규칙      |
 | 7    | `zustand-`     | HIGH          | Zustand 상태관리 규칙     |
 | 8    | `postmessage-` | HIGH~CRITICAL | PostMessage 통신 규칙     |
 | 9    | `inspector-`   | HIGH          | Inspector 스타일 규칙     |

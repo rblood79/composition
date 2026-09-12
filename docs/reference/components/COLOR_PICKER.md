@@ -1078,7 +1078,7 @@ function getOrCreateGradientShader(fill: GradientFillItem): CanvasKit.Shader {
 | ---------------------------------------------------- | -------------------------------------------------------------- | -------------------------------- |
 | **A. 기존 인프라 확장 (채택, 이후 retirement 완료)** | 현재 패턴(`VITE_USE_WEBGL_CANVAS`)과 동일, 구현/검증 비용 최소 | 런타임 사용자별 제어 불가        |
 | **B. Zustand 슬라이스** (`useFeatureFlags()`)        | 런타임 전환 가능, DevTools 연동                                | DB/원격 제어 없음                |
-| **C. Supabase Remote Config**                        | 사용자별/환경별 제어                                           | 구현 비용 높음, Phase 1에 과도함 |
+| **C. 원격 Remote Config**                        | 사용자별/환경별 제어                                           | 구현 비용 높음, Phase 1에 과도함 |
 
 > 실제 경과: Phase 1은 **방안 A**로 시작했고, ADR-904 후속에서 Builder/Skia legacy 분기를 제거하며 retirement까지 완료했다.
 

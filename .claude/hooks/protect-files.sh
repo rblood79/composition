@@ -25,7 +25,6 @@ PROTECTED_PATTERNS=(
   #"CLAUDE.md"
   #"CLAUDE.local.md"
   #"AGENTS.md"
-  #"supabase/config.toml"
 )
 
 # 빈 배열 가드: 패턴을 전부 주석 처리하면 macOS bash 3.2 의 set -u 가

@@ -152,7 +152,5 @@ Codex harness를 혼동하지 않습니다. 공용 상태 주입은 전역 Codex
 
 ## 보안
 
-- 비밀 값은 `.env.local`에만 둡니다. `.env*`, credentials, Supabase 설정 등
+- 비밀 값은 `.env.local`에만 둡니다. `.env*`, credentials, 라이선스 개인키·토큰 (`public/license`, `scripts/.auth-session.json`) 등
   보호 파일은 사용자 승인 없이 수정하지 않습니다.
-- Supabase schema/API 기대치를 바꾸기 전 `docs/supabase-schema.md`와
-  `supabase/`를 확인하고 마이그레이션 범위를 명확히 합니다.

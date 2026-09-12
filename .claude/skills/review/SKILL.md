@@ -56,7 +56,7 @@ background: false
 
 - [ ] postMessage 핸들러 origin 검증
 - [ ] PREVIEW_READY 버퍼링으로 초기화 처리
-- [ ] 컴포넌트에서 Supabase 직접 호출 없음
+- [ ] 컴포넌트에서 저장소(IndexedDB) 직접 호출 없음 — store 액션 경유
 
 ### 3-5. 상태 관리
 

@@ -25,7 +25,7 @@
 
 composition 프로젝트는 **두 가지 다른 Page 타입**을 사용합니다:
 
-1. **API Layer**: `ApiPage` (Supabase Database schema)
+1. **API Layer**: `ApiPage` (구 cloud row schema — IndexedDB `pages` row 형태로 존속)
 2. **Store Layer**: `Page` (Zustand state management)
 
 이 문서는 두 타입의 차이점, 사용 시나리오, 그리고 올바른 변환 방법을 설명합니다.
@@ -38,7 +38,7 @@ composition 프로젝트는 **두 가지 다른 Page 타입**을 사용합니다
 
 **API Layer (Database)**:
 
-- Supabase 데이터베이스 스키마를 직접 반영
+- 저장 row 스키마 (snake_case) 를 직접 반영 — 원래 cloud DB 기원, 현재는 IndexedDB row
 - RESTful API 응답 형식
 - 필드명: `title` (데이터베이스 컬럼명)
 
@@ -75,7 +75,7 @@ export type ApiPage = Page; // Type alias for clarity
 
 **특징**:
 
-- Supabase `pages` 테이블 스키마와 일치
+- 저장소 `pages` row 스키마와 일치
 - CRUD 작업에서 사용
 - API 응답 형식
 
@@ -472,7 +472,7 @@ function isStorePage(page: unknown): page is Page {
      ▼               ▼
 ┌─────────┐    ┌─────────────┐
 │ API 호출 │    │ UI/Store    │
-│ Supabase │    │ Component   │
+│ IndexedDB│    │ Component   │
 └────┬────┘    └──────┬──────┘
      │                │
      │                │
@@ -496,7 +496,7 @@ function isStorePage(page: unknown): page is Page {
 | **위치**      | `src/services/api/PagesApiService.ts`               | `apps/builder/src/types/builder/unified.types.ts` |
 | **주요 필드** | `title` (String)                                    | `name` (String)                      |
 | **기타 필드** | `project_id`, `created_at`, `updated_at`, `is_home` | 최소 필드만 유지                     |
-| **사용처**    | API 요청/응답, Supabase                             | Zustand Store, UI Components         |
+| **사용처**    | 저장 row (IndexedDB)                                | Zustand Store, UI Components         |
 | **변환 필요** | ✅ Store 저장 전 변환 필요                          | ✅ API 호출 전 변환 필요             |
 
 ---

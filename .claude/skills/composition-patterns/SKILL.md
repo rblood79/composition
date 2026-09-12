@@ -117,7 +117,6 @@ Pencil schema 에 없는 Composition 고유 영역 (`x-composition.events` / `ac
 - **spec-text-style** (인라인 규칙 — 별도 rules/ 파일 없음) — `extractSpecTextStyle()` 사용 (`apps/builder/src/builder/workspace/canvas/utils/specTextStyle.ts`), fontSize/fontWeight 하드코딩 금지
 - **[spec-container-dimension-injection](rules/spec-container-dimension-injection.md)** — `_containerWidth`/`_containerHeight` props 주입
 - **[style-css-reuse](rules/style-css-reuse.md)** / **[react-aria-hooks-required](rules/react-aria-hooks-required.md)** / **[react-aria-no-manual-aria](rules/react-aria-no-manual-aria.md)** / **[react-aria-stately-hooks](rules/react-aria-stately-hooks.md)**
-- **[supabase-no-direct-calls](rules/supabase-no-direct-calls.md)** / **[supabase-service-modules](rules/supabase-service-modules.md)** / **[supabase-rls-required](rules/supabase-rls-required.md)**
 - **[zustand-factory-pattern](rules/zustand-factory-pattern.md)** / **[zustand-modular-files](rules/zustand-modular-files.md)**
 - **[postmessage-buffer-ready](rules/postmessage-buffer-ready.md)** / **[inspector-inline-styles](rules/inspector-inline-styles.md)** / **[inspector-history-sync](rules/inspector-history-sync.md)**
 

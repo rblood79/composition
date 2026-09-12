@@ -246,9 +246,8 @@ databases drop stale stores during open.
 | `transformers`     | ADR-132 Phase 7 — dead infrastructure 제거 (외부 caller 0건, ~800 LOC 전수 cleanup) |
 
 `order_num` and local `layout_id` indexes from pre-ADR-119/120 schema are not
-part of the current `composition` IndexedDB schema. Supabase compatibility
-projection and canonical adapter metadata are separate transport/boundary
-concerns, not local IndexedDB object stores.
+part of the current `composition` IndexedDB schema. Canonical adapter metadata
+is a separate boundary concern, not a local IndexedDB object store.
 
 ## Adapter Surface
 

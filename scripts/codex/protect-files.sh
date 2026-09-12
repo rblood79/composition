@@ -28,7 +28,6 @@ PROTECTED_PATTERNS=(
   "^\\.env\\..+"
   "credentials"
   "secret"
-  "^supabase/config\\.toml$"
   "^\\.claude/settings\\.json$"
   "^\\.claude/settings\\.local\\.json$"
 )

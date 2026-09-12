@@ -8,7 +8,7 @@
 //   3) 차트 포함 Preview(Compare Mode iframe) 최초 진입에서 lazy chunk 1회 + 실제 `.recharts-surface`
 //   4) 재선택·데이터 교체에서 runtime 모듈 재다운로드 0 (서버 데이터 요청과 구분)
 //   5) 차트 없는 Preview cold load 요청 0 · 독립 Publish cold load: 차트 없는 export 0 / 차트 export 1
-// 인증은 `.auth-session.json` 의 실제 Supabase 세션을 production origin 으로 옮겨 쓴다 (우회 없음).
+// 인증은 `.auth-session.json` 의 로컬 라이선스 인증 기록을 production origin 으로 옮겨 쓴다 (우회 없음).
 // 준비: `pnpm -F @composition/builder build` · `pnpm -F @composition/publish build` 가 끝난 dist.
 //
 // 사용: node apps/builder/scripts/adr209-f4-production-network.mjs [--headed] [--repo <worktree>] [--out <dir>]

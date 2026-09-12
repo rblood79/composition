@@ -7,7 +7,7 @@ tags: [validation, security, boundary]
 
 시스템 경계에서 모든 외부 입력을 검증합니다.
 
-> **실코드 기준**: composition 의 경계 검증은 **origin 검증 + 타입 가드** 가 기본입니다. zod 는 theme 타입(`types/theme/index.ts`)에 한정 사용 중이며, 신규 경계에 선택적으로 도입할 수 있습니다 (필수 아님). Supabase 는 **auth 전용** (ADR-128) — DB 요소 fetch 경계는 존재하지 않고, 요소/문서 영속 경계는 IndexedDB canonical document 입니다.
+> **실코드 기준**: composition 의 경계 검증은 **origin 검증 + 타입 가드** 가 기본입니다. zod 는 theme 타입(`types/theme/index.ts`)에 한정 사용 중이며, 신규 경계에 선택적으로 도입할 수 있습니다 (필수 아님). cloud 백엔드는 없다 (ADR-128 · 인증도 로컬 라이선스) — DB 요소 fetch 경계는 존재하지 않고, 요소/문서 영속 경계는 IndexedDB canonical document 입니다.
 
 ## 경계 정의
 

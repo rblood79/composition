@@ -1873,24 +1873,8 @@ async function main() {
   mkdirSync(options.traceDir, { recursive: true });
   const productionBundleHost = await startProductionBundleHost(options);
   const storageState = JSON.parse(readFileSync(options.storageState, "utf8"));
-  // The checked-in browser session is captured against the dev storage key,
-  // while a production bundle reads the same Supabase session from the prod
-  // key. Mirror it only inside this isolated context; never rewrite the source
-  // session file or print token values.
-  for (const origin of storageState.origins ?? []) {
-    const devSession = origin.localStorage?.find(
-      (entry) => entry.name === "composition-auth-dev",
-    );
-    const hasProdSession = origin.localStorage?.some(
-      (entry) => entry.name === "composition-auth-prod",
-    );
-    if (devSession && !hasProdSession) {
-      origin.localStorage.push({
-        name: "composition-auth-prod",
-        value: devSession.value,
-      });
-    }
-  }
+  // Auth is a single localStorage entry (`composition-license-auth`, same key in dev and
+  // production). The session file is produced by `capture-auth-session.mjs`; never print it.
   if (options.serveDist) {
     const benchmarkOrigin = new URL(options.baseUrl).origin;
     const hasBenchmarkOrigin = storageState.origins?.some(
@@ -1899,7 +1883,7 @@ async function main() {
     if (!hasBenchmarkOrigin) {
       const authenticatedOrigin = storageState.origins?.find((entry) =>
         entry.localStorage?.some(
-          (item) => item.name === "composition-auth-prod",
+          (item) => item.name === "composition-license-auth",
         ),
       );
       if (authenticatedOrigin) {

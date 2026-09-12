@@ -30,7 +30,6 @@ PROTECTED_PATTERNS=(
   #"CLAUDE.md"
   #"CLAUDE.local.md"
   #"AGENTS.md"
-  #"supabase/config.toml"
 )
 
 while IFS= read -r FILE_PATH; do
