@@ -20,8 +20,6 @@ import {
  */
 
 import {
-  Suspense,
-  lazy,
   useCallback,
   useLayoutEffect,
   useMemo,
@@ -37,12 +35,7 @@ import { buildChartSemanticFields } from "./chartFieldOptions";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
-// ADR-217 — 기준선 목록 편집기는 lazy (Chart 선택 시에만 필요 · initial 순증 한도 3 KiB 안, G5).
-const ChartReferenceLineControls = lazy(() =>
-  import("./ChartReferenceLineControls").then((m) => ({
-    default: m.ChartReferenceLineControls,
-  })),
-);
+import { ChartReferenceLineControls } from "./ChartReferenceLineControls";
 import {
   ChartSeriesControls,
   chartSeriesConfigApplies,
@@ -446,12 +439,10 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
           onPatch={handleChartPatch}
         />
         {/* ADR-217 — 값 축 기준선 목록 (값 · 라벨 · 선 모양 · 층). */}
-        <Suspense fallback={null}>
-          <ChartReferenceLineControls
-            fields={chartControlFields}
-            onPatch={handleChartPatch}
-          />
-        </Suspense>
+        <ChartReferenceLineControls
+          fields={chartControlFields}
+          onPatch={handleChartPatch}
+        />
       </>
     ) : (
       contentExtras

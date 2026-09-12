@@ -99,13 +99,13 @@ async function centerPixel(svg: string): Promise<number[]> {
 }
 
 describe("ADR-217 P5 — DOM leg 산점도", () => {
-  it("Scatter 점 cx/cy = scene 점 중심 (±0.5, 겹친 점 포함) · x 눈금 = scene · 설정 오류 0", async () => {
-    mount();
+  it("DOM 점 path d = scene 점 path d (시리즈당 1, 겹친 점 포함) · 불투명 · x 눈금 = scene · hover 툴팁 · 설정 오류 0", async () => {
+    mount({ showTooltip: true });
     await vi.waitFor(
       () =>
-        expect(host.querySelectorAll("[data-chart-scatter-dot]").length).toBe(
-          6,
-        ),
+        expect(
+          host.querySelectorAll("[data-chart-scatter-series]").length,
+        ).toBe(2),
       { timeout: 5000 },
     );
     const metrics = resolveChartMetrics(
@@ -113,33 +113,46 @@ describe("ADR-217 P5 — DOM leg 산점도", () => {
       "md",
     );
     const scene = computeChartScene(sceneProps(), rows, SIZE, metrics);
-    const want = scene.marks
+    const sceneD = scene.marks
       .filter(
         (m): m is PathMark => m.kind === "path" && m.fillSeries !== undefined,
       )
-      .flatMap((m) => centers(m.d))
-      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-    const got = Array.from(
-      host.querySelectorAll<SVGElement>("[data-chart-scatter-dot]"),
-    )
-      .map(
-        (el) =>
-          [
-            Number(el.getAttribute("data-cx")),
-            Number(el.getAttribute("data-cy")),
-          ] as [number, number],
-      )
-      .sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-    expect(got).toHaveLength(want.length);
-    got.forEach(([x, y], i) => {
-      expect(Math.abs(x - want[i][0])).toBeLessThan(0.5);
-      expect(Math.abs(y - want[i][1])).toBeLessThan(0.5);
-    });
-    // 불투명 — 점 요소의 fill-opacity 1.
-    for (const el of host.querySelectorAll<SVGElement>(
-      "[data-chart-scatter-dot]",
-    ))
+      .map((m) => m.d);
+    const domPaths = Array.from(
+      host.querySelectorAll<SVGPathElement>("[data-chart-scatter-series]"),
+    );
+    // Recharts 는 좌표를 만들지 않는다 — DOM path 는 scene 문자열 그대로 (Skia 와 byte 동일).
+    expect(domPaths.map((p) => p.getAttribute("d"))).toEqual(sceneD);
+    expect(sceneD.join(" ").match(/M /g)).toHaveLength(6);
+    for (const el of domPaths)
       expect(el.getAttribute("fill-opacity")).toBe("1");
+    // hover — 첫 점 (x 1, y 10, 시리즈 a) 위에 pointer 를 두면 툴팁 (범주 라벨 + 시리즈 + 값), 벗어나면 사라진다.
+    const [cx, cy] = centers(sceneD[0])[0];
+    const hit = host.querySelector<HTMLElement>("[data-chart-scatter-hit]")!;
+    const rect = hit.getBoundingClientRect();
+    hit.dispatchEvent(
+      new PointerEvent("pointermove", {
+        clientX: rect.left + cx,
+        clientY: rect.top + cy,
+        bubbles: true,
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(host.querySelector(".react-aria-Chart-tooltip")).not.toBeNull(),
+    );
+    expect(
+      host.querySelector(".react-aria-Chart-tooltip")!.textContent,
+    ).toContain("a");
+    hit.dispatchEvent(
+      new PointerEvent("pointermove", {
+        clientX: rect.left + 2,
+        clientY: rect.top + 2,
+        bubbles: true,
+      }),
+    );
+    await vi.waitFor(() =>
+      expect(host.querySelector(".react-aria-Chart-tooltip")).toBeNull(),
+    );
     const ticks = Array.from(
       host.querySelectorAll("[data-chart-decoration] text"),
     ).map((t) => t.textContent);
@@ -176,9 +189,12 @@ describe("ADR-217 P5 — DOM leg 산점도", () => {
     });
     await vi.waitFor(
       () =>
-        expect(host.querySelectorAll("[data-chart-scatter-dot]").length).toBe(
-          3,
-        ),
+        expect(
+          host
+            .querySelector("[data-chart-scatter-series]")
+            ?.getAttribute("d")
+            ?.match(/M /g)?.length,
+        ).toBe(3),
       { timeout: 5000 },
     );
     const ticks = Array.from(

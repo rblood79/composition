@@ -38,7 +38,7 @@ const selector = {
   radial:
     "path.recharts-radial-bar-sector, path.recharts-radial-bar-background-sector",
   // ADR-217 — 산점도 점 (custom shape). 이 스위트의 fixture 는 scatter 를 돌리지 않는다 (P5 browser 테스트).
-  scatter: "[data-chart-scatter-dot]",
+  scatter: "[data-chart-scatter-series]",
 } satisfies Record<ChartProps["chartType"], string>;
 async function check(patch: Partial<ChartProps>, source = rows) {
   const props = {

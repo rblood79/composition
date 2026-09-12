@@ -23,8 +23,12 @@ const signature = () =>
         .join(":"),
     )
     .join("|");
+// ADR-217 — 산점도는 Recharts 그래픽 항목 없이 scene path 를 그린다 (P=5,000 점의 점별 요소가 스텝당
+//   ~290 ms — P6 perf) → 진입 애니메이션이 없다. 재전송 동일성만 본다 (animation 축은 해당 없음).
 for (const descriptor of CHART_DESCRIPTORS)
-  for (const active of [false, true])
+  for (const active of descriptor.chartType === "scatter"
+    ? [false]
+    : [false, true])
     it(`${descriptor.chartType} native animation=${active}과 동일 rows 재전송`, async () => {
       const props = createChartInitialProps(descriptor.chartType);
       host = document.createElement("div");

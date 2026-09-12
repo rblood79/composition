@@ -23,15 +23,14 @@ import {
   Sector,
   Rectangle,
   Dot,
-  Scatter,
   ScatterChart,
   type SectorProps,
   type LabelProps,
 } from "recharts";
 import {
   categoryColorIndex,
+  buildDotMarks,
   buildReferenceLineMarks,
-  circlePath,
   clampWindowRange,
   resolveChartData,
   resolveChartAnimation,
@@ -42,6 +41,8 @@ import {
   buildLegend,
   angleScale,
   dotRadius,
+  seriesAxialPoints,
+  toScreen,
   centerTotalLabels,
   approxTextWidth,
   polarLabelAnchor,
@@ -220,10 +221,51 @@ export function RechartsChart({
   // ADR-217 — 기준선 마크 (scene 과 같은 `buildReferenceLineMarks` · 같은 값 스케일). `back` 은
   //   backdrop Customized 에, `front` 는 Recharts svg 위 overlay svg 에 — pinned 3.10.1 은 Customized
   //   를 자식 순서와 무관하게 그래픽 항목보다 먼저 렌더한다 (P0 spike).
+  // ADR-217 — 산점도 hover: 점은 시리즈당 path 하나라 Recharts 의 항목 hover 가 없다. 가장 가까운 점
+  //   (반지름 + 4px 안) 을 pointer 로 찾아 같은 어법의 툴팁 div 를 띄운다 (D1 runtime — Preview 몫).
+  const [scatterHover, setScatterHover] = useState<{
+    si: number;
+    ci: number;
+    x: number;
+    y: number;
+  } | null>(null);
+  const scatterPoints = useMemo(() => {
+    if (props.chartType !== "scatter" || !presentation.ok) return null;
+    const { band } = resolveCategoryBand(
+      model.time,
+      grid,
+      horizontal ? [plot.y, plot.y + plot.h] : [plot.x, plot.x + plot.w],
+      model.linear,
+    );
+    const value = linearScale(
+      ticks.domain,
+      horizontal ? [plot.x, plot.x + plot.w] : [plot.y + plot.h, plot.y],
+    );
+    return keys.flatMap((_, si) =>
+      seriesAxialPoints(grid, si, band, value).map((point) => ({
+        si,
+        ci: point.categoryIndex,
+        raw: point.raw,
+        ...toScreen(props.orientation, point),
+      })),
+    );
+  }, [
+    props.chartType,
+    props.orientation,
+    presentation.ok,
+    model.time,
+    model.linear,
+    grid,
+    keys,
+    horizontal,
+    plot,
+    ticks.domain,
+  ]);
+
   const reference = useMemo(() => {
     if (
       presentation.referenceLines.length === 0 ||
-      !["bar", "line", "area"].includes(props.chartType)
+      !["bar", "line", "area", "scatter"].includes(props.chartType)
     )
       return null;
     const value = linearScale(
@@ -671,10 +713,63 @@ export function RechartsChart({
       );
 
     if (props.chartType === "scatter") {
-      // ADR-217 — 산점도: 시리즈당 `Scatter` (행 = 점), x/y 는 scene 과 같은 domain, 점은 custom shape
-      //   (반지름 `dotRadius`, **불투명** — round 1 m3). Recharts 는 좌표를 그리기만 한다 (P0 spike).
-      const r = dotRadius(metrics.strokeWidth);
-      const positionsOf = grid.positions ?? [];
+      // ADR-217 — 산점도: 점은 **시리즈당 path 1개** (scene 의 `buildDotMarks` 그대로 — Skia 와 글자까지 같은
+      //   d, 불투명). Recharts `Scatter` 는 점마다 React 요소를 만들어 P=5,000 점의 창 이동 한 스텝이
+      //   ~290 ms 였다 (P6 perf 실측) — Recharts 는 축·여백·Customized 문맥만 제공하고 hover 는 아래
+      //   가장 가까운 점 탐색 (`onPointerMove`) 이 담당한다.
+      const dotMarks = keys
+        .map((_, si) =>
+          buildDotMarks(
+            seriesAxialPoints(grid, si, band, value).map((point) =>
+              toScreen(props.orientation, point),
+            ),
+            grid.series[si].seriesIndex,
+            dotRadius(metrics.strokeWidth),
+            1,
+          ),
+        )
+        .filter((m): m is NonNullable<typeof m> => m !== null);
+      const dots = (
+        <Customized
+          key="scatter"
+          component={() => (
+            <g data-chart-scatter="">
+              {dotMarks.map((mark, si) => (
+                <path
+                  key={si}
+                  data-chart-scatter-series={si}
+                  d={mark.d}
+                  fill={seriesVar(mark.fillSeries ?? 0)}
+                  fillOpacity={1}
+                  stroke="none"
+                />
+              ))}
+              {props.showValueLabels
+                ? keys.flatMap((_, si) =>
+                    seriesAxialPoints(grid, si, band, value).map((point, i) => {
+                      const screen = toScreen(props.orientation, point);
+                      const text = labelText(point.categoryIndex, point.raw);
+                      return text ? (
+                        <text
+                          key={`${si}-${i}`}
+                          x={screen.x + (horizontal ? 6 : 0)}
+                          y={screen.y - (horizontal ? 0 : 6)}
+                          dominantBaseline={
+                            horizontal ? "central" : "alphabetic"
+                          }
+                          textAnchor={horizontal ? "start" : "middle"}
+                          fill="currentColor"
+                        >
+                          {text}
+                        </text>
+                      ) : null;
+                    }),
+                  )
+                : null}
+            </g>
+          )}
+        />
+      );
       return (
         <ScatterChart {...common} margin={margin}>
           <XAxis
@@ -692,53 +787,8 @@ export function RechartsChart({
             allowDataOverflow
           />
           {backdrop}
-          {keys.map((key, si) => {
-            const paint = seriesVar(grid.series[si].seriesIndex);
-            const points = Array.from(grid.series[si].values, ([ci, raw]) => ({
-              x: positionsOf[ci] ?? ci,
-              y: raw,
-              raw,
-              si,
-              categoryIndex: ci,
-              category: grid.categories[ci],
-              label: labelText(ci, raw),
-            }));
-            return (
-              <Scatter
-                key={key}
-                name={seriesLabel(grid.series[si], "series")}
-                data={points}
-                fill={paint}
-                // 점 = scene 과 같은 `circlePath` 문자열 (Skia subpath 와 글자까지 같다) — 불투명.
-                //   진입 애니메이션은 Recharts 가 `size` (면적, 암묵 Z 64) 를 0 → 64 로 보간한다 —
-                //   반지름을 그 비율의 제곱근으로 (면적 ∝ r²) 키운다. 정지 상태는 정확히 `r`.
-                shape={(entry: { cx?: number; cy?: number; size?: number }) => (
-                  <path
-                    data-chart-scatter-dot=""
-                    data-cx={entry.cx}
-                    data-cy={entry.cy}
-                    d={circlePath(
-                      entry.cx ?? 0,
-                      entry.cy ?? 0,
-                      typeof entry.size === "number" && entry.size < 64
-                        ? r * Math.sqrt(Math.max(0, entry.size) / 64)
-                        : r,
-                    )}
-                    fill={paint}
-                    fillOpacity={1}
-                    stroke="none"
-                  />
-                )}
-                {...animation}
-              >
-                {props.showValueLabels ? (
-                  <LabelList dataKey="label" content={pointLabel} />
-                ) : null}
-              </Scatter>
-            );
-          })}
+          {dots}
           {foreground}
-          {tooltip}
         </ScatterChart>
       );
     }
@@ -1213,11 +1263,82 @@ export function RechartsChart({
         )}
       </svg>
     ) : null;
+  const hitRadius = dotRadius(metrics.strokeWidth) + 4;
+  const scatterHit =
+    scatterPoints && props.showTooltip ? (
+      <div
+        data-chart-scatter-hit=""
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: size.width,
+          height: size.height,
+        }}
+        onPointerMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const px = event.clientX - rect.left;
+          const py = event.clientY - rect.top;
+          let best: (typeof scatterPoints)[number] | null = null;
+          let bestD = hitRadius * hitRadius;
+          for (const point of scatterPoints) {
+            const dx = point.x - px;
+            const dy = point.y - py;
+            const d = dx * dx + dy * dy;
+            if (d <= bestD) {
+              bestD = d;
+              best = point;
+            }
+          }
+          setScatterHover((prev) =>
+            best
+              ? prev && prev.si === best.si && prev.ci === best.ci
+                ? prev
+                : { si: best.si, ci: best.ci, x: best.x, y: best.y }
+              : prev
+                ? null
+                : prev,
+          );
+        }}
+        onPointerLeave={() => setScatterHover(null)}
+      >
+        {scatterHover ? (
+          <div
+            className="react-aria-Chart-tooltip"
+            role="status"
+            style={{
+              position: "absolute",
+              left: scatterHover.x + 12,
+              top: scatterHover.y - 8,
+              pointerEvents: "none",
+              background: "var(--chart-tooltip-bg, Canvas)",
+              color: "var(--chart-tooltip-text, inherit)",
+              border: "1px solid var(--chart-tooltip-border, currentColor)",
+              borderRadius: 6,
+              padding: "6px 8px",
+              fontSize: 12,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <div>{grid.categories[scatterHover.ci] ?? ""}</div>
+            <div style={{ display: "flex", gap: 6 }}>
+              <span>{seriesLabel(grid.series[scatterHover.si], "series")}</span>
+              <span>
+                {formatValue(
+                  grid.series[scatterHover.si].values.get(scatterHover.ci) ?? 0,
+                )}
+              </span>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    ) : null;
   if (!track || !win || total <= fitEff || !presentation.ok)
-    return front ? (
+    return front || scatterHit ? (
       <>
         {chart}
         {front}
+        {scatterHit}
       </>
     ) : (
       chart
@@ -1226,6 +1347,7 @@ export function RechartsChart({
     <>
       {chart}
       {front}
+      {scatterHit}
       {renderWindowTrack({
         track,
         start: win.start,

@@ -194,7 +194,11 @@ export function resolveChartLayout(
           stackMode === "expand" ? "normalizedPercent" : "raw",
         );
 
-  if (props.showAxis && ["bar", "line", "area"].includes(props.chartType)) {
+  // ADR-217 — scatter 도 직교 축 (linear x 라벨은 숫자 — 폭은 범주 문자열 (= x 값) 로 근사한다).
+  if (
+    props.showAxis &&
+    ["bar", "line", "area", "scatter"].includes(props.chartType)
+  ) {
     // 값 축 레이블이 차지하는 폭/높이 — tick 문자열 길이로 정한다.
     let widestTick = 0;
     for (const tick of ticks.ticks) {
