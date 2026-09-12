@@ -40,7 +40,7 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 - [ ] `executionPolicy?` 필드 추가 (`DataTable` · `DataTableDefinition`): `{ mode: "auto" | "manual" | "interval"; intervalSec?: number }` (미설정 = manual, BC). DataOp·역연산·`persistablePatch`(`dataChange.ts:1020-1026`) 배선 명시
 - [ ] runtimeData 영속: 별도 `collection_runtime` store(대안 B) — 적용기 경로에 영속 배선, History 밖 유지, 삭제 시 캐시 정리(고아 0)
-- [ ] **캐시 유효성 (h1/HC4)**: 엔트리에 `sourceRev`(endpoint id + `responseMapping.dataPath` + schema field key/type 집합 지문) 저장. hydration 시 현재 revision 불일치면 폐기. field rename(`dataChange.ts:679-687`)은 캐시도 값 보존 변환(152 G4 정합), endpoint/mapping/스키마 구조 변경은 무효화. Undo/Redo 시 revision 재판정
+- [ ] **캐시 유효성 (h1/HC4)**: 엔트리에 `sourceRev` — endpoint id 만이 아니라 요청 결과를 바꾸는 정의·실행 파라미터 전부(`baseUrl + path + method + queryParams + bodyType/bodyTemplate + header 키 집합`, 헤더 값은 secret 이라 제외 — `{{secret.NAME}}` 참조/키만) + `responseMapping.dataPath` + schema field key/type. define_endpoint 가 같은 id 로 path/query/method/body 를 바꿔도(`dataChange.ts:440-479` → 실제 요청 `dataActions.ts:593-648`) 지문이 갈린다. hydration·소스 변경 시 불일치면 폐기. field rename(`dataChange.ts:679-687`)은 값 보존 변환(152 G4 정합), 그 외 정의·mapping·스키마 구조 변경은 무효화. Undo/Redo revision 재판정. 진행 중 요청은 시작 시점 revision 을 완료 수용 시 대조(소스 변경 직전 응답 차단, h2 연동)
 - [ ] `applyDataChange` 경로로만 쓰기 (HC1) · migration: optional 필드라 기존 레코드 read 호환
 
 ### Phase 2 — Settings "데이터 소스" UI + endpoint 연결 (게이트 G2)
@@ -51,8 +51,9 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 ### Phase 3 — 실행 정책 런타임 + 요청 경쟁 + closure (게이트 G3)
 
-- [ ] 정책 런타임: `auto`(Builder 가 Preview 열기 전 1회) · `manual`(Send/새로고침 버튼) · `interval`(N초, 정리 훅으로 leak 0). **실행 host = Builder**(m4) — Preview 는 runtimeData snapshot 만 수신, `collectionSnapshot`(`:35-45`) allowlist 에 정책 미포함. legacy binding interval 은 별개 경로 유지
-- [ ] **요청 경쟁 (h2/HC5)**: collection 별 `runSeq` single-flight — 진행 중 abort(현행 `dataActions.ts:543-561` loadingApis 미차단·`:680-693` timeout 전용 AbortController·`:722-745` 무조건 쓰기를 seq 게이트로 대체), 완료는 seq 일치 시만 store·캐시에 수용. 정지(interval 해제·페이지 전환·정책 변경)는 abort + 완료돼도 무시
+- [ ] 정책 런타임: `auto`(Builder 가 Preview 열기 전 1회) · `manual`(Send/새로고침 버튼) · `interval`(N초). **interval 스케줄(h2/HC6)**: 자동 tick 은 abort 하지 않고 **진행 중이면 skip/coalesce 또는 완료 후 N초 재예약**(고정 tick + 매 tick abort 금지 — 응답시간 > 주기인 정상 API 완료 기회 보장, 현행 `useCollectionData.tsx:521-524` 고정 setInterval 대비). 정리 훅으로 leak 0
+- [ ] **실행 host = Builder**(m4) — Builder 가 정책 실행, Preview 는 runtimeData snapshot 만 수신. **채널별 projection(m3)**: `toRuntimeCollection`(`collectionSnapshot.ts:35-45` 단일 allowlist, 현재 `BuilderCore.tsx:1141-1144` Preview·`:1179-1184` export 공용)을 분리 — Preview 채널 = 응답 포함·정책 제외, export 채널 = 정책 포함(import 보존)·응답 제외. postMessage(`dataChange.ts:113-123`) 별개. legacy binding interval 은 별개 경로 유지
+- [ ] **요청 경쟁 (h2/HC5)**: collection 별 `runSeq` — 완료는 seq 일치 + 시작 revision 일치 시만 store·캐시 수용(현행 `dataActions.ts:543-561` 미차단·`:680-693` timeout 전용·`:722-745` 무조건 쓰기 대체). **abort 는 사용자 재실행·소스/정책 변경에만**, 자동 tick 은 abort 대신 skip. hydration seq 0 기준
 - [ ] runtimeData 영속 → 다음 세션 로드 시 마지막 성공 응답 표시 (오프라인/미실행 상태에서도 빈 상자 아님), hydration vs 새 응답 우선순위(첫 새 응답이 덮어씀)
 - [ ] export/redactor: runtimeData 포함 정책(기본 제외) · `postMessage`(`dataChange.ts:113-123` raw response) 제외는 export 제외와 **별개 정책** · 번들 영향 0 확인
 - [ ] a11y: 정책 컨트롤 키보드·`role=status` · axe critical 0 · live 하니스 `scripts/adr218-*-live.mjs`(A/B 역순 완료·정지 후 완료·rename→offline reload·헤더 Preview 진입 endpoint 호출 수 포함)
@@ -74,6 +75,6 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 ## 5. 검증 전략
 
 - 원복 RED: 저장 형식 확장·정책 런타임·캐시 유효성·single-flight 는 동작 변경 → 전량. UI 는 axe + 키보드.
-- live 필수 시나리오(리뷰 round 1 회귀): (a) **rename→offline reload** — 한 행 API 응답 저장 → field rename → offline reload 시 현재 key 로 표시, 옛 key 섞임 0 (h1) (b) **A/B 역순 완료** — 느린 A·빠른 B 동시 실행 시 최신 B 유지, 정지 후 완료 응답 무시 (h2) (c) endpoint picker 연결 교체 + Undo 복원 (m3) (d) 헤더 Preview 진입 시 endpoint 호출 수로 host=Builder 검증 (m4) (e) 정책 3종 실행 + 세션 재로드 복원 + interval 정리 후 타이머 0.
+- live 필수 시나리오(리뷰 round 1·2 회귀): (a) **rename→offline reload** — API 응답 저장 → field rename → offline reload 시 현재 key 표시, 옛 key 섞임 0 (h1) (a2) **같은 endpoint id path/query 수정→offline reload** — revision 불일치로 이전 소스 응답 무효화 (round 2 h1) (b) **A/B 역순 완료** — 느린 A·빠른 B 시 최신 B 유지 (b2) **응답시간 > 주기 API 를 여러 tick 실행** — 성공 응답 실제 갱신(매 tick 취소 아님) (round 2 h2) (c) endpoint picker 연결 교체 + Undo 복원 (m3) (d) 헤더 Preview payload / JSON export payload / import 결과 대조 — Preview=응답 포함·정책 제외, export=정책 포함·응답 제외, secret 0 (round 2 m3) (e) 정책 3종 실행 + 세션 재로드 복원 + interval 정리 후 타이머 0.
 - 측정(m5, `measurement-validity` §1·Q2·Q4): fixture 3구간(100·1000·5000행) · 대조군(memory-only vs 영속) · 조건(foreground·DPR2·visible·cold1+warm N) · 판정선(목록 로드 p95 증가 상한·IDB p95·initial 증가 0·interval 누적 힙). Q2 불리 케이스 = 대용량 응답·interval 누적·A/B 역순, Q4 = 정책이 실제 실행 경로에 배선.
 - BC: 기존 프로젝트(executionPolicy 없음) 로드 시 manual 동작 유지 확인.
