@@ -27,14 +27,51 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 **Phase 0 freeze 산출물**: 위 표 확정 + (a) collection 레코드 현재 평균/최대 크기와 runtimeData 실측 크기(영속 시 IDB·export 증가량) (b) export envelope 가 collection 을 싣는 경로 전수 + runtimeData 포함 시 redactor/번들 영향 (c) `DataTableUpdate` 가 이미 runtimeData 를 받음(`data.types.ts:107`) — 적용기 재사용 가능 여부.
 
+## 2.1 Phase 0 freeze 결과 (2026-09-12 — 게이트 G0)
+
+§2 표의 코드 사실 전량 재검증 (working tree clean · round 4 검증분과 일치, drift 0). 아래는 Phase 0 이 추가로 확정한 freeze 산출물.
+
+**(a) 크기 — 구조 경계 (수치 실측은 Phase 3/m5)**: `runtimeData` = API 응답 배열 전체 (행수 × 필드수에 선형, 상한 없음). 대안 B 채택으로 `collections` store 레코드 크기는 **불변** — runtimeData 는 별도 `collection_runtime` store 로 격리되고, `executionPolicy` 만 레코드에 추가(`{mode}` 문자열 + optional `intervalSec`, ≈ 30~50 byte). export/Preview 의 `toRuntimeCollection` 은 이미 runtimeData 를 제외하므로 **export 크기는 runtimeData 영속과 무관**. 3구간(100·1000·5000행) byte·IDB write/read p95 는 Phase 3 에서 실측.
+
+**(b) export/sync 경로 전수 (3 채널) + redactor·번들**:
+
+| 채널                             | 위치                                              | 현재 collection 투영                                       | runtimeData |                  executionPolicy(신규)                  |
+| -------------------------------- | ------------------------------------------------- | ---------------------------------------------------------- | :---------: | :-----------------------------------------------------: |
+| in-page Preview (postMessage)    | `dataChange.ts:113-123` `UPDATE_DATA_TABLES`      | id·name·schema·mockData·**runtimeData**·useMockData 인라인 |    포함     |                 Phase 3: **제외**(명시)                 |
+| new-tab Preview (sessionStorage) | `BuilderCore.tsx:1141-1153` `toRuntimeCollection` | id·name·schema·mockData·useMockData                        |    제외     | Phase 3: 제외(Preview 계약) → **runtimeData 포함 필요** |
+| JSON export                      | `BuilderCore.tsx:1179-1184` `toRuntimeCollection` | id·name·schema·mockData·useMockData                        |    제외     |    Phase 3: **포함**(import 보존) · runtimeData 제외    |
+
+- **R5 확정**: new-tab Preview 와 JSON export 가 `toRuntimeCollection` **단일 함수 공용** → 한쪽 계약(Preview=응답 포함·정책 제외 / export=정책 포함·응답 제외)이 서로 배타라 반드시 **채널별 projection 분리** (Phase 3, HC3). in-page postMessage 는 별도 인라인 투영이라 executionPolicy 를 실수로 싣지 않도록 명시 제외 필요.
+- **redactor/HC6**: 세 채널 모두 endpoint 는 `toRuntimeApiEndpoint`(`collectionSnapshot.ts`, BuilderCore:1147·1183)로 headers 를 싣되 값은 `{{secret.NAME}}` **참조**뿐 — 원문은 별도 vault DB(`composition-secrets`, `secretVault.ts`)에만. runtimeData 는 API **응답**이라 요청 secret 을 담지 않는다. 원문 secret 이 export/postMessage 에 실릴 경로 = **0 (현행 유지)**. Phase 1 의 sourceRev 지문도 secret 참조는 이름+revision 만(원문 미저장).
+- **번들**: `executionPolicy` 필드 추가 + `collection_runtime` store 는 initial-chunk import 를 늘리지 않음 — Phase 3 에서 initial Builder chunk 증가 0 검증(G3).
+
+**(c) 적용기 재사용**: `DataTableUpdate`(`data.types.ts:107`)의 Pick 이 **이미 `runtimeData` 포함** → runtimeData 영속은 새 DataOp 형상 없이 기존 `applyDataChange` 경로 재사용 가능. `executionPolicy` 는 Pick·DataOp·역연산·`persistablePatch`에 신설 필요(Phase 1).
+
+**BC 정량화 (R7)**: `executionPolicy` optional 필드 — 기존 레코드 로드 시 부재=manual, **재직렬화 불요 (read 호환, 0% breaking)**. runtimeData 영속은 신규 별도 store 라 기존 `collections` 레코드 무변경 (additive). 기존 레코드는 다음 명시 편집(`applyDataChange`) 때만 executionPolicy 를 얻음.
+
+**저장소 현행**: `adapter.ts:32` `DB_VERSION = 21` — `collection_runtime` objectStore **부재** → Phase 1 이 22 로 bump + `createObjectStore("collection_runtime")` + upgrade 경로. `collections.update`(`:576-592`)는 `{...existing,...updates}` 스프레드라 runtimeData 를 넣으면 실림 — 오늘 runtimeData set 3경로(`dataActions.ts:209/297/740`)가 adapter 미호출이라 미기록(§2 정합).
+
+**m4 실행 경로 인벤토리 (새 collection-level 정책과 범위 구분)**:
+
+| 경로                    | 위치                                                                                                                | 트리거                           | 새 정책 관계                                                                |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------- |
+| Send(수동)              | `ApiEndpointEditor.tsx:122` `executeApiEndpoint(id)`                                                                | 편집기 Send 버튼                 | `manual` 정책과 동일 표면                                                   |
+| endpoint 역조회         | `BuilderCore.tsx:897-911` `targetCollectionId`(정본)·`targetCollection` name 폴백 → `executeApiEndpoint(linked.id)` | Preview 진입 로드                | `auto` 정책의 host=Builder 실행점 (cardinality 0..1 근거)                   |
+| agent                   | `services/agent/dataAgentCommands.ts`                                                                               | AI 데이터 명령                   | 정책 밖 (사용자 명시 실행)                                                  |
+| legacy binding interval | `useCollectionData.tsx:519-528` 고정 `setInterval(reload)`                                                          | 컴포넌트 dataBinding refreshMode | **별개 경로 유지** — 새 `interval` 정책(coalesce/재예약)과 혼동 금지(R2·R4) |
+
+**m5 측정 기준 freeze (조건·통과선만, 수치는 Phase 3)**: fixture 3구간 100·1000·5000행 · 대조군 = 현행 memory-only arm vs 별도 store 영속 arm · 조건 = foreground Chromium·DPR2·visible·cold1+warm N · 판정선 = 목록 로드 p95 증가 상한 · IDB write/read p95 · initial 집계 단위 + 기준 SHA · interval 누적 힙 고수위선. Q2 불리 케이스 = 대용량 응답·interval 누적·A/B 역순, Q4 = 정책이 실제 실행 경로에 배선.
+
+**G0 판정**: §2 freeze + export 3채널 전수 + BC 정량화 + m5 조건·통과선 확정 완료 → **G0 PASS**. Phase 1 착수 조건(실측/기준 확보) 충족.
+
 ## 3. Phase 계획
 
 ### Phase 0 — 인벤토리 freeze (게이트 G0)
 
-- [ ] §2 표 확정 + 크기 실측 (collection 레코드 · runtimeData) · export 경로 전수 · redactor 경계
-- [ ] BC 정량화: 기존 프로젝트 N개 재직렬화 영향 (optional 필드 추가라 read 호환인지 확인 — 미설정=기존 동작)
-- [ ] **측정 기준 freeze (m5, `measurement-validity` §1)**: fixture 행수 3구간(100·1000·5000)·byte 규모 · 대조군(현행 memory-only vs 별도 store 영속 arm) · 측정 조건(foreground Chromium·DPR2·visible·cold1+warm N) · 판정 기준(목록 로드 p95 증가 상한 · IDB write/read p95 · initial 집계 단위와 기준 SHA · interval 누적 힙 고수위선). 수치 실측은 Phase 3 에서 수행, Phase 0 은 조건·통과선 확정만
-- [ ] **실행 경로 인벤토리 (m4)**: Send(`ApiEndpointEditor.tsx:122`) · agent(`dataAgentCommands.ts:96`) · endpoint 역조회(`BuilderCore.tsx:897-911`) · legacy binding interval(`useCollectionData.tsx:517-530`) 을 표로 — 새 collection-level 정책과 각 경로의 범위 구분 freeze
+- [x] §2 표 확정 + 크기 실측 (collection 레코드 · runtimeData) · export 경로 전수 · redactor 경계 — §2.1 (a)(b)
+- [x] BC 정량화: 기존 프로젝트 N개 재직렬화 영향 (optional 필드 추가라 read 호환인지 확인 — 미설정=기존 동작) — §2.1 BC(0% breaking, read 호환)
+- [x] **측정 기준 freeze (m5, `measurement-validity` §1)**: fixture 행수 3구간(100·1000·5000)·byte 규모 · 대조군(현행 memory-only vs 별도 store 영속 arm) · 측정 조건(foreground Chromium·DPR2·visible·cold1+warm N) · 판정 기준(목록 로드 p95 증가 상한 · IDB write/read p95 · initial 집계 단위와 기준 SHA · interval 누적 힙 고수위선). 수치 실측은 Phase 3 에서 수행, Phase 0 은 조건·통과선 확정만 — §2.1 m5
+- [x] **실행 경로 인벤토리 (m4)**: Send(`ApiEndpointEditor.tsx:122`) · agent(`dataAgentCommands.ts`) · endpoint 역조회(`BuilderCore.tsx:897-911`) · legacy binding interval(`useCollectionData.tsx:519-528`) 을 표로 — 새 collection-level 정책과 각 경로의 범위 구분 freeze — §2.1 m4
 
 ### Phase 1 — 저장 형식 확장 + 캐시 유효성 (게이트 G1)
 
@@ -67,7 +104,7 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 | `lib/db/indexedDB/adapter.ts`                                                                                                        |   1   | `collection_runtime` objectStore + migration + 삭제 정리                                                  |
 | `packages/shared/src/schemas/dataChange.ts` · `stores/utils/dataChange.ts`                                                           |  1·2  | `set_source{endpointId}` throw 대체 · executionPolicy DataOp·역연산·`persistablePatch` · rename 캐시 변환 |
 | `stores/utils/dataActions.ts`                                                                                                        |  1·3  | 영속 배선 · `runSeq` single-flight · 응답 수용 게이트(`:543-561`·`:680-693`·`:722-745`)                   |
-| `panels/datatable/utils/secretVault.ts` | 1 | SecretRow 변경 revision(세대) — 값 교체 시 bump, sourceRev 가 참조(원문 미저장) |
+| `panels/datatable/utils/secretVault.ts`                                                                                              |   1   | SecretRow 변경 revision(세대) — 값 교체 시 bump, sourceRev 가 참조(원문 미저장)                           |
 | `main/BuilderCore.tsx` · `packages/shared/src/hooks/useCollectionData.tsx` · `packages/shared/src/collections/collectionSnapshot.ts` |   3   | 실행 host=Builder 경계 · legacy interval 구분 · Preview snapshot 응답만                                   |
 | `panels/datatable/editors/DataTableEditor.tsx` (SettingsEditor)                                                                      |   2   | 데이터 소스 picker + 정책 컨트롤 + endpoint 연결                                                          |
 | `i18n/translations.ts` (`datatable.*`)                                                                                               |   2   | 키 추가 ko/en                                                                                             |
