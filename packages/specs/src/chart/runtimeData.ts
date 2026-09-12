@@ -1,4 +1,9 @@
-import { buildSeriesGrid, stackRangesBySeries, valueExtent } from "./series";
+import {
+  buildSeriesGrid,
+  referenceValues,
+  stackRangesBySeries,
+  valueExtent,
+} from "./series";
 import { niceTicks } from "./scales";
 import { resolveChartPresentation } from "./presentation";
 import { resolveChartModel } from "./model";
@@ -94,7 +99,7 @@ export function resolveChartData(
   const presentation = resolveChartPresentation(props, seriesCount);
   const grid = buildSeriesGrid(rows, props, seriesCount, presentation);
   const stackMode = runtimeStackMode(props, grid);
-  const extent = valueExtent(grid, stackMode);
+  const extent = valueExtent(grid, stackMode, referenceValues(presentation));
   return finishModel(
     grid,
     stackMode,

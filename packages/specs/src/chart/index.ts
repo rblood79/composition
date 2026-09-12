@@ -7,6 +7,15 @@
  * skiaPrimitives → shared 가 순환이 된다 (review round 1 h1).
  */
 export * from "./types";
+export {
+  CHART_REFERENCE_DASH,
+  CHART_REFERENCE_FALLBACK_TOKEN,
+  buildReferenceLineMarks,
+} from "./marks/referenceLine";
+export type {
+  ReferenceLineInput,
+  ReferenceLineMarks,
+} from "./marks/referenceLine";
 export * from "./authoring";
 export * from "./runtimeData";
 export {
@@ -206,12 +215,7 @@ export {
   utcYear,
 } from "./timeIntervals";
 export type { TimeInterval } from "./timeIntervals";
-export {
-  niceTime,
-  tickStep,
-  timeTickInterval,
-  timeTicks,
-} from "./timeTicks";
+export { niceTime, tickStep, timeTickInterval, timeTicks } from "./timeTicks";
 export type {
   TimeGranularity,
   TimeTickInterval,
@@ -238,3 +242,12 @@ export type { ChartTimeAxisModel, TimeTickLabel } from "./timeAxis";
 export { resolveDimensionParser } from "./series";
 export { CHART_DIMENSION_SCALES } from "./presentation";
 export type { ResolvedDimensionSettings } from "./presentation";
+// ADR-217
+export {
+  CHART_REFERENCE_LAYERS,
+  CHART_REFERENCE_LINES_MAX,
+  CHART_REFERENCE_LINE_TYPES,
+  CHART_REFERENCE_LINE_TYPES_SUPPORTED,
+} from "./presentation";
+export type { ResolvedReferenceLine } from "./presentation";
+export { referenceValues } from "./series";

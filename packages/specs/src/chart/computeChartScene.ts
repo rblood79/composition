@@ -25,6 +25,7 @@ import { buildAreaMarks } from "./marks/area";
 import { buildBarMarks } from "./marks/bar";
 import { buildWindowTrackMarks } from "./marks/windowTrack";
 import { buildDotMarks, dotRadius } from "./marks/dots";
+import { buildReferenceLineMarks } from "./marks/referenceLine";
 import { buildLineMarks, seriesAxialPoints } from "./marks/line";
 import { buildPieMarks } from "./marks/pie";
 import { buildRadarMarks } from "./marks/radar";
@@ -545,6 +546,18 @@ export function computeChartScene(
 
   // 값 레이블은 마크 뒤에 — 겹치는 자리에서 글자가 위에 온다.
   if (labels.length > 0) marks = [...marks, ...labels];
+  // ADR-217 기준선 — `back` 은 데이터 마크 앞 (격자 뒤), `front` 는 값 라벨 뒤 · 축선 앞.
+  //   미설정이면 두 묶음이 비어 marks 는 그대로다 (HC1 byte 동일).
+  const reference = buildReferenceLineMarks({
+    lines: presentation.referenceLines,
+    value,
+    plot,
+    orientation: props.orientation,
+    fontSize,
+  });
+  if (reference.back.length > 0 || reference.front.length > 0) {
+    marks = [...reference.back, ...marks, ...reference.front];
+  }
   // ADR-211 창 트랙 — DOM 은 같은 자리에 Slider 를 얹고 Canvas 는 비활성 트랙을 그린다.
   //   ADR-216: thumb 2 — Canvas 는 초기 창 `[0, min(fitEff, n)]` (Preview 초기 상태와 같은 자리).
   if (windowTrack) {
@@ -611,7 +624,10 @@ export function resolveCategoryBand(
   range: readonly [number, number],
 ): {
   band: ReturnType<typeof bandScale>;
-  timeAxis: { scale: ReturnType<typeof linearScale>; labels: ChartTimeAxisModel["labels"] } | null;
+  timeAxis: {
+    scale: ReturnType<typeof linearScale>;
+    labels: ChartTimeAxisModel["labels"];
+  } | null;
 } {
   if (time && grid.positions) {
     const scale = timeScaleFor(time, range);
@@ -637,6 +653,8 @@ export interface ChartRuleChannel {
   tooltipText?: string;
   /** ADR-211 — others 범주 토큰 */
   others?: string;
+  /** ADR-217 — 기준선 토큰 (`--chart-reference`) */
+  reference?: string;
   /** ADR-211 — 표시 예산 (최소 단위 5종 · `M` · `P` · `R` · 창 트랙 높이). 없는 키는 P0 확정값. */
   budget?: Partial<ChartBudgetMetrics>;
 }

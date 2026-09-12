@@ -142,6 +142,10 @@ export type ChartDiagnosticCode =
   | "dimensionLabelFormat.invalid"
   // ADR-217 P1 — 알 수 없는 종류 (구버전 throw 대신 설정 오류 scene · rollback 경계).
   | "chartType.unsupported"
+  // ADR-217 P2 — 기준선.
+  | "referenceLines.invalid"
+  | "referenceLines.tooMany"
+  | "referenceLines.unsupportedChartType"
   | "dimension.parse.failed";
 
 /**
@@ -255,7 +259,25 @@ export interface ChartProps {
   dimensionFormat?: string;
   /** `time` 축 라벨 지시자 — 있으면 1단, 없으면 RSC 2단 표 (눈금 단위별). */
   dimensionLabelFormat?: string;
+
+  // ── ADR-217 — 값 축 기준선 (RSC `ReferenceLine`). 미설정/빈 배열 = 현행 (byte 동일).
+  /** 값 축 위 가로선 (수평 차트는 세로선) — ≤ 4. domain 은 값을 포함하도록 넓어진다 (scene 이 정한다). */
+  referenceLines?: readonly ChartReferenceLine[];
 }
+
+/** ADR-217 — RSC `ReferenceLineOptions` 의 채택 부분집합 (`value` · `label` · `lineType` · `layer`). */
+export interface ChartReferenceLine {
+  /** 값 축 좌표 (expand 는 0–100 정규화 단위). 비유한 값은 진단. */
+  value: number;
+  /** 선 끝 안쪽 라벨 (없으면 선만). */
+  label?: string;
+  /** 기본 `solid`. */
+  lineType?: ChartLineType;
+  /** `back` 은 격자 뒤 · 데이터 마크 앞, `front` (기본) 는 데이터 마크 뒤 · 축선 앞. */
+  layer?: ChartReferenceLayer;
+}
+export type ChartLineType = "solid" | "dashed" | "dotted";
+export type ChartReferenceLayer = "back" | "front";
 
 /** ADR-216 — 범주 축 스케일 (RSC `ScaleType` 의 `band` · `time` 에 해당). */
 export type ChartDimensionScale = "category" | "time";
@@ -318,8 +340,10 @@ export interface Rect {
 
 export type TextAnchor = "start" | "middle" | "end";
 export type TextBaseline = "top" | "middle" | "bottom";
-export type TextRole = "tick" | "legend" | "empty" | "value";
-export type LineRole = "axis" | "grid";
+/** `reference` (ADR-217) 는 기준선 라벨 — 두 consumer 가 `chart.reference` 토큰으로 쓴다. */
+export type TextRole = "tick" | "legend" | "empty" | "value" | "reference";
+/** `reference` (ADR-217) 는 기준선 — `--chart-reference` / rule `chart.reference` 토큰. */
+export type LineRole = "axis" | "grid" | "reference";
 
 export interface RectMark {
   kind: "rect";
@@ -378,6 +402,8 @@ export interface LineMark {
   x2: number;
   y2: number;
   role: LineRole;
+  /** ADR-217 — 파선 패턴 (Skia `strokeDasharray` · DOM `stroke-dasharray` 같은 배열). 없으면 실선. */
+  dash?: readonly number[];
 }
 
 export type Mark = RectMark | PathMark | TextMark | LineMark;

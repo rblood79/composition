@@ -36,7 +36,7 @@ import {
   resolveChartPresentation,
 } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
-import { buildSeriesGrid, valueExtent } from "./series";
+import { buildSeriesGrid, referenceValues, valueExtent } from "./series";
 import type { SeriesGrid } from "./series";
 import { resolveTimeAxisModel } from "./timeAxis";
 import type { ChartTimeAxisModel } from "./timeAxis";
@@ -298,7 +298,11 @@ export function resolveChartModel(
       : { ...baseLayout, formatValue, labelText, legendEntries, legendBox };
   // domain 은 transformed 전체 — 창은 input 과 같아 `layout.ticks` 와 값이 같고, 집계/others/
   //   극값은 여기서 갈린다 (여백 폭은 input 눈금 기준 그대로 — 두 leg 같은 값).
-  const extent = valueExtent(transformed, baseLayout.stackMode);
+  const extent = valueExtent(
+    transformed,
+    baseLayout.stackMode,
+    referenceValues(presentation),
+  );
   const ticks =
     transformed === input
       ? baseLayout.ticks

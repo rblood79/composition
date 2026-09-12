@@ -24,8 +24,12 @@ import type {
   ChartDiagnostic,
   ChartDiagnosticCode,
   ChartDimensionScale,
+  ChartLineType,
   ChartPercentUnit,
   ChartProps,
+  ChartReferenceLayer,
+  ChartReferenceLine,
+  ChartType,
   ChartValueFormat,
   ChartValueLocale,
 } from "./types";
@@ -184,10 +188,37 @@ export interface ResolvedChartPresentation {
   budget: ResolvedBudgetSettings;
   /** ADR-216 — 범주 축 스케일 (`category` 기본) + 파싱/라벨 지시자. */
   dimension: ResolvedDimensionSettings;
+  /** ADR-217 — 기본값을 채운 기준선 (미설정 = 빈 배열). */
+  referenceLines: readonly ResolvedReferenceLine[];
   diagnostics: readonly ChartDiagnostic[];
   /** error 진단이 없는가 — false 면 소비자는 설정 오류 상태를 보여 준다. */
   ok: boolean;
 }
+
+/** ADR-217 — 기본값 (`solid` · `front`) 을 채운 기준선. */
+export interface ResolvedReferenceLine {
+  value: number;
+  label?: string;
+  lineType: ChartLineType;
+  layer: ChartReferenceLayer;
+}
+export const CHART_REFERENCE_LINE_TYPES: readonly ChartLineType[] = [
+  "solid",
+  "dashed",
+  "dotted",
+];
+export const CHART_REFERENCE_LAYERS: readonly ChartReferenceLayer[] = [
+  "back",
+  "front",
+];
+/** 기준선 상한 — 마크 2/개 (선 + 라벨) 라 M 과 무관, 읽히는 수의 상한. */
+export const CHART_REFERENCE_LINES_MAX = 4;
+/** 기준선을 받는 종류 (값 축이 있는 직교 차트). */
+export const CHART_REFERENCE_LINE_TYPES_SUPPORTED: readonly ChartType[] = [
+  "bar",
+  "line",
+  "area",
+];
 
 export interface ResolvedBudgetSettings {
   overflow: ChartBudgetOverflow;
@@ -273,6 +304,7 @@ export function resolveChartPresentation(
     | "dimensionScale"
     | "dimensionFormat"
     | "dimensionLabelFormat"
+    | "referenceLines"
   > &
     Partial<Pick<ChartProps, "chartType" | "colorBy">>,
   paletteLength: number,
@@ -661,6 +693,71 @@ export function resolveChartPresentation(
     }
   }
 
+  // ── ADR-217 referenceLines — 값 축 기준선 (bar/line/area). 미설정 = 빈 배열.
+  const referenceLines: ResolvedReferenceLine[] = [];
+  const rawRefs = props.referenceLines as unknown;
+  if (rawRefs !== undefined) {
+    if (!Array.isArray(rawRefs)) {
+      error("referenceLines.invalid", "referenceLines must be an array");
+    } else {
+      if (
+        rawRefs.length > 0 &&
+        props.chartType !== undefined &&
+        !CHART_REFERENCE_LINE_TYPES_SUPPORTED.includes(props.chartType)
+      ) {
+        error(
+          "referenceLines.unsupportedChartType",
+          `reference lines are not supported for ${props.chartType} charts`,
+          props.chartType,
+        );
+      }
+      if (rawRefs.length > CHART_REFERENCE_LINES_MAX) {
+        error(
+          "referenceLines.tooMany",
+          `at most ${CHART_REFERENCE_LINES_MAX} reference lines`,
+          String(rawRefs.length),
+        );
+      }
+      rawRefs.forEach((raw, index) => {
+        const item = (raw ?? {}) as Partial<ChartReferenceLine>;
+        if (typeof item.value !== "number" || !Number.isFinite(item.value)) {
+          error(
+            "referenceLines.invalid",
+            `referenceLines[${index}].value must be a finite number`,
+            String(item.value),
+          );
+          return;
+        }
+        const lineType = item.lineType ?? "solid";
+        if (!CHART_REFERENCE_LINE_TYPES.includes(lineType)) {
+          error(
+            "referenceLines.invalid",
+            `referenceLines[${index}].lineType must be solid, dashed or dotted`,
+            String(lineType),
+          );
+          return;
+        }
+        const layer = item.layer ?? "front";
+        if (!CHART_REFERENCE_LAYERS.includes(layer)) {
+          error(
+            "referenceLines.invalid",
+            `referenceLines[${index}].layer must be back or front`,
+            String(layer),
+          );
+          return;
+        }
+        referenceLines.push({
+          value: item.value,
+          ...(typeof item.label === "string" && item.label !== ""
+            ? { label: item.label }
+            : {}),
+          lineType,
+          layer,
+        });
+      });
+    }
+  }
+
   const numberFormat: ResolvedNumberFormat = { format, locale };
   if (fractionDigits !== undefined)
     numberFormat.fractionDigits = fractionDigits;
@@ -674,6 +771,7 @@ export function resolveChartPresentation(
     numberFormat,
     budget,
     dimension,
+    referenceLines,
     diagnostics,
     ok: !diagnostics.some((d) => d.severity === "error"),
   };

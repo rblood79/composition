@@ -12,7 +12,7 @@ import { approxTextWidth, formatTick, niceTicks, r2 } from "./scales";
 import { formatChartNumber } from "./presentation";
 import type { ResolvedChartPresentation } from "./presentation";
 import { timeAxisTwoTier } from "./timeAxis";
-import { seriesLabel, valueExtent } from "./series";
+import { referenceValues, seriesLabel, valueExtent } from "./series";
 import type { SeriesGrid, StackMode } from "./series";
 import type {
   ChartLabelFormatter,
@@ -181,7 +181,7 @@ export function resolveChartLayout(
     grid.series.length > 1 && props.stackType !== "dodged"
       ? props.stackType
       : "none";
-  const extent = valueExtent(grid, stackMode);
+  const extent = valueExtent(grid, stackMode, referenceValues(presentation));
   const ticks = niceTicks(extent.min, extent.max, CHART_TICK_COUNT);
   const horizontal = props.orientation === "horizontal";
   // expand 축만 정규화 단위다 — opt-in 형식이면 항상 퍼센트, auto 면 기존 문자열.

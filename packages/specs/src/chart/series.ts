@@ -229,7 +229,9 @@ function sortByPosition(
   positions: readonly number[],
   series: readonly SeriesData[],
 ): Pick<SeriesGrid, "categories" | "positions" | "series"> {
-  const order = positions.map((_, i) => i).sort((a, b) => positions[a] - positions[b]);
+  const order = positions
+    .map((_, i) => i)
+    .sort((a, b) => positions[a] - positions[b]);
   let sorted = true;
   for (let i = 0; i < order.length; i++) {
     if (order[i] !== i) {
@@ -237,7 +239,12 @@ function sortByPosition(
       break;
     }
   }
-  if (sorted) return { categories: [...categories], positions: [...positions], series: [...series] };
+  if (sorted)
+    return {
+      categories: [...categories],
+      positions: [...positions],
+      series: [...series],
+    };
   const remap = new Map<number, number>();
   order.forEach((oldIndex, newIndex) => remap.set(oldIndex, newIndex));
   return {
@@ -321,9 +328,18 @@ function expandScale(grid: SeriesGrid, categoryIndex: number): number {
  * 값 축 범위. 누적은 범주별 누적 구간의 최소/최대가 축을 정한다 —
  * dodged 의 개별 최대값을 쓰면 쌓인 막대가 plot 밖으로 나간다.
  */
-export function valueExtent(grid: SeriesGrid, mode: StackMode): ValueExtent {
+export function valueExtent(
+  grid: SeriesGrid,
+  mode: StackMode,
+  /** ADR-217 — domain 에 포함할 추가 값 (기준선). scene 이 domain 을 정한다 (HC3). */
+  include: readonly number[] = [],
+): ValueExtent {
   let min = 0;
   let max = 0;
+  for (const v of include) {
+    if (v > max) max = v;
+    if (v < min) min = v;
+  }
   if (mode !== "none") {
     for (let ci = 0; ci < grid.categories.length; ci++) {
       for (const band of stackBands(grid, ci, mode)) {
@@ -341,6 +357,16 @@ export function valueExtent(grid: SeriesGrid, mode: StackMode): ValueExtent {
   }
   return { min, max };
 }
+
+/** ADR-217 — 기준선 값 목록 (domain 확장 입력). 미설정이면 빈 배열 (현행 extent 와 같다). */
+export function referenceValues(
+  presentation: Pick<ResolvedChartPresentation, "referenceLines">,
+): readonly number[] {
+  return presentation.referenceLines.length === 0
+    ? EMPTY_VALUES
+    : presentation.referenceLines.map((line) => line.value);
+}
+const EMPTY_VALUES: readonly number[] = [];
 
 /** 누적 — 한 범주 안의 시리즈 순서대로 [시작, 끝] 구간을 만든다. */
 export function stackBands(
