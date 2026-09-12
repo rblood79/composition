@@ -280,7 +280,7 @@ ADR-134 를 **Phase 0–8 delivered scope** 로 종결했습니다. 사용자가
 ### Added
 
 - **AI 가 canonical 1차 필드를 다룬다**: `type: "frame"` 컨테이너를 만들고 `clip` / `placeholder` / `slot` / `reusable` 을 지정할 수 있다. 잘못된 조합(예: frame 이 아닌 요소에 `clip`)은 조용히 무시되지 않고 사유와 함께 되돌아온다.
-- **`bind_collection`**: ListBox / GridList / Table 같은 collection 요소에 데이터를 연결한다 (static 배열 / API / Supabase). 데이터 소스 자체를 만들지는 않는다.
+- **`bind_collection`**: ListBox / GridList / Table 같은 collection 요소에 데이터를 연결한다 (static 배열 / API / Cloud). 데이터 소스 자체를 만들지는 않는다.
 - **`create_interaction_rule`**: 요소에 이벤트 규칙을 붙인다 (버튼 누르면 알림, 페이지 이동, 다른 요소 기능 구동). 컴포넌트가 실제로 노출하는 trigger·capability 만 허용하고, 틀리면 사용 가능한 목록을 돌려준다.
 - `search_elements` 에 `hasSlot` / `reusable` / `clip` 필터, `get_editor_state` 에 요소별 canonical 필드와 이벤트 규칙 요약.
 
@@ -793,7 +793,7 @@ builder-system, utilities` 로 `theme` 선두 확정 — unlayered 블록 의존
   `autoSyncInterval` / `autoDownloadOnOpen` 는 선언만 있고 소비처가 0건이었고,
   `getSettings()` 는 호출처가 0건이었다.
 - **Why**: 단순 dead 가 아니라 오해를 부르는 상태였다. Project Storage 셀렉트가
-  `Cloud Only (Supabase)` / `Local + Cloud` 를 계속 제시하고 Sync Mode 설명이
+  `Cloud Only (Cloud)` / `Local + Cloud` 를 계속 제시하고 Sync Mode 설명이
   "How local changes sync to cloud" 라고 쓰여 있었지만, ADR-128 Phase 2 가
   `ProjectsApiService` / `DocumentsApiService` / `projectSync` / `projectMerger` 를
   삭제해 그 경로 자체가 없다. 아무 일도 안 하는 게 아니라 사용자에게 클라우드에
@@ -5408,7 +5408,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - Properties 패널의 템플릿 텍스트 키(children/text/description) 편집 입력에 소유 collection 컬럼 피커(Braces 버튼 → Menu) — 선택 시 커서 위치에 `{key}` 삽입 + 즉시 반영. Components 페이지 master 편집도 소비자 인스턴스 역추적으로 컬럼 제공(`useOwnerCollectionColumns`).
 - **데이터 소스 dataTable 단일화** (ADR-159 P4b):
   - 컴포넌트 Data 바인딩 피커가 소스 4종(dataTable/api/variable/route) 선택 → 컬렉션(테이블명) 선택 단일로 축소. 신규 기록은 `source:"dataTable"` 고정, 구소스 문서는 read 호환 + legacy 안내. DataTable factory/AI tool 의 api binding 생성 제거 (신규 유입 0).
-  - **P4c residual (사용자 확정)**: api/variable/route 잔존 runtime 경로 물리 제거는 G4(Supabase 저장 문서 전수 실측 — RLS 차단) 재실측 후 별도 진행.
+  - **P4c residual (사용자 확정)**: api/variable/route 잔존 runtime 경로 물리 제거는 G4(Cloud 저장 문서 전수 실측 — RLS 차단) 재실측 후 별도 진행.
 
 ### Architecture
 

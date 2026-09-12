@@ -324,14 +324,14 @@ Phase 1에 이어 중간 위험도 마이너 업데이트 대상 라이브러리
 | @tailwindcss/postcss        | 4.1.18  | 4.2.1   | builder         |
 | tailwindcss                 | 4.1.18  | 4.2.1   | builder         |
 | zod                         | 4.2.1   | 4.3.6   | builder, shared |
-| @supabase/supabase-js       | 2.89.0  | 2.98.0  | builder         |
+| cloud SDK                   | 2.89.0  | 2.98.0  | builder         |
 
 #### 주요 변경 사항
 
 - **Storybook 10.2**: Viewport/Zoom UI 리뉴얼, CSF Factories 확장, ESLint 10 호환성 추가. Breaking change 없음
 - **Tailwind CSS 4.2**: 새 색상 팔레트 4개(mauve, olive, mist, taupe), Logical property 유틸리티 추가. `start-*`/`end-*` deprecated (프로젝트 미사용)
 - **Zod 4.3**: `.pick()`/`.omit()` + `.refine()` 조합 시 에러 throw 정책 변경 (프로젝트 미사용 패턴), `z.fromJSONSchema()`, `z.xor()` 등 신규 API 추가
-- **Supabase 2.98**: `from()` 타입 안전성 강화, orphaned navigator lock 복구, Auth signOut 시 로컬 스토리지 정리 개선
+- **Cloud 2.98**: `from()` 타입 안전성 강화, orphaned navigator lock 복구, Auth signOut 시 로컬 스토리지 정리 개선
 
 #### 검증 결과
 
@@ -1804,7 +1804,6 @@ Consider using the new reusable hooks:
 > 본 블록은 `docs/CHANGELOG.md` 가 631KB / 8282 라인으로 `.claude/rules/changelog.md §4` 500KB threshold 초과 → 아카이빙 trigger 도달.
 > `[Unreleased]` 마커 이후 mixed 영역 (2025 + 2026-02-15 이전 in-progress 분량) 을 본 파일 끝에 보존. append-only 정책 정합.
 
-
 ## [Unreleased]
 
 ### Added
@@ -2520,7 +2519,7 @@ Settings 모달 패널의 컴포넌트 색상이 좌우 패널과 다르게 표�
 
 - **자동 표시/숨김**: 캔버스 이동(pan/zoom) 시에만 미니맵 표시, 1.5초 비활동 후 자동 숨김
   - 패널 토글 시 미니맵 위치 갱신 타이밍 문제를 근본적으로 해소
-- **동적 크기**: 고정 200×150px → 캔버스 크기의 10% 비례 (width: 80~200px, height: 60~140px clamp)
+- **동적 크기**: 고정 200×150px → 캔버스 크기의 10% 비례 (width: 80~~200px, height: 60~~140px clamp)
 - **여백 통일**: bottom 여백을 48px → 16px로 변경하여 right 여백과 동일하게 통일
 
 #### 수정 파일
@@ -3964,7 +3963,7 @@ WebGL Canvas 전환 및 로컬 우선(Local-first) 아키텍처 변경에 따라
 
 #### 제거된 설정
 
-1. **Save Mode** - Supabase 실시간 동기화 제거로 불필요
+1. **Save Mode** - Cloud 실시간 동기화 제거로 불필요
 2. **Preview & Overlay** - WebGL Canvas에서 오버레이 불투명도 설정 불필요
 3. **Element Visualization** - iframe 기반 테두리/라벨 표시 WebGL 전환으로 불필요
 
@@ -3994,7 +3993,7 @@ WebGL Canvas 전환 및 로컬 우선(Local-first) 아키텍처 변경에 따라
 #### 아키텍처 변경 배경
 
 - **WebGL Canvas 전환**: iframe 기반 Preview에서 WebGL 기반 캔버스로 전환
-- **로컬 우선 저장**: Supabase 실시간 동기화에서 IndexedDB 로컬 저장으로 변경
+- **로컬 우선 저장**: Cloud 실시간 동기화에서 IndexedDB 로컬 저장으로 변경
 - **선택 시스템 통합**: WebGL SelectionLayer가 요소 테두리/라벨 표시 담당
 
 ---
@@ -4029,7 +4028,7 @@ goToIndex(targetIndex: number): { entries: HistoryEntry[]; direction: 'undo' | '
 createGoToHistoryIndexAction() {
   // 모든 엔트리를 한 번에 적용
   // Set 기반 중복 방지로 duplicate key 에러 해결
-  // Supabase 에러 try-catch 처리
+  // Cloud 에러 try-catch 처리
 }
 ```
 
@@ -4789,12 +4788,13 @@ const adjustedSize = HANDLE_SIZE / zoom; // HANDLE_SIZE = 6px
 → 역-스케일링 방식 채택
 
 **적용 대상:**
-| 요소 | 줌 50% | 줌 100% | 줌 200% |
-|------|--------|---------|---------|
-| 선택 테두리 | 1px | 1px | 1px |
-| Transform 핸들 | 6px | 6px | 6px |
-| 라쏘 테두리 | 1px | 1px | 1px |
-| 페이지 경계 | 1px | 1px | 1px |
+
+| 요소           | 줌 50% | 줌 100% | 줌 200% |
+| -------------- | ------ | ------- | ------- |
+| 선택 테두리    | 1px    | 1px     | 1px     |
+| Transform 핸들 | 6px    | 6px     | 6px     |
+| 라쏘 테두리    | 1px    | 1px     | 1px     |
+| 페이지 경계    | 1px    | 1px     | 1px     |
 
 **수정된 파일:**
 
@@ -5814,7 +5814,7 @@ slotContent = pageElements
 
 - **Added columnMapping support** for dynamic data rendering in TagGroup
   - Renders Tag for each data item with Field children
-  - Supports REST API, MOCK_DATA, and Supabase data sources
+  - Supports REST API, MOCK_DATA, and Cloud data sources
   - Consistent pattern with ListBox, GridList, Select, ComboBox
   - Implementation: `CollectionRenderers.tsx:174-384`
 

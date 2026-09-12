@@ -308,7 +308,7 @@ canonical write count와 final equality가 계측된다.
 ### Forbidden paths and changes
 
 - `packages/specs`, `apps/builder/src/preview`, `apps/publish` 변경
-- document schema, Supabase migration, persistence shape 변경
+- document schema, Cloud migration, persistence shape 변경
 - ADR-172/173이 관할하는 culling/raster/cache/paragraph/Picture 정책 변경
 - unrelated page creation, breakpoint layout, toolbar UI refactor
 

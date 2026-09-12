@@ -44,13 +44,13 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
    다시 쓰면 안 된다. Phase 0에서 residual hit를 제거하거나 ADR-118 follow-up blocker로
    명시한다.
 8. IndexedDB index 제거는 `DB_VERSION` bump와 metaStore test를 동반한다.
-9. Supabase physical schema 컬럼 제거는 별도 migration 승인 없이는 수행하지 않는다.
+9. Cloud physical schema 컬럼 제거는 별도 migration 승인 없이는 수행하지 않는다.
 
 **Soft Constraints**:
 
 - ADR-118 직후의 Element order cleanup과 섞어 회귀 원인을 흐리지 않는다.
 - PageTree/Frames tree UX는 한 번에 바꾸지 않고 read cutover 후 write cleanup으로 나눈다.
-- project sync/cloud payload는 Supabase schema migration 전까지 compatibility field를
+- project sync/cloud payload는 Cloud schema migration 전까지 compatibility field를
   파생해 보낼 수 있다.
 - Table/collection component data의 `order_num`은 이 ADR 범위 밖이다.
 
@@ -93,14 +93,14 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
 
 ### 대안 D: one-shot DB/API schema purge
 
-- 설명: local IndexedDB와 Supabase physical schema에서 page/layout `order_num` 컬럼까지
+- 설명: local IndexedDB와 Cloud physical schema에서 page/layout `order_num` 컬럼까지
   한 번에 제거한다.
 - 근거: 최종 상태에 가장 빨리 도달한다.
 - 위험:
   - 기술: H — cloud sync, existing projects, tests가 동시에 깨질 수 있다.
   - 성능: L — 최종 성능은 단순하다.
   - 유지보수: M — 완료 후에는 단순하지만 cutover 중 fallback이 부족하다.
-  - 마이그레이션: H — Supabase migration과 배포 순서가 필요하다.
+  - 마이그레이션: H — Cloud migration과 배포 순서가 필요하다.
 
 ### Risk Threshold Check
 
@@ -112,7 +112,7 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
 | D    | H    | L    | M        | H            |     2      |
 
 루프 판정: 대안 A/B/D는 HIGH 위험이 1개 이상이므로 primary path로 채택하지 않는다.
-대안 C는 모든 축이 MEDIUM 이하이고, Supabase physical schema 제거를 별도 gate로
+대안 C는 모든 축이 MEDIUM 이하이고, Cloud physical schema 제거를 별도 gate로
 분리해 runtime cutover 위험을 낮춘다.
 
 ## Decision
@@ -125,7 +125,7 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
 2. `metadata.order_num`을 primary로 승격하지 않아 canonical format 규칙을 보존한다.
 3. Element/page/layout order 판단을 모두 parent/root `children[]` index로 통일하고,
    nested page sibling order도 root page-like source order의 projection으로 고정한다.
-4. Supabase schema 제거를 별도 migration decision으로 분리해 local runtime cleanup을
+4. Cloud schema 제거를 별도 migration decision으로 분리해 local runtime cleanup을
    먼저 안전하게 완료할 수 있다.
 
 기각 사유:
@@ -160,7 +160,7 @@ primary source가 되면 안 된다. 따라서 page/layout order도 Element orde
   index 생성과 재생성을 제거했다. 기존 index는 upgrade에서 삭제하며, 기존
   `pages`/`layouts`/`elements` row와 `documents` canonical node metadata에
   남은 stale `order_num`/`orderNum` payload도 v13 upgrade에서 제거한다.
-- Supabase physical column은 유지하되, `projectSync` cloud upload에서만 local
+- Cloud physical column은 유지하되, `projectSync` cloud upload에서만 local
   page source index를 call-time derived compatibility field로 보낸다.
 - `.agents` order 규칙은 page/layout 예외 유지가 아니라 adapter compatibility
   boundary로 갱신했다.
@@ -171,7 +171,7 @@ ADR-119의 완료는 repo 전체에서 `order_num` 문자열을 0건으로 만�
 page/layout/Element runtime order source에서 `order_num` mirror를 제거하는 것이다.
 잔존 `order_num` hit는 다음으로 한정한다.
 
-- Supabase physical schema compatibility type 또는 call-time derived upload field.
+- Cloud physical schema compatibility type 또는 call-time derived upload field.
 - IndexedDB v13 stale value/index 제거 guard.
 - page/layout metadata stale payload strip guard.
 - legacy export fixture coverage.
@@ -186,7 +186,7 @@ page/layout/Element runtime order source에서 `order_num` mirror를 제거하�
 
 ## Residual Risks
 
-- Supabase `pages.order_num` physical column은 이 ADR의 기본 implementation scope에서
+- Cloud `pages.order_num` physical column은 이 ADR의 기본 implementation scope에서
   제거하지 않는다. 제거가 필요하면 별도 DB migration ADR 또는 migration plan이 필요하다.
 - 기존 cloud sync가 `pages` row order에 의존하는 경우, document payload 없는 외부 consumer는
   canonical source order를 알 수 없다. 이 경우 compatibility export boundary에서만
@@ -224,7 +224,7 @@ page/layout/Element runtime order source에서 `order_num` mirror를 제거하�
 ### Negative
 
 - PageTree, Frames tree, preview routing, project sync, DB adapter를 함께 검증해야 한다.
-- Supabase physical schema 제거는 별도 승인 전까지 완전히 닫히지 않는다.
+- Cloud physical schema 제거는 별도 승인 전까지 완전히 닫히지 않는다.
 - source order selector가 page-like node와 reusable frame catalog node를 잘못 섞으면 page
   navigation 또는 layout list order가 흔들릴 수 있다.
 - nested PageTree projection이 parent별 sibling subsequence를 보존하지 않으면 root source

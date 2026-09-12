@@ -12,7 +12,7 @@ valid v2 primary로 복구할 수 있는 최소 rollback target이며 Phase 3 dr
 - 기준 commit은 Phase 1 완료 commit `f748aaaa7`다.
 - production layout state는 계속 `PanelWorkspaceLayoutV2`다.
 - v3 production writer와 zone drag candidate/drop transaction은 연결하지 않았다.
-- project document, IndexedDB project row, Supabase API write 경로는 변경하지 않았다.
+- project document, IndexedDB project row, Cloud API write 경로는 변경하지 않았다.
 
 ## 9-zone geometry 계약
 

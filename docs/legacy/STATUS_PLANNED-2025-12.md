@@ -430,13 +430,14 @@ Dataset component architecture enables centralized data management and reuse acr
 - `src/builder/components/Dataset.tsx` - Dataset 컴포넌트 (비시각적)
 
 **구현된 기능**:
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| Dataset 등록/해제 | ✅ | registerDataset, unregisterDataset |
-| 데이터 로드 | ✅ | loadDataset (MOCK_DATA, REST API 지원) |
-| 캐싱 | ✅ | TTL 기반 캐시 (기본 5분) |
-| Consumer 추적 | ✅ | 어떤 컴포넌트가 Dataset 사용 중인지 추적 |
-| 자동 새로고침 | ✅ | refreshInterval prop으로 주기적 새로고침 |
+
+| 기능              | 상태 | 설명                                     |
+| ----------------- | ---- | ---------------------------------------- |
+| Dataset 등록/해제 | ✅   | registerDataset, unregisterDataset       |
+| 데이터 로드       | ✅   | loadDataset (MOCK_DATA, REST API 지원)   |
+| 캐싱              | ✅   | TTL 기반 캐시 (기본 5분)                 |
+| Consumer 추적     | ✅   | 어떤 컴포넌트가 Dataset 사용 중인지 추적 |
+| 자동 새로고침     | ✅   | refreshInterval prop으로 주기적 새로고침 |
 
 #### Phase 2: Component Integration ✅ COMPLETE
 
@@ -445,11 +446,12 @@ Dataset component architecture enables centralized data management and reuse acr
 - `src/builder/hooks/useCollectionData.ts` - datasetId prop 추가
 
 **구현된 기능**:
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| datasetId prop | ✅ | Collection 컴포넌트에서 Dataset 참조 |
-| Consumer 자동 등록 | ✅ | 컴포넌트 마운트 시 자동 등록 |
-| 로딩/에러 상태 통합 | ✅ | Dataset Store의 상태를 useCollectionData에서 반환 |
+
+| 기능                | 상태 | 설명                                              |
+| ------------------- | ---- | ------------------------------------------------- |
+| datasetId prop      | ✅   | Collection 컴포넌트에서 Dataset 참조              |
+| Consumer 자동 등록  | ✅   | 컴포넌트 마운트 시 자동 등록                      |
+| 로딩/에러 상태 통합 | ✅   | Dataset Store의 상태를 useCollectionData에서 반환 |
 
 **사용 예**:
 
@@ -482,13 +484,14 @@ Dataset component architecture enables centralized data management and reuse acr
 - `src/shared/components/metadata.ts` - Dataset 메타데이터 추가
 
 **구현된 기능**:
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| Dataset ID 편집 | ✅ | 고유 식별자 설정 |
-| Data Binding 설정 | ✅ | PropertyDataBinding 컴포넌트 사용 |
-| Auto Refresh 설정 | ✅ | 자동 로드, 새로고침 간격 |
-| 상태 모니터링 | ✅ | 로딩/에러/성공 상태, 아이템 수, Consumer 수 표시 |
-| 수동 로드/새로고침 | ✅ | Load Data, Refresh 버튼 |
+
+| 기능               | 상태 | 설명                                             |
+| ------------------ | ---- | ------------------------------------------------ |
+| Dataset ID 편집    | ✅   | 고유 식별자 설정                                 |
+| Data Binding 설정  | ✅   | PropertyDataBinding 컴포넌트 사용                |
+| Auto Refresh 설정  | ✅   | 자동 로드, 새로고침 간격                         |
+| 상태 모니터링      | ✅   | 로딩/에러/성공 상태, 아이템 수, Consumer 수 표시 |
+| 수동 로드/새로고침 | ✅   | Load Data, Refresh 버튼                          |
 
 #### Phase 4: Component Factory ✅ COMPLETE
 
@@ -501,11 +504,12 @@ Dataset component architecture enables centralized data management and reuse acr
 - `src/builder/factories/ComponentFactory.ts` - Dataset, Slot 등록
 
 **구현된 기능**:
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| Dataset Factory | ✅ | createDatasetDefinition - 기본 dataBinding 설정 포함 |
-| Slot Factory | ✅ | createSlotDefinition - Layout 전용 컴포넌트 |
-| ownerFields 패턴 | ✅ | Layout/Page 모드에 따른 page_id/layout_id 설정 |
+
+| 기능             | 상태 | 설명                                                 |
+| ---------------- | ---- | ---------------------------------------------------- |
+| Dataset Factory  | ✅   | createDatasetDefinition - 기본 dataBinding 설정 포함 |
+| Slot Factory     | ✅   | createSlotDefinition - Layout 전용 컴포넌트          |
+| ownerFields 패턴 | ✅   | Layout/Page 모드에 따른 page_id/layout_id 설정       |
 
 #### Phase 5: Preview Integration ✅ COMPLETE
 
@@ -518,12 +522,13 @@ Dataset component architecture enables centralized data management and reuse acr
 - `src/canvas/renderers/index.ts` - Dataset 렌더러 등록
 
 **구현된 기능**:
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| Dataset 렌더러 | ✅ | 비시각적 컴포넌트 (null 반환) |
-| 데이터 로드 | ❌ 제거 (2026-08-17) | 아래 참조 |
-| Auto-refresh | ❌ 제거 (2026-08-17) | 아래 참조 |
-| AbortController | ❌ 제거 (2026-08-17) | 아래 참조 |
+
+| 기능            | 상태                 | 설명                          |
+| --------------- | -------------------- | ----------------------------- |
+| Dataset 렌더러  | ✅                   | 비시각적 컴포넌트 (null 반환) |
+| 데이터 로드     | ❌ 제거 (2026-08-17) | 아래 참조                     |
+| Auto-refresh    | ❌ 제거 (2026-08-17) | 아래 참조                     |
+| AbortController | ❌ 제거 (2026-08-17) | 아래 참조                     |
 
 > **2026-08-17 정정** — 아래 3개 기능은 ADR-132 가 컬렉션 데이터의 sink 를
 > `collections.runtimeData` 로 옮긴 뒤 **동작하지 않는 상태로 남아 있었다**.
@@ -541,13 +546,14 @@ Dataset component architecture enables centralized data management and reuse acr
 - `src/builder/stores/dataset.ts` - Transform 적용, Cache Persistence
 
 **6.1 Transform System** ✅
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| Filter | ✅ | eq, ne, gt, gte, lt, lte, contains, startsWith, endsWith |
-| Sort | ✅ | field, direction (asc/desc) |
-| Limit/Offset | ✅ | 페이지네이션 지원 |
-| Select | ✅ | 필드 projection |
-| Map | ✅ | 필드 renaming |
+
+| 기능         | 상태 | 설명                                                     |
+| ------------ | ---- | -------------------------------------------------------- |
+| Filter       | ✅   | eq, ne, gt, gte, lt, lte, contains, startsWith, endsWith |
+| Sort         | ✅   | field, direction (asc/desc)                              |
+| Limit/Offset | ✅   | 페이지네이션 지원                                        |
+| Select       | ✅   | 필드 projection                                          |
+| Map          | ✅   | 필드 renaming                                            |
 
 **사용 예**:
 
@@ -567,19 +573,21 @@ Dataset component architecture enables centralized data management and reuse acr
 ```
 
 **6.2 Consumer Reference** ✅
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| addConsumer | ✅ | 컴포넌트가 Dataset 사용 시 등록 |
-| removeConsumer | ✅ | 컴포넌트 언마운트 시 해제 |
-| consumers 추적 | ✅ | DatasetEditor에서 Consumer 수 표시 |
+
+| 기능           | 상태 | 설명                               |
+| -------------- | ---- | ---------------------------------- |
+| addConsumer    | ✅   | 컴포넌트가 Dataset 사용 시 등록    |
+| removeConsumer | ✅   | 컴포넌트 언마운트 시 해제          |
+| consumers 추적 | ✅   | DatasetEditor에서 Consumer 수 표시 |
 
 **6.3 Cache Persistence** ✅
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| persistCache 옵션 | ✅ | localStorage에 캐시 영속화 |
-| TTL 기반 만료 | ✅ | cacheTTL 설정에 따른 자동 만료 |
-| 캐시 복원 | ✅ | 페이지 새로고침 시 localStorage에서 복원 |
-| 캐시 정리 | ✅ | unregister/clearAll 시 자동 정리 |
+
+| 기능              | 상태 | 설명                                     |
+| ----------------- | ---- | ---------------------------------------- |
+| persistCache 옵션 | ✅   | localStorage에 캐시 영속화               |
+| TTL 기반 만료     | ✅   | cacheTTL 설정에 따른 자동 만료           |
+| 캐시 복원         | ✅   | 페이지 새로고침 시 localStorage에서 복원 |
+| 캐시 정리         | ✅   | unregister/clearAll 시 자동 정리         |
 
 **사용 예**:
 
@@ -633,13 +641,14 @@ Page
 **Status**: 구현 완료 (2025-11-30)
 
 **구현된 기능**:
-| 기능 | 상태 | 설명 |
-|------|------|------|
-| name 편집 | ✅ | Slot 이름 변경 |
-| required 토글 | ✅ | 필수 Slot 여부 |
-| description | ✅ | Slot 용도 설명 |
-| 콘텐츠 미리보기 | ✅ | Slot 내부 자식 요소 목록, 클릭 시 해당 요소로 이동 |
-| defaultStyle | ⏳ | 향후 추가 예정 |
+
+| 기능            | 상태 | 설명                                               |
+| --------------- | ---- | -------------------------------------------------- |
+| name 편집       | ✅   | Slot 이름 변경                                     |
+| required 토글   | ✅   | 필수 Slot 여부                                     |
+| description     | ✅   | Slot 용도 설명                                     |
+| 콘텐츠 미리보기 | ✅   | Slot 내부 자식 요소 목록, 클릭 시 해당 요소로 이동 |
+| defaultStyle    | ⏳   | 향후 추가 예정                                     |
 
 **Files**:
 
@@ -655,7 +664,7 @@ Page
 **흐름**:
 
 ```
-Layout Body 선택 → "프리셋으로 저장" 클릭 → 이름 입력 → Supabase 저장 → 프리셋 목록에 표시
+Layout Body 선택 → "프리셋으로 저장" 클릭 → 이름 입력 → Cloud 저장 → 프리셋 목록에 표시
 ```
 
 **Database Schema**:

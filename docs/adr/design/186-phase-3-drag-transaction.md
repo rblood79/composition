@@ -99,7 +99,7 @@ route:
 presentation commit이며 persistence transaction 수가 아니다. persistence 계약은 unit/runtime
 fixture의 valid drop commit 1, invalid/cancel commit 0으로 별도 검증했다.
 
-clean reload 뒤 application console error는 0건이었다. 별도 실행에서 발생한 Supabase refresh
+clean reload 뒤 application console error는 0건이었다. 별도 실행에서 발생한 Cloud refresh
 token `ERR_INTERNET_DISCONNECTED` 반복은 sandbox network 제한이며 panel runtime error로
 분류하지 않았다.
 

@@ -80,7 +80,7 @@ compatibility view로 유지한다.
 | storage read 실패     | memory fallback으로 renderer 계속 동작                    |
 
 panel visibility, cluster graph, preferred size와 floating focus order는 v2 primary 한 건으로
-refresh 복원된다. project document/DB/Supabase write는 추가하지 않았다.
+refresh 복원된다. project document/DB/Cloud write는 추가하지 않았다.
 
 ## production browser smoke
 

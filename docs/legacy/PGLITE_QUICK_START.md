@@ -17,15 +17,15 @@ composition를 **Electron + PGlite**로 확장하여 다음을 가능하게 합�
 
 ## 📋 7단계 구현 계획
 
-| Phase                             | 기간  | 핵심 작업                             | 결과물               |
-| --------------------------------- | ----- | ------------------------------------- | -------------------- |
-| **1. Database Abstraction Layer** | 2-3일 | DbAdapter 인터페이스, SupabaseAdapter | 통합 DB 인터페이스   |
-| **2. PGlite Integration**         | 3-4일 | PGliteAdapter, SQL 마이그레이션       | 로컬 PostgreSQL WASM |
-| **3. Electron Setup**             | 2-3일 | main.ts, preload.ts, IPC 핸들러       | Electron 앱 실행     |
-| **4. ProjectFile Class**          | 2-3일 | .composition 파일 생성/열기/저장      | 프로젝트 파일 포맷   |
-| **5. Publishing System**          | 3-4일 | HTML/CSS/JS 생성기                    | 정적 사이트 퍼블리싱 |
-| **6. UI Integration**             | 2-3일 | File 메뉴, Publish 다이얼로그         | 완전한 UI            |
-| **7. Testing & Documentation**    | 2-3일 | 테스트, 문서화                        | 프로덕션 준비 완료   |
+| Phase                             | 기간  | 핵심 작업                          | 결과물               |
+| --------------------------------- | ----- | ---------------------------------- | -------------------- |
+| **1. Database Abstraction Layer** | 2-3일 | DbAdapter 인터페이스, CloudAdapter | 통합 DB 인터페이스   |
+| **2. PGlite Integration**         | 3-4일 | PGliteAdapter, SQL 마이그레이션    | 로컬 PostgreSQL WASM |
+| **3. Electron Setup**             | 2-3일 | main.ts, preload.ts, IPC 핸들러    | Electron 앱 실행     |
+| **4. ProjectFile Class**          | 2-3일 | .composition 파일 생성/열기/저장   | 프로젝트 파일 포맷   |
+| **5. Publishing System**          | 3-4일 | HTML/CSS/JS 생성기                 | 정적 사이트 퍼블리싱 |
+| **6. UI Integration**             | 2-3일 | File 메뉴, Publish 다이얼로그      | 완전한 UI            |
+| **7. Testing & Documentation**    | 2-3일 | 테스트, 문서화                     | 프로덕션 준비 완료   |
 
 **총 소요 기간**: 16-23일 (3-4.5주)
 
@@ -57,9 +57,9 @@ export interface DbAdapter {
 ### 2. 어댑터 구현
 
 ```typescript
-// Supabase (기존 웹 모드)
-export class SupabaseAdapter implements DbAdapter {
-  // Supabase 클라이언트 사용
+// Cloud (기존 웹 모드)
+export class CloudAdapter implements DbAdapter {
+  // Cloud 클라이언트 사용
 }
 
 // PGlite (새로운 Electron 모드)
@@ -76,7 +76,7 @@ export function getDatabase(): DbAdapter {
   if (window.electron) {
     return new PGliteAdapter(projectPath);
   } else {
-    return new SupabaseAdapter(url, key);
+    return new CloudAdapter(url, key);
   }
 }
 ```
@@ -107,7 +107,7 @@ export function getDatabase(): DbAdapter {
 ```
 src/services/database/
 ├── DbAdapter.ts              # 인터페이스
-├── SupabaseAdapter.ts        # Supabase 구현
+├── CloudAdapter.ts        # Cloud 구현
 ├── PGliteAdapter.ts          # PGlite 구현
 ├── migrations/
 │   ├── 001_initial_schema.sql
@@ -152,7 +152,7 @@ src/services/publish/
 
 ### 1단계: 기존 코드 확인
 
-현재 Supabase 기반 서비스들:
+현재 Cloud 기반 서비스들:
 
 - `src/services/api/ElementsApiService.ts`
 - `src/services/api/PagesApiService.ts`
@@ -173,15 +173,15 @@ export interface DbAdapter {
 }
 ```
 
-### 3단계: SupabaseAdapter 구현
+### 3단계: CloudAdapter 구현
 
 ```typescript
-// src/services/database/SupabaseAdapter.ts
-export class SupabaseAdapter implements DbAdapter {
-  private supabase: SupabaseClient;
+// src/services/database/CloudAdapter.ts
+export class CloudAdapter implements DbAdapter {
+  private cloud: CloudClient;
 
   async getElements(pageId: string): Promise<Element[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.cloud
       .from("elements")
       .select("*")
       .eq("page_id", pageId);
@@ -198,7 +198,7 @@ export class SupabaseAdapter implements DbAdapter {
 // Before (기존)
 export class ElementsApiService extends BaseApiService {
   async fetchElements(pageId: string): Promise<Element[]> {
-    return await this.supabase.from('elements')...
+    return await this.cloud.from('elements')...
   }
 }
 
@@ -239,9 +239,9 @@ my-project.composition
 ├──────────────┬──────────────────────────┤
 │ Electron 모드│      웹 브라우저 모드     │
 │              │                          │
-│ PGliteAdapter│   SupabaseAdapter        │
+│ PGliteAdapter│   CloudAdapter        │
 │      ↓       │          ↓               │
-│  PGlite      │     Supabase Cloud       │
+│  PGlite      │     Cloud DB          │
 │  (로컬 DB)   │     (클라우드 DB)        │
 │      ↓       │                          │
 │ .composition 파일│                          │
@@ -255,7 +255,7 @@ my-project.composition
 ### Phase 1 완료 체크리스트
 
 - [ ] `DbAdapter` 인터페이스 정의 완료
-- [ ] `SupabaseAdapter` 구현 완료
+- [ ] `CloudAdapter` 구현 완료
 - [ ] 기존 API 서비스 리팩토링 완료
 - [ ] 유닛 테스트 작성 완료
 - [ ] 기존 기능 동작 확인
@@ -280,7 +280,7 @@ my-project.composition
 
 - [ ] `ProjectFile` 클래스 구현 완료
 - [ ] .composition 파일 생성/열기/저장 동작
-- [ ] Supabase 내보내기/가져오기 동작
+- [ ] Cloud 내보내기/가져오기 동작
 - [ ] 통합 테스트 완료
 
 ### Phase 5 완료 체크리스트

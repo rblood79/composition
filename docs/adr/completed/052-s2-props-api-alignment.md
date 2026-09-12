@@ -19,7 +19,7 @@ React Aria Components는 low-level primitives로서 props가 과다하다 (컴�
 **Hard Constraints**:
 
 1. 변경 대상 prop을 참조하는 모든 코드 경로 동시 수정 필수 — spec, shared 컴포넌트, renderer, factory, preview, implicitStyles, canvas layout utils
-2. 기존 Supabase 저장 데이터의 props 호환성 유지 (런타임 normalization 레이어 또는 마이그레이션 스크립트)
+2. 기존 Cloud 저장 데이터의 props 호환성 유지 (런타임 normalization 레이어 또는 마이그레이션 스크립트)
 3. 타입 체크 (`pnpm type-check`) + 빌드 (`pnpm build`) 통과 필수
 4. Dialog factory는 이미 `isDismissible`을 저장하나 spec/shared/renderer는 `isDismissable`을 읽음 — 기존 불일치 normalization 선행 필요
 

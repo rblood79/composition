@@ -84,7 +84,7 @@ if (state.currentPageId || parentToAdd.layout_id) {
 **책임**: Element 객체를 직렬화 안전한 형태로 변환. 두 함수:
 
 - `sanitizeElement(element)` — postMessage/IndexedDB용 순수 직렬화 (structuredClone 우선)
-- `sanitizeElementForSupabase(element)` — snake_case 변환 포함 Supabase용
+- `sanitizeElementForCloud(element)` — snake_case 변환 포함 Cloud용
 
 **Invariant 보존**:
 
@@ -102,16 +102,16 @@ if (state.currentPageId || parentToAdd.layout_id) {
 - P3-B에서 `layout_id` 필드 제거 시, `sanitizeElement`의 명시적 `layout_id: element.layout_id` 라인이 그대로 남으면 canonical 구조에 없는 필드를 직렬화에 포함 → **타입 오류 + 런타임 경고**
 - 반대로 제거했는데 IndexedDB 스키마가 아직 `layout_id` 컬럼을 기대하면 쓰기 실패
 
-**시나리오 B5** — SupabaseElement 타입 불일치 (line 7-17):
+**시나리오 B5** — CloudElement 타입 불일치 (line 7-17):
 
 ```ts
-export interface SupabaseElement {
+export interface CloudElement {
   layout_id?: string | null;
   page_id: string; // ← required, null 불허
 }
 ```
 
-현재 `page_id`가 `required` 타입인데 layout element는 `page_id: null`. `sanitizeElementForSupabase`의 line 97: `page_id: element.page_id ?? ""` 로 빈 문자열 fallback → **DB에 page_id=""인 layout elements 존재 가능** (현재 코드에서 이미 잠재된 문제).
+현재 `page_id`가 `required` 타입인데 layout element는 `page_id: null`. `sanitizeElementForCloud`의 line 97: `page_id: element.page_id ?? ""` 로 빈 문자열 fallback → **DB에 page_id=""인 layout elements 존재 가능** (현재 코드에서 이미 잠재된 문제).
 
 #### C. 차단 권고
 
@@ -124,16 +124,16 @@ export interface SupabaseElement {
      );
    }
    ```
-2. **P3-B 진입 전 필수 체크**: `SupabaseElement.page_id` 타입을 `string | null`로 수정 (현재 `string` required) — P3-B 진입 전 타입 수정 없이 시작하면 `sanitizeElementForSupabase` 타입 에러 발생
+2. **P3-B 진입 전 필수 체크**: `CloudElement.page_id` 타입을 `string | null`로 수정 (현재 `string` required) — P3-B 진입 전 타입 수정 없이 시작하면 `sanitizeElementForCloud` 타입 에러 발생
 
 #### D. 잠재 hidden bug
 
-**버그 D2** — `SupabaseElement.page_id` required 타입 vs 런타임 null:
+**버그 D2** — `CloudElement.page_id` required 타입 vs 런타임 null:
 
 - 타입 정의 `page_id: string` (required)
 - 실제 layout elements는 `page_id: null`
-- `sanitizeElementForSupabase` line 97: `page_id: element.page_id ?? ""` 로 빈 문자열 emit
-- Supabase/IndexedDB에서 `page_id = ""` 로 조회하면 매칭 실패 → 현재 코드에서 잠재된 데이터 정합성 버그
+- `sanitizeElementForCloud` line 97: `page_id: element.page_id ?? ""` 로 빈 문자열 emit
+- Cloud/IndexedDB에서 `page_id = ""` 로 조회하면 매칭 실패 → 현재 코드에서 잠재된 데이터 정합성 버그
 
 ---
 
@@ -432,7 +432,7 @@ allElements.forEach((el) => mergedMap.set(el.id, el));
 3. `elementCreation.ts`: layout 편집 히스토리 기록 조건 주석 강화 (`// TODO(P3-B): layout_id 제거 시 canonical context로 대체 필수`)
 4. `useIframeMessenger.ts`: `UPDATE_ELEMENTS` postMessage에 `version: "legacy-1.0"` 스텁 추가
 5. `layoutActions.ts`: `currentLayoutId` 직접 접근 사이트에 dev-only migration 경고 logging
-6. `SupabaseElement.page_id` 타입을 `string | null`로 수정 (현재 required → P3-B 전 타입 오류 예방)
+6. `CloudElement.page_id` 타입을 `string | null`로 수정 (현재 required → P3-B 전 타입 오류 예방)
 7. `usePageManager.ts:initializeProject` layout loading 경로에 `// TODO(P3-D)` 마킹
 
 ### P3-B 진입 전 필수 회귀 테스트 7케이스
@@ -447,13 +447,13 @@ allElements.forEach((el) => mergedMap.set(el.id, el));
 
 ### HIGH+ 위험 회귀 포인트 5개 발견
 
-| #   | 위치                                                        | 시나리오                                       | 심각도 | 증상                                 |
+| # | 위치 | 시나리오 | 심각도 | 증상 |
 | --- | ----------------------------------------------------------- | ---------------------------------------------- | :----: | ------------------------------------ | ---- | --------------------- |
-| 1   | `elementCreation.ts:71`                                     | B1: 히스토리 조건 `                            |        | layout_id` 제거                      | HIGH | Layout 편집 Undo 불가 |
-| 2   | `layoutActions.ts:createGetLayoutSlotsAction`               | B9: canonical tree에서 Slot 조회 0건           |  HIGH  | Layout-Page 연결 UI 파괴             |
-| 3   | `usePageManager.ts:initializeProject:513-527`               | B17: layout elements 로딩 경로 전체 교체       |  HIGH  | 프로젝트 초기화 시 layout shell 소실 |
-| 4   | `useIframeMessenger.ts:196-209` + `BuilderCore.tsx:451-470` | B14/B15: 동시 미전환 시 iframe 잘못된 elements |  HIGH  | Preview 렌더 오염                    |
-| 5   | `elementSanitizer.ts:page_id required`                      | D2: layout element에 `page_id=""` 저장         | MEDIUM | DB 정합성 (현재 잠재)                |
+| 1 | `elementCreation.ts:71` | B1: 히스토리 조건 `                            |        | layout_id` 제거 | HIGH | Layout 편집 Undo 불가 |
+| 2 | `layoutActions.ts:createGetLayoutSlotsAction` | B9: canonical tree에서 Slot 조회 0건 | HIGH | Layout-Page 연결 UI 파괴 |
+| 3 | `usePageManager.ts:initializeProject:513-527` | B17: layout elements 로딩 경로 전체 교체 | HIGH | 프로젝트 초기화 시 layout shell 소실 |
+| 4 | `useIframeMessenger.ts:196-209` + `BuilderCore.tsx:451-470` | B14/B15: 동시 미전환 시 iframe 잘못된 elements | HIGH | Preview 렌더 오염 |
+| 5 | `elementSanitizer.ts:page_id required` | D2: layout element에 `page_id=""` 저장 | MEDIUM | DB 정합성 (현재 잠재) |
 
 ### 사용자 데이터 손실 가능성 있는 시나리오
 
@@ -468,7 +468,7 @@ allElements.forEach((el) => mergedMap.set(el.id, el));
 **P3-B 진입 조건 (추가 권고)**:
 
 - G3-A 통과 조건에 `legacyOwnershipToCanonicalParent()` 구현 완성 포함
-- `SupabaseElement.page_id: string | null` 타입 수정 선행
+- `CloudElement.page_id: string | null` 타입 수정 선행
 - localStorage `"composition-layouts"` persist key migration 계획 확정
 
 **P3-D 진입 조건 (existing + 추가)**:
@@ -479,9 +479,9 @@ allElements.forEach((el) => mergedMap.set(el.id, el));
 
 ### 발견한 잠재 hidden bug (P3 무관, 현재 코드)
 
-| ID  | 위치                           | 설명                                                                                                   | 심각도 |
+| ID | 위치 | 설명 | 심각도 |
 | --- | ------------------------------ | ------------------------------------------------------------------------------------------------------ | :----: | ----------------------------------------------------- | --- |
-| D1  | `elementCreation.ts:142 + 186` | `addComplexElement`의 `state` stale closure — get() 후 set() 사이 페이지 전환 시 히스토리 context 오판 |  LOW   |
-| D2  | `elementSanitizer.ts:97`       | layout elements에 `page_id: ""` 저장 — `SupabaseElement.page_id` required 타입 vs null 런타임          | MEDIUM |
-| D3  | `layoutActions.ts:274`         | `duplicateLayout`에서 `idMap.get(parent_id)                                                            |        | null` — 3단계 이상 중첩 시 parent_id 재매핑 실패 가능 | LOW |
-| D4  | `usePageManager.ts:218-221`    | `fetchElements`에서 `elementsMap` 덮어쓰기 순서 — store 최신 elements보다 layout elements 우선         |  LOW   |
+| D1 | `elementCreation.ts:142 + 186` | `addComplexElement`의 `state` stale closure — get() 후 set() 사이 페이지 전환 시 히스토리 context 오판 | LOW |
+| D2 | `elementSanitizer.ts:97` | layout elements에 `page_id: ""` 저장 — `CloudElement.page_id` required 타입 vs null 런타임 | MEDIUM |
+| D3 | `layoutActions.ts:274` | `duplicateLayout`에서 `idMap.get(parent_id)                                                            |        | null` — 3단계 이상 중첩 시 parent_id 재매핑 실패 가능 | LOW |
+| D4 | `usePageManager.ts:218-221` | `fetchElements`에서 `elementsMap` 덮어쓰기 순서 — store 최신 elements보다 layout elements 우선 | LOW |

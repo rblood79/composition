@@ -29,7 +29,7 @@ ADR-119는 그 후속으로 page/layout compatibility mirror를 제거한다.
 | page/layout canonical metadata        | In        | no order metadata                                       | slug/identity/layout binding만 보존  |
 | IndexedDB `pages.order_num` index     | In        | remove                                                  | DB_VERSION bump 필요                 |
 | IndexedDB `layouts.order_num` index   | In        | remove                                                  | DB_VERSION bump 필요                 |
-| Supabase `pages.order_num` column     | Boundary  | derived compatibility only, physical removal separate   | 별도 migration 승인 필요             |
+| Cloud `pages.order_num` column        | Boundary  | derived compatibility only, physical removal separate   | 별도 migration 승인 필요             |
 | Table/collection component data order | Out       | existing component data model                           | ADR-119 범위 아님                    |
 | Element sibling order                 | Out       | already ADR-118 / Element cleanup                       | Phase 0에서 residual hit 제거 확인   |
 
@@ -37,7 +37,7 @@ ADR-119는 그 후속으로 page/layout compatibility mirror를 제거한다.
 
 현재 repo에서 page/layout order mirror가 남은 주요 위치:
 
-- `apps/builder/src/services/api/PagesApiService.ts`: Supabase pages query가
+- `apps/builder/src/services/api/PagesApiService.ts`: Cloud pages query가
   `order_num` 정렬을 사용한다.
 - `apps/builder/src/lib/db/indexedDB/adapter.ts`: `pages`와 `layouts` objectStore에
   `order_num` index가 있다.
@@ -76,8 +76,8 @@ ADR-119는 그 후속으로 page/layout compatibility mirror를 제거한다.
 2. bucket:
    - `runtime-read`: PageTree/Frames/Preview/hydrate/layout invalidation.
    - `runtime-write`: create/reorder/delete/write-through.
-   - `adapter-boundary`: Supabase/project sync/export/import compatibility.
-   - `schema`: IndexedDB index/type, Supabase type.
+   - `adapter-boundary`: Cloud/project sync/export/import compatibility.
+   - `schema`: IndexedDB index/type, Cloud type.
    - `test-fixture`: legacy fixture, static guard.
 3. `metadata.order_num` consumer를 page/layout/Element/Table로 분리한다.
 4. page 생성 body payload 등 `Element.order_num` residual hit를 ADR-118 follow-up blocker로
@@ -224,15 +224,15 @@ pnpm -F @composition/builder exec vitest run src/builder/panels/nodes/tree/PageT
 6. `metaStore.test.ts`에 pages/layouts order index 제거 guard와 stale payload
    strip guard 추가.
 
-### API / Supabase
+### API / Cloud
 
 1. Builder runtime type에서 `Page.order_num`, `Layout.order_num` 제거.
-2. Supabase generated/manual type은 physical schema migration 전에는 optional
+2. Cloud generated/manual type은 physical schema migration 전에는 optional
    compatibility field로 남길 수 있다.
 3. `PagesApiService`는 `order_num` sort를 사용하지 않는다.
 4. `projectSync`는 document export/import가 가능하면 document order를 우선하고,
    pages row payload에 order field를 보내야 하면 call-time derived index만 사용한다.
-5. Supabase column drop은 별도 승인 없이는 이 phase에서 하지 않는다.
+5. Cloud column drop은 별도 승인 없이는 이 phase에서 하지 않는다.
 
 ### 검증
 
@@ -279,4 +279,4 @@ pnpm run codex:preflight
 - Phase 3 write cutover 실패: DnD/create path별 canonical splice를 비활성화하고 기존
   mirror write를 임시 복구한다.
 - Phase 5 DB index cleanup 실패: DB_VERSION bump를 revert하고 index 제거 path를 보류한다.
-- Supabase schema migration은 이 ADR 기본 scope 밖이므로 rollback 대상에 포함하지 않는다.
+- Cloud schema migration은 이 ADR 기본 scope 밖이므로 rollback 대상에 포함하지 않는다.

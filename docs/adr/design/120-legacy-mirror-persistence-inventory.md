@@ -15,13 +15,13 @@
 
 ## Strong Decisions
 
-| Axis                         | ADR-120 decision                                                                  |
-| ---------------------------- | --------------------------------------------------------------------------------- |
-| runtime local mirror         | production `db.pages/elements/layouts` project-state call sites become 0          |
-| `DatabaseAdapter` surface    | `pages/elements/layouts` groups are removed, not kept as compatibility cache      |
-| IndexedDB schema             | `pages/elements/layouts` objectStores are deleted after call site 0 + test gates  |
-| Supabase/cloud compatibility | legacy row APIs may remain only as document-derived upload/download transport     |
-| canonical/export adapters    | kept only when they project from canonical document, not when they read DB mirror |
+| Axis                      | ADR-120 decision                                                                  |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| runtime local mirror      | production `db.pages/elements/layouts` project-state call sites become 0          |
+| `DatabaseAdapter` surface | `pages/elements/layouts` groups are removed, not kept as compatibility cache      |
+| IndexedDB schema          | `pages/elements/layouts` objectStores are deleted after call site 0 + test gates  |
+| cloud compatibility       | legacy row APIs may remain only as document-derived upload/download transport     |
+| canonical/export adapters | kept only when they project from canonical document, not when they read DB mirror |
 
 ## Current Primary Signals
 
@@ -40,16 +40,16 @@ These pre-implementation call sites were cleanup candidates because they read/wr
 local legacy mirror stores as project document state. ADR-120 implementation closed
 the bucket: production `db.pages/elements/layouts` project-state grep gate is 0.
 
-| Surface                        | Initial call site                                                                                                  | Final status                                                      |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| dashboard project create       | `apps/builder/src/dashboard/index.tsx`                                                                             | local `documents` only; cloud projection boundary                 |
-| dashboard project delete       | `apps/builder/src/dashboard/index.tsx`                                                                             | local project document delete via `db.documents.delete`           |
-| project upload/download/delete | `apps/builder/src/utils/projectSync.ts`                                                                            | local source/sink `db.documents`; Supabase row API transport only |
-| element loader                 | `apps/builder/src/builder/stores/elementLoader.ts`                                                                 | active canonical document derived view                            |
-| element create/update/remove   | `apps/builder/src/builder/stores/utils/*`                                                                          | active document mutation + `db.documents.put`                     |
-| history/inspector/editor       | `apps/builder/src/builder/stores/history`, `apps/builder/src/builder/stores/inspectorActions.ts`, property editors | local mirror write removed                                        |
-| page/frame binding/cascade     | `apps/builder/src/adapters/canonical/*`, `apps/builder/src/builder/stores/utils/frameActions.ts`                   | canonical document source; projection boundary retained           |
-| drag/drop/factory/renderers    | canvas drag bridge, factory helpers, shared renderers                                                              | canonical splice/document persist or host callback only           |
+| Surface                        | Initial call site                                                                                                  | Final status                                                   |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| dashboard project create       | `apps/builder/src/dashboard/index.tsx`                                                                             | local `documents` only; cloud projection boundary              |
+| dashboard project delete       | `apps/builder/src/dashboard/index.tsx`                                                                             | local project document delete via `db.documents.delete`        |
+| project upload/download/delete | `apps/builder/src/utils/projectSync.ts`                                                                            | local source/sink `db.documents`; Cloud row API transport only |
+| element loader                 | `apps/builder/src/builder/stores/elementLoader.ts`                                                                 | active canonical document derived view                         |
+| element create/update/remove   | `apps/builder/src/builder/stores/utils/*`                                                                          | active document mutation + `db.documents.put`                  |
+| history/inspector/editor       | `apps/builder/src/builder/stores/history`, `apps/builder/src/builder/stores/inspectorActions.ts`, property editors | local mirror write removed                                     |
+| page/frame binding/cascade     | `apps/builder/src/adapters/canonical/*`, `apps/builder/src/builder/stores/utils/frameActions.ts`                   | canonical document source; projection boundary retained        |
+| drag/drop/factory/renderers    | canvas drag bridge, factory helpers, shared renderers                                                              | canonical splice/document persist or host callback only        |
 
 ## Project Sync Boundary Bucket
 
@@ -57,7 +57,7 @@ the bucket: production `db.pages/elements/layouts` project-state grep gate is 0.
 | ------------------------------ | -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
 | `pagesApi`                     | imported and used by dashboard/projectSync                                                   | keep only as document-derived cloud projection or replace                        |
 | `legacyElementsApiService`     | imported by services/projectSync/canonical wrappers                                          | keep only as projection boundary until cloud document API                        |
-| Supabase `pages`/`elements`    | current manual types expose legacy physical tables; no current `documents` API hit was found | local cleanup proceeds; upload/download uses one-shot document projection/import |
+| Cloud `pages`/`elements`       | current manual types expose legacy physical tables; no current `documents` API hit was found | local cleanup proceeds; upload/download uses one-shot document projection/import |
 | `projectSync.order_num` upload | ADR-119 allows call-time derived `pages.order_num` compatibility in upload                   | remove when cloud document primary exists                                        |
 
 ## Canonical Adapter Boundary Bucket
@@ -95,7 +95,7 @@ rg -n "createObjectStore\\(\"(pages|elements|layouts)\"|objectStore\\(\"(pages|e
 ```
 
 All three commands return 0 results. Remaining `pagesApi`/`elementsApi` references are
-Supabase/cloud transport compatibility and canonical adapter wrapper boundary only.
+cloud transport compatibility and canonical adapter wrapper boundary only.
 
 ## Completion Gates
 

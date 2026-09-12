@@ -32,11 +32,11 @@
 
 ### 핵심 질문
 
-| 질문 | 제안 |
-|------|------|
-| PropertiesPanel에서 데이터바인딩 sync 옵션 추가? | ✅ `refreshMode` 옵션으로 선언적 설정 |
-| EventsPanel에서 async 데이터 로드? | ✅ `loadDataset`, `syncComponent` 액션 추가 |
-| API 호출 후 Dataset으로 보낼 때? | ✅ `saveToDataTable` 옵션 + 이벤트 체이닝 |
+| 질문                                             | 제안                                        |
+| ------------------------------------------------ | ------------------------------------------- |
+| PropertiesPanel에서 데이터바인딩 sync 옵션 추가? | ✅ `refreshMode` 옵션으로 선언적 설정       |
+| EventsPanel에서 async 데이터 로드?               | ✅ `loadDataset`, `syncComponent` 액션 추가 |
+| API 호출 후 Dataset으로 보낼 때?                 | ✅ `saveToDataTable` 옵션 + 이벤트 체이닝   |
 
 ### 관련 패널
 
@@ -101,9 +101,9 @@
 // src/builder/panels/common/PropertyDataBinding.tsx
 
 interface PropertyDataBinding {
-  source: 'dataTable' | 'api' | 'variable' | 'route';
-  name: string;           // DataTable/API/Variable 이름
-  path?: string;          // 중첩 필드 접근 (e.g., 'items[0].name')
+  source: "dataTable" | "api" | "variable" | "route";
+  name: string; // DataTable/API/Variable 이름
+  path?: string; // 중첩 필드 접근 (e.g., 'items[0].name')
 }
 ```
 
@@ -132,25 +132,25 @@ interface PropertyDataBinding {
 // src/utils/events/eventEngine.ts - 21개 액션 타입
 
 // State Management
-'setState' | 'updateState' | 'setComponentState'
+"setState" | "updateState" | "setComponentState";
 
 // Navigation
-'navigate' | 'scrollTo'
+"navigate" | "scrollTo";
 
 // UI Control
-'showModal' | 'hideModal' | 'showToast' | 'toggleVisibility'
+"showModal" | "hideModal" | "showToast" | "toggleVisibility";
 
 // Form Actions
-'submitForm' | 'validateForm' | 'resetForm' | 'updateFormField'
+"submitForm" | "validateForm" | "resetForm" | "updateFormField";
 
 // Data Operations
-'apiCall' | 'filterCollection' | 'selectItem' | 'clearSelection'
+"apiCall" | "filterCollection" | "selectItem" | "clearSelection";
 
 // Component Actions
-'triggerComponent'
+("triggerComponent");
 
 // Utilities
-'customFunction' | 'copyToClipboard'
+"customFunction" | "copyToClipboard";
 ```
 
 ---
@@ -159,16 +159,17 @@ interface PropertyDataBinding {
 
 ### 현재 문제점
 
-| 문제 | 영향 | 심각도 |
-|------|------|--------|
-| **데이터 갱신 제어 부재** | 컴포넌트별 갱신 전략 설정 불가 | 🔴 High |
-| **API→DataTable 연결 복잡** | 수동으로 setState 체이닝 필요 | 🟡 Medium |
-| **컴포넌트 간 동기화 없음** | 같은 데이터 사용해도 독립적 fetch | 🔴 High |
+| 문제                            | 영향                                    | 심각도    |
+| ------------------------------- | --------------------------------------- | --------- |
+| **데이터 갱신 제어 부재**       | 컴포넌트별 갱신 전략 설정 불가          | 🔴 High   |
+| **API→DataTable 연결 복잡**     | 수동으로 setState 체이닝 필요           | 🟡 Medium |
+| **컴포넌트 간 동기화 없음**     | 같은 데이터 사용해도 독립적 fetch       | 🔴 High   |
 | **이벤트 기반 새로고침 어려움** | 버튼 클릭 → 특정 컴포넌트 리프레시 복잡 | 🟡 Medium |
 
 ### 사용자 시나리오
 
 #### 시나리오 1: 대시보드 자동 갱신
+
 ```
 요구사항: 대시보드의 차트/테이블이 30초마다 자동 갱신
 현재: 불가능 (수동 새로고침만 가능)
@@ -176,6 +177,7 @@ interface PropertyDataBinding {
 ```
 
 #### 시나리오 2: 버튼 클릭으로 데이터 새로고침
+
 ```
 요구사항: "새로고침" 버튼 클릭 시 ListBox 데이터 리로드
 현재: apiCall → setState → 복잡한 상태 관리
@@ -183,6 +185,7 @@ interface PropertyDataBinding {
 ```
 
 #### 시나리오 3: API 응답을 여러 컴포넌트에서 공유
+
 ```
 요구사항: 사용자 API 호출 → ListBox, Select, Badge에서 동시 표시
 현재: 각 컴포넌트가 독립적으로 fetch (3번 호출)
@@ -190,6 +193,7 @@ interface PropertyDataBinding {
 ```
 
 #### 시나리오 4: 폼 제출 후 목록 자동 갱신
+
 ```
 요구사항: 새 아이템 생성 API 성공 → 목록 자동 리프레시
 현재: 수동으로 상태 업데이트 필요
@@ -215,13 +219,13 @@ Dataset Panel > API 추가 > Response 설정 > Target DataTable 지정 > 자동 
 Dataset Panel > API 추가 > Test 실행 > Success > Column 선택 > "Import to DataTable" 버튼 클릭
 ```
 
-| 단계 | 현재 상태 | 코드 위치 | 문제점 |
-|------|----------|-----------|--------|
-| API 호출 | ✅ 성공 | `executeApiEndpoint()` | - |
-| Response → Data Path | ✅ 가능 | `responseMapping.dataPath` | - |
-| Target DataTable 필드 | ⚠️ UI만 있음 | `ApiEndpointEditor.tsx:594-602` | 저장 로직 미구현 |
-| Field Mapping | ⚠️ 수동만 가능 | `FieldMappingEditor` | 자동 매핑 없음 |
-| DataTable 생성 | ⚠️ Test 탭 수동 | `handleImport()` :200-248 | 자동화 없음 |
+| 단계                  | 현재 상태       | 코드 위치                       | 문제점           |
+| --------------------- | --------------- | ------------------------------- | ---------------- |
+| API 호출              | ✅ 성공         | `executeApiEndpoint()`          | -                |
+| Response → Data Path  | ✅ 가능         | `responseMapping.dataPath`      | -                |
+| Target DataTable 필드 | ⚠️ UI만 있음    | `ApiEndpointEditor.tsx:594-602` | 저장 로직 미구현 |
+| Field Mapping         | ⚠️ 수동만 가능  | `FieldMappingEditor`            | 자동 매핑 없음   |
+| DataTable 생성        | ⚠️ Test 탭 수동 | `handleImport()` :200-248       | 자동화 없음      |
 
 **핵심 문제**: `targetDataTable` 필드는 Response 탭에 존재하지만, `executeApiEndpoint()`가 결과를 해당 DataTable에 저장하는 로직이 **없음**.
 
@@ -235,11 +239,11 @@ Component 선택 > Data Binding > DataTable 선택 > 필드 자동 생성
 Component 선택 > Data Binding > DataTable 선택 > (수동으로 Field 추가 필요)
 ```
 
-| 단계 | 현재 상태 | 코드 위치 | 문제점 |
-|------|----------|-----------|--------|
-| DataTable 선택 | ✅ 가능 | `PropertyDataBinding.tsx` | - |
-| 스키마 조회 | ✅ 가능 | `useCollectionData.ts:336-341` | `schema` 반환됨 |
-| Field 자동 생성 | ❌ 미구현 | - | 수동 추가 필요 |
+| 단계            | 현재 상태 | 코드 위치                      | 문제점          |
+| --------------- | --------- | ------------------------------ | --------------- |
+| DataTable 선택  | ✅ 가능   | `PropertyDataBinding.tsx`      | -               |
+| 스키마 조회     | ✅ 가능   | `useCollectionData.ts:336-341` | `schema` 반환됨 |
+| Field 자동 생성 | ❌ 미구현 | -                              | 수동 추가 필요  |
 
 **핵심 문제**: `useCollectionData`가 `schema`를 반환하지만, 이를 기반으로 Field 컴포넌트를 자동 생성하는 로직이 **없음**.
 
@@ -248,22 +252,25 @@ Component 선택 > Data Binding > DataTable 선택 > (수동으로 Field 추가 
 **발생 위치**: `useCollectionData.ts:343`
 
 ```typescript
-const table = dataTables.find(dt => dt.name === binding.name);
+const table = dataTables.find((dt) => dt.name === binding.name);
 if (!table) {
-  console.warn(`⚠️ ${componentName}: DataTable '${binding.name}'을 찾을 수 없습니다`);
+  console.warn(
+    `⚠️ ${componentName}: DataTable '${binding.name}'을 찾을 수 없습니다`,
+  );
 }
 ```
 
 **원인 분석**:
 
-| 원인 | 설명 | 발생 조건 |
-|------|------|----------|
-| **Canvas 동기화 지연** | Builder에서 DataTable 생성 후 Canvas에 전파 안됨 | DataTable 생성 직후 Preview 확인 시 |
-| **postMessage 누락** | `createDataTable` 시 Canvas로 메시지 미전송 | 항상 |
-| **이름 불일치** | API Import 테이블명 ≠ PropertyDataBinding 선택 이름 | 수동 입력 오류 |
-| **Store 미초기화** | Canvas `runtimeStore.dataTables`가 빈 배열 | 페이지 새로고침 후 |
+| 원인                   | 설명                                                | 발생 조건                           |
+| ---------------------- | --------------------------------------------------- | ----------------------------------- |
+| **Canvas 동기화 지연** | Builder에서 DataTable 생성 후 Canvas에 전파 안됨    | DataTable 생성 직후 Preview 확인 시 |
+| **postMessage 누락**   | `createDataTable` 시 Canvas로 메시지 미전송         | 항상                                |
+| **이름 불일치**        | API Import 테이블명 ≠ PropertyDataBinding 선택 이름 | 수동 입력 오류                      |
+| **Store 미초기화**     | Canvas `runtimeStore.dataTables`가 빈 배열          | 페이지 새로고침 후                  |
 
 **현재 동기화 흐름**:
+
 ```
 Builder Store (useDataStore)
 ├─ dataTables: Map<string, DataTable>  ← 여기에 저장됨
@@ -310,13 +317,13 @@ const handleImport = useCallback(async (columns, tableName) => {
 ```typescript
 // :514-529 - 데이터 소스 우선순위
 if (dataTableData && dataTableData.length > 0) {
-  sourceData = dataTableData;  // 1순위: DataTable (동기)
+  sourceData = dataTableData; // 1순위: DataTable (동기)
 } else if (apiEndpointData && apiEndpointData.length > 0) {
-  sourceData = apiEndpointData;  // 2순위: API Endpoint (비동기)
+  sourceData = apiEndpointData; // 2순위: API Endpoint (비동기)
 } else if (datasetId && datasetState) {
-  sourceData = datasetState.data;  // 3순위: Dataset
+  sourceData = datasetState.data; // 3순위: Dataset
 } else {
-  sourceData = list.items;  // 4순위: AsyncList
+  sourceData = list.items; // 4순위: AsyncList
 }
 ```
 
@@ -325,6 +332,7 @@ if (dataTableData && dataTableData.length > 0) {
 ## Builder 루틴 체크 (UX 관점)
 
 ### 1) Dataset > API 추가 → Response → DataTable 매핑 (자동화)
+
 - Base URL 저장 후 Endpoint 경로만 교체할 수 있도록 API 모델을 분리합니다. (예: Base `https://pokeapi.co/api/v2`, Endpoint `/pokemon`)
 - API 테스트 성공 시 Response에서 Data Path를 지정하면 Target DataTable이 자동 생성/선택되고 스키마 필드가 추출됩니다.
   - 데이터 타입 추론 + Field Mapping 자동 생성 (데이터가 배열이면 첫 요소를 기준으로 컬럼 자동 감지)
@@ -332,20 +340,24 @@ if (dataTableData && dataTableData.length > 0) {
 - 매핑 완료 후 `saveToDataTable`까지 한 번에 설정되어 재호출 시 바로 DataTable을 갱신합니다.
 
 ### 2) 컴포넌트(ListBox 등) 데이터 바인딩 자동 필드 생성
+
 - DataTable에 스키마/컬럼이 존재하면 컬렉션 컴포넌트에서 dataBinding 설정 시 컬럼 옵션을 자동 노출합니다.
 - 새로 생성된 DataTable이라도 API 응답 기반 스키마가 저장되면 즉시 바인딩 필드가 채워집니다. (mockData 없이도 컬럼 감지)
 
 ### 3) 오류: "DataTable을 찾을 수 없습니다" 방지
+
 - DataPath까지 설정했는데 DataTable 미생성/삭제로 오류가 나는 경우 자동 복구 루틴을 둡니다.
   - DataPath로부터 재추론해 임시 DataTable을 생성하고 컬럼을 다시 매핑
   - 동일 이름의 DataTable이 존재하지만 runtimeData만 없는 경우 스키마는 유지하되 mockData/runtimeData를 빈 배열로 초기화
   - 예외 발생 시에도 builder 패널에서 원인(미생성/삭제/권한)과 자동 조치 로그를 바로 표시
 
 ### 4) Base URL 유지 + Endpoint 교체 흐름
+
 - Dataset API 편집 UI에 Base URL과 Endpoint를 분리해 관리하며, Endpoint만 바꿔도 기존 DataTable 매핑을 재사용합니다.
 - Response Data Path가 동일하면 스키마 재생성 없이 runtimeData만 교체하고, 달라지면 새 스키마 후보를 diff로 제안하여 선택적으로 갱신합니다.
 
 ### 5) Base URL이 여러 개인 경우
+
 - API 엔드포인트를 Base URL 그룹 단위로 관리하고, DataTable 매핑은 `(baseGroup, endpoint)` 키로 보존합니다.
 - 동일한 DataTable을 여러 Base URL이 공유할 수 있도록 `targetDataTable`을 분리 저장하고, 충돌 시 별도 DataTable로 분기할 수 있는 옵션을 제공합니다. (예: `pokemon_default`, `pokemon_alt1`)
 - 이벤트 액션에서 Base URL 그룹을 선택할 수 있게 해 동일 Endpoint라도 다른 Base를 호출하는 시나리오를 대비합니다.
@@ -358,12 +370,12 @@ if (dataTableData && dataTableData.length > 0) {
 
 ### 단기 vs 장기 정합성 검토
 
-| 영역 | Hotfix (단기) | 시스템 설계 (장기) | 정합성 |
-|------|--------------|------------------|--------|
-| API→DataTable 저장 | Field Mapping 적용 + 메타데이터 | Mapper 레이어 분리 | ✅ 확장 가능 |
-| 스키마 관리 | Column Detection 유지 | Schema-first + 버전 관리 | ✅ 메타데이터로 대비 |
-| Canvas 동기화 | postMessage 직접 전송 | DataSyncManager 중앙화 | ✅ 확장 가능 |
-| 오류 복구 | Phase 2에서 추가 | 임시 테이블 생성 + 로그 | ✅ 별도 Phase |
+| 영역               | Hotfix (단기)                   | 시스템 설계 (장기)       | 정합성               |
+| ------------------ | ------------------------------- | ------------------------ | -------------------- |
+| API→DataTable 저장 | Field Mapping 적용 + 메타데이터 | Mapper 레이어 분리       | ✅ 확장 가능         |
+| 스키마 관리        | Column Detection 유지           | Schema-first + 버전 관리 | ✅ 메타데이터로 대비 |
+| Canvas 동기화      | postMessage 직접 전송           | DataSyncManager 중앙화   | ✅ 확장 가능         |
+| 오류 복구          | Phase 2에서 추가                | 임시 테이블 생성 + 로그  | ✅ 별도 Phase        |
 
 ### Hotfix 1: API 결과 → targetDataTable 자동 저장
 
@@ -373,7 +385,8 @@ if (dataTableData && dataTableData.length > 0) {
 
 ```typescript
 // executeApiEndpoint 확장 (Mapper 확장 고려 버전)
-export const createExecuteApiEndpointAction = (set, get) =>
+export const createExecuteApiEndpointAction =
+  (set, get) =>
   async (id: string): Promise<unknown> => {
     const endpoint = get().apiEndpoints.get(id);
     const result = await fetchApi(endpoint);
@@ -381,21 +394,30 @@ export const createExecuteApiEndpointAction = (set, get) =>
     // 🆕 targetDataTable이 있으면 자동 저장
     if (endpoint.targetDataTable) {
       // 1. Data Path 추출
-      const rawData = extractDataPath(result, endpoint.responseMapping?.dataPath);
+      const rawData = extractDataPath(
+        result,
+        endpoint.responseMapping?.dataPath,
+      );
 
       // 2. Field Mapping 적용 (현재 구조 활용, 향후 Mapper 분리 대비)
-      const mappedData = applyFieldMapping(rawData, endpoint.responseMapping?.fieldMapping);
+      const mappedData = applyFieldMapping(
+        rawData,
+        endpoint.responseMapping?.fieldMapping,
+      );
 
       // 3. 메타데이터 포함 (라인리지 대비)
       const metadata = {
         sourceEndpoint: endpoint.id,
         sourceEndpointName: endpoint.name,
         lastUpdatedAt: Date.now(),
-        mapperVersion: 1,  // 향후 Mapper 버전 관리 대비
+        mapperVersion: 1, // 향후 Mapper 버전 관리 대비
       };
 
       // 4. runtimeData 업데이트
-      const dataTable = findDataTableByName(get().dataTables, endpoint.targetDataTable);
+      const dataTable = findDataTableByName(
+        get().dataTables,
+        endpoint.targetDataTable,
+      );
       if (dataTable) {
         const finalData = Array.isArray(mappedData) ? mappedData : [mappedData];
 
@@ -403,17 +425,20 @@ export const createExecuteApiEndpointAction = (set, get) =>
           dataTables: new Map(state.dataTables).set(dataTable.id, {
             ...dataTable,
             runtimeData: finalData,
-            metadata: { ...dataTable.metadata, ...metadata },  // 메타데이터 병합
+            metadata: { ...dataTable.metadata, ...metadata }, // 메타데이터 병합
           }),
         }));
 
         // Canvas에 동기화
-        window.postMessage({
-          type: 'UPDATE_DATA_TABLE_RUNTIME',
-          dataTableName: endpoint.targetDataTable,
-          data: finalData,
-          metadata,
-        }, '*');
+        window.postMessage(
+          {
+            type: "UPDATE_DATA_TABLE_RUNTIME",
+            dataTableName: endpoint.targetDataTable,
+            data: finalData,
+            metadata,
+          },
+          "*",
+        );
       }
     }
 
@@ -423,13 +448,13 @@ export const createExecuteApiEndpointAction = (set, get) =>
 // Field Mapping 적용 헬퍼 (향후 Mapper로 분리 예정)
 function applyFieldMapping(
   data: unknown[],
-  fieldMapping?: Record<string, string>
+  fieldMapping?: Record<string, string>,
 ): Record<string, unknown>[] {
   if (!fieldMapping || Object.keys(fieldMapping).length === 0) {
     return data as Record<string, unknown>[];
   }
 
-  return (data as Record<string, unknown>[]).map(item => {
+  return (data as Record<string, unknown>[]).map((item) => {
     const mapped: Record<string, unknown> = {};
     for (const [apiField, tableField] of Object.entries(fieldMapping)) {
       mapped[tableField] = item[apiField];
@@ -441,9 +466,9 @@ function applyFieldMapping(
 // DataTable 이름으로 찾기 헬퍼
 function findDataTableByName(
   dataTables: Map<string, DataTable>,
-  name: string
+  name: string,
 ): DataTable | undefined {
-  return Array.from(dataTables.values()).find(dt => dt.name === name);
+  return Array.from(dataTables.values()).find((dt) => dt.name === name);
 }
 ```
 
@@ -455,26 +480,32 @@ function findDataTableByName(
 
 ```typescript
 // createDataTable 확장
-export const createCreateDataTableAction = (set, get) =>
+export const createCreateDataTableAction =
+  (set, get) =>
   async (data: CreateDataTableInput): Promise<DataTable> => {
     // ... 기존 로직 (DB 저장 등)
 
     // 🆕 Canvas에 동기화 (iframe이 존재할 때만)
-    const iframe = document.querySelector('iframe[data-canvas]') as HTMLIFrameElement;
+    const iframe = document.querySelector(
+      "iframe[data-canvas]",
+    ) as HTMLIFrameElement;
     if (iframe?.contentWindow) {
       const allDataTables = Array.from(get().dataTables.values());
-      iframe.contentWindow.postMessage({
-        type: 'SYNC_DATA_TABLES',
-        dataTables: allDataTables.map(dt => ({
-          id: dt.id,
-          name: dt.name,
-          schema: dt.schema,
-          mockData: dt.mockData,
-          runtimeData: dt.runtimeData,
-          useMockData: dt.useMockData,
-          metadata: dt.metadata,  // 라인리지 메타데이터 포함
-        })),
-      }, '*');
+      iframe.contentWindow.postMessage(
+        {
+          type: "SYNC_DATA_TABLES",
+          dataTables: allDataTables.map((dt) => ({
+            id: dt.id,
+            name: dt.name,
+            schema: dt.schema,
+            mockData: dt.mockData,
+            runtimeData: dt.runtimeData,
+            useMockData: dt.useMockData,
+            metadata: dt.metadata, // 라인리지 메타데이터 포함
+          })),
+        },
+        "*",
+      );
     }
 
     return newDataTable;
@@ -546,17 +577,17 @@ updateDataTableRuntime: (name, data, metadata) => {
 
 ### 실행 가능성 평가
 
-| 설계 항목 | 실행 가능성 | 선행 조건 | 예상 공수 |
-|-----------|------------|----------|-----------|
-| Canvas 동기화 (Hotfix 2-4) | 🟢 낮은 복잡도 | 없음 | 0.5일 |
-| API→DataTable 저장 (Hotfix 1) | 🟢 낮은 복잡도 | Hotfix 2-4 | 0.5일 |
-| 데이터 라인리지 메타데이터 | 🟢 낮은 복잡도 | Hotfix 1 | 0.5일 |
-| 오류 복구 전략 | 🟡 중간 | Hotfix 1-4 | 1-2일 |
-| Schema 버전 관리 | 🟡 중간 | JSON Schema 라이브러리 | 2-3일 |
-| Base URL Registry | 🟡 중간 | 새 엔티티, UI | 2-3일 |
-| 캐시/동기화 정책 | 🟡 중간 | DataSyncManager | 2-3일 |
-| Mapper 분리 | 🔴 높은 복잡도 | 새 엔티티, 마이그레이션 | 1-2주 |
-| 테스트 하네스 | 🔴 높은 복잡도 | 테스트 인프라 | 1-2주 |
+| 설계 항목                     | 실행 가능성    | 선행 조건               | 예상 공수 |
+| ----------------------------- | -------------- | ----------------------- | --------- |
+| Canvas 동기화 (Hotfix 2-4)    | 🟢 낮은 복잡도 | 없음                    | 0.5일     |
+| API→DataTable 저장 (Hotfix 1) | 🟢 낮은 복잡도 | Hotfix 2-4              | 0.5일     |
+| 데이터 라인리지 메타데이터    | 🟢 낮은 복잡도 | Hotfix 1                | 0.5일     |
+| 오류 복구 전략                | 🟡 중간        | Hotfix 1-4              | 1-2일     |
+| Schema 버전 관리              | 🟡 중간        | JSON Schema 라이브러리  | 2-3일     |
+| Base URL Registry             | 🟡 중간        | 새 엔티티, UI           | 2-3일     |
+| 캐시/동기화 정책              | 🟡 중간        | DataSyncManager         | 2-3일     |
+| Mapper 분리                   | 🔴 높은 복잡도 | 새 엔티티, 마이그레이션 | 1-2주     |
+| 테스트 하네스                 | 🔴 높은 복잡도 | 테스트 인프라           | 1-2주     |
 
 ### Phase 구분
 
@@ -694,24 +725,29 @@ Phase 2                                    Phase 3              (병렬 가능)
 
 ### Builder 플로우 반영 (API → DataTable → 컴포넌트)
 
-1) DatasetPanel에서 API 등록
+1. DatasetPanel에서 API 등록
+
 - Base URL과 Endpoint를 분리 저장하여 Base는 고정, Endpoint만 교체 가능.
 - API 테스트 성공 시 Response Data Path 선택 → Target DataTable 자동 생성/선택 + 필드 매핑 자동 추출(배열이면 첫 요소 기준).
 - 동일 이름 충돌 시 규칙적 네이밍(`api_<endpoint>`)으로 신규 생성, runtimeData는 빈 배열로 초기화.
 
-2) 다중 Base URL 대비
+2. 다중 Base URL 대비
+
 - Base URL 그룹을 관리하고 `(baseGroup, endpoint)`로 매핑을 보관.
 - 동일 Endpoint라도 다른 Base로 호출 가능하며, DataTable을 공유하거나 분기(`pokemon_default`, `pokemon_alt1`)할 옵션 제공.
 
-3) 컴포넌트 데이터 바인딩
+3. 컴포넌트 데이터 바인딩
+
 - DataTable 스키마를 즉시 반영해 ListBox 등 컬렉션 컴포넌트의 데이터 바인딩 필드 옵션을 자동 노출.
 - DataTable이 삭제/누락되면 Data Path로 재추론해 임시 DataTable 생성 후 바인딩 유지(사용자에게 자동 조치 로그 표시).
 
-4) 이벤트·동기화 라우팅
+4. 이벤트·동기화 라우팅
+
 - apiCall 성공 시 `saveToDataTable`로 runtimeData 갱신 → 같은 DataTable을 쓰는 컴포넌트에 syncComponent 브로드캐스트.
 - loadDataset/syncComponent 액션으로 특정 컴포넌트, DataTable, Dataset 단위로 리로드를 지시.
 
 ### 시스템 관점 대안/보강 설계 아이디어
+
 - **Schema-first 파이프라인**: Response → JSON Schema 추출 → DataTable 스키마 생성 → 컬럼/타입 고정. 스키마와 데이터는 버전을 분리해 스키마 변동 시 diff를 사용자에게 표시하고 승인 후 적용.
 - **Mapper 레이어 분리**: API 응답을 DataTable에 적재하는 Mapper를 별도 엔티티로 두고, Mapper를 바꾸더라도 DataTable 소비자는 영향 최소화. Mapper는 결과 미리보기 + 단위 테스트(샘플 응답 기반) 지원.
 - **Dataset Template & Mock**: Base URL+Endpoint 조합으로 Dataset Template을 만들고, 스키마가 확정되면 mockData를 자동 생성(예: 5행 샘플). 컴포넌트는 mockData로 빠른 프리뷰, runtimeData는 실행 시 주입.
@@ -722,6 +758,7 @@ Phase 2                                    Phase 3              (병렬 가능)
 - **캐싱/동기화 정책 분리**: DataTable 캐싱 정책(Time-To-Live, mergeMode)을 설정하고, syncComponent는 캐시 무시 여부를 플래그로 전달(`forceReload`). interval 모드와 캐시를 조합해 불필요한 호출을 줄임.
 
 ### 시스템 관점 최적 설계(실행안)
+
 - **스키마 관리**: JSON Schema 기반 `schemaVersion`을 도입하고, Mapper는 `mapperVersion`을 갖는다. DataTable 메타데이터에 `schemaVersion/mapperVersion/sourceEndpoint/lastUpdatedAt`을 저장해 라인리지를 추적한다.
 - **Mapper 계약**: Mapper는 `(response) => rows` 순수 함수로 정의하고, 샘플 응답 테스트를 통과해야만 배포된다. Mapper 변경 시 diff 요약(추가/삭제 컬럼)과 안전한 마이그레이션 옵션(자동 컬럼 추가, 삭제는 보류)을 제공한다.
 - **Base URL 레지스트리**: Base URL은 환경/팀 단위로 관리되고 Endpoint는 레지스트리 참조만 허용한다. 프로덕션 Base는 승인된 액션에서만 호출하도록 정책화하고, 동일 Endpoint라도 Base 전환은 정책에 따라 제한/승인 흐름을 둔다.
@@ -735,14 +772,14 @@ Phase 2                                    Phase 3              (병렬 가능)
 
 ```typescript
 type RefreshMode =
-  | 'manual'     // 수동 갱신만 (기본값)
-  | 'onMount'    // 컴포넌트 마운트 시 1회
-  | 'interval'   // 주기적 갱신
-  | 'realtime';  // WebSocket/Supabase Realtime (향후)
+  | "manual" // 수동 갱신만 (기본값)
+  | "onMount" // 컴포넌트 마운트 시 1회
+  | "interval" // 주기적 갱신
+  | "realtime"; // WebSocket/Cloud Realtime (향후)
 
 interface PropertyDataBindingExtended extends PropertyDataBinding {
   refreshMode?: RefreshMode;
-  refreshInterval?: number;  // interval 모드일 때 (ms)
+  refreshInterval?: number; // interval 모드일 때 (ms)
 }
 ```
 
@@ -752,8 +789,8 @@ interface PropertyDataBindingExtended extends PropertyDataBinding {
 // 신규: src/builder/services/DataSyncManager.ts
 
 class DataSyncManager {
-  private consumers: Map<string, ConsumerInfo>;  // componentId → dataSource
-  private schedulers: Map<string, NodeJS.Timeout>;  // interval 관리
+  private consumers: Map<string, ConsumerInfo>; // componentId → dataSource
+  private schedulers: Map<string, NodeJS.Timeout>; // interval 관리
 
   // Consumer 등록
   registerConsumer(componentId: string, dataSource: DataSource): void;
@@ -776,37 +813,37 @@ class DataSyncManager {
 
 // loadDataset: 특정 Dataset 또는 컴포넌트 데이터 로드
 interface LoadDatasetAction {
-  type: 'loadDataset';
+  type: "loadDataset";
   config: {
-    datasetId?: string;      // Dataset ID
-    componentId?: string;    // 특정 컴포넌트
-    target?: 'self' | 'all'; // 현재 컴포넌트 or 같은 데이터 사용하는 모든 컴포넌트
+    datasetId?: string; // Dataset ID
+    componentId?: string; // 특정 컴포넌트
+    target?: "self" | "all"; // 현재 컴포넌트 or 같은 데이터 사용하는 모든 컴포넌트
   };
 }
 
 // syncComponent: 특정 컴포넌트 데이터 새로고침
 interface SyncComponentAction {
-  type: 'syncComponent';
+  type: "syncComponent";
   config: {
-    componentId?: string;     // 타겟 컴포넌트 (없으면 self)
-    dataTableName?: string;   // DataTable 사용하는 모든 컴포넌트 동기화
+    componentId?: string; // 타겟 컴포넌트 (없으면 self)
+    dataTableName?: string; // DataTable 사용하는 모든 컴포넌트 동기화
   };
 }
 
 // apiCall 확장: 응답을 DataTable에 저장
 interface ApiCallActionExtended {
-  type: 'apiCall';
+  type: "apiCall";
   config: {
     apiEndpointId: string;
     params?: Record<string, unknown>;
 
     // 🆕 신규 옵션
-    saveToDataTable?: string;  // 응답을 저장할 DataTable 이름
-    resultPath?: string;       // 응답에서 추출할 경로 (e.g., 'data.items')
-    mergeMode?: 'replace' | 'append' | 'prepend';  // 기존 데이터와 병합 방식
+    saveToDataTable?: string; // 응답을 저장할 DataTable 이름
+    resultPath?: string; // 응답에서 추출할 경로 (e.g., 'data.items')
+    mergeMode?: "replace" | "append" | "prepend"; // 기존 데이터와 병합 방식
 
-    onSuccess?: ActionConfig;  // 성공 시 다음 액션
-    onError?: ActionConfig;    // 실패 시 다음 액션
+    onSuccess?: ActionConfig; // 성공 시 다음 액션
+    onError?: ActionConfig; // 실패 시 다음 액션
   };
 }
 ```
@@ -820,18 +857,20 @@ interface ApiCallActionExtended {
 **Goal**: 선언적 갱신 설정 추가
 
 **Files to Modify**:
+
 - `src/builder/panels/common/PropertyDataBinding.tsx`
 - `src/types/builder/unified.types.ts`
 
 **구현 내용**:
 
-| 기능 | 설명 | 복잡도 |
-|------|------|--------|
-| `refreshMode` 옵션 | manual/onMount/interval 선택 | 낮음 |
-| `refreshInterval` 입력 | interval 모드 시 주기 설정 | 낮음 |
-| UI 필드 추가 | Select + NumberField | 낮음 |
+| 기능                   | 설명                         | 복잡도 |
+| ---------------------- | ---------------------------- | ------ |
+| `refreshMode` 옵션     | manual/onMount/interval 선택 | 낮음   |
+| `refreshInterval` 입력 | interval 모드 시 주기 설정   | 낮음   |
+| UI 필드 추가           | Select + NumberField         | 낮음   |
 
 **UI 설계**:
+
 ```
 ┌─────────────────────────────────────────┐
 │ Data Binding                            │
@@ -851,10 +890,10 @@ interface ApiCallActionExtended {
 ```typescript
 // src/types/builder/unified.types.ts
 
-export type RefreshMode = 'manual' | 'onMount' | 'interval' | 'realtime';
+export type RefreshMode = "manual" | "onMount" | "interval" | "realtime";
 
 export interface PropertyDataBinding {
-  source: 'dataTable' | 'api' | 'variable' | 'route';
+  source: "dataTable" | "api" | "variable" | "route";
   name: string;
   path?: string;
 
@@ -872,16 +911,16 @@ export interface PropertyDataBinding {
 
   <PropertySelect
     label="Mode"
-    value={binding.refreshMode || 'manual'}
+    value={binding.refreshMode || "manual"}
     onChange={(value) => updateBinding({ refreshMode: value as RefreshMode })}
     options={[
-      { value: 'manual', label: 'Manual' },
-      { value: 'onMount', label: 'On Mount' },
-      { value: 'interval', label: 'Interval' },
+      { value: "manual", label: "Manual" },
+      { value: "onMount", label: "On Mount" },
+      { value: "interval", label: "Interval" },
     ]}
   />
 
-  {binding.refreshMode === 'interval' && (
+  {binding.refreshMode === "interval" && (
     <PropertyInput
       label="Interval (ms)"
       type="number"
@@ -900,16 +939,17 @@ export interface PropertyDataBinding {
 **Goal**: refreshMode 지원 + reload 함수 노출
 
 **Files to Modify**:
+
 - `src/builder/hooks/useCollectionData.ts`
 
 **구현 내용**:
 
-| 기능 | 설명 | 복잡도 |
-|------|------|--------|
-| `refreshMode` 처리 | onMount/interval 로직 | 중간 |
-| `reload()` 노출 | 외부에서 새로고침 호출 가능 | 낮음 |
-| `useAsyncList` 통합 | React Stately 활용 | 중간 |
-| AbortController | 언마운트 시 요청 취소 | 낮음 |
+| 기능                | 설명                        | 복잡도 |
+| ------------------- | --------------------------- | ------ |
+| `refreshMode` 처리  | onMount/interval 로직       | 중간   |
+| `reload()` 노출     | 외부에서 새로고침 호출 가능 | 낮음   |
+| `useAsyncList` 통합 | React Stately 활용          | 중간   |
+| AbortController     | 언마운트 시 요청 취소       | 낮음   |
 
 **코드 변경**:
 
@@ -939,9 +979,11 @@ interface UseCollectionDataResult {
   lastRefreshedAt: number | null;
 }
 
-export function useCollectionData(options: UseCollectionDataOptions): UseCollectionDataResult {
+export function useCollectionData(
+  options: UseCollectionDataOptions,
+): UseCollectionDataResult {
   const {
-    refreshMode = 'manual',
+    refreshMode = "manual",
     refreshInterval = 30000,
     elementId,
   } = options;
@@ -972,14 +1014,14 @@ export function useCollectionData(options: UseCollectionDataOptions): UseCollect
 
   // onMount 모드
   useEffect(() => {
-    if (refreshMode === 'onMount') {
+    if (refreshMode === "onMount") {
       reload();
     }
   }, [refreshMode, reload]);
 
   // interval 모드
   useEffect(() => {
-    if (refreshMode !== 'interval') return;
+    if (refreshMode !== "interval") return;
 
     const timer = setInterval(() => {
       reload();
@@ -1018,17 +1060,18 @@ export function useCollectionData(options: UseCollectionDataOptions): UseCollect
 **Goal**: 중앙 동기화 관리 서비스
 
 **Files to Create**:
+
 - `src/builder/services/DataSyncManager.ts`
 - `src/types/dataSync.types.ts`
 
 **구현 내용**:
 
-| 기능 | 설명 | 복잡도 |
-|------|------|--------|
-| Consumer Registry | componentId → reload 함수 매핑 | 낮음 |
-| syncComponent | 특정 컴포넌트 새로고침 | 낮음 |
-| syncDataSource | 특정 데이터 소스 사용하는 모든 컴포넌트 새로고침 | 중간 |
-| Interval Scheduler | 주기적 갱신 관리 | 중간 |
+| 기능               | 설명                                             | 복잡도 |
+| ------------------ | ------------------------------------------------ | ------ |
+| Consumer Registry  | componentId → reload 함수 매핑                   | 낮음   |
+| syncComponent      | 특정 컴포넌트 새로고침                           | 낮음   |
+| syncDataSource     | 특정 데이터 소스 사용하는 모든 컴포넌트 새로고침 | 중간   |
+| Interval Scheduler | 주기적 갱신 관리                                 | 중간   |
 
 **코드**:
 
@@ -1056,7 +1099,10 @@ class DataSyncManager {
   private schedulers = new Map<string, NodeJS.Timeout>();
 
   // Consumer 등록
-  registerConsumer(componentId: string, info: Omit<ConsumerInfo, 'componentId'>) {
+  registerConsumer(
+    componentId: string,
+    info: Omit<ConsumerInfo, "componentId">,
+  ) {
     this.consumers.set(componentId, { componentId, ...info });
   }
 
@@ -1078,8 +1124,10 @@ class DataSyncManager {
     const promises: Promise<void>[] = [];
 
     this.consumers.forEach((consumer) => {
-      if (consumer.dataBinding?.source === 'dataTable' &&
-          consumer.dataBinding?.name === dataTableName) {
+      if (
+        consumer.dataBinding?.source === "dataTable" &&
+        consumer.dataBinding?.name === dataTableName
+      ) {
         promises.push(consumer.reload());
       }
     });
@@ -1130,47 +1178,51 @@ export const dataSyncManager = new DataSyncManager();
 **Goal**: loadDataset, syncComponent, apiCall 확장
 
 **Files to Modify**:
+
 - `src/utils/events/eventEngine.ts`
 - `src/builder/inspector/events/actions/` (새 에디터 추가)
 - `src/builder/inspector/events/data/actionMetadata.ts`
 
 **구현 내용**:
 
-| 액션 | 설명 | 복잡도 |
-|------|------|--------|
-| `loadDataset` | Dataset/컴포넌트 데이터 로드 | 중간 |
-| `syncComponent` | 컴포넌트 새로고침 | 낮음 |
-| `apiCall.saveToDataTable` | API 응답을 DataTable에 저장 | 중간 |
+| 액션                      | 설명                         | 복잡도 |
+| ------------------------- | ---------------------------- | ------ |
+| `loadDataset`             | Dataset/컴포넌트 데이터 로드 | 중간   |
+| `syncComponent`           | 컴포넌트 새로고침            | 낮음   |
+| `apiCall.saveToDataTable` | API 응답을 DataTable에 저장  | 중간   |
 
 **loadDataset 액션 에디터**:
 
 ```tsx
 // src/builder/inspector/events/actions/LoadDatasetActionEditor.tsx
 
-export function LoadDatasetActionEditor({ config, onUpdate }: ActionEditorProps) {
+export function LoadDatasetActionEditor({
+  config,
+  onUpdate,
+}: ActionEditorProps) {
   return (
     <div className="action-editor">
       <PropertySelect
         label="Target Type"
-        value={config.targetType || 'dataset'}
+        value={config.targetType || "dataset"}
         onChange={(value) => onUpdate({ ...config, targetType: value })}
         options={[
-          { value: 'dataset', label: 'Dataset' },
-          { value: 'component', label: 'Component' },
-          { value: 'dataTable', label: 'DataTable' },
+          { value: "dataset", label: "Dataset" },
+          { value: "component", label: "Component" },
+          { value: "dataTable", label: "DataTable" },
         ]}
       />
 
-      {config.targetType === 'dataset' && (
+      {config.targetType === "dataset" && (
         <PropertySelect
           label="Dataset"
-          value={config.datasetId || ''}
+          value={config.datasetId || ""}
           onChange={(value) => onUpdate({ ...config, datasetId: value })}
           options={datasetOptions}
         />
       )}
 
-      {config.targetType === 'component' && (
+      {config.targetType === "component" && (
         <ComponentSelector
           label="Component"
           value={config.componentId}
@@ -1179,10 +1231,10 @@ export function LoadDatasetActionEditor({ config, onUpdate }: ActionEditorProps)
         />
       )}
 
-      {config.targetType === 'dataTable' && (
+      {config.targetType === "dataTable" && (
         <PropertySelect
           label="DataTable"
-          value={config.dataTableName || ''}
+          value={config.dataTableName || ""}
           onChange={(value) => onUpdate({ ...config, dataTableName: value })}
           options={dataTableOptions}
         />
@@ -1271,6 +1323,7 @@ private async executeApiCall(config: ApiCallActionConfig): Promise<unknown> {
 **Goal**: Preview iframe에서 데이터 동기화 지원
 
 **Files to Modify**:
+
 - `src/canvas/store/runtimeStore.ts`
 - `src/canvas/messaging/messageHandler.ts`
 - `src/builder/hooks/useIframeMessenger.ts`
@@ -1290,11 +1343,11 @@ private async executeApiCall(config: ApiCallActionConfig): Promise<unknown> {
 
 **구현 내용**:
 
-| 기능 | 설명 | 복잡도 |
-|------|------|--------|
-| SYNC_COMPONENT 메시지 | 특정 컴포넌트 리로드 | 중간 |
-| SYNC_DATA_TABLE 메시지 | DataTable 업데이트 전파 | 중간 |
-| runtimeData 동기화 | API 응답을 Canvas에 전파 | 중간 |
+| 기능                   | 설명                     | 복잡도 |
+| ---------------------- | ------------------------ | ------ |
+| SYNC_COMPONENT 메시지  | 특정 컴포넌트 리로드     | 중간   |
+| SYNC_DATA_TABLE 메시지 | DataTable 업데이트 전파  | 중간   |
+| runtimeData 동기화     | API 응답을 Canvas에 전파 | 중간   |
 
 ---
 
@@ -1302,12 +1355,12 @@ private async executeApiCall(config: ApiCallActionConfig): Promise<unknown> {
 
 **Goal**: 실시간 동기화 + 에러 복구
 
-| 기능 | 설명 | 복잡도 | 우선순위 |
-|------|------|--------|----------|
-| Realtime Mode | Supabase Realtime 연동 | 높음 | 낮음 |
-| Retry Logic | 실패 시 자동 재시도 | 중간 | 중간 |
-| Optimistic Updates | 낙관적 업데이트 | 높음 | 낮음 |
-| Conflict Resolution | 동시 수정 충돌 해결 | 높음 | 낮음 |
+| 기능                | 설명                | 복잡도 | 우선순위 |
+| ------------------- | ------------------- | ------ | -------- |
+| Realtime Mode       | Cloud Realtime 연동 | 높음   | 낮음     |
+| Retry Logic         | 실패 시 자동 재시도 | 중간   | 중간     |
+| Optimistic Updates  | 낙관적 업데이트     | 높음   | 낮음     |
+| Conflict Resolution | 동시 수정 충돌 해결 | 높음   | 낮음     |
 
 ---
 
@@ -1318,13 +1371,13 @@ private async executeApiCall(config: ApiCallActionConfig): Promise<unknown> {
 ```typescript
 interface PropertyDataBinding {
   // 기존
-  source: 'dataTable' | 'api' | 'variable' | 'route';
+  source: "dataTable" | "api" | "variable" | "route";
   name: string;
   path?: string;
 
   // 🆕 신규
-  refreshMode?: 'manual' | 'onMount' | 'interval' | 'realtime';
-  refreshInterval?: number;  // ms (기본: 30000)
+  refreshMode?: "manual" | "onMount" | "interval" | "realtime";
+  refreshInterval?: number; // ms (기본: 30000)
 }
 ```
 
@@ -1367,7 +1420,7 @@ interface UseCollectionDataResult {
 ```typescript
 // loadDataset
 interface LoadDatasetActionConfig {
-  targetType: 'dataset' | 'component' | 'dataTable';
+  targetType: "dataset" | "component" | "dataTable";
   datasetId?: string;
   componentId?: string;
   dataTableName?: string;
@@ -1390,7 +1443,7 @@ interface ApiCallActionConfig {
   // 🆕 신규
   saveToDataTable?: string;
   resultPath?: string;
-  mergeMode?: 'replace' | 'append' | 'prepend';
+  mergeMode?: "replace" | "append" | "prepend";
 }
 ```
 
@@ -1462,11 +1515,11 @@ src/
 
 ### 기존 코드 영향
 
-| 영역 | 영향 | 대응 |
-|------|------|------|
-| PropertyDataBinding | 호환 (신규 필드 optional) | 변경 없음 |
-| useCollectionData | 호환 (신규 옵션 optional) | 변경 없음 |
-| Event Actions | 호환 (기존 apiCall 동작 유지) | 변경 없음 |
+| 영역                | 영향                          | 대응      |
+| ------------------- | ----------------------------- | --------- |
+| PropertyDataBinding | 호환 (신규 필드 optional)     | 변경 없음 |
+| useCollectionData   | 호환 (신규 옵션 optional)     | 변경 없음 |
+| Event Actions       | 호환 (기존 apiCall 동작 유지) | 변경 없음 |
 
 ### 점진적 적용
 
@@ -1482,14 +1535,14 @@ src/
 
 ## 구현 우선순위 요약
 
-| 순위 | Phase | 기능 | 복잡도 | 효과 |
-|------|-------|------|--------|------|
-| **1** | Phase 1 | `refreshMode` 옵션 | 낮음 | 선언적 갱신 설정 |
-| **2** | Phase 2 | `useCollectionData` 확장 | 중간 | 자동 갱신 + reload |
-| **3** | Phase 3 | `DataSyncManager` | 중간 | 중앙 동기화 관리 |
-| **4** | Phase 4 | Event Actions 확장 | 중간 | 이벤트 기반 동기화 |
-| **5** | Phase 5 | Canvas Integration | 중간 | Preview 동기화 |
-| **6** | Phase 6 | Advanced Features | 높음 | 실시간 + 에러 복구 |
+| 순위  | Phase   | 기능                     | 복잡도 | 효과               |
+| ----- | ------- | ------------------------ | ------ | ------------------ |
+| **1** | Phase 1 | `refreshMode` 옵션       | 낮음   | 선언적 갱신 설정   |
+| **2** | Phase 2 | `useCollectionData` 확장 | 중간   | 자동 갱신 + reload |
+| **3** | Phase 3 | `DataSyncManager`        | 중간   | 중앙 동기화 관리   |
+| **4** | Phase 4 | Event Actions 확장       | 중간   | 이벤트 기반 동기화 |
+| **5** | Phase 5 | Canvas Integration       | 중간   | Preview 동기화     |
+| **6** | Phase 6 | Advanced Features        | 높음   | 실시간 + 에러 복구 |
 
 ---
 

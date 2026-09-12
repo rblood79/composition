@@ -98,7 +98,7 @@ Event Types              →    Actions
 
 #### composition 적용 포인트
 
-- **Database Trigger 개념**: Supabase Realtime과 연동
+- **Database Trigger 개념**: Cloud Realtime과 연동
 - **Backend vs Frontend 분리**: 서버 액션 vs 클라이언트 액션
 
 ---
@@ -309,7 +309,7 @@ User                           Type: User               Current cell's User
 │                  Data Layer                             │
 ├─────────────────────────────────────────────────────────┤
 │  Data Sources                                           │
-│  ├── Internal Database (Supabase)                       │
+│  ├── Internal Database (Cloud)                       │
 │  ├── External API (REST, GraphQL)                       │
 │  ├── Static Data (JSON)                                 │
 │  └── User Input (Form State)                            │
@@ -407,7 +407,7 @@ User                           Type: User               Current cell's User
 │  │   ├── Transform: (data) => data.results              │
 │  │   └── Auto-fetch: On page load                       │
 │  │                                                      │
-│  ├── [+] Supabase Table                                 │
+│  ├── [+] Cloud Table                                 │
 │  │   ├── Name: "products"                               │
 │  │   ├── Table: products                                │
 │  │   ├── Filters: [{ field: "active", op: "eq", value: true }] │

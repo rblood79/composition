@@ -1,6 +1,6 @@
 # 프로젝트별 파일 모드 + 웹 브라우저 하이브리드 아키텍처
 
-> **폐기 (2026-09-09)**: Electron 파일 모드를 전제한 2025-11 설계다. Electron 은 채택되지 않았고 ([ELECTRON_SETUP](ELECTRON_SETUP.md)), 인용된 `dashboard/` · `dialogs/` · `services/database/` 계층도 존재하지 않는다. 현행 저장 구조는 IndexedDB canonical + Supabase 인증 전용 ([ADR-128](../adr/completed/128-supabase-backend-decommission.md)). 기록 보존용.
+> **폐기 (2026-09-09)**: Electron 파일 모드를 전제한 2025-11 설계다. Electron 은 채택되지 않았고 ([ELECTRON_SETUP](ELECTRON_SETUP.md)), 인용된 `dashboard/` · `dialogs/` · `services/database/` 계층도 존재하지 않는다. 현행 저장 구조는 IndexedDB canonical + Cloud 인증 전용 ([ADR-128](../adr/completed/128-cloud-backend-decommission.md)). 기록 보존용.
 
 **작성일**: 2025-11-07
 **목적**: Electron 파일 모드와 웹 브라우저 접근의 완벽한 통합
@@ -38,7 +38,7 @@
 └─────────────────────────────┼────────────────────────────────────┘
                               │
                     ┌─────────▼─────────┐
-                    │   Supabase        │
+                    │   Cloud        │
                     │   (Cloud DB)      │
                     │                   │
                     │  projects         │
@@ -59,14 +59,14 @@
    - MyWebsite.composition 생성
    - 페이지/컴포넌트 추가
    - Settings > Enable Cloud Sync ✅
-   - 저장 → Supabase에 자동 업로드
+   - 저장 → Cloud에 자동 업로드
 
 2️⃣ 웹 브라우저 (집 또는 다른 PC)
    - https://composition.app 접속
    - 로그인
    - 프로젝트 목록에서 "MyWebsite" 확인 ✅
    - 웹에서 직접 편집 가능
-   - 저장 → Supabase에 직접 저장
+   - 저장 → Cloud에 직접 저장
 
 3️⃣ Electron (다음날)
    - MyWebsite.composition 열기
@@ -84,7 +84,7 @@
    - New Project 클릭
    - "Portfolio" 프로젝트 생성
    - 페이지/컴포넌트 추가
-   - 저장 → Supabase에 직접 저장
+   - 저장 → Cloud에 직접 저장
 
 2️⃣ Electron (나중에)
    - File > Open from Cloud
@@ -122,7 +122,7 @@
 
 // _project_metadata 테이블
 {
-  project_id: "abc-123-def-456",     // Supabase project.id와 동일
+  project_id: "abc-123-def-456",     // Cloud project.id와 동일
   sync_enabled: true,
   last_sync_at: "2025-11-07T10:30:00Z",
   local_updated_at: "2025-11-07T11:00:00Z",
@@ -138,7 +138,7 @@
 }
 ```
 
-#### 1.2. Supabase (클라우드)
+#### 1.2. Cloud (클라우드)
 
 ```typescript
 // projects 테이블
@@ -166,10 +166,10 @@ export async function getDatabase(): Promise<DbAdapter> {
   const envInfo = await detectEnvironment();
 
   if (envInfo.environment === "web") {
-    // 웹 브라우저: Supabase 직접 연결
-    return new SupabaseAdapter({
-      url: import.meta.env.VITE_SUPABASE_URL,
-      anonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    // 웹 브라우저: Cloud 직접 연결
+    return new CloudAdapter({
+      url: import.meta.env.VITE_CLOUD_URL,
+      anonKey: import.meta.env.VITE_CLOUD_ANON_KEY,
     });
   }
 
@@ -180,9 +180,9 @@ export async function getDatabase(): Promise<DbAdapter> {
 
 **웹 브라우저는 기존 방식 그대로 유지:**
 
-- ✅ Supabase에 직접 연결
+- ✅ Cloud에 직접 연결
 - ✅ 모든 프로젝트 목록 조회
-- ✅ 실시간 협업 가능 (Supabase Realtime)
+- ✅ 실시간 협업 가능 (Cloud Realtime)
 
 ---
 
@@ -203,7 +203,7 @@ export function ProjectList() {
   const loadProjects = async () => {
     const db = await getDatabase();
 
-    // Supabase에서 모든 프로젝트 조회
+    // Cloud에서 모든 프로젝트 조회
     const allProjects = await db.select("projects", {
       orderBy: [{ column: "updated_at", ascending: false }],
     });
@@ -314,9 +314,9 @@ export async function checkSyncConflict(
   projectId: string,
   localUpdatedAt: Date,
 ): Promise<SyncConflict | null> {
-  const supabase = await getSupabaseClient();
+  const cloud = await getCloudClient();
 
-  const { data: project } = await supabase
+  const { data: project } = await cloud
     .from("projects")
     .select("updated_at")
     .eq("id", projectId)
@@ -429,7 +429,7 @@ export function SyncConflictDialog({ conflict }: { conflict: SyncConflict }) {
 
 | 기능                 | Electron (파일 모드) | 웹 브라우저      |
 | -------------------- | -------------------- | ---------------- |
-| **프로젝트 생성**    | ✅ .composition 파일 | ✅ Supabase 직접 |
+| **프로젝트 생성**    | ✅ .composition 파일 | ✅ Cloud 직접    |
 | **프로젝트 열기**    | ✅ 파일 선택         | ✅ 목록 선택     |
 | **오프라인 작업**    | ✅ 완전 지원         | ❌ 인터넷 필수   |
 | **파일 공유**        | ✅ USB/이메일        | ❌ 링크만 가능   |
@@ -462,7 +462,7 @@ export function SyncConflictDialog({ conflict }: { conflict: SyncConflict }) {
            │    MyWebsite.composition          │    "Portfolio"
            │                               │
            │ 2. Enable Sync ✅             │ 2. Auto Saved to
-           │                               │    Supabase ✅
+           │                               │    Cloud ✅
            │ 3. Sync to Cloud              │
            │    (Upload)                   │
            │                               │
@@ -470,7 +470,7 @@ export function SyncConflictDialog({ conflict }: { conflict: SyncConflict }) {
                        │
                        ▼
            ┌───────────────────────┐
-           │    Supabase Cloud     │
+           │    Cloud DB        │
            │                       │
            │  - MyWebsite (abc-123)│
            │  - Portfolio (def-456)│

@@ -7,19 +7,19 @@
 
 ## 1. 빌더별 요약 비교표
 
-| 빌더            | 유형         | 데이터 저장       | 데이터 연결         | 바인딩 방식      | 외부 API           | 강점              |
-| --------------- | ------------ | ----------------- | ------------------- | ---------------- | ------------------ | ----------------- |
-| **Webflow**     | 웹사이트     | CMS Collection    | Dataset             | 필드 바인딩      | 제한적 (코드 필요) | SEO, 정적 콘텐츠  |
-| **Bubble**      | 풀스택 앱    | 내장 DB           | Data Type           | Thing 기반       | API Connector      | 완전한 앱 빌더    |
-| **Retool**      | 내부 도구    | 외부 DB/API       | Query + Transformer | `{{query.data}}` | 네이티브 지원      | 다양한 DB 연결    |
-| **Framer**      | 디자인       | CMS + Fetch       | Variables           | 토큰 바인딩      | Fetch (노코드)     | 디자인 중심       |
-| **Plasmic**     | 헤드리스     | 외부 CMS          | DataProvider        | Context 기반     | Code Component     | 개발자 친화적     |
-| **Builder.io**  | 헤드리스 CMS | Data Models       | State               | `state.*`        | Content API        | 멀티 프레임워크   |
-| **Appsmith**    | 내부 도구    | Datasource        | Query               | `{{}}` 무스타쉬  | 네이티브 지원      | 리액티브 바인딩   |
-| **OutSystems**  | 엔터프라이즈 | Entity            | Aggregate           | 비주얼 쿼리      | 자동 생성          | 자동화            |
-| **Wix Velo**    | 웹사이트     | Collection        | Dataset             | 자동 바인딩      | External DB 지원   | 노코드 + 코드     |
-| **FlutterFlow** | 모바일 앱    | Firebase/Supabase | Backend Query       | JSON Path        | API Call           | 모바일 특화       |
-| **Mendix**      | 엔터프라이즈 | Domain Model      | Microflow           | 매핑             | OpenAPI 자동       | 엔터프라이즈 통합 |
+| 빌더            | 유형         | 데이터 저장    | 데이터 연결         | 바인딩 방식      | 외부 API           | 강점              |
+| --------------- | ------------ | -------------- | ------------------- | ---------------- | ------------------ | ----------------- |
+| **Webflow**     | 웹사이트     | CMS Collection | Dataset             | 필드 바인딩      | 제한적 (코드 필요) | SEO, 정적 콘텐츠  |
+| **Bubble**      | 풀스택 앱    | 내장 DB        | Data Type           | Thing 기반       | API Connector      | 완전한 앱 빌더    |
+| **Retool**      | 내부 도구    | 외부 DB/API    | Query + Transformer | `{{query.data}}` | 네이티브 지원      | 다양한 DB 연결    |
+| **Framer**      | 디자인       | CMS + Fetch    | Variables           | 토큰 바인딩      | Fetch (노코드)     | 디자인 중심       |
+| **Plasmic**     | 헤드리스     | 외부 CMS       | DataProvider        | Context 기반     | Code Component     | 개발자 친화적     |
+| **Builder.io**  | 헤드리스 CMS | Data Models    | State               | `state.*`        | Content API        | 멀티 프레임워크   |
+| **Appsmith**    | 내부 도구    | Datasource     | Query               | `{{}}` 무스타쉬  | 네이티브 지원      | 리액티브 바인딩   |
+| **OutSystems**  | 엔터프라이즈 | Entity         | Aggregate           | 비주얼 쿼리      | 자동 생성          | 자동화            |
+| **Wix Velo**    | 웹사이트     | Collection     | Dataset             | 자동 바인딩      | External DB 지원   | 노코드 + 코드     |
+| **FlutterFlow** | 모바일 앱    | Firebase/Cloud | Backend Query       | JSON Path        | API Call           | 모바일 특화       |
+| **Mendix**      | 엔터프라이즈 | Domain Model   | Microflow           | 매핑             | OpenAPI 자동       | 엔터프라이즈 통합 |
 
 ---
 
@@ -167,7 +167,7 @@ Data Display:
 ```
 Backend Options:
 ├─ Firebase Firestore (Real-time)
-├─ Supabase (PostgreSQL)
+├─ Cloud (PostgreSQL)
 └─ Custom REST API
 
 Backend Query:
@@ -275,16 +275,16 @@ REST API Integration:
 
 ### 3.1 데이터 소스 연결
 
-| 빌더            | 내장 DB      | PostgreSQL | MySQL   | MongoDB | REST API  | GraphQL | Firebase  | Supabase |
-| --------------- | ------------ | ---------- | ------- | ------- | --------- | ------- | --------- | -------- |
-| Webflow         | ✅ CMS       | ❌         | ❌      | ❌      | ⚠️ Code   | ❌      | ❌        | ❌       |
-| Bubble          | ✅           | ❌         | ❌      | ❌      | ✅ Plugin | ❌      | ✅ Plugin | ❌       |
-| Retool          | ✅           | ✅         | ✅      | ✅      | ✅        | ✅      | ✅        | ✅       |
-| Framer          | ✅ CMS       | ❌         | ❌      | ❌      | ✅ Fetch  | ❌      | ❌        | ❌       |
-| Plasmic         | ❌           | ✅ Code    | ✅ Code | ✅ Code | ✅ Code   | ✅ Code | ✅ Code   | ✅ Code  |
-| Appsmith        | ✅           | ✅         | ✅      | ✅      | ✅        | ✅      | ✅        | ✅       |
-| FlutterFlow     | ❌           | ❌         | ❌      | ❌      | ✅        | ❌      | ✅        | ✅       |
-| **composition** | ✅ DataTable | 🔮 예정    | 🔮 예정 | ❌      | ✅        | ❌      | ❌        | ❌       |
+| 빌더            | 내장 DB      | PostgreSQL | MySQL   | MongoDB | REST API  | GraphQL | Firebase  | Cloud   |
+| --------------- | ------------ | ---------- | ------- | ------- | --------- | ------- | --------- | ------- |
+| Webflow         | ✅ CMS       | ❌         | ❌      | ❌      | ⚠️ Code   | ❌      | ❌        | ❌      |
+| Bubble          | ✅           | ❌         | ❌      | ❌      | ✅ Plugin | ❌      | ✅ Plugin | ❌      |
+| Retool          | ✅           | ✅         | ✅      | ✅      | ✅        | ✅      | ✅        | ✅      |
+| Framer          | ✅ CMS       | ❌         | ❌      | ❌      | ✅ Fetch  | ❌      | ❌        | ❌      |
+| Plasmic         | ❌           | ✅ Code    | ✅ Code | ✅ Code | ✅ Code   | ✅ Code | ✅ Code   | ✅ Code |
+| Appsmith        | ✅           | ✅         | ✅      | ✅      | ✅        | ✅      | ✅        | ✅      |
+| FlutterFlow     | ❌           | ❌         | ❌      | ❌      | ✅        | ❌      | ✅        | ✅      |
+| **composition** | ✅ DataTable | 🔮 예정    | 🔮 예정 | ❌      | ✅        | ❌      | ❌        | ❌      |
 
 > **composition 내장 DB = DataTable**
 >
@@ -483,7 +483,7 @@ REST API Integration:
 ### 4.4 FlutterFlow (Backend 선택 우선)
 
 ```
-1. Backend 선택 (Firebase/Supabase/API)
+1. Backend 선택 (Firebase/Cloud/API)
 2. Schema 정의 또는 Import
 3. Backend Query 설정
 4. Widget에 바인딩

@@ -50,7 +50,7 @@ DesignKit 의 **고유 가치** 라 할만한 것은 ADR-020 §2.6 (시각적 �
 | ------------------------ | --------------------------------------------------------------------------------------- |
 | type-check               | error 0 통과 필수                                                                       |
 | `pnpm build`             | 통과 필수                                                                               |
-| Supabase schema          | 영향 없음 (designkit 전용 테이블 / column 0건 검증됨)                                   |
+| Cloud schema             | 영향 없음 (designkit 전용 테이블 / column 0건 검증됨)                                   |
 | localStorage / IndexedDB | 영향 없음 (designkit 키 0건 검증됨)                                                     |
 | 사용자 데이터 보존       | `.kit.json` 파일은 사용자 로컬 디스크 보존 (composition 측에서 import / export 차단 OK) |
 | 다른 패널 회귀           | 0건 (사이드바 + 단축키 + 패널 마운트)                                                   |

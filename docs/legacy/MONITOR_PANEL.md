@@ -3376,7 +3376,7 @@ test.describe("Monitor Panel Accessibility", () => {
 
 ### 📋 Phase 6 개요
 
-**목표**: 경쟁 제품 분석 기반 고급 기능 추가 (Figma, Chrome DevTools, Supabase 스타일)
+**목표**: 경쟁 제품 분석 기반 고급 기능 추가 (Figma, Chrome DevTools, Cloud 스타일)
 
 **구현 항목**:
 

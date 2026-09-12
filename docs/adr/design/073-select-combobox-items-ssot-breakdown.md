@@ -171,7 +171,7 @@ Scope α: Select + ComboBox 한정. ListBox 는 `[data-orientation]`/`--lb-*` �
 
 **DB 레벨 (경로 재결정 — Codex OQ 반영)**:
 
-- 저장소에 `./supabase/` 디렉토리 **부재**. composition 의 기존 migration 위치는 `./docs/migrations/` (현재 `001_g1_g2_data_model.sql` 1 파일만).
+- 저장소에 `./cloud/` 디렉토리 **부재**. composition 의 기존 migration 위치는 `./docs/migrations/` (현재 `001_g1_g2_data_model.sql` 1 파일만).
 - ADR-068 Menu items SSOT 선례 확인 결과 DB migration 파일 신설 0 (런타임 마이그레이션만 수행)
 - 본 ADR-073 에서 두 경로 중 선택 (P5 착수 시 확정):
   - (a) **런타임 마이그레이션 + 명시적 orphan delete (히스토리 비기록)** (Codex 3차+4차 리뷰 반영):
@@ -183,7 +183,7 @@ Scope α: Select + ComboBox 한정. ListBox 는 `[data-orientation]`/`--lb-*` �
       - 권장: (a-2) — 함수 일원화 + 일반화 가능. P5 구현 시 확정
     - 근거: 현 저장 경로 (`elementUpdate.ts:286-295` + `ElementsApiService.ts:200`) 는 부모 props 업데이트만 수행하고 자식 row 삭제 로직 **없음**. "다음 save cycle 에서 cleanup" 가정은 오류 — 명시적 삭제 단계 필수. 그리고 그 삭제는 반드시 **히스토리 비기록** 모드여야 undo 스택 보존
     - ADR-068 Menu 선례 정확 검증 필요 (MenuItem 의 경우 자식 row 가 남아 있는지, 아니면 별도 삭제 수행했는지, 수행했다면 히스토리 모드)
-  - (b) **`docs/migrations/00N_select_combobox_items_backfill.sql` 신설** — 서버 측 일괄 정리 (Supabase SQL editor 로 수동 실행). backfill SQL 에 `DELETE FROM elements WHERE tag IN ('SelectItem','ComboBoxItem') AND parent_id IN (...)` 포함
+  - (b) **`docs/migrations/00N_select_combobox_items_backfill.sql` 신설** — 서버 측 일괄 정리 (Cloud SQL editor 로 수동 실행). backfill SQL 에 `DELETE FROM elements WHERE tag IN ('SelectItem','ComboBoxItem') AND parent_id IN (...)` 포함
 - rollback 경로: backup snapshot + `migrated_at` flag 기반 역방향 변환 유틸
 
 ### P6 — SelectItem / ComboBoxItem element 소멸 (범위 확장 — Codex 리뷰 반영)
@@ -221,7 +221,7 @@ metadata + editor 만 지우는 수준이 아니라 **Factory / Hierarchy / canv
 | Editors                   | `apps/builder/src/builder/panels/properties/editors/SelectItemEditor.tsx`   | 제거 (P4)                                                                                                                                                               |
 | Editors                   | `apps/builder/src/builder/panels/properties/editors/ComboBoxItemEditor.tsx` | 제거 (P4)                                                                                                                                                               |
 | Migration runtime         | `packages/shared/src/utils/migrateSelectComboBoxItems.ts`                   | 신설 (P5 runtime 레벨)                                                                                                                                                  |
-| Migration SQL             | `docs/migrations/00N_select_combobox_items_backfill.sql`                    | (P5 선택) 신설 — 경로: `docs/migrations/` (NOT `supabase/migrations/`). ADR-068 선례는 런타임만 수행                                                                    |
+| Migration SQL             | `docs/migrations/00N_select_combobox_items_backfill.sql`                    | (P5 선택) 신설 — 경로: `docs/migrations/` (NOT `cloud/migrations/`). ADR-068 선례는 런타임만 수행                                                                       |
 | Metadata                  | `packages/shared/src/components/metadata.ts`                                | P6 — SelectItem/ComboBoxItem entry 제거 (Label/SelectTrigger/SelectValue 유지)                                                                                          |
 | **Factory**               | **`apps/builder/src/builder/factories/definitions/SelectionComponents.ts`** | **P6: L87, 215 Select/ComboBox factory 의 SelectItem/ComboBoxItem child 자동 생성 블록 제거 + default `items[]` 2~3 개로 대체**                                         |
 | **Hierarchy**             | **`apps/builder/src/builder/utils/HierarchyManager.ts`**                    | **P6: L402-409 Select/ComboBox tag 분기 items[] 기반 재작성 or 제거**                                                                                                   |
@@ -247,7 +247,7 @@ metadata + editor 만 지우는 수준이 아니라 **Factory / Hierarchy / canv
 - ❌ **`renderSelect`/`renderComboBox` 를 `CollectionRenderers.tsx` 에서 찾지 말 것** — 실제 위치는 `SelectionRenderers.tsx:619/882`
 - ❌ Select 의 Label/SelectTrigger/SelectValue sub-element 를 items[] 에 흡수 (SelectItem/ComboBoxItem 만 흡수)
 - ❌ ComboBox `allowsCustomValue: true` 동작 붕괴 (items 외 user input 값 허용 RAC 동작 보존 필수)
-- ❌ `supabase/migrations/` 경로 사용 (저장소 부재). 필요 시 `docs/migrations/00N_*.sql` 신설
+- ❌ `cloud/migrations/` 경로 사용 (저장소 부재). 필요 시 `docs/migrations/00N_*.sql` 신설
 - ❌ `ItemsManager` 를 Menu 전용 가정 유지 (Codex 리뷰로 Menu 하드코딩 확증됨 — 일반화 필수)
 - ❌ P6 에서 metadata + editor 만 정리 (Factory/Hierarchy/canvas 3 파일 동시 필수)
 

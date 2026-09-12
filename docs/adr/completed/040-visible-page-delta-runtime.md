@@ -34,7 +34,7 @@ builder 상태 동기화는 여전히 여러 구간에서 `전체 elements 배�
 
 현재 builder는 다음 경로를 여전히 가진다.
 
-- page load 시 IndexedDB/Supabase 결과를 전체 `elements`로 병합 후 `setElements(...)`
+- page load 시 IndexedDB/Cloud 결과를 전체 `elements`로 병합 후 `setElements(...)`
 - preview/iframe 메시지 처리 중 `UPDATE_ELEMENTS` 수신 시 `setElements(...)`
 - 일부 editor/property/layout 경로에서도 전체 배열 교체 사용
 
@@ -406,7 +406,7 @@ store는 다음 성질을 가져야 한다.
 - 2026-03-13: `LayersSection`과 `LayerTree`에서 current-page map / node map을 재사용하도록 정리해 선택 변경·자동 펼침 시 불필요한 재귀/선형 탐색을 제거
 - 2026-03-13: `NodesPanel`에서 `LayersSection`을 deferred current page 기준으로 렌더해 page activation의 동기 커밋 부담을 낮춤
 - 2026-03-13: `LayerTree`가 큰 현재 페이지 트리에서는 `VirtualizedTree` 경로를 사용하도록 전환해 page activation 시 layer panel 렌더 범위를 축소
-- 2026-03-13: `usePageManager` / `PagesSection`에서 page activation과 delete fallback local transition을 `startTransition`으로 낮추고, 삭제 후 Supabase page sync 잔여 호출을 제거
+- 2026-03-13: `usePageManager` / `PagesSection`에서 page activation과 delete fallback local transition을 `startTransition`으로 낮추고, 삭제 후 Cloud page sync 잔여 호출을 제거
 - 2026-03-13: `NodesPanel`의 pages/layouts 탭 콘텐츠를 분리해 pages 탭에서 layouts 관련 구독, layouts 탭에서 pages/layers 관련 구독이 함께 흔들리지 않도록 commit 범위를 축소
 - 2026-03-13: `PagesTabContent`에서 `LayersSection` 표시용 page id를 한 프레임 더 늦춰 activation 첫 RAF에서 page 전환과 layer panel 초기 커밋을 분리
 - 2026-03-13: `LayersSection` 첫 렌더는 placeholder만 표시하고 실제 `LayerTree`는 다음 프레임에 붙여 activation 프레임의 layer panel 초기 커밋을 추가로 분리

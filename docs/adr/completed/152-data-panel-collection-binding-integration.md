@@ -26,7 +26,7 @@ Implemented — 2026-09-11 (Proposed 2026-07-16 · Accepted 2026-09-11 · 리뷰
 2. **읽기 경로 3중화** — `useCollectionData.ts:202-208` 에 ① `dataBinding`(PropertyDataBinding) ② `datatableId`(legacy `useDataTableStore`, `stores/datatable.ts`) ③ legacy `DataBinding type:"collection"` 세 입력 경로가 공존한다.
 3. **column mapping 부재** — item label 이 하드코딩 필드 휴리스틱(`packages/shared/src/collections/resolveCollectionItems.ts:169-176`, `label > textValue > children > name > title > value`)으로만 결정된다. schema 가 `{ email, age }` 인 테이블은 어떤 컬럼을 표시할지 사용자가 선택할 수 없다. → **개정 2026-07-21**: 텍스트 표시(label/description)는 ADR-159 `{field}` 템플릿이 해결(다중 필드+literal 혼합 — 단일 컬럼 fieldMap 으로는 표현 불가가 확인됨). 본 ADR 잔존분은 비텍스트 역할(icon/value) 매핑만.
 4. **publish 소비 0건** — `apps/publish/src` 에 collections 소비 코드가 없어, 배포된 앱에서 바인딩된 collection 이 데이터를 렌더하지 못한다 (ADR-132 §scope 경계 W4 지정 영역). → **개정 2026-08-17**: 원인이 publish 고유가 아니다. 아래 격차 7 의 provider 부재가 **preview 에도 동일하게** 걸린다 — publish 는 소비 코드가 없고 preview 는 소비 코드가 있는데 공급자가 없는 형태로, 증상(0행)은 같다.
-5. **store 이중화** — `useDataStore`(`stores/data.ts`, Supabase SSOT) 와 `useDataTableStore`(`stores/datatable.ts`, 별도 상태 기계) 공존.
+5. **store 이중화** — `useDataStore`(`stores/data.ts`, Cloud SSOT) 와 `useDataTableStore`(`stores/datatable.ts`, 별도 상태 기계) 공존.
 6. **binding 이중 저장 위치** — `getElementDataBinding` 이 `props.dataBinding` 우선 + legacy top-level `element.dataBinding` fallback 의 2 위치를 읽는다 (`apps/builder/src/adapters/canonical/compositionExtensionFields.ts:74-94`). scene projection signature 는 `props` 만 포함하므로 (`buildSceneSnapshot.ts:49-66`) legacy top-level 위치만 가진 요소는 binding 변경이 sceneVersion 에 미감지되는 사각이 있다.
 7. **DI provider 부재 → Skia ↔ DOM 대칭이 이미 깨져 있다 (실측 2026-08-17)** — `CollectionDataProvider` / `CollectionDataContext.Provider` 가 **repo 어디에도 렌더되지 않는다** (전 확장자 grep 0건 + `git log -S --all` 결과 2건 모두 ADR 문서의 코드 예시 — 한 번도 마운트된 적 없음). 따라서 `useCollectionDataServices()` 는 항상 context 기본값 `{}` 를 반환하고 `dataTableService` / `apiEndpointService` / `mockApiService` 가 영구히 `undefined` 다. 상세는 아래 §"격차 7 실측 근거".
 
@@ -106,7 +106,7 @@ Implemented — 2026-09-11 (Proposed 2026-07-16 · Accepted 2026-09-11 · 리뷰
   - 기술: M — root collection 메커니즘은 기존재
   - 성능: L
   - 유지보수: M — 데이터 CRUD 가 문서 mutation/history 파이프라인에 편입되는 비용
-  - 마이그레이션: **H** — 기존 프로젝트 전수의 `data_tables` → document 이관 + Supabase 스키마 이중화 기간. 무엇보다 ADR-131 Phase 8 에서 **사용자가 명시 revert 로 확정한 전제(데이터 SSOT = `data_tables`)를 반전**시키는 SSOT 경계 재판정이라, 확정 전제의 재개 조건(사용자 재제기/scope 변경/코드 증거) 없이 채택 불가
+  - 마이그레이션: **H** — 기존 프로젝트 전수의 `data_tables` → document 이관 + Cloud 스키마 이중화 기간. 무엇보다 ADR-131 Phase 8 에서 **사용자가 명시 revert 로 확정한 전제(데이터 SSOT = `data_tables`)를 반전**시키는 SSOT 경계 재판정이라, 확정 전제의 재개 조건(사용자 재제기/scope 변경/코드 증거) 없이 채택 불가
 
 ### 대안 D (2026-09-11 추가): 대안 B + `fieldId` 없이 rename 파급만 (이름 참조 유지 + 적용기가 참조를 재작성)
 

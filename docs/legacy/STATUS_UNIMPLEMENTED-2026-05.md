@@ -160,7 +160,7 @@ External API
 
 ### 해결 방안
 
-Supabase Edge Function을 통한 서버 사이드 프록시:
+Cloud Edge Function을 통한 서버 사이드 프록시:
 
 ```
 Server-side Action 아키텍처:
@@ -171,7 +171,7 @@ API Call: POST /api/proxy/stripe-charges
 Header: Authorization: Bearer <user_session_token>
     ↓
 ┌───────────────────────────────────────────────────────┐
-│  Supabase Edge Function (Server)                       │
+│  Cloud Edge Function (Server)                       │
 │                                                        │
 │  1. 세션 토큰 검증                                      │
 │  2. 프로젝트 권한 확인                                  │
@@ -190,7 +190,7 @@ External API (Stripe, OpenAI, etc.)
 | ----------------------- | -------------------------------------- | -------- |
 | executionMode 필드      | ApiEndpoint에 `client` / `server` 선택 | P1       |
 | Edge Function 템플릿    | api-proxy Edge Function 코드           | P1       |
-| Vault 연동              | Supabase Vault에서 시크릿 조회         | P1       |
+| Vault 연동              | Cloud Vault에서 시크릿 조회            | P1       |
 | Server Configuration UI | Inspector에서 서버 설정 UI             | P1       |
 
 ### ApiEndpoint 타입 확장

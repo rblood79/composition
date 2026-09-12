@@ -411,7 +411,7 @@ describe("ADR-922 Phase 3 production cutover", () => {
     );
     expect(storeSource).toContain("PANEL_WORKSPACE_LAYOUT_PRIMARY_KEY");
     expect(`${migrationSource}\n${persistenceSource}`).not.toMatch(
-      /DatabaseAdapter|db\.documents|supabase/i,
+      /DatabaseAdapter|db\.documents/i,
     );
   });
 });

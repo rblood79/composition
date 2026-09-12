@@ -537,4 +537,4 @@ rg "Transformer" apps/builder/src/services/ai --type ts
 - AI tool `createElement.ts` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3) — string rename 만 본 ADR 안, dataBinding 구조 변경은 별 ADR
 - apps/publish 의 `ProjectData` 직렬화 정합 (W4) — string rename 만 본 ADR 안, 직렬화 schema 정합은 별 ADR
 - DataPanel UI 의 정적 입력 / API 결과 표시 UX 개선
-- Element.dataBinding type 의 source enum 정합 (현 `static/api/supabase/state/parent` 5종 enum 의 valid 여부 재평가)
+- Element.dataBinding type 의 source enum 정합 (현 `static/api/cloud/state/parent` 5종 enum 의 valid 여부 재평가)

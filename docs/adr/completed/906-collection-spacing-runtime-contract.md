@@ -130,7 +130,7 @@ GridList에서 Style Panel로 `padding`/`gap`을 편집해도 Preview CSS와 Bui
 ### R2 상세 — BC 영향 수식화
 
 - 현 GridList factory 기본 style = `{ width: "100%" }` 단독 (`apps/builder/src/builder/factories/definitions/SelectionComponents.ts:322-324`) → **factory 기본값으로 신규 생성된 GridList 인스턴스** 는 `props.style.padding` / `props.style.gap` 보유 비율 = 0%.
-- 단, 사용자가 Style Panel 로 편집한 **기존 저장 인스턴스의 padding/gap 분포는 현 시점 실측 없이 불명**. Phase 1 착수 직전 프로젝트 DB scan (Supabase 쿼리 또는 export 파일 `rg`) 으로 `tag = 'GridList'` AND (`props.style.padding` 또는 `props.style.gap` 정의됨) 인스턴스 수 `N_edited` 를 측정한다. `N_edited` 결과에 따라 fixture baseline 이 두 분기로 나뉜다:
+- 단, 사용자가 Style Panel 로 편집한 **기존 저장 인스턴스의 padding/gap 분포는 현 시점 실측 없이 불명**. Phase 1 착수 직전 프로젝트 DB scan (Cloud 쿼리 또는 export 파일 `rg`) 으로 `tag = 'GridList'` AND (`props.style.padding` 또는 `props.style.gap` 정의됨) 인스턴스 수 `N_edited` 를 측정한다. `N_edited` 결과에 따라 fixture baseline 이 두 분기로 나뉜다:
   - (a) **unedited baseline** — `style` 부재 또는 padding/gap 미설정: 현 `main` 렌더와 byte-equal 유지.
   - (b) **edited baseline** (`N_edited > 0`): 편집값이 존재하면 이는 BC 회귀가 아니라 **본 ADR 의 핵심 목표 충족 여부** (Hard Constraint 1 "Preview root style 계약"). 새 파이프라인이 `style.padding/gap` 을 정확히 DOM/Skia 양쪽에 반영하는지 검증한다.
 - G3 통과 조건 (unedited baseline 수치 고정): `paddingTop = paddingRight = paddingBottom = paddingLeft = 0` 이고 `gap = 12` 일 때 `render.shapes()` 좌표 출력과 `calculateContentHeight()` 반환값이 현 `main` 과 byte-equal (fixture test).

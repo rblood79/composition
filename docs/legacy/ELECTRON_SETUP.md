@@ -143,9 +143,9 @@ Create `.env.electron`:
 # PGlite (local database)
 VITE_DB_TYPE=pglite
 
-# Optional: Supabase fallback for internet mode
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+# Optional: Cloud fallback for internet mode
+VITE_CLOUD_URL=https://your-project.cloud.co
+VITE_CLOUD_ANON_KEY=your-anon-key
 ```
 
 ---
@@ -233,11 +233,11 @@ For environments with internet access:
 
 1. **Hybrid mode**: App automatically detects internet and allows users to choose:
    - **Local database** (PGlite, default)
-   - **Cloud database** (Supabase)
+   - **Cloud database** (Cloud)
 
 2. **User preference**: Saved in `localStorage`:
    ```typescript
-   localStorage.setItem("composition-db-preference", "pglite"); // or 'supabase'
+   localStorage.setItem("composition-db-preference", "pglite"); // or 'cloud'
    ```
 
 ---
@@ -266,7 +266,7 @@ For environments with internet access:
        │                          │
        ▼                          ▼
 ┌─────────────┐         ┌─────────────────┐
-│  Supabase   │         │  Check Internet │
+│  Cloud   │         │  Check Internet │
 │   Adapter   │         └────────┬────────┘
 └─────────────┘                  │
                      ┌───────────┴───────────┐
@@ -281,7 +281,7 @@ For environments with internet access:
             │                 │              │
             ▼                 ▼              ▼
       ┌──────────┐      ┌──────────┐  ┌──────────┐
-      │ PGlite   │      │ Supabase │  │ PGlite   │
+      │ PGlite   │      │ Cloud │  │ PGlite   │
       │ (Local)  │      │ (Cloud)  │  │ (Local)  │
       └──────────┘      └──────────┘  └──────────┘
        (default)         (optional)     (forced)
@@ -302,7 +302,7 @@ For environments with internet access:
 │     │              │               │                     │
 │     ▼              ▼               ▼                     │
 │  ┌────────┐  ┌────────────┐  ┌──────────┐              │
-│  │PGlite  │  │  Supabase  │  │ PGlite   │              │
+│  │PGlite  │  │  Cloud  │  │ PGlite   │              │
 │  │  IPC   │  │  Adapter   │  │ Adapter  │              │
 │  │Adapter │  │  (Cloud)   │  │ (Direct) │              │
 │  └────┬───┘  └──────┬─────┘  └─────┬────┘              │
@@ -344,7 +344,7 @@ composition/
 │   │       ├── types.ts              # DbAdapter interface
 │   │       ├── pgliteAdapter.ts      # PGlite (main process)
 │   │       ├── pgliteIpcAdapter.ts   # PGlite (renderer via IPC)
-│   │       ├── supabaseAdapter.ts    # Supabase (cloud)
+│   │       ├── cloudAdapter.ts    # cloud
 │   │       ├── environmentDetector.ts # Environment detection
 │   │       ├── dbFactory.ts          # Adapter factory
 │   │       ├── migrations.ts         # Schema migrations
@@ -410,12 +410,12 @@ await db.vacuum();
 
 ### 5. Switching Between Databases
 
-**Switch from PGlite to Supabase** (internet mode):
+**Switch from PGlite to Cloud** (internet mode):
 
 ```typescript
 import { switchDb } from "./services/database";
 
-await switchDb("supabase");
+await switchDb("cloud");
 ```
 
 **WARNING**: This closes the current database. Save all changes first!
@@ -487,7 +487,7 @@ if (await hasInternetAccess()) {
 }
 
 // User preference
-setUserDbPreference("pglite"); // or 'supabase'
+setUserDbPreference("pglite"); // or 'cloud'
 const pref = getUserDbPreference();
 ```
 
@@ -514,7 +514,7 @@ const pref = getUserDbPreference();
 ## ✅ Summary
 
 ✅ **Local Database**: PGlite (PostgreSQL-compatible, no installation)
-✅ **Cloud Database**: Supabase (optional, for internet mode)
+✅ **Cloud Database**: Cloud (optional, for internet mode)
 ✅ **Hybrid Mode**: Auto-detect environment and allow user choice
 ✅ **Zero Dependencies**: No PostgreSQL, Docker, or additional software
 ✅ **Offline Support**: 100% functional in closed-network environments

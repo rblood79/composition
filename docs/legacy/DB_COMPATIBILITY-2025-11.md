@@ -4,9 +4,9 @@
 >
 > 이 문서는 2025-11-07의 Electron/PGlite 검토 기록입니다. 현재 Builder의
 > 프로젝트 데이터는 IndexedDB의 canonical `CompositionDocument`에 저장되며,
-> Supabase는 인증에만 사용합니다. 현행 구조는
+> Cloud는 인증에만 사용합니다. 현행 구조는
 > [IndexedDB 스키마](../reference/schemas/INDEXDB.md)와
-> [ADR-128](../adr/completed/128-supabase-backend-decommission.md)을
+> [ADR-128](../adr/completed/128-cloud-backend-decommission.md)을
 > 참조하세요. 아래의 “현재 구현” 및 권장 결론은 역사적 판단으로만 보존합니다.
 
 **작성일**: 2025-11-07
@@ -30,7 +30,7 @@
 ### 오프라인 모드에서 제외되는 기능
 
 - ❌ **AI 연동** (클라우드 LLM API 의존)
-- ❌ **실시간 협업** (Supabase Realtime 의존)
+- ❌ **실시간 협업** (Cloud Realtime 의존)
 
 ---
 

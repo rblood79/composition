@@ -229,7 +229,7 @@ it("layoutTemplate singleColumn: visual diff 0 after canonical conversion", asyn
 
 **읽기 access pattern**: `useLayoutsStore` 3개 selector (layouts / setCurrentLayout / createLayout / deleteLayout / fetchLayouts) + `elementsMap` O(1) Map.
 
-**쓰기 access pattern**: `createLayout` (Supabase DB write + store 갱신) → `deleteLayout` (Supabase + cascade) → `fetchLayouts` (Supabase read).
+**쓰기 access pattern**: `createLayout` (Cloud DB write + store 갱신) → `deleteLayout` (Cloud + cascade) → `fetchLayouts` (Cloud read).
 
 #### useLayoutsStore 결합 파일 (P2 직접 전환 대상)
 

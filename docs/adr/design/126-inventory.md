@@ -146,7 +146,7 @@ ADR-125 Phase 2-a 의 `calculateFullTreeLayoutFromSceneModel` caller swap 결과
   잡으므로 final pass/fail 단독 기준으로 쓰지 않는다.
 - final authenticated browser smoke + closure 완료: fresh Playwright context + seeded
   dev auth session 으로 `/builder/adr-126-final-smoke-*` ProtectedRoute 를 통과했다.
-  외부 Supabase REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이
+  외부 Cloud REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이
   Builder runtime 을 검증했다. create/edit/delete/undo/redo/reorder/origin-instance/
   refresh PASS, IndexedDB canonical document persisted + refresh 유지, rAF median
   120.48fps, console/page/http error 0.
@@ -159,13 +159,13 @@ Skia/scene core 전환은 `Element` type alias rename 우회가 아니라 canoni
 `CanvasSceneNode` graph 를 파생하고 Skia render bridge/command stream 이 해당 graph 를
 직접 소비하는 방향으로 land 했다.
 
-| 측정 대상                                                                                    | 결과                                                                                                      |
+| 측정 대상 | 결과 |
 | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------ | ----- |
-| `workspace/canvas/skia/**` + `workspace/canvas/scene/**` production `Element` import/raw hit | **0**                                                                                                     |
-| Skia production `rendererInput.elementsMap` / `rendererInput.childrenMap` read               | **0**                                                                                                     |
+| `workspace/canvas/skia/**` + `workspace/canvas/scene/**` production `Element` import/raw hit | **0** |
+| Skia production `rendererInput.elementsMap` / `rendererInput.childrenMap` read | **0** |
 | `(Legacy                                                                                     | Old                                                                                                       | Deprecated)Element` alias rename hit | **0** |
-| Targeted Vitest                                                                              | **18 files / 152 tests PASS**                                                                             |
-| Browser/FPS smoke                                                                            | `/builder/adr-126-phase2a-smoke`, canvas 1440x952 nonblank, console/page error 0, rAF median **120.5fps** |
+| Targeted Vitest | **18 files / 152 tests PASS** |
+| Browser/FPS smoke | `/builder/adr-126-phase2a-smoke`, canvas 1440x952 nonblank, console/page error 0, rAF median **120.5fps** |
 
 잔여 bucket:
 

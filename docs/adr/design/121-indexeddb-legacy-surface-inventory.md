@@ -64,7 +64,7 @@ Source: `apps/builder/src/lib/db/indexedDB/adapter.ts`.
 | Surface                                    | Reason                                                         |
 | ------------------------------------------ | -------------------------------------------------------------- |
 | `composition-history` DB                   | current undo/redo persistence                                  |
-| Supabase `pages`/`elements` transport API  | ADR-120 cloud compatibility boundary                           |
+| Cloud `pages`/`elements` transport API     | ADR-120 cloud compatibility boundary                           |
 | canonical adapter `legacyElementFields`    | compatibility quarantine, not IndexedDB table/column           |
 | `layout_id` in export/derived render model | frame/layout compatibility boundary                            |
 | Table component `order_num`                | component data model, not IndexedDB project-state mirror       |

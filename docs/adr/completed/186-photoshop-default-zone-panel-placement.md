@@ -117,7 +117,7 @@ component catalog/spec/Generator와 Canvas Skia/Preview/Publish 시각 consumer�
    v3-aware Phase 2 recovery build 이상만 지원한다. migration 직후 무편집 record는 exact v2
    raw를, v3-born 또는 migration 이후 편집된 record는 current v3 -> valid v2 projection을
    사용하며 direct pre-v3 build rollback은 지원하지 않는다. `CompositionDocument`, project
-   file, IndexedDB project row, Supabase row 재직렬화는 0개다.
+   file, IndexedDB project row, Cloud row 재직렬화는 0개다.
 10. move/resize hot path는 panel DOM geometry query 0, solve/publish RAF당 최대 1회를
     유지하고 5초 native-refresh delivery가 ADR-922 baseline 대비 5pp 넘게 하락하지
     않아야 한다.

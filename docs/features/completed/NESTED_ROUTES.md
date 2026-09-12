@@ -33,7 +33,6 @@
 >
 > </details>
 
-
 **Status:** v2.3 (Phase 1-6 Complete)
 **Created:** 2025-11-28
 **Updated:** 2025-11-30
@@ -219,10 +218,10 @@ export interface Page {
 | parent_id 있음 + 상대 경로 | `nike`            | `{부모 URL}/nike`               |
 | 상대 경로만                | `page-1`          | `/page-1`                       |
 
-### 2.4 Database Migration (Supabase)
+### 2.4 Database Migration (Cloud)
 
 ```sql
--- supabase/migrations/YYYYMMDD_add_layout_slug.sql
+-- cloud/migrations/YYYYMMDD_add_layout_slug.sql
 
 -- 1. Layout 테이블에 필드 추가
 ALTER TABLE layouts
@@ -1392,23 +1391,23 @@ function PageTreeItem({ node, onSelect, selectedPageId }: PageTreeItemProps) {
 
 ### Phase 1: Foundation (기반 작업) - P0
 
-| Task                                   | File                                | Description                             |
-| -------------------------------------- | ----------------------------------- | --------------------------------------- |
-| Layout 타입에 `order_num`, `slug` 추가 | `src/types/builder/layout.types.ts` | Layout, LayoutCreate, LayoutUpdate 수정 |
-| IndexedDB 스키마 업데이트              | `apps/builder/src/lib/db/indexedDB/adapter.ts`   | DB_VERSION 증가 (5→6), 인덱스 추가      |
-| IndexedDB layouts API 타입 수정        | `apps/builder/src/lib/db/indexedDB/adapter.ts`   | 인라인 타입 → Layout 타입 import        |
-| types.ts 타입 일치 확인                | `apps/builder/src/lib/db/types.ts`               | Layout 타입 import 확인                 |
-| Supabase 마이그레이션                  | `supabase/migrations/`              | (Supabase 사용 시)                      |
+| Task                                   | File                                           | Description                             |
+| -------------------------------------- | ---------------------------------------------- | --------------------------------------- |
+| Layout 타입에 `order_num`, `slug` 추가 | `src/types/builder/layout.types.ts`            | Layout, LayoutCreate, LayoutUpdate 수정 |
+| IndexedDB 스키마 업데이트              | `apps/builder/src/lib/db/indexedDB/adapter.ts` | DB_VERSION 증가 (5→6), 인덱스 추가      |
+| IndexedDB layouts API 타입 수정        | `apps/builder/src/lib/db/indexedDB/adapter.ts` | 인라인 타입 → Layout 타입 import        |
+| types.ts 타입 일치 확인                | `apps/builder/src/lib/db/types.ts`             | Layout 타입 import 확인                 |
+| Cloud 마이그레이션                     | `cloud/migrations/`                            | (Cloud 사용 시)                         |
 
 ### Phase 2: Page Creation UI - P1
 
-| Task                         | File                                       | Description                                            |
-| ---------------------------- | ------------------------------------------ | ------------------------------------------------------ |
-| AddPageDialog 컴포넌트       | `src/builder/components/AddPageDialog.tsx` | 다이얼로그 UI                                          |
-| usePageManager 수정          | `apps/builder/src/builder/hooks/usePageManager.ts`      | AddPageParams, generatePageDefaults 추가               |
-| slug 검증 유틸리티           | `apps/builder/src/utils/slugValidator.ts`               | validateSlug, generateSlugFromTitle                    |
-| URL 생성 유틸리티            | `apps/builder/src/utils/urlGenerator.ts`                | generatePageUrl, hasCircularReference, getNestingDepth |
-| NodesPanel과 다이얼로그 연동 | `src/builder/panels/nodes/NodesPanel.tsx`  | Add 버튼 → 다이얼로그 열기                             |
+| Task                         | File                                               | Description                                            |
+| ---------------------------- | -------------------------------------------------- | ------------------------------------------------------ |
+| AddPageDialog 컴포넌트       | `src/builder/components/AddPageDialog.tsx`         | 다이얼로그 UI                                          |
+| usePageManager 수정          | `apps/builder/src/builder/hooks/usePageManager.ts` | AddPageParams, generatePageDefaults 추가               |
+| slug 검증 유틸리티           | `apps/builder/src/utils/slugValidator.ts`          | validateSlug, generateSlugFromTitle                    |
+| URL 생성 유틸리티            | `apps/builder/src/utils/urlGenerator.ts`           | generatePageUrl, hasCircularReference, getNestingDepth |
+| NodesPanel과 다이얼로그 연동 | `src/builder/panels/nodes/NodesPanel.tsx`          | Add 버튼 → 다이얼로그 열기                             |
 
 ### Phase 3: Property Editors - P1
 
@@ -1421,12 +1420,12 @@ function PageTreeItem({ node, onSelect, selectedPageId }: PageTreeItemProps) {
 
 ### Phase 4: Property Editors - P1 ✅ COMPLETE (Already Implemented)
 
-| Task                | File                                                           | Status | Description             |
-| ------------------- | -------------------------------------------------------------- | ------ | ----------------------- |
-| LayoutSlugEditor    | `src/builder/panels/properties/editors/LayoutSlugEditor.tsx`   | ✅     | Layout slug 편집        |
+| Task                | File                                                                        | Status | Description             |
+| ------------------- | --------------------------------------------------------------------------- | ------ | ----------------------- |
+| LayoutSlugEditor    | `src/builder/panels/properties/editors/LayoutSlugEditor.tsx`                | ✅     | Layout slug 편집        |
 | PageParentSelector  | `apps/builder/src/builder/panels/properties/editors/PageParentSelector.tsx` | ✅     | Parent 선택 + slug 편집 |
 | PageBodyEditor 통합 | `apps/builder/src/builder/panels/properties/editors/PageBodyEditor.tsx`     | ✅     | Layout/Parent 통합 UI   |
-| URL 미리보기        | `generatePageUrl` 사용                                         | ✅     | 실시간 URL 표시         |
+| URL 미리보기        | `generatePageUrl` 사용                                                      | ✅     | 실시간 URL 표시         |
 
 #### Phase 4 구현 상세
 
@@ -1550,12 +1549,12 @@ const renderTree = <
 
 ### Phase 7: 동적 라우트 (v2.0) - P1 ✅ COMPLETE
 
-| Task                         | File                                 | Status | Description                      |
-| ---------------------------- | ------------------------------------ | ------ | -------------------------------- |
-| 동적 라우트 유틸리티 확장    | `apps/builder/src/utils/urlGenerator.ts`          | ✅     | 동적 파라미터 추출/매칭 함수     |
-| Canvas 라우트 파라미터 훅    | `src/canvas/router/CanvasRouter.tsx` | ✅     | useCanvasParams 훅               |
-| RuntimeStore 라우트 파라미터 | `src/canvas/store/runtimeStore.ts`   | ✅     | routeParams 상태/액션            |
-| 라우트 정렬 (정적 우선)      | `src/canvas/router/CanvasRouter.tsx` | ✅     | 정적 라우트가 동적보다 먼저 매칭 |
+| Task                         | File                                     | Status | Description                      |
+| ---------------------------- | ---------------------------------------- | ------ | -------------------------------- |
+| 동적 라우트 유틸리티 확장    | `apps/builder/src/utils/urlGenerator.ts` | ✅     | 동적 파라미터 추출/매칭 함수     |
+| Canvas 라우트 파라미터 훅    | `src/canvas/router/CanvasRouter.tsx`     | ✅     | useCanvasParams 훅               |
+| RuntimeStore 라우트 파라미터 | `src/canvas/store/runtimeStore.ts`       | ✅     | routeParams 상태/액션            |
+| 라우트 정렬 (정적 우선)      | `src/canvas/router/CanvasRouter.tsx`     | ✅     | 정적 라우트가 동적보다 먼저 매칭 |
 
 #### Phase 7 구현 세부 내용
 
@@ -1630,11 +1629,11 @@ routeConfigs.sort((a, b) => {
 
 ### Phase 9: Data Panel 통합 고급 (v2.0) - P2
 
-| Task                     | File                                 | Description                       |
-| ------------------------ | ------------------------------------ | --------------------------------- |
-| 자동 API 엔드포인트 생성 | `src/stores/dataPanel/`              | DataBinding 설정 시 자동 API 생성 |
-| 라우트 검증              | `src/utils/routeValidator.ts`        | 라우트 파라미터 유효성 검증       |
-| 404 페이지 처리          | `src/canvas/router/`                 | 잘못된 파라미터 시 에러 페이지    |
+| Task                     | File                                              | Description                       |
+| ------------------------ | ------------------------------------------------- | --------------------------------- |
+| 자동 API 엔드포인트 생성 | `src/stores/dataPanel/`                           | DataBinding 설정 시 자동 API 생성 |
+| 라우트 검증              | `src/utils/routeValidator.ts`                     | 라우트 파라미터 유효성 검증       |
+| 404 페이지 처리          | `src/canvas/router/`                              | 잘못된 파라미터 시 에러 페이지    |
 | SSG/SSR 프리렌더링 힌트  | `apps/builder/src/types/builder/unified.types.ts` | 정적 경로 목록 생성 지원          |
 
 ### 구현 일정 요약

@@ -24,7 +24,7 @@
 
 각 컴포넌트의 (a) Preview root style 전달 여부, (b) Skia `render.shapes()` 의 `props.style` 소비, (c) `calculateContentHeight()` 의 `style.padding/gap` 소비를 Phase 0 에서 측정 후 본 표를 완성한다. 총 cell 수 = 11 × 3 = **33 cell**.
 
-> **N_edited (padding/gap 편집 인스턴스 수) 축이 빠진 이유**: composition 은 element 영속을 per-user 로컬 IndexedDB (`apps/builder/src/lib/db/index.ts`) 에 위임하며 Supabase 는 auth 전용이다. 중앙 `elements` 테이블이 없으므로 production population 에서 `N_edited` 를 산출할 쿼리 경로가 존재하지 않는다. ADR-906 breakdown 의 Supabase SQL 접근은 본 ADR 에서 폐기. BC 커버리지는 Phase 3/4/5 의 **hand-crafted edited fixture** (k≤5 흔한 편집 패턴 수동 샘플링) 로 확보한다. 본 ADR `R2 상세` 참조.
+> **N_edited (padding/gap 편집 인스턴스 수) 축이 빠진 이유**: composition 은 element 영속을 per-user 로컬 IndexedDB (`apps/builder/src/lib/db/index.ts`) 에 위임하며 Cloud 는 auth 전용이다. 중앙 `elements` 테이블이 없으므로 production population 에서 `N_edited` 를 산출할 쿼리 경로가 존재하지 않는다. ADR-906 breakdown 의 Cloud SQL 접근은 본 ADR 에서 폐기. BC 커버리지는 Phase 3/4/5 의 **hand-crafted edited fixture** (k≤5 흔한 편집 패턴 수동 샘플링) 로 확보한다. 본 ADR `R2 상세` 참조.
 
 | 컴포넌트    |          (a) Preview style 전달           |                     (b) Skia shapes metric                     |        (c) Layout height metric        | 판정                                        |
 | ----------- | :---------------------------------------: | :------------------------------------------------------------: | :------------------------------------: | ------------------------------------------- |
@@ -166,7 +166,7 @@ const metric = resolveGridListSpacingMetric({ style: element.props.style, ... })
   - (a) Preview: `packages/shared/src/renderers/**` grep 후 각 `render{Component}()` 의 root JSX 에 `style={` 존재 여부.
   - (b) Skia: `packages/specs/src/components/{Component}.spec.ts` 의 `render.shapes()` 가 `props.style` 에서 padding/gap 을 읽는지.
   - (c) Layout: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` 의 해당 컴포넌트 분기가 `style.padding/gap` 을 소비하는지.
-  - N_edited 축 제거 사유는 위 "현재 문제 인벤토리" 주석 참조 (Supabase 중앙 테이블 부재 → production 산출 불가 → hand-crafted fixture 로 대체).
+  - N_edited 축 제거 사유는 위 "현재 문제 인벤토리" 주석 참조 (Cloud 중앙 테이블 부재 → production 산출 불가 → hand-crafted fixture 로 대체).
 - **Test discovery 확인** (Phase 1-2 신규 test 파일 수집 여부 사전 확증):
   - `packages/specs/vitest.config.ts` 의 include 패턴이 `src/**/__tests__/**/*.test.ts` 를 수용 — Phase 1 `packages/specs/src/primitives/__tests__/cssValueParser.test.ts` 및 Phase 2 `containerSpacing.test.ts` 수집 확증.
   - `packages/shared/vitest.config.ts` 의 include 패턴이 `src/**/__tests__/**/*.test.ts` 를 수용 — Phase 2 `packages/shared/src/renderers/__tests__/rendererStyleContract.test.ts` 수집 확증.
@@ -216,8 +216,8 @@ Phase 0 실측이 ADR 전제를 정정할 수 있는 정보 3건을 제공함에
 반영 완료 항목:
 
 - ADR-907 Scope 정규화 테이블: 기존 "Phase 4 follow-up 8" → "Layer D 적용 4 + 무적용 4" 분리 + Layer 적용 profile 열 추가
-- ADR-907 Decision §1 누적 비용 수식: "follow-up 8~16일" → "Profile X 4 × 1.5 + Profile Y 4 × 0.5~1 = **8~10일**" (상한 -37.5%)
-- ADR-907 Consequences Positive: "25~41일 / 50~55% 절감" → "25~35일 / 55~61% 절감"
+- ADR-907 Decision §1 누적 비용 수식: "follow-up 8~~16일" → "Profile X 4 × 1.5 + Profile Y 4 × 0.5~~1 = **8~10일**" (상한 -37.5%)
+- ADR-907 Consequences Positive: "25~~41일 / 50~~55% 절감" → "25~~35일 / 55~~61% 절감"
 - ADR-907 Scope 주석: TagGroup Phase 3 co-pilot 승격 기각 사유 (ADR-097 + shapes 빈 배열) 명시
 - ADR-907 Scope 주석: Layer C 전수 유지 + Layer B/D 조건부 명시
 - breakdown Phase 4 템플릿: Profile X/Y 분기 + step 2/3 조건부
@@ -290,7 +290,7 @@ Phase 0 실측이 ADR 전제를 정정할 수 있는 정보 3건을 제공함에
 6. ADR-907 Phase 0 matrix 해당 행 업데이트 + Scope 정규화 테이블 Layer 적용 profile 교차 인용 + 본 follow-up ADR 의 Implemented 전환 시점에 ADR-907 README 교차 인용.
 ```
 
-follow-up ADR 누적 = Profile X 4건 × 1.5일 + Profile Y 4건 × 0.5~1일 = **8~10일**. 원 추정 "8 × 1~2일 = 8~16일" 의 상한이 -37.5% 축소됨 (R4 대응 수식화).
+follow-up ADR 누적 = Profile X 4건 × 1.5일 + Profile Y 4건 × 0.5~~1일 = **8~~10일**. 원 추정 "8 × 1~~2일 = 8~~16일" 의 상한이 -37.5% 축소됨 (R4 대응 수식화).
 
 통과 조건:
 
@@ -360,7 +360,7 @@ follow-up ADR 누적 = Profile X 4건 × 1.5일 + Profile Y 4건 × 0.5~1일 = *
 
 ## 검증 체크리스트
 
-- [ ] Phase 0: 11 주대상 × 3 축 (a/b/c) 매트릭스 **33 cell** 기록. N_edited 축 제거 사유 (Supabase 중앙 테이블 부재 → hand-crafted fixture 로 대체) 가 본 breakdown 의 "현재 문제 인벤토리" 주석 및 ADR R2 상세에 기록.
+- [ ] Phase 0: 11 주대상 × 3 축 (a/b/c) 매트릭스 **33 cell** 기록. N_edited 축 제거 사유 (Cloud 중앙 테이블 부재 → hand-crafted fixture 로 대체) 가 본 breakdown 의 "현재 문제 인벤토리" 주석 및 ADR R2 상세에 기록.
 - [ ] Phase 0: `packages/specs/vitest.config.ts` + `packages/shared/vitest.config.ts` include 패턴이 신규 test 경로 수집 확증.
 - [ ] Phase 1: `cssValueParser` 가 `packages/specs/src/primitives/` 하에 export 되고 기존 parseFloat 호출 0건 (allowlist 외).
 - [ ] Phase 1: parser test 10+ PASS.
@@ -399,7 +399,7 @@ follow-up ADR 누적 = Profile X 4건 × 1.5일 + Profile Y 4건 × 0.5~1일 = *
 | TagGroup    | Phase 4 대상                 | Phase 5 에서 (a) O 달성 + shapes N/A (TagList 위임)                                            | 작업 불필요                                            |
 | Table       | Phase 5 별도                 | Phase 5 (a) O 달성 + (b) cell-level padding 은 Hard Constraint 4 로 hardcoding 정당            | 작업 불필요 (HC4)                                      |
 
-**결론**: Phase 4 실제 land 범위 = **Menu + Toolbar 2 컴포넌트**. 원 추정 "Profile X 4 × 1.5 + Profile Y 4 × 0.5~1 = 8~10일" 이 실측상 **1~2일** 로 축소.
+**결론**: Phase 4 실제 land 범위 = **Menu + Toolbar 2 컴포넌트**. 원 추정 "Profile X 4 × 1.5 + Profile Y 4 × 0.5~~1 = 8~~10일" 이 실측상 **1~2일** 로 축소.
 
 ### Land 결과
 

@@ -8,16 +8,16 @@
 
 ## 📋 Executive Summary
 
-This document outlines the comprehensive implementation plan for integrating **Electron** with **PGlite** (PostgreSQL WASM) into composition. This integration enables composition to operate as a standalone desktop application with local database capabilities, while maintaining compatibility with the existing web-based Supabase architecture.
+This document outlines the comprehensive implementation plan for integrating **Electron** with **PGlite** (PostgreSQL WASM) into composition. This integration enables composition to operate as a standalone desktop application with local database capabilities, while maintaining compatibility with the existing web-based Cloud architecture.
 
 ### Key Objectives
 
 1. **Dual-Mode Support**: Enable composition to run in both **Electron (offline)** and **Web Browser (online)** modes
 2. **Local Database**: Integrate PGlite for offline PostgreSQL database within Electron
 3. **Project File Format**: Create `.composition` file format (PGlite database files) for project portability
-4. **Database Abstraction**: Implement unified Database Abstraction Layer (DAL) for Supabase/PGlite compatibility
+4. **Database Abstraction**: Implement unified Database Abstraction Layer (DAL) for Cloud/PGlite compatibility
 5. **Static Site Publishing**: Enable HTML/CSS/JS generation without requiring user Node.js installation
-6. **Cloud Sync (Optional)**: Support bidirectional sync between local PGlite and Supabase cloud
+6. **Cloud Sync (Optional)**: Support bidirectional sync between local PGlite and Cloud cloud
 
 ---
 
@@ -32,7 +32,7 @@ This document outlines the comprehensive implementation plan for integrating **E
 
 2. **Hybrid Workflow**
    - Offline work with local PGlite database
-   - Optional sync to Supabase cloud when online
+   - Optional sync to Cloud cloud when online
    - Seamless transition between offline/online modes
 
 3. **Project File Sharing**
@@ -73,14 +73,14 @@ This document outlines the comprehensive implementation plan for integrating **E
 │        ┌─────────────┴────────────────┐                          │
 │        │                              │                          │
 │ ┌──────▼──────────┐         ┌─────────▼────────────┐            │
-│ │ SupabaseAdapter │         │  PGliteAdapter       │            │
+│ │ CloudAdapter │         │  PGliteAdapter       │            │
 │ │ (Web Mode)      │         │  (Electron Mode)     │            │
 │ └──────┬──────────┘         └─────────┬────────────┘            │
 │        │                              │                          │
 ├────────┼──────────────────────────────┼──────────────────────────┤
 │        │                              │                          │
 │ ┌──────▼──────────┐         ┌─────────▼────────────┐            │
-│ │ Supabase Cloud  │         │  PGlite (WASM)       │            │
+│ │ Cloud DB     │         │  PGlite (WASM)       │            │
 │ │ (PostgreSQL)    │         │  (In-Process DB)     │            │
 │ └─────────────────┘         └──────────────────────┘            │
 │                                      │                           │
@@ -95,7 +95,7 @@ This document outlines the comprehensive implementation plan for integrating **E
 
 #### 1. Database Abstraction Layer (DAL)
 
-**Purpose**: Provide unified interface for database operations regardless of backend (Supabase or PGlite).
+**Purpose**: Provide unified interface for database operations regardless of backend (Cloud or PGlite).
 
 **Interface Definition**:
 
@@ -177,7 +177,7 @@ export class PGliteAdapter implements DbAdapter {
 
   private async runMigrations(): Promise<void> {
     // Execute SQL migrations to create tables
-    // Same schema as Supabase (projects, pages, elements, etc.)
+    // Same schema as Cloud (projects, pages, elements, etc.)
   }
 
   // Implement all DbAdapter methods...
@@ -193,34 +193,34 @@ export class PGliteAdapter implements DbAdapter {
 }
 ```
 
-#### 3. Supabase Adapter
+#### 3. Cloud Adapter
 
-**Purpose**: Implement DbAdapter interface using existing Supabase client.
+**Purpose**: Implement DbAdapter interface using existing Cloud client.
 
 **Implementation**:
 
 ```typescript
-// src/services/database/SupabaseAdapter.ts
-import { createClient } from "@supabase/supabase-js";
+// src/services/database/CloudAdapter.ts
+import { createClient } from "cloud SDK";
 
-export class SupabaseAdapter implements DbAdapter {
-  private supabase: ReturnType<typeof createClient>;
+export class CloudAdapter implements DbAdapter {
+  private cloud: ReturnType<typeof createClient>;
 
   constructor(url: string, anonKey: string) {
-    this.supabase = createClient(url, anonKey);
+    this.cloud = createClient(url, anonKey);
   }
 
   async connect(): Promise<void> {
-    // No-op for Supabase (connection managed by client)
+    // No-op for Cloud (connection managed by client)
   }
 
   async disconnect(): Promise<void> {
-    // No-op for Supabase
+    // No-op for Cloud
   }
 
-  // Implement all DbAdapter methods using Supabase client...
+  // Implement all DbAdapter methods using Cloud client...
   async getElements(pageId: string): Promise<Element[]> {
-    const { data, error } = await this.supabase
+    const { data, error } = await this.cloud
       .from("elements")
       .select("*")
       .eq("page_id", pageId)
@@ -244,7 +244,7 @@ export class SupabaseAdapter implements DbAdapter {
 // src/services/database/index.ts
 import { DbAdapter } from "./DbAdapter";
 import { PGliteAdapter } from "./PGliteAdapter";
-import { SupabaseAdapter } from "./SupabaseAdapter";
+import { CloudAdapter } from "./CloudAdapter";
 
 let dbInstance: DbAdapter | null = null;
 
@@ -255,10 +255,10 @@ export function getDatabase(): DbAdapter {
       const dbPath = window.electron.getCurrentProjectPath();
       dbInstance = new PGliteAdapter(dbPath);
     } else {
-      // Web mode - use Supabase
-      const url = import.meta.env.VITE_SUPABASE_URL;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      dbInstance = new SupabaseAdapter(url, key);
+      // Web mode - use Cloud
+      const url = import.meta.env.VITE_CLOUD_URL;
+      const key = import.meta.env.VITE_CLOUD_ANON_KEY;
+      dbInstance = new CloudAdapter(url, key);
     }
   }
   return dbInstance;
@@ -325,46 +325,46 @@ export class ProjectFile {
     await this.db.disconnect();
   }
 
-  // Export to Supabase cloud
-  async exportToSupabase(supabaseUrl: string, anonKey: string): Promise<void> {
-    const supabase = new SupabaseAdapter(supabaseUrl, anonKey);
-    await supabase.connect();
+  // Export to Cloud cloud
+  async exportToCloud(cloudUrl: string, anonKey: string): Promise<void> {
+    const cloud = new CloudAdapter(cloudUrl, anonKey);
+    await cloud.connect();
 
-    // Copy all data from PGlite to Supabase
+    // Copy all data from PGlite to Cloud
     const project = await this.db.getProject("...");
-    await supabase.createProject(project);
+    await cloud.createProject(project);
 
     const pages = await this.db.getPages(project.id);
     for (const page of pages) {
-      await supabase.createPage(page);
+      await cloud.createPage(page);
       const elements = await this.db.getElements(page.id);
-      await supabase.createMultipleElements(elements);
+      await cloud.createMultipleElements(elements);
     }
 
     // ... copy tokens, themes, etc.
   }
 
-  // Import from Supabase cloud
-  static async importFromSupabase(
+  // Import from Cloud cloud
+  static async importFromCloud(
     filePath: string,
     projectId: string,
-    supabaseUrl: string,
+    cloudUrl: string,
     anonKey: string,
   ): Promise<ProjectFile> {
-    const supabase = new SupabaseAdapter(supabaseUrl, anonKey);
-    await supabase.connect();
+    const cloud = new CloudAdapter(cloudUrl, anonKey);
+    await cloud.connect();
 
     const file = new ProjectFile(filePath);
     await file.db.connect();
 
-    // Copy all data from Supabase to PGlite
-    const project = await supabase.getProject(projectId);
+    // Copy all data from Cloud to PGlite
+    const project = await cloud.getProject(projectId);
     await file.db.createProject(project);
 
-    const pages = await supabase.getPages(projectId);
+    const pages = await cloud.getPages(projectId);
     for (const page of pages) {
       await file.db.createPage(page);
-      const elements = await supabase.getElements(page.id);
+      const elements = await cloud.getElements(page.id);
       await file.db.createMultipleElements(elements);
     }
 
@@ -600,7 +600,7 @@ export class PublishService {
 **Tasks**:
 
 1. ✅ Define `DbAdapter` interface
-2. ✅ Implement `SupabaseAdapter` (refactor existing services)
+2. ✅ Implement `CloudAdapter` (refactor existing services)
 3. ✅ Create database service factory
 4. ✅ Update all existing API services to use `DbAdapter`
 5. ✅ Write unit tests for adapters
@@ -608,7 +608,7 @@ export class PublishService {
 **Files to Create/Modify**:
 
 - `src/services/database/DbAdapter.ts` (new)
-- `src/services/database/SupabaseAdapter.ts` (new)
+- `src/services/database/CloudAdapter.ts` (new)
 - `src/services/database/index.ts` (new)
 - `src/services/api/ElementsApiService.ts` (modify)
 - `src/services/api/PagesApiService.ts` (modify)
@@ -619,7 +619,7 @@ export class PublishService {
 ```json
 {
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1" // Already exists
+    "cloud SDK": "^2.49.1" // Already exists
   }
 }
 ```
@@ -632,7 +632,7 @@ export class PublishService {
 
 1. ✅ Install PGlite dependencies
 2. ✅ Implement `PGliteAdapter`
-3. ✅ Create SQL migrations (same schema as Supabase)
+3. ✅ Create SQL migrations (same schema as Cloud)
 4. ✅ Test CRUD operations with PGlite
 5. ✅ Implement transaction support
 6. ✅ Write integration tests
@@ -779,8 +779,8 @@ export default defineConfig({
 
 1. ✅ Create `ProjectFile` class
 2. ✅ Implement `open()`, `create()`, `save()`, `close()` methods
-3. ✅ Implement `exportToSupabase()` method
-4. ✅ Implement `importFromSupabase()` static method
+3. ✅ Implement `exportToCloud()` method
+4. ✅ Implement `importFromCloud()` static method
 5. ✅ Add sync status tracking
 6. ✅ Write integration tests
 
@@ -796,11 +796,11 @@ export default defineConfig({
 // src/services/projectFile/SyncService.ts
 export class SyncService {
   private localDb: PGliteAdapter;
-  private remoteDb: SupabaseAdapter;
+  private remoteDb: CloudAdapter;
 
-  constructor(localPath: string, supabaseUrl: string, anonKey: string) {
+  constructor(localPath: string, cloudUrl: string, anonKey: string) {
     this.localDb = new PGliteAdapter(localPath);
-    this.remoteDb = new SupabaseAdapter(supabaseUrl, anonKey);
+    this.remoteDb = new CloudAdapter(cloudUrl, anonKey);
   }
 
   // Bidirectional sync
@@ -817,12 +817,12 @@ export class SyncService {
 
   // Push local changes to cloud
   async push(): Promise<void> {
-    // Export all local changes to Supabase
+    // Export all local changes to Cloud
   }
 
   // Pull remote changes to local
   async pull(): Promise<void> {
-    // Import all remote changes from Supabase
+    // Import all remote changes from Cloud
   }
 }
 ```
@@ -942,7 +942,7 @@ export class HTMLGenerator {
 1. ✅ Write unit tests for all new services
 2. ✅ Write integration tests for Electron IPC
 3. ✅ Write E2E tests for Electron app
-4. ✅ Performance testing (PGlite vs Supabase)
+4. ✅ Performance testing (PGlite vs Cloud)
 5. ✅ Update CLAUDE.md with Electron guidelines
 6. ✅ Create user documentation
 
@@ -968,7 +968,7 @@ composition/
 │   ├── services/
 │   │   ├── database/
 │   │   │   ├── DbAdapter.ts       # Interface
-│   │   │   ├── SupabaseAdapter.ts # Supabase implementation
+│   │   │   ├── CloudAdapter.ts # Cloud implementation
 │   │   │   ├── PGliteAdapter.ts   # PGlite implementation
 │   │   │   ├── migrations/
 │   │   │   │   ├── 001_initial_schema.sql
@@ -1008,16 +1008,16 @@ composition/
 
 ## ⏱️ Timeline & Estimates
 
-| Phase                                   | Duration       | Dependencies | Deliverable                     |
-| --------------------------------------- | -------------- | ------------ | ------------------------------- |
-| **Phase 1**: Database Abstraction Layer | 2-3 days       | None         | Working DbAdapter with Supabase |
-| **Phase 2**: PGlite Integration         | 3-4 days       | Phase 1      | PGlite adapter + migrations     |
-| **Phase 3**: Electron Setup             | 2-3 days       | Phase 2      | Working Electron app            |
-| **Phase 4**: ProjectFile Class          | 2-3 days       | Phase 2, 3   | .composition file operations    |
-| **Phase 5**: Publishing System          | 3-4 days       | Phase 2, 3   | Static site generation          |
-| **Phase 6**: UI Integration             | 2-3 days       | All previous | Complete Electron UI            |
-| **Phase 7**: Testing & Documentation    | 2-3 days       | All previous | Tests + docs                    |
-| **Total**                               | **16-23 days** | -            | Production-ready                |
+| Phase                                   | Duration       | Dependencies | Deliverable                  |
+| --------------------------------------- | -------------- | ------------ | ---------------------------- |
+| **Phase 1**: Database Abstraction Layer | 2-3 days       | None         | Working DbAdapter with Cloud |
+| **Phase 2**: PGlite Integration         | 3-4 days       | Phase 1      | PGlite adapter + migrations  |
+| **Phase 3**: Electron Setup             | 2-3 days       | Phase 2      | Working Electron app         |
+| **Phase 4**: ProjectFile Class          | 2-3 days       | Phase 2, 3   | .composition file operations |
+| **Phase 5**: Publishing System          | 3-4 days       | Phase 2, 3   | Static site generation       |
+| **Phase 6**: UI Integration             | 2-3 days       | All previous | Complete Electron UI         |
+| **Phase 7**: Testing & Documentation    | 2-3 days       | All previous | Tests + docs                 |
+| **Total**                               | **16-23 days** | -            | Production-ready             |
 
 **Conservative Estimate**: 23 days (~4.5 weeks)
 **Optimistic Estimate**: 16 days (~3 weeks)
@@ -1030,7 +1030,7 @@ composition/
 
 1. **PGlite Stability**
    - **Risk**: PGlite is relatively new (v0.x), may have bugs
-   - **Mitigation**: Extensive testing, fallback to Supabase-only mode if critical issues
+   - **Mitigation**: Extensive testing, fallback to Cloud-only mode if critical issues
 
 2. **File Size**
    - **Risk**: PGlite database files may grow large for complex projects
@@ -1041,7 +1041,7 @@ composition/
    - **Mitigation**: Benchmark critical operations, optimize queries
 
 4. **Migration Compatibility**
-   - **Risk**: Schema differences between Supabase and PGlite
+   - **Risk**: Schema differences between Cloud and PGlite
    - **Mitigation**: Use identical SQL migrations, automated compatibility tests
 
 ### Implementation Risks
@@ -1094,11 +1094,10 @@ composition/
 
 - [PGlite Documentation](https://github.com/electric-sql/pglite)
 - [Electron Documentation](https://www.electronjs.org/docs)
-- [Supabase Documentation](https://supabase.com/docs)
 
 ### Related composition Documents
 
-- `docs/supabase-schema.md` - Database schema reference
+- `docs/cloud-schema.md` - Database schema reference
 - `src/types/builder/unified.types.ts` - Core type definitions
 - `src/services/api/` - Existing API services to refactor
 

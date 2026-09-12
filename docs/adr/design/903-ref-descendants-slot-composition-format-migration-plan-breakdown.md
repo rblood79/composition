@@ -44,9 +44,7 @@
     "basic-kit": "./kits/basic.pen",
     "icons": "@composition/icon-kit"
   },
-  "children": [
-    /* page, reusable frame, component master 등 canonical nodes */
-  ]
+  "children": [/* page, reusable frame, component master 등 canonical nodes */]
 }
 ```
 
@@ -424,7 +422,7 @@ canonical format을 저장 정본으로 승격한다.
 - read-through 먼저, write-through 나중
 - shadow serializer 기간 운영 가능
 - destructive migration 금지
-- **`tag` → `type` 컬럼 전환 (DB 스키마)**: Supabase/IndexedDB 양쪽의 elements 레코드 `tag` 컬럼을 `type` 으로 rename. read-through 단계에서는 양 컬럼 호환 SELECT (`coalesce(type, tag) AS type`), write-through 단계에서 `type` 단일 column 으로 정착. 기존 프로젝트는 `ALTER TABLE ... RENAME COLUMN tag TO type` 또는 shadow column + 백필 후 swap
+- **`tag` → `type` 컬럼 전환 (DB 스키마)**: Cloud/IndexedDB 양쪽의 elements 레코드 `tag` 컬럼을 `type` 으로 rename. read-through 단계에서는 양 컬럼 호환 SELECT (`coalesce(type, tag) AS type`), write-through 단계에서 `type` 단일 column 으로 정착. 기존 프로젝트는 `ALTER TABLE ... RENAME COLUMN tag TO type` 또는 shadow column + 백필 후 swap
 - `tag` / `type` 혼재 기간에는 adapter 가 **input canonicalization** 을 일방향 (`tag → type`) 수행. 역방향(`type → tag`) 은 legacy 구버전 클라이언트 호환 목적이 없으므로 제공하지 않음
 
 ## 테스트 전략

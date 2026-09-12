@@ -14,10 +14,9 @@
 >
 > </details>
 
-
 ## 개요
 
-Collection 컴포넌트들(ListBox, GridList, Select, ComboBox, TagGroup 등)의 동적 데이터 렌더링 시스템 구현 문서입니다. 이 시스템은 REST API, MOCK_DATA, Supabase 등 다양한 데이터 소스를 지원하며, Field 기반 템플릿 렌더링을 통해 일관된 패턴을 제공합니다.
+Collection 컴포넌트들(ListBox, GridList, Select, ComboBox, TagGroup 등)의 동적 데이터 렌더링 시스템 구현 문서입니다. 이 시스템은 REST API, MOCK_DATA, Cloud 등 다양한 데이터 소스를 지원하며, Field 기반 템플릿 렌더링을 통해 일관된 패턴을 제공합니다.
 
 **구현 날짜**: 2025-10-27
 

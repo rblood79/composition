@@ -144,7 +144,7 @@ Builder Canvas 상호작용 중 Chrome DevTools에서 반복적으로 관찰되�
 
 - `skiaFramePlan.ts` 모듈 복잡도 상승 (overlay/content/workflow plan 분리 + 각 캐시 키 관리)
 - 캐시 invalidation 조건 버그 시 육안 회귀 가능성 — `/cross-check` 수동 검증 스위치 필수
-- 영향 파일 추정 7~10개: `useCanvasElementSelectionHandlers.ts`, `useCentralCanvasPointerHandlers.ts`, `stores/elements.ts`, `BuilderCanvas.tsx`, `skiaFramePlan.ts`, `SkiaCanvas.tsx`, selection-관련 selector 파일 2~3개
+- 영향 파일 추정 7~~10개: `useCanvasElementSelectionHandlers.ts`, `useCentralCanvasPointerHandlers.ts`, `stores/elements.ts`, `BuilderCanvas.tsx`, `skiaFramePlan.ts`, `SkiaCanvas.tsx`, selection-관련 selector 파일 2~~3개
 - 구독 축소 과정에서 일부 패널이 "stale" 상태를 잠시 표시할 가능성 — Phase1/Phase2 순서 계약 유지 필수
 
 ## Addendum — 2026-04-17 (Phase 1 실측 후 방향 전환)
@@ -322,7 +322,7 @@ SkiaCanvas.tsx:676 [Violation] 'requestAnimationFrame' handler took 1091ms
 
 1. **신규 duplicate 생성은 차단되고 있음** — `elementCreation.ts:42-58` atomic conflict 검사 + `ComponentsPanel.tsx:53-55` `useStore.getState()` 패턴 작동 확인
 2. **Pre-existing DB 데이터 legacy 잔존**: 과거 atomic 체크 도입 이전에 생성된 duplicate가 IndexedDB에 남아있음
-3. **IDB 미동기화**: `reorderElements`(elementReorder.ts) 자가 치유 경로가 메모리(`batchUpdateElementOrders`) + Supabase write만 수행하고 **IndexedDB 미갱신**. 현 runtime에서 element 영속화는 사실상 IDB 전용(`elementLoader.ts:240-248` IDB-first load, Supabase는 초기 로그인/fallback만) — 다음 세션마다 IDB에서 같은 duplicate 재로드 → `validateOrderNumbers` 재감지 → auto-fix 재발동 → 184ms commit + rAF 파이프라인 반복
+3. **IDB 미동기화**: `reorderElements`(elementReorder.ts) 자가 치유 경로가 메모리(`batchUpdateElementOrders`) + Cloud write만 수행하고 **IndexedDB 미갱신**. 현 runtime에서 element 영속화는 사실상 IDB 전용(`elementLoader.ts:240-248` IDB-first load, Cloud는 초기 로그인/fallback만) — 다음 세션마다 IDB에서 같은 duplicate 재로드 → `validateOrderNumbers` 재감지 → auto-fix 재발동 → 184ms commit + rAF 파이프라인 반복
 
 ### 초기 오진
 
@@ -351,7 +351,7 @@ try {
 - DevTools 노출: `window.__composition_MIGRATE__.fixAllDuplicateOrderNums()`
 - 반환: `{ pagesScanned, pagesFixed, updatesApplied }`
 
-**기존 Supabase write 보존**: 41곳의 Supabase write 코드는 현 runtime에서 사실상 noop(load path가 IDB-first)이나, 향후 cross-device 동기화 복귀 대비 보존. 전면 정리는 별도 ADR에서 결정.
+**기존 Cloud write 보존**: 41곳의 Cloud write 코드는 현 runtime에서 사실상 noop(load path가 IDB-first)이나, 향후 cross-device 동기화 복귀 대비 보존. 전면 정리는 별도 ADR에서 결정.
 
 ### ADR-069과의 관계
 

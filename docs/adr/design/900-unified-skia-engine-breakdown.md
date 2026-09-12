@@ -2151,7 +2151,7 @@ unified-engine-ci:
 ### 17.3 기존 프로젝트 데이터 호환
 
 ```
-현재 프로젝트 데이터: Supabase DB의 elements + styles + pages
+현재 프로젝트 데이터: Cloud DB의 elements + styles + pages
   → 데이터 스키마는 변경 없음 (Store 레이어 유지)
   → 레이아웃 계산만 다른 엔진으로 수행
   → 결과가 동일해야 함 (레이아웃 패리티 테스트로 검증)
@@ -2170,7 +2170,7 @@ unified-engine-ci:
 
 ```typescript
 // monitoring/unifiedEngineMetrics.ts
-// Supabase Edge Function 또는 Analytics로 수집
+// Cloud Edge Function 또는 Analytics로 수집
 
 interface EngineMetrics {
   userId: string;

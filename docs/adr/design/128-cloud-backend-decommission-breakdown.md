@@ -1,12 +1,12 @@
-# ADR-128 Design Breakdown — Supabase backend decommission
+# ADR-128 Design Breakdown — Cloud backend decommission
 
-> 본 문서는 [ADR-128](../completed/128-supabase-backend-decommission.md) 의 구현 phase 상세. ADR 본문은 base 결정 (auth-only 격하 + dead code 인정 + ADR-121~127 premise stale 해체) 만 다루며, 단계적 cleanup phase 는 본 문서에서 분리 관리한다.
+> 본 문서는 [ADR-128](../completed/128-cloud-backend-decommission.md) 의 구현 phase 상세. ADR 본문은 base 결정 (auth-only 격하 + dead code 인정 + ADR-121~127 premise stale 해체) 만 다루며, 단계적 cleanup phase 는 본 문서에서 분리 관리한다.
 
 ## §1 Framing 4 질문 통과 (lock-in)
 
 | #   | 질문                     | 답                                                                                                                   |
 | --- | ------------------------ | -------------------------------------------------------------------------------------------------------------------- |
-| 1   | base/응용 분류           | **base** — backend dependency 단일화 (Supabase auth + IndexedDB only). 후속 cleanup 의 prerequisite                  |
+| 1   | base/응용 분류           | **base** — backend dependency 단일화 (Cloud auth + IndexedDB only). 후속 cleanup 의 prerequisite                     |
 | 2   | schema 직교성            | **직교** — ADR-116 (canonical-only runtime, internal data shape) 와 외부 backend dep 결정은 독립                     |
 | 3   | baseline framing reverse | **reverse 필요** — ADR-121~127 의 "cloud transport boundary 유지" 명분이 stale. 본 ADR 이 그 stale premise 공식 해체 |
 | 4   | codex 3차 미루지 말 것   | 본 ADR 본문 작성 시점 framing 확정, 후속 phase 진입 시 codex 1차 진입                                                |
@@ -17,11 +17,11 @@
 
 본 ADR Proposed 시점에서 확보된 evidence:
 
-### Supabase `.from(...)` 호출 9 위치 (single-line grep, production)
+### Cloud `.from(...)` 호출 9 위치 (single-line grep, production)
 
 > **⚠ Inventory 결함 — Phase 1 진입 직전 multi-line grep 재실행 의무 (codex 검토 2026-05-12)**:
 >
-> 본 표는 single-line `supabase.from(...)` pattern grep 결과 (9 호출 / 5 file). multi-line `supabase\n .from(...)` 호출이 누락됨. Phase 1 sub-phase 1-α 진입 직전 `rg --multiline 'supabase\s*\n?\s*\.from\('` 재실행 후 본 §2 inventory 를 66 호출 / 12 file 수준으로 갱신 의무.
+> 본 표는 single-line `cloud.from(...)` pattern grep 결과 (9 호출 / 5 file). multi-line `cloud\n .from(...)` 호출이 누락됨. Phase 1 sub-phase 1-α 진입 직전 `rg --multiline 'cloud\s*\n?\s*\.from\('` 재실행 후 본 §2 inventory 를 66 호출 / 12 file 수준으로 갱신 의무.
 >
 > **추가 발견 file** (single-line grep 누락, multi-line 재실행 시 inventory 흡수 대상):
 >
@@ -82,7 +82,7 @@
 
 `apps/builder/.type-errors-baseline.txt` 의 699 에러 중 cloud-dead 기인 추정:
 
-- G1 (snake_case 227) — Supabase row schema 직렬화 호환 보존 → 상당 부분 dead
+- G1 (snake_case 227) — Cloud row schema 직렬화 호환 보존 → 상당 부분 dead
 - G2-a (`fills` 15) — ADR-908 fill schema, cloud 무관 (유지)
 - G2-b (`reusable`/`ref`/`descendants`/`placeholder` 83) — canonical-native schema, cloud 무관 (유지)
 - G2-c (`componentRole`/`schemaVersion`/MIRROR_FIELD 31) — ADR-112 lineage, cloud 무관 (유지)
@@ -90,21 +90,21 @@
 
 → G1 의 상당 부분 (production 35건 + test 190건) 이 cloud-dead 직접 기인 가능. 정확한 비율은 Phase 5 검증.
 
-## §3 Phase 1 — auth 외 supabase 의존 전체 제거 (단일 작업)
+## §3 Phase 1 — auth 외 cloud 의존 전체 제거 (단일 작업)
 
-사용자 명시 ("Supabase 로그인 외에는 제거해도 된다") 정합 단일 작업. sub-phase 분해 금지 (메모리 `feedback-execute-adr-surface-minimization` 정합).
+사용자 명시 ("Cloud 로그인 외에는 제거해도 된다") 정합 단일 작업. sub-phase 분해 금지 (메모리 `feedback-execute-adr-surface-minimization` 정합).
 
 **진입 직전 의무**:
 
 ```bash
-rg --multiline 'supabase\s*\n?\s*\.from\(' apps/builder/src -g '*.ts' -g '*.tsx'
+rg --multiline 'cloud\s*\n?\s*\.from\(' apps/builder/src -g '*.ts' -g '*.tsx'
 ```
 
 실행 결과로 §2 inventory 갱신. 모든 결과는 본 단일 작업의 input.
 
 **작업 범위** (단일 commit 통합):
 
-- `supabase.from(...)` 전체 호출 제거 (single-line + multi-line) — 약 66 호출 / 12 file
+- `cloud.from(...)` 전체 호출 제거 (single-line + multi-line) — 약 66 호출 / 12 file
 - 해당 호출의 IndexedDB 대체 path 확인 (기존 path 존재 시 그대로, 부재 시 IndexedDB write 추가)
 - `historyActions.ts` 22+ 호출 (undo/redo cloud read/write/delete) → IndexedDB persistence 단일 path
 - `PropertiesPanel.tsx` / `useCollectionItemManager.ts` / `dbPersistence.ts` production hot path
@@ -195,19 +195,19 @@ Phase 0 / Phase 1 시점은 prod build 가 누적 baseline 정합 사유 (`tsc -
 | ProjectsApiService / DocumentsApiService / PagesApiService | ~13.2KB raw 합          | dead 제거                                                                                                                  |
 | BaseApiService.ts                                          | ~7.5KB raw              | dead 제거                                                                                                                  |
 | projectSync.ts + projectMerger.ts                          | ~18.4KB raw 합          | dead 제거                                                                                                                  |
-| 9 supabase.from 호출 위치 inline 코드 (Phase 1 분)         | 추정 수 KB              | Phase 1 commit message 명시 ~480 line                                                                                      |
-| @supabase/supabase-js tree-shaking 효과                    | ~10-30KB 감소 추정 (gz) | auth-only 사용으로 일부 module dead                                                                                        |
+| 9 cloud.from 호출 위치 inline 코드 (Phase 1 분)            | 추정 수 KB              | Phase 1 commit message 명시 ~480 line                                                                                      |
+| cloud SDK tree-shaking 효과                                | ~10-30KB 감소 추정 (gz) | auth-only 사용으로 일부 module dead                                                                                        |
 | **총 추정 (gzipped)**                                      | **-15KB ~ -40KB**       | **목표 정합 영역 — Phase 0 baseline 부재로 절대 정량 검증 불가**, 본 phase 산출물은 land-후 reference baseline 으로 freeze |
 
 **목표 추정 (Phase 1~2 합산)**:
 
 | 제거 영역                                                   | 추정 영향                                                                                  |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| 9 supabase.from 호출 위치 코드 라인                         | inline 제거 분 (수 KB 추정)                                                                |
+| 9 cloud.from 호출 위치 코드 라인                            | inline 제거 분 (수 KB 추정)                                                                |
 | `legacyElementsApiService.ts` 전체 (Phase 2-α)              | 1 파일 dead → ~3-5KB 감소 추정                                                             |
 | `PagesApiService.ts` cloud 부분 (Phase 2-β)                 | 부분 제거 → ~1-2KB 감소 추정                                                               |
 | `legacyElementSanitizer.ts` cloud sanitize 부분 (Phase 2-γ) | 부분 제거 → ~1-2KB 감소 추정                                                               |
-| `@supabase/supabase-js` tree-shaking 효과                   | auth-only 사용으로 일부 module 제거 → ~10-30KB 감소 추정 (vite tree-shaking 분석으로 확정) |
+| `cloud SDK` tree-shaking 효과                               | auth-only 사용으로 일부 module 제거 → ~10-30KB 감소 추정 (vite tree-shaking 분석으로 확정) |
 
 **총 추정**: **-15KB~-40KB** (gzipped, production chunk 기준). 정확한 수치는 Phase 1~2 완료 후 측정.
 
@@ -217,7 +217,7 @@ Phase 0 / Phase 1 시점은 prod build 가 누적 baseline 정합 사유 (`tsc -
 2. 동일 명령으로 chunk 사이즈 재측정
 3. baseline 대비 감소량 절대값 + 비율 계산
 4. 목표 추정 (-15KB~-40KB) 정합 여부 확인
-5. tree-shaking 효과 분석: `vite build --mode production --logLevel info` 의 chunk 보고 + `vite-bundle-visualizer` 또는 `rollup-plugin-visualizer` 로 supabase 의존 module 잔존 검증
+5. tree-shaking 효과 분석: `vite build --mode production --logLevel info` 의 chunk 보고 + `vite-bundle-visualizer` 또는 `rollup-plugin-visualizer` 로 cloud 의존 module 잔존 검증
 
 **Gate G-Phase-5 통과 조건 갱신**:
 
@@ -235,7 +235,7 @@ Phase 0 / Phase 1 시점은 prod build 가 누적 baseline 정합 사유 (`tsc -
 
 ## §9 ADR-128 Implemented 승격 조건
 
-Phase 1~4 완료 시 본 ADR Status `Implemented` 승격 가능. Phase 5~6 는 후속 작업 (ADR-128 implicit follow-up + ADR-116 후속 phase).
+Phase 1~~4 완료 시 본 ADR Status `Implemented` 승격 가능. Phase 5~~6 는 후속 작업 (ADR-128 implicit follow-up + ADR-116 후속 phase).
 
 승격 조건:
 

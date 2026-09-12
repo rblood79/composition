@@ -33,8 +33,8 @@
 
 | Surface                                      | Status  | Rule                                                          |
 | -------------------------------------------- | ------- | ------------------------------------------------------------- |
-| `PagesApiService.Page.order_num`             | allowed | Supabase physical schema compatibility only                   |
-| `Database.public.Tables.pages.Row.order_num` | allowed | generated/manual Supabase type boundary                       |
+| `PagesApiService.Page.order_num`             | allowed | Cloud physical schema compatibility only                      |
+| `Database.public.Tables.pages.Row.order_num` | allowed | generated/manual Cloud type boundary                          |
 | `projectSync.syncProjectToCloud()`           | allowed | derives `order_num` from local page source index at call time |
 | export JSON fixtures                         | allowed | legacy fixture coverage, not runtime primary                  |
 
@@ -44,7 +44,7 @@
 | ------------------------------- | --------------------------------------------------- |
 | Table column/group `order_num`  | component data model, explicitly out of ADR-119     |
 | collection item migration tests | component data migration, explicitly out of ADR-119 |
-| Supabase physical column drop   | requires separate migration approval                |
+| Cloud physical column drop      | requires separate migration approval                |
 
 ## Residual Search Allowlist
 
@@ -53,8 +53,8 @@
 
 | Residual surface                                | Allowed reason                                              |
 | ----------------------------------------------- | ----------------------------------------------------------- |
-| `PagesApiService.Page.order_num`                | Supabase physical schema compatibility type only            |
-| `supabase.types.ts` pages row `order_num`       | Supabase physical schema compatibility type only            |
+| `PagesApiService.Page.order_num`                | Cloud physical schema compatibility type only               |
+| `cloud.types.ts` pages row `order_num`          | Cloud physical schema compatibility type only               |
 | `projectSync.ts` `order_num: pageIndex`         | upload call-time derived boundary, never local runtime read |
 | IndexedDB `deleteIndex("order_num")`            | old index removal migration guard                           |
 | IndexedDB `stripLegacyOrderPayload`             | DB v13 stale value purge, not runtime order source          |

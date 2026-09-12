@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented — 2026-08-13 (Phase 0~4 전체: `cdfeea45e` inventory freeze / `09c6c1735` 스냅샷 코어 / `e2bec8228` 복원 + entry / `f71990c5d` 패널 UI / `a0e213653` R4 전수 clear 보강. G1~G4 live 게이트 통과 — breakdown §6) / Accepted — 2026-08-13 (리뷰 round 1 승인 — [reviews/180.md](../reviews/180.md), 이슈 전부 종결) / Proposed — 2026-08-13
+Implemented — 2026-08-13 (Phase 0~~4 전체: `cdfeea45e` inventory freeze / `09c6c1735` 스냅샷 코어 / `e2bec8228` 복원 + entry / `f71990c5d` 패널 UI / `a0e213653` R4 전수 clear 보강. G1~~G4 live 게이트 통과 — breakdown §6) / Accepted — 2026-08-13 (리뷰 round 1 승인 — [reviews/180.md](../reviews/180.md), 이슈 전부 종결) / Proposed — 2026-08-13
 
 ## Context
 
@@ -108,7 +108,7 @@ composition 의 히스토리는 페이지 스코프 선형 모델이다: undo �
 
 - undo 후 재편집으로 폐기되는 분기를 사용자가 선택적으로 보존/복원 가능 — 선형 히스토리의 구조적 한계 보상 (Photoshop 어법 정합으로 학습 비용 최소).
 - 스냅샷이 IndexedDB 영속이므로 세션 한정인 Photoshop 웹보다 강한 지속성 — 새로고침 후에도 복원 지점 유지.
-- 3단계 (Supabase 명명 버전 — 영구 버전 계층) 의 로컬 선행 형태가 되어 후속 ADR 의 UI/의미론 기반 마련.
+- 3단계 (Cloud 명명 버전 — 영구 버전 계층) 의 로컬 선행 형태가 되어 후속 ADR 의 UI/의미론 기반 마련.
 
 ### Negative
 

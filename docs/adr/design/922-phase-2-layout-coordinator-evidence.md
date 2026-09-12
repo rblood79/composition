@@ -109,7 +109,7 @@ geometry만 사용한다. target 순서는 snapshot의 registry `panelOrder`이�
 | primary/backup localStorage     | 0                 |
 | Spec/Factory/CSS                | 0                 |
 | Skia/Canvas/Preview/Publish     | 0                 |
-| canonical project/DB/Supabase   | 0                 |
+| canonical project/DB/Cloud      | 0                 |
 | `.spec-rebuild-pending`         | 없음              |
 
 렌더링 layer를 바꾸지 않은 logic/store-only phase이므로 CSS↔Skia 시각 parity 항목은

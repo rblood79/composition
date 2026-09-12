@@ -66,14 +66,14 @@ src/builder/inspector/
 ### 시나리오 4: 데이터 바인딩 (DataSection)
 
 1. Table 컴포넌트 선택
-2. 데이터 탭 > Supabase Collection 선택
+2. 데이터 탭 > Cloud Collection 선택
 3. 테이블명 입력, 컬럼 선택
 4. 필터 조건 추가
 
 **예상 결과**:
 
-- SupabaseCollectionEditor가 표시됨
-- 테이블 목록이 Supabase에서 로드됨
+- CloudCollectionEditor가 표시됨
+- 테이블 목록이 Cloud에서 로드됨
 - 선택한 컬럼이 저장됨
 - 필터 조건이 적용됨
 
@@ -116,7 +116,7 @@ src/builder/inspector/
 
 - [ ] Element 타입이 semantic_classes, css_variables 필드를 가지고 있는지
 - [ ] ComponentElementProps가 index signature를 가지고 있는지
-- [ ] DataBinding 타입이 Supabase/State/Static 모두 지원하는지
+- [ ] DataBinding 타입이 Cloud/State/Static 모두 지원하는지
 
 ### 동기화 관련
 
@@ -130,7 +130,7 @@ src/builder/inspector/
 - [ ] 탭 전환이 부드럽게 작동하는지
 - [ ] 긴 내용이 스크롤 가능한지
 - [ ] 에러 메시지가 적절하게 표시되는지
-- [ ] 로딩 상태가 표시되는지 (Supabase 테이블 로드 등)
+- [ ] 로딩 상태가 표시되는지 (Cloud 테이블 로드 등)
 
 ### 성능 관련
 

@@ -1,4 +1,4 @@
-# ADR-128: Supabase backend decommission — auth-only 격하 + cloud data layer dead code 인정
+# ADR-128: Cloud backend decommission — auth-only 격하 + cloud data layer dead code 인정
 
 ## Status
 
@@ -13,7 +13,7 @@ Implemented — 2026-05-12
   - cloud-only file 삭제 11개: legacyElementsApiService / BaseApiService / ProjectsApiService / PagesApiService / DocumentsApiService / projectSync / projectMerger + 관련 boundary/sync test 4건
   - dashboard cloud UI 제거 (~470→~250 line) — cloud filter / Sync to cloud / Download from cloud / cloud project query / merge / cloud branch 전체 제거, IndexedDB-only dashboard 로 단순화
   - TokenService IndexedDB-native 통일 (Phase 3 narrow scope 의 design_tokens 흡수) — BaseApiService extends 해제, createToken/updateToken/deleteToken IndexedDB 전환
-  - legacyElementSanitizer: SupabaseElement type + sanitizeElementForSupabase 함수 제거
+  - legacyElementSanitizer: CloudElement type + sanitizeElementForCloud 함수 제거
   - usePageManager: ApiPage 를 file-local interface 로 inline / BuilderCore: Project type local 정의 / urlGenerator: Page → UrlPage 통일
   - type-error baseline 695→683 (-12, -16 cumulative)
 - 2026-05-12 Phase 3 결정 lock-in — `exportLegacyDocument()` + `legacyToCanonical()` file export/import 시나리오 유지 (JSON 파일 IndexedDB round-trip 의도로 재정의), TokenService 는 Phase 2 commit 에서 IndexedDB-native 흡수 완결
@@ -24,13 +24,13 @@ Implemented — 2026-05-12
 
 ## Context
 
-composition Builder 의 backend 의존성을 재평가한 결과, Supabase 사용이 **로그인 (auth) 만 실효 사용 중** 이고 cloud data layer (`elements` / `pages` / `projects` table query) 는 모두 **dead code** 임이 확인됐다. 본 ADR 은 이 상태를 공식 정책화하고 누적 dead code 를 단계적으로 제거한다.
+composition Builder 의 backend 의존성을 재평가한 결과, Cloud 사용이 **로그인 (auth) 만 실효 사용 중** 이고 cloud data layer (`elements` / `pages` / `projects` table query) 는 모두 **dead code** 임이 확인됐다. 본 ADR 은 이 상태를 공식 정책화하고 누적 dead code 를 단계적으로 제거한다.
 
 **Evidence (2026-05-12 grep)**:
 
-- `supabase.auth.*` 호출: 4 (signIn, signUp, getSession ×2) — 로그인 영역
-- `supabase.from(...)` 호출: 9 — `elements` / `pages` / `projects` table query (production hot path 포함: `historyActions.ts` 3, `TableEditor` 2, `legacyElementsApiService.ts` 2, `PagesApiService.ts` 1, `marginCollapseAudit.ts` 1)
-- 사용자 명시 (2026-05-12): "현재 로그인 후 모두 IndexedDB 에서 구현 중. 그 외에는 Supabase 로그인 기능 외에는 제거해도 된다"
+- `cloud.auth.*` 호출: 4 (signIn, signUp, getSession ×2) — 로그인 영역
+- `cloud.from(...)` 호출: 9 — `elements` / `pages` / `projects` table query (production hot path 포함: `historyActions.ts` 3, `TableEditor` 2, `legacyElementsApiService.ts` 2, `PagesApiService.ts` 1, `marginCollapseAudit.ts` 1)
+- 사용자 명시 (2026-05-12): "현재 로그인 후 모두 IndexedDB 에서 구현 중. 그 외에는 Cloud 로그인 기능 외에는 제거해도 된다"
 
 **baseline drift evidence**:
 
@@ -44,7 +44,7 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
 
 **Hard Constraints**:
 
-1. Supabase auth 기능 (signIn, signUp, getSession, signOut, token refresh) 정상 동작 유지 — 로그인 시나리오 회귀 금지
+1. Cloud auth 기능 (signIn, signUp, getSession, signOut, token refresh) 정상 동작 유지 — 로그인 시나리오 회귀 금지
 2. 기존 user IndexedDB 데이터의 호환 유지 — schema 마이그레이션 필요 시 본 ADR phase 안 명시
 3. baseline 699 의 cloud-dead 기인 부분 자동 감소 측정 가능 — Phase 5 검증 입력
 
@@ -68,7 +68,7 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
 
 ### 대안 B: Auth-only 격하 + 단계적 dead code 제거 (권장)
 
-- 설명: Supabase 사용을 auth (signIn / signUp / getSession / signOut / token refresh) 전용으로 격하 결정 선언. 9 호출 위치 + cloud-only adapter / boundary file 의 dead 인정. design breakdown phase (Phase 1~6) 로 단계적 제거 + 회귀 검증
+- 설명: Cloud 사용을 auth (signIn / signUp / getSession / signOut / token refresh) 전용으로 격하 결정 선언. 9 호출 위치 + cloud-only adapter / boundary file 의 dead 인정. design breakdown phase (Phase 1~6) 로 단계적 제거 + 회귀 검증
 - 근거: TypeScript / industry 표준 dead code elimination 패턴 (예: webpack tree-shaking, ts-unused-exports). 점진 제거 + 각 단계 회귀 검증으로 위험 분산. legacy quarantine 패턴이 **future scenario 보존** 명분이 stale 일 때 표준 해체 절차
 - 위험:
   - 기술: M — dead 검증 필요 (false positive — dev tooling / benchmark / one-time migration script 의존성 사전 grep 필수)
@@ -86,14 +86,14 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
   - 유지보수: L — 변경 후 정리됨
   - 마이그레이션: **H** — cloud 복원 시나리오 영구 차단 + rollback 시 7 ADR 영역 영향
 
-### 대안 D: Supabase 완전 decommission (auth 도 별 backend 로 이전)
+### 대안 D: Cloud 완전 decommission (auth 도 별 backend 로 이전)
 
-- 설명: Supabase 완전 제거. auth 를 Clerk / Auth0 / IndexedDB-only auth 등으로 이전
+- 설명: Cloud 완전 제거. auth 를 Clerk / Auth0 / IndexedDB-only auth 등으로 이전
 - 근거: 단일 backend dependency 의 완전 zero 화. 라이센스 / 비용 / 외부 의존 최소화 motivation
 - 위험:
   - 기술: **H** — auth 이전은 다른 backend 도입 = 새 의존성 학습
   - 성능: L
-  - 유지보수: L↓ — Supabase 의존 zero
+  - 유지보수: L↓ — Cloud 의존 zero
   - 마이그레이션: **C** — 기존 사용자 auth credential 마이그레이션 + auth 흐름 광범위 변경
 
 ### Risk Threshold Check
@@ -114,7 +114,7 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
 **위험 수용 근거**:
 
 1. 기술 위험 MED (dead 검증 필요) — design breakdown Phase 1 의 sub-phase 별 회귀 검증 (targeted vitest + 사용자 환경 smoke) 으로 false positive 완화
-2. 마이그레이션 위험 MED (cloud 복원 시나리오 영구 차단) — 사용자 명시 정합 ("Supabase 로그인 기능 외에는 제거해도 된다"), 미래 cloud 복원 시 본 ADR Superseded by 신규 ADR 으로 reverse 가능
+2. 마이그레이션 위험 MED (cloud 복원 시나리오 영구 차단) — 사용자 명시 정합 ("Cloud 로그인 기능 외에는 제거해도 된다"), 미래 cloud 복원 시 본 ADR Superseded by 신규 ADR 으로 reverse 가능
 3. baseline 699 의 cloud-dead 기인 부분 자동 감소 측정 가능 — Phase 5 의 evidence layer 가 ADR-116 후속 phase 의 정확한 scope 결정 입력
 
 **기각 사유**:
@@ -123,7 +123,7 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
 - **대안 C 기각**: 일괄 제거는 sub-phase 별 회귀 검증 불가 + 메모리 `feedback-agent-completion-failure-pattern` 의 "마감 단계 누락" 위험 동일 (단일 atomic 변경이 검증 단계 압축)
 - **대안 D 기각**: 사용자 명시 ("로그인 기능 외에는 제거") 는 auth 유지를 전제. auth 이전은 본 ADR scope 초과 — 미래 별 ADR 검토 영역
 
-> 구현 상세: [128-supabase-backend-decommission-breakdown.md](../design/128-supabase-backend-decommission-breakdown.md)
+> 구현 상세: [128-cloud-backend-decommission-breakdown.md](../design/128-cloud-backend-decommission-breakdown.md)
 
 ## Risks
 
@@ -131,7 +131,7 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
 | --- | ----------------------------------------------------------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | R1  | cloud 복원 시나리오 영구 차단 — 사용자 명시 정합하나 미래 결정 자유도 감소                                                          |  LOW   | 미래 cloud 도입 결정 시 본 ADR Superseded by 신규 ADR 으로 reverse, design breakdown 의 grep evidence 활용 가능                                                                               |
 | R2  | Phase 1 dead code 식별 false positive — 실제 dev tooling / benchmark / one-time migration script 의존 가능성                        |  MED   | sub-phase 별 grep import + targeted vitest + 사용자 환경 smoke 의 3-layer 검증. 의존 발견 시 해당 sub-phase 분리 (예: `marginCollapseAudit.ts` 는 dev only 로 격리)                           |
-| R3  | Supabase auth token refresh / session 재발급 의존성 — auth 영역 변경 시 회귀 가능                                                   |  LOW   | 본 ADR scope 는 auth 변경 zero, refresh / session 흐름 그대로 유지. Phase 1~6 전체에서 `supabase.auth.*` 호출 grep 변경 0 검증                                                                |
+| R3  | Cloud auth token refresh / session 재발급 의존성 — auth 영역 변경 시 회귀 가능                                                      |  LOW   | 본 ADR scope 는 auth 변경 zero, refresh / session 흐름 그대로 유지. Phase 1~6 전체에서 `cloud.auth.*` 호출 grep 변경 0 검증                                                                   |
 | R4  | ADR-121~127 part-supersede addendum 처리 후 history 추적 시 본문 Status 와 README entry 정합 일부 어긋남                            |  LOW   | Phase 4 의 addendum 형식 표준화 (각 ADR 본문 상단에 "Superseded in part by ADR-128 (cloud transport boundary 명분)" 1줄 + README 비고에 동일 1줄 추가) — 본문 Status 전면 변경 없이 정합 유지 |
 | R5  | legacyExtensionRoundtrip.test (17 baseline 위반) 같은 cloud-format roundtrip 검증 test 의 의도가 stale — fix 시 검증 의도 손상 위험 |  MED   | Phase 3 narrow framing 에서 사용자 confirm — 본 test 의도 재정의 (IndexedDB persistence 검증 으로 재해석) vs 제거 결정. 별 phase scope                                                        |
 
@@ -153,7 +153,7 @@ ADR-121–127 의 본문이 명시한 "cloud transport boundary 유지" 명분 (
 - **legacy adapter / boundary file 대거 dead 인정**: `legacyElementsApiService.ts`, `PagesApiService.ts` cloud 부분, `historyActions.ts` cloud delete 3 호출, `TableEditor` / `TableHeaderEditor` cloud write, `marginCollapseAudit.ts` benchmark 가 명시적 dead. design breakdown Phase 1~2 로 단계적 제거 가능
 - **ADR-121~127 의 boundary quarantine 명분 stale 공식 해체**: 7 ADR 의 cloud-only boundary 부분이 part-superseded. 후속 cleanup 작업의 framing 단순화
 - **baseline 699 의 G1 (snake_case 227) 의 cloud-dead 기인 부분 자동 감소**: Phase 5 의 측정 결과가 ADR-116 후속 phase 의 정확한 scope 결정 입력 자료
-- **신규 개발자 인지 부하 감소**: cloud 시나리오 검토 불필요 명시. `supabase.from(...)` 호출 발견 시 즉시 dead 판정 가능
+- **신규 개발자 인지 부하 감소**: cloud 시나리오 검토 불필요 명시. `cloud.from(...)` 호출 발견 시 즉시 dead 판정 가능
 - **번들 사이즈 감소**: cloud adapter / legacy adapter 제거 분만큼 production 번들 감소. 측정 baseline + 목표 수치 + 검증 절차는 design breakdown §7 Phase 5 에서 type-error baseline 측정과 동시 수행 (R6 반영)
 
 ### Negative

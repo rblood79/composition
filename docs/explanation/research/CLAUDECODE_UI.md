@@ -34,5 +34,5 @@
 
 ## 적용 시 유의사항
 
-- Claude Code UI는 보안상 WebSocket 인증, API 키 검증 등 서버 단에서 많은 검증 로직을 둔다. composition에 적용할 때도 Supabase 등과의 토큰 호환, 권한 체크를 명확히 설계해야 한다.
+- Claude Code UI는 보안상 WebSocket 인증, API 키 검증 등 서버 단에서 많은 검증 로직을 둔다. composition에 적용할 때도 Cloud 등과의 토큰 호환, 권한 체크를 명확히 설계해야 한다.
 - `node-pty`, `better-sqlite3` 등 네이티브 의존성이 포함되어 있어 브라우저 단독 배포와는 빌드 타깃이 다르다. 필요한 패턴만 선별하여 프런트엔드/백엔드 분리 구조에 맞게 경량화해야 한다.

@@ -11,7 +11,6 @@
 >
 > </details>
 
-
 ## 개요
 
 Inspector를 확장 가능한 구조로 완전히 리팩토링했습니다. 이제 새로운 컴포넌트를 추가할 때 메타데이터만 등록하면 자동으로 Inspector가 동작합니다.
@@ -23,6 +22,7 @@ Inspector를 확장 가능한 구조로 완전히 리팩토링했습니다. 이�
 ### 배경
 
 기존 아키텍처에서 Inspector Store와 Builder Store의 양방향 동기화로 인한 문제 발생:
+
 - 패널 열림/닫힘 시 스타일 변경이 반영되지 않는 버그
 - `isUpdatingFromBuilder` 플래그로 인한 첫 번째 변경 무시
 - 타이밍 이슈로 인한 불안정한 상태 동기화
@@ -56,20 +56,20 @@ src/builder/stores/
 
 ### 마이그레이션된 컴포넌트
 
-| 파일 | 변경 사항 |
-|------|----------|
-| `panels/styles/StylesPanel.tsx` | `useInspectorState` → `useSelectedElementData` |
-| `panels/styles/hooks/useStyleActions.ts` | `useInspectorState.getState()` → `useStore.getState()` |
-| `panels/properties/PropertiesPanel.tsx` | Inspector Store → Builder Store |
-| `panels/properties/editors/SlotEditor.tsx` | `setSelectedElement` 직접 사용 |
-| `panels/events/EventsPanel.tsx` | `useInspectorState` → `useStore` |
-| `events/EventList.tsx` | `addEvent/removeEvent` → Builder Store |
-| `events/EventEditor.tsx` | `updateEvent` → Builder Store |
-| `panels/common/PropertyCustomId.tsx` | `updateCustomId` → Builder Store |
-| `overlay/index.tsx` | borderRadius 읽기 → `useSelectedElementData` |
-| `overlay/hooks/useBorderRadiusDrag.ts` | 스타일 업데이트 → Builder Store |
-| `hooks/useIframeMessenger.ts` | computedStyle 업데이트 + 동기화 플래그 제거 |
-| `main/BuilderCore.tsx` | `<InspectorSync />` 제거 |
+| 파일                                       | 변경 사항                                              |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `panels/styles/StylesPanel.tsx`            | `useInspectorState` → `useSelectedElementData`         |
+| `panels/styles/hooks/useStyleActions.ts`   | `useInspectorState.getState()` → `useStore.getState()` |
+| `panels/properties/PropertiesPanel.tsx`    | Inspector Store → Builder Store                        |
+| `panels/properties/editors/SlotEditor.tsx` | `setSelectedElement` 직접 사용                         |
+| `panels/events/EventsPanel.tsx`            | `useInspectorState` → `useStore`                       |
+| `events/EventList.tsx`                     | `addEvent/removeEvent` → Builder Store                 |
+| `events/EventEditor.tsx`                   | `updateEvent` → Builder Store                          |
+| `panels/common/PropertyCustomId.tsx`       | `updateCustomId` → Builder Store                       |
+| `overlay/index.tsx`                        | borderRadius 읽기 → `useSelectedElementData`           |
+| `overlay/hooks/useBorderRadiusDrag.ts`     | 스타일 업데이트 → Builder Store                        |
+| `hooks/useIframeMessenger.ts`              | computedStyle 업데이트 + 동기화 플래그 제거            |
+| `main/BuilderCore.tsx`                     | `<InspectorSync />` 제거                               |
 
 ### 새로운 API
 
@@ -141,7 +141,7 @@ export interface InspectorActionsState {
 - ✅ 에디터 레지스트리 (자동 로딩)
 - ✅ PropertiesSection (동적 에디터 로딩)
 - ✅ StyleSection (SemanticClassPicker, CSSVariableEditor, PreviewPanel)
-- ✅ DataSection (Supabase/State/Static 바인딩 에디터)
+- ✅ DataSection (Cloud/State/Static 바인딩 에디터)
 - ✅ EventSection (EventList, EventEditor, 6가지 Action Editor)
 - ✅ 전체 CSS 스타일링 완료
 - ✅ 타입 에러 수정 완료
@@ -194,8 +194,8 @@ src/builder/
     │
     ├── data/                    # ✅ DataSection 에디터
     │   ├── DataSourceSelector.tsx
-    │   ├── SupabaseCollectionEditor.tsx
-    │   ├── SupabaseValueEditor.tsx
+    │   ├── CloudCollectionEditor.tsx
+    │   ├── CloudValueEditor.tsx
     │   ├── StateBindingEditor.tsx
     │   ├── StaticDataEditor.tsx
     │   ├── data.css
@@ -264,7 +264,7 @@ src/builder/
 
 - Collection 바인딩 (Table, ListBox)
 - Value 바인딩 (TextField, Select)
-- Supabase / Zustand / Static
+- Cloud / Zustand / Static
 
 #### EventSection (이벤트)
 
@@ -359,8 +359,8 @@ export type DataBinding = CollectionBinding | ValueBinding;
 
 export interface CollectionBinding {
   type: 'collection';
-  source: 'static' | 'supabase' | 'state';
-  config: SupabaseCollectionConfig | ...;
+  source: 'static' | 'cloud' | 'state';
+  config: CloudCollectionConfig | ...;
 }
 
 export interface EventHandler {
@@ -410,7 +410,7 @@ useStore.getState().updateSelectedStyles({ padding: "10px", margin: "5px" });
    - SemanticClassPicker: 의미 클래스 선택 UI
    - CSSVariableEditor: CSS 변수 재정의
    - PreviewPanel: 적용된 스타일 미리보기
-6. ⏳ DataSection 상세 구현 (Supabase 연동)
+6. ⏳ DataSection 상세 구현 (Cloud 연동)
 7. ⏳ EventSection 상세 구현
 8. ⏳ 기존 design/, events/ 마이그레이션
 9. ✅ **Phase 12: Single Source of Truth** (완료!)
@@ -426,5 +426,5 @@ useStore.getState().updateSelectedStyles({ padding: "10px", margin: "5px" });
 - ✅ 의미 클래스 기반 스타일 (.primary, .card)
 - ✅ CSS 변수 토큰 시스템 (--color-_, --spacing-_)
 - ✅ Tailwind 인라인 유틸리티 금지
-- ✅ Supabase JS v2 준비
+- ✅ Cloud JS v2 준비
 - ✅ 모듈화된 구조

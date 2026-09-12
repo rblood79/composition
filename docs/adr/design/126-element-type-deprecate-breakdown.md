@@ -352,7 +352,7 @@ rg -n "canonicalDocumentToElements\(|useCanonicalElements\(|useCanonicalSelected
   type-check PASS, targeted Vitest 5 files / 18 tests PASS, preflight PASS.
 - **2026-05-11 final authenticated browser smoke + closure land**: fresh
   Playwright context + seeded dev auth session 으로 `/builder/adr-126-final-smoke-*`
-  ProtectedRoute 를 통과했다. 외부 Supabase REST compatibility call 은 no-op route 로
+  ProtectedRoute 를 통과했다. 외부 Cloud REST compatibility call 은 no-op route 로
   차단해 사용자/외부 state 없이 Builder runtime 을 검증했다. 결과: create/edit/delete/
   undo/redo/reorder/origin-instance/refresh PASS, IndexedDB canonical document
   persisted + refresh 유지, rAF median 120.48fps, console/page/http error 0.
@@ -630,7 +630,7 @@ target resolver 는 후속 slice 로 남긴다.
   - `tabsItemActions.ts` 의 `useStore.getState().elements` direct read 제거
 - `useCollectionItemManager.ts`
   - collection children/read result 를 `CollectionItemNode` structural contract 로 전환
-  - Supabase insert 후 store add payload cast 를 store `Element` 대신 `CollectionItemNode` 로 축소
+  - Cloud insert 후 store add payload cast 를 store `Element` 대신 `CollectionItemNode` 로 축소
 - `ChildItemManager.tsx`
   - generated child add payload 를 `ChildItemPayload` 로 전환
   - customId 생성은 `useCanonicalPropertyElements()` 를 소비

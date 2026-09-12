@@ -20,7 +20,11 @@ import {
   resolveAxisKind,
   resolveDisplayBudget,
 } from "./budget";
-import type { ChartBudgetGeometry, DisplayBudget } from "./budget";
+import type {
+  ChartAxisKind,
+  ChartBudgetGeometry,
+  DisplayBudget,
+} from "./budget";
 import { CHART_TICK_COUNT, resolveChartLayout } from "./layout";
 import type { ChartLayout } from "./layout";
 import { niceTicks, r2 } from "./scales";
@@ -124,6 +128,32 @@ function budgetGeometry(
   return { plot: layout.plot, horizontal: layout.horizontal };
 }
 
+/** ADR-217 P1 — 설정 오류 모델의 budget: 넘침 없음 · 변환 없음 (`resolveDisplayBudget` 을 거치지 않는다). */
+function emptyBudget(
+  input: SeriesGrid,
+  axisKind: ChartAxisKind,
+): DisplayBudget {
+  const n = input.categories.length;
+  return {
+    fit: n,
+    fitEff: n,
+    k: 0,
+    series: input.series.length,
+    n,
+    overflow: false,
+    axisKind,
+    mode: "window",
+    applied: null,
+    aggregate: "sum",
+    window: null,
+    windowReduced: null,
+    B: null,
+    extremaSteps: null,
+    othersIndex: null,
+    diagnostics: [],
+  };
+}
+
 /**
  * rows + props + 크기 → 모델. 순수 함수 — 같은 입력이면 두 leg 가 같은 visible 에 이른다.
  * 두 leg 가 갈리는 입력은 `view.size` (Compare Mode 반폭) 와 `view.windowStart` 뿐이다.
@@ -172,9 +202,33 @@ export function resolveChartModel(
       }),
     };
   };
-  let pass = decide(
-    resolveChartLayout(props, input, view.size, metrics, presentation),
+  const baseLayoutPass = resolveChartLayout(
+    props,
+    input,
+    view.size,
+    metrics,
+    presentation,
   );
+  // ADR-217 P1 — 설정 오류 (알 수 없는 chartType 포함) 면 예산 · 변환에 들어가지 않는다: `slotFit` 은
+  //   알 수 없는 종류에서 throw 하고 (방어선 유지), 두 leg 는 어차피 설정 오류 scene 만 그린다.
+  //   레이아웃은 그대로 (scene 이 `outer`/`plot` 을 읽는다), budget 은 빈 값.
+  if (!presentation.ok) {
+    return {
+      presentation,
+      input,
+      transformed: input,
+      visible: input,
+      layout: baseLayoutPass,
+      ticks: baseLayoutPass.ticks,
+      budget: emptyBudget(input, axisKind),
+      sourceRowCount: rows.length,
+      diagnostics: [
+        ...presentation.diagnostics,
+        ...(capped.diagnostic ? [capped.diagnostic] : []),
+      ],
+    };
+  }
+  let pass = decide(baseLayoutPass);
   // 창 트랙 (§2.5): 창 모드에서 범주가 넘치면 트랙 높이를 예약하고 한 번 더 푼다 — 플롯이
   //   줄면 fit 은 같거나 작아지므로 (수평 bar 만) 창 판정은 뒤집히지 않는다 (순환 0, 최대 2회).
   if (

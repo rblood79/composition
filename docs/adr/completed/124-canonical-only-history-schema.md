@@ -4,7 +4,7 @@
 
 Implemented — 2026-05-10
 
-> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (history cloud persistence 부분, 2026-05-12)** — canonical-only history entry schema 자체는 유효, history `elements` row cloud delete/upsert 흐름은 dead.
+> **Superseded in part by [ADR-128](128-cloud-backend-decommission.md) (history cloud persistence 부분, 2026-05-12)** — canonical-only history entry schema 자체는 유효, history `elements` row cloud delete/upsert 흐름은 dead.
 
 진행 로그:
 
@@ -56,7 +56,7 @@ ADR-122는 Builder runtime hot path에서 mutable legacy `Element[]` mirror를 �
 **Soft Constraints**:
 
 - Phase 단위로 rollback surface를 최소화한다.
-- Supabase `elements` table cloud sync는 이번 ADR scope 밖 (ADR-127 또는 별도 boundary로 분리).
+- Cloud `elements` table cloud sync는 이번 ADR scope 밖 (ADR-127 또는 별도 boundary로 분리).
 - `update` 타입의 `diff`-first 경로는 이미 canonical 방향 — fallback만 정리한다.
 
 **의존 ADR**:

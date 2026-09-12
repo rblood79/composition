@@ -43,7 +43,7 @@ runtime read/write primary를 `CompositionDocument` 하나로 닫는 것이다.
 5. `apps/builder/src/adapters/canonical/**`와 `packages/shared/src/utils/export.utils.ts`
    같은 canonical/export bridge는 삭제 대상이 아니라 compatibility boundary로
    재분류한다.
-6. Supabase physical `pages`/`elements` schema 제거는 별도 migration 승인이 없으면
+6. Cloud physical `pages`/`elements` schema 제거는 별도 migration 승인이 없으면
    수행하지 않는다. cloud schema가 아직 `documents` payload를 저장하지 못하면, cloud
    upload는 canonical document에서 call-time projection한 compatibility payload만 보낸다.
    cloud legacy-only download는 remote transport adapter로만 허용하며, remote rows를
@@ -83,10 +83,10 @@ runtime read/write primary를 `CompositionDocument` 하나로 닫는 것이다.
   - 유지보수: H — 새 기능마다 canonical path와 mirror path를 둘 다 확인해야 한다.
   - 마이그레이션: L — physical schema 변화가 없다.
 
-### 대안 B: local과 Supabase legacy schema를 한 번에 삭제
+### 대안 B: local과 Cloud legacy schema를 한 번에 삭제
 
 - 설명: IndexedDB `pages`/`elements`/`layouts`, `DatabaseAdapter` legacy surface,
-  Supabase `pages`/`elements` physical schema/API를 한 번에 제거하고 document payload만
+  Cloud `pages`/`elements` physical schema/API를 한 번에 제거하고 document payload만
   남긴다.
 - 근거: 최종 상태에 가장 빨리 도달한다.
 - 위험:
@@ -94,14 +94,14 @@ runtime read/write primary를 `CompositionDocument` 하나로 닫는 것이다.
     깨질 수 있다.
   - 성능: L — 완료 후에는 가장 단순하다.
   - 유지보수: M — 완료 후 단순하지만 cutover 중 fallback과 diagnosis가 어렵다.
-  - 마이그레이션: H — Supabase schema/API 배포 순서와 기존 cloud row 처리가 필요하다.
+  - 마이그레이션: H — Cloud schema/API 배포 순서와 기존 cloud row 처리가 필요하다.
 
 ### 대안 C: strong local mirror removal + cloud projection boundary
 
 - 설명: local Builder runtime에서 `pages`/`elements`/`layouts` mirror persistence를
   최종 제거 대상으로 고정한다. non-adapter runtime `db.pages/elements/layouts`
   call site를 0건으로 만들고, `DatabaseAdapter.pages/elements/layouts` public surface와
-  IndexedDB `pages`/`elements`/`layouts` objectStore를 삭제한다. Supabase physical schema가
+  IndexedDB `pages`/`elements`/`layouts` objectStore를 삭제한다. Cloud physical schema가
   legacy row API를 요구하는 동안에는 `CompositionDocument`에서 call-time projection한
   compatibility payload만 허용한다.
 - 근거: ADR-116 direct cutover와 ADR-118/119 order SSOT의 방향을 보존하면서 rollback
@@ -118,7 +118,7 @@ runtime read/write primary를 `CompositionDocument` 하나로 닫는 것이다.
 
 - 설명: IndexedDB mirror만 제거하고 cloud sync는 계속 `pagesApi`/`elementsApi` row를
   primary로 간주한다.
-- 근거: local DB cleanup 범위는 줄이고 기존 Supabase API를 유지할 수 있다.
+- 근거: local DB cleanup 범위는 줄이고 기존 Cloud API를 유지할 수 있다.
 - 위험:
   - 기술: H — local은 document primary, cloud는 elements/pages primary가 되어 또 다른
     dual-SSOT가 생긴다.
@@ -150,7 +150,7 @@ schema 제거를 분리해 rollout 위험을 제한한다.
    mirror write/read drift를 최종 제거한다.
 2. ADR-118/119의 structural order SSOT를 깨지 않고, page/element/layout mirror row를
    order 또는 ownership source로 되살리지 않는다.
-3. Supabase physical schema 제거를 local cleanup과 분리해, cloud migration 승인 없이도
+3. Cloud physical schema 제거를 local cleanup과 분리해, cloud migration 승인 없이도
    runtime bug source를 먼저 줄일 수 있다.
 4. `DatabaseAdapter.pages/elements/layouts`와 IndexedDB `pages`/`elements`/`layouts`
    objectStore는 완료 시점에 제거한다.
@@ -161,7 +161,7 @@ schema 제거를 분리해 rollout 위험을 제한한다.
 
 - **대안 A 기각**: 중복 persistence를 유지하면 ADR-116 이후 반복된 refresh/origin/frame
   drift 재발 조건이 남는다.
-- **대안 B 기각**: local cleanup과 Supabase schema migration을 동시에 묶어 rollback
+- **대안 B 기각**: local cleanup과 Cloud schema migration을 동시에 묶어 rollback
   surface를 불필요하게 키운다.
 - **대안 D 기각**: local과 cloud primary source가 갈라져 dual-SSOT 문제가 형태만 바뀐다.
 
@@ -175,7 +175,7 @@ schema 제거를 분리해 rollout 위험을 제한한다.
 | Risk                                   | Impact                                                                            | Mitigation                                                                                                                       |
 | -------------------------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | missed runtime mirror write            | property update, origin/instance, frame binding, drag/drop drift가 재발할 수 있다 | Phase 0 allowlist와 phase별 `rg` gate로 production `db.pages/elements/layouts` project-state call site를 0건으로 고정한다        |
-| cloud legacy transport conversion loss | Supabase legacy-only download에서 page/body/frame/ref semantics가 손실될 수 있다  | legacy rows는 one-shot `CompositionDocument` import boundary로만 변환하고, 변환 불가 payload는 explicit error로 중단한다         |
+| cloud legacy transport conversion loss | Cloud legacy-only download에서 page/body/frame/ref semantics가 손실될 수 있다     | legacy rows는 one-shot `CompositionDocument` import boundary로만 변환하고, 변환 불가 payload는 explicit error로 중단한다         |
 | DB/API surface deletion blast radius   | tests/mocks/debug UI 또는 non-project-data store가 함께 깨질 수 있다              | delete-runtime/delete-schema/non-project-data/test-fixture bucket을 분리하고 `DatabaseAdapter` mock shape를 단계별로 축소한다    |
 | canonical/export bridge over-deletion  | import/export, frame/ref materialization, legacy fixture coverage가 깨질 수 있다  | `apps/builder/src/adapters/canonical/**`와 shared export bridge는 projection boundary로 유지하고 DB mirror read/write만 제거한다 |
 | IndexedDB upgrade/stale data handling  | 기존 dev DB에서 objectStore 삭제 upgrade가 실패하거나 stale row가 남을 수 있다    | runtime call site 0건 이후 `DB_VERSION` bump, delete-only upgrade allowlist, browser IndexedDB smoke로 검증한다                  |
@@ -206,7 +206,7 @@ schema 제거를 분리해 rollout 위험을 제한한다.
   frame cascade, page parent/delete path는 local `db.pages/elements/layouts`를 project
   state source로 사용하지 않는다.
 - `projectSync` upload는 `db.documents.get(projectId)`에서 render model을 파생해
-  Supabase row payload를 만든다. legacy-only cloud download는 `pages/elements` rows를
+  Cloud row payload를 만든다. legacy-only cloud download는 `pages/elements` rows를
   one-shot `legacyToCanonical(...)`로 변환한 뒤 local에는 `db.documents.put()`만 수행한다.
 - `DatabaseAdapter.pages/elements/layouts` public surface를 제거하고 IndexedDB
   `DB_VERSION`을 14로 올렸다. v14 upgrade는 기존 `pages`/`elements`/`layouts`
@@ -244,7 +244,7 @@ ADR-120의 완료 의미는 repo 전체에서 `legacy` 문자열이나 legacy co
 - local Builder runtime의 project document state read/write primary가
   `CompositionDocument` 하나로 닫힌다.
 - production runtime에서 `db.pages`, `db.elements`, `db.layouts` project mirror call
-  site는 0건이다. 테스트/static grep gate와 Supabase projection API 이름만 allowlist로
+  site는 0건이다. 테스트/static grep gate와 Cloud projection API 이름만 allowlist로
   남길 수 있다.
 - `DatabaseAdapter.pages/elements/layouts` public surface는 제거된다.
 - IndexedDB `pages`/`elements`/`layouts` objectStore는 runtime 미사용 상태를 확인한 뒤
@@ -260,7 +260,7 @@ ADR-120의 완료 의미는 repo 전체에서 `legacy` 문자열이나 legacy co
 - canonical format 재설계.
 - Pencil import/export adapter 전체 삭제.
 - Table/collection component data model의 `order_num` 제거.
-- Supabase physical schema drop을 승인 없이 수행하는 작업.
+- Cloud physical schema drop을 승인 없이 수행하는 작업.
 
 ## Consequences
 
@@ -276,7 +276,7 @@ ADR-120의 완료 의미는 repo 전체에서 `legacy` 문자열이나 legacy co
 ### Negative
 
 - history/editor/drag/drop/projectSync 경로가 넓어 phase별 targeted test가 필요하다.
-- Supabase physical schema 제거가 별도 결정으로 남으면 compatibility adapter는 당분간
+- Cloud physical schema 제거가 별도 결정으로 남으면 compatibility adapter는 당분간
   유지된다.
 - `apps/builder/src/adapters/canonical/**`를 무분별하게 삭제하면 export/import,
   frame/ref materialization, legacy fixture coverage가 깨질 수 있다.

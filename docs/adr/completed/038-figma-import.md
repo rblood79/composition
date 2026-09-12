@@ -186,7 +186,7 @@ composition는 노코드 웹 빌더로, 현재 모든 디자인을 자체 에디
 | 항목                        | 설명                                                     |
 | --------------------------- | -------------------------------------------------------- |
 | Figma REST API 타입         | 전체 노드 프로퍼티 타입 정의 (Frame, Text, Rectangle 등) |
-| API 프록시                  | Supabase Edge Function — CORS 해결 + PAT 인증            |
+| API 프록시                  | Cloud Edge Function — CORS 해결 + PAT 인증               |
 | Frame/Group/Rectangle → div | Auto Layout → flex, 일반 → block/absolute                |
 | Text → Text/Heading         | 기본 텍스트 스타일 매핑                                  |
 | Solid Fill/Stroke           | backgroundColor, borderWidth, borderColor, borderRadius  |
@@ -204,7 +204,7 @@ composition는 노코드 웹 빌더로, 현재 모든 디자인을 자체 에디
 | ---------------------- | -------------------------------------------- |
 | Linear/Radial Gradient | gradient stops → CSS gradient                |
 | Drop/Inner Shadow      | boxShadow 변환                               |
-| 이미지 fill            | 다운로드 → Supabase Storage → Image 태그     |
+| 이미지 fill            | 다운로드 → Cloud Storage → Image 태그        |
 | Ellipse                | borderRadius 50%                             |
 | 개별 변 border         | individualStrokeWeights                      |
 | Text 고급 스타일       | letterSpacing, textDecoration, textTransform |
@@ -248,7 +248,7 @@ composition는 노코드 웹 빌더로, 현재 모든 디자인을 자체 에디
 
 ```
 ┌──────────┐     ┌───────────────────┐     ┌──────────────┐
-│  Builder │────▶│ Supabase Edge Fn  │────▶│  Figma API   │
+│  Builder │────▶│ Cloud Edge Fn  │────▶│  Figma API   │
 │  (React) │     │ (API 프록시)       │     │  REST v1     │
 │          │◀────│ + 이미지 다운로드   │◀────│              │
 └──────────┘     └───────────────────┘     └──────────────┘

@@ -26,11 +26,12 @@ composition는 React 19 + React Aria Components 기반의 견고한 아키텍처
 - 선택된 콘텐츠가 없으면 자동 숨김
 
 **제공 기능 예시**:
-| 선택 상태 | 표시되는 도구 |
-|-----------|---------------|
+
+| 선택 상태   | 표시되는 도구                                             |
+| ----------- | --------------------------------------------------------- |
 | 이미지 선택 | Select and Mask, Feather, Invert, Create Adjustment Layer |
-| 텍스트 선택 | 정렬, 간격, 폰트 스타일 |
-| 영역 선택 | Generative Fill, Generative Expand, Fill Selection |
+| 텍스트 선택 | 정렬, 간격, 폰트 스타일                                   |
+| 영역 선택   | Generative Fill, Generative Expand, Fill Selection        |
 
 **UX 효과**: 작업 시간 약 30% 단축, 패널 탐색 불필요
 
@@ -223,7 +224,7 @@ composition는 React 19 + React Aria Components 기반의 견고한 아키텍처
 | --------------- | ----------------- | ------------------ | ---- |
 | Undo/Redo       | ✅                | ✅ IndexedDB 기반  | 유사 |
 | Version History | ✅ 시각적 UI      | ⚠️ 히스토리 정보만 | 중간 |
-| 클라우드 동기화 | ✅ Creative Cloud | ⚠️ Supabase        | 유사 |
+| 클라우드 동기화 | ✅ Creative Cloud | ⚠️ Cloud           | 유사 |
 
 ### 4.6 협업 기능
 
@@ -396,7 +397,7 @@ interface Comment {
   replies: Comment[];
 }
 
-// Supabase Realtime 구독으로 실시간 동기화
+// Cloud Realtime 구독으로 실시간 동기화
 ```
 
 #### F. 플로팅 패널 시스템
@@ -459,7 +460,7 @@ interface Comment {
 
 6. **Comments 패널**
    - 기본 댓글 기능
-   - Supabase Realtime 연동
+   - Cloud Realtime 연동
 
 7. **플로팅 패널 시스템**
    - 패널 드래그

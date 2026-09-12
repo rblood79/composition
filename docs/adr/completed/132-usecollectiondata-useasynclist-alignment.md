@@ -53,7 +53,7 @@ Implemented — 2026-05-13
 
 ### Hard Constraints
 
-1. **RAC/RSC read 진입점 단일**: collection 컴포넌트가 `useCollectionData` 한 hook 으로 모든 source (`dataTable` / `api` / Legacy `static` / Legacy `api` / `supabase` deferred) 를 동일 인터페이스로 read 가능
+1. **RAC/RSC read 진입점 단일**: collection 컴포넌트가 `useCollectionData` 한 hook 으로 모든 source (`dataTable` / `api` / Legacy `static` / Legacy `api` / `cloud` deferred) 를 동일 인터페이스로 read 가능
 2. **collections sink 통일**: API endpoint 실행 결과는 반드시 `collections.runtimeData` 거쳐 read (사용자 framing — [[project-data-tables-ssot-framing]])
 3. **RSP `useAsyncList` 정통 패턴**: `useAsyncList.load` callback 안에서 모든 분기 종결, `list.items` 단일 read 진입점
 4. **rename 정합 (UI vs internal 구분 rule)**:
@@ -236,4 +236,4 @@ Implemented — 2026-05-13
 - **rename 으로 50+ 파일 mechanical 변경** — Phase 5 sweep 시 단일 commit 으로 land (Builder + Publish + Preview + Shared 동시). 한쪽만 land 시 iframe postMessage silent fail (R8 대응)
 - **IndexedDB `data_tables` store drop** — 개발 환경에서 본인 in-progress 데이터 손실. DB_VERSION bump 시 자동 drop, 사용자 본인 dev DB export 권고 (R9 대응)
 - **Transformer 탭 / API 사라짐** — DataTable Panel 의 "Transformers" 탭 + `useDataStore.transformers` Map state + 5 actions (`fetchTransformers / createTransformer / updateTransformer / deleteTransformer / executeTransformer`) 즉시 사라짐. UI 사용 흔적 (Panel 탭 + Workflow icon) 사용자 노출 영역에서 제거 — 사용자 explicit confirm 2026-05-13. 향후 변환 로직 필요 시 ApiEndpoint `responseMapping` (Level 1) / Actions 시스템 / 별 ADR 발의로 재도입
-- **scope 경계 (별 ADR 분리 영역)**: AI tool `createElement` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3) / `apps/publish` 의 `ProjectData` 직렬화 정합 (W4) / DataPanel UI 정적 입력 + API 결과 표시 UX / `Element.dataBinding.source` enum 정합 (`static/api/supabase/state/parent` 5종 valid 재평가) — 본 ADR scope 밖, 후속 ADR 발의 필요. 상세: [design breakdown §7 scope 경계 명시](../design/132-usecollectiondata-useasynclist-alignment-breakdown.md#7-scope-경계-명시)
+- **scope 경계 (별 ADR 분리 영역)**: AI tool `createElement` 의 `element.dataBinding.config` 직접 endpoint 박는 패턴 정정 (W3) / `apps/publish` 의 `ProjectData` 직렬화 정합 (W4) / DataPanel UI 정적 입력 + API 결과 표시 UX / `Element.dataBinding.source` enum 정합 (`static/api/cloud/state/parent` 5종 valid 재평가) — 본 ADR scope 밖, 후속 ADR 발의 필요. 상세: [design breakdown §7 scope 경계 명시](../design/132-usecollectiondata-useasynclist-alignment-breakdown.md#7-scope-경계-명시)

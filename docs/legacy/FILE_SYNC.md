@@ -10,7 +10,7 @@
 ### 프로젝트 파일 구조
 
 ```
-사용자 PC (로컬)                     클라우드 (Supabase)
+사용자 PC (로컬)                     클라우드 (Cloud)
 ├── Documents/                        ├── projects
 │   ├── MyWebsite.composition            │   ├── project-1 (MyWebsite)
 │   │   ├── project_id: abc-123      │   ├── project-2 (Portfolio)
@@ -34,7 +34,7 @@
 ```typescript
 // .composition 파일의 메타데이터 테이블
 interface ProjectMetadata {
-  project_id: string; // Supabase project ID (동기화용)
+  project_id: string; // Cloud project ID (동기화용)
   sync_status: "local-only" | "synced" | "conflict";
   last_sync_at: Date | null;
   cloud_updated_at: Date | null;
@@ -110,7 +110,7 @@ PC 1 (다음날):
 
 export interface ProjectFileInfo {
   filePath: string; // /Users/name/Documents/MyWebsite.composition
-  projectId: string; // abc-123 (Supabase project ID)
+  projectId: string; // abc-123 (Cloud project ID)
   projectName: string; // MyWebsite
   lastModified: Date;
   fileSize: number;
@@ -269,14 +269,14 @@ export class ProjectFile {
     const themes = await this.db!.select("design_themes");
     const tokens = await this.db!.select("design_tokens");
 
-    // Supabase에 업로드
-    const supabase = await getSupabaseClient();
+    // Cloud에 업로드
+    const cloud = await getCloudClient();
 
-    await supabase.from("projects").upsert(project);
-    await supabase.from("pages").upsert(pages);
-    await supabase.from("elements").upsert(elements);
-    await supabase.from("design_themes").upsert(themes);
-    await supabase.from("design_tokens").upsert(tokens);
+    await cloud.from("projects").upsert(project);
+    await cloud.from("pages").upsert(pages);
+    await cloud.from("elements").upsert(elements);
+    await cloud.from("design_themes").upsert(themes);
+    await cloud.from("design_tokens").upsert(tokens);
 
     // 메타데이터 업데이트
     await this.db!.query(
@@ -300,28 +300,28 @@ export class ProjectFile {
 
     console.log("🔄 Syncing from cloud...");
 
-    const supabase = await getSupabaseClient();
+    const cloud = await getCloudClient();
     const projectId = this.metadata!.project_id;
 
     // 클라우드 데이터 조회
-    const { data: pages } = await supabase
+    const { data: pages } = await cloud
       .from("pages")
       .select("*")
       .eq("project_id", projectId);
 
     const pageIds = pages.map((p) => p.id);
-    const { data: elements } = await supabase
+    const { data: elements } = await cloud
       .from("elements")
       .select("*")
       .in("page_id", pageIds);
 
-    const { data: themes } = await supabase
+    const { data: themes } = await cloud
       .from("design_themes")
       .select("*")
       .eq("project_id", projectId);
 
     const themeIds = themes.map((t) => t.id);
-    const { data: tokens } = await supabase
+    const { data: tokens } = await cloud
       .from("design_tokens")
       .select("*")
       .in("theme_id", themeIds);
@@ -362,8 +362,8 @@ export class ProjectFile {
       return { cloudNewer: false, localNewer: false, conflict: false };
     }
 
-    const supabase = await getSupabaseClient();
-    const { data: project } = await supabase
+    const cloud = await getCloudClient();
+    const { data: project } = await cloud
       .from("projects")
       .select("updated_at")
       .eq("id", this.metadata!.project_id)
@@ -534,10 +534,10 @@ export class CloudProjectsService {
    * Get all projects from cloud
    */
   static async getAll(): Promise<CloudProject[]> {
-    const supabase = await getSupabaseClient();
+    const cloud = await getCloudClient();
 
     // 프로젝트 목록 조회
-    const { data: projects } = await supabase
+    const { data: projects } = await cloud
       .from("projects")
       .select("*")
       .order("updated_at", { ascending: false });
@@ -546,19 +546,19 @@ export class CloudProjectsService {
     const cloudProjects: CloudProject[] = [];
 
     for (const project of projects) {
-      const { count: pageCount } = await supabase
+      const { count: pageCount } = await cloud
         .from("pages")
         .select("*", { count: "exact", head: true })
         .eq("project_id", project.id);
 
-      const { data: pages } = await supabase
+      const { data: pages } = await cloud
         .from("pages")
         .select("id")
         .eq("project_id", project.id);
 
       const pageIds = pages.map((p) => p.id);
 
-      const { count: elementCount } = await supabase
+      const { count: elementCount } = await cloud
         .from("elements")
         .select("*", { count: "exact", head: true })
         .in("page_id", pageIds);
@@ -588,10 +588,10 @@ export class CloudProjectsService {
     projectId: string,
     filePath: string,
   ): Promise<ProjectFile> {
-    const supabase = await getSupabaseClient();
+    const cloud = await getCloudClient();
 
     // 프로젝트 조회
-    const { data: project } = await supabase
+    const { data: project } = await cloud
       .from("projects")
       .select("*")
       .eq("id", projectId)
@@ -605,24 +605,24 @@ export class CloudProjectsService {
     const projectFile = await ProjectFile.create(filePath, project.name);
 
     // 클라우드에서 데이터 가져오기
-    const { data: pages } = await supabase
+    const { data: pages } = await cloud
       .from("pages")
       .select("*")
       .eq("project_id", projectId);
 
     const pageIds = pages.map((p) => p.id);
-    const { data: elements } = await supabase
+    const { data: elements } = await cloud
       .from("elements")
       .select("*")
       .in("page_id", pageIds);
 
-    const { data: themes } = await supabase
+    const { data: themes } = await cloud
       .from("design_themes")
       .select("*")
       .eq("project_id", projectId);
 
     const themeIds = themes.map((t) => t.id);
-    const { data: tokens } = await supabase
+    const { data: tokens } = await cloud
       .from("design_tokens")
       .select("*")
       .in("theme_id", themeIds);
@@ -655,10 +655,10 @@ export class CloudProjectsService {
    * Delete project from cloud
    */
   static async delete(projectId: string): Promise<void> {
-    const supabase = await getSupabaseClient();
+    const cloud = await getCloudClient();
 
     // CASCADE로 모든 관련 데이터 삭제
-    await supabase.from("projects").delete().eq("id", projectId);
+    await cloud.from("projects").delete().eq("id", projectId);
 
     console.log(`✅ Project deleted from cloud: ${projectId}`);
   }

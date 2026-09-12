@@ -1801,7 +1801,7 @@ if (isTagList) {
 
 > 목표: 무거운 WASM 연산을 메인 스레드에서 분리
 > 핵심 과제: **비동기 레이아웃 결과의 동기 렌더링 파이프라인 통합**
-> **제약:** SharedArrayBuffer 사용 불가 — composition는 Supabase 인증 호환을 위해 Vite 설정에서 COOP/COEP 헤더를 제거하고 있으며, SharedArrayBuffer는 이 헤더가 필수이다. Worker 통신은 `postMessage` + `Transferable` (ArrayBuffer transfer)로 한정한다.
+> **제약:** SharedArrayBuffer 사용 불가 — composition는 Cloud 인증 호환을 위해 Vite 설정에서 COOP/COEP 헤더를 제거하고 있으며, SharedArrayBuffer는 이 헤더가 필수이다. Worker 통신은 `postMessage` + `Transferable` (ArrayBuffer transfer)로 한정한다.
 >
 > **선두 기업 참고:** Figma는 Workers + SharedArrayBuffer로 렌더링/네트워크/협업 스레드를 완전 분리한다.
 > Adobe는 WASM Pthreads로 진정한 멀티스레딩을 구현했다.
@@ -3242,13 +3242,13 @@ export function exportToImage(
 
 **진입 기준:** Phase 4 Worker 통합 완료 + 메인 스레드 병목이 Worker 분리만으로 해소되지 않을 때
 
-| 기법                         | 출처    | 내용                                       | 전제 조건                                            |
-| ---------------------------- | ------- | ------------------------------------------ | ---------------------------------------------------- |
-| **SharedArrayBuffer 고도화** | Figma   | 렌더링/네트워크/협업 스레드 분리           | COOP/COEP 헤더 활성화 (Supabase 인증 호환 해결 필요) |
-| **WASM Pthreads**            | Adobe   | wasm-bindgen-rayon 기반 병렬 레이아웃 계산 | SharedArrayBuffer 전제                               |
-| **OffscreenCanvas Worker**   | Flutter | 렌더링 자체를 Worker로 이동                | 브라우저 OffscreenCanvas + WebGL 지원                |
+| 기법                         | 출처    | 내용                                       | 전제 조건                                         |
+| ---------------------------- | ------- | ------------------------------------------ | ------------------------------------------------- |
+| **SharedArrayBuffer 고도화** | Figma   | 렌더링/네트워크/협업 스레드 분리           | COOP/COEP 헤더 활성화 (Cloud 인증 호환 해결 필요) |
+| **WASM Pthreads**            | Adobe   | wasm-bindgen-rayon 기반 병렬 레이아웃 계산 | SharedArrayBuffer 전제                            |
+| **OffscreenCanvas Worker**   | Flutter | 렌더링 자체를 Worker로 이동                | 브라우저 OffscreenCanvas + WebGL 지원             |
 
-> **제약 재확인:** composition는 현재 Supabase 인증 호환을 위해 COOP/COEP 헤더를 제거 중 (Phase 4 제약 참조).
+> **제약 재확인:** composition는 현재 Cloud 인증 호환을 위해 COOP/COEP 헤더를 제거 중 (Phase 4 제약 참조).
 > SharedArrayBuffer 기반 최적화는 이 제약 해소 후에만 가능하다.
 
 ### 7.3 Rust 메모리 최적화 + 커스텀 할당기
@@ -3338,7 +3338,7 @@ export function exportToImage(
 > Incremental Loading은 "데이터 로딩 자체를 지연"하는 상위 개념이다.
 > Virtualization → Incremental Loading 순으로 도입하는 것이 자연스럽다.
 >
-> **OPFS 적용 시점:** 현재 composition는 Supabase Storage에서 에셋을 로드한다.
+> **OPFS 적용 시점:** 현재 composition는 Cloud Storage에서 에셋을 로드한다.
 > 대규모 프로젝트에서 반복 로딩이 병목이 되면 OPFS 캐싱 레이어를 도입한다.
 
 ---

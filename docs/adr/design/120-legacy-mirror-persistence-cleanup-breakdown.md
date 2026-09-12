@@ -60,28 +60,28 @@ persistence를 제거하는 실행 계획이다.
 - canonical format 재설계.
 - `reusable/ref/descendants/slot/x-composition` contract 변경.
 - Pencil/export/import adapter 삭제.
-- Supabase physical schema drop의 즉시 수행.
+- Cloud physical schema drop의 즉시 수행.
 - Table/collection data model cleanup.
 
 ## Scope Matrix
 
-| Surface                                      | 포함 여부 | 최종 상태                                                                |
-| -------------------------------------------- | --------- | ------------------------------------------------------------------------ |
-| `DatabaseAdapter.documents`                  | In        | local project document primary 유지                                      |
-| `DatabaseAdapter.pages/elements/layouts`     | In        | public surface 제거                                                      |
-| IndexedDB `documents` store                  | In        | primary store 유지                                                       |
-| IndexedDB `pages/elements/layouts` stores    | In        | runtime call site 0 이후 `DB_VERSION` bump로 삭제                        |
-| dashboard create/delete                      | In        | project metadata + `documents` primary; mirror seed/delete 제거          |
-| `usePageManager` hydrate                     | In        | `documents` only 유지, mirror fallback 금지                              |
-| element create/update/remove                 | In        | active document mutation + `documents.put`; local `elements` mirror 제거 |
-| history undo/redo                            | In        | document snapshot/mutation primary; `db.elements.*` mirror 제거          |
-| canvas drag/drop                             | In        | canonical splice + `documents.put`; local `elements.updateMany` 제거     |
-| page-frame binding / reusable frame actions  | In        | canonical node update; `pages.layout_id`/`layouts` mirror 제거           |
-| frame element loader                         | In        | canonical frame scope resolver; `db.elements.getDescendants/getAll` 제거 |
-| `pagesApi`/`elementsApi` Supabase projection | Boundary  | document-derived compatibility only until physical schema decision       |
-| `apps/builder/src/adapters/canonical/**`     | Boundary  | active projection/export bridge; wholesale deletion 금지                 |
-| `packages/shared/src/utils/export.utils.ts`  | Boundary  | export/render model projection boundary 유지                             |
-| Table/collection `order_num`                 | Out       | component data model; ADR-120 범위 아님                                  |
+| Surface                                     | 포함 여부 | 최종 상태                                                                |
+| ------------------------------------------- | --------- | ------------------------------------------------------------------------ |
+| `DatabaseAdapter.documents`                 | In        | local project document primary 유지                                      |
+| `DatabaseAdapter.pages/elements/layouts`    | In        | public surface 제거                                                      |
+| IndexedDB `documents` store                 | In        | primary store 유지                                                       |
+| IndexedDB `pages/elements/layouts` stores   | In        | runtime call site 0 이후 `DB_VERSION` bump로 삭제                        |
+| dashboard create/delete                     | In        | project metadata + `documents` primary; mirror seed/delete 제거          |
+| `usePageManager` hydrate                    | In        | `documents` only 유지, mirror fallback 금지                              |
+| element create/update/remove                | In        | active document mutation + `documents.put`; local `elements` mirror 제거 |
+| history undo/redo                           | In        | document snapshot/mutation primary; `db.elements.*` mirror 제거          |
+| canvas drag/drop                            | In        | canonical splice + `documents.put`; local `elements.updateMany` 제거     |
+| page-frame binding / reusable frame actions | In        | canonical node update; `pages.layout_id`/`layouts` mirror 제거           |
+| frame element loader                        | In        | canonical frame scope resolver; `db.elements.getDescendants/getAll` 제거 |
+| `pagesApi`/`elementsApi` Cloud projection   | Boundary  | document-derived compatibility only until physical schema decision       |
+| `apps/builder/src/adapters/canonical/**`    | Boundary  | active projection/export bridge; wholesale deletion 금지                 |
+| `packages/shared/src/utils/export.utils.ts` | Boundary  | export/render model projection boundary 유지                             |
+| Table/collection `order_num`                | Out       | component data model; ADR-120 범위 아님                                  |
 
 ## Phase 0: Inventory + Deletion Allowlist
 
@@ -129,7 +129,7 @@ rg -n "layout_id|slot_name|componentRole|masterId|overrides|descendants" apps/bu
 1. dashboard project create:
    - local mode에서 `db.pages.insert(homePage)`와 `db.elements.insert(bodyElement)`를
      제거한다.
-   - cloud/both mode에서 Supabase compatibility payload가 필요하면 canonical document에서
+   - cloud/both mode에서 Cloud compatibility payload가 필요하면 canonical document에서
      call-time projection한다.
    - local primary는 `db.documents.put(projectId, createInitialProjectDocument(...))`만
      남긴다.
@@ -226,7 +226,7 @@ pnpm -F @composition/builder exec vitest run src/adapters/canonical/__tests__/pa
 pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/frameActions.test.ts src/builder/stores/canonical/__tests__/canonicalFrameStore.test.ts
 ```
 
-## Phase 4: Project Sync / Supabase Boundary
+## Phase 4: Project Sync / Cloud Boundary
 
 ### 작업
 
@@ -250,7 +250,7 @@ pnpm -F @composition/builder exec vitest run src/builder/stores/utils/__tests__/
      `db.pages.insert`, `db.elements.insertMany`, `db.layouts.*` fallback은 금지한다.
 4. `deleteProject(projectId, location)`:
    - local delete는 `db.documents.delete(projectId)` 중심으로 전환한다.
-   - cloud delete는 Supabase physical schema가 남아 있는 동안 기존 API boundary를 유지할 수
+   - cloud delete는 Cloud physical schema가 남아 있는 동안 기존 API boundary를 유지할 수
      있다.
 5. `PagesApiService`/`legacyElementsApiService`는 runtime primary가 아니라 cloud
    compatibility service임을 명시하거나, document API가 생기면 제거한다.

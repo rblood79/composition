@@ -15,6 +15,18 @@
  * `radar`/`radial` 은 극좌표 계열 (ADR-207) — 직교 축 대신 `buildPolarAxes` 를 쓴다.
  */
 export type ChartType = "bar" | "line" | "area" | "pie" | "radar" | "radial";
+/**
+ * ADR-217 P1 — 값 목록 (validator 가 알 수 없는 종류를 진단 `chartType.unsupported` 로 낸다).
+ * 유니온에 종류를 더하면 `satisfies` 가 여기도 고치게 한다.
+ */
+export const CHART_TYPES = [
+  "bar",
+  "line",
+  "area",
+  "pie",
+  "radar",
+  "radial",
+] as const satisfies readonly ChartType[];
 
 /** radar 격자 모양 (shadcn `chart-radar-grid-circle` 축). */
 export type PolarGridType = "polygon" | "circle";
@@ -128,6 +140,8 @@ export type ChartDiagnosticCode =
   | "dimensionScale.unsupportedChartType"
   | "dimensionFormat.invalid"
   | "dimensionLabelFormat.invalid"
+  // ADR-217 P1 — 알 수 없는 종류 (구버전 throw 대신 설정 오류 scene · rollback 경계).
+  | "chartType.unsupported"
   | "dimension.parse.failed";
 
 /**

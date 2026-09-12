@@ -57,7 +57,7 @@
   - 격차 3 — interaction rule: `InteractionRule` schema (`packages/shared/src/interactions/interactionRule.types.ts`) + `capabilityRegistry` (`packages/shared/src/interactions/capabilityRegistry.ts` — Phase 0 확정) + store action `addEvent / updateEvent / removeEvent / setEvents` + read `useDocumentEvents()`. `SerializedEvent` / root `actions` 는 dormant (`composition-document.types.ts` 주석) — AI 도구 참조 금지
   - 격차 4 — frame: `FrameNode` schema + `isLegacyGroupForFrameMigration()` (`adapters/canonical/tagRename.ts`) hydration migration 분석
   - 회귀 gate baseline: AI 도구 안 `Transform` / `props.events` / `Group + group_N` / `SerializedEvent` 어휘 **0건** (2026-08-26 grep) — G3/G4 의 grep gate 는 "도입 금지" 회귀 조건
-- **프록시 경계 사전 조사** (D10): Supabase Edge Function 호출 가능 범위 / streaming 지원 / 키 보관 위치 후보 비교 — Phase 2 확정의 입력
+- **프록시 경계 사전 조사** (D10): Cloud Edge Function 호출 가능 범위 / streaming 지원 / 키 보관 위치 후보 비교 — Phase 2 확정의 입력
 - baseline freeze metric: 추정 file count + LOC + grep alias 종류 (실측 vs 추정 1.5x gap 차단)
 
 ### Phase 0 실측 결과 (2026-08-28 — HEAD `a5be9a3e7`)
@@ -66,7 +66,7 @@
 
 1. **클라우드 LLM 결합은 파일 1개에 국소화** — `클라우드 LLM SDK` 참조 3건 중 값 import 는 `AgentService.ts:8` 하나뿐이고 `definitions.ts:8` · `runCommand.ts:11` 은 `ChatCompletionTool` **type-only**. `dangerouslyAllowBrowser`(`:35`) · 모델 id `llama-3.3-70b-versatile`(`:225`) · `빌드타임 API 키`(`:322`) 전부 같은 파일. 서비스 소비자는 `useAgentLoop.ts` 1곳. → Phase 2 "완전 제거" 의 코드 표면은 추정 7 file 보다 작다.
 2. **`AIAgentProvider` 인터페이스는 이미 존재하지만 소비자 0** — `types/integrations/ai.types.ts:59` (`runAgentLoop` + `stop`). `AgentService` 는 `implements` 선언이 없고 `useAgentLoop.ts:36` 은 구현체 팩토리 `createAgentService()` 를 직접 부른다 (3-grep 미통과 = dormant). → **Phase 1 은 추상화 신설이 아니라 기존 인터페이스에 구현을 붙이고 소비 경로를 인터페이스로 돌리는 작업**이다 (메모리 `feedback-infra-exists-vs-wired-consumption-path`).
-3. **Supabase Edge Function 인프라 미존재** — 저장소에 `supabase/` · `functions/` 디렉터리 없음. Supabase 는 클라이언트 SDK 만 사용 (`src/env/supabase.client.ts`). → D10 "원격 provider 프록시 경유" 를 Edge Function 으로 실현하려면 **Phase 2 에 배포 인프라 스캐폴딩 자체가 포함**된다 (추정 7 file 에 없던 항목 — Phase 2 착수 시 사용자 confirm 대상). 대안 축: (a) Edge Function 프록시 (streaming SSE 전달 확인 필요) / (b) 폐쇄망 OpenAI-compatible endpoint 직결 / (c) Electron main process 경유 (Phase 9 의존 — 지금 채택 불가).
+3. **Cloud Edge Function 인프라 미존재** — 저장소에 `cloud/` · `functions/` 디렉터리 없음. Cloud 는 클라이언트 SDK 만 사용 (`src/env/cloud.client.ts`). → D10 "원격 provider 프록시 경유" 를 Edge Function 으로 실현하려면 **Phase 2 에 배포 인프라 스캐폴딩 자체가 포함**된다 (추정 7 file 에 없던 항목 — Phase 2 착수 시 사용자 confirm 대상). 대안 축: (a) Edge Function 프록시 (streaming SSE 전달 확인 필요) / (b) 폐쇄망 OpenAI-compatible endpoint 직결 / (c) Electron main process 경유 (Phase 9 의존 — 지금 채택 불가).
 4. **`systemPrompt.ts` 는 이미 provider 중립** — 모델명 · 클라우드 LLM 문자열 0건. §13 의 "provider 중립 갱신" 은 카탈로그 hook 만 남는다.
 5. **회귀 gate baseline 확정** — `services/ai` 전수에서 `Transform` 0 · `props.events` 0 · `group_N` 0 · `SerializedEvent` 0. G3/G4 grep gate 의 기준선은 전부 **0** (도입 금지 조건).
 6. **live 결함 (Phase 0 실측)** — 현행 모델 id 가 클라우드 LLM 에서 만료돼 `404 model_not_found`, AI 패널 도구 8종 전부 도달 불가. 사용자 결정 (2026-08-28) "클라우드 LLM 는 더 이상 사용하지 않는다" 와 합쳐, **Phase 1+2 가 곧 AI 패널 복구 경로**다. 임시 모델 id 교체는 하지 않는다.
@@ -106,7 +106,7 @@
 
 - 벤더 SDK 패키지 제거
 - `apps/builder/src/services/ai/AgentService.ts` → `apps/builder/src/services/ai/AgentService.ts` rename (AgentProfileRegistry → LLMProvider 경유, `llama-3.3-70b-versatile` 하드코딩 제거)
-- **원격 provider 프록시 경계 확정** (Phase 0 조사 기반): Supabase Edge Function 경유안 채택 여부 + streaming relay + 키 보관 (서버측 secret / 사용자 세션 연계). 로컬 endpoint (localhost) 는 직접 호출 허용
+- **원격 provider 프록시 경계 확정** (Phase 0 조사 기반): Cloud Edge Function 경유안 채택 여부 + streaming relay + 키 보관 (서버측 secret / 사용자 세션 연계). 로컬 endpoint (localhost) 는 직접 호출 허용
 - 키 저장 정책 구현: 브라우저 localStorage 평문 금지 — 명시 opt-in 경로만
 - `apps/builder/src/services/ai/IntentParser.ts` 보존 (최후 fallback) or 제거 검토
 - `apps/builder/src/services/ai/systemPrompt.ts` provider 중립 갱신 (특정 모델 전제 서술 제거)
@@ -116,7 +116,7 @@
 ### Phase 2 Gate G2
 
 - **Implemented 2026-08-28 (G2 통과)** — `AgentService.ts` (rename) · `providers/byokKeyStore.ts` · `providers/agentProfiles.ts` 신규 · `LLMProvider` 에 `assertBrowserCallAllowed` 게이트 · `definitions.ts`/`runCommand.ts` 의 벤더 타입 제거 (정의는 provider 중립 `LLMToolDefinition` 으로 평탄화) · `useAgentLoop` 배선 · 벤더 SDK 의존 제거.
-  - **프록시 축 결정 반영 (사용자 2026-08-28)**: Supabase Edge Function 은 **보류**, 1차 축은 폐쇄망/로컬 endpoint 직결. 그래서 D10 은 "원격은 프록시 경유" 를 **코드 게이트**로 구현했다 — 로컬·사설망(10./172.16-31./192.168./*.local)만 허용하고 원격은 fetch 이전에 차단한다. 개발 빌드 opt-in(`allowRemoteDirect`)은 프로덕션 번들에서 접힌다 (실측 확인). Edge Function 스캐폴딩은 이번 Phase 에 포함하지 않았다 → **Phase 0 이 예고한 "신규 배포 인프라" 는 발생하지 않음**.
+  - **프록시 축 결정 반영 (사용자 2026-08-28)**: Cloud Edge Function 은 **보류**, 1차 축은 폐쇄망/로컬 endpoint 직결. 그래서 D10 은 "원격은 프록시 경유" 를 **코드 게이트**로 구현했다 — 로컬·사설망(10./172.16-31./192.168./*.local)만 허용하고 원격은 fetch 이전에 차단한다. 개발 빌드 opt-in(`allowRemoteDirect`)은 프로덕션 번들에서 접힌다 (실측 확인). Edge Function 스캐폴딩은 이번 Phase 에 포함하지 않았다 → **Phase 0 이 예고한 "신규 배포 인프라" 는 발생하지 않음**.
   - 키 정책: 기본 세션 메모리, 브라우저 저장은 명시 opt-in 후에만, opt-in 해제 시 저장분 삭제. env 키 읽기 0 (정적 게이트).
   - 검증: vitest 신규 26 + 회귀 포함 59 · type-check 0 · 프로덕션 빌드 grep 4항 0 · live (§ADR 본문 Live Exercise) — 로컬 endpoint 로 도구 8종 전달 → `run_command(zoomIn)` → zoom 74%→84%.
   - 관찰 (Phase 8 이월): 도구 실행 뒤 턴의 assistant 텍스트가 `appendToLastMessage` 대상이 도구 메시지라 화면에 안 보인다 — provider 교체와 무관한 기존 동작.

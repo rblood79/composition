@@ -114,7 +114,7 @@ ADR-906 Decision B (per-component resolver) 는 GridList 1건 + audit 2건 (TagG
 - 설명: CSS parser SSOT (Layer A) + Container spacing primitive (Layer B) + Renderer contract 강제 (Layer C) + Spec metric SSOT (Layer D). 4 layer 모두 도입. GridList 를 Phase 3 pilot 으로 적용, 8 컴포넌트 (`Breadcrumbs, ComboBox, Menu, Select, Tabs, TagGroup, Toolbar, Tree`) 는 Phase 4 follow-up ADR 템플릿으로 이관, Table 은 Phase 5 별도 판정, ListBox 는 기준 선례로 재검증만.
 - 근거:
   - D3 SSOT 원칙 (Preview/Skia symmetric consumer) 의 구조적 보장.
-  - 반복 ADR 누적 비용 (54~90일) vs 단일 근본 ADR 비용 (17~25일) 비교 — 본 ADR 이 50~70% 싸다.
+  - 반복 ADR 누적 비용 (54~~90일) vs 단일 근본 ADR 비용 (17~~25일) 비교 — 본 ADR 이 50~70% 싸다.
   - 외부 리서치: Adobe React Spectrum 의 `UNSAFE_className`/`UNSAFE_style` passthrough 계약 (root style 전달 공식 규약) + CSS-in-JS 라이브러리 (Emotion/styled-components) 의 파싱 SSOT 패턴.
 - 위험:
   - 기술: **M** — 4 layer 설계 + 기존 call-site 전수 교체.
@@ -145,7 +145,7 @@ ADR-906 Decision B (per-component resolver) 는 GridList 1건 + audit 2건 (TagG
 
 선택 근거:
 
-1. **누적 비용 우위**: 11 주대상 컴포넌트에 ADR-906 스타일 per-component resolver 를 반복하면 누적 54~90일. 본 ADR 의 Layer A/B/C/D 통합은 17~25일 (Phase 0-3 + Phase 6). Phase 4 follow-up 은 Phase 0 실측 반영 — Layer D (Spec metric SSOT) 적용 필요 4건 (Menu/ComboBox/Select/Toolbar, shapes 하드코딩) × 1.5일 + Layer D 무적용 4건 (Tree/Tabs/Breadcrumbs/TagGroup, shapes N/A) × 0.5~1일 = **8~10일** (원 추정 8~16일에서 하한 유지 + 상한 -37.5%). 각 follow-up 이 본 ADR framework 재사용으로 **설계 결정 반복이 제거**된다.
+1. **누적 비용 우위**: 11 주대상 컴포넌트에 ADR-906 스타일 per-component resolver 를 반복하면 누적 54~~90일. 본 ADR 의 Layer A/B/C/D 통합은 17~~25일 (Phase 0-3 + Phase 6). Phase 4 follow-up 은 Phase 0 실측 반영 — Layer D (Spec metric SSOT) 적용 필요 4건 (Menu/ComboBox/Select/Toolbar, shapes 하드코딩) × 1.5일 + Layer D 무적용 4건 (Tree/Tabs/Breadcrumbs/TagGroup, shapes N/A) × 0.5~~1일 = **8~10일** (원 추정 8~~16일에서 하한 유지 + 상한 -37.5%). 각 follow-up 이 본 ADR framework 재사용으로 **설계 결정 반복이 제거**된다.
 2. **SSOT 원칙 정합**: ADR-063 D3 시각 스타일의 3경로 대칭을 pipeline 으로 선언화. Preview DOM / Skia / Layout engine 이 동일 `ContainerSpacing` 타입을 소비하므로 구조적 drift 불가능.
 3. **Renderer contract 재발 차단**: Layer C 의 test/lint 가 신규 renderer 추가 시 style 전달 누락을 자동 차단. 미래 컴포넌트 추가 시 누락 가능성 0.
 4. **GridList 증상 흡수**: Phase 3 pilot 으로 ADR-906 의 Hard Constraint 1/2 를 그대로 충족. 906 의 리뷰 7라운드 맥락은 Supersede 링크로 보존.
@@ -187,7 +187,7 @@ ADR-906 Decision B (per-component resolver) 는 GridList 1건 + audit 2건 (TagG
 
 ### R2 상세 — BC 영향 수식화
 
-- **측정 불가능성 전제**: composition 은 element 영속을 **per-user 로컬 IndexedDB** (`apps/builder/src/lib/db/index.ts` — `db.elements.getByPage()` / `saveService.savePropertyChange()`) 에 위임한다. Supabase 는 auth 전용 + legacy TableEditor 잔존 경로만 사용하므로 **중앙 `elements` 테이블 쿼리로 `N_edited` (padding/gap 편집 인스턴스 수) 를 산출할 수 없다**. ADR-906 breakdown 의 Supabase SQL 접근은 본 ADR 에서 폐기. 대신 **hand-crafted edited fixture** 로 BC 커버리지를 확보한다.
+- **측정 불가능성 전제**: composition 은 element 영속을 **per-user 로컬 IndexedDB** (`apps/builder/src/lib/db/index.ts` — `db.elements.getByPage()` / `saveService.savePropertyChange()`) 에 위임한다. Cloud 는 auth 전용 + legacy TableEditor 잔존 경로만 사용하므로 **중앙 `elements` 테이블 쿼리로 `N_edited` (padding/gap 편집 인스턴스 수) 를 산출할 수 없다**. ADR-906 breakdown 의 Cloud SQL 접근은 본 ADR 에서 폐기. 대신 **hand-crafted edited fixture** 로 BC 커버리지를 확보한다.
 - **G1 audit matrix 산식**: 11 주대상 × 3 축 (a/b/c) = **33 cell** (원래 48 cell 에서 TagList 행 제거 + Menu 편입 + N_edited 축 제거로 재산출). Phase 0 은 33 cell 전부 기록되어야 통과.
 - Baseline 분기 (측정 없이 항상 커버):
   - (a) **unedited baseline** (`style` 부재 또는 padding/gap 미설정): 현 `main` 렌더와 **byte-equal** 유지. fixture test 로 Phase 3/4/5 각 컴포넌트에 고정.
@@ -213,13 +213,13 @@ ADR-906 Decision B (per-component resolver) 는 GridList 1건 + audit 2건 (TagG
 
 - **구조적 drift 차단**: 11 주대상 컴포넌트의 `element.props.style` → 3경로 반영이 pipeline 으로 선언화. 미래 컴포넌트 추가 시 framework 자동 적용.
 - **SSOT 1곳 수렴**: CSS value parser + container spacing resolver 가 각각 1 primitive 로 통합. 현행 ad-hoc 파싱 중복 제거.
-- **반복 ADR 비용 축소**: 추정 누적 54~90일 → **25~35일** (framework 17~25일 + follow-up 8~10일, Phase 0 실측 기반) = 약 55~61% 절감.
+- **반복 ADR 비용 축소**: 추정 누적 54~~90일 → **25~35일** (framework 17~~25일 + follow-up 8~~10일, Phase 0 실측 기반) = 약 55~~61% 절감.
 - **Renderer contract 재발 차단**: test/lint 로 신규 renderer 의 style 전달 누락 자동 차단.
 - **ADR-906 맥락 보존**: Supersede 링크로 906 의 리뷰 7라운드 맥락 추적 가능.
 
 ### Negative
 
-- **초기 설계 비용 증가**: ADR-906 Decision B (GridList 단일 5~10일) 대비 framework 17~25일. 단기 overhead.
+- **초기 설계 비용 증가**: ADR-906 Decision B (GridList 단일 5~~10일) 대비 framework 17~~25일. 단기 overhead.
 - **Phase 4 follow-up 관리**: 8 follow-up ADR 의 tracking 오버헤드. R4 로 대응.
 - **Renderer contract allowlist debt 가능성**: Phase 3 이후 allowlist 가 영구 잔존 시 debt 고정화 위험. R3 로 대응.
 - **Spec metric SSOT grep 기반 검증 한계**: AST-level 강제 부재. R6 로 대응 (컴포넌트별 spacing test).

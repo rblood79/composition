@@ -58,7 +58,7 @@ ADR R2 상세의 edited baseline 분기 판정을 위해 `N_edited` 를 Phase 1 
 
 측정 경로 (둘 중 하나 또는 병행):
 
-- **Supabase 쿼리**: `elements` 테이블의 `tag`/`props` JSONB 컬럼 기준. 예시 SQL —
+- **Cloud 쿼리**: `elements` 테이블의 `tag`/`props` JSONB 컬럼 기준. 예시 SQL —
   ```sql
   SELECT COUNT(*) AS n_edited
   FROM elements
@@ -71,7 +71,7 @@ ADR R2 상세의 edited baseline 분기 판정을 위해 `N_edited` 를 Phase 1 
       OR props->'style' ? 'rowGap' OR props->'style' ? 'columnGap'
     );
   ```
-  (`elements.tag` 및 `elements.props JSONB` 스키마는 `docs/reference/schemas/SUPABASE.md` 참조.)
+  (`elements.tag` 및 `elements.props JSONB` 스키마는 `docs/reference/schemas/CLOUD.md` 참조.)
 - **Export 파일 scan**: 로컬 또는 CI 에서 export 된 프로젝트 JSON (`packages/shared/src/schemas/project.schema.ts` → `elements: Element[]`) 을 순회하여 동일 조건 카운트.
 
 기록 위치: 본 breakdown 의 `### N_edited 측정 결과` 섹션을 추가하거나, ADR-906 Addendum 으로 기록.
@@ -188,7 +188,7 @@ Skia:
 
 ## 검증 체크리스트
 
-- [ ] Phase 0: `N_edited` (GridList `props.style.padding/gap` 보유 인스턴스 수) 가 Supabase 쿼리 또는 export scan 으로 측정되고, breakdown 또는 ADR Addendum 에 기록된다.
+- [ ] Phase 0: `N_edited` (GridList `props.style.padding/gap` 보유 인스턴스 수) 가 Cloud 쿼리 또는 export scan 으로 측정되고, breakdown 또는 ADR Addendum 에 기록된다.
 - [ ] Phase 0: `N_edited` 에 따라 fixture baseline (a) unedited / (b) edited 분기가 test 파일에 고정된다.
 - [ ] Phase 0: spec-local export 채택 시 `packages/specs/src/index.ts` root barrel re-export 및 `@composition/specs` root 경로 소비가 확인된다 (direct subpath import 0건).
 - [ ] Phase 1: GridList Preview root DOM에 inline `padding/gap`이 전달된다.

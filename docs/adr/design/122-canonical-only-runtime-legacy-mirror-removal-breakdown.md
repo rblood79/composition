@@ -35,7 +35,7 @@ Phase 0에서 아래 seed를 실제 코드 기준으로 재측정하고 bucket�
 | `apps/builder/src/builder/stores/index.ts::useSelectedElementData`                  | canonical selected element 우선 + legacy fallback                              | canonical selected node model    |
 | `apps/builder/src/builder/panels/properties/**`                                     | 여러 editor가 `useStore.getState().elementsMap`을 직접 조회                    | canonical selection/node helpers |
 | `apps/builder/src/adapters/canonical/frameLayoutCascade.ts` / `pageFrameBinding.ts` | canonical update 후 legacy mirror export를 일부 caller에 전달                  | canonical-only command result    |
-| `apps/builder/src/utils/projectSync.ts`                                             | Supabase compatibility row projection                                          | boundary allowlist               |
+| `apps/builder/src/utils/projectSync.ts`                                             | Cloud compatibility row projection                                             | boundary allowlist               |
 | `packages/shared/src/utils/export.utils.ts`                                         | project export/publish compatibility                                           | boundary allowlist               |
 
 Inventory command seed:
@@ -70,7 +70,7 @@ runtime`).
   canonical-empty render guard, ADR-113/116 grep gate recovery,
   add/update/remove store helper canonical-before-cache closure, and full Phase 6
   browser checklist smoke.
-- Current blocker/next entry: none for ADR-122; future cloud/Supabase physical
+- Current blocker/next entry: none for ADR-122; future cloud physical
   schema removal remains outside this ADR.
 - Latest verification: `pnpm run codex:preflight` PASS.
   Exact G6 commands also PASS:

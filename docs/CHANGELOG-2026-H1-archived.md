@@ -2414,16 +2414,16 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - **Why**: 4-axis dead artifact 분류 D1 (메모리 [[project-pencil-format-residual-framing]] 처리 흐름 적용 결과)
   - vitest 11/11 PASS (이전 14 → 11), type-check baseline 562 → 550 freeze
 
-## [ADR-128 후속 dead interface 추가 제거 — supabase.types 3종] - 2026-05-15
+## [ADR-128 후속 dead interface 추가 제거 — cloud.types 3종] - 2026-05-15
 
 ### Architecture
 
-- **`supabase.types.ts` 의 dead interface 3종 제거** (~63 line):
+- **`cloud.types.ts` 의 dead interface 3종 제거** (~63 line):
   - `ToggleButtonGroupProps` (line 57-80, 24 line) — production caller 0
   - `ListBoxItemData` (line 151-179, 29 line) — production caller 0
   - `ListBoxProps` (line 181-190, 10 line) — production caller 0
-  - **Why**: 본 interface 3종이 `supabase.types.ts` 안에 잔존했으나 production code 어디서도 import/사용 안 됨. `ToggleButtonProps` (1 caller) + `ButtonProps` (2 caller) + `ElementProps` (877 caller) 는 active 유지.
-  - 위치: `apps/builder/src/types/integrations/supabase.types.ts`.
+  - **Why**: 본 interface 3종이 `cloud.types.ts` 안에 잔존했으나 production code 어디서도 import/사용 안 됨. `ToggleButtonProps` (1 caller) + `ButtonProps` (2 caller) + `ElementProps` (877 caller) 는 active 유지.
+  - 위치: `apps/builder/src/types/integrations/cloud.types.ts`.
   - 검증: type-check baseline 562 외 신규 0 PASS.
 
 ## [ADR-126 후속 fallback 단순화 — rendererInput parent_id dead fallback 제거] - 2026-05-15
@@ -2437,15 +2437,15 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 - **scope 외 (보류)**:
   - `canonicalRefResolution.ts:63/69/75` 의 `getParentId/getPageId/getLayoutId` generic helper — `CanonicalRefResolvableNode.parentId?: string | null` optional input 으로 canonical / legacy 양쪽 node 받는 의도. fallback 단순화 불가 (HIGH risk).
 
-## [ADR-128 후속 dead surface 제거 — Supabase Database interface] - 2026-05-15
+## [ADR-128 후속 dead surface 제거 — Cloud Database interface] - 2026-05-15
 
 ### Architecture
 
-- **`supabase.types.ts` 의 `Database` interface 통째로 제거** (60 line):
-  - `Database['public']['Tables']` (pages / elements / design_tokens / documents row 정의) production caller 0건 확인 후 제거. `supabase.from()` / `supabase.rpc()` / table query 도 production 0건 — ADR-128 cloud decommission 후 dead surface.
-  - **Why**: `supabase.types.ts` 의 `ElementProps` 등 type 정의는 877 caller (canonical Element props) 로 활성 유지하되, Supabase DB schema 자체는 dead. file rename 은 광범위 작업이라 별도 영역 — 본 commit 은 dead interface 만 제거.
-  - active 잔존: `supabase.auth.*` 6 caller (main.tsx / Signin.tsx / devAutoLogin.ts / dashboard) — `env/supabase.client.ts` 의 `createClient()` 직접 사용.
-  - 위치: `apps/builder/src/types/integrations/supabase.types.ts:147-205`.
+- **`cloud.types.ts` 의 `Database` interface 통째로 제거** (60 line):
+  - `Database['public']['Tables']` (pages / elements / design_tokens / documents row 정의) production caller 0건 확인 후 제거. `cloud.from()` / `cloud.rpc()` / table query 도 production 0건 — ADR-128 cloud decommission 후 dead surface.
+  - **Why**: `cloud.types.ts` 의 `ElementProps` 등 type 정의는 877 caller (canonical Element props) 로 활성 유지하되, Cloud DB schema 자체는 dead. file rename 은 광범위 작업이라 별도 영역 — 본 commit 은 dead interface 만 제거.
+  - active 잔존: `cloud.auth.*` 6 caller (main.tsx / Signin.tsx / devAutoLogin.ts / dashboard) — `env/cloud.client.ts` 의 `createClient()` 직접 사용.
+  - 위치: `apps/builder/src/types/integrations/cloud.types.ts:147-205`.
 
 ## [ADR-130 후속 UI label cleanup — Group → Frame] - 2026-05-15
 
@@ -2801,16 +2801,16 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 
 - builder palette "group" 추가 시 element.type 이 분기 영구화되던 데이터 경로 분기 해소 — 동일 시각 결과, internal vocabulary 통일.
 
-## [Supabase backend decommission — auth-only 격하 + cloud data layer dead 인정 (ADR-128)] - 2026-05-12
+## [Cloud backend decommission — auth-only 격하 + cloud data layer dead 인정 (ADR-128)] - 2026-05-12
 
 ### Breaking Changes
 
-- **Supabase cloud data layer 전체 제거**:
-  - `supabase.from(...)` 호출 production hot path 전수 dead 화 (Phase 1 builder canvas 영역 25+ 호출 / Phase 2 dashboard + services/api 영역 50+ 호출).
-  - **유지**: `supabase.auth.*` (signIn, signUp, getSession, signOut, token refresh) — 로그인 기능만 격하 유지. dev 환경 / production 환경 차이 없음 가정.
+- **Cloud cloud data layer 전체 제거**:
+  - `cloud.from(...)` 호출 production hot path 전수 dead 화 (Phase 1 builder canvas 영역 25+ 호출 / Phase 2 dashboard + services/api 영역 50+ 호출).
+  - **유지**: `cloud.auth.*` (signIn, signUp, getSession, signOut, token refresh) — 로그인 기능만 격하 유지. dev 환경 / production 환경 차이 없음 가정.
   - **삭제 file 11개**: `BaseApiService`, `ElementsApiService` (`legacyElementsApiService`), `ProjectsApiService`, `PagesApiService`, `DocumentsApiService`, `projectSync`, `projectMerger`, cloud boundary test 4건.
   - **dashboard cloud UI 제거**: "Sync to cloud" / "Download from cloud" / Cloud filter button / `projectCreation === "cloud"` & `"both"` 분기 / cloud project query / merge → local IndexedDB-only dashboard.
-  - **Why**: 사용자 명시 정합 ("현재 로그인 후 모두 IndexedDB 에서 구현 중. Supabase 로그인 기능 외에는 제거해도 된다"). cloud 복원 시나리오는 미래 신규 ADR 으로 reverse 가능.
+  - **Why**: 사용자 명시 정합 ("현재 로그인 후 모두 IndexedDB 에서 구현 중. Cloud 로그인 기능 외에는 제거해도 된다"). cloud 복원 시나리오는 미래 신규 ADR 으로 reverse 가능.
 
 ### Architecture
 
@@ -2820,8 +2820,8 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
     - canonical mutation cloud boundary 해체 (`canonicalMutations` 의 `createElement/updateElement/createMultipleElements` Primary wrapper 3개 + `elements.ts` / `useIframeMessenger.ts` 의 element-level cloud persistence 호출 제거)
     - dashboard cloud UI 전수 제거 (470→250 line) — IndexedDB-only dashboard
     - `TokenService` IndexedDB-native 통일 (Phase 3 narrow scope 의 `design_tokens` 흡수) — `BaseApiService` extends 해제, `createToken`/`updateToken`/`deleteToken` 모두 `db.designTokens` 호출로 전환
-    - `legacyElementSanitizer`: `SupabaseElement` interface + `sanitizeElementForSupabase` 함수 제거 (snake_case row 변환은 cloud 전용이었음). `sanitizeElement` (active caller: canvasDeltaMessenger / historyActions) 유지.
-  - Phase 3 — `exportLegacyDocument()` + `legacyToCanonical()` file export/import 시나리오 **유지** (JSON 파일 IndexedDB round-trip 으로 의도 재정의, cloud Supabase row roundtrip 아님).
+    - `legacyElementSanitizer`: `CloudElement` interface + `sanitizeElementForCloud` 함수 제거 (snake_case row 변환은 cloud 전용이었음). `sanitizeElement` (active caller: canvasDeltaMessenger / historyActions) 유지.
+  - Phase 3 — `exportLegacyDocument()` + `legacyToCanonical()` file export/import 시나리오 **유지** (JSON 파일 IndexedDB round-trip 으로 의도 재정의, cloud Cloud row roundtrip 아님).
   - Phase 4 — `ADR-121~127` Status block 에 "**Superseded in part by ADR-128**" 1-line addendum 추가 (ADR-123 은 in full).
   - Phase 5 — baseline 측정:
     - type-error: 699 (Phase 0) → 695 (Phase 1) → **683 (Phase 2, -16 cumulative)**. wrapper PASS, 신규 위반 0.
@@ -2832,7 +2832,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 
 - **ADR-121~127 part-supersede addendum**: 7 ADR 본문 상단 Status block 다음에 "Superseded in part by ADR-128 (cloud transport boundary 부분, 2026-05-12)" 1줄 추가. ADR-123 은 "Superseded in full" (cloud `documents` row schema 자체가 dead). ADR 본문 Status 자체는 Implemented 유지 (반복적 part-supersede 는 본 ADR 만으로 충분).
 - `docs/adr/README.md` 의 ADR-128 entry Proposed → Implemented (`completed/` archive) + ADR-127 비고에 part-supersede 표시.
-- `docs/adr/128-supabase-backend-decommission.md` → `docs/adr/completed/128-supabase-backend-decommission.md` 이동.
+- `docs/adr/128-cloud-backend-decommission.md` → `docs/adr/completed/128-cloud-backend-decommission.md` 이동.
 
 ### Fixed (사용자-가시 영향 없음)
 
@@ -2888,7 +2888,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 ### Architecture
 
 - **ADR-126 Status `Accepted` → `Implemented`**:
-  - final authenticated browser smoke 를 fresh Playwright context + seeded dev auth session 으로 통과했다. 외부 Supabase REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이 Builder runtime 을 검증했다.
+  - final authenticated browser smoke 를 fresh Playwright context + seeded dev auth session 으로 통과했다. 외부 Cloud REST compatibility call 은 no-op route 로 차단해 사용자/외부 state 없이 Builder runtime 을 검증했다.
   - 검증 결과: create/edit/delete/undo/redo/reorder/origin-instance/refresh PASS, IndexedDB canonical document persisted + refresh 유지, rAF median 120.48fps, console/page/http error 0.
   - ADR 본문을 `docs/adr/completed/126-element-type-deprecate.md` 로 이동하고 README 완료 섹션/카운트를 정합화했다.
   - 현황 카운트: `완료 120→121 / 부분 완료 8→7 / 미구현 5 / 합계 133 유지`.
@@ -3245,7 +3245,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - Chrome + Firefox migration browser smoke 는 v1 IndexedDB 기존 사용자 환경 별도 단계 검증.
 - **ADR-123 Status `Accepted` → `Implemented`** (Phase 0-6 직렬 land 완료):
   - documents table + DocumentsApiService + cloud read/write canonical-primary + dashboard seed + boundary quarantine grep gate (cloudBoundary.static.test.ts 5/5 PASS) + verification (preflight FULL TURBO PASS + browser load+render PASS).
-  - Supabase migration `002_create_documents_table.sql` deployment 환경별 별도 적용 — `documentsApi` 가 미적용 환경에서도 graceful degradation (try/catch 후 legacy fallback) 보장.
+  - Cloud migration `002_create_documents_table.sql` deployment 환경별 별도 적용 — `documentsApi` 가 미적용 환경에서도 graceful degradation (try/catch 후 legacy fallback) 보장.
 - **ADR-124 Status `Accepted` → `Implemented`** (Phase 0-5 직렬 land 완료):
   - CanonicalUpdateEvent + apply (G1 6/6 PASS) + entry layer canonical event 부착 (G2 6/6 PASS) + migrateV1EntryToV2 adapter (G3 13/13 PASS) + HistoryEntry deprecation marker + IndexedDB v1→v2 onupgradeneeded migration.
   - Phase 4 의 legacy field type 삭제 + historyActions case "update"/"batch" legacy fallback 제거는 v1 IndexedDB entry 가 모두 v2 변환되어 raw read 0건 달성된 후 (별도 followup) 진행.
@@ -3347,7 +3347,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 ### Process
 
 - **type-check 3/3 PASS** + 회귀 vitest 2 file 10/10 PASS (projectSync 영역).
-- **migration window 호환성 유지**: documents row 미존재 시 자동 fallback. 신규 deployment 환경 (Supabase migration 미적용) 에서도 backward compatible.
+- **migration window 호환성 유지**: documents row 미존재 시 자동 fallback. 신규 deployment 환경 (Cloud migration 미적용) 에서도 backward compatible.
 
 ## [ADR-123/124/125 Phase 1 직렬 land — base 3 transitional contract 확립] - 2026-05-10
 
@@ -3367,8 +3367,8 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - 기존 `calculateFullTreeLayout` JSDoc 에 ADR-125 Phase 1 transition note 추가 — map shape signature 가 transition-derived-readonly 임 명시 + 신규 caller 는 canonical-native entry 사용 권장.
   - 위치: `apps/builder/src/builder/workspace/canvas/scene/canonicalSceneModel.ts` + `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts:1907,2310-2369`
 - **ADR-123 Phase 1 — `documents` table + DocumentsApiService**:
-  - Supabase migration SQL 신규: [`docs/migrations/002_create_documents_table.sql`](docs/migrations/002_create_documents_table.sql) — `documents` table (`id` UUID PK / `project_id` FK cascade / `content` JSONB) + `documents_project_id_key` UNIQUE INDEX (1 project = 1 document) + RLS policy (owner read/write) + `updated_at` trigger.
-  - `apps/builder/src/types/integrations/supabase.types.ts` 에 `documents` Row 타입 추가 — `content: Record<string, unknown>` (Supabase jsonb column, runtime 에서 `CompositionDocument` 캐스팅).
+  - Cloud migration SQL 신규: [`docs/migrations/002_create_documents_table.sql`](docs/migrations/002_create_documents_table.sql) — `documents` table (`id` UUID PK / `project_id` FK cascade / `content` JSONB) + `documents_project_id_key` UNIQUE INDEX (1 project = 1 document) + RLS policy (owner read/write) + `updated_at` trigger.
+  - `apps/builder/src/types/integrations/cloud.types.ts` 에 `documents` Row 타입 추가 — `content: Record<string, unknown>` (Cloud jsonb column, runtime 에서 `CompositionDocument` 캐스팅).
   - `apps/builder/src/services/api/DocumentsApiService.ts` 신규 — `getDocumentByProjectId` (5분 캐싱) / `upsertDocument` (`onConflict: project_id`) / `deleteDocumentByProjectId` (cleanup). PagesApiService 와 동일 BaseApiService 상속 패턴.
   - `apps/builder/src/adapters/canonical/legacyElementsApiService.ts` 에 boundary-only marker JSDoc 추가 — Phase 1 시점 허용 caller 4곳 명시 (`projectSync` / `dashboard` / `canonicalMutations` thin wrapper / `dbPersistence`) + 신규 caller 추가 금지 + ADR-123 Phase 4 에서 hot path import 0건 grep gate 강제 명시.
 
@@ -3376,18 +3376,18 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 
 - **Phase 1 직렬 진입 (병렬 worktree 미사용)**: ADR-124 (LOW addition) → ADR-125 (LOW addition) → ADR-123 (migration file + service) 순서로 main 직접 진행. agent commit/push 마감 4회 연속 실패 패턴 회피 (`feedback-agent-completion-failure-pattern.md`).
 - **type-check 3/3 PASS** (cache miss 1회만, shared/publish cache hit). 회귀 vitest 7/7 file 54/54 test PASS (history + scene + canonicalMutations 영역).
-- **ADR-123 Phase 1 의 destructive 단계 (Supabase DB 적용) 미수행**: SQL migration file 작성만, 실제 DB 적용은 Supabase Dashboard / migration tool 수동 실행 (`docs/migrations/001_g1_g2_data_model.sql` 동일 컨벤션).
+- **ADR-123 Phase 1 의 destructive 단계 (Cloud DB 적용) 미수행**: SQL migration file 작성만, 실제 DB 적용은 Cloud Dashboard / migration tool 수동 실행 (`docs/migrations/001_g1_g2_data_model.sql` 동일 컨벤션).
 
 ## [ADR-123/124/125 Phase 0 inventory freeze — base 3 병렬 진입 시작] - 2026-05-10
 
 ### Documentation
 
 - **ADR-123 / ADR-124 / ADR-125 Phase 0 (inventory freeze) 동시 완료** — base 3 직교 병렬 진입 시작.
-  - **ADR-123 Phase 0** ([123-inventory.md](adr/design/123-inventory.md)): 6 surface bucket 확정 (S1 Supabase row schema / S2 legacyElementsApiService 5 production caller / S3 PagesApiService 4 caller / S4 canonicalMutations thin wrapper 3개 + caller 매핑 / S5 dashboard seed / S6 projectSync element-level upsert) + `legacyToCanonical` production hot path 1건 (`projectSync.ts:210`) + `documents` table DDL/RLS/unique constraint + `DocumentsApiService` 인터페이스 스텁 + payload 크기 추정 (전형 50-200KB / 대규모 2MB → Supabase jsonb 1GB 제약 대비 3-4 orders of magnitude 여유). G0 통과.
+  - **ADR-123 Phase 0** ([123-inventory.md](adr/design/123-inventory.md)): 6 surface bucket 확정 (S1 Cloud row schema / S2 legacyElementsApiService 5 production caller / S3 PagesApiService 4 caller / S4 canonicalMutations thin wrapper 3개 + caller 매핑 / S5 dashboard seed / S6 projectSync element-level upsert) + `legacyToCanonical` production hot path 1건 (`projectSync.ts:210`) + `documents` table DDL/RLS/unique constraint + `DocumentsApiService` 인터페이스 스텁 + payload 크기 추정 (전형 50-200KB / 대규모 2MB → Cloud jsonb 1GB 제약 대비 3-4 orders of magnitude 여유). G0 통과.
   - **ADR-124 Phase 0** ([124-inventory.md](adr/design/124-inventory.md)): legacy snapshot field reads **167건** vs canonical event/diff reads **26건** 측정 (canonical migration 14% 진행). HistoryEntry data field 11개 bucket 분류 (snapshot-remove 7 / snapshot-batch 3 / non-snapshot meta 1 / diff-based 2 / canonical-done 1). historyActions.ts 42 case block enumerate. `historyIndexedDB.ts` v1 → Phase 5 v2 upgrade 예정. canonicalHistoryEvents.ts 의 `update` event 부재 확인 — Phase 1 신규 추가. G0 통과.
   - **ADR-125 Phase 0** ([125-inventory.md](adr/design/125-inventory.md)): layout engine 48 hits file:line 단위 enumerate (`fullTreeLayout.ts` 42 / `utils.ts` 6) + Preview UPDATE_ELEMENTS receive 15 hits (useIframeMessenger 11 / messageHandler 2 / preview/types 1 / BuilderCore 3 comment) + `elements.ts:1414/1425/1456` order_num 갱신 3 hits + bucket 분류 (runtime-forbidden / transition-derived-readonly / boundary-allowed). G1 통과.
 - **base 3 병렬 진입 안전성 검증**: Phase 0 = 측정/문서/표 작성만 (read-only) → 코드 변경 0. main HEAD `f54c2495c` 무영향. type-check 영향 없음.
-- **Phase 1 진입 조건 충족**: ADR-123 → Supabase migration 파일 작성 / ADR-124 → `CanonicalUpdateEvent` 타입 정의 + apply 함수 / ADR-125 → canonical scene model boundary 강화. 별도 세션에서 worktree 격리 또는 직렬 진행 가능.
+- **Phase 1 진입 조건 충족**: ADR-123 → Cloud migration 파일 작성 / ADR-124 → `CanonicalUpdateEvent` 타입 정의 + apply 함수 / ADR-125 → canonical scene model boundary 강화. 별도 세션에서 worktree 격리 또는 직렬 진행 가능.
 
 ## [ADR-123/124/125/126 Accepted 승격 — codex review 9/9 closure 후 결정 lock-in] - 2026-05-10
 
@@ -3417,7 +3417,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - **의존 그래프**: 123 ∥ 124 ∥ 125 → 126.
   - **Why**: 4 ADR 동시 설계로 baseline framing 자동 승계 (ADR-111/112 사례) 차단. ADR-122 대안 B 기각 framing (한 ADR 내 cloud + history + render + Element 합치기 = HIGH 누적) 그대로 적용.
 - **ADR-123 — Cloud document-level row schema 단일화** (Proposed, 244 lines + 370 breakdown):
-  - scope: Supabase `pages`/`elements` row schema + `legacyElementsApiService` + `PagesApiService` + `canonicalMutations` cloud wrapper + dashboard direct calls + `projectSync` (6 surface).
+  - scope: Cloud `pages`/`elements` row schema + `legacyElementsApiService` + `PagesApiService` + `canonicalMutations` cloud wrapper + dashboard direct calls + `projectSync` (6 surface).
   - Risk 4축: 기술 M / 성능 M / 유지보수 L / 마이그레이션 **H** → HIGH 1.
   - 4 alternatives (A 현행 / B 즉시 전수 / **C 권장: documents row + boundary adapter** / D schema 유지 + diff 변경).
   - 7 Phase + 7 Gate (G0~G6, G1 migration window 으로 마이그레이션 H 통제).
@@ -3448,7 +3448,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 - **fork checkpoint 4 질문 통과 lock-in**:
   - Q1 (base/응용 분류): 123/124/125 = base / 126 = 응용 명시.
   - Q2 (schema 직교성): 123 ↔ 124 ↔ 125 직교, 126 강결합 명시.
-  - Q3 (baseline framing reverse): ADR-122 closure note 4 항목 ("future cloud/Supabase physical schema removal" / "legacy snapshot fields ... compatibility/fallback 경계로 잔존" / "별도 renderer refactor" / soft constraint "한 번에 Element 타입 삭제 안 함") 의 후속 매핑 명시.
+  - Q3 (baseline framing reverse): ADR-122 closure note 4 항목 ("future cloud physical schema removal" / "legacy snapshot fields ... compatibility/fallback 경계로 잔존" / "별도 renderer refactor" / soft constraint "한 번에 Element 타입 삭제 안 함") 의 후속 매핑 명시.
   - Q4 (codex 진입 시점): framing 검증을 codex 3차까지 미루지 말 것 — 본 4 ADR 작성 시점에 Q1-Q3 + extended thinking + memory trigger 로 framing 통과. codex 호출은 본문 정합 layer (grep alias / gate matrix / 본문-breakdown 포인터) 만.
 - **4 architect agent 병렬 dispatch + 본인 직렬 마감 패턴 사용**:
   - 4 agents 동시 dispatch (worktree 격리, isolation 미사용, scope 분리 — 같은 main 의 다른 path 만 편집).
@@ -3543,7 +3543,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   먼저 호출하고 derived `elements`/`elementsMap`/`childrenMap` store cache를 이후
   갱신한다.
 - ADR-122 현재 실행 스냅샷을 관련 문서에 동기화했다. G0-G6와 final closure review는
-  완료됐고, cloud/Supabase physical schema 제거는 별도 decision gate로 유지한다.
+  완료됐고, cloud physical schema 제거는 별도 decision gate로 유지한다.
 - ADR-122를 Implemented로 전환하고 본문을 `docs/adr/completed/` archive로 이동했다.
   README row, breakdown, inventory의 status snapshot을 G0-G6 complete 기준으로
   동기화했다.
@@ -3635,7 +3635,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 - scope를 internal Builder runtime으로 제한했다. mutation/read/render/preview path에서
   mutable legacy `Element[]` mirror를 제거하고, legacy projection은
   cloud/export/import/publish compatibility boundary로만 격리한다.
-- Supabase physical `pages`/`elements` schema 제거는 별도 decision gate로 분리했다.
+- Cloud physical `pages`/`elements` schema 제거는 별도 decision gate로 분리했다.
 - breakdown 문서에 Phase 0-6 계획을 추가했다: hybrid inventory freeze, mutation mirror
   cut, runtime read canonicalization, Preview/Skia active protocol 전환, boundary
   quarantine, stale ADR-116 test/gate 재정렬, final browser/preflight verification.
@@ -3995,7 +3995,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   `pages`/`elements`/`layouts` mirror persistence 제거 계획을 문서화했다.
 - 계획 범위를 `CompositionDocument` local runtime primary 유지, `DatabaseAdapter`
   legacy surface 제거, dashboard/projectSync/history/editor/drag-drop mirror write
-  cleanup, Supabase projection boundary, IndexedDB objectStore cleanup으로 분리했다.
+  cleanup, Cloud projection boundary, IndexedDB objectStore cleanup으로 분리했다.
 - Phase 0 inventory 문서를 추가해 current primary evidence, 삭제 대상 runtime bucket,
   project sync boundary, canonical adapter/export boundary, out-of-scope bucket을
   구분했다.
@@ -4004,7 +4004,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 - ADR-120 결정을 strong local mirror removal로 강화해 production runtime
   `db.pages/elements/layouts` project-state call site 0건, `DatabaseAdapter` legacy
   surface 제거, IndexedDB mirror objectStore 삭제를 완료 조건으로 고정했다.
-- cloud legacy-only download 정책을 단순화해 Supabase `pages/elements` rows는 remote
+- cloud legacy-only download 정책을 단순화해 Cloud `pages/elements` rows는 remote
   transport format으로만 허용하고, 다운로드 시 one-shot `CompositionDocument` 변환 후
   local `db.documents.put()`만 수행하도록 Phase 4 gate를 명시했다.
 - `review-adr` 템플릿 정합성을 위해 ADR-120 본문에 별도 Risks 섹션을 추가하고,
@@ -4020,7 +4020,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 - `DatabaseAdapter.pages/elements/layouts` public surface를 제거하고 IndexedDB
   `DB_VERSION`을 14로 올려 기존 `pages`/`elements`/`layouts` objectStore를
   delete-only upgrade cleanup으로 삭제한다.
-- `projectSync`는 upload 시 `db.documents.get(projectId)`에서 Supabase row payload를
+- `projectSync`는 upload 시 `db.documents.get(projectId)`에서 Cloud row payload를
   파생하고, legacy-only cloud download는 one-shot `legacyToCanonical(...)` 변환 후
   local `db.documents.put()`만 수행하도록 static guard를 추가했다.
 - `.agents` canonical format/order, state-management, async pipeline, component
@@ -4055,7 +4055,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   생성과 재생성을 제거했다. 기존 index는 upgrade에서 삭제하며, v13 upgrade는 기존
   `pages`/`layouts`/`elements` row와 `documents` canonical metadata에 남은 stale
   `order_num`/`orderNum` payload도 제거한다.
-- Supabase physical column은 유지하되 `projectSync` cloud upload에서만 local page
+- Cloud physical column은 유지하되 `projectSync` cloud upload에서만 local page
   source index로 call-time derived compatibility field를 보낸다.
 - `.agents` composition order 규칙을 page/layout 예외 유지에서 adapter compatibility
   boundary로 갱신했다.
@@ -4233,7 +4233,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
   - Browser refresh hydrate 로 `page_id=<page>` + `layout_id=<frame>` 형태가 된 frame Slot 도 `resolvePageWithFrame` 에서 frame source 로 재인식해 page-frame Slot marker projection 을 복원한다.
   - No Frame 상태에서는 `page_id=<page>` 이더라도 `layout_id=<frame>` 이 남아 있는 frame projection element 를 page body/content 후보와 LayerTree source 에서 제외한다.
   - 여러 page 가 동일 reusable frame 을 지정한 뒤 Browser refresh 시 마지막 page 에만 frame projection 이 렌더링되던 회귀를 수정했다. Refresh hydrate 가 page-frame projection element id 를 page별 synthetic id 로 생성하고, live resolver 는 이미 page-scoped 인 projection id 를 다시 projection 하지 않는다.
-  - Browser refresh 후 page-frame projection element 가 duplicate `order_num` auto-fix 대상에 포함되어 synthetic id 를 IndexedDB/Supabase `elements` row 로 업데이트하려던 `order_num 재정렬 DB 실패` 콘솔 오류를 수정했다.
+  - Browser refresh 후 page-frame projection element 가 duplicate `order_num` auto-fix 대상에 포함되어 synthetic id 를 IndexedDB/Cloud `elements` row 로 업데이트하려던 `order_num 재정렬 DB 실패` 콘솔 오류를 수정했다.
   - 회귀 테스트를 추가해 frame-bound page 에서 `frame-body` 가 LayerTree source 에 포함되는 계약을 고정했다.
 - Component instance 가 Node 패널 Layers 에 `ref` 로 표시되고 origin children 이 materialize 되지 않던 회귀를 수정했다.
   - `canonicalElementsView` 가 canonical `ref` / `descendants` / `reusable` / `slot` mirror fields 를 derived Element 에 보존한다.
@@ -5416,7 +5416,7 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 
 - **ADR-113 P1+P2 design 정합화 + main land 진행 로그**:
   - PR #250 검증 결과: type-check 0 errors / specs 322/322 PASS / shared 72/72 PASS / builder 4 failed (baseline 동일 — ADR-113 회귀 0건 확정 via worktree 격리 비교)
-  - 잔여 `tag` 보존 4 file: `LegacyProjectDataV09.elements.tag` (v0.9 export schema) / `supabase.types.ts elements.Row.tag` (DB column, P4 까지) / `i18n/types.ts` (i18n key 무관) / `AddElementAction.config.tag` (event action discriminator nested path)
+  - 잔여 `tag` 보존 4 file: `LegacyProjectDataV09.elements.tag` (v0.9 export schema) / `cloud.types.ts elements.Row.tag` (DB column, P4 까지) / `i18n/types.ts` (i18n key 무관) / `AddElementAction.config.tag` (event action discriminator nested path)
 
 ### Infrastructure
 
@@ -6094,9 +6094,9 @@ ADR-912 가 `Proposed → Implemented` 로 승격됐다. catalog cutover 대상 
 ### Bug Fixes
 
 - **elementSanitizer `page_id` 타입 정확화** (commit `4916326e`):
-  - **Why**: `SupabaseElement.page_id: string` (required) 와 layout element 의 `page_id: null` 런타임 값 불일치 → DB 저장 시 빈 문자열 잠재 버그
+  - **Why**: `CloudElement.page_id: string` (required) 와 layout element 의 `page_id: null` 런타임 값 불일치 → DB 저장 시 빈 문자열 잠재 버그
   - 수정: 타입을 `string | null` 로 정확화
-  - 위치: `apps/builder/src/services/supabase/elementSanitizer.ts`
+  - 위치: `apps/builder/src/services/cloud/elementSanitizer.ts`
 
 - **P2 옵션 C `RenderCanonicalNode` page filter ternary 정정** (commit `990e8793`):
   - **Why**: `a || b ? c : d` 우선순위 오류 → `(a || b) ? c : d` 해석 → `?canonical=1` 모드에서 master/layoutFrames 가 page 와 함께 잘못 렌더되는 버그

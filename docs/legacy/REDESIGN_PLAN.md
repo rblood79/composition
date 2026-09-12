@@ -433,7 +433,7 @@ export function DataSourcePanel() {
 interface DataSource {
   id: string;
   name: string;
-  type: 'rest' | 'supabase' | 'static' | 'graphql';
+  type: 'rest' | 'cloud' | 'static' | 'graphql';
 
   // REST API
   url?: string;
@@ -441,7 +441,7 @@ interface DataSource {
   headers?: Record<string, string>;
   body?: string;
 
-  // Supabase
+  // Cloud
   table?: string;
   filters?: Filter[];
   realtime?: boolean;
@@ -490,8 +490,8 @@ export class DataManager {
         case "rest":
           data = await this.fetchRest(source, params);
           break;
-        case "supabase":
-          data = await this.fetchSupabase(source, params);
+        case "cloud":
+          data = await this.fetchCloud(source, params);
           break;
         case "static":
           data = source.data;

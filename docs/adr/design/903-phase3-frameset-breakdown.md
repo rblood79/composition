@@ -119,7 +119,7 @@ P3-E (Persistence) → P3-F (Test cleanup) → G3 통과
 **P3-B 진입 전 필수 안전망 7건** ([Team 3 분석](#3-에이전트-팀-병렬-분석-산출물-2026-04-25)):
 
 1. `elementCreation.ts` — layout 편집 히스토리 조건에 `// TODO(P3-B)` 마킹 + canonical context 대체 계획 확정
-2. `elementSanitizer.ts` — `SupabaseElement.page_id: string | null` 타입 수정 선행 (현재 `string` required vs 런타임 `null` — Hidden bug D2 와 동일 위치)
+2. `elementSanitizer.ts` — `CloudElement.page_id: string | null` 타입 수정 선행 (현재 `string` required vs 런타임 `null` — Hidden bug D2 와 동일 위치)
 3. `useIframeMessenger.ts` — `UPDATE_ELEMENTS` postMessage 에 `version: "legacy-1.0"` 스텁 추가 (P3-D Preview 동시 배포 기반)
 4. `layoutActions.ts` — `currentLayoutId` 직접 접근 사이트 dev-only migration 경고 logging
 5. `usePageManager.ts` — `initializeProject` layout loading 경로에 `// TODO(P3-D)` 마킹
@@ -381,5 +381,5 @@ P3-A 진입 전 본 sub-breakdown 의 §2.1 (P3-A 작업) + §7 (결정 사항) 
 
 **잠재 hidden bug (P3 무관)**:
 
-- **D2 (MED)**: `elementSanitizer.ts:97` — `SupabaseElement.page_id: string` (required) vs layout element 의 `page_id: null` 런타임 → DB 에 `page_id=""` 저장. P3-A 안전망 #2 와 동일 위치, 즉시 수정 가치 있음.
+- **D2 (MED)**: `elementSanitizer.ts:97` — `CloudElement.page_id: string` (required) vs layout element 의 `page_id: null` 런타임 → DB 에 `page_id=""` 저장. P3-A 안전망 #2 와 동일 위치, 즉시 수정 가치 있음.
 - **D1/D3/D4 (LOW)**: stale closure / parent_id 재매핑 / merge 순서 — 별도 이슈 처리.

@@ -33,14 +33,14 @@ LayoutsTab cleanup 이후 잔여 deprecated 심볼은 모두 active caller 보�
 
 ### (c) P3-E Persistence 후 제거 가능 — 4 symbols, ~170 LOC
 
-| 심볼                                    | 사용처 수 | 영향 파일                               | 제거 시점             | 위험도 |
-| --------------------------------------- | :-------: | --------------------------------------- | --------------------- | :----: |
-| `layout_id` (DB column)                 |    309    | 51 파일 (services / supabase / adapter) | P3-E schema migration |  HIGH  |
-| Store internals (legacy resolver types) |    ~30    | resolvers / store utils                 | P3-E 완료             |  MED   |
-| `LayoutsService.fetchByProject` 등      |     8     | services/layouts.ts                     | P3-E 완료             |  MED   |
-| Legacy migration script entry           |     4     | services/migrations                     | P3-E 완료             |  HIGH  |
+| 심볼                                    | 사용처 수 | 영향 파일                            | 제거 시점             | 위험도 |
+| --------------------------------------- | :-------: | ------------------------------------ | --------------------- | :----: |
+| `layout_id` (DB column)                 |    309    | 51 파일 (services / cloud / adapter) | P3-E schema migration |  HIGH  |
+| Store internals (legacy resolver types) |    ~30    | resolvers / store utils              | P3-E 완료             |  MED   |
+| `LayoutsService.fetchByProject` 등      |     8     | services/layouts.ts                  | P3-E 완료             |  MED   |
+| Legacy migration script entry           |     4     | services/migrations                  | P3-E 완료             |  HIGH  |
 
-**전제**: P3-E 가 IndexedDB + Supabase schema 양방향 마이그레이션 완료. `layout_id` column 이 deprecated 상태로 한 sprint 유지 후 drop.
+**전제**: P3-E 가 IndexedDB + Cloud schema 양방향 마이그레이션 완료. `layout_id` column 이 deprecated 상태로 한 sprint 유지 후 drop.
 
 ### (d) BC permanent — 10 symbols, ~55 LOC
 
@@ -86,7 +86,7 @@ LayoutsTab cleanup 이후 잔여 deprecated 심볼은 모두 active caller 보�
 
 ### P3-E 진입 시 (4 symbols schema migration)
 
-1. Supabase schema migration: `layout_id` column → `parent_canonical_id` (가칭) rename
+1. Cloud schema migration: `layout_id` column → `parent_canonical_id` (가칭) rename
 2. IndexedDB migration: 동일
 3. Legacy resolver types: canonical resolver 가 모든 케이스 cover 검증 후 삭제
 4. legacy migration script: 1 sprint 유지 후 archive

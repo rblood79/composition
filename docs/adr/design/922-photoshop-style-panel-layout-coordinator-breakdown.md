@@ -47,7 +47,7 @@
 - panel 내부 기능, command palette, history snapshot 의미 변경
 - `CompositionDocument`, component catalog, Preview/Publish schema 변경
 - Photoshop custom element(`psw-*`, `ue-*`)의 복제
-- cloud DB/Supabase persistence 도입
+- cloud DB/Cloud persistence 도입
 - Canvas renderer 또는 `ViewportController` 교체
 
 ## 2. 현재 구조 인벤토리

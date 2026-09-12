@@ -74,15 +74,15 @@ apps/builder/src/
 
 | 문제                      | 상세                                                              | 해결                                                     |
 | ------------------------- | ----------------------------------------------------------------- | -------------------------------------------------------- |
-| **JSON 텍스트 파싱 방식** | AI가 JSON 텍스트를 출력 → `parseIntent()`로 파싱 → 형식 깨짐 빈번 | ✅ Tool Calling으로 대체 (AgentService)              |
+| **JSON 텍스트 파싱 방식** | AI가 JSON 텍스트를 출력 → `parseIntent()`로 파싱 → 형식 깨짐 빈번 | ✅ Tool Calling으로 대체 (AgentService)                  |
 | **대화 히스토리 미전달**  | 매 메시지가 독립적 — AI에 이전 대화 컨텍스트 없음                 | ✅ 전체 대화 히스토리 전달 (runAgentLoop)                |
 | **컨텍스트 부족**         | 최근 5개 요소의 간략 정보만 전달                                  | ✅ get_editor_state/get_selection 도구로 풍부한 컨텍스트 |
-| **Tool Calling 미사용**   | 클라우드 LLM SDK가 tool calling을 지원하지만 활용하지 않음                | ✅ 7개 도구 정의 + tool_choice: 'auto'                   |
+| **Tool Calling 미사용**   | 클라우드 LLM SDK가 tool calling을 지원하지만 활용하지 않음        | ✅ 7개 도구 정의 + tool_choice: 'auto'                   |
 | **단일 메시지 구조**      | tool 실행 과정, 중간 결과 표시 불가                               | ✅ ToolCallMessage/ToolResultMessage 컴포넌트            |
 | **에이전트 제어 없음**    | 중단 버튼, 재시도 등 제어 기능 없음                               | ✅ AgentControls + AbortController                       |
 | **시각 피드백 없음**      | AI 작업 중 캔버스 레벨 피드백 없음                                | ✅ G.3 완전 구현 (generating + flash)                    |
 | **배치 작업 미지원**      | 복수 요소 일괄 생성/수정 불가                                     | ✅ batch_design 도구 (최대 20개 작업)                    |
-| **Rate Limit 미대응**     | 클라우드 LLM tier 30 req/min 제한 시 에러                            | ✅ 429 지수 백오프 (3회 재시도)                          |
+| **Rate Limit 미대응**     | 클라우드 LLM tier 30 req/min 제한 시 에러                         | ✅ 429 지수 백오프 (3회 재시도)                          |
 
 ### 1.3 미해결 한계점 (Phase A 완료 후)
 
@@ -127,16 +127,16 @@ apps/builder/src/
 
 #### 1.3.4 모델/프롬프트 한계
 
-| 항목                | 현재 상태                           | 문제                                       |
-| ------------------- | ----------------------------------- | ------------------------------------------ |
+| 항목                | 현재 상태                              | 문제                                       |
+| ------------------- | -------------------------------------- | ------------------------------------------ |
 | **모델**            | llama-3.3-70b-versatile (클라우드 LLM) | Tool Calling 정확도 낮음, 디자인 추론 부족 |
-| **시스템 프롬프트** | 51줄, 규칙 5개                      | 디자인 원칙/레이아웃 패턴 가이드 전무      |
-| **max_tokens**      | 2048                                | 복잡한 batch 작업 시 응답 잘림             |
-| **temperature**     | 0.7                                 | Tool Calling에는 과도 (0.3~0.5 권장)       |
-| **결과 검증**       | 없음                                | AI가 잘못된 props/style 넣어도 통과        |
-| **자기 수정**       | 없음                                | 실패 후 재시도/수정 메커니즘 없음          |
-| **멀티스텝 계획**   | 없음                                | "대시보드 만들어줘" 수준 요청 불가         |
-| **API 키 보안**     | `dangerouslyAllowBrowser: true`     | 브라우저에서 API 키 노출                   |
+| **시스템 프롬프트** | 51줄, 규칙 5개                         | 디자인 원칙/레이아웃 패턴 가이드 전무      |
+| **max_tokens**      | 2048                                   | 복잡한 batch 작업 시 응답 잘림             |
+| **temperature**     | 0.7                                    | Tool Calling에는 과도 (0.3~0.5 권장)       |
+| **결과 검증**       | 없음                                   | AI가 잘못된 props/style 넣어도 통과        |
+| **자기 수정**       | 없음                                   | 실패 후 재시도/수정 메커니즘 없음          |
+| **멀티스텝 계획**   | 없음                                   | "대시보드 만들어줘" 수준 요청 불가         |
+| **API 키 보안**     | `dangerouslyAllowBrowser: true`        | 브라우저에서 API 키 노출                   |
 
 #### 1.3.5 한계점 종합 평가
 
@@ -286,7 +286,7 @@ executeIntent() — 단일 요소 생성/수정/삭제
 
 ### 3.2 Pencil Claude Agent SDK 대체 가능성
 
-| Claude Agent SDK 기능  | 클라우드 LLM SDK 대응                         | 가능 여부                       |
+| Claude Agent SDK 기능  | 클라우드 LLM SDK 대응                 | 가능 여부                       |
 | ---------------------- | ------------------------------------- | ------------------------------- |
 | Tool Calling           | `tools` + `tool_choice` 파라미터 지원 | **가능**                        |
 | Streaming              | `stream: true` 지원                   | **가능**                        |
@@ -318,10 +318,7 @@ interface ChatCompletionTool {
 }
 
 type ChatCompletionToolChoiceOption =
-  | "none"
-  | "auto"
-  | "required"
-  | ChatCompletionNamedToolChoice;
+  "none" | "auto" | "required" | ChatCompletionNamedToolChoice;
 ```
 
 ### 3.4 무료 사용 시 제한
@@ -332,7 +329,7 @@ type ChatCompletionToolChoiceOption =
 | Token Limit     | 30,000 tokens/min                           |
 | 모델            | llama-3.3-70b-versatile (tool calling 지원) |
 | 컨텍스트 윈도우 | 128K tokens                                 |
-| 속도            | 클라우드 LLM 기반 — 매우 빠름 (장점)            |
+| 속도            | 클라우드 LLM 기반 — 매우 빠름 (장점)        |
 
 ### 3.5 위험 완화 전략
 
@@ -1033,11 +1030,12 @@ ${
 ```
 
 **설계 대비 실제 차이점:**
-| 항목 | ADR 설계 | 실제 구현 |
-|------|----------|----------|
+
+| 항목          | ADR 설계                                                   | 실제 구현                                                                          |
+| ------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------- |
 | 컴포넌트 목록 | Modal, Dialog, TimeField, ColorPicker, Meter, Tooltip 포함 | ToggleButton, ToggleButtonGroup, Text, Div, Section, Nav 포함; Modal/Dialog 미포함 |
-| 규칙 항목 | batch_design 사용 권장 포함 (6개 규칙) | batch_design 규칙 없음 (5개 규칙) |
-| 현재 상태 | 정적 정보만 | 동적 컨텍스트 (페이지ID, 선택 요소 상세, 총 요소 수) 포함 |
+| 규칙 항목     | batch_design 사용 권장 포함 (6개 규칙)                     | batch_design 규칙 없음 (5개 규칙)                                                  |
+| 현재 상태     | 정적 정보만                                                | 동적 컨텍스트 (페이지ID, 선택 요소 상세, 총 요소 수) 포함                          |
 
 #### Phase 5+ 확장 (G.1/G.2/G.4 반영)
 
@@ -1075,12 +1073,13 @@ ${context.designVariables.map((v) => `- $--${v.name} (${v.type}): ${v.defaultVal
 ```
 
 **EnhancedBuilderContext 확장 필드:**
-| 필드 | 타입 | 출처 |
-|------|------|------|
-| `masterComponents` | `MasterComponentSummary[]` | elements store → componentIndex |
-| `designVariables` | `DesignVariable[]` | themeStore → designVariables |
-| `activeTheme` | `DesignTheme \| null` | themeStore → activeTheme |
-| ~~`appliedKitIds`~~ | ~~`string[]`~~ | ~~designKitStore → appliedKitIds~~ — _[ADR-054 Superseded + ADR-115 (DesignKit 제거) 로 무효화]_ |
+
+| 필드                | 타입                       | 출처                                                                                             |
+| ------------------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `masterComponents`  | `MasterComponentSummary[]` | elements store → componentIndex                                                                  |
+| `designVariables`   | `DesignVariable[]`         | themeStore → designVariables                                                                     |
+| `activeTheme`       | `DesignTheme \| null`      | themeStore → activeTheme                                                                         |
+| ~~`appliedKitIds`~~ | ~~`string[]`~~             | ~~designKitStore → appliedKitIds~~ — _[ADR-054 Superseded + ADR-115 (DesignKit 제거) 로 무효화]_ |
 
 ### 6.6 스타일 변환 레이어
 
@@ -1168,12 +1167,13 @@ export function adaptPropsForElement(
 ```
 
 **현재 구현 상태 (2026-03-03 기준):**
-| 기능 | 상태 |
-|------|------|
-| CSS-like → `props.style` 저장 | ✅ |
-| rem/em/vh/vw → px 정규화 (AI-A5a) | ✅ 구현됨 |
+
+| 기능                                | 상태                                       |
+| ----------------------------------- | ------------------------------------------ |
+| CSS-like → `props.style` 저장       | ✅                                         |
+| rem/em/vh/vw → px 정규화 (AI-A5a)   | ✅ 구현됨                                  |
 | CanvasKit fills/effects/stroke 변환 | ⏸ 차단됨 (ENGINE_CHECKLIST RC-3 선행 필요) |
-| $-- 변수 참조 지원 (Phase 5+) | ⏸ 미구현 |
+| $-- 변수 참조 지원 (Phase 5+)       | ⏸ 미구현                                   |
 
 #### Phase 5+ 확장 (G.2 변수 참조 지원)
 
@@ -1244,7 +1244,7 @@ AI는 **데이터 레이어**(요소 CRUD)를 조작하고, 렌더링은 **표�
 
 | AI 전환 항목                    | 이유                          |
 | ------------------------------- | ----------------------------- |
-| Tool Calling 아키텍처      | API 호출 패턴은 렌더링과 독립 |
+| Tool Calling 아키텍처           | API 호출 패턴은 렌더링과 독립 |
 | Agent loop 구현                 | AI 내부 루프                  |
 | Conversation store 개선         | 채팅 상태 관리                |
 | 대화 히스토리 전달              | 텍스트 데이터                 |
@@ -1316,10 +1316,11 @@ present/overlay pass (매 프레임)
 - 개별 create/modify: `addFlashForNode(id, { scanLine: true })`
 
 **이펙트 상세:**
-| 이펙트 | 트리거 | 시각 표현 | 지속 |
-|--------|--------|----------|------|
-| Generating | AI 스트리밍 중 | 블러 오버레이 + 6개 파란 파티클 회전 (currentTime/2000) | 무기한 (AI 응답까지) |
-| Flash | AI 작업 완료 | 스트로크 RRect + 스캔라인 (이즈-아웃 페이드) | 500ms (longHold: 2000ms) |
+
+| 이펙트     | 트리거         | 시각 표현                                               | 지속                     |
+| ---------- | -------------- | ------------------------------------------------------- | ------------------------ |
+| Generating | AI 스트리밍 중 | 블러 오버레이 + 6개 파란 파티클 회전 (currentTime/2000) | 무기한 (AI 응답까지)     |
+| Flash      | AI 작업 완료   | 스트로크 RRect + 스캔라인 (이즈-아웃 페이드)            | 500ms (longHold: 2000ms) |
 
 ### 7.5 낮은 영향 — AI 컨텍스트 (스크린샷)
 
@@ -1416,7 +1417,7 @@ Phase B3: 레이아웃 템플릿 시스템 (§9.4)
 
 Phase B4: LLM 모델 전략 (§9.5) — Pencil AI 참조
   └── 단기: temperature/max_tokens 튜닝 + 프롬프트 강화
-  └── 중기: Supabase Edge Function → Claude API 서버 프록시
+  └── 중기: Cloud Edge Function → Claude API 서버 프록시
   └── 장기: 멀티모델 (Pencil 방식 — Opus/Sonnet/Haiku 선택)
 
 Phase B5: 도구 검증 & 자기 수정 (§9.6)
@@ -1424,7 +1425,7 @@ Phase B5: 도구 검증 & 자기 수정 (§9.6)
   └── Plan → Execute → Verify 루프 (Pencil Agent Loop 참조)
 
 Phase B6: API 키 보안 (§9.7)
-  └── Supabase Edge Function 프록시 → dangerouslyAllowBrowser 제거
+  └── Cloud Edge Function 프록시 → dangerouslyAllowBrowser 제거
 
 ═══════════════════════════════════════════════════════════════
 ```
@@ -1877,7 +1878,7 @@ Section(display:flex, flexDirection:row, gap:16, padding:24)
 
 | 항목              | 값                                              |
 | ----------------- | ----------------------------------------------- |
-| 모델              | llama-3.3-70b-versatile (클라우드 LLM)             |
+| 모델              | llama-3.3-70b-versatile (클라우드 LLM)          |
 | API 호출          | 브라우저 직접 (`dangerouslyAllowBrowser: true`) |
 | 비용              | $0                                              |
 | Tool Calling 품질 | 낮음 (복잡한 파라미터에서 오류 빈번)            |
@@ -1900,19 +1901,19 @@ Pencil AI가 Claude를 사용하는 것처럼, 서버 프록시를 통해 Claude
 
 ```
 ┌─────────────────┐     ┌─────────────────────┐     ┌──────────────┐
-│  Builder Client  │ ──→ │  Supabase Edge Fn   │ ──→ │  Claude API  │
+│  Builder Client  │ ──→ │  Cloud Edge Fn   │ ──→ │  Claude API  │
 │  (브라우저)       │     │  (API 키 서버 보관)  │     │  (Sonnet)    │
 └─────────────────┘     └─────────────────────┘     └──────────────┘
 ```
 
-| 항목         | 설명                                         |
-| ------------ | -------------------------------------------- |
-| **구현**     | `supabase/functions/ai-proxy/` Edge Function |
-| **인증**     | Supabase Auth JWT 검증                       |
-| **API 키**   | 서버 환경변수 (브라우저 노출 없음)           |
-| **모델**     | Claude 3.5 Sonnet (Tool Calling 최적)        |
-| **비용**     | $3/$15 per MTok (사용량 기반)                |
-| **스트리밍** | Server-Sent Events (SSE)                     |
+| 항목         | 설명                                      |
+| ------------ | ----------------------------------------- |
+| **구현**     | `cloud/functions/ai-proxy/` Edge Function |
+| **인증**     | Cloud Auth JWT 검증                       |
+| **API 키**   | 서버 환경변수 (브라우저 노출 없음)        |
+| **모델**     | Claude 3.5 Sonnet (Tool Calling 최적)     |
+| **비용**     | $3/$15 per MTok (사용량 기반)             |
+| **스트리밍** | Server-Sent Events (SSE)                  |
 
 ```typescript
 // AgentService → AIAgentService로 추상화
@@ -1925,7 +1926,7 @@ class AgentService implements AIAgentService {
   /* 기존 */
 }
 class ClaudeProxyService implements AIAgentService {
-  // Supabase Edge Function 경유 Claude API 호출
+  // Cloud Edge Function 경유 Claude API 호출
   // 동일한 AgentEvent 인터페이스 반환
 }
 ```
@@ -1939,7 +1940,7 @@ Pencil AI처럼 사용자가 모델을 선택할 수 있는 UI:
 | Claude Sonnet | 일반 디자인 요청 (기본)          | $3/$15 per MTok      |
 | Claude Haiku  | 단순 수정, 빠른 응답             | $0.25/$1.25 per MTok |
 | Claude Opus   | 복잡한 대시보드/전체 페이지 생성 | $15/$75 per MTok     |
-| llama    | 무료 fallback                    | $0                   |
+| llama         | 무료 fallback                    | $0                   |
 
 ```typescript
 // AIPanel.tsx에 모델 선택기 추가
@@ -2041,7 +2042,7 @@ export function validateCreateArgs(args: CreateElementArgs): ValidationResult {
 
 ### 9.7 API 키 보안 — 서버 프록시
 
-> Phase B4-2의 Supabase Edge Function 프록시가 이 문제를 해결.
+> Phase B4-2의 Cloud Edge Function 프록시가 이 문제를 해결.
 
 #### 현재 문제
 
@@ -2054,14 +2055,14 @@ new LLMClient({ apiKey, dangerouslyAllowBrowser: true });
 #### 해결 설계
 
 ```typescript
-// supabase/functions/ai-proxy/index.ts
+// cloud/functions/ai-proxy/index.ts
 
 import { serve } from "https://deno.land/std/http/server.ts";
 
 serve(async (req) => {
-  // 1. Supabase Auth JWT 검증
+  // 1. Cloud Auth JWT 검증
   const authHeader = req.headers.get("Authorization");
-  const { user } = await supabase.auth.getUser(authHeader);
+  const { user } = await cloud.auth.getUser(authHeader);
   if (!user) return new Response("Unauthorized", { status: 401 });
 
   // 2. Rate limiting (사용자별)
@@ -2094,7 +2095,7 @@ serve(async (req) => {
 | `services/ai/tools/definitions.ts`                   | 신규: 7개 도구 JSON Schema 정의                                          | A1    | ✅   |
 | `services/ai/systemPrompt.ts`                        | 신규: `buildSystemPrompt(context)` 동적 프롬프트                         | A1    | ✅   |
 | `services/ai/styleAdapter.ts`                        | 신규: CSS-like → 내부 스키마 변환 (adaptStyles, adaptPropsForElement)    | A1    | ✅   |
-| `services/ai/AgentService.ts`                    | 신규: Tool Calling + Agent Loop + 429 지수 백오프                        | A2    | ✅   |
+| `services/ai/AgentService.ts`                        | 신규: Tool Calling + Agent Loop + 429 지수 백오프                        | A2    | ✅   |
 | `services/ai/tools/createElement.ts`                 | 신규: create_element 도구 (G.3 flash 연동)                               | A2    | ✅   |
 | `services/ai/tools/updateElement.ts`                 | 신규: update_element 도구 (G.3 flash 연동)                               | A2    | ✅   |
 | `services/ai/tools/deleteElement.ts`                 | 신규: delete_element 도구 (body 보호)                                    | A2    | ✅   |
@@ -2103,7 +2104,7 @@ serve(async (req) => {
 | `services/ai/tools/index.ts`                         | 신규: 도구 레지스트리 (7개 도구)                                         | A2    | ✅   |
 | `services/ai/tools/searchElements.ts`                | 신규: search_elements 도구 (tag/prop/style 필터)                         | A4    | ✅   |
 | `services/ai/tools/batchDesign.ts`                   | 신규: batch_design 도구 (일괄 create/update/delete)                      | A4    | ✅   |
-| `services/ai/AgentService.ts`                         | deprecated: IntentParser fallback 전용으로 유지                          | A2    | ✅   |
+| `services/ai/AgentService.ts`                        | deprecated: IntentParser fallback 전용으로 유지                          | A2    | ✅   |
 | `services/ai/IntentParser.ts`                        | 유지 (최후 fallback)                                                     | -     | ✅   |
 | `builder/stores/conversation.ts`                     | 확장: agent 상태, tool events, appendToLastMessage                       | A2    | ✅   |
 | `builder/panels/ai/AIPanel.tsx`                      | 재작성: useAgentLoop hook 기반, Tool 피드백 UI                           | A3    | ✅   |
@@ -2118,10 +2119,10 @@ serve(async (req) => {
 | `services/ai/tools/applyLayout.ts`                   | 신규: 레이아웃 템플릿 적용 도구                                          | B3    | 📋   |
 | `services/ai/tools/validation.ts`                    | 신규: Props/styles 검증 레이어                                           | B5    | 📋   |
 | `services/ai/tools/index.ts`                         | 확장: 도구 레지스트리 (7 → 10+ 도구)                                     | B2    | 📋   |
-| `services/ai/AgentService.ts`                    | 변경: temperature 0.7→0.3, max_tokens 2048→4096                          | B4-1  | 📋   |
-| `services/ai/AIAgentService.ts`                      | 신규: 추상 인터페이스 (AgentService/ClaudeProxyService 공통)         | B4-2  | 📋   |
-| `services/ai/ClaudeProxyService.ts`                  | 신규: Supabase Edge Function 경유 Claude API 호출                        | B4-2  | 📋   |
-| `supabase/functions/ai-proxy/index.ts`               | 신규: Claude API 서버 프록시 (JWT 인증, Rate Limit)                      | B4-2  | 📋   |
+| `services/ai/AgentService.ts`                        | 변경: temperature 0.7→0.3, max_tokens 2048→4096                          | B4-1  | 📋   |
+| `services/ai/AIAgentService.ts`                      | 신규: 추상 인터페이스 (AgentService/ClaudeProxyService 공통)             | B4-2  | 📋   |
+| `services/ai/ClaudeProxyService.ts`                  | 신규: Cloud Edge Function 경유 Claude API 호출                           | B4-2  | 📋   |
+| `cloud/functions/ai-proxy/index.ts`                  | 신규: Claude API 서버 프록시 (JWT 인증, Rate Limit)                      | B4-2  | 📋   |
 | `builder/panels/ai/AIPanel.tsx`                      | 확장: 모델 선택기 UI                                                     | B4-3  | 📋   |
 | `builder/panels/ai/components/ModelSelector.tsx`     | 신규: 멀티모델 선택 컴포넌트                                             | B4-3  | 📋   |
 
@@ -2166,7 +2167,7 @@ serve(async (req) => {
 
 | 파일                                                 | 검증 결과                                                                        |
 | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `services/ai/AgentService.ts`                    | ✅ 문서와 일치. MAX_TURNS=10, MAX_RETRIES=3, 지수 백오프 구현 확인               |
+| `services/ai/AgentService.ts`                        | ✅ 문서와 일치. MAX_TURNS=10, MAX_RETRIES=3, 지수 백오프 구현 확인               |
 | `services/ai/tools/index.ts`                         | ✅ 7개 도구 레지스트리 정확히 일치                                               |
 | `services/ai/tools/createElement.ts`                 | ✅ HierarchyManager.calculateNextOrderNum, G.3 flash 연동 확인                   |
 | `services/ai/tools/batchDesign.ts`                   | ✅ 최대 20개, 실패 시 나머지 중단 구현 확인                                      |

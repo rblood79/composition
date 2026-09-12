@@ -38,7 +38,7 @@ Phase 0 완료 기준의 표 3개. 이후 phase 의 판정 근거이자 Phase 4 
 | `builder/panels/core/panelConfigs.ts:37`          | `EventsPanel`         | Phase 2 에서 `InteractionsPanel` 로 교체 완료 |
 | `builder/inspector/types.ts:2,235`                | `EventHandler` (type) | 신규 `InteractionRule` 로 교체                |
 | `types/builder/unified.types.ts:3`                | `ElementEvent`        | 은퇴 (mirror 소멸과 동반)                     |
-| `types/integrations/supabase.types.ts:3`          | `ElementEvent`        | 은퇴 (동상)                                   |
+| `types/integrations/cloud.types.ts:3`             | `ElementEvent`        | 은퇴 (동상)                                   |
 | `preview/App.tsx:42` · `preview/types/index.ts:3` | `EventEngine`         | **추가분** — utils/events 은퇴와 동반         |
 
 ### 표 ② — registry 어휘 대조표 (`types/events/events.registry.ts` 415줄)

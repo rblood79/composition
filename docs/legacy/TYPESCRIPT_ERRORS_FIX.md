@@ -361,15 +361,15 @@ const updatedAction: typeof action = { ... };
 
 #### 에러 분포 (카테고리별)
 
-| 카테고리                | 오류 수 | 주요 파일                                          |
-| ----------------------- | ------- | -------------------------------------------------- |
-| **Property Editor**     | 95      | PropertyCustomId onChange 제거, Supabase 직접 호출 |
-| **State Management**    | 45      | Page 타입 분리, 타입 변환                          |
-| **Component Renderers** | 38      | Size 타입 표준화, 타입 단언                        |
-| **Event System**        | 32      | EventHandler 타입 호환성                           |
-| **Theme System**        | 28      | DesignToken, ResolvedToken 타입                    |
-| **Utilities**           | 25      | DataBinding, optional chaining                     |
-| **API Services**        | 17      | Supabase 타입, import 추가                         |
+| 카테고리                | 오류 수 | 주요 파일                                       |
+| ----------------------- | ------- | ----------------------------------------------- |
+| **Property Editor**     | 95      | PropertyCustomId onChange 제거, Cloud 직접 호출 |
+| **State Management**    | 45      | Page 타입 분리, 타입 변환                       |
+| **Component Renderers** | 38      | Size 타입 표준화, 타입 단언                     |
+| **Event System**        | 32      | EventHandler 타입 호환성                        |
+| **Theme System**        | 28      | DesignToken, ResolvedToken 타입                 |
+| **Utilities**           | 25      | DataBinding, optional chaining                  |
+| **API Services**        | 17      | Cloud 타입, import 추가                         |
 
 #### 수정된 파일 (주요)
 
@@ -514,7 +514,7 @@ size={(props.size as ComponentSizeSubset | undefined) || "md"}
 
 ---
 
-### 4. Supabase 직접 호출 (17개)
+### 4. Cloud 직접 호출 (17개)
 
 **문제**: 삭제된 `ElementUtils.createChildElementWithParentCheck` 메서드 사용
 
@@ -526,10 +526,10 @@ const data = await ElementUtils.createChildElementWithParentCheck(
   parentId,
 );
 
-// ✅ AFTER (Supabase 직접 호출)
-import { supabase } from "../../lib/supabase";
+// ✅ AFTER (Cloud 직접 호출)
+import { cloud } from "../../lib/cloud";
 
-const { data, error } = await supabase
+const { data, error } = await cloud
   .from("elements")
   .insert(newElement)
   .select()
@@ -545,7 +545,7 @@ addElement(data as Element);
 - ListBoxItemEditor.tsx
 - ToggleButtonGroupEditor.tsx
 
-**해결 방법**: Supabase client 직접 사용
+**해결 방법**: Cloud client 직접 사용
 
 ---
 
@@ -647,7 +647,7 @@ const element: Element = {
 ```typescript
 // 자주 누락되는 imports
 import type { DesignToken, DataBinding } from "../../types/theme";
-import { supabase } from "../../lib/supabase";
+import { cloud } from "../../lib/cloud";
 import type { Element } from "../../types/core/store.types";
 ```
 

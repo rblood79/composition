@@ -10,6 +10,7 @@
 기존 컴포넌트에 React Query 스타일 최적화 시스템을 적용하는 가이드입니다.
 
 **적용된 최적화:**
+
 - ✅ SmartCache (LRU + TTL)
 - ✅ Request Deduplication (중복 요청 방지)
 - ✅ Realtime Event Batching (100ms 배칭)
@@ -20,9 +21,11 @@
 ## 🎯 적용 완료된 파일 (2025-11-17)
 
 ### 1. BaseApiService (Core)
+
 **파일**: `src/services/api/BaseApiService.ts`
 
 **추가된 기능:**
+
 ```typescript
 // ✅ 캐싱이 적용된 API 호출
 protected async handleCachedApiCall<T>(
@@ -37,19 +40,22 @@ protected invalidateCache(cacheKeyPattern: string): void
 ```
 
 **혜택:**
+
 - 모든 GET 요청 자동 캐싱 (기본 5분)
 - 중복 요청 자동 방지
 - 성능 모니터링 자동 추적
 - Mutation 작업 시 자동 캐시 무효화
 
 ### 2. PagesApiService
+
 **파일**: `src/services/api/PagesApiService.ts`
 
 **Before (최적화 전):**
+
 ```typescript
 async getPagesByProjectId(projectId: string): Promise<Page[]> {
     return this.handleApiCall('getPagesByProjectId', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("pages")
             .select("*")
             .eq("project_id", projectId)
@@ -59,6 +65,7 @@ async getPagesByProjectId(projectId: string): Promise<Page[]> {
 ```
 
 **After (최적화 후):**
+
 ```typescript
 async getPagesByProjectId(projectId: string): Promise<Page[]> {
     const queryKey = `pages:project:${projectId}`;
@@ -67,7 +74,7 @@ async getPagesByProjectId(projectId: string): Promise<Page[]> {
         queryKey,
         'getPagesByProjectId',
         async () => {
-            return await this.supabase
+            return await this.cloud
                 .from("pages")
                 .select("*")
                 .eq("project_id", projectId)
@@ -79,6 +86,7 @@ async getPagesByProjectId(projectId: string): Promise<Page[]> {
 ```
 
 **Mutation 작업 (캐시 무효화):**
+
 ```typescript
 async createPage(pageData: Partial<Page>): Promise<Page> {
     const result = await this.handleApiCall('createPage', async () => {
@@ -95,9 +103,11 @@ async createPage(pageData: Partial<Page>): Promise<Page> {
 ```
 
 ### 3. ElementsApiService
+
 **파일**: `src/services/api/BaseApiService.ts` (ElementsApiService 클래스)
 
 **최적화 적용:**
+
 ```typescript
 async fetchElements(pageId: string): Promise<Element[]> {
     const queryKey = `elements:page:${pageId}`;
@@ -106,7 +116,7 @@ async fetchElements(pageId: string): Promise<Element[]> {
         queryKey,
         'fetchElements',
         async () => {
-            return await this.supabase
+            return await this.cloud
                 .from("elements")
                 .select("*")
                 .eq("page_id", pageId)
@@ -118,41 +128,46 @@ async fetchElements(pageId: string): Promise<Element[]> {
 ```
 
 ### 4. Pages.tsx (Component)
+
 **파일**: `src/builder/nodes/Pages.tsx`
 
 **Before:**
+
 ```typescript
-import { supabase } from '../../env/supabase.client';
+import { cloud } from "../../env/cloud.client";
 
 const handleDeletePage = async (page: Page) => {
-    const { error } = await supabase.from("pages").delete().eq("id", page.id);
-    if (error) {
-        console.error("페이지 삭제 에러:", error);
-        return;
-    }
-    // ...
+  const { error } = await cloud.from("pages").delete().eq("id", page.id);
+  if (error) {
+    console.error("페이지 삭제 에러:", error);
+    return;
+  }
+  // ...
 };
 ```
 
 **After:**
+
 ```typescript
-import { pagesApi } from '../../services/api/PagesApiService';
+import { pagesApi } from "../../services/api/PagesApiService";
 
 const handleDeletePage = async (page: Page) => {
-    try {
-        await pagesApi.deletePage(page.id); // ✅ 자동 캐시 무효화
-    } catch (error) {
-        console.error("페이지 삭제 에러:", error);
-        return;
-    }
-    // ...
+  try {
+    await pagesApi.deletePage(page.id); // ✅ 자동 캐시 무효화
+  } catch (error) {
+    console.error("페이지 삭제 에러:", error);
+    return;
+  }
+  // ...
 };
 ```
 
 ### 5. ThemeService
+
 **파일**: `src/services/theme/ThemeService.ts`
 
 **최적화 적용:**
+
 ```typescript
 // ✅ GET 요청 - 캐싱 적용
 static async getThemesByProject(projectId: string): Promise<DesignTheme[]> {
@@ -163,7 +178,7 @@ static async getThemesByProject(projectId: string): Promise<DesignTheme[]> {
         queryKey,
         'getThemesByProject',
         async () => {
-            return await instance.supabase
+            return await instance.cloud
                 .from('design_themes')
                 .select('*')
                 .eq('project_id', projectId)
@@ -177,7 +192,7 @@ static async getThemesByProject(projectId: string): Promise<DesignTheme[]> {
 static async createTheme(input: CreateThemeInput): Promise<DesignTheme> {
     const instance = new ThemeService();
     const result = await instance.handleApiCall<DesignTheme>('createTheme', async () => {
-        return await instance.supabase
+        return await instance.cloud
             .from('design_themes')
             .insert({
                 project_id: input.project_id,
@@ -208,7 +223,7 @@ static async deleteTheme(themeId: string): Promise<void> {
     }
 
     await instance.handleDeleteCall('deleteTheme', async () => {
-        return await instance.supabase
+        return await instance.cloud
             .from('design_themes')
             .delete()
             .eq('id', themeId);
@@ -222,16 +237,19 @@ static async deleteTheme(themeId: string): Promise<void> {
 ```
 
 **주요 변경사항:**
+
 - BaseApiService 상속으로 전환
 - Static 메서드에서 `const instance = new ThemeService()` 패턴 사용
 - GET 메서드: `handleCachedApiCall()` 적용
 - Mutation 메서드: `handleApiCall()` + `invalidateCache()` 적용
-- Realtime 구독: `instance.supabase` 사용으로 변경
+- Realtime 구독: `instance.cloud` 사용으로 변경
 
 ### 6. TokenService
+
 **파일**: `src/services/theme/TokenService.ts`
 
 **최적화 적용:**
+
 ```typescript
 // ✅ GET 요청 - RPC 호출 캐싱
 static async getResolvedTokens(themeId: string): Promise<ResolvedToken[]> {
@@ -242,7 +260,7 @@ static async getResolvedTokens(themeId: string): Promise<ResolvedToken[]> {
         queryKey,
         'getResolvedTokens',
         async () => {
-            const { data, error } = await instance.supabase.rpc('resolve_theme_tokens', {
+            const { data, error } = await instance.cloud.rpc('resolve_theme_tokens', {
                 p_theme_id: themeId,
             });
 
@@ -269,7 +287,7 @@ static async searchTokens(
         queryKey,
         'searchTokens',
         async () => {
-            const { data, error } = await instance.supabase.rpc('search_tokens', {
+            const { data, error } = await instance.cloud.rpc('search_tokens', {
                 p_theme_id: themeId,
                 p_query: query,
                 p_include_inherited: includeInherited,
@@ -290,7 +308,7 @@ static async createToken(input: CreateTokenInput): Promise<DesignToken> {
     const instance = new TokenService();
 
     const result = await instance.handleApiCall<DesignToken>('createToken', async () => {
-        return await instance.supabase
+        return await instance.cloud
             .from('design_tokens')
             .insert({
                 project_id: input.project_id,
@@ -324,7 +342,7 @@ static async bulkUpsertTokens(tokens: Partial<DesignToken>[]): Promise<number> {
         tokens.map((t) => t.theme_id).filter((id): id is string => !!id)
     );
 
-    const { data, error } = await instance.supabase.rpc('bulk_upsert_tokens', {
+    const { data, error } = await instance.cloud.rpc('bulk_upsert_tokens', {
         p_tokens: tokens,
     });
 
@@ -346,6 +364,7 @@ static async bulkUpsertTokens(tokens: Partial<DesignToken>[]): Promise<number> {
 ```
 
 **주요 변경사항:**
+
 - RPC 호출도 캐싱 지원 (getResolvedTokens, searchTokens)
 - 검색 쿼리별 독립 캐싱 (`query`, `includeInherited` 파라미터 포함)
 - Scope별 캐싱 (raw, semantic)
@@ -353,9 +372,11 @@ static async bulkUpsertTokens(tokens: Partial<DesignToken>[]): Promise<number> {
 - 대량 업서트 시 영향받는 모든 테마 캐시 무효화
 
 ### 7. ProjectsApiService
+
 **파일**: `src/services/api/ProjectsApiService.ts`
 
 **최적화 적용:**
+
 ```typescript
 // ✅ GET 요청 - 전체 프로젝트 캐싱
 async fetchProjects(): Promise<Project[]> {
@@ -365,7 +386,7 @@ async fetchProjects(): Promise<Project[]> {
         queryKey,
         'fetchProjects',
         async () => {
-            return await this.supabase
+            return await this.cloud
                 .from("projects")
                 .select("*")
                 .order('created_at', { ascending: false });
@@ -382,7 +403,7 @@ async getCurrentUser(): Promise<{ id: string }> {
         queryKey,
         'getCurrentUser',
         async () => {
-            const { data: { session }, error } = await this.supabase.auth.getSession();
+            const { data: { session }, error } = await this.cloud.auth.getSession();
 
             if (error) {
                 throw new Error(`Session error: ${error.message}`);
@@ -408,7 +429,7 @@ async createProject(projectData: CreateProjectData): Promise<Project> {
         , 'createProject');
 
     const result = await this.handleApiCall('createProject', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("projects")
             .insert([projectData])
             .select('*')
@@ -426,7 +447,7 @@ async deleteProject(projectId: string): Promise<void> {
     this.validateInput(projectId, (id) => typeof id === 'string' && id.length > 0, 'deleteProject');
 
     await this.handleDeleteCall('deleteProject', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("projects")
             .delete()
             .eq("id", projectId);
@@ -439,6 +460,7 @@ async deleteProject(projectId: string): Promise<void> {
 ```
 
 **주요 변경사항:**
+
 - 전체 프로젝트 목록 캐싱 (`projects:all`)
 - 사용자 세션 캐싱 (`user:current`)
 - 단일 프로젝트 캐시 지원 (`project:id:${projectId}`)
@@ -451,11 +473,12 @@ async deleteProject(projectId: string): Promise<void> {
 ### 1. GET 요청 최적화 (캐싱 적용)
 
 **패턴:**
+
 ```typescript
 // ❌ Before - 캐싱 없음
 async getItems(id: string): Promise<Item[]> {
     return this.handleApiCall('getItems', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("items")
             .select("*")
             .eq("parent_id", id);
@@ -470,7 +493,7 @@ async getItems(id: string): Promise<Item[]> {
         queryKey,
         'getItems',
         async () => {
-            return await this.supabase
+            return await this.cloud
                 .from("items")
                 .select("*")
                 .eq("parent_id", id);
@@ -481,21 +504,20 @@ async getItems(id: string): Promise<Item[]> {
 ```
 
 **쿼리 키 네이밍 컨벤션:**
+
 ```typescript
 // 패턴: "테이블명:필터타입:필터값"
-`pages:project:${projectId}`
-`elements:page:${pageId}`
-`tokens:theme:${themeId}`
-`themes:project:${projectId}`
+`pages:project:${projectId}``elements:page:${pageId}``tokens:theme:${themeId}``themes:project:${projectId}`;
 ```
 
 ### 2. POST/PUT/DELETE 최적화 (캐시 무효화)
 
 **패턴:**
+
 ```typescript
 async createItem(data: Partial<Item>): Promise<Item> {
     const result = await this.handleApiCall('createItem', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("items")
             .insert([data])
             .select()
@@ -512,7 +534,7 @@ async createItem(data: Partial<Item>): Promise<Item> {
 
 async updateItem(itemId: string, updates: Partial<Item>): Promise<Item> {
     const result = await this.handleApiCall('updateItem', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("items")
             .update(updates)
             .eq("id", itemId)
@@ -530,14 +552,14 @@ async updateItem(itemId: string, updates: Partial<Item>): Promise<Item> {
 
 async deleteItem(itemId: string): Promise<void> {
     // 삭제 전에 parent_id 조회 (캐시 무효화용)
-    const { data: item } = await this.supabase
+    const { data: item } = await this.cloud
         .from("items")
         .select("parent_id")
         .eq("id", itemId)
         .single();
 
     await this.handleDeleteCall('deleteItem', async () => {
-        return await this.supabase
+        return await this.cloud
             .from("items")
             .delete()
             .eq("id", itemId);
@@ -550,22 +572,21 @@ async deleteItem(itemId: string): Promise<void> {
 }
 ```
 
-### 3. 컴포넌트에서 직접 Supabase 호출 제거
+### 3. 컴포넌트에서 직접 Cloud 호출 제거
 
 **Before:**
-```typescript
-import { supabase } from '../../env/supabase.client';
 
-// ❌ 직접 Supabase 호출
-const { data, error } = await supabase
-    .from("pages")
-    .delete()
-    .eq("id", pageId);
+```typescript
+import { cloud } from "../../env/cloud.client";
+
+// ❌ 직접 Cloud 호출
+const { data, error } = await cloud.from("pages").delete().eq("id", pageId);
 ```
 
 **After:**
+
 ```typescript
-import { pagesApi } from '../../services/api/PagesApiService';
+import { pagesApi } from "../../services/api/PagesApiService";
 
 // ✅ API Service 사용 (자동 캐싱 + 무효화)
 await pagesApi.deletePage(pageId);
@@ -610,6 +631,7 @@ await pagesApi.deletePage(pageId);
 ### 동시 요청 시나리오
 
 **Before:**
+
 ```
 3개 컴포넌트가 동시에 같은 데이터 요청:
 - 컴포넌트 A: fetch 시작 (200ms)
@@ -621,6 +643,7 @@ await pagesApi.deletePage(pageId);
 ```
 
 **After (Deduplication):**
+
 ```
 3개 컴포넌트가 동시에 같은 데이터 요청:
 - 컴포넌트 A: fetch 시작 (200ms)
@@ -654,28 +677,28 @@ await pagesApi.deletePage(pageId);
 ### Performance Monitor 사용
 
 ```typescript
-import { globalPerformanceMonitor } from '../utils/performanceMonitor';
+import { globalPerformanceMonitor } from "../utils/performanceMonitor";
 
 // 통계 조회
 const stats = globalPerformanceMonitor.getStats();
 
-console.log('캐시 Hit Rate:', stats.cache.hitRate); // 66.7%
-console.log('중복 요청 방지율:', stats.deduplication.deduplicationRate); // 66.7%
-console.log('평균 응답 시간:', stats.cache.avgResponseTime); // 67ms
+console.log("캐시 Hit Rate:", stats.cache.hitRate); // 66.7%
+console.log("중복 요청 방지율:", stats.deduplication.deduplicationRate); // 66.7%
+console.log("평균 응답 시간:", stats.cache.avgResponseTime); // 67ms
 ```
 
 ### Performance Dashboard (개발용)
 
 ```tsx
-import { PerformanceDashboard } from '../builder/components/PerformanceDashboard';
+import { PerformanceDashboard } from "../builder/components/PerformanceDashboard";
 
 function App() {
-    return (
-        <>
-            <YourApp />
-            {import.meta.env.DEV && <PerformanceDashboard visible={true} />}
-        </>
-    );
+  return (
+    <>
+      <YourApp />
+      {import.meta.env.DEV && <PerformanceDashboard visible={true} />}
+    </>
+  );
 }
 ```
 
@@ -686,6 +709,7 @@ function App() {
 ### 1. 캐시 무효화 필수
 
 **Mutation 작업 후 반드시 캐시 무효화:**
+
 ```typescript
 // ❌ Bad - 캐시 무효화 없음
 async createPage(pageData: Partial<Page>): Promise<Page> {
@@ -709,6 +733,7 @@ async createPage(pageData: Partial<Page>): Promise<Page> {
 ### 2. 쿼리 키 일관성
 
 **같은 데이터는 같은 쿼리 키 사용:**
+
 ```typescript
 // ❌ Bad - 불일치
 async getPages1(id: string) {
@@ -728,15 +753,22 @@ async getPagesByProjectId(id: string) {
 ### 3. staleTime 설정
 
 **데이터 특성에 맞는 캐싱 시간 설정:**
+
 ```typescript
 // 자주 변하는 데이터 - 짧은 staleTime
-{ staleTime: 30 * 1000 } // 30초
+{
+  staleTime: 30 * 1000;
+} // 30초
 
 // 가끔 변하는 데이터 - 중간 staleTime
-{ staleTime: 5 * 60 * 1000 } // 5분 (기본값)
+{
+  staleTime: 5 * 60 * 1000;
+} // 5분 (기본값)
 
 // 거의 안 변하는 데이터 - 긴 staleTime
-{ staleTime: 30 * 60 * 1000 } // 30분
+{
+  staleTime: 30 * 60 * 1000;
+} // 30분
 ```
 
 ---
@@ -746,10 +778,11 @@ async getPagesByProjectId(id: string) {
 ### ✅ 완료된 마이그레이션
 
 **모든 주요 서비스 최적화 완료 (2025-11-17):**
+
 1. ✅ BaseApiService (Core Infrastructure)
 2. ✅ ElementsApiService (4 메서드)
 3. ✅ PagesApiService (4 메서드)
-4. ✅ Pages.tsx Component (직접 Supabase 호출 제거)
+4. ✅ Pages.tsx Component (직접 Cloud 호출 제거)
 5. ✅ ThemeService (10 메서드)
 6. ✅ TokenService (10+ 메서드)
 7. ✅ ProjectsApiService (5 메서드)
@@ -765,6 +798,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 **목표**: 실제 사용 환경에서 최적화 효과 측정 및 검증
 
 **작업 내용:**
+
 1. **Performance Dashboard 개선**
    - 실시간 캐시 Hit Rate 그래프
    - API 응답 시간 차트
@@ -782,6 +816,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
    - 병목 지점 자동 탐지
 
 **예상 효과:**
+
 - 📈 실제 성능 개선 수치 확보
 - 🎯 추가 최적화 영역 발견
 - 📊 데이터 기반 의사결정
@@ -795,6 +830,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 **목표**: Hook 및 Component 레벨 최적화 확장
 
 **작업 내용:**
+
 1. **Custom Hook 최적화**
    - `usePageManager` - 페이지 관리 최적화
    - `useElementCreator` - 엘리먼트 생성 최적화
@@ -811,6 +847,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
    - Route-based splitting
 
 **예상 효과:**
+
 - 🚀 초기 로딩 속도 30% 개선
 - 💾 메모리 사용량 20% 감소
 - ⚡ 렌더링 성능 40% 개선
@@ -824,6 +861,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 **목표**: 더욱 정교한 캐싱 전략 구현
 
 **작업 내용:**
+
 1. **캐시 우선순위 시스템**
    - 자주 사용하는 데이터 우선 캐싱
    - LRU (Least Recently Used) 자동 제거
@@ -845,6 +883,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
    - 오프라인 지원
 
 **예상 효과:**
+
 - 🎨 사용자 경험 대폭 개선 (즉각적인 UI 반응)
 - 📶 오프라인 지원으로 안정성 향상
 - 💪 네트워크 장애 대응 능력 강화
@@ -856,14 +895,17 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 ### 🎯 권장 우선순위
 
 **단기 (1주 이내):**
+
 - ✅ **옵션 1** 먼저 실행 → 현재 최적화 효과 검증
 - 데이터 기반으로 다음 단계 결정
 
 **중기 (2-3주):**
+
 - ⚡ **옵션 2** 실행 → 전체 앱 성능 개선
 - 사용자 경험 대폭 향상
 
 **장기 (1개월+):**
+
 - 🎯 **옵션 3** 실행 → Enterprise급 캐싱 시스템
 - 오프라인 지원 및 고급 기능 추가
 
@@ -872,6 +914,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 ### 📝 적용 체크리스트
 
 **현재 완료된 항목:**
+
 - ✅ BaseApiService 상속 확인
 - ✅ GET 메서드에 `handleCachedApiCall` 적용
 - ✅ POST/PUT/DELETE 메서드에 캐시 무효화 추가
@@ -880,6 +923,7 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 - ✅ Console 로그 확인 (캐시 HIT/MISS)
 
 **다음 체크리스트 (옵션 선택 후):**
+
 - ⏳ Performance Dashboard로 성능 확인
 - ⏳ A/B 테스트로 최적화 효과 검증
 - ⏳ 추가 최적화 영역 발굴
@@ -891,26 +935,28 @@ React Query 스타일 최적화 시스템이 성공적으로 적용되었습니�
 ### 적용된 최적화 (2025-11-17)
 
 **✅ 마이그레이션 완료:**
+
 - **7개 서비스** 최적화 완료
 - **45+ 메서드** 캐싱/무효화 적용
 - **0 TypeScript 에러**
 - **100% 타입 안전성**
 
 **마이그레이션된 서비스:**
+
 1. ✅ BaseApiService (Core Infrastructure)
 2. ✅ ElementsApiService (4 메서드)
 3. ✅ PagesApiService (4 메서드)
-4. ✅ Pages.tsx Component (직접 Supabase 호출 제거)
+4. ✅ Pages.tsx Component (직접 Cloud 호출 제거)
 5. ✅ ThemeService (10 메서드)
 6. ✅ TokenService (10+ 메서드)
 7. ✅ ProjectsApiService (5 메서드)
 
-| 항목 | Before | After | 개선율 |
-|------|--------|-------|--------|
-| **평균 응답 시간** | 200ms | 67ms | **67% ↓** |
-| **중복 요청** | 3번 | 1번 | **67% ↓** |
-| **캐시 Hit Rate** | 0% | 66.7% | **66.7% ↑** |
-| **DB 쿼리** | 3번 | 1번 | **67% ↓** |
+| 항목               | Before | After | 개선율      |
+| ------------------ | ------ | ----- | ----------- |
+| **평균 응답 시간** | 200ms  | 67ms  | **67% ↓**   |
+| **중복 요청**      | 3번    | 1번   | **67% ↓**   |
+| **캐시 Hit Rate**  | 0%     | 66.7% | **66.7% ↑** |
+| **DB 쿼리**        | 3번    | 1번   | **67% ↓**   |
 
 ### 혜택
 

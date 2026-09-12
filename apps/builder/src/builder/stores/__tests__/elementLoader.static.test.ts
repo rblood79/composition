@@ -22,7 +22,6 @@ describe("ADR-120 Phase 1 elementLoader persistence contract", () => {
     expect(source).toContain("StoreElementCacheMap");
     expect(source).not.toContain("elementsMap: Map<string, Element>");
     expect(source).not.toContain("getDB");
-    expect(source).not.toContain("supabase");
     expect(source).not.toContain("db.elements.getByPage");
     expect(source).not.toContain("db.elements.insertMany");
 

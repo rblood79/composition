@@ -1233,7 +1233,7 @@ export async function setupChangeTracking(db: any): Promise<void> {
 // src/services/sync/syncService.ts
 
 import { db as localDb } from "../database";
-import { supabase } from "../database/supabaseAdapter";
+import { cloud } from "../database/cloudAdapter";
 
 export class SyncService {
   private isSyncing = false;
@@ -1286,10 +1286,10 @@ export class SyncService {
     try {
       console.log("🔄 Starting sync...");
 
-      // 1. Push local changes to Supabase
+      // 1. Push local changes to Cloud
       const pushed = await this.pushChanges();
 
-      // 2. Pull remote changes from Supabase
+      // 2. Pull remote changes from Cloud
       const pulled = await this.pullChanges();
 
       // 3. Resolve conflicts
@@ -1309,7 +1309,7 @@ export class SyncService {
   }
 
   /**
-   * Push local changes to Supabase
+   * Push local changes to Cloud
    */
   private async pushChanges(): Promise<number> {
     // 동기화되지 않은 변경사항 가져오기
@@ -1323,11 +1323,11 @@ export class SyncService {
       try {
         switch (change.operation) {
           case "INSERT":
-            await supabase.insert(change.table_name, change.data);
+            await cloud.insert(change.table_name, change.data);
             break;
 
           case "UPDATE":
-            await supabase.update(
+            await cloud.update(
               change.table_name,
               change.record_id,
               change.data,
@@ -1335,7 +1335,7 @@ export class SyncService {
             break;
 
           case "DELETE":
-            await supabase.delete(change.table_name, change.record_id);
+            await cloud.delete(change.table_name, change.record_id);
             break;
         }
 
@@ -1356,7 +1356,7 @@ export class SyncService {
   }
 
   /**
-   * Pull remote changes from Supabase
+   * Pull remote changes from Cloud
    */
   private async pullChanges(): Promise<number> {
     // 마지막 동기화 시간 이후 변경사항 가져오기
@@ -1372,7 +1372,7 @@ export class SyncService {
     let pulledCount = 0;
 
     for (const table of tables) {
-      const remoteData = await supabase.select(table, {
+      const remoteData = await cloud.select(table, {
         // updated_at > lastSync
       });
 
@@ -1557,7 +1557,7 @@ export class OfflineQueue {
 
     for (const operation of this.queue) {
       try {
-        // Supabase에 업로드
+        // Cloud에 업로드
         await this.uploadOperation(operation);
 
         // 큐에서 제거
@@ -1582,22 +1582,22 @@ export class OfflineQueue {
   }
 
   /**
-   * Upload operation to Supabase
+   * Upload operation to Cloud
    */
   private async uploadOperation(operation: QueuedOperation): Promise<void> {
     const { type, table, data } = operation;
 
     switch (type) {
       case "CREATE":
-        await supabase.insert(table, data);
+        await cloud.insert(table, data);
         break;
 
       case "UPDATE":
-        await supabase.update(table, data.id, data);
+        await cloud.update(table, data.id, data);
         break;
 
       case "DELETE":
-        await supabase.delete(table, data.id);
+        await cloud.delete(table, data.id);
         break;
     }
   }

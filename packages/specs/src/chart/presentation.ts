@@ -15,6 +15,7 @@
  * - Recharts 를 import 하지 않는다 (Builder initial 번들에 실리면 안 된다).
  */
 import { formatTick } from "./scales";
+import { CHART_TYPES } from "./types";
 import type {
   ChartBudgetAggregate,
   ChartBudgetAxis,
@@ -79,7 +80,12 @@ export const CHART_SERIES_TOKEN_PREFIX = "--chart-series-";
  * Properties 패널 (팔레트 길이). 미지 id 또는 미설정은 기본 팔레트 (`series`).
  */
 export function resolveChartPalette(
-  channel: { series: readonly string[]; palettes?: Readonly<Record<string, readonly string[]>> } | undefined,
+  channel:
+    | {
+        series: readonly string[];
+        palettes?: Readonly<Record<string, readonly string[]>>;
+      }
+    | undefined,
   palette: string | undefined,
 ): readonly string[] {
   if (!channel) return [];
@@ -286,6 +292,19 @@ export function resolveChartPresentation(
   ): void => {
     diagnostics.push({ code, severity: "warning", message, value });
   };
+
+  // ── chartType (ADR-217 P1) — 알 수 없는 종류는 여기서 멈춘다: 모델이 예산 (`slotFit`) 에 닿기 전에
+  //   `ok=false` 가 되어 두 leg 가 설정 오류 scene 을 그린다 (구버전은 throw 로 캔버스가 멈췄다).
+  if (
+    props.chartType !== undefined &&
+    !(CHART_TYPES as readonly string[]).includes(props.chartType)
+  ) {
+    error(
+      "chartType.unsupported",
+      `chartType "${String(props.chartType)}" is not supported by this build`,
+      String(props.chartType),
+    );
+  }
 
   // ── dataMode ──
   let dataMode: ChartDataMode = "group";

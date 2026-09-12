@@ -54,7 +54,7 @@ grep -rn "layout=\"grid\"\|orientation=\"horizontal\"" apps/ packages/
 # 2. 런타임 ListBox 인스턴스에 layout prop 전달 경로
 grep -rn "<ListBox" apps/builder/src packages/shared/src/renderers
 
-# 3. 실제 프로젝트 데이터 (IndexedDB dump 또는 Supabase elements 테이블)
+# 3. 실제 프로젝트 데이터 (IndexedDB dump 또는 Cloud elements 테이블)
 # → elements WHERE tag='ListBox' AND props->>'layout' IS NOT NULL
 ```
 
@@ -73,7 +73,7 @@ grep -rn "<ListBox" apps/builder/src packages/shared/src/renderers
 - `grep 'layout\|orientation' packages/specs/src/components/ListBox.spec.ts` → **0 matches** (Spec 미선언)
 - `createListBoxDefinition` (`SelectionComponents.ts:210+`) → layout/orientation prop default **없음**
 - `<ListBox>` 직접 사용처 27곳 (builder 내부 property/events UI) — 전부 `className` 만 전달, `layout/orientation` prop **없음**
-- 실제 사용자 프로젝트 IndexedDB/Supabase 데이터 감사는 Chrome/DB 필요 — 본 세션 미수행
+- 실제 사용자 프로젝트 IndexedDB/Cloud 데이터 감사는 Chrome/DB 필요 — 본 세션 미수행
 
 **판정**: Spec/Factory/사용처 전달 경로 **0건**으로 확증 → **dead CSS** 로 분류 가능한 근거 확보. 단 실사용자 프로젝트 IndexedDB 확인 미수행 — **보수 정책**: 본 ADR 에서는 Hard Constraint #7 유지 (CSS 127–227 라인 수동 보존). Phase 2 에서 Chrome MCP 로 사용자 프로젝트 dump 감사 후 별도 clean-up 커밋으로 삭제 판단.
 

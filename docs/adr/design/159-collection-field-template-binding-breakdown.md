@@ -75,7 +75,7 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 
 - [x] `dataBinding.source` 값별 소비처 전수 grep: `"api"` / `"variable"` / `"route"` — `useCollectionData.tsx` dispatch, `PropertyDataBinding.tsx`, `ApiEndpointList.tsx`, `VariableList.tsx`, `services/api/*` (§5-1)
 - [x] `columnMapping` 소비처 전수 grep (`ListBox.tsx:442` Field 모드, `CollectionRenderers.tsx:245-268`, Select/RadioGroup/ToggleButtonGroup) — 본 ADR 과의 관계 판정 기록 (§5-2: 텍스트 계보 legacy 격하 / P5 컴포넌트 셀 계보 수렴)
-- [x] 기존 저장 문서의 api/variable/route 사용 실측 (§5-3: 로컬 IndexedDB 0건 확증, Supabase 전체는 RLS 로 G4 재실측 이연)
+- [x] 기존 저장 문서의 api/variable/route 사용 실측 (§5-3: 로컬 IndexedDB 0건 확증, Cloud 전체는 RLS 로 G4 재실측 이연)
 - 산출: 본 문서 §5 에 inventory 표 추가 ✅
 
 ### Phase 1 — shared resolver + BC 계약 (커밋 1~2) — ✅ Implemented 2026-07-24
@@ -111,7 +111,7 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 
 - [x] **4a 필드 피커**: `PropertyFieldTemplateInput`(자유 입력 + Braces 버튼 → collection 컬럼 Menu) 신규 — 피커 선택 시 커서 위치 `{key}` 삽입 + 즉시 commit. 컬럼 목록 = `useOwnerCollectionColumns`(조상 dataBinding/items 소유자 → 없으면 reusable master 조상의 소비자 인스턴스 역추적: direct ref + container-slot 2-hop). **live 경로는 `GenericFieldRenderer`(PropertiesPanel Properties view)** — CatalogInspectorFields 단독 배선으로는 미노출 (회귀 테스트 `GenericFieldRenderer.test.tsx` 4건). 라이브 회귀 1건 수정: master 가 페이지 body 에 중첩되면 체인 최상단 단독 reusable 판정이 실패 → 걷는 중 만난 reusable 조상 전수로 역추적 (`useOwnerCollectionColumns.test.ts` 8건)
 - [x] **4b 소스 단일화**: `PropertyDataBinding.tsx` SOURCE_OPTIONS/소스 Select/route 입력 제거 — 컬렉션 피커 단일, 신규 기록 `source:"dataTable"` 고정 (api/variable/route 는 read 호환 잔존 + legacy 안내문). DataTable factory 기본 api binding 제거, AI create_element 의 api binding 생성 제거
-- [ ] **4c 잔존 경로 정리** — **residual 확정 (사용자 confirm 2026-07-24 "P4c 는 residual 로 두고 P6 진행")**: 로컬 IndexedDB 는 api/variable/route 저장 문서 0건 확증했으나 Supabase 전체 프로젝트는 RLS 로 전수 실측 불가 (§5-3). `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI 는 대안 D 상태로 잔존 (Decision 에 예정된 보류 경로 — 신규 유입은 P4b 로 0). 재개 조건: G4 재실측 후 별도 커밋 — ADR Implemented 와 독립
+- [ ] **4c 잔존 경로 정리** — **residual 확정 (사용자 confirm 2026-07-24 "P4c 는 residual 로 두고 P6 진행")**: 로컬 IndexedDB 는 api/variable/route 저장 문서 0건 확증했으나 Cloud 전체 프로젝트는 RLS 로 전수 실측 불가 (§5-3). `useCollectionData` api/variable/route 분기 + `ApiEndpointList`/`VariableList` 관리 UI 는 대안 D 상태로 잔존 (Decision 에 예정된 보류 경로 — 신규 유입은 P4b 로 0). 재개 조건: G4 재실측 후 별도 커밋 — ADR Implemented 와 독립
 - Gate: G4 — 4c 진입 조건 미충족으로 4c 만 보류 (4a/4b 는 G4 무관)
 - live 검증 (2026-07-24): Components 페이지 master GridListItem slot Text(`{role}`) 선택 → 피커 버튼 노출 → Menu 에 Users collection 10 필드 정확 노출 → `{num}` 선택 → `{role}{num}` 삽입+commit → Home 인스턴스 10행 전부 보간 반영 ("시스템 아키텍트1"…"QA 엔지니어10") → 원상 복구. GridList 인스턴스 Data 섹션 = 컬렉션 단일 피커 (소스 4종 UI 소멸). 콘솔 에러 0
 
@@ -175,6 +175,6 @@ Phase 1~4 는 이 모델의 text-leaf 부분만 구현하되, 문법·자료구�
 | 대상                                                          | 방법                                              | 결과                                                                                       |
 | ------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | 로컬 IndexedDB `documents`(1) + `documents_backup`(10), 278KB | 전 store JSON 스캔 (`"dataBinding"` / `"source"`) | **dataBinding 자체 0건 → api/variable/route 0건 확증**                                     |
-| Supabase 전체 프로젝트                                        | REST anon 조회                                    | RLS 차단 — 세션 credential 추출은 부적절하여 미실측. **G4 (P4c 진입 전) 재실측 의무 유지** |
+| Cloud 전체 프로젝트                                           | REST anon 조회                                    | RLS 차단 — 세션 credential 추출은 부적절하여 미실측. **G4 (P4c 진입 전) 재실측 의무 유지** |
 
 BC 수식화: 측정 가능 범위 사용 0건 — 단 factory 기본값(5-1)이 `source:"api"` 를 계속 생성하므로 P4b 기본값 전환이 선행돼야 "신규 유입 0" 이 성립.

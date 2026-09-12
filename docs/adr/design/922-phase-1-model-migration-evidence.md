@@ -26,7 +26,7 @@ Production live store와 `composition-panel-layout` primary record는 계속 v1�
 
 세 모듈은 기존 production source에서 import되지 않는다. storage API도 browser global을 직접
 읽지 않고 `PanelWorkspaceStorage`를 주입받는다. 따라서 Phase 1 code는 test/rehearsal에서만
-실행되고 project DB, Supabase, canonical document를 읽거나 쓰지 않는다.
+실행되고 project DB, Cloud, canonical document를 읽거나 쓰지 않는다.
 
 ## v2 model 불변식
 
@@ -105,7 +105,7 @@ Phase 3 이상이다.
 
 - 기존 store의 `panelWorkspaceLayoutV2*` import: 0
 - Spec/CSS/Skia/Preview/Canvas import 및 변경: 0
-- canonical project/DB/Supabase 접근: 0
+- canonical project/DB/Cloud 접근: 0
 - `.spec-rebuild-pending`: 없음, `packages/specs/dist`: 존재
 - authenticated Builder smoke: frame 13개, v2 DOM marker 0개
 - History v1 toggle: placed frame 표시 → 같은 stable frame의 hidden/display-none 복귀

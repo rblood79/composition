@@ -343,7 +343,7 @@ recovery한다.
 v3 raw와 v2 projection이 모두 parse되지 않으면 fail closed한다.
 
 영향 범위는 v2 local layout record 보유자의 100%에서 record 1개 migration이다.
-`CompositionDocument`, project file, IndexedDB project row, Supabase row 재직렬화는 0개다.
+`CompositionDocument`, project file, IndexedDB project row, Cloud row 재직렬화는 0개다.
 
 ## 5. 구현 단계
 

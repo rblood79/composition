@@ -30,7 +30,7 @@ composition 은 **렌더링 인프라와 데이터/이벤트 계층은 Figma 를
 | C1  | 반응형 breakpoint 저작 | Desktop/Mobile 2-breakpoint 독립 편집이 출발점 | 타입 시스템 (desktop≥1280/tablet 768–1279/mobile<768 + 미디어쿼리 생성 + cascade fallback) 은 **완성돼 있으나 미배선** — 유일 소비자 `ResponsiveVisibilityEditor.tsx` 가 참조 0건 orphan. breakpoint 스위처 UI 부재 | `apps/builder/src/types/builder/responsive.types.ts`, `apps/builder/src/builder/panels/properties/editors/ResponsiveVisibilityEditor.tsx` |
 | C2  | 실제 웹 배포           | publish → 호스팅 + 커스텀 도메인 완결          | `apps/publish` 는 **JSON 뷰어 런타임** (sessionStorage / `?project=` / 파일 드롭). 호스팅·도메인·CDN 코드 0건. Static HTML export 는 JS 런타임 임베드형 단일 파일                                                   | `apps/publish/src/App.tsx`, `packages/shared/src/utils/export.utils.ts:982` (`generateStaticHtml`)                                        |
 | C3  | SEO/반응형 출력        | 게시 사이트에 meta/responsive 기본 제공        | export HTML 에 `@media` 0건, og:/meta description/sitemap/robots.txt 0건 (title+viewport 만)                                                                                                                        | `export.utils.ts:1006-1008`                                                                                                               |
-| C4  | 실시간 협업            | 멀티플레이어 커서·코멘트·공유 권한 (본질 강점) | Supabase 는 **auth 전용**, 프로젝트는 로컬 IndexedDB. presence/broadcast/코멘트/공유링크/권한 전부 0건 (`realtimeBatcher.ts` 는 데이터테이블 동기화용)                                                              | `apps/builder/src/env/supabase.client.ts`, `dashboard/index.tsx:170`                                                                      |
+| C4  | 실시간 협업            | 멀티플레이어 커서·코멘트·공유 권한 (본질 강점) | Cloud 는 **auth 전용**, 프로젝트는 로컬 IndexedDB. presence/broadcast/코멘트/공유링크/권한 전부 0건 (`realtimeBatcher.ts` 는 데이터테이블 동기화용)                                                                 | `apps/builder/src/env/cloud.client.ts`, `dashboard/index.tsx:170`                                                                         |
 
 C4 는 제품 타깃이 enterprise 팀이면 CRITICAL, 개인 도구면 HIGH 로 강등 가능.
 
@@ -72,7 +72,7 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 1. **진짜 웹 시맨틱** — 산출물이 그림이 아니라 React Aria 기반 실 DOM. ARIA/키보드/포커스가 디자인 단계부터 내장 (Figma Sites 는 접근성 부실이 공론화된 약점).
 2. **실 CSS 레이아웃 엔진** — 자체 Rust WASM flex/grid/block (ADR-916). Figma auto layout 은 CSS 근사인 반면 composition 캔버스는 브라우저와 동일 규칙으로 배치.
 3. **이벤트/액션 시스템** — 25종 액션 + WHEN→IF→THEN/ELSE 조건 분기 + debounce/throttle/delay + 변수 바인딩 (`events.registry.ts`, `eventBlockTypes.ts`) — Figma 프로토타이핑의 조건 로직을 능가. 단 publish 런타임은 8종으로 축소되는 내부 격차 존재 (`packages/shared/src/runtime/ActionExecutor.ts`).
-4. **데이터 계층** — DataTable/REST API/변수 바인딩 + form 액션 (`useDataSource.ts`, `useCollectionData`) — Sites CMS 보다 범용적 방향. Supabase/GraphQL 데이터소스는 스텁.
+4. **데이터 계층** — DataTable/REST API/변수 바인딩 + form 액션 (`useDataSource.ts`, `useCollectionData`) — Sites CMS 보다 범용적 방향. Cloud/GraphQL 데이터소스는 스텁.
 5. **컴포넌트 인스턴스 모델** — origin/instance + pencil 3-mode descendants override (속성 patch/노드 교체/children 교체) + nested ref + reset (`instanceActions.ts`) — Figma override 모델과 대등 이상.
 6. **AI 에이전트** — tool-calling 루프로 캔버스 요소 직접 CRUD, 26종 컴포넌트 + fills + dataBinding 설정 (`AgentService.ts`).
 7. **.pen 양방향 어댑터** — canonical format == pencil format (`adapters/pencil/`) — 디자인 파일 생태계 연동 기반.
@@ -120,7 +120,7 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 | 명명 스타일 프리셋          | 없음     | `figma.types.ts` 타입 스캐폴드만 (Figma Variables/스타일 import·export·충돌해결까지 타입 설계, 런타임 0건) |
 | 카탈로그 폭                 | **지원** | binding 115 / palette ~61 (7 카테고리)                                                                     |
 | 아이콘/에셋                 | 부분     | Lucide 피커 + 폰트 업로드 지원 / 이미지 에셋 라이브러리·업로드 없음                                        |
-| AI 생성                     | **지원** | AI tool-calling 루프 (create/update/delete/batch_design, 26종 + fills + dataBinding)                     |
+| AI 생성                     | **지원** | AI tool-calling 루프 (create/update/delete/batch_design, 26종 + fills + dataBinding)                       |
 | .pen 연동                   | **지원** | import/export/schemaMap + roundtrip 테스트                                                                 |
 
 ### 3-4. 인터랙션·퍼블리시·협업·데이터
@@ -131,7 +131,7 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 | Publish 런타임 액션 | 부분     | builder 25종 ≫ publish 8종 (NAVIGATE/ALERT/OPEN_URL/SET_STATE/CONSOLE_LOG/API_CALL) — 내부 격차                                              |
 | 애니메이션          | 부분     | 상태 스타일 (hover/pressed 색상 emit 은 hover/disabled 한정 — ADR-070) + press-scale. transition/keyframe/scroll 저작 UI 전무                |
 | 퍼블리시            | 부분     | JSON export (Zod 검증 + 마이그레이션) + Static HTML (JS 임베드) + SSG 빌드 모드. 실배포·도메인·SEO·@media 출력 없음                          |
-| 데이터/CMS          | **지원** | Tables/APIs/Variables 3탭 + REST 바인딩 (transform 포함) + form 액션 + `useCollectionData` 단일 진입. Supabase/GraphQL 소스는 스텁           |
+| 데이터/CMS          | **지원** | Tables/APIs/Variables 3탭 + REST 바인딩 (transform 포함) + form 액션 + `useCollectionData` 단일 진입. Cloud/GraphQL 소스는 스텁              |
 | 협업                | 없음     | auth 만. 실시간 공동 편집·코멘트·공유·권한 0건                                                                                               |
 | 버전                | 부분     | undo/redo 50 (페이지별, IndexedDB 백업) + jump-to-index. 명명 버전 없음                                                                      |
 | 코드 export         | 없음     | React/JSX codegen 0건                                                                                                                        |
@@ -143,16 +143,16 @@ diamond gradient · video fill · corner smoothing(squircle) · texture/noise fi
 
 격차 심각도 × 해소 비용 × 기존 백로그 교차:
 
-| 순위 | 작업                                                                        | 근거                                                                                                           |
-| ---- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| 1    | **breakpoint 배선** (C1)                                                    | CRITICAL 인데 타입/유틸 완비 + orphan 에디터 존재 — 배선 비용만 남음. 웹사이트 도구 정체성의 최소 요건         |
-| 2    | **스타일 편집 UI 노출 일괄** (H2+H4)                                        | 렌더 대칭이 이미 검증돼 리스크 최소 — Inspector 섹션 추가가 대부분. 체감 기능 폭이 단번에 Figma 근접           |
-| 3    | **다중 fill 합성 + fill blendMode 소비** (H3)                               | 편집기·모델 완성 — 렌더 소비부 2곳만 스택 순회로 확장                                                          |
-| 4    | **smart guides + 거리 측정 + lock/hide + 레이어 검색** (H1)                 | 순수 신규지만 디자인 생산성 체감 1순위. 기존 boundsMap 인프라 재사용 가능                                      |
-| 5    | **publish 실배포 경로** (C2+C3)                                             | 아키텍처 투자 필요 — SSG 빌드 모드 기반으로 정적 출력 + 호스팅 연동부터 단계적 접근                            |
-| 6    | **모션** (H5) — transition 편집 UI 부터 (엔진 존재), scroll 애니메이션 후속 | ADR-150 (hover/pressed Skia threading) 과 방향 일치                                                            |
-| 7    | **토큰 CRUD UI** (H6) → 명명 스타일 (M4) → variant 저작 (M2)                | 디자인 시스템 축 — ADR-110 write-through flag 해제가 선행 조건                                                 |
-| 8    | **협업** (C4)                                                               | 효과는 크지만 단독 최대 투자 (Supabase realtime presence 이상 수준 판단 필요) — 제품 타깃 (enterprise) 확정 후 |
+| 순위 | 작업                                                                        | 근거                                                                                                        |
+| ---- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 1    | **breakpoint 배선** (C1)                                                    | CRITICAL 인데 타입/유틸 완비 + orphan 에디터 존재 — 배선 비용만 남음. 웹사이트 도구 정체성의 최소 요건      |
+| 2    | **스타일 편집 UI 노출 일괄** (H2+H4)                                        | 렌더 대칭이 이미 검증돼 리스크 최소 — Inspector 섹션 추가가 대부분. 체감 기능 폭이 단번에 Figma 근접        |
+| 3    | **다중 fill 합성 + fill blendMode 소비** (H3)                               | 편집기·모델 완성 — 렌더 소비부 2곳만 스택 순회로 확장                                                       |
+| 4    | **smart guides + 거리 측정 + lock/hide + 레이어 검색** (H1)                 | 순수 신규지만 디자인 생산성 체감 1순위. 기존 boundsMap 인프라 재사용 가능                                   |
+| 5    | **publish 실배포 경로** (C2+C3)                                             | 아키텍처 투자 필요 — SSG 빌드 모드 기반으로 정적 출력 + 호스팅 연동부터 단계적 접근                         |
+| 6    | **모션** (H5) — transition 편집 UI 부터 (엔진 존재), scroll 애니메이션 후속 | ADR-150 (hover/pressed Skia threading) 과 방향 일치                                                         |
+| 7    | **토큰 CRUD UI** (H6) → 명명 스타일 (M4) → variant 저작 (M2)                | 디자인 시스템 축 — ADR-110 write-through flag 해제가 선행 조건                                              |
+| 8    | **협업** (C4)                                                               | 효과는 크지만 단독 최대 투자 (Cloud realtime presence 이상 수준 판단 필요) — 제품 타깃 (enterprise) 확정 후 |
 
 벡터 도구 (M1) 는 "Figma Draw 를 따라갈 것인가" 자체가 제품 정체성 결정이므로 순위 밖 — 컴포넌트 조립형 정체성을 유지한다면 SVG import + 이미지 에셋 라이브러리 (M3) 우회가 정합적.
 

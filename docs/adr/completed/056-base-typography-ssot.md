@@ -20,7 +20,7 @@ Base typography (font-family, font-size, line-height)가 Canvas/Preview/Publish 
 1. Canvas(Skia) ↔ Preview(CSS) ↔ Publish(CSS) 정합성 ≤1px 차이
 2. 22+ 개 Spec 컴포넌트의 font 상속 체인이 깨지면 안 됨 (`DEFAULT_FONT_FAMILY` → `ROOT_COMPUTED_STYLE` → cascading)
 3. 60fps 유지 — base style 변경 시 전체 재렌더가 프레임 드롭 없어야 함
-4. 로컬 IndexedDB 기반 저장 — Supabase가 아닌 IndexedDB를 사용 중이므로 스키마 마이그레이션 부담 낮음
+4. 로컬 IndexedDB 기반 저장 — Cloud가 아닌 IndexedDB를 사용 중이므로 스키마 마이그레이션 부담 낮음
 5. ADR-021 Theme System, ADR-014 Font Registry와 충돌 없이 공존
 6. `rem` 단위 기준값 — `cssValueParser.ts`에 하드코딩된 `16`과 연동 필요
 

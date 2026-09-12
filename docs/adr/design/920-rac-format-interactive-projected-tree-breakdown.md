@@ -607,7 +607,7 @@ type CollectionContract =
     };
 
 interface PropertyDataBindingRef {
-  source: "dataTable" | "apiEndpoint" | "variable" | "static" | "supabase";
+  source: "dataTable" | "apiEndpoint" | "variable" | "static" | "cloud";
   name: string;
   refreshMode?: "manual" | "interval";
   refreshInterval?: number;
@@ -1096,11 +1096,7 @@ interface ResolvedCollectionData {
   rows: Array<Record<string, unknown>>;
   schema: Array<{ key: string; type?: string; label?: string }>;
   source:
-    | "static-seed"
-    | "data-table"
-    | "api-endpoint"
-    | "variable"
-    | "fallback";
+    "static-seed" | "data-table" | "api-endpoint" | "variable" | "fallback";
   refreshMode: "manual" | "interval";
   totalCount?: number;
 }

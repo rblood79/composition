@@ -1104,7 +1104,7 @@ layout/structure가 별도 ADR로 분리되면 ADR 본문에 실제 범위를 �
 
 - generated catalog/CSS와 component visual rule 값: 변경 없음. `packages/specs`는
   Phase 2 typed renderer materialization metadata/shape role 범위만 변경
-- canonical persisted schema/Supabase: 변경 없음
+- canonical persisted schema/Cloud: 변경 없음
 - React Aria primitive public props와 accessibility semantics: 변경 없음
 - unrelated PanelWorkspace/Canvas gesture code: 수정 없음
 - dirty worktree의 사용자 변경: 포맷·정리하지 않음

@@ -570,16 +570,16 @@ export interface LLMToolCall {
 
 ### 파일 변경표
 
-| 파일                                      | 변경 | 설명                                                      |
-| ----------------------------------------- | ---- | --------------------------------------------------------- |
-| `services/ai/providers/types.ts`          | 신규 | LLMProvider 인터페이스 (local + cloud)                    |
-| `services/ai/providers/index.ts`          | 신규 | Provider 레지스트리 + 팩토리                              |
-| `services/ai/providers/anthropic.ts`      | 신규 | Claude API Provider (cloud)                               |
-| `services/ai/providers/openai.ts`         | 신규 | OpenAI-compatible Provider (cloud)                        |
-| `services/ai/AgentService.ts`             | 신규 | Provider-agnostic Agent Loop                              |
-| `services/ai/AgentService.ts`         | 삭제 | 클라우드 LLM SDK 의존 코드 완전 제거                              |
-| `services/ai/AgentService.ts`              | 삭제 | deprecated 서비스 완전 제거                               |
-| `builder/panels/ai/hooks/useAgentLoop.ts` | 수정 | AgentService 참조로 전환                                  |
+| 파일                                      | 변경 | 설명                                                              |
+| ----------------------------------------- | ---- | ----------------------------------------------------------------- |
+| `services/ai/providers/types.ts`          | 신규 | LLMProvider 인터페이스 (local + cloud)                            |
+| `services/ai/providers/index.ts`          | 신규 | Provider 레지스트리 + 팩토리                                      |
+| `services/ai/providers/anthropic.ts`      | 신규 | Claude API Provider (cloud)                                       |
+| `services/ai/providers/openai.ts`         | 신규 | OpenAI-compatible Provider (cloud)                                |
+| `services/ai/AgentService.ts`             | 신규 | Provider-agnostic Agent Loop                                      |
+| `services/ai/AgentService.ts`             | 삭제 | 클라우드 LLM SDK 의존 코드 완전 제거                              |
+| `services/ai/AgentService.ts`             | 삭제 | deprecated 서비스 완전 제거                                       |
+| `builder/panels/ai/hooks/useAgentLoop.ts` | 수정 | AgentService 참조로 전환                                          |
 | `types/integrations/ai.types.ts`          | 수정 | AgentEvent → LLM-agnostic으로 정리, 클라우드 LLM 타입 제거        |
 | `package.json`                            | 수정 | `클라우드 LLM SDK` 삭제, optional: `@anthropic-ai/sdk` + `openai` |
 
@@ -1145,12 +1145,12 @@ interface AISettings {
 
 ### 파일 변경표
 
-| 파일                                           | 변경 | 설명                                      |
-| ---------------------------------------------- | ---- | ----------------------------------------- |
-| `services/ai/providers/ollama.ts`              | 신규 | Ollama REST API Provider                  |
-| `services/ai/providers/index.ts`               | 수정 | Ollama Provider 등록                      |
-| `builder/panels/ai/components/LLMSettings.tsx` | 신규 | Provider 설정 UI                          |
-| `builder/stores/aiSettings.ts`                 | 신규 | Provider 설정 상태 (Zustand)              |
+| 파일                                           | 변경 | 설명                                              |
+| ---------------------------------------------- | ---- | ------------------------------------------------- |
+| `services/ai/providers/ollama.ts`              | 신규 | Ollama REST API Provider                          |
+| `services/ai/providers/index.ts`               | 수정 | Ollama Provider 등록                              |
+| `builder/panels/ai/components/LLMSettings.tsx` | 신규 | Provider 설정 UI                                  |
+| `builder/stores/aiSettings.ts`                 | 신규 | Provider 설정 상태 (Zustand)                      |
 | `package.json`                                 | 수정 | `클라우드 LLM SDK` 삭제 확인 (Phase 1에서 제거됨) |
 
 ---
@@ -1346,12 +1346,12 @@ export class LlamaCppProvider implements LLMProvider {
 
 #### API 키 저장 전략 (환경별)
 
-| 환경               | 저장소                        | 보안 수준 | 비고                         |
-| ------------------ | ----------------------------- | :-------: | ---------------------------- |
-| 개발 (Vite 웹앱)   | `.env.local` (`VITE_*`)       |   낮음    | 번들에 포함됨 — 개발 전용    |
-| 개발 (런타임 입력) | 메모리 (Zustand)              |   중간    | 새로고침 시 소실, XSS에 안전 |
-| Electron           | `safeStorage` API             |   높음    | OS 키체인으로 암호화 저장    |
-| 프로덕션 (웹)      | Supabase Edge Function 프록시 |   높음    | 키가 서버에만 존재           |
+| 환경               | 저장소                     | 보안 수준 | 비고                         |
+| ------------------ | -------------------------- | :-------: | ---------------------------- |
+| 개발 (Vite 웹앱)   | `.env.local` (`VITE_*`)    |   낮음    | 번들에 포함됨 — 개발 전용    |
+| 개발 (런타임 입력) | 메모리 (Zustand)           |   중간    | 새로고침 시 소실, XSS에 안전 |
+| Electron           | `safeStorage` API          |   높음    | OS 키체인으로 암호화 저장    |
+| 프로덕션 (웹)      | Cloud Edge Function 프록시 |   높음    | 키가 서버에만 존재           |
 
 ```typescript
 // services/ai/keyStorage.ts

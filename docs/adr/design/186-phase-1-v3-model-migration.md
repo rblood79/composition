@@ -77,7 +77,7 @@ byte-identical하다.
 | committed marker write | v3           | prepared    | marker-only repair      |
 
 storage test가 관측한 write key는 primary와 v2 backup 두 개뿐이다. `CompositionDocument`,
-IndexedDB project/document, Supabase write 경로는 import하지 않으므로 project/DB write는
+IndexedDB project/document, Cloud write 경로는 import하지 않으므로 project/DB write는
 0건이다. Phase 2의 v3 -> v2 projection과 v3 rollback backup은 이번 Gate 범위가 아니다.
 
 ## 검증 결과

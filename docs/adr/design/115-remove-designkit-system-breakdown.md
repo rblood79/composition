@@ -38,11 +38,11 @@
 
 ### 4. 영속화 / DB
 
-| 영역                              |                                    상태                                     |
-| --------------------------------- | :-------------------------------------------------------------------------: |
-| Supabase schema (테이블 / column) |                  영향 없음 (검증 결과 designkit 전용 0건)                   |
-| localStorage / IndexedDB          |                        영향 없음 (designkit 키 0건)                         |
-| 사용자 `.kit.json` 파일           | 사용자 로컬 디스크 보존 (composition 이 더 이상 import/export 하지 못할 뿐) |
+| 영역                           |                                    상태                                     |
+| ------------------------------ | :-------------------------------------------------------------------------: |
+| Cloud schema (테이블 / column) |                  영향 없음 (검증 결과 designkit 전용 0건)                   |
+| localStorage / IndexedDB       |                        영향 없음 (designkit 키 0건)                         |
+| 사용자 `.kit.json` 파일        | 사용자 로컬 디스크 보존 (composition 이 더 이상 import/export 하지 못할 뿐) |
 
 ## Phase 0: ADR 발의 (본 작업 진행 전 land 필수)
 

@@ -116,7 +116,7 @@ docs/
 | 원본 경로                    | 이동 경로                                     |
 | ---------------------------- | --------------------------------------------- |
 | `DATABASE_INDEXDB_SCHEMA.md` | `reference/schemas/INDEXDB.md`                |
-| `supabase-schema.md`         | `reference/schemas/SUPABASE.md`               |
+| `cloud-schema.md`            | `reference/schemas/CLOUD.md`                  |
 | `M3_PALETTE_MAPPING.md`      | `reference/schemas/M3_PALETTE.md`             |
 | `M3_COMPONENT_TEMPLATE.css`  | `reference/schemas/M3_COMPONENT_TEMPLATE.css` |
 | `M3_STORYBOOK_TEMPLATE.tsx`  | `reference/schemas/M3_STORYBOOK_TEMPLATE.tsx` |

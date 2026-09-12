@@ -1,13 +1,13 @@
 # PGlite vs SQLite 비교 분석
 
-> **폐기 (2026-09-09)**: 2025-11-07 Electron/PGlite 검토 기록이다 (`docs/explanation/research/` 에서 이동 — 같은 검토의 짝 문서 [DB_COMPATIBILITY-2025-11](DB_COMPATIBILITY-2025-11.md) 과 함께 보관). 현행 구조는 IndexedDB canonical + Supabase 인증 전용 ([ADR-128](../adr/completed/128-supabase-backend-decommission.md)). 기록 보존용.
+> **폐기 (2026-09-09)**: 2025-11-07 Electron/PGlite 검토 기록이다 (`docs/explanation/research/` 에서 이동 — 같은 검토의 짝 문서 [DB_COMPATIBILITY-2025-11](DB_COMPATIBILITY-2025-11.md) 과 함께 보관). 현행 구조는 IndexedDB canonical + Cloud 인증 전용 ([ADR-128](../adr/completed/128-cloud-backend-decommission.md)). 기록 보존용.
 
 > **역사 문서 — 현행 구현 아님**
 >
 > 이 문서는 2025-11-07의 Electron/PGlite 검토 기록입니다. 현재 Builder의
-> 프로젝트 데이터는 IndexedDB에 저장되고 Supabase는 인증에만 사용합니다.
+> 프로젝트 데이터는 IndexedDB에 저장되고 Cloud는 인증에만 사용합니다.
 > 현행 구조는 [IndexedDB 스키마](../reference/schemas/INDEXDB.md)와
-> [ADR-128](../adr/completed/128-supabase-backend-decommission.md)을
+> [ADR-128](../adr/completed/128-cloud-backend-decommission.md)을
 > 참조하세요.
 
 **작성일**: 2025-11-07
@@ -34,7 +34,7 @@
 
 ### 1. 복잡한 RPC 함수 의존도
 
-composition는 Supabase에 4개의 복잡한 PostgreSQL RPC 함수를 사용합니다:
+composition는 Cloud에 4개의 복잡한 PostgreSQL RPC 함수를 사용합니다:
 
 #### 1.1. `resolve_theme_tokens` - 재귀 쿼리
 
@@ -280,7 +280,7 @@ CREATE TABLE projects (
 
 - 모든 `id UUID` → `id TEXT` 변환
 - UUID 생성 로직을 JavaScript로 이동
-- 기존 Supabase UUID 데이터 마이그레이션
+- 기존 Cloud UUID 데이터 마이그레이션
 
 ---
 
@@ -382,7 +382,7 @@ src/services/theme/
 ```typescript
 // ElementsApiService.ts
 async getElements(pageId: string) {
-  const { data, error } = await supabase
+  const { data, error } = await cloud
     .from('elements')
     .select('*')
     .eq('page_id', pageId)
@@ -392,7 +392,7 @@ async getElements(pageId: string) {
 }
 
 async updateElementProps(elementId: string, props: any) {
-  const { data, error } = await supabase
+  const { data, error } = await cloud
     .from('elements')
     .update({ props })
     .eq('id', elementId)
@@ -437,7 +437,7 @@ async updateElementProps(elementId: string, props: any) {
 **Before (PostgreSQL RPC)**:
 
 ```typescript
-const tokens = await supabase.rpc("resolve_theme_tokens", {
+const tokens = await cloud.rpc("resolve_theme_tokens", {
   p_theme_id: themeId,
 });
 ```
@@ -494,7 +494,7 @@ async function resolveThemeTokens(themeId: string, maxDepth = 10) {
 **Before (PostgreSQL RPC)**:
 
 ```typescript
-const newThemeId = await supabase.rpc("duplicate_theme", {
+const newThemeId = await cloud.rpc("duplicate_theme", {
   p_source_theme_id: sourceId,
   p_new_name: "New Theme",
   p_inherit: false,
@@ -572,7 +572,7 @@ async function duplicateTheme(
 **Before (PostgreSQL RPC)**:
 
 ```typescript
-const results = await supabase.rpc("search_tokens", {
+const results = await cloud.rpc("search_tokens", {
   p_theme_id: themeId,
   p_query: "color",
   p_include_inherited: true,
@@ -616,7 +616,7 @@ async function searchTokens(
 **Before (PostgreSQL RPC)**:
 
 ```typescript
-const count = await supabase.rpc('bulk_upsert_tokens', {
+const count = await cloud.rpc('bulk_upsert_tokens', {
   p_tokens: [
     { project_id, theme_id, name: 'color.primary', type: 'color', value: {...} },
     { project_id, theme_id, name: 'spacing.sm', type: 'spacing', value: {...} },
@@ -781,7 +781,7 @@ jobs:
 #### 기존 스키마 그대로 사용
 
 ```sql
--- Supabase에서 사용하던 스키마 그대로 PGlite에서 사용
+-- Cloud에서 사용하던 스키마 그대로 PGlite에서 사용
 CREATE TABLE elements (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   page_id UUID NOT NULL REFERENCES pages(id) ON DELETE CASCADE,
@@ -813,7 +813,7 @@ const newThemeId = await db.rpc("duplicate_theme", {
 #### 쿼리 수정 불필요
 
 ```typescript
-// 기존 Supabase 쿼리 그대로 사용
+// 기존 Cloud 쿼리 그대로 사용
 const elements = await db.select("elements", {
   where: { page_id: pageId },
   orderBy: [{ column: "order_num", ascending: true }],
@@ -846,8 +846,8 @@ await db.query("SELECT * FROM elements WHERE props->>'variant' = $1", [
    - PGlite IPC 연결 (Electron renderer)
    - window.electron.db 브리지
 
-✅ src/services/database/supabaseAdapter.ts (258줄)
-   - Supabase 클라우드 연결
+✅ src/services/database/cloudAdapter.ts (258줄)
+   - Cloud 클라우드 연결
    - DbAdapter 인터페이스 구현
 
 ✅ src/services/database/environmentDetector.ts (162줄)
@@ -861,7 +861,7 @@ await db.query("SELECT * FROM elements WHERE props->>'variant' = $1", [
    - DB 전환 지원
 
 ✅ src/services/database/migrations.ts (328줄)
-   - 기존 Supabase 스키마 포함
+   - 기존 Cloud 스키마 포함
    - custom_id 마이그레이션
    - theme RPC 함수 마이그레이션
 
@@ -942,11 +942,11 @@ PGlite의 3MB는 전체 앱 크기의 **1.2%**에 불과합니다.
    - ✅ contextBridge로 안전하게 노출
 
 3. **"공유 타입 재사용"**
-   - ✅ 기존 Supabase 타입 그대로 사용
+   - ✅ 기존 Cloud 타입 그대로 사용
    - ✅ src/types/unified.ts 재사용
 
 4. **"동기화 전략"**
-   - ✅ PGlite와 Supabase 간 동기화 가능
+   - ✅ PGlite와 Cloud 간 동기화 가능
    - ✅ 동일한 스키마이므로 데이터 변환 불필요
 
 ---
@@ -958,10 +958,10 @@ PGlite의 3MB는 전체 앱 크기의 **1.2%**에 불과합니다.
    - ❌ JSONB, UUID, TIMESTAMPTZ 등 타입 차이
    - ✅ **PGlite는 PostgreSQL과 100% 호환**
 
-2. **"Supabase 클라이언트를 SQLite로 대체하기 쉽다"**
+2. **"Cloud 클라이언트를 SQLite로 대체하기 쉽다"**
    - ❌ RPC 함수 재구현 필요 (2-3일)
    - ❌ JSONB 쿼리 문법 전부 변경 (1-2일)
-   - ✅ **PGlite는 Supabase 쿼리 그대로 사용**
+   - ✅ **PGlite는 Cloud 쿼리 그대로 사용**
 
 3. **"better-sqlite3는 배포 시 추가 런타임 불필요"**
    - ❌ 네이티브 모듈이라 플랫폼별 빌드 필요
@@ -998,7 +998,7 @@ composition는 다음 이유로 **PGlite가 훨씬 적합**합니다:
 
 ### 1. 기존 인프라 100% 재사용 ⚡
 
-- ✅ Supabase 스키마 그대로 사용
+- ✅ Cloud 스키마 그대로 사용
 - ✅ RPC 함수 4개 그대로 작동
 - ✅ JSONB/UUID/TIMESTAMPTZ 완벽 지원
 

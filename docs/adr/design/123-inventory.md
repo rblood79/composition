@@ -7,7 +7,7 @@ inventory 측정 결과를 freeze 한다. main HEAD `f54c2495c` 기준.
 
 | Surface                                                | 파일:line                                                                                                                                                                                                                                                                                   | 현재 의미                                                                                      | 목표 버킷                                                                                                     |
 | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **S1** Supabase row schema                             | `apps/builder/src/types/integrations/supabase.types.ts:150-172`                                                                                                                                                                                                                             | `pages`/`elements` row 타입 정의 (`page_id`/`parent_id`/`order_num`)                           | migration window fallback 타입 (Phase 1 에서 `documents` row 타입 추가)                                       |
+| **S1** Cloud row schema                                | `apps/builder/src/types/integrations/cloud.types.ts:150-172`                                                                                                                                                                                                                                | `pages`/`elements` row 타입 정의 (`page_id`/`parent_id`/`order_num`)                           | migration window fallback 타입 (Phase 1 에서 `documents` row 타입 추가)                                       |
 | **S2** legacyElementsApiService production callers (5) | `services/api/index.ts:6,114` (re-export) / `utils/projectSync.ts:10,113,115,121,180,200` / `dashboard/index.tsx:311,319` / `adapters/canonical/canonicalMutations.ts:49,1707,1721,1733` / `builder/factories/utils/dbPersistence.ts:2`                                                     | `elements` row CRUD 직접 호출                                                                  | boundary adapter 화 (Phase 4 에서 hot path import 0건)                                                        |
 | **S3** PagesApiService production callers (4)          | `services/api/index.ts:18,116` (re-export) / `utils/projectSync.ts:9,94,98,174` / `dashboard/index.tsx:305,313` / `builder/hooks/usePageManager.ts:4` (type-only)                                                                                                                           | `pages` row CRUD 직접 호출                                                                     | boundary adapter 화 (Phase 4 에서 hot path import 0건, type-only import 는 allowlist 유지)                    |
 | **S4** canonicalMutations thin wrapper 3개             | `adapters/canonical/canonicalMutations.ts:1704,1717,1730` (`createElementCanonicalPrimary` / `updateElementCanonicalPrimary` / `createMultipleElementsCanonicalPrimary`) — caller: `dbPersistence.ts:128,139` / `elements.ts:896` / `useIframeMessenger.ts:221`                             | thin pass-through (`return elementsApi.createElement(...)` 등)                                 | documents row API 위임으로 교체 또는 제거 (Phase 4)                                                           |
@@ -55,15 +55,15 @@ Phase 0 정성 측정 (browser DevTools 기반 측정은 Phase 1 진입 전 수�
 | 빈 프로젝트 (page 1, body 1)        | < 5 KB      | canonical document 최소 schema (frame + 자식 1개) |
 | 전형 프로젝트 (50-100 elements)     | 50-200 KB   | element 당 평균 1-2 KB props serialized           |
 | 대규모 프로젝트 (500-1000 elements) | 500 KB-2 MB | 동일 element 당 추정                              |
-| Supabase jsonb column 제약          | 1 GB        | Postgres jsonb 기본 제약                          |
+| Cloud jsonb column 제약             | 1 GB        | Postgres jsonb 기본 제약                          |
 
-**결론**: 통상 사용 범위에서 Supabase column 제약 (1 GB) 대비 충분히 여유 (3-4 orders of
+**결론**: 통상 사용 범위에서 Cloud column 제약 (1 GB) 대비 충분히 여유 (3-4 orders of
 magnitude). 대규모 프로젝트 (10000+ elements) 도 < 50 MB 추정 — column 제약 미위반.
 
 Phase 1 에서 IndexedDB 의 실제 production document 크기 측정 (browser DevTools `db.documents`
 inspect) 으로 본 추정 검증 예정.
 
-## 5. Supabase `documents` table DDL (Phase 1 입력)
+## 5. Cloud `documents` table DDL (Phase 1 입력)
 
 ```sql
 create table documents (
@@ -127,7 +127,7 @@ export const documentsApi: DocumentsApi = {
 ## Phase 0 G0 통과 결과
 
 - [x] 6 surface 버킷 표 확정 (forbidden / boundary / migration fallback 분류)
-- [x] JSON 크기 추정 결과: max(전형 프로젝트) ~ 2 MB, Supabase jsonb 제약 1 GB → 위반 0
+- [x] JSON 크기 추정 결과: max(전형 프로젝트) ~ 2 MB, Cloud jsonb 제약 1 GB → 위반 0
 - [x] `documents` table DDL 설계 + RLS policy 설계 + unique constraint 명시
 - [x] `DocumentsApiService` 인터페이스 스텁 설계 완료
-- [x] Phase 1 진입 가능 — Supabase migration 파일 작성으로 직진
+- [x] Phase 1 진입 가능 — Cloud migration 파일 작성으로 직진

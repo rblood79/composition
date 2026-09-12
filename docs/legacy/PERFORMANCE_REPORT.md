@@ -27,12 +27,12 @@
 
 ## 🏗️ Architecture Comparison
 
-### Before: 기본 Zustand + Supabase 패턴
+### Before: 기본 Zustand + Cloud 패턴
 
 ```typescript
-// ❌ Before: 매번 Supabase 직접 호출
+// ❌ Before: 매번 Cloud 직접 호출
 const fetchTokens = async () => {
-  const { data } = await supabase.from("design_tokens").select("*");
+  const { data } = await cloud.from("design_tokens").select("*");
   return data;
 };
 
@@ -77,7 +77,7 @@ Component C: fetch('/api/tokens') → 200ms  // 중복!
 // 결과:
 // - 총 3번 네트워크 요청
 // - 총 소요 시간: 200ms (병렬) but 3x 대역폭 낭비
-// - Supabase 쿼리 3번 실행
+// - Cloud 쿼리 3번 실행
 ```
 
 #### After (Request Deduplication)
@@ -91,7 +91,7 @@ Component C: deduplicate('tokens', fetch) → 0ms (재사용)
 // 결과:
 // - 총 1번 네트워크 요청
 // - 총 소요 시간: 200ms (동일)
-// - Supabase 쿼리 1번 실행
+// - Cloud 쿼리 1번 실행
 ```
 
 **측정 결과 (통합 테스트):**
@@ -107,12 +107,12 @@ Component C: deduplicate('tokens', fetch) → 0ms (재사용)
 예시: PropertiesPanel, StylesPanel, ThemesPanel이 동시에 design_tokens 요청
 
 Before:
-  - 3 x Supabase query
+  - 3 x Cloud query
   - 3 x Network roundtrip
   - 3 x JSON parsing
 
 After:
-  - 1 x Supabase query ✅
+  - 1 x Cloud query ✅
   - 1 x Network roundtrip ✅
   - 1 x JSON parsing ✅
   - 2 x Promise 재사용 (0ms)
@@ -245,13 +245,13 @@ t=100ms:  flush([event1...event10]) → process 5ms
 예시: Theme 편집 시 10개 design_tokens 동시 업데이트
 
 Before (개별 처리):
-  - 10 x Supabase callback
+  - 10 x Cloud callback
   - 10 x React re-render
   - 10 x DOM update
   - CPU 스파이크 발생
 
 After (100ms 배칭):
-  - 1 x Supabase callback ✅
+  - 1 x Cloud callback ✅
   - 1 x React re-render ✅
   - 1 x DOM update ✅
   - 부드러운 CPU 사용
@@ -764,7 +764,7 @@ After:
 
 **장기 이익 (6개월+):**
 
-- ✅ 서버 비용 절감 (Supabase 쿼리 수 감소)
+- ✅ 서버 비용 절감 (Cloud 쿼리 수 감소)
 - ✅ 개발 생산성 향상 (디버깅 시간 80% 감소)
 - ✅ 유지보수성 향상 (코드 중복 96% 감소)
 - ✅ 확장성 확보 (100 concurrent users 대응)

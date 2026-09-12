@@ -57,7 +57,7 @@
 
 #### Inspector Data Hooks (3개)
 
-17. `useColumnLoader.ts` - API/Supabase 컬럼 로딩
+17. `useColumnLoader.ts` - API/Cloud 컬럼 로딩
 18. `useChangeDetection.ts` - 변경사항 추적
 19. `hooks/index.ts` - 통합 export
 
@@ -125,12 +125,12 @@
 **파일:**
 
 - `APICollectionEditor.tsx` - 615 lines
-- `SupabaseCollectionEditor.tsx` - 368 lines
+- `CloudCollectionEditor.tsx` - 368 lines
 - `useColumnLoader.ts` - 81 lines (신규)
 
 **성과:**
 
-- useState 감소: -5개 (APICollection: -3, SupabaseCollection: -2)
+- useState 감소: -5개 (APICollection: -3, CloudCollection: -2)
 - 자동 loading/error 상태 관리
 
 ### Phase 3: Sidebar Tree
@@ -308,7 +308,7 @@
 
 - 19개 커스텀 훅으로 로직 캡슐화
 - 22개 컴포넌트에서 React Stately 패턴 공유
-- API/Supabase 공통 패턴 (useColumnLoader)
+- API/Cloud 공통 패턴 (useColumnLoader)
 
 ### 3. 개발자 경험
 

@@ -10,12 +10,12 @@ Implemented — 2026-09-12 (Proposed 2026-09-11 · 리뷰 Round 2 승인 · Phas
 
 빌더의 AI · 에이전트 표면이 데이터를 다루는 방법은 실측상 다음과 같다 (리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §1-6):
 
-- AI 패널 tool 9 + `run_command` 중 데이터 tool 은 `bind_collection` 하나이고, 그 형상이 legacy `source: "static" | "api" | "supabase"` + config 인라인 (`services/ai/tools/bindCollection.ts:24`) 이다 — 사람이 UI 로 기록하는 `{ source: "dataTable", name }` (ADR-159 P4b) 과 달라 **이미 있는 DataTable 에 요소를 잇는 tool 이 없다**. collection 생성 · 필드 추가 · 행 삽입 · API 정의 tool 은 0 (파일 주석이 "이 도구 범위 밖" 으로 명시).
+- AI 패널 tool 9 + `run_command` 중 데이터 tool 은 `bind_collection` 하나이고, 그 형상이 legacy `source: "static" | "api" | "cloud"` + config 인라인 (`services/ai/tools/bindCollection.ts:24`) 이다 — 사람이 UI 로 기록하는 `{ source: "dataTable", name }` (ADR-159 P4b) 과 달라 **이미 있는 DataTable 에 요소를 잇는 tool 이 없다**. collection 생성 · 필드 추가 · 행 삽입 · API 정의 tool 은 0 (파일 주석이 "이 도구 범위 밖" 으로 명시).
 - `get_editor_state` 는 pages · elements · selection 만 — 모델은 어떤 테이블이 있는지 모른 채 바인딩을 시도한다. 시스템 프롬프트 동적 주입 (`services/ai/catalog/dynamicInjection.ts`) 도 "컬렉션" 을 팔레트 카테고리로만 안다.
 - agent 명령 allowlist 40 (ADR-196, `services/agent/agentCommands.ts`) 은 캔버스 · 패널 · 뷰포트만. 승인 게이트 (`AgentCommandConfirmDialog` — 명령 id · 되돌림 가능 여부) 와 세션 provenance 로그 (`agentCommandLog`)는 있으나 스키마 diff를 보여 주지 못한다. 이 로그는 durable audit store가 아니다.
 - 데이터 편집은 History 밖이라 (152 격차 9) AI 가 만든 변경을 되돌릴 수단이 없다.
 
-외부 대조 (리서치 §3-4 · §3-5) 는 예외 없이 한 계약으로 수렴한다 — **Propose → Review → Apply** (Bubble plan approve · NocoDB Suggest→Create · Lovable SQL 승인 · Supabase diff · Base44 import 승인, 8/8), 삭제 · 타입 변경은 AI 에서 기본 차단 (I2), 읽기는 fine-grained · 쓰기는 워크플로 단위 소수 (Anthropic "few high-impact workflow tools", Webflow · Supabase MCP), 스키마 계약은 컴팩트 JSON Schema + `strict` (Anthropic) / `outputSchema` (MCP), LLM 에는 스키마 + 샘플 N 행만 (I7). 비용이 가장 낮고 승인 UI 가 필요 없는 첫 출시 후보는 "왜 실패했지?" (Retool · Supabase · Postman, I5) 다.
+외부 대조 (리서치 §3-4 · §3-5) 는 예외 없이 한 계약으로 수렴한다 — **Propose → Review → Apply** (Bubble plan approve · NocoDB Suggest→Create · Lovable SQL 승인 · Cloud diff · Base44 import 승인, 8/8), 삭제 · 타입 변경은 AI 에서 기본 차단 (I2), 읽기는 fine-grained · 쓰기는 워크플로 단위 소수 (Anthropic "few high-impact workflow tools", Webflow · Cloud MCP), 스키마 계약은 컴팩트 JSON Schema + `strict` (Anthropic) / `outputSchema` (MCP), LLM 에는 스키마 + 샘플 N 행만 (I7). 비용이 가장 낮고 승인 UI 가 필요 없는 첫 출시 후보는 "왜 실패했지?" (Retool · Cloud · Postman, I5) 다.
 
 **Domain 분류**: 본 ADR 은 **D2 (Props/API — tool 입력 계약 · `dataBinding` prop 형상)** 다. tool 이 만드는 결과는 152 적용기를 지나므로 데이터 SSOT (`data_tables`, ADR-131) 와 D3 대칭 (152 가 담당) 에 새 경로를 만들지 않는다. D1 무변경. 승인 UI 는 빌더 chrome (RAC Dialog).
 
@@ -50,7 +50,7 @@ Implemented — 2026-09-12 (Proposed 2026-09-11 · 리뷰 Round 2 승인 · Phas
 ### 대안 B: 읽기 tool 4 (fine-grained) + 쓰기 tool 1 `propose_data_change` → 승인 diff → 152 적용기 + `bind_collection` 정정 + "왜 실패했지?" + agent 명령 4
 
 - 설명: 읽기는 `list_collections` · `get_collection` · `list_api_endpoints` · `get_api_endpoint` (공유 redactor, `format: concise|detailed`) + `get_editor_state` 요약 + 예산 제한 주입이다. 모델 대면 쓰기는 `propose_data_change` 하나이고, `bind_collection` compatibility alias도 `bind_element` proposal로 정규화해 같은 diff 승인 경로를 지난다. 승인 뒤 executor가 origin을 stamp하고 원자적 적용기에서 History 1 + 세션 provenance 1을 만든다. `explain_request_failure`는 redacted context로 원인과 patch 제안을 만들며 적용은 같은 승인 경로다.
-- 근거: Propose → Review → Apply 8/8 (I1) · 삭제 차단 (I2, Bubble · Base44 append-only · Supabase read_only) · Anthropic tool 가이드 (few high-impact workflow tools · `strict` · `response_format`) · MCP spec (`outputSchema` · human-in-the-loop SHOULD) · Airtable Omni (Undo + checklist) · Retool/Supabase/Postman "Debug?" (I5) — 리서치 §3-4 I1 ~ I7, §3-5 X1 ~ X5 · X7.
+- 근거: Propose → Review → Apply 8/8 (I1) · 삭제 차단 (I2, Bubble · Base44 append-only · Cloud read_only) · Anthropic tool 가이드 (few high-impact workflow tools · `strict` · `response_format`) · MCP spec (`outputSchema` · human-in-the-loop SHOULD) · Airtable Omni (Undo + checklist) · Retool/Cloud/Postman "Debug?" (I5) — 리서치 §3-4 I1 ~ I7, §3-5 X1 ~ X5 · X7.
 - 위험:
   - 기술: M — 두 provider 의 구조화 출력 동등화 (Anthropic strict ↔ Ollama zod) · strict 제약과 union 스키마의 마찰
   - 성능: L — tool 은 편집 이벤트 단위, 프롬프트 예산은 HC 3 으로 상한
@@ -70,7 +70,7 @@ Implemented — 2026-09-12 (Proposed 2026-09-11 · 리뷰 Round 2 승인 · Phas
 ### 대안 D: MCP 서버로 외부 노출을 먼저 — AI 패널은 그 클라이언트
 
 - 설명: 빌더가 MCP 서버를 열고 데이터 tool 을 노출, AI 패널 · Claude Code · 외부 에이전트가 같은 서버를 쓴다.
-- 근거: Webflow · Notion · Airtable · Supabase · Figma 가 MCP 로 데이터를 연다.
+- 근거: Webflow · Notion · Airtable · Cloud · Figma 가 MCP 로 데이터를 연다.
 - 위험:
   - 기술: M — 브라우저 앱이 MCP 서버가 되려면 transport (WebSocket/SSE) 계층이 필요
   - 성능: L

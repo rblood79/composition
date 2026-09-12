@@ -30,20 +30,20 @@
 
 ### 3.1 포함 범위
 
-| 영역              | 대상                                                                           |
-| ----------------- | ------------------------------------------------------------------------------ |
-| **프런트엔드**    | React 컴포넌트, 훅, 컨텍스트, 스토어 키, 테스트 명칭                           |
-| **데이터 계층**   | 타입 정의(TypeScript), 직렬화 포맷(JSON/LocalStorage), Supabase/DB 스키마 명칭 |
-| **API 계약**      | REST/RPC 경로, 요청/응답 payload 필드명, 타입 가드                             |
-| **이벤트 시스템** | Action Type, Action Editor, Variable Schema                                    |
-| **CSS**           | 클래스명, data-\* 속성                                                         |
-| **문서/가이드**   | 개발자 문서, 마이그레이션 가이드, 예제 코드                                    |
+| 영역              | 대상                                                                        |
+| ----------------- | --------------------------------------------------------------------------- |
+| **프런트엔드**    | React 컴포넌트, 훅, 컨텍스트, 스토어 키, 테스트 명칭                        |
+| **데이터 계층**   | 타입 정의(TypeScript), 직렬화 포맷(JSON/LocalStorage), Cloud/DB 스키마 명칭 |
+| **API 계약**      | REST/RPC 경로, 요청/응답 payload 필드명, 타입 가드                          |
+| **이벤트 시스템** | Action Type, Action Editor, Variable Schema                                 |
+| **CSS**           | 클래스명, data-\* 속성                                                      |
+| **문서/가이드**   | 개발자 문서, 마이그레이션 가이드, 예제 코드                                 |
 
 ### 3.2 비범위 (Non-goals)
 
 - 데이터 모델 구조 변경(필드 추가/삭제, 타입 변경)은 포함하지 않는다.
 - 퍼포먼스 최적화나 신규 기능 추가는 포함하지 않는다.
-- Supabase 테이블 스키마 변경 (현재 테이블명이 `Dataset`이 아닌 `data_tables` 등 다른 명칭 사용 시 제외)
+- Cloud 테이블 스키마 변경 (현재 테이블명이 `Dataset`이 아닌 `data_tables` 등 다른 명칭 사용 시 제외)
 - DOM `element.dataset` API (HTML5 표준, 변경 불가)
 
 ---
@@ -139,42 +139,47 @@
 #### 4.2.8 CSS 클래스 (28개)
 
 **DatasetPanel.css → DataTablePanel.css**:
-| Before | After |
-|--------|-------|
-| `.dataset-panel` | `.datatable-panel` |
-| `.dataset-list-count` | `.datatable-list-count` |
-| `.dataset-add-btn` | `.datatable-add-btn` |
-| `.dataset-empty` | `.datatable-empty` |
-| `.dataset-empty-icon` | `.datatable-empty-icon` |
-| `.dataset-empty-text` | `.datatable-empty-text` |
+
+| Before                     | After                        |
+| -------------------------- | ---------------------------- |
+| `.dataset-panel`           | `.datatable-panel`           |
+| `.dataset-list-count`      | `.datatable-list-count`      |
+| `.dataset-add-btn`         | `.datatable-add-btn`         |
+| `.dataset-empty`           | `.datatable-empty`           |
+| `.dataset-empty-icon`      | `.datatable-empty-icon`      |
+| `.dataset-empty-text`      | `.datatable-empty-text`      |
 | `.dataset-loading-overlay` | `.datatable-loading-overlay` |
 
 **DatasetEditorPanel.css → DataTableEditorPanel.css**:
-| Before | After |
-|--------|-------|
+
+| Before                  | After                     |
+| ----------------------- | ------------------------- |
 | `.dataset-editor-panel` | `.datatable-editor-panel` |
 
 **common/index.css**:
-| Before | After |
-|--------|-------|
-| `.dataset-status-preview` | `.datatable-status-preview` |
-| `.dataset-status-row` | `.datatable-status-row` |
-| `.dataset-status-label` | `.datatable-status-label` |
-| `.dataset-status-value` | `.datatable-status-value` |
-| `.dataset-actions` | `.datatable-actions` |
-| `.dataset-editor-info` | `.datatable-editor-info` |
+
+| Before                      | After                         |
+| --------------------------- | ----------------------------- |
+| `.dataset-status-preview`   | `.datatable-status-preview`   |
+| `.dataset-status-row`       | `.datatable-status-row`       |
+| `.dataset-status-label`     | `.datatable-status-label`     |
+| `.dataset-status-value`     | `.datatable-status-value`     |
+| `.dataset-actions`          | `.datatable-actions`          |
+| `.dataset-editor-info`      | `.datatable-editor-info`      |
 | `.dataset-editor-info-text` | `.datatable-editor-info-text` |
 | `.dataset-editor-info-list` | `.datatable-editor-info-list` |
 
 **list-group.css**:
-| Before | After |
-|--------|-------|
+
+| Before                   | After                      |
+| ------------------------ | -------------------------- |
 | `[data-panel="dataset"]` | `[data-panel="datatable"]` |
 
 **EventsPanel.css**:
-| Before | After |
-|--------|-------|
-| `.binding-tag.binding-dataset` | `.binding-tag.binding-datatable` |
+
+| Before                                             | After                                                |
+| -------------------------------------------------- | ---------------------------------------------------- |
+| `.binding-tag.binding-dataset`                     | `.binding-tag.binding-datatable`                     |
 | `[data-theme="dark"] .binding-tag.binding-dataset` | `[data-theme="dark"] .binding-tag.binding-datatable` |
 
 #### 4.2.9 기본값 문자열 (3개)

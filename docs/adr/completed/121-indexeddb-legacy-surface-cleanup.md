@@ -4,7 +4,7 @@
 
 Implemented — 2026-05-08
 
-> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud transport boundary 부분, 2026-05-12)** — IndexedDB surface cleanup 결과 자체는 유효, 본 ADR 본문이 명시한 "cloud sync 호환 보존" 명분은 stale.
+> **Superseded in part by [ADR-128](128-cloud-backend-decommission.md) (cloud transport boundary 부분, 2026-05-12)** — IndexedDB surface cleanup 결과 자체는 유효, 본 ADR 본문이 명시한 "cloud sync 호환 보존" 명분은 stale.
 
 ## Context
 
@@ -43,7 +43,7 @@ ADR-120은 `pages`/`elements`/`layouts` objectStore와
    삭제 대상이 아니다.
 4. `variables.page_id`는 Data Panel page-scoped variable 기능의 current model이므로
    `pages` mirror 제거와 혼동해 삭제하지 않는다.
-5. Supabase `pages`/`elements` compatibility API와 canonical export/import adapter는
+5. Cloud `pages`/`elements` compatibility API와 canonical export/import adapter는
    ADR-120의 cloud transport boundary로 유지한다.
 6. IndexedDB objectStore 삭제는 production consumer 0건과 adapter type surface 제거를
    확인한 뒤 `DB_VERSION` bump에서 delete-only cleanup으로 수행한다.
@@ -54,7 +54,7 @@ ADR-120은 `pages`/`elements`/`layouts` objectStore와
 
 - 삭제는 `metadata`, `composition.history`, `designVariables` API mismatch, schema docs 순서로
   나누어 검증한다.
-- code cleanup과 documentation cleanup은 같은 ADR 아래에서 관리하되, Supabase physical
+- code cleanup과 documentation cleanup은 같은 ADR 아래에서 관리하되, Cloud physical
   schema drop은 별도 승인 전까지 포함하지 않는다.
 - legacy 문자열 전체 0건을 목표로 삼지 않는다. canonical compatibility metadata와
   export/import bridge는 allowlist로 분리한다.

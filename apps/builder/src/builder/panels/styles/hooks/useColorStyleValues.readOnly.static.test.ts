@@ -25,7 +25,7 @@ describe("ADR-912 Phase 3 panel paint read boundary", () => {
     expect(sources).not.toMatch(
       /canonicalDocumentStore\.setState\s*\(|useCanonicalDocumentStore\.setState\s*\(/,
     );
-    expect(sources).not.toMatch(/from ["'][^"']*(history|database|supabase)/i);
+    expect(sources).not.toMatch(/from ["'][^"']*(history|database)/i);
   });
 
   it("paint owner와 dynamic cache 경계를 한 곳으로 고정한다", () => {

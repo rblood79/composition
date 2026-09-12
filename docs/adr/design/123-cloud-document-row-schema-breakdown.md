@@ -21,7 +21,7 @@ Phase 0에서 아래 6개 surface를 실제 코드 기준으로 재측정하고 
 
 | Surface                               | 파일                                                                  | 현재 의미                                                                                      | 목표 버킷                                                          |
 | ------------------------------------- | --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| S1 — Supabase row schema              | `apps/builder/src/types/integrations/supabase.types.ts:150-172`       | `pages`/`elements` row 타입 정의 (`page_id`/`parent_id`/`order_num`)                           | migration window fallback 타입으로 유지, `documents` row 타입 추가 |
+| S1 — Cloud row schema                 | `apps/builder/src/types/integrations/cloud.types.ts:150-172`          | `pages`/`elements` row 타입 정의 (`page_id`/`parent_id`/`order_num`)                           | migration window fallback 타입으로 유지, `documents` row 타입 추가 |
 | S2 — legacyElementsApiService         | `apps/builder/src/adapters/canonical/legacyElementsApiService.ts`     | `elements` row CRUD (createElement/updateElement/...)                                          | boundary adapter (Builder hot path 제거)                           |
 | S3 — PagesApiService                  | `apps/builder/src/services/api/PagesApiService.ts`                    | `pages` row CRUD (createPage/updatePage/getPagesByProjectId)                                   | boundary adapter (Builder hot path 제거)                           |
 | S4 — canonicalMutations thin wrapper  | `apps/builder/src/adapters/canonical/canonicalMutations.ts:1699-1733` | `createElementCanonicalPrimary` 등 3개 thin pass-through                                       | documents row API wrapper로 교체 또는 제거                         |
@@ -47,22 +47,22 @@ rg -n "legacyToCanonical\(" \
 
 ## 3. Phase Plan
 
-| Phase   | Goal                                 | Main output                                              | Gate | Status                                                                                                                          |
-| ------- | ------------------------------------ | -------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 0 | inventory freeze + payload 크기 측정 | 6 surface 버킷 확정 + `documents` table 설계             | G0   | **Done — 2026-05-10** ([123-inventory.md](123-inventory.md))                                                                    |
-| Phase 1 | `documents` Supabase table 생성      | migration tooling + RLS policy + 타입 정의               | G1   | **Done — 2026-05-10** (migration 002 + DocumentsApiService)                                                                     |
-| Phase 2 | cloud read path canonicalization     | download = `documents` row → CompositionDocument hydrate | G2   | **Done — 2026-05-10** (read path + seed + 6/6 G2 static test)                                                                   |
-| Phase 3 | cloud write path canonicalization    | upload = CompositionDocument → `documents` row upsert    | G3   | **Done — 2026-05-10** (upsertDocument primary + dashboard seed)                                                                 |
-| Phase 4 | legacy boundary quarantine           | row-level API hot path 제거 + boundary adapter 격리      | G4   | **Done — 2026-05-10** (boundary marker JSDoc + 5/5 G4 grep gate)                                                                |
-| Phase 5 | stale tests/gates 재정렬             | ADR-123 aligned test suite + grep gate 0                 | G5   | **Done — 2026-05-10** (cloudBoundary.static.test.ts 5/5 grep gate 작동)                                                         |
-| Phase 6 | final verification                   | browser smoke + preflight + docs/rules sync              | G6   | **Done — 2026-05-10** (preflight FULL TURBO PASS + browser load+render PASS, Supabase cloud sync smoke 는 deployment 환경 별도) |
+| Phase   | Goal                                 | Main output                                              | Gate | Status                                                                                                                       |
+| ------- | ------------------------------------ | -------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Phase 0 | inventory freeze + payload 크기 측정 | 6 surface 버킷 확정 + `documents` table 설계             | G0   | **Done — 2026-05-10** ([123-inventory.md](123-inventory.md))                                                                 |
+| Phase 1 | `documents` Cloud table 생성         | migration tooling + RLS policy + 타입 정의               | G1   | **Done — 2026-05-10** (migration 002 + DocumentsApiService)                                                                  |
+| Phase 2 | cloud read path canonicalization     | download = `documents` row → CompositionDocument hydrate | G2   | **Done — 2026-05-10** (read path + seed + 6/6 G2 static test)                                                                |
+| Phase 3 | cloud write path canonicalization    | upload = CompositionDocument → `documents` row upsert    | G3   | **Done — 2026-05-10** (upsertDocument primary + dashboard seed)                                                              |
+| Phase 4 | legacy boundary quarantine           | row-level API hot path 제거 + boundary adapter 격리      | G4   | **Done — 2026-05-10** (boundary marker JSDoc + 5/5 G4 grep gate)                                                             |
+| Phase 5 | stale tests/gates 재정렬             | ADR-123 aligned test suite + grep gate 0                 | G5   | **Done — 2026-05-10** (cloudBoundary.static.test.ts 5/5 grep gate 작동)                                                      |
+| Phase 6 | final verification                   | browser smoke + preflight + docs/rules sync              | G6   | **Done — 2026-05-10** (preflight FULL TURBO PASS + browser load+render PASS, Cloud cloud sync smoke 는 deployment 환경 별도) |
 
 ## 4. Phase 상세
 
 ### Phase 0 — Inventory freeze + payload 크기 측정
 
-**목표**: 6개 legacy surface 버킷 확정. `CompositionDocument` payload 크기가 Supabase column
-제약 내에 있는지 확인. `documents` Supabase table 스키마 설계 완료.
+**목표**: 6개 legacy surface 버킷 확정. `CompositionDocument` payload 크기가 Cloud column
+제약 내에 있는지 확인. `documents` Cloud table 스키마 설계 완료.
 
 **작업**:
 
@@ -74,7 +74,7 @@ rg -n "legacyToCanonical\(" \
    # 또는 test fixture 기반 추정
    ```
 
-3. Supabase `documents` table DDL 설계:
+3. Cloud `documents` table DDL 설계:
 
    ```sql
    create table documents (
@@ -108,25 +108,25 @@ rg -n "legacyToCanonical\(" \
 **Gate G0 통과 조건**:
 
 - 6 surface 버킷 표 확정 (forbidden / boundary / migration fallback 분류)
-- JSON 크기 측정 결과: `max(10개 프로젝트 document size) < Supabase jsonb 제약 (기본 1GB)`
+- JSON 크기 측정 결과: `max(10개 프로젝트 document size) < Cloud jsonb 제약 (기본 1GB)`
 - DDL + RLS 설계 문서화 완료
 
 ---
 
-### Phase 1 — `documents` Supabase table 생성
+### Phase 1 — `documents` Cloud table 생성
 
-**목표**: Supabase에 `documents` table 생성 + RLS policy 적용. TypeScript 타입 추가.
+**목표**: Cloud에 `documents` table 생성 + RLS policy 적용. TypeScript 타입 추가.
 `DocumentsApiService` 구현.
 
 **작업**:
 
-1. Supabase migration file 생성 (Phase 0 DDL 기반):
+1. Cloud migration file 생성 (Phase 0 DDL 기반):
 
    ```
-   supabase/migrations/YYYYMMDD_create_documents_table.sql
+   cloud/migrations/YYYYMMDD_create_documents_table.sql
    ```
 
-2. `apps/builder/src/types/integrations/supabase.types.ts`에 `documents` row 타입 추가:
+2. `apps/builder/src/types/integrations/cloud.types.ts`에 `documents` row 타입 추가:
 
    ```typescript
    documents: {
@@ -152,9 +152,9 @@ rg -n "legacyToCanonical\(" \
 
 **Gate G1 통과 조건**:
 
-- `supabase/migrations/` 파일 존재
+- `cloud/migrations/` 파일 존재
 - `DocumentsApiService` 타입 체크 PASS
-- Supabase local dev에서 `documents` table + RLS 생성 확인
+- Cloud local dev에서 `documents` table + RLS 생성 확인
 - `pnpm run codex:typecheck` PASS
 
 ---
@@ -328,7 +328,7 @@ docs/rules/CHANGELOG sync. ADR Implemented 승격.
 
 **Browser smoke 체크리스트**:
 
-- [ ] cloud project 신규 생성 → `documents` row seed 확인 (Supabase dashboard)
+- [ ] cloud project 신규 생성 → `documents` row seed 확인 (Cloud dashboard)
 - [ ] `syncProjectToCloud` 실행 → `documents` row upsert 확인, `elements` row 미변경
 - [ ] `downloadProjectFromCloud` 실행 → `documents` row primary hydrate 확인
 - [ ] 기존 `pages`/`elements` row만 있는 프로젝트 → fallback download 동작 확인

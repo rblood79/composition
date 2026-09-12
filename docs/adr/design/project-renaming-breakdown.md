@@ -315,15 +315,15 @@ pnpm install  # lockfile 자동 재생성
 
 ### 5-1. 프로젝트 문서
 
-| 파일                         | 변경 내용                        |
-| ---------------------------- | -------------------------------- |
-| `README.md`                  | 프로젝트명, 설명                 |
-| `CLAUDE.md`                  | 프로젝트명, 구조 설명            |
-| `CHANGELOG.md`               | 프로젝트명                       |
-| `docs/reference/components/COMPONENT_SPEC.md`     | `@composition/specs` 참조 (30곳) |
-| `docs/reference/MONOREPO.md` | 패키지 구조 설명 (85곳)          |
-| `docs/adr/*.md`              | ADR 내 참조 (~20곳)              |
-| `.claude/**/*.md`            | 규칙/스킬 문서                   |
+| 파일                                          | 변경 내용                        |
+| --------------------------------------------- | -------------------------------- |
+| `README.md`                                   | 프로젝트명, 설명                 |
+| `CLAUDE.md`                                   | 프로젝트명, 구조 설명            |
+| `CHANGELOG.md`                                | 프로젝트명                       |
+| `docs/reference/components/COMPONENT_SPEC.md` | `@composition/specs` 참조 (30곳) |
+| `docs/reference/MONOREPO.md`                  | 패키지 구조 설명 (85곳)          |
+| `docs/adr/*.md`                               | ADR 내 참조 (~20곳)              |
+| `.claude/**/*.md`                             | 규칙/스킬 문서                   |
 
 ### 5-2. Claude Code 설정
 
@@ -338,7 +338,7 @@ pnpm install  # lockfile 자동 재생성
 | 서비스           | 작업                                                       |
 | ---------------- | ---------------------------------------------------------- |
 | **Vercel**       | 프로젝트 재연결 (GitHub repo 변경 반영)                    |
-| **Supabase**     | GitHub integration 확인 (사용 시)                          |
+| **Cloud**        | GitHub integration 확인 (사용 시)                          |
 | **도메인/DNS**   | URL 경로 `/composition/` → `/composition/` 반영            |
 | **npm registry** | private 패키지면 영향 없음, public이면 새 이름으로 publish |
 

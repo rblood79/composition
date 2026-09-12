@@ -24,7 +24,6 @@
 >
 > </details>
 
-
 **Status:** Complete (v2.3 - Panel Architecture Refactoring)
 **Created:** 2025-11-28
 **Updated:** 2025-12-03
@@ -614,12 +613,7 @@ interface FieldMapping {
   sourceKey: string; // API 응답 필드명
   targetKey: string; // DataTable 필드명
   transform?:
-    | "uppercase"
-    | "lowercase"
-    | "trim"
-    | "number"
-    | "boolean"
-    | "date";
+    "uppercase" | "lowercase" | "trim" | "number" | "boolean" | "date";
 }
 
 interface TransformContext {
@@ -658,10 +652,10 @@ interface TransformContext {
 
 ## 4. Database Schema
 
-### 4.1 Supabase Migration
+### 4.1 Cloud Migration
 
 ```sql
--- supabase/migrations/YYYYMMDD_data_panel_system.sql
+-- cloud/migrations/YYYYMMDD_data_panel_system.sql
 
 -- 1. DataTables
 CREATE TABLE data_tables (
@@ -862,13 +856,7 @@ export interface FieldMapping {
 
 // NEW: 필드 변환 타입
 export type FieldTransformType =
-  | "uppercase"
-  | "lowercase"
-  | "trim"
-  | "number"
-  | "boolean"
-  | "date"
-  | "json";
+  "uppercase" | "lowercase" | "trim" | "number" | "boolean" | "date" | "json";
 
 export interface PaginationConfig {
   type: "offset" | "cursor" | "page";
@@ -1789,12 +1777,12 @@ function renderListBox(element: Element, children: React.ReactNode) {
 
 ### 9.4 DataBinding 지원 컴포넌트 (13개)
 
-모든 컬렉션 컴포넌트는 `useCollectionData` Hook을 사용하여 DataTable, API, Supabase에서 데이터를 가져옵니다.
+모든 컬렉션 컴포넌트는 `useCollectionData` Hook을 사용하여 DataTable, API, Cloud에서 데이터를 가져옵니다.
 
 #### 지원 컴포넌트 목록
 
-| 컴포넌트          | 파일 위치                                     | 특이사항                       |
-| ----------------- | --------------------------------------------- | ------------------------------ |
+| 컴포넌트          | 파일 위치                                              | 특이사항                       |
+| ----------------- | ------------------------------------------------------ | ------------------------------ |
 | ListBox           | `packages/shared/src/components/ListBox.tsx`           | 기본 리스트 컴포넌트           |
 | GridList          | `packages/shared/src/components/GridList.tsx`          | 그리드 레이아웃                |
 | Select            | `packages/shared/src/components/Select.tsx`            | 드롭다운 선택                  |
@@ -1829,7 +1817,7 @@ function renderListBox(element: Element, children: React.ReactNode) {
 // 직접 element.dataBinding에 설정
 {
   type: 'collection',
-  source: 'static' | 'api' | 'supabase',
+  source: 'static' | 'api' | 'cloud',
   config: {
     columnMapping?: { id: string; label: string };
     dataMapping?: { idField: string; labelField: string };
@@ -1882,10 +1870,10 @@ const labelField = config?.columnMapping?.label || config?.dataMapping?.labelFie
 
 ### Phase 1: Foundation (기반 작업) - 1주
 
-| Task               | File                              | Priority |
-| ------------------ | --------------------------------- | -------- |
+| Task               | File                                           | Priority |
+| ------------------ | ---------------------------------------------- | -------- |
 | Type definitions   | `apps/builder/src/types/builder/data.types.ts` | P0       |
-| Database migration | `supabase/migrations/`            | P0       |
+| Database migration | `cloud/migrations/`                            | P0       |
 | IndexedDB schema   | `apps/builder/src/lib/db/indexedDB/adapter.ts` | P0       |
 | Zustand store      | `apps/builder/src/builder/stores/data.ts`      | P0       |
 
@@ -2116,7 +2104,7 @@ interface DataBindingValue {
 권장:
 1. Backend proxy 사용 (API 키 서버에서 관리)
 2. Public API만 직접 호출
-3. 민감한 API는 Supabase Edge Function 사용
+3. 민감한 API는 Cloud Edge Function 사용
 ```
 
 ### 12.2 CORS
@@ -2127,7 +2115,7 @@ Preview iframe에서 외부 API 호출 시 CORS 이슈 가능
 해결책:
 1. API 서버에서 CORS 허용
 2. Proxy 서버 사용
-3. Supabase Edge Function으로 우회
+3. Cloud Edge Function으로 우회
 ```
 
 ### 12.3 Server-side Action (NEW)
@@ -2169,7 +2157,7 @@ Preview iframe에서 외부 API 호출 시 CORS 이슈 가능
 │  Header: Authorization: Bearer <user_session_token>         │
 │     ↓                                                        │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  Supabase Edge Function (Server)                       │  │
+│  │  Cloud Edge Function (Server)                       │  │
 │  │                                                        │  │
 │  │  1. 세션 토큰 검증                                      │  │
 │  │  2. 프로젝트 권한 확인                                  │  │
@@ -2195,7 +2183,7 @@ interface ApiEndpoint {
 
   // server 모드 전용
   serverConfig?: {
-    // Supabase Edge Function 이름
+    // Cloud Edge Function 이름
     edgeFunctionName: string;
 
     // Vault 시크릿 키 매핑
@@ -2245,17 +2233,17 @@ interface ApiEndpoint {
 └─────────────────────────────────────────────────────────────┘
 ```
 
-#### Supabase Vault 연동
+#### Cloud Vault 연동
 
 ```typescript
-// supabase/functions/api-proxy/index.ts
+// cloud/functions/api-proxy/index.ts
 
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "cloud SDK";
 
 Deno.serve(async (req) => {
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  const cloud = createClient(
+    Deno.env.get("CLOUD_URL")!,
+    Deno.env.get("CLOUD_SERVICE_ROLE_KEY")!,
   );
 
   // 1. 사용자 세션 검증
@@ -2263,13 +2251,13 @@ Deno.serve(async (req) => {
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser(authHeader?.replace("Bearer ", ""));
+  } = await cloud.auth.getUser(authHeader?.replace("Bearer ", ""));
   if (error || !user) {
     return new Response("Unauthorized", { status: 401 });
   }
 
   // 2. Vault에서 시크릿 조회
-  const { data: secret } = await supabase.rpc("vault_get_secret", {
+  const { data: secret } = await cloud.rpc("vault_get_secret", {
     secret_name: "stripe_api_key",
   });
 
@@ -2294,13 +2282,13 @@ Deno.serve(async (req) => {
 
 #### 구현 우선순위
 
-| 항목                          | 우선순위 | 설명                 |
-| ----------------------------- | -------- | -------------------- |
-| executionMode 필드 추가       | **P1**   | client/server 선택   |
-| Supabase Edge Function 템플릿 | **P1**   | api-proxy 기본 구현  |
-| Vault 시크릿 연동             | **P1**   | 비밀키 안전 저장     |
-| UI 설정 화면                  | **P2**   | Server Configuration |
-| 응답 필터링                   | **P2**   | 민감 정보 제거       |
+| 항목                       | 우선순위 | 설명                 |
+| -------------------------- | -------- | -------------------- |
+| executionMode 필드 추가    | **P1**   | client/server 선택   |
+| Cloud Edge Function 템플릿 | **P1**   | api-proxy 기본 구현  |
+| Vault 시크릿 연동          | **P1**   | 비밀키 안전 저장     |
+| UI 설정 화면               | **P2**   | Server Configuration |
+| 응답 필터링                | **P2**   | 민감 정보 제거       |
 
 ---
 
@@ -2342,7 +2330,7 @@ interface DataTransformer {
 
 ```
 외부 DB 직접 연결은 보안상 위험
-→ Backend API 또는 Supabase Edge Function 통해 연결 권장
+→ Backend API 또는 Cloud Edge Function 통해 연결 권장
 ```
 
 ---
@@ -2407,7 +2395,7 @@ interface DataTransformer {
 ### Phase 2: Server-side Action (P1)
 
 - [ ] ApiEndpoint.executionMode (client/server) 필드
-- [ ] Supabase Edge Function 템플릿 (api-proxy)
+- [ ] Cloud Edge Function 템플릿 (api-proxy)
 - [ ] Vault 시크릿 연동
 - [ ] Server Configuration UI
 
@@ -2550,7 +2538,7 @@ interface SandboxResult<T> {
 │  ├─ isSecret=true인 변수는 persist=true 불가                 │
 │  ├─ API 테스트 시 비밀값 마스킹 (●●●●●●)                     │
 │  ├─ 콘솔/로그에서 자동 마스킹                                │
-│  ├─ 프로덕션: Supabase Edge Function 통해 프록시 권장        │
+│  ├─ 프로덕션: Cloud Edge Function 통해 프록시 권장        │
 │  └─ 감사 로그: 비밀값 접근 시점 기록                          │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘

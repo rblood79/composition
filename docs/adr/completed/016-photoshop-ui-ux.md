@@ -1,6 +1,6 @@
 # ADR-016: Photoshop 벤치마크 기반 UI/UX 적용 계획
 
-> **Superseded — 2026-08-26**. 본 ADR 의 실질 항목은 전부 타 ADR 로 반영됐거나 전제가 소멸했다: Context Menu → [ADR-182](182-builder-context-menu.md), Floating Panel → [ADR-922](922-photoshop-style-panel-layout-coordinator.md) + [ADR-186](186-photoshop-default-zone-panel-placement.md), History UI → [ADR-180](180-history-snapshots.md), Comments/Presence → [ADR-128](128-supabase-backend-decommission.md) (전제 소멸), PixiJS 연동 → [ADR-900](900-unified-skia-rendering-engine.md) (전제 소멸). 유일한 미반영 기능 **Contextual Action Bar** 는 Photoshop Web·Figma 액션바 리서치를 거쳐 [ADR-192](192-contextual-action-bar.md) 로 재설계한다 (본 ADR §5.1~5.2 의 파일 경로·타입안은 승계하지 않음). WCAG AA 대비 감사는 [ADR-191](191-tailwind-theme-single-source-palette.md) 팔레트 단일 원천 이후 후속 항목. 사용자 결정 (2026-08-26 "016 을 Superseded 로 닫고, Action Bar 는 리서치부터 한 후 ADR 설계").
+> **Superseded — 2026-08-26**. 본 ADR 의 실질 항목은 전부 타 ADR 로 반영됐거나 전제가 소멸했다: Context Menu → [ADR-182](182-builder-context-menu.md), Floating Panel → [ADR-922](922-photoshop-style-panel-layout-coordinator.md) + [ADR-186](186-photoshop-default-zone-panel-placement.md), History UI → [ADR-180](180-history-snapshots.md), Comments/Presence → [ADR-128](128-cloud-backend-decommission.md) (전제 소멸), PixiJS 연동 → [ADR-900](900-unified-skia-rendering-engine.md) (전제 소멸). 유일한 미반영 기능 **Contextual Action Bar** 는 Photoshop Web·Figma 액션바 리서치를 거쳐 [ADR-192](192-contextual-action-bar.md) 로 재설계한다 (본 ADR §5.1~5.2 의 파일 경로·타입안은 승계하지 않음). WCAG AA 대비 감사는 [ADR-191](191-tailwind-theme-single-source-palette.md) 팔레트 단일 원천 이후 후속 항목. 사용자 결정 (2026-08-26 "016 을 Superseded 로 닫고, Action Bar 는 리서치부터 한 후 ADR 설계").
 
 - 상태: **Superseded** — 2026-08-26 (직전: Proposed, 2026-08-26 전제 재정렬 §0)
 - 작성일: 2026-02-15 (v2: 2026-03-03 — 현행 아키텍처 기준 재설계)
@@ -17,11 +17,11 @@
 | 공용 액션 시스템        | §5.1 `builder/actions/{types,elementActions,handlers}`    | ADR-182 가 `canvas/actions/canvasActions.ts` 공유 계층(copy/cut/paste/duplicate/delete/group/ungroup/align/distribute 9종)을 추출                                                                                                                                     | **절반 반영** — 태그별 액션 매핑은 ADR-192 소관           |
 | Contextual Action Bar   | §5.2 `workspace/overlay/ContextualActionBar.tsx`          | 코드 0건, 타 ADR 계획 0건                                                                                                                                                                                                                                             | **ADR-192 로 재설계** — §5.2 설계안 미승계                |
 | History Panel UI        | §5.4 "258줄 기본 UI" 개선                                 | **ADR-180 Implemented (2026-08-13)** — `HistoryPanel.tsx` 551줄. 재실측(08-26): 아이콘 `ENTRY_TYPE_ICONS` 12종(원 계획 7종 초과) ✅ · redo 구간 `data-future` opacity 0.45 ✅ · 점프 ✅ · Skeleton 은 `historyOperationInProgress`/`restoring` disabled 패턴으로 대체 | **반영 완료 — 범위 제외**                                 |
-| AI Variations           | §6.1 `AgentService` + 7 도구 위에 Variations          | **ADR-134** Phase 2 가 벤더 SDK 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정                                                                                                                                                                    | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
-| Comments Panel          | §6.2 Supabase Realtime                                    | **ADR-128** Supabase backend decommission (Implemented 2026-05-12)                                                                                                                                                                                                    | **폐기 — 전제 소멸**                                      |
+| AI Variations           | §6.1 `AgentService` + 7 도구 위에 Variations              | **ADR-134** Phase 2 가 벤더 SDK 완전 제거 → 전제 충돌. 134 breakdown scope-out 목록에도 없어 소관 미정                                                                                                                                                                | **보류** — 134 후속 응용으로 이관 여부는 134 착수 시 판정 |
+| Comments Panel          | §6.2 Cloud Realtime                                       | **ADR-128** Cloud backend decommission (Implemented 2026-05-12)                                                                                                                                                                                                       | **폐기 — 전제 소멸**                                      |
 | Floating Panel          | §6.3 `PanelDisplayMode` 확장 + `ModalPanelContainer` 수정 | **ADR-922 (2026-08-18)** `PanelDisplayMode = "panel" \| "modal" \| "floating"` + **ADR-186 (2026-08-19)** 9-zone placement. `ModalPanelContainer.tsx` 는 현존하지 않음                                                                                                | **반영 완료 — 범위 제외**                                 |
 | PixiJS 우클릭 연동      | §4.2/§5.3/§8                                              | **ADR-900** Phase 8-9 로 PixiJS 제거                                                                                                                                                                                                                                  | **폐기**                                                  |
-| Presence/커서 공유      | §7.2 Supabase Realtime presence                           | ADR-128 로 전제 소멸                                                                                                                                                                                                                                                  | **폐기**                                                  |
+| Presence/커서 공유      | §7.2 Cloud Realtime presence                              | ADR-128 로 전제 소멸                                                                                                                                                                                                                                                  | **폐기**                                                  |
 | 디자인 시스템 WCAG 감사 | §7.1                                                      | §7.1 의 `--color-text-*` 토큰은 코드에 없음. ADR-191 이 팔레트 원천을 단일화하기 전엔 Builder DOM(oklch)·Preview(v3 hex) 가 다른 색을 봐 감사 대상이 이동 중                                                                                                          | **ADR-191 후속** — 191 Phase 4 이후 착수                  |
 
 > §4~§9 본문은 2026-03-03 코드 기준 역사적 기록으로 보존 — `SHORTCUT_DEFINITIONS` 는 "85+" 가 아니라 69개(08-26 실측), `ModalPanelContainer.tsx`·PixiJS·Taffy 는 현존하지 않는다. ADR-192 는 이 본문을 승계하지 않고 리서치부터 다시 시작한다.
@@ -103,7 +103,7 @@ Taffy WASM (레이아웃 엔진)
 | History 스토어         | `stores/history.ts`, `stores/history/historyActions.ts`         |
 | History UI             | `panels/history/HistoryPanel.tsx`                               |
 | AI 패널                | `panels/ai/AIPanel.tsx`                                         |
-| AI 서비스              | `../../services/ai/AgentService.ts` (7개 도구)              |
+| AI 서비스              | `../../services/ai/AgentService.ts` (7개 도구)                  |
 | 패널 시스템            | `panels/core/types.ts` (PanelId, PanelConfig, PanelDisplayMode) |
 | 모달 패널              | `layout/ModalPanelContainer.tsx`                                |
 | 키보드 단축키          | `config/keyboardShortcuts.ts` (85+ 단축키)                      |
@@ -119,7 +119,7 @@ ADR-016 구현 시 활용할 이미 구현된 시스템:
 | History 점프       | `goToHistoryIndex(idx)` 구현됨 (elements.ts)           | UI 개선에만 집중 (API 신규 불필요) |
 | History Entry 타입 | 7종 — add, remove, update, move, batch, group, ungroup | 유형별 아이콘 매핑                 |
 | Modal Panel        | `ModalPanelContainer.tsx` — 드래그/리사이즈/z-index    | Floating Panel 확장 기반           |
-| AI Agent Loop      | `useAgentLoop.ts` + `AgentService.ts` + 7개 도구   | Variations 추가에 집중             |
+| AI Agent Loop      | `useAgentLoop.ts` + `AgentService.ts` + 7개 도구       | Variations 추가에 집중             |
 | 키보드 단축키      | `SHORTCUT_DEFINITIONS` 85+ 등록, scope 기반 활성화     | Action Bar/Context Menu에서 참조   |
 | CommandPalette     | `Cmd+K` 글로벌 검색                                    | 공용 액션 시스템 연동              |
 | Inspector Preview  | `prePreviewElement` 스냅샷 패턴 (inspectorActions.ts)  | AI Variations 미리보기에 재활용    |
@@ -347,7 +347,7 @@ apps/builder/src/builder/panels/comments/   # 🆕 신규
 │   ├── CommentItem.tsx
 │   └── CommentInput.tsx
 └── hooks/
-    └── useComments.ts        # Supabase Realtime
+    └── useComments.ts        # Cloud Realtime
 ```
 
 **패널 시스템 통합**:
@@ -434,7 +434,7 @@ export interface ModalPanelState {
 
 ### 7.2 Presence/커서 공유
 
-- Supabase Realtime `presence` 채널 사용
+- Cloud Realtime `presence` 채널 사용
 - 캔버스 커서 위치: 씬 좌표(Camera-local)로 전송, 수신 측에서 `worldToScreen()` 역변환
 - DOM 오버레이로 타 사용자 커서 + 이름 라벨 표시
 - 선택 중인 요소 표시 (테두리 색상으로 구분)
@@ -459,13 +459,13 @@ export interface ModalPanelState {
 ### Phase 1
 
 - [ ] AI Variations — **보류** (단일 벤더 전제가 ADR-134 Phase 2 와 충돌, 134 후속 판정)
-- ~~Comments Panel + PanelId 등록 + Supabase Realtime~~ — 폐기 (ADR-128 Supabase decommission)
+- ~~Comments Panel + PanelId 등록 + Cloud Realtime~~ — 폐기 (ADR-128 Cloud decommission)
 - [x] Floating Panel — **ADR-922 (2026-08-18) + ADR-186 (2026-08-19)** 로 반영 (`PanelDisplayMode "floating"`)
 
 ### Phase 2
 
 - [ ] 색상 대비 WCAG AA 감사
-- ~~Presence 프로토타입 (Supabase Realtime presence)~~ — 폐기 (ADR-128)
+- ~~Presence 프로토타입 (Cloud Realtime presence)~~ — 폐기 (ADR-128)
 
 ---
 

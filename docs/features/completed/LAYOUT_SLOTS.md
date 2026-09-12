@@ -24,7 +24,6 @@
 >
 > </details>
 
-
 **작성일:** 2025-11-21
 **버전:** 2.0
 **우선순위:** 🔴 Critical
@@ -936,7 +935,7 @@ import type {
   SlotInfo,
 } from "../../../types/builder/layout.types";
 import type { Element, Page } from "../../../types/builder/unified.types";
-import { supabase } from "../../../lib/supabase";
+import { cloud } from "../../../lib/cloud";
 
 type SetState = Parameters<StateCreator<LayoutsStore>>[0];
 type GetState = Parameters<StateCreator<LayoutsStore>>[1];
@@ -951,7 +950,7 @@ export const createFetchLayouts =
     set({ isLoading: true, error: null });
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await cloud
         .from("layouts")
         .select("*")
         .eq("project_id", projectId)
@@ -979,7 +978,7 @@ export const createCreateLayout =
       description: data.description || null,
     };
 
-    const { data: created, error } = await supabase
+    const { data: created, error } = await cloud
       .from("layouts")
       .insert(newLayout)
       .select()
@@ -1007,7 +1006,7 @@ export const createCreateLayout =
       },
     };
 
-    await supabase.from("elements").insert(defaultSlot);
+    await cloud.from("elements").insert(defaultSlot);
 
     return created;
   };
@@ -1019,10 +1018,7 @@ export const createCreateLayout =
 export const createUpdateLayout =
   (set: SetState, _get: GetState) =>
   async (id: string, updates: LayoutUpdate): Promise<void> => {
-    const { error } = await supabase
-      .from("layouts")
-      .update(updates)
-      .eq("id", id);
+    const { error } = await cloud.from("layouts").update(updates).eq("id", id);
 
     if (error) throw error;
 
@@ -1049,7 +1045,7 @@ export const createDeleteLayout =
       );
     }
 
-    const { error } = await supabase.from("layouts").delete().eq("id", id);
+    const { error } = await cloud.from("layouts").delete().eq("id", id);
 
     if (error) throw error;
 
@@ -1078,7 +1074,7 @@ export const createDuplicateLayout =
     });
 
     // Layout elements 복제
-    const { data: sourceElements } = await supabase
+    const { data: sourceElements } = await cloud
       .from("elements")
       .select("*")
       .eq("layout_id", id);
@@ -1105,7 +1101,7 @@ export const createDuplicateLayout =
         }
       });
 
-      await supabase.from("elements").insert(elementsToInsert);
+      await cloud.from("elements").insert(elementsToInsert);
     }
 
     return duplicated;
@@ -1138,7 +1134,7 @@ export const createGetLayoutSlots =
 export const createValidateLayoutDelete =
   (_set: SetState, _get: GetState) =>
   async (id: string): Promise<{ canDelete: boolean; usedByPages: Page[] }> => {
-    const { data: pages } = await supabase
+    const { data: pages } = await cloud
       .from("pages")
       .select("*")
       .eq("layout_id", id);
@@ -1156,10 +1152,7 @@ export const createValidateLayoutDelete =
 export const createGetLayoutUsage =
   (_set: SetState, _get: GetState) =>
   async (id: string): Promise<Page[]> => {
-    const { data } = await supabase
-      .from("pages")
-      .select("*")
-      .eq("layout_id", id);
+    const { data } = await cloud.from("pages").select("*").eq("layout_id", id);
 
     return data || [];
   };
@@ -2897,8 +2890,7 @@ export function resolveLayoutForPage(
   // Slot visibility 체크
   const isSlotVisible = (slot: Element): boolean => {
     const visibility = slot.props?.visibility as
-      | ResponsiveValue<boolean>
-      | undefined;
+      ResponsiveValue<boolean> | undefined;
 
     if (visibility === undefined) return true;
     if (typeof visibility === "boolean") return visibility;
@@ -5126,8 +5118,7 @@ function getSlotVisibility(
 
   // Slot의 responsive visibility 확인
   const responsiveProps = slot.props?.responsiveProps as
-    | ResponsiveProps
-    | undefined;
+    ResponsiveProps | undefined;
   return responsiveProps?.[breakpoint]?.visibility !== "hidden";
 }
 ```
@@ -5457,8 +5448,7 @@ function resolveSlotContent(
 ) {
   return pageElements.filter((el) => {
     const assignment = el.props?.slotAssignment as
-      | ElementSlotAssignment
-      | undefined;
+      ElementSlotAssignment | undefined;
 
     // 새 방식: slotAssignment 사용
     if (assignment) {

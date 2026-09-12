@@ -34,13 +34,13 @@ Implemented — Phase A+B+C+**C2(Font Manager Panel)**+**D(Preview/Publish 런�
 | 영역                         | 상태                                      | 파일                                                                                 |
 | ---------------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------ |
 | **커스텀 폰트 타입**         | ✅ `CustomFontAsset`                      | `packages/shared/src/utils/font.utils.ts`                                            |
-| **localStorage 저장**        | ✅ `composition.custom-fonts` 키              | `packages/shared/src/utils/font.utils.ts` (`CUSTOM_FONT_STORAGE_KEY`)                |
+| **localStorage 저장**        | ✅ `composition.custom-fonts` 키          | `packages/shared/src/utils/font.utils.ts` (`CUSTOM_FONT_STORAGE_KEY`)                |
 | **@font-face CSS 생성**      | ✅ `buildCustomFontFaceCss()`             | `packages/shared/src/utils/font.utils.ts`                                            |
 | **Builder DOM 적용**         | ✅                                        | `apps/builder/src/builder/fonts/customFonts.ts`                                      |
 | **초기화**                   | ✅                                        | `apps/builder/src/builder/fonts/initCustomFonts.ts`                                  |
 | **Publish 읽기**             | ✅ localStorage에서 읽어 적용             | `apps/publish/src/App.tsx`                                                           |
 | **Skia 폰트 매니저**         | ✅ 기본 폰트만, 커스텀 미지원             | `apps/builder/src/builder/workspace/canvas/skia/fontManager.ts`                      |
-| **IndexedDB 캐싱**           | ✅ DB명 `composition-fonts`                   | `apps/builder/src/builder/workspace/canvas/skia/fontManager.ts`                      |
+| **IndexedDB 캐싱**           | ✅ DB명 `composition-fonts`               | `apps/builder/src/builder/workspace/canvas/skia/fontManager.ts`                      |
 | **Typography UI**            | ✅ 폰트 추가 버튼 + family 입력 흐름 존재 | `apps/builder/src/builder/panels/styles/sections/TypographySection.tsx`              |
 | **프로젝트 레벨 레지스트리** | ❌ 미구현                                 | —                                                                                    |
 | **Export에 폰트 포함**       | ❌ 미구현                                 | `packages/shared/src/types/export.types.ts` (`ExportedProjectData`에 폰트 필드 없음) |
@@ -62,7 +62,7 @@ Implemented — Phase A+B+C+**C2(Font Manager Panel)**+**D(Preview/Publish 런�
 
 ### Out of Scope (이번 라운드)
 
-- 팀/프로젝트 단위 원격 폰트 저장소 동기화(예: Supabase Storage)
+- 팀/프로젝트 단위 원격 폰트 저장소 동기화(예: Cloud Storage)
 - 라이선스 스캐닝 자동화
 - Variable font 고급 축(axis) 편집 UI
 
@@ -123,12 +123,7 @@ interface LegacyCustomFontAsset {
   family: string;
   source: string; // 현재는 data URL만 사용
   format?:
-    | "woff2"
-    | "woff"
-    | "truetype"
-    | "opentype"
-    | "embedded-opentype"
-    | "svg";
+    "woff2" | "woff" | "truetype" | "opentype" | "embedded-opentype" | "svg";
 }
 ```
 
@@ -149,10 +144,10 @@ interface LegacyCustomFontAsset {
 - 레거시 키는 1~2 릴리스 동안 fallback read 유지 후 삭제
 - 모든 Phase(A~E)는 localStorage 기반으로 완성
 
-### Stage 2: Supabase 연동 (향후)
+### Stage 2: Cloud 연동 (향후)
 
 - `projects.font_registry (jsonb)` 컬럼 추가
-- localStorage → Supabase 동기화 레이어 추가
+- localStorage → Cloud 동기화 레이어 추가
 - Stage 1 코드의 저장/조회 인터페이스만 교체 (레지스트리 로직 재사용)
 
 ---
@@ -180,7 +175,7 @@ interface LegacyCustomFontAsset {
 - `ExportedProjectData`(`packages/shared/src/types/export.types.ts`)에 `fontRegistry` 필드 추가
 - `projects` 스키마 확장: `font_registry (jsonb)` 컬럼 추가
   - `ProjectsApiService.ts`의 `Project` 인터페이스에 `font_registry?: FontRegistryV2` 필드 추가
-  - Supabase 쿼리는 `select("*")` 패턴이라 DB 반영 후 데이터는 자동 조회됨
+  - Cloud 쿼리는 `select("*")` 패턴이라 DB 반영 후 데이터는 자동 조회됨
 
 **산출물**
 
@@ -399,7 +394,7 @@ interface LegacyCustomFontAsset {
 | 항목                         | 확인 결과                                  |
 | ---------------------------- | ------------------------------------------ |
 | `CustomFontAsset` 인터페이스 | ✅ 존재. `{ id, family, source, format? }` |
-| `CUSTOM_FONT_STORAGE_KEY`    | ✅ `'composition.custom-fonts'`                |
+| `CUSTOM_FONT_STORAGE_KEY`    | ✅ `'composition.custom-fonts'`            |
 | `buildCustomFontFaceCss()`   | ✅ 존재. `@font-face` CSS 생성             |
 | `inferFontFormatFromName()`  | ✅ 존재                                    |
 | `stripExtension()`           | ✅ 존재                                    |
@@ -409,13 +404,13 @@ interface LegacyCustomFontAsset {
 | 파일                                                | 확인 결과                                                                                                                                                              |
 | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `apps/builder/src/builder/fonts/customFonts.ts`     | ✅ `getCustomFonts()`, `saveCustomFonts()`, `injectCustomFontStyle()`, `createCustomFontFromFile()`, `DEFAULT_FONT_FAMILY = 'Pretendard'`, `DEFAULT_FONT_OPTIONS` 포함 |
-| `apps/builder/src/builder/fonts/initCustomFonts.ts` | ✅ 앱 부팅 시 localStorage에서 폰트 읽어 DOM 주입, `storage` 이벤트 + `composition:custom-fonts-updated` 이벤트 구독                                                       |
+| `apps/builder/src/builder/fonts/initCustomFonts.ts` | ✅ 앱 부팅 시 localStorage에서 폰트 읽어 DOM 주입, `storage` 이벤트 + `composition:custom-fonts-updated` 이벤트 구독                                                   |
 
 #### Skia 폰트 매니저 (`apps/builder/src/builder/workspace/canvas/skia/fontManager.ts`)
 
 | 항목                                            | 확인 결과                                                               |
 | ----------------------------------------------- | ----------------------------------------------------------------------- |
-| IndexedDB 캐싱                                  | ✅ DB명 `composition-fonts`, store `fonts`                                  |
+| IndexedDB 캐싱                                  | ✅ DB명 `composition-fonts`, store `fonts`                              |
 | `SkiaFontManager.loadFont(family, url)`         | ✅ URL 기반 폰트 로드 (네트워크 fetch + IndexedDB 캐시)                 |
 | `CanvasKit.Typeface.MakeFreeTypeFaceFromData()` | ✅ 사용 중                                                              |
 | 커스텀 폰트 레지스트리 연동                     | ❌ 미구현 — URL 직접 전달 방식만 지원, `CustomFontAsset` 배열 연동 없음 |
@@ -569,7 +564,7 @@ async function exportProject(data: ExportData): Promise<void> {
 
 ### 14-6. projects.font_registry 컬럼 마이그레이션 방식
 
-**DB 마이그레이션 (Supabase 콘솔)**:
+**DB 마이그레이션 (Cloud 콘솔)**:
 
 ```sql
 ALTER TABLE projects
@@ -608,11 +603,11 @@ export interface Project {
 
 ## 15) Gates (잔존 HIGH 위험 관리)
 
-| Gate                              | 시점            | 조건                                                                                | 실패 시 대안                                                                    |
-| --------------------------------- | --------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| **G1: localStorage 마이그레이션** | Phase A 완료 시 | 레거시 `composition.custom-fonts` → `composition.font-registry` 변환 후 기존 폰트 정상 동작 | 마이그레이션 스킵, 레거시 키 직접 읽기 유지                                     |
-| **G2: Skia 폰트 로딩 타이밍**     | Phase C 완료 시 | Builder Canvas에서 커스텀 폰트 텍스트가 1초 내 정상 렌더 + fallback 없이 표시       | `composition:fonts-ready` 이벤트 대기 + `invalidateLayout()` 재호출 루프 (최대 3회) |
-| **G3: Export 브라우저 호환**      | Phase E 완료 시 | Chrome + fallback(ZIP) 양쪽에서 폰트 파일 포함 확인                                 | ZIP 전용으로 단순화 (showDirectoryPicker 제거)                                  |
+| Gate                              | 시점            | 조건                                                                                        | 실패 시 대안                                                                        |
+| --------------------------------- | --------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| **G1: localStorage 마이그레이션** | Phase A 완료 시 | 레거시 `composition.custom-fonts` → `composition.font-registry` 변환 후 기존 폰트 정상 동작 | 마이그레이션 스킵, 레거시 키 직접 읽기 유지                                         |
+| **G2: Skia 폰트 로딩 타이밍**     | Phase C 완료 시 | Builder Canvas에서 커스텀 폰트 텍스트가 1초 내 정상 렌더 + fallback 없이 표시               | `composition:fonts-ready` 이벤트 대기 + `invalidateLayout()` 재호출 루프 (최대 3회) |
+| **G3: Export 브라우저 호환**      | Phase E 완료 시 | Chrome + fallback(ZIP) 양쪽에서 폰트 파일 포함 확인                                         | ZIP 전용으로 단순화 (showDirectoryPicker 제거)                                      |
 
 ### G1 상세: localStorage 마이그레이션 안전성
 
@@ -626,7 +621,7 @@ export interface Project {
 
 **실패 시**: 마이그레이션 로직 롤백, 레거시 키(`composition.custom-fonts`) 직접 읽기 유지.
 
-> **Supabase 연동 (Stage 2 Gate)**: 향후 `projects.font_registry` 컬럼 추가 시 별도 Gate 정의. 현재 Phase A~E는 localStorage 전용.
+> **Cloud 연동 (Stage 2 Gate)**: 향후 `projects.font_registry` 컬럼 추가 시 별도 Gate 정의. 현재 Phase A~E는 localStorage 전용.
 
 ### G2 상세: Skia 폰트 로딩 타이밍
 

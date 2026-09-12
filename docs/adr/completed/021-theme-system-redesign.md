@@ -46,7 +46,7 @@ ThemeConfig (사용자 설정)
 
 1. **Theme Studio가 새 창(`window.open`)으로 분리됨** — Builder 워크플로우 단절
 2. **ThemesPanel이 읽기 전용** — 토큰 목록만 표시, 편집 불가 → "Theme Studio 열기" 버튼이 유일한 인터랙션
-3. **구 ThemeStudio가 Supabase CRUD 기반** — `DesignToken` 테이블에 개별 토큰 CRUD → 색상 하나 변경에 불필요한 DB 왕복 (실제 앱은 IndexedDB 기반)
+3. **구 ThemeStudio가 Cloud CRUD 기반** — `DesignToken` 테이블에 개별 토큰 CRUD → 색상 하나 변경에 불필요한 DB 왕복 (실제 앱은 IndexedDB 기반)
 4. **과도한 기능** — HCT Generator, Figma Import/Export, AI Theme Generator 등 사용되지 않는 서브 뷰 7개
 5. **ADR-017/022 완료 후 토큰 이름 정합** — M3 → S2 토큰 전환 완료(`accent`/`neutral`/`negative` 등), 하지만 Theme Store/DB 스키마는 구 토큰 구조 유지
 6. **현재 Tint System이 하드코딩** — `--tint: var(--blue)` 고정, 사용자가 Builder 내에서 변경 불가
@@ -66,7 +66,7 @@ ThemeConfig (사용자 설정)
 ```
 ThemesPanel (읽기 전용) → "Theme Studio 열기" → window.open('/theme/{projectId}')
   ↓
-ThemeStudio (새 창) → Supabase DB (design_themes, design_tokens)
+ThemeStudio (새 창) → Cloud DB (design_themes, design_tokens)
   ↓
 injectThemeCSS() → <style id="design-theme-vars"> → Preview iframe (CSS만)
                                                       Skia는 별도 경로 (resolveToken)
@@ -87,7 +87,7 @@ injectThemeCSS() → <style id="design-theme-vars"> → Preview iframe (CSS만)
 - `panels/themes/ThemesPanel.tsx` — 읽기 전용 패널
 - `panels/themes/ThemeStudio.tsx` — 새 창 전용 (375줄, 7개 서브뷰)
 - `panels/themes/components/` — AIThemeGenerator, HctThemeGenerator, FigmaImporter, TokenEditor, DarkModeGenerator, FigmaPluginExporter, ThemeExporter
-- `stores/themeStore.ts` — UnifiedThemeStore (Supabase CRUD)
+- `stores/themeStore.ts` — UnifiedThemeStore (Cloud CRUD)
 - `types/theme/index.ts` — DesignToken, DesignTheme 등 (420줄)
 - `packages/specs/src/primitives/colors.ts` — Skia용 S2 색상 맵 (ADR-022 전환 완료, hex 정적)
 - `packages/specs/src/renderers/utils/tokenResolver.ts` — S2 TokenRef → hex/CSSVar 변환 (ADR-022 전환 완료)
@@ -188,7 +188,7 @@ Radix Themes는 **단일 `accentColor` prop으로 12-step 시맨틱 스케일을
 | 11         | Low-contrast text  | `--tint-1100`         | —                        | `--focus-ring-color`            |
 | 12         | High-contrast text | `--tint-1200`         | —                        | `--link-color`                  |
 
-→ Radix 12-step 중 step 9~10 + on-accent이 S2 `accent` 계열과 직접 대응. Step 1~8, 11~12는 CSS `--tint-*` 변수로만 커버 (Spec 토큰 불필요).
+→ Radix 12-step 중 step 9~~10 + on-accent이 S2 `accent` 계열과 직접 대응. Step 1~~8, 11~12는 CSS `--tint-*` 변수로만 커버 (Spec 토큰 불필요).
 
 ### 핵심 인사이트
 
@@ -207,10 +207,10 @@ Radix Themes는 **단일 `accentColor` prop으로 12-step 시맨틱 스케일을
 
 ### 대안 A: Theme Studio 리팩토링 (기존 DB 구조 유지)
 
-- **설명**: ThemeStudio를 새 창에서 Builder 우측 패널로 이동. Supabase 토큰 DB 스키마 유지, UI만 인라인화.
+- **설명**: ThemeStudio를 새 창에서 Builder 우측 패널로 이동. Cloud 토큰 DB 스키마 유지, UI만 인라인화.
 - **위험**:
   - 기술: **L** — UI 이동만으로 기존 코드 대부분 재사용
-  - 성능: **M** — DB 왕복이 여전히 존재 (색상 변경마다 Supabase CRUD)
+  - 성능: **M** — DB 왕복이 여전히 존재 (색상 변경마다 Cloud CRUD)
   - 유지보수: **H** — Tint System과 DB 토큰 이중 관리 지속, CSS 변수 ↔ DB 동기화 복잡도 유지
   - 마이그레이션: **L** — 최소 변경
 
@@ -361,7 +361,7 @@ ThemeConfig
   │     ├─→ Tint → oklch 계산 → hex 변환 → Float32Array
   │     └─→ registryVersion++ → Skia 캐시 무효화 → 캔버스 재렌더링
   │
-  └─→ 프로젝트 메타데이터에 JSON 저장 (비동기, Supabase projects 테이블)
+  └─→ 프로젝트 메타데이터에 JSON 저장 (비동기, Cloud projects 테이블)
 ```
 
 **Skia-CSS 색상 일치 보장 (ADR-022 S2 토큰 기반):**
@@ -531,7 +531,7 @@ function generateThemeCSS(config: ThemeConfig): string {
 
 **목표**: ThemeConfig를 IndexedDB에 저장/복원, Publish 앱에서 정적 테마 적용
 
-**전제**: composition는 IndexedDB 기반 로컬 저장. Supabase는 대시보드에서 사용자가 명시적으로 연동할 때만 접근.
+**전제**: composition는 IndexedDB 기반 로컬 저장. Cloud는 대시보드에서 사용자가 명시적으로 연동할 때만 접근.
 
 **작업 범위:**
 
@@ -540,7 +540,7 @@ function generateThemeCSS(config: ThemeConfig): string {
 3. ThemeConfig 변경 시 IndexedDB 비동기 저장 (디바운스)
 4. **Publish 빌드**: `generateThemeCSS(config)` → `theme.css` 정적 파일 생성
 5. **Publish 런타임**: `theme_config` JSON 로드 → CSS 변수 적용 + `data-theme` 설정
-6. (선택) 대시보드 Supabase 연동 시 ThemeConfig도 프로젝트 메타데이터에 포함하여 동기화
+6. (선택) 대시보드 Cloud 연동 시 ThemeConfig도 프로젝트 메타데이터에 포함하여 동기화
 
 **변경 파일**: ~3개 수정 (Builder 로딩, Publish App, Publish 빌드)
 **위험**: L (DB 마이그레이션 불필요, IndexedDB는 기존 패턴 재사용)
@@ -555,7 +555,7 @@ function generateThemeCSS(config: ThemeConfig): string {
 2. `themeStore.ts` (UnifiedThemeStore) 제거 또는 축소
 3. `/theme/:projectId` 라우트 제거
 4. `types/theme/index.ts` 간소화 — `ThemeConfig` 중심으로
-5. Supabase 관련 테마 서비스 코드 제거 (대시보드 연동과 무관한 구 CRUD)
+5. Cloud 관련 테마 서비스 코드 제거 (대시보드 연동과 무관한 구 CRUD)
 
 **변경 파일**: ~15개 삭제, ~5개 수정
 **위험**: M (삭제 범위 넓지만 Phase A-C에서 대체 완료 후 진행)
@@ -695,7 +695,7 @@ function generateThemeCSS(config: ThemeConfig): string {
 
 ### Negative
 
-1. **구 ThemeStudio 코드 폐기** — ThemeStudio 서브뷰 7개 + UnifiedThemeStore 제거 (Supabase 테마 테이블은 대시보드 연동과 무관)
+1. **구 ThemeStudio 코드 폐기** — ThemeStudio 서브뷰 7개 + UnifiedThemeStore 제거 (Cloud 테마 테이블은 대시보드 연동과 무관)
 2. **고급 토큰 기능 축소** — HCT 생성, Figma Import 등 제거 (사용률 미미하나 재도입 시 비용 발생)
 3. **커스텀 색상 제한** — Tint 프리셋 10종 + 커스텀 hue/chroma로 범위 제한 (개별 토큰 세밀 제어 불가)
 
@@ -713,14 +713,14 @@ function generateThemeCSS(config: ThemeConfig): string {
 
 #### 2차 (2026-03-08): 레거시 서비스 슬림화
 
-| 파일                      | 변경     | 상세                                                                             |
-| ------------------------- | -------- | -------------------------------------------------------------------------------- |
-| `useThemeManager.ts`      | **삭제** | BuilderCore에 직접 인라인 (loadActiveTheme, injectThemeCSS)                      |
-| `hooks/index.ts`          | 수정     | useThemeManager export 제거                                                      |
-| `BuilderCore.tsx`         | 수정     | useThemeManager → useUnifiedThemeStore 직접 사용                                 |
-| `ThemeService.ts`         | 슬림화   | 14개 → 2개 메서드 (getActiveTheme, createTheme). Realtime/Supabase RPC/캐싱 제거 |
-| `TokenService.ts`         | 슬림화   | 16개 → 6개 메서드. Realtime/검색/통계/W3C Import-Export 제거                     |
-| `services/theme/index.ts` | 수정     | UpdateThemeInput export 제거                                                     |
+| 파일                      | 변경     | 상세                                                                          |
+| ------------------------- | -------- | ----------------------------------------------------------------------------- |
+| `useThemeManager.ts`      | **삭제** | BuilderCore에 직접 인라인 (loadActiveTheme, injectThemeCSS)                   |
+| `hooks/index.ts`          | 수정     | useThemeManager export 제거                                                   |
+| `BuilderCore.tsx`         | 수정     | useThemeManager → useUnifiedThemeStore 직접 사용                              |
+| `ThemeService.ts`         | 슬림화   | 14개 → 2개 메서드 (getActiveTheme, createTheme). Realtime/Cloud RPC/캐싱 제거 |
+| `TokenService.ts`         | 슬림화   | 16개 → 6개 메서드. Realtime/검색/통계/W3C Import-Export 제거                  |
+| `services/theme/index.ts` | 수정     | UpdateThemeInput export 제거                                                  |
 
 **보존된 이유 (전체 삭제 불가)**:
 
@@ -804,13 +804,13 @@ themeStore, ThemeService, TokenService의 실제 import/사용처를 검색하�
 
 각 삭제 후 `pnpm type-check`로 참조 누락 없음을 검증한다.
 
-#### Step 4: Supabase design_themes/design_tokens 참조 정리
+#### Step 4: Cloud design_themes/design_tokens 참조 정리
 
 IndexedDB 스키마(`lib/db.ts`)에서 themes/tokens 테이블 참조 확인:
 
 - themeStore 삭제 후에도 IDB 스키마에 테이블 정의가 남아있을 수 있음
 - 미사용 테이블 정의 제거 (데이터는 자연 소멸 — 새 프로젝트에서 미생성)
-- Supabase design_themes/design_tokens 테이블은 대시보드 연동 범위이므로 이 Phase에서 DB 마이그레이션 불필요
+- Cloud design_themes/design_tokens 테이블은 대시보드 연동 범위이므로 이 Phase에서 DB 마이그레이션 불필요
 
 ### Gate 검증 항목
 

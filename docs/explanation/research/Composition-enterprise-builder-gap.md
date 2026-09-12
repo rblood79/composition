@@ -35,16 +35,16 @@
 
 ### 기업용 출시를 차단하는 영역
 
-| 영역 | 현재 상태 | 판정 |
-|---|---|---|
-| 편집 엔진 | 강함. Skia/WASM, selection, layout, component catalog 기반 | 경쟁력 있음 |
-| 디자인 저작 표면 | 부분 지원. 엔진에 있는 grid/effects/transform 중 다수가 Inspector에 노출되지 않음 | HIGH |
-| 반응형 저작 | `responsive.types.ts`와 생성기는 있으나 breakpoint 스위처·canonical 저장·실제 소비 경로가 미완성 | CRITICAL |
-| 데이터/CMS | DataTable·REST·mock 기반. collection binding 경로가 여러 개이고 Publish 소비가 불완전 | HIGH |
-| 협업/권한 | 인증 + 로컬 IndexedDB. workspace/project membership, presence, comments, ACL 부재 | CRITICAL |
-| Publish/Hosting | JSON viewer와 JS runtime 중심. custom domain/CDN/atomic release/rollback/SEO pipeline 부재 | CRITICAL |
-| 보안 | `new Function`, browser-side LLM SDK, 개발용 범용 proxy가 존재 | CRITICAL |
-| 운영 품질 | type-error baseline 67개, 배포 workflow가 builder build 중심 | HIGH |
+| 영역             | 현재 상태                                                                                        | 판정        |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ----------- |
+| 편집 엔진        | 강함. Skia/WASM, selection, layout, component catalog 기반                                       | 경쟁력 있음 |
+| 디자인 저작 표면 | 부분 지원. 엔진에 있는 grid/effects/transform 중 다수가 Inspector에 노출되지 않음                | HIGH        |
+| 반응형 저작      | `responsive.types.ts`와 생성기는 있으나 breakpoint 스위처·canonical 저장·실제 소비 경로가 미완성 | CRITICAL    |
+| 데이터/CMS       | DataTable·REST·mock 기반. collection binding 경로가 여러 개이고 Publish 소비가 불완전            | HIGH        |
+| 협업/권한        | 인증 + 로컬 IndexedDB. workspace/project membership, presence, comments, ACL 부재                | CRITICAL    |
+| Publish/Hosting  | JSON viewer와 JS runtime 중심. custom domain/CDN/atomic release/rollback/SEO pipeline 부재       | CRITICAL    |
+| 보안             | `new Function`, browser-side LLM SDK, 개발용 범용 proxy가 존재                                   | CRITICAL    |
+| 운영 품질        | type-error baseline 67개, 배포 workflow가 builder build 중심                                     | HIGH        |
 
 ## 2. 현재 구조와 목표 구조
 
@@ -79,16 +79,16 @@ flowchart TD
 
 외부 기능은 2026-07-16 기준 각 제품의 공식 문서를 기준으로 비교했다. 기능의 존재 여부를 비교한 것이며, 각 제품의 실제 품질·가격·계약 조건을 평가한 것은 아니다.
 
-| 기준 | composition | Webflow | Framer | Builder.io | Plasmic | GrapesJS |
-|---|---|---|---|---|---|---|
-| 시각 편집 | Custom Skia Canvas와 DOM Preview의 이중 파이프라인. 저수준 엔진은 강하지만 Inspector 노출이 좁음 | 성숙한 CSS/반응형 시각 편집 | 디자인·마케팅 사이트 저작 경험이 강함 | Visual CMS와 codebase 편집 결합 | 코드 컴포넌트와 visual studio 결합 | Embeddable builder kernel |
-| 반응형 | 타입/생성기 기반은 있으나 authoring wiring 미완성 | breakpoint, reflow, variable mode | breakpoint와 responsive editing | visual editor 기반 responsive authoring | 여러 화면 크기 동시 설계 | Style/Responsive 확장 가능 |
-| 컴포넌트/DS | catalog, slots, instance override 기반이 강함. 사용자 정의 variant/property와 team library는 약함 | components, variables, libraries | components, team library | custom components, data models, design system indexing | code components, variants, slots, prop controls | component types, traits, blocks, plugins |
-| CMS/데이터 | DataTable/REST/mock. collection 계약과 Publish 소비 통합이 미완성 | structured CMS, collection templates, API | CMS와 content editor | models, data binding, live preview, A/B, scheduling | built-in CMS와 headless/codebase 연결 | 외부 host가 storage/CMS를 구성 |
-| 협업/권한 | 인증만. local-only document | workspace/site roles, custom roles, granular access, activity log | workspace/project roles, content editor, deploy permission | environment permissions, request-to-publish, workflows, activity log | multiplayer, branching, approvals | 기본적으로 host 애플리케이션 책임 |
-| 버전/배포 | page history/undo는 있으나 named version, staging, production release 없음 | staging, page branching, backups, custom hosting | immutable published versions, staging, rollback | environments와 publish workflow | branching/version control/codegen | project JSON + storage manager, 배포는 host 책임 |
-| SEO/운영 | title/viewport 중심 static HTML. meta/OG/sitemap/robots/@media pipeline 부족 | SEO와 hosting이 제품 범위에 포함 | publish 전 최적화 검사와 hosting 제공 | composable CMS/production integration | codebase/hosting과 결합 | host가 직접 구현 |
-| 차별화 포인트 | 접근성 친화 DOM + 자체 렌더/레이아웃 + 데이터/액션/AI 잠재력 | 가장 균형 잡힌 사이트 운영 모델 | 빠른 디자인·콘텐츠 제작 | CMS·환경·코드베이스·AI 협업 | code-first visual CMS | 확장 가능한 embeddable engine |
+| 기준          | composition                                                                                       | Webflow                                                           | Framer                                                     | Builder.io                                                           | Plasmic                                         | GrapesJS                                         |
+| ------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ---------------------------------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| 시각 편집     | Custom Skia Canvas와 DOM Preview의 이중 파이프라인. 저수준 엔진은 강하지만 Inspector 노출이 좁음  | 성숙한 CSS/반응형 시각 편집                                       | 디자인·마케팅 사이트 저작 경험이 강함                      | Visual CMS와 codebase 편집 결합                                      | 코드 컴포넌트와 visual studio 결합              | Embeddable builder kernel                        |
+| 반응형        | 타입/생성기 기반은 있으나 authoring wiring 미완성                                                 | breakpoint, reflow, variable mode                                 | breakpoint와 responsive editing                            | visual editor 기반 responsive authoring                              | 여러 화면 크기 동시 설계                        | Style/Responsive 확장 가능                       |
+| 컴포넌트/DS   | catalog, slots, instance override 기반이 강함. 사용자 정의 variant/property와 team library는 약함 | components, variables, libraries                                  | components, team library                                   | custom components, data models, design system indexing               | code components, variants, slots, prop controls | component types, traits, blocks, plugins         |
+| CMS/데이터    | DataTable/REST/mock. collection 계약과 Publish 소비 통합이 미완성                                 | structured CMS, collection templates, API                         | CMS와 content editor                                       | models, data binding, live preview, A/B, scheduling                  | built-in CMS와 headless/codebase 연결           | 외부 host가 storage/CMS를 구성                   |
+| 협업/권한     | 인증만. local-only document                                                                       | workspace/site roles, custom roles, granular access, activity log | workspace/project roles, content editor, deploy permission | environment permissions, request-to-publish, workflows, activity log | multiplayer, branching, approvals               | 기본적으로 host 애플리케이션 책임                |
+| 버전/배포     | page history/undo는 있으나 named version, staging, production release 없음                        | staging, page branching, backups, custom hosting                  | immutable published versions, staging, rollback            | environments와 publish workflow                                      | branching/version control/codegen               | project JSON + storage manager, 배포는 host 책임 |
+| SEO/운영      | title/viewport 중심 static HTML. meta/OG/sitemap/robots/@media pipeline 부족                      | SEO와 hosting이 제품 범위에 포함                                  | publish 전 최적화 검사와 hosting 제공                      | composable CMS/production integration                                | codebase/hosting과 결합                         | host가 직접 구현                                 |
+| 차별화 포인트 | 접근성 친화 DOM + 자체 렌더/레이아웃 + 데이터/액션/AI 잠재력                                      | 가장 균형 잡힌 사이트 운영 모델                                   | 빠른 디자인·콘텐츠 제작                                    | CMS·환경·코드베이스·AI 협업                                          | code-first visual CMS                           | 확장 가능한 embeddable engine                    |
 
 ### 비교에서 가져와야 할 패턴
 
@@ -143,28 +143,28 @@ GrapesJS는 HTML/CSS를 persistence source로 삼지 않고, editor가 이해하
 
 ### P0 — 엔터프라이즈 파일럿 전에 반드시 해결
 
-| 과제 | 현재 근거 | 필요한 보완 | 완료 기준 |
-|---|---|---|---|
-| 1. Remote control plane | Supabase는 auth 중심이고 프로젝트는 IndexedDB local-only | 조직·workspace·project·membership·role·permission·document·release·audit schema와 API 도입. IndexedDB는 offline cache로 격하 | 두 사용자가 같은 프로젝트를 열고 권한에 따라 read/design/content/deploy가 차단됨 |
-| 2. Canonical persistence 완결 | `canonicalDocumentStore`가 in-memory mutation skeleton이며 history/undo/persistence 미통합이라고 명시 | 모든 mutation을 versioned command/patch로 기록. optimistic concurrency, conflict detection, autosave, server snapshot, restore point 도입 | 브라우저 새로고침·다중 탭·동시 수정·복원에서 요소 유실과 silent overwrite가 없음 |
-| 3. Release/hosting pipeline | `apps/publish`는 JSON runtime이며 static export도 JS runtime을 인라인하는 단일 HTML 중심 | Site manifest, build artifact, preview/staging/production environment, immutable release, custom domain/CDN/SSL, deploy webhook, rollback 설계 | 페이지별 HTML/CSS/asset/runtime을 staging에 배포하고 승인된 release만 production으로 승격 가능 |
-| 4. SEO와 실제 responsive output | export에 title/viewport는 있으나 meta/OG/sitemap/robots/@media 경로가 부족 | page SEO model, canonical URL, OG/Twitter metadata, structured data, sitemap, robots, per-page HTML, CSS media query/SSR 또는 SSG 도입 | Lighthouse/검색 크롤러 관점에서 metadata·semantic HTML·mobile output이 검증됨 |
-| 5. Breakpoint authoring | responsive 타입과 생성기는 있으나 스위처·canonical 저장·소비 경로가 미완성. ADR-154가 Proposed | desktop base + tablet/mobile override schema를 canonical에 배선. Inspector breakpoint switcher, dirty override, 단일 cascade resolver, Skia/Preview/Publish parity 테스트 | 대표 컴포넌트 3종 × breakpoint 3개에서 편집·Preview resize·Publish 결과가 동일함 |
-| 6. Runtime security boundary | `useDataSource.ts`의 transform이 `new Function`을 사용하고, Vite 개발 proxy는 임의 target URL을 중계. AI 서비스는 browser SDK와 `dangerouslyAllowBrowser`를 사용 | 사용자 코드 제거 또는 제한 DSL/Worker sandbox. 외부 API는 server action gateway + secret vault + domain allowlist + rate limit. AI 호출은 server gateway로 이동 | production bundle에 secret이 없고 임의 코드·SSRF·임의 header forwarding이 불가능함 |
-| 7. Release quality gate | `apps/builder/.type-errors-baseline.txt`에 67개 오류가 남아 있음. 배포 workflow는 builder build 중심 | type-error baseline을 새 오류 0 정책으로 전환하고, lint/test/e2e/visual parity/export smoke를 CI required check으로 승격 | PR에서 type, unit, browser smoke, publish artifact, migration test를 모두 통과해야 merge/deploy됨 |
+| 과제                            | 현재 근거                                                                                                                                                        | 필요한 보완                                                                                                                                                               | 완료 기준                                                                                         |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| 1. Remote control plane         | Cloud는 auth 중심이고 프로젝트는 IndexedDB local-only                                                                                                            | 조직·workspace·project·membership·role·permission·document·release·audit schema와 API 도입. IndexedDB는 offline cache로 격하                                              | 두 사용자가 같은 프로젝트를 열고 권한에 따라 read/design/content/deploy가 차단됨                  |
+| 2. Canonical persistence 완결   | `canonicalDocumentStore`가 in-memory mutation skeleton이며 history/undo/persistence 미통합이라고 명시                                                            | 모든 mutation을 versioned command/patch로 기록. optimistic concurrency, conflict detection, autosave, server snapshot, restore point 도입                                 | 브라우저 새로고침·다중 탭·동시 수정·복원에서 요소 유실과 silent overwrite가 없음                  |
+| 3. Release/hosting pipeline     | `apps/publish`는 JSON runtime이며 static export도 JS runtime을 인라인하는 단일 HTML 중심                                                                         | Site manifest, build artifact, preview/staging/production environment, immutable release, custom domain/CDN/SSL, deploy webhook, rollback 설계                            | 페이지별 HTML/CSS/asset/runtime을 staging에 배포하고 승인된 release만 production으로 승격 가능    |
+| 4. SEO와 실제 responsive output | export에 title/viewport는 있으나 meta/OG/sitemap/robots/@media 경로가 부족                                                                                       | page SEO model, canonical URL, OG/Twitter metadata, structured data, sitemap, robots, per-page HTML, CSS media query/SSR 또는 SSG 도입                                    | Lighthouse/검색 크롤러 관점에서 metadata·semantic HTML·mobile output이 검증됨                     |
+| 5. Breakpoint authoring         | responsive 타입과 생성기는 있으나 스위처·canonical 저장·소비 경로가 미완성. ADR-154가 Proposed                                                                   | desktop base + tablet/mobile override schema를 canonical에 배선. Inspector breakpoint switcher, dirty override, 단일 cascade resolver, Skia/Preview/Publish parity 테스트 | 대표 컴포넌트 3종 × breakpoint 3개에서 편집·Preview resize·Publish 결과가 동일함                  |
+| 6. Runtime security boundary    | `useDataSource.ts`의 transform이 `new Function`을 사용하고, Vite 개발 proxy는 임의 target URL을 중계. AI 서비스는 browser SDK와 `dangerouslyAllowBrowser`를 사용 | 사용자 코드 제거 또는 제한 DSL/Worker sandbox. 외부 API는 server action gateway + secret vault + domain allowlist + rate limit. AI 호출은 server gateway로 이동           | production bundle에 secret이 없고 임의 코드·SSRF·임의 header forwarding이 불가능함                |
+| 7. Release quality gate         | `apps/builder/.type-errors-baseline.txt`에 67개 오류가 남아 있음. 배포 workflow는 builder build 중심                                                             | type-error baseline을 새 오류 0 정책으로 전환하고, lint/test/e2e/visual parity/export smoke를 CI required check으로 승격                                                  | PR에서 type, unit, browser smoke, publish artifact, migration test를 모두 통과해야 merge/deploy됨 |
 
 ### P1 — P0 이후 생산성과 확장성을 결정
 
-| 과제 | 필요한 보완 |
-|---|---|
+| 과제                       | 필요한 보완                                                                                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Collection/CMS 계약 단일화 | `collectionId + fieldMap + query + locale + environment`를 canonical binding으로 고정하고, Builder/Preview/Publish가 같은 resolver를 사용. 현재 Proposed인 ADR-152를 구현 단위로 삼되, 먼저 data model을 서버·버전·권한과 연결 |
-| Publish runtime parity | Builder EventEngine의 액션 집합과 Publish `ActionExecutor`의 지원 범위를 동일 capability matrix로 관리. Publish에서 실패하는 action을 publish 전 오류로 표시 |
-| Inspector surface 확장 | 엔진에 이미 있는 opacity, blend, blur/filter, clip-path, transform, per-corner radius, grid, position, responsive 속성을 UI로 노출. 저장만 되고 소비되지 않는 값은 제거하거나 명확히 `unsupported` 처리 |
-| 사용자 디자인 시스템 | token CRUD, alias, mode, typography/color/effect style preset, component variant/property, project/team library를 서버 버전과 연결 |
-| Asset/locale 관리 | 이미지·SVG·video·font asset library, metadata, transform, CDN URL, rights 정보, locale별 content variant, translation workflow 도입 |
-| 협업 | presence, cursor, comments, mentions, review state, branch, merge, approval, read-only share link. 실시간 협업은 remote document와 conflict model 이후에 착수 |
-| 접근성·품질 검사기 | React Aria 런타임 장점을 authoring-time lint로 확장: heading order, label association, contrast, keyboard path, alt text, focus visibility, landmark/semantic structure 검사 |
-| 문서 상태 관리 | `PLANNED.md`와 `UNIMPLEMENTED.md`의 오래된 업데이트 날짜를 제거하고 capability registry를 코드/ADR/문서에서 자동 생성. Proposed/Accepted/Implemented/Partial의 기준을 CI에서 검증 |
+| Publish runtime parity     | Builder EventEngine의 액션 집합과 Publish `ActionExecutor`의 지원 범위를 동일 capability matrix로 관리. Publish에서 실패하는 action을 publish 전 오류로 표시                                                                   |
+| Inspector surface 확장     | 엔진에 이미 있는 opacity, blend, blur/filter, clip-path, transform, per-corner radius, grid, position, responsive 속성을 UI로 노출. 저장만 되고 소비되지 않는 값은 제거하거나 명확히 `unsupported` 처리                        |
+| 사용자 디자인 시스템       | token CRUD, alias, mode, typography/color/effect style preset, component variant/property, project/team library를 서버 버전과 연결                                                                                             |
+| Asset/locale 관리          | 이미지·SVG·video·font asset library, metadata, transform, CDN URL, rights 정보, locale별 content variant, translation workflow 도입                                                                                            |
+| 협업                       | presence, cursor, comments, mentions, review state, branch, merge, approval, read-only share link. 실시간 협업은 remote document와 conflict model 이후에 착수                                                                  |
+| 접근성·품질 검사기         | React Aria 런타임 장점을 authoring-time lint로 확장: heading order, label association, contrast, keyboard path, alt text, focus visibility, landmark/semantic structure 검사                                                   |
+| 문서 상태 관리             | `PLANNED.md`와 `UNIMPLEMENTED.md`의 오래된 업데이트 날짜를 제거하고 capability registry를 코드/ADR/문서에서 자동 생성. Proposed/Accepted/Implemented/Partial의 기준을 CI에서 검증                                              |
 
 ### P2 — 제품 차별화와 고급 디자인 기능
 
@@ -192,12 +192,12 @@ Canonical Document
 
 각 기능은 다음 capability matrix를 가져야 한다.
 
-| capability | canonical 저장 | Skia | Preview | Publish | Inspector | 테스트 |
-|---|---:|---:|---:|---:|---:|---:|
-| responsive width | yes/no | yes/no | yes/no | yes/no | yes/no | cross-runtime |
-| data binding | yes/no | yes/no | yes/no | yes/no | yes/no | fixture |
-| event/action | yes/no | yes/no | yes/no | yes/no | yes/no | execution |
-| style effect | yes/no | yes/no | yes/no | yes/no | yes/no | visual |
+| capability       | canonical 저장 |   Skia | Preview | Publish | Inspector |        테스트 |
+| ---------------- | -------------: | -----: | ------: | ------: | --------: | ------------: |
+| responsive width |         yes/no | yes/no |  yes/no |  yes/no |    yes/no | cross-runtime |
+| data binding     |         yes/no | yes/no |  yes/no |  yes/no |    yes/no |       fixture |
+| event/action     |         yes/no | yes/no |  yes/no |  yes/no |    yes/no |     execution |
+| style effect     |         yes/no | yes/no |  yes/no |  yes/no |    yes/no |        visual |
 
 “저장되지만 소비되지 않음”, “렌더되지만 편집 불가”, “Builder에서 실행되지만 Publish에서 실패”를 각각 제품 결함으로 추적해야 한다.
 
@@ -293,7 +293,7 @@ Organization
 
 - P0 control/delivery plane을 만들기 전에 컴포넌트 종류를 계속 늘리기
 - renderer parity의 모든 잔여 항목을 enterprise readiness의 선행조건으로 취급하기
-- Supabase auth-only 정책을 그대로 유지하면서 다중 사용자·권한·공유를 제품 요구사항으로 선언하기
+- Cloud auth-only 정책을 그대로 유지하면서 다중 사용자·권한·공유를 제품 요구사항으로 선언하기
 - `new Function`이나 browser-side AI를 “개발용”이라는 이유로 production 경로와 같은 패키지에 남겨두기
 - named release/branch/approval 없이 Publish 버튼만 추가하기
 - 현재 67개 type-error baseline을 장기 허용 상태로 유지하기

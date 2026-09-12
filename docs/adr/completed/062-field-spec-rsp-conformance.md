@@ -40,7 +40,7 @@ composition은 3-domain 분할을 이미 암묵적으로 적용해 왔다:
 
 **데이터 저장 실태 (2026-04-13 확인)**:
 
-프로젝트/element 데이터 = 사용자 브라우저 IndexedDB. Supabase sync 코드는 `apps/builder/src/dashboard/index.tsx` 에 wired 상태이나 실운용상 미사용 — 본 ADR은 실운용 상태 기준, 중앙 집계 데이터 부재 전제 유지. 기존 저장 data에 잔존할 `variant` 키는 **마이그레이션 없이 런타임 제거**로 처리 (아래 Skia 런타임 소비자 수정 참조). 본 ADR은 **기존 데이터 마이그레이션 기능을 도입하지 않는다** — 시각적 breaking change(variant 기반 색상 일부 소실)는 명시적으로 수용.
+프로젝트/element 데이터 = 사용자 브라우저 IndexedDB. Cloud sync 코드는 `apps/builder/src/dashboard/index.tsx` 에 wired 상태이나 실운용상 미사용 — 본 ADR은 실운용 상태 기준, 중앙 집계 데이터 부재 전제 유지. 기존 저장 data에 잔존할 `variant` 키는 **마이그레이션 없이 런타임 제거**로 처리 (아래 Skia 런타임 소비자 수정 참조). 본 ADR은 **기존 데이터 마이그레이션 기능을 도입하지 않는다** — 시각적 breaking change(variant 기반 색상 일부 소실)는 명시적으로 수용.
 
 **variant 런타임 소비자 전수 조사 (2026-04-13 실측 grep 결과 58건)**:
 
@@ -164,11 +164,11 @@ composition은 3-domain 분할을 이미 암묵적으로 적용해 왔다:
 
 ## Gates
 
-| Gate | 시점 | 통과 조건 | 실패 시 대안 |
-| --- | --- | --- | --- |
-| G1: Spec+소비자 정리 | Phase 1 각 컴포넌트 | `pnpm type-check` 통과 + `pnpm build:specs` 외부 컴포넌트 0 byte diff + validator 통과 (validator 규칙 완화 포함) | 해당 컴포넌트 revert, 다음 단위 진행 |
-| G2: 대칭 회귀 | Phase 3 완료 | 11/11 컴포넌트 대칭 통과 — `parallel-verify` skill로 일괄 집행 | 실패 컴포넌트 Skia shapes 재작업 |
-| G3: 접근성·테스트 | Phase 4 완료 | Storybook 스크린샷 diff 리뷰 완료 (의도적 변경만 승인) + 기존 unit/integration 테스트 pass (variant 테스트는 isInvalid 기반으로 마이그레이션) | 회귀 시나리오별 보강 |
+| Gate                 | 시점                | 통과 조건                                                                                                                                     | 실패 시 대안                         |
+| -------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| G1: Spec+소비자 정리 | Phase 1 각 컴포넌트 | `pnpm type-check` 통과 + `pnpm build:specs` 외부 컴포넌트 0 byte diff + validator 통과 (validator 규칙 완화 포함)                             | 해당 컴포넌트 revert, 다음 단위 진행 |
+| G2: 대칭 회귀        | Phase 3 완료        | 11/11 컴포넌트 대칭 통과 — `parallel-verify` skill로 일괄 집행                                                                                | 실패 컴포넌트 Skia shapes 재작업     |
+| G3: 접근성·테스트    | Phase 4 완료        | Storybook 스크린샷 diff 리뷰 완료 (의도적 변경만 승인) + 기존 unit/integration 테스트 pass (variant 테스트는 isInvalid 기반으로 마이그레이션) | 회귀 시나리오별 보강                 |
 
 **잔존 HIGH 위험**: 대안 A 기술 HIGH 1건 (Risk Threshold Check 기준). Gate G1/G2/G3의 단계별 검증으로 관리. 위험 수용 근거는 위 Decision #1~5 참조.
 
@@ -189,4 +189,4 @@ composition은 3-domain 분할을 이미 암묵적으로 적용해 왔다:
 - **시각적 breaking change (명시적 수용)** — 기존 IndexedDB 프로젝트에 저장된 `variant` 키는 런타임에서 자동 무시. `variant="negative"` 기반 오류 색상 표시는 **소실** (사용자는 `isInvalid` 상태 prop으로 마이그레이션 수동). 본 ADR은 이를 초기 단계의 수용 가능한 비용으로 판정.
 - **per-instance 색상 의도 소실** — `variant="accent|purple|neutral"`은 전역 `--tint`로 1:N 축소. 같은 프로젝트에서 TextField A에 `accent`, TextField B에 `purple`을 지정한 경우 둘 다 전역 tint 단일 색상으로 수렴. per-component tint 오버라이드를 위한 prop 신설은 variant 리브랜딩에 불과하며 RSP 표준 일탈 재발 — 도입 거부. 사용자가 디자인 의도 유지가 필요하면 element-level `style={{ "--tint": "var(--purple)" }}` CSS override로 대응 가능(공식 지원 아님).
 - **ColorField `filled` 디자인 의도 소실** — Spec/CSS에서 단순 제거. telemetry 미도입 (초기 단계 계측 인프라 부재). **관찰 실행 계획**: (i) 수집 주체 = 개발자 본인이 ColorField 사용 리뷰 요청/이슈를 모니터링, (ii) 관찰 기간 = 본 ADR 머지 후 **6주**, (iii) 후속 ADR 발동 threshold = "filled 요청 1건 이상 or 특정 디자인 의도 명시적 제기" 시. 기간 내 관찰 0건이면 ColorField.spec.ts의 filled 참조 제거 ADR 없이 정리 확정(`feature/colorfield-filled-cleanup` 브랜치에 후속 커밋).
-- **Phase 1~4 작업 실 3~4일** — 본 ADR이 완료되기 전 ADR-059 v2의 variant 블로커만 중단 해제. ADR-059의 size/state/composition 블로커는 별도 과제로 남음 (ADR-059 재개 조건은 본 ADR 완료 + 별도 선행 작업).
+- **Phase 1~~4 작업 실 3~~4일** — 본 ADR이 완료되기 전 ADR-059 v2의 variant 블로커만 중단 해제. ADR-059의 size/state/composition 블로커는 별도 과제로 남음 (ADR-059 재개 조건은 본 ADR 완료 + 별도 선행 작업).

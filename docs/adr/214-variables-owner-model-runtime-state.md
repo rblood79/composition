@@ -65,7 +65,7 @@ Data 패널의 Variables 탭은 정의 · 전달 · 초기화까지만 있고 **
   - 기술: L
   - 성능: L
   - 유지보수: L
-  - 마이그레이션: **H** — 기존 `variables` store (IndexedDB · Supabase) 전수 이관 + 이중화 기간, `persist` (localStorage) 의 프로젝트 레벨 의미가 문서 레벨과 어긋남. ADR-131 Phase 8 이 "데이터 영역을 문서에서 뺐다" 는 방향 (사용자 확정) 과 반대 방향의 이동이라 재판정 없이는 택할 수 없다
+  - 마이그레이션: **H** — 기존 `variables` store (IndexedDB · Cloud) 전수 이관 + 이중화 기간, `persist` (localStorage) 의 프로젝트 레벨 의미가 문서 레벨과 어긋남. ADR-131 Phase 8 이 "데이터 영역을 문서에서 뺐다" 는 방향 (사용자 확정) 과 반대 방향의 이동이라 재판정 없이는 택할 수 없다
 
 ### 대안 D: 페이지 · 요소 변수를 root collection `variables` (소유자 키) 로 — 노드 필드 대신
 

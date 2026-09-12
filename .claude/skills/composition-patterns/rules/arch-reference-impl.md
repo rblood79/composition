@@ -66,7 +66,7 @@ tags: [architecture, reference, patterns]
 
 ## 서비스 패턴
 
-> ADR-128 이후 cloud 백엔드는 없다 (인증도 2026-09-12 로컬 라이선스로 대체, Supabase 의존 0) — DB CRUD 서비스 래퍼(구 ProjectsApiService/BaseApiService)는 제거되었습니다. 문서/요소 영속은 IndexedDB canonical document 경로가 담당합니다.
+> ADR-128 이후 cloud 백엔드는 없다 (인증도 2026-09-12 로컬 라이선스로 대체, 외부 서비스 의존 0) — DB CRUD 서비스 래퍼(구 ProjectsApiService/BaseApiService)는 제거되었습니다. 문서/요소 영속은 IndexedDB canonical document 경로가 담당합니다.
 
 | 패턴        | 참조 파일                      | 설명           |
 | ----------- | ------------------------------ | -------------- |
@@ -81,9 +81,9 @@ tags: [architecture, reference, patterns]
 
 ## 메시징 패턴
 
-| 패턴             | 참조 파일                               | 설명                                              |
-| ---------------- | --------------------------------------- | ------------------------------------------------- |
-| Message Handler  | `preview/messaging/messageHandler.ts`   | 메시지 타입 정의 (`UPDATE_CANONICAL_DOCUMENT` 등) |
+| 패턴            | 참조 파일                             | 설명                                              |
+| --------------- | ------------------------------------- | ------------------------------------------------- |
+| Message Handler | `preview/messaging/messageHandler.ts` | 메시지 타입 정의 (`UPDATE_CANONICAL_DOCUMENT` 등) |
 
 ## 사용법
 

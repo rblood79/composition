@@ -11,19 +11,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Supabase 잔재 완전 제거 — 코드 · 규칙 · CI · 문서] - 2026-09-12
+## [구 클라우드 BaaS 이름 저장소 전체 소거 — 아카이브 · 재도입 가드 · SDK 잔재] - 2026-09-12
 
-> 인증 교체 (아래 엔트리) 뒤 남아 있던 이름·타입·설정·규칙 전부. ADR-128 (cloud decommission) 이후에도 남았던 것들이다. ADR 본문·CHANGELOG 아카이브·`docs/legacy/`·`docs/features/completed/` 는 역사 기록이라 그대로 둔다.
+> 아래 두 엔트리 뒤 "역사 기록" 으로 남겨 뒀던 언급까지 사용자 결정으로 전부 뺐다 ("아카이브와 재도입 가드 필요없다 sdk 와 모든것 제거"). 저장소 전체 (`node_modules` · `dist` 제외) 에서 그 이름은 0건.
 
 ### Removed
 
-- **코드**: `types/integrations/supabase.types.ts` (→ `types/builder/elementProps.types.ts`, `ElementProps` 내용 무변경) · `utils/realtimeBatcher.ts` · `services/api/ErrorHandler.ts` (둘 다 소비처 0) · 데이터 바인딩 소스 축 `"supabase"` (inspector `Supabase*Config`, shared `DataBinding`, preview `DataSource`, workflow edge/색, `TableRenderer` supabase 분기, AI `bind_collection` enum·i18n `supabaseNeedsTable`) · `VITE_SUPABASE_*` env 타입 · vite optimizeDeps · vitest env stub.
-- **하니스**: `scripts/.auth-session.json` 을 추적 해제 (구 Supabase 세션 토큰이 커밋돼 있었다 — gitignore) · perf/A-B 하니스의 dev→prod 세션 미러 (storage key 가 하나가 됐다) 제거 · **`scripts/capture-auth-session.mjs <코드>`** 가 라이선스 로그인으로 세션 파일을 만든다.
-- **규칙·CI·문서**: `composition-patterns` 의 `supabase-*` 규칙 3 + 섹션 · `.github/instructions/supabase.instructions.md` · deploy.yml 의 `VITE_SUPABASE_*` secrets · protect-files 의 `supabase/config.toml` · `docs/reference/schemas/SUPABASE.md` · `docs/migrations/*.sql` (Supabase RLS 스키마) · AGENTS/CLAUDE/README/DOCUMENT_STRUCTURE/PAGE_TYPES/DRAG_DROP 의 Supabase 서술.
+- **재도입 가드 3** (`elementLoader.static` · `panelWorkspaceLayoutV2Persistence` · `useColorStyleValues.readOnly.static` 의 `not.toContain`/정규식 항) — 코드 축이 사라졌으므로 가드도 뺀다. 3 파일 20 테스트 PASS.
+- **SDK 잔재**: `node_modules/.pnpm` 에 남아 있던 구 SDK 7 패키지 (`pnpm prune`) + 전역 store (`pnpm store prune`, 446 패키지). lockfile 은 이미 0.
+- **문서 138 파일 747 줄**: ADR 본문·design·reviews·CHANGELOG 아카이브 3·`docs/legacy/`·`docs/features/completed/`·research·audits 의 이름을 `Cloud`/`cloud` 로 치환 (식별자·경로·env 이름 포함 — 예 `CloudAdapter` · `cloud.types.ts` · `VITE_CLOUD_*`; 위 두 엔트리의 식별자 표기도 같이 바뀌었다). ADR-128 파일명 `128-cloud-backend-decommission(-breakdown).md` 로 rename. 외부 제품 비교 (`DATA_PANEL_EXTERNAL_SOURCES_2026-09.md` A10 절 · AI Assistant/MCP 항목 · 수렴 목록의 제품명) 와 외부 문서 링크는 항목 자체를 뺐다.
+- `arch-reference-impl.md` 의 "의존 0" 서술은 "외부 서비스 의존 0" 으로.
 
-## [Supabase 인증 제거 → 라이선스 파일 + 검증 코드 로컬 인증 (폐쇄망)] - 2026-09-12
+## [Cloud 잔재 완전 제거 — 코드 · 규칙 · CI · 문서] - 2026-09-12
 
-> 빌더가 인터넷 없는 사내망에서 동작해야 한다 (사용자 결정 2026-09-12). Supabase 는 실측상 **인증에만** 쓰였고 (프로젝트·문서는 이미 IndexedDB) 제거했다. 발급기 `/Users/admin/work/jwt` (`main.py` · `license_generator.html`, commit `8ff20bb`) 와 형식 계약 v1 (`docs/LICENSE_TOKEN_FORMAT.md`) 을 공유한다. live: `apps/builder/scripts/license-auth-live.mjs` 실제 빌더 10/10 (게이트 · 틀린 코드 · 통과 · 리로드/새 탭 · 만료 · 로그아웃 · 인증 중 외부 요청 0) + 서버 루트 `license.jwt` 자동 인식 1.
+> 인증 교체 (아래 엔트리) 뒤 남아 있던 이름·타입·설정·규칙 전부. ADR-128 (cloud decommission) 이후에도 남았던 것들이다.
+
+### Removed
+
+- **코드**: `types/integrations/cloud.types.ts` (→ `types/builder/elementProps.types.ts`, `ElementProps` 내용 무변경) · `utils/realtimeBatcher.ts` · `services/api/ErrorHandler.ts` (둘 다 소비처 0) · 데이터 바인딩 소스 축 `"cloud"` (inspector `Cloud*Config`, shared `DataBinding`, preview `DataSource`, workflow edge/색, `TableRenderer` cloud 분기, AI `bind_collection` enum·i18n `cloudNeedsTable`) · `VITE_CLOUD_*` env 타입 · vite optimizeDeps · vitest env stub.
+- **하니스**: `scripts/.auth-session.json` 을 추적 해제 (구 Cloud 세션 토큰이 커밋돼 있었다 — gitignore) · perf/A-B 하니스의 dev→prod 세션 미러 (storage key 가 하나가 됐다) 제거 · **`scripts/capture-auth-session.mjs <코드>`** 가 라이선스 로그인으로 세션 파일을 만든다.
+- **규칙·CI·문서**: `composition-patterns` 의 `cloud-*` 규칙 3 + 섹션 · `.github/instructions/cloud.instructions.md` · deploy.yml 의 `VITE_CLOUD_*` secrets · protect-files 의 `cloud/config.toml` · `docs/reference/schemas/CLOUD.md` · `docs/migrations/*.sql` (Cloud RLS 스키마) · AGENTS/CLAUDE/README/DOCUMENT_STRUCTURE/PAGE_TYPES/DRAG_DROP 의 Cloud 서술.
+
+## [Cloud 인증 제거 → 라이선스 파일 + 검증 코드 로컬 인증 (폐쇄망)] - 2026-09-12
+
+> 빌더가 인터넷 없는 사내망에서 동작해야 한다 (사용자 결정 2026-09-12). Cloud 는 실측상 **인증에만** 쓰였고 (프로젝트·문서는 이미 IndexedDB) 제거했다. 발급기 `/Users/admin/work/jwt` (`main.py` · `license_generator.html`, commit `8ff20bb`) 와 형식 계약 v1 (`docs/LICENSE_TOKEN_FORMAT.md`) 을 공유한다. live: `apps/builder/scripts/license-auth-live.mjs` 실제 빌더 10/10 (게이트 · 틀린 코드 · 통과 · 리로드/새 탭 · 만료 · 로그아웃 · 인증 중 외부 요청 0) + 서버 루트 `license.jwt` 자동 인식 1.
 
 ### Added
 
@@ -34,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
-- `@supabase/supabase-js` 의존성 · `env/supabase.client.ts` · `auth/devAutoLogin.ts` (email/password 로그인, dev 자동 로그인) · `.env` 의 `VITE_SUPABASE_*` / `VITE_DEV_EMAIL` / `VITE_DEV_PASSWORD`. 테스트 13개의 supabase mock 제거. `created_by` 는 라이선스 키.
+- `cloud SDK` 의존성 · `env/cloud.client.ts` · `auth/devAutoLogin.ts` (email/password 로그인, dev 자동 로그인) · `.env` 의 `VITE_CLOUD_*` / `VITE_DEV_EMAIL` / `VITE_DEV_PASSWORD`. 테스트 13개의 cloud mock 제거. `created_by` 는 라이선스 키.
 - `.gitignore`: `apps/builder/token` · `token.jwt` · `public/license` (코드가 평문이던 구형식 `apps/builder/token` 은 재발급 대상).
 
 ## [ADR-216 Implemented — Chart 시간축 · 날짜 지시자 형식/파싱 · 가변 창 (thumb 2)] - 2026-09-12
@@ -91,7 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `bind_collection` (AI tool): `{ elementId, collectionId | collectionName, fieldMap? }` 로 정정 — legacy `source:"static"` + 행은 새 테이블 생성 + 연결 한 묶음 (승인 1회), `source:"api"|"supabase"` 는 안내 오류.
+- `bind_collection` (AI tool): `{ elementId, collectionId | collectionName, fieldMap? }` 로 정정 — legacy `source:"static"` + 행은 새 테이블 생성 + 연결 한 묶음 (승인 1회), `source:"api"|"cloud"` 는 안내 오류.
 - `define_endpoint` 가 데이터 적용기에 들어왔다 (IndexedDB · 메모리 · History · rollback 이 collection · 바인딩과 한 트랜잭션). `delete_endpoint` 는 사람 전용 op (되돌리기 용).
 
 ## [Variables — 페이지 변수는 소유 페이지를 갖는다 (ADR-214 판정 C + 생성 경로 차단)] - 2026-09-11
@@ -135,7 +146,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Architecture
 
-- collections read 경로 단일화: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` (Tabs · Tree 도 정렬), `datatableId` · `elementId` 옵션과 `DataTableService.addConsumer/removeConsumer/loadDataTable` · supabase 분기 제거. `useDataStore.collections` Map 은 id 키, resolve 는 `resolveBoundCollection` 하나.
+- collections read 경로 단일화: `useCollectionData({ dataBinding })` → `useResolvedCollectionItems` (Tabs · Tree 도 정렬), `datatableId` · `elementId` 옵션과 `DataTableService.addConsumer/removeConsumer/loadDataTable` · cloud 분기 제거. `useDataStore.collections` Map 은 id 키, resolve 는 `resolveBoundCollection` 하나.
 - store 단일화: legacy `stores/datatable.ts` · `components/data/DataTable.tsx` · `hooks/useDataQueries.ts` 삭제 (사용자 승인) — `BuilderCore` 의 `LOAD_DATA_TABLE` / `SAVE_TO_DATA_TABLE` 과 `DataTablePanel` 이 `useDataStore` 만 읽는다 (React Query 병행 제거).
 - `.claude/rules/state-management.md` §Collections read 진입점에 v2 계약 · `DataChange` · publish snapshot 규칙 기재. 후속 정리 (같은 날): 고아 `types/datatable.types.ts` (import 0) 삭제 · `main.tsx` `QueryClientProvider` 와 `@tanstack/react-query` 의존 제거 (소비처 0). 잔여 (기록만): publish 의 ref ListBox master slot 템플릿 미보간 (publish App 이 ref 를 확장하지 않음 — ADR-162/159 publish leg, 범위 밖).
 

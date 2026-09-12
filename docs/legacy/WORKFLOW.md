@@ -273,7 +273,7 @@ renderWorkflowEdges(ck, canvas, edges, pageFrameMap, zoom)
 export interface DataSourceEdge {
   dataSourceId: string;
   dataSourceName: string;
-  sourceType: "dataTable" | "api" | "supabase" | "mock";
+  sourceType: "dataTable" | "api" | "cloud" | "mock";
   targetPageIds: string[];
 }
 
@@ -284,12 +284,13 @@ export function computeDataSourceEdges(
 ```
 
 **렌더링 스타일**:
-| 타입 | 색상 | 스타일 |
-|------|------|--------|
-| `dataTable` | green-500 (#22c55e) | Dotted [3,3] |
-| `api` | amber-500 (#f59e0b) | Dotted [3,3] |
-| `supabase` | emerald-500 (#10b981) | Dotted [3,3] |
-| `mock` | gray-400 (#9ca3af) | Dotted [3,3] |
+
+| 타입        | 색상                  | 스타일       |
+| ----------- | --------------------- | ------------ |
+| `dataTable` | green-500 (#22c55e)   | Dotted [3,3] |
+| `api`       | amber-500 (#f59e0b)   | Dotted [3,3] |
+| `cloud`     | emerald-500 (#10b981) | Dotted [3,3] |
+| `mock`      | gray-400 (#9ca3af)    | Dotted [3,3] |
 
 **Data Source 노드 렌더링**:
 
@@ -421,7 +422,7 @@ B → D (navigation)     → 연한 파란색 (2차 연결)
 - 화면 우하단에 고정 위치 (screen-space), 여백 16px (right/bottom 동일)
 - 미니맵 클릭으로 카메라 이동
 - **자동 표시/숨김**: 캔버스 이동(pan/zoom) 시에만 표시, 1.5초 비활동 후 자동 숨김 (CanvasScrollbar와 동일 패턴)
-- **동적 크기**: 캔버스 크기의 10% 비례 (width: 80~200px, height: 60~140px clamp)
+- **동적 크기**: 캔버스 크기의 10% 비례 (width: 80~~200px, height: 60~~140px clamp)
 - inspector 패널 열림 시 패널 너비만큼 좌측으로 위치 보정
 
 #### 4.2 토글 + 레전드 통합

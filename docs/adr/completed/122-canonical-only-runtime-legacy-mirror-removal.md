@@ -4,7 +4,7 @@
 
 Implemented — 2026-05-09
 
-> **Superseded in part by [ADR-128](128-supabase-backend-decommission.md) (cloud transport boundary 부분, 2026-05-12)** — canonical-only runtime + legacy mirror 제거 자체는 유효, `exportLegacyDocument()` 의 "cloud/export/import/temporary compatibility boundary" 명분 중 cloud transport 부분은 stale (file export 시나리오는 유지).
+> **Superseded in part by [ADR-128](128-cloud-backend-decommission.md) (cloud transport boundary 부분, 2026-05-12)** — canonical-only runtime + legacy mirror 제거 자체는 유효, `exportLegacyDocument()` 의 "cloud/export/import/temporary compatibility boundary" 명분 중 cloud transport 부분은 stale (file export 시나리오는 유지).
 
 Closure snapshot:
 
@@ -40,7 +40,7 @@ derived view를 runtime input으로 소비했다. 이 구조는 legacy primary�
 
 이 ADR은 ADR-116의 후속으로, 내부 runtime에서 mutable legacy mirror를 제거하고
 `CompositionDocument`/canonical selectors/resolved canonical tree를 직접 소비하도록 전환한다.
-cloud/Supabase physical `pages`/`elements` schema 제거는 이번 ADR의 기본 scope가 아니며,
+cloud physical `pages`/`elements` schema 제거는 이번 ADR의 기본 scope가 아니며,
 compatibility export/import boundary로 분리한다.
 
 **Hard Constraints**:
@@ -59,7 +59,7 @@ compatibility export/import boundary로 분리한다.
    `order_num`이나 page/layout `metadata.order_num`을 재도입하지 않는다.
 6. Preview, Skia, LayerTree, Properties, History/Undo, drag/drop commit은 각각 canonical
    input으로 회귀 0을 검증해야 한다.
-7. Supabase physical schema drop, public cloud row contract removal, external API migration은
+7. Cloud physical schema drop, public cloud row contract removal, external API migration은
    별도 ADR 또는 explicit gate 없이는 수행하지 않는다.
 
 **Soft Constraints**:
@@ -83,9 +83,9 @@ compatibility export/import boundary로 분리한다.
   - 유지보수: H — ADR-116/118/119의 SSOT 규칙을 설명할 때마다 legacy 예외가 남는다.
   - 마이그레이션: L — 기존 runtime consumer를 유지하므로 단기 이동 비용은 낮다.
 
-### 대안 B: runtime과 cloud/Supabase legacy schema를 한 번에 제거
+### 대안 B: runtime과 cloud legacy schema를 한 번에 제거
 
-- 설명: Builder runtime mirror 제거와 동시에 Supabase `pages`/`elements` row contract,
+- 설명: Builder runtime mirror 제거와 동시에 Cloud `pages`/`elements` row contract,
   legacy export/import payload까지 삭제한다.
 - 근거: 최종 상태에 가장 빠르게 도달하고 legacy 문자열 allowlist를 최소화한다.
 - 위험:
@@ -140,7 +140,7 @@ compatibility export/import boundary로 분리한다.
    source까지 확장한다.
 2. ADR-118/119의 `children[]` order SSOT를 유지하면서 `order_num` 기반 legacy mirror를
    다시 만들지 않는다.
-3. cloud/Supabase physical schema 제거를 별도 gate로 분리해 local runtime cleanup의 위험을
+3. cloud physical schema 제거를 별도 gate로 분리해 local runtime cleanup의 위험을
    통제한다.
 4. `exportLegacyDocument()`는 compatibility adapter로만 남기므로 외부 transport는 유지하면서
    내부 hot path drift는 제거할 수 있다.
@@ -165,7 +165,7 @@ compatibility export/import boundary로 분리한다.
 | Skia/Preview parity break     | canonical tree 직접 소비 중 layout, selection, hit-test가 깨질 수 있다 | Phase별 Skia/Preview targeted tests와 browser smoke를 gate로 둔다                           |
 | history/undo regression       | legacy element diff 기반 history가 canonical patch를 놓칠 수 있다      | History phase에서 canonical patch/event 계약을 별도 검증하고 undo/redo targeted test를 둔다 |
 | selection/properties stale UI | selected node lookup이 legacy id/metadata fallback에 묶일 수 있다      | canonical selection path와 node alias resolver를 먼저 확정한다                              |
-| cloud compatibility drift     | Supabase row projection이나 export/import가 깨질 수 있다               | compatibility boundary를 유지하고 projectSync/export/import tests를 별도 gate로 둔다        |
+| cloud compatibility drift     | Cloud row projection이나 export/import가 깨질 수 있다                  | compatibility boundary를 유지하고 projectSync/export/import tests를 별도 gate로 둔다        |
 | performance regression        | canonical resolver가 render마다 full traversal을 수행할 수 있다        | selector cache, scene snapshot, invalidation packet 기준을 Phase 2/3 gate에 포함한다        |
 
 ## Gates
