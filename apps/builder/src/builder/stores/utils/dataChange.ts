@@ -783,18 +783,58 @@ function reduceOne(
       return;
     }
     case "set_source": {
-      if (op.endpointId !== undefined)
-        throw new DataChangeError(
-          "set_source.endpointId 는 아직 배선되지 않았습니다 (ApiEndpoint.targetCollectionId 는 endpoint 편집기가 쓴다)",
-          op,
-        );
+      // ADR-218 (R3/m3) — endpointId 확장. cardinality 0..1 (정본 = endpoint.targetCollectionId):
+      //   - endpointId="<id>" : 그 endpoint 를 이 collection 에 연결(교체 — 기존 연결 해제)
+      //   - endpointId=""      : 현재 연결 해제 (picker "연결 안 함")
+      //   - endpointId=undefined: 링크 무변경 (source/useMockData 만)
+      // 역연산 = 단일 set_source 로 **이전 연결 상태 재현** (같은 cardinality 로직 재사용):
+      //   이전에 이 collection 에 연결돼 있던 endpoint 를 다시 연결(없었으면 ""=해제) + source 원복.
       const existing = requireCollection(collections, op);
+      const prevMock = existing.useMockData;
       touch({ ...existing, useMockData: op.source === "manual" });
+
+      let inverseEndpointId: string | undefined;
+      if (op.endpointId !== undefined) {
+        const eps = out.apiEndpoints;
+        const relinkTarget = (ep: ApiEndpoint, nextTarget?: string) => {
+          // 해제는 `undefined` 를 **명시 대입**한다 — adapter.update 가 `{...existing,...next}`
+          // 병합이라 키를 delete 하면 IDB 에 기존 targetCollectionId 가 남는다 (영속 안 됨).
+          const next: ApiEndpoint = {
+            ...ep,
+            targetCollectionId: nextTarget,
+            updated_at: new Date().toISOString(),
+          };
+          eps.delete(ep.name);
+          eps.set(ep.name, next);
+          out.endpointsUpserted.add(ep.id);
+        };
+        // 이 collection 에 이미 연결된 endpoint (해제 대상 · 역연산의 재연결 대상)
+        const prevLinked = [...eps.values()].find(
+          (e) =>
+            e.targetCollectionId === op.collectionId && e.id !== op.endpointId,
+        );
+        inverseEndpointId = prevLinked?.id ?? "";
+        if (prevLinked) relinkTarget(prevLinked, undefined);
+        if (op.endpointId !== "") {
+          const target = findEndpointById(eps, op.endpointId);
+          if (!target)
+            throw new DataChangeError(
+              `endpoint 를 찾을 수 없습니다: ${op.endpointId}`,
+              op,
+            );
+          if (target.targetCollectionId !== op.collectionId)
+            relinkTarget(target, op.collectionId);
+        }
+      }
+
       out.applied.push(op);
       out.inverse.unshift({
         op: "set_source",
         collectionId: op.collectionId,
-        source: existing.useMockData ? "manual" : "api",
+        source: prevMock ? "manual" : "api",
+        ...(inverseEndpointId !== undefined
+          ? { endpointId: inverseEndpointId }
+          : {}),
       });
       return;
     }

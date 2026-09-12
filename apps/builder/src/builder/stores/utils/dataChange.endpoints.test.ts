@@ -441,3 +441,98 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
     expect(addEntry).not.toHaveBeenCalled();
   });
 });
+
+describe("reduceDataOps — set_source{endpointId} 연결 (ADR-218 m3)", () => {
+  const c1 = (): DataTable => ({
+    id: "c1",
+    name: "Users",
+    project_id: "p",
+    schema: [{ id: "f1", key: "id", type: "number" }],
+    mockData: [],
+    useMockData: true,
+  });
+  // ep_a 는 c1 에 연결됨, ep_b 는 미연결
+  const twoEndpoints = () =>
+    new Map<string, ApiEndpoint>([
+      ["A", endpoint({ id: "ep_a", name: "A", targetCollectionId: "c1" })],
+      ["B", endpoint({ id: "ep_b", name: "B", targetCollectionId: undefined })],
+    ]);
+
+  it("연결 교체: ep_b 연결 → ep_a 해제 + ep_b.targetCollectionId=c1 + useMockData=false", () => {
+    const out = reduceDataOps(
+      new Map([["c1", c1()]]),
+      [
+        {
+          op: "set_source",
+          collectionId: "c1",
+          source: "api",
+          endpointId: "ep_b",
+        },
+      ],
+      { projectId: "p", apiEndpoints: twoEndpoints() },
+    );
+    expect(out.collections.get("c1")!.useMockData).toBe(false);
+    expect(out.apiEndpoints.get("A")!.targetCollectionId).toBeUndefined();
+    expect(out.apiEndpoints.get("B")!.targetCollectionId).toBe("c1");
+    expect(out.endpointsUpserted).toEqual(new Set(["ep_a", "ep_b"]));
+  });
+
+  it("연결 교체 역연산 왕복 → ep_a·ep_b·source 원상", () => {
+    const before = new Map([["c1", c1()]]);
+    const eps = twoEndpoints();
+    const forward = reduceDataOps(
+      before,
+      [
+        {
+          op: "set_source",
+          collectionId: "c1",
+          source: "api",
+          endpointId: "ep_b",
+        },
+      ],
+      { projectId: "p", apiEndpoints: eps },
+    );
+    const back = reduceDataOps(forward.collections, forward.inverse, {
+      projectId: "p",
+      apiEndpoints: forward.apiEndpoints,
+    });
+    expect(back.apiEndpoints.get("A")!.targetCollectionId).toBe("c1");
+    expect(back.apiEndpoints.get("B")!.targetCollectionId).toBeUndefined();
+    expect(back.collections.get("c1")!.useMockData).toBe(true);
+  });
+
+  it('disconnect: endpointId="" → 현재 연결(ep_a) 해제', () => {
+    const out = reduceDataOps(
+      new Map([["c1", c1()]]),
+      [
+        {
+          op: "set_source",
+          collectionId: "c1",
+          source: "manual",
+          endpointId: "",
+        },
+      ],
+      { projectId: "p", apiEndpoints: twoEndpoints() },
+    );
+    expect(out.apiEndpoints.get("A")!.targetCollectionId).toBeUndefined();
+    expect(out.collections.get("c1")!.useMockData).toBe(true);
+    expect(out.endpointsUpserted).toEqual(new Set(["ep_a"]));
+  });
+
+  it("없는 endpointId → throw (무변경)", () => {
+    expect(() =>
+      reduceDataOps(
+        new Map([["c1", c1()]]),
+        [
+          {
+            op: "set_source",
+            collectionId: "c1",
+            source: "api",
+            endpointId: "nope",
+          },
+        ],
+        { projectId: "p", apiEndpoints: twoEndpoints() },
+      ),
+    ).toThrow(DataChangeError);
+  });
+});

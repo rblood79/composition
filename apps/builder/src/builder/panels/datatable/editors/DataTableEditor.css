@@ -316,6 +316,15 @@
   line-height: 1.5;
 }
 
+/* ADR-218 — 데이터 소스 (API 엔드포인트 연결 + 실행 정책) */
+.settings-datasource {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--border);
+}
+
 /* ADR-212 Phase 5 — 편집기 상단 상태 배지 (0행/오류, 목록 배지와 같은 값) */
 .datatable-editor-status {
   padding: var(--spacing-xs) var(--spacing-sm);

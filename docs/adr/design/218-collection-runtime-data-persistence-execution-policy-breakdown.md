@@ -82,11 +82,13 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 **G1 live 9/9** (`scripts/adr218-p1-cache-live.mjs`, evidence `docs/adr/evidence/218-p1-cache-live.md`): store 생성·영속·hydration 복원(재fetch 0)·path 변경 무효화(h1)·rename 캐시 유지·삭제 고아 0·HC6. 유닛 `sourceRev.test.ts` 10 + `dataActions.runtimeCache.test.ts` 5 + set_execution_policy 왕복 2, 회귀 0.
 
-### Phase 2 — Settings "데이터 소스" UI + endpoint 연결 (게이트 G2)
+### Phase 2 — Settings "데이터 소스" UI + endpoint 연결 (게이트 G2) — ✅ Implemented 2026-09-13
 
-- [ ] `DataTableEditor` Settings 탭 → "데이터 소스": 샘플/실제(`useMockData`) + 엔드포인트 picker + 실행 정책 컨트롤(자동/수동/N초) — 스냅 패널 어법(HC2), 신규 문자열 `datatable.*` ko/en (HC7)
-- [ ] **endpoint 연결 계약 (m3)**: collection↔endpoint cardinality 0..1, 정본 = `endpoint.targetCollectionId`. picker 는 `set_source{endpointId}` 를 승인 dispatcher 확장으로 — 새 연결 + 기존 연결 해제를 한 DataChange(역연산 = 이전 연결 복원). `dataChange.ts:785-798` throw 대체. 연결만 = set_source 확장 / endpoint 정의 변경 = define_endpoint
-- [ ] 쓰기 전부 `applyDataChange` (HC1)
+- [x] `DataTableEditor` Settings 탭 → "데이터 소스": 샘플/실제(`useMockData`) + 엔드포인트 picker(PropertySelect) + 실행 정책 컨트롤(자동/수동/N초, interval 시 N초 입력) — 스냅 패널 어법(HC2, Select 드롭다운은 표준 컨트롤·생성 팝오버 0), 신규 문자열 `datatable.*` ko/en 11×2 (HC7, parity 확인)
+- [x] **endpoint 연결 계약 (m3)**: cardinality 0..1, 정본 = `endpoint.targetCollectionId`. `set_source{endpointId}` throw 대체 — `""`=해제 · `<id>`=연결(교체 시 기존 해제) · 역연산 = 단일 set_source 로 이전 연결 재현. **해제는 `targetCollectionId: undefined` 명시 대입**(adapter.update `{...existing,...next}` 병합이라 delete 는 IDB 미반영 — G2 live 에서 발견·수정)
+- [x] 쓰기 전부 `applyDataChange` (HC1) — 정책·연결 모두 op 경유
+
+**G2 live 7/7** (`scripts/adr218-p2-settings-live.mjs`, evidence `docs/adr/evidence/218-p2-settings-live.md`): 데이터 소스 UI 렌더 · picker 연결(set_source targetCollectionId 영속) · 정책 interval(set_execution_policy 영속) · Undo 정책·연결 복원(undos=2 순서 정확) · native dialog 0(HC2) · page error 0. 유닛 set_source 연결 4(교체·역연산 왕복·disconnect·없는 id throw), 회귀 0(ADR-218 스위트).
 
 ### Phase 3 — 실행 정책 런타임 + 요청 경쟁 + closure (게이트 G3)
 
