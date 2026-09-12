@@ -53,6 +53,20 @@ export interface CollectionRemainderTarget {
   pageId: string | null;
 }
 
+/** ADR-212 Phase 6 — data-bound 요소 위 바인딩 배지 (아이콘 + 테이블명 + 상태색) */
+export interface BindingBadgeInfo {
+  collectionId: string;
+  name: string;
+  /** "normal" | "empty" | "error" — collectionBadgeStatus SSOT */
+  state: string;
+}
+
+export interface BindingBadgeTarget extends BindingBadgeInfo {
+  /** 요소 원본 박스 (clip·page delta 반영) — 배지는 좌상단에 앵커 */
+  bounds: BoundingBox;
+  pageId: string | null;
+}
+
 /** ADR-181 — 한 페이지의 수동 가이드 렌더 입력 (scene 좌표) */
 export interface PageGuideRenderTarget {
   pageId: string;
@@ -389,6 +403,40 @@ export function buildCollectionRemainderTargets(
     targets.push({
       bounds: translateByPageDelta(chromeBounds, element, pagePositionSnapshot),
       hiddenRows: projection.hiddenRows,
+      pageId: readOwnerPageId(element),
+    });
+  }
+
+  return targets;
+}
+
+/**
+ * ADR-212 Phase 6 — data binding 이 걸린 요소마다 바인딩 배지 target 을 산출한다.
+ *
+ * 바인딩 감지·collection 해소·상태(normal/empty/error) 판정은 store 를 아는 `resolveBadge`
+ * 콜백에 위임한다 (helpers 는 store 무의존 유지). 콜백이 null 을 반환하면(바인딩 없음 · collection
+ * 미해소 · projected/synthetic 노드) 스킵 — TagGroup 처럼 owner 만 바인딩을 가지므로 배지도 owner 에
+ * 1개만 붙는다. bounds 는 요소 원본 박스(clipChromeBounds 로 조상 clip 반영, 배지는 좌상단 앵커).
+ */
+export function buildBindingBadgeTargets(
+  treeBoundsMap: Map<string, BoundingBox>,
+  elementsMap: Map<string, CanvasSceneNode>,
+  resolveBadge: (element: CanvasSceneNode) => BindingBadgeInfo | null,
+  hitBoundsMap: Map<string, BoundingBox> = treeBoundsMap,
+  pagePositionSnapshot?: PagePositionPresentationSnapshot,
+): BindingBadgeTarget[] {
+  const targets: BindingBadgeTarget[] = [];
+
+  for (const [id, bounds] of treeBoundsMap) {
+    const element = elementsMap.get(id);
+    if (!element) continue;
+    const info = resolveBadge(element);
+    if (!info) continue;
+    const chromeBounds = clipChromeBounds(bounds, id, hitBoundsMap);
+    if (!chromeBounds) continue;
+    targets.push({
+      ...info,
+      bounds: translateByPageDelta(chromeBounds, element, pagePositionSnapshot),
       pageId: readOwnerPageId(element),
     });
   }

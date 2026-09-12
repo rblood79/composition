@@ -3,12 +3,14 @@ import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { PagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import {
   _resetSlotContentParentIndexCache,
+  buildBindingBadgeTargets,
   buildMinimapConfig,
   buildCollectionRemainderTargets,
   buildFrameTitleRenderItems,
   buildHoverHighlightTargets,
   buildPageGuideTargets,
   buildSlotMarkerTargets,
+  type BindingBadgeInfo,
 } from "./skiaOverlayHelpers";
 import { DEFAULT_MINIMAP_CONFIG } from "./workflowMinimap";
 
@@ -1099,5 +1101,71 @@ describe("slot content parent index — 참조-키 캐시 계약", () => {
 
     _resetSlotContentParentIndexCache();
     expect(buildTargets(map)).toHaveLength(0); // 리셋 후 재구축 → filled
+  });
+});
+
+describe("buildBindingBadgeTargets (ADR-212 Phase 6)", () => {
+  const bounds = (x: number, y: number, w = 100, h = 40) => ({
+    x,
+    y,
+    width: w,
+    height: h,
+  });
+
+  it("resolveBadge 가 정보를 반환한 요소에만 배지 target 을 만든다", () => {
+    const map = new Map([
+      ["el-bound", bounds(10, 20)],
+      ["el-plain", bounds(200, 20)],
+    ]);
+    const elements = new Map([
+      ["el-bound", makeElement("el-bound", { type: "Table" })],
+      ["el-plain", makeElement("el-plain", { type: "Button" })],
+    ]);
+    const resolveBadge = (el: CanvasSceneNode): BindingBadgeInfo | null =>
+      el.id === "el-bound"
+        ? { collectionId: "c1", name: "users", state: "normal" }
+        : null;
+
+    const targets = buildBindingBadgeTargets(map, elements, resolveBadge);
+    expect(targets).toHaveLength(1);
+    expect(targets[0]).toMatchObject({
+      collectionId: "c1",
+      name: "users",
+      state: "normal",
+      pageId: "page-1",
+    });
+    // 배지는 요소 좌상단(원본 박스)에 앵커
+    expect(targets[0].bounds.x).toBe(10);
+    expect(targets[0].bounds.y).toBe(20);
+  });
+
+  it("상태(empty/error)를 그대로 전파한다", () => {
+    const map = new Map([
+      ["a", bounds(0, 0)],
+      ["b", bounds(0, 100)],
+    ]);
+    const elements = new Map([
+      ["a", makeElement("a", { type: "ListBox" })],
+      ["b", makeElement("b", { type: "GridList" })],
+    ]);
+    const resolveBadge = (el: CanvasSceneNode): BindingBadgeInfo | null =>
+      el.id === "a"
+        ? { collectionId: "ca", name: "empty", state: "empty" }
+        : { collectionId: "cb", name: "err", state: "error" };
+
+    const targets = buildBindingBadgeTargets(map, elements, resolveBadge);
+    const byId = new Map(targets.map((t) => [t.collectionId, t.state]));
+    expect(byId.get("ca")).toBe("empty");
+    expect(byId.get("cb")).toBe("error");
+  });
+
+  it("elementsMap 에 없는 id 는 스킵한다", () => {
+    const map = new Map([["ghost", bounds(0, 0)]]);
+    const targets = buildBindingBadgeTargets(map, new Map(), () => ({
+      collectionId: "x",
+      name: "x",
+      state: "normal",
+    }));
+    expect(targets).toHaveLength(0);
   });
 });
