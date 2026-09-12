@@ -1427,7 +1427,7 @@ const koKR: TranslationKeys = {
     licenseFile: "라이선스",
     licenseFileDeployed: "서버 라이선스 확인됨",
     licenseFileNone:
-      "서버에 라이선스 파일이 없습니다 — token.jwt 를 apps/builder/public/license 로 배포하세요",
+      "서버에 라이선스 파일이 없습니다 — 발급기 zip 의 license 파일을 apps/builder/public/license 로 복사하세요",
     code: "검증 코드",
     codeDescription: "라이선스와 함께 전달받은 6자리 숫자",
     submit: "인증",
@@ -3323,7 +3323,7 @@ const enUS: TranslationKeys = {
     licenseFile: "License",
     licenseFileDeployed: "Server license found",
     licenseFileNone:
-      "No license on this server — deploy token.jwt as apps/builder/public/license",
+      "No license on this server — copy the license file from the issuer zip to apps/builder/public/license",
     code: "Verification code",
     codeDescription: "The 6-digit number delivered with your license",
     submit: "Activate",

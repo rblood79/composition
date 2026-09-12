@@ -6,14 +6,14 @@
  *  4) 새 탭/리로드 → 바로 /dashboard (재인증 없음)
  *  5) 만료 조작 → /signin
  *  6) 로그아웃 → /signin, 기록 삭제
- * 실행: node apps/builder/scripts/license-auth-live.mjs <token.jwt> <code>
- *   — token.jwt 를 apps/builder/public/license 로 복사해 두고 (하니스가 복사·종료 시 원복), dev 5173 필요
+ * 실행: node apps/builder/scripts/license-auth-live.mjs <license 토큰 파일> <code>
+ *   — 하니스가 파일을 apps/builder/public/license 로 놓고 종료 시 원복, dev 5173 필요
  */
 import { chromium } from "playwright";
 import fs from "node:fs";
 
 const [tokenPath, code] = process.argv.slice(2);
-if (!tokenPath || !code) throw new Error("usage: <token.jwt> <code>");
+if (!tokenPath || !code) throw new Error("usage: <license 토큰 파일> <code>");
 const token = fs.readFileSync(tokenPath, "utf8").trim();
 const deployedPath = new URL("../public/license", import.meta.url);
 const hadDeployed = fs.existsSync(deployedPath);
