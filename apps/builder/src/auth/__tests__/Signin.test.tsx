@@ -55,7 +55,6 @@ describe("Signin (라이선스 활성화)", () => {
 
   it("서버 license + 올바른 코드 → 인증 기록 저장 + /dashboard", async () => {
     render(<Signin />);
-    await screen.findByText("licenseFileDeployed");
     await submitCode(fixture.code);
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith("/dashboard"),
@@ -68,7 +67,6 @@ describe("Signin (라이선스 활성화)", () => {
 
   it("틀린 코드 → 오류 문구, 기록 없음", async () => {
     render(<Signin />);
-    await screen.findByText("licenseFileDeployed");
     await submitCode("000000");
     await screen.findByText("errorCode");
     expect(mockNavigate).not.toHaveBeenCalled();
@@ -80,6 +78,7 @@ describe("Signin (라이선스 활성화)", () => {
     render(<Signin />);
     await screen.findByText("licenseFileNone");
     expect(document.querySelector('input[type="file"]')).toBeNull();
+    expect(document.querySelector(".auth-license-source")).toBeNull();
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: fixture.code },
     });
@@ -98,8 +97,7 @@ describe("Signin (라이선스 활성화)", () => {
   it("override 공개키가 손상이면 설정 오류 + 제출 불가", async () => {
     vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", "not-a-key");
     render(<Signin />);
-    await screen.findByRole("alert");
-    await screen.findByText("licenseFileDeployed");
+    await screen.findByText("errorPublicKeyMissing");
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: fixture.code },
     });

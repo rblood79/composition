@@ -42,8 +42,8 @@ await page.waitForURL(/\/signin/, { timeout: 15000 });
 check("1 /dashboard 직접 진입 → /signin", page.url().endsWith("/signin"));
 
 // 2) 파일 + 틀린 코드
-await page.waitForSelector('.auth-license-source[data-kind="deployed"]');
 const codeInput = page.locator('input[inputmode="numeric"]');
+await page.waitForFunction(() => !document.querySelector(".auth-config-error"), null, { timeout: 15000 });
 await codeInput.fill(code === "000000" ? "000001" : "000000");
 await page.click('button[type="submit"]');
 await page.waitForSelector(".react-aria-FieldError", { timeout: 30000 });
@@ -82,7 +82,7 @@ await page.waitForURL(/\/signin/, { timeout: 15000 });
 check("5 만료 → /signin + 기록 삭제", (await page.evaluate(() => localStorage.getItem("composition-license-auth"))) === null);
 
 // 6) 재인증 → 로그아웃
-await page.waitForSelector('.auth-license-source[data-kind="deployed"]');
+await page.waitForFunction(() => !document.querySelector(".auth-config-error"), null, { timeout: 15000 });
 await page.locator('input[inputmode="numeric"]').fill(code);
 await page.click('button[type="submit"]');
 await page.waitForURL(/\/dashboard/, { timeout: 30000 });

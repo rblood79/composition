@@ -123,16 +123,6 @@ const Signin = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          <div className="auth-form-field auth-license-file">
-            <span className="auth-field-label">{t("licenseFile")}</span>
-            <div className="auth-license-source" data-kind={source.kind}>
-              <span className="auth-license-status" role="status">
-                {source.kind === "deployed" && t("licenseFileDeployed")}
-                {source.kind === "none" && t("licenseFileNone")}
-              </span>
-            </div>
-          </div>
-
           <TextField
             className="auth-form-field"
             value={code}
@@ -154,6 +144,11 @@ const Signin = () => {
             {error && <FieldError>{error}</FieldError>}
           </TextField>
 
+          {source.kind === "none" && (
+            <p className="auth-config-error" role="alert">
+              {t("licenseFileNone")}
+            </p>
+          )}
           {!publicKey && (
             <p className="auth-config-error" role="alert">
               {t("errorPublicKeyMissing")}

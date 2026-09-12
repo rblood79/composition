@@ -1325,8 +1325,6 @@ export interface TranslationKeys {
   auth: {
     title: string;
     subtitle: string;
-    licenseFile: string;
-    licenseFileDeployed: string;
     licenseFileNone: string;
     code: string;
     codeDescription: string;

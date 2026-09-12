@@ -1424,8 +1424,6 @@ const koKR: TranslationKeys = {
   auth: {
     title: "라이선스 인증",
     subtitle: "검증 코드를 입력하세요",
-    licenseFile: "라이선스",
-    licenseFileDeployed: "서버 라이선스 확인됨",
     licenseFileNone:
       "서버에 라이선스 파일이 없습니다 — 발급기 zip 의 license 파일을 apps/builder/public/license 로 복사하세요",
     code: "검증 코드",
@@ -3320,8 +3318,6 @@ const enUS: TranslationKeys = {
   auth: {
     title: "License activation",
     subtitle: "Enter your verification code",
-    licenseFile: "License",
-    licenseFileDeployed: "Server license found",
     licenseFileNone:
       "No license on this server — copy the license file from the issuer zip to apps/builder/public/license",
     code: "Verification code",
