@@ -85,19 +85,29 @@ describe("circlePathAt", () => {
 });
 
 describe("R7 — 미처리 chartType 방어선", () => {
-  it("분기 없는 chartType 은 line 으로 조용히 렌더되지 않고 throw 한다", async () => {
-    const { computeChartScene, CHART_DEFAULT_PROPS } = await import(
-      "../computeChartScene"
+  it("분기 없는 chartType 은 line 으로 조용히 렌더되지 않는다 — 설정 오류 scene (ADR-217 P1: throw 대신 진단)", async () => {
+    const {
+      computeChartScene,
+      CHART_DEFAULT_PROPS,
+      CHART_INVALID_SETTINGS_TEXT,
+    } = await import("../computeChartScene");
+    // 컴파일 시점 방어선은 `pnpm -F @composition/specs build` (dts) 의 assertNever 가 잡는다
+    //   — `pnpm type-check` 는 specs 를 돌지 않는다 (breakdown F18). 런타임 절반은 ADR-217 P1
+    //   부터 validator 진단 `chartType.unsupported` → 설정 오류 scene 이다 (구버전의 throw 는
+    //   두 leg 의 렌더를 통째로 멈췄다 — rollback 경계, 217 breakdown §2.5).
+    const scene = computeChartScene(
+      { ...CHART_DEFAULT_PROPS, chartType: "hexbin" as never },
+      [{ category: "A", value: 1 }],
+      { width: 200, height: 160 },
     );
-    expect(() =>
-      computeChartScene(
-        // 컴파일 시점 방어선은 `pnpm -F @composition/specs build` (dts) 가 잡는다
-        //   — `pnpm type-check` 는 specs 를 돌지 않는다 (breakdown F18). 런타임 절반은
-        //   여기서 잡는다: else 폴백이던 자리가 이제 assertNever 다.
-        { ...CHART_DEFAULT_PROPS, chartType: "scatter" as never },
-        [{ category: "A", value: 1 }],
-        { width: 200, height: 160 },
-      ),
-    ).toThrow(/unhandled chartType/);
+    expect(scene.empty).toBe(true);
+    expect(scene.marks).toHaveLength(1);
+    expect(scene.marks[0]).toMatchObject({
+      kind: "text",
+      text: CHART_INVALID_SETTINGS_TEXT,
+    });
+    expect(scene.diagnostics?.map((d) => d.code)).toContain(
+      "chartType.unsupported",
+    );
   });
 });
