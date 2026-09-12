@@ -13,18 +13,18 @@
 
 ## 현황
 
-| 구분                      |    개수 |
-| ------------------------- | ------: |
-| 완료 (`completed/`)       |     234 |
-| ├ Implemented             |     198 |
-| ├ Accepted                |      13 |
-| ├ Superseded              |      14 |
-| └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      12 |
-| ├ Proposed                |      10 |
-| ├ Accepted (일부 착수)    |       1 |
-| └ 부분 완료               |       1 |
-| **합계**                  | **245** |
+| 구분                          |    개수 |
+| ----------------------------- | ------: |
+| 완료 (`completed/`)           |     234 |
+| ├ Implemented                 |     198 |
+| ├ Accepted                    |      13 |
+| ├ Superseded                  |      14 |
+| └ Deprecated                  |       9 |
+| 열려 있는 것 (`adr/*.md`)     |      12 |
+| ├ Proposed                    |       9 |
+| ├ Accepted (미착수·일부 착수) |       2 |
+| └ 부분 완료                   |       1 |
+| **합계**                      | **245** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -43,8 +43,8 @@
 
 #### [218](218-collection-runtime-data-persistence-execution-policy.md) — collection 런타임 데이터 영속 · 실행 정책
 
-- **상태**: Proposed (2026-09-12) — **ADR-212 Phase 5 이월 2건 분리** (fork §1 lock-in + 사용자 confirm 2026-09-12)
-- **규모**: ADR-212 가 "저장 형식 불변"(lock-in §2)으로 이월한 runtimeData 영속 + 실행 정책을 저장 형식 확장으로 도입. 대안 B 채택 — `executionPolicy?`(auto/manual/interval)는 collection 레코드 필드, runtimeData(응답 캐시)는 별도 `collection_runtime` store(파생 분리 → export/redactor/번들 안전). Settings "데이터 소스" UI(샘플/실제 + 엔드포인트 picker + 정책 컨트롤)로 212 이월 표면 완성. Phase 0~~3 / R1~~R4(HIGH 0) / G0~~G3. base = ADR-152(저장 형식·적용기), 212 는 종결·비의존. design breakdown `design/218-collection-runtime-data-persistence-execution-policy-breakdown.md`
+- **상태**: Accepted (2026-09-12) — [Round 4 리뷰](reviews/218.md) 이슈 0, 이전 pending 전부 fixed; Phase 0 미착수 — **ADR-212 Phase 5 이월 2건 분리** (fork §1 lock-in + 사용자 confirm 2026-09-12)
+- **규모**: ADR-212 가 "저장 형식 불변"(lock-in §2)으로 이월한 runtimeData 영속 + 실행 정책을 저장 형식 확장으로 도입. 대안 B 채택 — `executionPolicy?`(auto/manual/interval)는 collection 레코드 필드, runtimeData(응답 캐시)는 별도 `collection_runtime` store(파생 분리 → export/redactor/번들 안전). Settings "데이터 소스" UI(샘플/실제 + 엔드포인트 picker + 정책 컨트롤)로 212 이월 표면 완성. Phase 0~~3 / R1~~R8(구현 관리 위험 HIGH 2, HC4~HC6·G1/G3 대응) / G0~~G3. base = ADR-152(저장 형식·적용기), 212 는 종결·비의존. design breakdown `design/218-collection-runtime-data-persistence-execution-policy-breakdown.md`
 - **우선순위**: P2 — 152 base 위, 212 종결 표면에 얹음
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩

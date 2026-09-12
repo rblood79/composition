@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-12
+Accepted — 2026-09-12 (Round 4 리뷰 이슈 0, 사용자 조건부 승격 지시 충족; Phase 0 미착수)
 
 ## Context
 
