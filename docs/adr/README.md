@@ -15,14 +15,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     234 |
-| ├ Implemented                 |     198 |
+| 완료 (`completed/`)           |     235 |
+| ├ Implemented                 |     199 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |      12 |
+| 열려 있는 것 (`adr/*.md`)     |      11 |
 | ├ Proposed                    |       9 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
 | **합계**                      | **245** |
 
@@ -40,12 +40,6 @@
 - **상태**: Proposed (2026-09-11) — 사용자 판정 ⑤ (2026-09-10, 전역 + 컴포넌트 지역 변수 · 런타임 wiring)
 - **규모**: 소비처 0 인 Variables 에 역할 부여 — 모델 하나 (`VariableDef` + `VariableOwner` project/page/element), 저장은 소유자별 (프로젝트 = 기존 store · 페이지 · 요소 = canonical `state?` 필드, 삭제 · 복제 · origin/instance 자동), 가시성 = 소유자 서브트리 (이름은 사슬 안 고유), 읽기 `{{ name }}` (캔버스 기본값 env · preview 런타임 env 같은 해석기), 쓰기 `setState` 액션 (set/toggle/increment/reset), 암묵 RAC 상태 이름 붙이기, 관리 표면 3 (Data 탭 인덱스 · Navigator 페이지 설정 · Properties 상태 절). Phase 0~~6 / R1~~R7 / G0~~G4, HIGH 0. 152 와 직교 (base). design breakdown `design/214-variables-owner-model-runtime-state-breakdown.md`
 - **우선순위**: P2 — 212 Phase 1 뒤 (Variables 탭 표면 공유), 213 후속 `list_variables` 는 범위 밖
-
-#### [218](218-collection-runtime-data-persistence-execution-policy.md) — collection 런타임 데이터 영속 · 실행 정책
-
-- **상태**: Accepted (2026-09-12) — [Round 4 리뷰](reviews/218.md) 이슈 0, 이전 pending 전부 fixed; Phase 0 미착수 — **ADR-212 Phase 5 이월 2건 분리** (fork §1 lock-in + 사용자 confirm 2026-09-12)
-- **규모**: ADR-212 가 "저장 형식 불변"(lock-in §2)으로 이월한 runtimeData 영속 + 실행 정책을 저장 형식 확장으로 도입. 대안 B 채택 — `executionPolicy?`(auto/manual/interval)는 collection 레코드 필드, runtimeData(응답 캐시)는 별도 `collection_runtime` store(파생 분리 → export/redactor/번들 안전). Settings "데이터 소스" UI(샘플/실제 + 엔드포인트 picker + 정책 컨트롤)로 212 이월 표면 완성. Phase 0~~3 / R1~~R8(구현 관리 위험 HIGH 2, HC4~HC6·G1/G3 대응) / G0~~G3. base = ADR-152(저장 형식·적용기), 212 는 종결·비의존. design breakdown `design/218-collection-runtime-data-persistence-execution-policy-breakdown.md`
-- **우선순위**: P2 — 152 base 위, 212 종결 표면에 얹음
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 

@@ -1,6 +1,6 @@
 # ADR-218 Design Breakdown: collection 런타임 데이터 영속 · 실행 정책
 
-> 본문: [218-collection-runtime-data-persistence-execution-policy.md](../218-collection-runtime-data-persistence-execution-policy.md) · 선행 base: [ADR-152](../completed/152-data-panel-collection-binding-integration.md) (저장 형식 · `DataChange` 적용기) · 분리 출처: [ADR-212](../completed/212-data-panel-editor-redesign.md) Phase 5 이월 2건. 리서치 정본: [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §4-0 · §4-2 (UX-6).
+> 본문: [218-collection-runtime-data-persistence-execution-policy.md](../completed/218-collection-runtime-data-persistence-execution-policy.md) · 선행 base: [ADR-152](../completed/152-data-panel-collection-binding-integration.md) (저장 형식 · `DataChange` 적용기) · 분리 출처: [ADR-212](../completed/212-data-panel-editor-redesign.md) Phase 5 이월 2건. 리서치 정본: [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §4-0 · §4-2 (UX-6).
 
 ## 1. 전제 lock-in (fork 4 질문 — 사용자 confirm 2026-09-12)
 
@@ -90,15 +90,17 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 **G2 live 7/7** (`scripts/adr218-p2-settings-live.mjs`, evidence `docs/adr/evidence/218-p2-settings-live.md`): 데이터 소스 UI 렌더 · picker 연결(set_source targetCollectionId 영속) · 정책 interval(set_execution_policy 영속) · Undo 정책·연결 복원(undos=2 순서 정확) · native dialog 0(HC2) · page error 0. 유닛 set_source 연결 4(교체·역연산 왕복·disconnect·없는 id throw), 회귀 0(ADR-218 스위트).
 
-### Phase 3 — 실행 정책 런타임 + 요청 경쟁 + closure (게이트 G3)
+### Phase 3 — 실행 정책 런타임 + 요청 경쟁 + closure (게이트 G3) — ✅ Implemented 2026-09-13 (`d014a20a6`)
 
-- [ ] 정책 런타임: `auto`(Builder 가 Preview 열기 전 1회) · `manual`(Send/새로고침 버튼) · `interval`(N초). **interval 스케줄(h2/HC6)**: 자동 tick 은 abort 하지 않고 **진행 중이면 skip/coalesce 또는 완료 후 N초 재예약**(고정 tick + 매 tick abort 금지 — 응답시간 > 주기인 정상 API 완료 기회 보장, 현행 `useCollectionData.tsx:521-524` 고정 setInterval 대비). 정리 훅으로 leak 0
-- [ ] **실행 host = Builder**(m4) — Builder 가 정책 실행, Preview 는 runtimeData snapshot 만 수신. **채널별 projection(m3)**: `toRuntimeCollection`(`collectionSnapshot.ts:35-45` 단일 allowlist, 현재 `BuilderCore.tsx:1141-1144` Preview·`:1179-1184` export 공용)을 분리 — Preview 채널 = 응답 포함·정책 제외, export 채널 = 정책 포함(import 보존)·응답 제외. postMessage(`dataChange.ts:113-123`) 별개. legacy binding interval 은 별개 경로 유지
-- [ ] **요청 경쟁 (h2/HC5)**: collection 별 `runSeq` — 완료는 seq 일치 + 시작 revision 일치 시만 store·캐시 수용(현행 `dataActions.ts:543-561` 미차단·`:680-693` timeout 전용·`:722-745` 무조건 쓰기 대체). **abort 는 사용자 재실행·소스/정책 변경에만**, 자동 tick 은 abort 대신 skip. hydration seq 0 기준
-- [ ] runtimeData 영속 → 다음 세션 로드 시 마지막 성공 응답 표시 (오프라인/미실행 상태에서도 빈 상자 아님), hydration vs 새 응답 우선순위(첫 새 응답이 덮어씀)
-- [ ] export/redactor: runtimeData 포함 정책(기본 제외) · `postMessage`(`dataChange.ts:113-123` raw response) 제외는 export 제외와 **별개 정책** · 번들 영향 0 확인
-- [ ] a11y: 정책 컨트롤 키보드·`role=status` · axe critical 0 · live 하니스 `scripts/adr218-*-live.mjs`(A/B 역순 완료·정지 후 완료·rename→offline reload·헤더 Preview 진입 endpoint 호출 수 포함)
-- [ ] CHANGELOG · README Implemented · `### Live Exercise`
+- [x] 정책 런타임: `auto`(handlePreview 가 Preview 열기 전 mode==="auto" collection 실행) · `manual`(Send/새로고침) · `interval`(`useExecutionPolicyScheduler`). **interval 스케줄(h2/HC6)**: 자기 재예약 setTimeout — 완료 후에야 다음 tick N초 예약(응답>주기 정상 완료 보장)·진행 중이면 skip(coalesce)·정리 훅 타이머 leak 0. 정책 시그니처 dep 이라 데이터 변경엔 재스케줄 0
+- [x] **실행 host = Builder**(m4) · **채널별 projection(m3/R5)**: `toExportCollection` 신설 — export=executionPolicy 포함·runtimeData 제외 / Preview sessionStorage=`toRuntimeCollection`(둘 다 제외) / postMessage=runtimeData 포함·정책 제외. `project.schema` executionPolicy 추가(import 보존). legacy binding interval 별개 유지
+- [x] **요청 경쟁 (h2/HC5)**: `runSeqByCollection` single-flight — 완료 수용은 시작 seq 최신 + 시작/완료 지문 일치 시만. abort 는 timeout 전용 유지, 자동 tick 은 abort 아닌 skip
+- [x] runtimeData 영속 → 다음 세션 hydration 복원(Phase 1 G1) · 새 응답이 덮어씀(execute set)
+- [x] export/redactor: export=정책 포함·응답 제외, postMessage=응답 포함·정책 제외(별개 채널), secret 원문 0(HC6). initial 번들 순증: lazy 청크 밖 신규 import 0(스케줄러는 BuilderCore 경유·이미 로드)
+- [x] a11y: 정책 컨트롤 = PropertySelect(RAC, 키보드·이름 D1) · G2 live native dialog 0 · G3 live page error 0
+- [x] CHANGELOG · README Implemented · `### Live Exercise`
+
+**G3 live 5/5** (`scripts/adr218-p3-runtime-live.mjs`, evidence `docs/adr/evidence/218-p3-runtime-live.md`): interval 주기 반복(응답<주기 자기 재예약)·정책 제거 후 타이머 0(R6)·채널 projection export(정책 포함·응답 제외, R5)·dialog 0·error 0. 유닛 runSeq A/B 1(늦은 A/빠른 B→B만)·toExportCollection 2, 회귀 0.
 
 ## 4. 파일 변경표 (추정 — Phase 0 freeze)
 

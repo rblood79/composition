@@ -2,9 +2,13 @@
 
 ## Status
 
-Accepted — 2026-09-12 (Round 4 리뷰 이슈 0, 사용자 조건부 승격 지시 충족)
+Implemented — 2026-09-13 (Phase 0~~3 완료, G0~~G3 PASS)
 
-- Phase 0 완료 — 2026-09-12 (G0 PASS: §2 인벤토리 freeze · export 3채널 전수 · BC 0% breaking · m5 조건·통과선 확정 — breakdown §2.1). 제품 코드 변경 0. Phase 1 착수 조건 충족.
+- Accepted — 2026-09-12 (Round 4 리뷰 이슈 0, 사용자 조건부 승격 지시 충족)
+- Phase 0 완료 — 2026-09-12 (G0 PASS: §2 인벤토리 freeze · export 3채널 전수 · BC 0% breaking · m5 조건·통과선 확정 — breakdown §2.1). 제품 코드 변경 0.
+- Phase 1 완료 — 2026-09-13 (G1 live 9/9 · `1de25662c`·`b6156c6f5`): executionPolicy 필드 · collection_runtime store(DB_VERSION 22) · sourceRev 지문 · secret revision · hydration 유효성.
+- Phase 2 완료 — 2026-09-13 (G2 live 7/7 · `132150f44`): Settings 데이터 소스 UI(endpoint picker + 정책 컨트롤) · set_source{endpointId} dispatcher.
+- Phase 3 완료 — 2026-09-13 (G3 live 5/5 · `d014a20a6`): interval 스케줄러 · runSeq single-flight · 채널 projection 분리.
 
 ## Context
 
@@ -98,7 +102,7 @@ Accepted — 2026-09-12 (Round 4 리뷰 이슈 0, 사용자 조건부 승격 지
 - **대안 A 기각**: 대용량 응답이 collection 레코드·export envelope 에 실려 목록 로드·직렬화·번들에 성능 HIGH. lock-in §2 재정의 표면도 필드 2개로 넓다.
 - **대안 C 기각**: "저장 형식 불변" 을 지키려다 정책을 collection 밖에 두어 조회·정합 코드가 산재(유지보수 HIGH). 사용자가 저장 형식 확장을 이미 confirm 했으므로 무변경 고집의 이득이 없다.
 
-> 구현 상세: [218-collection-runtime-data-persistence-execution-policy-breakdown.md](design/218-collection-runtime-data-persistence-execution-policy-breakdown.md)
+> 구현 상세: [218-collection-runtime-data-persistence-execution-policy-breakdown.md](../design/218-collection-runtime-data-persistence-execution-policy-breakdown.md)
 
 ## Risks
 
@@ -126,7 +130,13 @@ HIGH 2건(R1·R2) — 각각 HC4/HC5 계약 + Gate G1/G3 로 1:1 관리.
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G1~G3 시나리오 · 결과 · 날짜 · Playwright/Chrome MCP/사용자 confirm 구분. 미기재 시 Stop hook 이 승격을 block.)
+2026-09-13, headless Playwright 하니스 (`apps/builder/scripts/adr218-p{1,2,3}-*-live.mjs`), evidence `docs/adr/evidence/218-p{1,2,3}-*-live.md`.
+
+- **G1 9/9** (`adr218-p1-cache-live.mjs`): collection_runtime store 생성(DB_VERSION 22) · execute→영속(runtimeData+sourceRev+fieldKeys) · reload→hydration 복원(재fetch 0=오프라인 캐시) · endpoint path 변경→캐시 무효화(h1) · field rename→캐시 유지(id 지문) · collection 삭제→고아 0(R8) · HC6 지문 원문 0.
+- **G2 7/7** (`adr218-p2-settings-live.mjs`): Settings 데이터 소스 UI 렌더 · endpoint picker 연결(set_source targetCollectionId 영속) · 정책 interval(set_execution_policy 영속) · Undo 정책·연결 복원 · native dialog 0(HC2). 영속 결함 1건(targetCollectionId 해제 adapter 병합 미반영) live 에서 발견·수정.
+- **G3 5/5** (`adr218-p3-runtime-live.mjs`): interval 주기 반복(응답<주기 자기 재예약) · 정책 제거 후 타이머 0(R6) · 채널 projection export(정책 포함·응답 제외, R5) · dialog 0 · error 0.
+- 유닛: sourceRev 10 · runtimeCache hydration 5 · set_execution_policy 왕복 2 · set_source 연결 4 · runSeq A/B 1 · toExportCollection 2 · schema 16-op. 회귀 0, type-check PASS.
+- 요청 경쟁 A/B(R2)는 결정적 unit(`dataActions.runSeq.test.ts`) 로 검증(늦은 A/빠른 B→최신 B만).
 
 ## Consequences
 

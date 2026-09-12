@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-218 Implemented — collection 런타임 데이터 영속 · 실행 정책] - 2026-09-13
+
+### Added
+
+- **runtimeData 캐시 영속**: API 응답을 collection 정의와 분리된 `collection_runtime` store(IndexedDB, DB_VERSION 22)에 저장 — 다음 세션·오프라인에서도 마지막 성공 응답을 표시(빈 상자 아님). 정의 레코드 크기는 불변(대안 B).
+- **실행 정책 `executionPolicy`**: collection별 자동(auto — Preview 열기 전 1회) / 수동(manual — 기본, BC) / 주기(interval — N초). Settings "데이터 소스" 탭에서 엔드포인트 picker + 정책 컨트롤로 설정, 모두 `applyDataChange` 경유(`set_execution_policy`·`set_source{endpointId}` op) — Undo로 정책·연결 복원.
+- **캐시 유효성 지문(`sourceRev`)**: baseUrl·path·method·query/header 비민감 값·body·dataPath·schema(field id+type)로 캐시가 지금의 요청 정의로 재현 가능한지 판정 — 소스·인증·스키마 변경 시 hydration이 옛 캐시를 폐기, field rename은 값 보존 remap. secret은 원문 대신 vault revision만 지문에 담아 값 교체를 감지(원문 0건, HC6).
+
+### Changed
+
+- 요청 경쟁 single-flight(`runSeq`): 같은 collection의 늦은 응답이 더 최신 실행의 결과를 덮지 않는다.
+- interval 정책은 자기 재예약 스케줄러 — 응답시간이 주기보다 길어도 매 tick 취소 없이 성공 응답을 갱신하고, 진행 중이면 skip(coalesce), 정리 훅으로 타이머 leak 0.
+- 채널별 projection 분리: export JSON은 `executionPolicy` 포함·runtimeData 제외(import 보존), Preview postMessage는 runtimeData 포함·정책 제외. 어느 채널에도 원문 secret 0.
+
+## [Builder 초기 CSS 안정화 — 숨은 lazy 패널의 지연 마운트] - 2026-09-13
+
+### Fixed
+
+- 프로젝트 진입·새로고침 때 한 번도 열지 않은 Data Editor까지 `Activity hidden` 아래 마운트되어, `load` 뒤 편집기 CSS 7개가 추가 등록되던 경로를 차단했다. 패널은 처음 보일 때 lazy chunk를 받고, 한 번 연 뒤에는 기존 `Activity` 경계가 상태를 보존한다.
+
 ## [ADR-212 Implemented — Data 패널 편집기 재설계 (스냅 패널 · role=grid 격자 · 요청 도구형 API 편집기)] - 2026-09-12
 
 ### Added
