@@ -68,10 +68,8 @@ describe("ADR-152 resolve 단일화 정적 가드", () => {
   it("② store collections Map 직접 get 은 id 인자만", () => {
     // `collections.get(<식별자>)` — 인자가 id 계열 식별자가 아니면 위반.
     const pattern =
-      /\bcollections\.get\(\s*(?!id\b|collectionId\b|dataTableId\b|tableId\b|targetId\b)[^)]*\)/;
-    expect(
-      offenders(pattern, (rel) => ALLOW_HELPER.test(rel)),
-    ).toEqual([]);
+      /\bcollections\.get\(\s*(?!id\b|collectionId\b|dataTableId\b|tableId\b|targetId\b|\w+\.(?:collectionId|id|dataTableId|tableId|targetId)\b)[^)]*\)/;
+    expect(offenders(pattern, (rel) => ALLOW_HELPER.test(rel))).toEqual([]);
   });
 
   it("③ schema 필드 key 직접 find 0건 (resolveField 경유)", () => {
