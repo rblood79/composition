@@ -35,6 +35,15 @@ describe("Signin (라이선스 활성화)", () => {
   beforeEach(() => {
     localStorage.clear();
     mockNavigate.mockReset();
+    // useBuilderChromeTheme (auto 모드) — jsdom 에는 matchMedia 가 없다
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
     vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", fixture.publicPem);
     vi.stubGlobal("fetch", fetchLicense(fixture.token));
   });

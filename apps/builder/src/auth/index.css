@@ -1,98 +1,174 @@
-/* Auth styles - scoped to dashboard layer */
-.auth-container {
-  min-height: 100vh;
-  background: linear-gradient(
-    48deg,
-    var(--accent) 0%,
-    var(--accent-subtle) 100%
-  );
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+/* License activation — 대시보드와 같은 빌더 chrome 어법.
+ *   투명 헤더 (브랜드) · 떠 있는 chrome island 하나에 코드 입력.
+ *   표면/그림자/모서리는 `builder-system.css` §Chrome island 토큰만 소비한다.
+ * layer: `builder-system` — dashboard/index.css 와 같은 이유 (components 레이어의 RAC 기본값에 지지 않도록). */
+@layer builder-system {
+  body:has(.auth-page) {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
 
-/* Auth Card */
-.auth-card {
-  width: 100%;
-  max-width: var(--container-xs);
-  background: var(--bg-overlay);
-  border-radius: var(--radius-4xl);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-xl);
-}
+  body:has(.auth-page) #root {
+    height: 100dvh;
+  }
 
-/* Auth Header */
-.helper-text {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  .react-aria-Button {
-    border-width: 0;
+  .auth-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-overlay);
+    color: var(--fg);
+    overflow: hidden;
+  }
+
+  /* ── Header — 대시보드와 같은 48px 투명 행 ── */
+  .auth-header {
+    height: var(--spacing-4xl);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing);
     background: transparent;
   }
-}
 
-.auth-header {
-  text-align: center;
-}
+  .auth-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-width: 0;
+  }
 
-.auth-title {
-  font-size: var(--text-2xl);
-}
+  .auth-logo,
+  .auth-logo img {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
 
-.auth-subtitle {
-  font-size: var(--text-sm);
-}
+  .auth-logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+  }
 
-/* Auth Form */
-.auth-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-}
+  .auth-brand-title {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
+    white-space: nowrap;
+  }
 
-.auth-form .react-aria-TextField {
-  width: 100%;
-}
-
-.auth-form [type="submit"] {
-  background: var(--builder-button-bg);
-  color: var(--builder-button-text);
-  border-color: var(--builder-button-border);
-}
-
-.auth-form [type="submit"]:hover {
-  background: var(--builder-button-hover-bg);
-  color: var(--builder-button-text);
-  border-color: var(--builder-button-border);
-}
-
-.auth-form [type="submit"]:active {
-  background: var(--builder-button-active-bg);
-  color: var(--builder-button-text);
-  border-color: var(--builder-button-border);
-}
-
-/* Responsive Design */
-@media (max-width: 640px) {
-  .auth-card {
+  /* ── Body — island 를 화면 가운데에 띄운다 ── */
+  .auth-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: var(--spacing-lg);
-    margin: var(--spacing);
+  }
+
+  .auth-island {
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    background: var(--chrome-surface);
+    border: var(--chrome-border);
+    border-radius: var(--chrome-radius);
+    box-shadow: var(--chrome-shadow-floating);
+  }
+
+  .auth-island-heading {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
   }
 
   .auth-title {
-    font-size: var(--text-xl);
+    margin: 0;
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg);
   }
 
-  .social-buttons {
+  .auth-subtitle {
+    margin: 0;
+    font-size: var(--text-sm);
+    color: var(--fg-muted);
+  }
+
+  /* ── 코드 입력 — 검색바와 같은 2차 surface (bg-muted · radius-md), 6자리라 넓은 자간 ── */
+  .auth-code-field.react-aria-TextField {
+    display: flex;
     flex-direction: column;
+    gap: var(--spacing-xs);
+    width: 100%;
   }
-}
 
-.auth-config-error {
-  font-size: var(--text-sm);
-  color: var(--negative);
-  margin: 0;
+  .auth-code-field .react-aria-Label {
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-semibold);
+    color: var(--fg-muted);
+  }
+
+  .auth-code-field .react-aria-Text[slot="description"],
+  .auth-code-field .react-aria-FieldError {
+    font-size: var(--text-xs);
+  }
+
+  .auth-code-field .react-aria-Text[slot="description"] {
+    color: var(--fg-muted);
+  }
+
+  .auth-code-field .react-aria-FieldError {
+    color: var(--negative);
+  }
+
+  .auth-code-input.react-aria-Input {
+    box-sizing: border-box;
+    width: 100%;
+    height: calc(var(--control-size-lg) + var(--spacing-sm));
+    padding: 0 var(--spacing-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--bg-muted);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: var(--text-xl);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.35em;
+    text-align: center;
+    outline: none;
+  }
+
+  .auth-code-input.react-aria-Input::placeholder {
+    color: var(--fg-disabled);
+  }
+
+  .auth-code-input.react-aria-Input[data-focused] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+  }
+
+  .auth-code-field[data-invalid] .auth-code-input.react-aria-Input {
+    outline: var(--focus-ring-width) solid var(--negative);
+  }
+
+  .auth-code-field[data-disabled] .auth-code-input.react-aria-Input {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .auth-config-error {
+    margin: 0;
+    font-size: var(--text-xs);
+    color: var(--negative);
+  }
+
+  .auth-submit {
+    width: 100%;
+  }
 }

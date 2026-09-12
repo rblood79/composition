@@ -12,8 +12,9 @@ import { Input } from "react-aria-components/Input";
 import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import { FieldError } from "react-aria-components/FieldError";
-import { Button } from "react-aria-components/Button";
+import { Button } from "@composition/shared/components";
 import { useOptionalI18n } from "../i18n";
+import { useBuilderChromeTheme } from "../builder/hooks/useBuilderChromeTheme";
 import {
   LicenseVerifyError,
   verifyLicenseToken,
@@ -32,9 +33,7 @@ import {
 import "./index.css";
 
 type LicenseSource =
-  | { kind: "loading" }
-  | { kind: "deployed"; token: string }
-  | { kind: "none" };
+  { kind: "loading" } | { kind: "deployed"; token: string } | { kind: "none" };
 
 const FAILURE_KEY: Record<LicenseVerifyFailure, string> = {
   malformed: "errorMalformed",
@@ -50,6 +49,7 @@ const Signin = () => {
   const t = (key: string, params?: Record<string, string | number>) =>
     i18n ? i18n.t(`auth.${key}`, params) : key;
 
+  useBuilderChromeTheme();
   const publicKey = useMemo(() => readBundledPublicKey(), []);
   const [source, setSource] = useState<LicenseSource>({ kind: "loading" });
   const [code, setCode] = useState("");
@@ -115,16 +115,26 @@ const Signin = () => {
   };
 
   return (
-    <main className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h1 className="auth-title">{t("title")}</h1>
-          <p className="auth-subtitle">{t("subtitle")}</p>
+    // 대시보드와 같은 빌더 chrome — `data-context="builder"` 가 없으면 preview 팔레트로 렌더된다.
+    <main className="auth-page" data-context="builder">
+      <header className="auth-header">
+        <div className="auth-brand">
+          <span className="auth-logo">
+            <img src="/appIcon.svg" alt="" aria-hidden />
+          </span>
+          <span className="auth-brand-title">composition</span>
         </div>
+      </header>
 
-        <form onSubmit={handleSubmit} className="auth-form">
+      <div className="auth-body">
+        <form onSubmit={handleSubmit} className="auth-island">
+          <div className="auth-island-heading">
+            <h1 className="auth-title">{t("title")}</h1>
+            <p className="auth-subtitle">{t("subtitle")}</p>
+          </div>
+
           <TextField
-            className="auth-form-field"
+            className="react-aria-TextField auth-code-field"
             value={code}
             onChange={(next) => setCode(next.replace(/\D/g, "").slice(0, 6))}
             isRequired
@@ -134,10 +144,12 @@ const Signin = () => {
           >
             <Label>{t("code")}</Label>
             <Input
+              className="react-aria-Input auth-code-input"
               inputMode="numeric"
               pattern="[0-9]{6}"
               maxLength={6}
               autoComplete="one-time-code"
+              placeholder="000000"
               autoFocus
             />
             <Text slot="description">{t("codeDescription")}</Text>
@@ -157,10 +169,11 @@ const Signin = () => {
 
           <Button
             type="submit"
-            className="react-aria-Button"
+            variant="accent"
+            size="md"
+            className="auth-submit"
             isDisabled={!canSubmit}
-            data-size="md"
-            data-variant="primary"
+            isLoading={verifying}
           >
             {verifying ? t("verifying") : t("submit")}
           </Button>

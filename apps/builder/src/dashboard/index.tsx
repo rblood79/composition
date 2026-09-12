@@ -11,6 +11,8 @@ import { getDefaultProps } from "../types/builder/unified.types";
 import { ElementProps } from "../types/integrations/supabase.types";
 import { ElementUtils } from "../utils/element/elementUtils";
 import { clearAuth, getCurrentUserId } from "../auth/license/localAuth";
+import { useBuilderChromeTheme } from "../builder/hooks/useBuilderChromeTheme";
+import { ActionIconButton } from "../builder/components/ui/ActionIconButton";
 import {
   Button,
   Badge,
@@ -382,36 +384,7 @@ function Dashboard() {
   const themeMode = useUiStore((state) => state.themeMode);
   const setThemeMode = useUiStore((state) => state.setThemeMode);
 
-  // 빌더 chrome 테마.
-  //
-  // `data-builder-theme` 는 색 선택 외에 **"빌더 chrome 이 mount 중"** 이라는 뜻도 겸한다 —
-  // builder-system.css 의 portal fallback(`#root` 밖 body 자식)이 이걸 게이트로 쓴다.
-  // 대시보드도 이제 빌더 chrome 이므로 여기서 세우고 unmount 시 지운다 (BuilderCore 와 동형).
-  // auth 라우트는 세우지 않으므로 종전대로 빌더 팔레트를 받지 않는다.
-  useEffect(() => {
-    const apply = (theme: "light" | "dark") => {
-      document.documentElement.setAttribute("data-builder-theme", theme);
-    };
-    const clear = () => {
-      document.documentElement.removeAttribute("data-builder-theme");
-    };
-
-    if (themeMode !== "auto") {
-      apply(themeMode);
-      return clear;
-    }
-
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      apply(e.matches ? "dark" : "light");
-    };
-    handleChange(mediaQuery);
-    mediaQuery.addEventListener("change", handleChange);
-    return () => {
-      mediaQuery.removeEventListener("change", handleChange);
-      clear();
-    };
-  }, [themeMode]);
+  useBuilderChromeTheme();
 
   // ⌘K / Ctrl+K — 검색으로 이동. (전체 커맨드 팔레트는 별도 작업)
   //
@@ -675,7 +648,7 @@ function Dashboard() {
         </div>
 
         <div className="dashboard-actions">
-          <div className="builder-viewport-controls">
+          <div className="builder-action-group">
             <ToggleButtonGroup
               className="builder-control-group"
               aria-label="Builder theme"
@@ -698,16 +671,17 @@ function Dashboard() {
                 <Monitor size={16} aria-hidden />
               </ToggleButton>
             </ToggleButtonGroup>
-            <AriaButton
-              className="react-aria-Button dashboard-sign-out"
+            <ActionIconButton
+              className="dashboard-sign-out"
               aria-label={t("signOut")}
+              tooltip={t("signOut")}
               onPress={() => {
                 clearAuth();
                 navigate("/signin", { replace: true });
               }}
             >
               <LogOut size={16} aria-hidden />
-            </AriaButton>
+            </ActionIconButton>
           </div>
         </div>
       </header>
