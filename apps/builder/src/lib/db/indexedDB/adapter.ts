@@ -14,7 +14,10 @@ import type {
   SerializedActionRecord,
   SerializedEventRecord,
 } from "../types";
-import type { CompositionDocument } from "@composition/shared";
+import type {
+  CompositionDocument,
+  CollectionRuntimeRow,
+} from "@composition/shared";
 import type {
   DataTable,
   ApiEndpoint,
@@ -29,7 +32,7 @@ import {
 import type { DocumentPersistOptions } from "./documentPersistGuard";
 
 const DB_NAME = "composition";
-const DB_VERSION = 21; // 2026-09-07: canonical 변경 노드 저장 (기존 row는 첫 저장에 원자적으로 전환).
+const DB_VERSION = 22; // 2026-09-12 (ADR-218): collection_runtime store — runtimeData(API 응답) 캐시 영속.
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -282,6 +285,20 @@ export class IndexedDBAdapter implements DatabaseAdapter {
           });
           dataTablesStore.createIndex("name", "name", { unique: false });
           console.log("[IndexedDB] Created store: collections");
+        }
+
+        // ADR-218 (DB_VERSION 22): collection_runtime store — runtimeData(API 응답)
+        // 캐시 영속. collections 레코드와 분리 (대안 B) 라 정의 레코드 크기 불변,
+        // History 밖. `sourceRev` 지문으로 hydration 유효성 판정, collection 삭제 시
+        // 같이 정리 (고아 0). keyPath = collectionId (collection 1:1).
+        if (!db.objectStoreNames.contains("collection_runtime")) {
+          const runtimeStore = db.createObjectStore("collection_runtime", {
+            keyPath: "collectionId",
+          });
+          runtimeStore.createIndex("project_id", "project_id", {
+            unique: false,
+          });
+          console.log("[IndexedDB] Created store: collection_runtime");
         }
 
         // ApiEndpoints store
@@ -617,6 +634,38 @@ export class IndexedDBAdapter implements DatabaseAdapter {
 
     getAll: async (): Promise<DataTable[]> => {
       return this.getAllFromStore<DataTable>("collections");
+    },
+  };
+
+  // === Collection Runtime Cache (ADR-218) ===
+  // runtimeData(API 응답) 캐시 — collections 정의와 분리 영속, History 밖.
+  collection_runtime = {
+    get: async (collectionId: string): Promise<CollectionRuntimeRow | null> => {
+      return this.getFromStore<CollectionRuntimeRow>(
+        "collection_runtime",
+        collectionId,
+      );
+    },
+
+    put: async (row: CollectionRuntimeRow): Promise<void> => {
+      await this.putToStore("collection_runtime", {
+        ...row,
+        updated_at: row.updated_at || new Date().toISOString(),
+      });
+    },
+
+    delete: async (collectionId: string): Promise<void> => {
+      await this.deleteFromStore("collection_runtime", collectionId);
+    },
+
+    getByProject: async (
+      projectId: string,
+    ): Promise<CollectionRuntimeRow[]> => {
+      return this.getAllByIndex<CollectionRuntimeRow>(
+        "collection_runtime",
+        "project_id",
+        projectId,
+      );
     },
   };
 

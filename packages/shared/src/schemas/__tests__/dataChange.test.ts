@@ -19,7 +19,7 @@ import {
 const field = { id: "f1", key: "name", type: "string" as const };
 
 describe("DataOpSchema", () => {
-  it("15 op 전부 파싱된다", () => {
+  it("16 op 전부 파싱된다", () => {
     const ops = [
       { op: "create_collection", name: "Users", schema: [field] },
       { op: "delete_collection", collectionId: "c1" },
@@ -47,6 +47,12 @@ describe("DataOpSchema", () => {
       { op: "remove_rows", collectionId: "c1", rowIndexes: [0, 2] },
       { op: "replace_rows", collectionId: "c1", rows: [] },
       { op: "set_source", collectionId: "c1", source: "manual" },
+      // ADR-218 — 실행 정책 (policy:null = manual 로 초기화)
+      {
+        op: "set_execution_policy",
+        collectionId: "c1",
+        policy: { mode: "interval", intervalSec: 30 },
+      },
       { op: "delete_endpoint", endpointId: "ep1" },
       {
         op: "define_endpoint",

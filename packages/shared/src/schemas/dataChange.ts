@@ -115,6 +115,13 @@ export const VariableDefinitionSchema = z.object({
   persist: z.boolean().optional(),
 });
 
+/** ADR-218 — 실행 정책 (auto/manual/interval). */
+export const ExecutionPolicySchema = z.object({
+  mode: z.enum(["auto", "manual", "interval"]),
+  intervalSec: z.number().int().positive().optional(),
+});
+export type ExecutionPolicyShape = z.infer<typeof ExecutionPolicySchema>;
+
 export const DataOpSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("create_collection"),
@@ -184,6 +191,15 @@ export const DataOpSchema = z.discriminatedUnion("op", [
     endpointId: z.string().optional(),
   }),
   /**
+   * ADR-218 — collection 실행 정책 설정. `policy: null` = manual 로 초기화(필드 제거).
+   * 역연산 = 이전 정책(없었으면 null).
+   */
+  z.object({
+    op: z.literal("set_execution_policy"),
+    ...collectionRef,
+    policy: ExecutionPolicySchema.nullable(),
+  }),
+  /**
    * ADR-213 Phase 4 — API endpoint 정의. `endpoint.id` 가 있고 store 에 있으면 그 정의를
    * 바꾸고, 없으면 생성 (적용기가 id 를 발급해 `applied` 에 싣는다). 생성의 역연산은
    * `delete_endpoint` (사람 전용 — tool 스키마에서 제외).
@@ -243,6 +259,8 @@ export const HUMAN_ONLY_DATA_OPS: readonly DataOpKind[] = [
   "remove_rows",
   "delete_endpoint",
   "define_variable",
+  // ADR-218 — 실행 정책은 사람 UI(Settings 데이터 소스) 전용. AI 자동 폴링 설정 차단.
+  "set_execution_policy",
 ];
 
 /** 적용기 내부 (inverse) 전용 필드 — tool 입력 스키마에서 뺀다 (ADR-213 HC2). */

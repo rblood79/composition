@@ -202,6 +202,17 @@ export function summarizeDataChange(
           ...(op.endpointId ? { endpointId: op.endpointId } : {}),
         });
         break;
+      case "set_execution_policy":
+        // 실행 정책은 collection 정의의 한 필드이므로 기존 collection update
+        // 요약으로 정규화한다. 이 op는 사람 전용이지만 undo/redo payload 등
+        // 내부 DataOp도 이 순수 요약기에 들어올 수 있어 exhaustive 처리가 필요하다.
+        items.push({
+          kind: "collection",
+          op: "update_collection",
+          collection: refOf(op.collectionId),
+          patch: { executionPolicy: op.policy },
+        });
+        break;
       case "add_field":
         items.push({
           kind: "field",

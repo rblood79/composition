@@ -208,4 +208,29 @@ describe("summarizeDataChange", () => {
     });
     expect(usedBy).toEqual([]);
   });
+
+  it("set_execution_policy는 collection update 요약으로 정규화한다", () => {
+    const { items, usedBy } = summarizeDataChange(
+      [
+        {
+          op: "set_execution_policy",
+          collectionId: "users",
+          policy: { mode: "interval", intervalSec: 30 },
+        },
+      ],
+      ctx,
+    );
+
+    expect(items).toEqual([
+      {
+        kind: "collection",
+        op: "update_collection",
+        collection: { id: "users", name: "Users", isNew: false },
+        patch: {
+          executionPolicy: { mode: "interval", intervalSec: 30 },
+        },
+      },
+    ]);
+    expect(usedBy).toEqual([{ id: "users", name: "Users", count: 3 }]);
+  });
 });

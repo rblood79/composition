@@ -798,6 +798,22 @@ function reduceOne(
       });
       return;
     }
+    case "set_execution_policy": {
+      // ADR-218 — 실행 정책 설정. `policy: null` = 필드 제거(manual 로 복귀).
+      const existing = requireCollection(collections, op);
+      const prev = existing.executionPolicy ?? null;
+      const next: DataTable = { ...existing };
+      if (op.policy === null) delete next.executionPolicy;
+      else next.executionPolicy = op.policy;
+      touch(next);
+      out.applied.push(op);
+      out.inverse.unshift({
+        op: "set_execution_policy",
+        collectionId: op.collectionId,
+        policy: prev,
+      });
+      return;
+    }
     case "bind_element":
       // canonical 문서 축 — 적용기 (`createApplyDataChangeAction`) 가 collections
       // reduce 앞에서 나누어 `DataBindingConsumer` 로 보낸다. 여기 오면 계약 위반.
@@ -1015,6 +1031,10 @@ type CollectionsDB = {
     update: (id: string, updates: Partial<ApiEndpoint>) => Promise<ApiEndpoint>;
     delete: (id: string) => Promise<void>;
   };
+  /** ADR-218 — runtimeData 캐시 정리 (collection 삭제 시 고아 0, R8). */
+  collection_runtime?: {
+    delete: (collectionId: string) => Promise<void>;
+  };
 };
 
 function persistablePatch(dt: DataTable): DataTableUpdate {
@@ -1023,6 +1043,8 @@ function persistablePatch(dt: DataTable): DataTableUpdate {
     schema: dt.schema,
     mockData: dt.mockData,
     useMockData: dt.useMockData,
+    // ADR-218 — 실행 정책은 collections store 에 영속 (runtimeData 는 별도 collection_runtime store).
+    executionPolicy: dt.executionPolicy,
   };
 }
 
@@ -1074,7 +1096,11 @@ export const createApplyDataChangeAction =
       const db = (await getDB()) as unknown as CollectionsDB;
       const store = db.collections;
       if (!store) throw new Error("collections store not found in database");
-      for (const id of reduced.deleted) await store.delete(id);
+      for (const id of reduced.deleted) {
+        await store.delete(id);
+        // ADR-218 R8 — 정의 삭제 시 runtimeData 캐시도 정리 (고아 0).
+        await db.collection_runtime?.delete(id);
+      }
       for (const id of reduced.upserted) {
         const next = reduced.collections.get(id);
         if (!next) continue;

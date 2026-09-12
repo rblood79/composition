@@ -29,6 +29,18 @@ export interface SchemaField {
 // ============================================
 
 /**
+ * collection 실행 정책 (ADR-218) — API endpoint 가 언제 실행되는지.
+ * - `auto`: Builder 가 Preview 열기 전 1회 실행
+ * - `manual`: Send/새로고침 버튼만 (미설정 = manual, BC)
+ * - `interval`: N초마다 (진행 중이면 skip/coalesce — Phase 3)
+ */
+export interface ExecutionPolicy {
+  mode: "auto" | "manual" | "interval";
+  /** `interval` 모드 전용 — 주기(초). 다른 모드에서는 무시. */
+  intervalSec?: number;
+}
+
+/**
  * DataTable 정의
  */
 export interface DataTableDefinition {
@@ -40,6 +52,22 @@ export interface DataTableDefinition {
   mockData?: Record<string, unknown>[];
   runtimeData?: Record<string, unknown>[];
   useMockData?: boolean;
+  /** ADR-218 — 실행 정책. 미설정 = manual (BC read 호환). */
+  executionPolicy?: ExecutionPolicy;
+}
+
+/**
+ * ADR-218 — `collection_runtime` store 레코드. runtimeData(API 응답) 캐시를
+ * collections 정의 레코드와 분리 영속 (대안 B). `sourceRev` 는 hydration 유효성
+ * 판정 지문 — 요청 정의·비민감 값·secret 참조 revision 을 담되 secret **원문은
+ * 담지 않는다** (HC6). 미일치면 hydration 이 캐시를 폐기한다.
+ */
+export interface CollectionRuntimeRow {
+  collectionId: string;
+  project_id: string;
+  runtimeData: Record<string, unknown>[];
+  sourceRev: string;
+  updated_at: string;
 }
 
 /**
@@ -74,10 +102,13 @@ export interface ApiEndpointDefinition {
   path: string;
   method?: string;
   headers?: ApiEndpointHeader[] | Record<string, string>;
-  queryParams?: Array<{key: string; value: string}>;
+  queryParams?: Array<{ key: string; value: string }>;
   bodyType?: string;
   bodyTemplate?: string;
-  responseMapping?: {dataPath: string; fieldMappings?: Array<{sourceKey: string; targetKey: string}>};
+  responseMapping?: {
+    dataPath: string;
+    fieldMappings?: Array<{ sourceKey: string; targetKey: string }>;
+  };
   executionMode?: "client" | "server";
   timeout?: number;
 }
@@ -154,7 +185,10 @@ export interface ApiEndpointService {
   /** API Endpoint 목록 조회 */
   getApiEndpoints: () => ApiEndpointDefinition[];
   /** API Endpoint 실행 */
-  executeApiEndpoint?: (endpointId: string, signal?: AbortSignal) => Promise<unknown>;
+  executeApiEndpoint?: (
+    endpointId: string,
+    signal?: AbortSignal,
+  ) => Promise<unknown>;
 }
 
 /**

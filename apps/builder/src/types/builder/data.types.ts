@@ -1,9 +1,12 @@
 import type {
   DataChange,
   DataOp,
+  ExecutionPolicy,
   VariableMigrationStatus,
   VariableOwner,
 } from "@composition/shared";
+
+export type { ExecutionPolicy } from "@composition/shared";
 
 /**
  * Data Panel System Type Definitions
@@ -85,6 +88,9 @@ export interface DataTable {
   /** true면 mockData 사용, false면 API 결과 사용 */
   useMockData: boolean;
 
+  /** ADR-218 — 실행 정책. 미설정 = manual (BC read 호환). */
+  executionPolicy?: ExecutionPolicy;
+
   created_at?: string;
   updated_at?: string;
 }
@@ -104,7 +110,12 @@ export type DataTableCreate = Pick<DataTable, "name" | "project_id"> & {
 export type DataTableUpdate = Partial<
   Pick<
     DataTable,
-    "name" | "schema" | "mockData" | "runtimeData" | "useMockData"
+    | "name"
+    | "schema"
+    | "mockData"
+    | "runtimeData"
+    | "useMockData"
+    | "executionPolicy"
   >
 >;
 
