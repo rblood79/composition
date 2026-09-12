@@ -17,14 +17,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **`/signin` 라이선스 활성화 화면** — 라이선스 파일 (`token.jwt`: 서버 루트 `public/license.jwt` 가 있으면 자동, 없으면 RAC `FileTrigger` 로 선택) + 6자리 검증 코드. 검증은 `auth/license/licenseToken.ts` 가 WebCrypto 만으로 (네트워크 0): `alg=ES256` 확인 → 번들 공개키 (`VITE_LICENSE_PUBLIC_KEY` — 발급기 `public_key` PEM, 헤더 없는 본문 한 줄 · JWK 도 호환) 로 서명 검증 → `exp` → 코드로 PBKDF2-SHA256(600k)→AES-GCM 복호화해 `license_key` 대조. 토큰에 코드 평문이 없어 파일만으로는 코드를 알 수 없다. 코드 5회 실패 시 60초 잠금 (서명·만료 오류는 잠금 대상 아님).
+- **`/signin` 라이선스 활성화 화면** — 라이선스 토큰은 서버 루트 **`apps/builder/public/license`** (확장자 없음, 발급기 `token.jwt` 를 그 이름으로 배포) 에서 자동으로 읽고 (파일 선택 없음 — 사용자 결정), 사용자 입력은 6자리 검증 코드 하나. 검증은 `auth/license/licenseToken.ts` 가 WebCrypto 만으로 (네트워크 0): `alg=ES256` 확인 → 번들 공개키 (`VITE_LICENSE_PUBLIC_KEY` — 발급기 `public_key` PEM, 헤더 없는 본문 한 줄 · JWK 도 호환) 로 서명 검증 → `exp` → 코드로 PBKDF2-SHA256(600k)→AES-GCM 복호화해 `license_key` 대조. 토큰에 코드 평문이 없어 파일만으로는 코드를 알 수 없다. 코드 5회 실패 시 60초 잠금 (서명·만료 오류는 잠금 대상 아님).
 - **로컬 인증 기록** (`auth/license/localAuth.ts`, localStorage `composition-license-auth` — `vc` 봉인은 저장하지 않음). `ProtectedRoute` 가 동기로 읽어 만료 전이면 즉시 통과, 없거나 만료면 `/signin`. 만료 = 라이선스 `exp` (Unlimited 는 무기한). 대시보드 헤더에 로그아웃 (기록 삭제).
 - i18n `auth.*` ko/en (18 키, `errorLocked` 는 `{seconds}` formatter 등록) · `dashboard.signOut`.
 
 ### Removed
 
 - `@supabase/supabase-js` 의존성 · `env/supabase.client.ts` · `auth/devAutoLogin.ts` (email/password 로그인, dev 자동 로그인) · `.env` 의 `VITE_SUPABASE_*` / `VITE_DEV_EMAIL` / `VITE_DEV_PASSWORD`. 테스트 13개의 supabase mock 제거. `created_by` 는 라이선스 키.
-- `.gitignore`: `apps/builder/token` · `token.jwt` · `public/license.jwt` (코드가 평문이던 구형식 `apps/builder/token` 은 재발급 대상).
+- `.gitignore`: `apps/builder/token` · `token.jwt` · `public/license` (코드가 평문이던 구형식 `apps/builder/token` 은 재발급 대상).
 
 ## [ADR-216 Implemented — Chart 시간축 · 날짜 지시자 형식/파싱 · 가변 창 (thumb 2)] - 2026-09-12
 

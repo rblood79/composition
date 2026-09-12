@@ -8,8 +8,8 @@ import {
   type LicensePublicKey,
 } from "./licenseToken";
 
-/** 서버 루트에 배포된 토큰 파일 경로 (`public/license.jwt`). 없으면 파일 선택으로 폴백. */
-export const LICENSE_FILE_NAME = "license.jwt";
+/** 서버 루트에 배포된 라이선스 토큰 파일 — `apps/builder/public/license` (확장자 없음). 유일한 입력 경로. */
+export const LICENSE_FILE_NAME = "license";
 
 /**
  * 번들에 실린 발급기 공개키. `.env` 의 `VITE_LICENSE_PUBLIC_KEY` — 발급기 `public_key`
@@ -58,8 +58,8 @@ export function parsePublicJwk(raw: string): LicensePublicJwk | null {
 }
 
 /**
- * 서버 루트의 `license.jwt` 를 읽는다. 없으면 (404·네트워크 오류) null.
- * 폐쇄망 서버가 앱과 같이 토큰을 배포하는 경우의 자동 경로.
+ * 서버 루트의 `license` 를 읽는다. 없으면 (404·네트워크 오류) null.
+ * 폐쇄망 서버가 앱과 같이 토큰을 배포한다 — 로그인 화면에 파일 선택은 없다.
  */
 export async function fetchDeployedLicenseToken(
   fetchImpl: typeof fetch = fetch,

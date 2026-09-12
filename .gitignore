@@ -91,4 +91,4 @@ docs/design/
 # License token files (local deployment only)
 apps/builder/token
 apps/builder/token.jwt
-apps/builder/public/license.jwt
+apps/builder/public/license

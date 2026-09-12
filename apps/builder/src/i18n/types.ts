@@ -1327,9 +1327,7 @@ export interface TranslationKeys {
     subtitle: string;
     licenseFile: string;
     licenseFileDeployed: string;
-    licenseFileChoose: string;
     licenseFileNone: string;
-    licenseFileInvalid: string;
     code: string;
     codeDescription: string;
     submit: string;

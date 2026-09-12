@@ -1423,13 +1423,11 @@ const koKR: TranslationKeys = {
   },
   auth: {
     title: "라이선스 인증",
-    subtitle: "라이선스 파일과 검증 코드를 입력하세요",
-    licenseFile: "라이선스 파일 (token.jwt)",
-    licenseFileDeployed: "서버 배포 라이선스 사용",
-    licenseFileChoose: "파일 선택",
-    licenseFileNone: "라이선스 파일을 선택하세요",
-    licenseFileInvalid:
-      "라이선스 파일 (token.jwt) 이 아닙니다 — public_key 는 .env 설정용입니다",
+    subtitle: "검증 코드를 입력하세요",
+    licenseFile: "라이선스",
+    licenseFileDeployed: "서버 라이선스 확인됨",
+    licenseFileNone:
+      "서버에 라이선스 파일이 없습니다 — token.jwt 를 apps/builder/public/license 로 배포하세요",
     code: "검증 코드",
     codeDescription: "라이선스와 함께 전달받은 6자리 숫자",
     submit: "인증",
@@ -3321,13 +3319,11 @@ const enUS: TranslationKeys = {
   },
   auth: {
     title: "License activation",
-    subtitle: "Provide your license file and verification code",
-    licenseFile: "License file (token.jwt)",
-    licenseFileDeployed: "Using server license",
-    licenseFileChoose: "Choose file",
-    licenseFileNone: "Choose a license file",
-    licenseFileInvalid:
-      "Not a license file (token.jwt) — public_key belongs in .env",
+    subtitle: "Enter your verification code",
+    licenseFile: "License",
+    licenseFileDeployed: "Server license found",
+    licenseFileNone:
+      "No license on this server — deploy token.jwt as apps/builder/public/license",
     code: "Verification code",
     codeDescription: "The 6-digit number delivered with your license",
     submit: "Activate",

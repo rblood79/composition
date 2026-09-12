@@ -1,12 +1,13 @@
 /**
  * 라이선스 인증 live 하니스 — 실제 빌더 (dev 5173) 에서:
  *  1) /dashboard 직접 진입 → /signin 으로 리다이렉트
- *  2) 파일 선택 + 틀린 코드 → 오류
+ *  2) 서버 license 자동 인식 + 틀린 코드 → 오류
  *  3) 올바른 코드 → /dashboard, localStorage 기록 (vc 없음)
  *  4) 새 탭/리로드 → 바로 /dashboard (재인증 없음)
  *  5) 만료 조작 → /signin
  *  6) 로그아웃 → /signin, 기록 삭제
  * 실행: node apps/builder/scripts/license-auth-live.mjs <token.jwt> <code>
+ *   — token.jwt 를 apps/builder/public/license 로 복사해 두고 (하니스가 복사·종료 시 원복), dev 5173 필요
  */
 import { chromium } from "playwright";
 import fs from "node:fs";
@@ -14,6 +15,15 @@ import fs from "node:fs";
 const [tokenPath, code] = process.argv.slice(2);
 if (!tokenPath || !code) throw new Error("usage: <token.jwt> <code>");
 const token = fs.readFileSync(tokenPath, "utf8").trim();
+const deployedPath = new URL("../public/license", import.meta.url);
+const hadDeployed = fs.existsSync(deployedPath);
+const previous = hadDeployed ? fs.readFileSync(deployedPath) : null;
+fs.writeFileSync(deployedPath, token);
+const restore = () => {
+  if (hadDeployed) fs.writeFileSync(deployedPath, previous);
+  else fs.rmSync(deployedPath, { force: true });
+};
+process.on("exit", restore);
 const base = "http://localhost:5173";
 const results = [];
 const check = (name, ok, detail = "") => {
@@ -32,17 +42,13 @@ await page.waitForURL(/\/signin/, { timeout: 15000 });
 check("1 /dashboard 직접 진입 → /signin", page.url().endsWith("/signin"));
 
 // 2) 파일 + 틀린 코드
-await page.setInputFiles('input[type="file"]', {
-  name: "token.jwt",
-  mimeType: "text/plain",
-  buffer: Buffer.from(token),
-});
-await page.waitForSelector('.auth-license-source[data-kind="file"]');
+await page.waitForSelector('.auth-license-source[data-kind="deployed"]');
 const codeInput = page.locator('input[inputmode="numeric"]');
 await codeInput.fill(code === "000000" ? "000001" : "000000");
 await page.click('button[type="submit"]');
 await page.waitForSelector(".react-aria-FieldError", { timeout: 30000 });
 const errText = await page.textContent(".react-aria-FieldError");
+check("2 서버 license 자동 인식", true);
 check("2 틀린 코드 → 오류", /일치|match/.test(errText ?? ""), errText ?? "");
 check("2 기록 없음", (await page.evaluate(() => localStorage.getItem("composition-license-auth"))) === null);
 
@@ -76,8 +82,7 @@ await page.waitForURL(/\/signin/, { timeout: 15000 });
 check("5 만료 → /signin + 기록 삭제", (await page.evaluate(() => localStorage.getItem("composition-license-auth"))) === null);
 
 // 6) 재인증 → 로그아웃
-await page.setInputFiles('input[type="file"]', { name: "token.jwt", mimeType: "text/plain", buffer: Buffer.from(token) });
-await page.waitForSelector('.auth-license-source[data-kind="file"]');
+await page.waitForSelector('.auth-license-source[data-kind="deployed"]');
 await page.locator('input[inputmode="numeric"]').fill(code);
 await page.click('button[type="submit"]');
 await page.waitForURL(/\/dashboard/, { timeout: 30000 });
@@ -88,7 +93,6 @@ check("6 로그아웃 → /signin + 기록 삭제", (await page.evaluate(() => l
 // 7) 네트워크: 인증 중 외부 요청 0 (localhost 만)
 const external = [];
 page.on("request", (r) => { if (!r.url().startsWith(base)) external.push(r.url()); });
-await page.setInputFiles('input[type="file"]', { name: "token.jwt", mimeType: "text/plain", buffer: Buffer.from(token) });
 await page.locator('input[inputmode="numeric"]').fill(code);
 await page.click('button[type="submit"]');
 await page.waitForURL(/\/dashboard/, { timeout: 30000 });

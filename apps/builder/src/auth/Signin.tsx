@@ -1,8 +1,8 @@
 /**
  * 라이선스 활성화 화면 — 서버 없는 폐쇄망 인증.
  *
- * 입력 2개: 라이선스 파일 (`token.jwt`, 서버 루트 배포본 자동 · 없으면 파일 선택)
- * + 6자리 검증 코드. 검증은 `auth/license/licenseToken.ts` (WebCrypto, 네트워크 0).
+ * 라이선스 토큰은 서버 루트 `public/license` 에서 자동으로 읽는다 (파일 선택 없음).
+ * 사용자 입력은 6자리 검증 코드 하나. 검증은 `auth/license/licenseToken.ts` (WebCrypto, 외부 네트워크 0).
  * 통과하면 로컬 인증 기록을 남기고 대시보드로 간다.
  */
 import React, { useEffect, useMemo, useState } from "react";
@@ -13,7 +13,6 @@ import { Label } from "react-aria-components/Label";
 import { Text } from "react-aria-components/Text";
 import { FieldError } from "react-aria-components/FieldError";
 import { Button } from "react-aria-components/Button";
-import { FileTrigger } from "react-aria-components/FileTrigger";
 import { useOptionalI18n } from "../i18n";
 import {
   LicenseVerifyError,
@@ -22,7 +21,6 @@ import {
 } from "./license/licenseToken";
 import {
   fetchDeployedLicenseToken,
-  looksLikeJwt,
   readBundledPublicKey,
 } from "./license/licenseSource";
 import {
@@ -36,7 +34,6 @@ import "./index.css";
 type LicenseSource =
   | { kind: "loading" }
   | { kind: "deployed"; token: string }
-  | { kind: "file"; token: string; name: string }
   | { kind: "none" };
 
 const FAILURE_KEY: Record<LicenseVerifyFailure, string> = {
@@ -83,24 +80,11 @@ const Signin = () => {
     return () => window.clearInterval(id);
   }, [lockedMs]);
 
-  const token =
-    source.kind === "deployed" || source.kind === "file" ? source.token : null;
+  const token = source.kind === "deployed" ? source.token : null;
   const codeValid = /^\d{6}$/.test(code);
   const locked = lockedMs > 0;
   const canSubmit =
     !!publicKey && !!token && codeValid && !verifying && !locked;
-
-  const handleFile = async (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file) return;
-    const text = (await file.text()).trim();
-    if (!looksLikeJwt(text)) {
-      setError(t("licenseFileInvalid"));
-      return;
-    }
-    setError(null);
-    setSource({ kind: "file", token: text, name: file.name });
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -144,21 +128,8 @@ const Signin = () => {
             <div className="auth-license-source" data-kind={source.kind}>
               <span className="auth-license-status" role="status">
                 {source.kind === "deployed" && t("licenseFileDeployed")}
-                {source.kind === "file" && source.name}
                 {source.kind === "none" && t("licenseFileNone")}
               </span>
-              <FileTrigger
-                acceptedFileTypes={[".jwt", "text/plain"]}
-                onSelect={(files) => void handleFile(files)}
-              >
-                <Button
-                  className="react-aria-Button"
-                  data-size="md"
-                  isDisabled={source.kind === "loading"}
-                >
-                  {t("licenseFileChoose")}
-                </Button>
-              </FileTrigger>
             </div>
           </div>
 

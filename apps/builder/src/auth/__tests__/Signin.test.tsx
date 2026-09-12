@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * 라이선스 활성화 화면 — 파일 선택 + 코드 입력 → 로컬 인증 기록 + /dashboard.
+ * 라이선스 활성화 화면 — 서버 루트 `license` 자동 읽기 + 코드 입력 → 로컬 인증 기록 + /dashboard.
  * 토큰은 발급기 fixture (실제 ES256 서명) 를 쓴다.
  */
 import React from "react";
@@ -22,25 +22,21 @@ vi.mock("react-router", () => ({
 
 import Signin from "../Signin";
 
-function pickFile(text: string, name = "token.jwt") {
-  const input = document.querySelector(
-    'input[type="file"]',
-  ) as HTMLInputElement;
-  const file = new File([text], name, { type: "text/plain" });
-  Object.defineProperty(input, "files", { value: [file], configurable: true });
-  fireEvent.change(input);
-}
-
 describe("Signin (라이선스 활성화)", () => {
+  const fetchLicense = (token: string | null) =>
+    vi.fn(async (input: string | URL | Request) => {
+      const url = String(input);
+      if (!url.endsWith("/license") || token === null) {
+        return { ok: false, text: async () => "" };
+      }
+      return { ok: true, text: async () => token };
+    });
+
   beforeEach(() => {
     localStorage.clear();
     mockNavigate.mockReset();
     vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", fixture.publicPem);
-    // 서버 루트 license.jwt 없음 → 파일 선택 경로
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({ ok: false, text: async () => "" })),
-    );
+    vi.stubGlobal("fetch", fetchLicense(fixture.token));
   });
   afterEach(() => {
     cleanup();
@@ -48,20 +44,19 @@ describe("Signin (라이선스 활성화)", () => {
     vi.unstubAllGlobals();
   });
 
-  it("파일 + 올바른 코드 → 인증 기록 저장 + /dashboard", async () => {
-    render(<Signin />);
-    await screen.findByText("licenseFileNone");
-    pickFile(fixture.token);
-    await screen.findByText("token.jwt");
-
-    const code = screen.getByRole("textbox");
-    fireEvent.change(code, { target: { value: fixture.code } });
+  async function submitCode(value: string) {
+    fireEvent.change(screen.getByRole("textbox"), { target: { value } });
     const submit = screen.getByRole("button", { name: "submit" });
     await waitFor(() =>
       expect((submit as HTMLButtonElement).disabled).toBe(false),
     );
     fireEvent.click(submit);
+  }
 
+  it("서버 license + 올바른 코드 → 인증 기록 저장 + /dashboard", async () => {
+    render(<Signin />);
+    await screen.findByText("licenseFileDeployed");
+    await submitCode(fixture.code);
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith("/dashboard"),
     );
@@ -73,59 +68,38 @@ describe("Signin (라이선스 활성화)", () => {
 
   it("틀린 코드 → 오류 문구, 기록 없음", async () => {
     render(<Signin />);
-    await screen.findByText("licenseFileNone");
-    pickFile(fixture.token);
-    await screen.findByText("token.jwt");
-    fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: "000000" },
-    });
-    const submit = screen.getByRole("button", { name: "submit" });
-    await waitFor(() =>
-      expect((submit as HTMLButtonElement).disabled).toBe(false),
-    );
-    fireEvent.click(submit);
+    await screen.findByText("licenseFileDeployed");
+    await submitCode("000000");
     await screen.findByText("errorCode");
     expect(mockNavigate).not.toHaveBeenCalled();
     expect(readValidAuth()).toBeNull();
   });
 
-  it("JWT 형태가 아닌 파일은 거부", async () => {
+  it("서버 license 없음 (404 · index.html 폴백) → 안내 + 제출 불가, 파일 선택 없음", async () => {
+    vi.stubGlobal("fetch", fetchLicense(null));
     render(<Signin />);
     await screen.findByText("licenseFileNone");
-    pickFile("hello world", "notes.txt");
-    await screen.findByText("licenseFileInvalid");
+    expect(document.querySelector('input[type="file"]')).toBeNull();
+    fireEvent.change(screen.getByRole("textbox"), {
+      target: { value: fixture.code },
+    });
     expect(
       (screen.getByRole("button", { name: "submit" }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
   });
 
-  it("서버 루트 license.jwt 가 있으면 자동 입력", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => ({ ok: true, text: async () => fixture.token })),
-    );
+  it("Vite dev 가 index.html 을 돌려줘도 라이선스로 오인하지 않는다", async () => {
+    vi.stubGlobal("fetch", fetchLicense("<!doctype html><html></html>"));
     render(<Signin />);
-    await screen.findByText("licenseFileDeployed");
-    fireEvent.change(screen.getByRole("textbox"), {
-      target: { value: fixture.code },
-    });
-    const submit = screen.getByRole("button", { name: "submit" });
-    await waitFor(() =>
-      expect((submit as HTMLButtonElement).disabled).toBe(false),
-    );
-    fireEvent.click(submit);
-    await waitFor(() =>
-      expect(mockNavigate).toHaveBeenCalledWith("/dashboard"),
-    );
+    await screen.findByText("licenseFileNone");
   });
 
   it("공개키 미설정이면 설정 오류 + 제출 불가", async () => {
     vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", "");
     render(<Signin />);
     await screen.findByRole("alert");
-    pickFile(fixture.token);
-    await screen.findByText("token.jwt");
+    await screen.findByText("licenseFileDeployed");
     fireEvent.change(screen.getByRole("textbox"), {
       target: { value: fixture.code },
     });
