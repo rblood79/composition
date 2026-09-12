@@ -1,6 +1,6 @@
 # ADR-212 Design Breakdown: Data 패널 편집기 재설계 — 스냅 패널 · `role=grid` 격자 · 요청 도구형 API 편집기
 
-> 본문: [212-data-panel-editor-redesign.md](../212-data-panel-editor-redesign.md) · 리서치 정본: [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §2 · §4-1 · §4-2 · §4-5 · 시안: claude.ai artifact `f7d8327e-490b-4052-98cd-90067f43315c` ("DataTable 패널 개선 시안", Version 6 — 아트보드 원본은 세션 scratchpad `design/src/*.html`, `docs/design/data-panel-redesign/` 이관은 착수 시)
+> 본문: [212-data-panel-editor-redesign.md](../completed/212-data-panel-editor-redesign.md) · 리서치 정본: [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §2 · §4-1 · §4-2 · §4-5 · 시안: claude.ai artifact `f7d8327e-490b-4052-98cd-90067f43315c` ("DataTable 패널 개선 시안", Version 6 — 아트보드 원본은 세션 scratchpad `design/src/*.html`, `docs/design/data-panel-redesign/` 이관은 착수 시)
 
 ## 1. 전제 lock-in (fork 4 질문 — 사용자 confirm 2026-09-11, 리서치 §5 판정 ③)
 
@@ -98,8 +98,8 @@
 ### Phase 5 — 데이터 유입 · 소스 (Source 아트보드) — 부분 완료 2026-09-12 (`bf87e8caa`, live 6/6 `scripts/adr212-p5-live.mjs`, [evidence](../evidence/212-p5-import.md))
 
 - [x] CSV / JSON import 미리보기 — 타입 자동 감지 · 열별 기존/새/무시 매핑 · append vs replace (UX-3, M2) → `DataChange` 1개 (`replace_rows` 또는 `insert_rows` + `add_field`). `importPlan.ts` (순수, test 5) + `ImportPreview.tsx` (격자 위 인라인 staging, HC2)
-- [ ] **이월** Settings 탭 → "데이터 소스": 엔드포인트 picker + 실행 정책 (열 때 자동 · 수동 · N초마다) (UX-6) — 실행 정책은 collection 신규 영속 필드 필요 (별도 리뷰). sample/real (`useMockData`) 토글은 현행 Settings 에 존재
-- [ ] **이월** `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화라 export/redactor/번들 영향 검토 전제 (별도 커밋)
+- [ ] **후속 ADR** Settings 탭 → "데이터 소스": 엔드포인트 picker + 실행 정책 (열 때 자동 · 수동 · N초마다) (UX-6) — 실행 정책은 collection 신규 영속 필드 필요 = lock-in §2 밖. 본 ADR 아님. sample/real (`useMockData`) 토글은 현행 Settings 에 존재
+- [ ] **후속 ADR** `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화 = 저장 형식 확장, lock-in §2 밖. 본 ADR 아님 (export/redactor/번들 영향 검토는 후속 ADR 전제)
 - [x] 0행 · 오류 상태를 목록 배지 · 편집기 상단에 같은 값으로 (`findLinkedApi`+`apiRuns`, `.datatable-editor-status`). 캔버스 배지는 Phase 6
 
 ### Phase 6 — 인스펙터 동선 + 캔버스 배지 — 완료 2026-09-12 (`98a9ed7d8` 인스펙터 · `04b517c84`/`76da39dbd`/`dfd5425e6`/`b8bf4c694` 캔버스 배지, live 9/9 `scripts/adr212-p6-live.mjs`)
@@ -107,13 +107,13 @@
 - [x] `PropertyDataBinding` Select 옆 "이 테이블 열기" (`dataTableEditorStore.openTableEditor`, Phase 1 일반화 경로) · "사용처 N" (`resolveCollectionUsage` 152 역참조) · "새 테이블 만들기" (`openTableCreator`) (UX-1, B4). unit `PropertyDataBinding.test.tsx` 4 (죽은-오소링 계약 + 동선 행)
 - [x] 캔버스 바인딩 배지 (UI-7, B3): data-bound 요소 좌상단 Skia overlay 배지 (테이블 아이콘 + collection 이름 + 상태색 normal/empty/error) · hit region 클릭 → `openTableEditor`. 기존 선례 재사용 (remainder 마커 렌더 + 페이지 타이틀 scene-좌표 hit) 으로 최소 침습. S1 `resolveCollectionBadgeStatus` (목록 배지와 SSOT) · S2 `buildBindingBadgeTargets` (store 무의존, resolver 콜백) · S3 `renderBindingBadge` · S4 overlay 배선 (선택 chrome 앞, withPageOcclusionClip) · S5 BuilderCanvas resolver(getElementDataBinding→resolveStoreCollection→상태)+bounds ref · S6 onPointerDownCapture 배지 히트. 스키마 0 (lock-in §2) · 쓰기 0 (HC1) · 빌더 chrome 이라 D3 대칭 비대상. canvas/skia 455 test · pre-push visual-parity smoke PASS
 
-### Phase 7 — a11y 검수 + closure — 대기 (Phase 5 이월분 착지 후 — Phase 6 캔버스 배지는 2026-09-12 완료)
+### Phase 7 — a11y 검수 + closure — 착수 2026-09-12 (Phase 5 이월분과 분리 — 이월분은 lock-in §2 밖 후속 ADR)
 
 - [x] a11y (부분): 격자 axe critical 0 (G1) · 편집기 패널 axe critical 0 (G2, 탭 aria-controls 수리) · 필드 패널 axe critical 0. key-value 행별 Remove 고유 이름 · Body aria-multiline · 타입 목록 ListBox
-- [ ] 리서치 §4-5 전수 검수 (키보드만 시나리오 5 + axe 전 표면). 캔버스 배지 접근성: 키보드 대체 없음 — 배지는 편집기 진입 **부가** 경로이고 Data 패널 목록(`DataTableList`)이 키보드 정본 (WIG 준수, breakdown Phase 6)
-- [ ] `prefers-reduced-motion` · 아이콘 버튼 접근 가능한 이름 grep
+- [x] 리서치 §4-5 전수 검수 (키보드만 시나리오 + axe 전 표면) — `adr212-p7-a11y-live.mjs` 12/12 (목록·격자·필드·API·Auth 탭 axe critical 0). 잡은 결함 수리 (`c29321296`): fieldset+legend 만 잡던 input 개별 `aria-label` (필드 패널·API Auth·Settings·preset) · 아이콘 버튼 이름 2 (close·filterClear) · 하드코딩 aria-label i18n화 (Method/URL·presetCategory·apiResponseView). 캔버스 배지 접근성: 키보드 대체 없음 — 배지는 편집기 진입 **부가** 경로이고 Data 패널 목록(`DataTableList`)이 키보드 정본 (WIG 준수, breakdown Phase 6)
+- [x] `prefers-reduced-motion` (전역 `styles/modules/reduced-motion.css` catch-all 이 datatable CSS 전부 커버) · 아이콘 버튼 접근 가능한 이름 grep (위반 2건 수리, 나머지 이름 있음 · dead `ColumnSelector` 제외)
 - [x] 원본 삭제: `DataTableEditor.tsx` SchemaEditor/MockDataEditor 서브 에디터 (Phase 2·3 에서 in-file 제거, 파일 자체는 존속) · `ApiEndpointEditor.tsx` 전면 재작성 (Run 탭 → Send 바). 별도 "원본 파일 삭제" 대상 없음
-- [ ] **대기** CHANGELOG (Features · Accessibility) · ADR README Implemented 승격 · `### Live Exercise` — 남은 착지는 Phase 5 이월분(runtimeData IndexedDB 영속 · 실행 정책 필드)뿐이다. 이 둘은 lock-in §2 "collection 저장 형식 불변" 을 바꾸는 scope 확장이라 **사용자 판정 대기** (2026-09-12 사용자: Phase 6 먼저, Phase 5 영속은 보류). 그 전까지 ADR 은 진행 중 (Proposed 유지)
+- [x] CHANGELOG (Features · Accessibility) · ADR README Implemented 승격 · `### Live Exercise` (2026-09-12). Phase 5 이월분(runtimeData IndexedDB 영속 · 실행 정책 필드)은 lock-in §2 "collection 저장 형식 불변" 을 바꾸는 데이터-모델 변경이라 **본 ADR 범위 밖 — 후속 ADR 로 분리** (2026-09-12 사용자 판정: "212 원래 설계 의도대로" = 이월 2건은 212 가 아니라 별도 ADR). 212 는 스키마 무변경 채로 closure → **Implemented 2026-09-12** (`c29321296`), 이월분에 의존하지 않는다
 
 ## 5. 파일 변경표 (추정 — Phase 0 에서 freeze)
 

@@ -11,6 +11,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-212 Implemented — Data 패널 편집기 재설계 (스냅 패널 · role=grid 격자 · 요청 도구형 API 편집기)] - 2026-09-12
+
+### Added
+
+- **격자 편집기 (APG grid)**: 테이블 데이터를 RAC `Table`(`role=grid`) + 가상화로 편집 — 단일 tab stop, Arrow/Home/End 이동, Enter/F2/타이핑으로 셀 편집 진입, Esc 취소, 붙여넣기(`set_cell`/`insert_rows`/`add_field`), 행 추가/삭제, `⌘Z` 원상. 헤더 `+`/헤더 클릭이 옆에 스냅되는 **필드 패널**(이름·타입·required·default·label·사용처 N)을 열어 Schema 탭 왕복을 없앴다.
+- **요청 도구형 API 편집기**: `[Method][URL][Send]` 바 + Params/Headers/Body/Auth/Response. 응답 Schema 추천 → "테이블로 저장"이 collection 생성 + endpoint 연결 + 소스 지정을 한 DataChange로. Auth 값은 프로젝트 로컬 vault에 저장하고 문서엔 `{{secret.NAME}}`만 — 원문 secret은 export·postMessage·AI payload에 0건.
+- **CSV/JSON import 미리보기**: 타입 자동 감지 · 열 매핑 · 교체/추가를 격자 위 인라인 staging으로 (한 DataChange).
+- **캔버스 바인딩 배지**: data-bound 요소 위 Skia overlay 배지(테이블명 + 상태색 normal/empty/error), 클릭 시 해당 테이블 편집기 열림.
+- **상태 가시화**: 0행 · 오류 · 사용처를 목록 배지 · 편집기 상단 · 캔버스 배지 세 곳에 같은 값으로.
+
+### Accessibility
+
+- 성공/진행 알림은 `role=status`(polite) live region, 오류는 토스트 `role=alert`(assertive)로 분리.
+- 필드 패널·API Auth 탭·Settings·preset의 개별 입력에 접근 가능한 이름(`aria-label`) 부여 — fieldset+legend만으로 그룹만 잡던 axe `label` critical 해소. 아이콘 전용 버튼(모달 닫기·필터 지우기) 이름 추가. 하드코딩 영문 aria-label(Method/URL·preset category·response view)을 i18n 경유로 전환.
+- `prefers-reduced-motion` 전역 대응 · 목록 항목은 키보드로 열리는 RAC GridList 행. 전 표면 axe critical 0 (live `adr212-p7-a11y-live.mjs` 12/12).
+
+### Changed
+
+- 데이터 편집 표면의 모든 쓰기가 `applyDataChange`(ADR-152 적용기) 단일 경로 경유 — store 직접 mutate 신설 0.
+- 편집기 구현은 `React.lazy` 경계 뒤 — initial Builder chunk 포함 bytes 0 (initial gzip −15,859).
+- **범위 밖 (후속 ADR)**: runtimeData IndexedDB 영속 · 실행 정책 필드는 collection 저장 형식을 바꾸는 데이터-모델 변경(lock-in §2 밖)이라 별도 ADR로 분리. ADR-212는 저장 형식 무변경으로 종결.
+
 ## [ADR-217 Implemented — Chart 기준선 (ReferenceLine) · 산점도 (Scatter) · 미지원 chartType 안전 경로] - 2026-09-12
 
 ### Added

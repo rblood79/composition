@@ -2,15 +2,15 @@
 
 ## Status
 
-Proposed — 2026-09-11
+Implemented — 2026-09-12 (Proposed 2026-09-11)
 
-**Phase 진행 로그**: Phase 0 Inventory freeze — 2026-09-12 (G0 기록 완료, [evidence](evidence/212-p0-inventory.md) — 직접 쓰기 = endpoint 3종 · 편집기 구현 initial 40,392 raw B · 평문 secret 1 · 전체 initial 1,332,608 은 착수 전 215 상한 초과) · Phase 1 표면 골격 — 2026-09-12 (`e475aca11` · `9adbd3a10` · `655ea46e1`, live 16/16 `adr212-p1-live.mjs` — GridList 목록 + 배지 · 탭 아이콘 모드 · 생명주기 일반화 · `datatableField` 스냅 정책 · lazy 경계 (편집기 initial 0, initial gzip −15,859) · 생성 진입 6 · `role=status`) · Phase 2 격자 (G1) — 2026-09-12 (`6f580f8c3` 2a · `2385fda1b` 2b, live 17/17 `adr212-p2-live.mjs` — RAC `Table` role=grid + `Virtualizer` · 셀 inline/Popover 편집 (R1 키 매트릭스) · 붙여넣기 → `set_cell`/`insert_rows`/`add_field` · 행 추가/삭제 · `⌘Z` 라우팅 (편집 중 초안 되돌리기 · 비편집 152 data 스택) · Tab stop 1 · axe critical 0 · 셀 편집 p50 5.5ms/p95 9.8ms. Schema 탭 제거는 Phase 3 로 이월) · Phase 3 필드 패널 (G2) — 2026-09-12 (`305a9e5b7`, live 12/12 `adr212-p3-live.mjs` — 헤더 클릭/`+` → 필드 패널 (이름·타입 ListBox·required·default·label·사용처 N `resolveFieldUsage`) · rename `update_field{key}` 152 G4 재확인 (rows 새 key·값 보존) · 타입 변경 미리보기 `typeChangeToOps` (성공 행 정규화 + 비움) · 삭제 사용처 0 즉시 · Schema 탭 제거 · 편집기 탭 aria-controls dangling 수리 (본문 TabPanel 화) axe critical 0) · Phase 4 API 편집기 (G3) — 2026-09-12 (`8795f9a14` 4a · `f9838b34e` 4c, live 11/11 `adr212-p4-live.mjs` — 요청 바 [Method][URL][Send] + Params/Headers/Body/Auth/Response, 쓰기 전부 define_endpoint (HC1) · 응답 status/time/size + Schema 추천 `recommendArrayPaths` → 테이블로 저장 (한 DataChange, ⌘Z 원상) · Auth vault (문서 `{{secret.NAME}}`, 원문은 composition-secrets DB, 실제 요청만 원문 — HC6 live 실측) · cURL 파서 · dead 필드 제거 · production CORS 배너) · Phase 5 데이터 유입 (부분) — 2026-09-12 (`bf87e8caa`, live 6/6 `adr212-p5-live.mjs` — CSV/JSON import 미리보기 `importPlan`/`ImportPreview` (열 매핑·교체/추가 → 한 DataChange) · 편집기 0행/오류 배지. Settings 데이터 소스 picker·실행 정책·runtimeData 영속화는 데이터-모델 변경이라 이월)
+**Phase 진행 로그**: Phase 0 Inventory freeze — 2026-09-12 (G0 기록 완료, [evidence](../evidence/212-p0-inventory.md) — 직접 쓰기 = endpoint 3종 · 편집기 구현 initial 40,392 raw B · 평문 secret 1 · 전체 initial 1,332,608 은 착수 전 215 상한 초과) · Phase 1 표면 골격 — 2026-09-12 (`e475aca11` · `9adbd3a10` · `655ea46e1`, live 16/16 `adr212-p1-live.mjs` — GridList 목록 + 배지 · 탭 아이콘 모드 · 생명주기 일반화 · `datatableField` 스냅 정책 · lazy 경계 (편집기 initial 0, initial gzip −15,859) · 생성 진입 6 · `role=status`) · Phase 2 격자 (G1) — 2026-09-12 (`6f580f8c3` 2a · `2385fda1b` 2b, live 17/17 `adr212-p2-live.mjs` — RAC `Table` role=grid + `Virtualizer` · 셀 inline/Popover 편집 (R1 키 매트릭스) · 붙여넣기 → `set_cell`/`insert_rows`/`add_field` · 행 추가/삭제 · `⌘Z` 라우팅 (편집 중 초안 되돌리기 · 비편집 152 data 스택) · Tab stop 1 · axe critical 0 · 셀 편집 p50 5.5ms/p95 9.8ms. Schema 탭 제거는 Phase 3 로 이월) · Phase 3 필드 패널 (G2) — 2026-09-12 (`305a9e5b7`, live 12/12 `adr212-p3-live.mjs` — 헤더 클릭/`+` → 필드 패널 (이름·타입 ListBox·required·default·label·사용처 N `resolveFieldUsage`) · rename `update_field{key}` 152 G4 재확인 (rows 새 key·값 보존) · 타입 변경 미리보기 `typeChangeToOps` (성공 행 정규화 + 비움) · 삭제 사용처 0 즉시 · Schema 탭 제거 · 편집기 탭 aria-controls dangling 수리 (본문 TabPanel 화) axe critical 0) · Phase 4 API 편집기 (G3) — 2026-09-12 (`8795f9a14` 4a · `f9838b34e` 4c, live 11/11 `adr212-p4-live.mjs` — 요청 바 [Method][URL][Send] + Params/Headers/Body/Auth/Response, 쓰기 전부 define_endpoint (HC1) · 응답 status/time/size + Schema 추천 `recommendArrayPaths` → 테이블로 저장 (한 DataChange, ⌘Z 원상) · Auth vault (문서 `{{secret.NAME}}`, 원문은 composition-secrets DB, 실제 요청만 원문 — HC6 live 실측) · cURL 파서 · dead 필드 제거 · production CORS 배너) · Phase 5 데이터 유입 (부분) — 2026-09-12 (`bf87e8caa`, live 6/6 `adr212-p5-live.mjs` — CSV/JSON import 미리보기 `importPlan`/`ImportPreview` (열 매핑·교체/추가 → 한 DataChange) · 편집기 0행/오류 배지. Settings 데이터 소스 picker·실행 정책·runtimeData 영속화는 collection 저장 형식을 바꾸는 데이터-모델 변경이라 lock-in §2 밖 — 본 ADR 범위 아님, 후속 ADR 로 분리 (2026-09-12 사용자 판정)) · Phase 7 a11y 검수 + closure — 2026-09-12 (`c29321296`, live 12/12 `adr212-p7-a11y-live.mjs` — 전 표면 axe critical 0 (목록·격자·필드·API·Auth 탭) + 키보드 시나리오 (목록 Enter 열기·격자 단일 tab stop·Arrow+Enter 편집) + 상태 live region `role=status`. 잡은 결함: fieldset+legend 만으로 그룹만 잡던 input 개별 `aria-label` (필드 패널·API Auth·Settings·preset) · 아이콘 버튼 이름 2 (close·filterClear) · 하드코딩 영문 aria-label i18n화 (Method/URL·presetCategory·apiResponseView). 이월 2건은 lock-in §2 밖 후속 ADR 로 분리 — 212 는 스키마 무변경 채로 Implemented 승격)
 
-> **선행 의존**: [ADR-152](completed/152-data-panel-collection-binding-integration.md) 는 Implemented 이며 `fieldId` · `DataChange` 적용기 · store 단일화가 본 ADR 의 base 다. Phase 2·3 은 ADR-152 G5 PASS 를 재확인한 뒤 착수한다. Phase 4의 공유 redactor와 원자적 `define_endpoint` · `bind_element` 소비자는 [ADR-213](completed/213-data-tool-contract-propose-review-apply.md) Phase 1~~4가 소유하므로 ADR-213 G1~~G4 PASS 뒤 착수한다. Phase 1 (표면 골격과 lazy 경계) 은 두 의존과 독립이다. base/응용 분류와 fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③ "Track 2 · 3 을 ADR 둘로").
+> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 는 Implemented 이며 `fieldId` · `DataChange` 적용기 · store 단일화가 본 ADR 의 base 다. Phase 2·3 은 ADR-152 G5 PASS 를 재확인한 뒤 착수한다. Phase 4의 공유 redactor와 원자적 `define_endpoint` · `bind_element` 소비자는 [ADR-213](213-data-tool-contract-propose-review-apply.md) Phase 1~~4가 소유하므로 ADR-213 G1~~G4 PASS 뒤 착수한다. Phase 1 (표면 골격과 lazy 경계) 은 두 의존과 독립이다. base/응용 분류와 fork 4 질문 lock-in 은 breakdown §1 (사용자 confirm 2026-09-11 — 리서치 §5 판정 ③ "Track 2 · 3 을 ADR 둘로").
 
 ## Context
 
-빌더의 데이터 편집 표면은 `datatable` (목록) · `datatableEditor` (편집) 두 dock 패널이다. 2026-09-10 리서치 ([DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md)) 가 live 캡처와 코드로 실측한 결과, 결함 5 (Track 0 으로 D1 · D2 · U1 · U2 수리 완료 `66f9cb28b`, D3 은 152 몫, D4 · D5 는 본 ADR) 외에 **사용성 차단 11 · 접근성 6** 이 남아 있고, 그 대부분이 편집기의 구조에서 온다:
+빌더의 데이터 편집 표면은 `datatable` (목록) · `datatableEditor` (편집) 두 dock 패널이다. 2026-09-10 리서치 ([DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md)) 가 live 캡처와 코드로 실측한 결과, 결함 5 (Track 0 으로 D1 · D2 · U1 · U2 수리 완료 `66f9cb28b`, D3 은 152 몫, D4 · D5 는 본 ADR) 외에 **사용성 차단 11 · 접근성 6** 이 남아 있고, 그 대부분이 편집기의 구조에서 온다:
 
 - 격자가 원시 `<table>` 안의 독립 `<input>` 이라 (`editors/DataTableEditor.tsx:563-603`) 스크린리더가 "편집 가능한 격자" 를 인식하지 못하고 Tab 이 셀 수만큼 (10×10 = 100 stop) 늘어난다 (A1 · A2). 키보드 셀 이동 · 다중 선택 · 붙여넣기 · 정렬 · 열 폭이 없다 (U5). 셀 commit 이 blur 뿐이고 IME 회피용 `key` 리마운트를 쓴다 (U6 — `:579-588` · `:684-696`).
 - API 편집기는 실행이 Run 탭에만 있고 (P1), Import 가 새 테이블을 만들되 endpoint 와 연결하지 않아 사용자가 이름을 다시 타이핑한다 (U4 — `editors/ApiEndpointEditor.tsx:687-692` · `:267-274`). Response 탭 Field Mapping · pagination · serverConfig · retryCount 는 저장만 되고 소비처 0 (D5). 헤더 값이 평문으로 IndexedDB 와 export envelope 에 실리고 (P5), production 실행은 CORS 로 실패한다 (D4 — `stores/utils/dataActions.ts:611-618` vite dev 미들웨어 한정).
@@ -112,7 +112,7 @@ Proposed — 2026-09-11
 - **대안 C 기각**: 한 앱에 접근성 모델 둘 · 테마 재매핑 · 번들 — 유지보수 HIGH. 격자 하나를 위해 D1 권위를 벗어날 이유가 없다.
 - **대안 D 기각**: 사용자 판정 ② — 스냅 3열이 dock 안에서 같은 구성이 되므로 두 번째 레이아웃 모드를 유지할 이득이 없다.
 
-> 구현 상세: [212-data-panel-editor-redesign-breakdown.md](design/212-data-panel-editor-redesign-breakdown.md)
+> 구현 상세: [212-data-panel-editor-redesign-breakdown.md](../design/212-data-panel-editor-redesign-breakdown.md)
 
 ## Risks
 
@@ -142,7 +142,15 @@ R8의 동적 seed는 `packages/shared/src/schemas/dataChange.ts`, `apps/builder/
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G1 ~ G5 시나리오 · 결과 · 날짜 · Playwright/Chrome MCP/사용자 confirm 구분.)
+실제 builder(dev 5173, Playwright headless Chromium/DPR2)에서 phase 별 exercise. 상세 근거: [evidence/212-p7-a11y-live.md](../evidence/212-p7-a11y-live.md) 외 phase 별 evidence.
+
+- **G1** (Phase 2, `adr212-p2-live.mjs` 17/17, 2026-09-12): 키보드 셀 편집·행 추가·`⌘Z` 원상·Tab stop 1·axe critical 0·셀 편집 p95 9.8ms.
+- **G2** (Phase 3, `adr212-p3-live.mjs` 12/12, 2026-09-12): 필드 rename → 152 G4 (rows 새 key·값 보존)·삭제 사용처 표시·Schema 탭 제거·닫힘 포커스 복귀.
+- **G3** (Phase 4, `adr212-p4-live.mjs` 11/11, 2026-09-12): URL→Send→추천 path→테이블로 저장(한 DataChange, ⌘Z 원상)·Auth vault(HC6 원문 secret export/postMessage/AI 0 실측)·production CORS 배너.
+- **G4** (Phase 7, `adr212-p7-a11y-live.mjs` 12/12, 2026-09-12): native dialog 0·`role=status` live region·키보드 시나리오(목록 Enter 열기·격자 단일 tab stop·Arrow+Enter 편집)·전 표면 axe critical 0(목록·격자·필드·API·Auth 탭). Phase 7 검수에서 잡은 label/이름 결함 수리 후 재확인.
+- **G5** (Phase 1, `adr212-editor-initial-bytes.mjs` · Phase 1 evidence, 2026-09-12): production metafile editor 구현 initial bytes 0 (lazy 경계), initial gzip −15,859. a11y 수리는 전부 lazy 편집기 청크 내부 → initial 무영향.
+- **캔버스 배지** (Phase 6, `adr212-p6-live.mjs` 9/9, 2026-09-12): data-bound 요소 배지 상태색·클릭 → 편집기 열림·비침습.
+- **이월분 분리**: runtimeData 영속·실행 정책 필드는 lock-in §2(저장 형식 불변, 사용자 confirm 2026-09-11) 밖 데이터-모델 변경 → 후속 ADR. 212 는 스키마 무변경 채로 종결.
 
 ## Consequences
 

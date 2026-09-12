@@ -15,13 +15,13 @@
 
 | 구분                      |    개수 |
 | ------------------------- | ------: |
-| 완료 (`completed/`)       |     233 |
-| ├ Implemented             |     197 |
+| 완료 (`completed/`)       |     234 |
+| ├ Implemented             |     198 |
 | ├ Accepted                |      13 |
 | ├ Superseded              |      14 |
 | └ Deprecated              |       9 |
-| 열려 있는 것 (`adr/*.md`) |      12 |
-| ├ Proposed                |      10 |
+| 열려 있는 것 (`adr/*.md`) |      11 |
+| ├ Proposed                |       9 |
 | ├ Accepted (일부 착수)    |       1 |
 | └ 부분 완료               |       1 |
 | **합계**                  | **244** |
@@ -129,14 +129,14 @@
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 **중요도**이고, 본 표는 **준비도(리뷰 종결 여부)·의존 그래프·즉시 가치**로 재산정한 **실행 순서**다. 리뷰 파일(`reviews/{NNN}.md`)의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지.
 
-| 순위 | ADR                                                                                                      | 착수 준비도                                                                                          | 차단 · 선행                                                                                    |
-| :--: | -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-|  1   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                             | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(시각 확인 대기) · A3 미착수          | A2 live 확인 + ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 후 A3                             |
-|  2   | [162](162-gridlist-template-subtree-projection.md)                                                       | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                           | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요                                |
-|  3   | [921](921-render-scene-backend-integration.md)                                                           | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~190 이후 §6-2 파일 대량 변경) | 재freeze 전 착수 금지                                                                          |
-|  4   | [013](013-quick-connect-data-binding.md)                                                                 | Risk-First 재작성 완료(round 2 전부 fixed)                                                           | 착수 조건 G0 의 **152 Implemented 는 2026-09-11 충족** — 남은 것은 Phase 0 재-inventory        |
-|  5   | [212](212-data-panel-editor-redesign.md) · [214](214-variables-owner-model-runtime-state.md)             | 리뷰 승인 2026-09-11 · **213 Implemented 2026-09-12** (212 Phase 4 선행 충족) · 214 Phase 0~1 merge  | 212 착수 가능 (213 G1~G4 PASS) · 214 Phase 2+ 잔여 (CRUD undo/redo · sceneVersion · id 재발급) |
-|  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md) | 착수 대상 아님 (비착수 비교 기록 / 비실행 목표 참조)                                                 | 실행 owner = ADR-912 Implemented                                                               |
+| 순위 | ADR                                                                                                      | 착수 준비도                                                                                                    | 차단 · 선행                                                                                                                                     |
+| :--: | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                             | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(시각 확인 대기) · A3 미착수                    | A2 live 확인 + ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 후 A3                                                                              |
+|  2   | [162](162-gridlist-template-subtree-projection.md)                                                       | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                                     | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요                                                                                 |
+|  3   | [921](921-render-scene-backend-integration.md)                                                           | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~190 이후 §6-2 파일 대량 변경)           | 재freeze 전 착수 금지                                                                                                                           |
+|  4   | [013](013-quick-connect-data-binding.md)                                                                 | Risk-First 재작성 완료(round 2 전부 fixed)                                                                     | 착수 조건 G0 의 **152 Implemented 는 2026-09-11 충족** — 남은 것은 Phase 0 재-inventory                                                         |
+|  5   | [212](completed/212-data-panel-editor-redesign.md) · [214](214-variables-owner-model-runtime-state.md)             | **212 Implemented 2026-09-12** (Phase 0~~7, 스키마 무변경) · 213 Implemented 2026-09-12 · 214 Phase 0~~1 merge | 212 종결 — 이월분(runtimeData 영속·실행 정책 필드)은 lock-in §2 밖 **후속 ADR** · 214 Phase 2+ 잔여 (CRUD undo/redo · sceneVersion · id 재발급) |
+|  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md) | 착수 대상 아님 (비착수 비교 기록 / 비실행 목표 참조)                                                           | 실행 owner = ADR-912 Implemented                                                                                                                |
 
 **착수 프롬프트** (착수 승인 시 복붙용 — Proposed ADR 은 `/execute-adr` 가 Accepted 전제라 승격 지시 포함)
 

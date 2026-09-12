@@ -4,7 +4,7 @@
 
 Implemented — 2026-09-12 (Proposed 2026-09-11 · 리뷰 Round 2 승인 · Phase 0~~7 완료 2026-09-11~~12, evidence [213-p0-inventory.md](../evidence/213-p0-inventory.md) 로컬)
 
-> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 는 Implemented 이며 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기가 base 다. Phase 1 읽기 tool은 독립이고, Phase 2 이후는 G0에서 현 consumer 격차를 freeze한 뒤 착수한다. [ADR-212](../212-data-panel-editor-redesign.md) Phase 4는 본 ADR G1·G3의 공유 redactor와 G2·G4의 `define_endpoint` · `bind_element` consumer/coordinator에 의존한다. 실패 설명 UI는 공유 redactor가 먼저 적용되므로 역방향 의존 없이 먼저 제공할 수 있다. [ADR-202](../202-builder-ai-compiler-first-command-execution.md)에는 의존하지 않으며, 202 착수 시 `DataChange`를 감싸는 statement 어댑터로 편입한다.
+> **선행 의존**: [ADR-152](152-data-panel-collection-binding-integration.md) 는 Implemented 이며 §2-3 `DataChange` 스키마 + `applyDataChange` 적용기가 base 다. Phase 1 읽기 tool은 독립이고, Phase 2 이후는 G0에서 현 consumer 격차를 freeze한 뒤 착수한다. [ADR-212](212-data-panel-editor-redesign.md) Phase 4는 본 ADR G1·G3의 공유 redactor와 G2·G4의 `define_endpoint` · `bind_element` consumer/coordinator에 의존한다. 실패 설명 UI는 공유 redactor가 먼저 적용되므로 역방향 의존 없이 먼저 제공할 수 있다. [ADR-202](../202-builder-ai-compiler-first-command-execution.md)에는 의존하지 않으며, 202 착수 시 `DataChange`를 감싸는 statement 어댑터로 편입한다.
 
 ## Context
 
