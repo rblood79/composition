@@ -46,6 +46,12 @@ interface SecretRow {
   projectId: string;
   name: string;
   value: string;
+  /**
+   * ADR-218 — 변경 세대. 같은 이름의 값을 덮어쓸 때마다 +1. 캐시 지문(`sourceRev`)이
+   * secret **원문 대신** `이름 + revision` 만 담아, 같은 `{{secret.NAME}}` 의 값이 바뀌면
+   * 지문이 갈리되 원문은 지문에 실리지 않는다 (HC6). 미설정 = 0 (BC — 구 vault row).
+   */
+  revision?: number;
 }
 
 function openVault(): Promise<IDBDatabase> {
@@ -77,12 +83,22 @@ export async function setSecret(
   const db = await openVault();
   await new Promise<void>((res, rej) => {
     const tx = db.transaction(STORE, "readwrite");
-    tx.objectStore(STORE).put({
-      key: rowKey(projectId, name),
-      projectId,
-      name,
-      value,
-    } satisfies SecretRow);
+    const store = tx.objectStore(STORE);
+    const key = rowKey(projectId, name);
+    // ADR-218 — 덮어쓸 때 revision +1 (신규는 1). 같은 tx 안에서 get→put 이라 원자적.
+    const getReq = store.get(key);
+    getReq.onsuccess = () => {
+      const prev = getReq.result as SecretRow | undefined;
+      const revision = (prev?.revision ?? 0) + 1;
+      store.put({
+        key,
+        projectId,
+        name,
+        value,
+        revision,
+      } satisfies SecretRow);
+    };
+    getReq.onerror = () => rej(getReq.error);
     tx.oncomplete = () => res();
     tx.onerror = () => rej(tx.error);
   });
@@ -122,6 +138,30 @@ export async function getProjectSecrets(
   });
   db.close();
   return new Map(rows.map((r) => [r.name, r.value]));
+}
+
+/**
+ * ADR-218 — projectId 의 secret 이름 → 변경 세대(revision). **값은 반환하지 않는다** (HC6).
+ * `sourceRev` 지문이 secret 참조를 `이름 + revision` 으로 담을 때만 쓴다.
+ */
+export async function getSecretRevisions(
+  projectId: string,
+): Promise<Map<string, number>> {
+  let db: IDBDatabase;
+  try {
+    db = await openVault();
+  } catch {
+    return new Map();
+  }
+  const rows = await new Promise<SecretRow[]>((res, rej) => {
+    const tx = db.transaction(STORE, "readonly");
+    const index = tx.objectStore(STORE).index("projectId");
+    const req = index.getAll(projectId);
+    req.onsuccess = () => res(req.result as SecretRow[]);
+    req.onerror = () => rej(req.error);
+  });
+  db.close();
+  return new Map(rows.map((r) => [r.name, r.revision ?? 0]));
 }
 
 /** 등록된 secret 이름만 (값 없이 — UI 표시용). */

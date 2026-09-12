@@ -41,6 +41,7 @@ import {
   createDeleteDataTableAction,
   createGetDataTableDataAction,
   createSetRuntimeDataAction,
+  createHydrateRuntimeCacheAction,
   // ApiEndpoint Actions
   createFetchApiEndpointsAction,
   createCreateApiEndpointAction,
@@ -134,6 +135,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
   const deleteCollection = createDeleteDataTableAction(set, get);
   const getDataTableData = createGetDataTableDataAction(get);
   const setRuntimeData = createSetRuntimeDataAction(set, get);
+  const hydrateRuntimeCache = createHydrateRuntimeCacheAction(set, get);
   const applyDataChange = createApplyDataChangeAction(set, get);
 
   // ApiEndpoint Actions
@@ -206,6 +208,10 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
         fetchApiEndpoints(projectId),
       ]);
 
+      // ADR-218 — collections·apiEndpoints 로드 후 runtimeData 캐시 hydration
+      // (지문 유효한 마지막 성공 응답 복원, 무효/고아 폐기). 실패는 로드를 막지 않는다.
+      await hydrateRuntimeCache(projectId);
+
       // persist:true인 Variable들의 런타임 값 복원
       const persistedValues = loadPersistedRuntimeValues();
       const { variables } = get();
@@ -261,6 +267,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     deleteCollection,
     getDataTableData,
     setRuntimeData,
+    hydrateRuntimeCache,
     applyDataChange,
 
     // ApiEndpoint CRUD

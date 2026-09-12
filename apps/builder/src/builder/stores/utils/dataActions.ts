@@ -13,8 +13,11 @@ import type { StateCreator } from "zustand";
 import { resolveResponseData } from "../../../utils/data/responseData";
 import {
   getProjectSecrets,
+  getSecretRevisions,
   substituteSecrets,
 } from "../../panels/datatable/utils/secretVault";
+import { computeSourceRev } from "../../panels/datatable/utils/sourceRev";
+import { renameRowsKey } from "../../../utils/data/schemaMigration";
 import { normalizeCollectionMap } from "../../../utils/data/normalizeCollection";
 import {
   resolveBoundCollection,
@@ -60,6 +63,18 @@ type GetState = Parameters<StateCreator<DataStore>>[1];
 type CollectionsDB = {
   collections?: {
     update: (id: string, updates: DataTableUpdate) => Promise<DataTable>;
+  };
+  collection_runtime?: {
+    get: (
+      collectionId: string,
+    ) => Promise<import("@composition/shared").CollectionRuntimeRow | null>;
+    put: (
+      row: import("@composition/shared").CollectionRuntimeRow,
+    ) => Promise<void>;
+    delete: (collectionId: string) => Promise<void>;
+    getByProject: (
+      projectId: string,
+    ) => Promise<import("@composition/shared").CollectionRuntimeRow[]>;
   };
 };
 
@@ -133,6 +148,76 @@ export const createFetchDataTablesAction =
         newErrors.set("fetchCollections", error as Error);
         return { errors: newErrors, isLoading: false };
       });
+    }
+  };
+
+/**
+ * ADR-218 — runtimeData 캐시(collection_runtime) hydration. collections·apiEndpoints 가
+ * 모두 로드된 뒤 (initialize 의 Promise.all 후) 1회 호출한다.
+ *
+ * 각 캐시 행마다 지금의 요청 정의로 지문(`sourceRev`)을 재계산해 저장 지문과 대조한다:
+ * - 일치 → runtimeData 를 collection 에 붙인다 (오프라인/미실행이라도 마지막 성공 응답 표시).
+ *   field id→key 맵이 다르면 rename 된 열만 새 key 로 옮긴다 (G1, 옛 key 섞임 0).
+ * - 불일치(소스·인증·secret 값·스키마 변경) 또는 정의/endpoint 부재 → 옛 캐시 폐기 (h1·R8).
+ */
+export const createHydrateRuntimeCacheAction =
+  (set: SetState, get: GetState) =>
+  async (projectId: string): Promise<void> => {
+    try {
+      const db = (await getDB()) as unknown as CollectionsDB;
+      const rows = (await db.collection_runtime?.getByProject(projectId)) ?? [];
+      if (rows.length === 0) return;
+      const { collections, apiEndpoints } = get();
+      const endpoints = Array.from(apiEndpoints.values());
+      const secretRevisions = await getSecretRevisions(projectId);
+      const next = new Map(collections);
+      let changed = false;
+      for (const row of rows) {
+        const table = next.get(row.collectionId);
+        // 정의 없는 고아 캐시 정리 (R8)
+        if (!table) {
+          await db.collection_runtime?.delete(row.collectionId);
+          continue;
+        }
+        // 이 collection 을 target 으로 하는 endpoint (없으면 지문 계산 불가 → 폐기)
+        const linked = endpoints.find(
+          (ep) =>
+            ep.targetCollectionId === table.id ||
+            (!ep.targetCollectionId && ep.targetCollection === table.name),
+        );
+        if (!linked) {
+          await db.collection_runtime?.delete(row.collectionId);
+          continue;
+        }
+        const currentRev = computeSourceRev({
+          endpoint: linked,
+          schema: table.schema,
+          secretRevisions,
+        });
+        if (currentRev !== row.sourceRev) {
+          // 소스·인증·secret 값·스키마(추가/삭제/타입) 변경 → 옛 캐시 폐기 (h1)
+          await db.collection_runtime?.delete(row.collectionId);
+          continue;
+        }
+        // 유효 — rename 된 열만 현재 key 로 옮겨 붙인다 (id 는 같고 key 만 다른 필드).
+        let runtimeData = row.runtimeData;
+        const storedKeys = row.fieldKeys ?? {};
+        for (const f of table.schema ?? []) {
+          const oldKey = f.id ? storedKeys[f.id] : undefined;
+          if (oldKey && oldKey !== f.key) {
+            runtimeData =
+              renameRowsKey(runtimeData, oldKey, f.key) ?? runtimeData;
+          }
+        }
+        next.set(table.id, { ...table, runtimeData });
+        changed = true;
+      }
+      if (changed) {
+        set({ collections: next });
+        syncCollectionsToCanvas(next);
+      }
+    } catch (error) {
+      console.warn("⚠️ runtimeData 캐시 hydration 실패:", error);
     }
   };
 
@@ -659,6 +744,23 @@ export const createExecuteApiEndpointAction =
 
       // vault 치환은 실제 fetch 로 나가는 복사본에만 (원문은 composition-secrets DB 에만 존재).
       const secrets = await getProjectSecrets(endpoint.project_id);
+      // ADR-218 (R1/h1) — 시작 시점 캐시 지문. 완료 수용 시 재계산 지문과 대조해
+      // 진행 중 소스·인증·secret 값 변경이면 캐시를 채우지 않는다 (secret 원문 미포함, HC6).
+      const startSecretRevisions = await getSecretRevisions(
+        endpoint.project_id,
+      );
+      const startTarget = resolveBoundCollection(
+        {
+          collectionId: endpoint.targetCollectionId,
+          name: endpoint.targetCollection,
+        },
+        Array.from(get().collections.values()),
+      );
+      const startRev = computeSourceRev({
+        endpoint,
+        schema: startTarget?.schema,
+        secretRevisions: startSecretRevisions,
+      });
       const fetchHeaders: Record<string, string> = {};
       for (const [k, v] of Object.entries(headers)) {
         fetchHeaders[k] = substituteSecrets(v, secrets);
@@ -734,15 +836,62 @@ export const createExecuteApiEndpointAction =
           Array.from(collections.values()),
         );
         if (targetTable) {
-          const newDataTables = new Map(collections);
-          newDataTables.set(targetTable.id, {
-            ...targetTable,
-            runtimeData: Array.isArray(mappedData) ? mappedData : [mappedData],
+          // ADR-218 (R1/h1) — 완료 시점 지문 재계산. 진행 중 소스·인증·secret 값이
+          // 바뀌었으면(시작 지문과 불일치) 이 응답은 옛 상태의 것이라 캐시를 채우지 않는다.
+          // apiEndpoints Map 은 name 키라 id 로 순회 검색 (실행 중 정의 변경 감지).
+          let currentEndpoint = endpoint;
+          for (const ep of get().apiEndpoints.values()) {
+            if (ep.id === endpoint.id) {
+              currentEndpoint = ep;
+              break;
+            }
+          }
+          const endRev = computeSourceRev({
+            endpoint: currentEndpoint,
+            schema: targetTable.schema,
+            secretRevisions: await getSecretRevisions(endpoint.project_id),
           });
-          set({ collections: newDataTables });
+          const runtimeData = Array.isArray(mappedData)
+            ? mappedData
+            : [mappedData];
+          if (endRev === startRev) {
+            const newDataTables = new Map(collections);
+            newDataTables.set(targetTable.id, {
+              ...targetTable,
+              runtimeData,
+            });
+            set({ collections: newDataTables });
 
-          // 🆕 Canvas에 동기화
-          syncCollectionsToCanvas(newDataTables);
+            // 🆕 Canvas에 동기화
+            syncCollectionsToCanvas(newDataTables);
+
+            // ADR-218 — runtimeData 캐시 영속 (별도 store, History 밖). 실패는 로드/실행을
+            // 막지 않는다 (다음 실행에서 다시 채운다).
+            try {
+              const db = (await getDB()) as unknown as CollectionsDB;
+              const fieldKeys: Record<string, string> = {};
+              for (const f of targetTable.schema ?? []) {
+                if (f.id) fieldKeys[f.id] = f.key;
+              }
+              await db.collection_runtime?.put({
+                collectionId: targetTable.id,
+                project_id: targetTable.project_id,
+                runtimeData,
+                sourceRev: endRev,
+                fieldKeys,
+                updated_at: new Date().toISOString(),
+              });
+            } catch (persistError) {
+              console.warn(
+                "⚠️ runtimeData 캐시 영속 실패 (다음 실행에서 재시도):",
+                persistError,
+              );
+            }
+          } else {
+            console.warn(
+              `[ADR-218] '${targetTable.name}' 응답 폐기 — 실행 중 소스/인증 변경 (지문 불일치)`,
+            );
+          }
         }
       }
 

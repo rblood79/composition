@@ -67,6 +67,12 @@ export interface CollectionRuntimeRow {
   project_id: string;
   runtimeData: Record<string, unknown>[];
   sourceRev: string;
+  /**
+   * ADR-218 — 영속 시점 field id → key 맵. `sourceRev` 는 field.id 기반이라 key rename 에
+   * 안정(캐시 유효)하지만, 저장된 runtimeData 의 행 키는 옛 key 다. hydration 이 이 맵과
+   * 현재 schema 를 대조해 rename 된 열만 새 key 로 옮긴다 (G1 "현재 key 표시, 옛 key 섞임 0").
+   */
+  fieldKeys?: Record<string, string>;
   updated_at: string;
 }
 
