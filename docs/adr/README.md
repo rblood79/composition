@@ -44,8 +44,8 @@
 #### [217](217-chart-reference-line-scatter.md) — Chart 기준선 (ReferenceLine) · 산점도 (Scatter)
 
 - **상태**: Proposed (2026-09-12) — ADR-216 후속 (사용자가 216 범위 선택 시 미룬 두 항목, `/create-adr` 2026-09-12)
-- **규모**: 값 축 기준선 `referenceLines[]` (RSC `value/label/lineType/layer`) 를 scene 이 마크 + domain 확장으로 소유 (Recharts `ReferenceLine` 미사용, rule `chart.reference` 채널 1) + 새 `chartType:"scatter"` (행 = 점 · x 는 숫자/시간 · 216 `positions` · 211 예산 그대로 · DOM 은 `ScatterChart` 그리기만). Phase 0~~6 / R1~~R7 (HIGH 0) / G0~G5. HC 8 (byte 동일 · D2 어법 · domain 은 scene · 두 leg 동일 · 번들 3/3 KiB · 성능 · Canvas 정적 · 방어선 RED). design breakdown `design/217-chart-reference-line-scatter-breakdown.md`
-- **우선순위**: P2 — 216 Implemented 뒤 즉시 착수 가능 (선행 조건 없음); 기준선 (P1–2) 과 산점도 (P3–4) 는 독립
+- **규모**: 값 축 기준선 `referenceLines[]` (RSC `value/label/lineType/layer`) 를 scene 이 마크 + domain 확장으로 소유 (Recharts `ReferenceLine` 미사용, rule `chart.reference` 채널 1) + 새 `chartType:"scatter"` (행 = 점 · x 는 숫자/시간 · 216 `positions` · 211 예산 그대로 · DOM 은 `ScatterChart` 그리기만). Phase 0~~7 / R1~~R9 (HIGH 0) / G0~G5. HC 9 (byte 동일 · D2 어법 · domain 은 scene · 두 leg 동일 + 합성 · 번들 3/3 KiB · 성능 · Canvas 정적 · 방어선 RED + throw 0 · 산점도 결과 = 원본 관측점). **round 1 (codex, HIGH 2 · MEDIUM 1) 반영 2026-09-12** — 희소 예산 계수 + 집계 0 · P1 안전 경로 = rollback 경계 · 산점도 점 불투명. design breakdown `design/217-chart-reference-line-scatter-breakdown.md`
+- **우선순위**: P2 — 216 Implemented 뒤 즉시 착수 가능 (선행 조건 없음); P1 안전 경로가 먼저, 기준선 (P2–3) 과 산점도 (P4–5) 는 독립
 
 #### [013](013-quick-connect-data-binding.md) — Quick Connect 데이터 바인딩
 
