@@ -141,6 +141,13 @@ export interface SkiaCanvasProps {
   pageTitleBoundsMapRef?: React.MutableRefObject<
     Map<string, import("./skiaOverlayHelpers").PageTitleBounds>
   >;
+  /** ADR-212 Phase 6 — 바인딩 배지 resolver (store 무의존 유지 위해 caller 조립) + hit bounds 맵 */
+  bindingBadgeResolver?: (
+    element: import("../scene/canvasSceneNode").CanvasSceneNode,
+  ) => import("./skiaOverlayHelpers").BindingBadgeInfo | null;
+  dataBadgeBoundsMapRef?: React.MutableRefObject<
+    Map<string, import("./bindingBadgeRenderer").DataBadgeBounds>
+  >;
 }
 
 // ---------------------------------------------------------------------------
@@ -164,6 +171,8 @@ export function SkiaCanvas({
   rendererInput,
   dropIndicatorSnapshotRef,
   pageTitleBoundsMapRef,
+  bindingBadgeResolver,
+  dataBadgeBoundsMapRef,
 }: SkiaCanvasProps) {
   // ADR-074 Phase 4: overlay sub-packet 을 SkiaCanvas 내부에서 자체 구독/생성.
   // BuilderCanvas 루트의 selection/editing/ai 구독을 제거하여 루트 리렌더
@@ -1104,6 +1113,8 @@ export function SkiaCanvas({
               : visiblePageFramesRef.current,
           frameAreas: frameAreasRef.current,
           pageTitleBoundsMap: pageTitleBoundsMapRef?.current,
+          bindingBadgeResolver,
+          dataBadgeBoundsMap: dataBadgeBoundsMapRef?.current,
           workflowHoverState: workflowHoverStateRef.current,
           elementHoverState: elementHoverStateRef.current,
           dropIndicatorState: dropIndicator,
@@ -1239,7 +1250,14 @@ export function SkiaCanvas({
       renderer.dispose();
       rendererRef.current = null;
     };
-  }, [ready, containerEl, dropIndicatorSnapshotRef, pageTitleBoundsMapRef]);
+  }, [
+    ready,
+    containerEl,
+    dropIndicatorSnapshotRef,
+    pageTitleBoundsMapRef,
+    bindingBadgeResolver,
+    dataBadgeBoundsMapRef,
+  ]);
 
   // 캔버스 unmount 시 모듈 캐시 통합 해제 (ADR-153 Phase 2 — R2 WASM 누수 차단).
   // render-loop effect 의 cleanup 은 deps 변경마다 재실행되므로 여기(unmount 한정)서만

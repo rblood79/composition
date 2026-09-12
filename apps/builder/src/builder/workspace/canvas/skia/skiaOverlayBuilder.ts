@@ -39,6 +39,10 @@ import {
   renderCollectionRemainderMarker,
 } from "./slotMarkerRenderer";
 import {
+  renderBindingBadge,
+  type DataBadgeBounds,
+} from "./bindingBadgeRenderer";
+import {
   renderWorkflowEdges,
   renderDataSourceEdges,
   renderLayoutGroups,
@@ -69,6 +73,8 @@ import {
   buildPageTitleRenderItems,
   buildSlotMarkerTargets,
   buildCollectionRemainderTargets,
+  buildBindingBadgeTargets,
+  type BindingBadgeInfo,
   buildPageGuideTargets,
   shouldRenderWorkflowMinimap,
   readOwnerPageId,
@@ -233,6 +239,13 @@ export interface OverlayBuildInput {
    * BuilderCanvas pointerdown 핸들러가 pageId 를 조회하여 usePageDrag 를 트리거.
    */
   pageTitleBoundsMap?: Map<string, PageTitleBounds>;
+  /**
+   * ADR-212 Phase 6 — data binding 배지. resolver 는 store 를 아는 곳에서 조립해 주입한다
+   * (helpers/렌더러는 store 무의존). null 반환 = 배지 없음. boundsMap 은 클릭 hit-test 용으로
+   * renderSkia 마다 clear 후 populate.
+   */
+  bindingBadgeResolver?: (element: CanvasSceneNode) => BindingBadgeInfo | null;
+  dataBadgeBoundsMap?: Map<string, DataBadgeBounds>;
   pagePositionSnapshot?: PagePositionPresentationSnapshot;
   // Minimap
   minimapVisible: boolean;
@@ -350,6 +363,8 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     visiblePageFrames,
     frameAreas,
     pageTitleBoundsMap,
+    bindingBadgeResolver,
+    dataBadgeBoundsMap,
     pagePositionSnapshot,
     minimapVisible,
     skiaCanvasWidth,
@@ -631,6 +646,38 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
               fontMgr,
             ),
         );
+      }
+
+      // ── Data Binding Badge (ADR-212 Phase 6: 바인딩 요소 좌상단 테이블 배지) ──
+      // remainder/slot 과 같은 콘텐츠성 chrome 열. resolver 미주입이면 통째로 건너뛴다.
+      // 선택/hover chrome 앞이라 배지가 선택박스 아래로 깔리지 않는다.
+      if (dataBadgeBoundsMap) dataBadgeBoundsMap.clear();
+      if (bindingBadgeResolver) {
+        const badgeTargets = buildBindingBadgeTargets(
+          treeBoundsMap,
+          elementsMap,
+          bindingBadgeResolver,
+          hitBoundsMap,
+          pagePositionSnapshot,
+        );
+        for (const target of badgeTargets) {
+          withPageOcclusionClip(
+            ck,
+            canvas,
+            target.pageId,
+            paintOrderedFrames,
+            pagePositionSnapshot,
+            () =>
+              renderBindingBadge(
+                ck,
+                canvas,
+                target,
+                cameraZoom,
+                fontMgr,
+                dataBadgeBoundsMap,
+              ),
+          );
+        }
       }
 
       // ── Manual Guides (ADR-181: 눈금자에서 끌어낸 상시 기준선) ──

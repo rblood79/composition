@@ -30,6 +30,26 @@ export const OVERLAY_WARM_RED_HEX = 0xf24822;
 export const EVENT_NAV_PURPLE_RGB: readonly [number, number, number] =
   hexToRgb01(TAILWIND_PALETTE.purple[500]);
 
+/** ADR-212 Phase 6 — 바인딩 배지 상태색 (팔레트 파생, 목록 배지 어법과 정합) */
+const BADGE_NORMAL = OVERLAY_BLUE_RGB; // 정상 = blue-500
+const BADGE_EMPTY = hexToRgb01(TAILWIND_PALETTE.amber[500]); // 0행 = amber-500
+const BADGE_ERROR = hexToRgb01(TAILWIND_PALETTE.red[500]); // 실행 오류 = red-500
+
+/** state("normal"|"empty"|"error") → 배지 배경 Color4f. 미지정은 normal. */
+export function getBindingBadgeColor(
+  ck: CanvasKit,
+  state: string,
+  alpha: number,
+): Float32Array {
+  const rgb =
+    state === "error"
+      ? BADGE_ERROR
+      : state === "empty"
+        ? BADGE_EMPTY
+        : BADGE_NORMAL;
+  return ck.Color4f(rgb[0], rgb[1], rgb[2], alpha);
+}
+
 const ORIGIN_R = 0xd4 / 255;
 const ORIGIN_G = 0x80 / 255;
 const ORIGIN_B = 0xff / 255;

@@ -184,7 +184,7 @@ function setDimensionLabelBackgroundColor(
  * Font size 자체를 zoom마다 바꾸면 variable font glyph metrics/rasterization이 달라지므로,
  * font와 local geometry는 고정하고 canvas transform만 camera zoom의 역수로 보정한다.
  */
-function withFixedScreenScale<T>(
+export function withFixedScreenScale<T>(
   canvas: Canvas,
   zoom: number,
   anchorX: number,

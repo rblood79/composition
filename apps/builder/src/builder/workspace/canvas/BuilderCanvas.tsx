@@ -95,7 +95,17 @@ import { useCanvasRuntimeBootstrap } from "./hooks/useCanvasRuntimeBootstrap";
 import { useLayoutPublisher } from "./hooks/useLayoutPublisher";
 import { useDragBridge } from "./hooks/useDragBridge";
 import { usePageDrag } from "./hooks/usePageDrag";
-import type { PageTitleBounds } from "./skia/skiaOverlayHelpers";
+import type {
+  PageTitleBounds,
+  BindingBadgeInfo,
+} from "./skia/skiaOverlayHelpers";
+import type { DataBadgeBounds } from "./skia/bindingBadgeRenderer";
+import {
+  getElementDataBinding,
+  resolveStoreCollection,
+} from "@composition/shared";
+import { resolveCollectionBadgeStatus } from "../../panels/datatable/utils/collectionBadgeStatus";
+import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
 import type { SnapCandidateRect } from "./interaction/snapGuides";
 import { resolveCanvasContextMenuEntry } from "./contextMenu/canvasContextMenuEntry";
 import { registerCanvasContextMenuProviders } from "./contextMenu/canvasContextMenuProviders";
@@ -237,6 +247,8 @@ function SkiaCanvasLazy(props: {
   rendererInput: SkiaRendererInput;
   dropIndicatorSnapshotRef?: React.MutableRefObject<DropIndicatorSnapshot | null>;
   pageTitleBoundsMapRef?: React.MutableRefObject<Map<string, PageTitleBounds>>;
+  bindingBadgeResolver?: (element: CanvasSceneNode) => BindingBadgeInfo | null;
+  dataBadgeBoundsMapRef?: React.MutableRefObject<Map<string, DataBadgeBounds>>;
 }) {
   return (
     <Suspense fallback={null}>
@@ -415,6 +427,31 @@ export function BuilderCanvas({
   // pageTitleBoundsMapRef.current 에 scene 좌표 bounds 를 populate 하고,
   // BuilderCanvas pointerdown(capture) 가 이 Map 을 조회해 usePageDrag 를 트리거.
   const pageTitleBoundsMapRef = useRef<Map<string, PageTitleBounds>>(new Map());
+  // ADR-212 Phase 6 — 바인딩 배지: renderSkia 가 매 프레임 이 맵을 clear+populate 하고
+  // pointerdown(capture) 가 조회해 openTableEditor 를 트리거한다.
+  const dataBadgeBoundsMapRef = useRef<Map<string, DataBadgeBounds>>(new Map());
+  // resolver 는 stable — 매 호출 store 최신값을 getState 로 읽어 바인딩→collection→상태를 해소한다
+  // (store 무의존 helpers/렌더러 계약 유지). 바인딩·collection 미해소 노드는 null → 배지 스킵.
+  const bindingBadgeResolver = useCallback(
+    (element: CanvasSceneNode): BindingBadgeInfo | null => {
+      const binding = getElementDataBinding(element);
+      if (!binding) return null;
+      const { collections, apiEndpoints, apiRuns } = useDataStore.getState();
+      const collection = resolveStoreCollection(binding, collections);
+      if (!collection) return null;
+      const status = resolveCollectionBadgeStatus(
+        collection,
+        Array.from(apiEndpoints.values()),
+        apiRuns,
+      );
+      return {
+        collectionId: collection.id,
+        name: collection.name,
+        state: status.state,
+      };
+    },
+    [],
+  );
   const lastPageTitleHitRef = useRef<PageTitleHitSnapshot | null>(null);
   const pageTitleRenameCancelRef = useRef(false);
   const [pageTitleEditState, setPageTitleEditState] =
@@ -1181,6 +1218,50 @@ export function BuilderCanvas({
         titleState.pages,
         titleState.currentPageId,
       );
+
+      // ── ADR-212 Phase 6: 바인딩 배지 클릭 → 그 테이블 편집기 (타이틀보다 먼저) ──
+      // 히트하면 openTableEditor + __handled 로 선택/드래그를 삼킨다. 배지는 편집기 진입의
+      // 부가 경로일 뿐 — 키보드 정본은 Data 패널 목록(DataTableList).
+      if (dataBadgeBoundsMapRef.current.size > 0) {
+        for (const badge of dataBadgeBoundsMapRef.current.values()) {
+          if (
+            scenePoint.x >= badge.sceneX &&
+            scenePoint.x <= badge.sceneX + badge.width &&
+            scenePoint.y >= badge.sceneY &&
+            scenePoint.y <= badge.sceneY + badge.height
+          ) {
+            const topPageIdAtPoint = resolveTopPageIdAtPoint({
+              canvasPoint: scenePoint,
+              activePageId: titleState.currentPageId,
+              pageHeight,
+              pagePositions: titleState.pagePositions,
+              pageWidth,
+              pages: titleState.pages,
+            });
+            if (
+              badge.pageId &&
+              topPageIdAtPoint &&
+              topPageIdAtPoint !== badge.pageId
+            ) {
+              const topRank = titlePagePaintRank.get(topPageIdAtPoint);
+              const ownRank = titlePagePaintRank.get(badge.pageId);
+              if (
+                topRank !== undefined &&
+                ownRank !== undefined &&
+                topRank > ownRank
+              ) {
+                continue;
+              }
+            }
+            useDataTableEditorStore
+              .getState()
+              .openTableEditor(badge.collectionId);
+            (event as PointerEvent & { __handled?: boolean }).__handled = true;
+            return;
+          }
+        }
+      }
+
       for (const bounds of pageTitleBoundsMapRef.current.values()) {
         if (
           scenePoint.x >= bounds.sceneX &&
@@ -1499,6 +1580,8 @@ export function BuilderCanvas({
           rendererInput={skiaRendererInput}
           dropIndicatorSnapshotRef={dropIndicatorSnapshotRef}
           pageTitleBoundsMapRef={pageTitleBoundsMapRef}
+          bindingBadgeResolver={bindingBadgeResolver}
+          dataBadgeBoundsMapRef={dataBadgeBoundsMapRef}
         />
       )}
 
