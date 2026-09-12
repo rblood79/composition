@@ -33,39 +33,47 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 
 - [ ] §2 표 확정 + 크기 실측 (collection 레코드 · runtimeData) · export 경로 전수 · redactor 경계
 - [ ] BC 정량화: 기존 프로젝트 N개 재직렬화 영향 (optional 필드 추가라 read 호환인지 확인 — 미설정=기존 동작)
+- [ ] **측정 기준 freeze (m5, `measurement-validity` §1)**: fixture 행수 3구간(100·1000·5000)·byte 규모 · 대조군(현행 memory-only vs 별도 store 영속 arm) · 측정 조건(foreground Chromium·DPR2·visible·cold1+warm N) · 판정 기준(목록 로드 p95 증가 상한 · IDB write/read p95 · initial 집계 단위와 기준 SHA · interval 누적 힙 고수위선). 수치 실측은 Phase 3 에서 수행, Phase 0 은 조건·통과선 확정만
+- [ ] **실행 경로 인벤토리 (m4)**: Send(`ApiEndpointEditor.tsx:122`) · agent(`dataAgentCommands.ts:96`) · endpoint 역조회(`BuilderCore.tsx:897-911`) · legacy binding interval(`useCollectionData.tsx:517-530`) 을 표로 — 새 collection-level 정책과 각 경로의 범위 구분 freeze
 
-### Phase 1 — 저장 형식 확장 (게이트 G1)
+### Phase 1 — 저장 형식 확장 + 캐시 유효성 (게이트 G1)
 
-- [ ] `executionPolicy?` 필드 추가 (`DataTable` · `DataTableDefinition`): `{ mode: "auto" | "manual" | "interval"; intervalSec?: number }` (미설정 = manual, BC)
-- [ ] runtimeData 영속: 선택된 대안에 따라 (A=레코드 필드 / B=별도 `collection_runtime` store / C=side-store) — 적용기 경로에 영속 배선, History 밖 유지
+- [ ] `executionPolicy?` 필드 추가 (`DataTable` · `DataTableDefinition`): `{ mode: "auto" | "manual" | "interval"; intervalSec?: number }` (미설정 = manual, BC). DataOp·역연산·`persistablePatch`(`dataChange.ts:1020-1026`) 배선 명시
+- [ ] runtimeData 영속: 별도 `collection_runtime` store(대안 B) — 적용기 경로에 영속 배선, History 밖 유지, 삭제 시 캐시 정리(고아 0)
+- [ ] **캐시 유효성 (h1/HC4)**: 엔트리에 `sourceRev`(endpoint id + `responseMapping.dataPath` + schema field key/type 집합 지문) 저장. hydration 시 현재 revision 불일치면 폐기. field rename(`dataChange.ts:679-687`)은 캐시도 값 보존 변환(152 G4 정합), endpoint/mapping/스키마 구조 변경은 무효화. Undo/Redo 시 revision 재판정
 - [ ] `applyDataChange` 경로로만 쓰기 (HC1) · migration: optional 필드라 기존 레코드 read 호환
 
-### Phase 2 — Settings "데이터 소스" UI (게이트 G2)
+### Phase 2 — Settings "데이터 소스" UI + endpoint 연결 (게이트 G2)
 
 - [ ] `DataTableEditor` Settings 탭 → "데이터 소스": 샘플/실제(`useMockData`) + 엔드포인트 picker + 실행 정책 컨트롤(자동/수동/N초) — 스냅 패널 어법(HC2), 신규 문자열 `datatable.*` ko/en (HC7)
+- [ ] **endpoint 연결 계약 (m3)**: collection↔endpoint cardinality 0..1, 정본 = `endpoint.targetCollectionId`. picker 는 `set_source{endpointId}` 를 승인 dispatcher 확장으로 — 새 연결 + 기존 연결 해제를 한 DataChange(역연산 = 이전 연결 복원). `dataChange.ts:785-798` throw 대체. 연결만 = set_source 확장 / endpoint 정의 변경 = define_endpoint
 - [ ] 쓰기 전부 `applyDataChange` (HC1)
 
-### Phase 3 — 실행 정책 런타임 + closure (게이트 G3)
+### Phase 3 — 실행 정책 런타임 + 요청 경쟁 + closure (게이트 G3)
 
-- [ ] 정책 런타임: `auto`(편집기/미리보기 열 때 1회) · `manual`(Send/새로고침 버튼) · `interval`(N초, 정리 훅으로 leak 0)
-- [ ] runtimeData 영속 → 다음 세션 로드 시 마지막 성공 응답 표시 (오프라인/미실행 상태에서도 빈 상자 아님)
-- [ ] export/redactor: runtimeData 포함 정책 결정 (기본 제외 or 마스킹) · 번들 영향 0 확인
-- [ ] a11y: 정책 컨트롤 키보드·`role=status` · axe critical 0 · live 하니스 `scripts/adr218-*-live.mjs`
+- [ ] 정책 런타임: `auto`(Builder 가 Preview 열기 전 1회) · `manual`(Send/새로고침 버튼) · `interval`(N초, 정리 훅으로 leak 0). **실행 host = Builder**(m4) — Preview 는 runtimeData snapshot 만 수신, `collectionSnapshot`(`:35-45`) allowlist 에 정책 미포함. legacy binding interval 은 별개 경로 유지
+- [ ] **요청 경쟁 (h2/HC5)**: collection 별 `runSeq` single-flight — 진행 중 abort(현행 `dataActions.ts:543-561` loadingApis 미차단·`:680-693` timeout 전용 AbortController·`:722-745` 무조건 쓰기를 seq 게이트로 대체), 완료는 seq 일치 시만 store·캐시에 수용. 정지(interval 해제·페이지 전환·정책 변경)는 abort + 완료돼도 무시
+- [ ] runtimeData 영속 → 다음 세션 로드 시 마지막 성공 응답 표시 (오프라인/미실행 상태에서도 빈 상자 아님), hydration vs 새 응답 우선순위(첫 새 응답이 덮어씀)
+- [ ] export/redactor: runtimeData 포함 정책(기본 제외) · `postMessage`(`dataChange.ts:113-123` raw response) 제외는 export 제외와 **별개 정책** · 번들 영향 0 확인
+- [ ] a11y: 정책 컨트롤 키보드·`role=status` · axe critical 0 · live 하니스 `scripts/adr218-*-live.mjs`(A/B 역순 완료·정지 후 완료·rename→offline reload·헤더 Preview 진입 endpoint 호출 수 포함)
 - [ ] CHANGELOG · README Implemented · `### Live Exercise`
 
 ## 4. 파일 변경표 (추정 — Phase 0 freeze)
 
-| 파일                                                                            | Phase | 변경                                                              |
-| ------------------------------------------------------------------------------- | :---: | ----------------------------------------------------------------- |
-| `types/builder/data.types.ts` · `packages/shared/src/types/collection.types.ts` |   1   | `executionPolicy?` · runtimeData 영속 계약 갱신                   |
-| `lib/db/indexedDB/adapter.ts`                                                   |   1   | runtimeData 영속 store (대안 B/C 시 신규 objectStore + migration) |
-| `stores/utils/dataActions.ts` · `dataChange.ts`                                 |  1·3  | 영속 배선 · 정책 런타임 · export/redactor 경계                    |
-| `panels/datatable/editors/DataTableEditor.tsx` (SettingsEditor)                 |   2   | 데이터 소스 picker + 정책 컨트롤                                  |
-| `i18n/translations.ts` (`datatable.*`)                                          |   2   | 키 추가 ko/en                                                     |
-| `scripts/adr218-*-live.mjs` (신규)                                              |   3   | live 하니스                                                       |
+| 파일                                                                                                                                 | Phase | 변경                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------ | :---: | --------------------------------------------------------------------------------------------------------- |
+| `types/builder/data.types.ts` · `packages/shared/src/types/collection.types.ts`                                                      |   1   | `executionPolicy?` · runtimeData 영속 계약 갱신                                                           |
+| `lib/db/indexedDB/adapter.ts`                                                                                                        |   1   | `collection_runtime` objectStore + migration + 삭제 정리                                                  |
+| `packages/shared/src/schemas/dataChange.ts` · `stores/utils/dataChange.ts`                                                           |  1·2  | `set_source{endpointId}` throw 대체 · executionPolicy DataOp·역연산·`persistablePatch` · rename 캐시 변환 |
+| `stores/utils/dataActions.ts`                                                                                                        |  1·3  | 영속 배선 · `runSeq` single-flight · 응답 수용 게이트(`:543-561`·`:680-693`·`:722-745`)                   |
+| `main/BuilderCore.tsx` · `packages/shared/src/hooks/useCollectionData.tsx` · `packages/shared/src/collections/collectionSnapshot.ts` |   3   | 실행 host=Builder 경계 · legacy interval 구분 · Preview snapshot 응답만                                   |
+| `panels/datatable/editors/DataTableEditor.tsx` (SettingsEditor)                                                                      |   2   | 데이터 소스 picker + 정책 컨트롤 + endpoint 연결                                                          |
+| `i18n/translations.ts` (`datatable.*`)                                                                                               |   2   | 키 추가 ko/en                                                                                             |
+| `scripts/adr218-*-live.mjs` (신규)                                                                                                   |   3   | live 하니스                                                                                               |
 
 ## 5. 검증 전략
 
-- 원복 RED: 저장 형식 확장·정책 런타임은 동작 변경 → 전량. UI 는 axe + 키보드.
-- live: 정책 3종(auto/manual/interval) 실제 실행 + 세션 재로드 시 runtimeData 복원 + interval 정리(leak 0) + export 에 secret/응답 정책 확인. `measurement-validity` Q2(불리 케이스=대용량 응답·interval 누적) · Q4(정책이 실제 실행 경로에 배선).
+- 원복 RED: 저장 형식 확장·정책 런타임·캐시 유효성·single-flight 는 동작 변경 → 전량. UI 는 axe + 키보드.
+- live 필수 시나리오(리뷰 round 1 회귀): (a) **rename→offline reload** — 한 행 API 응답 저장 → field rename → offline reload 시 현재 key 로 표시, 옛 key 섞임 0 (h1) (b) **A/B 역순 완료** — 느린 A·빠른 B 동시 실행 시 최신 B 유지, 정지 후 완료 응답 무시 (h2) (c) endpoint picker 연결 교체 + Undo 복원 (m3) (d) 헤더 Preview 진입 시 endpoint 호출 수로 host=Builder 검증 (m4) (e) 정책 3종 실행 + 세션 재로드 복원 + interval 정리 후 타이머 0.
+- 측정(m5, `measurement-validity` §1·Q2·Q4): fixture 3구간(100·1000·5000행) · 대조군(memory-only vs 영속) · 조건(foreground·DPR2·visible·cold1+warm N) · 판정선(목록 로드 p95 증가 상한·IDB p95·initial 증가 0·interval 누적 힙). Q2 불리 케이스 = 대용량 응답·interval 누적·A/B 역순, Q4 = 정책이 실제 실행 경로에 배선.
 - BC: 기존 프로젝트(executionPolicy 없음) 로드 시 manual 동작 유지 확인.
