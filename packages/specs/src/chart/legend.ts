@@ -6,7 +6,12 @@
  * 사라지는데, 그게 색만 보이고 이름이 없는 상태보다 나쁘다.
  */
 import { approxTextWidth, r2 } from "./scales";
-import type { ChartLegendPosition, LegendItem, LegendScene, Rect } from "./types";
+import type {
+  ChartLegendPosition,
+  LegendItem,
+  LegendScene,
+  Rect,
+} from "./types";
 
 /**
  * 범례 한 줄. **grid.series 가 아니라 이 목록**을 받는다 — 색을 가르는 축이

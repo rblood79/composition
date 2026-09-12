@@ -363,7 +363,9 @@ export function parseTime(
     ),
   );
   if (
-    (st.j ? st.d < 1 || st.d > 366 : probe.getUTCMonth() !== month || probe.getUTCDate() !== st.d) ||
+    (st.j
+      ? st.d < 1 || st.d > 366
+      : probe.getUTCMonth() !== month || probe.getUTCDate() !== st.d) ||
     probe.getUTCHours() !== st.H ||
     probe.getUTCMinutes() !== st.M ||
     probe.getUTCSeconds() !== st.S ||

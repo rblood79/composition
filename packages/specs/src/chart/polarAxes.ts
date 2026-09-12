@@ -93,7 +93,10 @@ export function polarLabelAnchor(degrees: number): {
   if (Math.abs(d - 180) < EPS) return { anchor: "middle", baseline: "top" };
   if (d < 180) {
     // 오른쪽 반원 — 글자가 바깥으로 나가도록 왼쪽 정렬
-    return { anchor: "start", baseline: d < 90 ? "bottom" : d > 90 ? "top" : "middle" };
+    return {
+      anchor: "start",
+      baseline: d < 90 ? "bottom" : d > 90 ? "top" : "middle",
+    };
   }
   return {
     anchor: "end",
@@ -166,7 +169,12 @@ export function buildPolarAxes(input: PolarAxesInput): AxisScene[] {
       });
     }
     if (!showAxis || i % stride !== 0) continue;
-    const at = polarPoint(center.x, center.y, center.outer + fontSize * 0.5, deg);
+    const at = polarPoint(
+      center.x,
+      center.y,
+      center.outer + fontSize * 0.5,
+      deg,
+    );
     const { anchor, baseline } = polarLabelAnchor(deg);
     labels.push({
       kind: "text",
@@ -199,7 +207,13 @@ export function buildPolarAxes(input: PolarAxesInput): AxisScene[] {
     }
     for (const t of fractions) {
       const radius = center.inner + (center.outer - center.inner) * t;
-      const ring = gridRing(center, radius, gridType, categories.length, angle.start);
+      const ring = gridRing(
+        center,
+        radius,
+        gridType,
+        categories.length,
+        angle.start,
+      );
       if (ring) rings.push(ring);
     }
     // 가장 바깥 링 **하나만** 채운다 (전부 채우면 겹쳐서 안쪽이 진해지고 값
