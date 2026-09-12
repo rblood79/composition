@@ -13,7 +13,7 @@ import { useDataStore } from "../../../stores/data";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { PropertySwitch } from "../../../components";
 import { DataGrid } from "../grid/DataGrid";
-import { findLinkedApi } from "../components/DataTableList";
+import { findLinkedApi } from "../utils/collectionBadgeStatus";
 import "./DataTableEditor.css";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 
@@ -30,9 +30,7 @@ export function DataTableEditor({
 }: DataTableEditorProps) {
   const updateCollection = useDataStore((state) => state.updateCollection);
   const shellI18n = useOptionalI18n();
-  const rootI18nT = shellI18n
-    ? (key: string) => shellI18n.t(key)
-    : null;
+  const rootI18nT = shellI18n ? (key: string) => shellI18n.t(key) : null;
 
   // useMockData 토글
   const handleUseMockDataToggle = useCallback(
@@ -72,7 +70,10 @@ export function DataTableEditor({
       Array.from(apiEndpointsMap.values()),
     );
     const run = linked ? apiRuns.get(linked.id) : undefined;
-    if (run && (run.ok === false || (run.response && run.response.status >= 400)))
+    if (
+      run &&
+      (run.ok === false || (run.response && run.response.status >= 400))
+    )
       return { tone: "error" as const, key: "editorError" };
     if (rowCount === 0) return { tone: "empty" as const, key: "editorEmpty" };
     return null;
@@ -96,7 +97,6 @@ export function DataTableEditor({
           <DataGrid table={dataTable} />
         </>
       )}
-
 
       {activeTab === "settings" && (
         <SettingsEditor

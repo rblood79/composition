@@ -21,6 +21,10 @@ import { iconProps, iconEditProps } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
 import { resolveCollectionUsage } from "../../../../services/ai/data/collectionReadModel";
+import {
+  findLinkedApi,
+  resolveCollectionBadgeStatus,
+} from "../utils/collectionBadgeStatus";
 import { getAiToolReadModel } from "../../../../services/ai/tools/canonicalToolReadModel";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import type {
@@ -40,18 +44,9 @@ interface DataTableListProps {
   onCreateClick: () => void;
 }
 
-/** DataTable 에 연결된 API Endpoint — id 우선 (ADR-152 v2.1) · 이름 fallback */
-export function findLinkedApi(
-  table: Pick<DataTable, "id" | "name">,
-  apiEndpoints: readonly ApiEndpoint[],
-): ApiEndpoint | undefined {
-  return (
-    apiEndpoints.find((api) => api.targetCollectionId === table.id) ??
-    apiEndpoints.find(
-      (api) => !api.targetCollectionId && api.targetCollection === table.name,
-    )
-  );
-}
+// findLinkedApi 정의는 utils/collectionBadgeStatus 로 이동 (목록·편집기·캔버스 배지 공용 SSOT).
+// 기존 소비처 호환을 위해 재노출한다.
+export { findLinkedApi };
 
 export function DataTableList({
   projectId,
@@ -139,12 +134,14 @@ export function DataTableList({
         >
           {collections.map((table) => {
             const linkedApi = findLinkedApi(table, apiEndpoints);
-            const lastRun = linkedApi ? apiRuns.get(linkedApi.id) : undefined;
-            const rows = table.useMockData
-              ? (table.mockData?.length ?? 0)
-              : (table.runtimeData?.length ?? table.mockData?.length ?? 0);
+            const status = resolveCollectionBadgeStatus(
+              table,
+              apiEndpoints,
+              apiRuns,
+            );
+            const rows = status.rows;
             const used = usage.get(table.id) ?? 0;
-            const failed = lastRun && !lastRun.ok;
+            const failed = status.state === "error";
             return (
               <GridListItem
                 key={table.id}
@@ -175,7 +172,7 @@ export function DataTableList({
                 {failed ? (
                   <span className="list-item-badge error">
                     {t("runError", {
-                      status: lastRun.response?.status ?? "—",
+                      status: status.errorStatus ?? "—",
                     })}
                   </span>
                 ) : (
