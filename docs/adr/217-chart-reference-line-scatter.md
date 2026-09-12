@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-12 · **round 1 (codex, HIGH 2 · MEDIUM 1) 반영 2026-09-12** — h1 산점도 예산을 희소 계수 + 집계 0 (HC9) · h2 rollback 경계를 P1 안전 경로 commit 으로 고정 (구버전은 예외) · m3 산점도 점 불투명 (RSC 기본 opacity 1) 으로 합성 단위 차이 제거 ([reviews/217.md](reviews/217.md)). (ADR-216 후속 — 사용자가 216 범위 선택 시 "ReferenceLine · Scatter 는 후속" 으로 미룬 두 항목. 분리 4질문 lock-in: [breakdown §1](design/217-chart-reference-line-scatter-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in))
+**Accepted — 2026-09-12** (reviews/217.md round 2 승인 가능 · `pending` 0 → `/execute-adr 217` 착수. P0 G0: spike 2/2 PASS — 설계 정정 1: Recharts `Customized` 는 항상 그래픽 항목 앞이라 기준선 `front` 층은 DOM overlay svg, breakdown §2.2). Proposed — 2026-09-12 · **round 1 (codex, HIGH 2 · MEDIUM 1) 반영 2026-09-12** — h1 산점도 예산을 희소 계수 + 집계 0 (HC9) · h2 rollback 경계를 P1 안전 경로 commit 으로 고정 (구버전은 예외) · m3 산점도 점 불투명 (RSC 기본 opacity 1) 으로 합성 단위 차이 제거 ([reviews/217.md](reviews/217.md)). (ADR-216 후속 — 사용자가 216 범위 선택 시 "ReferenceLine · Scatter 는 후속" 으로 미룬 두 항목. 분리 4질문 lock-in: [breakdown §1](design/217-chart-reference-line-scatter-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in))
 
 ## Context
 
