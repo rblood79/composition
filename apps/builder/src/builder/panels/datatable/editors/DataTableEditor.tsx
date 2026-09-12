@@ -142,6 +142,7 @@ function SettingsEditor({
         <input
           type="text"
           className="settings-input"
+          aria-label={localize("tableName", "Table Name")}
           value={localName}
           onChange={(e) => setLocalName(e.target.value)}
           onBlur={() => {

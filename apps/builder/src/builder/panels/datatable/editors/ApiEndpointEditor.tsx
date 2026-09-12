@@ -179,7 +179,7 @@ export function ApiEndpointEditor({
           value={endpoint.method}
           onChange={(v) => void save({ method: v as HttpMethod })}
           options={HTTP_METHODS.map((m) => ({ value: m, label: m }))}
-          aria-label="Method"
+          aria-label={dt("apiMethod")}
           className="datatable-api-method"
         />
         <input
@@ -188,7 +188,7 @@ export function ApiEndpointEditor({
           value={urlDraft}
           spellCheck={false}
           placeholder={dt("apiUrlPlaceholder")}
-          aria-label="URL"
+          aria-label={dt("apiUrl")}
           onChange={(e) => setUrlDraft(e.target.value)}
           onPaste={handleUrlPaste}
           onBlur={() => commitUrl(urlDraft)}
@@ -603,6 +603,7 @@ function AuthTab({
             <input
               type="text"
               className="datatable-api-input"
+              aria-label={dt("apiAuthKeyName")}
               value={name}
               spellCheck={false}
               onChange={(e) => setName(e.target.value)}
@@ -623,6 +624,7 @@ function AuthTab({
             <input
               type="text"
               className="datatable-api-input"
+              aria-label={dt("apiAuthSecretName")}
               value={secretName}
               spellCheck={false}
               onChange={(e) => setSecretName(e.target.value)}
@@ -635,6 +637,7 @@ function AuthTab({
               <input
                 type="password"
                 className="datatable-api-input"
+                aria-label={dt("apiAuthValue")}
                 value={secretValue}
                 autoComplete="off"
                 spellCheck={false}
@@ -741,7 +744,7 @@ function ResponseTab({
       <div
         className="datatable-api-response-tabs"
         role="tablist"
-        aria-label="view"
+        aria-label={dt("apiResponseView")}
       >
         {(["pretty", "raw", "schema"] as const).map((v) => (
           <button
@@ -886,6 +889,7 @@ function SchemaView({
         <input
           type="text"
           className="datatable-api-input"
+          aria-label={dt("apiSaveTableName")}
           value={tableName}
           spellCheck={false}
           onChange={(e) => setTableName(e.target.value)}

@@ -282,6 +282,7 @@ function FieldForm({
         <input
           type="text"
           className="datatable-field-input"
+          aria-label={dt("fieldName")}
           value={keyDraft}
           spellCheck={false}
           onChange={(e) => setKeyDraft(e.target.value)}
@@ -350,6 +351,7 @@ function FieldForm({
         <input
           type="text"
           className="datatable-field-input"
+          aria-label={dt("fieldLabel")}
           defaultValue={field.label ?? ""}
           key={`label-${field.id ?? field.key}`}
           onBlur={(e) => {
@@ -365,6 +367,7 @@ function FieldForm({
         <input
           type="text"
           className="datatable-field-input"
+          aria-label={dt("fieldDefault")}
           defaultValue={
             field.defaultValue === null || field.defaultValue === undefined
               ? ""

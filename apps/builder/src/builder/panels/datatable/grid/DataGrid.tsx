@@ -764,6 +764,7 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
             <button
               type="button"
               className="filter-clear-btn"
+              aria-label={t("filterClear")}
               onClick={() => setFilterText("")}
             >
               <X size={iconSmall.size} />

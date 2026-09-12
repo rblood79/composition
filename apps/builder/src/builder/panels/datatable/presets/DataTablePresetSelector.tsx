@@ -201,7 +201,11 @@ export function DataTablePresetSelector({
                     <Database size={iconLarge.size} />
                     {localize("addDataTable", "Add DataTable")}
                   </Heading>
-                  <Button className="preset-modal-close" onPress={close}>
+                  <Button
+                    className="preset-modal-close"
+                    onPress={close}
+                    aria-label={localize("close", "Close")}
+                  >
                     <X size={iconProps.size} />
                   </Button>
                 </div>
@@ -246,7 +250,10 @@ export function DataTablePresetSelector({
                       <div className="panel-header panel-tabrow">
                         <TabList
                           className="panel-tablist"
-                          aria-label="Preset category"
+                          aria-label={localize(
+                            "presetCategory",
+                            "Preset category",
+                          )}
                         >
                           {PRESET_CATEGORIES.map((cat) => (
                             <Tab
@@ -306,6 +313,7 @@ export function DataTablePresetSelector({
                               type="number"
                               min="0"
                               max="100"
+                              aria-label={localize("sampleData", "Sample data")}
                               value={sampleCount}
                               onChange={(e) =>
                                 setSampleCount(
