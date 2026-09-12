@@ -73,12 +73,14 @@ ADR-212 가 이월한 2건(runtimeData 영속 · 실행 정책 필드)을 신규
 - [x] **측정 기준 freeze (m5, `measurement-validity` §1)**: fixture 행수 3구간(100·1000·5000)·byte 규모 · 대조군(현행 memory-only vs 별도 store 영속 arm) · 측정 조건(foreground Chromium·DPR2·visible·cold1+warm N) · 판정 기준(목록 로드 p95 증가 상한 · IDB write/read p95 · initial 집계 단위와 기준 SHA · interval 누적 힙 고수위선). 수치 실측은 Phase 3 에서 수행, Phase 0 은 조건·통과선 확정만 — §2.1 m5
 - [x] **실행 경로 인벤토리 (m4)**: Send(`ApiEndpointEditor.tsx:122`) · agent(`dataAgentCommands.ts`) · endpoint 역조회(`BuilderCore.tsx:897-911`) · legacy binding interval(`useCollectionData.tsx:519-528`) 을 표로 — 새 collection-level 정책과 각 경로의 범위 구분 freeze — §2.1 m4
 
-### Phase 1 — 저장 형식 확장 + 캐시 유효성 (게이트 G1)
+### Phase 1 — 저장 형식 확장 + 캐시 유효성 (게이트 G1) — ✅ Implemented 2026-09-13 (`1de25662c`·`b6156c6f5`)
 
-- [ ] `executionPolicy?` 필드 추가 (`DataTable` · `DataTableDefinition`): `{ mode: "auto" | "manual" | "interval"; intervalSec?: number }` (미설정 = manual, BC). DataOp·역연산·`persistablePatch`(`dataChange.ts:1020-1026`) 배선 명시
-- [ ] runtimeData 영속: 별도 `collection_runtime` store(대안 B) — 적용기 경로에 영속 배선, History 밖 유지, 삭제 시 캐시 정리(고아 0)
-- [ ] **캐시 유효성 (h1/HC4)**: `sourceRev` = `baseUrl+path+method` + query/header 의 enabled·정규화 key·**value(비민감 값 포함, Accept-Language·X-Tenant 등 — 실제 소비 `dataActions.ts:625-635`)** + body + `responseMapping.dataPath` + schema. **secret 참조(`{{secret.NAME}}`)만** 원문 대신 `참조 이름 + vault revision` — SecretRow 에 **변경 세대(revision)** 신설(`secretVault.ts:44-49,72-85` 덮어쓰기 시 bump, `dataActions.ts:660-664` 치환), 원문은 지문 메타에 0(HC6). URL/query/body/header 어디의 secret 참조든 동일. define_endpoint 동일 id 정의 변경(`dataChange.ts:440-479`→`:593-648`) 포함. hydration·소스·인증 변경 시 불일치면 폐기, rename 만 값 보존 변환. Undo/Redo revision 재판정. 진행 중 요청은 시작 revision(secret 포함)을 완료 수용 시 대조
-- [ ] `applyDataChange` 경로로만 쓰기 (HC1) · migration: optional 필드라 기존 레코드 read 호환
+- [x] `executionPolicy?` 필드 추가 (`DataTable` · `DataTableDefinition`): `{ mode: "auto" | "manual" | "interval"; intervalSec?: number }` (미설정 = manual, BC). `set_execution_policy` DataOp(역연산=이전 정책, HUMAN_ONLY)·`persistablePatch` 배선 완료
+- [x] runtimeData 영속: 별도 `collection_runtime` store(대안 B, DB_VERSION 21→22) — execute sink 에 영속 배선(sourceRev+fieldKeys), History 밖 유지, 삭제 시 캐시 정리(고아 0, 적용기 persist + hydration 양쪽)
+- [x] **캐시 유효성 (h1/HC4)**: `sourceRev`(`sourceRev.ts`) = `baseUrl+path+method` + query/header enabled·정규화 key·**비민감 값** + body + `dataPath` + schema(**field.id+type** — rename 안정). **secret 참조만** 원문 대신 `참조 이름 + vault revision` — SecretRow `revision` 신설(덮어쓰기 시 bump, 사용자 승인 편집), `getSecretRevisions`(값 미반환), 원문 지문 0(HC6). hydration 불일치면 폐기, rename 은 fieldKeys 로 값 보존 remap. 진행 중 요청은 시작 revision(startRev)을 완료 수용 시 재계산 대조(endRev)
+- [x] `applyDataChange` 경로로만 정의 쓰기 (HC1) · migration: optional 필드 read 호환 (runtimeData 캐시는 정의가 아닌 별도 store 라 History 밖)
+
+**G1 live 9/9** (`scripts/adr218-p1-cache-live.mjs`, evidence `docs/adr/evidence/218-p1-cache-live.md`): store 생성·영속·hydration 복원(재fetch 0)·path 변경 무효화(h1)·rename 캐시 유지·삭제 고아 0·HC6. 유닛 `sourceRev.test.ts` 10 + `dataActions.runtimeCache.test.ts` 5 + set_execution_policy 왕복 2, 회귀 0.
 
 ### Phase 2 — Settings "데이터 소스" UI + endpoint 연결 (게이트 G2)
 
