@@ -68,7 +68,7 @@ describe("execute single-flight (runSeq)", () => {
     const execute = createExecuteApiEndpointAction(set, get);
 
     // A 는 느리게, B 는 빠르게 resolve. 둘 다 같은 endpoint(같은 target c1).
-    let resolveA: () => void = () => {};
+    let resolveA: (value?: unknown) => void = () => {};
     const bodyFor = (rows: unknown) => ({
       ok: true,
       status: 200,

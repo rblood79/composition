@@ -493,7 +493,14 @@ const PanelFrameContent = memo(function PanelFrameContent({
   mode,
   side,
 }: PanelFrameContentProps) {
+  const [hasBeenPlaced, setHasBeenPlaced] = useState(mode === "placed");
   const PanelComponent = config.component;
+
+  useEffect(() => {
+    if (mode === "placed") setHasBeenPlaced(true);
+  }, [mode]);
+
+  const shouldMount = hasBeenPlaced || mode === "placed";
   return (
     // `data-panel-id` 는 `useActiveScope` 가 "지금 어느 패널에 포커스가 있는가"
     // 를 읽는 유일한 표식이다. emitter 가 없어 판정이 늘 "보이는 첫 우측 패널"
@@ -504,14 +511,16 @@ const PanelFrameContent = memo(function PanelFrameContent({
       data-panel-id={config.id}
       className="workspace-panel-content"
     >
-      <Activity mode={mode === "hidden" ? "hidden" : "visible"}>
-        <PanelComponent
-          isActive={true}
-          side={side}
-          displayMode={mode === "placed" ? "floating" : "panel"}
-          onClose={undefined}
-        />
-      </Activity>
+      {shouldMount ? (
+        <Activity mode={mode === "hidden" ? "hidden" : "visible"}>
+          <PanelComponent
+            isActive={true}
+            side={side}
+            displayMode={mode === "placed" ? "floating" : "panel"}
+            onClose={undefined}
+          />
+        </Activity>
+      ) : null}
     </div>
   );
 });

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, waitFor } from "@testing-library/react";
 import { PanelLeft } from "lucide-react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement } from "react";
@@ -247,6 +247,62 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     const controlledPane = frame?.querySelector(".workspace-panel-content");
     expect(controlledPaneId).toBe("panel-navigator-content");
     expect(controlledPane?.id).toBe(controlledPaneId);
+  });
+
+  it("한 번도 열지 않은 패널은 지연하고 배치된 패널만 마운트한다", async () => {
+    const DeferredPanel = vi.fn(() => (
+      <div data-testid="deferred-panel">Data Editor</div>
+    ));
+    const configs = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map((config) =>
+      config.id === "datatableEditor"
+        ? { ...config, component: DeferredPanel }
+        : config,
+    );
+    vi.mocked(PanelRegistry.getAllPanels).mockReturnValue(configs);
+    vi.mocked(PanelRegistry.getPanel).mockImplementation((panelId) =>
+      configs.find((config) => config.id === panelId),
+    );
+
+    const source = createPanelWorkspaceLayoutV2();
+    const left = source.clusters.find((cluster) => cluster.anchor === "left");
+    if (!left) throw new Error("left cluster is required");
+    left.columns[0]!.rows = [
+      { panelId: "navigator", height: 350 },
+      { panelId: "datatableEditor", height: 300 },
+    ];
+    source.visibility = {
+      ...source.visibility,
+      datatableEditor: false,
+    };
+    useStore.setState({ panelWorkspaceLayout: migrateFixture(source) });
+
+    const hiddenWorkspace = renderPanelWorkspace(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+
+    expect(DeferredPanel).not.toHaveBeenCalled();
+    expect(
+      hiddenWorkspace.container.querySelector('[data-testid="deferred-panel"]'),
+    ).toBeNull();
+    hiddenWorkspace.unmount();
+
+    source.visibility.datatableEditor = true;
+    useStore.setState({ panelWorkspaceLayout: migrateFixture(source) });
+    const placedWorkspace = renderPanelWorkspace(
+      <PanelWorkspace>
+        <div />
+      </PanelWorkspace>,
+    );
+    await waitFor(() => {
+      expect(DeferredPanel).toHaveBeenCalled();
+      expect(
+        placedWorkspace.container.querySelector(
+          '[data-testid="deferred-panel"]',
+        ),
+      ).not.toBeNull();
+    });
   });
 
   it("bottom placement는 유지하되 rail order가 비면 빈 rail DOM을 만들지 않는다", () => {
