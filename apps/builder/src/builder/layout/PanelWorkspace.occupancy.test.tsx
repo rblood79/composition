@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 
-import { fireEvent, render, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, waitFor } from "@testing-library/react";
 import { PanelLeft } from "lucide-react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { I18nProvider } from "../../i18n";
 import type { PanelConfig } from "../panels/core/types";
 import { PanelRegistry } from "../panels/core/PanelRegistry";
@@ -13,6 +13,7 @@ import {
   createPanelWorkspaceLayoutV2,
 } from "./panelWorkspaceLayoutV2.testFixtures";
 import { createPanelWorkspaceRegistryEntry } from "./panelWorkspaceLayoutV2";
+import { dispatchPanelWorkspaceActivation } from "./panelWorkspaceActivationDispatcher";
 import type { PanelWorkspaceLayoutV2 } from "./panelWorkspaceLayoutV2";
 import type { PanelWorkspaceLayoutV4 } from "./panelWorkspaceLayoutV4";
 import { migratePanelWorkspaceLayoutV2ToV4 } from "./panelWorkspaceLayoutV4Migration";
@@ -249,10 +250,26 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     expect(controlledPane?.id).toBe(controlledPaneId);
   });
 
-  it("한 번도 열지 않은 패널은 지연하고 배치된 패널만 마운트한다", async () => {
-    const DeferredPanel = vi.fn(() => (
-      <div data-testid="deferred-panel">Data Editor</div>
-    ));
+  it("한 번도 열지 않은 패널은 첫 열림까지 지연하고 이후 hidden 마운트를 보존한다", async () => {
+    const scheduledFrames: FrameRequestCallback[] = [];
+    vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => {
+      scheduledFrames.push(callback);
+      return scheduledFrames.length;
+    });
+    const flushScheduledFrames = () => {
+      while (scheduledFrames.length > 0) {
+        scheduledFrames.shift()?.(performance.now());
+      }
+    };
+    let stateInitializations = 0;
+    const DeferredPanel = vi.fn(() => {
+      const [instanceId] = useState(() => ++stateInitializations);
+      return (
+        <div data-testid="deferred-panel" data-instance-id={instanceId}>
+          Data Editor
+        </div>
+      );
+    });
     const configs = [...TEST_CONFIGS, STYLES_TEST_CONFIG].map((config) =>
       config.id === "datatableEditor"
         ? { ...config, component: DeferredPanel }
@@ -276,7 +293,7 @@ describe("PanelWorkspace full-screen canvas shell", () => {
     };
     useStore.setState({ panelWorkspaceLayout: migrateFixture(source) });
 
-    const hiddenWorkspace = renderPanelWorkspace(
+    const { container } = renderPanelWorkspace(
       <PanelWorkspace>
         <div />
       </PanelWorkspace>,
@@ -284,24 +301,62 @@ describe("PanelWorkspace full-screen canvas shell", () => {
 
     expect(DeferredPanel).not.toHaveBeenCalled();
     expect(
-      hiddenWorkspace.container.querySelector('[data-testid="deferred-panel"]'),
+      container.querySelector('[data-testid="deferred-panel"]'),
     ).toBeNull();
-    hiddenWorkspace.unmount();
 
-    source.visibility.datatableEditor = true;
-    useStore.setState({ panelWorkspaceLayout: migrateFixture(source) });
-    const placedWorkspace = renderPanelWorkspace(
-      <PanelWorkspace>
-        <div />
-      </PanelWorkspace>,
-    );
+    act(() => {
+      expect(dispatchPanelWorkspaceActivation("datatableEditor", true)).toBe(
+        true,
+      );
+      flushScheduledFrames();
+    });
     await waitFor(() => {
       expect(DeferredPanel).toHaveBeenCalled();
       expect(
-        placedWorkspace.container.querySelector(
-          '[data-testid="deferred-panel"]',
-        ),
+        container.querySelector('[data-testid="deferred-panel"]'),
       ).not.toBeNull();
+      expect(
+        container
+          .querySelector('[data-testid="deferred-panel"]')
+          ?.getAttribute("data-instance-id"),
+      ).toBe("1");
+    });
+
+    act(() => {
+      expect(dispatchPanelWorkspaceActivation("datatableEditor", false)).toBe(
+        true,
+      );
+      flushScheduledFrames();
+    });
+    await waitFor(() => {
+      expect(
+        container
+          .querySelector('.workspace-panel-frame[data-panel="datatableEditor"]')
+          ?.getAttribute("data-mode"),
+      ).toBe("hidden");
+      expect(
+        container.querySelector('[data-testid="deferred-panel"]'),
+      ).not.toBeNull();
+    });
+
+    act(() => {
+      expect(dispatchPanelWorkspaceActivation("datatableEditor", true)).toBe(
+        true,
+      );
+      flushScheduledFrames();
+    });
+    await waitFor(() => {
+      expect(
+        container
+          .querySelector('.workspace-panel-frame[data-panel="datatableEditor"]')
+          ?.getAttribute("data-mode"),
+      ).toBe("placed");
+      expect(
+        container
+          .querySelector('[data-testid="deferred-panel"]')
+          ?.getAttribute("data-instance-id"),
+      ).toBe("1");
+      expect(stateInitializations).toBe(1);
     });
   });
 
