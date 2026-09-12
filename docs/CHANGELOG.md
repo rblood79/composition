@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-217 Implemented — Chart 기준선 (ReferenceLine) · 산점도 (Scatter) · 미지원 chartType 안전 경로] - 2026-09-12
+
+### Added
+
+- **값 축 기준선** (`referenceLines[]`, bar/line/area/scatter · ≤ 4): 값 · 레이블 · 선 모양 (실선/파선/점선) · 층 (뒤/앞). Properties Content 절의 **기준선** 목록 편집기 (추가/삭제/편집). 값 축 domain 이 기준선 값을 포함하도록 넓어져 (scene 이 정한다 — Recharts `ReferenceLine` 미사용) 두 화면 (Skia · Preview) 이 같은 눈금 위에 같은 선을 그린다. 색은 rule `chart.reference` 채널 (`--chart-reference`, 기본 `{color.neutral}`).
+- **산점도** (`chartType:"scatter"`, 팔레트 "Scatter Chart"): 행 하나 = 점 하나 (같은 x 합산 없음), x 는 숫자 (범주 간격 = "숫자") 또는 시간 (`dimensionScale:"time"`), 점은 불투명. 표시 예산은 실제 관측점 수로 재고 (P 5,000) 넘치면 원본 점만 남기는 희소 극값/솎기 — 집계로 원본에 없는 좌표를 만들지 않는다. 창 (window) · 넓힌 창 재추출은 216 그대로. Preview hover 는 가장 가까운 점의 툴팁.
+- **미지원 chartType 안전 경로**: 알 수 없는 종류 (다음 버전 문서) 는 예외 대신 "Check chart settings" (진단 `chartType.unsupported`) — 캔버스·Preview 가 멈추지 않는다 (rollback 경계 = 이 변경 이후; 그 이전 빌드는 산점도 문서에서 예외).
+
+### Changed
+
+- 산점도의 `dimensionScale` 미설정/`category` 는 **숫자 (linear)** 로 읽는다 (해석만 — 저장값은 그대로).
+- initial 번들 상한 재승인 (사용자 판정): Builder 1,279,845 / Preview 665,761 B gzip (만료 2026-10-12) · Builder 순증 한도 3 → 3.5 KiB. 본 ADR 순증 Builder +3,262 / Preview +2,249.
+- 알려진 한계 (후속): 산점도 진입 애니메이션 없음 · 툴팁 키보드 항목 탐색 없음 · 세로 (범주/시간 축) 기준선 · 버블 (`size`) 없음.
+
 ## [구 클라우드 BaaS 이름 저장소 전체 소거 — 아카이브 · 재도입 가드 · SDK 잔재] - 2026-09-12
 
 > 아래 두 엔트리 뒤 "역사 기록" 으로 남겨 뒀던 언급까지 사용자 결정으로 전부 뺐다 ("아카이브와 재도입 가드 필요없다 sdk 와 모든것 제거"). 저장소 전체 (`node_modules` · `dist` 제외) 에서 그 이름은 0건.

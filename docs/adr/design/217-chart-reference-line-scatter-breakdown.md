@@ -1,6 +1,6 @@
 # ADR-217 Design Breakdown — Chart 기준선 (ReferenceLine) · 산점도 (Scatter)
 
-> 상위: [ADR-217](../217-chart-reference-line-scatter.md) · Proposed 2026-09-12 · 선행: [ADR-194](../completed/194-chart-component-headless-geometry.md) (기하 SSOT) · [ADR-211](../completed/211-chart-display-budget-pixel-fit-window-decimation.md) (표시 예산 · 창) · [ADR-216](../completed/216-chart-time-axis-format-window.md) (연속 x 스케일 `positions` · `resolveCategoryBand`). D2 원천: react-spectrum-charts `vega-spec-builder` (`ReferenceLine` · `Scatter`, 2026-09-12 shallow clone 정독 — 인용은 파일:줄).
+> 상위: [ADR-217](../completed/217-chart-reference-line-scatter.md) · **Implemented 2026-09-12** (Proposed 2026-09-12) · 선행: [ADR-194](../completed/194-chart-component-headless-geometry.md) (기하 SSOT) · [ADR-211](../completed/211-chart-display-budget-pixel-fit-window-decimation.md) (표시 예산 · 창) · [ADR-216](../completed/216-chart-time-axis-format-window.md) (연속 x 스케일 `positions` · `resolveCategoryBand`). D2 원천: react-spectrum-charts `vega-spec-builder` (`ReferenceLine` · `Scatter`, 2026-09-12 shallow clone 정독 — 인용은 파일:줄).
 
 ## 1. 범위 · 선행 관계 (분리 4질문 lock-in)
 
@@ -80,7 +80,7 @@ RSC (D2 원천):
   - **계수 = 실제 관측점**: `selectExtrema(grid, fitEff, k, budget, count = "dense" | "sparse")` — scatter 는 `sparse`: `pathPoints = Σ_series |values ∩ U|` (선택 index 안의 실제 값 수). line/area 는 기본 `dense` (현행 식 그대로 — HC1 byte 동일). 극값 선택 자체 (bucket · 시리즈별 min/max **원본 index**, gap 은 희소에서 무의미하므로 sparse 는 `gapI` 를 더하지 않는다) 는 원본 점만 남긴다.
   - **fallback = 솎기, 집계 0**: `sparse` 에서 B=1 까지 줄여도 넘치면 (`2·S > P`, 즉 시리즈 2,500 초과) `aggregateBuckets` 대신 **시리즈별 stride 솎기** (`thinSeries(grid, P)`: 각 시리즈의 점을 x 순서로 `ceil(size / floor(P/S))` 간격 샘플 — 원본 점) + 진단 `budget.thinned` (warning). 넓힌 창 재추출 (`budget.ts:870-873`) 도 scatter 는 같은 sparse 극값 → 솎기 순서. **모든 결과 `(x, y, series)` ⊆ 입력** — G2 소속 테스트 3 fixture (codex 600×60 → overflow 0 · 12,000×60 → 극값 ⊆ 입력 · 6,000 시리즈 × 2 → 솎기 ⊆ 입력 + 진단 1).
   - `defaultBudgetMode(scatter, ordinal)` = `extrema`, 지원 = window · extrema (aggregate/others 는 validator 거부). n > P 일 때만 overflow (창 길이 = P 점). rowCap 20k 그대로. 창 트랙 · thumb 2 는 216 그대로 (categories = x 순서 점).
-- **DOM**: `ScatterChart` + 시리즈당 `<Scatter data={[{x, y}]} shape={PlainDot}>` (반지름 = `dotRadius`, **`fillOpacity 1`** — 불투명이라 점별 요소와 Skia 의 단일 path 가 겹친 자리에서 같은 픽셀; G3 합성 프로브) · `XAxis type="number" dataKey="x" domain={model.linear.domain | time.domain}` · `YAxis domain={ticks.domain}` · `backdrop`/`foreground` 그대로. 툴팁 = Recharts `Scatter` 의 점 단위 hover (D1 runtime) — content 는 기존 custom content 에 scatter payload 분기 (x 는 dimension 라벨, y 는 `formatValue`). Recharts `Scatter` 는 lazy `RechartsChart` 청크에만 든다 (initial 0 — G5 가 잰다).
+- **DOM (P6 정정 — perf)**: ~~`ScatterChart` + 시리즈당 `<Scatter …>`~~ → `ScatterChart` (축·여백·Customized 문맥만) + `Customized` 그룹의 시리즈당 `<path d>` (scene `buildDotMarks` 그대로) + 자체 최근접 hover 툴팁. 원안 `<Scatter data={[{x, y}]} shape={PlainDot}>` (반지름 = `dotRadius`, **`fillOpacity 1`** — 불투명이라 점별 요소와 Skia 의 단일 path 가 겹친 자리에서 같은 픽셀; G3 합성 프로브) · `XAxis type="number" dataKey="x" domain={model.linear.domain | time.domain}` · `YAxis domain={ticks.domain}` · `backdrop`/`foreground` 그대로. 툴팁 = Recharts `Scatter` 의 점 단위 hover (D1 runtime) — content 는 기존 custom content 에 scatter payload 분기 (x 는 dimension 라벨, y 는 `formatValue`). Recharts `Scatter` 는 lazy `RechartsChart` 청크에만 든다 (initial 0 — G5 가 잰다).
 - **Skia**: `PathMark.fillOpacity` 읽기 1줄 (`skiaPrimitives.ts:3551-3553` 의 고정 0.85 → `mark.fillOpacity ?? 0.85`) — 그 외 변경 0 (path 마크 · 축 텍스트 마크는 이미 소비한다). DOM `svgDecorations.tsx:79-83` 도 같은 기본값. 신규 chartType 은 `CHART_PRESENTATION_KEYS` 무관 (`chartType` 은 이미 읽는다).
 - **저작**: descriptor `scatter` ("Scatter Chart", 아이콘 `ScatterChart` (lucide), 검색어 산점도/분포/점), defaults `{ showDots: true, showLegend: true }`, preset 없음. `createChartInitialProps("scatter")` 는 숫자 sample (`{ x, y, series }` 8행 — legacySample 은 범주라 전부 파싱 실패 → "No data" 가 된다) + `dimension:"x"` · `metric:"y"`. 패널: chartType 옵션 +1, `ChartDataMappingControls` 의 범주 라벨 = "X" (scatter), columns 모드 허용 (값 필드마다 시리즈 — y 여러 개), `ChartBudgetControls` 종류 목록 +1, `ChartSeriesControls` 무변경.
 
@@ -127,14 +127,14 @@ P1 (안전 경로) 은 모든 것에 앞선다 (rollback 경계). P2–3 (기준
 
 ## 5. 체크리스트
 
-- [x] P0 inventory freeze + spike + before 번들 + Accepted (2026-09-12 — spike `adr217ScatterSpike.browser.test.tsx` 2/2: 점 cx/cy Δ ≤ 1e-14 · **정정 1**: Customized 는 항상 그래픽 항목 앞 → front 층은 overlay svg)
-- [ ] P1 미지원 chartType 안전 경로 (rollback 경계 commit)
-- [ ] P2 기준선 모델 + oracle + HC1
-- [ ] P3 기준선 두 leg + 채널 + 패널 + i18n
-- [ ] P4 산점도 모델 (RED 방어선 → GREEN) + 희소 예산 + HC9 소속 + oracle
-- [ ] P5 산점도 두 leg (불투명) + 합성 프로브 + 저작 + 패널
-- [ ] P6 live · perf · 번들 · T12 (P1 dist)
-- [ ] P7 closure (rollback 경계 기재)
+- [x] P0 inventory freeze + spike + before 번들 + Accepted — `dbe1648f6` (2026-09-12 — spike `adr217ScatterSpike.browser.test.tsx` 2/2: 점 cx/cy Δ ≤ 1e-14 · **정정 1**: Customized 는 항상 그래픽 항목 앞 → front 층은 overlay svg)
+- [x] P1 미지원 chartType 안전 경로 (rollback 경계 commit) — 2026-09-12 `2a5249c6a` (병행 세션 sweep 에 소스 3 파일 포함) + `753070591` (테스트): `CHART_TYPES` · 진단 `chartType.unsupported` · 모델 short-circuit · ADR-207 R7 테스트를 "설정 오류 scene" 계약으로 갱신
+- [x] P2 기준선 모델 + oracle + HC1 — `e31f39139`: 6 테스트 (domain 위/아래/안 · dash · 수평 · byte 동일 · 진단 3)
+- [x] P3 기준선 두 leg + 채널 + 패널 + i18n — `974a40d57`: chartParity +4 · browser 3 · **정정 1 (P0 spike)**: pinned Recharts 3.10.1 은 `Customized` 를 자식 순서와 무관하게 그래픽 항목 앞에 렌더 → `front` 층은 Recharts svg 형제 overlay svg (`[data-chart-reference-front]`, pointer-events none) · Skia `referenceLines` allowlist 필요 (parity 에서 발견)
+- [x] P4 산점도 모델 (RED 방어선 → GREEN) + 희소 예산 + HC9 소속 + oracle — `6b0133ffa`: 8 테스트 (codex 600×60 → overflow 0 · 12k×60 ⊆ 입력 · 6k 시리즈 솎기 · 넓힌 창) · sparse 극값은 점 순회 1회 (bucket × 시리즈 순회는 6k 시리즈에서 초 단위) · 솎기는 시리즈별 stride 뒤 총량 ≤ P 한 번 더 stride
+- [x] P5 산점도 두 leg (불투명) + 합성 프로브 + 저작 + 패널 — `cbf0a716a`: chartParity +2 · browser 3 (합성 프로브: 불투명 동일 / 0.85 상이 재현) · descriptor `scatter` + 숫자 sample · 패널 (chartType 옵션 · "숫자/시간" 라벨 · 예산 CARTESIAN · 팔레트 오라클). **미반영**: `ChartDataMappingControls` 의 범주 라벨 "X" (generic 필드 라벨 — 후속)
+- [x] P6 live · perf · 번들 · T12 (P1 dist) — `4b0f6b875` + `1b3f8b701`: live 9/9 · perf 모델 p95 14.3 ms / 프레임 Δ +0.10 · 번들 Builder +3,262 (HC5 3.5 KiB 로 개정) / Preview +2,249 · T12 P1 dist PASS. **정정 2 (perf)**: Recharts `Scatter` 점별 React 요소는 P=5,000 점 창 스텝 ~290 ms (Δ +282) → DOM 산점도 = 시리즈당 path 1 (scene `buildDotMarks` d 그대로, Skia 와 byte 동일) + 자체 hover (`[data-chart-scatter-hit]`, 반지름+4px 최근접, 같은 어법 툴팁) — 진입 애니메이션 없음 (chartInteraction 스위트 scatter 제외), 키보드 항목 탐색 없음 (후속). **정정 3**: scatter 값 축 여백 (`layout.ts` 종류 목록 +scatter — live 스크린샷 라벨 잘림). **정정 4**: DOM 기준선 memo 종류 목록 +scatter (live 에서 front/back 0). 기준선 편집기 React.lazy 는 공유 chunk 3개가 initial 로 나와 +760 B — 되돌림
+- [x] P7 closure (rollback 경계 기재) — Implemented · README · CHANGELOG · evidence `217-p6-perf-bundle.md` (로컬)
 
 ## 6. 변경 파일 (예상)
 

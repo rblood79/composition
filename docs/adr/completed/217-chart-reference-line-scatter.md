@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted — 2026-09-12** (reviews/217.md round 2 승인 가능 · `pending` 0 → `/execute-adr 217` 착수. P0 G0: spike 2/2 PASS — 설계 정정 1: Recharts `Customized` 는 항상 그래픽 항목 앞이라 기준선 `front` 층은 DOM overlay svg, breakdown §2.2). Proposed — 2026-09-12 · **round 1 (codex, HIGH 2 · MEDIUM 1) 반영 2026-09-12** — h1 산점도 예산을 희소 계수 + 집계 0 (HC9) · h2 rollback 경계를 P1 안전 경로 commit 으로 고정 (구버전은 예외) · m3 산점도 점 불투명 (RSC 기본 opacity 1) 으로 합성 단위 차이 제거 ([reviews/217.md](reviews/217.md)). (ADR-216 후속 — 사용자가 216 범위 선택 시 "ReferenceLine · Scatter 는 후속" 으로 미룬 두 항목. 분리 4질문 lock-in: [breakdown §1](design/217-chart-reference-line-scatter-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in))
+**Implemented — 2026-09-12** (`/execute-adr 217` Phase 0~7 하루: `dbe1648f6` P0 · `2a5249c6a`(병행 세션 sweep 에 P1 소스 포함)+`753070591` P1 · `e31f39139` P2 · `974a40d57` P3 · `6b0133ffa` P4 · `cbf0a716a` P5 · `4b0f6b875`+`1b3f8b701` P6 + closure). **HC5 개정 (사용자 판정 2026-09-12)**: Builder initial 순증 한도 3 → **3.5 KiB** gzip (실측 +3,262 B — 기준선 편집기·i18n·아이콘 등 builder 전용분; lazy 분리는 공유 chunk 가 initial 로 나와 +760 B 악화) + 절대 상한 재승인 → **initial 절대 상한 정본 = 본 ADR 승인값 Builder 1,279,845 / Preview 665,761 (만료 2026-10-12)** — Preview 는 착수 전 병행 작업 (라이선스 인증 · ADR-212) 으로 이미 216 상한을 +3,315 넘어 있었고 본 ADR 순증은 +2,249 (한도 안). **설계 정정 4** (breakdown §5): Recharts `Customized` 는 항상 그래픽 항목 앞 → 기준선 front 층은 overlay svg · Recharts `Scatter` 점별 요소는 P=5,000 점 창 스텝 +282 ms → DOM 산점도는 시리즈당 path 1 (scene d 그대로) + 자체 hover (진입 애니메이션 없음) · scatter 값 축 여백 · DOM 기준선 memo 에 scatter. Accepted — 2026-09-12 (reviews/217.md round 2 승인 가능 · `pending` 0 → `/execute-adr 217` 착수. P0 G0: spike 2/2 PASS — 설계 정정 1: Recharts `Customized` 는 항상 그래픽 항목 앞이라 기준선 `front` 층은 DOM overlay svg, breakdown §2.2). Proposed — 2026-09-12 · **round 1 (codex, HIGH 2 · MEDIUM 1) 반영 2026-09-12** — h1 산점도 예산을 희소 계수 + 집계 0 (HC9) · h2 rollback 경계를 P1 안전 경로 commit 으로 고정 (구버전은 예외) · m3 산점도 점 불투명 (RSC 기본 opacity 1) 으로 합성 단위 차이 제거 ([reviews/217.md](../reviews/217.md)). (ADR-216 후속 — 사용자가 216 범위 선택 시 "ReferenceLine · Scatter 는 후속" 으로 미룬 두 항목. 분리 4질문 lock-in: [breakdown §1](../design/217-chart-reference-line-scatter-breakdown.md#1-범위--선행-관계-분리-4질문-lock-in))
 
 ## Context
 
@@ -21,7 +21,7 @@
 2. **HC2 D2 어법** — props 이름 · 기본값은 RSC (`referenceLineSpec.types.ts:20-41` · `scatterSpec.types.ts:19-41` · `constants.ts:24 DEFAULT_DIMENSION_SCALE_TYPE = 'linear'`). Recharts 전용 개념 (`ifOverflow` · `segment` · `Scatter.line`) 도입 0.
 3. **HC3 domain 은 scene 이 정한다** — 기준선 값을 포함한 값 축 domain 을 `model.ts` 한 자리에서 정하고 두 leg 는 그 `ticks.domain` 만 읽는다 (Recharts `ReferenceLine` · `ifOverflow="extendDomain"` 사용 0 — 축을 두 번 계산하지 않는다).
 4. **HC4 두 leg 동일** — 같은 크기에서 기준선 `y` · 라벨 좌표 · 산점도 점 중심 · 눈금 문자열이 Skia scene 과 DOM 속성에서 byte 동일 (`chartParity` +6) **이고 합성 결과도 같다**: 산점도 점은 두 leg 모두 **불투명** (RSC Scatter 기본 `opacity 1` — `scatterSpecBuilder.ts addScatter`) 이라 Skia 의 시리즈당 path 1개와 DOM 의 점별 요소가 겹친 자리에서 같은 픽셀을 낸다 (round 1 m3 — 반투명이면 단일 path 의 union 과 점별 합성 `1-(1-α)²` 이 갈린다). G3 가 겹친 점 두 개의 중심 픽셀을 두 leg 에서 대조한다.
-5. **HC5 번들** — initial 순증 Builder ≤ 3 KiB / Preview ≤ 3 KiB gzip, 절대 상한 216 승인값 (Builder 1,322,929 / Preview 660,197, 만료 2026-10-12) 안. Recharts `Scatter` 는 lazy 청크에만 (initial 청크에 심볼 0). 측정은 216 절차 (clean worktree before/after · `--dist` 절대 경로).
+5. **HC5 번들** — initial 순증 Builder ≤ ~~3 KiB~~ **3.5 KiB** (2026-09-12 사용자 판정, 실측 +3,262 B) / Preview ≤ 3 KiB gzip, 절대 상한 216 승인값 (Builder 1,322,929 / Preview 660,197, 만료 2026-10-12) 안. Recharts `Scatter` 는 lazy 청크에만 (initial 청크에 심볼 0). 측정은 216 절차 (clean worktree before/after · `--dist` 절대 경로).
 6. **HC6 성능** — scatter 20k 행 × S4 모델 p95 ≤ 20 ms (216 line 12.4 ms 와 같은 하니스) · Builder 프레임 Δ p95 ≤ 1 ms · 점 ≤ P (5,000) 는 211 예산이 지킨다.
 7. **HC7 Canvas 정적** — Skia 에 상호작용 0 (기준선 편집은 패널, 점 hover 는 Preview).
 8. **HC8 방어선 RED + 런타임 throw 0** — 신규 `chartType` 은 `computeChartScene.ts:479-483 assertNever` (컴파일) 를 **먼저 RED** 로 만들고 GREEN 으로 닫는다 (211 R7 계약 — 조용히 line 으로 그려지는 경로 0). 런타임 방어선 (`budget.ts:174-177` · `:200-201` throw) 은 P1 에서 validator 진단 (`chartType.unsupported` → 설정 오류 scene) 으로 바꾼다 — 알 수 없는 종류가 캔버스 전체를 멈추지 않는다 (round 1 h2).
@@ -90,7 +90,7 @@
 - **대안 B 기각**: domain 이중 계산 (기술 H) 은 216 이 닫은 "축은 scene" 결정의 회귀이고, 산점도 전용 모델 (유지보수 H) 은 이후 모든 차트 ADR 을 두 번 반영하게 한다.
 - **대안 C 기각**: bar 기준선 불가 · 중복 x 합산 (산점도 아님) · `showLine` 은 RSC 미규정 prop (D2 위반). 우회는 기능이 아니다.
 
-> 구현 상세: [217-chart-reference-line-scatter-breakdown.md](design/217-chart-reference-line-scatter-breakdown.md)
+> 구현 상세: [217-chart-reference-line-scatter-breakdown.md](../design/217-chart-reference-line-scatter-breakdown.md)
 
 ## Risks
 
@@ -121,7 +121,14 @@
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+**2026-09-12 · 실제 빌더 (dev 5173) headless Chromium 하니스 `apps/builder/scripts/adr217-chart-reference-scatter-live.mjs` 9/9 PASS** (신규 프로젝트, 근거 `docs/adr/evidence/217-p6-perf-bundle.md` §3 — 로컬):
+
+- Skia (Compare Mode 전, 전폭): bar 3 범주에 `referenceLines` (120 dashed "Target" · 30 dotted back) → 막대 top 위 진한 중립 가로 잉크 행 0 → 2 (스크린샷: 파선 + 라벨, 막대 사이 점선). `chartType` 만 `scatter` 로 바꿔도 (dimensionScale 미설정 = linear) teal 점 묶음 5 · 선 0. `chartType:"hexbin"` → pageerror 0 · 시리즈 픽셀 0 (설정 오류 scene, 캔버스 유지).
+- 패널: Properties 레일 → "기준선 추가" → canonical `props.referenceLines = [{value:0}]` (write 1).
+- Preview (Compare Mode): 산점도 점 8 (시리즈 path 2, scene d 그대로) · front overlay `<line stroke-dasharray="6 4" stroke="var(--chart-reference…)">` + `<text>Target` · backdrop back 선 1 · 진단 0 · hexbin → `chartType.unsupported` 표시 · 12,000 점 → 창 `[0, 5000]` thumb 2 → End → `[0, 12000]` 점 4,800 (희소 극값, 집계 0) · 창 상태 write 0 · `dimensionScale` 미저장.
+- G5 성능 (headed DPR 2, production 하니스, 3×60): scatter 20k × S4 모델 p95 14.3 ms · 프레임 Δ p95 +0.10 ms; 6k × S2 + 기준선 4.1 / +0.10. 1차 (Recharts `Scatter` 점별) 는 Δ +282 ms → 설계 정정.
+- G5 번들 (clean worktree before `6391de362` / after `d14f20e46`): Builder +3,262 · Preview +2,249 B gzip (HC5 개정 · 상한 재승인 — Status 참조). T12: P1 dist 는 `referenceLines` 무시 (byte 동일) · scatter 는 설정 오류 표시 · 행 보존; pre-P1 dist 는 throw (rollback 경계).
+- unit: specs chart 472 (G1 4+6 · G2 8, 기존 454 무변경 = HC1 · HC9 소속 4) · specs 1367 · shared 1264 (chartParity +6) · chart Chromium 232 · 패널/팔레트/i18n 74.
 
 ## Consequences
 
