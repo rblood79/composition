@@ -37,7 +37,7 @@ import {
   getVariablesForCanvas,
 } from "../stores/data";
 // useZundoActions는 제거됨 - 기존 시스템 사용
-import type { ElementProps } from "../../types/integrations/supabase.types";
+import type { ElementProps } from "../../types/builder/elementProps.types";
 import { Element } from "../../types/core/store.types";
 // ElementUtils는 현재 사용되지 않음
 import { MessageService } from "../../utils/messaging";

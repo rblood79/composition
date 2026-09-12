@@ -1,4 +1,4 @@
-import type { ElementProps } from "../../../../../types/integrations/supabase.types";
+import type { ElementProps } from "../../../../../types/builder/elementProps.types";
 import type { PanelNode } from "../../../panelNode";
 
 export type VirtualChildType =

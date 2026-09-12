@@ -164,7 +164,7 @@ export function useCollectionItemManager(
 
   /**
    * 특정 Item 삭제
-   * - Supabase에서 삭제
+   * - 저장소에서 삭제
    * - Zustand store에서 제거
    * - 선택 상태 해제
    */

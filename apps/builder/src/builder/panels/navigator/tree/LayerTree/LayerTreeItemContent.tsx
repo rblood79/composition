@@ -11,7 +11,7 @@ import {
 import { useContextMenu } from "../../../../components";
 import { resolveContextMenuDisposition } from "../../../../components/overlay/contextMenu";
 import { ICON_EDIT_PROPS, type TreeItem as TreeItemType } from "../helpers";
-import type { ElementProps } from "../../../../../types/integrations/supabase.types";
+import type { ElementProps } from "../../../../../types/builder/elementProps.types";
 import type { TreeItemState } from "../TreeBase/types";
 import type { LayerTreeNode } from "./types";
 import { useStore } from "../../../../stores";

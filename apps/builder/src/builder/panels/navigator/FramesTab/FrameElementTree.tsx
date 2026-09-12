@@ -19,7 +19,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
 const DeleteIcon = ACTION_ICONS.delete;
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import type { ElementProps } from "../../../../types/integrations/supabase.types";
+import type { ElementProps } from "../../../../types/builder/elementProps.types";
 import type { ElementTreeItem } from "../../../../types/builder/stately.types";
 import { withFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { ActionIconButton, EmptyState, Section } from "../../../components";

@@ -94,8 +94,8 @@ describe("A. legacyToCanonical canonical extension", () => {
   it("dataBinding을 x-composition에만 저장한다", () => {
     const dataBinding: DataBinding = {
       type: "collection",
-      source: "supabase",
-      config: { table: "users" },
+      source: "api",
+      config: { endpoint: "/users" },
     };
     const doc = buildCanonicalFromElements([
       {
@@ -233,8 +233,8 @@ describe("E. canonical document serialization contract", () => {
         props: {},
         dataBinding: {
           type: "collection",
-          source: "supabase",
-          config: { table: "users" },
+          source: "api",
+          config: { endpoint: "/users" },
         },
       } as LegacyEl,
       {
@@ -384,7 +384,7 @@ describe("F. canonical extension history parity", () => {
       ...baseline,
       dataBinding: {
         type: "collection",
-        source: "supabase",
+        source: "api",
         config: { table: "items" },
       },
     };
@@ -395,7 +395,7 @@ describe("F. canonical extension history parity", () => {
       ]?.dataBinding,
     ).toEqual({
       type: "collection",
-      source: "supabase",
+      source: "api",
       config: { table: "items" },
     });
     expect(

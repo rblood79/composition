@@ -1093,7 +1093,6 @@ export interface TranslationKeys {
     canonicalNotApplied: string;
     staticNeedsData: string;
     apiNeedsUrl: string;
-    supabaseNeedsTable: string;
     sourceOneOf: string;
     bindFailed: string;
     canonicalMustBeObject: string;

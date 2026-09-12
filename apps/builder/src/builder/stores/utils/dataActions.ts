@@ -4,7 +4,7 @@
  * DataTable, ApiEndpoint, Variable의
  * CRUD 및 실행 액션을 독립적인 팩토리 함수로 분리
  *
- * ✅ IndexedDB 사용 (Supabase 대신)
+ * ✅ IndexedDB 사용
  *
  * @see docs/features/DATA_PANEL_SYSTEM.md
  */

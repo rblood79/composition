@@ -209,7 +209,7 @@ export function computeWorkflowEdges(
 
 export interface DataSourceEdge {
   id: string;
-  sourceType: "dataTable" | "api" | "supabase" | "mock";
+  sourceType: "dataTable" | "api" | "mock";
   name: string;
   boundElements: Array<{
     elementId: string;
@@ -248,7 +248,7 @@ export interface FrameAreaGroup {
  *
  * 두 가지 바인딩 형식을 지원:
  * A) PropertyDataBinding: { source, name } → dataTable | api
- * B) Full DataBinding: { type, config } → mock | supabase | api
+ * B) Full DataBinding: { type, config } → mock | api
  *
  * 동일 데이터 소스 ID의 바인딩은 하나로 합산됨 (boundElements 병합).
  */
@@ -288,10 +288,6 @@ export function computeDataSourceEdges(
         sourceType = "mock";
         name = (config.endpoint as string) || "Mock Data";
         id = `mock-${name}`;
-      } else if (binding.source === "supabase" && config.tableName) {
-        sourceType = "supabase";
-        name = config.tableName as string;
-        id = `supabase-${name}`;
       } else if (binding.source === "api" && config.endpoint) {
         sourceType = "api";
         name = config.endpoint as string;

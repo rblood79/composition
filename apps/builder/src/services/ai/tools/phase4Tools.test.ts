@@ -312,9 +312,9 @@ describe("bind_collection (D3 → ADR-213 Phase 2 alias)", () => {
     });
   });
 
-  it("legacy api/supabase · 알 수 없는 source 는 실패 (proposal 0)", async () => {
+  it("legacy api · 알 수 없는 source 는 실패 (proposal 0)", async () => {
     mountHost(true);
-    for (const source of ["api", "supabase", "graphql"]) {
+    for (const source of ["api", "graphql", "unknown"]) {
       await expect(
         bindCollectionTool.execute(
           { elementId: "list-1", source, config: { baseUrl: "MOCK_DATA" } },

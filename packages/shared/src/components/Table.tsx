@@ -351,7 +351,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
     isAsync,
   ]);
 
-  // 페이지네이션 표시 여부 (API 또는 Static/Supabase 모두 지원)
+  // 페이지네이션 표시 여부 (API 또는 Static 모두 지원)
   const shouldShowPagination = mode === "pagination";
 
   // ---------- 데이터 매핑 함수 ----------
@@ -675,10 +675,10 @@ export default React.memo(function Table<T extends { id: string | number }>(
   const [hasNext, setHasNext] = React.useState(true);
   const [loading, setLoading] = React.useState(false);
 
-  // ---------- Static/Supabase 클라이언트 사이드 페이지네이션 상태 ----------
+  // ---------- Static 클라이언트 사이드 페이지네이션 상태 ----------
   const [clientPageIndex, setClientPageIndex] = React.useState(0);
 
-  // Static/Supabase 데이터의 클라이언트 페이지네이션
+  // Static 데이터의 클라이언트 페이지네이션
   const clientPaginatedData = React.useMemo(() => {
     if (isAsync || !effectiveStaticData) return effectiveStaticData || [];
     if (mode !== "pagination") return effectiveStaticData;
@@ -1184,7 +1184,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
       return sorted;
     }
 
-    // 클라이언트 사이드 페이지네이션 (Static/Supabase)
+    // 클라이언트 사이드 페이지네이션 (Static)
     if (!isAsync && mode === "pagination") {
       return clientPaginatedData;
     }
@@ -1866,7 +1866,7 @@ export default React.memo(function Table<T extends { id: string | number }>(
                 )}
               </>
             ) : effectiveStaticData ? (
-              // 클라이언트 사이드 페이지네이션 (Static/Supabase)
+              // 클라이언트 사이드 페이지네이션 (Static)
               <>
                 {/* 페이지 정보 */}
                 <div className="react-aria-PageInfo">

@@ -2640,7 +2640,7 @@ export function applyElementOrderCanonicalPrimary(
 // ─────────────────────────────────────────────
 // (ADR-128) cloud DB persistence wrapper API removed.
 // 기존 createElementCanonicalPrimary / updateElementCanonicalPrimary /
-// createMultipleElementsCanonicalPrimary 는 Supabase `elements` row 의 element-level
+// createMultipleElementsCanonicalPrimary 는 구 cloud `elements` row 의 element-level
 // granularity persistence boundary 였으나, auth-only 격하 정책으로 cloud data
 // layer dead. 후속 element persistence 는 IndexedDB `documents` (canonical) +
 // in-memory canonical mutation (mergeElementsCanonicalPrimary 등) 만 사용.

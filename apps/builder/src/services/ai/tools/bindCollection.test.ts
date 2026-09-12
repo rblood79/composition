@@ -2,7 +2,7 @@
  * ADR-213 Phase 2 (G4 정적 부분) — `bind_collection` 은 compatibility alias 다.
  *
  * - 정상 입력 → `bind_element` 1 op · legacy static → `create_collection` + `bind_element`
- * - legacy api/supabase → 안내 오류 (proposal 0)
+ * - legacy api → 안내 오류 (proposal 0)
  * - 실행은 dispatcher 하나를 지난다 — 거부면 문서 무변경 · 승인이면 origin:"ai"
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -114,7 +114,7 @@ describe("normalizeBindCollectionArgs", () => {
     expect(ops[1].collectionId).toBe(ops[0].id);
   });
 
-  it("legacy api/supabase 는 안내 오류 · 없는 collection 은 복구 안내", () => {
+  it("legacy api 는 안내 오류 · 없는 collection 은 복구 안내", () => {
     expect(
       normalizeBindCollectionArgs({ source: "api", config: {} }, ctx),
     ).toEqual({

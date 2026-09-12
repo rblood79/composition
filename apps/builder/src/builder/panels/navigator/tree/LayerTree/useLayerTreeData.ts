@@ -2,7 +2,7 @@ import { getChartDescriptor } from "@composition/specs";
 import { useMemo, useCallback } from "react";
 import { buildTreeFromElements } from "../../../../utils/treeUtils";
 import type { ElementTreeItem } from "../../../../../types/builder/stately.types";
-import type { ElementProps } from "../../../../../types/integrations/supabase.types";
+import type { ElementProps } from "../../../../../types/builder/elementProps.types";
 import { useStore } from "../../../../stores";
 import { resolveCanonicalRefTree } from "../../../../utils/canonicalRefResolution";
 import { useCanonicalPanelElements } from "../../useCanonicalPanelElements";

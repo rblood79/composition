@@ -168,7 +168,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: calc(var(--control-size-lg) + var(--spacing-md));
+    height: var(--text-5xl);
     border-radius: var(--radius-md);
     background: var(--bg-muted);
     color: var(--fg);

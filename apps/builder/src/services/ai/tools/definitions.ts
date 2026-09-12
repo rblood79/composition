@@ -290,10 +290,10 @@ export const toolDefinitions: ChatCompletionTool[] = [
               icon: { type: "string" },
             },
           },
-          // legacy (ADR-134) — static 은 collection 으로 승격, api/supabase 는 안내만
+          // legacy (ADR-134) — static 은 collection 으로 승격, api 는 안내만
           source: {
             type: "string",
-            enum: ["static", "api", "supabase"],
+            enum: ["static", "api"],
             description: "aiToolDef.bindSource",
           },
           config: {

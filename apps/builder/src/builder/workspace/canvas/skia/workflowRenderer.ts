@@ -525,10 +525,6 @@ const DS_COLOR_DATA_TABLE: [number, number, number] = [
 const DS_COLOR_API: [number, number, number] = [
   ...hexToRgb01(TAILWIND_PALETTE.amber[500]),
 ];
-/** emerald-500 — 팔레트 파생 (ADR-191 R8) */
-const DS_COLOR_SUPABASE: [number, number, number] = [
-  ...hexToRgb01(TAILWIND_PALETTE.emerald[500]),
-];
 /** gray-400 — 팔레트 파생 (ADR-191 R8) */
 const DS_COLOR_MOCK: [number, number, number] = [
   ...hexToRgb01(TAILWIND_PALETTE.gray[400]),
@@ -547,8 +543,6 @@ function getDataSourceColor(
       return DS_COLOR_DATA_TABLE;
     case "api":
       return DS_COLOR_API;
-    case "supabase":
-      return DS_COLOR_SUPABASE;
     case "mock":
       return DS_COLOR_MOCK;
   }

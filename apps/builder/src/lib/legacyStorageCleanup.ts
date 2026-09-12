@@ -13,7 +13,7 @@
 export const REMOVED_STORAGE_KEYS = [
   // 2026-08-26 — 대시보드 설정 모달 + settingsStore 제거.
   // 담고 있던 syncMode / projectCreation / autoSyncInterval / autoDownloadOnOpen 는
-  // ADR-128(Supabase backend decommission)로 cloud 경로가 사라진 뒤 소비처가 0건이었다.
+  // ADR-128(cloud backend decommission)로 cloud 경로가 사라진 뒤 소비처가 0건이었다.
   "composition-settings",
 ] as const;
 

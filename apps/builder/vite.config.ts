@@ -205,7 +205,6 @@ export default defineConfig(({ command }) => {
         "react",
         "react-dom",
         "react-router",
-        "@supabase/supabase-js",
         "react-aria-components",
         "zustand",
         "three",
@@ -220,14 +219,12 @@ export default defineConfig(({ command }) => {
       host: "0.0.0.0",
       port: 5173,
       strictPort: true, // 포트가 사용 중이면 에러 발생 (자동 증가 방지)
-      // Note: Supabase client connects directly using VITE_SUPABASE_URL
       headers: {
         // Development CORS headers (느슨한 설정)
         "Access-Control-Allow-Origin": "*",
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization",
-        // ⚠️ COEP/COOP 제거 - Supabase 인증과 충돌
-        // 외부 API는 /api/proxy를 통해 호출하므로 COEP 불필요
+        // COEP/COOP 없음 — 외부 API는 /api/proxy 를 통해 호출하므로 불필요
         // JS Self-Profiling API (new Profiler) 허용 — dev 성능 진단용
         "Document-Policy": "js-profiling",
       },

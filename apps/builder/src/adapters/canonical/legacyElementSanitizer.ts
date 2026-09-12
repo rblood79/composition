@@ -5,8 +5,8 @@ import {
   type ElementWithLegacyMirror,
 } from "./legacyElementFields";
 
-// (ADR-128) `SupabaseElement` interface + `sanitizeElementForSupabase` 함수는
-// Supabase `elements` row schema (snake_case) 변환 전용으로, cloud data layer
+// (ADR-128) 구 cloud row interface + sanitize 함수는
+// cloud `elements` row schema (snake_case) 변환 전용으로, cloud data layer
 // dead 정책에 따라 제거됨. canonical document persistence 는 IndexedDB
 // `documents` row 만 사용하므로 별도 직렬화 helper 불필요.
 

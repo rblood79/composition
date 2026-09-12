@@ -6,10 +6,8 @@
  * @see https://vitejs.dev/guide/env-and-mode.html
  */
 interface ImportMetaEnv {
-  /** Supabase 프로젝트 URL */
-  readonly VITE_SUPABASE_URL: string;
-  /** Supabase Anonymous Key */
-  readonly VITE_SUPABASE_ANON_KEY: string;
+  /** 발급기 공개키 override (선택 — 기본은 소스 내장 `issuerPublicKey.ts`) */
+  readonly VITE_LICENSE_PUBLIC_KEY?: string;
   /** API 기본 URL */
   readonly VITE_API_URL?: string;
   /** 디버그 로그 활성화 */

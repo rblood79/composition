@@ -10,7 +10,7 @@
  * 로드 우선순위:
  * 1. 메모리 (elementsMap) - 즉시
  * 2. IndexedDB - ~10ms
- * 3. Supabase - ~100-500ms
+ * 3. (구 cloud 경로 — 제거됨)
  *
  * @since 2025-12-10 Phase 5 Lazy Loading + LRU Cache
  */

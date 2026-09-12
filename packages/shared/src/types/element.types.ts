@@ -35,7 +35,7 @@ import type { ElementResponsiveConfig } from "./responsive.types";
  */
 export interface DataBinding {
   type: "collection" | "value" | "field";
-  source: "supabase" | "api" | "state" | "static" | "parent";
+  source: "api" | "state" | "static" | "parent";
   config: Record<string, unknown>;
 }
 

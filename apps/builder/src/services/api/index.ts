@@ -1,5 +1,5 @@
 // (ADR-128) cloud `BaseApiService` / `ElementsApiService` / `ProjectsApiService` /
-// `PagesApiService` / `DocumentsApiService` exports 제거. Supabase data layer
+// `PagesApiService` / `DocumentsApiService` exports 제거. cloud data layer
 // dead 정책에 따라 cloud adapter file 전부 삭제되었다. 본 index 는 mock data
 // API + apiConfig + handleApiError 만 export 한다.
 import {

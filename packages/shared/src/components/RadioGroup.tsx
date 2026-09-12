@@ -69,7 +69,7 @@ export function RadioGroup({
   ...props
 }: RadioGroupProps) {
   const t = useComponentStrings();
-  // useCollectionData Hook으로 데이터 가져오기 (Static, API, Supabase 통합)
+  // useCollectionData Hook으로 데이터 가져오기 (Static, API 통합)
   const {
     data: boundData,
     loading,

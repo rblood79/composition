@@ -52,10 +52,6 @@ export default defineConfig({
   },
   test: {
     include: ["tests/parity/**/*.browser.test.ts"],
-    env: {
-      VITE_SUPABASE_URL: "https://test.supabase.co",
-      VITE_SUPABASE_ANON_KEY: "test-anon-key",
-    },
     browser: {
       enabled: true,
       provider: playwright(),

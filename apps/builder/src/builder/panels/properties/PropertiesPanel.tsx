@@ -544,13 +544,9 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
  *    const { execute: saveElement, isLoading, error } = useAsyncAction({
  *      actionKey: 'save-element',
  *      action: async (element: Element) => {
- *        const { data, error } = await supabase
- *          .from('elements')
- *          .insert(element)
- *          .select()
- *          .single();
- *        if (error) throw error;
- *        return data;
+ *        const db = await getDB();
+ *        await db.documents.put(element);
+ *        return element;
  *      },
  *      onSuccess: (data) => {
  *        console.log('Element saved:', data);
@@ -579,12 +575,8 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
  *    const { data: tokens, isLoading, error, refetch } = useAsyncData({
  *      queryKey: 'design-tokens',
  *      queryFn: async () => {
- *        const { data, error } = await supabase
- *          .from('design_tokens')
- *          .select('*')
- *          .eq('project_id', projectId);
- *        if (error) throw error;
- *        return data;
+ *        const db = await getDB();
+ *        return db.designTokens.getByProject(projectId);
  *      },
  *      staleTime: 5 * 60 * 1000, // 5분 캐시
  *      refetchInterval: 30000,    // 30초마다 갱신

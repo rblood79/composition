@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Element } from "../../../types/core/store.types";
 import { sanitizeElement } from "../legacyElementSanitizer";
 
-// (ADR-128) `sanitizeElementForSupabase` test 제거 — cloud `elements` row
+// (ADR-128) 구 cloud row sanitize test 제거 — cloud `elements` row
 // schema (snake_case) 변환 함수 자체가 삭제됨.
 describe("elementSanitizer", () => {
   it("preserves canonical component fields for IndexedDB round trip", () => {

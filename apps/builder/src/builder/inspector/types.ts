@@ -73,9 +73,8 @@ export type DataBinding = SharedDataBinding;
  */
 export interface CollectionBinding {
   type: "collection";
-  source: "static" | "supabase" | "state" | "api";
+  source: "static" | "state" | "api";
   config:
-    | SupabaseCollectionConfig
     | StateCollectionConfig
     | StaticCollectionConfig
     | APICollectionConfig;
@@ -86,34 +85,12 @@ export interface CollectionBinding {
  */
 export interface ValueBinding {
   type: "value";
-  source: "static" | "state" | "computed" | "supabase" | "api";
+  source: "static" | "state" | "computed" | "api";
   config:
     | StaticValueConfig
     | StateValueConfig
     | ComputedValueConfig
-    | SupabaseValueConfig
     | APIValueConfig;
-}
-
-/**
- * Supabase Collection 설정
- */
-export interface SupabaseCollectionConfig {
-  table: string;
-  columns: string[];
-  filters?: FilterCondition[];
-  orderBy?: { column: string; ascending: boolean };
-  limit?: number;
-  offset?: number;
-}
-
-/**
- * Supabase Value 설정
- */
-export interface SupabaseValueConfig {
-  table: string;
-  column: string;
-  filter?: FilterCondition;
 }
 
 /**

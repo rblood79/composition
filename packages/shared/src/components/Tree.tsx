@@ -80,7 +80,7 @@ export interface MyTreeProps<T extends object> extends TreeProps<T> {
  * - Selection support (single/multiple)
  * - Drag and drop support
  * - Keyboard navigation (Arrow keys, Home, End)
- * - Data binding support (Static, API, Supabase)
+ * - Data binding support (Static, API)
  *
  * @example
  * <Tree variant="primary" size="md">

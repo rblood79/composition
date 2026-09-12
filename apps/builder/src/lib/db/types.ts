@@ -1,7 +1,7 @@
 /**
  * Database Adapter Interface
  *
- * IndexedDB, PGlite, Supabase 등 다양한 데이터베이스를
+ * IndexedDB, PGlite 등 다양한 데이터베이스를
  * 동일한 인터페이스로 사용하기 위한 추상화 레이어
  */
 

@@ -58,7 +58,7 @@ export interface ThemeVar {
 export interface DataSource {
   id: string;
   name: string;
-  type: "rest" | "supabase" | "static" | "graphql";
+  type: "rest" | "static" | "graphql";
   url?: string;
   method?: "GET" | "POST" | "PUT" | "DELETE";
   headers?: Record<string, string>;

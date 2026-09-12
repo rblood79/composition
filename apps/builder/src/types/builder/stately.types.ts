@@ -21,7 +21,7 @@ export interface ListDataItem {
 
 /**
  * 컬럼 리스트 아이템 (Phase 2: Data Section)
- * APICollectionEditor, SupabaseCollectionEditor에서 사용
+ * APICollectionEditor 에서 사용
  */
 export interface ColumnListItem extends ListDataItem {
   /** 컬럼 키 (데이터 필드명) */

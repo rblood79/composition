@@ -8,7 +8,7 @@ import React, {
 import { useNavigate } from "react-router";
 import { getDB } from "../lib/db";
 import { getDefaultProps } from "../types/builder/unified.types";
-import { ElementProps } from "../types/integrations/supabase.types";
+import { ElementProps } from "../types/builder/elementProps.types";
 import { ElementUtils } from "../utils/element/elementUtils";
 import { clearAuth, getCurrentUserId } from "../auth/license/localAuth";
 import { useBuilderChromeTheme } from "../builder/hooks/useBuilderChromeTheme";

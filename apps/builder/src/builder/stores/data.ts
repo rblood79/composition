@@ -6,9 +6,9 @@
  *
  * ## 아키텍처 설계
  *
- * 1. **Source of Truth**: Supabase (persist 미들웨어 사용 안함)
- *    - 앱 시작 시 Supabase에서 로드
- *    - 변경 시 Supabase에 저장 + 메모리 업데이트
+ * 1. **Source of Truth**: IndexedDB (persist 미들웨어 사용 안함)
+ *    - 앱 시작 시 IndexedDB 에서 로드
+ *    - 변경 시 IndexedDB 에 저장 + 메모리 업데이트
  *
  * 2. **Runtime Values**: 메모리에서만 관리
  *    - Variable.persist: true인 경우 localStorage에 값만 저장
@@ -199,7 +199,7 @@ export const createDataSlice: StateCreator<DataStore> = (set, get) => {
     set({ isLoading: true, currentProjectId: projectId });
 
     try {
-      // Supabase에서 병렬로 로드
+      // IndexedDB 에서 병렬로 로드
       await Promise.all([
         fetchVariables(projectId),
         fetchCollections(projectId),

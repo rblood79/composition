@@ -6,7 +6,7 @@
 
 import type { Element } from "../../types/core/store.types";
 import type { ElementTreeItem } from "../../types/builder/stately.types";
-import type { ElementProps } from "../../types/integrations/supabase.types";
+import type { ElementProps } from "../../types/builder/elementProps.types";
 import { getElementDataBinding } from "../../adapters/canonical/compositionExtensionFields";
 import { sortElementsBySource } from "./elementOrdering";
 

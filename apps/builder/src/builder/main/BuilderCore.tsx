@@ -560,7 +560,7 @@ export const BuilderCore: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setActiveBreakpoint, switchPagePositionsBreakpoint]);
 
-  // 프로젝트 정보 가져오기 (IndexedDB만 조회 - Supabase 동기화는 대시보드에서 처리)
+  // 프로젝트 정보 가져오기 (IndexedDB 조회)
   useEffect(() => {
     const fetchProjectInfo = async () => {
       if (!projectId) return;

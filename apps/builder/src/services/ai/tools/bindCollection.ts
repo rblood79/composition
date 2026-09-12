@@ -1,7 +1,7 @@
 /**
  * bind_collection Tool — compatibility alias (ADR-213 Phase 2, AX-3).
  *
- * ADR-134 Phase 4 의 원형은 `{ elementId, source: static|api|supabase, config }` 를 받아
+ * ADR-134 Phase 4 의 원형은 `{ elementId, source: static|api, config }` 를 받아
  * `applyCanonicalExtensionPatch` 로 **즉시** 썼다 — 승인 0 · History 0 · 사람 UI 형상
  * (`{ source:"dataTable", collectionId, name }`) 과 다른 형태라 이미 있는 DataTable 에
  * 요소를 잇는 경로가 없었다 (리서치 §1-6).
@@ -14,7 +14,7 @@
  * - 정상: `{ elementId | elementRef, collectionId | collectionName, fieldMap? }`
  * - legacy `source:"static"` + `config.data[]`: 행을 새 collection 으로 만들고 (스키마
  *   추론) 잇는다 — `create_collection` + `bind_element` 한 묶음 (승인 1회)
- * - legacy `source:"api"|"supabase"`: 정의는 endpoint 축이라 Phase 4 (`define_endpoint`)
+ * - legacy `source:"api"`: 정의는 endpoint 축이라 Phase 4 (`define_endpoint`)
  *   전까지 안내만 돌려준다
  */
 import type { DataOp } from "@composition/shared";
@@ -104,7 +104,7 @@ export function normalizeBindCollectionArgs(
     };
   }
 
-  if (source === "api" || source === "supabase") {
+  if (source === "api") {
     return { error: t("aiToolError.bindLegacySourceUnsupported") };
   }
 

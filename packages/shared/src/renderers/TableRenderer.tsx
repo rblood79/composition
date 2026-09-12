@@ -141,15 +141,9 @@ export const renderTable = (
     dataBindingLegacy?.config &&
     (dataBindingLegacy.config as { data?: unknown[] }).data;
 
-  // Supabase 데이터는 props.data에 저장됨
-  const supabaseData =
-    dataBindingLegacy?.type === "collection" &&
-    dataBindingLegacy?.source === "supabase" &&
-    (element.props as { data?: unknown[] }).data;
-
   // API 데이터 사용 시 빈 배열로 시작 (Table 컴포넌트에서 로딩)
-  // 정적 데이터 또는 Supabase 데이터 사용 시 실제 데이터 제공
-  const rawData = hasApiBinding ? [] : supabaseData || staticData || [];
+  // 정적 데이터 사용 시 실제 데이터 제공
+  const rawData = hasApiBinding ? [] : staticData || [];
 
   // 빈 배열인 경우 undefined로 처리 (데이터가 없는 것과 빈 배열 구분)
   const finalData =
@@ -213,66 +207,8 @@ export const renderTable = (
     );
   }
 
-  // Supabase의 컬럼 매핑 (props.columnMapping에서 가져옴)
-  if (
-    dataBindingLegacy?.type === "collection" &&
-    dataBindingLegacy?.source === "supabase" &&
-    (element.props as { columnMapping?: unknown }).columnMapping
-  ) {
-    const columnMapping = (
-      element.props as {
-        columnMapping: Record<
-          string,
-          {
-            key: string;
-            label?: string;
-            type?: string;
-            sortable?: boolean;
-            width?: number;
-            align?: string;
-          }
-        >;
-      }
-    ).columnMapping;
-
-    mappedColumns = Object.entries(columnMapping).map(
-      ([columnName, mapping]) => {
-        return {
-          key: (mapping.key || columnName) as keyof { id: string | number },
-          label: mapping.label || columnName,
-          allowsSorting: mapping.sortable !== false,
-          enableResizing: true,
-          width: mapping.width || 150,
-          align: (mapping.align || "left") as "left" | "center" | "right",
-          elementId: generateId(),
-        };
-      },
-    );
-  }
-
-  // API의 컬럼 매핑 (props.columns에서 가져옴)
-  if (
-    dataBindingLegacy?.type === "collection" &&
-    dataBindingLegacy?.source === "api" &&
-    (element.props as { columns?: string[] }).columns
-  ) {
-    const apiColumns = (element.props as { columns: string[] }).columns;
-
-    mappedColumns = apiColumns.map((columnName) => {
-      return {
-        key: columnName as keyof { id: string | number },
-        label: columnName.charAt(0).toUpperCase() + columnName.slice(1),
-        allowsSorting: true,
-        enableResizing: true,
-        width: 150,
-        align: "left" as "left" | "center" | "right",
-        elementId: generateId(),
-      };
-    });
-  }
-
   // Column Element가 있으면 해당 컬럼 사용,
-  // 없으면 매핑된 컬럼 사용 (Static/Supabase),
+  // 없으면 매핑된 컬럼 사용 (Static),
   // 그것도 없으면 빈 배열로 자동 감지 활성화
   const finalColumns =
     columns.length > 0
@@ -281,7 +217,7 @@ export const renderTable = (
         ? mappedColumns
         : [];
 
-  // Static/Supabase의 mappedColumns가 있고 Column Elements가 없으면
+  // Static 의 mappedColumns가 있고 Column Elements가 없으면
   // Column Elements 생성을 위해 부모에게 전달
   if (
     mappedColumns.length > 0 &&

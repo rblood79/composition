@@ -38,7 +38,7 @@ import { useStore } from "../../../stores";
 import { useCanonicalFrameElementScopes } from "../../../stores/canonical/canonicalElementsView";
 import { useCanonicalPanelElements } from "../useCanonicalPanelElements";
 import type { CanonicalFrameElementScope } from "../../../../adapters/canonical/frameElementScope";
-import type { ElementProps } from "../../../../types/integrations/supabase.types";
+import type { ElementProps } from "../../../../types/builder/elementProps.types";
 import type { PanelNode } from "../../panelNode";
 import { buildTreeFromElements } from "../../../utils/treeUtils";
 import { MessageService } from "../../../../utils/messaging";

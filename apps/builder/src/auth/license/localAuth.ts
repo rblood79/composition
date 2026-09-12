@@ -92,7 +92,7 @@ export function clearAuth(): void {
 }
 
 /**
- * 프로젝트 `created_by` 에 쓰는 식별자. Supabase user id 를 대신한다 —
+ * 프로젝트 `created_by` 에 쓰는 식별자 — 서버 계정이 없으므로
  * 라이선스 키가 곧 이 설치의 정체성이다.
  */
 export function getCurrentUserId(): string {

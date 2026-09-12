@@ -4,7 +4,7 @@
  * 브라우저의 IndexedDB를 사용한 로컬 데이터베이스 구현
  * - 빠른 로컬 저장 (1-5ms)
  * - 오프라인 지원
- * - Supabase와 동일한 인터페이스
+ * - DatabaseAdapter 인터페이스 구현
  */
 
 import type {

@@ -7,7 +7,7 @@
  * @updated 2025-12-29 - Save Mode, Preview & Overlay, Element Visualization 섹션 제거
  *   (WebGL 캔버스 전환 및 로컬 저장 방식으로 변경됨에 따라 불필요해짐)
  * @updated 2026-02-11 - Page Layout 설정 추가 (자동/가로/세로 페이지 배치, BuilderHeader에서 이동)
- * @updated 2026-03-05 - ADR-021 Phase D: Supabase 테마 선택 UI 제거 (Tint System으로 대체)
+ * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
 import { UnfoldHorizontal, Settings } from "lucide-react";

@@ -1,3 +1,9 @@
+/**
+ * legacy `ElementProps` — 요소 `props` 의 느슨한 형태 (HTML 글로벌 · ARIA · 이벤트 핸들러 · data-* 인덱스).
+ * 원래 cloud row schema 파일에 살던 선언을 옮겨 왔다 (2026-09-12, cloud 잔재 제거) — 내용 무변경.
+ * 정본 컴포넌트 props 는 catalog (`COMPONENT_RULES_TABLE`) 와 RAC 타입이며, 이 타입은 canvas 트리·
+ * iframe 메신저 같은 legacy reader 가 props 를 읽을 때만 쓴다.
+ */
 import React from "react";
 
 type AriaRole =
@@ -89,7 +95,3 @@ export interface ElementProps {
     | ((event: React.KeyboardEvent<HTMLElement>) => void)
     | undefined;
 }
-
-// ADR-128 cloud decommission 후 Supabase Database interface 는 production caller 0 (auth 만 active).
-// 본 interface 와 row 정의 (pages / elements / design_tokens / documents) 는 dead — 제거됨 (2026-05-15).
-// auth 사용은 `env/supabase.client.ts` 의 `createClient()` 가 직접 처리.

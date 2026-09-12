@@ -903,7 +903,7 @@ const koKR: TranslationKeys = {
       '- clip / placeholder: type "frame" 에서만 유효합니다.\n- slot: false 또는 삽입 가능한 reusable component id 배열.\n- reusable: 재사용 원본 표시. frame 에 켜면 페이지 요소 목록에서 빠지고 layout 정의가 되므로,\n  화면에 보이는 컨테이너를 만들 때는 켜지 마세요.',
     bindingHeading: "## 데이터 바인딩 (bind_collection)",
     bindingBody:
-      "ListBox / GridList / Table 같은 collection 컴포넌트에 데이터를 연결합니다.\nsource 는 static (config.data 배열) / api (config.baseUrl + endpoint) / supabase (config.table).\n데이터 소스 자체를 만들지는 않습니다 — 이미 있는 데이터에 요소를 잇습니다.",
+      "ListBox / GridList / Table 같은 collection 컴포넌트에 데이터를 연결합니다.\nsource 는 static (config.data 배열) / api (config.baseUrl + endpoint).\n데이터 소스 자체를 만들지는 않습니다 — 이미 있는 데이터에 요소를 잇습니다.",
     eventsHeading: "## 인터랙션 규칙 (create_interaction_rule)",
     eventsBody:
       'trigger 는 컴포넌트가 실제로 노출하는 callback 이름입니다 (예: Button 은 onPress).\nonClick 같은 DOM 이름은 쓰지 않습니다. action 은 3종:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "저장했습니다" }\n- capability: { kind: "capability", targetId, capability, value? } — 대상이 노출하는 capability 만.\n틀린 trigger/capability 를 보내면 도구가 사용 가능한 목록을 돌려주니 그것으로 고쳐 부르세요.',
@@ -1058,7 +1058,7 @@ const koKR: TranslationKeys = {
     bindCollection:
       "요소(ListBox/GridList/Table 등)를 이미 있는 collection(데이터 테이블)에 잇습니다. collectionId 또는 collectionName 으로 대상을 고르세요 (list_collections 로 확인). 적용 전에 사용자 승인 다이얼로그가 뜨고, 거부되면 아무것도 바뀌지 않습니다.",
     bindSource:
-      "(legacy) static = config.data 행을 새 collection 으로 만들어 잇습니다. api/supabase 는 지원하지 않습니다 — list_api_endpoints 로 endpoint 를 확인하세요.",
+      "(legacy) static = config.data 행을 새 collection 으로 만들어 잇습니다. api 는 지원하지 않습니다 — list_api_endpoints 로 endpoint 를 확인하세요.",
     bindConfig: "(legacy) static: { data: [...], name? }.",
     bindFieldMap:
       "역할별 필드 매핑 — value / icon 에 fieldId (get_collection 의 schema[].id). 생략하면 휴리스틱.",
@@ -1177,7 +1177,6 @@ const koKR: TranslationKeys = {
     staticNeedsData: "static 바인딩은 config.data 배열이 필요합니다.",
     apiNeedsUrl:
       "api 바인딩은 config.baseUrl 과 config.endpoint 가 필요합니다.",
-    supabaseNeedsTable: "supabase 바인딩은 config.table 이 필요합니다.",
     sourceOneOf: "source 는 {sources} 중 하나여야 합니다.",
     bindFailed:
       "데이터 바인딩을 적용하지 못했습니다 (활성 문서 없음 또는 대상 노드 없음).",
@@ -1198,7 +1197,7 @@ const koKR: TranslationKeys = {
     endpointNotFound:
       "endpoint 를 찾을 수 없습니다: {ref}. 있는 이름: {names}. list_api_endpoints 로 다시 확인하세요.",
     bindLegacySourceUnsupported:
-      "source api/supabase 는 더 이상 지원하지 않습니다. list_api_endpoints 로 endpoint 를 확인하고, 실행 결과 테이블에 collectionId 로 연결하세요.",
+      "source api 는 더 이상 지원하지 않습니다. list_api_endpoints 로 endpoint 를 확인하고, 실행 결과 테이블에 collectionId 로 연결하세요.",
     noRunRecorded:
       "endpoint {name} 은 이 세션에서 실행된 적이 없습니다. 먼저 실행하세요 (API 편집기 Run 또는 데이터 새로고침).",
     noRunAtAll:
@@ -2794,7 +2793,7 @@ const enUS: TranslationKeys = {
       '- clip / placeholder: valid only on type "frame".\n- slot: false, or an array of reusable component ids that may be inserted.\n- reusable: marks a reuse origin. Turning it on for a frame removes it from the page\'s element\n  list and makes it a layout definition, so leave it off for containers meant to be visible.',
     bindingHeading: "## Data binding (bind_collection)",
     bindingBody:
-      "Connects data to a collection component such as ListBox, GridList or Table.\nsource is static (a config.data array), api (config.baseUrl + endpoint) or supabase (config.table).\nIt does not create the data source itself — it wires an element to data that already exists.",
+      "Connects data to a collection component such as ListBox, GridList or Table.\nsource is static (a config.data array) or api (config.baseUrl + endpoint).\nIt does not create the data source itself — it wires an element to data that already exists.",
     eventsHeading: "## Interaction rules (create_interaction_rule)",
     eventsBody:
       'trigger is a callback name the component actually exposes (Button uses onPress, for example).\nDo not use DOM names like onClick. There are three action kinds:\n- navigate: { kind: "navigate", path: "/about" }\n- toast: { kind: "toast", message: "Saved" }\n- capability: { kind: "capability", targetId, capability, value? } — only capabilities the target exposes.\nIf you send a wrong trigger or capability the tool returns the available list; call again with that.',
@@ -2952,7 +2951,7 @@ const enUS: TranslationKeys = {
     bindCollection:
       "Binds an element (ListBox, GridList, Table, …) to an existing collection (data table). Pick the target by collectionId or collectionName (see list_collections). A user approval dialog appears before anything is applied; if declined nothing changes.",
     bindSource:
-      "(legacy) static = turns config.data rows into a new collection and binds it. api/supabase are not supported — check endpoints with list_api_endpoints.",
+      "(legacy) static = turns config.data rows into a new collection and binds it. api is not supported — check endpoints with list_api_endpoints.",
     bindConfig: "(legacy) static: { data: [...], name? }.",
     bindFieldMap:
       "Role-based field mapping — fieldId (schema[].id from get_collection) for value / icon. Omit to use heuristics.",
@@ -3070,7 +3069,6 @@ const enUS: TranslationKeys = {
       "Canonical fields were not applied: {fields}. {type} may not support them.",
     staticNeedsData: "A static binding needs a config.data array.",
     apiNeedsUrl: "An api binding needs config.baseUrl and config.endpoint.",
-    supabaseNeedsTable: "A supabase binding needs config.table.",
     sourceOneOf: "source must be one of {sources}.",
     bindFailed:
       "Could not apply the data binding (no active document, or the target node is missing).",
@@ -3091,7 +3089,7 @@ const enUS: TranslationKeys = {
     endpointNotFound:
       "Endpoint not found: {ref}. Available names: {names}. Check again with list_api_endpoints.",
     bindLegacySourceUnsupported:
-      "source api/supabase is no longer supported. Check the endpoint with list_api_endpoints and bind the element to its result table by collectionId.",
+      "source api is no longer supported. Check the endpoint with list_api_endpoints and bind the element to its result table by collectionId.",
     noRunRecorded:
       "Endpoint {name} has not been run in this session. Run it first (API editor Run, or refresh the data).",
     noRunAtAll:

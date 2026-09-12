@@ -17,7 +17,7 @@ import type { SlotComposition } from "../catalog/slotRoles";
 
 /**
  * 기본 Element Props (렌더러용)
- * Supabase에서 저장되는 props 구조
+ * 저장 문서(canonical)에 실리는 props 구조
  */
 export interface ElementProps {
   type?: string;

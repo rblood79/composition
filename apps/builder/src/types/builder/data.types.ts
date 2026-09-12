@@ -176,7 +176,7 @@ export type ExecutionMode = "client" | "server";
  * 서버 실행 설정 (API 키 보호용)
  */
 export interface ServerConfig {
-  /** Supabase Edge Function 이름 */
+  /** 서버 측 실행 함수(엔드포인트) 이름 — 서버 실행 모드 전용 */
   edgeFunctionName: string;
 
   /** Vault 시크릿 매핑 */
