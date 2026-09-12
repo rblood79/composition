@@ -88,6 +88,8 @@ export interface ChartProps {
   dimensionScale?: SpecChartProps["dimensionScale"];
   dimensionFormat?: string;
   dimensionLabelFormat?: string;
+  // ── ADR-217 — 값 축 기준선 (선택적 배열, bar/line/area). 미설정 = 현행.
+  referenceLines?: SpecChartProps["referenceLines"];
   variant?: string;
   size?: "sm" | "md" | "lg";
   /** 샘플/정적 rows — dataBinding 이 없을 때만 사용하는 입력 */
@@ -207,6 +209,7 @@ export function Chart({
   dimensionScale,
   dimensionFormat,
   dimensionLabelFormat,
+  referenceLines,
   palette,
   variant = "default",
   size = "md",
@@ -286,6 +289,8 @@ export function Chart({
       ...(dimensionScale !== undefined ? { dimensionScale } : {}),
       ...(dimensionFormat !== undefined ? { dimensionFormat } : {}),
       ...(dimensionLabelFormat !== undefined ? { dimensionLabelFormat } : {}),
+      // ADR-217 — 기준선 (배열 identity 가 memo 키 — 편집기가 새 배열을 줄 때만 다시 푼다).
+      ...(referenceLines !== undefined ? { referenceLines } : {}),
     }),
     [
       isAnimationActive,
@@ -332,6 +337,7 @@ export function Chart({
       dimensionScale,
       dimensionFormat,
       dimensionLabelFormat,
+      referenceLines,
     ],
   );
 

@@ -28,6 +28,7 @@ import {
 } from "recharts";
 import {
   categoryColorIndex,
+  buildReferenceLineMarks,
   clampWindowRange,
   resolveChartData,
   resolveChartAnimation,
@@ -213,6 +214,35 @@ export function RechartsChart({
   } = layout;
   const animation = resolveChartAnimation(props);
   animation.isAnimationActive &&= !reducedMotion;
+  // ADR-217 — 기준선 마크 (scene 과 같은 `buildReferenceLineMarks` · 같은 값 스케일). `back` 은
+  //   backdrop Customized 에, `front` 는 Recharts svg 위 overlay svg 에 — pinned 3.10.1 은 Customized
+  //   를 자식 순서와 무관하게 그래픽 항목보다 먼저 렌더한다 (P0 spike).
+  const reference = useMemo(() => {
+    if (
+      presentation.referenceLines.length === 0 ||
+      !["bar", "line", "area"].includes(props.chartType)
+    )
+      return null;
+    const value = linearScale(
+      ticks.domain,
+      horizontal ? [plot.x, plot.x + plot.w] : [plot.y + plot.h, plot.y],
+    );
+    return buildReferenceLineMarks({
+      lines: presentation.referenceLines,
+      value,
+      plot,
+      orientation: props.orientation,
+      fontSize,
+    });
+  }, [
+    presentation.referenceLines,
+    props.chartType,
+    props.orientation,
+    ticks.domain,
+    horizontal,
+    plot,
+    fontSize,
+  ]);
   const isBar = props.chartType === "bar";
   const radarFlatDomain = Math.max(0, ticks.domain[1]) === 0;
   const n = grid.categories.length;
@@ -348,6 +378,11 @@ export function RechartsChart({
               axis.grid.map((mark, i) =>
                 renderMark(mark, `grid-${axis.axis}-${i}`),
               ),
+            )}
+            {reference?.back.map((mark, i) =>
+              mark.kind === "text"
+                ? renderText(mark, `reference-back-${i}`)
+                : renderMark(mark, `reference-back-${i}`),
             )}
           </g>
         )}
@@ -1047,10 +1082,43 @@ export function RechartsChart({
   const win = model.budget.window;
   const total = model.budget.n;
   const fitEff = model.budget.fitEff;
-  if (!track || !win || total <= fitEff || !presentation.ok) return chart;
+  // ADR-217 — `front` 기준선 overlay (Recharts svg 의 형제, 같은 좌표계, 입력 차단 0).
+  const front =
+    presentation.ok && reference && reference.front.length > 0 ? (
+      <svg
+        className="chart-decoration-front"
+        data-chart-reference-front=""
+        aria-hidden="true"
+        width={size.width}
+        height={size.height}
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          pointerEvents: "none",
+          overflow: "visible",
+        }}
+      >
+        {reference.front.map((mark, i) =>
+          mark.kind === "text"
+            ? renderText(mark, `reference-front-${i}`)
+            : renderMark(mark, `reference-front-${i}`),
+        )}
+      </svg>
+    ) : null;
+  if (!track || !win || total <= fitEff || !presentation.ok)
+    return front ? (
+      <>
+        {chart}
+        {front}
+      </>
+    ) : (
+      chart
+    );
   return (
     <>
       {chart}
+      {front}
       {renderWindowTrack({
         track,
         start: win.start,

@@ -99,7 +99,10 @@ const CASES: Array<[string, ChartProps]> = [
     "bar / horizontal / stacked",
     props({ orientation: "horizontal", stackType: "stacked" }),
   ],
-  ["line / grid + legend", props({ chartType: "line", showGrid: true, showLegend: true })],
+  [
+    "line / grid + legend",
+    props({ chartType: "line", showGrid: true, showLegend: true }),
+  ],
   ["area / vertical", props({ chartType: "area" })],
   [
     "line / monotone + dots",
@@ -128,7 +131,10 @@ const CASES: Array<[string, ChartProps]> = [
   // 툴팁은 DOM 전용 축이다 (Skia 는 showTooltip=false 로 고정). 이 케이스가
   //   GREEN 이라는 것은 툴팁이 **정적 마크를 건드리지 않는다**는 뜻이다.
   ["bar / tooltip on", props({ showTooltip: true })],
-  ["pie / legend right", props({ chartType: "pie", showLegend: true, legendPosition: "right" })],
+  [
+    "pie / legend right",
+    props({ chartType: "pie", showLegend: true, legendPosition: "right" }),
+  ],
   // ADR-207 극좌표 — 격자가 `PathMark` 로 오는 유일한 자리다 (`AxisScene.grid` 유니온
   //   확장이 두 leg 을 실제로 지나는지 여기서 확인한다).
   [
@@ -202,7 +208,9 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
         const markup = domMarkup(chartProps);
         const domPaths = attr(markup, "path", "d");
         const skiaPaths = skiaShapes(chartProps)
-          .filter((s): s is Extract<Shape, { type: "path" }> => s.type === "path")
+          .filter(
+            (s): s is Extract<Shape, { type: "path" }> => s.type === "path",
+          )
           .map((s) => s.d);
         expect(skiaPaths).toEqual(domPaths);
       });
@@ -216,7 +224,9 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
           attr(markup, "rect", "height")[i],
         ]);
         const skiaRects = skiaShapes(chartProps)
-          .filter((s): s is Extract<Shape, { type: "rect" }> => s.type === "rect")
+          .filter(
+            (s): s is Extract<Shape, { type: "rect" }> => s.type === "rect",
+          )
           .map((s) => [
             String(s.x),
             String(s.y),
@@ -236,13 +246,10 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
           attr(markup, "line", "y2")[i],
         ]);
         const skiaLines = skiaShapes(chartProps)
-          .filter((s): s is Extract<Shape, { type: "line" }> => s.type === "line")
-          .map((s) => [
-            String(s.x1),
-            String(s.y1),
-            String(s.x2),
-            String(s.y2),
-          ]);
+          .filter(
+            (s): s is Extract<Shape, { type: "line" }> => s.type === "line",
+          )
+          .map((s) => [String(s.x1), String(s.y1), String(s.x2), String(s.y2)]);
         expect(skiaLines).toEqual(domLines);
       });
 
@@ -250,9 +257,9 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
         const markup = domMarkup(chartProps);
         const domX = attr(markup, "text", "x");
         const domY = attr(markup, "text", "y");
-        const domContent = [...markup.matchAll(/<text\b[^>]*>([^<]*)<\/text>/g)].map(
-          (m) => m[1],
-        );
+        const domContent = [
+          ...markup.matchAll(/<text\b[^>]*>([^<]*)<\/text>/g),
+        ].map((m) => m[1]);
         const skiaTexts = skiaShapes(chartProps).filter(
           (s): s is Extract<Shape, { type: "text" }> => s.type === "text",
         );
@@ -283,7 +290,9 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
        */
       it("축 토큰으로 칠/그은 path 개수가 두 leg 에서 같다", () => {
         const markup = domMarkup(chartProps);
-        const domPaths = [...markup.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
+        const domPaths = [...markup.matchAll(/<path\b[^>]*>/g)].map(
+          (m) => m[0],
+        );
         const domGridFilled = domPaths.filter((p) =>
           /fill="var\(--chart-(grid|axis)/.test(p),
         ).length;
@@ -291,7 +300,10 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
           /stroke="var\(--chart-(grid|axis)/.test(p),
         ).length;
 
-        const axisTokens = new Set([CHART_RULE.chart?.grid, CHART_RULE.chart?.axis]);
+        const axisTokens = new Set([
+          CHART_RULE.chart?.grid,
+          CHART_RULE.chart?.axis,
+        ]);
         const skiaPaths = skiaShapes(chartProps).filter(
           (s): s is Extract<Shape, { type: "path" }> => s.type === "path",
         );
@@ -310,15 +322,20 @@ describe("ADR-194 G3 — DOM SVG ↔ Skia Shape 좌표 대칭", () => {
 
       it("시리즈 팔레트로 칠한 path 개수가 두 leg 에서 같다", () => {
         const markup = domMarkup(chartProps);
-        const domPaths = [...markup.matchAll(/<path\b[^>]*>/g)].map((m) => m[0]);
+        const domPaths = [...markup.matchAll(/<path\b[^>]*>/g)].map(
+          (m) => m[0],
+        );
         const domSeriesFilled = domPaths.filter((p) =>
           /fill="var\(--chart-series-/.test(p),
         ).length;
         const seriesTokens = new Set(CHART_RULE.chart?.series ?? []);
         const skiaSeriesFilled = skiaShapes(chartProps)
-          .filter((s): s is Extract<Shape, { type: "path" }> => s.type === "path")
-          .filter((s) => s.fill !== undefined && seriesTokens.has(s.fill as string))
-          .length;
+          .filter(
+            (s): s is Extract<Shape, { type: "path" }> => s.type === "path",
+          )
+          .filter(
+            (s) => s.fill !== undefined && seriesTokens.has(s.fill as string),
+          ).length;
         expect(skiaSeriesFilled).toBe(domSeriesFilled);
       });
 
@@ -446,26 +463,129 @@ describe("ADR-216 — 시간 스케일 두 leg (Skia allowlist · 2단 라벨 ·
     const skia = texts(skiaTime(timeProps()));
     expect(skia).toEqual(scene.axes.flatMap((a) => a.ticks.map((t) => t.text)));
     expect(skia).toContain("Jan");
-    const category = texts(skiaTime({ ...timeProps(), dimensionScale: undefined }));
+    const category = texts(
+      skiaTime({ ...timeProps(), dimensionScale: undefined }),
+    );
     expect(category).not.toContain("Jan");
     expect(category).toContain("2026-01-01");
   });
 
   it("두 leg path `d` byte 동일 · dimensionLabelFormat 한 줄 · 결측 Jan 6 은 빈 자리", () => {
-    for (const p of [timeProps(), timeProps({ dimensionLabelFormat: "%m/%d" }), timeProps({ chartType: "area" })]) {
+    for (const p of [
+      timeProps(),
+      timeProps({ dimensionLabelFormat: "%m/%d" }),
+      timeProps({ chartType: "area" }),
+    ]) {
       const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
       const scene = computeChartScene(p, TIME_ROWS, SIZE, metrics);
       const skiaD = skiaTime(p)
         .filter((s): s is Extract<Shape, { type: "path" }> => s.type === "path")
         .map((s) => s.d);
-      const domD = attr(renderToStaticMarkup(<svg>{renderChartScene(scene)}</svg>), "path", "d");
+      const domD = attr(
+        renderToStaticMarkup(<svg>{renderChartScene(scene)}</svg>),
+        "path",
+        "d",
+      );
       expect(skiaD.length).toBeGreaterThan(0);
       expect(skiaD).toEqual(domD);
     }
     const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
-    const one = computeChartScene(timeProps({ dimensionLabelFormat: "%m/%d" }), TIME_ROWS, SIZE, metrics);
+    const one = computeChartScene(
+      timeProps({ dimensionLabelFormat: "%m/%d" }),
+      TIME_ROWS,
+      SIZE,
+      metrics,
+    );
     expect(one.axes[0].ticks.map((t) => t.text)).not.toContain("Jan");
     expect(one.axes[0].ticks[0].text).toBe("01/01");
   });
 });
 
+describe("ADR-217 — 기준선 두 leg (line/dash/라벨 좌표 · 토큰 · domain 확장 눈금)", () => {
+  const refProps = (extra: Partial<ChartProps> = {}): ChartProps =>
+    props({
+      referenceLines: [
+        { value: 120, label: "Target", lineType: "dashed" },
+        { value: 30, layer: "back", lineType: "dotted" },
+      ],
+      ...extra,
+    });
+  const skiaLines = (shapes: Shape[]) =>
+    shapes.filter(
+      (s): s is Extract<Shape, { type: "line" }> =>
+        s.type === "line" && s.stroke === "{color.neutral}",
+    );
+
+  it.each([
+    ["bar / vertical", refProps()],
+    ["bar / horizontal", refProps({ orientation: "horizontal" })],
+    ["line / vertical", refProps({ chartType: "line" })],
+    ["area / stacked", refProps({ chartType: "area", stackType: "stacked" })],
+  ])(
+    "%s — 기준선 x1/y1/x2/y2 · dash · 라벨 x/y · 눈금 문자열이 두 leg 에서 같다",
+    (_name, p) => {
+      const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+      const scene = computeChartScene(p, ROWS, SIZE, metrics);
+      const refMarks = scene.marks.filter(
+        (m) => m.kind === "line" && m.role === "reference",
+      );
+      expect(refMarks).toHaveLength(2);
+      // Skia — reference 토큰 선 2 (dash 는 shape 의 strokeDasharray).
+      const skia = skiaLines(skiaShapes(p));
+      expect(
+        skia.map((s) => [s.x1, s.y1, s.x2, s.y2, s.strokeDasharray ?? null]),
+      ).toEqual(
+        refMarks.map((m) =>
+          m.kind === "line"
+            ? [m.x1, m.y1, m.x2, m.y2, m.dash ? [...m.dash] : null]
+            : null,
+        ),
+      );
+      // DOM — `<line stroke="var(--chart-reference…)">` 2 + stroke-dasharray.
+      const markup = domMarkup(p);
+      const domRef = [
+        ...markup.matchAll(/<line\b[^>]*stroke="var\(--chart-reference[^>]*>/g),
+      ].map((m) => m[0]);
+      expect(domRef).toHaveLength(2);
+      const num = (tag: string, name: string) =>
+        attr(tag, "line", name).map(Number);
+      expect(
+        domRef.map((t) => [
+          num(t, "x1")[0],
+          num(t, "y1")[0],
+          num(t, "x2")[0],
+          num(t, "y2")[0],
+        ]),
+      ).toEqual(skia.map((s) => [s.x1, s.y1, s.x2, s.y2]));
+      expect(
+        domRef.map((t) => attr(t, "line", "stroke-dasharray")[0] ?? null),
+      ).toEqual(
+        skia.map((s) =>
+          s.strokeDasharray ? s.strokeDasharray.join(" ") : null,
+        ),
+      );
+      // 라벨 — Skia text (reference 토큰) 와 DOM text (--chart-reference fill) 의 x/y.
+      const label = scene.marks.find(
+        (m) => m.kind === "text" && m.role === "reference",
+      );
+      expect(label).toBeDefined();
+      const skiaLabel = skiaShapes(p).find(
+        (s): s is Extract<Shape, { type: "text" }> =>
+          s.type === "text" && s.text === "Target",
+      )!;
+      expect(skiaLabel.fill).toBe("{color.neutral}");
+      const domLabel = [...markup.matchAll(/<text\b[^>]*>Target<\/text>/g)].map(
+        (m) => m[0],
+      )[0];
+      expect(domLabel).toContain("var(--chart-reference");
+      expect(Number(attr(domLabel, "text", "y")[0])).toBe(skiaLabel.y);
+      // domain 이 120 까지 넓어진 눈금 — 두 leg 같은 문자열, 그리고 기준선 없는 문서보다 큰 최댓값.
+      const ticks = scene.axes.flatMap((a) => a.ticks.map((t) => t.text));
+      expect(ticks).toContain("120");
+      const skiaTexts = skiaShapes(p)
+        .filter((s) => s.type === "text")
+        .map((s) => (s as { text: string }).text);
+      for (const t of ticks) expect(skiaTexts).toContain(t);
+    },
+  );
+});

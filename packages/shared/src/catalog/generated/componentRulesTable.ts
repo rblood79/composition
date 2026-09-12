@@ -11749,6 +11749,8 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       tooltipText: "{color.neutral}",
       // ADR-211 others ("기타") 범주 — 시리즈 팔레트 밖의 중립 면 (light/dark 는 토큰이 푼다).
       others: "{color.neutral-subdued}",
+      // ADR-217 기준선 — 강한 중립 (RSC gray-800 상당), 라벨도 같은 토큰.
+      reference: "{color.neutral}",
       // 기하가 쓰는 px — sizes[*].fontSize 의 TokenRef 와 별개 채널이다. 두 consumer 가
       //   같은 숫자로 축 여백·레이블 솎아내기를 판정해야 좌표가 갈리지 않는다.
       metrics: {

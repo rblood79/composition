@@ -19,6 +19,7 @@ import type {
 import type { ShadowTokenRef, TokenRef } from "../types/token.types";
 import { tokenToCSSVar, resolveFocusRingToken } from "./utils/tokenResolver";
 import { CHART_OTHERS_FALLBACK_TOKEN } from "../chart/budget";
+import { CHART_REFERENCE_FALLBACK_TOKEN } from "../chart/marks/referenceLine";
 import { deriveAutoDelegationVariables } from "../runtime/deriveAutoDelegationVariables";
 // ADR-912 Δ7: layout token table 단일 source — generator-private layout 매핑 상수를 대체.
 import { layoutTokenToCssLines, type LayoutToken } from "./layoutTokens";
@@ -1043,6 +1044,10 @@ function generateChartVariables<Props>(spec: ComponentSpec<Props>): string[] {
   // ADR-211 — others 범주 토큰 (Skia 는 `chart.others` 를 같은 자리에서 읽는다).
   lines.push(
     `  --chart-others: ${tokenToCSSVar((chart.others ?? CHART_OTHERS_FALLBACK_TOKEN) as TokenRef)};`,
+  );
+  // ADR-217 — 기준선 토큰 (Skia 는 `chart.reference` 를 같은 자리에서 읽는다).
+  lines.push(
+    `  --chart-reference: ${tokenToCSSVar((chart.reference ?? CHART_REFERENCE_FALLBACK_TOKEN) as TokenRef)};`,
   );
   if (chart.strokeWidth !== undefined) {
     lines.push(`  --chart-stroke-width: ${chart.strokeWidth}px;`);

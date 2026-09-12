@@ -25,6 +25,7 @@ import { useDataStore } from "../../stores/data";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartBudgetControls } from "./ChartBudgetControls";
 import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
+import { ChartReferenceLineControls } from "./ChartReferenceLineControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartNumberFormatControls } from "./ChartNumberFormatControls";
 import {
@@ -798,14 +799,24 @@ describe("ADR-216 P4 — 시간축 컨트롤: line/area 만 · 스칼라 patch �
   const dateRows = DATE_TABLE.mockData as Record<string, unknown>[];
 
   it("line: category → time 은 dimensionScale 1 키 patch, 되돌리면 undefined (키 삭제); 지시자 두 입력이 열린다", () => {
-    seedChart({ ...createChartInitialProps("line"), dimension: "date", metric: "value" });
+    seedChart({
+      ...createChartInitialProps("line"),
+      dimension: "date",
+      metric: "value",
+    });
     const { spy, onPatch } = patchSpy();
     const view = ui(
-      <ChartTimeAxisControls fields={fields()} rows={dateRows} onPatch={onPatch} />,
+      <ChartTimeAxisControls
+        fields={fields()}
+        rows={dateRows}
+        onPatch={onPatch}
+      />,
     );
     expect(view.queryByRole("group", { name: "날짜 입력 형식" })).toBeNull();
     // 전부 ISO 날짜 → 힌트 (scene 무변경 — 문자열만).
-    expect(view.getByRole("status").textContent).toContain("시간축으로 볼 수 있습니다");
+    expect(view.getByRole("status").textContent).toContain(
+      "시간축으로 볼 수 있습니다",
+    );
     pick(view.getByRole("group", { name: "범주 간격" }), "시간 (날짜 간격)");
     expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionScale: "time" });
     cleanup();
@@ -817,21 +828,27 @@ describe("ADR-216 P4 — 시간축 컨트롤: line/area 만 · 스칼라 patch �
       dimensionScale: "time",
     });
     const view2 = ui(
-      <ChartTimeAxisControls fields={fields()} rows={dateRows} onPatch={onPatch} />,
+      <ChartTimeAxisControls
+        fields={fields()}
+        rows={dateRows}
+        onPatch={onPatch}
+      />,
     );
-    const format = within(view2.getByRole("group", { name: "날짜 입력 형식" })).getByRole(
-      "textbox",
-    ) as HTMLInputElement;
+    const format = within(
+      view2.getByRole("group", { name: "날짜 입력 형식" }),
+    ).getByRole("textbox") as HTMLInputElement;
     expect(format.placeholder).toContain("ISO");
     fireEvent.change(format, { target: { value: "%Y/%m/%d" } });
     fireEvent.blur(format);
     expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionFormat: "%Y/%m/%d" });
-    const label = within(view2.getByRole("group", { name: "축 라벨 형식" })).getByRole(
-      "textbox",
-    ) as HTMLInputElement;
+    const label = within(
+      view2.getByRole("group", { name: "축 라벨 형식" }),
+    ).getByRole("textbox") as HTMLInputElement;
     fireEvent.change(label, { target: { value: "%m/%d" } });
     fireEvent.blur(label);
-    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionLabelFormat: "%m/%d" });
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({
+      dimensionLabelFormat: "%m/%d",
+    });
     pick(view2.getByRole("group", { name: "범주 간격" }), "등간격");
     expect(spy.mock.calls.at(-1)?.[0]).toEqual({ dimensionScale: undefined });
   });
@@ -840,11 +857,21 @@ describe("ADR-216 P4 — 시간축 컨트롤: line/area 만 · 스칼라 patch �
     seedChart({ dimension: "date", metric: "value" });
     const { spy, onPatch } = patchSpy();
     const view = ui(
-      <ChartTimeAxisControls fields={fields()} rows={dateRows} onPatch={onPatch} />,
+      <ChartTimeAxisControls
+        fields={fields()}
+        rows={dateRows}
+        onPatch={onPatch}
+      />,
     );
     expect(view.queryByRole("status")).toBeNull();
-    fireEvent.click(within(view.getByRole("group", { name: "범주 간격" })).getByRole("button"));
-    const time = within(document.body).getByRole("option", { name: "시간 (날짜 간격)" });
+    fireEvent.click(
+      within(view.getByRole("group", { name: "범주 간격" })).getByRole(
+        "button",
+      ),
+    );
+    const time = within(document.body).getByRole("option", {
+      name: "시간 (날짜 간격)",
+    });
     expect(time.getAttribute("aria-disabled")).toBe("true");
     fireEvent.click(time);
     expect(spy).not.toHaveBeenCalled();
@@ -868,9 +895,9 @@ describe("ADR-216 P4 — 시간축 컨트롤: line/area 만 · 스칼라 patch �
     const status = view2.getByRole("status");
     expect(status.getAttribute("data-chart-parse-failed")).toBe("4");
     expect(status.textContent).toContain("4행");
-    const format = within(view2.getByRole("group", { name: "날짜 입력 형식" })).getByRole(
-      "textbox",
-    ) as HTMLInputElement;
+    const format = within(
+      view2.getByRole("group", { name: "날짜 입력 형식" }),
+    ).getByRole("textbox") as HTMLInputElement;
     expect(format.value).toBe("%Y/%m/%d");
     fireEvent.change(format, { target: { value: "  " } });
     fireEvent.blur(format);
@@ -878,3 +905,71 @@ describe("ADR-216 P4 — 시간축 컨트롤: line/area 만 · 스칼라 patch �
   });
 });
 
+describe("ADR-217 P3 — 기준선 컨트롤: 추가/삭제는 배열 전체 교체 · 빈 배열 = 키 삭제 · pie 는 추가 비활성", () => {
+  it("bar: 추가 → [{value:0}] · 값/라벨/선 모양 편집 → 배열 교체 (기본값 키 없음) · 삭제 → undefined", () => {
+    seedChart();
+    const { spy, onPatch } = patchSpy();
+    const view = ui(
+      <ChartReferenceLineControls fields={fields()} onPatch={onPatch} />,
+    );
+    expect(
+      view.container.querySelectorAll(".chart-reference-row"),
+    ).toHaveLength(0);
+    fireEvent.click(view.getByRole("button", { name: "기준선 추가" }));
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({
+      referenceLines: [{ value: 0 }],
+    });
+    cleanup();
+
+    seedChart({ referenceLines: [{ value: 0 }] });
+    const view2 = ui(
+      <ChartReferenceLineControls fields={fields()} onPatch={onPatch} />,
+    );
+    expect(
+      view2.container.querySelectorAll(".chart-reference-row"),
+    ).toHaveLength(1);
+    const label = within(
+      view2.getByRole("group", { name: "레이블" }),
+    ).getByRole("textbox");
+    fireEvent.change(label, { target: { value: "목표" } });
+    fireEvent.blur(label);
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({
+      referenceLines: [{ value: 0, label: "목표" }],
+    });
+    pick(view2.getByRole("group", { name: "선 모양" }), "파선");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({
+      referenceLines: [{ value: 0, lineType: "dashed" }],
+    });
+    pick(view2.getByRole("group", { name: "층" }), "뒤 (데이터 아래)");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({
+      referenceLines: [{ value: 0, layer: "back" }],
+    });
+    rowAction(view2, "기준선 1", "기준선 삭제");
+    expect(spy.mock.calls.at(-1)?.[0]).toEqual({ referenceLines: undefined });
+  });
+
+  it("pie: 추가 버튼 비활성 + 안내 · 4개면 상한 안내", () => {
+    seedChart({ chartType: "pie" });
+    const { onPatch } = patchSpy();
+    const view = ui(
+      <ChartReferenceLineControls fields={fields()} onPatch={onPatch} />,
+    );
+    expect(
+      view
+        .getByRole("button", { name: "기준선 추가" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    expect(view.getByRole("status").textContent).toContain("막대·선·영역");
+    cleanup();
+    seedChart({ referenceLines: [1, 2, 3, 4].map((value) => ({ value })) });
+    const view2 = ui(
+      <ChartReferenceLineControls fields={fields()} onPatch={onPatch} />,
+    );
+    expect(
+      view2
+        .getByRole("button", { name: "기준선 추가" })
+        .hasAttribute("disabled"),
+    ).toBe(true);
+    expect(view2.getByRole("status").textContent).toContain("최대 4개");
+  });
+});

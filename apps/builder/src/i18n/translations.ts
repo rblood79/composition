@@ -168,6 +168,22 @@ const koKR: TranslationKeys = {
     dimensionLabelFormat: "축 라벨 형식",
     dimensionLabelFormatPlaceholder: "비우면 눈금 단위별 두 줄 (예: %m/%d)",
     parseFailedHint: "{count}행은 날짜로 읽지 못해 제외됩니다.",
+    // ADR-217 — 기준선
+    referenceLines: "기준선",
+    referenceValue: "값",
+    referenceLabel: "레이블",
+    referenceLabelPlaceholder: "예: 목표",
+    referenceLineType: "선 모양",
+    referenceLayer: "층",
+    lineSolid: "실선",
+    lineDashed: "파선",
+    lineDotted: "점선",
+    layerBack: "뒤 (데이터 아래)",
+    layerFront: "앞 (데이터 위)",
+    addReferenceLine: "기준선 추가",
+    removeReferenceLine: "기준선 삭제",
+    referenceOnlyCartesian: "기준선은 막대·선·영역 차트에서만 씁니다.",
+    referenceMaxHint: "기준선은 최대 {max}개입니다.",
   },
   itemsManager: {
     total: "총 {count}개",
@@ -2051,6 +2067,23 @@ const enUS: TranslationKeys = {
     dimensionLabelFormatPlaceholder:
       "Empty = two rows by tick unit (e.g. %m/%d)",
     parseFailedHint: "{count} row(s) skipped — not readable as dates.",
+    // ADR-217 — reference lines
+    referenceLines: "Reference Lines",
+    referenceValue: "Value",
+    referenceLabel: "Label",
+    referenceLabelPlaceholder: "e.g. Target",
+    referenceLineType: "Line Style",
+    referenceLayer: "Layer",
+    lineSolid: "Solid",
+    lineDashed: "Dashed",
+    lineDotted: "Dotted",
+    layerBack: "Back (under data)",
+    layerFront: "Front (over data)",
+    addReferenceLine: "Add reference line",
+    removeReferenceLine: "Remove reference line",
+    referenceOnlyCartesian:
+      "Reference lines are for bar, line and area charts only.",
+    referenceMaxHint: "Up to {max} reference lines.",
   },
   itemsManager: {
     total: "Total: {count}",
@@ -4253,6 +4286,8 @@ const formattedMessages: Record<
     "chart.budgetFits": (args) => `전부 표시 (${String(args?.n ?? 0)})`,
     "chart.parseFailedHint": (args) =>
       `${String(args?.count ?? 0)}행은 날짜로 읽지 못해 제외됩니다.`,
+    "chart.referenceMaxHint": (args) =>
+      `기준선은 최대 ${String(args?.max ?? 4)}개입니다.`,
     "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
     "itemsManager.addItem": (args) => `${String(args?.type ?? "")} 추가`,
     "errors.withContext": (args) =>
@@ -4689,6 +4724,8 @@ const formattedMessages: Record<
     "chart.budgetFits": (args) => `all shown (${String(args?.n ?? 0)})`,
     "chart.parseFailedHint": (args) =>
       `${String(args?.count ?? 0)} row(s) skipped — not readable as dates.`,
+    "chart.referenceMaxHint": (args) =>
+      `Up to ${String(args?.max ?? 4)} reference lines.`,
     "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
     "itemsManager.addItem": (args) => `Add ${String(args?.type ?? "")}`,
     "errors.withContext": (args) =>

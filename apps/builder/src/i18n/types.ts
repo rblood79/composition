@@ -667,6 +667,22 @@ export interface TranslationKeys {
     dimensionLabelFormat: string;
     dimensionLabelFormatPlaceholder: string;
     parseFailedHint: string;
+    // ADR-217 — 기준선
+    referenceLines: string;
+    referenceValue: string;
+    referenceLabel: string;
+    referenceLabelPlaceholder: string;
+    referenceLineType: string;
+    referenceLayer: string;
+    lineSolid: string;
+    lineDashed: string;
+    lineDotted: string;
+    layerBack: string;
+    layerFront: string;
+    addReferenceLine: string;
+    removeReferenceLine: string;
+    referenceOnlyCartesian: string;
+    referenceMaxHint: string;
   };
   itemsManager: {
     total: string;

@@ -57,6 +57,10 @@ export const semanticLabelKeys: Record<string, string> = {
   "Time (date spacing)": "chart.scaleTime",
   "Date Input Format": "chart.dimensionFormat",
   "Axis Label Format": "chart.dimensionLabelFormat",
+  // ADR-217 — 기준선 (binding accepts 라벨/옵션)
+  "Reference Lines": "chart.referenceLines",
+  "Line Style": "chart.referenceLineType",
+  Layer: "chart.referenceLayer",
   "Auto (by chart & axis)": "chart.overflowAuto",
   Window: "chart.overflowWindow",
   "Aggregate buckets": "chart.overflowAggregate",

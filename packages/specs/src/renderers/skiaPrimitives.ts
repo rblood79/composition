@@ -39,6 +39,7 @@ import {
   CHART_DEFAULT_PROPS,
   CHART_OTHERS_COLOR_INDEX,
   CHART_OTHERS_FALLBACK_TOKEN,
+  CHART_REFERENCE_FALLBACK_TOKEN,
   computeChartScene,
   r2,
   resolveChartMetrics,
@@ -3337,6 +3338,8 @@ const CHART_PRESENTATION_KEYS = [
   "dimensionScale",
   "dimensionFormat",
   "dimensionLabelFormat",
+  // ADR-217 — 기준선 (DOM `Chart.tsx` 도 같은 키를 통과시킨다).
+  "referenceLines",
 ] as const;
 
 function pickChartPresentationProps(
@@ -3464,6 +3467,9 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
   };
   const axisToken = (channel?.axis ?? "{color.neutral-subdued}") as TokenRef;
   const gridToken = (channel?.grid ?? "{color.border}") as TokenRef;
+  // ADR-217 — 기준선 (DOM 은 `--chart-reference`).
+  const referenceToken = (channel?.reference ??
+    CHART_REFERENCE_FALLBACK_TOKEN) as TokenRef;
   const textToken = (paint.color ?? "{color.neutral}") as TokenRef;
 
   const shapes: Shape[] = [];
@@ -3514,7 +3520,11 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
       fontFamily: fontFamily.sans,
       // 값 레이블·범례는 본문 전경색, tick/empty 는 축 보조색 (DOM ROLE_FILL 동형).
       fill:
-        mark.role === "legend" || mark.role === "value" ? textToken : axisToken,
+        mark.role === "reference"
+          ? referenceToken
+          : mark.role === "legend" || mark.role === "value"
+            ? textToken
+            : axisToken,
       align: geometry.align,
       ...(geometry.maxWidth !== undefined
         ? { maxWidth: geometry.maxWidth }
@@ -3583,8 +3593,15 @@ const chartScene: SkiaPrimitiveDrawFn = ({ props, size, paint, style }) => {
           y1: mark.y1,
           x2: mark.x2,
           y2: mark.y2,
-          stroke: mark.role === "grid" ? gridToken : axisToken,
+          stroke:
+            mark.role === "grid"
+              ? gridToken
+              : mark.role === "reference"
+                ? referenceToken
+                : axisToken,
           strokeWidth: 1,
+          // ADR-217 — 기준선 파선 (DOM `stroke-dasharray` 와 같은 배열).
+          ...(mark.dash ? { strokeDasharray: [...mark.dash] } : {}),
         });
         return;
       case "text":

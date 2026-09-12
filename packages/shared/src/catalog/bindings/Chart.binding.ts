@@ -241,6 +241,26 @@ export const chartBinding: PrimitiveBinding = {
         section: "content",
         editorHidden: true,
       },
+      // ADR-217 — 값 축 기준선 (RSC ReferenceLine: value · label · lineType · layer). bar/line/area, ≤ 4.
+      //   패널은 `ChartReferenceLineControls` (Content) — generic 편집기는 숨긴다.
+      referenceLines: {
+        kind: "items-manager",
+        label: "Reference Lines",
+        section: "content",
+        editorHidden: true,
+        itemsManager: {
+          itemsKey: "referenceLines",
+          itemTypeName: "ChartReferenceLine",
+          defaultItem: { value: 0 },
+          itemSchema: [
+            { key: "value", type: "string", label: "Value" },
+            { key: "label", type: "string", label: "Label" },
+            { key: "lineType", type: "string", label: "Line Style" },
+            { key: "layer", type: "string", label: "Layer" },
+          ],
+          labelKey: "label",
+        },
+      },
       // collection items 데이터 — canonical 이 아니라 collections root 소유 (ListBox 동형).
       dataBinding: { kind: "binding", label: "Data", section: "content" },
       /**
@@ -597,6 +617,7 @@ export const chartBinding: PrimitiveBinding = {
       "dimensionScale",
       "dimensionFormat",
       "dimensionLabelFormat",
+      "referenceLines",
       "orientation",
       "stackType",
       "curve",

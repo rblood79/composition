@@ -15,6 +15,8 @@ const ROLE_FILL: Record<TextMark["role"], string> = {
   empty: "var(--chart-axis, currentColor)",
   // 값 레이블은 데이터를 읽는 글자다 — 축 보조색이 아니라 본문 전경색.
   value: "currentColor",
+  // ADR-217 — 기준선 라벨은 선과 같은 토큰.
+  reference: "var(--chart-reference, currentColor)",
 };
 
 const ANCHOR_MAP = {
@@ -111,9 +113,13 @@ export function renderMark(mark: Mark, key: string): React.ReactElement | null {
           stroke={
             mark.role === "grid"
               ? "var(--chart-grid, currentColor)"
-              : "var(--chart-axis, currentColor)"
+              : mark.role === "reference"
+                ? "var(--chart-reference, currentColor)"
+                : "var(--chart-axis, currentColor)"
           }
           strokeWidth={1}
+          // ADR-217 — 기준선 파선 (Skia `strokeDasharray` 와 같은 배열).
+          strokeDasharray={mark.dash ? mark.dash.join(" ") : undefined}
         />
       );
     case "text":

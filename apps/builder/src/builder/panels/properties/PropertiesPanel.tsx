@@ -35,6 +35,7 @@ import { buildChartSemanticFields } from "./chartFieldOptions";
 import { ChartAuthoringControls } from "./ChartAuthoringControls";
 import { ChartDataMappingControls } from "./ChartDataMappingControls";
 import { ChartTimeAxisControls } from "./ChartTimeAxisControls";
+import { ChartReferenceLineControls } from "./ChartReferenceLineControls";
 import {
   ChartSeriesControls,
   chartSeriesConfigApplies,
@@ -169,6 +170,8 @@ const CHART_CONTROL_FIELD_KEYS: ReadonlySet<string> = new Set([
   "dimensionScale",
   "dimensionFormat",
   "dimensionLabelFormat",
+  // ADR-217 — 기준선 (ChartReferenceLineControls).
+  "referenceLines",
   "dataBinding",
 ]);
 const EMPTY_FIELDS: ResolvedField[] = [];
@@ -433,6 +436,11 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
         <ChartTimeAxisControls
           fields={chartControlFields}
           rows={chartRows}
+          onPatch={handleChartPatch}
+        />
+        {/* ADR-217 — 값 축 기준선 목록 (값 · 라벨 · 선 모양 · 층). */}
+        <ChartReferenceLineControls
+          fields={chartControlFields}
           onPatch={handleChartPatch}
         />
       </>

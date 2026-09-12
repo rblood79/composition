@@ -198,6 +198,8 @@ export interface ComponentSpec<Props = Record<string, unknown>> {
     tooltipText?: string;
     /** ADR-211 — others 범주 토큰 (`--chart-others`) */
     others?: string;
+    /** ADR-217 — 기준선 토큰 (`--chart-reference`) */
+    reference?: string;
   };
 
   /** Variant 정의 (optional — ADR-062: RSP 미규정 Field 계열은 variants 없음) */

@@ -321,6 +321,12 @@ export const COMPONENT_KEY_ICONS: Record<
     dimensionScale: CalendarRange,
     dimensionFormat: CalendarDays,
     dimensionLabelFormat: Tag,
+    // content — ADR-217 기준선
+    referenceLines: Minus,
+    referenceValue: Minus,
+    referenceLabel: Tag,
+    referenceLineType: Minus,
+    referenceLayer: Layers,
   },
 };
 
