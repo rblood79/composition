@@ -1428,14 +1428,16 @@ const koKR: TranslationKeys = {
     licenseFileDeployed: "서버 배포 라이선스 사용",
     licenseFileChoose: "파일 선택",
     licenseFileNone: "라이선스 파일을 선택하세요",
-    licenseFileInvalid: "라이선스 파일 형식이 아닙니다",
+    licenseFileInvalid:
+      "라이선스 파일 (token.jwt) 이 아닙니다 — public_key 는 .env 설정용입니다",
     code: "검증 코드",
     codeDescription: "라이선스와 함께 전달받은 6자리 숫자",
     submit: "인증",
     verifying: "검증 중…",
     errorMalformed: "라이선스 파일을 읽을 수 없습니다",
     errorAlgorithm: "지원하지 않는 서명 방식입니다",
-    errorSignature: "유효하지 않은 라이선스입니다 (서명 불일치)",
+    errorSignature:
+      "서명 불일치 — .env 의 VITE_LICENSE_PUBLIC_KEY 가 이 토큰을 발급한 키 쌍의 public_key 인지 확인하세요",
     errorExpired: "만료된 라이선스입니다",
     errorCode: "검증 코드가 일치하지 않습니다",
     errorPublicKeyMissing:
@@ -3324,14 +3326,16 @@ const enUS: TranslationKeys = {
     licenseFileDeployed: "Using server license",
     licenseFileChoose: "Choose file",
     licenseFileNone: "Choose a license file",
-    licenseFileInvalid: "Not a license file",
+    licenseFileInvalid:
+      "Not a license file (token.jwt) — public_key belongs in .env",
     code: "Verification code",
     codeDescription: "The 6-digit number delivered with your license",
     submit: "Activate",
     verifying: "Verifying…",
     errorMalformed: "The license file could not be read",
     errorAlgorithm: "Unsupported signature algorithm",
-    errorSignature: "Invalid license (signature mismatch)",
+    errorSignature:
+      "Signature mismatch — check that VITE_LICENSE_PUBLIC_KEY in .env is the public_key of the pair that issued this token",
     errorExpired: "This license has expired",
     errorCode: "Verification code does not match",
     errorPublicKeyMissing:
