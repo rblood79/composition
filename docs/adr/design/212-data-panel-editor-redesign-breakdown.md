@@ -102,18 +102,18 @@
 - [ ] **이월** `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화라 export/redactor/번들 영향 검토 전제 (별도 커밋)
 - [x] 0행 · 오류 상태를 목록 배지 · 편집기 상단에 같은 값으로 (`findLinkedApi`+`apiRuns`, `.datatable-editor-status`). 캔버스 배지는 Phase 6
 
-### Phase 6 — 인스펙터 동선 + 캔버스 배지 — 부분 완료 2026-09-12 (`98a9ed7d8`)
+### Phase 6 — 인스펙터 동선 + 캔버스 배지 — 완료 2026-09-12 (`98a9ed7d8` 인스펙터 · `04b517c84`/`76da39dbd`/`dfd5425e6`/`b8bf4c694` 캔버스 배지, live 9/9 `scripts/adr212-p6-live.mjs`)
 
 - [x] `PropertyDataBinding` Select 옆 "이 테이블 열기" (`dataTableEditorStore.openTableEditor`, Phase 1 일반화 경로) · "사용처 N" (`resolveCollectionUsage` 152 역참조) · "새 테이블 만들기" (`openTableCreator`) (UX-1, B4). unit `PropertyDataBinding.test.tsx` 4 (죽은-오소링 계약 + 동선 행)
-- [ ] **이월** 캔버스 바인딩 배지 (UI-7, B3): Skia overlay 아이콘 + 테이블 이름 · 0행/오류 상태색 · hit 영역 클릭 → 편집기. canvas overlay 렌더러 통합 + hit region + Skia 픽셀 하니스가 필요해 별도 focused pass (렌더 회귀 위험 — 대규모 세션 말미에 끼워넣지 않음)
+- [x] 캔버스 바인딩 배지 (UI-7, B3): data-bound 요소 좌상단 Skia overlay 배지 (테이블 아이콘 + collection 이름 + 상태색 normal/empty/error) · hit region 클릭 → `openTableEditor`. 기존 선례 재사용 (remainder 마커 렌더 + 페이지 타이틀 scene-좌표 hit) 으로 최소 침습. S1 `resolveCollectionBadgeStatus` (목록 배지와 SSOT) · S2 `buildBindingBadgeTargets` (store 무의존, resolver 콜백) · S3 `renderBindingBadge` · S4 overlay 배선 (선택 chrome 앞, withPageOcclusionClip) · S5 BuilderCanvas resolver(getElementDataBinding→resolveStoreCollection→상태)+bounds ref · S6 onPointerDownCapture 배지 히트. 스키마 0 (lock-in §2) · 쓰기 0 (HC1) · 빌더 chrome 이라 D3 대칭 비대상. canvas/skia 455 test · pre-push visual-parity smoke PASS
 
-### Phase 7 — a11y 검수 + closure — 대기 (Phase 5·6 이월분 착지 후)
+### Phase 7 — a11y 검수 + closure — 대기 (Phase 5 이월분 착지 후 — Phase 6 캔버스 배지는 2026-09-12 완료)
 
 - [x] a11y (부분): 격자 axe critical 0 (G1) · 편집기 패널 axe critical 0 (G2, 탭 aria-controls 수리) · 필드 패널 axe critical 0. key-value 행별 Remove 고유 이름 · Body aria-multiline · 타입 목록 ListBox
-- [ ] 리서치 §4-5 전수 검수 (키보드만 시나리오 5 + axe 전 표면) — Phase 6 캔버스 배지 착지 후
+- [ ] 리서치 §4-5 전수 검수 (키보드만 시나리오 5 + axe 전 표면). 캔버스 배지 접근성: 키보드 대체 없음 — 배지는 편집기 진입 **부가** 경로이고 Data 패널 목록(`DataTableList`)이 키보드 정본 (WIG 준수, breakdown Phase 6)
 - [ ] `prefers-reduced-motion` · 아이콘 버튼 접근 가능한 이름 grep
 - [x] 원본 삭제: `DataTableEditor.tsx` SchemaEditor/MockDataEditor 서브 에디터 (Phase 2·3 에서 in-file 제거, 파일 자체는 존속) · `ApiEndpointEditor.tsx` 전면 재작성 (Run 탭 → Send 바). 별도 "원본 파일 삭제" 대상 없음
-- [ ] **대기** CHANGELOG (Features · Accessibility) · ADR README Implemented 승격 · `### Live Exercise` — Phase 5 (runtimeData 영속·실행 정책) · Phase 6 (캔버스 배지) 이월분이 착지해야 Implemented. 그 전까지 ADR 은 진행 중 (Proposed 유지)
+- [ ] **대기** CHANGELOG (Features · Accessibility) · ADR README Implemented 승격 · `### Live Exercise` — 남은 착지는 Phase 5 이월분(runtimeData IndexedDB 영속 · 실행 정책 필드)뿐이다. 이 둘은 lock-in §2 "collection 저장 형식 불변" 을 바꾸는 scope 확장이라 **사용자 판정 대기** (2026-09-12 사용자: Phase 6 먼저, Phase 5 영속은 보류). 그 전까지 ADR 은 진행 중 (Proposed 유지)
 
 ## 5. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
