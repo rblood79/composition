@@ -74,6 +74,16 @@ describe("Signin (라이선스 활성화)", () => {
     expect(localStorage.getItem(LOCAL_AUTH_STORAGE_KEY)).not.toContain('"vc"');
   });
 
+  it("6칸은 input 값을 비춘다 (input 하나 · 칸은 aria-hidden)", async () => {
+    render(<Signin />);
+    fireEvent.change(screen.getByRole("textbox"), { target: { value: "123" } });
+    const cells = document.querySelectorAll(".auth-code-cell");
+    expect(cells.length).toBe(6);
+    expect(Array.from(cells, (c) => c.textContent)).toEqual(["1", "2", "3", "", "", ""]);
+    expect(document.querySelectorAll(".auth-code-cell[data-filled]").length).toBe(3);
+    expect(screen.getAllByRole("textbox").length).toBe(1);
+  });
+
   it("틀린 코드 → 오류 문구, 기록 없음", async () => {
     render(<Signin />);
     await submitCode("000000");

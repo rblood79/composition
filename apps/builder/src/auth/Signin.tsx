@@ -53,6 +53,7 @@ const Signin = () => {
   const publicKey = useMemo(() => readBundledPublicKey(), []);
   const [source, setSource] = useState<LicenseSource>({ kind: "loading" });
   const [code, setCode] = useState("");
+  const [codeFocused, setCodeFocused] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lockedMs, setLockedMs] = useState(() => lockoutRemainingMs());
@@ -143,15 +144,33 @@ const Signin = () => {
             isDisabled={locked}
           >
             <Label>{t("code")}</Label>
-            <Input
-              className="react-aria-Input auth-code-input"
-              inputMode="numeric"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              autoComplete="one-time-code"
-              placeholder="000000"
-              autoFocus
-            />
+            {/* 접근성·붙여넣기·자동완성(one-time-code) 은 input 하나가 맡고, 6칸은 그 값을 비추는 시각 표현이다.
+                maxLength 는 두지 않는다 — "782-573" 처럼 구분자가 섞인 붙여넣기를 자르기 전에 onChange 가 숫자만 남긴다. */}
+            <div className="auth-code-cells" data-focused={codeFocused || undefined}>
+              <Input
+                className="react-aria-Input auth-code-input"
+                inputMode="numeric"
+                pattern="[0-9]{6}"
+                autoComplete="one-time-code"
+                spellCheck={false}
+                autoFocus
+                onFocus={() => setCodeFocused(true)}
+                onBlur={() => setCodeFocused(false)}
+              />
+              {Array.from({ length: 6 }, (_, i) => (
+                <span
+                  key={i}
+                  className="auth-code-cell"
+                  aria-hidden
+                  data-filled={i < code.length || undefined}
+                  data-active={
+                    codeFocused && i === Math.min(code.length, 5) ? true : undefined
+                  }
+                >
+                  {code[i] ?? ""}
+                </span>
+              ))}
+            </div>
             <Text slot="description">{t("codeDescription")}</Text>
             {error && <FieldError>{error}</FieldError>}
           </TextField>

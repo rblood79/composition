@@ -128,37 +128,73 @@
     color: var(--negative);
   }
 
-  .auth-code-input.react-aria-Input {
-    box-sizing: border-box;
+  /* 한 input 위에 6칸 — input 은 투명하게 전체를 덮어 클릭·키보드·붙여넣기·자동완성을 받고,
+     칸은 값을 비춘다. 활성 칸 (다음 입력 자리) 에 포커스 링. */
+  .auth-code-cells {
+    /* TextField 기본이 align-items: flex-start 라 자식이 내용 폭으로 줄어든다 — 가로를 채운다 */
+    align-self: stretch;
     width: 100%;
-    height: calc(var(--control-size-lg) + var(--spacing-sm));
-    padding: 0 var(--spacing-md);
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+  }
+
+  .auth-code-input.react-aria-Input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
     border: none;
+    background: transparent;
+    color: transparent;
+    caret-color: transparent;
+    font-family: inherit;
+    font-size: var(--text-xl);
+    letter-spacing: 1em;
+    outline: none;
+    z-index: 1;
+    cursor: text;
+  }
+
+  .auth-code-input.react-aria-Input::selection {
+    background: transparent;
+  }
+
+  .auth-code-cell {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: calc(var(--control-size-lg) + var(--spacing-md));
     border-radius: var(--radius-md);
     background: var(--bg-muted);
     color: var(--fg);
-    font-family: inherit;
     font-size: var(--text-xl);
+    font-weight: var(--font-weight-semibold);
     font-variant-numeric: tabular-nums;
-    letter-spacing: 0.35em;
-    text-align: center;
-    outline: none;
+    transition:
+      outline-color 0.12s ease,
+      background-color 0.12s ease;
   }
 
-  .auth-code-input.react-aria-Input::placeholder {
-    color: var(--fg-disabled);
-  }
-
-  .auth-code-input.react-aria-Input[data-focused] {
+  .auth-code-cell[data-active] {
     outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: 0;
   }
 
-  .auth-code-field[data-invalid] .auth-code-input.react-aria-Input {
+  .auth-code-field[data-invalid] .auth-code-cell {
     outline: var(--focus-ring-width) solid var(--negative);
+    outline-offset: 0;
+  }
+
+  .auth-code-field[data-disabled] .auth-code-cell {
+    opacity: 0.6;
   }
 
   .auth-code-field[data-disabled] .auth-code-input.react-aria-Input {
-    opacity: 0.6;
     cursor: not-allowed;
   }
 
