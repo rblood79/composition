@@ -12,6 +12,7 @@ import {
   type LicensePublicJwk,
 } from "../licenseToken";
 import { parsePublicKey } from "../licenseSource";
+import { ISSUER_PUBLIC_KEY_PEM } from "../issuerPublicKey";
 
 const publicJwk = fixture.publicJwk as LicensePublicJwk;
 
@@ -125,6 +126,11 @@ describe("공개키 형태 — PEM(SPKI) · 헤더 없는 본문 · 리터럴 \\
       const payload = await verifyLicenseToken(fixture.token, fixture.code, key!);
       expect(payload.license_key).toBe(fixture.licenseKey);
     }
+  });
+
+  it("내장 발급기 공개키는 SPKI 로 파싱된다 (env override 없이 동작)", () => {
+    const key = parsePublicKey(ISSUER_PUBLIC_KEY_PEM);
+    expect(key && "kind" in key && key.kind).toBe("spki");
   });
 
   it("손상·다른 형식은 null", () => {

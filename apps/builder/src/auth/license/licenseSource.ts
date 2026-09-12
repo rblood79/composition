@@ -7,19 +7,19 @@ import {
   type LicensePublicJwk,
   type LicensePublicKey,
 } from "./licenseToken";
+import { ISSUER_PUBLIC_KEY_PEM } from "./issuerPublicKey";
 
 /** 서버 루트에 배포된 라이선스 토큰 파일 — `apps/builder/public/license` (확장자 없음). 유일한 입력 경로. */
 export const LICENSE_FILE_NAME = "license";
 
 /**
- * 번들에 실린 발급기 공개키. `.env` 의 `VITE_LICENSE_PUBLIC_KEY` — 발급기 `public_key`
- * 파일 (PEM SPKI) 내용. 헤더 없는 base64 본문 한 줄 · JWK JSON 도 받는다.
- * 없거나 손상이면 null — 로그인 화면이 설정 오류로 안내한다.
+ * 발급기 공개키. 기본은 소스에 내장된 `ISSUER_PUBLIC_KEY_PEM` — 설정 없이 동작한다.
+ * `.env` `VITE_LICENSE_PUBLIC_KEY` 가 있으면 그것이 우선 (배포별 override · 테스트).
+ * PEM · 헤더 없는 base64 본문 한 줄 · JWK JSON 을 받는다. 손상이면 null.
  */
 export function readBundledPublicKey(): LicensePublicKey | null {
-  const raw = import.meta.env.VITE_LICENSE_PUBLIC_KEY as string | undefined;
-  if (!raw) return null;
-  return parsePublicKey(raw);
+  const override = import.meta.env.VITE_LICENSE_PUBLIC_KEY as string | undefined;
+  return parsePublicKey(override?.trim() ? override : ISSUER_PUBLIC_KEY_PEM);
 }
 
 export function parsePublicKey(raw: string): LicensePublicKey | null {

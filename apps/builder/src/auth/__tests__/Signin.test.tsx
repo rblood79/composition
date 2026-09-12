@@ -95,8 +95,8 @@ describe("Signin (라이선스 활성화)", () => {
     await screen.findByText("licenseFileNone");
   });
 
-  it("공개키 미설정이면 설정 오류 + 제출 불가", async () => {
-    vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", "");
+  it("override 공개키가 손상이면 설정 오류 + 제출 불가", async () => {
+    vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", "not-a-key");
     render(<Signin />);
     await screen.findByRole("alert");
     await screen.findByText("licenseFileDeployed");
