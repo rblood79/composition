@@ -92,4 +92,4 @@ docs/design/
 apps/builder/token
 apps/builder/token.jwt
 apps/builder/public/license
-apps/builder/scripts/.auth-session.json
+apps/builder/scripts/.auth-session*.json
