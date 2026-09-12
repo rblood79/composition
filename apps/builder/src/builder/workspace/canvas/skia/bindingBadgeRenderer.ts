@@ -37,6 +37,8 @@ export interface DataBadgeBounds {
   height: number;
   pageId: string | null;
   collectionId: string;
+  /** "normal" | "empty" | "error" — 색 검증(픽셀 대신)·진단용 */
+  state: string;
 }
 
 function clampName(name: string): string {
@@ -146,6 +148,7 @@ export function renderBindingBadge(
         height: badgeHeight * inv,
         pageId: target.pageId,
         collectionId: target.collectionId,
+        state: target.state,
       });
     }
   } finally {

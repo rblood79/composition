@@ -452,6 +452,25 @@ export function BuilderCanvas({
     },
     [],
   );
+  // dev 전용: 바인딩 배지 scene bounds + viewport(zoom·panOffset)를 하니스가 읽도록 노출
+  // (Skia 픽셀은 페이지에서 못 읽으므로 배지 검증·scene→screen 변환에 쓴다).
+  const viewportSnapshotRef = useRef({ zoom, panOffset });
+  viewportSnapshotRef.current = { zoom, panOffset };
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as {
+      __composition_DATA_BADGES__?: unknown;
+      __composition_VIEWPORT__?: () => { zoom: number; panOffset: unknown };
+      __composition_APPLY_VIEWPORT__?: (s: {
+        scale: number;
+        x: number;
+        y: number;
+      }) => void;
+    };
+    w.__composition_DATA_BADGES__ = dataBadgeBoundsMapRef.current;
+    w.__composition_VIEWPORT__ = () => viewportSnapshotRef.current;
+    w.__composition_APPLY_VIEWPORT__ = (s) => applyViewportState(s);
+  }, []);
   const lastPageTitleHitRef = useRef<PageTitleHitSnapshot | null>(null);
   const pageTitleRenameCancelRef = useRef(false);
   const [pageTitleEditState, setPageTitleEditState] =
