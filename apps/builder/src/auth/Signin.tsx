@@ -23,7 +23,7 @@ import {
 import {
   fetchDeployedLicenseToken,
   looksLikeJwt,
-  readBundledPublicJwk,
+  readBundledPublicKey,
 } from "./license/licenseSource";
 import {
   lockoutRemainingMs,
@@ -53,7 +53,7 @@ const Signin = () => {
   const t = (key: string, params?: Record<string, string | number>) =>
     i18n ? i18n.t(`auth.${key}`, params) : key;
 
-  const publicJwk = useMemo(() => readBundledPublicJwk(), []);
+  const publicKey = useMemo(() => readBundledPublicKey(), []);
   const [source, setSource] = useState<LicenseSource>({ kind: "loading" });
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
@@ -88,7 +88,7 @@ const Signin = () => {
   const codeValid = /^\d{6}$/.test(code);
   const locked = lockedMs > 0;
   const canSubmit =
-    !!publicJwk && !!token && codeValid && !verifying && !locked;
+    !!publicKey && !!token && codeValid && !verifying && !locked;
 
   const handleFile = async (files: FileList | null) => {
     const file = files?.[0];
@@ -104,11 +104,11 @@ const Signin = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!canSubmit || !publicJwk || !token) return;
+    if (!canSubmit || !publicKey || !token) return;
     setVerifying(true);
     setError(null);
     try {
-      const payload = await verifyLicenseToken(token, code, publicJwk);
+      const payload = await verifyLicenseToken(token, code, publicKey);
       resetAttempts();
       saveAuth(payload);
       navigate("/dashboard");
@@ -183,7 +183,7 @@ const Signin = () => {
             {error && <FieldError>{error}</FieldError>}
           </TextField>
 
-          {!publicJwk && (
+          {!publicKey && (
             <p className="auth-config-error" role="alert">
               {t("errorPublicKeyMissing")}
             </p>

@@ -11,6 +11,7 @@ import {
   verifyLicenseToken,
   type LicensePublicJwk,
 } from "../licenseToken";
+import { parsePublicKey } from "../licenseSource";
 
 const publicJwk = fixture.publicJwk as LicensePublicJwk;
 
@@ -104,6 +105,33 @@ describe("verifyLicenseToken — 발급기 토큰 계약", () => {
     expect(
       await reason(verifyLicenseToken("not-a-jwt", fixture.code, publicJwk)),
     ).toBe("malformed");
+  });
+});
+
+describe("공개키 형태 — PEM(SPKI) · 헤더 없는 본문 · 리터럴 \\n · JWK", () => {
+  it("parsePublicKey 4 형태가 모두 같은 키로 서명을 검증한다", async () => {
+    const pemHeaderless = fixture.publicPem
+      .replace(/-----(BEGIN|END) PUBLIC KEY-----/g, "")
+      .replace(/\s+/g, "");
+    const forms = [
+      fixture.publicPem,
+      pemHeaderless,
+      fixture.publicPem.replace(/\n/g, "\\n"),
+      JSON.stringify(fixture.publicJwk),
+    ];
+    for (const raw of forms) {
+      const key = parsePublicKey(raw);
+      expect(key, raw.slice(0, 20)).not.toBeNull();
+      const payload = await verifyLicenseToken(fixture.token, fixture.code, key!);
+      expect(payload.license_key).toBe(fixture.licenseKey);
+    }
+  });
+
+  it("손상·다른 형식은 null", () => {
+    expect(parsePublicKey("")).toBeNull();
+    expect(parsePublicKey("-----BEGIN PRIVATE KEY-----\nMIG…\n-----END PRIVATE KEY-----")).toBeNull();
+    expect(parsePublicKey("{\"kty\":\"RSA\"}")).toBeNull();
+    expect(parsePublicKey("QUJDREVGRw==")).toBeNull();
   });
 });
 

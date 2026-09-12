@@ -14,6 +14,14 @@ export interface LicensePublicJwk {
   y: string;
 }
 
+/** PEM(SPKI) 에서 읽은 DER 공개키 — 발급기 `public_key` 파일 형태. */
+export interface LicensePublicSpki {
+  kind: "spki";
+  der: Uint8Array<ArrayBuffer>;
+}
+
+export type LicensePublicKey = LicensePublicJwk | LicensePublicSpki;
+
 export interface SealedVerificationCode {
   v: 1;
   kdf: "PBKDF2-SHA256";
@@ -55,7 +63,7 @@ const SIGN_ALG = { name: "ECDSA", hash: "SHA-256" } as const;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
-function base64urlDecode(text: string): Uint8Array<ArrayBuffer> {
+export function base64urlDecode(text: string): Uint8Array<ArrayBuffer> {
   const pad = "=".repeat((4 - (text.length % 4)) % 4);
   const bin = atob(text.replace(/-/g, "+").replace(/_/g, "/") + pad);
   const bytes = new Uint8Array(new ArrayBuffer(bin.length));
@@ -121,10 +129,13 @@ export async function openVerificationCode(
   }
 }
 
-async function importPublicKey(jwk: LicensePublicJwk): Promise<CryptoKey> {
+async function importPublicKey(key: LicensePublicKey): Promise<CryptoKey> {
+  if ("kind" in key) {
+    return crypto.subtle.importKey("spki", key.der, EC_ALG, false, ["verify"]);
+  }
   return crypto.subtle.importKey(
     "jwk",
-    { kty: jwk.kty, crv: jwk.crv, x: jwk.x, y: jwk.y },
+    { kty: key.kty, crv: key.crv, x: key.x, y: key.y },
     EC_ALG,
     false,
     ["verify"],
@@ -143,7 +154,7 @@ export interface VerifyLicenseOptions {
 export async function verifyLicenseToken(
   token: string,
   code: string,
-  publicJwk: LicensePublicJwk,
+  publicKey: LicensePublicKey,
   options: VerifyLicenseOptions = {},
 ): Promise<LicensePayload> {
   const parts = token.trim().split(".");
@@ -161,7 +172,7 @@ export async function verifyLicenseToken(
 
   let valid = false;
   try {
-    const key = await importPublicKey(publicJwk);
+    const key = await importPublicKey(publicKey);
     valid = await crypto.subtle.verify(
       SIGN_ALG,
       key,

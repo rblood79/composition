@@ -35,7 +35,7 @@ describe("Signin (라이선스 활성화)", () => {
   beforeEach(() => {
     localStorage.clear();
     mockNavigate.mockReset();
-    vi.stubEnv("VITE_LICENSE_PUBLIC_JWK", JSON.stringify(fixture.publicJwk));
+    vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", fixture.publicPem);
     // 서버 루트 license.jwt 없음 → 파일 선택 경로
     vi.stubGlobal(
       "fetch",
@@ -121,7 +121,7 @@ describe("Signin (라이선스 활성화)", () => {
   });
 
   it("공개키 미설정이면 설정 오류 + 제출 불가", async () => {
-    vi.stubEnv("VITE_LICENSE_PUBLIC_JWK", "");
+    vi.stubEnv("VITE_LICENSE_PUBLIC_KEY", "");
     render(<Signin />);
     await screen.findByRole("alert");
     pickFile(fixture.token);

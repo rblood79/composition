@@ -1439,7 +1439,7 @@ const koKR: TranslationKeys = {
     errorExpired: "만료된 라이선스입니다",
     errorCode: "검증 코드가 일치하지 않습니다",
     errorPublicKeyMissing:
-      "발급기 공개키가 설정되지 않았습니다 (VITE_LICENSE_PUBLIC_JWK)",
+      "발급기 공개키가 설정되지 않았습니다 (VITE_LICENSE_PUBLIC_KEY)",
     errorLocked: "시도 횟수를 초과했습니다. {seconds}초 후 다시 시도하세요",
   },
   errors: {
@@ -3335,7 +3335,7 @@ const enUS: TranslationKeys = {
     errorExpired: "This license has expired",
     errorCode: "Verification code does not match",
     errorPublicKeyMissing:
-      "Issuer public key is not configured (VITE_LICENSE_PUBLIC_JWK)",
+      "Issuer public key is not configured (VITE_LICENSE_PUBLIC_KEY)",
     errorLocked: "Too many attempts. Try again in {seconds}s",
   },
   errors: {

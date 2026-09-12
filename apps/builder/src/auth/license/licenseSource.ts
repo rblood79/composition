@@ -2,19 +2,42 @@
  * 라이선스 입력 원천 — 공개키 (번들) 와 토큰 파일 (서버 루트 또는 사용자 선택).
  */
 
-import type { LicensePublicJwk } from "./licenseToken";
+import {
+  base64urlDecode,
+  type LicensePublicJwk,
+  type LicensePublicKey,
+} from "./licenseToken";
 
 /** 서버 루트에 배포된 토큰 파일 경로 (`public/license.jwt`). 없으면 파일 선택으로 폴백. */
 export const LICENSE_FILE_NAME = "license.jwt";
 
 /**
- * 번들에 실린 발급기 공개 JWK. `.env` 의 `VITE_LICENSE_PUBLIC_JWK` (JSON 한 줄).
+ * 번들에 실린 발급기 공개키. `.env` 의 `VITE_LICENSE_PUBLIC_KEY` — 발급기 `public_key`
+ * 파일 (PEM SPKI) 내용. 헤더 없는 base64 본문 한 줄 · JWK JSON 도 받는다.
  * 없거나 손상이면 null — 로그인 화면이 설정 오류로 안내한다.
  */
-export function readBundledPublicJwk(): LicensePublicJwk | null {
-  const raw = import.meta.env.VITE_LICENSE_PUBLIC_JWK as string | undefined;
+export function readBundledPublicKey(): LicensePublicKey | null {
+  const raw = import.meta.env.VITE_LICENSE_PUBLIC_KEY as string | undefined;
   if (!raw) return null;
-  return parsePublicJwk(raw);
+  return parsePublicKey(raw);
+}
+
+export function parsePublicKey(raw: string): LicensePublicKey | null {
+  const text = raw.trim();
+  if (text.startsWith("{")) return parsePublicJwk(text);
+  // PEM: 헤더/푸터·개행 (.env 에서는 리터럴 "\n" 일 수 있다) 을 벗기고 DER 로
+  const body = text
+    .replace(/\\n/g, "")
+    .replace(/-----(BEGIN|END) PUBLIC KEY-----/g, "")
+    .replace(/\s+/g, "");
+  if (!/^[A-Za-z0-9+/=_-]+$/.test(body) || body.length < 40) return null;
+  try {
+    const der = base64urlDecode(body.replace(/=+$/, ""));
+    // SPKI DER 는 SEQUENCE(0x30) 로 시작한다
+    return der[0] === 0x30 ? { kind: "spki", der } : null;
+  } catch {
+    return null;
+  }
 }
 
 export function parsePublicJwk(raw: string): LicensePublicJwk | null {
