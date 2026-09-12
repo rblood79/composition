@@ -2,6 +2,7 @@ import { importCollectionEnvelope } from "../utils/importCollectionEnvelope";
 import {
   toRuntimeApiEndpoint,
   toRuntimeCollection,
+  toExportCollection,
 } from "@composition/shared";
 import { startLocalWebVitals } from "../performance/localWebVitals";
 import React, { useState, useCallback, useEffect, useRef } from "react";
@@ -121,6 +122,7 @@ import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { getCanonicalReusableFrameLayouts } from "../stores/canonical/canonicalFrameStore";
 import { useDataStore } from "../stores/data";
+import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { resolveCollectionByName } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
 
@@ -223,6 +225,8 @@ function hasPageShellTopologyChanged(
 export const BuilderCore: React.FC = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const { t } = useI18n();
+  // ADR-218 — interval 실행 정책 스케줄러 (자기 재예약·coalesce·cleanup, 타이머 leak 0)
+  useExecutionPolicyScheduler();
   const [projectInfo, setProjectInfo] = useState<Project | null>(null);
   // effect가 시작되기 전 첫 render부터 loading이어야 chrome flash가 없다.
   const [projectBootstrapPhase, setProjectBootstrapPhase] =
@@ -1115,7 +1119,24 @@ export const BuilderCore: React.FC = () => {
   // );
 
   // 프리뷰 관련 핸들러들
-  const handlePreview = useCallback(() => {
+  const handlePreview = useCallback(async () => {
+    // ADR-218 — auto 정책: Preview 열기 전, executionPolicy.mode==="auto" collection 의
+    // 연결된 endpoint 를 1회 실행 (host=Builder). manual/interval 은 대상 아님.
+    const dataState = useDataStore.getState();
+    const autoEndpoints = Array.from(dataState.apiEndpoints.values());
+    const autoRuns: Promise<unknown>[] = [];
+    for (const c of dataState.collections.values()) {
+      if (c.executionPolicy?.mode !== "auto") continue;
+      const ep = autoEndpoints.find(
+        (e) =>
+          e.targetCollectionId === c.id ||
+          (!e.targetCollectionId && e.targetCollection === c.name),
+      );
+      if (ep)
+        autoRuns.push(dataState.executeApiEndpoint(ep.id).catch(() => {}));
+    }
+    if (autoRuns.length > 0) await Promise.all(autoRuns);
+
     // Store에서 현재 상태 가져오기
     const state = useStore.getState();
     const { currentPageId: storeCurrentPageId } = state;
@@ -1177,7 +1198,7 @@ export const BuilderCore: React.FC = () => {
         loadFontRegistry(),
         undefined,
         Array.from(useDataStore.getState().collections.values()).map(
-          toRuntimeCollection,
+          toExportCollection,
         ),
         Array.from(useDataStore.getState().apiEndpoints.values()).map(
           toRuntimeApiEndpoint,

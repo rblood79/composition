@@ -45,12 +45,56 @@ export function toRuntimeCollection(
   };
 }
 
+/**
+ * ADR-218 — export(JSON) 채널 전용 collection 투영. `toRuntimeCollection` 의 정의 필드 +
+ * **executionPolicy**(import 복원용). `runtimeData`(API 응답, 세션 캐시)는 **제외** — Preview
+ * postMessage 채널만 응답을 싣는다(채널별 projection 분리, R5). secret 원문은 어느 채널에도
+ * 실리지 않는다(endpoint 는 `toRuntimeApiEndpoint` 가 `{{secret.NAME}}` 참조만, HC6).
+ */
+export function toExportCollection(
+  table: DataTableDefinition,
+): DataTableDefinition {
+  const base = toRuntimeCollection(table);
+  return {
+    ...base,
+    ...(table.executionPolicy !== undefined
+      ? { executionPolicy: table.executionPolicy }
+      : {}),
+  };
+}
+
 /** 저장소의 관리 메타데이터/서버 비밀 매핑은 runtime envelope에 복사하지 않는다. */
-export function toRuntimeApiEndpoint(endpoint: ApiEndpointDefinition): ApiEndpointDefinition {
-  const {id, name, baseUrl, path, method, headers, queryParams, bodyType, bodyTemplate,
-    responseMapping, executionMode, timeout} = endpoint;
-  return {id, name, baseUrl, path, method, headers, queryParams, bodyType, bodyTemplate,
-    responseMapping, executionMode, timeout};
+export function toRuntimeApiEndpoint(
+  endpoint: ApiEndpointDefinition,
+): ApiEndpointDefinition {
+  const {
+    id,
+    name,
+    baseUrl,
+    path,
+    method,
+    headers,
+    queryParams,
+    bodyType,
+    bodyTemplate,
+    responseMapping,
+    executionMode,
+    timeout,
+  } = endpoint;
+  return {
+    id,
+    name,
+    baseUrl,
+    path,
+    method,
+    headers,
+    queryParams,
+    bodyType,
+    bodyTemplate,
+    responseMapping,
+    executionMode,
+    timeout,
+  };
 }
 
 /** Preview/Publish의 기존 CollectionDataProvider에 제공하는 동일 snapshot adapter. */
@@ -66,6 +110,9 @@ export function createCollectionSnapshotServices(
         return table ? resolveCollectionSnapshot(table) : undefined;
       },
     },
-    apiEndpointService: { getApiEndpoints: () => endpoints, executeApiEndpoint: createCollectionEndpointExecutor(endpoints) },
+    apiEndpointService: {
+      getApiEndpoints: () => endpoints,
+      executeApiEndpoint: createCollectionEndpointExecutor(endpoints),
+    },
   };
 }

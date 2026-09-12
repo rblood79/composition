@@ -49,6 +49,10 @@ import type {
   DataStoreActions,
 } from "../../../types/builder/data.types";
 
+// ADR-218 (R2/HC5) — collection 별 실행 시퀀스. 완료는 시작 seq 가 여전히 최신일 때만
+// store·캐시를 수용한다 (늦은 A 가 빠른 B 를 덮지 못함). 세션 전용 (영속·History 무관).
+const runSeqByCollection = new Map<string, number>();
+
 // Type aliases for set/get
 type DataStore = DataStoreState & DataStoreActions;
 type SetState = Parameters<StateCreator<DataStore>>[0];
@@ -761,6 +765,10 @@ export const createExecuteApiEndpointAction =
         schema: startTarget?.schema,
         secretRevisions: startSecretRevisions,
       });
+      // ADR-218 (R2/HC5) — 이 실행의 시퀀스 번호 (target collection 기준). 완료 시 최신인지 확인.
+      const seqKey = startTarget?.id ?? endpoint.targetCollectionId ?? id;
+      const startSeq = (runSeqByCollection.get(seqKey) ?? 0) + 1;
+      runSeqByCollection.set(seqKey, startSeq);
       const fetchHeaders: Record<string, string> = {};
       for (const [k, v] of Object.entries(headers)) {
         fetchHeaders[k] = substituteSecrets(v, secrets);
@@ -854,7 +862,11 @@ export const createExecuteApiEndpointAction =
           const runtimeData = Array.isArray(mappedData)
             ? mappedData
             : [mappedData];
-          if (endRev === startRev) {
+          // ADR-218 (R2/HC5) — 이 실행이 여전히 최신 seq 인지. 더 늦게 시작한 실행이
+          // 이미 있으면(늦은 A ← 빠른 B) 이 응답은 버린다 (single-flight 수용).
+          const isLatest =
+            (runSeqByCollection.get(targetTable.id) ?? startSeq) === startSeq;
+          if (endRev === startRev && isLatest) {
             const newDataTables = new Map(collections);
             newDataTables.set(targetTable.id, {
               ...targetTable,
@@ -889,7 +901,11 @@ export const createExecuteApiEndpointAction =
             }
           } else {
             console.warn(
-              `[ADR-218] '${targetTable.name}' 응답 폐기 — 실행 중 소스/인증 변경 (지문 불일치)`,
+              `[ADR-218] '${targetTable.name}' 응답 폐기 — ${
+                endRev !== startRev
+                  ? "실행 중 소스/인증 변경 (지문 불일치)"
+                  : "더 늦은 실행이 우선 (single-flight seq)"
+              }`,
             );
           }
         }

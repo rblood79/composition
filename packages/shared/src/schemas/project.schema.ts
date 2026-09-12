@@ -172,6 +172,13 @@ export const ExportedProjectSchema = z
           mockData: z.array(z.record(z.string(), z.unknown())).optional(),
           runtimeData: z.array(z.record(z.string(), z.unknown())).optional(),
           useMockData: z.boolean().optional(),
+          // ADR-218 — 실행 정책은 export 에 보존(import 복원). runtimeData 는 export 채널 제외.
+          executionPolicy: z
+            .object({
+              mode: z.enum(["auto", "manual", "interval"]),
+              intervalSec: z.number().int().positive().optional(),
+            })
+            .optional(),
           status: z.enum(["idle", "loading", "success", "error"]).optional(),
           error: z.string().nullable().optional(),
         }),
