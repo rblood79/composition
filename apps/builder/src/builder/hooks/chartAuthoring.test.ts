@@ -31,7 +31,7 @@ describe("Chart 생성/저장 호환", () => {
       "chart-area",
     ]);
   });
-  it("6종 팔레트가 canonical Chart와 초기 props를 factory에 한 번에 준다", () => {
+  it("7종 팔레트가 canonical Chart와 초기 props를 factory에 한 번에 준다", () => {
     const items = getPaletteItems().filter(
       (item) => item.category === "charts",
     );
@@ -42,6 +42,8 @@ describe("Chart 생성/저장 호환", () => {
       "chart-pie",
       "chart-radar",
       "chart-radial",
+      // ADR-217
+      "chart-scatter",
     ]);
     for (const item of items) {
       expect(item.componentType).toBe("Chart");

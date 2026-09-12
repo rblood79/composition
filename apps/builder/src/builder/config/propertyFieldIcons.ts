@@ -40,6 +40,7 @@ import {
   Lock,
   MessageSquare,
   Minus,
+  Ruler,
   MousePointerClick,
   Move,
   PaintBucket,
@@ -320,13 +321,9 @@ export const COMPONENT_KEY_ICONS: Record<
     // content — ADR-216 시간축
     dimensionScale: CalendarRange,
     dimensionFormat: CalendarDays,
-    dimensionLabelFormat: Tag,
-    // content — ADR-217 기준선
-    referenceLines: Minus,
-    referenceValue: Minus,
-    referenceLabel: Tag,
-    referenceLineType: Minus,
-    referenceLayer: Layers,
+    dimensionLabelFormat: TextQuote,
+    // content — ADR-217 기준선 (binding key 하나 — 편집기의 값/레이블/선 모양/층 은 kind 기본 아이콘)
+    referenceLines: Ruler,
   },
 };
 
