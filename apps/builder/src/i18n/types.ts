@@ -587,6 +587,7 @@ export interface TranslationKeys {
     pieChart: string;
     radarChart: string;
     radialChart: string;
+    scatterChart: string;
     changeTarget: string;
     rowCapHint: string;
     runtimeHint: string;
@@ -660,6 +661,7 @@ export interface TranslationKeys {
     dimensionScale: string;
     scaleCategory: string;
     scaleTime: string;
+    scaleLinear: string;
     timeOnlyLineArea: string;
     timeHint: string;
     dimensionFormat: string;

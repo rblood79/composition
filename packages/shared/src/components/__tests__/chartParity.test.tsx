@@ -589,3 +589,87 @@ describe("ADR-217 — 기준선 두 leg (line/dash/라벨 좌표 · 토큰 · do
     },
   );
 });
+
+describe("ADR-217 — 산점도 두 leg (Skia allowlist · 점 path d · 불투명 · 숫자/시간 x 눈금)", () => {
+  const SCATTER_ROWS: ChartRow[] = [
+    { x: 1, y: 10, series: "a" },
+    { x: 1, y: 30, series: "a" },
+    { x: 2, y: 20, series: "a" },
+    { x: 4, y: 40, series: "a" },
+    { x: 4, y: 40, series: "a" },
+    { x: 3, y: 15, series: "b" },
+  ];
+  const scatterProps = (extra: Partial<ChartProps> = {}): ChartProps => ({
+    ...CHART_DEFAULT_PROPS,
+    chartType: "scatter",
+    dimension: "x",
+    metric: "y",
+    color: "series",
+    showLegend: false,
+    ...extra,
+  });
+  const skiaScatter = (chartProps: ChartProps, rows: ChartRow[]): Shape[] =>
+    SKIA_PRIMITIVES.chart_scene!({
+      props: {
+        ...chartProps,
+        size: "md",
+        data: rows,
+        _containerWidth: SIZE.width,
+        _containerHeight: SIZE.height,
+        _chartRule: CHART_RULE.chart,
+      },
+      size: CHART_RULE.sizes.md as never,
+      visual: undefined,
+      paint: {
+        backgroundColor: "{color.layer-1}",
+        color: "{color.neutral}",
+        borderColor: "{color.border}",
+        backgroundAlpha: 1,
+        staticTrackWash: false,
+        hasVisibleBoxPaint: true,
+        hasOpaqueCatalogBackground: true,
+      },
+      style: undefined,
+    })!;
+
+  it.each([
+    ["linear x", scatterProps(), SCATTER_ROWS],
+    [
+      "time x",
+      scatterProps({ dimensionScale: "time" }),
+      [
+        { x: "2026-01-01", y: 1, series: "a" },
+        { x: "2026-01-03", y: 2, series: "a" },
+        { x: "2026-01-01", y: 3, series: "b" },
+        { x: "2026-02-10", y: 4, series: "a" },
+      ] as ChartRow[],
+    ],
+  ])(
+    "%s — 점 path d 두 leg byte 동일 · Skia fillAlpha 1 · 눈금 문자열 동일",
+    (_name, p, rows) => {
+      const metrics = resolveChartMetrics(CHART_RULE.chart, "md");
+      const scene = computeChartScene(p, rows, SIZE, metrics);
+      const skia = skiaScatter(p, rows);
+      const skiaPaths = skia.filter(
+        (s): s is Extract<Shape, { type: "path" }> => s.type === "path",
+      );
+      expect(skiaPaths.length).toBe(2); // 시리즈 2 → 점 path 2
+      for (const s of skiaPaths) expect(s.fillAlpha).toBe(1);
+      const domD = attr(
+        renderToStaticMarkup(<svg>{renderChartScene(scene)}</svg>),
+        "path",
+        "d",
+      );
+      expect(skiaPaths.map((s) => s.d)).toEqual(domD);
+      const domMarkup = renderToStaticMarkup(
+        <svg>{renderChartScene(scene)}</svg>,
+      );
+      expect(attr(domMarkup, "path", "fill-opacity")).toEqual(["1", "1"]);
+      const sceneTicks = scene.axes.flatMap((a) => a.ticks.map((t) => t.text));
+      const skiaTexts = skia
+        .filter((s) => s.type === "text")
+        .map((s) => (s as { text: string }).text);
+      expect(skiaTexts).toEqual(sceneTicks);
+    },
+  );
+});

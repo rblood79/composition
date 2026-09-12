@@ -197,6 +197,9 @@ describe("ADR-209 실제 runtime adapter의 최종 기하", () => {
         showTotal: true,
       }));
   for (const descriptor of CHART_DESCRIPTORS) {
+    // ADR-217 — 산점도는 점마다 path (Recharts `Scatter` shape) 라 시리즈당 path 1 인 scene 과 1:1 이
+    //   아니다 — 점 중심 대조는 `adr217Scatter.browser.test.tsx` 가 한다.
+    if (descriptor.chartType === "scatter") continue;
     for (const preset of descriptor.presets)
       it(`${descriptor.chartType} / ${preset.id}`, async () => {
         await check({

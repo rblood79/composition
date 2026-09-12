@@ -2,6 +2,7 @@ import "./ChartAuthoringControls.css";
 import { memo, useDeferredValue, useMemo } from "react";
 import {
   CHART_DEFAULT_PROPS,
+  CHART_TYPES,
   resolveChartMetrics,
   resolveChartModel,
   supportsBudgetMode,
@@ -40,7 +41,8 @@ const AGGREGATES: readonly ChartBudgetAggregate[] = [
   "min",
 ];
 const AXES: readonly ChartBudgetAxis[] = ["auto", "category", "ordinal"];
-const CARTESIAN: readonly string[] = ["bar", "line", "area"];
+// ADR-217 — scatter 도 직교 (창 · 극값).
+const CARTESIAN: readonly string[] = ["bar", "line", "area", "scatter"];
 
 function pick<T extends string>(
   value: unknown,
@@ -142,11 +144,7 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
           })
         : t("chart.budgetFits", { n: budget.n })
       : null;
-  const chartType = pick<ChartType>(
-    props.chartType,
-    ["bar", "line", "area", "pie", "radar", "radial"],
-    "bar",
-  );
+  const chartType = pick<ChartType>(props.chartType, CHART_TYPES, "bar");
   const overflow = pick(props.budgetOverflow, OVERFLOWS, "auto");
   const aggregate = pick(props.budgetAggregate, AGGREGATES, "sum");
   const axis = pick(props.budgetAxis, AXES, "auto");

@@ -168,6 +168,15 @@ export const CHART_DESCRIPTORS: readonly ChartDescriptor[] = [
       ["total", "Total", { showTotal: true }],
     ],
   ),
+  // ADR-217 — 산점도: 행 = 점, x 숫자 (미설정 = linear) 또는 시간. 프리셋 없음.
+  descriptor(
+    "scatter",
+    "Scatter Chart",
+    "ScatterChart",
+    ["산점도", "분포", "점", "散布"],
+    { ...cartesian, showDots: true },
+    [],
+  ),
 ];
 
 export function getChartDescriptor(type: unknown): ChartDescriptor {
@@ -203,10 +212,20 @@ const legacySample: readonly ChartRow[] = [
   { category: "Thu", value: 14, series: "B" },
 ];
 
+/** ADR-217 — 산점도 sample (숫자 x · 겹친 점 1 쌍 · 시리즈 2). 범주 sample 은 x 파싱에 전부 실패한다. */
+const scatterSample: readonly ChartRow[] = [
+  { x: 1, y: 12, series: "A" },
+  { x: 2, y: 20, series: "A" },
+  { x: 3, y: 8, series: "A" },
+  { x: 4, y: 25, series: "A" },
+  { x: 4, y: 25, series: "A" },
+  { x: 1.5, y: 6, series: "B" },
+  { x: 2.5, y: 14, series: "B" },
+  { x: 3.5, y: 18, series: "B" },
+];
+
 /** Chart 직접 생성은 기존 bar 기본값, palette 생성은 종류별 기본값을 원자적으로 준다. */
-export function createChartInitialProps(
-  chartType?: ChartType,
-): ChartProps & {
+export function createChartInitialProps(chartType?: ChartType): ChartProps & {
   variant: string;
   size: string;
   data: ChartRow[];
@@ -214,10 +233,12 @@ export function createChartInitialProps(
 } {
   const fresh = chartType !== undefined;
   const single = chartType === "pie" || chartType === "radial";
+  const scatter = chartType === "scatter";
   return {
     ...CHART_DEFAULT_PROPS,
     color: "series",
     showLegend: true,
+    ...(scatter ? { dimension: "x", metric: "y" } : {}),
     ...(fresh
       ? {
           ...getChartDescriptor(chartType).defaults,
@@ -232,7 +253,7 @@ export function createChartInitialProps(
     variant: "default",
     size: "md",
     style: { width: 320 },
-    data: legacySample
+    data: (scatter ? scatterSample : legacySample)
       .filter((row) => !single || row.series === "A")
       .map((row) => ({ ...row })),
   };

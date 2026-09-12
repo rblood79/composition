@@ -30,7 +30,7 @@ describe("ADR-209 공통 저작/데이터 계약", () => {
     });
     expect(createChartInitialProps("pie").data).toHaveLength(4);
     expect(createChartInitialProps("radar").data).toHaveLength(8);
-    expect(new Set(CHART_DESCRIPTORS.map((d) => d.paletteId)).size).toBe(6);
+    expect(new Set(CHART_DESCRIPTORS.map((d) => d.paletteId)).size).toBe(7);
   });
   it("프리셋은 이전 소유 키를 reset하되 데이터와 실행 옵션을 소유하지 않는다", () => {
     const line = getChartDescriptor("line");

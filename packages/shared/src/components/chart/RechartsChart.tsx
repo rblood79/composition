@@ -23,12 +23,15 @@ import {
   Sector,
   Rectangle,
   Dot,
+  Scatter,
+  ScatterChart,
   type SectorProps,
   type LabelProps,
 } from "recharts";
 import {
   categoryColorIndex,
   buildReferenceLineMarks,
+  circlePath,
   clampWindowRange,
   resolveChartData,
   resolveChartAnimation,
@@ -313,10 +316,11 @@ export function RechartsChart({
         </div>
       );
     // ADR-216 — scene 과 같은 helper: 시간 모델이 있으면 epoch band + 시간 축 입력.
-    const { band, timeAxis } = resolveCategoryBand(
+    const { band, timeAxis, linearAxis } = resolveCategoryBand(
       model.time,
       grid,
       horizontal ? [plot.y, plot.y + plot.h] : [plot.x, plot.x + plot.w],
+      model.linear,
     );
     const value = linearScale(
       ticks.domain,
@@ -346,7 +350,7 @@ export function RechartsChart({
             gridRings: props.gridRings,
             fillGrid: props.fillGrid,
           })
-        : ["bar", "area", "line"].includes(props.chartType)
+        : ["bar", "area", "line", "scatter"].includes(props.chartType)
           ? buildAxes({
               categories: grid.categories,
               band,
@@ -359,6 +363,7 @@ export function RechartsChart({
               showGrid: props.showGrid,
               tickText,
               ...(timeAxis ? { time: timeAxis } : {}),
+              ...(linearAxis ? { linear: linearAxis } : {}),
             })
           : [];
     const legend = legendBox
@@ -430,29 +435,56 @@ export function RechartsChart({
               <div>
                 {String(payload[0]?.payload?.category ?? tooltipLabel ?? "")}
               </div>
-              {payload.map((entry, i) => {
-                const si = keys.indexOf(String(entry.dataKey));
-                const ci = Number(entry.payload?.categoryIndex ?? 0);
-                const raw =
-                  si >= 0 ? grid.series[si].values.get(ci) : entry.payload?.raw;
-                return (
-                  <div
-                    key={`${String(entry.dataKey)}-${i}`}
-                    style={{ display: "flex", gap: 6 }}
-                  >
-                    <span>
-                      {si >= 0
-                        ? seriesLabel(grid.series[si], "series")
-                        : entry.name}
-                    </span>
-                    <span>
-                      {typeof raw === "number"
-                        ? formatValue(raw)
-                        : String(raw ?? "")}
-                    </span>
-                  </div>
-                );
-              })}
+              {props.chartType === "scatter"
+                ? // ADR-217 — 점 하나 = 행 하나: Recharts payload 는 x·y 두 항목이라 시리즈 이름 + y 한 줄.
+                  (() => {
+                    const point = payload[0]?.payload as
+                      { si?: number; raw?: number } | undefined;
+                    const si = Number(point?.si ?? 0);
+                    return (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <span>
+                          {seriesLabel(
+                            grid.series[si] ?? grid.series[0],
+                            "series",
+                          )}
+                        </span>
+                        <span>
+                          {typeof point?.raw === "number"
+                            ? formatValue(point.raw)
+                            : ""}
+                        </span>
+                      </div>
+                    );
+                  })()
+                : null}
+              {props.chartType === "scatter"
+                ? null
+                : payload.map((entry, i) => {
+                    const si = keys.indexOf(String(entry.dataKey));
+                    const ci = Number(entry.payload?.categoryIndex ?? 0);
+                    const raw =
+                      si >= 0
+                        ? grid.series[si].values.get(ci)
+                        : entry.payload?.raw;
+                    return (
+                      <div
+                        key={`${String(entry.dataKey)}-${i}`}
+                        style={{ display: "flex", gap: 6 }}
+                      >
+                        <span>
+                          {si >= 0
+                            ? seriesLabel(grid.series[si], "series")
+                            : entry.name}
+                        </span>
+                        <span>
+                          {typeof raw === "number"
+                            ? formatValue(raw)
+                            : String(raw ?? "")}
+                        </span>
+                      </div>
+                    );
+                  })}
             </div>
           ) : null
         }
@@ -608,7 +640,9 @@ export function RechartsChart({
     // ADR-216 — 범주 축 domain: 시간이면 scene 과 같은 nice epoch domain, 아니면 슬롯 [0, n].
     const positionDomain: [number, number] = model.time
       ? [...model.time.domain]
-      : [0, n];
+      : model.linear
+        ? [...model.linear.domain]
+        : [0, n];
     // ADR-211 — `fitEff = 0` (플롯이 한 슬롯보다 좁다): Canvas scene 과 같이 마크·축 0 인 빈
     //   상자 + 진단만. "No data" 가 아니다 — 데이터는 있다 (`budget.plotTooSmall`).
     if (!n && model.input.categories.length > 0)
@@ -635,6 +669,79 @@ export function RechartsChart({
           No data
         </div>
       );
+
+    if (props.chartType === "scatter") {
+      // ADR-217 — 산점도: 시리즈당 `Scatter` (행 = 점), x/y 는 scene 과 같은 domain, 점은 custom shape
+      //   (반지름 `dotRadius`, **불투명** — round 1 m3). Recharts 는 좌표를 그리기만 한다 (P0 spike).
+      const r = dotRadius(metrics.strokeWidth);
+      const positionsOf = grid.positions ?? [];
+      return (
+        <ScatterChart {...common} margin={margin}>
+          <XAxis
+            hide
+            type="number"
+            dataKey={horizontal ? "y" : "x"}
+            domain={horizontal ? [...ticks.domain] : positionDomain}
+            allowDataOverflow
+          />
+          <YAxis
+            hide
+            type="number"
+            dataKey={horizontal ? "x" : "y"}
+            domain={horizontal ? positionDomain : [...ticks.domain]}
+            allowDataOverflow
+          />
+          {backdrop}
+          {keys.map((key, si) => {
+            const paint = seriesVar(grid.series[si].seriesIndex);
+            const points = Array.from(grid.series[si].values, ([ci, raw]) => ({
+              x: positionsOf[ci] ?? ci,
+              y: raw,
+              raw,
+              si,
+              categoryIndex: ci,
+              category: grid.categories[ci],
+              label: labelText(ci, raw),
+            }));
+            return (
+              <Scatter
+                key={key}
+                name={seriesLabel(grid.series[si], "series")}
+                data={points}
+                fill={paint}
+                // 점 = scene 과 같은 `circlePath` 문자열 (Skia subpath 와 글자까지 같다) — 불투명.
+                //   진입 애니메이션은 Recharts 가 `size` (면적, 암묵 Z 64) 를 0 → 64 로 보간한다 —
+                //   반지름을 그 비율의 제곱근으로 (면적 ∝ r²) 키운다. 정지 상태는 정확히 `r`.
+                shape={(entry: { cx?: number; cy?: number; size?: number }) => (
+                  <path
+                    data-chart-scatter-dot=""
+                    data-cx={entry.cx}
+                    data-cy={entry.cy}
+                    d={circlePath(
+                      entry.cx ?? 0,
+                      entry.cy ?? 0,
+                      typeof entry.size === "number" && entry.size < 64
+                        ? r * Math.sqrt(Math.max(0, entry.size) / 64)
+                        : r,
+                    )}
+                    fill={paint}
+                    fillOpacity={1}
+                    stroke="none"
+                  />
+                )}
+                {...animation}
+              >
+                {props.showValueLabels ? (
+                  <LabelList dataKey="label" content={pointLabel} />
+                ) : null}
+              </Scatter>
+            );
+          })}
+          {foreground}
+          {tooltip}
+        </ScatterChart>
+      );
+    }
 
     if (
       props.chartType === "bar" ||

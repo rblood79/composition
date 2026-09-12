@@ -21,7 +21,8 @@ const chartIcon = (key: string, kind: string) =>
 
 const EMPTY_ROWS: readonly ChartRow[] = [];
 const SCALES: readonly ChartDimensionScale[] = ["category", "time"];
-const TIME_TYPES: readonly string[] = ["line", "area"];
+// ADR-217 — scatter 도 시간 x 를 받는다 (linear 가 기본).
+const TIME_TYPES: readonly string[] = ["line", "area", "scatter"];
 const TIME_KEY: readonly string[] = ["time"];
 
 /**
@@ -50,6 +51,8 @@ export const ChartTimeAxisControls = memo(function ChartTimeAxisControls({
   ) as Record<string, unknown>;
   const chartType = String(props.chartType ?? CHART_DEFAULT_PROPS.chartType);
   const timeApplies = TIME_TYPES.includes(chartType);
+  // ADR-217 — 산점도에는 범주 스케일이 없다: 미설정/`category` 의 표시 이름은 "숫자" (해석 = linear).
+  const scatter = chartType === "scatter";
   const scale: ChartDimensionScale =
     props.dimensionScale === "time" ? "time" : "category";
   const format =
@@ -94,7 +97,7 @@ export const ChartTimeAxisControls = memo(function ChartTimeAxisControls({
   }, [rows, chartPropsKey]);
   const hint = [
     !timeApplies && scale === "time" ? t("chart.timeOnlyLineArea") : null,
-    timeApplies && scale === "category" && status.ordinal
+    timeApplies && !scatter && scale === "category" && status.ordinal
       ? t("chart.timeHint")
       : null,
     scale === "time" && status.parseFailures > 0
@@ -115,7 +118,11 @@ export const ChartTimeAxisControls = memo(function ChartTimeAxisControls({
         options={SCALES.map((value) => ({
           value,
           label:
-            value === "time" ? t("chart.scaleTime") : t("chart.scaleCategory"),
+            value === "time"
+              ? t("chart.scaleTime")
+              : scatter
+                ? t("chart.scaleLinear")
+                : t("chart.scaleCategory"),
         }))}
         translateOptions={false}
         disabledKeys={timeApplies ? undefined : TIME_KEY}

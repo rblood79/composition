@@ -51,6 +51,7 @@ export const chartBinding: PrimitiveBinding = {
           { value: "pie", label: "Pie" },
           { value: "radar", label: "Radar" },
           { value: "radial", label: "Radial" },
+          { value: "scatter", label: "Scatter" },
         ],
       },
       dimension: {
@@ -308,8 +309,11 @@ export const chartBinding: PrimitiveBinding = {
           { value: "vertical", label: "Vertical" },
           { value: "horizontal", label: "Horizontal" },
         ],
-        // 극좌표·pie 는 읽지 않는다 (computeChartScene.ts:417,487,502).
-        visibleWhen: { key: "chartType", oneOf: ["bar", "line", "area"] },
+        // 극좌표·pie 는 읽지 않는다 (computeChartScene.ts:417,487,502). ADR-217 scatter 도 읽는다.
+        visibleWhen: {
+          key: "chartType",
+          oneOf: ["bar", "line", "area", "scatter"],
+        },
       },
       stackType: {
         kind: "enum",
