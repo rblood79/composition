@@ -37,7 +37,7 @@
 
 #### [214](214-variables-owner-model-runtime-state.md) — Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
-- **상태**: Proposed (2026-09-11) — 사용자 판정 ⑤ (2026-09-10, 전역 + 컴포넌트 지역 변수 · 런타임 wiring)
+- **상태**: Accepted (In Progress) — Phase 0~1 완료 (G1 live 10/10, 2026-09-13 `adr214-p1-live.mjs`) · Phase 2 착수 — 사용자 판정 ⑤ (2026-09-10, 전역 + 컴포넌트 지역 변수 · 런타임 wiring)
 - **규모**: 소비처 0 인 Variables 에 역할 부여 — 모델 하나 (`VariableDef` + `VariableOwner` project/page/element), 저장은 소유자별 (프로젝트 = 기존 store · 페이지 · 요소 = canonical `state?` 필드, 삭제 · 복제 · origin/instance 자동), 가시성 = 소유자 서브트리 (이름은 사슬 안 고유), 읽기 `{{ name }}` (캔버스 기본값 env · preview 런타임 env 같은 해석기), 쓰기 `setState` 액션 (set/toggle/increment/reset), 암묵 RAC 상태 이름 붙이기, 관리 표면 3 (Data 탭 인덱스 · Navigator 페이지 설정 · Properties 상태 절). Phase 0~~6 / R1~~R7 / G0~~G4, HIGH 0. 152 와 직교 (base). design breakdown `design/214-variables-owner-model-runtime-state-breakdown.md`
 - **우선순위**: P2 — 212 Phase 1 뒤 (Variables 탭 표면 공유), 213 후속 `list_variables` 는 범위 밖
 

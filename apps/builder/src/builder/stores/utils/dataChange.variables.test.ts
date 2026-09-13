@@ -342,6 +342,29 @@ describe("applyDataChange — define_variable", () => {
     expect(variables().get("userName")?.id).toBe("v_user");
   });
 
+  it("변수 0개 프로젝트에서 첫 생성 → undo → redo (record:false, projectId 미전달) 가 store 의 currentProjectId 로 같은 id 를 되살린다 (G1 live 결함)", async () => {
+    const { apply, variables, state } = makeStore();
+    state.variables = new Map();
+    state.currentProjectId = "p-current";
+    const created = await apply({
+      ops: [
+        {
+          op: "define_variable",
+          definition: { name: "userName", type: "string", defaultValue: "guest" },
+        },
+      ],
+      origin: "user",
+    });
+    const id = (created.applied[0] as { variableId: string }).variableId;
+    expect(variables().get("userName")?.project_id).toBe("p-current");
+    await apply({ ops: created.inverse, origin: "user" }, { record: false });
+    expect(variables().size).toBe(0);
+    // redo = applied op 재적용 — projectId 옵션 없음, 변수 0개
+    await apply({ ops: created.applied, origin: "user" }, { record: false });
+    expect(variables().get("userName")?.id).toBe(id);
+    expect(variables().get("userName")?.project_id).toBe("p-current");
+  });
+
   it("문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다 (활성 canonical 문서 조회)", async () => {
     activeDocument.current = {
       version: "composition-1.0",

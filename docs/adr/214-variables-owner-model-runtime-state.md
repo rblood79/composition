@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-11
+Accepted (In Progress) — 2026-09-13 (Proposed 2026-09-11 · 리뷰 round 2 승인 2026-09-11 · Phase 0~1 2026-09-11 · G1 live 2026-09-13)
 
 > **전제**: 사용자 판정 (2026-09-10, 리서치 §5 판정 ⑤) — Variables 의 용도는 **프로젝트 전역 변수** (예: 사용자 id) 와 **개별 컴포넌트의 지역 변수** 둘이며, 런타임 상태로 wiring 한다 (환경값만 남기는 안 · 현행 유지 안 기각). 본 ADR 은 base 이고 ADR-152 (collection 참조 계약) 와 직교 — ADR-131 Phase 8 의 "데이터 SSOT = `data_tables`" 전제 (collections 에 관한 것) 를 건드리지 않는다. ADR-212 와는 "Data" 패널 Variables 탭 표면만 공유 (212 R5 조건부 탭을 본 ADR 이 대체). fork 4 질문 lock-in 은 breakdown §1.
 

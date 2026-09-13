@@ -1098,13 +1098,20 @@ export const createApplyDataChangeAction =
     const before = get().collections;
     const beforeVariables = get().variables;
     const beforeEndpoints = get().apiEndpoints;
+    // ADR-214 — History 재적용 (undo/redo) 은 projectId 를 안 넘긴다. 변수가 0개인 프로젝트에서
+    // 첫 변수 생성을 redo 하면 reducer 가 projectId 를 알 길이 없어 실패했다 (G1 live 에서 발견)
+    // → store 의 현재 프로젝트를 기본값으로.
+    const projectId =
+      options.projectId ??
+      (get() as { currentProjectId?: string | null }).currentProjectId ??
+      undefined;
     // 1. preflight (순수) — collections · variables reduce 전량 + binding 검증. 실패는 무변경.
     const { collectionOps, bindingOps } = partitionDataOps(change.ops);
     const touchesVariables = collectionOps.some(
       (op) => op.op === "define_variable",
     );
     const result = reduceDataOps(before, collectionOps, {
-      projectId: options.projectId,
+      projectId,
       variables: beforeVariables,
       apiEndpoints: beforeEndpoints,
       // ADR-214 HC5 — 문서 안 페이지/요소 state 이름은 프로젝트 변수로 못 쓴다.
@@ -1226,7 +1233,7 @@ export const createApplyDataChangeAction =
       }
       if (result.applied.length > 0) {
         const rollback = reduceDataOps(result.collections, result.inverse, {
-          projectId: options.projectId,
+          projectId,
           variables: result.variables,
           apiEndpoints: result.apiEndpoints,
         });
