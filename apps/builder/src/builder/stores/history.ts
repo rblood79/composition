@@ -117,6 +117,7 @@ export interface HistoryEntry {
     | "group"
     | "ungroup"
     | "page-title"
+    | "page-state"
     | "page-position"
     | "page-guide"
     | "page-lifecycle"
@@ -142,6 +143,16 @@ export interface HistoryEntry {
       pageId: string;
       before: string;
       after: string;
+    };
+    /**
+     * **ADR-214 Phase 5** — `type: "page-state"` 전용 payload. 페이지 변수 정의
+     * (canonical page 노드 `state`) 의 전체 before/after — `page-title` 과 같은
+     * 비-element 축 (undo/redo 는 element 경로 진입 전 early-branch).
+     */
+    pageStateEvent?: {
+      pageId: string;
+      before: import("@composition/shared").VariableDef[];
+      after: import("@composition/shared").VariableDef[];
     };
     /**
      * **ADR-177** — `type: "page-position"` 전용 payload. element 노드 이벤트
@@ -570,6 +581,7 @@ export class HistoryManager {
       entry.type !== "page-position" &&
       entry.type !== "page-guide" &&
       entry.type !== "page-title" &&
+      entry.type !== "page-state" &&
       entry.type !== "page-lifecycle" &&
       entry.type !== "snapshot-restore" &&
       entry.type !== "data" &&

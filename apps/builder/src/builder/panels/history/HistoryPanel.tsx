@@ -11,6 +11,7 @@ import {
   Minus,
   Move,
   Pencil,
+  Variable,
   Redo,
   Undo,
   type LucideIcon,
@@ -64,6 +65,7 @@ const ENTRY_TYPE_ICONS: Record<HistoryEntry["type"], LucideIcon> = {
   group: ACTION_ICONS.group,
   ungroup: ACTION_ICONS.ungroup,
   "page-title": Pencil,
+  "page-state": Variable,
   "page-position": LayoutTemplate,
   // ADR-181 — 눈금자 토글(SettingsPanel)과 같은 아이콘: 가이드는 눈금자에서
   // 만들고 눈금자로 되돌려 지우므로 같은 기능군으로 읽혀야 한다

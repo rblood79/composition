@@ -16,14 +16,10 @@
  */
 
 import { useState, useMemo } from "react";
-import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
 import {
-  Code,
-  Database,
   FileEdit,
   Globe,
   Settings,
-  Shield,
   Table2,
   Variable,
 } from "lucide-react";
@@ -39,7 +35,6 @@ import {
 } from "./editors";
 import { EmptyState, PanelHeader, PanelContents } from "../../components";
 import { ActionIconToggleButton } from "../../components/ui";
-import { panelContents } from "../../components/panel/panelContentsUtils";
 import type {
   VariableEditorTab,
   DataTableEditorMode,
@@ -49,18 +44,10 @@ import { iconProps } from "../../../utils/ui/uiConstants";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
 // 탭 설정 타입
-interface TabConfig<T extends string> {
-  id: T;
-  label: string;
-  icon: typeof Database;
-}
 
-// 각 에디터 타입별 탭 설정
-const VARIABLE_TABS: TabConfig<VariableEditorTab>[] = [
-  { id: "basic", label: "Basic", icon: Settings },
-  { id: "validation", label: "Validation", icon: Shield },
-  { id: "transform", label: "Transform", icon: Code },
-];
+// ADR-214 Phase 5 — Variable 편집기의 Validation / Transform 탭은 숨김 (소비처 0 실측: `variable.validation` ·
+// `variable.transform` 을 읽는 코드가 VariableEditor 자신뿐 — 런타임 · export · publish 0). 탭 하나면 탭 줄이
+// 필요 없어 shell 은 비-탭 본문 (`PanelContents`) 으로 간다. 원본 (VariableEditor 의 두 절) 삭제는 승인 후 별도 커밋.
 
 // Creator 모드 타입
 
@@ -82,7 +69,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 탭 상태 관리 - mode 변경 시 key가 바뀌어 자동 초기화됨
-  const [variableTab, setVariableTab] = useState<VariableEditorTab>("basic");
+  const variableTab: VariableEditorTab = "basic";
   // table-edit: 헤더 gear 토글 — 격자 ↔ 설정 (같은 자리, 제목 유지)
   const [settingsOpen, setSettingsOpen] = useState(false);
   const updateCollection = useDataStore((state) => state.updateCollection);
@@ -131,26 +118,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
     }
   };
 
-  // 탭 모드 3종은 같은 shell (TabList + TabPanel 본문) — TabPanel 이 곧 .panel-contents 라
-  // 선택 탭의 aria-controls 가 실제 패널을 가리킨다 (RAC 는 선택 탭에만 aria-controls 를 단다).
-  const tabbed: {
-    key: string;
-    tabs: readonly TabConfig<string>[];
-    aria: string;
-    ariaFallback: string;
-    labelKey: (id: string) => string;
-    onChange: (key: string) => void;
-  } | null =
-    mode.type === "variable-edit"
-      ? {
-          key: variableTab,
-          tabs: VARIABLE_TABS,
-          aria: "variableTabs",
-          ariaFallback: "Variable tabs",
-          labelKey: (id) => id,
-          onChange: (key) => setVariableTab(key as VariableEditorTab),
-        }
-      : null;
 
   // table-edit 헤더 액션: 설정 토글 (aria-pressed) — close 왼쪽
   const headerActions =
@@ -268,38 +235,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
         onTitleCommit={onTitleCommit}
         onClose={close}
       />
-      {tabbed ? (
-        <Tabs
-          className="panel-tabs"
-          selectedKey={tabbed.key}
-          onSelectionChange={(key) => tabbed.onChange(String(key))}
-        >
-          <div className="panel-header panel-tabrow">
-            <TabList
-              className="panel-tablist"
-              aria-label={localize(tabbed.aria, tabbed.ariaFallback)}
-            >
-              {tabbed.tabs.map((tab) => (
-                <Tab key={tab.id} id={tab.id} className="panel-tab">
-                  <tab.icon
-                    color="currentColor"
-                    strokeWidth={iconProps.strokeWidth}
-                    size={iconProps.size}
-                  />
-                  <span className="panel-tab-label">
-                    {localize(tabbed.labelKey(tab.id), tab.label)}
-                  </span>
-                </Tab>
-              ))}
-            </TabList>
-          </div>
-          <TabPanel id={tabbed.key} className={panelContents()}>
-            {renderEditorContent()}
-          </TabPanel>
-        </Tabs>
-      ) : (
-        <PanelContents>{renderEditorContent()}</PanelContents>
-      )}
+      <PanelContents>{renderEditorContent()}</PanelContents>
     </div>
   );
 }

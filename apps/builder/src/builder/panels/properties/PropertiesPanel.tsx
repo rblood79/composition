@@ -65,6 +65,7 @@ import { ButtonChildFields } from "./ButtonChildSection";
 import { BUTTON_CHILD_HOST_TAGS } from "./buttonChildSectionUtils";
 import { ElementAttributesSection } from "./ElementAttributesSection";
 import { PageBodySection } from "./PageBodySection";
+import { StateSection } from "./state/StateSection";
 import { DEDICATED_SECTION_TYPES } from "./pageBodySectionConstants";
 import { ActionIconButton } from "../../components/ui";
 import { Settings2 } from "lucide-react";
@@ -1062,6 +1063,9 @@ function PropertiesPanelContent() {
 
             {/* body 의 페이지·프레임 오소링 축 (catalog accepts 로 표현 불가 — PageBodySection 주석) */}
             <PageBodySection elementId={selectedElementId} />
+
+            {/* ADR-214 — 상태 정의 (요소 변수 · body 면 페이지 변수). 암묵 상태 이름 붙이기 + 명시 추가 */}
+            <StateSection elementId={selectedElementId} />
 
             <FrameSlotSection elementId={selectedElementId} />
 

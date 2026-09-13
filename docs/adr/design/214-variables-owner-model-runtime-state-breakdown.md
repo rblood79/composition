@@ -115,13 +115,15 @@ interface VariableDef {
 - [x] 암묵 상태 읽기 — capability 경로에서 RAC prop 값을 `elementStates` 에 미러 (이름 붙인 것만)
 - [x] G3 live 8/8: 패널에서 규칙 작성 → IndexedDB `document_parts` 헤더 part `events` 에 setState 규칙 · preview 클릭 ×2 → `count=2` · 인스턴스 2 격리 (unit) · page 변수 increment 뒤 페이지 재진입 리셋 · persist Ana 새로고침 유지 + 같은 이름 project B 는 기본값 (누출 0) · 600요소/소비10 fixture 5 warmup + 30회 write→commit p95 9 ms, long task 0, 갱신 노드 10
 
-### Phase 5 — 관리 표면 3 (게이트 G4)
+### Phase 5 — 관리 표면 3 (게이트 G4) — 완료 2026-09-14 (live 7/7 `adr214-p5-live.mjs`)
 
-- [ ] Data 패널 Variables 탭 = 프로젝트 변수 편집 + **전체 인덱스** (페이지 · 요소 변수는 소유자 열 + 읽기 전용, 클릭 → 소유자로 점프: 페이지 선택 / 요소 선택 + Properties 상태 절 스크롤) (VarsIndex 아트보드). 212 R5 조건부 표시를 본 탭이 대체
-- [ ] Navigator 페이지 항목 → 페이지 설정 (페이지 변수 목록 · `+ 추가`)
-- [ ] Properties "상태" 절 (fieldset/legend) — 암묵 상태 목록 (이름 붙이기) + 명시 상태 `+ 추가` (ElementState 아트보드) · 삭제는 사용처 (템플릿 · setState 규칙) N 확인
-- [ ] `VariableEditor` Validation / Transform 탭은 소비처 0 확인 후 숨김 (원본 삭제는 승인 후 별도 커밋)
-- [ ] G4 live: 인덱스에 3 소유자 행 · 클릭 점프 · Properties 에서 `+ 추가` → 인덱스에 즉시 · 이름 충돌 거부 메시지
+> 구현 결정: **새 패널 0** — 페이지 설정은 Navigator gear (모든 비-시스템 페이지, 단일 페이지 모드도) 가 페이지를 활성화해 body 를 선택하고 Properties 로 보낸다; Properties "상태" 절 (`panels/properties/state/StateSection.tsx`) 하나가 요소 (owner element) 와 body (owner **page**) 를 맡는다. 쓰기는 요소 `updateElement(id, { state })` (History `update` full-node — `NON_PROPS_CANONICAL_HISTORY_FIELDS` 에 `state` 추가, RED `canonicalReplaceEvents.test`) · 페이지 `setPageState` (새 History entry `page-state` — page-title 과 같은 비-element 축, `skipHistory` 옵션은 런타임·하니스). 암묵 상태는 `IMPLICIT_STATE_SOURCES[type]` 행에 이름만 붙이면 `source.prop` 정의가 되고 기본값은 저작 prop 값 (`normalizeImplicitStateValue`). 이름은 `findVariableNameConflict` (HC5) 로 거부 문구 + 미반영, 문법은 식별자. 삭제 확인은 사용처 수 — shared `collectVariableUsages(doc, doc.events, id, projectDefs)` (템플릿은 **그 노드에서 이 정의가 보일 때만**, setState 규칙은 id 축) 를 Data 탭 인덱스 배지도 같이 읽는다. Data 탭 = 프로젝트 변수 (편집 가능, 사용처 배지) + 페이지·컴포넌트 인덱스 (`collectDocumentVariables`, 페이지별 그룹, 소유자 배지, 클릭 → `activatePage` + `setPanelWorkspacePanelVisibility("properties", true)` + `useStateSectionFocus.requestFocus(owner, id)` — ADR-212 `openFieldPanel({focus})` 와 같은 seq 어법; `togglePanelWorkspace` 는 열린 패널을 닫아 live 에서 발견 → 보장형 API 로). 구 data store `scope:"page"` 변수는 인덱스에 legacy 로 보이고 "페이지로 이관" 이 canonical page state 로 옮긴다 (같은 id). `VariableCreator` 는 프로젝트 전용 (scope 선택 제거), `VariableEditor` 는 global 이면 scope 숨김 · Validation/Transform 탭 숨김 (소비처 0 실측 — 읽는 코드가 편집기 자신뿐; 원본 두 절은 승인 후 별도 커밋). 함정: Checkbox 라벨은 자식 Label 요소 (자손이라 요소 변수를 본다) · IndexedDB 노드는 `node:<id>` part.
+
+- [x] Data 패널 Variables 탭 = 프로젝트 변수 편집 + **전체 인덱스** (페이지 · 요소 변수는 소유자 열 + 읽기 전용, 클릭 → 소유자로 점프: 페이지 선택 / 요소 선택 + Properties 상태 절 스크롤) (VarsIndex 아트보드). 212 R5 조건부 표시를 본 탭이 대체
+- [x] Navigator 페이지 항목 → 페이지 설정 (페이지 변수 목록 · `+ 추가`)
+- [x] Properties "상태" 절 (fieldset/legend) — 암묵 상태 목록 (이름 붙이기) + 명시 상태 `+ 추가` (ElementState 아트보드) · 삭제는 사용처 (템플릿 · setState 규칙) N 확인
+- [x] `VariableEditor` Validation / Transform 탭은 소비처 0 확인 후 숨김 (원본 삭제는 승인 후 별도 커밋)
+- [x] G4 live 7/7: 인덱스에 3 소유자 행 (project 1 · page 1 · element 2) + 사용처 배지 · 요소 행 클릭 → 선택 + 상태 절 정의 펼침 · Properties `+ 추가` → 인덱스 즉시 · 프로젝트 count 이름 충돌 거부 문구 · 암묵 isSelected 에 agree → Preview 라벨 `agree=false` → 클릭 → `agree=true` · gear → body + 페이지 변수 추가 (IndexedDB page state) · 편집기 탭 줄 0 / Creator scope 0 · dialog 0 · page error 0
 
 ### Phase 6 — closure
 

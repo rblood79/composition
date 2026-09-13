@@ -5,6 +5,7 @@ import { create } from "zustand";
 import { StateCreator } from "zustand";
 import type { StoredMenuItem } from "@composition/specs";
 import type { SerializedDataBinding } from "@composition/shared";
+import { isVariableDefList } from "@composition/shared";
 import { Element, ComponentElementProps } from "../../types/core/store.types";
 import { Page } from "../../types/builder/unified.types";
 import {
@@ -554,6 +555,7 @@ export interface ElementsState {
   setPageState: (
     pageId: string,
     state: readonly import("@composition/shared").VariableDef[],
+    options?: { skipHistory?: boolean },
   ) => boolean;
 }
 
@@ -1366,8 +1368,25 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
     // ADR-214 — 페이지 변수 정의: canonical page 노드 `state` 가 SSOT (setDocument 가 persist ·
     // preview 재송신). `pages` mirror 에는 없는 필드라 derived 동기화 0.
-    setPageState: (pageId, state) => {
+    setPageState: (pageId, state, options) => {
+      const canonical = useCanonicalDocumentStore.getState();
+      const previousNode = canonical.currentProjectId
+        ? canonical.documents
+            .get(canonical.currentProjectId)
+            ?.children.find((node) => node.id === pageId)
+        : undefined;
+      const before = isVariableDefList(previousNode?.state)
+        ? [...previousNode.state]
+        : [];
       if (!setActiveCanonicalPageState(pageId, state)) return false;
+      // Phase 5 — `page-state` entry (page-title 과 같은 비-element 축). 런타임 · 하니스는 skip.
+      if (!options?.skipHistory) {
+        historyManager.addEntry({
+          type: "page-state",
+          elementId: pageId,
+          data: { pageStateEvent: { pageId, before, after: [...state] } },
+        });
+      }
       void enqueuePagePersistence(async () => {
         try {
           const db = await getDB();

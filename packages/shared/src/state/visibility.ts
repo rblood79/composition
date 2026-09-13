@@ -226,6 +226,18 @@ export function findCanonicalNodeById(
   return getIndex(doc).byId.get(nodeId)?.node;
 }
 
+/**
+ * 문서 안 모든 노드 방문 (색인 순서 — 페이지 · 요소 · descendants 자식). 사용처 집계 (Phase 5)
+ * 와 인덱스가 같은 색인을 돈다 — 별도 순회 함수를 두지 않는다.
+ */
+export function visitDocumentNodes(
+  doc: CompositionDocument | null | undefined,
+  visit: (node: CanonicalNode, owner: VariableOwner) => void,
+): void {
+  if (!doc) return;
+  for (const entry of getIndex(doc).byId.values()) visit(entry.node, ownerOf(entry));
+}
+
 /** 문서 안 모든 노드 state 이름 (페이지 · 요소 · descendants) — project 변수 정의 시 예약어 집합 */
 export function collectDocumentVariableNames(
   doc: CompositionDocument | null | undefined,

@@ -157,7 +157,8 @@ export function PageTreeItemContent({
             size={ICON_EDIT_PROPS.size}
           />
         </Button>
-        {isRoot && (
+        {/* ADR-214 Phase 5 — 페이지 설정 (페이지 변수) 은 시스템 페이지만 빼고 모든 페이지 */}
+        {!isSystemPage && (
           <Button
             className="iconButton"
             aria-label={`Settings for ${name}`}

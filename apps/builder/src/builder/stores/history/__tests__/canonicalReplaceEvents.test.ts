@@ -83,6 +83,8 @@ describe("buildCanonicalReplaceEvents (post-mutation 모드)", () => {
     ["frame slot", { slot: [] }],
     ["element slot", { slot_name: "content" }],
     ["ref descendants", { descendants: { content: { hidden: true } } }],
+    // ADR-214 Phase 5 — 상태 정의 편집 (Properties 상태 절) 은 props 밖 필드라 full-node 로 undo
+    ["state defs", { state: [] }],
   ])("%s field requires full-node history", (_label, updates) => {
     expect(hasNonPropsCanonicalHistoryChange(updates as Partial<Element>)).toBe(
       true,
@@ -129,6 +131,30 @@ describe("buildCanonicalReplaceEvents (post-mutation 모드)", () => {
       "undo",
     );
     expect(restored).toEqual(preDoc);
+  });
+
+  it("ADR-214 — state 정의 편집: pre-mutation 모드 (capture 없음) 에서 prev 는 문서 노드 (state 有) · next 는 mirror (state []) → undo 가 정의 복원", () => {
+    const withState = {
+      id: "inst-1",
+      type: "Button",
+      props: { label: "s" },
+      state: [{ id: "v-open", name: "open", type: "boolean" }],
+    } as unknown as CanonicalNode;
+    const preDoc = makeDoc(withState);
+    seedStore(preDoc);
+    const prevElement = {
+      ...elementStub("inst-1"),
+      state: withState.state,
+    } as Element;
+    const nextElement = { ...elementStub("inst-1"), state: [] } as Element;
+    const events = buildCanonicalReplaceEvents([prevElement], [nextElement]);
+    expect(events).toHaveLength(2);
+    expect((events[0] as { node: CanonicalNode }).node.state).toEqual(withState.state);
+    expect((events[1] as { node: CanonicalNode }).node.state).toBeUndefined();
+    const removed = applyCanonicalHistoryEventsToDocument(preDoc, events, "redo");
+    expect(findLocation(removed, "inst-1")?.node.state).toBeUndefined();
+    const restored = applyCanonicalHistoryEventsToDocument(removed, events, "undo");
+    expect(findLocation(restored, "inst-1")?.node.state).toEqual(withState.state);
   });
 
   it("prev 에 없는 next id 는 event 를 생성하지 않는다", () => {

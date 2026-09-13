@@ -12,6 +12,23 @@ import {
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { useDataStore } from "../../../stores/data";
 
+/** 프로젝트 변수 정의 (VariableDef 형상, project 소유자만) — 가시성 · 충돌 검증 · 사용처 집계의 공통 입력 */
+export function useProjectVariableDefs(): VariableDef[] {
+  const variables = useDataStore((s) => s.variables);
+  return useMemo(
+    () =>
+      Array.from(variables.values())
+        .filter((v) => !v.owner || v.owner.kind === "project")
+        .map((v) => ({
+          id: v.id,
+          name: v.name,
+          type: v.type,
+          ...(v.defaultValue !== undefined ? { defaultValue: v.defaultValue } : {}),
+        })),
+    [variables],
+  );
+}
+
 export function useVisibleVariables(
   elementId: string | undefined,
 ): VisibleVariable[] {

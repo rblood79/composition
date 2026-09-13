@@ -15,7 +15,7 @@ import React, {
   useState,
 } from "react";
 import type { Key } from "react-stately";
-import { Home, Search } from "lucide-react";
+import { Home, Search, Settings2 } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { usePageManager } from "@/builder/hooks";
@@ -39,6 +39,8 @@ import { longTaskMonitor } from "../../../utils/longTaskMonitor";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "../../../i18n";
+import { setPanelWorkspacePanelVisibility } from "../../layout/panelWorkspaceVisibility";
+import { useStateSectionFocus } from "../properties/state/stateSectionFocus";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -155,6 +157,17 @@ export const PagesSection = memo(function PagesSection({
       }
     },
     [activatePage, currentPageId, loadPageIfNeeded],
+  );
+
+  // ADR-214 Phase 5 — 페이지 설정 (gear): 페이지를 활성화해 body 를 선택하고 Properties 상태 절
+  // (페이지 변수) 로 점프한다. 새 패널 없음 — Properties 의 body 선택이 페이지 설정 표면이다.
+  const handlePageSettings = useCallback(
+    (page: Page) => {
+      handlePageSelect(page);
+      setPanelWorkspacePanelVisibility("properties", true);
+      useStateSectionFocus.getState().requestFocus(page.id);
+    },
+    [handlePageSelect],
   );
 
   useEffect(() => {
@@ -458,6 +471,21 @@ export const PagesSection = memo(function PagesSection({
               singlePage.title || "Untitled"
             )}
           </div>
+          {!isComponentsPageMirror(singlePage) && (
+            <div className="elementItemActions">
+              <ActionIconButton
+                aria-label={`Settings for ${singlePage.title || "Untitled"}`}
+                tooltip={t("navigator.pageSettings")}
+                onPress={() => handlePageSettings(singlePage)}
+              >
+                <Settings2
+                  color={iconProps.color}
+                  strokeWidth={iconProps.strokeWidth}
+                  size={iconProps.size}
+                />
+              </ActionIconButton>
+            </div>
+          )}
         </div>
       ) : pageQueryResult.query && pageQueryResult.matchCount === 0 ? (
         <div className="page-search-empty" role="status">
@@ -472,6 +500,7 @@ export const PagesSection = memo(function PagesSection({
           onPageSelect={handlePageSelect}
           onPageDelete={handlePageDelete}
           onPageRename={handlePageRename}
+          onPageSettings={handlePageSettings}
         />
       )}
     </Section>

@@ -20,6 +20,7 @@ import {
 } from "./canonicalHistoryEvents";
 import { useCanonicalDocumentStore } from "../canonical/canonicalDocumentStore";
 import { renameActiveCanonicalPageTitle } from "../canonical/pageTitleMutation";
+import { setActiveCanonicalPageState } from "../canonical/pageStateMutation";
 import { enqueuePagePersistence } from "../../utils/pagePersistenceQueue";
 import { bumpPageGuideRevision } from "../../workspace/canvas/interaction/pageGuideRevision";
 // 🚀 Phase 11: Feature Flags for WebGL-only mode
@@ -119,6 +120,27 @@ function applyPageTitleHistoryEntry(
       await persistActiveCanonicalDocument();
     } catch (error) {
       console.error("[applyPageTitleHistoryEntry] DB persist:", error);
+    }
+  });
+}
+
+/**
+ * ADR-214 Phase 5 — `page-state` entry 적용 (undo/redo/goToIndex 공용). canonical page 노드
+ * `state` 만 갱신 (스토어 미러 없음 — `pages` 에는 없는 필드) + persist.
+ */
+function applyPageStateHistoryEntry(
+  entry: NonNullable<ReturnType<typeof historyManager.undo>>,
+  direction: "undo" | "redo",
+): void {
+  const event = entry.data.pageStateEvent;
+  if (!event) return;
+  const next = direction === "undo" ? event.before : event.after;
+  if (!setActiveCanonicalPageState(event.pageId, next)) return;
+  void enqueuePagePersistence(async () => {
+    try {
+      await persistActiveCanonicalDocument();
+    } catch (error) {
+      console.error("[applyPageStateHistoryEntry] DB persist:", error);
     }
   });
 }
@@ -564,6 +586,12 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    if (entry.type === "page-state") {
+      applyPageStateHistoryEntry(entry, "undo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch)
     if (entry.type === "data") {
       await applyDataHistoryEntry(entry, "undo");
@@ -696,6 +724,12 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
+    if (entry.type === "page-state") {
+      applyPageStateHistoryEntry(entry, "redo");
+      set({ historyOperationInProgress: false });
+      return;
+    }
+
     // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch)
     if (entry.type === "data") {
       await applyDataHistoryEntry(entry, "redo");
@@ -811,6 +845,10 @@ export const createGoToHistoryIndexAction =
         }
         if (entry.type === "page-title") {
           applyPageTitleHistoryEntry(set, get, entry, direction);
+          continue;
+        }
+        if (entry.type === "page-state") {
+          applyPageStateHistoryEntry(entry, direction);
           continue;
         }
         // ADR-181: page-guide 도 동일 — canonical 만 갱신 (스토어 미러 없음),
@@ -954,6 +992,7 @@ async function syncDatabaseForEntries(
     // applyPagePositionHistoryEntry 가 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-position") continue;
     if (entry.type === "page-title") continue;
+    if (entry.type === "page-state") continue;
     // ADR-181: page-guide 도 동일 — persist 는 applyPageGuideHistoryEntry 가
     // 자체 수행 (elementId=pageId 오인 방지).
     if (entry.type === "page-guide") continue;

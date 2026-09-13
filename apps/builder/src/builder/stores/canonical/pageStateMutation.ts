@@ -3,8 +3,8 @@
  * (별도 페이지 객체 없음) 요소와 같은 `CanonicalNode.state` 필드에 둔다. `pageTitleMutation`
  * 과 같은 경로 (canonical 먼저, `setDocument` 가 persist · preview 재송신).
  *
- * History 는 Phase 5 (Navigator 페이지 설정 표면) 가 `page-state` entry 로 붙인다 — 지금은
- * 런타임 (preview `enterPage` 리셋) 과 하니스가 쓰는 정의 쓰기 경로만 연다.
+ * History 는 `useStore.setPageState` 가 `page-state` entry 로 붙인다 (Phase 5 — `historyActions`
+ * early-branch, `skipHistory` 옵션은 런타임 · 하니스용). 이 모듈은 canonical 쓰기만.
  */
 import {
   isEditorPageNode,

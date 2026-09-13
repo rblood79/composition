@@ -667,6 +667,31 @@ const koKR: TranslationKeys = {
     slotReplace: "덮어쓰기",
     emptyMessage: "편집 가능한 속성이 없습니다",
     emptyDescription: "'{type}' 컴포넌트의 편집 계약이 비어 있습니다.",
+    stateSection: "상태",
+    stateVisibleElement: "이 컴포넌트와 자손에서 읽힘",
+    stateVisiblePage: "이 페이지의 모든 요소에서 읽힘",
+    stateImplicitTitle: "암묵 상태",
+    stateImplicitHint:
+      "컴포넌트가 이미 가진 값입니다. 이름만 붙이면 템플릿과 액션에서 읽힙니다.",
+    stateImplicitRac: "RAC",
+    stateNamePlaceholder: "이름 붙이기",
+    stateExplicitTitle: "명시 상태",
+    statePageTitle: "페이지 변수",
+    stateAdd: "추가",
+    stateName: "이름",
+    stateType: "유형",
+    stateDefault: "기본값",
+    stateUsageCount: "사용처 {count}",
+    stateNameConflict: "'{name}' 은 이미 {owner} 에 있습니다",
+    stateNameInvalid: "이름은 문자·숫자·_ 만 (숫자로 시작 불가)",
+    stateDefaultInvalid: "{type} 형식이 아닙니다",
+    stateDeleteTitle: "상태 삭제",
+    stateDeleteMessage:
+      "'{name}' 을 삭제합니다. 사용처 {count} 곳의 템플릿은 원문으로, 규칙은 대상 없음으로 남습니다.",
+    stateAncestorTitle: "조상에서 보이는 상태",
+    stateOwnerProject: "프로젝트",
+    stateOwnerPage: "페이지",
+    stateInstanceHint: "인스턴스마다 별도 값",
     delegatedSubpartMessage: "부모에서 편집하는 요소입니다",
     delegatedSubpartDescription:
       "{type} 은 {parent} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집하세요.",
@@ -1377,6 +1402,7 @@ const koKR: TranslationKeys = {
     layers: "레이어",
     collapseTree: "트리 접기",
     searchPages: "페이지 검색",
+    pageSettings: "페이지 설정",
     noPagesMatch: "일치하는 페이지가 없습니다",
     resizeSections: "섹션 높이 조절",
   },
@@ -1681,8 +1707,9 @@ const koKR: TranslationKeys = {
     variableType: "유형",
     variableScope: "범위",
     variableNameExists: "같은 이름의 변수가 이미 있습니다.",
-    variableCreateHint:
-      "기본값 · 유지 · 유효성 검사는 만든 뒤 편집기에서 설정합니다.",
+    variableCreateHint: "기본값 · 유지는 만든 뒤 편집기에서 설정합니다.",
+    variableCreateOwnerHint:
+      "페이지 · 컴포넌트 변수는 소유자에서 추가합니다 — Navigator 페이지 설정 또는 Properties 상태 절.",
     createVariable: "변수 만들기",
     variableCreateFailed: "변수를 만들지 못했습니다",
     variablePageOwner: "소유 페이지",
@@ -1749,6 +1776,15 @@ const koKR: TranslationKeys = {
     tableEmpty: "테이블이 없습니다.\n새 테이블을 추가하세요.",
     apiEmpty: "API Endpoint가 없습니다.\n새 API를 추가하세요.",
     variableEmpty: "변수가 없습니다.\n새 변수를 추가하세요.",
+    variableProjectGroup: "프로젝트 · 편집 가능",
+    variableIndexGroup: "페이지 · 컴포넌트 인덱스 · 소유자에서 편집",
+    variableUsageCount: "사용처 {count}",
+    variableImplicit: "암묵",
+    variableJumpToOwner: "소유자에서 편집",
+    variableLegacyPage: "구 페이지 변수",
+    variableMigrateToPage: "페이지로 이관",
+    variableMigrateConflict: "페이지에 같은 이름이 이미 있습니다",
+    variableMigrated: "'{name}' 을 {page} 페이지 변수로 옮겼습니다",
     schemaFirst: "스키마를 먼저 정의하세요.",
     importCsv: "CSV 가져오기",
     exportCsv: "CSV 내보내기",
@@ -2547,7 +2583,7 @@ const enUS: TranslationKeys = {
     stateOpIncrement: "Increment",
     stateOpReset: "Reset to default",
     stateValue: "Value",
-    stateStep: "Step",
+    stateStep: "Increment step",
     summarySetState: "{when} → {op} {name}",
   },
   capabilities: {
@@ -2590,6 +2626,31 @@ const enUS: TranslationKeys = {
     slotReplace: "Replace",
     emptyMessage: "No editable properties",
     emptyDescription: "The editing contract for '{type}' is empty.",
+    stateSection: "State",
+    stateVisibleElement: "Readable in this component and its descendants",
+    stateVisiblePage: "Readable by every element on this page",
+    stateImplicitTitle: "Implicit state",
+    stateImplicitHint:
+      "Values the component already has. Give one a name and templates and actions can read it.",
+    stateImplicitRac: "RAC",
+    stateNamePlaceholder: "Name it",
+    stateExplicitTitle: "Explicit state",
+    statePageTitle: "Page variables",
+    stateAdd: "Add",
+    stateName: "Name",
+    stateType: "Type",
+    stateDefault: "Default value",
+    stateUsageCount: "Used in {count}",
+    stateNameConflict: "'{name}' already exists in {owner}",
+    stateNameInvalid: "Letters, digits and _ only (cannot start with a digit)",
+    stateDefaultInvalid: "Not a valid {type}",
+    stateDeleteTitle: "Delete state",
+    stateDeleteMessage:
+      "Delete '{name}'. Templates in {count} place(s) keep the raw text and rules lose their target.",
+    stateAncestorTitle: "Visible from ancestors",
+    stateOwnerProject: "Project",
+    stateOwnerPage: "Page",
+    stateInstanceHint: "Separate value per instance",
     delegatedSubpartMessage: "Edited from the parent",
     delegatedSubpartDescription:
       "{type} is drawn by {parent} — its own properties and styles never reach Preview or Publish. Edit the parent's properties (Label · Placeholder · Invalid · Error Message) instead.",
@@ -2746,7 +2807,7 @@ const enUS: TranslationKeys = {
     departmentName: "Department",
     managerId: "Manager ID",
     departmentId: "Department ID",
-    projectName: "Project",
+    projectName: "Project name",
     startDate: "Start",
     endDate: "End",
     budget: "Budget",
@@ -3310,6 +3371,7 @@ const enUS: TranslationKeys = {
     layers: "Layers",
     collapseTree: "Collapse tree",
     searchPages: "Search pages",
+    pageSettings: "Page settings",
     noPagesMatch: "No pages match",
     resizeSections: "Resize sections",
   },
@@ -3618,7 +3680,9 @@ const enUS: TranslationKeys = {
     variableScope: "Scope",
     variableNameExists: "A variable with this name already exists.",
     variableCreateHint:
-      "Default value, persistence and validation are set in the editor after creating.",
+      "Default value and persistence are set in the editor after creating.",
+    variableCreateOwnerHint:
+      "Page and component variables are added at their owner — page settings in Navigator, or the State section in Properties.",
     createVariable: "Create Variable",
     variableCreateFailed: "Could not create the variable",
     variablePageOwner: "Owner page",
@@ -3686,6 +3750,15 @@ const enUS: TranslationKeys = {
     tableEmpty: "No tables.\nAdd a new table.",
     apiEmpty: "No API endpoints.\nAdd a new API.",
     variableEmpty: "No variables.\nAdd a new variable.",
+    variableProjectGroup: "Project · editable",
+    variableIndexGroup: "Page · component index · edit at owner",
+    variableUsageCount: "Used in {count}",
+    variableImplicit: "implicit",
+    variableJumpToOwner: "Edit at owner",
+    variableLegacyPage: "Legacy page variable",
+    variableMigrateToPage: "Move to page",
+    variableMigrateConflict: "The page already has this name",
+    variableMigrated: "Moved '{name}' to page variables of {page}",
     schemaFirst: "Define the schema first.",
     importCsv: "Import CSV",
     exportCsv: "Export CSV",
@@ -4389,6 +4462,9 @@ const formattedMessages: Record<
       `${String(args?.family ?? "")} ${String(args?.face ?? "")} 삭제`,
     "ai.logRestorable": (args) => ` · ${String(args?.shortcut ?? "")} 로 복원`,
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}개`,
+    "datatable.variableUsageCount": (args) => `사용처 ${String(args?.count ?? 0)}`,
+    "datatable.variableMigrated": (args) =>
+      `'${String(args?.name ?? "")}' 을 ${String(args?.page ?? "")} 페이지 변수로 옮겼습니다`,
     "datatable.tableMeta": (args) =>
       `${String(args?.fields ?? 0)}개 필드 · ${String(args?.rows ?? 0)}개 행`,
     "datatable.usedBy": (args) => `사용처 ${String(args?.count ?? 0)}`,
@@ -4613,6 +4689,14 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
     "interactions.summarySetState": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.op ?? "")} ${String(args?.name ?? "")}`,
+    "propertiesPanel.stateUsageCount": (args) =>
+      `사용처 ${String(args?.count ?? 0)}`,
+    "propertiesPanel.stateNameConflict": (args) =>
+      `'${String(args?.name ?? "")}' 은 이미 ${String(args?.owner ?? "")} 에 있습니다`,
+    "propertiesPanel.stateDefaultInvalid": (args) =>
+      `${String(args?.type ?? "")} 형식이 아닙니다`,
+    "propertiesPanel.stateDeleteMessage": (args) =>
+      `'${String(args?.name ?? "")}' 을 삭제합니다. 사용처 ${String(args?.count ?? 0)} 곳의 템플릿은 원문으로, 규칙은 대상 없음으로 남습니다.`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집하세요.`,
     "styles.delegatedSubpartDescription": (args) =>
@@ -4832,6 +4916,9 @@ const formattedMessages: Record<
     "ai.logRestorable": (args) =>
       ` · restorable with ${String(args?.shortcut ?? "")}`,
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}`,
+    "datatable.variableUsageCount": (args) => `Used in ${String(args?.count ?? 0)}`,
+    "datatable.variableMigrated": (args) =>
+      `Moved '${String(args?.name ?? "")}' to page variables of ${String(args?.page ?? "")}`,
     "datatable.tableMeta": (args) =>
       `${String(args?.fields ?? 0)} fields · ${String(args?.rows ?? 0)} rows`,
     "datatable.usedBy": (args) => `used by ${String(args?.count ?? 0)}`,
@@ -5059,6 +5146,14 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
     "interactions.summarySetState": (args) =>
       `${String(args?.when ?? "")} → ${String(args?.op ?? "")} ${String(args?.name ?? "")}`,
+    "propertiesPanel.stateUsageCount": (args) =>
+      `Used in ${String(args?.count ?? 0)}`,
+    "propertiesPanel.stateNameConflict": (args) =>
+      `'${String(args?.name ?? "")}' already exists in ${String(args?.owner ?? "")}`,
+    "propertiesPanel.stateDefaultInvalid": (args) =>
+      `Not a valid ${String(args?.type ?? "")}`,
+    "propertiesPanel.stateDeleteMessage": (args) =>
+      `Delete '${String(args?.name ?? "")}'. Templates in ${String(args?.count ?? 0)} place(s) keep the raw text and rules lose their target.`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's properties (Label · Placeholder · Invalid · Error Message) instead.`,
     "styles.delegatedSubpartDescription": (args) =>

@@ -629,6 +629,8 @@ export const NON_PROPS_CANONICAL_HISTORY_FIELDS = [
   "customId",
   "fills",
   "responsive",
+  // ADR-214 Phase 5 — 상태 정의 (`CanonicalNode.state` mirror) 편집도 props 밖 축
+  "state",
   "slot",
   LEGACY_SLOT_NAME_FIELD,
   LEGACY_DESCENDANTS_FIELD,

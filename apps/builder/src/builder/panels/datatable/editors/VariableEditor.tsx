@@ -174,12 +174,16 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
         options={VARIABLE_TYPES}
       />
 
-      <PropertySelect
-        label="Scope"
-        value={variable.scope}
-        onChange={handleScopeChange}
-        options={scopeOptions}
-      />
+      {/* ADR-214 Phase 5 — 프로젝트 변수는 소유자가 고정 (scope 선택 없음). 구 page/component
+          변수만 select 가 남아 Global 로 되돌릴 수 있다 (페이지 state 로의 이관은 Data 탭 인덱스). */}
+      {variable.scope !== "global" && (
+        <PropertySelect
+          label="Scope"
+          value={variable.scope}
+          onChange={handleScopeChange}
+          options={scopeOptions}
+        />
+      )}
       <p className="field-description">
         {variable.scope === "global" &&
           localize("globalHint", "Available on all pages.")}

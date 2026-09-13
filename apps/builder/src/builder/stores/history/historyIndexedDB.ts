@@ -70,6 +70,8 @@ export function isCanonicalHistoryEntry(entry: HistoryEntry): boolean {
   switch (entry.type) {
     case "page-title":
       return entry.data.pageTitleEvent !== undefined;
+    case "page-state":
+      return entry.data.pageStateEvent !== undefined;
     case "page-position":
       return (entry.data.pagePositionEvent?.entries.length ?? 0) > 0;
     case "page-guide":
