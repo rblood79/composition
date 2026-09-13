@@ -35,19 +35,13 @@ import {
 } from "./editors";
 import { EmptyState, PanelHeader, PanelContents } from "../../components";
 import { ActionIconToggleButton } from "../../components/ui";
-import type {
-  VariableEditorTab,
-  DataTableEditorMode,
-} from "./types/editorTypes";
+import type { DataTableEditorMode } from "./types/editorTypes";
 import "./DataTableEditorPanel.css";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { translateKey, useOptionalI18n } from "../../../i18n";
 
-// 탭 설정 타입
-
-// ADR-214 Phase 5 — Variable 편집기의 Validation / Transform 탭은 숨김 (소비처 0 실측: `variable.validation` ·
-// `variable.transform` 을 읽는 코드가 VariableEditor 자신뿐 — 런타임 · export · publish 0). 탭 하나면 탭 줄이
-// 필요 없어 shell 은 비-탭 본문 (`PanelContents`) 으로 간다. 원본 (VariableEditor 의 두 절) 삭제는 승인 후 별도 커밋.
+// ADR-214 — Variable 편집기는 기본 설정 한 절뿐 (Validation / Transform 절은 소비처 0 으로 삭제, 2026-09-14
+// 승인). 탭이 없어 shell 은 비-탭 본문 (`PanelContents`) 이다.
 
 // Creator 모드 타입
 
@@ -68,8 +62,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  // 탭 상태 관리 - mode 변경 시 key가 바뀌어 자동 초기화됨
-  const variableTab: VariableEditorTab = "basic";
   // table-edit: 헤더 gear 토글 — 격자 ↔ 설정 (같은 자리, 제목 유지)
   const [settingsOpen, setSettingsOpen] = useState(false);
   const updateCollection = useDataStore((state) => state.updateCollection);
@@ -208,11 +200,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
           );
         }
         return (
-          <VariableEditor
-            variable={variable}
-            onClose={close}
-            activeTab={variableTab}
-          />
+          <VariableEditor variable={variable} onClose={close} />
         );
       }
 

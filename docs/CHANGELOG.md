@@ -11,11 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-214 후속 — AI `list_variables` 읽기 tool] - 2026-09-14
+## [ADR-214 후속 — AI `list_variables` 읽기 tool · Variable 편집기 Validation/Transform 절 삭제] - 2026-09-14
 
 ### Added
 
 - **AI 패널 `list_variables`**: 프로젝트 · 페이지 · 요소 변수 정의를 소유자 (project / page / element — 페이지 제목 · 요소 타입 · 속한 페이지) 와 사용처 수와 함께 읽는 tool. `format: "detailed"` 는 기본값 · persist · 암묵 상태 원천 prop · 사용처 (템플릿 노드 · setState 규칙) 까지. ADR-213 읽기 tool 4 와 같은 계약 — 정의만 싣고 런타임 값은 없으며 쓰기 0 (변수 정의 · 삭제는 UI 로만). 패널 기록 어휘 "변수 목록 읽기 · 읽음". live: Ollama qwen3:14b 로 AI 패널에서 호출 → 답변 (`apps/builder/scripts/adr214-followup-list-variables-live.mjs` 7/7).
+
+### Removed
+
+- **Variable 편집기 Validation / Transform 절 (원본 삭제, 사용자 승인)**: Phase 5 에서 숨겼던 두 절의 소스 · 탭 타입 · CSS · 고아 i18n 키를 지웠다 — 읽는 코드가 편집기 자신뿐이라 (런타임 · export · publish 0) 사용자-가시 변화는 없다. 저장된 변수의 `validation` · `transform` 필드는 그대로 두며 (legacy 호환) 편집 표면만 없다.
 
 ## [ADR-214 Implemented — Variables 소유자 모델 · `{{ }}` 읽기 · `setState` 쓰기 · 관리 표면 3] - 2026-09-14
 

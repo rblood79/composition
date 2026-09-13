@@ -122,7 +122,7 @@ interface VariableDef {
 - [x] Data 패널 Variables 탭 = 프로젝트 변수 편집 + **전체 인덱스** (페이지 · 요소 변수는 소유자 열 + 읽기 전용, 클릭 → 소유자로 점프: 페이지 선택 / 요소 선택 + Properties 상태 절 스크롤) (VarsIndex 아트보드). 212 R5 조건부 표시를 본 탭이 대체
 - [x] Navigator 페이지 항목 → 페이지 설정 (페이지 변수 목록 · `+ 추가`)
 - [x] Properties "상태" 절 (fieldset/legend) — 암묵 상태 목록 (이름 붙이기) + 명시 상태 `+ 추가` (ElementState 아트보드) · 삭제는 사용처 (템플릿 · setState 규칙) N 확인
-- [x] `VariableEditor` Validation / Transform 탭은 소비처 0 확인 후 숨김 (원본 삭제는 승인 후 별도 커밋)
+- [x] `VariableEditor` Validation / Transform 탭은 소비처 0 확인 후 숨김 (원본 삭제는 승인 후 별도 커밋) → **원본 두 절 삭제 2026-09-14 (사용자 승인)** — `ValidationEditor` · `TransformEditor` · `VariableEditorTab` · CSS 블록 · `datatable.*` 고아 키 6; 저장 형상의 `validation` · `transform` 필드는 legacy 호환으로 타입에만 유지 (`dataActions.variables.test` "legacy 필드는 History 없음")
 - [x] G4 live 7/7: 인덱스에 3 소유자 행 (project 1 · page 1 · element 2) + 사용처 배지 · 요소 행 클릭 → 선택 + 상태 절 정의 펼침 · Properties `+ 추가` → 인덱스 즉시 · 프로젝트 count 이름 충돌 거부 문구 · 암묵 isSelected 에 agree → Preview 라벨 `agree=false` → 클릭 → `agree=true` · gear → body + 페이지 변수 추가 (IndexedDB page state) · 편집기 탭 줄 0 / Creator scope 0 · dialog 0 · page error 0
 
 ### Phase 6 — closure
