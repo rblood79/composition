@@ -71,7 +71,7 @@
 - [x] 붙여넣기 (셀 포커스, TSV) → `planGridPaste`: anchor 부터 채움 · 넘치는 행 자동 생성 (스키마 모양, 빈 키 null) · 타입 강제 · 초과 열은 `ConfirmDialog` "새 필드로 추가?" (UX-3); 파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음)
 - [x] 모든 쓰기는 `applyDataChange` (`set_cell` · `insert_rows` · `remove_rows` · `replace_rows` · 붙여넣기 `add_field`) — HC1 grep 0 · undo 는 152 G5 data entry
 - [x] 데이터 패널 셀 편집 중 `⌘Z` = 초안 되돌리기 (전역 History 로 안 감), 비편집·격자 밖은 종전 History — 단축키 registry `data-shortcut-local="undo redo"` opt-out (R9 라우팅만, `useKeyboardShortcutsRegistry.test.tsx` +1)
-- [ ] Schema 탭 제거 → 격자 헤더가 스키마 (Phase 3 필드 패널과 함께 전환 — 두 Phase 는 같은 커밋 열에서). **Phase 3 로 이월** (Table 탭 = 격자 연결 완료, Schema/Settings 탭 존치)
+- [x] Schema 탭 제거 → 격자 헤더가 스키마 (Phase 3 `305a9e5b7` 에서 완료 — Table/Settings 2탭 · 이후 `4b9ec38f0` 이 탭 자체를 없애고 설정은 헤더 gear 토글)
 - [x] G1 live 17/17: 키보드만으로 셀 3개 편집 + 행 추가 + ⌘Z ×4 원상 (IndexedDB 대조) · Popover · 붙여넣기 (⌘Z 1회 원상) · **Tab stop 1** · axe critical 0 (`.datagrid` 스코프 — 편집기 탭 바 aria-controls dangling 은 ADR-163 예외 패턴 선행 결함, Phase 3 정리). 100행×10열 fixture, foreground Chromium · visible · DPR2. **입력 프레임 지표는 keydown→rAF latency 대신 셀 편집 vs 격자 밖 filter input 비교로 재정의** (vsync 위상이 latency tail 을 지배 — 작업량 무관): 셀 편집 p50 5.5ms · p95 9.8ms ≈ baseline (셀 rerender 가 프레임을 안 잡음)
 
 ### Phase 3 — 필드 패널 (스냅, 게이트 G2) — 완료 2026-09-12 (`305a9e5b7` 본체, live 12/12 `scripts/adr212-p3-live.mjs`, [evidence](../evidence/212-p3-field-panel.md))
@@ -99,8 +99,8 @@
 ### Phase 5 — 데이터 유입 · 소스 (Source 아트보드) — 부분 완료 2026-09-12 (`bf87e8caa`, live 6/6 `scripts/adr212-p5-live.mjs`, [evidence](../evidence/212-p5-import.md))
 
 - [x] CSV / JSON import 미리보기 — 타입 자동 감지 · 열별 기존/새/무시 매핑 · append vs replace (UX-3, M2) → `DataChange` 1개 (`replace_rows` 또는 `insert_rows` + `add_field`). `importPlan.ts` (순수, test 5) + `ImportPreview.tsx` (격자 위 인라인 staging, HC2)
-- [ ] **후속 ADR** Settings 탭 → "데이터 소스": 엔드포인트 picker + 실행 정책 (열 때 자동 · 수동 · N초마다) (UX-6) — 실행 정책은 collection 신규 영속 필드 필요 = lock-in §2 밖. 본 ADR 아님. sample/real (`useMockData`) 토글은 현행 Settings 에 존재
-- [ ] **후속 ADR** `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화 = 저장 형식 확장, lock-in §2 밖. 본 ADR 아님 (export/redactor/번들 영향 검토는 후속 ADR 전제)
+- [x] ~~**후속 ADR**~~ → **ADR-218 Implemented 2026-09-13** (`executionPolicy` auto/manual/interval) — Settings 탭 → "데이터 소스": 엔드포인트 picker + 실행 정책 (열 때 자동 · 수동 · N초마다) (UX-6) — 실행 정책은 collection 신규 영속 필드 필요 = lock-in §2 밖. 본 ADR 아님. sample/real (`useMockData`) 토글은 현행 Settings 에 존재
+- [x] ~~**후속 ADR**~~ → **ADR-218 Implemented 2026-09-13** (`collection_runtime` store · sourceRev) — `runtimeData` 마지막 성공 응답을 IndexedDB 에 저장 — 계약상 memory-only 필드의 영속화 = 저장 형식 확장, lock-in §2 밖. 본 ADR 아님 (export/redactor/번들 영향 검토는 후속 ADR 전제)
 - [x] 0행 · 오류 상태를 목록 배지 · 편집기 상단에 같은 값으로 (`findLinkedApi`+`apiRuns`, `.datatable-editor-status`). 캔버스 배지는 Phase 6
 
 ### Phase 6 — 인스펙터 동선 + 캔버스 배지 — 완료 2026-09-12 (`98a9ed7d8` 인스펙터 · `04b517c84`/`76da39dbd`/`dfd5425e6`/`b8bf4c694` 캔버스 배지, live 9/9 `scripts/adr212-p6-live.mjs`)
