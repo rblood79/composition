@@ -2,7 +2,7 @@
 // adr212-p3-live.mjs — ADR-212 Phase 3 (필드 패널, 게이트 G2) live: 실제 빌더에서
 //   격자 헤더 클릭 → 필드 패널 → rename (update_field { key }, 152 적용기가 행 이전) ·
 //   타입 변경 미리보기 (강제 실패 → 비움) · required patch · 새 필드 (+) · 삭제 (사용처 0 즉시) ·
-//   Schema 탭이 없어짐 (Table/Settings 2탭) · 편집기 패널 axe critical 0 (탭 aria-controls 해소) ·
+//   Schema 탭이 없어짐 (탭 0 · 설정 gear 토글) · 편집기 패널 axe critical 0 (탭 aria-controls 해소) ·
 //   native dialog 0 · page error 0. G4 재확인: rename 뒤 rows 가 새 key 로, 값 보존.
 // 사용: node apps/builder/scripts/adr212-p3-live.mjs [--headless]
 import { createRequire } from "node:module";
@@ -162,16 +162,15 @@ try {
     await page.waitForTimeout(500);
   };
 
-  // 1) Schema 탭 없음 — Table/Settings 2탭
-  const tabNames = await editor.evaluate((el) =>
-    [...el.querySelectorAll(".panel-tab .panel-tab-label")].map((n) =>
-      (n.textContent ?? "").trim(),
-    ),
-  );
+  // 1) 탭 0 (Schema 탭 제거 · Table/Settings 탭도 4b9ec38f0 에서 제거) — 헤더 설정 gear 토글 1
+  const shell = await editor.evaluate((el) => ({
+    tabs: el.querySelectorAll(".panel-tab").length,
+    gear: el.querySelectorAll(".datatable-editor-settings-toggle").length,
+  }));
   record(
-    "Schema 탭 제거 — Table/Settings 2탭",
-    tabNames.length === 2 && !tabNames.some((n) => /schema|스키마/i.test(n)),
-    JSON.stringify(tabNames),
+    "Schema 탭 제거 — 탭 0 + 설정 gear 토글",
+    shell.tabs === 0 && shell.gear === 1,
+    JSON.stringify(shell),
   );
 
   const fieldPanel = page.locator('[data-panel-id="datatableField"]');

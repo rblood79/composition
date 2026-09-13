@@ -142,6 +142,16 @@ page.on("console", (m) => {
   if (m.type() === "error") errors.push("console:" + m.text());
 });
 let dialogs = 0;
+await page.addInitScript(() => {
+  // G1e' — iframe 으로 오는 UPDATE_DATA_TABLES payload 기록 (같은 origin 이라 부모의
+  // `iframe.contentWindow.postMessage(...)` 가 이 override 를 호출한다).
+  const orig = window.postMessage.bind(window);
+  window.postMessage = function (msg, ...rest) {
+    if (msg && msg.type === "UPDATE_DATA_TABLES" && Array.isArray(msg.collections))
+      (window.__adr218_updateDataTables ??= []).push(msg.collections);
+    return orig(msg, ...rest);
+  };
+});
 page.on("dialog", (d) => {
   dialogs += 1;
   d.dismiss().catch(() => {});
@@ -314,6 +324,53 @@ try {
     !!rowStillThere && hits === 0,
     JSON.stringify({ kept: !!rowStillThere, hits }),
   );
+
+  // G1e' — hydration 이 in-memory runtimeData 를 현재 key 로 remap 했는지 **소비 경로**로 확인
+  //   (편집기 격자는 mockData 만 그리므로 격자는 이 판정의 표면이 아니다 — Q4).
+  //   소비 경로 = Preview iframe 으로 가는 `UPDATE_DATA_TABLES` (useIframeMessenger · syncCollectionsToCanvas).
+  //   init script 가 iframe 의 window.postMessage 를 감싸 payload 를 기록한다 (같은 origin).
+  const compareToggle = page
+    .locator(
+      'button[aria-label="Compare Mode (Preview + Skia)"], button[aria-label="비교 모드 (Preview + Skia)"]',
+    )
+    .first();
+  if ((await compareToggle.getAttribute("aria-pressed")) !== "true") {
+    await compareToggle.click();
+  }
+  let remap = null;
+  for (let i = 0; i < 40 && !remap; i += 1) {
+    await page.waitForTimeout(250);
+    for (const f of page.frames()) {
+      if (f === page.mainFrame()) continue;
+      const got = await f
+        .evaluate((cid) => {
+          const msgs = window.__adr218_updateDataTables ?? [];
+          for (let k = msgs.length - 1; k >= 0; k -= 1) {
+            const users = msgs[k].find((c) => c.id === cid);
+            if (users && Array.isArray(users.runtimeData))
+              return {
+                keys: Object.keys(users.runtimeData[0] ?? {}),
+                rows: users.runtimeData.length,
+                useMockData: users.useMockData,
+                values: users.runtimeData.map((r) => r.fullName),
+              };
+          }
+          return null;
+        }, collectionId)
+        .catch(() => null);
+      if (got) remap = got;
+    }
+  }
+  record(
+    "field rename → reload 뒤 Preview 로 가는 runtimeData 가 현재 key (fullName, 옛 key name 0 · 값 보존)",
+    !!remap &&
+      remap.rows === 3 &&
+      remap.keys.includes("fullName") &&
+      !remap.keys.includes("name") &&
+      remap.values.every((v) => typeof v === "string" && v !== ""),
+    JSON.stringify(remap),
+  );
+  // compare 모드는 다음 단계의 reload 가 초기화한다 — 되돌리지 않는다.
 
   // G1d — endpoint path 변경 → reload → 지문 불일치로 캐시 무효화(폐기)
   const eps = await idbGetAll(page, "api_endpoints");
