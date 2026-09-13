@@ -18,7 +18,11 @@ import {
   isInteractionRule,
   type InteractionRule,
 } from "./interactionRule.types";
-import { executeInteractionRule, type DispatchDeps } from "./dispatcher";
+import {
+  executeInteractionRule,
+  type DispatchContext,
+  type DispatchDeps,
+} from "./dispatcher";
 
 /** RAC callback — 인자 형태가 callback 마다 달라 dispatcher 는 쓰지 않는다. */
 type InteractionCallback = (...args: unknown[]) => void;
@@ -80,6 +84,8 @@ export function createElementHandlers(
     rule: InteractionRule,
     outcome: ReturnType<typeof executeInteractionRule>,
   ) => void,
+  // ADR-214 Phase 4 — 트리거 요소의 렌더 문맥 (요소 변수 instanceKey)
+  context?: DispatchContext,
 ): Record<string, InteractionCallback> {
   const byTrigger = index.get(elementId);
   if (!byTrigger || byTrigger.size === 0) return NO_HANDLERS;
@@ -88,7 +94,7 @@ export function createElementHandlers(
   for (const [trigger, rules] of byTrigger) {
     handlers[trigger] = () => {
       for (const rule of rules) {
-        const outcome = executeInteractionRule(rule, deps);
+        const outcome = executeInteractionRule(rule, deps, context);
         onOutcome?.(rule, outcome);
       }
     };

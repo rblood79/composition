@@ -36,6 +36,12 @@ export interface VariableDef {
   defaultValue?: unknown;
   /** project 소유자만 의미 (localStorage persist — Phase 2 `composition:runtime-state:v1:${projectId}`) */
   persist?: boolean;
+  /**
+   * ADR-214 Phase 4 — 암묵 상태 미러: 요소 (RAC) 가 이미 가진 상태 prop 에 붙인 이름. 값은 그 prop 의
+   * 관찰 이벤트 (`IMPLICIT_STATE_SOURCES`) 로 채워진다 — **읽기만** (prop 주입 0, R6 · D1 무변경).
+   * element 소유자 전용.
+   */
+  source?: { prop: string };
 }
 
 export type VariableOwner =
@@ -59,6 +65,7 @@ export const VariableDefSchema: z.ZodType<VariableDef> = z.object({
   type: VariableDefTypeSchema,
   defaultValue: z.unknown().optional(),
   persist: z.boolean().optional(),
+  source: z.object({ prop: z.string().min(1) }).optional(),
 });
 
 export const VariableOwnerSchema: z.ZodType<VariableOwner> =

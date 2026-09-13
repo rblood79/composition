@@ -106,12 +106,14 @@ interface VariableDef {
 - [x] Properties 문자열 입력에 `{{` 자동완성 (가시성 사슬 목록)
 - [x] G2 live 7/7: `guest`가 Canvas Skia/preview DOM 에 보이고 default를 `Ana`로 바꾸면 Canvas 즉시 갱신·sceneVersion 변경·비의존 노드 0 변경 · preview setState(Bob) 는 preview 만 (Canvas 기본값, sceneVersion 불변 — R2) · 리터럴 · ListBox 행 혼용 `User 1 — Bob` · 자동완성
 
-### Phase 4 — 쓰기: `setState` 액션 (게이트 G3)
+### Phase 4 — 쓰기: `setState` 액션 (게이트 G3) — 완료 2026-09-14 (live 8/8 `adr214-p4-live.mjs`)
 
-- [ ] `SetStateAction` 타입 + `isInteractionRule` 확장 + shared `dispatcher.ts` 분기 (set/toggle/increment/reset, 타입 검증)
-- [ ] `ActionPicker` 에 "상태 설정" 그룹 (프로젝트 / 이 페이지 / 이 컴포넌트와 조상) + 값 입력은 타입별 (boolean 토글 · number 증가)
-- [ ] 암묵 상태 읽기 — capability 경로에서 RAC prop 값을 `elementStates` 에 미러 (이름 붙인 것만)
-- [ ] G3 live: Button setState, 인스턴스 2 격리, page reset, project 유지. 같은 변수명을 가진 project A/B를 전환·새로고침해 persist 누출 0. 고정 600요소/소비10 fixture에서 5 warmup+30회 성능 계측
+> 구현 결정: `SetStateAction {kind:"setState", variableId, op: set|toggle|increment|reset, value?}` 는 shared `dispatcher.ts` 가 `DispatchDeps.writeState({variableId, op, value, instanceKeyFor})` 로 위임한다 — 소유자 scope 는 preview/publish 가 `runtimeState.getDefinition(variableId).owner` 로 정하고 (element 면 `DispatchContext.instanceKeyFor` 가 인스턴스 키), `writeState` 부재·variableId 공백은 `{ok:false}` 로 시끄럽게 실패. 규칙 + 암묵 미러는 `createPreviewEventHandlerMap` 이 `composeEventHandlers` 로 합성 (규칙 → 미러 순, 서로 못 지운다). 암묵 상태 표 `IMPLICIT_STATE_SOURCES` (`state/implicitState.ts`, Tree/TagGroup/ListBox/GridList/Checkbox/ToggleButton/Switch/RadioGroup/Slider/Tabs/Disclosure) — `source.prop` 이 붙은 요소 변수만 미러, Set 은 배열로 정규화. live 에서 발견: 위임 렌더러 (Checkbox·RadioGroup·Switch·Tree·TagGroup·ToggleButton·Tabs·Disclosure·Slider) 는 `createEventHandlerMap` 을 호출한 적이 없어 (ADR-158 규칙도 거기선 안 걸렸다) `invokeCustomEventHandler` 를 9곳에 넣었다. Interactions 패널 "Set state" 는 변수 select (소유자 그룹 project/page/element · `useVisibleVariables`) + 타입별 op (boolean 은 toggle, number 는 increment, 그 외 set/reset) + 값 입력, 요약 줄 `Increment count`. G3 성능은 write → MutationObserver commit 으로 잰다 (double rAF 는 vsync 에 묶여 16.7 ms 바닥 — 지표 아님): 600 Text / 소비 10 fixture, indexed p95 9 ms · long task 0 · 갱신 노드 10 (대조군 `__composition_STATE_INDEX_OFF__` p95 20.7).
+
+- [x] `SetStateAction` 타입 + `isInteractionRule` 확장 + shared `dispatcher.ts` 분기 (set/toggle/increment/reset, 타입 검증)
+- [x] `ActionPicker` 에 "상태 설정" 그룹 (프로젝트 / 이 페이지 / 이 컴포넌트와 조상) + 값 입력은 타입별 (boolean 토글 · number 증가)
+- [x] 암묵 상태 읽기 — capability 경로에서 RAC prop 값을 `elementStates` 에 미러 (이름 붙인 것만)
+- [x] G3 live 8/8: 패널에서 규칙 작성 → IndexedDB `document_parts` 헤더 part `events` 에 setState 규칙 · preview 클릭 ×2 → `count=2` · 인스턴스 2 격리 (unit) · page 변수 increment 뒤 페이지 재진입 리셋 · persist Ana 새로고침 유지 + 같은 이름 project B 는 기본값 (누출 0) · 600요소/소비10 fixture 5 warmup + 30회 write→commit p95 9 ms, long task 0, 갱신 노드 10
 
 ### Phase 5 — 관리 표면 3 (게이트 G4)
 

@@ -113,6 +113,7 @@ function renderButtonIcon(
 /**
  * Tabs 렌더링
  */
+import { invokeCustomEventHandler } from "./utils/customEventHandler";
 export const renderTabs = (
   element: PreviewElement,
   context: RenderContext,
@@ -179,6 +180,8 @@ export const renderTabs = (
           selectedKey: key,
         };
         updateElementProps(element.id, updatedProps);
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onSelectionChange", key);
       }}
     >
       <TabList
@@ -1736,9 +1739,11 @@ export const renderDisclosure = (
       size={(element.props.size as "sm" | "md" | "lg") || "md"}
       isDisabled={Boolean(element.props.isDisabled)}
       {...(isInGroup ? {} : { defaultExpanded })}
-      onExpandedChange={(isExpanded) =>
-        updateElementProps(element.id, { isExpanded })
-      }
+      onExpandedChange={(isExpanded) => {
+        updateElementProps(element.id, { isExpanded });
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onExpandedChange", isExpanded);
+      }}
       style={element.props.style}
       className={element.props.className}
     >

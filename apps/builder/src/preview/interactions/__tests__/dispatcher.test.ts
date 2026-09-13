@@ -246,4 +246,41 @@ describe("bindings — 색인과 callback", () => {
       expect.objectContaining({ ok: false }),
     );
   });
+
+  // ── ADR-214 Phase 4 — setState
+  it("setState 는 writeState dep 로 간다 — variableId·op·value 와 트리거 문맥 instanceKeyFor 를 실어 보낸다", () => {
+    const deps = makeDeps({});
+    const writeState = vi.fn(() => ({ ok: true }));
+    deps.writeState = writeState;
+    const index = buildInteractionIndex([
+      rule({ kind: "setState", variableId: "v-count", op: "increment", value: 2 }),
+    ]);
+    const instanceKeyFor = (ownerId: string) => `inst-a/${ownerId}`;
+    const onOutcome = vi.fn();
+    createElementHandlers("btn", index, deps, onOutcome, { instanceKeyFor }).onPress();
+    expect(writeState).toHaveBeenCalledWith({
+      variableId: "v-count",
+      op: "increment",
+      value: 2,
+      instanceKeyFor,
+    });
+    expect(onOutcome).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "r1" }),
+      { ok: true, kind: "setState" },
+    );
+  });
+
+  it("setState — writeState 미주입 · variableId 없음 · 쓰기 거부는 실패로 돌아온다 (조용한 no-op 금지)", () => {
+    const missingDep = makeDeps({});
+    expect(
+      executeInteractionRule(rule({ kind: "setState", variableId: "v", op: "set", value: 1 }), missingDep),
+    ).toEqual({ ok: false, reason: "setState 실행 경로 없음 (writeState 미주입)" });
+    const deps = makeDeps({});
+    deps.writeState = () => ({ ok: false, reason: "type-mismatch" });
+    expect(executeInteractionRule(rule({ kind: "setState", variableId: "", op: "set" }), deps)).toMatchObject({ ok: false });
+    expect(executeInteractionRule(rule({ kind: "setState", variableId: "v", op: "set", value: "x" }), deps)).toEqual({
+      ok: false,
+      reason: "type-mismatch",
+    });
+  });
 });

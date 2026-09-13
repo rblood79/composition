@@ -15,9 +15,11 @@ import {
 } from "@composition/shared";
 
 import { useStore } from "../../stores";
+import { useVisibleVariables } from "../properties/hooks/useVisibleVariables";
 import { ActionPicker } from "./ActionPicker";
 import { CapabilityPicker } from "./CapabilityPicker";
 import { ParamField } from "./ParamField";
+import { StateActionFields } from "./StateActionFields";
 import { TargetPicker } from "./TargetPicker";
 import { TriggerPicker } from "./TriggerPicker";
 import { triggerLabel } from "./labels";
@@ -41,8 +43,16 @@ interface RuleRowProps {
 function emptyAction(choice: ActionChoice): InteractionAction {
   if (choice === "navigate") return { kind: "navigate", params: { path: "" } };
   if (choice === "toast") return { kind: "toast", params: { message: "" } };
+  if (choice === "setState") return { kind: "setState", variableId: "", op: "set" };
   return { kind: "capability", targetId: "", capability: "hide" };
 }
+
+const STATE_OP_LABEL_KEYS = {
+  set: "interactions.stateOpSet",
+  toggle: "interactions.stateOpToggle",
+  increment: "interactions.stateOpIncrement",
+  reset: "interactions.stateOpReset",
+} as const;
 
 export const RuleRow = memo(function RuleRow({
   rule,
@@ -66,6 +76,11 @@ export const RuleRow = memo(function RuleRow({
 
   const targetType = target?.type ?? "";
 
+  // ADR-214 — setState 요약용 변수 이름 (가시성 사슬)
+  const visibleVariables = useVisibleVariables(
+    rule.action.kind === "setState" ? rule.elementId : undefined,
+  );
+
   const targetLabel = target
     ? target.customId
       ? `${target.type} #${target.customId}`
@@ -86,11 +101,22 @@ export const RuleRow = memo(function RuleRow({
         ? t("interactions.summaryToastWithMessage", { when, message: msg })
         : t("interactions.summaryToast", { when });
     }
+    if (rule.action.kind === "setState") {
+      const variableId = rule.action.variableId;
+      const name =
+        visibleVariables.find((entry) => entry.def.id === variableId)?.def.name ??
+        (variableId ? variableId : t("interactions.stateVariableUnset"));
+      return t("interactions.summarySetState", {
+        when,
+        op: t(STATE_OP_LABEL_KEYS[rule.action.op]),
+        name,
+      });
+    }
     const capDef = resolveCapabilities(targetType)[rule.action.capability];
     // 미등재 capability 는 키를 그대로 보여준다 — 규칙이 무엇을 가리키는지는 남는다
     const capLabel = capDef ? t(capDef.labelKey) : rule.action.capability;
     return `${when} → ${capLabel} @ ${targetLabel}`;
-  }, [rule.trigger, rule.action, targetType, targetLabel, t]);
+  }, [rule.trigger, rule.action, targetType, targetLabel, visibleVariables, t]);
 
   const choice: ActionChoice = rule.action.kind;
 
@@ -105,6 +131,7 @@ export const RuleRow = memo(function RuleRow({
   // JSX 안에서 `rule.action` 를 다시 읽으면 union 이 재확장돼 spread 갱신이
   // 타입 오류가 된다 — 좁혀진 형태를 지역 상수로 고정해 쓴다.
   const capAction = rule.action.kind === "capability" ? rule.action : null;
+  const stateAction = rule.action.kind === "setState" ? rule.action : null;
 
   const capabilityDef = capAction
     ? resolveCapabilities(targetType)[capAction.capability]
@@ -159,6 +186,14 @@ export const RuleRow = memo(function RuleRow({
           />
 
           <ActionPicker value={choice} onChange={handleChoice} />
+
+          {stateAction && (
+            <StateActionFields
+              elementId={rule.elementId}
+              action={stateAction}
+              onChange={(action) => onChange({ action })}
+            />
+          )}
 
           {capAction && (
             <>

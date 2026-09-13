@@ -443,6 +443,20 @@ export interface TranslationKeys {
     summaryNavigateWithPath: string;
     summaryToast: string;
     summaryToastWithMessage: string;
+    actionSetState: string;
+    stateVariable: string;
+    stateVariableUnset: string;
+    stateVariableGroupProject: string;
+    stateVariableGroupPage: string;
+    stateVariableGroupElement: string;
+    stateOp: string;
+    stateOpSet: string;
+    stateOpToggle: string;
+    stateOpIncrement: string;
+    stateOpReset: string;
+    stateValue: string;
+    stateStep: string;
+    summarySetState: string;
   };
   /**
    * Capability 어휘 — `packages/shared` 의 `CAPABILITY_REGISTRY` 가 `labelKey` 로

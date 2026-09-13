@@ -56,6 +56,22 @@ export interface PreviewElement {
   page_id?: string | null;
   dataBinding?: DataBinding;
   deleted?: boolean;
+  /**
+   * ADR-214 Phase 4 — 이 요소의 렌더 문맥: 조상 (자기 포함) origin id → instanceKey.
+   * `createEventHandlerMap` 이 setState 규칙에 실어 요소 변수 스코프를 정한다. 미주입 = origin
+   * 규약 (id 그대로). 렌더 전용 — 문서 · 저장 형식에 실리지 않는다.
+   */
+  stateInstanceScope?: ReadonlyMap<string, string>;
+  /**
+   * ADR-214 Phase 4 — 이 요소 (origin) 의 상태 정의. `source.prop` 이 있는 정의는 암묵 상태 미러
+   * (관찰 이벤트 → 런타임 값). 렌더 전용.
+   */
+  stateDefs?: ReadonlyArray<{
+    id: string;
+    name: string;
+    type: string;
+    source?: { prop: string };
+  }>;
 }
 
 // ============================================

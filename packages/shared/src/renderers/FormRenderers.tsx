@@ -56,6 +56,7 @@ function findNearestAncestorForm(
   return null;
 }
 
+import { invokeCustomEventHandler } from "./utils/customEventHandler";
 export function resolveInheritedFormFieldProps(
   element: PreviewElement,
   context: RenderContext,
@@ -663,6 +664,8 @@ export const renderCheckbox = (
 
         // 1. Store 업데이트
         updateElementProps(element.id, updatedProps);
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onChange", isSelected);
 
         // 2. SaveService 호출 (DI를 통해 context에서 주입)
         try {
@@ -967,6 +970,8 @@ export const renderRadioGroup = (
           : undefined
       }
       onChange={(selectedValue) => {
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onChange", selectedValue);
         const batch: Array<{ id: string; props: Record<string, unknown> }> = [
           {
             id: element.id,
@@ -1023,6 +1028,8 @@ export const renderSwitch = (
           isSelected,
         };
         updateElementProps(element.id, updatedProps);
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onChange", isSelected);
       }}
     >
       {typeof element.props.children === "string"

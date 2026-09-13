@@ -39,11 +39,27 @@ export interface DispatchDeps {
   navigate: (path: string) => void;
   /** toast 큐 추가 */
   showToast: (message: string) => void;
+  /**
+   * ADR-214 Phase 4 — 변수 값 쓰기 (shared runtimeState). `instanceKeyFor` 는 트리거 요소의
+   * 렌더 문맥 (조상 origin id → instanceKey) — 요소 변수의 스코프를 정한다. 미주입 환경
+   * (구 preview 경로 · 테스트) 에서는 규칙이 실패로 돌아온다 (조용한 no-op 금지).
+   */
+  writeState?: (request: {
+    variableId: string;
+    op: "set" | "toggle" | "increment" | "reset";
+    value?: unknown;
+    instanceKeyFor?: (ownerElementId: string) => string;
+  }) => { ok: boolean; reason?: string };
+}
+
+/** 트리거 요소의 렌더 문맥 — `createElementHandlers` 가 규칙 실행에 실어 보낸다 */
+export interface DispatchContext {
+  instanceKeyFor?: (ownerElementId: string) => string;
 }
 
 /** 실행 결과 — 실패를 삼키지 않고 호출부(및 테스트)가 볼 수 있게 돌려준다. */
 export type DispatchOutcome =
-  | { ok: true; kind: "navigate" | "toast" | "capability" }
+  | { ok: true; kind: "navigate" | "toast" | "capability" | "setState" }
   | { ok: false; reason: string };
 
 /**
@@ -134,8 +150,25 @@ function readCurrent(
 export function executeInteractionRule(
   rule: InteractionRule,
   deps: DispatchDeps,
+  context?: DispatchContext,
 ): DispatchOutcome {
   const { action } = rule;
+
+  if (action.kind === "setState") {
+    if (!action.variableId)
+      return { ok: false, reason: "setState 에 variableId 가 없다" };
+    if (!deps.writeState)
+      return { ok: false, reason: "setState 실행 경로 없음 (writeState 미주입)" };
+    const result = deps.writeState({
+      variableId: action.variableId,
+      op: action.op,
+      value: action.value,
+      instanceKeyFor: context?.instanceKeyFor,
+    });
+    return result.ok
+      ? { ok: true, kind: "setState" }
+      : { ok: false, reason: result.reason ?? "setState 실패" };
+  }
 
   if (action.kind === "navigate") {
     const path = action.params?.path;

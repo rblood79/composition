@@ -174,6 +174,7 @@ function renderGridListItemSlotContent(opts: {
 /**
  * ListBox 렌더링
  */
+import { invokeCustomEventHandler } from "./utils/customEventHandler";
 export const renderListBox = (
   element: PreviewElement,
   context: RenderContext,
@@ -1801,7 +1802,7 @@ export const renderComboBox = (
  */
 export const renderSlider = (
   element: PreviewElement,
-  _context: RenderContext,
+  context: RenderContext,
 ): React.ReactNode => {
   const rawValue = element.props.value;
   const normalizedValue = Array.isArray(rawValue)
@@ -1851,6 +1852,13 @@ export const renderSlider = (
         element.props.formatOptions as Intl.NumberFormatOptions | undefined
       }
       locale={(element.props.locale as string) || undefined}
+      // ADR-158 규칙 · ADR-214 암묵 상태 미러 (uncontrolled — 값은 관찰만)
+      onChange={(value) =>
+        invokeCustomEventHandler(context, element, "onChange", value)
+      }
+      onChangeEnd={(value) =>
+        invokeCustomEventHandler(context, element, "onChangeEnd", value)
+      }
     />
   );
 };

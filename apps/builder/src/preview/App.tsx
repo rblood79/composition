@@ -36,6 +36,7 @@ import {
   resolveSlotComposition,
   resolveStateTemplate,
 } from "@composition/shared";
+import { createPreviewEventHandlerMap } from "./interactions/createPreviewEventHandlerMap";
 import { getElementForTag } from "@composition/specs";
 import {
   isSpecOrCatalogBacked,
@@ -768,6 +769,28 @@ function CanvasContent() {
         getRuntimeStore().getState().patchInteractionOverride(id, patch),
       navigate: (path) => navigateInPreview(path),
       showToast: (message) => toastRef.current?.(message),
+      // ADR-214 Phase 4 — 변수 쓰기 (shared runtimeState). 요소 변수의 스코프는 정의 소유자 →
+      //   트리거 요소의 렌더 문맥 (instanceKeyFor) 으로 잇는다 — 인스턴스 2 격리 (R3).
+      writeState: ({ variableId, op, value, instanceKeyFor }) => {
+        const { runtimeState } = getRuntimeStore().getState();
+        const definition = runtimeState.getDefinition(variableId);
+        if (!definition)
+          return { ok: false, reason: `변수 없음: ${variableId}` };
+        const owner = definition.owner;
+        const scope =
+          owner.kind === "element"
+            ? {
+                kind: "element" as const,
+                instanceKey: instanceKeyFor?.(owner.elementId) ?? owner.elementId,
+              }
+            : owner.kind === "page"
+              ? { kind: "page" as const, pageId: owner.pageId }
+              : { kind: "project" as const };
+        const result = runtimeState.write({ variableId, op, value, scope });
+        return result.ok
+          ? { ok: true }
+          : { ok: false, reason: result.reason ?? "setState 실패" };
+      },
     }),
     [interactionTargets],
   );
@@ -782,13 +805,13 @@ function CanvasContent() {
       // 선언만 있고 공급이 0건이던 seam (`RuntimeServices.createEventHandlerMap`)
       // 을 여기서 채운다 — 렌더러 14곳의 기존 spread 지점이 그대로 살아난다.
       services: {
-        createEventHandlerMap: (element: { id: string }) =>
-          createElementHandlers(
-            element.id,
+        createEventHandlerMap: (element) =>
+          createPreviewEventHandlerMap(element, {
             interactionIndex,
             interactionDeps,
             reportInteractionOutcome,
-          ) as EventHandlerMap,
+            getRuntimeState: () => getRuntimeStore().getState().runtimeState,
+          }),
       },
       batchUpdateElementProps,
       setElements: (newElements: PreviewElement[]) => {

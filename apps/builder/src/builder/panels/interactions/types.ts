@@ -11,8 +11,8 @@ export type {
   InteractionRule,
 } from "@composition/shared";
 
-/** Do 축 선택지 — 앱 액션 2종 + capability 진입 */
-export type ActionChoice = "navigate" | "toast" | "capability";
+/** Do 축 선택지 — 앱 액션 3종 (navigate / toast / setState — ADR-214) + capability 진입 */
+export type ActionChoice = "navigate" | "toast" | "setState" | "capability";
 
 /** 대상 후보 요소 (TargetPicker 표시용) */
 export interface TargetOption {

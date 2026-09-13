@@ -303,6 +303,15 @@ function CanonicalNodeRendererBody({
   const editorPresentation = useRuntimeStore(
     (state) => state.editorPresentationOverrides[currentPath],
   );
+  // ADR-214 G3 A/B (dev 전용): `window.__composition_STATE_INDEX_OFF__` 이면 의존 인덱스를 끄고
+  //   모든 노드가 모든 상태 변경에 다시 렌더한다 — 성능 계측의 대조군 (breakdown §6). production 0.
+  useRuntimeStore((state) =>
+    import.meta.env.DEV &&
+    (window as unknown as { __composition_STATE_INDEX_OFF__?: boolean })
+      .__composition_STATE_INDEX_OFF__
+      ? state.runtimeStateRevision
+      : 0,
+  );
 
   // ── canonical props 추출 ──────────────────────────────────────────────────
   //
@@ -382,7 +391,15 @@ function CanonicalNodeRendererBody({
   );
 
   // fills + style 변환 (adaptElementStyle)
-  const adaptedEl = adaptElementStyle(previewEl);
+  // ADR-214 Phase 4 — 렌더 문맥 (instanceKey 맵) 과 상태 정의를 실어 createEventHandlerMap 이
+  //   setState 스코프 · 암묵 상태 미러를 만든다 (cutover · rendererMap 두 경로 공통).
+  const adaptedEl: PreviewElement = {
+    ...adaptElementStyle(previewEl),
+    stateInstanceScope: stateScope.ancestorKeys,
+    ...(Array.isArray(node.state) && node.state.length > 0
+      ? { stateDefs: node.state }
+      : {}),
+  };
 
   // DOM 마커 props
   const markerProps = {
@@ -530,6 +547,7 @@ function CanonicalNodeRendererBody({
       //
       // 규칙이 없는 요소에는 동결된 빈 객체가 돌아오므로 spread 비용이 0 이고 prop 도 붙지
       // 않는다. `racRest` **뒤**에 펼친다 — 트리거 콜백이 catalog prop 에 덮이면 안 된다.
+      // ADR-214 Phase 4 — setState 규칙의 요소 변수 스코프 (instanceKey) 는 이 노드의 렌더 문맥
       const eventHandlers =
         renderContext.services?.createEventHandlerMap?.(
           adaptedEl,

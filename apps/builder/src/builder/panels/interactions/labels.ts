@@ -37,5 +37,6 @@ export function triggerLabel(trigger: string, t: LabelTranslate): string {
 export const ACTION_CHOICE_LABEL_KEYS = {
   navigate: "interactions.actionNavigate",
   toast: "interactions.actionToast",
+  setState: "interactions.actionSetState",
   capability: "interactions.actionCapability",
 } as const;

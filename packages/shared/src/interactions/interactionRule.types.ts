@@ -44,7 +44,28 @@ export interface CapabilityAction {
   params?: { value: unknown };
 }
 
-export type InteractionAction = NavigateAction | ToastAction | CapabilityAction;
+/** ADR-214 Phase 4 — 상태 쓰기 op 4 (shared runtimeState 의 write 와 같은 어휘) */
+export const SET_STATE_OPS = ["set", "toggle", "increment", "reset"] as const;
+export type SetStateOp = (typeof SET_STATE_OPS)[number];
+
+/**
+ * ADR-214 — 앱 액션 3: 변수 값 쓰기. `variableId` 는 가시성 사슬 (프로젝트 / 이 페이지 / 이
+ * 컴포넌트와 조상) 안 `VariableDef.id`. 요소 변수의 스코프 (instanceKey) 는 실행 시점에
+ * 트리거 요소의 렌더 문맥이 정한다 — 규칙은 origin id 만 안다 (R3).
+ */
+export interface SetStateAction {
+  kind: "setState";
+  variableId: string;
+  op: SetStateOp;
+  /** set 의 값 · increment 의 증분 (생략 = 1). toggle / reset 은 없음 */
+  value?: unknown;
+}
+
+export type InteractionAction =
+  | NavigateAction
+  | ToastAction
+  | CapabilityAction
+  | SetStateAction;
 
 /** canonical `events` root collection 의 entry */
 export interface InteractionRule {

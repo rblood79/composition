@@ -36,6 +36,7 @@ import {
   type InteractionIndex,
 } from "@composition/shared";
 import { useToast } from "@composition/shared/components";
+import { useRuntimeState } from "./RuntimeStateRuntime";
 
 type PropsBag = Record<string, unknown>;
 
@@ -106,6 +107,11 @@ export function InteractionRuntimeProvider({
     }));
   }, []);
 
+  // ADR-214 — 런타임 상태 handle (RuntimeStateProvider 가 바깥). ref 로 읽어 deps memo 를 안 깨뜨린다.
+  const runtimeStateValue = useRuntimeState();
+  const runtimeStateRef = useRef(runtimeStateValue?.runtimeState ?? null);
+  runtimeStateRef.current = runtimeStateValue?.runtimeState ?? null;
+
   const deps = useMemo<DispatchDeps>(
     () => ({
       getElement: (id) => {
@@ -142,6 +148,29 @@ export function InteractionRuntimeProvider({
         console.warn(`[Interaction] navigate: 매칭되는 페이지 없음 — ${path}`);
       },
       showToast: (message) => addToast({ title: message }),
+      // ADR-214 Phase 4 — 변수 쓰기 (shared runtimeState, preview 와 같은 스코프 규칙)
+      writeState: ({ variableId, op, value, instanceKeyFor }) => {
+        const runtimeState = runtimeStateRef.current;
+        if (!runtimeState)
+          return { ok: false, reason: "런타임 상태 없음 (RuntimeStateProvider 밖)" };
+        const definition = runtimeState.getDefinition(variableId);
+        if (!definition)
+          return { ok: false, reason: `변수 없음: ${variableId}` };
+        const owner = definition.owner;
+        const scope =
+          owner.kind === "element"
+            ? {
+                kind: "element" as const,
+                instanceKey: instanceKeyFor?.(owner.elementId) ?? owner.elementId,
+              }
+            : owner.kind === "page"
+              ? { kind: "page" as const, pageId: owner.pageId }
+              : { kind: "project" as const };
+        const result = runtimeState.write({ variableId, op, value, scope });
+        return result.ok
+          ? { ok: true }
+          : { ok: false, reason: result.reason ?? "setState 실패" };
+      },
     }),
     [elementById, pageIdBySlug, onNavigatePage, patchOverride, addToast],
   );

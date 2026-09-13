@@ -613,6 +613,20 @@ const koKR: TranslationKeys = {
     summaryNavigateWithPath: "{when} → 페이지 이동 ({path})",
     summaryToast: "{when} → 토스트",
     summaryToastWithMessage: '{when} → 토스트 "{message}"',
+    actionSetState: "상태 설정",
+    stateVariable: "변수",
+    stateVariableUnset: "변수 미지정",
+    stateVariableGroupProject: "프로젝트",
+    stateVariableGroupPage: "이 페이지",
+    stateVariableGroupElement: "이 컴포넌트와 조상",
+    stateOp: "동작",
+    stateOpSet: "값 설정",
+    stateOpToggle: "토글",
+    stateOpIncrement: "증가",
+    stateOpReset: "기본값으로",
+    stateValue: "값",
+    stateStep: "증분",
+    summarySetState: "{when} → {op} {name}",
   },
   capabilities: {
     show: "표시",
@@ -2521,6 +2535,20 @@ const enUS: TranslationKeys = {
     summaryNavigateWithPath: "{when} → go to page ({path})",
     summaryToast: "{when} → toast",
     summaryToastWithMessage: '{when} → toast "{message}"',
+    actionSetState: "Set state",
+    stateVariable: "Variable",
+    stateVariableUnset: "No variable",
+    stateVariableGroupProject: "Project",
+    stateVariableGroupPage: "This page",
+    stateVariableGroupElement: "This component and ancestors",
+    stateOp: "Operation",
+    stateOpSet: "Set value",
+    stateOpToggle: "Toggle",
+    stateOpIncrement: "Increment",
+    stateOpReset: "Reset to default",
+    stateValue: "Value",
+    stateStep: "Step",
+    summarySetState: "{when} → {op} {name}",
   },
   capabilities: {
     show: "Show",
@@ -4583,6 +4611,8 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → 토스트`,
     "interactions.summaryToastWithMessage": (args) =>
       `${String(args?.when ?? "")} → 토스트 "${String(args?.message ?? "")}"`,
+    "interactions.summarySetState": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.op ?? "")} ${String(args?.name ?? "")}`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} 은 ${String(args?.parent ?? "")} 가 그리는 부분이라 미리보기·퍼블리시에 이 요소의 속성·스타일이 실리지 않습니다. 부모의 속성 (Label · Placeholder · Invalid · Error Message 등) 으로 편집하세요.`,
     "styles.delegatedSubpartDescription": (args) =>
@@ -5027,6 +5057,8 @@ const formattedMessages: Record<
       `${String(args?.when ?? "")} → toast`,
     "interactions.summaryToastWithMessage": (args) =>
       `${String(args?.when ?? "")} → toast "${String(args?.message ?? "")}"`,
+    "interactions.summarySetState": (args) =>
+      `${String(args?.when ?? "")} → ${String(args?.op ?? "")} ${String(args?.name ?? "")}`,
     "propertiesPanel.delegatedSubpartDescription": (args) =>
       `${String(args?.type ?? "")} is drawn by ${String(args?.parent ?? "")}. Its own properties and styles never reach Preview or Publish; edit the parent's properties (Label · Placeholder · Invalid · Error Message) instead.`,
     "styles.delegatedSubpartDescription": (args) =>

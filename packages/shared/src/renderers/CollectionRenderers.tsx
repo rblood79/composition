@@ -76,6 +76,7 @@ function getTargetOrigin(): string {
 /**
  * Tree 렌더링
  */
+import { invokeCustomEventHandler } from "./utils/customEventHandler";
 export const renderTree = (
   element: PreviewElement,
   context: RenderContext,
@@ -176,6 +177,8 @@ export const renderTree = (
           selectedKeys: Array.from(selectedKeys),
         };
         updateElementProps(element.id, updatedProps);
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onSelectionChange", selectedKeys);
       }}
       onExpandedChange={(expandedKeys) => {
         const updatedProps = {
@@ -183,6 +186,7 @@ export const renderTree = (
           expandedKeys: Array.from(expandedKeys),
         };
         updateElementProps(element.id, updatedProps);
+        invokeCustomEventHandler(context, element, "onExpandedChange", expandedKeys);
       }}
     >
       {renderTreeItemsRecursively(treeItemChildren)}
@@ -421,6 +425,8 @@ export const renderTagGroup = (
           selectedKeys: Array.from(selectedKeys),
         };
         updateElementProps(element.id, updatedProps);
+        // ADR-158 규칙 · ADR-214 암묵 상태 미러
+        invokeCustomEventHandler(context, element, "onSelectionChange", selectedKeys);
 
         window.parent.postMessage(
           {
@@ -782,6 +788,10 @@ export const renderToggleButton = (
                 isSelected: !element.props.isSelected,
               });
             }
+      }
+      // ADR-158 규칙 · ADR-214 암묵 상태 미러 (RAC ToggleButton onChange(isSelected))
+      onChange={(isSelected) =>
+        invokeCustomEventHandler(context, element, "onChange", isSelected)
       }
     >
       {typeof element.props.children === "string"
