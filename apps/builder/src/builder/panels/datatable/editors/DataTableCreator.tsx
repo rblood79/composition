@@ -40,11 +40,11 @@ import {
   Factory,
   Table2,
   LayoutTemplate,
-  ClipboardPaste,
   FileUp,
   Globe,
   Sparkles,
 } from "lucide-react";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useDataStore } from "../../../stores/data";
 import { PropertyFieldset, Section } from "../../../components";
 import type { DataTablePreset } from "../presets/types";
@@ -109,7 +109,7 @@ const METHODS: {
     id: "paste",
     labelKey: "methodPaste",
     label: "Paste",
-    icon: ClipboardPaste,
+    icon: ACTION_ICONS.paste,
   },
   { id: "file", labelKey: "methodFile", label: "CSV / JSON", icon: FileUp },
   { id: "api", labelKey: "methodApi", label: "From API", icon: Globe },

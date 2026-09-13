@@ -17,7 +17,11 @@ import {
   useState,
   type ClipboardEvent,
 } from "react";
-import { Play, Plus, Trash2 } from "lucide-react";
+import { Play } from "lucide-react";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+const AddIcon = ACTION_ICONS.add;
+const DeleteIcon = ACTION_ICONS.delete;
 import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { Tab, TabList, TabPanel, Tabs } from "react-aria-components/Tabs";
@@ -368,12 +372,12 @@ function KeyValueEditor({
             aria-label={removeLabel(row.key, index)}
             onPress={() => remove(index)}
           >
-            <Trash2 size={iconSmall.size} />
+            <DeleteIcon size={iconSmall.size} />
           </Button>
         </div>
       ))}
       <Button className="control-button" data-variant="add" onPress={add}>
-        <Plus size={iconSmall.size} />
+        <AddIcon size={iconSmall.size} />
         {addLabel}
       </Button>
     </div>

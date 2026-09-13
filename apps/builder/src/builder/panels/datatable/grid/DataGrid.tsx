@@ -61,6 +61,8 @@ import type {
 import { iconEditProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { ConfirmDialog } from "../../../components/overlay/ConfirmDialog";
 import { ACTION_ICONS } from "../../../config/actionIcons";
+import { SHORTCUT_DEFINITIONS } from "../../../config/keyboardShortcuts";
+import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useDataStore } from "../../../stores/data";
 import { globalToast } from "../../../stores/toast";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
@@ -700,7 +702,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         items={items}
         dependencies={[editing, invalidCells, schema, gridId]}
         renderEmptyState={() => (
-          <div className="datagrid-empty">{t("gridNoRows")}</div>
+          <div className="datagrid-empty">
+            {t("gridNoRows", {
+              shortcut: formatShortcut(SHORTCUT_DEFINITIONS.paste),
+            })}
+          </div>
         )}
       >
         {(item) => (

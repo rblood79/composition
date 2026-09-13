@@ -49,7 +49,10 @@ import { useParams } from "react-router";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
 import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
 import { resolveCollectionUsage } from "../../../services/ai/data/collectionReadModel";
-import { Plus, Table2 } from "lucide-react";
+import { Table2 } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+const AddIcon = ACTION_ICONS.add;
 import type { DataField } from "../../../types/builder/data.types";
 import { useI18n } from "@/i18n";
 
@@ -85,7 +88,10 @@ const FIELD_MAP_ROLE_ICON: Record<FieldMapRole, typeof KeyRound> = {
   value: KeyRound,
   icon: Image,
 };
-const FIELD_MAP_ROLE_LABEL: Record<FieldMapRole, "fieldMapValue" | "fieldMapIcon"> = {
+const FIELD_MAP_ROLE_LABEL: Record<
+  FieldMapRole,
+  "fieldMapValue" | "fieldMapIcon"
+> = {
   value: "fieldMapValue",
   icon: "fieldMapIcon",
 };
@@ -239,10 +245,9 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   // "사용처 N" — 152 역참조 (collection 단위). 이 요소를 포함해 collection 에 매인 요소 수.
   const usedByCount =
     selectedCollectionId !== null
-      ? (resolveCollectionUsage(
-          getAiToolReadModel().elements,
-          collections,
-        ).get(selectedCollectionId) ?? 0)
+      ? (resolveCollectionUsage(getAiToolReadModel().elements, collections).get(
+          selectedCollectionId,
+        ) ?? 0)
       : 0;
   const fieldOptions: readonly DataField[] = (
     selectedCollection?.schema ?? []
@@ -375,35 +380,35 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
 
         {/* ADR-212 Phase 6 (UX-1, B4) — 바인딩 옆 동선: 열기 · 사용처 N · 새 테이블 */}
         {(selectedCollection || projectId) && (
-        <div className="binding-actions">
-          {selectedCollection && (
-            <button
-              type="button"
-              className="binding-action"
-              onClick={() => openTableEditor(selectedCollection.id)}
-              disabled={disabled}
-            >
-              <Table2 size={iconEditProps.size} />
-              {t("propertiesPanel.bindingOpenTable")}
-            </button>
-          )}
-          {selectedCollection && (
-            <span className="binding-usedby">
-              {t("propertiesPanel.bindingUsedBy", { count: usedByCount })}
-            </span>
-          )}
-          {projectId && (
-            <button
-              type="button"
-              className="binding-action"
-              onClick={() => openTableCreator(projectId)}
-              disabled={disabled}
-            >
-              <Plus size={iconEditProps.size} />
-              {t("propertiesPanel.bindingNewTable")}
-            </button>
-          )}
-        </div>
+          <div className="binding-actions">
+            {selectedCollection && (
+              <button
+                type="button"
+                className="binding-action"
+                onClick={() => openTableEditor(selectedCollection.id)}
+                disabled={disabled}
+              >
+                <Table2 size={iconEditProps.size} />
+                {t("propertiesPanel.bindingOpenTable")}
+              </button>
+            )}
+            {selectedCollection && (
+              <span className="binding-usedby">
+                {t("propertiesPanel.bindingUsedBy", { count: usedByCount })}
+              </span>
+            )}
+            {projectId && (
+              <button
+                type="button"
+                className="binding-action"
+                onClick={() => openTableCreator(projectId)}
+                disabled={disabled}
+              >
+                <AddIcon size={iconEditProps.size} />
+                {t("propertiesPanel.bindingNewTable")}
+              </button>
+            )}
+          </div>
         )}
 
         {fieldOptions.length > 0 &&
@@ -413,8 +418,7 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
               role={role}
               fields={fieldOptions}
               selectedFieldId={
-                resolveField(fieldOptions, value?.fieldMap?.[role])?.id ??
-                null
+                resolveField(fieldOptions, value?.fieldMap?.[role])?.id ?? null
               }
               onChange={handleFieldMapChange}
               disabled={disabled}

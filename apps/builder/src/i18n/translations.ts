@@ -1555,7 +1555,8 @@ const koKR: TranslationKeys = {
       "붙여넣은 데이터에 열이 {count}개 더 있습니다 ({keys}). 새 필드로 추가할까요?",
     gridPasteAddFields: "필드 추가",
     gridPasteSkipFields: "추가하지 않고 붙여넣기",
-    gridNoRows: "행이 없습니다 — 행 추가 또는 붙여넣기 (⌘V) 로 시작하세요.",
+    gridNoRows:
+      "행이 없습니다 — 행 추가 또는 붙여넣기 ({shortcut}) 로 시작하세요.",
     gridImported: "CSV {rows}개 행으로 교체했습니다.",
     fieldName: "필드 키",
     fieldType: "유형",
@@ -3475,7 +3476,7 @@ const enUS: TranslationKeys = {
       "The pasted data has {count} extra columns ({keys}). Add them as new fields?",
     gridPasteAddFields: "Add fields",
     gridPasteSkipFields: "Paste without them",
-    gridNoRows: "No rows yet — add a row or paste (⌘V) to start.",
+    gridNoRows: "No rows yet — add a row or paste ({shortcut}) to start.",
     gridImported: "Replaced with {rows} rows from CSV.",
     fieldName: "Field key",
     fieldType: "Type",
@@ -4379,6 +4380,8 @@ const formattedMessages: Record<
       `테이블 생성 실패: ${String(args?.message ?? "")}`,
     "datatable.gridDeleteRows": (args) =>
       `${String(args?.count ?? 0)}개 행 삭제`,
+    "datatable.gridNoRows": (args) =>
+      `행이 없습니다 — 행 추가 또는 붙여넣기 (${String(args?.shortcut ?? "")}) 로 시작하세요.`,
     "datatable.gridRowsDeleted": (args) =>
       `${String(args?.count ?? 0)}개 행을 삭제했습니다.`,
     "datatable.gridCellInvalid": (args) =>
@@ -4818,6 +4821,8 @@ const formattedMessages: Record<
       `Failed to create table: ${String(args?.message ?? "")}`,
     "datatable.gridDeleteRows": (args) =>
       `Delete ${String(args?.count ?? 0)} rows`,
+    "datatable.gridNoRows": (args) =>
+      `No rows yet — add a row or paste (${String(args?.shortcut ?? "")}) to start.`,
     "datatable.gridRowsDeleted": (args) =>
       `Deleted ${String(args?.count ?? 0)} rows.`,
     "datatable.gridCellInvalid": (args) =>

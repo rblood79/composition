@@ -40,7 +40,7 @@ import {
   Lock,
   MessageSquare,
   Minus,
-  Ruler,
+  SeparatorHorizontal,
   MousePointerClick,
   Move,
   PaintBucket,
@@ -323,7 +323,8 @@ export const COMPONENT_KEY_ICONS: Record<
     dimensionFormat: CalendarDays,
     dimensionLabelFormat: TextQuote,
     // content — ADR-217 기준선 (binding key 하나 — 편집기의 값/레이블/선 모양/층 은 kind 기본 아이콘)
-    referenceLines: Ruler,
+    // `Ruler` 는 눈금자 토글 정본(RulerDimensionLine)의 금지 변종 — 값 축을 가로지르는 선은 SeparatorHorizontal
+    referenceLines: SeparatorHorizontal,
   },
 };
 

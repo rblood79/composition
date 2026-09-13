@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { Button } from "react-aria-components";
-import { Trash2 } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
 import {
   CHART_DEFAULT_PROPS,
   CHART_REFERENCE_LINES_MAX,
@@ -140,7 +140,7 @@ export const ChartReferenceLineControls = memo(
                     {
                       id: "remove",
                       label: t("chart.removeReferenceLine"),
-                      icon: Trash2,
+                      icon: ACTION_ICONS.delete,
                     },
                   ]}
                   onAction={(id) => {
