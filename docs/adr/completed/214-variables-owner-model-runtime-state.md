@@ -2,13 +2,13 @@
 
 ## Status
 
-Accepted (In Progress) — 2026-09-13 (Proposed 2026-09-11 · 리뷰 round 2 승인 2026-09-11 · Phase 0~1 2026-09-11 · G1 live 2026-09-13)
+Implemented — 2026-09-14 (Proposed 2026-09-11 · 리뷰 round 2 승인 2026-09-11 · Phase 0~~1 2026-09-11 · G1 live 2026-09-13 · Phase 2~~3 2026-09-13 · Phase 4~5 2026-09-14 · Phase 6 closure 2026-09-14). 구현 결정과 phase 기록은 [breakdown](../design/214-variables-owner-model-runtime-state-breakdown.md) §4.
 
 > **전제**: 사용자 판정 (2026-09-10, 리서치 §5 판정 ⑤) — Variables 의 용도는 **프로젝트 전역 변수** (예: 사용자 id) 와 **개별 컴포넌트의 지역 변수** 둘이며, 런타임 상태로 wiring 한다 (환경값만 남기는 안 · 현행 유지 안 기각). 본 ADR 은 base 이고 ADR-152 (collection 참조 계약) 와 직교 — ADR-131 Phase 8 의 "데이터 SSOT = `data_tables`" 전제 (collections 에 관한 것) 를 건드리지 않는다. ADR-212 와는 "Data" 패널 Variables 탭 표면만 공유 (212 R5 조건부 탭을 본 ADR 이 대체). fork 4 질문 lock-in 은 breakdown §1.
 
 ## Context
 
-Data 패널의 Variables 탭은 정의 · 전달 · 초기화까지만 있고 **소비처가 0** 이다 (리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §2-2 U11, 사용자 제기 2026-09-10 "초기에 어디 둘지 몰라 저기 뒀다"):
+Data 패널의 Variables 탭은 정의 · 전달 · 초기화까지만 있고 **소비처가 0** 이다 (리서치 [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §2-2 U11, 사용자 제기 2026-09-10 "초기에 어디 둘지 몰라 저기 뒀다"):
 
 - `Variable { name, type 5종, defaultValue, persist, scope: global | page | component, page_id? }` (`types/builder/data.types.ts:266-305`) 를 `useIframeMessenger` (`:549,556,626` `UPDATE_VARIABLES`) 가 preview 로 보내고 `runtimeStore.setVariables` (`preview/store/runtimeStore.ts:606-640`) 가 `appState` / `pageStates` 기본값으로 넣는다. 그 상태를 **읽는 곳** (템플릿 보간 · 컴포넌트 prop) 과 **쓰는 액션** (interactions — `InteractionAction = Navigate | Toast | Capability`, `APP_ACTIONS { navigate, toast }`) 이 둘 다 없다. publish 는 0. `PropertyDataBinding.source:"variable"` 은 ADR-159 P4b 로 오소링 제거 · read 호환 잔존.
 - `scope:"component"` 에 소유자 id 가 없다 — "개별 컴포넌트의 변수" 는 지금 타입으로 표현할 수 없고, 정의는 전부 프로젝트 레벨 IndexedDB `variables` 에 저장된다. 요소를 삭제 · 복제해도 변수는 따라가지 않는다.
@@ -105,7 +105,7 @@ Data 패널의 Variables 탭은 정의 · 전달 · 초기화까지만 있고 **
 - **대안 C 기각**: 마이그레이션 HIGH + ADR-131 Phase 8 방향과 반대 — 재판정 사유 없음.
 - **대안 D 기각**: 정리 · 재매핑 코드 표면이 고아 변수의 원인이 된다. 인덱스 이득은 memo 순회로 충분.
 
-> 구현 상세: [214-variables-owner-model-runtime-state-breakdown.md](design/214-variables-owner-model-runtime-state-breakdown.md)
+> 구현 상세: [214-variables-owner-model-runtime-state-breakdown.md](../design/214-variables-owner-model-runtime-state-breakdown.md)
 
 ## Risks
 
@@ -136,7 +136,17 @@ R8의 동적 seed는 `packages/shared/src/types/composition-document.types.ts`, 
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G2 ~ G4 시나리오 · 결과 · 날짜 · Playwright/사용자 confirm 구분. publish 는 shared 모듈 공유 — 방침상 live 는 preview 까지.)
+전부 Playwright headless (실제 빌더 dev 서버 + Preview iframe, `apps/builder/scripts/adr214-p{1..5}-live.mjs`, run ledger `live-exercise pass` 5건). 사용자 confirm 은 착수 전 판정 (2026-09-10 ⑤ · 09-11 ③) 과 execute-adr auto 모드 승인. publish 는 shared 모듈 (`runtimeState` · `template` · `dispatcher`) 공유 — 방침상 live 는 preview 까지.
+
+| 게이트  | 날짜       | 하니스               | 결과  | exercise 한 것                                                                                                                                                                                                                                                                                                                                                                        |
+| ------- | ---------- | -------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G1      | 2026-09-13 | `adr214-p1-live.mjs` | 10/10 | Data 탭 변수 생성/이름 변경/삭제 → Undo/Redo (History `data`) · `Hello {{ userName }}` 소비 노드만 sceneVersion +1 · state 가진 노드 복제 (⌘D · 컨텍스트 메뉴 · Alt 드래그) → IndexedDB 에 새 VariableDef id · 결함 1 (변수 0개 프로젝트 첫 생성 redo — projectId 기본값) 수리                                                                                                        |
+| G2 전반 | 2026-09-13 | `adr214-p2-live.mjs` | 7/7   | preview 런타임 store 정의 색인 (project · page · element) · 페이지 진입 리셋 · 프로젝트 전환 namespace · persist localStorage 키 · 페이지 추가/frame 바인딩이 page `state` 를 보존 (결함 2 수리)                                                                                                                                                                                      |
+| G2      | 2026-09-13 | `adr214-p3-live.mjs` | 7/7   | `guest` 가 Canvas Skia / preview DOM 에 · default → `Ana` 편집 시 Canvas 즉시 갱신 · sceneVersion +1 · 비의존 노드 0 변경 · preview setState(Bob) 는 preview 만 (Canvas 기본값, R2) · `\{{` 리터럴 · ListBox 행 `User 1 — Bob` (state → field 순서) · `{{` 자동완성                                                                                                                   |
+| G3      | 2026-09-14 | `adr214-p4-live.mjs` | 8/8   | Interactions 패널에서 "Set state · count · Increment" 규칙 작성 → 문서 events · preview Button ×2 → `count=2` · 페이지 변수 increment 뒤 페이지 재진입 리셋 · persist Ana 새로고침 유지 + 같은 이름 project B 는 기본값 (누출 0) · 600 Text / 소비 10 fixture 5 warmup + 30회 write→commit p95 9 ms · long task 0 · 갱신 노드 10                                                      |
+| G4      | 2026-09-14 | `adr214-p5-live.mjs` | 7/7   | Checkbox 암묵 `isSelected` 에 `agree` → Preview 라벨 `agree=false` → 클릭 → `agree=true` · Properties `+ 추가` → 프로젝트 이름 충돌 거부 문구 → `open` → Data 탭 인덱스 즉시 · Navigator gear → body + 페이지 변수 추가 (canonical page state) · 인덱스 project/page/element 3 소유자 + 사용처 배지 · 행 클릭 → 요소 선택 + 상태 절 정의 펼침 · 편집기 탭 0 · dialog 0 · page error 0 |
+
+알려진 범위 (구현 결정, breakdown §4): Canvas 인스턴스 자손 (synthetic id) 은 master 요소 변수를 못 본다 (페이지 · 프로젝트만) · `PropertyFieldTemplateInput` 에는 `{{` 자동완성 없음 · publish 인스턴스 키는 origin id · `VariableEditor` Validation/Transform 절 원본은 숨김만 (삭제는 승인 후).
 
 ## Consequences
 

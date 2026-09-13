@@ -1,6 +1,6 @@
 # ADR-214 Design Breakdown: Variables 소유자 모델 — 프로젝트 · 페이지 · 요소 상태와 소비 경로
 
-> 본문: [214-variables-owner-model-runtime-state.md](../214-variables-owner-model-runtime-state.md) · 리서치 정본: [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §2-2 U11 · §4-2 UX-10 · 시안: artifact `f7d8327e` 아트보드 "VarsIndex" (Data · Variables 인덱스) · "ElementState" (Properties · 상태 절) · "ActionPicker" (Interactions · 상태 설정 picker)
+> 본문: [214-variables-owner-model-runtime-state.md](../completed/214-variables-owner-model-runtime-state.md) · 리서치 정본: [DATA_PANEL_REDESIGN_RESEARCH_2026-09](../../explanation/research/DATA_PANEL_REDESIGN_RESEARCH_2026-09.md) §2-2 U11 · §4-2 UX-10 · 시안: artifact `f7d8327e` 아트보드 "VarsIndex" (Data · Variables 인덱스) · "ElementState" (Properties · 상태 절) · "ActionPicker" (Interactions · 상태 설정 picker)
 
 ## 1. 전제 lock-in (fork 4 질문 — 사용자 confirm 2026-09-10 판정 ⑤ · 2026-09-11 판정 ③ "Variables 는 셋째 ADR")
 

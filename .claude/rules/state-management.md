@@ -115,6 +115,16 @@ ADR-122 본문 G1 ("mutation mirror 제거") 는 wrapper 가 단일 진입점이
 - rename: `data_tables` (snake/DB) / `dataTables` (camel/store) → `collections` (canonical). internal type 도 `CollectionsMap` / `CollectionState` / `targetCollection`
 - **UI surface 심볼은 유지**: `DataTable*` (DataTableEditor / DataTablePanel / panels/datatable/ 등) 은 사용자 노출이라 rename 제외
 
+## 상태 스코프 — Variables 소유자 모델 (ADR-214 Implemented 2026-09-14)
+
+- **모델 하나** `VariableDef { id, name, type, defaultValue?, persist?, source?: { prop } }` (`packages/shared/src/state/`) + 소유자 `project | page(pageId) | element(elementId)`. 저장은 소유자별 — 프로젝트 = `useDataStore.variables` (IndexedDB, `define_variable` op · History `data`) · 페이지 · 요소 = canonical 노드 `state?` 필드 (`Element.state` mirror, mirror 에 필드가 없으면 이전 노드 state 보존 — `canonicalMutations.resolveStateField`). 복제·붙여넣기는 canonical clone 에서 id 재발급 (`remapClonedState`). **금지**: legacy Element 값에서 state 읽기 · `state` 없는 재구성으로 정의 소실.
+- **쓰기 경로**: 요소 `updateElement(id, { state })` (History `update` full-node — `NON_PROPS_CANONICAL_HISTORY_FIELDS` 에 `state`) · 페이지 `useStore.setPageState(pageId, defs, { skipHistory? })` (History `page-state`, 비-element 축 early-branch) · 프로젝트 `createVariable/updateVariable/deleteVariable`. UI (Properties 상태 절 · Navigator 페이지 설정 · Data 탭) 가 canonical 을 직접 만지지 않는다.
+- **가시성 = 사슬** 요소 → 조상 → 페이지 → 프로젝트 (`resolveVisibleVariables`), 이름은 사슬 안 고유 (`findVariableNameConflict` — 편집기 · Properties · 적용기 전부 이 검증기). 사용처 집계는 `collectVariableUsages` (템플릿은 그 노드에서 보일 때만 · setState 규칙은 id 축) 하나 — 삭제 확인 · 인덱스 배지가 같이 읽는다.
+- **읽기 `{{ name }}`** (`resolveStateTemplate`, string prop 만, 깊이 6, 같은 참조 유지): **Canvas (Skia) 는 기본값 env · preview/publish 는 런타임 env** — 설계된 비대칭, `/cross-check` 오판 금지. collection 행 템플릿은 **`{{ }}` 먼저 → `{field}` 나중** (field 문법에서 `{{`/`}}` 는 escape). 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 리터럴 (`hasStateTemplateSyntax` 가 실행 판정).
+- **런타임 값** `createRuntimeState` (shared) — 값 키는 `VariableDef.id`, scope `project` / `page:${pageId}` (진입 리셋) / `element:${instanceKey}` (preview: ref root = refId · 자손 `${scope}/${id}`; publish: origin id). persist 는 project 만 (`composition:runtime-state:v1:${projectId}`), 프로젝트 전환은 clear + hydrate. 구독은 의존 인덱스 (`subscribeVariable`) — 전체 revision 구독 금지 (600/소비 10 p95 9 ms 기준).
+- **쓰기 액션** `SetStateAction { kind:"setState", variableId, op: set|toggle|increment|reset, value? }` → shared `dispatcher` → `DispatchDeps.writeState` (소비처가 소유자 scope 결정, element 는 `instanceKeyFor`). 암묵 상태는 `IMPLICIT_STATE_SOURCES` 관찰 이벤트 미러 (`source.prop` 붙은 정의만, prop 주입 0 — D1 무변경). 위임 렌더러는 `invokeCustomEventHandler` 로 규칙 핸들러를 부른다.
+- 알려진 범위: Canvas 인스턴스 자손 (synthetic id) 은 master 요소 변수를 못 본다 · `PropertyFieldTemplateInput` 에 `{{` 자동완성 없음.
+
 ## 스타일 패널 (Zustand → Jotai Bridge)
 
 - PropertyUnitInput: focus 시 selectedElementId ref 캡처 → blur 시 비교 → 다르면 onChange 스킵. **Why**: mousedown→blur 이벤트 순서로 blur 시점에 이미 새 요소 선택됨

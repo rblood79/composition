@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-214 Implemented — Variables 소유자 모델 · `{{ }}` 읽기 · `setState` 쓰기 · 관리 표면 3] - 2026-09-14
+
+### Added
+
+- **변수가 역할을 얻는다** (전에는 정의만 있고 읽는 곳 · 쓰는 액션이 0 이었다). 모델 하나 `VariableDef { id, name, type, defaultValue?, persist? }` + 소유자 **프로젝트 / 페이지 / 요소** — 프로젝트 변수는 Data 탭 (기존 store), 페이지 · 요소 변수는 문서 노드의 `state` 필드 (삭제 · 복제 · 붙여넣기가 노드와 함께 — 복제는 새 id). 이름은 가시성 사슬 (요소 → 조상 → 페이지 → 프로젝트) 안에서 고유 — 겹치면 만들 때 거부.
+- **읽기 `{{ name }}`**: 문자열 prop 어디서나 (`Hello {{ userName }}`, `{{ a.b }}` 경로, `\{{` 는 리터럴, `{{ env.X }}` 는 ADR-212 vault 그대로). 캔버스는 **기본값**, 미리보기 · 퍼블리시는 **런타임 값** — 같은 해석기, 같은 문자열 형식. collection 행 템플릿 (`{label} — {{ userName }}`) 은 상태 먼저 → 필드 나중. Properties 문자열 입력에서 `{{` 를 치면 보이는 변수 이름 자동완성.
+- **쓰기 — Interactions "상태 설정"**: 규칙의 Do 에 `Set state` — 변수 (프로젝트 / 이 페이지 / 이 컴포넌트와 조상 그룹) · 동작 (set / toggle / increment / reset, 타입별) · 값. 미리보기 · 퍼블리시에서 실행 (인스턴스마다 별도 값 · 페이지 진입 시 페이지 변수 리셋 · `persist` 프로젝트 변수는 새로고침 뒤 유지, 프로젝트별 localStorage 키).
+- **암묵 상태 이름 붙이기**: Checkbox/Switch/ToggleButton `isSelected` · RadioGroup/Slider `value` · Tabs `selectedKey` · ListBox/GridList/TagGroup/Tree `selectedKeys` · Tree/Disclosure `expandedKeys/isExpanded` 에 Properties **상태** 절에서 이름만 붙이면 `{{ }}` 로 읽힌다 (RAC prop 주입 0 — 관찰만).
+- **관리 표면 3 (새 패널 0)**: Properties **상태** 절 (암묵 상태 목록 + 명시 `추가` · 이름/타입/기본값 · 사용처 N 을 실은 삭제 확인 · 조상에서 보이는 상태), Navigator 페이지 항목 **gear** → 페이지 변수 (body 선택 → 같은 절), Data 탭 Variables = 프로젝트 변수 (편집 · 사용처 배지) + **페이지 · 컴포넌트 인덱스** (소유자 열, 행 클릭 → 소유자로 점프해 그 정의를 펼친다). 구 페이지 scope 변수는 인덱스에서 "페이지로 이관".
+- 페이지 변수 편집은 History `page-state`, 요소 변수 편집은 `update` (undo/redo). export/import envelope 에 `variables` (프로젝트 정의).
+
+### Changed
+
+- **Variable 생성은 프로젝트 전용** — Scope 선택 제거 (페이지 · 요소 변수는 소유자에서). Variable 편집기의 **Validation / Transform 탭 숨김** (읽는 곳이 편집기 자신뿐 — 소비처 0 실측).
+- Checkbox · RadioGroup · Switch · Tree · TagGroup · ToggleButton · Tabs · Disclosure · Slider 의 규칙 트리거 (ADR-158) 가 미리보기에서 실제로 실행된다 — 위임 렌더러가 규칙 핸들러를 호출한 적이 없었다.
+
 ## [테이블 편집기 컬럼 정보 수정 3단 — 헤더 인라인 rename · 타입 아이콘 · ⌄] - 2026-09-13
 
 ### Changed
