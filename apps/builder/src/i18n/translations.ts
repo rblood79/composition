@@ -1505,6 +1505,7 @@ const koKR: TranslationKeys = {
     statusRegion: "데이터 패널 상태",
     newField: "새 필드",
     fieldPanel: "필드",
+    fieldSettings: "필드 설정",
     fieldPanelEmpty: "편집할 열 헤더를 고르세요.",
     fieldPanelPending: "필드 편집은 Phase 3 에서 채워집니다.",
     tableNameHint:
@@ -3423,6 +3424,7 @@ const enUS: TranslationKeys = {
     statusRegion: "Data panel status",
     newField: "New Field",
     fieldPanel: "Field",
+    fieldSettings: "Field settings",
     fieldPanelEmpty: "Pick a column header to edit it.",
     fieldPanelPending: "Field editing arrives in Phase 3.",
     tableNameHint:

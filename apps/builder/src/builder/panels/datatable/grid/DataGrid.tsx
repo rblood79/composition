@@ -12,7 +12,11 @@
  *   생성 후 입력 유지해 연속 추가). `+` 는 격자 열이 아니라 스크롤 컨테이너 위의 **슬롯**
  *   (`.datagrid-add-field-slot`) — 마지막 열 오른쪽에 붙되 열이 뷰포트를 넘치면 오른쪽 가장자리에
  *   고정된다 (Airtable 어법 + 좁은 스냅 패널에서도 항상 보이는 가시성). 격자의 aria-colcount 는
- *   실제 열만 센다. 팝오버·모달 없음 (HC2). 타입 변경은 열 라벨 클릭 → 필드 패널.
+ *   실제 열만 센다. 팝오버·모달 없음 (HC2).
+ * - 컬럼 정보 수정은 빈도별 3단 (인지 > 회상 · 행위의 자리 = 결과의 자리 · 가시성):
+ *   헤더 더블클릭 / 라벨 포커스 + F2 → 그 자리 인라인 rename (`update_field { key }`, 행 이전은
+ *   적용기) · 헤더 타입 아이콘 클릭 → 필드 패널이 타입 목록에 포커스된 채 열림 · 라벨 클릭 /
+ *   Enter / hover 로 드러나는 `⌄` → 필드 패널 전체. 아이콘·`⌄` 는 tab 순서 밖 (격자 tab stop 유지).
  * - 붙여넣기 (⌘V, 셀 포커스): `planGridPaste` → 넘치는 열은 `ConfirmDialog` "새 필드로 추가?".
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
@@ -31,7 +35,7 @@ import {
   type KeyboardEvent as ReactKeyboardEvent,
   type RefObject,
 } from "react";
-import { Download, Search, Upload, X } from "lucide-react";
+import { ChevronDown, Download, Search, Upload, X } from "lucide-react";
 import Papa from "papaparse";
 import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
@@ -66,6 +70,8 @@ import { formatShortcut } from "../../../hooks/useKeyboardShortcutsRegistry";
 import { useDataStore } from "../../../stores/data";
 import { globalToast } from "../../../stores/toast";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
+import { planFieldRename } from "../utils/fieldRename";
+import { resolveFieldType } from "../utils/fieldTypes";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import {
   coerceCellValue,
@@ -244,6 +250,33 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       }
     },
     [schema, write, collectionId, t, cancelAddField],
+  );
+
+  // 헤더 인라인 rename — 대상 필드 key (null = 없음)
+  const [renamingKey, setRenamingKey] = useState<string | null>(null);
+  const commitRename = useCallback(
+    async (field: DataField, raw: string) => {
+      setRenamingKey(null);
+      const plan = planFieldRename(
+        collectionId,
+        field,
+        schema.map((f) => f.key),
+        raw,
+      );
+      if (plan.kind === "noop") return;
+      if (plan.kind === "empty") {
+        globalToast.warning(t("fieldKeyEmpty"));
+        return;
+      }
+      if (plan.kind === "dup") {
+        globalToast.warning(t("fieldKeyDup", { key: plan.key }));
+        return;
+      }
+      const label = t("fieldRenamed", { from: field.key, to: plan.key });
+      const ok = await write([plan.op], label);
+      if (ok) announceDataPanelStatus(label, { tone: "success" });
+    },
+    [collectionId, schema, t, write],
   );
 
   const items = useMemo(() => {
@@ -668,7 +701,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
       selectedKeys={selectedKeys}
       onSelectionChange={setSelectedKeys}
     >
-      <TableHeader columns={columns}>
+      <TableHeader
+        columns={columns}
+        // RAC 는 render 함수 결과를 캐시한다 — 인라인 rename 상태가 헤더에 반영되려면 의존성 선언
+        dependencies={[renamingKey, commitRename, t]}
+      >
         {(column) =>
           column.id === SELECT_COLUMN ? (
             <SelectColumn label={t("gridSelectAllRows")} />
@@ -680,19 +717,22 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
               minWidth={72}
               className="datagrid-column"
             >
-              <Button
-                id={`${gridId}-h-${column.field!.key}`}
-                className="datagrid-column-label"
-                data-field-type={column.field!.type}
-                onPress={() =>
+              <ColumnHead
+                field={column.field!}
+                labelId={`${gridId}-h-${column.field!.key}`}
+                renaming={renamingKey === column.field!.key}
+                t={t}
+                onOpenPanel={(options) =>
                   openFieldPanel(
                     collectionId,
                     column.field!.id ?? column.field!.key,
+                    options,
                   )
                 }
-              >
-                {column.field!.key}
-              </Button>
+                onStartRename={() => setRenamingKey(column.field!.key)}
+                onCancelRename={() => setRenamingKey(null)}
+                onCommitRename={(raw) => void commitRename(column.field!, raw)}
+              />
               <ColumnResizer className="datagrid-column-resizer" />
             </Column>
           )
@@ -937,6 +977,145 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         }}
       />
     </div>
+  );
+}
+
+// ============================================
+// 열 헤더 — 타입 아이콘 · 라벨 (클릭 = 패널, 더블클릭/F2 = 인라인 rename) · ⌄ (hover 로 드러남)
+// ============================================
+
+interface ColumnHeadProps {
+  field: DataField;
+  labelId: string;
+  renaming: boolean;
+  t: (key: string, params?: Record<string, string | number | boolean>) => string;
+  onOpenPanel: (options?: { focus?: "type" }) => void;
+  onStartRename: () => void;
+  onCancelRename: () => void;
+  onCommitRename: (raw: string) => void;
+}
+
+function ColumnHead({
+  field,
+  labelId,
+  renaming,
+  t,
+  onOpenPanel,
+  onStartRename,
+  onCancelRename,
+  onCommitRename,
+}: ColumnHeadProps) {
+  const typeEntry = resolveFieldType(field.type);
+  const TypeGlyph = typeEntry.icon;
+  const typeLabel = `${t("fieldType")}: ${t(typeEntry.i18n)}`;
+  return (
+    <div
+      className="datagrid-column-head"
+      data-field-type={field.type}
+      data-renaming={String(renaming)}
+      onDoubleClick={(e) => {
+        if (renaming) return;
+        e.preventDefault();
+        onStartRename();
+      }}
+      onKeyDown={(e) => {
+        if (renaming) return;
+        if (e.key === "F2") {
+          e.preventDefault();
+          e.stopPropagation();
+          onStartRename();
+        }
+      }}
+    >
+      <Button
+        className="datagrid-column-type"
+        aria-label={typeLabel}
+        excludeFromTabOrder
+        onPress={() => onOpenPanel({ focus: "type" })}
+      >
+        <TypeGlyph size={iconSmall.size} />
+      </Button>
+      {renaming ? (
+        <ColumnRenameInput
+          columnKey={field.key}
+          label={t("fieldName")}
+          onCommit={onCommitRename}
+          onCancel={onCancelRename}
+        />
+      ) : (
+        <Button
+          id={labelId}
+          className="datagrid-column-label"
+          onPress={() => onOpenPanel()}
+        >
+          {field.key}
+        </Button>
+      )}
+      <Button
+        className="datagrid-column-menu"
+        aria-label={t("fieldSettings")}
+        excludeFromTabOrder
+        onPress={() => onOpenPanel()}
+      >
+        <ChevronDown size={iconSmall.size} />
+      </Button>
+    </div>
+  );
+}
+
+interface ColumnRenameInputProps {
+  columnKey: string;
+  label: string;
+  onCommit: (raw: string) => void;
+  onCancel: () => void;
+}
+
+/** 헤더 인라인 rename input — 셀 편집기와 같은 RAC 어법: 포커스 키를 이 열로 두고 셀 이동을 끈다
+ *  (안 그러면 격자 밖에서 들어온 포커스를 RAC 가 첫 행으로 되돌려 input 이 blur 로 닫힌다). */
+function ColumnRenameInput({
+  columnKey,
+  label,
+  onCommit,
+  onCancel,
+}: ColumnRenameInputProps) {
+  const state = useContext(TableStateContext);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // blur 커밋과 Enter/Esc 커밋이 겹치지 않도록 (Enter 뒤 언마운트 blur)
+  const settledRef = useRef(false);
+  useDisableGridNavigation();
+  useLayoutEffect(() => {
+    const manager = state?.selectionManager;
+    manager?.setFocused(true);
+    manager?.setFocusedKey(columnKey);
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, [state, columnKey]);
+  return (
+    <input
+      ref={inputRef}
+      className="datagrid-column-rename-input"
+      aria-label={label}
+      defaultValue={columnKey}
+      spellCheck={false}
+      data-grid-editor="rename"
+      data-shortcut-local="undo redo"
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          e.preventDefault();
+          settledRef.current = true;
+          onCommit(e.currentTarget.value);
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          settledRef.current = true;
+          onCancel();
+        }
+      }}
+      onBlur={(e) => {
+        if (settledRef.current) return;
+        onCommit(e.currentTarget.value);
+      }}
+    />
   );
 }
 

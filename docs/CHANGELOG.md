@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [테이블 편집기 컬럼 정보 수정 3단 — 헤더 인라인 rename · 타입 아이콘 · ⌄] - 2026-09-13
+
+### Changed
+
+- **컬럼 정보 수정을 빈도별 3단으로**: 전에는 헤더 라벨 클릭 → 옆 필드 패널 하나뿐이었다. 이제 (1) **헤더 더블클릭 / 라벨 포커스 + F2 → 그 자리 인라인 rename** (Enter 저장 · Esc 취소 · blur 저장, 빈 값·중복은 경고만) — 이름 하나 바꾸는 데 패널을 안 연다. (2) **헤더 타입 아이콘 클릭 → 필드 패널이 타입 목록(검색 input)에 포커스된 채** 그 필드로 — 타입 변경은 미리보기("3행 중 1행이 Number 아님")가 있어 패널에 남는다. (3) 라벨 클릭 / Enter / hover 로 드러나는 **`⌄`** → 필드 패널 전체 (required · default · 설명 · 사용처 · 삭제). 헤더에 **타입 아이콘**이 항상 보인다 (패널 타입 목록과 같은 표). 근거: 인지 > 회상 · 행위의 자리 = 결과의 자리 · 가시성 (Airtable · Notion · Sheets 헤더 어법).
+- 쓰기 경로는 그대로 `update_field { key }` 하나 (`planFieldRename` 을 격자와 패널이 같이 쓴다) — 행 이전·바인딩 안정성(ADR-152 G4)·runtimeData 캐시 remap(ADR-218)은 변경 0. 타입 아이콘·`⌄` 는 tab 순서 밖이라 격자 tab stop 은 그대로 1.
+
 ## [테이블 편집기 shell — 탭 제거 · 설정 gear 토글 · 제목 인라인 rename · 새 필드 `+` 붙박이] - 2026-09-13
 
 ### Changed

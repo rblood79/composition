@@ -209,4 +209,34 @@ describe("DataTableFieldPanel (ADR-212 Phase 3)", () => {
       },
     ]);
   });
+
+  it("헤더 타입 아이콘 진입 (focus: type) → 타입 검색 input 에 포커스, 같은 필드로 다시 요청해도 (seq) 포커스", () => {
+    openField("f-age");
+    const { container, rerender } = render(
+      wrap(<DataTableFieldPanel isActive />),
+    );
+    const search = container.querySelector<HTMLInputElement>(
+      ".datatable-field-type-search",
+    )!;
+    expect(document.activeElement).not.toBe(search);
+    useDataTableEditorStore.setState({
+      fieldPanel: {
+        collectionId: "c1",
+        fieldId: "f-age",
+        focus: { section: "type", seq: 1 },
+      },
+    });
+    rerender(wrap(<DataTableFieldPanel isActive />));
+    expect(document.activeElement).toBe(search);
+    keyInput(container).focus();
+    useDataTableEditorStore.setState({
+      fieldPanel: {
+        collectionId: "c1",
+        fieldId: "f-age",
+        focus: { section: "type", seq: 2 },
+      },
+    });
+    rerender(wrap(<DataTableFieldPanel isActive />));
+    expect(document.activeElement).toBe(search);
+  });
 });

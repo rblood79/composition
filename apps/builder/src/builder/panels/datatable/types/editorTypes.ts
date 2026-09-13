@@ -38,6 +38,13 @@ export interface DataTableEditorState {
 export interface DataTableFieldPanelTarget {
   collectionId: string;
   fieldId: string | null;
+  /** 진입점이 요청한 초기 포커스 — 헤더 타입 아이콘 클릭 = 타입 목록. `seq` 는 같은 필드로
+   *  다시 눌러도 포커스가 다시 가도록 (effect 의존성). */
+  focus?: { section: "type"; seq: number };
+}
+
+export interface OpenFieldPanelOptions {
+  focus?: "type";
 }
 
 /**
@@ -60,7 +67,11 @@ export interface DataTableEditorActions {
   openVariableEditor: (variableId: string) => void;
 
   // Field panel (ADR-212)
-  openFieldPanel: (collectionId: string, fieldId?: string | null) => void;
+  openFieldPanel: (
+    collectionId: string,
+    fieldId?: string | null,
+    options?: OpenFieldPanelOptions,
+  ) => void;
   closeFieldPanel: () => void;
 
   // Common

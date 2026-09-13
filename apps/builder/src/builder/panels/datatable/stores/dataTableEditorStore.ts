@@ -44,12 +44,20 @@ export const useDataTableEditorStore = create<DataTableEditorStore>(
     openVariableEditor: (variableId: string) =>
       get().open({ type: "variable-edit", variableId }),
 
-    openFieldPanel: (collectionId, fieldId = null) => {
+    openFieldPanel: (collectionId, fieldId = null, options) => {
       const mode = get().mode;
       if (mode?.type !== "table-edit" || mode.tableId !== collectionId) {
         get().open({ type: "table-edit", tableId: collectionId });
       }
-      set({ fieldPanel: { collectionId, fieldId } });
+      const focus = options?.focus
+        ? {
+            section: options.focus,
+            seq: (get().fieldPanel?.focus?.seq ?? 0) + 1,
+          }
+        : undefined;
+      set({
+        fieldPanel: { collectionId, fieldId, ...(focus ? { focus } : {}) },
+      });
       setPanelWorkspacePanelVisibility("datatableField", true);
     },
 

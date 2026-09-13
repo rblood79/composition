@@ -8,21 +8,8 @@
  * "비움/유지" 를 물어 `update_field` + `set_cell` 을 한 DataChange 로 묶는다. 쓰기는 전부
  * `applyDataChange` (HC1) — rename 은 `update_field { key }` (152 적용기가 행도 옮긴다).
  */
-import { useCallback, useMemo, useState } from "react";
-import {
-  Braces,
-  Calendar,
-  CalendarClock,
-  Columns3,
-  Hash,
-  Image as ImageIcon,
-  Link as LinkIcon,
-  List,
-  Mail,
-  ToggleLeft,
-  Type as TypeIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Columns3 } from "lucide-react";
 import type { DataOp } from "@composition/shared";
 import { Button } from "react-aria-components/Button";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
@@ -32,6 +19,7 @@ import type {
   DataField,
   DataFieldType,
 } from "../../../types/builder/data.types";
+import type { DataTableFieldPanelTarget } from "./types/editorTypes";
 import { iconProps, iconSmall } from "../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { ConfirmDialog } from "../../components/overlay/ConfirmDialog";
@@ -44,26 +32,14 @@ import {
   useDataTableEditorStore,
   useDataTableFieldPanel,
 } from "./stores/dataTableEditorStore";
+import { planFieldRename } from "./utils/fieldRename";
+import { FIELD_TYPES } from "./utils/fieldTypes";
 import { resolveFieldUsage } from "./utils/fieldUsage";
 import { previewTypeChange, typeChangeToOps } from "./utils/typeChangePreview";
 import type { PanelProps } from "../core/types";
 import "./DataTableFieldPanel.css";
 
 const DeleteIcon = ACTION_ICONS.delete;
-
-const FIELD_TYPES: { value: DataFieldType; icon: LucideIcon; i18n: string }[] =
-  [
-    { value: "string", icon: TypeIcon, i18n: "types.string" },
-    { value: "number", icon: Hash, i18n: "types.number" },
-    { value: "boolean", icon: ToggleLeft, i18n: "types.boolean" },
-    { value: "date", icon: Calendar, i18n: "types.date" },
-    { value: "datetime", icon: CalendarClock, i18n: "types.dateTime" },
-    { value: "email", icon: Mail, i18n: "types.email" },
-    { value: "url", icon: LinkIcon, i18n: "types.url" },
-    { value: "image", icon: ImageIcon, i18n: "types.image" },
-    { value: "array", icon: List, i18n: "types.array" },
-    { value: "object", icon: Braces, i18n: "types.object" },
-  ];
 
 interface PendingTypeChange {
   newType: DataFieldType;
@@ -144,6 +120,7 @@ export function DataTableFieldPanel(_props: PanelProps) {
             dt={dt}
             write={write}
             onClose={closeFieldPanel}
+            focusRequest={target?.focus}
           />
         ) : (
           <div className="datatable-field-empty">{dt("fieldPanelEmpty")}</div>
@@ -165,6 +142,7 @@ interface FieldFormProps {
   ) => string;
   write: (ops: DataOp[], label?: string) => Promise<boolean>;
   onClose: () => void;
+  focusRequest?: DataTableFieldPanelTarget["focus"];
 }
 
 function FieldForm({
@@ -176,6 +154,7 @@ function FieldForm({
   dt,
   write,
   onClose,
+  focusRequest,
 }: FieldFormProps) {
   const [keyDraft, setKeyDraft] = useState(field.key);
   const [typeFilter, setTypeFilter] = useState("");
@@ -195,34 +174,28 @@ function FieldForm({
   }, [typeFilter, dt]);
 
   const commitKey = async () => {
-    const next = keyDraft.trim();
-    if (next === field.key) return;
-    if (next === "") {
+    const plan = planFieldRename(collectionId, field, existingKeys, keyDraft);
+    if (plan.kind === "noop") return;
+    if (plan.kind === "empty") {
       globalToast.warning(dt("fieldKeyEmpty"));
       setKeyDraft(field.key);
       return;
     }
-    if (existingKeys.includes(next)) {
-      globalToast.warning(dt("fieldKeyDup", { key: next }));
+    if (plan.kind === "dup") {
+      globalToast.warning(dt("fieldKeyDup", { key: plan.key }));
       setKeyDraft(field.key);
       return;
     }
-    const ok = await write(
-      [
-        {
-          op: "update_field",
-          collectionId,
-          fieldId,
-          patch: { key: next },
-        },
-      ],
-      dt("fieldRenamed", { from: field.key, to: next }),
-    );
-    if (ok)
-      announceDataPanelStatus(
-        dt("fieldRenamed", { from: field.key, to: next }),
-      );
+    const label = dt("fieldRenamed", { from: field.key, to: plan.key });
+    const ok = await write([plan.op], label);
+    if (ok) announceDataPanelStatus(label);
   };
+
+  // 헤더 타입 아이콘 진입 — 타입 검색 input 에 포커스 (seq 가 오를 때마다)
+  const typeSearchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focusRequest?.section === "type") typeSearchRef.current?.focus();
+  }, [focusRequest?.section, focusRequest?.seq]);
 
   const patchField = async (patch: Record<string, unknown>) => {
     await write([{ op: "update_field", collectionId, fieldId, patch }]);
@@ -299,6 +272,7 @@ function FieldForm({
       <fieldset className="properties-aria datatable-field-type">
         <legend className="fieldset-legend">{dt("fieldType")}</legend>
         <input
+          ref={typeSearchRef}
           type="text"
           className="datatable-field-input datatable-field-type-search"
           placeholder={dt("fieldTypeSearch")}

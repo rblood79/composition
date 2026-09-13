@@ -80,6 +80,7 @@
 - [x] "사용처 N" (필드 단위 152 역참조 `resolveFieldUsage`: 바인딩 `fieldMap` · `columnMapping` (차트 시리즈·테이블 열) · `{field}`/`{#fieldId}` 템플릿 `compileFieldTemplate`) · 삭제는 사용처 0 이면 즉시 `remove_field`, 아니면 `ConfirmDialog`
 - [x] 타입 변경 미리보기 — "3행 중 1행이 Number 값이 아님 — 비움 / 유지" (UX-5) → `update_field` + 성공 행 정규화 `set_cell` ("30"→30) + (비움) 실패 행 `set_cell null`, 한 DataChange (`typeChangeToOps`, `coerceCellValue` SSOT)
 - [x] 닫힘·삭제 시 필드 패널 close → 편집기 격자로 (호출 셀 포커스 복귀는 격자 셀 편집 경로가 이미 담당). 삭제 후 `remove_field` → 격자 헤더 갱신
+- [x] **후속 (2026-09-13, 사용자 UX 판정 "빈도별 3단")**: 헤더 더블클릭 / 라벨 F2 → 인라인 rename (`ColumnRenameInput`, RAC 포커스 키를 그 열로 두고 셀 이동 off — 격자 밖에서 들어온 포커스를 RAC 가 첫 행으로 되돌리는 함정) · 헤더 타입 아이콘 → `openFieldPanel(…, { focus: "type" })` (seq 로 같은 필드 재요청도 포커스) · hover 로 드러나는 `⌄` → 패널 전체. 격자·패널이 `planFieldRename` 공유. live `adr212-p3-live.mjs` 18/18 (5a~5d 추가) · shell 13/13 · a11y 12/12
 - [x] G2 live 12/12: 필드 패널 rename → 152 G4 재확인 (IndexedDB rows 가 새 key `fullName`, 값 보존, `fieldId` 불변 — 템플릿·fieldMap 은 stable ref 라 불변). Skia·DOM·차트 값 유지는 152 G4 (rename 이 key 만 바꾸고 stable id 참조 유지) 가 이미 고정, 본 Phase 는 필드 패널 UI 가 같은 `update_field { key }` 를 구동함을 확인. **편집기 탭 aria-controls dangling 수리** (본문 TabPanel 화) — axe critical 0
 
 ### Phase 4 — API 편집기 (게이트 G3) — 완료 2026-09-12 (`8795f9a14` 4a · `f9838b34e` 4c, live 11/11 `scripts/adr212-p4-live.mjs`, [evidence](../evidence/212-p4-api-editor.md))

@@ -32,6 +32,7 @@ import type { ReactNode } from "react";
 import { I18nProvider } from "@/i18n";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { useDataPanelStatusStore } from "../stores/dataPanelStatusStore";
+import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
 import { DataGrid } from "./DataGrid";
 
 const table: DataTable = {
@@ -78,7 +79,16 @@ afterEach(() => {
   cleanup();
   vi.clearAllMocks();
   useDataPanelStatusStore.setState({ status: null });
+  useDataTableEditorStore.setState({ mode: null, fieldPanel: null });
 });
+
+const press = async (el: Element) => {
+  await act(async () => {
+    fireEvent.pointerDown(el, { pointerType: "mouse", button: 0 });
+    fireEvent.pointerUp(el, { pointerType: "mouse", button: 0 });
+    fireEvent.click(el);
+  });
+};
 
 describe("DataGrid (ADR-212 Phase 2)", () => {
   it("role=grid · 열 헤더 · 셀에 data-row-index/data-field-key · id 셀은 aria-readonly", () => {
@@ -421,5 +431,108 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
       fireEvent.keyDown(input, { key: "Escape" });
     });
     expect(container.querySelector(".datagrid-add-field-input")).toBeNull();
+  });
+
+  // ── 컬럼 정보 수정 3단 (빈도별 진입점) ──
+
+  it("헤더 더블클릭 → 인라인 rename → Enter = update_field { key } (필드 패널 안 거침)", async () => {
+    const { container } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const head = container.querySelector<HTMLElement>(
+      '.datagrid-column-head[data-field-type="string"]',
+    )!;
+    expect(head.querySelector(".datagrid-column-type")).not.toBeNull();
+    // 격자 밖에서 곧장 더블클릭 (포커스 관리자 꺼진 상태) — input 이 포커스를 지켜야 한다
+    await act(async () => {
+      fireEvent.doubleClick(head);
+    });
+    const input = container.querySelector<HTMLInputElement>(
+      ".datagrid-column-rename-input",
+    )!;
+    expect(input.value).toBe("name");
+    // 라벨 버튼은 input 으로 교체 — 격자 tab 순서에 버튼이 늘지 않는다
+    expect(head.querySelector(".datagrid-column-label")).toBeNull();
+    fireEvent.change(input, { target: { value: "fullName" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(lastOps()).toEqual([
+      {
+        op: "update_field",
+        collectionId: "c1",
+        fieldId: "f-name",
+        patch: { key: "fullName" },
+      },
+    ]);
+    expect(useDataTableEditorStore.getState().fieldPanel).toBeNull();
+    expect(container.querySelector(".datagrid-column-rename-input")).toBeNull();
+  });
+
+  it("라벨 포커스 + F2 = rename · Esc 취소 (쓰기 0) · 중복 키는 경고만", async () => {
+    const { container, getByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const label = getByRole("button", { name: "name" });
+    label.focus();
+    await act(async () => {
+      fireEvent.keyDown(label, { key: "F2" });
+    });
+    let input = container.querySelector<HTMLInputElement>(
+      ".datagrid-column-rename-input",
+    )!;
+    expect(input).not.toBeNull();
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Escape" });
+    });
+    expect(applyDataChange).not.toHaveBeenCalled();
+    expect(container.querySelector(".datagrid-column-rename-input")).toBeNull();
+
+    await act(async () => {
+      fireEvent.keyDown(getByRole("button", { name: "name" }), { key: "F2" });
+    });
+    input = container.querySelector<HTMLInputElement>(
+      ".datagrid-column-rename-input",
+    )!;
+    fireEvent.change(input, { target: { value: "age" } });
+    await act(async () => {
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
+    expect(applyDataChange).not.toHaveBeenCalled();
+  });
+
+  it("타입 아이콘 클릭 → 필드 패널 (타입 목록 포커스 요청) · 라벨 클릭 / ⌄ → 필드 패널 전체", async () => {
+    const { container, getByRole } = render(
+      wrap(<DataGrid table={table} virtualized={false} />),
+    );
+    const head = container.querySelector<HTMLElement>(
+      '.datagrid-column-head[data-field-type="string"]',
+    )!;
+    const typeBtn = head.querySelector<HTMLElement>(".datagrid-column-type")!;
+    expect(typeBtn.getAttribute("aria-label")).toBe("Type: String");
+    // 아이콘·⌄ 는 tab 순서 밖
+    expect(typeBtn.getAttribute("tabindex")).toBe("-1");
+    const menuBtn = head.querySelector<HTMLElement>(".datagrid-column-menu")!;
+    expect(menuBtn.getAttribute("tabindex")).toBe("-1");
+    expect(menuBtn.getAttribute("aria-label")).toBe("Field settings");
+
+    await press(typeBtn);
+    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
+      collectionId: "c1",
+      fieldId: "f-name",
+      focus: { section: "type", seq: 1 },
+    });
+
+    await press(getByRole("button", { name: "age" }));
+    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
+      collectionId: "c1",
+      fieldId: "f-age",
+    });
+
+    await press(menuBtn);
+    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
+      collectionId: "c1",
+      fieldId: "f-name",
+    });
   });
 });

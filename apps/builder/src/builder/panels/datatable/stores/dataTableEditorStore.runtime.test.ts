@@ -69,6 +69,29 @@ describe("DataTableEditorStore panel activation", () => {
     expect(mocks.setVisibility).toHaveBeenCalledWith("datatableField", false);
   });
 
+  it("헤더 타입 아이콘 진입 — focus 요청은 seq 가 올라 같은 필드로 다시 눌러도 effect 가 반응한다", () => {
+    const store = useDataTableEditorStore.getState();
+    store.openFieldPanel("col-1", "f-1", { focus: "type" });
+    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
+      collectionId: "col-1",
+      fieldId: "f-1",
+      focus: { section: "type", seq: 1 },
+    });
+    useDataTableEditorStore.getState().openFieldPanel("col-1", "f-1", {
+      focus: "type",
+    });
+    expect(useDataTableEditorStore.getState().fieldPanel?.focus).toEqual({
+      section: "type",
+      seq: 2,
+    });
+    // 라벨 진입 (focus 없음) 은 요청을 지운다
+    useDataTableEditorStore.getState().openFieldPanel("col-1", "f-1");
+    expect(useDataTableEditorStore.getState().fieldPanel).toEqual({
+      collectionId: "col-1",
+      fieldId: "f-1",
+    });
+  });
+
   it("close 는 필드 패널과 편집 패널을 모두 닫는다", () => {
     useDataTableEditorStore.getState().openFieldPanel("col-1");
     mocks.setVisibility.mockClear();

@@ -245,6 +245,112 @@ try {
     String(saved.schema[1].required),
   );
 
+  // 5a) 컬럼 정보 수정 3단 — 헤더 더블클릭 → 인라인 rename (패널 안 거침) → Enter
+  const fullNameLabel = editor
+    .locator(".datagrid-column-label", { hasText: "fullName" })
+    .first();
+  await fullNameLabel.dblclick({ force: true });
+  const renameInput = editor.locator(".datagrid-column-rename-input");
+  await renameInput.waitFor({ timeout: 5000 });
+  const renameFocused = await renameInput.evaluate(
+    (el) => document.activeElement === el,
+  );
+  await renameInput.fill("person");
+  await renameInput.press("Enter");
+  await page.waitForTimeout(700);
+  saved = await idb(page, "collections", "get", usersId);
+  record(
+    "헤더 더블클릭 → 인라인 rename fullName→person (input 포커스 · schema/rows 이전 · 패널 경유 0)",
+    renameFocused &&
+      saved.schema[1].key === "person" &&
+      saved.mockData[0].person === "Ann" &&
+      saved.mockData[0].fullName === undefined &&
+      (await editor.locator(".datagrid-column-rename-input").count()) === 0,
+    JSON.stringify({ renameFocused, schema1: saved.schema[1], row0: saved.mockData[0] }),
+  );
+
+  // 5b) 라벨 포커스 + F2 → rename person→fullName (키보드 경로) · Esc 는 취소
+  const personLabel = editor
+    .locator(".datagrid-column-label", { hasText: "person" })
+    .first();
+  await personLabel.focus();
+  await page.keyboard.press("F2");
+  await renameInput.waitFor({ timeout: 5000 });
+  await page.keyboard.press("Escape");
+  await page.waitForTimeout(300);
+  const escClosed = (await editor.locator(".datagrid-column-rename-input").count()) === 0;
+  const escSaved = await idb(page, "collections", "get", usersId);
+  await personLabel.focus();
+  await page.keyboard.press("F2");
+  await renameInput.waitFor({ timeout: 5000 });
+  await renameInput.fill("fullName");
+  await page.keyboard.press("Enter");
+  await page.waitForTimeout(700);
+  saved = await idb(page, "collections", "get", usersId);
+  record(
+    "라벨 F2 → rename · Esc 취소 (쓰기 0) · F2 → Enter person→fullName",
+    escClosed &&
+      escSaved.schema[1].key === "person" &&
+      saved.schema[1].key === "fullName" &&
+      saved.mockData[0].fullName === "Ann",
+    JSON.stringify({ escClosed, after: saved.schema[1].key }),
+  );
+
+  // 5c) 헤더 타입 아이콘 클릭 → 필드 패널이 타입 검색에 포커스된 채 그 필드로
+  const ageTypeBtn = editor
+    .locator('.datagrid-column-head[data-field-type="number"] .datagrid-column-type')
+    .first();
+  await ageTypeBtn.evaluate((el) => {
+    const opts = { bubbles: true, cancelable: true, pointerId: 1, button: 0 };
+    el.dispatchEvent(new PointerEvent("pointerdown", opts));
+    el.dispatchEvent(new PointerEvent("pointerup", opts));
+    el.dispatchEvent(new MouseEvent("click", opts));
+  });
+  await page.waitForTimeout(500);
+  const typeEntry = await page.evaluate(() => {
+    const panel = document.querySelector('[data-panel-id="datatableField"]');
+    const key = panel?.querySelector(".datatable-field-key input");
+    const active = document.activeElement;
+    return {
+      key: key instanceof HTMLInputElement ? key.value : null,
+      activeIsTypeSearch: !!active?.classList.contains("datatable-field-type-search"),
+    };
+  });
+  record(
+    "헤더 타입 아이콘 → 필드 패널 (key = age) · 타입 검색 input 포커스",
+    typeEntry.key === "age" && typeEntry.activeIsTypeSearch,
+    JSON.stringify(typeEntry),
+  );
+
+  // 5d) ⌄ 는 hover 로 드러난다 (가시성) · 클릭 → 필드 패널 그 필드로
+  const fullNameHead = editor
+    .locator(".datagrid-column-head", {
+      has: page.locator(".datagrid-column-label", { hasText: /^fullName$/ }),
+    })
+    .first();
+  const menuBtn = fullNameHead.locator(".datagrid-column-menu");
+  await page.mouse.move(5, 5); // 5a 의 더블클릭이 남긴 hover 를 치운다
+  await page.waitForTimeout(200);
+  const opacityIdle = await menuBtn.evaluate((el) => getComputedStyle(el).opacity);
+  await fullNameHead.hover({ force: true });
+  await page.waitForTimeout(200);
+  const opacityHover = await menuBtn.evaluate((el) => getComputedStyle(el).opacity);
+  await menuBtn.evaluate((el) => {
+    const opts = { bubbles: true, cancelable: true, pointerId: 1, button: 0 };
+    el.dispatchEvent(new PointerEvent("pointerdown", opts));
+    el.dispatchEvent(new PointerEvent("pointerup", opts));
+    el.dispatchEvent(new MouseEvent("click", opts));
+  });
+  await page.waitForTimeout(500);
+  const menuKey = await fieldPanel
+    .locator(".datatable-field-key input")
+    .inputValue();
+  record(
+    "⌄ 는 idle 숨김 · hover 표시 · 클릭 → 필드 패널 (key = fullName)",
+    opacityIdle === "0" && opacityHover === "1" && menuKey === "fullName",
+    JSON.stringify({ opacityIdle, opacityHover, menuKey }),
+  );
+
   // 6) 새 필드 (+ 열) → 헤더 인라인 입력 → email + Enter → add_field (팝오버·패널 없음)
   //    + 는 패널 리사이즈 separator 와 겹쳐 actionability 가 걸리므로 요소에 직접 press 를 쏜다.
   await editor.locator(".datagrid-add-field").evaluate((el) => {
