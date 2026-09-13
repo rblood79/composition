@@ -127,9 +127,9 @@ interface VariableDef {
 
 ### Phase 6 — closure
 
-- [ ] ADR-159 `source:"variable"` read 호환은 그대로 (부활 없음) — 문서에 명시
-- [ ] ADR-213 후속 `list_variables` 읽기 tool 자리 문서화 (범위 밖)
-- [ ] CHANGELOG (Features — Variables) · ADR README · `.claude/rules/state-management.md` 상태 스코프 절 · `### Live Exercise`
+- [x] ADR-159 `source:"variable"` read 호환은 그대로 (부활 없음) — 문서에 명시
+- [x] ADR-213 후속 `list_variables` 읽기 tool 자리 문서화 (범위 밖)
+- [x] CHANGELOG (Features — Variables) · ADR README · `.claude/rules/state-management.md` 상태 스코프 절 · `### Live Exercise` — 전부 `a4dfedcff` (2026-09-14)
 
 ## 5. 파일 변경표 (추정 — Phase 0 에서 freeze)
 
