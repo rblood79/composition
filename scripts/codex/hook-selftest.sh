@@ -55,27 +55,11 @@ else
   pass "hooks.json event·type·경로·실행권한 ($(printf '%s\n' "$CONFIG_AUDIT" | awk -F'\t' '$1 == "COUNT" {print $2}') handlers)"
 fi
 
-printf '\n== UserPromptSubmit router adapter ==\n'
-ROUTE_COMMAND=$(hook_command UserPromptSubmit route-prompt.sh)
-ROUTE_REVIEW=$(printf '%s' "$(jq -nc --arg cwd "$ROOT_DIR/apps/builder" --arg p "ADR-194 문서를 리뷰해줘" '{cwd:$cwd,prompt:$p}')" | (cd "$ROOT_DIR/apps/builder" && /bin/bash -c "$ROUTE_COMMAND") 2>&1 || true)
-assert_contains "nested cwd에서도 repo router 해석" "$ROUTE_REVIEW" "=== Codex Route Hints ==="
-assert_contains "ADR review는 review-adr로 route" "$ROUTE_REVIEW" "use review-adr"
-assert_contains "create-adr user-only 경계" "$ROUTE_REVIEW" "create-adr is user-only"
-
-ROUTE_EXEC=$(printf '%s' "$(jq -nc --arg cwd "$ROOT_DIR" --arg p "ADR-194 다음 Phase 실행해줘" '{cwd:$cwd,prompt:$p}')" | (cd "$ROOT_DIR" && /bin/bash -c "$ROUTE_COMMAND") 2>&1 || true)
-assert_contains "execute-adr user-only 경계" "$ROUTE_EXEC" "execute-adr is user-only"
-
-printf '\n== SessionStart live roster policy ==\n'
-FAKE_SESSION_PROJECT="$TMP_ROOT/session-project"
-mkdir -p "$FAKE_SESSION_PROJECT"
-SESSION_COMMAND=$(hook_command SessionStart session-start.sh)
-SESSION_OUT=$(printf '%s' "$(jq -nc --arg cwd "$FAKE_SESSION_PROJECT" '{cwd:$cwd,hook_event_name:"SessionStart"}')" | (cd "$ROOT_DIR" && /bin/bash -c "$SESSION_COMMAND") 2>&1 || true)
-assert_contains "Codex live roster에 create-adr user-only 표기" "$SESSION_OUT" '`create-adr` — 사용자 명시 요청 시에만 ADR 생성 (user-only)'
-assert_contains "subagent는 사용자 명시 요청일 때만 안내" "$SESSION_OUT" "Agents (사용자가 위임·병렬 작업을 명시한 경우에만)"
-if printf '%s' "$SESSION_OUT" | grep -Eq 'brainstorming|systematic-debugging|verification-before-completion'; then
-  fail "Codex live roster에 제거된 외부 workflow 이름 잔존"
+printf '\n== 자동 주입·전체 Stop 검사 미등록 ==\n'
+if jq -e '(.hooks | has("SessionStart") or has("UserPromptSubmit") or has("Stop")) | not' "$ROOT_DIR/.codex/hooks.json" >/dev/null; then
+  pass "중복 prompt 주입과 전체 dirty 검사 미등록"
 else
-  pass "Codex live roster에 제거된 외부 workflow 이름 없음"
+  fail "불필요한 자동 이벤트 등록"
 fi
 
 printf '\n== PreToolUse protected-file hook ==\n'
@@ -92,15 +76,15 @@ NORMAL_INPUT=$(jq -nc --arg cwd "$ROOT_DIR" --arg command $'*** Begin Patch\n***
 NORMAL_OUT=$(printf '%s' "$NORMAL_INPUT" | (cd "$ROOT_DIR" && /bin/bash -c "$PROTECT_COMMAND") 2>&1 || true)
 if [ -z "$NORMAL_OUT" ]; then pass "일반 파일 patch 허용"; else fail "일반 파일 patch가 출력/차단됨"; fi
 
-printf '\n== PostToolUse spec flag hook ==\n'
+printf '\n== 수동 spec flag adapter 호환 ==\n'
 FAKE_PROJECT="$TMP_ROOT/project"
 mkdir -p "$FAKE_PROJECT/.codex"
-SPEC_COMMAND=$(hook_command PostToolUse spec-rebuild-flag.sh)
+SPEC_COMMAND="bash \"$HOOKS_DIR/spec-rebuild-flag.sh\""
 SPEC_INPUT=$(jq -nc --arg cwd "$FAKE_PROJECT" --arg command $'*** Begin Patch\n*** Update File: packages/specs/src/example.ts\n*** End Patch' '{cwd:$cwd,tool_name:"apply_patch",tool_input:{command:$command}}')
 printf '%s' "$SPEC_INPUT" | (cd "$ROOT_DIR" && /bin/bash -c "$SPEC_COMMAND")
 if [ -f "$FAKE_PROJECT/.codex/.spec-rebuild-pending" ]; then pass "spec patch가 rebuild flag 생성"; else fail "spec rebuild flag 미생성"; fi
 
-printf '\n== Stop type-check hook + evidence ledger ==\n'
+printf '\n== 수동 type-check adapter + evidence ledger 호환 ==\n'
 TEST_REPO="$TMP_ROOT/typecheck-repo"
 FAKE_BIN="$TMP_ROOT/bin"
 RUNS_DIR="$TMP_ROOT/runs"
@@ -122,7 +106,7 @@ chmod +x "$FAKE_BIN/pnpm"
 AGENT_RUNS_DIR="$RUNS_DIR" CODEX_HOME="$TMP_ROOT/codex-home" bash "$LEDGER" start --understood-as "codex hook selftest" >/dev/null
 touch "$TEST_REPO/.codex/.spec-rebuild-pending"
 STOP_INPUT=$(jq -nc --arg cwd "$TEST_REPO/nested" '{cwd:$cwd,hook_event_name:"Stop"}')
-STOP_COMMAND=$(hook_command Stop type-check-gate.sh)
+STOP_COMMAND="bash \"$HOOKS_DIR/type-check-gate.sh\""
 STOP_OUT=$(printf '%s' "$STOP_INPUT" | (cd "$TEST_REPO/nested" && env PATH="$FAKE_BIN:$PATH" AGENT_RUNS_DIR="$RUNS_DIR" CODEX_HOME="$TMP_ROOT/codex-home" /bin/bash -c "$STOP_COMMAND") 2>&1 || true)
 RUN_ID=$(cat "$RUNS_DIR/current")
 EVIDENCE="$RUNS_DIR/$RUN_ID/evidence.jsonl"

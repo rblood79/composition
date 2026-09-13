@@ -1,89 +1,43 @@
-# Codex Harness Guide
+# Codex 운영
 
-이 디렉터리는 `AGENTS.md`를 작게 유지하기 위한 Codex 전용 운영 index입니다.
-항상 전체를 읽지 말고, 요청과 변경 파일에 맞는 항목만 선택해 여세요.
+기본 실행 계약은 루트 `AGENTS.md`, 설정은 `.codex/config.toml`입니다.
+프로젝트 도메인 지식은 `.agents/skills`와 `.agents/rules`에서 필요한 부분만 읽습니다.
+`.claude/`가 공용 정본이며, Codex 전용 파일은 이 문서와
+`.agents/rules/goal-lifecycle.md` 등 실파일입니다.
 
-> **작성 규약 — 사실은 참조, 여기엔 패턴만 (CRITICAL)**: 심볼명·파일 라인·배열 구성·API 시그니처 같은 **사실**은 `.claude/rules/*` 정본을 **참조만** 하고 이 디렉터리에 복제하지 않습니다. `.agents/*` 에는 패턴·사례·판단 기준만 둡니다. **Why**: 담지 않은 것은 썩지 않습니다. 사실을 양쪽에 독립 서술하면 코드가 바뀔 때 한쪽만 고쳐지고, 어느 쪽이 stale 인지 알 방법이 없어집니다 — 2026-07-17 실측으로 `layoutVersion` 체인 서술이 양쪽에 중복된 채 함께 stale 했고(실제는 2계층 5심볼인데 양쪽 다 "3-심볼"로 안내), `.agents` 는 이미 삭제된 심볼(`LAYOUT_AFFECTING_PROPS`)을 코드 예시로 재현하고 있었습니다. 반면 사실을 담지 않은 `.agents/rules/*`(12~56줄 축약)는 같은 기간 멀쩡했습니다. 동기화 훅은 해법이 아닙니다 — 실행 시점이 곧 구멍이 되기 때문입니다.
+## 명령
 
-## 읽기 순서
+| 목적                      | 명령                                                          |
+| ------------------------- | ------------------------------------------------------------- |
+| 세션 상태·변경 확인       | `pnpm run codex:session-start`                                |
+| 인수인계 snapshot         | `pnpm run codex:snapshot`                                     |
+| 보호 파일 검사            | `pnpm run codex:guard`                                        |
+| 지정 파일 포맷            | `pnpm run codex:format -- <파일들>`                           |
+| TS 검사                   | `pnpm run codex:typecheck`                                    |
+| 등록·정본 미러 검사       | `pnpm run codex:registration`, `pnpm run codex:agent-catalog` |
+| 로컬 hook self-test       | `pnpm run codex:hooks:selftest`                               |
+| 전체 기본 검증            | `pnpm run codex:preflight`                                    |
+| 작업 범위별 검증·evidence | `pnpm run agent:work -- verify`                               |
+| Evidence 조회             | `pnpm run agent:dashboard`                                    |
 
-| 상황           | 먼저 볼 파일                                                             | 추가로 볼 파일                                              |
-| -------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------- |
-| 일반 작업      | `AGENTS.md`                                                              | 필요 시 이 파일                                             |
-| 코드 구현/수정 | `.agents/skills/composition-patterns/SKILL.md`                           | 관련 `.agents/rules/*` 1~3개                                |
-| 새 컴포넌트    | `.agents/skills/component-design/SKILL.md`                               | `react-aria` / `react-spectrum` 해당 component reference    |
-| 렌더링 정합성  | `.agents/skills/cross-check/SKILL.md`                                    | `canvas-rendering.md`, `css-tokens.md`, `ssot-hierarchy.md` |
-| ADR 생성/리뷰  | `review-adr` skill / `create-adr` 은 사용자 명시 요청 시에만 (user-only) | `adr-writing.md`, 대상 ADR, `docs/adr/README.md`            |
-| Git/Changelog  | `.agents/rules/git-workflow.md`                                          | `.agents/rules/changelog.md`                                |
-| Goal 완료 처리 | `.agents/rules/goal-lifecycle.md`                                        | 실제 `get_goal` 결과와 objective 일치 여부                  |
+`codex:preflight`는 dirty 파일 전체를 포맷합니다. 다른 작업자의 변경이 있으면
+자신의 파일만 `codex:format -- <파일들>`로 처리하고, guard 및 변경에 해당하는
+typecheck·registration·catalog·engine/text-axis 검사만 실행합니다.
+명령 상세는 `pnpm run codex:harness -- help`를 참조합니다.
 
-## Harness 명령
+ADR의 여러 Phase를 진행하거나 인수인계 근거가 필요하면
+`pnpm run agent:run -- start --understood-as "<범위>"`로 run을 열고,
+실측을 `pnpm run agent:run -- evidence live-exercise pass --detail "<시나리오·결과>"`
+형식으로 기록합니다. `report`와 `close`는 기록된 근거를 사용합니다.
+단순 편집에 별도 run을 만들 필요는 없습니다.
 
-| 명령                                                                    | 용도                                                                                                                                                                                                                                                          |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pnpm run codex:session-start`                                          | 우선 context, changelog header, git 상태 확인                                                                                                                                                                                                                 |
-| `pnpm run codex:route -- "<요청>"`                                      | 요청을 skill/rule/gate 후보로 분류                                                                                                                                                                                                                            |
-| `pnpm run codex:snapshot`                                               | 변경 파일 기반 handoff/precompact snapshot                                                                                                                                                                                                                    |
-| `pnpm run codex:guard`                                                  | 보호 파일 변경 차단                                                                                                                                                                                                                                           |
-| `pnpm run codex:format`                                                 | 변경 파일 Prettier                                                                                                                                                                                                                                            |
-| `pnpm run codex:agent-catalog`                                          | `.claude` ↔ `.agents` 카탈로그 drift 게이트 (INDEX·roster·router·hook 집합 일치)                                                                                                                                                                              |
-| `pnpm run hooks:selftest`                                               | Claude + Codex lifecycle hook에 host별 샘플 stdin JSON을 넣어 기대 판정·ledger append를 검증                                                                                                                                                                  |
-| `pnpm run codex:hooks:selftest`                                         | Codex 전용 hook config·router user-only 경계·보호 파일·spec flag·Stop type-check evidence self-test                                                                                                                                                           |
-| `pnpm run agent:run -- start --understood-as "<재진술>"`                | run manifest 시작 (`.agent/runs/<id>/run.json`, local-only) — 이후 게이트가 `evidence.jsonl` 에 자동 append                                                                                                                                                   |
-| `pnpm run agent:run -- evidence live-exercise pass --detail "<무엇을>"` | live behavior 근거 기록 — Implemented 승격 시 Stop hook 이 요구                                                                                                                                                                                               |
-| `pnpm run agent:run -- report` / `close`                                | 완료 보고를 ledger 에서 생성 · run 종결                                                                                                                                                                                                                       |
-| `pnpm run agent:work -- verify`                                         | 변경 scope 로 고른 검증만 실행 → ledger 기록 (guard · vitest related · package typecheck · registration · cargo); render 경로는 cross-check, 사용자-가시/wiring/schema 는 live-exercise 가 ledger 에 없으면 block (exit 3). `close` 는 fail·block 남으면 거부 |
-| `pnpm run agent:dashboard`                                              | evidence 소비 전용 관측 — 실행 중 run · gate 별 마지막 실행 · run 별 vitest/live/cross-check 존재 · 반복 fix scope · catalog drift · hook block/escape · ADR drift sync (`--json`, `--fresh`)                                                                 |
-| `pnpm run codex:typecheck`                                              | TS 변경이 있을 때만 root type-check                                                                                                                                                                                                                           |
-| `pnpm run codex:preflight`                                              | guard → format → typecheck → registration → agent-catalog                                                                                                                                                                                                     |
-| `pnpm run codex:harness -- help`                                        | 단일 harness entrypoint                                                                                                                                                                                                                                       |
+## 자동화 경계
 
-운영 원칙:
+`.codex/hooks.json`에는 보호 파일 확인과 변경 파일 포맷만 등록합니다.
+스킬 목록·키워드 라우팅·fix 횟수·전체 dirty typecheck를 매 턴 주입하거나 실행하지 않습니다.
+Spec 변경 후 `pnpm run build:specs`, 필요한 typecheck와 live 검증은 작업 범위에서 실행합니다.
+기존 수동 router와 hook adapter는 호환 진입점이며 자동 등록하지 않습니다.
 
-- harness는 `scripts/codex/env.sh`를 통해 `mise hook-env`를 먼저 시도합니다.
-- Codex lifecycle hook은 `.codex/hooks.json`에서 로드하며, Claude hook과 stdin·matcher·출력 계약을 공유하지 않습니다. 공용 workflow는 `scripts/codex/*`에 두고 `.codex/hooks/*`는 host adapter로 유지합니다.
-- statusline처럼 Codex가 지원하지 않는 표면과 명시 실행이 필요한 검증은 harness로
-  실행합니다.
-- 신뢰도 낮은 statusline/usage graph wrapper는 만들지 않습니다. 지원 표면이
-  없으면 한계를 보고합니다.
-- goal 완료 처리는 `.agents/rules/goal-lifecycle.md`를 따릅니다. developer
-  objective나 resume 문구가 보여도 `get_goal`이 `null`이면
-  `update_goal(status="complete")`를 호출하지 않습니다.
-- dirty worktree에서는 무관한 사용자 변경 파일을 포맷하거나 수정하지 않도록
-  대상 파일을 명시해 gate를 실행합니다.
-
-## 라우팅 매트릭스
-
-| 요청 유형                     | 사용할 entrypoint                                              | 완료 전 기본 확인                                  |
-| ----------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
-| 상태/Zustand/store            | `composition-patterns` + `state-management.md`                 | targeted Vitest + `codex:typecheck`                |
-| Canvas/WebGL/Preview 렌더링   | `cross-check` + `canvas-rendering.md`                          | spec/CSS/Canvas/Preview 경로 확인                  |
-| CSS/token/spec drift          | `composition-patterns` + `css-tokens.md` + `ssot-hierarchy.md` | `pnpm run build:specs` 필요 여부 확인              |
-| Layout/Yoga/grid/flex         | `layout-engine.md`                                             | layoutVersion/cache invalidation 확인              |
-| React Aria/Spectrum component | `component-design` + 해당 reference                            | accessibility/keyboard contract 확인               |
-| 웹 UI 구현/리뷰               | `web-interface-guidelines.md`                                  | 프로젝트 예외 확인; 감사 시 최신 원문 재조회       |
-| ADR review                    | `review-adr`                                                   | file:line 증거, README/status/changelog drift 확인 |
-| 대량 family 검증              | `parallel-verify`                                              | 사용자가 병렬/서브에이전트를 명시한 경우만         |
-
-## 자연어 발동 경계
-
-| 대상                  | 발동 방식                                    | 경계                                          |
-| --------------------- | -------------------------------------------- | --------------------------------------------- |
-| Skill                 | 이름 직접 언급 또는 설명과 명확히 일치       | skill 본문을 읽고 필요한 reference만 추가     |
-| `.agents/rules/*`     | 관련 작업 수행 중 자동 참고                  | macro rule만 먼저 읽고 legacy 상세는 필요 시  |
-| Sub-agent             | 사용자 명시 요청이 있을 때만                 | 병렬/위임 요청이 없으면 로컬에서 수행         |
-| Harness script        | 사용자가 요청하거나 완료 전 검증이 필요할 때 | 무관한 dirty 파일을 건드리지 않게 대상 좁히기 |
-| `.agents/progress.md` | 세션 인수인계나 진행 맥락이 필요할 때        | legacy progress 전체를 기본으로 읽지 않기     |
-| `.claude/*`           | legacy 상세가 꼭 필요할 때                   | Codex 직접 지시로 승격하지 않기               |
-
-## Legacy 매핑
-
-| Legacy Claude 자산                                                              | Codex 대응                                                     |
-| ------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `/cross-check` (skill 직접 호출)                                                | `.agents/skills/cross-check/SKILL.md`                          |
-| `/create-adr` (skill 직접 호출)                                                 | `.agents/skills/create-adr/SKILL.md`                           |
-| `.claude/skills/parallel-verify/SKILL.md` (`/sweep` command 는 2026-09-02 제거) | `.agents/skills/parallel-verify/SKILL.md`                      |
-| `.claude/hooks/protect-files.sh`                                                | `.codex/hooks/protect-files.sh` + `pnpm run codex:guard`       |
-| `.claude/hooks/auto-format.sh`                                                  | `.codex/hooks/auto-format.sh` + `pnpm run codex:format`        |
-| `.claude/hooks/type-check-gate.sh`                                              | `.codex/hooks/type-check-gate.sh` + `pnpm run codex:typecheck` |
-| `.claude/hooks/precompact-snapshot.sh`                                          | `pnpm run codex:snapshot`                                      |
+전역 `~/.codex/hooks.json`은 기존 세션 로그 export를 유지합니다.
+공용 상태는 관련 프로젝트 작업에서 파일을 읽으며 매 턴 주입하지 않습니다. hook의 보조 검사와 실제 도구의 권한 경계는 별개입니다.
+현재 실행 중인 세션의 주입 문구는 파일 수정으로 소급 교체되지 않습니다.

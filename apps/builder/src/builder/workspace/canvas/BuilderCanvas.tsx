@@ -641,6 +641,25 @@ export function BuilderCanvas({
   // sceneStructureSnapshot 을 직접 소비.
   const sceneSnapshot = sceneStructureSnapshot;
 
+  // dev 전용 (ADR-214 G1/G2 live): sceneVersion 과 노드별 projection 입력 (props · stateDeps) 을
+  // 하니스가 읽는다 — "소비 노드만 갱신 · 비소비 노드 signature 불변" 판정 (R8 · R5).
+  const sceneDebugRef = useRef({ sceneStructureSnapshot, sceneNodesMap });
+  sceneDebugRef.current = { sceneStructureSnapshot, sceneNodesMap };
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    const w = window as unknown as { __composition_SCENE_DEBUG__?: unknown };
+    w.__composition_SCENE_DEBUG__ = {
+      readSceneVersion: () =>
+        sceneDebugRef.current.sceneStructureSnapshot.sceneVersion,
+      readNode: (id: string) => {
+        const node = sceneDebugRef.current.sceneNodesMap.get(id);
+        return node
+          ? { props: node.props ?? {}, stateDeps: node.stateDeps ?? null }
+          : null;
+      },
+    };
+  }, []);
+
   // ADR-179 C3: 스냅 후보 = 전 페이지 rect (stacked 기본값 + canonical
   // override — buildPageFrames 산출). 가시 필터 없이 전수 (수십 규모).
   useEffect(() => {

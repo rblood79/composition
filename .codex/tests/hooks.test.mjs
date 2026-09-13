@@ -17,9 +17,6 @@ const root = fileURLToPath(new URL("../../", import.meta.url));
 const config = JSON.parse(
   readFileSync(new URL("../hooks.json", import.meta.url), "utf8"),
 );
-const sessionCommand = config.hooks.SessionStart.flatMap(
-  (group) => group.hooks,
-).find((hook) => hook.command.includes("session-start.sh")).command;
 
 test("자동 포맷은 일반 파일만 처리하고 심링크와 자동 다운로드는 건너뛴다", () => {
   const fixture = mkdtempSync(join(tmpdir(), "codex-format-test-"));
@@ -76,26 +73,13 @@ test("자동 포맷은 일반 파일만 처리하고 심링크와 자동 다운�
   }
 });
 
-test("SessionStart는 skill 이름을 명령으로 실행하지 않고 그대로 출력한다", () => {
-  const result = spawnSync(
-    "bash",
-    [
-      "-c",
-      'review() { echo unexpected-skill-command >&2; }; fix() { echo unexpected-skill-command >&2; }; evaluate() { echo unexpected-skill-command >&2; }; review-adr() { echo unexpected-skill-command >&2; }; export -f review fix evaluate review-adr; bash -c "$1"',
-      "hook-test",
-      sessionCommand,
-    ],
-    {
-      cwd: root,
-      encoding: "utf8",
-      input: JSON.stringify({ cwd: tmpdir(), hook_event_name: "SessionStart" }),
-    },
+test("자동 hook은 작업과 무관한 프롬프트 주입·전체 검사를 실행하지 않는다", () => {
+  const commands = Object.values(config.hooks).flatMap((groups) =>
+    groups.flatMap((group) => group.hooks.map((hook) => hook.command)),
   );
-  assert.equal(result.status, 0, result.stderr);
-  assert.equal(result.stderr, "");
-  for (const skill of ["review", "fix", "evaluate", "review-adr"]) {
-    assert.ok(result.stdout.includes(`\`${skill}\` skill`), skill);
-  }
+  assert.equal(commands.length, 2);
+  assert.ok(commands.some((command) => command.includes("protect-files.sh")));
+  assert.ok(commands.some((command) => command.includes("auto-format.sh")));
 });
 
 test("폐기된 사용량 진입점은 transcript 집계와 INDEX 쓰기를 실행하지 않는다", () => {

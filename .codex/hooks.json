@@ -17,51 +17,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/spec-rebuild-flag.sh\""
-          },
-          {
-            "type": "command",
             "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/auto-format.sh\""
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/session-start.sh\""
-          },
-          {
-            "type": "command",
-            "command": "CODEX_PROJECT_DIR=\"$(git rev-parse --show-toplevel)\" CLAUDE_PROJECT_DIR=\"$(git rev-parse --show-toplevel)\" \"$(git rev-parse --show-toplevel)/.claude/hooks/fix-visibility.sh\""
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/route-prompt.sh\""
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"$(git rev-parse --show-toplevel)/.codex/hooks/type-check-gate.sh\"",
-            "timeout": 120
-          },
-          {
-            "type": "command",
-            "command": "CODEX_PROJECT_DIR=\"$(git rev-parse --show-toplevel)\" CLAUDE_PROJECT_DIR=\"$(git rev-parse --show-toplevel)\" \"$(git rev-parse --show-toplevel)/.claude/hooks/fix-visibility.sh\"",
-            "timeout": 15
           }
         ]
       }

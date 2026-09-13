@@ -1,6 +1,4 @@
-# GPT-6 Astra: 공식 가이드와 Codex 모델 카탈로그 기준. 근거: README.md.
-model = "gpt-6-astra"
-model_reasoning_effort = "medium"
+# 모델과 reasoning은 전역 Codex 기본값을 상속합니다.
 
 # 기존 사용자 권한 정책 유지. 자율 진행 지침은 AGENTS.md에서 관리.
 approval_policy = "on-request"
@@ -11,7 +9,7 @@ web_search = "live"
 hooks = true
 
 # composition 전용: 개발·디자인·검증과 무관한 업무 플러그인 비활성화.
-# 전역 설치와 다른 프로젝트의 활성화 설정은 유지한다.
+# 문서 도구는 전역에서 사용할 수 있고 Composition에서만 제외한다.
 
 [plugins."documents@openai-primary-runtime"]
 enabled = false
@@ -26,89 +24,4 @@ enabled = false
 enabled = false
 
 [plugins."sites@openai-bundled"]
-enabled = false
-
-[plugins."apollo@claude-cowork"]
-enabled = false
-
-[plugins."bio-research@claude-cowork"]
-enabled = false
-
-[plugins."brand-voice@claude-cowork"]
-enabled = false
-
-[plugins."common-room@claude-cowork"]
-enabled = false
-
-[plugins."cowork-plugin-management@claude-cowork"]
-enabled = false
-
-[plugins."customer-support@claude-cowork"]
-enabled = false
-
-[plugins."data@claude-cowork"]
-enabled = false
-
-[plugins."enterprise-search@claude-cowork"]
-enabled = false
-
-[plugins."finance@claude-cowork"]
-enabled = false
-
-[plugins."human-resources@claude-cowork"]
-enabled = false
-
-[plugins."legal@claude-cowork"]
-enabled = false
-
-[plugins."marketing@claude-cowork"]
-enabled = false
-
-[plugins."operations@claude-cowork"]
-enabled = false
-
-[plugins."productivity@claude-cowork"]
-enabled = false
-
-[plugins."sales@claude-cowork"]
-enabled = false
-
-[plugins."slack-by-salesforce@claude-cowork"]
-enabled = false
-
-[plugins."google-drive@openai-curated-remote"]
-enabled = false
-
-[plugins."canva@openai-curated-remote"]
-enabled = false
-
-[plugins."data-analytics@openai-curated-remote"]
-enabled = false
-
-[plugins."creative-production@openai-curated-remote"]
-enabled = false
-
-[plugins."openai-templates@openai-curated-remote"]
-enabled = false
-
-# 전역으로 설치된 업무 연동 및 마이그레이션 스킬도 이 프로젝트에서만 제외한다.
-
-[[skills.config]]
-path = "/Users/admin/.codex/skills/notion-knowledge-capture/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/admin/.codex/skills/notion-meeting-intelligence/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/admin/.codex/skills/notion-research-documentation/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/admin/.codex/skills/notion-spec-to-implementation/SKILL.md"
-enabled = false
-
-[[skills.config]]
-path = "/Users/admin/.codex/skills/migrate-to-codex/SKILL.md"
 enabled = false

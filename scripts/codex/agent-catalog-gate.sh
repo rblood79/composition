@@ -235,11 +235,16 @@ done <<<"$(grep -oE '^[[:space:]]+"[^"]+"[[:space:]]*\\?$' "$CSS" | tr -d '" \\'
 
 XSS=".codex/hooks/session-start.sh"
 CODEX_ROSTER_SKILLS=$(sh_section "$XSS" "핵심 Skills" | grep -oE '`[a-z][a-z0-9-]+\\?`' | tr -d '`\\' | sort -u || true)
-report_set_eq "Codex live roster §핵심 Skills" "Codex roster" "$CODEX_ROSTER_SKILLS" ".claude/skills" "$SKILLS"
+CODEX_ROSTER_ACTIVE=$(node -e 'const c=require("./.codex/hooks.json"); console.log((c.hooks.SessionStart||[]).some(g=>(g.hooks||[]).some(h=>h.command?.includes("session-start.sh"))) ? 1 : 0)')
+if [ "$CODEX_ROSTER_ACTIVE" = 1 ]; then
+  report_set_eq "Codex live roster §핵심 Skills" "Codex roster" "$CODEX_ROSTER_SKILLS" ".claude/skills" "$SKILLS"
+else
+  ok "Codex roster 자동 주입 없음 — skill description이 선택 기준"
+fi
 
 # ---------- 8. prompt router — Codex 만 ----------
 # Claude 라우터 (.claude/hooks/route-prompt.sh) 는 2026-09-09 삭제 (PROMPT_AUDIT_2026-09 A7) — 힌트가 CLAUDE.md·시스템 프롬프트 재삽입이었다.
-# Codex 는 그 상시 context 가 없어 라우터가 1차 표면 — 유지.
+# Codex도 skill description으로 선택한다. router는 수동 호환 진입점만 검사한다.
 section "8. prompt router — scripts/codex/route-prompt.sh (Claude 라우터는 2026-09-09 제거)"
 XR="scripts/codex/route-prompt.sh"
 XR_REFS=$(grep 'add_hint' "$XR" | grep -oE '[a-z][a-z0-9]*(-[a-z0-9]+)+' | sort -u || true)
@@ -336,6 +341,7 @@ while IFS= read -r s; do
   # Claude 로스터가 없으면 (PROMPT_AUDIT_2026-09 A1) 그 표면은 대조에서 뺀다 — 기대값과 같게 둔다.
   if [ "$ROSTER_PRESENT" = 0 ]; then r_has=0; [ "$dmi" = "true" ] && r_has=1; fi
   grep -q "user-only" <<<"$live_line" && live_has=1
+  if [ "$CODEX_ROSTER_ACTIVE" = 0 ]; then live_has=0; [ "$dmi" = "true" ] && live_has=1; fi
   if [ "$dmi" = "true" ]; then
     [ "$c_has" = 1 ] && [ "$x_has" = 1 ] && [ "$r_has" = 1 ] && [ "$live_has" = 1 ] && ok "$s — 사용자 전용 (4표면 일치)" || fail "$s — disable-model-invocation:true 인데 표기 누락: claude INDEX=$c_has codex INDEX=$x_has claude roster=$r_has codex roster=$live_has"
   else
