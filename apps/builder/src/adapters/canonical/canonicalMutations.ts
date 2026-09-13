@@ -1330,6 +1330,13 @@ function buildPageShell(
 ): CanonicalNode {
   const existingPage = findPageNode(currentDoc, page.id);
   const frameId = getPageFrameBindingId(page);
+  // ADR-214 — 페이지 변수 정의는 canonical page 노드 1차 필드. shell 재구성이 명시 보존하지
+  // 않으면 페이지 추가 1회에 다른 페이지들의 정의까지 사라진다 (Phase 2 live 에서 발견 —
+  // 요소 `canonicalStateField` · pageFrameBinding `preservedPageState` 와 같은 이유).
+  const preservedState =
+    existingPage?.state && existingPage.state.length > 0
+      ? { state: existingPage.state }
+      : {};
   const metadata = {
     ...(existingPage?.metadata ?? {}),
     type: "legacy-page",
@@ -1358,6 +1365,7 @@ function buildPageShell(
       ...(existingDescendants && Object.keys(existingDescendants).length > 0
         ? { descendants: existingDescendants }
         : {}),
+      ...preservedState,
     } as unknown as RefNode;
   }
 
@@ -1377,6 +1385,7 @@ function buildPageShell(
     name: page.title,
     metadata: frameMetadata,
     ...(children.length > 0 ? { children } : {}),
+    ...preservedState,
   } satisfies FrameNode;
 }
 

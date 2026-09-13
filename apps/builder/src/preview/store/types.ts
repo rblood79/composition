@@ -6,7 +6,12 @@
  */
 
 import type { CSSProperties } from "react";
-import type { CompositionDocument, ApiEndpointDefinition } from "@composition/shared";
+import type {
+  CompositionDocument,
+  ApiEndpointDefinition,
+  RuntimeStateHandle,
+  VariableOwner,
+} from "@composition/shared";
 import type { EditorMutationDescriptor } from "../../builder/presentation/editorPresentationTypes";
 import type {
   EditorPresentationCancelMessage,
@@ -101,6 +106,10 @@ export interface RuntimeVariable {
   persist: boolean;
   scope: "global" | "page" | "component";
   page_id?: string;
+  /** ADR-214 — 소유자 (project 만 shared 런타임 store 의 프로젝트 정의가 된다) */
+  owner?: VariableOwner;
+  /** ADR-214 — 정의의 기본값 (`defaultValue` 는 legacy appState 초기화용 런타임 값) */
+  definitionDefault?: unknown;
 }
 
 export interface PreviewEditorPresentationOverride {
@@ -143,6 +152,15 @@ export interface RuntimeStoreState extends StateHierarchy {
   canonicalProjectId: string | null;
   canonicalDocumentRevision: number;
   receiveCanonicalDocument: (message: UpdateCanonicalDocumentMessage) => void;
+
+  /**
+   * ADR-214 Phase 2 — shared 런타임 상태 store (값: project / page / element 스코프, persist
+   * namespace = canonicalProjectId). 정의는 `setVariables` (project) + canonical 문서 (page/element)
+   * 가 공급하고, 페이지 진입 (`setCurrentPageId`) 이 그 페이지 값을 리셋한다. 값 변경은
+   * `runtimeStateRevision` 을 올려 React 구독자가 다시 읽는다 (구독 자체는 handle 의 의존 인덱스).
+   */
+  runtimeState: RuntimeStateHandle;
+  runtimeStateRevision: number;
 
   editorPresentationProjectionIndex: PreviewPresentationProjectionIndex;
   editorPresentationOverrides: Record<

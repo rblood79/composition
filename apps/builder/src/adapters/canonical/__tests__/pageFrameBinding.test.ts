@@ -314,6 +314,59 @@ describe("pageFrameBinding canonical primary helper", () => {
     );
   });
 
+  it("ADR-214 — 페이지 노드를 다시 만들어도 페이지 변수 정의 (state) 를 보존한다 (frame 해제 · 바인딩 양쪽)", async () => {
+    const page = makePage("page-9", "frame-1");
+    const state = {
+      pages: [page],
+      elementsMap: new Map<string, Element>(),
+    } as Parameters<typeof applyPageFrameBindingExplicit>[0] extends {
+      getElementsState: () => infer S;
+    }
+      ? S
+      : never;
+    const pageState = [
+      { id: "v-step", name: "step", type: "number" as const, defaultValue: 1 },
+    ];
+    const existingPageRef: RefNode = {
+      id: "page-9",
+      type: "ref",
+      ref: "layout-frame-1",
+      metadata: { type: "legacy-page", pageId: "page-9", slug: "/page-9", layoutId: "frame-1" },
+      state: pageState,
+      descendants: {},
+    };
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore
+      .getState()
+      .setDocument("project-1", makeDoc([makeFrameNode(), existingPageRef]));
+
+    // frame 해제 → FrameNode 로 재구성
+    await applyPageFrameBindingExplicit({
+      pageId: page.id,
+      contextReason: "page-frame-binding-test",
+      frameId: null,
+      getElementsState: () => state,
+      setPages: vi.fn(),
+    });
+    let doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    expect(doc?.children.find((node) => node.id === "page-9")).toEqual(
+      expect.objectContaining({ type: "frame", state: pageState }),
+    );
+
+    // 다시 frame 바인딩 → RefNode 로 재구성
+    await applyPageFrameBindingExplicit({
+      pageId: page.id,
+      contextReason: "page-frame-binding-test",
+      frameId: "frame-1",
+      getElementsState: () => ({ ...state, pages: [makePage("page-9", null)] }),
+      setPages: vi.fn(),
+    });
+    doc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    expect(doc?.children.find((node) => node.id === "page-9")).toEqual(
+      expect.objectContaining({ type: "ref", state: pageState }),
+    );
+  });
+
   it("keeps the page body as a canonical child when applying a frame binding", async () => {
     const page = makePage("page-5");
     const pageBody: CanonicalNode = {

@@ -30,6 +30,7 @@ import type { ZodError } from "zod";
 import { ExportedProjectSchema } from "../schemas/project.schema";
 import { buildRegistryFontFaceCss } from "./fontRegistry";
 import type { FontRegistryV2 } from "../types/font.types";
+import type { VariableDef } from "../state/variable.types";
 import { collectResponsiveCss } from "./responsiveCss";
 
 // ============================================
@@ -101,6 +102,8 @@ function readCanonicalMetadataCustomId(
 export interface ProjectExportData {
   collections?: DataTableDefinition[];
   apiEndpoints?: ApiEndpointDefinition[];
+  /** ADR-214 — 프로젝트 변수 정의 (project 소유자; page/element 정의는 document 노드 `state`) */
+  variables?: VariableDef[];
   version: string;
   exportedAt: string;
   project: {
@@ -791,6 +794,7 @@ export function serializeProjectData(
   metadata?: ProjectMetadata,
   collections?: DataTableDefinition[],
   apiEndpoints?: ApiEndpointDefinition[],
+  variables?: VariableDef[],
 ): string {
   const exportData: ProjectExportData = {
     version: CURRENT_VERSION,
@@ -805,6 +809,7 @@ export function serializeProjectData(
     metadata,
     ...(collections?.length ? { collections } : {}),
     ...(apiEndpoints?.length ? { apiEndpoints } : {}),
+    ...(variables?.length ? { variables } : {}),
   };
 
   return JSON.stringify(exportData, null, 2);
@@ -822,6 +827,7 @@ export function downloadProjectAsJson(
   metadata?: ProjectMetadata,
   collections?: DataTableDefinition[],
   apiEndpoints?: ApiEndpointDefinition[],
+  variables?: VariableDef[],
 ): void {
   const jsonString = serializeProjectData(
     projectId,
@@ -832,6 +838,7 @@ export function downloadProjectAsJson(
     metadata,
     collections,
     apiEndpoints,
+    variables,
   );
 
   const blob = new Blob([jsonString], { type: "application/json" });

@@ -291,6 +291,41 @@ describe("canonical mutation wrappers", () => {
     };
   }
 
+  it("ADR-214 — setElementsCanonicalPrimary 의 page shell 재구성이 페이지 변수 정의 (state) 를 보존한다", () => {
+    const pages = [
+      { ...makePage("page-home"), title: "Home", slug: "/", order_num: 0 },
+      { ...makePage("page-two"), title: "Page 2", order_num: 1 },
+    ] as unknown as Page[];
+    const pageState = [
+      { id: "v-step", name: "step", type: "number" as const, defaultValue: 1 },
+    ];
+    useCanonicalDocumentStore.getState().setCurrentProject("project-1");
+    useCanonicalDocumentStore.getState().setDocument("project-1", {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "page-home",
+          type: "frame",
+          name: "Home",
+          metadata: { type: "legacy-page", pageId: "page-home", slug: "/" },
+          state: pageState,
+        },
+      ],
+    } as CompositionDocument);
+    registerCanonicalMutationStoreActions({
+      getCurrentLegacySnapshot: () => ({ elements: [], pages, layouts: [] }),
+      getCurrentProjectId: () => "project-1",
+    });
+
+    // 페이지 추가 (appendPageShell → 전체 shell 재구성) 와 같은 경로
+    setElementsCanonicalPrimary([]);
+
+    const nextDoc = useCanonicalDocumentStore.getState().getDocument("project-1");
+    const home = nextDoc?.children.find((node) => node.id === "page-home");
+    expect(home?.state).toEqual(pageState);
+    expect(nextDoc?.children.find((node) => node.id === "page-two")?.state).toBeUndefined();
+  });
+
   it("attaches slot-less page children to a framed page's children (not the slot override)", () => {
     setupFramedPage();
 

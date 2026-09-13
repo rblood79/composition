@@ -235,3 +235,28 @@ export function collectDocumentVariableNames(
   }
   return names;
 }
+
+/** 문서 안 모든 노드 state 정의 (소유자 포함) — 런타임 store 의 정의 색인 입력 (Phase 2) */
+export function collectDocumentVariables(
+  doc: CompositionDocument | null | undefined,
+): VisibleVariable[] {
+  const out: VisibleVariable[] = [];
+  if (!doc) return out;
+  for (const entry of getIndex(doc).byId.values()) {
+    const owner = ownerOf(entry);
+    for (const def of nodeState(entry.node)) out.push({ def, owner });
+  }
+  return out;
+}
+
+/**
+ * 문서 안 노드의 조상 사슬 (자기 → 루트, 페이지 노드까지) 의 id 열 — 런타임 env 가 요소 변수의
+ * 소유자 instanceKey 를 만들 때 쓴다 (Phase 3). 없는 id 면 빈 배열.
+ */
+export function resolveAncestorChainIds(
+  doc: CompositionDocument | null | undefined,
+  nodeId: string,
+): string[] {
+  if (!doc) return [];
+  return ancestorChain(getIndex(doc), nodeId).map((entry) => entry.node.id);
+}

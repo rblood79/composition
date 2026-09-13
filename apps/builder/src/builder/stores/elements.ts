@@ -543,12 +543,18 @@ import {
   normalizePageTitleDraft,
   renameActiveCanonicalPageTitle,
 } from "./canonical/pageTitleMutation";
+import { setActiveCanonicalPageState } from "./canonical/pageStateMutation";
 import { enqueuePagePersistence } from "../utils/pagePersistenceQueue";
 import { isComponentsPageMirror } from "../pages/systemComponentsPage";
 import { resolveAutoPageColumnCount } from "../workspace/canvas/pageLayoutConstants";
 
 export interface ElementsState {
   renamePageTitle: (pageId: string, title: string) => boolean;
+  /** ADR-214 — 페이지 변수 정의 쓰기 (canonical page 노드 `state`). History 는 Phase 5 */
+  setPageState: (
+    pageId: string,
+    state: readonly import("@composition/shared").VariableDef[],
+  ) => boolean;
 }
 
 type BreakpointName = import("@composition/shared").BreakpointName;
@@ -1357,6 +1363,21 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
             : {}),
         };
       }),
+
+    // ADR-214 — 페이지 변수 정의: canonical page 노드 `state` 가 SSOT (setDocument 가 persist ·
+    // preview 재송신). `pages` mirror 에는 없는 필드라 derived 동기화 0.
+    setPageState: (pageId, state) => {
+      if (!setActiveCanonicalPageState(pageId, state)) return false;
+      void enqueuePagePersistence(async () => {
+        try {
+          const db = await getDB();
+          await persistActiveCanonicalDocument(db);
+        } catch (error) {
+          console.error("[setPageState] DB persist:", error);
+        }
+      });
+      return true;
+    },
 
     renamePageTitle: (pageId, draftTitle) => {
       const title = normalizePageTitleDraft(draftTitle);

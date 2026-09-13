@@ -429,5 +429,24 @@ export const getVariablesForCanvas = () => {
     persist: v.persist,
     scope: v.scope,
     page_id: v.page_id,
+    // ADR-214 Phase 2 — preview 의 shared 런타임 store 정의 색인 입력 (project 소유자만 값을 갖는다;
+    // page/element 정의는 canonical 문서 자체로 간다). `definitionDefault` 는 정의의 기본값
+    // (위 `defaultValue` 는 legacy appState 초기화용 런타임 값).
+    owner: v.owner,
+    definitionDefault: v.defaultValue,
   }));
+};
+
+/** ADR-214 — publish 탭 · export 로 가는 프로젝트 변수 정의 (VariableDef 형상, project 소유자만) */
+export const getProjectVariableDefinitions = () => {
+  const { variables } = useDataStore.getState();
+  return Array.from(variables.values())
+    .filter((v) => !v.owner || v.owner.kind === "project")
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      ...(v.defaultValue !== undefined ? { defaultValue: v.defaultValue } : {}),
+      persist: v.persist,
+    }));
 };

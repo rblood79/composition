@@ -6,6 +6,10 @@
  */
 
 import { create } from "zustand";
+import {
+  createRuntimeState,
+  type VariableDef,
+} from "@composition/shared";
 import type {
   RuntimeStoreState,
   RuntimeElement,
@@ -202,8 +206,40 @@ function applyPresentationPatchState(
   );
 }
 
+/** ADR-214 — UPDATE_VARIABLES 의 project 소유자 항목 → shared 런타임 store 의 정의 (VariableDef) */
+function toProjectVariableDefs(variables: RuntimeVariable[]): VariableDef[] {
+  return variables
+    .filter((v) => !v.owner || v.owner.kind === "project")
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      type: v.type,
+      ...(v.definitionDefault !== undefined
+        ? { defaultValue: v.definitionDefault }
+        : v.defaultValue !== undefined
+          ? { defaultValue: v.defaultValue }
+          : {}),
+      persist: v.persist,
+    }));
+}
+
 export const createRuntimeStore = () =>
-  create<RuntimeStoreState>((set, get) => ({
+  create<RuntimeStoreState>((set, get) => {
+    // ADR-214 Phase 2 — shared 런타임 상태 (프로젝트 namespace 는 첫 canonical 문서가 정한다)
+    const runtimeState = createRuntimeState({ projectId: "preview" });
+    runtimeState.subscribe(() => {
+      set((s) => ({ runtimeStateRevision: s.runtimeStateRevision + 1 }));
+    });
+    const syncRuntimeDefinitions = () => {
+      const { variables, canonicalDocument } = get();
+      runtimeState.setDefinitions({
+        projectVariables: toProjectVariableDefs(variables),
+        document: canonicalDocument,
+      });
+    };
+    return {
+    runtimeState,
+    runtimeStateRevision: 0,
     // ============================================
     // Elements
     // ============================================
@@ -212,11 +248,20 @@ export const createRuntimeStore = () =>
     canonicalDocument: null,
     canonicalProjectId: null,
     canonicalDocumentRevision: -1,
-    setCanonicalDocument: (canonicalDocument) =>
+    setCanonicalDocument: (canonicalDocument) => {
       // 문서가 새로 오면 실행 override 는 버린다 — 편집 결과를 덮어쓴 채로 남으면
       // 사용자가 방금 바꾼 값이 preview 에서 무시되는 것처럼 보인다.
-      set({ canonicalDocument, interactionOverrides: {} }),
+      set({ canonicalDocument, interactionOverrides: {} });
+      syncRuntimeDefinitions();
+    },
     receiveCanonicalDocument: (message) => {
+      // ADR-214 — 프로젝트가 바뀌면 런타임 값 namespace 전환 (R10)
+      if (
+        message.projectId &&
+        message.projectId !== get().canonicalProjectId
+      ) {
+        runtimeState.switchProject(message.projectId);
+      }
       set((state) => {
         const projectChanged = state.canonicalProjectId !== message.projectId;
         if (
@@ -264,6 +309,8 @@ export const createRuntimeStore = () =>
         }
         return next;
       });
+      // ADR-214 — 문서 안 page/element 정의를 런타임 store 에 반영 (문서가 실제로 바뀐 경우만)
+      if (get().canonicalDocument === message.document) syncRuntimeDefinitions();
     },
 
     editorPresentationProjectionIndex:
@@ -522,7 +569,12 @@ export const createRuntimeStore = () =>
     pages: [],
     setPages: (pages: RuntimePage[]) => set({ pages }),
     currentPageId: null,
-    setCurrentPageId: (pageId: string | null) => set({ currentPageId: pageId }),
+    setCurrentPageId: (pageId: string | null) => {
+      const changed = get().currentPageId !== pageId;
+      set({ currentPageId: pageId });
+      // ADR-214 — 페이지 진입 시 그 페이지 변수 값 리셋
+      if (changed) runtimeState.enterPage(pageId);
+    },
     currentPath: "/",
     setCurrentPath: (path: string) => set({ currentPath: path }),
 
@@ -608,6 +660,8 @@ export const createRuntimeStore = () =>
     variables: [],
     setVariables: (variables: RuntimeVariable[]) => {
       set({ variables });
+      // ADR-214 — project 정의를 shared 런타임 store 에 (page/element 정의는 문서로)
+      syncRuntimeDefinitions();
       // Variables의 defaultValue를 appState/pageStates에 초기화
       const currentAppState = get().appState;
       const newAppState = { ...currentAppState };
@@ -726,7 +780,8 @@ export const createRuntimeStore = () =>
     // ============================================
     isReady: false,
     setReady: (ready: boolean) => set({ isReady: ready }),
-  }));
+    };
+  });
 
 // ============================================
 // Helper Functions
@@ -796,6 +851,23 @@ let storeInstance: ReturnType<typeof createRuntimeStore> | null = null;
 export function getRuntimeStore() {
   if (!storeInstance) {
     storeInstance = createRuntimeStore();
+    // dev 전용 (ADR-214 live): 하니스가 iframe 안 런타임 상태를 읽고 쓴다 — 값 store 는
+    // 페이지 스코프라 (memory `reference-vite-dynamic-import-separate-store-instance`)
+    // 같은 인스턴스를 window 로 노출한다. production 빌드 제외.
+    if (typeof window !== "undefined" && import.meta.env?.DEV) {
+      (window as unknown as Record<string, unknown>).__composition_PREVIEW_RUNTIME__ =
+        {
+          snapshot: () => storeInstance!.getState().runtimeState.snapshot(),
+          read: (variableId: string) =>
+            storeInstance!.getState().runtimeState.read(variableId),
+          env: (pageId: string | null, elementId?: string | null) =>
+            storeInstance!.getState().runtimeState.createEnv({ pageId, elementId }),
+          write: (
+            request: Parameters<RuntimeStoreState["runtimeState"]["write"]>[0],
+          ) => storeInstance!.getState().runtimeState.write(request),
+          revision: () => storeInstance!.getState().runtimeStateRevision,
+        };
+    }
   }
   return storeInstance;
 }

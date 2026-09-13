@@ -2,7 +2,7 @@ import type { CompositionDocument, ProjectExportData } from "@composition/shared
 import { resolveCollectionByName } from "@composition/shared";
 import type { ApiEndpointCreate, DataField, DataStoreActions, DataStoreState } from "../../types/builder/data.types";
 
-type ImportStore = Pick<DataStoreActions, "createDataTable" | "updateCollection" | "setRuntimeData" | "createApiEndpoint" | "updateApiEndpoint"> & Pick<DataStoreState, "collections" | "apiEndpoints">;
+type ImportStore = Pick<DataStoreActions, "createDataTable" | "updateCollection" | "setRuntimeData" | "createApiEndpoint" | "updateApiEndpoint" | "applyDataChange"> & Pick<DataStoreState, "collections" | "apiEndpoints" | "variables">;
 
 /** 공통 JSON envelope의 데이터 소스를 기존 store/DB 액션으로 복원한다. */
 export async function importCollectionEnvelope(projectId: string, data: ProjectExportData, store: ImportStore): Promise<CompositionDocument> {
@@ -28,6 +28,24 @@ export async function importCollectionEnvelope(projectId: string, data: ProjectE
     };
     if (current) await store.updateApiEndpoint(current.id, config);
     else await store.createApiEndpoint(config);
+  }
+  // ADR-214 — 프로젝트 변수 정의 복원: 같은 이름이 있으면 그 변수를 갱신, 없으면 envelope 의 id 로
+  //   생성 (문서 안 `setState.variableId` 참조가 그대로 살아야 한다). 한 DataChange (History 1).
+  const variableOps = (data.variables ?? []).map((def) => {
+    const current = store.variables.get(def.name);
+    return {
+      op: "define_variable" as const,
+      variableId: current?.id ?? def.id,
+      definition: {
+        name: def.name,
+        type: def.type,
+        ...(def.defaultValue !== undefined ? { defaultValue: def.defaultValue } : {}),
+        persist: def.persist ?? false,
+      },
+    };
+  });
+  if (variableOps.length > 0) {
+    await store.applyDataChange({ ops: variableOps, origin: "user", label: "import variables" }, { projectId });
   }
   // 이름 바인딩은 그대로다. 다른 프로젝트에서 가져온 기존 ID 바인딩만 새 DB ID로 연결한다.
   if (![...ids].some(([from,to])=>from!==to)) return data.document;

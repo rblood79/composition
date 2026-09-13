@@ -277,6 +277,19 @@ function ensurePageBodyChild(
   return [bodyNode, ...children];
 }
 
+/**
+ * ADR-214 — 페이지 변수 정의 (`state`) 는 canonical page 노드 1차 필드다. 이 함수가 페이지
+ * 노드를 통째로 다시 만들므로 명시 보존이 없으면 페이지 추가·제목 변경·frame 바인딩 1회에
+ * 정의가 사라진다 (요소의 `canonicalStateField` 와 같은 이유 — Phase 2 live 에서 발견).
+ */
+function preservedPageState(
+  existingNode?: CanonicalNode,
+): Pick<CanonicalNode, "state"> | Record<string, never> {
+  return existingNode?.state && existingNode.state.length > 0
+    ? { state: existingNode.state }
+    : {};
+}
+
 function buildPageNode(
   updatedPage: Page,
   frameId: string | null,
@@ -304,6 +317,7 @@ function buildPageNode(
       name: updatedPage.title,
       metadata: buildPageMetadata(updatedPage, frameId, existingNode),
       children: pageBodyChildren,
+      ...preservedPageState(existingNode),
       ...(descendants && Object.keys(descendants).length > 0
         ? { descendants }
         : rebuiltDescendants
@@ -332,6 +346,7 @@ function buildPageNode(
     name: updatedPage.title,
     metadata: buildPageMetadata(updatedPage, null, existingNode),
     children: childrenWithBody,
+    ...preservedPageState(existingNode),
   };
   return nextNode;
 }

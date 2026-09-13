@@ -25,9 +25,14 @@ import {
   loadFontRegistry,
   buildRegistryFontFaceCss,
 } from "@composition/shared";
-import type { FontRegistryV2 } from "@composition/shared";
+import type {
+  CompositionDocument,
+  FontRegistryV2,
+  VariableDef,
+} from "@composition/shared";
 import { PageRenderer } from "./renderer";
 import { InteractionRuntimeProvider } from "./renderer/InteractionRuntime";
+import { RuntimeStateProvider } from "./renderer/RuntimeStateRuntime";
 import { ToastProvider } from "@composition/shared/components";
 import { PageNav } from "./components/PageNav";
 import { usePageRouting } from "./hooks/usePageRouting";
@@ -46,6 +51,10 @@ import "./styles/index.css";
 interface ProjectData {
   collections: DataTableDefinition[];
   apiEndpoints: ApiEndpointDefinition[];
+  /** ADR-214 — 프로젝트 변수 정의 (page/element 정의는 document 노드 `state`) */
+  variables: VariableDef[];
+  projectId: string;
+  document: CompositionDocument;
   pages: Page[];
   elements: Element[];
   currentPageId: string | null;
@@ -316,6 +325,9 @@ export function App() {
         events: data.document.events ?? [],
         collections: data.collections ?? [],
         apiEndpoints: data.apiEndpoints ?? [],
+        variables: data.variables ?? [],
+        projectId: data.project.id,
+        document: data.document,
       };
 
       // ADR-014 Phase D: fontRegistry → @font-face 주입
@@ -393,6 +405,9 @@ export function App() {
             events: parsed.document.events ?? [],
             collections: parsed.collections ?? [],
             apiEndpoints: parsed.apiEndpoints ?? [],
+            variables: parsed.variables ?? [],
+            projectId: parsed.project?.id || "preview",
+            document: parsed.document,
           };
           setProjectData(projectData);
           setLoadingState("loaded");
@@ -556,6 +571,12 @@ export function App() {
   return (
     <CollectionDataProvider services={collectionServices}>
     <ToastProvider>
+      <RuntimeStateProvider
+        projectId={projectData.projectId}
+        variables={projectData.variables}
+        document={projectData.document}
+        currentPageId={currentPageId}
+      >
       <InteractionRuntimeProvider
         rules={projectData.events}
         elements={projectData.elements}
@@ -597,6 +618,7 @@ export function App() {
           </div>
         </div>
       </InteractionRuntimeProvider>
+      </RuntimeStateProvider>
     </ToastProvider>
     </CollectionDataProvider>
   );

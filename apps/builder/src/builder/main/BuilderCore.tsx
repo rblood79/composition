@@ -121,7 +121,7 @@ import type { TintPreset } from "../../utils/theme/tintToSkiaColors";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
 import { getCanonicalReusableFrameLayouts } from "../stores/canonical/canonicalFrameStore";
-import { useDataStore } from "../stores/data";
+import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
 import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { resolveCollectionByName } from "@composition/shared";
 import type { Element } from "../../types/core/store.types";
@@ -1166,6 +1166,8 @@ export const BuilderCore: React.FC = () => {
       apiEndpoints: Array.from(
         useDataStore.getState().apiEndpoints.values(),
       ).map(toRuntimeApiEndpoint),
+      // ADR-214 Phase 2 — 프로젝트 변수 정의 (publish 의 shared 런타임 store 입력)
+      variables: getProjectVariableDefinitions(),
       themeConfig: { tint, neutral, radiusScale },
       fontRegistry: loadFontRegistry(),
     };
@@ -1203,6 +1205,8 @@ export const BuilderCore: React.FC = () => {
         Array.from(useDataStore.getState().apiEndpoints.values()).map(
           toRuntimeApiEndpoint,
         ),
+        // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
+        getProjectVariableDefinitions(),
       );
       showToast("success", t("header.exportProjectSuccess"));
     } catch (error) {

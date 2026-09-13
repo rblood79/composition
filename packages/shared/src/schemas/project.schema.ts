@@ -184,6 +184,8 @@ export const ExportedProjectSchema = z
         }),
       )
       .optional(),
+    // ADR-214 — 프로젝트 변수 정의 (import 에서 보존 · publish 런타임 입력)
+    variables: z.array(VariableDefSchema).optional(),
     apiEndpoints: z
       .array(
         z.object({

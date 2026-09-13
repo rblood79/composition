@@ -87,11 +87,15 @@ interface VariableDef {
 - [x] 프로젝트 변수 CRUD는 기존 ADR-152 적용기 확장 op `define_variable`로 통합하고 History/inverse를 같은 경로에 둔다
 - [x] G1: 로드 재직렬화 0. unused state edit sceneVersion +0, 소비 중 defaultValue/name/type edit는 해석 props 변경+sceneVersion +1. clone/paste id/reference 정합과 owner-unresolved 전량 표시
 
-### Phase 2 — 런타임 store (shared) + preview/publish 초기화 (게이트 G2 전반)
+### Phase 2 — 런타임 store (shared) + preview/publish 초기화 (게이트 G2 전반) — 완료 2026-09-13 (live 7/7 `adr214-p2-live.mjs`)
 
-- [ ] `packages/shared/src/state/runtimeState.ts` — 세 스코프 · 기본값 초기화 · 페이지 진입 리셋 · project persist key `composition:runtime-state:v1:${projectId}` · 전환 clear/hydrate · 의존 인덱스
-- [ ] preview `runtimeStore` 가 shared 를 감싼다 (기존 `appState/pageStates` 는 read 호환 alias) · publish 도 같은 모듈 (방침상 live 검증은 preview 까지)
-- [ ] `UPDATE_VARIABLES` 가 정의 3종 (project 배열 + 문서 안 page/element 는 문서 자체로) 를 전달
+> 구현 결정: 값 키는 **VariableDef.id** (rename 무손실 · `setState.variableId` 와 같은 축), 이름 → id 는 env (`createEnv(target)`, `resolveVisibleVariables` 경유) 가 해석. 요소 스코프 키는 `instanceKey` (origin = node.id · 인스턴스 자손은 렌더러가 `instanceKeyFor` 로 `${refId}/${idPath}` 를 만든다 — Phase 3). 쓰기 op 4 (set 타입 강제 · toggle boolean · increment number · reset) 는 store 안에서 검증. 정의 갱신 시 사라진 id 값 폐기 · 타입 변경은 리셋. 구 키 `composition-runtime-values` 는 읽지 않는다. preview 는 zustand store 가 handle 을 들고 (`runtimeState` · 값 변경 → `runtimeStateRevision`), publish 는 `RuntimeStateProvider` context — 같은 shared 모듈. 페이지 정의 쓰기 경로 `useStore.setPageState(pageId, defs)` (canonical page 노드 `state`, History 는 Phase 5). export envelope `variables` (zod) + import 복원 (`define_variable`, 같은 이름은 갱신 · 없으면 envelope id 로 생성 — 문서 `setState.variableId` 보존).
+>
+> **live 에서 잡은 결함 2** (같은 부류 — 페이지 노드를 통째로 다시 만드는 두 경로가 `state` 를 안 실었다): `canonicalMutations.buildPageShell` (페이지 추가 = 전체 shell 재구성 → 다른 페이지 정의까지 소실) · `pageFrameBinding.buildPageNode` (frame 바인딩/해제). 둘 다 RED 회귀 동반. 하니스 관찰 지점: dev 전용 `window.__composition_PREVIEW_RUNTIME__` (iframe 안 read/env/write/snapshot/revision).
+
+- [x] `packages/shared/src/state/runtimeState.ts` — 세 스코프 · 기본값 초기화 · 페이지 진입 리셋 · project persist key `composition:runtime-state:v1:${projectId}` · 전환 clear/hydrate · 의존 인덱스 (unit 9)
+- [x] preview `runtimeStore` 가 shared 를 감싼다 (기존 `appState/pageStates` 는 read 호환 alias) · publish 도 같은 모듈 (방침상 live 검증은 preview 까지)
+- [x] `UPDATE_VARIABLES` 가 정의 3종 (project 배열 + `owner` · `definitionDefault`, 문서 안 page/element 는 문서 자체로) 를 전달 · publish 탭/export 는 `variables` 배열
 
 ### Phase 3 — 읽기: `{{ }}` 템플릿 (게이트 G2)
 
