@@ -74,6 +74,10 @@ export const TOOL_LABEL_KEYS: Record<string, ToolLabelKeys> = {
     intent: "aiTool.getApiEndpoint",
     done: "aiTool.getApiEndpointDone",
   },
+  list_variables: {
+    intent: "aiTool.listVariables",
+    done: "aiTool.listVariablesDone",
+  },
   explain_request_failure: {
     intent: "aiTool.explainRequestFailure",
     done: "aiTool.explainRequestFailureDone",

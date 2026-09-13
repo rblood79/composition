@@ -756,6 +756,8 @@ const koKR: TranslationKeys = {
     listApiEndpointsDone: "읽음",
     getApiEndpoint: "API 정의 읽기",
     getApiEndpointDone: "읽음",
+    listVariables: "변수 목록 읽기",
+    listVariablesDone: "읽음",
     explainRequestFailure: "실패 원인 분석",
     explainRequestFailureDone: "컨텍스트 수집됨",
     proposeDataChange: "데이터 변경 제안",
@@ -1134,6 +1136,8 @@ const koKR: TranslationKeys = {
       "프로젝트의 API endpoint 목록 — id · 이름 · method · url · 연결 테이블 · 마지막 실행 오류. 인증 값은 {{secret.KEY}} 로 가려집니다.",
     getApiEndpoint:
       "API endpoint 정의 1개 (method · url · headers · query · body · 응답 매핑). 인증 header/query 값은 {{secret.KEY}} placeholder 로 가려져 오며 원문은 볼 수 없습니다.",
+    listVariables:
+      "프로젝트 · 페이지 · 요소 변수 정의 목록 — id · 이름 · 타입 · 소유자 (project / page / element) · 사용처 수. detailed 는 기본값 · persist · 암묵 상태 원천 prop · 사용처 (템플릿 노드 · setState 규칙) 까지. 런타임 값은 싣지 않습니다. `{{ name }}` 템플릿이나 setState 규칙을 만들기 전에 이름과 소유자를 확인하세요. 변수 정의·삭제는 사용자가 UI 로만 합니다.",
     readFormat: "concise(기본) = 요약만, detailed = 필드/키 목록 포함.",
     collectionIdRef:
       "collection id (list_collections 결과의 id). name 과 둘 중 하나는 필수.",
@@ -2714,6 +2718,8 @@ const enUS: TranslationKeys = {
     listApiEndpointsDone: "read",
     getApiEndpoint: "Read the API definition",
     getApiEndpointDone: "read",
+    listVariables: "Read the variable list",
+    listVariablesDone: "read",
     explainRequestFailure: "Analyze request failure",
     explainRequestFailureDone: "context collected",
     proposeDataChange: "Propose data change",
@@ -3103,6 +3109,8 @@ const enUS: TranslationKeys = {
       "Lists the project's API endpoints — id, name, method, url, target table, last run error. Auth values are masked as {{secret.KEY}}.",
     getApiEndpoint:
       "Reads one API endpoint definition (method, url, headers, query, body, response mapping). Auth header/query values arrive as {{secret.KEY}} placeholders; the raw values are never exposed.",
+    listVariables:
+      "Lists variable definitions across the project, pages, and elements — id, name, type, owner (project / page / element), and usage count. detailed adds default value, persist, the implicit-state source prop, and usages (template nodes, setState rules). Runtime values are not included. Check names and owners here before writing a `{{ name }}` template or a setState rule. Defining or deleting variables is done by the user in the UI only.",
     readFormat:
       "concise (default) = summary only; detailed = includes field/key lists.",
     collectionIdRef:

@@ -404,17 +404,18 @@ describe("create_interaction_rule (D4)", () => {
 });
 
 describe("레지스트리 등록", () => {
-  it("도구 14종 — Phase 4 신규 2종 + ADR-213 읽기 4종 포함", async () => {
+  it("도구 19종 — Phase 4 신규 2종 + ADR-213 읽기 4종 + ADR-214 list_variables 포함", async () => {
     const registry = createToolRegistry();
     expect(registry.has("bind_collection")).toBe(true);
     expect(registry.has("create_interaction_rule")).toBe(true);
-    expect(registry.size).toBe(18);
+    expect(registry.size).toBe(19);
 
     const names = (await getToolDefinitions(tr)).map((d) => d.name);
     expect(names).toContain("bind_collection");
     expect(names).toContain("create_interaction_rule");
     expect(names).toContain("list_collections");
-    expect(names).toHaveLength(18);
+    expect(names).toContain("list_variables");
+    expect(names).toHaveLength(19);
   });
 });
 

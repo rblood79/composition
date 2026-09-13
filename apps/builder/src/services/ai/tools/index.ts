@@ -21,6 +21,7 @@ import { listCollectionsTool } from "./listCollections";
 import { getCollectionTool } from "./getCollection";
 import { listApiEndpointsTool } from "./listApiEndpoints";
 import { getApiEndpointTool } from "./getApiEndpoint";
+import { listVariablesTool } from "./listVariables";
 import { explainRequestFailureTool } from "./explainRequestFailure";
 import { proposeDataChangeTool } from "./proposeDataChange";
 import { createTableFromDescriptionTool } from "./createTableFromDescription";
@@ -61,6 +62,8 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
     getCollectionTool,
     listApiEndpointsTool,
     getApiEndpointTool,
+    // ADR-214 후속 — 변수 정의 읽기 (프로젝트 · 페이지 · 요소 + 소유자)
+    listVariablesTool,
     explainRequestFailureTool,
     proposeDataChangeTool,
     createTableFromDescriptionTool,

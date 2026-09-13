@@ -425,6 +425,24 @@ export const toolDefinitions: ChatCompletionTool[] = [
       },
     },
   },
+  // ADR-214 후속 — 변수 정의 읽기 (프로젝트 · 페이지 · 요소 + 소유자). 런타임 값은 싣지 않는다.
+  {
+    type: "function",
+    function: {
+      name: "list_variables",
+      description: "aiToolDef.listVariables",
+      parameters: {
+        type: "object",
+        properties: {
+          format: {
+            type: "string",
+            enum: ["concise", "detailed"],
+            description: "aiToolDef.readFormat",
+          },
+        },
+      },
+    },
+  },
   {
     type: "function",
     function: {

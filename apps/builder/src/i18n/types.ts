@@ -770,6 +770,8 @@ export interface TranslationKeys {
     listApiEndpointsDone: string;
     getApiEndpoint: string;
     getApiEndpointDone: string;
+    listVariables: string;
+    listVariablesDone: string;
     explainRequestFailure: string;
     explainRequestFailureDone: string;
     proposeDataChange: string;
@@ -1081,6 +1083,7 @@ export interface TranslationKeys {
     getCollection: string;
     listApiEndpoints: string;
     getApiEndpoint: string;
+    listVariables: string;
     readFormat: string;
     collectionIdRef: string;
     collectionNameRef: string;
