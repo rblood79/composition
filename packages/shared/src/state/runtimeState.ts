@@ -427,11 +427,33 @@ export function createRuntimeState(
         : target.pageId
           ? ({ kind: "page", pageId: target.pageId } as const)
           : null;
-      const visible = resolveVisibleVariables(
-        document,
-        visibilityTarget,
-        projectVariables,
-      );
+      const visible = [
+        ...resolveVisibleVariables(document, visibilityTarget, projectVariables),
+      ];
+      // 요소 사슬이 페이지에 닿지 않는 경우 (인스턴스 자손은 master 사슬 — 페이지 밖) 페이지 정의를
+      // 프로젝트 앞에 보탠다: 요소 → 조상 → **페이지** → 프로젝트 순서 유지.
+      if (
+        target.elementId &&
+        target.pageId &&
+        !visible.some(
+          (entry) =>
+            entry.owner.kind === "page" && entry.owner.pageId === target.pageId,
+        )
+      ) {
+        const pageEntries = resolveVisibleVariables(
+          document,
+          { kind: "page", pageId: target.pageId },
+          [],
+        );
+        const firstProject = visible.findIndex(
+          (entry) => entry.owner.kind === "project",
+        );
+        visible.splice(
+          firstProject < 0 ? visible.length : firstProject,
+          0,
+          ...pageEntries,
+        );
+      }
       const byName = new Map<string, VisibleVariable>();
       for (const entry of visible)
         if (!byName.has(entry.def.name)) byName.set(entry.def.name, entry);

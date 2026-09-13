@@ -97,12 +97,14 @@ interface VariableDef {
 - [x] preview `runtimeStore` 가 shared 를 감싼다 (기존 `appState/pageStates` 는 read 호환 alias) · publish 도 같은 모듈 (방침상 live 검증은 preview 까지)
 - [x] `UPDATE_VARIABLES` 가 정의 3종 (project 배열 + `owner` · `definitionDefault`, 문서 안 page/element 는 문서 자체로) 를 전달 · publish 탭/export 는 `variables` 배열
 
-### Phase 3 — 읽기: `{{ }}` 템플릿 (게이트 G2)
+### Phase 3 — 읽기: `{{ }}` 템플릿 (게이트 G2) — 완료 2026-09-13 (live 7/7 `adr214-p3-live.mjs`)
 
-- [ ] 해석기 `resolveStateTemplate(value, env)` (`packages/shared/src/state/template.ts`) — string prop 만, `\{{` 리터럴, `{field}` 와 순서 규약, 타입 → 문자열 형식 함수 1개
-- [ ] DOM 렌더러는 runtime env로 해석. Canvas는 기본값 env로 해석한 문자열을 `CanvasSceneNode.props`에 투영해 signature가 소비 정의 변경을 보되 state 정의 자체는 제외
-- [ ] Properties 문자열 입력에 `{{` 자동완성 (가시성 사슬 목록)
-- [ ] G2 live: `guest`가 Canvas/preview에 보이고 default를 `Ana`로 바꾸면 Canvas 즉시 갱신·sceneVersion +1·비의존 노드 0 변경
+> 구현 결정: 해석은 노드 prop 단계 (Canvas `toCanvasSceneNode` 뒤 · preview `CanonicalNodeRenderer` 의 canonicalProps · publish `ElementRenderer`) — string prop 만, 중첩 깊이 6, 바뀐 것 없으면 같은 참조. collection 행 템플릿 (`{label} — {{ userName }}`) 은 소유자 (ListBox/GridList) 기준으로 **`{{ }}` 먼저 → `{field}` 나중**: Skia 는 `stateEnvFor(ownerId, pageId)` (scene builder 가 doc 을 닫아 만든 기본값 env) · DOM 은 `RenderContext.resolveStateText` (preview App 주입, 호출 시점 store 읽기). field 문법에서 `{{`/`}}` 는 escape 라 미해결 상태 토큰이 행 보간까지 가면 `{ x }` 로 보인다 — 순서가 반드시 이 방향인 이유 (unit 고정). 미해결 이름 · `{{ env.X }}` 는 원문, `\{{` 는 `{{` (해석기 실행 판정은 `hasStateTemplateSyntax` — 참조 스캐너는 리터럴을 참조로 안 세므로 unescape 만 필요한 노드를 놓친다, live 에서 발견). preview 구독은 의존 인덱스 (`subscribeVariable` — 자기 props + 직계 자식 템플릿 참조), 정의 색인 재구성은 `runtimeDefinitionsRevision`. 요소 변수 instanceKey (DOM): ref root = refId · 그 안 요소 = `${scope}/${id}` (`StateInstanceContext`, master id 도 같은 키로 — 인스턴스 A/B 격리 unit). env 는 요소 사슬이 페이지에 닿지 않으면 (인스턴스 자손 = master 사슬) 페이지 정의를 프로젝트 앞에 보탠다. Canvas 인스턴스 자손 (synthetic id) 은 master 요소 변수를 못 본다 (페이지·프로젝트만) — R2 비대칭의 알려진 범위. `{{` 자동완성은 `PropertyInput.stateNames` (`useVisibleVariableNames`), `PropertyFieldTemplateInput` (collection 템플릿 입력) 은 미적용.
+
+- [x] 해석기 `resolveStateTemplate(value, env)` (`packages/shared/src/state/template.ts`) — string prop 만, `\{{` 리터럴, `{field}` 와 순서 규약, 타입 → 문자열 형식 함수 1개 (unit 6)
+- [x] DOM 렌더러는 runtime env로 해석. Canvas는 기본값 env로 해석한 문자열을 `CanvasSceneNode.props`에 투영해 signature가 소비 정의 변경을 보되 state 정의 자체는 제외
+- [x] Properties 문자열 입력에 `{{` 자동완성 (가시성 사슬 목록)
+- [x] G2 live 7/7: `guest`가 Canvas Skia/preview DOM 에 보이고 default를 `Ana`로 바꾸면 Canvas 즉시 갱신·sceneVersion 변경·비의존 노드 0 변경 · preview setState(Bob) 는 preview 만 (Canvas 기본값, sceneVersion 불변 — R2) · 리터럴 · ListBox 행 혼용 `User 1 — Bob` · 자동완성
 
 ### Phase 4 — 쓰기: `setState` 액션 (게이트 G3)
 

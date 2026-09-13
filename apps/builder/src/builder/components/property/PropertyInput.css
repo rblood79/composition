@@ -1,0 +1,37 @@
+/* ADR-214 Phase 3 — PropertyInput `{{` 자동완성 목록 (가시성 사슬의 변수 이름).
+   입력 아래에 겹쳐 뜨는 작은 listbox — 패널 격자 (28 모듈) 안에서 input 높이를 바꾸지 않는다. */
+.properties-aria.property-input-with-suggest {
+  position: relative;
+}
+
+.property-input-suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  z-index: 20;
+  margin: 2px 0 0;
+  padding: 4px;
+  list-style: none;
+  max-height: 160px;
+  overflow-y: auto;
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.property-input-suggest-item {
+  padding: 4px 12px;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--fg);
+}
+
+.property-input-suggest-item[data-active="true"],
+.property-input-suggest-item:hover {
+  background: var(--bg-muted);
+}

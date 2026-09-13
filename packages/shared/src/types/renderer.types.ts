@@ -133,6 +133,13 @@ export interface RenderContext {
    */
   listBoxTemplateSlotComposition?: SlotComposition | null;
   /**
+   * ADR-214 Phase 3 — collection 행 템플릿 소스 (`{label} — {{ userName }}`) 의 `{{ }}` 를
+   * 런타임 값으로 해석한다 (소유자 = collection 요소 id, 가시성 사슬은 그 요소 기준). provider
+   * (Preview App · publish) 가 주입; 미주입 = 원문 (Canvas 는 scene builder 가 기본값 env 로 같은
+   * 일을 한다). `{field}` 보간보다 먼저 돈다 (순서 규약).
+   */
+  resolveStateText?: (text: string, ownerElementId: string) => string;
+  /**
    * ListBox 행 template origin 의 root style (2026-07-20, Selected variant 배선).
    *
    * provider(Preview App)가 문서에서 master `slot` 등록을 해석해 주입:

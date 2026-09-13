@@ -80,13 +80,27 @@ function compileRowTemplateFor(
   slotComposition: SlotComposition | null | undefined,
   role: RowTemplateRole,
   templateItemProps: Record<string, unknown> | null | undefined,
+  // ADR-214 Phase 3 — `{{ }}` 를 먼저 런타임 값으로 (state → field 순서 규약)
+  resolveStateText?: (text: string) => string,
 ): CompiledTemplate | null {
   const source = resolveRowTemplateSource(
     slotComposition,
     role,
     templateItemProps ?? null,
   );
-  return source ? compileFieldTemplate(source) : null;
+  if (!source) return null;
+  return compileFieldTemplate(
+    resolveStateText ? resolveStateText(source) : source,
+  );
+}
+
+/** RenderContext.resolveStateText 를 소유자 요소 id 에 묶는다 (미주입이면 undefined) */
+function bindStateTextResolver(
+  context: RenderContext,
+  ownerElementId: string,
+): ((text: string) => string) | undefined {
+  const resolver = context.resolveStateText;
+  return resolver ? (text) => resolver(text, ownerElementId) : undefined;
 }
 
 /**
@@ -353,11 +367,13 @@ export const renderListBox = (
       templateSlotComposition,
       "label",
       templateItemProps,
+      bindStateTextResolver(context, element.id),
     );
     const rowDescriptionTemplate = compileRowTemplateFor(
       templateSlotComposition,
       "description",
       templateItemProps,
+      bindStateTextResolver(context, element.id),
     );
     // ADR-147 icon 채널: 소스는 template props.icon 단독 (Icon slot 자식은 text 미보유).
     //   토큰 없는 icon 문자열은 literal icon name 의미 유지 (heuristic 전환 아님).
@@ -512,11 +528,13 @@ export const renderListBox = (
     templateSlotComposition,
     "label",
     (listBoxTemplateChildren[0]?.props as Record<string, unknown>) ?? null,
+    bindStateTextResolver(context, element.id),
   );
   const staticDescriptionTemplate = compileRowTemplateFor(
     templateSlotComposition,
     "description",
     (listBoxTemplateChildren[0]?.props as Record<string, unknown>) ?? null,
+    bindStateTextResolver(context, element.id),
   );
   const renderListBoxLeaf = (item: StoredListBoxItem): React.ReactNode => (
     <ListBoxItem
@@ -842,11 +860,13 @@ export const renderGridList = (
     templateSlotComposition,
     "label",
     cardTemplateItemProps,
+    bindStateTextResolver(context, element.id),
   );
   const cardDescriptionTemplate = compileRowTemplateFor(
     templateSlotComposition,
     "description",
     cardTemplateItemProps,
+    bindStateTextResolver(context, element.id),
   );
 
   // Path 1: 템플릿 모드 (영구 유지, BC 보수)

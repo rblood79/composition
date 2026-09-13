@@ -20,6 +20,7 @@ import { memo, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
+import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 
 import {
   PropertyDataBinding,
@@ -198,6 +199,7 @@ const GenericField = memo(function GenericField({
   // key 73개가 contract 92% 를 덮으므로 binding 파일에 값을 복제할 이유가 없다.
   // 정본·근거: config/propertyFieldIcons.ts
   const icon = resolvePropertyFieldIcon(field.key, field.kind, componentType);
+  const stateNames = useVisibleVariableNames(elementId);
 
   switch (field.kind) {
     // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
@@ -265,6 +267,8 @@ const GenericField = memo(function GenericField({
           label={field.label}
           value={String(value ?? "")}
           onChange={(v) => update(v === "" ? undefined : v)}
+          // ADR-214 Phase 3 — `{{` 자동완성 (가시성 사슬의 변수 이름), style 축은 제외
+          stateNames={field.origin === "style" ? undefined : stateNames}
         />
       );
 

@@ -187,4 +187,32 @@ describe("stateDeps 투영 — 소비 정의만 signature 에 든다", () => {
       { name: "userName", id: null, type: null, defaultValue: undefined },
     ]);
   });
+
+  // ── Phase 3 — 기본값 환경으로 해석한 문자열이 props 에 실린다 (R2 설계된 비대칭의 Canvas leg)
+  it("Phase 3: 소비 노드 props 는 기본값으로 해석된 문자열 (Hello guest) · 미해결 이름은 원문 · 비소비 노드 props 참조 동일", () => {
+    const { graph } = signatureOf(makeDoc({}), guest);
+    expect(graph.nodesMap.get("greeting")?.props.children).toBe("Hello guest");
+    expect(graph.nodesMap.get("other")?.props.children).toBe("static");
+    const none = buildCanvasSceneGraph(makeDoc({}));
+    expect(none.nodesMap.get("greeting")?.props.children).toBe("Hello {{ userName }}");
+    // 요소 state 가 가까우면 그 기본값 · 페이지 state 도 사슬 안
+    const near = signatureOf(
+      makeDoc({
+        cardState: [def("v_card", "userName", { defaultValue: "Card" })],
+        pageState: [def("v_page", "step", { type: "number", defaultValue: 2 })],
+        greeting: "{{ userName }} #{{ step }}",
+      }),
+      guest,
+    );
+    expect(near.graph.nodesMap.get("greeting")?.props.children).toBe("Card #2");
+  });
+
+  it("Phase 3: 기본값 편집 (guest → Ana) 뒤 해석 문자열이 바뀌고 signature 도 바뀐다 — stateDeps 없이도 props 가 감시한다", () => {
+    const before = signatureOf(makeDoc({}), guest);
+    const after = signatureOf(makeDoc({}), [
+      def("v_user", "userName", { defaultValue: "Ana" }),
+    ]);
+    expect(after.graph.nodesMap.get("greeting")?.props.children).toBe("Hello Ana");
+    expect(after.signature).not.toBe(before.signature);
+  });
 });

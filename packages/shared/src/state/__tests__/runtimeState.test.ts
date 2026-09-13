@@ -175,3 +175,33 @@ describe("createRuntimeState", () => {
     expect(coerceRuntimeValue("array", [1])).toEqual({ ok: true, value: [1] });
   });
 });
+
+describe("createEnv — 페이지 사슬 보강", () => {
+  it("요소 사슬이 페이지에 닿지 않으면 (인스턴스 자손 = master 사슬) pageId 의 페이지 정의를 프로젝트 앞에 보탠다", () => {
+    const withMaster = {
+      version: "composition-1.0",
+      children: [
+        {
+          id: "home",
+          type: "frame",
+          metadata: { type: "page" },
+          state: [{ id: "v-page", name: "step", type: "number", defaultValue: 1 }],
+          children: [{ id: "inst", type: "ref", ref: "master" }],
+        },
+        {
+          id: "master",
+          type: "frame",
+          reusable: true,
+          state: [{ id: "v-m", name: "open", type: "boolean", defaultValue: true }],
+          children: [{ id: "m-label", type: "Text", props: { children: "{{ step }}/{{ open }}" } }],
+        },
+      ],
+    } as unknown as CompositionDocument;
+    const rt = createRuntimeState({ projectId: "p1", storage: null });
+    rt.setDefinitions({ projectVariables, document: withMaster });
+    const env = rt.createEnv({ pageId: "home", elementId: "m-label" });
+    expect(env.get("open")).toBe(true);
+    expect(env.get("step")).toBe(1);
+    expect(env.get("userName")).toBe("guest");
+  });
+});

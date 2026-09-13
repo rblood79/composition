@@ -99,7 +99,9 @@ function buildIndex(doc: CompositionDocument): DocumentStateIndex {
     for (const child of structuralChildren(node))
       visit(child, node.id, ownPageId);
   };
-  for (const child of doc.children) visit(child, null, null);
+  // 부분 문서 (children 없음 — 테스트 · 초기 수신) 는 빈 색인
+  for (const child of Array.isArray(doc.children) ? doc.children : [])
+    visit(child, null, null);
   return { byId };
 }
 

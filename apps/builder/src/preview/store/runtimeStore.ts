@@ -236,10 +236,14 @@ export const createRuntimeStore = () =>
         projectVariables: toProjectVariableDefs(variables),
         document: canonicalDocument,
       });
+      set((s) => ({
+        runtimeDefinitionsRevision: s.runtimeDefinitionsRevision + 1,
+      }));
     };
     return {
     runtimeState,
     runtimeStateRevision: 0,
+    runtimeDefinitionsRevision: 0,
     // ============================================
     // Elements
     // ============================================

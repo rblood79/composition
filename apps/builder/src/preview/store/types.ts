@@ -161,6 +161,8 @@ export interface RuntimeStoreState extends StateHierarchy {
    */
   runtimeState: RuntimeStateHandle;
   runtimeStateRevision: number;
+  /** 정의 색인 재구성마다 증가 — `{{ }}` 소비 노드가 env 를 다시 만드는 신호 (값 변경은 의존 인덱스) */
+  runtimeDefinitionsRevision: number;
 
   editorPresentationProjectionIndex: PreviewPresentationProjectionIndex;
   editorPresentationOverrides: Record<

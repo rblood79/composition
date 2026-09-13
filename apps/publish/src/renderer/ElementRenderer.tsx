@@ -25,6 +25,7 @@ import {
   useElementInteractionHandlers,
   useElementInteractionOverride,
 } from "./InteractionRuntime";
+import { useResolvedStateProps } from "./RuntimeStateRuntime";
 
 // ============================================
 // Types
@@ -50,8 +51,22 @@ export const ElementRenderer = memo(function ElementRenderer({
   // capability 실행 결과 (show/hide/toggle, prop patch) — 런타임 override 층.
   const interactionOverride = useElementInteractionOverride(element.id);
 
+  // ADR-214 Phase 3 — `{{ }}` 런타임 값 해석 (참조 없는 요소는 같은 참조)
+  const stateResolvedProps = useResolvedStateProps(
+    (element.props ?? {}) as Record<string, unknown>,
+    element.id,
+    element.page_id ?? null,
+  );
+  const stateResolvedElement = useMemo(
+    () =>
+      stateResolvedProps === element.props
+        ? element
+        : ({ ...element, props: stateResolvedProps } as Element),
+    [element, stateResolvedProps],
+  );
+
   const adaptedElement = useMemo(() => {
-    const adapted = adaptElementStyle(element);
+    const adapted = adaptElementStyle(stateResolvedElement);
     if (!interactionOverride) return adapted;
     const baseProps = (adapted.props ?? {}) as Record<string, unknown>;
     const merged: Record<string, unknown> = {
@@ -68,7 +83,7 @@ export const ElementRenderer = memo(function ElementRenderer({
       };
     }
     return { ...adapted, props: merged as Element["props"] };
-  }, [element, interactionOverride]);
+  }, [stateResolvedElement, interactionOverride]);
 
   // 자식 요소들 찾기. render model 입력 순서가 canonical child order이다.
   const children = useMemo(() => {

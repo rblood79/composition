@@ -15,7 +15,9 @@ import {
   type ReactNode,
 } from "react";
 import {
+  collectPropsStateRefs,
   createRuntimeState,
+  resolveStateTemplateProps,
   type CompositionDocument,
   type RuntimeStateHandle,
   type VariableDef,
@@ -74,4 +76,40 @@ export function RuntimeStateProvider({
 /** provider 밖 (테스트 · 단독 렌더) 에서는 null — 소비처는 원문 유지로 degrade 한다 */
 export function useRuntimeState(): RuntimeStateValue | null {
   return useContext(RuntimeStateContext);
+}
+
+/**
+ * Phase 3 — 요소 props 의 `{{ }}` 를 런타임 값으로 해석 (preview `useStateTemplateProps` 와 같은
+ * 해석기). 게시본 render model 은 legacy Element 라 instanceKey 는 origin id 규약만 (인스턴스
+ * 자손 격리는 preview 까지 live — 방침).
+ */
+export function useResolvedStateProps<T extends Record<string, unknown>>(
+  props: T,
+  elementId: string,
+  pageId: string | null,
+): T {
+  const value = useRuntimeState();
+  const [tick, setTick] = useState(0);
+  const refs = useMemo(() => collectPropsStateRefs(props), [props]);
+  const env = useMemo(() => {
+    if (!value || refs.length === 0) return null;
+    void tick;
+    return value.runtimeState.createEnv({ pageId, elementId });
+  }, [value, refs, pageId, elementId, tick]);
+  useEffect(() => {
+    if (!env || !value) return;
+    const ids = refs
+      .map((name) => env.lookup(name)?.def.id)
+      .filter((id): id is string => typeof id === "string");
+    const unsubscribe = ids.map((id) =>
+      value.runtimeState.subscribeVariable(id, () => setTick((t) => t + 1)),
+    );
+    return () => {
+      for (const fn of unsubscribe) fn();
+    };
+  }, [env, refs, value]);
+  return useMemo(
+    () => (env ? resolveStateTemplateProps(props, env) : props),
+    [props, env],
+  );
 }

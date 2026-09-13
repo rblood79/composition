@@ -15,8 +15,13 @@ import type {
 //   signature 밖 (HC4) — 소비 중인 정의의 defaultValue/name/type 변경만 sceneVersion 을 올린다.
 import {
   collectPropsStateRefs,
+  createDefaultValueEnv,
+  hasStateTemplateSyntax,
   resolveStateDependencies,
+  resolveStateTemplate,
+  resolveStateTemplateProps,
   resolveVisibleVariables,
+  type StateTemplateEnv,
 } from "@composition/shared";
 // ADR-148 Phase 0 — slotRole 공용 vocabulary (설계도 §2-1, builder-local 상수 re-home).
 // ADR-159 P2 — 행 텍스트 `{field}` 템플릿 단일 resolver (G2: consumer 자체 파싱 금지).
@@ -224,6 +229,11 @@ interface BuildCanvasSceneGraphOptions {
    * 사슬의 마지막 단. 미주입이면 프로젝트 이름은 미해결 항목으로 남는다 (`id: null`).
    */
   projectVariables?: readonly VariableDef[];
+  /**
+   * ADR-214 Phase 3 (내부) — 소유자 요소 기준 기본값 env. `buildCanvasSceneGraph` 가 doc 을 닫아
+   * 만들어 projection 함수 (collection 행 템플릿) 에 넘긴다. 외부 주입 불요.
+   */
+  stateEnvFor?: (ownerElementId: string, pageId: string | null) => StateTemplateEnv;
 }
 
 export interface CanvasSceneGraph {
@@ -832,6 +842,7 @@ function appendListBoxRowProjection(
   },
   getDocumentNodesById: () => Map<string, CanonicalNode>,
   activeBreakpoint: BreakpointName,
+  stateEnvFor?: BuildCanvasSceneGraphOptions["stateEnvFor"],
 ): void {
   const props = listBoxSceneNode.props;
   const { rows, templateAnchor, sourceNode } = projection;
@@ -917,7 +928,10 @@ function appendListBoxRowProjection(
     const source =
       resolveRowTemplateSource(slotComposition, role, anchorItemProps) ??
       resolveRowTemplateSource(null, role, originItemProps);
-    return source ? compileFieldTemplate(source) : null;
+    // ADR-214 Phase 3 — `{{ }}` 를 소유자 (ListBox) 기준 기본값 env 로 먼저 (state → field 순서)
+    if (!source) return null;
+    const env = stateEnvFor?.(listBoxSceneNode.id, scope.pageId);
+    return compileFieldTemplate(env ? resolveStateTemplate(source, env) : source);
   };
   const labelTemplate = compileRowTemplate("label");
   const descriptionTemplate = compileRowTemplate("description");
@@ -1239,6 +1253,7 @@ function appendGridListRowProjection(
     parentById: Map<string, string>;
   },
   getDocumentNodesById: () => Map<string, CanonicalNode>,
+  stateEnvFor?: BuildCanvasSceneGraphOptions["stateEnvFor"],
 ): void {
   const props = gridListSceneNode.props;
   const { rows, sourceNode } = projection;
@@ -1280,7 +1295,10 @@ function appendGridListRowProjection(
       role,
       gridOriginItemProps,
     );
-    return source ? compileFieldTemplate(source) : null;
+    if (!source) return null;
+    // ADR-214 Phase 3 — `{{ }}` 를 소유자 기준 기본값 env 로 먼저 (state → field 순서)
+    const env = stateEnvFor?.(gridListSceneNode.id, scope.pageId);
+    return compileFieldTemplate(env ? resolveStateTemplate(source, env) : source);
   };
   const labelTemplate = compileCardTemplate("label");
   const descriptionTemplate = compileCardTemplate("description");
@@ -2537,6 +2555,38 @@ export function buildCanvasSceneGraph(
   const parentById = new Map<string, string>();
   const { includeReusableFrames = false } = options;
   const graph = { childrenByParent, nodes, nodesMap, parentById };
+  // ADR-214 Phase 3 — 소유자 기준 기본값 env (요소 사슬 + 페이지 보강 + 프로젝트)
+  const visibleStateFor = (ownerElementId: string, pageId: string | null) => {
+    const visible = resolveVisibleVariables(
+      doc,
+      { kind: "element", elementId: ownerElementId },
+      options.projectVariables ?? [],
+    );
+    if (
+      pageId &&
+      !visible.some(
+        (entry) => entry.owner.kind === "page" && entry.owner.pageId === pageId,
+      )
+    ) {
+      const pageEntries = resolveVisibleVariables(
+        doc,
+        { kind: "page", pageId },
+        [],
+      );
+      const firstProject = visible.findIndex(
+        (entry) => entry.owner.kind === "project",
+      );
+      visible.splice(
+        firstProject < 0 ? visible.length : firstProject,
+        0,
+        ...pageEntries,
+      );
+    }
+    return visible;
+  };
+  const stateEnvFor = (ownerElementId: string, pageId: string | null) =>
+    createDefaultValueEnv(visibleStateFor(ownerElementId, pageId));
+  const buildOptions: BuildCanvasSceneGraphOptions = { ...options, stateEnvFor };
   // ADR-147 Layer 3: origin(template ref master) style lookup 용 문서 평탄화.
   //   data-bound ListBox(+origin id) 가 실제 projection 될 때만 1회 build (lazy) —
   //   data-bound ListBox 없는 페이지는 전체 트리 walk 자체를 skip.
@@ -2608,15 +2658,18 @@ export function buildCanvasSceneGraph(
       // ADR-214 Phase 1 (R8): `{{ name }}` 을 소비하는 노드만 가시성 사슬로 해석한 digest 를
       //   싣는다 — 문자열에 `{{` 가 없으면 빠른 경로 (사슬 조회 0).
       const stateRefs = collectPropsStateRefs(sceneNode.props);
-      if (stateRefs.length > 0) {
-        sceneNode.stateDeps = resolveStateDependencies(
-          stateRefs,
-          resolveVisibleVariables(
-            doc,
-            { kind: "element", elementId: node.id },
-            options.projectVariables ?? [],
-          ),
-        );
+      if (stateRefs.length > 0 || hasStateTemplateSyntax(sceneNode.props)) {
+        const visible = visibleStateFor(node.id, nextScope.pageId);
+        if (stateRefs.length > 0)
+          sceneNode.stateDeps = resolveStateDependencies(stateRefs, visible);
+        // ADR-214 Phase 3 — Canvas 는 **기본값 환경** 으로 `{{ }}` 를 해석한 문자열을 props 에
+        //   투영한다 (R2 설계된 비대칭: preview/publish 는 런타임 값, 형식 함수는 같다).
+        //   해석된 props 가 signature 입력이라 소비 정의 변경이 곧 재그리기다; stateDeps 는
+        //   name/type 축 감시로 남는다 (HC4).
+        sceneNode.props = resolveStateTemplateProps(
+          sceneNode.props as Record<string, unknown>,
+          createDefaultValueEnv(visible),
+        ) as typeof sceneNode.props;
       }
       addSceneNode(sceneNode, graph);
     }
@@ -2625,14 +2678,14 @@ export function buildCanvasSceneGraph(
     //   template anchor(및 origin composed children placeholder)는 가시 scene 에서 제외.
     //   동일 projection 판정을 suppression 과 append 가 공유한다.
     const listBoxProjection = sceneNode
-      ? resolveDataBoundListBoxProjection(sceneNode, node, options)
+      ? resolveDataBoundListBoxProjection(sceneNode, node, buildOptions)
       : null;
     const suppressedAnchorId = listBoxProjection?.templateAnchor?.id ?? null;
 
     // ADR-912 단계 4 C1: data-bound GridList projection (origin/anchor 없음 → suppression no-op).
     //   GridList factory children:[] 이라 가시 scene 에서 제외할 자식 없음 — append 만.
     const gridListProjection = sceneNode
-      ? resolveDataBoundGridListProjection(sceneNode, node, options)
+      ? resolveDataBoundGridListProjection(sceneNode, node, buildOptions)
       : null;
 
     // ADR-912 단계 4 C1: data-bound Table 2D projection (RowsGroup→Row→Cell).
@@ -2732,6 +2785,7 @@ export function buildCanvasSceneGraph(
         graph,
         getDocumentNodesById,
         options.activeBreakpoint ?? "desktop",
+        stateEnvFor,
       );
     }
     if (sceneNode && gridListProjection) {
@@ -2741,6 +2795,7 @@ export function buildCanvasSceneGraph(
         nextScope,
         graph,
         getDocumentNodesById,
+        stateEnvFor,
       );
     }
     if (sceneNode && tableProjection) {

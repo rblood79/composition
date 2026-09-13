@@ -34,6 +34,7 @@ import {
   isComponentsPageMetadata,
   isRuntimePageNode,
   resolveSlotComposition,
+  resolveStateTemplate,
 } from "@composition/shared";
 import { getElementForTag } from "@composition/specs";
 import {
@@ -801,6 +802,16 @@ function CanvasContent() {
       listBoxRowTemplateStyles,
       gridListTemplateSlotComposition: templateSlotCompositions.gridList,
       menuItemTemplateSlotComposition: templateSlotCompositions.menuItem,
+      // ADR-214 Phase 3 — collection 행 템플릿의 `{{ }}` 를 런타임 값으로 (소유자 요소 기준 가시성).
+      //   store 를 호출 시점에 읽어 값 변경 시 renderContext 참조를 바꾸지 않는다 — 소유자
+      //   노드는 자식 템플릿 참조로 의존 인덱스에 구독되어 (useStateTemplateProps) 스스로 다시 렌더한다.
+      resolveStateText: (text: string, ownerElementId: string) => {
+        const { runtimeState, currentPageId } = getRuntimeStore().getState();
+        return resolveStateTemplate(
+          text,
+          runtimeState.createEnv({ pageId: currentPageId, elementId: ownerElementId }),
+        );
+      },
     }),
     [
       resolvedElements,

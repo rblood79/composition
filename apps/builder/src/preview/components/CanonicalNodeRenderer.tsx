@@ -23,6 +23,12 @@ import * as RAC from "react-aria-components";
 import { rendererMap } from "@composition/shared/renderers";
 import { useRuntimeStore } from "../store";
 import {
+  StateInstanceContext,
+  useChildStateInstanceScope,
+  useStateTemplateProps,
+  type StateInstanceScope,
+} from "./stateTemplate";
+import {
   adaptElementStyle,
   getPrimitiveBinding,
   resolveAuthoredAriaLabel,
@@ -268,13 +274,31 @@ function resolvePresentationFills(
   return fills;
 }
 
-export function CanonicalNodeRenderer({
+/**
+ * ADR-214 Phase 3 — 상태 instanceKey scope 를 자식에게 내려 주는 껍질. 본문은
+ * `CanonicalNodeRendererBody` (재귀 지점 3곳이 모두 이 껍질을 거치므로 scope 전달이 빠지지 않는다).
+ */
+export function CanonicalNodeRenderer(
+  props: CanonicalNodeRendererProps,
+): React.ReactElement | null {
+  const scope = useChildStateInstanceScope(props.node);
+  return (
+    <StateInstanceContext.Provider value={scope}>
+      <CanonicalNodeRendererBody {...props} stateScope={scope} />
+    </StateInstanceContext.Provider>
+  );
+}
+
+function CanonicalNodeRendererBody({
   node,
   renderContext,
   parentPath = "",
   cutoverPrimitives,
   collectionAncestor,
-}: CanonicalNodeRendererProps): React.ReactElement | null {
+  stateScope,
+}: CanonicalNodeRendererProps & {
+  stateScope: StateInstanceScope;
+}): React.ReactElement | null {
   const currentPath = parentPath ? `${parentPath}/${node.id}` : node.id;
   const editorPresentation = useRuntimeStore(
     (state) => state.editorPresentationOverrides[currentPath],
@@ -286,9 +310,15 @@ export function CanonicalNodeRenderer({
   // 노드 props 를 읽으므로 `elements` 배열 patch 로는 화면이 바뀌지 않는다
   // (실측: dispatch 는 성공하는데 display 그대로). `style` 은 통째로 갈아치우면
   // 요소가 갖고 있던 나머지 스타일이 사라지므로 얕게 병합한다.
-  const canonicalProps = mergeInteractionOverride(
-    extractCanonicalPropsFromResolved(node),
-    useRuntimeStore((s) => s.interactionOverrides[node.id]),
+  // ADR-214 Phase 3 — 그 다음 `{{ }}` 를 런타임 값으로 해석한다 (string prop 만, 참조 없는
+  // 노드는 같은 참조). Canvas 는 같은 해석기를 기본값 환경으로 돈다 (R2).
+  const canonicalProps = useStateTemplateProps(
+    mergeInteractionOverride(
+      extractCanonicalPropsFromResolved(node),
+      useRuntimeStore((s) => s.interactionOverrides[node.id]),
+    ),
+    node,
+    stateScope,
   );
   const layoutPresentationProps = resolvePresentationLayoutProps(
     resolvePresentationTextMetricProps(
