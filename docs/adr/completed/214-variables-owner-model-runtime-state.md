@@ -34,7 +34,7 @@ Data 패널의 Variables 탭은 정의 · 전달 · 초기화까지만 있고 **
 - ADR-159 `{field}` (단일 중괄호 · collection 행 문맥) 과 문법 · 해석기가 별개 — 한 문자열에 둘이 있을 때의 순서 규약이 필요하다.
 - publish 는 "빌더 안정화 후" 방침 — shared 모듈 공유로 자동 적용되고, live 검증은 preview 까지.
 - 시안 아트보드 3 (VarsIndex · ElementState · ActionPicker) 이 표면 정본.
-- ADR-213 은 후속으로 `list_variables` 읽기 tool 을 얹을 수 있다 (범위 밖).
+- ADR-213 은 후속으로 `list_variables` 읽기 tool 을 얹을 수 있다 (범위 밖 → 2026-09-14 후속으로 추가, ADR-213 Negative 절 참조).
 
 ## Alternatives Considered
 

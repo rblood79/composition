@@ -164,4 +164,4 @@ R7은 `services/ai/tools/bindCollection.ts`, `services/agent/executeAgentCommand
 - provider 둘의 구조화 출력 동등화 test 를 스키마 변경마다 재실행.
 - 삭제는 AI 로 못 한다 (의도된 제약) — 사용자가 UI 로 해야 한다.
 - 202 편입 전까지 데이터 IR 과 명령 IR 이 별개 — 202 착수 시 어댑터 작업 1회.
-- **후속 자리 (ADR-214 Implemented 2026-09-14)**: 변수 읽기 tool `list_variables` (프로젝트 · 페이지 · 요소 정의 + 소유자 — `collectDocumentVariables` + `getProjectVariableDefinitions` 가 입력) 는 본 ADR 의 읽기 tool 4 와 같은 계약으로 붙일 자리이며 **범위 밖 · 미착수**. 변수 쓰기 (`define_variable`) 는 삭제와 같은 op 라 `HUMAN_ONLY_DATA_OPS` 에 남는다 (214 Phase 1 결정).
+- **후속 반영 (2026-09-14)**: 변수 읽기 tool `list_variables` (`services/ai/tools/listVariables.ts` — 입력 `getProjectVariableDefinitions` + `collectDocumentVariables`, 소유자 project / page / element + `usedBy`, detailed 는 defaultValue · persist · source · usages; 런타임 값 없음) 를 본 ADR 의 읽기 tool 4 와 같은 계약 (format concise/detailed · 쓰기 0 · `toolLabels` 어휘) 으로 추가했다 — live `apps/builder/scripts/adr214-followup-list-variables-live.mjs` 7/7 (Ollama qwen3:14b, AI 패널에서 tool 호출 → count(project) · agree(element Checkbox) 답변). 변수 쓰기 (`define_variable`) 는 삭제와 같은 op 라 `HUMAN_ONLY_DATA_OPS` 에 남는다 (214 Phase 1 결정).
