@@ -46,15 +46,21 @@
     gap: var(--spacing-sm);
   }
 
+  /* 칩 28 (컨트롤 티어 · 알약) — 종전 padding 8 12 파생 36 · r8 은 규격 밖 (2026-09-13).
+     한 줄 + 말줄임; 전문은 title 로. */
   .ai-suggestion.react-aria-Button {
-    --btn-padding: var(--spacing-sm) var(--spacing-md);
-    --btn-radius: var(--radius-lg);
+    --btn-padding: 0 var(--spacing-md);
+    --btn-radius: var(--radius-full);
 
+    box-sizing: border-box;
     width: 100%;
-    align-items: flex-start;
+    height: var(--control-size);
+    align-items: center;
     justify-content: flex-start;
     text-align: left;
-    white-space: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     line-height: var(--text-xs--line-height);
     background: var(--bg-muted);
     border-color: transparent;
@@ -63,7 +69,12 @@
 
   .ai-suggestion.react-aria-Button svg {
     flex: 0 0 auto;
-    margin-top: var(--spacing-2xs);
+  }
+
+  .ai-suggestion.react-aria-Button > span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .ai-suggestion.react-aria-Button[data-hovered] {

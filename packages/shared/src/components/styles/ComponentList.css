@@ -53,7 +53,10 @@
       color: var(--fg);
       transition: all 0.2s ease;
       cursor: pointer;
-      aspect-ratio: 1 / 1;
+      /* 카드 100 = 행 28 × 3 + gap 8 × 2 — 패널 세로 모듈 (2026-09-13). 종전 aspect-ratio 1
+         은 열 폭에 따라 104.5 등 격자 밖 값이 됐다. */
+      box-sizing: border-box;
+      height: calc(var(--control-size) * 3 + var(--spacing-sm) * 2);
 
       .list-item-icon {
         position: relative;

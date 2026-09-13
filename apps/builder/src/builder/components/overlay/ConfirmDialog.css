@@ -23,12 +23,16 @@
   width: min(100%, 400px);
 }
 
+/* 8 격자 (2026-09-13): 헤더 48 = 제목 행 32 + 8×2 · 본문 12/18 · 푸터 44 = 버튼 28 + 8×2.
+   종전 14/18 padding · 13px 본문은 램프(12/14) 밖이었다. */
 .confirm-dialog-header {
   align-items: center;
   border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
   display: flex;
-  gap: 10px;
-  padding: 14px 18px 12px;
+  gap: var(--spacing-sm);
+  min-height: 48px;
+  padding: var(--spacing-sm) var(--spacing-lg);
 }
 
 .confirm-dialog-header svg {
@@ -38,17 +42,17 @@
 
 .confirm-dialog-title {
   color: var(--fg);
-  font-size: 14px;
+  font-size: var(--text-sm);
   font-weight: 600;
-  line-height: 20px;
+  line-height: var(--control-size-lg);
   margin: 0;
 }
 
 .confirm-dialog-body {
   color: var(--fg-muted);
-  font-size: 13px;
-  line-height: 18px;
-  padding: 14px 18px;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-md);
 }
 
 .confirm-dialog-body p {
@@ -57,10 +61,12 @@
 
 .confirm-dialog-actions {
   border-top: 1px solid var(--border);
+  box-sizing: border-box;
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   justify-content: flex-end;
-  padding: 12px 18px 14px;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-lg);
 }
 
 .confirm-dialog-actions .control-button[data-variant="danger"] {

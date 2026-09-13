@@ -7,21 +7,15 @@
  * 같은 클래스를 자기 JSX 에 다시 적어 마크업이 두 벌이었다.
  */
 
+/* 행 기하(28 · padding 0 8 · gap 8 · r6 · kbd 18)는
+   styles/modules/builder-menu-row.css 가 ShortcutTooltip 과 같이 소유한다 (2026-09-13). */
 .action-tooltip {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: var(--radius-sm);
   background: var(--accent);
-  color: var(--color-white, #fff);
+  color: var(--fg-on-accent);
   forced-color-adjust: none;
   outline: none;
-  padding: 4px 8px;
-  max-width: 200px;
-  font-size: 12px;
-  line-height: 1.4;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  white-space: nowrap;
+  max-width: 240px;
   /* fixes FF gap */
   transform: translate3d(0, 0, 0);
   transition:
@@ -73,10 +67,6 @@
 }
 
 .action-tooltip-kbd {
-  font-family: inherit;
-  font-size: 11px;
-  opacity: 0.7;
-  padding: 1px 4px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.12);
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.15);
 }

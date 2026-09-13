@@ -194,7 +194,10 @@
     &.react-aria-Popover {
       max-width: none;
       width: var(--trigger-width);
-      min-width: 180px;
+      /* 233 = 패널 최소 폭 (panelConfigs minWidth) — 색 피커 · 글꼴 · 아이콘 팝오버와 같은
+         폭. 종전 180 (fieldset 폭) 은 인스펙터 행 템플릿(1fr 1fr 28 + gap 8 = 217 안쪽)
+         보다 좁아 필드가 라벨-위 배치로 밀렸다 (2026-09-13). */
+      min-width: 233px;
     }
 
     .react-aria-Dialog {

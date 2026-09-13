@@ -1,6 +1,9 @@
 @layer builder-system {
+  /* 폭 233 (패널 최소 폭) · 셀 28 gap 8 6열 = 208 — 팔레트 swatch 그리드와 같은 격자
+     (2026-09-13). 종전 296 · 셀 32 gap 2. */
   .icon-picker-popover {
-    width: var(--trigger-width, 296px);
+    width: var(--trigger-width, 233px);
+    min-width: 233px;
     background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
@@ -45,8 +48,8 @@
 
   .icon-picker-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 32px);
-    gap: 2px;
+    grid-template-columns: repeat(auto-fill, var(--control-size));
+    gap: var(--spacing-sm);
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
@@ -56,8 +59,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
+    width: var(--control-size);
+    height: var(--control-size);
     border: none;
     border-radius: var(--radius-sm);
     background: transparent;

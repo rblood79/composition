@@ -14,7 +14,7 @@
     /* page anchor 또는 수동 overlay 좌표는 useActionBarPlacement가 inline으로 소유 */
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--chrome-gap);
     padding: var(--chrome-padding);
     background: var(--chrome-surface);
     border: var(--chrome-border);

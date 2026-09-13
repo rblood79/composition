@@ -1,0 +1,90 @@
+@layer builder-system {
+  /* ========================================
+   * 메뉴 항목 · 툴팁 행 기하 정본 (2026-09-13)
+   *
+   * 헤더 메뉴 · 컨텍스트 메뉴 · 줌 메뉴 · 행 액션 메뉴 · 툴팁 2종은 전부
+   * "아이콘 + 라벨 + kbd 한 줄" 이다. 종전에는 파일 다섯 개가 같은 행을 따로
+   * 선언했고 값이 갈렸다 — 메뉴 항목은 `padding 8 + line-height 18 = 34`,
+   * 행 메뉴는 `height: auto`, 툴팁은 `pad 4 8 / r4` 와 `pad 6 10 / r6`.
+   * 빌더 컨트롤 티어는 28 / 32 둘뿐 (builder-control-size.css) 이라 34 · auto 는
+   * 규격 밖이다. 여기서 행 = `--control-size` (28), 세로 padding 0, 아이콘 16,
+   * kbd = `--text-2xs` 18px 상자 하나로 고정한다. 색·hover·radius·애니메이션은
+   * 각 파일이 계속 소유한다 — 이 파일은 크기와 간격만 갖는다.
+   *
+   * 패턴: 행 높이를 **선언**한다 (padding 파생 금지). 티어 밖 값 도입 금지.
+   * ======================================== */
+
+  /* ── 메뉴 항목 (28) ── */
+  .header-menu-item,
+  .context-menu-item,
+  .zoom-menu-item,
+  .react-aria-Menu.property-row-menu .react-aria-MenuItem {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    block-size: var(--control-size);
+    padding: 0 var(--spacing-sm);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+  }
+
+  /* 아이콘 슬롯 16 — 아이콘 없는 항목도 같은 폭 (라벨 시작선 정렬) */
+  .header-menu-item > svg,
+  .context-menu-item-icon,
+  .context-menu-item > svg,
+  .zoom-menu-item > svg {
+    flex: none;
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  .context-menu-item-icon > svg {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  /* kbd 18 — 메뉴 · 툴팁 · 팔레트가 같은 상자 */
+  .header-menu-item kbd,
+  .context-menu-item kbd,
+  .zoom-menu-item kbd,
+  .action-tooltip-kbd,
+  .shortcut-tooltip-kbd {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    block-size: calc(var(--text-2xs) + var(--spacing-sm));
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* 분리선 = 8 행 (1px 선 + 위 4 · 아래 3) */
+  .header-menu-separator,
+  .context-menu-separator {
+    block-size: 1px;
+    margin: var(--spacing-xs) 0 calc(var(--spacing-xs) - 1px);
+  }
+
+  /* ── 툴팁 (28) — ActionTooltip(RAC) 과 ShortcutTooltip(액션 바) 한 규격 ── */
+  .action-tooltip,
+  .shortcut-tooltip {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    block-size: var(--control-size);
+    padding: 0 var(--spacing-sm);
+    border-radius: var(--radius-md);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    white-space: nowrap;
+  }
+
+  .action-tooltip-kbd,
+  .shortcut-tooltip-kbd {
+    padding: 0 var(--spacing);
+    border-radius: var(--radius-sm);
+  }
+}

@@ -63,13 +63,9 @@
     overflow: auto;
   }
 
-  /* Context Menu Item (MenuItem) */
+  /* Context Menu Item (MenuItem) — 행 기하(28 · 아이콘 16 · kbd 18)는
+     styles/modules/builder-menu-row.css 가 소유한다. */
   .context-menu-item {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    font-size: var(--text-xs);
     color: var(--fg);
     border-radius: var(--radius-md);
     cursor: pointer;
@@ -101,8 +97,6 @@
   }
 
   .context-menu-item kbd {
-    font-family: inherit;
-    font-size: var(--text-xs);
     color: var(--fg-muted);
     background: transparent;
     border: none;
@@ -121,9 +115,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
-    width: 14px;
-    height: 14px;
   }
 
   /* destructive 항목은 아이콘도 같이 빨강 — 라벨만 빨갛고 아이콘이 회색이면
@@ -150,9 +141,7 @@
 
   /* Context Menu Separator */
   .context-menu-separator {
-    height: 1px;
     background: var(--border);
-    margin: var(--spacing-xs) 0;
     border: none;
   }
 }

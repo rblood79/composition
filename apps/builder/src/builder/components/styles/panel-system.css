@@ -112,13 +112,15 @@
     padding: 0;
   }
 
+  /* 탭 행 32 = padding 2 + 탭 28 + padding 2 — 탭은 컨트롤 티어(28) 를 선언한다.
+     종전 tablist 28 + padding 4 파생으로 탭이 24 (규격 밖) 였다 (2026-09-13). */
   .panel-tablist {
     display: flex;
     align-items: center;
     width: 100%;
-    height: var(--control-size, 28px);
-    gap: var(--spacing-sm);
-    padding: var(--spacing-xs);
+    height: var(--control-size-lg);
+    gap: var(--spacing-2xs);
+    padding: var(--spacing-2xs);
     border-radius: var(--radius-md);
     background-color: transparent;
   }
@@ -129,8 +131,9 @@
     align-items: center;
     justify-content: start;
     min-width: 0;
+    height: var(--control-size);
     gap: var(--spacing-sm);
-    padding: var(--spacing-xs);
+    padding: 0 var(--spacing-sm);
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--fg-muted);

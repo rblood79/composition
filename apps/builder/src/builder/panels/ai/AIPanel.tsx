@@ -261,7 +261,7 @@ function ChatContainer({
                   isDisabled={isDisabled}
                 >
                   <ArrowRight size={iconProps.size} aria-hidden="true" />
-                  <span>{suggestion}</span>
+                  <span title={suggestion}>{suggestion}</span>
                 </Button>
               ))}
             </div>

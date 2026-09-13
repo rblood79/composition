@@ -14,10 +14,13 @@
     z-index: 1000;
   }
 
+  /* 8 격자 (2026-09-13): 제목 14 (다이얼로그 제목만 14) · 라벨 = legend 18 (12 muted) ·
+     필드 28 (컨트롤 티어, 인스펙터 필드와 같은 상자) · 간격 8. 종전 title 18 · label 14 ·
+     input padding 8 12 + 14px ≈ 36 은 전부 규격 밖이었다. */
   .add-page-dialog {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
     padding: var(--spacing-lg);
     background: var(--bg-overlay);
     border-radius: var(--radius-lg);
@@ -32,8 +35,9 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    min-height: var(--control-size-lg);
     margin: 0;
-    font-size: var(--text-lg);
+    font-size: var(--text-sm);
     font-weight: var(--font-weight-semibold);
     color: var(--fg);
   }
@@ -41,31 +45,36 @@
   .add-page-form {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 
   .add-page-field {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: 0;
   }
 
   .add-page-field label {
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
-    font-size: var(--text-sm);
+    height: calc(var(--text-2xs) + var(--spacing-sm));
+    font-size: var(--text-xs);
+    line-height: 1;
     font-weight: var(--font-weight-medium);
-    color: var(--fg);
+    color: var(--fg-muted);
   }
 
   .add-page-field input {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--border-hover);
+    box-sizing: border-box;
+    height: var(--control-size);
+    padding: 0 var(--spacing-sm);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
     color: var(--fg);
-    background: var(--bg-raised);
+    background: var(--bg-inset);
     transition: border-color 150ms;
   }
 
@@ -79,12 +88,15 @@
   }
 
   .add-page-select {
-    padding: var(--spacing-sm) var(--spacing-md);
-    border: 1px solid var(--border-hover);
+    box-sizing: border-box;
+    height: var(--control-size);
+    padding: 0 var(--spacing-sm);
+    border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
     color: var(--fg);
-    background: var(--bg-raised);
+    background: var(--bg-inset);
     cursor: pointer;
   }
 
@@ -125,7 +137,7 @@
   }
 
   .add-page-preview-url {
-    font-size: var(--text-sm);
+    font-size: var(--text-xs);
     font-family: var(--font-mono);
     color: var(--accent);
     word-break: break-all;
@@ -135,7 +147,7 @@
     display: flex;
     justify-content: flex-end;
     gap: var(--spacing-sm);
-    padding-top: var(--spacing-md);
+    padding-top: var(--spacing-sm);
     border-top: 1px solid var(--border);
   }
 }
