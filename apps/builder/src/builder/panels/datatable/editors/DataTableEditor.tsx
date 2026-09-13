@@ -8,7 +8,6 @@
  */
 
 import { useState, useCallback, useMemo } from "react";
-import type { TableEditorTab } from "../types/editorTypes";
 import { useDataStore } from "../../../stores/data";
 import type { DataTable } from "../../../../types/builder/data.types";
 import { PropertySwitch, PropertySelect } from "../../../components";
@@ -24,13 +23,14 @@ import { translateKey, useOptionalI18n } from "../../../../i18n";
 interface DataTableEditorProps {
   dataTable: DataTable;
   onClose: () => void;
-  activeTab: TableEditorTab;
+  /** 헤더 gear 토글이 정한다 — "grid" (기본) 또는 "settings" (같은 자리에서 본문만 교체) */
+  view: "grid" | "settings";
 }
 
 export function DataTableEditor({
   dataTable,
   onClose,
-  activeTab,
+  view,
 }: DataTableEditorProps) {
   const updateCollection = useDataStore((state) => state.updateCollection);
   const applyDataChange = useDataStore((state) => state.applyDataChange);
@@ -134,7 +134,7 @@ export function DataTableEditor({
 
   return (
     <>
-      {activeTab === "data" && (
+      {view === "grid" && (
         <>
           {editorStatus && (
             <div
@@ -148,7 +148,7 @@ export function DataTableEditor({
         </>
       )}
 
-      {activeTab === "settings" && (
+      {view === "settings" && (
         <SettingsEditor
           name={dataTable.name}
           useMockData={dataTable.useMockData}

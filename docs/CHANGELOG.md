@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [테이블 편집기 shell — 탭 제거 · 설정 gear 토글 · 제목 인라인 rename · 새 필드 `+` 붙박이] - 2026-09-13
+
+### Changed
+
+- **Table/Settings 탭 제거**: 테이블 편집기는 격자가 유일한 뷰다. 설정(이름 · 데이터 소스 · 실행 정책 · 샘플 토글)은 헤더 close 옆 **gear 토글**(`aria-pressed`)로 같은 자리에서 본문만 바뀐다 — History 패널과 같은 헤더 액션 어법. 리서치(Airtable · Notion · Webflow · Framer CMS 3.0 · Supabase 등 9종): 설정을 뷰 탭으로 가르는 제품은 없고 전부 이름 옆 아이콘·메뉴다.
+- **새 필드 `+` 는 격자 열이 아니라 붙박이 슬롯**: 열이 다 보이면 마지막 열 오른쪽에 붙고, 열이 패널 폭을 넘치면 오른쪽 가장자리에 고정돼 **항상 보인다** (전에는 387px 스냅 패널에서 3열만 넘어도 가로 스크롤 밖으로 사라졌다). 끝까지 스크롤하면 마지막 열 다음에 자리한다(스크롤러 padding). 인라인 이름 입력 → Enter 생성 · 연속 추가 · Esc 취소는 그대로. 격자 `aria-colcount` 는 실제 열만 센다.
+
+### Added
+
+- **패널 제목 인라인 rename** (`PanelHeader onTitleCommit`): 테이블 편집기 제목을 더블클릭 또는 포커스 후 Enter/F2 → 입력 → Enter/blur 로 이름 변경, Esc 취소, 빈 값 무시. 설정의 이름 필드는 그대로 남는다. `common.rename` ko/en.
+
 ## [ADR-218 Implemented — collection 런타임 데이터 영속 · 실행 정책] - 2026-09-13
 
 ### Added

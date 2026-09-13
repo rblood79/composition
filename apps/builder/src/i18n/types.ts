@@ -41,6 +41,7 @@ export interface TranslationKeys {
     cancel: string;
     delete: string;
     edit: string;
+    rename: string;
     add: string;
     remove: string;
     close: string;

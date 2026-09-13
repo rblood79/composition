@@ -7,7 +7,9 @@
  * - Variable 편집
  *
  * Store 기반으로 모드에 따라 에디터 컴포넌트를 렌더링
- * 탭은 패널 레벨에서 관리 (DataTablePanel과 동일한 구조)
+ * 탭은 패널 레벨에서 관리 (DataTablePanel과 동일한 구조). table-edit 는 탭이 없다 —
+ * 격자가 유일한 뷰이고 설정은 헤더 gear 토글로 같은 자리에 연다 (History 패널 어법;
+ * Airtable/Notion/Webflow 도 설정을 이름 옆 아이콘·메뉴에 둔다, 뷰 탭 아님).
  *
  * ⚡ React 권장 패턴: key prop으로 모드 변경 시 EditorContent 전체 리마운트
  *    (useEffect에서 setState 호출하는 안티패턴 제거)
@@ -36,9 +38,9 @@ import {
   VariableCreator,
 } from "./editors";
 import { EmptyState, PanelHeader, PanelContents } from "../../components";
+import { ActionIconToggleButton } from "../../components/ui";
 import { panelContents } from "../../components/panel/panelContentsUtils";
 import type {
-  TableEditorTab,
   VariableEditorTab,
   DataTableEditorMode,
 } from "./types/editorTypes";
@@ -54,11 +56,6 @@ interface TabConfig<T extends string> {
 }
 
 // 각 에디터 타입별 탭 설정
-const TABLE_TABS: TabConfig<TableEditorTab>[] = [
-  { id: "data", label: "Table", icon: Table2 },
-  { id: "settings", label: "Settings", icon: Settings },
-];
-
 const VARIABLE_TABS: TabConfig<VariableEditorTab>[] = [
   { id: "basic", label: "Basic", icon: Settings },
   { id: "validation", label: "Validation", icon: Shield },
@@ -85,8 +82,10 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
   // 탭 상태 관리 - mode 변경 시 key가 바뀌어 자동 초기화됨
-  const [tableTab, setTableTab] = useState<TableEditorTab>("data");
   const [variableTab, setVariableTab] = useState<VariableEditorTab>("basic");
+  // table-edit: 헤더 gear 토글 — 격자 ↔ 설정 (같은 자리, 제목 유지)
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const updateCollection = useDataStore((state) => state.updateCollection);
 
   // 데이터 조회 - 개별 selector + useMemo로 리렌더링 최적화
   const dataTablesMap = useDataStore((state) => state.collections);
@@ -134,35 +133,50 @@ function EditorContent({ mode, close }: EditorContentProps) {
 
   // 탭 모드 3종은 같은 shell (TabList + TabPanel 본문) — TabPanel 이 곧 .panel-contents 라
   // 선택 탭의 aria-controls 가 실제 패널을 가리킨다 (RAC 는 선택 탭에만 aria-controls 를 단다).
-  const tabbed:
-    | {
-        key: string;
-        tabs: readonly TabConfig<string>[];
-        aria: string;
-        ariaFallback: string;
-        labelKey: (id: string) => string;
-        onChange: (key: string) => void;
-      }
-    | null =
-    mode.type === "table-edit"
+  const tabbed: {
+    key: string;
+    tabs: readonly TabConfig<string>[];
+    aria: string;
+    ariaFallback: string;
+    labelKey: (id: string) => string;
+    onChange: (key: string) => void;
+  } | null =
+    mode.type === "variable-edit"
       ? {
-          key: tableTab,
-          tabs: TABLE_TABS,
-          aria: "tableTabs",
-          ariaFallback: "Table tabs",
-          labelKey: (id) => (id === "data" ? "table" : id),
-          onChange: (key) => setTableTab(key as TableEditorTab),
+          key: variableTab,
+          tabs: VARIABLE_TABS,
+          aria: "variableTabs",
+          ariaFallback: "Variable tabs",
+          labelKey: (id) => id,
+          onChange: (key) => setVariableTab(key as VariableEditorTab),
         }
-      : mode.type === "variable-edit"
-        ? {
-            key: variableTab,
-            tabs: VARIABLE_TABS,
-            aria: "variableTabs",
-            ariaFallback: "Variable tabs",
-            labelKey: (id) => id,
-            onChange: (key) => setVariableTab(key as VariableEditorTab),
-          }
-        : null;
+      : null;
+
+  // table-edit 헤더 액션: 설정 토글 (aria-pressed) — close 왼쪽
+  const headerActions =
+    mode.type === "table-edit" ? (
+      <ActionIconToggleButton
+        className="datatable-editor-settings-toggle"
+        isSelected={settingsOpen}
+        onChange={setSettingsOpen}
+        aria-label={localize("settings", "Settings")}
+        tooltip={localize("settings", "Settings")}
+      >
+        <Settings {...iconProps} />
+      </ActionIconToggleButton>
+    ) : undefined;
+
+  // table-edit 제목 더블클릭 rename (Airtable 탭 rename 어법) — 설정에도 이름 필드는 남는다
+  const onTitleCommit =
+    mode.type === "table-edit"
+      ? (next: string) => {
+          const name = next.trim();
+          if (name === "") return;
+          void updateCollection(mode.tableId, { name }).catch((error) => {
+            console.error("이름 업데이트 실패:", error);
+          });
+        }
+      : undefined;
 
   // 모드에 따른 에디터 컨텐츠 렌더링
   const renderEditorContent = () => {
@@ -184,7 +198,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
           <DataTableEditor
             dataTable={dataTable}
             onClose={close}
-            activeTab={tableTab}
+            view={settingsOpen ? "settings" : "grid"}
           />
         );
       }
@@ -250,6 +264,8 @@ function EditorContent({ mode, close }: EditorContentProps) {
       <PanelHeader
         icon={<FileEdit {...iconProps} />}
         title={getHeaderTitle()}
+        actions={headerActions}
+        onTitleCommit={onTitleCommit}
         onClose={close}
       />
       {tabbed ? (

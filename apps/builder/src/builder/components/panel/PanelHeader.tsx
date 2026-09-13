@@ -5,7 +5,7 @@
  * title + actions 구조를 일관되게 제공
  */
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 import {
   semanticLabelKeys,
@@ -28,6 +28,11 @@ export interface PanelHeaderProps {
   panelId?: PanelId;
   /** 패널별 종료 절차가 필요할 때 panelId 대신 사용하는 닫기 핸들러 */
   onClose?: () => void;
+  /**
+   * 제목 인라인 rename — 더블클릭 또는 (포커스 후) Enter/F2 로 입력이 열리고 Enter/blur 가
+   * commit, Esc 가 취소. 빈 값은 commit 하지 않는다. 지정한 패널만 제목이 편집 가능하다.
+   */
+  onTitleCommit?: (next: string) => void;
   /** 추가 CSS 클래스 */
   className?: string;
 }
@@ -66,10 +71,17 @@ export function PanelHeader({
   actions,
   panelId,
   onClose,
+  onTitleCommit,
   className = "",
 }: PanelHeaderProps) {
   const i18n = useOptionalI18n();
   const closeLabel = i18n ? i18n.t("common.close") : "Close";
+  const renameLabel = i18n ? i18n.t("common.rename") : "Rename";
+  const [renaming, setRenaming] = useState(false);
+  const renameInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (renaming) renameInputRef.current?.select();
+  }, [renaming]);
   const handleClose =
     onClose ?? (panelId ? () => togglePanelWorkspace(panelId) : undefined);
   const resolvedTitle = i18n
@@ -82,9 +94,52 @@ export function PanelHeader({
         {icon && <span className="panel-icon">{icon}</span>}
         {/* 이름표를 span 으로 감싸는 이유: 익명 flex item 은 줄바꿈을 막을 수 없어
             좁은 패널에서 "작업 내역" 같은 두 어절 이름이 두 줄로 접혀 잘렸다. */}
-        <span className="panel-title-text" title={resolvedTitle}>
-          {resolvedTitle}
-        </span>
+        {onTitleCommit && renaming ? (
+          <input
+            ref={renameInputRef}
+            className="panel-title-text panel-title-input"
+            aria-label={renameLabel}
+            defaultValue={resolvedTitle}
+            autoFocus
+            data-shortcut-local="undo redo"
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onTitleCommit(e.currentTarget.value);
+                setRenaming(false);
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                setRenaming(false);
+              }
+            }}
+            onBlur={(e) => {
+              onTitleCommit(e.currentTarget.value);
+              setRenaming(false);
+            }}
+          />
+        ) : onTitleCommit ? (
+          <span
+            className="panel-title-text panel-title-renamable"
+            title={`${resolvedTitle} — ${renameLabel}`}
+            role="button"
+            tabIndex={0}
+            aria-label={`${resolvedTitle} — ${renameLabel}`}
+            onDoubleClick={() => setRenaming(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === "F2") {
+                e.preventDefault();
+                setRenaming(true);
+              }
+            }}
+          >
+            {resolvedTitle}
+          </span>
+        ) : (
+          <span className="panel-title-text" title={resolvedTitle}>
+            {resolvedTitle}
+          </span>
+        )}
       </h3>
       {(actions || handleClose) && (
         <div className="panel-actions">

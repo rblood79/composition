@@ -113,6 +113,33 @@
     text-overflow: ellipsis;
   }
 
+  /* 인라인 rename — 제목 자리에 같은 글꼴의 입력. 더블클릭/Enter/F2 로 연다. */
+  .panel-header .panel-title-renamable {
+    cursor: text;
+    border-radius: var(--radius-sm);
+    outline: none;
+  }
+
+  .panel-header .panel-title-renamable:focus-visible {
+    box-shadow: 0 0 0 2px var(--focus-ring);
+  }
+
+  .panel-header .panel-title-input {
+    box-sizing: border-box;
+    flex: 1 1 auto;
+    height: 22px;
+    padding: 0 var(--spacing-xs);
+    border: 1px solid var(--focus-ring);
+    border-radius: var(--radius-sm);
+    background: var(--bg-overlay);
+    color: var(--fg);
+    font: inherit;
+  }
+
+  .panel-header .panel-title-input:focus-visible {
+    outline: none;
+  }
+
   .panel-header .panel-icon {
     display: flex;
     align-items: center;

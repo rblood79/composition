@@ -35,7 +35,9 @@ const RAIL_ORDER = [
   "history",
 ];
 async function setPanel(page, panelId, open) {
-  const b = page.locator(".panel-toggle-rail button").nth(RAIL_ORDER.indexOf(panelId));
+  const b = page
+    .locator(".panel-toggle-rail button")
+    .nth(RAIL_ORDER.indexOf(panelId));
   if (((await b.getAttribute("aria-pressed")) === "true") !== open) {
     await b.click();
     await page.waitForTimeout(900);
@@ -107,9 +109,6 @@ async function openSettings(page) {
   await usersRow.focus();
   await page.keyboard.press("Enter");
   const editor = page.locator('[data-panel-id="datatableEditor"]');
-  await editor.locator(".datatable-tab, .panel-tab").first().waitFor({
-    timeout: 15_000,
-  });
   await page.waitForFunction(
     () =>
       !document.querySelector(
@@ -118,11 +117,10 @@ async function openSettings(page) {
     null,
     { timeout: 15_000 },
   );
-  // Settings 탭 클릭
-  const settingsTab = editor
-    .locator('.panel-tab, .datatable-tab, [role="tab"]')
-    .filter({ hasText: /Settings|설정/ });
-  await settingsTab.first().click();
+  // 설정 = 헤더 gear 토글 (탭 없음 — 2026-09-13 shell 개편)
+  const gear = editor.locator(".datatable-editor-settings-toggle");
+  await gear.waitFor({ timeout: 15_000 });
+  await gear.click();
   await page.waitForTimeout(500);
   return editor;
 }
@@ -197,15 +195,15 @@ try {
   );
 
   // G2b — endpoint picker 로 연결 → set_source → endpoint.targetCollectionId (applyDataChange)
-  const endpointSelect = dataSource
-    .locator(".react-aria-Select")
-    .first();
+  const endpointSelect = dataSource.locator(".react-aria-Select").first();
   await pickOption(page, endpointSelect, "getUsers");
   let eps = await idbGetAll(page, "api_endpoints");
   record(
     "endpoint picker 연결 → targetCollectionId = collection (set_source)",
     eps.find((e) => e.id === epId)?.targetCollectionId === usersId,
-    JSON.stringify({ target: eps.find((e) => e.id === epId)?.targetCollectionId }),
+    JSON.stringify({
+      target: eps.find((e) => e.id === epId)?.targetCollectionId,
+    }),
   );
 
   // G2c — 정책 interval 선택 → set_execution_policy 영속 (collections store)
@@ -264,7 +262,9 @@ try {
   await page.screenshot({ path: resolve(OUT_DIR, "settings.png") });
 } catch (error) {
   record("harness", false, String(error?.stack ?? error).slice(0, 600));
-  await page.screenshot({ path: resolve(OUT_DIR, "failure.png") }).catch(() => {});
+  await page
+    .screenshot({ path: resolve(OUT_DIR, "failure.png") })
+    .catch(() => {});
 } finally {
   writeFileSync(
     resolve(OUT_DIR, "findings.json"),

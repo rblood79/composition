@@ -87,7 +87,11 @@ describe("DataGrid (ADR-212 Phase 2)", () => {
     );
     const grid = getByRole("grid", { name: "Users" });
     expect(grid).toBeTruthy();
-    expect(container.querySelectorAll("[role=columnheader]").length).toBe(6); // 선택 + 4 + 추가
+    // 선택 + 4 — 새 필드 `+` 는 격자 열이 아니라 스크롤 컨테이너 위 슬롯 (aria-colcount 밖)
+    expect(container.querySelectorAll("[role=columnheader]").length).toBe(5);
+    expect(
+      container.querySelector(".datagrid-add-field-slot .datagrid-add-field"),
+    ).not.toBeNull();
     expect(cell(container, 0, "id").getAttribute("aria-readonly")).toBe("true");
     expect(cell(container, 0, "name").getAttribute("aria-readonly")).toBeNull();
     expect(cell(container, 0, "name").textContent).toBe("Ann");

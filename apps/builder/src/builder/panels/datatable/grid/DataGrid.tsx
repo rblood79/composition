@@ -8,9 +8,11 @@
  *   편집 중엔 `state.setKeyboardNavigationDisabled(true)` 로 RAC 셀 이동을 끄고 input 이 키를 갖는다.
  * - 모든 쓰기는 `applyDataChange` (`set_cell` · `insert_rows` · `remove_rows` · `replace_rows` ·
  *   헤더 `+` 인라인 입력·붙여넣기의 `add_field`) — HC1. undo 는 152 History data entry.
- * - 새 필드: 헤더 `+` → 그 자리 인라인 `<input>` (Enter=생성 add_field string, Esc=취소, 생성 후
- *   입력 유지해 연속 추가). 입력은 uncontrolled + nonce 열 키 (RAC 헤더 정적 컬렉션 회피).
- *   팝오버·모달 없음 (HC2). 타입 변경은 열 라벨 클릭 → 필드 패널.
+ * - 새 필드: 헤더 행 끝의 `+` → 그 자리 인라인 `<input>` (Enter=생성 add_field string, Esc=취소,
+ *   생성 후 입력 유지해 연속 추가). `+` 는 격자 열이 아니라 스크롤 컨테이너 위의 **슬롯**
+ *   (`.datagrid-add-field-slot`) — 마지막 열 오른쪽에 붙되 열이 뷰포트를 넘치면 오른쪽 가장자리에
+ *   고정된다 (Airtable 어법 + 좁은 스냅 패널에서도 항상 보이는 가시성). 격자의 aria-colcount 는
+ *   실제 열만 센다. 팝오버·모달 없음 (HC2). 타입 변경은 열 라벨 클릭 → 필드 패널.
  * - 붙여넣기 (⌘V, 셀 포커스): `planGridPaste` → 넘치는 열은 `ConfirmDialog` "새 필드로 추가?".
  *   파싱 실패 셀은 null + `data-invalid` (0 으로 바꾸지 않음).
  */
@@ -85,12 +87,9 @@ const DeleteIcon = ACTION_ICONS.delete;
 
 const GRID_ROW_HEIGHT = 28;
 const SELECT_COLUMN = "__select";
-const ADD_COLUMN = "__add";
-// 인라인 입력 중엔 다른 열 키(`__add_edit_${nonce}`)를 써서 RAC 가 헤더 셀을 다시 만들게 한다
-// — 헤더 컬렉션은 키가 바뀔 때만 rebuild 한다 (같은 키로 내용만 바꾸면 캐시된 셀이 남는다).
-const ADD_COLUMN_EDIT = "__add_edit";
-const isAddColumn = (id: string) =>
-  id === ADD_COLUMN || id.startsWith(ADD_COLUMN_EDIT);
+/** 새 필드 슬롯 폭 — 버튼 / 인라인 입력 */
+const ADD_SLOT_WIDTH = 36;
+const ADD_SLOT_INPUT_WIDTH = 160;
 
 /** `id` 필드는 행 정체 — 격자에서 고치지 않는다 (aria-readonly). */
 function isReadonlyField(field: DataField): boolean {
@@ -167,10 +166,11 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     Record<string, unknown>[] | null
   >(null);
   const [addingField, setAddingField] = useState(false);
-  // 입력은 uncontrolled — RAC 헤더는 정적 컬렉션이라 controlled value/핸들러가 첫 렌더에
-  // 얼어붙는다. 값은 DOM 이 갖고, 열기·추가마다 nonce 로 열 키를 바꿔 신선한 빈 입력 +
-  // 최신 schema 클로저를 받는다.
+  // 입력은 uncontrolled — 값은 DOM 이 갖고, 열기·추가마다 nonce 로 입력 key 를 바꿔 신선한
+  // 빈 입력을 받는다 (연속 추가).
   const [addNonce, setAddNonce] = useState(0);
+  // 새 필드 슬롯의 x — 마지막 열 오른쪽 (열이 뷰포트 안이면) 또는 뷰포트 오른쪽 가장자리
+  const [addSlotLeft, setAddSlotLeft] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -264,13 +264,62 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     () => [
       { id: SELECT_COLUMN, field: null as DataField | null },
       ...schema.map((field) => ({ id: field.key, field })),
-      {
-        id: addingField ? `${ADD_COLUMN_EDIT}_${addNonce}` : ADD_COLUMN,
-        field: null as DataField | null,
-      },
     ],
-    [schema, addingField, addNonce],
+    [schema],
   );
+
+  // 새 필드 슬롯 위치 — 가로 스크롤러 (가상화면 Table 자신, 아니면 컨테이너) 의 콘텐츠 폭·scrollLeft
+  // 로 계산. left = min(콘텐츠 끝 − scrollLeft, 뷰포트 폭 − 슬롯 폭): 열이 다 보이면 마지막 열에
+  // 붙고, 넘치면 오른쪽 가장자리에 고정된다 (스크롤바는 clientWidth 밖이라 겹치지 않는다).
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const container = root.querySelector<HTMLElement>(".datagrid-scroll");
+    const table = root.querySelector<HTMLElement>('[role="grid"]');
+    if (!container || !table) return;
+    const scroller = virtualized ? table : container;
+    const slotWidth = addingField ? ADD_SLOT_INPUT_WIDTH : ADD_SLOT_WIDTH;
+    let raf = 0;
+    const measure = () => {
+      raf = 0;
+      // 콘텐츠 폭 — 가상화면 Virtualizer 의 sizer (첫 자식, 열 합계 폭; 열도 가상화라 마지막
+      // 헤더 rect 는 못 쓴다), 아니면 table 자체. scrollWidth 는 뷰포트보다 작아지지 않아 부적합.
+      const contentWidth = virtualized
+        ? ((table.firstElementChild as HTMLElement | null)?.offsetWidth ??
+          table.scrollWidth)
+        : table.offsetWidth;
+      const contentEnd = contentWidth - scroller.scrollLeft;
+      const viewportEnd = scroller.clientWidth - slotWidth;
+      setAddSlotLeft(Math.max(0, Math.min(contentEnd, viewportEnd)));
+    };
+    const schedule = () => {
+      if (raf === 0) raf = requestAnimationFrame(measure);
+    };
+    measure();
+    scroller.addEventListener("scroll", schedule, { passive: true });
+    const ro =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(schedule);
+    ro?.observe(scroller);
+    ro?.observe(table);
+    return () => {
+      scroller.removeEventListener("scroll", schedule);
+      ro?.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [virtualized, addingField, schema]);
+
+  // 필드가 추가되면 (연속 추가 중) 새 열이 보이도록 오른쪽 끝으로 스크롤
+  const schemaLength = schema.length;
+  useEffect(() => {
+    if (!addingField) return;
+    const root = rootRef.current;
+    const container = root?.querySelector<HTMLElement>(".datagrid-scroll");
+    const table = root?.querySelector<HTMLElement>('[role="grid"]');
+    const scroller = virtualized ? table : container;
+    if (scroller) scroller.scrollLeft = scroller.scrollWidth;
+  }, [schemaLength, addingField, virtualized]);
 
   // 포커스 이동 — commit/취소/행 추가 뒤 대상 셀로. RAC 는 DOM focus 이벤트로 focusedKey 를 맞춘다.
   useLayoutEffect(() => {
@@ -621,43 +670,6 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
         {(column) =>
           column.id === SELECT_COLUMN ? (
             <SelectColumn label={t("gridSelectAllRows")} />
-          ) : isAddColumn(column.id) ? (
-            <Column
-              id={column.id}
-              width={addingField ? 160 : 36}
-              minWidth={36}
-              className="datagrid-column datagrid-column-add"
-            >
-              {addingField ? (
-                <input
-                  key={addNonce}
-                  className="datagrid-add-field-input"
-                  autoFocus
-                  aria-label={t("fieldAddTitle")}
-                  placeholder={t("fieldNamePlaceholder")}
-                  defaultValue=""
-                  data-shortcut-local="undo redo"
-                  onKeyDown={(e) => {
-                    e.stopPropagation();
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      void commitAddField(e.currentTarget.value);
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      cancelAddField();
-                    }
-                  }}
-                />
-              ) : (
-                <Button
-                  className="datagrid-add-field"
-                  aria-label={t("fieldAddTitle")}
-                  onPress={openAddField}
-                >
-                  <AddIcon size={iconSmall.size} />
-                </Button>
-              )}
-            </Column>
           ) : (
             <Column
               id={column.id}
@@ -709,8 +721,6 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
                     <span className="datagrid-checkbox-box" />
                   </Checkbox>
                 </Cell>
-              ) : isAddColumn(column.id) ? (
-                <Cell className="datagrid-cell datagrid-cell-add" />
               ) : (
                 <DataGridCell
                   rowIndex={item.index}
@@ -819,23 +829,61 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
           }}
         />
       )}
-      {virtualized ? (
-        <ResizableTableContainer className="datagrid-scroll">
-          <Virtualizer
-            layout={TableLayout}
-            layoutOptions={{
-              rowHeight: GRID_ROW_HEIGHT,
-              headingHeight: GRID_ROW_HEIGHT,
-            }}
-          >
+      <div className="datagrid-scroll-wrap">
+        {virtualized ? (
+          <ResizableTableContainer className="datagrid-scroll">
+            <Virtualizer
+              layout={TableLayout}
+              layoutOptions={{
+                rowHeight: GRID_ROW_HEIGHT,
+                headingHeight: GRID_ROW_HEIGHT,
+              }}
+            >
+              {tableNode}
+            </Virtualizer>
+          </ResizableTableContainer>
+        ) : (
+          <ResizableTableContainer className="datagrid-scroll">
             {tableNode}
-          </Virtualizer>
-        </ResizableTableContainer>
-      ) : (
-        <ResizableTableContainer className="datagrid-scroll">
-          {tableNode}
-        </ResizableTableContainer>
-      )}
+          </ResizableTableContainer>
+        )}
+        {/* 새 필드 슬롯 — 헤더 행 높이, 마지막 열 오른쪽 / 뷰포트 오른쪽 가장자리 (가시성) */}
+        <div
+          className="datagrid-add-field-slot"
+          data-adding={String(addingField)}
+          style={{ left: addSlotLeft }}
+        >
+          {addingField ? (
+            <input
+              key={addNonce}
+              className="datagrid-add-field-input"
+              autoFocus
+              aria-label={t("fieldAddTitle")}
+              placeholder={t("fieldNamePlaceholder")}
+              defaultValue=""
+              data-shortcut-local="undo redo"
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void commitAddField(e.currentTarget.value);
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelAddField();
+                }
+              }}
+            />
+          ) : (
+            <Button
+              className="datagrid-add-field"
+              aria-label={t("fieldAddTitle")}
+              onPress={openAddField}
+            >
+              <AddIcon size={iconSmall.size} />
+            </Button>
+          )}
+        </div>
+      </div>
       <div className="datagrid-footer">
         <Button
           className="control-button"

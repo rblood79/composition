@@ -2,15 +2,17 @@ import { describe, it, expect } from "vitest";
 import { stripLegacyOrderPayload } from "../indexedDB/adapter";
 
 describe("ADR-116 direct cutover: IndexedDB canonical document storage", () => {
-  it("DB_VERSION 이 21 로 갱신된다 (2026-09-07: canonical 변경 노드 저장)", async () => {
+  it("DB_VERSION 이 22 로 갱신된다 (2026-09-12 ADR-218: collection_runtime store)", async () => {
     // pin 은 버전 상향을 의도적으로 만들기 위한 ratchet 이다. 19(ADR-143)·20(backup ring)
     // 시점에 미갱신으로 stale 였고 21(2026-09-07 canonical 변경 노드 저장) 에서 다시 맞췄다.
+    // 22(ADR-218 collection_runtime) 는 P1 커밋이 이 ratchet 을 못 올렸다 — 후속에서 정합.
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
     const filePath = path.resolve(__dirname, "../indexedDB/adapter.ts");
     const source = await fs.readFile(filePath, "utf-8");
-    expect(source).toMatch(/const DB_VERSION\s*=\s*21\b/);
+    expect(source).toMatch(/const DB_VERSION\s*=\s*22\b/);
     expect(source).toMatch(/createObjectStore\(\s*["']documents_backup["']/);
+    expect(source).toMatch(/createObjectStore\(\s*["']collection_runtime["']/);
   });
 
   it("documents primary store 와 메서드 그룹이 추가된다", async () => {
