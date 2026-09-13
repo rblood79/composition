@@ -1,0 +1,51 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const BASE_URL = "http://localhost:5173";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const ctx = await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1000 } });
+const page = await ctx.newPage();
+await page.goto(`${BASE_URL}/dashboard`, { waitUntil: "networkidle" });
+const btn = page.locator("button.dashboard-create-button").first(); await btn.waitFor({ state: "visible", timeout: 15_000 }); await btn.click();
+const input = page.locator("#new-project-name"); await input.waitFor({ state: "visible" }); await input.fill(`m2-${Date.now()}`); await input.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60_000 }); await page.waitForFunction(READY, undefined, { timeout: 90_000 }); await page.waitForTimeout(1500);
+await page.evaluate(async () => { const st = window.__composition_STORE__.getState(); const body = st.elements.find(e => e.type === "body" && e.page_id === st.currentPageId) ?? st.elements.find(e => e.type === "body"); const now = new Date().toISOString(); const id = crypto.randomUUID(); await st.addElement({ id, type: "Button", parent_id: body.id, page_id: body.page_id, order_num: 99, created_at: now, updated_at: now, props: { children: "Primary action" } }, { skipHistory: true }); await new Promise(r => setTimeout(r, 800)); const st2 = window.__composition_STORE__.getState(); st2.setSelectedElement(id, st2.elements.find(e => e.id === id)?.props); });
+await page.waitForTimeout(800);
+const M = (sel, n = 4) => page.evaluate(({ sel, n }) => Array.from(document.querySelectorAll(sel)).filter(el => el.getBoundingClientRect().width > 0).slice(0, n).map(el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return `${el.className.toString().replace(/react-aria-/g,'').slice(0, 48)} | ${Math.round(r.width)}×${Math.round(r.height)} fs${cs.fontSize} pad${cs.padding} gap${cs.gap} r${cs.borderRadius}`; }), { sel, n });
+const out = {};
+const rec = async (k, sel, n) => { out[k] = await M(sel, n); };
+await rec("header", "header.header"); await rec("header_groups", "header .header_contents, header .builder-control-group, header .builder-action-group"); await rec("header_btns", "header button", 8); await rec("logo", ".logo-container, .project-name");
+await rec("actionbar", ".contextual-action-bar, .contextual-action-bar-item, .contextual-action-bar [role=separator], .contextual-action-bar hr", 8);
+await rec("rail", "[class*=panel-toggle], [class*=panel-toggle] button, [class*=panel-toggle] [role=button]", 6);
+await rec("status", "[class*=status], [class*=Status]", 4);
+await rec("canvasToggles", "[class*=workflow-canvas], [class*=canvas-toggle]", 4);
+await page.locator(".header-menu-button").first().click(); await page.waitForTimeout(400);
+await rec("hmenu", ".header-menu-popover, .header-menu, .header-menu-item, .header-menu-item kbd, .header-menu-separator, .header-menu-item svg", 8);
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+const zoom = page.locator(".zoom-trigger-button").first(); await zoom.click(); await page.waitForTimeout(500);
+await rec("zoom", ".zoom-trigger-button, [class*=zoom] [role=menu], [class*=zoom] [role=menuitem], [role=menu], [role=menuitem], [role=listbox], [role=option]", 8);
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+const canvas = page.locator('[data-testid="skia-canvas-unified"]').first(); const bb = await canvas.boundingBox();
+await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2, { button: "right" }); await page.waitForTimeout(500);
+await rec("ctx", "[class*=context-menu], [class*=context-menu] [role=menuitem], [class*=context-menu] kbd, [class*=context-menu] [role=separator], [class*=context-menu] svg", 8);
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+await page.evaluate(() => window.dispatchEvent(new Event("open-command-palette"))); await page.waitForTimeout(500);
+await rec("palette", "[class*=command-palette]", 20);
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+await page.evaluate(async () => { const m = await import("/src/builder/stores/toast.ts"); m.useToastStore.getState().showToast("success", "요소를 이동했습니다", { action: { label: "되돌리기", onClick: () => {} }, bypassCooldown: true, duration: 20000 }); });
+await page.waitForTimeout(500);
+await rec("toast", "[class*=toast]", 12);
+const hb = page.locator("header .builder-control-group button").first(); await hb.hover(); await page.waitForTimeout(1200);
+await rec("tooltip", "[class*=tooltip], [role=tooltip], [class*=tooltip] kbd", 6);
+await page.mouse.move(700, 600);
+// panels: history, navigator, settings, components, theme, data, ai — measure tabs/header/rows
+for (const label of ["Navigator", "Components", "Theme", "History", "Data", "AI", "Settings", "Pages", "Layers", "Assets", "Interactions", "Fonts"]) {
+  const b = page.getByRole("button", { name: label, exact: true }).first();
+  if (!(await b.count())) { out["panel_" + label] = "none"; continue; }
+  await b.click(); await page.waitForTimeout(600);
+  await rec("panel_" + label, "[data-panel-id] .panel-header, [data-panel-id] .panel-tab, [data-panel-id] .panel-tabs, [data-panel-id] [role=tab], [data-panel-id] [role=treeitem], [data-panel-id] [role=row], [data-panel-id] [role=gridcell], [data-panel-id] .search-field, [data-panel-id] input, [data-panel-id] .section-header, [data-panel-id] .panel-section-header, [data-panel-id] h3, [data-panel-id] button", 24);
+  await b.click(); await page.waitForTimeout(200);
+}
+await rec("panelIds", "[data-panel-id]", 10);
+console.log(JSON.stringify(out, null, 1));
+await browser.close();

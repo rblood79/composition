@@ -1,0 +1,13 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)"));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1000 } })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`p2-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "Components", exact: true }).first().click(); await page.waitForTimeout(600);
+const r = await page.evaluate(() => { const el = document.querySelector(".list-item"); const cs = getComputedStyle(el); const kids = Array.from(el.children).map(k => { const c = getComputedStyle(k); return `${k.className} ${Math.round(k.getBoundingClientRect().height)} pad${c.padding}`; }); return { h: el.getBoundingClientRect().height, ar: cs.aspectRatio, pad: cs.padding, gap: cs.gap, grid: getComputedStyle(el.parentElement).gridTemplateColumns, kids }; });
+console.log(JSON.stringify(r));
+await browser.close();

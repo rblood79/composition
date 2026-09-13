@@ -1,0 +1,56 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const OUT = process.env.OUT;
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })).newPage();
+const errors = []; page.on("pageerror", e => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`m3-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+await page.evaluate(async () => { const st = window.__composition_STORE__.getState(); const body = st.elements.find(e => e.type === "body" && e.page_id === st.currentPageId) ?? st.elements.find(e => e.type === "body"); const now = new Date().toISOString(); const id = crypto.randomUUID(); await st.addElement({ id, type: "Button", parent_id: body.id, page_id: body.page_id, order_num: 99, created_at: now, updated_at: now, props: { children: "Primary action" } }, { skipHistory: true }); await new Promise(r => setTimeout(r, 800)); const st2 = window.__composition_STORE__.getState(); st2.setSelectedElement(id, st2.elements.find(e => e.id === id)?.props); });
+await page.waitForTimeout(600);
+const M = (sel, n = 3) => page.evaluate(({ sel, n }) => Array.from(document.querySelectorAll(sel)).filter(el => el.getBoundingClientRect().width > 0).slice(0, n).map(el => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return `${el.className.toString().replace(/react-aria-/g,'').slice(0, 40)} | ${Math.round(r.width)}×${Math.round(r.height)} fs${cs.fontSize} pad${cs.padding} gap${cs.gap} r${cs.borderRadius}`; }), { sel, n });
+const out = {}; const rec = async (k, sel, n) => { out[k] = await M(sel, n); };
+const shot = async (n, loc) => { try { await loc.screenshot({ path: `${OUT}/${n}.png` }); } catch (e) { console.log("[miss]", n); } };
+await rec("zoom", ".zoom-trigger-button, .zoom-input, .zoom-chevron-button");
+await rec("actionbar", ".contextual-action-bar, .contextual-action-bar-item");
+await page.locator(".header-menu-button").first().click(); await page.waitForTimeout(400);
+await rec("hmenu", ".header-menu-popover, .header-menu-item, .header-menu-item kbd, .header-menu-item > svg, .header-menu-separator", 6);
+await shot("after-header-menu", page.locator(".header-menu-popover").first());
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+await page.locator(".zoom-chevron-button").first().click(); await page.waitForTimeout(400);
+await rec("zoommenu", ".zoom-menu-popover, .zoom-menu-item, .zoom-menu-item kbd", 4);
+await shot("after-zoom-menu", page.locator(".zoom-menu-popover").first());
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+const canvas = page.locator('[data-testid="skia-canvas-unified"]').first(); const bb = await canvas.boundingBox();
+await page.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2, { button: "right" }); await page.waitForTimeout(500);
+await rec("ctx", ".context-menu-popover, .context-menu-item, .context-menu-item-icon, .context-menu-item kbd, .context-menu-separator", 6);
+await shot("after-context-menu", page.locator(".context-menu-popover").first());
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+await page.evaluate(() => window.dispatchEvent(new Event("open-command-palette"))); await page.waitForTimeout(500);
+await rec("palette", ".command-palette-modal, .command-palette-item, .command-palette-item-label, .command-palette-item-category, .command-palette-kbd, .command-palette-footer, .command-palette-footer kbd", 8);
+await shot("after-palette", page.locator(".command-palette-modal").first());
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+const hb = page.locator("header .builder-control-group button").first(); await hb.hover(); await page.waitForTimeout(1300);
+await rec("tooltip", ".action-tooltip, .action-tooltip-kbd, .shortcut-tooltip, .shortcut-tooltip-kbd", 4);
+await shot("after-tooltip", page.locator("header").first());
+const abi = page.locator(".contextual-action-bar-item").nth(1); await abi.hover(); await page.waitForTimeout(1000);
+await rec("tooltip2", ".shortcut-tooltip, .shortcut-tooltip-kbd, .action-tooltip, .action-tooltip-kbd", 4);
+await shot("after-tooltip2", page.locator(".contextual-action-bar").first());
+await page.mouse.move(700, 600);
+for (const label of ["Navigator", "Components", "Data", "AI"]) {
+  const b2 = page.getByRole("button", { name: label, exact: true }).first(); await b2.click(); await page.waitForTimeout(600);
+  await rec("panel_" + label, "[data-panel-id] .panel-tablist, [data-panel-id] .panel-tab, [data-panel-id] .list-item, [data-panel-id] .ai-suggestion", 5);
+  await shot("after-panel-" + label.toLowerCase(), page.locator("[data-panel-id]").last());
+  await b2.click(); await page.waitForTimeout(200);
+}
+// Styles fill popover width + icon picker
+await page.getByRole("button", { name: "Styles", exact: true }).first().click(); await page.waitForTimeout(500);
+await page.locator(".styles-panel-tab").nth(1).click(); await page.waitForTimeout(400);
+const sw = page.locator('[data-panel-id="styles"] .color-swatch-button').first();
+if (await sw.count()) { await sw.click(); await page.waitForTimeout(500); await rec("fillpop", ".fill-detail-popover-container", 1); await shot("after-fill-popover", page.locator(".fill-detail-popover-container").first()); await page.keyboard.press("Escape"); await page.waitForTimeout(300); }
+out.errors = errors.slice(0, 5);
+console.log(JSON.stringify(out, null, 1));
+await browser.close();

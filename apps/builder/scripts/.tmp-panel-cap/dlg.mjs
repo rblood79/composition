@@ -1,0 +1,14 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)"));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 2 })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`dlg-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "Navigator", exact: true }).first().click(); await page.waitForTimeout(600);
+const r = await page.evaluate(() => { const d = document.createElement("div"); d.className = "confirm-dialog-modal"; d.style.cssText = "position:fixed;left:600px;top:300px;z-index:99999"; d.innerHTML = '<div class="confirm-dialog-header"><h2 class="confirm-dialog-title">Delete field?</h2></div><div class="confirm-dialog-body"><p>“email” is used by 3 elements. Deleting it clears those bindings.</p></div><div class="confirm-dialog-actions"><button class="control-button">Cancel</button><button class="control-button" data-variant="danger">Delete</button></div>'; document.body.appendChild(d); return Array.from(d.querySelectorAll("*")).map(e => { const b = e.getBoundingClientRect(); const c = getComputedStyle(e); return `${e.className || e.tagName} ${Math.round(b.width)}×${Math.round(b.height)} fs${c.fontSize} lh${c.lineHeight} pad${c.padding}`; }); });
+console.log(JSON.stringify(r, null, 1));
+await page.locator(".confirm-dialog-modal").screenshot({ path: "/tmp/claude-501/after/after-confirm.png" });
+await browser.close();
