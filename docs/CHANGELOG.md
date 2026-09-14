@@ -11,20 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Border 기하 채널 — 코너별 반경 · 변별 폭 (ADR-219 P0~P5)] - 2026-09-14
+## [Border 기하 채널 — 코너별 반경 · 변별 폭 (ADR-219 Implemented)] - 2026-09-14
 
 ### Added
 
 - **Styles › Border 절**: Width 아래 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (전체 = `borderWidth` 하나, 일부 = 변 longhand 4 — 폭 0 인 변은 없음), Radius 아래 코너 2×2 (TL/TR/BL/BR suffix 필드 28 — 칸 하나는 그 코너, 슬라이더는 넷 함께). 표시는 저장 형태와 무관한 유효값 (longhand ?? shorthand ?? catalog base). double/groove/ridge/inset/outset 에서는 세그먼트 비활성 (변별 폭 미지원), 그런 문서가 오면 「Skia 근사」 배지. Modified 탭에 코너·변 longhand 8 행 (ko/en).
 - **저장 규칙 (HC3)**: 코너/변은 균일이면 shorthand 하나, 비균일이면 longhand 4 — 둘이 함께 저장되지 않는다. 편집은 축별 배치 연산 (`applyBorderGeometryBatch`): shorthand 쓰기는 longhand 를 덮고, 코너 하나 쓰기는 나머지를 편집 전 유효값 (catalog base 포함) 으로 채우며, `{TL:12, borderRadius:4}` 는 순서와 무관하게 `[12,4,4,4]`. 절 reset 은 축 키 5 를 지운다 (base 를 다시 저장하지 않음). 색·스타일 편집의 companion 은 폭이 (shorthand 든 longhand 든, 0 이라도) 있으면 `borderWidth: 1` 을 넣지 않는다.
 - **코너별 반경 · 변별 폭이 Skia 에 도달한다** (`styleConversion/borderGeometry.ts` — `resolveBorderGeometry`: longhand ?? shorthand 다중값 ?? shorthand ?? catalog base). `borderTopLeftRadius`… 4 · `borderTopWidth`… 4 를 캔버스가 읽는다 (Preview/Publish 는 원래 그렸다). 비균일 폭 + solid 는 CSS 와 같은 기하 (바깥 rrect − 안쪽 타원 rrect, even-odd — 폭 0 변 쪽 코너 띠가 가늘어지고 반투명 겹침 없음), dashed/dotted 는 변마다 자기 폭의 stroke 를 변 wedge 로 clip (코너 호는 한 번만). 비균일 + double/groove/ridge/inset/outset 은 미지원 — solid 로 그린다 (Preview 와 다름, 기록).
-- 파리티 하니스 `tests/visual-parity/adr219/` — spike (기하 프로토타입) · G2 케이스 10 + 측정 2 (`evidence/219-p2-g2.md`, 전부 diffRatio ≤ 0.013). 성능 A/B `scripts/adr219-border-frame-ab.mjs` (frame 700 · 드래그 180 스텝 · 3쌍): render.frame p95 8.0~8.3 → 3.3 ms — 이중 채널 제거 효과. 번들 Builder +3.9 KiB gzip · Preview +0.7 KiB (i18n) — 상한 재승인 대기.
+- 파리티 하니스 `tests/visual-parity/adr219/` — spike (기하 프로토타입) · G2 케이스 10 + 측정 2 (`evidence/219-p2-g2.md`, 전부 diffRatio ≤ 0.013). 성능 A/B `scripts/adr219-border-frame-ab.mjs` (frame 700 · 드래그 180 스텝 · 3쌍): render.frame p95 8.0~~8.3 → 3.3 ms — 이중 채널 제거 효과. 번들 Builder +4,012 B gzip · Preview +714 B (i18n 카탈로그 공유) — HC6 2 KiB 초과, initial 번들 상한 재승인 (사용자 판정 2026-09-14): Builder **1,319,829** / Preview **675,021** B gzip (만료 2026-10-14) — 218 상한 (1,281,643 / 666,309) 대체 (그 상한은 착수 전 panel-ui 반영 09-13~~14 이 이미 넘긴 상태였다). 순증 한도 3.5 / 6 KiB 유지.
 
 ### Fixed
 
 - **다중값 `border-radius` 축소가 CSS 와 달랐다**: 코너별 `min(w,h)/2` clamp 를 CSS Backgrounds §4.5 비례 축소로 (`resolveCssCornerRadii` — 100×100 `80px 0 0 0` 은 80 유지, `80px 80px 0 0` 은 50). 균일 반경은 값이 같아 무변경. 그림자 · AI 효과 bounds · clip-path `inset(… round a b c d)` 도 첫 값이 아니라 4 코너.
 - **frame 테두리가 두 번 그려졌다**: 잔존 spec Frame 의 `border` shape (ADR-198) 과 inline overlay 가 같은 테두리를 겹쳐 그렸고 spec 색 파서는 `rgba(…, 0.5)` 를 검정 불투명으로 냈다. Frame.spec 은 배경 box 만 내고 테두리는 overlay 채널 하나 (알파 반영). 잔존 spec `sides` 의 `partial_border` 도 인접 변이 코너 호를 각각 전체로 그리던 겹침을 wedge 소유권으로 수리.
 - **dashed/dotted 패턴이 Chrome 과 달랐다** (`cssDashPattern`): dashed w<3 → 3w/2w · w≥3 → 2w/w, dotted `[0, 2w]` round cap, 둘레에 맞춰 gap 을 늘여 닫힌 경로에서 패턴이 닫힘 — 균일 dashed 대조군 diffRatio 0.040 → 0.0007. 균일 dashed/dotted 문서의 픽셀이 바뀐다.
+
+### Removed
+
+- `overlay/hooks/useBorderRadiusDrag.ts` — 코너 longhand 를 쓰던 iframe 시절 드래그 훅, 소비처 0 (사용자 승인 2026-09-14). 캔버스 반경 편집은 Styles › Border 절 코너 2×2 가 맡는다.
 
 ## [빌더 크롬 — 인벤토리 잔여 5 (History 메뉴 · 바인딩 팝오버 · 에이전트 승인 다이얼로그 · 눈금자 · Compare 라벨) (panel-ui 21)] - 2026-09-14
 
@@ -80,8 +84,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Opacity** 는 「Opacity ──●── 60 %」 한 상자 28 (라벨 안쪽 · 값 칸 직접 입력) — 종전 legend + 아이콘 두 줄.
-- **Box Shadows 는 레이어 목록**: 「Box Shadows」 추가 행 (28 열 `⋮`: Add layer · Preset sm/md/lg) 아래 레이어마다 「■ 0 · 2 · 4 · 0  OUTER|INSET」 행 (Fill 레이어 행과 같은 lrow). 행 클릭 → 233 팝오버 편집기 (X · Y / Blur · Spread 2열 suffix 라벨 + 「■ HEX」 Color, ADR-187 presentation preview/commit 그대로), 행 `⋮` 로 inset/outer · 제거. 종전 「Box Shadow none ▾ + inset 토글 + 인라인 편집기 (Layer Select · 4 필드 · Color)」. 프리셋 (Spectrum elevation, theme 별 정규화) 은 3 레이어 문자열이라 목록 전체를 바꾼다 → 추가 행 메뉴에 두고, 목록에 inset 레이어가 있었으면 inset 으로. 마지막 레이어 제거 = inline `boxShadow` 키 삭제. 편집 팝오버는 행이 index key 라 커밋마다 닫히지 않는다 (편집기만 remount).
-- **Filters — blur 한 종** (`style.filter: blur(Npx)`, 신규 패널 채널 — Skia 는 `convertToEffects` 가 LayerBlurEffect 로, DOM 은 inline 그대로 이미 그린다): 「Filters」 추가 행 `+` → `blur(4px)`, 「Blur  8 px」 행 (scrub) + 삭제. 다른 filter 함수 (brightness 등 import 값) 는 보존. `filter` 를 `EFFECT_PROPS` / `APPEARANCE_PROPS` / `PANEL_STYLE_PROPS` 에 (modify · reset 대칭 가드 통과).
+- **Box Shadows 는 레이어 목록**: 「Box Shadows」 추가 행 (28 열 `⋮`: Add layer · Preset sm/md/lg) 아래 레이어마다 「■ 0 · 2 · 4 · 0 OUTER|INSET」 행 (Fill 레이어 행과 같은 lrow). 행 클릭 → 233 팝오버 편집기 (X · Y / Blur · Spread 2열 suffix 라벨 + 「■ HEX」 Color, ADR-187 presentation preview/commit 그대로), 행 `⋮` 로 inset/outer · 제거. 종전 「Box Shadow none ▾ + inset 토글 + 인라인 편집기 (Layer Select · 4 필드 · Color)」. 프리셋 (Spectrum elevation, theme 별 정규화) 은 3 레이어 문자열이라 목록 전체를 바꾼다 → 추가 행 메뉴에 두고, 목록에 inset 레이어가 있었으면 inset 으로. 마지막 레이어 제거 = inline `boxShadow` 키 삭제. 편집 팝오버는 행이 index key 라 커밋마다 닫히지 않는다 (편집기만 remount).
+- **Filters — blur 한 종** (`style.filter: blur(Npx)`, 신규 패널 채널 — Skia 는 `convertToEffects` 가 LayerBlurEffect 로, DOM 은 inline 그대로 이미 그린다): 「Filters」 추가 행 `+` → `blur(4px)`, 「Blur 8 px」 행 (scrub) + 삭제. 다른 filter 함수 (brightness 등 import 값) 는 보존. `filter` 를 `EFFECT_PROPS` / `APPEARANCE_PROPS` / `PANEL_STYLE_PROPS` 에 (modify · reset 대칭 가드 통과).
 
 ### Added
 
@@ -92,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Border Width · Radius 는 슬라이더 행** (`PropertySlider labelMode="inline" editable unit="px"`): 「Width ──●── 3 PX」 한 상자 28 (라벨 안쪽 · legend 없음 · 값 칸 클릭으로 직접 입력, Enter/blur 커밋 · Escape 취소). 슬라이더 범위 0~24 / 0~64, 타이핑은 9999 까지. XS~XL 프리셋 (Width px 단계 · Radius `--radius-*` 토큰 그대로) 은 28 열 `⋮` 메뉴로. 종전 「Border Width ▾」 UnitInput 두 줄 46 ×2.
+- **Border Width · Radius 는 슬라이더 행** (`PropertySlider labelMode="inline" editable unit="px"`): 「Width ──●── 3 PX」 한 상자 28 (라벨 안쪽 · legend 없음 · 값 칸 클릭으로 직접 입력, Enter/blur 커밋 · Escape 취소). 슬라이더 범위 0~~24 / 0~~64, 타이핑은 9999 까지. XS~XL 프리셋 (Width px 단계 · Radius `--radius-*` 토큰 그대로) 은 28 열 `⋮` 메뉴로. 종전 「Border Width ▾」 UnitInput 두 줄 46 ×2.
 - **Border Style 셀렉트 10항목 → seg 4** (× none · — solid · - - dashed · ··· dotted). double/groove/ridge/inset/outset 은 저장값이 있으면 양쪽 렌더는 그대로 (Skia 8종) 되나 seg 에 선택 표시가 없다 — Spectrum/Figma 어법에 맞춰 authoring 만 4종.
 - **Color 는 「■ D4D4D4」** (`PropertyColor showValue` — 16 swatch + HEX 글자, 03 Text 탭 Color 와 같은 조각). Style | Color 한 행 (1fr 1fr).
 - 슬라이더 공용 손질: 트랙 2 (`--bg-emph`) + 채움 (`--accent`) + 썸 12 (overlay 바탕 · accent 테두리) — 종전 트랙이 상자와 같은 `--bg-muted` 라 선이 안 보였다. 생성 Slider.css 의 grid gap 4 로 Group 이 32~40 이던 것을 28 로 (`.react-aria-Slider { display: block }` + 안쪽 20).

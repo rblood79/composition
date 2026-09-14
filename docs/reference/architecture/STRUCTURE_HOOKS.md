@@ -11,7 +11,6 @@
 >
 > </details>
 
-
 ## 1. 개요
 
 - **분석 대상**: `src` 내 `use*` 훅 함수와 `hooks/` 디렉토리
@@ -54,7 +53,6 @@
 - **Inspector**: `src/builder/inspector/hooks/` (`index.ts` 존재)
 - **Layout**: `src/builder/layout/usePanelLayout.ts`
 - **Overlay**: `src/builder/overlay/hooks/*`
-  - `useBorderRadiusDrag.ts`
   - `useOverlayRAF.ts`
   - `useVisibleOverlays.ts`
 - **Panels**
@@ -78,6 +76,7 @@
 - **기능 전용 훅**: 특정 패널/오버레이/캔버스에만 사용 → 로컬 유지.
 
 승격(공용/빌더) 조건:
+
 1. import 시 부수효과 없음 (스토어 등록/이벤트 바인딩은 내부에서만).
 2. 타입 export는 `export type` 우선.
 3. 명명 충돌 가능성 사전 확인.
