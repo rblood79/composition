@@ -257,6 +257,12 @@ export const semanticLabelKeys: Record<string, string> = {
   Dotted: "styles.border.dotted",
   "Border width presets": "styles.border.widthPresets",
   "Border radius presets": "styles.border.radiusPresets",
+  // 색 피커 Document · Theme 팔레트 (panel-ui 05 #1)
+  Document: "styles.colorPicker.document",
+  Theme: "styles.colorPicker.theme",
+  Accent: "styles.colorPicker.accent",
+  Neutral: "styles.colorPicker.neutral",
+  "No colors used yet": "styles.colorPicker.noDocumentColors",
   // ADR-219 — 변 세그먼트 · 코너 2×2
   Sides: "styles.border.sides",
   "All sides": "styles.border.allSides",

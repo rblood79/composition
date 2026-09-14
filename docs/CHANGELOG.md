@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [색 피커 — Document · Theme 팔레트 행] - 2026-09-15
+
+### Added
+
+- **색 피커 본체 아래 「Document · Theme」 팔레트** (panel-ui 05 #1) — 기본형 (Border · Text · Shadow · Modified) · 확장형 (Fill) · 스톱/점 피커 전부 (본체 한 곳). **Document** = 이 문서에서 쓰인 색 자동 수집 (backgroundColor · color · borderColor · color fill, canonical 정본 · 빈도 순 · 12 상한, 저장소 없음). **Theme** = ADR-110 theme 모델 그대로 — 현재 accent tint 사다리 (theme 이 실제로 쓰는 lightness 6: subtle · 900 · highlight · 1000 · 1100 · 1200, `resolveAccentLadder`) + neutral tone 사다리 (Tailwind 50 · 200 · 400 · 600 · 800 · 950). 스와치 28 · 6열 gap 8 · 헤더 28 (접기) · 그룹 라벨 18. 클릭 = 그 색 commit (입력 필드와 같은 경로), 현재 색 스와치에 선택 링. i18n ko/en.
+
 ## [Styles 패널 단위 필드 — suffix 가 단위 메뉴 트리거 · ▲▼ stepper · 「au… LEFT」 잘림 해소] - 2026-09-15
 
 ### Changed

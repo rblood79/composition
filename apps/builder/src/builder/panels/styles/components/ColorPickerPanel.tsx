@@ -19,6 +19,7 @@ import { ColorSlider } from "@composition/shared/components/ColorSlider";
 import { ColorInputModeSelector } from "./ColorInputModeSelector";
 import { ColorInputFields } from "./ColorInputFields";
 import { EyeDropperButton } from "./EyeDropperButton";
+import { ColorPickerPalettes } from "./ColorPickerPalettes";
 import {
   recordEditorPresentationRawInput,
   recordEditorPresentationTerminalEvent,
@@ -160,6 +161,7 @@ function ColorPickerPanelInner({
           </div>
           <ColorInputFields value={hexValue} onChange={handleInputChange} />
         </div>
+        <ColorPickerPalettes value={hexValue} onSelect={handleInputChange} />
       </div>
     </AriaColorPicker>
   );

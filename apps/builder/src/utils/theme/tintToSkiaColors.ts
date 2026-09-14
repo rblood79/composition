@@ -102,6 +102,30 @@ const LIGHTNESS = {
   },
 };
 
+/**
+ * 색 피커 Theme 팔레트용 accent 사다리 (panel-ui 05 #1) — theme 이 실제로 쓰는 lightness 6
+ * (subtle · 900 · highlight 55% · 1000 · 1100 · 1200) 를 밝은 순으로. 새 값 0.
+ */
+export function resolveAccentLadder(
+  tint: TintPreset,
+  mode: "light" | "dark",
+): string[] {
+  const { h, c } = TINT_PRESETS[tint];
+  const ls = LIGHTNESS[mode];
+  const subtleL = mode === "light" ? 0.95 : 0.25;
+  const steps: Array<[number, number]> = [
+    [subtleL, c * 0.3],
+    [ls[900], c],
+    [ls.highlight, c],
+    [ls[1000], c],
+    [ls[1100], c],
+    [ls[1200], c],
+  ];
+  return steps
+    .sort((a, b) => b[0] - a[0])
+    .map(([l, chroma]) => oklchToHex(l, chroma, h));
+}
+
 // ============================================================================
 // 메인 함수
 // ============================================================================
