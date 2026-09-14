@@ -2,6 +2,7 @@
  * styleConversion — CSS 값을 렌더러 입력으로 바꾸는 변환 계층.
  *
  * - `styleConverter` — CSS 스타일 → 렌더 속성(transform/fill/stroke/text) 변환
+ * - `borderGeometry` — border 축 키 10 (shorthand 2 + longhand 8) 판독 단일 진입점 (ADR-219)
  * - `paddingUtils`   — CSS padding 파싱 + 콘텐츠 영역 계산
  * - `tagSpecMap`     — 잔존 spec 3개(Frame/Group/Slot) registry 진입점
  *
@@ -19,6 +20,23 @@ export {
   cssColorToAlpha,
   parseCSSSize,
 } from "./styleConverter";
+export {
+  resolveBorderGeometry,
+  resolveCssCornerRadii,
+  resolveInnerCornerRadii,
+  isBorderGeometryProp,
+  BORDER_GEOMETRY_KEYS,
+  BORDER_RADIUS_LONGHANDS,
+  BORDER_WIDTH_LONGHANDS,
+  BORDER_RADIUS_AXIS_KEYS,
+  BORDER_WIDTH_AXIS_KEYS,
+} from "./borderGeometry";
+export type {
+  BorderGeometry,
+  BorderGeometryBase,
+  CornerRadii,
+  SideWidths,
+} from "./borderGeometry";
 export type {
   CSSStyle,
   RenderTransform,
