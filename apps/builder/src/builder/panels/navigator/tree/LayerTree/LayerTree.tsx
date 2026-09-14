@@ -182,6 +182,33 @@ export function LayerTree({
     return <div className="tree-drag-preview">{label}</div>;
   }, []);
 
+  // 들여쓰기 안내선 강조 (panel-ui 07): 행의 k 번째 안내선은 그 행의 depth k−1 조상이 선택
+  //   항목의 조상-또는-자신이면 `--fg-muted`, 아니면 `--border` (VS Code activeIndentGuide 어법 —
+  //   선이 "어느 frame 의 자식인가" 를 준다). 다중 선택은 첫 항목 기준.
+  const selectedChain = useMemo(() => {
+    const chain = new Set<string>();
+    let cursor: string | null = activeSelectedIds[0] ?? null;
+    while (cursor) {
+      chain.add(cursor);
+      cursor = nodeMap.get(cursor)?.parentId ?? null;
+    }
+    return chain;
+  }, [activeSelectedIds, nodeMap]);
+
+  const resolveActiveGuides = useCallback(
+    (node: LayerTreeNode): boolean[] => {
+      // ancestors[i] = depth i 조상 id
+      const ancestors: string[] = [];
+      let cursor = node.parentId;
+      while (cursor) {
+        ancestors.unshift(cursor);
+        cursor = nodeMap.get(cursor)?.parentId ?? null;
+      }
+      return ancestors.map((id) => selectedChain.has(id));
+    },
+    [nodeMap, selectedChain],
+  );
+
   // 렌더링
   const renderContent = useCallback(
     (node: LayerTreeNode, state: TreeItemState) => (
@@ -191,9 +218,10 @@ export function LayerTree({
         onDelete={onItemDelete}
         selectedTab={selectedTab}
         onSelectTabElement={onSelectTabElement}
+        activeGuides={resolveActiveGuides(node)}
       />
     ),
-    [onItemDelete, selectedTab, onSelectTabElement],
+    [onItemDelete, selectedTab, onSelectTabElement, resolveActiveGuides],
   );
 
   const sharedTreeProps = {

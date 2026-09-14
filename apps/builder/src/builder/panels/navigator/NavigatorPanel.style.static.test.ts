@@ -126,8 +126,11 @@ describe("NavigatorPanel shared panel style contract", () => {
     );
 
     expect(css).not.toMatch(/\.section-content\s*\{[^}]*all:\s*unset/s);
-    expect(css).toContain(
-      "linear-gradient(to left, var(--border) 1px, transparent 1px)",
+    // panel-ui 07: 안내선은 gradient 가 아니라 depth 마다 1px span (`.layer-indent-guide`) —
+    //   선택 항목의 조상 사슬은 `--fg-muted` 로 강조된다
+    expect(css).toMatch(/\.layer-indent-guide \{[^}]*background: var\(--border\);/s);
+    expect(css).toMatch(
+      /\.layer-indent-guide\[data-active\] \{[^}]*background: var\(--fg-muted\);/s,
     );
     expect(css).not.toMatch(
       /--(?:color-(?:primary|secondary)|text-(?:primary|secondary))[^);]*/,
@@ -163,7 +166,7 @@ describe("NavigatorPanel shared panel style contract", () => {
       /\.elementItem \{[^}]*min-height: var\(--control-size\);[^}]*padding-inline: var\(--spacing\);[^}]*border-radius: var\(--radius-md\);/s,
     );
     expect(css).toMatch(
-      /\.elementItemIndent \{[^}]*height: var\(--control-size\);/s,
+      /\.elementItemIndent \{[^}]*min-height: var\(--control-size\);/s,
     );
     // 크기는 `styles/modules/builder-control-size.css` 의 기본 티어(28px)가 소유한다 —
     // 구 `--text-xl` 고정(20px)은 티어 밖 세 번째 크기였다 (controlSize.static.test.ts).

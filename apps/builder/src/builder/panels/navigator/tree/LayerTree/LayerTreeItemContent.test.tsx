@@ -149,7 +149,12 @@ describe("LayerTreeItemContent editing semantics marker", () => {
     const icon = row?.querySelector(".elementItemIcon svg");
     const label = row?.querySelector(".elementItemLabel");
 
-    expect(indent?.style.width).toBe("16px");
+    // depth × 16 + depth 개의 안내선 (x = 16k − 8, 상자 안 — 행 padding 4 를 더하면 16k − 4)
+    expect(indent?.style.width).toBe("32px");
+    const guides = indent?.querySelectorAll<HTMLElement>(".layer-indent-guide");
+    expect(guides?.length).toBe(2);
+    expect(guides?.[0]?.style.left).toBe("8px");
+    expect(guides?.[1]?.style.left).toBe("24px");
     expect(icon).toBeTruthy();
     expect(label?.textContent).toContain("Origin Button");
     expect(icon?.parentElement?.nextElementSibling).toBe(label);

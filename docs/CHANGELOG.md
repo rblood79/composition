@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Navigator — 들여쓰기 안내선 (depth × 16 · 조상 사슬 강조) (panel-ui 07 · 2/2)] - 2026-09-14
+
+### Changed
+
+- **Layers 트리 들여쓰기 안내선**: depth 마다 16 (종전 8), 선은 expand 상자 (16) 중앙 x = 16k − 4 에 1px `--border`, 행 높이 28 전체를 지나 위아래와 이어진다. 선택 항목의 조상 사슬에 속한 선은 `--fg-muted` 로 강조 (VS Code activeIndentGuide — "어느 frame 의 자식인가" 를 선이 준다). `LayerTree` 가 선택 사슬 (`selectedChain`) 로 행마다 `activeGuides[]` 를 계산, `LayerTreeItemContent` 의 `IndentGuides` 가 그린다. 종전 8 마다 gradient 선은 5단 이상에서 소속을 읽기 어려웠다.
+- Pages 검색 필드는 이미 28 ph 필드 (아이콘 + placeholder) — 변경 없음. hover 때만 보이기 (VS Code 기본) 는 설정 항목 후속.
+- live (`nav-live.mjs`): body › frame › [Button(선택) · Text · frame › [Button · Link]] · frame ×2 — 선 x 68/84 (행 좌 56 → 12/28) · 강조 `on,on,off` (선택 형제 frame 의 자식 3번째 선은 기본색).
+
 ## [Properties 패널 — 같은 어법 (suffix 필드 · 2열 행 · 스위치 행 · Component lrow) (panel-ui 07 · 1/2)] - 2026-09-14
 
 ### Changed

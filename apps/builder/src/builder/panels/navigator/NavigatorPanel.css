@@ -29,15 +29,26 @@
   z-index: 1;
 }
 
+/* 들여쓰기 (depth × 16) + 안내선 — 선은 expand 상자 (16) 중앙, 행 높이 전체 (panel-ui 07).
+   선택 항목의 조상 사슬 안내선은 `--fg-muted` 로 강조 (VS Code activeIndentGuide). */
 .elementItemIndent {
-  display: inline-block;
-  width: var(--spacing-lg);
-  height: var(--control-size);
-  /*var(--spacing-lg);*/
   position: relative;
+  flex: none;
+  align-self: stretch;
+  min-height: var(--control-size);
+}
 
-  background: linear-gradient(to left, var(--border) 1px, transparent 1px) 0 0 /
-    8px 1px;
+.layer-indent-guide {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  pointer-events: none;
+}
+
+.layer-indent-guide[data-active] {
+  background: var(--fg-muted);
 }
 
 .elementItemIcon {

@@ -35,6 +35,41 @@ interface LayerTreeItemContentProps {
     props: ElementProps,
     index: number,
   ) => void;
+  /** 안내선 k (1‥depth) 강조 여부 — index k−1. 생략하면 전부 기본색. */
+  activeGuides?: readonly boolean[];
+}
+
+/**
+ * 들여쓰기 안내선 (panel-ui 07, 2026-09-14) — depth 마다 16, 선은 expand 상자 (16) 중앙
+ * x = 16k − 4 (행 padding 4 + 16(k−1) + 8). 행 높이 전체를 지나 위아래 행과 이어진다.
+ * 종전 8/depth + 8 마다 gradient 선은 5단 이상에서 소속을 읽기 어려웠다.
+ */
+const INDENT_PER_DEPTH = 16;
+
+function IndentGuides({
+  depth,
+  activeGuides,
+}: {
+  depth: number;
+  activeGuides?: readonly boolean[];
+}) {
+  if (depth <= 0) return null;
+  return (
+    <div
+      className="elementItemIndent"
+      style={{ width: `${depth * INDENT_PER_DEPTH}px` }}
+      aria-hidden="true"
+    >
+      {Array.from({ length: depth }, (_, k) => (
+        <span
+          key={k}
+          className="layer-indent-guide"
+          data-active={activeGuides?.[k] ? "true" : undefined}
+          style={{ left: `${k * INDENT_PER_DEPTH + INDENT_PER_DEPTH / 2}px` }}
+        />
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -48,6 +83,7 @@ export function LayerTreeItemContent({
   onDelete,
   selectedTab,
   onSelectTabElement,
+  activeGuides,
 }: LayerTreeItemContentProps) {
   const { isFocusVisible } = state;
 
@@ -59,6 +95,7 @@ export function LayerTreeItemContent({
         isFocusVisible={isFocusVisible}
         selectedTab={selectedTab}
         onSelectTabElement={onSelectTabElement}
+        activeGuides={activeGuides}
       />
     );
   }
@@ -71,6 +108,7 @@ export function LayerTreeItemContent({
       isExpanded={state.isExpanded}
       isFocusVisible={state.isFocusVisible}
       onDelete={onDelete}
+      activeGuides={activeGuides}
     />
   );
 }
@@ -85,6 +123,7 @@ interface NormalItemContentProps {
   isExpanded: boolean;
   isFocusVisible: boolean;
   onDelete: (element: PanelNode) => Promise<void>;
+  activeGuides?: readonly boolean[];
 }
 
 // RAC가 만드는 state 객체의 참조 변화가 무관한 가시 행의 content까지 재실행하지
@@ -95,6 +134,7 @@ const NormalItemContent = memo(function NormalItemContent({
   isExpanded,
   isFocusVisible,
   onDelete,
+  activeGuides,
 }: NormalItemContentProps) {
   const { depth, hasChildren, type, element, name, isSyntheticRefChild } = node;
   const { open: openContextMenu } = useContextMenu();
@@ -139,10 +179,7 @@ const NormalItemContent = memo(function NormalItemContent({
       }`}
       onContextMenu={handleContextMenu}
     >
-      <div
-        className="elementItemIndent"
-        style={{ width: depth > 0 ? `${depth * 8}px` : "0px" }}
-      />
+      <IndentGuides depth={depth} activeGuides={activeGuides} />
       <div className="elementItemIcon">
         {hasChildren ? (
           <Button
@@ -234,6 +271,7 @@ interface VirtualChildContentProps {
     props: ElementProps,
     index: number,
   ) => void;
+  activeGuides?: readonly boolean[];
 }
 
 function VirtualChildContent({
@@ -241,6 +279,7 @@ function VirtualChildContent({
   isFocusVisible,
   selectedTab,
   onSelectTabElement,
+  activeGuides,
 }: VirtualChildContentProps) {
   const {
     depth,
@@ -278,10 +317,7 @@ function VirtualChildContent({
       onClick={handleClick}
       aria-disabled="true"
     >
-      <div
-        className="elementItemIndent"
-        style={{ width: depth > 0 ? `${depth * 8}px` : "0px" }}
-      />
+      <IndentGuides depth={depth} activeGuides={activeGuides} />
       <div className="elementItemIcon">{icon}</div>
       <div className="elementItemLabel">{name}</div>
       <div className="elementItemActions">
