@@ -11,9 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Styles 패널 — 슬라이더 thumb 가 드래그를 따른다 (Effect Opacity 끊김)] - 2026-09-14
+## [Styles 패널 — 슬라이더 · scrub 드래그 동기화 (Effect Opacity · Blur)] - 2026-09-14
 
 ### Fixed
+
+- **Opacity 값 칸 (%) 이 드래그 중 안 바뀌고 놓을 때 갱신됐다**: thumb 만 로컬 드래그 값을 따르고 숫자는 `value` prop 을 읽었다. 값 칸도 드래그 값을 따른다 (live: 12 샘플 thumb 85→6 = 값 칸 85→6).
+- **Blur 반경 scrub 이 드래그 중 캔버스에 안 보였다** (놓을 때만 반영): `ScrubInput` 에 `onScrub` 이 없었다 — store preview (rAF, 히스토리 없음) 로 드래그 중 반영, 놓으면 commit. 그런데 `ScrubInput` 의 요소 전환 reset effect 가 `value` 도 deps 로 들어 preview 가 value 를 되돌리는 **첫 pointermove 에서 드래그 세션이 죽었다** (두 번째 move 부터 무시 · pointerup 은 클릭으로 오인해 편집 모드) — Fill 팝오버 opacity scrub (`onScrub` 있음) 도 같은 결함. reset 은 `selectedElementId` 에만 반응한다. live: blur 4 → 14 … 104 px 10 샘플 store·Skia `layer-blur sigma` 동행 · 커밋 104.
 
 - **Effect › Opacity 슬라이더가 드래그 중 끊겼다**: `PropertySlider` 는 RAC controlled 슬라이더인데, opacity preview 는 presentation 경로 (Skia 만 갈아끼우고 store 무변경) 라 드래그 내내 `value` 가 그대로였고 RAC 가 매 렌더 thumb 를 이전 값으로 되돌렸다. Border Width/Radius 는 store preview 경로 (rAF 마다 store 갱신) 라 따라오긴 했지만 한 프레임 늦었다. 슬라이더가 드래그 중 값을 로컬로 들고 (onChange → 로컬, onChangeEnd → controlled 복귀) 두 경로 모두 포인터를 즉시 따른다. 다른 preview 컨트롤 (ScrubInput · ColorPickerPanel · BoxShadowEditor) 은 이미 로컬 세션 값을 들고 있어 같은 문제 없음. live: 실제 빌더에서 opacity 드래그 12 샘플 85 → 6 단조 · store 는 드래그 중 불변 · 커밋 0.06.
 

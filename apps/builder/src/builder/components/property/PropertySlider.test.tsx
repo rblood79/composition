@@ -106,8 +106,12 @@ describe("PropertySlider 드래그 중 thumb", () => {
     const dragged = onChange.mock.calls.at(-1)?.[0] as number;
     expect(dragged).not.toBe(50);
     expect(onChangeEnd).not.toHaveBeenCalled();
-    // value prop 은 50 그대로인데 thumb 는 드래그 값
+    // value prop 은 50 그대로인데 thumb 도 값 칸도 드래그 값
     expect((slider as HTMLInputElement).value).toBe(String(dragged));
+    expect(
+      (screen.getByRole("textbox", { name: "Opacity" }) as HTMLInputElement)
+        .value,
+    ).toBe(String(dragged));
     fireEvent.pointerUp(window, {
       pointerId: 1,
       pointerType: "mouse",

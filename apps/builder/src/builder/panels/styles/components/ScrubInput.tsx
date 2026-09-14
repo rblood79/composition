@@ -75,6 +75,13 @@ export const ScrubInput = memo(function ScrubInput({
     }
   }, [value]);
 
+  // 요소 전환 시에만 편집·드래그 세션을 버린다. `value` 를 deps 에 두면 onScrub → store
+  //   preview → value 가 되돌아오는 첫 pointermove 에서 드래그가 죽는다 (두 번째 move 부터
+  //   무시, pointerup 은 클릭으로 오인해 편집 모드) — Effect blur 2026-09-14.
+  const latestValueRef = useRef(value);
+  useEffect(() => {
+    latestValueRef.current = value;
+  });
   useEffect(() => {
     queueMicrotask(() => {
       setEditing(false);
@@ -83,9 +90,10 @@ export const ScrubInput = memo(function ScrubInput({
     isDragging.current = false;
     hasMoved.current = false;
     focusedElementIdRef.current = null;
-    currentValue.current = value;
-    queueMicrotask(() => setDisplayValue(String(Math.round(value))));
-  }, [selectedElementId, value]);
+    const latest = latestValueRef.current;
+    currentValue.current = latest;
+    queueMicrotask(() => setDisplayValue(String(Math.round(latest))));
+  }, [selectedElementId]);
 
   const clamp = useCallback(
     (v: number) => {

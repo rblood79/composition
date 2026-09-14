@@ -211,6 +211,10 @@ const EffectSectionContent = memo(function EffectSectionContent() {
     commitBoxShadowTopology(serializeBoxShadowPresentation(next));
   };
 
+  // blur 는 presentation pilot 이 없다 — scrub 중은 store preview (rAF, 히스토리 없음), 놓으면 commit.
+  const handleBlurScrub = (px: number): void => {
+    updateStylePreview("filter", setFilterBlurPx(styleValues.filter, px));
+  };
   const handleBlurCommit = (px: number): void => {
     updateStyleImmediate("filter", setFilterBlurPx(styleValues.filter, px));
   };
@@ -302,6 +306,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
               </span>
               <ScrubInput
                 value={blurPx}
+                onScrub={handleBlurScrub}
                 onCommit={handleBlurCommit}
                 min={0}
                 max={200}

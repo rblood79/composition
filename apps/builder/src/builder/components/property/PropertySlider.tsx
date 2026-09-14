@@ -102,11 +102,12 @@ export function PropertySlider({
     onChangeEnd?.(next);
   };
 
+  // 값 칸도 드래그 값을 따른다 (thumb 만 따르고 숫자는 놓을 때 갱신되던 결함 — 2026-09-14)
   const outputText = formatValue
-    ? formatValue(value)
+    ? formatValue(sliderValue)
     : editable
-      ? String(value)
-      : `${value}%`;
+      ? String(sliderValue)
+      : `${sliderValue}%`;
 
   return (
     <fieldset
