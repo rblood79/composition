@@ -14,6 +14,8 @@
  * 그린다. 둘은 parity leg 이 아니라 **환경 probe** 다 — "이 host 에서 CanvasKit 이
  * 살아 있는가", "SW 와 GL 래스터가 얼마나 다른가" 를 재려면 씬이 아니라 도형이
  * 필요하다. 이 둘의 산출물은 어떤 parity 판정에도 입력되지 않는다.
+ * `adr219/borderGeometrySpike.browser.test.ts` 도 같은 성격이다 — ADR-219 P0 의
+ * 기하 규칙 spike (프로덕션 결선 전 프로토타입) 라 도형을 직접 그린다.
  *
  * `preview/simplifiedDomProbe.browser.test.ts` 는 DOM 을 손으로 만든다. HC3 가
  * 실제로 무언가를 막는지 보려면 그걸 어긴 입력이 필요하기 때문이다 (Phase 3 task 5).
@@ -38,6 +40,9 @@ const sources = import.meta.glob("./**/*.ts", {
 const DRAW_ALLOWLIST = [
   "./skia/doctor.browser.test.ts",
   "./skia/rasterDelta.browser.test.ts",
+  // ADR-219 P0 G0 — 기하 규칙 spike. 프로덕션 결선 전에 "식이 Chrome 과 같은가" 를
+  // 재는 probe 라 씬이 아니라 도형이 필요하다. parity 판정 입력이 아니다.
+  "./adr219/borderGeometrySpike.browser.test.ts",
 ];
 
 /** Skia leg 이 반드시 거쳐야 하는 프로덕션 진입점. */

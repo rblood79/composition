@@ -4,6 +4,9 @@
  * 설계 (breakdown §2.3) 의 기하 규칙 세 가지가 **Chrome 픽셀과 맞는가** 를 구현
  * 전에 잰다. Skia 쪽은 프로덕션 경로가 아니라 CanvasKit 에 직접 그린 **프로토타입**
  * 이다 — 이 파일의 기하 함수가 P1 `borderGeometry.ts` / P2 렌더러의 원형이 된다.
+ * 그래서 이 파일은 parity leg 이 아니라 환경 probe 와 같은 부류다 (`productionPath`
+ * 의 DRAW_ALLOWLIST) — 산출물은 어떤 parity 판정에도 입력되지 않고, 프로덕션 결선은
+ * P2 가 production leg (G1/G2) 으로 따로 잰다.
  *
  * 세 케이스 (G0):
  *   1. `even-odd`   — 임의 폭 4값 + 비균일 반경 4값 + solid: 바깥 rrect − 안쪽 rrect
