@@ -285,7 +285,8 @@ export interface AIEffectNodeBounds {
   y: number;
   width: number;
   height: number;
-  borderRadius: number;
+  /** 균일이면 숫자, 코너별이면 `[tl, tr, br, bl]` (ADR-219 — 종전엔 첫 값만 실었다) */
+  borderRadius: number | [number, number, number, number];
 }
 
 // ============================================

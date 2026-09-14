@@ -5,6 +5,7 @@
  * element.props + layoutMap에서 구축한다.
  */
 
+import { resolveBorderPaint } from "../styleConversion/borderGeometry";
 import type { BorderStyleValue, TokenRef } from "@composition/specs";
 import { resolveColor, hexStringToNumber } from "@composition/specs";
 import { resolveComponentRule } from "@composition/shared";
@@ -288,7 +289,8 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   // border-style: 사용자 style.borderStyle → box.strokeStyle (nodeRendererBorders 8종
   //   렌더). "none" 은 테두리 자체를 숨긴다(DOM border-style:none 대칭) → stroke 억제.
   //   catalog/spec 경로와 동일 규약. solid 는 렌더러 기본값이라 키 생략.
-  const borderStyleRaw = style.borderStyle as string | undefined;
+  const borderStyleRaw =
+    (style.borderStyle as string | undefined) ?? resolveBorderPaint(style).style;
   const suppressBorder = borderStyleRaw === "none";
   const strokeStyleValue: BorderStyleValue | undefined =
     borderStyleRaw && borderStyleRaw !== "solid" && borderStyleRaw !== "none"
@@ -316,6 +318,8 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
     borderRadius: br,
     strokeColor,
     strokeWidth: suppressBorder ? undefined : stroke?.width,
+    // ADR-219 — 변별 폭 (비균일일 때만 키 존재 → 균일 노드 데이터 무변경)
+    ...(!suppressBorder && stroke?.widths ? { strokeWidths: stroke.widths } : {}),
     ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
   };
 

@@ -3,7 +3,8 @@ import { buildPath } from "./buildPath";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { getCacheMetrics } from "./cacheMetrics";
-import { clampCornerRadii } from "./nodeRendererClip";
+import { resolveCssCornerRadii } from "../styleConversion/borderGeometry";
+import { createRoundRectPath } from "./nodeRendererClip";
 
 export function renderLine(
   ck: CanvasKit,
@@ -90,6 +91,203 @@ export function renderArc(
   releasePooledPaint(paint);
 }
 
+/**
+ * CSS dashed/dotted 의 dash 배열 — Chrome 실측 (ADR-219 G2, 2026-09-14 Preview 픽셀):
+ *
+ * - dashed: 폭 < 3 → dash 3w · gap 2w (w=2: 6/4), 폭 ≥ 3 → dash 2w · gap w (w=3: 6/3 ·
+ *   w=4: 8/4 · w=8: 16/9). 종전 `[3w, 2w]` 고정은 w=4 에서 12/8 이라 대칭이 0.040 이었다.
+ * - dotted: `[0, 2w]` + round cap → 지름 w 점이 2w 주기 (w=4: 점 3~4 · 간격 5).
+ *   종전 `[w, 1.5w]` + round cap 은 점 2w · 간격 0.5w.
+ * - `pathLength` 를 주면 Chrome 처럼 **gap 을 늘여 패턴이 경로 길이에 정확히 맞게** 한다
+ *   (닫힌 경로에서 시작·끝이 이어지고, 위상은 경로 시작 = TL 호 끝에서 dash 로 시작).
+ */
+export function cssDashPattern(
+  style: "dashed" | "dotted",
+  width: number,
+  pathLength?: number,
+): number[] {
+  const dash = style === "dotted" ? 0 : width < 3 ? width * 3 : width * 2;
+  let gap = style === "dotted" ? width * 2 : width < 3 ? width * 2 : width;
+  gap = Math.max(gap, 1);
+  if (pathLength && pathLength > dash + gap) {
+    const n = Math.max(1, Math.round(pathLength / (dash + gap)));
+    gap = Math.max(1, pathLength / n - dash);
+  }
+  return [dash, gap];
+}
+
+/** 코너별 반경 rrect 의 둘레 (dash 맞춤용) — 직선 합 + 사분원 호 4 */
+export function roundRectPerimeter(
+  width: number,
+  height: number,
+  radii: readonly [number, number, number, number],
+): number {
+  const sum = radii[0] + radii[1] + radii[2] + radii[3];
+  return 2 * (width + height) - 2 * sum + (Math.PI / 2) * sum;
+}
+
+/**
+ * 변별 stroke 한 벌의 입력 (ADR-219).
+ *
+ * `radii` 는 이미 CSS §4.5 축소를 거친 **바깥** 반경, `widths` 는 `[top, right, bottom,
+ * left]` (0 = 그 변 없음). 색 하나, dash 하나 — 변별 색은 범위 밖.
+ */
+export interface SidedStrokeSpec {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radii: readonly [number, number, number, number];
+  widths: readonly [number, number, number, number];
+  color: Float32Array;
+  /** 변 폭에 맞춘 dash 배열 (없으면 solid) — 변마다 자기 폭 · 그 중심선 둘레로 맞춘다 */
+  dashFor?: (sideWidth: number, pathLength: number) => number[] | null;
+  roundCap?: boolean;
+}
+
+/**
+ * 변별 stroke — CSS `BoxBorderPainter` 와 같은 모델: 변마다 자기 폭의 중심선 rrect 를
+ * 전체 stroke 하되 그 변의 **wedge** (바깥 두 꼭짓점 → 안쪽 두 꼭짓점 사다리꼴) 로 clip
+ * 한다. wedge 네 개는 테두리 띠를 겹침 없이 분할하므로:
+ *
+ * - 인접 두 변이 모두 있는 코너는 폭 비율의 대각선에서 갈린다 (같은 폭이면 45°) — 호가
+ *   한 번만 칠해진다 (반투명 stroke 겹침 0, 종전 `renderPartialBorder` 는 두 변이 각각
+ *   호 전체를 그렸다).
+ * - 한 변만 있는 코너는 대각선이 세로/가로가 되어 그 변이 코너 전체를 가진다.
+ * - 반경 0 코너의 miter 도 같은 규칙 (대각선 join).
+ *
+ * dashed/dotted 의 코너 호 폭은 그 변 폭이라 두 변 폭이 다르면 호 중간에서 폭이 바뀐다
+ * (근사 — solid 는 이 함수가 아니라 even-odd 띠로 그린다, breakdown §2.3).
+ */
+export function renderSidedStroke(
+  ck: CanvasKit,
+  canvas: Canvas,
+  spec: SidedStrokeSpec,
+): void {
+  const { x, y, width: w, height: h, radii, widths, color } = spec;
+  const [wt, wr, wb, wl] = widths;
+  if (wt <= 0 && wr <= 0 && wb <= 0 && wl <= 0) return;
+  const [rTL, rTR, rBR, rBL] = radii;
+
+  // 바깥 꼭짓점 · 안쪽 (padding box) 꼭짓점
+  const ox0 = x;
+  const oy0 = y;
+  const ox1 = x + w;
+  const oy1 = y + h;
+  const ix0 = x + wl;
+  const iy0 = y + wt;
+  const ix1 = x + w - wr;
+  const iy1 = y + h - wb;
+
+  const paint = acquirePooledPaint(ck);
+  paint.setAntiAlias(true);
+  paint.setStyle(ck.PaintStyle.Stroke);
+  paint.setColor(color);
+  paint.setStrokeCap(spec.roundCap ? ck.StrokeCap.Round : ck.StrokeCap.Butt);
+
+  // 변 wedge: [바깥 시작, 바깥 끝, 안쪽 끝, 안쪽 시작] (시계 방향)
+  const wedges: Array<[number, [number, number][]]> = [
+    [
+      wt,
+      [
+        [ox0, oy0],
+        [ox1, oy0],
+        [ix1, iy0],
+        [ix0, iy0],
+      ],
+    ],
+    [
+      wr,
+      [
+        [ox1, oy0],
+        [ox1, oy1],
+        [ix1, iy1],
+        [ix1, iy0],
+      ],
+    ],
+    [
+      wb,
+      [
+        [ox1, oy1],
+        [ox0, oy1],
+        [ix0, iy1],
+        [ix1, iy1],
+      ],
+    ],
+    [
+      wl,
+      [
+        [ox0, oy1],
+        [ox0, oy0],
+        [ix0, iy0],
+        [ix0, iy1],
+      ],
+    ],
+  ];
+
+  for (const [sideWidth, quad] of wedges) {
+    if (sideWidth <= 0) continue;
+    const inset = sideWidth / 2;
+    paint.setStrokeWidth(sideWidth);
+
+    // 중심선 rrect — 이 변 폭만큼 안쪽, 반경은 바깥 반경 − 반폭. 경로 시작은 TL 호 끝
+    //   (Chrome 의 dash 위상과 같다) — `createRoundRectPath` 가 그 순서로 만든다.
+    const c = (r: number) => Math.max(0, r - inset);
+    const cw = w - sideWidth;
+    const ch = h - sideWidth;
+    const centerRadii: [number, number, number, number] = [
+      c(rTL),
+      c(rTR),
+      c(rBR),
+      c(rBL),
+    ];
+    const centerline = createRoundRectPath(
+      ck,
+      x + inset,
+      y + inset,
+      cw,
+      ch,
+      centerRadii,
+    );
+
+    let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
+    const dash =
+      spec.dashFor?.(sideWidth, roundRectPerimeter(cw, ch, centerRadii)) ??
+      null;
+    if (dash && dash.length >= 2) {
+      dashEffect = ck.PathEffect.MakeDash(dash);
+      paint.setPathEffect(dashEffect);
+    } else {
+      paint.setPathEffect(null);
+    }
+    const wedge = buildPath(ck, (path) => {
+      path.moveTo(quad[0][0], quad[0][1]);
+      path.lineTo(quad[1][0], quad[1][1]);
+      path.lineTo(quad[2][0], quad[2][1]);
+      path.lineTo(quad[3][0], quad[3][1]);
+      path.close();
+    });
+
+    canvas.save();
+    canvas.clipPath(wedge, ck.ClipOp.Intersect, true);
+    canvas.drawPath(centerline, paint);
+    canvas.restore();
+
+    wedge.delete();
+    centerline.delete();
+    if (dashEffect) {
+      paint.setPathEffect(null);
+      dashEffect.delete();
+    }
+  }
+
+  releasePooledPaint(paint);
+}
+
+/**
+ * 잔존 spec `sides` 프리미티브 — 폭 하나 · 변 마스크. 코너 소유권은 `renderSidedStroke`
+ * (ADR-219: 종전엔 인접 두 변이 코너 호를 각각 전체로 그려 반투명에서 두 번 칠했다).
+ */
 export function renderPartialBorder(
   ck: CanvasKit,
   canvas: Canvas,
@@ -100,117 +298,24 @@ export function renderPartialBorder(
     node.partialBorder;
   const w = node.width;
   const h = node.height;
+  const radii = resolveCssCornerRadii(borderRadius, w, h);
+  const on = (flag: boolean | undefined) => (flag ? strokeWidth : 0);
 
-  const [rTL, rTR, rBR, rBL] = clampCornerRadii(borderRadius, w, h);
-
-  const paint = acquirePooledPaint(ck);
-  paint.setAntiAlias(true);
-  paint.setStyle(ck.PaintStyle.Stroke);
-  paint.setStrokeWidth(strokeWidth);
-  paint.setStrokeCap(ck.StrokeCap.Butt);
-  paint.setColor(strokeColor);
-
-  let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
-  if (strokeDasharray && strokeDasharray.length >= 2) {
-    dashEffect = ck.PathEffect.MakeDash(strokeDasharray);
-    paint.setPathEffect(dashEffect);
-  }
-
-  const inset = strokeWidth / 2;
-
-  if (sides.top) {
-    const path = buildPath(ck, (path) => {
-      if (rTL > 0) {
-        path.moveTo(inset, rTL + inset);
-        path.arcToTangent(inset, inset, rTL + inset, inset, rTL);
-      } else {
-        path.moveTo(inset, inset);
-      }
-      if (rTR > 0) {
-        path.lineTo(w - rTR - inset, inset);
-        path.arcToTangent(w - inset, inset, w - inset, rTR + inset, rTR);
-      } else {
-        path.lineTo(w - inset, inset);
-      }
-    });
-    canvas.drawPath(path, paint);
-    path.delete();
-  }
-
-  if (sides.right) {
-    const path = buildPath(ck, (path) => {
-      if (rTR > 0) {
-        path.moveTo(w - rTR - inset, inset);
-        path.arcToTangent(w - inset, inset, w - inset, rTR + inset, rTR);
-      } else {
-        path.moveTo(w - inset, inset);
-      }
-      if (rBR > 0) {
-        path.lineTo(w - inset, h - rBR - inset);
-        path.arcToTangent(
-          w - inset,
-          h - inset,
-          w - rBR - inset,
-          h - inset,
-          rBR,
-        );
-      } else {
-        path.lineTo(w - inset, h - inset);
-      }
-    });
-    canvas.drawPath(path, paint);
-    path.delete();
-  }
-
-  if (sides.bottom) {
-    const path = buildPath(ck, (path) => {
-      if (rBR > 0) {
-        path.moveTo(w - inset, h - rBR - inset);
-        path.arcToTangent(
-          w - inset,
-          h - inset,
-          w - rBR - inset,
-          h - inset,
-          rBR,
-        );
-      } else {
-        path.moveTo(w - inset, h - inset);
-      }
-      if (rBL > 0) {
-        path.lineTo(rBL + inset, h - inset);
-        path.arcToTangent(inset, h - inset, inset, h - rBL - inset, rBL);
-      } else {
-        path.lineTo(inset, h - inset);
-      }
-    });
-    canvas.drawPath(path, paint);
-    path.delete();
-  }
-
-  if (sides.left) {
-    const path = buildPath(ck, (path) => {
-      if (rBL > 0) {
-        path.moveTo(rBL + inset, h - inset);
-        path.arcToTangent(inset, h - inset, inset, h - rBL - inset, rBL);
-      } else {
-        path.moveTo(inset, h - inset);
-      }
-      if (rTL > 0) {
-        path.lineTo(inset, rTL + inset);
-        path.arcToTangent(inset, inset, rTL + inset, inset, rTL);
-      } else {
-        path.lineTo(inset, inset);
-      }
-    });
-    canvas.drawPath(path, paint);
-    path.delete();
-  }
-
-  if (dashEffect) {
-    paint.setPathEffect(null);
-    dashEffect.delete();
-  }
-  releasePooledPaint(paint);
+  renderSidedStroke(ck, canvas, {
+    x: 0,
+    y: 0,
+    width: w,
+    height: h,
+    radii,
+    widths: [on(sides.top), on(sides.right), on(sides.bottom), on(sides.left)],
+    color: strokeColor,
+    dashFor:
+      strokeDasharray && strokeDasharray.length >= 2
+        ? () => strokeDasharray
+        : undefined,
+    // dotted (`[0, 2w]`) 는 round cap 이어야 점이 보인다 (butt 은 0 길이 dash 가 사라진다)
+    roundCap: strokeDasharray?.[0] === 0,
+  });
 }
 
 export function renderIconPath(

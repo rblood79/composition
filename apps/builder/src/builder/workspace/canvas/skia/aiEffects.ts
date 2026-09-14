@@ -17,6 +17,8 @@ import type {
 } from "./types";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
+import { rrectFromRadii } from "./nodeRendererClip";
+import { resolveCssCornerRadii } from "../styleConversion/borderGeometry";
 
 // ============================================
 // Constants
@@ -38,6 +40,23 @@ const SCANLINE_HEIGHT = 4; // 스캔라인 높이 (px)
  * - 노드 영역에 블러 오버레이
  * - 중심에서 회전하는 파란색 원형 파티클 (currentTime/2000 회전)
  */
+/**
+ * ADR-219 — AI 효과 bounds 의 반경 (균일 숫자 또는 코너 4). 반경 0 이면 null (rect).
+ */
+function aiBoundsRRect(
+  ck: CanvasKit,
+  bounds: AIEffectNodeBounds,
+  rect: Float32Array,
+): Float32Array | null {
+  const br = bounds.borderRadius;
+  if (Array.isArray(br)) {
+    const radii = resolveCssCornerRadii(br, bounds.width, bounds.height);
+    if (!radii.some((r) => r > 0)) return null;
+    return rrectFromRadii(bounds.x, bounds.y, bounds.width, bounds.height, radii);
+  }
+  return br > 0 ? ck.RRectXY(rect, br, br) : null;
+}
+
 export function renderGeneratingEffects(
   ck: CanvasKit,
   canvas: Canvas,
@@ -78,13 +97,9 @@ export function renderGeneratingEffects(
       overlayPaint.setColor(ck.Color4f(0.95, 0.95, 0.97, 0.5));
 
       canvas.saveLayer(blurPaint);
-      if (bounds.borderRadius > 0) {
-        const rrect = ck.RRectXY(
-          rect,
-          bounds.borderRadius,
-          bounds.borderRadius,
-        );
-        canvas.drawRRect(rrect, overlayPaint);
+      const overlayRRect = aiBoundsRRect(ck, bounds, rect);
+      if (overlayRRect) {
+        canvas.drawRRect(overlayRRect, overlayPaint);
       } else {
         canvas.drawRect(rect, overlayPaint);
       }
@@ -166,13 +181,9 @@ export function renderFlashes(
         ),
       );
 
-      if (bounds.borderRadius > 0) {
-        const rrect = ck.RRectXY(
-          rect,
-          bounds.borderRadius,
-          bounds.borderRadius,
-        );
-        canvas.drawRRect(rrect, strokePaint);
+      const strokeRRect = aiBoundsRRect(ck, bounds, rect);
+      if (strokeRRect) {
+        canvas.drawRRect(strokeRRect, strokePaint);
       } else {
         canvas.drawRect(rect, strokePaint);
       }

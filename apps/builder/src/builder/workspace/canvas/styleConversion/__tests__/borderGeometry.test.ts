@@ -1,8 +1,8 @@
 /**
  * ADR-219 P1 — border 기하 helper 단위 테스트
  *
- * 1. `resolveCssCornerRadii` — CSS Backgrounds 3 §4.5 예제 6 + 균일 반경이 기존
- *    `clampCornerRadii` 와 같은 값 (HC1 경계: 균일 문서 무변경).
+ * 1. `resolveCssCornerRadii` — CSS Backgrounds 3 §4.5 예제 6 + 균일 반경이 종전
+ *    `clampCornerRadii` (여기 복사한 옛 규칙) 와 같은 값 (HC1 경계: 균일 문서 무변경).
  * 2. `resolveBorderGeometry` — 우선순위 longhand ?? shorthand 다중값 ?? shorthand ?? base.
  * 3. 레이아웃 `parseBorder` 와 폭 판독 동치 (px/number 입력).
  * 4. `resolveInnerCornerRadii` — 변 폭 0 코너의 테이퍼 (P0 spike 발견).
@@ -14,7 +14,17 @@ import {
   resolveCssCornerRadii,
   resolveInnerCornerRadii,
 } from "../borderGeometry";
-import { clampCornerRadii } from "../../skia/nodeRendererClip";
+
+/** 종전 `clampCornerRadii` (nodeRendererClip, P2 에서 제거) — 코너별 `min(w,h)/2` 상한 */
+function clampCornerRadii(
+  radii: readonly [number, number, number, number],
+  width: number,
+  height: number,
+): [number, number, number, number] {
+  const maxRadius = Math.min(width, height) / 2;
+  const clamp = (r: number) => Math.min(Math.max(0, r), maxRadius);
+  return [clamp(radii[0]), clamp(radii[1]), clamp(radii[2]), clamp(radii[3])];
+}
 import { parseBorder } from "../../layout/engines/utils";
 
 describe("resolveCssCornerRadii — CSS §4.5 비례 축소", () => {

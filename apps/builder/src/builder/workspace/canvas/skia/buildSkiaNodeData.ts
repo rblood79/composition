@@ -141,6 +141,7 @@ export function buildSkiaNodeData(
     borderRadius: borderRadius ?? 0,
     strokeColor,
     strokeWidth: stroke?.width,
+    ...(stroke?.widths ? { strokeWidths: stroke.widths } : {}),
   };
 
   // 기본 SkiaNodeData (box 타입)

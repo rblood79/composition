@@ -1,6 +1,10 @@
 import type { CanvasKit, Path } from "canvaskit-wasm";
 import type { ClipPathShape } from "../styleConversion/styleConverter";
 import { buildPath } from "./buildPath";
+import {
+  resolveCssCornerRadii,
+  type CornerRadii,
+} from "../styleConversion/borderGeometry";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 
 export function sortByStackingOrder(children: SkiaNodeData[]): SkiaNodeData[] {
@@ -15,19 +19,33 @@ export function sortByStackingOrder(children: SkiaNodeData[]): SkiaNodeData[] {
 }
 
 /**
- * 코너 반경 4개를 `[0, min(w,h)/2]` 로 clamp 한다.
+ * CanvasKit 12-float rrect `[L, T, R, B, tlx, tly, trx, try, brx, bry, blx, bly]`.
  *
- * 이 상한을 넘기면 `arcToTangent` 가 퇴화 경로를 만든다 — clip 경로와
- * partial border 경로가 같은 기하 규칙을 쓰도록 한 곳에 둔다.
+ * `ck.RRectXY` 는 균일 반경만 받는다 — 코너별·타원 반경은 이 형태로 `addRRect` /
+ * `drawRRect` 에 넘긴다 (ADR-219, 반경은 `resolveCssCornerRadii` 를 거친 값이어야 한다).
  */
-export function clampCornerRadii(
-  radii: readonly [number, number, number, number],
+export function rrectFromRadii(
+  x: number,
+  y: number,
   width: number,
   height: number,
-): [number, number, number, number] {
-  const maxRadius = Math.min(width, height) / 2;
-  const clamp = (r: number) => Math.min(Math.max(0, r), maxRadius);
-  return [clamp(radii[0]), clamp(radii[1]), clamp(radii[2]), clamp(radii[3])];
+  rx: readonly [number, number, number, number],
+  ry: readonly [number, number, number, number] = rx,
+): Float32Array {
+  return Float32Array.of(
+    x,
+    y,
+    x + width,
+    y + height,
+    rx[0],
+    ry[0],
+    rx[1],
+    ry[1],
+    rx[2],
+    ry[2],
+    rx[3],
+    ry[3],
+  );
 }
 
 export function createRoundRectPath(
@@ -38,7 +56,8 @@ export function createRoundRectPath(
   height: number,
   radii: [number, number, number, number],
 ): Path {
-  const [rTL, rTR, rBR, rBL] = clampCornerRadii(radii, width, height);
+  // ADR-219 — 코너 축소는 CSS §4.5 비례 규칙 (균일 반경은 종전 min(w,h)/2 와 같은 값)
+  const [rTL, rTR, rBR, rBL] = resolveCssCornerRadii(radii, width, height);
 
   return buildPath(ck, (path) => {
     path.moveTo(x + rTL, y);
@@ -99,10 +118,20 @@ export function buildClipPath(
       const h = height - top - bottom;
       if (w <= 0 || h <= 0) return null;
       return buildPath(ck, (path) => {
-        if (borderRadius > 0) {
-          const r = Math.min(borderRadius, Math.min(w, h) / 2);
-          const rrect = ck.RRectXY(ck.LTRBRect(x, y, x + w, y + h), r, r);
-          path.addRRect(rrect);
+        if (typeof borderRadius === "number") {
+          if (borderRadius > 0) {
+            const r = Math.min(borderRadius, Math.min(w, h) / 2);
+            const rrect = ck.RRectXY(ck.LTRBRect(x, y, x + w, y + h), r, r);
+            path.addRRect(rrect);
+          } else {
+            path.addRect(ck.LTRBRect(x, y, x + w, y + h));
+          }
+          return;
+        }
+        // ADR-219 — `round <tl> <tr> <br> <bl>` 4 반경 (CSS §4.5 축소)
+        const radii: CornerRadii = resolveCssCornerRadii(borderRadius, w, h);
+        if (radii.some((r) => r > 0)) {
+          path.addRRect(rrectFromRadii(x, y, w, h, radii));
         } else {
           path.addRect(ck.LTRBRect(x, y, x + w, y + h));
         }

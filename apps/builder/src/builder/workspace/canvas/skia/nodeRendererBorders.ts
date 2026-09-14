@@ -8,8 +8,17 @@ import {
   acquireScopedPaint,
   releasePooledPaint,
 } from "./paints";
-import { createRoundRectPath } from "./nodeRendererClip";
+import { createRoundRectPath, rrectFromRadii } from "./nodeRendererClip";
+import {
+  cssDashPattern,
+  renderSidedStroke,
+  roundRectPerimeter,
+} from "./nodeRendererShapes";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import {
+  resolveCssCornerRadii,
+  resolveInnerCornerRadii,
+} from "../styleConversion/borderGeometry";
 import type { DropShadowEffect } from "./types";
 
 type BorderRadius = number | [number, number, number, number];
@@ -88,16 +97,33 @@ function renderSolidBorder(
   paint.setStrokeWidth(sw);
   paint.setColor(strokeColor);
 
-  let dashEffect: ReturnType<typeof ck.PathEffect.MakeDash> | null = null;
-  if (strokeStyle === "dashed") {
-    const dashLen = Math.max(sw * 3, 4);
-    const gapLen = Math.max(sw * 2, 3);
-    dashEffect = ck.PathEffect.MakeDash([dashLen, gapLen]);
+  if (strokeStyle === "dashed" || strokeStyle === "dotted") {
+    // Chrome 실측 패턴 + 둘레 맞춤 (cssDashPattern) — ADR-219 G2 대조군 0.040 의 병인이
+    //   종전 고정식 `[3w,2w]`/`[w,1.5w]` 와 rrect 시작점 위상. 경로는 TL 호 끝에서 시작하는
+    //   createRoundRectPath 하나 (dash 위상 기준), solid 는 아래 종전 경로 그대로 (HC1).
+    const radii: [number, number, number, number] = isArrayRadius
+      ? (br as [number, number, number, number])
+      : [br as number, br as number, br as number, br as number];
+    const outer = resolveCssCornerRadii(radii, node.width, node.height);
+    const center: [number, number, number, number] = [
+      Math.max(0, outer[0] - inset),
+      Math.max(0, outer[1] - inset),
+      Math.max(0, outer[2] - inset),
+      Math.max(0, outer[3] - inset),
+    ];
+    const cw = node.width - sw;
+    const ch = node.height - sw;
+    const dashEffect = ck.PathEffect.MakeDash(
+      cssDashPattern(strokeStyle, sw, roundRectPerimeter(cw, ch, center)),
+    );
     paint.setPathEffect(dashEffect);
-  } else if (strokeStyle === "dotted") {
-    dashEffect = ck.PathEffect.MakeDash([sw, sw * 1.5]);
-    paint.setPathEffect(dashEffect);
-    paint.setStrokeCap(ck.StrokeCap.Round);
+    if (strokeStyle === "dotted") paint.setStrokeCap(ck.StrokeCap.Round);
+    const path = createRoundRectPath(ck, inset, inset, cw, ch, center);
+    canvas.drawPath(path, paint);
+    path.delete();
+    paint.setPathEffect(null);
+    dashEffect.delete();
+    return;
   }
 
   drawStrokeShape(
@@ -111,11 +137,78 @@ function renderSolidBorder(
     hasRadius,
     isArrayRadius,
   );
+}
 
-  if (dashEffect) {
-    paint.setPathEffect(null);
-    dashEffect.delete();
-  }
+/**
+ * ADR-219 — 비균일 폭 + solid: 바깥 rrect − 안쪽 rrect 를 even-odd 로 채운다 (Chrome
+ * `BoxBorderPainter` 의 double-rrect 경로). 안쪽 코너는 타원 (`rx = r − 세로변 폭`,
+ * `ry = r − 가로변 폭`) 이라 폭 0 변 쪽 코너 띠가 가늘어지고, 한 번에 칠하므로 반투명
+ * 코너 겹침이 없다. double/groove/ridge/inset/outset 은 지원 밖이라 이 경로로 강등.
+ */
+function renderSidedSolidBorder(
+  ck: CanvasKit,
+  canvas: Canvas,
+  node: SkiaNodeData,
+  paint: SkiaPaint,
+  widths: [number, number, number, number],
+  br: BorderRadius,
+): void {
+  const strokeColor = node.box!.strokeColor!;
+  if (strokeColor[3] <= 0) return;
+  const w = node.width;
+  const h = node.height;
+  const outer = resolveCssCornerRadii(
+    Array.isArray(br) ? br : [br, br, br, br],
+    w,
+    h,
+  );
+  const inner = resolveInnerCornerRadii(outer, widths);
+  const [wt, wr, wb, wl] = widths;
+
+  paint.setStyle(ck.PaintStyle.Fill);
+  paint.setColor(strokeColor);
+  const path = buildPath(ck, (path) => {
+    path.addRRect(rrectFromRadii(0, 0, w, h, outer));
+    const iw = w - wl - wr;
+    const ih = h - wt - wb;
+    if (iw > 0 && ih > 0) {
+      path.addRRect(rrectFromRadii(wl, wt, iw, ih, inner.rx, inner.ry));
+    }
+    path.setFillType(ck.FillType.EvenOdd);
+  });
+  canvas.drawPath(path, paint);
+  path.delete();
+}
+
+/** ADR-219 — 비균일 폭 + dashed/dotted: 변마다 자기 폭의 stroke, 코너는 wedge 소유권 */
+function renderSidedDashedBorder(
+  ck: CanvasKit,
+  canvas: Canvas,
+  node: SkiaNodeData,
+  widths: [number, number, number, number],
+  br: BorderRadius,
+  strokeStyle: "dashed" | "dotted",
+): void {
+  const strokeColor = node.box!.strokeColor!;
+  if (strokeColor[3] <= 0) return;
+  const w = node.width;
+  const h = node.height;
+  renderSidedStroke(ck, canvas, {
+    x: 0,
+    y: 0,
+    width: w,
+    height: h,
+    radii: resolveCssCornerRadii(
+      Array.isArray(br) ? br : [br, br, br, br],
+      w,
+      h,
+    ),
+    widths,
+    color: strokeColor,
+    // 균일 경로 (renderSolidBorder) 와 같은 Chrome 실측 dash 식 (둘레 맞춤)
+    dashFor: (sw, len) => cssDashPattern(strokeStyle, sw, len),
+    roundCap: strokeStyle === "dotted",
+  });
 }
 
 function renderDoubleBorder(
@@ -330,8 +423,11 @@ function renderBoxShadows(
   if (!node.box?.shadows?.length) return;
 
   const br = node.box.borderRadius;
-  const baseRadius =
-    typeof br === "number" ? br : Array.isArray(br) ? br[0] : 0;
+  // ADR-219 — 배열 반경은 4 코너 그대로 (종전엔 첫 값만 읽었다)
+  const cornerRadii = Array.isArray(br)
+    ? resolveCssCornerRadii(br, node.width, node.height)
+    : null;
+  const baseRadius = typeof br === "number" ? br : 0;
 
   for (const shadow of node.box.shadows) {
     if (shadow.inner) continue; // outer shadow만 처리
@@ -363,14 +459,34 @@ function renderBoxShadows(
     canvas.translate(shadow.dx, shadow.dy);
 
     // CSS 스펙: shadow radius = max(0, border-radius + spread)
-    const shadowRadius = Math.max(0, baseRadius + spread);
-    if (shadowRadius > 0) {
-      canvas.drawRRect(
-        ck.RRectXY(shadowRect, shadowRadius, shadowRadius),
-        paint,
-      );
+    if (cornerRadii) {
+      const expanded = cornerRadii.map((r) =>
+        r > 0 ? Math.max(0, r + spread) : 0,
+      ) as [number, number, number, number];
+      if (expanded.some((r) => r > 0)) {
+        canvas.drawRRect(
+          rrectFromRadii(
+            -spread,
+            -spread,
+            node.width + spread * 2,
+            node.height + spread * 2,
+            expanded,
+          ),
+          paint,
+        );
+      } else {
+        canvas.drawRect(shadowRect, paint);
+      }
     } else {
-      canvas.drawRect(shadowRect, paint);
+      const shadowRadius = Math.max(0, baseRadius + spread);
+      if (shadowRadius > 0) {
+        canvas.drawRRect(
+          ck.RRectXY(shadowRect, shadowRadius, shadowRadius),
+          paint,
+        );
+      } else {
+        canvas.drawRect(shadowRect, paint);
+      }
     }
 
     releasePooledPaint(paint);
@@ -403,8 +519,11 @@ function renderInnerBoxShadows(
   const w = node.width;
   const h = node.height;
   const br = node.box?.borderRadius;
-  const baseRadius =
-    typeof br === "number" ? br : Array.isArray(br) ? (br[0] ?? 0) : 0;
+  // ADR-219 — 배열 반경은 4 코너 그대로 (종전엔 첫 값만 읽었다)
+  const cornerRadii = Array.isArray(br)
+    ? resolveCssCornerRadii(br, w, h)
+    : null;
+  const baseRadius = typeof br === "number" ? br : 0;
 
   for (const shadow of inner) {
     const spread = shadow.spread ?? 0;
@@ -414,6 +533,14 @@ function renderInnerBoxShadows(
     const holeRight = w - spread + shadow.dx;
     const holeBottom = h - spread + shadow.dy;
     const holeRadius = Math.max(0, baseRadius - spread);
+    const holeRadii = cornerRadii
+      ? (cornerRadii.map((r) => Math.max(0, r - spread)) as [
+          number,
+          number,
+          number,
+          number,
+        ])
+      : null;
 
     // blur/offset spill 까지 덮는 외곽 rect (donut 의 solid 영역).
     const pad =
@@ -423,7 +550,17 @@ function renderInnerBoxShadows(
 
     const path = buildPath(ck, (path) => {
       path.addRect(ck.LTRBRect(-pad, -pad, w + pad, h + pad));
-      if (holeRadius > 0) {
+      if (holeRadii && holeRadii.some((r) => r > 0)) {
+        path.addRRect(
+          rrectFromRadii(
+            holeLeft,
+            holeTop,
+            holeRight - holeLeft,
+            holeBottom - holeTop,
+            holeRadii,
+          ),
+        );
+      } else if (holeRadius > 0) {
         path.addRRect(
           ck.RRectXY(
             ck.LTRBRect(holeLeft, holeTop, holeRight, holeBottom),
@@ -453,7 +590,13 @@ function renderInnerBoxShadows(
 
     canvas.save();
     // box 내부로 clip → 오프셋 donut 의 침입부(=inner edge shadow)만 남는다.
-    if (baseRadius > 0) {
+    if (cornerRadii && cornerRadii.some((r) => r > 0)) {
+      canvas.clipRRect(
+        rrectFromRadii(0, 0, w, h, cornerRadii),
+        ck.ClipOp.Intersect,
+        true,
+      );
+    } else if (baseRadius > 0) {
       canvas.clipRRect(
         ck.RRectXY(ck.LTRBRect(0, 0, w, h), baseRadius, baseRadius),
         ck.ClipOp.Intersect,
@@ -531,7 +674,15 @@ export function renderBox(
       const strokeStyle = node.box.strokeStyle;
       paint.setShader(null);
 
-      if (strokeStyle === "double") {
+      const sided = node.box.strokeWidths;
+      if (sided) {
+        // ADR-219 — 비균일 폭. 균일 노드는 이 분기에 들어오지 않는다 (HC1).
+        if (strokeStyle === "dashed" || strokeStyle === "dotted") {
+          renderSidedDashedBorder(ck, canvas, node, sided, br, strokeStyle);
+        } else {
+          renderSidedSolidBorder(ck, canvas, node, paint, sided, br);
+        }
+      } else if (strokeStyle === "double") {
         renderDoubleBorder(
           ck,
           canvas,

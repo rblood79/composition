@@ -2622,11 +2622,8 @@ export function buildAIBoundsFromStream(
     const bounds = boundsMap.get(id);
     if (!bounds) continue;
     const node = getSkiaNode(id);
-    const borderRadius = node?.box
-      ? Array.isArray(node.box.borderRadius)
-        ? node.box.borderRadius[0]
-        : (node.box.borderRadius ?? 0)
-      : 0;
+    // ADR-219 — 배열 반경은 4 코너 그대로 (aiEffects 가 rrectFromRadii 로 그린다)
+    const borderRadius = node?.box ? (node.box.borderRadius ?? 0) : 0;
     result.set(id, {
       elementId: id,
       x: bounds.x,

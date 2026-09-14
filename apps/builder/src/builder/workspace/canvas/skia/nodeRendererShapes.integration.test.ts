@@ -27,6 +27,8 @@ interface PathSnapshot {
 interface CanvasRecorder {
   canvas: Canvas;
   paths: PathSnapshot[];
+  /** ADR-219 — 변별 stroke 의 wedge clip (drawPath 앞에 걸린다) */
+  clips: number[][];
   circles: Array<[number, number, number]>;
 }
 
@@ -44,12 +46,16 @@ async function loadCanvasKit(): Promise<CanvasKit> {
 
 function createCanvasRecorder(): CanvasRecorder {
   const paths: PathSnapshot[] = [];
+  const clips: number[][] = [];
   const circles: Array<[number, number, number]> = [];
   const canvas = {
     save(): void {},
     restore(): void {},
     translate(): void {},
     scale(): void {},
+    clipPath(path: Path): void {
+      clips.push(Array.from(path.getBounds()));
+    },
     drawPath(path: Path, _paint: Paint): void {
       paths.push({
         path,
@@ -63,7 +69,7 @@ function createCanvasRecorder(): CanvasRecorder {
     },
   } as unknown as Canvas;
 
-  return { canvas, paths, circles };
+  return { canvas, paths, clips, circles };
 }
 
 function createNode(): SkiaNodeData {
@@ -122,17 +128,46 @@ describe("nodeRendererShapes 실제 CanvasKit 통합", () => {
     };
     renderPartialBorder(ck, borderRecorder.canvas, borderNode);
 
+    // ADR-219 — 변마다 자기 폭의 중심선 rrect (inset 2) 를 전체 stroke 하고, 그 변의
+    // wedge (바깥 두 꼭짓점 → 안쪽 두 꼭짓점) 로 clip 한다. wedge 4개는 겹치지 않으므로
+    // 코너 호가 한 번만 칠해진다 (종전엔 인접 두 변이 각각 호 전체를 그렸다).
     expect(borderRecorder.paths).toHaveLength(4);
     expect(borderRecorder.paths.map(({ bounds }) => bounds)).toEqual([
-      [2, 2, 98, 22],
-      [83, 2, 98, 78],
-      [2, 63, 98, 78],
-      [2, 2, 22, 78],
+      [2, 2, 98, 78],
+      [2, 2, 98, 78],
+      [2, 2, 98, 78],
+      [2, 2, 98, 78],
+    ]);
+    expect(borderRecorder.clips).toEqual([
+      [0, 0, 100, 4],
+      [96, 0, 100, 80],
+      [0, 76, 100, 80],
+      [0, 0, 4, 80],
     ]);
     expect(borderRecorder.paths.every(({ isEmpty }) => !isEmpty)).toBe(true);
     expect(borderRecorder.paths.every(({ path }) => path.isDeleted())).toBe(
       true,
     );
+  });
+
+  it("partial border: 한 변만 있는 코너는 그 변이 코너 전체를 갖는다 (wedge 대각선이 세로/가로)", () => {
+    const recorder = createCanvasRecorder();
+    const node = createNode();
+    node.partialBorder = {
+      sides: { top: true, right: true },
+      strokeColor: Float32Array.of(0.8, 0.2, 0.2, 0.5),
+      strokeWidth: 6,
+      borderRadius: [20, 20, 20, 20],
+    };
+    renderPartialBorder(ck, recorder.canvas, node);
+
+    expect(recorder.paths).toHaveLength(2);
+    // top wedge: 왼쪽 끝은 left 폭 0 이라 (0,0)→(0,6) 세로 — TL 코너 전체가 top 소유.
+    // TR 은 right 도 있어 (100,0)→(94,6) 대각선에서 갈린다.
+    expect(recorder.clips).toEqual([
+      [0, 0, 100, 6],
+      [94, 0, 100, 80],
+    ]);
   });
 
   it("SVG factory path와 circle icon 계약을 그대로 유지한다", () => {

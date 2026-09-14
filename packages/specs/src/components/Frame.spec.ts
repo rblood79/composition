@@ -75,9 +75,8 @@ function toPx(value: string | number | undefined): number {
  * CSS 처럼 longhand(`borderTopWidth`)와 shorthand(`borderWidth`)를 둘 다 읽는다 —
  * 패널이 어느 쪽으로 쓰는지에 따라 한쪽만 읽으면 조용히 안 그려진다.
  *
- * **한계 (의도적)**: `BorderShape` 는 변별 두께/색을 한 쌍만 담으므로, 변마다
- * 두께가 다른 테두리는 그 중 첫 값으로 그리고 `sides` 로 유무만 구분한다. 변별
- * 두께가 필요해지면 shape 스키마부터 바꿔야 한다 — 여기서 근사로 덮지 않는다.
+ * 그리는 건 overlay 채널 (ADR-219) 이고, 여기서는 "테두리가 있는가" 만 필요하다 —
+ * 배경이 없어도 테두리가 붙을 bg box 를 내야 하기 때문이다.
  */
 function resolveBorder(
   style: Record<string, string | number | undefined>,
@@ -170,21 +169,13 @@ export const FrameSpec: ComponentSpec<FrameProps> = {
         });
       }
 
-      // 배경과 같은 결함이었다 (ADR-198, 2026-08-31): 이 함수가 style 을 안 읽어서
-      // 프레임에 선언된 테두리가 Skia 픽셀에 도달하지 못했다. 실측 — 파일럿
-      // fixture 의 2px 테두리를 Preview 는 `#102A5C` 로 그리고 Skia 는 그 자리에
-      // 채움색을 놔뒀다 (경계 선을 따라 maxByte 145).
-      if (border) {
-        shapes.push({
-          type: "border" as const,
-          target: "bg",
-          borderWidth: border.width,
-          color: border.color,
-          style: border.style as never,
-          radius,
-          sides: border.sides,
-        });
-      }
+      // 테두리 자체는 여기서 shape 으로 내지 않는다 (ADR-219, 2026-09-14). 사용자 style
+      // 의 테두리는 `buildSpecNodeData.applyInlineBorderOverlay` 가 box stroke 로 싣는
+      // 단일 채널이다 — 코너별 반경 · 변별 폭 · rgba 알파를 그쪽 helper 가 읽는다.
+      // ADR-198 (2026-08-31) 때 여기에 `border` shape 을 더한 것은 overlay 가 shorthand
+      // `borderWidth` 만 읽어 longhand 문서에서 조용히 안 그려졌기 때문인데, overlay 가
+      // longhand 를 읽게 되면서 두 채널이 같은 테두리를 두 번 그렸다 (반투명에서 드러남).
+      // `resolveBorder` 는 위 bg box 를 낼지 판단하는 데만 남는다.
 
       const hasChildren = !!(props as Record<string, unknown>)._hasChildren;
       if (hasChildren) return shapes;

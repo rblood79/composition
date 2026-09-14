@@ -24,6 +24,7 @@ export {
   resolveBorderGeometry,
   resolveCssCornerRadii,
   resolveInnerCornerRadii,
+  resolveBorderPaint,
   isBorderGeometryProp,
   BORDER_GEOMETRY_KEYS,
   BORDER_RADIUS_LONGHANDS,

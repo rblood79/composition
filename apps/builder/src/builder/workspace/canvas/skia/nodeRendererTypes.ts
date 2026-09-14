@@ -44,7 +44,13 @@ export interface SkiaNodeData {
     fill?: FillStyle;
     borderRadius: number | [number, number, number, number];
     strokeColor?: Float32Array;
+    /** 균일 폭 (비균일이면 최대값 — 게이트용, 실제 변 폭은 `strokeWidths`) */
     strokeWidth?: number;
+    /**
+     * ADR-219 — 변별 폭 `[top, right, bottom, left]`. 있으면 비균일: solid (와 double
+     * 계열 강등) 은 even-odd 띠, dashed/dotted 는 `renderSidedStroke`. 균일이면 없다.
+     */
+    strokeWidths?: [number, number, number, number];
     strokeStyle?:
       | "solid"
       | "dashed"

@@ -23,6 +23,7 @@ import type {
   EffectStyle,
 } from "../skia/types";
 import { resolveCSSSizeValue } from "../layout/engines/cssValueParser";
+import { resolveBorderGeometry, resolveBorderPaint } from "./borderGeometry";
 import type { CSSValueContext } from "../layout/engines/cssValueParser";
 // ADR-056: rem 단위 rootFontSize를 baseTypography로부터 가져오기
 import { getRootComputedStyle } from "../layout/engines/cssResolver";
@@ -44,6 +45,11 @@ export interface CSSStyle {
   height?: number | string;
   backgroundColor?: string;
   borderRadius?: number | string;
+  /** ADR-219 — 코너 longhand 4 (판독은 `borderGeometry.resolveBorderGeometry` 만) */
+  borderTopLeftRadius?: number | string;
+  borderTopRightRadius?: number | string;
+  borderBottomRightRadius?: number | string;
+  borderBottomLeftRadius?: number | string;
   borderWidth?: number | string;
   borderTopWidth?: number | string;
   borderRightWidth?: number | string;
@@ -133,9 +139,12 @@ export interface RenderFillStyle {
 }
 
 export interface RenderStrokeStyle {
+  /** 균일 폭 (비균일이면 네 변의 최대값 — 렌더러 게이트용) */
   width: number;
   color: number;
   alpha: number;
+  /** ADR-219 — 변별 폭 `[top, right, bottom, left]`. 네 변이 같으면 생략 (균일 경로 무변경) */
+  widths?: [number, number, number, number];
 }
 
 export interface RenderTextStyle {
@@ -671,14 +680,34 @@ export function convertToStrokeStyle(
   style: CSSStyle | undefined,
   resolvedColor?: string,
 ): RenderStrokeStyle | null {
-  if (!style?.borderWidth && !style?.borderColor) {
+  if (!style) return null;
+  // ADR-219 — 폭은 helper 하나로 (longhand ?? shorthand ?? `border` 단축). 폭 정보가 전혀
+  //   없고 색만 있으면 종전대로 1 (CSS medium 근사).
+  const geometry = resolveBorderGeometry(style as Record<string, unknown>);
+  // 색은 shorthand ?? 변 longhand 첫 값 (변별 색은 범위 밖 — 첫 값 근사)
+  const borderColor =
+    style.borderColor ??
+    resolveBorderPaint(style as Record<string, unknown>).color;
+  // 게이트는 종전과 같다 (`!borderWidth && !borderColor` → null) — 변 longhand 만 더한다.
+  if (!style.borderWidth && !geometry.hasWidthLonghand && !borderColor) {
     return null;
   }
+  const hasWidthInfo =
+    (style.borderWidth != null && style.borderWidth !== "") ||
+    geometry.hasWidthLonghand;
+  const widths = geometry.widths;
+  const uniform = geometry.uniformWidth;
+  const width = !hasWidthInfo
+    ? 1
+    : uniform !== null
+      ? uniform
+      : Math.max(widths[0], widths[1], widths[2], widths[3]);
 
   return {
-    width: parseCSSSize(style.borderWidth, undefined, 1),
-    color: cssColorToHex(style.borderColor, 0x000000, resolvedColor),
-    alpha: cssColorToAlpha(style.borderColor, resolvedColor),
+    width,
+    color: cssColorToHex(borderColor, 0x000000, resolvedColor),
+    alpha: cssColorToAlpha(borderColor, resolvedColor),
+    ...(hasWidthInfo && uniform === null ? { widths } : {}),
   };
 }
 
@@ -792,7 +821,8 @@ export type ClipPathShape =
       right: number;
       bottom: number;
       left: number;
-      borderRadius: number;
+      /** 균일이면 숫자, `round` 뒤 다중값이면 `[tl, tr, br, bl]` (ADR-219) */
+      borderRadius: number | [number, number, number, number];
     }
   | { type: "circle"; radius: number; cx: number; cy: number }
   | { type: "ellipse"; rx: number; ry: number; cx: number; cy: number }
@@ -921,9 +951,26 @@ function parseInset(
     left = resolveClipLength(sides[3], width);
   }
 
-  const borderRadius = roundPart
-    ? resolveClipLength(roundPart.split(/\s+/)[0], Math.min(width, height))
-    : 0;
+  // ADR-219 — `round` 뒤 1~4값 (CSS border-radius 전개 규칙). `/` 타원 표기는 가로만.
+  const roundTokens = roundPart
+    ? roundPart.split("/")[0].trim().split(/\s+/).filter(Boolean)
+    : [];
+  const radiusTokens = roundTokens.map((t) =>
+    resolveClipLength(t, Math.min(width, height)),
+  );
+  let borderRadius: number | [number, number, number, number] = 0;
+  if (radiusTokens.length === 1) {
+    borderRadius = radiusTokens[0];
+  } else if (radiusTokens.length === 2) {
+    const [a, b] = radiusTokens;
+    borderRadius = [a, b, a, b];
+  } else if (radiusTokens.length === 3) {
+    const [a, b, c] = radiusTokens;
+    borderRadius = [a, b, c, b];
+  } else if (radiusTokens.length >= 4) {
+    const [a, b, c, d] = radiusTokens;
+    borderRadius = [a, b, c, d];
+  }
 
   return { type: "inset", top, right, bottom, left, borderRadius };
 }
@@ -1075,8 +1122,24 @@ export function convertStyle(
     fill: convertToFillStyle(processedStyle, resolvedColor),
     stroke: convertToStrokeStyle(processedStyle, resolvedColor),
     text: convertToTextStyle(processedStyle, transform.width),
-    borderRadius: convertBorderRadius(processedStyle?.borderRadius),
+    borderRadius: convertBorderRadiusGeometry(processedStyle),
   };
+}
+
+/**
+ * ADR-219 — 반경은 helper 로 (longhand ?? shorthand 다중값 ?? shorthand). 균일이면 숫자
+ * (기존 rrect 경로 무변경), 비균일이면 `[tl, tr, br, bl]`.
+ */
+function convertBorderRadiusGeometry(
+  style: CSSStyle | undefined,
+): number | [number, number, number, number] {
+  if (!style) return 0;
+  const geometry = resolveBorderGeometry(style as Record<string, unknown>);
+  if (!geometry.hasRadiusLonghand) {
+    // shorthand 만 — 기존 파서 그대로 (단일값 문서의 코드 경로 0 변경, HC1)
+    return convertBorderRadius(style.borderRadius);
+  }
+  return geometry.uniformRadius ?? geometry.radii;
 }
 
 // ============================================

@@ -67,9 +67,9 @@ describe("FrameSpec (ADR-130)", () => {
       expect(bgOf({ style: { backgroundColor: "#FFF", borderRadius: "50%" } })).toMatchObject({ radius: 0 });
     });
 
-    it("선언된 테두리를 border shape 으로 낸다", () => {
-      // 배경과 같은 결함이었다 — 이 함수가 style 을 안 읽어 프레임 테두리가
-      // Skia 픽셀에 도달하지 못했다 (Preview 는 그렸다).
+    it("테두리는 shape 으로 내지 않는다 — overlay 채널 하나 (ADR-219), bg box 는 낸다", () => {
+      // ADR-198 때는 여기서 border shape 을 냈다. overlay 가 longhand 를 읽게 되면서
+      // 두 채널이 같은 테두리를 두 번 그려 (반투명에서 드러남) shape 쪽을 걷어냈다.
       const shapes = FrameSpec.render.shapes(
         {
           style: {
@@ -92,14 +92,8 @@ describe("FrameSpec (ADR-130)", () => {
         undefined as never,
         undefined as never,
       );
-      expect(shapes.find((s) => s.type === "border")).toMatchObject({
-        target: "bg",
-        borderWidth: 2,
-        color: "#102A5C",
-        style: "solid",
-        radius: 12,
-        sides: { top: true, right: true, bottom: true, left: true },
-      });
+      expect(shapes.find((s) => s.type === "border")).toBeUndefined();
+      expect(shapes.find((s) => s.id === "bg")).toMatchObject({ radius: 12 });
     });
 
     it("shorthand 표기도 읽는다 (store 는 longhand 를 쓰지만 둘 다 온다)", () => {
@@ -114,37 +108,38 @@ describe("FrameSpec (ADR-130)", () => {
         undefined as never,
         undefined as never,
       );
-      // 배경이 없어도 테두리를 붙일 bg box 를 낸다 — 없으면 target 이 뜬다.
+      // 배경이 없어도 테두리를 붙일 bg box 를 낸다 — 없으면 overlay stroke 가 붙을 곳이 없다.
       expect(shapes.find((s) => s.id === "bg")).toMatchObject({
         fill: "transparent",
       });
-      expect(shapes.find((s) => s.type === "border")).toMatchObject({
-        borderWidth: 1,
-        style: "dashed",
-      });
+      expect(shapes.find((s) => s.type === "border")).toBeUndefined();
     });
 
-    it("테두리가 없거나 그릴 수 없으면 border shape 을 내지 않는다", () => {
-      const none = (style: Record<string, unknown>) =>
+    it("테두리가 없거나 그릴 수 없으면 (배경도 없을 때) bg box 를 내지 않는다", () => {
+      const bg = (style: Record<string, unknown>) =>
         FrameSpec.render
           .shapes(
             { style } as never,
             undefined as never,
             undefined as never,
           )
-          .find((s) => s.type === "border");
+          .find((s) => s.id === "bg");
 
-      expect(none({})).toBeUndefined();
-      // 두께 0 / style none / 색 없음 — 각각 단독으로 그리기를 막는다
-      expect(none({ borderWidth: 0, borderColor: "#000" })).toBeUndefined();
+      expect(bg({})).toBeUndefined();
+      // 두께 0 / style none / 색 없음 — 각각 단독으로 테두리를 막는다
+      expect(bg({ borderWidth: 0, borderColor: "#000" })).toBeUndefined();
       expect(
-        none({ borderWidth: 2, borderStyle: "none", borderColor: "#000" }),
+        bg({ borderWidth: 2, borderStyle: "none", borderColor: "#000" }),
       ).toBeUndefined();
-      expect(none({ borderWidth: 2, borderStyle: "solid" })).toBeUndefined();
+      expect(bg({ borderWidth: 2, borderStyle: "solid" })).toBeUndefined();
+      // 변 longhand 하나만 있어도 붙일 상자를 낸다
+      expect(
+        bg({ borderLeftWidth: 4, borderStyle: "solid", borderColor: "#000" }),
+      ).toBeDefined();
     });
 
-    it("한 변만 선언되면 그 변만 그린다", () => {
-      const border = FrameSpec.render
+    it("한 변만 longhand 로 선언돼도 붙일 bg box 를 낸다 (그리기는 overlay 채널)", () => {
+      const bg = FrameSpec.render
         .shapes(
           {
             style: {
@@ -156,11 +151,8 @@ describe("FrameSpec (ADR-130)", () => {
           undefined as never,
           undefined as never,
         )
-        .find((s) => s.type === "border");
-      expect(border).toMatchObject({
-        borderWidth: 1,
-        sides: { top: false, right: false, bottom: true, left: false },
-      });
+        .find((s) => s.id === "bg");
+      expect(bg).toBeDefined();
     });
 
     it("자식이 없으면 container shape 도 함께 낸다", () => {

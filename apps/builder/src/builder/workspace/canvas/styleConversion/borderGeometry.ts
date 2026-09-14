@@ -257,3 +257,40 @@ export function resolveInnerCornerRadii(
     ],
   };
 }
+
+/**
+ * 테두리 색·스타일 — shorthand ?? 변 longhand 중 첫 값 (top → right → bottom → left).
+ *
+ * 변별 **색·스타일** 은 ADR-219 범위 밖 (partial_border 도 색 하나) 이라 첫 값으로
+ * 근사한다. 그래도 읽어야 하는 이유: 잔존 spec Frame 의 테두리 shape 을 걷어내면서
+ * (ADR-219 P2) `borderTopColor` 4개로만 저장된 문서 (ADR-198 파일럿 fixture 형태) 가
+ * `borderColor` 없이도 Skia 에 도달해야 하기 때문이다.
+ */
+export function resolveBorderPaint(style: StyleLike): {
+  color: string | undefined;
+  style: string | undefined;
+} {
+  const pick = (short: string, longs: readonly string[]) => {
+    const v = style?.[short];
+    if (typeof v === "string" && v !== "") return v;
+    for (const key of longs) {
+      const lv = style?.[key];
+      if (typeof lv === "string" && lv !== "") return lv;
+    }
+    return undefined;
+  };
+  return {
+    color: pick("borderColor", [
+      "borderTopColor",
+      "borderRightColor",
+      "borderBottomColor",
+      "borderLeftColor",
+    ]),
+    style: pick("borderStyle", [
+      "borderTopStyle",
+      "borderRightStyle",
+      "borderBottomStyle",
+      "borderLeftStyle",
+    ]),
+  };
+}

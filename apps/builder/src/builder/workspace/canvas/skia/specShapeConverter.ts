@@ -5,6 +5,7 @@
  * CanvasKit/Skia 렌더러가 이해하는 SkiaNodeData로 변환한다.
  */
 
+import { cssDashPattern } from "./nodeRendererShapes";
 import type { Shape, ColorValue } from "@composition/specs";
 import { getIconData } from "@composition/specs";
 import type {
@@ -615,11 +616,9 @@ export function specShapesToSkia(
           // sides border의 style → strokeDasharray 변환
           const sideStyle = shape.style;
           const sideDasharray: number[] | undefined =
-            sideStyle === "dashed"
-              ? [Math.max(bw * 3, 4), Math.max(bw * 2, 3)]
-              : sideStyle === "dotted"
-                ? [bw, bw * 1.5]
-                : undefined;
+            sideStyle === "dashed" || sideStyle === "dotted"
+              ? cssDashPattern(sideStyle, bw)
+              : undefined;
 
           // M-6 개선: border-radius가 있는 경우 partial_border 노드로 렌더링
           // 우선순위: shape.radius → targetNode.box?.borderRadius

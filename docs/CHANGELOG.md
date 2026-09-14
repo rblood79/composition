@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Skia — 코너별 반경 · 변별 폭 렌더 채널 (ADR-219 P0~P2)] - 2026-09-14
+
+### Added
+
+- **코너별 반경 · 변별 폭이 Skia 에 도달한다** (`styleConversion/borderGeometry.ts` — `resolveBorderGeometry`: longhand ?? shorthand 다중값 ?? shorthand ?? catalog base). `borderTopLeftRadius`… 4 · `borderTopWidth`… 4 를 캔버스가 읽는다 (Preview/Publish 는 원래 그렸다). 비균일 폭 + solid 는 CSS 와 같은 기하 (바깥 rrect − 안쪽 타원 rrect, even-odd — 폭 0 변 쪽 코너 띠가 가늘어지고 반투명 겹침 없음), dashed/dotted 는 변마다 자기 폭의 stroke 를 변 wedge 로 clip (코너 호는 한 번만). 비균일 + double/groove/ridge/inset/outset 은 미지원 — solid 로 그린다 (Preview 와 다름, 기록).
+- 파리티 하니스 `tests/visual-parity/adr219/` — spike (기하 프로토타입) · G2 케이스 10 + 측정 2 (`evidence/219-p2-g2.md`, 전부 diffRatio ≤ 0.013).
+
+### Fixed
+
+- **다중값 `border-radius` 축소가 CSS 와 달랐다**: 코너별 `min(w,h)/2` clamp 를 CSS Backgrounds §4.5 비례 축소로 (`resolveCssCornerRadii` — 100×100 `80px 0 0 0` 은 80 유지, `80px 80px 0 0` 은 50). 균일 반경은 값이 같아 무변경. 그림자 · AI 효과 bounds · clip-path `inset(… round a b c d)` 도 첫 값이 아니라 4 코너.
+- **frame 테두리가 두 번 그려졌다**: 잔존 spec Frame 의 `border` shape (ADR-198) 과 inline overlay 가 같은 테두리를 겹쳐 그렸고 spec 색 파서는 `rgba(…, 0.5)` 를 검정 불투명으로 냈다. Frame.spec 은 배경 box 만 내고 테두리는 overlay 채널 하나 (알파 반영). 잔존 spec `sides` 의 `partial_border` 도 인접 변이 코너 호를 각각 전체로 그리던 겹침을 wedge 소유권으로 수리.
+- **dashed/dotted 패턴이 Chrome 과 달랐다** (`cssDashPattern`): dashed w<3 → 3w/2w · w≥3 → 2w/w, dotted `[0, 2w]` round cap, 둘레에 맞춰 gap 을 늘여 닫힌 경로에서 패턴이 닫힘 — 균일 dashed 대조군 diffRatio 0.040 → 0.0007. 균일 dashed/dotted 문서의 픽셀이 바뀐다.
+
 ## [빌더 크롬 — 인벤토리 잔여 5 (History 메뉴 · 바인딩 팝오버 · 에이전트 승인 다이얼로그 · 눈금자 · Compare 라벨) (panel-ui 21)] - 2026-09-14
 
 ### Changed

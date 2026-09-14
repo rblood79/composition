@@ -83,12 +83,17 @@ import {
 import {
   parseCSSSize,
   cssColorToHex,
+  cssColorToAlpha,
   colorIntToFloat32,
   parseTextShadow,
   parseTextDecoration,
   parseDecorationColor,
   buildSkiaEffects,
 } from "../styleConversion/styleConverter";
+import {
+  resolveBorderGeometry,
+  resolveBorderPaint,
+} from "../styleConversion/borderGeometry";
 import {
   rearrangeShapesForColumn,
   measureSpecTextMinHeight,
@@ -2271,36 +2276,42 @@ function applyInlineBorderOverlay(
   specNode: SkiaNodeData,
   style: Record<string, unknown>,
 ): void {
+  // ADR-219 — border 축 키 10 은 helper 하나로 읽는다 (longhand ?? shorthand ?? 없음).
+  const geometry = resolveBorderGeometry(style);
+
   // (1) border-radius inline override — 테두리(width/color) 유무와 독립.
   //     radius 단독 편집도 반영해야 한다 (기존엔 아래 width/color gate 뒤에 있어
   //     radius 단독이 무반응이었다 — catalog/box 경로는 이미 독립 반영).
-  if (style.borderRadius != null) {
+  if (style.borderRadius != null || geometry.hasRadiusLonghand) {
     if (!specNode.box) {
       specNode.box = {
         fillColor: Float32Array.of(0, 0, 0, 0),
         borderRadius: 0,
       };
     }
-    specNode.box.borderRadius = parseCSSSize(
-      style.borderRadius as string | number,
-    );
+    // 다중값 shorthand ("80px 80px 0 0") 도 helper 가 4값으로 — 종전 parseCSSSize 는
+    //   첫 값만 읽어 네 코너를 같은 반경으로 그렸다 (G2 radii4-scale 실측 0.099).
+    specNode.box.borderRadius = geometry.uniformRadius ?? geometry.radii;
   }
 
   // (2) border-style="none" — 테두리 숨김 의도(DOM border-style:none 대칭).
   //     radius 는 위에서 이미 적용됐으므로 여기서 종료.
-  const borderStyle = style.borderStyle as string | undefined;
+  const paint = resolveBorderPaint(style);
+  const borderStyle = paint.style;
   if (borderStyle === "none") return;
 
   // (3) border(width+color). Phase 1 편집기 계약으로 width/color 는 항상 동반
   //     기록되므로 단독 케이스는 store 단에서 소멸하지만, 방어적으로 둘 다 유효할
   //     때만 그린다 (spec 자체 border transparent 를 회색으로 덮지 않기 위함).
   const borderWidth = style.borderWidth;
-  if (borderWidth == null) return;
+  if (borderWidth == null && !geometry.hasWidthLonghand) return;
 
-  const bw = parseCSSSize(borderWidth as string | number);
+  const bw = geometry.hasWidthLonghand
+    ? (geometry.uniformWidth ?? Math.max(...geometry.widths))
+    : parseCSSSize(borderWidth as string | number);
   if (bw <= 0) return;
 
-  const borderColorStr = style.borderColor as string | undefined;
+  const borderColorStr = paint.color;
 
   // borderColor가 명시되지 않으면 spec의 border(대부분 transparent)를 덮어쓰지 않음
   // Spec이 이미 transparent로 렌더링했다면 그대로 유지 (CSS currentColor 회색 fallback 방지)
@@ -2326,10 +2337,19 @@ function applyInlineBorderOverlay(
     };
   }
 
-  // borderColor
+  // borderColor — 알파 포함 (종전 alpha 1 고정: rgba(…,0.5) 가 불투명으로 그려졌다,
+  //   G2 mask-solid-alpha 실측 0.080 → box 경로 buildBoxNodeData 와 같은 cssColorToAlpha)
   const borderHex = cssColorToHex(borderColorStr, 0x808080);
-  specNode.box.strokeColor = colorIntToFloat32(borderHex, 1);
+  specNode.box.strokeColor = colorIntToFloat32(
+    borderHex,
+    cssColorToAlpha(borderColorStr),
+  );
   specNode.box.strokeWidth = bw;
+  if (geometry.hasWidthLonghand && geometry.uniformWidth === null) {
+    specNode.box.strokeWidths = geometry.widths;
+  } else {
+    delete specNode.box.strokeWidths;
+  }
 
   // border-style → strokeStyle. solid 는 렌더러 기본값이라 키 생략, 그 외 7종은
   //   nodeRendererBorders 가 전부 렌더(dashed/dotted/double/groove/ridge/inset/outset).
