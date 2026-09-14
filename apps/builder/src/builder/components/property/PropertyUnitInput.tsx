@@ -45,6 +45,14 @@ interface PropertyUnitInputProps {
   presets?: readonly PropertyUnitPreset[];
   /** preset trigger의 접근성 이름. */
   presetAriaLabel?: string;
+  /**
+   * "suffix" — legend·아이콘 없이 라벨을 필드 안 우측 suffix (10 mono caps) 로 둔다.
+   * 라벨 행 18 이 없어져 행 하나가 28 (panel-ui 01, 2026-09-14). 86px 열이므로 짧은 토큰
+   * (W · H · MIN W) 만 — 긴 이름은 열 2개짜리 필드에서. 접근 이름은 input aria-label.
+   */
+  labelMode?: "legend" | "suffix";
+  /** suffix 모드의 표시 글자 (기본 label). 접근 이름은 언제나 label — "Width" 를 "W" 로 보일 때 */
+  suffixLabel?: string;
 }
 
 const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -232,6 +240,9 @@ export const PropertyUnitInput = memo(
     max = 9999,
     presets,
     presetAriaLabel,
+
+    labelMode = "legend",
+    suffixLabel,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -571,12 +582,16 @@ export const PropertyUnitInput = memo(
     return (
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
+        data-label-mode={labelMode === "suffix" ? "suffix" : undefined}
+        aria-label={
+          labelMode === "suffix" && displayLabel ? displayLabel : undefined
+        }
       >
-        {displayLabel && (
+        {displayLabel && labelMode === "legend" && (
           <legend className="fieldset-legend">{displayLabel}</legend>
         )}
         <div className="react-aria-control react-aria-Group" ref={groupRef}>
-          {Icon && (
+          {Icon && labelMode === "legend" && (
             <label className="control-label">
               <Icon
                 color={iconProps.color}
@@ -589,7 +604,17 @@ export const PropertyUnitInput = memo(
             className="react-aria-ComboBox react-aria-UnitComboBox"
             ref={comboBoxRef}
             isDisabled={isDisabled}
-            inputValue={hasPresets ? "" : unit === "" ? "—" : unit}
+            // "reset" 단위 (값 없음) 는 글자 대신 placeholder — 필드에 "reset" 이 차던 것
+            //   (suffix 모드 86px 열에서 "r…" 로 잘렸다, 2026-09-14)
+            inputValue={
+              hasPresets
+                ? ""
+                : unit === ""
+                  ? "—"
+                  : unit === "reset"
+                    ? ""
+                    : unit
+            }
             onSelectionChange={(key) => {
               if (key === null) return;
 
@@ -664,6 +689,11 @@ export const PropertyUnitInput = memo(
                 }
                 placeholder={placeholder}
               />
+              {displayLabel && labelMode === "suffix" && (
+                <span className="property-unit-input__suffix" aria-hidden="true">
+                  {suffixLabel ?? displayLabel}
+                </span>
+              )}
               <Button
                 className="react-aria-Button"
                 aria-label={hasPresets ? presetAriaLabel : undefined}

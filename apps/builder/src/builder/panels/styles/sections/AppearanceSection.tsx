@@ -30,10 +30,8 @@ import {
   EllipsisVertical,
   Eclipse,
   Eye,
-  Scissors,
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
-import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 import { APPEARANCE_PROPS } from "./styleSectionProps";
 import {
   applyShadowInset,
@@ -421,17 +419,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
         )}
       </div>
 
-      {/* Overflow */}
-      <div className="style-overflow">
-        <PropertySelect
-          icon={Scissors}
-          label="Overflow"
-          className="overflow"
-          value={styleValues.overflow}
-          options={OVERFLOW_OPTIONS}
-          onChange={(value) => updateStyleImmediate("overflow", value)}
-        />
-      </div>
+      {/* Overflow 는 Layout 탭 Size 절로 (panel-ui 01, 2026-09-14) */}
     </>
   );
 });

@@ -278,9 +278,10 @@
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas:
-          "min-width max-width actions-constraint-w"
-          "min-height max-height actions-constraint-h"
-          "aspect-ratio aspect-ratio aspect-ratio";
+          "min-width min-height actions-constraint-w"
+          "max-width max-height actions-constraint-h"
+          "aspect-ratio aspect-ratio aspect-ratio"
+          "overflow overflow .";
 
         > * {
           min-width: 0;
@@ -324,6 +325,39 @@
         .aspect-ratio-field > .swatch-icon-button {
           flex-shrink: 0;
         }
+
+        .overflow {
+          grid-area: overflow;
+        }
+      }
+    }
+
+    /* Position 절 — Size 와 같은 행 템플릿 */
+    &[data-section-id="position"] .section-content {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+
+      > * {
+        min-width: 0;
+      }
+
+      .transform-row {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        gap: var(--spacing-sm);
+
+        > * {
+          min-width: 0;
+        }
+
+        .fieldset-actions {
+          grid-area: auto;
+        }
+      }
+
+      .actions-position {
+        align-self: end;
       }
     }
 

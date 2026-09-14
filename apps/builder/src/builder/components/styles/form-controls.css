@@ -400,6 +400,26 @@
       }
     }
 
+    /* PropertyUnitInput labelMode="suffix" — 라벨이 필드 안 우측 (10 mono caps),
+       legend·아이콘 없음. 단위는 종전처럼 chevron 메뉴에만 (필드 안 단위 글자는 원래 없다).
+       (panel-ui 01, 2026-09-14) */
+    .property-unit-input[data-label-mode="suffix"] {
+      .property-unit-input__suffix {
+        flex: none;
+        font-family: var(--font-mono);
+        font-size: var(--text-2xs);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--fg-muted);
+        pointer-events: none;
+        user-select: none;
+      }
+
+      .react-aria-UnitComboBox .react-aria-Input {
+        font-variant-numeric: tabular-nums;
+      }
+    }
+
     /* Slider Component - Used by PropertySlider.tsx */
     .react-aria-Slider {
       width: 100%;

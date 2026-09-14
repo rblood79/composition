@@ -17,6 +17,13 @@ import { persist } from "zustand/middleware";
  * 다른 패널(Components/Monitor/History)의 섹션이 하나라도 접혀 있으면 영원히 거짓이 되어
  * ⌥S 로 다시 펼칠 수 없었다. 판정은 반드시 id 집합으로 한다.
  */
+/**
+ * 처음부터 접혀 있는 절 — Position (Layout 탭): static 요소에서 Left/Top 은 비활성이라
+ * 펼칠 이유가 없고, position 이 absolute 가 되면 TransformSection 이 펼친다 (panel-ui 01,
+ * 2026-09-14). 저장된 상태가 있는 사용자에게도 한 번은 적용한다 (`defaultsApplied`).
+ */
+export const DEFAULT_COLLAPSED_SECTION_IDS: readonly string[] = ["position"];
+
 export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
   "transform",
   "layout",
@@ -73,8 +80,8 @@ interface SectionCollapseState {
 export const useSectionCollapse = create<SectionCollapseState>()(
   persist(
     (set, get) => ({
-      // Initial state: all sections expanded
-      collapsedSections: new Set<string>(),
+      // Initial state: all sections expanded — except DEFAULT_COLLAPSED_SECTION_IDS
+      collapsedSections: new Set<string>(DEFAULT_COLLAPSED_SECTION_IDS),
       focusMode: false,
       activeFocusSection: null,
 
@@ -165,6 +172,7 @@ export const useSectionCollapse = create<SectionCollapseState>()(
         collapsedSections: Array.from(state.collapsedSections),
         focusMode: state.focusMode,
         activeFocusSection: state.activeFocusSection,
+        defaultsApplied: Array.from(DEFAULT_COLLAPSED_SECTION_IDS),
       }),
       merge: (
         persistedState: unknown,
@@ -174,11 +182,20 @@ export const useSectionCollapse = create<SectionCollapseState>()(
           collapsedSections: string[];
           focusMode: boolean;
           activeFocusSection: string | null;
+          defaultsApplied: string[];
         }>;
+        // 아직 적용한 적 없는 기본 접힘 절은 저장 상태 위에 한 번 더한다
+        const applied = new Set(stored?.defaultsApplied ?? []);
+        const pendingDefaults = DEFAULT_COLLAPSED_SECTION_IDS.filter(
+          (id) => !applied.has(id),
+        );
 
         return {
           ...currentState,
-          collapsedSections: new Set(stored?.collapsedSections || []),
+          collapsedSections: new Set([
+            ...(stored?.collapsedSections || []),
+            ...pendingDefaults,
+          ]),
           focusMode: stored?.focusMode || false,
           activeFocusSection: stored?.activeFocusSection || null,
         };

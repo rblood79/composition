@@ -14,7 +14,7 @@
  */
 
 import React, { memo } from "react";
-import { ChevronUp, RotateCcw } from "lucide-react";
+import { ChevronRight, RotateCcw } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   isSectionCollapsedInState,
@@ -115,6 +115,27 @@ export const Section = memo(
         data-section-id={id}
       >
         <div className="section-header">
+          {/* 접힘 caret 은 제목 왼쪽 (▸ 접힘 / ▾ 펼침) — 접힌 절이 한 줄로 남아 목차가
+              읽힌다 (panel-ui 01, 2026-09-14). 종전 우측 ∧ 는 접힘·펼침 무게가 같았다. */}
+          {collapsible && (
+            <button
+              className="iconButton section-caret"
+              type="button"
+              onClick={handleToggle}
+              aria-label={isExpanded ? collapseLabel : expandLabel}
+              aria-expanded={isExpanded}
+            >
+              <ChevronRight
+                color={iconProps.color}
+                strokeWidth={iconProps.strokeWidth}
+                size={iconProps.size}
+                style={{
+                  transform: isExpanded ? "rotate(90deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}
+              />
+            </button>
+          )}
           <div className="section-title">
             {displayTitle}
             {badge}
@@ -139,26 +160,6 @@ export const Section = memo(
 
             {/* Custom actions */}
             {actions}
-
-            {/* Collapse/Expand toggle */}
-            {collapsible && (
-              <button
-                className="iconButton"
-                type="button"
-                onClick={handleToggle}
-                aria-label={isExpanded ? collapseLabel : expandLabel}
-              >
-                <ChevronUp
-                  color={iconProps.color}
-                  strokeWidth={iconProps.strokeWidth}
-                  size={iconProps.size}
-                  style={{
-                    transform: isExpanded ? "rotate(0deg)" : "rotate(180deg)",
-                    transition: "transform 0.2s ease",
-                  }}
-                />
-              </button>
-            )}
           </div>
         </div>
         {/* Lazy Children - 열릴 때만 children 평가 */}

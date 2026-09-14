@@ -108,15 +108,15 @@ describe("StylesPanel view tabs", () => {
 
     // 그룹 4개 + Modified. "수정된 속성만" 도 같은 영역을 차지하는 뷰라 탭 줄에 함께 있다.
     expect(screen.getAllByRole("tab")).toHaveLength(5);
-    // 기본 탭 = Layout(Transform + Layout). 다른 뷰의 섹션은 렌더되지 않는다.
-    expect(screen.getByText("Transform")).toBeTruthy();
+    // 기본 탭 = Layout(Size + Position + Layout). 다른 뷰의 섹션은 렌더되지 않는다.
+    expect(screen.getByText("Size")).toBeTruthy();
     expect(screen.queryByText("Typography")).toBeNull();
     expect(screen.queryByText("Appearance")).toBeNull();
 
     fireEvent.click(screen.getByRole("tab", { name: "Text" }));
 
     expect(screen.getByText("Typography")).toBeTruthy();
-    expect(screen.queryByText("Transform")).toBeNull();
+    expect(screen.queryByText("Size")).toBeNull();
   });
 
   it("switches to the modified-only view from the tab strip", () => {
@@ -126,6 +126,6 @@ describe("StylesPanel view tabs", () => {
     fireEvent.click(screen.getByRole("tab", { name: /^Modified/ }));
 
     expect(screen.getByText(/Modified Styles/)).toBeTruthy();
-    expect(screen.queryByText("Transform")).toBeNull();
+    expect(screen.queryByText("Size")).toBeNull();
   });
 });

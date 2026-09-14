@@ -81,7 +81,6 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     const { result } = renderHook(() => useAppearanceValues("el-spec-only"));
     expect(result.current?.borderStyle).toBe("dashed");
     expect(result.current?.boxShadow).toBe("var(--shadow-lg)");
-    expect(result.current?.overflow).toBe("hidden");
   });
 
   it("inline borderStyle/boxShadow/overflow wins over spec preset (M5)", () => {
@@ -104,7 +103,6 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     );
     expect(result.current?.borderStyle).toBe("dotted");
     expect(result.current?.boxShadow).toBe("0 1px 2px rgba(0,0,0,0.5)");
-    expect(result.current?.overflow).toBe("scroll");
   });
 
   it("falls back to hardcoded defaults when neither inline nor spec present", () => {
@@ -124,7 +122,6 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     // borderStyle/boxShadow/overflow 하드코딩 fallback (M5)
     expect(result.current?.borderStyle).toBe("solid");
     expect(result.current?.boxShadow).toBe("none");
-    expect(result.current?.overflow).toBe("visible");
   });
 
   it("opacity — inline 이 문자열/숫자 어느 형태든 문자열로 읽고, 없으면 \"1\" (요소 opacity 컨트롤)", () => {

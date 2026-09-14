@@ -322,8 +322,20 @@
       justify-content: space-between;
     }
 
+    /* caret 32 (chrome 티어) 가 제목 왼쪽 — 제목 padding 은 caret 이 있으면 좌측 0 */
+    .section-header .section-caret {
+      flex: none;
+      margin-inline-start: var(--spacing-xs);
+    }
+
+    .section-header .section-caret + .section-title {
+      padding-inline-start: 0;
+    }
+
     .section-header .section-title {
       display: flex;
+      flex: 1;
+      min-width: 0;
       align-items: center;
       gap: var(--spacing-sm);
       padding: var(--spacing-sm);

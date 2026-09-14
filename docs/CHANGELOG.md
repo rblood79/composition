@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Layout 탭 (1/3) — 절 caret · Size / Position 분리 · 필드 안 suffix 라벨 (panel-ui 01)] - 2026-09-14
+
+### Changed
+
+- **절 헤더 caret 이 제목 왼쪽** (▸ 접힘 / ▾ 펼침, 전 패널 공용 `Section`) — 종전 우측 ∧ 는 접힘·펼침 무게가 같아 접힌 절이 목차로 읽히지 않았다. 높이 32 · 12 semibold 그대로.
+- **Transform 절 → Size + Position 두 절**: Size (W · H · MIN · MAX · Ratio · Overflow) / Position (Left · Top · absolute 토글) — Position 은 처음부터 접혀 있고 (static 요소에서 Left/Top 은 비활성) position 이 absolute 가 되면 자동으로 펼친다. 절 id "transform" 은 persist 키라 유지 (제목만 Size). reset 범위 `SIZE_PROPS` / `POSITION_PROPS`.
+- **라벨을 필드 안 suffix 로** (`PropertyUnitInput labelMode="suffix"` — 10 mono caps, 아이콘·legend 없음): 「Width / 240 ▾」 두 줄 46 → 「240 W ▾」 28. W · H · MIN · MAX · LEFT · TOP · X · Y (접근 이름은 그대로 "Width" 등). 제약 (Min/Max/Ratio) 은 토글 뒤 숨김 → 항상 보임.
+- **Overflow 를 Style 탭 Appearance 에서 Layout 탭 Size 절로** (크기의 일부). reset·modify 범위는 APPEARANCE_PROPS 에 그대로 (TRANSFORM_PROPS 에 넣으면 ADR-154 responsive 허용 목록이 넓어진다) — Size 절 reset 은 overflow 를 따로 더한다.
+- 값 없음 ("reset" 단위) 필드는 글자 "reset" 대신 placeholder (`auto`) — 86px 열에서 "r…" 로 잘렸다.
+- live (`layouttab-live.mjs`): 절 헤더 32 / caret 32 · 필드 87×28 · suffix 10px · Position 접힘 → absolute 로 자동 펼침 · W 240 / overflow hidden 커밋.
+
 ## [Interactions · Settings · Font Manager · 글꼴 피커 — 28 격자 (panel-ui 20)] - 2026-09-14
 
 ### Changed

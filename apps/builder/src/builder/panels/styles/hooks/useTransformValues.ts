@@ -53,6 +53,8 @@ export interface TransformValuesBundle {
   minHeight: TransformTier;
   maxHeight: TransformTier;
   aspectRatio: TransformTier;
+  /** overflow — Size 절로 이동 (panel-ui 01). spec 기본은 appearance preset 이 아니라 "visible". */
+  overflow: TransformTier;
   isBody: boolean;
 }
 
@@ -106,6 +108,7 @@ export function useTransformValues(
       minHeight: tier("minHeight"),
       maxHeight: tier("maxHeight"),
       aspectRatio: tier("aspectRatio"),
+      overflow: tier("overflow"),
       isBody,
     };
   }, [

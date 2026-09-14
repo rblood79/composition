@@ -8,8 +8,9 @@
 import {
   memo,
   useCallback,
+  useEffect,
   useMemo,
-  useState,
+  useRef,
   useSyncExternalStore,
 } from "react";
 import type { Key } from "react-aria-components/Collection";
@@ -33,18 +34,7 @@ import {
   SwatchIconToggleButton,
 } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import {
-  RulerDimensionLine,
-  ArrowRightFromLine,
-  ArrowDownFromLine,
-  Minus,
-  MoveHorizontal,
-  Shrink,
-  ChevronsLeftRightEllipsis,
-  Ratio,
-  Lock,
-  Unlock,
-} from "lucide-react";
+import { Minus, MoveHorizontal, Shrink, Lock, Unlock } from "lucide-react";
 import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
@@ -84,7 +74,14 @@ import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/reso
 import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
 import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
 import { resolveAbsolutePositionActivationStyles } from "./transformUtils";
-import { TRANSFORM_PROPS } from "./styleSectionProps";
+import { POSITION_PROPS, SIZE_PROPS } from "./styleSectionProps";
+import {
+  isSectionCollapsedInState,
+  useSectionCollapse,
+} from "../hooks/useSectionCollapse";
+import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
+
+const POSITION_SECTION_ID = "position";
 
 const ICON_SIZE = 14;
 const ICON_STROKE = 1.5;
@@ -266,8 +263,8 @@ const PagePositionRow = memo(function PagePositionRow({
     <div className="transform-row">
       {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
       <PropertyUnitInput
-        icon={ArrowRightFromLine}
         label="X"
+        labelMode="suffix"
         className="left"
         value={`${displayX}px`}
         units={["px"]}
@@ -276,8 +273,8 @@ const PagePositionRow = memo(function PagePositionRow({
         max={99999}
       />
       <PropertyUnitInput
-        icon={ArrowDownFromLine}
         label="Y"
+        labelMode="suffix"
         className="top"
         value={`${displayY}px`}
         units={["px"]}
@@ -290,7 +287,17 @@ const PagePositionRow = memo(function PagePositionRow({
   );
 });
 
-const TransformSectionContent = memo(function TransformSectionContent() {
+/**
+ * Size / Position 두 절이 같은 값 묶음 (useTransformValues) 을 읽는다 — 절 하나당 마운트라
+ * 훅은 두 번 돌지만 값은 같은 store 구독이라 비용은 미미하다 (panel-ui 01, 2026-09-14).
+ */
+type TransformSectionPart = "size" | "position";
+
+const TransformSectionContent = memo(function TransformSectionContent({
+  part,
+}: {
+  part: TransformSectionPart;
+}) {
   const i18n = useOptionalI18n();
   /** 패널 자체 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
   const t = (key: string) => (i18n ? i18n.t(key) : key);
@@ -341,6 +348,11 @@ const TransformSectionContent = memo(function TransformSectionContent() {
         bundle.aspectRatio.inline,
         bundle.aspectRatio.specDefault,
       ),
+      overflow: toStr(
+        bundle.overflow.inline,
+        bundle.overflow.specDefault,
+        "visible",
+      ),
       isBody: bundle.isBody,
     };
   }, [bundle]);
@@ -364,14 +376,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
     selectedElementPageId != null
       ? selectedElementPageId
       : null;
-  const hasConstraints = !!(
-    styleValues?.minWidth ||
-    styleValues?.maxWidth ||
-    styleValues?.minHeight ||
-    styleValues?.maxHeight ||
-    styleValues?.aspectRatio
-  );
-  const [showConstraints, setShowConstraints] = useState(hasConstraints);
 
   // ADR-026: Size Mode (Zustand hooks)
   const widthMode = useWidthSizeMode(selectedId);
@@ -531,6 +535,60 @@ const TransformSectionContent = memo(function TransformSectionContent() {
   // Width Fill은 모든 부모에서 가능 (block: 100%, flex: flex-grow, grid: stretch)
   const widthFillDisabled = false;
 
+  if (part === "position") {
+    return pagePositionPageId ? (
+      <PagePositionRow pageId={pagePositionPageId} />
+    ) : styleValues.isBody ? null : (
+      <div className="transform-row">
+        <PropertyUnitInput
+          label="Left"
+          labelMode="suffix"
+          className="left"
+          value={isAbsolutePositioned ? styleValues.left : "auto"}
+          units={["px", "%", "vw"]}
+          preserveEmptyValueOnUnitChange
+          allowEmptyReset
+          isDisabled={!isAbsolutePositioned}
+          placeholder="auto"
+          onChange={(value) => updateStyleImmediate("left", value)}
+          onDrag={(value) => updateStylePreview("left", value)}
+          min={-9999}
+          max={9999}
+        />
+        <PropertyUnitInput
+          label="Top"
+          labelMode="suffix"
+          className="top"
+          value={isAbsolutePositioned ? styleValues.top : "auto"}
+          units={["px", "%", "vh"]}
+          preserveEmptyValueOnUnitChange
+          allowEmptyReset
+          isDisabled={!isAbsolutePositioned}
+          placeholder="auto"
+          onChange={(value) => updateStyleImmediate("top", value)}
+          onDrag={(value) => updateStylePreview("top", value)}
+          min={-9999}
+          max={9999}
+        />
+        <div className="fieldset-actions actions-position">
+          <SwatchIconToggleButton
+            aria-label={localize("Absolute position")}
+            isSelected={styleValues.position === "absolute"}
+            onChange={handleAbsolutePositionChange}
+          >
+            <LayoutFreeform
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </SwatchIconToggleButton>
+        </div>
+      </div>
+    );
+  }
+
+  // Size — 라벨은 필드 안 suffix (W · H · MIN · MAX — 축은 열이 말한다), 행 28. 제약(min/max/ratio)은 항상
+  //   보인다 (종전 토글 뒤에 숨김). Overflow 는 Appearance 에서 여기로 (크기의 일부).
   return (
     <>
       {showSizeMode && (
@@ -558,8 +616,9 @@ const TransformSectionContent = memo(function TransformSectionContent() {
       )}
       <div className="transform-row">
         <PropertyUnitInput
-          icon={RulerDimensionLine}
           label="Width"
+          labelMode="suffix"
+          suffixLabel="W"
           className="width"
           value={displayWidth}
           units={["reset", "px", "%", "vw"]}
@@ -575,8 +634,9 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           max={9999}
         />
         <PropertyUnitInput
-          icon={RulerDimensionLine}
           label="Height"
+          labelMode="suffix"
+          suffixLabel="H"
           className="height"
           value={displayHeight}
           units={["reset", "px", "%", "vh"]}
@@ -591,24 +651,16 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           min={0}
           max={9999}
         />
-        <div className="fieldset-actions actions-size">
-          <SwatchIconButton
-            aria-label={localize("Toggle constraints")}
-            onPress={() => setShowConstraints((v) => !v)}
-          >
-            <ChevronsLeftRightEllipsis
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </SwatchIconButton>
-        </div>
+        <div className="fieldset-actions actions-size" />
       </div>
 
-      {showConstraints && !styleValues.isBody && (
+      {!styleValues.isBody && (
         <div className="transform-constraints">
           <PropertyUnitInput
             label="Min W"
+            labelMode="suffix"
+            suffixLabel="MIN"
+            placeholder="auto"
             className="min-width"
             value={styleValues.minWidth}
             units={["reset", "px", "%", "vw"]}
@@ -620,6 +672,9 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           />
           <PropertyUnitInput
             label="Max W"
+            labelMode="suffix"
+            suffixLabel="MAX"
+            placeholder="auto"
             className="max-width"
             value={styleValues.maxWidth}
             units={["reset", "px", "%", "vw"]}
@@ -632,6 +687,9 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           <div className="fieldset-actions actions-constraint-w" />
           <PropertyUnitInput
             label="Min H"
+            labelMode="suffix"
+            suffixLabel="MIN"
+            placeholder="auto"
             className="min-height"
             value={styleValues.minHeight}
             units={["reset", "px", "%", "vh"]}
@@ -643,6 +701,9 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           />
           <PropertyUnitInput
             label="Max H"
+            labelMode="suffix"
+            suffixLabel="MAX"
+            placeholder="auto"
             className="max-height"
             value={styleValues.maxHeight}
             units={["reset", "px", "%", "vh"]}
@@ -655,7 +716,6 @@ const TransformSectionContent = memo(function TransformSectionContent() {
           <div className="fieldset-actions actions-constraint-h" />
           <div className="aspect-ratio-field">
             <PropertySelect
-              icon={Ratio}
               label="Ratio"
               className="aspect-ratio-select"
               value={styleValues.aspectRatio || ""}
@@ -688,56 +748,13 @@ const TransformSectionContent = memo(function TransformSectionContent() {
               )}
             </SwatchIconButton>
           </div>
-        </div>
-      )}
-
-      {pagePositionPageId ? (
-        <PagePositionRow pageId={pagePositionPageId} />
-      ) : styleValues.isBody ? null : (
-        <div className="transform-row">
-          <PropertyUnitInput
-            icon={ArrowRightFromLine}
-            label="Left"
-            className="left"
-            value={isAbsolutePositioned ? styleValues.left : "auto"}
-            units={["px", "%", "vw"]}
-            preserveEmptyValueOnUnitChange
-            allowEmptyReset
-            isDisabled={!isAbsolutePositioned}
-            placeholder="auto"
-            onChange={(value) => updateStyleImmediate("left", value)}
-            onDrag={(value) => updateStylePreview("left", value)}
-            min={-9999}
-            max={9999}
+          <PropertySelect
+            label="Overflow"
+            className="overflow"
+            value={styleValues.overflow}
+            options={OVERFLOW_OPTIONS}
+            onChange={(value) => updateStyleImmediate("overflow", value)}
           />
-          <PropertyUnitInput
-            icon={ArrowDownFromLine}
-            label="Top"
-            className="top"
-            value={isAbsolutePositioned ? styleValues.top : "auto"}
-            units={["px", "%", "vh"]}
-            preserveEmptyValueOnUnitChange
-            allowEmptyReset
-            isDisabled={!isAbsolutePositioned}
-            placeholder="auto"
-            onChange={(value) => updateStyleImmediate("top", value)}
-            onDrag={(value) => updateStylePreview("top", value)}
-            min={-9999}
-            max={9999}
-          />
-          <div className="fieldset-actions actions-position">
-            <SwatchIconToggleButton
-              aria-label={localize("Absolute position")}
-              isSelected={styleValues.position === "absolute"}
-              onChange={handleAbsolutePositionChange}
-            >
-              <LayoutFreeform
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </SwatchIconToggleButton>
-          </div>
         </div>
       )}
     </>
@@ -745,24 +762,52 @@ const TransformSectionContent = memo(function TransformSectionContent() {
 });
 
 /**
- * TransformSection - 외부 래퍼 (PropertySection 관리)
+ * TransformSection - 외부 래퍼: Size 절 + Position 절 (panel-ui 01, 2026-09-14).
+ *
+ * 절 id "transform" 은 collapse persist 키라 그대로 (제목만 "Size"). Position 은 접힌
+ * 채로 시작하고 position 이 absolute 가 되면 펼친다 — static 요소에서 Left/Top 은
+ * 비활성이라 펼칠 이유가 없다. reset 범위는 SIZE_PROPS / POSITION_PROPS 로 나눈다
+ * (합집합 = TRANSFORM_PROPS, responsiveEligible 게이트와 단일 소스).
  */
-/** 그룹 탭 dirty 표시(styleGroups.ts)가 재사용 — 섹션 reset 범위와 단일 소스. */
 export const TransformSection = memo(function TransformSection() {
   const resetStyles = useResetStyles();
-  const hasDirty = useHasDirtyStyles(TRANSFORM_PROPS);
+  const hasSizeDirty = useHasDirtyStyles(SIZE_PROPS);
+  const hasPositionDirty = useHasDirtyStyles(POSITION_PROPS);
+  const selectedId = useStore((s) => s.selectedElementId);
+  const bundle = useTransformValues(selectedId);
+  const isAbsolute = bundle?.position.inline === "absolute";
+  const expandSections = useSectionCollapse((s) => s.expandSections);
+  const positionCollapsed = useSectionCollapse((s) =>
+    isSectionCollapsedInState(s, POSITION_SECTION_ID),
+  );
 
-  const handleReset = () => {
-    resetStyles(TRANSFORM_PROPS);
-  };
+  // position ≠ static 이 되면 Position 절을 자동으로 펼친다 (한 번 — 사용자가 다시 접을 수 있다)
+  const wasAbsoluteRef = useRef(isAbsolute);
+  useEffect(() => {
+    if (isAbsolute && !wasAbsoluteRef.current && positionCollapsed) {
+      expandSections([POSITION_SECTION_ID]);
+    }
+    wasAbsoluteRef.current = isAbsolute;
+  }, [isAbsolute, positionCollapsed, expandSections]);
 
   return (
-    <PropertySection
-      id="transform"
-      title="Transform"
-      onReset={hasDirty ? handleReset : undefined}
-    >
-      <TransformSectionContent />
-    </PropertySection>
+    <>
+      <PropertySection
+        id="transform"
+        title="Size"
+        onReset={hasSizeDirty ? () => resetStyles(SIZE_PROPS) : undefined}
+      >
+        <TransformSectionContent part="size" />
+      </PropertySection>
+      <PropertySection
+        id={POSITION_SECTION_ID}
+        title="Position"
+        onReset={
+          hasPositionDirty ? () => resetStyles(POSITION_PROPS) : undefined
+        }
+      >
+        <TransformSectionContent part="position" />
+      </PropertySection>
+    </>
   );
 });
