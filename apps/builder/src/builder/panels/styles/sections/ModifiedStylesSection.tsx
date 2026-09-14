@@ -76,6 +76,15 @@ const CATEGORY_ORDER: ReadonlyArray<ReadonlySet<string>> = [
     "borderColor",
     "borderWidth",
     "borderRadius",
+    // ADR-219 — 코너 · 변 longhand 8 (비균일이면 4행씩, padding 과 같다)
+    "borderTopLeftRadius",
+    "borderTopRightRadius",
+    "borderBottomRightRadius",
+    "borderBottomLeftRadius",
+    "borderTopWidth",
+    "borderRightWidth",
+    "borderBottomWidth",
+    "borderLeftWidth",
     "borderStyle",
     "overflow",
     "boxShadow",
@@ -164,7 +173,7 @@ export const ModifiedStylesSection = memo(function ModifiedStylesSection({
           const display = resolved ? toDisplayHex(resolved) : value;
           return {
             property,
-            label: formatLabel(property),
+            label: localize(formatLabel(property)),
             raw: value,
             display:
               display.length > VALUE_MAX
@@ -173,7 +182,8 @@ export const ModifiedStylesSection = memo(function ModifiedStylesSection({
             swatch,
           };
         }),
-    [modifiedProperties, effectiveStyle, theme, accentColor],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- localize 는 i18n 에만 의존
+    [modifiedProperties, effectiveStyle, theme, accentColor, i18n],
   );
 
   const handleReset = useCallback(() => {

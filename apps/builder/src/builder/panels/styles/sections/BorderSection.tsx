@@ -11,13 +11,25 @@
  * Style 은 셀렉트 10항목 → seg 4 (none · solid · dashed · dotted) — double/groove/ridge/
  * inset/outset 은 저장값이 있으면 렌더는 그대로 (Skia 8종) 되지만 seg 에 선택이 없다.
  *
- * 코너별 반경 · 변별 두께는 Skia 채널이 없어 (buildBoxNodeData rrect 하나 · convertToStrokeStyle
- * stroke 하나) ADR "Border 기하 채널" 이 먼저다 — 여기서 열지 않는다.
+ * ADR-219 (2026-09-14): 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (Width 아래) 와 코너 2×2
+ * (Radius 아래). 표시는 `resolveBorderGeometry` 의 유효 4값 (저장 형태 무관), 쓰기는 —
+ * 전체/슬라이더 = shorthand (store 배치 연산이 longhand 를 지운다), 변/칸 = longhand 배치
+ * (`updateStylesImmediate` 한 번 · 코너 칸 하나는 그 longhand 하나). double/groove/ridge/
+ * inset/outset 은 변별 폭 미지원 — 세그먼트 비활성, 그런 문서가 오면 「Skia 근사」 배지.
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
 import { memo } from "react";
-import { Ellipsis, Minus, X } from "lucide-react";
+import {
+  Ellipsis,
+  Minus,
+  PanelBottom,
+  PanelLeft,
+  PanelRight,
+  PanelTop,
+  Square,
+  X,
+} from "lucide-react";
 import {
   ToggleButtonGroup,
   ToggleButton,
@@ -27,6 +39,7 @@ import {
   PropertyColor,
   PropertyRowMenu,
   PropertySlider,
+  PropertyUnitInput,
 } from "../../../components";
 import {
   BORDER_RADIUS_PRESET_OPTIONS,
@@ -61,6 +74,34 @@ const BORDER_STYLE_OPTIONS = [
   { id: "dotted", label: "Dotted", icon: Ellipsis },
 ] as const;
 
+/** 변별 폭을 지원하지 않는 style — 세그먼트 비활성 (breakdown §2.3 ③) */
+const SIDED_WIDTH_UNSUPPORTED_STYLES = new Set([
+  "double",
+  "groove",
+  "ridge",
+  "inset",
+  "outset",
+]);
+
+/** 세그먼트 순서 (시안 02 ④): 전체 · 좌 · 우 · 상 · 하 */
+const SIDE_OPTIONS = [
+  { id: "all", label: "All sides", icon: Square },
+  { id: "left", label: "Left side", icon: PanelLeft },
+  { id: "right", label: "Right side", icon: PanelRight },
+  { id: "top", label: "Top side", icon: PanelTop },
+  { id: "bottom", label: "Bottom side", icon: PanelBottom },
+] as const;
+
+/** `[top, right, bottom, left]` 인덱스 */
+const SIDE_INDEX = { top: 0, right: 1, bottom: 2, left: 3 } as const;
+
+const CORNER_FIELDS = [
+  { prop: "borderTopLeftRadius", label: "Top left radius", suffix: "TL", index: 0 },
+  { prop: "borderTopRightRadius", label: "Top right radius", suffix: "TR", index: 1 },
+  { prop: "borderBottomLeftRadius", label: "Bottom left radius", suffix: "BL", index: 3 },
+  { prop: "borderBottomRightRadius", label: "Bottom right radius", suffix: "BR", index: 2 },
+] as const;
+
 /** 프리셋 (XS~XL, Reset) → 행 메뉴 항목. value "" (Reset) 은 inline 키 삭제. */
 function toPresetMenuItems(presets: readonly PropertyUnitPreset[]) {
   return presets.map((preset) => ({
@@ -79,7 +120,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
       ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
       : label;
   const { updateStyle } = useStyleActions();
-  const { updateStyleImmediate, updateStylePreview } =
+  const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
   const {
     cancelBorderColorPresentation,
@@ -108,8 +149,54 @@ const BorderSectionContent = memo(function BorderSectionContent() {
     updateStyle("borderColor", value);
   };
 
-  const widthPx = resolveCssLengthPx(styleValues.borderWidth) ?? 0;
-  const radiusPx = resolveCssLengthPx(styleValues.borderRadius) ?? 0;
+  // ADR-219 — 유효 4값. 슬라이더는 균일값 (비균일이면 최대값을 보이고, 드래그하면 균일로)
+  const { widths, radii, uniformWidth, uniformRadius } =
+    styleValues.borderGeometry;
+  const widthPx = uniformWidth ?? Math.max(...widths);
+  const radiusPx = uniformRadius ?? Math.max(...radii);
+  const sidesOn = (["top", "right", "bottom", "left"] as const).filter(
+    (side) => widths[SIDE_INDEX[side]] > 0,
+  );
+  const allSidesOn = sidesOn.length === 4;
+  const sidesUnsupported = SIDED_WIDTH_UNSUPPORTED_STYLES.has(
+    styleValues.borderStyle,
+  );
+  const showSkiaApproximation = sidesUnsupported && uniformWidth === null;
+  const selectedSideKeys = allSidesOn ? ["all", ...sidesOn] : sidesOn;
+
+  /** 변 세그먼트 — 전체 = shorthand, 일부 = 변 longhand 4 (w 또는 0) 배치 한 번 */
+  const handleSidesChange = (keys: Set<unknown> | "all"): void => {
+    const next = new Set(Array.from(keys as Set<string>));
+    const w = widthPx > 0 ? widthPx : 1;
+    const wasAll = allSidesOn;
+    const nowAll = next.has("all");
+    if (nowAll && !wasAll) {
+      updateStyleImmediate("borderWidth", `${w}px`);
+      return;
+    }
+    if (!nowAll && wasAll) {
+      // "전체" 해제 = 변 전부 0 (shorthand 0 으로 접힌다)
+      updateStyleImmediate("borderWidth", "0px");
+      return;
+    }
+    const mask = (side: "top" | "right" | "bottom" | "left") =>
+      next.has(side) ? `${w}px` : "0px";
+    if (
+      next.has("top") &&
+      next.has("right") &&
+      next.has("bottom") &&
+      next.has("left")
+    ) {
+      updateStyleImmediate("borderWidth", `${w}px`);
+      return;
+    }
+    updateStylesImmediate({
+      borderTopWidth: mask("top"),
+      borderRightWidth: mask("right"),
+      borderBottomWidth: mask("bottom"),
+      borderLeftWidth: mask("left"),
+    });
+  };
 
   const applyPreset = (
     prop: "borderWidth" | "borderRadius",
@@ -149,6 +236,51 @@ const BorderSectionContent = memo(function BorderSectionContent() {
         </div>
       </div>
 
+      <div className="style-border-sides">
+        <fieldset className="properties-aria border-sides">
+          <legend className="fieldset-legend">
+            {localize("Sides")}
+            {showSkiaApproximation && (
+              <span
+                className="border-sides-badge"
+                title={localize("Per-side width needs solid, dashed or dotted")}
+              >
+                {localize("Skia approximation")}
+              </span>
+            )}
+          </legend>
+          <ToggleButtonGroup
+            aria-label={localize("Sides")}
+            indicator
+            selectionMode="multiple"
+            selectedKeys={selectedSideKeys}
+            isDisabled={sidesUnsupported}
+            onSelectionChange={handleSidesChange}
+          >
+            {SIDE_OPTIONS.map(({ id, label, icon: Icon }) => (
+              <ToggleButton
+                key={id}
+                id={id}
+                aria-label={localize(label)}
+                {...(sidesUnsupported
+                  ? {
+                      title: localize(
+                        "Per-side width needs solid, dashed or dotted",
+                      ),
+                    }
+                  : {})}
+              >
+                <Icon
+                  color={iconProps.color}
+                  size={iconProps.size}
+                  strokeWidth={iconProps.strokeWidth}
+                />
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </fieldset>
+      </div>
+
       <div className="style-border-radius">
         <PropertySlider
           label="Radius"
@@ -173,6 +305,25 @@ const BorderSectionContent = memo(function BorderSectionContent() {
             }
           />
         </div>
+      </div>
+
+      <div className="style-border-corners">
+        {CORNER_FIELDS.map(({ prop, label, suffix, index }) => (
+          <PropertyUnitInput
+            key={prop}
+            label={localize(label)}
+            className={`border-corner border-corner-${suffix.toLowerCase()}`}
+            labelMode="suffix"
+            suffixLabel={suffix}
+            units={["px", "reset"]}
+            defaultUnit="px"
+            allowEmptyReset
+            min={0}
+            max={INPUT_MAX}
+            value={`${radii[index]}px`}
+            onChange={(value) => updateStyleImmediate(prop, value)}
+          />
+        ))}
       </div>
 
       <div className="style-border">

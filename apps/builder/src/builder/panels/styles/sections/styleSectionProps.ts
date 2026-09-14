@@ -10,6 +10,15 @@ export const APPEARANCE_PROPS = [
   "borderWidth",
   "borderRadius",
   "borderStyle",
+  // ADR-219 — 코너 · 변 longhand 8 (비균일 저장 형태). 전역 (ADR-154 eligible 밖).
+  "borderTopLeftRadius",
+  "borderTopRightRadius",
+  "borderBottomRightRadius",
+  "borderBottomLeftRadius",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
   "boxShadow",
   "filter",
   // 컨트롤은 Layout 탭 Size 절로 옮겼지만 (panel-ui 01) TRANSFORM_PROPS 에 넣으면
@@ -27,6 +36,14 @@ export const BORDER_PROPS = [
   "borderWidth",
   "borderRadius",
   "borderStyle",
+  "borderTopLeftRadius",
+  "borderTopRightRadius",
+  "borderBottomRightRadius",
+  "borderBottomLeftRadius",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
 ];
 
 /** Effect 절 reset 범위 (filter 는 blur 한 종 — `utils/filterValue`) */

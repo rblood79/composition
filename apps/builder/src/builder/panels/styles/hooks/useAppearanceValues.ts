@@ -5,6 +5,10 @@
 import { useMemo } from "react";
 import { numToPx, firstDefined } from "../utils/styleValueHelpers";
 import { useColorStyleValues } from "./useColorStyleValues";
+import {
+  resolveBorderGeometry,
+  type BorderGeometry,
+} from "../../../workspace/canvas/styleConversion/borderGeometry";
 
 export interface AppearanceStyleValues {
   backgroundColor: string;
@@ -17,6 +21,11 @@ export interface AppearanceStyleValues {
   opacity: string;
   /** CSS `filter` (blur 한 종을 패널이 편집, 나머지 함수는 보존). inline 또는 "". */
   filter: string;
+  /**
+   * ADR-219 — 코너 4 · 변 4 유효값 (저장 형태 무관: longhand ?? shorthand ?? catalog base).
+   * 패널 표시는 이것으로, 쓰기는 shorthand (전체) 또는 longhand (칸/변) 로.
+   */
+  borderGeometry: BorderGeometry;
 }
 
 export function useAppearanceValues(
@@ -45,6 +54,10 @@ export function useAppearanceValues(
       boxShadow: firstDefined(s.boxShadow, specPreset.boxShadow, "none"),
       opacity: firstDefined(s.opacity, undefined, "1"),
       filter: firstDefined(s.filter, undefined, ""),
+      borderGeometry: resolveBorderGeometry(s, {
+        borderRadius: specPreset.borderRadius,
+        borderWidth: specPreset.borderWidth,
+      }),
     };
   }, [id, colorValues]);
 }

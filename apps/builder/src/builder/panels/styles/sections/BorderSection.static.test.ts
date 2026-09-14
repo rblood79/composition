@@ -19,6 +19,37 @@ describe("BorderSection border preset contract", () => {
     expect(source).not.toContain('units={["reset", "px"]}');
   });
 
+  it("ADR-219: 변 세그먼트 · 코너 2×2 — 표시는 helper 유효값, 쓰기는 shorthand/longhand 배치", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BorderSection.tsx"),
+      "utf-8",
+    );
+    // 표시 원천은 helper (저장 형태 무관) — longhand 를 직접 읽지 않는다
+    expect(source).toContain("styleValues.borderGeometry");
+    expect(source).not.toMatch(/style\.borderTopLeftRadius/);
+    // 변 세그먼트 5 (전체 · 좌 · 우 · 상 · 하), 전체 = shorthand, 일부 = longhand 4 배치 한 번
+    expect(source).toContain('id: "all", label: "All sides"');
+    expect(source).toContain('selectionMode="multiple"');
+    expect(source).toContain("updateStylesImmediate({");
+    expect(source).toContain("borderLeftWidth: mask(\"left\")");
+    // 미지원 style 5 — 세그먼트 비활성 + 배지
+    for (const style of ["double", "groove", "ridge", "inset", "outset"]) {
+      expect(source).toContain(`"${style}"`);
+    }
+    expect(source).toContain('localize("Skia approximation")');
+    // 코너 4칸 — suffix 라벨 28 필드, 칸 하나는 그 longhand 하나
+    for (const prop of [
+      "borderTopLeftRadius",
+      "borderTopRightRadius",
+      "borderBottomRightRadius",
+      "borderBottomLeftRadius",
+    ]) {
+      expect(source).toContain(`prop: "${prop}"`);
+    }
+    expect(source).toContain('labelMode="suffix"');
+    expect(source).toContain("updateStyleImmediate(prop, value)");
+  });
+
   it("keeps radius presets on the shared radius token scale", async () => {
     const source = await readFile(
       resolve(__dirname, "../../../components/property/propertyUnitPresets.ts"),

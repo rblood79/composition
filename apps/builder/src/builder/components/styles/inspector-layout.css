@@ -424,6 +424,61 @@
         }
       }
 
+      /* ADR-219 — 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (Width 아래, 전폭 2열 + 빈 아이콘 열) */
+      .style-border-sides {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        grid-template-rows: auto;
+        gap: var(--spacing-sm);
+        grid-template-areas: "sides sides .";
+
+        > * {
+          min-width: 0;
+        }
+
+        .border-sides {
+          grid-area: sides;
+        }
+
+        /* 미지원 style 의 비균일 문서 — 「Skia 근사」 (10 mono caps, legend 우측) */
+        .border-sides-badge {
+          margin-inline-start: var(--spacing-sm);
+          font-family: var(--font-mono);
+          font-size: var(--text-2xs);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          color: var(--notice);
+        }
+      }
+
+      /* ADR-219 — 코너 2×2 (Radius 아래): 반폭 2 × 두 행, 아이콘 열은 빈 칸 */
+      .style-border-corners {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        grid-template-rows: auto auto;
+        gap: var(--spacing-sm);
+        grid-template-areas:
+          "tl tr ."
+          "bl br .";
+
+        > * {
+          min-width: 0;
+        }
+
+        .border-corner-tl {
+          grid-area: tl;
+        }
+        .border-corner-tr {
+          grid-area: tr;
+        }
+        .border-corner-bl {
+          grid-area: bl;
+        }
+        .border-corner-br {
+          grid-area: br;
+        }
+      }
+
       /* Style seg | Color 「■ 000000」 */
       .style-border {
         display: grid;

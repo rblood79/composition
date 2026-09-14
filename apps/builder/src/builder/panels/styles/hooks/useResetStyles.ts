@@ -682,6 +682,15 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
   "borderWidth",
   "borderRadius",
   "borderStyle",
+  // ADR-219 — 비균일 저장 형태 (longhand 8). 전역 (base 비교).
+  "borderTopLeftRadius",
+  "borderTopRightRadius",
+  "borderBottomRightRadius",
+  "borderBottomLeftRadius",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
   "boxShadow",
   "filter",
   "overflow",
@@ -861,8 +870,44 @@ function computeBaseResetObj(
       resetObj[prop] = resetValue;
     }
   });
+  // ADR-219 — 코너/변 longhand 가 reset 대상이면 그 축의 shorthand 지우기도 같이 보낸다.
+  //   store 배치 연산은 "shorthand 지우기 + 값 0" 을 reset (축 키 5 삭제) 으로, longhand
+  //   지우기만은 "그 칸을 base 로" 편집으로 읽는다 — 절 reset 은 전자여야 base 값이
+  //   override 로 다시 저장되지 않는다 (breakdown §2.2 reset 그룹).
+  for (const [shorthand, longhands] of BORDER_AXIS_RESET_GROUPS) {
+    if (
+      !(shorthand in resetObj) &&
+      longhands.some((key) => key in resetObj)
+    ) {
+      resetObj[shorthand] = "";
+    }
+  }
   return resetObj;
 }
+
+/** ADR-219 — 축별 reset 그룹 (shorthand → longhand 4) */
+const BORDER_AXIS_RESET_GROUPS: ReadonlyArray<
+  readonly [string, readonly string[]]
+> = [
+  [
+    "borderRadius",
+    [
+      "borderTopLeftRadius",
+      "borderTopRightRadius",
+      "borderBottomRightRadius",
+      "borderBottomLeftRadius",
+    ],
+  ],
+  [
+    "borderWidth",
+    [
+      "borderTopWidth",
+      "borderRightWidth",
+      "borderBottomWidth",
+      "borderLeftWidth",
+    ],
+  ],
+];
 
 /**
  * 선택된 요소의 특정 속성들이 기본값과 다른지 확인하는 훅
