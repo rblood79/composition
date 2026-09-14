@@ -512,6 +512,69 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* suffix 가 곧 단위 메뉴 트리거 (「8 PX」 의 PX 클릭, panel-ui 05 #3) — 위 UnitComboBox
+       .react-aria-Button 20 상자 규칙을 글자 폭으로 되돌리고 pointer 를 살린다. ▾ 상자 제거로
+       값 폭 +20 (종전 「au… LEFT」 잘림). */
+    .property-unit-input[data-label-mode="suffix"]
+      .react-aria-UnitComboBox
+      .react-aria-Button.property-unit-input__suffix--trigger {
+      width: auto;
+      height: calc(var(--control-size) - 2 * var(--spacing));
+      /* 가로 padding 0 — 「normal SPACE」 가 86 열에서 1px 차이로 잘렸다 (값 폭이 우선) */
+      padding: 0;
+      background: transparent;
+      border-width: 0;
+      box-shadow: none;
+      pointer-events: auto;
+      cursor: pointer;
+      line-height: 1;
+
+      &:hover,
+      &[data-pressed],
+      &[aria-expanded="true"] {
+        color: var(--fg);
+        background: transparent;
+      }
+
+      &[data-focus-visible] {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
+        border-radius: var(--radius-xs);
+      }
+    }
+
+    /* ▲▼ stepper (panel-ui 06 「▾ 메뉴 버튼 → 2px stepper」) — 글리프 12 두 개가 세로로 2 겹침,
+       상자 없음. 화살표 키와 같은 계산, 클릭은 commit. 키워드 값에는 안 그린다. */
+    .property-unit-input__stepper {
+      flex: none;
+      display: flex;
+      flex-direction: column;
+      margin-inline-end: calc(-1 * var(--spacing-2xs));
+    }
+
+    .property-unit-input__step {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      inline-size: 12px;
+      block-size: 10px;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      border: 0;
+      color: var(--fg-muted);
+      cursor: pointer;
+
+      > svg {
+        flex: none;
+        overflow: visible;
+      }
+
+      &:hover {
+        color: var(--fg);
+      }
+    }
+
     /* Slider Component - Used by PropertySlider.tsx.
        생성 Slider.css 가 grid ("label output" / "track track", gap 4) 인데 여기선 자식이
        .slider-container 하나라 빈 둘째 행 + gap 4 로 32 가 됐다 → block (panel-ui 02). */

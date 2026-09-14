@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 단위 필드 — suffix 가 단위 메뉴 트리거 · ▲▼ stepper · 「au… LEFT」 잘림 해소] - 2026-09-15
+
+### Changed
+
+- **suffix 모드 단위 필드 (Size · Position · Border 코너 · Text 크기/행간/자간 · Shadow)** — 종전 필드 우측 ▾ 20 상자 대신 suffix 글자 (「8 PX」 의 PX, 「fit W」 의 W) 가 단위 목록 트리거다 (panel-ui 05 #3 · 06). 접근 이름 「{label} Unit」. ▾ 상자를 걷어 값 폭이 20 늘어 「au… LEFT」 · 「n… SPACE」 잘림이 사라졌다.
+- **숫자 값에 ▲▼ stepper** — 화살표 키와 같은 계산 (1 · ⇧ 10, min/max 클램프), 클릭은 commit. 키워드 값 (auto · normal) 에는 그리지 않는다. preset 필드 (Gap · Padding 등) 는 종전 ▾ 그대로.
+
 ## [패널 크롬 결함 3 — 슬라이더 트랙 · 행 메뉴 항목 눌림 · 액션바 간격] - 2026-09-15
 
 ### Fixed

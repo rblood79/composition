@@ -456,3 +456,71 @@ describe("PropertyUnitInput numeric editing", () => {
     ).toBe(true);
   });
 });
+
+describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리거 · ▲▼ stepper (panel-ui 05 #3 · 06)", () => {
+  beforeAll(() => {
+    vi.stubGlobal("CSS", { escape: (value: string) => value });
+  });
+
+  afterEach(() => {
+    cleanup();
+    useStore.setState({ selectedElementId: null } as never);
+  });
+
+  it("▾ 상자 대신 suffix 글자가 단위 목록을 연다", () => {
+    const onChange = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Left"
+        labelMode="suffix"
+        value="12px"
+        units={["px", "%", "vw"]}
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Show suggestions" })).toBeNull();
+    const trigger = screen.getByRole("button", { name: "Left Unit" });
+    expect(trigger.textContent).toBe("Left");
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole("option", { name: "%" }));
+    expect(onChange).toHaveBeenCalledWith("12%");
+  });
+
+  it("▲ 클릭은 1 올려 commit, ⇧ 는 10 — 화살표 키와 같은 계산", () => {
+    const onChange = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Font Size"
+        labelMode="suffix"
+        suffixLabel="SIZE"
+        value="14px"
+        units={["reset", "px"]}
+        onChange={onChange}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Increase Font Size" }));
+    expect(onChange).toHaveBeenLastCalledWith("15px");
+    fireEvent.click(screen.getByRole("button", { name: "Decrease Font Size" }), { shiftKey: true });
+    expect(onChange).toHaveBeenLastCalledWith("4px");
+    expect(screen.getByRole("button", { name: "Font Size Unit" }).textContent).toBe("SIZE");
+  });
+
+  it("키워드 값 (auto) 에는 stepper 를 그리지 않는다", () => {
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Top"
+        labelMode="suffix"
+        value="auto"
+        units={["px", "%", "vh"]}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Increase Top" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Top Unit" })).toBeTruthy();
+  });
+});

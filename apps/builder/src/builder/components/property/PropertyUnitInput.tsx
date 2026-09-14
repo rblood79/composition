@@ -4,7 +4,7 @@ import { Button } from "react-aria-components/Button";
 import { Input } from "react-aria-components/Input";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
@@ -502,6 +502,29 @@ export const PropertyUnitInput = memo(
         useStore.getState().selectedElementId ?? null;
     };
 
+    /** ▲▼ — 화살표 키 (repeat 라 onDrag 스로틀) 와 stepper 클릭 (commit) 이 같은 계산 */
+    const stepValue = (
+      direction: 1 | -1,
+      coarse: boolean,
+      mode: "drag" | "commit",
+    ) => {
+      if (isKeyword) return;
+      const step = coarse ? 10 : 1;
+      const base = numericValue || 0;
+      const next =
+        direction > 0 ? Math.min(base + step, max) : Math.max(base - step, min);
+      setInputValue(String(next));
+      const nextValue = `${next}${inputUnit}`;
+      if (mode === "drag") {
+        (onDrag || onChange)(nextValue);
+        return;
+      }
+      if (nextValue !== lastSavedValueRef.current) {
+        lastSavedValueRef.current = nextValue;
+        onChange(nextValue);
+      }
+    };
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (e.key === "Enter") {
         e.preventDefault();
@@ -565,26 +588,26 @@ export const PropertyUnitInput = memo(
         return;
       }
 
-      if (isKeyword) return;
-
-      const step = e.shiftKey ? 10 : 1;
-      let newValue = numericValue || 0;
-
-      // 🚀 Phase 1: onDrag가 있으면 RAF 스로틀 업데이트, 없으면 즉시 업데이트
-      const updateFn = onDrag || onChange;
-
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        newValue = Math.min(newValue + step, max);
-        setInputValue(String(newValue));
-        updateFn(`${newValue}${inputUnit}`);
+        stepValue(1, e.shiftKey, "drag");
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        newValue = Math.max(newValue - step, min);
-        setInputValue(String(newValue));
-        updateFn(`${newValue}${inputUnit}`);
+        stepValue(-1, e.shiftKey, "drag");
       }
     };
+
+    const isSuffix = labelMode === "suffix";
+    const unitLabel = i18n
+      ? translateKey(i18n.t, semanticLabelKeys.Unit ?? "Unit", "Unit")
+      : "Unit";
+    const stepLabel = (key: "Increase" | "Decrease") =>
+      `${i18n ? translateKey(i18n.t, semanticLabelKeys[key] ?? key, key) : key} ${displayLabel ?? ""}`.trim();
+    // suffix 모드 (preset 없음): 단위 메뉴 트리거는 suffix 글자 자체 (「8 PX」 의 PX) — 종전
+    //   ▾ 20 상자가 86 열을 먹어 「au… LEFT」 로 잘렸다 (panel-ui 05 #3 · 06). 숫자 값에는
+    //   ▲▼ stepper (12, 위아래 겹침 2) — 키워드 (auto · normal) 는 stepper 없음.
+    const suffixIsTrigger = isSuffix && !hasPresets && Boolean(displayLabel);
+    const showStepper = suffixIsTrigger && !isKeyword && !isDisabled;
 
     return (
       <fieldset
@@ -700,17 +723,55 @@ export const PropertyUnitInput = memo(
                     : placeholder
                 }
               />
-              {displayLabel && labelMode === "suffix" && (
-                <span className="property-unit-input__suffix" aria-hidden="true">
+              {suffixIsTrigger ? (
+                <Button
+                  className="react-aria-Button property-unit-input__suffix property-unit-input__suffix--trigger"
+                  aria-label={`${displayLabel} ${unitLabel}`}
+                >
                   {suffixLabel ?? displayLabel}
+                </Button>
+              ) : (
+                <>
+                  {displayLabel && isSuffix && (
+                    <span
+                      className="property-unit-input__suffix"
+                      aria-hidden="true"
+                    >
+                      {suffixLabel ?? displayLabel}
+                    </span>
+                  )}
+                  <Button
+                    className="react-aria-Button"
+                    aria-label={hasPresets ? presetAriaLabel : undefined}
+                  >
+                    <ChevronDown size={iconProps.size} />
+                  </Button>
+                </>
+              )}
+              {showStepper && (
+                <span className="property-unit-input__stepper">
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="property-unit-input__step"
+                    aria-label={stepLabel("Increase")}
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={(e) => stepValue(1, e.shiftKey, "commit")}
+                  >
+                    <ChevronUp size={12} strokeWidth={iconProps.strokeWidth} />
+                  </button>
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="property-unit-input__step"
+                    aria-label={stepLabel("Decrease")}
+                    onPointerDown={(e) => e.preventDefault()}
+                    onClick={(e) => stepValue(-1, e.shiftKey, "commit")}
+                  >
+                    <ChevronDown size={12} strokeWidth={iconProps.strokeWidth} />
+                  </button>
                 </span>
               )}
-              <Button
-                className="react-aria-Button"
-                aria-label={hasPresets ? presetAriaLabel : undefined}
-              >
-                <ChevronDown size={iconProps.size} />
-              </Button>
             </div>
             <Popover
               className="react-aria-Popover property-unit-input-popover"

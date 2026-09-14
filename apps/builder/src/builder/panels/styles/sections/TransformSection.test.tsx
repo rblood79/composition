@@ -86,7 +86,7 @@ describe("TransformSection sizing controls", () => {
     render(<TransformSection />);
 
     const widthGroup = screen.getByRole("group", { name: "Width" });
-    const widthButton = within(widthGroup).getByRole("button");
+    const widthButton = within(widthGroup).getByRole("button", { name: /Unit$/ });
     widthButton.click();
 
     const widthListbox = await screen.findByRole("listbox");
@@ -104,7 +104,7 @@ describe("TransformSection sizing controls", () => {
     render(<TransformSection />);
 
     const heightGroup = screen.getByRole("group", { name: "Height" });
-    const heightButton = within(heightGroup).getByRole("button");
+    const heightButton = within(heightGroup).getByRole("button", { name: /Unit$/ });
     heightButton.click();
 
     const heightListbox = await screen.findByRole("listbox");
@@ -144,7 +144,7 @@ describe("TransformSection sizing controls", () => {
     render(<TransformSection />);
 
     const leftGroup = screen.getByRole("group", { name: "Left" });
-    within(leftGroup).getByRole("button").click();
+    within(leftGroup).getByRole("button", { name: /Unit$/ }).click();
 
     const leftListbox = await screen.findByRole("listbox");
     expect(
@@ -161,7 +161,7 @@ describe("TransformSection sizing controls", () => {
     render(<TransformSection />);
 
     const topGroup = screen.getByRole("group", { name: "Top" });
-    within(topGroup).getByRole("button").click();
+    within(topGroup).getByRole("button", { name: /Unit$/ }).click();
 
     const topListbox = await screen.findByRole("listbox");
     expect(
@@ -268,7 +268,7 @@ describe("TransformSection sizing controls", () => {
       render(<TransformSection />);
 
       const group = screen.getByRole("group", { name: label });
-      within(group).getByRole("button").click();
+      within(group).getByRole("button", { name: /Unit$/ }).click();
 
       const listbox = await screen.findByRole("listbox");
       expect(within(listbox).queryByRole("option", { name: "rem" })).toBeNull();
