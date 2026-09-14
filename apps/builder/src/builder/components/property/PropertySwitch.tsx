@@ -30,17 +30,20 @@ export const PropertySwitch = memo(
     className,
   }: PropertySwitchProps) {
     const i18n = useOptionalI18n();
+    const displayLabel = i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
+    // 라벨은 legend 한 번 — 종전엔 Switch 안에 같은 글자가 한 번 더 있었다 (panel-ui 20,
+    //   2026-09-14). 접근 이름은 aria-label 로 유지한다 (getByLabelText 그대로).
     return (
       <PropertyFieldset legend={label} icon={icon} className={className}>
         <AriaSwitch
           className={"react-aria-Switch"}
           isSelected={isSelected}
           onChange={(val) => onChange(val)}
+          aria-label={displayLabel}
         >
           <div className="indicator" />
-          {i18n
-            ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-            : label}
         </AriaSwitch>
       </PropertyFieldset>
     );

@@ -19,12 +19,14 @@
   border-color: var(--accent);
 }
 
+/* 규칙 행 28 = caret 16 + 요약 12 + 삭제 28 (hover) — 종전 34 (14px · pad 4 8)
+   (panel-ui 20, 2026-09-14) */
 .interaction-rule-summary {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
-  min-height: 32px;
-  padding-right: var(--spacing-xs);
+  box-sizing: border-box;
+  block-size: var(--control-size);
 }
 
 .interaction-rule-toggle {
@@ -33,11 +35,13 @@
   align-items: center;
   gap: var(--spacing-xs);
   min-width: 0;
-  padding: var(--spacing-xs) var(--spacing-sm);
+  block-size: 100%;
+  padding: 0 var(--spacing-sm);
   border: none;
   background: transparent;
   color: var(--fg);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
   text-align: left;
   cursor: pointer;
 }
@@ -56,14 +60,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--control-size);
+  height: var(--control-size);
   padding: 0;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--fg-muted);
   cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.interaction-rule-summary:hover .interaction-rule-remove,
+.interaction-rule-summary:focus-within .interaction-rule-remove,
+.interaction-rule[data-expanded] .interaction-rule-remove {
+  opacity: 1;
 }
 
 .interaction-rule-remove:hover {
@@ -71,14 +83,16 @@
   color: var(--negative);
 }
 
-/* fieldset 기본 min-inline-size: min-content 해제 — 좁은 패널에서 폭이 밀리지 않도록 */
+/* 펼친 편집기 — r3 두 열 (When | Do) 뒤에 액션별 param (ParamField 그대로) */
 .interaction-rule-editor {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
   min-width: 0;
   padding: var(--spacing-sm);
-  border: none;
   border-top: 1px solid var(--border);
-  margin: 0;
+}
+
+.interaction-rule-row.fieldset-row {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }

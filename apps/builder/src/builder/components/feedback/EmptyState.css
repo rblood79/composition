@@ -30,7 +30,11 @@
     color: color-mix(in srgb, var(--fg-disabled) 70%, transparent);
   }
 
+  /* 아이콘 28 (호출부가 32/48 을 넘겨도 한 크기) · 글자 12/18 — 패널 본문 램프 (14 는
+     다이얼로그 제목뿐, panel-ui 15·20, 2026-09-14) */
   .builder-empty-state-icon svg {
+    inline-size: var(--control-size);
+    block-size: var(--control-size);
     stroke-width: 1.25;
   }
 
@@ -38,8 +42,8 @@
   .builder-empty-state-description {
     margin: 0;
     color: var(--fg-muted);
-    font-size: var(--text-sm);
-    line-height: var(--text-sm--line-height);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
   }
 
   .builder-empty-state-message {

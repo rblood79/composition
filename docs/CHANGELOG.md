@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Interactions · Settings · Font Manager · 글꼴 피커 — 28 격자 (panel-ui 20)] - 2026-09-14
+
+### Changed
+
+- **Interactions**: 규칙 요약 34 (14px 카드) → 행 28 (caret · 요약 12 · 삭제 28 hover/펼침 시). 펼친 편집기는 When | Do 두 열 (`fieldset-row`) + 액션별 param — 바깥 legend "Edit rule" 제거 (각 picker 가 legend 를 가진다).
+- **빈 상태 (전 패널 공용 `EmptyState`)**: 아이콘 28 · 글자 12/18 — 호출부가 32/48 을 넘겨도 한 크기 (14 는 다이얼로그 제목뿐).
+- **Settings**: 라벨이 두 번 (legend + Switch 안 글자) → legend 만, 접근 이름은 `aria-label` (`PropertySwitch` 공용 — Properties 의 boolean 필드도 같이). 2열 행 (Rulers | Action bar · Snap | Page gap) · 절 3 → 2 (Language 는 Appearance 의 한 필드).
+- **Font Manager**: 420 → 400 · 헤더 48 (제목 14 · 카운트 18 mono · 닫기 32) · 드롭 존 120 (Image fill · CSV 와 한 어법, 1px dashed inset) · 가족 = legend 18 + 글꼴 행 28 (이름은 자기 서체 · weight/format mono 10 · 삭제 28 hover) — 종전 절 32 + 46 행.
+- **글꼴 피커 팝오버**: 179 → 233 (색 · 아이콘 팝오버와 같은 폭, `widthMode: "min-width"`) · 그룹 헤더 19 (10px) → legend 18 · 항목 → 28 · pad 8.
+- live (`misc-live.mjs`): 규칙 행 28 · 삭제 28 · When|Do 96+96 · Settings 행 46 (legend 18 + 28) · 피커 233 / 항목 28 · Font Manager 400 / 헤더 49 / 드롭 존 120 / 닫기 32.
+
 ## [Data Table Creator — 방법 28 셀 · Preset 카드 100 · CSV 드롭 존 · API 요청 한 행] - 2026-09-14
 
 ### Changed

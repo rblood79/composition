@@ -118,32 +118,50 @@ function SettingsContent() {
       <PanelContents>
         {/* Rulers & Guides Section */}
         <PropertySection title={t("settings.rulersAndGuides")}>
-          {/* ADR-181 — 눈금자는 뷰포트 chrome (문서 데이터 아님).
-              가이드 표시는 이 토글과 독립, 조작만 ON 을 요구한다 (C10). */}
-          <PropertySwitch
-            label={t("settings.showRulers")}
-            isSelected={showRulers}
-            onChange={setShowRulers}
-            icon={ACTION_ICONS.toggleRulers}
-          />
+          {/* r3 두 열 — Rulers | Action bar · Snap | Page gap (panel-ui 20, 2026-09-14) */}
+          <div className="fieldset-row settings-row">
+            {/* ADR-181 — 눈금자는 뷰포트 chrome (문서 데이터 아님).
+                가이드 표시는 이 토글과 독립, 조작만 ON 을 요구한다 (C10). */}
+            <PropertySwitch
+              label={t("settings.showRulers")}
+              isSelected={showRulers}
+              onChange={setShowRulers}
+              icon={ACTION_ICONS.toggleRulers}
+            />
 
-          {/* ADR-179 — 페이지 간 가장자리·중앙 흡착 + 정렬선. 수동 가이드도
-              흡착 후보로 참여한다 (`usePageDrag` 의 `guideLines`). */}
-          {/* ADR-192 — 선택 액션 바. Hide 는 바의 옵션 메뉴에서, 재표시는
-              여기서만 (Photoshop `Window > Contextual Task Bar` 대응). */}
-          <PropertySwitch
-            label={t("settings.showActionBar")}
-            isSelected={!actionBarHidden}
-            onChange={(selected: boolean) => setActionBarHidden(!selected)}
-            icon={ACTION_ICONS.toggleRulers}
-          />
+            {/* ADR-192 — 선택 액션 바. Hide 는 바의 옵션 메뉴에서, 재표시는
+                여기서만 (Photoshop `Window > Contextual Task Bar` 대응). */}
+            <PropertySwitch
+              label={t("settings.showActionBar")}
+              isSelected={!actionBarHidden}
+              onChange={(selected: boolean) => setActionBarHidden(!selected)}
+              icon={ACTION_ICONS.toggleRulers}
+            />
+          </div>
 
-          <PropertySwitch
-            label={t("settings.snapToObjects")}
-            isSelected={snapToObjects}
-            onChange={setSnapToObjects}
-            icon={ACTION_ICONS.toggleSnap}
-          />
+          <div className="fieldset-row settings-row">
+            {/* ADR-179 — 페이지 간 가장자리·중앙 흡착 + 정렬선. 수동 가이드도
+                흡착 후보로 참여한다 (`usePageDrag` 의 `guideLines`). */}
+            <PropertySwitch
+              label={t("settings.snapToObjects")}
+              isSelected={snapToObjects}
+              onChange={setSnapToObjects}
+              icon={ACTION_ICONS.toggleSnap}
+            />
+
+            <PropertyUnitInput
+              label={t("settings.pageGap")}
+              value={String(pageGap)}
+              min={0}
+              max={2000}
+              onChange={handlePageGapChange}
+              icon={UnfoldHorizontal}
+              units={[]}
+              allowKeywords={false}
+              presets={PAGE_GAP_PRESETS}
+              presetAriaLabel={t("settings.pageGapPreset")}
+            />
+          </div>
 
           <PropertySizeToggle
             label={t("settings.pageLayout")}
@@ -151,19 +169,6 @@ function SettingsContent() {
             onChange={handlePageLayoutChange}
             options={pageLayoutOptions}
             className="settings-page-layout-toggle"
-          />
-
-          <PropertyUnitInput
-            label={t("settings.pageGap")}
-            value={String(pageGap)}
-            min={0}
-            max={2000}
-            onChange={handlePageGapChange}
-            icon={UnfoldHorizontal}
-            units={[]}
-            allowKeywords={false}
-            presets={PAGE_GAP_PRESETS}
-            presetAriaLabel={t("settings.pageGapPreset")}
           />
         </PropertySection>
 
@@ -184,9 +189,8 @@ function SettingsContent() {
             options={uiScaleOptions}
             className="settings-ui-scale-toggle"
           />
-        </PropertySection>
 
-        <PropertySection title={t("settings.language")}>
+          {/* Language 는 별도 절이 아니라 Appearance 의 한 필드 (절 3 → 2) */}
           <LanguageSwitcher />
         </PropertySection>
       </PanelContents>

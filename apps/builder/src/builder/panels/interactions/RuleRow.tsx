@@ -174,18 +174,17 @@ export const RuleRow = memo(function RuleRow({
       </div>
 
       {expanded && (
-        <fieldset className="properties-aria interaction-rule-editor">
-          <legend className="fieldset-legend">
-            {t("interactions.editRule")}
-          </legend>
+        <div className="interaction-rule-editor">
+          {/* When | Do 한 행 — 각 picker 가 legend 를 가지므로 바깥 legend 는 두지 않는다 */}
+          <div className="fieldset-row interaction-rule-row">
+            <TriggerPicker
+              componentType={componentType}
+              value={rule.trigger}
+              onChange={(trigger) => onChange({ trigger })}
+            />
 
-          <TriggerPicker
-            componentType={componentType}
-            value={rule.trigger}
-            onChange={(trigger) => onChange({ trigger })}
-          />
-
-          <ActionPicker value={choice} onChange={handleChoice} />
+            <ActionPicker value={choice} onChange={handleChoice} />
+          </div>
 
           {stateAction && (
             <StateActionFields
@@ -246,7 +245,7 @@ export const RuleRow = memo(function RuleRow({
               }}
             />
           )}
-        </fieldset>
+        </div>
       )}
     </div>
   );

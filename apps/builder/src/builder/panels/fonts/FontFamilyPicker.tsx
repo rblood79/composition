@@ -77,9 +77,10 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   const [isManagerOpen, setManagerOpen] = useState(false);
   const [query, setQuery] = useState("");
   const { familyGroups, faceCount } = useFontRegistry();
-  // 팝오버 폭·좌측 정렬은 패널 공통 규약 (PropertySelect 와 같은 소스)
+  // 좌측 정렬은 패널 공통 규약 (PropertySelect 와 같은 소스). 폭은 CSS 233 (색 · 아이콘
+  //   팝오버와 같은 폭) — "fit-content" 는 inline width 를 써서 CSS 폭을 이긴다.
   const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics({
-    widthMode: "fit-content",
+    widthMode: "min-width",
   });
 
   const customFamilies = useMemo(

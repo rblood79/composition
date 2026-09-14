@@ -141,8 +141,11 @@ const enumField = (
   ...(visibleWhen ? { visibleWhen } : {}),
 });
 
+// 필드 라벨은 legend 한 번 (Switch 안의 중복 글자는 2026-09-14 에 제거 — 접근 이름은 aria-label)
 const labels = (container: HTMLElement): string[] =>
-  [...container.querySelectorAll("label")].map((l) => l.textContent ?? "");
+  [...container.querySelectorAll("label, legend")].map(
+    (l) => l.textContent ?? "",
+  );
 
 describe("GenericFieldRenderer — ADR-208 visibleWhen live 결선", () => {
   it("조건 미선언 필드는 그대로 보인다 (결선의 노출면은 선언한 필드뿐)", () => {
