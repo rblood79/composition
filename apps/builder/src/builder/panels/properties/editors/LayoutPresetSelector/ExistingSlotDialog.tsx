@@ -10,18 +10,14 @@
  */
 
 import { memo, useCallback } from "react";
-import { AlertTriangle, Merge, X } from "lucide-react";
-import { Button } from "@composition/shared/components";
-import { Dialog, DialogTrigger } from "react-aria-components/Dialog";
-import { Modal } from "react-aria-components/Modal";
+import { AlertTriangle } from "lucide-react";
+import { Button } from "react-aria-components/Button";
+import { Dialog } from "react-aria-components/Dialog";
+import { Modal, ModalOverlay } from "react-aria-components/Modal";
 import { Heading } from "react-aria-components/Heading";
 import type { ExistingSlotInfo, PresetApplyMode } from "./types";
-import { iconProps } from "../../../../../utils/ui/uiConstants";
-import { ACTION_ICONS } from "../../../../config/actionIcons";
 import { useI18n } from "@/i18n";
-
-/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
-const DeleteIcon = ACTION_ICONS.delete;
+import "../../../../components/overlay/ConfirmDialog.css";
 
 interface ExistingSlotDialogProps {
   /** 다이얼로그 열림 상태 */
@@ -36,6 +32,12 @@ interface ExistingSlotDialogProps {
   onClose: () => void;
 }
 
+/**
+ * ConfirmDialog 와 같은 8 격자 (헤더 48 · 본문 12/18 · 푸터 44 · 버튼 `.control-button` 28).
+ * 종전엔 pad 14 18 · shared Button 32 · 문장 두 줄이었다 — 슬롯은 행 28 (이름 mono ·
+ * 놓인 요소 수 · Merge 면 keep) 으로 보여 "무엇이 남고 무엇이 바뀌는지" 가 읽힌다
+ * (panel-ui 18, 2026-09-14).
+ */
 export const ExistingSlotDialog = memo(function ExistingSlotDialog({
   isOpen,
   existingSlots,
@@ -59,80 +61,82 @@ export const ExistingSlotDialog = memo(function ExistingSlotDialog({
     onClose();
   }, [onConfirm, onClose]);
 
-  if (!isOpen) return null;
+  const title = t("propertiesPanel.slotExisting");
 
   return (
-    <DialogTrigger isOpen={isOpen}>
-      {/*
-        `data-context="builder"` 가 필요하다 — 이 Modal 은 portal 로 `body` 밑에 붙고,
-        RAC 가 `.react-aria-ModalOverlay` 로 한 겹 감싸기 때문에 builder-system.css 의
-        portal fallback (`body > .react-aria-Modal`) 이 매칭되지 않는다. 그러면 semantic
-        토큰(`--notice` 등)이 전부 미정의가 되어 선언이 통째로 무효화된다 (실측: 경고
-        아이콘이 주황을 잃고 본문 색을 상속). 같은 파일의 첫 분기 `[data-context="builder"]`
-        는 구조 조건이 없어 여기에 붙이면 light/dark 토큰 세트가 그대로 적용된다.
-      */}
-      <Modal
-        isDismissable
-        onOpenChange={(open) => !open && onClose()}
-        className="react-aria-Modal"
-        data-context="builder"
-      >
-        <Dialog className="react-aria-Dialog existing-slot-dialog">
-          <Heading slot="title" className="dialog-title">
-            <AlertTriangle className="icon-warning" size={iconProps.size} />
-            {t("propertiesPanel.slotExisting")}
-          </Heading>
-
-          <div className="dialog-content">
-            <p className="dialog-description">
-              {t("propertiesPanel.slotExistingBody", { preset: presetName })}
-            </p>
-
-            <div className="existing-slots-list">
-              <p className="list-title">
-                {t("propertiesPanel.slotCurrent", {
-                  count: existingSlots.length,
-                })}
-              </p>
-              <ul>
-                {existingSlots.map((slot) => (
-                  <li key={slot.elementId}>
-                    <span className="slot-name">{slot.slotName}</span>
-                    {slot.hasChildren && (
-                      <span className="slot-warning">
-                        {t("propertiesPanel.slotHasContent")}
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {hasChildrenSlots && (
-              <div className="warning-box">
-                <AlertTriangle size={iconProps.size} />
-                <span>{t("propertiesPanel.slotContentWarning")}</span>
-              </div>
-            )}
+    <ModalOverlay
+      className="confirm-dialog-overlay"
+      isOpen={isOpen}
+      isDismissable
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      // portal 로 body 밑에 붙어 builder 토큰 스코프 밖 — 직접 붙인다 (구 주석 참조)
+      data-context="builder"
+    >
+      <Modal className="confirm-dialog-modal existing-slot-dialog">
+        {/* className 을 줘야 RAC 기본 `react-aria-Dialog` 가 안 붙는다 — 생성 Dialog.css
+            (overlay archetype, position fixed · pad 30) 가 전역이라 400 상자 밖으로 떠 버린다 */}
+        <Dialog
+          className="confirm-dialog"
+          role="alertdialog"
+          aria-label={title}
+        >
+          <div className="confirm-dialog-header">
+            <AlertTriangle size={18} className="existing-slot-dialog__icon" />
+            <Heading className="confirm-dialog-title" slot="title">
+              {title}
+            </Heading>
           </div>
-
-          <div className="dialog-actions">
-            <Button variant="secondary" onPress={handleCancel}>
-              <X size={iconProps.size} />
+          <div className="confirm-dialog-body">
+            <p>{t("propertiesPanel.slotExistingBody", { preset: presetName })}</p>
+            <div className="existing-slot-dialog__list" role="list">
+              {existingSlots.map((slot) => (
+                <div
+                  key={slot.elementId}
+                  className="existing-slot-dialog__row"
+                  role="listitem"
+                >
+                  <span className="existing-slot-dialog__name">
+                    {slot.slotName}
+                  </span>
+                  <span className="existing-slot-dialog__meta">
+                    {t("propertiesPanel.slotChildCount", {
+                      count: slot.childCount,
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="existing-slot-dialog__hint">
+              {hasChildrenSlots
+                ? t("propertiesPanel.slotContentWarning")
+                : t("propertiesPanel.slotModeHint")}
+            </p>
+          </div>
+          <div className="confirm-dialog-actions">
+            <span className="existing-slot-dialog__summary">
+              {t("propertiesPanel.slotFooterCount", {
+                count: existingSlots.length,
+              })}
+            </span>
+            <Button className="control-button" onPress={handleCancel}>
               {t("common.cancel")}
             </Button>
-            <Button variant="secondary" onPress={handleMerge}>
-              <Merge size={iconProps.size} />
+            <Button className="control-button" onPress={handleMerge}>
               {t("propertiesPanel.slotMerge")}
             </Button>
-            <Button variant="primary" onPress={handleReplace}>
-              <DeleteIcon size={iconProps.size} />
+            <Button
+              className="control-button"
+              data-variant="primary"
+              onPress={handleReplace}
+            >
               {t("propertiesPanel.slotReplace")}
             </Button>
           </div>
         </Dialog>
       </Modal>
-    </DialogTrigger>
+    </ModalOverlay>
   );
 });
 

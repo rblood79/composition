@@ -82,6 +82,8 @@ import {
 } from "@/builder/hooks";
 import { useI18n } from "../../../i18n";
 import { useStore } from "../../stores";
+import { useEditModeStore } from "../../stores/editMode";
+import { useCanonicalReusableFrameLayouts } from "../../stores/canonical/canonicalFrameStore";
 import {
   SLOT_NAME_MIRROR_FIELD,
   withSlotMirrorName,
@@ -989,6 +991,16 @@ function PropertiesPanelContent() {
     useCanonicalPropertyElementType(selectedElementId);
 
   const displayName = useCanonicalPropertyDisplayName(selectedElementId);
+  // Frame 편집 (layout 모드) 의 body 는 "body" 가 아니라 Frame 이름으로 — Navigator Frames
+  //   목록과 같은 이름 (panel-ui 18, 2026-09-14).
+  const editMode = useEditModeStore((state) => state.mode);
+  const editLayoutId = useEditModeStore((state) => state.layoutId);
+  const frameLayouts = useCanonicalReusableFrameLayouts();
+  const frameTitle =
+    editMode === "layout" && selectedElementType === "body" && editLayoutId
+      ? (frameLayouts.find((layout) => layout.id === editLayoutId)?.name ??
+        null)
+      : null;
 
   // 🚀 Performance: 액션만 가져오기 (구독 없음)
   // ADR-155 Phase 2: removeElement/updateElementProps/addElement 는 전역 단축키
@@ -1028,7 +1040,7 @@ function PropertiesPanelContent() {
     <div className="panel">
       <PanelHeader
         icon={<Settings2 size={iconProps.size} />}
-        title={displayName ?? selectedElementType}
+        title={frameTitle ?? displayName ?? selectedElementType}
         panelId="properties"
         actions={<PropertyClipboardActions elementId={selectedElementId} />}
       />

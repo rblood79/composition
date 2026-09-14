@@ -12,6 +12,7 @@
 
 import { memo, useCallback, useMemo, useState } from "react";
 import {
+  Check,
   Columns2,
   Layout,
   LayoutDashboard,
@@ -49,6 +50,10 @@ interface LayoutPresetSelectorProps {
  * `PRESET_CATEGORIES[x].icon` 문자열이 단독으로 정한다 — 카테고리를 추가할 때 손댈 곳이
  * 메타 한 곳으로 줄고, 두 목록이 어긋날 자리가 없어진다.
  */
+/** 썸네일 4:3 — 카드 100 안에서 preview 58 (panel-ui 18, 2026-09-14). */
+const PRESET_PREVIEW_WIDTH = 77;
+const PRESET_PREVIEW_HEIGHT = 58;
+
 const ICON_BY_NAME: Record<string, typeof Layout> = {
   Layout,
   Columns2,
@@ -124,13 +129,13 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
         return;
       }
 
-      setSelectedPresetKey(presetKey);
-
-      // 기존 Slot이 있으면 다이얼로그 표시
+      // 기존 Slot이 있으면 다이얼로그 표시 (selected 는 다이얼로그가 열린 동안만)
       if (existingSlots.length > 0) {
+        setSelectedPresetKey(presetKey);
         setDialogOpen(true);
       } else {
-        // 기존 Slot이 없으면 바로 적용
+        // 기존 Slot이 없으면 바로 적용 — selected 를 남기면 `.selected` (연한 표면) 가
+        //   `.applied` (accent 채움) 를 덮어 적용 표시가 사라진다
         applyPreset(presetKey, "replace");
       }
     },
@@ -165,12 +170,14 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
 
         return (
           <div key={categoryKey} className="list-subgroup">
+            {/* 그룹 헤더 = legend 18 (아이콘 16 · 이름 · 우측 카운트 mono 10) — panel-ui 18 */}
             <div className="list-subgroup-header">
               <CategoryIcon
                 size={iconEditProps.size}
                 className="list-subgroup-icon"
               />
               <span className="list-subgroup-title">{meta.label}</span>
+              <span className="list-subgroup-count">{presetKeys.length}</span>
             </div>
 
             <div className="list-group" role="list">
@@ -189,17 +196,26 @@ export const LayoutPresetSelector = memo(function LayoutPresetSelector({
                     onPress={() => handlePresetClick(presetKey)}
                     isDisabled={isApplying}
                   >
+                    {/* 카드 100 = pad 8 + preview 58 + gap 8 + 이름 행 18 + pad 8
+                        (Components 카드와 같은 세로 모듈). 배지는 이름 행 우측 mono 10. */}
                     <PresetPreview
                       areas={areasByPreset[presetKey] ?? []}
-                      width={80}
-                      height={60}
+                      width={PRESET_PREVIEW_WIDTH}
+                      height={PRESET_PREVIEW_HEIGHT}
                     />
-                    <span className="list-item-name">{preset.name}</span>
-                    {isApplied && (
-                      <span className="list-item-badge applied">
-                        {t("propertiesPanel.presetApplied")}
-                      </span>
-                    )}
+                    <span className="preset-card__name-row">
+                      <span className="list-item-name">{preset.name}</span>
+                      {isApplied && (
+                        <span
+                          className="list-item-badge applied"
+                          role="img"
+                          aria-label={t("propertiesPanel.presetApplied")}
+                          title={t("propertiesPanel.presetApplied")}
+                        >
+                          <Check size={iconEditProps.size} strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </span>
                   </Button>
                 );
               })}

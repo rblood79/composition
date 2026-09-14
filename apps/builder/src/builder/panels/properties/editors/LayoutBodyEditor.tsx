@@ -14,6 +14,7 @@ import { memo, useMemo } from "react";
 import { PropertySection } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { LayoutPresetSelector } from "./LayoutPresetSelector";
+import { FrameSlotsSection } from "./LayoutPresetSelector/FrameSlotsSection";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
@@ -28,12 +29,16 @@ export const LayoutBodyEditor = memo(
       <>
         {/* ⭐ Frame 전용: 프리셋 선택기 (Slot 자동 생성) */}
         {layoutId && (
-          <PropertySection title="Frame Preset">
-            <LayoutPresetSelector
-              layoutId={layoutId}
-              bodyElementId={elementId}
-            />
-          </PropertySection>
+          <>
+            <PropertySection title="Frame Preset">
+              <LayoutPresetSelector
+                layoutId={layoutId}
+                bodyElementId={elementId}
+              />
+            </PropertySection>
+            {/* preset 적용 결과 — 슬롯 이름 · 놓인 요소 수 (panel-ui 18) */}
+            <FrameSlotsSection layoutId={layoutId} />
+          </>
         )}
       </>
     );

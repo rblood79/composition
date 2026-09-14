@@ -722,6 +722,11 @@ const koKR: TranslationKeys = {
     slotHasContent: "(콘텐츠 있음)",
     slotContentWarning:
       "일부 Slot에 콘텐츠가 있습니다. 덮어쓰기 시 삭제됩니다.",
+    slotModeHint:
+      "병합은 같은 이름의 Slot 을 유지하고 나머지만 추가합니다. 덮어쓰기는 전부 새로 만듭니다.",
+    slotChildCount: "요소 {count}",
+    slotSelectOnCanvas: "{name} Slot 을 캔버스에서 선택",
+    slotFooterCount: "Slot {count}개",
     presetApplied: "적용됨",
   },
   canvas: {
@@ -2677,6 +2682,11 @@ const enUS: TranslationKeys = {
     slotCurrent: "Current slots ({count}):",
     slotHasContent: "(has content)",
     slotContentWarning: "Some slots have content. Overwriting deletes it.",
+    slotModeHint:
+      "Merge keeps slots with matching names and adds the rest. Replace recreates all of them.",
+    slotChildCount: "{count} items",
+    slotSelectOnCanvas: "Select slot {name} on canvas",
+    slotFooterCount: "{count} slots",
     presetApplied: "Applied",
   },
   canvas: {
@@ -4719,6 +4729,12 @@ const formattedMessages: Record<
       `“${String(args?.preset ?? "")}” 프리셋을 적용하려면 기존 Slot을 어떻게 처리할지 선택하세요.`,
     "propertiesPanel.slotCurrent": (args) =>
       `현재 Slot (${String(args?.count ?? 0)}개):`,
+    "propertiesPanel.slotChildCount": (args) =>
+      `요소 ${String(args?.count ?? 0)}`,
+    "propertiesPanel.slotSelectOnCanvas": (args) =>
+      `${String(args?.name ?? "")} Slot 을 캔버스에서 선택`,
+    "propertiesPanel.slotFooterCount": (args) =>
+      `Slot ${String(args?.count ?? 0)}개`,
     "aiTool.genericDone": (args) => `${String(args?.name ?? "")} 완료`,
     "aiTool.callWithDetail": (args) =>
       `${String(args?.intent ?? "")} · ${String(args?.detail ?? "")}`,
@@ -5176,6 +5192,12 @@ const formattedMessages: Record<
       `Choose what to do with the existing slots before applying the “${String(args?.preset ?? "")}” preset.`,
     "propertiesPanel.slotCurrent": (args) =>
       `Current slots (${String(args?.count ?? 0)}):`,
+    "propertiesPanel.slotChildCount": (args) =>
+      `${String(args?.count ?? 0)} items`,
+    "propertiesPanel.slotSelectOnCanvas": (args) =>
+      `Select slot ${String(args?.name ?? "")} on canvas`,
+    "propertiesPanel.slotFooterCount": (args) =>
+      `${String(args?.count ?? 0)} slots`,
     "aiTool.genericDone": (args) => `${String(args?.name ?? "")} done`,
     "aiTool.callWithDetail": (args) =>
       `${String(args?.intent ?? "")} · ${String(args?.detail ?? "")}`,

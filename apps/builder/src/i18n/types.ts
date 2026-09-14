@@ -549,6 +549,10 @@ export interface TranslationKeys {
     slotCurrent: string;
     slotHasContent: string;
     slotContentWarning: string;
+    slotModeHint: string;
+    slotChildCount: string;
+    slotSelectOnCanvas: string;
+    slotFooterCount: string;
     presetApplied: string;
   };
   chart: {

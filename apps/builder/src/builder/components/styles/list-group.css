@@ -108,9 +108,11 @@
   color: var(--fg-on-accent);
 }
 
+/* hover 도 accent 계열 — 종전 `--color-primary-100` (연한 표면) 위에 `--fg-on-accent`
+   흰 이름이 놓여 마우스를 올리면 이름이 사라졌다 (2026-09-14 live 실측) */
 .list-item.applied:hover {
   border-color: color-mix(in srgb, var(--accent) 85%, black);
-  background: var(--color-primary-100);
+  background: color-mix(in srgb, var(--accent) 85%, black);
 }
 
 /* Disabled */
@@ -251,7 +253,7 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 6px;
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 500;
   border-radius: var(--radius-sm);
   text-transform: uppercase;
@@ -268,15 +270,17 @@
   color: var(--color-success-700);
 }
 
+/* LayoutPreset 카드 전용 — 이름 행 (18) 우측의 체크 18. 종전 절대 배치 9px 텍스트 배지는
+   토큰이 없는 유일한 크기였고, 105 카드에서 글자 배지는 이름을 잘랐다 (panel-ui 18,
+   2026-09-14). 카드 표면이 accent 라 overlay 표면 + 본문색으로 뒤집는다. */
 .list-item-badge.applied {
-  position: absolute;
-  top: var(--spacing-xs);
-  right: var(--spacing-xs);
-  padding: 1px 4px;
-  font-size: 9px;
-  font-weight: 600;
-  background: var(--color-success-500);
-  color: var(--color-white);
+  justify-content: center;
+  inline-size: 18px;
+  block-size: 18px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  background: var(--bg-overlay);
+  color: var(--fg);
 }
 
 /* ============================================

@@ -125,6 +125,8 @@ export interface ExistingSlotInfo {
   elementId: string;
   /** 자식 요소 존재 여부 */
   hasChildren: boolean;
+  /** 슬롯에 놓인 요소 수 (직계 + slot 이름으로 배정된 요소) — Slots 절 · 다이얼로그 행 표시용 */
+  childCount: number;
 }
 
 /**

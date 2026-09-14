@@ -42,107 +42,144 @@
     background: var(--bg-inset);
   }
 
-  /* ========== Existing Slot Dialog ========== */
-  .existing-slot-dialog {
-    width: 400px;
-    max-width: 90vw;
-    padding: var(--spacing-lg);
+  /* ========== 카드 · 그룹 헤더 (panel-ui 18, 2026-09-14) ==========
+   * 카드 100 = pad 8 + preview 58 + gap 8 + 이름 행 18 + pad 8 — Components 카드와 같은
+   * 세로 모듈 (28×3 + 8×2). 종전 105×103 (preview 60 + 이름 17). 배지는 이름 행 우측
+   * mono 10 (종전 절대 배치 9px — 토큰 없음). */
+  .list-item.preset-card {
+    box-sizing: border-box;
+    block-size: 100px;
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
   }
 
-  .existing-slot-dialog .dialog-title {
+  .preset-card__name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    block-size: 18px;
+    inline-size: 100%;
+    min-width: 0;
+  }
+
+  /* 그룹 헤더 = legend 18 (아이콘 16 · 이름 · 우측 카운트 mono 10) */
+  .preset-card-groups .list-subgroup-header,
+  .list-subgroup-header:has(.list-subgroup-count) {
+    box-sizing: border-box;
+    block-size: 18px;
+  }
+
+  .list-subgroup-count {
+    margin-inline-start: auto;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    line-height: 1;
+    color: var(--fg-muted);
+  }
+
+  /* ========== Slots 절 — 행 28 (이름 · 놓인 요소 수) ========== */
+  .frame-slots-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+
+  .frame-slot-row {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
-    margin: 0 0 var(--spacing-md) 0;
-    font-size: var(--text-lg);
-    font-weight: 600;
-    color: var(--fg-emphasis);
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    inline-size: 100%;
+    padding: 0 var(--spacing-sm);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--fg);
+    font-size: var(--text-xs);
+    text-align: start;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-raised);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
   }
 
-  .existing-slot-dialog .icon-warning {
+  .frame-slot-row__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .frame-slot-row__count,
+  .frame-slots-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--fg-muted);
+  }
+
+  /* ========== Existing Slot Dialog — ConfirmDialog 격자 위에 슬롯 행 28 ========== */
+  /* 경고 (notice) — ConfirmDialog 기본 negative 보다 선택자를 한 단계 올린다 */
+  .existing-slot-dialog .confirm-dialog-header svg {
     color: var(--notice);
   }
 
-  .existing-slot-dialog .dialog-content {
+  .existing-slot-dialog .confirm-dialog-body {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-md);
+    gap: var(--spacing-sm);
   }
 
-  .existing-slot-dialog .dialog-description {
-    margin: 0;
-    font-size: var(--text-sm);
-    color: var(--fg-muted);
-    line-height: 1.5;
+  .existing-slot-dialog__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
   }
 
-  .existing-slot-dialog .existing-slots-list {
+  .existing-slot-dialog__row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    padding: 0 var(--spacing-sm);
     background: var(--bg-inset);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-  }
-
-  .existing-slot-dialog .list-title {
-    margin: 0 0 var(--spacing-sm) 0;
-    font-size: var(--text-sm);
-    font-weight: 500;
+    border-radius: var(--radius-sm);
     color: var(--fg);
   }
 
-  .existing-slot-dialog .existing-slots-list ul {
-    margin: 0;
-    padding: 0 0 0 var(--spacing-md);
-    list-style: disc;
+  .existing-slot-dialog__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .existing-slot-dialog .existing-slots-list li {
-    font-size: var(--text-sm);
-    color: var(--fg-muted);
-    margin-bottom: var(--spacing-xs);
-  }
-
-  .existing-slot-dialog .slot-name {
+  .existing-slot-dialog__meta {
     font-family: var(--font-mono);
-    background: var(--bg-muted);
-    padding: 1px 4px;
-    border-radius: var(--radius-sm);
+    font-size: var(--text-2xs);
+    color: var(--fg-muted);
   }
 
-  .existing-slot-dialog .slot-warning {
-    margin-left: var(--spacing-xs);
-    font-size: var(--text-xs);
-    color: var(--notice);
+  .existing-slot-dialog__hint {
+    color: var(--fg-muted);
   }
 
-  .existing-slot-dialog .warning-box {
-    display: flex;
-    align-items: flex-start;
-    gap: var(--spacing-sm);
-    padding: var(--spacing-sm);
-    background: var(--notice-subtle);
-    border: 1px solid var(--notice);
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    color: var(--fg-on-notice);
-  }
-
-  .existing-slot-dialog .warning-box svg {
-    flex-shrink: 0;
-    margin-top: 2px;
-  }
-
-  .existing-slot-dialog .dialog-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--spacing-sm);
-    margin-top: var(--spacing-lg);
-    padding-top: var(--spacing-md);
-  }
-
-  .existing-slot-dialog .dialog-actions .react-aria-Button {
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-xs);
-    min-width: auto;
+  .existing-slot-dialog__summary {
+    margin-inline-end: auto;
+    align-self: center;
+    white-space: nowrap;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--fg-muted);
   }
 }

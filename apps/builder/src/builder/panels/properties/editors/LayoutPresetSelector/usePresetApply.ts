@@ -84,23 +84,28 @@ function buildElementMap(
   return combined;
 }
 
-function hasSlotChildren(
+/** 슬롯에 놓인 요소 수 — 직계 자식 + slot 이름으로 배정된 요소 (중복 id 는 한 번). */
+function countSlotChildren(
   slotElement: PresetElementNode,
   slotName: string,
   childrenByParent: ReadonlyMap<string, PresetElementNode[]>,
   combinedElements: ReadonlyMap<string, PresetElementNode>,
-): boolean {
-  if ((childrenByParent.get(slotElement.id) ?? []).length > 0) return true;
-
+): number {
+  const ids = new Set<string>();
+  for (const child of childrenByParent.get(slotElement.id) ?? []) {
+    ids.add(child.id);
+  }
   for (const element of combinedElements.values()) {
     if (element.id === slotElement.id) continue;
-    if (element.parent_id === slotElement.id) return true;
+    if (element.parent_id === slotElement.id) {
+      ids.add(element.id);
+      continue;
+    }
     if (element.type !== "Slot" && readAssignedSlotName(element) === slotName) {
-      return true;
+      ids.add(element.id);
     }
   }
-
-  return false;
+  return ids.size;
 }
 
 export function collectExistingFrameSlots({
@@ -139,17 +144,47 @@ export function collectExistingFrameSlots({
 
   return Array.from(slotsById.values()).map((element) => {
     const slotName = readSlotElementName(element);
+    const childCount = countSlotChildren(
+      element,
+      slotName,
+      childrenByParent,
+      combinedElements,
+    );
     return {
       slotName,
       elementId: element.id,
-      hasChildren: hasSlotChildren(
-        element,
-        slotName,
-        childrenByParent,
-        combinedElements,
-      ),
+      hasChildren: childCount > 0,
+      childCount,
     };
   });
+}
+
+/**
+ * 현재 Frame 의 슬롯 목록 (읽기 전용) — LayoutPresetSelector 와 Slots 절이 같은 표를 본다.
+ * legacy mirror + canonical frame scope 를 같이 읽는 이유는 usePresetApply 의 주석 참조.
+ */
+export function useExistingFrameSlots(layoutId: string): ExistingSlotInfo[] {
+  const canonicalElements = useCanonicalPropertyElements();
+  const frameElementScopes = useCanonicalFrameElementScopes();
+  const elementsById = useCanonicalPropertyElementsMap();
+  const childrenByParent = useCanonicalPropertyChildrenMap();
+  return useMemo(
+    () =>
+      collectExistingFrameSlots({
+        layoutId,
+        elementsById,
+        childrenByParent,
+        canonicalElements,
+        frameScope: frameElementScopes?.get(layoutId) ?? null,
+      }),
+    [
+      elementsById,
+      childrenByParent,
+      canonicalElements,
+      frameElementScopes,
+      layoutId,
+    ],
+  );
 }
 
 interface UsePresetApplyOptions {
@@ -178,10 +213,7 @@ export function usePresetApply({
   bodyElementId,
 }: UsePresetApplyOptions): UsePresetApplyReturn {
   const [isApplying, setIsApplying] = useState(false);
-  const canonicalElements = useCanonicalPropertyElements();
-  const frameElementScopes = useCanonicalFrameElementScopes();
   const elementsById = useCanonicalPropertyElementsMap();
-  const childrenByParent = useCanonicalPropertyChildrenMap();
   const bodyElement = useCanonicalPropertyElement(bodyElementId);
 
   // Store actions
@@ -190,33 +222,8 @@ export function usePresetApply({
   const updateElementProps = useStore((state) => state.updateElementProps);
   const updateElement = useStore((state) => state.updateElement);
 
-  // 현재 Layout의 기존 Slot 목록.
-  //
-  // ADR-111 P2 fix: 이전 구현은 `belongsToLegacyLayout(el, layoutId, canonicalDoc)`
-  // 로 canonical document 기반 매칭. 그러나 `convertLayoutToReusableFrame` 가
-  // slot element 를 `convertElementWithSlotHoisting` 으로 hoist 하여 canonical
-  // frame.children 에 slot 이 사라짐 → `isCanonicalDescendantOf(slot, frame)`
-  // 항상 false → existingSlots 0개 → currentPresetKey null → 우측 LayoutPresetSelector
-  // 의 "적용됨" 표시 stale.
-  //
-  // Direct cutover 이후 FramesTab 은 canonical frame scope 를 우선 읽는다.
-  // 따라서 preset 교체도 legacy mirror 와 canonical scope 를 함께 보지 않으면
-  // 기존 Slot 을 못 보고 새 Slot 을 누적한다.
-  const existingSlots = useMemo((): ExistingSlotInfo[] => {
-    return collectExistingFrameSlots({
-      layoutId,
-      elementsById,
-      childrenByParent,
-      canonicalElements,
-      frameScope: frameElementScopes?.get(layoutId) ?? null,
-    });
-  }, [
-    elementsById,
-    childrenByParent,
-    canonicalElements,
-    frameElementScopes,
-    layoutId,
-  ]);
+  // 현재 Layout의 기존 Slot 목록 — useExistingFrameSlots (legacy mirror + canonical scope).
+  const existingSlots = useExistingFrameSlots(layoutId);
 
   // ⭐ 현재 적용된 프리셋 감지 (body element의 appliedPreset prop에서 읽기)
   const currentPresetKey = useMemo((): string | null => {

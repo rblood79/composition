@@ -89,6 +89,41 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
     });
   });
 
+  it("counts slot children once across direct parent and slot-name assignment (childCount)", () => {
+    const body = makeElement("frame-body", "body", { layout_id: "frame-1" });
+    const slot = makeElement("slot-side", "Slot", {
+      parent_id: "frame-body",
+      layout_id: "frame-1",
+      props: { name: "sidebar" },
+    });
+    const direct = makeElement("child-a", "Button", { parent_id: "slot-side" });
+    // slot 이름 배정 채널은 legacy mirror `slot_name` (props.slot 이 아니다)
+    const assigned = makeElement("child-b", "Text", {
+      parent_id: "frame-body",
+      props: { slot_name: "sidebar" },
+    });
+    const frameScope: CanonicalFrameElementScope = {
+      frameId: "frame-1",
+      bodyElementId: "frame-body",
+      elementIds: new Set(["frame-body", "slot-side", "child-a", "child-b"]),
+    };
+    const [info] = collectExistingFrameSlots({
+      layoutId: "frame-1",
+      elementsById: new Map([
+        [body.id, body],
+        [direct.id, direct],
+      ]),
+      childrenByParent: new Map([[slot.id, [direct]]]),
+      canonicalElements: [body, slot, direct, assigned],
+      frameScope,
+    });
+    expect(info).toMatchObject({
+      slotName: "sidebar",
+      hasChildren: true,
+      childCount: 2,
+    });
+  });
+
   it("detects existing frame slots from canonical frame scope when the legacy mirror is stale", () => {
     const body = makeElement("frame-body", "body", {
       layout_id: "frame-1",
@@ -117,6 +152,7 @@ describe("LayoutPresetSelector usePresetApply replace contract", () => {
         slotName: "content",
         elementId: "slot-content",
         hasChildren: false,
+        childCount: 0,
       },
     ]);
   });

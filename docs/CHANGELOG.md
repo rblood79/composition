@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties · Frame Preset — 카드 100 · 그룹 헤더 18 · Slots 절 · Frame 이름 헤더 · 슬롯 다이얼로그 8 격자] - 2026-09-14
+
+### Added
+
+- **Slots 절**: Frame 편집 (Navigator › Frames) 의 Properties 에 preset 적용 결과가 보인다 — 슬롯 행 28 (이름 · 놓인 요소 수 mono 10, 절 배지 = 슬롯 수), 행을 누르면 그 Slot 을 캔버스에서 선택. `ExistingSlotInfo.childCount` (직계 + `slot_name` 배정, id 중복 1회) 신설, `useExistingFrameSlots` 로 선택기와 같은 표.
+
+### Changed
+
+- **Properties 헤더 제목**: layout 모드의 body 는 "body" 가 아니라 Frame 이름 (Navigator Frames 목록과 같은 이름).
+- **Frame Preset 카드 105×103 → 100** (pad 8 + preview 77×58 + gap 8 + 이름 행 18 — Components 카드와 같은 세로 모듈) · 그룹 헤더 = legend 18 (아이콘 16 · 이름 · 우측 카운트 mono 10) · applied 배지 9px 절대 배치 → 이름 행 우측 체크 18 (글자 배지는 105 카드에서 이름을 잘랐다) · `.list-item.applied:hover` 가 연한 표면 + 흰 이름이라 마우스를 올리면 이름이 사라지던 것 → accent 85 %.
+- **Existing slots 다이얼로그**: ConfirmDialog 8 격자 (헤더 48 · 슬롯 행 28 · 푸터 44 · `.control-button` 28) — 종전 pad 14 18 · 버튼 32 · 문장 두 줄. 행마다 "무엇이 남는지" (요소 수).
+
+### Fixed
+
+- **ConfirmDialog / Existing slots 가 400 상자 밖에 떠 있던 것**: RAC `Dialog` 에 className 이 없으면 기본 `react-aria-Dialog` 에 생성 `Dialog.css` (overlay archetype — `position: fixed` · pad 30) 가 걸려 `.confirm-dialog-modal` 400 은 높이 2 로 접히고 Dialog 가 589 폭으로 따로 떴다. `className="confirm-dialog"` 로 escape — 크롬 12건 (a2e73d06f) 의 8 격자가 이제 실제로 보인다.
+
 ## [Styles 패널 — 색 팝오버 가족을 한 규격으로 (기본형 233 · 28 티어 · Gradient seg · 순서)] - 2026-09-14
 
 ### Changed
