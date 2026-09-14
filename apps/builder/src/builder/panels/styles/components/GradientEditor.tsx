@@ -3,7 +3,7 @@
  *
  * 설계문서 구조:
  * GradientEditor
- * ├── Select (Gradient SubType: Linear/Radial/Angular/Mesh)
+ * ├── GradientSubTypeSelector (seg: Linear/Radial/Angular/Mesh)
  * ├── GradientBar (미리보기 + 스톱 드래그)
  * ├── ColorPickerPanel (활성 스톱 색상 편집)
  * ├── GradientControls (rotation/center/radius)
@@ -13,8 +13,6 @@
  */
 
 import { memo, useState, useCallback, useMemo, useEffect, useRef } from "react";
-import type { Key } from "react-aria-components/Collection";
-import { Select, SelectItem } from "@composition/shared/components";
 import type {
   FillItem,
   GradientStop,
@@ -28,6 +26,10 @@ import { GradientBar } from "./GradientBar";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { GradientControls } from "./GradientControls";
 import { GradientStopList } from "./GradientStopList";
+import {
+  GradientSubTypeSelector,
+  type GradientSubType,
+} from "./GradientSubTypeSelector";
 
 import "./GradientEditor.css";
 
@@ -35,12 +37,6 @@ type GradientFill =
   LinearGradientFillItem | RadialGradientFillItem | AngularGradientFillItem;
 
 /** 그래디언트 하위 타입 (Mesh 포함) */
-type GradientSubType =
-  | FillType.LinearGradient
-  | FillType.RadialGradient
-  | FillType.AngularGradient
-  | FillType.MeshGradient;
-
 interface GradientEditorProps {
   fill: GradientFill;
   /** presentation runtime이 frame scheduling을 소유하는지 여부 */
@@ -51,17 +47,6 @@ interface GradientEditorProps {
   /** 그래디언트 하위 타입 변경 (Linear ↔ Radial ↔ Angular) */
   onSubTypeChange: (subType: GradientSubType) => void;
 }
-
-// ============================================
-// Gradient SubType Select 옵션
-// ============================================
-
-const GRADIENT_SUB_TYPE_OPTIONS: { id: GradientSubType; name: string }[] = [
-  { id: FillType.LinearGradient, name: "Linear" },
-  { id: FillType.RadialGradient, name: "Radial" },
-  { id: FillType.AngularGradient, name: "Angular" },
-  { id: FillType.MeshGradient, name: "Mesh" },
-];
 
 // ============================================
 // 유틸리티
@@ -168,11 +153,8 @@ export const GradientEditor = memo(function GradientEditor({
 
   // --- Gradient sub-type select ---
   const handleSubTypeChange = useCallback(
-    (key: Key | null) => {
-      const subType = key as GradientSubType | null;
-      if (subType && subType !== fill.type) {
-        onSubTypeChange(subType);
-      }
+    (subType: GradientSubType) => {
+      if (subType !== fill.type) onSubTypeChange(subType);
     },
     [fill.type, onSubTypeChange],
   );
@@ -291,22 +273,15 @@ export const GradientEditor = memo(function GradientEditor({
     setActiveStopIndex(index);
   }, []);
 
+  // 순서: 하위형 seg → 바 → 스톱 목록 → 기하 → 스톱 피커. 바의 핸들과 스톱 행이 붙어
+  //   있어야 어느 스톱을 만지는지 보인다 — 종전 (바 → 피커 → 기하 → 스톱) 은 스톱 목록이
+  //   바에서 400px 아래였다 (panel-ui 17, 2026-09-14).
   return (
     <div className="gradient-editor">
-      <div className="react-aria-control react-aria-Group">
-        <Select
-          aria-label="Gradient type"
-          size="sm"
-          selectedKey={fill.type}
-          onSelectionChange={handleSubTypeChange}
-          items={GRADIENT_SUB_TYPE_OPTIONS}
-          className="gradient-type-select"
-        >
-          {(item: { id: GradientSubType; name: string }) => (
-            <SelectItem>{item.name}</SelectItem>
-          )}
-        </Select>
-      </div>
+      <GradientSubTypeSelector
+        value={fill.type}
+        onChange={handleSubTypeChange}
+      />
       <GradientBar
         stops={localStops}
         gradientCss={gradientCss}
@@ -318,22 +293,6 @@ export const GradientEditor = memo(function GradientEditor({
         onStopRemove={handleStopRemove}
       />
 
-      {activeStop && (
-        <ColorPickerPanel
-          value={committedStopColor}
-          resetKey={`${fill.id}:${activeStopIndex}:${fill.type}`}
-          presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
-          onChange={handleColorChange}
-          onChangeEnd={handleColorChangeEnd}
-        />
-      )}
-
-      <div className="gradient-editor__divider" />
-
-      <GradientControls fill={fill} onChange={onChangeEnd} />
-
-      <div className="gradient-editor__divider" />
-
       <GradientStopList
         stops={localStops}
         activeStopIndex={activeStopIndex}
@@ -342,6 +301,23 @@ export const GradientEditor = memo(function GradientEditor({
         onStopAdd={handleStopAddFromList}
         onStopRemove={handleStopRemove}
       />
+
+      <div className="gradient-editor__divider" />
+
+      <GradientControls fill={fill} onChange={onChangeEnd} />
+
+      {activeStop && (
+        <>
+          <div className="gradient-editor__divider" />
+          <ColorPickerPanel
+            value={committedStopColor}
+            resetKey={`${fill.id}:${activeStopIndex}:${fill.type}`}
+            presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
+            onChange={handleColorChange}
+            onChangeEnd={handleColorChangeEnd}
+          />
+        </>
+      )}
     </div>
   );
 });

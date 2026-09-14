@@ -52,6 +52,7 @@ function NumberField({
   suffix?: string;
   onChange: (v: number) => void;
 }) {
+  // 채널 이름은 필드 안 suffix — 단위(%) 가 있는 필드는 단위가 이름을 대신한다 (A = %)
   return (
     <div className="color-input-number-field">
       <ScrubInput
@@ -59,11 +60,10 @@ function NumberField({
         onCommit={onChange}
         min={min}
         max={max}
-        suffix={suffix}
+        suffix={suffix ?? label}
         label={label}
         className="color-input-number-field__scrub"
       />
-      <span className="color-input-number-field__label">{label}</span>
     </div>
   );
 }
@@ -128,8 +128,8 @@ function TextField({
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         aria-label={label}
+        placeholder={label}
       />
-      <span className="color-input-text-field__label">{label}</span>
     </label>
   );
 }

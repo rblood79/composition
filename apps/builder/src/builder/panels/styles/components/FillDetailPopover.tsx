@@ -33,6 +33,11 @@ import { Blend } from "lucide-react";
 import { PropertySelect } from "../../../components";
 import { BLEND_MODE_OPTIONS } from "../constants/styleOptions";
 import { ScrubInput } from "./ScrubInput";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 import "./FillDetailPopover.css";
 
@@ -148,6 +153,12 @@ export const FillDetailPopover = memo(function FillDetailPopover({
     [onUpdateEnd],
   );
 
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
+
   return (
     <div className="fill-detail-popover section">
       <FillTypeSelector
@@ -189,26 +200,32 @@ export const FillDetailPopover = memo(function FillDetailPopover({
         />
       )}
 
-      <ScrubInput
-        value={Math.round(fill.opacity * 100)}
-        onScrub={(value) => onOpacityChange(value / 100)}
-        onCommit={(value) => onOpacityChangeEnd(value / 100)}
-        min={0}
-        max={100}
-        suffix="%"
-        label="Fill opacity"
-        className="fill-detail-popover__opacity"
-      />
-
       <div className="fill-detail-popover__divider" />
-      <PropertySelect
-        icon={Blend}
-        label="Blend"
-        className="blend-mode"
-        value={fill.blendMode}
-        options={BLEND_MODE_OPTIONS}
-        onChange={(value) => handleBlendModeChange(value as BlendMode)}
-      />
+      {/* 푸터 한 행 — Opacity (legend + 28 scrub) · Blend (1fr 1.5fr). 종전엔 라벨 없는
+          24 scrub 과 divider 아래 Blend 로 세 줄이었다 (panel-ui 17, 2026-09-14) */}
+      <div className="fill-detail-popover__footer">
+        <fieldset className="properties-aria fill-detail-popover__opacity">
+          <legend className="fieldset-legend">{localize("Opacity")}</legend>
+          <ScrubInput
+            value={Math.round(fill.opacity * 100)}
+            onScrub={(value) => onOpacityChange(value / 100)}
+            onCommit={(value) => onOpacityChangeEnd(value / 100)}
+            min={0}
+            max={100}
+            suffix="%"
+            label={localize("Fill opacity")}
+            className="fill-detail-popover__opacity-scrub"
+          />
+        </fieldset>
+        <PropertySelect
+          icon={Blend}
+          label="Blend"
+          className="blend-mode"
+          value={fill.blendMode}
+          options={BLEND_MODE_OPTIONS}
+          onChange={(value) => handleBlendModeChange(value as BlendMode)}
+        />
+      </div>
     </div>
   );
 });

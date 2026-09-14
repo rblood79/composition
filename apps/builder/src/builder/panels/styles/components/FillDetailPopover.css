@@ -25,6 +25,27 @@
   /* fieldset(.properties-aria) — 레이아웃은 고유 클래스가 직접 공급한다
      (panel-system.css `.component-semantics-overrides` 어법).
      min-width 는 fieldset min-content 기본값 해제. */
+  /* 푸터 = Opacity · Blend 한 행 (1fr 1.5fr) */
+  .fill-detail-popover__footer {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: var(--spacing-sm);
+
+    > * {
+      min-width: 0;
+    }
+  }
+
+  .fill-detail-popover__opacity {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .fill-detail-popover__opacity-scrub {
+    width: 100%;
+  }
+
   .fill-type-selector {
     display: flex;
     flex-direction: column;

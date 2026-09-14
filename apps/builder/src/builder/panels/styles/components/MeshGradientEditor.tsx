@@ -10,8 +10,6 @@
  */
 
 import { memo, useState, useCallback } from "react";
-import type { Key } from "react-aria-components/Collection";
-import { Select, SelectItem } from "@composition/shared/components";
 import type {
   FillItem,
   MeshGradientFillItem,
@@ -20,14 +18,13 @@ import type {
 import { FillType } from "../../../../types/builder/fill.types";
 import { ColorPickerPanel } from "./ColorPickerPanel";
 import { ScrubInput } from "./ScrubInput";
+import {
+  GradientSubTypeSelector,
+  type GradientSubType,
+} from "./GradientSubTypeSelector";
 
 import "./MeshGradientEditor.css";
 
-type GradientSubType =
-  | FillType.LinearGradient
-  | FillType.RadialGradient
-  | FillType.AngularGradient
-  | FillType.MeshGradient;
 
 interface MeshGradientEditorProps {
   fill: MeshGradientFillItem;
@@ -35,17 +32,6 @@ interface MeshGradientEditorProps {
   onChangeEnd: (updates: Partial<FillItem>) => void;
   onSubTypeChange: (subType: FillType) => void;
 }
-
-// ============================================
-// Gradient SubType Select 옵션
-// ============================================
-
-const GRADIENT_SUB_TYPE_OPTIONS: { id: GradientSubType; name: string }[] = [
-  { id: FillType.LinearGradient, name: "Linear" },
-  { id: FillType.RadialGradient, name: "Radial" },
-  { id: FillType.AngularGradient, name: "Angular" },
-  { id: FillType.MeshGradient, name: "Mesh" },
-];
 
 // ============================================
 // Default grid generation
@@ -97,11 +83,8 @@ export const MeshGradientEditor = memo(function MeshGradientEditor({
     points.length > 0 ? points : generateDefaultGrid(rows, columns);
 
   const handleSubTypeChange = useCallback(
-    (key: Key | null) => {
-      const subType = key as GradientSubType | null;
-      if (subType && subType !== FillType.MeshGradient) {
-        onSubTypeChange(subType);
-      }
+    (subType: GradientSubType) => {
+      if (subType !== FillType.MeshGradient) onSubTypeChange(subType);
     },
     [onSubTypeChange],
   );
@@ -152,20 +135,10 @@ export const MeshGradientEditor = memo(function MeshGradientEditor({
 
   return (
     <div className="mesh-gradient-editor">
-      <div className="react-aria-control react-aria-Group">
-        <Select
-          aria-label="Gradient type"
-          size="sm"
-          selectedKey={FillType.MeshGradient}
-          onSelectionChange={handleSubTypeChange}
-          items={GRADIENT_SUB_TYPE_OPTIONS}
-          className="gradient-type-select"
-        >
-          {(item: { id: GradientSubType; name: string }) => (
-            <SelectItem>{item.name}</SelectItem>
-          )}
-        </Select>
-      </div>
+      <GradientSubTypeSelector
+        value={FillType.MeshGradient}
+        onChange={handleSubTypeChange}
+      />
       {/* Grid size controls */}
       <div className="mesh-gradient-editor__grid-controls">
         <span className="mesh-gradient-editor__label">Grid</span>

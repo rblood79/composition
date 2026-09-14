@@ -5,9 +5,14 @@
  */
 
 @layer components {
+  /* seg 28 = --control-size (종전 24 — 버튼 20 + pad 2). 버튼은 세로를 꽉 채운다. */
   .color-input-mode-selector {
     display: flex;
     gap: 2px;
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    flex: 1;
+    min-width: 0;
     background: var(--bg-overlay);
     border-radius: var(--radius-sm);
     padding: 2px;
@@ -15,7 +20,10 @@
 
   .color-input-mode-selector__btn {
     flex: 1;
-    padding: var(--spacing-2xs) var(--spacing-xs);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--spacing-xs);
     font-size: var(--text-2xs);
     font-family: var(--font-mono);
     color: var(--fg-muted);

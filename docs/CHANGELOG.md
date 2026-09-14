@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — 색 팝오버 가족을 한 규격으로 (기본형 233 · 28 티어 · Gradient seg · 순서)] - 2026-09-14
+
+### Changed
+
+- **기본형 색 팝오버 (Border · Text · Shadow · Modified) 폭 161 → 233**: 확장형 (Fill) 과 같은 폭 — 같은 피커가 소비처마다 다른 폭이었다 (`.property-color-popover`).
+- **피커 본체 28 티어**: HEX/RGBA/CSS 모드 seg 24 → 28 · HEX 입력 24 → 28 · RGBA 필드 24 + 9px 라벨 행 → 28 상자 안에 채널 이름 suffix (R · G · B · %) — 9px 은 토큰이 없다. `ScrubInput` 이 상자를 소유 (테두리 · 배경 · suffix 안쪽) 해서 Fill opacity 24 · 스톱 위치 22 · Mesh grid 24 · Fill 레이어 행 불투명도가 한 번에 28.
+- **확장형 푸터 한 행**: Opacity (legend + 28) · Blend (1fr 1.5fr) — 종전 라벨 없는 24 scrub + divider + Blend 세 줄.
+- **Gradient 하위형 Select → seg [Linear | Radial | Angular | Mesh]** (`GradientSubTypeSelector`, Type 행과 같은 어법, 메뉴 한 단계 삭제) · **순서 바 → 스톱 목록 → 기하 → 스톱 피커** (종전엔 스톱 목록이 바에서 400px 아래) · 스톱 행 28 · 삭제 20 → 28 · Add Stop 26 → 28.
+- **Image URL 26 → 28 · Mode 24 → seg 28** · Fill 레이어 행 28 (삭제 20 → 28).
+- 실측 (`colorpop2.mjs`): 기본형 233×310 · Color 427 · Linear 667 · Radial 719 · Mesh 739 · Image 327 (종전 322 / 471 / 701 / 753 / 771 / 355).
+
 ## [Styles 패널 — 요소 Opacity 슬라이더 · Box Shadow 다중 레이어 편집] - 2026-09-14
 
 ### Added

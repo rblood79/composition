@@ -17,13 +17,14 @@
   .color-picker-panel__inputs {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--spacing-sm);
   }
 
+  /* [스포이드 28] [HEX | RGBA | CSS seg 28] — 한 행 28 */
   .color-picker-panel__inputs-row {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: var(--spacing-xs);
   }
 
   /* Hue/Alpha 슬라이더: 얇은 트랙 (2026-07-15, 28→8px) */

@@ -458,6 +458,11 @@
      top-level 규칙이어야 매칭된다. 내부 ColorPickerPanel 은 padding 을 갖지
      않는다 (host 컨테이너 소유 계약 — ColorPickerPanel.css, 2026-08-14) */
   .property-color-popover {
+    box-sizing: border-box;
+    /* 233 = 확장형 (FillDetailPopover, 패널 최소 폭) 과 같은 폭 — 종전엔 폭 선언이 없어
+       내용 폭 161 로 떠서 같은 피커가 소비처마다 다른 폭이었다 (panel-ui 17, 2026-09-14) */
+    inline-size: 233px;
+    max-width: none;
     padding: 8px;
   }
 }

@@ -29,8 +29,8 @@
     margin: 2px 0;
   }
 
-  /* Gradient SubType Select — compact override for popover context */
-  .gradient-type-select.react-aria-Select {
-    width: 100%;
+  /* 하위형 seg — 글자 라벨 변형은 inspector-layout.css (settings 토글과 한 규칙) */
+  .gradient-sub-type-selector {
+    min-width: 0;
   }
 }

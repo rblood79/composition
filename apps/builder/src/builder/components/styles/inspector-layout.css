@@ -625,9 +625,11 @@
       }
     }
 
+    /* 글자 라벨 seg — 버튼이 행 폭을 나눠 갖는다 (Settings 토글 · Gradient 하위형) */
     .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-theme-mode-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
-    .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"] {
+    .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
+    .gradient-sub-type-selector .react-aria-ToggleButtonGroup[data-indicator="true"] {
       gap: var(--spacing);
 
       .react-aria-ToggleButton {
