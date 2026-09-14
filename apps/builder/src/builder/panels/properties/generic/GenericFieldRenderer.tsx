@@ -177,7 +177,9 @@ function areGenericFieldPropsEqual(
  */
 function fieldSpan(field: ResolvedField): "wide" | "half" {
   switch (field.kind) {
-    // variant 값은 단어 (Primary · Secondary …) 라 전폭 — Styles 의 "값이 길면 전폭" 규칙
+    // variant 는 size 와 한 행 (panel-ui 07 「Variant | Size」) — 반폭은 legend 모드라
+    //   「Secondary ▾」 가 79 안에 들어간다 (suffix 모드 반폭은 「Prima VARIA ▾」 로 잘려 legend)
+    case "variant":
     case "enum":
     case "fillStyle":
     case "size":
@@ -250,7 +252,11 @@ const GenericField = memo(function GenericField({
     case "variant":
     case "enum":
     case "fillStyle":
-      if ((field.options?.length ?? 0) === 2) {
+      // 반폭 seg 칸은 37 — 「Emphasized」 같은 긴 라벨은 셀렉트로 (2026-09-15 live)
+      if (
+        (field.options?.length ?? 0) === 2 &&
+        (field.options ?? []).every((o) => o.label.length <= 7)
+      ) {
         return (
           <PropertySizeToggle
             label={field.label}
@@ -278,7 +284,23 @@ const GenericField = memo(function GenericField({
         />
       );
 
+    // size 는 반폭 (87) — 옵션 3개 (S M L) 까지만 seg, 그 이상 (XS~XL 5개 → 칸 13) 은
+    //   셀렉트 (panel-ui 07 「Variant | Size」 한 행; 2026-09-15 live 「XS S M L XL」 칸 13 눌림).
+    //   반폭이라 legend 모드 — 옆 Variant 와 같은 높이
     case "size":
+      if ((field.options?.length ?? 0) > 3) {
+        return (
+          <PropertySelect
+            label={field.label}
+            labelMode={suffixMode}
+            value={String(value ?? field.baseValue ?? "")}
+            onChange={(v) => update(v)}
+            options={field.options ?? []}
+            translateOptions={translateOptions}
+            optionValueMode={optionValueMode}
+          />
+        );
+      }
       return (
         <PropertySizeToggle
           label={field.label}

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties Appearance — Size 가 「XS S M L XL」 칸 13 으로 눌리던 결함 · Variant | Size 한 행] - 2026-09-15
+
+### Fixed
+
+- **Size 필드가 반폭 (87) 에 5옵션 seg 로 들어가 칸 13 씩 눌려 글자가 안 보이던 결함** — 옵션 4개 이상이면 셀렉트 (「M ▾」), 3개 이하 (S M L) 는 seg 그대로. Variant 도 반폭으로 내려 **「Variant | Size」 한 행** (panel-ui 07), 반폭은 legend 모드라 「Secondary ▾」 가 79 에 들어간다. 반폭 seg 칸 37 에 「Emphasized」 처럼 긴 2옵션 라벨은 셀렉트로 (라벨 7자 이하만 seg). live: Button 「Primary ▾ | M ▾」 · TextField 「M ▾ | Top·Side」 · Checkbox 「Default ▾ | M ▾」.
+
 ## [패널 잔여 대조 5 — Modified 단위 · Icon/Blend prefix · Settings 절 이름 · Page gap · Data creator legend · Theme 6열 · 카드 아이콘 28] - 2026-09-15
 
 ### Changed
