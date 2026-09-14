@@ -1,0 +1,21 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1100 }, deviceScaleFactor: 2 })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`fr-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+await page.evaluate(async () => { const st = window.__composition_STORE__.getState(); const body = st.elements.find(e => e.type === "body" && e.page_id === st.currentPageId) ?? st.elements.find(e => e.type === "body"); const now = new Date().toISOString(); const id = crypto.randomUUID(); await st.addElement({ id, type: "Card", parent_id: body.id, page_id: body.page_id, order_num: 99, created_at: now, updated_at: now, props: { style: { width: "200px", height: "80px" } } }, { skipHistory: true }); await new Promise(r => setTimeout(r, 800)); const st2 = window.__composition_STORE__.getState(); st2.setSelectedElement(id, st2.elements.find(e => e.id === id)?.props); });
+await page.waitForTimeout(600);
+await page.getByRole("button", { name: "Styles", exact: true }).first().click(); await page.waitForTimeout(500);
+await page.locator(".styles-panel-tab").nth(1).click(); await page.waitForTimeout(400);
+// add a second fill so a FillLayerRow appears
+const add = page.locator('[data-panel-id="styles"] .style-background button[aria-label*="dd"]').first();
+console.log("add btn", await add.count(), await add.getAttribute("aria-label"));
+await add.click(); await page.waitForTimeout(500); await add.click(); await page.waitForTimeout(500);
+const M = (sel) => page.evaluate((sel) => Array.from(document.querySelectorAll(sel)).filter(el => el.getBoundingClientRect().width > 0).slice(0, 8).map(el => { const r = el.getBoundingClientRect(); return `${el.className.toString().slice(0, 40)} | ${Math.round(r.width)}×${Math.round(r.height)}`; }), sel);
+console.log(JSON.stringify(await M('[data-panel-id="styles"] .fill-layer-row, [data-panel-id="styles"] .fill-layer-row__swatch-btn, [data-panel-id="styles"] .fill-layer-row__opacity-scrub, [data-panel-id="styles"] .fill-layer-row__delete, [data-panel-id="styles"] .fill-layer-row__toggle'), null, 1));
+await page.locator('[data-panel-id="styles"] .style-background').screenshot({ path: "/tmp/claude-501/cp2/fill-rows.png" });
+await browser.close();
