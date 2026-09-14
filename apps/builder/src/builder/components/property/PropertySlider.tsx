@@ -69,12 +69,22 @@ export function PropertySlider({
     : label;
   const toSingle = (newValue: number | number[]): number =>
     Array.isArray(newValue) ? newValue[0] : newValue;
+
+  // 드래그 중 thumb 는 로컬 값을 따른다. RAC Slider 는 controlled 라 `value` 가 안 바뀌면 thumb 를
+  //   매 렌더 되돌리는데, 호출측 preview 가 presentation 경로 (Skia 만 갈아끼우고 store 무변경 —
+  //   Effect opacity) 면 드래그 내내 `value` 가 그대로라 thumb 가 끊겼다. store preview 경로
+  //   (Border) 도 rAF 뒤에나 `value` 가 와 한 프레임 늦었다. 드래그 밖에서는 `value` 그대로.
+  const [dragValue, setDragValue] = useState<number | null>(null);
   const handleChange = (newValue: number | number[]) => {
-    onChange(toSingle(newValue));
+    const next = toSingle(newValue);
+    setDragValue(next);
+    onChange(next);
   };
-  const handleChangeEnd = onChangeEnd
-    ? (newValue: number | number[]) => onChangeEnd(toSingle(newValue))
-    : undefined;
+  const handleChangeEnd = (newValue: number | number[]) => {
+    setDragValue(null);
+    onChangeEnd?.(toSingle(newValue));
+  };
+  const sliderValue = dragValue ?? value;
 
   // 값 칸 직접 입력 — local draft, 커밋은 Enter/blur 한 번 (연속 preview 없음).
   const [draft, setDraft] = useState<string | null>(null);
@@ -125,7 +135,7 @@ export function PropertySlider({
         )}
         <AriaSlider
           className="react-aria-Slider"
-          value={value}
+          value={sliderValue}
           onChange={handleChange}
           onChangeEnd={handleChangeEnd}
           minValue={min}

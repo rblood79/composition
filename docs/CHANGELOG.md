@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — 슬라이더 thumb 가 드래그를 따른다 (Effect Opacity 끊김)] - 2026-09-14
+
+### Fixed
+
+- **Effect › Opacity 슬라이더가 드래그 중 끊겼다**: `PropertySlider` 는 RAC controlled 슬라이더인데, opacity preview 는 presentation 경로 (Skia 만 갈아끼우고 store 무변경) 라 드래그 내내 `value` 가 그대로였고 RAC 가 매 렌더 thumb 를 이전 값으로 되돌렸다. Border Width/Radius 는 store preview 경로 (rAF 마다 store 갱신) 라 따라오긴 했지만 한 프레임 늦었다. 슬라이더가 드래그 중 값을 로컬로 들고 (onChange → 로컬, onChangeEnd → controlled 복귀) 두 경로 모두 포인터를 즉시 따른다. 다른 preview 컨트롤 (ScrubInput · ColorPickerPanel · BoxShadowEditor) 은 이미 로컬 세션 값을 들고 있어 같은 문제 없음. live: 실제 빌더에서 opacity 드래그 12 샘플 85 → 6 단조 · store 는 드래그 중 불변 · 커밋 0.06.
+
 ## [Border 기하 채널 — 코너별 반경 · 변별 폭 (ADR-219 Implemented)] - 2026-09-14
 
 ### Added
