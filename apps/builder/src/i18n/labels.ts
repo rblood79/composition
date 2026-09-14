@@ -231,6 +231,7 @@ export const semanticLabelKeys: Record<string, string> = {
   inset: "styles.appearance.inset",
   "Inset shadow": "styles.appearance.insetShadow",
   Overflow: "styles.appearance.overflow",
+  Opacity: "styles.appearance.opacity",
   Background: "styles.appearance.background",
   "No background": "styles.fill.noBackground",
   "Add background": "styles.fill.addBackground",

@@ -127,6 +127,38 @@ describe("useAppearanceValues — ADR-082 P3 spec fallback (backgroundColor/bord
     expect(result.current?.overflow).toBe("visible");
   });
 
+  it("opacity — inline 이 문자열/숫자 어느 형태든 문자열로 읽고, 없으면 \"1\" (요소 opacity 컨트롤)", () => {
+    setTestElements([
+      {
+        id: "el-opacity-string",
+        type: "ListBox",
+        props: { size: "md", style: { opacity: "0.35" } },
+      } as Element,
+      {
+        id: "el-opacity-number",
+        type: "ListBox",
+        props: { size: "md", style: { opacity: 0.5 } },
+      } as unknown as Element,
+      {
+        id: "el-opacity-absent",
+        type: "ListBox",
+        props: { size: "md", style: {} },
+      } as Element,
+    ]);
+    expect(
+      renderHook(() => useAppearanceValues("el-opacity-string")).result.current
+        ?.opacity,
+    ).toBe("0.35");
+    expect(
+      renderHook(() => useAppearanceValues("el-opacity-number")).result.current
+        ?.opacity,
+    ).toBe("0.5");
+    expect(
+      renderHook(() => useAppearanceValues("el-opacity-absent")).result.current
+        ?.opacity,
+    ).toBe("1");
+  });
+
   it("returns null when id is null", () => {
     const { result } = renderHook(() => useAppearanceValues(null));
     expect(result.current).toBeNull();

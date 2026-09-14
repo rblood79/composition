@@ -386,6 +386,22 @@
         grid-area: border-radius;
       }
 
+      .style-opacity {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        grid-template-rows: auto;
+        gap: var(--spacing-sm);
+        grid-template-areas: "opacity opacity .";
+
+        > * {
+          min-width: 0;
+        }
+      }
+
+      .opacity {
+        grid-area: opacity;
+      }
+
       .style-shadow {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);

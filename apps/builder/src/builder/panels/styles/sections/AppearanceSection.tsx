@@ -12,6 +12,7 @@ import {
   PropertyUnitInput,
   PropertyColor,
   PropertySelect,
+  PropertySlider,
 } from "../../../components";
 import {
   BORDER_RADIUS_PRESET_OPTIONS,
@@ -28,6 +29,7 @@ import {
   SquareDashedBottom,
   EllipsisVertical,
   Eclipse,
+  Eye,
   Scissors,
 } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
@@ -96,6 +98,27 @@ function boxShadowToPresetKey(cssValue: string): string {
 const stripInset = stripShadowInset;
 const applyInset = applyShadowInset;
 
+/**
+ * 요소 opacity ↔ 슬라이더 % 변환.
+ *
+ * 저장은 CSS `opacity` 문자열 (0~1). Skia 는 `style.opacity` → OpacityEffect
+ * (styleConverter `convertToEffects`), DOM 은 inline 그대로 — 채널은 이미 양쪽에 있었고
+ * 패널 컨트롤만 없었다 (Fill 레이어 opacity 와 별개). 100 % 는 CSS 기본값이라 inline 키를
+ * 지워 baseline 으로 복귀시킨다 — "1" 을 기록하면 boxShadow "none" 과 같은 영구 dirty.
+ */
+function opacityToPercent(raw: string): number {
+  const parsed = raw.trim().endsWith("%")
+    ? Number.parseFloat(raw) / 100
+    : Number.parseFloat(raw);
+  if (!Number.isFinite(parsed)) return 100;
+  return Math.round(Math.max(0, Math.min(1, parsed)) * 100);
+}
+
+function percentToOpacityValue(percent: number): string {
+  if (percent >= 100) return "";
+  return String(Math.max(0, Math.min(100, percent)) / 100);
+}
+
 const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
@@ -115,6 +138,10 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
     commitBoxShadowModelPresentation,
     isBoxShadowPresentationOwned,
     previewBoxShadowModelPresentation,
+    cancelOpacityPresentation,
+    commitOpacityPresentation,
+    isOpacityPresentationOwned,
+    previewOpacityPresentation,
   } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
@@ -132,6 +159,7 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   const presentationOwnsBorderColor = isBorderColorPresentationOwned();
   const presentationOwnsBoxShadow = isBoxShadowPresentationOwned();
+  const presentationOwnsOpacity = isOpacityPresentationOwned();
   const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
 
   const handleBorderColorPreview = (value: string): void => {
@@ -176,6 +204,26 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
       return;
     }
     updateStyle("boxShadow", nextBoxShadow);
+  };
+
+  // 요소 opacity — ModifiedStylesSection 과 같은 presentation 경로 (pilot 이 소유하면
+  //   Skia 가 OpacityEffect 만 갈아끼우고, 아니면 canonical preview/commit).
+  const handleOpacityPreview = (percent: number): void => {
+    const value = String(percent / 100);
+    if (presentationOwnsOpacity && previewOpacityPresentation(value)) return;
+    updateStylePreview("opacity", value);
+  };
+
+  const handleOpacityCommit = (percent: number): void => {
+    const value = percentToOpacityValue(percent);
+    // "" (100 %) 는 inline 키 삭제 — presentation 은 값을 요구하므로 세션을 닫고 canonical 로.
+    if (value === "") {
+      cancelOpacityPresentation("superseded");
+      updateStyleImmediate("opacity", value);
+      return;
+    }
+    if (presentationOwnsOpacity && commitOpacityPresentation(value)) return;
+    updateStyleImmediate("opacity", value);
   };
 
   const handleBoxShadowModelPreview = (
@@ -271,6 +319,21 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
             />
           </SwatchIconButton>
         </div>
+      </div>
+
+      {/* Opacity — 요소 전체 (Fill 레이어 opacity 와 별개) */}
+      <div className="style-opacity">
+        <PropertySlider
+          icon={Eye}
+          label="Opacity"
+          className="opacity"
+          value={opacityToPercent(styleValues.opacity)}
+          min={0}
+          max={100}
+          step={1}
+          onChange={handleOpacityPreview}
+          onChangeEnd={handleOpacityCommit}
+        />
       </div>
 
       {/* Box Shadow */}

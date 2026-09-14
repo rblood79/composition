@@ -15,7 +15,12 @@ import {
 interface PropertySliderProps {
   label: string;
   value: number;
+  /** 드래그 중 매 값 (연속 입력 — 호출측이 preview 경로로 보낸다). */
   onChange: (value: number) => void;
+  /** 드래그 종료 · 키보드 입력 후 최종 값 (commit 경로). 없으면 onChange 만. */
+  onChangeEnd?: (value: number) => void;
+  /** 출력 텍스트. 기본 `${value}%`. */
+  formatValue?: (value: number) => string;
   min?: number;
   max?: number;
   step?: number;
@@ -31,6 +36,8 @@ export function PropertySlider({
   label,
   value,
   onChange,
+  onChangeEnd,
+  formatValue,
   min = 0,
   max = 100,
   step = 1,
@@ -41,10 +48,14 @@ export function PropertySlider({
   const displayLabel = i18n
     ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
     : label;
+  const toSingle = (newValue: number | number[]): number =>
+    Array.isArray(newValue) ? newValue[0] : newValue;
   const handleChange = (newValue: number | number[]) => {
-    const singleValue = Array.isArray(newValue) ? newValue[0] : newValue;
-    onChange(singleValue);
+    onChange(toSingle(newValue));
   };
+  const handleChangeEnd = onChangeEnd
+    ? (newValue: number | number[]) => onChangeEnd(toSingle(newValue))
+    : undefined;
 
   return (
     <fieldset className={`properties-aria ${className || ""}`}>
@@ -63,6 +74,7 @@ export function PropertySlider({
           className="react-aria-Slider"
           value={value}
           onChange={handleChange}
+          onChangeEnd={handleChangeEnd}
           minValue={min}
           maxValue={max}
           step={step}
@@ -72,7 +84,9 @@ export function PropertySlider({
             <SliderTrack className="slider-track">
               <SliderThumb className="slider-thumb" />
             </SliderTrack>
-            <SliderOutput className="slider-output">{value}%</SliderOutput>
+            <SliderOutput className="slider-output">
+              {formatValue ? formatValue(value) : `${value}%`}
+            </SliderOutput>
           </div>
         </AriaSlider>
       </div>

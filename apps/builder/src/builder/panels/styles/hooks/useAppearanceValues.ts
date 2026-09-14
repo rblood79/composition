@@ -14,6 +14,8 @@ export interface AppearanceStyleValues {
   borderStyle: string;
   boxShadow: string;
   overflow: string;
+  /** 요소 전체 opacity (CSS `opacity`, 0~1 문자열). spec preset 에는 없는 채널 — inline 또는 "1". */
+  opacity: string;
 }
 
 export function useAppearanceValues(
@@ -41,6 +43,7 @@ export function useAppearanceValues(
       borderStyle: firstDefined(s.borderStyle, specPreset.borderStyle, "solid"),
       boxShadow: firstDefined(s.boxShadow, specPreset.boxShadow, "none"),
       overflow: firstDefined(s.overflow, specPreset.overflow, "visible"),
+      opacity: firstDefined(s.opacity, undefined, "1"),
     };
   }, [id, colorValues]);
 }

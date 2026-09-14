@@ -405,12 +405,14 @@
       width: 100%;
     }
 
+    /* 행 높이는 컨트롤 티어 28 (다른 .react-aria-Group 과 같은 줄) — 종전
+       `--inspector-label-width` 는 정의된 곳이 없어 padding 이 0 으로 떨어졌다. */
     .slider-container {
       display: flex;
       align-items: center;
       gap: var(--spacing-sm);
-      padding-left: var(--inspector-label-width);
-      padding-right: var(--spacing-sm);
+      block-size: var(--control-size);
+      padding: 0 var(--spacing-sm);
     }
 
     .slider-track {
@@ -439,11 +441,13 @@
     }
 
     .slider-output {
+      font-family: var(--font-mono);
       font-size: var(--text-xs);
       line-height: var(--text-xs--line-height);
       color: var(--fg);
       min-width: 40px;
       text-align: right;
+      font-variant-numeric: tabular-nums;
     }
   }
 }

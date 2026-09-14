@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — 요소 Opacity 슬라이더] - 2026-09-14
+
+### Added
+
+- **Appearance › Opacity 슬라이더 (28px 행, 👁 아이콘 · % 출력)**: 요소 전체 `opacity` 채널을 Styles 패널에서 편집한다. 채널은 Skia (`buildSkiaEffects` → OpacityEffect) 와 DOM (inline) 양쪽에 이미 있었고 컨트롤만 없었다 — Fill 레이어 opacity 와 별개. 드래그 · 화살표 · PageUp/Down 은 preview (히스토리 0), 놓을 때 commit; 100 % 는 inline 키를 지워 baseline 복귀 (영구 dirty 방지). `PropertySlider` 에 `onChangeEnd` · `formatValue` 추가 (첫 사용처). live: Button 에서 100 % → 11 % Skia 픽셀 평균 64.5 → 234.4 · ⌘Z 복귀 (`apps/builder/scripts/.tmp-panel-cap/opacity-live.mjs`, 로컬).
+
 ## [ADR-214 후속 — AI `list_variables` 읽기 tool · Variable 편집기 Validation/Transform 절 삭제] - 2026-09-14
 
 ### Added
