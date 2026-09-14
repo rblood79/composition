@@ -30,10 +30,9 @@ import {
   CaseLower,
   CaseSensitive,
   CaseUpper,
+  Bold,
   Italic,
-  RemoveFormatting,
   Strikethrough,
-  Type,
   Underline,
 } from "lucide-react";
 import { useStore } from "../../../stores";
@@ -208,6 +207,13 @@ const TypographySectionContent = memo(function TypographySectionContent() {
 
   if (!styleValues) return null;
 
+  const isBold = Number(styleValues.fontWeight) >= 600;
+  const isItalic = styleValues.fontStyle !== "normal";
+  const fontStyleKeys = [
+    ...(isBold ? ["bold"] : []),
+    ...(isItalic ? ["italic"] : []),
+  ];
+
   return (
     <>
       {/* 1행: 글꼴 (이름이 곧 라벨) | 색 swatch 28 */}
@@ -361,20 +367,43 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         </ToggleButtonGroup>
       </fieldset>
 
-      {/* 5행: Style | Decoration (× 가 none 자리 — 재클릭 해제 대신 명시 선택) */}
+      {/* 5행: Style | Decoration — Style 은 Bold · Italic 다중 선택 (동시 활성 · 재클릭 해제),
+          × 토글 없음. Bold = fontWeight ≥ 600, 켜면 700 · 끄면 base 가 굵지 않으면 inline 삭제,
+          굵으면 400. Italic = fontStyle ≠ normal (oblique 도 켜진 걸로 표시), 켜면 italic. */}
       <fieldset className="properties-aria font-style">
         <legend className="fieldset-legend">{localize("Style")}</legend>
         <ToggleButtonGroup
           aria-label={localize("Font style")}
           indicator
-          selectedKeys={[styleValues.fontStyle]}
+          selectionMode="multiple"
+          selectedKeys={fontStyleKeys}
           onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string;
-            if (value) updateStyle("fontStyle", value);
+            const next = new Set(Array.from(keys) as string[]);
+            const boldNext = next.has("bold");
+            const italicNext = next.has("italic");
+            if (boldNext !== isBold) {
+              const value = boldNext
+                ? "700"
+                : Number(styleValues.fontWeightBase) >= 600
+                  ? "400"
+                  : "";
+              if (
+                value !== "" &&
+                isTextMetricPresentationOwned("fontWeight") &&
+                commitTextMetricPresentation("fontWeight", value)
+              ) {
+                // presentation 이 커밋
+              } else {
+                updateStyle("fontWeight", value);
+              }
+            }
+            if (italicNext !== isItalic) {
+              updateStyle("fontStyle", italicNext ? "italic" : "normal");
+            }
           }}
         >
-          <ToggleButton id="normal" aria-label={localize("Normal style")}>
-            <RemoveFormatting
+          <ToggleButton id="bold" aria-label={localize("Bold")}>
+            <Bold
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
@@ -385,14 +414,6 @@ const TypographySectionContent = memo(function TypographySectionContent() {
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
-            />
-          </ToggleButton>
-          <ToggleButton id="oblique" aria-label={localize("Oblique")}>
-            <Type
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-              style={{ fontStyle: "oblique", transform: "skewX(-10deg)" }}
             />
           </ToggleButton>
         </ToggleButtonGroup>

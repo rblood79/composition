@@ -15,6 +15,8 @@ export interface TypographyStyleValues {
   fontFamily: string;
   fontSize: string;
   fontWeight: string;
+  /** catalog base 굵기 (inline 없을 때 값) — Bold 토글 해제가 inline 을 지울지 400 을 쓸지 가른다 */
+  fontWeightBase: string;
   fontStyle: string;
   lineHeight: string;
   letterSpacing: string;
@@ -91,6 +93,9 @@ export function useTypographyValues(
       "400",
     );
     const fontWeight = normalizeFontWeight(fontWeightRaw);
+    const fontWeightBase = normalizeFontWeight(
+      firstDefined(undefined, specPreset.fontWeight, "400"),
+    );
 
     const lineHeight = firstDefined(
       s.lineHeight,
@@ -112,6 +117,7 @@ export function useTypographyValues(
       fontFamily,
       fontSize,
       fontWeight,
+      fontWeightBase,
       fontStyle: firstDefined(s.fontStyle, undefined, "normal"),
       lineHeight,
       letterSpacing,

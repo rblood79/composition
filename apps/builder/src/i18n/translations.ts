@@ -4034,6 +4034,7 @@ const semanticLabelTranslations: Record<
     "styles.typography.decoration.underline": "밑줄",
     "styles.typography.decoration.lineThrough": "취소선",
     "styles.typography.fontStyleOption.normal": "기본 글꼴",
+    "styles.typography.fontStyleOption.bold": "굵게",
     "styles.typography.fontStyleOption.italic": "기울임",
     "styles.typography.fontStyleOption.oblique": "비스듬히",
     "styles.typography.transform.uppercase": "대문자",
@@ -4309,6 +4310,7 @@ const semanticLabelTranslations: Record<
     "styles.typography.decoration.underline": "Underline",
     "styles.typography.decoration.lineThrough": "Strikethrough",
     "styles.typography.fontStyleOption.normal": "Normal style",
+    "styles.typography.fontStyleOption.bold": "Bold",
     "styles.typography.fontStyleOption.italic": "Italic",
     "styles.typography.fontStyleOption.oblique": "Oblique",
     "styles.typography.transform.uppercase": "Uppercase",
@@ -4594,7 +4596,8 @@ const formattedMessages: Record<
       `${String(args?.family ?? "")} ${String(args?.face ?? "")} 삭제`,
     "ai.logRestorable": (args) => ` · ${String(args?.shortcut ?? "")} 로 복원`,
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}개`,
-    "datatable.variableUsageCount": (args) => `사용처 ${String(args?.count ?? 0)}`,
+    "datatable.variableUsageCount": (args) =>
+      `사용처 ${String(args?.count ?? 0)}`,
     "datatable.variableMigrated": (args) =>
       `'${String(args?.name ?? "")}' 을 ${String(args?.page ?? "")} 페이지 변수로 옮겼습니다`,
     "datatable.tableMeta": (args) =>
@@ -5052,7 +5055,8 @@ const formattedMessages: Record<
     "ai.logRestorable": (args) =>
       ` · restorable with ${String(args?.shortcut ?? "")}`,
     "datatable.countItems": (args) => `${String(args?.count ?? 0)}`,
-    "datatable.variableUsageCount": (args) => `Used in ${String(args?.count ?? 0)}`,
+    "datatable.variableUsageCount": (args) =>
+      `Used in ${String(args?.count ?? 0)}`,
     "datatable.variableMigrated": (args) =>
       `Moved '${String(args?.name ?? "")}' to page variables of ${String(args?.page ?? "")}`,
     "datatable.tableMeta": (args) =>

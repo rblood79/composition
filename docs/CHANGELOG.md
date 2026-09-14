@@ -11,10 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Text 탭 — Decoration · Case 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
+## [Text 탭 — Style · Decoration · Case 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
 
 ### Changed
 
+- **Style 세그먼트 = Bold · Italic 다중 선택** (동시 활성, 재클릭 해제). 종전 「기본 (Tx) · 기울임 · 비스듬히」 단일 선택에는 굵게가 없어 굵기는 Weight 셀렉트로만 바꿀 수 있었다. Bold = `fontWeight ≥ 600` (Weight 셀렉트와 같은 값을 본다 — 켜면 700, 끄면 catalog base 가 굵지 않으면 inline 삭제 · 굵으면 400) · Italic = `fontStyle ≠ normal` (oblique 문서도 켜진 것으로 표시, 켜면 italic · 끄면 normal). 비스듬히 (oblique) 전용 토글은 없어졌다 — 값은 보존된다. live: 굵게 → 700 (Weight 셀렉트 「Bold」) → 기울임 함께 → 둘 다 활성 → 굵게 해제 → inline 삭제 (base 400) → 기울임 해제 → normal.
 - **Decoration (취소선·밑줄·윗줄) · Case (대문자·첫 글자·소문자)** 세그먼트에서 「없음 (×)」 토글을 뺐다. 활성 토글을 한 번 더 누르면 해제 = `none` — 다른 토글 그룹과 같은 패턴. 3 버튼이 행 폭을 나눈다 (flex 1). live: 밑줄 → `underline`, 다시 → `none` (선택 0) · 대문자 → 소문자 전환 → 다시 → `none`.
 
 ## [Fill opacity — frame 에서 드래그 preview 가 캔버스에 안 보이던 결함 2겹] - 2026-09-14

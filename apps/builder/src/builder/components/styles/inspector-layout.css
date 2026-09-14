@@ -146,7 +146,6 @@
           }
         }
       }
-
     }
 
     /* Spacing 절 (박스 모델 + 8-필드 폴백) — panel-ui 01, 2026-09-14 */
@@ -688,8 +687,10 @@
     .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-theme-mode-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
-    .gradient-sub-type-selector .react-aria-ToggleButtonGroup[data-indicator="true"],
+    .gradient-sub-type-selector
+      .react-aria-ToggleButtonGroup[data-indicator="true"],
     .border-style .react-aria-ToggleButtonGroup[data-indicator="true"],
+    .font-style .react-aria-ToggleButtonGroup[data-indicator="true"],
     .text-decoration .react-aria-ToggleButtonGroup[data-indicator="true"],
     .text-transform .react-aria-ToggleButtonGroup[data-indicator="true"],
     .property-seg .react-aria-ToggleButtonGroup[data-indicator="true"] {

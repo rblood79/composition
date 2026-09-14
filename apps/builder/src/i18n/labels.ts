@@ -208,6 +208,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Underline: "styles.typography.decoration.underline",
   Strikethrough: "styles.typography.decoration.lineThrough",
   "Normal style": "styles.typography.fontStyleOption.normal",
+  Bold: "styles.typography.fontStyleOption.bold",
   Italic: "styles.typography.fontStyleOption.italic",
   Oblique: "styles.typography.fontStyleOption.oblique",
   Uppercase: "styles.typography.transform.uppercase",
