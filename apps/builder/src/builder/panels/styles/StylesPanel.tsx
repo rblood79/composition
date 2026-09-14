@@ -35,6 +35,7 @@ import {
 import {
   TransformSection,
   LayoutSection,
+  SpacingSection,
   AppearanceSection,
   TypographySection,
   ModifiedStylesSection,
@@ -79,6 +80,7 @@ const LayoutGroupSections = memo(function LayoutGroupSections() {
     <>
       <TransformSection />
       <LayoutSection />
+      <SpacingSection />
     </>
   );
 });

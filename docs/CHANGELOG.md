@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Layout 탭 (3/3) — Spacing 절 = 박스 모델 다이어그램 (panel-ui 01)] - 2026-09-14
+
+### Added
+
+- **Spacing 절 (`BoxModelEditor`)**: 217 × 140 = 28 띠 × 5 (margin 점선 · padding 실선 · 중심) 에 4방향 margin/padding 값이 제자리에 놓이고 가운데 **link** 가 같은 고리 4값을 연동한다 (margin 은 음수 허용). 종전 Layout 절 끝의 「Padding ▾ · Margin ▾」 축약값 둘로는 상하/좌우가 다른 경우를 펼쳐야 알 수 있었다. 헤더 expand 로 8-필드 표 (FourWayGrid ×2) 폴백 — 그 칸도 23 → 28. 값 쓰기는 longhand · local draft → blur/Enter 커밋 (FourWayGrid 계약 그대로). reset 범위 `SPACING_PROPS` (Layout 절 reset 은 여전히 전부).
+- live: 박스 모델 padding 띠 159×84 · Top 12 → paddingTop 만 · link 후 Left 20 → 4방향 20 · margin −4 · expand → 4-way 28 칸.
+
 ## [Styles · Layout 탭 (2/3) — Align 3×3 막대 모드 · dead 버튼 제거 (panel-ui 01)] - 2026-09-14
 
 ### Changed

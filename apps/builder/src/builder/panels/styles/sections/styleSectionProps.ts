@@ -37,6 +37,20 @@ export const LAYOUT_PROPS = [
  * Size ∪ Position (Layout 탭) — responsiveEligible · panelStylePropsUnion 정적 가드가 이
  * 리터럴을 읽으므로 spread 없이 나열한다 (= ADR-154 breakpoint override 허용 목록).
  */
+/** Spacing 절 reset 범위 (LAYOUT_PROPS 의 부분집합 — Layout 절 reset 은 여전히 전부) */
+export const SPACING_PROPS = [
+  "padding",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "margin",
+  "marginTop",
+  "marginRight",
+  "marginBottom",
+  "marginLeft",
+];
+
 export const TRANSFORM_PROPS = [
   "width",
   "height",

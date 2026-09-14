@@ -147,6 +147,10 @@
         }
       }
 
+    }
+
+    /* Spacing 절 (박스 모델 + 8-필드 폴백) — panel-ui 01, 2026-09-14 */
+    &[data-section-id="spacing"] .section-content {
       .layout-container {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
@@ -204,18 +208,20 @@
             ".    top    ."
             "left .      right"
             ".    bottom .";
-          gap: 3px;
+          gap: var(--spacing-xs);
           border-radius: var(--radius-md);
 
+          /* 칸 28 (종전 23 + margin 2 — 티어 밖 값, 2026-09-14) */
           .react-aria-Input {
-            margin: 2px;
+            box-sizing: border-box;
+            margin: 0;
             background: var(--bg-overlay);
             border: none;
             border-radius: var(--radius-sm);
-            width: 23px;
-            height: 23px;
+            width: var(--control-size);
+            height: var(--control-size);
             box-shadow: var(--shadow-sm);
-            padding: var(--spacing-xs);
+            padding: 0;
             font-size: var(--text-xs);
             text-align: center;
             color: var(--fg-muted);
