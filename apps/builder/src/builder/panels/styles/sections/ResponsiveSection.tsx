@@ -13,7 +13,7 @@
  * 시각 어법 (panel-ui 04, 2026-09-14):
  * - Responsive 절: Visibility 는 「🖥 📱 📱」 다중 선택 seg 한 줄 (desktop 은 base 라 잠김 —
  *   base `display` 를 그대로 비춘다). 종전 카드 3장 (각 60) + Show All / Hide All 버튼 + 도움말
- *   (ResponsiveVisibilityEditor) 은 5탭 중 가장 긴 탭 (794) 의 원인이었다.
+ *   (구 ResponsiveVisibilityEditor, 삭제) 은 5탭 중 가장 긴 탭 (794) 의 원인이었다.
  * - Overrides 절 (tablet/mobile 만): 헤더 「tablet · 2」 카운트 + 「+」 메뉴 (추가할 속성 고르기),
  *   행은 다른 절과 같은 lrow 「width · 100%」 + 28 열 × (override 해제). 종전 chip + select.
  *

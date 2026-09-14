@@ -662,7 +662,6 @@ const koKR: TranslationKeys = {
     itemsForkedHint:
       "이 인스턴스의 items 가 origin 과 분리(fork)되었습니다 — origin items 변경이 반영되지 않습니다. Reset 시 origin 에 다시 연결됩니다.",
     heightFillBlockParent: "Block 부모에서 불가",
-    visibilityLockedBase: "{breakpoint}: Base (Display 속성으로 제어)",
     slotMerge: "병합 (새 Slot만 추가)",
     slotReplace: "덮어쓰기",
     emptyMessage: "편집 가능한 속성이 없습니다",
@@ -2624,8 +2623,6 @@ const enUS: TranslationKeys = {
     itemsForkedHint:
       "This instance's items are forked from the origin — origin changes no longer flow in. Reset reconnects it to the origin.",
     heightFillBlockParent: "Not available under a block parent",
-    visibilityLockedBase:
-      "{breakpoint}: Base (controlled by the Display property)",
     slotMerge: "Merge (add new slots only)",
     slotReplace: "Replace",
     emptyMessage: "No editable properties",
@@ -4550,8 +4547,6 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override 해제됨`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
-    "propertiesPanel.visibilityLockedBase": (args) =>
-      `${String(args?.breakpoint ?? "")}: Base (Display 속성으로 제어)`,
     "fonts.deleteFace": (args) =>
       `${String(args?.family ?? "")} ${String(args?.face ?? "")} 삭제`,
     "ai.logRestorable": (args) => ` · ${String(args?.shortcut ?? "")} 로 복원`,
@@ -5009,8 +5004,6 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override cleared`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `Used by ${String(args?.count ?? 0)}`,
-    "propertiesPanel.visibilityLockedBase": (args) =>
-      `${String(args?.breakpoint ?? "")}: Base (controlled by the Display property)`,
     "fonts.deleteFace": (args) =>
       `Delete ${String(args?.family ?? "")} ${String(args?.face ?? "")}`,
     "ai.logRestorable": (args) =>

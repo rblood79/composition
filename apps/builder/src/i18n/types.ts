@@ -495,7 +495,6 @@ export interface TranslationKeys {
     itemsForkedLabel: string;
     itemsForkedHint: string;
     heightFillBlockParent: string;
-    visibilityLockedBase: string;
     slotMerge: string;
     slotReplace: string;
     emptyMessage: string;
