@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Text 탭 — Decoration · Case 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
+
+### Changed
+
+- **Decoration (취소선·밑줄·윗줄) · Case (대문자·첫 글자·소문자)** 세그먼트에서 「없음 (×)」 토글을 뺐다. 활성 토글을 한 번 더 누르면 해제 = `none` — 다른 토글 그룹과 같은 패턴. 3 버튼이 행 폭을 나눈다 (flex 1). live: 밑줄 → `underline`, 다시 → `none` (선택 0) · 대문자 → 소문자 전환 → 다시 → `none`.
+
 ## [Fill opacity — frame 에서 드래그 preview 가 캔버스에 안 보이던 결함 2겹] - 2026-09-14
 
 ### Fixed

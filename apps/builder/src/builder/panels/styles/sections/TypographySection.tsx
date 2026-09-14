@@ -35,7 +35,6 @@ import {
   Strikethrough,
   Type,
   Underline,
-  X,
 } from "lucide-react";
 import { useStore } from "../../../stores";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -320,7 +319,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       </fieldset>
 
       <fieldset className="properties-aria vertical-align">
-        <legend className="fieldset-legend">{localize("Vertical align")}</legend>
+        <legend className="fieldset-legend">
+          {localize("Vertical align")}
+        </legend>
         <ToggleButtonGroup
           aria-label={localize("Vertical alignment")}
           indicator
@@ -404,19 +405,13 @@ const TypographySectionContent = memo(function TypographySectionContent() {
           indicator
           selectedKeys={[styleValues.textDecoration]}
           onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string | undefined;
-            if (value && value !== styleValues.textDecoration) {
+            // 활성 토글을 한 번 더 누르면 해제 = none (별도 × 토글 없음, 2026-09-14)
+            const value = (Array.from(keys)[0] as string | undefined) ?? "none";
+            if (value !== styleValues.textDecoration) {
               updateStyle("textDecoration", value);
             }
           }}
         >
-          <ToggleButton id="none" aria-label={localize("No decoration")}>
-            <X
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ToggleButton>
           <ToggleButton
             id="line-through"
             aria-label={localize("Strikethrough")}
@@ -453,19 +448,12 @@ const TypographySectionContent = memo(function TypographySectionContent() {
           indicator
           selectedKeys={[styleValues.textTransform]}
           onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string | undefined;
-            if (value && value !== styleValues.textTransform) {
+            const value = (Array.from(keys)[0] as string | undefined) ?? "none";
+            if (value !== styleValues.textTransform) {
               updateStyle("textTransform", value);
             }
           }}
         >
-          <ToggleButton id="none" aria-label={localize("No transform")}>
-            <X
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ToggleButton>
           <ToggleButton id="uppercase" aria-label={localize("Uppercase")}>
             <CaseUpper
               color={iconProps.color}
