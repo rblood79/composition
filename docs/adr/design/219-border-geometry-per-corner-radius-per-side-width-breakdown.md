@@ -57,7 +57,7 @@
 
 responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에는 도달하지 않는다. 종전 R3 (base/tier 혼합) 는 성립하지 않으므로 삭제.
 
-### 2.3 Skia 기하 (round 1 h3 · m4 반영)
+### 2.3 Skia 기하 (round 1 h3 · m4 반영 · P0 spike 갱신)
 
 `resolveBorderGeometry(style, base?) → { radii: [tl,tr,br,bl], widths: [t,r,b,l], uniformRadius: number | null, uniformWidth: number | null }` (`workspace/canvas/styleConversion/borderGeometry.ts`). 반경은 원형만 (`"8px / 4px"` 는 현행대로 첫 값).
 
@@ -66,11 +66,10 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 `buildBoxNodeData`:
 
 - 반경: `box.borderRadius = uniformRadius ?? radii` (기존 경로, longhand 가 배열의 새 출처).
-- 폭: `uniformWidth !== null` → 현행 `strokeWidth` (8종 스타일 렌더러 그대로). 아니면 `box.strokeWidths = widths` 와 함께 3단:
-  1. **변 마스크** — 각 변이 `w` 또는 `0` (시안 세그먼트의 쓰기 형태) · style ∈ {solid, dashed, dotted} → `partial_border` 자식 노드 (`sides` = width>0 · `strokeWidth = w` · dasharray 는 `specShapeConverter.ts:616-622` 식). **코너 소유권** (재작성): 코너 호는 한 번만 그린다 — 인접 두 변이 모두 on 이면 45° 이등분점에서 나눠 각 변이 자기 반쪽, 한 변만 on 이면 그 변이 호 전체 (CSS 가 폭 0 인 변 쪽 코너를 남은 변 색으로 채우는 것과 같다), 둘 다 off 면 없음. 반투명 stroke 겹침 0.
-  2. **임의 4값 + solid** — 바깥 path (CSS 축소 반경) 와 안쪽 path (안쪽 코너 `rx = max(0, r − w_세로변)`, `ry = max(0, r − w_가로변)` — TL 은 `w_left`/`w_top`) 를 `FillType.EvenOdd` 로 채운다 (CanvasKit `Path.addRRect` 12-float 타원 반경). Chrome `BoxBorderPainter` 와 같은 기하.
-  3. **임의 4값 + dashed/dotted** — 변마다 자기 폭의 stroke path, 코너 소유권은 ① 과 같고 호 반쪽의 폭은 그 변 폭 (근사 — 두 변 폭이 다르면 호 중간에서 폭이 바뀐다, G2 0.95).
-  4. **임의 4값 (또는 변 마스크) + double/groove/ridge/inset/outset** — **지원하지 않는다**. 패널은 이 style 에서 변 세그먼트를 비활성 (툴팁 "변별 폭은 solid·dashed·dotted 에서") 이라 만들지 않고, import/수동 문서만 도달한다. Skia 는 ② 로 그리고 (solid 강등) Border 절에 배지 「Skia 근사」 를 띄운다. Preview 는 원래 style 그대로 — **기록된 비대칭** (G2 케이스 11 로 측정만, 통과 조건 아님; ADR 본문 HC2 · Decision 구현 경계에 명시).
+- 폭: `uniformWidth !== null` → 현행 `strokeWidth` (8종 스타일 렌더러 그대로). 아니면 `box.strokeWidths = widths` 와 함께 3단 (**P0 spike 로 갱신** — [evidence/219-p0-spike.md](../evidence/219-p0-spike.md) §4: solid 는 변 마스크도 even-odd 하나다. CSS 는 폭 0 인 변에 붙은 코너의 안쪽 반경이 `r − 0` 이라 띠가 호를 따라 가늘어지는데, "on 인 변이 호 전체를 폭 일정하게" 그리는 partial_border 식은 그 테이퍼를 못 내고 반투명에서 코너를 두 번 칠한다 — 실측 even-odd 0 vs partial-stroke 0.0053/75):
+  1. **solid + 비균일 (변 마스크 포함)** — 바깥 path (CSS 축소 반경) 와 안쪽 path (안쪽 코너 `rx = max(0, r − w_세로변)`, `ry = max(0, r − w_가로변)` — TL 은 `w_left`/`w_top`) 를 `FillType.EvenOdd` 로 채운다 (CanvasKit `addRRect` 12-float 타원 반경). Chrome `BoxBorderPainter` 와 같은 기하. 변 마스크 (각 변 `w` 또는 `0`) 는 이 식의 특수 경우 — `partial_border` 를 쓰지 않는다.
+  2. **dashed/dotted + 비균일** — `partial_border` 자식 노드 (`sides` = width>0 · dasharray 는 `specShapeConverter.ts:616-622` 식). **코너 소유권** (재작성): 코너 호는 한 번만 그린다 — 인접 두 변이 모두 on 이면 45° 이등분점에서 나눠 각 변이 자기 반쪽, 한 변만 on 이면 그 변이 호 전체, 둘 다 off 면 없음. 변마다 자기 폭의 stroke path, 호 반쪽의 폭은 그 변 폭 (근사 — 두 변 폭이 다르거나 폭 0 변 쪽 테이퍼가 없어 G2 0.95). `renderPartialBorder` 재작성 범위는 이 경로뿐.
+  3. **비균일 (또는 변 마스크) + double/groove/ridge/inset/outset** — **지원하지 않는다**. 패널은 이 style 에서 변 세그먼트를 비활성 (툴팁 "변별 폭은 solid·dashed·dotted 에서") 이라 만들지 않고, import/수동 문서만 도달한다. Skia 는 ① 로 그리고 (solid 강등) Border 절에 배지 「Skia 근사」 를 띄운다. Preview 는 원래 style 그대로 — **기록된 비대칭** (G2 케이스 11 로 측정만, 통과 조건 아님; ADR 본문 HC2 · Decision 구현 경계에 명시).
 - 첫 값만 읽던 4곳: 그림자는 `createRoundRectPath` 로 (spread 는 각 반경 ± spread, `max(0, …)`), AI bounds 는 `borderRadius: [4]` 로 타입 확장 (`aiEffects.ts:81-85` RRect → path), clip-path inset round 는 4 반경.
 
 ### 2.4 패널 · 기준선 · Modified
@@ -90,9 +89,9 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 
 | Phase | 내용                                                                                                                                                                                       | 산출                                |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------- |
-| P0    | inventory freeze (§2.1) + G0 spike 3: even-odd path 1 · 큰 비대칭 반경 `[80,0,0,0]` 1 · 반투명 변 마스크 (인접 변 on) 1                                                                    | `docs/adr/evidence/219-p0-spike.md` |
+| P0 ✅ | inventory freeze (§2.1) + G0 spike 3: even-odd path 1 · 큰 비대칭 반경 `[80,0,0,0]` 1 · 반투명 변 마스크 (인접 변 on) 1 — 2026-09-14 spike diffRatio 0/0/0 (before 0.19/0.23/0.10), 발견: solid 마스크는 even-odd | `docs/adr/evidence/219-p0-spike.md` · `tests/visual-parity/adr219/borderGeometrySpike.browser.test.ts` |
 | P1    | `borderGeometry.ts` helper (+ base 입력) · `resolveCssCornerRadii` 단위 테스트 (§4.5 예제 6 + 균일 동치) · `parseBorder` 동치 테스트                                                       | helper · 테스트                     |
-| P2    | Skia: `clampCornerRadii` → CSS 규칙 교체 (3곳) · converter (`RenderStrokeStyle.widths`) · `buildBoxNodeData` 3단 · 첫 값 4곳 · `renderPartialBorder` 코너 소유권 재작성 + 생산 · 스냅샷 G1 | 렌더                                |
+| P2    | Skia: `clampCornerRadii` → CSS 규칙 교체 (3곳) · converter (`RenderStrokeStyle.widths`) · `buildBoxNodeData` 3단 (solid even-odd · dashed/dotted partial_border · 그 외 강등) · 첫 값 4곳 · `renderPartialBorder` 코너 소유권 재작성 (dashed/dotted 만) + 생산 · 스냅샷 G1 | 렌더                                |
 | P3    | store `applyBorderGeometryBatch` (base 경로, effective 입력, 배치 한 번) + 코어스 집합 + companion `hasBorderWidth` + 시나리오 9 + 정적 가드 G3                                            | 저장                                |
 | P4    | 패널: BorderSection 코너 2×2 · 변 seg (style 조건 비활성 · 「Skia 근사」 배지) · i18n · reset/dirty/Modified · `useBorderRadiusDrag` 삭제 질문                                             | UI                                  |
 | P5    | ADR-198 parity 케이스 10 (G2) · perf lane (G4) · 번들 (G5) · live 하니스 (`.tmp-panel-cap/border-live.mjs`) · CHANGELOG · Implemented 승격 (`### Live Exercise`)                           | 종결                                |
@@ -121,6 +120,6 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 
 ## 6. 변경 파일 (예상)
 
-- 신규: `workspace/canvas/styleConversion/borderGeometry.ts` (+test, `resolveCssCornerRadii` 포함) · `stores/utils/borderGeometryBatch.ts` (+test) · `borderGeometry.static.test.ts` · `.tmp-panel-cap/border-live.mjs` · evidence 2 (spike · perf)
+- 신규: `workspace/canvas/styleConversion/borderGeometry.ts` (+test, `resolveCssCornerRadii` 포함) · `stores/utils/borderGeometryBatch.ts` (+test) · `borderGeometry.static.test.ts` · `tests/visual-parity/adr219/borderGeometrySpike.browser.test.ts` (P0 ✅ — P2 에서 G2 케이스 10 의 production-leg 파일로 확장) · `.tmp-panel-cap/border-live.mjs` · evidence 2 (spike ✅ · perf)
 - 수정: `styleConverter.ts` · `buildBoxNodeData.ts` · `nodeRendererTypes.ts` · `nodeRendererBorders.ts` · `nodeRendererClip.ts` · `renderCommands.ts` · `aiEffects.ts` · `types.ts` · `interpolators.ts` · `inspectorActions.ts` · `responsiveWriteRouting.ts` · `borderCompanionDefaults.ts` · `BorderSection.tsx` · `useResetStyles.ts` · `styleSectionProps.ts` · `ModifiedStylesSection.tsx` · `i18n/translations.ts` · `labels.ts` · `StylesPanel.css`
 - 삭제 후보 (승인 필요): `overlay/hooks/useBorderRadiusDrag.ts`

@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-14 · **round 1 (codex, HIGH 3 · MEDIUM 2) · round 2 (HIGH 2 잔존 — h1 배치 순서 · h6 companion 재주입) 반영 2026-09-14** — h1 저장은 사후 정규화가 아니라 **배치 편집 연산** (effective·base 입력 · 고정 우선순위 shorthand → longhand · 한 번 적용) · h6 companion 폭 판정을 shorthand ∨ longhand 로 · h2 border 는 ADR-154 eligible 밖이라 **전역 유지** (responsive 전제 삭제) · h3 코너 반경 축소를 CSS Backgrounds §4.5 비례 규칙으로 (`clampCornerRadii` 의 `min(w,h)/2` 는 CSS 와 다름 — 수리) + 코너 호 소유권 · m4 비균일 + double/groove/ridge/inset/outset 은 미지원 (패널 차단 · import 문서는 기록된 비대칭) · m5 성능 gate 에 불리 동작·환경 고정 ([reviews/219.md](reviews/219.md)). (Styles 패널 업그레이드 시안 `docs/design/panel-ui` 02 Style 탭 ③ 코너 2×2 · ④ 변 선택 세그먼트의 선행 결정. 시안 코드 반영 21 단계까지 전부 완료 (`88e93d238`) 뒤 착수 — task-state 중단 기준 "Skia 채널이 없는 시안 항목을 패널에서 먼저 열면 중단 (ADR 선행)" 이 이 ADR 이다)
+Accepted — 2026-09-14 (사용자 `/execute-adr 219` 착수 · P0 G0 spike 3 케이스 diffRatio 0 — [evidence/219-p0-spike.md](evidence/219-p0-spike.md)). 판독 이력: **round 1 (codex, HIGH 3 · MEDIUM 2) · round 2 (HIGH 2 잔존 — h1 배치 순서 · h6 companion 재주입) 반영 2026-09-14** — h1 저장은 사후 정규화가 아니라 **배치 편집 연산** (effective·base 입력 · 고정 우선순위 shorthand → longhand · 한 번 적용) · h6 companion 폭 판정을 shorthand ∨ longhand 로 · h2 border 는 ADR-154 eligible 밖이라 **전역 유지** (responsive 전제 삭제) · h3 코너 반경 축소를 CSS Backgrounds §4.5 비례 규칙으로 (`clampCornerRadii` 의 `min(w,h)/2` 는 CSS 와 다름 — 수리) + 코너 호 소유권 · m4 비균일 + double/groove/ridge/inset/outset 은 미지원 (패널 차단 · import 문서는 기록된 비대칭) · m5 성능 gate 에 불리 동작·환경 고정 ([reviews/219.md](reviews/219.md)). (Styles 패널 업그레이드 시안 `docs/design/panel-ui` 02 Style 탭 ③ 코너 2×2 · ④ 변 선택 세그먼트의 선행 결정. 시안 코드 반영 21 단계까지 전부 완료 (`88e93d238`) 뒤 착수 — task-state 중단 기준 "Skia 채널이 없는 시안 항목을 패널에서 먼저 열면 중단 (ADR 선행)" 이 이 ADR 이다)
 
 ## Context
 
@@ -70,9 +70,9 @@ Proposed — 2026-09-14 · **round 1 (codex, HIGH 3 · MEDIUM 2) · round 2 (HIG
 
 ## Decision
 
-**대안 A 채택.** 저장은 CSS longhand, 균일/비균일 상호 배타 — 사후 정규화가 아니라 **배치 편집 연산** (`applyBorderGeometryBatch(style, entries, effective)`: border 축 키는 항목별이 아니라 배치 하나로 — 편집 전 유효 4값에서 시작해 shorthand → longhand 고정 우선순위로 한 번 적용 (`{TL:12, borderRadius:4}` 는 순서 무관 `[12,4,4,4]`), 4값 같으면 접고 다르면 4 longhand). companion 은 폭 존재를 shorthand ∨ longhand 로 판정해 변별 폭 뒤에 `borderWidth: 1` 을 다시 넣지 않는다. 판독은 helper 하나 (`resolveBorderGeometry` + CSS §4.5 `resolveCssCornerRadii` — 기존 `clampCornerRadii` 3 호출처 교체). Skia 폭은 3단 (변 마스크 → `partial_border` 코너 호 소유권 재작성 후 재사용 / solid 임의값 → even-odd 영역 path / dashed·dotted 임의값 → 변별 stroke path). border 는 전역 (responsive 밖).
+**대안 A 채택.** 저장은 CSS longhand, 균일/비균일 상호 배타 — 사후 정규화가 아니라 **배치 편집 연산** (`applyBorderGeometryBatch(style, entries, effective)`: border 축 키는 항목별이 아니라 배치 하나로 — 편집 전 유효 4값에서 시작해 shorthand → longhand 고정 우선순위로 한 번 적용 (`{TL:12, borderRadius:4}` 는 순서 무관 `[12,4,4,4]`), 4값 같으면 접고 다르면 4 longhand). companion 은 폭 존재를 shorthand ∨ longhand 로 판정해 변별 폭 뒤에 `borderWidth: 1` 을 다시 넣지 않는다. 판독은 helper 하나 (`resolveBorderGeometry` + CSS §4.5 `resolveCssCornerRadii` — 기존 `clampCornerRadii` 3 호출처 교체). Skia 폭은 3단 (solid 비균일 — 변 마스크 포함 — → even-odd 영역 path / dashed·dotted 비균일 → `partial_border` 코너 호 소유권 재작성 / double 계열 → 미지원·강등). P0 spike (2026-09-14, [evidence/219-p0-spike.md](evidence/219-p0-spike.md)) 가 변 마스크도 even-odd 가 정확함을 실측했다 — CSS 는 폭 0 변 쪽 코너 띠를 테이퍼하는데 폭 일정 호는 그것을 못 내고 반투명 코너를 두 번 칠한다. border 는 전역 (responsive 밖).
 
-위험 수용 근거: 비균일 폭의 코너 기하는 solid 에서 CSS 와 같은 식 (안쪽 타원 반경 = 바깥 − 인접 변 폭) 이라 근사가 아니고, 근사가 남는 곳은 dashed/dotted 임의 4값 코너 하나뿐이다 — 시안의 쓰기 형태 (변 마스크) 는 ① 경로라 근사에 걸리지 않으며, ③ 는 import/수동 편집 문서에서만 온다. 판독 수렴은 정적 가드 (`resolveBorderGeometry` 외에서 `style.borderTopLeftRadius` 등을 직접 읽는 파일 0) 로 지킨다.
+위험 수용 근거: 비균일 폭의 코너 기하는 solid 에서 CSS 와 같은 식 (안쪽 타원 반경 = 바깥 − 인접 변 폭) 이라 근사가 아니고, 근사가 남는 곳은 dashed/dotted 임의 4값 코너 하나뿐이다 — 시안의 쓰기 형태 (변 마스크) 는 solid 면 even-odd (정확) 이고 dashed/dotted 마스크만 코너 호 근사에 걸린다. 판독 수렴은 정적 가드 (`resolveBorderGeometry` 외에서 `style.borderTopLeftRadius` 등을 직접 읽는 파일 0) 로 지킨다.
 
 기각 사유 — B: 저장 파이프라인이 다중값을 첫 값으로 깎는다 (`toStyleNumericValue`), 코너 단위 삭제·reset 불가. C: base 가 단일값인 채널에 항상-4 저장은 dirty/reset/contract 전면 재작성만 남기고 정규화 이득이 없다. D: `props.style` 의 CSS 키 공간을 깨고 DOM passthrough 가 무너진다.
 
@@ -96,7 +96,7 @@ Proposed — 2026-09-14 · **round 1 (codex, HIGH 3 · MEDIUM 2) · round 2 (HIG
 
 | Gate | 시점 | 통과 조건 | 실패 시 대안 |
 | --- | --- | --- | --- |
-| G0 spike | P0 | 3 케이스 — solid 임의 4값 + 코너 4값 even-odd path · 100×100 `[80,0,0,0]` (CSS 80 유지) · 반투명 변 마스크 (인접 두 변 on, 코너 한 번 칠함) 가 같은 크기 Preview 와 region 0.98 이상 (ADR-198 하니스) | 기하 식 재검토 후 재시도 1회, 실패 시 ③ 변별 stroke 로 통일 |
+| G0 spike ✅ | P0 | 3 케이스 — solid 임의 4값 + 코너 4값 even-odd path · 100×100 `[80,0,0,0]` (CSS 80 유지) · 반투명 변 마스크 (인접 두 변 on, 코너 한 번 칠함) 가 같은 크기 Preview 와 region 0.98 이상 (ADR-198 하니스) — **2026-09-14 통과**: diffRatio 0 / 0 / 0 (before 0.19 / 0.23 / 0.10), `[80,80,0,0]` 축소 0 추가 | 기하 식 재검토 후 재시도 1회, 실패 시 ③ 변별 stroke 로 통일 |
 | G1 기존 동일 | P2 | 균일 반경 fixture 의 `renderCommandStream` 스냅샷 · ADR-198 smoke byte/픽셀 무변경 · specs/builder 기존 테스트 전량 PASS (다중값 shorthand 스냅샷은 CSS 값으로 갱신 — diff 를 evidence 에) | 분기 위치를 converter 밖으로 옮겨 균일 경로에서 코드 경로 0 변경 |
 | G2 대칭 | P2·P5 | HC2 케이스 10 (비례 축소 1 · 반투명 1 포함) — region ≥ 0.98, dashed/dotted ③ 조합만 0.95 · 케이스 11 (변 마스크 + double, 미지원) 은 수치 기록만 | 그 조합 균일 폭 폴백 (R2) |
 | G3 불변식·수렴 | P3 | 정적 테스트: (a) helper 밖 longhand 직접 읽기 0 (b) store 시나리오 9 (빈 style + shorthand · 빈 style + 코너 1 (base 8 → `[12,8,8,8]`) · `[8,4,2,6]` + shorthand 12 → 12 만 · 3 코너 순차/배치 → 접힘 · 코너 지우기 → base · shorthand 지우기 → 키 0 · 배치 `{TL:12, borderRadius:4}` 두 순서 → `[12,4,4,4]` · 변 마스크 → 전체 복귀 · 변 마스크 → 색 → 스타일 편집 뒤 companion 무주입) 뒤 shorthand·longhand 동시 존재 0 | 연산을 한 곳으로 합치고 재측정 |
