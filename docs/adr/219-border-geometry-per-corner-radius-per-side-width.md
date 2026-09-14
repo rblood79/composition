@@ -97,15 +97,23 @@ Accepted — 2026-09-14 (사용자 `/execute-adr 219` 착수 · P0 G0 spike 3 �
 | Gate | 시점 | 통과 조건 | 실패 시 대안 |
 | --- | --- | --- | --- |
 | G0 spike ✅ | P0 | 3 케이스 — solid 임의 4값 + 코너 4값 even-odd path · 100×100 `[80,0,0,0]` (CSS 80 유지) · 반투명 변 마스크 (인접 두 변 on, 코너 한 번 칠함) 가 같은 크기 Preview 와 region 0.98 이상 (ADR-198 하니스) — **2026-09-14 통과**: diffRatio 0 / 0 / 0 (before 0.19 / 0.23 / 0.10), `[80,80,0,0]` 축소 0 추가 | 기하 식 재검토 후 재시도 1회, 실패 시 ③ 변별 stroke 로 통일 |
-| G1 기존 동일 | P2 | 균일 반경 fixture 의 `renderCommandStream` 스냅샷 · ADR-198 smoke byte/픽셀 무변경 · specs/builder 기존 테스트 전량 PASS (다중값 shorthand 스냅샷은 CSS 값으로 갱신 — diff 를 evidence 에) | 분기 위치를 converter 밖으로 옮겨 균일 경로에서 코드 경로 0 변경 |
-| G2 대칭 | P2·P5 | HC2 케이스 10 (비례 축소 1 · 반투명 1 포함) — region ≥ 0.98, dashed/dotted ③ 조합만 0.95 · 케이스 11 (변 마스크 + double, 미지원) 은 수치 기록만 | 그 조합 균일 폭 폴백 (R2) |
-| G3 불변식·수렴 | P3 | 정적 테스트: (a) helper 밖 longhand 직접 읽기 0 (b) store 시나리오 9 (빈 style + shorthand · 빈 style + 코너 1 (base 8 → `[12,8,8,8]`) · `[8,4,2,6]` + shorthand 12 → 12 만 · 3 코너 순차/배치 → 접힘 · 코너 지우기 → base · shorthand 지우기 → 키 0 · 배치 `{TL:12, borderRadius:4}` 두 순서 → `[12,4,4,4]` · 변 마스크 → 전체 복귀 · 변 마스크 → 색 → 스타일 편집 뒤 companion 무주입) 뒤 shorthand·longhand 동시 존재 0 | 연산을 한 곳으로 합치고 재측정 |
-| G4 성능 | P5 | 같은 fixture (600 + 비균일 100) · 같은 동작 (반경 드래그 60 스텝 · 폭 드래그 60 · 비균일 리사이즈 60) · 같은 환경 (기기 · DPR 2 · `visibilityState=visible` · throttle 0 · 힙 Δ) 에서 before/after 총 프레임 비용 p95 Δ ≤ 1 ms — measurement-validity 5-질문을 evidence 에 | path 캐시 (노드 크기·반경·폭 키) 추가 |
-| G5 번들 · 규격 | P4·P5 | Builder initial 순증 ≤ 2 KiB · Preview 0 · 패널 실측 (코너 4칸 87×28 · seg 28 · 행 템플릿) | 아이콘 4개를 인라인 path 로, 세그먼트를 기존 ToggleButtonGroup 재사용 |
+| G1 기존 동일 ✅ | P2 | 균일 반경 fixture 의 `renderCommandStream` 스냅샷 · ADR-198 smoke byte/픽셀 무변경 · specs/builder 기존 테스트 전량 PASS (다중값 shorthand 스냅샷은 CSS 값으로 갱신 — diff 를 evidence 에) — **2026-09-14**: builder 787/790 (실패 1 은 HEAD 이전부터 — `providers.test`, 본 ADR 무관) · specs 1367 · 198 smoke 98 (커밋 hook) · 균일 solid 경로 코드 무변경, 균일 dashed/dotted 는 dash 패턴 수리로 픽셀 변경 (CHANGELOG) | 분기 위치를 converter 밖으로 옮겨 균일 경로에서 코드 경로 0 변경 |
+| G2 대칭 ✅ | P2·P5 | HC2 케이스 10 (비례 축소 1 · 반투명 1 포함) — region ≥ 0.98, dashed/dotted ③ 조합만 0.95 · 케이스 11 (변 마스크 + double, 미지원) 은 수치 기록만 — **2026-09-14** `tests/visual-parity/adr219/borderGeometryParity.browser.test.ts` 12/12: solid 8 케이스 diffRatio 0~0.0009 · dashed/dotted 3 케이스 0.0046~0.0127 · 측정만 2 (균일 dashed 대조군 0.0007 · double 강등 0.037) — `evidence/219-p2-g2.md` | 그 조합 균일 폭 폴백 (R2) |
+| G3 불변식·수렴 ✅ | P3 | 정적 테스트: (a) helper 밖 longhand 직접 읽기 0 (b) store 시나리오 9 (빈 style + shorthand · 빈 style + 코너 1 (base 8 → `[12,8,8,8]`) · `[8,4,2,6]` + shorthand 12 → 12 만 · 3 코너 순차/배치 → 접힘 · 코너 지우기 → base · shorthand 지우기 → 키 0 · 배치 `{TL:12, borderRadius:4}` 두 순서 → `[12,4,4,4]` · 변 마스크 → 전체 복귀 · 변 마스크 → 색 → 스타일 편집 뒤 companion 무주입) 뒤 shorthand·longhand 동시 존재 0 — **2026-09-14** `borderGeometry.static.test.ts` (helper 밖 longhand 판독 0, 예외 layout utils 1) · `borderGeometryBatch.test.ts` 18 (시나리오 ①~⑨ · reset · 불변식 · companion) · P4 live 에서 store 형태 7단계 확인 | 연산을 한 곳으로 합치고 재측정 |
+| G4 성능 ✅ | P5 | 같은 fixture (600 + 비균일 100) · 같은 동작 (반경 드래그 60 스텝 · 폭 드래그 60 · 비균일 리사이즈 60) · 같은 환경 (기기 · DPR 2 · `visibilityState=visible` · throttle 0 · 힙 Δ) 에서 before/after 총 프레임 비용 p95 Δ ≤ 1 ms — measurement-validity 5-질문을 evidence 에 — **2026-09-14** `adr219-border-frame-ab.mjs` 3쌍 headed DPR 2: before 8.0/8.1/8.3 → after 3.3/3.3/3.3 ms (Δ −4.7 ~ −5.0; before 는 spec Frame 의 partial_border 자식 700 + overlay 이중 채널) — `evidence/219-p5-gates.md` | path 캐시 (노드 크기·반경·폭 키) 추가 |
+| G5 번들 · 규격 ⚠ | P4·P5 | Builder initial 순증 ≤ 2 KiB · Preview 0 · 패널 실측 (코너 4칸 87×28 · seg 28 · 행 템플릿) — **2026-09-14**: 규격 ✅ (코너 87×28 · seg 그룹 28/버튼 20 · 행 템플릿, `evidence/219-p4-panel-live.md`) · 번들 **초과**: Builder +4,012 B gzip (3.9 KiB — helper·배치·렌더러·패널·i18n 21키) · Preview +714 B (i18n 카탈로그 공유, DOM 렌더 0) · 절대 상한은 착수 전 panel-ui 반영이 이미 +34 KB 넘긴 상태 — **사용자 결정 대기** (상한 재승인 vs 축소; 2 KiB 안은 기능 삭제 없이 불가, `evidence/219-p5-gates.md`) | 아이콘 4개를 인라인 path 로, 세그먼트를 기존 ToggleButtonGroup 재사용 |
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+2026-09-14 · headed Playwright (`apps/builder/scripts/.tmp-panel-cap/border-live.mjs`, `evidence/219-p4-panel-live.md`) — 실제 builder (dev 5173, 새 프로젝트, 팔레트로 frame 추가, Styles › Style › Border):
+
+1. 패널로 `borderWidth 4 · solid · #102A5C · radius 16` → store shorthand 4 키, Skia 노드 `strokeWidth 4 · borderRadius 16` (균일 경로).
+2. 변 세그먼트 「좌」 해제 → store `borderTopWidth 4 · Right 4 · Bottom 4 · Left 0` (shorthand 삭제), Skia `strokeWidths [4,4,4,0]`, 캔버스 픽셀: 좌변 없음 · TL 띠 테이퍼.
+3. 색 편집 뒤 `borderWidth` 재주입 0 (round 2 h6).
+4. 코너 TL 칸 40 → `borderTopLeftRadius 40 · TR/BR/BL 16` (`borderRadius` 삭제), Skia `borderRadius [40,16,16,16]`, 캔버스 TL 만 큰 호.
+5. Modified 탭 12행 (longhand 8 · i18n 라벨) · 「전체」 → `borderWidth 4` 복귀 · Radius 8 → `borderRadius 8` 복귀 · `double` + 변 마스크 → 세그먼트 5 비활성 + 「Skia approximation」 배지 · 절 reset → border 키 0.
+
+Skia ↔ Preview 픽셀 대칭은 G2 (프로덕션 두 leg 12 케이스) · 성능은 G4 (3쌍 A/B). 사용자 confirm 은 아직 없음 — Implemented 승격은 G5 번들 결정 뒤.
 
 ## Consequences
 

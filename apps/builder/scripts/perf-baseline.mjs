@@ -289,11 +289,14 @@ export async function createInstrumentedContext(
     gpuTimer = false,
     initScript = null,
     onPageError = null,
+    // ADR-219 G4 — HC4 는 DPR 2 를 고정한다 (기본 1: 기존 기준선 보존)
+    deviceScaleFactor = 1,
   } = {},
 ) {
   const context = await browser.newContext({
     storageState,
     viewport: { width: 1440, height: 900 },
+    deviceScaleFactor,
   });
   if (initScript) await context.addInitScript(initScript);
   if (frameCapture)

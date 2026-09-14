@@ -11,12 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Skia — 코너별 반경 · 변별 폭 렌더 채널 (ADR-219 P0~P2)] - 2026-09-14
+## [Border 기하 채널 — 코너별 반경 · 변별 폭 (ADR-219 P0~P5)] - 2026-09-14
 
 ### Added
 
+- **Styles › Border 절**: Width 아래 변 세그먼트 「전체 · 좌 · 우 · 상 · 하」 (전체 = `borderWidth` 하나, 일부 = 변 longhand 4 — 폭 0 인 변은 없음), Radius 아래 코너 2×2 (TL/TR/BL/BR suffix 필드 28 — 칸 하나는 그 코너, 슬라이더는 넷 함께). 표시는 저장 형태와 무관한 유효값 (longhand ?? shorthand ?? catalog base). double/groove/ridge/inset/outset 에서는 세그먼트 비활성 (변별 폭 미지원), 그런 문서가 오면 「Skia 근사」 배지. Modified 탭에 코너·변 longhand 8 행 (ko/en).
+- **저장 규칙 (HC3)**: 코너/변은 균일이면 shorthand 하나, 비균일이면 longhand 4 — 둘이 함께 저장되지 않는다. 편집은 축별 배치 연산 (`applyBorderGeometryBatch`): shorthand 쓰기는 longhand 를 덮고, 코너 하나 쓰기는 나머지를 편집 전 유효값 (catalog base 포함) 으로 채우며, `{TL:12, borderRadius:4}` 는 순서와 무관하게 `[12,4,4,4]`. 절 reset 은 축 키 5 를 지운다 (base 를 다시 저장하지 않음). 색·스타일 편집의 companion 은 폭이 (shorthand 든 longhand 든, 0 이라도) 있으면 `borderWidth: 1` 을 넣지 않는다.
 - **코너별 반경 · 변별 폭이 Skia 에 도달한다** (`styleConversion/borderGeometry.ts` — `resolveBorderGeometry`: longhand ?? shorthand 다중값 ?? shorthand ?? catalog base). `borderTopLeftRadius`… 4 · `borderTopWidth`… 4 를 캔버스가 읽는다 (Preview/Publish 는 원래 그렸다). 비균일 폭 + solid 는 CSS 와 같은 기하 (바깥 rrect − 안쪽 타원 rrect, even-odd — 폭 0 변 쪽 코너 띠가 가늘어지고 반투명 겹침 없음), dashed/dotted 는 변마다 자기 폭의 stroke 를 변 wedge 로 clip (코너 호는 한 번만). 비균일 + double/groove/ridge/inset/outset 은 미지원 — solid 로 그린다 (Preview 와 다름, 기록).
-- 파리티 하니스 `tests/visual-parity/adr219/` — spike (기하 프로토타입) · G2 케이스 10 + 측정 2 (`evidence/219-p2-g2.md`, 전부 diffRatio ≤ 0.013).
+- 파리티 하니스 `tests/visual-parity/adr219/` — spike (기하 프로토타입) · G2 케이스 10 + 측정 2 (`evidence/219-p2-g2.md`, 전부 diffRatio ≤ 0.013). 성능 A/B `scripts/adr219-border-frame-ab.mjs` (frame 700 · 드래그 180 스텝 · 3쌍): render.frame p95 8.0~8.3 → 3.3 ms — 이중 채널 제거 효과. 번들 Builder +3.9 KiB gzip · Preview +0.7 KiB (i18n) — 상한 재승인 대기.
 
 ### Fixed
 
