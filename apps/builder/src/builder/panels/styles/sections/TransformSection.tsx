@@ -24,11 +24,8 @@ import {
   ToggleButtonGroup,
 } from "@composition/shared/components";
 import { type BreakpointName } from "@composition/shared";
-import {
-  parseBorderWidth,
-  parsePadding4Way,
-  parsePxValue,
-} from "@composition/specs";
+import { parsePadding4Way } from "@composition/specs";
+import { resolveBorderGeometry } from "../../../workspace/canvas/styleConversion/borderGeometry";
 import {
   SwatchIconButton,
   SwatchIconToggleButton,
@@ -103,15 +100,10 @@ function resolveAbsoluteContainingBlockBounds(
     ...responsiveStyle,
   };
   const padding = parsePadding4Way(style);
-  const borderWidth = parseBorderWidth(style.borderWidth ?? style.border, 0);
-  const borderLeft = parsePxValue(
-    style.borderLeftWidth ?? style.borderLeft,
-    borderWidth,
-  );
-  const borderTop = parsePxValue(
-    style.borderTopWidth ?? style.borderTop,
-    borderWidth,
-  );
+  // ADR-219 — 변별 폭은 helper 하나로 (longhand ?? shorthand ?? border 단축)
+  const { widths } = resolveBorderGeometry(style as Record<string, unknown>);
+  const borderTop = widths[0];
+  const borderLeft = widths[3];
 
   // Skia absolute layout은 부모 border-box가 아닌 border+padding 이후의 콘텐츠
   // 원점을 left/top 0으로 사용한다. 토글 전환도 동일 원점을 써야 시각 좌표가 보존된다.

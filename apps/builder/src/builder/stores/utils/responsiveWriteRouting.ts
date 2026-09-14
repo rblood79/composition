@@ -40,6 +40,15 @@ export const NUMERIC_COERCE_STYLE_PROPS: ReadonlySet<string> = new Set([
   "columnGap",
   "borderWidth",
   "borderRadius",
+  // ADR-219 — 코너 · 변 longhand 8 (배치 연산이 숫자로 저장)
+  "borderTopLeftRadius",
+  "borderTopRightRadius",
+  "borderBottomRightRadius",
+  "borderBottomLeftRadius",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
 ]);
 
 /**

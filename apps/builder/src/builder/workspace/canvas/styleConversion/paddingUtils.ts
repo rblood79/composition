@@ -6,6 +6,7 @@
  * @since 2025-12-14 P9: Canvas padding 시스템
  */
 
+import { resolveBorderGeometry } from "./borderGeometry";
 import { parseCSSSize } from './styleConverter';
 import type { CSSStyle } from './styleConverter';
 
@@ -183,18 +184,18 @@ export function parseBorderWidth(style: CSSStyle | undefined, defaultValue = 0):
   if (!style) {
     return { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
   }
-
-  // shorthand 먼저 파싱
-  const shorthand = parseBorderWidthShorthand(style.borderWidth as string | number | undefined);
-  const base = shorthand || { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
-
-  // 개별 값으로 오버라이드
-  return {
-    top: style.borderTopWidth !== undefined ? parseCSSSize(style.borderTopWidth, undefined, base.top) : base.top,
-    right: style.borderRightWidth !== undefined ? parseCSSSize(style.borderRightWidth, undefined, base.right) : base.right,
-    bottom: style.borderBottomWidth !== undefined ? parseCSSSize(style.borderBottomWidth, undefined, base.bottom) : base.bottom,
-    left: style.borderLeftWidth !== undefined ? parseCSSSize(style.borderLeftWidth, undefined, base.left) : base.left,
-  };
+  // ADR-219 — 판독은 helper 하나 (longhand ?? shorthand 다중값 ?? shorthand ?? border 단축).
+  //   어느 층에도 폭이 없으면 defaultValue.
+  const geometry = resolveBorderGeometry(style as Record<string, unknown>);
+  const hasAny =
+    geometry.hasWidthLonghand ||
+    (style.borderWidth !== undefined && style.borderWidth !== "") ||
+    (style as Record<string, unknown>).border !== undefined;
+  if (!hasAny) {
+    return { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
+  }
+  const [top, right, bottom, left] = geometry.widths;
+  return { top, right, bottom, left };
 }
 
 /**

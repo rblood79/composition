@@ -17,7 +17,30 @@ const BORDER_COMPANION_TRIGGER_PROPS = new Set([
   "borderColor",
   "borderWidth",
   "borderStyle",
+  // ADR-219 — 변 longhand 도 테두리를 여는 편집이다
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
 ]);
+
+const BORDER_WIDTH_KEYS = [
+  "borderWidth",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+] as const;
+
+/**
+ * 폭이 **명시**돼 있는가 — shorthand 또는 변 longhand 하나라도 null/undefined 가 아니면 참.
+ * 숫자 `0` 도 명시 폭이다 (round 2 h6: 변 마스크 `[4,4,4,0]` 뒤 색 편집이 `borderWidth: 1`
+ * 을 다시 넣어 HC3 를 깨던 자리 — geometry 연산 뒤 companion 은 폭 shorthand 를 주입하지
+ * 않는다).
+ */
+export function hasBorderWidth(style: Record<string, unknown>): boolean {
+  return BORDER_WIDTH_KEYS.some((key) => style[key] != null);
+}
 const DEFAULT_COMPANION_BORDER_STYLE = "solid";
 const DEFAULT_COMPANION_BORDER_WIDTH = 1;
 const DEFAULT_COMPANION_BORDER_COLOR = "#d4d4d4"; // lightColors.border (neutral-300)
@@ -41,7 +64,7 @@ export function applyBorderCompanionDefaults(
   // borderStyle="none" — 테두리 숨김 의도. width/color companion 주입 안 함.
   if (style.borderStyle === "none") return;
 
-  if (style.borderWidth == null) {
+  if (!hasBorderWidth(style)) {
     style.borderWidth = DEFAULT_COMPANION_BORDER_WIDTH;
   }
   if (style.borderColor == null) {

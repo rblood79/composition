@@ -77,6 +77,15 @@ import {
 } from "./utils/layoutInvalidation";
 import { applyBorderCompanionDefaults } from "./utils/borderCompanionDefaults";
 import {
+  applyBorderGeometryBatch,
+  findBorderGeometryInvariantViolations,
+} from "./utils/borderGeometryBatch";
+import {
+  isBorderGeometryProp,
+  type BorderGeometryBase,
+} from "../workspace/canvas/styleConversion/borderGeometry";
+import { resolveAppearanceSpecPreset } from "../panels/styles/utils/specPresetResolver";
+import {
   clearNonEligibleResponsiveOverrides,
   isGlobalStyleProp,
 } from "./utils/globalStyleProps";
@@ -115,8 +124,9 @@ function distributeShorthand(
   }
 }
 
-// base props.style 에 style 항목 하나를 반영 (숫자 변환 + shorthand 분배 + border companion).
-//   updateSelectedStyle / updateSelectedStyles 의 base 쓰기 로직과 동일 규약.
+// base props.style 에 style 항목 하나를 반영 (숫자 변환 + shorthand 분배). border 축 키
+//   (ADR-219) 는 여기로 오지 않는다 — `applyBaseStyleEntries` 가 배치로 뺀다. companion 도
+//   거기서 한 번.
 function applyBaseStyleEntry(
   style: Record<string, unknown>,
   property: string,
@@ -129,7 +139,69 @@ function applyBaseStyleEntry(
     style[property] = toStyleNumericValue(property, value);
   }
   distributeShorthand(style, property);
-  if (!isClearing) applyBorderCompanionDefaults(style, property);
+}
+
+/** ADR-219 — 카탈로그 base 단일값 (배치 연산의 미편집 칸 · 지우기 복귀값) */
+function resolveBorderGeometryBase(element: Element): BorderGeometryBase {
+  const size = element.props?.size;
+  const preset = resolveAppearanceSpecPreset(
+    element.type,
+    typeof size === "string" ? size : undefined,
+    element.props as Record<string, unknown> | undefined,
+  );
+  return { borderRadius: preset.borderRadius, borderWidth: preset.borderWidth };
+}
+
+/**
+ * base props.style 에 항목들을 반영 — **최종 저장 순서** (ADR-219 breakdown §2.2):
+ * 일반 항목 (항목별, companion 없이) → border 기하 축 배치 (`applyBorderGeometryBatch`,
+ * 편집 전 snapshot 의 effective·base 입력, 축별 고정 우선순위 한 번) → companion 1회
+ * (borderColor/borderStyle 값 또는 폭 축 값 쓰기가 있을 때만; reset 만이면 호출 없음)
+ * → 불변식 (shorthand·longhand 동시 존재 0). 단수 편집도 항목 1개짜리 배치다.
+ */
+function applyBaseStyleEntries(
+  style: Record<string, unknown>,
+  entries: Iterable<readonly [string, string]>,
+  element: Element,
+): void {
+  const general: Array<readonly [string, string]> = [];
+  const border: Array<readonly [string, string]> = [];
+  let companionTrigger: string | null = null;
+  for (const entry of entries) {
+    const [property, value] = entry;
+    if (isBorderGeometryProp(property)) {
+      border.push(entry);
+      continue;
+    }
+    general.push(entry);
+    const isClearing = value === "" || value === null || value === undefined;
+    if (
+      !isClearing &&
+      (property === "borderColor" || property === "borderStyle")
+    ) {
+      companionTrigger = property;
+    }
+  }
+
+  for (const [property, value] of general) {
+    applyBaseStyleEntry(style, property, value);
+  }
+  if (border.length > 0) {
+    const result = applyBorderGeometryBatch(
+      style,
+      border,
+      resolveBorderGeometryBase(element),
+    );
+    if (result.widthWritten) companionTrigger = "borderWidth";
+  }
+  if (companionTrigger) applyBorderCompanionDefaults(style, companionTrigger);
+
+  const violations = findBorderGeometryInvariantViolations(style);
+  if (violations.length > 0 && import.meta.env?.DEV) {
+    console.warn(
+      `[ADR-219] border 기하 불변식 위반 (${violations.join(", ")}) — ${element.id}`,
+    );
+  }
 }
 
 /**
@@ -869,23 +941,14 @@ export const createInspectorActionsSlice: StateCreator<
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
       };
 
-      const isClearing = value === "" || value === null || value === undefined;
-      if (isClearing) {
-        delete currentStyle[property];
-      } else {
-        // Canvas spec shapes 는 fontSize/padding 등을 숫자로 기대. width/height 등
-        // dimensional 축은 %/vw/auto 단위 보존을 위해 문자열 유지 (toStyleNumericValue SSOT).
-        (currentStyle as Record<string, unknown>)[property] =
-          toStyleNumericValue(property, value);
-      }
-
-      distributeShorthand(currentStyle as Record<string, unknown>, property);
-      if (!isClearing) {
-        applyBorderCompanionDefaults(
-          currentStyle as Record<string, unknown>,
-          property,
-        );
-      }
+      // Canvas spec shapes 는 fontSize/padding 등을 숫자로 기대. width/height 등
+      // dimensional 축은 %/vw/auto 단위 보존을 위해 문자열 유지 (toStyleNumericValue SSOT).
+      // border 축 키는 배치 연산 (ADR-219) — 항목 1개짜리 배치.
+      applyBaseStyleEntries(
+        currentStyle as Record<string, unknown>,
+        [[property, value]],
+        baseElement,
+      );
 
       // 전역(non-eligible) 속성을 base 에 쓸 때, stale responsive override 가 남아 특정
       // breakpoint 에서 base 를 shadow 하지 않도록 responsive.styles 의 non-eligible 키 정리 (R8).
@@ -954,22 +1017,11 @@ export const createInspectorActionsSlice: StateCreator<
           ...((resolvedElement.props?.style as Record<string, string>) || {}),
         };
 
-        const isClearing =
-          value === "" || value === null || value === undefined;
-        if (isClearing) {
-          delete currentStyle[property];
-        } else {
-          (currentStyle as Record<string, unknown>)[property] =
-            toStyleNumericValue(property, value);
-        }
-
-        distributeShorthand(currentStyle as Record<string, unknown>, property);
-        if (!isClearing) {
-          applyBorderCompanionDefaults(
-            currentStyle as Record<string, unknown>,
-            property,
-          );
-        }
+        applyBaseStyleEntries(
+          currentStyle as Record<string, unknown>,
+          [[property, value]],
+          element,
+        );
 
         const newProps = {
           ...getInspectorWritableProps(element),
@@ -1185,9 +1237,7 @@ export const createInspectorActionsSlice: StateCreator<
           ...((resolvedBaseElement.props?.style as Record<string, unknown>) ||
             {}),
         };
-        for (const [property, value] of baseEntries) {
-          applyBaseStyleEntry(baseStyle, property, value);
-        }
+        applyBaseStyleEntries(baseStyle, baseEntries, baseElement);
         const finalResponsive =
           clearNonEligibleResponsiveOverrides(nextResponsive) ?? nextResponsive;
 
@@ -1210,23 +1260,11 @@ export const createInspectorActionsSlice: StateCreator<
         ...((resolvedBaseElement.props?.style as Record<string, string>) || {}),
       };
 
-      Object.entries(styles).forEach(([property, value]) => {
-        const isClearing =
-          value === "" || value === null || value === undefined;
-        if (isClearing) {
-          delete currentStyle[property];
-        } else {
-          (currentStyle as Record<string, unknown>)[property] =
-            toStyleNumericValue(property, value);
-        }
-        distributeShorthand(currentStyle as Record<string, unknown>, property);
-        if (!isClearing) {
-          applyBorderCompanionDefaults(
-            currentStyle as Record<string, unknown>,
-            property,
-          );
-        }
-      });
+      applyBaseStyleEntries(
+        currentStyle as Record<string, unknown>,
+        Object.entries(styles),
+        baseElement,
+      );
 
       updateAndSave(
         element.id,
