@@ -43,6 +43,7 @@ import {
   FileUp,
   Globe,
   Sparkles,
+  X,
 } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useDataStore } from "../../../stores/data";
@@ -209,10 +210,10 @@ export function DataTableCreator({
     return { ...source, schema };
   }, [method, pasteText, fileRows]);
 
-  const handleFileSelect = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
+  const [fileDragOver, setFileDragOver] = useState(false);
+
+  const readImportFile = useCallback(
+    (file: File) => {
       file
         .text()
         .then((text) => {
@@ -230,10 +231,18 @@ export function DataTableCreator({
         .catch((error) => {
           console.error("파일 읽기 실패:", error);
         });
-      if (fileInputRef.current) fileInputRef.current.value = "";
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [tableName],
+  );
+
+  const handleFileSelect = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (file) readImportFile(file);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    },
+    [readImportFile],
   );
 
   const canCreate = (() => {
@@ -409,45 +418,56 @@ export function DataTableCreator({
           </Section>
         )}
 
-        {method === "preset" &&
-          PRESET_CATEGORIES.map((cat) => {
-            const presets = getPresetsByCategory(cat.id);
-            if (presets.length === 0) return null;
-            return (
-              <Section
-                key={cat.id}
-                id={`preset-${cat.id}`}
-                title={cat.name}
-                className="creator-preset-section"
-              >
-                <div className="list-group" role="list">
-                  {presets.map((preset) => (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      role="listitem"
-                      className={`list-item preset-card ${
-                        selectedPreset?.id === preset.id ? "selected" : ""
-                      }`}
-                      aria-pressed={selectedPreset?.id === preset.id}
-                      onClick={() => handlePresetSelect(preset)}
-                    >
-                      <div className="list-item-icon">
-                        {renderIcon(preset.icon, 16)}
-                      </div>
-                      <div className="list-item-name">{preset.name}</div>
-                      <div className="list-item-desc">
-                        {tr(preset.descriptionKey)}
-                      </div>
-                      <div className="list-item-meta">
-                        {preset.schema.length} fields
-                      </div>
-                    </button>
-                  ))}
+        {method === "preset" && (
+          // 카테고리는 절 헤더 32 가 아니라 절 하나 안의 그룹 (legend 18 + 카운트) — 종전
+          //   카테고리마다 절 32 + 카드 144 가 15 preset 에 1,000px (panel-ui 19, 2026-09-14)
+          <Section
+            id="creator-presets"
+            title={localize("methodPreset", "Preset")}
+            className="creator-preset-section"
+            collapsible={false}
+          >
+            {PRESET_CATEGORIES.map((cat) => {
+              const presets = getPresetsByCategory(cat.id);
+              if (presets.length === 0) return null;
+              return (
+                <div key={cat.id} className="list-subgroup">
+                  <div className="list-subgroup-header">
+                    <span className="list-subgroup-title">{cat.name}</span>
+                    <span className="list-subgroup-count">
+                      {presets.length}
+                    </span>
+                  </div>
+                  <div className="list-group" role="list">
+                    {presets.map((preset) => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        role="listitem"
+                        className={`list-item preset-card ${
+                          selectedPreset?.id === preset.id ? "selected" : ""
+                        }`}
+                        aria-pressed={selectedPreset?.id === preset.id}
+                        onClick={() => handlePresetSelect(preset)}
+                      >
+                        <div className="list-item-icon">
+                          {renderIcon(preset.icon, 16)}
+                        </div>
+                        <div className="list-item-meta">
+                          {preset.schema.length} fields
+                        </div>
+                        <div className="list-item-name">{preset.name}</div>
+                        <div className="list-item-desc">
+                          {tr(preset.descriptionKey)}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </Section>
-            );
-          })}
+              );
+            })}
+          </Section>
+        )}
 
         {method === "paste" && (
           <Section
@@ -483,15 +503,59 @@ export function DataTableCreator({
             title={localize("methodFile", "CSV / JSON")}
             collapsible={false}
           >
+            {/* 네이티브 file input 은 숨기고 드롭 존 120 (Image fill · Font Manager 와 같은
+                어법) 이 연다 — 빌더의 유일한 브라우저 기본 컨트롤이었다 (panel-ui 19) */}
             <input
               ref={fileInputRef}
               type="file"
               accept=".csv,.json,text/csv,application/json"
               onChange={handleFileSelect}
               aria-label={localize("chooseFile", "Choose a CSV or JSON file")}
+              className="creator-file-input"
+              tabIndex={-1}
             />
+            <div
+              className="creator-dropzone"
+              onDragOver={(event: React.DragEvent<HTMLDivElement>) => {
+                event.preventDefault();
+                setFileDragOver(true);
+              }}
+              onDragLeave={() => setFileDragOver(false)}
+              onDrop={(event: React.DragEvent<HTMLDivElement>) => {
+                event.preventDefault();
+                setFileDragOver(false);
+                const file = event.dataTransfer.files?.[0];
+                if (file) readImportFile(file);
+              }}
+              data-drag-over={fileDragOver || undefined}
+            >
+              <Button
+                className="creator-dropzone__button"
+                onPress={() => fileInputRef.current?.click()}
+              >
+                <FileUp size={20} />
+                <span>
+                  {localize("dropFileHint", "Drop a CSV or JSON file, or click")}
+                </span>
+              </Button>
+            </div>
             {fileRows ? (
-              <p className="creator-form-hint">{fileRows.fileName}</p>
+              <div className="creator-file-row">
+                <span className="creator-file-row__name">
+                  {fileRows.fileName}
+                </span>
+                <span className="creator-file-row__meta">
+                  {fileRows.rows.length} ×{" "}
+                  {Object.keys(fileRows.rows[0] ?? {}).length}
+                </span>
+                <Button
+                  className="creator-file-row__clear"
+                  aria-label={localize("clearFile", "Remove file")}
+                  onPress={() => setFileRows(null)}
+                >
+                  <X size={14} />
+                </Button>
+              </div>
             ) : null}
           </Section>
         )}

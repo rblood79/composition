@@ -42,13 +42,69 @@
    Preset Grid - extends common list-group
    ============================================ */
 
-.creator-preset-section .list-group {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+/* 카드 100 = pad 8 + [아이콘 28 | "N fields" mono 10] + 이름 18 + 설명 18 + pad 8
+   (Components · Frame Preset 과 같은 세로 모듈) — 종전 130×144. 카테고리는 절 하나 안의
+   그룹 (legend 18 + 카운트) (panel-ui 19, 2026-09-14). */
+.creator-preset-section .section-content {
+  gap: var(--spacing-md);
 }
 
-.creator-preset-section .list-item {
-  flex-direction: column;
+.creator-preset-section .list-subgroup-header {
+  box-sizing: border-box;
+  block-size: 18px;
+}
+
+.creator-preset-section .list-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+}
+
+.creator-preset-section .list-item.preset-card {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: var(--control-size) 18px 18px;
+  grid-template-areas:
+    "icon meta"
+    "name name"
+    "desc desc";
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-sm);
+  block-size: 100px;
+  padding: var(--spacing-sm);
+  text-align: start;
+}
+
+.creator-preset-section .list-item-icon {
+  grid-area: icon;
+  justify-self: start;
+  box-sizing: border-box;
+  inline-size: var(--control-size);
+  block-size: var(--control-size);
+  padding: 0;
+}
+
+.creator-preset-section .list-item-meta {
+  grid-area: meta;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+  background: transparent;
+}
+
+.creator-preset-section .list-item-name {
+  grid-area: name;
+  line-height: 18px;
+  color: var(--fg);
+}
+
+.creator-preset-section .list-item-desc {
+  grid-area: desc;
+  line-height: 18px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ============================================
@@ -161,27 +217,43 @@
    ADR-212 Phase 1 — 시작 방법 6 (RAC RadioGroup, Main 아트보드)
    ============================================ */
 
+/* 방법 6 = 28 셀 (아이콘 16 + 라벨 한 줄) — 종전 카드 70×70 (아이콘 위 · 라벨 아래).
+   560 에서 3열 2행, 233 에서 2열 3행. seg 가 아닌 이유: 6 항목 · 아이콘 + 라벨이라
+   seg 폭이 모자란다 (panel-ui 19, 2026-09-14). */
 .creator-methods {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: var(--spacing-xs);
   margin-top: var(--spacing-sm);
 }
 
 .creator-method {
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-xs);
+  box-sizing: border-box;
+  block-size: var(--control-size);
+  min-width: 0;
+  padding: 0 var(--spacing-sm);
   font-size: var(--text-xs);
   line-height: var(--text-xs--line-height);
   color: var(--fg-muted);
   background: var(--bg-overlay);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  text-align: center;
+  text-align: start;
+  white-space: nowrap;
+}
+
+.creator-method svg {
+  flex: none;
+}
+
+.creator-method span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .creator-method[data-hovered] {
@@ -202,8 +274,127 @@
 
 .creator-paste-input {
   width: 100%;
-  min-height: 96px;
+  min-height: 120px;
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   resize: vertical;
+}
+
+/* ============================================
+   CSV / JSON — 드롭 존 120 + 파일 행 28
+   ============================================ */
+
+.creator-file-input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.creator-dropzone {
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 120px;
+  background: var(--bg-inset);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+.creator-dropzone:hover,
+.creator-dropzone[data-drag-over] {
+  border-color: var(--accent);
+}
+
+.creator-dropzone__button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 100%;
+  padding: var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.creator-dropzone:hover .creator-dropzone__button,
+.creator-dropzone[data-drag-over] .creator-dropzone__button {
+  color: var(--fg);
+}
+
+.creator-dropzone__button[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+.creator-file-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  box-sizing: border-box;
+  block-size: var(--control-size);
+  padding: 0 0 0 var(--spacing-sm);
+  background: var(--bg-overlay);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--fg);
+}
+
+.creator-file-row__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.creator-file-row__meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
+.creator-file-row__clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--control-size);
+  block-size: var(--control-size);
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+
+.creator-file-row__clear[data-hovered] {
+  background: var(--bg-muted);
+  color: var(--fg);
+}
+
+.creator-file-row__clear[data-focus-visible] {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
+}
+
+/* ============================================
+   API 생성기 — [Method 88 | URL 1fr] 한 행 (fieldset-row 는 인스펙터 3열 템플릿이라
+   여기서 열만 바꾼다)
+   ============================================ */
+
+.api-creator-request-row.fieldset-row {
+  grid-template-columns: 88px minmax(0, 1fr);
+}
+
+.api-creator-request-row > * {
+  min-width: 0;
 }

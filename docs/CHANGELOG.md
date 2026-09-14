@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data Table Creator — 방법 28 셀 · Preset 카드 100 · CSV 드롭 존 · API 요청 한 행] - 2026-09-14
+
+### Changed
+
+- **시작 방법 6**: 카드 70×70 (아이콘 위 · 라벨 아래) → 28 셀 (아이콘 16 + 라벨 한 줄), 233 에서 2열 3행 · 560 에서 3열 2행.
+- **Preset**: 카테고리마다 절 헤더 32 → 절 하나 안의 그룹 (legend 18 + 카운트 mono 10) · 카드 130×144 → 100 (아이콘 28 행 우측 "N fields" mono 10 · 이름 18 · 설명 18 한 줄) — Components · Frame Preset 과 같은 세로 모듈.
+- **CSV / JSON**: 네이티브 `<input type=file>` (빌더의 유일한 브라우저 기본 컨트롤) → 드롭 존 120 (클릭 · 끌어다 놓기) + 파일 행 28 (이름 · 행 × 열 mono · ✕).
+- **Paste / AI textarea 96 → 120**. **API 생성기** Name / [Method 88 | URL 1fr] 두 행 (종전 URL / Method / Name 세 행). 새 문자열 `datatable.dropFileHint` · `clearFile` ko/en.
+- live (`creator-live.mjs`, 233): 방법 107×28 · 카드 105×100 · 드롭 존 217×120 · setInputFiles → 파일 행 28 → Create → 편집기 "orders-2026" · API 행 [80 | 113].
+
 ## [Properties · Frame Preset — 카드 100 · 그룹 헤더 18 · Slots 절 · Frame 이름 헤더 · 슬롯 다이얼로그 8 격자] - 2026-09-14
 
 ### Added

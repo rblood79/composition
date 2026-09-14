@@ -103,27 +103,6 @@ export function ApiEndpointCreator({
           title={localize("apiRequest", "Request")}
           collapsible={false}
         >
-          <PropertyFieldset legend={localize("apiUrl", "URL")}>
-            <input
-              className="react-aria-Input"
-              type="url"
-              autoFocus
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") void handleCreate();
-              }}
-              placeholder="https://jsonplaceholder.typicode.com/users"
-              aria-label={localize("apiUrl", "URL")}
-            />
-          </PropertyFieldset>
-          <PropertySelect
-            label={localize("apiMethod", "Method")}
-            value={method}
-            onChange={(value) => setMethod(value as HttpMethod)}
-            options={METHODS}
-            translateOptions={false}
-          />
           <PropertyFieldset legend={localize("apiName", "Name")}>
             <input
               className="react-aria-Input"
@@ -137,6 +116,35 @@ export function ApiEndpointCreator({
               aria-label={localize("apiName", "Name")}
             />
           </PropertyFieldset>
+          {/* r3 두 행 — Name / [Method 88 | URL 1fr]. Auth · 헤더 · 쿼리 · 본문 · Schema 는
+              편집기 탭 (ADR-212 요청 도구형) (panel-ui 19, 2026-09-14) */}
+          <div className="fieldset-row api-creator-request-row">
+            <PropertySelect
+              label={localize("apiMethod", "Method")}
+              className="api-creator-method"
+              value={method}
+              onChange={(value) => setMethod(value as HttpMethod)}
+              options={METHODS}
+              translateOptions={false}
+            />
+            <PropertyFieldset
+              legend={localize("apiUrl", "URL")}
+              className="api-creator-url"
+            >
+              <input
+                className="react-aria-Input"
+                type="url"
+                autoFocus
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleCreate();
+                }}
+                placeholder="https://jsonplaceholder.typicode.com/users"
+                aria-label={localize("apiUrl", "URL")}
+              />
+            </PropertyFieldset>
+          </div>
           <p className="creator-form-hint">
             {localize(
               "apiCreateHint",
