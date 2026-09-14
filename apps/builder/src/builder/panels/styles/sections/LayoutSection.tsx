@@ -23,7 +23,6 @@ import {
   CornerDownLeft,
   Frame,
   GalleryHorizontal,
-  LayoutGrid,
   Maximize2,
   Minimize2,
   Square,
@@ -44,6 +43,7 @@ import {
 import {
   useFlexDirectionKeys,
   useFlexAlignmentKeys,
+  useFlexDistributionAxis,
   useJustifyContentSpacingKeys,
   useFlexWrapKeys,
 } from "../hooks/useLayoutAuxiliary";
@@ -217,6 +217,7 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   const styleValues = useLayoutValues(selectedId);
   const flexDirectionKeys = useFlexDirectionKeys(selectedId);
   const flexAlignmentKeys = useFlexAlignmentKeys(selectedId);
+  const flexDistributionAxis = useFlexDistributionAxis(selectedId);
   const justifyContentSpacingKeys = useJustifyContentSpacingKeys(selectedId);
   const flexWrapKeys = useFlexWrapKeys(selectedId);
 
@@ -308,16 +309,23 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
         </div>
         <div className="direction-alignment-grid flex-alignment">
           <legend className="fieldset-legend">{localize("Alignment")}</legend>
+          {/* Space 가 켜지면 (space-*) 주축이 분산 — 그리드는 점 → 막대 (data-distributed)
+              가 되고 클릭은 교차축만 쓴다 (panel-ui 01, 2026-09-14) */}
           <ToggleButtonGroup
             aria-label={localize("Flex alignment")}
             indicator
             selectionMode="single"
             selectedKeys={flexAlignmentKeys}
+            data-distributed={flexDistributionAxis ?? undefined}
             onSelectionChange={(keys) => {
               const value = Array.from(keys)[0] as string;
               if (value) {
                 // 🚀 Phase 3: styleValues에서 직접 값 사용
-                handleFlexAlignment(value, styleValues.flexDirection);
+                handleFlexAlignment(value, styleValues.flexDirection, {
+                  preserveMainAxis: flexDistributionAxis !== null,
+                });
+              } else if (flexDistributionAxis !== null) {
+                updateStyles({ alignItems: "" });
               } else {
                 // 활성화된 토글 재클릭 → alignment 스타일 제거
                 updateStyles({ alignItems: "", justifyContent: "" });
@@ -365,15 +373,8 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </ToggleButton>
           </ToggleButtonGroup>
         </div>
-        <div className="fieldset-actions">
-          <SwatchIconButton aria-label={localize("Layout grid")}>
-            <LayoutGrid
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </SwatchIconButton>
-        </div>
+        {/* 아이콘 칸은 비운다 — 종전 LayoutGrid 버튼은 onPress 없는 dead surface 였다 */}
+        <div className="fieldset-actions" />
         <div className="justify-control justify-content">
           <legend className="fieldset-legend">{localize("Space")}</legend>
           <ToggleButtonGroup

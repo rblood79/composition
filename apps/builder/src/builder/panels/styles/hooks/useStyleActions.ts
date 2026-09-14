@@ -156,7 +156,11 @@ export function useStyleActions() {
    * Flex alignment (3x3 grid) 버튼 선택 핸들러
    */
   const handleFlexAlignment = useCallback(
-    (value: string, currentFlexDirection: string) => {
+    (
+      value: string,
+      currentFlexDirection: string,
+      options?: { preserveMainAxis?: boolean },
+    ) => {
       // Map button position to horizontal and vertical alignment values
       const positionMap: Record<
         string,
@@ -180,11 +184,14 @@ export function useStyleActions() {
 
         // For row: horizontal = justifyContent, vertical = alignItems
         // For column: horizontal = alignItems, vertical = justifyContent
+        // preserveMainAxis (Space 분산 중): 교차축 alignItems 만 쓰고 justifyContent 는
+        //   space-* 그대로 둔다 (panel-ui 01).
+        const preserveMainAxis = options?.preserveMainAxis === true;
         if (flexDirection === "column") {
           useStore.getState().updateSelectedStyles({
             display: "flex",
             flexDirection,
-            justifyContent: position.vertical,
+            ...(preserveMainAxis ? {} : { justifyContent: position.vertical }),
             alignItems: position.horizontal,
           });
         } else {
@@ -192,7 +199,9 @@ export function useStyleActions() {
           useStore.getState().updateSelectedStyles({
             display: "flex",
             flexDirection,
-            justifyContent: position.horizontal,
+            ...(preserveMainAxis
+              ? {}
+              : { justifyContent: position.horizontal }),
             alignItems: position.vertical,
           });
         }

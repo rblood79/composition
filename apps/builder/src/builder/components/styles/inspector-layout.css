@@ -91,6 +91,9 @@
                 height: var(--spacing);
                 background-color: var(--fg-disabled);
                 border-radius: var(--spacing);
+                transition:
+                  width 0.15s ease,
+                  height 0.15s ease;
               }
 
               /*&[data-selected] {
@@ -100,6 +103,21 @@
               }*/
             }
           }
+        }
+
+        /* Space 분산 중 — 주축을 따라 점이 막대가 된다 (row: 가로 막대, column: 세로 막대) */
+        .flex-alignment
+          .react-aria-ToggleButtonGroup[data-distributed="row"]
+          .alignment-dot {
+          width: var(--spacing-md);
+          border-radius: var(--radius-xs);
+        }
+
+        .flex-alignment
+          .react-aria-ToggleButtonGroup[data-distributed="column"]
+          .alignment-dot {
+          height: var(--spacing-md);
+          border-radius: var(--radius-xs);
         }
 
         .justify-content {

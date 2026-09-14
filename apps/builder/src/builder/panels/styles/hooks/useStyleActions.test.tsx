@@ -35,6 +35,34 @@ describe("useStyleActions", () => {
     });
   });
 
+  it("preserveMainAxis — Space 분산 중에는 교차축 alignItems 만 쓰고 justifyContent 를 남긴다", () => {
+    const updateSelectedStyles = vi.fn();
+    useStore.setState({ updateSelectedStyles });
+    const { result } = renderHook(() => useStyleActions());
+
+    act(() => {
+      result.current.handleFlexAlignment("centerBottom", "row", {
+        preserveMainAxis: true,
+      });
+    });
+    expect(updateSelectedStyles).toHaveBeenCalledWith({
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "flex-end",
+    });
+
+    act(() => {
+      result.current.handleFlexAlignment("rightCenter", "column", {
+        preserveMainAxis: true,
+      });
+    });
+    expect(updateSelectedStyles).toHaveBeenLastCalledWith({
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-end",
+    });
+  });
+
   // 그룹 축 prop derive 컨테이너 direction 양방향 동기화 (2026-06-30)
   // 그룹 root flexDirection SSOT 가 별도 prop 인 컨테이너는 direction 토글 편집을
   // style 이 아닌 그 prop 으로 번역해 기록한다:

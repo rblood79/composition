@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Layout 탭 (2/3) — Align 3×3 막대 모드 · dead 버튼 제거 (panel-ui 01)] - 2026-09-14
+
+### Changed
+
+- **Align 3×3 — Space 가 켜지면 (space-between/around/evenly) 점 → 막대**: 주축이 분산된 상태라 그리드는 교차축만 고른다 (`useFlexDistributionAxis`, `data-distributed="row|column"`; 클릭은 `handleFlexAlignment(..., { preserveMainAxis })` 로 `alignItems` 만 쓰고 `justifyContent` 의 space-* 를 남긴다). 종전엔 점 9개 고정이라 Space 를 켜도 주축 점이 살아 있어 두 컨트롤이 충돌했다 (그리드 클릭이 space-* 를 지웠다).
+- Layout 절 우측 **LayoutGrid 아이콘 버튼 제거** — onPress 없는 dead surface.
+- live: row + space-between → `data-distributed=row` · 점 12×4 막대 · Bottom center 클릭 → `justifyContent: space-between` 유지 + `alignItems: flex-end`.
+
 ## [Styles · Layout 탭 (1/3) — 절 caret · Size / Position 분리 · 필드 안 suffix 라벨 (panel-ui 01)] - 2026-09-14
 
 ### Changed

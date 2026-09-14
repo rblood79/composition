@@ -82,6 +82,7 @@ vi.mock("@composition/shared", async (importOriginal) => {
 import {
   useFlexDirectionKeys,
   useFlexAlignmentKeys,
+  useFlexDistributionAxis,
   useJustifyContentSpacingKeys,
   useFlexWrapKeys,
 } from "./useLayoutAuxiliary";
@@ -177,6 +178,39 @@ describe("useFlexAlignmentKeys", () => {
     });
     const { result } = renderHook(() => useFlexAlignmentKeys("e"));
     expect(result.current).toEqual(["rightCenter"]);
+  });
+
+  it("space-* 분산 중엔 주축 칸을 center 로 두고 교차축만 키에 싣는다 (막대 모드)", () => {
+    setElement("e", {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "flex-end",
+      justifyContent: "space-between",
+    });
+    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual(
+      ["centerBottom"],
+    );
+    expect(
+      renderHook(() => useFlexDistributionAxis("e")).result.current,
+    ).toBe("row");
+
+    setElement("e", {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "flex-start",
+      justifyContent: "space-evenly",
+    });
+    expect(renderHook(() => useFlexAlignmentKeys("e")).result.current).toEqual(
+      ["leftCenter"],
+    );
+    expect(
+      renderHook(() => useFlexDistributionAxis("e")).result.current,
+    ).toBe("column");
+
+    setElement("e", { display: "flex", justifyContent: "center" });
+    expect(
+      renderHook(() => useFlexDistributionAxis("e")).result.current,
+    ).toBeNull();
   });
 
   // ADR-923 Phase 4 (G4 전반, r2 l3) — Alignment 9-grid 도 inline-flex 에서 표시된다.

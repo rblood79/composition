@@ -104,30 +104,50 @@ const H_MAP: Record<string, string> = {
 /**
  * Flex Alignment 9-grid 토글 키
  */
-export function useFlexAlignmentKeys(id: string | null): string[] {
-  const { display, flexDirection, alignItems, justifyContent } =
-    useResolvedLayoutFields(id);
-  return useMemo(() => {
-    if (!isFlexDisplay(display)) return [];
-    let vertical: string;
-    let horizontal: string;
-    if (flexDirection === "column") {
-      vertical = V_MAP[justifyContent] ?? "";
-      horizontal = H_MAP[alignItems] ?? "";
-    } else {
-      vertical = V_MAP[alignItems] ?? "";
-      horizontal = H_MAP[justifyContent] ?? "";
-    }
-    if (!vertical && !horizontal) return [];
-    return [`${horizontal}${vertical}`];
-  }, [display, flexDirection, alignItems, justifyContent]);
-}
-
 const SPACING_VALUES = new Set([
   "space-around",
   "space-between",
   "space-evenly",
 ]);
+
+/**
+ * Space (between/around/evenly) 가 켜져 주축이 분산된 상태면 그 축 — 3×3 그리드가 점 → 막대로
+ * 바뀌고 교차축만 고른다 (panel-ui 01, 2026-09-14). 아니면 null.
+ */
+export function useFlexDistributionAxis(
+  id: string | null,
+): "row" | "column" | null {
+  const { display, flexDirection, justifyContent } =
+    useResolvedLayoutFields(id);
+  return useMemo(() => {
+    if (!isFlexDisplay(display) || !SPACING_VALUES.has(justifyContent)) {
+      return null;
+    }
+    return flexDirection === "column" ? "column" : "row";
+  }, [display, flexDirection, justifyContent]);
+}
+
+export function useFlexAlignmentKeys(id: string | null): string[] {
+  const { display, flexDirection, alignItems, justifyContent } =
+    useResolvedLayoutFields(id);
+  return useMemo(() => {
+    if (!isFlexDisplay(display)) return [];
+    // 주축이 분산 (space-*) 이면 주축 위치는 "center" 로 두고 교차축만 키에 싣는다 —
+    //   그리드가 막대 모드라 주축 칸은 의미가 없다.
+    const distributed = SPACING_VALUES.has(justifyContent);
+    let vertical: string;
+    let horizontal: string;
+    if (flexDirection === "column") {
+      vertical = distributed ? "Center" : (V_MAP[justifyContent] ?? "");
+      horizontal = H_MAP[alignItems] ?? "";
+    } else {
+      vertical = V_MAP[alignItems] ?? "";
+      horizontal = distributed ? "center" : (H_MAP[justifyContent] ?? "");
+    }
+    if (!vertical && !horizontal) return [];
+    return [`${horizontal}${vertical}`];
+  }, [display, flexDirection, alignItems, justifyContent]);
+}
 
 /**
  * Justify Content Spacing 토글 키
