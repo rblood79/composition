@@ -11,6 +11,7 @@ export const APPEARANCE_PROPS = [
   "borderRadius",
   "borderStyle",
   "boxShadow",
+  "filter",
   // 컨트롤은 Layout 탭 Size 절로 옮겼지만 (panel-ui 01) TRANSFORM_PROPS 에 넣으면
   //   ADR-154 responsive 허용 목록이 넓어진다 — reset·modify 범위는 여기 그대로 두고
   //   Size 절 reset 은 SIZE_PROPS 가 overflow 를 따로 더한다.
@@ -28,8 +29,8 @@ export const BORDER_PROPS = [
   "borderStyle",
 ];
 
-/** Effect 절 reset 범위 */
-export const EFFECT_PROPS = ["opacity", "boxShadow"];
+/** Effect 절 reset 범위 (filter 는 blur 한 종 — `utils/filterValue`) */
+export const EFFECT_PROPS = ["opacity", "boxShadow", "filter"];
 
 export const LAYOUT_PROPS = [
   "display",

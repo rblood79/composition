@@ -1,0 +1,119 @@
+/**
+ * EffectSection — 추가 행 · 레이어 행 (Box Shadows · Filters). Fill 레이어 행과 같은 lrow 어법.
+ * 격자 (c12 + 28 열) 는 inspector-layout.css 의 [data-section-id="effect"] 블록.
+ */
+
+@layer components {
+  .effect-list {
+    display: grid;
+    gap: var(--spacing-sm);
+  }
+
+  /* 「Box Shadows」 + 28 열 액션 */
+  .effect-add-row__label {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    block-size: var(--control-size);
+    padding-inline-start: var(--spacing-xs);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    color: var(--fg);
+  }
+
+  /* 레이어 행 본문 (lrow 28, bg-muted) */
+  .effect-layer-row__trigger,
+  .effect-layer-row__body {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    box-sizing: border-box;
+    min-width: 0;
+    block-size: var(--control-size);
+    padding: 0 var(--spacing-xs) 0 var(--spacing-sm);
+    background: var(--bg-muted);
+    border-radius: var(--radius-md);
+    color: var(--fg);
+  }
+
+  .effect-layer-row__trigger {
+    width: 100%;
+    border: none;
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      background: var(--bg-emph);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    .react-aria-ColorSwatch {
+      flex: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+    }
+  }
+
+  .effect-layer-row__value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* outer / inset 꼬리표 (10 mono caps) */
+  .effect-layer-row__tag {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--fg-muted);
+  }
+
+  .effect-layer-row__scrub {
+    width: 64px;
+    flex-shrink: 0;
+  }
+
+  /* 레이어 편집 팝오버 — 233 (패널 최소 폭, 색 피커·Fill 팝오버와 같은 폭) */
+  .box-shadow-popover.react-aria-Popover {
+    box-sizing: border-box;
+    inline-size: 233px;
+    max-width: none;
+
+    .react-aria-Dialog {
+      outline: none;
+      padding: var(--spacing-sm);
+      background: var(--bg-raised);
+    }
+  }
+
+  /* 편집기 루트는 `.section` 도 겸한다 (FillDetailPopover 와 같은 이유 — portal 로 패널 밖에
+     떠서 form-controls.css 의 `.section` 스코프 컨트롤 규칙 (28 상자) 을 못 받는다).
+     `.section` 이 flex column 이므로 여기서는 간격만. */
+  .box-shadow-editor {
+    gap: var(--spacing-sm);
+  }
+
+  /* X · Y / Blur · Spread 2열 */
+  .box-shadow-editor-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-sm);
+
+    > * {
+      min-width: 0;
+    }
+  }
+}

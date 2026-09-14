@@ -103,7 +103,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(stylePilot).toContain('"borderWidth" in styleRecord');
   });
 
-  it("boxShadow select는 topology가 유지되는 paint presentation owner를 사용한다", async () => {
+  it("boxShadow 레이어 편집은 topology가 유지되는 paint presentation owner, topology 변경은 canonical", async () => {
     const appearance = await source(
       "../panels/styles/sections/EffectSection.tsx",
     );
@@ -114,7 +114,8 @@ describe("ADR-187 Phase 2 migration guards", () => {
     const shadowEditor = await source(
       "../panels/styles/components/BoxShadowEditor.tsx",
     );
-    expect(appearance).toContain("commitBoxShadowPresentation");
+    // 레이어 추가 · 제거 · inset · 프리셋은 presentation 세션을 닫고 canonical commit
+    expect(appearance).toContain('cancelBoxShadowPresentation("superseded")');
     expect(appearance).toContain("previewBoxShadowModelPresentation");
     expect(appearance).toContain("commitBoxShadowModelPresentation");
     expect(appearance).toContain("isBoxShadowPresentationOwned");

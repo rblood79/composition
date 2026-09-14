@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Style 탭 (3/3) — Effect 절: Opacity 슬라이더 행 · Box Shadows 레이어 목록 · Filters blur (panel-ui 02)] - 2026-09-14
+
+### Changed
+
+- **Opacity** 는 「Opacity ──●── 60 %」 한 상자 28 (라벨 안쪽 · 값 칸 직접 입력) — 종전 legend + 아이콘 두 줄.
+- **Box Shadows 는 레이어 목록**: 「Box Shadows」 추가 행 (28 열 `⋮`: Add layer · Preset sm/md/lg) 아래 레이어마다 「■ 0 · 2 · 4 · 0  OUTER|INSET」 행 (Fill 레이어 행과 같은 lrow). 행 클릭 → 233 팝오버 편집기 (X · Y / Blur · Spread 2열 suffix 라벨 + 「■ HEX」 Color, ADR-187 presentation preview/commit 그대로), 행 `⋮` 로 inset/outer · 제거. 종전 「Box Shadow none ▾ + inset 토글 + 인라인 편집기 (Layer Select · 4 필드 · Color)」. 프리셋 (Spectrum elevation, theme 별 정규화) 은 3 레이어 문자열이라 목록 전체를 바꾼다 → 추가 행 메뉴에 두고, 목록에 inset 레이어가 있었으면 inset 으로. 마지막 레이어 제거 = inline `boxShadow` 키 삭제. 편집 팝오버는 행이 index key 라 커밋마다 닫히지 않는다 (편집기만 remount).
+- **Filters — blur 한 종** (`style.filter: blur(Npx)`, 신규 패널 채널 — Skia 는 `convertToEffects` 가 LayerBlurEffect 로, DOM 은 inline 그대로 이미 그린다): 「Filters」 추가 행 `+` → `blur(4px)`, 「Blur  8 px」 행 (scrub) + 삭제. 다른 filter 함수 (brightness 등 import 값) 는 보존. `filter` 를 `EFFECT_PROPS` / `APPEARANCE_PROPS` / `PANEL_STYLE_PROPS` 에 (modify · reset 대칭 가드 통과).
+
+### Added
+
+- `panels/styles/utils/filterValue.ts` (`parseFilterBlurPx` / `setFilterBlurPx`, 마지막 함수 제거는 "" — "none" 아님), `components/BoxShadowLayerRow.tsx`, `sections/EffectSection.css`.
+- live (`styletab-live.mjs`): Opacity 값 칸 60 → `0.6` · ⋮ Add ×2 → 행 217×28 ×2 · 2번째 inset → `…, inset 0px 2px 4px …` · 행 클릭 → 팝오버 233 (필드 112×28 ×4 · Color 231×28) · Blur 12 Enter → 첫 레이어만 12, 팝오버 유지 · 프리셋 md → 3 행 (inset 유지) · 전부 제거 → `boxShadow` undefined · Filters + → `blur(4px)` → scrub 8 → `blur(8px)` → 삭제 → undefined.
+
 ## [Styles · Style 탭 (2/3) — Border 절 슬라이더 행 · 선 스타일 seg · 색 「■ HEX」 (panel-ui 02)] - 2026-09-14
 
 ### Changed

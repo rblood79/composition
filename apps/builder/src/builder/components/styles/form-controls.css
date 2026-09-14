@@ -12,6 +12,8 @@
       &[data-show-value] {
         display: flex;
         align-items: center;
+        box-sizing: border-box;
+        block-size: var(--control-size);
         gap: var(--spacing-xs);
         /* 87 칸: 16 swatch + 4 + HEX 6자 (mono 12 ≈ 43) + pad 4×2 = 71 — pad 8 이면 넘쳐 잘린다 */
         padding: var(--spacing) var(--spacing-xs);

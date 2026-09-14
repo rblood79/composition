@@ -683,6 +683,7 @@ export const PANEL_STYLE_PROPS: readonly string[] = [
   "borderRadius",
   "borderStyle",
   "boxShadow",
+  "filter",
   "overflow",
 ];
 

@@ -448,6 +448,7 @@
 
     &[data-section-id="effect"] .section-content {
       display: grid;
+      gap: var(--spacing-sm);
 
       .actions-icon {
         grid-area: icon;
@@ -455,79 +456,21 @@
         align-self: end;
       }
 
-      .style-opacity {
+      .style-opacity,
+      .effect-add-row,
+      .effect-layer-row {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas: "opacity opacity .";
-
-        > * {
-          min-width: 0;
-        }
-      }
-
-      .opacity {
-        grid-area: opacity;
-      }
-
-      .style-shadow {
-        display: grid;
-        grid-template-columns: var(--inspector-row-columns);
-        grid-template-rows: auto;
-        gap: var(--spacing-sm);
-        grid-template-areas:
-          "box-shadow box-shadow icon"
-          "shadow-editor shadow-editor shadow-editor";
-
-        > * {
-          min-width: 0;
-        }
-      }
-
-      .box-shadow {
-        grid-area: box-shadow;
-      }
-
-      .box-shadow-editor {
-        grid-area: shadow-editor;
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: var(--spacing-sm);
-
-        > * {
-          min-width: 0;
-        }
-      }
-
-      /* 레이어 행 = Select (2칸) + 행 메뉴 (아이콘 칸) — 인스펙터 행 템플릿 그대로 */
-      .box-shadow-layer-row {
-        display: grid;
-        grid-template-columns: var(--inspector-row-columns);
-        gap: var(--spacing-sm);
-        grid-template-areas: "layer layer actions";
+        grid-template-areas: "main main icon";
 
         > * {
           min-width: 0;
         }
 
-        .box-shadow-layer {
-          grid-area: layer;
-        }
-
-        .actions-icon {
-          grid-area: actions;
-          align-self: end;
-        }
-      }
-
-      .box-shadow-editor-fields {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: var(--spacing-sm);
-
-        > * {
-          min-width: 0;
+        > :first-child {
+          grid-area: main;
         }
       }
     }

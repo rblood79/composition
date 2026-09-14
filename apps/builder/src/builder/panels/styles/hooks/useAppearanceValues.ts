@@ -15,6 +15,8 @@ export interface AppearanceStyleValues {
   boxShadow: string;
   /** 요소 전체 opacity (CSS `opacity`, 0~1 문자열). spec preset 에는 없는 채널 — inline 또는 "1". */
   opacity: string;
+  /** CSS `filter` (blur 한 종을 패널이 편집, 나머지 함수는 보존). inline 또는 "". */
+  filter: string;
 }
 
 export function useAppearanceValues(
@@ -42,6 +44,7 @@ export function useAppearanceValues(
       borderStyle: firstDefined(s.borderStyle, specPreset.borderStyle, "solid"),
       boxShadow: firstDefined(s.boxShadow, specPreset.boxShadow, "none"),
       opacity: firstDefined(s.opacity, undefined, "1"),
+      filter: firstDefined(s.filter, undefined, ""),
     };
   }, [id, colorValues]);
 }
