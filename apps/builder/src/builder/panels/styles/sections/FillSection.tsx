@@ -141,8 +141,12 @@ const FillSectionContent = memo(function FillSectionContent() {
       firstFill?.type === FillType.RadialGradient ||
       firstFill?.type === FillType.AngularGradient) &&
     isFirstFillPresentationOwned(firstFill.id);
+  // color 경로와 같이 legacy backgroundColor 가상 fill 을 fallback 으로 — 없으면 pilot null 이라
+  //   opacity scrub 이 commit-only 였다 (드래그 중 캔버스 무반응, 2026-09-14 live).
+  const paintFallbackFill =
+    firstFill?.type === FillType.Color ? firstFill : undefined;
   const presentationOwnsPaint = firstFill
-    ? isFirstFillPresentationOwned(firstFill.id)
+    ? isFirstFillPresentationOwned(firstFill.id, paintFallbackFill)
     : false;
 
   const sensors = useSensors(
@@ -260,13 +264,22 @@ const FillSectionContent = memo(function FillSectionContent() {
       if (
         firstFill &&
         presentationOwnsPaint &&
-        previewFirstFillPaintPresentation(firstFill.id, { opacity })
+        previewFirstFillPaintPresentation(
+          firstFill.id,
+          { opacity },
+          paintFallbackFill,
+        )
       ) {
         return;
       }
       // Unsupported paint targets remain commit-only by design.
     },
-    [firstFill, presentationOwnsPaint, previewFirstFillPaintPresentation],
+    [
+      firstFill,
+      paintFallbackFill,
+      presentationOwnsPaint,
+      previewFirstFillPaintPresentation,
+    ],
   );
 
   const handleFillOpacityChangeEnd = useCallback(
@@ -274,7 +287,11 @@ const FillSectionContent = memo(function FillSectionContent() {
       if (
         firstFill &&
         presentationOwnsPaint &&
-        commitFirstFillPaintPresentation(firstFill.id, { opacity })
+        commitFirstFillPaintPresentation(
+          firstFill.id,
+          { opacity },
+          paintFallbackFill,
+        )
       ) {
         return;
       }
@@ -282,6 +299,7 @@ const FillSectionContent = memo(function FillSectionContent() {
     },
     [
       firstFill,
+      paintFallbackFill,
       presentationOwnsPaint,
       commitFirstFillPaintPresentation,
       updateFill,

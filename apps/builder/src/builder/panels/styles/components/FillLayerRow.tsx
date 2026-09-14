@@ -121,6 +121,16 @@ export const FillLayerRow = memo(function FillLayerRow({
     },
     [fill.id, onUpdate, popover],
   );
+  // 행 scrub 도 드래그 중 캔버스에 보인다 (첫 fill = presentation 경로, 팝오버 scrub 과 같음).
+  //   presentation 경로가 없는 행 (둘째 이후) 은 commit-only 그대로.
+  const onOpacityChange = popover?.onOpacityChange;
+  const handleOpacityScrub = useMemo(
+    () =>
+      onOpacityChange
+        ? (value: number) => onOpacityChange(value / 100)
+        : undefined,
+    [onOpacityChange],
+  );
 
   const handleColorChangeEnd = useCallback(
     (color: string) => {
@@ -220,6 +230,7 @@ export const FillLayerRow = memo(function FillLayerRow({
 
         <ScrubInput
           value={opacityPercent}
+          onScrub={handleOpacityScrub}
           onCommit={handleOpacityCommit}
           min={0}
           max={100}

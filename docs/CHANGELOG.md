@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Fill opacity — frame 에서 드래그 preview 가 캔버스에 안 보이던 결함 2겹] - 2026-09-14
+
+### Fixed
+
+- **Fill 팝오버 · 행의 opacity scrub 을 끌어도 캔버스는 놓을 때만 바뀌었다** (frame 등 잔존 spec 요소): ① `Frame.spec` 이 `render.presentation.fills = "background"` 계약을 선언하지 않아 editor presentation pilot 이 frame 을 소유하지 않았다 — 배경 shape 은 08-31 부터 `background-fill` 인데 pilot 도입 (08-22) 때의 제외가 그대로였다 (색 picker 드래그도 같은 이유로 commit-only). Slot 과 같이 선언. ② opacity(paint) preview 는 색 preview 와 달리 legacy `backgroundColor` 가상 fill 을 fallback 으로 넘기지 않아 canonical fills 가 없는 요소 (막 배경을 준 요소) 에서 pilot 이 null 이었다 — 색 경로와 같이 fallback + 커밋 시 새 fill id. 행 scrub 에도 `onScrub` (첫 fill = presentation 경로). live (실제 빌더, frame `#2F6FED`): 행 scrub 92→52 · 팝오버 scrub 60→100 동안 캔버스 픽셀이 매 샘플 따라옴 (alpha 0.92 → 0.52 → 1.0), 커밋 값 일치, 편집 모드 오진입 0.
+
 ## [Styles 패널 — 슬라이더 · scrub 드래그 동기화 (Effect Opacity · Blur)] - 2026-09-14
 
 ### Fixed

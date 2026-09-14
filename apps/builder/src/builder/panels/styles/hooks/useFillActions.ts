@@ -69,10 +69,12 @@ export interface FillActions {
   previewFirstFillPaintPresentation: (
     fillId: string,
     updates: Partial<FillItem>,
+    fallbackFill?: ColorFillItem,
   ) => boolean;
   commitFirstFillPaintPresentation: (
     fillId: string,
     updates: Partial<FillItem>,
+    fallbackFill?: ColorFillItem,
   ) => boolean;
   cancelFirstFillColorPresentation: (
     reason: EditorPresentationCancelReason,
@@ -285,7 +287,11 @@ export function useFillActions(): FillActions {
   );
 
   const previewFirstFillPaintPresentation = useCallback(
-    (fillId: string, updates: Partial<FillItem>): boolean => {
+    (
+      fillId: string,
+      updates: Partial<FillItem>,
+      fallbackFill?: ColorFillItem,
+    ): boolean => {
       const hasStopsUpdate = "stops" in updates && Array.isArray(updates.stops);
       const hasOpacityUpdate =
         "opacity" in updates &&
@@ -320,14 +326,20 @@ export function useFillActions(): FillActions {
         presentationRef.current = null;
       }
       if (!presentation) {
+        // legacy backgroundColor read-through (canonical fills 0) 는 color 경로처럼 가상 fill 을
+        //   base 로 materialize 한다 — 없으면 pilot null → opacity scrub 이 commit-only 로 새서
+        //   드래그 중 캔버스가 안 움직였다 (2026-09-14 live).
         const pilot = resolveFillPresentationPilotTarget(
           selectedElementId,
           fillId,
+          fallbackFill,
         );
         if (!pilot || !selectedElementId) return false;
         presentation = {
           baseFills: pilot.fills,
-          commitFillId: fillId,
+          commitFillId: pilot.materializedFallback
+            ? createDefaultColorFill().id
+            : fillId,
           fillId,
           handle: editorPresentationFillPilotRuntime.beginEditorPresentation({
             commitIntent: hasStopsUpdate
@@ -358,7 +370,11 @@ export function useFillActions(): FillActions {
   );
 
   const commitFirstFillPaintPresentation = useCallback(
-    (fillId: string, updates: Partial<FillItem>): boolean => {
+    (
+      fillId: string,
+      updates: Partial<FillItem>,
+      fallbackFill?: ColorFillItem,
+    ): boolean => {
       const hasStopsUpdate = "stops" in updates && Array.isArray(updates.stops);
       const hasOpacityUpdate =
         "opacity" in updates &&
@@ -374,7 +390,8 @@ export function useFillActions(): FillActions {
         return true;
       }
       if (!active) {
-        if (!previewFirstFillPaintPresentation(fillId, updates)) return false;
+        if (!previewFirstFillPaintPresentation(fillId, updates, fallbackFill))
+          return false;
       }
 
       const presentation = presentationRef.current;
@@ -388,7 +405,12 @@ export function useFillActions(): FillActions {
         return true;
       }
       const result = presentation.handle.finish({
-        fills: applyFillUpdates(presentation.baseFills, fillId, updates),
+        fills: applyFillUpdates(presentation.baseFills, fillId, updates).map(
+          (fill) =>
+            fill.id === fillId
+              ? { ...fill, id: presentation.commitFillId }
+              : fill,
+        ) as FillItem[],
         target: presentation.target,
         type: "fills.replace",
       });

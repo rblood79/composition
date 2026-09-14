@@ -424,6 +424,41 @@ describe("useFillActions ADR-187 owner switch", () => {
     unmount();
   });
 
+  it("legacy backgroundColor 요소 (canonical fills 0) 는 가상 fill 을 fallback 으로 넘겨야 pilot 이 잡힌다 — paint(opacity) 경로도 색 경로와 같이", () => {
+    const frame = {
+      children: [],
+      id: "frame-legacy",
+      props: { style: { backgroundColor: "#2F6FED" } },
+      type: "frame",
+    } as unknown as CanonicalNode;
+    const canonical = useCanonicalDocumentStore.getState();
+    canonical.setDocument("project-1", {
+      children: [frame],
+      version: "composition-1.0",
+    } as CompositionDocument);
+    const virtualFill = {
+      blendMode: "normal",
+      color: "#2F6FEDFF",
+      enabled: true,
+      id: "__legacy_background_fill__",
+      opacity: 1,
+      type: FillType.Color,
+    } as FillItem;
+
+    // fallback 없이 — 종전 opacity 경로 (presentationOwnsPaint · previewFirstFillPaintPresentation) 의 호출 형태
+    expect(
+      resolveFillPresentationPilotTarget("frame-legacy", virtualFill.id),
+    ).toBeNull();
+    const pilot = resolveFillPresentationPilotTarget(
+      "frame-legacy",
+      virtualFill.id,
+      virtualFill as never,
+    );
+    expect(pilot).not.toBeNull();
+    expect(pilot?.materializedFallback).toBe(true);
+    expect(pilot?.fills[0]?.id).toBe(virtualFill.id);
+  });
+
   it("renderer 구조상 자식에 위임된 replace primitive는 pilot이 소유하지 않는다", () => {
     const dateInput = {
       ...node("date-input", "fill-input", "#222222FF"),
@@ -454,7 +489,9 @@ describe("useFillActions ADR-187 owner switch", () => {
     ).toBeNull();
   });
 
-  it("native spec은 typed background 계약이 있는 Slot만 pilot이 소유한다", () => {
+  // Frame 은 pilot 도입 (08-22) 때 배경 shape 이 없어 제외했었다 — 08-31 `background-fill` bg box
+  //   를 얻었고 09-14 `render.presentation.fills` 계약을 선언해 Slot 과 같이 pilot 이 소유한다.
+  it("native spec은 typed background 계약이 있는 Frame · Slot 을 pilot 이 소유한다", () => {
     const frame = {
       ...node("frame-1", "fill-frame", "#111111FF"),
       type: "frame",
@@ -475,7 +512,7 @@ describe("useFillActions ADR-187 owner switch", () => {
 
     expect(
       resolveFillPresentationPilotTarget("frame-1", "fill-frame"),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(
       resolveFillPresentationPilotTarget("slot-1", "fill-slot"),
     ).not.toBeNull();

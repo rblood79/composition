@@ -80,7 +80,12 @@ function toPx(value: string | number | undefined): number {
  */
 function resolveBorder(
   style: Record<string, string | number | undefined>,
-): { width: number; color: string; style: string; sides: Record<string, boolean> } | null {
+): {
+  width: number;
+  color: string;
+  style: string;
+  sides: Record<string, boolean>;
+} | null {
   const SIDES = ["Top", "Right", "Bottom", "Left"] as const;
 
   const widths = SIDES.map(
@@ -139,6 +144,10 @@ export const FrameSpec: ComponentSpec<FrameProps> = {
   states: {},
 
   render: {
+    // Editor presentation (색 · opacity 드래그 preview) 이 canonical fills 를 아래 `bg` box
+    //   (presentationRole background-fill) 위에 materialize 한다 — Slot 과 같은 계약. 없으면
+    //   pilot 이 null 이라 frame 의 fill 편집이 전부 commit-only 였다 (2026-09-14 live).
+    presentation: { fills: "background" },
     shapes: (props) => {
       const style = (props.style ?? {}) as Record<
         string,
