@@ -141,11 +141,15 @@ const enumField = (
   ...(visibleWhen ? { visibleWhen } : {}),
 });
 
-// 필드 라벨은 legend 한 번 (Switch 안의 중복 글자는 2026-09-14 에 제거 — 접근 이름은 aria-label)
+// 필드 라벨은 legend 한 번 (Switch 안의 중복 글자는 2026-09-14 에 제거 — 접근 이름은 aria-label).
+// panel-ui 07 부터 스위치는 inline 행 (라벨 span) · 짧은 라벨은 suffix (fieldset aria-label)
+//   이라 legend 가 없다 — 접근 이름 (fieldset aria-label) 과 legend 를 같이 센다.
 const labels = (container: HTMLElement): string[] =>
-  [...container.querySelectorAll("label, legend")].map(
-    (l) => l.textContent ?? "",
-  );
+  [
+    ...container.querySelectorAll(
+      "label, legend, fieldset.properties-aria[aria-label]",
+    ),
+  ].map((l) => l.getAttribute("aria-label") ?? l.textContent ?? "");
 
 describe("GenericFieldRenderer — ADR-208 visibleWhen live 결선", () => {
   it("조건 미선언 필드는 그대로 보인다 (결선의 노출면은 선언한 필드뿐)", () => {

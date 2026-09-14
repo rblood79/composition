@@ -21,7 +21,6 @@
  * 늘리는 대신 축을 하나 연다 — 성격이 `id`/`class` 와 같기 때문이다.
  */
 
-import { Accessibility, Braces } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import {
   PropertyCustomId,
@@ -63,28 +62,39 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
 
   if (!element) return null;
 
+  // 3 × 45 (legend + 아이콘 상자) → 3 × 28 suffix 필드 「button_1 ID」 — 아이콘 prefix
+  //   (#, 중괄호, aria) 는 라벨이 있으면 중복이라 뺀다 (panel-ui 07, 2026-09-14).
   return (
     <PropertySection title="Attributes">
-      <PropertyCustomId
-        label="ID"
-        value={customId}
-        elementId={elementId}
-        placeholder={`${element.type.toLowerCase()}_1`}
-      />
-      <PropertyInput
-        icon={Braces}
-        label="Class Name"
-        value={className}
-        onChange={handleClassNameChange}
-        placeholder="hero-title"
-      />
-      <PropertyInput
-        icon={Accessibility}
-        label="Aria Label"
-        value={ariaLabel}
-        onChange={handleAriaLabelChange}
-        placeholder="Upload progress"
-      />
+      <div className="fieldset-row" data-wide="true">
+        <PropertyCustomId
+          label="ID"
+          labelMode="suffix"
+          value={customId}
+          elementId={elementId}
+          placeholder={`${element.type.toLowerCase()}_1`}
+        />
+      </div>
+      <div className="fieldset-row" data-wide="true">
+        <PropertyInput
+          label="Class Name"
+          labelMode="suffix"
+          suffixLabel="class"
+          value={className}
+          onChange={handleClassNameChange}
+          placeholder="hero-title"
+        />
+      </div>
+      <div className="fieldset-row" data-wide="true">
+        <PropertyInput
+          label="Aria Label"
+          labelMode="suffix"
+          suffixLabel="aria"
+          value={ariaLabel}
+          onChange={handleAriaLabelChange}
+          placeholder="Upload progress"
+        />
+      </div>
     </PropertySection>
   );
 });

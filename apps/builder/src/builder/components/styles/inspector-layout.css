@@ -636,7 +636,8 @@
     .gradient-sub-type-selector .react-aria-ToggleButtonGroup[data-indicator="true"],
     .border-style .react-aria-ToggleButtonGroup[data-indicator="true"],
     .text-decoration .react-aria-ToggleButtonGroup[data-indicator="true"],
-    .text-transform .react-aria-ToggleButtonGroup[data-indicator="true"] {
+    .text-transform .react-aria-ToggleButtonGroup[data-indicator="true"],
+    .property-seg .react-aria-ToggleButtonGroup[data-indicator="true"] {
       gap: var(--spacing);
 
       .react-aria-ToggleButton {

@@ -135,21 +135,21 @@ it("언어 전환은 기본 행/속성/프리셋/안내를 갱신하고 데이�
     </I18nProvider>,
   );
   fireEvent.click(ui.getAllByRole("button", { name: "펼치기" })[0]);
-  expect(ui.getAllByText("범주", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getAllByText("값", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getAllByText("계열", { selector: "legend" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "범주" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "값" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "계열" })).toHaveLength(2);
   expect(ui.getByRole("group", { name: "차트 종류" })).toBeTruthy();
   expect(ui.getByRole("button", { name: "데이터 행 추가" })).toBeTruthy();
   expect(ui.getByRole("status").textContent).toContain("20001행");
   fireEvent.click(ui.getByRole("button", { name: "Switch language" }));
-  expect(ui.getAllByText("Category", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getAllByText("Value", { selector: "legend" })).toHaveLength(2);
-  expect(ui.getAllByText("Series", { selector: "legend" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "Category" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "Value" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "Series" })).toHaveLength(2);
   expect(ui.getByRole("group", { name: "Chart type" })).toBeTruthy();
   expect(ui.getByRole("button", { name: "Add row" })).toBeTruthy();
   expect(ui.getByRole("status").textContent).toContain("20001 rows");
   fireEvent.click(ui.getByRole("button", { name: "Switch language" }));
-  expect(ui.getAllByText("범주", { selector: "legend" })).toHaveLength(2);
+  expect(ui.getAllByRole("group", { name: "범주" })).toHaveLength(2);
   expect(patch).not.toHaveBeenCalled();
   expect(
     JSON.stringify(useStore.getState().elementsMap.get("chart")?.props),

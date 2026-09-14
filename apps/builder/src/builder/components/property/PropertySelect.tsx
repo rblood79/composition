@@ -54,9 +54,11 @@ interface PropertySelectProps {
   className?: string;
   /**
    * `legend` (기본, 필드 위 18 행) / `inline` (legend·아이콘 없이 28 상자만 — 값이 곧 라벨인
-   * 셀렉트, Font Weight 「Semi Bold ▾」 등. 접근 이름은 label 그대로, panel-ui 03).
+   * 셀렉트, Font Weight 「Semi Bold ▾」 등. 접근 이름은 label 그대로, panel-ui 03) /
+   * `suffix` (라벨을 상자 안 우측 10 mono caps 로 — 「Primary VARIANT ▾」, panel-ui 07).
    */
-  labelMode?: "legend" | "inline";
+  labelMode?: "legend" | "inline" | "suffix";
+  suffixLabel?: string;
   description?: string; // Optional description (not displayed)
   /**
    * 컨트롤 박스 아래 필드 상태 문구 슬롯 (RAC `<Text slot="description">` / `.react-aria-FieldError`).
@@ -89,6 +91,7 @@ export const PropertySelect = memo(
     icon: Icon,
     className,
     labelMode = "legend",
+    suffixLabel,
     afterControl,
     popoverWidthMode = "fit-content",
   }: PropertySelectProps) {
@@ -138,7 +141,7 @@ export const PropertySelect = memo(
       <fieldset
         className={`properties-aria ${className || ""}`}
         data-label-mode={labelMode}
-        aria-label={labelMode === "inline" ? displayLabel : undefined}
+        aria-label={labelMode !== "legend" ? displayLabel : undefined}
       >
         {labelMode === "legend" && (
           <legend className="fieldset-legend">{displayLabel}</legend>
@@ -181,6 +184,11 @@ export const PropertySelect = memo(
                 </label>
               )}
               <SelectValue />
+              {labelMode === "suffix" && (
+                <span className="property-field__suffix" aria-hidden="true">
+                  {suffixLabel ?? displayLabel}
+                </span>
+              )}
               <span aria-hidden="true" className="select-chevron">
                 <ChevronDown size={iconProps.size} />
               </span>

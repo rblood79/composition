@@ -1,6 +1,8 @@
 import { memo, useMemo } from "react";
 
 import { PropertySection } from "../../components";
+import { SwatchIconButton } from "../../components/ui";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import {
   resolveComponentSemanticsActions,
@@ -137,8 +139,6 @@ export const ComponentSemanticsSection = memo(
     // 라벨이 두 정체를 다 읽어 준다 — 라벨이 역할의 1차 채널이다.
     const roleLabel =
       isInstance && isOrigin ? "Instance · Origin" : (label ?? "Standard");
-    const iconOnlyComponentAxis =
-      isInstance && isOrigin && instanceIds.length > 0;
     const roleClass = role ?? "standard";
 
     if (!element) return null;
@@ -226,56 +226,54 @@ export const ComponentSemanticsSection = memo(
 
     return (
       <PropertySection title="Component">
-        <div className="component-semantics-identity" data-role={roleClass}>
-          <ComponentIcon aria-hidden="true" size={14} />
-          <span
-            className="component-semantics-identity-name"
-            title={componentName}
-          >
-            {componentName}
-          </span>
-          <span className="component-semantics-identity-role">{roleLabel}</span>
+        {/* 정체 = lrow 「button_1 · STANDARD」 (이름 + 10 mono caps 역할), 액션은 행마다
+            라벨 + 28 열 아이콘 (Overrides · Effect 목록 행과 같은 조각, panel-ui 07). 종전엔
+            칩 + 한 줄 툴바 (라벨 버튼 + 아이콘 전용 버튼) 였다. */}
+        <div className="fieldset-row" data-wide="true">
+          <div className="component-semantics-identity" data-role={roleClass}>
+            <ComponentIcon aria-hidden="true" size={14} />
+            <span
+              className="component-semantics-identity-name"
+              title={componentName}
+            >
+              {componentName}
+            </span>
+            <span className="component-semantics-identity-role">
+              {roleLabel}
+            </span>
+          </div>
         </div>
 
-        <div className="component-semantics-toolbar">
-          {semanticsActions.map((action) => {
-            if (!semanticsTarget) return null;
-            const actionLabel = action.labelKey(semanticsTarget, availability);
-            const label = t(actionLabel.key, actionLabel.params);
-            const Icon = action.icon(semanticsTarget);
-            // 컴포넌트 축만 라벨을 달고 나머지는 아이콘 전용이다. 앞에 아이콘이
-            // 3개 서는 조합 (인스턴스이면서 원본 + 인스턴스 보유) 만 라벨까지
-            // 235px 로 폭 215px 를 넘기므로 그때는 컴포넌트 축도 좁힌다 —
-            // 라벨은 툴팁/접근 이름이 계속 나른다. 이 경우에만 분리 액션 둘이
-            // 같은 그림으로 나란히 서는데, pencil 도 두 액션에 같은
-            // `diamond-minus` 를 쓴다.
-            const iconOnly =
-              action.id !== "toggle-component-origin" || iconOnlyComponentAxis;
-            // 원본을 못 찾은 인스턴스에서 "원본으로 이동" 은 사라지지 않고
-            // 비활성으로 선다 — 자리가 유지돼야 줄의 다른 액션 위치가 흔들리지
-            // 않는다 (컨텍스트 메뉴는 같은 상황에서 항목을 뺀다).
-            const enabled =
-              action.isEnabled?.(semanticsTarget, availability) ?? true;
-            return (
-              <button
-                aria-label={label}
-                className={
-                  iconOnly
-                    ? "control-button component-semantics-icon-action"
-                    : "control-button"
-                }
-                disabled={!enabled}
-                key={action.id}
-                onClick={actionHandlers[action.id]}
-                title={label}
-                type="button"
-              >
-                <Icon aria-hidden="true" size={14} />
-                {iconOnly ? null : label}
-              </button>
-            );
-          })}
-        </div>
+        {semanticsActions.map((action) => {
+          if (!semanticsTarget) return null;
+          const actionLabel = action.labelKey(semanticsTarget, availability);
+          const label = t(actionLabel.key, actionLabel.params);
+          const Icon = action.icon(semanticsTarget);
+          // 원본을 못 찾은 인스턴스에서 "원본으로 이동" 은 사라지지 않고
+          // 비활성으로 선다 — 자리가 유지돼야 다른 액션 행 위치가 흔들리지 않는다
+          // (컨텍스트 메뉴는 같은 상황에서 항목을 뺀다).
+          const enabled =
+            action.isEnabled?.(semanticsTarget, availability) ?? true;
+          return (
+            <div
+              className="fieldset-row component-semantics-row"
+              data-wide="true"
+              data-disabled={enabled ? undefined : "true"}
+              key={action.id}
+            >
+              <span className="component-semantics-row-label">{label}</span>
+              <div className="fieldset-actions">
+                <SwatchIconButton
+                  aria-label={label}
+                  isDisabled={!enabled}
+                  onPress={actionHandlers[action.id]}
+                >
+                  <Icon aria-hidden="true" size={iconProps.size} />
+                </SwatchIconButton>
+              </div>
+            </div>
+          );
+        })}
 
         {role === "instance" && overrideItems.length > 0 && (
           <fieldset className="properties-aria component-semantics-overrides">

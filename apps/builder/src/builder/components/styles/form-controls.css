@@ -439,22 +439,77 @@
 
     /* PropertyUnitInput labelMode="suffix" — 라벨이 필드 안 우측 (10 mono caps),
        legend·아이콘 없음. 단위는 종전처럼 chevron 메뉴에만 (필드 안 단위 글자는 원래 없다).
-       (panel-ui 01, 2026-09-14) */
-    .property-unit-input[data-label-mode="suffix"] {
-      .property-unit-input__suffix {
-        flex: none;
-        font-family: var(--font-mono);
-        font-size: var(--text-2xs);
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        color: var(--fg-muted);
-        pointer-events: none;
-        user-select: none;
+       (panel-ui 01, 2026-09-14). `.property-field__suffix` 는 PropertyFieldset (Input ·
+       CustomId) · PropertySelect 의 같은 조각 (panel-ui 07). */
+    .property-field__suffix,
+    .property-unit-input[data-label-mode="suffix"] .property-unit-input__suffix {
+      flex: none;
+      font-family: var(--font-mono);
+      font-size: var(--text-2xs);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .properties-aria[data-label-mode="suffix"] {
+      .react-aria-Group {
+        padding-inline-end: var(--spacing-xs);
       }
 
-      .react-aria-UnitComboBox .react-aria-Input {
-        font-variant-numeric: tabular-nums;
+      /* 아이콘 label (20) 이 없으면 Input 줄 높이 18 로 상자가 26 — 안쪽 20 을 못 박는다 */
+      .react-aria-Input {
+        min-width: 0;
+        block-size: calc(var(--control-size) - 2 * var(--spacing));
       }
+
+      /* Select 「Primary VARIANT ▾」 — 값 · suffix · chevron 한 줄. 위 `span[aria-hidden]`
+         (chevron 20 상자) 규칙이 suffix 도 잡아 20 으로 잘랐다 → 글자 폭으로 되돌린다 */
+      .react-aria-Select .react-aria-Button {
+        gap: var(--spacing-xs);
+
+        .property-field__suffix {
+          width: auto;
+          height: auto;
+        }
+      }
+    }
+
+    /* PropertySwitch labelMode="inline" — 라벨 왼쪽 · 스위치 오른쪽, 상자 없음 (panel-ui 07) */
+    .property-switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--spacing-sm);
+      min-width: 0;
+      block-size: var(--control-size);
+      padding-inline-start: var(--spacing-xs);
+
+      .property-switch-row__label {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--text-xs);
+        line-height: var(--text-xs--line-height);
+        color: var(--fg);
+      }
+
+      .react-aria-Switch {
+        flex: none;
+        width: auto;
+        padding: 0;
+        border-width: 0;
+        background: transparent;
+      }
+    }
+
+    .property-unit-input[data-label-mode="suffix"]
+      .react-aria-UnitComboBox
+      .react-aria-Input {
+      font-variant-numeric: tabular-nums;
     }
 
     /* Slider Component - Used by PropertySlider.tsx.

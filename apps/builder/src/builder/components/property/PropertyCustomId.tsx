@@ -12,6 +12,8 @@ interface PropertyCustomIdProps {
   placeholder?: string;
   className?: string;
   onChange?: (newCustomId: string) => void;
+  labelMode?: "legend" | "suffix";
+  suffixLabel?: string;
 }
 
 export const PropertyCustomId = memo(function PropertyCustomId({
@@ -21,6 +23,8 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   placeholder = "button_1",
   className,
   onChange,
+  labelMode,
+  suffixLabel,
 }: PropertyCustomIdProps) {
   // Local state for input value (debounced save)
   const [inputValue, setInputValue] = useState<string>(value || "");
@@ -102,6 +106,8 @@ export const PropertyCustomId = memo(function PropertyCustomId({
     <PropertyFieldset
       legend={label}
       icon={Hash}
+      labelMode={labelMode}
+      suffixLabel={suffixLabel}
       className={className}
       afterControl={
         error ? (

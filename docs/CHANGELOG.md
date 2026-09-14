@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 같은 어법 (suffix 필드 · 2열 행 · 스위치 행 · Component lrow) (panel-ui 07 · 1/2)] - 2026-09-14
+
+### Changed
+
+- **Attributes**: ID / Class / Aria 를 suffix 라벨 필드 (「button_1 ID」 28) 로 — 종전 legend + 아이콘 상자 3 × 45. 아이콘 prefix (#, 중괄호, aria) 는 라벨이 있으면 중복이라 뺀다. `PropertyFieldset` · `PropertyInput` · `PropertyCustomId` 에 `labelMode="suffix"` (+ `suffixLabel`), `PropertySelect` 에 `labelMode="suffix"`.
+- **Component 절**: 정체는 lrow 「button_1 · STANDARD」 (10 mono caps 역할), 액션은 행마다 라벨 + 28 열 아이콘 (Create component / Go to component / Detach …). 종전 테두리 칩 + 한 줄 툴바 (라벨·아이콘 전용 혼합, 넘치면 라벨 축을 접는 분기) 제거.
+- **catalog 파생 필드 (GenericFieldRenderer)**: 행 격자 `1fr 1fr 28px` — 텍스트·variant·숫자·스위치는 전폭 (1·2열 합침, `.fieldset-row[data-wide]`), enum·size·icon 은 반폭으로 둘씩 한 행. 전폭 텍스트·variant 는 suffix 라벨 (≤ 14자), 반폭 셀렉트는 legend + 아이콘 없음 (87 칸에서 아이콘 + chevron 이 값 자리를 39 로 줄였다). 옵션 2개 enum (Fill/Outline · Quiet/Normal · On/Off) 은 seg (`PropertySizeToggle`, `.property-seg` flex:1). boolean 은 라벨 왼쪽 · 스위치 오른쪽 한 행 (`PropertySwitch labelMode="inline"`). 반폭 칸의 긴 legend 는 한 줄 말줄임 (두 줄 접힘 64 방지). 아이콘 필드 `.fieldset-row > .fieldset-actions` 는 3열 고정 (`grid-area: icon` 이 template 없는 행에서 새 행을 만들던 것).
+- live (`props-live.mjs`, Button · TextField): 필드 전부 181×28 / 87×46 · Class 입력 → `props.className` · 액션 행 28 + 28 열 버튼.
+
 ## [Styles · Screen / Modified 탭 — Visibility seg 한 줄 · Overrides lrow 목록 · Modified key·value 목록 (panel-ui 04)] - 2026-09-14
 
 ### Changed

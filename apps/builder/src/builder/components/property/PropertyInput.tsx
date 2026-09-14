@@ -25,6 +25,9 @@ interface PropertyInputProps {
    * 목록을 보여 주고 Enter/클릭으로 `{{ name }}` 을 넣는다. 미지정이면 종전 입력.
    */
   stateNames?: readonly string[];
+  /** `suffix` — legend·아이콘 없이 라벨을 상자 안 우측 (10 mono caps) 으로 (panel-ui 07). */
+  labelMode?: "legend" | "suffix";
+  suffixLabel?: string;
 }
 
 const STATE_TRIGGER = /\{\{\s*([A-Za-z_$][\w$]*)?$/;
@@ -43,6 +46,8 @@ export const PropertyInput = memo(
     max,
     disabled,
     stateNames,
+    labelMode,
+    suffixLabel,
   }: PropertyInputProps) {
     const selectedElementId = useStore((state) => state.selectedElementId);
     // Local state for input value (debounced save)
@@ -210,6 +215,8 @@ export const PropertyInput = memo(
       <PropertyFieldset
         legend={label}
         icon={icon}
+        labelMode={labelMode}
+        suffixLabel={suffixLabel}
         className={
           stateNames && stateNames.length > 0
             ? `${className ?? ""} property-input-with-suggest`.trim()
@@ -272,7 +279,9 @@ export const PropertyInput = memo(
       prevProps.max === nextProps.max &&
       prevProps.disabled === nextProps.disabled &&
       prevProps.icon === nextProps.icon &&
-      prevProps.stateNames === nextProps.stateNames
+      prevProps.stateNames === nextProps.stateNames &&
+      prevProps.labelMode === nextProps.labelMode &&
+      prevProps.suffixLabel === nextProps.suffixLabel
     );
   },
 );

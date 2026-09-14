@@ -57,8 +57,10 @@ export const PropertySizeToggle = memo(function PropertySizeToggle({
     [onChange],
   );
 
+  // `.property-seg` — 버튼이 행 폭을 나눠 갖는다 (inspector-layout.css 글자 라벨 seg 규칙).
+  //   고정폭 20 이면 XS…XL 5칸이 87 열을 넘고 「Outline」 같은 글자 라벨이 잘린다.
   return (
-    <fieldset className="properties-aria">
+    <fieldset className="properties-aria property-seg">
       <legend className="fieldset-legend">{displayLabel}</legend>
       <ToggleButtonGroup
         className={className}

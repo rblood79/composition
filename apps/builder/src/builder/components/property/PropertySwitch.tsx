@@ -19,6 +19,11 @@ interface PropertySwitchProps {
   }>;
   className?: string;
   description?: string; // Optional description (not displayed)
+  /**
+   * `legend` (기본, 필드 위 18 행 + 28 상자) / `inline` — 라벨 왼쪽 · 스위치 오른쪽 한 행 28,
+   * 상자 없음 (「Disabled ─────── ●」, panel-ui 07 tglrow). 접근 이름은 aria-label 그대로.
+   */
+  labelMode?: "legend" | "inline";
 }
 
 export const PropertySwitch = memo(
@@ -28,6 +33,7 @@ export const PropertySwitch = memo(
     onChange,
     icon,
     className,
+    labelMode = "legend",
   }: PropertySwitchProps) {
     const i18n = useOptionalI18n();
     const displayLabel = i18n
@@ -35,6 +41,25 @@ export const PropertySwitch = memo(
       : label;
     // 라벨은 legend 한 번 — 종전엔 Switch 안에 같은 글자가 한 번 더 있었다 (panel-ui 20,
     //   2026-09-14). 접근 이름은 aria-label 로 유지한다 (getByLabelText 그대로).
+    if (labelMode === "inline") {
+      return (
+        <fieldset
+          className={`properties-aria property-switch-row ${className ?? ""}`}
+          data-label-mode="inline"
+          aria-label={displayLabel}
+        >
+          <span className="property-switch-row__label">{displayLabel}</span>
+          <AriaSwitch
+            className="react-aria-Switch"
+            isSelected={isSelected}
+            onChange={(val) => onChange(val)}
+            aria-label={displayLabel}
+          >
+            <div className="indicator" />
+          </AriaSwitch>
+        </fieldset>
+      );
+    }
     return (
       <PropertyFieldset legend={label} icon={icon} className={className}>
         <AriaSwitch
@@ -55,7 +80,8 @@ export const PropertySwitch = memo(
       prevProps.label === nextProps.label &&
       prevProps.isSelected === nextProps.isSelected &&
       prevProps.icon === nextProps.icon &&
-      prevProps.className === nextProps.className
+      prevProps.className === nextProps.className &&
+      prevProps.labelMode === nextProps.labelMode
     );
   },
 );

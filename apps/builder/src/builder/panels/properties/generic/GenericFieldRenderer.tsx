@@ -171,6 +171,42 @@ function areGenericFieldPropsEqual(
   );
 }
 
+/**
+ * 필드가 차지하는 폭 — `wide` 는 1·2열 합침 (값이 긴 텍스트 · 스위치 행 · 목록), `half` 는
+ * 한 열 (셀렉트 · seg · 숫자 · 아이콘) 로 두 개가 한 행에 선다 (panel-ui 07).
+ */
+function fieldSpan(field: ResolvedField): "wide" | "half" {
+  switch (field.kind) {
+    // variant 값은 단어 (Primary · Secondary …) 라 전폭 — Styles 의 "값이 길면 전폭" 규칙
+    case "enum":
+    case "fillStyle":
+    case "size":
+    case "icon":
+      return "half";
+    default:
+      return "wide";
+  }
+}
+
+/** 연속한 half 필드 둘을 한 행으로 묶는다. wide 는 행 하나를 혼자 쓴다. */
+function packFieldRows(fields: readonly ResolvedField[]): ResolvedField[][] {
+  const rows: ResolvedField[][] = [];
+  for (const field of fields) {
+    const last = rows[rows.length - 1];
+    if (
+      fieldSpan(field) === "half" &&
+      last &&
+      last.length === 1 &&
+      fieldSpan(last[0]!) === "half"
+    ) {
+      last.push(field);
+    } else {
+      rows.push([field]);
+    }
+  }
+  return rows;
+}
+
 /** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
 const GenericField = memo(function GenericField({
   field,
@@ -201,15 +237,39 @@ const GenericField = memo(function GenericField({
   const icon = resolvePropertyFieldIcon(field.key, field.kind, componentType);
   const stateNames = useVisibleVariableNames(elementId);
 
+  // 라벨을 상자 안 suffix (10 mono caps) 로 두는 조건 — 전폭 (181) 행이고 라벨이 짧을 때.
+  //   반폭 (87) 칸은 suffix + chevron 이 값 자리를 다 먹어 (live 「Prima VARIA ▾」) legend 행.
+  const suffixMode =
+    fieldSpan(field) === "wide" && field.label.length <= 14
+      ? "suffix"
+      : "legend";
+
   switch (field.kind) {
     // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
+    // 옵션 2개 (Fill/Outline · Quiet/Normal) 는 seg — 셀렉트를 열 필요가 없다.
     case "variant":
     case "enum":
     case "fillStyle":
+      if ((field.options?.length ?? 0) === 2) {
+        return (
+          <PropertySizeToggle
+            label={field.label}
+            value={String(value ?? field.baseValue ?? "")}
+            onChange={(v) => update(v)}
+            options={(field.options ?? []).map((o) => ({
+              id: o.value,
+              label: o.label,
+            }))}
+          />
+        );
+      }
+      // 반폭 (87) 칸의 셀렉트는 아이콘 (20) + chevron (20) 이 값 자리를 39 로 줄여 「Buttoı」
+      //   로 잘린다 — legend 가 정체를 말하므로 아이콘을 뺀다 (전폭은 suffix 모드라 원래 없음)
       return (
         <PropertySelect
-          icon={icon}
+          icon={fieldSpan(field) === "half" ? undefined : icon}
           label={field.label}
+          labelMode={suffixMode}
           value={String(value ?? field.baseValue ?? "")}
           onChange={(v) => update(v)}
           options={field.options ?? []}
@@ -236,6 +296,7 @@ const GenericField = memo(function GenericField({
         <PropertySwitch
           icon={icon}
           label={field.label}
+          labelMode="inline"
           isSelected={Boolean(value ?? field.baseValue)}
           onChange={(checked) => update(checked)}
         />
@@ -265,6 +326,7 @@ const GenericField = memo(function GenericField({
         <PropertyInput
           icon={icon}
           label={field.label}
+          labelMode={suffixMode}
           value={String(value ?? "")}
           onChange={(v) => update(v === "" ? undefined : v)}
           // ADR-214 Phase 3 — `{{` 자동완성 (가시성 사슬의 변수 이름), style 축은 제외
@@ -278,6 +340,7 @@ const GenericField = memo(function GenericField({
         <PropertyInput
           icon={icon}
           label={field.label}
+          labelMode={suffixMode}
           value={display}
           onChange={(v) => {
             const parts = v
@@ -420,7 +483,9 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
     if (!groups.has(section)) groups.set(section, bucket);
     if (
       field.editorHidden ||
-      !evaluateVisibility(field.visibleWhen, conditionValues)
+      !evaluateVisibility(field.visibleWhen, conditionValues) ||
+      // binding(items 등) 은 Inspector no-op — 행을 만들면 빈 8px 간격만 남는다
+      (field.kind === "binding" && field.key !== "dataBinding")
     )
       continue;
     bucket.push(field);
@@ -450,23 +515,35 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
         return (
           <PropertySection key={section} title={capitalize(section)}>
             {head}
-            {sectionFields.map((field) => (
-              <GenericField
-                key={`${field.origin}:${field.key}`}
-                field={field}
-                onSemanticUpdate={onSemanticUpdate}
-                onStyleUpdate={onStyleUpdate}
-                elementId={elementId}
-                componentType={componentType}
-                ownerColumns={ownerColumns}
-                ownerFields={ownerFields}
-                translateOptions={!literalOptionFields?.includes(field.key)}
-                optionValueMode={
-                  literalOptionFields?.includes(field.key)
-                    ? "literal"
-                    : "legacy"
+            {packFieldRows(sectionFields).map((row) => (
+              <div
+                key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
+                className="fieldset-row"
+                data-wide={
+                  row.length === 1 && fieldSpan(row[0]!) === "wide"
+                    ? "true"
+                    : undefined
                 }
-              />
+              >
+                {row.map((field) => (
+                  <GenericField
+                    key={`${field.origin}:${field.key}`}
+                    field={field}
+                    onSemanticUpdate={onSemanticUpdate}
+                    onStyleUpdate={onStyleUpdate}
+                    elementId={elementId}
+                    componentType={componentType}
+                    ownerColumns={ownerColumns}
+                    ownerFields={ownerFields}
+                    translateOptions={!literalOptionFields?.includes(field.key)}
+                    optionValueMode={
+                      literalOptionFields?.includes(field.key)
+                        ? "literal"
+                        : "legacy"
+                    }
+                  />
+                ))}
+              </div>
             ))}
             {tail}
           </PropertySection>
