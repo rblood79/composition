@@ -43,7 +43,7 @@
     text-align: start;
 
     &:hover {
-      background: var(--bg-emph);
+      background: var(--bg-emphasis);
     }
 
     &:focus-visible {

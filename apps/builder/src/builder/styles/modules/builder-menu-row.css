@@ -26,6 +26,9 @@
     align-items: center;
     gap: var(--spacing-sm);
     block-size: var(--control-size);
+    /* 생성 Menu.css 는 column flex + max-height 300 (overflow auto) — 항목이 많으면
+       (Overrides 「+」 13개) flex-shrink 로 28 이 20 으로 눌렸다. 항목은 줄지 않고 메뉴가 스크롤한다. */
+    flex: none;
     padding: 0 var(--spacing-sm);
     font-size: var(--text-xs);
     line-height: var(--text-xs--line-height);

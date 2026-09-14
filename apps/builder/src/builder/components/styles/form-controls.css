@@ -560,7 +560,7 @@
     .slider-track {
       flex: 1;
       height: 2px;
-      background: var(--bg-emph);
+      background: var(--bg-emphasis);
       border-radius: var(--radius-full);
       position: relative;
     }

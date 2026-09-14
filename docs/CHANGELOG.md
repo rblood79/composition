@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [패널 크롬 결함 3 — 슬라이더 트랙 · 행 메뉴 항목 눌림 · 액션바 간격] - 2026-09-15
+
+### Fixed
+
+- **슬라이더 트랙이 안 보이던 결함** — Border Width/Radius · Effect Opacity 슬라이더의 트랙 배경이 미정의 토큰 `--bg-emph` 를 읽어 투명했다 (채움만 보였다). 정본 `--bg-emphasis` 로 교체 (`form-controls.css`, Effect 레이어 행 hover 도 같은 토큰).
+- **행 메뉴 항목이 20 으로 눌리던 결함** — Screen › Overrides 「+」 처럼 항목이 많은 PropertyRowMenu 에서 생성 Menu.css 의 column flex + max-height 300 이 항목을 flex-shrink 로 눌렀다. 메뉴 항목에 `flex: none` — 항목은 28 그대로, 메뉴가 스크롤한다 (`builder-menu-row.css`).
+- **액션바 항목 간격** — toolbar 내부 gap 2 하드코드 → `--chrome-gap` 4 (panel-ui 10, 바 외곽과 같은 값).
+
 ## [캔버스 — 기울임 (font-style) · 대소문자 (text-transform) 가 Skia 텍스트에 안 실리던 결함] - 2026-09-14
 
 ### Fixed

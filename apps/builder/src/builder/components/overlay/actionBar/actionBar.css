@@ -107,11 +107,12 @@
     color: inherit;
   }
 
+  /* 항목 간격도 바 외곽과 같은 --chrome-gap 4 (panel-ui 10 #2) — 종전 2 는 하드코드 */
   .contextual-action-bar-toolbar,
   .contextual-action-bar .shortcut-tooltip-wrapper {
     display: flex;
     align-items: center;
-    gap: 2px;
+    gap: var(--chrome-gap);
   }
 
   .contextual-action-bar .contextual-action-bar-item {
