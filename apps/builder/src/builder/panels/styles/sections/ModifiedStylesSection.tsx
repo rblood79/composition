@@ -95,6 +95,92 @@ const CATEGORY_ORDER: ReadonlyArray<ReadonlySet<string>> = [
 
 const COLOR_PROPS = new Set(["backgroundColor", "borderColor", "color"]);
 
+/** store 가 숫자로 강제하는 prop 중 단위 없는 것 — 나머지 숫자는 px (panel-ui 04 「Gap 8px」, 대조 B9) */
+const UNITLESS_PROPS = new Set([
+  "fontWeight",
+  "opacity",
+  "flexGrow",
+  "flexShrink",
+  "zIndex",
+  "order",
+]);
+
+/**
+ * longhand 묶음 — 전부 dirty 이고 값이 같으면 shorthand 한 행 (「Gap 8px」, 「Padding 12px」).
+ * 하나라도 다르면 longhand 그대로 (비균일 코너 4행 · 변 4행은 ADR-219 그대로). dirty 목록에
+ * shorthand 가 같이 실려 있으면 (store 가 gap → rowGap/columnGap 으로 분배하고 dirty 판정은
+ * 둘 다 잡는다) 균일할 때 longhand 를, 아닐 때 shorthand 를 뺀다 — 같은 값 세 행 금지.
+ */
+const LONGHAND_GROUPS: ReadonlyArray<{
+  shorthand: string;
+  longhands: readonly string[];
+}> = [
+  { shorthand: "gap", longhands: ["rowGap", "columnGap"] },
+  {
+    shorthand: "padding",
+    longhands: ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"],
+  },
+  {
+    shorthand: "margin",
+    longhands: ["marginTop", "marginRight", "marginBottom", "marginLeft"],
+  },
+  {
+    shorthand: "borderRadius",
+    longhands: [
+      "borderTopLeftRadius",
+      "borderTopRightRadius",
+      "borderBottomRightRadius",
+      "borderBottomLeftRadius",
+    ],
+  },
+  {
+    shorthand: "borderWidth",
+    longhands: [
+      "borderTopWidth",
+      "borderRightWidth",
+      "borderBottomWidth",
+      "borderLeftWidth",
+    ],
+  },
+];
+
+function formatStyleValue(property: string, raw: unknown): string {
+  if (raw === undefined || raw === null) return "";
+  if (typeof raw === "number") {
+    return UNITLESS_PROPS.has(property) ? String(raw) : `${raw}px`;
+  }
+  return String(raw);
+}
+
+/** dirty prop 목록에서 균일한 longhand 묶음을 shorthand 하나로 접는다 (표시 전용 — reset 은 그대로) */
+export function collapseUniformLonghands(
+  properties: readonly string[],
+  style: Record<string, unknown>,
+): string[] {
+  const set = new Set(properties);
+  const drop = new Set<string>();
+  const insert = new Map<string, string>();
+  for (const { shorthand, longhands } of LONGHAND_GROUPS) {
+    if (!longhands.every((lh) => set.has(lh))) continue;
+    const first = formatStyleValue(longhands[0], style[longhands[0]]);
+    const uniform = longhands.every(
+      (lh) => formatStyleValue(lh, style[lh]) === first,
+    );
+    if (!uniform) {
+      if (set.has(shorthand)) drop.add(shorthand);
+      continue;
+    }
+    for (const lh of longhands) drop.add(lh);
+    if (!set.has(shorthand)) insert.set(longhands[0], shorthand);
+  }
+  const out: string[] = [];
+  for (const property of properties) {
+    if (insert.has(property)) out.push(insert.get(property)!);
+    if (!drop.has(property)) out.push(property);
+  }
+  return out;
+}
+
 function categoryRank(property: string): number {
   const index = CATEGORY_ORDER.findIndex((set) => set.has(property));
   return index === -1 ? CATEGORY_ORDER.length : index;
@@ -158,14 +244,20 @@ export const ModifiedStylesSection = memo(function ModifiedStylesSection({
 
   const rows = useMemo(
     () =>
-      [...modifiedProperties]
+      collapseUniformLonghands(
+        modifiedProperties,
+        effectiveStyle as Record<string, unknown>,
+      )
         .sort((a, b) => categoryRank(a) - categoryRank(b))
         .map((property) => {
-          const raw = effectiveStyle[property as keyof React.CSSProperties] as
-            | string
-            | number
-            | undefined;
-          const value = raw === undefined || raw === null ? "" : String(raw);
+          const style = effectiveStyle as Record<string, unknown>;
+          const group = LONGHAND_GROUPS.find((g) => g.shorthand === property);
+          // 접힌 shorthand 는 첫 longhand 의 값 (전부 같다)
+          const raw =
+            group && style[property] === undefined
+              ? style[group.longhands[0]]
+              : style[property];
+          const value = formatStyleValue(property, raw);
           const resolved = COLOR_PROPS.has(property)
             ? resolveStylePanelColor(value, theme, accentColor)
             : null;
@@ -206,7 +298,7 @@ export const ModifiedStylesSection = memo(function ModifiedStylesSection({
     <PropertySection
       title="Modified"
       badge={
-        <span className="modified-count">{modifiedProperties.length}</span>
+        <span className="modified-count">{rows.length}</span>
       }
       onReset={handleReset}
     >

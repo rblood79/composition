@@ -9,13 +9,12 @@
   gap: var(--spacing-sm);
 }
 
-/* TintGrid: 5열 색상 프리셋 (color-swatch-button 스타일) */
+/* TintGrid: swatch 28 · 6열 gap 8 (panel-ui 14 — 대조 B10; 종전 5열 1fr 라 실측 gap 17) */
 .tint-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
-  padding: 4px 0;
-  justify-items: center;
+  grid-template-columns: repeat(6, var(--control-size));
+  gap: var(--spacing-sm);
+  padding: 0;
 }
 
 .tint-swatch {

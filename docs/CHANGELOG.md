@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [패널 잔여 대조 5 — Modified 단위 · Icon/Blend prefix · Settings 절 이름 · Page gap · Data creator legend · Theme 6열 · 카드 아이콘 28] - 2026-09-15
+
+### Changed
+
+- **Screen › Modified 값 단위** (panel-ui 04 — 대조 B9) — store 가 숫자로 갖는 길이 (Width 160 · Border Radius 8 · Gap 8) 를 「160px」 로 (단위 없는 fontWeight · opacity · flexGrow · zIndex 는 그대로). 균일한 longhand 묶음은 shorthand 한 행 — 「Gap 8px」 (rowGap · columnGap), 「Padding 12px」 (4변), 「Border Radius 8px」 (4코너), 「Border Width」 (4변); 비균일이면 longhand 그대로 (ADR-219 4행). 카운트는 표시 행 수.
+- **Properties Button 「None ICON ▾」 · 「… TEXT」** (panel-ui 07 — 대조 B13) — Icon 피커 · Text 입력의 라벨이 상자 안 suffix (`PropertyIconPicker labelMode="suffix"`; catalog icon 필드도 라벨이 짧으면 같은 방식). **Fill 팝오버 Blend** 의 아이콘 prefix 제거 (legend 가 이름).
+- **Settings 절 이름 「Canvas」 · 「Appearance」** (panel-ui 20 — 대조 B11; 종전 Rulers & Guides · Theme & Appearance) · **Page gap 「80 PX」** — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + ▲▼ stepper.
+- **Data creator 「Start from」 legend** (panel-ui 19 — 대조 B12) — 방법 격자 위 legend 18 (종전 없음), 칸 안쪽 여백 4 로 233 폭에서 「Describe to AI」 가 들어간다.
+- **Theme 색 격자 6열 gap 8** (panel-ui 14 — 대조 B10; 종전 5열 1fr 라 실측 gap 17) · **Components 카드 아이콘 상자 28** (종전 34 — `.list-item-icon` 공용).
+
 ## [색 피커 본체 — 색 영역 100 · 막대 12 · 「[HEX|RGBA|CSS] [623CEA hex] [스포이드]」 한 행 · Border 코너 글리프] - 2026-09-15
 
 ### Changed

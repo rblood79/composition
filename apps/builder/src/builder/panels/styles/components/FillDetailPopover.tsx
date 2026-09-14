@@ -29,7 +29,6 @@ import { ColorPickerPanel } from "./ColorPickerPanel";
 import { GradientEditor } from "./GradientEditor";
 import { MeshGradientEditor } from "./MeshGradientEditor";
 import { ImageFillEditor } from "./ImageFillEditor";
-import { Blend } from "lucide-react";
 import { PropertySelect } from "../../../components";
 import { BLEND_MODE_OPTIONS } from "../constants/styleOptions";
 import { ScrubInput } from "./ScrubInput";
@@ -217,8 +216,8 @@ export const FillDetailPopover = memo(function FillDetailPopover({
             className="fill-detail-popover__opacity-scrub"
           />
         </fieldset>
+        {/* 아이콘 prefix 없음 — legend 가 이름을 준다 (panel-ui 17 — 대조 B13) */}
         <PropertySelect
-          icon={Blend}
           label="Blend"
           className="blend-mode"
           value={fill.blendMode}

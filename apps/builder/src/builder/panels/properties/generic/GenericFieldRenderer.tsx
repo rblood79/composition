@@ -376,6 +376,8 @@ const GenericField = memo(function GenericField({
       return (
         <PropertyIconPicker
           label={field.label}
+          // 반폭이라도 「None ICON ▾」 는 들어간다 — 라벨이 짧을 때만 (panel-ui 07 — 대조 B13)
+          labelMode={field.label.length <= 5 ? "suffix" : suffixMode}
           value={value as string | undefined}
           onChange={(name) => update(name)}
           onClear={() => update(undefined)}

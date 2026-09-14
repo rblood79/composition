@@ -10,7 +10,7 @@
  * @updated 2026-03-05 - ADR-021 Phase D: 저장 테마 선택 UI 제거 (Tint System으로 대체)
  */
 
-import { UnfoldHorizontal, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
@@ -27,7 +27,6 @@ import {
   PanelHeader,
   PanelContents,
 } from "../../components";
-import { PAGE_GAP_PRESETS } from "../../components/property/propertyUnitPresets";
 import { useThemeMessenger } from "@/builder/hooks";
 import { LanguageSwitcher } from "@/i18n";
 import { useI18n } from "@/i18n";
@@ -116,7 +115,7 @@ function SettingsContent() {
       />
 
       <PanelContents>
-        {/* Rulers & Guides Section */}
+        {/* Canvas 절 (종전 Rulers & Guides — panel-ui 20) */}
         <PropertySection title={t("settings.rulersAndGuides")}>
           {/* r3 두 열 — Rulers | Action bar · Snap | Page gap (panel-ui 20, 2026-09-14) */}
           <div className="fieldset-row settings-row">
@@ -149,17 +148,16 @@ function SettingsContent() {
               icon={ACTION_ICONS.toggleSnap}
             />
 
+            {/* 「80 PX」 — 아이콘 prefix · S/M/L preset ▾ 대신 단위 suffix + stepper (panel-ui 20 — 대조 B11) */}
             <PropertyUnitInput
               label={t("settings.pageGap")}
-              value={String(pageGap)}
+              value={`${pageGap}px`}
               min={0}
               max={2000}
               onChange={handlePageGapChange}
-              icon={UnfoldHorizontal}
-              units={[]}
+              units={["px"]}
+              unitSuffix
               allowKeywords={false}
-              presets={PAGE_GAP_PRESETS}
-              presetAriaLabel={t("settings.pageGapPreset")}
             />
           </div>
 
@@ -172,7 +170,7 @@ function SettingsContent() {
           />
         </PropertySection>
 
-        {/* Theme Settings Section */}
+        {/* Appearance 절 (종전 Theme & Appearance) */}
         <PropertySection title={t("settings.themeAppearance")}>
           <PropertySizeToggle
             label={t("settings.themeMode")}

@@ -125,13 +125,17 @@
    List Item Icon
    ============================================ */
 
+/* 상자 28 = 컨트롤 티어 (panel-ui 14 Components 카드 — 대조 B10; 종전 pad 8 + 아이콘 16 + 테두리 = 34) */
 .list-item-icon {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  padding: var(--spacing-sm);
+  box-sizing: border-box;
+  min-inline-size: var(--control-size);
+  min-block-size: var(--control-size);
+  padding: var(--spacing-xs);
   border: 1px solid var(--border);
   background: var(--bg-inset);
   border-radius: var(--radius-sm);

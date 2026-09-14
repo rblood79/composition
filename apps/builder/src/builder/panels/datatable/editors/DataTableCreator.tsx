@@ -382,25 +382,34 @@ export function DataTableCreator({
               "Display name. Bindings reference the id, so you can rename it later.",
             )}
           </p>
-          <RadioGroup
-            className="creator-methods"
-            aria-label={localize("startMethod", "How to start")}
-            value={method}
-            onChange={(value) => setMethod(value as CreatorMethod)}
-            orientation="horizontal"
-          >
-            {METHODS.map((entry) => (
-              <Radio
-                key={entry.id}
-                value={entry.id}
-                className="creator-method"
-                data-method={entry.id}
-              >
-                <entry.icon size={16} />
-                <span>{localize(entry.labelKey, entry.label)}</span>
-              </Radio>
-            ))}
-          </RadioGroup>
+          {/* legend 「Start from」 + 방법 격자 (panel-ui 19 — 대조 B12); 이름은 legend 가 준다 */}
+          <fieldset className="properties-aria creator-start-from">
+            <legend className="fieldset-legend">
+              {localize("startMethod", "How to start")}
+            </legend>
+            <RadioGroup
+              className="creator-methods"
+              aria-label={localize("startMethod", "How to start")}
+              value={method}
+              onChange={(value) => setMethod(value as CreatorMethod)}
+              orientation="horizontal"
+            >
+              {METHODS.map((entry) => {
+                const label = localize(entry.labelKey, entry.label);
+                return (
+                  <Radio
+                    key={entry.id}
+                    value={entry.id}
+                    className="creator-method"
+                    data-method={entry.id}
+                  >
+                    <entry.icon size={16} />
+                    <span title={label}>{label}</span>
+                  </Radio>
+                );
+              })}
+            </RadioGroup>
+          </fieldset>
         </Section>
 
         {method === "empty" && (

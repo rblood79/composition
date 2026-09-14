@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useStore } from "../../stores";
-import type { PropertyUnitPreset } from "../../components/property/propertyUnitPresets";
 import { SettingsPanel } from "./SettingsPanel";
 
 const {
@@ -31,40 +30,23 @@ vi.mock("../../components", async (importOriginal) => ({
   PropertyUnitInput: ({
     label,
     onChange,
-    presetAriaLabel,
-    presets = [],
+    units,
+    unitSuffix,
     value,
   }: {
     label: string;
     onChange: (value: string) => void;
-    presetAriaLabel: string;
-    presets?: readonly PropertyUnitPreset[];
+    units?: string[];
+    unitSuffix?: boolean;
     value: string;
   }) => (
-    <div>
+    <div data-units={units?.join(",")} data-unit-suffix={unitSuffix || undefined}>
       <input
         aria-label={label}
         type="text"
         value={value}
         onChange={(event) => onChange(event.currentTarget.value)}
       />
-      <select
-        aria-label={presetAriaLabel}
-        defaultValue=""
-        onChange={(event) => {
-          const preset = presets.find(
-            (candidate) => candidate.id === event.currentTarget.value,
-          );
-          if (preset) onChange(preset.value);
-        }}
-      >
-        <option value="">—</option>
-        {presets.map((preset) => (
-          <option key={preset.id} value={preset.id}>
-            {preset.label}
-          </option>
-        ))}
-      </select>
     </div>
   ),
   PropertySection: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -185,16 +167,20 @@ describe("SettingsPanel page layout synchronization", () => {
     expect(observedGaps).toEqual([120]);
   });
 
-  it("Page Gap preset 선택값을 저장한 뒤 Canvas page 위치를 다시 정렬한다", () => {
+  it("Page Gap 은 「80 PX」 단위 suffix 필드 (px 하나 · preset 없음) — px 붙은 commit 값을 숫자로 저장한다", () => {
     const observedGaps: number[] = [];
     alignPagesToScreenMock.mockImplementation(() => {
       observedGaps.push(useStore.getState().pageGap);
     });
     render(<SettingsPanel />);
 
-    fireEvent.change(screen.getByLabelText("settings.pageGapPreset"), {
-      target: { value: "sm" },
-    });
+    const input = screen.getByLabelText("settings.pageGap");
+    expect((input as HTMLInputElement).value).toBe("80px");
+    expect(input.parentElement?.getAttribute("data-units")).toBe("px");
+    expect(input.parentElement?.getAttribute("data-unit-suffix")).toBe("true");
+    expect(screen.queryByLabelText("settings.pageGapPreset")).toBeNull();
+
+    fireEvent.change(input, { target: { value: "40px" } });
 
     expect(useStore.getState().pageGap).toBe(40);
     expect(observedGaps).toEqual([40]);

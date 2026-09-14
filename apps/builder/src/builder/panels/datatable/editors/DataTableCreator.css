@@ -220,11 +220,14 @@
 /* 방법 6 = 28 셀 (아이콘 16 + 라벨 한 줄) — 종전 카드 70×70 (아이콘 위 · 라벨 아래).
    560 에서 3열 2행, 233 에서 2열 3행. seg 가 아닌 이유: 6 항목 · 아이콘 + 라벨이라
    seg 폭이 모자란다 (panel-ui 19, 2026-09-14). */
+.creator-start-from {
+  min-width: 0;
+}
+
 .creator-methods {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
   gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
 }
 
 .creator-method {
@@ -234,7 +237,8 @@
   box-sizing: border-box;
   block-size: var(--control-size);
   min-width: 0;
-  padding: 0 var(--spacing-sm);
+  /* 안쪽 여백 4 — 233 폭 두 열 (108) 에서 「Describe to AI」 가 들어간다 (8 이면 「Describe t…」) */
+  padding: 0 var(--spacing-xs);
   font-size: var(--text-xs);
   line-height: var(--text-xs--line-height);
   color: var(--fg-muted);

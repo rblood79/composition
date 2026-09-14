@@ -9,7 +9,7 @@
 
 import { memo, useCallback } from "react";
 import { Button } from "react-aria-components/Button";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { IconPreview } from "../../panels/icons/components/IconPreview";
 import { IconPickerPopover } from "../../panels/icons/IconPickerPopover";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -21,6 +21,8 @@ export interface PropertyIconPickerProps {
   value?: string;
   onChange: (iconName: string) => void;
   onClear?: () => void;
+  /** `suffix` — legend 없이 라벨을 상자 안 우측 10 mono (「None ICON ▾」, panel-ui 07 — 대조 B13) */
+  labelMode?: "legend" | "suffix";
 }
 
 export const PropertyIconPicker = memo(function PropertyIconPicker({
@@ -28,6 +30,7 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
   value,
   onChange,
   onClear,
+  labelMode = "legend",
 }: PropertyIconPickerProps) {
   const hasIcon = !!value;
   // 팝오버는 아이콘 선택 여부와 무관하게 **입력 폼 박스**와 같은 좌측·폭으로 떠야 한다.
@@ -45,8 +48,14 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
   }, [onClear, onChange]);
 
   return (
-    <fieldset className="properties-aria">
-      <legend className="fieldset-legend">{label}</legend>
+    <fieldset
+      className="properties-aria"
+      data-label-mode={labelMode}
+      aria-label={labelMode === "suffix" ? label : undefined}
+    >
+      {labelMode === "legend" && (
+        <legend className="fieldset-legend">{label}</legend>
+      )}
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
         <IconPickerPopover
           value={value || "circle"}
@@ -65,6 +74,18 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
             <span className="icon-picker-value">
               {hasIcon ? value : "None"}
             </span>
+            {labelMode === "suffix" && (
+              <>
+                <span className="property-field__suffix" aria-hidden="true">
+                  {label}
+                </span>
+                {!hasIcon && (
+                  <span aria-hidden="true" className="select-chevron">
+                    <ChevronDown size={iconProps.size} />
+                  </span>
+                )}
+              </>
+            )}
           </Button>
         </IconPickerPopover>
         {hasIcon && (

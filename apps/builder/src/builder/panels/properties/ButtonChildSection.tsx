@@ -1,4 +1,3 @@
-import { Type } from "lucide-react";
 import { memo, useCallback } from "react";
 import type { CanonicalNode } from "@composition/shared";
 import { PropertyIconPicker } from "../../components/property/PropertyIconPicker";
@@ -330,16 +329,18 @@ export const ButtonChildFields = memo(function ButtonChildFields({
 
   return (
     <>
+      {/* 「None ICON ▾」 · 「… TEXT」 — 라벨은 상자 안 suffix, 아이콘 prefix 없음 (panel-ui 07 — 대조 B13) */}
       <PropertyIconPicker
         label="Icon"
+        labelMode="suffix"
         value={currentIconName}
         onChange={handleSelectIcon}
         onClear={handleClearIcon}
       />
       {existingText ? (
         <PropertyInput
-          icon={Type}
           label="Text"
+          labelMode="suffix"
           value={textChildValue}
           onChange={handleTextChange}
         />
