@@ -89,6 +89,7 @@ import {
   parseTextDecoration,
   parseDecorationColor,
   buildSkiaEffects,
+  applyTextTransform,
 } from "../styleConversion/styleConverter";
 import {
   resolveBorderGeometry,
@@ -2187,6 +2188,25 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       if (style.verticalAlign) {
         child.text.verticalAlign =
           style.verticalAlign as typeof child.text.verticalAlign;
+      }
+
+      // 15. fontStyle — italic/oblique → CanvasKit slant (0 upright · 1 italic · 2 oblique).
+      //   레이아웃 측정 (`layout/engines/utils.ts` 텍스트 측정) 은 이미 읽는데 렌더는 안 실어
+      //   Preview 만 기울었다 (2026-09-14 compare).
+      if (style.fontStyle === "italic") {
+        child.text.fontStyle = 1;
+      } else if (style.fontStyle === "oblique") {
+        child.text.fontStyle = 2;
+      }
+
+      // 16. textTransform — 콘텐츠 변환. 레이아웃 측정과 같은 `applyTextTransform` 이라 폭이 맞는다.
+      //   잔존 spec text shape 는 `specShapeConverter` 가 shape.textTransform 으로 이미 변환하지만
+      //   catalog text shape 에는 그 필드가 없어 inline 이 렌더에 안 닿았다.
+      if (style.textTransform && style.textTransform !== "none") {
+        child.text.content = applyTextTransform(
+          child.text.content,
+          style.textTransform as string,
+        );
       }
 
       // 14. letterSpacing — ADR-205 Phase 1 (인라인) + Phase 5 (상속)

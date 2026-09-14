@@ -70,7 +70,9 @@ describe("ADR-219 — longhand 직접 판독은 helper 하나", () => {
           line.trimStart().startsWith("//")
         )
           return;
-        const m = line.match(READ_PATTERN);
+        // 문자열 리터럴 안 (i18n 키 "styles.appearance.borderTopWidth" 등) 은 판독이 아니다
+        const code = line.replace(/(["'`])(?:\\.|(?!\1).)*\1/g, '""');
+        const m = code.match(READ_PATTERN);
         if (m) offenders.push(`${rel}:${i + 1} → ${m[0]}`);
       });
     }

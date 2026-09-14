@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스 — 기울임 (font-style) · 대소문자 (text-transform) 가 Skia 텍스트에 안 실리던 결함] - 2026-09-14
+
+### Fixed
+
+- **Compare 모드에서 web 은 기울임·대문자가 적용되는데 canvas 는 그대로였다** (catalog 컴포넌트 텍스트 — Button·Text 등): 레이아웃 측정은 둘 다 읽어 폭은 맞았지만 Skia 렌더 노드에 `fontStyle` (slant) 과 변환된 콘텐츠를 싣는 곳이 없었다 — inline 텍스트 override 13 필드 (ADR-057) 에 `fontStyle` (italic 1 · oblique 2) 과 `textTransform` (측정과 같은 `applyTextTransform`) 을 추가. 잔존 spec 텍스트 shape 는 원래 `shape.textTransform` 으로 변환됐다. live (Button): 기울임 → Skia `fontStyle 1` · 픽셀 변화 668 → 대문자 → `content "BUTTON"` → 굵게 → `fontWeight 700`, 캔버스가 굵은 기울임 대문자로 그려진다.
+- ADR-219 정적 가드 (`borderGeometry.static.test.ts`) 가 i18n 키 문자열 (`"styles.appearance.borderTopWidth"`) 을 longhand 판독으로 오인해 P4 이후 실패하고 있었다 — 문자열 리터럴 제외.
+
 ## [Text 탭 — Style · Decoration · Case 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
 
 ### Changed
