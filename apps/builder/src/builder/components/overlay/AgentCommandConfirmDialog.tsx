@@ -81,7 +81,12 @@ export function AgentCommandConfirmDialogHost() {
         className="agent-confirm-modal"
         data-kind={proposalOps ? "data-proposal" : "command"}
       >
-        <Dialog aria-label="Agent command approval">
+        {/* className 이 없으면 생성 Dialog.css (overlay archetype: fixed · pad 30) 가 RAC 기본
+            `react-aria-Dialog` 에 걸린다 — ConfirmDialog 와 같은 결함 (2026-09-14) */}
+        <Dialog
+          className="agent-confirm-dialog"
+          aria-label="Agent command approval"
+        >
           <div className="agent-confirm-header">
             <ShieldAlert aria-hidden="true" size={18} />
             <Heading className="agent-confirm-title" slot="title">

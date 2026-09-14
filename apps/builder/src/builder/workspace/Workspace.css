@@ -187,7 +187,9 @@
   left: 0;
   top: 0;
   transform-origin: 0 0;
-  font-size: 9px;
+  /* 10 mono — 9px 은 램프 밖 (panel-ui 21). 스트립 20 안에서 top/left 3 은 그대로 */
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
   line-height: 1;
   color: var(--fg-muted);
   white-space: nowrap;
@@ -212,16 +214,23 @@
   pointer-events: none;
 }
 
+/* 상태 pill 28 (panel-ui 10 · 21) — 종전 8/16 padding · 14px · r8 (30) */
 .workspace-status-indicator {
   position: absolute;
   top: 16px;
   left: 50%;
   transform: translateX(-50%);
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  block-size: var(--control-size);
+  padding: 0 var(--spacing-sm);
   background-color: var(--notice-subtle);
   color: var(--fg-on-notice);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .workspace-zoom-controls {
@@ -420,15 +429,21 @@
   opacity: 1;
 }
 
+/* 라벨 pill 28 (panel-ui 21) — 종전 pad 4 12 (26) */
 .workspace-compare-label {
   position: absolute;
   top: 8px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
-  padding: 4px 12px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  block-size: var(--control-size);
+  padding: 0 var(--spacing-md);
   font-size: var(--text-xs);
   font-weight: 600;
+  line-height: 1;
   color: white;
   border-radius: var(--radius-md);
 }

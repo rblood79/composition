@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 크롬 — 인벤토리 잔여 5 (History 메뉴 · 바인딩 팝오버 · 에이전트 승인 다이얼로그 · 눈금자 · Compare 라벨) (panel-ui 21)] - 2026-09-14
+
+### Changed
+
+- **메뉴 항목 28 규격 적용처 추가** (`builder-menu-row.css`): History 패널 스냅샷 ⋯ 메뉴 (`.history-menu-item`, 종전 pad 8 → 34) · `{field}` 컬럼 피커 메뉴 (`.field-picker-menu`, 종전 height auto + pad 4/12). 두 파일은 색·hover·모서리만 남는다.
+- **목록 팝오버 항목 28**: `PropertySelect` · `PropertyUnitInput` · 데이터 바인딩 셀렉트의 ListBoxItem 은 생성 규칙 (pad 4/12 + 줄 18) 으로 **26** 이었다 — 05 아트보드 "26 → 28" 은 코드에 없었다 (실측). `min-block-size: --control-size` 하나로 전 팝오버 통일. 바인딩 옵션은 두 줄 (이름 14 + 설명 12, 46) → 한 줄 (이름 12 · 설명/타입 우측 10 mono caps, 말줄임).
+- **AgentCommandConfirmDialog**: ConfirmDialog 와 같은 13 규격 — 헤더 48 · 본문 12/18 · 푸터 44 · 버튼 28 · meta 10 mono · 경고 아이콘 `--notice` (하드코딩 #f59e0b 제거). RAC `Dialog` 에 `className` 이 없어 생성 Dialog.css overlay archetype (fixed · pad 30) 이 걸리던 결함도 ConfirmDialog 와 같이 수리. `DataChangeDiffView`: 헤더 28 · 항목 한 줄이면 28 (세부·표본 있으면 자람) · op/badge 태그 10 mono · 12/11/10px 리터럴 → 램프 토큰.
+- **RulerOverlay 라벨**: 9px → `--text-2xs` 10 mono (스트립 20 · top/left 3 그대로).
+- **캔버스 pill 28**: CompareMode 「CSS | Canvas」 라벨 (pad 4/12 → 26) 과 WorkspaceStatusIndicator (pad 8/16 · 14px · r8 → 30; 10 아트보드가 ✓ 로 표기했으나 코드에 없었다) 둘 다 `block-size: --control-size` · `--radius-md`.
+- live (`inv21-live.mjs`): History 메뉴 항목 190×28 · 아이콘 16 / 바인딩·fieldMap 팝오버 항목 258×28 (Auto 항목 26 → 28) / 에이전트 다이얼로그 (모듈 직접 요청 `data.propose` ops 3) 헤더 49 · 푸터 45 · 버튼 28 · diff 헤더 28 · 한 줄 항목 28 / 눈금자 라벨 fs 10 / Compare 라벨 48×28 · 65×28. 정적 가드 `builderMenuRow.static.test.ts`.
+
 ## [Navigator — 들여쓰기 안내선 (depth × 16 · 조상 사슬 강조) (panel-ui 07 · 2/2)] - 2026-09-14
 
 ### Changed

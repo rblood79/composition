@@ -27,34 +27,42 @@
   width: min(100%, 560px);
 }
 
+/* 13 다이얼로그 규격 (panel-ui 21, ConfirmDialog 와 같은 8 격자): 헤더 48 = 제목 행 32 + 8×2 ·
+   본문 12/18 · 푸터 44 = 버튼 28 + 8×2. 종전 16/18 padding · 15/13px 은 램프 밖이었다. */
+.agent-confirm-dialog {
+  outline: none;
+}
+
 .agent-confirm-header {
   align-items: center;
   border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
   display: flex;
-  gap: 10px;
-  padding: 16px 18px 14px;
+  gap: var(--spacing-sm);
+  min-height: 48px;
+  padding: var(--spacing-sm) var(--spacing-lg);
 }
 
 .agent-confirm-header svg {
-  color: #f59e0b;
+  color: var(--notice);
   flex: 0 0 auto;
 }
 
 .agent-confirm-title {
   color: var(--fg);
-  font-size: 15px;
+  font-size: var(--text-sm);
   font-weight: 600;
-  line-height: 20px;
+  line-height: var(--control-size-lg);
   margin: 0;
 }
 
 .agent-confirm-body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 13px;
-  line-height: 18px;
-  padding: 16px 18px;
+  gap: var(--spacing-sm);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-md);
 }
 
 .agent-confirm-body p {
@@ -63,13 +71,16 @@
 
 .agent-confirm-meta {
   color: var(--fg-muted);
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
 }
 
 .agent-confirm-actions {
   border-top: 1px solid var(--border);
+  box-sizing: border-box;
   display: flex;
-  gap: 8px;
+  gap: var(--spacing-sm);
   justify-content: flex-end;
-  padding: 12px 18px 14px;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-lg);
 }

@@ -18,7 +18,9 @@
   .header-menu-item,
   .context-menu-item,
   .zoom-menu-item,
-  .react-aria-Menu.property-row-menu .react-aria-MenuItem {
+  .history-menu-item,
+  .react-aria-Menu.property-row-menu .react-aria-MenuItem,
+  .react-aria-Menu.field-picker-menu .react-aria-MenuItem {
     box-sizing: border-box;
     display: flex;
     align-items: center;
@@ -29,11 +31,22 @@
     line-height: var(--text-xs--line-height);
   }
 
+  /* ── 목록 팝오버 항목 (28) — PropertySelect · PropertyUnitInput · 바인딩 셀렉트 ──
+   * 생성 ListBoxItem 은 padding 4/12 + 줄 18 = 26 (panel-ui 05 "26 → 28", 실측 2026-09-14).
+   * 항목은 column flex 라 세로 가운데는 justify-content. 두 줄 항목은 자란다. */
+  .property-select-popover .react-aria-ListBoxItem,
+  .property-unit-input-popover .react-aria-ListBoxItem {
+    box-sizing: border-box;
+    justify-content: center;
+    min-block-size: var(--control-size);
+  }
+
   /* 아이콘 슬롯 16 — 아이콘 없는 항목도 같은 폭 (라벨 시작선 정렬) */
   .header-menu-item > svg,
   .context-menu-item-icon,
   .context-menu-item > svg,
-  .zoom-menu-item > svg {
+  .zoom-menu-item > svg,
+  .history-menu-item > svg {
     flex: none;
     inline-size: 16px;
     block-size: 16px;

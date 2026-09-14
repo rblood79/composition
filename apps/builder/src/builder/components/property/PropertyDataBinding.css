@@ -78,26 +78,36 @@
   flex: 1;
 }
 
-.binding-name-select .react-aria-ListBoxItem {
+/* 옵션 = 한 줄 28 (panel-ui 21 — 05 단위 메뉴 · 글꼴 목록과 같은 ListBox 행): 이름 12 왼쪽,
+   설명/타입은 우측 10 mono caps. 종전 두 줄 (이름 14 + 설명 12) 은 항목이 46 이었다. */
+.binding-option {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-}
-
-/* 옵션 스타일 */
-.binding-option {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  min-width: 0;
 }
 
 .binding-option-label {
-  font-size: var(--text-sm);
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
   color: var(--fg);
 }
 
 .binding-option-desc {
-  font-size: var(--text-xs);
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 50%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--fg-muted);
 }
 
