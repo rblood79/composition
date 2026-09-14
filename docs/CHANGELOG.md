@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 Layout 탭 — 절 순서 · Size 5행 (Hug · Fill 이 단위 메뉴 안) · Gap 「8 PX」] - 2026-09-15
+
+### Changed
+
+- **절 순서 Layout → Size → Spacing → Position** (panel-ui 01 — 대조 B1; 종전 Size → Position → Layout → Spacing). Position 은 접힌 채 마지막 — 펼침 상태 · reset 범위 · absolute 자동 펼침은 그대로.
+- **Size 절 5행 × 28** (대조 B3) — 「fit W | auto H」 · 「MIN W | MIN H」 · 「MAX W | MAX H」 · 「Auto RATIO (열 2) · 잠금 28」 · 「Visible OVERFLOW (열 2)」. Ratio · Overflow 도 라벨이 필드 안 suffix (legend 행 18 제거), 절 높이 7행 → 5행. **Fixed · Fill · Hug 토글 행 (46) 을 걷고 W/H 단위 메뉴에 `fit-content` (Hug) · `fill` (Fill) 로** — 부모 문맥별 CSS (flexGrow · alignSelf stretch · 100%) 는 종전 `sizeModeResolver` 그대로, Fill 상태에서 숫자를 치면 Fixed 로 (fill 속성 제거). Block 부모의 H 는 Fill 을 싣지 않는다 (종전 비활성 사유). Fill 상태는 필드에 「fill」 로 보인다. body 는 종전처럼 단위만.
+- **Gap 「12 PX」** (대조 B4) — 아이콘 prefix · 토큰 preset ▾ (XS~XL) 대신 legend 「Gap」 + 단위 suffix + ▲▼ stepper. store 가 gap 을 px 숫자로 강제하므로 단위는 px 뿐 (토큰 값은 저장 즉시 px 로 풀리던 상태).
+- 빈 값 (placeholder 「auto」) 필드에는 stepper 를 그리지 않는다 — 「a… MAX W」 잘림 해소.
+
+### Fixed
+
+- **단위 메뉴에서 키워드 (fill · fit-content · auto · reset) 를 고른 뒤 다른 곳을 클릭하면 옛 값이 다시 commit 되던 결함** — RAC ComboBox 가 메뉴를 닫으며 input 에 focus 를 돌려주는데 그 상태에서 value 동기화가 skip 돼 blur 가 이전 표시값을 commit 했다 (live: W 「fit」 → fill 선택 → 절 접기 클릭 → `fit-content` 로 되돌아감). 키워드 선택 시 표시값을 즉시 바꾸고 다음 동기화를 강제한다 (preset 경로와 같은 방식).
+
 ## [색 피커 — Document · Theme 팔레트 행] - 2026-09-15
 
 ### Added

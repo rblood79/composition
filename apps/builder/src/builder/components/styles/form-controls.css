@@ -442,7 +442,8 @@
        (panel-ui 01, 2026-09-14). `.property-field__suffix` 는 PropertyFieldset (Input ·
        CustomId) · PropertySelect 의 같은 조각 (panel-ui 07). */
     .property-field__suffix,
-    .property-unit-input[data-label-mode="suffix"] .property-unit-input__suffix {
+    .property-unit-input[data-label-mode="suffix"] .property-unit-input__suffix,
+    .property-unit-input[data-label-mode="unit"] .property-unit-input__suffix {
       flex: none;
       font-family: var(--font-mono);
       font-size: var(--text-2xs);
@@ -453,7 +454,8 @@
       user-select: none;
     }
 
-    .properties-aria[data-label-mode="suffix"] {
+    .properties-aria[data-label-mode="suffix"],
+    .properties-aria[data-label-mode="unit"] {
       .react-aria-Group {
         padding-inline-end: var(--spacing-xs);
       }
@@ -508,6 +510,9 @@
 
     .property-unit-input[data-label-mode="suffix"]
       .react-aria-UnitComboBox
+      .react-aria-Input,
+    .property-unit-input[data-label-mode="unit"]
+      .react-aria-UnitComboBox
       .react-aria-Input {
       font-variant-numeric: tabular-nums;
     }
@@ -515,7 +520,11 @@
     /* suffix 가 곧 단위 메뉴 트리거 (「8 PX」 의 PX 클릭, panel-ui 05 #3) — 위 UnitComboBox
        .react-aria-Button 20 상자 규칙을 글자 폭으로 되돌리고 pointer 를 살린다. ▾ 상자 제거로
        값 폭 +20 (종전 「au… LEFT」 잘림). */
+    /* legend 모드 `data-label-mode="unit"` (unitSuffix — 「8 PX」 의 PX 가 단위 메뉴) 도 같은 조각 */
     .property-unit-input[data-label-mode="suffix"]
+      .react-aria-UnitComboBox
+      .react-aria-Button.property-unit-input__suffix--trigger,
+    .property-unit-input[data-label-mode="unit"]
       .react-aria-UnitComboBox
       .react-aria-Button.property-unit-input__suffix--trigger {
       width: auto;

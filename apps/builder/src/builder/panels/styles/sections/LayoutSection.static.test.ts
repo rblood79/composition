@@ -27,21 +27,18 @@ describe("SpacingSection spacing input commit contract", () => {
     expect(source).toContain("if (justSavedViaEnterRef.current)");
   });
 
-  it("uses the shared spacing token preset list for the Gap input", async () => {
+  it("renders the Gap input as a unit-suffix field (px only, no token presets, no icon)", async () => {
+    // panel-ui 01 「8 PX」 — 대조 B4: 토큰 preset ▾ · 아이콘 prefix 대신 단위 suffix + stepper
     const source = await readFile(
       resolve(__dirname, "LayoutSection.tsx"),
       "utf-8",
     );
-    const presetsSource = await readFile(
-      resolve(__dirname, "../../../components/property/propertyUnitPresets.ts"),
-      "utf-8",
-    );
 
-    expect(source).toContain(
-      'import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets"',
-    );
-    expect(source.match(/presets=\{SPACING_PRESET_OPTIONS\}/g)).toHaveLength(1);
-    expect(presetsSource).toContain('value: "var(--spacing-xs)"');
-    expect(presetsSource).toContain('value: "var(--spacing-xl)"');
+    expect(source).not.toContain("SPACING_PRESET_OPTIONS");
+    const gap = source.slice(source.indexOf('label="Gap"'));
+    const field = gap.slice(0, gap.indexOf("/>"));
+    expect(field).toContain('units={["px"]}');
+    expect(field).toContain("unitSuffix");
+    expect(field).not.toContain("icon=");
   });
 });

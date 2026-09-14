@@ -523,4 +523,70 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     expect(screen.queryByRole("button", { name: "Increase Top" })).toBeNull();
     expect(screen.getByRole("button", { name: "Top Unit" })).toBeTruthy();
   });
+  it("메뉴에서 키워드를 고른 뒤 input 이 focus 를 돌려받아도 blur 가 옛 값을 다시 commit 하지 않는다", async () => {
+    // 2026-09-15 live: W 「fit」 상태에서 fill 선택 → RAC 가 input 에 focus 복귀 → 동기화 skip →
+    //   blur 가 「fit」 (fit-content) 를 commit 해 fill 을 덮었다.
+    const onChange = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    function Host() {
+      const [value, setValue] = useState("fit-content");
+      return (
+        <PropertyUnitInput
+          label="Width"
+          labelMode="suffix"
+          suffixLabel="W"
+          value={value}
+          units={["reset", "px", "%", "fit-content", "fill"]}
+          onChange={(next) => {
+            onChange(next);
+            setValue(next);
+          }}
+        />
+      );
+    }
+    render(<Host />);
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "Width Unit" }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole("option", { name: "fill" }));
+    });
+    expect(onChange).toHaveBeenLastCalledWith("fill");
+    await waitFor(() => expect(input.placeholder === "fill" || input.value === "fill").toBe(true));
+    fireEvent.blur(input);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it("legend 모드 unitSuffix — 트리거 글자가 현재 단위 (「8 PX」) 이고 stepper 가 붙는다", () => {
+    const onChange = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Gap"
+        value="8px"
+        units={["px", "reset"]}
+        unitSuffix
+        allowKeywords={false}
+        onChange={onChange}
+      />,
+    );
+    expect(screen.getByText("Gap").tagName).toBe("LEGEND");
+    const trigger = screen.getByRole("button", { name: "Gap Unit" });
+    expect(trigger.textContent).toBe("px");
+    fireEvent.click(screen.getByRole("button", { name: "Increase Gap" }));
+    expect(onChange).toHaveBeenLastCalledWith("9px");
+  });
+
+  it("\"fill\" 은 units 에 실린 필드에서만 typed 입력을 받는다", () => {
+    const onChange = vi.fn();
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput label="Left" labelMode="suffix" value="12px" units={["px", "%"]} onChange={onChange} />,
+    );
+    const input = screen.getByRole("combobox") as HTMLInputElement;
+    fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "fill" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onChange).not.toHaveBeenCalledWith("fill");
+  });
 });

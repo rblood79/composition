@@ -73,13 +73,56 @@ describe("TransformSection sizing controls", () => {
     });
   });
 
-  it("names the intrinsic sizing mode Hug and removes Self Align from Transform", () => {
+  it("folds Hug and Fill into the W/H unit menu (no size-mode toggle row) and commits fill via the size-mode resolver", async () => {
+    const updateSelectedStyles = vi.fn();
+    useStore.setState({ updateSelectedStyles } as never);
     render(<TransformSection />);
 
-    const hugControls = screen.getAllByRole("radio", { name: "Hug" });
-    expect(hugControls).toHaveLength(2);
-    expect(screen.queryByRole("radio", { name: "Fit" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Hug" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Fill" })).toBeNull();
     expect(screen.queryByText("Self Align")).toBeNull();
+
+    const widthGroup = screen.getByRole("group", { name: "Width" });
+    within(widthGroup)
+      .getByRole("button", { name: /Unit$/ })
+      .click();
+    const listbox = await screen.findByRole("listbox");
+    within(listbox).getByRole("option", { name: "fit-content" });
+    const fillOption = within(listbox).getByRole("option", { name: "fill" });
+    await act(async () => {
+      fillOption.click();
+    });
+
+    // flex row 부모 → 주축 Fill = flexGrow 1 · flexBasis 0% · width 제거 (sizeModeResolver)
+    expect(updateSelectedStyles).toHaveBeenCalledWith({
+      flexGrow: "1",
+      flexShrink: "1",
+      flexBasis: "0%",
+      width: "",
+    });
+  });
+
+  it("shows fill in the W field while the element fills the flex main axis", () => {
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: { style: { flexGrow: "1", flexBasis: "0%", height: "100px" } },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+    render(<TransformSection />);
+    expect(
+      within(screen.getByRole("group", { name: "Width" }))
+        .getByRole("combobox")
+        .getAttribute("placeholder"),
+    ).toBe("fill");
   });
 
   it("offers only axis-relevant viewport units by default", async () => {
@@ -96,9 +139,6 @@ describe("TransformSection sizing controls", () => {
     expect(
       within(widthListbox).queryByRole("option", { name: "vh" }),
     ).toBeNull();
-    expect(
-      within(widthListbox).queryByRole("option", { name: "fit-content" }),
-    ).toBeNull();
 
     cleanup();
     render(<TransformSection />);
@@ -113,9 +153,6 @@ describe("TransformSection sizing controls", () => {
     ).not.toBeNull();
     expect(
       within(heightListbox).queryByRole("option", { name: "vw" }),
-    ).toBeNull();
-    expect(
-      within(heightListbox).queryByRole("option", { name: "fit-content" }),
     ).toBeNull();
   });
 

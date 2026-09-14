@@ -2,7 +2,11 @@
  * Barrel export for StylesPanel sections
  */
 
-export { TransformSection } from "./TransformSection";
+export {
+  TransformSection,
+  SizeSection,
+  PositionSection,
+} from "./TransformSection";
 export { LayoutSection } from "./LayoutSection";
 export { SpacingSection } from "./SpacingSection";
 export { FillSection } from "./FillSection";

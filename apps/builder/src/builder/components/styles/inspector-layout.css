@@ -294,17 +294,18 @@
         align-self: end;
       }
 
-      /* Constraints 블록: 조건부 렌더링 — 숨겨진 상태에서 gap 차지 방지 */
+      /* Constraints 블록 (panel-ui 01 — 대조 B3): 「MIN W | MIN H」 「MAX W | MAX H」 · Ratio 열 2 +
+         lock 28 · Overflow 열 2 — 라벨은 전부 필드 안 suffix, legend 행 없음 (5행 × 28) */
       .transform-constraints {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
         grid-template-areas:
-          "min-width min-height actions-constraint-w"
-          "max-width max-height actions-constraint-h"
-          "aspect-ratio aspect-ratio aspect-ratio"
-          "overflow overflow .";
+          "min-width min-height actions-constraint-min"
+          "max-width max-height actions-constraint-max"
+          "aspect-ratio aspect-ratio actions-ratio"
+          "overflow overflow actions-overflow";
 
         > * {
           min-width: 0;
@@ -314,43 +315,40 @@
           grid-area: min-width;
         }
 
-        .max-width {
-          grid-area: max-width;
-        }
-
-        .actions-constraint-w {
-          grid-area: actions-constraint-w;
-        }
-
         .min-height {
           grid-area: min-height;
+        }
+
+        .actions-constraint-min {
+          grid-area: actions-constraint-min;
+        }
+
+        .max-width {
+          grid-area: max-width;
         }
 
         .max-height {
           grid-area: max-height;
         }
 
-        .actions-constraint-h {
-          grid-area: actions-constraint-h;
+        .actions-constraint-max {
+          grid-area: actions-constraint-max;
         }
 
-        .aspect-ratio-field {
+        .aspect-ratio-select {
           grid-area: aspect-ratio;
-          display: flex;
-          align-items: end;
-          gap: var(--spacing-sm);
-
-          .aspect-ratio-select {
-            flex: 1;
-          }
         }
 
-        .aspect-ratio-field > .swatch-icon-button {
-          flex-shrink: 0;
+        .actions-ratio {
+          grid-area: actions-ratio;
         }
 
         .overflow {
           grid-area: overflow;
+        }
+
+        .actions-overflow {
+          grid-area: actions-overflow;
         }
       }
     }

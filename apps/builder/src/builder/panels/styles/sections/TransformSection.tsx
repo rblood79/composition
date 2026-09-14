@@ -1,7 +1,7 @@
 /**
  * TransformSection - Transform 스타일 편집 섹션
  *
- * Size (ADR-026 Size Mode), Position 편집.
+ * Size (ADR-026 Size Mode — Hug · Fill 은 W/H 단위 메뉴 안, panel-ui 01 「fit W」), Position 편집.
  * Alignment는 Layout 섹션의 3x3 Flex alignment로 통합됨.
  */
 
@@ -13,16 +13,11 @@ import {
   useRef,
   useSyncExternalStore,
 } from "react";
-import type { Key } from "react-aria-components/Collection";
 import {
   PropertySection,
   PropertyUnitInput,
   PropertySelect,
 } from "../../../components";
-import {
-  ToggleButton,
-  ToggleButtonGroup,
-} from "@composition/shared/components";
 import { type BreakpointName } from "@composition/shared";
 import { parsePadding4Way } from "@composition/specs";
 import { resolveBorderGeometry } from "../../../workspace/canvas/styleConversion/borderGeometry";
@@ -31,7 +26,7 @@ import {
   SwatchIconToggleButton,
 } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import { Minus, MoveHorizontal, Shrink, Lock, Unlock } from "lucide-react";
+import { Lock, Unlock } from "lucide-react";
 import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
@@ -59,8 +54,8 @@ import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import {
   resolveSizeMode,
   sizeModeToStyleUpdates,
+  type SizeMode,
 } from "../../../stores/utils/sizeModeResolver";
-import type { SizeMode } from "../../../stores/utils/sizeModeResolver";
 import {
   buildAspectRatioStyleUpdates,
   hasEnabledAspectRatio,
@@ -79,9 +74,6 @@ import {
 import { OVERFLOW_OPTIONS } from "../constants/styleOptions";
 
 const POSITION_SECTION_ID = "position";
-
-const ICON_SIZE = 14;
-const ICON_STROKE = 1.5;
 
 function resolveAbsoluteContainingBlockBounds(
   parent: CanvasLayoutNode,
@@ -124,74 +116,6 @@ const ASPECT_RATIO_OPTIONS = [
   { value: "9 / 16", label: "9:16 Portrait" },
   { value: "3 / 4", label: "3:4 Portrait" },
 ];
-
-/**
- * Size Mode 세그먼트 컨트롤 (ADR-026)
- * Fixed / Fill / Hug 3버튼 토글 (내부 mode 값은 하위호환을 위해 "fit" 유지)
- * Phase 4: fillDisabled prop으로 Fill 버튼 비활성화 + 사유를 accessible label에 노출
- */
-const SizeModeToggle = memo(function SizeModeToggle({
-  axis,
-  mode,
-  onChange,
-  fillDisabled,
-  fillDisabledReason,
-}: {
-  axis: "width" | "height";
-  mode: SizeMode;
-  onChange: (mode: SizeMode) => void;
-  fillDisabled?: boolean;
-  fillDisabledReason?: string;
-}) {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
-  const handleSelectionChange = useCallback(
-    (keys: Set<Key>) => {
-      const selected = Array.from(keys)[0] as SizeMode | undefined;
-      if (selected) onChange(selected);
-    },
-    [onChange],
-  );
-
-  return (
-    <ToggleButtonGroup
-      aria-label={localize(
-        axis === "width" ? "Width size mode" : "Height size mode",
-      )}
-      size="sm"
-      indicator
-      selectionMode="single"
-      disallowEmptySelection
-      selectedKeys={[mode]}
-      onSelectionChange={handleSelectionChange}
-    >
-      <ToggleButton id="fixed" aria-label={localize("Fixed")}>
-        <Minus size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-      </ToggleButton>
-      <ToggleButton
-        id="fill"
-        aria-label={
-          fillDisabledReason
-            ? `${localize("Fill")} (${fillDisabledReason})`
-            : localize("Fill")
-        }
-        isDisabled={fillDisabled}
-      >
-        <MoveHorizontal
-          size={ICON_SIZE}
-          strokeWidth={ICON_STROKE}
-          style={axis === "height" ? { transform: "rotate(90deg)" } : undefined}
-        />
-      </ToggleButton>
-      <ToggleButton id="fit" aria-label={localize("Hug")}>
-        <Shrink size={ICON_SIZE} strokeWidth={ICON_STROKE} />
-      </ToggleButton>
-    </ToggleButtonGroup>
-  );
-});
 
 /**
  * 페이지 X/Y row (ADR-177 적응형 통합) — 드래그 중 실시간 표시.
@@ -291,8 +215,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
   part: TransformSectionPart;
 }) {
   const i18n = useOptionalI18n();
-  /** 패널 자체 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const t = (key: string) => (i18n ? i18n.t(key) : key);
   const localize = (label: string) =>
     i18n
       ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
@@ -407,14 +329,49 @@ const TransformSectionContent = memo(function TransformSectionContent({
     ],
   );
 
-  const handleWidthModeChange = useCallback(
-    (mode: SizeMode) => handleSizeModeChange("width", mode),
-    [handleSizeModeChange],
-  );
-
-  const handleHeightModeChange = useCallback(
-    (mode: SizeMode) => handleSizeModeChange("height", mode),
-    [handleSizeModeChange],
+  // W/H 필드 commit — 단위 메뉴의 "fill" · "fit-content" 는 Size Mode 명령 (flexGrow ·
+  //   alignSelf 등 부모 문맥별 CSS 를 sizeModeResolver 가 정한다). Fill 상태에서 숫자를
+  //   치면 Fixed 로 — fill 속성을 같이 지운다 (종전 Fixed 토글과 같은 경로).
+  const commitAxisValue = useCallback(
+    (axis: "width" | "height", value: string) => {
+      const mode = axis === "width" ? widthMode : heightMode;
+      if (value === "fill") {
+        handleSizeModeChange(axis, "fill");
+        return;
+      }
+      if (value === "fit-content") {
+        handleSizeModeChange(axis, "fit");
+        return;
+      }
+      if (mode === "fill" && value !== "") {
+        updateStylesImmediate(
+          sizeModeToStyleUpdates(
+            resolveSizeMode(
+              "fixed",
+              axis,
+              parentDisplay,
+              parentFlexDirection,
+              value,
+              value,
+            ),
+          ),
+        );
+        return;
+      }
+      if (!commitLayoutPresentation(axis, value)) {
+        updateStyleImmediate(axis, value);
+      }
+    },
+    [
+      widthMode,
+      heightMode,
+      handleSizeModeChange,
+      updateStylesImmediate,
+      parentDisplay,
+      parentFlexDirection,
+      commitLayoutPresentation,
+      updateStyleImmediate,
+    ],
   );
 
   const handleAspectRatioLock = useCallback(() => {
@@ -504,28 +461,29 @@ const TransformSectionContent = memo(function TransformSectionContent({
   if (!styleValues) return null;
 
   const isAbsolutePositioned = styleValues.position === "absolute";
+  // Fill 모드 (flexGrow · alignSelf stretch) 는 width/height 값이 비어 있다 — 필드에 "fill" 로
   const displayWidth =
     styleValues.isBody && styleValues.width === "auto"
       ? String(canvasSize.width)
-      : styleValues.width;
+      : !styleValues.isBody && widthMode === "fill"
+        ? "fill"
+        : styleValues.width;
   const displayHeight =
     styleValues.isBody && styleValues.height === "auto"
       ? String(canvasSize.height)
-      : styleValues.height;
+      : !styleValues.isBody && heightMode === "fill"
+        ? "fill"
+        : styleValues.height;
 
-  // Body 요소에서는 Size Mode 비표시
-  const showSizeMode = !styleValues.isBody;
-
-  // ADR-026 Phase 4: Fill 비활성화 힌트
-  // Block 부모: Height Fill 불가 (Block은 높이 채우기 미지원)
+  // ADR-026 Phase 4: Block 부모는 Height Fill 불가 (높이 채우기 미지원) — 단위 메뉴에서 뺀다
   const isBlockParent =
     parentDisplay === "block" || parentDisplay === "inline-block";
-  const heightFillDisabled = isBlockParent;
-  const heightFillReason = isBlockParent
-    ? t("propertiesPanel.heightFillBlockParent")
-    : undefined;
-  // Width Fill은 모든 부모에서 가능 (block: 100%, flex: flex-grow, grid: stretch)
-  const widthFillDisabled = false;
+  const sizeModeUnits = (axis: "width" | "height") =>
+    styleValues.isBody
+      ? []
+      : axis === "height" && isBlockParent
+        ? ["fit-content"]
+        : ["fit-content", "fill"];
 
   if (part === "position") {
     return pagePositionPageId ? (
@@ -579,33 +537,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
     );
   }
 
-  // Size — 라벨은 필드 안 suffix (W · H · MIN · MAX — 축은 열이 말한다), 행 28. 제약(min/max/ratio)은 항상
-  //   보인다 (종전 토글 뒤에 숨김). Overflow 는 Appearance 에서 여기로 (크기의 일부).
+  // Size — 5행 (panel-ui 01): 「fit W | auto H」 · 「MIN W | MIN H」 · 「MAX W | MAX H」 ·
+  //   「Auto RATIO (열 2) · lock 28」 · 「Visible OVERFLOW (열 2)」. 라벨은 전부 필드 안 suffix,
+  //   Hug · Fill 은 W/H 단위 메뉴 (fit-content · fill). 제약은 항상 보인다.
   return (
     <>
-      {showSizeMode && (
-        <div className="transform-row">
-          <fieldset className="properties-aria size-mode-width">
-            <legend className="fieldset-legend">{localize("W Sizing")}</legend>
-            <SizeModeToggle
-              axis="width"
-              mode={widthMode}
-              onChange={handleWidthModeChange}
-              fillDisabled={widthFillDisabled}
-            />
-          </fieldset>
-          <fieldset className="properties-aria size-mode-height">
-            <legend className="fieldset-legend">{localize("H Sizing")}</legend>
-            <SizeModeToggle
-              axis="height"
-              mode={heightMode}
-              onChange={handleHeightModeChange}
-              fillDisabled={heightFillDisabled}
-              fillDisabledReason={heightFillReason}
-            />
-          </fieldset>
-        </div>
-      )}
       <div className="transform-row">
         <PropertyUnitInput
           label="Width"
@@ -613,11 +549,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
           suffixLabel="W"
           className="width"
           value={displayWidth}
-          units={["reset", "px", "%", "vw"]}
-          onChange={(value) =>
-            commitLayoutPresentation("width", value) ||
-            updateStyleImmediate("width", value)
-          }
+          units={["reset", "px", "%", "vw", ...sizeModeUnits("width")]}
+          onChange={(value) => commitAxisValue("width", value)}
           onDrag={(value) =>
             previewLayoutPresentation("width", value) ||
             updateStylePreview("width", value)
@@ -631,11 +564,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
           suffixLabel="H"
           className="height"
           value={displayHeight}
-          units={["reset", "px", "%", "vh"]}
-          onChange={(value) =>
-            commitLayoutPresentation("height", value) ||
-            updateStyleImmediate("height", value)
-          }
+          units={["reset", "px", "%", "vh", ...sizeModeUnits("height")]}
+          onChange={(value) => commitAxisValue("height", value)}
           onDrag={(value) =>
             previewLayoutPresentation("height", value) ||
             updateStylePreview("height", value)
@@ -651,7 +581,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
           <PropertyUnitInput
             label="Min W"
             labelMode="suffix"
-            suffixLabel="MIN"
+            suffixLabel="MIN W"
             placeholder="auto"
             className="min-width"
             value={styleValues.minWidth}
@@ -663,24 +593,9 @@ const TransformSectionContent = memo(function TransformSectionContent({
             max={9999}
           />
           <PropertyUnitInput
-            label="Max W"
-            labelMode="suffix"
-            suffixLabel="MAX"
-            placeholder="auto"
-            className="max-width"
-            value={styleValues.maxWidth}
-            units={["reset", "px", "%", "vw"]}
-            preserveEmptyValueOnUnitChange
-            onChange={(value) => updateStyleImmediate("maxWidth", value)}
-            onDrag={(value) => updateStylePreview("maxWidth", value)}
-            min={0}
-            max={9999}
-          />
-          <div className="fieldset-actions actions-constraint-w" />
-          <PropertyUnitInput
             label="Min H"
             labelMode="suffix"
-            suffixLabel="MIN"
+            suffixLabel="MIN H"
             placeholder="auto"
             className="min-height"
             value={styleValues.minHeight}
@@ -691,10 +606,25 @@ const TransformSectionContent = memo(function TransformSectionContent({
             min={0}
             max={9999}
           />
+          <div className="fieldset-actions actions-constraint-min" />
+          <PropertyUnitInput
+            label="Max W"
+            labelMode="suffix"
+            suffixLabel="MAX W"
+            placeholder="auto"
+            className="max-width"
+            value={styleValues.maxWidth}
+            units={["reset", "px", "%", "vw"]}
+            preserveEmptyValueOnUnitChange
+            onChange={(value) => updateStyleImmediate("maxWidth", value)}
+            onDrag={(value) => updateStylePreview("maxWidth", value)}
+            min={0}
+            max={9999}
+          />
           <PropertyUnitInput
             label="Max H"
             labelMode="suffix"
-            suffixLabel="MAX"
+            suffixLabel="MAX H"
             placeholder="auto"
             className="max-height"
             value={styleValues.maxHeight}
@@ -705,22 +635,23 @@ const TransformSectionContent = memo(function TransformSectionContent({
             min={0}
             max={9999}
           />
-          <div className="fieldset-actions actions-constraint-h" />
-          <div className="aspect-ratio-field">
-            <PropertySelect
-              label="Ratio"
-              className="aspect-ratio-select"
-              value={styleValues.aspectRatio || ""}
-              options={ASPECT_RATIO_OPTIONS}
-              onChange={(value) =>
-                updateStylesImmediate(
-                  buildAspectRatioStyleUpdates(value, {
-                    width: styleValues.width,
-                    height: styleValues.height,
-                  }),
-                )
-              }
-            />
+          <div className="fieldset-actions actions-constraint-max" />
+          <PropertySelect
+            label="Ratio"
+            labelMode="suffix"
+            className="aspect-ratio-select"
+            value={styleValues.aspectRatio || ""}
+            options={ASPECT_RATIO_OPTIONS}
+            onChange={(value) =>
+              updateStylesImmediate(
+                buildAspectRatioStyleUpdates(value, {
+                  width: styleValues.width,
+                  height: styleValues.height,
+                }),
+              )
+            }
+          />
+          <div className="fieldset-actions actions-ratio">
             <SwatchIconButton
               aria-label={localize("Lock aspect ratio")}
               onPress={handleAspectRatioLock}
@@ -742,11 +673,13 @@ const TransformSectionContent = memo(function TransformSectionContent({
           </div>
           <PropertySelect
             label="Overflow"
+            labelMode="suffix"
             className="overflow"
             value={styleValues.overflow}
             options={OVERFLOW_OPTIONS}
             onChange={(value) => updateStyleImmediate("overflow", value)}
           />
+          <div className="fieldset-actions actions-overflow" />
         </div>
       )}
     </>
@@ -754,16 +687,31 @@ const TransformSectionContent = memo(function TransformSectionContent({
 });
 
 /**
- * TransformSection - 외부 래퍼: Size 절 + Position 절 (panel-ui 01, 2026-09-14).
+ * Size 절 · Position 절 (panel-ui 01, 2026-09-14) — 탭 안 순서는 Layout → Size → Spacing →
+ * Position 이라 (panel-ui 01 · 대조 B1) 두 절을 따로 export 한다. TransformSection 은 둘을
+ * 이어 그리는 호환 래퍼.
  *
  * 절 id "transform" 은 collapse persist 키라 그대로 (제목만 "Size"). Position 은 접힌
  * 채로 시작하고 position 이 absolute 가 되면 펼친다 — static 요소에서 Left/Top 은
  * 비활성이라 펼칠 이유가 없다. reset 범위는 SIZE_PROPS / POSITION_PROPS 로 나눈다
  * (합집합 = TRANSFORM_PROPS, responsiveEligible 게이트와 단일 소스).
  */
-export const TransformSection = memo(function TransformSection() {
+export const SizeSection = memo(function SizeSection() {
   const resetStyles = useResetStyles();
   const hasSizeDirty = useHasDirtyStyles(SIZE_PROPS);
+  return (
+    <PropertySection
+      id="transform"
+      title="Size"
+      onReset={hasSizeDirty ? () => resetStyles(SIZE_PROPS) : undefined}
+    >
+      <TransformSectionContent part="size" />
+    </PropertySection>
+  );
+});
+
+export const PositionSection = memo(function PositionSection() {
+  const resetStyles = useResetStyles();
   const hasPositionDirty = useHasDirtyStyles(POSITION_PROPS);
   const selectedId = useStore((s) => s.selectedElementId);
   const bundle = useTransformValues(selectedId);
@@ -783,23 +731,23 @@ export const TransformSection = memo(function TransformSection() {
   }, [isAbsolute, positionCollapsed, expandSections]);
 
   return (
+    <PropertySection
+      id={POSITION_SECTION_ID}
+      title="Position"
+      onReset={
+        hasPositionDirty ? () => resetStyles(POSITION_PROPS) : undefined
+      }
+    >
+      <TransformSectionContent part="position" />
+    </PropertySection>
+  );
+});
+
+export const TransformSection = memo(function TransformSection() {
+  return (
     <>
-      <PropertySection
-        id="transform"
-        title="Size"
-        onReset={hasSizeDirty ? () => resetStyles(SIZE_PROPS) : undefined}
-      >
-        <TransformSectionContent part="size" />
-      </PropertySection>
-      <PropertySection
-        id={POSITION_SECTION_ID}
-        title="Position"
-        onReset={
-          hasPositionDirty ? () => resetStyles(POSITION_PROPS) : undefined
-        }
-      >
-        <TransformSectionContent part="position" />
-      </PropertySection>
+      <SizeSection />
+      <PositionSection />
     </>
   );
 });

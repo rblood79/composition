@@ -33,7 +33,8 @@ import {
   useSelectedSubpartStyleOwnerType,
 } from "../delegatedSubpart";
 import {
-  TransformSection,
+  SizeSection,
+  PositionSection,
   LayoutSection,
   SpacingSection,
   FillSection,
@@ -77,12 +78,14 @@ const ModifiedSectionsWrapper = memo(function ModifiedSectionsWrapper() {
   return <ModifiedStylesSection selectedElement={selectedElement} />;
 });
 
+// 절 순서 Layout → Size → Spacing → Position (panel-ui 01 — 대조 B1): Position 은 접힌 채 마지막
 const LayoutGroupSections = memo(function LayoutGroupSections() {
   return (
     <>
-      <TransformSection />
       <LayoutSection />
+      <SizeSection />
       <SpacingSection />
+      <PositionSection />
     </>
   );
 });

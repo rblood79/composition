@@ -53,6 +53,11 @@ interface PropertyUnitInputProps {
   labelMode?: "legend" | "suffix";
   /** suffix 모드의 표시 글자 (기본 label). 접근 이름은 언제나 label — "Width" 를 "W" 로 보일 때 */
   suffixLabel?: string;
+  /**
+   * legend 모드에서 ▾ 상자 대신 현재 단위를 suffix 트리거로 (「8 PX」 — panel-ui 01 Gap ·
+   * 20 Settings). preset 이 있으면 무시 (preset 은 ▾ 메뉴 그대로).
+   */
+  unitSuffix?: boolean;
 }
 
 const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -66,7 +71,14 @@ const KEYWORDS = [
   "fit-content",
   "min-content",
   "max-content", // CSS intrinsic sizing
+  "fill",
 ];
+/**
+ * `units` 에 실렸을 때만 typed 입력을 받는 키워드 — "fill" 은 CSS 값이 아니라 Size 절의
+ * Fill 모드 명령 (panel-ui 01 「fit W」: Hug · Fill 이 단위 메뉴 안에 산다). 다른 필드에
+ * "fill" 을 쳐도 commit 되지 않는다.
+ */
+const UNIT_GATED_KEYWORDS = ["fill"];
 
 /** input 표시용 축약 label (드롭다운 목록은 원본 유지) */
 const INPUT_DISPLAY_LABELS: Record<string, string> = {
@@ -243,6 +255,7 @@ export const PropertyUnitInput = memo(
 
     labelMode = "legend",
     suffixLabel,
+    unitSuffix = false,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -267,6 +280,9 @@ export const PropertyUnitInput = memo(
     const [draftUnit, setDraftUnit] = useState<string | null>(null);
     const unit = draftUnit ?? resolvedUnit;
     const hasPresets = Boolean(presets?.length);
+    const isTypedKeyword = (keyword: string) =>
+      KEYWORDS.includes(keyword) &&
+      (!UNIT_GATED_KEYWORDS.includes(keyword) || units.includes(keyword));
     const hasUnitPresets = presetsUseCssUnits(presets);
     const inputUnit = hasPresets && hasUnitPresets ? "px" : unit;
     const isKeyword = parsed.numericValue === null;
@@ -397,7 +413,7 @@ export const PropertyUnitInput = memo(
         return;
       }
 
-      if (allowKeywords && KEYWORDS.includes(resolved)) {
+      if (allowKeywords && isTypedKeyword(resolved)) {
         const keyword = resolved;
         // "reset" 선택 시 inline style 제거 (빈 문자열 전달)
         const newValue = keyword === "reset" ? "" : keyword;
@@ -461,6 +477,18 @@ export const PropertyUnitInput = memo(
       if (KEYWORDS.includes(selectedUnit)) {
         // "reset" 선택 시 inline style 제거 (빈 문자열 전달)
         const newValue = selectedUnit === "reset" ? "" : selectedUnit;
+        // 메뉴를 닫으면 RAC ComboBox 가 input 에 focus 를 돌려준다 — 그 상태로 value prop 동기화가
+        //   skip 되면 blur 가 옛 숫자/키워드 (「fit」) 를 다시 commit 해 방금 고른 키워드 (fill) 를
+        //   덮는다 (2026-09-15 live). preset 경로처럼 표시값을 바로 바꾸고 다음 동기화를 강제한다.
+        setInputValue(
+          getInputDisplayValue(
+            newValue,
+            parseUnitValue(newValue),
+            isPreservedEmptyValue,
+            presets,
+          ),
+        );
+        syncAfterPresetRef.current = true;
         // ⭐ 중복 호출 방지
         if (newValue !== value && newValue !== lastSavedValueRef.current) {
           lastSavedValueRef.current = newValue;
@@ -549,7 +577,7 @@ export const PropertyUnitInput = memo(
             onChange("");
             shouldSave = true;
           }
-        } else if (allowKeywords && KEYWORDS.includes(resolved)) {
+        } else if (allowKeywords && isTypedKeyword(resolved)) {
           const keyword = resolved;
           const newVal = keyword === "reset" ? "" : keyword;
           if (newVal !== value) {
@@ -607,12 +635,25 @@ export const PropertyUnitInput = memo(
     //   ▾ 20 상자가 86 열을 먹어 「au… LEFT」 로 잘렸다 (panel-ui 05 #3 · 06). 숫자 값에는
     //   ▲▼ stepper (12, 위아래 겹침 2) — 키워드 (auto · normal) 는 stepper 없음.
     const suffixIsTrigger = isSuffix && !hasPresets && Boolean(displayLabel);
-    const showStepper = suffixIsTrigger && !isKeyword && !isDisabled;
+    // legend 모드 + unitSuffix: 트리거 글자가 현재 단위 (「8 PX」, 단위 없음은 —)
+    const unitIsTrigger = !isSuffix && unitSuffix && !hasPresets;
+    const unitSuffixText =
+      unit === "" || unit === "reset" || (value === "" && units.includes("reset"))
+        ? "—"
+        : unit;
+    // 빈 값 (placeholder 「auto」) 도 stepper 없음 — 시안 「Auto MAX W」 는 글자만 (panel-ui 01)
+    const showStepper =
+      (suffixIsTrigger || unitIsTrigger) &&
+      !isKeyword &&
+      !isPreservedEmptyValue &&
+      !isDisabled;
 
     return (
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
-        data-label-mode={labelMode === "suffix" ? "suffix" : undefined}
+        data-label-mode={
+          labelMode === "suffix" ? "suffix" : unitIsTrigger ? "unit" : undefined
+        }
         aria-label={
           labelMode === "suffix" && displayLabel ? displayLabel : undefined
         }
@@ -723,12 +764,12 @@ export const PropertyUnitInput = memo(
                     : placeholder
                 }
               />
-              {suffixIsTrigger ? (
+              {suffixIsTrigger || unitIsTrigger ? (
                 <Button
                   className="react-aria-Button property-unit-input__suffix property-unit-input__suffix--trigger"
-                  aria-label={`${displayLabel} ${unitLabel}`}
+                  aria-label={`${displayLabel ?? ""} ${unitLabel}`.trim()}
                 >
-                  {suffixLabel ?? displayLabel}
+                  {unitIsTrigger ? unitSuffixText : (suffixLabel ?? displayLabel)}
                 </Button>
               ) : (
                 <>
@@ -821,6 +862,9 @@ export const PropertyUnitInput = memo(
       prevProps.placeholder === nextProps.placeholder &&
       prevProps.presets === nextProps.presets &&
       prevProps.presetAriaLabel === nextProps.presetAriaLabel &&
+      prevProps.labelMode === nextProps.labelMode &&
+      prevProps.suffixLabel === nextProps.suffixLabel &&
+      prevProps.unitSuffix === nextProps.unitSuffix &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)

@@ -8,7 +8,6 @@
 
 import { memo } from "react";
 import { PropertySection, PropertyUnitInput } from "../../../components";
-import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -24,7 +23,6 @@ import {
   StretchHorizontal,
   StretchVertical,
   TextWrap,
-  UnfoldHorizontal,
 } from "lucide-react";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
@@ -301,15 +299,15 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </ToggleButton>
           </ToggleButtonGroup>
         </div>
+        {/* 「8 PX」 — 아이콘 prefix · 토큰 preset ▾ 대신 단위 suffix + stepper (panel-ui 01 — 대조 B4).
+            store 가 gap 을 px 숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) 라 단위는 px 뿐 */}
         <PropertyUnitInput
-          icon={UnfoldHorizontal}
           label="Gap"
           className="displayGap"
           value={styleValues.gap}
-          units={[]}
+          units={["px"]}
+          unitSuffix
           allowKeywords={false}
-          presets={SPACING_PRESET_OPTIONS}
-          presetAriaLabel="Gap Preset"
           onChange={(value) => handleSpacingCommit("gap", value)}
           onDrag={(value) => handleSpacingPreview("gap", value)}
           min={0}
