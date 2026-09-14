@@ -1,0 +1,122 @@
+# ADR-219 Design Breakdown — Border 기하 채널 (per-corner radius · per-side width)
+
+> 본문: [ADR-219](../219-border-geometry-per-corner-radius-per-side-width.md). 구현 상세는 여기에만 둔다.
+
+## 1. 범위 · 선행 관계 (분리 4질문 lock-in)
+
+본 ADR 은 기존 ADR 의 fork 가 아니라 시안 (`docs/design/panel-ui` 02 Style 탭 ③④) 의 선행 결정이다. 그래도 의존 방향은 적어 둔다.
+
+1. **base / 응용**: ADR-909 (store longhand 정책 ↔ consumer 정규화) 가 base, 본 ADR 은 border 채널에의 응용 — 909 의 "shorthand 는 저장에 없다" 를 그대로 옮기지 않고 (대안 C 기각) "균일 shorthand / 비균일 longhand 상호 배타" 로 **특수화**한다. 909 본문은 무변경.
+2. **schema 직교성**: 저장 키는 CSS longhand 8개 — `props.style` 전역 (base) 에만 쓴다. ADR-154 responsive override 와는 **교차하지 않는다**: border 는 eligible 집합 밖 (`packages/shared/src/types/responsive.types.ts:213-223 RESPONSIVE_ELIGIBLE_STYLE_PROPS` = Layout·Transform 만) 이라 어느 breakpoint 에서 편집해도 base 로 간다 (`stores/utils/responsiveWriteRouting.ts:140-150 shouldWriteBreakpointOverride`) 고 DOM emit 도 같은 필터로 거른다 (`packages/shared/src/utils/responsiveCss.ts:113-117`, `responsiveCss.test.ts:19-28, 55-64`). 본 ADR 은 이 계약을 유지한다 (round 1 h2) — breakpoint 별 코너/변은 ADR-154 eligibility·picker·resolve·emit 4곳을 함께 여는 별도 개정이다. ADR-187 presentation slot (stroke color) 과 직교 — 폭·반경은 canonical 경로 (`updateStylePreview` rAF 배치).
+3. **선행 전제 reverse 검증**: "Skia 가 반경을 숫자 하나로 그린다" 는 시안 주석은 **틀렸다** (§2.1 — 배열 경로가 이미 있고 첫 값만 읽는 곳이 4). 전제를 실측으로 교체했고, 반대 방향 (Skia 가 base, 패널이 따른다) 은 성립하지 않는다 — 패널이 쓰는 키가 정본이고 Skia 는 consumer 다.
+4. **판독 진입**: codex 1차는 §2.1 표 + §2.3 기하 식을 대상으로.
+
+## 2. 설계
+
+### 2.1 코드 사실 (Phase 0 inventory — 2026-09-14 main `88e93d238` 기준)
+
+| 층 | 경로:라인 | 지금 | 본 ADR |
+| --- | --- | --- | --- |
+| 저장 · 쓰기 연산 | `stores/inspectorActions.ts:118-131 applyBaseStyleEntry` (숫자 변환 → `distributeShorthand` → `applyBorderCompanionDefaults`) · `:137-175 buildResponsiveStyleOverride` (border 는 도달 안 함 — §1-2) | border 키는 분배 없음 | base 경로에 `applyBorderGeometryWrite(style, prop, value, effective)` (§2.2 — 사후 정규화가 아니라 **편집 연산**) |
+| 저장 · 표 | `stores/utils/responsiveWriteRouting.ts:11-15 SHORTHAND_TO_LONGHAND` · `:27-44 NUMERIC_COERCE_STYLE_PROPS` · `:140-150 shouldWriteBreakpointOverride` | gap/padding/margin 만 · `borderWidth`/`borderRadius` 숫자 코어스 · border 는 전역 (eligible 밖) | 표는 무변경 (항상-분배 아님) · 코어스 집합에 longhand 8 추가 · eligible 집합 무변경 (전역 유지) |
+| 저장 · companion | `stores/utils/borderCompanionDefaults.ts:29-50` | `borderColor/borderWidth/borderStyle` 트리거 | 변 longhand 도 트리거 (폭을 쓰면 style solid · color 채움) |
+| Skia 변환 | `workspace/canvas/styleConversion/styleConverter.ts:46-52` CSSStyle · `:670-683 convertToStrokeStyle` · `:1003-1031 convertBorderRadius` · `:1039-1041 ConvertedStyle` · `:1078` | 폭 longhand 타입만 · 반경 longhand 없음 · stroke `width` 하나 · 반경 shorthand 다중값 → `[4]` | `resolveBorderGeometry` 가 두 값을 공급 · `RenderStrokeStyle.widths?: [4]` |
+| Skia 노드 | `skia/buildBoxNodeData.ts:117, 249, 288-296, 307-321` · `skia/nodeRendererTypes.ts:15-21, 45-55` | `box.borderRadius: number \| [4]` · `strokeWidth` 하나 · `strokeStyle` 8종 | `box.strokeWidths?: [t,r,b,l]` 추가 (균일이면 생략 → 기존 경로) |
+| Skia 렌더 · 배열 지원 | `skia/nodeRendererBorders.ts:40-70` stroke · `:496-515` fill · `:596-612` outline · `skia/nodeRendererClip.ts:17-41 clampCornerRadii` + `createRoundRectPath` | 배열은 그리지만 **clamp 가 CSS 와 다르다** — 코너마다 `min(w,h)/2` (100×100 `[80,0,0,0]` → `[50,…]`, CSS 는 80 유지 — round 1 h3) | `resolveCssCornerRadii` (§2.3, CSS Backgrounds §4.5 비례 축소) 로 교체. 균일 반경은 두 규칙이 같은 값이라 HC1 안 · 다중값 shorthand 문서는 CSS 값으로 **수리** (CHANGELOG) |
+| Skia 렌더 · 첫 값만 | `nodeRendererBorders.ts:332-334` 바깥 그림자 · `:405-407` 안쪽 그림자 · `renderCommands.ts:2625-2628` AI bounds (`types.ts:288 AIEffectNodeBounds.borderRadius: number`) · `nodeRendererClip.ts:95-105` clip-path inset round | `br[0]` | 4 반경 path (그림자는 spread 만큼 각 반경 ±) · AI bounds `[4]` · clip-path `[4]` |
+| Skia 변별 프리미티브 | `nodeRendererTypes.ts:15-21 PartialBorderData` · `nodeRendererShapes.ts:93-164 renderPartialBorder` · `renderCommands.ts:2391-2392` · 생산자 `specShapeConverter.ts:624-650` | 잔존 spec `sides` 전용 · **코너 호를 인접 두 변이 각각 전체로 그린다** (`:122-131` top 이 TR 호 전체 · `:143-146` right 도 TR 호 전체 — 반투명 stroke 겹침, round 1 h3) | 코너 소유권 규칙 (§2.3 ①) 으로 재작성 — 호는 한 번만 · `buildBoxNodeData` 가 변 마스크 케이스에서 생산 |
+| 레이아웃 | `layout/engines/utils.ts:739-770 parseBorder` · `cssResolver.ts:88-94` · `styleConversion/paddingUtils.ts:178-193` · `panels/styles/sections/TransformSection.tsx:105-118` | longhand ?? `borderWidth` 다중값 ?? `border` — 이미 변별 | 무변경 · helper 와 동치 테스트 1 |
+| DOM | `packages/shared/src/catalog/resolvers/resolveMergedStyle.ts:13 toReactStyle` · `:60-74 resolveMergedStyle` (base) | override passthrough — longhand 네이티브 · base 는 `rule.sizes[size]` 단일값 | 무변경 · base 는 §2.2 effective 입력 |
+| 무효화 | `presentation/invalidation/editorMutationEffectRegistry.ts:79-83, 186-194, 255-259, 370-374` | longhand 8 분류 완료 | 무변경 |
+| 패널 | `panels/styles/sections/BorderSection.tsx:111-112, 128-175` (Width/Radius 슬라이더 행 + preset 메뉴) · `:180-200` Style seg | 단일값 | §2.4 |
+| 기준선 · 절 목록 | `panels/styles/hooks/useResetStyles.ts:51-52, 225-231` · `sections/styleSectionProps.ts:10-11, 27-28` · `packages/shared/src/catalog/resolvers/resolveEditContract.ts:125-133` · `types/composition-document.types.ts:302-303` | 두 키 | prop 목록에 longhand 8 추가 · base 는 단일 그대로 (§2.4) |
+| Modified | `panels/styles/sections/ModifiedStylesSection.tsx:72-84 CATEGORY_ORDER` | 두 키 | Appearance 집합에 longhand 8 (Overrides 절은 해당 없음 — 전역) |
+| 보간 | `skia/interpolators.ts:78-82 ANIMATABLE_NUMERIC_PROPERTIES` | `borderRadius` 만 | longhand 8 추가 (transition 감지) |
+| 죽은 표면 | `overlay/hooks/useBorderRadiusDrag.ts:65-70, 190-205` | 코너 longhand 쓰기 · 소비처 0 | **삭제 후보 — 사용자 승인 필요** (P4 에서 질문) |
+| 범위 밖 기존 비대칭 | `renderCommands.ts:1597-1605` 자식 clipRect (반경 없음) | 균일 반경도 안 깎음 | 별도 항목 (본 ADR 손대지 않음) |
+
+### 2.2 저장 — 편집 연산 (HC3, round 1 h1 반영)
+
+사후 정규화 (저장된 형태만 보고 접기/펼치기) 는 편집 의도를 잃는다 — 코너 `[8,4,2,6]` 에 shorthand 12 를 쓰면 기존 longhand 가 남고 12 가 사라지며, 카탈로그 base 8 · `props.style={}` 에서 TL 만 12 로 쓰면 미편집 코너가 0 이 된다. 그래서 store 는 **편집 연산** 을 받는다:
+
+`applyBorderGeometryWrite(style, property, value, effective)` — `applyBaseStyleEntry` 가 border 축 키 (shorthand 2 + longhand 8) 에서 `toStyleNumericValue` 다음, `applyBorderCompanionDefaults` 앞에 호출. `effective` 는 편집 전 유효 4값 (`resolveBorderGeometry(style, base)` — longhand ?? shorthand 다중값 ?? shorthand ?? **catalog base** (`resolveMergedStyle(node).base.borderRadius/borderWidth`, `resolveMergedStyle.ts:60-74`) ?? 0). 축 (코너 4 · 변 4) 마다:
+
+| 입력 | 결과 |
+| --- | --- |
+| shorthand 쓰기 `v` | longhand 4 삭제 · `shorthand = v` (전체 덮어쓰기 — 기존 longhand 우선 없음) |
+| longhand 하나 쓰기 `v` | `next = effective` 의 그 칸만 `v` → 4값이 같으면 `shorthand = 값` · longhand 4 삭제, 아니면 longhand 4 전부 기록 (미편집 칸은 effective — base 값 포함) · shorthand 삭제 |
+| longhand 하나 지우기 `""` | `next = effective` 의 그 칸을 **base 값** (base 없으면 0) 으로 → 위와 같은 접기/펼치기 |
+| shorthand 지우기 `""` | 축 키 10개 전부 삭제 (= base 로 복귀) |
+| reset 그룹 (`useResetStyles`) | 축 키 전부 삭제 |
+
+불변식: 연산 뒤 항상 「shorthand 하나 · longhand 0」 또는 「shorthand 0 · longhand 4」 (부분 longhand 0). 배치 쓰기 (`updateSelectedStyles` 여러 키) 는 키 순서와 무관하게 같은 결과 — 연산이 매번 effective 를 다시 읽기 때문. G3 store 시나리오 8: ① 빈 style + shorthand ② 빈 style + 코너 1 (base 8 → `[12,8,8,8]`) ③ `[8,4,2,6]` + shorthand 12 → shorthand 12 만 ④ `[8,4,2,6]` 에 TR 4→8, BR 2→8, BL 6→8 순서 → shorthand 8 ⑤ 코너 1 지우기 → base 값 복귀 ⑥ shorthand 지우기 → 키 0 ⑦ 배치 `{TL:12, borderRadius:4}` 순서 두 방향 동일 ⑧ 변 마스크 (좌 0) 뒤 전체 선택 → shorthand 복귀.
+
+responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에는 도달하지 않는다. 종전 R3 (base/tier 혼합) 는 성립하지 않으므로 삭제.
+
+### 2.3 Skia 기하 (round 1 h3 · m4 반영)
+
+`resolveBorderGeometry(style, base?) → { radii: [tl,tr,br,bl], widths: [t,r,b,l], uniformRadius: number | null, uniformWidth: number | null }` (`workspace/canvas/styleConversion/borderGeometry.ts`). 반경은 원형만 (`"8px / 4px"` 는 현행대로 첫 값).
+
+**코너 반경 축소 — CSS 규칙** (`resolveCssCornerRadii(radii, w, h)` — [CSS Backgrounds 3 §4.5 corner-overlap](https://www.w3.org/TR/css-backgrounds-3/#corner-overlap)): 네 변마다 `f_side = L_side / (r_a + r_b)` (그 변에 붙은 두 코너 반경 합), `f = min(1, f_top, f_right, f_bottom, f_left)` 를 **모든 반경에 곱한다**. 예: 100×100 `[80,0,0,0]` → f = 1 → 80 유지 (현행 clamp 50 은 오류); `[80,80,0,0]` → f = 100/160 → `[50,50,0,0]`. 균일 r 에서는 `f = L_min/2r` → `min(L)/2` 라 현행과 같은 값 (HC1 경계: 균일 문서 무변경 · 다중값 shorthand 문서는 수리). `clampCornerRadii` 호출처 3 (clip · partial border · createRoundRectPath) 을 전부 교체 — 기하 규칙은 한 곳.
+
+`buildBoxNodeData`:
+
+- 반경: `box.borderRadius = uniformRadius ?? radii` (기존 경로, longhand 가 배열의 새 출처).
+- 폭: `uniformWidth !== null` → 현행 `strokeWidth` (8종 스타일 렌더러 그대로). 아니면 `box.strokeWidths = widths` 와 함께 3단:
+  1. **변 마스크** — 각 변이 `w` 또는 `0` (시안 세그먼트의 쓰기 형태) · style ∈ {solid, dashed, dotted} → `partial_border` 자식 노드 (`sides` = width>0 · `strokeWidth = w` · dasharray 는 `specShapeConverter.ts:616-622` 식). **코너 소유권** (재작성): 코너 호는 한 번만 그린다 — 인접 두 변이 모두 on 이면 45° 이등분점에서 나눠 각 변이 자기 반쪽, 한 변만 on 이면 그 변이 호 전체 (CSS 가 폭 0 인 변 쪽 코너를 남은 변 색으로 채우는 것과 같다), 둘 다 off 면 없음. 반투명 stroke 겹침 0.
+  2. **임의 4값 + solid** — 바깥 path (CSS 축소 반경) 와 안쪽 path (안쪽 코너 `rx = max(0, r − w_세로변)`, `ry = max(0, r − w_가로변)` — TL 은 `w_left`/`w_top`) 를 `FillType.EvenOdd` 로 채운다 (CanvasKit `Path.addRRect` 12-float 타원 반경). Chrome `BoxBorderPainter` 와 같은 기하.
+  3. **임의 4값 + dashed/dotted** — 변마다 자기 폭의 stroke path, 코너 소유권은 ① 과 같고 호 반쪽의 폭은 그 변 폭 (근사 — 두 변 폭이 다르면 호 중간에서 폭이 바뀐다, G2 0.95).
+  4. **임의 4값 (또는 변 마스크) + double/groove/ridge/inset/outset** — **지원하지 않는다**. 패널은 이 style 에서 변 세그먼트를 비활성 (툴팁 "변별 폭은 solid·dashed·dotted 에서") 이라 만들지 않고, import/수동 문서만 도달한다. Skia 는 ② 로 그리고 (solid 강등) Border 절에 배지 「Skia 근사」 를 띄운다. Preview 는 원래 style 그대로 — **기록된 비대칭** (G2 케이스 11 로 측정만, 통과 조건 아님; ADR 본문 HC2 · Decision 구현 경계에 명시).
+- 첫 값만 읽던 4곳: 그림자는 `createRoundRectPath` 로 (spread 는 각 반경 ± spread, `max(0, …)`), AI bounds 는 `borderRadius: [4]` 로 타입 확장 (`aiEffects.ts:81-85` RRect → path), clip-path inset round 는 4 반경.
+
+### 2.4 패널 · 기준선 · Modified
+
+- **BorderSection** (Style 탭, 02 시안 ②③④): Width 슬라이더 행 그대로 (균일 쓰기 = `borderWidth`) · **변 세그먼트** 「전체 · 좌 · 우 · 상 · 하」 (`ToggleButtonGroup selectionMode="multiple"` — Visibility seg 와 같은 부품, 28) — 전체 선택 = 균일 (shorthand 쓰기 → §2.2 연산이 longhand 를 지움), 일부 = `w`/`0` longhand 4 배치 쓰기 (`updateStyles` 한 번). style 이 double/groove/ridge/inset/outset 이면 세그먼트 비활성 (§2.3 ④). 어느 breakpoint 에서 편집해도 전역 (§1-2) — Overrides 절에는 나타나지 않는다. Radius 슬라이더 행 + **코너 2×2** 4칸 (`.fieldset-row` 두 행 × 반폭 2, 코너 글리프 아이콘 20 + Input, 28) — 슬라이더는 4칸을 함께, 칸 하나는 그 코너 longhand. 값 표시는 `resolveBorderGeometry` 로 (저장 형태 무관).
+- **reset / dirty** (`useResetStyles`): 기준선은 단일값 그대로. dirty 판정은 helper 로 4값을 만든 뒤 base 균일값과 비교 — 비균일이면 4 longhand 전부 dirty (R5), reset 은 코너 4 · 변 4 를 묶어 지운다 (`RESETTABLE` 집합에 longhand 8).
+- **Modified**: longhand 8 을 Appearance 집합에 (4행 표시, padding 과 같다). i18n 라벨 8 ko/en. Overrides 절은 해당 없음 (전역).
+- **Frame 프리셋 · 카탈로그 base**: 무변경 — 비균일은 override 전용.
+
+### 2.5 호환 · rollback 경계
+
+- 새 문서 = 비균일일 때만 longhand 존재. 구버전 빌더는 longhand 를 무시 → shorthand 가 없어 반경 0 / 폭 (companion `borderWidth`) 그대로. 키는 보존되어 새 빌더로 돌아오면 복원. rollback 경계 = P2 (Skia converter) commit — 그 이전으로 되돌리면 "비균일 문서가 균일로 보임" 만 남는다.
+- 저장 연산 (P3) 을 되돌리면 두 형태 공존 문서가 생길 수 있어 P2·P3 는 같은 날 순서대로.
+- 다중값 shorthand (`borderRadius: "80px 0 0 0"`) 문서는 P2 부터 CSS 축소 규칙으로 그려져 픽셀이 바뀐다 (수리, HC1 밖) — CHANGELOG 에 기록.
+
+## 3. Phase 분해
+
+| Phase | 내용                                                                                                                                                             | 산출                                |
+| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| P0 | inventory freeze (§2.1) + G0 spike 3: even-odd path 1 · 큰 비대칭 반경 `[80,0,0,0]` 1 · 반투명 변 마스크 (인접 변 on) 1 | `docs/adr/evidence/219-p0-spike.md` |
+| P1 | `borderGeometry.ts` helper (+ base 입력) · `resolveCssCornerRadii` 단위 테스트 (§4.5 예제 6 + 균일 동치) · `parseBorder` 동치 테스트 | helper · 테스트 |
+| P2 | Skia: `clampCornerRadii` → CSS 규칙 교체 (3곳) · converter (`RenderStrokeStyle.widths`) · `buildBoxNodeData` 3단 · 첫 값 4곳 · `renderPartialBorder` 코너 소유권 재작성 + 생산 · 스냅샷 G1 | 렌더 |
+| P3 | store `applyBorderGeometryWrite` (base 경로, effective 입력) + 코어스 집합 + companion + 시나리오 8 + 정적 가드 G3 | 저장 |
+| P4 | 패널: BorderSection 코너 2×2 · 변 seg (style 조건 비활성 · 「Skia 근사」 배지) · i18n · reset/dirty/Modified · `useBorderRadiusDrag` 삭제 질문 | UI |
+| P5    | ADR-198 parity 케이스 10 (G2) · perf lane (G4) · 번들 (G5) · live 하니스 (`.tmp-panel-cap/border-live.mjs`) · CHANGELOG · Implemented 승격 (`### Live Exercise`) | 종결                                |
+
+## 4. Gate 매핑
+
+| Gate | Phase | 측정                                                                                                                                   |
+| ---- | ----- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| G0 | P0 | 198 하니스 3 케이스 (even-odd · `[80,0,0,0]` · 반투명 변 마스크) region ≥ 0.98 |
+| G1   | P2    | `renderCommandStream` 스냅샷 · 198 smoke · 기존 테스트 전량                                                                            |
+| G2 | P2·P5 | 케이스 10 (통과 조건): 반경 4값 ×2 (solid/none, 그중 1 은 비례 축소 발생 `[80,80,0,0]`) · 변 마스크 ×4 (solid 2 · dashed 1 · dotted 1, 반투명 색 1 포함) · 임의 폭 4값 ×2 (solid · dashed) · 반경+폭 혼합 ×2 — region ≥ 0.98, ③ 조합 0.95. 케이스 11 (측정만): 변 마스크 + double — 차이 수치를 evidence 에 기록 |
+| G3 | P3 | 정적 (helper 밖 직접 읽기 0) + store 시나리오 8 (§2.2 — shorthand 덮어쓰기 · 단일 코너 + base · 삭제 · 배치 순서 독립) |
+| G4 | P5 | 같은 fixture (600 요소 + 비균일 100) · 같은 동작 스크립트 (반경 슬라이더 드래그 60 스텝 · 폭 드래그 60 · 비균일 요소 리사이즈 드래그 60 — path 재생성이 매 프레임) · 같은 환경 (같은 기기 · DPR 2 · 전경 탭 `visibilityState=visible` · CPU throttle 0 · 힙 스냅샷 Δ 병기) 에서 before/after **총 프레임 비용** (p50/p95/p99) — worktree · 원래 의존성 (`.claude/rules/measurement-validity.md` 5-질문을 evidence 에 첨부) |
+| G5   | P4·P5 | 번들 before/after (`--dist` 절대 경로) · 패널 실측                                                                                     |
+
+## 5. 체크리스트
+
+- [ ] helper 가 유일한 판독 진입 (정적 가드 통과)
+- [ ] 균일 노드 코드 경로 0 변경 (G1)
+- [ ] 편집 연산이 effective(base 포함) 를 입력받고 배치 순서 독립 (시나리오 8)
+- [ ] `clampCornerRadii` 호출처 3 전부 CSS 규칙으로 · 코너 호 한 번만
+- [ ] 코너 아이콘 4 · seg 라벨 · longhand 라벨 8 i18n ko/en
+- [ ] 컨트롤 28/32 · 행 템플릿 · 9px 0
+- [ ] `useBorderRadiusDrag.ts` 삭제는 사용자 승인 뒤에만
+- [ ] CHANGELOG · README · Live Exercise
+
+## 6. 변경 파일 (예상)
+
+- 신규: `workspace/canvas/styleConversion/borderGeometry.ts` (+test, `resolveCssCornerRadii` 포함) · `stores/utils/borderGeometryWrite.ts` (+test) · `borderGeometry.static.test.ts` · `.tmp-panel-cap/border-live.mjs` · evidence 2 (spike · perf)
+- 수정: `styleConverter.ts` · `buildBoxNodeData.ts` · `nodeRendererTypes.ts` · `nodeRendererBorders.ts` · `nodeRendererClip.ts` · `renderCommands.ts` · `aiEffects.ts` · `types.ts` · `interpolators.ts` · `inspectorActions.ts` · `responsiveWriteRouting.ts` · `borderCompanionDefaults.ts` · `BorderSection.tsx` · `useResetStyles.ts` · `styleSectionProps.ts` · `ModifiedStylesSection.tsx` · `i18n/translations.ts` · `labels.ts` · `StylesPanel.css`
+- 삭제 후보 (승인 필요): `overlay/hooks/useBorderRadiusDrag.ts`

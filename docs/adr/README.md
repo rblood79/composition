@@ -7,7 +7,7 @@
 > 쌓여 있던 세션별 갱신 공지 · 완료 ADR 비고 · 2026-04 기준 우선순위 계획 · 변경 이력은
 > [archive/README-notes-2026-09.md](archive/README-notes-2026-09.md) 로 **무손실 이관**했다.
 >
-> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다.
+> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-14 재실측 (ADR-219 추가 — Proposed 8 · Accepted 1 (150) · 부분 1 (027)).
 
 ---
 
@@ -21,10 +21,10 @@
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
 | 열려 있는 것 (`adr/*.md`)     |      10 |
-| ├ Proposed                    |       9 |
-| ├ Accepted (미착수·일부 착수) |       0 |
+| ├ Proposed                    |       8 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **245** |
+| **합계**                      | **246** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -64,6 +64,12 @@
 - **상태**: Proposed — 2026-09-02
 - **규모**: 단순 요청도 `useAgentLoop`가 Agent-first로 보내고 fallback `IntentParser`는 metadata만 남겨 mutation하지 않는 구조를 부분 개정. direct 생성·편집·command는 catalog/factory/ADR-196에서 파생한 closed typed IR로 provider·Agent 0회 실행, 모호한 요청은 one-shot LLM IR, 반복 설계만 bounded Agent. leaf/complex/reusable/composed recipe 4분류와 composite prop/slot routing, palette/human-path parity, offline/host-neutral 계약을 G0~~G6으로 고정. ADR-134 D1~~D5·D9~~D11 및 ADR-196은 유지하고 D6~~D8만 Accepted 시 부분 대체
 - **우선순위**: **P1** (review 후 착수)
+
+#### [219](219-border-geometry-per-corner-radius-per-side-width.md) — Border 기하 채널 — per-corner radius · per-side width
+
+- **상태**: Proposed — 2026-09-14 · round 1 (codex HIGH 3 · MEDIUM 2) 반영 2026-09-14 — 저장은 편집 연산 (effective·base 입력) · border 전역 유지 (154 eligible 밖) · 코너 축소 CSS §4.5 비례 규칙 (`clampCornerRadii` 수리) + 호 소유권 · 비균일 + double 계열 미지원 · 성능 gate 불리 동작 고정 (`reviews/219.md`)
+- **규모**: Styles 패널 시안 (panel-ui 02 ③ 코너 2×2 · ④ 변 선택 세그먼트) 의 선행 결정. 실측: DOM(`toReactStyle` passthrough)·레이아웃(`parseBorder`)·무효화 레지스트리는 longhand 8 을 이미 읽고, Skia 반경은 shorthand 다중값 → `[4]` 배열 경로가 있으며 (첫 값만 읽는 곳 4 — 그림자 2·AI bounds·clip-path) `partial_border` 프리미티브 (변 마스크 + 코너 호) 는 잔존 spec 전용 — 없는 것은 저장 정규화 · 변별 stroke 생산 · 패널뿐. 대안 A 채택: CSS longhand 저장 + 균일 shorthand / 비균일 longhand 상호 배타 정규화 (base·responsive 공용) + 판독 helper `resolveBorderGeometry` 하나 + Skia 폭 3단 (변 마스크 → partial_border / solid 임의값 → even-odd 영역 path (CSS 안쪽 타원 반경 식) / 그 외 → 변별 stroke 근사). B (shorthand 다중값 — 숫자 코어스가 저장 시 첫 값으로 파괴) · C (항상 longhand 4 — base 단일 ↔ override 4 대조 재작성) · D (구조 객체 — CSS 키 공간 이탈) 기각. HIGH 0 · R1~~R5 · G0~~G5 · HC1~6 (기존 문서 byte 동일 · 198 parity 케이스 10 · 저장 불변식 · 균일 경로 무변경 · 패널 28/32 · 번들 ≤ 2 KiB). 범위 밖: 변별 색 · 타원 반경 · 자식 clip 반경 (기존 비대칭). design breakdown `design/219-border-geometry-per-corner-radius-per-side-width-breakdown.md`
+- **우선순위**: **P2** (시안 코드 반영 종결 직후, 사용자 `/create-adr` 2026-09-14)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
