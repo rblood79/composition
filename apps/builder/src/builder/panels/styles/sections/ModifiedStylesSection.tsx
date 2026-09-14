@@ -1,22 +1,22 @@
 /**
- * ModifiedStylesSection - 변경된 스타일만 표시하는 섹션
+ * ModifiedStylesSection — 수정된 스타일 = key · value 목록 (읽기 전용)
  *
- * VS Code 스타일 @modified 필터
- * 사용자가 수정한 inline style만 표시
+ * VS Code 스타일 @modified 필터. 사용자가 수정한 inline style 만 나열한다.
+ *
+ * 시각 어법 (panel-ui 04, 2026-09-14): 종전엔 항목마다 **편집 컨트롤을 다시 그렸다**
+ * (「Appearance / Border Radius / [8 ▾]」, 항목당 70) — 편집은 해당 탭에서 하고 여기서는
+ * 훑어보기 + 되돌리기(헤더 reset) 만. 행 하나 = key (12) + value (mono 10) 28. 색 값은
+ * swatch 16 + HEX. 5개 항목 350 → 140.
  */
 
-import {
-  PropertySection,
-  PropertyUnitInput,
-  PropertyColor,
-  PropertySelect,
-  EmptyState,
-} from "../../../components";
+import { memo, useCallback, useMemo } from "react";
+import { parseColor, type Color } from "react-aria-components/ColorPicker";
+import { PaintRoller } from "lucide-react";
+import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
+import { adaptStyleWithFills } from "@composition/shared";
+import { EmptyState, PropertySection } from "../../../components";
 import type { SelectedElement } from "../../../inspector/types";
-import { useDirtyStyleProps } from "../hooks/useResetStyles";
-import { useStyleActions } from "../hooks/useStyleActions";
-import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
-import { useStylePresentationActions } from "../hooks/useStylePresentationActions";
+import { useDirtyStyleProps, useResetStyles } from "../hooks/useResetStyles";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
 import { resolveStylePanelColor } from "../utils/styleValueHelpers";
 import {
@@ -24,40 +24,103 @@ import {
   useThemeConfigVersion,
 } from "../../../../stores/themeConfigStore";
 import {
-  AlignCenterVertical,
-  AlignHorizontalSpaceAround,
-  Bold,
-  LayoutGrid,
-  PaintRoller,
-  RulerDimensionLine,
-  SquareDashedBottom,
-  StretchVertical,
-  TextWrap,
-  Type,
-} from "lucide-react";
-import {
-  FONT_FAMILIES,
-  FONT_WEIGHTS,
-  BORDER_STYLES,
-  DISPLAY_OPTIONS,
-  FLEX_DIRECTION_OPTIONS,
-  ALIGN_ITEMS_OPTIONS,
-  JUSTIFY_CONTENT_OPTIONS,
-  FLEX_WRAP_OPTIONS,
-} from "../constants/styleOptions";
-import { isFillDerivedStyleProp } from "../utils/fillDerivedStyleProps";
-import {
   semanticLabelKeys,
   translateKey,
   useOptionalI18n,
 } from "../../../../i18n";
 
 import "./ModifiedStylesSection.css";
+
 interface ModifiedStylesSectionProps {
   selectedElement: SelectedElement;
 }
 
-export function ModifiedStylesSection({
+/** 표시 순서 — Layout · Spacing · Appearance · Typography 순, 같은 절 안은 dirty 순서. */
+const CATEGORY_ORDER: ReadonlyArray<ReadonlySet<string>> = [
+  new Set([
+    "display",
+    "flexDirection",
+    "alignItems",
+    "justifyContent",
+    "gap",
+    "rowGap",
+    "columnGap",
+    "flexWrap",
+  ]),
+  new Set([
+    "width",
+    "height",
+    "minWidth",
+    "maxWidth",
+    "minHeight",
+    "maxHeight",
+    "padding",
+    "paddingTop",
+    "paddingRight",
+    "paddingBottom",
+    "paddingLeft",
+    "margin",
+    "marginTop",
+    "marginRight",
+    "marginBottom",
+    "marginLeft",
+    "top",
+    "left",
+    "right",
+    "bottom",
+  ]),
+  new Set([
+    "backgroundColor",
+    "backgroundImage",
+    "backgroundSize",
+    "borderColor",
+    "borderWidth",
+    "borderRadius",
+    "borderStyle",
+    "overflow",
+    "boxShadow",
+    "opacity",
+    "filter",
+  ]),
+];
+
+const COLOR_PROPS = new Set(["backgroundColor", "borderColor", "color"]);
+
+function categoryRank(property: string): number {
+  const index = CATEGORY_ORDER.findIndex((set) => set.has(property));
+  return index === -1 ? CATEGORY_ORDER.length : index;
+}
+
+/** camelCase → 「Border Radius」 */
+function formatLabel(property: string): string {
+  return property
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim();
+}
+
+/** 표시용 HEX (# 없이 대문자, 알파 FF 는 생략). 파싱 불가 (var 토큰 등) 는 원문 그대로. */
+function toDisplayHex(value: string): string {
+  try {
+    const hexa = parseColor(value).toString("hexa").toUpperCase();
+    const hex = hexa.slice(1);
+    return hex.length === 8 && hex.endsWith("FF") ? hex.slice(0, 6) : hex;
+  } catch {
+    return value;
+  }
+}
+
+function safeSwatchColor(value: string): Color | null {
+  try {
+    return parseColor(value);
+  } catch {
+    return null;
+  }
+}
+
+const VALUE_MAX = 40;
+
+export const ModifiedStylesSection = memo(function ModifiedStylesSection({
   selectedElement,
 }: ModifiedStylesSectionProps) {
   const i18n = useOptionalI18n();
@@ -69,32 +132,57 @@ export function ModifiedStylesSection({
   //   구 getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
   const modifiedProperties = useDirtyStyleProps();
-  const { accentColor } = useElementStyleContext(selectedElement.id);
+  const resetStyles = useResetStyles();
+  const { accentColor, fills } = useElementStyleContext(selectedElement.id);
   const theme = useResolvedSkiaTheme();
   useThemeConfigVersion();
-  const { updateStyle } = useStyleActions();
-  const { updateStylePreview } = useOptimizedStyleActions();
-  const {
-    cancelBorderColorPresentation,
-    commitBorderColorPresentation,
-    isBorderColorPresentationOwned,
-    previewBorderColorPresentation,
-    cancelTextColorPresentation,
-    commitTextColorPresentation,
-    isTextColorPresentationOwned,
-    previewTextColorPresentation,
-    commitOpacityPresentation,
-    isOpacityPresentationOwned,
-    previewOpacityPresentation,
-  } = useStylePresentationActions();
 
-  const presentationOwnsBorderColor = isBorderColorPresentationOwned();
-  const presentationOwnsTextColor = isTextColorPresentationOwned();
-  const presentationOwnsOpacity = isOpacityPresentationOwned();
+  // 배경은 fills(canonical 1차 SSOT)에 있다 — dirty 판정(computeBaseDirtyStyleProps)과 같은
+  //   adapt 로 backgroundColor 를 surface 해야 「Background Color · 2563EB」 가 값을 갖는다.
+  //   gradient/image fill 은 backgroundImage 로 나온다.
+  const effectiveStyle = useMemo(() => {
+    const style = selectedElement.style ?? {};
+    return Array.isArray(fills) && fills.length > 0
+      ? (adaptStyleWithFills(style, fills) ?? style)
+      : style;
+  }, [selectedElement.style, fills]);
+
+  const rows = useMemo(
+    () =>
+      [...modifiedProperties]
+        .sort((a, b) => categoryRank(a) - categoryRank(b))
+        .map((property) => {
+          const raw = effectiveStyle[property as keyof React.CSSProperties] as
+            | string
+            | number
+            | undefined;
+          const value = raw === undefined || raw === null ? "" : String(raw);
+          const resolved = COLOR_PROPS.has(property)
+            ? resolveStylePanelColor(value, theme, accentColor)
+            : null;
+          const swatch = resolved ? safeSwatchColor(resolved) : null;
+          const display = resolved ? toDisplayHex(resolved) : value;
+          return {
+            property,
+            label: formatLabel(property),
+            raw: value,
+            display:
+              display.length > VALUE_MAX
+                ? `${display.slice(0, VALUE_MAX)}…`
+                : display,
+            swatch,
+          };
+        }),
+    [modifiedProperties, effectiveStyle, theme, accentColor],
+  );
+
+  const handleReset = useCallback(() => {
+    resetStyles([...modifiedProperties]);
+  }, [modifiedProperties, resetStyles]);
 
   if (modifiedProperties.length === 0) {
     return (
-      <PropertySection title="Modified Styles">
+      <PropertySection title="Modified">
         <EmptyState
           icon={<PaintRoller size={32} />}
           message={localize("No modified styles")}
@@ -104,395 +192,23 @@ export function ModifiedStylesSection({
     );
   }
 
-  // Group properties by category for better organization
-  const categorizedProps = {
-    layout: modifiedProperties.filter((p) =>
-      [
-        "display",
-        "flexDirection",
-        "alignItems",
-        "justifyContent",
-        "gap",
-        "flexWrap",
-      ].includes(p),
-    ),
-    spacing: modifiedProperties.filter((p) =>
-      [
-        "padding",
-        "margin",
-        "width",
-        "height",
-        "top",
-        "left",
-        "right",
-        "bottom",
-      ].includes(p),
-    ),
-    appearance: modifiedProperties.filter((p) =>
-      [
-        "backgroundColor",
-        "backgroundImage",
-        "backgroundSize",
-        "borderColor",
-        "borderWidth",
-        "borderRadius",
-        "borderStyle",
-        "overflow",
-        "boxShadow",
-        "opacity",
-      ].includes(p),
-    ),
-    typography: modifiedProperties.filter((p) =>
-      [
-        "fontFamily",
-        "fontSize",
-        "fontWeight",
-        "fontStyle",
-        "lineHeight",
-        "letterSpacing",
-        "color",
-        "textAlign",
-        "textDecoration",
-        "textTransform",
-        "verticalAlign",
-      ].includes(p),
-    ),
-  };
-
-  // Render property input based on type
-  const renderProperty = (property: string) => {
-    const value =
-      selectedElement.style?.[property as keyof React.CSSProperties];
-    if (!value) return null;
-
-    // Fill V2 에서는 background* 가 파생 필드이므로 read-only display
-    if (
-      property === "backgroundImage" ||
-      property === "backgroundSize" ||
-      isFillDerivedStyleProp(property)
-    ) {
-      const displayValue = String(value);
-      const truncated =
-        displayValue.length > 30
-          ? displayValue.slice(0, 30) + "…"
-          : displayValue;
-      return (
-        <div key={property} className="modified-readonly-field">
-          <span className="modified-readonly-label">
-            {formatLabel(property)}
-          </span>
-          <span className="modified-readonly-value" title={displayValue}>
-            {truncated}
-          </span>
-        </div>
-      );
-    }
-
-    // Color properties
-    if (["backgroundColor", "borderColor", "color"].includes(property)) {
-      const isBorderColor = property === "borderColor";
-      const isTextColor = property === "color";
-      const presentationOwnsFrameScheduling = isBorderColor
-        ? presentationOwnsBorderColor
-        : isTextColor
-          ? presentationOwnsTextColor
-          : false;
-      return (
-        <PropertyColor
-          key={property}
-          label={formatLabel(property)}
-          value={resolveStylePanelColor(String(value), theme, accentColor)}
-          onChange={(newValue) => {
-            if (
-              isBorderColor &&
-              presentationOwnsBorderColor &&
-              commitBorderColorPresentation(newValue)
-            ) {
-              return;
-            }
-            if (
-              isTextColor &&
-              presentationOwnsTextColor &&
-              commitTextColorPresentation(newValue)
-            ) {
-              return;
-            }
-            updateStyle(property, newValue);
-          }}
-          onPreview={(newValue) => {
-            if (
-              isBorderColor &&
-              presentationOwnsBorderColor &&
-              previewBorderColorPresentation(newValue)
-            ) {
-              return;
-            }
-            if (
-              isTextColor &&
-              presentationOwnsTextColor &&
-              previewTextColorPresentation(newValue)
-            ) {
-              return;
-            }
-            updateStylePreview(property, newValue);
-          }}
-          presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
-          onPresentationCancel={
-            isBorderColor
-              ? cancelBorderColorPresentation
-              : isTextColor
-                ? cancelTextColorPresentation
-                : undefined
-          }
-        />
-      );
-    }
-
-    if (property === "opacity") {
-      return (
-        <PropertyUnitInput
-          key={property}
-          icon={RulerDimensionLine}
-          label={formatLabel(property)}
-          value={String(value)}
-          units={["reset"]}
-          allowKeywords={false}
-          onDrag={(newValue) => {
-            if (
-              presentationOwnsOpacity &&
-              previewOpacityPresentation(newValue)
-            ) {
-              return;
-            }
-            updateStylePreview(property, newValue);
-          }}
-          onChange={(newValue) => {
-            if (
-              presentationOwnsOpacity &&
-              commitOpacityPresentation(newValue)
-            ) {
-              return;
-            }
-            updateStyle(property, newValue);
-          }}
-          min={0}
-          max={1}
-        />
-      );
-    }
-
-    // Font family
-    if (property === "fontFamily") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={Type}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={FONT_FAMILIES}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    // Font weight
-    if (property === "fontWeight") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={Bold}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={FONT_WEIGHTS}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    // Border style
-    if (property === "borderStyle") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={SquareDashedBottom}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={BORDER_STYLES}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    // Layout properties (display, flexDirection, alignItems, justifyContent, flexWrap)
-    if (property === "display") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={LayoutGrid}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={DISPLAY_OPTIONS}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    if (property === "flexDirection") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={StretchVertical}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={FLEX_DIRECTION_OPTIONS}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    if (property === "alignItems") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={AlignCenterVertical}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={ALIGN_ITEMS_OPTIONS}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    if (property === "justifyContent") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={AlignHorizontalSpaceAround}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={JUSTIFY_CONTENT_OPTIONS}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    if (property === "flexWrap") {
-      return (
-        <PropertySelect
-          key={property}
-          icon={TextWrap}
-          label={formatLabel(property)}
-          value={String(value)}
-          options={FLEX_WRAP_OPTIONS}
-          onChange={(newValue) => updateStyle(property, newValue)}
-        />
-      );
-    }
-
-    // Unit-based properties (most common)
-    return (
-      <PropertyUnitInput
-        key={property}
-        icon={RulerDimensionLine}
-        label={formatLabel(property)}
-        value={String(value)}
-        units={getUnitsForProperty(property)}
-        onChange={(newValue) => updateStyle(property, newValue)}
-        min={getMinForProperty(property)}
-        max={getMaxForProperty(property)}
-      />
-    );
-  };
-
   return (
-    <PropertySection title={`Modified Styles (${modifiedProperties.length})`}>
-      {categorizedProps.layout.length > 0 && (
-        <div className="modified-category">
-          <h4 className="category-title">{localize("Layout")}</h4>
-          {categorizedProps.layout.map(renderProperty)}
+    <PropertySection
+      title="Modified"
+      badge={
+        <span className="modified-count">{modifiedProperties.length}</span>
+      }
+      onReset={handleReset}
+    >
+      {rows.map((row) => (
+        <div key={row.property} className="modified-row">
+          <span className="modified-row__key">{row.label}</span>
+          <span className="modified-row__value" title={row.raw}>
+            {row.swatch && <ColorSwatch color={row.swatch} />}
+            <span className="modified-row__text">{row.display}</span>
+          </span>
         </div>
-      )}
-
-      {categorizedProps.spacing.length > 0 && (
-        <div className="modified-category">
-          <h4 className="category-title">{localize("Spacing")}</h4>
-          {categorizedProps.spacing.map(renderProperty)}
-        </div>
-      )}
-
-      {categorizedProps.appearance.length > 0 && (
-        <div className="modified-category">
-          <h4 className="category-title">{localize("Appearance")}</h4>
-          {categorizedProps.appearance.map(renderProperty)}
-        </div>
-      )}
-
-      {categorizedProps.typography.length > 0 && (
-        <div className="modified-category">
-          <h4 className="category-title">{localize("Typography")}</h4>
-          {categorizedProps.typography.map(renderProperty)}
-        </div>
-      )}
+      ))}
     </PropertySection>
   );
-}
-
-// Helper: Format property name to readable label
-function formatLabel(property: string): string {
-  return property
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (str) => str.toUpperCase())
-    .trim();
-}
-
-// Helper: Get units for property
-function getUnitsForProperty(property: string): string[] {
-  if (
-    ["width", "height", "top", "left", "right", "bottom"].includes(property)
-  ) {
-    return ["reset", "px", "%", "rem", "em", "vh", "vw"];
-  }
-  if (["padding", "margin", "gap"].includes(property)) {
-    return ["reset", "px", "rem", "em"];
-  }
-  if (["fontSize", "lineHeight", "letterSpacing"].includes(property)) {
-    return ["reset", "px", "rem", "em", "pt"];
-  }
-  if (["borderWidth"].includes(property)) {
-    return ["reset", "px"];
-  }
-  if (["borderRadius"].includes(property)) {
-    return ["reset", "px", "%", "rem", "em"];
-  }
-  return ["px"];
-}
-
-// Helper: Get min value for property
-function getMinForProperty(property: string): number {
-  if (["top", "left", "right", "bottom", "letterSpacing"].includes(property)) {
-    return -9999;
-  }
-  return 0;
-}
-
-// Helper: Get max value for property
-function getMaxForProperty(property: string): number {
-  if (
-    ["width", "height", "top", "left", "right", "bottom"].includes(property)
-  ) {
-    return 9999;
-  }
-  if (["padding", "margin", "gap", "borderRadius"].includes(property)) {
-    return 500;
-  }
-  if (["fontSize"].includes(property)) {
-    return 200;
-  }
-  if (["borderWidth"].includes(property)) {
-    return 100;
-  }
-  if (["lineHeight", "letterSpacing"].includes(property)) {
-    return 10;
-  }
-  return 9999;
-}
+});

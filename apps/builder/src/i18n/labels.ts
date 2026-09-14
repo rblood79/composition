@@ -288,7 +288,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Responsive: "styles.responsive.title",
   Visibility: "styles.responsive.visibility",
   "+ Add override…": "styles.responsive.addOverride",
-  "Modified Styles": "styles.modified.title",
+  Modified: "styles.modified.title",
   "No modified styles": "styles.modified.empty",
   "Edit any style property to see it here": "styles.modified.emptyHint",
   Number: "properties.number",

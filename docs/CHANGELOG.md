@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Screen / Modified 탭 — Visibility seg 한 줄 · Overrides lrow 목록 · Modified key·value 목록 (panel-ui 04)] - 2026-09-14
+
+### Changed
+
+- **Responsive 절**: Visibility 는 「🖥 📱 📱」 다중 선택 seg 한 행 (28) — desktop 칸은 base 라 잠김 (base `display` 를 비춘다), tablet/mobile 은 토글. 종전 카드 3장 (각 60) + Show All / Hide All + 도움말 (`ResponsiveVisibilityEditor`) 이 5탭 중 가장 긴 탭 (794) 의 원인이었다. 편집기 파일은 남아 있으나 소비처 0.
+- **Overrides 절 (tablet/mobile 만 · 신설)**: 헤더 「tablet · 2」 카운트 + 「+」 메뉴 (추가할 속성 고르기 — `PropertyRowMenu icon` prop 신설), 행은 다른 절과 같은 lrow 「width · 200px」 + 28 열 × (override 해제). 종전 accent 테두리 chip + `<select>`. `useResponsiveOverrides` 가 `activeOverrideValues` 를 같이 낸다.
+- **Modified 탭 = key · value 목록 (읽기 전용)**: 행 하나 = 「Border Radius ··· 8px」 28, 색은 swatch 16 + HEX (배경은 fills 를 adapt 해 surface). 편집은 해당 탭에서, 여기서는 훑어보기 + 헤더 reset (dirty 전부 되돌림). 종전엔 항목마다 편집 컨트롤 (70) 을 다시 그렸다 — 5개 350 → 140. ADR-187 Modified 색 편집기 presentation 가드는 "편집 경로 없음" 가드로 교체.
+- 제목 「Modified Styles」 → 「Modified」 (수정됨). `.responsive-hint` 는 절 하단 페이드 (24) 가 글줄을 깎지 않게 아래 여백.
+- **가드 수리 (02·03 회귀)**: `EffectSection` · `BoxShadowLayerRow` 의 `Plus` / `Trash2` 직접 import → `ACTION_ICONS.add` / `.delete` (`actionIcons.static.test`) · 「Vertical」 ko 「수직 정렬」 → 「세로」 (`sharedActionVocabulary.static.test`).
+- live (`screentab-live.mjs`): seg 87 × 28 · 칸 20 · Tablet 클릭 → `visibility.tablet: false` · 「+」 → Width / Direction → 행 「width · 200px」 「flex-direction · row」 217 × 28 · × → override 제거 · Modified 4행 217 × 28 「Background Color 2563EB」 · 헤더 reset → 빈 상태.
+- 시안과 다르게 둔 것: 「Show all hidden」 스위치 — 캔버스가 `display:none` 요소를 그리는 채널이 없어 (엔진이 레이아웃에서 뺀다) 패널만 만들 수 없다. seg 옆 2열은 비워 둠.
+
 ## [Styles · Text 탭 — Typography 12 컨트롤 → 6행 (panel-ui 03)] - 2026-09-14
 
 ### Changed

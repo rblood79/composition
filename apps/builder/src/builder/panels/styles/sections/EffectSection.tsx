@@ -16,13 +16,13 @@
  */
 
 import { memo, useRef } from "react";
-import { Plus, Trash2 } from "lucide-react";
 import {
   PropertyRowMenu,
   PropertySection,
   PropertySlider,
 } from "../../../components";
 import { SwatchIconButton } from "../../../components/ui";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { EFFECT_PROPS } from "./styleSectionProps";
 import { applyShadowInset, getShadowToken } from "@composition/specs";
@@ -54,6 +54,9 @@ import {
 } from "../../../../i18n";
 
 import "./EffectSection.css";
+
+const AddIcon = ACTION_ICONS.add;
+const DeleteIcon = ACTION_ICONS.delete;
 
 /** ADR-166: Spectrum 2 elevation 3단계 (xl 없음). 목록 전체를 교체한다. */
 const SHADOW_PRESET_KEYS: readonly ShadowPresetKey[] = ["sm", "md", "lg"];
@@ -213,7 +216,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
   };
 
   const shadowListItems = [
-    { id: "add", label: localize("Add shadow layer"), icon: Plus },
+    { id: "add", label: localize("Add shadow layer"), icon: AddIcon },
     ...SHADOW_PRESET_KEYS.map((key) => ({
       id: key,
       label: `${localize("Shadow preset")} · ${key}`,
@@ -283,7 +286,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
               isDisabled={blurPx !== null}
               onPress={() => handleBlurCommit(DEFAULT_BLUR_PX)}
             >
-              <Plus
+              <AddIcon
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
@@ -317,7 +320,7 @@ const EffectSectionContent = memo(function EffectSectionContent() {
                   )
                 }
               >
-                <Trash2
+                <DeleteIcon
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}

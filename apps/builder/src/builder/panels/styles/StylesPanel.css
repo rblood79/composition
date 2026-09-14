@@ -50,73 +50,93 @@
 }
 
 /* ============================================
-   ADR-154: 반응형 override 섹션
+   ADR-154: 반응형 override 섹션 (panel-ui 04, 2026-09-14)
+   Responsive 절 = Visibility seg 한 행 · Overrides 절 = lrow 목록 + 28 열 ×
    ============================================ */
-
-.responsive-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
 
 .responsive-hint {
   margin: 0;
+  /* 절 마지막 자식 — `.section-content` 하단 페이드 (24px) 가 글줄을 깎지 않도록 아래 여백 */
+  padding-block-end: var(--spacing-lg);
   font-size: var(--text-2xs);
   color: var(--fg-muted);
   line-height: 1.4;
 }
 
-.responsive-overrides {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
+/* Visibility seg — 인스펙터 행 (seg 는 1열, 2열은 비움 — Show hidden 토글 자리는 캔버스 채널이
+   생기면 쓴다) */
+.responsive-visibility {
+  display: grid;
+  grid-template-columns: var(--inspector-row-columns);
+  gap: var(--spacing-sm);
+
+  > * {
+    min-width: 0;
+  }
 }
 
-.responsive-overrides-header {
+/* 헤더 「tablet · 2」 카운트 (10 mono) */
+.responsive-overrides-count {
+  font-family: var(--font-mono);
   font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--fg);
-  text-transform: uppercase;
+  font-weight: var(--font-weight-normal);
   letter-spacing: 0.04em;
-}
-
-.responsive-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-}
-
-.responsive-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px 2px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--accent);
-  background: var(--accent-subtle);
-  color: var(--fg);
-  font-size: var(--text-2xs);
-}
-
-.responsive-chip-label {
-  line-height: 1;
-}
-
-.responsive-chip-clear {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1px;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
   color: var(--fg-muted);
-  cursor: pointer;
 }
 
-.responsive-chip-clear:hover {
-  color: var(--fg);
+/* override 행 — [name · value] + 28 열 × (Effect 레이어 행과 같은 lrow 어법) */
+.responsive-override-row {
+  display: grid;
+  grid-template-columns: var(--inspector-row-columns);
+  grid-template-areas: "main main icon";
+  gap: var(--spacing-sm);
+
+  > * {
+    min-width: 0;
+  }
+
+  > :first-child {
+    grid-area: main;
+  }
+
+  .actions-icon {
+    grid-area: icon;
+    display: flex;
+  }
+}
+
+.responsive-override-row__body {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  box-sizing: border-box;
+  min-width: 0;
+  block-size: var(--control-size);
+  padding: 0 var(--spacing-xs) 0 var(--spacing-sm);
   background: var(--bg-muted);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--fg);
 }
 
-/* ADR-154 개정 1 — override opt-in picker */
+.responsive-override-row__name {
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--fg-muted);
+}
+
+.responsive-override-row__dot {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.responsive-override-row__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}

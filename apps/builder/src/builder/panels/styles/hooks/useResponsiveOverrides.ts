@@ -18,6 +18,8 @@ export interface ResponsiveOverridesInfo {
   isBase: boolean;
   /** 활성 breakpoint 에서 override 된 style prop 키 (정렬) — "어느 필드" 표시용 */
   activeOverriddenProps: string[];
+  /** 활성 breakpoint 의 override 값 (키 → raw 값) — Overrides 목록 행 「width · 100%」 표시용 */
+  activeOverrideValues: Record<string, unknown>;
   /** 활성 breakpoint override 개수 (배지 count) */
   activeOverrideCount: number;
   /** tablet+mobile 전체 override 항목 수 (요약) */
@@ -29,6 +31,7 @@ export interface ResponsiveOverridesInfo {
 }
 
 const EMPTY_PROPS: string[] = [];
+const EMPTY_VALUES: Record<string, unknown> = {};
 
 export function useResponsiveOverrides(): ResponsiveOverridesInfo {
   const activeBreakpoint = useStore((s) => s.activeBreakpoint);
@@ -50,6 +53,15 @@ export function useResponsiveOverrides(): ResponsiveOverridesInfo {
         : Object.keys(styles)
             .filter((key) => styles[key]?.[activeBreakpoint] !== undefined)
             .sort();
+    const activeOverrideValues =
+      activeBreakpoint === "desktop"
+        ? EMPTY_VALUES
+        : Object.fromEntries(
+            activeOverriddenProps.map((key) => [
+              key,
+              styles[key]?.[activeBreakpoint],
+            ]),
+          );
 
     // tablet+mobile 전체 override 항목 수 (style prop×bp + visibility)
     let totalOverrideCount = 0;
@@ -70,6 +82,7 @@ export function useResponsiveOverrides(): ResponsiveOverridesInfo {
       activeBreakpoint,
       isBase: activeBreakpoint === "desktop",
       activeOverriddenProps,
+      activeOverrideValues,
       activeOverrideCount: activeOverriddenProps.length,
       totalOverrideCount,
       visibility,

@@ -43,24 +43,29 @@ describe("StylesPanel canonical selected data contract", () => {
     expect(source).toContain("<ResponsiveSection />");
   });
 
-  it("ResponsiveSection wires override opt-in picker + chips + visibility editor (locked desktop)", async () => {
+  it("ResponsiveSection wires override opt-in menu + lrow list + visibility seg (locked desktop)", async () => {
     const source = await readFile(
       resolve(__dirname, "sections/ResponsiveSection.tsx"),
       "utf-8",
     );
 
-    // 활성 breakpoint override prop 목록 (어느 필드가 override 인지)
+    // 활성 breakpoint override prop 목록 + 값 (어느 필드가 override 인지 · 「width · 100%」)
     expect(source).toContain("useResponsiveOverrides");
     expect(source).toContain("activeOverriddenProps");
-    // desktop=base lock 으로 visibility 편집기 배선
-    expect(source).toContain("ResponsiveVisibilityEditor");
-    expect(source).toContain('lockedBreakpoints={["desktop"]}');
+    expect(source).toContain("activeOverrideValues");
+    // panel-ui 04: visibility 는 다중 선택 seg — desktop=base 는 잠긴 칸 (표시만)
+    expect(source).toContain('selectionMode="multiple"');
+    expect(source).toContain('const locked = bp === "desktop"');
+    expect(source).toContain("isDisabled={locked}");
+    expect(source).not.toContain("<ResponsiveVisibilityEditor");
     // ADR-154 개정 1: override 추가/제거는 명시적 opt-in 토글 액션 경유
     expect(source).toContain("useSetResponsiveStyleOverrideEnabled");
     expect(source).toContain("setOverrideEnabled(key, true)");
     expect(source).toContain("setOverrideEnabled(key, false)");
-    // 2026-08-30: override 추가 버튼은 전용 클래스 대신 공용 라벨 액션 정본
-    // `.control-button[data-variant="add"]` (panel-system.css) 을 쓴다.
-    expect(source).toContain('data-variant="add"');
+    // 추가는 Overrides 절 헤더 「+」 메뉴 (PropertyRowMenu icon=add) — select/chip 아님
+    expect(source).toContain("PropertyRowMenu");
+    expect(source).toContain("icon={AddIcon}");
+    expect(source).not.toContain("responsive-chip");
+    expect(source).not.toContain("<select");
   });
 });

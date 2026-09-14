@@ -168,44 +168,17 @@ describe("ADR-187 Phase 2 migration guards", () => {
     expect(projectionIndex).not.toContain("getSubtreeElementIds");
   });
 
-  it("Modified Styles color editor도 typed owner가 legacy preview보다 먼저 선택된다", async () => {
+  it("Modified Styles 는 read-only 목록 — 편집 경로 (legacy preview 포함) 가 없다", async () => {
+    // panel-ui 04 (2026-09-14): 항목마다 편집기를 다시 그리던 뷰를 key·value 목록으로. 편집은
+    // 해당 탭의 typed owner 경로가 유일하므로 여기서 legacy preview 가 되살아나면 안 된다.
     const modified = await source(
       "../panels/styles/sections/ModifiedStylesSection.tsx",
     );
-    expect(modified).toContain("useStylePresentationActions");
-    expect(modified).toContain("previewBorderColorPresentation");
-    expect(modified).toContain("previewTextColorPresentation");
-    expect(modified).toContain("commitBorderColorPresentation");
-    expect(modified).toContain("commitTextColorPresentation");
-    expect(modified).toContain("previewOpacityPresentation");
-    expect(modified).toContain("commitOpacityPresentation");
-    expect(modified).toContain("presentationOwnsFrameScheduling");
-    expect(modified).toContain("onPresentationCancel");
-
-    const borderPreviewOwner = modified.indexOf(
-      "previewBorderColorPresentation(newValue)",
-    );
-    const textPreviewOwner = modified.indexOf(
-      "previewTextColorPresentation(newValue)",
-    );
-    const opacityBlock = modified.slice(
-      modified.indexOf('property === "opacity"'),
-    );
-    const opacityPreviewOwner = opacityBlock.indexOf(
-      "previewOpacityPresentation(newValue)",
-    );
-    const opacityLegacyPreview = opacityBlock.indexOf(
-      "updateStylePreview(property, newValue)",
-    );
-    const legacyPreview = modified.indexOf(
-      "updateStylePreview(property, newValue)",
-    );
-    expect(borderPreviewOwner).toBeGreaterThan(-1);
-    expect(textPreviewOwner).toBeGreaterThan(-1);
-    expect(opacityPreviewOwner).toBeGreaterThan(-1);
-    expect(opacityLegacyPreview).toBeGreaterThan(opacityPreviewOwner);
-    expect(legacyPreview).toBeGreaterThan(borderPreviewOwner);
-    expect(legacyPreview).toBeGreaterThan(textPreviewOwner);
+    expect(modified).not.toContain("updateStylePreview");
+    expect(modified).not.toContain("updateStyle(");
+    expect(modified).not.toContain("PropertyColor");
+    expect(modified).not.toContain("PropertyUnitInput");
+    expect(modified).toContain("useResetStyles");
   });
 
   it("Skia publish consumer는 targeted in-place patch 외 forbidden rebuild 경로가 없다", async () => {

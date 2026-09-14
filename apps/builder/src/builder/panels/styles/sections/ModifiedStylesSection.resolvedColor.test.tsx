@@ -17,39 +17,19 @@ vi.mock("../../../components", () => ({
   PropertySection: ({ children }: PropsWithChildren) => (
     <section>{children}</section>
   ),
-  PropertyColor: ({ label, value }: { label: string; value: string }) => (
-    <output data-testid={`color-${label}`} data-value={value} />
+  EmptyState: () => null,
+}));
+
+// 행의 swatch — resolved 색을 그대로 받는지만 본다 (panel-ui 04: 편집기 대신 read-only 행)
+vi.mock("@composition/shared/components/ColorSwatch", () => ({
+  ColorSwatch: ({ color }: { color: { toString: (f: string) => string } }) => (
+    <output data-testid="color-Color" data-value={color.toString("hex")} />
   ),
-  PropertyUnitInput: () => null,
-  PropertySelect: () => null,
 }));
 
 vi.mock("../hooks/useResetStyles", () => ({
   useDirtyStyleProps: () => ["color"],
-}));
-
-vi.mock("../hooks/useStyleActions", () => ({
-  useStyleActions: () => ({ updateStyle: vi.fn() }),
-}));
-
-vi.mock("../hooks/useOptimizedStyleActions", () => ({
-  useOptimizedStyleActions: () => ({ updateStylePreview: vi.fn() }),
-}));
-
-vi.mock("../hooks/useStylePresentationActions", () => ({
-  useStylePresentationActions: () => ({
-    cancelBorderColorPresentation: vi.fn(),
-    commitBorderColorPresentation: vi.fn(() => false),
-    isBorderColorPresentationOwned: vi.fn(() => false),
-    previewBorderColorPresentation: vi.fn(() => false),
-    cancelTextColorPresentation: vi.fn(),
-    commitTextColorPresentation: vi.fn(() => false),
-    isTextColorPresentationOwned: vi.fn(() => false),
-    previewTextColorPresentation: vi.fn(() => false),
-    commitOpacityPresentation: vi.fn(() => false),
-    isOpacityPresentationOwned: vi.fn(() => false),
-    previewOpacityPresentation: vi.fn(() => false),
-  }),
+  useResetStyles: () => vi.fn(),
 }));
 
 describe("ADR-912 후속 — Modified Styles resolved color", () => {
@@ -76,7 +56,7 @@ describe("ADR-912 후속 — Modified Styles resolved color", () => {
     render(<ModifiedStylesSection selectedElement={selectedElement} />);
 
     expect(screen.getByTestId("color-Color").getAttribute("data-value")).toBe(
-      lightColors.accent,
+      lightColors.accent.toUpperCase(),
     );
   });
 
@@ -98,7 +78,7 @@ describe("ADR-912 후속 — Modified Styles resolved color", () => {
     render(<ModifiedStylesSection selectedElement={selectedElement} />);
 
     expect(screen.getByTestId("color-Color").getAttribute("data-value")).toBe(
-      resolveAccentColorTokens("red", "light")?.accent,
+      resolveAccentColorTokens("red", "light")?.accent.toUpperCase(),
     );
   });
 });

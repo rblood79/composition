@@ -11,10 +11,11 @@ import { memo } from "react";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { parseColor, type Color } from "react-aria-components/ColorPicker";
-import { Square, Trash2 } from "lucide-react";
+import { Square } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { PropertyRowMenu } from "../../../components";
+import { ACTION_ICONS } from "../../../config/actionIcons";
 import { SquareOff } from "../../../components/icons";
 import type {
   BoxShadowPresentationLayer,
@@ -76,7 +77,7 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
         : localize("Inset shadow layer"),
       icon: layer.inset ? Square : SquareOff,
     },
-    { id: "remove", label: localize("Remove shadow layer"), icon: Trash2 },
+    { id: "remove", label: localize("Remove shadow layer"), icon: ACTION_ICONS.delete },
   ];
 
   return (

@@ -27,21 +27,26 @@ interface PropertyRowMenuProps {
   label: string;
   items: readonly PropertyRowMenuItem[];
   onAction: (id: string) => void;
+  /**
+   * 트리거 아이콘 (기본 ⋮). 항목 전부가 "추가" 인 메뉴 (Overrides 절 헤더의 「+ → 속성 고르기」)
+   * 는 `ACTION_ICONS.add` 로 — 메뉴가 열리기 전에 무슨 일이 일어날지 아이콘이 말한다.
+   */
+  icon?: ComponentType<{ size?: number; strokeWidth?: number }>;
+  isDisabled?: boolean;
 }
 
 export const PropertyRowMenu = memo(function PropertyRowMenu({
   label,
   items,
   onAction,
+  icon: Icon = EllipsisVertical,
+  isDisabled,
 }: PropertyRowMenuProps) {
   const disabledKeys = items.filter((i) => i.isDisabled).map((i) => i.id);
   return (
     <MenuTrigger>
-      <SwatchIconButton aria-label={label}>
-        <EllipsisVertical
-          size={iconProps.size}
-          strokeWidth={iconProps.strokeWidth}
-        />
+      <SwatchIconButton aria-label={label} isDisabled={isDisabled}>
+        <Icon size={iconProps.size} strokeWidth={iconProps.strokeWidth} />
       </SwatchIconButton>
       <Popover
         className="react-aria-Popover property-select-popover property-row-menu-popover"

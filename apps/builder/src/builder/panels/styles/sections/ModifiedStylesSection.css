@@ -1,33 +1,60 @@
 /**
- * ModifiedStylesSection
+ * ModifiedStylesSection — key · value 목록 (panel-ui 04, 2026-09-14)
  *
  * ADR-163 후속 — components/styles/index.css(잡화 1,169줄) 분할로 co-locate.
  * cascade 보존을 위해 원본과 동일한 @layer builder-system 을 유지한다.
  */
 
 @layer builder-system {
-  /* Modified Styles: read-only field (gradient backgroundImage etc.) */
-  .modified-readonly-field {
+  /* 헤더 개수 (10 mono) */
+  .modified-count {
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    font-weight: var(--font-weight-normal);
+    color: var(--fg-muted);
+  }
+
+  /* 행 하나 = key (12, muted) ··· value (mono 10) — 28 */
+  .modified-row {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 4px 0;
-    min-height: 28px;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    box-sizing: border-box;
+    min-width: 0;
+    block-size: var(--control-size);
+    padding: 0 var(--spacing-xs);
   }
 
-  .modified-readonly-label {
-    flex-shrink: 0;
+  .modified-row__key {
+    flex: none;
     font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
     color: var(--fg-muted);
-    min-width: 100px;
   }
 
-  .modified-readonly-value {
-    font-size: var(--text-xs);
-    color: var(--fg);
+  .modified-row__value {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    min-width: 0;
     font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--fg);
+
+    .react-aria-ColorSwatch {
+      flex: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+    }
+  }
+
+  .modified-row__text {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
 }

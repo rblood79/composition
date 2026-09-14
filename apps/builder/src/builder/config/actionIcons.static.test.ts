@@ -71,12 +71,6 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
       "정렬 속성이다. 두 축이 같이 움직일 이유가 없다.",
   },
   {
-    file: "builder/panels/styles/sections/ModifiedStylesSection.tsx",
-    symbols: ["RulerDimensionLine"],
-    reason:
-      "치수 입력 필드(`PropertyUnitInput`) 아이콘 — 눈금자 토글이 아니다.",
-  },
-  {
     file: "builder/panels/styles/sections/TransformSection.tsx",
     symbols: ["RulerDimensionLine"],
     reason: "치수 입력 필드 아이콘 — 눈금자 토글이 아니다.",

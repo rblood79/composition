@@ -59,13 +59,21 @@ describe("StylesPanel breakpoint context", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows the active breakpoint only once in the Responsive visibility controls", () => {
+  it("shows the visibility seg once — desktop cell locked (base), tablet/mobile toggleable", () => {
     renderStylesPanel();
 
     // Responsive 섹션은 Screen 그룹 탭에 속한다 (기본 탭은 Layout).
     fireEvent.click(screen.getByRole("tab", { name: "Screen" }));
 
-    expect(screen.getAllByText("Desktop", { exact: true })).toHaveLength(1);
+    const desktop = screen.getByRole("button", { name: "Desktop · Base" });
+    expect(desktop.hasAttribute("disabled")).toBe(true);
+    expect(desktop.getAttribute("aria-pressed")).toBe("true");
+    const tablet = screen.getByRole("button", { name: "Tablet" });
+    expect(tablet.hasAttribute("disabled")).toBe(false);
+    expect(tablet.getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Mobile" })).toBeTruthy();
+    // desktop(base) 에서는 Overrides 절이 없다 — 편집은 전역이라는 힌트만
+    expect(screen.queryByText("Overrides")).toBeNull();
   });
 });
 
@@ -125,7 +133,8 @@ describe("StylesPanel view tabs", () => {
     // 수정이 있으면 접근 이름에 개수가 붙는다 ("Modified (2)").
     fireEvent.click(screen.getByRole("tab", { name: /^Modified/ }));
 
-    expect(screen.getByText(/Modified Styles/)).toBeTruthy();
+    // 탭 라벨 + 절 제목 둘 다 "Modified" — 절은 read-only key·value 목록 (panel-ui 04)
+    expect(screen.getAllByText("Modified").length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText("Size")).toBeNull();
   });
 });
