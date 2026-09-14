@@ -1,0 +1,12 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1100 } })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`probe-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1500);
+const info = await page.evaluate(() => { const st = window.__composition_STORE__.getState(); const lm = window.__composition_LAYOUT_DEBUG__?.getSharedLayoutMap?.(); const els = st.elements.filter(e => e.page_id === st.currentPageId).slice(0, 40).map(e => { const r = lm?.get(e.id); return `${e.type} ${e.id.slice(0,6)} ${r ? `${Math.round(r.x)},${Math.round(r.y)} ${Math.round(r.width)}×${Math.round(r.height)}` : "-"}`; }); return { pages: st.pages.map(p => p.title), current: st.currentPageId, count: st.elements.length, els }; });
+console.log(JSON.stringify(info, null, 1));
+await browser.close();

@@ -1,0 +1,45 @@
+// Button 텍스트 italic · uppercase — Skia 노드 · 캔버스 픽셀 · Preview DOM computed style
+import { inflateSync } from "node:zlib";
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1100 } })).newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`text-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "Components", exact: true }).first().click(); await page.waitForTimeout(600);
+console.log("palette items", await page.evaluate(() => Array.from(document.querySelectorAll("button.list-item")).map((e) => e.textContent.trim()).slice(0, 40)));
+await page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^button$/i }) }).first().click(); await page.waitForTimeout(1500);
+await page.getByRole("button", { name: "Components", exact: true }).first().click().catch(() => {}); await page.waitForTimeout(300);
+const elId = await page.evaluate(async () => {
+  const st = window.__composition_STORE__.getState();
+  const els = st.elements.filter((e) => e.page_id === st.currentPageId && e.type === "Button");
+  const el = els[els.length - 1]; st.setSelectedElement(el.id, el.props); return el.id;
+});
+await page.waitForTimeout(600);
+const r = await page.evaluate((id) => { const st = window.__composition_STORE__.getState(); const b = window.__composition_LAYOUT_DEBUG__?.getSharedLayoutMap?.()?.get(id); const pp = st.pagePositions?.[st.currentPageId]; return { b: { x: b.x, y: b.y, w: b.width, h: b.height }, pp }; }, elId);
+await page.evaluate(({ x, y }) => window.__composition_APPLY_VIEWPORT__?.({ scale: 2, x: -(x * 2) + 600, y: -(y * 2) + 400 }), { x: (r.pp?.x ?? 0) + r.b.x, y: (r.pp?.y ?? 0) + r.b.y });
+await page.waitForTimeout(700);
+const cb = await page.locator('[data-testid="skia-canvas-unified"]').boundingBox();
+const clip = { x: Math.round(cb.x + 600), y: Math.round(cb.y + 400), width: Math.round(r.b.w * 2), height: Math.round(r.b.h * 2) };
+const shot = async (name) => { const buf = await page.screenshot({ clip, path: `/private/tmp/claude-501/-Users-admin-work-composition/f6bcc488-f176-4644-8364-3625704b801c/scratchpad/text-${name}.png` }); let off = 8; let idat = Buffer.alloc(0); while (off < buf.length) { const len = buf.readUInt32BE(off); const type = buf.toString("ascii", off + 4, off + 8); if (type === "IDAT") idat = Buffer.concat([idat, buf.subarray(off + 8, off + 8 + len)]); off += 12 + len; } const raw = inflateSync(idat); const w = clip.width, h = clip.height, bpp = 4, stride = w * bpp + 1; const out = Buffer.alloc(w * h * bpp); let prev = Buffer.alloc(w * bpp); for (let y = 0; y < h; y++) { const f = raw[y * stride]; const line = raw.subarray(y * stride + 1, y * stride + 1 + w * bpp); const cur = Buffer.alloc(w * bpp); for (let k = 0; k < w * bpp; k++) { const a = k >= bpp ? cur[k - bpp] : 0, up = prev[k], c = k >= bpp ? prev[k - bpp] : 0; let v = line[k]; if (f === 1) v += a; else if (f === 2) v += up; else if (f === 3) v += (a + up) >> 1; else if (f === 4) { const pp = a + up - c; const pa = Math.abs(pp - a), pb = Math.abs(pp - up), pc = Math.abs(pp - c); v += pa <= pb && pa <= pc ? a : pb <= pc ? up : c; } cur[k] = v & 255; } cur.copy(out, y * w * bpp); prev = cur; } return out; };
+const diff = (a, b) => { let n = 0; for (let k = 0; k < a.length; k += 4) if (Math.abs(a[k] - b[k]) + Math.abs(a[k + 1] - b[k + 1]) + Math.abs(a[k + 2] - b[k + 2]) > 48) n++; return n; };
+const skiaText = () => page.evaluate((id) => { const n = window.__composition_SKIA_DEBUG__?.getSkiaNode(id); const t = (n?.children ?? []).find((c) => c.type === "text")?.text; return t ? { content: t.content, fontStyle: t.fontStyle ?? null, fontWeight: t.fontWeight ?? null } : null; }, elId);
+const base = await shot("base"); console.log("base skia", JSON.stringify(await skiaText()));
+await page.getByRole("button", { name: "Styles", exact: true }).first().click(); await page.waitForTimeout(500);
+await page.locator(".styles-panel-tab").nth(2).click(); await page.waitForTimeout(500);
+const T = '[data-panel-id="styles"]';
+await page.locator(`${T} .font-style .react-aria-ToggleButton[aria-label="Italic"]`).click(); await page.waitForTimeout(800);
+const italic = await shot("italic"); console.log("italic skia", JSON.stringify(await skiaText()), "pixel diff vs base", diff(base, italic));
+await page.locator(`${T} .text-transform .react-aria-ToggleButton[aria-label="Uppercase"]`).click(); await page.waitForTimeout(800);
+const upper = await shot("upper"); console.log("upper skia", JSON.stringify(await skiaText()), "pixel diff vs italic", diff(italic, upper));
+await page.locator(`${T} .font-style .react-aria-ToggleButton[aria-label="Bold"]`).click(); await page.waitForTimeout(800);
+const bold = await shot("bold"); console.log("bold skia", JSON.stringify(await skiaText()), "pixel diff vs upper", diff(upper, bold));
+// Preview (web) 쪽 computed style
+const previewInfo = await page.evaluate((id) => { const f = document.querySelector("iframe"); const d = f?.contentDocument; const el = d?.querySelector(`[data-element-id="${id}"], #${CSS.escape(id)}, [data-id="${id}"]`); if (!el) return { iframe: Boolean(f), found: false }; const cs = d.defaultView.getComputedStyle(el); return { found: true, fontStyle: cs.fontStyle, textTransform: cs.textTransform, fontWeight: cs.fontWeight, text: el.textContent }; }, elId);
+console.log("preview", JSON.stringify(previewInfo));
+console.log("errors", errors.slice(0, 3));
+await browser.close();
