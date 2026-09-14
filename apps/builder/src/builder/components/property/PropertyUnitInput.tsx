@@ -49,8 +49,10 @@ interface PropertyUnitInputProps {
    * "suffix" — legend·아이콘 없이 라벨을 필드 안 우측 suffix (10 mono caps) 로 둔다.
    * 라벨 행 18 이 없어져 행 하나가 28 (panel-ui 01, 2026-09-14). 86px 열이므로 짧은 토큰
    * (W · H · MIN W) 만 — 긴 이름은 열 2개짜리 필드에서. 접근 이름은 input aria-label.
+   * "icon" — legend 없이 `icon` 글리프가 라벨 (Border 코너 「◜ 8 PX」, panel-ui 02) + 단위 suffix
+   * 트리거 (unitSuffix 와 같은 조각). 접근 이름은 label.
    */
-  labelMode?: "legend" | "suffix";
+  labelMode?: "legend" | "suffix" | "icon";
   /** suffix 모드의 표시 글자 (기본 label). 접근 이름은 언제나 label — "Width" 를 "W" 로 보일 때 */
   suffixLabel?: string;
   /**
@@ -626,6 +628,7 @@ export const PropertyUnitInput = memo(
     };
 
     const isSuffix = labelMode === "suffix";
+    const isIconMode = labelMode === "icon";
     const unitLabel = i18n
       ? translateKey(i18n.t, semanticLabelKeys.Unit ?? "Unit", "Unit")
       : "Unit";
@@ -636,7 +639,7 @@ export const PropertyUnitInput = memo(
     //   ▲▼ stepper (12, 위아래 겹침 2) — 키워드 (auto · normal) 는 stepper 없음.
     const suffixIsTrigger = isSuffix && !hasPresets && Boolean(displayLabel);
     // legend 모드 + unitSuffix: 트리거 글자가 현재 단위 (「8 PX」, 단위 없음은 —)
-    const unitIsTrigger = !isSuffix && unitSuffix && !hasPresets;
+    const unitIsTrigger = !isSuffix && (unitSuffix || isIconMode) && !hasPresets;
     const unitSuffixText =
       unit === "" || unit === "reset" || (value === "" && units.includes("reset"))
         ? "—"
@@ -655,14 +658,14 @@ export const PropertyUnitInput = memo(
           labelMode === "suffix" ? "suffix" : unitIsTrigger ? "unit" : undefined
         }
         aria-label={
-          labelMode === "suffix" && displayLabel ? displayLabel : undefined
+          labelMode !== "legend" && displayLabel ? displayLabel : undefined
         }
       >
         {displayLabel && labelMode === "legend" && (
           <legend className="fieldset-legend">{displayLabel}</legend>
         )}
         <div className="react-aria-control react-aria-Group" ref={groupRef}>
-          {Icon && labelMode === "legend" && (
+          {Icon && (labelMode === "legend" || isIconMode) && (
             <label className="control-label">
               <Icon
                 color={iconProps.color}

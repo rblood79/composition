@@ -20,16 +20,26 @@
     gap: var(--spacing-sm);
   }
 
-  /* [스포이드 28] [HEX | RGBA | CSS seg 28] — 한 행 28 */
+  /* 「[HEX|RGBA|CSS] [623CEA hex] [스포이드 28]」 — 인스펙터 행 템플릿 1fr 1fr 28 (panel-ui 05 · 17) */
   .color-picker-panel__inputs-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr var(--control-size);
     align-items: center;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
+
+    > * {
+      min-width: 0;
+    }
   }
 
-  /* Hue/Alpha 슬라이더: 얇은 트랙 (2026-07-15, 28→8px) */
+  /* 색 영역 100 (= 3행 + gap 2, shared ColorArea.css 180 은 이 피커 밖 기본값) · 막대 12 */
+  .color-picker-panel .react-aria-ColorArea {
+    height: 100px;
+    border-radius: var(--radius-sm);
+  }
+
   .color-picker-panel .react-aria-ColorSlider .react-aria-SliderTrack {
-    height: 8px;
+    height: 12px;
   }
 
   /* ── Document · Theme 팔레트 (panel-ui 05 #1) — 헤더 28 · 라벨 18 · swatch 28 6열 gap 8 ── */

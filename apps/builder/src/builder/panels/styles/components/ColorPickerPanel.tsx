@@ -17,7 +17,7 @@ import {
 import { ColorArea } from "@composition/shared/components/ColorArea";
 import { ColorSlider } from "@composition/shared/components/ColorSlider";
 import { ColorInputModeSelector } from "./ColorInputModeSelector";
-import { ColorInputFields } from "./ColorInputFields";
+import { ColorInputFields, HexField } from "./ColorInputFields";
 import { EyeDropperButton } from "./EyeDropperButton";
 import { ColorPickerPalettes } from "./ColorPickerPalettes";
 import {
@@ -154,10 +154,13 @@ function ColorPickerPanelInner({
           onChangeEnd={handleChangeEnd}
         />
         <ColorSlider channel="alpha" onChangeEnd={handleChangeEnd} />
+        {/* 첫 행 「[HEX|RGBA|CSS] [623CEA hex] [스포이드]」 · 둘째 행은 모드별 (RGBA: [R G B] [A],
+            CSS: 문자열) — HEX 는 첫 행이 전부 (panel-ui 05 · 17, 대조 B8) */}
         <div className="color-picker-panel__inputs">
           <div className="color-picker-panel__inputs-row">
-            <EyeDropperButton onColorPick={handleInputChange} />
             <ColorInputModeSelector />
+            <HexField value={hexValue} onChange={handleInputChange} />
+            <EyeDropperButton onColorPick={handleInputChange} />
           </div>
           <ColorInputFields value={hexValue} onChange={handleInputChange} />
         </div>

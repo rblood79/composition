@@ -68,14 +68,16 @@ function NumberField({
   );
 }
 
-/** 단일 텍스트 입력 필드 */
+/** 단일 텍스트 입력 필드 — suffix 는 필드 안 10 mono (「623CEA hex」) */
 function TextField({
   label,
   value,
+  suffix,
   onChange,
 }: {
   label: string;
   value: string;
+  suffix?: string;
   onChange: (v: string) => void;
 }) {
   const selectedElementId = useStore((state) => state.selectedElementId);
@@ -130,18 +132,28 @@ function TextField({
         aria-label={label}
         placeholder={label}
       />
+      {suffix && (
+        <span className="color-input-text-field__suffix" aria-hidden="true">
+          {suffix}
+        </span>
+      )}
     </label>
   );
 }
 
-/** HEX 모드 */
-function HexFields({ value, onChange }: ColorInputFieldsProps) {
+/**
+ * HEX 필드 — 피커 첫 행 「623CEA hex」 (panel-ui 05 · 17, 대조 B8): 모드와 무관하게 항상
+ * 보이는 정본 값. `#` 없이 6자 대문자로 보이고 (alpha FF 는 숨김, 아니면 8자) 입력은 관용.
+ */
+export function HexField({ value, onChange }: ColorInputFieldsProps) {
   const hex = normalizeToHex8(value);
+  const display = hex.slice(1, hex.endsWith("FF") ? 7 : 9).toUpperCase();
   return (
     <div className="color-input-fields color-input-fields--hex">
       <TextField
         label="HEX"
-        value={hex}
+        suffix="hex"
+        value={display}
         onChange={(v) => {
           // 입력 관용: `#` 생략/공백 허용 — bare hex 가 fallback(이전 값)으로
           // 원복되던 결함 수정 (normalizeHexInputToHex8 주석 참조)
@@ -153,52 +165,55 @@ function HexFields({ value, onChange }: ColorInputFieldsProps) {
   );
 }
 
-/** RGBA 모드 */
+/** RGBA 모드 — 둘째 행 「[R G B] [A]」: 채널 셋이 한 상자 (열 2), A 는 열 3 (panel-ui 17) */
 function RgbaFields({ value, onChange }: ColorInputFieldsProps) {
   const rgba = hex8ToRgba(normalizeToHex8(value));
 
   return (
     <div className="color-input-fields color-input-fields--multi">
-      <NumberField
-        label="R"
-        value={rgba.r}
-        min={0}
-        max={255}
-        onChange={(r) => onChange(rgbaToHex8({ ...rgba, r }))}
-      />
-      <NumberField
-        label="G"
-        value={rgba.g}
-        min={0}
-        max={255}
-        onChange={(g) => onChange(rgbaToHex8({ ...rgba, g }))}
-      />
-      <NumberField
-        label="B"
-        value={rgba.b}
-        min={0}
-        max={255}
-        onChange={(b) => onChange(rgbaToHex8({ ...rgba, b }))}
-      />
+      <div className="color-input-fields__group">
+        <NumberField
+          label="R"
+          value={rgba.r}
+          min={0}
+          max={255}
+          onChange={(r) => onChange(rgbaToHex8({ ...rgba, r }))}
+        />
+        <NumberField
+          label="G"
+          value={rgba.g}
+          min={0}
+          max={255}
+          onChange={(g) => onChange(rgbaToHex8({ ...rgba, g }))}
+        />
+        <NumberField
+          label="B"
+          value={rgba.b}
+          min={0}
+          max={255}
+          onChange={(b) => onChange(rgbaToHex8({ ...rgba, b }))}
+        />
+      </div>
       <NumberField
         label="A"
         value={Math.round(rgba.a * 100)}
         min={0}
         max={100}
-        suffix="%"
+        suffix=""
         onChange={(a) => onChange(rgbaToHex8({ ...rgba, a: a / 100 }))}
       />
     </div>
   );
 }
 
-/** CSS 모드 */
+/** CSS 모드 — 둘째 행 (열 2 = 1fr 1fr 폭) */
 function CssFields({ value, onChange }: ColorInputFieldsProps) {
   const css = hex8ToCss(normalizeToHex8(value));
   return (
     <div className="color-input-fields color-input-fields--css">
       <TextField
         label="CSS"
+        suffix="css"
         value={css}
         onChange={(v) => {
           const hex = cssToHex8(v);
@@ -287,11 +302,12 @@ function HsbFields({ value, onChange }: ColorInputFieldsProps) {
   );
 }
 
-const FIELD_MAP: Record<
+/** 모드별 둘째 행 — HEX 는 첫 행의 HexField 가 전부라 둘째 행 없음 */
+const DETAIL_FIELD_MAP: Record<
   ColorInputMode,
-  React.ComponentType<ColorInputFieldsProps>
+  React.ComponentType<ColorInputFieldsProps> | null
 > = {
-  hex: HexFields,
+  hex: null,
   rgba: RgbaFields,
   css: CssFields,
   hsl: HslFields,
@@ -303,6 +319,7 @@ export const ColorInputFields = memo(function ColorInputFields({
   onChange,
 }: ColorInputFieldsProps) {
   const mode = useFillUIStore((s) => s.colorInputMode);
-  const FieldComponent = FIELD_MAP[mode];
+  const FieldComponent = DETAIL_FIELD_MAP[mode];
+  if (!FieldComponent) return null;
   return <FieldComponent value={value} onChange={onChange} />;
 });

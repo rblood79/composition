@@ -11,13 +11,66 @@
     width: 100%;
   }
 
-  .color-input-fields--hex,
-  .color-input-fields--css {
+  .color-input-fields--hex {
     flex-direction: column;
   }
 
+  /* CSS 문자열 — 둘째 행 열 1·2 (28 열은 비움) */
+  .color-input-fields--css {
+    display: grid;
+    grid-template-columns: 1fr 1fr var(--control-size);
+    gap: var(--spacing-sm);
+
+    > .color-input-text-field {
+      grid-column: 1 / 3;
+      min-width: 0;
+    }
+  }
+
+  /* 「[R G B] [A]」 — 채널 셋 한 상자 (열 1·2) + A (28 열, 단위 없이 값만 — panel-ui 17) */
   .color-input-fields--multi {
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: 1fr 1fr var(--control-size);
+    gap: var(--spacing-sm);
+
+    > * {
+      min-width: 0;
+    }
+
+    .color-input-fields__group {
+      grid-column: 1 / 3;
+    }
+
+    /* A 28 칸 — 3자리 (100) 가 들어가게 안쪽 여백 0 · suffix 없음 */
+    > .color-input-number-field .scrub-input {
+      padding: 0 var(--spacing-2xs);
+    }
+  }
+
+  .color-input-fields__group {
+    display: flex;
+    min-width: 0;
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    background: var(--bg-overlay);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+
+    /* 상자 안 세 필드 — 각자의 테두리·배경은 상자가 가진다 */
+    .color-input-number-field__scrub {
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      block-size: 100%;
+    }
+
+    .color-input-number-field + .color-input-number-field {
+      border-inline-start: 1px solid var(--border);
+    }
+
+    &:focus-within {
+      border-color: var(--accent);
+    }
   }
 
   /* Number field — ScrubInput 래퍼. 채널 이름 (R·G·B·A) 은 필드 안 suffix 로 —
@@ -35,27 +88,47 @@
   /* Text field — 28 상자 (종전 24 + 라벨 행) */
   .color-input-text-field {
     display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
     width: 100%;
-  }
-
-  .color-input-text-field__input {
     box-sizing: border-box;
-    width: 100%;
     block-size: var(--control-size);
     padding: 0 var(--spacing-xs);
-    font-size: var(--text-xs);
-    font-family: var(--font-mono);
-    line-height: var(--text-xs--line-height);
     background: var(--bg-overlay);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    color: var(--fg);
-    text-align: center;
+    cursor: text;
 
-    &:focus {
+    &:focus-within {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
       border-color: var(--accent);
     }
+  }
+
+  .color-input-text-field__input {
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+    font-size: var(--text-xs);
+    font-family: var(--font-mono);
+    line-height: var(--text-xs--line-height);
+    font-variant-numeric: tabular-nums;
+    background: transparent;
+    border: 0;
+    color: var(--fg);
+    text-align: start;
+    outline: none;
+  }
+
+  /* 「623CEA hex」 의 hex — 10 mono, 단위 자리 */
+  .color-input-text-field__suffix {
+    flex: none;
+    font-size: var(--text-2xs);
+    font-family: var(--font-mono);
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: var(--fg-muted);
+    pointer-events: none;
   }
 }

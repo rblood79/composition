@@ -19,7 +19,7 @@
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
-import { memo } from "react";
+import { memo, type ComponentType } from "react";
 import {
   Ellipsis,
   Minus,
@@ -45,7 +45,11 @@ import {
   BORDER_WIDTH_PRESET_OPTIONS,
   type PropertyUnitPreset,
 } from "../../../components/property/propertyUnitPresets";
-import { LineDashed } from "../../../components/icons";
+import {
+  CornerRadius,
+  LineDashed,
+  type CornerRadiusCorner,
+} from "../../../components/icons";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { BORDER_PROPS } from "./styleSectionProps";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -94,29 +98,40 @@ const SIDE_OPTIONS = [
 /** `[top, right, bottom, left]` 인덱스 */
 const SIDE_INDEX = { top: 0, right: 1, bottom: 2, left: 3 } as const;
 
+// 코너 글리프가 라벨 (panel-ui 02 — 대조 B5; 종전 「TL」 글자 suffix). 접근 이름은 label 그대로.
+const CORNER_ICONS: Record<
+  CornerRadiusCorner,
+  ComponentType<{ color?: string; size?: number; strokeWidth?: number }>
+> = {
+  tl: (p) => <CornerRadius corner="tl" {...p} />,
+  tr: (p) => <CornerRadius corner="tr" {...p} />,
+  bl: (p) => <CornerRadius corner="bl" {...p} />,
+  br: (p) => <CornerRadius corner="br" {...p} />,
+};
+
 const CORNER_FIELDS = [
   {
     prop: "borderTopLeftRadius",
     label: "Top left radius",
-    suffix: "TL",
+    corner: "tl" as CornerRadiusCorner,
     index: 0,
   },
   {
     prop: "borderTopRightRadius",
     label: "Top right radius",
-    suffix: "TR",
+    corner: "tr" as CornerRadiusCorner,
     index: 1,
   },
   {
     prop: "borderBottomLeftRadius",
     label: "Bottom left radius",
-    suffix: "BL",
+    corner: "bl" as CornerRadiusCorner,
     index: 3,
   },
   {
     prop: "borderBottomRightRadius",
     label: "Bottom right radius",
-    suffix: "BR",
+    corner: "br" as CornerRadiusCorner,
     index: 2,
   },
 ] as const;
@@ -327,13 +342,13 @@ const BorderSectionContent = memo(function BorderSectionContent() {
       </div>
 
       <div className="style-border-corners">
-        {CORNER_FIELDS.map(({ prop, label, suffix, index }) => (
+        {CORNER_FIELDS.map(({ prop, label, corner, index }) => (
           <PropertyUnitInput
             key={prop}
             label={localize(label)}
-            className={`border-corner border-corner-${suffix.toLowerCase()}`}
-            labelMode="suffix"
-            suffixLabel={suffix}
+            className={`border-corner border-corner-${corner}`}
+            labelMode="icon"
+            icon={CORNER_ICONS[corner]}
             units={["px", "reset"]}
             defaultUnit="px"
             allowEmptyReset

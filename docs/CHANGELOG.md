@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [색 피커 본체 — 색 영역 100 · 막대 12 · 「[HEX|RGBA|CSS] [623CEA hex] [스포이드]」 한 행 · Border 코너 글리프] - 2026-09-15
+
+### Changed
+
+- **색 피커 본체** (panel-ui 05 · 17 — 대조 B8; 기본형 · Fill · 스톱 · 점 피커 한 곳) — 색 영역 180 → **100** (3행 + gap 2), hue/alpha 막대 8 → **12**, 입력 첫 행이 「[HEX|RGBA|CSS 세그] [623CEA hex] [스포이드 28]」 (행 템플릿 1fr 1fr 28). HEX 필드는 모드와 무관하게 항상 보이는 정본 값 (`#` 없이 6자, alpha 가 있으면 8자, suffix 「hex」). 둘째 행은 모드별 — RGBA 는 「[R G B 한 상자] [A 28]」, CSS 는 문자열 (열 2), HEX 는 첫 행이 전부. 기본형 팝오버 233×410 (종전 518).
+- **Border 코너 2×2 라벨 → 코너 글리프** (panel-ui 02 — 대조 B5) — 「TL / TR / BL / BR」 글자 suffix 대신 코너 호 글리프가 필드 앞 라벨 (`CornerRadius` 아이콘, 접근 이름은 「Top left radius」 그대로), 단위 「PX」 suffix + stepper. `PropertyUnitInput labelMode="icon"`.
+
 ## [Styles 패널 Layout 탭 — 절 순서 · Size 5행 (Hug · Fill 이 단위 메뉴 안) · Gap 「8 PX」] - 2026-09-15
 
 ### Changed

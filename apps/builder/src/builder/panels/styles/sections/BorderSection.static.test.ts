@@ -37,7 +37,7 @@ describe("BorderSection border preset contract", () => {
       expect(source).toContain(`"${style}"`);
     }
     expect(source).toContain('localize("Skia approximation")');
-    // 코너 4칸 — suffix 라벨 28 필드, 칸 하나는 그 longhand 하나
+    // 코너 4칸 — 코너 글리프가 라벨인 28 필드 (panel-ui 02 — 대조 B5), 칸 하나는 그 longhand 하나
     for (const prop of [
       "borderTopLeftRadius",
       "borderTopRightRadius",
@@ -46,7 +46,8 @@ describe("BorderSection border preset contract", () => {
     ]) {
       expect(source).toContain(`prop: "${prop}"`);
     }
-    expect(source).toContain('labelMode="suffix"');
+    expect(source).toContain('labelMode="icon"');
+    expect(source).toContain("icon={CORNER_ICONS[corner]}");
     expect(source).toContain("updateStyleImmediate(prop, value)");
   });
 
