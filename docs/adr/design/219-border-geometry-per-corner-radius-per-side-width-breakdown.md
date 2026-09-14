@@ -17,9 +17,9 @@
 
 | 층 | 경로:라인 | 지금 | 본 ADR |
 | --- | --- | --- | --- |
-| 저장 · 쓰기 연산 | `stores/inspectorActions.ts:118-131 applyBaseStyleEntry` (숫자 변환 → `distributeShorthand` → `applyBorderCompanionDefaults`) · `:137-175 buildResponsiveStyleOverride` (border 는 도달 안 함 — §1-2) | border 키는 분배 없음 | base 경로에 `applyBorderGeometryWrite(style, prop, value, effective)` (§2.2 — 사후 정규화가 아니라 **편집 연산**) |
+| 저장 · 쓰기 연산 | `stores/inspectorActions.ts:118-131 applyBaseStyleEntry` (숫자 변환 → `distributeShorthand` → `applyBorderCompanionDefaults`) · `updateSelectedStyles` 가 baseEntries 를 입력 순서대로 항목별 호출 · `:137-175 buildResponsiveStyleOverride` (border 는 도달 안 함 — §1-2) | border 키는 분배 없음 · 배치는 순서 의존 | border 축 키는 항목별이 아니라 배치 하나로 `applyBorderGeometryBatch(style, entries, effective)` (§2.2 — 고정 우선순위 · 한 번 적용) |
 | 저장 · 표 | `stores/utils/responsiveWriteRouting.ts:11-15 SHORTHAND_TO_LONGHAND` · `:27-44 NUMERIC_COERCE_STYLE_PROPS` · `:140-150 shouldWriteBreakpointOverride` | gap/padding/margin 만 · `borderWidth`/`borderRadius` 숫자 코어스 · border 는 전역 (eligible 밖) | 표는 무변경 (항상-분배 아님) · 코어스 집합에 longhand 8 추가 · eligible 집합 무변경 (전역 유지) |
-| 저장 · companion | `stores/utils/borderCompanionDefaults.ts:29-50` | `borderColor/borderWidth/borderStyle` 트리거 | 변 longhand 도 트리거 (폭을 쓰면 style solid · color 채움) |
+| 저장 · companion | `stores/utils/borderCompanionDefaults.ts:16-20, 29-50` | `borderColor/borderWidth/borderStyle` 트리거 · 폭 존재 판정 `borderWidth == null` (`:44` — longhand 만 있으면 1 을 다시 넣는다, round 2 h6) | 변 longhand 4 도 트리거 · 판정 `hasBorderWidth` (shorthand ∨ longhand) · geometry 뒤 폭 shorthand 주입 0 (§2.2) |
 | Skia 변환 | `workspace/canvas/styleConversion/styleConverter.ts:46-52` CSSStyle · `:670-683 convertToStrokeStyle` · `:1003-1031 convertBorderRadius` · `:1039-1041 ConvertedStyle` · `:1078` | 폭 longhand 타입만 · 반경 longhand 없음 · stroke `width` 하나 · 반경 shorthand 다중값 → `[4]` | `resolveBorderGeometry` 가 두 값을 공급 · `RenderStrokeStyle.widths?: [4]` |
 | Skia 노드 | `skia/buildBoxNodeData.ts:117, 249, 288-296, 307-321` · `skia/nodeRendererTypes.ts:15-21, 45-55` | `box.borderRadius: number \| [4]` · `strokeWidth` 하나 · `strokeStyle` 8종 | `box.strokeWidths?: [t,r,b,l]` 추가 (균일이면 생략 → 기존 경로) |
 | Skia 렌더 · 배열 지원 | `skia/nodeRendererBorders.ts:40-70` stroke · `:496-515` fill · `:596-612` outline · `skia/nodeRendererClip.ts:17-41 clampCornerRadii` + `createRoundRectPath` | 배열은 그리지만 **clamp 가 CSS 와 다르다** — 코너마다 `min(w,h)/2` (100×100 `[80,0,0,0]` → `[50,…]`, CSS 는 80 유지 — round 1 h3) | `resolveCssCornerRadii` (§2.3, CSS Backgrounds §4.5 비례 축소) 로 교체. 균일 반경은 두 규칙이 같은 값이라 HC1 안 · 다중값 shorthand 문서는 CSS 값으로 **수리** (CHANGELOG) |
@@ -39,17 +39,19 @@
 
 사후 정규화 (저장된 형태만 보고 접기/펼치기) 는 편집 의도를 잃는다 — 코너 `[8,4,2,6]` 에 shorthand 12 를 쓰면 기존 longhand 가 남고 12 가 사라지며, 카탈로그 base 8 · `props.style={}` 에서 TL 만 12 로 쓰면 미편집 코너가 0 이 된다. 그래서 store 는 **편집 연산** 을 받는다:
 
-`applyBorderGeometryWrite(style, property, value, effective)` — `applyBaseStyleEntry` 가 border 축 키 (shorthand 2 + longhand 8) 에서 `toStyleNumericValue` 다음, `applyBorderCompanionDefaults` 앞에 호출. `effective` 는 편집 전 유효 4값 (`resolveBorderGeometry(style, base)` — longhand ?? shorthand 다중값 ?? shorthand ?? **catalog base** (`resolveMergedStyle(node).base.borderRadius/borderWidth`, `resolveMergedStyle.ts:60-74`) ?? 0). 축 (코너 4 · 변 4) 마다:
+`applyBorderGeometryBatch(style, entries, effective)` — `updateSelectedStyle`/`updateSelectedStyles`/reset 이 border 축 키 (shorthand 2 + longhand 8) 를 **항목별로 넘기지 않고** 배치 하나로 모아 (다른 키는 종전대로 `applyBaseStyleEntry` 항목별) `toStyleNumericValue` 다음 · `applyBorderCompanionDefaults` 앞에 **한 번** 호출한다 (round 2 h1 — 항목마다 effective 를 다시 읽는 방식은 `{TL:12, borderRadius:4}` 순서에 따라 4 / `[12,4,4,4]` 로 갈렸다). `effective` 는 편집 전 유효 4값 (`resolveBorderGeometry(style, base)` — longhand ?? shorthand 다중값 ?? shorthand ?? **catalog base** (`resolveMergedStyle(node).base.borderRadius/borderWidth`, `resolveMergedStyle.ts:60-74`) ?? 0). 축 (코너 4 · 변 4) 마다 **고정 우선순위**로 편집 전 snapshot 에 한 번 적용하고 접기/펼치기를 한 번 한다:
 
-| 입력 | 결과 |
+| 단계 | 규칙 |
 | --- | --- |
-| shorthand 쓰기 `v` | longhand 4 삭제 · `shorthand = v` (전체 덮어쓰기 — 기존 longhand 우선 없음) |
-| longhand 하나 쓰기 `v` | `next = effective` 의 그 칸만 `v` → 4값이 같으면 `shorthand = 값` · longhand 4 삭제, 아니면 longhand 4 전부 기록 (미편집 칸은 effective — base 값 포함) · shorthand 삭제 |
-| longhand 하나 지우기 `""` | `next = effective` 의 그 칸을 **base 값** (base 없으면 0) 으로 → 위와 같은 접기/펼치기 |
-| shorthand 지우기 `""` | 축 키 10개 전부 삭제 (= base 로 복귀) |
-| reset 그룹 (`useResetStyles`) | 축 키 전부 삭제 |
+| 0 시작 | `next = effective` (4값) |
+| 1 shorthand | 배치에 축 shorthand 가 있으면 — 값 `v` → `next = [v,v,v,v]` · 지우기 `""` → `next = base 4값` (base 없으면 0) 이고 축 키 10개 삭제 예약 |
+| 2 longhand | 배치의 축 longhand 를 (키 이름 순서 고정 — TL·TR·BR·BL / T·R·B·L) 적용 — 값 → 그 칸 · 지우기 → 그 칸 = base 값 (base 없으면 0). shorthand 뒤에 적용되므로 **longhand 가 shorthand 를 이긴다** (`{TL:12, borderRadius:4}` 는 두 순서 모두 `[12,4,4,4]`) |
+| 3 접기/펼치기 | `next` 4값이 같으면 `shorthand = 값` · longhand 4 삭제, 다르면 longhand 4 전부 기록 · shorthand 삭제. 1 단계에서 "shorthand 지우기 + longhand 0" 이면 축 키 전부 삭제 (= base 복귀) |
+| reset 그룹 (`useResetStyles`) | 축 키 10개 전부 삭제 — 같은 배치 계약 (다른 축과 섞여도 축 단위 독립) |
 
-불변식: 연산 뒤 항상 「shorthand 하나 · longhand 0」 또는 「shorthand 0 · longhand 4」 (부분 longhand 0). 배치 쓰기 (`updateSelectedStyles` 여러 키) 는 키 순서와 무관하게 같은 결과 — 연산이 매번 effective 를 다시 읽기 때문. G3 store 시나리오 8: ① 빈 style + shorthand ② 빈 style + 코너 1 (base 8 → `[12,8,8,8]`) ③ `[8,4,2,6]` + shorthand 12 → shorthand 12 만 ④ `[8,4,2,6]` 에 TR 4→8, BR 2→8, BL 6→8 순서 → shorthand 8 ⑤ 코너 1 지우기 → base 값 복귀 ⑥ shorthand 지우기 → 키 0 ⑦ 배치 `{TL:12, borderRadius:4}` 순서 두 방향 동일 ⑧ 변 마스크 (좌 0) 뒤 전체 선택 → shorthand 복귀.
+불변식: 배치 뒤 항상 「shorthand 하나 · longhand 0」 또는 「shorthand 0 · longhand 4」 (부분 longhand 0). 순서 독립은 규칙에서 나온다 — 입력 순서를 읽지 않는다. G3 store 시나리오 9: ① 빈 style + shorthand ② 빈 style + 코너 1 (base 8 → `[12,8,8,8]`) ③ `[8,4,2,6]` + shorthand 12 → shorthand 12 만 ④ `[8,4,2,6]` 에 TR 4→8, BR 2→8, BL 6→8 (배치 하나 · 항목 3 순차 둘 다) → shorthand 8 ⑤ 코너 1 지우기 → base 값 복귀 ⑥ shorthand 지우기 → 키 0 ⑦ 배치 `{TL:12, borderRadius:4}` 두 순서 → `[12,4,4,4]` 동일 ⑧ 변 마스크 (좌 0) 뒤 전체 선택 → shorthand 복귀 ⑨ 변 마스크 저장 → 색 편집 → 스타일 편집 뒤에도 longhand 4 만 (companion 이 `borderWidth` 를 다시 넣지 않음, round 2 h6).
+
+**companion (round 2 h6)**: `applyBorderCompanionDefaults` 의 폭 존재 판정 `style.borderWidth == null` (`borderCompanionDefaults.ts:44`) 을 `hasBorderWidth(style)` (shorthand **또는** 변 longhand 하나라도) 로 바꾸고, 트리거 집합에 변 longhand 4 를 더한다. 계약: geometry 연산 뒤 companion 은 **폭 shorthand 를 주입하지 않는다** — 폭 축이 비어 있을 때만 `borderWidth: 1`. 색/스타일 편집은 geometry 키 밖이라 배치 연산을 거치지 않으므로 이 판정이 유일한 방어선 (시나리오 ⑨).
 
 responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에는 도달하지 않는다. 종전 R3 (base/tier 혼합) 는 성립하지 않으므로 삭제.
 
@@ -89,7 +91,7 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 | P0 | inventory freeze (§2.1) + G0 spike 3: even-odd path 1 · 큰 비대칭 반경 `[80,0,0,0]` 1 · 반투명 변 마스크 (인접 변 on) 1 | `docs/adr/evidence/219-p0-spike.md` |
 | P1 | `borderGeometry.ts` helper (+ base 입력) · `resolveCssCornerRadii` 단위 테스트 (§4.5 예제 6 + 균일 동치) · `parseBorder` 동치 테스트 | helper · 테스트 |
 | P2 | Skia: `clampCornerRadii` → CSS 규칙 교체 (3곳) · converter (`RenderStrokeStyle.widths`) · `buildBoxNodeData` 3단 · 첫 값 4곳 · `renderPartialBorder` 코너 소유권 재작성 + 생산 · 스냅샷 G1 | 렌더 |
-| P3 | store `applyBorderGeometryWrite` (base 경로, effective 입력) + 코어스 집합 + companion + 시나리오 8 + 정적 가드 G3 | 저장 |
+| P3 | store `applyBorderGeometryBatch` (base 경로, effective 입력, 배치 한 번) + 코어스 집합 + companion `hasBorderWidth` + 시나리오 9 + 정적 가드 G3 | 저장 |
 | P4 | 패널: BorderSection 코너 2×2 · 변 seg (style 조건 비활성 · 「Skia 근사」 배지) · i18n · reset/dirty/Modified · `useBorderRadiusDrag` 삭제 질문 | UI |
 | P5    | ADR-198 parity 케이스 10 (G2) · perf lane (G4) · 번들 (G5) · live 하니스 (`.tmp-panel-cap/border-live.mjs`) · CHANGELOG · Implemented 승격 (`### Live Exercise`) | 종결                                |
 
@@ -100,7 +102,7 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 | G0 | P0 | 198 하니스 3 케이스 (even-odd · `[80,0,0,0]` · 반투명 변 마스크) region ≥ 0.98 |
 | G1   | P2    | `renderCommandStream` 스냅샷 · 198 smoke · 기존 테스트 전량                                                                            |
 | G2 | P2·P5 | 케이스 10 (통과 조건): 반경 4값 ×2 (solid/none, 그중 1 은 비례 축소 발생 `[80,80,0,0]`) · 변 마스크 ×4 (solid 2 · dashed 1 · dotted 1, 반투명 색 1 포함) · 임의 폭 4값 ×2 (solid · dashed) · 반경+폭 혼합 ×2 — region ≥ 0.98, ③ 조합 0.95. 케이스 11 (측정만): 변 마스크 + double — 차이 수치를 evidence 에 기록 |
-| G3 | P3 | 정적 (helper 밖 직접 읽기 0) + store 시나리오 8 (§2.2 — shorthand 덮어쓰기 · 단일 코너 + base · 삭제 · 배치 순서 독립) |
+| G3 | P3 | 정적 (helper 밖 직접 읽기 0) + store 시나리오 9 (§2.2 — shorthand 덮어쓰기 · 단일 코너 + base · 삭제 · 배치 두 순서 동일 · companion 무주입) |
 | G4 | P5 | 같은 fixture (600 요소 + 비균일 100) · 같은 동작 스크립트 (반경 슬라이더 드래그 60 스텝 · 폭 드래그 60 · 비균일 요소 리사이즈 드래그 60 — path 재생성이 매 프레임) · 같은 환경 (같은 기기 · DPR 2 · 전경 탭 `visibilityState=visible` · CPU throttle 0 · 힙 스냅샷 Δ 병기) 에서 before/after **총 프레임 비용** (p50/p95/p99) — worktree · 원래 의존성 (`.claude/rules/measurement-validity.md` 5-질문을 evidence 에 첨부) |
 | G5   | P4·P5 | 번들 before/after (`--dist` 절대 경로) · 패널 실측                                                                                     |
 
@@ -108,7 +110,7 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 
 - [ ] helper 가 유일한 판독 진입 (정적 가드 통과)
 - [ ] 균일 노드 코드 경로 0 변경 (G1)
-- [ ] 편집 연산이 effective(base 포함) 를 입력받고 배치 순서 독립 (시나리오 8)
+- [ ] 편집 연산이 배치 하나로 effective(base 포함) 를 입력받고 고정 우선순위 (시나리오 9) · companion 이 폭 shorthand 를 다시 넣지 않음
 - [ ] `clampCornerRadii` 호출처 3 전부 CSS 규칙으로 · 코너 호 한 번만
 - [ ] 코너 아이콘 4 · seg 라벨 · longhand 라벨 8 i18n ko/en
 - [ ] 컨트롤 28/32 · 행 템플릿 · 9px 0
@@ -117,6 +119,6 @@ responsive: border 는 전역 (§1-2) 이라 `buildResponsiveStyleOverride` 에�
 
 ## 6. 변경 파일 (예상)
 
-- 신규: `workspace/canvas/styleConversion/borderGeometry.ts` (+test, `resolveCssCornerRadii` 포함) · `stores/utils/borderGeometryWrite.ts` (+test) · `borderGeometry.static.test.ts` · `.tmp-panel-cap/border-live.mjs` · evidence 2 (spike · perf)
+- 신규: `workspace/canvas/styleConversion/borderGeometry.ts` (+test, `resolveCssCornerRadii` 포함) · `stores/utils/borderGeometryBatch.ts` (+test) · `borderGeometry.static.test.ts` · `.tmp-panel-cap/border-live.mjs` · evidence 2 (spike · perf)
 - 수정: `styleConverter.ts` · `buildBoxNodeData.ts` · `nodeRendererTypes.ts` · `nodeRendererBorders.ts` · `nodeRendererClip.ts` · `renderCommands.ts` · `aiEffects.ts` · `types.ts` · `interpolators.ts` · `inspectorActions.ts` · `responsiveWriteRouting.ts` · `borderCompanionDefaults.ts` · `BorderSection.tsx` · `useResetStyles.ts` · `styleSectionProps.ts` · `ModifiedStylesSection.tsx` · `i18n/translations.ts` · `labels.ts` · `StylesPanel.css`
 - 삭제 후보 (승인 필요): `overlay/hooks/useBorderRadiusDrag.ts`
