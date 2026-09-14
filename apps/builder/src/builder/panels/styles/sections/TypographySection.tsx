@@ -1,7 +1,9 @@
 /**
  * TypographySection - Typography 스타일 편집 섹션
  *
- * Font, Text styles 편집
+ * 6행 (panel-ui 03, 2026-09-14): 글꼴 | 색 · Weight | Size · Height | Spacing · Align | Vertical ·
+ * Style | Decoration · Case | Wrap — 12 컨트롤이 legend + 아이콘 두 줄 (46) 이던 것을 suffix/inline
+ * 라벨로 28 행에. Decoration · Case 는 「×」 가 none 자리 (재클릭 해제 대신 명시 선택).
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
@@ -18,26 +20,22 @@ import {
 } from "@composition/shared/components";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
-  ALargeSmall,
   AlignCenter,
-  AlignHorizontalSpaceAround,
   AlignLeft,
   AlignRight,
   AlignVerticalJustifyCenter,
   AlignVerticalJustifyEnd,
   AlignVerticalJustifyStart,
-  AlignVerticalSpaceAround,
   Baseline,
-  Bold,
   CaseLower,
   CaseSensitive,
   CaseUpper,
   Italic,
   RemoveFormatting,
   Strikethrough,
-  TextWrap,
   Type,
   Underline,
+  X,
 } from "lucide-react";
 import { useStore } from "../../../stores";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -213,13 +211,12 @@ const TypographySectionContent = memo(function TypographySectionContent() {
 
   return (
     <>
+      {/* 1행: 글꼴 (이름이 곧 라벨) | 색 swatch 28 */}
       <FontFamilyPicker
         value={styleValues.fontFamily}
         onChange={(value) => updateStyle("fontFamily", value)}
       />
-
       <PropertyColor
-        label="Color"
         className="color"
         value={styleValues.color}
         onChange={handleTextColorCommit}
@@ -229,35 +226,11 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         placeholder="#000000"
       />
 
-      <PropertyUnitInput
-        icon={ALargeSmall}
-        label="Font Size"
-        className="font-size"
-        value={styleValues.fontSize}
-        units={["reset", "px"]}
-        defaultUnit="px"
-        onChange={handleTextMetricCommit}
-        onDrag={handleTextMetricPreview}
-        min={8}
-        max={200}
-      />
-      <PropertyUnitInput
-        icon={AlignVerticalSpaceAround}
-        label="Line Height"
-        className="line-height"
-        value={styleValues.lineHeight}
-        units={["reset", "px"]}
-        onChange={(value) => updateStyleImmediate("lineHeight", value)}
-        onDrag={(value) => updateStylePreview("lineHeight", value)}
-        min={0}
-        max={10}
-        allowKeywords
-      />
-
+      {/* 2행: Weight | Size — 3행: Height | Spacing (suffix 라벨, 종전 아이콘 + legend 두 줄) */}
       <PropertySelect
-        icon={Bold}
         label="Font Weight"
         className="font-weight"
+        labelMode="inline"
         value={styleValues.fontWeight}
         options={fontWeightOptions}
         onChange={(value) => {
@@ -271,9 +244,36 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         }}
       />
       <PropertyUnitInput
-        icon={AlignHorizontalSpaceAround}
+        label="Font Size"
+        className="font-size"
+        labelMode="suffix"
+        suffixLabel="SIZE"
+        value={styleValues.fontSize}
+        units={["reset", "px"]}
+        defaultUnit="px"
+        onChange={handleTextMetricCommit}
+        onDrag={handleTextMetricPreview}
+        min={8}
+        max={200}
+      />
+      <PropertyUnitInput
+        label="Line Height"
+        className="line-height"
+        labelMode="suffix"
+        suffixLabel="LINE"
+        value={styleValues.lineHeight}
+        units={["reset", "px"]}
+        onChange={(value) => updateStyleImmediate("lineHeight", value)}
+        onDrag={(value) => updateStylePreview("lineHeight", value)}
+        min={0}
+        max={10}
+        allowKeywords
+      />
+      <PropertyUnitInput
         label="Letter Spacing"
         className="letter-spacing"
+        labelMode="suffix"
+        suffixLabel="SPACE"
         value={styleValues.letterSpacing}
         units={["reset", "px"]}
         onChange={(value) => updateStyleImmediate("letterSpacing", value)}
@@ -283,8 +283,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         allowKeywords
       />
 
+      {/* 4행: Align | Vertical */}
       <fieldset className="properties-aria text-align">
-        <legend className="fieldset-legend">{localize("Text Align")}</legend>
+        <legend className="fieldset-legend">{localize("Align")}</legend>
         <ToggleButtonGroup
           aria-label={localize("Text alignment")}
           indicator
@@ -319,9 +320,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       </fieldset>
 
       <fieldset className="properties-aria vertical-align">
-        <legend className="fieldset-legend">
-          {localize("Vertical Align")}
-        </legend>
+        <legend className="fieldset-legend">{localize("Vertical align")}</legend>
         <ToggleButtonGroup
           aria-label={localize("Vertical alignment")}
           indicator
@@ -361,54 +360,9 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         </ToggleButtonGroup>
       </fieldset>
 
-      <fieldset className="properties-aria text-decoration">
-        <legend className="fieldset-legend">
-          {localize("Text Decoration")}
-        </legend>
-        <ToggleButtonGroup
-          aria-label={localize("Text decoration")}
-          indicator
-          selectedKeys={
-            styleValues.textDecoration === "none"
-              ? []
-              : [styleValues.textDecoration]
-          }
-          onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string;
-            // 선택 해제 시 'none'으로 초기화
-            updateStyle("textDecoration", value || "none");
-          }}
-        >
-          <ToggleButton id="overline" aria-label={localize("Overline")}>
-            <Baseline
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-              style={{ transform: "rotate(180deg)" }}
-            />
-          </ToggleButton>
-          <ToggleButton id="underline" aria-label={localize("Underline")}>
-            <Underline
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ToggleButton>
-          <ToggleButton
-            id="line-through"
-            aria-label={localize("Strikethrough")}
-          >
-            <Strikethrough
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </ToggleButton>
-        </ToggleButtonGroup>
-      </fieldset>
-
+      {/* 5행: Style | Decoration (× 가 none 자리 — 재클릭 해제 대신 명시 선택) */}
       <fieldset className="properties-aria font-style">
-        <legend className="fieldset-legend">{localize("Font Style")}</legend>
+        <legend className="fieldset-legend">{localize("Style")}</legend>
         <ToggleButtonGroup
           aria-label={localize("Font style")}
           indicator
@@ -443,33 +397,77 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         </ToggleButtonGroup>
       </fieldset>
 
-      <fieldset className="properties-aria text-transform">
-        <legend className="fieldset-legend">
-          {localize("Text Transform")}
-        </legend>
+      <fieldset className="properties-aria text-decoration">
+        <legend className="fieldset-legend">{localize("Decoration")}</legend>
         <ToggleButtonGroup
-          aria-label={localize("Text transform")}
+          aria-label={localize("Text decoration")}
           indicator
-          selectedKeys={
-            styleValues.textTransform === "none"
-              ? []
-              : [styleValues.textTransform]
-          }
+          selectedKeys={[styleValues.textDecoration]}
           onSelectionChange={(keys) => {
-            const value = Array.from(keys)[0] as string;
-            // 선택 해제 시 'none'으로 초기화
-            updateStyle("textTransform", value || "none");
+            const value = Array.from(keys)[0] as string | undefined;
+            if (value && value !== styleValues.textDecoration) {
+              updateStyle("textDecoration", value);
+            }
           }}
         >
-          <ToggleButton id="uppercase" aria-label={localize("Uppercase")}>
-            <CaseUpper
+          <ToggleButton id="none" aria-label={localize("No decoration")}>
+            <X
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
-          <ToggleButton id="lowercase" aria-label={localize("Lowercase")}>
-            <CaseLower
+          <ToggleButton
+            id="line-through"
+            aria-label={localize("Strikethrough")}
+          >
+            <Strikethrough
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </ToggleButton>
+          <ToggleButton id="underline" aria-label={localize("Underline")}>
+            <Underline
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </ToggleButton>
+          <ToggleButton id="overline" aria-label={localize("Overline")}>
+            <Baseline
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+              style={{ transform: "rotate(180deg)" }}
+            />
+          </ToggleButton>
+        </ToggleButtonGroup>
+      </fieldset>
+
+      {/* 6행: Case | Wrap */}
+      <fieldset className="properties-aria text-transform">
+        <legend className="fieldset-legend">{localize("Case")}</legend>
+        <ToggleButtonGroup
+          aria-label={localize("Text transform")}
+          indicator
+          selectedKeys={[styleValues.textTransform]}
+          onSelectionChange={(keys) => {
+            const value = Array.from(keys)[0] as string | undefined;
+            if (value && value !== styleValues.textTransform) {
+              updateStyle("textTransform", value);
+            }
+          }}
+        >
+          <ToggleButton id="none" aria-label={localize("No transform")}>
+            <X
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </ToggleButton>
+          <ToggleButton id="uppercase" aria-label={localize("Uppercase")}>
+            <CaseUpper
               color={iconProps.color}
               size={iconProps.size}
               strokeWidth={iconProps.strokeWidth}
@@ -482,12 +480,18 @@ const TypographySectionContent = memo(function TypographySectionContent() {
               strokeWidth={iconProps.strokeWidth}
             />
           </ToggleButton>
+          <ToggleButton id="lowercase" aria-label={localize("Lowercase")}>
+            <CaseLower
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </ToggleButton>
         </ToggleButtonGroup>
       </fieldset>
 
       {/* ADR-008: Text Behavior Preset */}
       <PropertySelect
-        icon={TextWrap}
         label="Wrap"
         className="text-behavior"
         value={styleValues.textBehaviorPreset}

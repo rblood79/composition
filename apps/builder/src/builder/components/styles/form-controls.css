@@ -357,6 +357,10 @@
       &:not(:has(.control-label)) .icon-picker-value,
       &:not(:has(.control-label)) .font-picker-value {
         padding-inline-start: var(--spacing);
+      }
+
+      /* 아이콘 없는 아이콘 피커 = 값 없음 (muted). 글꼴 피커는 아이콘을 뺐어도 값이 있다 (panel-ui 03) */
+      &:not(:has(.control-label)) .icon-picker-value {
         color: var(--fg-muted);
       }
     }

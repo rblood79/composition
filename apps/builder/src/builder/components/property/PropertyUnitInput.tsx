@@ -273,6 +273,11 @@ export const PropertyUnitInput = memo(
     const [inputValue, setInputValue] = useState(() =>
       getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
     );
+    // suffix 모드의 키워드 값 ("normal" 등) 은 87 열에서 "nor…" 로 잘린다 — 포커스 전에는 빈
+    //   입력 + placeholder (muted) 로 보이고, 포커스하면 키워드 글자가 편집 대상으로 들어온다.
+    const [isInputFocused, setIsInputFocused] = useState(false);
+    const showKeywordAsPlaceholder =
+      labelMode === "suffix" && isKeyword && !isInputFocused;
     const numericInputValue = Number(inputValue.trim());
     const matchingPreset = findMatchingPreset(inputValue, presets);
     const selectedPreset =
@@ -341,6 +346,7 @@ export const PropertyUnitInput = memo(
     } = useControlPopoverMetrics({ widthMode: "fit-content" });
 
     const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsInputFocused(false);
       // ⭐ Skip save if we just saved via Enter key (useRef는 즉시 반영됨!)
       if (justSavedViaEnterRef.current) {
         justSavedViaEnterRef.current = false;
@@ -486,6 +492,7 @@ export const PropertyUnitInput = memo(
     };
 
     const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+      setIsInputFocused(true);
       // Select all text on focus for easier editing
       e.target.select();
       // Reset flag on focus (new editing session)
@@ -672,7 +679,7 @@ export const PropertyUnitInput = memo(
                 ref={inputElementRef}
                 className="react-aria-Input"
                 type="text"
-                value={inputValue}
+                value={showKeywordAsPlaceholder ? "" : inputValue}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
@@ -687,7 +694,11 @@ export const PropertyUnitInput = memo(
                       )
                     : "Value")
                 }
-                placeholder={placeholder}
+                placeholder={
+                  showKeywordAsPlaceholder && inputValue.trim() !== ""
+                    ? inputValue
+                    : placeholder
+                }
               />
               {displayLabel && labelMode === "suffix" && (
                 <span className="property-unit-input__suffix" aria-hidden="true">

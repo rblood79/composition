@@ -480,10 +480,12 @@
       grid-template-columns: var(--inspector-row-columns);
       grid-template-rows: auto;
       gap: var(--spacing-sm);
+      /* 6행 (panel-ui 03): 글꼴 | 색 · Weight | Size · Height | Spacing · Align | Vertical ·
+         Style | Decoration · Case | Wrap */
       grid-template-areas:
         "font-family font-family color"
-        "font-size line-height ."
-        "font-weight letter-spacing ."
+        "font-weight font-size ."
+        "line-height letter-spacing ."
         "text-align vertical-align ."
         "font-style text-decoration ."
         "text-transform wrap .";
@@ -632,7 +634,9 @@
     .settings-theme-mode-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .gradient-sub-type-selector .react-aria-ToggleButtonGroup[data-indicator="true"],
-    .border-style .react-aria-ToggleButtonGroup[data-indicator="true"] {
+    .border-style .react-aria-ToggleButtonGroup[data-indicator="true"],
+    .text-decoration .react-aria-ToggleButtonGroup[data-indicator="true"],
+    .text-transform .react-aria-ToggleButtonGroup[data-indicator="true"] {
       gap: var(--spacing);
 
       .react-aria-ToggleButton {

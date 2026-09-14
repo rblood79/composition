@@ -52,6 +52,11 @@ interface PropertySelectProps {
     strokeWidth?: number;
   }>;
   className?: string;
+  /**
+   * `legend` (기본, 필드 위 18 행) / `inline` (legend·아이콘 없이 28 상자만 — 값이 곧 라벨인
+   * 셀렉트, Font Weight 「Semi Bold ▾」 등. 접근 이름은 label 그대로, panel-ui 03).
+   */
+  labelMode?: "legend" | "inline";
   description?: string; // Optional description (not displayed)
   /**
    * 컨트롤 박스 아래 필드 상태 문구 슬롯 (RAC `<Text slot="description">` / `.react-aria-FieldError`).
@@ -83,6 +88,7 @@ export const PropertySelect = memo(
     disabledKeys,
     icon: Icon,
     className,
+    labelMode = "legend",
     afterControl,
     popoverWidthMode = "fit-content",
   }: PropertySelectProps) {
@@ -129,8 +135,14 @@ export const PropertySelect = memo(
     );
 
     return (
-      <fieldset className={`properties-aria ${className || ""}`}>
-        <legend className="fieldset-legend">{displayLabel}</legend>
+      <fieldset
+        className={`properties-aria ${className || ""}`}
+        data-label-mode={labelMode}
+        aria-label={labelMode === "inline" ? displayLabel : undefined}
+      >
+        {labelMode === "legend" && (
+          <legend className="fieldset-legend">{displayLabel}</legend>
+        )}
         <div className="react-aria-control react-aria-Group" ref={anchorRef}>
           <AriaSelect
             className="react-aria-Select"
@@ -159,7 +171,7 @@ export const PropertySelect = memo(
             }
           >
             <Button className="react-aria-Button" ref={triggerRef}>
-              {Icon && (
+              {Icon && labelMode === "legend" && (
                 <label className="control-label">
                   <Icon
                     color={iconProps.color}

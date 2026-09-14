@@ -200,8 +200,10 @@ describe("TransformSection sizing controls", () => {
     const top = screen.getByRole("combobox", { name: "Top" });
     expect((left as HTMLInputElement).disabled).toBe(true);
     expect((top as HTMLInputElement).disabled).toBe(true);
-    expect((left as HTMLInputElement).value).toBe("auto");
-    expect((top as HTMLInputElement).value).toBe("auto");
+    // suffix 모드의 키워드 값은 포커스 전 placeholder (muted) 로 보인다 (panel-ui 03)
+    expect((left as HTMLInputElement).value).toBe("");
+    expect((left as HTMLInputElement).placeholder).toBe("auto");
+    expect((top as HTMLInputElement).placeholder).toBe("auto");
   });
 
   it("keeps unset Min/Max constraints blank instead of defaulting to zero", () => {

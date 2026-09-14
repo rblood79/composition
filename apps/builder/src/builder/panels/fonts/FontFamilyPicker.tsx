@@ -36,7 +36,7 @@ import {
 } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
 import type { Key } from "react-aria-components/Collection";
-import { ChevronDown, Settings2, Type } from "lucide-react";
+import { ChevronDown, Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useControlPopoverMetrics } from "../../components/property/useControlPopoverMetrics";
@@ -132,8 +132,8 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
   const ManageIcon = faceCount === 0 ? AddIcon : Settings2;
 
   return (
-    <fieldset className="properties-aria font-family">
-      <legend className="fieldset-legend">Font Family</legend>
+    // 글꼴 이름이 곧 라벨 — legend·아이콘 없이 28 상자 (panel-ui 03, 2026-09-14). 접근 이름은 유지.
+    <fieldset className="properties-aria font-family" aria-label="Font Family">
       <div className="react-aria-control react-aria-Group" ref={anchorRef}>
         <DialogTrigger isOpen={isPickerOpen} onOpenChange={handleOpenChange}>
           <Button
@@ -141,13 +141,6 @@ export const FontFamilyPicker = memo(function FontFamilyPicker({
             ref={controlRef}
             aria-label="Font Family"
           >
-            <label className="control-label">
-              <Type
-                color={iconProps.color}
-                size={iconProps.size}
-                strokeWidth={iconProps.strokeWidth}
-              />
-            </label>
             {/* 이름을 그 폰트로 그린다 — 고르기 전에 생김새가 보이는 것이 피커의 값 */}
             <span
               className="font-picker-value"

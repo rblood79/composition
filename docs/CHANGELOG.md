@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Text 탭 — Typography 12 컨트롤 → 6행 (panel-ui 03)] - 2026-09-14
+
+### Changed
+
+- **Typography 절 6행 × 28**: 글꼴 (이름이 곧 라벨 — legend·아이콘 없음) | 색 swatch 28 · 「Normal ▾」 Weight (`PropertySelect labelMode="inline"`) | 「18 SIZE」 · 「24 LINE」 | 「0 SPACE」 (`labelMode="suffix"`) · Align | Vertical · Style | Decoration · Case | Wrap. 종전엔 컨트롤 12개가 아이콘 + legend 두 줄 (46) 이라 Font Weight 「Norma…」 · Letter Spacing 「nor…」 로 잘렸다.
+- **Decoration · Case seg 에 「×」 (none) 칸** — 종전 3칸 재클릭 해제 대신 명시 선택 (Border Style seg 와 같은 어법). 순서 × S U O / × AB Aa ab.
+- `PropertyUnitInput labelMode="suffix"` 의 키워드 값 (`normal` · `auto`) 은 포커스 전 placeholder (muted) 로 — 87 열에서 글자가 "nor…" 로 잘리던 것. 포커스하면 편집 대상으로 들어온다.
+- live (`texttab-live.mjs`): 필드 181/87 × 28 · seg 버튼 4 × 17 · Size 18 Enter → `fontSize: 18` · Underline → × → `none` · Uppercase.
+
 ## [Styles · Style 탭 (3/3) — Effect 절: Opacity 슬라이더 행 · Box Shadows 레이어 목록 · Filters blur (panel-ui 02)] - 2026-09-14
 
 ### Changed
