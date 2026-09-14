@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  addBoxShadowPresentationLayer,
+  removeBoxShadowPresentationLayer,
   boxShadowPresentationToEffects,
   haveSameBoxShadowPresentationTopology,
   parseBoxShadowPresentation,
@@ -55,6 +57,42 @@ describe("boxShadowPresentation", () => {
       spread: -4,
       inner: false,
     });
+  });
+
+  it("adds a layer after the given index (topology change) and serializes both", () => {
+    const base = parseBoxShadowPresentation("0 2px 8px 0 #000")!;
+    const added = addBoxShadowPresentationLayer(base, 0);
+    expect(added.index).toBe(1);
+    expect(added.value.layers).toHaveLength(2);
+    expect(added.value.layers[1]).toMatchObject({ inset: false, blur: 4 });
+    expect(haveSameBoxShadowPresentationTopology(base, added.value)).toBe(
+      false,
+    );
+    // rgba() 안의 쉼표와 구분 — 파서가 두 레이어로 되읽는지로 검사한다.
+    expect(
+      parseBoxShadowPresentation(serializeBoxShadowPresentation(added.value))
+        ?.layers,
+    ).toHaveLength(2);
+  });
+
+  it("removes a layer and keeps the last one (null when only one remains)", () => {
+    const base = parseBoxShadowPresentation(
+      "0 2px 8px 0 #000, inset 0 1px 2px 0 #fff",
+    )!;
+    const removed = removeBoxShadowPresentationLayer(base, 0);
+    expect(removed?.layers).toHaveLength(1);
+    expect(removed?.layers[0]?.inset).toBe(true);
+    expect(removeBoxShadowPresentationLayer(removed!, 0)).toBeNull();
+    expect(removeBoxShadowPresentationLayer(base, 5)).toBeNull();
+  });
+
+  it("patches inset per layer (topology change for the presentation owner)", () => {
+    const base = parseBoxShadowPresentation("0 2px 8px 0 #000")!;
+    const next = patchBoxShadowPresentation(base, 0, "inset", true);
+    expect(next?.layers[0]?.inset).toBe(true);
+    expect(serializeBoxShadowPresentation(next!)).toMatch(/^inset /);
+    expect(haveSameBoxShadowPresentationTopology(base, next!)).toBe(false);
+    expect(patchBoxShadowPresentation(base, 0, "inset", 1)).toBeNull();
   });
 
   it("rejects none and invalid field patches", () => {

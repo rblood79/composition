@@ -5,9 +5,17 @@ import {
 } from "../workspace/canvas/styleConversion/styleConverter";
 import type { DropShadowEffect } from "../workspace/canvas/skia/types";
 
-/** CSS-facing fields edited by the continuous box-shadow controls. */
+/**
+ * CSS-facing fields edited by the box-shadow controls. `inset` is a discrete
+ * topology change (the presentation owner refuses it — canonical commit only).
+ */
 export type BoxShadowPresentationField =
-  "offsetX" | "offsetY" | "blur" | "spread" | "color";
+  | "offsetX"
+  | "offsetY"
+  | "blur"
+  | "spread"
+  | "color"
+  | "inset";
 
 /** One parsed shadow layer. Values use CSS blur radius (not Skia sigma). */
 export interface BoxShadowPresentationLayer {
@@ -141,12 +149,14 @@ export function patchBoxShadowPresentation(
   value: BoxShadowPresentationValue,
   layerIndex: number,
   field: BoxShadowPresentationField,
-  nextValue: number | string,
+  nextValue: number | string | boolean,
 ): BoxShadowPresentationValue | null {
   const layer = value.layers[layerIndex];
   if (!layer) return null;
   if (field === "color") {
     if (typeof nextValue !== "string" || nextValue.length === 0) return null;
+  } else if (field === "inset") {
+    if (typeof nextValue !== "boolean") return null;
   } else if (typeof nextValue !== "number" || !Number.isFinite(nextValue)) {
     return null;
   }
@@ -160,10 +170,50 @@ export function patchBoxShadowPresentation(
           ? { ...layer, blur: Math.max(0, nextValue as number) }
           : field === "spread"
             ? { ...layer, spread: nextValue as number }
-            : { ...layer, color: nextValue as string };
+            : field === "inset"
+              ? { ...layer, inset: nextValue as boolean }
+              : { ...layer, color: nextValue as string };
 
   const layers = value.layers.slice();
   layers[layerIndex] = nextLayer;
+  return { layers };
+}
+
+/** 새 레이어 기본값 — Spectrum elevation `sm` 과 같은 자리 (0 2 4 · 25% 검정). */
+const DEFAULT_NEW_LAYER: BoxShadowPresentationLayer = {
+  offsetX: 0,
+  offsetY: 2,
+  blur: 4,
+  spread: 0,
+  color: "rgba(0, 0, 0, 0.25)",
+  inset: false,
+};
+
+/**
+ * Insert a fresh layer right after `afterIndex` (appends when out of range).
+ * Returns the new value and the inserted layer's index so the editor can focus it.
+ */
+export function addBoxShadowPresentationLayer(
+  value: BoxShadowPresentationValue,
+  afterIndex: number,
+): { readonly value: BoxShadowPresentationValue; readonly index: number } {
+  const layers = value.layers.slice();
+  const index = Math.min(
+    layers.length,
+    Math.max(0, Number.isInteger(afterIndex) ? afterIndex + 1 : layers.length),
+  );
+  layers.splice(index, 0, { ...DEFAULT_NEW_LAYER });
+  return { value: { layers }, index };
+}
+
+/** Remove one layer; `null` when the index is invalid or it is the last layer. */
+export function removeBoxShadowPresentationLayer(
+  value: BoxShadowPresentationValue,
+  layerIndex: number,
+): BoxShadowPresentationValue | null {
+  if (value.layers.length <= 1) return null;
+  if (!value.layers[layerIndex]) return null;
+  const layers = value.layers.filter((_, index) => index !== layerIndex);
   return { layers };
 }
 

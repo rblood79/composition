@@ -154,6 +154,8 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   useEffect(() => {
     insetActiveRef.current = insetActive;
   }, [insetActive]);
+  // 레이어 추가/제거 뒤 편집기가 remount (key 에 boxShadow) 되므로 다음 활성 레이어를 건넨다.
+  const nextShadowLayerIndexRef = useRef(0);
 
   if (!styleValues) return null;
 
@@ -242,6 +244,17 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
     if (presentationOwnsBoxShadow && commitBoxShadowModelPresentation(value)) {
       return;
     }
+    updateStyle("boxShadow", serializeBoxShadowPresentation(value));
+  };
+
+  // 레이어 추가 · 제거 · inset — topology 변경은 presentation owner 가 거부하므로 열린
+  //   세션을 닫고 canonical commit 으로 바로 간다 (Skia 는 parseAllBoxShadows 로 다중 렌더).
+  const handleBoxShadowTopologyCommit = (
+    value: BoxShadowPresentationValue,
+    nextLayerIndex: number,
+  ): void => {
+    nextShadowLayerIndexRef.current = nextLayerIndex;
+    cancelBoxShadowPresentation("superseded");
     updateStyle("boxShadow", serializeBoxShadowPresentation(value));
   };
 
@@ -398,8 +411,10 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           <BoxShadowEditor
             key={`${selectedId ?? "none"}:${styleValues.boxShadow}`}
             value={boxShadowModel}
+            initialLayerIndex={nextShadowLayerIndexRef.current}
             onPreview={handleBoxShadowModelPreview}
             onCommit={handleBoxShadowModelCommit}
+            onTopologyCommit={handleBoxShadowTopologyCommit}
             onCancel={cancelBoxShadowPresentation}
             presentationOwnsFrameScheduling={presentationOwnsBoxShadow}
           />

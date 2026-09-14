@@ -1,24 +1,48 @@
 import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { Plus, Square, Trash2 } from "lucide-react";
+import { SquareOff } from "../../../components/icons";
 import {
   PropertyColor,
+  PropertyRowMenu,
   PropertySelect,
   PropertyUnitInput,
 } from "../../../components";
 import {
+  addBoxShadowPresentationLayer,
   patchBoxShadowPresentation,
+  removeBoxShadowPresentationLayer,
   type BoxShadowPresentationField,
   type BoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../../i18n";
 
 type BoxShadowEditorCancelReason = "escape" | "pointer-cancel";
-type BoxShadowNumericField = Exclude<BoxShadowPresentationField, "color">;
+type BoxShadowNumericField = Exclude<
+  BoxShadowPresentationField,
+  "color" | "inset"
+>;
 
 export interface BoxShadowEditorProps {
   readonly onCancel: (reason: BoxShadowEditorCancelReason) => void;
   readonly onCommit: (value: BoxShadowPresentationValue) => void;
+  /**
+   * 레이어 추가 · 제거 · inset 처럼 **topology 가 바뀌는** 커밋. presentation owner 는
+   * 이런 값을 거부하므로 (`haveSameBoxShadowPresentationTopology`) 호출측이 canonical
+   * commit 으로 보내고, `nextLayerIndex` 를 다음 마운트의 `initialLayerIndex` 로 넘긴다.
+   */
+  readonly onTopologyCommit: (
+    value: BoxShadowPresentationValue,
+    nextLayerIndex: number,
+  ) => void;
   readonly onPreview: (value: BoxShadowPresentationValue) => void;
   readonly presentationOwnsFrameScheduling: boolean;
   readonly value: BoxShadowPresentationValue;
+  /** 마운트 시 선택할 레이어 (호출측이 boxShadow 문자열을 key 로 써 remount 하므로). */
+  readonly initialLayerIndex?: number;
 }
 
 const NUMERIC_FIELDS: ReadonlyArray<{
@@ -46,14 +70,23 @@ function toPixelValue(value: number): string {
 export const BoxShadowEditor = memo(function BoxShadowEditor({
   onCancel,
   onCommit,
+  onTopologyCommit,
   onPreview,
   presentationOwnsFrameScheduling,
   value,
+  initialLayerIndex = 0,
 }: BoxShadowEditorProps) {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
   const initialValueRef = useRef(value);
   const localValueRef = useRef(value);
   const [localValue, setLocalValue] = useState(value);
-  const [activeLayerIndex, setActiveLayerIndex] = useState(0);
+  const [activeLayerIndex, setActiveLayerIndex] = useState(() =>
+    Math.min(Math.max(0, initialLayerIndex), value.layers.length - 1),
+  );
   const layerOptions = useMemo(
     () =>
       localValue.layers.map((layer, index) => ({
@@ -67,7 +100,7 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
   const updateField = useCallback(
     (
       field: BoxShadowPresentationField,
-      nextValue: number | string,
+      nextValue: number | string | boolean,
       phase: "commit" | "preview",
     ): void => {
       const next = patchBoxShadowPresentation(
@@ -107,7 +140,60 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
     [onCancel],
   );
 
+  const handleLayerAction = useCallback(
+    (action: string): void => {
+      const current = localValueRef.current;
+      if (action === "add") {
+        const added = addBoxShadowPresentationLayer(current, activeLayerIndex);
+        onTopologyCommit(added.value, added.index);
+        return;
+      }
+      if (action === "remove") {
+        const removed = removeBoxShadowPresentationLayer(
+          current,
+          activeLayerIndex,
+        );
+        if (removed === null) return;
+        onTopologyCommit(
+          removed,
+          Math.min(activeLayerIndex, removed.layers.length - 1),
+        );
+        return;
+      }
+      if (action === "inset") {
+        const layer = current.layers[activeLayerIndex];
+        if (!layer) return;
+        const next = patchBoxShadowPresentation(
+          current,
+          activeLayerIndex,
+          "inset",
+          !layer.inset,
+        );
+        if (next === null) return;
+        onTopologyCommit(next, activeLayerIndex);
+      }
+    },
+    [activeLayerIndex, onTopologyCommit],
+  );
+
   if (!activeLayer) return null;
+
+  const layerMenuItems = [
+    { id: "add", label: localize("Add shadow layer"), icon: Plus },
+    {
+      id: "inset",
+      label: activeLayer.inset
+        ? localize("Outer shadow layer")
+        : localize("Inset shadow layer"),
+      icon: activeLayer.inset ? Square : SquareOff,
+    },
+    {
+      id: "remove",
+      label: localize("Remove shadow layer"),
+      icon: Trash2,
+      isDisabled: localValue.layers.length <= 1,
+    },
+  ];
 
   return (
     <div
@@ -117,22 +203,31 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
       }}
       onPointerCancelCapture={() => cancel("pointer-cancel")}
     >
-      <PropertySelect
-        className="box-shadow-layer"
-        label="Shadow Layer"
-        value={String(activeLayerIndex)}
-        options={layerOptions}
-        onChange={(nextIndex) => {
-          const parsedIndex = Number(nextIndex);
-          if (
-            Number.isInteger(parsedIndex) &&
-            parsedIndex >= 0 &&
-            parsedIndex < localValue.layers.length
-          ) {
-            setActiveLayerIndex(parsedIndex);
-          }
-        }}
-      />
+      <div className="box-shadow-layer-row">
+        <PropertySelect
+          className="box-shadow-layer"
+          label="Shadow Layer"
+          value={String(activeLayerIndex)}
+          options={layerOptions}
+          onChange={(nextIndex) => {
+            const parsedIndex = Number(nextIndex);
+            if (
+              Number.isInteger(parsedIndex) &&
+              parsedIndex >= 0 &&
+              parsedIndex < localValue.layers.length
+            ) {
+              setActiveLayerIndex(parsedIndex);
+            }
+          }}
+        />
+        <div className="fieldset-actions actions-icon">
+          <PropertyRowMenu
+            label={localize("Shadow layer actions")}
+            items={layerMenuItems}
+            onAction={handleLayerAction}
+          />
+        </div>
+      </div>
       <div className="box-shadow-editor-fields">
         {NUMERIC_FIELDS.map(({ field, label, min }) => (
           <PropertyUnitInput

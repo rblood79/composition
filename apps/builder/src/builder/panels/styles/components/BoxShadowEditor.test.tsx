@@ -31,7 +31,30 @@ interface ColorMockProps {
   readonly value: string;
 }
 
+interface RowMenuMockProps {
+  readonly items: ReadonlyArray<{
+    readonly id: string;
+    readonly label: string;
+    readonly isDisabled?: boolean;
+  }>;
+  readonly label: string;
+  readonly onAction: (id: string) => void;
+}
+
 vi.mock("../../../components", () => ({
+  PropertyRowMenu: ({ items, label, onAction }: RowMenuMockProps) => (
+    <div data-testid="layer-menu" aria-label={label}>
+      {items.map((item) => (
+        <button
+          key={item.id}
+          disabled={item.isDisabled}
+          onClick={() => onAction(item.id)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  ),
   PropertyColor: ({
     onChange,
     onPresentationCancel,
@@ -118,6 +141,7 @@ describe("BoxShadowEditor", () => {
         onPreview={vi.fn()}
         onCommit={vi.fn()}
         onCancel={vi.fn()}
+        onTopologyCommit={vi.fn()}
         presentationOwnsFrameScheduling
       />,
     );
@@ -141,6 +165,7 @@ describe("BoxShadowEditor", () => {
         onPreview={onPreview}
         onCommit={onCommit}
         onCancel={vi.fn()}
+        onTopologyCommit={vi.fn()}
         presentationOwnsFrameScheduling
       />,
     );
@@ -179,6 +204,7 @@ describe("BoxShadowEditor", () => {
         onPreview={onPreview}
         onCommit={vi.fn()}
         onCancel={vi.fn()}
+        onTopologyCommit={vi.fn()}
         presentationOwnsFrameScheduling
       />,
     );
@@ -195,6 +221,70 @@ describe("BoxShadowEditor", () => {
     expect(nextValue.layers[1]?.color).toBe("#12345680");
   });
 
+  it("레이어 추가 · inset · 제거는 topology commit 으로 보내고 다음 활성 인덱스를 알린다", () => {
+    const onCommit = vi.fn();
+    const onTopologyCommit = vi.fn();
+    render(
+      <BoxShadowEditor
+        value={VALUE}
+        initialLayerIndex={1}
+        onPreview={vi.fn()}
+        onCommit={onCommit}
+        onCancel={vi.fn()}
+        onTopologyCommit={onTopologyCommit}
+        presentationOwnsFrameScheduling
+      />,
+    );
+
+    // initialLayerIndex=1 → 활성 레이어는 inset 인 Layer 2 → 메뉴 라벨이 "Make outer"
+    expect(screen.getByText("Outer shadow layer")).toBeTruthy();
+    expect(screen.getByTestId("Offset X").dataset.value).toBe("3px");
+
+    fireEvent.click(screen.getByText("Add shadow layer"));
+    expect(onTopologyCommit).toHaveBeenLastCalledWith(
+      expect.objectContaining({ layers: expect.any(Array) }),
+      2,
+    );
+    expect(
+      (onTopologyCommit.mock.calls.at(-1)?.[0] as BoxShadowPresentationValue)
+        .layers,
+    ).toHaveLength(3);
+
+    fireEvent.click(screen.getByText("Outer shadow layer"));
+    expect(
+      (onTopologyCommit.mock.calls.at(-1)?.[0] as BoxShadowPresentationValue)
+        .layers[1]?.inset,
+    ).toBe(false);
+    expect(onTopologyCommit.mock.calls.at(-1)?.[1]).toBe(1);
+
+    fireEvent.click(screen.getByText("Remove shadow layer"));
+    const removed = onTopologyCommit.mock.calls.at(
+      -1,
+    )?.[0] as BoxShadowPresentationValue;
+    expect(removed.layers).toHaveLength(1);
+    expect(removed.layers[0]?.color).toBe("#00000040");
+    expect(onTopologyCommit.mock.calls.at(-1)?.[1]).toBe(0);
+    // 연속 편집 커밋 경로는 건드리지 않는다
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it("레이어가 하나면 제거 항목이 비활성이다", () => {
+    render(
+      <BoxShadowEditor
+        value={{ layers: [VALUE.layers[0]!] }}
+        onPreview={vi.fn()}
+        onCommit={vi.fn()}
+        onCancel={vi.fn()}
+        onTopologyCommit={vi.fn()}
+        presentationOwnsFrameScheduling
+      />,
+    );
+    expect(
+      (screen.getByText("Remove shadow layer") as HTMLButtonElement).disabled,
+    ).toBe(true);
+    expect(screen.getByText("Inset shadow layer")).toBeTruthy();
+  });
+
   it("Escape와 pointer-cancel을 presentation cancel로 전달한다", () => {
     const onCancel = vi.fn();
     const { container } = render(
@@ -203,6 +293,7 @@ describe("BoxShadowEditor", () => {
         onPreview={vi.fn()}
         onCommit={vi.fn()}
         onCancel={onCancel}
+        onTopologyCommit={vi.fn()}
         presentationOwnsFrameScheduling
       />,
     );

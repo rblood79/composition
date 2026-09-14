@@ -431,6 +431,27 @@
         }
       }
 
+      /* 레이어 행 = Select (2칸) + 행 메뉴 (아이콘 칸) — 인스펙터 행 템플릿 그대로 */
+      .box-shadow-layer-row {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        gap: var(--spacing-sm);
+        grid-template-areas: "layer layer actions";
+
+        > * {
+          min-width: 0;
+        }
+
+        .box-shadow-layer {
+          grid-area: layer;
+        }
+
+        .actions-icon {
+          grid-area: actions;
+          align-self: end;
+        }
+      }
+
       .box-shadow-editor-fields {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
