@@ -397,15 +397,40 @@
 
     &[data-section-id="border"] .section-content {
       display: grid;
+      gap: var(--spacing-sm);
 
+      .actions-icon {
+        grid-area: icon;
+        display: flex;
+        align-self: end;
+      }
+
+      /* 슬라이더 행 (c12) + 프리셋 메뉴 (28 열) */
+      .style-border-width,
+      .style-border-radius {
+        display: grid;
+        grid-template-columns: var(--inspector-row-columns);
+        grid-template-rows: auto;
+        gap: var(--spacing-sm);
+        grid-template-areas: "slider slider icon";
+
+        > * {
+          min-width: 0;
+        }
+
+        .border-width,
+        .border-radius {
+          grid-area: slider;
+        }
+      }
+
+      /* Style seg | Color 「■ 000000」 */
       .style-border {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
         grid-template-rows: auto;
         gap: var(--spacing-sm);
-        grid-template-areas:
-          "border-style border-style border-color"
-          "border-width border-radius .";
+        grid-template-areas: "border-style border-color .";
 
         > * {
           min-width: 0;
@@ -418,14 +443,6 @@
 
       .border-color {
         grid-area: border-color;
-      }
-
-      .border-width {
-        grid-area: border-width;
-      }
-
-      .border-radius {
-        grid-area: border-radius;
       }
     }
 
@@ -666,11 +683,13 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    /* 글자 라벨 seg — 버튼이 행 폭을 나눠 갖는다 (Settings 토글 · Gradient 하위형) */
+    /* 글자 라벨 seg — 버튼이 행 폭을 나눠 갖는다 (Settings 토글 · Gradient 하위형).
+       Border Style 은 아이콘 4개라 87 칸에 고정폭 20 ×4 + pad 8 = 88 로 넘쳐 같은 규칙. */
     .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-theme-mode-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
-    .gradient-sub-type-selector .react-aria-ToggleButtonGroup[data-indicator="true"] {
+    .gradient-sub-type-selector .react-aria-ToggleButtonGroup[data-indicator="true"],
+    .border-style .react-aria-ToggleButtonGroup[data-indicator="true"] {
       gap: var(--spacing);
 
       .react-aria-ToggleButton {

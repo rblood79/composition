@@ -26,6 +26,22 @@ interface PropertyColorProps {
   onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   placeholder?: string;
   className?: string;
+  /**
+   * 「■ 000000」 — 상자 안에 16 swatch + HEX 글자 (panel-ui 02, 2026-09-14). 기본 (false) 은
+   * 종전처럼 swatch 가 상자를 채운다 (28 열 아이콘 자리용).
+   */
+  showValue?: boolean;
+}
+
+/** 표시용 HEX (# 없이 대문자, 알파 FF 는 생략). 파싱 불가 (var 토큰 등) 는 원문 그대로. */
+function toDisplayHex(value: string): string {
+  try {
+    const hexa = parseColor(value).toString("hexa").toUpperCase();
+    const hex = hexa.slice(1);
+    return hex.length === 8 && hex.endsWith("FF") ? hex.slice(0, 6) : hex;
+  } catch {
+    return value;
+  }
 }
 
 function safeSwatchColor(value: string): Color {
@@ -70,6 +86,7 @@ export const PropertyColor = memo(
     presentationOwnsFrameScheduling = false,
     onPresentationCancel,
     className,
+    showValue = false,
   }: PropertyColorProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -102,6 +119,7 @@ export const PropertyColor = memo(
         <DialogTrigger>
           <AriaButton
             className="react-aria-Group color-swatch-button"
+            data-show-value={showValue || undefined}
             aria-label={
               displayLabel ||
               (i18n
@@ -114,6 +132,9 @@ export const PropertyColor = memo(
             }
           >
             <ColorSwatch color={safeSwatchColor(value)} />
+            {showValue && (
+              <span className="color-swatch-value">{toDisplayHex(value)}</span>
+            )}
           </AriaButton>
           {/* 전용 클래스 — 공용 Popover/타 popover 무영향으로 inset 을 이 popover 만 소유.
               (구 color-picker-popover 는 shared ColorPicker.css 의 dead Dialog 규칙과 이름 충돌) */}
@@ -140,6 +161,7 @@ export const PropertyColor = memo(
       prevProps.value === nextProps.value &&
       prevProps.className === nextProps.className &&
       prevProps.placeholder === nextProps.placeholder &&
+      prevProps.showValue === nextProps.showValue &&
       prevProps.presentationOwnsFrameScheduling ===
         nextProps.presentationOwnsFrameScheduling
     );

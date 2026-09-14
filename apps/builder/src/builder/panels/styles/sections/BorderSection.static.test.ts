@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("BorderSection border preset contract", () => {
-  it("uses separate width and radius preset lists", async () => {
+  it("width · radius 프리셋은 각자의 목록을 28 열 메뉴로 연다 (슬라이더 행)", async () => {
     const source = await readFile(
       resolve(__dirname, "BorderSection.tsx"),
       "utf-8",
@@ -11,8 +11,11 @@ describe("BorderSection border preset contract", () => {
 
     expect(source).toContain("BORDER_WIDTH_PRESET_OPTIONS");
     expect(source).toContain("BORDER_RADIUS_PRESET_OPTIONS");
-    expect(source).toContain('presetAriaLabel="Border Width Preset"');
-    expect(source).toContain('presetAriaLabel="Border Radius Preset"');
+    expect(source).toContain('localize("Border width presets")');
+    expect(source).toContain('localize("Border radius presets")');
+    // 슬라이더는 px 로만 쓴다 — 프리셋 토큰은 메뉴가 그대로 기록
+    expect(source).toContain('updateStyleImmediate("borderWidth", `${px}px`)');
+    expect(source).toContain('updateStyleImmediate(prop, preset.value)');
     expect(source).not.toContain('units={["reset", "px"]}');
   });
 

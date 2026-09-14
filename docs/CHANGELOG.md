@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Style 탭 (2/3) — Border 절 슬라이더 행 · 선 스타일 seg · 색 「■ HEX」 (panel-ui 02)] - 2026-09-14
+
+### Changed
+
+- **Border Width · Radius 는 슬라이더 행** (`PropertySlider labelMode="inline" editable unit="px"`): 「Width ──●── 3 PX」 한 상자 28 (라벨 안쪽 · legend 없음 · 값 칸 클릭으로 직접 입력, Enter/blur 커밋 · Escape 취소). 슬라이더 범위 0~24 / 0~64, 타이핑은 9999 까지. XS~XL 프리셋 (Width px 단계 · Radius `--radius-*` 토큰 그대로) 은 28 열 `⋮` 메뉴로. 종전 「Border Width ▾」 UnitInput 두 줄 46 ×2.
+- **Border Style 셀렉트 10항목 → seg 4** (× none · — solid · - - dashed · ··· dotted). double/groove/ridge/inset/outset 은 저장값이 있으면 양쪽 렌더는 그대로 (Skia 8종) 되나 seg 에 선택 표시가 없다 — Spectrum/Figma 어법에 맞춰 authoring 만 4종.
+- **Color 는 「■ D4D4D4」** (`PropertyColor showValue` — 16 swatch + HEX 글자, 03 Text 탭 Color 와 같은 조각). Style | Color 한 행 (1fr 1fr).
+- 슬라이더 공용 손질: 트랙 2 (`--bg-emph`) + 채움 (`--accent`) + 썸 12 (overlay 바탕 · accent 테두리) — 종전 트랙이 상자와 같은 `--bg-muted` 라 선이 안 보였다. 생성 Slider.css 의 grid gap 4 로 Group 이 32~40 이던 것을 28 로 (`.react-aria-Slider { display: block }` + 안쪽 20).
+- live (`styletab-live.mjs`): 슬라이더 Group 181×28 ×2 · 값 칸 3 Enter → `borderWidth: 3` · 프리셋 M → `var(--radius-md)` · 썸 → → 7 · seg Dashed → `dashed` · seg 버튼 4 × 17.
+
 ## [Styles · Style 탭 (1/3) — Appearance 1절 → Fill · Border · Effect 3절 · Fill 레이어 행 통일 (panel-ui 02)] - 2026-09-14
 
 ### Changed

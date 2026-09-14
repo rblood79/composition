@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Slider as AriaSlider,
   SliderTrack,
@@ -19,8 +19,19 @@ interface PropertySliderProps {
   onChange: (value: number) => void;
   /** 드래그 종료 · 키보드 입력 후 최종 값 (commit 경로). 없으면 onChange 만. */
   onChangeEnd?: (value: number) => void;
-  /** 출력 텍스트. 기본 `${value}%`. */
+  /** 출력 텍스트. 기본 `${value}%`. `editable` 이면 숫자만 (단위는 `unit`). */
   formatValue?: (value: number) => string;
+  /**
+   * 라벨 위치 — `legend` (기본, 필드 위 18 행) / `inline` (28 상자 안 왼쪽 글자, legend 없음 —
+   * 「Width ──●── 1 px」, panel-ui 02). 접근 이름은 두 경우 다 `label`.
+   */
+  labelMode?: "legend" | "inline";
+  /** 값 칸을 클릭해 직접 입력 (Enter/blur 커밋 → onChangeEnd, Escape 취소). */
+  editable?: boolean;
+  /** 값 칸 뒤 단위 글자 (10 mono caps) — `editable` 값 칸과 짝. */
+  unit?: string;
+  /** 직접 입력 상한 (기본 `max`) — 슬라이더 범위 밖 값을 타이핑으로만 허용할 때 (반경 999 등). */
+  inputMax?: number;
   min?: number;
   max?: number;
   step?: number;
@@ -32,12 +43,20 @@ interface PropertySliderProps {
   className?: string;
 }
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
 export function PropertySlider({
   label,
   value,
   onChange,
   onChangeEnd,
   formatValue,
+  labelMode = "legend",
+  editable = false,
+  unit,
+  inputMax,
   min = 0,
   max = 100,
   step = 1,
@@ -57,18 +76,52 @@ export function PropertySlider({
     ? (newValue: number | number[]) => onChangeEnd(toSingle(newValue))
     : undefined;
 
+  // 값 칸 직접 입력 — local draft, 커밋은 Enter/blur 한 번 (연속 preview 없음).
+  const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => {
+    setDraft(null);
+  }, [value]);
+  const commitDraft = (): void => {
+    if (draft === null) return;
+    const parsed = Number.parseFloat(draft);
+    setDraft(null);
+    if (!Number.isFinite(parsed)) return;
+    const next = clamp(parsed, min, inputMax ?? max);
+    if (next === value) return;
+    onChange(next);
+    onChangeEnd?.(next);
+  };
+
+  const outputText = formatValue
+    ? formatValue(value)
+    : editable
+      ? String(value)
+      : `${value}%`;
+
   return (
-    <fieldset className={`properties-aria ${className || ""}`}>
-      <legend className="fieldset-legend">{displayLabel}</legend>
+    <fieldset
+      className={`properties-aria ${className || ""}`}
+      data-label-mode={labelMode}
+      aria-label={labelMode === "inline" ? displayLabel : undefined}
+    >
+      {labelMode === "legend" && (
+        <legend className="fieldset-legend">{displayLabel}</legend>
+      )}
       <div className="react-aria-control react-aria-Group">
-        {Icon && (
-          <label className="control-label">
-            <Icon
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </label>
+        {labelMode === "inline" ? (
+          <span className="slider-inline-label" aria-hidden="true">
+            {displayLabel}
+          </span>
+        ) : (
+          Icon && (
+            <label className="control-label">
+              <Icon
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+            </label>
+          )
         )}
         <AriaSlider
           className="react-aria-Slider"
@@ -82,11 +135,48 @@ export function PropertySlider({
         >
           <div className="slider-container">
             <SliderTrack className="slider-track">
-              <SliderThumb className="slider-thumb" />
+              {({ state }) => (
+                <>
+                  <div
+                    className="slider-fill"
+                    style={{ width: `${state.getThumbPercent(0) * 100}%` }}
+                  />
+                  <SliderThumb className="slider-thumb" />
+                </>
+              )}
             </SliderTrack>
-            <SliderOutput className="slider-output">
-              {formatValue ? formatValue(value) : `${value}%`}
-            </SliderOutput>
+            {editable ? (
+              <input
+                className="slider-output slider-output--input"
+                type="text"
+                inputMode="decimal"
+                aria-label={displayLabel}
+                value={draft ?? outputText}
+                size={Math.max(2, (draft ?? outputText).length)}
+                onChange={(event) => setDraft(event.target.value)}
+                onBlur={commitDraft}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    commitDraft();
+                    event.currentTarget.blur();
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    setDraft(null);
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
+            ) : (
+              <SliderOutput className="slider-output">
+                {outputText}
+              </SliderOutput>
+            )}
+            {unit && (
+              <span className="slider-unit" aria-hidden="true">
+                {unit}
+              </span>
+            )}
           </div>
         </AriaSlider>
       </div>
