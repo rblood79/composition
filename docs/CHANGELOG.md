@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles · Style 탭 (1/3) — Appearance 1절 → Fill · Border · Effect 3절 · Fill 레이어 행 통일 (panel-ui 02)] - 2026-09-14
+
+### Changed
+
+- **Appearance 절 → Fill · Border · Effect 세 절** (section id `fill` / `border` / `effect`, reset 범위 `FILL_PROPS` / `BORDER_PROPS` / `EFFECT_PROPS` — `APPEARANCE_PROPS` 는 탭 dot · modify 뱃지 범위로 그 합집합 유지, 정적 가드 `styleSectionProps.static.test`). ⌥S 전체 토글 대상도 Styles 절 전부로 (`STYLE_PANEL_SECTION_IDS`).
+- **Fill 은 레이어 목록 하나**: 첫 레이어도 같은 행 — 「swatch 16 · HEX (팝오버 trigger) · 불투명도 % · 제거 (hover)」 + 28 열 눈 토글 (표시/숨김). 종전엔 첫 배경만 Background fieldset 의 큰 swatch 버튼, 2번째부터 별도 행 (체크박스 + 24 swatch) 두 어법. 레이어 추가는 절 헤더 「+」. fills 가 없으면 backgroundColor 기반 가상 행 하나 (토글·제거 없음, 색 커밋 시 승격 — `ensureColorFill` 경로 그대로). 첫 레이어의 presentation (연속 preview) 경로는 `FillLayerRow popover` override 로 절이 계속 소유.
+- live (`styletab-live.mjs`): 절 헤더 233×32 ×3 · 행 217×28 (body 181 + 눈 28) · scrub 56×28 · 팝오버 233 · 눈 토글 → `enabled:false` · 헤더 + 두 번 → color + linear-gradient.
+
 ## [Styles · Layout 탭 (3/3) — Spacing 절 = 박스 모델 다이어그램 (panel-ui 01)] - 2026-09-14
 
 ### Added

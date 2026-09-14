@@ -88,7 +88,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
 
   it("borderColor picker는 style presentation owner를 사용하고 fallback은 단일 경로다", async () => {
     const appearance = await source(
-      "../panels/styles/sections/AppearanceSection.tsx",
+      "../panels/styles/sections/BorderSection.tsx",
     );
     const propertyColor = await source(
       "../components/property/PropertyColor.tsx",
@@ -105,7 +105,7 @@ describe("ADR-187 Phase 2 migration guards", () => {
 
   it("boxShadow select는 topology가 유지되는 paint presentation owner를 사용한다", async () => {
     const appearance = await source(
-      "../panels/styles/sections/AppearanceSection.tsx",
+      "../panels/styles/sections/EffectSection.tsx",
     );
     const stylePilot = await source("editorPresentationStylePilot.ts");
     const storeBridge = await source(

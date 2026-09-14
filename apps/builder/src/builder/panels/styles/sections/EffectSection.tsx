@@ -1,38 +1,21 @@
 /**
- * AppearanceSection - Appearance 스타일 편집 섹션
+ * EffectSection — Style 탭 Effect 절 (요소 Opacity · Box Shadow)
  *
- * Background + Border 편집 (단일 섹션)
- * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
- * Background 편집은 FillBackgroundInline 단일 경로를 사용한다.
+ * 종전 Appearance 절에서 분리 (panel-ui 02, 2026-09-14). 접힌 섹션의 훅 실행을 방지하기
+ * 위해 내용 컴포넌트 분리.
  */
 
-import { memo, lazy, Suspense, useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import {
   PropertySection,
-  PropertyUnitInput,
-  PropertyColor,
   PropertySelect,
   PropertySlider,
 } from "../../../components";
-import {
-  BORDER_RADIUS_PRESET_OPTIONS,
-  BORDER_WIDTH_PRESET_OPTIONS,
-} from "../../../components/property/propertyUnitPresets";
-import {
-  SwatchIconButton,
-  SwatchIconToggleButton,
-} from "../../../components/ui";
+import { SwatchIconToggleButton } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import {
-  SquareDashed,
-  SquareRoundCorner,
-  SquareDashedBottom,
-  EllipsisVertical,
-  Eclipse,
-  Eye,
-} from "lucide-react";
+import { Eclipse, Eye } from "lucide-react";
 import { SquareOff } from "../../../components/icons";
-import { APPEARANCE_PROPS } from "./styleSectionProps";
+import { EFFECT_PROPS } from "./styleSectionProps";
 import {
   applyShadowInset,
   getShadowToken,
@@ -57,10 +40,6 @@ import {
   translateKey,
   useOptionalI18n,
 } from "../../../../i18n";
-
-const LazyFillBackgroundInline = lazy(() =>
-  import("./FillSection").then((m) => ({ default: m.FillBackgroundInline })),
-);
 
 /**
  * Shadow 프리셋 옵션 — inset 은 프리셋이 아니라 직교 토글 축 (sm~lg × inset).
@@ -117,7 +96,7 @@ function percentToOpacityValue(percent: number): string {
   return String(Math.max(0, Math.min(100, percent)) / 100);
 }
 
-const AppearanceSectionContent = memo(function AppearanceSectionContent() {
+const EffectSectionContent = memo(function EffectSectionContent() {
   const i18n = useOptionalI18n();
   const localize = (label: string) =>
     i18n
@@ -127,10 +106,6 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();
   const {
-    cancelBorderColorPresentation,
-    commitBorderColorPresentation,
-    isBorderColorPresentationOwned,
-    previewBorderColorPresentation,
     cancelBoxShadowPresentation,
     commitBoxShadowPresentation,
     commitBoxShadowModelPresentation,
@@ -157,24 +132,9 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   if (!styleValues) return null;
 
-  const presentationOwnsBorderColor = isBorderColorPresentationOwned();
   const presentationOwnsBoxShadow = isBoxShadowPresentationOwned();
   const presentationOwnsOpacity = isOpacityPresentationOwned();
   const boxShadowModel = parseBoxShadowPresentation(styleValues.boxShadow);
-
-  const handleBorderColorPreview = (value: string): void => {
-    if (presentationOwnsBorderColor && previewBorderColorPresentation(value)) {
-      return;
-    }
-    updateStylePreview("borderColor", value);
-  };
-
-  const handleBorderColorCommit = (value: string): void => {
-    if (presentationOwnsBorderColor && commitBorderColorPresentation(value)) {
-      return;
-    }
-    updateStyle("borderColor", value);
-  };
 
   // Box Shadow 2축 모델: Select = out shadow 프리셋 (sm~lg), inset 토글 = 직교 modifier.
   //   프리셋 키 판정은 inset-stripped 값 기준 — "lg + inset 토글" 상태에서도 Select 는
@@ -258,80 +218,6 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
 
   return (
     <>
-      <Suspense fallback={null}>
-        <LazyFillBackgroundInline />
-      </Suspense>
-
-      {/* Border */}
-      <div className="style-border">
-        <PropertyColor
-          label="Color"
-          className="border-color"
-          value={styleValues.borderColor}
-          onChange={handleBorderColorCommit}
-          onPreview={handleBorderColorPreview}
-          presentationOwnsFrameScheduling={presentationOwnsBorderColor}
-          onPresentationCancel={cancelBorderColorPresentation}
-          placeholder="#000000"
-        />
-        <PropertyUnitInput
-          icon={SquareDashed}
-          label="Border Width"
-          className="border-width"
-          value={styleValues.borderWidth}
-          units={[]}
-          allowKeywords={false}
-          presets={BORDER_WIDTH_PRESET_OPTIONS}
-          presetAriaLabel="Border Width Preset"
-          onChange={(value) => updateStyleImmediate("borderWidth", value)}
-          onDrag={(value) => updateStylePreview("borderWidth", value)}
-          min={0}
-          max={100}
-        />
-        <PropertyUnitInput
-          icon={SquareRoundCorner}
-          label="Border Radius"
-          className="border-radius"
-          value={styleValues.borderRadius}
-          units={[]}
-          allowKeywords={false}
-          presets={BORDER_RADIUS_PRESET_OPTIONS}
-          presetAriaLabel="Border Radius Preset"
-          onChange={(value) => updateStyleImmediate("borderRadius", value)}
-          onDrag={(value) => updateStylePreview("borderRadius", value)}
-          min={0}
-          max={500}
-        />
-        <PropertySelect
-          icon={SquareDashedBottom}
-          label="Border Style"
-          className="border-style"
-          value={styleValues.borderStyle}
-          options={[
-            { value: "reset", label: "Reset" },
-            { value: "none", label: "none" },
-            { value: "solid", label: "solid" },
-            { value: "dashed", label: "dashed" },
-            { value: "dotted", label: "dotted" },
-            { value: "double", label: "double" },
-            { value: "groove", label: "groove" },
-            { value: "ridge", label: "ridge" },
-            { value: "inset", label: "inset" },
-            { value: "outset", label: "outset" },
-          ]}
-          onChange={(value) => updateStyle("borderStyle", value)}
-        />
-        <div className="fieldset-actions actions-icon">
-          <SwatchIconButton aria-label={localize("More border options")}>
-            <EllipsisVertical
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
-            />
-          </SwatchIconButton>
-        </div>
-      </div>
-
       {/* Opacity — 요소 전체 (Fill 레이어 opacity 와 별개) */}
       <div className="style-opacity">
         <PropertySlider
@@ -418,39 +304,24 @@ const AppearanceSectionContent = memo(function AppearanceSectionContent() {
           />
         )}
       </div>
-
-      {/* Overflow 는 Layout 탭 Size 절로 (panel-ui 01, 2026-09-14) */}
     </>
   );
 });
 
 /**
- * AppearanceSection - 외부 래퍼 (PropertySection 관리)
+ * EffectSection - 외부 래퍼 (PropertySection 관리)
  */
-export const AppearanceSection = memo(function AppearanceSection() {
+export const EffectSection = memo(function EffectSection() {
   const resetStyles = useResetStyles();
-  const hasDirty = useHasDirtyStyles(APPEARANCE_PROPS);
-  const selectedId = useStore((s) => s.selectedElementId);
-
-  const handleReset = () => {
-    resetStyles(APPEARANCE_PROPS);
-    // fills(배경 canonical SSOT)는 style reset 대상이 아니므로 별도로 비운다. 단, 비어있으면
-    //   호출 자체가 스퍼리어스 history entry/mutation 을 만들므로 non-empty 일 때만 실행(M2a).
-    const state = useStore.getState();
-    const el = selectedId ? state.elementsMap.get(selectedId) : undefined;
-    const fills = (el as { fills?: unknown[] } | undefined)?.fills;
-    if (Array.isArray(fills) && fills.length > 0) {
-      state.updateSelectedFills([]);
-    }
-  };
+  const hasDirty = useHasDirtyStyles(EFFECT_PROPS);
 
   return (
     <PropertySection
-      id="appearance"
-      title="Appearance"
-      onReset={hasDirty ? handleReset : undefined}
+      id="effect"
+      title="Effect"
+      onReset={hasDirty ? () => resetStyles(EFFECT_PROPS) : undefined}
     >
-      <AppearanceSectionContent />
+      <EffectSectionContent />
     </PropertySection>
   );
 });

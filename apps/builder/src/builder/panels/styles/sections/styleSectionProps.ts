@@ -1,3 +1,8 @@
+/**
+ * Style 탭 dirty·reset 범위 (탭 dot · PANEL_STYLE_PROPS 정합 가드가 이 리터럴을 읽는다).
+ * 절은 Fill · Border · Effect 셋으로 나뉘었다 (panel-ui 02, 2026-09-14) — 각 절 reset 은
+ * 아래 FILL/BORDER/EFFECT_PROPS 가 맡고, 이 배열은 그 합집합 + overflow 다.
+ */
 export const APPEARANCE_PROPS = [
   "backgroundColor",
   "opacity",
@@ -11,6 +16,20 @@ export const APPEARANCE_PROPS = [
   //   Size 절 reset 은 SIZE_PROPS 가 overflow 를 따로 더한다.
   "overflow",
 ];
+
+/** Fill 절 reset 범위 — fills (canonical) 는 절이 따로 비운다 */
+export const FILL_PROPS = ["backgroundColor"];
+
+/** Border 절 reset 범위 */
+export const BORDER_PROPS = [
+  "borderColor",
+  "borderWidth",
+  "borderRadius",
+  "borderStyle",
+];
+
+/** Effect 절 reset 범위 */
+export const EFFECT_PROPS = ["opacity", "boxShadow"];
 
 export const LAYOUT_PROPS = [
   "display",

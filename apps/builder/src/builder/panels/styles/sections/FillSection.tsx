@@ -1,14 +1,16 @@
 /**
- * FillSection (UI: "Background") - Background 레이어 편집 섹션
+ * FillSection — Style 탭 Fill 절 (레이어 목록)
  *
- * Phase 2: Color + Gradient 다중 레이어
- * - PropertySection 래퍼 + 내부 Content 분리
- * - Zustand 구독 (useFillValues)
- * - @dnd-kit/sortable 드래그 순서 변경
- * - memo 최적화
+ * 절 헤더 「+」 로 레이어 추가, 본문은 레이어 행 (`FillLayerRow`) 목록 — 첫 레이어도 같은
+ * 행이다 (종전 Appearance 절의 Background fieldset 큰 swatch + 아래 추가 행 두 어법을
+ * 하나로, panel-ui 02, 2026-09-14). fills 가 비어 있으면 backgroundColor 기반 가상
+ * 레이어를 한 행 그리고, 색을 커밋하는 순간 실제 fill 로 승격한다 (`ensureColorFill`).
+ *
+ * 첫 레이어만 ADR-187 presentation 경로 (연속 preview) 를 쓴다 — 나머지는 commit-only.
+ * 순서는 @dnd-kit/sortable 드래그.
  */
 
-import { memo, useCallback } from "react";
+import { memo, useCallback, useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -23,13 +25,9 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DialogTrigger } from "react-aria-components/Dialog";
-import { Button as AriaButton } from "react-aria-components/Button";
-import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
-import { Popover } from "@composition/shared/components/Popover";
 import { PropertySection } from "../../../components";
 import { SwatchIconButton } from "../../../components/ui";
-import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import { useFillValues } from "../hooks/useFillValues";
 import { useFillActions } from "../hooks/useFillActions";
 import type {
@@ -37,15 +35,18 @@ import type {
   ColorFillItem,
 } from "../../../../types/builder/fill.types";
 import { FillType } from "../../../../types/builder/fill.types";
-import { FillLayerRow } from "../components/FillLayerRow";
-import { FillDetailPopover } from "../components/FillDetailPopover";
 import {
-  buildFillSwatchStyle,
+  FillLayerRow,
+  type FillLayerRowPopoverOverrides,
+} from "../components/FillLayerRow";
+import {
   createVirtualColorFill,
   resolveFillSeedColor,
 } from "../utils/fillPresentation";
 import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useStore as useComposedStore } from "../../../stores";
+import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
+import { FILL_PROPS } from "./styleSectionProps";
 
 import "./FillSection.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -65,12 +66,14 @@ function SortableFillRow({
   onUpdate,
   onRemove,
   onTypeChange,
+  popover,
 }: {
   fill: FillItem;
   onToggle: (id: string) => void;
   onUpdate: (id: string, updates: Partial<FillItem>) => void;
   onRemove: (id: string) => void;
   onTypeChange: (fillId: string, newType: FillType) => void;
+  popover?: FillLayerRowPopoverOverrides;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({
@@ -90,6 +93,7 @@ function SortableFillRow({
         onUpdate={onUpdate}
         onRemove={onRemove}
         onTypeChange={onTypeChange}
+        popover={popover}
       />
     </div>
   );
@@ -99,127 +103,6 @@ function SortableFillRow({
  * 내부 컨텐츠 - 섹션이 열릴 때만 마운트
  */
 const FillSectionContent = memo(function FillSectionContent() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
-  const { fills } = useFillValues();
-  const { removeFill, reorderFill, toggleFill, updateFill, changeFillType } =
-    useFillActions();
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const fromIndex = fills.findIndex((f) => f.id === active.id);
-      const toIndex = fills.findIndex((f) => f.id === over.id);
-      if (fromIndex !== -1 && toIndex !== -1) {
-        reorderFill(fromIndex, toIndex);
-      }
-    },
-    [fills, reorderFill],
-  );
-
-  const fillIds = fills.map((f) => f.id);
-
-  return (
-    <div className="fill-section-content">
-      {fills.length === 0 ? (
-        <div className="fill-section-empty">{localize("No background")}</div>
-      ) : (
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={handleDragEnd}
-        >
-          <SortableContext
-            items={fillIds}
-            strategy={verticalListSortingStrategy}
-          >
-            {fills.map((fill) => (
-              <SortableFillRow
-                key={fill.id}
-                fill={fill}
-                onToggle={toggleFill}
-                onUpdate={updateFill}
-                onRemove={removeFill}
-                onTypeChange={changeFillType}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-      )}
-    </div>
-  );
-});
-
-/**
- * FillSectionInline - Appearance 섹션 내부에 인라인으로 렌더링
- * PropertySection 래퍼 없이 Background 콘텐츠만 제공
- */
-export const FillSectionInline = memo(function FillSectionInline() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
-  const { fills } = useFillValues();
-  const { addFill } = useFillActions();
-
-  const handleAdd = useCallback(() => {
-    const hasColor = fills.some((f) => f.type === FillType.Color);
-    addFill(hasColor ? FillType.LinearGradient : FillType.Color);
-  }, [fills, addFill]);
-
-  return (
-    <div className="fill-section-inline">
-      <div className="fill-section-inline-header">
-        <span className="fill-section-inline-label">
-          {localize("Background")}
-        </span>
-        <button
-          type="button"
-          className="fill-section-add-btn"
-          onClick={handleAdd}
-          aria-label={localize("Add background")}
-          title={localize("Add background")}
-        >
-          <AddIcon
-            size={iconSmall.size}
-            strokeWidth={iconSmall.strokeWidth}
-            color={iconSmall.color}
-          />
-        </button>
-      </div>
-      <FillSectionContent />
-    </div>
-  );
-});
-
-/**
- * FillBackgroundInline - style-background 그리드 구조에 맞는 V2 Fill UI
- *
- * 기존 PropertyColor와 동일한 그리드 레이아웃(3열: 1fr 1fr control-size)에서:
- * - 첫번째 Fill: PropertyColor 스타일 swatch (클릭 시 FillDetailPopover)
- * - + 버튼: 3번째 열 (actions-icon)
- * - 추가 Fill(2번째~): 그리드 아래 FillLayerRow 리스트
- */
-export const FillBackgroundInline = memo(function FillBackgroundInline() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
   const { fills } = useFillValues();
   const selectedId = useComposedStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
@@ -240,19 +123,13 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
   } = useFillActions();
 
   const firstFill = fills[0] ?? null;
-  const extraFills = fills.slice(1);
 
   // fills가 없을 때 표시할 기본 색상: 현재 요소의 backgroundColor 또는 #FFFFFF
   // computedStyle이 color(srgb ...) 형식을 반환할 수 있으므로 정규화 필요
-  const placeholderColorHex8 = resolveFillSeedColor(
-    styleValues?.backgroundColor,
-  );
   const virtualFill: ColorFillItem = createVirtualColorFill(
     styleValues?.backgroundColor,
   );
 
-  // popover에 전달할 fill: 실제 fill이 있으면 그것, 없으면 가상 fill
-  const popoverFill = firstFill ?? virtualFill;
   const presentationOwnsColor =
     firstFill?.type === FillType.Color
       ? isFirstFillPresentationOwned(firstFill.id, firstFill)
@@ -274,15 +151,6 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     }),
   );
 
-  const handleAdd = useCallback(() => {
-    const hasColor = fills.some((f) => f.type === FillType.Color);
-    if (hasColor) {
-      addFill(FillType.LinearGradient);
-    } else {
-      addFill(FillType.Color, placeholderColorHex8);
-    }
-  }, [fills, addFill, placeholderColorHex8]);
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event;
@@ -296,8 +164,7 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     [fills, reorderFill],
   );
 
-  // popover 콜백: fills가 없으면 fill 생성과 동시에 색상 적용
-  // fills가 있으면 기존 fill 업데이트
+  // 첫 레이어 popover 콜백: fills가 없으면 fill 생성과 동시에 색상 적용, 있으면 기존 fill 업데이트.
   // 가상 fill 승격은 pointer terminal의 ensureColorFill(create-or-update) 한 번으로
   // 제한한다. raw input 중에는 canonical/history/persist write를 만들지 않는다.
   const handleColorChange = useCallback(
@@ -433,120 +300,139 @@ export const FillBackgroundInline = memo(function FillBackgroundInline() {
     [firstFill, changeFillType, addFill],
   );
 
-  // swatch에 표시할 색상
-  const swatchColor = !firstFill
-    ? placeholderColorHex8
-    : firstFill.type === FillType.Color
-      ? (firstFill as ColorFillItem).color
-      : undefined;
-  const swatchStyle = buildFillSwatchStyle(firstFill);
+  const firstRowPopover = useMemo<FillLayerRowPopoverOverrides>(
+    () => ({
+      presentationOwnsColorFrameScheduling:
+        presentationOwnsColor || presentationOwnsGradientStops,
+      onColorPresentationCancel: handleColorPresentationCancel,
+      onColorChange: handleColorChange,
+      onColorChangeEnd: handleColorChangeEnd,
+      onOpacityChange: handleFillOpacityChange,
+      onOpacityChangeEnd: handleFillOpacityChangeEnd,
+      onUpdate: handleFillUpdate,
+      onUpdateEnd: handleFillUpdateEnd,
+      onTypeChange: handleTypeChange,
+    }),
+    [
+      presentationOwnsColor,
+      presentationOwnsGradientStops,
+      handleColorPresentationCancel,
+      handleColorChange,
+      handleColorChangeEnd,
+      handleFillOpacityChange,
+      handleFillOpacityChangeEnd,
+      handleFillUpdate,
+      handleFillUpdateEnd,
+      handleTypeChange,
+    ],
+  );
 
-  const isColor = firstFill?.type === FillType.Color || !firstFill;
-  const isGradient =
-    firstFill?.type === FillType.LinearGradient ||
-    firstFill?.type === FillType.RadialGradient ||
-    firstFill?.type === FillType.AngularGradient;
-  const isMesh = firstFill?.type === FillType.MeshGradient;
+  const fillIds = fills.map((f) => f.id);
 
-  const extraFillIds = extraFills.map((f) => f.id);
+  if (!firstFill) {
+    return (
+      <div className="fill-section-content">
+        <FillLayerRow
+          fill={virtualFill}
+          isVirtual
+          onToggle={toggleFill}
+          onUpdate={updateFill}
+          onRemove={removeFill}
+          onTypeChange={changeFillType}
+          popover={firstRowPopover}
+        />
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div className="style-background">
-        <fieldset className="properties-aria property-color-input background-color">
-          <legend className="fieldset-legend">{localize("Background")}</legend>
-          <DialogTrigger>
-            <AriaButton
-              className="react-aria-Group color-swatch-button"
-              aria-label={localize("Edit background fill")}
-            >
-              {isColor && <ColorSwatch color={swatchColor!} />}
-              {isGradient && (
-                <div
-                  className="fill-background-gradient-swatch"
-                  style={swatchStyle}
-                />
-              )}
-              {isMesh && (
-                <div
-                  className="fill-background-gradient-swatch"
-                  style={swatchStyle}
-                />
-              )}
-            </AriaButton>
-            <Popover
-              placement="bottom start"
-              className="fill-detail-popover-container"
-              hideArrow
-            >
-              <FillDetailPopover
-                fill={popoverFill}
-                presentationOwnsColorFrameScheduling={
-                  presentationOwnsColor || presentationOwnsGradientStops
-                }
-                onColorPresentationCancel={handleColorPresentationCancel}
-                onColorChange={handleColorChange}
-                onColorChangeEnd={handleColorChangeEnd}
-                onOpacityChange={handleFillOpacityChange}
-                onOpacityChangeEnd={handleFillOpacityChangeEnd}
-                onUpdate={handleFillUpdate}
-                onUpdateEnd={handleFillUpdateEnd}
-                onTypeChange={handleTypeChange}
-              />
-            </Popover>
-          </DialogTrigger>
-        </fieldset>
-        <div className="fieldset-actions actions-icon">
-          <SwatchIconButton
-            onPress={handleAdd}
-            aria-label={localize("Add background")}
-          >
-            <AddIcon
-              color={iconProps.color}
-              size={iconProps.size}
-              strokeWidth={iconProps.strokeWidth}
+    <div className="fill-section-content">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext items={fillIds} strategy={verticalListSortingStrategy}>
+          {fills.map((fill, index) => (
+            <SortableFillRow
+              key={fill.id}
+              fill={fill}
+              onToggle={toggleFill}
+              onUpdate={updateFill}
+              onRemove={removeFill}
+              onTypeChange={changeFillType}
+              popover={index === 0 ? firstRowPopover : undefined}
             />
-          </SwatchIconButton>
-        </div>
-      </div>
-
-      {extraFills.length > 0 && (
-        <div className="fill-background-extra">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={extraFillIds}
-              strategy={verticalListSortingStrategy}
-            >
-              {extraFills.map((fill) => (
-                <SortableFillRow
-                  key={fill.id}
-                  fill={fill}
-                  onToggle={toggleFill}
-                  onUpdate={updateFill}
-                  onRemove={removeFill}
-                  onTypeChange={changeFillType}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        </div>
-      )}
-    </>
+          ))}
+        </SortableContext>
+      </DndContext>
+    </div>
   );
 });
 
 /**
- * FillSection - 독립 섹션 래퍼 (PropertySection 포함)
- * 호환성 유지용 — 단독 사용 시
+ * FillSection — 절 래퍼 (헤더 「+」 · reset)
  */
 export const FillSection = memo(function FillSection() {
+  const i18n = useOptionalI18n();
+  const localize = (label: string) =>
+    i18n
+      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
+      : label;
+  const { fills } = useFillValues();
+  const { addFill } = useFillActions();
+  const selectedId = useComposedStore((s) => s.selectedElementId);
+  const styleValues = useAppearanceValues(selectedId);
+  const resetStyles = useResetStyles();
+  const hasDirtyStyle = useHasDirtyStyles(FILL_PROPS);
+  const hasDirty = hasDirtyStyle || fills.length > 0;
+
+  const placeholderColorHex8 = resolveFillSeedColor(
+    styleValues?.backgroundColor,
+  );
+
+  const handleAdd = useCallback(() => {
+    const hasColor = fills.some((f) => f.type === FillType.Color);
+    if (hasColor) {
+      addFill(FillType.LinearGradient);
+    } else {
+      addFill(FillType.Color, placeholderColorHex8);
+    }
+  }, [fills, addFill, placeholderColorHex8]);
+
+  const handleReset = useCallback(() => {
+    resetStyles(FILL_PROPS);
+    // fills(배경 canonical SSOT)는 style reset 대상이 아니므로 별도로 비운다. 단, 비어있으면
+    //   호출 자체가 스퍼리어스 history entry/mutation 을 만들므로 non-empty 일 때만 실행(M2a).
+    const state = useComposedStore.getState();
+    const el = selectedId ? state.elementsMap.get(selectedId) : undefined;
+    const currentFills = (el as { fills?: unknown[] } | undefined)?.fills;
+    if (Array.isArray(currentFills) && currentFills.length > 0) {
+      state.updateSelectedFills([]);
+    }
+  }, [resetStyles, selectedId]);
+
+  const actions = useMemo(
+    () => (
+      <SwatchIconButton onPress={handleAdd} aria-label={localize("Add fill")}>
+        <AddIcon
+          color={iconProps.color}
+          size={iconProps.size}
+          strokeWidth={iconProps.strokeWidth}
+        />
+      </SwatchIconButton>
+    ),
+    [handleAdd, i18n],
+  );
+
   return (
-    <PropertySection id="background" title="Background">
-      <FillSectionInline />
+    <PropertySection
+      id="fill"
+      title="Fill"
+      actions={actions}
+      onReset={hasDirty ? handleReset : undefined}
+    >
+      <FillSectionContent />
     </PropertySection>
   );
 });

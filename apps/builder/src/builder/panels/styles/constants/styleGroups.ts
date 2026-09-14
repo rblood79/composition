@@ -1,14 +1,14 @@
 /**
  * Style 패널 그룹 탭 정의 (섹션 그룹화)
  *
- * 스타일 패널은 섹션 5개(Responsive / Transform / Layout / Appearance / Typography)를 한 줄로
+ * 스타일 패널은 절 여럿 (Size … Fill · Border · Effect · Typography · Responsive) 을 한 줄로
  * 늘어놓아 233px 폭에서 콘텐츠가 2화면을 넘었다. 섹션은 하나도 지우지 않고 **4개 그룹 탭**으로
  * 묶어 한 번에 한 그룹만 보이게 한다.
  *
  * | 그룹     | 섹션                     |
  * | -------- | ------------------------ |
  * | `layout` | Transform + Layout       |
- * | `style`  | Appearance (Background)  |
+ * | `style`  | Fill + Border + Effect   |
  * | `text`   | Typography               |
  * | `screen` | Responsive (+Visibility) |
  *

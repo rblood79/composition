@@ -1,7 +1,7 @@
 /**
  * StylesPanel - 스타일 편집 패널
  *
- * 섹션 5개(Responsive / Transform / Layout / Appearance / Typography)를 **4개 그룹 탭**으로 묶어
+ * 절 (Size · Position · Layout · Spacing / Fill · Border · Effect / Typography / Responsive) 을 **4개 그룹 탭**으로 묶어
  * 한 번에 한 그룹만 보여준다 (섹션 삭제 없음 — 그룹화만). "수정된 속성만" 뷰도 같은 탭 줄의
  * 5번째 탭이다 — 콘텐츠 영역을 배타적으로 차지하는 뷰를 두 컨트롤이 나눠 쥐지 않게 한다.
  * 뷰 정의·그룹별 dirty 판정은 `constants/styleGroups.ts`, 탭 UI 어법(선택된 탭에만 라벨)은
@@ -36,7 +36,9 @@ import {
   TransformSection,
   LayoutSection,
   SpacingSection,
-  AppearanceSection,
+  FillSection,
+  BorderSection,
+  EffectSection,
   TypographySection,
   ModifiedStylesSection,
   ResponsiveSection,
@@ -86,7 +88,13 @@ const LayoutGroupSections = memo(function LayoutGroupSections() {
 });
 
 const StyleGroupSections = memo(function StyleGroupSections() {
-  return <AppearanceSection />;
+  return (
+    <>
+      <FillSection />
+      <BorderSection />
+      <EffectSection />
+    </>
+  );
 });
 
 const TextGroupSections = memo(function TextGroupSections() {
@@ -144,7 +152,7 @@ function StylesPanelContent() {
   const [view, setView] = useState<StyleViewId>("layout");
   const focusMode = useSectionCollapse((s) => s.focusMode);
   const toggleFocusMode = useSectionCollapse((s) => s.toggleFocusMode);
-  // ⌥S 전체 토글 — Styles 섹션 4개만 id 집합으로 판정·조작한다. 종전에는 접힌 섹션의
+  // ⌥S 전체 토글 — Styles 절 (STYLE_PANEL_SECTION_IDS) 만 id 집합으로 판정·조작한다. 종전에는 접힌 섹션의
   // 개수를 세어 판정해 다른 패널 섹션이 하나라도 접혀 있으면 영원히 거짓이었고, 펼칠 때
   // 전 패널의 접힘 상태를 지웠다.
   const { toggle: toggleStyleSections } = useSectionGroupToggle(

@@ -30,9 +30,16 @@ describe("ADR-187 Phase 6 legacy cleanup guards", () => {
     }
     expect(hook).not.toContain("pendingUpdateRef");
     expect(hook).not.toContain("requestAnimationFrame");
-    expect(row).toContain("onColorChange={ignoreContinuousColorChange}");
-    expect(row).toContain("onOpacityChange={ignoreContinuousOpacityChange}");
-    expect(row).toContain("onUpdate={ignoreContinuousFillUpdate}");
+    // 연속 콜백은 첫 레이어의 presentation override (`popover`, FillSection 소유) 가 없으면
+    //   no-op — secondary row 가 canonical updater 를 raw input 에 다시 묶지 않는다.
+    expect(row).toContain(
+      "popover?.onColorChange ?? ignoreContinuousColorChange",
+    );
+    expect(row).toContain(
+      "popover?.onOpacityChange ?? ignoreContinuousOpacityChange",
+    );
+    expect(row).toContain("popover?.onUpdate ?? ignoreContinuousFillUpdate");
+    expect(section).toContain("popover={index === 0 ? firstRowPopover : undefined}");
   });
 
   it("미지원 fill은 commit-only 경계를 유지한다", async () => {

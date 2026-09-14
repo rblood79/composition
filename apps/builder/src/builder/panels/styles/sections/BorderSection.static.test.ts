@@ -2,10 +2,10 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-describe("AppearanceSection border preset contract", () => {
+describe("BorderSection border preset contract", () => {
   it("uses separate width and radius preset lists", async () => {
     const source = await readFile(
-      resolve(__dirname, "AppearanceSection.tsx"),
+      resolve(__dirname, "BorderSection.tsx"),
       "utf-8",
     );
 

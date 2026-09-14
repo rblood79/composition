@@ -24,10 +24,15 @@ import { persist } from "zustand/middleware";
  */
 export const DEFAULT_COLLAPSED_SECTION_IDS: readonly string[] = ["position"];
 
+/** ⌥S 전체 토글 대상 — Styles 패널이 그리는 절 전부 (탭 순서대로). */
 export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
   "transform",
+  "position",
   "layout",
-  "appearance",
+  "spacing",
+  "fill",
+  "border",
+  "effect",
   "typography",
 ];
 

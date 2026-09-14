@@ -111,7 +111,7 @@ describe("StylesPanel view tabs", () => {
     // 기본 탭 = Layout(Size + Position + Layout). 다른 뷰의 섹션은 렌더되지 않는다.
     expect(screen.getByText("Size")).toBeTruthy();
     expect(screen.queryByText("Typography")).toBeNull();
-    expect(screen.queryByText("Appearance")).toBeNull();
+    expect(screen.queryByText("Border")).toBeNull();
 
     fireEvent.click(screen.getByRole("tab", { name: "Text" }));
 
