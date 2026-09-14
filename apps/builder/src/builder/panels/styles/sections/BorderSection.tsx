@@ -28,7 +28,6 @@ import {
   PanelRight,
   PanelTop,
   Square,
-  X,
 } from "lucide-react";
 import {
   ToggleButtonGroup,
@@ -67,8 +66,8 @@ const WIDTH_SLIDER_MAX = 24;
 const RADIUS_SLIDER_MAX = 64;
 const INPUT_MAX = 9999;
 
+// 「없음 (×)」 토글 없음 — 활성 토글 재클릭이 해제 = none (Text 탭 세그먼트와 같은 패턴, 2026-09-14)
 const BORDER_STYLE_OPTIONS = [
-  { id: "none", label: "No border", icon: X },
   { id: "solid", label: "Solid", icon: Minus },
   { id: "dashed", label: "Dashed", icon: LineDashed },
   { id: "dotted", label: "Dotted", icon: Ellipsis },
@@ -96,10 +95,30 @@ const SIDE_OPTIONS = [
 const SIDE_INDEX = { top: 0, right: 1, bottom: 2, left: 3 } as const;
 
 const CORNER_FIELDS = [
-  { prop: "borderTopLeftRadius", label: "Top left radius", suffix: "TL", index: 0 },
-  { prop: "borderTopRightRadius", label: "Top right radius", suffix: "TR", index: 1 },
-  { prop: "borderBottomLeftRadius", label: "Bottom left radius", suffix: "BL", index: 3 },
-  { prop: "borderBottomRightRadius", label: "Bottom right radius", suffix: "BR", index: 2 },
+  {
+    prop: "borderTopLeftRadius",
+    label: "Top left radius",
+    suffix: "TL",
+    index: 0,
+  },
+  {
+    prop: "borderTopRightRadius",
+    label: "Top right radius",
+    suffix: "TR",
+    index: 1,
+  },
+  {
+    prop: "borderBottomLeftRadius",
+    label: "Bottom left radius",
+    suffix: "BL",
+    index: 3,
+  },
+  {
+    prop: "borderBottomRightRadius",
+    label: "Bottom right radius",
+    suffix: "BR",
+    index: 2,
+  },
 ] as const;
 
 /** 프리셋 (XS~XL, Reset) → 행 메뉴 항목. value "" (Reset) 은 inline 키 삭제. */
@@ -334,9 +353,10 @@ const BorderSectionContent = memo(function BorderSectionContent() {
             indicator
             selectedKeys={[styleValues.borderStyle]}
             onSelectionChange={(keys) => {
-              const value = Array.from(keys)[0] as string | undefined;
-              // 재클릭 (빈 선택) 은 무시 — 선 스타일은 항상 하나다
-              if (value && value !== styleValues.borderStyle) {
+              // 재클릭 (빈 선택) = none — companion 은 none 에 width/color 를 넣지 않는다
+              const value =
+                (Array.from(keys)[0] as string | undefined) ?? "none";
+              if (value !== styleValues.borderStyle) {
                 updateStyle("borderStyle", value);
               }
             }}

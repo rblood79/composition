@@ -18,10 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Compare 모드에서 web 은 기울임·대문자가 적용되는데 canvas 는 그대로였다** (catalog 컴포넌트 텍스트 — Button·Text 등): 레이아웃 측정은 둘 다 읽어 폭은 맞았지만 Skia 렌더 노드에 `fontStyle` (slant) 과 변환된 콘텐츠를 싣는 곳이 없었다 — inline 텍스트 override 13 필드 (ADR-057) 에 `fontStyle` (italic 1 · oblique 2) 과 `textTransform` (측정과 같은 `applyTextTransform`) 을 추가. 잔존 spec 텍스트 shape 는 원래 `shape.textTransform` 으로 변환됐다. live (Button): 기울임 → Skia `fontStyle 1` · 픽셀 변화 668 → 대문자 → `content "BUTTON"` → 굵게 → `fontWeight 700`, 캔버스가 굵은 기울임 대문자로 그려진다.
 - ADR-219 정적 가드 (`borderGeometry.static.test.ts`) 가 i18n 키 문자열 (`"styles.appearance.borderTopWidth"`) 을 longhand 판독으로 오인해 P4 이후 실패하고 있었다 — 문자열 리터럴 제외.
 
-## [Text 탭 — Style · Decoration · Case 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
+## [Text 탭 Style · Decoration · Case · Border 선 스타일 — 토글은 다시 누르면 해제 (× 토글 제거)] - 2026-09-14
 
 ### Changed
 
+- **Border 선 스타일 세그먼트** 도 같은 패턴: 「없음 (×)」 제거, solid · dashed · dotted 셋 (24×20 / 그룹 28), 활성 토글 재클릭 = `none` (companion 은 none 에 width/color 를 넣지 않는다 — 기존 규칙). live (frame, 4px navy): dashed 재클릭 → `none`, 상변 픽셀이 테두리색에서 배경색으로 · solid 재선택 → 복귀.
 - **Style 세그먼트 = Bold · Italic 다중 선택** (동시 활성, 재클릭 해제). 종전 「기본 (Tx) · 기울임 · 비스듬히」 단일 선택에는 굵게가 없어 굵기는 Weight 셀렉트로만 바꿀 수 있었다. Bold = `fontWeight ≥ 600` (Weight 셀렉트와 같은 값을 본다 — 켜면 700, 끄면 catalog base 가 굵지 않으면 inline 삭제 · 굵으면 400) · Italic = `fontStyle ≠ normal` (oblique 문서도 켜진 것으로 표시, 켜면 italic · 끄면 normal). 비스듬히 (oblique) 전용 토글은 없어졌다 — 값은 보존된다. live: 굵게 → 700 (Weight 셀렉트 「Bold」) → 기울임 함께 → 둘 다 활성 → 굵게 해제 → inline 삭제 (base 400) → 기울임 해제 → normal.
 - **Decoration (취소선·밑줄·윗줄) · Case (대문자·첫 글자·소문자)** 세그먼트에서 「없음 (×)」 토글을 뺐다. 활성 토글을 한 번 더 누르면 해제 = `none` — 다른 토글 그룹과 같은 패턴. 3 버튼이 행 폭을 나눈다 (flex 1). live: 밑줄 → `underline`, 다시 → `none` (선택 0) · 대문자 → 소문자 전환 → 다시 → `none`.
 
