@@ -16,6 +16,8 @@
  */
 
 import { memo, useRef } from "react";
+import { Button } from "react-aria-components/Button";
+import { Minus } from "lucide-react";
 import {
   PropertyRowMenu,
   PropertySection,
@@ -56,7 +58,6 @@ import {
 import "./EffectSection.css";
 
 const AddIcon = ACTION_ICONS.add;
-const DeleteIcon = ACTION_ICONS.delete;
 
 /** ADR-166: Spectrum 2 elevation 3단계 (xl 없음). 목록 전체를 교체한다. */
 const SHADOW_PRESET_KEYS: readonly ShadowPresetKey[] = ["sm", "md", "lg"];
@@ -314,8 +315,10 @@ const EffectSectionContent = memo(function EffectSectionContent() {
                 className="effect-layer-row__scrub"
               />
             </div>
-            <div className="fieldset-actions actions-icon">
-              <SwatchIconButton
+            {/* 행 액션 그룹 — Fill · Shadow 행과 같은 [−] (2026-09-15) */}
+            <div className="effect-layer-row__actions">
+              <Button
+                className="effect-layer-row__action effect-layer-row__remove"
                 aria-label={localize("Remove blur filter")}
                 onPress={() =>
                   updateStyleImmediate(
@@ -324,12 +327,12 @@ const EffectSectionContent = memo(function EffectSectionContent() {
                   )
                 }
               >
-                <DeleteIcon
+                <Minus
                   color={iconProps.color}
                   size={iconProps.size}
                   strokeWidth={iconProps.strokeWidth}
                 />
-              </SwatchIconButton>
+              </Button>
             </div>
           </div>
         )}

@@ -421,6 +421,16 @@
           grid-area: main;
         }
       }
+
+      /* 레이어 행 — 액션 그룹 ([−][inset] 52) 이 28 열보다 넓어 1fr + auto (Fill 행과 같음) */
+      .effect-layer-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas: none;
+
+        > :first-child {
+          grid-area: auto;
+        }
+      }
     }
 
     &[data-section-id="typography"] .section-content {

@@ -21,16 +21,17 @@
     color: var(--fg);
   }
 
-  /* 레이어 행 본문 (lrow 28, bg-muted) */
+  /* 레이어 행 = 본문 28 그룹 (pad 4, 안쪽 20) + 액션 그룹 [−][inset] — Fill 레이어 행과 같은 구조
+     (2026-09-15 사용자 판정). 격자 열은 inspector-layout 의 effect 블록 (1fr auto). */
   .effect-layer-row__trigger,
   .effect-layer-row__body {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     box-sizing: border-box;
     min-width: 0;
     block-size: var(--control-size);
-    padding: 0 var(--spacing-xs) 0 var(--spacing-sm);
+    padding: var(--spacing) var(--spacing) var(--spacing) var(--spacing-sm);
     background: var(--bg-muted);
     border-radius: var(--radius-md);
     color: var(--fg);
@@ -38,24 +39,69 @@
 
   .effect-layer-row__trigger {
     width: 100%;
+    padding-inline-start: var(--spacing);
     border: none;
     cursor: pointer;
     text-align: start;
-
-    &:hover {
-      background: var(--bg-emphasis);
-    }
 
     &:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
     }
 
+    /* swatch 20×20 raised (Fill 행 swatch 와 같음) */
     .react-aria-ColorSwatch {
       flex: none;
-      width: 16px;
-      height: 16px;
-      border-radius: 3px;
+      width: var(--text-xl);
+      height: var(--text-xl);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .effect-layer-row__value {
+      padding-inline-start: var(--spacing);
+    }
+  }
+
+  .effect-layer-row__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing);
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    padding: var(--spacing);
+    background: var(--bg-muted);
+    border-radius: var(--radius-md);
+  }
+
+  .effect-layer-row__action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--text-xl);
+    height: var(--text-xl);
+    padding: 0;
+    background: var(--bg-overlay);
+    box-shadow: var(--shadow-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &[data-hovered],
+    &[data-selected] {
+      color: var(--fg);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+
+    &[data-disabled] {
+      opacity: 0.38;
+      cursor: default;
     }
   }
 
@@ -82,10 +128,6 @@
   }
 
   /* Blur 행의 scrub — 28 그룹 안 20 (Fill 행 scrub 과 같은 규칙, 2026-09-15) */
-  .effect-layer-row__body:has(.effect-layer-row__scrub) {
-    padding-block: var(--spacing);
-  }
-
   .effect-layer-row__scrub.scrub-input {
     width: 64px;
     flex-shrink: 0;

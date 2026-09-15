@@ -10,13 +10,13 @@
 import { memo } from "react";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
+import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
 import { parseColor, type Color } from "react-aria-components/ColorPicker";
-import { Square } from "lucide-react";
+import { Minus, Square } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
-import { PropertyRowMenu } from "../../../components";
-import { ACTION_ICONS } from "../../../config/actionIcons";
 import { SquareOff } from "../../../components/icons";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import type {
   BoxShadowPresentationLayer,
   BoxShadowPresentationValue,
@@ -69,17 +69,6 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
   const layer = value.layers[layerIndex];
   if (!layer) return null;
 
-  const menuItems = [
-    {
-      id: "inset",
-      label: layer.inset
-        ? localize("Outer shadow layer")
-        : localize("Inset shadow layer"),
-      icon: layer.inset ? Square : SquareOff,
-    },
-    { id: "remove", label: localize("Remove shadow layer"), icon: ACTION_ICONS.delete },
-  ];
-
   return (
     <div className="effect-layer-row" data-inset={layer.inset || undefined}>
       <DialogTrigger>
@@ -113,12 +102,44 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
           />
         </Popover>
       </DialogTrigger>
-      <div className="fieldset-actions actions-icon">
-        <PropertyRowMenu
-          label={localize("Shadow layer actions")}
-          items={menuItems}
-          onAction={(id) => onAction(id as BoxShadowLayerAction, layerIndex)}
-        />
+      {/* 행 액션 그룹 — Fill 레이어 행과 같은 구조 [−][inset 토글] (28 그룹 안 20×20 둘, 2026-09-15).
+          종전 ⋮ 메뉴 (inset · remove) 를 버튼 둘로 */}
+      <div className="effect-layer-row__actions">
+        <AriaButton
+          className="effect-layer-row__action effect-layer-row__remove"
+          onPress={() => onAction("remove", layerIndex)}
+          aria-label={localize("Remove shadow layer")}
+        >
+          <Minus
+            size={iconProps.size}
+            strokeWidth={iconProps.strokeWidth}
+            color={iconProps.color}
+          />
+        </AriaButton>
+        <AriaToggleButton
+          className="effect-layer-row__action effect-layer-row__inset"
+          isSelected={Boolean(layer.inset)}
+          onChange={() => onAction("inset", layerIndex)}
+          aria-label={
+            layer.inset
+              ? localize("Outer shadow layer")
+              : localize("Inset shadow layer")
+          }
+        >
+          {layer.inset ? (
+            <SquareOff
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+              color={iconProps.color}
+            />
+          ) : (
+            <Square
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+              color={iconProps.color}
+            />
+          )}
+        </AriaToggleButton>
       </div>
     </div>
   );
