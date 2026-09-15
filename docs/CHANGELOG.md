@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 컨트롤 어법: 필드 의미별 컨트롤 (seg · 칩 · 슬라이더 · 피커)] - 2026-09-15
+
+같은 날 오전의 「선택지는 전부 셀렉트」 규칙을 대체한다 (사용자 판정 2026-09-15 — 시안 `docs/design/properties-panel-inventory` Proposal 페이지, 레퍼런스: Primer segmented control 2~5 / NN·g·LukeW 「dropdowns last resort」 / Figma·Framer 인스펙터). 기준은 옵션 수·글자 폭도 「전부 셀렉트」 도 아닌 **필드의 의미** — 같은 키는 어느 컴포넌트에서든 같은 컨트롤 (`panels/properties/generic/fieldEditor.ts` 매핑표, catalog `PropContract` 무변경). 격자는 현행 3열 (1fr 1fr 28px) 유지 (2열 안은 보류).
+
+### Changed
+
+- **boolean 은 전부 칩 묶음 — 스위치 0** (`PropertyChipGroup`, RAC `ToggleButtonGroup selectionMode="multiple"` → 칩마다 `aria-pressed`). 같은 섹션의 boolean 이 한 묶음, legend 는 「Options」 (Chart 의 show-*/fill-* 은 「Show」 · 「Fill」, 칩 글자는 접두 제거). 하나뿐이어도 칩. 부정형 `hideTimeZone` · `hideArrow` 는 긍정형 「Time Zone」 「Arrow」 (켜짐 = 보임). On/Off 값 enum (`autoCorrect` · `spellCheck`) 도 칩. 켜는 칩에 종속된 필드 (Show Value Label → Value Label · Legend → Legend Position) 는 묶음 바로 아래. TextField Behavior 3행 138px → 2행, Checkbox 4행 → 2행, DatePicker 6행 → 2 묶음.
+- **배타 2~4 짧은 값은 seg** (`PropertySegment` — Styles 정렬 seg 와 같은 indicator 그룹): labelPosition · necessityIndicator · selectionMode · density · hourCycle · fillStyle · Button type · pageBehavior · granularity · 이진 variant (Default/Accent ×15 등). 2~3 반폭, 4 이상 · 라벨이 칸에 안 들어가면 전폭.
+- **방향 · 정렬 · 모양은 아이콘 seg** — orientation (↔ ↕) · labelAlign/align (좌·중·우) · labelPosition (Top/Side 패널) · legendPosition (4방) · stackType · curve · gridType · layout. 이름은 `aria-label`.
+- **size 는 seg 최대 5단** — XS S M L XL. 7단 타입 (Text · Heading · Paragraph) 의 2XL · 3XL 은 Properties 에 없고 Styles 패널 font-size 로; 값이 범위 밖이면 seg 선택 없음 + legend 뒤 「3XL · set in Styles」.
+- **값이 색인 variant 는 색 점** — Meter (Informative/Positive/Warning/Critical) 같은 ≤4 는 seg + 점, Button (6) · Badge (25) · StatusLight (19) 같은 5+ 는 셀렉트 + 항목·값 점 (`PropertySelect swatches`, 색은 `--informative` 등 상태색과 `--hue-*` Spectrum 색 이름 토큰). `staticColor` 는 스와치 seg (Auto | ○ | ●).
+- **Popover · Tooltip `placement` 는 9-위치 피커** (`PropertyPlacementPicker` — Styles Layout 의 3×3 Align 격자 어법, 가운데 = 대상, 옆에 현재 값 이름).
+- **상한 있는 number 는 슬라이더 + 직접 입력 값 칸** — strokeWidth 0.5~4 · innerRadius % · startAngle/endAngle 0~360° · gridRings · maxVisibleMonths 1~3 · animationBegin/Duration · timeout · gap · columns 1~12. **Slider · Meter · ProgressBar · ProgressCircle 의 `value` 는 형제 minValue~maxValue 에 묶인 슬라이더** (양끝 = min/max, 눈금 = step). 상한 없는 정수 (min/max/step · length · offset · pages) 는 스텝퍼 (NumberField) 그대로.
+- **5+ · 긴 라벨 · 도메인 enum 은 셀렉트 유지** — inputMode · enterKeyHint · type · channel · animationEasing · target · encType. 옵션이 데이터에서 오는 필드 (Chart 컬럼 매핑, literal 모드) 도 셀렉트 고정.
+- catalog 라벨 정합: TimeField `hourCycle` (12/24) · Form `necessityIndicator` (Icon/Label) · Form `target` (Same Window …) 을 형제 타입과 같은 라벨로 — 같은 키·값이 다른 컨트롤로 갈리지 않게 (정적 가드 `fieldEditor.static.test.ts` 가 catalog 전수에서 「같은 키·값·kind = 같은 컨트롤」 을 집행).
+
 ## [Properties 패널 — 필드 컨트롤 · 폭 · 순서를 한 규칙으로 (Styles 패널 기준)] - 2026-09-15
 
 ### Changed

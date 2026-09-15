@@ -390,6 +390,26 @@ const GenericField = memo(function GenericField({
 
   const stateNames = useVisibleVariableNames(elementId);
   const { t } = useI18n();
+  // 형제에 묶인 값 슬라이더 (Slider/Meter/ProgressBar `value`) 의 양끝 — 형제 prop 을 같이 읽는다.
+  //   훅은 무조건 부른다 (조건부 금지); 해당 없는 필드는 읽은 값을 쓰지 않는다.
+  const boundMin = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    "minValue",
+    undefined,
+  );
+  const boundMax = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    "maxValue",
+    undefined,
+  );
+  const boundStep = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    "step",
+    undefined,
+  );
 
   // 라벨은 전부 legend (상자 위) — Styles 패널과 같은 어법 (2026-09-15 사용자 판정; 종전 전폭
   //   행의 상자 안 suffix 라벨 · 스위치 inline 행은 폐기). 아이콘 prefix 는 legend 가 정체를
@@ -560,6 +580,29 @@ const GenericField = memo(function GenericField({
             formatValue={(val) => String(val)}
           />
         );
+      }
+      // `value` 는 형제 minValue~maxValue 에 묶인다 — 양끝이 곧 min/max (없으면 0~100), 눈금은 step.
+      //   min > max 같은 역전은 슬라이더가 못 그리므로 스텝퍼로 내려간다.
+      if (editor.type === "slider-bound") {
+        const min = typeof boundMin === "number" ? boundMin : 0;
+        const max = typeof boundMax === "number" ? boundMax : 100;
+        const step =
+          typeof boundStep === "number" && boundStep > 0 ? boundStep : 1;
+        if (max > min) {
+          return (
+            <PropertySlider
+              label={field.label}
+              value={numeric ?? min}
+              onChange={() => {}}
+              onChangeEnd={(val) => update(val)}
+              editable
+              min={min}
+              max={max}
+              step={step}
+              formatValue={(val) => String(val)}
+            />
+          );
+        }
       }
       return (
         <PropertyNumberInput

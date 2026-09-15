@@ -297,3 +297,81 @@ describe("ADR-209 숨긴 종류와 AND 조건", () => {
     expect(container.textContent).not.toContain("fillGrid");
   });
 });
+
+/**
+ * 2026-09-15 컨트롤 어법 — boolean 칩 묶음의 쓰기 경로: 각 칩은 자기 prop 하나를 쓰고, 부정형
+ * (hideTimeZone) 은 칩 켜짐 = 보임 = false 저장, On/Off enum (autoCorrect) 은 "on"/"off" 문자열.
+ */
+describe("GenericFieldRenderer — boolean 칩 묶음 쓰기", () => {
+  const { fireEvent } = require("@testing-library/react") as typeof import("@testing-library/react");
+  const chip = (container: HTMLElement, text: string) =>
+    [...container.querySelectorAll(".property-chips .react-aria-ToggleButton")].find(
+      (b) => b.textContent === text,
+    ) as HTMLElement;
+
+  it("Disabled 칩을 켜면 isDisabled=true, 다시 누르면 false", () => {
+    ownerColumnsMock.mockReturnValue(null);
+    const update = vi.fn();
+    const { container } = renderWithI18n(
+      <GenericFieldRenderer
+        fields={[boolField("isDisabled", false), boolField("isRequired", true)]}
+        onSemanticUpdate={update}
+        onStyleUpdate={vi.fn()}
+        elementId="text-1"
+      />,
+    );
+    // 라벨은 legend 「Options」 하나 + 칩 글자
+    expect(labels(container)).toContain("Options");
+    fireEvent.click(chip(container, "isDisabled"));
+    expect(update).toHaveBeenCalledWith("isDisabled", true);
+    expect(update).not.toHaveBeenCalledWith("isRequired", expect.anything());
+  });
+
+  it("부정형 hideTimeZone 은 Show 그룹 「Time Zone」 — 끄면 true 저장", () => {
+    ownerColumnsMock.mockReturnValue(null);
+    const update = vi.fn();
+    const field: ResolvedField = {
+      ...boolField("hideTimeZone", false),
+      label: "Hide Time Zone",
+      section: "locale",
+    };
+    const { container } = renderWithI18n(
+      <GenericFieldRenderer
+        fields={[field]}
+        onSemanticUpdate={update}
+        onStyleUpdate={vi.fn()}
+        elementId="date-1"
+      />,
+    );
+    expect(labels(container)).toContain("Show");
+    const c = chip(container, "Time Zone");
+    expect(c.getAttribute("aria-pressed")).toBe("true"); // hideTimeZone=false → 보임
+    fireEvent.click(c);
+    expect(update).toHaveBeenCalledWith("hideTimeZone", true);
+  });
+
+  it("On/Off enum autoCorrect 는 칩 — 켜면 \"on\", 끄면 \"off\"", () => {
+    ownerColumnsMock.mockReturnValue(null);
+    const update = vi.fn();
+    const field: ResolvedField = {
+      ...enumField("autoCorrect", "off"),
+      label: "Auto Correct",
+      options: [
+        { value: "on", label: "On" },
+        { value: "off", label: "Off" },
+      ],
+    };
+    const { container } = renderWithI18n(
+      <GenericFieldRenderer
+        fields={[field]}
+        onSemanticUpdate={update}
+        onStyleUpdate={vi.fn()}
+        elementId="text-1"
+      />,
+    );
+    const c = chip(container, "Auto Correct");
+    expect(c.getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(c);
+    expect(update).toHaveBeenCalledWith("autoCorrect", "on");
+  });
+});

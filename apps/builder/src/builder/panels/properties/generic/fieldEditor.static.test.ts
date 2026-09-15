@@ -203,6 +203,13 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
     expect(editorOf("TextField", "maxLength").type).toBe("stepper");
     expect(editorOf("Popover", "offset").type).toBe("stepper");
     expect(editorOf("Slider", "minValue").type).toBe("stepper");
+    // value 는 형제 min/max 에 묶인 슬라이더 (Slider · Meter · ProgressBar · ProgressCircle)
+    expect(editorOf("Slider", "value")).toMatchObject({
+      type: "slider-bound",
+      minKey: "minValue",
+      maxKey: "maxValue",
+    });
+    expect(editorOf("Meter", "value").type).toBe("slider-bound");
   });
 
   it("같은 키는 어느 컴포넌트에서든 같은 컨트롤 종류", () => {

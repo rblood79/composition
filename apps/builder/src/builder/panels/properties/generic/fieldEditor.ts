@@ -53,6 +53,11 @@ export type FieldEditor =
   | { type: "swatch-seg" }
   | { type: "placement" }
   | { type: "slider"; min: number; max: number; step: number; unit?: string }
+  /**
+   * 형제 prop 에 묶인 값 — Slider/Meter/ProgressBar 의 `value` 는 minValue~maxValue 안에 있다.
+   * 슬라이더 양끝이 곧 min/max (형제가 없으면 0~100), 눈금은 `step` 형제.
+   */
+  | { type: "slider-bound"; minKey: string; maxKey: string; stepKey: string }
   | { type: "stepper" }
   | {
       type: "chip";
@@ -261,6 +266,13 @@ export function resolveFieldEditor(field: ResolvedField): FieldEditor {
       return { type: "select" };
     }
     case "number": {
+      if (field.key === "value")
+        return {
+          type: "slider-bound",
+          minKey: "minValue",
+          maxKey: "maxValue",
+          stepKey: "step",
+        };
       const range = SLIDER_RANGE[field.key];
       if (range) {
         return {

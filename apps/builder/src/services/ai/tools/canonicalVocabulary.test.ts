@@ -235,6 +235,29 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
     seed();
   });
 
+  it.each(["Select", "Card"])(
+    "ADR-202: %s 합성 생성의 요청 prop/style과 canonical 필드가 보존된다",
+    async (type) => {
+      const result = await createElementTool.execute(
+        {
+          type,
+          parentId: "body",
+          props: { isDisabled: true },
+          styles: { opacity: 0.42 },
+        },
+        tt,
+      );
+      expect(result.success).toBe(true);
+      const id = (result.data as { elementId: string }).elementId;
+      const { getAiToolReadModel } = await import("./canonicalToolReadModel");
+      const node = getAiToolReadModel().elementsById.get(id);
+      expect(node?.props).toMatchObject({
+        isDisabled: true,
+        style: { opacity: 0.42 },
+      });
+    },
+  );
+
   it("create_element type:frame + clip/placeholder/slot 이 노드에 남는다", async () => {
     const result = await createElementTool.execute(
       {
