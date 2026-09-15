@@ -236,7 +236,6 @@ const EffectSectionContent = memo(function EffectSectionContent() {
         <PropertySlider
           label="Opacity"
           className="opacity"
-          labelMode="inline"
           editable
           unit="%"
           value={opacityToPercent(styleValues.opacity)}

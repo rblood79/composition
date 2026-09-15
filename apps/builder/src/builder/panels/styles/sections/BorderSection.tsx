@@ -239,7 +239,10 @@ const BorderSectionContent = memo(function BorderSectionContent() {
   ): void => {
     const preset = presets.find((p) => p.id === id);
     if (!preset) return;
-    updateStyleImmediate(prop, preset.value);
+    // 토큰 preset (var(--radius-xl)) 은 px 로 풀어 쓴다 — border 기하 배치 (ADR-219) 는
+    //   숫자만 읽어 var() 가 0 이 됐다. 메뉴 글자 (「XL · 12」) 와 같은 값.
+    const px = resolveCssLengthPx(preset.value);
+    updateStyleImmediate(prop, px !== null ? `${px}px` : preset.value);
   };
 
   return (
@@ -248,7 +251,6 @@ const BorderSectionContent = memo(function BorderSectionContent() {
         <PropertySlider
           label="Width"
           className="border-width"
-          labelMode="inline"
           editable
           unit="px"
           value={widthPx}
@@ -319,7 +321,6 @@ const BorderSectionContent = memo(function BorderSectionContent() {
         <PropertySlider
           label="Radius"
           className="border-radius"
-          labelMode="inline"
           editable
           unit="px"
           value={radiusPx}
