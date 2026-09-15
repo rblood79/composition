@@ -289,39 +289,7 @@
       }
     }
 
-    .react-aria-NumberField-steppers {
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-      gap: var(--spacing-xs);
-    }
-
-    .react-aria-NumberField-button {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: var(--text-xl);
-      height: var(--text-xl);
-      border-radius: var(--radius-sm);
-      flex-shrink: 0;
-      background: var(--bg-overlay);
-      box-shadow: var(--shadow-sm);
-      border: none;
-      color: var(--fg-muted);
-      cursor: pointer;
-      padding: 0;
-
-      &:hover {
-        color: var(--fg);
-        background: var(--bg-muted);
-      }
-
-      &[data-disabled] {
-        color: var(--fg-disabled);
-        cursor: default;
-        background: transparent;
-      }
-    }
+    /* NumberField ± stepper 는 2026-09-15 제거 (화살표 키만) */
 
     /* IconPicker / FontFamilyPicker: input-style trigger + clear button.
        둘 다 Select 가 아니라 팝오버 trigger 버튼이라 `.react-aria-Select

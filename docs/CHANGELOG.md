@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — Styles 와 같은 어법 (legend 라벨 · stepper 0 · 아이콘 prefix 0)] - 2026-09-15
+
+### Changed
+
+- **Properties 패널 필드 라벨을 전부 legend (상자 위) 로** — Styles 패널 판정을 그대로 적용. 전폭 행의 상자 안 suffix 라벨 (「button_1 ID」 「hero-title CLASS」 「None ICON ▾」 「… TEXT」 · GenericFieldRenderer 의 짧은 라벨 suffix) 과 스위치의 inline 행 (라벨 왼쪽 · 스위치 오른쪽, 상자 없음) 을 legend + 상자 28 로. 아이콘 prefix (# · 필드 종류 아이콘) 는 legend 가 정체를 말하므로 전부 제거.
+- **숫자 필드의 − / + stepper 제거** (`PropertyNumberInput` — Styles 의 ⇕ 제거와 같은 판정, 화살표 키 그대로).
+- Button Icon · Text 필드가 3열 (217) 로 다른 전폭 필드 (181) 보다 넓던 것 → 같은 행 래퍼로 181.
+
 ## [Styles 패널 — 필드 라벨을 Gap 과 같은 legend 로 (Size · Position · Typography · Shadow · 슬라이더 3, 필드 안 suffix/inline 되돌림)] - 2026-09-15
 
 ### Fixed

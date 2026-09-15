@@ -142,8 +142,8 @@ const enumField = (
 });
 
 // 필드 라벨은 legend 한 번 (Switch 안의 중복 글자는 2026-09-14 에 제거 — 접근 이름은 aria-label).
-// panel-ui 07 부터 스위치는 inline 행 (라벨 span) · 짧은 라벨은 suffix (fieldset aria-label)
-//   이라 legend 가 없다 — 접근 이름 (fieldset aria-label) 과 legend 를 같이 센다.
+// 2026-09-15 부터 라벨은 전부 legend (suffix · inline 폐기) — 접근 이름 (fieldset aria-label) 도
+//   같이 세어 두면 어느 모드든 같은 판정.
 const labels = (container: HTMLElement): string[] =>
   [
     ...container.querySelectorAll(

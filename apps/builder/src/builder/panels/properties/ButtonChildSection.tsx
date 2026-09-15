@@ -329,21 +329,24 @@ export const ButtonChildFields = memo(function ButtonChildFields({
 
   return (
     <>
-      {/* 「None ICON ▾」 · 「… TEXT」 — 라벨은 상자 안 suffix, 아이콘 prefix 없음 (panel-ui 07 — 대조 B13) */}
-      <PropertyIconPicker
-        label="Icon"
-        labelMode="suffix"
-        value={currentIconName}
-        onChange={handleSelectIcon}
-        onClear={handleClearIcon}
-      />
-      {existingText ? (
-        <PropertyInput
-          label="Text"
-          labelMode="suffix"
-          value={textChildValue}
-          onChange={handleTextChange}
+      {/* Icon · Text — legend 위 + 상자 아래 (Styles 패널과 같은 어법, 2026-09-15), 아이콘 prefix 없음.
+          행 래퍼 (fieldset-row data-wide) 로 다른 전폭 필드와 같은 181 (종전 Icon 만 3열 217) */}
+      <div className="fieldset-row" data-wide="true">
+        <PropertyIconPicker
+          label="Icon"
+          value={currentIconName}
+          onChange={handleSelectIcon}
+          onClear={handleClearIcon}
         />
+      </div>
+      {existingText ? (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label="Text"
+            value={textChildValue}
+            onChange={handleTextChange}
+          />
+        </div>
       ) : null}
     </>
   );

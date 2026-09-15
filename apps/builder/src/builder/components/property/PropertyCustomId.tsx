@@ -1,5 +1,4 @@
 import React, { useState, useEffect, memo, useId } from "react";
-import { Hash } from "lucide-react";
 import { PropertyFieldset } from "./PropertyFieldset";
 import { useStore } from "../../stores";
 import { useCanonicalPropertyElements } from "../../panels/properties/hooks/useCanonicalPropertyRead";
@@ -105,7 +104,6 @@ export const PropertyCustomId = memo(function PropertyCustomId({
   return (
     <PropertyFieldset
       legend={label}
-      icon={Hash}
       labelMode={labelMode}
       suffixLabel={suffixLabel}
       className={className}

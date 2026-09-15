@@ -34,7 +34,6 @@ import {
   PropertySwitch,
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
-import { resolvePropertyFieldIcon } from "../../../config/propertyFieldIcons";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
 import {
@@ -260,7 +259,6 @@ const GenericField = memo(function GenericField({
   onSemanticUpdate,
   onStyleUpdate,
   elementId,
-  componentType,
   ownerColumns,
   ownerFields,
   translateOptions,
@@ -278,18 +276,11 @@ const GenericField = memo(function GenericField({
     else onSemanticUpdate(field.key, v);
   };
 
-  // 아이콘은 필드의 정체(key → kind)에서 파생한다 — catalog 계약에 icon 축이 없고,
-  // key 73개가 contract 92% 를 덮으므로 binding 파일에 값을 복제할 이유가 없다.
-  // 정본·근거: config/propertyFieldIcons.ts
-  const icon = resolvePropertyFieldIcon(field.key, field.kind, componentType);
   const stateNames = useVisibleVariableNames(elementId);
 
-  // 라벨을 상자 안 suffix (10 mono caps) 로 두는 조건 — 전폭 (181) 행이고 라벨이 짧을 때.
-  //   반폭 (87) 칸은 suffix + chevron 이 값 자리를 다 먹어 (live 「Prima VARIA ▾」) legend 행.
-  const suffixMode =
-    fieldSpan(field) === "wide" && field.label.length <= 14
-      ? "suffix"
-      : "legend";
+  // 라벨은 전부 legend (상자 위) — Styles 패널과 같은 어법 (2026-09-15 사용자 판정; 종전 전폭
+  //   행의 상자 안 suffix 라벨 · 스위치 inline 행은 폐기). 아이콘 prefix 는 legend 가 정체를
+  //   말하므로 두지 않는다.
 
   switch (field.kind) {
     // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
@@ -311,13 +302,9 @@ const GenericField = memo(function GenericField({
           />
         );
       }
-      // 반폭 (87) 칸의 셀렉트는 아이콘 (20) + chevron (20) 이 값 자리를 39 로 줄여 「Buttoı」
-      //   로 잘린다 — legend 가 정체를 말하므로 아이콘을 뺀다 (전폭은 suffix 모드라 원래 없음)
       return (
         <PropertySelect
-          icon={fieldSpan(field) === "half" ? undefined : icon}
           label={field.label}
-          labelMode={suffixMode}
           value={String(value ?? field.baseValue ?? "")}
           onChange={(v) => update(v)}
           options={field.options ?? []}
@@ -334,7 +321,6 @@ const GenericField = memo(function GenericField({
         return (
           <PropertySelect
             label={field.label}
-            labelMode={suffixMode}
             value={String(value ?? field.baseValue ?? "")}
             onChange={(v) => update(v)}
             options={field.options ?? []}
@@ -358,9 +344,7 @@ const GenericField = memo(function GenericField({
     case "boolean":
       return (
         <PropertySwitch
-          icon={icon}
           label={field.label}
-          labelMode="inline"
           isSelected={Boolean(value ?? field.baseValue)}
           onChange={(checked) => update(checked)}
         />
@@ -377,7 +361,6 @@ const GenericField = memo(function GenericField({
       ) {
         return (
           <PropertyFieldTemplateInput
-            icon={icon}
             label={field.label}
             value={String(value ?? "")}
             onChange={(v) => update(v === "" ? undefined : v)}
@@ -388,9 +371,7 @@ const GenericField = memo(function GenericField({
       }
       return (
         <PropertyInput
-          icon={icon}
           label={field.label}
-          labelMode={suffixMode}
           value={String(value ?? "")}
           onChange={(v) => update(v === "" ? undefined : v)}
           // ADR-214 Phase 3 — `{{` 자동완성 (가시성 사슬의 변수 이름), style 축은 제외
@@ -402,9 +383,7 @@ const GenericField = memo(function GenericField({
       const display = Array.isArray(value) ? value.join(", ") : "";
       return (
         <PropertyInput
-          icon={icon}
           label={field.label}
-          labelMode={suffixMode}
           value={display}
           onChange={(v) => {
             const parts = v
@@ -420,7 +399,6 @@ const GenericField = memo(function GenericField({
     case "number":
       return (
         <PropertyNumberInput
-          icon={icon}
           label={field.label}
           value={
             value != null
@@ -440,9 +418,6 @@ const GenericField = memo(function GenericField({
       return (
         <PropertyIconPicker
           label={field.label}
-          // 값이 있으면 미리보기 20 + 이름 + 지우기 20 이 같이 서므로 suffix 는 짧은 라벨 (Icon) 만 —
-          //   「Calendar Icon」 은 legend (2026-09-15 live 「calendar」 잘림)
-          labelMode={field.label.length <= 5 ? suffixMode : "legend"}
           value={value as string | undefined}
           onChange={(name) => update(name)}
           onClear={() => update(undefined)}
@@ -458,7 +433,6 @@ const GenericField = memo(function GenericField({
       if (field.key === "dataBinding") {
         return (
           <PropertyDataBinding
-            icon={icon}
             label={field.label}
             value={(value as DataBindingValue | null | undefined) ?? null}
             onChange={(v) => update(v)}
