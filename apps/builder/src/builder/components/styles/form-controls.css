@@ -562,7 +562,8 @@
       align-items: center;
       gap: var(--spacing-sm);
       block-size: calc(var(--control-size) - 2 * var(--spacing));
-      padding: 0 var(--spacing-xs);
+      /* 왼쪽 8 — 값 0 이면 thumb 가 트랙 시작에 서서 상자 왼쪽 벽에 붙어 보였다 (2026-09-15 사용자 판정) */
+      padding: 0 var(--spacing-xs) 0 var(--spacing-sm);
     }
 
     /* labelMode="inline" — 라벨 글자가 28 상자 안 왼쪽 (「Width ──●── 1 px」), legend 없음 */
