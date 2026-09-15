@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nested Routes (body)** — Parent Page · Slug 를 격자 행으로, 「Generate from Title」 은 Slug 행의 28 액션 (WandSparkles), Resolved URL 은 읽기 전용 값 필드. 아이콘 prefix 제거.
 - 계약이 빈 타입 (frame …) 의 「편집 가능한 속성이 없습니다」 빈 상태 제거 — Attributes · State 절이 항상 있어 모순된 안내였다.
 - `.fieldset-row` 의 28 액션 열은 legend 행에서 상자에 맞춰 아래 정렬 (Styles 의 Ratio 잠금과 같음).
+- **Variant | Size 는 언제나 한 행** — Card 처럼 옵션 글자가 길면 (「Secondary」) Variant 가 전폭으로 떨어져 2행이 되던 것. 셀렉트 값 ↔ chevron 상자 gap 0 (값 자리 55 → 59) + 값 글자 간격 −0.01em 으로 「Secondary」 「Informative」 「Chartreuse」 가 들어간다; 「Emphasized」 (Checkbox/Switch) 만 트리거에서 말줄임 (목록은 전체).
+- **조건부 필드는 켜는 필드 바로 뒤에** — ProgressBar/Meter 의 「Show Value Label」 스위치와 「Value Label」, 「Label Position」 과 「Label Align」 처럼 kind 묶음 정렬로 갈라지던 짝이 한 자리에.
 - **레퍼런스 (RAC/RSP) 가 자동으로 처리하는 옵션은 패널에서 뺐다** — Modal `Trap Focus` · `Auto Focus`, Popover `Contain Focus` (RAC FocusScope 담당, RSP 에 없는 prop) · field 6종의 `Validation Behavior` (RAC Form 이 FormContext 로 전파 — Form 하나만). accepts 엔 남겨 (`editorHidden`) 런타임 통과는 그대로.
 - **의미 없는 상태에서는 숨김** — `Label Align` 은 `Label Position = Side` 일 때만 (12 필드) · Meter/ProgressBar `Value Label` 은 `Show Value Label` 일 때만 · DateField/DatePicker/DateRangePicker 의 `Hour Cycle` · `Hide Time Zone` 은 시간 granularity 일 때만.
 - **섹션 소속 정규화** — Link/Card 의 `href` · `target` · `rel` 은 Content (종전 State), ProgressBar/ProgressCircle `Indeterminate` 는 Behavior (종전 Content), ProgressBar/Meter `Show Value Label` · `Value Label` 은 Appearance (Slider 와 같음).

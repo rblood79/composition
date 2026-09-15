@@ -204,7 +204,8 @@ function textWidth(text: string): number {
   return measureCtx.measureText(text).width;
 }
 const HALF_LEGEND = 87;
-const HALF_SELECT_VALUE = 55;
+/** 반폭 셀렉트의 값 자리 — 87 − 상자 pad 8 − chevron 20 (값 ↔ chevron gap 0) */
+const HALF_SELECT_VALUE = 59;
 
 /** 선택지 kind — 전부 셀렉트 하나로 그린다 (Styles 패널의 Ratio · Overflow 와 같은 어법). */
 function isChoiceKind(kind: ResolvedField["kind"]): boolean {
@@ -230,12 +231,16 @@ function isSingleChoice(field: ResolvedField): boolean {
 
 function fieldSpan(field: ResolvedField): "wide" | "half" {
   switch (field.kind) {
-    // 셀렉트는 반폭 — legend (「Necessity Indicator」) 나 옵션 라벨 (「Informative」 · 「Categorical」)
-    //   이 반폭 칸에 안 들어갈 때만 전폭 (2026-09-15 live 전수 대조)
+    // Variant · Size 는 언제나 반폭 한 행 (panel-ui 07 「Variant | Size」 — 2026-09-15 사용자 판정:
+    //   옵션 글자가 길어도 (Card 「Secondary」) 행을 가르지 않는다. 59 를 넘는 라벨 (「Emphasized」
+    //   65) 만 트리거에서 말줄임, 목록은 전체 글자)
     case "variant":
+    case "size":
+      return "half";
+    // 그 밖의 셀렉트는 반폭 — legend (「Necessity Indicator」) 나 옵션 라벨 (「Categorical」) 이
+    //   반폭 칸에 안 들어갈 때만 전폭 (2026-09-15 live 전수 대조)
     case "enum":
-    case "fillStyle":
-    case "size": {
+    case "fillStyle": {
       if (textWidth(field.label) > HALF_LEGEND) return "wide";
       if (
         (field.options ?? []).some(
@@ -305,10 +310,40 @@ function fieldRank(field: ResolvedField): number {
   }
 }
 function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
-  return fields
+  const ranked = fields
     .map((field, index) => ({ field, index, rank: fieldRank(field) }))
     .sort((a, b) => a.rank - b.rank || a.index - b.index)
     .map((entry) => entry.field);
+  // 조건부 필드는 자기 조건 키 바로 뒤에 — 「Show Value Label」 스위치와 「Value Label」 입력,
+  //   「Label Position」 과 「Label Align」 처럼 켜는 쪽과 켜지는 쪽이 한 자리에 (2026-09-15 사용자
+  //   지적 — kind 묶음만 따르면 둘이 갈라진다). 조건 키가 다른 섹션이면 그대로.
+  const out: ResolvedField[] = [];
+  const dependents = new Map<string, ResolvedField[]>();
+  for (const field of ranked) {
+    const gate =
+      field.visibleWhen && "key" in field.visibleWhen
+        ? field.visibleWhen.key
+        : undefined;
+    if (gate && gate !== field.key && ranked.some((f) => f.key === gate)) {
+      dependents.set(gate, [...(dependents.get(gate) ?? []), field]);
+    }
+  }
+  const placed = new Set<ResolvedField>();
+  const push = (field: ResolvedField) => {
+    if (placed.has(field)) return;
+    placed.add(field);
+    out.push(field);
+    for (const dep of dependents.get(field.key) ?? []) push(dep);
+  };
+  for (const field of ranked) {
+    const gate =
+      field.visibleWhen && "key" in field.visibleWhen
+        ? field.visibleWhen.key
+        : undefined;
+    if (gate && dependents.get(gate)?.includes(field)) continue; // 게이트가 넣는다
+    push(field);
+  }
+  return out;
 }
 
 /** 연속한 half 필드 둘을 한 행으로 묶는다. wide 는 행 하나를 혼자 쓴다. */

@@ -137,7 +137,9 @@
         .react-aria-Button {
           display: flex;
           align-items: center;
-          gap: var(--spacing-xs);
+          /* 값 ↔ chevron 상자 사이 gap 0 — chevron 글리프가 20 상자 가운데라 시각 간격은 그대로.
+             반폭 (87) 셀렉트의 값 자리 55 → 59 로 「Secondary」 (58) 가 들어간다 (2026-09-15). */
+          gap: 0;
           padding: 0;
           background-color: transparent;
           border-width: 0;
@@ -169,6 +171,9 @@
         .react-aria-SelectValue {
           font-size: var(--text-xs);
           line-height: var(--text-xs--line-height);
+          /* 반폭 값 자리 59 에 「Informative」 「Chartreuse」 (60) 가 1px 모자란다 — 글자 간격 −0.01em
+             (11자 ≈ −1.3px) 으로 흡수. 「Emphasized」 (65) 만 말줄임 (2026-09-15). */
+          letter-spacing: -0.01em;
           color: var(--fg);
           white-space: nowrap;
           overflow: hidden;
