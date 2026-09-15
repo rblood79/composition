@@ -157,11 +157,6 @@
     opacity: 1;
   }
 
-  /* 눈 토글 — 켜진 상태가 기본이라 선택 배경을 칠하지 않는다 (꺼짐은 행 opacity .5 + EyeOff) */
-  .fill-layer-row__visibility[data-selected] .swatch-icon-inner {
-    background: var(--bg-overlay);
-  }
-
   /* Fill detail popover container */
   .fill-detail-popover-container {
     /* indicator ToggleButtonGroup(FillTypeSelector, Gradient subtype 등)의 선택

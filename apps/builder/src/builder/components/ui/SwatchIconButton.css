@@ -31,10 +31,10 @@
     background: var(--accent-subtle);
   }
 
+  /* 선택 상태 — accent 채움 없음 (2026-09-15 사용자 판정: 아이콘 형태 (Eye/EyeOff) 가 상태를 말한다).
+     글자색만 fg 로. */
   &[data-selected] {
-    .swatch-icon-inner {
-      background: var(--accent);
-    }
+    color: var(--fg);
   }
 
   &[data-focus-visible] {
