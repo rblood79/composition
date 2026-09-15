@@ -224,6 +224,7 @@
 
         .actions-constraint-min {
           grid-area: actions-constraint-min;
+          align-self: end;
         }
 
         .max-width {
@@ -236,14 +237,17 @@
 
         .actions-constraint-max {
           grid-area: actions-constraint-max;
+          align-self: end;
         }
 
         .aspect-ratio-select {
           grid-area: aspect-ratio;
         }
 
+        /* legend 행 (46) 의 액션은 상자 (28) 와 나란히 — 아래 정렬 (actions-size 와 같음) */
         .actions-ratio {
           grid-area: actions-ratio;
+          align-self: end;
         }
 
         .overflow {
@@ -252,6 +256,7 @@
 
         .actions-overflow {
           grid-area: actions-overflow;
+          align-self: end;
         }
       }
     }
