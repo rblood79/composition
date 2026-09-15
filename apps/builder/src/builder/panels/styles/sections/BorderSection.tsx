@@ -2,12 +2,15 @@
  * BorderSection — Style 탭 Border 절
  *
  *   「Width  ──●──── 1 px」  [프리셋 ⋮]
- *   「Radius ──●──── 8 px」  [프리셋 ⋮]
- *   Style  [× — - - ···]     Color [■ 000000]
+ *   Style  [— - - ···]       Color [■ 000000]
+ *   Sides  [전체 · 좌 · 우 · 상 · 하]
+ *   「Radius  8         ▾」   [코너 펼침 ⊡]  → 코너 2×2 (토글 on 또는 비균일)
  *
- * 종전 Appearance 절 (Background + Border + Opacity + Shadow 한 절) 을 Fill · Border ·
- * Effect 셋으로 나눴다 (panel-ui 02, 2026-09-14). Width · Radius 는 슬라이더 행 — 0~24 범위는
- * 드래그가 타이핑보다 빠르고, 값 칸을 클릭하면 직접 입력. 토큰 프리셋 (XS~XL) 은 28 열 메뉴.
+ * 순서는 2026-09-15 사용자 판정 (Width → Style/Color → Sides → Radius). 종전 Appearance 절
+ * (Background + Border + Opacity + Shadow 한 절) 을 Fill · Border · Effect 셋으로 나눴다
+ * (panel-ui 02, 2026-09-14). Width 는 슬라이더 행 — 0~24 범위는 드래그가 타이핑보다 빠르고,
+ * 값 칸을 클릭하면 직접 입력, 토큰 프리셋 (XS~XL) 은 28 열 메뉴. Radius 는 Gap 과 같은
+ * 「값 + ▾ 토큰 preset」 필드.
  * Style 은 셀렉트 10항목 → seg 4 (none · solid · dashed · dotted) — double/groove/ridge/
  * inset/outset 은 저장값이 있으면 렌더는 그대로 (Skia 8종) 되지만 seg 에 선택이 없다.
  *
@@ -276,6 +279,46 @@ const BorderSectionContent = memo(function BorderSectionContent() {
         </div>
       </div>
 
+      <div className="style-border">
+        <fieldset className="properties-aria border-style">
+          <legend className="fieldset-legend">{localize("Style")}</legend>
+          <ToggleButtonGroup
+            aria-label={localize("Border Style")}
+            indicator
+            selectedKeys={[styleValues.borderStyle]}
+            onSelectionChange={(keys) => {
+              // 재클릭 (빈 선택) = none — companion 은 none 에 width/color 를 넣지 않는다
+              const value =
+                (Array.from(keys)[0] as string | undefined) ?? "none";
+              if (value !== styleValues.borderStyle) {
+                updateStyle("borderStyle", value);
+              }
+            }}
+          >
+            {BORDER_STYLE_OPTIONS.map(({ id, label, icon: Icon }) => (
+              <ToggleButton key={id} id={id} aria-label={localize(label)}>
+                <Icon
+                  color={iconProps.color}
+                  size={iconProps.size}
+                  strokeWidth={iconProps.strokeWidth}
+                />
+              </ToggleButton>
+            ))}
+          </ToggleButtonGroup>
+        </fieldset>
+        <PropertyColor
+          label="Color"
+          className="border-color"
+          showValue
+          value={styleValues.borderColor}
+          onChange={handleBorderColorCommit}
+          onPreview={handleBorderColorPreview}
+          presentationOwnsFrameScheduling={presentationOwnsBorderColor}
+          onPresentationCancel={cancelBorderColorPresentation}
+          placeholder="#000000"
+        />
+      </div>
+
       <div className="style-border-sides">
         <fieldset className="properties-aria border-sides">
           <legend className="fieldset-legend">
@@ -372,45 +415,6 @@ const BorderSectionContent = memo(function BorderSectionContent() {
       </div>
       )}
 
-      <div className="style-border">
-        <fieldset className="properties-aria border-style">
-          <legend className="fieldset-legend">{localize("Style")}</legend>
-          <ToggleButtonGroup
-            aria-label={localize("Border Style")}
-            indicator
-            selectedKeys={[styleValues.borderStyle]}
-            onSelectionChange={(keys) => {
-              // 재클릭 (빈 선택) = none — companion 은 none 에 width/color 를 넣지 않는다
-              const value =
-                (Array.from(keys)[0] as string | undefined) ?? "none";
-              if (value !== styleValues.borderStyle) {
-                updateStyle("borderStyle", value);
-              }
-            }}
-          >
-            {BORDER_STYLE_OPTIONS.map(({ id, label, icon: Icon }) => (
-              <ToggleButton key={id} id={id} aria-label={localize(label)}>
-                <Icon
-                  color={iconProps.color}
-                  size={iconProps.size}
-                  strokeWidth={iconProps.strokeWidth}
-                />
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        </fieldset>
-        <PropertyColor
-          label="Color"
-          className="border-color"
-          showValue
-          value={styleValues.borderColor}
-          onChange={handleBorderColorCommit}
-          onPreview={handleBorderColorPreview}
-          presentationOwnsFrameScheduling={presentationOwnsBorderColor}
-          onPresentationCancel={cancelBorderColorPresentation}
-          placeholder="#000000"
-        />
-      </div>
     </>
   );
 });
