@@ -28,7 +28,7 @@ describe("SpacingSection spacing input commit contract", () => {
   });
 
   it("renders the Gap input as a unit-suffix field (px only, no token presets, no icon)", async () => {
-    // panel-ui 01 「8 PX」 — 대조 B4: 토큰 preset ▾ · 아이콘 prefix 대신 단위 suffix + stepper
+    // panel-ui 01 「8 PX」 — 대조 B4: 토큰 preset ▾ · 아이콘 prefix 대신 단위 suffix (stepper 는 09-15 전부 제거)
     const source = await readFile(
       resolve(__dirname, "LayoutSection.tsx"),
       "utf-8",

@@ -350,7 +350,6 @@ const BorderSectionContent = memo(function BorderSectionContent() {
             className={`border-corner border-corner-${corner}`}
             labelMode="icon"
             icon={CORNER_ICONS[corner]}
-            hideStepper
             units={["px", "reset"]}
             defaultUnit="px"
             allowEmptyReset

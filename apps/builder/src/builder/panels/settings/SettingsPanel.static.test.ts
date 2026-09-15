@@ -35,7 +35,7 @@ describe("SettingsPanel 공통 panel 구조", () => {
     expect(source).not.toContain("PropertySelect");
     expect(source).toContain("PropertyUnitInput");
     expect(source).toContain('t("settings.pageGap")');
-    // 「80 PX」 — 단위 suffix + stepper, preset · 아이콘 없음 (panel-ui 20 — 대조 B11)
+    // 「80 PX」 — 단위 suffix, preset · 아이콘 · stepper 없음 (panel-ui 20 — 대조 B11)
     expect(source).toContain("value={`${pageGap}px`}");
     expect(source).toContain('units={["px"]}');
     expect(source).toContain("unitSuffix");

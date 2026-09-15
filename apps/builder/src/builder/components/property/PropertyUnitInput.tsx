@@ -4,7 +4,7 @@ import { Button } from "react-aria-components/Button";
 import { Input } from "react-aria-components/Input";
 import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useStore } from "../../stores";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
@@ -60,8 +60,6 @@ interface PropertyUnitInputProps {
    * 20 Settings). preset 이 있으면 무시 (preset 은 ▾ 메뉴 그대로).
    */
   unitSuffix?: boolean;
-  /** suffix/unit 트리거 옆 ⇕ stepper 를 끈다 (Border 코너 4 — 87 칸에 글리프 + 값 + PX 만) */
-  hideStepper?: boolean;
 }
 
 const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -260,7 +258,6 @@ export const PropertyUnitInput = memo(
     labelMode = "legend",
     suffixLabel,
     unitSuffix = false,
-    hideStepper = false,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -638,11 +635,9 @@ export const PropertyUnitInput = memo(
     const unitLabel = i18n
       ? translateKey(i18n.t, semanticLabelKeys.Unit ?? "Unit", "Unit")
       : "Unit";
-    const stepLabel = (key: "Increase" | "Decrease") =>
-      `${i18n ? translateKey(i18n.t, semanticLabelKeys[key] ?? key, key) : key} ${displayLabel ?? ""}`.trim();
     // suffix 모드 (preset 없음): 단위 메뉴 트리거는 suffix 글자 자체 (「8 PX」 의 PX) — 종전
-    //   ▾ 20 상자가 86 열을 먹어 「au… LEFT」 로 잘렸다 (panel-ui 05 #3 · 06). 숫자 값에는
-    //   ▲▼ stepper (12, 위아래 겹침 2) — 키워드 (auto · normal) 는 stepper 없음.
+    //   ▾ 20 상자가 86 열을 먹어 「au… LEFT」 로 잘렸다 (panel-ui 05 #3 · 06). ▲▼ stepper 는
+    //   2026-09-15 사용자 판정으로 전부 제거 — 숫자 조정은 화살표 키 (⇧ 10) 뿐.
     const suffixIsTrigger = isSuffix && !hasPresets && Boolean(displayLabel);
     // legend 모드 + unitSuffix: 트리거 글자가 현재 단위 (「8 PX」, 단위 없음은 —)
     const unitIsTrigger = !isSuffix && (unitSuffix || isIconMode) && !hasPresets;
@@ -653,14 +648,6 @@ export const PropertyUnitInput = memo(
       (value === "" && units.includes("reset"))
         ? "—"
         : unit;
-    // 빈 값 (placeholder 「auto」) 도 stepper 없음 — 시안 「Auto MAX W」 는 글자만 (panel-ui 01)
-    const showStepper =
-      (suffixIsTrigger || unitIsTrigger) &&
-      !hideStepper &&
-      !isKeyword &&
-      !isPreservedEmptyValue &&
-      !isDisabled;
-
     return (
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
@@ -802,30 +789,6 @@ export const PropertyUnitInput = memo(
                   </Button>
                 </>
               )}
-              {showStepper && (
-                <span className="property-unit-input__stepper">
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    className="property-unit-input__step"
-                    aria-label={stepLabel("Increase")}
-                    onPointerDown={(e) => e.preventDefault()}
-                    onClick={(e) => stepValue(1, e.shiftKey, "commit")}
-                  >
-                    <ChevronUp size={12} strokeWidth={iconProps.strokeWidth} />
-                  </button>
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    className="property-unit-input__step"
-                    aria-label={stepLabel("Decrease")}
-                    onPointerDown={(e) => e.preventDefault()}
-                    onClick={(e) => stepValue(-1, e.shiftKey, "commit")}
-                  >
-                    <ChevronDown size={12} strokeWidth={iconProps.strokeWidth} />
-                  </button>
-                </span>
-              )}
             </div>
             <Popover
               className="react-aria-Popover property-unit-input-popover"
@@ -878,7 +841,6 @@ export const PropertyUnitInput = memo(
       prevProps.labelMode === nextProps.labelMode &&
       prevProps.suffixLabel === nextProps.suffixLabel &&
       prevProps.unitSuffix === nextProps.unitSuffix &&
-      prevProps.hideStepper === nextProps.hideStepper &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)

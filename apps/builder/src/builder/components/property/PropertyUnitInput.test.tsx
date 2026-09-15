@@ -488,7 +488,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     expect(onChange).toHaveBeenCalledWith("12%");
   });
 
-  it("▲ 클릭은 1 올려 commit, ⇧ 는 10 — 화살표 키와 같은 계산", () => {
+  it("▲▼ stepper 는 없다 — 숫자 조정은 화살표 키 (⇧ 10) 로만 (2026-09-15 사용자 판정)", () => {
     const onChange = vi.fn();
     useStore.setState({ selectedElementId: "element-1" } as never);
     render(
@@ -502,11 +502,14 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Increase Font Size" }));
-    expect(onChange).toHaveBeenLastCalledWith("15px");
-    fireEvent.click(screen.getByRole("button", { name: "Decrease Font Size" }), { shiftKey: true });
-    expect(onChange).toHaveBeenLastCalledWith("4px");
+    expect(screen.queryByRole("button", { name: "Increase Font Size" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Decrease Font Size" })).toBeNull();
     expect(screen.getByRole("button", { name: "Font Size Unit" }).textContent).toBe("SIZE");
+    const input = screen.getByRole("combobox");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(onChange).toHaveBeenLastCalledWith("15px");
+    fireEvent.keyDown(input, { key: "ArrowUp", shiftKey: true });
+    expect(onChange).toHaveBeenLastCalledWith("24px"); // value prop 이 14px 그대로라 14 + 10
   });
 
   it("키워드 값 (auto) 에는 stepper 를 그리지 않는다", () => {
@@ -557,7 +560,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     expect(onChange).toHaveBeenCalledTimes(1);
   });
 
-  it("legend 모드 unitSuffix — 트리거 글자가 현재 단위 (「8 PX」) 이고 stepper 가 붙는다", () => {
+  it("legend 모드 unitSuffix — 트리거 글자가 현재 단위 (「8 PX」)", () => {
     const onChange = vi.fn();
     useStore.setState({ selectedElementId: "element-1" } as never);
     render(
@@ -573,29 +576,7 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     expect(screen.getByText("Gap").tagName).toBe("LEGEND");
     const trigger = screen.getByRole("button", { name: "Gap Unit" });
     expect(trigger.textContent).toBe("px");
-    fireEvent.click(screen.getByRole("button", { name: "Increase Gap" }));
-    expect(onChange).toHaveBeenLastCalledWith("9px");
-  });
-
-  it("hideStepper — 단위 트리거는 남고 ⇕ stepper 만 없다 (Border 코너 4)", () => {
-    useStore.setState({ selectedElementId: "element-1" } as never);
-    render(
-      <PropertyUnitInput
-        label="Top left radius"
-        value="8px"
-        units={["px", "reset"]}
-        unitSuffix
-        hideStepper
-        allowKeywords={false}
-        onChange={vi.fn()}
-      />,
-    );
-    expect(
-      screen.getByRole("button", { name: "Top left radius Unit" }).textContent,
-    ).toBe("px");
-    expect(
-      screen.queryByRole("button", { name: "Increase Top left radius" }),
-    ).toBeNull();
+    expect(screen.queryByRole("button", { name: "Increase Gap" })).toBeNull();
   });
 
   it("\"fill\" 은 units 에 실린 필드에서만 typed 입력을 받는다", () => {
