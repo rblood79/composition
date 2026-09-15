@@ -17,7 +17,7 @@ import { memo, useCallback, useMemo } from "react";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Minus } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import type {
@@ -39,10 +39,8 @@ import {
 } from "../../../../i18n";
 
 import "./FillLayerRow.css";
-import { ACTION_ICONS } from "../../../config/actionIcons";
 
 /** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
-const DeleteIcon = ACTION_ICONS.delete;
 
 /** 첫 레이어 전용 — presentation 경로 (연속 preview + presentation-aware commit). */
 export interface FillLayerRowPopoverOverrides {
@@ -240,8 +238,21 @@ export const FillLayerRow = memo(function FillLayerRow({
         />
       </div>
 
-      {/* 행 액션 그룹 — 눈 토글 · 삭제를 한 28 그룹 (안쪽 20×20 둘, 2026-09-15 사용자 판정) */}
+      {/* 행 액션 그룹 — 삭제 · 눈 토글을 한 28 그룹 (안쪽 20×20 둘, 2026-09-15 사용자 판정).
+          삭제는 목록 행의 「−」 (헤더 「+」 와 짝) — Trash 는 요소 삭제 어법 */}
       <div className="fill-layer-row__actions">
+        <AriaButton
+          className="fill-layer-row__action fill-layer-row__delete"
+          onPress={handleRemove}
+          isDisabled={isVirtual}
+          aria-label={localize("Remove fill")}
+        >
+          <Minus
+            size={iconProps.size}
+            strokeWidth={iconProps.strokeWidth}
+            color={iconProps.color}
+          />
+        </AriaButton>
         <AriaToggleButton
           className="fill-layer-row__action fill-layer-row__visibility"
           isSelected={fill.enabled}
@@ -263,18 +274,6 @@ export const FillLayerRow = memo(function FillLayerRow({
             />
           )}
         </AriaToggleButton>
-        <AriaButton
-          className="fill-layer-row__action fill-layer-row__delete"
-          onPress={handleRemove}
-          isDisabled={isVirtual}
-          aria-label={localize("Remove fill")}
-        >
-          <DeleteIcon
-            size={iconProps.size}
-            strokeWidth={iconProps.strokeWidth}
-            color={iconProps.color}
-          />
-        </AriaButton>
       </div>
     </div>
   );
