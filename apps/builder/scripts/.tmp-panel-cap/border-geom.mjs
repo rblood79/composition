@@ -1,0 +1,21 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1400 }, deviceScaleFactor: 2 })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`bg-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name) => { await page.getByRole("button", { name, exact: true }).first().click(); await page.waitForTimeout(400); };
+await panel("Components"); await page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^frame$/i }) }).first().click(); await page.waitForTimeout(900); await panel("Components").catch(() => {});
+await page.evaluate(() => { const s = window.__composition_STORE__.getState(); const el = s.elements.filter((e) => e.page_id === s.currentPageId && e.type === "frame").pop(); s.setSelectedElement(el.id, el.props); setTimeout(() => s.updateSelectedStyles({ borderStyle: "solid", borderWidth: "2px" }), 300); }); await page.waitForTimeout(800);
+await panel("Styles"); const PS = '[data-panel-id="styles"]';
+await page.locator(".styles-panel-tab").nth(1).click(); await page.waitForTimeout(400);
+for (const c of await page.locator(`${PS} .section-caret[aria-expanded="false"]`).all()) { await c.click().catch(() => {}); await page.waitForTimeout(150); }
+const tree = (sel) => page.evaluate((sel) => { const walk = (el, d) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); const line = `${"  ".repeat(d)}${el.tagName.toLowerCase()}.${el.className.toString().split(" ").slice(0, 2).join(".")} ${Math.round(r.width)}×${Math.round(r.height)} pad=${cs.padding} bg=${cs.backgroundColor.slice(0, 22)} sh=${cs.boxShadow === "none" ? "-" : "y"}`; return [line, ...Array.from(el.children).filter((c) => c.tagName !== "svg" && c.tagName !== "LEGEND").flatMap((c) => walk(c, d + 1))]; }; return Array.from(document.querySelectorAll(sel)).flatMap((el) => walk(el, 0)).join("\n"); }, sel);
+console.log(await tree(`${PS} .section[data-section-id="border"] .border-style, ${PS} .section[data-section-id="border"] .border-sides, ${PS} .section[data-section-id="border"] .border-color, ${PS} .section[data-section-id="layout"] .displayDirection`));
+console.log("--- Typography color / Font family");
+await page.locator(".styles-panel-tab").nth(2).click(); await page.waitForTimeout(400);
+console.log(await tree(`${PS} .section[data-section-id="typography"] .color, ${PS} .section[data-section-id="typography"] .font-family, ${PS} .section[data-section-id="typography"] .text-align`));
+await browser.close();

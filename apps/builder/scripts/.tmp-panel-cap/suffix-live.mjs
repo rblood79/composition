@@ -1,0 +1,42 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const OUT = "/private/tmp/claude-501/-Users-admin-work-composition/f6bcc488-f176-4644-8364-3625704b801c/scratchpad/audit";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1100 }, deviceScaleFactor: 2 })).newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`sfx-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+await page.getByRole("button", { name: "Components", exact: true }).first().click(); await page.waitForTimeout(500);
+const item = page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^button$/i }) }).first(); await item.scrollIntoViewIfNeeded(); await item.click(); await page.waitForTimeout(1500);
+await page.getByRole("button", { name: "Components", exact: true }).first().click().catch(() => {}); await page.waitForTimeout(300);
+const id = await page.evaluate(async () => { const st = window.__composition_STORE__.getState(); const els = st.elements.filter((e) => e.page_id === st.currentPageId && e.type === "Button"); const el = els[els.length - 1]; st.setSelectedElement(el.id, el.props); return el.id; });
+await page.waitForTimeout(500);
+await page.getByRole("button", { name: "Styles", exact: true }).first().click(); await page.waitForTimeout(500);
+const P = '[data-panel-id="styles"]';
+const fit = (sel) => page.evaluate((sel) => Array.from(document.querySelectorAll(sel)).map((f) => { const inp = f.querySelector("input"); const ph = inp.placeholder; const cs = getComputedStyle(inp); const c = document.createElement("canvas").getContext("2d"); c.font = `${cs.fontSize} ${cs.fontFamily}`; const text = inp.value || ph; const w = c.measureText(text).width; const r = inp.getBoundingClientRect(); return `${f.getAttribute("aria-label")}: "${text}" text ${Math.round(w)} / input ${Math.round(r.width)} ${w <= r.width ? "fits" : "CLIPPED"} · stepper ${f.querySelector(".property-unit-input__stepper") ? "yes" : "no"} · trigger ${f.querySelector(".property-unit-input__suffix--trigger")?.getBoundingClientRect().width | 0}`; }), sel);
+// Position 절 펼치기
+await page.evaluate(() => { for (const h of document.querySelectorAll('[data-panel-id="styles"] .section-caret[aria-expanded="false"]')) h.click(); }); await page.waitForTimeout(300);
+console.log("Layout tab:", JSON.stringify(await fit(`${P} .property-unit-input[data-label-mode="suffix"]`), null, 1));
+await page.locator(`${P} .section[data-section-id="position"]`).screenshot({ path: `${OUT}/after-position.png` });
+await page.locator(`${P} .section[data-section-id="transform"]`).screenshot({ path: `${OUT}/after-size.png` });
+await page.locator(".styles-panel-tab").nth(2).click(); await page.waitForTimeout(400);
+console.log("Text tab:", JSON.stringify(await fit(`${P} .property-unit-input[data-label-mode="suffix"]`), null, 1));
+await page.locator(`${P} .section[data-section-id="typography"]`).screenshot({ path: `${OUT}/after-text.png` });
+// suffix 클릭 → 단위 목록
+await page.locator(`${P} .property-unit-input[aria-label="Font Size"] .property-unit-input__suffix--trigger`).click(); await page.waitForTimeout(500);
+console.log("unit list:", await page.evaluate(() => Array.from(document.querySelectorAll(".property-unit-input-popover [role=option]")).map((o) => `${o.textContent} ${Math.round(o.getBoundingClientRect().height)}`).join(", ")));
+await page.locator(".react-aria-Popover").screenshot({ path: `${OUT}/after-unit-menu.png` });
+await page.keyboard.press("Escape"); await page.waitForTimeout(300);
+// stepper 클릭 → store
+const fs = () => page.evaluate((id) => window.__composition_STORE__.getState().elements.find((e) => e.id === id)?.props?.style?.fontSize ?? null, id);
+console.log("fontSize before", await fs());
+await page.locator(`${P} .property-unit-input[aria-label="Font Size"] button[aria-label^="Increase"]`).click(); await page.waitForTimeout(400);
+console.log("after ▲", await fs());
+await page.locator(`${P} .property-unit-input[aria-label="Font Size"] button[aria-label^="Decrease"]`).click({ modifiers: ["Shift"] }); await page.waitForTimeout(400);
+console.log("after ⇧▼", await fs());
+console.log("stepper rect", await page.evaluate(() => { const s = document.querySelector('[aria-label="Font Size"] .property-unit-input__stepper'); const r = s.getBoundingClientRect(); return `${Math.round(r.width)}×${Math.round(r.height)}`; }));
+console.log("errors", errors.slice(0, 3));
+await browser.close();
