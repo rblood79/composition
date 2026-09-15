@@ -3,25 +3,28 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 describe("BorderSection border preset contract", () => {
-  it("width · radius 프리셋은 각자의 목록을 28 열 메뉴로 연다 (슬라이더 행)", async () => {
+  it("width 프리셋은 28 열 ⋮ 메뉴, radius 는 Gap 과 같은 「값 + ▾ 토큰 preset」 필드 + 코너 펼침 토글", async () => {
     const source = await readFile(
       resolve(__dirname, "BorderSection.tsx"),
       "utf-8",
     );
 
     expect(source).toContain("BORDER_WIDTH_PRESET_OPTIONS");
-    expect(source).toContain("BORDER_RADIUS_PRESET_OPTIONS");
     expect(source).toContain('localize("Border width presets")');
-    expect(source).toContain('localize("Border radius presets")');
-    // 슬라이더는 px 로만 쓴다 — 프리셋 토큰 (var(--radius-xl)) 도 px 로 풀어 쓴다: border 기하
-    //   배치 (ADR-219 applyBorderGeometryBatch.toNumber) 는 숫자만 읽어 var() 가 0 으로 저장됐다
-    //   (2026-09-15 live 재현 — 「XL · 12」 선택 → borderRadius 0)
+    // 슬라이더는 px 로만 쓴다 — 프리셋 토큰도 px 로 풀어 쓴다: border 기하 배치 (ADR-219
+    //   applyBorderGeometryBatch.toNumber) 는 숫자만 읽어 var() 가 0 으로 저장됐다 (2026-09-15 live)
     expect(source).toContain('updateStyleImmediate("borderWidth", `${px}px`)');
     expect(source).toContain("const px = resolveCssLengthPx(preset.value);");
     expect(source).toContain(
       "updateStyleImmediate(prop, px !== null ? `${px}px` : preset.value)",
     );
-    expect(source).not.toContain("updateStyleImmediate(prop, preset.value)");
+    // Radius — PropertyUnitInput + presets (2026-09-15 사용자 판정; 종전 슬라이더 + ⋮ 메뉴).
+    //   preset 은 PropertyUnitInput 이 getPresetCommitValue 로 px 로 풀어 commit 한다.
+    expect(source).toContain("presets={BORDER_RADIUS_PRESET_OPTIONS}");
+    expect(source).not.toContain('localize("Border radius presets")');
+    // 코너 4방향은 토글 on 또는 비균일일 때만
+    expect(source).toContain("const showCorners = cornersOpen || uniformRadius === null;");
+    expect(source).toContain("{showCorners && (");
     expect(source).not.toContain('units={["reset", "px"]}');
     // 슬라이더 라벨은 legend (상자 위) — inline (상자 안 글자) 은 2026-09-15 사용자 판정으로 제거
     expect(source).not.toContain('labelMode="inline"');

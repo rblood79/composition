@@ -19,7 +19,8 @@
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
-import { memo, type ComponentType } from "react";
+import { memo, useState, type ComponentType } from "react";
+import { Scan } from "lucide-react";
 import {
   Ellipsis,
   Minus,
@@ -51,6 +52,7 @@ import {
   type CornerRadiusCorner,
 } from "../../../components/icons";
 import { iconProps } from "../../../../utils/ui/uiConstants";
+import { SwatchIconToggleButton } from "../../../components/ui";
 import { BORDER_PROPS } from "./styleSectionProps";
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
@@ -67,7 +69,6 @@ import {
 
 /** 슬라이더 범위 — 값 칸 직접 입력은 이 위로도 간다 (썸은 끝에 머문다). */
 const WIDTH_SLIDER_MAX = 24;
-const RADIUS_SLIDER_MAX = 64;
 const INPUT_MAX = 9999;
 
 // 「없음 (×)」 토글 없음 — 활성 토글 재클릭이 해제 = none (Text 탭 세그먼트와 같은 패턴, 2026-09-14)
@@ -188,6 +189,9 @@ const BorderSectionContent = memo(function BorderSectionContent() {
     styleValues.borderGeometry;
   const widthPx = uniformWidth ?? Math.max(...widths);
   const radiusPx = uniformRadius ?? Math.max(...radii);
+  // 코너 4방향 펼침 — 토글 on 이거나 비균일이면 보인다
+  const [cornersOpen, setCornersOpen] = useState(false);
+  const showCorners = cornersOpen || uniformRadius === null;
   const sidesOn = (["top", "right", "bottom", "left"] as const).filter(
     (side) => widths[SIDE_INDEX[side]] > 0,
   );
@@ -317,31 +321,37 @@ const BorderSectionContent = memo(function BorderSectionContent() {
         </fieldset>
       </div>
 
+      {/* Radius — Gap 과 같은 「값 + ▾ 토큰 preset」 필드 (종전 슬라이더 + ⋮ 메뉴), 28 열은 코너
+          4방향 펼침 토글. 코너가 비균일이면 토글과 무관하게 4방향이 보인다 (2026-09-15 사용자 판정) */}
       <div className="style-border-radius">
-        <PropertySlider
+        <PropertyUnitInput
           label="Radius"
           className="border-radius"
-          editable
-          unit="px"
-          value={radiusPx}
+          value={`${radiusPx}px`}
+          units={["px"]}
+          presets={BORDER_RADIUS_PRESET_OPTIONS}
+          allowKeywords={false}
           min={0}
-          max={RADIUS_SLIDER_MAX}
-          inputMax={INPUT_MAX}
-          step={1}
-          onChange={(px) => updateStylePreview("borderRadius", `${px}px`)}
-          onChangeEnd={(px) => updateStyleImmediate("borderRadius", `${px}px`)}
+          max={INPUT_MAX}
+          onChange={(value) => updateStyleImmediate("borderRadius", value)}
+          onDrag={(value) => updateStylePreview("borderRadius", value)}
         />
         <div className="fieldset-actions actions-icon">
-          <PropertyRowMenu
-            label={localize("Border radius presets")}
-            items={toPresetMenuItems(BORDER_RADIUS_PRESET_OPTIONS)}
-            onAction={(id) =>
-              applyPreset("borderRadius", BORDER_RADIUS_PRESET_OPTIONS, id)
-            }
-          />
+          <SwatchIconToggleButton
+            aria-label={localize("Corner radii")}
+            isSelected={showCorners}
+            onChange={setCornersOpen}
+          >
+            <Scan
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </SwatchIconToggleButton>
         </div>
       </div>
 
+      {showCorners && (
       <div className="style-border-corners">
         {CORNER_FIELDS.map(({ prop, label, corner, index }) => (
           <PropertyUnitInput
@@ -360,6 +370,7 @@ const BorderSectionContent = memo(function BorderSectionContent() {
           />
         ))}
       </div>
+      )}
 
       <div className="style-border">
         <fieldset className="properties-aria border-style">

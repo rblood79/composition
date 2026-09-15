@@ -250,6 +250,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Dotted: "styles.border.dotted",
   "Border width presets": "styles.border.widthPresets",
   "Border radius presets": "styles.border.radiusPresets",
+  "Corner radii": "styles.border.cornerRadii",
   // 색 피커 Document · Theme 팔레트 (panel-ui 05 #1)
   Document: "styles.colorPicker.document",
   Theme: "styles.colorPicker.theme",
