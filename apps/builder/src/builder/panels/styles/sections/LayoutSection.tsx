@@ -8,6 +8,7 @@
 
 import { memo } from "react";
 import { PropertySection, PropertyUnitInput } from "../../../components";
+import { SPACING_PRESET_OPTIONS } from "../../../components/property/propertyUnitPresets";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -299,14 +300,15 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             </ToggleButton>
           </ToggleButtonGroup>
         </div>
-        {/* 「8 PX」 — 아이콘 prefix · 토큰 preset ▾ 대신 단위 suffix + stepper (panel-ui 01 — 대조 B4).
-            store 가 gap 을 px 숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) 라 단위는 px 뿐 */}
+        {/* legend 「Gap」 + 값 + ▾ 토큰 preset 메뉴 (XS · 4 …, 2026-09-15 사용자 판정 — px 단위 하나뿐인
+            메뉴보다 spacing 토큰이 쓸모 있다). preset 은 px 로 풀어 commit — store 가 gap 을 px
+            숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) */}
         <PropertyUnitInput
           label="Gap"
           className="displayGap"
           value={styleValues.gap}
           units={["px"]}
-          unitSuffix
+          presets={SPACING_PRESET_OPTIONS}
           allowKeywords={false}
           onChange={(value) => handleSpacingCommit("gap", value)}
           onDrag={(value) => handleSpacingPreview("gap", value)}

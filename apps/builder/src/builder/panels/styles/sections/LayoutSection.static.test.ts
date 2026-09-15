@@ -29,18 +29,18 @@ describe("SpacingSection spacing input commit contract", () => {
     expect(source).toContain("if (justSavedViaEnterRef.current)");
   });
 
-  it("renders the Gap input as a unit-suffix field (px only, no token presets, no icon)", async () => {
-    // panel-ui 01 「8 PX」 — 대조 B4: 토큰 preset ▾ · 아이콘 prefix 대신 단위 suffix (stepper 는 09-15 전부 제거)
+  it("renders the Gap input with the spacing token presets (px only, no icon)", async () => {
+    // legend 「Gap」 + ▾ 토큰 preset (XS · 4 …) — 2026-09-15 사용자 판정 (px 단위 하나뿐인 메뉴는 쓸모 없다)
     const source = await readFile(
       resolve(__dirname, "LayoutSection.tsx"),
       "utf-8",
     );
 
-    expect(source).not.toContain("SPACING_PRESET_OPTIONS");
     const gap = source.slice(source.indexOf('label="Gap"'));
     const field = gap.slice(0, gap.indexOf("/>"));
     expect(field).toContain('units={["px"]}');
-    expect(field).toContain("unitSuffix");
+    expect(field).toContain("presets={SPACING_PRESET_OPTIONS}");
+    expect(field).not.toContain("unitSuffix");
     expect(field).not.toContain("icon=");
   });
 });

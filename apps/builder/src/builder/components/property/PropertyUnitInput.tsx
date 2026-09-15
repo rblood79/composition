@@ -802,8 +802,12 @@ export const PropertyUnitInput = memo(
                         id={preset.id}
                         className="react-aria-ListBoxItem"
                         textValue={preset.label}
+                        aria-label={preset.label}
                       >
-                        {preset.label}
+                        {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기) */}
+                        {preset.value.trim() === ""
+                          ? preset.label
+                          : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
                       </ListBoxItem>
                     ))
                   : units.map((u) => (

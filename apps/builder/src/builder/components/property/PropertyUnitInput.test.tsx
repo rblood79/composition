@@ -332,7 +332,7 @@ describe("PropertyUnitInput numeric editing", () => {
         .getAllByRole("option")
         .map((option) => option.textContent)
         .join(","),
-    ).toBe("Reset,XS,S,M,L,XL");
+    ).toBe("Reset,XS · 4,S · 8,M · 12,L · 16,XL · 24"); // 토큰 이름 + 풀린 px (접근 이름은 토큰 이름)
 
     fireEvent.click(screen.getByRole("option", { name: "XL" }));
     expect((input as HTMLInputElement).value).toBe("24");
