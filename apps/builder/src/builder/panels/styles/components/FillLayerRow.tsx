@@ -16,6 +16,7 @@
 import { memo, useCallback, useMemo } from "react";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
+import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
 import { Eye, EyeOff } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
@@ -26,8 +27,7 @@ import type {
 import { FillType } from "../../../../types/builder/fill.types";
 import { FillDetailPopover } from "./FillDetailPopover";
 import { ScrubInput } from "./ScrubInput";
-import { SwatchIconToggleButton } from "../../../components/ui";
-import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   buildFillSwatchStyle,
   getFillDisplayLabel,
@@ -238,43 +238,44 @@ export const FillLayerRow = memo(function FillLayerRow({
           label="Fill opacity"
           className="fill-layer-row__opacity-scrub"
         />
+      </div>
 
-        <button
-          type="button"
-          className="fill-layer-row__delete"
-          onClick={handleRemove}
-          disabled={isVirtual}
+      {/* 행 액션 그룹 — 눈 토글 · 삭제를 한 28 그룹 (안쪽 20×20 둘, 2026-09-15 사용자 판정) */}
+      <div className="fill-layer-row__actions">
+        <AriaToggleButton
+          className="fill-layer-row__action fill-layer-row__visibility"
+          isSelected={fill.enabled}
+          isDisabled={isVirtual}
+          onChange={handleToggle}
+          aria-label={localize("Toggle fill visibility")}
+        >
+          {fill.enabled ? (
+            <Eye
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          ) : (
+            <EyeOff
+              color={iconProps.color}
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          )}
+        </AriaToggleButton>
+        <AriaButton
+          className="fill-layer-row__action fill-layer-row__delete"
+          onPress={handleRemove}
+          isDisabled={isVirtual}
           aria-label={localize("Remove fill")}
         >
           <DeleteIcon
-            size={iconSmall.size}
-            strokeWidth={iconSmall.strokeWidth}
-            color={iconSmall.color}
+            size={iconProps.size}
+            strokeWidth={iconProps.strokeWidth}
+            color={iconProps.color}
           />
-        </button>
+        </AriaButton>
       </div>
-
-      <SwatchIconToggleButton
-        className="fill-layer-row__visibility"
-        isSelected={fill.enabled}
-        isDisabled={isVirtual}
-        onChange={handleToggle}
-        aria-label={localize("Toggle fill visibility")}
-      >
-        {fill.enabled ? (
-          <Eye
-            color={iconProps.color}
-            size={iconProps.size}
-            strokeWidth={iconProps.strokeWidth}
-          />
-        ) : (
-          <EyeOff
-            color={iconProps.color}
-            size={iconProps.size}
-            strokeWidth={iconProps.strokeWidth}
-          />
-        )}
-      </SwatchIconToggleButton>
     </div>
   );
 });

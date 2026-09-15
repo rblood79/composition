@@ -5,13 +5,13 @@
  */
 
 @layer components {
-  /* 목록 행 = c12 (그룹 28) + 28 열 (눈 토글) — 인스펙터 행 템플릿과 같은 두 칸.
+  /* 목록 행 = c12 (그룹 28) + 액션 그룹 (눈 · 삭제).
      그룹 안은 다른 28 그룹과 같은 규칙 — pad 4, 안쪽 컨트롤 20:
-     [swatch 20×20 (팝오버 trigger, 라벨 포함 flex 1)] [불투명도 scrub 20] [제거 20×20 — 항상 보임]
-     (2026-09-15 사용자 판정 — 종전 swatch 16 · scrub 28 · 제거 28 hover 전용) */
+     [swatch 20×20 (팝오버 trigger, 라벨 포함 flex 1)] [불투명도 scrub 20] + 액션 그룹 [눈 20][제거 20]
+     (2026-09-15 사용자 판정 — 종전 swatch 16 · scrub 28 · 제거 28 hover 전용 · 눈 28 열) */
   .fill-layer-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) var(--control-size);
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: var(--spacing-sm);
     align-items: center;
     opacity: 0.5;
@@ -107,8 +107,19 @@
     box-shadow: var(--shadow-sm);
   }
 
-  /* Delete — 20×20 raised, 항상 보임 */
-  .fill-layer-row__delete {
+  /* 행 액션 그룹 — 28 그룹 안 20×20 둘 (눈 토글 · 삭제). 행 템플릿의 28 열 대신 auto 폭 (52). */
+  .fill-layer-row__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing);
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    padding: var(--spacing);
+    background: var(--bg-muted);
+    border-radius: var(--radius-md);
+  }
+
+  .fill-layer-row__action {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -123,16 +134,17 @@
     cursor: pointer;
     flex-shrink: 0;
 
-    &:hover {
+    &[data-hovered],
+    &[data-selected] {
       color: var(--fg);
     }
 
-    &:focus-visible {
+    &[data-focus-visible] {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
     }
 
-    &:disabled {
+    &[data-disabled] {
       opacity: 0.38;
       cursor: default;
     }
