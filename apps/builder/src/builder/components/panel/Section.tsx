@@ -16,6 +16,7 @@
 import React, { memo } from "react";
 import { ChevronRight, RotateCcw } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
+import { ActionIconButton } from "../ui/ActionIconButton";
 import {
   isSectionCollapsedInState,
   useSectionCollapse,
@@ -141,21 +142,21 @@ export const Section = memo(
             {badge}
           </div>
           <div className="section-actions">
-            {/* Reset button */}
+            {/* Reset button — 절 헤더 액션의 기준 어법 (투명 32 아이콘 버튼). `actions` 로 오는
+                버튼도 같은 ActionIconButton 을 쓴다 (2026-09-15 사용자 판정 — Fill 「+」 · Spacing
+                펼침이 raised SwatchIconButton 이라 달랐다) */}
             {onReset && (
-              <button
-                className="iconButton"
-                type="button"
-                onClick={onReset}
+              <ActionIconButton
+                onPress={onReset}
                 aria-label={resetLabel}
-                title={resetLabel}
+                tooltip={resetLabel}
               >
                 <RotateCcw
                   color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}
                 />
-              </button>
+              </ActionIconButton>
             )}
 
             {/* Custom actions */}

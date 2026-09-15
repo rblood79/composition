@@ -26,7 +26,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PropertySection } from "../../../components";
-import { SwatchIconButton } from "../../../components/ui";
+import { ActionIconButton } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import { useFillValues } from "../hooks/useFillValues";
 import { useFillActions } from "../hooks/useFillActions";
@@ -432,13 +432,15 @@ export const FillSection = memo(function FillSection() {
 
   const actions = useMemo(
     () => (
-      <SwatchIconButton onPress={handleAdd} aria-label={localize("Add fill")}>
+      // 절 헤더 액션은 reset 과 같은 투명 아이콘 버튼 (2026-09-15 사용자 판정 — SwatchIconButton
+      //   의 raised 상자 28 은 본문 필드 열용)
+      <ActionIconButton onPress={handleAdd} aria-label={localize("Add fill")}>
         <AddIcon
           color={iconProps.color}
           size={iconProps.size}
           strokeWidth={iconProps.strokeWidth}
         />
-      </SwatchIconButton>
+      </ActionIconButton>
     ),
     [handleAdd, i18n],
   );

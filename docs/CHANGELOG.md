@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **절 헤더 액션 버튼 어법 통일** — Fill 「+」 · Spacing 펼침이 raised 상자 (SwatchIconButton 28) 라 reset 과 달랐다 → reset 을 기준으로 전부 투명 32 아이콘 버튼 (`ActionIconButton`, 모든 패널의 Section reset 포함).
+- **Spacing 절 헤더의 8-필드 펼침 토글 제거** — 박스 모델 다이어그램이 이미 4방향 변별 편집이라 중복 (FourWayGrid · 확장 CSS · i18n 키 삭제).
 - **단위 입력 필드의 ⇕ stepper 전부 제거** (Size · Position · Gap · Typography · Border 코너 · Shadow · Settings Page gap — `PropertyUnitInput` 에서 stepper 자체를 뺐다). 숫자 조정은 화살표 키 (⇧ = 10) 그대로.
 - **Border Width · Radius · Effect Opacity 슬라이더의 라벨도 legend 로** — 상자 안 왼쪽 글자 (「Width ──●── 2 PX」, inline) 를 상자 위 legend 로 (46). 코너 4 필드의 코너 글리프는 사용자 판정으로 유지 (2026-09-15 3차).
 - **Position 절 (X · Y · Left · Top) · Typography (Font Weight · Font Size · Line Height · Letter Spacing) · Shadow 편집기 (Offset X/Y · Blur · Spread) 도 같은 legend 어법으로** — 상자 안 suffix (「24 LEFT」 「16 SIZE」 「0 X」) · Font Weight inline 을 전부 상자 위 legend + 상자 안 단위 트리거로 (2026-09-15 사용자 판정 2차).

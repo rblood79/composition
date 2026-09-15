@@ -320,8 +320,6 @@ export const semanticLabelKeys: Record<string, string> = {
   Unit: "properties.unit",
   Value: "properties.value",
   Reset: "properties.reset",
-  "Expand spacing to 4-way input": "styles.layout.expandSpacing",
-  "Collapse spacing to single input": "styles.layout.collapseSpacing",
   Spacing: "styles.layout.spacing",
   Component: "properties.component",
   "Nested Routes": "properties.nestedRoutes",

@@ -2,13 +2,15 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-// Padding · Margin 은 SpacingSection (박스 모델 + FourWayGrid 폴백) 으로 옮겨졌다 (2026-09-14)
+// Padding · Margin 은 SpacingSection (박스 모델 BoxModelEditor 하나 — 8-필드 폴백은 2026-09-15 제거) 으로 옮겨졌다
 describe("SpacingSection spacing input commit contract", () => {
-  it("does not connect FourWayGrid typing to a live preview callback", async () => {
-    const source = await readFile(
-      resolve(__dirname, "SpacingSection.tsx"),
-      "utf-8",
-    );
+  it("does not connect box-model typing to a live preview callback", async () => {
+    const source =
+      (await readFile(resolve(__dirname, "SpacingSection.tsx"), "utf-8")) +
+      (await readFile(
+        resolve(__dirname, "../components/BoxModelEditor.tsx"),
+        "utf-8",
+      ));
 
     expect(source).not.toContain("onPreview?:");
     expect(source).not.toContain("handlePaddingPreview");
@@ -19,7 +21,7 @@ describe("SpacingSection spacing input commit contract", () => {
 
   it("guards the Enter commit from being repeated by the following blur", async () => {
     const source = await readFile(
-      resolve(__dirname, "SpacingSection.tsx"),
+      resolve(__dirname, "../components/BoxModelEditor.tsx"),
       "utf-8",
     );
 
