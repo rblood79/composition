@@ -47,6 +47,10 @@
       border-radius: var(--radius-md);
       width: 100%;
       min-width: 0;
+      /* 상자 최소 28 (--control-size) — 아이콘 label 20 이 없는 Input 만 든 상자는 줄 높이 18 + pad 8
+         = 26 이었다 (Chart Series 이름, 2026-09-15 live). 더 큰 상자 (textarea · 스위치 행) 는 그대로 */
+      box-sizing: border-box;
+      min-block-size: var(--control-size);
       padding: var(--spacing);
       box-shadow: var(--inset-shadow-sm);
 

@@ -457,7 +457,7 @@ export const chartBinding: PrimitiveBinding = {
       },
       showTotal: {
         kind: "boolean",
-        label: "Show Total (donut · radial)",
+        label: "Show Total",
         section: "appearance",
         default: false,
         // computeChartScene.ts:359 + radial 확장 (P3 — centerTotalLabels 공유).

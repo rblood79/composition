@@ -18,6 +18,9 @@ describe("Properties Appearance — Variant | Size 한 행 (panel-ui 07, 2026-09
     expect(size).toContain("(field.options?.length ?? 0) > 3");
     expect(size).toContain("<PropertySelect");
     expect(size).toContain("<PropertySizeToggle");
-    expect(source).toContain("every((o) => o.label.length <= 7)");
+    // 2옵션 seg 는 칩에 라벨이 들어갈 때만 (반폭 37 · 전폭 86 — measureText 판정)
+    expect(source).toContain("function segFits(");
+    expect(source).toContain("HALF_SEG_CHIP");
+    expect(source).toContain("textWidth(field.label) > 87");
   });
 });

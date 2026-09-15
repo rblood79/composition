@@ -175,16 +175,61 @@ function areGenericFieldPropsEqual(
  * 필드가 차지하는 폭 — `wide` 는 1·2열 합침 (값이 긴 텍스트 · 스위치 행 · 목록), `half` 는
  * 한 열 (셀렉트 · seg · 숫자 · 아이콘) 로 두 개가 한 행에 선다 (panel-ui 07).
  */
+/**
+ * 글자 폭 (px) — 반폭 칸에 값이 들어가는지 판정. canvas measureText (패널 글꼴 12) 가 있으면
+ * 그것, 없으면 (jsdom) 글자당 7. 값 자리는 셀렉트 55 (87 − pad 8 − chevron 20 − gap 4) ·
+ * 2옵션 seg 칩 37 · 3옵션 칩 24.
+ */
+let measureCtx: CanvasRenderingContext2D | null | undefined;
+function textWidth(text: string): number {
+  if (measureCtx === undefined) {
+    try {
+      measureCtx =
+        typeof document === "undefined"
+          ? null
+          : document.createElement("canvas").getContext("2d");
+      if (measureCtx) {
+        measureCtx.font = `12px ${getComputedStyle(document.body).fontFamily || "system-ui"}`;
+      }
+    } catch {
+      measureCtx = null;
+    }
+  }
+  if (!measureCtx) return text.length * 7;
+  return measureCtx.measureText(text).width;
+}
+const HALF_SELECT_VALUE = 55;
+const HALF_SEG_CHIP: Record<number, number> = { 2: 37, 3: 24 };
+
+/** 2·3 옵션 enum 을 seg 로 그릴 수 있는가 — 반폭 칩에 라벨이 들어갈 때만 (「Compact」 43 은 안 들어간다) */
+function segFits(field: ResolvedField, span: "wide" | "half"): boolean {
+  const n = field.options?.length ?? 0;
+  if (n !== 2) return false;
+  const chip = span === "wide" ? 86 : (HALF_SEG_CHIP[n] ?? 0);
+  return (field.options ?? []).every((o) => textWidth(o.label) <= chip - 4);
+}
+
 function fieldSpan(field: ResolvedField): "wide" | "half" {
   switch (field.kind) {
     // variant 는 size 와 한 행 (panel-ui 07 「Variant | Size」) — 반폭은 legend 모드라
-    //   「Secondary ▾」 가 79 안에 들어간다 (suffix 모드 반폭은 「Prima VARIA ▾」 로 잘려 legend)
+    //   「Secondary ▾」 가 79 안에 들어간다 (suffix 모드 반폭은 「Prima VARIA ▾」 로 잘려 legend).
+    //   legend 가 반폭 (87) 을 넘거나 (「Necessity Indicator」) 옵션 라벨이 값 자리 55 를 넘으면
+    //   (「Informative」 · 「Categorical」) 전폭 (2026-09-15 live 전수 대조)
     case "variant":
     case "enum":
     case "fillStyle":
-    case "size":
-    case "icon":
+    case "size": {
+      if (textWidth(field.label) > 87) return "wide";
+      const options = field.options ?? [];
+      if (options.length === 2 && !segFits(field, "half")) return "wide";
+      if (
+        options.length !== 2 &&
+        options.some((o) => textWidth(o.label) > HALF_SELECT_VALUE)
+      )
+        return "wide";
       return "half";
+    }
+    // icon 은 값이 있으면 미리보기 20 + 이름 + 지우기 20 — 반폭 87 에 「calendar」 가 안 들어간다
     default:
       return "wide";
   }
@@ -252,11 +297,8 @@ const GenericField = memo(function GenericField({
     case "variant":
     case "enum":
     case "fillStyle":
-      // 반폭 seg 칸은 37 — 「Emphasized」 같은 긴 라벨은 셀렉트로 (2026-09-15 live)
-      if (
-        (field.options?.length ?? 0) === 2 &&
-        (field.options ?? []).every((o) => o.label.length <= 7)
-      ) {
+      // 칩에 라벨이 들어갈 때만 seg (반폭 37 · 전폭 86) — 아니면 셀렉트 (2026-09-15 live)
+      if (segFits(field, fieldSpan(field))) {
         return (
           <PropertySizeToggle
             label={field.label}
@@ -398,8 +440,9 @@ const GenericField = memo(function GenericField({
       return (
         <PropertyIconPicker
           label={field.label}
-          // 반폭이라도 「None ICON ▾」 는 들어간다 — 라벨이 짧을 때만 (panel-ui 07 — 대조 B13)
-          labelMode={field.label.length <= 5 ? "suffix" : suffixMode}
+          // 값이 있으면 미리보기 20 + 이름 + 지우기 20 이 같이 서므로 suffix 는 짧은 라벨 (Icon) 만 —
+          //   「Calendar Icon」 은 legend (2026-09-15 live 「calendar」 잘림)
+          labelMode={field.label.length <= 5 ? suffixMode : "legend"}
           value={value as string | undefined}
           onChange={(name) => update(name)}
           onClear={() => update(undefined)}

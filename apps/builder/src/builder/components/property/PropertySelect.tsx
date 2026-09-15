@@ -183,7 +183,13 @@ export const PropertySelect = memo(
                   />
                 </label>
               )}
-              <SelectValue />
+              {/* 값 없음은 「—」 — RAC 기본 「Select an item」 이 반폭 55 에서 「Select an」 으로 잘린다;
+                  이름은 legend/aria-label 이 준다 (2026-09-15 live 전수 대조) */}
+              <SelectValue>
+                {({ isPlaceholder, defaultChildren }) =>
+                  isPlaceholder ? "—" : defaultChildren
+                }
+              </SelectValue>
               {labelMode === "suffix" && (
                 <span className="property-field__suffix" aria-hidden="true">
                   {suffixLabel ?? displayLabel}

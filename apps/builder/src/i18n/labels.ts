@@ -84,7 +84,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Circle: "chart.circle",
   "Start Angle (deg)": "chart.startAngle",
   "End Angle (deg)": "chart.endAngle",
-  "Show Total (donut \u00b7 radial)": "chart.showTotal",
+  "Show Total": "chart.showTotal",
   "Show Spokes": "chart.showSpokes",
   "Grid Rings (0=auto)": "chart.gridRings",
   "Fill Grid": "chart.fillGrid",

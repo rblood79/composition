@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 팔레트 70 컴포넌트 전수 대조 (잘림 · 눌림 · 티어 밖 높이 0)] - 2026-09-15
+
+### Fixed
+
+- **반폭 (87) 칸에 안 들어가는 값이 잘리던 결함 5종** (live 전수 대조 — 70 컴포넌트, 헤더·절 펼침 후 텍스트 clip · 칩 폭 · 상자 높이 · 행 넘침 · 겹침 자동 판정): ① 2옵션 seg 칩 37 에 「Compact | Regular」 · 「Polygon」 (Tabs · ToggleButtonGroup · Radar) → 라벨 폭을 재 (canvas measureText) 안 들어가면 전폭 seg, ② 셀렉트 값 자리 55 에 「Informative」 · 「Categorical」 (Meter · Chart palette) → 전폭, ③ legend 「Necessity Indicator」 · 「Animation Easing」 (field 가족 · Chart) 이 87 을 넘으면 전폭, ④ 값 없는 셀렉트의 RAC 기본 「Select an item」 이 「Select an」 으로 → 「—」 (이름은 legend 가 준다), ⑤ Icon 피커에 값이 있으면 (미리보기 20 + 이름 + 지우기 20) 반폭에 「calendar」 가 안 들어간다 → 전폭, 긴 라벨 (「Calendar Icon」) 은 legend.
+- **Chart Series 이름 상자 26** (아이콘 없는 Input 만 든 `.react-aria-Group` 이 줄 높이 18 + pad 8) → 상자 최소 28 (컨트롤 티어).
+- Pie·Radial 「Show Total (donut · radial)」 스위치 라벨이 133 에서 잘림 → 「Show Total」 (ko 「합계 표시」).
+
 ## [Properties Appearance — Size 가 「XS S M L XL」 칸 13 으로 눌리던 결함 · Variant | Size 한 행] - 2026-09-15
 
 ### Fixed
