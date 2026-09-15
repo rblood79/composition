@@ -274,6 +274,9 @@ describe("TransformSection sizing controls", () => {
     ]);
 
     render(<TransformSection />);
+    // Min/Max 는 펼침 토글 뒤에 (인라인 값 없음 → 접힘, 2026-09-15)
+    expect(screen.queryByRole("combobox", { name: "Min W" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
 
     // Min W: Button 은 catalog sizes.minWidth(Spectrum 2.25×height 하한, md=68) 가
     //   spec default 로 표시된다 (ADR-082 A2 — inline 없으면 specPreset fallback,
@@ -311,6 +314,7 @@ describe("TransformSection sizing controls", () => {
 
     for (const label of ["Min W", "Max W", "Min H", "Max H"]) {
       render(<TransformSection />);
+      fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
 
       const group = screen.getByRole("group", { name: label });
       within(group).getByRole("button", { name: /Unit$/ }).click();
