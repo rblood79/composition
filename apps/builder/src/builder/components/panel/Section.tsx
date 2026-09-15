@@ -14,7 +14,10 @@
  */
 
 import React, { memo } from "react";
-import { ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { ACTION_ICONS } from "../../config/actionIcons";
+
+const ResetIcon = ACTION_ICONS.reset;
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../ui/ActionIconButton";
 import {
@@ -151,7 +154,7 @@ export const Section = memo(
                 aria-label={resetLabel}
                 tooltip={resetLabel}
               >
-                <RotateCcw
+                <ResetIcon
                   color={iconProps.color}
                   strokeWidth={iconProps.strokeWidth}
                   size={iconProps.size}

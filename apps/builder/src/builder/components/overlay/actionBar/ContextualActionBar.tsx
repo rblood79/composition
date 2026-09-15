@@ -25,7 +25,6 @@ import {
   MoreHorizontal,
   Pin,
   PinOff,
-  RotateCcw,
 } from "lucide-react";
 import { Menu, MenuItem, MenuTrigger } from "react-aria-components/Menu";
 import { Popover } from "react-aria-components/Popover";
@@ -38,6 +37,9 @@ import { useContextMenu } from "../contextMenu";
 import type { ContextMenuItem } from "../contextMenu/types";
 import { ShortcutTooltip } from "../ShortcutTooltip";
 import type { ActionBarModel } from "./actionBarPolicy";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+
+const ResetIcon = ACTION_ICONS.reset;
 import { buildActionBarItems } from "./buildActionBarItems";
 import { useActionBarPlacement } from "./useActionBarPlacement";
 import "./actionBar.css";
@@ -204,7 +206,7 @@ const OptionsMenu = memo(function OptionsMenu({
             <span>{pinned ? t("actionBar.unpin") : t("actionBar.pin")}</span>
           </MenuItem>
           <MenuItem id="reset" className="contextual-action-bar-option">
-            <RotateCcw size={MENU_ICON_SIZE} aria-hidden="true" />
+            <ResetIcon size={MENU_ICON_SIZE} aria-hidden="true" />
             <span>{t("actionBar.reset")}</span>
           </MenuItem>
           <MenuItem id="hide" className="contextual-action-bar-option">

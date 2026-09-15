@@ -267,7 +267,7 @@ export const ComponentSemanticsSection = memo(
                 if (action.id === "toggle-component-origin") {
                   return (
                     <RACButton
-                      className="control-button component-semantics-action"
+                      className="control-button"
                       isDisabled={!enabled}
                       key={action.id}
                       onPress={onPress}
@@ -286,7 +286,7 @@ export const ComponentSemanticsSection = memo(
                   >
                     <RACButton
                       aria-label={label}
-                      className="control-button component-semantics-action"
+                      className="control-button"
                       data-icon-only="true"
                       isDisabled={!enabled}
                       onPress={onPress}

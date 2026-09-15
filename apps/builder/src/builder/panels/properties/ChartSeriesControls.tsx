@@ -1,7 +1,7 @@
 import "./ChartAuthoringControls.css";
 import { Button } from "react-aria-components/Button";
 import { memo, useMemo } from "react";
-import { ArrowDown, ArrowUp, RotateCcw } from "lucide-react";
+import { ArrowDown, ArrowUp } from "lucide-react";
 import { useOwnedState } from "./useOwnedState";
 import {
   buildSeriesGrid,
@@ -205,7 +205,7 @@ export const ChartSeriesControls = memo(function ChartSeriesControls({
                   {
                     id: "reset",
                     label: t("common.reset"),
-                    icon: RotateCcw,
+                    icon: ACTION_ICONS.reset,
                     isDisabled: !entry,
                   },
                 ]}

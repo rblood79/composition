@@ -7,7 +7,9 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@composition/shared/components";
-import { History, Clock, RotateCcw } from "lucide-react";
+import { History, Clock } from "lucide-react";
+
+const RestoreIcon = ACTION_ICONS.reset;
 import {
   iconProps,
   iconEditProps,
@@ -136,7 +138,7 @@ export function SelectionMemory({
               onPress={() => handleRestore(entry)}
               className="history-item-btn"
             >
-              <RotateCcw
+              <RestoreIcon
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}

@@ -649,14 +649,14 @@
       min-width: 0;
     }
 
-    .component-semantics-strip .component-semantics-action[data-icon-only] {
+    .component-semantics-strip .control-button[data-icon-only] {
       width: var(--control-size);
       padding: 0;
     }
 
     /* Select instances 의 수 배지 — 아이콘 옆 10 mono. 버튼 폭은 내용에 맞춘다. */
     .component-semantics-strip
-      .component-semantics-action:has(.component-semantics-count) {
+      .control-button:has(.component-semantics-count) {
       width: auto;
       padding: 0 var(--spacing-xs) 0 var(--spacing-xs);
     }

@@ -15,9 +15,10 @@ import {
   DiamondMinus,
   DiamondPlus,
   Focus,
-  Plus,
   Group,
   Magnet,
+  Plus,
+  RotateCcw,
   RulerDimensionLine,
   Trash2,
   Ungroup,
@@ -88,6 +89,9 @@ export const ACTION_ICONS = {
   duplicate: CopyPlus,
   /** 컨텍스트 메뉴 · 다중 선택 툴바 · History 항목 · FramesTab */
   delete: Trash2,
+  /** 되돌리기 — 섹션 헤더 reset · Properties 필드 행 reset (기본값으로) · 액션 바 reset ·
+      Chart 시리즈 reset · SelectionMemory 복원. 같은 「원래대로」 액션이 다섯 표면에 선다. */
+  reset: RotateCcw,
 
   /**
    * **"추가" 어포던스는 이것 하나** — 아이콘 단독 버튼이든 텍스트 동반 버튼이든

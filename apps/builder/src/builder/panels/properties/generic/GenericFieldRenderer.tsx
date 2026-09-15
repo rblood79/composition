@@ -37,6 +37,9 @@ import {
   PropertySlider,
 } from "../../../components";
 import type { PropertyChip } from "../../../components/property/PropertyChipGroup";
+import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
+import { ACTION_ICONS } from "../../../config/actionIcons";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   resolveFieldEditor,
   sizeSegOptions,
@@ -348,6 +351,90 @@ function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
 }
 
 /** 연속한 half 필드 둘을 한 행으로 묶는다. wide 는 행 하나를 혼자 쓴다. */
+/**
+ * 행 끝 28 열의 「기본값으로」 액션 (2026-09-16 사용자 지시 — 옵션 편의성). 행의 필드 중
+ * catalog 기본값 (`baseValue`) 이 있고 현재 값이 그와 다른 것이 하나라도 있으면 서고, 누르면
+ * 그 필드들을 기본값으로 되돌린다 (쓰기는 다른 편집과 같은 `onSemanticUpdate`/`onStyleUpdate`).
+ * 기본값이 없는 필드 (`children` · `name` 처럼 계약에 default 가 없는 것) 는 되돌릴 기준이
+ * 없으므로 대상이 아니다 — 새 요소의 행마다 아이콘이 서는 잡음을 막는다. boolean 은 칩 묶음이라
+ * 행이 없고, binding · items 는 값이 구조라 여기 두지 않는다.
+ *
+ * 행은 최대 2 필드 — 훅은 두 슬롯을 무조건 부른다 (조건부 금지).
+ */
+const NON_RESETTABLE_KINDS: ReadonlySet<string> = new Set([
+  "binding",
+  "items-manager",
+  "boolean",
+]);
+
+function isResettable(field: ResolvedField): boolean {
+  return field.baseValue !== undefined && !NON_RESETTABLE_KINDS.has(field.kind);
+}
+
+function differs(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) return false;
+  if (typeof a === "object" && typeof b === "object" && a && b) {
+    return JSON.stringify(a) !== JSON.stringify(b);
+  }
+  return true;
+}
+
+const ResetIcon = ACTION_ICONS.reset;
+
+function FieldRowResetAction({
+  row,
+  elementId,
+  onSemanticUpdate,
+  onStyleUpdate,
+}: {
+  row: readonly ResolvedField[];
+  elementId: string | undefined;
+  onSemanticUpdate: GenericFieldRouting["onSemanticUpdate"];
+  onStyleUpdate: GenericFieldRouting["onStyleUpdate"];
+}) {
+  const { t } = useI18n();
+  const first = row[0]!;
+  const second = row[1] ?? first;
+  const v0 = useCanonicalPropertyValue(
+    elementId,
+    first.origin,
+    first.key,
+    first.baseValue,
+  );
+  const v1 = useCanonicalPropertyValue(
+    elementId,
+    second.origin,
+    second.key,
+    second.baseValue,
+  );
+  const values = [v0, row[1] ? v1 : undefined];
+  const dirty = row.filter(
+    (field, i) => isResettable(field) && differs(values[i], field.baseValue),
+  );
+  if (dirty.length === 0) return null;
+  const labels = dirty.map((f) => f.label).join(" · ");
+  const label = t("propertiesPanel.resetField", { labels });
+  const reset = () => {
+    for (const field of dirty) {
+      if (field.origin === "style") onStyleUpdate(field.key, field.baseValue);
+      else onSemanticUpdate(field.key, field.baseValue);
+    }
+  };
+  return (
+    <div className="fieldset-actions actions-reset">
+      <ActionTooltipTrigger tooltip={label}>
+        <SwatchIconButton aria-label={label} onPress={reset}>
+          <ResetIcon
+            aria-hidden="true"
+            size={iconProps.size}
+            strokeWidth={iconProps.strokeWidth}
+          />
+        </SwatchIconButton>
+      </ActionTooltipTrigger>
+    </div>
+  );
+}
+
 function packFieldRows(fields: readonly ResolvedField[]): ResolvedField[][] {
   const rows: ResolvedField[][] = [];
   for (const field of fields) {
@@ -927,6 +1014,12 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
                             }
                           />
                         ))}
+                        <FieldRowResetAction
+                          row={row}
+                          elementId={elementId}
+                          onSemanticUpdate={onSemanticUpdate}
+                          onStyleUpdate={onStyleUpdate}
+                        />
                       </div>
                     ),
                   );

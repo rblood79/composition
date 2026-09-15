@@ -504,7 +504,7 @@ const koKR: TranslationKeys = {
     welcomeKeyNotice: "키는 기본적으로 이 세션에만 남고 저장하지 않습니다.",
     openAgentSettings: "에이전트 설정 열기",
     intro: "AI와 composition의 강력한 기능을 사용하여 디자인을 개선하세요.",
-    suggestionsIntro: "다음은 {target}에 대한 맞춤형 아이디어입니다.",
+    suggestionsIntro: "{target}에서 바로 실행할 수 있어요.",
     suggestionsLabel: "추천 요청",
     disclaimer: "AI 생성 응답입니다. 사용하기 전에 확인해야 합니다.",
     advancedMode: "고급 모드",
@@ -714,6 +714,7 @@ const koKR: TranslationKeys = {
     idUnique: 'ID "{id}" 는 고유합니다',
     idDeduped: '중복 ID — "{id}" 로 변경했습니다',
     idAssigned: 'ID "{id}" 를 지정했습니다',
+    resetField: "{labels} 기본값으로",
     fieldMapValue: "값 필드",
     fieldMapIcon: "아이콘 필드",
     fieldMapAuto: "자동",
@@ -2475,7 +2476,7 @@ const enUS: TranslationKeys = {
       "By default your key stays in this session only and is not stored.",
     openAgentSettings: "Open agent settings",
     intro: "Use AI together with composition to improve your design.",
-    suggestionsIntro: "Here are some ideas for {target}.",
+    suggestionsIntro: "Ready to run for {target}.",
     suggestionsLabel: "Suggested prompts",
     disclaimer: "AI-generated response — check it before you use it.",
     advancedMode: "Advanced mode",
@@ -2683,6 +2684,7 @@ const enUS: TranslationKeys = {
     idUnique: 'ID "{id}" is unique',
     idDeduped: 'Duplicate ID — renamed to "{id}"',
     idAssigned: 'ID set to "{id}"',
+    resetField: "Reset {labels} to default",
     fieldMapValue: "Value field",
     fieldMapIcon: "Icon field",
     fieldMapAuto: "Auto",
@@ -4614,6 +4616,8 @@ const formattedMessages: Record<
       `중복 ID — "${String(args?.id ?? "")}" 로 변경했습니다`,
     "propertiesPanel.idAssigned": (args) =>
       `ID "${String(args?.id ?? "")}" 를 지정했습니다`,
+    "propertiesPanel.resetField": (args) =>
+      `${String(args?.labels ?? "")} 기본값으로`,
     "fonts.deleteFace": (args) =>
       `${String(args?.family ?? "")} ${String(args?.face ?? "")} 삭제`,
     "ai.logRestorable": (args) => ` · ${String(args?.shortcut ?? "")} 로 복원`,
@@ -4822,7 +4826,7 @@ const formattedMessages: Record<
     "ai.suggestHowTo": (args) =>
       `보여주세요: ${String(args?.target ?? "")} 편집 방법을 알려 주세요.`,
     "ai.suggestionsIntro": (args) =>
-      `다음은 ${String(args?.target ?? "")}에 대한 맞춤형 아이디어입니다.`,
+      `${String(args?.target ?? "")}에서 바로 실행할 수 있어요.`,
     "ai.agentRepair": (args) =>
       `수리 ${String(args?.attempt ?? 0)}/${String(args?.max ?? 0)}`,
     "ai.agentRunning": (args) => `도구 실행 중 (${String(args?.turn ?? 0)}/10)`,
@@ -5078,6 +5082,8 @@ const formattedMessages: Record<
       `Duplicate ID — renamed to "${String(args?.id ?? "")}"`,
     "propertiesPanel.idAssigned": (args) =>
       `ID set to "${String(args?.id ?? "")}"`,
+    "propertiesPanel.resetField": (args) =>
+      `Reset ${String(args?.labels ?? "")} to default`,
     "fonts.deleteFace": (args) =>
       `Delete ${String(args?.family ?? "")} ${String(args?.face ?? "")}`,
     "ai.logRestorable": (args) =>
@@ -5289,7 +5295,7 @@ const formattedMessages: Record<
     "ai.suggestHowTo": (args) =>
       `Show me how to edit ${String(args?.target ?? "")}.`,
     "ai.suggestionsIntro": (args) =>
-      `Here are some ideas for ${String(args?.target ?? "")}.`,
+      `Ready to run for ${String(args?.target ?? "")}.`,
     "ai.agentRepair": (args) =>
       `Repair ${String(args?.attempt ?? 0)}/${String(args?.max ?? 0)}`,
     "ai.agentRunning": (args) =>

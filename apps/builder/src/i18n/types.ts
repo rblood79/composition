@@ -545,6 +545,7 @@ export interface TranslationKeys {
     idUnique: string;
     idDeduped: string;
     idAssigned: string;
+    resetField: string;
     legacyBinding: string;
     fieldMapValue: string;
     fieldMapIcon: string;

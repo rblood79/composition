@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 필드 행 「기본값으로」 액션] - 2026-09-16
+
+### Added
+
+- catalog 필드 행 끝 28 열에 reset 아이콘 — 행의 필드 중 catalog 기본값이 있고 현재 값이 다른 것이 있을 때만 서고 (새 요소엔 0개), 툴팁 「Reset Variant to default / Variant 기본값으로」, 누르면 그 필드들을 기본값으로 되돌린다 (쓰기는 다른 편집과 같은 경로). 기본값이 없는 필드 (Text · Name) · boolean 칩 · binding · items 는 대상 밖.
+
+### Changed
+
+- 「원래대로」 아이콘 (`RotateCcw`) 을 `ACTION_ICONS.reset` 으로 등재 — 섹션 헤더 reset · 액션 바 reset · Chart 시리즈 reset · SelectionMemory 복원 · 필드 행 reset 이 같은 그림.
+
 ## [Properties 패널 — Attributes ID 행에 중복 검사/제거 액션] - 2026-09-16
 
 ### Added
