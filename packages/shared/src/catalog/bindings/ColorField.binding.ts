@@ -66,6 +66,8 @@ export const colorFieldBinding: PrimitiveBinding = {
           { value: "center", label: "Center" },
           { value: "end", label: "End" },
         ],
+        // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
+        visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       isRequired: { kind: "boolean", label: "Required", section: "state" },
@@ -114,6 +116,8 @@ export const colorFieldBinding: PrimitiveBinding = {
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
         ],
+        // RAC Form 이 FormContext 로 자식 field 에 전파 — Form 하나만 편집 (2026-09-15)
+        editorHidden: true,
       },
       necessityIndicator: {
         kind: "enum",

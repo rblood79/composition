@@ -88,11 +88,11 @@ export const cardBinding: PrimitiveBinding = {
         section: "appearance",
       },
       // interactions / state
-      href: { kind: "string", label: "Link", section: "state" },
+      href: { kind: "string", label: "Link", section: "content" },
       target: {
         kind: "enum",
         label: "Target",
-        section: "state",
+        section: "content",
         options: [
           { value: "_self", label: "Self" },
           { value: "_blank", label: "Blank" },

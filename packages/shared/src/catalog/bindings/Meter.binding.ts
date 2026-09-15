@@ -67,7 +67,7 @@ export const meterBinding: PrimitiveBinding = {
       showValueLabel: {
         kind: "boolean",
         label: "Show Value Label",
-        section: "content",
+        section: "appearance",
       },
       // RAC/RSP 정합 감사 (2026-07-15): valueLabel 은 Meter wrapper 가 <span class="value"> 로 직접
       //   렌더. labelPosition(top/side) 은 D3 구현 완료로 재노출 — CSS(catalog structure.composition.
@@ -86,7 +86,9 @@ export const meterBinding: PrimitiveBinding = {
       valueLabel: {
         kind: "string",
         label: "Value Label",
-        section: "content",
+        section: "appearance",
+        // RSP: valueLabel 은 showValueLabel 일 때만 표시 (2026-09-15)
+        visibleWhen: { key: "showValueLabel", equals: true },
       },
     },
     toRacProps: "default",

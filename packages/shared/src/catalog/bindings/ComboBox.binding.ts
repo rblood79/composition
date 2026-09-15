@@ -81,6 +81,8 @@ export const comboBoxBinding: PrimitiveBinding = {
           { value: "center", label: "Center" },
           { value: "end", label: "End" },
         ],
+        // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
+        visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): renderComboBox 전부 기소비 —
@@ -129,6 +131,8 @@ export const comboBoxBinding: PrimitiveBinding = {
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
         ],
+        // RAC Form 이 FormContext 로 자식 field 에 전파 — Form 하나만 편집 (2026-09-15)
+        editorHidden: true,
       },
     },
     toRacProps: "default",

@@ -35,8 +35,18 @@ export const modalBinding: PrimitiveBinding = {
        * 하지 않는 현행 동작을 그대로 보존한다.
        */
       isOpen: { kind: "boolean", label: "Open", section: "state" },
-      trapFocus: { kind: "boolean", label: "Trap Focus", section: "state" },
-      autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
+      trapFocus: {
+        kind: "boolean",
+        label: "Trap Focus",
+        section: "state",
+        editorHidden: true,
+      },
+      autoFocus: {
+        kind: "boolean",
+        label: "Auto Focus",
+        section: "state",
+        editorHidden: true,
+      },
     },
     toRacProps: "default",
   },

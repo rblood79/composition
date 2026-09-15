@@ -66,6 +66,8 @@ export const dateRangePickerBinding: PrimitiveBinding = {
           { value: "center", label: "Center" },
           { value: "end", label: "End" },
         ],
+        // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
+        visibleWhen: { key: "labelPosition", equals: "side" },
       },
       showCalendarIcon: {
         kind: "boolean",
@@ -125,12 +127,22 @@ export const dateRangePickerBinding: PrimitiveBinding = {
           { value: "12", label: "12" },
           { value: "24", label: "24" },
         ],
+        // 시간 granularity 에서만 의미 (2026-09-15)
+        visibleWhen: {
+          key: "granularity",
+          oneOf: ["hour", "minute", "second"],
+        },
       },
       hideTimeZone: {
         kind: "boolean",
         label: "Hide Time Zone",
         section: "locale",
         default: true,
+        // 시간 granularity 에서만 의미 (2026-09-15)
+        visibleWhen: {
+          key: "granularity",
+          oneOf: ["hour", "minute", "second"],
+        },
       },
       pageBehavior: {
         kind: "enum",
@@ -172,6 +184,8 @@ export const dateRangePickerBinding: PrimitiveBinding = {
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
         ],
+        // RAC Form 이 FormContext 로 자식 field 에 전파 — Form 하나만 편집 (2026-09-15)
+        editorHidden: true,
       },
     },
     toRacProps: "default",

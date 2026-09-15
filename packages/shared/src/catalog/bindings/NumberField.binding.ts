@@ -70,6 +70,8 @@ export const numberFieldBinding: PrimitiveBinding = {
           { value: "center", label: "Center" },
           { value: "end", label: "End" },
         ],
+        // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
+        visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // RAC NumberField props

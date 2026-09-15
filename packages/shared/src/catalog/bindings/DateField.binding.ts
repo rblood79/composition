@@ -70,12 +70,19 @@ export const dateFieldBinding: PrimitiveBinding = {
           { value: "center", label: "Center" },
           { value: "end", label: "End" },
         ],
+        // RSP: labelAlign 은 labelPosition="side" 에서만 의미 (2026-09-15)
+        visibleWhen: { key: "labelPosition", equals: "side" },
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       hideTimeZone: {
         kind: "boolean",
         label: "Hide Time Zone",
         section: "locale",
+        // 시간 granularity 에서만 의미 (2026-09-15)
+        visibleWhen: {
+          key: "granularity",
+          oneOf: ["hour", "minute", "second"],
+        },
       },
       shouldForceLeadingZeros: {
         kind: "boolean",
@@ -114,6 +121,11 @@ export const dateFieldBinding: PrimitiveBinding = {
           { value: "12", label: "12" },
           { value: "24", label: "24" },
         ],
+        // 시간 granularity 에서만 의미 (2026-09-15)
+        visibleWhen: {
+          key: "granularity",
+          oneOf: ["hour", "minute", "second"],
+        },
       },
       name: { kind: "string", label: "Name", section: "content" },
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
@@ -134,6 +146,8 @@ export const dateFieldBinding: PrimitiveBinding = {
           { value: "native", label: "Native" },
           { value: "aria", label: "ARIA" },
         ],
+        // RAC Form 이 FormContext 로 자식 field 에 전파 — Form 하나만 편집 (2026-09-15)
+        editorHidden: true,
       },
       placeholderValue: {
         kind: "string",

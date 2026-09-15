@@ -38,6 +38,8 @@ export const popoverBinding: PrimitiveBinding = {
         kind: "boolean",
         label: "Contain Focus",
         section: "state",
+        // RAC FocusScope 가 담당 (RSP 에 없는 prop) — 패널에서 숨김 (2026-09-15)
+        editorHidden: true,
       },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC Popover 공식 배치 prop —
       //   placement/crossOffset/shouldFlip/containerPadding 은 renderPopover 기소비,

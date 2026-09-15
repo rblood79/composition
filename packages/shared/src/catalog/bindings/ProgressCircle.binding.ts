@@ -60,7 +60,7 @@ export const progressCircleBinding: PrimitiveBinding = {
       isIndeterminate: {
         kind: "boolean",
         label: "Indeterminate",
-        section: "content",
+        section: "state",
       },
       // RSP S2 "over background" (design-data 감사 §2-F, 2026-08-21): 유색/이미지 배경 위
       //   고정 흑백 스킴 — Button 형(bg 반전)이 아니라 track=static 25% wash + indicator=solid.

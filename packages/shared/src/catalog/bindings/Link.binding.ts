@@ -78,11 +78,11 @@ export const linkBinding: PrimitiveBinding = {
       },
       isQuiet: { kind: "boolean", label: "Quiet", section: "appearance" },
       // RAC Link / anchor props
-      href: { kind: "string", label: "URL", section: "state" },
+      href: { kind: "string", label: "URL", section: "content" },
       target: {
         kind: "enum",
         label: "Target",
-        section: "state",
+        section: "content",
         options: [
           { value: "_self", label: "Same Window" },
           { value: "_blank", label: "New Window" },
@@ -90,7 +90,7 @@ export const linkBinding: PrimitiveBinding = {
           { value: "_top", label: "Top Frame" },
         ],
       },
-      rel: { kind: "string", label: "Rel", section: "state" },
+      rel: { kind: "string", label: "Rel", section: "content" },
       isDisabled: { kind: "boolean", label: "Disabled", section: "state" },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): RAC 공식 prop — generic toRacProps 경로.
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
