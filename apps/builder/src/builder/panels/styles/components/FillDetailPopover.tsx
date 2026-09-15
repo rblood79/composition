@@ -31,13 +31,6 @@ import { MeshGradientEditor } from "./MeshGradientEditor";
 import { ImageFillEditor } from "./ImageFillEditor";
 import { PropertySelect } from "../../../components";
 import { BLEND_MODE_OPTIONS } from "../constants/styleOptions";
-import { ScrubInput } from "./ScrubInput";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
-
 import "./FillDetailPopover.css";
 
 interface FillDetailPopoverProps {
@@ -46,6 +39,7 @@ interface FillDetailPopoverProps {
   onColorPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
   onColorChange: (color: string) => void;
   onColorChangeEnd: (color: string) => void;
+  /** 레이어 불투명도 — 팝오버 안에는 컨트롤이 없다 (레이어 행 scrub 하나뿐, 2026-09-15). 행이 쓴다. */
   onOpacityChange: (opacity: number) => void;
   onOpacityChangeEnd: (opacity: number) => void;
   onUpdate: (updates: Partial<FillItem>) => void;
@@ -89,8 +83,6 @@ export const FillDetailPopover = memo(function FillDetailPopover({
   onColorPresentationCancel,
   onColorChange,
   onColorChangeEnd,
-  onOpacityChange,
-  onOpacityChangeEnd,
   onUpdate,
   onUpdateEnd,
   onTypeChange,
@@ -152,12 +144,6 @@ export const FillDetailPopover = memo(function FillDetailPopover({
     [onUpdateEnd],
   );
 
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
-
   return (
     <div className="fill-detail-popover section">
       <FillTypeSelector
@@ -200,22 +186,10 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       )}
 
       <div className="fill-detail-popover__divider" />
-      {/* 푸터 한 행 — Opacity (legend + 28 scrub) · Blend (1fr 1.5fr). 종전엔 라벨 없는
-          24 scrub 과 divider 아래 Blend 로 세 줄이었다 (panel-ui 17, 2026-09-14) */}
+      {/* 푸터 — Blend 하나. 레이어 Opacity 는 레이어 행의 scrub 이 유일한 컨트롤이라 팝오버에서
+          뺐다 (같은 값이 두 곳 — 2026-09-15 사용자 판정). 피커의 A 는 색 자체의 알파 (다른 축:
+          fillAdapter 가 alpha × opacity 로 합성, 그래디언트는 stop 마다). */}
       <div className="fill-detail-popover__footer">
-        <fieldset className="properties-aria fill-detail-popover__opacity">
-          <legend className="fieldset-legend">{localize("Opacity")}</legend>
-          <ScrubInput
-            value={Math.round(fill.opacity * 100)}
-            onScrub={(value) => onOpacityChange(value / 100)}
-            onCommit={(value) => onOpacityChangeEnd(value / 100)}
-            min={0}
-            max={100}
-            suffix="%"
-            label={localize("Fill opacity")}
-            className="fill-detail-popover__opacity-scrub"
-          />
-        </fieldset>
         {/* 아이콘 prefix 없음 — legend 가 이름을 준다 (panel-ui 17 — 대조 B13) */}
         <PropertySelect
           label="Blend"
