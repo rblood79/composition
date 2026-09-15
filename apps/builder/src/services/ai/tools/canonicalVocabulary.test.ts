@@ -236,13 +236,13 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
   });
 
   it.each(["Select", "Card"])(
-    "ADR-202: %s 합성 생성의 요청 prop/style과 canonical 필드가 보존된다",
+    "ADR-202: %s 합성 생성의 요청 스타일이 보존된다",
     async (type) => {
       const result = await createElementTool.execute(
         {
           type,
           parentId: "body",
-          props: { isDisabled: true },
+          ...(type === "Select" ? { props: { isDisabled: true } } : {}),
           styles: { opacity: 0.42 },
         },
         tt,
@@ -252,11 +252,95 @@ describe("도구 실행 — canonical patch 가 문서에 반영된다", () => {
       const { getAiToolReadModel } = await import("./canonicalToolReadModel");
       const node = getAiToolReadModel().elementsById.get(id);
       expect(node?.props).toMatchObject({
-        isDisabled: true,
+        ...(type === "Select" ? { isDisabled: true } : {}),
         style: { opacity: 0.42 },
       });
     },
   );
+
+  it.each(["Button", "Select", "Card", "frame"])(
+    "ADR-202: %s 초기 fill/style/slot이 undo/redo를 통과한다",
+    async (type) => {
+      const fills = [
+        {
+          id: "fill-test",
+          type: "color",
+          color: "#0000FFFF",
+          opacity: 1,
+          enabled: true,
+          blendMode: "normal",
+        },
+      ];
+      const result = await createElementTool.execute(
+        {
+          type,
+          parentId: "body",
+          styles: { opacity: 0.42 },
+          fills,
+          canonical: {
+            slot: false,
+            ...(type === "frame" ? { clip: true, placeholder: true } : {}),
+          },
+        },
+        tt,
+      );
+      expect(result.success).toBe(true);
+      const id = (result.data as { elementId: string }).elementId;
+      const { getAiToolReadModel } = await import("./canonicalToolReadModel");
+      const before = getAiToolReadModel().elementsById.get(id);
+      expect(before?.props).toMatchObject({ style: { opacity: 0.42 } });
+      expect(before?.fills).toEqual(fills);
+      expect(readCanonicalFields(id)).toEqual({
+        slot: false,
+        ...(type === "frame" ? { clip: true, placeholder: true } : {}),
+      });
+      expect(entries()).toBe(1);
+      await useStore.getState().undo();
+      expect(getAiToolReadModel().elementsById.has(id)).toBe(false);
+      await useStore.getState().redo();
+      expect(getAiToolReadModel().elementsById.get(id)?.props).toEqual(
+        before?.props,
+      );
+      expect(getAiToolReadModel().elementsById.get(id)?.fills).toEqual(fills);
+      expect(readCanonicalFields(id)).toEqual({
+        slot: false,
+        ...(type === "frame" ? { clip: true, placeholder: true } : {}),
+      });
+    },
+  );
+
+  it("ADR-202: fill 수정/제거는 canonical 1차 필드와 1회 undo/redo를 사용한다", async () => {
+    const created = await createElementTool.execute(
+      { type: "Button", parentId: "body" },
+      tt,
+    );
+    const id = (created.data as { elementId: string }).elementId;
+    const before = entries();
+    const result = await updateElementTool.execute(
+      { elementId: id, fills: [{ type: "color", color: "#0000FFFF" }] },
+      tt,
+    );
+    expect(result.success).toBe(true);
+    const { getAiToolReadModel } = await import("./canonicalToolReadModel");
+    expect(getAiToolReadModel().elementsById.get(id)?.fills?.[0]).toMatchObject(
+      { color: "#0000FFFF", enabled: true, opacity: 1 },
+    );
+    expect(
+      getAiToolReadModel().elementsById.get(id)?.props.fills,
+    ).toBeUndefined();
+    expect(entries() - before).toBe(1);
+    await useStore.getState().undo();
+    expect(getAiToolReadModel().elementsById.get(id)?.fills ?? []).toEqual([]);
+    await useStore.getState().redo();
+    expect(getAiToolReadModel().elementsById.get(id)?.fills?.[0]).toMatchObject(
+      { color: "#0000FFFF" },
+    );
+    expect(
+      (await updateElementTool.execute({ elementId: id, fills: [] }, tt))
+        .success,
+    ).toBe(true);
+    expect(getAiToolReadModel().elementsById.get(id)?.fills ?? []).toEqual([]);
+  });
 
   it("create_element type:frame + clip/placeholder/slot 이 노드에 남는다", async () => {
     const result = await createElementTool.execute(

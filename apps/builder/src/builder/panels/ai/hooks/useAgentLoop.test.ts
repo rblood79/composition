@@ -9,6 +9,18 @@ const scripted = vi.hoisted(() => ({
   /** 프로파일이 구성됐는가 — `createAgentRunner` 가 호출 시점에 읽는다. */
   configured: true,
   runnerCreations: 0,
+  direct: false,
+}));
+
+vi.mock("../../../../services/ai/compiler/runtime", () => ({
+  runCompilerRequest: async () =>
+    scripted.direct
+      ? {
+          handled: true,
+          route: "direct",
+          result: { success: true, data: { elementId: "created" } },
+        }
+      : { handled: false, route: "creative-multistep" },
 }));
 
 vi.mock("../../../../services/ai/createAgentRunner", () => ({
@@ -82,6 +94,7 @@ afterEach(() => {
   scripted.lastContext = null;
   scripted.configured = true;
   scripted.runnerCreations = 0;
+  scripted.direct = false;
 });
 
 /** 훅이 `useI18n` 을 쓰므로 provider 밑에서 돌린다 (ADR-200 R7). */
@@ -209,5 +222,21 @@ describe("실행기 생성 시점", () => {
       .map((m) => m.content);
     expect(afterConfig.join("\n")).toContain("실행기 응답");
     expect(scripted.runnerCreations).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("ADR-202 direct 진입 순서", () => {
+  it("모델 미설정이어도 Agent 생성 전에 direct 결과를 표시한다", async () => {
+    scripted.configured = false;
+    scripted.direct = true;
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
+    await act(async () => {
+      await result.current.runAgent("버튼 생성해");
+    });
+    expect(scripted.runnerCreations).toBe(0);
+    const state = useConversationStore.getState();
+    expect(state.messages.some((m) => m.role === "tool")).toBe(true);
+    expect(state.isAgentRunning).toBe(false);
+    expect(state.isStreaming).toBe(false);
   });
 });

@@ -16,6 +16,7 @@
  * - COMPLEX (`COMPLEX_COMPONENT_TAGS`) → `ComponentFactory.createComplexComponent`
  * - 그 외 leaf → 호출자가 기존 단일 element 경로로 만든다
  */
+import type { InitialCanonicalFields } from "../../../builder/factories/types";
 import type { CompositionDocument } from "@composition/shared";
 import { ComponentFactory } from "../../../builder/factories/ComponentFactory";
 import { COMPLEX_COMPONENT_TAGS } from "../../../builder/factories/constants";
@@ -59,6 +60,9 @@ export function resolveCompositeMode(type: string): CompositeMode {
 
 export interface CompositeCreationInput {
   type: string;
+  /** 요청 override만 전달한다. leaf 기본값으로 factory/origin 기본값을 덮지 않는다. */
+  initialProps?: Record<string, unknown>;
+  initialCanonical?: InitialCanonicalFields;
   elements: CompositeCreationNode[];
   currentPageId: string | null;
   selectedElementId: string | null;
@@ -124,7 +128,8 @@ export async function createCompositeElement(
         [COMPONENT_MASTER_ID_MIRROR_FIELD]: originId,
         customId: generateCustomId(input.type, input.elements),
         componentName: input.type,
-        props: {},
+        props: input.initialProps ?? {},
+        ...input.initialCanonical,
         page_id: input.currentPageId,
         parent_id: parentId,
         created_at: new Date().toISOString(),
@@ -149,6 +154,8 @@ export async function createCompositeElement(
     input.elements,
     null,
     doc,
+    input.initialProps,
+    input.initialCanonical,
   );
 
   return {

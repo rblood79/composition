@@ -153,6 +153,20 @@ export default defineConfig(({ command }) => {
       // Vite 8 기본 Lightning CSS는 Tailwind v4 @utility 등을 미지원 → esbuild 유지
       cssMinify: "esbuild",
       rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              {
+                // AI lazy 전환이 공통 RAC 코드를 쪼개 Preview gzip을 늘리지 않게 한다.
+                // 2개 이상 entry가 이미 정적으로 쓰는 모듈만 묶는다.
+                name: "aria-runtime",
+                minShareCount: 2,
+                tags: ["$initial"],
+                test: /node_modules[\\/](?:@react-aria|@react-stately|@react-spectrum|react-aria-components|react-aria|react-stately)[\\/]/,
+              },
+            ],
+          },
+        },
         input: {
           main: resolve(import.meta.dirname, "index.html"),
           preview: resolve(import.meta.dirname, "preview.html"),

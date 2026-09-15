@@ -8,6 +8,7 @@ import type {
   ToolExecutionResult,
   ToolExecutor,
 } from "../../../types/integrations/ai.types";
+import { validateCompilerToolCall } from "../compiler/toolValidation";
 import { getEditorStateTool } from "./getEditorState";
 import { getSelectionTool } from "./getSelection";
 import { createElementTool } from "./createElement";
@@ -72,7 +73,13 @@ export function createToolRegistry(): Map<string, ToolExecutor> {
   ];
 
   for (const tool of tools) {
-    registry.set(tool.name, tool);
+    registry.set(tool.name, {
+      ...tool,
+      execute: async (args, t) => {
+        const error = validateCompilerToolCall(tool.name, args, t);
+        return error ? { success: false, error } : tool.execute(args, t);
+      },
+    });
   }
 
   return registry;

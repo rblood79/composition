@@ -34,7 +34,19 @@ export async function createTable(
     id: ElementUtils.generateId(),
     customId: generateCustomId("Table", elements),
     type: "Table",
-    props: defaultProps as ComponentElementProps,
+    props: {
+      ...defaultProps,
+      ...context.initialProps,
+      ...(context.initialProps?.style
+        ? {
+            style: {
+              ...((defaultProps.style as Record<string, unknown>) ?? {}),
+              ...(context.initialProps.style as Record<string, unknown>),
+            },
+          }
+        : {}),
+    } as ComponentElementProps,
+    ...context.initialCanonical,
     parent_id: parentId,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),

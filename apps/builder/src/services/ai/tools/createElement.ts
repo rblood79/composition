@@ -14,11 +14,13 @@ import { getDefaultProps } from "../../../types/builder/unified.types";
 import { adaptPropsForElement } from "../styleAdapter";
 import { useAIVisualFeedbackStore } from "../../../builder/stores/aiVisualFeedback";
 import { getAiToolReadModel } from "./canonicalToolReadModel";
-import {
-  applyCanonicalFields,
-  parseCanonicalFields,
-} from "./canonicalNodeFields";
+import { parseCanonicalFields } from "./canonicalNodeFields";
 import { createCompositeElement } from "./compositeCreation";
+import {
+  findUnappliedProps,
+  findUnappliedStyles,
+} from "./mutationVerification";
+import { normalizeToolFills } from "./toolFills";
 import { rememberCreatedElement } from "./elementRef";
 import { resolveNestingViolation } from "@composition/shared";
 
@@ -67,7 +69,7 @@ export const createElementTool: ToolExecutor = {
 
     const aiProps = (args.props || {}) as Record<string, unknown>;
     const aiStyles = (args.styles || {}) as Record<string, unknown>;
-    const aiFills = Array.isArray(args.fills) ? args.fills : undefined;
+    const aiFills = normalizeToolFills(args.fills);
     const parentIdArg = args.parentId as string | undefined;
     const dataBindingArg = args.dataBinding as
       { endpoint?: string } | undefined;
@@ -86,12 +88,7 @@ export const createElementTool: ToolExecutor = {
       const mergedProps = { ...defaultProps, ...aiProps };
 
       // 스타일 적용
-      const finalProps = adaptPropsForElement(
-        type,
-        mergedProps,
-        aiStyles,
-        aiFills,
-      );
+      const finalProps = adaptPropsForElement(type, mergedProps, aiStyles);
 
       // 부모 결정
       let parentId: string | null = parentIdArg || null;
@@ -116,6 +113,11 @@ export const createElementTool: ToolExecutor = {
       //   leaf 면 null 이 와서 아래 단일 element 경로가 그대로 돈다.
       const composite = await createCompositeElement({
         type,
+        initialProps: adaptPropsForElement(type, aiProps, aiStyles),
+        initialCanonical: {
+          ...canonicalPatch,
+          ...(aiFills ? { fills: aiFills } : {}),
+        },
         elements,
         currentPageId: currentPageId || null,
         selectedElementId: selectedElementId ?? null,
@@ -124,10 +126,29 @@ export const createElementTool: ToolExecutor = {
       });
 
       if (composite) {
-        const compositeApplied = applyCanonicalFields(
+        const verified = getAiToolReadModel().elementsById.get(
           composite.elementId,
-          canonicalPatch,
         );
+        if (!verified)
+          return {
+            success: false,
+            error: t("aiToolError.missingAfterUpdate", {
+              id: composite.elementId,
+            }),
+          };
+        const missing = [
+          ...findUnappliedProps(
+            { ...verified.props, fills: verified.fills ?? [] },
+            { ...aiProps, ...(aiFills ? { fills: aiFills } : {}) },
+          ),
+          ...findUnappliedStyles(verified.props?.style, aiStyles),
+        ];
+        if (missing.length)
+          return {
+            success: false,
+            error: t("aiToolError.notApplied", { fields: missing.join(", ") }),
+          };
+        const compositeApplied = Object.keys(canonicalPatch).length > 0;
         useAIVisualFeedbackStore
           .getState()
           .addFlashForNode(composite.elementId, { scanLine: true });
@@ -156,6 +177,8 @@ export const createElementTool: ToolExecutor = {
         id: crypto.randomUUID(),
         type,
         props: finalProps,
+        ...canonicalPatch,
+        ...(aiFills ? { fills: aiFills } : {}),
         parent_id: parentId,
         page_id: currentPageId || "default",
         dataBinding: undefined,
@@ -170,13 +193,27 @@ export const createElementTool: ToolExecutor = {
       }
 
       await addElement(newElement);
+      const verified = getAiToolReadModel().elementsById.get(newElement.id);
+      if (!verified)
+        return {
+          success: false,
+          error: t("aiToolError.missingAfterUpdate", { id: newElement.id }),
+        };
+      const missing = [
+        ...findUnappliedProps(
+          { ...verified.props, fills: verified.fills ?? [] },
+          { ...aiProps, ...(aiFills ? { fills: aiFills } : {}) },
+        ),
+        ...findUnappliedStyles(verified.props?.style, aiStyles),
+      ];
+      if (missing.length)
+        return {
+          success: false,
+          error: t("aiToolError.notApplied", { fields: missing.join(", ") }),
+        };
 
-      // 1차 필드는 생성 직후 canonical patch — facade 가 legacy props 를 다루므로
-      // schema 필드는 store action 을 직접 경유한다 (breakdown §5 Phase 3 산출물).
-      const canonicalApplied = applyCanonicalFields(
-        newElement.id,
-        canonicalPatch,
-      );
+      // 초기 canonical 필드는 insert/history/persistence와 함께 적용한다.
+      const canonicalApplied = Object.keys(canonicalPatch).length > 0;
 
       // ADR-131 Phase 8 (2026-05-13): root collection data sync 제거.
       // data SSOT 는 `collections` / `api_endpoints` / `variables`.

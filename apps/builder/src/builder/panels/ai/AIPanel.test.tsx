@@ -9,7 +9,10 @@ const mockStopAgent = vi.hoisted(() => vi.fn());
 const mockUpdateContext = vi.hoisted(() => vi.fn());
 const mockClearConversation = vi.hoisted(() => vi.fn());
 
-const mockLoopState = vi.hoisted(() => ({ hasAgent: true }));
+const mockLoopState = vi.hoisted(() => ({
+  hasAgent: true,
+  isStreaming: false,
+}));
 
 const mockBuilderState = vi.hoisted(() => ({
   currentPageId: "page-1",
@@ -48,7 +51,7 @@ vi.mock("../../stores/conversation", () => ({
 vi.mock("./hooks/useAgentLoop", () => ({
   useAgentLoop: () => ({
     messages: [],
-    isStreaming: false,
+    isStreaming: mockLoopState.isStreaming,
     isAgentRunning: false,
     currentTurn: 0,
     progress: { plan: null, agents: [], repairs: [] },
@@ -136,6 +139,7 @@ describe("AIPanel Photoshop-style initial experience", () => {
     mockUpdateContext.mockReset();
     mockClearConversation.mockReset();
     mockLoopState.hasAgent = true;
+    mockLoopState.isStreaming = false;
   });
 
   afterEach(() => {
@@ -198,6 +202,7 @@ describe("AIPanel Photoshop-style initial experience", () => {
 describe("AIPanel 기본 표면 depth (ADR-134 Phase 8, D9)", () => {
   beforeEach(() => {
     mockLoopState.hasAgent = true;
+    mockLoopState.isStreaming = false;
   });
 
   afterEach(cleanup);
@@ -242,5 +247,19 @@ describe("BYOK 미설정 최초 진입 (R2)", () => {
       screen.getByRole("button", { name: "Open agent settings" }),
     );
     expect(screen.getByText("고급 모드 자리")).toBeTruthy();
+  });
+});
+
+describe("ADR-202 one-shot 취소", () => {
+  afterEach(() => {
+    cleanup();
+    mockLoopState.isStreaming = false;
+  });
+  it("Agent loop가 없어도 진행 중 요청을 중단할 수 있다", () => {
+    mockLoopState.isStreaming = true;
+    renderWithI18n(<AIPanel />);
+    const stop = screen.getByRole("button", { name: /중지|Stop/i });
+    fireEvent.click(stop);
+    expect(mockStopAgent).toHaveBeenCalled();
   });
 });

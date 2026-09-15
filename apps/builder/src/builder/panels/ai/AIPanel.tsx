@@ -21,6 +21,7 @@ import {
   ImagePlus,
   Send,
   Settings2,
+  Square,
   Sparkles,
   UserRound,
 } from "lucide-react";
@@ -332,6 +333,16 @@ function AIPanelContent() {
         panelId="ai"
         actions={
           <>
+            {isStreaming && !isAgentRunning && (
+              <ActionIconButton
+                onPress={stopAgent}
+                type="button"
+                aria-label={t("ai.agentStop")}
+                tooltip={t("ai.agentStop")}
+              >
+                <Square size={12} />
+              </ActionIconButton>
+            )}
             {isAgentRunning && (
               <AgentControls currentTurn={currentTurn} onStop={stopAgent} />
             )}
@@ -348,7 +359,7 @@ function AIPanelContent() {
                 size={iconProps.size}
               />
             </ActionIconButton>
-            {messages.length > 0 && !isAgentRunning && (
+            {messages.length > 0 && !isDisabled && (
               <ActionIconButton
                 onPress={clearConversation}
                 type="button"

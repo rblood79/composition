@@ -1,0 +1,30 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+import { mkdirSync } from "node:fs";
+const OUT = "/private/tmp/claude-501/-Users-admin-work-composition/f6bcc488-f176-4644-8364-3625704b801c/scratchpad/props-after2"; mkdirSync(OUT, { recursive: true });
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 3000 }, deviceScaleFactor: 1 })).newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`pr-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name) => { await page.getByRole("button", { name, exact: true }).first().click(); await page.waitForTimeout(400); };
+const P = '[data-panel-id="properties"]';
+const set = async (props) => { await page.evaluate((props) => window.__composition_STORE__.getState().updateSelectedProperties(props), props); await page.waitForTimeout(400); };
+const rows = () => page.evaluate((P) => Array.from(document.querySelectorAll(`${P} .section`)).map((s) => `[${s.querySelector(".section-title")?.textContent.trim()}] ` + Array.from(s.querySelectorAll(".section-content > .fieldset-row")).map((r) => Array.from(r.querySelectorAll(":scope > fieldset")).map((f) => { const v = f.querySelector(".react-aria-SelectValue"); const clip = v && v.scrollWidth > v.clientWidth ? `⚠clip「${v.textContent.trim()}」sw${v.scrollWidth}/cw${v.clientWidth}` : ""; return `${f.querySelector("legend")?.textContent.trim()}(${Math.round(f.getBoundingClientRect().width)})${clip}`; }).join(" | ")).join(" / ")).join("\n"), P);
+const cases = [["card", {}], ["card", { variant: "secondary" }], ["progress bar", {}], ["checkbox", { variant: "emphasized" }], ["meter", {}], ["badge", { variant: "chartreuse" }]];
+for (const [name, props] of cases) {
+  await panel("Components"); await page.locator('[data-panel-id="components"] button.list-item').filter({ hasText: new RegExp(`^${name}$`, "i") }).first().click(); await page.waitForTimeout(900); await panel("Components");
+  await panel("Properties"); await page.waitForTimeout(300);
+  if (Object.keys(props).length) await set(props);
+  console.log(`## ${name} ${JSON.stringify(props)}\n` + (await rows()).split("\n").filter((l) => /Content|Appearance|Behavior/.test(l)).join("\n"));
+  await page.evaluate((P) => { const pc = document.querySelector(`${P} .panel-contents`); const h = pc.scrollHeight + 8; let el = pc; while (el && !el.classList.contains("panel-dock-surface")) { el.style.setProperty("height", el === pc ? h + "px" : "auto", "important"); el.style.setProperty("max-height", "none", "important"); el.style.setProperty("overflow", "visible", "important"); el = el.parentElement; } }, P);
+  await page.locator(`${P} .panel-contents`).screenshot({ path: `${OUT}/pair-${name.replace(" ", "")}-${Object.values(props)[0] ?? "default"}.png` });
+  await page.evaluate((P) => { let el = document.querySelector(`${P} .panel-contents`); while (el && !el.classList.contains("panel-dock-surface")) { el.style.cssText = ""; el = el.parentElement; } }, P);
+  await panel("Properties");
+  await page.evaluate(() => { const st = window.__composition_STORE__.getState(); st.removeElement?.(st.selectedElementId); }); await page.waitForTimeout(300);
+}
+console.log("errors", errors.slice(0, 5));
+await browser.close();

@@ -1,0 +1,22 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1400 }, deviceScaleFactor: 1 })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`sv-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name) => { await page.getByRole("button", { name, exact: true }).first().click(); await page.waitForTimeout(400); };
+const P = '[data-panel-id="properties"]';
+await panel("Components"); await page.locator('[data-panel-id="components"] button.list-item').filter({ hasText: /^card$/i }).first().click(); await page.waitForTimeout(900); await panel("Components");
+await panel("Properties"); await page.waitForTimeout(300);
+console.log(await page.evaluate((P) => {
+  const sizeFs = Array.from(document.querySelectorAll(`${P} fieldset.properties-aria`)).find((f) => f.querySelector("legend")?.textContent.trim() === "Size");
+  const val = sizeFs.querySelector(".react-aria-SelectValue"); const btn = sizeFs.querySelector(".react-aria-Select .react-aria-Button");
+  const cs = getComputedStyle(val);
+  const c = document.createElement("canvas").getContext("2d"); c.font = `${cs.fontSize} ${cs.fontFamily}`;
+  const words = ["Chartreuse","Cinnamon","Emphasized","Expanded","Informative","Secondary","Turquoise","Bordered","Outlined","Magenta","Positive","Striped"];
+  return `select value box ${Math.round(val.getBoundingClientRect().width)} (btn ${Math.round(btn.getBoundingClientRect().width)}, font ${cs.fontSize} ${cs.fontFamily.split(",")[0]}) · ` + words.map((w) => `${w}=${Math.round(c.measureText(w).width)}`).join(" ");
+}, P));
+await browser.close();

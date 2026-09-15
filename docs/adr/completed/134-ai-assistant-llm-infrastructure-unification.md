@@ -9,6 +9,15 @@ Implemented — 2026-08-29 (**delivered scope = Phase 0–8**, 사용자 confirm
 >
 > **응용 영역 코드 사실 재측정 — 2026-08-26 (리뷰 round 1 반영)**: 2026-08-18 개정은 인프라 노선만 재결정하고 응용 영역 (격차 1~4) 을 2026-05-13 코드 스냅샷 그대로 두었다. 그 사이 반영된 ADR-149 (Implemented 2026-07-19) / ADR-158 (Implemented 2026-08-16) / AI-services canonical 정리 (`b994285ef`, 2026-06-18) 를 [reviews/134.md](../reviews/134.md) round 1 이 실측해 다음을 정정했다 — ① 격차 1 은 "legacy 기반" 이 아니라 **facade 경유 canonical-primary + 도구 schema 어휘 부재** ② events 는 `SerializedEvent` 가 아니라 **`InteractionRule`** (ADR-158), root `actions` 는 dormant ③ mutation API 는 실존 store action (`insertNode / updateNode / updateNodeProps / updateNodeExtension / moveNode / removeNode / addEvent / updateEvent / removeEvent`) 으로 교체 ④ ADR-133 은 Deprecated (2026-07-08) — "1년차 신입 baseline" 은 ADR-149 P1 이 승계했고 본 ADR 은 HC12 로 독립 선언 ⑤ 데이터 SSOT 명칭은 `collections` (구 `data_tables`) 로 통일. 노선 β 결정·대안 평가·Gate G1/G2/G6/G7 은 무변경.
 
+## ADR-202 부분 대체 — 2026-09-16
+
+[ADR-202](../202-builder-ai-compiler-first-command-execution.md)의 착수 승인에 따라 D6~~D8의
+기본 실행 순서를 compiler-first로 변경했다. 명시적 단일 생성·편집·명령은 모델 없이 기존
+executor를 사용하고, 모호한 요청의 IR adapter와 creative Agent를 구분한다. D1~~D5·D9~D11의
+provider/보안/도구 인프라는 유지한다. OpenAI-compatible one-shot은 미검증이라 기존 Agent로
+fallback하며, ADR-202의 실제 모델 gate와 main 반영은 별도로 남는다. 본 ADR의 2026-08-29
+Implemented 판정과 당시 실측 기록은 보존한다.
+
 ## 진행 로그
 
 | Phase | 상태                            | 근거                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |

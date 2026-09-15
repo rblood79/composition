@@ -12,6 +12,7 @@ import {
   type AgentRunner,
 } from "../../../../services/ai/createAgentRunner";
 import { isAgentProfileReady } from "../../../../services/ai/providers/agentProfiles";
+import { runCompilerRequest } from "../../../../services/ai/compiler/runtime";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
 import { useStore } from "../../../stores";
@@ -61,6 +62,7 @@ export function useAgentLoop() {
    * 프로파일·BYOK 키도 그 시점에 조회한다 (D10 — 키는 호출 인자로만).
    */
   const runnerRef = useRef<AgentRunner | null>(null);
+  const requestRef = useRef<AbortController | null>(null);
 
   // 계획·역할·수리 진행 (ADR-134 Phase 8) — 기본 표면은 안 읽는다, 고급 모드만 읽는다.
   const [progress, setProgress] = useState<AgentProgress>(initialProgress);
@@ -88,145 +90,196 @@ export function useAgentLoop() {
    */
   const runAgent = useCallback(
     async (message: string) => {
-      // 턴 시작 시점에 스토어에서 조립한다 — 패널 effect 의 실행 여부에 걸리지 않는다
-      // (`services/ai/builderContext.ts` 주석: 감춰진 패널에서 제출이 조용히 무시되던 원인).
-      const context = buildBuilderContext();
+      if (requestRef.current) return;
+      const request = new AbortController();
+      requestRef.current = request;
+      const initialSelection = useStore.getState();
+      const requestPageId = initialSelection.currentPageId;
+      const requestSelectedId = initialSelection.selectedElementId;
+      try {
+        // 턴 시작 시점에 스토어에서 조립한다 — 패널 effect 의 실행 여부에 걸리지 않는다
+        // (`services/ai/builderContext.ts` 주석: 감춰진 패널에서 제출이 조용히 무시되던 원인).
+        const context = buildBuilderContext();
 
-      // 유저 메시지 추가
-      addUserMessage(message);
+        // 유저 메시지 추가
+        addUserMessage(message);
 
-      // Agent 모드 — 실행기는 이 턴의 프로파일로 만든다
-      const agent = createAgentRunner(t);
-      runnerRef.current = agent;
-      if (agent) {
-        try {
-          setAgentRunning(true);
+        // ADR-202: direct는 provider 구성/Agent 생성보다 먼저 실행한다.
+        // 한 릴리스 동안 session-local rollback 표면을 보존한다.
+        const disabled =
+          sessionStorage.getItem("composition.ai.compiler.disabled") === "true";
+        if (!disabled) {
           setStreamingStatus(true);
-          setProgress(initialProgress());
-          setRunningTool(null);
-
-          // G.3: 선택된 요소에 generating 이펙트
-          const currentSelectedId = useStore.getState().selectedElementId;
-          if (currentSelectedId) {
-            useAIVisualFeedbackStore
-              .getState()
-              .startGenerating([currentSelectedId]);
+          const currentSelection = useStore.getState();
+          if (
+            request.signal.aborted ||
+            currentSelection.currentPageId !== requestPageId ||
+            currentSelection.selectedElementId !== requestSelectedId
+          )
+            return;
+          const compiled = await runCompilerRequest(message, t, request.signal);
+          if (request.signal.aborted) return;
+          if (compiled.handled) {
+            if (compiled.result?.success) {
+              addToolMessage(
+                crypto.randomUUID(),
+                "builder_command",
+                compiled.result,
+              );
+              addAssistantMessage(t("aiIntent.done"));
+            } else {
+              addAssistantMessage(t("ai.notUnderstood"));
+            }
+            return;
           }
+        }
+        if (request.signal.aborted) return;
+        // Agent 모드 — 실행기는 이 턴의 프로파일로 만든다
+        const agent = createAgentRunner(t);
+        runnerRef.current = agent;
+        if (agent) {
+          try {
+            setAgentRunning(true);
+            setStreamingStatus(true);
+            setProgress(initialProgress());
+            setRunningTool(null);
 
-          const allMessages = useConversationStore.getState().messages;
-          const allAffectedIds: string[] = [];
-
-          /**
-           * 지금 열려 있는 assistant 말풍선이 있는가.
-           *
-           * 도구 결과 메시지가 들어가면 마지막 메시지가 tool 이 되고,
-           * `appendToLastMessage` 는 assistant 가 아니면 delta 를 **버린다**
-           * (`stores/conversation.ts`). 그래서 도구 실행 뒤에 온 설명이 통째로
-           * 사라졌다 (ADR-134 Phase 2 관찰 → Phase 8 소관). 도구 결과 뒤에는
-           * 말풍선을 새로 연다.
-           */
-          let assistantOpen = false;
-
-          for await (const event of agent.runAgentLoop(allMessages, context)) {
-            if (PROGRESS_EVENTS.has(event.type)) {
-              setProgress((prev) => reduceProgress(prev, event));
+            // G.3: 선택된 요소에 generating 이펙트
+            const currentSelectedId = useStore.getState().selectedElementId;
+            if (currentSelectedId) {
+              useAIVisualFeedbackStore
+                .getState()
+                .startGenerating([currentSelectedId]);
             }
 
-            switch (event.type) {
-              case "text-delta":
-                if (assistantOpen) {
-                  appendToLastMessage(event.content);
-                } else {
-                  addAssistantMessage(event.content);
-                  assistantOpen = true;
-                }
-                break;
+            const allMessages = useConversationStore.getState().messages;
+            const allAffectedIds: string[] = [];
 
-              case "tool-use-start":
-                updateToolCallStatus(event.toolCallId, "running");
-                setRunningTool(event.toolName);
-                incrementTurn();
-                break;
+            /**
+             * 지금 열려 있는 assistant 말풍선이 있는가.
+             *
+             * 도구 결과 메시지가 들어가면 마지막 메시지가 tool 이 되고,
+             * `appendToLastMessage` 는 assistant 가 아니면 delta 를 **버린다**
+             * (`stores/conversation.ts`). 그래서 도구 실행 뒤에 온 설명이 통째로
+             * 사라졌다 (ADR-134 Phase 2 관찰 → Phase 8 소관). 도구 결과 뒤에는
+             * 말풍선을 새로 연다.
+             */
+            let assistantOpen = false;
 
-              case "tool-result": {
-                const result = event.result as ToolExecutionResult;
-                updateToolCallStatus(event.toolCallId, "success", result);
-                addToolMessage(event.toolCallId, event.toolName, result);
-                assistantOpen = false;
-                setRunningTool(null);
-
-                // G.3: 영향 받은 요소에 flash
-                if (result?.affectedElementIds) {
-                  for (const id of result.affectedElementIds) {
-                    useAIVisualFeedbackStore.getState().addFlashForNode(id, {
-                      scanLine: event.toolName === "create_element",
-                      strokeWidth: 1,
-                    });
-                    allAffectedIds.push(id);
-                  }
-                }
-                break;
+            for await (const event of agent.runAgentLoop(
+              allMessages,
+              context,
+            )) {
+              if (request.signal.aborted) break;
+              if (PROGRESS_EVENTS.has(event.type)) {
+                setProgress((prev) => reduceProgress(prev, event));
               }
 
-              case "tool-error":
-                updateToolCallStatus(
-                  event.toolCallId,
-                  "error",
-                  undefined,
-                  event.error,
-                );
-                setRunningTool(null);
-                break;
+              switch (event.type) {
+                case "text-delta":
+                  if (assistantOpen) {
+                    appendToLastMessage(event.content);
+                  } else {
+                    addAssistantMessage(event.content);
+                    assistantOpen = true;
+                  }
+                  break;
 
-              case "final":
-                // 최종 응답은 이미 text-delta로 스트리밍됨
-                break;
+                case "tool-use-start":
+                  updateToolCallStatus(event.toolCallId, "running");
+                  setRunningTool(event.toolName);
+                  incrementTurn();
+                  break;
 
-              case "aborted":
-                if (import.meta.env.DEV) {
-                  console.log("[useAgentLoop] Agent aborted");
+                case "tool-result": {
+                  const result = event.result as ToolExecutionResult;
+                  updateToolCallStatus(event.toolCallId, "success", result);
+                  addToolMessage(event.toolCallId, event.toolName, result);
+                  assistantOpen = false;
+                  setRunningTool(null);
+
+                  // G.3: 영향 받은 요소에 flash
+                  if (result?.affectedElementIds) {
+                    for (const id of result.affectedElementIds) {
+                      useAIVisualFeedbackStore.getState().addFlashForNode(id, {
+                        scanLine: event.toolName === "create_element",
+                        strokeWidth: 1,
+                      });
+                      allAffectedIds.push(id);
+                    }
+                  }
+                  break;
                 }
-                break;
 
-              case "max-turns-reached":
-                if (import.meta.env.DEV) {
-                  console.warn("[useAgentLoop] Max turns reached");
-                }
-                break;
+                case "tool-error":
+                  updateToolCallStatus(
+                    event.toolCallId,
+                    "error",
+                    undefined,
+                    event.error,
+                  );
+                  setRunningTool(null);
+                  break;
+
+                case "final":
+                  // 최종 응답은 이미 text-delta로 스트리밍됨
+                  break;
+
+                case "aborted":
+                  if (import.meta.env.DEV) {
+                    console.log("[useAgentLoop] Agent aborted");
+                  }
+                  break;
+
+                case "max-turns-reached":
+                  if (import.meta.env.DEV) {
+                    console.warn("[useAgentLoop] Max turns reached");
+                  }
+                  break;
+              }
             }
+
+            // G.3: generating 완료
+            if (currentSelectedId) {
+              useAIVisualFeedbackStore
+                .getState()
+                .completeGenerating(
+                  allAffectedIds.length > 0
+                    ? allAffectedIds
+                    : [currentSelectedId],
+                );
+            }
+
+            setStreamingStatus(false);
+            setAgentRunning(false);
+            setRunningTool(null);
+          } catch (error) {
+            if (import.meta.env.DEV) {
+              console.error("[useAgentLoop] Agent error:", error);
+            }
+
+            // G.3: generating 취소
+            useAIVisualFeedbackStore.getState().cancelGenerating();
+            setStreamingStatus(false);
+            setAgentRunning(false);
+            setRunningTool(null);
+
+            // IntentParser fallback
+            runFallback(message, context);
           }
-
-          // G.3: generating 완료
-          if (currentSelectedId) {
-            useAIVisualFeedbackStore
-              .getState()
-              .completeGenerating(
-                allAffectedIds.length > 0
-                  ? allAffectedIds
-                  : [currentSelectedId],
-              );
-          }
-
-          setStreamingStatus(false);
-          setAgentRunning(false);
-          setRunningTool(null);
-        } catch (error) {
-          if (import.meta.env.DEV) {
-            console.error("[useAgentLoop] Agent error:", error);
-          }
-
-          // G.3: generating 취소
-          useAIVisualFeedbackStore.getState().cancelGenerating();
-          setStreamingStatus(false);
-          setAgentRunning(false);
-          setRunningTool(null);
-
-          // IntentParser fallback
+        } else {
+          // rollback/creative fallback 전용. direct 결과로 metadata-only 응답을 사용하지 않는다.
           runFallback(message, context);
         }
-      } else {
-        // Agent 없으면 바로 fallback
-        runFallback(message, context);
+      } catch {
+        if (!request.signal.aborted) addAssistantMessage(t("ai.notUnderstood"));
+      } finally {
+        if (requestRef.current === request) {
+          requestRef.current = null;
+          setStreamingStatus(false);
+          setAgentRunning(false);
+          setRunningTool(null);
+        }
       }
     },
     [
@@ -247,6 +300,7 @@ export function useAgentLoop() {
    * Agent 중단
    */
   const stopAgent = useCallback(() => {
+    requestRef.current?.abort();
     runnerRef.current?.stop();
     useAIVisualFeedbackStore.getState().cancelGenerating();
     setAgentRunning(false);

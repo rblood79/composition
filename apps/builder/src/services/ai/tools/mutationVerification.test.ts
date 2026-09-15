@@ -158,3 +158,14 @@ describe("도구는 반영을 확인한 뒤 성공을 보고한다", () => {
     expect(result.success).toBe(true);
   });
 });
+
+it("ADR-202: 무시된 opacity는 실패이며 fill 파생 배경은 style과 중복 비교하지 않는다", async () => {
+  const { findUnappliedStyles } = await import("./mutationVerification");
+  expect(findUnappliedStyles({}, { opacity: 0.42 })).toEqual(["style.opacity"]);
+  expect(
+    findUnappliedStyles(
+      { opacity: 0.42 },
+      { opacity: 0.42, backgroundColor: "#0000FF" },
+    ),
+  ).toEqual([]);
+});

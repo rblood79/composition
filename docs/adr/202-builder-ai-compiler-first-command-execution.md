@@ -2,7 +2,11 @@
 
 ## Status
 
-Proposed — 2026-09-02
+Accepted — 2026-09-15
+
+사용자 승인: 2026-09-15 “adr 202 착수 시작해”. round 1의 5건 fixed 및 round 2 수리 검증을
+완료한 본문(대안 B·HC12 번들 예산 포함)으로 착수했다. 2026-09-16 로컬 구현과 검증을 진행했으며,
+실제 모델 평가와 main 반영 전까지 Accepted를 유지한다. 상세는 아래 실행 기록과 breakdown §9.
 
 > 사용자 요청: 2026-09-02 — Adobe가 제공하는 RAC/RSC Markdown과 composition의 기존
 > catalog/factory/tool 계약을 이용하면 단순 생성까지 Agent가 필요하지 않다는 문제 제기 후,
@@ -12,6 +16,8 @@ Proposed — 2026-09-02
 > [breakdown §1](design/202-builder-ai-compiler-first-command-execution-breakdown.md)에 기록한다.
 
 ## Context
+
+아래는 착수 전 기준선이다. 현재 로컬 구현 상태는 §실행 기록에 구분한다.
 
 현재 Builder AI Assistant는 로컬 Ollama의 OpenAI-compatible endpoint
 (`http://localhost:11434/v1`)를 사용할 수 있지만, `버튼 생성해` 같은 명시적 요청도
@@ -36,10 +42,16 @@ Agent가 없으면 **인식은 해도 실행하지 않는 fallback**이다.
   history, 실행 기록이 결합된 안전한 명령 표면을 제공한다.
 - `create_element`/`update_element`/`delete_element`와 canonical read-back 도구가 이미 있다.
 
-다만 이 기반은 아직 compiler 계약으로 닫혀 있지 않다. `toolDefinitions`의 생성 가능 type
-enum은 수동 목록이고, executor 인자는 `Record<string, unknown>`이며, JSON Schema와 실행 타입이
-분리돼 있다. 합성 생성에서는 leaf 경로용으로 계산한 `finalProps`가 reusable/complex 분기에는
-적용되지 않아 요청한 props/styles/slot routing이 사라질 수 있다. Adobe Markdown은 RAC의
+2026-09-15 재확인: `create_element` type enum은 이미 `getAiComponentCatalog()`의 placeable
+항목에서 파생되며 `definitions.test.ts`가 catalog와의 집합 parity를 보호한다. ADR-213 이후
+command descriptor도 `listAgentCommands()`가 `COMMAND_META`와 `DATA_COMMAND_META`를 병합한다.
+도구 registry는 현재 19개 executor(`run_command` lazy adapter 포함)를 등록하며, AI 데이터 쓰기는
+`dispatchDataProposal`의 승인·적용·기록 경로를 사용한다.
+
+다만 이 기반은 아직 compiler 계약으로 닫혀 있지 않다. executor 인자는
+`Record<string, unknown>`이며, JSON Schema와 실행 타입이 분리돼 있다. 합성 생성에서는 leaf 경로용으로 계산한 `finalProps`가 reusable/complex 분기에는
+적용되지 않아 요청한 props/styles/fills/slot routing이 사라질 수 있다. canonical fields는
+합성 경로에서도 이미 `applyCanonicalFields`로 적용되므로 유실 수리 대상이 아니라 보존 대상이다. Adobe Markdown은 RAC의
 composition과 API를 설명하지만 composition 고유의 canonical id, reusable origin, history,
 command 승인, Skia/Preview 정합까지 정의하지는 않는다.
 
@@ -76,13 +88,16 @@ executor에 연결하는 runtime routing/validation 계층**이다. Spec/Generat
    JSON Schema-compatible validator를 통과한다. 미등록 operation/type/prop/slot/command,
    추가 속성, schema version은 첫 mutation 전에 fail-closed한다.
 3. **파생 manifest** — component type/kind/placeable/편집 계약/creation mode와 agent-callable
-   command는 기존 catalog·entry universe·factory·ADR-196 registry에서 파생한다. 같은 사실의
+   command는 기존 catalog·entry universe·factory와 `listAgentCommands()`의 병합 descriptor
+   (ADR-196 `COMMAND_META` + ADR-213 `DATA_COMMAND_META`)에서 파생한다. 같은 사실의
    수동 enum/표를 두 번째 정본으로 추가하지 않는다.
 4. **생성 4분류 완결** — leaf, complex factory, reusable origin ref, 등록된 composed recipe를
    모두 표현한다. recipe는 기존 component/prop/slot id만 참조하고 built-in complex/reusable의
    자식 트리를 복제하지 않는다. 미등록 자유 조합은 지어내지 않고 fallback으로 보낸다.
 5. **단일 실행 표면** — compiler, one-shot LLM, optional Agent가 만든 IR은 모두 같은 validator와
-   기존 tool/ADR-196 executor를 통과한다. 모델이 store/factory를 직접 호출하는 우회 경로는 0이다.
+   기존 tool/ADR-196 executor를 통과한다. 데이터 쓰기(`bind_element` 포함)는 기존
+   `dispatchDataProposal`의 승인·적용·기록을 반드시 경유한다. 모델이나 compiler가
+   store/factory/데이터 적용기를 직접 호출하는 우회 경로는 0이다.
 6. **팔레트 결과 정합** — 같은 type을 같은 parent에 생성했을 때 leaf/complex/reusable의
    normalized canonical tree가 팔레트 생성 결과와 일치해야 한다. 합성 루트의 요청 props,
    styles, fills, canonical fields와 slot routing도 손실 없이 적용된다.
@@ -91,7 +106,10 @@ executor에 연결하는 runtime routing/validation 계층**이다. Spec/Generat
    명시적인 `creative-multistep` route에서 bounded Agent를 사용한다.
 8. **mutation 안전성** — 실행 전 전체 program을 검증하고 기존 canonical/history/confirm/log
    계약을 보존한다. 부분 성공을 원자적으로 되돌릴 수 없는 다단계 program은 direct route에서
-   실행하지 않는다. destructive command는 ADR-196 승인을 우회할 수 없다.
+   실행하지 않는다. destructive command와 `data.*`의 인자별 승인은 기존 command executor가
+   판정하며, 데이터 proposal의 `requestAgentCommandConfirmation`도 우회할 수 없다.
+   `data.importPaste`처럼 승인을 dispatcher에 위임하는 명령은 descriptor의 `confirm=false`를
+   무승인 쓰기 허용으로 해석하지 않는다. 승인 거부 시 mutation 0, 실행 기록 1건을 보존한다.
 9. **host 중립·offline direct** — compiler/manifest/validator에는 DOM, Electron, provider API
    의존이 없다. 웹 Builder와 향후 desktop renderer가 같은 module과 contract suite를 사용한다.
    현재 존재하지 않는 `apps/desktop`을 이 ADR에서 신설하지 않으며, desktop enable 전 같은
@@ -101,6 +119,12 @@ executor에 연결하는 runtime routing/validation 계층**이다. Spec/Generat
 11. **Markdown 비필수** — Adobe RAC/RSC Markdown은 build-time audit/reference 입력일 수 있지만
     direct runtime prompt, RAG, 네트워크 조회의 필수 의존이 아니다. Markdown 부재·버전 차이에도
     manifest와 direct execution은 repo SSOT만으로 동작한다.
+12. **client 번들 예산** — Builder initial 순증 ≤ 3.5 KiB gzip, Preview 순증 0 B. 절대 상한은
+    [ADR-219 재승인값](completed/219-border-geometry-per-corner-radius-per-side-width.md)의
+    Builder ≤ 1,319,829 / Preview ≤ 675,021 B gzip (만료 2026-10-14)을 함께 만족해야 한다.
+    compiler/manifest/alias/recipe와 전이 의존성을 initial/lazy로 분류하고, lazy라는 이름이나
+    dynamic import 존재만으로 initial 제외를 주장하지 않는다. 만료·초과는 자동 갱신하지 않고
+    G5 실패로 기록한다.
 
 **Soft Constraints**:
 
@@ -134,7 +158,8 @@ executor에 연결하는 runtime routing/validation 계층**이다. Spec/Generat
   문서 지식을 실행 지식으로 중복 작성하지 않는다.
 - 위험:
   - 기술: M — classifier, typed IR, prop/slot routing, read-back 검증을 새로 결합해야 한다.
-  - 성능: L — direct route는 provider·network 0이며 compiler 비용만 추가된다.
+  - 성능: M — direct route는 provider·network 0이나 client compiler·manifest·recipe의
+    다운로드/초기화 비용이 추가된다. HC12/G5로 initial 순증과 lazy 경계를 제한한다.
   - 유지보수: M — alias/recipe는 관리 대상이지만 manifest/schema parity gate로 정본 drift를
     차단할 수 있다.
   - 마이그레이션: M — `useAgentLoop`의 기본 routing을 바꾸되 기존 Agent를 fallback으로 남긴다.
@@ -179,7 +204,7 @@ executor에 연결하는 runtime routing/validation 계층**이다. Spec/Generat
 | 대안 | 기술 | 성능 | 유지보수 | 마이그레이션 | HIGH+ 개수 |
 | ---- | ---- | ---- | -------- | ------------ | :--------: |
 | A    | L    | H    | M        | L            |     1      |
-| B    | M    | L    | M        | M            |     0      |
+| B    | M    | M    | M        | M            |     0      |
 | C    | M    | L    | H        | M            |     1      |
 | D    | M    | H    | M        | M            |     1      |
 | E    | M    | H    | M        | L            |     1      |
@@ -199,8 +224,9 @@ direct 요청에 provider 호출이 남는 구조적 HC1 위반이다. C의 유�
    direct 가능성을 판정한다.
 2. direct 요청은 versioned `BuilderCommandProgram`으로 compile하고 closed schema 및 manifest로
    전부 검증한다.
-3. 검증된 program은 기존 tool registry 또는 ADR-196 command executor로만 실행하고 canonical
-   read-back으로 결과를 확인한다.
+3. 검증된 program은 기존 tool registry 또는 ADR-196 command executor로만 실행한다.
+   ADR-213 데이터 쓰기는 이 경로 안에서 `dispatchDataProposal` 승인을 거친다.
+   canonical read-back으로 결과를 확인한다.
 4. direct compile이 성립하지 않으면 LLM 1회가 같은 IR만 생성한다. 모델은 임의 type/prop/slot/
    command를 만들 수 없고 같은 validator에서 거부된다.
 5. 화면 전체 설계처럼 탐색·수정 반복이 필요한 요청만 별도 `creative-multistep` route에서
@@ -231,7 +257,8 @@ binding, factory, canonical tool, command registry에서만 파생한다.
 - **D8 부분 대체**: Agent profile 유무가 먼저 routing을 결정하지 않는다. capability/confidence가
   execution class를 고른 뒤 필요한 fallback profile을 선택한다.
 - **ADR-196 유지**: command metadata/allowlist/confirm/history/log executor는 대체하지 않고 direct
-  compiler와 fallback이 함께 소비한다.
+  compiler와 fallback이 함께 소비한다. ADR-213의 병합 command descriptor와 데이터 proposal
+  승인 경로도 함께 보존한다.
 
 선택 위험 M은 새 classifier와 IR/recipe 계약에서 발생하지만, mutation 전 fail-closed 검증,
 팔레트·human command를 독립 oracle로 쓰는 parity gate, 기존 Agent fallback 유지로 제한할 수 있다.
@@ -245,26 +272,27 @@ canonical schema 변경이 없어 routing rollback도 문서 migration 없이 �
 | --- | ------------------------------------------------------------------------------------------------------------------- | :----: | -------------------------------------------------------------------------------------------------------------------------- |
 | R1  | classifier false positive가 모호한 문장을 direct mutation으로 오해                                                  | MEDIUM | exact/capability match 우선, 충돌·부정문·낮은 confidence는 fallback. negative corpus와 mutation 0 gate(G2·G4)              |
 | R2  | manifest/tool schema/executor 타입이 다시 갈라져 유효하지 않은 IR이 통과                                            | MEDIUM | catalog·edit contract·tool/command registry 파생, build-time parity와 schema mutation test(G1)                             |
-| R3  | 현재 `createElementTool`의 composite early return처럼 요청 props/styles/fills/slot이 complex/reusable 생성에서 유실 | MEDIUM | leaf/complex/reusable × prop/style/canonical/slot matrix를 팔레트 canonical snapshot과 대조(G2·G3)                         |
+| R3  | 현재 `createElementTool`의 composite early return처럼 요청 props/styles/fills/slot이 complex/reusable 생성에서 유실 | MEDIUM | 유실 RED는 prop/style/fill/slot, 기존 canonical 적용은 보존 검사로 분리해 팔레트 snapshot과 대조(G2·G3)                    |
 | R4  | composed recipe가 component 구조·기본값을 복제해 새로운 SSOT가 됨                                                   | MEDIUM | recipe는 등록 id와 prop/slot route만 참조, built-in child tree 금지 정적 게이트. structure owner는 factory/origin 유지(G1) |
 | R5  | schema-valid LLM IR이 사용자의 의미와 다른 mutation을 수행                                                          | MEDIUM | semantic validator, 선택/대상 read-back, destructive confirm, ambiguity threshold. invalid/uncertain은 실행하지 않음(G4)   |
 | R6  | 다단계 recipe 중간 실패가 부분 문서와 여러 history entry를 남김                                                     | MEDIUM | 실행 전 전 program 검증, atomicity capability 없는 program은 direct 제외, 실패 시 rollback/read-back gate(G3)              |
 | R7  | 웹과 향후 desktop이 서로 다른 manifest/schema 버전을 소비                                                           |  LOW   | 동일 module artifact와 contract suite, manifest/schema version handshake. desktop host가 없으므로 enable 전 G5 의무        |
 | R8  | Agent 사용 축소로 자유 설계 품질·진행 표시가 퇴행                                                                   |  LOW   | `creative-multistep` route와 기존 Agent UX 유지, direct 결과는 별도 즉시 완료 상태로 표시(G4·G5)                           |
+| R9  | client compiler/manifest/alias/recipe의 전이 import가 initial 번들을 늘리거나 기존 lazy 경계를 허묾                 | MEDIUM | 동일 빌드 조건 A/B, initial 순증·절대 상한, lazy 전이 의존성 판정(HC12·G5)                                                 |
 
 잔존 HIGH 위험 없음.
 
 ## Gates
 
-| Gate | 시점    | 통과 조건                                                                                                                                                                                                                                                                                                            | 실패 시 대안                                                                                                                                                               |
-| ---- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| G0   | Phase 0 | `useAgentLoop → createAgentRunner`, fallback metadata-only, `AgentService` provider/turn 수, tool/catalog schema, composite `finalProps` 경계를 재확인. 실제 사용자 direct/ambiguous prompt corpus를 고정하고 현행 providerCalls·agentTurns·canonical 결과를 같은 조건에서 기록. 측정 Q1~Q5는 breakdown §7 전부 기재 | 코드 사실이 다르면 ADR Context와 phase 범위를 먼저 갱신. 측정이 provider/기기 조건을 못 고정하면 시간 수치는 의사결정에 사용하지 않고 호출 수·canonical 결과만 gate로 사용 |
-| G1   | Phase 1 | `BuilderCommandProgram` tagged union + schema version + validator. placeable component/creation mode/prop/slot/command manifest가 기존 SSOT와 집합·값 parity. 미등록/추가 속성/schema mismatch mutation 0. 수동 type enum 재도입 mutation test RED                                                                   | 파생할 수 없는 사실은 D1/D2/D3 owner에 먼저 추가하거나 direct 범위에서 제외. 별도 수동 catalog 금지                                                                        |
-| G2   | Phase 2 | direct corpus 전부 `providerCalls=0`, `agentTurns=0`, AI network 0. leaf/complex/reusable/registered recipe 생성과 선택 기반 update/command가 expected IR로 compile. alias 충돌·부정·미등록 type·내부 type은 mutation 0/fallback. 팔레트 normalized canonical parity                                                 | 실패 family만 fallback으로 내리고 direct allowlist를 축소. 정확도 대신 confidence threshold 완화 금지                                                                      |
-| G3   | Phase 3 | 같은 validator/executor가 compiler·LLM IR 양쪽을 소비. composite prop/style/fill/canonical/slot routing 손실 0. program 전체 preflight 후 실행, 실패·승인 거부 시 canonical diff 0, 성공 시 history/confirm/log가 기존 human 경로와 일치. palette/human command가 독립 oracle                                        | atomicity를 보장 못 하는 multi-op은 Agent 또는 사용자 명시 preview/confirm 경로로 내림. 기존 `batch_design`의 async transaction을 증거 없이 atomic으로 간주 금지           |
-| G4   | Phase 4 | direct·ambiguous·creative 세 route가 corpus 기대와 일치. ambiguous는 provider 호출 최대 1회, 반환 IR invalid/unknown이면 mutation 0. creative만 bounded Agent. fallback이 direct executor 우회 0. Ollama가 없어도 direct suite 전부 PASS                                                                             | one-shot structured output이 provider별 불안정하면 해당 provider는 기존 Agent fallback 유지. direct 경로는 되돌리지 않음                                                   |
-| G5   | Phase 5 | 웹 Builder 실제 제출에서 Button/Select/reusable/command/offline direct 동작. host-neutral suite는 DOM/Electron/provider mock 없이 PASS. compiler bundle에 provider SDK·Adobe Markdown index 포함 0. desktop은 동일 suite를 통과하기 전 지원 표기/enable 금지                                                         | browser-only API가 나오면 host adapter 경계로 이동. desktop 앱 신설은 별도 ADR이며 이 phase의 scope 확장으로 흡수 금지                                                     |
-| G6   | Phase 6 | 기존 Agent route를 rollback 가능 상태로 한 릴리스 유지하고 session-local direct 계측은 content 없이 route/call count/error code만 기록. ADR-134 D6~D8 부분 대체 표시, README/CHANGELOG/운영 문서 갱신, focused test/type-check/preflight/live evidence 후에만 Implemented 승격                                       | direct corpus에서 오류가 하나라도 재현되면 해당 family의 direct allowlist 축소 또는 route cutover 복귀. canonical migration은 없으므로 문서 rollback 불필요                |
+| Gate | 시점    | 통과 조건                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 실패 시 대안                                                                                                                                                                                                    |
+| ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | Phase 0 | `useAgentLoop → createAgentRunner`, fallback metadata-only, `AgentService` provider/turn 수, tool/catalog schema, composite `finalProps` 경계를 재확인. 실제 사용자 direct/ambiguous prompt corpus를 고정하고 현행 providerCalls·agentTurns·canonical 결과를 같은 조건에서 기록. 이미 파생된 create enum/정적 가드와 병합 command descriptor를 기준선으로 보존. AI 패널·services의 initial/lazy 그래프 및 provider별 responseSchema 지원을 기록. 측정 Q1~Q5는 breakdown §7 전부 기재                               | 코드 사실이 다르면 ADR Context와 phase 범위를 먼저 갱신. 측정이 provider/기기 조건을 못 고정하면 시간 수치는 의사결정에 사용하지 않고 호출 수·canonical 결과만 gate로 사용                                      |
+| G1   | Phase 1 | `BuilderCommandProgram` tagged union + schema version + validator. placeable component/creation mode/prop/slot/command manifest가 기존 SSOT와 집합·값 parity. 미등록/추가 속성/schema mismatch mutation 0. 기존 create enum/catalog parity 가드를 유지하고 수동 enum 재도입 RED를 확인. 신규 작업은 schema·executor·capability join, 병합 descriptor의 args/confirm 파생과 sensitivity 검증                                                                                                                        | 파생할 수 없는 사실은 D1/D2/D3 owner에 먼저 추가하거나 direct 범위에서 제외. 별도 수동 catalog 금지                                                                                                             |
+| G2   | Phase 2 | direct corpus 전부 `providerCalls=0`, `agentTurns=0`, AI network 0. leaf/complex/reusable/registered recipe 생성과 선택 기반 update/command가 expected IR로 compile. alias 충돌·부정·미등록 type·내부 type은 mutation 0/fallback. 팔레트 normalized canonical parity                                                                                                                                                                                                                                               | 실패 family만 fallback으로 내리고 direct allowlist를 축소. 정확도 대신 confidence threshold 완화 금지                                                                                                           |
+| G3   | Phase 3 | 같은 validator/executor가 compiler·LLM IR 양쪽을 소비. composite prop/style/fill/slot 유실 RED→GREEN, 기존 canonical field 적용 회귀 0. program 전체 preflight 후 실행, 실패·승인 거부 시 canonical diff 0, 성공 시 history/confirm/log가 기존 human 경로와 일치. 데이터 쓰기는 dispatcher 승인 경유, `data.*` 인자별 confirm과 위임 승인/기록 1건 보존. palette/human command가 독립 oracle                                                                                                                       | atomicity를 보장 못 하는 multi-op은 Agent 또는 사용자 명시 preview/confirm 경로로 내림. 기존 `batch_design`의 async transaction을 증거 없이 atomic으로 간주 금지                                                |
+| G4   | Phase 4 | direct·ambiguous·creative 세 route가 corpus 기대와 일치. ambiguous는 provider 호출 최대 1회, 반환 IR invalid/unknown이면 mutation 0. creative만 bounded Agent. fallback이 direct executor 우회 0. Ollama가 없어도 direct suite 전부 PASS                                                                                                                                                                                                                                                                           | one-shot structured output이 provider별 불안정하면 해당 provider는 기존 Agent fallback 유지. direct 경로는 되돌리지 않음                                                                                        |
+| G5   | Phase 5 | 웹 Builder 실제 제출에서 Button/Select/reusable/command/offline direct 동작. host-neutral suite는 DOM/Electron/provider mock 없이 PASS. compiler bundle에 provider SDK·Adobe Markdown index 포함 0. 동일 조건 production A/B에서 Builder initial 순증 ≤ 3.5 KiB gzip·Preview 0 B 및 HC12 절대 상한/만료 만족. compiler/manifest/alias/recipe의 전이 import를 initial/lazy로 판정하고 lazy chunk 크기·첫 AI 요청 로드 비용 별도 기록(breakdown §3-6·§6-5). desktop은 동일 suite를 통과하기 전 지원 표기/enable 금지 | 번들 초과는 lazy 분리/중복 제거 후 재측정, 상한 만료·축소 불가는 재승인 전 G5 실패 유지. browser-only API가 나오면 host adapter 경계로 이동. desktop 앱 신설은 별도 ADR이며 이 phase의 scope 확장으로 흡수 금지 |
+| G6   | Phase 6 | 기존 Agent route를 rollback 가능 상태로 한 릴리스 유지하고 session-local direct 계측은 content 없이 route/call count/error code만 기록. ADR-134 D6~D8 부분 대체 표시, README/CHANGELOG/운영 문서 갱신, focused test/type-check/preflight/live evidence 후에만 Implemented 승격                                                                                                                                                                                                                                     | direct corpus에서 오류가 하나라도 재현되면 해당 family의 direct allowlist 축소 또는 route cutover 복귀. canonical migration은 없으므로 문서 rollback 불필요                                                     |
 
 ## Consequences
 
@@ -293,3 +321,42 @@ canonical schema 변경이 없어 routing rollback도 문서 migration 없이 �
   외부 agent embed는 별도 ADR 없이는 완료로 주장할 수 없다.
 - ADR-134의 D6~D8 설명과 운영 문서를 cutover 시 함께 개정해야 하며, Accepted 전에는 선행 ADR의
   현재 구현 상태를 바꾸지 않는다.
+
+## 실행 기록 — 2026-09-16
+
+- **Phase 0~3 로컬 구현**: catalog/edit contract/`listAgentCommands`에서 manifest를 파생한다.
+  `create_element`·`update_element`·`delete_element`·`run_command`의 닫힌 runtime schema와
+  version 1 IR을 사용하며, 기존 registry 19개 executor의 이름/스키마 join을 검증한다.
+  factory/ref의 초기 props/styles/fills와 canonical 초기값을 삽입 전에 적용해 history에도 담는다.
+  추가로 발견한 `slot` undo→redo 유실 4건은 인접 회귀 검사로 고정했다.
+  `props.fills` 성공 응답과 실제 렌더 색상이 갈라지던 기존 경계도 canonical `fills` 쓰기로 수리했다.
+- **Phase 4**: direct를 Agent 구성보다 먼저 실행한다. Anthropic은 최대 1회 IR 요청,
+  OpenAI-compatible/Ollama는 G4 예외에 따라 기존 Agent fallback을 유지한다. 모델 결과의
+  미등록 필드·추가 속성·version/source 불일치·선택 변경·취소는 실행 전에 거부한다.
+  모호한 모델 출력으로 delete/run_command를 추론하지 않는다. 실제 모델 JSON/의미 성공률은
+  미검증이며, wire 대역 검사는 실제 모델 품질 평가가 아니다.
+- **범위 제한**: program은 정확히 1 op만 실행한다. multi-op 합성의 원자성 근거가 없으므로
+  로그인 폼 같은 multi-op recipe를 등록하지 않았다. 현재 등록 recipe는 `확인 버튼`이다.
+  다른 도구 및 creative Agent의 기존 전용 validator/dispatcher는 유지한다.
+- **Phase 5**: AI 패널과 barrel을 같은 lazy 경계로 이동했다. 패널 첫 열림에서 direct 실행
+  의존성을 준비하며, 이후 offline 제출에 추가 네트워크가 필요하지 않음을 실측했다.
+  공통 RAC 초기 모듈을 공유 청크로 묶어 Preview의 재분할 압축 손실을 줄였다.
+- **Phase 6**: session-local rollback은
+  `sessionStorage.setItem("composition.ai.compiler.disabled", "true")` 후 다음 제출에 적용된다.
+  복귀는 해당 키 제거다. 입력 원문을 보관하지 않는 최근 30건 route/call/error 계측을 제공한다.
+  ADR-134 D6~D8 부분 대체와 운영 기록을 갱신했다. commit/push 및 Implemented 승격은 하지 않았다.
+
+### Live Exercise
+
+2026-09-16 · Playwright CLI Chromium. 별도 검증 프로젝트에서 실제 AI 입력창을 사용했다.
+
+- 팔레트와 AI의 Button/Select/Card를 각각 생성하고 ID·timestamp·legacy metadata를 제외한
+  canonical subtree를 비교: **3/3 동일**. Select는 자식 4개 포함, Card는 같은 origin ref.
+- 패널 로드 후 네트워크 offline: Button/Select/Card 생성, 선택 Button의 파란 fill·opacity 0.42,
+  undo/redo, zoom 110→120%. **전체 네트워크 요청 0, pageerror 0**.
+- production 빌드에서도 같은 세 타입 생성·색상/opacity 변경을 offline으로 수행했다.
+  online 복귀 후 새로고침: 요청한 props/fills가 동일하게 hydration됨. 실제 provider 호출 0.
+- 미설정 provider 기준선은 요청 후 mutation 0이었다. 이번 direct 성공을 모델 추론 속도 향상으로
+  환산하지 않는다. Ollama endpoint/모델이 없어 latency·token·JSON 유효율은 **UNVERIFIED**.
+- 번들 수치와 재현 명령은 breakdown §9, 상세 로컬 근거는
+  [실행 evidence](evidence/202-execution-live.md)에 기록한다.

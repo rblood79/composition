@@ -5,6 +5,11 @@
  * unified.types.ts의 getDefaultProps() 키 목록과 동기화
  */
 
+import { z } from "zod";
+import {
+  elementToolContracts,
+  type ElementToolName,
+} from "../compiler/contracts";
 import { modelFacingDataChangeJsonSchema } from "@composition/shared";
 import { tableSpecJsonSchema } from "../data/tableSpec";
 import type { LLMToolDefinition } from "../providers/LLMProvider";
@@ -37,7 +42,7 @@ const COMPONENT_TAGS: readonly string[] = getAiComponentCatalog()
   .filter((entry) => entry.placeable)
   .map((entry) => entry.type);
 
-export const toolDefinitions: ChatCompletionTool[] = [
+const definitions: ChatCompletionTool[] = [
   {
     type: "function",
     function: {
@@ -508,6 +513,32 @@ export const toolDefinitions: ChatCompletionTool[] = [
     },
   },
 ];
+
+/** ADR-202: name/schema/args 계약을 compiler와 같은 map에서 투영한다. */
+export const toolDefinitions: ChatCompletionTool[] = definitions.map(
+  (definition) => {
+    const name = definition.function.name;
+    if (!Object.hasOwn(elementToolContracts, name)) return definition;
+    const schema = z.toJSONSchema(
+      elementToolContracts[name as ElementToolName],
+    );
+    const properties = schema.properties as Record<
+      string,
+      Record<string, unknown>
+    >;
+    const previous = definition.function.parameters?.properties as
+      Record<string, Record<string, unknown>> | undefined;
+    for (const [key, value] of Object.entries(properties)) {
+      if (previous?.[key]?.description)
+        value.description = previous[key].description;
+    }
+    if (name === "create_element") properties.type.enum = COMPONENT_TAGS;
+    return {
+      ...definition,
+      function: { ...definition.function, parameters: schema },
+    };
+  },
+);
 
 /**
  * ADR-196 — 빌더 명령 실행 도구. 정의(enum·설명)를 `COMMAND_META` allowlist 에서 생성하므로

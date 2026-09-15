@@ -500,7 +500,7 @@ const koKR: TranslationKeys = {
     suggestHowTo: "보여주세요: {target} 편집 방법을 알려 주세요.",
     welcomeLabel: "시작하기",
     welcomeBody:
-      "먼저 어떤 모델을 쓸지 알려 주세요. 로컬 endpoint (Ollama 등) 나 사용하는 API 키를 고르면 바로 시작할 수 있습니다.",
+      "버튼 생성이나 색상 변경은 바로 실행할 수 있습니다. 복잡한 요청에는 모델을 설정해 주세요.",
     welcomeKeyNotice: "키는 기본적으로 이 세션에만 남고 저장하지 않습니다.",
     openAgentSettings: "에이전트 설정 열기",
     intro: "AI와 composition의 강력한 기능을 사용하여 디자인을 개선하세요.",
@@ -2466,7 +2466,7 @@ const enUS: TranslationKeys = {
     suggestHowTo: "Show me how to edit {target}.",
     welcomeLabel: "Get started",
     welcomeBody:
-      "Tell us which model to use first. Pick a local endpoint (Ollama and the like) or the API key you use, and you're ready.",
+      "Create components and edit colors directly. Configure a model for more complex requests.",
     welcomeKeyNotice:
       "By default your key stays in this session only and is not stored.",
     openAgentSettings: "Open agent settings",

@@ -1,4 +1,5 @@
 import type { CompositionDocument } from "@composition/shared";
+import type { FillItem } from "../../../types/builder/fill.types";
 import { Element } from "../../../types/core/store.types";
 
 /**
@@ -24,7 +25,17 @@ export interface ComponentCreationSourceNode {
 /**
  * 컴포넌트 생성 컨텍스트
  */
+/** 삽입 history에 함께 담아야 하는 canonical 초기 필드. */
+export interface InitialCanonicalFields {
+  fills?: FillItem[];
+  clip?: boolean;
+  placeholder?: boolean;
+  slot?: false | string[];
+  reusable?: boolean;
+}
+
 export interface ComponentCreationContext {
+  initialCanonical?: InitialCanonicalFields;
   initialProps?: Record<string, unknown>;
   parentElement: ComponentCreationSourceNode | null;
   pageId: string;

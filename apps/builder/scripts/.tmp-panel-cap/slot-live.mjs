@@ -1,0 +1,25 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const OUT = "/private/tmp/claude-501/-Users-admin-work-composition/f6bcc488-f176-4644-8364-3625704b801c/scratchpad/props-after";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 3000 }, deviceScaleFactor: 1 })).newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`sl-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name) => { await page.getByRole("button", { name, exact: true }).first().click(); await page.waitForTimeout(400); };
+const P = '[data-panel-id="properties"]';
+await panel("Components"); const item = page.locator('[data-panel-id="components"] button.list-item').filter({ hasText: /^frame$/i }).first(); await item.click(); await page.waitForTimeout(900); await panel("Components");
+await panel("Properties"); await page.waitForTimeout(300);
+await page.getByRole("button", { name: "Enable slot" }).click(); await page.waitForTimeout(500);
+console.log("status:", await page.locator(`${P} .frame-slot-value`).textContent());
+const sel = page.locator(`${P} .frame-slot-picker .react-aria-Select button`).first();
+if (await sel.count()) { await sel.click(); await page.waitForTimeout(300); await page.getByRole("option").first().click(); await page.waitForTimeout(300); await page.getByRole("button", { name: "Add recommended component" }).click(); await page.waitForTimeout(500); }
+console.log("rows:", await page.evaluate((P) => Array.from(document.querySelectorAll(`${P} .frame-slot-item`)).map((r) => { const body = r.querySelector(".list-row__body").getBoundingClientRect(); const acts = r.querySelector(".list-row__actions").getBoundingClientRect(); return `${r.querySelector(".list-row__label").textContent} body ${Math.round(body.width)}×${Math.round(body.height)} acts ${Math.round(acts.width)}×${Math.round(acts.height)} btns ${Array.from(r.querySelectorAll(".list-row__action")).map((x) => Math.round(x.getBoundingClientRect().width) + "×" + Math.round(x.getBoundingClientRect().height)).join(",")}`; }), P));
+console.log("picker row:", await page.evaluate((P) => { const r = document.querySelector(`${P} .frame-slot-picker`); if (!r) return "none"; const f = r.querySelector("fieldset").getBoundingClientRect(); const a = r.querySelector(".fieldset-actions button").getBoundingClientRect(); return `select ${Math.round(f.width)}×${Math.round(f.height)} add ${Math.round(a.width)}×${Math.round(a.height)} dy ${Math.round(a.top - (f.top + 18))}`; }, P));
+await page.evaluate((P) => { const pc = document.querySelector(`${P} .panel-contents`); const h = pc.scrollHeight + 8; let el = pc; while (el && !el.classList.contains("panel-dock-surface")) { el.style.setProperty("height", el === pc ? h + "px" : "auto", "important"); el.style.setProperty("max-height", "none", "important"); el.style.setProperty("overflow", "visible", "important"); el = el.parentElement; } }, P);
+await page.locator(`${P} .panel-contents`).screenshot({ path: `${OUT}/slot-active.png` });
+console.log("errors", errors.slice(0, 5));
+await browser.close();

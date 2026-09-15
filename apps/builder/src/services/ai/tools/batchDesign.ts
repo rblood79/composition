@@ -55,6 +55,23 @@ export const batchDesignTool: ToolExecutor = {
       };
     }
 
+    // ADR-202: creative 배치도 같은 arg schema를 먼저 확인한다.
+    const { elementToolContracts } = await import("../compiler/contracts");
+    const { validateCompilerToolCall } =
+      await import("../compiler/toolValidation");
+    for (const op of operations) {
+      const executor = ACTION_EXECUTORS[op.action];
+      if (!executor)
+        return {
+          success: false,
+          error: t("aiToolError.unknownAction", { action: String(op.action) }),
+        };
+      const name = executor.name as
+        "create_element" | "update_element" | "delete_element";
+      if (!elementToolContracts[name].safeParse(op.args).success)
+        return { success: false, error: "invalid-tool-arguments" };
+    }
+
     // 배치 전체를 되돌리기 1 단위로 묶는다 (G3). elementId 는 대표값이 없으므로
     // 배치 식별자를 쓴다 — entry 는 canonicalEvents 로 역연산된다.
     historyManager.beginTransaction({
@@ -88,7 +105,14 @@ export const batchDesignTool: ToolExecutor = {
           continue;
         }
 
-        const result = await executor.execute(op.args || {}, t);
+        const validationError = validateCompilerToolCall(
+          executor.name,
+          op.args,
+          t,
+        );
+        const result = validationError
+          ? ({ success: false, error: validationError } as ToolExecutionResult)
+          : await executor.execute(op.args, t);
         results.push({
           index: i,
           action: op.action,

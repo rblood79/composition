@@ -1137,6 +1137,23 @@ function legacyElementToCanonicalNode(
     ...canonicalStateField(element, previousNode),
     ...(previousNode?.children ? { children: previousNode.children } : {}),
     ...getCanonicalSlotDeclaration(element),
+    // ADR-202: 초기 생성 필드가 insert history/redo에서도 유지되어야 한다.
+    ...(element.type === "frame" &&
+    typeof (element as Element & { clip?: boolean }).clip === "boolean"
+      ? { clip: (element as Element & { clip: boolean }).clip }
+      : {}),
+    ...(element.type === "frame" &&
+    typeof (element as Element & { placeholder?: boolean }).placeholder ===
+      "boolean"
+      ? {
+          placeholder: (element as Element & { placeholder: boolean })
+            .placeholder,
+        }
+      : {}),
+    ...(typeof (element as Element & { reusable?: boolean }).reusable ===
+    "boolean"
+      ? { reusable: (element as Element & { reusable: boolean }).reusable }
+      : {}),
     metadata: buildCanonicalMutationMetadata(metadataElement),
     ...buildCompositionExtensionField(element),
   };

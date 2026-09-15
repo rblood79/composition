@@ -61,9 +61,9 @@
 
 #### [202](202-builder-ai-compiler-first-command-execution.md) — Builder AI compiler-first 명령 실행
 
-- **상태**: Proposed — 2026-09-02
+- **상태**: Accepted — 2026-09-15 (2026-09-16 로컬 구현·direct/offline 검증, 모델 실측·main 반영 대기)
 - **규모**: 단순 요청도 `useAgentLoop`가 Agent-first로 보내고 fallback `IntentParser`는 metadata만 남겨 mutation하지 않는 구조를 부분 개정. direct 생성·편집·command는 catalog/factory/ADR-196에서 파생한 closed typed IR로 provider·Agent 0회 실행, 모호한 요청은 one-shot LLM IR, 반복 설계만 bounded Agent. leaf/complex/reusable/composed recipe 4분류와 composite prop/slot routing, palette/human-path parity, offline/host-neutral 계약을 G0~~G6으로 고정. ADR-134 D1~~D5·D9~~D11 및 ADR-196은 유지하고 D6~~D8만 Accepted 시 부분 대체
-- **우선순위**: **P1** (review 후 착수)
+- **우선순위**: **P1** (round 1 fixed · round 2 수리 검증 후 착수)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 

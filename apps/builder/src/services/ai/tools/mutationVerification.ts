@@ -1,3 +1,6 @@
+import { adaptStyles } from "../styleAdapter";
+import { sanitizeFillDerivedStylePatch } from "../../../builder/panels/styles/utils/fillDerivedStyleProps";
+
 /**
  * 스토어 mutation 반영 확인 (2026-08-29).
  *
@@ -43,4 +46,22 @@ export function findUnappliedProps(
   return Object.keys(requested).filter(
     (key) => key !== "style" && !valuesEqual(applied?.[key], requested[key]),
   );
+}
+
+/** store가 보존하는 style 축만 비교한다. fill 파생 배경은 fills read-back이 검증한다. */
+export function findUnappliedStyles(
+  applied: unknown,
+  requested: Record<string, unknown>,
+): string[] {
+  const expected = sanitizeFillDerivedStylePatch(
+    adaptStyles(requested).style,
+    true,
+  );
+  const actual =
+    applied && typeof applied === "object"
+      ? (applied as Record<string, unknown>)
+      : {};
+  return Object.keys(expected)
+    .filter((key) => !valuesEqual(actual[key], expected[key]))
+    .map((key) => `style.${key}`);
 }

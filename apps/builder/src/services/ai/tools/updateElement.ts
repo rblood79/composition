@@ -16,8 +16,12 @@ import {
   applyCanonicalFields,
   parseCanonicalFields,
 } from "./canonicalNodeFields";
+import { normalizeToolFills } from "./toolFills";
 import { resolveElementRef } from "./elementRef";
-import { findUnappliedProps } from "./mutationVerification";
+import {
+  findUnappliedProps,
+  findUnappliedStyles,
+} from "./mutationVerification";
 
 export const updateElementTool: ToolExecutor = {
   name: "update_element",
@@ -33,14 +37,14 @@ export const updateElementTool: ToolExecutor = {
 
     const newProps = (args.props || {}) as Record<string, unknown>;
     const newStyles = (args.styles || {}) as Record<string, unknown>;
-    const newFills = Array.isArray(args.fills) ? args.fills : undefined;
+    const newFills = normalizeToolFills(args.fills);
 
     const canonicalArg = args.canonical;
 
     if (
       Object.keys(newProps).length === 0 &&
       Object.keys(newStyles).length === 0 &&
-      (!newFills || newFills.length === 0) &&
+      newFills === undefined &&
       canonicalArg == null
     ) {
       return {
@@ -52,7 +56,7 @@ export const updateElementTool: ToolExecutor = {
     try {
       const {
         elementsById,
-        state: { selectedElementId, updateElementProps },
+        state: { selectedElementId, updateElementProps, updateElement },
       } = getAiToolReadModel();
 
       // 별칭·실제 id 를 한 곳에서 해석한다 (`elementRef.ts`) — 실패 시 다음 시도가
@@ -81,12 +85,7 @@ export const updateElementTool: ToolExecutor = {
         updates.style = adaptStylePatchWithFills(
           existingStyle,
           newStyles,
-          newFills,
         ).style;
-      }
-
-      if (newFills) {
-        updates.fills = newFills;
       }
 
       // ADR-134 Phase 3 — canonical 1차 필드는 schema 쪽이라 store action 직접 경유.
@@ -94,7 +93,15 @@ export const updateElementTool: ToolExecutor = {
       const { patch: canonicalPatch, rejected: canonicalRejected } =
         parseCanonicalFields(t, canonicalArg, element.type);
 
-      if (Object.keys(updates).length > 0) {
+      if (newFills !== undefined) {
+        // Inspector와 같은 canonical 1차 fills + full-node history 표면.
+        const { fills: _legacyFills, ...baseProps } = element.props ?? {};
+        void _legacyFills;
+        await updateElement(targetId, {
+          props: { ...baseProps, ...updates },
+          fills: newFills,
+        });
+      } else if (Object.keys(updates).length > 0) {
         await updateElementProps(targetId, updates);
       }
       const canonicalApplied = applyCanonicalFields(targetId, canonicalPatch);
@@ -110,10 +117,13 @@ export const updateElementTool: ToolExecutor = {
         };
       }
 
-      const unapplied = findUnappliedProps(
-        verified.props as Record<string, unknown> | undefined,
-        { ...newProps, ...(newFills ? { fills: newFills } : {}) },
-      );
+      const unapplied = [
+        ...findUnappliedProps(
+          { ...verified.props, fills: verified.fills ?? [] },
+          { ...newProps, ...(newFills ? { fills: newFills } : {}) },
+        ),
+        ...findUnappliedStyles(verified.props?.style, newStyles),
+      ];
       if (unapplied.length > 0) {
         return {
           success: false,

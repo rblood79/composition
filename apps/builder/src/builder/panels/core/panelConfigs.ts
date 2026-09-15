@@ -25,7 +25,7 @@ import { PanelRegistry } from "./PanelRegistry";
 import { NavigatorPanel } from "../navigator/NavigatorPanel";
 import { ComponentsPanel } from "../components/ComponentsPanel";
 import { ThemesPanel } from "../themes/ThemesPanel";
-import { AIPanel } from "../ai/AIPanel";
+import { AIPanel } from "../ai/lazyAIPanel";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import { DataTablePanel } from "../datatable/DataTablePanel";
 import { lazyPanel } from "./lazyPanel";

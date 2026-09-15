@@ -20,6 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **정체 칩은 원본·인스턴스에만** — 표준 요소는 바로 아래 Attributes ID 와 같은 이름의 「button_1 · STANDARD」 칩을 세우지 않는다. 역할은 pencil 과 같은 축 — 원본 = 역할색 채움 · 인스턴스 = 역할색 점선 — 에 10 mono 역할 라벨 유지 (색은 캔버스 오버레이·Navigator 와 같은 `--editing-semantics-*`).
 - **액션은 한 줄** — 행마다 「라벨 + 28 열 아이콘」 이던 것을 pencil 처럼 한 스트립으로: Go to component · Detach instance 는 아이콘 전용 28 + 툴팁 (단축키 ⌘⌥X 는 `commandId` 에서 파생), Create ↔ Detach component 만 글자 (원본 해제는 인스턴스 전체 영향 — 이름이 보여야 한다), Select instances 는 「◇ N」 수 배지. 버튼은 전부 `.control-button` 하나 (아이콘 전용은 폭만 정사각). 높이 표준 112→76 · 원본 148→112 · 인스턴스 184→112 (Overrides 목록은 그대로). 레지스트리 `COMPONENT_SEMANTICS_ACTIONS` (ADR-199) 무변경.
 
+## [ADR-202 — 명시적 AI 요청의 모델 없는 실행] - 2026-09-16
+
+### Added
+
+- AI 입력창에서 정확히 일치하는 컴포넌트 생성·선택 요소 색상/명시 필드 편집·기존 명령을 typed IR로 검증한 뒤 실행한다. `확인 버튼` recipe를 등록했다. Anthropic one-shot IR adapter와 creative Agent를 구분하며, OpenAI-compatible은 기존 Agent fallback을 유지한다.
+- AI 패널 lazy 로딩과 offline direct 실행, session-local rollback, 입력 원문 없는 실행 계측을 추가했다. 실제 모델 응답 품질은 미검증이다.
+
+### Fixed
+
+- AI 복합 컴포넌트 생성에서 요청한 props/styles/fills를 factory/ref의 초기값으로 전달한다. canonical slot/clip/placeholder도 최초 삽입 history에 포함해 undo→redo 후 값이 사라지지 않게 했다. 무시된 opacity 등 style 반영도 read-back으로 확인한다. 색상도 legacy `props.fills` 대신 renderer가 읽는 canonical `fills`에 저장해 생성·수정·제거·undo/redo에 반영한다.
+- AI lazy 전환으로 공유 UI 청크가 재분할되는 비용을 제한했다. Builder·Preview의 initial 순증 및 ADR-219 절대 상한은 ADR-202 bundle gate로 검증한다.
+
 ## [Properties 패널 — 컨트롤 어법: 필드 의미별 컨트롤 (seg · 칩 · 슬라이더 · 피커)] - 2026-09-15
 
 같은 날 오전의 「선택지는 전부 셀렉트」 규칙을 대체한다 (사용자 판정 2026-09-15 — 시안 `docs/design/properties-panel-inventory` Proposal 페이지, 레퍼런스: Primer segmented control 2~5 / NN·g·LukeW 「dropdowns last resort」 / Figma·Framer 인스펙터). 기준은 옵션 수·글자 폭도 「전부 셀렉트」 도 아닌 **필드의 의미** — 같은 키는 어느 컴포넌트에서든 같은 컨트롤 (`panels/properties/generic/fieldEditor.ts` 매핑표, catalog `PropContract` 무변경). 격자는 현행 3열 (1fr 1fr 28px) 유지 (2열 안은 보류).
