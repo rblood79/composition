@@ -84,14 +84,30 @@ function ColorPickerPanelInner({
 
   // 드래그 중: 로컬 상태와 presentation runtime 입력을 즉시 갱신한다.
   // 프레임 배칭은 editor presentation runtime 단일 owner가 담당한다.
+  // 색 영역 · 색상 슬라이더가 내는 Color 는 알파를 잃을 수 있다 (RAC ColorArea 의 키보드
+  //   onChangeEnd 가 알파 1 인 hsb Color 를 냈다 — 2026-09-15 live). rgb 가 바뀐 이벤트는 로컬
+  //   알파를 보존하고, rgb 가 같고 알파만 다른 이벤트 (알파 슬라이더) 만 알파를 받는다.
+  const withLocalAlpha = useCallback(
+    (color: Color) => color.withChannelValue("alpha", localColor.getChannelValue("alpha")),
+    [localColor],
+  );
+  const reconcileAlpha = useCallback(
+    (color: Color) =>
+      color.toString("hex") !== localColor.toString("hex")
+        ? withLocalAlpha(color)
+        : color,
+    [localColor, withLocalAlpha],
+  );
+
   const handleChange = useCallback(
-    (color: Color | null) => {
-      if (!color) return;
+    (raw: Color | null) => {
+      if (!raw) return;
+      const color = reconcileAlpha(raw);
       recordEditorPresentationRawInput();
       setLocalColor(color);
       onChange(color.toString("hexa"));
     },
-    [onChange],
+    [onChange, reconcileAlpha],
   );
 
   // 드래그 종료: 최종 값 flush + 실제 저장
@@ -146,12 +162,12 @@ function ColorPickerPanelInner({
           colorSpace="hsb"
           xChannel="saturation"
           yChannel="brightness"
-          onChangeEnd={handleChangeEnd}
+          onChangeEnd={(color) => handleChangeEnd(withLocalAlpha(color))}
         />
         <ColorSlider
           colorSpace="hsb"
           channel="hue"
-          onChangeEnd={handleChangeEnd}
+          onChangeEnd={(color) => handleChangeEnd(withLocalAlpha(color))}
         />
         <ColorSlider channel="alpha" onChangeEnd={handleChangeEnd} />
         {/* 첫 행 「[HEX|RGBA|CSS] [623CEA hex] [스포이드]」 · 둘째 행은 모드별 (RGBA: [R G B] [A],

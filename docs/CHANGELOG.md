@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Fill 팝오버의 Opacity 행 제거** — 레이어 행의 불투명도 scrub (「100 %」) 과 같은 값이 두 곳에 있었다. 팝오버 푸터는 Blend 하나 (전폭). 색 피커의 알파 슬라이더·A 는 색 자체의 알파 (레이어 opacity 와 곱해 합성 · 그래디언트는 stop 마다) 라 그대로.
+- **Fill 의 불투명도는 한 숫자** — 종전엔 레이어 행 「%」 · 팝오버 Opacity 행 · 피커 알파 슬라이더/A (색 자체 알파) 세 곳이 각각이었다 (Effect 의 Opacity 는 요소 전체라 별개). 팝오버 Opacity 행은 제거, 단색 fill 의 피커 알파는 레이어 행 「%」 와 같은 `fill.opacity` 를 읽고 쓴다 (Figma 어법, 색은 …FF 로 저장). 종전 문서의 색 알파 (…80) 는 팝오버를 열 때 한 번 opacity 로 접는다 (알파 × opacity — 화면은 그대로). 그래디언트는 stop 마다 알파 (별개 축). 색 영역·색상 슬라이더의 키보드 입력이 알파를 1 로 되돌리던 RAC 결함도 같이 막음.
 - **그룹 (28) 안 버튼은 전부 20×20 — 티어 밖이던 4곳 정렬**: Border Style · Font Style · Decoration · Case 의 아이콘 칩이 행 폭을 나눠 갖던 것 (24 · 37) → 20×20 (Sides · Align 과 같음) · Border Color 「■ 2563EB」 의 swatch 16 → 20 · 색 피커 HEX/RGBA/CSS seg 버튼 24 → 20 (seg 28) · 데이터 바인딩 액션 버튼 22 → 20.
 - **Gap 의 ▾ 메뉴를 spacing 토큰 preset 으로** — px 단위 하나뿐이던 메뉴 대신 「Reset · XS · 4 · S · 8 · M · 12 · L · 16 · XL · 24」 (토큰 이름 + 풀린 px, px 로 commit). 시안 반영 때 뺐던 preset 복귀 (2026-09-15 사용자 판정).
 - **단위 트리거를 버튼으로** — legend + 단위 필드 (Gap · Size · Position · Typography · Border 코너 · Shadow · Settings Page gap) 의 「PX」 가 글자만 있어 버튼으로 안 보였다 → Ratio 셀렉트의 ▾ 상자와 같은 raised 20 버튼에 단위 글자 (「—」 는 최소 20).
