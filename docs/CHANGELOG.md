@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — Attributes ID 행에 중복 검사/제거 액션] - 2026-09-16
+
+### Added
+
+- ID 행 끝 28 열에 `Fingerprint` 아이콘 액션 (툴팁 「Check ID uniqueness / ID 중복 검사」, 사용자 지시). 다른 요소와 ID 가 겹치면 `base_N` 의 빈 번호로 옮기고 (`button_1` → `button_2`), 비어 있으면 `type_N` 을 지정하며, 고유하면 알림만. 변경은 history 1건이라 토스트의 Undo 로 되돌린다. 쓰기는 ID 입력과 같은 `updateElement` 경로.
+
 ## [Properties 패널 — Data 바인딩 「새 테이블」 을 행 액션 열로] - 2026-09-16
 
 ### Changed

@@ -710,6 +710,10 @@ const koKR: TranslationKeys = {
     bindingOpenTable: "이 테이블 열기",
     bindingNewTable: "새 테이블 만들기",
     bindingUsedBy: "사용처 {count}",
+    idCheckUnique: "ID 중복 검사",
+    idUnique: 'ID "{id}" 는 고유합니다',
+    idDeduped: '중복 ID — "{id}" 로 변경했습니다',
+    idAssigned: 'ID "{id}" 를 지정했습니다',
     fieldMapValue: "값 필드",
     fieldMapIcon: "아이콘 필드",
     fieldMapAuto: "자동",
@@ -2675,6 +2679,10 @@ const enUS: TranslationKeys = {
     bindingOpenTable: "Open this table",
     bindingNewTable: "New table",
     bindingUsedBy: "Used by {count}",
+    idCheckUnique: "Check ID uniqueness",
+    idUnique: 'ID "{id}" is unique',
+    idDeduped: 'Duplicate ID — renamed to "{id}"',
+    idAssigned: 'ID set to "{id}"',
     fieldMapValue: "Value field",
     fieldMapIcon: "Icon field",
     fieldMapAuto: "Auto",
@@ -4600,6 +4608,12 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override 해제됨`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `사용처 ${String(args?.count ?? 0)}`,
+    "propertiesPanel.idUnique": (args) =>
+      `ID "${String(args?.id ?? "")}" 는 고유합니다`,
+    "propertiesPanel.idDeduped": (args) =>
+      `중복 ID — "${String(args?.id ?? "")}" 로 변경했습니다`,
+    "propertiesPanel.idAssigned": (args) =>
+      `ID "${String(args?.id ?? "")}" 를 지정했습니다`,
     "fonts.deleteFace": (args) =>
       `${String(args?.family ?? "")} ${String(args?.face ?? "")} 삭제`,
     "ai.logRestorable": (args) => ` · ${String(args?.shortcut ?? "")} 로 복원`,
@@ -5058,6 +5072,12 @@ const formattedMessages: Record<
       `'${String(args?.label ?? "")}' override cleared`,
     "propertiesPanel.bindingUsedBy": (args) =>
       `Used by ${String(args?.count ?? 0)}`,
+    "propertiesPanel.idUnique": (args) =>
+      `ID "${String(args?.id ?? "")}" is unique`,
+    "propertiesPanel.idDeduped": (args) =>
+      `Duplicate ID — renamed to "${String(args?.id ?? "")}"`,
+    "propertiesPanel.idAssigned": (args) =>
+      `ID set to "${String(args?.id ?? "")}"`,
     "fonts.deleteFace": (args) =>
       `Delete ${String(args?.family ?? "")} ${String(args?.face ?? "")}`,
     "ai.logRestorable": (args) =>

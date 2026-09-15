@@ -84,3 +84,29 @@ export function validateCustomId(
 
   return { isValid: true };
 }
+
+/**
+ * 중복 ID 해소 — 같은 ID 를 쓰는 다른 요소가 있으면 `base_N` 의 가장 작은 빈 N 으로
+ * 옮긴 값을 돌려준다 (`button_1` → `button_2` · `hero` → `hero_1`). 고유하면 그대로.
+ * 검사 범위는 `validateCustomId` 와 같은 요소 집합이다 (Properties 의 ID 행 액션,
+ * 2026-09-16). 형식이 틀린 ID 는 여기서 고치지 않는다 — 입력 blur 검증이 막는다.
+ */
+export function resolveUniqueCustomId(
+  customId: string,
+  currentElementId: string,
+  pageElements: readonly CustomIdValidationNode[],
+): string {
+  if (isUniqueCustomId(customId, currentElementId, pageElements)) {
+    return customId;
+  }
+  const match = customId.match(/^(.*?)_(\d+)$/);
+  const base = match ? match[1] : customId;
+  const taken = new Set(
+    pageElements
+      .filter((el) => el.id !== currentElementId && el.customId)
+      .map((el) => el.customId as string),
+  );
+  let n = 1;
+  while (taken.has(`${base}_${n}`)) n += 1;
+  return `${base}_${n}`;
+}

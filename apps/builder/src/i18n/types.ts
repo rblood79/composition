@@ -541,6 +541,10 @@ export interface TranslationKeys {
     bindingOpenTable: string;
     bindingNewTable: string;
     bindingUsedBy: string;
+    idCheckUnique: string;
+    idUnique: string;
+    idDeduped: string;
+    idAssigned: string;
     legacyBinding: string;
     fieldMapValue: string;
     fieldMapIcon: string;
