@@ -78,8 +78,9 @@ export const timeFieldBinding: PrimitiveBinding = {
         section: "locale",
         default: "24",
         options: [
-          { value: "12", label: "12-hour (AM/PM)" },
-          { value: "24", label: "24-hour" },
+          // DateField · DateRangePicker 와 같은 라벨 — 같은 키·값은 같은 컨트롤 (seg 2)
+          { value: "12", label: "12" },
+          { value: "24", label: "24" },
         ],
       },
       shouldForceLeadingZeros: {

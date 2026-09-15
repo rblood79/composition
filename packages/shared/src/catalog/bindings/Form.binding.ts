@@ -69,8 +69,9 @@ export const formBinding: PrimitiveBinding = {
         label: "Necessity Indicator",
         section: "appearance",
         options: [
-          { value: "icon", label: "Icon (*)" },
-          { value: "label", label: "Label (required)" },
+          // field 가족 13 타입과 같은 라벨 — 같은 키·값은 같은 컨트롤 (seg 2)
+          { value: "icon", label: "Icon" },
+          { value: "label", label: "Label" },
         ],
       },
       validationBehavior: {
@@ -113,10 +114,11 @@ export const formBinding: PrimitiveBinding = {
         label: "Target",
         section: "state",
         options: [
-          { value: "_self", label: "Self" },
-          { value: "_blank", label: "Blank" },
-          { value: "_parent", label: "Parent" },
-          { value: "_top", label: "Top" },
+          // Link 와 같은 라벨
+          { value: "_self", label: "Same Window" },
+          { value: "_blank", label: "New Window" },
+          { value: "_parent", label: "Parent Frame" },
+          { value: "_top", label: "Top Frame" },
         ],
       },
       // autoFocus/restoreFocus 는 2026-09-10 제거 — RAC FormProps 에 없고 RSP 미규정 custom.
