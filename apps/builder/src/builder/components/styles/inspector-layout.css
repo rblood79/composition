@@ -576,17 +576,14 @@
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    /* 글자 라벨 seg — 버튼이 행 폭을 나눠 갖는다 (Settings 토글 · Gradient 하위형).
-       Border Style 은 아이콘 4개라 87 칸에 고정폭 20 ×4 + pad 8 = 88 로 넘쳐 같은 규칙. */
+    /* 글자 라벨 seg — 버튼이 행 폭을 나눠 갖는다 (Settings 토글 · Gradient 하위형 · Properties seg).
+       아이콘 칩 (Border Style · Font Style · Decoration · Case) 은 여기 두지 않는다 — 아이콘 버튼은
+       전부 20×20 (2026-09-15 사용자 판정; Border Style 이 4개이던 시절 넘침 회피로 들어와 있었다). */
     .settings-page-layout-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-theme-mode-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .settings-ui-scale-toggle.react-aria-ToggleButtonGroup[data-indicator="true"],
     .gradient-sub-type-selector
       .react-aria-ToggleButtonGroup[data-indicator="true"],
-    .border-style .react-aria-ToggleButtonGroup[data-indicator="true"],
-    .font-style .react-aria-ToggleButtonGroup[data-indicator="true"],
-    .text-decoration .react-aria-ToggleButtonGroup[data-indicator="true"],
-    .text-transform .react-aria-ToggleButtonGroup[data-indicator="true"],
     .property-seg .react-aria-ToggleButtonGroup[data-indicator="true"] {
       gap: var(--spacing);
 

@@ -131,7 +131,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 6px;
+  box-sizing: border-box;
+  block-size: var(--text-xl); /* 그룹 안 버튼 20 (2026-09-15) */
+  padding: 0 6px;
   border: none;
   background: transparent;
   color: var(--accent);

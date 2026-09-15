@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **그룹 (28) 안 버튼은 전부 20×20 — 티어 밖이던 4곳 정렬**: Border Style · Font Style · Decoration · Case 의 아이콘 칩이 행 폭을 나눠 갖던 것 (24 · 37) → 20×20 (Sides · Align 과 같음) · Border Color 「■ 2563EB」 의 swatch 16 → 20 · 색 피커 HEX/RGBA/CSS seg 버튼 24 → 20 (seg 28) · 데이터 바인딩 액션 버튼 22 → 20.
 - **Gap 의 ▾ 메뉴를 spacing 토큰 preset 으로** — px 단위 하나뿐이던 메뉴 대신 「Reset · XS · 4 · S · 8 · M · 12 · L · 16 · XL · 24」 (토큰 이름 + 풀린 px, px 로 commit). 시안 반영 때 뺐던 preset 복귀 (2026-09-15 사용자 판정).
 - **단위 트리거를 버튼으로** — legend + 단위 필드 (Gap · Size · Position · Typography · Border 코너 · Shadow · Settings Page gap) 의 「PX」 가 글자만 있어 버튼으로 안 보였다 → Ratio 셀렉트의 ▾ 상자와 같은 raised 20 버튼에 단위 글자 (「—」 는 최소 20).
 - **절 헤더 액션 버튼 어법 통일** — Fill 「+」 · Spacing 펼침이 raised 상자 (SwatchIconButton 28) 라 reset 과 달랐다 → reset 을 기준으로 전부 투명 32 아이콘 버튼 (`ActionIconButton`, 모든 패널의 Section reset 포함).

@@ -5,7 +5,8 @@
  */
 
 @layer components {
-  /* seg 28 = --control-size (종전 24 — 버튼 20 + pad 2). 버튼은 세로를 꽉 채운다. */
+  /* seg 28 = --control-size, 안쪽 버튼 20 (다른 그룹 안 버튼과 같은 티어 — 2026-09-15 사용자 판정,
+     종전 pad 2 로 버튼 24) */
   .color-input-mode-selector {
     display: flex;
     gap: 2px;
@@ -15,7 +16,7 @@
     min-width: 0;
     background: var(--bg-overlay);
     border-radius: var(--radius-sm);
-    padding: 2px;
+    padding: var(--spacing);
   }
 
   .color-input-mode-selector__btn {
@@ -23,6 +24,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    block-size: var(--text-xl);
     /* 86 칸에 HEX · RGBA · CSS 셋 — 안쪽 여백 2 (4 면 96 으로 넘친다, 2026-09-15 live) */
     padding: 0 var(--spacing-2xs);
     font-size: var(--text-2xs);
