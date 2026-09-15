@@ -99,6 +99,21 @@
       }
     }
 
+    /* 셀렉트의 색 점 — 값이 곧 색인 variant (Button · Badge · StatusLight …) 의 미리보기.
+       트리거 (값 앞) 와 항목 (글자 앞) 이 같은 점. 12 = `--text-xs`, 여백 4. */
+    .property-select__swatch {
+      flex: none;
+      width: var(--text-xs);
+      height: var(--text-xs);
+      border-radius: var(--radius-full);
+      box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+      margin-inline: var(--spacing-xs) 0;
+    }
+
+    .react-aria-ListBoxItem .property-select__swatch {
+      margin-inline: 0 var(--spacing-sm);
+    }
+
     .react-aria-control {
       position: relative;
       display: flex;

@@ -28,4 +28,9 @@ export {
   type PropertyRowMenuItem,
 } from "./PropertyRowMenu";
 export { PropertySizeToggle } from "./PropertySizeToggle";
+export { PropertySegment } from "./PropertySegment";
+export type { PropertySegmentOption } from "./PropertySegment";
+export { PropertyChipGroup } from "./PropertyChipGroup";
+export type { PropertyChip } from "./PropertyChipGroup";
+export { PropertyPlacementPicker } from "./PropertyPlacementPicker";
 export { PropertyIconPicker } from "./PropertyIconPicker";

@@ -1,0 +1,52 @@
+/**
+ * PropertyChipGroup — boolean 묶음 칩 (Properties 패널 컨트롤 어법 2026-09-15).
+ *
+ * form-controls.css 는 비-indicator ToggleButtonGroup 을 「트랙 + 균등 분할 seg」 로 만든다
+ * (전폭 · bg-muted · 버튼 flex:1). 칩은 그 반대 — 트랙 없이 내용 폭 칩이 줄바꿈으로 흐른다.
+ * 칩 자체 표면은 shared 생성 ToggleButton (size sm: 20 높이 · 글자 12 · radius 4) 그대로:
+ * 비선택 `--bg-muted`, 선택 `--fg` 채움 + 역상 글자.
+ */
+.section
+  .property-chips
+  .react-aria-ToggleButtonGroup:not([data-indicator="true"]) {
+  width: 100%;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  /* 포커스는 칩 하나에 — 트랙이 없으니 그룹 outline 도 없다 */
+  &:focus-within {
+    outline: none;
+  }
+
+  .react-aria-ToggleButton {
+    flex: 0 0 auto;
+    width: auto;
+    height: var(--text-xl);
+    padding: 0 var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border-color: transparent;
+    background-color: var(--bg-muted);
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    white-space: nowrap;
+
+    &[data-hovered] {
+      background-color: var(--bg-emphasis);
+    }
+
+    &[data-selected] {
+      background: var(--fg);
+      border-color: transparent;
+      border-width: 0;
+      color: var(--fg-on-accent);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 1px;
+    }
+  }
+}

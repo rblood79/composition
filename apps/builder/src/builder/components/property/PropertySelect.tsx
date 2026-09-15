@@ -41,6 +41,11 @@ interface PropertySelectProps {
    */
   optionValueMode?: "legacy" | "literal";
   /**
+   * 값 → 색 (CSS 색/토큰). 있으면 트리거와 항목 앞에 색 점 — 값이 곧 색인 variant (Button ·
+   * Badge · StatusLight) 의 미리보기. 없는 값은 점 없이 글자만.
+   */
+  swatches?: Readonly<Record<string, string>>;
+  /**
    * 선택 불가 항목의 **옵션 값** (ADR-210 — columns 모드의 Pie/Radial). RAC `Select`
    * 의 `disabledKeys` 로 그대로 전달하며 (literal 모드는 UI key 로 변환) reset/literal/
    * 키보드 계약은 바꾸지 않는다. 사유 문구는 호출부가 별도 hint 로 둔다.
@@ -87,6 +92,7 @@ export const PropertySelect = memo(
     options,
     translateOptions = true,
     optionValueMode = "legacy",
+    swatches,
     disabledKeys,
     icon: Icon,
     className,
@@ -185,6 +191,13 @@ export const PropertySelect = memo(
               )}
               {/* 값 없음은 「—」 — RAC 기본 「Select an item」 이 반폭 55 에서 「Select an」 으로 잘린다;
                   이름은 legend/aria-label 이 준다 (2026-09-15 live 전수 대조) */}
+              {swatches && swatches[value] != null && (
+                <span
+                  aria-hidden="true"
+                  className="property-select__swatch"
+                  style={{ background: swatches[value] }}
+                />
+              )}
               <SelectValue>
                 {({ isPlaceholder, defaultChildren }) =>
                   isPlaceholder ? "—" : defaultChildren
@@ -227,6 +240,13 @@ export const PropertySelect = memo(
                         : option.label
                     }
                   >
+                    {swatches && swatches[option.value] != null && (
+                      <span
+                        aria-hidden="true"
+                        className="property-select__swatch"
+                        style={{ background: swatches[option.value] }}
+                      />
+                    )}
                     {i18n && translateOptions
                       ? translateKey(
                           i18n.t,
@@ -255,6 +275,7 @@ export const PropertySelect = memo(
       prevProps.translateOptions === nextProps.translateOptions &&
       prevProps.optionValueMode === nextProps.optionValueMode &&
       prevProps.disabledKeys === nextProps.disabledKeys &&
+      prevProps.swatches === nextProps.swatches &&
       prevProps.afterControl === nextProps.afterControl &&
       prevProps.popoverWidthMode === nextProps.popoverWidthMode
     );

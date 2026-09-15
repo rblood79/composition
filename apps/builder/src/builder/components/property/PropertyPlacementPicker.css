@@ -1,0 +1,90 @@
+/**
+ * PropertyPlacementPicker — 9-위치 피커. Styles Layout 의 3×3 Align 격자 (inspector-layout.css
+ * `.flex-alignment`) 와 같은 어법: 24 칸 · gap 4 · 점 4 · 선택 = accent 인디케이터.
+ * 가운데 칸은 대상 요소 (10×6 막대).
+ */
+.section .property-placement .property-placement__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+
+.section
+  .property-placement
+  .react-aria-ToggleButtonGroup[data-indicator="true"] {
+  display: grid;
+  grid-template-columns: repeat(3, var(--spacing-xl));
+  grid-template-rows: repeat(3, var(--spacing-xl));
+  gap: 4px;
+  justify-items: center;
+  align-items: center;
+  width: auto;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2xs);
+  position: relative;
+  background: var(--bg-muted);
+  box-shadow: var(--inset-shadow-sm);
+  outline: 1px solid var(--border);
+  outline-offset: -1px;
+
+  &:focus-within {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+
+  .react-aria-ToggleButton {
+    position: relative;
+    margin-inline-start: 0;
+    width: var(--text-xl);
+    height: var(--text-xl);
+    padding: 0;
+    background-color: transparent;
+    border-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    .react-aria-SelectionIndicator {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      border-radius: var(--radius-sm);
+      background: var(--accent);
+      box-shadow: var(--shadow-sm);
+      pointer-events: none;
+    }
+
+    .alignment-dot {
+      position: relative;
+      z-index: 1;
+      width: var(--spacing);
+      height: var(--spacing);
+      background-color: var(--fg-disabled);
+      border-radius: var(--spacing);
+    }
+
+    &[data-selected] .alignment-dot {
+      background-color: var(--fg-on-accent);
+      width: 6px;
+      height: 6px;
+    }
+
+    &[data-disabled] .alignment-dot {
+      background-color: var(--border);
+    }
+  }
+}
+
+.section .property-placement .property-placement__target {
+  width: 10px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--fg-disabled);
+}
+
+.section .property-placement .property-placement__value {
+  padding-top: var(--spacing-2xs);
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+  color: var(--fg-muted);
+}
