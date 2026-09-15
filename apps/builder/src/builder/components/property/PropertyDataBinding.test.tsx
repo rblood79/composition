@@ -1,5 +1,16 @@
-import { fireEvent, render } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+
+const routeParams = vi.hoisted(() => ({ projectId: "p-1" as string | undefined }));
+vi.mock("react-router", async () => {
+  const actual = await vi.importActual<typeof import("react-router")>("react-router");
+  return { ...actual, useParams: () => routeParams };
+});
+const editorStore = vi.hoisted(() => ({ openTableCreator: vi.fn(), openTableEditor: vi.fn() }));
+vi.mock("../../panels/datatable/stores/dataTableEditorStore", () => ({
+  useDataTableEditorStore: (selector: (s: typeof editorStore) => unknown) =>
+    selector(editorStore),
+}));
 
 // collection 목록 hook mock — 단위 렌더용 (실제 hook 계약: DataTable[] 반환)
 vi.mock("../../stores/data", () => ({
@@ -9,7 +20,10 @@ vi.mock("../../stores/data", () => ({
   ],
 }));
 
-import { PropertyDataBinding } from "./PropertyDataBinding";
+import {
+  PropertyDataBinding,
+  PropertyDataBindingCreateAction,
+} from "./PropertyDataBinding";
 import type { ReactElement } from "react";
 import { I18nProvider } from "@/i18n";
 
@@ -182,5 +196,49 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
     expect(onChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ fieldMap: { value: "f-id" } }),
     );
+  });
+});
+
+// 2026-09-16 사용자 지시 — 「새 테이블 만들기」 는 폼 안 글자 버튼이 아니라 행 끝 28 열의
+// DatabasePlus 아이콘 (`PropertyDataBindingCreateAction`, 렌더러가 fieldset 옆에 둔다).
+describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-09-16)", () => {
+  it("폼 안에는 「새 테이블」 버튼이 없고 남는 동선은 열기 · 사용처뿐", () => {
+    const { container } = renderWithI18n(
+      <PropertyDataBinding
+        value={{ source: "dataTable", collectionId: "c-users", name: "Users" }}
+        onChange={() => {}}
+      />,
+    );
+    const actions = Array.from(
+      container.querySelectorAll(".binding-actions .binding-action"),
+    ).map((b) => b.textContent?.trim());
+    expect(actions).toEqual(["Open this table"]);
+    expect(screen.queryByRole("button", { name: "New table" })).toBeNull();
+  });
+
+  it("바인딩 없는 폼은 동선 행 자체가 없다 (종전엔 「새 테이블」 한 줄이 남았다)", () => {
+    const { container } = renderWithI18n(
+      <PropertyDataBinding value={null} onChange={() => {}} />,
+    );
+    expect(container.querySelector(".binding-actions")).toBeNull();
+  });
+
+  it("행 액션 = fieldset-actions 안 아이콘 버튼, 누르면 프로젝트의 테이블 생성기를 연다", () => {
+    routeParams.projectId = "p-1";
+    editorStore.openTableCreator.mockClear();
+    const { container } = renderWithI18n(<PropertyDataBindingCreateAction />);
+    const wrapper = container.querySelector(".fieldset-actions.actions-binding");
+    expect(wrapper).not.toBeNull();
+    const button = screen.getByRole("button", { name: "New table" });
+    expect(button.querySelector("svg.lucide-database-plus")).not.toBeNull();
+    fireEvent.click(button);
+    expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1");
+  });
+
+  it("프로젝트 밖 (projectId 없음) 이면 서지 않는다", () => {
+    routeParams.projectId = undefined;
+    const { container } = renderWithI18n(<PropertyDataBindingCreateAction />);
+    expect(container.firstChild).toBeNull();
+    routeParams.projectId = "p-1";
   });
 });

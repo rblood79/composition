@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — Data 바인딩 「새 테이블」 을 행 액션 열로] - 2026-09-16
+
+### Changed
+
+- Content 절 Data 폼 안의 「+ 새 테이블 만들기」 글자 버튼을 제거하고 행 끝 28 열의 `DatabasePlus` 아이콘 (aria-label + 툴팁 「New table」) 으로 옮겼다 (사용자 지시). 컬렉션이 0개인 빈 폼에서도 버튼 한 줄이 남지 않고, Attributes ID 행의 복사 아이콘과 같은 자리·크롬이다. 폼 안 동선은 열기 · 사용처 N 만 남는다.
+
 ## [Properties 패널 — Component 절을 pencil 어법 두 줄로] - 2026-09-16
 
 사용자 판정 「제안 A」 (시안 `docs/design/properties-panel-inventory` Proposal 페이지 「11 Component 절」, Pen v1.2.8 번들 실측 배치). 크롬은 composition 정본 (28 티어 · 233 · 3열 격자) 그대로.

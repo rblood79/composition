@@ -20,6 +20,7 @@ export { PropertyColorPicker } from "./PropertyColorPicker";
 export { PropertyCustomId } from "./PropertyCustomId";
 export {
   PropertyDataBinding,
+  PropertyDataBindingCreateAction,
   type DataBindingValue,
 } from "./PropertyDataBinding";
 export { PropertyListItem } from "./PropertyListItem";

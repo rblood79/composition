@@ -25,6 +25,7 @@ import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 import {
   PropertyChipGroup,
   PropertyDataBinding,
+  PropertyDataBindingCreateAction,
   PropertyFieldTemplateInput,
   PropertyIconPicker,
   PropertyInput,
@@ -633,12 +634,17 @@ const GenericField = memo(function GenericField({
     //   그 외 binding(items 등): 의도적 Inspector no-op(toRacProps 통과 전용) → null.
     case "binding":
       if (field.key === "dataBinding") {
+        // fieldset (1·2열) + 행 끝 28 열의 「새 테이블」 아이콘 — 같은 `.fieldset-row` 의
+        // 형제라 fragment 로 둘을 낸다 (Attributes ID 행의 복사 아이콘과 같은 자리).
         return (
-          <PropertyDataBinding
-            label={field.label}
-            value={(value as DataBindingValue | null | undefined) ?? null}
-            onChange={(v) => update(v)}
-          />
+          <>
+            <PropertyDataBinding
+              label={field.label}
+              value={(value as DataBindingValue | null | undefined) ?? null}
+              onChange={(v) => update(v)}
+            />
+            <PropertyDataBindingCreateAction />
+          </>
         );
       }
       return null;

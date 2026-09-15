@@ -27,6 +27,7 @@ export {
   PropertyColorPicker,
   PropertyCustomId,
   PropertyDataBinding,
+  PropertyDataBindingCreateAction,
   type DataBindingValue,
   PropertyListItem,
   PropertyRowMenu,

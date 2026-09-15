@@ -49,10 +49,8 @@ import { useParams } from "react-router";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
 import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
 import { resolveCollectionUsage } from "../../../services/ai/data/collectionReadModel";
-import { Table2 } from "lucide-react";
-import { ACTION_ICONS } from "../../config/actionIcons";
-
-const AddIcon = ACTION_ICONS.add;
+import { DatabasePlus, Table2 } from "lucide-react";
+import { ActionTooltipTrigger, SwatchIconButton } from "../ui";
 import type { DataField } from "../../../types/builder/data.types";
 import { useI18n } from "@/i18n";
 
@@ -183,7 +181,6 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
   const collections = useCollections();
   const { projectId } = useParams<{ projectId: string }>();
   const openTableEditor = useDataTableEditorStore((s) => s.openTableEditor);
-  const openTableCreator = useDataTableEditorStore((s) => s.openTableCreator);
 
   // 직접 prop 값 사용 (fully controlled)
   const source = value?.source || "";
@@ -378,36 +375,24 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
           )}
         </div>
 
-        {/* ADR-212 Phase 6 (UX-1, B4) — 바인딩 옆 동선: 열기 · 사용처 N · 새 테이블 */}
-        {(selectedCollection || projectId) && (
+        {/* ADR-212 Phase 6 (UX-1, B4) — 바인딩 옆 동선: 열기 · 사용처 N. 「새 테이블」 은
+            폼 안이 아니라 행 끝 28 열 (`PropertyDataBindingCreateAction`, 2026-09-16 사용자
+            지시) — 선택된 컬렉션이 없을 때도 서는 액션이라 폼 아래 글자 버튼으로 두면
+            빈 폼에 버튼 한 줄이 남았다. */}
+        {selectedCollection && (
           <div className="binding-actions">
-            {selectedCollection && (
-              <button
-                type="button"
-                className="binding-action"
-                onClick={() => openTableEditor(selectedCollection.id)}
-                disabled={disabled}
-              >
-                <Table2 size={iconEditProps.size} />
-                {t("propertiesPanel.bindingOpenTable")}
-              </button>
-            )}
-            {selectedCollection && (
-              <span className="binding-usedby">
-                {t("propertiesPanel.bindingUsedBy", { count: usedByCount })}
-              </span>
-            )}
-            {projectId && (
-              <button
-                type="button"
-                className="binding-action"
-                onClick={() => openTableCreator(projectId)}
-                disabled={disabled}
-              >
-                <AddIcon size={iconEditProps.size} />
-                {t("propertiesPanel.bindingNewTable")}
-              </button>
-            )}
+            <button
+              type="button"
+              className="binding-action"
+              onClick={() => openTableEditor(selectedCollection.id)}
+              disabled={disabled}
+            >
+              <Table2 size={iconEditProps.size} />
+              {t("propertiesPanel.bindingOpenTable")}
+            </button>
+            <span className="binding-usedby">
+              {t("propertiesPanel.bindingUsedBy", { count: usedByCount })}
+            </span>
           </div>
         )}
 
@@ -435,5 +420,47 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
     </PropertyFieldset>
   );
 });
+
+/**
+ * 「새 테이블 만들기」 — 바인딩 행 끝 28 열의 아이콘 액션 (2026-09-16 사용자 지시: 폼 안
+ * 글자 버튼 대신 행 액션 열에 `DatabasePlus`). Attributes ID 행의 복사 아이콘과 같은
+ * 자리·크롬 (`.fieldset-actions` + `SwatchIconButton`) 이고, 이름은 aria-label + 툴팁이
+ * 나른다. 바인딩 fieldset 은 여러 줄이라 (컬렉션 Select · 열기/사용처 · fieldMap) 기본
+ * `align-self: end` 대신 첫 줄 — legend 아래 컬렉션 Select 상자 — 에 맞춘다
+ * (`.actions-binding`). 렌더러 (`GenericFieldRenderer` binding case) 가 fieldset 과 같은
+ * `.fieldset-row` 안에 나란히 둔다. 프로젝트 밖 (projectId 없음) 이면 서지 않는다.
+ */
+export const PropertyDataBindingCreateAction = memo(
+  function PropertyDataBindingCreateAction({
+    disabled,
+  }: {
+    disabled?: boolean;
+  }) {
+    const { t } = useI18n();
+    const { projectId } = useParams<{ projectId: string }>();
+    const openTableCreator = useDataTableEditorStore(
+      (s) => s.openTableCreator,
+    );
+    if (!projectId) return null;
+    const label = t("propertiesPanel.bindingNewTable");
+    return (
+      <div className="fieldset-actions actions-binding">
+        <ActionTooltipTrigger tooltip={label}>
+          <SwatchIconButton
+            aria-label={label}
+            isDisabled={disabled}
+            onPress={() => openTableCreator(projectId)}
+          >
+            <DatabasePlus
+              aria-hidden="true"
+              size={iconProps.size}
+              strokeWidth={iconProps.strokeWidth}
+            />
+          </SwatchIconButton>
+        </ActionTooltipTrigger>
+      </div>
+    );
+  },
+);
 
 export default PropertyDataBinding;
