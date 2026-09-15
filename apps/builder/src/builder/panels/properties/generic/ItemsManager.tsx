@@ -1,4 +1,6 @@
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState, type ReactNode } from "react";
+import { Button as AriaButton } from "react-aria-components/Button";
+import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
 import {
   ChevronDown,
   ChevronRight,
@@ -19,16 +21,87 @@ import {
 } from "../../../components";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
-import { useOptionalI18n } from "@/i18n";
+import { semanticLabelKeys, translateKey, useOptionalI18n } from "@/i18n";
 
 import "../editors/styles/propertyEditors.css";
+import "./ItemsManager.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import { resolvePropertyFieldIcon } from "../../../config/propertyFieldIcons";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
-/** 컨텍스트 메뉴·다중 선택 툴바와 같은 삭제 아이콘 정본 (`config/actionIcons.ts`). */
-const DeleteIcon = ACTION_ICONS.delete;
+/**
+ * 목록 행 — Styles 의 Fill · Shadow 레이어 행과 같은 구조 (2026-09-15 사용자 판정):
+ * [본문 28 (pad 4): [펼침 토글 20][라벨]] [액션 그룹 28: [제거 20 (Minus)]]. 종전엔 CSS 가 한 줄도
+ * 없어 (`.items-manager-row` · `.editor-item-*` 정의 0) 브라우저 기본 글자 크기로 그려졌다.
+ */
+function ListRow({
+  expanded,
+  onExpandedChange,
+  expandLabel,
+  leading,
+  label,
+  onRemove,
+  removeLabel,
+  className,
+}: {
+  expanded?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  expandLabel?: string;
+  /** 펼침 토글 대신 놓는 정적 표지 (Separator 의 ―) */
+  leading?: ReactNode;
+  label: string;
+  onRemove: () => void;
+  removeLabel: string;
+  className?: string;
+}) {
+  return (
+    <div className={`items-manager-row ${className ?? ""}`}>
+      <div className="items-manager-row__body">
+        {onExpandedChange ? (
+          <AriaToggleButton
+            className="items-manager-row__action items-manager-row__expand"
+            aria-label={expandLabel}
+            isSelected={Boolean(expanded)}
+            onChange={onExpandedChange}
+          >
+            {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          </AriaToggleButton>
+        ) : (
+          <span className="items-manager-row__action items-manager-row__mark">
+            {leading}
+          </span>
+        )}
+        <span className="items-manager-row__label">{label}</span>
+      </div>
+      <div className="items-manager-row__actions">
+        <AriaButton
+          className="items-manager-row__action"
+          aria-label={removeLabel}
+          onPress={onRemove}
+        >
+          <Minus size={12} />
+        </AriaButton>
+      </div>
+    </div>
+  );
+}
+
+/** 펼친 행의 필드 — 텍스트 · 아이콘은 전폭, 스위치는 반폭 짝 (GenericFieldRenderer 와 같은 격자) */
+function packSchemaRows(
+  schema: readonly ItemsManagerFieldItemSchema[],
+): ItemsManagerFieldItemSchema[][] {
+  const rows: ItemsManagerFieldItemSchema[][] = [];
+  for (const field of schema) {
+    const half = field.type === "boolean";
+    const last = rows[rows.length - 1];
+    if (half && last && last.length === 1 && last[0]!.type === "boolean") {
+      last.push(field);
+    } else {
+      rows.push([field]);
+    }
+  }
+  return rows;
+}
 
 const SELECTION_MODE_OPTIONS: ReadonlyArray<{ value: string; label: string }> =
   [
@@ -72,92 +145,89 @@ const ItemRow = memo(function ItemRow({
   );
 
   return (
-    <div className="items-manager-row">
-      <div className="items-manager-row-header">
-        <button
-          className="editor-item-action items-manager-expand"
-          aria-label={
-            i18n?.t(
-              expanded ? "itemsManager.collapse" : "itemsManager.expand",
-            ) ?? (expanded ? "Collapse" : "Expand")
-          }
-          onClick={() => setExpanded((prev) => !prev)}
-        >
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        </button>
-        <span className="editor-item-title">{label}</span>
-        <button
-          className="editor-item-action"
-          aria-label={i18n?.t("itemsManager.removeItem") ?? "Remove item"}
-          onClick={onRemove}
-        >
-          <DeleteIcon size={12} />
-        </button>
-      </div>
+    <>
+      <ListRow
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        expandLabel={
+          i18n?.t(expanded ? "itemsManager.collapse" : "itemsManager.expand") ??
+          (expanded ? "Collapse" : "Expand")
+        }
+        label={label}
+        onRemove={onRemove}
+        removeLabel={i18n?.t("itemsManager.removeItem") ?? "Remove item"}
+      />
 
       {expanded && (
         <div className="items-manager-row-fields">
-          {schema.map((schemaField) => {
-            const currentValue = item[schemaField.key];
+          {packSchemaRows(schema).map((row) => (
+            <div
+              key={row.map((f) => f.key).join("|")}
+              className="fieldset-row"
+              data-wide={
+                row.length === 1 && row[0]!.type !== "boolean"
+                  ? "true"
+                  : undefined
+              }
+            >
+              {row.map((schemaField) => {
+                const currentValue = item[schemaField.key];
 
-            switch (schemaField.type) {
-              case "string":
-                return (
-                  <PropertyInput
-                    key={schemaField.key}
-                    icon={resolvePropertyFieldIcon(
-                      schemaField.key,
-                      schemaField.type,
-                    )}
-                    label={schemaField.label}
-                    value={String(currentValue ?? "")}
-                    onChange={(value) =>
-                      handleFieldChange(
-                        schemaField.key,
-                        value === "" ? undefined : value,
-                      )
-                    }
-                  />
-                );
+                switch (schemaField.type) {
+                  case "string":
+                    return (
+                      <PropertyInput
+                        key={schemaField.key}
+                        label={schemaField.label}
+                        value={String(currentValue ?? "")}
+                        onChange={(value) =>
+                          handleFieldChange(
+                            schemaField.key,
+                            value === "" ? undefined : value,
+                          )
+                        }
+                      />
+                    );
 
-              case "boolean":
-                return (
-                  <PropertySwitch
-                    key={schemaField.key}
-                    icon={resolvePropertyFieldIcon(
-                      schemaField.key,
-                      schemaField.type,
-                    )}
-                    label={schemaField.label}
-                    isSelected={Boolean(currentValue)}
-                    onChange={(checked) =>
-                      handleFieldChange(schemaField.key, checked)
-                    }
-                  />
-                );
+                  case "boolean":
+                    return (
+                      <PropertySwitch
+                        key={schemaField.key}
+                        label={schemaField.label}
+                        isSelected={Boolean(currentValue)}
+                        onChange={(checked) =>
+                          handleFieldChange(schemaField.key, checked)
+                        }
+                      />
+                    );
 
-              case "icon":
-                return (
-                  <PropertyIconPicker
-                    key={schemaField.key}
-                    label={schemaField.label}
-                    value={currentValue as string | undefined}
-                    onChange={(iconName) =>
-                      handleFieldChange(schemaField.key, iconName || undefined)
-                    }
-                    onClear={() =>
-                      handleFieldChange(schemaField.key, undefined)
-                    }
-                  />
-                );
+                  case "icon":
+                    return (
+                      <PropertyIconPicker
+                        key={schemaField.key}
+                        label={schemaField.label}
+                        value={currentValue as string | undefined}
+                        onChange={(iconName) =>
+                          handleFieldChange(
+                            schemaField.key,
+                            iconName || undefined,
+                          )
+                        }
+                        onClear={() =>
+                          handleFieldChange(schemaField.key, undefined)
+                        }
+                      />
+                    );
 
-              default:
-                return null;
-            }
-          })}
+                  default:
+                    return null;
+                }
+              })}
+            </div>
+          ))}
         </div>
       )}
-    </div>
+    </>
   );
 });
 
@@ -173,21 +243,13 @@ const SeparatorRow = memo(function SeparatorRow({
   onRemove,
 }: SeparatorRowProps) {
   return (
-    <div className="items-manager-row items-manager-separator-row">
-      <div className="items-manager-row-header">
-        <Minus size={12} className="items-manager-separator-icon" />
-        <span className="editor-item-title items-manager-separator-label">
-          Separator
-        </span>
-        <button
-          className="editor-item-action"
-          aria-label="Remove separator"
-          onClick={onRemove}
-        >
-          <DeleteIcon size={12} />
-        </button>
-      </div>
-    </div>
+    <ListRow
+      className="items-manager-separator-row"
+      leading={<Minus size={12} />}
+      label="Separator"
+      onRemove={onRemove}
+      removeLabel="Remove separator"
+    />
   );
 });
 
@@ -229,71 +291,61 @@ const SectionRow = memo(function SectionRow({
 
   return (
     <div className="items-manager-section-row">
-      <div className="items-manager-row-header items-manager-section-header">
-        <button
-          className="editor-item-action items-manager-expand"
-          aria-label={expanded ? "Collapse section" : "Expand section"}
-          onClick={() => setExpanded((prev) => !prev)}
-        >
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-        </button>
-        <span className="editor-item-title items-manager-section-title">
-          {header}
-        </span>
-        <button
-          className="editor-item-action"
-          aria-label="Remove section"
-          onClick={onRemoveSection}
-        >
-          <DeleteIcon size={12} />
-        </button>
-      </div>
+      <ListRow
+        className="items-manager-section-header"
+        expanded={expanded}
+        onExpandedChange={setExpanded}
+        expandLabel={expanded ? "Collapse section" : "Expand section"}
+        label={header}
+        onRemove={onRemoveSection}
+        removeLabel="Remove section"
+      />
 
       {expanded && (
         <div className="items-manager-section-body">
           {/* Section header 편집 */}
           <div className="items-manager-row-fields">
-            <PropertyInput
-              icon={resolvePropertyFieldIcon("header", "string")}
-              label="Header"
-              value={header}
-              onChange={(value) =>
-                onUpdateSection({ header: value || "Section" })
-              }
-            />
+            <div className="fieldset-row" data-wide="true">
+              <PropertyInput
+                label="Header"
+                value={header}
+                onChange={(value) =>
+                  onUpdateSection({ header: value || "Section" })
+                }
+              />
+            </div>
             {hasSelection && (
               <>
-                <PropertySelect
-                  icon={resolvePropertyFieldIcon("selectionMode", "enum")}
-                  label="Selection Mode"
-                  value={String(section.selectionMode ?? "")}
-                  onChange={(value) =>
-                    onUpdateSection({
-                      selectionMode: value === "" ? undefined : value,
-                    })
-                  }
-                  options={SELECTION_MODE_OPTIONS}
-                />
-                <PropertyInput
-                  icon={resolvePropertyFieldIcon(
-                    "defaultSelectedKeys",
-                    "string-array",
-                  )}
-                  label="Default Selected Keys"
-                  value={
-                    Array.isArray(section.defaultSelectedKeys)
-                      ? (section.defaultSelectedKeys as string[]).join(", ")
-                      : ""
-                  }
-                  onChange={(value) =>
-                    onUpdateSection({
-                      defaultSelectedKeys:
-                        value === ""
-                          ? undefined
-                          : value.split(",").map((s) => s.trim()),
-                    })
-                  }
-                />
+                <div className="fieldset-row">
+                  <PropertySelect
+                    label="Selection Mode"
+                    value={String(section.selectionMode ?? "")}
+                    onChange={(value) =>
+                      onUpdateSection({
+                        selectionMode: value === "" ? undefined : value,
+                      })
+                    }
+                    options={SELECTION_MODE_OPTIONS}
+                  />
+                </div>
+                <div className="fieldset-row" data-wide="true">
+                  <PropertyInput
+                    label="Default Selected Keys"
+                    value={
+                      Array.isArray(section.defaultSelectedKeys)
+                        ? (section.defaultSelectedKeys as string[]).join(", ")
+                        : ""
+                    }
+                    onChange={(value) =>
+                      onUpdateSection({
+                        defaultSelectedKeys:
+                          value === ""
+                            ? undefined
+                            : value.split(",").map((s) => s.trim()),
+                      })
+                    }
+                  />
+                </div>
               </>
             )}
           </div>
@@ -324,7 +376,7 @@ const SectionRow = memo(function SectionRow({
               data-variant="add"
               onClick={onAddItem}
             >
-              <AddIcon size={12} />
+              <AddIcon size={14} />
               Add {itemTypeName}
             </button>
           </div>
@@ -436,17 +488,28 @@ export const ItemsManager = memo(function ItemsManager({
     return acc + 1;
   }, 0);
 
+  // legend = 필드 라벨 + 항목 수 (종전 「Total: N」 문단) — 다른 필드와 같은 fieldset/legend 어법
+  const rawLabel = field.label ?? field.itemTypeName;
+  const displayLabel = i18n
+    ? translateKey(i18n.t, semanticLabelKeys[rawLabel] ?? rawLabel, rawLabel)
+    : rawLabel;
   return (
-    <div className="children-manager">
-      <div className="editor-overview">
-        <p className="editor-overview-text">
-          {i18n?.t("itemsManager.total", { count: totalCount }) ??
-            `Total: ${totalCount}`}
-        </p>
-      </div>
+    <fieldset className="properties-aria items-manager">
+      <legend className="fieldset-legend">
+        {displayLabel}
+        <span
+          className="items-manager__count"
+          aria-label={
+            i18n?.t("itemsManager.total", { count: totalCount }) ??
+            `Total: ${totalCount}`
+          }
+        >
+          {totalCount}
+        </span>
+      </legend>
 
       {rawItems.length > 0 && (
-        <div className="tabs-list">
+        <div className="items-manager__list">
           {rawItems.map((entry, index) => {
             const entryId = String(entry.id ?? "");
             const identity = identities[index];
@@ -538,6 +601,6 @@ export const ItemsManager = memo(function ItemsManager({
           </button>
         )}
       </div>
-    </div>
+    </fieldset>
   );
 });

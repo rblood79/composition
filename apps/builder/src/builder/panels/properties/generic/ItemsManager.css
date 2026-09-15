@@ -1,0 +1,120 @@
+/**
+ * ItemsManager — 정적 items 목록 (ListBox · Menu · Select · Tabs · Chart 행 …).
+ *
+ * 목록 행은 Styles 의 Fill · Shadow 레이어 행과 같은 구조 (2026-09-15 사용자 판정):
+ * [본문 28 (pad 4): [펼침 토글 20][라벨]] [액션 그룹 28: [제거 20]]. 펼친 행의 필드는 인스펙터
+ * 격자 (`.fieldset-row`) 그대로.
+ */
+
+@layer components {
+  .items-manager {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-width: 0;
+  }
+
+  /* legend 의 항목 수 — 10 mono (Component 절의 역할 표기와 같은 어법) */
+  .items-manager__count {
+    margin-inline-start: var(--spacing-xs);
+    font-family: var(--font-mono);
+    font-size: var(--text-2xs);
+    color: var(--fg-muted);
+  }
+
+  .items-manager__list,
+  .items-manager-section-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-width: 0;
+  }
+
+  .items-manager-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--spacing-sm);
+    align-items: center;
+    min-width: 0;
+  }
+
+  .items-manager-row__body,
+  .items-manager-row__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    box-sizing: border-box;
+    block-size: var(--control-size);
+    padding: var(--spacing);
+    background: var(--bg-muted);
+    border-radius: var(--radius-md);
+  }
+
+  .items-manager-row__body {
+    min-width: 0;
+  }
+
+  .items-manager-row__label {
+    flex: 1;
+    min-width: 0;
+    padding-inline-start: var(--spacing);
+    font-size: var(--text-xs);
+    line-height: var(--text-xs--line-height);
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* 그룹 안 20×20 raised (Fill 행의 `.fill-layer-row__action` 과 같음) */
+  .items-manager-row__action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--text-xl);
+    height: var(--text-xl);
+    padding: 0;
+    background: var(--bg-overlay);
+    box-shadow: var(--shadow-sm);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--fg-muted);
+    cursor: pointer;
+    flex-shrink: 0;
+
+    &[data-hovered],
+    &[data-selected] {
+      color: var(--fg);
+    }
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
+
+  /* Separator 행의 정적 표지 — 버튼 아님 */
+  .items-manager-row__mark {
+    cursor: default;
+    box-shadow: none;
+    background: transparent;
+  }
+
+  /* 펼친 행의 필드 · Section 본문 — 행 아래 들여쓰기 */
+  .items-manager-row-fields,
+  .items-manager-section-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-width: 0;
+    padding-inline-start: var(--spacing-sm);
+    border-inline-start: 1px solid var(--border);
+  }
+
+  .items-manager-section-row {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    min-width: 0;
+  }
+}
