@@ -430,7 +430,6 @@
       /* 여러 줄 fieldset (데이터 바인딩: 컬렉션 Select · 열기/사용처 · fieldMap) 의 행 액션은
          첫 줄 — legend (18) 아래 상자 28 — 에 맞춘다 (2026-09-16 「새 테이블」 DatabasePlus) */
       > .fieldset-actions.actions-binding {
-        align-self: start;
         margin-block-start: calc(var(--text-xs) * var(--text-xs--line-height));
       }
     }

@@ -1,0 +1,38 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const OUT = process.env.OUT;
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1400 }, deviceScaleFactor: 2 })).newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`id-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name, want) => { const btn = page.getByRole("button", { name, exact: true }).first(); const pressed = await btn.getAttribute("aria-pressed"); if ((pressed === "true") !== want) { await btn.click(); await page.waitForTimeout(400); } };
+const P = '[data-panel-id="properties"]';
+const add = async () => { await panel("Components", true); const item = page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^Button$/i }) }).first(); await item.scrollIntoViewIfNeeded(); await item.click(); await page.waitForTimeout(800); await panel("Components", false); return page.evaluate(() => window.__composition_STORE__.getState().selectedElementId); };
+const a = await add(); const bId = await add();
+await panel("Properties", true); await page.waitForTimeout(400);
+const ids = await page.evaluate(([a, b]) => { const st = window.__composition_STORE__.getState(); return [st.elementsMap.get(a)?.customId, st.elementsMap.get(b)?.customId]; }, [a, bId]); console.log("ids", ids);
+// make b duplicate a via store (simulating import) then select b
+await page.evaluate(([a, b]) => { const st = window.__composition_STORE__.getState(); return st.updateElement(b, { customId: st.elementsMap.get(a).customId }); }, [a, bId]); await page.waitForTimeout(500);
+await page.evaluate((b) => window.__composition_STORE__.getState().setSelectedElement(b), bId); await page.waitForTimeout(500);
+await page.evaluate((P) => { document.querySelectorAll(`${P} .section-caret[aria-expanded="false"]`).forEach((c) => c.click()); }, P); await page.waitForTimeout(300);
+const btn = page.locator(`${P} button[aria-label="Check ID uniqueness"]`);
+const row = page.locator(`${P} .fieldset-row`).filter({ has: page.locator('button[aria-label="Check ID uniqueness"]') }).first();
+console.log("row", JSON.stringify(await row.boundingBox()), "btn", JSON.stringify(await btn.boundingBox()), "input", JSON.stringify(await row.locator("input").boundingBox()));
+await row.screenshot({ path: `${OUT}/id-row.png` });
+const bb = await btn.boundingBox(); await page.mouse.move(bb.x - 40, bb.y + 14); await page.mouse.move(bb.x + 10, bb.y + 14, { steps: 8 }); await page.waitForTimeout(1600);
+console.log("tooltip", await page.evaluate(() => document.querySelector('[role="tooltip"]')?.textContent?.trim()));
+await btn.click(); await page.waitForTimeout(700);
+console.log("after dedupe", await page.evaluate((b) => window.__composition_STORE__.getState().elementsMap.get(b)?.customId, bId), "toast", await page.evaluate(() => document.querySelector('[data-toast], .toast, [role="status"], [role="alert"]')?.textContent?.trim()));
+await page.screenshot({ path: `${OUT}/after-dedupe.png`, clip: { x: 900, y: 0, width: 700, height: 500 } });
+await btn.click(); await page.waitForTimeout(700);
+console.log("after unique", await page.evaluate((b) => window.__composition_STORE__.getState().elementsMap.get(b)?.customId, bId), "toast", await page.evaluate(() => Array.from(document.querySelectorAll('[data-toast], .toast, [role="status"], [role="alert"]')).map((n) => n.textContent.trim()).join(" | ")));
+// empty → assign
+await page.evaluate((b) => window.__composition_STORE__.getState().updateElement(b, { customId: "" }), bId); await page.waitForTimeout(500);
+await btn.click(); await page.waitForTimeout(700);
+console.log("after assign", await page.evaluate((b) => window.__composition_STORE__.getState().elementsMap.get(b)?.customId, bId));
+console.log("errors", errors.slice(0, 5));
+await browser.close();
