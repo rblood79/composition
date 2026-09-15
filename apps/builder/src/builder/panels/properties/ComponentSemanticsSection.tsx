@@ -1,7 +1,9 @@
 import { memo, useMemo } from "react";
 
+import { Button as RACButton } from "react-aria-components/Button";
+
 import { PropertySection } from "../../components";
-import { SwatchIconButton } from "../../components/ui";
+import { ActionTooltipTrigger } from "../../components/ui";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import {
@@ -36,29 +38,28 @@ import { useI18n } from "@/i18n";
 import type { PanelNode } from "../panelNode";
 
 /**
- * Component 섹션 레이아웃 — pencil app 어법 (2026-08-30).
+ * Component 섹션 레이아웃 — pencil 어법 두 줄 (2026-09-16 사용자 판정 「제안 A」,
+ * 시안 docs/design/properties-panel-inventory 「11 Component 절」).
  *
- * pencil 의 properties 패널은 컴포넌트 정체를 **한 줄 칩**(다이아몬드 아이콘 +
- * 이름, 역할 색 테두리)으로 보이고 그 **아래 한 줄**에 액션을 모은다. 종전
- * composition 은 Name / Role / Impacts 를 각각 key-value 행으로 쌓고 그 아래
- * 액션 버튼을 다시 세로로 쌓아, 폭 222px 패널에서 standard 3줄 / origin 5줄을
- * 썼다 — 값이 3개뿐인데 라벨 열이 절반을 먹는 구조였다.
+ * pencil 의 properties 패널은 컴포넌트 정체를 **한 줄**(이름 상자 — 원본은 채움,
+ * 인스턴스는 점선 테두리)로 보이고 그 **아래 한 줄**에 액션을 모은다. 종전
+ * composition (panel-ui 07, 2026-09-14) 은 액션마다 라벨 + 28 열 아이콘 행을 세워
+ * 인스턴스에서 3 행 = 84px 가 액션에 쓰였고, 표준 요소에도 「button_1 · STANDARD」
+ * 칩이 섰다 — 바로 아래 Attributes ID 와 같은 이름이라 정보가 0 이었다.
  *
  * 옮겨 온 것은 **배치**뿐이고 크롬은 composition 정본을 쓴다:
- * - 역할 색은 `--editing-semantics-*` — 캔버스 오버레이(semanticOverlayColors.ts)
- *   와 Navigator 점이 이미 쓰는 토큰. 패널만 다른 색을 쓰면 같은 요소가 화면마다
- *   다르게 읽힌다. pencil 의 solid/dashed 선 구분은 채택하지 않는다 — composition
- *   캔버스는 역할을 **색으로만** 구분하므로(ADR-112) 패널에만 선 축을 새로 만들면
- *   두 화면의 마커 언어가 갈린다.
- * - **액션 줄은 한 줄** (pencil 배치). pencil 은 인스턴스 축 액션 (go to /
- *   detach instance) 을 아이콘 전용 + 툴팁으로, 컴포넌트 축 액션 (Create /
- *   Detach Component) 만 라벨로 세워 한 줄에 담는다. composition 만 갖는
- *   "Select instances" 도 같은 어법으로 아이콘 전용이고 수는 툴팁이 나른다.
- *   chrome 은 pencil 의 ghost 버튼이 아니라 composition 의 `.control-button`
- *   정본이며, 아이콘 전용은 폭만 정사각으로 좁힌다 (두 번째 버튼 정의 안 만듦).
- * - 액션 아이콘 3종은 `ACTION_ICONS` — 캔버스 컨텍스트 메뉴의 같은 액션과 같은
- *   그림이어야 한다 (registry 주석이 이미 "Properties 패널 Component 섹션" 을
- *   소비처로 적어 두고 있었는데 실제로는 아이콘이 없었다).
+ * - 정체 칩은 **원본·인스턴스에만** 선다. 역할은 pencil 과 같은 축 — 원본 = 역할색
+ *   채움, 인스턴스 = 역할색 점선 — 에 10 mono 역할 라벨을 더한다 (두 보라
+ *   `--editing-semantics-origin` / `-instance` 가 서로 가까워 글자가 1차 채널이다).
+ *   색은 캔버스 오버레이 (semanticOverlayColors.ts) · Navigator 점과 같은 토큰.
+ * - **액션 줄은 한 줄** (pencil 배치). 인스턴스 축 (Go to component · Detach instance)
+ *   은 아이콘 전용 + 툴팁 (단축키는 `commandId` 에서 파생), 컴포넌트 축 (Create ↔
+ *   Detach component) 만 글자 — 원본 해제는 인스턴스 전체에 영향이라 이름이 보여야
+ *   한다. composition 만 갖는 Select instances 는 아이콘 + 수 배지. 한 줄의 버튼은
+ *   전부 `.control-button` 하나 (panel-structure §1 — 아이콘 전용은 폭만 정사각으로
+ *   좁힌다; 두 번째 버튼 정의를 만들지 않는다). 최대 조합 (아이콘 2 + 글자 1) 이
+ *   217 안에 들어 접힘 분기가 없다.
+ * - 액션 아이콘은 `ACTION_ICONS` — 캔버스 컨텍스트 메뉴의 같은 액션과 같은 그림.
  *
  * **액션 가용성은 두 축 (2026-08-30 — Pen.app 번들 실측)**. pencil 은 선택
  * 노드마다 `prototype` (인스턴스) 과 `reusable` (원본) 을 따로 세고, 인스턴스
@@ -186,8 +187,8 @@ export const ComponentSemanticsSection = memo(
 
     // 노출 축의 정본은 `COMPONENT_SEMANTICS_ACTIONS` 다 (ADR-199) — 이 표면은
     // 항목·순서·라벨·아이콘·가용성을 다시 정의하지 않고 읽어서 그린다. 남는
-    // 표면 고유 규칙은 두 개뿐: (1) 라벨을 영문으로 쓴다, (2) 폭 215px 를
-    // 넘기는 조합에서만 컴포넌트 축을 아이콘 전용으로 좁힌다.
+    // 표면 고유 규칙은 하나 — 어느 항목이 아이콘 전용 (인스턴스 축 · Select
+    // instances) 이고 어느 항목이 글자 (컴포넌트 축) 인가.
     const semanticsTarget = toEditingSemanticsTarget(element);
     const availability = {
       hasResolvedOrigin: Boolean(originElement),
@@ -226,54 +227,86 @@ export const ComponentSemanticsSection = memo(
 
     return (
       <PropertySection title="Component">
-        {/* 정체 = lrow 「button_1 · STANDARD」 (이름 + 10 mono caps 역할), 액션은 행마다
-            라벨 + 28 열 아이콘 (Overrides · Effect 목록 행과 같은 조각, panel-ui 07). 종전엔
-            칩 + 한 줄 툴바 (라벨 버튼 + 아이콘 전용 버튼) 였다. */}
-        <div className="fieldset-row" data-wide="true">
-          <div className="component-semantics-identity" data-role={roleClass}>
-            <ComponentIcon aria-hidden="true" size={14} />
-            <span
-              className="component-semantics-identity-name"
-              title={componentName}
-            >
-              {componentName}
-            </span>
-            <span className="component-semantics-identity-role">
-              {roleLabel}
-            </span>
-          </div>
-        </div>
-
-        {semanticsActions.map((action) => {
-          if (!semanticsTarget) return null;
-          const actionLabel = action.labelKey(semanticsTarget, availability);
-          const label = t(actionLabel.key, actionLabel.params);
-          const Icon = action.icon(semanticsTarget);
-          // 원본을 못 찾은 인스턴스에서 "원본으로 이동" 은 사라지지 않고
-          // 비활성으로 선다 — 자리가 유지돼야 다른 액션 행 위치가 흔들리지 않는다
-          // (컨텍스트 메뉴는 같은 상황에서 항목을 뺀다).
-          const enabled =
-            action.isEnabled?.(semanticsTarget, availability) ?? true;
-          return (
-            <div
-              className="fieldset-row component-semantics-row"
-              data-wide="true"
-              data-disabled={enabled ? undefined : "true"}
-              key={action.id}
-            >
-              <span className="component-semantics-row-label">{label}</span>
-              <div className="fieldset-actions">
-                <SwatchIconButton
-                  aria-label={label}
-                  isDisabled={!enabled}
-                  onPress={actionHandlers[action.id]}
-                >
-                  <Icon aria-hidden="true" size={iconProps.size} />
-                </SwatchIconButton>
-              </div>
+        {/* 정체 칩 — 원본·인스턴스만. 표준은 Attributes ID 가 같은 이름을 이미 보인다. */}
+        {(isInstance || isOrigin) && (
+          <div className="fieldset-row">
+            <div className="component-semantics-identity" data-role={roleClass}>
+              <ComponentIcon aria-hidden="true" size={14} />
+              <span
+                className="component-semantics-identity-name"
+                title={componentName}
+              >
+                {componentName}
+              </span>
+              <span className="component-semantics-identity-role">
+                {roleLabel}
+              </span>
             </div>
-          );
-        })}
+          </div>
+        )}
+
+        {/* 액션 한 줄 — 인스턴스 축은 아이콘 + 툴팁, 컴포넌트 축은 글자, Select
+            instances 는 아이콘 + 수 배지. 순서는 레지스트리 배열 그대로. */}
+        {semanticsTarget && semanticsActions.length > 0 && (
+          <div className="fieldset-row">
+            <div className="component-semantics-strip">
+              {semanticsActions.map((action) => {
+                const actionLabel = action.labelKey(
+                  semanticsTarget,
+                  availability,
+                );
+                const label = t(actionLabel.key, actionLabel.params);
+                const Icon = action.icon(semanticsTarget);
+                // 원본을 못 찾은 인스턴스에서 "원본으로 이동" 은 사라지지 않고
+                // 비활성으로 선다 — 자리가 유지돼야 다른 액션 위치가 흔들리지 않는다
+                // (컨텍스트 메뉴는 같은 상황에서 항목을 뺀다).
+                const enabled =
+                  action.isEnabled?.(semanticsTarget, availability) ?? true;
+                const onPress = actionHandlers[action.id];
+
+                if (action.id === "toggle-component-origin") {
+                  return (
+                    <RACButton
+                      className="control-button component-semantics-action"
+                      isDisabled={!enabled}
+                      key={action.id}
+                      onPress={onPress}
+                    >
+                      <Icon aria-hidden="true" size={iconProps.size} />
+                      {label}
+                    </RACButton>
+                  );
+                }
+
+                return (
+                  <ActionTooltipTrigger
+                    key={action.id}
+                    shortcutId={action.commandId}
+                    tooltip={label}
+                  >
+                    <RACButton
+                      aria-label={label}
+                      className="control-button component-semantics-action"
+                      data-icon-only="true"
+                      isDisabled={!enabled}
+                      onPress={onPress}
+                    >
+                      <Icon aria-hidden="true" size={iconProps.size} />
+                      {action.id === "select-instances" && (
+                        <span
+                          aria-hidden="true"
+                          className="component-semantics-count"
+                        >
+                          {instanceIds.length}
+                        </span>
+                      )}
+                    </RACButton>
+                  </ActionTooltipTrigger>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {role === "instance" && overrideItems.length > 0 && (
           <fieldset className="properties-aria component-semantics-overrides">

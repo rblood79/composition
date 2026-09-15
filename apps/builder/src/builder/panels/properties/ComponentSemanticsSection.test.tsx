@@ -114,21 +114,70 @@ describe("ComponentSemanticsSection", () => {
     ).toBeTruthy();
   });
 
-  it("renders Standard label for plain element", () => {
-    const plain = makeElement("plain");
+  // 표준 요소는 정체 칩을 세우지 않는다 — 이름은 바로 아래 Attributes ID 와 같고
+  // 역할이 없다 (2026-09-16 「제안 A」). 남는 것은 「Create component」 한 줄뿐.
+  it("plain element shows only the create action — no identity chip", () => {
+    const plain = makeElement("plain", { customId: "button_1" });
 
     seedPanelElements([plain]);
 
-    renderWithI18n(<ComponentSemanticsSection elementId="plain" />);
+    const { container } = renderWithI18n(
+      <ComponentSemanticsSection elementId="plain" />,
+    );
 
     expect(screen.getByText("Component")).toBeTruthy();
-    expect(screen.getByText("Standard")).toBeTruthy();
+    expect(screen.queryByText("Standard")).toBeNull();
+    expect(screen.queryByText("button_1")).toBeNull();
+    expect(container.querySelector(".component-semantics-identity")).toBeNull();
     expect(
       screen.getByRole("button", { name: "Create component" }),
     ).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "Detach instance" }),
     ).toBeNull();
+  });
+
+  // pencil 배치 — 액션은 한 줄, 인스턴스 축은 아이콘 전용 (접근 이름은 aria-label),
+  // 컴포넌트 축만 글자. 한 줄의 버튼은 전부 `.control-button` 하나다.
+  it("instance actions sit in one strip: icon-only instance axis, labeled component axis", () => {
+    const origin = makeElement("origin", { page_id: "page-1", reusable: true });
+    const instance = makeElement("instance", {
+      type: "ref",
+      ref: "origin",
+      page_id: "page-1",
+    } as never);
+
+    seedPanelElements([origin, instance]);
+    useStore.setState({ currentPageId: "page-1" } as never);
+
+    const { container } = renderWithI18n(
+      <ComponentSemanticsSection elementId="instance" />,
+    );
+
+    const strips = container.querySelectorAll(".component-semantics-strip");
+    expect(strips).toHaveLength(1);
+    const buttons = Array.from(
+      strips[0].querySelectorAll<HTMLButtonElement>("button"),
+    );
+    expect(buttons.map((b) => b.getAttribute("aria-label") ?? b.textContent)).toEqual([
+      "Go to component",
+      "Detach instance",
+      "Create component",
+    ]);
+    expect(buttons.every((b) => b.classList.contains("control-button"))).toBe(
+      true,
+    );
+    expect(buttons.map((b) => b.hasAttribute("data-icon-only"))).toEqual([
+      true,
+      true,
+      false,
+    ]);
+    // 인스턴스 칩 = 점선 축 (data-role 로 CSS 가 그린다)
+    expect(
+      container
+        .querySelector(".component-semantics-identity")
+        ?.getAttribute("data-role"),
+    ).toBe("instance");
   });
 
   it("renders nothing for missing element", () => {
@@ -360,10 +409,13 @@ describe("ComponentSemanticsSection", () => {
     } as never);
 
     renderWithI18n(<ComponentSemanticsSection elementId="origin" />);
-    // 영향 수는 별도 행이 아니라 "Select instances (N)" 라벨이 보인다.
+    // 영향 수는 접근 이름 "Select instances (N)" + 아이콘 옆 수 배지.
+    const selectButton = screen.getByRole("button", {
+      name: "Select instances (2)",
+    });
     expect(
-      screen.getByRole("button", { name: "Select instances (2)" }),
-    ).toBeTruthy();
+      selectButton.querySelector(".component-semantics-count")?.textContent,
+    ).toBe("2");
     expect(
       (
         screen.getByRole("button", {

@@ -559,11 +559,13 @@
       border-inline-start: 1px solid var(--border);
     }
 
-    /* Component 섹션 — 정체는 lrow 「button_1 · STANDARD」 (이름 + 10 mono caps 역할),
-       액션은 행마다 라벨 + 28 열 아이콘 (panel-ui 07, 2026-09-14). 종전 칩 (테두리 상자)
-       + 한 줄 툴바 (`.control-button` 라벨/아이콘 혼합) 는 폭 233 에서 아이콘 3개 + 라벨이
-       넘쳐 라벨 축을 아이콘으로 접는 분기가 필요했다 — 행으로 세우면 분기가 없다. */
+    /* Component 섹션 — pencil 어법 두 줄 (2026-09-16 「제안 A」): 정체 칩 한 줄 (원본·인스턴스만)
+       + 액션 한 줄. 종전 (panel-ui 07, 09-14) 은 액션마다 라벨 + 28 열 아이콘 행이라 인스턴스에서
+       3 행이 액션에 쓰였고, 그 전 (08-30) 은 칩 + `.control-button` 툴바였으나 라벨 축을 아이콘으로
+       접는 분기가 있었다 — 지금은 인스턴스 축이 처음부터 아이콘 전용이라 분기가 없다.
+       칩·스트립은 인스펙터 3열 격자를 전폭으로 쓴다 (28 열도 포함 — 행 끝 액션이 없다). */
     .component-semantics-identity {
+      grid-column: 1 / -1;
       display: flex;
       align-items: center;
       gap: var(--spacing-xs);
@@ -571,6 +573,7 @@
       min-width: 0;
       block-size: var(--control-size);
       padding: 0 var(--spacing-sm);
+      border: 1px solid transparent;
       border-radius: var(--radius-md);
       background: var(--bg-muted);
       color: var(--fg);
@@ -600,14 +603,28 @@
       color: var(--fg-muted);
     }
 
-    /* 역할 색은 캔버스 오버레이(skia/semanticOverlayColors.ts)·Navigator 점과 같은
-       `--editing-semantics-*` 토큰이다. 패널만 다른 색을 쓰면 같은 요소가 화면마다
-       다른 색으로 읽힌다. 역할의 1차 채널은 어디까지나 오른쪽 텍스트 라벨 —
-       origin/instance 두 보라가 서로 가까워 색만으로는 갈리지 않는다. */
+    /* 역할 = pencil 과 같은 축 — 원본은 역할색 채움, 인스턴스는 역할색 점선 (Pen v1.2.8 이름
+       상자: 원본 bg #42324b / 인스턴스 border-dashed). 색은 캔버스 오버레이
+       (skia/semanticOverlayColors.ts) · Navigator 점과 같은 `--editing-semantics-*` 토큰이다.
+       두 보라가 서로 가까워 10 mono 역할 라벨이 1차 채널로 남는다. */
+    .component-semantics-identity[data-role="origin"] {
+      background: color-mix(
+        in oklab,
+        var(--editing-semantics-origin) 14%,
+        transparent
+      );
+    }
+
     .component-semantics-identity[data-role="origin"] > svg,
     .component-semantics-identity[data-role="origin"]
       .component-semantics-identity-role {
       color: var(--editing-semantics-origin);
+    }
+
+    .component-semantics-identity[data-role="instance"] {
+      background: transparent;
+      border-style: dashed;
+      border-color: var(--editing-semantics-instance);
     }
 
     .component-semantics-identity[data-role="instance"] > svg,
@@ -616,23 +633,37 @@
       color: var(--editing-semantics-instance);
     }
 
-    /* 액션 행 — 라벨 (28 행 안 왼쪽) + 28 열 아이콘 버튼 */
-    .component-semantics-row-label {
+    /* 액션 한 줄 — 버튼은 전부 `.control-button` (panel-structure §1: 같은 줄의 아이콘 전용
+       보조 버튼은 두 번째 정의가 아니라 폭만 정사각). 순서는 레지스트리 배열 그대로. */
+    .component-semantics-strip {
+      grid-column: 1 / -1;
       display: flex;
       align-items: center;
+      gap: var(--spacing-sm);
       min-width: 0;
-      block-size: var(--control-size);
-      padding-inline-start: var(--spacing-xs);
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: var(--text-xs);
-      line-height: var(--text-xs--line-height);
-      color: var(--fg);
     }
 
-    .component-semantics-row[data-disabled] .component-semantics-row-label {
-      color: var(--fg-disabled);
+    .component-semantics-strip .component-semantics-action[data-icon-only] {
+      width: var(--control-size);
+      padding: 0;
+    }
+
+    /* Select instances 의 수 배지 — 아이콘 옆 10 mono. 버튼 폭은 내용에 맞춘다. */
+    .component-semantics-strip
+      .component-semantics-action:has(.component-semantics-count) {
+      width: auto;
+      padding: 0 var(--spacing-xs) 0 var(--spacing-xs);
+    }
+
+    .component-semantics-count {
+      font-family: var(--font-mono);
+      font-size: var(--text-2xs);
+      line-height: var(--text-2xs--line-height);
+      padding: 0 var(--spacing-xs);
+      border-radius: var(--radius-full);
+      background: var(--bg-muted);
+      color: var(--fg-muted);
+      font-variant-numeric: tabular-nums;
     }
 
     /* fieldset(.properties-aria) 이지만 레이아웃은 이 고유 클래스가 직접 준다.

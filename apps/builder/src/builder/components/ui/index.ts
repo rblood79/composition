@@ -6,6 +6,11 @@ export {
 } from "./ActionIconButton";
 
 export {
+  ActionTooltipTrigger,
+  type ActionTooltipTriggerProps,
+} from "./ActionTooltip";
+
+export {
   SwatchIconButton,
   SwatchIconToggleButton,
   type SwatchIconButtonProps,

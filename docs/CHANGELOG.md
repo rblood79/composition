@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — Component 절을 pencil 어법 두 줄로] - 2026-09-16
+
+사용자 판정 「제안 A」 (시안 `docs/design/properties-panel-inventory` Proposal 페이지 「11 Component 절」, Pen v1.2.8 번들 실측 배치). 크롬은 composition 정본 (28 티어 · 233 · 3열 격자) 그대로.
+
+### Changed
+
+- **정체 칩은 원본·인스턴스에만** — 표준 요소는 바로 아래 Attributes ID 와 같은 이름의 「button_1 · STANDARD」 칩을 세우지 않는다. 역할은 pencil 과 같은 축 — 원본 = 역할색 채움 · 인스턴스 = 역할색 점선 — 에 10 mono 역할 라벨 유지 (색은 캔버스 오버레이·Navigator 와 같은 `--editing-semantics-*`).
+- **액션은 한 줄** — 행마다 「라벨 + 28 열 아이콘」 이던 것을 pencil 처럼 한 스트립으로: Go to component · Detach instance 는 아이콘 전용 28 + 툴팁 (단축키 ⌘⌥X 는 `commandId` 에서 파생), Create ↔ Detach component 만 글자 (원본 해제는 인스턴스 전체 영향 — 이름이 보여야 한다), Select instances 는 「◇ N」 수 배지. 버튼은 전부 `.control-button` 하나 (아이콘 전용은 폭만 정사각). 높이 표준 112→76 · 원본 148→112 · 인스턴스 184→112 (Overrides 목록은 그대로). 레지스트리 `COMPONENT_SEMANTICS_ACTIONS` (ADR-199) 무변경.
+
 ## [Properties 패널 — 컨트롤 어법: 필드 의미별 컨트롤 (seg · 칩 · 슬라이더 · 피커)] - 2026-09-15
 
 같은 날 오전의 「선택지는 전부 셀렉트」 규칙을 대체한다 (사용자 판정 2026-09-15 — 시안 `docs/design/properties-panel-inventory` Proposal 페이지, 레퍼런스: Primer segmented control 2~5 / NN·g·LukeW 「dropdowns last resort」 / Figma·Framer 인스펙터). 기준은 옵션 수·글자 폭도 「전부 셀렉트」 도 아닌 **필드의 의미** — 같은 키는 어느 컴포넌트에서든 같은 컨트롤 (`panels/properties/generic/fieldEditor.ts` 매핑표, catalog `PropContract` 무변경). 격자는 현행 3열 (1fr 1fr 28px) 유지 (2열 안은 보류).
