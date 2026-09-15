@@ -33,6 +33,11 @@ export {
   type PropertyRowMenuItem,
   PropertySizeToggle,
   PropertyIconPicker,
+  PropertySegment,
+  type PropertySegmentOption,
+  PropertyChipGroup,
+  type PropertyChip,
+  PropertyPlacementPicker,
 } from "./property";
 
 // Panel 컴포넌트

@@ -158,6 +158,31 @@ export function useCanonicalPropertyValue(
   return useSyncExternalStore(subscribeCanonicalStore, read, () => baseValue);
 }
 
+/**
+ * 여러 키의 값을 한 스냅샷 문자열로 — boolean 칩 묶음 (한 컨트롤이 N 개 prop 을 읽는다). 값이
+ * 같으면 같은 문자열이라 useSyncExternalStore 가 안정하다. 항목은 `keys` 순서, JSON 직렬.
+ */
+export function useCanonicalPropertyValuesSnapshot(
+  elementId: string | null | undefined,
+  origin: FieldOrigin,
+  keys: readonly string[],
+  baseValues: readonly unknown[],
+): string {
+  const read = useCallback(
+    () =>
+      JSON.stringify(
+        keys.map((key, index) =>
+          elementId
+            ? readCanonicalPropertyValue(elementId, origin, key, baseValues[index])
+            : baseValues[index],
+        ),
+      ),
+    // keys/baseValues 는 호출측이 useMemo 로 고정한다
+    [baseValues, elementId, keys, origin],
+  );
+  return useSyncExternalStore(subscribeCanonicalStore, read, read);
+}
+
 export function useCanonicalPropertyElementsMap(): ReadonlyMap<
   string,
   PanelNode

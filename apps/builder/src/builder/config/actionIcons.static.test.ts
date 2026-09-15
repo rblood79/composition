@@ -57,6 +57,13 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
   reason: string;
 }> = [
   {
+    // Properties 아이콘 seg 의 값 글리프 — labelAlign/align 의 start/center/end 는 필드 **값**이지
+    //   액션이 아니다 (TypographySection 의 textAlign 과 같은 사유, 2026-09-15)
+    file: "builder/panels/properties/generic/fieldEditor.ts",
+    symbols: ["AlignLeft", "AlignCenter", "AlignRight"],
+    reason: "labelAlign · align 필드 값 (start/center/end) 의 글리프 — 정렬 액션이 아니다",
+  },
+  {
     file: "builder/panels/styles/sections/TypographySection.tsx",
     symbols: [
       "AlignLeft",

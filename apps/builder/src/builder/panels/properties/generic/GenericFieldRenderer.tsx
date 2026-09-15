@@ -16,22 +16,34 @@
  * size/boolean/string/string-array/number/icon). 단계 2 는 Properties view(semantic) 우선이라
  * style-origin number(unit 입력)는 후속(`PropertyUnitInput` 통합) — 현재는 number control 공용.
  */
-import { memo, useMemo, type ReactNode } from "react";
+import { memo, useCallback, useMemo, type ReactNode } from "react";
 
 import type { ResolvedField } from "@composition/shared";
 import type { ItemsManagerField } from "@composition/specs";
 import { useVisibleVariableNames } from "../hooks/useVisibleVariableNames";
 
 import {
+  PropertyChipGroup,
   PropertyDataBinding,
   PropertyFieldTemplateInput,
   PropertyIconPicker,
   PropertyInput,
   PropertyNumberInput,
+  PropertyPlacementPicker,
   PropertySection,
+  PropertySegment,
   PropertySelect,
-  PropertySwitch,
+  PropertySlider,
 } from "../../../components";
+import type { PropertyChip } from "../../../components/property/PropertyChipGroup";
+import {
+  resolveFieldEditor,
+  sizeSegOptions,
+  VARIANT_SWATCH,
+  type ChipGroup,
+  type FieldEditor,
+} from "./fieldEditor";
+import { useI18n } from "../../../../i18n";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
 import { evaluateVisibility } from "./evaluateVisibility";
 import { ItemsManager } from "./ItemsManager";
@@ -40,7 +52,10 @@ import {
   useOwnerCollectionFields,
   type OwnerField,
 } from "../hooks/useOwnerCollectionColumns";
-import { useCanonicalPropertyValue } from "../hooks/useCanonicalPropertyRead";
+import {
+  useCanonicalPropertyValue,
+  useCanonicalPropertyValuesSnapshot,
+} from "../hooks/useCanonicalPropertyRead";
 
 /**
  * ResolvedField.itemsManager(catalog self-contained schema) → specs `ItemsManagerField` 투영.
@@ -207,16 +222,6 @@ const HALF_LEGEND = 87;
 /** 반폭 셀렉트의 값 자리 — 87 − 상자 pad 8 − chevron 20 (값 ↔ chevron gap 0) */
 const HALF_SELECT_VALUE = 59;
 
-/** 선택지 kind — 전부 셀렉트 하나로 그린다 (Styles 패널의 Ratio · Overflow 와 같은 어법). */
-function isChoiceKind(kind: ResolvedField["kind"]): boolean {
-  return (
-    kind === "variant" ||
-    kind === "size" ||
-    kind === "enum" ||
-    kind === "fillStyle"
-  );
-}
-
 /**
  * variant · size 가 하나뿐인 필드 (「Size: M」 · 「Variant: Default」 — theme rule 의 dimension 이 한
  * 단계) 는 고를 게 없다 — 행을 만들지 않는다. enum 은 대상이 아니다 (Chart 의 매핑 셀렉트는
@@ -230,31 +235,27 @@ function isSingleChoice(field: ResolvedField): boolean {
 }
 
 function fieldSpan(field: ResolvedField): "wide" | "half" {
-  switch (field.kind) {
-    // Variant · Size 는 언제나 반폭 한 행 (panel-ui 07 「Variant | Size」 — 2026-09-15 사용자 판정:
-    //   옵션 글자가 길어도 (Card 「Secondary」) 행을 가르지 않는다. 59 를 넘는 라벨 (「Emphasized」
-    //   65) 만 트리거에서 말줄임, 목록은 전체 글자)
-    case "variant":
-    case "size":
-      return "half";
-    // 그 밖의 셀렉트는 반폭 — legend (「Necessity Indicator」) 나 옵션 라벨 (「Categorical」) 이
-    //   반폭 칸에 안 들어갈 때만 전폭 (2026-09-15 live 전수 대조)
-    case "enum":
-    case "fillStyle": {
+  const editor = resolveFieldEditor(field);
+  switch (editor.type) {
+    // seg 는 매핑표가 폭을 정한다 (2~3 반폭 · 4~5 전폭 · 라벨이 칸에 안 들어가면 전폭)
+    case "seg":
+      return editor.span;
+    // 셀렉트는 반폭 — legend (「Necessity Indicator」) 나 옵션 라벨 (「Categorical」) 이 반폭 칸에
+    //   안 들어갈 때만 전폭 (2026-09-15 live 전수 대조)
+    case "select": {
       if (textWidth(field.label) > HALF_LEGEND) return "wide";
-      if (
-        (field.options ?? []).some(
-          (o) => textWidth(o.label) > HALF_SELECT_VALUE,
-        )
-      )
+      // 색 점 (12 + 여백 4) 이 값 자리를 먹는다
+      const valueRoom = editor.swatch
+        ? HALF_SELECT_VALUE - 16
+        : HALF_SELECT_VALUE;
+      if ((field.options ?? []).some((o) => textWidth(o.label) > valueRoom))
         return "wide";
       return "half";
     }
-    // 숫자 · 스위치는 반폭 — 「Min Length | Max Length」 · 「Disabled | Read Only」 두 개가 한 행
-    case "number":
-    case "boolean":
+    // 스텝퍼는 반폭 — 「Min Length | Max Length」 두 개가 한 행
+    case "stepper":
       return textWidth(field.label) > HALF_LEGEND ? "wide" : "half";
-    // 텍스트 (값이 길다) · icon (미리보기 20 + 이름 + 지우기 20) · 목록 (binding · items) 은 전폭
+    // 슬라이더 (트랙 + 값) · 9-위치 피커 · 텍스트 · icon · 목록 · 칩 묶음은 전폭
     default:
       return "wide";
   }
@@ -286,8 +287,7 @@ function sectionRank(section: string): number {
  * 숫자 사이) 가 한 규칙이 된다.
  */
 function fieldRank(field: ResolvedField): number {
-  // 반폭 묶음 (셀렉트 · 숫자 · 스위치) 은 반폭 먼저 전폭 뒤 — 「Show Value Labels」 같은 전폭이
-  //   사이에 끼어 반폭 짝을 깨지 않게
+  // 반폭 묶음 (seg · 셀렉트 · 스텝퍼) 은 반폭 먼저 전폭 뒤 — 전폭이 사이에 끼어 반폭 짝을 깨지 않게
   const wide = fieldSpan(field) === "wide" ? 1 : 0;
   switch (field.kind) {
     case "variant":
@@ -304,7 +304,7 @@ function fieldRank(field: ResolvedField): number {
     case "number":
       return 5 + wide;
     case "boolean":
-      return 7 + wide;
+      return 7;
     default:
       return 9;
   }
@@ -389,39 +389,106 @@ const GenericField = memo(function GenericField({
   };
 
   const stateNames = useVisibleVariableNames(elementId);
+  const { t } = useI18n();
 
   // 라벨은 전부 legend (상자 위) — Styles 패널과 같은 어법 (2026-09-15 사용자 판정; 종전 전폭
   //   행의 상자 안 suffix 라벨 · 스위치 inline 행은 폐기). 아이콘 prefix 는 legend 가 정체를
   //   말하므로 두지 않는다.
 
+  // 옵션이 데이터에서 오는 필드 (Chart 의 컬럼 매핑 — `literal` 모드) 는 셀렉트 — 값 집합이 문서마다
+  //   달라 seg 판정의 대상이 아니다
+  const editor: FieldEditor =
+    optionValueMode === "literal"
+      ? { type: "select" }
+      : resolveFieldEditor(field);
+
   switch (field.kind) {
-    // 선택지 (variant · size · fillStyle · enum) 는 전부 셀렉트 — Styles 패널의 Ratio · Overflow 와
-    //   같은 어법. 종전엔 옵션 수·글자 폭에 따라 seg 와 셀렉트가 갈려 (Size 가 S M L 은 seg, XS~XL 은
-    //   셀렉트) 컴포넌트마다 다른 컨트롤이 됐다 (2026-09-15 사용자 판정). 아이콘 칩 seg 는 Styles
-    //   패널의 아이콘 글리프 (정렬 · 굵기) 에만.
+    // 선택지 (variant · size · fillStyle · enum) — 매핑표 (fieldEditor.ts) 가 컨트롤을 정한다:
+    //   seg (글자 · 아이콘 · 색 점) / 9-위치 피커 / 스와치 seg / 셀렉트 (+색 점). 2026-09-15 사용자
+    //   판정 — 옵션 수·글자 폭이 아니라 필드 의미로, 같은 키는 어느 컴포넌트에서든 같은 컨트롤.
     case "variant":
     case "enum":
     case "fillStyle":
-    case "size":
+    case "size": {
+      const current = String(value ?? field.baseValue ?? "");
+      const options = field.options ?? [];
+      if (editor.type === "placement") {
+        return (
+          <PropertyPlacementPicker
+            label={field.label}
+            value={current}
+            onChange={(v) => update(v)}
+            options={options}
+          />
+        );
+      }
+      if (editor.type === "swatch-seg") {
+        // staticColor — Auto 는 글자, White/Black 은 색 점만
+        return (
+          <PropertySegment
+            label={field.label}
+            value={current}
+            onChange={(v) => update(v)}
+            swatchOnly
+            options={options.map((o) => ({
+              value: o.value,
+              label: o.label,
+              swatch:
+                o.value === "white"
+                  ? "#fff"
+                  : o.value === "black"
+                    ? "#000"
+                    : undefined,
+            }))}
+          />
+        );
+      }
+      if (editor.type === "seg") {
+        // size 는 5단까지 — 초과 단계 (Text 의 2XL/3XL) 는 Styles 패널 font-size 로. 값이 그 밖이면
+        //   seg 는 선택 없음 + legend 뒤 「3XL · set in Styles」
+        const segOptions =
+          field.kind === "size" ? sizeSegOptions(options) : options;
+        const currentLabel =
+          options.find((o) => o.value === current)?.label ?? current;
+        return (
+          <PropertySegment
+            label={field.label}
+            value={current}
+            onChange={(v) => update(v)}
+            outOfRangeHint={
+              field.kind === "size"
+                ? `${currentLabel} · ${t("propertiesPanel.sizeOutOfRange")}`
+                : undefined
+            }
+            options={segOptions.map((o) => ({
+              value: o.value,
+              label: o.label,
+              icon: editor.icons?.[o.value],
+              swatch: editor.swatch ? VARIANT_SWATCH[o.value] : undefined,
+            }))}
+          />
+        );
+      }
       return (
         <PropertySelect
           label={field.label}
-          value={String(value ?? field.baseValue ?? "")}
+          value={current}
           onChange={(v) => update(v)}
-          options={field.options ?? []}
+          options={options}
           translateOptions={translateOptions}
           optionValueMode={optionValueMode}
+          swatches={
+            editor.type === "select" && editor.swatch
+              ? VARIANT_SWATCH
+              : undefined
+          }
         />
       );
+    }
 
+    // boolean 은 섹션 단위 칩 묶음 (`ChipGroupField`) 이 그린다 — 여기로 오면 묶음 밖 (없어야 한다)
     case "boolean":
-      return (
-        <PropertySwitch
-          label={field.label}
-          isSelected={Boolean(value ?? field.baseValue)}
-          onChange={(checked) => update(checked)}
-        />
-      );
+      return null;
 
     case "string":
       // ADR-159 P4a: 템플릿 대상 텍스트 키(semantic) + 소유 collection 컬럼 존재
@@ -469,23 +536,42 @@ const GenericField = memo(function GenericField({
       );
     }
 
-    case "number":
+    case "number": {
+      const numeric =
+        value != null
+          ? Number(value)
+          : field.baseValue != null
+            ? Number(field.baseValue)
+            : undefined;
+      // 상한 있는 수 (strokeWidth · 각도 · 반지름 · 지속시간 …) 는 슬라이더 + 직접 입력 값 칸 —
+      //   「어디쯤」 이 보인다 (Styles 「Width ──●── 1 px」 와 같은 행). 나머지는 스텝퍼.
+      if (editor.type === "slider") {
+        return (
+          <PropertySlider
+            label={field.label}
+            value={numeric ?? editor.min}
+            onChange={() => {}}
+            onChangeEnd={(val) => update(val)}
+            editable
+            unit={editor.unit}
+            min={editor.min}
+            max={editor.max}
+            step={editor.step}
+            formatValue={(val) => String(val)}
+          />
+        );
+      }
       return (
         <PropertyNumberInput
           label={field.label}
-          value={
-            value != null
-              ? Number(value)
-              : field.baseValue != null
-                ? Number(field.baseValue)
-                : undefined
-          }
+          value={numeric}
           onChange={(val) => update(val)}
           min={field.min}
           max={field.max}
           step={field.step}
         />
       );
+    }
 
     case "icon":
       return (
@@ -527,6 +613,113 @@ const GenericField = memo(function GenericField({
       return null;
   }
 }, areGenericFieldPropsEqual);
+
+const CHIP_GROUP_ORDER: readonly ChipGroup[] = ["Options", "Show", "Fill"];
+const CHIP_GROUP_LABEL_KEY = {
+  Options: "propertiesPanel.chipGroupOptions",
+  Show: "propertiesPanel.chipGroupShow",
+  Fill: "propertiesPanel.chipGroupFill",
+} as const;
+
+type ChipEditor = Extract<FieldEditor, { type: "chip" }>;
+
+/**
+ * 같은 섹션의 boolean (+ On/Off enum) 을 한 묶음으로 — 섹션당 그룹 (Options / Show / Fill) 하나씩.
+ * 각 칩은 자기 prop 하나를 쓴다 (부정형은 반전 · On/Off enum 은 on/off 문자열).
+ */
+const ChipGroupField = memo(function ChipGroupField({
+  group,
+  fields,
+  onSemanticUpdate,
+  onStyleUpdate,
+  elementId,
+}: GenericFieldRouting & { group: ChipGroup; fields: ResolvedField[] }) {
+  const { t } = useI18n();
+  const editors = useMemo(
+    () => fields.map((f) => resolveFieldEditor(f) as ChipEditor),
+    [fields],
+  );
+  const keys = useMemo(() => fields.map((f) => f.key), [fields]);
+  const bases = useMemo(() => fields.map((f) => f.baseValue), [fields]);
+  // 묶음의 origin 은 같다 (semantic) — 첫 필드 기준
+  const origin = fields[0]?.origin ?? "semantic";
+  const snapshot = useCanonicalPropertyValuesSnapshot(
+    elementId,
+    origin,
+    keys,
+    bases,
+  );
+  const chips = useMemo<PropertyChip[]>(() => {
+    const values = JSON.parse(snapshot) as unknown[];
+    return fields.map((field, index) => {
+      const editor = editors[index]!;
+      const raw = values[index];
+      const on = editor.onValue != null ? raw === editor.onValue : Boolean(raw);
+      return {
+        key: field.key,
+        label: editor.label,
+        selected: editor.negate ? !on : on,
+      };
+    });
+  }, [editors, fields, snapshot]);
+  const handleToggle = useCallback(
+    (key: string, selected: boolean) => {
+      const index = fields.findIndex((f) => f.key === key);
+      const editor = editors[index];
+      const field = fields[index];
+      if (!editor || !field) return;
+      const on = editor.negate ? !selected : selected;
+      const next =
+        editor.onValue != null
+          ? on
+            ? editor.onValue
+            : editor.offValue
+          : on;
+      if (field.origin === "style") onStyleUpdate(key, next);
+      else onSemanticUpdate(key, next);
+    },
+    [editors, fields, onSemanticUpdate, onStyleUpdate],
+  );
+  return (
+    <PropertyChipGroup
+      label={t(CHIP_GROUP_LABEL_KEY[group])}
+      chips={chips}
+      onToggle={handleToggle}
+    />
+  );
+});
+
+/** 섹션 필드를 칩 묶음 / 칩에 종속된 필드 / 나머지로 나눈다. */
+function splitChipFields(fields: readonly ResolvedField[]): {
+  rows: ResolvedField[];
+  chipGroups: Array<{ group: ChipGroup; fields: ResolvedField[] }>;
+  dependents: ResolvedField[];
+} {
+  const chipKeys = new Set<string>();
+  const byGroup = new Map<ChipGroup, ResolvedField[]>();
+  for (const field of fields) {
+    const editor = resolveFieldEditor(field);
+    if (editor.type !== "chip") continue;
+    chipKeys.add(field.key);
+    byGroup.set(editor.group, [...(byGroup.get(editor.group) ?? []), field]);
+  }
+  const rows: ResolvedField[] = [];
+  const dependents: ResolvedField[] = [];
+  for (const field of fields) {
+    if (chipKeys.has(field.key)) continue;
+    const gate =
+      field.visibleWhen && "key" in field.visibleWhen
+        ? field.visibleWhen.key
+        : undefined;
+    // 게이트가 칩이면 (Show Value Label → Value Label) 묶음 바로 아래
+    if (gate && chipKeys.has(gate)) dependents.push(field);
+    else rows.push(field);
+  }
+  const chipGroups = CHIP_GROUP_ORDER.filter((g) => byGroup.has(g)).map(
+    (group) => ({ group, fields: byGroup.get(group)! }),
+  );
+  return { rows, chipGroups, dependents };
+}
 
 /**
  * ResolvedField[] → section 그룹 + kind dispatch 렌더.
@@ -638,52 +831,75 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           return (
             <PropertySection key={section} title={sectionTitle(section)}>
               {head}
-              {packFieldRows(sortFields(sectionFields)).map((row) =>
-                // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
-                row.length === 1 && row[0]!.kind === "items-manager" ? (
-                  <GenericField
-                    key={`${row[0]!.origin}:${row[0]!.key}`}
-                    field={row[0]!}
-                    onSemanticUpdate={onSemanticUpdate}
-                    onStyleUpdate={onStyleUpdate}
-                    elementId={elementId}
-                    componentType={componentType}
-                    ownerColumns={ownerColumns}
-                    ownerFields={ownerFields}
-                  />
-                ) : (
-                  <div
-                    key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
-                    className="fieldset-row"
-                    data-wide={
-                      row.length === 1 && fieldSpan(row[0]!) === "wide"
-                        ? "true"
-                        : undefined
-                    }
-                  >
-                    {row.map((field) => (
+              {(() => {
+                const { rows, chipGroups, dependents } =
+                  splitChipFields(sectionFields);
+                const renderRows = (list: readonly ResolvedField[]) =>
+                  packFieldRows(sortFields(list)).map((row) =>
+                    // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
+                    row.length === 1 && row[0]!.kind === "items-manager" ? (
                       <GenericField
-                        key={`${field.origin}:${field.key}`}
-                        field={field}
+                        key={`${row[0]!.origin}:${row[0]!.key}`}
+                        field={row[0]!}
                         onSemanticUpdate={onSemanticUpdate}
                         onStyleUpdate={onStyleUpdate}
                         elementId={elementId}
                         componentType={componentType}
                         ownerColumns={ownerColumns}
                         ownerFields={ownerFields}
-                        translateOptions={
-                          !literalOptionFields?.includes(field.key)
+                      />
+                    ) : (
+                      <div
+                        key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
+                        className="fieldset-row"
+                        data-wide={
+                          row.length === 1 && fieldSpan(row[0]!) === "wide"
+                            ? "true"
+                            : undefined
                         }
-                        optionValueMode={
-                          literalOptionFields?.includes(field.key)
-                            ? "literal"
-                            : "legacy"
-                        }
+                      >
+                        {row.map((field) => (
+                          <GenericField
+                            key={`${field.origin}:${field.key}`}
+                            field={field}
+                            onSemanticUpdate={onSemanticUpdate}
+                            onStyleUpdate={onStyleUpdate}
+                            elementId={elementId}
+                            componentType={componentType}
+                            ownerColumns={ownerColumns}
+                            ownerFields={ownerFields}
+                            translateOptions={
+                              !literalOptionFields?.includes(field.key)
+                            }
+                            optionValueMode={
+                              literalOptionFields?.includes(field.key)
+                                ? "literal"
+                                : "legacy"
+                            }
+                          />
+                        ))}
+                      </div>
+                    ),
+                  );
+                return (
+                  <>
+                    {renderRows(rows)}
+                    {/* boolean 은 섹션당 칩 묶음 (Options → Show → Fill) — 전폭 217, 행 래퍼 없음.
+                        칩이 게이트인 종속 필드 (Value Label · Legend Position) 는 묶음 바로 아래 */}
+                    {chipGroups.map(({ group, fields: chipFields }) => (
+                      <ChipGroupField
+                        key={`chips:${group}`}
+                        group={group}
+                        fields={chipFields}
+                        onSemanticUpdate={onSemanticUpdate}
+                        onStyleUpdate={onStyleUpdate}
+                        elementId={elementId}
                       />
                     ))}
-                  </div>
-                ),
-              )}
+                    {renderRows(dependents)}
+                  </>
+                );
+              })()}
               {tail}
             </PropertySection>
           );

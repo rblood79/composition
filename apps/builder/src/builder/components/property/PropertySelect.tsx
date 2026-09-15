@@ -19,6 +19,16 @@ import {
   useOptionalI18n,
 } from "../../../i18n";
 
+const SWATCH_STYLE = {
+  flex: "none",
+  display: "inline-block",
+  width: "var(--text-xs)",
+  height: "var(--text-xs)",
+  borderRadius: "var(--radius-full)",
+  boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.12)",
+  marginInlineEnd: "var(--spacing-xs)",
+} as const;
+
 interface PropertySelectProps {
   label: string;
   value: string;
@@ -191,13 +201,7 @@ export const PropertySelect = memo(
               )}
               {/* 값 없음은 「—」 — RAC 기본 「Select an item」 이 반폭 55 에서 「Select an」 으로 잘린다;
                   이름은 legend/aria-label 이 준다 (2026-09-15 live 전수 대조) */}
-              {swatches && swatches[value] != null && (
-                <span
-                  aria-hidden="true"
-                  className="property-select__swatch"
-                  style={{ background: swatches[value] }}
-                />
-              )}
+              {/* 색 점은 항목 children 에 있고 SelectValue 가 선택 항목의 children 을 그대로 그린다 */}
               <SelectValue>
                 {({ isPlaceholder, defaultChildren }) =>
                   isPlaceholder ? "—" : defaultChildren
@@ -244,7 +248,12 @@ export const PropertySelect = memo(
                       <span
                         aria-hidden="true"
                         className="property-select__swatch"
-                        style={{ background: swatches[option.value] }}
+                        // 팝오버는 portal (`.section` 밖) 이고 생성 Select.css 가 unlayered 라 크기는
+                        //   인라인으로 고정한다 — 12 (`--text-xs`) 점, 글자 앞 여백 4
+                        style={{
+                          ...SWATCH_STYLE,
+                          background: swatches[option.value],
+                        }}
                       />
                     )}
                     {i18n && translateOptions

@@ -155,7 +155,7 @@ const SLIDER_RANGE: Readonly<
 };
 
 /** 부정형 boolean — 칩은 긍정형 (켜짐 = 보임). */
-const NEGATED: ReadonlySet<string> = new Set(["hideTimeZone"]);
+const NEGATED: ReadonlySet<string> = new Set(["hideTimeZone", "hideArrow"]);
 
 /** On/Off 값 enum — 칩으로. */
 const ON_OFF: ReadonlySet<string> = new Set(["autoCorrect", "spellCheck"]);
@@ -184,7 +184,7 @@ function textWidth(text: string): number {
 
 function chipLabel(key: string, label: string): string {
   if (NEGATED.has(key)) return label.replace(/^Hide\s+/, "");
-  return label.replace(/^(Show|Fill|Is|Allows)\s+/, "");
+  return label.replace(/^(Show|Fill|Is|Should)\s+/, "");
 }
 function chipGroup(key: string, label: string): ChipGroup {
   if (NEGATED.has(key)) return "Show";

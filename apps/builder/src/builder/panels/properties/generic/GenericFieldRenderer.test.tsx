@@ -144,12 +144,18 @@ const enumField = (
 // 필드 라벨은 legend 한 번 (Switch 안의 중복 글자는 2026-09-14 에 제거 — 접근 이름은 aria-label).
 // 2026-09-15 부터 라벨은 전부 legend (suffix · inline 폐기) — 접근 이름 (fieldset aria-label) 도
 //   같이 세어 두면 어느 모드든 같은 판정.
+// 2026-09-15 컨트롤 어법: boolean 은 섹션당 칩 묶음 — 필드 이름은 legend (「Options」) 가 아니라
+//   칩 버튼 글자에 있다. 칩도 같이 센다.
 const labels = (container: HTMLElement): string[] =>
   [
     ...container.querySelectorAll(
-      "label, legend, fieldset.properties-aria[aria-label]",
+      "label, legend, fieldset.properties-aria[aria-label], .property-chips .react-aria-ToggleButton",
     ),
-  ].map((l) => l.getAttribute("aria-label") ?? l.textContent ?? "");
+  ].map((l) =>
+    l.classList.contains("react-aria-ToggleButton")
+      ? (l.textContent ?? "")
+      : (l.getAttribute("aria-label") ?? l.textContent ?? ""),
+  );
 
 describe("GenericFieldRenderer — ADR-208 visibleWhen live 결선", () => {
   it("조건 미선언 필드는 그대로 보인다 (결선의 노출면은 선언한 필드뿐)", () => {

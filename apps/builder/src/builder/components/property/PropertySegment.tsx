@@ -26,7 +26,7 @@ import "./PropertySegment.css";
 export interface PropertySegmentOption {
   value: string;
   label: string;
-  /** 있으면 아이콘 seg — 글자 대신 글리프, 이름은 `aria-label` (툴팁은 title). */
+  /** 있으면 아이콘 seg — 글자 대신 글리프, 이름은 `aria-label`. */
   icon?: LucideIcon;
   /** 있으면 색 점 — 글자 앞 (의미색 variant) 또는 글자 대신 (`swatchOnly`). */
   swatch?: string;
@@ -97,7 +97,6 @@ export const PropertySegment = memo(function PropertySegment({
               key={option.value}
               id={option.value}
               aria-label={iconMode || swatchOnly ? text : undefined}
-              title={iconMode || swatchOnly ? text : undefined}
             >
               {Icon ? (
                 <Icon

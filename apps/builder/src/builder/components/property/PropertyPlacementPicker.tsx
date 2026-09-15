@@ -77,9 +77,6 @@ export const PropertyPlacementPicker = memo(function PropertyPlacementPicker({
           disallowEmptySelection
           selectedKeys={byValue.has(value) ? [value] : []}
           onSelectionChange={handleChange}
-          disabledKeys={GRID.filter(
-            (k): k is string => k != null && !byValue.has(k),
-          )}
         >
           {GRID.map((key, index) =>
             key == null ? (
@@ -93,7 +90,7 @@ export const PropertyPlacementPicker = memo(function PropertyPlacementPicker({
                 key={key}
                 id={key}
                 aria-label={localize(byValue.get(key) ?? key)}
-                title={localize(byValue.get(key) ?? key)}
+                isDisabled={!byValue.has(key)}
               >
                 <span className="alignment-dot" />
               </ToggleButton>
