@@ -81,9 +81,17 @@
     color: var(--fg-muted);
   }
 
-  .effect-layer-row__scrub {
+  /* Blur 행의 scrub — 28 그룹 안 20 (Fill 행 scrub 과 같은 규칙, 2026-09-15) */
+  .effect-layer-row__body:has(.effect-layer-row__scrub) {
+    padding-block: var(--spacing);
+  }
+
+  .effect-layer-row__scrub.scrub-input {
     width: 64px;
     flex-shrink: 0;
+    block-size: var(--text-xl);
+    border: none;
+    box-shadow: var(--shadow-sm);
   }
 
   /* 레이어 편집 팝오버 — 233 (패널 최소 폭, 색 피커·Fill 팝오버와 같은 폭) */

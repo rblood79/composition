@@ -5,10 +5,10 @@
  */
 
 @layer components {
-  /* 목록 행 = c12 (lrow 28, bg-muted) + 28 열 (눈 토글) — 인스펙터 행 템플릿과 같은 두 칸.
-     첫 레이어도 이 행이다 (종전엔 Background fieldset 의 큰 swatch 버튼 + 아래 추가 행).
-     lrow 안: [swatch 16 · 라벨 (팝오버 trigger, flex 1)] [불투명도 scrub 56] [제거 28 hover]
-     (panel-ui 02, 2026-09-14) */
+  /* 목록 행 = c12 (그룹 28) + 28 열 (눈 토글) — 인스펙터 행 템플릿과 같은 두 칸.
+     그룹 안은 다른 28 그룹과 같은 규칙 — pad 4, 안쪽 컨트롤 20:
+     [swatch 20×20 (팝오버 trigger, 라벨 포함 flex 1)] [불투명도 scrub 20] [제거 20×20 — 항상 보임]
+     (2026-09-15 사용자 판정 — 종전 swatch 16 · scrub 28 · 제거 28 hover 전용) */
   .fill-layer-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--control-size);
@@ -28,57 +28,44 @@
     box-sizing: border-box;
     min-width: 0;
     block-size: var(--control-size);
-    padding: 0 0 0 var(--spacing-xs);
+    padding: var(--spacing);
     background: var(--bg-muted);
     border-radius: var(--radius-md);
   }
 
-  /* swatch + 라벨 = 팝오버 trigger 하나 (종전 swatch 만) */
+  /* swatch + 라벨 = 팝오버 trigger 하나 — 상자 없음, swatch 가 20 raised 상자 */
   .fill-layer-row__trigger {
     display: flex;
     flex: 1;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-xs);
     min-width: 0;
-    block-size: 100%;
-    padding: 0 var(--spacing-xs);
+    block-size: var(--text-xl);
+    padding: 0;
     background: transparent;
     border: none;
     border-radius: var(--radius-sm);
     color: var(--fg);
     cursor: pointer;
 
-    &:hover {
-      background: var(--accent-subtle);
-    }
-
     &:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
     }
 
-    .react-aria-ColorSwatch {
-      width: 16px;
-      height: 16px;
-      border-radius: 3px;
+    .react-aria-ColorSwatch,
+    .fill-layer-row__gradient-swatch,
+    .fill-layer-row__mesh-swatch,
+    .fill-layer-row__image-swatch {
+      width: var(--text-xl);
+      height: var(--text-xl);
+      border-radius: var(--radius-sm);
       flex-shrink: 0;
+      box-shadow: var(--shadow-sm);
     }
   }
 
-  /* Gradient swatch */
-  .fill-layer-row__gradient-swatch {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    flex-shrink: 0;
-  }
-
-  /* Mesh swatch */
   .fill-layer-row__mesh-swatch {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    flex-shrink: 0;
     background: conic-gradient(
       #ff0000,
       #ffff00,
@@ -90,12 +77,7 @@
     );
   }
 
-  /* Image swatch */
   .fill-layer-row__image-swatch {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
-    flex-shrink: 0;
     background-size: cover;
     background-position: center;
     background-color: var(--accent-subtle);
@@ -104,6 +86,7 @@
   /* Hex value display */
   .fill-layer-row__hex {
     flex: 1;
+    padding-inline-start: var(--spacing);
     font-size: var(--text-xs);
     font-family: var(--font-mono);
     color: var(--fg);
@@ -115,46 +98,44 @@
     min-width: 0;
   }
 
-  /* Opacity scrub — 28 상자 (ScrubInput 소유), 폭만 여기서 */
-  .fill-layer-row__opacity-scrub {
-    width: 56px;
+  /* Opacity scrub — 그룹 안 20 (ScrubInput 기본 28 상자를 안쪽 티어로) */
+  .fill-layer-row__opacity-scrub.scrub-input {
+    width: 48px;
     flex-shrink: 0;
+    block-size: var(--text-xl);
+    border: none;
+    box-shadow: var(--shadow-sm);
   }
 
-  /* Delete button */
+  /* Delete — 20×20 raised, 항상 보임 */
   .fill-layer-row__delete {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--control-size);
-    height: var(--control-size);
+    width: var(--text-xl);
+    height: var(--text-xl);
     padding: 0;
-    background: transparent;
+    background: var(--bg-overlay);
+    box-shadow: var(--shadow-sm);
     border: none;
     border-radius: var(--radius-sm);
+    color: var(--fg-muted);
     cursor: pointer;
     flex-shrink: 0;
-    opacity: 0;
-    transition: opacity 0.15s ease;
 
     &:hover {
-      background: var(--accent-subtle);
+      color: var(--fg);
     }
 
     &:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
-      opacity: 1;
     }
 
     &:disabled {
+      opacity: 0.38;
       cursor: default;
-      visibility: hidden;
     }
-  }
-
-  .fill-layer-row:hover .fill-layer-row__delete {
-    opacity: 1;
   }
 
   /* Fill detail popover container */

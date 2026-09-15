@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Fill 레이어 행을 28 그룹 / 안쪽 20 규칙으로** — swatch 16 → 20×20 raised (팝오버 trigger), 불투명도 scrub 28 → 20, 삭제 버튼이 hover 전엔 안 보이던 것 → 항상 보이는 20×20 raised. Effect 의 Blur 행 scrub 도 20.
 - **Fill 의 불투명도는 한 숫자** — 종전엔 레이어 행 「%」 · 팝오버 Opacity 행 · 피커 알파 슬라이더/A (색 자체 알파) 세 곳이 각각이었다 (Effect 의 Opacity 는 요소 전체라 별개). 팝오버 Opacity 행은 제거, 단색 fill 의 피커 알파는 레이어 행 「%」 와 같은 `fill.opacity` 를 읽고 쓴다 (Figma 어법, 색은 …FF 로 저장). 종전 문서의 색 알파 (…80) 는 팝오버를 열 때 한 번 opacity 로 접는다 (알파 × opacity — 화면은 그대로). 그래디언트는 stop 마다 알파 (별개 축). 색 영역·색상 슬라이더의 키보드 입력이 알파를 1 로 되돌리던 RAC 결함도 같이 막음.
 - **그룹 (28) 안 버튼은 전부 20×20 — 티어 밖이던 4곳 정렬**: Border Style · Font Style · Decoration · Case 의 아이콘 칩이 행 폭을 나눠 갖던 것 (24 · 37) → 20×20 (Sides · Align 과 같음) · Border Color 「■ 2563EB」 의 swatch 16 → 20 · 색 피커 HEX/RGBA/CSS seg 버튼 24 → 20 (seg 28) · 데이터 바인딩 액션 버튼 22 → 20.
 - **Gap 의 ▾ 메뉴를 spacing 토큰 preset 으로** — px 단위 하나뿐이던 메뉴 대신 「Reset · XS · 4 · S · 8 · M · 12 · L · 16 · XL · 24」 (토큰 이름 + 풀린 px, px 로 commit). 시안 반영 때 뺐던 preset 복귀 (2026-09-15 사용자 판정).
