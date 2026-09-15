@@ -60,6 +60,8 @@ interface PropertyUnitInputProps {
    * 20 Settings). preset 이 있으면 무시 (preset 은 ▾ 메뉴 그대로).
    */
   unitSuffix?: boolean;
+  /** suffix/unit 트리거 옆 ⇕ stepper 를 끈다 (Border 코너 4 — 87 칸에 글리프 + 값 + PX 만) */
+  hideStepper?: boolean;
 }
 
 const DEFAULT_UNITS = ["px", "%", "rem", "em", "vh", "vw", "reset"];
@@ -258,6 +260,7 @@ export const PropertyUnitInput = memo(
     labelMode = "legend",
     suffixLabel,
     unitSuffix = false,
+    hideStepper = false,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -653,6 +656,7 @@ export const PropertyUnitInput = memo(
     // 빈 값 (placeholder 「auto」) 도 stepper 없음 — 시안 「Auto MAX W」 는 글자만 (panel-ui 01)
     const showStepper =
       (suffixIsTrigger || unitIsTrigger) &&
+      !hideStepper &&
       !isKeyword &&
       !isPreservedEmptyValue &&
       !isDisabled;
@@ -874,6 +878,7 @@ export const PropertyUnitInput = memo(
       prevProps.labelMode === nextProps.labelMode &&
       prevProps.suffixLabel === nextProps.suffixLabel &&
       prevProps.unitSuffix === nextProps.unitSuffix &&
+      prevProps.hideStepper === nextProps.hideStepper &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&
       JSON.stringify(prevProps.units) === JSON.stringify(nextProps.units)

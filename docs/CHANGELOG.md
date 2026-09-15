@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Border 코너 4 필드의 ⇕ stepper 제거 — 87 칸에 코너 글리프 · 값 · PX 만 (`PropertyUnitInput hideStepper`).
 - **Border Width · Radius · Effect Opacity 슬라이더의 라벨도 legend 로** — 상자 안 왼쪽 글자 (「Width ──●── 2 PX」, inline) 를 상자 위 legend 로 (46). 코너 4 필드의 코너 글리프는 사용자 판정으로 유지 (2026-09-15 3차).
 - **Position 절 (X · Y · Left · Top) · Typography (Font Weight · Font Size · Line Height · Letter Spacing) · Shadow 편집기 (Offset X/Y · Blur · Spread) 도 같은 legend 어법으로** — 상자 안 suffix (「24 LEFT」 「16 SIZE」 「0 X」) · Font Weight inline 을 전부 상자 위 legend + 상자 안 단위 트리거로 (2026-09-15 사용자 판정 2차).
 - **Size 절 8 필드 (Width · Height · Min W/H · Max W/H · Ratio · Overflow) 의 라벨이 상자 안 suffix (「fit W」 「auto MIN W」) 에서 Gap 과 같은 legend (상자 위 라벨 18 + 상자 28 = 46) 로** — 2026-09-15 사용자 판정 (시안 panel-ui 01 의 suffix 어법은 확인 착오). 단위는 상자 안 트리거 (「400 PX ⇕」), 값이 키워드 (fill · fit · auto) 면 값 칸에 키워드 · 트리거는 「—」. 동작 (W/H 단위 메뉴의 fill · fit-content, 빈 min/max 의 단위 선택 보존, stepper) 은 그대로.

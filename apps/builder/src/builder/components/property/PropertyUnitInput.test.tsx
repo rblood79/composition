@@ -577,6 +577,27 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     expect(onChange).toHaveBeenLastCalledWith("9px");
   });
 
+  it("hideStepper — 단위 트리거는 남고 ⇕ stepper 만 없다 (Border 코너 4)", () => {
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Top left radius"
+        value="8px"
+        units={["px", "reset"]}
+        unitSuffix
+        hideStepper
+        allowKeywords={false}
+        onChange={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: "Top left radius Unit" }).textContent,
+    ).toBe("px");
+    expect(
+      screen.queryByRole("button", { name: "Increase Top left radius" }),
+    ).toBeNull();
+  });
+
   it("\"fill\" 은 units 에 실린 필드에서만 typed 입력을 받는다", () => {
     const onChange = vi.fn();
     useStore.setState({ selectedElementId: "element-1" } as never);

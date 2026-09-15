@@ -55,6 +55,8 @@ describe("BorderSection border preset contract", () => {
       expect(source).toContain(`prop: "${prop}"`);
     }
     expect(source).toContain('labelMode="icon"');
+    // 코너 4 는 stepper 없음 (2026-09-15 사용자 판정 — 87 칸에 글리프 · 값 · PX 만)
+    expect(source).toContain("hideStepper");
     expect(source).toContain("icon={CORNER_ICONS[corner]}");
     expect(source).toContain("updateStyleImmediate(prop, value)");
   });
