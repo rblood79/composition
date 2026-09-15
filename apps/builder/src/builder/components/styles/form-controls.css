@@ -464,6 +464,12 @@
         padding-inline-end: var(--spacing-xs);
       }
 
+      /* unit 모드 (legend + unitSuffix) 의 트리거는 Select 의 ▾ 와 같은 raised 상자 — Group
+         안쪽 여백도 Select 와 같게 (2026-09-15 사용자 판정: 「PX」 글자만 있던 것을 버튼으로) */
+      &[data-label-mode="unit"] .react-aria-Group {
+        padding-inline-end: var(--spacing);
+      }
+
       /* 아이콘 label (20) 이 없으면 Input 줄 높이 18 로 상자가 26 — 안쪽 20 을 못 박는다 */
       .react-aria-Input {
         min-width: 0;
@@ -524,11 +530,7 @@
     /* suffix 가 곧 단위 메뉴 트리거 (「8 PX」 의 PX 클릭, panel-ui 05 #3) — 위 UnitComboBox
        .react-aria-Button 20 상자 규칙을 글자 폭으로 되돌리고 pointer 를 살린다. ▾ 상자 제거로
        값 폭 +20 (종전 「au… LEFT」 잘림). */
-    /* legend 모드 `data-label-mode="unit"` (unitSuffix — 「8 PX」 의 PX 가 단위 메뉴) 도 같은 조각 */
     .property-unit-input[data-label-mode="suffix"]
-      .react-aria-UnitComboBox
-      .react-aria-Button.property-unit-input__suffix--trigger,
-    .property-unit-input[data-label-mode="unit"]
       .react-aria-UnitComboBox
       .react-aria-Button.property-unit-input__suffix--trigger {
       width: auto;
@@ -553,6 +555,26 @@
         outline: 2px solid var(--focus-ring);
         outline-offset: -2px;
         border-radius: var(--radius-xs);
+      }
+    }
+
+    /* legend 모드 `data-label-mode="unit"` (unitSuffix — 「8 PX」 의 PX 가 단위 메뉴): Select 의
+       ▾ 상자 (20, raised) 와 같은 버튼에 단위 글자 (10 mono caps) — 종전 글자만 있던 트리거는
+       버튼으로 안 보였다 (2026-09-15 사용자 판정). 글자 폭 + 여백, 최소 20 (「—」). */
+    .property-unit-input[data-label-mode="unit"]
+      .react-aria-UnitComboBox
+      .react-aria-Button.property-unit-input__suffix--trigger {
+      width: auto;
+      min-width: var(--text-xl);
+      height: var(--text-xl);
+      padding: 0 var(--spacing-xs);
+      pointer-events: auto;
+      cursor: pointer;
+      line-height: 1;
+
+      &[data-focus-visible] {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
       }
     }
 

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **단위 트리거를 버튼으로** — legend + 단위 필드 (Gap · Size · Position · Typography · Border 코너 · Shadow · Settings Page gap) 의 「PX」 가 글자만 있어 버튼으로 안 보였다 → Ratio 셀렉트의 ▾ 상자와 같은 raised 20 버튼에 단위 글자 (「—」 는 최소 20).
 - **절 헤더 액션 버튼 어법 통일** — Fill 「+」 · Spacing 펼침이 raised 상자 (SwatchIconButton 28) 라 reset 과 달랐다 → reset 을 기준으로 전부 투명 32 아이콘 버튼 (`ActionIconButton`, 모든 패널의 Section reset 포함).
 - **Spacing 절 헤더의 8-필드 펼침 토글 제거** — 박스 모델 다이어그램이 이미 4방향 변별 편집이라 중복 (FourWayGrid · 확장 CSS · i18n 키 삭제).
 - **단위 입력 필드의 ⇕ stepper 전부 제거** (Size · Position · Gap · Typography · Border 코너 · Shadow · Settings Page gap — `PropertyUnitInput` 에서 stepper 자체를 뺐다). 숫자 조정은 화살표 키 (⇧ = 10) 그대로.
