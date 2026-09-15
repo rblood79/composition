@@ -118,11 +118,19 @@ describe("TransformSection sizing controls", () => {
       } as Element,
     ]);
     render(<TransformSection />);
+    const widthGroup = screen.getByRole("group", { name: "Width" });
     expect(
-      within(screen.getByRole("group", { name: "Width" }))
-        .getByRole("combobox")
-        .getAttribute("placeholder"),
+      within(widthGroup).getByRole("combobox").getAttribute("placeholder"),
     ).toBe("fill");
+    // legend 모드 (Gap 과 같은 어법): legend 「Width」 가 상자 위, 단위 트리거는 키워드라 「—」
+    expect(widthGroup.querySelector("legend")?.textContent).toBe("Width");
+    expect(
+      within(widthGroup).getByRole("button", { name: /Unit$/ }).textContent,
+    ).toBe("—");
+    const heightGroup = screen.getByRole("group", { name: "Height" });
+    expect(
+      within(heightGroup).getByRole("button", { name: /Unit$/ }).textContent,
+    ).toBe("px");
   });
 
   it("offers only axis-relevant viewport units by default", async () => {

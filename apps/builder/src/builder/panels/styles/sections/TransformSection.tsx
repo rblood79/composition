@@ -537,16 +537,17 @@ const TransformSectionContent = memo(function TransformSectionContent({
     );
   }
 
-  // Size — 5행 (panel-ui 01): 「fit W | auto H」 · 「MIN W | MIN H」 · 「MAX W | MAX H」 ·
-  //   「Auto RATIO (열 2) · lock 28」 · 「Visible OVERFLOW (열 2)」. 라벨은 전부 필드 안 suffix,
-  //   Hug · Fill 은 W/H 단위 메뉴 (fit-content · fill). 제약은 항상 보인다.
+  // Size — 5행: 「Width | Height」 · 「Min W | Min H」 · 「Max W | Max H」 · 「Ratio (열 2) · lock 28」 ·
+  //   「Overflow (열 2)」. 라벨은 Gap 과 같은 legend (fieldset legend 위 · 상자 아래), 단위는 상자 안
+  //   트리거 (unitSuffix — 「100 PX」 · 키워드는 「fill —」). 시안 (panel-ui 01) 의 필드 안 suffix
+  //   라벨은 2026-09-15 사용자 판정으로 legend 로 되돌렸다. Hug · Fill 은 W/H 단위 메뉴
+  //   (fit-content · fill). 제약은 항상 보인다.
   return (
     <>
       <div className="transform-row">
         <PropertyUnitInput
           label="Width"
-          labelMode="suffix"
-          suffixLabel="W"
+          unitSuffix
           className="width"
           value={displayWidth}
           units={["reset", "px", "%", "vw", ...sizeModeUnits("width")]}
@@ -560,8 +561,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
         />
         <PropertyUnitInput
           label="Height"
-          labelMode="suffix"
-          suffixLabel="H"
+          unitSuffix
           className="height"
           value={displayHeight}
           units={["reset", "px", "%", "vh", ...sizeModeUnits("height")]}
@@ -580,8 +580,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
         <div className="transform-constraints">
           <PropertyUnitInput
             label="Min W"
-            labelMode="suffix"
-            suffixLabel="MIN W"
+            unitSuffix
             placeholder="auto"
             className="min-width"
             value={styleValues.minWidth}
@@ -594,8 +593,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
           />
           <PropertyUnitInput
             label="Min H"
-            labelMode="suffix"
-            suffixLabel="MIN H"
+            unitSuffix
             placeholder="auto"
             className="min-height"
             value={styleValues.minHeight}
@@ -609,8 +607,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
           <div className="fieldset-actions actions-constraint-min" />
           <PropertyUnitInput
             label="Max W"
-            labelMode="suffix"
-            suffixLabel="MAX W"
+            unitSuffix
             placeholder="auto"
             className="max-width"
             value={styleValues.maxWidth}
@@ -623,8 +620,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
           />
           <PropertyUnitInput
             label="Max H"
-            labelMode="suffix"
-            suffixLabel="MAX H"
+            unitSuffix
             placeholder="auto"
             className="max-height"
             value={styleValues.maxHeight}
@@ -638,7 +634,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
           <div className="fieldset-actions actions-constraint-max" />
           <PropertySelect
             label="Ratio"
-            labelMode="suffix"
             className="aspect-ratio-select"
             value={styleValues.aspectRatio || ""}
             options={ASPECT_RATIO_OPTIONS}
@@ -673,7 +668,6 @@ const TransformSectionContent = memo(function TransformSectionContent({
           </div>
           <PropertySelect
             label="Overflow"
-            labelMode="suffix"
             className="overflow"
             value={styleValues.overflow}
             options={OVERFLOW_OPTIONS}

@@ -294,8 +294,11 @@ export const PropertyUnitInput = memo(
     // suffix 모드의 키워드 값 ("normal" 등) 은 87 열에서 "nor…" 로 잘린다 — 포커스 전에는 빈
     //   입력 + placeholder (muted) 로 보이고, 포커스하면 키워드 글자가 편집 대상으로 들어온다.
     const [isInputFocused, setIsInputFocused] = useState(false);
+    // legend + unitSuffix (「fill —」) 도 같다 — 값 칸에 키워드, 단위 트리거는 — (키워드는 단위가 없다).
     const showKeywordAsPlaceholder =
-      labelMode === "suffix" && isKeyword && !isInputFocused;
+      (labelMode === "suffix" || (labelMode !== "icon" && unitSuffix)) &&
+      isKeyword &&
+      !isInputFocused;
     const numericInputValue = Number(inputValue.trim());
     const matchingPreset = findMatchingPreset(inputValue, presets);
     const selectedPreset =
@@ -641,7 +644,10 @@ export const PropertyUnitInput = memo(
     // legend 모드 + unitSuffix: 트리거 글자가 현재 단위 (「8 PX」, 단위 없음은 —)
     const unitIsTrigger = !isSuffix && (unitSuffix || isIconMode) && !hasPresets;
     const unitSuffixText =
-      unit === "" || unit === "reset" || (value === "" && units.includes("reset"))
+      unit === "" ||
+      unit === "reset" ||
+      isKeyword ||
+      (value === "" && units.includes("reset"))
         ? "—"
         : unit;
     // 빈 값 (placeholder 「auto」) 도 stepper 없음 — 시안 「Auto MAX W」 는 글자만 (panel-ui 01)

@@ -294,8 +294,8 @@
         align-self: end;
       }
 
-      /* Constraints 블록 (panel-ui 01 — 대조 B3): 「MIN W | MIN H」 「MAX W | MAX H」 · Ratio 열 2 +
-         lock 28 · Overflow 열 2 — 라벨은 전부 필드 안 suffix, legend 행 없음 (5행 × 28) */
+      /* Constraints 블록: 「Min W | Min H」 「Max W | Max H」 · Ratio 열 2 + lock 28 · Overflow 열 2 —
+         라벨은 Gap 과 같은 legend 행 (18 + 28 = 46, 2026-09-15 사용자 판정) */
       .transform-constraints {
         display: grid;
         grid-template-columns: var(--inspector-row-columns);
