@@ -104,6 +104,109 @@ function gradientStopsToCss(
     .join(", ");
 }
 
+/** fill 하나 → CSS 배경 층. color 는 backgroundColor (단층) / linear-gradient(c, c) (다층) 둘 다 낼 수 있게 색을 따로 준다. */
+type CssFillLayer =
+  | { kind: "color"; color: string }
+  | { kind: "image"; image: string; size?: string };
+
+function fillToCssLayer(fill: FillLike): CssFillLayer | null {
+  switch (fill?.type) {
+    case "color": {
+      const color = toCssColorWithAlpha(fill.color, readFillOpacity(fill));
+      return color ? { kind: "color", color } : null;
+    }
+    case "linear-gradient": {
+      const rotation = isFiniteNumber(fill.rotation) ? fill.rotation : 0;
+      return {
+        kind: "image",
+        image: `linear-gradient(${rotation}deg, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
+      };
+    }
+    case "radial-gradient": {
+      const cx = isFiniteNumber(fill.center?.x)
+        ? Math.round(fill.center.x * 100)
+        : 50;
+      const cy = isFiniteNumber(fill.center?.y)
+        ? Math.round(fill.center.y * 100)
+        : 50;
+      // fill 모델 radius(비율 0~1)를 ellipse 크기로 반영 — 과거 `circle`
+      // (farthest-corner) 고정은 radius 를 소거해 Skia(radius 소비)와 falloff
+      // 크기가 어긋났다 (2026-07-15 정정). radius 무효 시 기존 circle 보존.
+      const rw = isFiniteNumber(fill.radius?.width)
+        ? Math.round(fill.radius.width * 100)
+        : null;
+      const rh = isFiniteNumber(fill.radius?.height)
+        ? Math.round(fill.radius.height * 100)
+        : null;
+      const size =
+        rw !== null && rh !== null && rw > 0 && rh > 0
+          ? `${rw}% ${rh}%`
+          : "circle";
+      return {
+        kind: "image",
+        image: `radial-gradient(${size} at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
+      };
+    }
+    case "angular-gradient": {
+      const rotation = isFiniteNumber(fill.rotation) ? fill.rotation : 0;
+      const cx = isFiniteNumber(fill.center?.x)
+        ? Math.round(fill.center.x * 100)
+        : 50;
+      const cy = isFiniteNumber(fill.center?.y)
+        ? Math.round(fill.center.y * 100)
+        : 50;
+      return {
+        kind: "image",
+        image: `conic-gradient(from ${rotation}deg at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
+      };
+    }
+    case "image": {
+      if (typeof fill.url !== "string" || fill.url.length === 0) return null;
+      const size =
+        fill.mode === "stretch"
+          ? "100% 100%"
+          : fill.mode === "fit"
+            ? "contain"
+            : "cover";
+      return { kind: "image", image: `url(${fill.url})`, size };
+    }
+    case "mesh-gradient": {
+      const points = Array.isArray(fill.points) ? fill.points : [];
+      if (points.length < 4) return null;
+      const tl = toHex6(points[0]?.color) ?? "#FF0000";
+      const tr = toHex6(points[1]?.color) ?? "#FFFF00";
+      const bl = toHex6(points[2]?.color) ?? "#0000FF";
+      const br = toHex6(points[3]?.color) ?? "#00FF00";
+      const svg = [
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">',
+        "<defs>",
+        `<linearGradient id="t"><stop offset="0" stop-color="${tl}"/><stop offset="1" stop-color="${tr}"/></linearGradient>`,
+        `<linearGradient id="b"><stop offset="0" stop-color="${bl}"/><stop offset="1" stop-color="${br}"/></linearGradient>`,
+        '<linearGradient id="m" x2="0" y2="1"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient>',
+        '<mask id="fade"><rect width="100" height="100" fill="url(#m)"/></mask>',
+        "</defs>",
+        '<rect width="100" height="100" fill="url(#b)"/>',
+        '<rect width="100" height="100" fill="url(#t)" mask="url(#fade)"/>',
+        "</svg>",
+      ].join("");
+      return {
+        kind: "image",
+        image: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
+        size: "100% 100%",
+      };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * fills → CSS 배경. enabled fill 을 전부 그린다 (아래 → 위 = 배열 순서, 2026-09-15 — 종전엔
+ * 맨 위 하나만). 단층은 종전 출력 그대로 (color → backgroundColor, 그 외 backgroundImage).
+ * 다층은 CSS `background-image` 층 쌓기 — 목록 첫 항목이 맨 위이므로 배열을 뒤집고, 단색은
+ * `linear-gradient(c, c)` 한 층으로. `background-size` 는 층 수만큼 (이미지만 자기 크기, 그 외
+ * auto). Skia 는 buildBoxNodeData 의 fillLayers 가 같은 순서로 칠한다 (대칭).
+ */
 export function fillsToCssBackgroundStyle(
   fills: unknown[] | null | undefined,
 ): Pick<
@@ -112,100 +215,40 @@ export function fillsToCssBackgroundStyle(
 > {
   if (!fills) return {};
 
-  for (let i = fills.length - 1; i >= 0; i--) {
-    const fill = fills[i] as FillLike;
+  const layers: CssFillLayer[] = [];
+  for (const raw of fills) {
+    const fill = raw as FillLike;
     if (fill?.enabled === false) continue;
-
-    switch (fill?.type) {
-      case "color": {
-        const color = toCssColorWithAlpha(fill.color, readFillOpacity(fill));
-        return color ? { backgroundColor: color } : {};
-      }
-      case "linear-gradient": {
-        const rotation = isFiniteNumber(fill.rotation) ? fill.rotation : 0;
-        return {
-          backgroundImage: `linear-gradient(${rotation}deg, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
+    const layer = fillToCssLayer(fill);
+    if (layer) layers.push(layer);
+  }
+  if (layers.length === 0) return {};
+  if (layers.length === 1) {
+    const only = layers[0]!;
+    return only.kind === "color"
+      ? { backgroundColor: only.color }
+      : {
+          backgroundImage: only.image,
+          ...(only.size ? { backgroundSize: only.size } : {}),
         };
-      }
-      case "radial-gradient": {
-        const cx = isFiniteNumber(fill.center?.x)
-          ? Math.round(fill.center.x * 100)
-          : 50;
-        const cy = isFiniteNumber(fill.center?.y)
-          ? Math.round(fill.center.y * 100)
-          : 50;
-        // fill 모델 radius(비율 0~1)를 ellipse 크기로 반영 — 과거 `circle`
-        // (farthest-corner) 고정은 radius 를 소거해 Skia(radius 소비)와 falloff
-        // 크기가 어긋났다 (2026-07-15 정정). radius 무효 시 기존 circle 보존.
-        const rw = isFiniteNumber(fill.radius?.width)
-          ? Math.round(fill.radius.width * 100)
-          : null;
-        const rh = isFiniteNumber(fill.radius?.height)
-          ? Math.round(fill.radius.height * 100)
-          : null;
-        const size =
-          rw !== null && rh !== null && rw > 0 && rh > 0
-            ? `${rw}% ${rh}%`
-            : "circle";
-        return {
-          backgroundImage: `radial-gradient(${size} at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
-        };
-      }
-      case "angular-gradient": {
-        const rotation = isFiniteNumber(fill.rotation) ? fill.rotation : 0;
-        const cx = isFiniteNumber(fill.center?.x)
-          ? Math.round(fill.center.x * 100)
-          : 50;
-        const cy = isFiniteNumber(fill.center?.y)
-          ? Math.round(fill.center.y * 100)
-          : 50;
-        return {
-          backgroundImage: `conic-gradient(from ${rotation}deg at ${cx}% ${cy}%, ${gradientStopsToCss(fill.stops, readFillOpacity(fill))})`,
-        };
-      }
-      case "image": {
-        if (typeof fill.url !== "string" || fill.url.length === 0) return {};
-        const backgroundSize =
-          fill.mode === "stretch"
-            ? "100% 100%"
-            : fill.mode === "fit"
-              ? "contain"
-              : "cover";
-        return {
-          backgroundImage: `url(${fill.url})`,
-          backgroundSize,
-        };
-      }
-      case "mesh-gradient": {
-        const points = Array.isArray(fill.points) ? fill.points : [];
-        if (points.length < 4) return {};
-        const tl = toHex6(points[0]?.color) ?? "#FF0000";
-        const tr = toHex6(points[1]?.color) ?? "#FFFF00";
-        const bl = toHex6(points[2]?.color) ?? "#0000FF";
-        const br = toHex6(points[3]?.color) ?? "#00FF00";
-        const svg = [
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none" width="100%" height="100%">',
-          "<defs>",
-          `<linearGradient id="t"><stop offset="0" stop-color="${tl}"/><stop offset="1" stop-color="${tr}"/></linearGradient>`,
-          `<linearGradient id="b"><stop offset="0" stop-color="${bl}"/><stop offset="1" stop-color="${br}"/></linearGradient>`,
-          '<linearGradient id="m" x2="0" y2="1"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black"/></linearGradient>',
-          '<mask id="fade"><rect width="100" height="100" fill="url(#m)"/></mask>',
-          "</defs>",
-          '<rect width="100" height="100" fill="url(#b)"/>',
-          '<rect width="100" height="100" fill="url(#t)" mask="url(#fade)"/>',
-          "</svg>",
-        ].join("");
-        return {
-          backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
-          backgroundSize: "100% 100%",
-        };
-      }
-      default:
-        continue;
-    }
   }
 
-  return {};
+  const top = [...layers].reverse();
+  const hasImageSize = top.some((l) => l.kind === "image" && l.size);
+  return {
+    backgroundImage: top
+      .map((l) =>
+        l.kind === "color" ? `linear-gradient(${l.color}, ${l.color})` : l.image,
+      )
+      .join(", "),
+    ...(hasImageSize
+      ? {
+          backgroundSize: top
+            .map((l) => (l.kind === "image" && l.size ? l.size : "auto"))
+            .join(", "),
+        }
+      : {}),
+  };
 }
 
 export function adaptStyleWithFills(

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Fill 다층 렌더 — 레이어 목록의 fill 을 전부 그린다 (Canvas · Preview 대칭)] - 2026-09-15
+
+### Fixed
+
+- **Fill 레이어를 여러 개 쌓아도 맨 위 하나만 보이던 결함** — 레이어 UI (「+」 · 눈 · 순서) 는 있었지만 DOM (`fillsToCssBackgroundStyle`) 과 Skia (`getTopEnabledFill`) 둘 다 맨 위 enabled fill 하나로 끝냈다. 이제 enabled fill 전부를 아래 → 위 순서로 겹쳐 그린다 (사용자 판정 2 안, 2026-09-15).
+  - DOM: 2층 이상이면 `background-image` 층 쌓기 (목록 첫 항목이 맨 위, 단색은 `linear-gradient(c, c)`, 이미지 층만 `background-size`) — 단층 출력은 종전 그대로.
+  - Skia: `box.fillLayers` (아래 → 위) 를 같은 기하로 층마다 칠한다 (box · catalog 경로 둘 다). 맨 위 층은 `box.fill` / `fillColor` 객체를 공유해 드래그 presentation 패치가 그대로 보인다. 이미지 fill 은 Skia box 경로가 shader 로 못 그리던 종전 제약 그대로 (DOM 만).
+  - live: Frame 빨강 + 파랑 50% → Canvas 픽셀 (127, 0, 128) · Preview `linear-gradient(rgba(0,0,255,.5) …), linear-gradient(rgb(255,0,0) …)` · 아래 층 끄면 (127, 127, 255) · 위 층 25% → (191, 0, 64) · Button (catalog 경로) 초록 + 파랑 50% → (0, 127, 128).
+
 ## [Properties 패널 — Styles 와 같은 어법 (legend 라벨 · stepper 0 · 아이콘 prefix 0)] - 2026-09-15
 
 ### Changed

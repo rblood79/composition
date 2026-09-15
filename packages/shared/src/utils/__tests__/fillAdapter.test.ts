@@ -222,3 +222,48 @@ describe("adaptElementStyle — 그림자 리터럴 → CSS 변수", () => {
     expect(adaptElementStyle(none)).toBe(none);
   });
 });
+
+describe("fillAdapter — 다층 fill (2026-09-15)", () => {
+  it("enabled fill 2개 이상이면 background-image 층으로 전부 그린다 (맨 위가 목록 첫 항목, 단색은 linear-gradient(c, c))", () => {
+    expect(
+      fillsToCssBackgroundStyle([
+        { type: "color", enabled: true, opacity: 1, color: "#FF0000FF" },
+        {
+          type: "linear-gradient",
+          enabled: true,
+          opacity: 1,
+          rotation: 90,
+          stops: [
+            { color: "#0000FFFF", position: 0 },
+            { color: "#00FF00FF", position: 1 },
+          ],
+        },
+        { type: "color", enabled: true, opacity: 0.5, color: "#2563EBFF" },
+      ]),
+    ).toEqual({
+      backgroundImage:
+        "linear-gradient(rgba(37, 99, 235, 0.5), rgba(37, 99, 235, 0.5)), linear-gradient(90deg, #0000FF 0%, #00FF00 100%), linear-gradient(#FF0000, #FF0000)",
+    });
+  });
+
+  it("이미지 층이 섞이면 background-size 를 층 수만큼 낸다 (이미지만 자기 크기)", () => {
+    expect(
+      fillsToCssBackgroundStyle([
+        { type: "image", enabled: true, opacity: 1, url: "a.png", mode: "fit" },
+        { type: "color", enabled: true, opacity: 0.25, color: "#000000FF" },
+      ]),
+    ).toEqual({
+      backgroundImage: "linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)), url(a.png)",
+      backgroundSize: "auto, contain",
+    });
+  });
+
+  it("disabled 층은 빠지고 하나만 남으면 단층 출력 그대로", () => {
+    expect(
+      fillsToCssBackgroundStyle([
+        { type: "color", enabled: false, opacity: 1, color: "#FF0000FF" },
+        { type: "color", enabled: true, opacity: 1, color: "#2563EBFF" },
+      ]),
+    ).toEqual({ backgroundColor: "#2563EB" });
+  });
+});

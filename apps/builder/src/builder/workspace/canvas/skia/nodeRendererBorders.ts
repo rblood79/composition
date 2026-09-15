@@ -629,37 +629,61 @@ export function renderBox(
     paint.setAntiAlias(true);
     paint.setStyle(ck.PaintStyle.Fill);
 
-    let fillShader: { delete(): void } | null = null;
-    if (node.box.fill) {
-      fillShader = applyFill(ck, paint, node.box.fill);
-      if (!fillShader) {
-        paint.setColor(node.box.fillColor);
-      }
-    } else {
-      paint.setColor(node.box.fillColor);
-    }
-
     const rect = ck.LTRBRect(0, 0, node.width, node.height);
     const br = node.box.borderRadius;
     const isArrayRadius = Array.isArray(br);
     const hasRadius = isArrayRadius ? br.some((r) => r > 0) : br > 0;
 
-    if (hasRadius) {
-      if (isArrayRadius) {
-        const path = createRoundRectPath(ck, 0, 0, node.width, node.height, br);
-        canvas.drawPath(path, paint);
-        path.delete();
+    const drawFillGeometry = () => {
+      if (hasRadius) {
+        if (isArrayRadius) {
+          const path = createRoundRectPath(
+            ck,
+            0,
+            0,
+            node.width,
+            node.height,
+            br,
+          );
+          canvas.drawPath(path, paint);
+          path.delete();
+        } else {
+          const rrect = ck.RRectXY(rect, br, br);
+          canvas.drawRRect(rrect, paint);
+        }
       } else {
-        const rrect = ck.RRectXY(rect, br, br);
-        canvas.drawRRect(rrect, paint);
+        canvas.drawRect(rect, paint);
+      }
+    };
+
+    // 다층 fill (아래 → 위) — 층마다 같은 기하를 한 번씩 (DOM background-image 층 쌓기 대칭).
+    //   단층은 종전 경로 (box.fill shader 또는 fillColor).
+    const layers = node.box.fillLayers;
+    if (layers && layers.length > 1) {
+      for (const layer of layers) {
+        const shader = applyFill(ck, paint, layer);
+        if (!shader && layer.type !== "color") paint.setColor(node.box.fillColor);
+        drawFillGeometry();
+        if (shader) {
+          paint.setShader(null);
+          shader.delete();
+        }
       }
     } else {
-      canvas.drawRect(rect, paint);
-    }
-
-    if (fillShader) {
-      paint.setShader(null);
-      fillShader.delete();
+      let fillShader: { delete(): void } | null = null;
+      if (node.box.fill) {
+        fillShader = applyFill(ck, paint, node.box.fill);
+        if (!fillShader) {
+          paint.setColor(node.box.fillColor);
+        }
+      } else {
+        paint.setColor(node.box.fillColor);
+      }
+      drawFillGeometry();
+      if (fillShader) {
+        paint.setShader(null);
+        fillShader.delete();
+      }
     }
 
     // inset(inner) box-shadow: fill 위 · content(자식)/border 아래, box 내부 clip (CSS 대칭).

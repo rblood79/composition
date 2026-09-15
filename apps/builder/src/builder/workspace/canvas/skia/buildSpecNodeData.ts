@@ -18,6 +18,7 @@
 import { resolveTextRenderStyle } from "../utils/textRenderStyle";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import type { FillStyle } from "./types";
 import { buildScrollNodeFields } from "./buildBoxNodeData";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
 import {
@@ -49,6 +50,7 @@ import {
 } from "@composition/shared";
 import {
   fillsToSkiaFillColor,
+  fillsToSkiaFillLayers,
   fillsToSkiaFallbackColor,
   fillsToSkiaFillStyle,
   getTopEnabledFill,
@@ -1967,6 +1969,22 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       //   Preview DOM(fillAdapter 의 SVG mesh)과 Canvas(첫 point 색 단색)가 어긋난다.
       //   presentationFillTargets 는 늘리지 않는다(commit-only, FillSection:340 과 동일 계약).
       specNode.box.fill = fillStyle;
+    }
+    // 다층 fill (box 경로 buildBoxNodeData 와 같은 계약) — 맨 위 층은 box.fill / fillColor 공유
+    if (fillStyle && fillStyle.type !== "image") {
+      const layers = fillsToSkiaFillLayers(element.fills, w, specHeight);
+      if (layers.length > 1) {
+        const top: FillStyle = specNode.box.fill ?? {
+          type: "color",
+          rgba: specNode.box.fillColor as unknown as [
+            number,
+            number,
+            number,
+            number,
+          ],
+        };
+        specNode.box.fillLayers = [...layers.slice(0, -1), top];
+      }
     }
   }
 

@@ -12,7 +12,7 @@ import { resolveComponentRule } from "@composition/shared";
 import type { CanvasSceneNode } from "../scene/canvasSceneNode";
 import type { SkiaNodeData } from "./nodeRendererTypes";
 import type { ComputedLayout } from "../layout/engines/LayoutEngine";
-import type { EffectStyle } from "./types";
+import type { EffectStyle, FillStyle } from "./types";
 import {
   convertStyle,
   buildSkiaEffects,
@@ -32,11 +32,12 @@ import {
 } from "../layout/engines/implicitStyles";
 import {
   fillsToSkiaFillColor,
+  fillsToSkiaFillLayers,
   fillsToSkiaFillStyle,
   getTopEnabledFill,
   cssBgImageToSkia,
 } from "../../../panels/styles/utils/fillToSkia";
-import type { FillItem } from "../../../../types/builder/fill.types";
+import { FillType, type FillItem } from "../../../../types/builder/fill.types";
 import { hexToColor4fChannels } from "./themeWatcher";
 
 // ---------------------------------------------------------------------------
@@ -306,6 +307,21 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         )
       : undefined;
 
+  // 다층 fill — enabled 가 2개 이상이고 맨 위가 color/gradient/mesh 일 때. 맨 위 층은 box.fill
+  //   (shader) 또는 box.fillColor (같은 Float32Array) 를 공유한다 (presentation 패치 대칭).
+  const fillLayers = (() => {
+    if (!fills || fills.length < 2 || cssBgImageFill) return undefined;
+    const layers = fillsToSkiaFillLayers(fills as FillItem[], w, h);
+    if (layers.length < 2 || topEnabledFill?.type === FillType.Image)
+      return undefined;
+    const top: FillStyle = gradientFill ??
+      meshFill ?? {
+        type: "color",
+        rgba: fillColor as unknown as [number, number, number, number],
+      };
+    return [...layers.slice(0, -1), top];
+  })();
+
   const box: NonNullable<SkiaNodeData["box"]> = {
     fillColor,
     ...(cssBgImageFill
@@ -315,6 +331,7 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         : meshFill
           ? { fill: meshFill }
           : {}),
+    ...(fillLayers ? { fillLayers } : {}),
     borderRadius: br,
     strokeColor,
     strokeWidth: suppressBorder ? undefined : stroke?.width,
