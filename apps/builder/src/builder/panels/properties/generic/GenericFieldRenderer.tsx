@@ -104,6 +104,14 @@ function capitalize(s: string): string {
   return s.length > 0 ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
+/**
+ * 계약 section → 섹션 제목. `state` (isDisabled · selectionMode · href …) 는 「Behavior」 — 같은
+ * 패널의 ADR-214 상태 변수 절이 「State」 라 제목이 둘 겹쳤다 (2026-09-15). 나머지는 첫 글자만.
+ */
+function sectionTitle(section: string): string {
+  return section === "state" ? "Behavior" : capitalize(section);
+}
+
 interface GenericFieldProps extends GenericFieldRouting {
   field: ResolvedField;
   translateOptions?: boolean;
@@ -273,6 +281,9 @@ function sectionRank(section: string): number {
  * 숫자 사이) 가 한 규칙이 된다.
  */
 function fieldRank(field: ResolvedField): number {
+  // 반폭 묶음 (셀렉트 · 숫자 · 스위치) 은 반폭 먼저 전폭 뒤 — 「Show Value Labels」 같은 전폭이
+  //   사이에 끼어 반폭 짝을 깨지 않게
+  const wide = fieldSpan(field) === "wide" ? 1 : 0;
   switch (field.kind) {
     case "variant":
       return 0;
@@ -284,13 +295,13 @@ function fieldRank(field: ResolvedField): number {
       return 2;
     case "enum":
     case "fillStyle":
-      return fieldSpan(field) === "half" ? 3 : 4;
+      return 3 + wide;
     case "number":
-      return 5;
+      return 5 + wide;
     case "boolean":
-      return 6;
+      return 7 + wide;
     default:
-      return 7;
+      return 9;
   }
 }
 function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
@@ -517,7 +528,7 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           <PropertySection title="Content">{contentExtras}</PropertySection>
         )}
         {extraSections.map(([section, extras]) => (
-          <PropertySection key={section} title={capitalize(section)}>
+          <PropertySection key={section} title={sectionTitle(section)}>
             {extras}
           </PropertySection>
         ))}
@@ -590,40 +601,54 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
           if (sectionFields.length === 0 && tail == null && head == null)
             return null;
           return (
-            <PropertySection key={section} title={capitalize(section)}>
+            <PropertySection key={section} title={sectionTitle(section)}>
               {head}
-              {packFieldRows(sortFields(sectionFields)).map((row) => (
-                <div
-                  key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
-                  className="fieldset-row"
-                  data-wide={
-                    row.length === 1 && fieldSpan(row[0]!) === "wide"
-                      ? "true"
-                      : undefined
-                  }
-                >
-                  {row.map((field) => (
-                    <GenericField
-                      key={`${field.origin}:${field.key}`}
-                      field={field}
-                      onSemanticUpdate={onSemanticUpdate}
-                      onStyleUpdate={onStyleUpdate}
-                      elementId={elementId}
-                      componentType={componentType}
-                      ownerColumns={ownerColumns}
-                      ownerFields={ownerFields}
-                      translateOptions={
-                        !literalOptionFields?.includes(field.key)
-                      }
-                      optionValueMode={
-                        literalOptionFields?.includes(field.key)
-                          ? "literal"
-                          : "legacy"
-                      }
-                    />
-                  ))}
-                </div>
-              ))}
+              {packFieldRows(sortFields(sectionFields)).map((row) =>
+                // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
+                row.length === 1 && row[0]!.kind === "items-manager" ? (
+                  <GenericField
+                    key={`${row[0]!.origin}:${row[0]!.key}`}
+                    field={row[0]!}
+                    onSemanticUpdate={onSemanticUpdate}
+                    onStyleUpdate={onStyleUpdate}
+                    elementId={elementId}
+                    componentType={componentType}
+                    ownerColumns={ownerColumns}
+                    ownerFields={ownerFields}
+                  />
+                ) : (
+                  <div
+                    key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
+                    className="fieldset-row"
+                    data-wide={
+                      row.length === 1 && fieldSpan(row[0]!) === "wide"
+                        ? "true"
+                        : undefined
+                    }
+                  >
+                    {row.map((field) => (
+                      <GenericField
+                        key={`${field.origin}:${field.key}`}
+                        field={field}
+                        onSemanticUpdate={onSemanticUpdate}
+                        onStyleUpdate={onStyleUpdate}
+                        elementId={elementId}
+                        componentType={componentType}
+                        ownerColumns={ownerColumns}
+                        ownerFields={ownerFields}
+                        translateOptions={
+                          !literalOptionFields?.includes(field.key)
+                        }
+                        optionValueMode={
+                          literalOptionFields?.includes(field.key)
+                            ? "literal"
+                            : "legacy"
+                        }
+                      />
+                    ))}
+                  </div>
+                ),
+              )}
               {tail}
             </PropertySection>
           );

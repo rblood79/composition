@@ -1,5 +1,7 @@
 import { memo, useEffect, useMemo, useState } from "react";
-import { Layers, Minus, X } from "lucide-react";
+import { Minus } from "lucide-react";
+import { SwatchIconButton } from "../../components/ui/SwatchIconButton";
+import { iconProps } from "../../../utils/ui/uiConstants";
 import {
   matchesReference,
   resolveReference,
@@ -203,11 +205,19 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 
   return (
     <PropertySection title="Slot">
-      <div className="frame-slot-row">
-        <span className="frame-slot-name">State</span>
-        <span className="frame-slot-value">
-          {isActive ? `${recommendedIds.length} recommendations` : "Inactive"}
-        </span>
+      {/* 읽기 전용 값도 필드 어법 (legend + 값 상자) · 추천 목록은 공용 `.list-row` · 추천 추가는
+          셀렉트 행의 28 액션 열 (panel-structure §1, 2026-09-15) */}
+      <div className="fieldset-row" data-wide="true">
+        <fieldset className="properties-aria frame-slot-status">
+          <legend className="fieldset-legend">Status</legend>
+          <div className="react-aria-control react-aria-Group">
+            <span className="frame-slot-value">
+              {isActive
+                ? `${recommendedIds.length} recommendations`
+                : "Inactive"}
+            </span>
+          </div>
+        </fieldset>
       </div>
 
       {isActive ? (
@@ -235,25 +245,23 @@ export const FrameSlotSection = memo(function FrameSlotSection({
       {isActive && (
         <>
           {reusableCandidates.length > 0 && (
-            <div className="frame-slot-picker">
+            <div className="fieldset-row frame-slot-picker" data-wide="true">
               <PropertySelect
                 label="Recommended component"
                 value={selectedCandidateId}
                 onChange={setSelectedCandidateId}
                 options={reusableCandidates}
-                icon={Layers}
                 popoverWidthMode="width"
               />
-              <button
-                aria-label="Add recommended component"
-                className="control-button"
-                disabled={!selectedCandidateId}
-                onClick={handleAddRecommendation}
-                type="button"
-              >
-                <AddIcon aria-hidden="true" size={14} />
-                <span>Add</span>
-              </button>
+              <div className="fieldset-actions actions-slot-add">
+                <SwatchIconButton
+                  aria-label="Add recommended component"
+                  isDisabled={!selectedCandidateId}
+                  onPress={handleAddRecommendation}
+                >
+                  <AddIcon aria-hidden="true" size={iconProps.size} />
+                </SwatchIconButton>
+              </div>
             </div>
           )}
 
@@ -264,24 +272,30 @@ export const FrameSlotSection = memo(function FrameSlotSection({
               </span>
             ) : (
               recommendedItems.map((item) => (
-                <div className="frame-slot-item" key={item.id}>
-                  <span className="frame-slot-item-label">{item.label}</span>
-                  <button
-                    aria-label={`Insert ${item.label}`}
-                    className="frame-slot-remove"
-                    onClick={() => handleInsertDefault(item.id)}
-                    type="button"
-                  >
-                    <AddIcon aria-hidden="true" size={14} />
-                  </button>
-                  <button
-                    aria-label={`Remove ${item.label}`}
-                    className="frame-slot-remove"
-                    onClick={() => handleRemoveRecommendation(item.id)}
-                    type="button"
-                  >
-                    <X aria-hidden="true" size={14} />
-                  </button>
+                <div className="list-row frame-slot-item" key={item.id}>
+                  <div className="list-row__body">
+                    <span className="list-row__label frame-slot-item-label">
+                      {item.label}
+                    </span>
+                  </div>
+                  <div className="list-row__actions">
+                    <button
+                      aria-label={`Insert ${item.label}`}
+                      className="list-row__action frame-slot-insert"
+                      onClick={() => handleInsertDefault(item.id)}
+                      type="button"
+                    >
+                      <AddIcon aria-hidden="true" size={12} />
+                    </button>
+                    <button
+                      aria-label={`Remove ${item.label}`}
+                      className="list-row__action frame-slot-remove"
+                      onClick={() => handleRemoveRecommendation(item.id)}
+                      type="button"
+                    >
+                      <Minus aria-hidden="true" size={12} />
+                    </button>
+                  </div>
                 </div>
               ))
             )}

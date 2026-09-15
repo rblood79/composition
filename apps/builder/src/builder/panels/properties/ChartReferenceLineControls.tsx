@@ -1,6 +1,8 @@
 import { memo } from "react";
 import { Button } from "react-aria-components";
 import { ACTION_ICONS } from "../../config/actionIcons";
+
+const AddIcon = ACTION_ICONS.add;
 import {
   CHART_DEFAULT_PROPS,
   CHART_REFERENCE_LINES_MAX,
@@ -20,10 +22,6 @@ import {
   PropertySelect,
 } from "../../components";
 import { useI18n } from "@/i18n";
-import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
-
-const chartIcon = (key: string, kind: string) =>
-  resolvePropertyFieldIcon(key, kind, "Chart");
 
 const LINE_TYPES: readonly ChartLineType[] = ["solid", "dashed", "dotted"];
 const LAYERS: readonly ChartReferenceLayer[] = ["back", "front"];
@@ -102,20 +100,17 @@ export const ChartReferenceLineControls = memo(
             <div key={index} className="fieldset-row chart-reference-row">
               <PropertyNumberInput
                 label={t("chart.referenceValue")}
-                icon={chartIcon("referenceValue", "number")}
                 value={Number.isFinite(line.value) ? line.value : undefined}
                 onChange={(value) => update(index, { value: value ?? 0 })}
               />
               <PropertyInput
                 label={t("chart.referenceLabel")}
-                icon={chartIcon("referenceLabel", "string")}
                 value={line.label ?? ""}
                 placeholder={t("chart.referenceLabelPlaceholder")}
                 onChange={(text) => update(index, { label: text })}
               />
               <PropertySelect
                 label={t("chart.referenceLineType")}
-                icon={chartIcon("referenceLineType", "enum")}
                 value={line.lineType ?? "solid"}
                 options={lineTypeOptions}
                 translateOptions={false}
@@ -125,7 +120,6 @@ export const ChartReferenceLineControls = memo(
               />
               <PropertySelect
                 label={t("chart.referenceLayer")}
-                icon={chartIcon("referenceLayer", "enum")}
                 value={line.layer ?? "front"}
                 options={layerOptions}
                 translateOptions={false}
@@ -156,10 +150,12 @@ export const ChartReferenceLineControls = memo(
           <Button
             type="button"
             className="control-button"
+            data-variant="add"
             data-chart-add-reference-line=""
             isDisabled={!applies || lines.length >= CHART_REFERENCE_LINES_MAX}
             onPress={() => write([...lines, { value: 0 }])}
           >
+            <AddIcon aria-hidden="true" size={14} />
             {t("chart.addReferenceLine")}
           </Button>
           {!applies || lines.length >= CHART_REFERENCE_LINES_MAX ? (

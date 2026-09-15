@@ -1,6 +1,5 @@
 import "./ChartAuthoringControls.css";
 import { memo } from "react";
-import { LayoutTemplate } from "lucide-react";
 import {
   CHART_DESCRIPTORS,
   getChartDescriptor,
@@ -9,10 +8,6 @@ import {
 import type { ResolvedField } from "@composition/shared";
 import { PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
-import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
-
-const chartIcon = (key: string, kind: string) =>
-  resolvePropertyFieldIcon(key, kind, "Chart");
 
 /** ADR-210 — columns 모드가 지원하지 않는 종류 (breakdown §2.3 3). */
 const COLUMNS_UNSUPPORTED_TYPES: readonly string[] = ["pie", "radial"];
@@ -46,47 +41,49 @@ export const ChartAuthoringControls = memo(function ChartAuthoringControls({
   const unsupportedTypes = columnsMode ? COLUMNS_UNSUPPORTED_TYPES : undefined;
   return (
     <>
-      <PropertySelect
-        label={t("chart.changeTarget")}
-        icon={chartIcon("chartType", "enum")}
-        value={descriptor.chartType}
-        options={CHART_DESCRIPTORS.map((item) => ({
-          value: item.chartType,
-          label: item.label,
-        }))}
-        disabledKeys={unsupportedTypes}
-        onChange={(value) => {
-          if (unsupportedTypes?.includes(value)) return;
-          if (value !== descriptor.chartType) onPatch({ chartType: value });
-        }}
-        afterControl={
-          columnsMode ? (
-            <span slot="description">
-              {t("chart.typeUnavailableInColumns")}
-            </span>
-          ) : undefined
-        }
-      />
-      <PropertySelect
-        label="Preset"
-        icon={LayoutTemplate}
-        value={presetId}
-        options={[
-          ...(presetId === "custom"
-            ? [{ value: "custom", label: "Custom" }]
-            : []),
-          ...descriptor.presets.map((preset) => ({
-            value: preset.id,
-            label: preset.label,
-          })),
-        ]}
-        onChange={(value) => {
-          const preset = descriptor.presets.find(
-            (candidate) => candidate.id === value,
-          );
-          if (preset) onPatch({ ...preset.patch });
-        }}
-      />
+      <div className="fieldset-row" data-wide="true">
+        <PropertySelect
+          label={t("chart.changeTarget")}
+          value={descriptor.chartType}
+          options={CHART_DESCRIPTORS.map((item) => ({
+            value: item.chartType,
+            label: item.label,
+          }))}
+          disabledKeys={unsupportedTypes}
+          onChange={(value) => {
+            if (unsupportedTypes?.includes(value)) return;
+            if (value !== descriptor.chartType) onPatch({ chartType: value });
+          }}
+          afterControl={
+            columnsMode ? (
+              <span slot="description">
+                {t("chart.typeUnavailableInColumns")}
+              </span>
+            ) : undefined
+          }
+        />
+      </div>
+      <div className="fieldset-row" data-wide="true">
+        <PropertySelect
+          label="Preset"
+          value={presetId}
+          options={[
+            ...(presetId === "custom"
+              ? [{ value: "custom", label: "Custom" }]
+              : []),
+            ...descriptor.presets.map((preset) => ({
+              value: preset.id,
+              label: preset.label,
+            })),
+          ]}
+          onChange={(value) => {
+            const preset = descriptor.presets.find(
+              (candidate) => candidate.id === value,
+            );
+            if (preset) onPatch({ ...preset.patch });
+          }}
+        />
+      </div>
     </>
   );
 });

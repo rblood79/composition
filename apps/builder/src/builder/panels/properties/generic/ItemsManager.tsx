@@ -55,11 +55,11 @@ function ListRow({
   className?: string;
 }) {
   return (
-    <div className={`items-manager-row ${className ?? ""}`}>
-      <div className="items-manager-row__body">
+    <div className={`list-row items-manager-row ${className ?? ""}`}>
+      <div className="list-row__body">
         {onExpandedChange ? (
           <AriaToggleButton
-            className="items-manager-row__action items-manager-row__expand"
+            className="list-row__action items-manager-row__expand"
             aria-label={expandLabel}
             isSelected={Boolean(expanded)}
             onChange={onExpandedChange}
@@ -67,15 +67,15 @@ function ListRow({
             {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
           </AriaToggleButton>
         ) : (
-          <span className="items-manager-row__action items-manager-row__mark">
+          <span className="list-row__action list-row__mark">
             {leading}
           </span>
         )}
-        <span className="items-manager-row__label">{label}</span>
+        <span className="list-row__label">{label}</span>
       </div>
-      <div className="items-manager-row__actions">
+      <div className="list-row__actions">
         <AriaButton
-          className="items-manager-row__action"
+          className="list-row__action"
           aria-label={removeLabel}
           onPress={onRemove}
         >
@@ -159,7 +159,7 @@ const ItemRow = memo(function ItemRow({
       />
 
       {expanded && (
-        <div className="items-manager-row-fields">
+        <div className="list-row__fields items-manager-row-fields">
           {packSchemaRows(schema).map((row) => (
             <div
               key={row.map((f) => f.key).join("|")}
@@ -304,7 +304,7 @@ const SectionRow = memo(function SectionRow({
       {expanded && (
         <div className="items-manager-section-body">
           {/* Section header 편집 */}
-          <div className="items-manager-row-fields">
+          <div className="list-row__fields items-manager-row-fields">
             <div className="fieldset-row" data-wide="true">
               <PropertyInput
                 label="Header"

@@ -43,12 +43,6 @@
     }
   }
 
-  .page-slug-input {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-
   .page-slug-error {
     display: flex;
     align-items: center;
@@ -60,25 +54,15 @@
     font-size: var(--text-xs);
   }
 
-  .page-resolved-url {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-    padding: var(--spacing-sm);
-    background: var(--bg-raised);
-    border-radius: var(--radius-sm);
-    margin-top: var(--spacing-sm);
-  }
-
-  .page-resolved-url-label {
-    font-size: var(--text-xs);
-    color: var(--fg-muted);
-  }
-
+  /* 읽기 전용 값 — 필드 어법 (legend + 값 상자), 값은 mono 한 줄 말줄임 */
   .page-resolved-url-value {
-    font-size: var(--text-sm);
+    min-width: 0;
+    padding-inline: var(--spacing);
+    font-size: var(--text-xs);
     font-family: var(--font-mono);
-    color: var(--accent);
-    word-break: break-all;
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }

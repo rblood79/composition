@@ -11,10 +11,6 @@ import {
 import type { ResolvedField } from "@composition/shared";
 import { PropertyNumberInput, PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
-import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
-
-const chartIcon = (key: string, kind: string) =>
-  resolvePropertyFieldIcon(key, kind, "Chart");
 
 const LOCALES: readonly ChartValueLocale[] = ["en-US", "ko-KR"];
 
@@ -100,43 +96,45 @@ export const ChartNumberFormatControls = memo(
 
     return (
       <>
-        <PropertySelect
-          label={t("chart.numberFormat")}
-          icon={chartIcon("valueFormat", "enum")}
-          value={pending ?? format}
-          options={formatOptions}
-          translateOptions={false}
-          onChange={(value) => {
-            if (value === "currency" || value === "percent") {
-              // 이미 필요한 값이 저장돼 있으면 묶음 없이 형식만 바꾼다 (휴면 값 재사용).
-              const ready =
-                value === "currency"
-                  ? typeof props.valueCurrency === "string"
-                  : props.valuePercentUnit === "ratio" ||
-                    props.valuePercentUnit === "percentagePoints";
-              if (ready) {
-                if (value !== format) onPatch({ valueFormat: value });
-                setPending(null);
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label={t("chart.numberFormat")}
+            value={pending ?? format}
+            options={formatOptions}
+            translateOptions={false}
+            onChange={(value) => {
+              if (value === "currency" || value === "percent") {
+                // 이미 필요한 값이 저장돼 있으면 묶음 없이 형식만 바꾼다 (휴면 값 재사용).
+                const ready =
+                  value === "currency"
+                    ? typeof props.valueCurrency === "string"
+                    : props.valuePercentUnit === "ratio" ||
+                      props.valuePercentUnit === "percentagePoints";
+                if (ready) {
+                  if (value !== format) onPatch({ valueFormat: value });
+                  setPending(null);
+                  return;
+                }
+                setPending(value);
                 return;
               }
-              setPending(value);
-              return;
-            }
-            setPending(null);
-            if (value !== format) onPatch({ valueFormat: value });
-          }}
-        />
+              setPending(null);
+              if (value !== format) onPatch({ valueFormat: value });
+            }}
+          />
+        </div>
         {pending === "currency" && (
           <>
-            <PropertySelect
-              label={t("chart.currencyCode")}
-              icon={chartIcon("valueCurrency", "string")}
-              value={pendingCurrency}
-              options={currencyOptions}
-              translateOptions={false}
-              optionValueMode="literal"
-              onChange={setPendingCurrency}
-            />
+            <div className="fieldset-row" data-wide="true">
+              <PropertySelect
+                label={t("chart.currencyCode")}
+                value={pendingCurrency}
+                options={currencyOptions}
+                translateOptions={false}
+                optionValueMode="literal"
+                onChange={setPendingCurrency}
+              />
+            </div>
             <div className="chart-actions">
               <Button
                 type="button"
@@ -165,14 +163,15 @@ export const ChartNumberFormatControls = memo(
         )}
         {pending === "percent" && (
           <>
-            <PropertySelect
-              label={t("chart.percentUnit")}
-              icon={chartIcon("valuePercentUnit", "enum")}
-              value={pendingUnit}
-              options={unitOptions}
-              translateOptions={false}
-              onChange={(value) => setPendingUnit(value as ChartPercentUnit)}
-            />
+            <div className="fieldset-row" data-wide="true">
+              <PropertySelect
+                label={t("chart.percentUnit")}
+                value={pendingUnit}
+                options={unitOptions}
+                translateOptions={false}
+                onChange={(value) => setPendingUnit(value as ChartPercentUnit)}
+              />
+            </div>
             <div className="chart-actions">
               <Button
                 type="button"
@@ -202,61 +201,65 @@ export const ChartNumberFormatControls = memo(
         {format !== "auto" && pending === null && (
           <>
             {format === "currency" && (
-              <PropertySelect
-                label={t("chart.currencyCode")}
-                icon={chartIcon("valueCurrency", "string")}
-                value={
-                  typeof props.valueCurrency === "string"
-                    ? props.valueCurrency
-                    : ""
-                }
-                options={currencyOptions}
-                translateOptions={false}
-                optionValueMode="literal"
-                onChange={(code) => onPatch({ valueCurrency: code })}
-              />
+              <div className="fieldset-row" data-wide="true">
+                <PropertySelect
+                  label={t("chart.currencyCode")}
+                  value={
+                    typeof props.valueCurrency === "string"
+                      ? props.valueCurrency
+                      : ""
+                  }
+                  options={currencyOptions}
+                  translateOptions={false}
+                  optionValueMode="literal"
+                  onChange={(code) => onPatch({ valueCurrency: code })}
+                />
+              </div>
             )}
             {format === "percent" && (
-              <PropertySelect
-                label={t("chart.percentUnit")}
-                icon={chartIcon("valuePercentUnit", "enum")}
-                value={
-                  props.valuePercentUnit === "ratio" ||
-                  props.valuePercentUnit === "percentagePoints"
-                    ? props.valuePercentUnit
-                    : ""
-                }
-                options={unitOptions}
-                translateOptions={false}
-                onChange={(unit) => onPatch({ valuePercentUnit: unit })}
-              />
+              <div className="fieldset-row" data-wide="true">
+                <PropertySelect
+                  label={t("chart.percentUnit")}
+                  value={
+                    props.valuePercentUnit === "ratio" ||
+                    props.valuePercentUnit === "percentagePoints"
+                      ? props.valuePercentUnit
+                      : ""
+                  }
+                  options={unitOptions}
+                  translateOptions={false}
+                  onChange={(unit) => onPatch({ valuePercentUnit: unit })}
+                />
+              </div>
             )}
-            <PropertySelect
-              label={t("chart.numberLocale")}
-              icon={chartIcon("valueLocale", "enum")}
-              value={locale}
-              options={LOCALES.map((code) => ({ value: code, label: code }))}
-              translateOptions={false}
-              onChange={(code) => onPatch({ valueLocale: code })}
-            />
-            <PropertyNumberInput
-              label={t("chart.fractionDigits")}
-              icon={chartIcon("valueFractionDigits", "number")}
-              value={
-                typeof props.valueFractionDigits === "number"
-                  ? props.valueFractionDigits
-                  : undefined
-              }
-              min={0}
-              max={6}
-              step={1}
-              onChange={(digits) =>
-                onPatch({
-                  valueFractionDigits:
-                    digits === undefined ? undefined : Math.round(digits),
-                })
-              }
-            />
+            <div className="fieldset-row" data-wide="true">
+              <PropertySelect
+                label={t("chart.numberLocale")}
+                value={locale}
+                options={LOCALES.map((code) => ({ value: code, label: code }))}
+                translateOptions={false}
+                onChange={(code) => onPatch({ valueLocale: code })}
+              />
+            </div>
+            <div className="fieldset-row" data-wide="true">
+              <PropertyNumberInput
+                label={t("chart.fractionDigits")}
+                value={
+                  typeof props.valueFractionDigits === "number"
+                    ? props.valueFractionDigits
+                    : undefined
+                }
+                min={0}
+                max={6}
+                step={1}
+                onChange={(digits) =>
+                  onPatch({
+                    valueFractionDigits:
+                      digits === undefined ? undefined : Math.round(digits),
+                  })
+                }
+              />
+            </div>
           </>
         )}
       </>

@@ -14,10 +14,6 @@ import type {
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput, PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
-import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
-
-const chartIcon = (key: string, kind: string) =>
-  resolvePropertyFieldIcon(key, kind, "Chart");
 
 const EMPTY_ROWS: readonly ChartRow[] = [];
 const SCALES: readonly ChartDimensionScale[] = ["category", "time"];
@@ -111,65 +107,68 @@ export const ChartTimeAxisControls = memo(function ChartTimeAxisControls({
   };
   return (
     <>
-      <PropertySelect
-        label={t("chart.dimensionScale")}
-        icon={chartIcon("dimensionScale", "enum")}
-        value={scale}
-        options={SCALES.map((value) => ({
-          value,
-          label:
-            value === "time"
-              ? t("chart.scaleTime")
-              : scatter
-                ? t("chart.scaleLinear")
-                : t("chart.scaleCategory"),
-        }))}
-        translateOptions={false}
-        disabledKeys={timeApplies ? undefined : TIME_KEY}
-        onChange={(value) => {
-          const next: ChartDimensionScale =
-            value === "time" ? "time" : "category";
-          if (next === "time" && !timeApplies) return;
-          if (next === scale) return;
-          // 미설정 = category — category 로 돌리면 키를 지운다 (기존 문서 byte 동일 경로).
-          onPatch({ dimensionScale: next === "time" ? "time" : undefined });
-        }}
-        afterControl={
-          hint.length > 0 ? (
-            <span
-              slot="description"
-              role="status"
-              data-chart-time-hint={
-                status.ordinal && scale === "category" ? "ordinal" : undefined
-              }
-              data-chart-parse-failed={
-                status.parseFailures > 0 ? status.parseFailures : undefined
-              }
-            >
-              {hint.join(" · ")}
-            </span>
-          ) : undefined
-        }
-      />
-      {scale === "time" && (
-        <PropertyInput
-          label={t("chart.dimensionFormat")}
-          icon={chartIcon("dimensionFormat", "string")}
-          value={format}
-          placeholder={t("chart.dimensionFormatPlaceholder")}
-          onChange={(text) => patchText("dimensionFormat", text, format)}
-        />
-      )}
-      {scale === "time" && (
-        <PropertyInput
-          label={t("chart.dimensionLabelFormat")}
-          icon={chartIcon("dimensionLabelFormat", "string")}
-          value={labelFormat}
-          placeholder={t("chart.dimensionLabelFormatPlaceholder")}
-          onChange={(text) =>
-            patchText("dimensionLabelFormat", text, labelFormat)
+      <div className="fieldset-row" data-wide="true">
+        <PropertySelect
+          label={t("chart.dimensionScale")}
+          value={scale}
+          options={SCALES.map((value) => ({
+            value,
+            label:
+              value === "time"
+                ? t("chart.scaleTime")
+                : scatter
+                  ? t("chart.scaleLinear")
+                  : t("chart.scaleCategory"),
+          }))}
+          translateOptions={false}
+          disabledKeys={timeApplies ? undefined : TIME_KEY}
+          onChange={(value) => {
+            const next: ChartDimensionScale =
+              value === "time" ? "time" : "category";
+            if (next === "time" && !timeApplies) return;
+            if (next === scale) return;
+            // 미설정 = category — category 로 돌리면 키를 지운다 (기존 문서 byte 동일 경로).
+            onPatch({ dimensionScale: next === "time" ? "time" : undefined });
+          }}
+          afterControl={
+            hint.length > 0 ? (
+              <span
+                slot="description"
+                role="status"
+                data-chart-time-hint={
+                  status.ordinal && scale === "category" ? "ordinal" : undefined
+                }
+                data-chart-parse-failed={
+                  status.parseFailures > 0 ? status.parseFailures : undefined
+                }
+              >
+                {hint.join(" · ")}
+              </span>
+            ) : undefined
           }
         />
+      </div>
+      {scale === "time" && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label={t("chart.dimensionFormat")}
+            value={format}
+            placeholder={t("chart.dimensionFormatPlaceholder")}
+            onChange={(text) => patchText("dimensionFormat", text, format)}
+          />
+        </div>
+      )}
+      {scale === "time" && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label={t("chart.dimensionLabelFormat")}
+            value={labelFormat}
+            placeholder={t("chart.dimensionLabelFormatPlaceholder")}
+            onChange={(text) =>
+              patchText("dimensionLabelFormat", text, labelFormat)
+            }
+          />
+        </div>
       )}
     </>
   );

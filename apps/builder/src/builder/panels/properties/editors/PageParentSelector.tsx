@@ -5,7 +5,9 @@
  */
 
 import { memo, useMemo, useCallback, useState } from "react";
-import { FolderTree, CircleAlert, Link } from "lucide-react";
+import { CircleAlert, WandSparkles } from "lucide-react";
+import { SwatchIconButton } from "../../../components/ui/SwatchIconButton";
+import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
   PropertySelect,
   PropertySection,
@@ -224,48 +226,54 @@ export const PageParentSelector = memo(function PageParentSelector({
 
   return (
     <PropertySection title="Nested Routes">
-      <PropertySelect
-        label="Parent Page"
-        value={currentParentId}
-        onChange={handleParentChange}
-        options={parentOptions}
-        icon={FolderTree}
-        description={
-          currentParent
-            ? `Child of "${currentParent.title}"`
-            : "This page is at root level"
-        }
-      />
+      {/* 인스펙터 격자 — 전폭 181 + 28 액션 열 (아이콘 prefix 0, Styles 와 같은 어법 2026-09-15).
+          Slug 행의 28 열은 「제목에서 생성」 액션. */}
+      <div className="fieldset-row" data-wide="true">
+        <PropertySelect
+          label="Parent Page"
+          value={currentParentId}
+          onChange={handleParentChange}
+          options={parentOptions}
+          description={
+            currentParent
+              ? `Child of "${currentParent.title}"`
+              : "This page is at root level"
+          }
+        />
+      </div>
 
-      <div className="page-slug-input">
+      <div className="fieldset-row page-slug-input" data-wide="true">
         <PropertyInput
-          icon={Link}
           label="Slug"
           value={currentSlug}
           onChange={handleSlugChange}
           placeholder={generateSlugFromTitle(page.title)}
           description="URL path segment for this page"
         />
-        {slugError && (
-          <div className="page-slug-error">
-            <CircleAlert size={iconSmall.size} />
-            <span>{slugError}</span>
-          </div>
-        )}
-        <button
-          type="button"
-          className="control-button"
-          onClick={handleGenerateSlug}
-          title="Generate slug from title"
-        >
-          Generate from Title
-        </button>
+        <div className="fieldset-actions actions-slug">
+          <SwatchIconButton
+            aria-label="Generate from Title"
+            onPress={handleGenerateSlug}
+          >
+            <WandSparkles aria-hidden="true" size={iconProps.size} />
+          </SwatchIconButton>
+        </div>
       </div>
+      {slugError && (
+        <div className="page-slug-error">
+          <CircleAlert size={iconSmall.size} />
+          <span>{slugError}</span>
+        </div>
+      )}
 
       {previewUrl !== currentSlug && (
-        <div className="page-resolved-url">
-          <span className="page-resolved-url-label">Resolved URL:</span>
-          <code className="page-resolved-url-value">{previewUrl}</code>
+        <div className="fieldset-row" data-wide="true">
+          <fieldset className="properties-aria page-resolved-url">
+            <legend className="fieldset-legend">Resolved URL:</legend>
+            <div className="react-aria-control react-aria-Group">
+              <code className="page-resolved-url-value">{previewUrl}</code>
+            </div>
+          </fieldset>
         </div>
       )}
     </PropertySection>

@@ -19,10 +19,7 @@ import { resolveComponentRule } from "@composition/shared";
 import type { ResolvedField } from "@composition/shared";
 import { PropertyInput, PropertySelect } from "../../components";
 import { useI18n } from "@/i18n";
-import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
 
-const chartIcon = (key: string, kind: string) =>
-  resolvePropertyFieldIcon(key, kind, "Chart");
 import { useLayoutValue } from "../styles/hooks/useLayoutValue";
 
 const EMPTY_ROWS: readonly ChartRow[] = [];
@@ -173,102 +170,110 @@ export const ChartBudgetControls = memo(function ChartBudgetControls({
   };
   return (
     <>
-      <PropertySelect
-        label={t("chart.budgetOverflow")}
-        icon={chartIcon("budgetOverflow", "enum")}
-        value={overflow}
-        options={OVERFLOWS.map((mode) => ({
-          value: mode,
-          label: overflowLabel[mode],
-        }))}
-        translateOptions={false}
-        disabledKeys={unsupported}
-        onChange={(value) => {
-          const next = pick(value, OVERFLOWS, "auto");
-          if (unsupported.includes(next)) return;
-          if (next !== overflow) onPatch({ budgetOverflow: next });
-        }}
-        afterControl={
-          unsupported.includes(overflow) ||
-          budgetText ||
-          sourceRowCount > rowCap ? (
-            <span
-              slot="description"
-              role="status"
-              data-chart-budget-hint={
-                budget ? (budget.overflow ? budget.applied : "fits") : undefined
-              }
-            >
-              {[
-                unsupported.includes(overflow)
-                  ? t("chart.overflowUnsupported")
-                  : null,
-                sourceRowCount > rowCap
-                  ? t("chart.rowCapHint", {
-                      cap: rowCap,
-                      total: sourceRowCount,
-                    })
-                  : null,
-                budgetText,
-              ]
-                .filter(Boolean)
-                .join(" · ")}
-            </span>
-          ) : undefined
-        }
-      />
-      {cartesian && (
+      <div className="fieldset-row" data-wide="true">
         <PropertySelect
-          label={t("chart.budgetAggregate")}
-          icon={chartIcon("budgetAggregate", "enum")}
-          value={aggregate}
-          options={AGGREGATES.map((stat) => ({
-            value: stat,
-            label: aggregateLabel[stat],
+          label={t("chart.budgetOverflow")}
+          value={overflow}
+          options={OVERFLOWS.map((mode) => ({
+            value: mode,
+            label: overflowLabel[mode],
           }))}
           translateOptions={false}
+          disabledKeys={unsupported}
           onChange={(value) => {
-            const next = pick(value, AGGREGATES, "sum");
-            if (next !== aggregate) onPatch({ budgetAggregate: next });
+            const next = pick(value, OVERFLOWS, "auto");
+            if (unsupported.includes(next)) return;
+            if (next !== overflow) onPatch({ budgetOverflow: next });
           }}
+          afterControl={
+            unsupported.includes(overflow) ||
+            budgetText ||
+            sourceRowCount > rowCap ? (
+              <span
+                slot="description"
+                role="status"
+                data-chart-budget-hint={
+                  budget
+                    ? budget.overflow
+                      ? budget.applied
+                      : "fits"
+                    : undefined
+                }
+              >
+                {[
+                  unsupported.includes(overflow)
+                    ? t("chart.overflowUnsupported")
+                    : null,
+                  sourceRowCount > rowCap
+                    ? t("chart.rowCapHint", {
+                        cap: rowCap,
+                        total: sourceRowCount,
+                      })
+                    : null,
+                  budgetText,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            ) : undefined
+          }
         />
+      </div>
+      {cartesian && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label={t("chart.budgetAggregate")}
+            value={aggregate}
+            options={AGGREGATES.map((stat) => ({
+              value: stat,
+              label: aggregateLabel[stat],
+            }))}
+            translateOptions={false}
+            onChange={(value) => {
+              const next = pick(value, AGGREGATES, "sum");
+              if (next !== aggregate) onPatch({ budgetAggregate: next });
+            }}
+          />
+        </div>
       )}
       {cartesian && (
-        <PropertySelect
-          label={t("chart.budgetAxis")}
-          icon={chartIcon("budgetAxis", "enum")}
-          value={axis}
-          options={AXES.map((kind) => ({
-            value: kind,
-            label: axisLabel[kind],
-          }))}
-          translateOptions={false}
-          onChange={(value) => {
-            const next = pick(value, AXES, "auto");
-            if (next !== axis) onPatch({ budgetAxis: next });
-          }}
-        />
+        <div className="fieldset-row" data-wide="true">
+          <PropertySelect
+            label={t("chart.budgetAxis")}
+            value={axis}
+            options={AXES.map((kind) => ({
+              value: kind,
+              label: axisLabel[kind],
+            }))}
+            translateOptions={false}
+            onChange={(value) => {
+              const next = pick(value, AXES, "auto");
+              if (next !== axis) onPatch({ budgetAxis: next });
+            }}
+          />
+        </div>
       )}
       {othersApplies && (
-        <PropertyInput
-          label={t("chart.othersLabel")}
-          icon={chartIcon("budgetOthersLabel", "string")}
-          value={
-            typeof props.budgetOthersLabel === "string"
-              ? props.budgetOthersLabel
-              : ""
-          }
-          placeholder={t("chart.othersLabelPlaceholder")}
-          onChange={(text) => {
-            const trimmed = text.trim();
-            const current =
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label={t("chart.othersLabel")}
+            value={
               typeof props.budgetOthersLabel === "string"
                 ? props.budgetOthersLabel
-                : undefined;
-            const next = trimmed === "" ? undefined : trimmed;
-            if (next !== current) onPatch({ budgetOthersLabel: next });
-          }}
-        />
+                : ""
+            }
+            placeholder={t("chart.othersLabelPlaceholder")}
+            onChange={(text) => {
+              const trimmed = text.trim();
+              const current =
+                typeof props.budgetOthersLabel === "string"
+                  ? props.budgetOthersLabel
+                  : undefined;
+              const next = trimmed === "" ? undefined : trimmed;
+              if (next !== current) onPatch({ budgetOthersLabel: next });
+            }}
+          />
+        </div>
       )}
     </>
   );

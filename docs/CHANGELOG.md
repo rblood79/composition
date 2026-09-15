@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **섹션 순서 고정** Content → Appearance → Layout → State → Interaction → Locale — 계약 등장 순서에 따라 Pagination 은 Appearance 가 Content 앞, Disclosure 는 State 가 Appearance 앞이던 것.
 - **섹션 안 필드 순서는 kind 묶음** — Variant · Size (첫 행) → 텍스트 → 셀렉트 → 숫자 → 스위치 → 목록. TextField 의 Input Type 이 Label 과 Value 사이에 끼고 Popover 의 스위치가 숫자 사이에 끼던 것이 같은 컨트롤끼리 모인다.
 - **variant · size 가 한 단계뿐인 필드 (「Size: M」 「Variant: Default」) 는 숨김** — 고를 게 없다.
+- **목록 행 공용 구조 `.list-row`** (Styles 의 Fill · Shadow 레이어 행과 같음 — [본문 28: 토글/표지 20 · 라벨 · meta 10 mono][액션 그룹 28: 20×20]) 를 panel-system 으로 올리고 Properties 의 목록 셋이 쓴다: **ItemsManager** (ListBox · Menu · Select · Tabs · Chart 행 — 종전엔 CSS 정의가 0 이라 브라우저 기본 글자 크기로 그려졌다; 라벨 + 항목 수 legend, 펼친 필드는 인스펙터 격자, 목록은 전폭 217) · **State 절** (묶음은 fieldset + legend, 정적 설명 문단 제거, 이름 없는 암묵 상태는 [prop · type][이름 입력 20], 펼친 편집은 Name 전폭 + Type | Default 반폭) · **Frame Slot** (Status 읽기 전용 값 필드, 추천 추가는 셀렉트 행의 28 액션 열, 추천 목록 행 [삽입 20][제거 20]).
+- **계약 `state` 섹션 제목 「Behavior」** (ko 「동작」) — 같은 패널의 상태 변수 절 (ADR-214) 과 「State」 제목이 둘 겹쳤다.
+- **Chart 전용 컨트롤 (종류 · 프리셋 · 데이터 매핑 · 숫자 형식 · 표시 예산 · 시간축)** 도 인스펙터 격자 (전폭 181 + 28 열) 와 아이콘 prefix 0 — 종전엔 217 전폭에 아이콘 prefix. 기준선 추가 버튼은 다른 목록의 「추가」 와 같은 점선 전폭.
+- **Nested Routes (body)** — Parent Page · Slug 를 격자 행으로, 「Generate from Title」 은 Slug 행의 28 액션 (WandSparkles), Resolved URL 은 읽기 전용 값 필드. 아이콘 prefix 제거.
+- 계약이 빈 타입 (frame …) 의 「편집 가능한 속성이 없습니다」 빈 상태 제거 — Attributes · State 절이 항상 있어 모순된 안내였다.
+- `.fieldset-row` 의 28 액션 열은 legend 행에서 상자에 맞춰 아래 정렬 (Styles 의 Ratio 잠금과 같음).
 
 ## [Fill 다층 렌더 — 레이어 목록의 fill 을 전부 그린다 (Canvas · Preview 대칭)] - 2026-09-15
 

@@ -13,7 +13,7 @@
  * 삭제는 사용처 (`collectVariableUsages` — 템플릿 · setState 규칙) 수를 확인 문구에 싣는다.
  */
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Minus } from "lucide-react";
 import {
   collectVariableUsages,
   findCanonicalNodeById,
@@ -30,7 +30,11 @@ import {
 } from "@composition/shared";
 
 import { useI18n } from "@/i18n";
-import { PropertyInput, PropertySection, PropertySelect } from "../../../components";
+import {
+  PropertyInput,
+  PropertySection,
+  PropertySelect,
+} from "../../../components";
 import { ConfirmDialog } from "../../../components/overlay";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useStore } from "../../../stores";
@@ -46,7 +50,6 @@ import {
 import { useStateSectionFocus } from "./stateSectionFocus";
 import "./StateSection.css";
 
-const DeleteIcon = ACTION_ICONS.delete;
 const AddIcon = ACTION_ICONS.add;
 
 const NAME_PATTERN = /^[A-Za-z_$][\w$]*$/;
@@ -74,8 +77,7 @@ export const StateSection = memo(function StateSection({
   const isBody = element?.type === "body";
   const ownerNodeId = isBody ? currentPageId : elementId;
   type OwnerTarget =
-    | { kind: "page"; pageId: string }
-    | { kind: "element"; elementId: string };
+    { kind: "page"; pageId: string } | { kind: "element"; elementId: string };
   const owner = useMemo<OwnerTarget | null>(() => {
     if (!ownerNodeId) return null;
     return isBody
@@ -84,7 +86,8 @@ export const StateSection = memo(function StateSection({
   }, [isBody, ownerNodeId]);
 
   const ownerNode = useMemo(
-    () => (doc && ownerNodeId ? findCanonicalNodeById(doc, ownerNodeId) : undefined),
+    () =>
+      doc && ownerNodeId ? findCanonicalNodeById(doc, ownerNodeId) : undefined,
     [doc, ownerNodeId],
   );
   const defs = useMemo<VariableDef[]>(
@@ -104,7 +107,9 @@ export const StateSection = memo(function StateSection({
         if (target.kind === "page")
           return owner.kind !== "page" || target.pageId !== owner.pageId;
         if (target.kind === "element")
-          return owner.kind !== "element" || target.elementId !== owner.elementId;
+          return (
+            owner.kind !== "element" || target.elementId !== owner.elementId
+          );
         return true;
       }),
     [visible, owner],
@@ -129,12 +134,15 @@ export const StateSection = memo(function StateSection({
 
   const ownerLabel = useCallback(
     (target: VariableOwner): string => {
-      if (target.kind === "project") return t("propertiesPanel.stateOwnerProject");
+      if (target.kind === "project")
+        return t("propertiesPanel.stateOwnerProject");
       if (target.kind === "page") {
         const title = pages.find((page) => page.id === target.pageId)?.title;
         return `${t("propertiesPanel.stateOwnerPage")}${title ? ` ${title}` : ""}`;
       }
-      const node = doc ? findCanonicalNodeById(doc, target.elementId) : undefined;
+      const node = doc
+        ? findCanonicalNodeById(doc, target.elementId)
+        : undefined;
       return node?.name ?? node?.type ?? target.elementId;
     },
     [doc, pages, t],
@@ -144,9 +152,16 @@ export const StateSection = memo(function StateSection({
   const validateName = useCallback(
     (name: string, excludeId: string): string | null => {
       const trimmed = name.trim();
-      if (!NAME_PATTERN.test(trimmed)) return t("propertiesPanel.stateNameInvalid");
+      if (!NAME_PATTERN.test(trimmed))
+        return t("propertiesPanel.stateNameInvalid");
       if (!owner) return null;
-      const conflict = findVariableNameConflict(doc, owner, trimmed, projectDefs, excludeId);
+      const conflict = findVariableNameConflict(
+        doc,
+        owner,
+        trimmed,
+        projectDefs,
+        excludeId,
+      );
       if (conflict)
         return t("propertiesPanel.stateNameConflict", {
           name: trimmed,
@@ -255,7 +270,10 @@ export const StateSection = memo(function StateSection({
     (def: VariableDef, raw: string) => {
       const parsed = parseDefaultInput(def.type, raw);
       if (!parsed.ok) {
-        setError(def.id, t("propertiesPanel.stateDefaultInvalid", { type: def.type }));
+        setError(
+          def.id,
+          t("propertiesPanel.stateDefaultInvalid", { type: def.type }),
+        );
         return;
       }
       setError(def.id, null);
@@ -276,15 +294,23 @@ export const StateSection = memo(function StateSection({
   if (!element || !owner) return null;
 
   const namedByProp = new Map(
-    defs.filter((def) => def.source?.prop).map((def) => [def.source!.prop, def]),
+    defs
+      .filter((def) => def.source?.prop)
+      .map((def) => [def.source!.prop, def]),
   );
   const explicitDefs = defs.filter((def) => !def.source?.prop);
-  const typeOptions = VARIABLE_DEF_TYPES.map((type) => ({ value: type, label: type }));
+  const typeOptions = VARIABLE_DEF_TYPES.map((type) => ({
+    value: type,
+    label: type,
+  }));
 
   const renderDefRow = (def: VariableDef, implicitProp: string | null) => {
     const expanded = expandedId === def.id;
     const usages = usageCount(def.id);
     const error = errors[def.id];
+    // 목록 행은 공용 `.list-row` (ItemsManager · Fill/Shadow 레이어 행과 같은 구조, 2026-09-15):
+    //   [본문 28: 펼침 토글 20 · 이름 · type/prop/사용 수 (10 mono)] [액션 28: 제거 20 (Minus)].
+    //   펼친 편집 필드는 인스펙터 격자 — Name 전폭, Type | Default 반폭 짝.
     return (
       <div
         key={def.id}
@@ -293,76 +319,89 @@ export const StateSection = memo(function StateSection({
         data-variable-id={def.id}
         data-implicit={implicitProp ?? undefined}
       >
-        <div className="state-def-summary">
-          <button
-            type="button"
-            className="state-def-toggle"
-            onClick={() => setExpandedId(expanded ? null : def.id)}
-            aria-expanded={expanded}
-          >
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            <span className="state-def-name">{def.name}</span>
-            <span className="state-def-meta">
-              {def.type}
-              {implicitProp ? ` · ${implicitProp}` : ""}
+        <div className="list-row">
+          <div className="list-row__body">
+            <button
+              type="button"
+              className="list-row__action state-def-toggle"
+              onClick={() => setExpandedId(expanded ? null : def.id)}
+              aria-expanded={expanded}
+              aria-label={def.name}
+            >
+              {expanded ? (
+                <ChevronDown size={12} />
+              ) : (
+                <ChevronRight size={12} />
+              )}
+            </button>
+            <span className="list-row__label state-def-name">{def.name}</span>
+            {/* meta 는 하나만 짧게 — 암묵은 원천 prop, 명시는 type (둘 다 넣으면 이름이 밀린다) */}
+            <span className="list-row__meta state-def-meta">
+              {implicitProp ?? def.type}
             </span>
-          </button>
-          <span className="state-def-usage">
-            {t("propertiesPanel.stateUsageCount", { count: usages })}
-          </span>
-          <button
-            type="button"
-            className="state-def-remove"
-            onClick={() => setPendingDelete(def)}
-            aria-label={t("common.delete")}
-          >
-            <DeleteIcon size={14} />
-          </button>
+            {usages > 0 && (
+              <span className="list-row__meta state-def-usage">
+                {t("propertiesPanel.stateUsageCount", { count: usages })}
+              </span>
+            )}
+          </div>
+          <div className="list-row__actions">
+            <button
+              type="button"
+              className="list-row__action state-def-remove"
+              onClick={() => setPendingDelete(def)}
+              aria-label={t("common.delete")}
+            >
+              <Minus size={12} />
+            </button>
+          </div>
         </div>
         {expanded && (
-          <fieldset className="properties-aria state-def-editor">
-            <legend className="fieldset-legend">{def.name}</legend>
-            <PropertyInput
-              label={t("propertiesPanel.stateName")}
-              value={def.name}
-              onChange={(value) => renameDef(def, value)}
-            />
-            {!implicitProp && (
-              <PropertySelect
-                label={t("propertiesPanel.stateType")}
-                value={def.type}
-                options={typeOptions}
-                translateOptions={false}
-                onChange={(value) => patchDef(def.id, withType(def, value as VariableDefType))}
-              />
-            )}
-            {def.type === "boolean" ? (
-              <PropertySelect
-                label={t("propertiesPanel.stateDefault")}
-                value={String(def.defaultValue === true)}
-                options={[
-                  { value: "false", label: "false" },
-                  { value: "true", label: "true" },
-                ]}
-                translateOptions={false}
-                onChange={(value) => changeDefault(def, value)}
-              />
-            ) : (
+          <div className="list-row__fields state-def-editor">
+            <div className="fieldset-row" data-wide="true">
               <PropertyInput
-                label={t("propertiesPanel.stateDefault")}
-                value={formatDefaultInput(def)}
-                onChange={(value) => changeDefault(def, value)}
+                label={t("propertiesPanel.stateName")}
+                value={def.name}
+                onChange={(value) => renameDef(def, value)}
               />
-            )}
-            {owner.kind === "element" && (
-              <p className="state-def-hint">{t("propertiesPanel.stateInstanceHint")}</p>
-            )}
+            </div>
+            <div className="fieldset-row">
+              {!implicitProp && (
+                <PropertySelect
+                  label={t("propertiesPanel.stateType")}
+                  value={def.type}
+                  options={typeOptions}
+                  translateOptions={false}
+                  onChange={(value) =>
+                    patchDef(def.id, withType(def, value as VariableDefType))
+                  }
+                />
+              )}
+              {def.type === "boolean" ? (
+                <PropertySelect
+                  label={t("propertiesPanel.stateDefault")}
+                  value={String(def.defaultValue === true)}
+                  options={[
+                    { value: "false", label: "false" },
+                    { value: "true", label: "true" },
+                  ]}
+                  translateOptions={false}
+                  onChange={(value) => changeDefault(def, value)}
+                />
+              ) : (
+                <PropertyInput
+                  label={t("propertiesPanel.stateDefault")}
+                  value={formatDefaultInput(def)}
+                  onChange={(value) => changeDefault(def, value)}
+                />
+              )}
+            </div>
             {error && (
               <p className="state-def-error" role="alert">
                 {error}
               </p>
             )}
-          </fieldset>
+          </div>
         )}
         {!expanded && error && (
           <p className="state-def-error" role="alert">
@@ -379,41 +418,64 @@ export const StateSection = memo(function StateSection({
         title={t("propertiesPanel.stateSection")}
         badge={<span className="state-section-count">{defs.length}</span>}
       >
-        <p className="state-section-hint">
-          {t(isBody ? "propertiesPanel.stateVisiblePage" : "propertiesPanel.stateVisibleElement")}
-        </p>
-
+        {/* 묶음은 fieldset + legend (다른 필드와 같은 어법). 정적 설명 문단 (가시 범위 · 암묵 상태
+            안내) 은 섹션에 두지 않는다 (panel-structure §1 — i18n 키는 유지). */}
         {implicitSources.length > 0 && (
-          <div className="state-group" data-group="implicit">
-            <div className="state-group-header">
-              <span className="state-group-title">{t("propertiesPanel.stateImplicitTitle")}</span>
-              <span className="state-group-meta">{t("propertiesPanel.stateImplicitRac")}</span>
-            </div>
-            <p className="state-section-hint">{t("propertiesPanel.stateImplicitHint")}</p>
+          <fieldset
+            className="properties-aria state-group"
+            data-group="implicit"
+          >
+            <legend className="fieldset-legend">
+              {t("propertiesPanel.stateImplicitTitle")}
+              <span className="state-group-meta">
+                {t("propertiesPanel.stateImplicitRac")}
+              </span>
+            </legend>
             {implicitSources.map((source) => {
               const named = namedByProp.get(source.prop);
               if (named) return renderDefRow(named, source.prop);
               const probeId = `implicit:${source.prop}`;
+              // 이름 없는 암묵 상태 — [본문: prop · type] [이름 입력 20 (그룹 안)]
               return (
-                <div key={source.prop} className="state-def state-def--unnamed" data-implicit={source.prop}>
-                  <div className="state-def-summary">
-                    <span className="state-def-name state-def-name--prop">{source.prop}</span>
-                    <span className="state-def-meta">{source.type}</span>
-                    <input
-                      type="text"
-                      className="state-def-name-input"
-                      placeholder={t("propertiesPanel.stateNamePlaceholder")}
-                      aria-label={`${t("propertiesPanel.stateNamePlaceholder")} ${source.prop}`}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          nameImplicit(source.prop, source.type, event.currentTarget.value);
-                        }
-                      }}
-                      onBlur={(event) => {
-                        if (event.currentTarget.value.trim())
-                          nameImplicit(source.prop, source.type, event.currentTarget.value);
-                      }}
-                    />
+                <div
+                  key={source.prop}
+                  className="state-def state-def--unnamed"
+                  data-implicit={source.prop}
+                >
+                  <div className="list-row state-def-summary">
+                    <div className="list-row__body">
+                      <span className="list-row__label state-def-name state-def-name--prop">
+                        {source.prop}
+                      </span>
+                      <span className="list-row__meta state-def-meta">
+                        {source.type}
+                      </span>
+                    </div>
+                    <div className="list-row__actions state-def-name-group">
+                      <input
+                        type="text"
+                        className="list-row__input state-def-name-input"
+                        placeholder={t("propertiesPanel.stateNamePlaceholder")}
+                        aria-label={`${t("propertiesPanel.stateNamePlaceholder")} ${source.prop}`}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            nameImplicit(
+                              source.prop,
+                              source.type,
+                              event.currentTarget.value,
+                            );
+                          }
+                        }}
+                        onBlur={(event) => {
+                          if (event.currentTarget.value.trim())
+                            nameImplicit(
+                              source.prop,
+                              source.type,
+                              event.currentTarget.value,
+                            );
+                        }}
+                      />
+                    </div>
                   </div>
                   {errors[probeId] && (
                     <p className="state-def-error" role="alert">
@@ -423,41 +485,50 @@ export const StateSection = memo(function StateSection({
                 </div>
               );
             })}
-          </div>
+          </fieldset>
         )}
 
-        <div className="state-group" data-group="explicit">
-          <div className="state-group-header">
-            <span className="state-group-title">
-              {t(isBody ? "propertiesPanel.statePageTitle" : "propertiesPanel.stateExplicitTitle")}
-            </span>
-            <button
-              type="button"
-              className="control-button"
-              data-variant="add"
-              onClick={addExplicit}
-            >
-              <AddIcon size={14} />
-              <span>{t("propertiesPanel.stateAdd")}</span>
-            </button>
-          </div>
+        <fieldset className="properties-aria state-group" data-group="explicit">
+          <legend className="fieldset-legend">
+            {t(
+              isBody
+                ? "propertiesPanel.statePageTitle"
+                : "propertiesPanel.stateExplicitTitle",
+            )}
+          </legend>
           {explicitDefs.map((def) => renderDefRow(def, null))}
-        </div>
+          <button
+            type="button"
+            className="control-button"
+            data-variant="add"
+            onClick={addExplicit}
+          >
+            <AddIcon size={14} />
+            <span>{t("propertiesPanel.stateAdd")}</span>
+          </button>
+        </fieldset>
 
         {ancestorVisible.length > 0 && (
-          <div className="state-group" data-group="ancestors">
-            <div className="state-group-header">
-              <span className="state-group-title">{t("propertiesPanel.stateAncestorTitle")}</span>
-            </div>
+          <fieldset
+            className="properties-aria state-group"
+            data-group="ancestors"
+          >
+            <legend className="fieldset-legend">
+              {t("propertiesPanel.stateAncestorTitle")}
+            </legend>
             {ancestorVisible.map((entry) => (
-              <div key={entry.def.id} className="state-ancestor-row">
-                <span className="state-def-name">{entry.def.name}</span>
-                <span className="state-def-meta">
-                  {entry.def.type} · {ownerLabel(entry.owner)}
-                </span>
+              <div key={entry.def.id} className="list-row state-ancestor-row">
+                <div className="list-row__body">
+                  <span className="list-row__label state-def-name">
+                    {entry.def.name}
+                  </span>
+                  <span className="list-row__meta state-def-meta">
+                    {entry.def.type} · {ownerLabel(entry.owner)}
+                  </span>
+                </div>
               </div>
             ))}
-          </div>
+          </fieldset>
         )}
       </PropertySection>
       <ConfirmDialog

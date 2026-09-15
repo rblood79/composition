@@ -28,14 +28,12 @@ describe("PropertiesPanel body wiring", () => {
     expect(panelSource).toMatch(/<PageBodySection\s+elementId=/);
   });
 
-  it("suppresses the empty edit-contract state for dedicated section types", () => {
-    // 고정 대상은 "DEDICATED_SECTION_TYPES 를 조회해 EmptyState 앞에서 빠져나간다"
-    // 는 소비 지점이지 표현식 문자열이 아니다 — 2026-09-06 ADR-203 selection
-    // fan-out 이 selectedElement.type → elementType 으로 바꾸자 배선이 멀쩡한데도
-    // 이 단언만 깨졌다. 피검사 대상 변수명에 묶이지 않게 한다.
-    expect(panelSource).toMatch(
-      /if\s*\(DEDICATED_SECTION_TYPES\.has\([^)]+\)\)\s*return null;/,
-    );
+  it("does not render an empty edit-contract state at all", () => {
+    // 2026-09-15: 계약이 빈 타입은 EmptyState 없이 null — Attributes · State 절이 항상 있어
+    //   「편집 가능한 속성이 없습니다」 가 실제 컨트롤과 함께 뜨는 모순을 타입 표
+    //   (DEDICATED_SECTION_TYPES) 로 가리던 것을 없앴다. 표의 body 는 PageBodySection 이 담당.
+    expect(DEDICATED_SECTION_TYPES.has("body")).toBe(true);
+    expect(panelSource).not.toContain("propertiesPanel.emptyMessage");
   });
 
   it("keeps body in the dedicated section type set", () => {

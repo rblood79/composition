@@ -9,10 +9,7 @@ import type { ResolvedField } from "@composition/shared";
 import { PropertyRowMenu, PropertySelect } from "../../components";
 import { ACTION_ICONS } from "../../config/actionIcons";
 import { useI18n } from "@/i18n";
-import { resolvePropertyFieldIcon } from "../../config/propertyFieldIcons";
 
-const chartIcon = (key: string, kind: string) =>
-  resolvePropertyFieldIcon(key, kind, "Chart");
 import {
   moveItem,
   readValueFields,
@@ -86,33 +83,34 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
 
   return (
     <>
-      <PropertySelect
-        label={t("chart.dataMode")}
-        icon={chartIcon("dataMode", "enum")}
-        value={picking ? "columns" : dataMode}
-        options={[
-          { value: "group", label: t("chart.modeGroup") },
-          { value: "columns", label: t("chart.modeColumns") },
-        ]}
-        translateOptions={false}
-        disabledKeys={columnsUnsupported ? COLUMNS_MODE_KEY : undefined}
-        onChange={(value) => {
-          if (value === "group") {
-            setPicking(false);
-            if (dataMode !== "group") onPatch({ dataMode: "group" });
-            return;
+      <div className="fieldset-row" data-wide="true">
+        <PropertySelect
+          label={t("chart.dataMode")}
+          value={picking ? "columns" : dataMode}
+          options={[
+            { value: "group", label: t("chart.modeGroup") },
+            { value: "columns", label: t("chart.modeColumns") },
+          ]}
+          translateOptions={false}
+          disabledKeys={columnsUnsupported ? COLUMNS_MODE_KEY : undefined}
+          onChange={(value) => {
+            if (value === "group") {
+              setPicking(false);
+              if (dataMode !== "group") onPatch({ dataMode: "group" });
+              return;
+            }
+            if (value === "columns" && dataMode !== "columns") {
+              setPicked(valueFields);
+              setPicking(true);
+            }
+          }}
+          afterControl={
+            columnsUnsupported ? (
+              <span slot="description">{t("chart.columnsUnsupported")}</span>
+            ) : undefined
           }
-          if (value === "columns" && dataMode !== "columns") {
-            setPicked(valueFields);
-            setPicking(true);
-          }
-        }}
-        afterControl={
-          columnsUnsupported ? (
-            <span slot="description">{t("chart.columnsUnsupported")}</span>
-          ) : undefined
-        }
-      />
+        />
+      </div>
       {picking && (
         <fieldset className="properties-aria chart-field-picker">
           <legend className="fieldset-legend">{t("chart.chooseFields")}</legend>
@@ -225,20 +223,21 @@ export const ChartDataMappingControls = memo(function ChartDataMappingControls({
             );
           })}
           {columns && columns.some((c) => !valueFields.includes(c.key)) && (
-            <PropertySelect
-              label={t("chart.addField")}
-              icon={ACTION_ICONS.add}
-              value=""
-              optionValueMode="literal"
-              translateOptions={false}
-              options={columns
-                .filter((c) => !valueFields.includes(c.key))
-                .map((c) => ({
-                  value: c.key,
-                  label: `${c.key} · ${typeLabel(c.type)}`,
-                }))}
-              onChange={(key) => applyColumns([...valueFields, key])}
-            />
+            <div className="fieldset-row" data-wide="true">
+              <PropertySelect
+                label={t("chart.addField")}
+                value=""
+                optionValueMode="literal"
+                translateOptions={false}
+                options={columns
+                  .filter((c) => !valueFields.includes(c.key))
+                  .map((c) => ({
+                    value: c.key,
+                    label: `${c.key} · ${typeLabel(c.type)}`,
+                  }))}
+                onChange={(key) => applyColumns([...valueFields, key])}
+              />
+            </div>
           )}
         </>
       )}

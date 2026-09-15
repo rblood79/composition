@@ -66,7 +66,6 @@ import { BUTTON_CHILD_HOST_TAGS } from "./buttonChildSectionUtils";
 import { ElementAttributesSection } from "./ElementAttributesSection";
 import { PageBodySection } from "./PageBodySection";
 import { StateSection } from "./state/StateSection";
-import { DEDICATED_SECTION_TYPES } from "./pageBodySectionConstants";
 import { ActionIconButton } from "../../components/ui";
 import { Settings2 } from "lucide-react";
 import { ACTION_ICONS } from "../../config/actionIcons";
@@ -489,35 +488,24 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
   }, []);
 
   if (semanticFields.length === 0) {
-    // 비-catalog 오소링 섹션이 편집 축을 전담하는 타입(body)은 EmptyState 를 띄우지
-    // 않는다 — 계약이 빈 게 결함이 아니라 축이 다른 것이고, 실제 컨트롤은
-    // PageBodySection 이 공급하므로 함께 뜨면 모순된 안내가 된다.
-    if (DEDICATED_SECTION_TYPES.has(elementType)) return null;
-    if (contentExtras != null) {
-      return (
-        <GenericFieldRenderer
-          fields={semanticFields}
-          literalOptionFields={
-            elementType === "Chart"
-              ? ["dimension", "metric", "color"]
-              : undefined
-          }
-          onSemanticUpdate={handleSemanticUpdate}
-          onStyleUpdate={handleStyleUpdate}
-          elementId={elementId}
-          componentType={elementType}
-          contentExtras={editorExtras}
-          sectionExtras={sectionExtras}
-        />
-      );
-    }
+    // 계약이 빈 타입 (frame · body …) 은 아무것도 그리지 않는다 — Attributes · State 절이 항상
+    //   있으므로 「편집 가능한 속성이 없습니다」 빈 상태는 패널 안에서 모순된 안내였다
+    //   (2026-09-15; body 는 종전부터 PageBodySection 이 축을 전담). 주입 컨트롤만 있으면 그것만.
+    if (contentExtras == null) return null;
     return (
-      <EmptyState
-        icon={<Settings2 size={32} />}
-        message={t("propertiesPanel.emptyMessage")}
-        description={t("propertiesPanel.emptyDescription", {
-          type: elementType,
-        })}
+      <GenericFieldRenderer
+        fields={semanticFields}
+        literalOptionFields={
+          elementType === "Chart"
+            ? ["dimension", "metric", "color"]
+            : undefined
+        }
+        onSemanticUpdate={handleSemanticUpdate}
+        onStyleUpdate={handleStyleUpdate}
+        elementId={elementId}
+        componentType={elementType}
+        contentExtras={editorExtras}
+        sectionExtras={sectionExtras}
       />
     );
   }

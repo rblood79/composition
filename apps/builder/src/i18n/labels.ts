@@ -330,6 +330,8 @@ export const semanticLabelKeys: Record<string, string> = {
   "Generate slug from title": "properties.generateSlug",
   "Preview URL:": "properties.previewUrl",
   Content: "properties.content",
+  Behavior: "properties.behavior",
+  Locale: "properties.locale",
   Icon: "properties.icon",
   Text: "properties.text",
   Frame: "properties.frame",
