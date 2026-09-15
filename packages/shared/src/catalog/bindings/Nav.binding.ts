@@ -31,10 +31,14 @@ export const navBinding: PrimitiveBinding = {
   },
   props: {
     accepts: {
+      // 편집 surface 는 Properties 의 Attributes 절 (전 타입 공통 `aria-label` 축, Nav 는 항상
+      //   노출) 하나 — 여기서도 필드를 열면 같은 prop 이 Content 와 Attributes 두 곳에 뜬다
+      //   (2026-09-15 사용자 지적). accepts 에는 남긴다 (toRacProps 통과 축).
       "aria-label": {
         kind: "string",
         label: "aria-label",
         section: "content",
+        editorHidden: true,
       },
       // kind:"variant"/"size" 는 options 미보유(types.ts:139-142) — theme rule 동적 제공.
       variant: {

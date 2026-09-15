@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Nested Routes (body)** — Parent Page · Slug 를 격자 행으로, 「Generate from Title」 은 Slug 행의 28 액션 (WandSparkles), Resolved URL 은 읽기 전용 값 필드. 아이콘 prefix 제거.
 - 계약이 빈 타입 (frame …) 의 「편집 가능한 속성이 없습니다」 빈 상태 제거 — Attributes · State 절이 항상 있어 모순된 안내였다.
 - `.fieldset-row` 의 28 액션 열은 legend 행에서 상자에 맞춰 아래 정렬 (Styles 의 Ratio 잠금과 같음).
+- **Nav 의 `aria-label` 이 Content 와 Attributes 두 곳에 뜨던 중복 제거** — 편집 surface 는 Attributes 절 하나 (계약 필드는 `editorHidden`). 전 계약 sweep: Attributes 축 key (id · className · aria-label) · 같은 key · 같은 라벨의 중복은 Nav 하나뿐이었고, 정적 가드 (`contractFieldDuplicates.static.test.ts`) 로 고정.
 
 ## [Fill 다층 렌더 — 레이어 목록의 fill 을 전부 그린다 (Canvas · Preview 대칭)] - 2026-09-15
 
