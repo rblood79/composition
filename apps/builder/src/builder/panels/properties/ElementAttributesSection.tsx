@@ -28,7 +28,12 @@ import {
   PropertySection,
 } from "../../components";
 import { useStore } from "../../stores";
-import { useCanonicalPropertyElement } from "./hooks/useCanonicalPropertyRead";
+import {
+  useCanonicalPropertyChildren,
+  useCanonicalPropertyElement,
+} from "./hooks/useCanonicalPropertyRead";
+import { useEditContract } from "./hooks/useEditContract";
+import { needsAuthoredAriaLabel } from "./ariaLabelNeed";
 
 export const ElementAttributesSection = memo(function ElementAttributesSection({
   elementId,
@@ -36,6 +41,8 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
   elementId: string;
 }) {
   const element = useCanonicalPropertyElement(elementId);
+  const children = useCanonicalPropertyChildren(elementId);
+  const contract = useEditContract(elementId);
 
   const customId = element?.customId ?? "";
   const className = useMemo(() => {
@@ -62,6 +69,17 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
 
   if (!element) return null;
 
+  // RAC 가 이름을 스스로 만드는 요소 (label prop · 텍스트 콘텐츠) 에는 Aria Label 을 보이지
+  //   않는다 — 빈자리 (label 없는 field · 컬렉션 · 아이콘 전용 버튼) 만 (ariaLabelNeed.ts)
+  const showAriaLabel = needsAuthoredAriaLabel({
+    type: element.type,
+    props: element.props as Record<string, unknown> | undefined,
+    hasLabelField: contract.fields.some(
+      (field) => field.origin === "semantic" && field.key === "label",
+    ),
+    children,
+  });
+
   // 라벨은 legend (상자 위, Styles 패널과 같은 어법 — 2026-09-15 사용자 판정), 아이콘 prefix
   //   (#, 중괄호, aria) 는 라벨이 있으면 중복이라 뺀다 (panel-ui 07, 2026-09-14).
   return (
@@ -82,14 +100,16 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
           placeholder="hero-title"
         />
       </div>
-      <div className="fieldset-row" data-wide="true">
-        <PropertyInput
-          label="Aria Label"
-          value={ariaLabel}
-          onChange={handleAriaLabelChange}
-          placeholder="Upload progress"
-        />
-      </div>
+      {showAriaLabel && (
+        <div className="fieldset-row" data-wide="true">
+          <PropertyInput
+            label="Aria Label"
+            value={ariaLabel}
+            onChange={handleAriaLabelChange}
+            placeholder="Upload progress"
+          />
+        </div>
+      )}
     </PropertySection>
   );
 });

@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Properties 패널 필드 라벨을 전부 legend (상자 위) 로** — Styles 패널 판정을 그대로 적용. 전폭 행의 상자 안 suffix 라벨 (「button_1 ID」 「hero-title CLASS」 「None ICON ▾」 「… TEXT」 · GenericFieldRenderer 의 짧은 라벨 suffix) 과 스위치의 inline 행 (라벨 왼쪽 · 스위치 오른쪽, 상자 없음) 을 legend + 상자 28 로. 아이콘 prefix (# · 필드 종류 아이콘) 는 legend 가 정체를 말하므로 전부 제거.
+- **Attributes 「Aria Label」 은 RAC 가 접근 가능한 이름을 스스로 못 만드는 요소에만** — 시각 `label` 이 있는 타입 (field 가족 · Slider · Meter · ProgressBar …) 은 label 이 비었을 때, 컬렉션·그룹 (Tabs · Table · Tree · ListBox · Toolbar · Group …) 은 항상, Button · ToggleButton · Link 는 텍스트 없는 아이콘 전용일 때만. 텍스트 콘텐츠·장식·레이아웃 요소에는 안 보인다 (`ariaLabelNeed.ts`).
 - **숫자 필드의 − / + stepper 제거** (`PropertyNumberInput` — Styles 의 ⇕ 제거와 같은 판정, 화살표 키 그대로).
 - Button Icon · Text 필드가 3열 (217) 로 다른 전폭 필드 (181) 보다 넓던 것 → 같은 행 래퍼로 181.
 
