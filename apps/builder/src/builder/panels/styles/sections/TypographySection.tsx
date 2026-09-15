@@ -2,8 +2,9 @@
  * TypographySection - Typography 스타일 편집 섹션
  *
  * 6행 (panel-ui 03, 2026-09-14): 글꼴 | 색 · Weight | Size · Height | Spacing · Align | Vertical ·
- * Style | Decoration · Case | Wrap — 12 컨트롤이 legend + 아이콘 두 줄 (46) 이던 것을 suffix/inline
- * 라벨로 28 행에. Decoration · Case 는 「×」 가 none 자리 (재클릭 해제 대신 명시 선택).
+ * Style | Decoration · Case | Wrap — 라벨은 legend 위 + 상자 아래 (46, Gap 과 같은 어법 — 2026-09-15
+ * 사용자 판정으로 suffix/inline 에서 되돌림), 단위는 상자 안 트리거. Decoration · Case 는 「×」 가
+ * none 자리 (재클릭 해제 대신 명시 선택).
  * 접힌 섹션의 훅 실행을 방지하기 위해 내용 컴포넌트 분리.
  */
 
@@ -231,11 +232,10 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         placeholder="#000000"
       />
 
-      {/* 2행: Weight | Size — 3행: Height | Spacing (suffix 라벨, 종전 아이콘 + legend 두 줄) */}
+      {/* 2행: Weight | Size — 3행: Height | Spacing (legend 위 + 상자 아래, 단위는 상자 안 트리거 — 2026-09-15 사용자 판정) */}
       <PropertySelect
         label="Font Weight"
         className="font-weight"
-        labelMode="inline"
         value={styleValues.fontWeight}
         options={fontWeightOptions}
         onChange={(value) => {
@@ -251,8 +251,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       <PropertyUnitInput
         label="Font Size"
         className="font-size"
-        labelMode="suffix"
-        suffixLabel="SIZE"
+        unitSuffix
         value={styleValues.fontSize}
         units={["reset", "px"]}
         defaultUnit="px"
@@ -264,21 +263,19 @@ const TypographySectionContent = memo(function TypographySectionContent() {
       <PropertyUnitInput
         label="Line Height"
         className="line-height"
-        labelMode="suffix"
-        suffixLabel="LINE"
+        unitSuffix
         value={styleValues.lineHeight}
         units={["reset", "px"]}
         onChange={(value) => updateStyleImmediate("lineHeight", value)}
         onDrag={(value) => updateStylePreview("lineHeight", value)}
         min={0}
-        max={10}
+        max={999}
         allowKeywords
       />
       <PropertyUnitInput
         label="Letter Spacing"
         className="letter-spacing"
-        labelMode="suffix"
-        suffixLabel="SPACE"
+        unitSuffix
         value={styleValues.letterSpacing}
         units={["reset", "px"]}
         onChange={(value) => updateStyleImmediate("letterSpacing", value)}

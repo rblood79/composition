@@ -34,13 +34,12 @@ export interface BoxShadowEditorProps {
 const NUMERIC_FIELDS: ReadonlyArray<{
   readonly field: BoxShadowNumericField;
   readonly label: string;
-  readonly suffixLabel: string;
   readonly min: number;
 }> = [
-  { field: "offsetX", label: "Offset X", suffixLabel: "X", min: -9999 },
-  { field: "offsetY", label: "Offset Y", suffixLabel: "Y", min: -9999 },
-  { field: "blur", label: "Blur", suffixLabel: "BLUR", min: 0 },
-  { field: "spread", label: "Spread", suffixLabel: "SPREAD", min: -9999 },
+  { field: "offsetX", label: "Offset X", min: -9999 },
+  { field: "offsetY", label: "Offset Y", min: -9999 },
+  { field: "blur", label: "Blur", min: 0 },
+  { field: "spread", label: "Spread", min: -9999 },
 ];
 
 function parsePixelValue(value: string): number | null {
@@ -122,13 +121,12 @@ export const BoxShadowEditor = memo(function BoxShadowEditor({
       onPointerCancelCapture={() => cancel("pointer-cancel")}
     >
       <div className="box-shadow-editor-fields">
-        {NUMERIC_FIELDS.map(({ field, label, suffixLabel, min }) => (
+        {NUMERIC_FIELDS.map(({ field, label, min }) => (
           <PropertyUnitInput
             key={field}
             className={`box-shadow-${field}`}
             label={label}
-            labelMode="suffix"
-            suffixLabel={suffixLabel}
+            unitSuffix
             value={toPixelValue(activeLayer[field])}
             units={["px"]}
             defaultUnit="px"

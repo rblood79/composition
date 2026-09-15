@@ -11,10 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [Styles Size 절 — 라벨을 Gap 과 같은 legend 로 (필드 안 suffix 되돌림)] - 2026-09-15
+## [Styles 패널 — 필드 라벨을 Gap 과 같은 legend 로 (Size · Position · Typography · Shadow, 필드 안 suffix 되돌림)] - 2026-09-15
+
+### Fixed
+
+- Typography Line Height 가 px 단위인데 상한이 10 이라 「28」 같은 값이 입력 즉시 옛 값으로 되돌아가던 결함 (unitless 시절 범위 잔재) → 상한 999.
 
 ### Changed
 
+- **Position 절 (X · Y · Left · Top) · Typography (Font Weight · Font Size · Line Height · Letter Spacing) · Shadow 편집기 (Offset X/Y · Blur · Spread) 도 같은 legend 어법으로** — 상자 안 suffix (「24 LEFT」 「16 SIZE」 「0 X」) · Font Weight inline 을 전부 상자 위 legend + 상자 안 단위 트리거로 (2026-09-15 사용자 판정 2차).
 - **Size 절 8 필드 (Width · Height · Min W/H · Max W/H · Ratio · Overflow) 의 라벨이 상자 안 suffix (「fit W」 「auto MIN W」) 에서 Gap 과 같은 legend (상자 위 라벨 18 + 상자 28 = 46) 로** — 2026-09-15 사용자 판정 (시안 panel-ui 01 의 suffix 어법은 확인 착오). 단위는 상자 안 트리거 (「400 PX ⇕」), 값이 키워드 (fill · fit · auto) 면 값 칸에 키워드 · 트리거는 「—」. 동작 (W/H 단위 메뉴의 fill · fit-content, 빈 min/max 의 단위 선택 보존, stepper) 은 그대로.
 
 ## [Properties 패널 — 팔레트 70 컴포넌트 전수 대조 (잘림 · 눌림 · 티어 밖 높이 0)] - 2026-09-15

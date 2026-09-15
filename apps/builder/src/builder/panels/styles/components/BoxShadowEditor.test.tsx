@@ -7,7 +7,7 @@ import { BoxShadowEditor } from "./BoxShadowEditor";
 
 interface UnitInputMockProps {
   readonly label?: string;
-  readonly suffixLabel?: string;
+  readonly unitSuffix?: boolean;
   readonly labelMode?: string;
   readonly min?: number;
   readonly onChange: (value: string) => void;
@@ -49,7 +49,7 @@ vi.mock("../../../components", () => ({
   PropertyUnitInput: ({
     label = "Value",
     labelMode,
-    suffixLabel,
+    unitSuffix,
     min,
     onChange,
     onDrag,
@@ -59,8 +59,8 @@ vi.mock("../../../components", () => ({
       data-testid={label}
       data-min={min}
       data-value={value}
-      data-label-mode={labelMode}
-      data-suffix={suffixLabel}
+      data-label-mode={labelMode ?? "legend"}
+      data-unit-suffix={String(Boolean(unitSuffix))}
     >
       <button
         aria-label={`${label} preview`}
@@ -101,7 +101,7 @@ describe("BoxShadowEditor (레이어 하나)", () => {
     cleanup();
   });
 
-  it("layerIndex 의 레이어만 — px 4 필드 (suffix 라벨) + 「■ HEX」 color", () => {
+  it("layerIndex 의 레이어만 — px 4 필드 (legend + 단위 트리거) + 「■ HEX」 color", () => {
     render(
       <BoxShadowEditor
         value={VALUE}
@@ -114,8 +114,8 @@ describe("BoxShadowEditor (레이어 하나)", () => {
     );
 
     expect(screen.getByTestId("Offset X").dataset.value).toBe("3px");
-    expect(screen.getByTestId("Offset X").dataset.labelMode).toBe("suffix");
-    expect(screen.getByTestId("Offset X").dataset.suffix).toBe("X");
+    expect(screen.getByTestId("Offset X").dataset.labelMode).toBe("legend");
+    expect(screen.getByTestId("Offset X").dataset.unitSuffix).toBe("true");
     expect(screen.getByTestId("Blur").dataset.min).toBe("0");
     expect(screen.getByTestId("Spread").dataset.min).toBe("-9999");
     expect(screen.getByTestId("shadow-color").dataset.value).toBe("#ff000080");

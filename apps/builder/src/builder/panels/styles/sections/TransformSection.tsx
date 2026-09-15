@@ -180,7 +180,7 @@ const PagePositionRow = memo(function PagePositionRow({
       {/* 페이지 캔버스 위치 — 값/undo 는 updatePagePosition 계약 그대로 (ADR-177) */}
       <PropertyUnitInput
         label="X"
-        labelMode="suffix"
+        unitSuffix
         className="left"
         value={`${displayX}px`}
         units={["px"]}
@@ -190,7 +190,7 @@ const PagePositionRow = memo(function PagePositionRow({
       />
       <PropertyUnitInput
         label="Y"
-        labelMode="suffix"
+        unitSuffix
         className="top"
         value={`${displayY}px`}
         units={["px"]}
@@ -492,7 +492,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
       <div className="transform-row">
         <PropertyUnitInput
           label="Left"
-          labelMode="suffix"
+          unitSuffix
           className="left"
           value={isAbsolutePositioned ? styleValues.left : "auto"}
           units={["px", "%", "vw"]}
@@ -507,7 +507,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
         />
         <PropertyUnitInput
           label="Top"
-          labelMode="suffix"
+          unitSuffix
           className="top"
           value={isAbsolutePositioned ? styleValues.top : "auto"}
           units={["px", "%", "vh"]}
