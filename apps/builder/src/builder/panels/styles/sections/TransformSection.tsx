@@ -11,6 +11,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
 } from "react";
 import {
@@ -26,7 +27,7 @@ import {
   SwatchIconToggleButton,
 } from "../../../components/ui";
 import { iconProps } from "../../../../utils/ui/uiConstants";
-import { Lock, Unlock } from "lucide-react";
+import { Lock, Unlock, UnfoldVertical } from "lucide-react";
 import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
@@ -268,6 +269,20 @@ const TransformSectionContent = memo(function TransformSectionContent({
         "visible",
       ),
       isBody: bundle.isBody,
+      // Min/Max 에 사용자 인라인 값이 하나라도 있는가 (spec 기본값은 제외 — 펼침 토글 자동 on 판정)
+      hasInlineConstraint: (
+        [
+          bundle.minWidth,
+          bundle.maxWidth,
+          bundle.minHeight,
+          bundle.maxHeight,
+        ] as const
+      ).some(
+        (tier) =>
+          tier.inline !== undefined &&
+          tier.inline !== null &&
+          String(tier.inline).trim() !== "",
+      ),
     };
   }, [bundle]);
 
@@ -458,6 +473,12 @@ const TransformSectionContent = memo(function TransformSectionContent({
     [commitAbsoluteActivation, parentDisplay, updateStyleImmediate],
   );
 
+  // Min/Max 4 필드 펼침 — 토글 on 이거나 값이 하나라도 있으면 보인다 (Border 코너 토글과 같은 규칙,
+  //   2026-09-15 사용자 판정). hook 순서를 위해 early return 앞.
+  const [constraintsOpen, setConstraintsOpen] = useState(false);
+  const showConstraints =
+    constraintsOpen || Boolean(styleValues?.hasInlineConstraint);
+
   if (!styleValues) return null;
 
   const isAbsolutePositioned = styleValues.position === "absolute";
@@ -573,11 +594,30 @@ const TransformSectionContent = memo(function TransformSectionContent({
           min={0}
           max={9999}
         />
-        <div className="fieldset-actions actions-size" />
+        <div className="fieldset-actions actions-size">
+          {!styleValues.isBody && (
+            <SwatchIconToggleButton
+              aria-label={localize("Size constraints")}
+              isSelected={showConstraints}
+              onChange={setConstraintsOpen}
+            >
+              <UnfoldVertical
+                color={iconProps.color}
+                size={iconProps.size}
+                strokeWidth={iconProps.strokeWidth}
+              />
+            </SwatchIconToggleButton>
+          )}
+        </div>
       </div>
 
       {!styleValues.isBody && (
-        <div className="transform-constraints">
+        <div
+          className="transform-constraints"
+          data-constraints={showConstraints ? "open" : "closed"}
+        >
+          {showConstraints && (
+          <>
           <PropertyUnitInput
             label="Min W"
             unitSuffix
@@ -632,6 +672,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
             max={9999}
           />
           <div className="fieldset-actions actions-constraint-max" />
+          </>
+          )}
           <PropertySelect
             label="Ratio"
             className="aspect-ratio-select"

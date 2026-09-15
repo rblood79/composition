@@ -203,6 +203,13 @@
           "aspect-ratio aspect-ratio actions-ratio"
           "overflow overflow actions-overflow";
 
+        /* Min/Max 접힘 (Size 행 28 열 토글 off · 값 없음) — 두 행을 격자에서 뺀다 (빈 행 + gap 방지) */
+        &[data-constraints="closed"] {
+          grid-template-areas:
+            "aspect-ratio aspect-ratio actions-ratio"
+            "overflow overflow actions-overflow";
+        }
+
         > * {
           min-width: 0;
         }
