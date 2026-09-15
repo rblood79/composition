@@ -30,7 +30,6 @@ import {
   PropertyNumberInput,
   PropertySection,
   PropertySelect,
-  PropertySizeToggle,
   PropertySwitch,
 } from "../../../components";
 import type { DataBindingValue } from "../../../components/property/PropertyDataBinding";
@@ -171,13 +170,12 @@ function areGenericFieldPropsEqual(
 }
 
 /**
- * 필드가 차지하는 폭 — `wide` 는 1·2열 합침 (값이 긴 텍스트 · 스위치 행 · 목록), `half` 는
- * 한 열 (셀렉트 · seg · 숫자 · 아이콘) 로 두 개가 한 행에 선다 (panel-ui 07).
+ * 필드가 차지하는 폭 — `wide` 는 1·2열 합침 (값이 긴 텍스트 · 목록), `half` 는 한 열 (셀렉트 ·
+ * 숫자 · 스위치) 로 두 개가 한 행에 선다 (panel-ui 07, Styles 패널의 「W | H」 행과 같은 격자).
  */
 /**
  * 글자 폭 (px) — 반폭 칸에 값이 들어가는지 판정. canvas measureText (패널 글꼴 12) 가 있으면
- * 그것, 없으면 (jsdom) 글자당 7. 값 자리는 셀렉트 55 (87 − pad 8 − chevron 20 − gap 4) ·
- * 2옵션 seg 칩 37 · 3옵션 칩 24.
+ * 그것, 없으면 (jsdom) 글자당 7. 값 자리는 셀렉트 55 (87 − pad 8 − chevron 20 − gap 4).
  */
 let measureCtx: CanvasRenderingContext2D | null | undefined;
 function textWidth(text: string): number {
@@ -197,41 +195,109 @@ function textWidth(text: string): number {
   if (!measureCtx) return text.length * 7;
   return measureCtx.measureText(text).width;
 }
+const HALF_LEGEND = 87;
 const HALF_SELECT_VALUE = 55;
-const HALF_SEG_CHIP: Record<number, number> = { 2: 37, 3: 24 };
 
-/** 2·3 옵션 enum 을 seg 로 그릴 수 있는가 — 반폭 칩에 라벨이 들어갈 때만 (「Compact」 43 은 안 들어간다) */
-function segFits(field: ResolvedField, span: "wide" | "half"): boolean {
-  const n = field.options?.length ?? 0;
-  if (n !== 2) return false;
-  const chip = span === "wide" ? 86 : (HALF_SEG_CHIP[n] ?? 0);
-  return (field.options ?? []).every((o) => textWidth(o.label) <= chip - 4);
+/** 선택지 kind — 전부 셀렉트 하나로 그린다 (Styles 패널의 Ratio · Overflow 와 같은 어법). */
+function isChoiceKind(kind: ResolvedField["kind"]): boolean {
+  return (
+    kind === "variant" ||
+    kind === "size" ||
+    kind === "enum" ||
+    kind === "fillStyle"
+  );
+}
+
+/**
+ * variant · size 가 하나뿐인 필드 (「Size: M」 · 「Variant: Default」 — theme rule 의 dimension 이 한
+ * 단계) 는 고를 게 없다 — 행을 만들지 않는다. enum 은 대상이 아니다 (Chart 의 매핑 셀렉트는
+ * collection 컬럼이 하나여도 무엇이 매핑됐는지 보여야 한다).
+ */
+function isSingleChoice(field: ResolvedField): boolean {
+  return (
+    (field.kind === "variant" || field.kind === "size") &&
+    field.options?.length === 1
+  );
 }
 
 function fieldSpan(field: ResolvedField): "wide" | "half" {
   switch (field.kind) {
-    // variant 는 size 와 한 행 (panel-ui 07 「Variant | Size」) — 반폭은 legend 모드라
-    //   「Secondary ▾」 가 79 안에 들어간다 (suffix 모드 반폭은 「Prima VARIA ▾」 로 잘려 legend).
-    //   legend 가 반폭 (87) 을 넘거나 (「Necessity Indicator」) 옵션 라벨이 값 자리 55 를 넘으면
-    //   (「Informative」 · 「Categorical」) 전폭 (2026-09-15 live 전수 대조)
+    // 셀렉트는 반폭 — legend (「Necessity Indicator」) 나 옵션 라벨 (「Informative」 · 「Categorical」)
+    //   이 반폭 칸에 안 들어갈 때만 전폭 (2026-09-15 live 전수 대조)
     case "variant":
     case "enum":
     case "fillStyle":
     case "size": {
-      if (textWidth(field.label) > 87) return "wide";
-      const options = field.options ?? [];
-      if (options.length === 2 && !segFits(field, "half")) return "wide";
+      if (textWidth(field.label) > HALF_LEGEND) return "wide";
       if (
-        options.length !== 2 &&
-        options.some((o) => textWidth(o.label) > HALF_SELECT_VALUE)
+        (field.options ?? []).some(
+          (o) => textWidth(o.label) > HALF_SELECT_VALUE,
+        )
       )
         return "wide";
       return "half";
     }
-    // icon 은 값이 있으면 미리보기 20 + 이름 + 지우기 20 — 반폭 87 에 「calendar」 가 안 들어간다
+    // 숫자 · 스위치는 반폭 — 「Min Length | Max Length」 · 「Disabled | Read Only」 두 개가 한 행
+    case "number":
+    case "boolean":
+      return textWidth(field.label) > HALF_LEGEND ? "wide" : "half";
+    // 텍스트 (값이 길다) · icon (미리보기 20 + 이름 + 지우기 20) · 목록 (binding · items) 은 전폭
     default:
       return "wide";
   }
+}
+
+/**
+ * 섹션 순서 — 계약의 등장 순서가 컴포넌트마다 달라 (Pagination 은 Appearance → Content, Disclosure 는
+ * State 가 Appearance 앞) 한 순서로 세운다: 정체 (Content) → 모양 (Appearance · Layout) → 동작
+ * (State · Interaction) → Locale. 표 밖 섹션은 그 뒤에 계약 순서대로.
+ */
+const SECTION_ORDER: readonly string[] = [
+  "content",
+  "appearance",
+  "layout",
+  "state",
+  "interaction",
+  "locale",
+];
+function sectionRank(section: string): number {
+  const i = SECTION_ORDER.indexOf(section);
+  return i === -1 ? SECTION_ORDER.length : i;
+}
+
+/**
+ * 섹션 안 필드 순서 — kind 로 묶는다 (안정 정렬이라 같은 묶음 안은 계약 순서): Variant · Size
+ * (「Variant | Size」 첫 행) → 텍스트 (label · placeholder · name …) → 셀렉트 (반폭 먼저, 전폭
+ * 뒤) → 숫자 → 스위치 → 목록 (data binding · items). 같은 컨트롤이 모여 반폭 짝이 비지 않고,
+ * 컴포넌트마다 다르던 계약 순서 (TextField 는 Type 이 Label 과 Value 사이, Popover 는 스위치가
+ * 숫자 사이) 가 한 규칙이 된다.
+ */
+function fieldRank(field: ResolvedField): number {
+  switch (field.kind) {
+    case "variant":
+      return 0;
+    case "size":
+      return 1;
+    case "string":
+    case "string-array":
+    case "icon":
+      return 2;
+    case "enum":
+    case "fillStyle":
+      return fieldSpan(field) === "half" ? 3 : 4;
+    case "number":
+      return 5;
+    case "boolean":
+      return 6;
+    default:
+      return 7;
+  }
+}
+function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
+  return fields
+    .map((field, index) => ({ field, index, rank: fieldRank(field) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.field);
 }
 
 /** 연속한 half 필드 둘을 한 행으로 묶는다. wide 는 행 하나를 혼자 쓴다. */
@@ -283,25 +349,14 @@ const GenericField = memo(function GenericField({
   //   말하므로 두지 않는다.
 
   switch (field.kind) {
-    // fillStyle 은 고정 옵션(fill/outline 등) visual-enum → select. 출력은 data-fill-style.
-    // 옵션 2개 (Fill/Outline · Quiet/Normal) 는 seg — 셀렉트를 열 필요가 없다.
+    // 선택지 (variant · size · fillStyle · enum) 는 전부 셀렉트 — Styles 패널의 Ratio · Overflow 와
+    //   같은 어법. 종전엔 옵션 수·글자 폭에 따라 seg 와 셀렉트가 갈려 (Size 가 S M L 은 seg, XS~XL 은
+    //   셀렉트) 컴포넌트마다 다른 컨트롤이 됐다 (2026-09-15 사용자 판정). 아이콘 칩 seg 는 Styles
+    //   패널의 아이콘 글리프 (정렬 · 굵기) 에만.
     case "variant":
     case "enum":
     case "fillStyle":
-      // 칩에 라벨이 들어갈 때만 seg (반폭 37 · 전폭 86) — 아니면 셀렉트 (2026-09-15 live)
-      if (segFits(field, fieldSpan(field))) {
-        return (
-          <PropertySizeToggle
-            label={field.label}
-            value={String(value ?? field.baseValue ?? "")}
-            onChange={(v) => update(v)}
-            options={(field.options ?? []).map((o) => ({
-              id: o.value,
-              label: o.label,
-            }))}
-          />
-        );
-      }
+    case "size":
       return (
         <PropertySelect
           label={field.label}
@@ -310,34 +365,6 @@ const GenericField = memo(function GenericField({
           options={field.options ?? []}
           translateOptions={translateOptions}
           optionValueMode={optionValueMode}
-        />
-      );
-
-    // size 는 반폭 (87) — 옵션 3개 (S M L) 까지만 seg, 그 이상 (XS~XL 5개 → 칸 13) 은
-    //   셀렉트 (panel-ui 07 「Variant | Size」 한 행; 2026-09-15 live 「XS S M L XL」 칸 13 눌림).
-    //   반폭이라 legend 모드 — 옆 Variant 와 같은 높이
-    case "size":
-      if ((field.options?.length ?? 0) > 3) {
-        return (
-          <PropertySelect
-            label={field.label}
-            value={String(value ?? field.baseValue ?? "")}
-            onChange={(v) => update(v)}
-            options={field.options ?? []}
-            translateOptions={translateOptions}
-            optionValueMode={optionValueMode}
-          />
-        );
-      }
-      return (
-        <PropertySizeToggle
-          label={field.label}
-          value={String(value ?? field.baseValue ?? "")}
-          onChange={(v) => update(v)}
-          options={(field.options ?? []).map((o) => ({
-            id: o.value,
-            label: o.label,
-          }))}
         />
       );
 
@@ -526,7 +553,8 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
       field.editorHidden ||
       !evaluateVisibility(field.visibleWhen, conditionValues) ||
       // binding(items 등) 은 Inspector no-op — 행을 만들면 빈 8px 간격만 남는다
-      (field.kind === "binding" && field.key !== "dataBinding")
+      (field.kind === "binding" && field.key !== "dataBinding") ||
+      isSingleChoice(field)
     )
       continue;
     bucket.push(field);
@@ -535,6 +563,8 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
   for (const [section] of extraSections) {
     if (!groups.has(section)) groups.set(section, []);
   }
+  // 표 밖 섹션의 2차 키 — 계약 등장 순서
+  const sectionOrder = Array.from(groups.keys());
 
   // 주입 컨트롤은 content 그룹 선두. content 그룹이 없으면 Content 섹션을 앞에 만든다.
   const hasContentGroup =
@@ -547,49 +577,57 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
       {contentExtras != null && !hasContentGroup && (
         <PropertySection title="Content">{contentExtras}</PropertySection>
       )}
-      {Array.from(groups.entries()).map(([section, sectionFields]) => {
-        const tail = extrasBySection.get(section);
-        const head =
-          section === "content" && hasContentGroup ? contentExtras : null;
-        if (sectionFields.length === 0 && tail == null && head == null)
-          return null;
-        return (
-          <PropertySection key={section} title={capitalize(section)}>
-            {head}
-            {packFieldRows(sectionFields).map((row) => (
-              <div
-                key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
-                className="fieldset-row"
-                data-wide={
-                  row.length === 1 && fieldSpan(row[0]!) === "wide"
-                    ? "true"
-                    : undefined
-                }
-              >
-                {row.map((field) => (
-                  <GenericField
-                    key={`${field.origin}:${field.key}`}
-                    field={field}
-                    onSemanticUpdate={onSemanticUpdate}
-                    onStyleUpdate={onStyleUpdate}
-                    elementId={elementId}
-                    componentType={componentType}
-                    ownerColumns={ownerColumns}
-                    ownerFields={ownerFields}
-                    translateOptions={!literalOptionFields?.includes(field.key)}
-                    optionValueMode={
-                      literalOptionFields?.includes(field.key)
-                        ? "literal"
-                        : "legacy"
-                    }
-                  />
-                ))}
-              </div>
-            ))}
-            {tail}
-          </PropertySection>
-        );
-      })}
+      {Array.from(groups.entries())
+        .sort(
+          ([a], [b]) =>
+            sectionRank(a) - sectionRank(b) ||
+            sectionOrder.indexOf(a) - sectionOrder.indexOf(b),
+        )
+        .map(([section, sectionFields]) => {
+          const tail = extrasBySection.get(section);
+          const head =
+            section === "content" && hasContentGroup ? contentExtras : null;
+          if (sectionFields.length === 0 && tail == null && head == null)
+            return null;
+          return (
+            <PropertySection key={section} title={capitalize(section)}>
+              {head}
+              {packFieldRows(sortFields(sectionFields)).map((row) => (
+                <div
+                  key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
+                  className="fieldset-row"
+                  data-wide={
+                    row.length === 1 && fieldSpan(row[0]!) === "wide"
+                      ? "true"
+                      : undefined
+                  }
+                >
+                  {row.map((field) => (
+                    <GenericField
+                      key={`${field.origin}:${field.key}`}
+                      field={field}
+                      onSemanticUpdate={onSemanticUpdate}
+                      onStyleUpdate={onStyleUpdate}
+                      elementId={elementId}
+                      componentType={componentType}
+                      ownerColumns={ownerColumns}
+                      ownerFields={ownerFields}
+                      translateOptions={
+                        !literalOptionFields?.includes(field.key)
+                      }
+                      optionValueMode={
+                        literalOptionFields?.includes(field.key)
+                          ? "literal"
+                          : "legacy"
+                      }
+                    />
+                  ))}
+                </div>
+              ))}
+              {tail}
+            </PropertySection>
+          );
+        })}
     </>
   );
 });

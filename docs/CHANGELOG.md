@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 필드 컨트롤 · 폭 · 순서를 한 규칙으로 (Styles 패널 기준)] - 2026-09-15
+
+### Changed
+
+- **선택지 필드 (variant · size · fillStyle · enum) 는 전부 셀렉트** — 종전엔 옵션 수·글자 폭에 따라 seg 와 셀렉트가 갈려 Size 가 S M L 은 seg, XS~XL 은 셀렉트, Label Position 은 seg 인데 Label Align 은 셀렉트였다. Styles 패널의 Ratio · Overflow 와 같은 어법 하나로 (아이콘 칩 seg 는 Styles 의 아이콘 글리프에만).
+- **반폭 짝 격자** — 셀렉트 · 숫자 · 스위치는 반폭 (87) 으로 두 개가 한 행 (「Max Length | Min Length」 「Disabled | Read Only」), 텍스트 · 아이콘 · 목록 (data · items) 은 전폭. legend 나 옵션 라벨이 반폭에 안 들어가면 (「Necessity Indicator」 · 「Bottom Start」) 그 필드만 전폭. 스위치가 전폭 빈 상자 하나를 차지하던 State 절이 절반으로 준다.
+- **섹션 순서 고정** Content → Appearance → Layout → State → Interaction → Locale — 계약 등장 순서에 따라 Pagination 은 Appearance 가 Content 앞, Disclosure 는 State 가 Appearance 앞이던 것.
+- **섹션 안 필드 순서는 kind 묶음** — Variant · Size (첫 행) → 텍스트 → 셀렉트 → 숫자 → 스위치 → 목록. TextField 의 Input Type 이 Label 과 Value 사이에 끼고 Popover 의 스위치가 숫자 사이에 끼던 것이 같은 컨트롤끼리 모인다.
+- **variant · size 가 한 단계뿐인 필드 (「Size: M」 「Variant: Default」) 는 숨김** — 고를 게 없다.
+
 ## [Fill 다층 렌더 — 레이어 목록의 fill 을 전부 그린다 (Canvas · Preview 대칭)] - 2026-09-15
 
 ### Fixed
