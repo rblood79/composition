@@ -1,0 +1,24 @@
+{
+  "date": "2026-09-16T19:06:45.008Z",
+  "limits": {
+    "coreTus": 6144,
+    "iife": 10240
+  },
+  "coreTus": {
+    "raw": 16377,
+    "gzip": 6136
+  },
+  "fullIndex": {
+    "raw": 16849,
+    "gzip": 6341
+  },
+  "reactEntry": {
+    "raw": 16888,
+    "gzip": 6357
+  },
+  "iife": {
+    "raw": 20495,
+    "gzip": 7846
+  },
+  "pass": true
+}

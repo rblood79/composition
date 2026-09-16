@@ -101,8 +101,8 @@ export interface UploadQueueOptions {
   getHeaders?: () => Record<string, string> | Promise<Record<string, string>>;
   /** 기본 true — 쿠키 세션 */
   withCredentials?: boolean;
-  /** 기본 true */
-  autoUpload?: boolean;
+  /** add() 직후 자동 시작 — 기본 true (Uppy `autoProceed` 원천 명) */
+  autoProceed?: boolean;
   metadata?: Record<string, string>;
   /** PATCH 차단 환경 — `POST + X-HTTP-Method-Override: PATCH`. 405 수신 시 1회 자동 전환 */
   overridePatchMethod?: boolean;
