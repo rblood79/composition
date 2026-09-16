@@ -7,7 +7,7 @@
 > 쌓여 있던 세션별 갱신 공지 · 완료 ADR 비고 · 2026-04 기준 우선순위 계획 · 변경 이력은
 > [archive/README-notes-2026-09.md](archive/README-notes-2026-09.md) 로 **무손실 이관**했다.
 >
-> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-16 재실측 (ADR-202 Accepted 09-15 → 구현 main 반영 → **Implemented 09-16** · ADR-220 Proposed 09-16 → Accepted 09-16 → **Implemented 09-16** (Phase 0~~3 같은 날, G0~~G5 PASS) — Proposed 6 · Accepted 1 (150) · 부분 1 (027)).
+> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-16 재실측 (ADR-202 Accepted 09-15 → 구현 main 반영 → **Implemented 09-16** · ADR-220 Proposed 09-16 → Accepted 09-16 → **Implemented 09-16** (Phase 0~~3 같은 날, G0~~G5 PASS) — Proposed 6 · Accepted 1 (150) · 부분 1 (027)). 2026-09-17 ADR-221 Proposed 추가 (Proposed 7).
 
 ---
 
@@ -20,11 +20,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       8 |
+| 열려 있는 것 (`adr/*.md`)     |       9 |
 | ├ Proposed                    |       6 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **247** |
+| **합계**                      | **248** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -52,6 +52,12 @@
 - **상태**: Proposed — 2026-09-02
 - **규모**: 실측 2026-09-01: 입력 UI(FileTrigger/DropZone/ProgressBar catalog)만 있고 전송 런타임·XHR·Cloud Storage 0건, `renderFileTrigger` 가 파일명을 문서 prop 에 기록(잘못된 채널), CAPABILITY_REGISTRY 미등재. FILE_UPLOAD.md 5종 비교 — Uppy(100KB+, catalog 밖 UI)/multipart 자체 프로토콜(표준 호환 0)/Rust wasm(I/O 병목·CSP)/shared 내장(외부 사용 불가) 기각 → TS sans-I/O 코어 + TUS 1.0 + 독립 package(esm/cjs/IIFE) + Spring 참조 서버(Java 8/Spring 5)·JSP 예제. 신규 의존 0, GB 힙 Δ≤64MB, tusd 대조군, 보안 공격 corpus G4
 - **우선순위**: **P2** (ADR-194 다음)
+
+#### [221](221-canvas-page-header-dom-layer.md) — 캔버스 페이지 헤더 DOM 층 이관 — 제스처 게이트 + 단일 drag 추종
+
+- **상태**: Accepted — 2026-09-17 (사용자 `/execute-adr 221` 착수 · reviews/221.md round 2 이슈 0) · In Progress Phase 0 (하니스 `--pages N` · 이관 전 기준선)
+- **규모**: 페이지 헤더 (띠 28px + 타이틀 + 이름 편집기) 를 Skia 오버레이에서 `.canvas-container` 안 DOM 층 `PageHeaderLayer` 로. 결정 4: ① 경계 규칙 (카메라 추종 + 텍스트/토큰 chrome = DOM · 픽셀 정합 표식 = Skia) ② 제스처 게이트 (pan/zoom 중 hidden → settle 150 ms 후 1회 배치, 제스처 중 DOM 쓰기 0) ③ 단일 drag 추종 (`pagePositionSnapshot` 델타, 대상 1 노드) ④ 히트 순서 (헤더가 pointerdown 직접 수신 · occlusion 은 DOM 순서 = `orderPagesForPaint` + `clip-path: inset`). 걷어내는 우회 3: `getBuilderCSSVariable` · 헤더 색 리졸버 · 테마 캐시 무효화 배선. R1 HIGH (히트 이관) ↔ G1 live 4 시나리오 · G2 22 페이지 pan/zoom DOM 쓰기 0 + p95. 프레임 타이틀은 범위 밖 (Skia 유지). design breakdown `design/221-canvas-page-header-dom-layer-breakdown.md`
+- **우선순위**: 사용자 제안 2026-09-17 (Framer 관찰)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 

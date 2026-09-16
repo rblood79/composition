@@ -20,6 +20,8 @@
 //     [--save-storage-state <path>] (격리 프로젝트 IndexedDB 포함, 후속 persistent run용)
 //     [--pointer-exercise] (Skia canvas hit-test 실포인터 클릭 1회 + 선택 결과 기록)
 //     [--classes idle,pan,zoom,select,edit,panel-resize,page-switch,panel-toggle,layers-scroll]
+//     [--pages N] (시드 페이지 수, 기본 2 — ADR-221 G2 는 22)
+//     [--zoom Z] (시드 뒤 초기 줌 0.1~5 — DEV 훅 __composition_APPLY_VIEWPORT__, 22 페이지 전부 뷰포트 안 = 0.1)
 //
 // 결과: <out>/leak-<ts>.json + stdout 마크다운 표. 판정 기준 (warm-up 제외):
 //   기울기 > 지표별 문턱 AND 증가 스텝 비율 ≥ 0.6 → LEAK? (조사 대상)
@@ -58,6 +60,8 @@ const DEFAULTS = {
   cpuTimeDomain: "timeTicks",
   buildId: null,
   fixtureKind: "mixed",
+  pages: 2,
+  zoom: null,
   fixedInputs: false,
   coldEntries: 0,
   selectionDriver: "external-props",
@@ -105,6 +109,8 @@ export function parseArgs(argv) {
     else if (value === "--cpu-time-domain") options.cpuTimeDomain = next;
     else if (value === "--build-id") options.buildId = next;
     else if (value === "--fixture-kind") options.fixtureKind = next;
+    else if (value === "--pages") options.pages = Number(next);
+    else if (value === "--zoom") options.zoom = Number(next);
     else if (value === "--cold-entries") options.coldEntries = Number(next);
     else if (value === "--classes") options.classes = next.split(",");
     else if (value === "--profile") {
@@ -141,6 +147,13 @@ export function parseArgs(argv) {
     throw new Error("cpu time domain");
   if (!["mixed", "text", "refs"].includes(options.fixtureKind))
     throw new Error("fixture kind");
+  if (!Number.isInteger(options.pages) || options.pages < 2)
+    throw new Error("pages 는 2 이상 정수");
+  if (
+    options.zoom !== null &&
+    !(Number.isFinite(options.zoom) && options.zoom >= 0.1 && options.zoom <= 5)
+  )
+    throw new Error("zoom 은 0.1 ~ 5");
   if (
     !Number.isInteger(options.coldEntries) ||
     options.coldEntries < 0 ||
@@ -390,12 +403,12 @@ async function openPanels(page, names) {
   await page.waitForTimeout(500);
 }
 
-// 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 두 번째 페이지 1개.
+// 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 페이지 셸 pageCount 장 (기본 2).
 // 5k fixture는 단일 addElement 반복의 전체 문서 persist O(n²) 비용을 피하려고
 // production addComplexElement action으로 한 번에 merge/store/reindex/persist한다.
-async function seedDocument(page, seedCount, fixtureKind) {
+async function seedDocument(page, seedCount, fixtureKind, pageCount = 2) {
   return page.evaluate(
-    async ({ seedCount, fixtureKind }) => {
+    async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
       const state = store.getState();
       const pageId = state.currentPageId;
@@ -499,32 +512,42 @@ async function seedDocument(page, seedCount, fixtureKind) {
         }
       }
       let pages = store.getState().pages;
-      if (pages.length < 2) {
+      // 페이지 셸 시드: 6열 격자 (x 1200 · y 1100 간격), id `perf-seed-page-<k>`.
+      // k=2 는 종전과 같은 (1200, 0) 이라 `pages`/`page-switch` 가 고르는 두 번째
+      // 페이지가 바뀌지 않는다 (ADR-221 R6 — G2 22 페이지 문서). 기존 프로젝트
+      // (--project-url) 는 부족분만 채운다.
+      while (pages.length < pageCount) {
+        const k = pages.length + 1;
         const first = pages[0];
-        const page2 = {
-          id: "perf-seed-page-2",
+        const col = (k - 1) % 6;
+        const row = Math.floor((k - 1) / 6);
+        let id = `perf-seed-page-${k}`;
+        for (let m = 1; pages.some((p) => p.id === id); m += 1)
+          id = `perf-seed-page-${k}-${m}`;
+        const pageK = {
+          id,
           project_id: first.project_id,
-          title: "Perf Page 2",
-          slug: "/perf-page-2",
+          title: `Perf Page ${k}`,
+          slug: `/perf-page-${k}`,
           parent_id: null,
           created_at: now,
           updated_at: now,
         };
-        const body2 = {
-          id: "perf-seed-page-2-body",
+        const bodyK = {
+          id: `${id}-body`,
           type: "body",
           props: { style: {} },
           parent_id: null,
-          page_id: page2.id,
+          page_id: id,
           created_at: now,
           updated_at: now,
         };
         store
           .getState()
           .appendPageShell(
-            page2,
-            body2,
-            { x: 1200, y: 0 },
+            pageK,
+            bodyK,
+            { x: col * 1200, y: row * 1100 },
             { activate: false },
           );
         await yieldTask();
@@ -546,7 +569,7 @@ async function seedDocument(page, seedCount, fixtureKind) {
         homePageId: pageId,
       };
     },
-    { seedCount, fixtureKind },
+    { seedCount, fixtureKind, pageCount },
   );
 }
 
@@ -1934,6 +1957,7 @@ async function main() {
       page,
       options.seedCount,
       options.fixtureKind,
+      options.pages,
     );
     process.stderr.write(
       `[seed] elements ${seed.seedIds.length} · pages ${seed.pageIds.length}\n`,
@@ -1944,6 +1968,24 @@ async function main() {
     if (layerTreeSetup) {
       process.stderr.write(
         `[layers] rows ${layerTreeSetup.initialRows} -> ${layerTreeSetup.finalRows}\n`,
+      );
+    }
+    if (options.zoom !== null) {
+      // ADR-221 G2 불리 케이스: 시드 뒤 카메라를 고정 (22 페이지 전부 뷰포트 안 = 0.1).
+      const applied = await page.evaluate(async (scale) => {
+        const apply = window.__composition_APPLY_VIEWPORT__;
+        if (!apply)
+          throw new Error(
+            "__composition_APPLY_VIEWPORT__ 없음 (DEV 빌드 전용 훅)",
+          );
+        apply({ scale, x: 40, y: 80 });
+        await new Promise((r) =>
+          requestAnimationFrame(() => requestAnimationFrame(r)),
+        );
+        return window.__composition_VIEWPORT__?.() ?? null;
+      }, options.zoom);
+      process.stderr.write(
+        `[zoom] requested ${options.zoom} · applied ${JSON.stringify(applied)}\n`,
       );
     }
     await page.waitForTimeout(1_500);
@@ -1998,6 +2040,8 @@ async function main() {
       environment.cpuThrottle = options.cpuThrottle;
       environment.cpuTimeDomain = options.cpuTimeDomain;
       environment.buildId = options.buildId;
+      environment.seedPages = seed.pageIds.length;
+      environment.initialZoom = options.zoom;
       environment.inputClock = options.fixedInputs
         ? "two-observer-RAFs; fixed 60 inputs per nominal second; actual duration recorded"
         : "legacy-duration";

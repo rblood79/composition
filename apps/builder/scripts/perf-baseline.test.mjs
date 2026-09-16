@@ -297,3 +297,27 @@ test("ID-only driver는 props 투영 없이 실제 선택 handler와 같은 인�
     }
   }
 });
+
+test("--pages N 은 N 페이지를 시드하고 두 번째 페이지 선택은 종전과 같다 (ADR-221 R6)", async () => {
+  assert.equal(parseArgs([]).pages, 2);
+  assert.equal(parseArgs(["--pages", "22"]).pages, 22);
+  assert.throws(() => parseArgs(["--pages", "1"]), /pages/);
+  assert.throws(() => parseArgs(["--pages", "2.5"]), /pages/);
+  assert.equal(parseArgs([]).zoom, null);
+  assert.equal(parseArgs(["--zoom", "0.1"]).zoom, 0.1);
+  assert.throws(() => parseArgs(["--zoom", "9"]), /zoom/);
+  const source = await readFile(
+    new URL("./perf-baseline.mjs", import.meta.url),
+    "utf8",
+  );
+  // 시드 루프가 pageCount 까지 채우고, k=2 의 위치가 종전 (1200, 0) 과 같은 격자식이다.
+  assert.match(source, /while \(pages\.length < pageCount\)/);
+  assert.match(source, /\{ x: col \* 1200, y: row \* 1100 \}/);
+  assert.match(source, /options\.fixtureKind,\n\s*options\.pages,\n\s*\);/);
+  // `pages`/`page-switch` 는 여전히 home 이 아닌 첫 페이지를 고른다 (회귀 0).
+  assert.match(
+    source,
+    /ctx\.pageIds\.find\(\(id\) => id !== ctx\.homePageId\)/,
+  );
+  assert.match(source, /pageIds\.find\(\(p\) => p !== home\)/);
+});
