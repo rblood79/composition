@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-16 (round 1 반영 2026-09-16 — HIGH 1 / MEDIUM 3 수리, [reviews/220.md](reviews/220.md))
+Accepted — 2026-09-16 (Proposed 2026-09-16 → round 1 HIGH 1 / MEDIUM 3 · round 2 MEDIUM 2 전부 fixed, pending 0 — [reviews/220.md](reviews/220.md) 종결, 전제 확정)
 
 > 출처: 2026-09-16 사용자 제안 "preset 모듈은 package 형태로 제공하는 것은 어떨까?" + 명칭 질의 (mock-data / dummy-data / 다른 것). 같은 날 Mock 데이터 자체 모듈 (`c9f2f7217`) · preset 규칙 기반 재작성 (`8eba9427f`) · preset 문자열 lazy 분리가 반영된 직후의 경계 정리다.
 

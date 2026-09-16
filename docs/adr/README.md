@@ -7,7 +7,7 @@
 > 쌓여 있던 세션별 갱신 공지 · 완료 ADR 비고 · 2026-04 기준 우선순위 계획 · 변경 이력은
 > [archive/README-notes-2026-09.md](archive/README-notes-2026-09.md) 로 **무손실 이관**했다.
 >
-> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-16 재실측 (ADR-202 Accepted 09-15 → 구현 main 반영 → **Implemented 09-16** · ADR-220 Proposed 09-16 — Proposed 7 · Accepted 1 (150) · 부분 1 (027)).
+> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-16 재실측 (ADR-202 Accepted 09-15 → 구현 main 반영 → **Implemented 09-16** · ADR-220 Proposed 09-16 → **Accepted 09-16** (round 2 pending 0) — Proposed 6 · Accepted 2 (150 · 220) · 부분 1 (027)).
 
 ---
 
@@ -21,8 +21,8 @@
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
 | 열려 있는 것 (`adr/*.md`)     |       9 |
-| ├ Proposed                    |       7 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Proposed                    |       6 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       1 |
 | **합계**                      | **247** |
 
@@ -61,8 +61,8 @@
 
 #### [220](220-sample-data-package-and-rename.md) — 샘플 데이터 엔진 패키지화 — `@composition/sample-data` + `mockData` 명칭 정리
 
-- **상태**: Proposed — 2026-09-16
-- **규모**: 생성기 5 파일 (1,923 줄, 외부 import 0) 을 `packages/sample-data` (src 직접 export · 의존 0 · builder 역참조는 컴파일러가 차단) 로 이동 + 명칭 `mock` → `sample` (규칙 kind `mock` → `generate`, 공개 심볼 28 + importer 6; collection 저장 필드 `mockData`·workflow `sourceType` 은 유지) — 동작 변경 0 리팩터 (G3 고정 컨텍스트 스냅샷 byte-identical). round 1 HIGH 1 / MED 3 반영 (rootDir 경계 실측 · 범위 한정 G2 · 시계/TZ 고정 스냅샷 · 220 전용 번들 판정기). preset 카탈로그 · AI `tableSpec` 은 builder 잔류 (import 경로만). `DataField` 의 shared 승격 (preset 이동) 은 범위 밖. 대안 A(이름만)/C(preset+DataField 승격)/D(외부 배포형) 기각. R1~~R5 MED 2 / LOW 3 · G0~~G5. design breakdown `design/220-sample-data-package-and-rename-breakdown.md`
+- **상태**: Accepted — 2026-09-16 (round 1 HIGH 1 / MED 3 · round 2 MED 2 전부 fixed, pending 0 → 전제 확정)
+- **규모**: 생성기 5 파일 (1,923 줄, 외부 import 0) 을 `packages/sample-data` (src 직접 export · 의존 0 · builder 역참조는 컴파일러가 차단) 로 이동 + 명칭 `mock` → `sample` (규칙 kind `mock` → `generate`, 공개 심볼 28 + importer 6; collection 저장 필드 `mockData`·workflow `sourceType` 은 유지) — 동작 변경 0 리팩터 (G3 고정 컨텍스트 스냅샷 byte-identical). round 1 HIGH 1 / MED 3 반영 (rootDir 경계 실측 · 범위 한정 G2 · 시계/TZ 고정 스냅샷 · 220 전용 번들 판정기) · round 2 MED 2 반영 (제품/테스트 의존 정책 분리 · 스냅샷 context ↔ provenance 분리, baseline 불변). preset 카탈로그 · AI `tableSpec` 은 builder 잔류 (import 경로만). `DataField` 의 shared 승격 (preset 이동) 은 범위 밖. 대안 A(이름만)/C(preset+DataField 승격)/D(외부 배포형) 기각. R1~~R5 MED 2 / LOW 3 · G0~~G5. design breakdown `design/220-sample-data-package-and-rename-breakdown.md`
 - **우선순위**: **P2** — 병행 세션 (Mock 데이터 모듈) commit 후 착수 (G0)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
@@ -126,7 +126,7 @@
 | 순위 | ADR                                                                                                                                                                                                                                              | 착수 준비도                                                                                                                                             | 차단 · 선행                                                                                                                                                              |
 | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 |  1   | [013](013-quick-connect-data-binding.md)                                                                                                                                                                                                         | Risk-First 재작성 완료(round 2 전부 fixed, pending 0) · 착수 조건 G0 의 152 Implemented 는 09-11 충족                                                   | **차단 0** — Phase 0 재-inventory 만 선행 (212/213/214/218 로 Data 패널·runtimeData·Variables 소유자 모델이 바뀌어 필수) → Proposed → Accepted 승격 → `/execute-adr 013` |
-|  2   | [220](220-sample-data-package-and-rename.md)                                                                                                                                                                                                     | Proposed 2026-09-16 · 리뷰 전 — 동작 변경 0 리팩터, 게이트 6                                                                                            | `/review-adr 220` 1회 → Accepted → 병행 세션 (Mock 데이터 모듈) commit 으로 대상 경로 clean 확인 (G0) 후 착수                                                            |
+|  2   | [220](220-sample-data-package-and-rename.md)                                                                                                                                                                                                     | **Accepted 2026-09-16** · round 2 pending 0 (전제 확정) — 동작 변경 0 리팩터, 게이트 6                                                                  | 병행 세션 (Mock 데이터 모듈) commit 으로 대상 경로 clean 확인 (G0) → `/execute-adr 220`                                                                                  |
 |  3   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                                                                                                                                                                     | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(ListBox/GridList/Table, 07-19~~20) · A3 미착수                                          | A2 **시각 최종 확인 (실제 canvas 60fps 스크롤) 이 07-19 부터 사용자 foreground 대기** → ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 → A3. 세션 단독으로 못 연다        |
 |  4   | [162](162-gridlist-template-subtree-projection.md)                                                                                                                                                                                               | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                                                                              | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요. 150 A2 의 GridList stride 와 같은 카드 높이 축을 건드리므로 **150 A2 확정 후** 착수                     |
 |  5   | [201](201-large-file-upload-engine-component-server-contract.md)                                                                                                                                                                                 | Proposed 2026-09-02 · **`reviews/201.md` 없음** (review-adr round 0)                                                                                    | 중요도 P2 이나 전제 미확정 — 착수 전 `/review-adr 201` 1회 필수. 독립 package (`@composition/upload`) 라 다른 ADR 과 파일 충돌 0                                         |
