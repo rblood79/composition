@@ -61,6 +61,7 @@
   },
   "dependencies": {
     "@composition/specs": "workspace:*",
+    "@composition/upload": "workspace:*",
     "@internationalized/date": "catalog:",
     "@internationalized/number": "catalog:",
     "@react-aria/focus": "catalog:",
