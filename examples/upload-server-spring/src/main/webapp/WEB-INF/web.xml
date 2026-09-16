@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  servlet 3.1 — DispatcherServlet·필터는 UploadWebAppInitializer (WebApplicationInitializer) 가 등록한다.
+  이 파일은 세션 쿠키 속성 (P6 — HttpOnly · Secure) 과 세션 타임아웃만 둔다. TLS 종단이 프록시라면
+  Tomcat Connector 에 secure="true" 또는 RemoteIpValve 로 scheme 을 전달해야 Secure 쿠키가 나간다.
+-->
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
+         version="3.1">
+
+  <display-name>composition upload reference server</display-name>
+
+  <session-config>
+    <session-timeout>60</session-timeout>
+    <cookie-config>
+      <http-only>true</http-only>
+      <!-- 로컬 http 개발 (mvn cargo:run) 에서는 false 로 낮춘다. 운영 (TLS) 은 true -->
+      <secure>false</secure>
+    </cookie-config>
+    <tracking-mode>COOKIE</tracking-mode>
+  </session-config>
+</web-app>
