@@ -90,9 +90,17 @@ export type GenerateRuleType = (typeof GENERATE_RULE_TYPES)[number];
 
 const GenerateRuleSchema = z.discriminatedUnion("kind", [
   z.object({
-    kind: z.literal("generate"),
+    kind: z
+      .literal("generate")
+      .describe(
+        "realistic value — always the literal 'generate'; put the value kind in `type` (e.g. { kind: 'generate', type: 'phone' }). Never use a type name as `kind`.",
+      ),
     /** 사실적 값 종류 — `GENERATE_RULE_TYPES` */
-    type: z.enum(GENERATE_RULE_TYPES),
+    type: z
+      .enum(GENERATE_RULE_TYPES)
+      .describe(
+        "kind of realistic value (person · address · company · product · finance · image)",
+      ),
   }),
   z.object({
     kind: z.literal("enum"),

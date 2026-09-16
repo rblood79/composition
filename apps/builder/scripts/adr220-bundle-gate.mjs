@@ -20,8 +20,9 @@ const BUILDER_CEILING = 1_319_829;
 const PREVIEW_CEILING = 592_000;
 const CEILING_EXPIRES = "2026-10-16";
 const DELTA_LIMIT = 512;
-const PRESET_STRINGS_ENTRY =
-  "src/builder/panels/datatable/presets/presetStrings.ts";
+// presetStrings 는 dynamic import 대상이 아니라 lazy 표면 (Add Table) 이 나눠 쓰는 공유 청크라
+// manifest 키가 소스 경로가 아니라 청크 이름 (`_presetStrings-<hash>.js`, name "presetStrings") 이다
+const PRESET_STRINGS_CHUNK = /^_presetStrings-[\w-]+\.js$/;
 const AI_ENTRY = "src/builder/panels/ai/AIPanel.tsx";
 const COMMAND_ENTRY = "src/services/ai/tools/runCommand.ts";
 
@@ -38,6 +39,18 @@ export function judge({
     if (!manifest[key]) throw new Error(`Missing manifest entry: ${key}`);
     return manifest[key].file;
   };
+  const presetStringsFile = (() => {
+    const keys = Object.keys(manifest).filter(
+      (key) =>
+        PRESET_STRINGS_CHUNK.test(key) ||
+        manifest[key].name === "presetStrings",
+    );
+    if (keys.length !== 1)
+      throw new Error(
+        `presetStrings chunk 가 1 개여야 한다: ${keys.join(", ")}`,
+      );
+    return manifest[keys[0]].file;
+  })();
   const before = {
     builder: beforeBuilder.initial.js.gzipBytes,
     preview: beforePreview.initial.js.gzipBytes,
@@ -63,7 +76,7 @@ export function judge({
     builderAbsolute: after.builder <= BUILDER_CEILING,
     previewAbsolute: after.preview <= PREVIEW_CEILING,
     budgetCurrent: today <= CEILING_EXPIRES,
-    presetStringsLazy: !initialFiles.has(chunkFile(PRESET_STRINGS_ENTRY)),
+    presetStringsLazy: !initialFiles.has(presetStringsFile),
     aiImplementationLazy: !initialFiles.has(chunkFile(AI_ENTRY)),
     commandLazy: !initialFiles.has(chunkFile(COMMAND_ENTRY)),
   };
@@ -78,7 +91,7 @@ export function judge({
       expires: CEILING_EXPIRES,
     },
     chunks: {
-      presetStrings: chunkFile(PRESET_STRINGS_ENTRY),
+      presetStrings: presetStringsFile,
       aiPanel: chunkFile(AI_ENTRY),
       runCommand: chunkFile(COMMAND_ENTRY),
     },
@@ -95,7 +108,10 @@ export function selfTest() {
     initial: { js: { gzipBytes, files } },
   });
   const manifest = {
-    [PRESET_STRINGS_ENTRY]: { file: "assets/presetStrings-x.js" },
+    "_presetStrings-x.js": {
+      file: "assets/presetStrings-x.js",
+      name: "presetStrings",
+    },
     [AI_ENTRY]: { file: "assets/AIPanel-x.js" },
     [COMMAND_ENTRY]: { file: "assets/runCommand-x.js" },
   };
