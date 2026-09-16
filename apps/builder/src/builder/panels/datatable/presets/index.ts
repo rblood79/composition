@@ -1,10 +1,10 @@
 /**
  * DataTable Preset System
  *
- * DataTable 추가 시 Preset을 선택할 수 있는 기능 제공
- * Layout Preset 패턴과 동일한 UX
+ * DataTable 추가 시 Preset을 선택할 수 있는 기능 제공 — UI 는 editors/DataTableCreator
+ * (옛 모달 선택기 DataTablePresetSelector 는 소비처 0 으로 2026-09-16 삭제)
  *
- * @see docs/features/DATATABLE_PRESET_SYSTEM.md
+ * @see presets/dataTablePresets.ts (카탈로그) · services/mockData (생성기) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
 // Types
@@ -26,6 +26,3 @@ export {
   getPresetsByCategory,
   getAllPresets,
 } from "./dataTablePresets";
-
-// UI Components
-export { DataTablePresetSelector } from "./DataTablePresetSelector";

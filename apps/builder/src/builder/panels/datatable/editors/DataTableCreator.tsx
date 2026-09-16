@@ -13,7 +13,7 @@
  * 들어가지 않아 탭 줄이 가로 스크롤되면서 2개가 상시 숨는 문제가 있었고, 같은 일을 하는
  * ComponentList(카테고리별 컴포넌트 팔레트)가 이미 Section 계열이다.
  *
- * @see docs/features/DATATABLE_PRESET_SYSTEM.md
+ * @see presets/dataTablePresets.ts (카탈로그) · services/mockData (생성기) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
 import { useState, useCallback, useMemo, useRef } from "react";
