@@ -41,6 +41,7 @@ import { dropZoneBinding } from "./DropZone.binding";
 import { fieldBinding } from "./Field.binding";
 import { fieldErrorBinding } from "./FieldError.binding";
 import { fileTriggerBinding } from "./FileTrigger.binding";
+import { fileUploadBinding } from "./FileUpload.binding";
 import { cardBinding } from "./Card.binding";
 import { cardContentBinding } from "./CardContent.binding";
 import { cardFooterBinding } from "./CardFooter.binding";
@@ -274,6 +275,9 @@ const PRIMITIVE_BINDINGS: Readonly<Record<string, PrimitiveBinding>> = {
   Toolbar: toolbarBinding,
   // ADR-912 단계 5 선행-1: button-like RAC leaf (box+text generic)
   FileTrigger: fileTriggerBinding,
+  // ADR-201 Phase 3 (2026-09-17): 대용량 파일 업로드 compound. internal source (RAC 에 없음),
+  //   renderer "fileupload". 자식 DropZone/FileTrigger/frame(Text+ProgressBar) 는 factory 가 만든다.
+  FileUpload: fileUploadBinding,
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   Skeleton: skeletonBinding,
   // ADR-912 진로 1번: 상태 표시 dot+label internal leaf (status_light escape, replace)

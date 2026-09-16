@@ -207,6 +207,13 @@ const FAMILY_1_ENTRIES: ComponentCatalogEntry[] = [
     label: "file trigger",
     icon: "FileUp",
   }),
+  // ADR-201 Phase 3 (2026-09-17): 대용량 파일 업로드 compound (DropZone + FileTrigger + 파일 행).
+  //   forms — DropZone/FileTrigger 와 같은 사용자 탐색 경로. 전송 엔진은 첫 파일 선택 시 lazy.
+  primitiveEntry("FileUpload", "primitives", FAMILY_1_CUTOVER, {
+    category: "forms",
+    label: "file upload",
+    icon: "CloudUpload",
+  }),
   // ADR-912 단계 5 선행-1: loading placeholder internal leaf (box generic, skeletonVariant 빌더 미노출)
   primitiveEntry("Skeleton", "primitives", FAMILY_1_CUTOVER, {
     category: "content",

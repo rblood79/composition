@@ -43,6 +43,7 @@
 @import "./Radio.css";
 @import "./generated/FileTrigger.css";
 @import "./generated/DropZone.css";
+@import "./generated/FileUpload.css"; /* ADR-201: FileUpload compound 컨테이너 shell (column flex · gap). 미import 시 DOM 자식이 세로로 안 쌓여 Skia(factory style) 와 발산 */
 @import "./ColorSwatch.css";
 @import "../CollectionErrorState.css";
 @import "./Tooltip.css";
