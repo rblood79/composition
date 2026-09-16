@@ -1,0 +1,24 @@
+{
+  "name": "@composition/sample-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "seed 결정성 샘플 데이터 생성기 — faker · mockaroo · randomuser · dummyjson · picsum 어법 이식, 의존 0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "lint": "eslint src/"
+  },
+  "devDependencies": {
+    "@composition/config": "workspace:*",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

@@ -112,6 +112,9 @@ importers:
       '@composition/publish':
         specifier: workspace:*
         version: link:../publish
+      '@composition/sample-data':
+        specifier: workspace:*
+        version: link:../../packages/sample-data
       '@composition/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -333,6 +336,21 @@ importers:
       typescript-eslint:
         specifier: ^8.67.0
         version: 8.67.0(eslint@10.8.1(jiti@2.7.0))(typescript@5.9.3)
+
+  packages/sample-data:
+    devDependencies:
+      '@composition/config':
+        specifier: workspace:*
+        version: link:../config
+      eslint:
+        specifier: 'catalog:'
+        version: 10.8.1(jiti@2.7.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.11(@types/node@24.13.3)(@vitest/browser-playwright@4.1.11)(@vitest/coverage-v8@4.1.11)(@vitest/ui@4.1.11)(jsdom@30.0.1)(vite@8.2.2(@types/node@24.13.3)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12))
 
   packages/shared:
     dependencies:

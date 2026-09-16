@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@composition/publish": "workspace:*",
+    "@composition/sample-data": "workspace:*",
     "@composition/shared": "workspace:*",
     "@composition/specs": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
