@@ -9,6 +9,10 @@
 .property-swatch {
   flex: none;
   display: inline-block;
+  /* 부모가 flex 든 (SelectValue · ListBoxItem · ToggleButton) 인라인 흐름이든 세로 가운데 —
+     SelectValue 는 `display: flex` 에 align-items 가 없어 점이 위에 붙었다 (2026-09-16 사용자 지적) */
+  align-self: center;
+  vertical-align: middle;
   width: var(--text-xs);
   height: var(--text-xs);
   border-radius: var(--radius-full);

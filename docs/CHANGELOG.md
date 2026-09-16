@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Variant 셀렉트 트리거·목록의 색 점 (`.property-select__swatch`, 12) 과 Static Color seg 의 색 점 (`.property-seg__swatch`, 10) 이 크기가 달랐다 — `.property-swatch` (PropertySwatch.css, unlayered 라 팝오버 portal 에도 닿는다) 하나로: 12 (`--text-xs`) · 원 · 안쪽 테두리. 소비처 클래스는 여백만 (글자 앞 4 · 점만 있는 seg 는 `data-swatch-only` 로 0). Properties 안의 다른 색 표시 — 격자 팝오버 칸 (20 정사각, 선택 체크) · Color 필드 swatch (16 정사각, 실제 색 값) 는 점이 아니라 대상 밖. 가드 `PropertySegment.static.test` (크기·모양 정의는 PropertySwatch.css 한 곳). (live: 트리거·팝오버·seg 전부 12×12 · radius-full · 여백 4/0) (2026-09-16 사용자 지적)
 
+### Fixed
+
+- Variant 트리거 (`SelectValue`) 안의 색 점이 위로 2px 붙어 있던 것 — SelectValue 가 `display: flex` 인데 align-items 가 없어 inline-block 점이 flex-start 에 놓였다. `.property-swatch` 에 `align-self: center` + `vertical-align: middle` (부모가 flex 든 인라인 흐름이든). (live: 점 중심 630 → 632 = 값·버튼 중심) (2026-09-16 사용자 지적)
+
 ## [빌더 패널 — Web Interface Guidelines 감사 (모션 · 포커스 · i18n · 문자열 26건)] - 2026-09-16
 
 ### Changed
