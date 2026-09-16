@@ -49,8 +49,20 @@ export const progressCircleBinding: PrimitiveBinding = {
       // 형제 대칭 (design-data 감사 §1-3, 2026-08-21): ProgressBar 와 동일 min/max 표면.
       //   number kind 는 기본 React prop 통과 — 어댑터·Skia escape 가 (value-min)/(max-min)
       //   비율로 정규화 (구 0-100 하드코딩 해소).
-      minValue: { kind: "number", label: "Min", section: "content" },
-      maxValue: { kind: "number", label: "Max", section: "content" },
+      minValue: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 0,
+        label: "Min",
+        section: "content",
+      },
+      maxValue: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 100,
+        label: "Max",
+        section: "content",
+      },
       size: {
         kind: "size",
         label: "Size",

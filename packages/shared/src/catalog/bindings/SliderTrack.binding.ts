@@ -45,8 +45,20 @@ export const sliderTrackBinding: PrimitiveBinding = {
         section: "content",
         default: 50,
       },
-      minValue: { kind: "number", label: "Min", section: "content" },
-      maxValue: { kind: "number", label: "Max", section: "content" },
+      minValue: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 0,
+        label: "Min",
+        section: "content",
+      },
+      maxValue: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 100,
+        label: "Max",
+        section: "content",
+      },
     },
     toRacProps: "default",
   },

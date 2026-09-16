@@ -42,6 +42,8 @@ export const calendarBinding: PrimitiveBinding = {
       autoFocus: { kind: "boolean", label: "Auto Focus", section: "state" },
       pageBehavior: {
         kind: "enum",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: "visible",
         label: "Page Behavior",
         section: "content",
         options: [

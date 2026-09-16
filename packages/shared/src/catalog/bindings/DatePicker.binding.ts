@@ -87,6 +87,8 @@ export const datePickerBinding: PrimitiveBinding = {
       isReadOnly: { kind: "boolean", label: "Read Only", section: "state" },
       granularity: {
         kind: "enum",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: "day",
         label: "Granularity",
         section: "content",
         options: [
@@ -136,6 +138,8 @@ export const datePickerBinding: PrimitiveBinding = {
       },
       pageBehavior: {
         kind: "enum",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: "visible",
         label: "Page Behavior",
         section: "content",
         options: [
@@ -157,6 +161,8 @@ export const datePickerBinding: PrimitiveBinding = {
       },
       maxVisibleMonths: {
         kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 1,
         label: "Max Visible Months",
         section: "content",
         min: 1,

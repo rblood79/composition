@@ -90,6 +90,8 @@ export const timeFieldBinding: PrimitiveBinding = {
       },
       granularity: {
         kind: "enum",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: "minute",
         label: "Granularity",
         section: "content",
         // "day" 제거 (§1-3 2026-08-21): 시각 필드에 근거 없는 옵션 — RAC TimeField

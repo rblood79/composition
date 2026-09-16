@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — RAC 기본값이 있는 입력의 계약 default 동기] - 2026-09-16
+
+### Fixed
+
+- ProgressBar · ProgressCircle · Meter · Slider(Track) 의 Min/Max (0/100) · Slider Step (1) · Popover/Tooltip 의 Placement (bottom/top) · Offset (8/0) · Cross Offset (0) · Container Padding (12) · DateField/DatePicker/DateRangePicker Granularity (day) · TimeField Granularity (minute) · Calendar 가족 Page Behavior (visible) · DatePicker 가족 Max Visible Months (1) — RAC 가 생략 시 쓰는 값이 있는데 계약에 `default` 가 없어 패널이 비어 보이던 13 타입 29 필드. 값은 react-aria/react-stately 소스에서 확인, 캔버스·Preview 는 이미 같은 값을 쓰므로 시각 무변경 (Popover 는 explicit `offset: 8` = RAC 기본). HTML 기본 (Link/Form `target` · `encType`) 은 RAC 가 정하지 않아 제외. 가드 `racDefaultSync.test.ts` (계약 default = RAC 표). (2026-09-16 사용자 지적)
+
 ## [Properties 패널 — Label Position 은 글자 seg (Top · Side)] - 2026-09-16
 
 ### Changed

@@ -51,9 +51,28 @@ export const sliderBinding: PrimitiveBinding = {
           { value: "side", label: "Side" },
         ],
       },
-      minValue: { kind: "number", label: "Min Value", section: "content" },
-      maxValue: { kind: "number", label: "Max Value", section: "content" },
-      step: { kind: "number", label: "Step", section: "content", min: 0 },
+      minValue: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 0,
+        label: "Min Value",
+        section: "content",
+      },
+      maxValue: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 100,
+        label: "Max Value",
+        section: "content",
+      },
+      step: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 1,
+        label: "Step",
+        section: "content",
+        min: 0,
+      },
       // RAC/RSP 프로퍼티 패널 정합 감사 (2026-07-15): 초기값 — renderSlider 가
       //   uncontrolled defaultValue 로 기소비 (드래그 상호작용 보존).
       value: { kind: "number", label: "Value", section: "content" },

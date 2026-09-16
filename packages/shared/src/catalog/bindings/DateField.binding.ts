@@ -91,6 +91,8 @@ export const dateFieldBinding: PrimitiveBinding = {
       },
       granularity: {
         kind: "enum",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: "day",
         label: "Granularity",
         section: "content",
         options: [

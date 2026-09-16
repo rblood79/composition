@@ -40,6 +40,8 @@ export const tooltipBinding: PrimitiveBinding = {
       //   RAC Tooltip 공식 배치 prop (placement/offset/crossOffset/shouldFlip/containerPadding).
       placement: {
         kind: "enum",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: "top",
         label: "Placement",
         section: "appearance",
         options: [
@@ -53,9 +55,17 @@ export const tooltipBinding: PrimitiveBinding = {
           { value: "bottom end", label: "Bottom End" },
         ],
       },
-      offset: { kind: "number", label: "Offset", section: "appearance" },
+      offset: {
+        kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 0,
+        label: "Offset",
+        section: "appearance",
+      },
       crossOffset: {
         kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 0,
         label: "Cross Offset",
         section: "appearance",
       },
@@ -67,6 +77,8 @@ export const tooltipBinding: PrimitiveBinding = {
       },
       containerPadding: {
         kind: "number",
+        // RAC/HTML 기본과 같은 값 — 패널이 비어 보이지 않게 (2026-09-16)
+        default: 12,
         label: "Container Padding",
         section: "appearance",
       },
