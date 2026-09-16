@@ -32,11 +32,7 @@ import {
   buildFillSwatchStyle,
   getFillDisplayLabel,
 } from "../utils/fillPresentation";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 import "./FillLayerRow.css";
 
@@ -83,11 +79,7 @@ export const FillLayerRow = memo(function FillLayerRow({
   isVirtual = false,
   popover,
 }: FillLayerRowProps) {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const isColor = fill.type === FillType.Color;
   const isGradient =
     fill.type === FillType.LinearGradient ||

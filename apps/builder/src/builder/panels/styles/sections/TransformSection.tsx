@@ -32,11 +32,7 @@ import { LayoutFreeform } from "../../../components/icons";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { useTransformValues } from "../hooks/useTransformValues";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 import {
   useWidthSizeMode,
   useHeightSizeMode,
@@ -215,11 +211,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
 }: {
   part: TransformSectionPart;
 }) {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
   const { commitLayoutPresentation, previewLayoutPresentation } =

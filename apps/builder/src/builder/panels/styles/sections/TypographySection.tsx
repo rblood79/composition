@@ -47,18 +47,10 @@ import { getFontWeightOptions } from "../../../fonts/customFonts";
 import { FontFamilyPicker } from "../../fonts/FontFamilyPicker";
 import { useFontRegistry } from "../../fonts/useFontRegistry";
 import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 const TypographySectionContent = memo(function TypographySectionContent() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const { updateStyle, updateStyles } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();

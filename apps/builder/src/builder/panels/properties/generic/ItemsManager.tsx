@@ -21,7 +21,7 @@ import {
 } from "../../../components";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
-import { semanticLabelKeys, translateKey, useOptionalI18n } from "@/i18n";
+import { localizeSemanticLabel, useOptionalI18n } from "@/i18n";
 
 import "../editors/styles/propertyEditors.css";
 import "./ItemsManager.css";
@@ -490,9 +490,7 @@ export const ItemsManager = memo(function ItemsManager({
 
   // legend = 필드 라벨 + 항목 수 (종전 「Total: N」 문단) — 다른 필드와 같은 fieldset/legend 어법
   const rawLabel = field.label ?? field.itemTypeName;
-  const displayLabel = i18n
-    ? translateKey(i18n.t, semanticLabelKeys[rawLabel] ?? rawLabel, rawLabel)
-    : rawLabel;
+  const displayLabel = localizeSemanticLabel(i18n, rawLabel);
   return (
     <fieldset className="properties-aria items-manager">
       <legend className="fieldset-legend">

@@ -12,11 +12,7 @@ import { Link, Unlink } from "lucide-react";
 import { Button } from "react-aria-components/Button";
 import { useStore } from "../../../stores";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 import "./BoxModelEditor.css";
 
 export type BoxSide = "Top" | "Right" | "Bottom" | "Left";
@@ -73,11 +69,7 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   onPaddingChange,
   onMarginChange,
 }: BoxModelEditorProps) {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const selectedElementId = useStore((state) => state.selectedElementId);
   const derived = useMemo(() => toDraft(padding, margin), [padding, margin]);
   const [draft, setDraft] = useState<Draft>(derived);

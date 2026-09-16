@@ -41,6 +41,7 @@ import { ActionTooltipTrigger, SwatchIconButton } from "../../../components/ui";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { iconProps } from "../../../../utils/ui/uiConstants";
 import {
+  packHalfRows,
   resolveFieldEditor,
   sizeSegOptions,
   VARIANT_SWATCH,
@@ -92,11 +93,6 @@ export interface GenericFieldRouting {
   onStyleUpdate: (key: string, value: unknown) => void;
   /** `kind:"items-manager"`(ItemsManager) 가 store action(addItem/removeItem)에 필요. */
   elementId?: string;
-  /**
-   * 선택 요소의 catalog 컴포넌트 이름 — 필드 아이콘의 컴포넌트 스코프 표
-   * (`COMPONENT_KEY_ICONS`) 조회 키. 없으면 공유 key 표 → kind 기본만 본다.
-   */
-  componentType?: string;
 }
 
 interface GenericFieldRendererProps extends GenericFieldRouting {
@@ -144,6 +140,11 @@ interface GenericFieldProps extends GenericFieldRouting {
   ownerColumns?: string[] | null;
   /** ADR-152 1b: 소유 collection 필드 (key + id) — `{#id}` 저장형 변환. memo 는 ownerColumns 키로 판정 (id 는 key 에 종속). */
   ownerFields?: OwnerField[] | null;
+  /**
+   * ADR-214 Phase 3 — `{{` 자동완성 후보 (이 요소에서 보이는 변수 이름). 렌더러가 한 번 구독해
+   * 내려준다 (참조 안정) — 필드마다 문서를 구독하면 어느 요소의 편집이든 모든 필드가 재렌더된다.
+   */
+  stateNames: readonly string[];
 }
 
 function areOptionsEqual(
@@ -177,7 +178,7 @@ function areGenericFieldPropsEqual(
   const b = next.field;
   return (
     previous.elementId === next.elementId &&
-    previous.componentType === next.componentType &&
+    previous.stateNames === next.stateNames &&
     previous.onSemanticUpdate === next.onSemanticUpdate &&
     previous.onStyleUpdate === next.onStyleUpdate &&
     previous.translateOptions === next.translateOptions &&
@@ -206,7 +207,15 @@ function areGenericFieldPropsEqual(
  * 그것, 없으면 (jsdom) 글자당 7. 값 자리는 셀렉트 55 (87 − pad 8 − chevron 20 − gap 4).
  */
 let measureCtx: CanvasRenderingContext2D | null | undefined;
+const textWidthCache = new Map<string, number>();
 function textWidth(text: string): number {
+  const cached = textWidthCache.get(text);
+  if (cached !== undefined) return cached;
+  const width = measureTextWidth(text);
+  textWidthCache.set(text, width);
+  return width;
+}
+function measureTextWidth(text: string): number {
   if (measureCtx === undefined) {
     try {
       measureCtx =
@@ -227,6 +236,13 @@ const HALF_LEGEND = 87;
 /** 반폭 셀렉트의 값 자리 — 87 − 상자 pad 8 − chevron 20 (값 ↔ chevron gap 0) */
 const HALF_SELECT_VALUE = 59;
 
+/** 조건부 필드의 게이트 키 (`visibleWhen.key`) — `oneOf`/`equals` 조건만, 없으면 undefined. */
+function gateKey(field: ResolvedField): string | undefined {
+  return field.visibleWhen && "key" in field.visibleWhen
+    ? field.visibleWhen.key
+    : undefined;
+}
+
 /**
  * variant · size 가 하나뿐인 필드 (「Size: M」 · 「Variant: Default」 — theme rule 의 dimension 이 한
  * 단계) 는 고를 게 없다 — 행을 만들지 않는다. enum 은 대상이 아니다 (Chart 의 매핑 셀렉트는
@@ -239,7 +255,16 @@ function isSingleChoice(field: ResolvedField): boolean {
   );
 }
 
+/** 필드 객체당 1회 — 정렬 (fieldRank) · 행 패킹 · `data-wide` 가 같은 필드를 거듭 묻는다. */
+const spanCache = new WeakMap<ResolvedField, "wide" | "half">();
 function fieldSpan(field: ResolvedField): "wide" | "half" {
+  const cached = spanCache.get(field);
+  if (cached) return cached;
+  const span = computeFieldSpan(field);
+  spanCache.set(field, span);
+  return span;
+}
+function computeFieldSpan(field: ResolvedField): "wide" | "half" {
   const editor = resolveFieldEditor(field);
   switch (editor.type) {
     // seg 는 매핑표가 폭을 정한다 (2~3 반폭 · 4~5 전폭 · 라벨이 칸에 안 들어가면 전폭)
@@ -328,10 +353,7 @@ function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
   const out: ResolvedField[] = [];
   const dependents = new Map<string, ResolvedField[]>();
   for (const field of ranked) {
-    const gate =
-      field.visibleWhen && "key" in field.visibleWhen
-        ? field.visibleWhen.key
-        : undefined;
+    const gate = gateKey(field);
     if (gate && gate !== field.key && ranked.some((f) => f.key === gate)) {
       dependents.set(gate, [...(dependents.get(gate) ?? []), field]);
     }
@@ -344,10 +366,7 @@ function sortFields(fields: readonly ResolvedField[]): ResolvedField[] {
     for (const dep of dependents.get(field.key) ?? []) push(dep);
   };
   for (const field of ranked) {
-    const gate =
-      field.visibleWhen && "key" in field.visibleWhen
-        ? field.visibleWhen.key
-        : undefined;
+    const gate = gateKey(field);
     if (gate && dependents.get(gate)?.includes(field)) continue; // 게이트가 넣는다
     push(field);
   }
@@ -439,22 +458,75 @@ function FieldRowResetAction({
   );
 }
 
+const isHalfField = (field: ResolvedField) => fieldSpan(field) === "half";
 function packFieldRows(fields: readonly ResolvedField[]): ResolvedField[][] {
-  const rows: ResolvedField[][] = [];
-  for (const field of fields) {
-    const last = rows[rows.length - 1];
-    if (
-      fieldSpan(field) === "half" &&
-      last &&
-      last.length === 1 &&
-      fieldSpan(last[0]!) === "half"
-    ) {
-      last.push(field);
-    } else {
-      rows.push([field]);
-    }
+  return packHalfRows(fields, isHalfField);
+}
+
+/**
+ * 형제 prop 에 묶인 값 슬라이더 (Slider/Meter/ProgressBar `value`) — 양끝이 곧 `minKey`~`maxKey`
+ * 형제 (없으면 0~100), 눈금은 `stepKey` 형제. min ≥ max 같은 역전은 슬라이더가 못 그리므로 스텝퍼.
+ * 형제 3개의 구독은 이 leaf 에만 — 다른 필드 (수십 개) 가 같이 구독하지 않는다.
+ */
+function BoundValueSlider({
+  field,
+  editor,
+  elementId,
+  numeric,
+  onChange,
+}: {
+  field: ResolvedField;
+  editor: Extract<FieldEditor, { type: "slider-bound" }>;
+  elementId: string | undefined;
+  numeric: number | undefined;
+  onChange: (value: unknown) => void;
+}) {
+  const boundMin = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    editor.minKey,
+    undefined,
+  );
+  const boundMax = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    editor.maxKey,
+    undefined,
+  );
+  const boundStep = useCanonicalPropertyValue(
+    elementId,
+    field.origin,
+    editor.stepKey,
+    undefined,
+  );
+  const min = typeof boundMin === "number" ? boundMin : 0;
+  const max = typeof boundMax === "number" ? boundMax : 100;
+  const step = typeof boundStep === "number" && boundStep > 0 ? boundStep : 1;
+  if (max > min) {
+    return (
+      <PropertySlider
+        label={field.label}
+        value={numeric ?? min}
+        onChange={() => {}}
+        onChangeEnd={(val) => onChange(val)}
+        editable
+        min={min}
+        max={max}
+        step={step}
+        formatValue={(val) => String(val)}
+      />
+    );
   }
-  return rows;
+  return (
+    <PropertyNumberInput
+      label={field.label}
+      value={numeric}
+      onChange={(val) => onChange(val)}
+      min={field.min}
+      max={field.max}
+      step={field.step}
+    />
+  );
 }
 
 /** 단일 필드 — canonical scalar 구독 + kind switch + origin 라우팅. */
@@ -467,6 +539,7 @@ const GenericField = memo(function GenericField({
   ownerFields,
   translateOptions,
   optionValueMode,
+  stateNames,
 }: GenericFieldProps) {
   const value = useCanonicalPropertyValue(
     elementId,
@@ -480,28 +553,7 @@ const GenericField = memo(function GenericField({
     else onSemanticUpdate(field.key, v);
   };
 
-  const stateNames = useVisibleVariableNames(elementId);
   const { t } = useI18n();
-  // 형제에 묶인 값 슬라이더 (Slider/Meter/ProgressBar `value`) 의 양끝 — 형제 prop 을 같이 읽는다.
-  //   훅은 무조건 부른다 (조건부 금지); 해당 없는 필드는 읽은 값을 쓰지 않는다.
-  const boundMin = useCanonicalPropertyValue(
-    elementId,
-    field.origin,
-    "minValue",
-    undefined,
-  );
-  const boundMax = useCanonicalPropertyValue(
-    elementId,
-    field.origin,
-    "maxValue",
-    undefined,
-  );
-  const boundStep = useCanonicalPropertyValue(
-    elementId,
-    field.origin,
-    "step",
-    undefined,
-  );
 
   // 라벨은 전부 legend (상자 위) — Styles 패널과 같은 어법 (2026-09-15 사용자 판정; 종전 전폭
   //   행의 상자 안 suffix 라벨 · 스위치 inline 행은 폐기). 아이콘 prefix 는 legend 가 정체를
@@ -679,28 +731,17 @@ const GenericField = memo(function GenericField({
           />
         );
       }
-      // `value` 는 형제 minValue~maxValue 에 묶인다 — 양끝이 곧 min/max (없으면 0~100), 눈금은 step.
-      //   min > max 같은 역전은 슬라이더가 못 그리므로 스텝퍼로 내려간다.
+      // `value` 는 형제 minValue~maxValue 에 묶인다 — 형제 구독은 leaf 가 (`BoundValueSlider`)
       if (editor.type === "slider-bound") {
-        const min = typeof boundMin === "number" ? boundMin : 0;
-        const max = typeof boundMax === "number" ? boundMax : 100;
-        const step =
-          typeof boundStep === "number" && boundStep > 0 ? boundStep : 1;
-        if (max > min) {
-          return (
-            <PropertySlider
-              label={field.label}
-              value={numeric ?? min}
-              onChange={() => {}}
-              onChangeEnd={(val) => update(val)}
-              editable
-              min={min}
-              max={max}
-              step={step}
-              formatValue={(val) => String(val)}
-            />
-          );
-        }
+        return (
+          <BoundValueSlider
+            field={field}
+            editor={editor}
+            elementId={elementId}
+            numeric={numeric}
+            onChange={update}
+          />
+        );
       }
       return (
         <PropertyNumberInput
@@ -853,10 +894,7 @@ function splitChipFields(fields: readonly ResolvedField[]): {
   const dependents: ResolvedField[] = [];
   for (const field of fields) {
     if (chipKeys.has(field.key)) continue;
-    const gate =
-      field.visibleWhen && "key" in field.visibleWhen
-        ? field.visibleWhen.key
-        : undefined;
+    const gate = gateKey(field);
     // 게이트가 칩이면 (Show Value Label → Value Label) 묶음 바로 아래
     if (gate && chipKeys.has(gate)) dependents.push(field);
     else rows.push(field);

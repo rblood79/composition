@@ -23,11 +23,7 @@ import {
   useResolvedSkiaTheme,
   useThemeConfigVersion,
 } from "../../../../stores/themeConfigStore";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 import "./ModifiedStylesSection.css";
 
@@ -218,11 +214,7 @@ const VALUE_MAX = 40;
 export const ModifiedStylesSection = memo(function ModifiedStylesSection({
   selectedElement,
 }: ModifiedStylesSectionProps) {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   // baseline(factory default / spec preset / subpart)과 실제로 다른 prop 만 modified 로 표시.
   //   구 getModifiedProperties(키 존재만 판정)는 factory 가 주입한 layout default 까지 modified 로 잡아
   //   reset 버튼과 비대칭이었음(2026-06-24). useDirtyStyleProps 가 reset 판정과 동일 baseline 공유.
@@ -274,8 +266,7 @@ export const ModifiedStylesSection = memo(function ModifiedStylesSection({
             swatch,
           };
         }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- localize 는 i18n 에만 의존
-    [modifiedProperties, effectiveStyle, theme, accentColor, i18n],
+    [modifiedProperties, effectiveStyle, theme, accentColor, localize],
   );
 
   const handleReset = useCallback(() => {

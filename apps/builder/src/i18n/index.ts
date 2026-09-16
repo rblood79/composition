@@ -6,7 +6,12 @@
 
 export { I18nProvider } from "./I18nProvider";
 export { LanguageSwitcher } from "./LanguageSwitcher";
-export { useI18n, useOptionalI18n } from "./useI18n";
+export {
+  useI18n,
+  useOptionalI18n,
+  useSemanticLabel,
+  localizeSemanticLabel,
+} from "./useI18n";
 export { semanticLabelKeys, translateKey } from "./labels";
 export { translations, localizedStrings } from "./translations";
 export {

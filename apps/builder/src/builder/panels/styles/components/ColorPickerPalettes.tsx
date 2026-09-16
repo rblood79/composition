@@ -19,11 +19,7 @@ import {
 } from "../../../../stores/themeConfigStore";
 import { resolveAccentLadder } from "../../../../utils/theme/tintToSkiaColors";
 import { NEUTRAL_PALETTES } from "../../../../utils/theme/neutralToSkiaColors";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 import { useDocumentColors } from "../hooks/useDocumentColors";
 
 /** Tailwind 사다리에서 고르는 6 단 — 50 · 200 · 400 · 600 · 800 · 950 (모두 실제 팔레트 값) */
@@ -107,14 +103,7 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
   value,
   onSelect,
 }: ColorPickerPalettesProps) {
-  const i18n = useOptionalI18n();
-  const localize = useCallback(
-    (label: string) =>
-      i18n
-        ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-        : label,
-    [i18n],
-  );
+  const localize = useSemanticLabel();
   const documentColors = useDocumentColors();
   const tint = useThemeConfigTint();
   const neutral = useThemeConfigNeutral();

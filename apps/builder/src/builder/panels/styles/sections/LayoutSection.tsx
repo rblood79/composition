@@ -28,11 +28,7 @@ import {
 import { useStyleActions } from "../hooks/useStyleActions";
 import { useOptimizedStyleActions } from "../hooks/useOptimizedStyleActions";
 import { useLayoutValues } from "../hooks/useLayoutValues";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 import {
   useFlexDirectionKeys,
   useFlexAlignmentKeys,
@@ -47,11 +43,7 @@ import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActi
 import { LAYOUT_PROPS } from "./styleSectionProps";
 
 const LayoutSectionContent = memo(function LayoutSectionContent() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
 
   const {
     handleFlexDirection,

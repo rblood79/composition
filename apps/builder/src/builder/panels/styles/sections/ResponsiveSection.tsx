@@ -40,11 +40,7 @@ import {
 import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
 import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useOptionalI18n, useSemanticLabel } from "../../../../i18n";
 
 const BP_LABEL: Record<BreakpointName, string> = {
   desktop: "Desktop",
@@ -136,10 +132,7 @@ interface OverrideRow {
 
 export const ResponsiveSection = memo(function ResponsiveSection() {
   const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   /** 패널 자체 문구 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
   const t = (
     key: string,

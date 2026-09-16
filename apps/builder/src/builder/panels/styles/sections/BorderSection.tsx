@@ -64,11 +64,7 @@ import { useAppearanceValues } from "../hooks/useAppearanceValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { resolveCssLengthPx } from "../utils/cssLengthPx";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 /** 슬라이더 범위 — 값 칸 직접 입력은 이 위로도 간다 (썸은 끝에 머문다). */
 const WIDTH_SLIDER_MAX = 24;
@@ -152,11 +148,7 @@ function toPresetMenuItems(presets: readonly PropertyUnitPreset[]) {
 }
 
 const BorderSectionContent = memo(function BorderSectionContent() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();

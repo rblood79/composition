@@ -50,11 +50,7 @@ import { FILL_PROPS } from "./styleSectionProps";
 
 import "./FillSection.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -392,11 +388,7 @@ const FillSectionContent = memo(function FillSectionContent() {
  * FillSection — 절 래퍼 (헤더 「+」 · reset)
  */
 export const FillSection = memo(function FillSection() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const { fills } = useFillValues();
   const { addFill } = useFillActions();
   const selectedId = useComposedStore((s) => s.selectedElementId);
@@ -442,7 +434,7 @@ export const FillSection = memo(function FillSection() {
         />
       </ActionIconButton>
     ),
-    [handleAdd, i18n],
+    [handleAdd, localize],
   );
 
   return (

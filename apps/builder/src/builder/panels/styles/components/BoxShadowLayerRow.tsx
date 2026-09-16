@@ -22,11 +22,7 @@ import type {
   BoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
 import { BoxShadowEditor, type BoxShadowEditorProps } from "./BoxShadowEditor";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 export type BoxShadowLayerAction = "inset" | "remove";
 
@@ -61,11 +57,7 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
   onAction,
   editor,
 }: BoxShadowLayerRowProps) {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const layer = value.layers[layerIndex];
   if (!layer) return null;
 

@@ -49,11 +49,7 @@ import {
   type BoxShadowPresentationValue,
 } from "../../../presentation/boxShadowPresentation";
 import { parseFilterBlurPx, setFilterBlurPx } from "../utils/filterValue";
-import {
-  semanticLabelKeys,
-  translateKey,
-  useOptionalI18n,
-} from "../../../../i18n";
+import { useSemanticLabel } from "../../../../i18n";
 
 import "./EffectSection.css";
 
@@ -87,11 +83,7 @@ function percentToOpacityValue(percent: number): string {
 }
 
 const EffectSectionContent = memo(function EffectSectionContent() {
-  const i18n = useOptionalI18n();
-  const localize = (label: string) =>
-    i18n
-      ? translateKey(i18n.t, semanticLabelKeys[label] ?? label, label)
-      : label;
+  const localize = useSemanticLabel();
   const { updateStyle } = useStyleActions();
   const { updateStyleImmediate, updateStylePreview } =
     useOptimizedStyleActions();

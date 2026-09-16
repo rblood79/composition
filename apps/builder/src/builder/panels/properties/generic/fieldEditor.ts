@@ -211,18 +211,23 @@ const NEGATED: ReadonlySet<string> = new Set(["hideTimeZone", "hideArrow"]);
 /** On/Off 값 enum — 칩으로. */
 const ON_OFF: ReadonlySet<string> = new Set(["autoCorrect", "spellCheck"]);
 
-/** 반폭 seg 에 들어가는 라벨 상한 — 86.5 열 / 옵션 수 (padding 4 + gap 4 제외). */
-function fitsHalfSeg(labels: readonly string[]): boolean {
-  const cell = (86.5 - 8 - (labels.length - 1) * 4) / labels.length;
-  return labels.every((label) => textWidth(label) + 8 <= cell);
+/** seg 폭 — 반폭 열 86.5 · 전폭 181 (padding 4 + gap 4 는 칸 계산에서 뺀다). */
+const HALF_SEG_WIDTH = 86.5;
+const WIDE_SEG_WIDTH = 181;
+/** 라벨 전부가 `width` 폭 seg 의 한 칸 (폭 / 옵션 수) 에 들어가는가. */
+function fitsSeg(labels: readonly string[], width: number): boolean {
+  const cell = (width - 8 - (labels.length - 1) * 4) / labels.length;
+  return labels.every((label) => approxTextWidth(label) + 8 <= cell);
 }
-/** 전폭 seg (181) 에 들어가는가. */
-function fitsWideSeg(labels: readonly string[]): boolean {
-  const cell = (181 - 8 - (labels.length - 1) * 4) / labels.length;
-  return labels.every((label) => textWidth(label) + 8 <= cell);
-}
-/** 글자 폭 근사 (seg 글꼴 11px Pretendard) — jsdom 과 브라우저가 같은 답을 내도록 표로 잰다. */
-function textWidth(text: string): number {
+const fitsHalfSeg = (labels: readonly string[]) =>
+  fitsSeg(labels, HALF_SEG_WIDTH);
+const fitsWideSeg = (labels: readonly string[]) =>
+  fitsSeg(labels, WIDE_SEG_WIDTH);
+/**
+ * 글자 폭 근사 (seg 글꼴 11px Pretendard) — jsdom 과 브라우저가 같은 답을 내도록 표로 잰다.
+ * (렌더러의 `textWidth` 는 canvas 실측 12px — 셀렉트·스텝퍼 legend 판정용, 다른 자.)
+ */
+function approxTextWidth(text: string): number {
   let w = 0;
   for (const ch of text) {
     if (/[A-Z]/.test(ch)) w += 6.9;
@@ -261,7 +266,20 @@ function isSemanticColorVariant(field: ResolvedField): boolean {
   return colored >= options.length - 1;
 }
 
+/**
+ * 필드 객체당 1회 — 계약 필드는 불변이라 같은 객체는 같은 답. 렌더러가 폭 판정 · 정렬 · 행 패킹 ·
+ * 칩 분리 · dispatch 에서 같은 필드를 여러 번 묻는다 (옵션 라벨 글자마다 정규식이 도는 비용).
+ */
+const editorCache = new WeakMap<ResolvedField, FieldEditor>();
 export function resolveFieldEditor(field: ResolvedField): FieldEditor {
+  const cached = editorCache.get(field);
+  if (cached) return cached;
+  const editor = computeFieldEditor(field);
+  editorCache.set(field, editor);
+  return editor;
+}
+
+function computeFieldEditor(field: ResolvedField): FieldEditor {
   const options = field.options ?? [];
   const labels = options.map((o) => o.label);
   switch (field.kind) {
@@ -364,4 +382,24 @@ export function sizeSegOptions<T extends { value: string; label: string }>(
   options: readonly T[],
 ): T[] {
   return options.slice(0, SIZE_MAX_STEPS);
+}
+
+/**
+ * 연속한 반폭 항목 둘을 한 행으로 묶는다 — 전폭은 행 하나를 혼자 쓴다. Properties 본문 필드 (span
+ * 판정) 와 ItemsManager 펼친 행 (boolean 스위치) 이 같은 격자 (`1fr 1fr 28px`) 라 규칙 하나.
+ */
+export function packHalfRows<T>(
+  items: readonly T[],
+  isHalf: (item: T) => boolean,
+): T[][] {
+  const rows: T[][] = [];
+  for (const item of items) {
+    const last = rows[rows.length - 1];
+    if (isHalf(item) && last && last.length === 1 && isHalf(last[0]!)) {
+      last.push(item);
+    } else {
+      rows.push([item]);
+    }
+  }
+  return rows;
 }
