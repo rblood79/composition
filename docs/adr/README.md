@@ -62,7 +62,7 @@
 #### [220](220-sample-data-package-and-rename.md) — 샘플 데이터 엔진 패키지화 — `@composition/sample-data` + `mockData` 명칭 정리
 
 - **상태**: Proposed — 2026-09-16
-- **규모**: 생성기 5 파일 (1,923 줄, 외부 import 0) 을 `packages/sample-data` (src 직접 export · 의존 0 · builder 역참조는 컴파일러가 차단) 로 이동 + 명칭 `mock` → `sample` (규칙 kind `mock` → `generate`, 151 지점) — 동작 변경 0 리팩터 (G3 seed 스냅샷 byte-identical). preset 카탈로그 · AI `tableSpec` 은 builder 잔류 (import 경로만). `DataField` 의 shared 승격 (preset 이동) 은 범위 밖. 대안 A(이름만)/C(preset+DataField 승격)/D(외부 배포형) 기각. R1~~R5 MED 2 / LOW 3 · G0~~G5. design breakdown `design/220-sample-data-package-and-rename-breakdown.md`
+- **규모**: 생성기 5 파일 (1,923 줄, 외부 import 0) 을 `packages/sample-data` (src 직접 export · 의존 0 · builder 역참조는 컴파일러가 차단) 로 이동 + 명칭 `mock` → `sample` (규칙 kind `mock` → `generate`, 공개 심볼 28 + importer 6; collection 저장 필드 `mockData`·workflow `sourceType` 은 유지) — 동작 변경 0 리팩터 (G3 고정 컨텍스트 스냅샷 byte-identical). round 1 HIGH 1 / MED 3 반영 (rootDir 경계 실측 · 범위 한정 G2 · 시계/TZ 고정 스냅샷 · 220 전용 번들 판정기). preset 카탈로그 · AI `tableSpec` 은 builder 잔류 (import 경로만). `DataField` 의 shared 승격 (preset 이동) 은 범위 밖. 대안 A(이름만)/C(preset+DataField 승격)/D(외부 배포형) 기각. R1~~R5 MED 2 / LOW 3 · G0~~G5. design breakdown `design/220-sample-data-package-and-rename-breakdown.md`
 - **우선순위**: **P2** — 병행 세션 (Mock 데이터 모듈) commit 후 착수 (G0)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
