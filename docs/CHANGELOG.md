@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- 캔버스의 각 페이지 상단에 폭 = 페이지 폭, 높이 화면 32px (줌 무관) 인 헤더 띠를 추가했다. 배경은 빌더 토큰 `--bg-inset` (light gray-50 / dark zinc-900), 현재 선택된 페이지는 `--focus-ring` 60% alpha. 페이지 타이틀은 띠 안에 세로 중앙 + 좌측 8px 패딩으로 놓이고, 타이틀 drag·inline 편집 히트 영역은 새 위치를 따라간다.
+- 캔버스의 각 페이지 상단에 폭 = 페이지 폭, 높이 화면 32px (줌 무관) 인 헤더 띠를 추가했다. 배경은 빌더 토큰 `--bg-muted` (light gray-200 / dark zinc-700), 현재 선택된 페이지는 `--focus-ring` 40% alpha. 페이지 타이틀은 띠 안에 세로 중앙 + 좌측 8px 패딩으로 놓이고, 타이틀 drag·inline 편집 히트 영역은 새 위치를 따라간다.
 
 ### Fixed
 

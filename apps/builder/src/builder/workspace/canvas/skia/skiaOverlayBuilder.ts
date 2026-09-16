@@ -98,17 +98,17 @@ const CANVAS_BORDER_FALLBACK = parseInt(
   TAILWIND_PALETTE.neutral[300].slice(1),
   16,
 );
-/** `--bg-inset` / `--focus-ring` 미정의 시 fallback — builder-system light 기본값과 같은 팔레트 값. */
+/** `--bg-muted` / `--focus-ring` 미정의 시 fallback — builder-system light 기본값과 같은 팔레트 값. */
 const PAGE_HEADER_BG_FALLBACK = parseInt(
-  TAILWIND_PALETTE.gray[50].slice(1),
+  TAILWIND_PALETTE.gray[200].slice(1),
   16,
 );
 const PAGE_HEADER_ACTIVE_FALLBACK = parseInt(
   TAILWIND_PALETTE.blue[400].slice(1),
   16,
 );
-/** 활성 페이지 헤더 띠 alpha (사용자 지정 60%) */
-const PAGE_HEADER_ACTIVE_ALPHA = 0.6;
+/** 활성 페이지 헤더 띠 alpha (사용자 지정 40%) */
+const PAGE_HEADER_ACTIVE_ALPHA = 0.4;
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -292,14 +292,14 @@ function resolveCanvasBorderColor(): readonly [number, number, number] {
   );
 }
 
-/** 페이지 헤더 띠 배경 — builder-system `--bg-inset` (light gray-50 / dark zinc-900) */
+/** 페이지 헤더 띠 배경 — builder-system `--bg-muted` (light gray-200 / dark zinc-700) */
 function resolvePageHeaderColor(): readonly [number, number, number] {
   return hexToColor4fChannels(
-    cssColorToHex(getBuilderCSSVariable("--bg-inset"), PAGE_HEADER_BG_FALLBACK),
+    cssColorToHex(getBuilderCSSVariable("--bg-muted"), PAGE_HEADER_BG_FALLBACK),
   );
 }
 
-/** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 60% 적용) */
+/** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 40% 적용) */
 function resolvePageHeaderActiveColor(): readonly [number, number, number] {
   return hexToColor4fChannels(
     cssColorToHex(

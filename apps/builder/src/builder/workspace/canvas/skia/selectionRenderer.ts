@@ -510,7 +510,7 @@ export function renderLasso(
  * 높이는 화면 32px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 32/zoom).
  *
  * 씬-로컬 좌표계 (page 좌상단 = 원점) 에서 호출된다. 색은 호출자가 CSS 토큰
- * (`--bg-inset` / 활성 `--focus-ring` 60%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
+ * (`--bg-muted` / 활성 `--focus-ring` 40%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
  */
 export function renderPageHeader(
   ck: CanvasKit,

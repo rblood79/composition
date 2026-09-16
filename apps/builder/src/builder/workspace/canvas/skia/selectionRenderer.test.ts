@@ -296,7 +296,7 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
     expect(PAGE_HEADER_HEIGHT).toBe(32);
   });
 
-  it("alpha 는 paint 색상 4번째 채널로 전달된다 (활성 = focus-ring 60%)", () => {
+  it("alpha 는 paint 색상 4번째 채널로 전달된다 (활성 = focus-ring 40%)", () => {
     const ck = mockCk();
     const canvas = new MockCanvas();
     renderPageHeader(
@@ -305,9 +305,9 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
       100,
       1,
       [0.5, 0.6, 0.7],
-      0.6,
+      0.4,
     );
-    expect(canvas.rects[0]?.color).toEqual([0.5, 0.6, 0.7, 0.6]);
+    expect(canvas.rects[0]?.color).toEqual([0.5, 0.6, 0.7, 0.4]);
   });
 
   it("타이틀 텍스트는 헤더 안에 세로 중앙 + 좌측 패딩으로 놓인다", () => {
