@@ -21,15 +21,12 @@
  * 6. reset() — 페이지 전환 시 전체 초기화
  *
  * @see fullTreeLayout.ts — BatchNode 타입, engineStyleToRecord() 결과 형식
- * @see compositionEngine.ts — CompositionEngineLayout.updateStyleRaw() / createNodeRaw()
+ * @see engine.ts — EngineLayout.updateStyleRaw() / createNodeRaw()
  */
 
 import { createLayoutEngine } from "../../wasm-bindings/layoutBridge";
 import type { LayoutEngineAPI } from "../../wasm-bindings/layoutBridge";
-import type {
-  EngineTraceNode,
-  LayoutResult,
-} from "../../wasm-bindings/compositionEngine";
+import type { EngineTraceNode, LayoutResult } from "../../wasm-bindings/engine";
 import type { EngineNodeHandle } from "../../wasm-bindings/layoutTypes";
 import { encodeBatchBinary } from "../../wasm-bindings/binaryProtocol";
 import type { BinaryBatchInput } from "../../wasm-bindings/binaryProtocol";
@@ -99,7 +96,7 @@ export class PersistentLayoutTree {
    * 레이아웃 엔진 (ADR-916 Phase 0-A seam).
    *
    * `createLayoutEngine()` factory 경유로 주입된다. ADR-916 Taffy 완전 제거
-   * (2026-07-06) 후 factory 는 자체 엔진(composition-engine)을 단독 반환하며,
+   * (2026-07-06) 후 factory 는 자체 엔진(engine)을 단독 반환하며,
    * 이 클래스는 factory 만 교체하면 수정 없이 꽂힌다.
    */
   private engine: LayoutEngineAPI;
@@ -126,7 +123,7 @@ export class PersistentLayoutTree {
 
   /**
    * @param engine - (테스트용) 주입할 레이아웃 엔진. 생략 시
-   *   `createLayoutEngine()` factory 로 자체 엔진(composition-engine)을 획득한다.
+   *   `createLayoutEngine()` factory 로 자체 엔진(engine)을 획득한다.
    */
   constructor(engine?: LayoutEngineAPI) {
     this.engine = engine ?? createLayoutEngine();

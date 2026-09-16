@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -382,7 +382,7 @@ const ALL = [
 
 describe("그리드 컨테이너 블록 크기 = 행 트랙 extent", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   describe("engine leg — 엔진 직접 호출", () => {

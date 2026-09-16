@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { type ParityCase, runParityCase } from "./harness";
 
 /**
@@ -168,7 +168,7 @@ const CASES: ParityCase[] = [
 
 describe("백분율 폭의 containing block ↔ CSS 대조", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   for (const c of CASES) {

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -319,7 +319,7 @@ CASES.push({
 
 describe("grid item 박스 모델 — CSS 대조", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(CASES.map((c) => [c.name, c] as const))(
@@ -379,9 +379,19 @@ describe("grid item 박스 모델 — CSS 대조", () => {
    * 그대로 §12.8 stretch 게이트가 된다.
    */
   it.each([
-    ["block", "auto auto", ["auto", "auto"], { display: "block", width: "400px" }],
+    [
+      "block",
+      "auto auto",
+      ["auto", "auto"],
+      { display: "block", width: "400px" },
+    ],
     ["block", "1fr 1fr", ["1fr", "1fr"], { display: "block", width: "400px" }],
-    ["flex", "auto auto", ["auto", "auto"], { display: "flex", width: "400px" }],
+    [
+      "flex",
+      "auto auto",
+      ["auto", "auto"],
+      { display: "flex", width: "400px" },
+    ],
     ["flex", "1fr 1fr", ["1fr", "1fr"], { display: "flex", width: "400px" }],
   ] as const)("%s 부모 / %s — 트랙 여유 판정", (_p, _c, cols, parent) => {
     const c: ParityCase = {

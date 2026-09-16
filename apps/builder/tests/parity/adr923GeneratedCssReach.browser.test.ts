@@ -4,7 +4,7 @@ import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import indexCssSource from "@composition/shared/components/styles/index.css?raw";
 
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { allPaletteCreationTrees } from "./adr923ProductionTrees";
 import { mountProductionRoot } from "./adr923PreviewLeg";
 import { rendererMap } from "@composition/shared/renderers";
@@ -136,7 +136,7 @@ const loadedRules = new Map<string, number>();
 const unmountable: string[] = [];
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
 
   const style = document.createElement("style");
   style.id = "adr923-generated-reach-bundle";

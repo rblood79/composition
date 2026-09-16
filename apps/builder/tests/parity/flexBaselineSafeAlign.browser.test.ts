@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -326,7 +326,7 @@ const ALL = [...BASELINE, ...SAFE, ...SELF_START_END];
 
 describe("⑦ flex baseline · safe/unsafe · self-start/self-end", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(ALL.map((c) => [c.name, c] as const))(

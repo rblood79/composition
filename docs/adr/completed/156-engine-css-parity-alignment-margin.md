@@ -1,4 +1,4 @@
-# ADR-156: composition-engine CSS 정합 복구 — 발산 17군 + Chrome 차등 oracle 도입
+# ADR-156: engine CSS 정합 복구 — 발산 17군 + Chrome 차등 oracle 도입
 
 > 파일명(`alignment-margin`)은 최초 발견 5종(정렬·마진) 기준이다. 2026-07-17 2차 정밀 sweep 으로 발산이 17군(E1~E17)으로 확장됐으나, 링크 안정성을 위해 파일명은 유지한다.
 
@@ -6,13 +6,13 @@
 
 Implemented — 2026-07-18
 
-> Proposed(2026-07-17) → [reviews/156.md](../reviews/156.md) round 2 전건 종결(HIGH×3/MED×5/LOW×2 전부 `fixed`, `pending` 0)로 전제 확정 → Accepted(2026-07-18, execute-adr Phase 1 착수) → **Phase 0~6 전건 반영으로 Implemented(2026-07-18)**. Gate G0~G6 전부 충족(아래 Gates 표). 커밋: Phase 1 `614bbd3c3`/Phase 2 `6a2c50d0b`/Phase 3 `efb73aebc`~`7d391f78d`/Phase 4 `6abd83aac`/Phase 4.5 `be8c95824`/Phase 5 `db40890c8`/Phase 6(R7 가드) 본 커밋.
+> Proposed(2026-07-17) → [reviews/156.md](../reviews/156.md) round 2 전건 종결(HIGH×3/MED×5/LOW×2 전부 `fixed`, `pending` 0)로 전제 확정 → Accepted(2026-07-18, execute-adr Phase 1 착수) → **Phase 0~6 전건 반영으로 Implemented(2026-07-18)**. Gate G0~~G6 전부 충족(아래 Gates 표). 커밋: Phase 1 `614bbd3c3`/Phase 2 `6a2c50d0b`/Phase 3 `efb73aebc`~~`7d391f78d`/Phase 4 `6abd83aac`/Phase 4.5 `be8c95824`/Phase 5 `db40890c8`/Phase 6(R7 가드) 본 커밋.
 
 ## Context
 
 ### Domain 소속
 
-**D3 (시각 스타일)** 단독. [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 상 Builder(Skia)와 Preview/Publish(DOM+CSS)는 D3 의 **대등 symmetric consumer** 이며, 대칭은 "시각 결과의 동일성"으로 정의된다. 본 ADR 은 Skia consumer 경로의 레이아웃 엔진(`packages/composition-engine`)이 CSS consumer 와 동일한 시각 결과를 산출하는지의 문제다. D1(DOM/ARIA)·D2(Props/API) 변경 0 — 엔진은 catalog/theme 이 결정한 D3 값을 좌표로 환산할 뿐 SSOT 를 소유하지 않는다. 경계 교차 없음.
+**D3 (시각 스타일)** 단독. [ssot-hierarchy.md](../../../.claude/rules/ssot-hierarchy.md) 상 Builder(Skia)와 Preview/Publish(DOM+CSS)는 D3 의 **대등 symmetric consumer** 이며, 대칭은 "시각 결과의 동일성"으로 정의된다. 본 ADR 은 Skia consumer 경로의 레이아웃 엔진(`packages/engine`)이 CSS consumer 와 동일한 시각 결과를 산출하는지의 문제다. D1(DOM/ARIA)·D2(Props/API) 변경 0 — 엔진은 catalog/theme 이 결정한 D3 값을 좌표로 환산할 뿐 SSOT 를 소유하지 않는다. 경계 교차 없음.
 
 ### 문제
 
@@ -51,7 +51,7 @@ E1 은 코드 경로가 끝까지 확증된 사용자-가시 결함이다: Inspe
 
 ### Phase 매핑 확정 (round 2 리뷰, 2026-07-17)
 
-E6~E17 의 배치는 [reviews/156.md](../reviews/156.md) round 2 에서 확정했다. **분리 없이 본 ADR 안 흡수** — G0 계약(신규 ADR fork 금지)과 R3 의 기존 판단("분리 시 oracle·회귀 기준선을 공유하지 못해 중복 비용")이 E6~E17 에도 동일 적용된다.
+E6~~E17 의 배치는 [reviews/156.md](../reviews/156.md) round 2 에서 확정했다. **분리 없이 본 ADR 안 흡수** — G0 계약(신규 ADR fork 금지)과 R3 의 기존 판단("분리 시 oracle·회귀 기준선을 공유하지 못해 중복 비용")이 E6~~E17 에도 동일 적용된다.
 
 | 발산                                    | Phase             | 근거                                                                                               |
 | --------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------- |
@@ -182,7 +182,7 @@ E6~E17 의 배치는 [reviews/156.md](../reviews/156.md) round 2 에서 확정�
 - **justify:stretch 하 explicit-width grid item 축소 (수평 mirror, 미착수)** — 위 세로축의 수평 대칭. CSS 는 `justify-self:stretch`(기본)에서도 explicit width 를 유지(start/left 정렬)하나 엔진은 셀 폭으로 stretch (harness Case C: `child{w:40,h:40}` in 200×100 셀 → 엔진 `w:200`(발산)·`h:40`(세로축 해소됨)). `solve_grid` justify 분기에 세로축과 동형 `justify==0 && cew>0 → start(left)` 승격으로 해소 가능(`_child_ew` 이미 산출, 배선만 남음). 사용자 지시가 세로축 한정이라 미착수 — 수평 explicit-width 자식은 grid 에서 드묾(폭은 통상 트랙 1fr 위임)이라 우선순위 낮음. intrinsic shrink-to-fit 폭 justify(위)와 별개(그건 auto-width, 이건 explicit-width).
 - **gridAutoRows override(flow:row 암시 행)** — tree.rs `solve_grid` intrinsic 측정이 소유. `grid_layout.auto_rows` 파라미터 현재 미소비. flow:column 암시 열(gridAutoColumns)은 반영됨(E14).
 - **E16 `order`** — `NodeStyle` 미선언(serde silent drop) + Inspector 편집 UI 부재. 유입 경로(pencil import 등)가 생기면 재평가. 미선언이라 R7 가드의 필드 수(49)·allowlist 에는 불포함이나, `nodestyle_field_contract_guard` 주석이 "선언 O·송신 O" 로 전환 시 재판정을 명문화한다.
-- **R7 정적 가드 land (2026-07-18, Phase 6) + 옵션 3-a 갱신** — 「선언 O·소비 X」 축이 문서 표(breakdown §1-3) 단독이라 stale 화하던 것을 `packages/composition-engine/src/tree.rs::nodestyle_field_contract_guard` 로 코드화. **옵션 3-a(justify 배선)로 `justifySelf`/`justifyItems` 가 소비 전환** → `UNCONSUMED_NODESTYLE_FIELDS = []`(빈 배열, 49 전부 소비), 가드 산술 `소비 49 + 미소비 0 = 선언 49` 로 갱신. 필드 추가/소비 전환 시 전수 구조분해가 컴파일 RED → 교차표 갱신 강제.
+- **R7 정적 가드 land (2026-07-18, Phase 6) + 옵션 3-a 갱신** — 「선언 O·소비 X」 축이 문서 표(breakdown §1-3) 단독이라 stale 화하던 것을 `packages/engine/src/tree.rs::nodestyle_field_contract_guard` 로 코드화. **옵션 3-a(justify 배선)로 `justifySelf`/`justifyItems` 가 소비 전환** → `UNCONSUMED_NODESTYLE_FIELDS = []`(빈 배열, 49 전부 소비), 가드 산술 `소비 49 + 미소비 0 = 선언 49` 로 갱신. 필드 추가/소비 전환 시 전수 구조분해가 컴파일 RED → 교차표 갱신 강제.
 - **E9 `align-items:baseline`** — CSS baseline 정렬은 텍스트 메트릭 의존이라 본 ADR 의 기하 전용 scope(R1 fixture 계약: 텍스트 미포함) 밖. 별도 판정 필요.
 - **E18 percent width in indefinite(shrink-to-fit) 부모** (ADR-151 잔여 ① 이관, 2026-07-18) — fit-content/`align-items:flex-start` cross 축 등 indefinite 부모 안 자식 `width:100%` 가 CSS 는 auto 로 강등돼 content 크기에 기여하나, 엔진은 0/−1 로 붕괴 (Disclosure/DisclosureGroup in flex 부모 = Skia 0×56 vs CSS 168.2×56). E6(percent height 강등)의 width 아날로그. **Rust repro(column-flex-start)로 2-part 규명**: ① `style.rs` percent 해소가 indefinite `container_size(-1)` 에 곱해 −1 붕괴 → `cs<0 → auto` 강등으로 정정 가능(엔진 테스트 회귀 0). ② **그것만으로 미해소** — indefinite 부모 안 auto/percent width 가 content 로 shrink 되지 않음(shrink-to-fit/intrinsic width 계산 gap). part 2 는 block/flex width 계산 core 변경이라 bounded 아님 → **보류 (사용자 결정 2026-07-18)**. 착수 시 differential oracle(Chrome ground truth) + golden(tree_golden N11 형상) 검증 필수.
 - **`grid_template_areas`** — 미선언이나 factory 가 숫자 line 을 병기해 완화됨(`layout-engine.md` §"Grid area 이름 해석"). 이름 해석 자체는 미지원 유지.

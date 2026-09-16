@@ -16,7 +16,7 @@
 #   2. vitest (focused) 변경 package 의 `vitest related` + 변경된 test 파일 직접 실행
 #   3. typecheck        변경 package 단위 (builder 는 baseline wrapper) — root turbo 전체 아님
 #   4. registration     apps/builder TS 변경 시 ADR-139 contract (scripts/codex/registration-gate.sh)
-#   5. cargo test       packages/composition-engine/src 변경 시
+#   5. cargo test       packages/engine/src 변경 시
 #   6. preflight        --full 일 때만 (root type-check 를 한 번 더 도는 비용)
 #   7. cross-check      render 경로 변경 → ledger 에 `cross-check pass` 없으면 block (skill 은 CLI 로 못 돌린다)
 #   8. live-exercise    사용자-가시 / wiring / schema 경로 변경 → `live-exercise pass` 없으면 block
@@ -69,9 +69,9 @@ changed_files() {
 # scope 분류 (ERE) — CLAUDE.md §완료 기준 (registration / resolved-tree wiring / schema / 렌더) 을 경로로 옮긴 것
 RE_TS='\.(ts|tsx)$'
 RE_TEST='\.(test|spec)\.(ts|tsx)$'
-RE_RENDER='^(apps/builder/src/builder/workspace/canvas/|packages/specs/src/|packages/shared/src/catalog/|apps/builder/src/preview/|packages/composition-engine/src/)|\.css$'
+RE_RENDER='^(apps/builder/src/builder/workspace/canvas/|packages/specs/src/|packages/shared/src/catalog/|apps/builder/src/preview/|packages/engine/src/)|\.css$'
 RE_LIVE='^(apps/builder/src/builder/(factories|panels|components|stores|hooks)/|apps/builder/src/adapters/canonical/|packages/shared/src/schemas/)'
-RE_ENGINE='^packages/composition-engine/src/'
+RE_ENGINE='^packages/engine/src/'
 RE_DOCS='^(docs/|\.claude/|\.agents/|\.agent/|scripts/|AGENTS\.md$|CLAUDE\.md$|README\.md$)|\.md$'
 
 pkg_of() {  # pkg_of <path> → builder|publish|shared|specs|engine|other
@@ -80,12 +80,12 @@ pkg_of() {  # pkg_of <path> → builder|publish|shared|specs|engine|other
     apps/publish/*) echo publish ;;
     packages/shared/*) echo shared ;;
     packages/specs/*) echo specs ;;
-    packages/composition-engine/*) echo engine ;;
+    packages/engine/*) echo engine ;;
     *) echo other ;;
   esac
 }
 pkg_filter() { case "$1" in builder) echo @composition/builder ;; publish) echo @composition/publish ;; shared) echo @composition/shared ;; specs) echo @composition/specs ;; esac; }
-pkg_dir() { case "$1" in builder) echo apps/builder ;; publish) echo apps/publish ;; shared) echo packages/shared ;; specs) echo packages/specs ;; engine) echo packages/composition-engine ;; esac; }
+pkg_dir() { case "$1" in builder) echo apps/builder ;; publish) echo apps/publish ;; shared) echo packages/shared ;; specs) echo packages/specs ;; engine) echo packages/engine ;; esac; }
 pkg_has_vitest() { case "$1" in builder|shared|specs) return 0 ;; *) return 1 ;; esac; }
 pkg_has_typecheck() { case "$1" in builder|publish|shared) return 0 ;; *) return 1 ;; esac; }
 
@@ -229,7 +229,7 @@ do_verify() {
   # 5. cargo test — engine src 변경 시
   if [ -n "$ENGINE_HIT" ]; then
     if command -v cargo >/dev/null 2>&1; then
-      run_step cargo-test "composition-engine" cargo test --manifest-path packages/composition-engine/Cargo.toml --quiet
+      run_step cargo-test "engine" cargo test --manifest-path packages/engine/Cargo.toml --quiet
     else
       skip_step cargo-test "cargo 없음"
     fi

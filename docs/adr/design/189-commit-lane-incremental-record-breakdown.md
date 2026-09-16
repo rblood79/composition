@@ -185,7 +185,7 @@ CSS DOM target과 Skia hitBounds는 compare pane offset 정규화 후 rect·색�
 | `apps/builder/.../skia/types.ts`                                             |   5   | optional `renderDamageSkia` fail-safe 표면                    |
 | `apps/builder/.../skia/StoreRenderBridge.ts`                                 |   2   | commit resync 를 patch plan 소비로 전환                       |
 | `apps/builder/.../skia/nodePictureCache.ts`                                  |  2·3  | dirty-root 무효화를 plan 기반으로 정렬                        |
-| `packages/composition-engine` (필요 시)                                      |   1   | 없음 — ADR-188 Phase 1 산출 재사용이 원칙                     |
+| `packages/engine` (필요 시)                                                  |   1   | 없음 — ADR-188 Phase 1 산출 재사용이 원칙                     |
 
 ## 5. 검증 체크리스트 (Phase 공통)
 

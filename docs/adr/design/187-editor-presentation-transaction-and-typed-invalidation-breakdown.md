@@ -923,7 +923,7 @@ paint target과 별도의 revision/root 집합으로 승격되도록 했다.
 - runtime/plan/invalidation 테스트가 paint-only, layout, parent promotion, unaffected
   identity를 고정한다.
 
-composition engine의 공개 layout entrypoint가 page-root 전체 DFS와 root compute를
+Rust engine의 공개 layout entrypoint가 page-root 전체 DFS와 root compute를
 사용하는 경계는 남아 있으므로, 이를 G6 성공으로 확대 해석하지 않는다. 대신 ADR-188
 Phase 5가 `useLayoutPublisher`의 targeted publication을 `SkiaEditorPresentationLayoutBridge`
 와 연결했고, Preview/Skia가 동일한 `position:absolute` 숫자형 allowlist를 소비한다.

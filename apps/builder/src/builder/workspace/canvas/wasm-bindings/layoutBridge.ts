@@ -4,20 +4,20 @@
  * PersistentLayoutTree 의 엔진 주입 지점(factory).
  *
  * **ADR-916 Taffy 완전 제거 (2026-07-06)**: TaffyLayout 폴백 경로 삭제 — 자체
- * 엔진(composition-engine, taffy-free)을 단독 반환한다. WASM 미준비(startup
+ * 엔진(engine, taffy-free)을 단독 반환한다. WASM 미준비(startup
  * init 전 호출 / 로드 실패) 시에도 폴백 없이 엔진 인스턴스를 반환하며,
  * `isAvailable()` lazy re-init + useCanvasRuntimeBootstrap 의 15초 폴링/재시도가
  * 준비를 담당한다 (설계 Q1=B — 폴백 코드 신규 작성 없음).
  */
 
-import { CompositionEngineLayout } from "./compositionEngine";
-import type { EngineTraceNode, LayoutResult } from "./compositionEngine";
+import { EngineLayout } from "./engine";
+import type { EngineTraceNode, LayoutResult } from "./engine";
 
 /**
  * Common layout engine interface (ADR-916 Phase 0-A seam).
  *
  * PersistentLayoutTree 가 실제로 호출하는 batch 계약을 반영한다.
- * Taffy 완전 제거 후 자체 엔진(CompositionEngineLayout)이 이 계약의 유일 구현.
+ * Taffy 완전 제거 후 자체 엔진(EngineLayout)이 이 계약의 유일 구현.
  *
  * **Why batch 계약** (2026-07-03 실사): 기존 인터페이스는 per-node API
  * (createNode/computeLayout/getLayout) 만 선언했으나, PersistentLayoutTree 는
@@ -72,7 +72,7 @@ export interface LayoutEngineAPI {
  * 15초 폴링/재시도가 준비를 대기한다. 엔진 폴백 없음 (ADR-916 R4 소멸).
  */
 export function createLayoutEngine(): LayoutEngineAPI {
-  const engine = new CompositionEngineLayout() as unknown as LayoutEngineAPI;
+  const engine = new EngineLayout() as unknown as LayoutEngineAPI;
   if (strictLayoutInput) engine.setStrictInput?.(true);
   return engine;
 }

@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
+import { format, resolveConfig } from "prettier";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SOURCE = resolve(
@@ -55,7 +56,9 @@ function parseRows(src) {
 }
 
 function field(chunk, name) {
-  const re = new RegExp(`${name}:\\s*(?:\\n\\s*)?("(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*')`);
+  const re = new RegExp(
+    `${name}:\\s*(?:\\n\\s*)?("(?:[^"\\\\]|\\\\.)*"|'(?:[^'\\\\]|\\\\.)*')`,
+  );
   const m = chunk.match(re);
   if (!m) throw new Error(`layoutCapabilityMatrix: ${name} 파싱 실패`);
   const raw = m[1];
@@ -67,11 +70,14 @@ function field(chunk, name) {
 }
 
 function gapAt(chunk, idx) {
-  const gaps = [...chunk.matchAll(
-    /gap:\s*\{\s*dx:\s*(-?[\d.]+),\s*dy:\s*(-?[\d.]+),\s*dw:\s*(-?[\d.]+),\s*dh:\s*(-?[\d.]+)\s*\}/g,
-  )];
+  const gaps = [
+    ...chunk.matchAll(
+      /gap:\s*\{\s*dx:\s*(-?[\d.]+),\s*dy:\s*(-?[\d.]+),\s*dw:\s*(-?[\d.]+),\s*dh:\s*(-?[\d.]+)\s*\}/g,
+    ),
+  ];
   const g = gaps[idx];
-  if (!g) throw new Error(`layoutCapabilityMatrix: oracle ${idx} 의 gap 파싱 실패`);
+  if (!g)
+    throw new Error(`layoutCapabilityMatrix: oracle ${idx} 의 gap 파싱 실패`);
   return { dx: +g[1], dy: +g[2], dw: +g[3], dh: +g[4] };
 }
 
@@ -92,7 +98,10 @@ function render(rows) {
   ];
   for (const r of rows) {
     const gaps = r.oracles
-      .map((o) => `\`${o.caseId}\` dx ${o.gap.dx} · dy ${o.gap.dy} · dw ${o.gap.dw} · dh ${o.gap.dh}`)
+      .map(
+        (o) =>
+          `\`${o.caseId}\` dx ${o.gap.dx} · dy ${o.gap.dy} · dw ${o.gap.dw} · dh ${o.gap.dh}`,
+      )
       .join("<br>");
     lines.push(
       `| ${r.id} | \`${cell(r.property)}\` | ${cell(r.value)} | ${r.engineSupport} | ${r.policy} | ${cell(r.behavior)} | ${gaps} | ${cell(r.followUp)} |`,
@@ -122,7 +131,12 @@ if (b === -1 || e === -1) {
   console.error(`[engine-matrix] ${DOC} 에 ${BEGIN} / ${END} 마커가 없다.`);
   process.exit(1);
 }
-const next = doc.slice(0, b) + block + doc.slice(e + END.length);
+const nextRaw = doc.slice(0, b) + block + doc.slice(e + END.length);
+const prettierConfig = (await resolveConfig(DOC)) ?? {};
+const next = await format(nextRaw, {
+  ...prettierConfig,
+  filepath: DOC,
+});
 
 if (process.argv.includes("--check")) {
   if (next !== doc) {

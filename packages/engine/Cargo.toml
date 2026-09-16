@@ -4,7 +4,7 @@
 # 레이아웃을 CSS 명세 기반으로 자체 구현하여 외부 라이브러리 래핑을 제거한다.
 # taffy dependency 부재가 본 crate 의 존재 이유 — 추가 금지.
 [package]
-name = "composition-engine"
+name = "engine"
 version = "0.1.0"
 edition = "2021"
 

@@ -2,11 +2,11 @@
 
 ## Status
 
-Implemented — 2026-09-07 (Proposed 2026-09-07 · 리뷰 round 1 승인 · Phase 0~3 / G0~G5 당일 종결)
+Implemented — 2026-09-07 (Proposed 2026-09-07 · 리뷰 round 1 승인 · Phase 0~~3 / G0~~G5 당일 종결)
 
 ## Context
 
-**Domain: D3 (시각 스타일).** Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 catalog SSOT 의 대등 consumer 다 (ADR-063 · ADR-142). Preview 는 실제 Chrome 이 배치하므로, 자체 레이아웃 엔진 (`packages/composition-engine`, ADR-916) 이 CSS 명세와 어긋나면 그 자체가 **대칭 위반**이다. D1/D2 무관 — DOM 구조·props 는 건드리지 않는다.
+**Domain: D3 (시각 스타일).** Builder(Skia) 와 Preview/Publish(DOM+CSS) 는 catalog SSOT 의 대등 consumer 다 (ADR-063 · ADR-142). Preview 는 실제 Chrome 이 배치하므로, 자체 레이아웃 엔진 (`packages/engine`, ADR-916) 이 CSS 명세와 어긋나면 그 자체가 **대칭 위반**이다. D1/D2 무관 — DOM 구조·props 는 건드리지 않는다.
 
 Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지의 변경 37건과 대조하고 Chrome 차등 하니스로 실측했다 ([TAFFY_UPSTREAM_DELTA_2026-09.md](../../explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md) §2 — 24 케이스 중 19 어긋남). 그중 production 에 도달하면서 격차가 큰 항목이 넷이고, A 묶음 (③ absolute clamp · ⑤ 빈 상자 aspect) 은 `0b1cecb4a` 로 닫았다. 본 ADR 은 남은 세 항목이다.
 
@@ -126,7 +126,7 @@ Taffy 0.10.0 을 참조해 구현한 엔진을 Taffy 0.14.0 (2026-08-24) 까지�
 | G1   | Phase 1 종료   | F5 · B1d · B6c · W3 · W4 (multi-line wrap, 분배 라인 기준) GREEN + 대조군 (align-self start · auto margin · auto 부모 · grid align start) GREEN + 원복 시 5건만 RED · `percentSize` `basicAxis*` `flexSweep` `crossAxisOverflow` 회귀 0 | 대조군 RED = 가짜 확정 → 채널을 stretch item 한정으로 좁힘, 재측정              |
 | G2   | Phase 2 종료   | G4 · G12 · G10 · G11 · 10,000 clamp GREEN + 원복 RED (타입별 diff) · grid 회귀 8 스위트 0 · 기존 실패 2건 분리 기록                                                                                                                     | 암묵 트랙 생성을 명시 배치 축에만 한정하고 auto-columns 순환은 후속 phase 로    |
 | G3   | Phase 2 종료   | `cargo bench tree_solve` p50 ≤ baseline +5% (같은 머신·조건) · `perf:baseline frame` 600 요소 편집 p95 악화 없음                                                                                                                        | cross 재-solve 를 "자손에 `%` 높이가 있는 item" 으로 게이트 (measure 캐시 활용) |
-| G4   | Implemented 전 | live 3 시나리오 (`height:100%` 자식 · span 초과 grid · Track 1종) — Chrome MCP 또는 사용자 confirm, `### Live Exercise` 기재 — **3/3 기재 + frame lane (2026-09-07) → 통과**                                                              | 승격 보류                                                                       |
+| G4   | Implemented 전 | live 3 시나리오 (`height:100%` 자식 · span 초과 grid · Track 1종) — Chrome MCP 또는 사용자 confirm, `### Live Exercise` 기재 — **3/3 기재 + frame lane (2026-09-07) → 통과**                                                            | 승격 보류                                                                       |
 | G5   | Implemented 전 | ledger §백분율 개정 + §25 · 색인 13/25 · CHANGELOG · 대조 문서 §4 ✅ · preset 주석 정정                                                                                                                                                 | Stop hook block (README/CHANGELOG/Live Exercise)                                |
 
 ### Live Exercise

@@ -3,13 +3,13 @@
 ## 범위
 
 Phase 0는 현재 whole-tree 경계와 targeted publication의 negative contract를
-변경 전 기준으로 고정한다. 호출부 방문 비용과 composition-engine 내부 skip walk를
+변경 전 기준으로 고정한다. 호출부 방문 비용과 engine 내부 skip walk를
 같은 수치로 합산하지 않는다.
 
 ## 재현 명령
 
 ```bash
-cargo test --manifest-path packages/composition-engine/Cargo.toml \
+cargo test --manifest-path packages/engine/Cargo.toml \
   adr188_g0_engine_skip_walk_baseline -- --nocapture
 pnpm -F @composition/builder exec vitest run \
   src/builder/presentation/skiaEditorPresentationBridge.test.ts \

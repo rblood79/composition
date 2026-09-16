@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type CaseNode,
   type ParityCase,
@@ -85,7 +85,7 @@ const E13_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 3 — E13 span-aware placement 엔진↔CSS 정합 (G3)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E13_CASES)("$name", (c) => {
@@ -146,7 +146,7 @@ const E12_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 3 — E12 track alignment 엔진↔CSS 정합 (G3)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E12_CASES)("$name", (c) => {
@@ -180,7 +180,7 @@ const E14_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 3 — E14 auto-flow/track 엔진↔CSS 정합 (G3)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E14_CASES)("$name", (c) => {
@@ -226,7 +226,7 @@ const E2_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 3 — E2 per-item align 엔진↔CSS 정합 (G3, 3-b)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E2_CASES)("$name", (c) => {

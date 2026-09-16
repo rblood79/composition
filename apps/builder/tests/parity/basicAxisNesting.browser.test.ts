@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { KNOWN_NESTING, KNOWN_NESTING_PIPELINE } from "./basicAxis.known";
 import {
@@ -135,7 +135,7 @@ function nestingCases(): ParityCase[] {
 
 describe("ADR-170 부분 격자 3 — 중첩 전파", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it("조부×중간display×중간크기×leaf크기 36 조합 — 발산 집합 고정", () => {

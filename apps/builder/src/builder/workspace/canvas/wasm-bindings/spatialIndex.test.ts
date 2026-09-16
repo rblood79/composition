@@ -55,8 +55,8 @@ const { wasmMock } = vi.hoisted(() => {
   return { wasmMock: { SpatialIndex: FakeSpatialIndex } };
 });
 
-vi.mock("./compositionEngineWasm", () => ({
-  getCompositionEngineWasm: () => wasmMock,
+vi.mock("./engineWasm", () => ({
+  getEngineWasm: () => wasmMock,
 }));
 
 import {

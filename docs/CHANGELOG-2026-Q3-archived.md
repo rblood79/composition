@@ -3315,7 +3315,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 30일 fix 집계 engine 34·skia 33건의 공통 역추적이 "추측 + printf + 재빌드" 반복 — `.claude/rules/layout-engine.md` 의 "~로 진단 금지" 오진 이력에서 이벤트 목록을 역산해, 문서 방어를 실행 시점 판별로 이동 (예: 새로고침-정상 = AvailChanged 캐시 서명 / 무관 형제 성장 = HIT / justify-content no-op = avail "미결정" 명명)
   - off 시 판정 지점당 `Option` 분기 1회 — G1 벤치 게이트 PASS (최대 +1.57% ≤ 2%, 쌍대 비율·A/A 대조군·순서 회전 프로토콜). 배치 프로토콜 (`build_tree_batch`/binary_protocol) 무변경 — 별도 조회 API
   - 게이트는 살아 있는 트리에 켠다 (1회차 호출 = 게이트 켬 → 재현 동작 → 2회차 = 시퀀스 판독) — fresh 재계산이면 캐시 계열 오진이 사각. TS 측정 스칼라는 `[TS]` prefix 별도 줄 병기 (엔진 판정 아님)
-  - 위치: `packages/composition-engine/src/{trace,tree,flex,wasm}.rs`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/{compositionEngineWasm,compositionEngine,layoutBridge}.ts`, `layout/engines/{persistentTaffyTree,layoutExplain,fullTreeLayout}.ts`
+  - 위치: `packages/engine/src/{trace,tree,flex,wasm}.rs`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/{engineWasm,engine,layoutBridge}.ts`, `layout/engines/{persistentTaffyTree,layoutExplain,fullTreeLayout}.ts`
 
 ## [Architecture — PixiJS Spec 계약 제거] - 2026-08-15
 
@@ -4114,7 +4114,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 ### Verification
 
-- `cargo test` (`packages/composition-engine`) — 320 unit, 15 golden, 11 tree golden PASS
+- `cargo test` (`packages/engine`) — 320 unit, 15 golden, 11 tree golden PASS
 - `pnpm wasm:build:engine` PASS
 - Builder browser: 현재 Home의 absolute Frame 선택 크기 `202 × 74` 확인
 
@@ -4211,7 +4211,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 증상이 **편집한 요소가 아니라 형제/무관 요소**에 나타나고(편집 대상은 dirty 라 skip 되지 않음), padding 이 0 인 요소는 무증상(Form 168 고정)이라 컬렉션 컴포넌트 고유 결함처럼 보였다
   - 함께 정정: 최초 로드 값에도 이미 1회분이 섞여 있었다 — GridListItem `94 → 68`, iconButton `40 → 30` (둘 다 CSS 계산값과 일치)
   - 수정: `TreeNode::last_solved` 에 **반환값**을 따로 저장하고 skip 이 그것을 돌려준다. 측정 패스 snapshot/restore 도 3종 → 4종으로 확장
-  - 위치: `packages/composition-engine/src/tree.rs` · 회귀 감시 `incremental_skip_is_idempotent_for_padded_auto_container`
+  - 위치: `packages/engine/src/tree.rs` · 회귀 감시 `incremental_skip_is_idempotent_for_padded_auto_container`
 
 ## [엔진 기본 축 전수 정합 — ADR-170 격자 2,702 조합 발산 0] - 2026-07-28
 
@@ -4223,7 +4223,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 키워드 폭이 부모 intake 의 `CONTENT` 센티넬로만 처리되어, 실제로 소비된 값이 일반 solve 의 **content bounding box** — auto 자식이 stretch 된 폭까지 포함된 값이었다
   - **Why**: 확정 폭 자식은 min==max==bbox 라 **우연히** 정합이었고, 측정 스칼라 leaf 에서만 stretch 폭이 bbox 를 밀어 올렸다 (`width:min-content` 상자가 부모 폭 전체가 됨 — Chrome 50 / 엔진 300). 대조군 없이 보면 "엔진이 키워드를 무시한다" 로 잘못 귀속된다
   - 수정: `solve_node` 가 `measure_intrinsic_width` 로 해소해 definite 로 dispatch (CSS-SIZING-3 §5). 측정 패스 안에서는 재진입 대신 키워드가 요구하는 모드로 센티넬 교체 (§5.2)
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
 - **`min-width`/`max-width` 로 정해진 폭이 자식 배치에 반영되지 않던 문제** (군집 A, 339건):
   - clamp 가 부모 intake 에만 걸려 **상자만 clamp 되고 자식들은 clamp 이전 폭 기준**으로 배치됐다 (`w=120px+minW200`: 상자 200 / 자식 120 · `w=auto+maxW60`: 상자 60 / 자식 300)
   - **Why**: used size 는 clamp **뒤** 값이고 그것이 내부 배치·파생의 입력이다 (CSS-SIZING-3 §5.1). 기존 규칙이 flex main/cross + grid block 3축만 덮어 인라인 축이 비어 있었다
@@ -4262,12 +4262,12 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 실측 발산 (상자 폭 120 확정): `width:50%` → Chrome 60 / 구 엔진 120 · `width:150%` → 180(넘침) / 120 · `marginLeft:10%` → x=147·w=108 / x=135·w=120 · auto 폭 짧은 형제 → 120(stretch) / 40
   - 수정: `solve_block` / `solve_flex` / `solve_grid` 말미에 확정 폭으로 **1회 재진입**. 컨테이너 상자는 1차 pass 의 intrinsic 크기를 유지한다 (자식이 더 커지면 CSS 도 넘치게 둔다)
   - grid 는 트랙을 **얼려서** 넘긴다 — 원본 토큰으로 다시 세우면 `fr` 이 확정 폭을 나눠 가져 `1fr 1fr`/min-content 가 Chrome 40·30 대신 35·35 가 된다
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
 - **명시 열이 없는 grid 의 폭이 미결정 센티넬(-1) 로 보고되던 문제**:
   - `grid-template-columns` 미지정이면 auto-placement 가 암묵 열을 만들고 그 크기는 `grid-auto-columns`(기본 `auto`)가 정하는데, intrinsic 경로가 "명시 토큰 없음" 으로 그냥 빠져나갔다
   - **Why**: `container_w` 가 미결정 센티넬 그대로 남아 그 값이 컨테이너 폭이 됐다. 행 축은 암묵 트랙을 만들고 있었으므로 열 축만 빠져 있던 비대칭
   - 라이브 실측: `align-items:center` 아래 Toolbar 를 `display:grid` 로 바꾸면 폭 **-1** → 수정 후 **64** (자식 4개가 암묵 1열에 정상 배치)
-  - 위치: `packages/composition-engine/src/tree.rs::solve_grid`
+  - 위치: `packages/engine/src/tree.rs::solve_grid`
 
 ### Architecture
 
@@ -4283,7 +4283,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: Container Align 9칸은 전부 non-stretch `align-items` 라 auto-cross 자식이 **shrink-to-fit** 이 되어 `INDEFINITE_AVAIL(-1)` 을 받는데, 그 상태에서 크기를 만들어 내는 경로 **둘 다** 비어 있었다 — ① 엔진 `solve_block` 이 auto 폭 자식을 센티넬로 stretch 해 폭이 `-1` ② TS `enrichWithIntrinsicSize` 가 `width:%` 텍스트 leaf 에 측정 스칼라를 공급하지 않아 폭 0. 근거는 한 규칙이다: 늘어날 available 이 없으면 intrinsic 기여는 stretch 가 아니라 **content** 이고(CSS-SIZING-3 §5), containing block 이 미결정이면 `%` 는 `auto` 처럼 동작한다(§5.1 순환 백분율)
   - **통로는 ADR-151 B22** — catalog `Text.containerStyles.width = "100%"` 선주입이 키워드도 `auto` 도 아니라 스칼라 게이트에서 탈락했다. stretch 부모에서는 `%` 가 해소되어 스칼라가 소비되지 않으므로 게이트를 넓혀도 기존 경로는 불변
   - ADR-169 Phase 1 이 **같은 처방**을 측정 패스(`-2`/`-3`)에만 걸어 둔 상태였다 — `INDEFINITE_AVAIL(-1)` 로 확대
-  - 위치: `packages/composition-engine/src/tree.rs::solve_block` / `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`needsWidth`)
+  - 위치: `packages/engine/src/tree.rs::solve_block` / `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`needsWidth`)
   - **주의**: Direction 미지정 상태에서 Container Align 을 누르면 `flexDirection` 기본값 `row` 가 함께 쓰여 전 자식이 한 줄로 shrink 한다 — 그건 CSS 대로이고 본 결함과 무관하다
 
 ### Documentation
@@ -4302,7 +4302,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - `row + minHeight:400` 안의 크기 미지정 자식이 Chrome 400 / 엔진 **0** (라인 cross 가 컨테이너 inner cross 로 안 잡혀 `stretch` 가 죽음)
   - `minHeight:400` + `gridTemplateRows: 60px 1fr` 이 Chrome 60/340 / 엔진 **60/60** (`1fr` 행·`align-content`·§12.8 stretch 가 전부 `explicit_h` 게이트)
   - **Why**: 앞선 커밋이 flex **main** 축만 고쳤는데, body 주입을 전 배치 문법으로 넓히려면 나머지 두 축도 같은 규칙이어야 한다. grid 는 트랙 sizing 자체가 definite 여부에 매달려 있어 clamp 된 높이로 `solve_grid` 를 **재진입**한다(2회로 종료, 재진입 전 자식 subtree dirty 복구)
-  - 위치: `packages/composition-engine/src/tree.rs::solve_flex` (3.7) / `::solve_grid`
+  - 위치: `packages/engine/src/tree.rs::solve_flex` (3.7) / `::solve_grid`
 
 - **body 뷰포트 주입을 배치 문법과 무관한 한 규칙으로**:
   - 직전 커밋은 세로 flex body 만 `min-height` 로 바꿨다. block/row flex/grid 는 확정 높이가 남아 `height:50%` 자식이 페이지 높이의 절반으로 **해소**됐다 — Chrome 은 0 (body 가 `min-height:100vh` 라 백분율 높이가 안 풀린다)
@@ -4336,7 +4336,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - `column + minHeight:400` 안의 `flexGrow:1` 자식이 Chrome 340 / 엔진 **0**. `column + maxHeight:200` 안의 `height:100px` 자식 3개가 Chrome 67씩 / 엔진 100씩
   - **Why**: 컨테이너의 used main size 는 min/max clamp **뒤**의 값이고 flexible length 는 그 값에 대해 풀리는데, 엔진은 clamp 를 배치 **뒤에만** 걸었다(root `fixup_root_self_size` / flex item off 10·12 / grid `track_contribution` 셋 다 이미 배치된 상자만 조정). 프레임 페이지의 content 슬롯이 `flex:1 1 auto` 라 위 body 수정의 전제 조건이기도 하다
   - auto 주축 item 은 §4.5 floor 가 막아 찌그러지지 않는다 — ListBox 형태(`maxHeight:300` + auto 높이 행)는 clamp 후에도 행 100 유지 + 넘침(실측 DOM·엔진 동형)
-  - 위치: `packages/composition-engine/src/tree.rs::solve_flex` (3.6)
+  - 위치: `packages/engine/src/tree.rs::solve_flex` (3.6)
 
 ### Documentation
 
@@ -4357,7 +4357,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **암묵 행이 명시 트랙과 함께 만들어진다** — 종전엔 `gridTemplateRows` 가 하나라도 있으면 암묵 행을 아예 안 만들어 범위 밖 자식이 크기 0 트랙에 얹혔다(실측 `30px` 1행 + 자식 3개: DOM 70 / 엔진 50, 셋째 자식이 둘째 위에 겹침). 행 목록 = 명시 토큰 ++ `grid-auto-rows` 순환
   - **자식 → 트랙 매핑을 실제 배치로 교체** — `grid::resolve_child_cells` 를 `place_children` 에서 추출해 트랙 sizing 과 공유한다. `i / col_count` 근사는 CSS §8.5 커서 규칙(definite column 이 커서보다 왼쪽이면 다음 행)을 몰라 **측정한 행과 배치된 행이 갈렸다**(실측: definite-column 자식 2개가 CSS 는 2행인데 근사는 1행 → DOM 400 / 근사 200)
   - **Why**: 트랙 extent 만 고치면 `1fr`/`%` 의 우연한 정합이 깨지고, 배치 매핑을 근사로 두면 측정 대상 자체가 틀린다 — 셋이 한 규칙의 서로 다른 층이라 함께 반영해야 한다
-  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` 행 트랙 sizing 통합 + `final_h`), `packages/composition-engine/src/grid.rs` (`resolve_child_cells` / `resolve_cells_from_intents` 추출)
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid` 행 트랙 sizing 통합 + `final_h`), `packages/engine/src/grid.rs` (`resolve_child_cells` / `resolve_cells_from_intents` 추출)
   - 검증: Chrome 대조 fixture 신설 `gridContainerBlockSize.browser.test.ts` (engine 30 + pipeline 16 + 잔존 1) / parity 837건 green / Rust 344건 green / builder unit 3012건 green / type-check PASS. 민감도 — 트랙 extent 되돌림 25 red, 미결정 축 기여 해소 무력화 130 red, 암묵 행 생성 무력화 4 red, 배치 매핑 근사 복원 6 red
   - 라이브 확인: 실행 중인 빌더가 로드한 WASM 으로 13형태(트랙>내용 / 자식 넘침 / 빈 트랙 / rowGap / padding / 자식 margin / `1fr` / `50%` / `minmax(auto,60px)` / 암묵 행 / `gridAutoRows` / definite column 역순 / flow:column)를 Chrome 실측과 대조해 전건 일치
   - 잔존: 자식이 **없는** 그리드는 트랙을 세우지 않는다 — `solve_node` 가 in-flow 자식 0 이면 leaf 로 조기 반환한다(실측 `30px 40px` → DOM 70 / 엔진 0). 거처가 트랙 sizing 이 아니라 dispatch
@@ -4375,7 +4375,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **인라인 축의 stretch-fit 도 definite** 로 판정 — block-level `width:auto` 그리드가 §12.8 stretch 대상이 된다(`gridItemBox` 구 잔존 ② 해소). 블록 축은 그대로 — `height:auto` 는 진짜 미결정
   - **TS 선해석 제거** — `enrichWithIntrinsicSize` 가 grid 컨테이너의 intrinsic 키워드를 `calculateContentWidth` 로 미리 풀어 주입하고 있었다. 그 함수는 트랙을 몰라 자식 폭 합 근사를 낸다(실측 자식 120·60 / `auto auto` → DOM 180, 주입값 80)
   - **Why**: 재개 조건이 "§12 track sizing 의 min/max-content 기여 산출(§12.7.1 포함)" 로 문서화돼 있었고, 그 선행 단계가 같은 날의 §12.5/§12.6 작업으로 섰다. 가드와 `subtree_has_grid` 헬퍼는 삭제
-  - 위치: `packages/composition-engine/src/tree.rs` (`grid_intrinsic_track_sizes` 신규 + `solve_grid` 의 `inline_intrinsic` 분기 + `measure_intrinsic_width` 가드 제거), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+  - 위치: `packages/engine/src/tree.rs` (`grid_intrinsic_track_sizes` 신규 + `solve_grid` 의 `inline_intrinsic` 분기 + `measure_intrinsic_width` 가드 제거), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
   - 검증: Chrome 대조 fixture 신설 `gridContainerIntrinsic.browser.test.ts` (engine 키워드 47 + flex item 11 + 규칙 2 + 잔존 1, pipeline 6) / `containerIntrinsic` I·J 4 leg 이 이연 스냅샷 → **발산 0** 승격 / `gridItemBox` 잔존 ② → 정합 4종 승격 / parity 790건 green / Rust 344건 green / builder unit 3012건 green / type-check PASS. 민감도 — intrinsic 경로 차단 5 red, §12.7.1 제거 25 red, 트랙 extent → 셀 bbox 4 red, stretch-fit 게이트 축소 1 red, TS 선해석 복원 6 red
   - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출 12형태(키워드 max/min × fr·auto·minmax·gap·빈 트랙, flex item 3종)가 Chrome 실측과 일치
   - 잔존: `%` 트랙의 **내부 배분** — 컨테이너 크기는 맞지만 CSS 는 크기 확정 후 `%` 를 다시 풀어 남은 공간을 재분배한다(`50% auto` / max-content → DOM 90·90, 엔진 120·60). 2-pass 트랙 sizing 이 필요. catalog·앱 소스에 `%` grid 트랙 0건
@@ -4387,7 +4387,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - **`gridTemplateRows` 미명시 그리드에서 `grid-auto-rows` 가 통째로 무시되던 문제**:
   - 암묵 행을 자식 intrinsic 으로만 재서 `{n}px` 로 박았고, 명시한 `grid-auto-rows` 는 `grid_layout` 에 넘어가도 이미 치환된 뒤라 읽히지 않았다 (실측 `gridAutoRows:["30px"]` → DOM 30 / 엔진 20)
   - 명시 트랙과 **같은 해소기**(CSS-GRID-1 §12.5 content 기여)를 태우도록 통일 — 측정값이 그 트랙의 기여이므로 `30px` / `min-content` / `minmax(auto,60px)` 가 한 규칙으로 처리되고, 값이 여러 개면 순환한다. 고정 크기면 `auto` 가 아니라 §12.8 stretch 대상에서도 자동으로 빠진다
-  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` 의 implicit rows 분기)
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid` 의 implicit rows 분기)
   - 검증: `gridAutoTrackStretch.browser.test.ts` 잔존 스냅샷 → 정합 케이스 5종으로 승격 / parity 721건 green / Rust 344건 green / type-check PASS. 민감도 — 해소기를 빼면 4 red
   - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출 6형태(미지정 auto·`30px`·`60px`·`min-content`·`minmax(auto,60px)`·순환)가 Chrome 실측과 일치
 
@@ -4399,7 +4399,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - stretch 는 "아이템의 그 축 크기가 **`auto`**" 일 때만 적용된다. 키워드는 auto 가 아니므로 대상이 아닌데, `place_grid_axis` 의 `explicit` 판정이 `resolve_self_size` 결과(`> 0.0`) 하나였다 — 그 함수는 키워드를 길이로 풀 수 없어 **0** 을 돌려주므로 미설정과 구분되지 않았다
   - 실측(트랙 150, 자식 min-content 40 / max-content 120): `fit-content` DOM 120 / 엔진 150, `min-content` 40 / 150, `max-content` 120 / 150. **`auto` 는 종전에도 정합**(150)이라 어긋난 것은 키워드 축 하나
   - **Why**: 같은 자식이 flex 부모에서는 120·40 으로 정상이었다 — 이 비대칭이 진단 신호였다. 명시 px(`width:40px`)는 이미 존중받고 있었으니 "확정 크기" 개념이 px 에만 걸려 있었던 셈
-  - 위치: `packages/composition-engine/src/tree.rs` (`size_is_intrinsic_keyword` 신규 + `solve_grid` 의 `explicit` 판정)
+  - 위치: `packages/engine/src/tree.rs` (`size_is_intrinsic_keyword` 신규 + `solve_grid` 의 `explicit` 판정)
   - 검증: `gridTrackContribution.browser.test.ts` I 그룹 신설(키워드 4 × 부모 3 = 12) / parity 717건 green / Rust 344건 green / type-check PASS. 민감도 — 키워드 OR 제거 시 7 red
   - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출 12형태가 Chrome 실측과 일치
 
@@ -4433,7 +4433,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **§6.6 자동 최소 크기 clamp** 신규: "고정 max 트랙만 span 하는" 아이템의 content-based minimum 은 그 상한으로 잘린다. 단 **아이템의 선호 크기가 `auto` 처럼 동작할 때만** — 실측(트랙 `minmax(auto,20px)`, 내용 min 40) `width:auto`→20 / `width:90px`→90 / `min-width:70px`→70 / `width:50%`→20. 트랙 쪽도 min sizing 이 `auto` 일 때만이다(`minmax(min-content,20px)`→40)
   - **`minmax()` 안의 `%`** 가 `1fr` 로 떨어지던 문제: `minmax(auto,10%)` 가 여유를 전부 먹었다 (DOM 30 / 엔진 200)
   - **Why**: 자식을 아는 층은 `tree.rs` 이고 `grid.rs` 는 확정된 트랙만 sizing 한다. 그래서 content 함수 해소를 tree 층에 두고 `grid_layout` 의 wasm 시그니처는 그대로 뒀다. 인라인 축 기여는 ADR-169 의 `measure_intrinsic_width` 를 그대로 재사용하고, 블록 축은 높이가 내용 크기 하나뿐이라 `(h, h)` 를 공급해 종전 동작을 보존한다
-  - 위치: `packages/composition-engine/src/tree.rs` (`SizingFn`/`split_track_sizing`/`resolve_track_with_contribution`/`clamp_auto_min_contribution`/`col_contribution` 신규 + `solve_grid` 측정 블록 재작성), `packages/composition-engine/src/grid.rs` (`parse_minmax` % 해석, `tokenize_template` 공개)
+  - 위치: `packages/engine/src/tree.rs` (`SizingFn`/`split_track_sizing`/`resolve_track_with_contribution`/`clamp_auto_min_contribution`/`col_contribution` 신규 + `solve_grid` 측정 블록 재작성), `packages/engine/src/grid.rs` (`parse_minmax` % 해석, `tokenize_template` 공개)
   - 검증: Chrome 대조 fixture 신설 `apps/builder/tests/parity/gridTrackContribution.browser.test.ts` (engine 38 + row 7 + 규칙 요약 2 + pipeline 대조 2 + 잔존 1) / parity 전체 693건 green / Rust 344건 green / type-check PASS. 민감도 — min·max 기여를 한 값으로 합치면 14 red, §6.6 clamp 무력화 2 red, clamp 의 auto-min 게이트 제거 1 red, `minmax` % 해석 제거 1 red
   - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출로 11개 형태(키워드 3종·§6.6 clamp 비대칭 3종·`%` 상한·여유 3구간·catalog `1fr auto`)가 Chrome 실측과 일치. catalog 의 content 기반 트랙은 `1fr auto` 4곳(ProgressBar/Meter/Slider)뿐이고 종전과 같은 값에 수렴(`1fr auto`/320 → 180·120)
   - 잔존: content 기반 트랙 안의 **텍스트 leaf** 가 빌더 파이프라인에서 폭 0. 엔진은 기여를 소비할 준비가 됐지만 `enrichWithIntrinsicSize` 의 스칼라 주입이 flex 자식으로 한정돼 grid 자식에 공급되지 않는다 (본 변경 이전부터 동일 — baseline 실측 확인)
@@ -4448,7 +4448,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 분배는 균등 + 상한 도달 시 freeze + 남은 몫 재분배. 전원이 상한에 닿으면 남는 공간은 그대로 남는다 (`auto` 트랙이 없으면 §12.8 대상도 없음)
   - **정렬과 무관하게 항상 돈다** — `justify-content:start` 여도 트랙은 상한까지 자란 뒤 트랙셋이 정렬된다. `auto` 트랙 stretch(§12.8)가 `normal`/`stretch` 에서만 도는 것과 다른 점
   - `minmax(auto, 80px)` 이 0 으로 붕괴하던 것도 해소 (base 0 → 상한까지 성장)
-  - 위치: `packages/composition-engine/src/grid.rs` (`maximize_tracks` 신규 + `resolve_grid_tracks` 단계 재정렬)
+  - 위치: `packages/engine/src/grid.rs` (`maximize_tracks` 신규 + `resolve_grid_tracks` 단계 재정렬)
   - 검증: Chrome 대조 fixture 신설 `apps/builder/tests/parity/gridMinmaxTracks.browser.test.ts` (46 정합 + 합-초과 회귀 + 잔존 1) / parity 전체 648건 green / Rust 344건 green. 민감도 — §12.6 무력화 43 red
   - 라이브 확인: 실행 중인 빌더의 WASM 직접 호출로 9개 형태(상한 성장·내용 초과·균등·freeze 재분배·3트랙·`jc:start`·gap·합-초과 회귀)가 Chrome 실측과 일치. catalog 및 앱 소스에 `minmax(` 사용 0건이라 기존 문서 영향 없음
   - 잔존: 트랙의 **content 기여** 미측정 — `minmax(auto, px)` 의 base 가 0 이라 내용이 상한을 넘으면 어긋난다(내용 120 → DOM 120 / 엔진 80). `min-content`/`max-content`/`fit-content()` 트랙 키워드도 같은 뿌리로 미지원(→ `auto` 폴백). ADR-169 grid intrinsic 이연의 재개 조건과 동일 축
@@ -4462,7 +4462,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: `auto` 트랙 측정이 "내용 크기 = 최종 크기" 로 끝나 있었다. CSS 에서 내용 크기는 **하한**이고, 남는 공간이 있으면 거기서 더 자란다. 세로축도 같은 뿌리 — 높이 200 그리드의 20·40 행이 그대로 쌓여 아래 130 이 빈 채로 남았다 (CSS 는 95·105)
   - 정렬을 `start`/`center`/`end`/`space-*` 로 지정하면 종전대로 트랙은 내용 크기를 유지하고 트랙셋 전체가 정렬된다. `fr` 트랙이 함께 있으면 `fr` 이 여유를 먼저 가져가므로 `auto` 는 내용 크기 그대로다. 넘칠 때는 아무것도 하지 않는다
   - **적용 범위를 좁힌 지점**: 컨테이너 축이 **명시 크기**일 때만 적용한다. block-level `width:auto` 그리드는 CSS 상 크기가 확정이지만 엔진이 shrink-to-fit 과 구분하지 못하며, 같은 자리에서 `1fr` 이 이미 어긋나 있다(flex 안 auto-width 그리드에서 DOM 80 vs 엔진 400) — `auto` 와 무관한 별개 축이라 함께 고치지 않고 스냅샷으로 분리해 고정
-  - 위치: `packages/composition-engine/src/tree.rs` (`stretch_auto_tracks` + `solve_grid` 측정 직후 배선)
+  - 위치: `packages/engine/src/tree.rs` (`stretch_auto_tracks` + `solve_grid` 측정 직후 배선)
   - 검증: Chrome 대조 fixture 신설 `apps/builder/tests/parity/gridAutoTrackStretch.browser.test.ts` (61 정합 + 규칙 요약 + 잔존 2) / 기존 grid 잔존 스냅샷 2건이 정합 케이스로 승격 (`gridItemBox` `gridAlignContent`) / parity 전체 600건 green / Rust 344건 green. 민감도 — stretch 무력화 35 red, 정렬 게이트 제거 31 red, 확정-크기 게이트 완화 5 red
   - 라이브 확인: 실행 중인 빌더가 로드한 WASM 을 직접 호출해 10개 형태(기본·start·center·`auto 100px`·`auto 1fr`·넘침·gap·세로 3종)가 Chrome 실측과 일치함을 확인. 현재 문서는 grid 컨테이너 0개이고 카탈로그 grid 4곳(ProgressBar/Slider)이 전부 `1fr auto` + 높이 auto 라 no-op — ProgressBar 내부 기하 수정 전후 동일
   - 잔존 2건 (같은 fixture 스냅샷, 둘 다 본 변경 이전부터): `minmax(px,px)` 가 growth limit 까지 자라지 않음(§12.6 — §12.8 보다 앞 단계) / 암묵 트랙이 `grid-auto-rows` 를 무시하고 자식 내용으로만 측정됨
@@ -4491,7 +4491,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 수정: 두 축 대칭 단일 함수 `place_grid_axis` 로 통합 — 축마다 따로 두면 한쪽에만 규칙이 붙는다(이번 결함의 원인). 넘칠 때 위치 정렬이 음수 offset 인 것도 flex 축과 동일 규칙으로 정렬
   - **영향**: ProgressBar/Meter/Slider 계열 grid 컴포넌트의 라벨/값이 트랙 폭으로 늘어나던 것이 CSS 대로 자기 폭을 유지한다 (Preview DOM 과의 D3 대칭 회복)
   - 부수 정정: Rust golden 2건이 **자식 폭에 트랙 폭을 기대**하고 있어 결함을 고정하고 있었다 (`grid_mixed_px_and_auto_columns_preserve_px` / `grid_progressbar_realstruct_row_and_col_auto`) — Chrome 실측 근거와 함께 정정. 트랙 폭의 근거는 형제 x 좌표가 대신 증명
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
   - 검증: 신규 `apps/builder/tests/parity/gridItemBox.browser.test.ts` 113건 (Chrome 실측 대조 2 leg). 민감도 — explicit 104 red / margin 14 / min·max 10 / 넘침 6. 라이브 빌더 WASM 직접 호출로 6 케이스 + ProgressBar 실구조(60/30/320) 확인
   - 잔존 3건 (같은 fixture 스냅샷 고정): 내용 없는 auto-width 자식의 shrink-to-fit · `auto` 트랙 여유 균등 분배 · **block-level** `justify-self` 미지원
   - 파생: `containerIntrinsic.browser.test.ts` I/J 스냅샷에서 자식 폭 항목이 빠졌다 (grid item 이 명시 width 를 유지하게 되어 해소) — 남은 항목은 전부 트랙/컨테이너 폭이라 ADR-169 grid 이연 그 자체
@@ -4505,7 +4505,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 엔진은 reverse 를 **정방향 배치 + 기하 반사**로 구현하는데 (`tree.rs` 3.9 — 커널은 reverse 를 모른다), 반사는 좌표를 뒤집을 뿐 margin 이 아이템의 **어느 쪽에 붙는지**는 바꾸지 못한다. `row-reverse` 의 main-start 는 오른쪽이라 main-start margin = physical `margin-right` 인데 커널은 `margin-left` 를 main-start 로 쓰고 있었다
   - 수정: `write_flex_item` 이 반전 축의 물리 margin 쌍을 맞바꿔 커널에 정방향 논리로 전달 (`MarginAxisReverse` — 값과 auto 마스크 동시). 컨테이너 수준 정렬·padding 은 종전에도 정합이라 반사 자체는 무변경
   - auto margin 과 **무관한 별개 결함** (고정 margin 에서도 재현) — 위 auto margin sweep 중 발견
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
   - 검증: 신규 `apps/builder/tests/parity/reverseMargin.browser.test.ts` 44건 (고정 12 · cross 대조 2 · auto×reverse 4 · wrap-reverse 6 · 대조군 2, 2 leg) + Rust `reverse_axis_swaps_margin_start_end`. 민감도 — 스왑 되돌리면 18/44 red (autoMargin 79 은 green 유지 = 두 결함 분리 확증). 라이브 빌더 WASM 직접 호출로 260/200 · 260/0 · 160/100 확인
 
 ## [`margin: auto` 가 캔버스에서 여유 공간을 흡수하지 않던 문제] - 2026-07-27
@@ -4516,7 +4516,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 증상 3종 — (a) cross 축(`marginTop:auto` 등)은 통째로 미구현이라 `align-items` 값이 그대로 이겼다 (실측 y=0, CSS 160). (b) cross auto margin 이 있어도 `stretch` 가 아이템을 라인 높이로 늘렸다 (CSS 는 내용 크기 유지). (c) `flex-wrap:wrap` 컨테이너는 main 축 흡수조차 일어나지 않았다 (실측 x=100, CSS 150)
   - **Why**: 흡수량은 **그 라인의** 여유와 라인 cross 에 달려 있는데, 구 구현은 라인을 모르는 tree.rs 후처리(step 3.8)가 main 축만 **단일 라인 근사**로 처리했다. 라인을 소유한 flex 커널로 이관하니 세 증상이 한 번에 닫힌다 — 정렬 무효화 규칙(§9.6 step 14 / §8.1)도 축마다 따로 걸 필요가 없어진다
   - `resolve_signed` 가 `auto` 를 0 으로 주어 `margin: 0` 과 구분되지 않으므로, flex 입력에 `margin_auto_mask`(off 20, 물리 4비트) 채널 신설 — 기록·해석이 같은 상수(`flex::MARGIN_AUTO_*`)를 공유
-  - 위치: `packages/composition-engine/src/flex.rs` (`place_line_main_axis` / `place_line_cross_axis` / `parse_item`), `src/tree.rs` (`write_flex_item` off 20 + step 3.8 제거)
+  - 위치: `packages/engine/src/flex.rs` (`place_line_main_axis` / `place_line_cross_axis` / `parse_item`), `src/tree.rs` (`write_flex_item` off 20 + step 3.8 제거)
   - 검증: 신규 `apps/builder/tests/parity/autoMargin.browser.test.ts` 79건 (Chrome 실측 대조, engine·pipeline 2 leg) — 민감도 cross 분기 38 red / main 흡수 20 red. 라이브 빌더의 로드된 WASM 직접 호출로 cross 160 · main 260 확인, Components 페이지 56 노드 좌표 무변동
   - 잔존: grid item 의 auto margin 미구현 — 명시 width 가 트랙 폭으로 stretch 되는 ADR-156 §Residual 이 **먼저** 걸리는 순서까지 같은 fixture 의 스냅샷이 고정
 
@@ -4556,7 +4556,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **게이트가 두 경로에 필요했다** — `%` 를 푸는 ctx 와 **자식 재귀 solve 에 내려주는 available** 양쪽. 한쪽만 막으면 자식이 자기 solve 에서 상속값으로 다시 해소한다(`solve_block` 은 원래 두 곳 다 있었고 `solve_flex` 는 둘 다 없었다). 민감도: ctx 만 되돌리면 8 red, 재귀 available 만 되돌리면 16 red.
   - 폭 축의 조항은 유지 — 지우면 stretch 부모 안의 `width:100%` 손자가 다시 수축한다(2026-07-14 DatePicker). 신규 fixture 가 stretch/shrink-wrap 양쪽을 같이 잠근다.
   - 검증: 신규 parity fixture 76건(block/flex-row/flex-column × 부모높이 definite·auto × 50%·100% × width·height·both + shrink-wrap 회귀 2 × 2 leg). Rust 316 PASS, parity 299 PASS, 빌더 3002 PASS, type-check 신규 위반 0. 라이브 재확인: Components 페이지 56 노드 좌표 무변동(ListBoxItem 84 / ListBox 행 50 / GridListItem 76).
-  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/tests/parity/percentSize.browser.test.ts`
+  - 위치: `packages/engine/src/tree.rs`, `apps/builder/tests/parity/percentSize.browser.test.ts`
 
 ## [CSS 정합 탐색 sweep — 배치 파싱 크래시 + grid align-content] - 2026-07-27
 
@@ -4571,7 +4571,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 여유 공간은 definite block size 에서만 생긴다(CSS-ALIGN-3 §4.4). `solve_grid` 는 `height:auto` 일 때 트랙 sizing 을 위해 **상속 available** 을 컨테이너 높이로 대입하는데, 그 값을 그대로 여유로 봐서 **없는 공간**을 트랙 사이에 나눠 넣었다. 직전 항목의 flex 미결정 main 센티넬과 **같은 병인의 grid 판**.
   - 실측: `align-content:center` → 트랙이 `(600−70)/2 = 265` 아래로 밀리고 컨테이너 높이 `70 → 335`. `space-between` 은 `560 / 600`.
   - 판정은 `explicit_h > 0.0`. 인라인 축(`justify-content`)은 block 레벨 stretch 로 폭이 늘 definite 이라 대상 아님. catalog·factory 에 `alignContent` authoring 이 **0건**이라 현행 컴포넌트에는 무영향 — import/preset 경로의 잠복 결함만 닫는다.
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
 
 ### Infrastructure
 
@@ -4591,7 +4591,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 센티넬 가드는 원래 `resolve_flexible_lengths` / `collect_lines` / main 축 auto margin 흡수에 있었고 `place_line_main_axis` 에만 없었다. 분배 정렬의 `.max(0.0)` 클램프가 **결과적으로** 가려주고 있다가, 직전 커밋에서 위치 정렬의 클램프를 걷어내며(넘침 정렬 정정) 드러났다.
   - 검증: 라이브(사용자 보고 문서) — ListBoxItem 마스터 2개 모두 높이 `45.5 → 84`, 자식 `y=4 / 30 / 56` 으로 행 안에 수렴, 형제 GridListItem 76 무변동. Rust 314 PASS(신규 1 — justify 6종 × 미결정 main), parity 189 PASS(신규 12 — Chrome DOM 대조 6 케이스 × 2 leg), 빌더 3002 PASS.
   - **`flexSweep`(1152 조합)는 이 축을 못 잡는다** — 컨테이너 main 을 항상 확정으로 주기 때문에 결함이 있어도 전부 green(실측). 미결정 main 은 `crossAxisOverflow` fixture 의 `INDEFINITE_MAIN_CASES` 가 유일한 감시자다(엔진을 되돌리면 center/end × 2 leg = 4 red).
-  - 위치: `packages/composition-engine/src/flex.rs`, `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+  - 위치: `packages/engine/src/flex.rs`, `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
 
 ## [프레임을 적용한 페이지가 preview 에 렌더되지 않던 문제] - 2026-07-27
 
@@ -4628,7 +4628,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **분배 정렬(`space-between/around/evenly`)과 `align-content:stretch` 의 클램프는 그대로 뒀다 — 그쪽은 결함이 아니라 정답이다**. Chrome 실측에서 세 분배값 모두 음수 여유에서 start(0) 로 떨어진다 (CSS-ALIGN-3 §4.4 fallback). 한 계열의 규칙을 양쪽에 적용하면 반대쪽이 깨지므로 `free_main`/`free_main_raw`, `cross_free`/`cross_free_raw` 두 값을 분리했다.
   - 검증: Chrome 대조 fixture 를 교차축 13 · main 축 6 · align-content 6 케이스로 확장(각 engine leg + pipeline leg, 총 50) — 수정 전 교차축 4 / main 4 / align-content 4 red. Rust 339건(신규 4 포함) / 브라우저 parity 177 / 빌더 2992 PASS + type-check 회귀 0. 라이브: 실행 중 빌더의 WASM 이 3축 모두 CSS 값(−100 / −200 / −20)을 내는 것, 사용자 문서에서 이 분기에 닿는 컨테이너 0건(기존 화면 무변동) 확인.
   - `flexSweep` 의 종전 주석이 이 영역을 "엔진 0 클램프로 발산" 이라 적어 뒀는데 이제 사실이 아니라 정정했다 — 여전히 sweep 밖(양수 여유만 훑음)이라는 사실만 유효하다.
-  - 위치: `packages/composition-engine/src/flex.rs`, fixture `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+  - 위치: `packages/engine/src/flex.rs`, fixture `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
 
 ## [확정 높이 밴드 안의 auto 자식이 내용만큼 자라던 문제 — flex 교차축] - 2026-07-27
 
@@ -4640,7 +4640,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - `align-items: flex-start` 는 아이템이 자기 크기를 유지하므로 **종전에도 정합**이었다 — 증상이 stretch 에서만 나오던 이유다.
   - **왜 sweep 에 안 걸렸나**: `flexSweep`(384+288 조합)는 definite cross 를 줄 합보다 **크게** 잡는다 — 음수 free space 는 align-content 정합 영역 밖이라 의도적으로 비켜 간 구성이다. 그래서 "라인 cross > 컨테이너 cross" 형태가 한 번도 안 들어갔다. 이 영역은 이제 별도 fixture 소관.
   - 검증: 신규 Chrome 대조 fixture 14건(row/column × stretch·flex-start × 내용 초과/미달 + 컨테이너 auto, engine leg + pipeline leg) — 수정 전 4건 red. 기존 브라우저 parity 141건 / Rust 336건(신규 2건 포함) / 빌더 2992건 전부 PASS. 라이브: 실행 중인 빌더의 WASM 이 같은 트리에서 CSS 값(100)을 내는 것과, 사용자 문서의 현재 요소 중 이 분기에 닿는 것이 0건(= 기존 화면 무변동)임을 함께 확인.
-  - 위치: `packages/composition-engine/src/flex.rs`, fixture `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
+  - 위치: `packages/engine/src/flex.rs`, fixture `apps/builder/tests/parity/crossAxisOverflow.browser.test.ts`, 규칙 `.claude/rules/layout-engine.md`
 
 ## [넘침 표시 chrome 이 프레임 슬롯 너머를 못 보던 문제] - 2026-07-27
 
@@ -4718,14 +4718,14 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 레이아웃 엔진이 flex item 을 **컨테이너의 가용 폭으로 한 번 풀어 보고 그 결과를 그 item 의 고유 폭으로 삼았다.** 그래서 _스스로 폭을 갖지 않고 늘어나기만 하는 내용_(`width:100%`, auto 폭 블록)이 "이 item 은 1920 이 필요하다" 로 오인됐다. 게다가 그 한 값이 flex 기준 크기와 **최소 크기(CSS-FLEXBOX-1 §4.5)** 양쪽에 쓰여, **상한 근사가 하한으로** 작동했다 — 그래서 item 이 available 밑으로 못 내려가고 형제가 부족분을 뒤집어썼다. 세 번째 행처럼 자식이 진짜로 넓으면 DOM 도 똑같이 형제를 붕괴시키므로, 이는 정상 동작이라 건드리지 않았다.
   - 이제 컨테이너 item 은 **엔진이 자기 알고리즘을 측정 모드로 재실행**해 min/max-content 를 산출한다 (Taffy `AvailableSpace::{MinContent,MaxContent}` / Blink `ComputeMinMaxSizes` 와 같은 형태). 텍스트 leaf 는 기존대로 TS 폰트 측정 스칼라를 쓴다 — 경계는 **"폰트 측정은 TS / 구조 집계는 엔진"**.
   - **grid 는 의도적으로 이연**한다. 측정 모드에서 grid 의 `fr`·`auto` 트랙이 0 으로 풀려 grid item 이 통째로 사라지므로(실측 1920 → 0), 측정 자체를 포기하고 이전 경로를 남겼다. 재개 조건은 CSS-GRID-1 §12 track sizing 선행 — `.claude/rules/layout-engine.md` §컨테이너 intrinsic 에 기록.
-  - 위치: `packages/composition-engine/src/tree.rs` (`measure_intrinsic_width` / `solve_flex` / `solve_block`), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
+  - 위치: `packages/engine/src/tree.rs` (`measure_intrinsic_width` / `solve_flex` / `solve_block`), `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`
 
 ### Performance
 
 - **깊게 중첩된 레이아웃의 계산 시간 회귀 차단** — 위 수정이 처음에는 중첩 깊이에 지수적이었다 (깊이 12 기준 47 µs → **36.5 ms**). 원인은 측정 캐시가 아니라(적중률 100%), 정확한 고유 폭이 들어가면서 "분배 후 재배치" 단계가 **매 레벨 발생**해 레벨마다 서브트리를 한 번 더 풀던 것이다.
   - 측정 모드가 자식 컨테이너를 재귀적으로 다시 푸는 대신 **캐시된 값을 소비**하도록 바꾸고, 어차피 결과가 버려지던 **선행 solve 를 제거**해 재배치 단계 하나로 일원화했다.
   - 깊이 1/4/8/12 = **9.1 / 20.0 / 33.7 / 46.0 µs** (전부 도입 전 수치 이하, 깊이당 ≈3.1 µs 선형). 실제 빌더 진입점 기준 깊이 12 가 **26.4 ms → 0.4 ms**.
-  - 위치: `packages/composition-engine/src/tree.rs`, 벤치 `packages/composition-engine/benches/tree_solve.rs`
+  - 위치: `packages/engine/src/tree.rs`, 벤치 `packages/engine/benches/tree_solve.rs`
 
 ### Architecture
 
@@ -4746,7 +4746,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: `solve_grid` 의 auto row/column **intrinsic 측정 pass** 가 자식 서브트리를 **컨테이너 크기**로 solve 하는데, `solve_*` 는 말미에 `dirty=false` 를 찍는다. 이어지는 "셀 크기로 재귀 solve" 가 `subtree_has_dirty == false` 에 걸려 **증분 skip → stale 캐시**를 돌려줬다. 셀 자신은 직후 `bounds` 로 덮어써지므로 **자손만** 어긋나 눈에 잘 띄지 않았다.
   - `solve_flex` 는 같은 함정을 이미 알고 `used_main` 재-solve 전에 `mark_subtree_dirty` 로 되살리고 있었다 — grid 쪽에만 없던 대칭 결함이다. 셀 크기가 측정 available 과 같으면 되살리지 않아 증분 재사용은 보존한다.
   - 검증: Chrome 실측 차등 하니스 5 케이스 추가 (`slotPercentChild.browser.test.ts`) — grid(암묵 auto row / 명시 auto row / 2단 중첩) 3건이 수정 전 FAIL, block 기준선 2건은 전후 PASS. Rust 324 + parity 105 케이스 PASS.
-  - 위치: `packages/composition-engine/src/tree.rs::solve_grid`
+  - 위치: `packages/engine/src/tree.rs::solve_grid`
 
 - 함께 확인한 **범위 밖 발산 2건** (수정하지 않음, 실측만 기록):
   - grid item 의 명시 `width` 가 stretch 에 먹힌다 (`240px 1fr` 두 번째 칸 + `width:700px` → DOM 700 / 엔진 1680). ADR-156 옵션 3-b 의 문서화된 residual.
@@ -4940,7 +4940,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: `tree.rs` 가 `auto` 트랙을 자식 측정값(`solve_node`)으로 치환하는데, 그 값에 자식 자신의 min/max clamp 가 빠져 있었다. 자기 min/max 를 적용하는 경로는 flex item(`flex.rs` 가 프로토콜 off 10/12 로 처리)과 root(`fixup_root_self_size`) 둘뿐이라 grid 트랙 측정만 비어 있었다. 그 결과 **콘텐츠가 없고 `min-height` 만 선언한 자식이 0 으로 측정되어 트랙 전체를 무너뜨렸다** — 대시보드 프리셋의 navigation 밴드가 데스크톱에서 `1920x0` 으로 사라지던 원인. 대조 실험으로 확정: 같은 자리에 `height:60` → 60, `minHeight:60` → 0.
   - 수정: `LayoutTree::track_contribution()` 을 신설해 auto row/column intrinsic 측정 3지점에서 자식의 min/max 로 clamp. `solve_node` 전역은 건드리지 않는다 — 트랙 크기 산정은 CSS 가 기여값을 따로 정의하는 지점이라 국소 적용이 맞고, 전역 변경은 flex/block 경로와 이중 적용될 위험이 있다.
   - **live 실측(1920×1080)** — 대시보드 navigation `1920x0` → `1920x60`, sidebar/content 가 `y=60` 으로 정상 하향. Holy Grail `header 60 / sidebar·content·aside 880 / footer 60`, 3열 레이아웃 `460/920/460`, 대시보드(위젯) `200/1360/280` 전부 정확.
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
   - 회귀 테스트 3종: auto row 가 `min-height` 를 반영 / auto column 이 `min-width` 를 반영 / `max-height` 가 기여값 상한으로 걸림(clamp 양방향)
 
 ## [body 편집 계약 공백 — 페이지·프레임 오소링 컨트롤 복구] - 2026-07-26
@@ -5196,21 +5196,21 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: ADR-164 §6 이 명문화한 잔존 발산 — injected minWidth = 단일줄 측정폭(ceil) ≥ 실제 min-content → 재줄바꿈 케이스에서 CSS 대비 덜 shrink. 폭 축 intrinsic 은 스칼라 2종으로 명세상 완결되므로 콜백 재설계 없이 dormant 센티널 배선만으로 엔진이 소유 가능
   - 경계 규칙화: `layout-engine.md` §TS 잔존 계약 표 재작성 (minWidth 채널 행 → 스칼라 계약 흡수, 2-pass 행 → height-for-width 축소 계약) + `canvas-rendering.md` §3 스칼라 경로 (동일 font 체인 의무)
   - 검증: parity 100 (기존 90 회귀 0 + 신규 `intrinsicSizing.browser.test.ts` 10 — engine 6·pipeline 4, Chrome diff 0) / cargo 321 (신규 leaf 유닛 5) / layout 유닛 299 / bench 회귀 0 + S4·S5 신규 기준치 / live builder exercise (fresh reload 콘솔 0 + layout map 배치 불변)
-  - 위치: `packages/composition-engine/src/{flex,tree}.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,fullTreeLayout,implicitStyles}.ts`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/layoutTypes.ts`, `apps/builder/tests/parity/intrinsicSizing.browser.test.ts`
+  - 위치: `packages/engine/src/{flex,tree}.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{utils,fullTreeLayout,implicitStyles}.ts`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/layoutTypes.ts`, `apps/builder/tests/parity/intrinsicSizing.browser.test.ts`
 
 ## [레이아웃 TS 보정 레이어의 엔진 흡수 — ADR-164 Implemented] - 2026-07-25
 
 ### Architecture
 
 - **automatic minimum size (CSS-FLEXBOX-1 §4.5) 엔진 소속화** (ADR-164 Phase 0~3, Implemented 승격):
-  - composition-engine `flex.rs` 에 content-based minimum floor 구현 — 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = `content_main` (max clamp 동반). 프로토콜 `FLEX_FIELD_COUNT` 18→19 (off 18 = 주축 overflow, `tree.rs::write_flex_item` 기록 — flex 배열은 Rust 내부 구성이라 TS 직렬화 무변경)
+  - engine `flex.rs` 에 content-based minimum floor 구현 — 조건 `명시 min 부재 ∧ item 주축 overflow visible ∧ 주축 크기 auto` → floor = `content_main` (max clamp 동반). 프로토콜 `FLEX_FIELD_COUNT` 18→19 (off 18 = 주축 overflow, `tree.rs::write_flex_item` 기록 — flex 배열은 Rust 내부 구성이라 TS 직렬화 무변경)
   - `fullTreeLayout.ts` Step 5.7 (부모 overflow≠visible 기준 flexShrink:0 전면 주입) 동시 제거. **사용자-가시 변화**: overflow≠visible flex 컨테이너의 자식이 이제 CSS 와 동일하게 content floor 까지 shrink — 의도된 명세 정합화 (신규 parity fixture 로 Chrome 실측 diff 0 확증)
   - **Why**: ADR-916 의 성공 기준이 Taffy 동등성이라 Taffy 시대 TS 보정이 엔진 교체 후에도 상류에 잔존 — dual-run diff 0 방법론은 상류 보정이 가로챈 입력 차원에 구조적으로 blind
   - G2 재정의 (사용자 confirm): `utils.ts` minWidth 동시 주입은 보정이 아니라 **leaf content 제안값 전달 채널**로 재분류·잔존 (엔진은 텍스트 측정 부재로 leaf content 무지 — CanvasKit 측정 oracle 불변)
   - position:absolute 잔여 2건 (containing block 조상 체인 / fixed viewport) 은 실사용 0건 실측 → "의도적 미지원" 명문화 종결 (`tree.rs` doc comment + `layout-engine.md` 신설 절)
   - 경계 규칙화: `layout-engine.md` §"automatic minimum size — 엔진 소속" 교체 + §"TS 잔존 계약" 신설 (엔진 gap 을 TS 보정으로 재차 메우는 침식 차단), `canvas-rendering.md` 금지 패턴 동기 갱신
   - 검증: cargo 316 (신규 floor 유닛 7) / parity 90/90 (신규 `autoMin.browser.test.ts` 8케이스 × engine·pipeline 2 leg) / layout 유닛 299 / bench 회귀 0 / live builder exercise
-  - 위치: `packages/composition-engine/src/{flex,tree}.rs`, `packages/composition-engine/benches/flex_shrink.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,utils}.ts`, `apps/builder/tests/parity/autoMin.browser.test.ts`
+  - 위치: `packages/engine/src/{flex,tree}.rs`, `packages/engine/benches/flex_shrink.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,utils}.ts`, `apps/builder/tests/parity/autoMin.browser.test.ts`
 
 ## [스타일 패널 Box Shadow inset 토글] - 2026-07-25
 
@@ -6000,7 +6000,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 수정: `resolve_self_size` 로 자식 explicit height 감지 → `align==stretch && explicit height` 이면 `start(top)` 정렬 코드로 승격해 explicit height 유지. auto-height 자식은 stretch 로 셀 채움(무회귀).
   - **CSS-incorrect 단언 정정**: 기존 cargo 테스트 2개(`grid_implicit_auto_row_multi_row_max_height`·`grid_mixed_px_and_auto_rows_preserve_px`)가 짧은 명시-height 자식을 셀로 stretch 한다고 단언 → Chrome ground truth(harness `domLeg`: c0 h=30/h=40/h=20)로 반증 후 정정. row 높이(max intrinsic) 자체는 무변경.
   - 라이브 확증: builder grid(200×100) + 자식(height:40) → Skia layout map 자식 `{y:0, h:40}`(셀 100 으로 stretch 안 함). ProgressBar/Meter/Slider 는 explicit height == 셀 → 무회귀.
-  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` 세로 배치 분기), `apps/builder/tests/parity/phase3a-align.browser.test.ts`
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid` 세로 배치 분기), `apps/builder/tests/parity/phase3a-align.browser.test.ts`
   - 잔여: 수평 mirror(justify:stretch 하 explicit-**width** 자식) 는 §Residual(미착수 — grid 에서 드묾).
 
 ## [Grid justify-items/justify-self 가로 배치가 Builder(Skia)에서 무시되던 결함 — ADR-156 §Residual 옵션 3-a] - 2026-07-18
@@ -6012,7 +6012,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: `grid.rs` 셀 커널은 셀 bounds 만 반환하고, `tree.rs::solve_grid` 의 per-child 마감이 세로(align)만 자식 실크기로 재배치하고 가로(justify)는 항상 stretch 였음(옵션 3-b 계약).
   - 수정: `tree.rs::solve_grid` 에 `grid_inline_justify`(=`grid_block_align` 가로 대칭) + `parse_justify_items` 배선 — justify≠stretch 이고 자식이 실제 width(cw>0)를 가지면 셀 안 start/center/end 배치 + 폭 respect. auto-width 자식(cw=0)은 stretch 유지.
   - **JS DFS 제거 불요 확증**: §Residual 은 "JS DFS 가 폭을 트랙 폭으로 강제 → JS DFS 제거로만 해소" 라 했으나, 신설 2-layer 파리티 하니스(`pipelineLeg`)로 explicit-width 자식은 JS DFS 무해(Layer 1 === Layer 2)를 실측 → 엔진 단독 수정으로 양 레이어 정합.
-  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid`/`grid_inline_justify`/`parse_justify_items`), `apps/builder/tests/parity/phase3a.browser.test.ts`
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid`/`grid_inline_justify`/`parse_justify_items`), `apps/builder/tests/parity/phase3a.browser.test.ts`
   - 잔여: intrinsic(shrink-to-fit) 폭 justify + align 세로축 explicit-height respect 는 §Residual(별도 착수).
 
 ## [preview 가 background 탭에서 편집을 반영하지 않던 결함 — ADR-151 잔여 ②] - 2026-07-18
@@ -6026,7 +6026,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 라이브 확증: hidden 탭에서 prop 편집 → `UPDATE_CANONICAL_DOCUMENT` 송신 + Preview DOM 반영 (reload 불필요). 회귀 가드: `scheduleTask.test.ts`(5) + canonical effect source-guard
   - 위치: `apps/builder/src/builder/utils/scheduleTask.ts`, `apps/builder/src/builder/hooks/useIframeMessenger.ts`
 
-## [composition-engine CSS 정합 복구 완결 — ADR-156 Implemented (Phase 6 R7 정적 가드)] - 2026-07-18
+## [engine CSS 정합 복구 완결 — ADR-156 Implemented (Phase 6 R7 정적 가드)] - 2026-07-18
 
 ### Architecture
 
@@ -6043,7 +6043,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - **NodeStyle 정적 필드 계약 가드 신설** (ADR-156 Phase 6, R7):
   - `nodestyle_field_contract_guard` — `NodeStyle` 49필드 **전수 구조분해(`..` 금지)** 로 필드 추가 시 컴파일 RED(`error[E0027]`) + 산술 계약 `소비 47 + 미소비 2 = 선언 49` + 미소비 allowlist `UNCONSUMED_NODESTYLE_FIELDS = [justifySelf, justifyItems]` (§Residual 1:1)
   - **Why**: 「선언 O·소비 X」 축이 breakdown §1-3 문서 표 단독이라 stale 화 — 본 ADR 이 발견한 미소비 9필드가 어떤 가드에도 걸리지 않았다. 이제 필드 추가 시 교차표 갱신을 컴파일러가 강제. Phase 2~5 배선으로 원 미소비 9→2(`justify_self`/`justify_items` = grid 가로축, 옵션 3-b)
-  - 위치: `packages/composition-engine/src/tree.rs` (pub const `NODESTYLE_FIELD_COUNT`/`UNCONSUMED_NODESTYLE_FIELDS` + `#[cfg(test)]` 가드)
+  - 위치: `packages/engine/src/tree.rs` (pub const `NODESTYLE_FIELD_COUNT`/`UNCONSUMED_NODESTYLE_FIELDS` + `#[cfg(test)]` 가드)
 
 ## [margin auto·root 자기 크기·aspect-ratio 가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 5] - 2026-07-18
 
@@ -6059,7 +6059,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - **`aspect-ratio` 미소비 수정** (ADR-156 E15):
   - 증상: 한 축만 명시하고 `aspect-ratio` 로 다른 축을 파생해야 하는데 파생 크기가 전면 소실(예: width 100 + ratio 2 → height 0)
   - **Why**: `aspect_ratio` 필드가 선언만 되고 소비 0곳. `apply_aspect_to_dims` 로 `solve_node`(자기 크기) + `write_block_item`(부모 stretch 차단) 양쪽에서 파생. width 100 + ratio 2 → height 50, height 60 + ratio 3 → width 180
-- 위치: `packages/composition-engine/src/tree.rs`
+- 위치: `packages/engine/src/tree.rs`
 - 검증: Chrome 차등 파리티(`tests/parity/phase5.browser.test.ts`) 9 fixture + 전체 스위트 50 + Rust 303 tests(E4/E5/E15 +6) + type-check 63 무증가. **live(빌더 Skia scene)**: E15 aspect(w100→h50)·E4 block margin auto(x60 중앙) 반영, E5 body 회귀 0(시각 파손 없음) 확인
 
 ## [position(relative offset·absolute 3종)이 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 4.5] - 2026-07-18
@@ -6075,7 +6075,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - ③ `margin:auto` + 양측 inset + 명시 크기 → 잉여 공간 균등 분배(중앙) (기존: 좌상단 고정)
   - **Why**: `place_absolute_children` 이 `left` 우선·단측 역산·static 근사(0)만 처리. 축별 `resolve_abs_axis` 헬퍼로 리팩터해 stretch/static/margin-auto 를 CSS 근사(§10.3.7/§10.6.4)로 구현. static position 은 문서 순서상 선행 in-flow 형제 하단으로 근사
   - 회귀 기준선: `%` inset(ABS-2)은 이미 정합 — 유지 확인
-- 위치: `packages/composition-engine/src/tree.rs`
+- 위치: `packages/engine/src/tree.rs`
 - 검증: Chrome 차등 파리티(`tests/parity/phase4_5.browser.test.ts`) 5 fixture + 전체 스위트 41 + Rust 297 tests(relative/abs +4) + type-check 63 무증가. **live(빌더 Skia scene)**: relative offset(15,30)·absolute stretch(180×60@10,15)·static(y30)·margin-auto(x80) 전부 반영 확인 — position/absolute 경로는 Layer 2 마스킹 없이 Skia 직접 도달(Phase 4 block-height 와 대비)
 
 ## [flow 배치 발산(음수 margin·reverse·부모-자식 상쇄·overflow BFC)가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 4] - 2026-07-18
@@ -6092,7 +6092,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 엔진이 부모에 padding/border/overflow≠visible 이 없을 때 첫 자식 top margin 이 부모와 상쇄돼 밖으로 탈출하는 CSS 규칙(§8.3.1)을 미구현. `solve_block` 이 BFC 차단 요인 판정 후 상쇄를 활성화하고 탈출 margin 을 조상으로 전파하도록 구현. `overflow:hidden/scroll/auto` 는 BFC 로 상쇄를 차단(E17, E3 와 동시 구현)
   - **Why (§Residual)**: 엔진은 정확(파리티 + live 직접 호출 mid.h=20)하나, 빌더가 auto-height block 컨테이너 높이를 JS 로 선계산(`calculateContentHeight`, 마진 상쇄 미구현)해 주입하므로 live Skia 는 아직 상쇄 전 높이를 그린다 → 엔진 변경은 block 경로에서 live-inert(회귀 0). Layer 2(adapter) 후속 과제로 등재
 - **R6 계열**: overflow 편집이 상쇄 재판정 relayout 을 유발하도록 `LAYOUT_STYLE_KEYS` 에 `overflowX`/`overflowY` 등재
-- 위치: `packages/composition-engine/src/{tree.rs,block.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+- 위치: `packages/engine/src/{tree.rs,block.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
 - 검증: Chrome 차등 파리티(`tests/parity/phase4.browser.test.ts`) 8 fixture + 전체 스위트 36 + Rust 293 tests + live(빌더: E7-flex 음수 margin·E8 reverse 3종 Skia 반영 확인, E3/E17 block-height 는 Layer 2 §Residual)
 
 ## [grid 정렬·배치가 Builder(Skia)에서 CSS 와 어긋나던 결함 — ADR-156 Phase 3 (grid 커널, 옵션 3-b)] - 2026-07-18
@@ -6106,7 +6106,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **E2 자식 정렬(세로)**: `align-items`/`align-self` 가 무시돼 자식이 항상 셀 좌상단에 꽉 차게 그려지던 결함. 비-stretch 정렬 시 자식을 셀 세로 여유에서 start/center/end 배치
   - **Why**: 레이아웃 엔진 `grid.rs` 에 정렬 처리가 0줄이었고, `grid-auto-flow`/`gridAutoColumns` 등이 미소비였다. 발산 필드가 페이지 레이아웃 캐시 시그니처(`LAYOUT_STYLE_KEYS`)에 미등재라 해당 편집이 캐시 히트로 무반응이던 계열 결함(R6)도 함께 해소
   - **옵션 3-b 범위**: 엔진은 정렬(위치)만 추가하고 크기는 기존 stretch 를 유지 — `justify-items`(가로 배치·크기)는 별도 폭 보정 로직과의 이중 적용 우려로 후속 판정(§Residual)
-  - 위치: `packages/composition-engine/src/{grid.rs,tree.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+  - 위치: `packages/engine/src/{grid.rs,tree.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
   - 검증: Chrome 차등 파리티(`tests/parity/phase3.browser.test.ts`) 8 fixture + Rust 293 tests + live(빌더 grid: 기본 stretch 셀 채움 회귀 0 / align center 세로 중앙 / span 2행 배치)
 
 ## [정렬 피커·percent 높이가 Builder(Skia)에서 동작하지 않던 결함 — ADR-156 Phase 2 (E1 align-self / E6 percent height)] - 2026-07-18
@@ -6117,12 +6117,12 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 증상: 정렬 피커로 자식을 부모 안에서 위/아래·중앙 정렬해도 Skia 캔버스에서 위치가 바뀌지 않음 (Preview 는 정상) — CSS↔Skia 비대칭
   - **Why**: 레이아웃 엔진 `NodeStyle.align_self` 가 **선언만 되고 읽는 코드가 0곳**이었다. store→엔진 송신(`taffyStyleToRecord`)은 정상이나 엔진이 값을 버려, 정렬이 Preview 에서만 반영됐다. 추가로 9칸 피커가 함께 쓰는 `justifySelf` 가 페이지 레이아웃 캐시 시그니처(`LAYOUT_STYLE_KEYS`)에 미등재라, 가로 전용 이동(`leftTop`→`centerTop`)이 캐시 히트로 흡수돼 재배치 자체가 일어나지 않았다
   - 수정: `flex.rs` 필드 계약을 17→18 필드로 확장해 per-item `align_self` 를 소비(`place_line_cross_axis` 가 컨테이너 `align-items` 를 override, `auto`=상속). `layoutCache.ts` 의 `LAYOUT_STYLE_KEYS` 에 `justifySelf` 등재. `justify-self` 는 flex 에서 무효(grid 전용)라 소비는 Phase 3
-  - 위치: `packages/composition-engine/src/{flex.rs,tree.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
+  - 위치: `packages/engine/src/{flex.rs,tree.rs}`, `apps/builder/src/builder/workspace/canvas/scene/layoutCache.ts`
 - **percent 높이(`height:50%` 등)가 Builder(Skia)에서 컨테이너 폭 기준으로 잘못 계산되던 결함 수정** (ADR-156 E6):
   - 증상: 자식에 `height:50%` 를 주면 Skia 가 컨테이너 **높이**가 아니라 **폭**의 50% 로 그림 (Preview 는 높이 기준) — 폭≠높이 컨테이너에서 비대칭
   - **Why**: 엔진의 percent 해석 컨텍스트(`ctx_for`)가 폭 단일 축만 담아, column 자식의 `height`·block 자식의 `height` 를 폭 기준으로 해소했다
   - 수정: `height`/`minHeight`/`maxHeight` 를 축별 컨텍스트(높이 기준)로 라우팅. 컨테이너 높이가 **명시 definite** 일 때만 실축, `auto` 면 percent→`auto`(CSS §10.5). `padding`/`margin` 의 percent 는 폭 기준 유지
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
   - 검증: Chrome 차등 파리티 하니스(`tests/parity/phase2.browser.test.ts`, 실 DOM = ground truth) 8 fixture + 672 조합 무회귀 + Rust 288 tests + live(빌더 store 편집 → Skia 반영, Preview 대칭). 잔여 발산(E2/E3/E7/E8 등)은 후속 Phase
 
 ## [block 부모 안 컴포넌트가 Skia 에서 세로 중앙에 놓이던 결함 — flex line 승격 조건 정정] - 2026-07-17
@@ -6134,7 +6134,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: block 부모는 inline-level 자식(Button = inline-block)을 만나면 CSS inline formatting context 를 flex row wrap 으로 시뮬레이션한다 (`INLINE_BLOCK_PARENT_CONFIG` = wrap + `align-items:center` + `align-content:flex-start`). 그런데 레이아웃 엔진이 CSS 의 "single-line 컨테이너" 를 **결과 라인 수 1개**(`line_count == 1`)로 판정해, wrap 컨테이너의 유일한 라인까지 컨테이너 cross(페이지 높이)로 승격시켰다. 승격된 라인 안에서 `align-items:center` 가 작동해 Button 이 페이지 세로 중앙으로 이동하고, 상단 고정용 `align-content:flex-start` 는 무력화됐다. CSS 명세(§5.2)의 single-line 은 **`flex-wrap:nowrap`** 을 뜻하며, wrap 컨테이너는 라인이 1개여도 multi-line 이라 라인 cross 가 자식 높이로 남아 상단에 쌓인다
   - 수정: 라인 cross 승격(§9.4 step 8)과 align-content 무효화(§8.4) 판정 기준을 `line_count == 1` → `wrap == WRAP_NOWRAP` 으로 정정. `align_content_offsets` 의 stretch 분기도 같은 기준으로 정렬해 `wrap + 1라인 + align-content:stretch` 기존 동작 보존
   - 검증: body(1920×1080) > Button 실측 y=525(중앙) → **y=0(상단)**, Preview 와 대칭 복구. Rust 256 tests PASS (신규 2: 상단 고정 + stretch 회귀 가드)
-  - 위치: `packages/composition-engine/src/flex.rs`
+  - 위치: `packages/engine/src/flex.rs`
 
 ## [IconButton origin 크기 정정 — Button 척도 seed 주입] - 2026-07-18
 
@@ -6839,7 +6839,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **(1) layout — intrinsic 폭을 `width` 로 굳혀 grow 를 원천 차단** (`enrichWithIntrinsicSize`): `INLINE_BLOCK_TAGS` 자식은 콘텐츠 폭을 **명시 `width`** 로 주입받는다. **Why**: CSS 에서 intrinsic 폭은 flex **base size** 일 뿐이고 used 폭은 free space 분배 결과다 — `width` 로 박으면 분배가 불가능해진다. `dateinput` 은 standalone DateField 의 box 가 텍스트를 담도록 2026-06-23 에 `INLINE_BLOCK_TAGS` 로 등록됐는데, 그 등록이 **picker 안에서 grow 해야 하는 경우까지** 폭을 굳혔다. 같은 `flex:1 minWidth:0` 을 받는 **SelectValue 는 `INLINE_BLOCK_TAGS` 비소속**이라 애초에 width 가 안 박혀 정상 grow 했다 — Select 의 정상 동작은 **우연**이었다. 수정: `flex-grow > 0` 인 flex item 에는 width 를 주입하지 않고, intrinsic 폭은 `minWidth` 하한으로만 남긴다.
   - **(2) layout — `minWidth: 0` 을 미설정으로 오판** (falsy 함정): 보존 가드가 `!style?.minWidth` 라서 **`0` 을 미설정으로 읽어** intrinsic 폭으로 덮어썼다. `minWidth: 0` 은 implicitStyles 가 `flex:1` 과 **짝으로** 주입하는 "콘텐츠 밑으로도 축소 허용" 명시값이다. 수정: `== null` 판정. 동시에 "변경 없으면 원본 반환" 가드가 width/height 만 비교해 **minWidth 단독 주입을 조용히 버리던** 문제도 함께 수정.
   - **(3) 엔진 — `align-items` 를 컨테이너 cross 의 indefinite 신호로 오용** (`tree.rs::solve_flex`): 비-stretch 컨테이너가 **모든** 자식에게 `INDEFINITE_AVAIL` 을 내려보냈다. **Why**: `align-items` 는 *auto-cross 자식을 늘릴지*만 정할 뿐 **cross 를 명시한 자식에는 아무 영향이 없다**. `align-items:flex-start` 인 DatePicker 밑에서 **`width:100%` 로 폭이 확정된 SelectTrigger** 까지 indefinite 를 받아 → trigger 의 main(row=width) 이 indefinite → `flex.rs` 의 **Step 0 early-return 으로 grow 분배가 통째로 skip** → `flex:1`(basis 0%) 인 DateInput 이 **폭 0** 으로 붕괴했다. 수정: **자식별 판정** — cross 를 명시한 자식은 available 을 그대로 받고, auto-cross 자식만 indefinite 를 받는다. (컨테이너 단위로 넓히면 width 미지정 DatePicker 가 shrink-to-fit 을 잃고 350 으로 팽창 — 그래서 자식별이어야 한다.)
-  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `packages/composition-engine/src/tree.rs`
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts`, `packages/engine/src/tree.rs`
   - 검증 (live builder 실측, 수정 전 → 후): DateInput 폭 **102 → 310** (DOM 308, 잔여 2px 은 아이콘 18 vs DOM 버튼 20 차이 — layout 아님, **위 "트리거 아이콘 크기" 엔트리에서 해소**), SelectIcon x **119 → 327** (DOM 325 → 아이콘 수정 후 327 로 일치), **TextField 96 → 390** (DOM probe 실측 390 으로 확증). 페이지 전체 18개 요소 before/after diff 결과 **변경 3건이 전부 위 의도된 수정**이며 부수 변화 0건. Rust 280건 전체 통과(회귀 0, Chrome 실측 golden 25건 + shrink-to-fit/stretch 양쪽 contract 동시 lock), 신규 회귀 테스트 Rust 1건 + JS 8건(수정 전 RED 5건 확인). canvas 실패 12건은 clean-tree baseline 과 동일한 기존 실패(`tagSpecMap`/`canvasSceneNode` 등, 격리 실행으로 무관함 확증). type-check PASS.
 
 ## [DatePicker DateInput height 0 — 2-pass 가 주입 height 삭제 / stretch vs shrink-to-fit 구분] - 2026-07-14
@@ -6850,7 +6850,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 엔진 1-pass 는 **정확했다** (실측: DateInput h=20 / trigger h=30 / DatePicker h=54, DOM 과 일치). 값을 망가뜨린 건 그 뒤의 **2-pass 재계산(Step 4.5)** 이었다.
   - **(1) 2-pass selection 루프가 store 원본을 봄** — "명시 height 를 가진 노드는 skip" 가드가 `elementsMap`(store 원본)에서 height 를 읽는데, **SelectTrigger 의 height(30px)는 store 에 없고 `implicitStyles` 가 주입**한다. **Why**: 가드가 주입된 height 를 `undefined`(=auto)로 잘못 읽어 skip 하지 않고 `childUpdates` 에 편입 → 뒤이은 "컨테이너는 height 제거(엔진 auto 계산)" 분기가 **주입된 30px 을 삭제** → trigger 가 auto(28)로 축소되고, 그 안의 DateInput(`height:100%`)이 **auto 부모 기준 → 0** 으로 붕괴. 같은 블록의 **update 루프는 이미 `processedElementsMap` 을 쓰고 있어 selection 루프만 비대칭**이었다. `.claude/rules/layout-engine.md` §2-Pass re-enrichment 의 "Step 4.5에서 processedElementsMap 우선 사용" 규칙 위반. 수정: selection 루프도 `processedElementsMap ?? elementsMap`.
   - **(2) 엔진 — stretch 부모와 shrink-to-fit 부모를 구분하지 못함** — 직전 커밋(7ab97be2e)의 `cross_definite_self` 가 **명시 크기(`explicit_*`)만** 보았다. **Why**: block 부모 안의 block-level flex 컨테이너는 **width 명시가 없어도 부모 폭으로 stretch** 되므로 그 폭은 확정이다(`body(block) > DatePicker > SelectTrigger(width:100%)` → 390 이 정답, DOM 390). 명시 크기만 보면 이 케이스를 shrink-to-fit 으로 오판해 trigger 가 콘텐츠 폭(160)으로 수축한다. definite 판정에 **(b) 부모가 definite available 을 내려줌(`avail_* >= 0`)** 을 추가 — shrink-wrap 하는 부모(flex `align-items:flex-start` 등)만 자식에게 `INDEFINITE_AVAIL`(음수)을 내려보내므로, 이 신호로 두 케이스가 갈린다. 직전 커밋의 shrink-to-fit 정합(`body(flex column, align-items:flex-start)`)은 그대로 유지.
-  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`, `packages/composition-engine/src/tree.rs`
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`, `packages/engine/src/tree.rs`
   - 검증 (live builder 실측): DateInput **h=20**(수정 전 0, Skia 에서 소실) = DOM 20, SelectTrigger **390×30** = DOM 390×30, DatePicker **390×54** = DOM 390×54. Rust 신규 3건(1-pass 정확성 + stretch 390 + shrink-to-fit 93 동시 lock) + 전체 279건 통과(회귀 0, Chrome 실측 golden 25건 포함). canvas+specs 11 failed/1490 passed = clean-tree baseline 동일. type-check PASS.
   - **잔여**: Skia DateInput 폭이 102(콘텐츠) vs DOM 348(`flex:1` grow) — layout 이 `flex:1` item 에 intrinsic 폭을 **명시 width 로 주입**해 grow 를 막는다. 표시되는 box(trigger)와 텍스트는 정합이라 시각 영향은 없으나 별도 정리 대상. → **해소됨** (위 "flex-grow 분배 복구" 엔트리).
 
@@ -6865,7 +6865,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **(3) layout — DateInput 에 trigger 행 높이(30) 를 주입** — `SelectTrigger.sizes.height`(md=30)는 **입력 box 행 높이**이지 그 안쪽 DateInput 의 높이가 아니다. **Why**: trigger 는 border 1px + paddingY 4px 를 가진 30px box 이므로 content-box 는 `30 − 8 − 2 = 20`. 30 을 주면 자식이 box 를 **위아래 5px 씩 넘친다**(Skia DateInput y=5 h=30 vs DOM h=20). box 높이는 `selecttrigger` 분기가 이미 소유하므로 DatePicker 분기의 height 주입 제거 → 콘텐츠 높이(20). Select 의 SelectValue 가 height 주입 없이 콘텐츠로 남는 것과 동형.
   - **(4) layout — DateInput 폭이 padding/gap/icon 을 이중 계상** — `calculateContentWidth` 가 옛 escape-box 공식(`paddingX + text + gap + icon + padRight`)을 유지했다. **Why**: renderer(`datefieldSegments`)는 picker 일 때 이미 **segment text 만** 그린다(box 는 SelectTrigger, icon 은 SelectIcon — 이중 렌더 방지). layout 만 옛 공식을 써서 trigger 가 제공하는 padding/icon 을 DateInput 이 또 더했다(102 → 138, DatePicker 178). DOM 실측도 picker 안 DateInput = border 0 / padding 0 / 자식은 DateSegment 뿐. picker 는 순수 텍스트 폭, standalone DateField 는 좌우 padding 포함 box 로 분리.
   - **(부수) Skia `_parentTag`/`_locale` 미전파** — `resolveDateInputParent` 가 직계 부모만 봐서 `DatePicker > SelectTrigger > DateInput` 구조에서 `null` 반환 → escape 가 `_parentTag` 기본값 "DateField" 로 fallback(picker 인데 box 를 그리는 분기). SelectTrigger 를 한 단계 건너뛰도록 수정.
-  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,utils}.ts`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
+  - 위치: `packages/engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/{implicitStyles,utils}.ts`, `apps/builder/src/builder/workspace/canvas/skia/buildSpecNodeData.ts`
   - 검증 (live builder 실측): DatePicker 높이 **54 = DOM 54**, DateInput 높이 **20 = DOM 20**(수정 전 30, box 밖으로 넘침), Label 74 ≈ DOM 74.8, trigger 높이 30 = DOM 30, SelectIcon 세로 중앙 복귀. **Select 는 350 유지(무회귀)**. 폭은 layout 산식이 양쪽 동일해졌음을 확증 — Skia DateInput 102 = `measureText("MM / DD / YYYY")` 101.96, DOM 71.1 = `"연도. 월. 일."` — 잔여 차이는 전적으로 **placeholder 텍스트가 다른 것**(아래 Known Issues). Rust 신규 3건(RED 확인) + 전체 277건 통과(회귀 0, Chrome 실측 golden 25건 포함). JS 신규 4건 + layout engines 217건 통과. canvas+specs 11 failed = clean-tree baseline 동일.
 
 ### Known Issues
@@ -6882,19 +6882,19 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **(2) 엔진이 `flex-basis` 를 읽지 않음** — `NodeStyle.flex_basis` 는 선언·역직렬화만 되고 `write_flex_item` 이 **항상 AUTO(-1) 를 하드코딩**했다. `flex.rs` 의 basis 해석 우선순위(명시 basis → width → content)에 명시 basis 가 도달하지 못함. **Why**: `inset_*` 와 동형의 조용한 실패 — JS 는 정확히 보내고 Rust 가 안 읽는다. 결과: `flex:1`(basis 0%) 자식이 basis=content 로 fallback → 남은 공간을 못 쓰고 자기 content 폭을 요구 → row-wrap 에서 다음 줄로 밀림. `resolve_flex_basis` 신설(`%` 는 **main 축** 기준이라 별도 `main_ctx` 전달, `content` 키워드 → CONTENT 센티넬).
   - **(3) flex item 의 subtree 를 used size 로 재-solve 하지 않음** — `solve_flex` 가 자식을 **분배 전 available 폭**으로 한 번만 solve 하고, grow/shrink 로 최종 폭이 바뀌어도 subtree 를 다시 풀지 않았다. **Why**: CSS 는 flex item 의 used main size 로 내용을 다시 배치한다(§9.9). TagList(flex:1)가 350 기준으로 칩을 wrap 해 굳은 뒤 실제 폭 278 을 받으니 **칩이 한 줄로 나열되며 자기 박스를 넘침**. 재-solve 패스 추가(used main ≠ 배치 기준 main 인 컨테이너 자식만, 1회. 증분 skip 우회를 위해 `mark_subtree_dirty` 선행, explicit main 자식은 used 값으로 임시 override 후 원복).
   - **(4) multi-line `align-content` 가 indefinite cross 에서 분배** — `cross_free = available_cross − total_line_cross` 가 `cross_is_definite` 를 안 봤다. **Why**: CSS §8.4 — 컨테이너 cross 가 indefinite(height:auto)면 컨테이너가 라인 합계로 축소되므로 분배할 free space 자체가 없다. 상속 `available_cross`(페이지 높이 400)를 그대로 써서 **없는 여유 공간**을 라인 사이에 분배 → TagList 둘째 줄이 y=202, height 232 로 폭주. 단일 라인 경로는 이미 보호돼 있었으나(ToggleButtonGroup 397→30) multi-line 이 미보호였다.
-  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,taffyDisplayAdapter}.ts`, `packages/composition-engine/src/{tree,flex}.rs`
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/{fullTreeLayout,taffyDisplayAdapter}.ts`, `packages/engine/src/{tree,flex}.rs`
   - 검증 (live builder 실측 — test PASS 단독 종결 아님): Inspector 로 top → side 전환 시 즉시 정합. Skia Label(x0,w68) + TagList(**x72, w278, h64**) = DOM Label(x0,w67.8) + `.tag-list-wrapper`(**x71.8, w278.2, h64**). 칩 4번째가 **(0,34) 둘째 줄**로 DOM 과 동일. TagGroup 높이 350×64 일치(수정 전 429). Rust 신규 8건(RED 확인) + 전체 274건 통과(회귀 0, Chrome 실측 golden 25건 포함). JS 신규 7건 + layout engines 155건 통과. canvas+specs 11 failed/1486 passed = clean-tree baseline 과 동일.
 
 ## [레이아웃 엔진 position:absolute 지원 — SliderThumb selection box 정합] - 2026-07-14
 
 ### Features
 
-- **composition-engine: `position:absolute` / `fixed` (out-of-flow) 지원 추가**:
+- **engine: `position:absolute` / `fixed` (out-of-flow) 지원 추가**:
   - 기존: `Style.inset_top/right/bottom/left` 필드가 `tree.rs` 에 **선언·역직렬화만** 되고 flex/block/grid 어느 알고리즘도 읽지 않았다. `Position::Absolute` 개념 자체가 없어 **absolute 자식이 일반 in-flow 자식으로 배치** → 주입한 `left/top` 이 전량 무시되고 항상 컨테이너 원점(0,0) 고정 (조용한 실패 — JS 쪽 `left → insetLeft` 매핑은 정상이라 코드만 읽으면 멀쩡해 보였음).
   - 추가: `solve_node` 가 자식을 **in-flow / out-of-flow 로 분리**(`display:none` 처리와 동형). in-flow 배치로 컨테이너 크기가 확정된 뒤 `place_absolute_children` 이 inset + margin 으로 배치한다.
   - CSS 계약 준수: absolute 자식은 **컨테이너 auto 크기·형제 배치·gap 에 기여하지 않는다**(out-of-flow). containing block = 부모 **padding box**. `left` 우선, 없으면 `right` 역산, 둘 다 auto 면 static 근사. inset `%` 는 containing block 기준. **음수 inset/margin 허용** (`translate(-50%)` 에뮬레이션 채널 — `resolve_inset` / `resolve_signed` 신규).
   - 미지원(의도적): margin auto 센터링, 조상 체인 탐색(가장 가까운 positioned ancestor — 직계 부모를 containing block 으로 간주), `fixed` 의 viewport 기준.
-  - 위치: `packages/composition-engine/src/tree.rs`
+  - 위치: `packages/engine/src/tree.rs`
   - 검증: Rust 테스트 7건 신규 (inset 배치 / `%` inset / 음수 margin 중심보정 / out-of-flow 크기·형제 비기여 / right·bottom 역산 / padding box 원점 / absolute-only 자식). RED 확인 — out-of-flow 분리를 끄면 6건 FAIL. 기존 260건 전부 통과(회귀 0).
 
 ### Bug Fixes
@@ -6917,7 +6917,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 - **SliderThumb 이 value 를 따라가지 않고 트랙 좌측 끝에 고정 (x/y 동시 발산)**:
   - 증상: Skia 캔버스에서 Slider 의 thumb 이 **value 와 무관하게 항상 트랙 좌측 끝**에 그려지고, 세로도 트랙 중앙선에서 벗어남. CSS(Preview)는 정상 — 양쪽 발산. (실측 md/350px/value=50: DOM thumb 중심 (175, 4) vs Skia (9, 9))
-  - **Why**: thumb 렌더를 SliderThumb element 가 담당하면서 그 box 배치를 `implicitStyles` 의 `position:absolute + left:${percent}% + top` 주입에 의존했는데, **composition-engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다** — `Style.inset_top/right/bottom/left`(`tree.rs`)는 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도 읽지 않으며 `Position::Absolute` 개념 자체가 없다. 주입된 좌표가 전량 무시되어 thumb box 가 항상 컨테이너 원점(0,0)에 고정됐다. (margin 은 정상 소비 — 엔진이 읽는 유일한 오프셋 채널)
+  - **Why**: thumb 렌더를 SliderThumb element 가 담당하면서 그 box 배치를 `implicitStyles` 의 `position:absolute + left:${percent}% + top` 주입에 의존했는데, **engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다** — `Style.inset_top/right/bottom/left`(`tree.rs`)는 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도 읽지 않으며 `Position::Absolute` 개념 자체가 없다. 주입된 좌표가 전량 무시되어 thumb box 가 항상 컨테이너 원점(0,0)에 고정됐다. (margin 은 정상 소비 — 엔진이 읽는 유일한 오프셋 채널)
   - 수정: thumb 렌더 소유권을 **SliderTrack 의 `slider_fill_bar` escape 로 복귀**. 이 escape 는 `_containerWidth`(트랙 실폭)와 value 를 이미 정확히 알고 replace 모드로 트랙 box 전체를 소유하므로, 엔진의 absolute 미지원과 무관하게 DOM 과 동일 좌표를 산출한다. thumb 중심 = `(width * percent, trackHeight / 2)` — RAC `useSliderThumb`(`left:${p}% + translate(-50%,-50%)`) + CSS `.react-aria-SliderThumb{top:50%}` 정합. range(2-thumb) 지원.
   - `slider_thumb` escape 는 **shapes 0** 으로 전환 (SliderThumb element 는 selection/hit box 전용) — 이중 렌더 차단.
   - 위치: `packages/specs/src/renderers/skiaPrimitives.ts` (`sliderFillBar` / `sliderThumb`)
@@ -6987,7 +6987,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **Why**: 2겹 — ① 엔진이 `display:none` 자식(도움말/에러 슬롯)을 flex flow + gap 계산에 참여시킴 (CSS 는 완전 비참여 + trailing gap 없음). ② implicitStyles field 분기 gap 이 고정 4 fallback — catalog sizes gap(xs 2/sm 4/md 6/lg 8/xl 10)과 불일치.
   - 수정: `solve_node` 에서 display:none 자식 flow 제외 + `zero_subtree_layout`(레이아웃 0 + dirty clear — 증분 skip 게이트 보존). gap 은 `specSizeField` catalog read-through.
   - 회귀 테스트: `tree_golden.rs` N9 (display:none 자식 — trailing gap 미발생 golden)
-  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
+  - 위치: `packages/engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/implicitStyles.ts`
 - **Disclosure/DisclosureGroup 높이 발산 + 그룹 초기 펼침 비대칭**:
   - **Why**: 3겹 — ① catalog DisclosureHeader sizes(28/30/32)가 DOM 실측(트리거 line-height + paddingY 8×2 = 32/36/40)과 불일치. ② disclosurecontent 높이가 텍스트 미분류로 fs×1.5 fallback. ③ canonical 렌더 경로(CanonicalNodeRenderer) flatten 이 customId 를 누락 → `defaultExpandedKeys` 미매칭으로 DOM 그룹이 항상 접힘 (Skia 는 펼침 — 구조 발산).
   - 수정: catalog 32/36/40 + generated CSS 재생성, content 텍스트 높이 extractSpecTextStyle 산출, renderDisclosureGroup/renderDisclosure `customId ?? id` 정렬
@@ -7014,7 +7014,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 수정: column 방향 main(=height)은 컨테이너 자신의 explicit height 가 있을 때만 definite, auto 면 `-1`(indefinite sentinel) 전달 — `flex.rs` 의 기존 Step 0 가드(available<0 → grow 미발동, hypothetical 유지)가 발동
   - 회귀 테스트: `tree_golden.rs` N7 (Tabs 실전 형상 — definite 부모 안 auto-height column + flexGrow:1 자식, CSS 산술 손계산 golden). 변조→RED 확인 후 fix→GREEN (panels 971→24, tabs 1000→53)
   - 검증: cargo test 258 PASS (lib 234 + golden 15 + tree_golden 8 + doc 1), live builder 에서 Tabs 선택 확인 — TabList+패널이 콘텐츠 높이로 수렴
-  - 위치: `packages/composition-engine/src/tree.rs` (solve_flex avail_main), `packages/composition-engine/tests/tree_golden.rs`
+  - 위치: `packages/engine/src/tree.rs` (solve_flex avail_main), `packages/engine/tests/tree_golden.rs`
 - **Table 이 Skia 캔버스에서 고정 높이를 잃고 48px 로 수축** (CSS 402px vs Skia 48px):
   - **Why**: CSS `Table.tsx` 는 `heightMode`(default "fixed") 에서 컨테이너 높이를 `props.height`(px, default 300) 로 고정하는 가상화 스크롤 계약인데, Skia layout 은 이 prop 을 소비하지 않고 content(헤더 24+바디 24)로 수축 — 렌더러만 아는 높이 계약이 layout 경로에 부재.
   - 수정: `applyImplicitStyles` 에 table 분기 추가 — heightMode "fixed" 이고 사용자 `style.height` 미명시일 때 `props.height` 를 style.height/minHeight 로 주입. "auto"/"viewport"/"full" 은 content 유지(vh 단위는 엔진 px 모델 밖). `LAYOUT_PROP_KEYS` 에 `height`/`heightMode` 추가 — 편집 시 캐시 시그니처 무효화 (Disclosure isExpanded 선례 동형)
@@ -7025,7 +7025,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - 수정: ① `write_block_item` width/height intake 를 `resolve_cross_dimension_opt`(fit-content 보존)로 전환. ② `buildNodeStyle` flex 분기에 calendar/rangecalendar allowlist — `width:fit-content` 를 record 에 복원해 엔진 센티넬로 전달 (전역 passthrough 는 2-pass 상호작용 미검증이라 allowlist 한정)
   - 회귀 테스트: `tree_golden.rs` N8 (block 컨테이너 안 fit-content flex column — 변조 RED 200→fix GREEN 120)
   - 검증: cargo test 259 PASS, live builder Calendar 390→278 / RangeCalendar 390→278 수렴 (잔여 Δ22/40 은 CalendarGrid 셀 메트릭 drift — 별도 항목)
-  - 위치: `packages/composition-engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
+  - 위치: `packages/engine/src/tree.rs`, `apps/builder/src/builder/workspace/canvas/layout/engines/fullTreeLayout.ts`
 
 - **Switch/StatusLight/Breadcrumbs 폭 발산 — fit-content ↔ stretch 분류 3종 정렬** (2026-07-13 parity sweep):
   - **Switch**: catalog(D3 SSOT) containerStyles 는 `inline-flex` 인데 수동 `Switch.css` 가 `display: flex`(블록 stretch) → CSS 388 vs Skia 89 발산. CSS 를 inline-flex 로 정정 (S2 Switch 동일). **Why**: 수동 CSS 가 catalog 에서 파생되지 않은 D3 위반 잔존
@@ -7104,7 +7104,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 - **자체 엔진 flex cross 축이 `fit-content` 를 `auto` 와 구분 못 해 stretch** (Calendar width 발산 근본 #2):
   - **Why**: `flex.rs` `parse_item` 이 cross size 를 `auto`(stretch 대상) vs 명시 px 만 구분. `tree.rs` `resolve_dimension_opt` 이 fit-content 센티넬(-2)을 `None`(→AUTO -1)로 붕괴시켜 flex cross 축에서 `cross_is_auto=true` → 컨테이너 cross(부모 폭)로 stretch. CSS 는 `width: fit-content` = shrink-to-fit(align-items:stretch 무시)
   - 수정: `resolve_cross_dimension_opt`(tree.rs) 가 fit-content 만 `flex::CONTENT`(-2) 센티넬로 보존 → `flex.rs` `parse_item` 이 `content_cross`(자식 intrinsic)로 shrink-to-fit. `write_flex_item` cross intake 에서 CONTENT 센티넬은 `spec_to_content` 감산 제외
-  - 위치: `packages/composition-engine/src/flex.rs`(`parse_item` cross_content + `CONTENT` pub), `src/tree.rs`(`resolve_cross_dimension_opt` + `write_flex_item`)
+  - 위치: `packages/engine/src/flex.rs`(`parse_item` cross_content + `CONTENT` pub), `src/tree.rs`(`resolve_cross_dimension_opt` + `write_flex_item`)
   - 검증: RED(cross fit-content → stretch 100) → GREEN. cargo lib 234(신규 `fit_content_cross_uses_content_not_stretch` + `flex_column_child_fit_content_width_shrinks_not_stretch`) + golden 15 + tree_golden 7 = 0 failed. 격리 엔진 실측: Calendar(fit-content, 자식 246) → 246 확증
 
 - **Calendar 자식(CalendarHeader/CalendarGrid) `width: 100%` 주입이 fit-content 붕괴** (Calendar width 발산 근본 #3):
@@ -7141,18 +7141,18 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - **버그 #2 — grid 명시 auto row intrinsic 미측정** (#1 수정 후 표면화):
     - **Why**: 기존 `solve_grid` intrinsic 측정은 implicit auto row(`gridTemplateRows` 미명시 + placement 미명시) 경로만 발동. ProgressBar/Meter 는 `gridTemplateRows: "auto auto"` 명시 + 자식 gridRowStart/End placement 구조 → 미측정 → `grid.rs` 가 auto 를 1fr 로 근사해 available_h 를 나눠 가져 컨테이너가 availH 전체로 폭발(716) 또는 0 붕괴(availH<0)
     - 수정: 명시 track 안에 auto 토큰이 있으면 자식을 solve 해 intrinsic height 획득, 자식 gridRowStart(1-based line)로 row 결정 후 auto 토큰 row 만 max intrinsic 으로 치환(px/fr/% row 보존). flex.rs `cross_is_definite` 수정과 동형 축
-    - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` auto row 측정 확장)
+    - 위치: `packages/engine/src/tree.rs` (`solve_grid` auto row 측정 확장)
   - **버그 #3 — grid 명시 auto column intrinsic 미측정** (#2 수정 후 cross-check 로 표면화):
     - **Why**: `solve_grid` 는 auto row 만 측정하고 auto **column** 은 `grid.rs` 의 1fr 근사(available 분배)에 맡김. ProgressBar `gridTemplateColumns: "1fr auto"` 에서 CSS 는 auto col = value content(~29), 1fr = 나머지(~307) 인데, Skia 는 auto col 이 1fr 과 available 을 반반 나눠 가져 value 폭 발산(168) + 중앙으로 밀림(CSS 는 우측 정렬)
     - 수정: `template_cols` 에 auto 토큰이 있으면 자식 intrinsic width 측정, gridColumnStart(1-based line)로 col 결정 후 auto 토큰 col 만 max intrinsic width 로 치환(1fr/px/% col 보존). auto row 와 대칭 로직
-    - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` auto column 측정 추가)
+    - 위치: `packages/engine/src/tree.rs` (`solve_grid` auto column 측정 추가)
   - 검증: 브라우저 재빌드 wasm 실측 — ProgressBar height **32**(availH=-1/716 양쪽 동일 = 폭발 없음, 이전 716/4), value **width 30 @우측**(CSS 29 정합, 이전 168 @중앙), Track/Label CSS 정합, parse error 소멸. cargo lib 231 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 6종 추가: auto row 측정/px+auto row 혼합/row 건너뜀 + auto column 측정/px+auto col 혼합/col-major fallback + ProgressBar 실구조 row·col 동시 auto 통합), type-check PASS. reviewer approve(CRITICAL/HIGH 0, col-major fallback 자체 정정 + row×col 통합 테스트 갭 반영)
   - 후속(비차단): auto row/column 측정의 `gridRowStart`/`gridColumnStart` "span N" / 음수 line 미지원(현재 factory 순수 숫자 line 만 사용) — 향후 `grid.rs::parse_grid_line` 재사용 리팩터 대상
 
 - **Slider grid track/label 겹침 + value 아래쪽 배치** (전수조사 후속 — grid 버그 #4, Slider 전용):
   - **Why**: Slider 는 catalog `containerStyles` 에 `gridTemplateColumns: "1fr auto"` 만 있고 **`gridTemplateRows` 미방출**(암묵 2행). 자식은 `gridRowStart` 로 label/output=row1, track=row2 명시. 버그 #2 가 고친 auto row 측정은 `gridTemplateRows` **명시** 케이스만 커버 → Slider 처럼 rows 미명시 + placement 명시인 조합은 두 측정 경로 모두 미발동(경로 A 는 `placement_spec.is_empty()` 요구, 경로 B 는 `template_rows` 에 "auto" 토큰 요구) → `template_rows` 빈 문자열 그대로 `grid.rs` 전달 → row track 0개 → `cell_bounds_for_child` 가 track 부재로 height=100 fallback + row2 를 gap 위치에 배치 → 전 자식 겹침 + 컨테이너 height 폭발(104)
   - 수정: `solve_grid` 경로 A(implicit auto row)의 `placement_spec.is_empty()` 조건 제거. `gridTemplateRows` 미명시 + 자식 존재 시(placement 무관) 자식 `gridRowStart` 로 row 결정, 각 행 max intrinsic 을 px 트랙으로 주입(placement 없는 자식은 row-major `i / col_count` fallback)
-  - 위치: `packages/composition-engine/src/tree.rs` (`solve_grid` `implicit_rows` 경로)
+  - 위치: `packages/engine/src/tree.rs` (`solve_grid` `implicit_rows` 경로)
   - 검증: RED (Slider 실측 348/rowGap4/1fr auto/placement) → height 104 재현. GREEN → 32(row0 20 + gap 4 + row1 8), track y=24. cargo lib 232 + golden 15 + tree_golden 7 = 0 failed(회귀 테스트 1종 추가: `grid_implicit_auto_row_with_placement_slider_realstruct`). live: Preview track y=24, label 겹침 해소
 
 - **Slider thumb 위치가 Skia 와 불일치 (range 편집 후 stale)**:
@@ -7166,11 +7166,11 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Bug Fixes
 
 - **단일 라인 flex 컨테이너가 Skia 에서 height 폭발 (ToggleButtonGroup: CSS 30 vs Skia 397)** (ADR-916 후속):
-  - **Why**: 자체 Rust 엔진(composition-engine) `flex.rs` 가 단일 라인 컨테이너에도 `align-content: stretch`(CSS 기본값)를 적용해 라인 cross 를 available_cross 로 부풀림. CSS §8.4 는 align-content 를 다중 라인에서만 적용. 부모(body flex column, height 764)가 준 큰 available_cross 로 `alignItems: center` 컨테이너 라인이 764 근처까지 팽창 → 자식이 중앙으로 밀려 컨테이너 bounding box(max_bottom) 폭발
+  - **Why**: 자체 Rust 엔진(engine) `flex.rs` 가 단일 라인 컨테이너에도 `align-content: stretch`(CSS 기본값)를 적용해 라인 cross 를 available_cross 로 부풀림. CSS §8.4 는 align-content 를 다중 라인에서만 적용. 부모(body flex column, height 764)가 준 큰 available_cross 로 `alignItems: center` 컨테이너 라인이 764 근처까지 팽창 → 자식이 중앙으로 밀려 컨테이너 bounding box(max_bottom) 폭발
   - **2차 전제 (착수 중 발견)**: 이 엔진은 "단일 라인 컨테이너의 라인 cross = 컨테이너 cross"(자식 stretch 대상)를 별도 로직 없이 align-content stretch 로 대신 구현 → align-items center/end/stretch/clamp 전부 부풀려진 라인 cross 에 의존. 단순히 stretch 를 끄면 `align-items: stretch` 자식이 0 으로 붕괴. 근본은 `available_cross` 가 definite(컨테이너 cross 확정=height 명시)와 indefinite(height auto)를 구분 못 함
   - 수정: `flex_layout` 에 `cross_is_definite: bool` 인자 도입. definite 면 단일 라인 라인 cross = available_cross(align-items 가 그 공간 채움/정렬), indefinite 면 자식 max(제자리 → 컨테이너 content 축소). `align_content` stretch_extra 는 다중 라인 전용으로 환원. `place_line_cross_axis` 무변경. `tree.rs solve_flex` 가 `is_row ? explicit_h>0 : explicit_w>0` 로 definite 판정 전달
   - 검증: 브라우저 로드 재빌드 wasm 실측 — ToggleButtonGroup(indefinite) group height **30**(Preview DOM CSS height 30 일치, 이전 397), definite(height 명시 100) group 100 + 자식 중앙 y35. cargo 247 PASS, 신규 6 테스트(definite/indefinite/다중 라인/tree 통합) + 기존 회귀 5종 유지
-  - 위치: `packages/composition-engine/src/flex.rs` (`flex_layout` cross_is_definite + 단일 라인 라인 cross 승격, `align_content_offsets`), `src/tree.rs` (solve_flex 호출부)
+  - 위치: `packages/engine/src/flex.rs` (`flex_layout` cross_is_definite + 단일 라인 라인 cross 승격, `align_content_offsets`), `src/tree.rs` (solve_flex 호출부)
   - 후속(비차단): 부모 stretch 상속 definite(자기 cross 미명시라도 부모가 자식 cross 확정) 미구현 — 자기 cross 명시만 definite 판정. ToggleButtonGroup/현 catalog 미해당
 
 ## [자체 엔진 box-sizing 계약 정합 — specified size border-box] - 2026-07-06
@@ -7178,11 +7178,11 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Bug Fixes
 
 - **Button 등 padding 보유 요소가 Skia 에서 CSS 보다 크게 렌더** (ADR-916 후속):
-  - 자체 Rust 엔진(composition-engine)이 specified width/height 를 content-box 로 해석 + padding/border 재가산 → enrich 가 주입하는 border-box 값과 이중 가산. md Button 기준 높이 30→40, 폭 +26px (paddingX 12×2 + border 1×2)
+  - 자체 Rust 엔진(engine)이 specified width/height 를 content-box 로 해석 + padding/border 재가산 → enrich 가 주입하는 border-box 값과 이중 가산. md Button 기준 높이 30→40, 폭 +26px (paddingX 12×2 + border 1×2)
   - **Why**: 앱 세계 전체(Preview `* { box-sizing: border-box }`, store, 구 Taffy 0.9 계약)는 border-box 인데 신규 엔진 커널만 CSS 기본값(content-box)으로 작성됨(`c046daedc`). dual-run fixture 가 전부 padding=0 이라 계약 차이가 미검출
   - 수정: `tree.rs` specified intake 층에서 border-box→content 변환 (커널 block/flex/grid.rs 무변경). 같은 뿌리 형제 결함 — 컨테이너 own padding 의 자식 available 감산·좌표 offset·percent containing-block ctx — 도 함께 정합
   - 검증: 브라우저 로드 wasm 실측 — Button xs~xl 높이 20/22/30/42/54 (CSS 정합), 컨테이너 padding20 → 자식 stretch 260 + 좌표(20,20), 50% + paddingX10 → border-box 200, padding=0 회귀 불변
-  - 위치: `packages/composition-engine/src/tree.rs` (`spec_to_content` / `pad_border_start` intake helper, solve_flex/block/grid own padding)
+  - 위치: `packages/engine/src/tree.rs` (`spec_to_content` / `pad_border_start` intake helper, solve_flex/block/grid own padding)
 
 ## [Button xl border-radius CSS↔Skia 대칭 복원] - 2026-07-06
 
@@ -7198,28 +7198,28 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 
 ### Architecture
 
-- **Taffy 외부 의존 완전 제거 — 자체 엔진(composition-engine) 단독 운영** (ADR-916 endgame, kill criteria 3/3 후속):
+- **Taffy 외부 의존 완전 제거 — 자체 엔진(engine) 단독 운영** (ADR-916 endgame, kill criteria 3/3 후속):
   - **Why**: ADR-916 Implemented(2026-07-06, layout 엔진 전환 완료) + endgame kill criteria 3/3 충족 후 잔존 Taffy 물리 자산 정리 — 단일 엔진 SSOT 확립 + 번들 감소(이중 WASM 로드 해소) + R4 폴백 이중화 HIGH 위험 해소.
   - Rust crate 2종 물리 삭제: `packages/composition-layout`(taffy 0.10, Phase 0-A 폐기 경로) + `apps/builder/src/builder/workspace/canvas/wasm`(composition-wasm, taffy 0.9, 3,578라인, `taffy_bridge`/`binary_protocol`/`block_layout`/`grid_layout`) + WASM 산출물 `wasm-bindings/pkg`(452K).
   - Taffy 소비 JS 삭제(13파일): `taffyLayout.ts`/`rustWasm.ts`/`layoutEngine.ts` + `wasm-worker/` 전체(5) + dual-run 하네스(`dualRunEngines`/`dualRunHarness`(+test)/`dualRunLive.test`/`persistentTaffyTree.seam.test`).
-  - `createLayoutEngine()` 자체 엔진 단독 반환 — Taffy 폴백 경로(`new TaffyLayout()`) 소멸. 로드 실패 보상은 기존 15초 폴링/재시도 부트스트랩 유지(신규 폴백 코드 없음). 부팅 게이트 `isRustWasmReady`→`isCompositionEngineReady` 전환(bootstrap + fullTreeLayout).
-  - 타입 소스 이전: `LayoutResult`→`compositionEngine.ts`, `TaffyStyle` 계열/`TaffyNodeHandle`→신규 `layoutTypes.ts`. 보존 변환기 `TaffyFlexEngine`/`TaffyBlockEngine`/`TaffyGridEngine` 은 이름만 Taffy — 순수 JS element→style 변환, 자체 엔진이 소비.
+  - `createLayoutEngine()` 자체 엔진 단독 반환 — Taffy 폴백 경로(`new TaffyLayout()`) 소멸. 로드 실패 보상은 기존 15초 폴링/재시도 부트스트랩 유지(신규 폴백 코드 없음). 부팅 게이트 `isRustWasmReady`→`isEngineReady` 전환(bootstrap + fullTreeLayout).
+  - 타입 소스 이전: `LayoutResult`→`engine.ts`, `TaffyStyle` 계열/`TaffyNodeHandle`→신규 `layoutTypes.ts`. 보존 변환기 `TaffyFlexEngine`/`TaffyBlockEngine`/`TaffyGridEngine` 은 이름만 Taffy — 순수 JS element→style 변환, 자체 엔진이 소비.
   - build 스크립트 정리: `build:layout`/`wasm:build`/`wasm:dev`/`wasm:test` 제거, `wasm:build:engine`(자체 엔진) 존치.
-  - 검증: type-check baseline 69 신규 0 / composition-engine cargo test 233 PASS(Taffy crate 삭제 후 자체 엔진 테스트 무손실) / Chrome MCP live exercise — `[ADR-916] composition-engine WASM initialized` 부팅 + 콘솔 에러 0 + 컨테이너·grid 배치 + Canvas↔CSS 시각 정합(폴백 없이 자체 엔진 단독).
+  - 검증: type-check baseline 69 신규 0 / engine cargo test 233 PASS(Taffy crate 삭제 후 자체 엔진 테스트 무손실) / Chrome MCP live exercise — `[ADR-916] engine WASM initialized` 부팅 + 콘솔 에러 0 + 컨테이너·grid 배치 + Canvas↔CSS 시각 정합(폴백 없이 자체 엔진 단독).
   - 위치: `apps/builder/src/builder/workspace/canvas/{wasm-bindings,layout/engines,hooks}/`, 삭제 `packages/composition-layout/`.
 
 ## [자체 단일 Rust 레이아웃 엔진 통합 — ADR-916 Implemented] - 2026-07-06
 
 ### Architecture
 
-- **layout 엔진 Taffy → 자체 Rust 엔진(composition-engine) 전환 완료** (ADR-916, Accepted → Implemented):
-  - **Why**: 외부 라이브러리(Taffy) 래핑 제거 + WASM 경계 횡단 최소화. Skia(CanvasKit) 렌더 유지, layout 계산만 자체 `composition-engine` crate(taffy 무의존)로 이관.
+- **layout 엔진 Taffy → 자체 Rust 엔진(engine) 전환 완료** (ADR-916, Accepted → Implemented):
+  - **Why**: 외부 라이브러리(Taffy) 래핑 제거 + WASM 경계 횡단 최소화. Skia(CanvasKit) 렌더 유지, layout 계산만 자체 `engine` crate(taffy 무의존)로 이관.
   - Phase 1 self-impl 3종: `flex.rs`(CSS Flexbox §9.7 grow/shrink 분배 + §9.3 wrap + align-content), `block.rs`(§8.3.1 margin collapse + through-collapse chain), `grid.rs`(§7 track sizing + §8 placement + repeat/minmax/named areas).
   - Phase 2-B `tree.rs`: 트리 오케스트레이션(DFS 빌드 + display 디스패치 + 증분 dirty 조상 전파) + `LayoutEngineAPI` batch 계약(`build_tree_batch` → `compute_layout` → `get_layouts_batch`). 자식 좌표는 부모 content-box 상대(taffy_bridge 계약 동일).
-  - live 전환: `USE_RUST_LAYOUT_ENGINE` + `UNIFIED_ENGINE` flag true → `createLayoutEngine` seam 이 자체 엔진 주입. builder 진입 시 `[ADR-916] composition-engine WASM initialized`, Canvas(Skia 자체 엔진 layout) ↔ CSS Preview 시각 정합.
+  - live 전환: `USE_RUST_LAYOUT_ENGINE` + `UNIFIED_ENGINE` flag true → `createLayoutEngine` seam 이 자체 엔진 주입. builder 진입 시 `[ADR-916] engine WASM initialized`, Canvas(Skia 자체 엔진 layout) ↔ CSS Preview 시각 정합.
   - 검증: cargo test 233 PASS(lib 211 + golden 15 + tree_golden 6 + doc 1), dualRunLive(자체 vs Taffy) 12/12 diff 0, tree_golden(Chrome 실측 독립 oracle) 6/6, type-check baseline 69 신규 0.
   - **명시 잔존(승격 후 관리, 미완 아님)**: (a) Taffy 폴백 로직 이중화(R4 HIGH) — endgame(Taffy 물리 삭제)까지 dual-run CI 상시 관리, (b) 2-CAT propagation WASM 배선 = 성능 최적화 후속 단위(layout 정확성 무관), (c) Phase 2 렌더 계층(2-C scene / 2-D commands / 2-E text) = "이관 대상 제외" 구조적 종결.
-  - 위치: `packages/composition-engine/src/{flex,block,grid,tree,style,cascade,display,spatial_index}.rs`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/{layoutBridge,compositionEngine,featureFlags}.ts`.
+  - 위치: `packages/engine/src/{flex,block,grid,tree,style,cascade,display,spatial_index}.rs`, `apps/builder/src/builder/workspace/canvas/wasm-bindings/{layoutBridge,engine,featureFlags}.ts`.
 
 ## [ADR-916 P2-CAT R10 — text-xl line-height CSS↔Skia 대칭 복원] - 2026-07-05
 
@@ -7238,20 +7238,20 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
 ### Bug Fixes
 
 - **Grid gap offset 승계 버그 수정**:
-  - **Why**: gap 이 있는 CSS Grid 에서 2번째 이후 column/row 의 시작 offset 계산이 바로 앞 트랙 뒤 gap 을 누락했다. `GridLayout.utils.ts` 와 `composition-engine/src/grid.rs` 가 같은 `colStart-2`/`rowStart-2` 조건을 공유해 현재 JS live 경로와 Rust 후보 엔진이 같은 버그로 대칭이었고, Phase 2 배선 시 잘못된 기준선이 될 수 있었다.
+  - **Why**: gap 이 있는 CSS Grid 에서 2번째 이후 column/row 의 시작 offset 계산이 바로 앞 트랙 뒤 gap 을 누락했다. `GridLayout.utils.ts` 와 `engine/src/grid.rs` 가 같은 `colStart-2`/`rowStart-2` 조건을 공유해 현재 JS live 경로와 Rust 후보 엔진이 같은 버그로 대칭이었고, Phase 2 배선 시 잘못된 기준선이 될 수 있었다.
   - 수정: JS live helper와 Rust `grid.rs` 를 동시에 `colStart-1`/`rowStart-1` 조건으로 정정해 앞선 트랙 각각 뒤의 leading gap 을 offset 에 포함.
   - 회귀 가드: Rust golden ignore 해제, row+column leading gap fixture 추가, JS `GridLayout.utils.test.ts` 추가.
-  - 검증: `cargo test --manifest-path packages/composition-engine/Cargo.toml`, `cargo clippy --manifest-path packages/composition-engine/Cargo.toml --tests`, `pnpm exec vitest run apps/builder/src/builder/workspace/canvas/layout/GridLayout.utils.test.ts`, `pnpm run codex:typecheck` PASS.
+  - 검증: `cargo test --manifest-path packages/engine/Cargo.toml`, `cargo clippy --manifest-path packages/engine/Cargo.toml --tests`, `pnpm exec vitest run apps/builder/src/builder/workspace/canvas/layout/GridLayout.utils.test.ts`, `pnpm run codex:typecheck` PASS.
 
 ### Architecture
 
-- **ADR-916 자체 Rust 레이아웃 엔진 live 전환 — Taffy → composition-engine (seam C-2a)**:
-  - **Why**: 외부 Taffy WASM 래핑을 taffy-free 자체 엔진(`packages/composition-engine`)으로 교체 (ADR-916). 본 변경으로 live builder 레이아웃 계산이 `createLayoutEngine()` seam 을 통해 자체 엔진(`CompositionEngineLayout`)으로 전환됐다. 시각 결과는 Taffy 와 동일(diff 0) — 사용자-가시 동작 변화 없음, 엔진만 교체.
+- **ADR-916 자체 Rust 레이아웃 엔진 live 전환 — Taffy → engine (seam C-2a)**:
+  - **Why**: 외부 Taffy WASM 래핑을 taffy-free 자체 엔진(`packages/engine`)으로 교체 (ADR-916). 본 변경으로 live builder 레이아웃 계산이 `createLayoutEngine()` seam 을 통해 자체 엔진(`EngineLayout`)으로 전환됐다. 시각 결과는 Taffy 와 동일(diff 0) — 사용자-가시 동작 변화 없음, 엔진만 교체.
   - seam 배선 3 sub-scope 완료: (B) dual-run self-diff 측정 + (C-1) 실전 catalog 진단 → 선결 2건(flex.rs main-negative / grid.rs implicit auto row) 해소 → (C-2b) 실전 중첩/혼합 5 fixture 전면 diff 0 proof → **(C-2a) 런타임 배선 + flag 전환**.
-  - 배선: `compositionEngineWasm.ts`(전역 로드) + `compositionEngine.ts`(동기 wrapper) — taffy `rustWasm.ts`/`TaffyLayout` 패턴 미러링. 자체 pkg `LayoutEngine` 이 camelCase 16-메서드 = `LayoutEngineAPI` 이름 일치라 raw 타입 변환만. `USE_RUST_LAYOUT_ENGINE: false→true`, wasm-pack out-dir 을 apps/builder 내부(`wasm-bindings/composition-engine-pkg/`)로 지정(`package.json wasm:build:engine`).
+  - 배선: `engineWasm.ts`(전역 로드) + `engine.ts`(동기 wrapper) — taffy `rustWasm.ts`/`TaffyLayout` 패턴 미러링. 자체 pkg `LayoutEngine` 이 camelCase 16-메서드 = `LayoutEngineAPI` 이름 일치라 raw 타입 변환만. `USE_RUST_LAYOUT_ENGINE: false→true`, wasm-pack out-dir 을 apps/builder 내부(`wasm-bindings/engine-pkg/`)로 지정(`package.json wasm:build:engine`).
   - 안전망: 자체 WASM 미준비 시 `createLayoutEngine` 이 TaffyLayout 으로 폴백 — 회귀 시 flag 조정으로 rollback.
-  - live 검증(Chrome MCP): builder 진입 → `createLayoutEngine()` 이 `CompositionEngineLayout` 반환 + flex row 실계산(leaf-b x=30) + Canvas/Skia 렌더 무붕괴. dualRunLive 12/12 + type-check(baseline 69) 무회귀.
-  - 위치: `apps/builder/src/builder/workspace/canvas/wasm-bindings/{compositionEngine,compositionEngineWasm,layoutBridge,init,featureFlags}.ts`.
+  - live 검증(Chrome MCP): builder 진입 → `createLayoutEngine()` 이 `EngineLayout` 반환 + flex row 실계산(leaf-b x=30) + Canvas/Skia 렌더 무붕괴. dualRunLive 12/12 + type-check(baseline 69) 무회귀.
+  - 위치: `apps/builder/src/builder/workspace/canvas/wasm-bindings/{engine,engineWasm,layoutBridge,init,featureFlags}.ts`.
 
 ### Infrastructure
 
@@ -7260,7 +7260,7 @@ src/builder/components/styles` 92 파일 / 852 케이스 PASS.
   - `cascade.rs` — CSS Cascade Resolver 순수 헬퍼 (`cssResolver.ts` 자기완결 계층): 상속 규칙/초기값/cascade 키워드/currentColor/font-variant/논리→물리 속성.
   - `display.rs` — CSS Display 변환 순수 문자열 계층 (`taffyDisplayAdapter.ts` 자기완결 계층): Display Level 3 이원 구조 파싱/blockification/inline-level 판정/자식 분류.
   - `tree.rs` (2-B) — 트리 오케스트레이션 (`taffy_bridge.rs` batch 계약 대응). 단위 1: handle 관리(alloc/recycle) + `build_tree_batch`(post-order 파싱) + `get_layouts_batch`(flat) + 증분 API. 단위 2: post-order flex solve — flex 컨테이너에서 자식 재귀 solve → `flex.rs` 배치 → 자식 bounding box 로 컨테이너 content 크기(height:auto) 도출, NodeStyle → flex flat f32(논리축 매핑) 변환. 단위 3-a: block dispatch — block 컨테이너에서 자식 재귀 solve → `block.rs` 배치 → bounding box 로 컨테이너 크기 도출, NodeStyle → block flat f32(19필드 물리축) 변환, margin collapse/auto-width stretch/fit-content 는 block.rs 내부 처리. 단위 3-b: grid dispatch — grid 컨테이너에서 `grid.rs`(문자열 계약) 어댑터로 셀 배치 → 각 자식 셀 크기로 재귀 solve → 셀 좌표 반영, track array → space-join / gridColumnStart+End → `parse_grid_line` 결합 형식 재조립 / 자식 placement 파이프 직렬화. 단위 4: 증분 dirty 추적 — 증분 API(update_style/set_children/mark_dirty)가 변경 노드 + 조상 체인을 dirty 로 전파(taffy mark_dirty 계약 이식, `TreeNode.parent` 포인터), `solve_node` 는 clean 서브트리 skip(저장 layout 재사용)하고 dirty 서브트리만 재계산, available 변경/clear 시 skip 무효화(%/auto stale 방지). flex/block/grid 3 display dispatch + 증분 재계산 완성 → tree.rs 오케스트레이션 4 단위 완료 = LayoutEngineAPI batch 계약 완비(다음은 seam 배선 + dual-run). DFS 상단(resolveStyle/implicit/enrich = tag·spec·store 도메인)은 JS 잔류.
-  - store·DOM 의존(getRootComputedStyle/var()/토큰), spec SSOT 의존(FONT_STRETCH_KEYWORD_MAP), tag 도메인 의존(INLINE_BLOCK_TAGS/VERTICAL_ALIGN_MIDDLE_TAGS) 은 JS 잔류. seam(`createLayoutEngine`) 미배선 순수 함수라 사용자-가시 변화 없음. 검증은 composition-engine cargo test/clippy 기준으로 고정.
+  - store·DOM 의존(getRootComputedStyle/var()/토큰), spec SSOT 의존(FONT_STRETCH_KEYWORD_MAP), tag 도메인 의존(INLINE_BLOCK_TAGS/VERTICAL_ALIGN_MIDDLE_TAGS) 은 JS 잔류. seam(`createLayoutEngine`) 미배선 순수 함수라 사용자-가시 변화 없음. 검증은 engine cargo test/clippy 기준으로 고정.
   - `wasm.rs` (2-B seam 배선 A) — 자체 crate WASM wrapper. `LayoutEngine`(`#[wasm_bindgen]`) struct 가 내부 `tree::LayoutTree` 를 감싸 JS `LayoutEngineAPI`(layoutBridge.ts) 16 메서드 노출 — `taffy_bridge.rs::TaffyLayoutEngine` 과 동일 시그니처라 `createLayoutEngine` seam 에 교체 가능하게 꽂힘. `#[cfg(target_arch = "wasm32")]` 게이트로 native cargo test 무영향, binary protocol 미구현(JSON 경로 fallback). **"seam 배선"은 3 sub-scope 로 분해**: (A) WASM 바인딩(live 0, 완료) → (B) dual-run self-diff 측정(다음) → (C) `createLayoutEngine` flag 전환(live 엔진 교체, (B) self-diff 0 통과 전제). **seam 미배선 유지** — wrapper 존재 ≠ flag 전환. wasm32 컴파일 성공 확인, live builder 영향 0.
 
 ## [CalendarHeader 헤더 정렬 + Style 패널 layout 동기화 — nav 중앙 정렬 & flex 편집 반영] - 2026-07-02

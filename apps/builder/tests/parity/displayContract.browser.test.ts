@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import type { CaseNode } from "./harness";
 import { pipelineLeg } from "./harness";
 
@@ -82,11 +82,8 @@ function parseBatchCall(json: string, callNumber: number): BatchCall {
 }
 
 function captureBuildTreeBatch(): BatchCapture {
-  const jsonSpy = vi.spyOn(CompositionEngineLayout.prototype, "buildTreeBatch");
-  const binarySpy = vi.spyOn(
-    CompositionEngineLayout.prototype,
-    "buildTreeBatchBinary",
-  );
+  const jsonSpy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
+  const binarySpy = vi.spyOn(EngineLayout.prototype, "buildTreeBatchBinary");
 
   try {
     pipelineLeg(NODES, 400, -1);
@@ -157,7 +154,7 @@ function logRawCapture(): void {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   capture = captureBuildTreeBatch();
 
   const { server } = await import("vitest/browser");

@@ -15,7 +15,7 @@ import { resolveSubpartAwareImplicitStyles } from "./fitContentRemeasure";
 import { isReadOnlySubpart, projectReadOnlySubpart } from "./readOnlySubpart";
 import type { ComputedLayout } from "./LayoutEngine";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
-import { isCompositionEngineReady } from "../../wasm-bindings/compositionEngineWasm";
+import { isEngineReady } from "../../wasm-bindings/engineWasm";
 import { PersistentLayoutTree } from "./persistentLayoutTree";
 import { installLayoutExplain } from "./layoutExplain";
 import type { PersistentBatchNode } from "./persistentLayoutTree";
@@ -2636,7 +2636,7 @@ export function calculateFullTreeLayout(
   getChildElements: (id: string) => CanvasLayoutNode[],
 ): Map<string, ComputedLayout> | null {
   // WASM 가용성 확인 (자체 엔진 — ADR-916 Taffy 완전 제거)
-  if (!isCompositionEngineReady()) return null;
+  if (!isEngineReady()) return null;
 
   // 루트 요소 존재 확인
   const rootEl = elementsMap.get(rootElementId);

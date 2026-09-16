@@ -18,7 +18,7 @@ import { Disclosure } from "@composition/shared/components/Disclosure";
 import { TextField } from "@composition/shared/components/TextField";
 import { TextArea } from "@composition/shared/components/TextArea";
 import { getElementForTag } from "@composition/specs";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import type { Element } from "@/types/core/store.types";
@@ -173,7 +173,7 @@ function standalone(type: string): ProductionTree {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   trees = await allPaletteCreationTrees("hc2");
   const palette = new Set(getPaletteItems().map((p) => p.type));

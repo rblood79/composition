@@ -12,7 +12,7 @@ Implemented — 2026-07-25 (Phase 0~3 완결, execute-adr 단일 세션. 리뷰 
 
 1. **사전 enrichment 폭 주입** — `utils.ts:4437` `enrichWithIntrinsicSize`: 텍스트 leaf 폭을 CanvasKit 측정으로 선주입. §4.5 content 하한은 **단일줄 측정폭(ceil) 상한 근사** 라 재줄바꿈 케이스에서 CSS 대비 덜 shrink 하는 발산이 명문화돼 있다 (ADR-164 breakdown §7 0-2 역방향).
 2. **2-pass Step 4.5** — `fullTreeLayout.ts:2466`: 배치 폭이 enrichment 가정 폭과 다르면 재측정 → 재계산 (측정-배치 닭-달걀의 범용 우회 장치).
-3. **엔진 센티널 dormant gap** — `packages/composition-engine/src/style.rs:26~30/299~301` 이 `FIT_CONTENT(-2)/MIN_CONTENT(-3)/MAX_CONTENT(-4)` 를 파싱하나, `tree.rs:2339~2364` 는 FIT_CONTENT 를 block 경로에서 부분 통과시킬 뿐 MIN/MAX_CONTENT 소비는 **0건** (tree/flex/block/grid.rs 전수 grep) — 키워드가 파싱되고 소비되지 않는다.
+3. **엔진 센티널 dormant gap** — `packages/engine/src/style.rs:26~30/299~301` 이 `FIT_CONTENT(-2)/MIN_CONTENT(-3)/MAX_CONTENT(-4)` 를 파싱하나, `tree.rs:2339~2364` 는 FIT_CONTENT 를 block 경로에서 부분 통과시킬 뿐 MIN/MAX_CONTENT 소비는 **0건** (tree/flex/block/grid.rs 전수 grep) — 키워드가 파싱되고 소비되지 않는다.
 4. **grid intrinsic 계열 위임** — ADR-164 breakdown §2/§3 이 grid item automatic minimum (CSS-GRID-1 §6.6)·intrinsic track (min/max-content — `grid.rs` 미구현, 현행 0 폴백) 을 "① 후속과 동반" 으로 본 ADR 에 위임했다. 본 ADR 의 스칼라 공급이 곧 grid track sizing 이 요구하는 입력이다 (처분은 Decision 조건부 규칙).
 
 **Hard Constraints**:

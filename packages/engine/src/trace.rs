@@ -97,7 +97,7 @@ pub enum TrackStage {
 /// off 경로 비용이 아니라 유지 부담(R2)이 커진다.
 ///
 /// JSON 직렬화는 internally-tagged (`"type"` 필드) — TS 판독자가 discriminated
-/// union 으로 소비한다 (`compositionEngine.ts::EngineTraceEvent`). variant 명·
+/// union 으로 소비한다 (`engine.ts::EngineTraceEvent`). variant 명·
 /// 필드명이 곧 wire 계약이므로 rename 은 TS 타입과 동시 갱신
 /// (`tests/layout_trace.rs` JSON 계약 테스트가 감시). `GridTrackResolve.tracks`
 /// 의 NAN(미해소 토큰)은 serde_json 이 `null` 로 내보낸다.

@@ -8,7 +8,7 @@ import { TextArea } from "@composition/shared/components/TextArea";
 import { NumberField } from "@composition/shared/components/NumberField";
 import { DateField } from "@composition/shared/components/DateField";
 import { TimeField } from "@composition/shared/components/TimeField";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import { layoutTree, paletteCreationTree } from "./adr923ProductionTrees";
@@ -209,11 +209,15 @@ async function runCanvas(
     els.map((el) => [el.id, el as unknown as CanvasSceneNode]),
   );
   const findText = (
-    n: { text?: { fontSize: number; lineHeight?: number; content: string } | undefined; children?: unknown[] } | null,
+    n: {
+      text?:
+        { fontSize: number; lineHeight?: number; content: string } | undefined;
+      children?: unknown[];
+    } | null,
   ): { fontSize: number; lineHeight?: number; content: string } | undefined => {
     if (!n) return undefined;
     if (n.text?.content) return n.text;
-    for (const c of (n.children ?? []) as typeof n[]) {
+    for (const c of (n.children ?? []) as (typeof n)[]) {
       const found = findText(c);
       if (found) return found;
     }
@@ -242,7 +246,7 @@ async function runCanvas(
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   const style = document.createElement("style");
   style.id = "adr923-fe-state-bundle";

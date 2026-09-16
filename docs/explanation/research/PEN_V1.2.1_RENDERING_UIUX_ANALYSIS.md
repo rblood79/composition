@@ -69,7 +69,7 @@ Pen.app (Electron)
 
 `pencil_layout*` / `pencil_hit*` / `pencil_node*` / `pencil_scene*` 계열 **0건**. scene graph, 문서 모델, auto-layout, 노드 히트테스트, 카메라/viewport, 컬링은 전부 JS. wasm 내부는 Skia 호출 wrapper 뿐 (C++ 심볼 증거: `pencil_paragraph_get_path` → `skia::textlayout::Paragraph` visitor).
 
-**composition 과의 대비**: composition 은 렌더 바인딩 (CanvasKit) 과 별개로 **레이아웃을 Rust WASM (composition-engine, ADR-916) 이 소유**한다. Pen 은 레이아웃이 JS 다 — DOM Preview 와의 CSS 정합 요구가 없기 때문 (§7 참조).
+**composition 과의 대비**: composition 은 렌더 바인딩 (CanvasKit) 과 별개로 **레이아웃을 Rust WASM (engine, ADR-916) 이 소유**한다. Pen 은 레이아웃이 JS 다 — DOM Preview 와의 CSS 정합 요구가 없기 때문 (§7 참조).
 
 ---
 
@@ -297,7 +297,7 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 | 축              | **Pen v1.2.1**                                                                               | **composition**                                                                             |
 | --------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | Skia 바인딩     | 자체 C API 385개 (`pencil_*`) + 수제 wrapper — embind 없음, Skia m149 직접 빌드              | 공식 CanvasKit WASM (embind, `canvaskit-wasm@0.40` 고정)                                    |
-| WASM 책임       | 렌더 + 텍스트 측정/레이아웃 + path + PDF **만**                                              | CanvasKit = 렌더+측정 / **레이아웃은 별도 자체 Rust WASM** (composition-engine)             |
+| WASM 책임       | 렌더 + 텍스트 측정/레이아웃 + path + PDF **만**                                              | CanvasKit = 렌더+측정 / **레이아웃은 별도 자체 Rust WASM** (engine)                         |
 | 레이아웃        | **JS**, Figma 형 stack auto-layout (hug/fill, 2축 2-pass) — CSS 호환 목표 없음               | **Rust WASM**, CSS-FLEXBOX/GRID 표준 정합 (§4.5 automatic minimum size 등)                  |
 | DOM 렌더 경로   | 없음 — 캔버스 단일 + HTML 은 export 산출물                                                   | **Skia ↔ DOM 대등 2-consumer** (D3 SSOT 대칭) — 근본 차이                                   |
 | 프레임 루프     | **on-demand rAF — idle 시 rAF 체인 완전 정지** (`framesRequested` 카운터) + delta clamp      | **연속 rAF + 5종 frame 분류** — idle 프레임은 GPU 작업 0, rAF wake 자체는 유지 (§6-1-b)     |
@@ -308,7 +308,7 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 | 멀티스레드      | 없음 (pthread/SAB 0건)                                                                       | 없음 (동일)                                                                                 |
 | 스크립트 확장   | QuickJS WASM 샌드박스 (메모리/스택 제한 + 시드 RNG)                                          | 해당 없음                                                                                   |
 | 컴포넌트 모델   | `reusable` + `slot` + `Ref/descendants` override                                             | canonical `reusable`/Ref 모델 — **1:1 정합** (ADR-142 계열)                                 |
-| AI              | 5계열 에이전트 + spawn_agents + 스트리밍 라이브 렌더 + MCP 생태계 주입                       | Tool Calling (ADR-134 로 LLM 통합 재설계 제안 중)                                      |
+| AI              | 5계열 에이전트 + spawn_agents + 스트리밍 라이브 렌더 + MCP 생태계 주입                       | Tool Calling (ADR-134 로 LLM 통합 재설계 제안 중)                                           |
 
 ## 6-1. 렌더링 축 상세 비교 — composition 관점 장단점
 
@@ -435,7 +435,7 @@ renderScreenspace(t,e){ this.resizeHandles.render(t,e); this.guidesGraph.render(
 
 노드당 약 0.3µs 선형. 하위 분해 (N=9,728): `buildDepthMap` 0.8ms (최대, 약 38%) · `buildPageDataMap` 0.4ms · `buildPageFrames` 0.2ms · 나머지 약 0.7ms (페이지별 `hashString` + visible set).
 
-`layoutPublisherInputs` 는 visible page 마다 `new Map(elementById)` 를 뜬다 (`renderers/rendererInput.ts`) → 10k·2페이지에서 약 0.8ms 추가. **합계 약 3~4.7ms/프레임 = 60fps 예산의 18~28%.** Pen 은 이 구간이 0ms 다 (§6-3-2 (a) #5).
+`layoutPublisherInputs` 는 visible page 마다 `new Map(elementById)` 를 뜬다 (`renderers/rendererInput.ts`) → 10k·2페이지에서 약 0.8ms 추가. **합계 약 3~~4.7ms/프레임 = 60fps 예산의 18~~28%.** Pen 은 이 구간이 0ms 다 (§6-3-2 (a) #5).
 
 **측정 한계 (명시)**: end-to-end 팬 프레임은 측정하지 못했다 — 위는 "함수 비용 × 코드로 확인한 빈도" 다. `performance.now()` 가 0.1ms 로 양자화돼 소규모 값은 정밀도가 낮고, 10k 두 회차가 2.1/3.9 로 갈린 것은 JIT·GC 편차다. 스케일은 단일 페이지 클론이라 실제 문서의 형태 분포와 다르다. 계측 코드는 반영하지 않고 되돌렸다.
 

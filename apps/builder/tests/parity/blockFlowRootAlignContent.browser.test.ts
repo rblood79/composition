@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -115,14 +115,18 @@ const FLOW_ROOT: ParityCase[] = [
     nodes: [
       n("child", { marginTop: "40px", height: "10px" }),
       n("plain", {}, [0]),
-      n("abs", {
-        position: "absolute",
-        top: "0px",
-        left: "0px",
-        insetTop: "0px",
-        insetLeft: "0px",
-        width: "300px",
-      }, [1]),
+      n(
+        "abs",
+        {
+          position: "absolute",
+          top: "0px",
+          left: "0px",
+          insetTop: "0px",
+          insetLeft: "0px",
+          width: "300px",
+        },
+        [1],
+      ),
       root([2], { position: "relative", height: "100px" }),
     ],
   },
@@ -346,7 +350,6 @@ const ALIGN_CONTENT: ParityCase[] = [
   },
 ];
 
-
 // ── align-content 와 첫 자식 margin 의 collapse (outer 를 씌워 blk 자신의 이동을 본다) ──
 const MARGIN_ESCAPE: ParityCase[] = (
   ["normal", "start", "center", "end"] as const
@@ -394,7 +397,7 @@ const ALL = [
 
 describe("⑧ flow-root BFC · block align-content", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(ALL.map((c) => [c.name, c] as const))(

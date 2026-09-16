@@ -113,7 +113,7 @@ screenshot의 SHA-256이다.
 - Vite production bundle: 성공
 
 local static production host는 ADR-187 Phase 0에 기록된 기존 dynamic WASM asset
-`composition-engine-pkg/composition_engine.js` 미복사 제약이 있어 Skia live gate로
+`engine-pkg/engine.js` 미복사 제약이 있어 Skia live gate로
 사용하지 않았다. G6은 해당 WASM을 실제 로드하고 실제 Builder split에서 draw/hit을
 소비하는 dev Builder로 검증했다. 이 제한은 ADR-188 변경으로 생기지 않았으며, 잘못된
 fallback 수치를 GREEN 근거로 사용하지 않았다.

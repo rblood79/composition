@@ -7,9 +7,9 @@
 //! 시나리오는 실제 발산 형태를 본뜬다 — flex row 안에 컨테이너 item 이 있고 그 안에
 //! 다시 중첩이 이어지는 구조. 측정 캐시가 없으면 여기서 깊이에 지수적으로 늘어난다(R1).
 //!
-//! 실행: `cargo bench --bench tree_solve` (packages/composition-engine)
+//! 실행: `cargo bench --bench tree_solve` (packages/engine)
 
-use composition_engine::tree::{LayoutTree, NodeStyle};
+use engine::tree::{LayoutTree, NodeStyle};
 use std::hint::black_box;
 use std::time::Instant;
 

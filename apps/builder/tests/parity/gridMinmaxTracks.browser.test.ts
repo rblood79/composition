@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -169,7 +169,7 @@ const CASES: ParityCase[] = [
 
 describe("grid minmax 트랙 — CSS 대조", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(CASES.map((c) => [c.name, c] as const))(

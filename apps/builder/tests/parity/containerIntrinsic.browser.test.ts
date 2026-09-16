@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type ParityCase,
   runParityCase,
@@ -503,7 +503,7 @@ const K_COLUMN_MAIN: ParityCase = {
 
 describe("컨테이너 flex item intrinsic ↔ CSS 대조 (ADR-169)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   describe("정합 — 회귀 가드", () => {

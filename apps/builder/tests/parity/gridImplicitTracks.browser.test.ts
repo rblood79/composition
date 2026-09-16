@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -310,7 +310,7 @@ const CONTROLS: ParityCase[] = [
 
 describe("ADR-206 Phase 2 — grid 암묵 트랙", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each([...CASES, ...CONTROLS].map((c) => [c.name, c] as const))(

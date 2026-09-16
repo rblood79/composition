@@ -35,7 +35,7 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import type { CanvasKit } from "canvaskit-wasm";
 
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { PILOT_CASES } from "../cases";
 import { CASE_PROJECT_ID } from "../cases/scaffold";
@@ -316,7 +316,7 @@ function formatRegions(r: ParityReport): string {
 describe("ADR-198 Phase 4b — Skia ↔ Preview cross-leg (G3 positive)", () => {
   beforeAll(async () => {
     ck = await initCanvasKit();
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   }, 180_000);
 
   for (const c of PILOT_CASES) {

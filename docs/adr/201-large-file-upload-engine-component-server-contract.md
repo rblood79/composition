@@ -44,7 +44,7 @@ Proposed — 2026-09-02
 ### 대안 A: TS 독립 package 엔진 (sans-I/O 코어 + XHR driver) + TUS 어댑터 + `FileUpload` compound + Spring 참조 서버 (권장)
 
 - 설명: `packages/upload-engine` (`@composition/upload`, 의존 0) — 순수 함수 상태기계 `reduce(state, event) → [state, commands]` + driver (XHR/Fetch/Storage) + 어댑터 (tus 기본 · cloud clamp · multipart fallback) + `/react` · `/vanilla`(IIFE) entry. composition 은 `FileUpload` compound (DropZone + FileTrigger>Button + GridList 파일 목록 + ProgressBar) 의 `renderFileUpload` 가 `/react` 를 lazy 소비. 서버 계약 문서 + `examples/upload-server-spring/` (Java 8/Spring 5, jar 무의존 컨트롤러 + `tus-java-server` 변형) + `examples/upload-client-jsp/`.
-- 근거: tus-js-client 의 구조 (creation → HEAD → PATCH 루프, fingerprint→storage 재개, `overridePatchMethod`) 와 Uppy Golden Retriever (새로고침 복구) 의 통찰을 프로토콜 수준에서 채택. sans-I/O 는 Python `h11`/`sans-io` 패턴 — I/O 를 driver 로 분리해 테스트·이식성 확보. `@composition/specs` 의 tsup/exports 형태와 `composition-engine` 의 "독립 엔진, composition 은 consumer" 구조를 그대로 따른다.
+- 근거: tus-js-client 의 구조 (creation → HEAD → PATCH 루프, fingerprint→storage 재개, `overridePatchMethod`) 와 Uppy Golden Retriever (새로고침 복구) 의 통찰을 프로토콜 수준에서 채택. sans-I/O 는 Python `h11`/`sans-io` 패턴 — I/O 를 driver 로 분리해 테스트·이식성 확보. `@composition/specs` 의 tsup/exports 형태와 `engine` 의 "독립 엔진, composition 은 consumer" 구조를 그대로 따른다.
 - 위험:
   - 기술: **M** — XHR 첫 사용 + TUS 상태기계 자작 + 참조 서버가 다른 언어 (Java). mock TUS 서버 + tusd 대조군으로 닫는다.
   - 성능: L — 의존 0, lazy chunk, 네트워크가 병목 (1GB@100Mbps = 80s, 청크당 오케스트레이션 µs).
@@ -71,7 +71,7 @@ Proposed — 2026-09-02
   - 유지보수: **H** — 자체 정의 프로토콜 = 표준 서버 (tusd/tus-node-server/tusdotnet) 호환 0, 고객마다 서버 재구현. 계약 문서가 곧 유일한 구현.
   - 마이그레이션: L.
 
-### 대안 D: Rust/wasm 코어 (`composition-engine` 동형)
+### 대안 D: Rust/wasm 코어 (`engine` 동형)
 
 - 설명: 프로토콜 코어를 Rust crate 로 만들고 wasm-bindgen 으로 브라우저에 싣는다.
 - 근거: 레이아웃 엔진 선례 (ADR-916). 네이티브 에이전트와 코어 공유 가능.
@@ -157,7 +157,7 @@ Proposed — 2026-09-02
 
 ### Positive
 
-- `@composition/upload` 가 composition 밖 (JSP/Spring 고객 페이지, 향후 Electron/Node) 에서도 동작하는 첫 독립 TS package — `composition-engine` 의 "독립 엔진 + consumer" 구조를 TS 층에도 확립. `packages/upload-engine` 신설, `@composition/specs` 동형 배포 형태.
+- `@composition/upload` 가 composition 밖 (JSP/Spring 고객 페이지, 향후 Electron/Node) 에서도 동작하는 첫 독립 TS package — `engine` 의 "독립 엔진 + consumer" 구조를 TS 층에도 확립. `packages/upload-engine` 신설, `@composition/specs` 동형 배포 형태.
 - 잘못된 런타임→문서 채널 (`renderFileTrigger` `selectedFiles` write) 제거 — canonical document 가 런타임 상태로 오염되지 않는다.
 - `CAPABILITY_REGISTRY` 에 DropZone/FileTrigger 가 등재되어 기존 두 컴포넌트도 규칙 트리거가 된다.
 - 서버 계약 문서 + Spring 참조 구현 + JSP 예제로 초기 고객 (Java 8/Spring 5/Tomcat/Oracle) 이 즉시 도입 가능 — 다른 언어 서버는 표준 TUS 구현체 (tusd/tus-node-server/tusdotnet) 로 대체 가능.

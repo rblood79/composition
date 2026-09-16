@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type ParityCase,
   runParityCase,
@@ -215,7 +215,7 @@ const CASES: ParityCase[] = [
 
 describe("ADR-164 G1 — automatic minimum size (engine leg)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   for (const c of CASES) {
@@ -227,7 +227,7 @@ describe("ADR-164 G1 — automatic minimum size (engine leg)", () => {
 
 describe("ADR-164 G1 — automatic minimum size (builder pipeline leg)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   for (const c of CASES) {

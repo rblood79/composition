@@ -239,7 +239,7 @@
     "sha256": "81c63c52add236d12d37114c7dd8d54964a2b78cb0e63fb8bbdb1d75a9db845d"
   },
   "environmentLimitations": [
-    "The local static production host does not package composition-engine-pkg/composition_engine.js, so the layout engine used its existing timeout fallback.",
+    "The local static production host does not package engine-pkg/engine.js, so the layout engine used its existing timeout fallback.",
     "Existing Pretendard production asset resolution emitted font decode warnings.",
     "The product Preview iframe rendered real data-element-id nodes in Builder split mode for every tier despite these unrelated baseline diagnostics."
   ]

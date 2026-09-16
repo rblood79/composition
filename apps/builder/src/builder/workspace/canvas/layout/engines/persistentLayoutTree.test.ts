@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { LayoutEngineAPI } from "../../wasm-bindings/layoutBridge";
-import type { LayoutResult } from "../../wasm-bindings/compositionEngine";
+import type { LayoutResult } from "../../wasm-bindings/engine";
 import {
   PersistentLayoutTree,
   type PersistentBatchNode,

@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   calculateFullTreeLayout,
   resetPersistentTree,
@@ -235,7 +235,7 @@ describe("ADR-923 Phase 4 — DC-6 overflow cap 인벤토리 (Q4 소비 경로 �
   let paletteTrees: ProductionTree[] = [];
 
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     useStore.setState({ elements: [], elementsMap: new Map() } as never);
     paletteTrees = await allPaletteCreationTrees("adr923-dc6-palette");
   });

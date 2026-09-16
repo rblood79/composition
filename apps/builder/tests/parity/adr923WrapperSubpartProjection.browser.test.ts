@@ -12,7 +12,7 @@ import { DateRangePicker } from "@composition/shared/components/DateRangePicker"
 import { Meter } from "@composition/shared/components/Meter";
 import { ProgressBar } from "@composition/shared/components/ProgressBar";
 import { Slider } from "@composition/shared/components/Slider";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import { layoutTree, paletteCreationTree } from "./adr923ProductionTrees";
@@ -216,7 +216,7 @@ async function runCanvas(type: AnyType, junk: boolean): Promise<Leg> {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   const style = document.createElement("style");
   style.id = "adr923-wrapper-subpart-bundle";

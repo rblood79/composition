@@ -202,10 +202,10 @@
 
 | 파일                                                           | 변경                                                |
 | -------------------------------------------------------------- | --------------------------------------------------- |
-| `packages/composition-engine/src/tree.rs`                      | 센티넬 2종, 측정 캐시, `solve_*` 모드 분기          |
-| `packages/composition-engine/src/flex.rs`                      | (필요 시) floor 주석 갱신 — 로직 무변경 예상        |
-| `packages/composition-engine/src/grid.rs`                      | **무변경** — Phase 3 판정 = 이연 (가드는 `tree.rs`) |
-| `packages/composition-engine/tests/`                           | 단위 + golden 계약 가드                             |
+| `packages/engine/src/tree.rs`                                  | 센티넬 2종, 측정 캐시, `solve_*` 모드 분기          |
+| `packages/engine/src/flex.rs`                                  | (필요 시) floor 주석 갱신 — 로직 무변경 예상        |
+| `packages/engine/src/grid.rs`                                  | **무변경** — Phase 3 판정 = 이연 (가드는 `tree.rs`) |
+| `packages/engine/tests/`                                       | 단위 + golden 계약 가드                             |
 | `apps/builder/tests/parity/containerIntrinsic.browser.test.ts` | 신규 fixture (§2-2 7형태)                           |
 | `apps/builder/tests/parity/slotPercentChild.browser.test.ts`   | 헤더 §범위 밖 발산 항목 해소 반영                   |
 | `.claude/rules/layout-engine.md`                               | §TS 잔존 계약 1행 정밀화 + §automatic minimum       |

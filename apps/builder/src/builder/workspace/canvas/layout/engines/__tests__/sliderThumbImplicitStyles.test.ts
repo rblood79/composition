@@ -4,7 +4,7 @@
  * `applyImplicitStyles(SliderTrack)` 가 SliderThumb 자식에 **selection/hit box** 를
  * value 위치로 배치하는 스타일을 주입함을 확증한다. 이 주입은
  * `position:absolute + left:${percent}% + top + marginLeft` 형태이며, **엔진
- * (composition-engine)이 absolute/inset 을 소비**해야 실제 좌표가 된다
+ * (engine)이 absolute/inset 을 소비**해야 실제 좌표가 된다
  * (`tree.rs::place_absolute_children` — 그 전까지는 전량 무시되어 thumb box 가
  * 항상 원점(0,0)에 고정됐다).
  *

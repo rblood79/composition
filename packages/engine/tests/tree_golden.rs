@@ -14,7 +14,7 @@
 //! 컨테이너 padding 자식 available 감산/좌표 offset(§2.6 offset 계약)이 padding
 //! 이 있는 flex row 에서도 CSS 와 일치하는지 회귀 감시한다.
 
-use composition_engine::tree::LayoutTree;
+use engine::tree::LayoutTree;
 
 /// HC3 (a) 수치 tolerance (px) — golden.rs TOL 과 동일.
 const TOL: f32 = 1.0;

@@ -1,7 +1,7 @@
 /**
  * WASM 모듈 통합 초기화
  *
- * composition-engine(자체 layout 엔진 + SpatialIndex)과 CanvasKit 을 병렬로
+ * engine(자체 layout 엔진 + SpatialIndex)과 CanvasKit 을 병렬로
  * 초기화한다.
  *
  * ADR-916 Taffy 완전 제거 (2026-07-06): Taffy pkg(rustWasm) 로드 블록 +
@@ -19,18 +19,17 @@ export async function initAllWasm(): Promise<void> {
     const { WASM_FLAGS } = await import("./featureFlags");
     const tasks: Promise<void>[] = [];
 
-    // composition-engine(자체 taffy-free 엔진) WASM.
+    // engine(자체 taffy-free 엔진) WASM.
     // createLayoutEngine()(동기)이 전역 캐시를 읽으려면 startup 에서 먼저
     // await 돼 있어야 한다. SpatialIndex(같은 pkg 에 crate 분리 편입) 초기화도
     // 여기서 — 한 번의 로드로 둘 다 준비된다.
     {
       const { isUnifiedFlag } = await import("./featureFlags");
       if (isUnifiedFlag("USE_RUST_LAYOUT_ENGINE")) {
-        const { initCompositionEngineWasm, isCompositionEngineReady } =
-          await import("./compositionEngineWasm");
+        const { initEngineWasm, isEngineReady } = await import("./engineWasm");
         tasks.push(
-          initCompositionEngineWasm().then(async () => {
-            if (isCompositionEngineReady() && WASM_FLAGS.SPATIAL_INDEX) {
+          initEngineWasm().then(async () => {
+            if (isEngineReady() && WASM_FLAGS.SPATIAL_INDEX) {
               const { initSpatialIndex } = await import("./spatialIndex");
               initSpatialIndex();
             }

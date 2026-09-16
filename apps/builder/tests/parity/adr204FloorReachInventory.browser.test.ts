@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import {
   allPaletteCreationTrees,
@@ -57,7 +57,7 @@ function isNonScrollable(v: string | null): boolean {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   const trees: ProductionTree[] = await allPaletteCreationTrees("adr204-inv");
   treeCount = trees.length;
@@ -187,7 +187,9 @@ describe("ADR-204 Phase 0 — floor 도달 인벤토리", () => {
     expect(isNonScrollable(root("GridList").overflow), "GridList 기본").toBe(
       true,
     );
-    expect(root("GridList").definiteHeight, "GridList 높이 definite").toBe(true);
+    expect(root("GridList").definiteHeight, "GridList 높이 definite").toBe(
+      true,
+    );
   });
 
   it("대안 C 가 닿는 표면은 collection 밖이 훨씬 크다 (R1 의 크기)", () => {

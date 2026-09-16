@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { KNOWN_CHILD_SIZE, KNOWN_CHILD_PIPELINE } from "./basicAxis.known";
 import {
@@ -176,7 +176,7 @@ function pipelineSubsetCases(): ParityCase[] {
 
 describe("ADR-170 부분 격자 2 — 자식 크기", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it("부모display×width×height×margin×min/max 720 조합 — 발산 집합 고정", () => {

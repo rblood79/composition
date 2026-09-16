@@ -282,7 +282,7 @@ fn is_border_style_keyword(token: &str) -> bool {
 ///
 /// # Examples
 /// ```
-/// use composition_engine::style::{resolve_css_size_value, CssValueContext};
+/// use engine::style::{resolve_css_size_value, CssValueContext};
 /// assert_eq!(resolve_css_size_value("100px", &CssValueContext::default()), Some(100.0));
 /// let ctx = CssValueContext { container_size: Some(800.0), ..Default::default() };
 /// assert_eq!(resolve_css_size_value("50%", &ctx), Some(400.0));

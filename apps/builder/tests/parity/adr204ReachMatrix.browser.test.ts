@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import { type CaseNode, domLeg, pipelineLeg } from "./harness";
@@ -168,7 +168,7 @@ function generalBox(overflow: "visible" | "auto"): CaseNode[] {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   const style = document.createElement("style");
   style.id = "adr204-g1-bundle";
@@ -249,7 +249,9 @@ describe("ADR-204 Phase 3 — G1 도달 매트릭스 (production collection × o
   });
 
   it("Table — DOM 외곽은 min-height 40 (catalog containerStyles) 이라 overflow 와 무관하게 80 으로 줄어든다: production 도 80 (종전 minHeight 402 주입은 402)", () => {
-    for (const r of rows.filter((x) => x.type === "Table" && x.parentH === 80)) {
+    for (const r of rows.filter(
+      (x) => x.type === "Table" && x.parentH === 80,
+    )) {
       expect(r.dom, key(r)).toBeCloseTo(80, 0);
       expect(r.pipeline, key(r)).toBeCloseTo(80, 0);
     }

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Rust 레이아웃 엔진 패키지 명칭 통일 — `packages/engine`] - 2026-09-17
+
+### Changed
+
+- 자체 Rust 레이아웃 엔진 경로와 crate 를 `packages/engine` / `engine` 으로 통일했다. WASM 산출물은 `engine-pkg/engine.js`, Builder wrapper 는 `engine.ts` · `engineWasm.ts`, 공개 식별자는 `EngineLayout` · `initEngineWasm` · `isEngineReady` 로 바꿨다. CI Cargo cache, agent 범위 검증, 문서와 테스트의 기존 명칭도 함께 갱신해 이전 패키지·crate·WASM·TypeScript 이름을 제거했다. 런타임 레이아웃 계약과 직렬화 형식은 바꾸지 않는다.
+
 ## [샘플 데이터 생성기 패키지화 — `@composition/sample-data` · AI 테이블 규칙 kind `mock` → `generate` (ADR-220)] - 2026-09-16
 
 ### Changed
@@ -1290,7 +1296,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
 
 ### Fixed
 
-- production에서 composition engine의 동적 JS import가 404를 내며 Builder 부팅이 95%에 머무는 문제를 수정했습니다. Vite가 JS/WASM 경로를 번들링하도록 연결하고, matching document의 실제 Skia 제출 이후에만 ready가 되는 계약을 유지합니다.
+- production에서 Rust engine의 동적 JS import가 404를 내며 Builder 부팅이 95%에 머무는 문제를 수정했습니다. Vite가 JS/WASM 경로를 번들링하도록 연결하고, matching document의 실제 Skia 제출 이후에만 ready가 되는 계약을 유지합니다.
 
 ## [Navigator 선택 fan-out 제거 — ADR-203 Implemented] - 2026-09-06
 
@@ -1382,7 +1388,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
 
 - **wasm 입력 strict 모드**: 레이아웃 엔진은 자기가 모르는 스타일 키를 조용히 버립니다. 그 차이가 위치 어긋남으로만 나타나 엔진 결함으로 오판된 이력이 있어, 하니스에서 켜면 그 자리에서 실패하도록 했습니다. production 은 그대로 관대합니다 (미지 키 하나로 레이아웃 전체가 실패하면 안 됩니다).
   - 켠 첫 실행이 인벤토리였습니다 — 파이프라인이 보내고 엔진이 버리는 키는 `whiteSpace` 와 `order` 둘뿐이고, 둘 다 TS 가 소유해 엔진이 안 읽어도 결과가 맞습니다 (사유와 함께 통과 목록에 등재).
-  - 위치: `packages/composition-engine/src/{tree,wasm}.rs`, `canvas/wasm-bindings/{layoutBridge,compositionEngine}.ts`
+  - 위치: `packages/engine/src/{tree,wasm}.rs`, `canvas/wasm-bindings/{layoutBridge,engine}.ts`
 - **정적 게이트 2개**: 삭제된 의존성 이름 (Taffy) 의 현재형 서술 재유입 차단 · `CSS_SUPPORT_MATRIX.md` 엔진 절과 코드의 drift 검사 (`codex:preflight` 에 추가).
 
 ### Fixed
@@ -1480,7 +1486,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
   - 엔진 `flex.rs` 에 §4.5 specified size suggestion 절 (`min(specified, content)`, 정확 스칼라를 가진 definite item 만) 을 두고, column definite 컨테이너는 자식 extent 를, 가상화 collection 은 `contentMinHeight` (행 수 × stride) 를 공급합니다. 같은 절이 collection 밖 일반 상자 (자식 실재, definite 높이) 의 발산도 닫습니다.
   - **Table**: Canvas 만 `minHeight: 402` 를 주입해 제약 flex 에서 줄어들지 않던 것을 제거했습니다. DOM 외곽 `.react-aria-Table` 은 catalog `min-height: 40px` 이라 같이 줄어듭니다 (Canvas 402 → 80).
   - **GridList**: Canvas 만 `overflow: hidden` 을 주입해 scroll container 로 판정되던 것을 제거했습니다. GridList.css 에 overflow 선언이 없어 Preview 는 non-scrollable 이고 min-content 164 를 지킵니다 (Canvas 80 → 164).
-  - 위치: `packages/composition-engine/src/flex.rs` · `tree.rs` · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `implicitStyles.ts`. 게이트: `adr204ReachMatrix.browser.test.ts` (production 24 행 Chrome ≤1px) · `adr204MinContentFloorFirstNail.browser.test.ts`. 이연: row 축 definite 컨테이너 (ADR-188 방문 수 기준선과 충돌 — 사용자 판정 대기).
+  - 위치: `packages/engine/src/flex.rs` · `tree.rs` · `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` · `implicitStyles.ts`. 게이트: `adr204ReachMatrix.browser.test.ts` (production 24 행 Chrome ≤1px) · `adr204MinContentFloorFirstNail.browser.test.ts`. 이연: row 축 definite 컨테이너 (ADR-188 방문 수 기준선과 충돌 — 사용자 판정 대기).
 
 ## [요소 편집과 선택·스타일 읽기를 canonical 문서 기준으로 통일했습니다] - 2026-09-04
 
@@ -1965,7 +1971,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`resolveTextLeafContent`, `enrichWithIntrinsicSize`)
 - **높이가 자동인 상자의 `min-height: 50%` 가 폭 기준으로 풀려 아래 여백이 5px 어긋나던 문제** (미리보기 40 / 캔버스 35): CSS 에서 부모 높이가 정해지지 않은 percentage min-height 는 0 입니다. 세로 축 기준으로 풀도록 고쳤습니다.
 - **`min-height` 가 `max-height` 보다 클 때 작은 쪽이 이기던 문제** (미리보기 30 / 캔버스 10): CSS 는 max 를 먼저, 그다음 min 을 적용합니다 (min 이 우선). 블록 상자·최상위 상자·grid 트랙 기여값 세 곳이 같은 순서 오류였습니다. 최상위 상자가 높이를 직접 정했을 때 min/max 를 건너뛰던 것도 고쳤습니다.
-  - 위치: `packages/composition-engine/src/block.rs` (`clamp_size`), `packages/composition-engine/src/tree.rs` (`solve_block`, `fixup_root_self_size`, `track_contribution`)
+  - 위치: `packages/engine/src/block.rs` (`clamp_size`), `packages/engine/src/tree.rs` (`solve_block`, `fixup_root_self_size`, `track_contribution`)
 - 검증: Chrome 차등 87/87 (68 케이스 + 게이트 19) · 렌더 parity 1023 회귀 0 · ADR-923 Phase 3 round 12 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
 
 ## [공백만 있는 텍스트와 높이를 정한 상자의 아래 여백이 미리보기와 같아집니다] - 2026-09-01
@@ -1976,7 +1982,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
   - **Why**: 엔진에 "줄 상자(line box) 가 있는가" 를 알려주는 신호를 원본 문자열이 비어 있는지로만 만들었습니다. CSS 는 `white-space: normal`/`nowrap` 에서 공백·탭·줄바꿈만 있는 내용을 줄 시작·끝에서 지우므로 줄 상자가 없고, 여백은 빈 상자처럼 접힙니다. `pre` 계열과 nbsp, `pre-line` 의 줄바꿈은 그대로 줄 상자가 됩니다.
   - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`textLeafRendersContent`)
 - **높이를 직접 정한 상자 (`height: 50px`, `height: 0`) 안 마지막 자식의 아래 여백이 상자 밖으로 새어 다음 요소를 밀던 문제** (미리보기 50 / 캔버스 70): CSS 에서 부모와 마지막 자식의 아래 여백이 하나로 접히는 조건은 부모 높이가 `auto` 일 때뿐입니다. `min-height`/`max-height` 가 실제로 크기를 잡을 때도 (Chrome 기준) 여백은 상자 안에 남고, 잡지 않을 때는 종전처럼 접힙니다. `height: 0` 은 `auto` 가 아니므로 상자 높이도 0 (+`min-height`) 입니다.
-  - 위치: `packages/composition-engine/src/tree.rs` (`solve_block`)
+  - 위치: `packages/engine/src/tree.rs` (`solve_block`)
 - 검증: Chrome 차등 75/75 (61 케이스 + 게이트 14) · 렌더 parity 1009 회귀 0 · ADR-923 Phase 3 round 11 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))
 
 ## [절대 위치 요소 드래그가 포인터를 즉시 따라갑니다] - 2026-09-01
@@ -1997,7 +2003,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
 
 - **높이를 `0` 으로 둔 텍스트 요소의 위·아래 여백이 하나로 접혀 다음 요소가 올라오던 문제** (미리보기 60 / 캔버스 40):
   - **Why**: 엔진은 텍스트를 직접 보지 못해 "줄 상자(line box) 가 있는가" 를 텍스트 측정 스칼라(`leafBaseline`) 로만 알 수 있는데, 그 스칼라는 flex/grid 자식이거나 폭이 자동일 때만 공급되고 높이·폭이 명시된 텍스트는 공급 전에 반환됐습니다. CSS 에서 내용이 있는 요소는 높이가 0 이어도 여백이 접히지 않습니다.
-  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`enrichWithIntrinsicSize`), `packages/composition-engine/src/tree.rs` (leaf 경로)
+  - 위치: `apps/builder/src/builder/workspace/canvas/layout/engines/utils.ts` (`enrichWithIntrinsicSize`), `packages/engine/src/tree.rs` (leaf 경로)
 - **절대 위치(absolute) 자식만 가진 빈 상자의 여백이 접히지 않던 문제** (미리보기 40 / 캔버스 60): 흐름 밖 자식은 상자를 비우지 않는 것으로 잘못 세어졌습니다. 빈 상자 판정을 한 곳(자식 solve 플래그) 으로 모았습니다.
 - **양수·음수 여백이 세 개 이상 만나면 접힌 값이 달라지던 문제** (미리보기 20 / 캔버스 35): 두 개씩 차례로 접으면 "가장 큰 양수 + 가장 작은 음수" 라는 CSS 규칙과 어긋납니다. 여백을 값이 아니라 (양수 최대, 음수 최소) 쌍으로 형제·빈 상자·부모 경계 전부에 넘기도록 바꿨습니다 (`block.rs` `MarginSet`).
 - **음수 여백으로 상자 높이가 음수로 계산되던 문제** (미리보기 2 / 캔버스 −8): 자동 높이는 0 아래로 내려가지 않습니다. 같은 자리에서 "내용이 있어도 음수 여백 때문에 빈 상자로 오판" 하던 것도 함께 고쳤습니다 (미리보기 60 / 캔버스 40).
@@ -2010,7 +2016,7 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
 - **Overflow 를 `Clip` 으로 둔 flex 항목이 캔버스에서 미리보기보다 좁게 그려지던 문제**:
   - 스타일 패널에서 Overflow = Clip 을 고르면 캔버스의 항목이 내용 폭 아래로 줄어들었습니다 (미리보기는 내용 폭을 지킵니다).
   - **Why**: 엔진이 `clip` 을 `hidden` 과 같은 "스크롤 컨테이너" 로 분류해 flex 항목의 자동 최소 폭(내용 기반)을 0 으로 내렸습니다. CSS 에서 스크롤 컨테이너는 `scroll` / `auto` / `hidden` 뿐이고 `clip` 은 아닙니다. 판정 3곳(BFC · baseline · flex 최소 폭)이 각자 문자열을 비교하고 있어 하나만 어긋나 있었고, 한 술어로 합쳤습니다.
-  - 위치: `packages/composition-engine/src/tree.rs` (`is_scrollable_overflow`), `flex.rs`
+  - 위치: `packages/engine/src/tree.rs` (`is_scrollable_overflow`), `flex.rs`
 - **block 컨테이너 안 자식 여백(margin)이 캔버스에서 미리보기와 다르게 접히던 문제** (Chrome 실측 케이스 12건으로 확정):
   - 안쪽 여백(padding)이 있는 부모의 마지막 자식 bottom margin 이 부모 높이에 빠져 있었습니다 (미리보기 31 / 캔버스 11).
   - 내용이 없는 빈 block 의 위·아래 margin 이 하나로 접히지 않아 부모가 그만큼 더 높았습니다 (미리보기 10 / 캔버스 30).
@@ -2018,5 +2024,5 @@ live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카�
   - block 요소 뒤에 오는 인라인 줄이 앞 요소의 bottom margin 을 무시하고 붙었습니다.
   - 높이를 `0` 으로 둔 빈 요소의 위·아래 margin 이 접히지 않아 다음 요소가 더 아래에 놓였습니다 (미리보기 40 / 캔버스 60).
   - **Why**: 엔진 block 솔버의 "빈 block" 분류를 만들어 내는 자리가 없어 (단위 테스트에서만 살아 있었음) 모든 자식이 일반 block 으로 흘렀고, 컨테이너 높이는 마지막 margin 이 부모 밖으로 빠지는지·안에 남는지를 구분하지 못한 채 자식 사각형의 합으로 계산됐습니다. BFC 상자의 margin 차단은 "자기 자식과" 만이어야 하는데 자기 margin 까지 막았습니다. CSS 2.1 §8.3.1 / §10.6.3 대로 정리했습니다.
-  - 위치: `packages/composition-engine/src/block.rs`, `tree.rs` (`write_block_item` self-collapsing 분류, `solve_block` auto height)
+  - 위치: `packages/engine/src/block.rs`, `tree.rs` (`write_block_item` self-collapsing 분류, `solve_block` auto height)
 - 검증: Chrome 차등 44/44 · 렌더 parity 978 회귀 0 · ADR-923 Phase 3 (evidence [923-phase3-differential.md](adr/evidence/923-phase3-differential.md))

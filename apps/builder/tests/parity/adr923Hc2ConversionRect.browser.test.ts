@@ -4,7 +4,7 @@ import type { Root } from "react-dom/client";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import { StatusLight } from "@composition/shared/components/StatusLight";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import {
@@ -115,7 +115,7 @@ function canvasLeg(tree: ProductionTree): Leg {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
 
   const style = document.createElement("style");

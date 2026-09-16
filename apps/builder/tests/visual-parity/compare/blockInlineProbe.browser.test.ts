@@ -50,7 +50,7 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import type { CanvasKit } from "canvaskit-wasm";
 
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { CASE_PROJECT_ID, caseIds, scaffoldDocument } from "../cases/scaffold";
 import { runSkiaLegResult } from "../harness/skiaRunner";
@@ -160,7 +160,7 @@ describe("ADR-198 — block/inline 형제 혼합에서 두 leg 이 갈리는가"
   > = {};
   beforeAll(async () => {
     ck = await initCanvasKit();
-    await initCompositionEngineWasm();
+    await initEngineWasm();
 
     for (const v of VARIANTS) {
       const { ids, document } = probeDocument(

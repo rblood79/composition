@@ -1293,7 +1293,7 @@ const sliderThumb: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
   //
   // **Why (2026-07-14)**: 이 escape 가 자기 box 안에 원을 그리려면 box 가 value 위치에 있어야
   //   하는데, 그 배치는 implicitStyles 의 `position:absolute + left:%` 주입에 의존했다. 그러나
-  //   composition-engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다(Style.inset_* 는
+  //   engine(Rust)은 absolute/inset 을 레이아웃에 반영하지 않는다(Style.inset_* 는
   //   tree.rs 에 선언만 되고 어떤 알고리즘도 읽지 않음, Position::Absolute 부재) → box 가 항상
   //   원점(0,0)에 고정되어 thumb 이 트랙 좌측 끝에 그려졌다(value 무관 x 고정 + y 미정렬).
   //   `_containerWidth` 를 아는 slider_fill_bar 로 렌더 소유권을 되돌려 DOM 좌표와 일치시킨다.
@@ -2225,7 +2225,7 @@ const valueFillBar: SkiaPrimitiveDrawFn = ({ props, size, visual, style }) => {
  *   RAC inline `left:${p}%; transform:translate(-50%,-50%)` 와 동일 좌표.
  *
  * **thumb 렌더 소유권 (2026-07-14 복귀)**: 2026-06-10 에 SliderThumb element 로 이관했으나,
- *   그 전제인 `position:absolute + left:%` 배치가 composition-engine(Rust)에서 성립하지 않는다
+ *   그 전제인 `position:absolute + left:%` 배치가 engine(Rust)에서 성립하지 않는다
  *   (inset_* 미소비 / Position::Absolute 부재 → thumb box 가 원점 고정 → x 가 value 를 따라가지
  *   않고 y 도 트랙 중앙에서 벗어남). `_containerWidth` 를 아는 본 escape 로 되돌려 DOM 정합 회복.
  * 색: track 배경 = `style.backgroundColor` → `visual.fill.default.base`(neutral-subtle).
@@ -2320,7 +2320,7 @@ const sliderFillBar: SkiaPrimitiveDrawFn = ({
   // ── thumb 핸들 (2026-07-14 렌더 소유권 복귀) ────────────────────────────────
   // 2026-06-10 에 thumb 렌더를 SliderThumb element 로 넘겼으나, 그 전제("SliderThumb 이
   //   left:percent% 로 배치된다")가 **레이아웃 엔진에서 성립하지 않는다**:
-  //   composition-engine(Rust)은 `position:absolute` / `inset_*` 를 레이아웃에 **반영하지 않는다**
+  //   engine(Rust)은 `position:absolute` / `inset_*` 를 레이아웃에 **반영하지 않는다**
   //   (Style.inset_* 필드는 tree.rs 에 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도
   //   읽지 않으며 Position::Absolute 개념 자체가 없음). 그래서 implicitStyles 가 주입한
   //   `left:"50%" + top + marginLeft` 가 전량 무시되어 SliderThumb box 가 항상 컨테이너

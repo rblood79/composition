@@ -237,7 +237,7 @@ P2 전환 flag는 기존 `wasm-bindings/featureFlags.ts`에 등록하고 연속 
 
 - `FrameContentCache`: filtered children·실제/synthetic node Map identity와 registry/layout revision으로 CPU children Map 한 세대를 재사용한다. 같은 개수 node 교체도 무효화하며 effect cleanup에서 참조를 해제한다. root/command stream·picture/font/image를 새 전역 cache에 보관하지 않는다.
 - `SkiaRenderer.canReuseFramePreparation`: 상태를 소비하지 않는 사전 조회다. 기존 polling 뒤 모든 입력이 같고 content surface/snapshot이 유효한 경우에만 content/plan 구축을 생략한다. animation/최종 정리·damage·minimap·readiness target·context 경계는 유지한다. camera가 변하면 기존 준비 경로로 진입한다.
-- `compositionEngineWasm.ts`: production에서 동적 JS 경로가 404여서 95% 부팅에 머무는 기존 blocker를 발견했다. literal import의 `@vite-ignore`를 제거해 Vite가 JS/WASM을 번들에 포함하도록 수리했다. timeout이나 readiness 우회는 추가하지 않았다. 이 수정은 A/B 양쪽 artifact에 적용했다.
+- `engineWasm.ts`: production에서 동적 JS 경로가 404여서 95% 부팅에 머무는 기존 blocker를 발견했다. literal import의 `@vite-ignore`를 제거해 Vite가 JS/WASM을 번들에 포함하도록 수리했다. timeout이나 readiness 우회는 추가하지 않았다. 이 수정은 A/B 양쪽 artifact에 적용했다.
 - 계측: 배포 기본 off의 서로 독립적인 capture/GPU timer opt-in, 실제 main flush와 readiness acknowledgment, GPU nonblocking raw/invalid/pending, canonical publication·cache·resource 계수. 프레임 통계를 Zustand에 쓰지 않는다.
 
 ### 효과와 적용 경계

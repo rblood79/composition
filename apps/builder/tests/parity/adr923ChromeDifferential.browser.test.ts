@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type CaseNode,
   type ParityCase,
@@ -1541,7 +1541,7 @@ const RECORD: Record<string, { engine: string; adapter: string }> = {};
 
 describe("ADR-923 Phase 3 — Chrome 차등 (어댑터 우회 엔진 직결, G1 전반)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   afterAll(async () => {
@@ -1595,7 +1595,7 @@ describe("ADR-923 Phase 3 — Chrome 차등 (어댑터 우회 엔진 직결, G1 
 // min-content 를 실제로 소비한다: max-content 160 → shrink 목표 60 → 바닥 80.
 describe("ADR-923 r8l2 — 프로덕션 wrap intrinsic-min (pipelineLeg 게이트)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it("flex row 60px 안 wrap flex item 은 min-content(최대 item 80)로 바닥", () => {

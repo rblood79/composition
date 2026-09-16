@@ -1,4 +1,4 @@
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import {
   calculateFullTreeLayout,
   resetPersistentTree,
@@ -129,11 +129,9 @@ export function engineLeg(
   availW: number,
   availH: number,
 ): Bounds[] {
-  const engine = new CompositionEngineLayout();
+  const engine = new EngineLayout();
   if (!engine.isAvailable()) {
-    throw new Error(
-      "composition-engine WASM 미준비 — initCompositionEngineWasm 확인",
-    );
+    throw new Error("engine WASM 미준비 — initEngineWasm 확인");
   }
   // strict 입력은 여기서 켜지 않는다 — 케이스의 `style` 은 두 leg 이 공유하는
   // **DOM ∪ 엔진 키의 합집합**이다 (`borderTopStyle` 은 DOM leg 이 테두리를 그리는 데
@@ -297,9 +295,7 @@ export function pipelineLeg(
   }
   resetPersistentTree(pageId);
   if (!map) {
-    throw new Error(
-      "calculateFullTreeLayout null — composition-engine WASM 미준비 확인",
-    );
+    throw new Error("calculateFullTreeLayout null — engine WASM 미준비 확인");
   }
 
   // ComputedLayout.x/y = 부모 상대 → 조상 합산으로 절대(engineLeg 동형).

@@ -78,8 +78,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            packages/composition-engine/target
-          key: ${{ runner.os }}-cargo-parity-${{ hashFiles('packages/composition-engine/Cargo.lock') }}
+            packages/engine/target
+          key: ${{ runner.os }}-cargo-parity-${{ hashFiles('packages/engine/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
@@ -91,9 +91,9 @@ jobs:
         if: steps.scope.outputs.run == 'true'
         run: pnpm install --frozen-lockfile
 
-      # 레이아웃은 composition-engine 단독 경로다 (ADR-916, Taffy 제거). Skia leg
+      # 레이아웃은 engine 단독 경로다 (ADR-916, Taffy 제거). Skia leg
       # 이 프로덕션 레이아웃을 그대로 태우므로 이 산출물 없이는 게이트가 뜨지 않는다.
-      - name: Build composition-engine WASM
+      - name: Build engine WASM
         if: steps.scope.outputs.run == 'true'
         run: pnpm wasm:build:engine
 
@@ -149,8 +149,8 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            packages/composition-engine/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/composition-engine/Cargo.lock') }}
+            packages/engine/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('packages/engine/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
 
@@ -161,7 +161,7 @@ jobs:
       # 022f43c5a(2026-07-06, ADR-916)에서 제거됐는데 이 단계가 따라오지 못해
       # 그때부터 배포가 계속 실패했다 — 캐시 경로/키도 같은 커밋에서 사라진
       # `canvas/wasm/` 을 가리키고 있었다.
-      - name: Build Rust WASM (composition-engine)
+      - name: Build Rust WASM (engine)
         run: pnpm wasm:build:engine
 
       - name: Verify lockfile sync and install dependencies

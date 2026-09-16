@@ -47,7 +47,7 @@ import {
   FIXTURE_PAGE_ID,
 } from "../harness/fixture";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { runSkiaLeg } from "../harness/skiaRunner";
 import { byteDiff, pixelVariance, pixelAt, rgbaHash } from "../harness/pixels";
@@ -101,7 +101,7 @@ describe("ADR-198 Phase 0 — G0 Skia leg (프로덕션 경로)", () => {
   let ck: CanvasKit;
 
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     ck = await initCanvasKit();
   }, 120_000);
 
@@ -142,16 +142,13 @@ describe("ADR-198 Phase 0 — G0 Skia leg (프로덕션 경로)", () => {
    * 이제 세 좌표 모두 fixture 가 authoring 한 색과 정확히 일치한다. 통과가
    * 정상이며, 다시 실패하면 위 두 경로 중 하나가 회귀한 것이다.
    */
-  it(
-    "fixture 의 fill 색이 Skia 좌표에 그대로 찍힌다 (2026-08-31 수리 완료)",
-    () => {
-      const { pixels } = runPilot(ck);
+  it("fixture 의 fill 색이 Skia 좌표에 그대로 찍힌다 (2026-08-31 수리 완료)", () => {
+    const { pixels } = runPilot(ck);
 
-      expect(pixelAt(pixels, PAGE_W, 4, 4)).toEqual(BG);
-      expect(pixelAt(pixels, PAGE_W, 30, 30)).toEqual(OUTER);
-      expect(pixelAt(pixels, PAGE_W, 60, 60)).toEqual(INNER);
-    },
-  );
+    expect(pixelAt(pixels, PAGE_W, 4, 4)).toEqual(BG);
+    expect(pixelAt(pixels, PAGE_W, 30, 30)).toEqual(OUTER);
+    expect(pixelAt(pixels, PAGE_W, 60, 60)).toEqual(INNER);
+  });
 
   it("Skia leg 이 살아 있는 프레임을 낸다 (HC11 liveness)", () => {
     const { pixels } = runPilot(ck);

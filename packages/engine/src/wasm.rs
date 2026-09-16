@@ -80,7 +80,7 @@ impl LayoutEngine {
     #[wasm_bindgen(js_name = buildTreeBatchBinary)]
     pub fn build_tree_batch_binary(&mut self, _data: &[u8]) -> Result<Box<[usize]>, JsValue> {
         Err(JsValue::from_str(
-            "composition-engine: binary protocol not implemented (use JSON buildTreeBatch)",
+            "engine: binary protocol not implemented (use JSON buildTreeBatch)",
         ))
     }
 
@@ -181,7 +181,7 @@ impl LayoutEngine {
     /// (ADR-923 Phase 2 — handle 당 **5값**, b = baseline: 원천 없으면 height 폴백).
     ///
     /// JS(`getLayoutsBatch`)는 이 flat Float32Array 를 handle 순서로 슬라이스해
-    /// `Map<handle, LayoutResult>` 로 재구성한다(compositionEngine.ts flatToLayoutMap).
+    /// `Map<handle, LayoutResult>` 로 재구성한다(engine.ts flatToLayoutMap).
     #[wasm_bindgen(js_name = getLayoutsBatch)]
     pub fn get_layouts_batch(&self, handles: &[usize]) -> Box<[f32]> {
         self.tree.get_layouts_batch(handles).into_boxed_slice()

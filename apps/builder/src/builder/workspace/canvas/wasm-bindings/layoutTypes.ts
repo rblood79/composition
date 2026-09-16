@@ -5,7 +5,7 @@
  * element→style 변환기(flexStyleAdapter/blockStyleAdapter)와 fullTreeLayout /
  * persistentLayoutTree 가 소비하는 순수 TypeScript 타입만 본 파일에 보존한다.
  * 타입 접두는 ADR-923 Phase 6 (2026-09-03) 에서 `Taffy*` → `Engine*` 로 개명 — 스키마 자체는
- * 자체 엔진 (composition-engine) 의 Rust `StyleInput` (Taffy 0.9 계보) 과 1:1 대응한다.
+ * 자체 엔진 (engine) 의 Rust `StyleInput` (Taffy 0.9 계보) 과 1:1 대응한다.
  */
 
 /**

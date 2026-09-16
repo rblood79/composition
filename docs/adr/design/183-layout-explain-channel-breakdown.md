@@ -35,7 +35,7 @@ window.__layoutExplain("component-listbox")
 
 ### Phase 1 — 엔진 trace 코어 ✅ 2026-08-15 (G1 PASS)
 
-- `packages/composition-engine/src/trace.rs` 신설: `TraceEvent` enum + `TraceSink` (노드 handle → `Vec<TraceEvent>`, 노드당 상한 N — R3)
+- `packages/engine/src/trace.rs` 신설: `TraceEvent` enum + `TraceSink` (노드 handle → `Vec<TraceEvent>`, 노드당 상한 N — R3)
 - 게이트: `LayoutTree` 에 `trace: Option<TraceSink>` — **off 시 비용 = `Option` 분기 1회/판정 지점**. 기록 매크로/헬퍼는 `if let Some(sink)` 로만 진입
 - 계측 지점 (Phase 0 freeze 목록의 거처):
   - `tree.rs::solve_node` — 증분 skip 판정 (968 게이트), used-size clamp, 키워드 폭 해소
@@ -51,7 +51,7 @@ window.__layoutExplain("component-listbox")
 - `wasm.rs` (wasm-bindgen surface — `build_tree_batch` 가 있는 파일): `enableLayoutTrace(enabled: bool)` / `getLayoutTrace(handle) -> String(JSON)`. JSON 스키마 계약은 wasm32 게이트 아래 층(`tree.rs::trace_json`)이 소유해 **native 테스트로 잠근다** (`tests/layout_trace.rs` §6.5 — wasm 표면은 문자열 그대로 위임)
 - **binary_protocol / `build_tree_batch` 계약 무변경** (HC3) — 트레이스는 별도 조회 API, 배치 payload 에 싣지 않는다
 - enable 시에만 sink 할당 (R3 — off 시 메모리 0)
-- `compositionEngineWasm.ts` 바인딩(raw 2메서드) + `compositionEngine.ts` wrapper (`EngineTraceEvent`/`EngineTraceNode` wire 타입 — serde internally-tagged 1:1, 디버그 채널이라 미준비 시 throw 대신 false/null) + `LayoutEngineAPI` **optional** 메서드 (테스트용 fake 엔진이 구현을 강제받지 않게)
+- `engineWasm.ts` 바인딩(raw 2메서드) + `engine.ts` wrapper (`EngineTraceEvent`/`EngineTraceNode` wire 타입 — serde internally-tagged 1:1, 디버그 채널이라 미준비 시 throw 대신 false/null) + `LayoutEngineAPI` **optional** 메서드 (테스트용 fake 엔진이 구현을 강제받지 않게)
 - **실측 정정 (2026-08-15)**: element id ↔ node handle 변환의 실소유자는 `idMapper.ts` 가 아니라 `persistentTaffyTree.ts::handleMap` 이다 — `idMapper` 는 SpatialIndex 용 UUID↔u32 매핑으로 레이아웃 handle 과 무관. passthrough 는 `PersistentTaffyTree.enableLayoutTrace(enabled)` / `.getLayoutTraceForElement(elementId)` (기존 `getHandle` 접근자와 같은 층)
 
 ### Phase 3 — TS 판독 채널 ✅ 2026-08-15 (G2·G3 PASS)
@@ -69,14 +69,14 @@ window.__layoutExplain("component-listbox")
 
 ## 3. 파일 변경 요약 (추정 — Phase 0 에서 실측 보정)
 
-| 파일                                                                               | 변경                                           |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------- |
-| `packages/composition-engine/src/trace.rs`                                         | 신설 — TraceEvent/TraceSink                    |
-| `packages/composition-engine/src/tree.rs`                                          | 계측 지점 삽입 (solve_node/solve_grid/measure) |
-| `packages/composition-engine/src/flex.rs`                                          | 계측 지점 삽입 (§4.5/3.5/3.6/라인 cross)       |
-| `packages/composition-engine/src/wasm.rs`                                          | WASM API 2종                                   |
-| `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngineWasm.ts` | 바인딩                                         |
-| `apps/builder/src/builder/workspace/canvas/layout/engines/` (디버그 헬퍼 신설)     | 판독 포맷 + window 노출                        |
+| 파일                                                                           | 변경                                           |
+| ------------------------------------------------------------------------------ | ---------------------------------------------- |
+| `packages/engine/src/trace.rs`                                                 | 신설 — TraceEvent/TraceSink                    |
+| `packages/engine/src/tree.rs`                                                  | 계측 지점 삽입 (solve_node/solve_grid/measure) |
+| `packages/engine/src/flex.rs`                                                  | 계측 지점 삽입 (§4.5/3.5/3.6/라인 cross)       |
+| `packages/engine/src/wasm.rs`                                                  | WASM API 2종                                   |
+| `apps/builder/src/builder/workspace/canvas/wasm-bindings/engineWasm.ts`        | 바인딩                                         |
+| `apps/builder/src/builder/workspace/canvas/layout/engines/` (디버그 헬퍼 신설) | 판독 포맷 + window 노출                        |
 
 ## 4. Phase 0 산출물 (2026-08-15 실측 — freeze)
 

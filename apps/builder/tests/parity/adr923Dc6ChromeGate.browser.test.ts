@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import { type CaseNode, diffCase, domLeg, pipelineLeg } from "./harness";
@@ -122,7 +122,7 @@ let gridList: ProductionTree;
 let select: ProductionTree;
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   listBox = await paletteCreationTree("ListBox", "dc6-gate-listbox");
   gridList = await paletteCreationTree("GridList", "dc6-gate-gridlist");

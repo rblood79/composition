@@ -69,7 +69,7 @@ committed JSON은 각 run의 summary `count`를 합산한 118회로 정규화했
 ### 환경 제한
 
 로컬 static production host에는 기존 dynamic WASM asset
-`composition-engine-pkg/composition_engine.js`가 복사되지 않아 layout engine이 기존
+`engine-pkg/engine.js`가 복사되지 않아 layout engine이 기존
 timeout fallback을 사용했다. Pretendard production asset 경로에서도 기존 font decode
 warning이 발생했다. 이 둘은 ADR-187 변경으로 생긴 오류가 아니며 Phase 0에서 수정하지
 않았다.

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { type ParityCase, runParityCase } from "./harness";
 
 /**
@@ -284,7 +284,7 @@ const TREE_GOLDEN: ParityCase[] = [
 
 describe("ADR-156 Phase 1 — 엔진 ↔ CSS 차등 하니스 (G1: tree_golden 재현)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(TREE_GOLDEN)("$name — 엔진↔CSS 정합", (c) => {

@@ -8,7 +8,7 @@ import { TextArea } from "@composition/shared/components/TextArea";
 import { NumberField } from "@composition/shared/components/NumberField";
 import { DateField } from "@composition/shared/components/DateField";
 import { TimeField } from "@composition/shared/components/TimeField";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import type { Element } from "@/types/core/store.types";
 import { layoutTree, paletteCreationTree } from "./adr923ProductionTrees";
@@ -166,7 +166,7 @@ async function runCanvas(type: FieldType, junk: boolean): Promise<Leg> {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   const style = document.createElement("style");
   style.id = "adr923-fe-subpart-bundle";

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   domLeg,
@@ -352,7 +352,7 @@ const PIPELINE_CASES: ParityCase[] = [
 
 describe("grid 트랙 content 기여 — CSS 대조 (engine leg)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   for (const c of [...ENGINE_CASES, ...ITEM_WIDTH_CASES, ...ROW_CASES]) {
@@ -390,7 +390,7 @@ describe("grid 트랙 content 기여 — CSS 대조 (engine leg)", () => {
 
 describe("grid 트랙 content 기여 — end-to-end (pipeline leg)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   for (const c of [...PIPELINE_CASES, ...REWRAP_CASES]) {

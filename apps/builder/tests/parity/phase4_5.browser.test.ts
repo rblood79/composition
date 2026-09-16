@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { type ParityCase, runParityCase } from "./harness";
 
 /**
@@ -55,7 +55,7 @@ const E10_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 4.5 — E10 relative offset 엔진↔CSS 정합 (G4)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E10_CASES)("$name", (c) => {
@@ -107,7 +107,7 @@ const E11_STRETCH: ParityCase[] = [
 
 describe("ADR-156 Phase 4.5 — E11 ① absolute stretch 엔진↔CSS 정합 (G4)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E11_STRETCH)("$name", (c) => {
@@ -150,7 +150,7 @@ const E11_STATIC: ParityCase[] = [
 
 describe("ADR-156 Phase 4.5 — E11 ② absolute static position 엔진↔CSS 정합 (G4)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E11_STATIC)("$name", (c) => {
@@ -204,7 +204,7 @@ const E11_MARGIN_AUTO: ParityCase[] = [
 
 describe("ADR-156 Phase 4.5 — E11 ③ absolute margin auto 중앙 엔진↔CSS 정합 (G4)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E11_MARGIN_AUTO)("$name", (c) => {
@@ -254,7 +254,7 @@ const ABS_REGRESSION: ParityCase[] = [
 
 describe("ADR-156 Phase 4.5 — ABS-2 % inset 회귀 기준선 (G4)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(ABS_REGRESSION)("$name", (c) => {

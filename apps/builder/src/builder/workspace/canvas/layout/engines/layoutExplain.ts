@@ -27,7 +27,7 @@
 import type {
   EngineTraceEvent,
   EngineTraceNode,
-} from "../../wasm-bindings/compositionEngine";
+} from "../../wasm-bindings/engine";
 
 /**
  * explain 이 필요로 하는 트리 표면 — `PersistentLayoutTree` 가 구조적으로

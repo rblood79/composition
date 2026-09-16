@@ -130,7 +130,7 @@ never a new SSOT.
 
 - ADR-139 blocks missing component registrations at build time; it does not
   compare rendered output.
-- ADR-156 compares CSS layout geometry with the composition engine; it does not
+- ADR-156 compares CSS layout geometry with the Rust engine; it does not
   execute the full Skia and Preview paint paths.
 - ADR-189/190 pixel oracles compare two Skia execution paths, not Skia against
   DOM/CSS.

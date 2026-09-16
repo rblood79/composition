@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import type { Bounds, CaseNode } from "./harness";
 import { TOL, pipelineLeg } from "./harness";
@@ -42,7 +42,7 @@ beforeAll(async () => {
   style.id = "adr171-catalog-bundle";
   style.textContent = bundleCss;
   document.head.appendChild(style);
-  await initCompositionEngineWasm();
+  await initEngineWasm();
 });
 
 interface CatalogCase {

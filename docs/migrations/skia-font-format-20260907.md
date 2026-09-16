@@ -28,7 +28,7 @@
 - production `/private/tmp/composition-ttf-production` 빌드 성공, 같은 프로젝트 사본 부트 완료. IDBTransaction.oncomplete74.0ms, FrameRequestCallback102.8ms가 남았다. production에는 DEV label 분해가 없어 해당 전체 시간을 폰트나 GPU 단독으로 귀속하지 않는다.
 - UI와 문서 폰트의 추가 분리 및 Worker는 적용하지 않았다. 먼저 해결해야 할 형식 비용을 제거한 뒤 남은 최초 record/flush와 React microtask를 재귀속해야 한다. 경고 전체 해결이 아니다.
 - TTF 합계7,619,028 bytes, WOFF2 합계2,409,928 bytes. 네트워크 전송량 증가는 실제 배포의 HTTP 압축·첫 다운로드 조건에서 별도 검증해야 한다. 기존 폰트 binary cache는 유지한다.
-- 미리 존재한 `compositionEngineWasm.ts`의 동시 사용자 변경은 보존했다.
+- 미리 존재한 `engineWasm.ts`의 동시 사용자 변경은 보존했다.
 
 ## 검증
 

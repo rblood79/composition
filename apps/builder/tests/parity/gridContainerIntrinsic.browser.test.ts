@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   domLeg,
@@ -186,7 +186,7 @@ const FLEX_ITEM_CASES: ParityCase[] = TEMPLATES.map((cols) =>
 
 describe("그리드 컨테이너 intrinsic — CSS 대조 (engine leg)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   for (const c of [...KEYWORD_CASES, ...FLEX_ITEM_CASES]) {
@@ -265,7 +265,7 @@ describe("그리드 컨테이너 intrinsic — CSS 대조 (engine leg)", () => {
 
 describe("그리드 컨테이너 intrinsic — end-to-end (pipeline leg)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   // 원자는 pipeline elementsMap 에 없으므로 **명시 폭 자식**으로 같은 구조를 돌린다 —

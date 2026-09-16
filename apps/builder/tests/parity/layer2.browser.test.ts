@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type CaseNode,
   type ParityCase,
@@ -120,7 +120,7 @@ const CASES: ParityCase[] = [SANITY, E3_ACTIVE, E3_2_BLOCKED, E17_BFC];
 
 describe("ADR-156 §Residual R5 — Layer 2 파이프라인↔CSS 정합 (block-height 위임 확증)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(CASES)("$name", (c) => {

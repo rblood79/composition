@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   calculateFullTreeLayout,
   resetPersistentTree,
@@ -242,7 +242,7 @@ function measureArm(arm: string, shape: string, nodes: CaseNode[]): ArmStats {
     const t1 = performance.now();
     if (!result) {
       throw new Error(
-        `[ADR-923 baseline] calculateFullTreeLayout null (arm ${arm}, run ${run}) — composition-engine WASM 미준비 확인`,
+        `[ADR-923 baseline] calculateFullTreeLayout null (arm ${arm}, run ${run}) — engine WASM 미준비 확인`,
       );
     }
     if (result.size !== nodes.length) {
@@ -282,7 +282,7 @@ describe.skipIf(!ENABLED)(
     let result: BaselineResult;
 
     beforeAll(async () => {
-      await initCompositionEngineWasm();
+      await initEngineWasm();
       const armF = measureArm(
         "F-flex",
         "root flex-column > 8 flex-row(wrap) > 8 flex-column > 8 flex-row(wrap) > 9 box(40x20)",

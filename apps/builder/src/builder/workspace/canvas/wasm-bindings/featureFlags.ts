@@ -16,7 +16,7 @@
  */
 
 export const WASM_FLAGS = {
-  /** SpatialIndex WASM 가속 (composition-engine pkg — ADR-916 crate 분리 편입) */
+  /** SpatialIndex WASM 가속 (engine pkg — ADR-916 crate 분리 편입) */
   SPATIAL_INDEX: true,
 
   /** CanvasKit/Skia 렌더러 활성화 */
@@ -62,7 +62,7 @@ export function isGpuTimerRequested(): boolean {
 /** Unified engine flags with live consumers. */
 export const UNIFIED_ENGINE_FLAGS = {
   // Layout Engine — ADR-916 Taffy 완전 제거(2026-07-06) 후 자체 엔진
-  // (composition-engine)이 상시 단독 경로. key 를 제거하면 init.ts 의
+  // (engine)이 상시 단독 경로. key 를 제거하면 init.ts 의
   // isUnifiedFlag("USE_RUST_LAYOUT_ENGINE") 가 union 에서 빠져 컴파일 에러 —
   // 소비처 영향 최소화를 위해 key 를 상수 true 로 유지한다.
   USE_RUST_LAYOUT_ENGINE: true,

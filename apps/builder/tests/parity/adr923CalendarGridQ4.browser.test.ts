@@ -6,7 +6,7 @@ import bundleCss from "@composition/shared/components/styles/index.css?inline";
 import { injectPreviewBaseStyles } from "@/preview/baseStyles";
 import previewAppSource from "@/preview/App.tsx?raw";
 import { Calendar } from "@composition/shared/components/Calendar";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import { getDefaultProps } from "@/types/builder/unified.types";
 import type { Element } from "@/types/core/store.types";
@@ -86,7 +86,7 @@ describe("ADR-923 r29m2 — CalendarGrid Q4 (production 경로 측정)", () => {
   let host: HTMLDivElement | null = null;
 
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     useStore.setState({ elements: [], elementsMap: new Map() } as never);
     calendar = await paletteCreationTree("Calendar", "adr923-q4-calendar");
     const style = document.createElement("style");

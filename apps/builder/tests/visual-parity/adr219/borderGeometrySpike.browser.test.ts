@@ -31,7 +31,7 @@ import type { CompositionDocument } from "@composition/shared";
 
 import { buildPath } from "@/builder/workspace/canvas/skia/buildPath";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { CASE_PROJECT_ID } from "../cases/scaffold";
 import { captureEnvironment } from "../harness/identity";
@@ -519,7 +519,7 @@ let ck: CanvasKit;
 describe("ADR-219 P0 — G0 spike (프로토타입 기하 ↔ Preview)", () => {
   beforeAll(async () => {
     ck = await initCanvasKit();
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   }, 180_000);
 
   for (const c of CASES) {

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import type { CaseNode } from "./harness";
 import { pipelineLeg } from "./harness";
 
@@ -51,7 +51,7 @@ function captureCase(nodes: CaseNode[]): {
   batchChildDisplays: string[];
 } {
   CALLS.length = 0;
-  const jsonSpy = vi.spyOn(CompositionEngineLayout.prototype, "buildTreeBatch");
+  const jsonSpy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
   try {
     pipelineLeg(nodes, 400, -1);
     const calls = jsonSpy.mock.calls.map(
@@ -80,7 +80,7 @@ function captureCase(nodes: CaseNode[]): {
 
 describe("ADR-923 HC1 — childDisplays[i] == 자식 노드의 엔진 도달 display", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it("대조군: 명시 display 자식(block box 2) 은 두 시각이 같다", () => {

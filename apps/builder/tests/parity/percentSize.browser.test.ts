@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -139,7 +139,7 @@ const ALL = [...CASES, ...SHRINK_WRAP_CASES];
 
 describe("백분율 크기 containing block — CSS 대조", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(ALL.map((c) => [c.name, c] as const))(
@@ -480,7 +480,7 @@ const ADR206_CONTROLS: ParityCase[] = [
 
 describe("ADR-206 Phase 1 — 늘어난 크기 definite 전파", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(

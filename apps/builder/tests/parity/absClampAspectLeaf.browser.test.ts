@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   type CaseNode,
@@ -196,7 +196,7 @@ const ASPECT_LEAF: ParityCase[] = [
 
 describe("Taffy 대조 A — ③ absolute used size clamp", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(ABS_CLAMP)("$name", (c) => {
@@ -206,7 +206,7 @@ describe("Taffy 대조 A — ③ absolute used size clamp", () => {
 
 describe("Taffy 대조 A — ⑤ block leaf aspect-ratio 높이 파생", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(ASPECT_LEAF)("$name", (c) => {

@@ -13,7 +13,7 @@ composition의 현재 렌더링은 역할별로 강점이 분명하다.
 - `CompositionDocument`가 저장·편집 SSOT이고, canonical resolver가 reusable/ref/slot과
   projection을 해소한다 ([ADR-116](completed/116-canonical-document-ssot-transition.md),
   [ADR-122](completed/122-canonical-only-runtime-legacy-mirror-removal.md)).
-- `packages/composition-engine`의 자체 Rust/WASM 엔진이 flex/grid/block layout을 계산한다
+- `packages/engine`의 자체 Rust/WASM 엔진이 flex/grid/block layout을 계산한다
   ([ADR-916](completed/916-unified-rust-engine.md)).
 - Builder는 `createSkiaRendererInput()` → `buildSkiaFrameContent()` →
   `RenderCommandStream` → `executeRenderCommands()` → `SkiaRenderer.render()` 경로로
@@ -62,7 +62,7 @@ Props/API schema를 변경하지 않는다. Preview/Publish는 snapshot을 소�
    oracle이다. production 프레임 안에서 실패를 숨기는 node별 silent fallback은 금지한다.
 4. renderer-neutral scene에는 CanvasKit/Skia native object, DOM/React/Zustand 참조, 함수,
    canonical mutation command를 넣지 않는다.
-5. layout geometry의 authority는 자체 Rust/WASM `composition-engine` 하나다. backend가
+5. layout geometry의 authority는 자체 Rust/WASM `engine` 하나다. backend가
    layout을 다시 계산하거나 backend별 geometry를 저장하지 않는다.
 6. 동일 web layout output의 render identity/order/clip/hit semantic diff는 0,
    geometry diff는 `≤ 1e-4 CSS px`여야 한다. 고정 리소스/DPR의 non-text pixel diff는 0이다.

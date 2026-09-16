@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -83,7 +83,7 @@ const atom = (style: StyleRecord = {}): CaseNode => ({
 
 describe("Container Align — 교차축 shrink-to-fit", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   describe("엔진 — block 컨테이너의 auto 폭 자식", () => {

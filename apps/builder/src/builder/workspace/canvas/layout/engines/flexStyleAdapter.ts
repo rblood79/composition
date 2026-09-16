@@ -2,7 +2,7 @@
  * flex 컨테이너 style 어댑터 — CanvasLayoutNode 의 style 을 엔진 입력 `EngineStyle` (Rust
  * `StyleInput` 스키마) 로 변환한다.
  *
- * 레이아웃 계산은 자체 Rust 엔진 (`packages/composition-engine`, ADR-916) 의 flex solver 가 한다 —
+ * 레이아웃 계산은 자체 Rust 엔진 (`packages/engine`, ADR-916) 의 flex solver 가 한다 —
  * 이 파일은 값 변환·정규화만 담당한다.
  *
  * 이력: 2026-02-17 Flex Yoga → Taffy 전환 (구 `TaffyFlexEngine.ts`) · ADR-916 Taffy 완전 제거

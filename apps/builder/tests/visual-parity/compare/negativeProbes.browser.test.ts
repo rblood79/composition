@@ -21,7 +21,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { CanvasKit } from "canvaskit-wasm";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { catalogStatePaint, textRasterResources } from "../cases";
 import { CASE_PROJECT_ID } from "../cases/scaffold";
 import { captureEnvironment } from "../harness/identity";
@@ -100,7 +100,8 @@ function run(
 function describeReport(r: ParityReport): string {
   const layers = r.layers
     .map(
-      (l) => `${l.layer}:${l.status}${l.status === "skip" ? `(${l.reason})` : ""}`,
+      (l) =>
+        `${l.layer}:${l.status}${l.status === "skip" ? `(${l.reason})` : ""}`,
     )
     .join(" ");
   const fails = r.failures
@@ -111,7 +112,7 @@ function describeReport(r: ParityReport): string {
 
 describe("ADR-198 Phase 4a — negative probe (계측기 대조군 검증)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     ck = await initCanvasKit();
   }, 60_000);
 
@@ -192,9 +193,7 @@ describe("ADR-198 Phase 4a — negative probe (계측기 대조군 검증)", () 
     console.log(`[ADR-198 P4a-frame-fill] ${describeReport(r)}`);
     console.log(
       `[ADR-198 P4a-frame-fill] regions=` +
-        r.regions
-          .map((x) => `${x.regionId}(maxByte=${x.maxByte})`)
-          .join(" "),
+        r.regions.map((x) => `${x.regionId}(maxByte=${x.maxByte})`).join(" "),
     );
     // 초록(#00FF00)으로 바꿔도 한 바이트도 안 변한다
     expect(r.regions.every((x) => x.maxByte === 0)).toBe(true);

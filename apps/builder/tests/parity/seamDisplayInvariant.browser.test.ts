@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import type { CaseNode } from "./harness";
 import { pipelineLeg } from "./harness";
 
@@ -59,7 +59,7 @@ interface Offender {
 }
 
 function captureAllBatches(): BatchNode[][] {
-  const jsonSpy = vi.spyOn(CompositionEngineLayout.prototype, "buildTreeBatch");
+  const jsonSpy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
   try {
     pipelineLeg(NODES, 400, -1);
     return jsonSpy.mock.calls.map(([json]) => JSON.parse(json) as BatchNode[]);
@@ -71,7 +71,7 @@ function captureAllBatches(): BatchNode[][] {
 let batches: BatchNode[][];
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   batches = captureAllBatches();
 });
 

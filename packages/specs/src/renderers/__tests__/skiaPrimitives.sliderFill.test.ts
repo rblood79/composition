@@ -13,7 +13,7 @@ import type { Shape, SizeSpec } from "../../types";
  *
  * **왜 되돌렸나 (버그)**: 2026-06-10~07-13 동안 thumb 렌더를 SliderThumb element 가 맡았다.
  *   그 전제는 "SliderThumb box 가 implicitStyles 의 `position:absolute + left:%` 로 value 위치에
- *   배치된다" 였는데, composition-engine(Rust)은 absolute/inset 을 **레이아웃에 반영하지 않는다**
+ *   배치된다" 였는데, engine(Rust)은 absolute/inset 을 **레이아웃에 반영하지 않는다**
  *   (`Style.inset_*` 는 tree.rs 에 선언·역직렬화만 되고 flex/block/grid 어느 알고리즘도 읽지
  *   않으며 `Position::Absolute` 개념 부재). 결과: thumb box 가 항상 컨테이너 원점(0,0)에 고정 →
  *   **x 가 value 를 따라가지 않고(항상 트랙 좌측 끝), y 도 트랙 세로 중앙이 아님**. CSS(RAC

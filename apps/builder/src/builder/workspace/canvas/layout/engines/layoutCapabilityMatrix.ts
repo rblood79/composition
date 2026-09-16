@@ -1,7 +1,7 @@
 /**
  * 레이아웃 capability matrix — **seed** (ADR-923 Phase 6, 2026-09-03 · Codex round 33 정정).
  *
- * 엔진 (`packages/composition-engine`) 이 CSS 의미를 **그대로 구현하지 않는** 자리를 property × value
+ * 엔진 (`packages/engine`) 이 CSS 의미를 **그대로 구현하지 않는** 자리를 property × value
  * 단위로 선언한다. 이 파일은 선언만이다 — 집행 (matrix 밖 property 무시가 생기면 게이트 실패, ingress
  * 정규화, persisted migration) 은 ADR-923 breakdown §8 (B 갈래) 의 별도 결정이다.
  *

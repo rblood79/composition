@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type CaseNode,
   type ParityCase,
@@ -106,7 +106,7 @@ const E2_JUSTIFY_CASES: ParityCase[] = [
 
 describe("ADR-156 옵션 3-a — E2 grid justify(가로) 엔진↔CSS 정합 (2-layer)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   // Layer 1 — 엔진 직접.

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import {
   LAYOUT_CAPABILITY_MATRIX,
   type CapabilityPolicy,
@@ -234,16 +234,13 @@ function oracleOf(caseId: string) {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   for (const c of CASES) {
     const { oracle } = oracleOf(c.caseId);
     const idx = c.nodes.findIndex((n) => n.label === oracle.node);
     if (idx < 0) throw new Error(`${c.caseId}: 노드 ${oracle.node} 없음`);
     const dom = domLeg(c.nodes, c.availW);
-    const jsonSpy = vi.spyOn(
-      CompositionEngineLayout.prototype,
-      "buildTreeBatch",
-    );
+    const jsonSpy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
     let pipe: ReturnType<typeof pipelineLeg>;
     let batch: BatchNode[];
     try {

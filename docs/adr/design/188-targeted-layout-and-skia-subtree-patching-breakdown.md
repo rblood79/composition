@@ -56,7 +56,7 @@ paint lane, Preview protocol, canonical finish commit은 선행 결정으로 유
   `publishPresentationLayout()`은 이전 layout map 전체를 `new Map(previousLayoutMap)`으로
   복사한 뒤 affected 값을 덮어쓴다 — 값·identity는 보존되지만 map write는 `N` 비례로
   남는다 (§4.2.1).
-- `packages/composition-engine/src/tree.rs`의 증분 skip 게이트 `subtree_has_dirty`는
+- `packages/engine/src/tree.rs`의 증분 skip 게이트 `subtree_has_dirty`는
   메모이즈되지 않은 재귀 walk이고 `propagate_dirty`가 조상 체인을 root까지 dirty로 올린다.
   dirty leaf 1개여도 `compute_layout()` 1회의 노드 방문은 `N` 비례다 (§4.1.1).
 - `apps/builder/src/builder/presentation/editorPresentationLayoutLane.ts:20-33`의 lane
@@ -91,7 +91,7 @@ map** 전체를 하나의 typed contract로 정의한다.
   `computeLayout()`을 수행한다 (`apps/builder/src/builder/workspace/canvas/layout/engines/persistentTaffyTree.ts:432-448`).
 - 엔진의 증분 skip 게이트 `subtree_has_dirty(handle)`는 메모이즈되지 않은 재귀 walk라
   clean 서브트리를 건너뛸지 판정하려고 그 서브트리를 끝까지 순회한다
-  (`packages/composition-engine/src/tree.rs`).
+  (`packages/engine/src/tree.rs`).
 - `propagate_dirty`가 조상 체인을 root까지 dirty로 올리므로, dirty leaf 1개여도 root가
   재solve되고 **clean 형제 서브트리마다 그 크기만큼 walk를 지불**한다.
 
@@ -296,7 +296,7 @@ ADR-187 paint lane은 이미 stale 거부 계약을 운용한다 — `SessionPro
 | 영역             | 예상 경로                                                                                               | 책임                                                                     |
 | ---------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
 | engine (JS)      | `B/workspace/canvas/layout/engines/persistentTaffyTree.ts`                                              | targeted input, parent promotion, result collection                      |
-| engine (Rust)    | `packages/composition-engine/src/tree.rs`                                                               | 증분 skip 판정 (G0 초과 시 subtree-dirty 요약 플래그)                    |
+| engine (Rust)    | `packages/engine/src/tree.rs`                                                                           | 증분 skip 판정 (G0 초과 시 subtree-dirty 요약 플래그)                    |
 | layout publisher | `B/workspace/canvas/hooks/useLayoutPublisher.ts`, `B/workspace/canvas/layout/engines/fullTreeLayout.ts` | typed publication과 version 분리, rootKey 파생 단일화                    |
 | layout cache     | `B/workspace/canvas/scene/layoutCache.ts`                                                               | cache miss 진입점 (full-tree 계산 경계)                                  |
 | layout lane      | `B/presentation/editorPresentationLayoutLane.ts`                                                        | plan/resolver contract 유지, delta overlay·revision, engine 호출 adapter |

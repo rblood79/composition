@@ -19,7 +19,7 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { CanvasKit } from "canvaskit-wasm";
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { PILOT_CASES } from "../cases";
 import { runSkiaLegResult } from "../harness/skiaRunner";
 import { captureEnvironment } from "../harness/identity";
@@ -50,7 +50,7 @@ describe("ADR-198 Phase 2 / G2 (Skia) — 결정성 · 외부 요청 · 리소�
   beforeAll(async () => {
     // 레이아웃 엔진 WASM 없이는 `calculateFullTreeLayout` 이 null 을 주고
     // `getSharedLayoutMap()` 이 비어 체인이 끊긴다 — 두 WASM 을 모두 올린다.
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     ck = await initCanvasKit();
   }, 60_000);
 

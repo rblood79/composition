@@ -47,7 +47,7 @@ composition/
 ├── packages/
 │   ├── shared/      # catalog·공용 타입/유틸 (@composition/shared)
 │   ├── specs/       # 잔존 spec 3개·CSS 생성 (@composition/specs)
-│   ├── composition-engine/  # Rust 레이아웃 엔진 (wasm)
+│   ├── engine/  # Rust 레이아웃 엔진 (wasm)
 │   └── config/      # 공유 설정 (@composition/config)
 └── docs/            # 문서
 ```

@@ -15,16 +15,13 @@ import { beforeAll, afterAll, describe, expect, it } from "vitest";
 import type { CanvasKit } from "canvaskit-wasm";
 
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { PILOT_CASES } from "./cases";
 import { CASE_PROJECT_ID } from "./cases/scaffold";
 import { PreviewDriver } from "./harness/previewDriver";
 import { runSkiaLegResult } from "./harness/skiaRunner";
-import {
-  knownDefectHits,
-  unexplainedErrors,
-} from "./harness/knownDefects";
+import { knownDefectHits, unexplainedErrors } from "./harness/knownDefects";
 import {
   captureEnvironment,
   checkIdentity,
@@ -70,7 +67,7 @@ describe("ADR-198 Phase 1 / G1 — identity half", () => {
   let preview: PreviewDriver;
 
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     ck = await initCanvasKit();
     preview = new PreviewDriver();
     // 가장 큰 케이스에 맞춰 한 번만 띄운다 — 케이스마다 재기동하면 느리고,

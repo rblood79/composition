@@ -40,7 +40,7 @@
     "test:coverage": "pnpm -F @composition/specs test:coverage",
     "clean": "turbo run clean && rm -rf node_modules",
     "playwright:install": "pnpm -F @composition/builder exec playwright install",
-    "wasm:build:engine": "wasm-pack build packages/composition-engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg",
+    "wasm:build:engine": "wasm-pack build packages/engine --target bundler --out-dir ../../apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg",
     "prepare:wasm": "node scripts/prepare-wasm.mjs",
     "prepare:specs": "node packages/specs/scripts/extract-lucide-icons.mjs && pnpm run build:specs",
     "postinstall": "pnpm run prepare:wasm && pnpm run prepare:specs",

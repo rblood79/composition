@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { useStore } from "@/builder/stores";
 import { type Bounds, type CaseNode, domLeg, pipelineLeg } from "./harness";
 
@@ -82,7 +82,7 @@ function mainOf(axis: Axis, b: Bounds): number {
 }
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
+  await initEngineWasm();
   useStore.setState({ elements: [], elementsMap: new Map() });
   for (const axis of AXES) {
     for (const arm of ARMS) {

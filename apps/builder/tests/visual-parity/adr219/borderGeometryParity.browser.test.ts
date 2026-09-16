@@ -21,7 +21,7 @@ import pixelmatch from "pixelmatch";
 import type { CompositionDocument } from "@composition/shared";
 
 import { initCanvasKit } from "@/builder/workspace/canvas/skia/initCanvasKit";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { CASE_PROJECT_ID } from "../cases/scaffold";
 import { captureEnvironment } from "../harness/identity";
@@ -242,7 +242,7 @@ describe("ADR-219 G2 — 비균일 border Skia ↔ Preview (프로덕션 두 leg
 
   beforeAll(async () => {
     ck = await initCanvasKit();
-    await initCompositionEngineWasm();
+    await initEngineWasm();
     driver = new PreviewDriver();
     await driver.start(VIEWPORT);
   }, 180_000);
@@ -291,7 +291,8 @@ describe("ADR-219 G2 — 비균일 border Skia ↔ Preview (프로덕션 두 leg
       const { server } = await import("vitest/browser");
       const b64 = (bytes: Uint8Array) => {
         let bin = "";
-        for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+        for (let i = 0; i < bytes.length; i++)
+          bin += String.fromCharCode(bytes[i]);
         return btoa(bin);
       };
       await server.commands.writeFile(

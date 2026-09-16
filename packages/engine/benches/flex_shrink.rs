@@ -5,9 +5,9 @@
 //! 외부 crate 없이 `Instant` 반복 측정 — 중앙값/p90 을 판정값으로 쓴다
 //! (단발 최소값은 노이즈, 평균은 outlier 에 취약).
 //!
-//! 실행: `cargo bench --bench flex_shrink` (packages/composition-engine)
+//! 실행: `cargo bench --bench flex_shrink` (packages/engine)
 
-use composition_engine::flex::{self, FLEX_FIELD_COUNT};
+use engine::flex::{self, FLEX_FIELD_COUNT};
 use std::hint::black_box;
 use std::time::Instant;
 

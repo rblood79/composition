@@ -11,7 +11,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { EngineTraceNode } from "../../wasm-bindings/compositionEngine";
+import type { EngineTraceNode } from "../../wasm-bindings/engine";
 import { createLayoutExplain, formatLayoutExplain } from "./layoutExplain";
 import type { ExplainableTree } from "./layoutExplain";
 

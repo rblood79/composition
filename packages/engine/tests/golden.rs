@@ -21,11 +21,11 @@
 //!
 //! HC3 (a) 수치 diff ≤ 1px (f32 sub-pixel). 정수 좌표 케이스는 실질 diff 0.
 
-use composition_engine::block::{block_layout, FIELD_COUNT as BLOCK_FIELDS};
-use composition_engine::flex::{
+use engine::block::{block_layout, FIELD_COUNT as BLOCK_FIELDS};
+use engine::flex::{
     flex_layout, DIR_COLUMN, DIR_ROW, FLEX_FIELD_COUNT, WRAP_NOWRAP, WRAP_WRAP,
 };
-use composition_engine::grid::grid_layout;
+use engine::grid::grid_layout;
 
 /// HC3 (a) 수치 tolerance (px) — dualRunHarness.ts `NUMERIC_TOLERANCE_PX` 와 동일.
 const TOL: f32 = 1.0;

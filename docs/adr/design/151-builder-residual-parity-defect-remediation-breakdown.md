@@ -195,7 +195,7 @@
 | 텍스트 측정     | `apps/builder/src/builder/workspace/canvas/utils/canvas2dSegmentCache.ts` (B18 한정)               |
 | 렌더 커맨드     | `apps/builder/src/builder/workspace/canvas/skia/renderCommands.ts` (B19 한정)                      |
 | factory         | `apps/builder/src/builder/factories/**` (B14~B17 폭 분류)                                          |
-| golden          | `packages/composition-engine/**/tree_golden*` + sweep 하니스                                       |
+| golden          | `packages/engine/**/tree_golden*` + sweep 하니스                                                   |
 
 > 추정 파일 수 대비 실측 1.5배 초과 시 M4 절차 아님 — 종결 계약 (자율 진행 + 사후 보고) 적용, 단 scope 자체 변경 (결정 지점 ④) 이면 질문.
 

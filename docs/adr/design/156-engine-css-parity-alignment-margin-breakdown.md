@@ -1,4 +1,4 @@
-# ADR-156 구현 상세 — composition-engine CSS 정합 복구
+# ADR-156 구현 상세 — engine CSS 정합 복구
 
 > 본 문서는 [ADR-156](../completed/156-engine-css-parity-alignment-margin.md) 의 구현 상세다. 결정/위험/Gate 는 본문 참조.
 
@@ -127,7 +127,7 @@
 
 기존 `tests/golden.rs`(15) 는 이름과 달리 **Chrome 실측이 아니라 CSS 명세 손계산**이다 (본문 헤더 자인: "기대값 근거 (Chrome/Taffy 실측 대신 명세 계산)"). 엔진과 테스트가 **같은 해석**을 공유 → 해석이 틀리면 둘 다 틀린다(순환 oracle).
 
-`tests/tree_golden.rs` 는 **11 test / 10 fixture(N1~N10)** + `field_contract_guard` 1 으로 구성되나, **Chrome 실측 기반은 N1~N5 5개뿐**이다 — 헤더가 "fixture 원본: dualRunLive.test.ts C-2b N1~N5" 로 한정하고, N6 는 "Chrome 실측이 아니라 box-sizing:border-box 계약을 CSS 산술로 손계산 고정" 이라고 자인한다. N7~N10 은 근거 주석이 없어 실측 여부 불명 → **독립 oracle 로 셈하지 않되 회귀 기준선으로는 전수 유지**(G1).
+`tests/tree_golden.rs` 는 **11 test / 10 fixture(N1~N10)** + `field_contract_guard` 1 으로 구성되나, **Chrome 실측 기반은 N1~N5 5개뿐**이다 — 헤더가 "fixture 원본: dualRunLive.test.ts C-2b N1~~N5" 로 한정하고, N6 는 "Chrome 실측이 아니라 box-sizing:border-box 계약을 CSS 산술로 손계산 고정" 이라고 자인한다. N7~~N10 은 근거 주석이 없어 실측 여부 불명 → **독립 oracle 로 셈하지 않되 회귀 기준선으로는 전수 유지**(G1).
 
 본 Phase 는 **실제 Chrome 을 ground truth 로 하는 자동 차등 테스트**를 도입한다.
 
@@ -305,7 +305,7 @@ CSS 규칙: 부모에 `padding-top`/`border-top`/BFC 생성 요인이 없으면 
 
 ### 5-4. 진행 상태 — Phase 4 반영 완료 (2026-07-18, commit `6abd83aac`)
 
-**구현 (엔진 = `packages/composition-engine/src`)**:
+**구현 (엔진 = `packages/engine/src`)**:
 
 - **E7 음수 margin**: `write_flex_item`/`write_block_item` 의 margin 4필드를 `resolve_dimension`(음수 `n >= 0.0` 필터로 0-clamp) → `resolve_signed`(음수 보존)로 교체. block.rs `collapse_margins`(mixed/음수 정확) + flex.rs `place_line_main_axis` cursor 가 이미 음수를 처리해, 형제 당김(flex b.x 30)·auto-width 확장(block b.w = avail − m_left − m_right = 320)이 복원됐다.
 - **E8 reverse**: `solve_flex` 배치 직후 **순수 기하 reflection** 후처리. row/column-reverse 는 main 물리축, wrap-reverse 는 cross 물리축을 반사한다. 정의역은 definite 컨테이너 크기(없으면 forward content extent). `flex_direction_is_reverse`/`flex_wrap_is_reverse` 헬퍼 추가. flex.rs 커널·golden 계약 무변경 → R2 회피. 3종 전부 파리티 + live 반영(a.x 160 / c.y 170).
@@ -327,7 +327,7 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 
 ### 5-5-b. 진행 상태 — Phase 4.5 반영 완료 (2026-07-18, commit `be8c95824`)
 
-**구현 (엔진 = `packages/composition-engine/src/tree.rs`)**:
+**구현 (엔진 = `packages/engine/src/tree.rs`)**:
 
 - **E10 relative offset**: `solve_node` 이 컨테이너 배치(solve_flex/block/grid) 직후 `apply_relative_offsets` 후처리 호출 — `position:relative` flow 자식만 `inset`(left/right → x, top/bottom → y, left/top 우선)만큼 자기 layout 을 이동. 형제 위치·컨테이너 크기(cw/ch)에는 영향 없음(CSS §9.4.3). 자식 subtree 는 부모 상대 좌표라 조상 누적(`get_layouts_batch` 소비처)이 함께 이동시킨다.
 - **E11 absolute 3종**: `place_absolute_children` 을 축별 `resolve_abs_axis(pb_start, cb_size, start, end, size, has_explicit_size, m_start, m_end, m_start_auto, m_end_auto, static_pos)` 헬퍼로 리팩터(x/y 대칭). ① 양측 inset + 크기 auto → `cb − start − end − margins` stretch. ② 양측 inset auto → `static_pos`(문서 순서상 선행 in-flow 형제들의 누적 하단 = block 흐름 근사, static_x = content 원점)로 배치. ③ 양측 inset + 명시 크기 + margin auto → 잉여 공간을 auto margin 이 흡수(양쪽 auto = 중앙). static position 은 abs 루프 진입 전 `all_children` 문서 순서 1-pass 로 선계산.
@@ -347,7 +347,7 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 
 ### 6-b. 진행 상태 — Phase 5 반영 완료 (2026-07-18, commit `db40890c8`)
 
-**구현 (엔진 = `packages/composition-engine/src/tree.rs`)**:
+**구현 (엔진 = `packages/engine/src/tree.rs`)**:
 
 - **E5 root 결함군**: `fixup_root_self_size`(compute_layout 후처리) 신설. `solve_block/flex/grid` 는 auto 크기를 **content bounding box**(shrink-to-fit, pad_border 제외)로 반환하고 중첩 노드는 부모의 배치 커널이 stretch/clamp 하지만 **root 는 부모가 없어** 그 shrink-to-fit 이 그대로 최종 크기가 된다. block-level root 를 `availW` fill + auto 높이에 `axis_pad_border` 합산 + 자기 min/max clamp. **explicit 차원은 미변경**(auto 축에만 적용).
 - **E4 margin auto**: `solve_block` step 4 에서 가로 `margin:auto` → content box 잉여 균등 분배(both auto = 중앙, left auto = 우측). `solve_flex` 3.8) main 축 `margin:auto` → 잉여 흡수(justify 보다 우선, **단일 라인 nowrap 근사** — multi-line 은 §Residual). auto width 자식은 free 0 이라 무영향.
@@ -373,7 +373,7 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 
 ### 7-b. 진행 상태 — Phase 6 반영 완료 (2026-07-18, ADR-156 종결)
 
-**R7 정적 가드 (엔진 = `packages/composition-engine/src/tree.rs`)**:
+**R7 정적 가드 (엔진 = `packages/engine/src/tree.rs`)**:
 
 - `nodestyle_field_contract_guard`(`#[cfg(test)] mod tests`) 신설. `golden.rs::golden_field_contract_guard`(FLEX_FIELD_COUNT assert) 패턴 승계하되 필드 **수**만이 아니라 「선언 O · 소비 X」 축까지 코드로 고정 — 3중 방어:
   1. **전수 구조분해(`..` 금지)** — `NodeStyle` 49필드를 전부 명시(`_` 바인딩). 필드 추가 시 `error[E0027]: pattern does not mention field` 컴파일 RED → breakdown §1-3 3축 교차표 갱신 강제. probe 필드 임시 추가로 RED 실증 후 원복 확인.
@@ -394,4 +394,4 @@ flow 수정(Phase 4)과 축이 독립적이라 분리한다. `position`/`top`/`l
 - **(R6) 캐시 키 등재**: 해당 Phase 의 §1-3-b 행이 `LAYOUT_STYLE_KEYS` 에 반영됐는지 확인 — 미등재 상태의 live 검증은 "무반응" 을 엔진 결함으로 잘못 판정하게 한다
 - **live behavior 필수** (CLAUDE.md 완료 기준): Phase 2/3 은 실제 빌더에서 Inspector 조작 → Skia 반영 → Preview 대칭을 Chrome MCP 로 1회 exercise. **해당 키만 변하는 조작으로 수행** (Phase 2 = 가로 전용 이동). test PASS 단독 종결 금지.
 - `pnpm type-check` baseline 무증가
-- **WASM 재빌드 필수**: `pnpm wasm:build:engine` — 산출물(`composition-engine-pkg/`)은 gitignore 라 Rust 만 고치고 재빌드를 빠뜨리면 live 무변화 (`feedback-cargo-stale-binary-mtime-after-sed-revert`).
+- **WASM 재빌드 필수**: `pnpm wasm:build:engine` — 산출물(`engine-pkg/`)은 gitignore 라 Rust 만 고치고 재빌드를 빠뜨리면 live 무변화 (`feedback-cargo-stale-binary-mtime-after-sed-revert`).

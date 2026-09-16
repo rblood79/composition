@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -86,10 +86,14 @@ const LINE_NAMES: ParityCase[] = [
     availH: -1,
     nodes: [
       leaf("a", { gridRowStart: "mid" }),
-      grid(["100px"], {
-        width: "400px",
-        gridTemplateRows: ["[top]", "30px", "[mid]", "30px", "[bot]"],
-      }, [0]),
+      grid(
+        ["100px"],
+        {
+          width: "400px",
+          gridTemplateRows: ["[top]", "30px", "[mid]", "30px", "[bot]"],
+        },
+        [0],
+      ),
     ],
   },
   {
@@ -105,7 +109,11 @@ const LINE_NAMES: ParityCase[] = [
     name: "대조군 — 이름 없는 100px 100px > a, b",
     availW: 400,
     availH: -1,
-    nodes: [leaf("a"), leaf("b"), grid(["100px", "100px"], { width: "400px" }, [0, 1])],
+    nodes: [
+      leaf("a"),
+      leaf("b"),
+      grid(["100px", "100px"], { width: "400px" }, [0, 1]),
+    ],
   },
 ];
 
@@ -117,7 +125,11 @@ const AUTO_REPEAT: ParityCase[] = [
     nodes: [
       leaf("a"),
       leaf("b"),
-      grid(["repeat(auto-fit, minmax(100px, 1fr))"], { width: "600px" }, [0, 1]),
+      grid(
+        ["repeat(auto-fit, minmax(100px, 1fr))"],
+        { width: "600px" },
+        [0, 1],
+      ),
     ],
   },
   {
@@ -127,7 +139,11 @@ const AUTO_REPEAT: ParityCase[] = [
     nodes: [
       leaf("a"),
       leaf("b"),
-      grid(["repeat(auto-fit, minmax(100px, 1fr))"], { width: "600px", columnGap: "20px" }, [0, 1]),
+      grid(
+        ["repeat(auto-fit, minmax(100px, 1fr))"],
+        { width: "600px", columnGap: "20px" },
+        [0, 1],
+      ),
     ],
   },
   {
@@ -144,8 +160,17 @@ const AUTO_REPEAT: ParityCase[] = [
     availW: 600,
     availH: -1,
     nodes: [
-      leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e"), leaf("f"),
-      grid(["repeat(auto-fit, minmax(100px, 1fr))"], { width: "600px" }, [0, 1, 2, 3, 4, 5]),
+      leaf("a"),
+      leaf("b"),
+      leaf("c"),
+      leaf("d"),
+      leaf("e"),
+      leaf("f"),
+      grid(
+        ["repeat(auto-fit, minmax(100px, 1fr))"],
+        { width: "600px" },
+        [0, 1, 2, 3, 4, 5],
+      ),
     ],
   },
   {
@@ -156,7 +181,11 @@ const AUTO_REPEAT: ParityCase[] = [
       leaf("a"),
       leaf("b"),
       leaf("c"),
-      grid(["repeat(auto-fill, minmax(auto, 200px))"], { width: "600px" }, [0, 1, 2]),
+      grid(
+        ["repeat(auto-fill, minmax(auto, 200px))"],
+        { width: "600px" },
+        [0, 1, 2],
+      ),
     ],
   },
   {
@@ -166,7 +195,11 @@ const AUTO_REPEAT: ParityCase[] = [
     nodes: [
       leaf("a"),
       leaf("b"),
-      grid(["repeat(auto-fill, minmax(100px, 1fr))"], { width: "600px" }, [0, 1]),
+      grid(
+        ["repeat(auto-fill, minmax(100px, 1fr))"],
+        { width: "600px" },
+        [0, 1],
+      ),
     ],
   },
   {
@@ -174,7 +207,11 @@ const AUTO_REPEAT: ParityCase[] = [
     availW: 600,
     availH: -1,
     nodes: [
-      leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e"),
+      leaf("a"),
+      leaf("b"),
+      leaf("c"),
+      leaf("d"),
+      leaf("e"),
       grid(["repeat(auto-fill, 150px)"], { width: "600px" }, [0, 1, 2, 3, 4]),
     ],
   },
@@ -183,7 +220,11 @@ const AUTO_REPEAT: ParityCase[] = [
     availW: 400,
     availH: -1,
     nodes: [
-      leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e"),
+      leaf("a"),
+      leaf("b"),
+      leaf("c"),
+      leaf("d"),
+      leaf("e"),
       grid(["repeat(auto-fill, 25%)"], { width: "400px" }, [0, 1, 2, 3, 4]),
     ],
   },
@@ -194,7 +235,11 @@ const AUTO_REPEAT: ParityCase[] = [
     nodes: [
       leaf("a"),
       leaf("b"),
-      grid(["repeat(auto-fill, minmax(100px, 1fr))"], { width: "600px", columnGap: "20px" }, [0, 1]),
+      grid(
+        ["repeat(auto-fill, minmax(100px, 1fr))"],
+        { width: "600px", columnGap: "20px" },
+        [0, 1],
+      ),
     ],
   },
   {
@@ -202,8 +247,16 @@ const AUTO_REPEAT: ParityCase[] = [
     availW: 400,
     availH: -1,
     nodes: [
-      leaf("a"), leaf("b"), leaf("c"), leaf("d"), leaf("e"),
-      grid(["50px", "repeat(auto-fill, 100px)", "50px"], { width: "400px" }, [0, 1, 2, 3, 4]),
+      leaf("a"),
+      leaf("b"),
+      leaf("c"),
+      leaf("d"),
+      leaf("e"),
+      grid(
+        ["50px", "repeat(auto-fill, 100px)", "50px"],
+        { width: "400px" },
+        [0, 1, 2, 3, 4],
+      ),
     ],
   },
   {
@@ -213,14 +266,26 @@ const AUTO_REPEAT: ParityCase[] = [
     nodes: [
       leaf("a"),
       leaf("b"),
-      grid(["100px"], { width: "400px", height: "200px", gridTemplateRows: ["repeat(auto-fill, 40px)"] }, [0, 1]),
+      grid(
+        ["100px"],
+        {
+          width: "400px",
+          height: "200px",
+          gridTemplateRows: ["repeat(auto-fill, 40px)"],
+        },
+        [0, 1],
+      ),
     ],
   },
   {
     name: "대조군 — 정수 repeat(3, 1fr) w600 > a, b → 200 / 200",
     availW: 600,
     availH: -1,
-    nodes: [leaf("a"), leaf("b"), grid(["repeat(3, 1fr)"], { width: "600px" }, [0, 1])],
+    nodes: [
+      leaf("a"),
+      leaf("b"),
+      grid(["repeat(3, 1fr)"], { width: "600px" }, [0, 1]),
+    ],
   },
 ];
 
@@ -228,16 +293,30 @@ const ALL = [...LINE_NAMES, ...AUTO_REPEAT];
 
 describe("⑥ grid 라인 이름 · auto-repeat", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
-  it.each(ALL.map((c) => [c.name, c] as const))("engine leg — %s", (_name, c) => {
-    const bad = diffCase(c.nodes, domLeg(c.nodes, c.availW), engineLeg(c.nodes, c.availW, c.availH));
-    expect(bad, bad.join("\n")).toEqual([]);
-  });
+  it.each(ALL.map((c) => [c.name, c] as const))(
+    "engine leg — %s",
+    (_name, c) => {
+      const bad = diffCase(
+        c.nodes,
+        domLeg(c.nodes, c.availW),
+        engineLeg(c.nodes, c.availW, c.availH),
+      );
+      expect(bad, bad.join("\n")).toEqual([]);
+    },
+  );
 
-  it.each(ALL.map((c) => [c.name, c] as const))("pipeline leg — %s", (_name, c) => {
-    const bad = diffCase(c.nodes, domLeg(c.nodes, c.availW), pipelineLeg(c.nodes, c.availW, c.availH));
-    expect(bad, bad.join("\n")).toEqual([]);
-  });
+  it.each(ALL.map((c) => [c.name, c] as const))(
+    "pipeline leg — %s",
+    (_name, c) => {
+      const bad = diffCase(
+        c.nodes,
+        domLeg(c.nodes, c.availW),
+        pipelineLeg(c.nodes, c.availW, c.availH),
+      );
+      expect(bad, bad.join("\n")).toEqual([]);
+    },
+  );
 });

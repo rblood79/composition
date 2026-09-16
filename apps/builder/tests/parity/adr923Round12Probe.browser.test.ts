@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import { enrichWithIntrinsicSize } from "@/builder/workspace/canvas/layout/engines/utils";
 import type { CanvasLayoutNode } from "@/builder/workspace/canvas/layout/layoutNode";
 import {
@@ -332,7 +332,7 @@ function runCase(c: ProbeCase): ProbeResult {
 
 describe("ADR-923 round 12 diagnostic probes", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   afterAll(async () => {
@@ -344,7 +344,7 @@ describe("ADR-923 round 12 diagnostic probes", () => {
   });
 
   it("records Chrome, engine, and pipeline boundaries", () => {
-    const spy = vi.spyOn(CompositionEngineLayout.prototype, "buildTreeBatch");
+    const spy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
     for (const c of CASES) RESULTS[c.name] = runCase(c);
     RESULTS.buildTreeBatchCalls = spy.mock.calls.map(([json]) =>
       JSON.parse(json),

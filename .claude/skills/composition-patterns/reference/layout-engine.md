@@ -1,4 +1,4 @@
-# Layout Engine 구현 상세 — composition-engine (자체 Rust WASM) + JS 어댑터
+# Layout Engine 구현 상세 — engine (자체 Rust WASM) + JS 어댑터
 
 > **정본 분리**: 원칙·금지 패턴 정본은 [.claude/rules/layout-engine.md](../../../rules/layout-engine.md) 와
 > [.claude/rules/canvas-rendering.md](../../../rules/canvas-rendering.md). 본 문서는 그 정본이 다루지 않는
@@ -13,7 +13,7 @@
 2. WASM 경계 계약 — LayoutEngineAPI / batch 직렬화 / grid track 정규화
 3. `calculateFullTreeLayout` 파이프라인 (Step 1~5)
 4. DFS 상단 JS 계층 — enrichment / implicit styles / CSS resolve
-5. Rust 측 구조 — composition-engine 모듈과 테스트
+5. Rust 측 구조 — engine 모듈과 테스트
 6. WASM 로드/플래그
 7. 디버깅 진입점
 8. 역사적 맥락 (Dropflow → Taffy → 자체 엔진)
@@ -23,7 +23,7 @@
 ## 1. 아키텍처 개요
 
 레이아웃은 **단일 엔진 + 단일 WASM 호출 흐름**이다. Taffy 는 2026-07-06 에 물리 삭제되었고
-(crate 2종 + pkg + JS 13파일), 자체 Rust 엔진 `composition-engine` 이 유일 경로다 — 폴백 없음.
+(crate 2종 + pkg + JS 13파일), 자체 Rust 엔진 `engine` 이 유일 경로다 — 폴백 없음.
 
 ```
 useLayoutPublisher (canvas/hooks/)
@@ -32,17 +32,17 @@ useLayoutPublisher (canvas/hooks/)
             └─ calculateFullTreeLayout (fullTreeLayout.ts:2236 — DFS + batch 구성)
                  └─ PersistentLayoutTree (engines/persistentLayoutTree.ts:59 — 증분 갱신 + handle 관리)
                       └─ createLayoutEngine() (wasm-bindings/layoutBridge.ts:59 — factory seam)
-                           └─ CompositionEngineLayout (wasm-bindings/compositionEngine.ts:67 — 동기 wrapper)
-                                └─ wasm.rs LayoutEngine (packages/composition-engine/src/wasm.rs)
+                           └─ EngineLayout (wasm-bindings/engine.ts:67 — 동기 wrapper)
+                                └─ wasm.rs LayoutEngine (packages/engine/src/wasm.rs)
                                      └─ tree::LayoutTree (src/tree.rs:217 — flex/block/grid dispatch)
 ```
 
 | 계층                 | 위치                                                                                 | 역할                                                                                            |
 | -------------------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| Rust 커널            | `packages/composition-engine/src/{flex,block,grid}.rs`                               | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                              |
-| Rust 오케스트레이션  | `packages/composition-engine/src/tree.rs`                                            | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                          |
-| WASM wrapper         | `packages/composition-engine/src/wasm.rs`                                            | `LayoutTree` 를 JS `LayoutEngineAPI` 16 메서드로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트) |
-| JS 동기 wrapper      | `apps/builder/src/builder/workspace/canvas/wasm-bindings/compositionEngine.ts`       | raw 반환(Uint32Array/Float32Array) → number[]/Map 변환                                          |
+| Rust 커널            | `packages/engine/src/{flex,block,grid}.rs`                                           | CSS 명세 기반 단일 컨테이너 solver (flat f32 계약)                                              |
+| Rust 오케스트레이션  | `packages/engine/src/tree.rs`                                                        | batch 트리 빌드 → post-order solve → dirty 증분 재계산                                          |
+| WASM wrapper         | `packages/engine/src/wasm.rs`                                                        | `LayoutTree` 를 JS `LayoutEngineAPI` 16 메서드로 노출 (`#[cfg(target_arch = "wasm32")]` 게이트) |
+| JS 동기 wrapper      | `apps/builder/src/builder/workspace/canvas/wasm-bindings/engine.ts`                  | raw 반환(Uint32Array/Float32Array) → number[]/Map 변환                                          |
 | 엔진 factory         | `wasm-bindings/layoutBridge.ts`                                                      | `createLayoutEngine()` — 자체 엔진 단독 반환 (ADR-916 Phase 0-A seam)                           |
 | Persistent 트리      | `layout/engines/persistentLayoutTree.ts`                                             | elementId↔handle 매핑, JSON 비교 증분 갱신, 페이지 전환 reset                                   |
 | Full-tree 파이프라인 | `layout/engines/fullTreeLayout.ts`                                                   | DFS post-order + enrichment + batch 직렬화 + 2-pass 교정                                        |
@@ -80,7 +80,7 @@ ADR-923 Phase 6 (`7f1cf963d`) 에서 `Engine*` 로 개명됐다 — "Taffy 가 �
 - 상태: `isAvailable()` / `clear()` / `nodeCount()`
 
 `getLayoutsBatch` 는 WASM 이 flat `[x0,y0,w0,h0, x1,...]` Float32Array 를 반환하면
-`flatToLayoutMap()`(compositionEngine.ts:46) 이 handle 순서로 4개씩 슬라이스해 `Map<handle, LayoutResult>` 로 재구성한다.
+`flatToLayoutMap()`(engine.ts:46) 이 handle 순서로 4개씩 슬라이스해 `Map<handle, LayoutResult>` 로 재구성한다.
 
 ### batch JSON 계약
 
@@ -115,7 +115,7 @@ ADR-923 Phase 6 (`7f1cf963d`) 에서 `Engine*` 로 개명됐다 — "Taffy 가 �
 
 ## 3. `calculateFullTreeLayout` 파이프라인 (fullTreeLayout.ts:2236)
 
-진입 가드: `isCompositionEngineReady()` false 면 즉시 null (부트스트랩 폴링이 재시도 담당).
+진입 가드: `isEngineReady()` false 면 즉시 null (부트스트랩 폴링이 재시도 담당).
 
 **멀티페이지/Frame 격리**: persistent tree 는 `rootKey = page_id ?? frameMirrorId ?? rootElementId`
 별로 분리 저장 (`persistentTrees` Map, :144). **Why**: Frame body 는 page_id 가 null — 분리하지 않으면
@@ -201,7 +201,7 @@ ADR-916 2-B 착수 전 실사로 확정: DFS 상단 3-step (`resolveStyle` = sto
 
 ---
 
-## 5. Rust 측 구조 — `packages/composition-engine`
+## 5. Rust 측 구조 — `packages/engine`
 
 Cargo.toml 에 **taffy dependency 부재가 crate 존재 이유** — 추가 금지 (Cargo.toml:5 주석).
 의존성: wasm-bindgen / js-sys / serde / serde_json 뿐.
@@ -237,18 +237,18 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 | `tests/golden.rs`      | 15 케이스                 | 세 완결 엔트리(`flex_layout`/`grid_layout`/`block_layout`) 를 **CSS 명세 계산값**으로 회귀 고정, TOL=1px                                                                                         |
 | `tests/tree_golden.rs` | 6 케이스 (N1~N5 + N6)     | **Chrome 실측 독립 oracle** — Taffy 소멸 후 tree.rs 회귀를 감시하는 유일한 외부 권위. N1~N5 = 중첩/혼합 실전 형상 (Chrome `getBoundingClientRect` root-상대), N6 = box-sizing 손계산 (padding≠0) |
 
-실행: `cargo test` (composition-engine 디렉토리, native). wasm.rs 는 게이트로 native 무영향.
-**주의**: 소스 수정 후 되돌리면 mtime 때문에 cargo 가 stale binary 를 재사용할 수 있다 — 의심 시 `cargo clean -p composition-engine`.
+실행: `cargo test` (engine 디렉토리, native). wasm.rs 는 게이트로 native 무영향.
+**주의**: 소스 수정 후 되돌리면 mtime 때문에 cargo 가 stale binary 를 재사용할 수 있다 — 의심 시 `cargo clean -p engine`.
 
 ---
 
 ## 6. WASM 로드/플래그
 
-- `wasm-bindings/init.ts::initAllWasm()` — startup 에서 composition-engine WASM(+SpatialIndex) 과
+- `wasm-bindings/init.ts::initAllWasm()` — startup 에서 engine WASM(+SpatialIndex) 과
   CanvasKit 을 병렬 로드. `createLayoutEngine()` 이 **동기** factory 라 전역 캐시
-  (`compositionEngineWasm.ts`) 를 먼저 채워야 한다. 미준비 시 `CompositionEngineLayout.isAvailable()`
+  (`engineWasm.ts`) 를 먼저 채워야 한다. 미준비 시 `EngineLayout.isAvailable()`
   의 lazy re-init + 부트스트랩(useCanvasRuntimeBootstrap) 15초 폴링이 보상 — 폴백 코드 없음.
-- pkg 산출물: `wasm-bindings/composition-engine-pkg/` (wasm-pack `--target bundler`, out-dir 를
+- pkg 산출물: `wasm-bindings/engine-pkg/` (wasm-pack `--target bundler`, out-dir 를
   apps/builder 내부로 지정 — dev 서버 root 밖 절대 URL fetch 실패 회피). 빌드: `pnpm wasm:build:engine`.
   pkg 는 gitignore (빌드 산출물).
 - `featureFlags.ts` — `UNIFIED_ENGINE_FLAGS.USE_RUST_LAYOUT_ENGINE: true` (상수. key 제거 시
@@ -261,7 +261,7 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 
 | 증상/신호                                                     | 보는 곳                                                                                                                                                         |
 | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `[ADR-916] composition-engine WASM initialized` 로그 부재     | `compositionEngineWasm.ts:113` — WASM 로드 실패. init.ts 경로/flag 확인                                                                                         |
+| `[ADR-916] engine WASM initialized` 로그 부재                 | `engineWasm.ts:113` — WASM 로드 실패. init.ts 경로/flag 확인                                                                                                    |
 | `[fullTreeLayout] WASM failed:` 에러                          | fullTreeLayout.ts catch(:2856) — batch payload parse error 가능성 (숫자 dimension 미정규화 → §2 grid branch px 화 확인)                                         |
 | `build_tree_batch: invalid type ... expected string/sequence` | grid track 미정규화(`coerceGridTrack`) 또는 `GRID_DIM_FIELDS` 누락                                                                                              |
 | `Sanitized non-finite values` 경고                            | Step 5 sanitize — 상류 enrichment 의 NaN 전파 (TokenRef 미해석 등)                                                                                              |
@@ -280,11 +280,11 @@ live 렌더가 깨진다 (tree_golden 하네스가 조상 offset 누적으로 �
 
 ## 8. 역사적 맥락
 
-| 시기          | 구성                                                                                                                                                                                                               | 근거                             |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + flexStyleAdapter/gridStyleAdapter(Taffy WASM), per-level 호출 + @pixi/layout                                                                                      | ADR-005 이전                     |
-| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentLayoutTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                                       | ADR-005 / ADR-009                |
-| 2026-07-03~06 | 자체 Rust 엔진 `composition-engine` — flex/block/grid/tree self-impl → dual-run diff 0 → live 전환 → **Taffy 물리 삭제** (crate 2종 + pkg + JS 13파일, dual-run 하네스 동반 소멸, tree_golden 이 독립 oracle 승계) | ADR-916 (Implemented 2026-07-06) |
+| 시기          | 구성                                                                                                                                                                                                   | 근거                             |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
+| 2026-01~02    | display 별 이종 엔진 — DropflowBlockEngine(JS) + flexStyleAdapter/gridStyleAdapter(Taffy WASM), per-level 호출 + @pixi/layout                                                                          | ADR-005 이전                     |
+| 2026-02~03    | Full-Tree 단일 WASM 호출 (DFS post-order batch) + PersistentLayoutTree 증분, Dropflow 제거 → Taffy 단일 엔진                                                                                           | ADR-005 / ADR-009                |
+| 2026-07-03~06 | 자체 Rust 엔진 `engine` — flex/block/grid/tree self-impl → dual-run diff 0 → live 전환 → **Taffy 물리 삭제** (crate 2종 + pkg + JS 13파일, dual-run 하네스 동반 소멸, tree_golden 이 독립 oracle 승계) | ADR-916 (Implemented 2026-07-06) |
 
 구 문서가 인용하던 `DropflowBlockEngine` / `NON_CONTAINER_TAGS` / `SPEC_RENDERS_ALL_TAGS` /
 `UI_SELECT_CHILD_TAGS` / `LAYOUT_AFFECTING_PROPS` 는 현재 코드에 존재하지 않는다 (2026-07-07 grep 0건 — 단 **`LAYOUT_AFFECTING_PROP_KEYS`(`_KEYS` 접미)는 활성 심볼**이므로 혼동 금지. 위 §"layoutVersion 5-심볼 2계층 체인" 참조).

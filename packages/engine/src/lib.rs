@@ -1,4 +1,4 @@
-//! ADR-916 Phase 1 — composition-engine
+//! ADR-916 Phase 1 — engine
 //!
 //! Taffy 의존 없는 자체 단일 레이아웃 엔진. Flexbox/Grid/Block 을 CSS 명세 기반으로
 //! 자체 구현하여 외부 라이브러리 래핑을 제거한다 (ADR-916).
@@ -93,16 +93,16 @@
 //!   N5 dimension 혼재 → **전면 diff 0**. **dualRunLive.test.ts 12/12(C-1 3 +
 //!   C-2b 5 + B2 4)** = 실전 대표 8형상 자체 vs Taffy 시각 동일.
 //! - **(C-2a) 런타임 배선 + flag 전환 land (2026-07-04)**: 자체 엔진을 live builder
-//!   레이아웃 엔진으로 전환. (1) `compositionEngineWasm.ts`(전역 로드, taffy
-//!   `rustWasm.ts` 대응) + `compositionEngine.ts`(동기 wrapper `CompositionEngineLayout`,
+//!   레이아웃 엔진으로 전환. (1) `engineWasm.ts`(전역 로드, taffy
+//!   `rustWasm.ts` 대응) + `engine.ts`(동기 wrapper `EngineLayout`,
 //!   taffy `TaffyLayout` 대응 — 자체 pkg 가 camelCase 16-메서드라 이름 매핑 없이 raw
 //!   타입 변환만). (2) `layoutBridge.ts::createLayoutEngine` flag true 경로에 자체
 //!   엔진 주입(미준비 시 Taffy 안전 폴백). (3) `init.ts` startup 에 자체 WASM 로드.
 //!   (4) `USE_RUST_LAYOUT_ENGINE` flip. **경로 정정**: 자체 pkg 는 monorepo
 //!   `packages/`(dev 서버 root 밖)이라 절대 URL fetch 실패 → wasm-pack out-dir 을
-//!   apps/builder 내부(`wasm-bindings/composition-engine-pkg/`, taffy 선례 미러링)로
+//!   apps/builder 내부(`wasm-bindings/engine-pkg/`, taffy 선례 미러링)로
 //!   지정 + 상대 경로 import(`package.json wasm:build:engine`). **Chrome MCP live
-//!   exercise**: builder 진입 → `createLayoutEngine()` 이 `CompositionEngineLayout`
+//!   exercise**: builder 진입 → `createLayoutEngine()` 이 `EngineLayout`
 //!   반환 + flex row 실계산(leaf-b x=30) + nodeCount 3 확인, Canvas/Skia 렌더 무붕괴.
 //!   **핵심 발견**: `UNIFIED_ENGINE:true` global override 로 `isUnifiedFlag` 가 개별
 //!   flag 무관 true → 배선 커밋 = 즉시 live 전환(배선/flip 분리 불가 구조). rollback =

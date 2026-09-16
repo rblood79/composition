@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import { pipelineLeg, type CaseNode, type StyleRecord } from "./harness";
 
@@ -158,7 +158,7 @@ const COLUMN_FLEX: StyleRecord = {
 
 describe("body 뷰포트 상자 ↔ 내용 배치 분리", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   describe("Chrome 대조 — 자식 배치", () => {

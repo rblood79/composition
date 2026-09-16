@@ -57,7 +57,7 @@ CompositionDocument                                      persistent/mutation SSO
         │          │
         │          └─ renderId ↔ canonical target map    ADR-135/136 boundary
         │
-        ├─ composition-engine Rust/WASM                  geometry/layout authority
+        ├─ engine Rust/WASM                  geometry/layout authority
         │
         ▼
 ResolvedRenderInput                                      renderer-neutral resolved values
@@ -87,7 +87,7 @@ pointer hit(renderId) → canonical target resolver → runCanonicalMutation →
 | -------------------------------------------------- | ------------------------------------------------------------------- | --------------------------------------------------- |
 | 저장·undo·mutation                                 | `CompositionDocument` + canonical mutation runner                   | `RenderSceneSnapshot`, Rust scene compiler, backend |
 | component semantics·theme·token·responsive resolve | 현행 TypeScript canonical/catalog/spec resolver                     | backend별 재해석, OpenPencil `PenDocument`          |
-| layout geometry                                    | `composition-engine` Rust/WASM                                      | CanvasKit/backend별 layout 재계산                   |
+| layout geometry                                    | `engine` Rust/WASM                                                  | CanvasKit/backend별 layout 재계산                   |
 | render projection identity                         | `CanvasSceneNode.projection`, `renderNodesMap`, `sceneVersion` 계보 | projected ID의 DB/history/export 저장               |
 | draw-ready scene                                   | `RenderSceneCompiler`의 `RenderSceneSnapshot`                       | backend가 store/canonical tree를 직접 조회          |
 | 프레임 scheduling·surface cache                    | 현행 `SkiaRenderer` 계층                                            | scene compiler의 rAF/surface 소유                   |
@@ -309,11 +309,11 @@ font/image packaging, accessibility, file security, SDK versioning/API/size budg
 
 ### 6-3. 조건부 Rust 파일
 
-| 경로                                              | 조건                                          |
-| ------------------------------------------------- | --------------------------------------------- |
-| `packages/composition-engine/src/render_scene.rs` | Phase R trigger + 사용자 착수 승인 후에만     |
-| `packages/composition-engine/src/wasm.rs`         | scene batch API 1쌍만 추가, per-node API 금지 |
-| native host crate/package                         | Phase N 별도 ADR 승인 후에만                  |
+| 경로                                  | 조건                                          |
+| ------------------------------------- | --------------------------------------------- |
+| `packages/engine/src/render_scene.rs` | Phase R trigger + 사용자 착수 승인 후에만     |
+| `packages/engine/src/wasm.rs`         | scene batch API 1쌍만 추가, per-node API 금지 |
+| native host crate/package             | Phase N 별도 ADR 승인 후에만                  |
 
 ## 7. Cross-check 매트릭스
 

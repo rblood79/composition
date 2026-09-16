@@ -21,7 +21,7 @@ pnpm workspace + Turborepo. `pnpm-workspace.yaml` 이 `apps/*` 와 `packages/*` 
 | `packages/shared`             | `@composition/shared`                      | catalog(D3 SSOT) · 공용 컴포넌트 · 렌더러 · 스키마       |
 | `packages/specs`              | `@composition/specs`                       | 잔존 spec 3개 (Frame/Group/Slot) · CSS 생성 · 차트 기하  |
 | `packages/config`             | `@composition/config`                      | 공유 tsconfig · eslint 설정                              |
-| `packages/composition-engine` | (Rust crate)                               | 레이아웃 엔진 → wasm. 워크스페이스 패키지가 아니라 cargo |
+| `packages/engine`             | (Rust crate)                               | 레이아웃 엔진 → wasm. 워크스페이스 패키지가 아니라 cargo |
 | `packages/react-aria-starter` | `@composition/react-aria-starter-upstream` | upstream 스냅샷. **편집 금지**, 워크스페이스에서 제외    |
 
 ### 의존 방향 (단방향)
@@ -33,7 +33,7 @@ packages/shared ──▶ @composition/specs
 packages/specs ──▶ (내부 의존 없음)
 ```
 
-`packages/composition-engine` 은 wasm 산출물 (`pkg/`, gitignored) 로 소비된다 —
+`packages/engine` 은 wasm 산출물 (`pkg/`, gitignored) 로 소비된다 —
 `pnpm wasm:build:engine` 이 생성하고, fresh clone·엔진 변경 후에는 필수다.
 
 ---
@@ -67,7 +67,7 @@ composition/
 │   ├── specs/src/
 │   │   ├── components/       # 잔존 spec 3개 (Frame · Group · Slot)
 │   │   ├── primitives/ · renderers/ (CSSGenerator) · chart/ · icons/ · runtime/
-│   ├── composition-engine/   # Rust — src/ · benches/ · tests/ · pkg(생성물)
+│   ├── engine/   # Rust — src/ · benches/ · tests/ · pkg(생성물)
 │   ├── config/               # tsconfig/ · eslint/
 │   └── react-aria-starter/   # upstream 스냅샷 (제외 워크스페이스)
 └── scripts/                  # generate-engine-matrix.mjs · prepare-wasm.mjs · agent/ · codex/ 등

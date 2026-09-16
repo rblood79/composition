@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -249,7 +249,7 @@ function pipelineSubsetCases(): ParityCase[] {
 
 describe("ADR-170 부분 격자 1 — 컨테이너 자기 크기", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it("leaf×부모×display×width×height×min/max 1800 조합 — 발산 집합 고정", () => {

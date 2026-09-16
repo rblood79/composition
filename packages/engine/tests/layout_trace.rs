@@ -9,8 +9,8 @@
 //! fixture 이지 이 파일이 아니다 (R4). 여기서 단언하는 것은 "엔진이 무엇을
 //! 했다고 보고하는가" 뿐이고, "그 판정이 CSS 에 맞는가" 는 parity 소관이다.
 
-use composition_engine::trace::{ClampBound, FloorSource, SkipReason, TraceEvent};
-use composition_engine::tree::LayoutTree;
+use engine::trace::{ClampBound, FloorSource, SkipReason, TraceEvent};
+use engine::tree::LayoutTree;
 
 /// batch JSON → 트리 빌드. 반환 handle 배열은 입력 배열 순서와 1:1 (post-order).
 fn build(batch: &str) -> (LayoutTree, Vec<usize>) {
@@ -219,7 +219,7 @@ fn measure_pass_events_are_tagged_separately() {
 //
 // `wasm.rs::getLayoutTrace` 는 wasm32 게이트라 native 테스트가 닿지 않는다.
 // 그래서 JSON 형태 계약은 그 아래 층(`tree.rs::trace_json`)에서 잠근다 —
-// wasm 표면은 이 문자열을 그대로 위임한다. TS 판독자(compositionEngine.ts
+// wasm 표면은 이 문자열을 그대로 위임한다. TS 판독자(engine.ts
 // `EngineTraceNode`)가 이 스키마의 소비자다: 필드명이 바뀌면 여기가 RED.
 
 #[test]
@@ -274,9 +274,9 @@ fn per_node_event_cap_is_enforced() {
     }
     let n = tree.trace_events(h[1]).len();
     assert!(
-        n <= composition_engine::trace::MAX_EVENTS_PER_NODE,
+        n <= engine::trace::MAX_EVENTS_PER_NODE,
         "노드당 상한({}) 초과: {n}",
-        composition_engine::trace::MAX_EVENTS_PER_NODE
+        engine::trace::MAX_EVENTS_PER_NODE
     );
     assert!(tree.trace_dropped(h[1]) > 0, "상한 초과분이 dropped 로 집계되지 않았다");
 }

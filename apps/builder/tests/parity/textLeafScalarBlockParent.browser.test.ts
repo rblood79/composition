@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 
 import {
   diffCase,
@@ -83,20 +83,23 @@ const CASES: ParityCase[] = [
     box({ display: "block", width: "fit-content" }),
     ROOT,
   ]),
-  c("Container Align — column align center > block > Text auto → 82.4 @ 158.8", [
-    txt(),
-    box({ display: "block" }),
-    {
-      label: "root",
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        width: "400px",
-      },
-      children: [1],
-    } as CaseNode,
-  ]),
+  c(
+    "Container Align — column align center > block > Text auto → 82.4 @ 158.8",
+    [
+      txt(),
+      box({ display: "block" }),
+      {
+        label: "root",
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "400px",
+        },
+        children: [1],
+      } as CaseNode,
+    ],
+  ),
 ];
 
 const CONTROLS: ParityCase[] = [
@@ -119,7 +122,7 @@ const CONTROLS: ParityCase[] = [
 
 describe("block 부모 아래 텍스트 leaf 의 측정 스칼라 — shrink-to-fit 부모", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each([...CASES, ...CONTROLS].map((k) => [k.name, k] as const))(

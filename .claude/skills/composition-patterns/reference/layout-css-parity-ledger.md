@@ -1,6 +1,6 @@
 # Layout Engine — CSS 정합 실측 기록 (엔진 ↔ Chrome 대조, 2026-07-25 ~ 07-28)
 
-> 정본 규칙: [.claude/rules/layout-engine.md](../../../rules/layout-engine.md) §"엔진 CSS 정합 규칙 색인" 의 각 행이 이 문서의 절 하나에 대응한다. 이 문서는 절별로 **규칙 · 거처(Rust/TS 심볼) · Chrome 실측 표 · fixture 민감도 · 금지 패턴** 전문을 담는다. `packages/composition-engine/**` 또는 `fullTreeLayout.ts` 의 배치 알고리즘을 바꾸기 전에 해당 절의 금지 패턴을 읽는다.
+> 정본 규칙: [.claude/rules/layout-engine.md](../../../rules/layout-engine.md) §"엔진 CSS 정합 규칙 색인" 의 각 행이 이 문서의 절 하나에 대응한다. 이 문서는 절별로 **규칙 · 거처(Rust/TS 심볼) · Chrome 실측 표 · fixture 민감도 · 금지 패턴** 전문을 담는다. `packages/engine/**` 또는 `fullTreeLayout.ts` 의 배치 알고리즘을 바꾸기 전에 해당 절의 금지 패턴을 읽는다.
 >
 > 2026-08-31 `.claude/rules/layout-engine.md` 에서 원문 그대로 이관 — rule 이 path 매칭 시 116KB 전량 주입되던 것을 분리 (절 제목·본문 무변경). 새 실측 절은 여기에 추가하고 rule 색인에 한 줄만 등재한다.
 
@@ -695,14 +695,14 @@ Taffy 0.10→0.14 upstream 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DEL
 
 Taffy 0.10→0.14 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-09.md` §2 G4 · G10 · G11 · G12, §4 ② · ④) 에서 Chrome 실측으로 잡은 결함군. 공통 병인은 "**암묵 grid 는 배치 결과에서 나온다**" 를 두 층이 각자 근사한 것 — grid.rs 는 명시 열 수를 배치 한계로 쓰고 (넘으면 10,000 반복 뒤 실패 위치 반환), tree.rs 는 암묵 열 합성을 auto 폭 분기 안에만 두고 암묵 행은 row-flow 에만 만들었다.
 
-| 결함                                                        | 거처                                                                                  |          Chrome |            구 엔진 |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------- | --------------: | -----------------: |
-| 2열 grid 에 `grid-column: 1 / span 3`                       | `block_fits` 열 한계 + `+ 10_000` 가드 5곳                                            |  y 0 · w 400    | y **100,000** · 200 |
-| 2열 grid 에 `grid-column-start: 4`                          | 같은 곳 (definite-col 스캔)                                                            |           x 300 |              x 200 |
-| 정폭 grid, template 없음                                    | tree.rs 합성이 `inline_intrinsic` 분기 안 · grid.rs 셀 폴백 `unwrap_or(100.0)` 3곳   |           w 400 |          w **100** |
-| `grid-template-rows: repeat(2, 40px)` (height auto)         | `repeat()` 토큰 하나 = 행 하나로 세어 content 행으로 접힘                              | b.y 40 · h 80   |     b.y 20 · h 40  |
-| `grid-auto-flow: column; grid-auto-columns: 1fr 2fr`        | `parse_implicit_track_size` 첫 토큰 px 만 · col-flow 는 행 트랙 0                     | 133/267 · h 20  |    100/100 · h **0** |
-| `grid-column-end: span 2` 단독                               | `combine_grid_line` 이 end-only 를 auto 로 버림                                       |           w 200 |              w 100 |
+| 결함                                                 | 거처                                                                               |         Chrome |             구 엔진 |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------- | -------------: | ------------------: |
+| 2열 grid 에 `grid-column: 1 / span 3`                | `block_fits` 열 한계 + `+ 10_000` 가드 5곳                                         |    y 0 · w 400 | y **100,000** · 200 |
+| 2열 grid 에 `grid-column-start: 4`                   | 같은 곳 (definite-col 스캔)                                                        |          x 300 |               x 200 |
+| 정폭 grid, template 없음                             | tree.rs 합성이 `inline_intrinsic` 분기 안 · grid.rs 셀 폴백 `unwrap_or(100.0)` 3곳 |          w 400 |           w **100** |
+| `grid-template-rows: repeat(2, 40px)` (height auto)  | `repeat()` 토큰 하나 = 행 하나로 세어 content 행으로 접힘                          |  b.y 40 · h 80 |       b.y 20 · h 40 |
+| `grid-auto-flow: column; grid-auto-columns: 1fr 2fr` | `parse_implicit_track_size` 첫 토큰 px 만 · col-flow 는 행 트랙 0                  | 133/267 · h 20 |   100/100 · h **0** |
+| `grid-column-end: span 2` 단독                       | `combine_grid_line` 이 end-only 를 auto 로 버림                                    |          w 200 |               w 100 |
 
 - **배치가 먼저, 트랙은 그 다음.** `resolve_cells_from_intents` 가 자동 배치 축의 폭을 `implicit_minor_count` = max(명시 트랙 수, 명시 배치 item 의 end 라인, auto item 의 span) 로 넓혀 스캔한다 (Chrome `GridPlacement` 의 minor end-line 과 같은 규칙). 명시 축 (`col_start` / `row_start` 있음) 에는 한계가 없다 — `block_fits` 에 `i32::MAX`. 점유는 유한하고 라인은 `MAX_GRID_LINE` 을 못 넘으므로 "실패 위치 반환" 가드는 사라졌다.
 - **암묵 트랙 수 = 배치 결과의 `max(start + span)`** — 열·행 모두, flow 와 무관. tree.rs 가 `placed_cells` 에서 그 수를 세어 명시 토큰 뒤에 `grid-auto-columns` / `grid-auto-rows` 토큰을 **순환**으로 붙인다 (기본 `auto` → 기여 측정 + §12.8 stretch 로 정폭 grid 를 채운다). grid.rs 의 `with_implicit_tracks` 는 직접 호출자 (`grid_layout` 단독) 의 같은 규칙 폴백이고, 폴백 100 셀은 없다.
@@ -726,13 +726,13 @@ Taffy 0.10→0.14 대조 (`docs/explanation/research/TAFFY_UPSTREAM_DELTA_2026-0
 
 Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline (실제 텍스트 측정 스칼라) 로 재현해 **확정**했고, 같은 질문을 컨테이너에도 던지자 grid 쪽에 반대 부호의 잠복 결함이 같이 나왔다.
 
-| 결함                                                              | 거처                                                          |          Chrome |       구 엔진 |
-| ----------------------------------------------------------------- | ------------------------------------------------------------- | --------------: | ------------: |
-| flex row > Text `paddingLeft 12` (스칼라 leaf)                    | `resolve_leaf_intrinsic_width` 가 border-box 보고 → flex `border_main` 이 또 더함 | 94.4 | **107** |
-| flex row > Text `padding 12 / 8`                                  | 같은 곳                                                       |           102.4 |       **123** |
-| grid `auto` 트랙 > padded **컨테이너** (auto 폭)                  | `col_contribution` 이 content-box 반환에 pad 를 안 더함       |              70 |        **50** |
-| grid `justify-items:start` > padded 컨테이너                      | `place_grid_axis(real_size: cw)` 같은 이유                    |              70 |        **50** |
-| grid auto 행 > padded 컨테이너 (auto 높이)                        | 행 기여 · `real_size: ch` 같은 이유 (블록 축)                  |              40 |        **20** |
+| 결함                                             | 거처                                                                              | Chrome | 구 엔진 |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- | -----: | ------: |
+| flex row > Text `paddingLeft 12` (스칼라 leaf)   | `resolve_leaf_intrinsic_width` 가 border-box 보고 → flex `border_main` 이 또 더함 |   94.4 | **107** |
+| flex row > Text `padding 12 / 8`                 | 같은 곳                                                                           |  102.4 | **123** |
+| grid `auto` 트랙 > padded **컨테이너** (auto 폭) | `col_contribution` 이 content-box 반환에 pad 를 안 더함                           |     70 |  **50** |
+| grid `justify-items:start` > padded 컨테이너     | `place_grid_axis(real_size: cw)` 같은 이유                                        |     70 |  **50** |
+| grid auto 행 > padded 컨테이너 (auto 높이)       | 행 기여 · `real_size: ch` 같은 이유 (블록 축)                                     |     40 |  **20** |
 
 - **계약 하나로 통일**: `solve_node` 의 **auto 축 반환은 content-box** (컨테이너 `solve_*` 가 이미 그랬다 — "auto 축 반환은 content-box"), 명시 크기와 intrinsic 키워드는 border-box. leaf 의 스칼라 경로 (`width: auto` + `contentMin/MaxWidth`) 만 border-box 를 보고하던 유일한 생산자였다. 이제 `(보고값, 자기 layout 의 border-box)` 두 값을 돌려 layout 은 border-box, 보고는 content-box.
 - **소비처 셋 중 둘은 원래 맞았다** — flex `border_main` · block `content_w + pad_border_h` 는 content-box 를 기대해 leaf 에서만 이중이었고, grid 는 반환을 border-box 로 읽어 leaf 는 우연히 맞고 컨테이너는 padding 만큼 모자랐다. grid 기여 (`col_contribution` · 행 기여) 와 배치 (`place_grid_axis` 의 `real_size`) 가 auto 축 자식에 pad/border 를 더한다 — `child_auto_inline_pad_border` / `child_auto_block_pad_border` (명시·키워드는 0).
@@ -753,12 +753,12 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 
 `enrichWithIntrinsicSize` 의 텍스트 스칼라 (`contentMinWidth/contentMaxWidth`) 공급이 `(isFlexChild || isGridChild)` 로 게이트돼 있었다. 근거였던 "block 자식은 stretch 되어 스칼라가 없어도 된다" 는 **부모가 definite 일 때만** 참이다.
 
-| 부모                                                    | Chrome |     구 파이프라인 |
-| ------------------------------------------------------- | -----: | ----------------: |
-| block `width: max-content` > Text                       |   82.4 |           **400** |
-| 위 + Text `paddingLeft 12`                              |   94.4 | **12** (padding 만) |
-| block `width: min-content` > Text                       |   41.5 |           **400** |
-| column `align-items: center` > block > Text (Container Align) | 82.4 |        **0** |
+| 부모                                                          | Chrome |       구 파이프라인 |
+| ------------------------------------------------------------- | -----: | ------------------: |
+| block `width: max-content` > Text                             |   82.4 |             **400** |
+| 위 + Text `paddingLeft 12`                                    |   94.4 | **12** (padding 만) |
+| block `width: min-content` > Text                             |   41.5 |             **400** |
+| column `align-items: center` > block > Text (Container Align) |   82.4 |               **0** |
 
 - engine leg (스칼라 atom) 는 네 부모 전부 정합 — 엔진 결함이 아니라 **TS 공급 결함**. 2026-07-28 의 `isFlexChild`/`isGridChild` 확장 때 block 은 "stretch 라 무해" 로 남겼는데, 그 판단이 shrink-to-fit 부모 (키워드 폭 블록 · non-stretch align 아래 auto 폭 블록) 를 빠뜨렸다. 후자가 그 주석이 적은 live 증상 (Container Align 안 텍스트 0) 그대로다.
 - 수리: TEXT_LEAF_TAGS 절의 부모 종류 게이트만 제거 (rawWidth 조건은 유지 — 미설정/auto/`%`/키워드). `isFlexChild` 자체는 넓히지 않는다 (growsInFlex · minWidth 주입에 딸려온다 — §grid 자식의 TS 공급 3결함).
@@ -776,21 +776,21 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 
 `solve_block` 의 부모-자식 margin collapse 차단 (`block_is_bfc`) 과 `node_establishes_bfc` (leaf self-collapsing 제외) 가 scroll container 와 flex/grid 만 봤다. `display.rs` 는 `flow-root` 를 파싱했지만 소비처가 없었고 (Taffy #997 의 전제), abs-pos 상자는 live 대조군이 드러냈다. block `align-content` (Chrome 123+) 는 `solve_block` 에 0건이었다 (Taffy #959).
 
-| fixture (Chrome 실측)                                   | Chrome                        | 종전 엔진      |
-| ------------------------------------------------------- | ----------------------------- | -------------- |
-| B8 `flow-root` > child mt40 h10 · sib                   | fr h 50 · sib y 50            | 10 · 10        |
-| `flow-root` > child h10 mb20                            | fr h 30                       | 10             |
-| 빈 `flow-root` mt20 mb30 사이 형제                      | b.y 60 · root 70 (self-collapsing 아님) | 40 · 50 |
-| `inline-block` w100 > child mt40 h10 (root line-height 0) | ib h 50 · y 0               | 10 · 40        |
-| abs w300 > plain block > child mt40 h10                 | abs h 50 · plain y 40         | 10 · 0         |
-| B5 block h200 `align-content: center` > child h50       | y 75                          | 0              |
-| h200 `end` / `flex-end` · `space-around` / `space-evenly` (단일) · `safe center` | 150 · 75 · 75 | 0 |
-| h200 `space-between` (단일) · `start` · `normal`        | 0                             | 0              |
-| h200 center > child mt20 h50 · outer 안 blk `start`     | 85 · child y 20 (margin 안에) | 0 · 0 (탈출)   |
-| h auto center > child mt20 h50 · child h50 mb30         | blk h 70 · 80                 | 50 · 50        |
-| h100 center > child h150 · `unsafe center`              | 0 · −25                       | 0 · 0          |
-| h auto `min-height 200` center > h50                    | 75                            | 0              |
-| h200 pt20 center > h50                                  | 85 (20 + 55)                  | 20             |
+| fixture (Chrome 실측)                                                            | Chrome                                  | 종전 엔진    |
+| -------------------------------------------------------------------------------- | --------------------------------------- | ------------ |
+| B8 `flow-root` > child mt40 h10 · sib                                            | fr h 50 · sib y 50                      | 10 · 10      |
+| `flow-root` > child h10 mb20                                                     | fr h 30                                 | 10           |
+| 빈 `flow-root` mt20 mb30 사이 형제                                               | b.y 60 · root 70 (self-collapsing 아님) | 40 · 50      |
+| `inline-block` w100 > child mt40 h10 (root line-height 0)                        | ib h 50 · y 0                           | 10 · 40      |
+| abs w300 > plain block > child mt40 h10                                          | abs h 50 · plain y 40                   | 10 · 0       |
+| B5 block h200 `align-content: center` > child h50                                | y 75                                    | 0            |
+| h200 `end` / `flex-end` · `space-around` / `space-evenly` (단일) · `safe center` | 150 · 75 · 75                           | 0            |
+| h200 `space-between` (단일) · `start` · `normal`                                 | 0                                       | 0            |
+| h200 center > child mt20 h50 · outer 안 blk `start`                              | 85 · child y 20 (margin 안에)           | 0 · 0 (탈출) |
+| h auto center > child mt20 h50 · child h50 mb30                                  | blk h 70 · 80                           | 50 · 50      |
+| h100 center > child h150 · `unsafe center`                                       | 0 · −25                                 | 0 · 0        |
+| h auto `min-height 200` center > h50                                             | 75                                      | 0            |
+| h200 pt20 center > h50                                                           | 85 (20 + 55)                            | 20           |
 
 - **BFC 술어** — `display_creates_bfc` = inner `FlowRoot` (`flow-root` · `inline-block`) ∨ `is_out_of_flow(position)`. `node_establishes_bfc` 와 `solve_block` 의 `creates_bfc` 가 같이 읽는다. BFC 자신의 top/bottom margin 은 형제와 정상 collapse (a mb20 · fr mt10 → fr y 30) — 종전 r9 규칙 그대로.
 - **block `align-content`** — `parse_block_align_content` → `(계수 0/0.5/1, unsafe)`; `None` = normal/stretch/baseline/미인식. 여유 = used content 높이 (명시 height 면 content box, auto 면 `max(내용, min-height)` 후 max-height) − in-flow 내용 (block.rs in-flow bottom = margin box 포함). 음수 여유는 기본 safe (start), `unsafe` 접두만 음수. 오프셋은 in-flow 자식 y 와 컨테이너 baseline 에 더한다 — abs 자식은 대상 아님.
@@ -810,18 +810,18 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 
 `tokenize_template` 이 `[a]` 를 트랙 토큰으로 남겨 `auto` 트랙이 됐고 (Taffy #1138), auto-fill/auto-fit 반복 수가 minmax 의 **min px 만** 합산해 `minmax(auto, 200px)` · `25%` 가 1 반복이었으며 (Taffy #946), `expand_repeat` 이 계산한 `is_auto_fit` 을 버려 빈 트랙이 남았다 (Taffy #1035).
 
-| fixture (Chrome 실측)                                                        | Chrome                       | 종전 엔진          |
-| ---------------------------------------------------------------------------- | ---------------------------- | ------------------ |
-| G3 `[a] 1fr [b] 1fr [c]` w300 > a                                            | 150 (2 트랙)                 | 60 (5 트랙)        |
-| `[a b] 100px [c] 100px [d e]` > a, b                                         | 100 / 100                    | 40 / 40            |
-| `grid-column-start: b` · `a / c` · 행 `mid` · `x 2`                           | x 100 · w 200 · y 30 · x 100 | 0 · 66.7 · 0 · 0   |
-| G1 `repeat(auto-fit, minmax(100px,1fr))` w600 > a, b                         | 300 / 300                    | 100 / 100          |
-| 위 + `column-gap 20`                                                         | 290 / 290, b.x 310           | 104 / 104, 124     |
-| auto-fit + `grid-column-start: 3` (1 item)                                   | x 0, w 600                   | x 200, w 100       |
-| G1b `repeat(auto-fill, minmax(auto,200px))` w600 > a, b, c                    | b.x 200 · c.x 400 · 한 행    | 0,20 · 0,40 · 3 행 |
-| `repeat(auto-fill, 25%)` w400 > 5 item                                       | 4 트랙 100, e 2행            | 1 트랙             |
-| `50px repeat(auto-fill, 100px) 50px` w400 > 5 item                           | 3 반복, e.w 50 (뒤 50px 트랙) | 4 반복, e.w 100   |
-| 대조군 auto-fill `minmax(100px,1fr)` 2 item · `150px` · 행 auto-fill · 정수 repeat | 종전과 같음              | 일치               |
+| fixture (Chrome 실측)                                                              | Chrome                        | 종전 엔진          |
+| ---------------------------------------------------------------------------------- | ----------------------------- | ------------------ |
+| G3 `[a] 1fr [b] 1fr [c]` w300 > a                                                  | 150 (2 트랙)                  | 60 (5 트랙)        |
+| `[a b] 100px [c] 100px [d e]` > a, b                                               | 100 / 100                     | 40 / 40            |
+| `grid-column-start: b` · `a / c` · 행 `mid` · `x 2`                                | x 100 · w 200 · y 30 · x 100  | 0 · 66.7 · 0 · 0   |
+| G1 `repeat(auto-fit, minmax(100px,1fr))` w600 > a, b                               | 300 / 300                     | 100 / 100          |
+| 위 + `column-gap 20`                                                               | 290 / 290, b.x 310            | 104 / 104, 124     |
+| auto-fit + `grid-column-start: 3` (1 item)                                         | x 0, w 600                    | x 200, w 100       |
+| G1b `repeat(auto-fill, minmax(auto,200px))` w600 > a, b, c                         | b.x 200 · c.x 400 · 한 행     | 0,20 · 0,40 · 3 행 |
+| `repeat(auto-fill, 25%)` w400 > 5 item                                             | 4 트랙 100, e 2행             | 1 트랙             |
+| `50px repeat(auto-fill, 100px) 50px` w400 > 5 item                                 | 3 반복, e.w 50 (뒤 50px 트랙) | 4 반복, e.w 100    |
+| 대조군 auto-fill `minmax(100px,1fr)` 2 item · `150px` · 행 auto-fill · 정수 repeat | 종전과 같음                   | 일치               |
 
 - **라인 이름** — `tokenize_template_with_line_names` 가 `[…]` 를 통째로 떼어 `(이름, 1-based 라인)` 목록으로 돌려주고 (대괄호 안 공백은 이름 구분), `tokenize_template` 은 트랙만. grid.rs 배치는 숫자 라인만 알므로 tree.rs `build_grid_placement_spec` 이 컨테이너 template 의 이름 목록으로 `b` · `x 2` 를 번호로 푼다 (`resolve_line_name`). 없는 이름은 auto (암묵 `-start`/`-end` 이름 · area 이름은 미대상).
 - **반복 수** — `auto_repeat_count`: 트랙당 `repeat_count_size` = max 가 definite (px/%) 면 max (min 으로 floor), 아니면 min, 둘 다 아니면 0. **반복 밖 명시 트랙 + 그 gutter 를 먼저 뺀다** — 컨테이너 전체로 세면 `50px repeat(auto-fill,100px) 50px` w400 이 4 반복 (Chrome 3, e.w 50). 컨테이너 미결정이면 1 (§7.2.3.2 의 min-width 경로는 미대상).
@@ -841,24 +841,24 @@ Taffy 0.10→0.14 대조 §4 ⑨ 의 "실측 전 판정 보류" 항목. pipeline
 
 flex.rs 에 `baseline` 코드가 없었고 (Taffy #1109 · #1127 의 전제 — `align-items: baseline` 이 stretch 0 으로 떨어짐), 정렬 파서가 정확 문자열 매치라 `safe center` 가 start (Taffy #952), `self-end` 가 default 로 떨어졌다 (#1077).
 
-| fixture (Chrome 실측)                                          | Chrome                 | 종전 엔진 |
-| -------------------------------------------------------------- | ---------------------- | --------- |
-| F4 row `align-items: baseline` > a h30 · b h60                 | a.y 30                 | 0         |
-| 위 + b `margin-top 10`                                         | a.y 40 · root h 70     | 0 · 70    |
-| a h100 · b h20                                                 | b.y 80 · root h 100    | 0         |
-| a pb20 (합성 baseline = border-box 아래)                       | a.y 30                 | 0         |
-| definite h200 — 그룹은 cross-start                             | a.y 30 · b.y 0         | 0 · 0     |
-| b `margin-top: auto` — 그룹 밖 (#1109)                          | a.y 0                  | 0 (우연)  |
-| column + baseline                                              | start (x 0)            | 0 (우연)  |
-| 중첩 flex item (자식 h60) 의 baseline                           | a.y 30                 | 0         |
-| wrap 2 줄 — 줄마다 독립                                         | a.y 30 · c.y 110       | 0 · 60    |
-| F8b `justify-content: safe center` w400 > w100                 | 150                    | 0         |
-| `safe center` 넘침 (w100 > w300) · `unsafe center` · 접두 없음 | 0 · −100 · −100        | 0 · 0 · −100 |
-| `safe flex-end` 넘침 · `unsafe flex-end`                       | 0 · −200               | 0 · 0     |
-| `align-items: safe center` 여유 h200 > h50 · 넘침 h100 > h300  | 75 · 0                 | 0 · 0     |
-| `align-self: safe flex-end` 넘침 (컨테이너 center)             | 0                      | −100      |
-| `align-content: safe center` wrap h200 두 줄 60 · 넘침 h20     | 70 · 0                 | 0 · 0     |
-| `align-items: self-end` h200 > h50 · `align-self: self-end` · column `self-end` | 150 · 150 · x 350 | 0 |
+| fixture (Chrome 실측)                                                           | Chrome              | 종전 엔진    |
+| ------------------------------------------------------------------------------- | ------------------- | ------------ |
+| F4 row `align-items: baseline` > a h30 · b h60                                  | a.y 30              | 0            |
+| 위 + b `margin-top 10`                                                          | a.y 40 · root h 70  | 0 · 70       |
+| a h100 · b h20                                                                  | b.y 80 · root h 100 | 0            |
+| a pb20 (합성 baseline = border-box 아래)                                        | a.y 30              | 0            |
+| definite h200 — 그룹은 cross-start                                              | a.y 30 · b.y 0      | 0 · 0        |
+| b `margin-top: auto` — 그룹 밖 (#1109)                                          | a.y 0               | 0 (우연)     |
+| column + baseline                                                               | start (x 0)         | 0 (우연)     |
+| 중첩 flex item (자식 h60) 의 baseline                                           | a.y 30              | 0            |
+| wrap 2 줄 — 줄마다 독립                                                         | a.y 30 · c.y 110    | 0 · 60       |
+| F8b `justify-content: safe center` w400 > w100                                  | 150                 | 0            |
+| `safe center` 넘침 (w100 > w300) · `unsafe center` · 접두 없음                  | 0 · −100 · −100     | 0 · 0 · −100 |
+| `safe flex-end` 넘침 · `unsafe flex-end`                                        | 0 · −200            | 0 · 0        |
+| `align-items: safe center` 여유 h200 > h50 · 넘침 h100 > h300                   | 75 · 0              | 0 · 0        |
+| `align-self: safe flex-end` 넘침 (컨테이너 center)                              | 0                   | −100         |
+| `align-content: safe center` wrap h200 두 줄 60 · 넘침 h20                      | 70 · 0              | 0 · 0        |
+| `align-items: self-end` h200 > h50 · `align-self: self-end` · column `self-end` | 150 · 150 · x 350   | 0            |
 
 - **슬롯 계약** — `FLEX_FIELD_COUNT` 21 → **22**: 슬롯 21 `baseline_plus_one` (cross 축 baseline, border-top 기준, +1 — 0 = absent 가 zero-init 겸 기본). tree.rs `write_flex_item` 이 자식 `layout.baseline` (ADR-923 — 텍스트 leaf 첫 줄 · block 컨테이너 마지막 line box · flex 컨테이너 첫 item) 을 row 방향에서만 싣는다. golden `golden_field_contract_guard` 22.
 - **코드** — align_items `ALIGN_BASELINE 4 · ALIGN_SAFE_CENTER 5 · ALIGN_SAFE_END 6`, align_self `5/6/7`, justify `JUSTIFY_SAFE_CENTER 6 · SAFE_END 7`, align_content `SAFE_CENTER 6 · SAFE_END 7`. grid 는 `grid_align_items_code` 로 0~3 계약에 접는다 (baseline → start 근사).
@@ -873,4 +873,3 @@ flex.rs 에 `baseline` 코드가 없었고 (Taffy #1109 · #1127 의 전제 — 
 - ❌ `safe` 를 파서에서 접두만 떼고 같은 코드로 보내기 → 넘침에서 unsafe 와 같아진다
 - ❌ column 방향에 baseline 그룹 적용 → Chrome 은 start
 - ❌ 슬롯 21 을 raw baseline 으로 두기 → zero-init 0 이 "top 이 baseline" 이 되어 정렬 미참여 item 까지 옮긴다
-

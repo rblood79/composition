@@ -15,13 +15,13 @@
 
 압축 전 분석이 stale 메모리를 승계해 ④ 를 "엔진 미지원" 으로 잘못 분류했던 전례가 본 ADR 의 직접 계기 중 하나다. 착수 시점에 아래를 재실측해 freeze 한다.
 
-| #   | 실측 항목                           | 방법                                                                                                                                                                                                                                                                     |
-| --- | ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 0-1 | TS 보정 지점 전수 목록              | `fullTreeLayout.ts` Step 5.7 (현 2156~2180) / `utils.ts` enrichWithIntrinsicSize minWidth 동시 주입 (현 4703~4714, growsInFlex 분기 포함) / 기타 flexShrink·minWidth 주입처 grep (`implicitStyles.ts` 의 컴포넌트별 주입은 catalog 의미론이므로 **제외** — §6 잔존 계약) |
-| 0-2 | Step 5.7 근사 발산 영향 범위 수식화 | 현존 문서에서 "overflow≠visible flex 컨테이너 + 자식 flexShrink 미명시 + min-content < 현재 배치폭" 조합 실측 (해당 조합만 명세 전환 시 shrink 재개 → 시각 변화 가능)                                                                                                    |
-| 0-3 | ④ 잔여의 실사용 유무                | `position:absolute` 사용처 중 containing block 이 직계 부모가 **아닌** 사례 (positioned ancestor 2단 이상) + `position:fixed` 사용처 grep/실측. 메모리 기록(2026-07-14)상 "composition 실사용 = relative 부모 + absolute 자식이 전부" — 이 전제의 현재 유효성 재확인     |
-| 0-4 | stale 문서 목록                     | `layout-engine.md` §"Overflow Scroll + Flex Shrink 보정" 의 `TaffyFlexEngine.ts _runTaffyPassRaw` 언급 (심볼 grep 0건 — 소멸) 등 개정 대상 절 확정                                                                                                                       |
-| 0-5 | parity baseline                     | `apps/builder/tests/parity/*.browser.test.ts` (ADR-156 harness) 현행 PASS 상태 + bench 기준치 (`pnpm --filter composition-engine bench` 상당) 기록                                                                                                                       |
+| #   | 실측 항목                           | 방법                                                                                                                                                                                                                                                                       |
+| --- | ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0-1 | TS 보정 지점 전수 목록              | `fullTreeLayout.ts` Step 5.7 (현 2156~~2180) / `utils.ts` enrichWithIntrinsicSize minWidth 동시 주입 (현 4703~~4714, growsInFlex 분기 포함) / 기타 flexShrink·minWidth 주입처 grep (`implicitStyles.ts` 의 컴포넌트별 주입은 catalog 의미론이므로 **제외** — §6 잔존 계약) |
+| 0-2 | Step 5.7 근사 발산 영향 범위 수식화 | 현존 문서에서 "overflow≠visible flex 컨테이너 + 자식 flexShrink 미명시 + min-content < 현재 배치폭" 조합 실측 (해당 조합만 명세 전환 시 shrink 재개 → 시각 변화 가능)                                                                                                      |
+| 0-3 | ④ 잔여의 실사용 유무                | `position:absolute` 사용처 중 containing block 이 직계 부모가 **아닌** 사례 (positioned ancestor 2단 이상) + `position:fixed` 사용처 grep/실측. 메모리 기록(2026-07-14)상 "composition 실사용 = relative 부모 + absolute 자식이 전부" — 이 전제의 현재 유효성 재확인       |
+| 0-4 | stale 문서 목록                     | `layout-engine.md` §"Overflow Scroll + Flex Shrink 보정" 의 `TaffyFlexEngine.ts _runTaffyPassRaw` 언급 (심볼 grep 0건 — 소멸) 등 개정 대상 절 확정                                                                                                                         |
+| 0-5 | parity baseline                     | `apps/builder/tests/parity/*.browser.test.ts` (ADR-156 harness) 현행 PASS 상태 + bench 기준치 (`pnpm --filter engine bench` 상당) 기록                                                                                                                                     |
 
 산출물: 본 문서 §7 인벤토리 표 갱신 커밋 1개. 추정 vs 실측 gap 발견 시 새 ADR 분리 사유가 아니라 본 표 보강으로 흡수한다 (adr-writing M3).
 
@@ -31,7 +31,7 @@
 
 ②와 ③은 같은 명세 조항의 두 증상이다: CSS-FLEXBOX-1 §4.5 automatic minimum size (`min-width:auto` = content-based minimum) 를 엔진이 0 으로 처리 → TS 가 두 갈래로 보정.
 
-### 3-1. 엔진 구현 (`packages/composition-engine/src/`) — 2026-07-25 착수 실측 정정 (사용자 confirm)
+### 3-1. 엔진 구현 (`packages/engine/src/`) — 2026-07-25 착수 실측 정정 (사용자 confirm)
 
 - `flex.rs` shrink 분배(§9.7 알고리즘, 현 `flex_shrink` data[off+16] 소비부)에 **content-based minimum floor** 추가: `parse_item` 에서 effective `min_main` 으로 해석 — 이후 §9.7 clamp/violation 동결 기계가 자연 처리.
 - **floor 적용 조건 (실측 정정)**: `min_main == AUTO` ∧ item 주축 overflow visible ∧ **`width == AUTO`** — floor = `content_main` (max_main clamp). width-auto item 만인 이유: explicit 노드의 content 슬롯은 border-box 저장이라 신뢰 불가 (`tree.rs:592~598` 주석), 그리고 **엔진 leaf 는 자기 content 를 모른다** (`tree.rs:654~664` — width auto leaf 는 0 반환, 텍스트 측정 부재). width-definite item 에 width 를 floor 로 쓰면 명세(min(content 제안, specified 제안))보다 과대해 Chrome parity 가 깨진다 (빈 div width:200 은 Chrome 에서 0 까지 shrink).

@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
-import { CompositionEngineLayout } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
-import type { LayoutResult } from "@/builder/workspace/canvas/wasm-bindings/compositionEngine";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
+import { EngineLayout } from "@/builder/workspace/canvas/wasm-bindings/engine";
+import type { LayoutResult } from "@/builder/workspace/canvas/wasm-bindings/engine";
 import type { CaseNode } from "./harness";
 import { pipelineLeg } from "./harness";
 
@@ -71,15 +71,15 @@ let layoutMaps: Map<number, LayoutResult>[];
 let styleWrites: Record<string, unknown>[];
 
 beforeAll(async () => {
-  await initCompositionEngineWasm();
-  const jsonSpy = vi.spyOn(CompositionEngineLayout.prototype, "buildTreeBatch");
-  const outSpy = vi.spyOn(CompositionEngineLayout.prototype, "getLayoutsBatch");
+  await initEngineWasm();
+  const jsonSpy = vi.spyOn(EngineLayout.prototype, "buildTreeBatch");
+  const outSpy = vi.spyOn(EngineLayout.prototype, "getLayoutsBatch");
   // r6h1 교훈: batch 를 다시 쓰는 **모든** writer 를 캡처 — 2-pass 재-enrich /
   // post-order patch 는 updateStyleRaw 로 나간다 (buildTreeBatch 만 보면 누락).
   // r7l1: 세 번째 writer createNodeRaw(신규 노드 sync 추가 경로 — persistentLayoutTree
   // addNode)도 캡처 — 이 시나리오에선 보통 0회지만 writer inventory 를 닫는다.
-  const updSpy = vi.spyOn(CompositionEngineLayout.prototype, "updateStyleRaw");
-  const crSpy = vi.spyOn(CompositionEngineLayout.prototype, "createNodeRaw");
+  const updSpy = vi.spyOn(EngineLayout.prototype, "updateStyleRaw");
+  const crSpy = vi.spyOn(EngineLayout.prototype, "createNodeRaw");
   try {
     pipelineLeg(NODES, 400, -1);
     batches = jsonSpy.mock.calls.map(

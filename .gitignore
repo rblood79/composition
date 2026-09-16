@@ -25,7 +25,7 @@ dist/
 # WASM — canvaskit 복사본 · wasm-pack 산출물 (pnpm prepare:wasm / wasm:build:engine)
 apps/builder/public/wasm/
 apps/builder/src/builder/workspace/canvas/wasm/target/
-apps/builder/src/builder/workspace/canvas/wasm-bindings/composition-engine-pkg/
+apps/builder/src/builder/workspace/canvas/wasm-bindings/engine-pkg/
 target-install/
 
 # Tests / coverage / Playwright

@@ -168,7 +168,7 @@
 
 **음성 fixture 2 개** (판정기 자기 검증, G4 통과 조건에 포함): ① after builder = before + 1,000 → exit 1 · ② manifest 를 조작해 presetStrings 를 initial 에 넣은 사본 → exit 1.
 
-lockfile: workspace 패키지 추가로 `pnpm-lock.yaml` 이 바뀐다 → before arm 은 **Phase 1a 준비 커밋** (골격 + lockfile, 코드 이동 0) 이라 두 arm 의 lockfile sha 가 같다. 두 worktree 모두 `pnpm install --frozen-lockfile` + 엔진 wasm `composition-engine-pkg` 복사 (ADR-202 절차).
+lockfile: workspace 패키지 추가로 `pnpm-lock.yaml` 이 바뀐다 → before arm 은 **Phase 1a 준비 커밋** (골격 + lockfile, 코드 이동 0) 이라 두 arm 의 lockfile sha 가 같다. 두 worktree 모두 `pnpm install --frozen-lockfile` + 엔진 wasm `engine-pkg` 복사 (ADR-202 절차).
 
 ## 8. 게이트 명령
 
@@ -187,7 +187,7 @@ pnpm -F @composition/sample-data type-check && pnpm -F @composition/sample-data 
 #   음성: src/random.ts 에 apps/builder 상대 import 1 줄 주입 → 위 두 명령이 실패해야 한다 → 제거
 # G2 (0 이어야 한다)
 grep -rIn --include='*.ts' --include='*.tsx' -E 'services/mockData|\b(MockRule|MockColumn|MockRowContext|MockRandom|MockLocale|CreateMockOptions|createMock|resolveMockLocale|MOCK_RULE_TYPES|MockRuleType)\b|kind: "mock"' apps/builder/src packages/sample-data/src | wc -l
-# G4 — 같은 HEAD·같은 lockfile 두 worktree (엔진 wasm composition-engine-pkg 복사)
+# G4 — 같은 HEAD·같은 lockfile 두 worktree (엔진 wasm engine-pkg 복사)
 node apps/builder/scripts/adr220-bundle-gate.mjs --before-builder …/before-builder.json --before-preview …/before-preview.json --after-builder …/after-builder.json --after-preview …/after-preview.json --manifest …/after-dist/.vite/manifest.json --out …/220-gate.json
 ```
 

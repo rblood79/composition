@@ -197,7 +197,7 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 
 - [x] 군집당: 원인 확정 (스펙 조문 병기) → 엔진(`tree.rs`/`flex.rs`/`grid.rs`) 또는 TS(`fullTreeLayout.ts`/`utils.ts`) 수정 → 해당 키를 ratchet 목록에서 제거 → 민감도 (수정 되돌리면 red N건) → 커밋 1개
 - [x] 이연 판정 군집: **0건** — 9군집 전부 해소 (이연 불요)
-- [x] cargo 유닛 + layout 유닛 회귀 0 유지 + **엔진 마이크로벤치 회귀 0** (ADR-164 G3 벤치 — `packages/composition-engine/benches/{flex_shrink,tree_solve}.rs`. 수정 wave 는 재진입 pass 추가 등 perf-relevant — ADR-164/165 관행 승계)
+- [x] cargo 유닛 + layout 유닛 회귀 0 유지 + **엔진 마이크로벤치 회귀 0** (ADR-164 G3 벤치 — `packages/engine/benches/{flex_shrink,tree_solve}.rs`. 수정 wave 는 재진입 pass 추가 등 perf-relevant — ADR-164/165 관행 승계)
 - [x] **G3**: ratchet 잔여 **0건** (전 목록 빈 배열 — 이연 없이 전건 해소, 조건 자동 충족)
 - 군집 수·수정 규모는 Phase 1 실측이 확정 — 비대 시 군집 단위로 커밋 분할 (phase 분할 원칙), wave 자체의 별도 ADR 분리는 하지 않는다 (결정 지점 아님)
 
@@ -227,7 +227,7 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 | ----------------------------------------------------------------------------------------- | ----- | ----------------------------- |
 | `apps/builder/tests/parity/basicAxis{ContainerSize,ChildSize,Nesting}.browser.test.ts`    | 1     | 신규 (격자 3파일)             |
 | `apps/builder/tests/parity/harness.ts`                                                    | 1     | 필요 시 헬퍼 추가만           |
-| `packages/composition-engine/src/{tree,flex,grid}.rs`                                     | 2     | 군집별 수정 (인벤토리가 확정) |
+| `packages/engine/src/{tree,flex,grid}.rs`                                                 | 2     | 군집별 수정 (인벤토리가 확정) |
 | `apps/builder/src/builder/workspace/canvas/layout/**` (`fullTreeLayout.ts`/`utils.ts` 등) | 2     | TS 공급 군집 해당 시          |
 | `.claude/rules/layout-engine.md`                                                          | 3     | 사각 목록 + 신규 규칙 절      |
 | `docs/CHANGELOG.md` / `docs/adr/README.md`                                                | 3     | 종결 기록                     |
@@ -277,7 +277,7 @@ expect(keys).toEqual(KNOWN_DIVERGENCES); // 정확 일치 (superset/subset 모�
 ## §8. 검증 계획
 
 - 실행: `apps/builder` 에서 `npx vitest run --config vitest.browser.config.ts tests/parity/basicAxis*` (Playwright/Chromium)
-- 회귀: 기존 parity 전체 + `cargo test` (composition-engine) + layout/canonical 유닛 + 엔진 마이크로벤치 (`cargo bench` — flex_shrink/tree_solve, Phase 2 한정)
+- 회귀: 기존 parity 전체 + `cargo test` (engine) + layout/canonical 유닛 + 엔진 마이크로벤치 (`cargo bench` — flex_shrink/tree_solve, Phase 2 한정)
 - 실행 시간: 신규 3파일 ≤ 30초 / 전체 ≤ 60초 (§3.7 — 기존 4.8초 실측 기준)
 - 민감도: Phase 2 각 군집 커밋 메시지에 "되돌리면 red N건" 명시 (기존 관행)
 - G4 live: components 페이지가 아닌 **신규 빈 페이지** 에서 기본 축 편집 시나리오 (테스트 수준 공통 컴포넌트를 오라클로 쓰지 않는다 — memory 정본)

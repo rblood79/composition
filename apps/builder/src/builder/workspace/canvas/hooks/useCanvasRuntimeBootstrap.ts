@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { useStore } from "../../../stores";
-import {
-  initCompositionEngineWasm,
-  isCompositionEngineReady,
-} from "../wasm-bindings/compositionEngineWasm";
+import { initEngineWasm, isEngineReady } from "../wasm-bindings/engineWasm";
 import { isUnifiedFlag } from "../wasm-bindings/featureFlags";
 
 interface CanvasRuntimeBootstrapResult {
@@ -20,9 +17,7 @@ interface CanvasRuntimeBootstrapResult {
  * 신호로 쓰던 WebGL 컨텍스트 손실 리스너가 영영 등록되지 않았다.
  */
 export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
-  const [wasmLayoutReady, setWasmLayoutReady] = useState(() =>
-    isCompositionEngineReady(),
-  );
+  const [wasmLayoutReady, setWasmLayoutReady] = useState(() => isEngineReady());
   const [wasmLayoutFailed, setWasmLayoutFailed] = useState(false);
 
   useEffect(() => {
@@ -40,8 +35,8 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
     if (!isUnifiedFlag("UNIFIED_ENGINE")) return;
     if (wasmLayoutReady) return;
 
-    void initCompositionEngineWasm().then(() => {
-      if (isCompositionEngineReady()) {
+    void initEngineWasm().then(() => {
+      if (isEngineReady()) {
         setWasmLayoutReady(true);
         // WASM 준비 후 layoutVersion 증가 → useLayoutPublisher 재실행 트리거
         useStore.getState().invalidateLayout();
@@ -61,7 +56,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
     let timeoutId: ReturnType<typeof setTimeout>;
 
     const poll = () => {
-      if (isCompositionEngineReady()) {
+      if (isEngineReady()) {
         setWasmLayoutReady(true);
         return;
       }
@@ -73,7 +68,7 @@ export function useCanvasRuntimeBootstrap(): CanvasRuntimeBootstrapResult {
         if (import.meta.env.DEV) {
           console.warn("[BuilderCanvas] WASM 5초 미로드 — 재초기화 시도");
         }
-        void initCompositionEngineWasm();
+        void initEngineWasm();
       }
 
       if (totalWait >= maxTotalWait) {

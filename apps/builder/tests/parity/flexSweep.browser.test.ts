@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type CaseNode,
   type ParityCase,
@@ -244,7 +244,7 @@ function runSweep(cases: ParityCase[]): string[] {
 
 describe("ADR-156 Phase 1 — §1-2 flex 파라메트릭 sweep (G1)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it("flex 교차축 576 조합 — 전부 엔진↔CSS 정합", () => {

@@ -12,7 +12,7 @@ Implemented — 2026-07-25
 
 **Domain 판정**: D3 (시각 스타일) — Builder(Skia) 레이아웃 경로가 CSS consumer 와 동일 시각 결과를 산출하기 위한 정합 메커니즘. D1(DOM)/D2(Props) 비침범.
 
-composition-engine (Rust WASM, ADR-916 Implemented 2026-07-06) 은 Taffy 대체를 목표로 만들어졌고, 성공 기준이 **Taffy 동등성** (dualRunLive 12/12 diff 0) 이었다. 그 결과 Taffy 시대에 TS 쪽에 쌓인 CSS 의미론 보정 레이어가 엔진 교체 후에도 그대로 상류에 남아 있다 — dual-run diff 0 방법론은 상류 보정이 가로챈 입력 차원에 구조적으로 blind 했다 (두 엔진 모두 보정 후 입력만 받았으므로).
+engine (Rust WASM, ADR-916 Implemented 2026-07-06) 은 Taffy 대체를 목표로 만들어졌고, 성공 기준이 **Taffy 동등성** (dualRunLive 12/12 diff 0) 이었다. 그 결과 Taffy 시대에 TS 쪽에 쌓인 CSS 의미론 보정 레이어가 엔진 교체 후에도 그대로 상류에 남아 있다 — dual-run diff 0 방법론은 상류 보정이 가로챈 입력 차원에 구조적으로 blind 했다 (두 엔진 모두 보정 후 입력만 받았으므로).
 
 현존 보정 중 본 ADR 대상은 다음이며, 전부 **CSS 표준 의미론을 엔진이 몰라서 TS 가 밖에서 근사하는** 것들이다:
 
@@ -125,7 +125,7 @@ TS 보정 레이어 규모: `utils.ts` 5,422 + `fullTreeLayout.ts` 3,034 + `impl
 ### Negative
 
 - 기존 문서 중 R1 조건 조합의 시각 결과가 달라질 수 있다 (명세 정합 방향의 의도된 변화 — G1/G4 로 관리).
-- `packages/composition-engine` 에 min-content 재귀 코드가 추가되어 flex 알고리즘 복잡도 증가 (§4.5 명세 1:1 이라 근거는 자명).
+- `packages/engine` 에 min-content 재귀 코드가 추가되어 flex 알고리즘 복잡도 증가 (§4.5 명세 1:1 이라 근거는 자명).
 - ① 이 후속으로 남는 동안 enrichWithIntrinsicSize 의 width 주입·2-pass Step 4.5 는 존속 — TS 레이어 축소 폭은 보정 지점 한정 (수천 줄 소멸은 ① 의 몫).
 
 ## 진행 로그

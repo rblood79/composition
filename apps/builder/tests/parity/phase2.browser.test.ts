@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { initCompositionEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/compositionEngineWasm";
+import { initEngineWasm } from "@/builder/workspace/canvas/wasm-bindings/engineWasm";
 import {
   type CaseNode,
   type ParityCase,
@@ -129,7 +129,7 @@ const E1_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 2 — E1 align-self 엔진↔CSS 정합 (G2)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E1_CASES)("$name", (c) => {
@@ -180,7 +180,7 @@ const E6_CASES: ParityCase[] = [
 
 describe("ADR-156 Phase 2 — E6 percent height 엔진↔CSS 정합 (G2)", () => {
   beforeAll(async () => {
-    await initCompositionEngineWasm();
+    await initEngineWasm();
   });
 
   it.each(E6_CASES)("$name", (c) => {

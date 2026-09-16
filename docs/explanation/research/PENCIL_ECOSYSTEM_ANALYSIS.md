@@ -433,7 +433,7 @@ composition 의 product target = **엔터프라이즈급 빌더** (메모리 [`f
 - **openpencil `op-collab*` trust/relay/session 경계** — composition 협업을 실제 제안할 때 auth, pairing, conflict replay, relay fallback, public relay threat model의 최소 계약을 비교
 - **openpencil read-only wasm SDK ↔ composition preview/publish 경계** — editor mutation API와 외부 viewer API의 분리 수준, document versioning, capability scope를 비교
 - **open-pencil `tools/visual-oracles` 이식 가능성** — `compare`/`bisect`/`analyze-pattern`/`update-report`를 composition Chrome parity fixture에 붙일 때 source-of-truth와 artifact storage를 먼저 정의. 단순 snapshot 추가로 끝내지 않는다.
-- **open-pencil SDK 패키지 경계 ↔ composition packages 경계 대조** — `scene-graph/pen/kiwi/fig/dom-css`와 composition `specs/shared/composition-engine`의 public/private boundary를 비교하되, `dom-css`를 CSS engine으로 흡수하지 않는다.
+- **open-pencil SDK 패키지 경계 ↔ composition packages 경계 대조** — `scene-graph/pen/kiwi/fig/dom-css`와 composition `specs/shared/engine`의 public/private boundary를 비교하되, `dom-css`를 CSS engine으로 흡수하지 않는다.
 - **ADR-134 단계 승격 판단** — legacy AI tool loop는 landed지만 provider abstraction/offline/verification은 미착수다. Phase 0 baseline을 새로 freeze한 뒤 보안(`dangerouslyAllowBrowser`), canonical mutation, tool correctness, offline gate 순으로 P1 여부를 결정한다.
 - **AI Vision/attachment data lifecycle** — open-pencil의 bounded selection render·non-retention 원칙을 composition의 Preview/Canvas snapshot·권한 모델과 대조한다. 구현 전 threat model과 storage retention gate가 필요하다.
 - **제품화 score gate 정의** — 기능 총점과 별도로 사용자 workflow 완결성, reliability/validation, secret·permission, 배포·hosting·SDK, release/observability를 acceptance gate로 정의하고 composition의 제품화 수준 3.0/5를 재측정한다.
