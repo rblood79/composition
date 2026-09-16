@@ -12,9 +12,19 @@
    ============================================ */
 
 /* ============================================
-   FOUNDATION LAYER — Theme & Base
-   ============================================ */
-@import "../theme.css";
+   FOUNDATION LAYER — Base
+   ============================================
+
+   theme.css 는 여기서 import 하지 않는다 (2026-09-16). 앱 진입점이 이미 싣는다 —
+   builder: apps/builder/src/index.css · preview/publish: components/styles/index.css.
+   여기서도 실으면 같은 문서에 토큰 659개가 두 번 선언돼 (index.css 사본 + foundation 사본)
+   DevTools 가 앞 사본을 취소선으로 보이고 CSS 가 ~60 KB 분다.
+
+   아래 @layer 문은 preview/publish 의 레이어 순서를 고정한다 — 두 앱은 명시 선언이 없고
+   foundation.css 가 문서의 첫 시트라 theme.css 사본이 첫 등장 순서를 정해 왔다. 사본을
+   빼면서 그 순서를 그대로 적는다 (builder 는 index.css 의 선언이 먼저라 영향 없음). */
+@layer preview-system, shared-tokens, builder-system, components, utilities;
+
 @import "./base.css";
 @import "./animations.css";
 
