@@ -31,7 +31,7 @@
     font-size: var(--text-xs);
     outline: none;
 
-    &:focus {
+    &:focus-visible {
       border-color: var(--focus-ring);
     }
 
@@ -44,6 +44,7 @@
   .font-picker-list {
     max-height: 240px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     border: none;
     padding: var(--spacing-sm);
     scrollbar-width: thin;

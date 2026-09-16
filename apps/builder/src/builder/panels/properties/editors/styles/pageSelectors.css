@@ -35,7 +35,9 @@
     color: var(--color-error-600);
     font-size: var(--text-xs);
     cursor: pointer;
-    transition: all 150ms;
+    transition:
+      background 150ms,
+      border-color 150ms;
 
     &:hover {
       background: var(--color-error-50);

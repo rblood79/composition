@@ -110,7 +110,7 @@ export function VariableCreator({ projectId, onClose }: VariableCreatorProps) {
               onKeyDown={(e) => {
                 if (e.key === "Enter") void handleCreate();
               }}
-              placeholder="currentUser"
+              placeholder="currentUser…"
               aria-label={localize("variableName", "Name")}
               aria-invalid={duplicate || undefined}
             />

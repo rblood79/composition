@@ -7,12 +7,11 @@
  * - GradientStopList 스와치 · ColumnSelector 행: `<div onClick>` 이 아니라 `<button>`.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-const read = (rel: string) =>
-  readFileSync(resolve(__dirname, rel), "utf8");
+const read = (rel: string) => readFileSync(resolve(__dirname, rel), "utf8");
 
 describe("IconPickerPopover — 가상화 + 키보드 그리드", () => {
   const src = read("icons/IconPickerPopover.tsx");
@@ -86,5 +85,59 @@ describe("아이콘 전용 버튼 — aria-label", () => {
     ],
   ])("%s", (rel, pattern) => {
     expect(read(rel)).toMatch(pattern);
+  });
+});
+
+describe("panels 전수 — 모션 · 포커스 · 문자열 (13~38, 2026-09-16)", () => {
+  const walk = (dir: string, out: string[] = []): string[] => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = resolve(dir, entry.name);
+      if (entry.isDirectory()) walk(full, out);
+      else if (/\.(css|tsx)$/.test(entry.name) && !/\.test\./.test(entry.name))
+        out.push(full);
+    }
+    return out;
+  };
+  const files = walk(__dirname);
+  const css = files.filter((f) => f.endsWith(".css"));
+  const tsx = files.filter((f) => f.endsWith(".tsx"));
+  const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("`transition: all` 0건 (속성 명시)", () => {
+    const hits = css.filter((f) =>
+      /transition(-property)?:\s*all\b/.test(
+        stripComments(readFileSync(f, "utf8")),
+      ),
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("`outline: none` 뒤 대체가 `:focus` 인 곳 0건 (`:focus-visible` / `:focus-within`)", () => {
+    const hits = css.filter((f) =>
+      /outline:\s*none;[\s\S]{0,80}&:focus\s*\{/.test(readFileSync(f, "utf8")),
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("무한 회전 spinner 는 prefers-reduced-motion 분기를 갖는다", () => {
+    for (const f of css) {
+      const s = readFileSync(f, "utf8");
+      if (/animation:[^;]*infinite/.test(s)) {
+        expect(s, f).toMatch(/prefers-reduced-motion/);
+      }
+    }
+  });
+
+  it('UI 문자열의 "..." 0건 (`…`)', () => {
+    const hits = tsx.filter((f) =>
+      /"[^"\n]*[^.]\.\.\.(?![a-zA-Z_{(])[^"\n]*"/.test(readFileSync(f, "utf8")),
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it("AI 메시지 시각은 locale 하드코딩이 아니라 i18n formatTime", () => {
+    const s = readFileSync(resolve(__dirname, "ai/AIPanel.tsx"), "utf8");
+    expect(s).not.toMatch(/toLocaleTimeString\("/);
+    expect(s).toMatch(/formatTime\(new Date\(ts\)\)/);
   });
 });

@@ -127,7 +127,7 @@ export function AgentProfileSettings() {
               <input
                 type="text"
                 value={config.baseUrl}
-                placeholder="http://localhost:11434/v1"
+                placeholder="http://localhost:11434/v1…"
                 onChange={(e) => update(id, { baseUrl: e.target.value })}
               />
             </label>

@@ -35,6 +35,7 @@
   align-items: center;
 }
 .datatable-import-col-key {
+  min-width: 0;
   font-size: var(--text-xs);
   overflow: hidden;
   text-overflow: ellipsis;

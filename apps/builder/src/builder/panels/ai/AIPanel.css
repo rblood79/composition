@@ -270,6 +270,13 @@
       transform: rotate(360deg);
     }
   }
+
+  /* 회전은 진행 표시일 뿐 — 모션 축소 환경에서는 멈춘 아이콘으로 */
+  @media (prefers-reduced-motion: reduce) {
+    .tool-call-spinner {
+      animation: none;
+    }
+  }
 }
 
 /* ADR-196 Phase 3 — agent 가 실행한 명령 목록 (세션 기록) */

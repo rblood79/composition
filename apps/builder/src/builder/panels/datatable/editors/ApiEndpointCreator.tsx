@@ -140,7 +140,7 @@ export function ApiEndpointCreator({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") void handleCreate();
                 }}
-                placeholder="https://jsonplaceholder.typicode.com/users"
+                placeholder="https://jsonplaceholder.typicode.com/users…"
                 aria-label={localize("apiUrl", "URL")}
               />
             </PropertyFieldset>

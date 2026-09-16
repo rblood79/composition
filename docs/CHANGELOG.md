@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 패널 — Web Interface Guidelines 감사 (모션 · 포커스 · i18n · 문자열 26건)] - 2026-09-16
+
+### Changed
+
+- AI 패널 tool 호출 spinner 는 `prefers-reduced-motion: reduce` 에서 멈춘다. 페이지 선택기 삭제 버튼 · DataTable preset 카드의 `transition: all` 은 background / border-color (/ box-shadow) 명시로. 글꼴 피커 검색 입력의 포커스 테두리는 `:focus` → `:focus-visible`.
+- AI 메시지 시각을 `toLocaleTimeString("ko-KR")` 하드코딩에서 i18n `formatTime` (현재 locale · 12/24 시간 설정) 으로.
+- 팝오버·다이얼로그 안 스크롤 영역 (글꼴 피커 목록 · Fill 상세 · preset 모달 목록/스키마 · 글꼴 관리자 본문) 에 `overscroll-behavior: contain` — 끝에서 뒤 패널이 같이 밀리지 않게.
+- 잘라내기 (`text-overflow: ellipsis`) 가 실제로 걸리도록 flex/grid 자식에 `min-width: 0` — Interactions 규칙 요약 · Navigator 행 라벨 · DataTable preset 설명 · import 미리보기 열 이름.
+- UI 문자열의 `...` 를 `…` 로 — Text 섹션 「Truncate (…)」·「Custom…」, 컴포넌트/아이콘 검색 placeholder, 컬럼 샘플값 잘라내기, 「Importing…」 및 i18n ko/en 18 키 (Loading · Search commands/fonts · Choose a collection · Filter rows · Detecting · Loading data · GPU 복구/초기화). LLM 프롬프트 안의 JSON 예시 4곳은 제외. 예시 placeholder (`users_api…` · `currentUser…` · 엔드포인트/Ollama URL) 는 `…` 종결. 가드 `panels/wigA11y.static.test.ts` 확장 (transition all 0 · outline none 뒤 `:focus` 0 · infinite spinner 의 reduced-motion · `"..."` 0 · locale 하드코딩 0).
+
 ## [빌더 패널 — Web Interface Guidelines 감사 (접근성 · 성능 12건)] - 2026-09-16
 
 ### Changed

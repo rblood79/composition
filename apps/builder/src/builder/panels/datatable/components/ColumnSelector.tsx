@@ -74,10 +74,10 @@ export function ColumnSelector({
       return "null";
     }
     if (typeof value === "string") {
-      return value.length > 30 ? `"${value.slice(0, 30)}..."` : `"${value}"`;
+      return value.length > 30 ? `"${value.slice(0, 30)}…"` : `"${value}"`;
     }
     if (typeof value === "object") {
-      return JSON.stringify(value).slice(0, 30) + "...";
+      return JSON.stringify(value).slice(0, 30) + "…";
     }
     return String(value);
   };
@@ -179,7 +179,7 @@ export function ColumnSelector({
             className="import-input"
             value={tableName}
             onChange={(e) => setTableName(e.target.value)}
-            placeholder="e.g., users_api"
+            placeholder="users_api…"
           />
         </div>
 
@@ -191,7 +191,7 @@ export function ColumnSelector({
         >
           <Upload {...iconEditProps} />
           {isImporting
-            ? localize("importing", "Importing...")
+            ? localize("importing", "Importing…")
             : `${localize("import", "Import")} ${selectedCount} ${localize("columns", "Columns")}`}
         </Button>
       </div>

@@ -101,6 +101,7 @@
 
 .creator-preset-section .list-item-desc {
   grid-area: desc;
+  min-width: 0;
   line-height: 18px;
   white-space: nowrap;
   overflow: hidden;

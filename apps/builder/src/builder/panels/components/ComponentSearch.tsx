@@ -43,7 +43,7 @@ export function ComponentSearch({ onSearchChange }: ComponentSearchProps) {
       appearance="control"
       value={query}
       onChange={handleChange}
-      placeholder="Search components..."
+      placeholder="Search components…"
       aria-label="Search components"
     />
   );

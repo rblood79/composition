@@ -505,12 +505,12 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         options={[
           { value: "normal", label: "Normal" },
           { value: "nowrap", label: "No Wrap" },
-          { value: "truncate", label: "Truncate (...)" },
+          { value: "truncate", label: "Truncate (…)" },
           { value: "break-words", label: "Break Words" },
           { value: "break-all", label: "Break All" },
           { value: "keep-all", label: "Keep All (CJK)" },
           { value: "preserve", label: "Preserve" },
-          { value: "custom", label: "Custom..." },
+          { value: "custom", label: "Custom…" },
         ]}
         onChange={handleTextBehaviorChange}
       />

@@ -187,6 +187,7 @@
       box-sizing: border-box;
       overflow-y: auto;
       overflow-x: hidden;
+      overscroll-behavior: contain;
       background: var(--bg-raised);
     }
   }

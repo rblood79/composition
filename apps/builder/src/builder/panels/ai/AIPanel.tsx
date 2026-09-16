@@ -57,19 +57,15 @@ interface ChatMessageProps {
 
 function ChatMessage({ message }: ChatMessageProps) {
   const { role, content, status, timestamp } = message;
+  // 시각은 현재 locale · 시간 형식 설정으로 (ko-KR 하드코딩 제거, 2026-09-16)
+  const { formatTime } = useI18n();
 
   // tool 메시지는 ToolResultMessage로 렌더링
   if (role === "tool") {
     return <ToolResultMessage message={message} />;
   }
 
-  const formatTimestamp = (ts: number) => {
-    const date = new Date(ts);
-    return date.toLocaleTimeString("ko-KR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
+  const formatTimestamp = (ts: number) => formatTime(new Date(ts));
 
   return (
     <div className="ai-message" data-role={role} data-status={status}>

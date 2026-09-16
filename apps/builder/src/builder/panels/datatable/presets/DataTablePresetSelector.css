@@ -124,6 +124,7 @@
   gap: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-lg);
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .datatable-preset-modal .list-item.preset-card {
@@ -137,7 +138,10 @@
   border-radius: var(--radius-md);
   background: var(--bg-raised);
   cursor: pointer;
-  transition: all 150ms;
+  transition:
+    background 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
   aspect-ratio: 1 / 1;
 }
 
@@ -242,6 +246,7 @@
 .preset-preview-schema {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--spacing-sm) var(--spacing-lg);
   display: flex;
   flex-direction: column;

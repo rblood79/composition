@@ -185,7 +185,7 @@ export const ImageFillEditor = memo(function ImageFillEditor({
           }}
           onBlur={handleUrlCommit}
           onKeyDown={handleUrlKeyDown}
-          placeholder="https://..."
+          placeholder="https://…"
           aria-label="Image URL"
         />
       </div>
