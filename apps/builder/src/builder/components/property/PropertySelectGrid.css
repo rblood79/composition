@@ -1,0 +1,92 @@
+/**
+ * PropertySelect 격자 팝오버 — 값이 곧 색인 variant (Badge · StatusLight) 의 팝오버를 목록 대신
+ * Theme 패널 tint-grid 어법 (28 칸 · 6열 · gap 8 · 선택 체크) 으로 (2026-09-16 사용자 판정
+ * 「A 팝오버 grid」). 팝오버는 portal 이라 `.section` 스코프가 닿지 않고 생성 ListBox.css 가
+ * unlayered 라 이 파일도 unlayered 로 두고 조상 클래스로 특이도를 올린다.
+ * 폭 = 6 × 28 + 5 × 8 + 패딩 8 = 216 (패널 233 안, 트리거 181 보다 넓다 — 팝오버는 max-content).
+ */
+.property-select-popover--grid .react-aria-ListBox.property-select-grid {
+  /* 생성 ListBox.css 의 `[data-layout="grid"]` 는 auto-fill 150 격자 — 구획이 격자를 갖는다 */
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  max-width: none;
+  gap: 0;
+  padding: var(--spacing-xs);
+  max-height: none;
+  overflow: visible;
+}
+
+.property-select-popover--grid .property-select-grid__section {
+  display: grid;
+  grid-template-columns: repeat(6, var(--control-size));
+  gap: var(--spacing-sm);
+}
+
+/* 구획 사이 구분선 — 의미색 → 색 이름 */
+.property-select-popover--grid
+  .property-select-grid__section
+  + .property-select-grid__section {
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-xs);
+  border-top: 1px solid var(--border);
+}
+
+.property-select-popover--grid .react-aria-ListBox .property-select-grid__item {
+  box-sizing: border-box;
+  width: var(--control-size);
+  height: var(--control-size);
+  padding: var(--spacing-xs);
+  margin: 0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--fg);
+  cursor: pointer;
+  outline: none;
+
+  &[data-hovered],
+  &[data-focused] {
+    background: var(--bg-muted);
+  }
+
+  &[data-focus-visible] {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+  }
+
+  /* 선택은 칸 안 체크 (tint-grid 와 같음) — 배경 채움 없음. 생성 ListBox.css 의 grid 선택 배지
+     (`::after` "✓" 22 원) 는 스와치 격자에선 스와치를 가리므로 끈다 */
+  &[data-selected] {
+    background: transparent;
+    color: var(--fg);
+
+    &::after {
+      content: none;
+    }
+  }
+
+  &[data-disabled] {
+    opacity: 0.38;
+    pointer-events: none;
+  }
+}
+
+.property-select-popover--grid .property-select-grid__swatch {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--text-xl);
+  height: var(--text-xl);
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
+}
+
+.property-select-popover--grid .property-select-grid__check {
+  color: var(--fg-on-accent);
+  filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.4));
+}

@@ -171,3 +171,59 @@ it("literal 모드에서 현재 값이 options 에 없으면 선택 없음이며
   ).not.toContain("dropped-column");
   expect(onChange).not.toHaveBeenCalled();
 });
+
+// 2026-09-16 「A 팝오버 grid」 — 값이 곧 색인 variant 는 팝오버가 6열 스와치 격자 (구획 + 체크).
+it("grid 모드 — 팝오버는 구획별 격자, 트리거는 색 점 + 이름, 선택은 값 그대로", () => {
+  const onChange = vi.fn();
+  const options = [
+    { value: "accent", label: "Accent" },
+    { value: "negative", label: "Negative" },
+    { value: "red", label: "Red" },
+    { value: "purple", label: "Purple" },
+  ];
+  const swatches = { accent: "blue", negative: "crimson", red: "red", purple: "purple" };
+  const ui = render(
+    <PropertySelect
+      label="Variant"
+      value="purple"
+      onChange={onChange}
+      translateOptions={false}
+      options={options}
+      swatches={swatches}
+      grid
+      gridSections={[["accent", "negative"], ["red", "purple"]]}
+    />,
+  );
+  const trigger = within(ui.getByRole("group", { name: "Variant" })).getByRole("button");
+  expect(trigger.textContent).toContain("Purple");
+  expect(trigger.querySelector(".property-select__swatch")).not.toBeNull();
+
+  open(ui, "Variant");
+  const listbox = ui.getByRole("listbox");
+  expect(listbox.classList.contains("property-select-grid")).toBe(true);
+  expect(listbox.querySelectorAll(".property-select-grid__section")).toHaveLength(2);
+  // 칸은 스와치뿐 · 접근 이름은 textValue · 선택 칸엔 체크
+  const purple = ui.getByRole("option", { name: "Purple" });
+  expect(purple.querySelector(".property-select-grid__check")).not.toBeNull();
+  expect(ui.getByRole("option", { name: "Red" }).querySelector(".property-select-grid__check")).toBeNull();
+  fireEvent.click(ui.getByRole("option", { name: "Red" }));
+  expect(onChange).toHaveBeenCalledWith("red");
+});
+
+it("grid 모드 — 구획에 없는 값은 마지막 구획 뒤에 선다", () => {
+  const ui = render(
+    <PropertySelect
+      label="Variant"
+      value="a"
+      onChange={vi.fn()}
+      translateOptions={false}
+      options={[{ value: "a", label: "A" }, { value: "b", label: "B" }, { value: "c", label: "C" }]}
+      grid
+      gridSections={[["a"]]}
+    />,
+  );
+  open(ui, "Variant");
+  const sections = ui.getByRole("listbox").querySelectorAll(".property-select-grid__section");
+  expect(sections).toHaveLength(2);
+  expect(within(sections[1] as HTMLElement).getAllByRole("option").map((o) => o.textContent || o.getAttribute("aria-label"))).toHaveLength(2);
+});

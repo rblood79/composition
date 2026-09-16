@@ -5,8 +5,12 @@ import {
 } from "react-aria-components/Select";
 import { Button } from "react-aria-components/Button";
 import { Popover } from "react-aria-components/Popover";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
-import { ChevronDown } from "lucide-react";
+import {
+  ListBox,
+  ListBoxItem,
+  ListBoxSection,
+} from "react-aria-components/ListBox";
+import { Check, ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useSelectTriggerFocusRestore } from "./useSelectTriggerFocusRestore";
 import {
@@ -18,6 +22,7 @@ import {
   translateKey,
   useOptionalI18n,
 } from "../../../i18n";
+import "./PropertySelectGrid.css";
 
 const SWATCH_STYLE = {
   flex: "none",
@@ -55,6 +60,16 @@ interface PropertySelectProps {
    * Badge · StatusLight) 의 미리보기. 없는 값은 점 없이 글자만.
    */
   swatches?: Readonly<Record<string, string>>;
+  /**
+   * 팝오버를 목록 대신 **6열 스와치 격자** 로 (Theme 패널 tint-grid 어법 — 28 칸 · gap 8 · 선택
+   * 체크). 값이 곧 색인 variant (Badge 25 · StatusLight 19, 2026-09-16 사용자 판정 「A 팝오버
+   * grid」). 트리거는 그대로 색 점 + 이름. `swatches` 가 함께 있어야 칸에 색이 든다. 구획
+   * (`gridSections` — 옵션 값 묶음, 순서대로) 사이엔 구분선. 어느 구획에도 없는 값은 마지막
+   * 구획 뒤에 선다. RAC ListBox `layout="grid"` 라 화살표 2차원 이동 · 타이핑 검색 유지.
+   * 칸의 이름은 `title` (hover) + 접근 이름 (`textValue`).
+   */
+  grid?: boolean;
+  gridSections?: readonly (readonly string[])[];
   /**
    * 선택 불가 항목의 **옵션 값** (ADR-210 — columns 모드의 Pie/Radial). RAC `Select`
    * 의 `disabledKeys` 로 그대로 전달하며 (literal 모드는 UI key 로 변환) reset/literal/
@@ -103,6 +118,8 @@ export const PropertySelect = memo(
     translateOptions = true,
     optionValueMode = "legacy",
     swatches,
+    grid = false,
+    gridSections,
     disabledKeys,
     icon: Icon,
     className,
@@ -153,6 +170,67 @@ export const PropertySelect = memo(
       [onChange, optionValueMode, options],
     );
 
+    const optionLabel = (option: { value: string; label: string }) =>
+      i18n && translateOptions
+        ? translateKey(
+            i18n.t,
+            semanticLabelKeys[option.label] ?? option.label,
+            option.label,
+          )
+        : option.label;
+    const itemKey = (option: { value: string }) =>
+      optionValueMode === "literal" ? literalKey(option.value) : option.value;
+
+    // 격자 구획 — gridSections 순서대로, 어디에도 없는 값은 마지막 구획 뒤
+    const gridGroups: ReadonlyArray<ReadonlyArray<(typeof options)[number]>> =
+      (() => {
+        if (!grid) return [];
+        const byValue = new Map(options.map((o) => [o.value, o]));
+        const placed = new Set<string>();
+        const groups = (gridSections ?? [options.map((o) => o.value)]).map(
+          (values) =>
+            values.flatMap((v) => {
+              const option = byValue.get(v);
+              if (!option || placed.has(v)) return [];
+              placed.add(v);
+              return [option];
+            }),
+        );
+        const rest = options.filter((o) => !placed.has(o.value));
+        if (rest.length > 0) groups.push(rest);
+        return groups.filter((g) => g.length > 0);
+      })();
+
+    const gridItem = (option: { value: string; label: string }) => {
+      const text = optionLabel(option);
+      return (
+        <ListBoxItem
+          key={itemKey(option)}
+          id={itemKey(option)}
+          className="react-aria-ListBoxItem property-select-grid__item"
+          textValue={text}
+          aria-label={text}
+        >
+          {({ isSelected }) => (
+            <span
+              className="property-select-grid__swatch"
+              title={text}
+              style={{ background: swatches?.[option.value] }}
+            >
+              {isSelected && (
+                <Check
+                  aria-hidden="true"
+                  className="property-select-grid__check"
+                  size={iconProps.size}
+                  strokeWidth={2.5}
+                />
+              )}
+            </span>
+          )}
+        </ListBoxItem>
+      );
+    };
+
     return (
       <fieldset
         className={`properties-aria ${className || ""}`}
@@ -202,9 +280,25 @@ export const PropertySelect = memo(
               {/* 값 없음은 「—」 — RAC 기본 「Select an item」 이 반폭 55 에서 「Select an」 으로 잘린다;
                   이름은 legend/aria-label 이 준다 (2026-09-15 live 전수 대조) */}
               {/* 색 점은 항목 children 에 있고 SelectValue 가 선택 항목의 children 을 그대로 그린다 */}
+              {/* 격자 모드의 항목 children 은 스와치뿐이라 트리거는 직접 그린다 — 색 점 + 이름 */}
               <SelectValue>
-                {({ isPlaceholder, defaultChildren }) =>
-                  isPlaceholder ? "—" : defaultChildren
+                {({ isPlaceholder, defaultChildren, selectedText }) =>
+                  isPlaceholder ? (
+                    "—"
+                  ) : grid ? (
+                    <>
+                      {swatches?.[value] != null && (
+                        <span
+                          aria-hidden="true"
+                          className="property-select__swatch"
+                          style={{ ...SWATCH_STYLE, background: swatches[value] }}
+                        />
+                      )}
+                      {selectedText}
+                    </>
+                  ) : (
+                    defaultChildren
+                  )
                 }
               </SelectValue>
               {labelMode === "suffix" && (
@@ -217,9 +311,29 @@ export const PropertySelect = memo(
               </span>
             </Button>
             <Popover
-              className="react-aria-Popover property-select-popover"
+              className={
+                grid
+                  ? "react-aria-Popover property-select-popover property-select-popover--grid"
+                  : "react-aria-Popover property-select-popover"
+              }
               style={popoverStyle}
             >
+              {grid ? (
+                <ListBox
+                  className="react-aria-ListBox property-select-grid"
+                  layout="grid"
+                >
+                  {gridGroups.map((group, index) => (
+                    <ListBoxSection
+                      key={index}
+                      className="react-aria-ListBoxSection property-select-grid__section"
+                      aria-label={`${displayLabel} ${index + 1}`}
+                    >
+                      {group.map(gridItem)}
+                    </ListBoxSection>
+                  ))}
+                </ListBox>
+              ) : (
               <ListBox className="react-aria-ListBox">
                 {options.map((option) => (
                   <ListBoxItem
@@ -266,6 +380,7 @@ export const PropertySelect = memo(
                   </ListBoxItem>
                 ))}
               </ListBox>
+              )}
             </Popover>
           </AriaSelect>
         </div>
@@ -285,6 +400,8 @@ export const PropertySelect = memo(
       prevProps.optionValueMode === nextProps.optionValueMode &&
       prevProps.disabledKeys === nextProps.disabledKeys &&
       prevProps.swatches === nextProps.swatches &&
+      prevProps.grid === nextProps.grid &&
+      prevProps.gridSections === nextProps.gridSections &&
       prevProps.afterControl === nextProps.afterControl &&
       prevProps.popoverWidthMode === nextProps.popoverWidthMode
     );

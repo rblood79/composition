@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 색 이름 variant 는 격자 팝오버 (Badge · StatusLight)] - 2026-09-16
+
+사용자 판정 「A 팝오버 grid」 (시안 `docs/design/properties-panel-inventory` 「12 Variant — 색 이름 grid」). catalog 무변경.
+
+### Changed
+
+- variant 옵션의 **절반 이상이 Spectrum 색 이름** (`--hue-*`) 이면 셀렉트 팝오버가 목록 대신 **6열 스와치 격자** (Theme 패널 tint-grid 어법 — 28 칸 · gap 8 · 선택 체크): 첫 구획 의미색 (accent · informative · neutral · positive · notice · negative), 구분선, 색 이름. 지금 걸리는 타입은 Badge (25) · StatusLight (19) 둘 — 나머지 49 타입의 variant 는 변화 0 (의미 variant 는 이름이 정보라 목록 유지). 트리거는 그대로 색 점 + 이름 (닫힌 행 46), 필드는 전폭. RAC ListBox `layout="grid"` 라 ←→↑↓ 2차원 이동 · 타이핑 검색 유지, 칸 이름은 hover title + 접근 이름.
+
 ## [Properties 패널 — 필드 행 「기본값으로」 액션] - 2026-09-16
 
 ### Added

@@ -44,6 +44,7 @@ import {
   resolveFieldEditor,
   sizeSegOptions,
   VARIANT_SWATCH,
+  variantGridSections,
   type ChipGroup,
   type FieldEditor,
 } from "./fieldEditor";
@@ -247,6 +248,9 @@ function fieldSpan(field: ResolvedField): "wide" | "half" {
     // 셀렉트는 반폭 — legend (「Necessity Indicator」) 나 옵션 라벨 (「Categorical」) 이 반폭 칸에
     //   안 들어갈 때만 전폭 (2026-09-15 live 전수 대조)
     case "select": {
+      // 격자 셀렉트 (Badge · StatusLight 25/19) 는 전폭 — 팝오버 216 이 반폭 87 트리거에서 열리면
+      //   트리거보다 2.5 배 넓어 어디서 열렸는지 흐려진다
+      if (editor.grid) return "wide";
       if (textWidth(field.label) > HALF_LEGEND) return "wide";
       // 색 점 (12 + 여백 4) 이 값 자리를 먹는다
       const valueRoom = editor.swatch
@@ -588,6 +592,12 @@ const GenericField = memo(function GenericField({
           swatches={
             editor.type === "select" && editor.swatch
               ? VARIANT_SWATCH
+              : undefined
+          }
+          grid={editor.type === "select" && editor.grid === true}
+          gridSections={
+            editor.type === "select" && editor.grid
+              ? variantGridSections(options)
               : undefined
           }
         />

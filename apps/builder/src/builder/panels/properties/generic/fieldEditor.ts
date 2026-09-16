@@ -43,7 +43,14 @@ import {
 export type ChipGroup = "Options" | "Show" | "Fill";
 
 export type FieldEditor =
-  | { type: "select"; swatch?: boolean }
+  /**
+   * `grid` — 팝오버가 목록이 아니라 6열 스와치 격자 (Theme 패널 tint-grid 어법). 옵션의 절반
+   * 이상이 Spectrum 색 이름인 variant (Badge 25 · StatusLight 19) — 값이 곧 색이라 이름 목록을
+   * 읽는 것보다 색을 보고 고르는 게 빠르다 (2026-09-16 사용자 판정 「A 팝오버 grid」). 트리거는
+   * 셀렉트 그대로 (색 점 + 이름). 의미 variant (Button primary/secondary …) 는 이름이 정보라
+   * 목록 유지. 격자 안 순서는 의미색 → 색 이름 (`gridSections`).
+   */
+  | { type: "select"; swatch?: boolean; grid?: boolean }
   | {
       type: "seg";
       span: "half" | "wide";
@@ -142,6 +149,45 @@ export const VARIANT_SWATCH: Readonly<Record<string, string>> = {
   silver: "var(--hue-silver)",
 };
 
+/** Spectrum 색 이름 — `VARIANT_SWATCH` 의 `--hue-*` 항목 중 의미 별칭 (premium · genai) 을 뺀 것. */
+export const HUE_VARIANT_NAMES: ReadonlySet<string> = new Set([
+  "gray",
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "blue",
+  "purple",
+  "indigo",
+  "cyan",
+  "pink",
+  "turquoise",
+  "fuchsia",
+  "magenta",
+  "chartreuse",
+  "celery",
+  "seafoam",
+  "brown",
+  "cinnamon",
+  "silver",
+]);
+
+/**
+ * 격자 셀렉트의 구획 — 의미색 (accent · informative …) 먼저, 구분선, 색 이름. 빈 구획은 뺀다.
+ * 옵션 순서는 각 구획 안에서 계약 순서 그대로.
+ */
+export function variantGridSections(
+  options: ReadonlyArray<{ value: string }>,
+): readonly (readonly string[])[] {
+  const semantic = options
+    .filter((o) => !HUE_VARIANT_NAMES.has(o.value))
+    .map((o) => o.value);
+  const hue = options
+    .filter((o) => HUE_VARIANT_NAMES.has(o.value))
+    .map((o) => o.value);
+  return [semantic, hue].filter((group) => group.length > 0);
+}
+
 /** 상한 있는 number — 슬라이더 범위. 계약의 min/max 가 있으면 그것이 우선. */
 const SLIDER_RANGE: Readonly<
   Record<string, { min: number; max: number; step: number; unit?: string }>
@@ -201,6 +247,13 @@ function chipGroup(key: string, label: string): ChipGroup {
 function isBinaryVariant(field: ResolvedField): boolean {
   return field.kind === "variant" && (field.options?.length ?? 0) === 2;
 }
+/** 옵션의 절반 이상이 Spectrum 색 이름 — 값이 곧 색인 variant (Badge · StatusLight). */
+function isHueGridVariant(field: ResolvedField): boolean {
+  const options = field.options ?? [];
+  if (field.kind !== "variant" || options.length < 5) return false;
+  const hues = options.filter((o) => HUE_VARIANT_NAMES.has(o.value)).length;
+  return hues * 2 >= options.length;
+}
 function isSemanticColorVariant(field: ResolvedField): boolean {
   const options = field.options ?? [];
   if (field.kind !== "variant" || options.length < 3) return false;
@@ -228,6 +281,8 @@ export function resolveFieldEditor(field: ResolvedField): FieldEditor {
     case "variant": {
       if (isBinaryVariant(field))
         return { type: "seg", span: fitsHalfSeg(labels) ? "half" : "wide" };
+      if (isHueGridVariant(field))
+        return { type: "select", swatch: true, grid: true };
       if (isSemanticColorVariant(field)) {
         return options.length <= 4
           ? { type: "seg", span: "wide", swatch: true }

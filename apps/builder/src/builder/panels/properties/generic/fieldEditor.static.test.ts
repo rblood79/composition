@@ -159,11 +159,28 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
       type: "select",
       swatch: true,
     }); // 6
+    expect(editorOf("Separator", "variant").type).toBe("select"); // 7 비색
+  });
+
+  // 2026-09-16 「A 팝오버 grid」 — 색 이름이 절반 이상인 variant 만 격자. 의미 variant 는 목록.
+  it("variant — 색 이름 ≥ 절반 (Badge 25 · StatusLight 19) 만 격자 셀렉트, 나머지는 grid 없음", () => {
     expect(editorOf("Badge", "variant")).toMatchObject({
       type: "select",
       swatch: true,
-    }); // 25
-    expect(editorOf("Separator", "variant").type).toBe("select"); // 7 비색
+      grid: true,
+    });
+    expect(editorOf("StatusLight", "variant")).toMatchObject({
+      type: "select",
+      grid: true,
+    });
+    const gridTypes = byKey("variant")
+      .filter((f) => {
+        const e = resolveFieldEditor(f.field);
+        return e.type === "select" && e.grid === true;
+      })
+      .map((f) => f.type)
+      .sort();
+    expect(gridTypes).toEqual(["Badge", "StatusLight"]);
   });
 
   it("5+ · 긴 라벨 · 도메인 enum 은 셀렉트 유지", () => {
