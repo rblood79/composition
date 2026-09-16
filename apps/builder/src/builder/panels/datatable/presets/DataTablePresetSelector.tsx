@@ -32,6 +32,20 @@ import {
   Database,
   Settings,
   Factory,
+  Contact,
+  Newspaper,
+  CreditCard,
+  Image,
+  BookUser,
+  BadgeCheck,
+  ShoppingBasket,
+  Star,
+  MessageSquare,
+  ListChecks,
+  ChefHat,
+  Quote,
+  ArrowLeftRight,
+  Receipt,
 } from "lucide-react";
 import type { DataTablePreset, PresetCategory } from "./types";
 import { PRESET_CATEGORIES } from "./types";
@@ -66,6 +80,20 @@ const iconMap: Record<string, React.ComponentType<{ size?: number }>> = {
   Database,
   Settings,
   Factory,
+  Contact,
+  Newspaper,
+  CreditCard,
+  Image,
+  BookUser,
+  BadgeCheck,
+  ShoppingBasket,
+  Star,
+  MessageSquare,
+  ListChecks,
+  ChefHat,
+  Quote,
+  ArrowLeftRight,
+  Receipt,
 };
 
 const categoryIconMap: Record<
@@ -73,8 +101,12 @@ const categoryIconMap: Record<
   React.ComponentType<{ size?: number }>
 > = {
   "users-auth": Users,
+  people: Contact,
   organization: Building2,
   ecommerce: ShoppingCart,
+  content: Newspaper,
+  finance: CreditCard,
+  media: Image,
   manufacturing: Factory,
   system: Settings,
 };

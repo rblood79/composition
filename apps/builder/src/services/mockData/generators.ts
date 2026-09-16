@@ -37,7 +37,7 @@ export interface RangeOptions {
 }
 
 export interface DateRangeOptions {
-  /** 기준 시각 (기본 now) */
+  /** 기준 시각 — 생략 시 createMock 의 refDate (오늘 0시 UTC) */
   refDate?: Date | number | string;
   years?: number;
   days?: number;
@@ -46,6 +46,11 @@ export interface DateRangeOptions {
 export interface CreateMockOptions {
   seed?: number | string | null;
   locale?: MockLocale;
+  /**
+   * 날짜 규칙의 기준 시각. 기본은 **오늘 0시 (UTC)** — 같은 seed 가 같은 날 안에서는
+   * 같은 행을 내도록 (ms 단위 now 를 쓰면 호출마다 달라져 seed 가 무의미해진다).
+   */
+  refDate?: Date | number | string;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -65,12 +70,21 @@ const USER_AGENTS = [
   "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148",
 ];
 
-function toMs(value: Date | number | string | undefined): number {
-  if (value === undefined) return Date.now();
+function toMs(
+  value: Date | number | string | undefined,
+  fallback: number,
+): number {
+  if (value === undefined) return fallback;
   if (value instanceof Date) return value.getTime();
   if (typeof value === "number") return value;
   const parsed = Date.parse(value);
-  return Number.isNaN(parsed) ? Date.now() : parsed;
+  return Number.isNaN(parsed) ? fallback : parsed;
+}
+
+/** 오늘 0시 (UTC) */
+function startOfTodayUtc(): number {
+  const now = new Date();
+  return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
 }
 
 /** Luhn 검사 자릿수 */
@@ -280,6 +294,7 @@ export interface Mock {
 export function createMock(options: CreateMockOptions = {}): Mock {
   const random = createRandom(options.seed);
   const locale = options.locale ?? FALLBACK_LOCALE;
+  const refMs = toMs(options.refDate, startOfTodayUtc());
 
   const poolAll = (name: keyof MockLocale): string[] => {
     const value = locale[name];
@@ -312,7 +327,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     jobTitle: () => pool("jobTitles"),
     jobLevel: () => pool("jobLevels"),
     birthDate: ({ minAge = 18, maxAge = 65 } = {}) => {
-      const now = new Date();
+      const now = new Date(refMs);
       const to = new Date(now);
       to.setFullYear(now.getFullYear() - minAge);
       const from = new Date(now);
@@ -321,7 +336,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     },
     ageOf: (birthDate, refDate) => {
       const birth = new Date(birthDate);
-      const ref = new Date(toMs(refDate));
+      const ref = new Date(toMs(refDate, refMs));
       let age = ref.getFullYear() - birth.getFullYear();
       const beforeBirthday =
         ref.getMonth() < birth.getMonth() ||
@@ -452,20 +467,20 @@ export function createMock(options: CreateMockOptions = {}): Mock {
 
   const date: Mock["date"] = {
     past: ({ refDate, years, days } = {}) => {
-      const ref = toMs(refDate);
+      const ref = toMs(refDate, refMs);
       const span = days !== undefined ? days * DAY : (years ?? 1) * 365 * DAY;
       return new Date(ref - random.next() * span);
     },
     future: ({ refDate, years, days } = {}) => {
-      const ref = toMs(refDate);
+      const ref = toMs(refDate, refMs);
       const span = days !== undefined ? days * DAY : (years ?? 1) * 365 * DAY;
       return new Date(ref + random.next() * span);
     },
     recent: (days = 1, refDate) => date.past({ days, refDate }),
     soon: (days = 1, refDate) => date.future({ days, refDate }),
     between: (from, to) => {
-      const lo = toMs(from);
-      const hi = toMs(to);
+      const lo = toMs(from, refMs);
+      const hi = toMs(to, refMs);
       const [a, b] = lo <= hi ? [lo, hi] : [hi, lo];
       return new Date(a + random.next() * (b - a));
     },

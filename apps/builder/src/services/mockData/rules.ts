@@ -26,6 +26,8 @@ export interface MockRowContext {
   mock: Mock;
   /** `reference` 규칙이 읽는 외부 값 풀 (FK) */
   references: Readonly<Record<string, readonly unknown[]>>;
+  /** 문구 해소기 (i18n `t`) — formula 가 카탈로그 문장 템플릿을 쓸 때. 없으면 키 그대로 */
+  t: (key: string, params?: Record<string, string | number | boolean>) => string;
 }
 
 export type MockRule =
@@ -112,6 +114,8 @@ export type MockRule =
   | { kind: "enum"; values: readonly string[]; selection?: ListSelection }
   | { kind: "weighted"; options: readonly WeightedOption<unknown>[] }
   | { kind: "pool"; name: keyof MockLocale; selection?: ListSelection }
+  /** 풀의 i 번째 값을 weights[i] 가중치로 — 풀 문구는 locale, 분포는 규칙 */
+  | { kind: "weightedPool"; name: keyof MockLocale; weights: readonly number[] }
   | {
       kind: "list";
       values?: readonly string[];
@@ -173,6 +177,8 @@ export interface GenerateRowsOptions {
   references?: Readonly<Record<string, readonly unknown[]>>;
   /** 미리 만든 mock 을 이어 쓸 때 (같은 seed 스트림) */
   mock?: Mock;
+  /** formula 가 읽는 문구 해소기 */
+  t?: MockRowContext["t"];
 }
 
 function readString(
@@ -386,6 +392,13 @@ export function generateValue(rule: MockRule, ctx: MockRowContext): unknown {
       return mock.random.weighted(rule.options);
     case "pool":
       return pickBy(mock.helpers.poolAll(rule.name), rule.selection, ctx);
+    case "weightedPool": {
+      const values = mock.helpers.poolAll(rule.name);
+      if (values.length === 0) return undefined;
+      return mock.random.weighted(
+        values.map((value, i) => ({ value, weight: rule.weights[i] ?? 1 })),
+      );
+    }
     case "list": {
       const source =
         rule.values ?? (rule.pool ? mock.helpers.poolAll(rule.pool) : []);
@@ -486,11 +499,12 @@ export function generateRows(
   const mock =
     options.mock ?? createMock({ seed: options.seed, locale: options.locale });
   const references = options.references ?? {};
+  const t = options.t ?? ((key: string) => key);
   const count = Math.max(0, Math.floor(options.count));
   const rows = Array.from({ length: count }, (_, index) =>
     generateRow(
       columns,
-      { index, row: {}, mock, references },
+      { index, row: {}, mock, references, t },
       options.blankRate,
     ),
   );

@@ -11,9 +11,14 @@
 export type {
   PresetCategory,
   PresetCategoryMeta,
+  PresetColumn,
+  PresetField,
+  PresetGenerateOptions,
+  PresetSample,
+  PresetTranslate,
   DataTablePreset,
 } from "./types";
-export { PRESET_CATEGORIES } from "./types";
+export { PRESET_CATEGORIES, definePreset, resolvePresetSchema } from "./types";
 
 // Preset Definitions
 export {

@@ -73,6 +73,10 @@ export interface MockLocale {
   colorNames: string[];
 
   /** 기존 preset 풀 (users-auth · organization · manufacturing · system) */
+  roleNames: string[];
+  roleDescriptions: string[];
+  permissionNames: string[];
+  permissionDescriptions: string[];
   userStatuses: string[];
   projectStatuses: string[];
   orderStatuses: string[];
@@ -137,6 +141,28 @@ export const FALLBACK_LOCALE: MockLocale = {
   ],
   quoteAuthors: ["Leonardo da Vinci", "Steve Jobs"],
   colorNames: ["Red", "Blue", "Green", "Yellow", "Purple"],
+  roleNames: ["Admin", "Editor", "Viewer", "Guest", "Owner"],
+  roleDescriptions: [
+    "Full access",
+    "Can edit content",
+    "Read only",
+    "Limited access",
+    "Highest privilege",
+  ],
+  permissionNames: [
+    "users.read",
+    "users.write",
+    "projects.read",
+    "projects.write",
+    "settings.write",
+  ],
+  permissionDescriptions: [
+    "List users",
+    "Create/update/delete users",
+    "View projects",
+    "Edit projects",
+    "Change settings",
+  ],
   userStatuses: ["active", "invited", "dormant", "suspended"],
   projectStatuses: ["planned", "active", "on-hold", "done"],
   orderStatuses: ["pending", "processing", "shipped", "delivered", "cancelled"],
@@ -200,6 +226,10 @@ const LIST_KEYS = [
   "quotes",
   "quoteAuthors",
   "colorNames",
+  "roleNames",
+  "roleDescriptions",
+  "permissionNames",
+  "permissionDescriptions",
   "userStatuses",
   "projectStatuses",
   "orderStatuses",
