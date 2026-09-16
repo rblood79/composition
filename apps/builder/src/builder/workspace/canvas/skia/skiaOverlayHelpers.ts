@@ -24,6 +24,7 @@ import {
 } from "./workflowMinimap";
 import type { FrameAreaGroup, WorkflowEdge } from "./workflowEdges";
 import type { PageFrame } from "./workflowRenderer";
+import { PAGE_HEADER_HEIGHT } from "./selectionRenderer";
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -637,6 +638,38 @@ export function buildMinimapRenderData(
     edges,
     focusedPageId,
     viewportBounds,
+  };
+}
+
+/**
+ * 페이지 타이틀 hit/편집 bounds. drag 히트 (`scene*`) 는 **헤더 띠 전체** — 페이지 폭 ×
+ * 화면 32px (scene 32/zoom). inline 편집기 (`textScene*`) 는 실제 글리프 line box.
+ *
+ * @param measured `renderPageTitle` 반환 (화면 px, page 좌상단 원점)
+ * @param zoom 카메라 줌 (0 이면 1 로 취급)
+ */
+export function buildPageTitleBounds(
+  item: { pageId: string; x: number; y: number; width: number },
+  measured: {
+    titleWidth: number;
+    textX: number;
+    textTop: number;
+    textHeight: number;
+  },
+  zoom: number,
+): PageTitleBounds {
+  const invZoom = zoom === 0 ? 1 : 1 / zoom;
+  const headerSceneHeight = PAGE_HEADER_HEIGHT * invZoom;
+  return {
+    pageId: item.pageId,
+    sceneX: item.x,
+    sceneY: item.y - headerSceneHeight,
+    sceneWidth: item.width,
+    sceneHeight: headerSceneHeight,
+    textSceneX: item.x + measured.textX * invZoom,
+    textSceneY: item.y + measured.textTop * invZoom,
+    textSceneWidth: measured.titleWidth * invZoom,
+    textSceneHeight: measured.textHeight * invZoom,
   };
 }
 

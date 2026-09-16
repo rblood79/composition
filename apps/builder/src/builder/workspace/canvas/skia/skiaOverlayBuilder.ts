@@ -71,6 +71,7 @@ import {
   buildMinimapConfig,
   buildMinimapRenderData,
   buildViewportSceneRect,
+  buildPageTitleBounds,
   buildPageTitleRenderItems,
   buildSlotMarkerTargets,
   buildCollectionRemainderTargets,
@@ -454,11 +455,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           selection.selectedElementIds.length > 0,
           pagePositionSnapshot,
         );
-        const invZoom = cameraZoom === 0 ? 1 : 1 / cameraZoom;
-        // drag hit-test 박스는 실제 그려지는 text glyph 보다 약간 넉넉하게 잡아
-        // 사용자가 베이스라인 위/아래 포인터-다운도 타이틀로 인식하도록 한다.
-        const HIT_PAD_X = 6;
-        const HIT_PAD_Y = 4;
+        // drag hit-test 는 헤더 띠 전체 (buildPageTitleBounds) — 글리프 pad 방식 폐기.
         const headerColor = resolvePageHeaderColor();
         const headerActiveColor = resolvePageHeaderActiveColor();
         for (const item of pageTitleItems) {
@@ -499,21 +496,10 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           );
 
           if (pageTitleBoundsMap && measured) {
-            const textSceneX = item.x + measured.textX * invZoom;
-            const textSceneY = item.y + measured.textTop * invZoom;
-            const textSceneWidth = measured.titleWidth * invZoom;
-            const textSceneHeight = measured.textHeight * invZoom;
-            pageTitleBoundsMap.set(item.pageId, {
-              pageId: item.pageId,
-              sceneX: textSceneX - HIT_PAD_X * invZoom,
-              sceneY: textSceneY - HIT_PAD_Y * invZoom,
-              sceneWidth: textSceneWidth + HIT_PAD_X * 2 * invZoom,
-              sceneHeight: textSceneHeight + HIT_PAD_Y * 2 * invZoom,
-              textSceneX,
-              textSceneY,
-              textSceneWidth,
-              textSceneHeight,
-            });
+            pageTitleBoundsMap.set(
+              item.pageId,
+              buildPageTitleBounds(item, measured, cameraZoom),
+            );
           }
         }
       }
