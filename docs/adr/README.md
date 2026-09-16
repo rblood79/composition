@@ -7,7 +7,7 @@
 > 쌓여 있던 세션별 갱신 공지 · 완료 ADR 비고 · 2026-04 기준 우선순위 계획 · 변경 이력은
 > [archive/README-notes-2026-09.md](archive/README-notes-2026-09.md) 로 **무손실 이관**했다.
 >
-> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-16 재실측 (ADR-202 Accepted 09-15 → 구현 main 반영 → **Implemented 09-16** — Proposed 6 · Accepted 1 (150) · 부분 1 (027)).
+> **최종 대조**: 2026-09-10 — 아래 개수·상태·일자는 `docs/adr/**` 파일 실측이다. 열려 있는 것 절은 2026-09-16 재실측 (ADR-202 Accepted 09-15 → 구현 main 반영 → **Implemented 09-16** · ADR-220 Proposed 09-16 — Proposed 7 · Accepted 1 (150) · 부분 1 (027)).
 
 ---
 
@@ -20,11 +20,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       8 |
-| ├ Proposed                    |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       9 |
+| ├ Proposed                    |       7 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **246** |
+| **합계**                      | **247** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -58,6 +58,12 @@
 - **상태**: Proposed — 2026-09-02
 - **규모**: 실측 2026-09-01: 입력 UI(FileTrigger/DropZone/ProgressBar catalog)만 있고 전송 런타임·XHR·Cloud Storage 0건, `renderFileTrigger` 가 파일명을 문서 prop 에 기록(잘못된 채널), CAPABILITY_REGISTRY 미등재. FILE_UPLOAD.md 5종 비교 — Uppy(100KB+, catalog 밖 UI)/multipart 자체 프로토콜(표준 호환 0)/Rust wasm(I/O 병목·CSP)/shared 내장(외부 사용 불가) 기각 → TS sans-I/O 코어 + TUS 1.0 + 독립 package(esm/cjs/IIFE) + Spring 참조 서버(Java 8/Spring 5)·JSP 예제. 신규 의존 0, GB 힙 Δ≤64MB, tusd 대조군, 보안 공격 corpus G4
 - **우선순위**: **P2** (ADR-194 다음)
+
+#### [220](220-sample-data-package-and-rename.md) — 샘플 데이터 엔진 패키지화 — `@composition/sample-data` + `mockData` 명칭 정리
+
+- **상태**: Proposed — 2026-09-16
+- **규모**: 생성기 5 파일 (1,923 줄, 외부 import 0) 을 `packages/sample-data` (src 직접 export · 의존 0 · builder 역참조는 컴파일러가 차단) 로 이동 + 명칭 `mock` → `sample` (규칙 kind `mock` → `generate`, 151 지점) — 동작 변경 0 리팩터 (G3 seed 스냅샷 byte-identical). preset 카탈로그 · AI `tableSpec` 은 builder 잔류 (import 경로만). `DataField` 의 shared 승격 (preset 이동) 은 범위 밖. 대안 A(이름만)/C(preset+DataField 승격)/D(외부 배포형) 기각. R1~~R5 MED 2 / LOW 3 · G0~~G5. design breakdown `design/220-sample-data-package-and-rename-breakdown.md`
+- **우선순위**: **P2** — 병행 세션 (Mock 데이터 모듈) commit 후 착수 (G0)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
@@ -115,15 +121,16 @@
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16).
 >
-> 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 **중요도**이고, 본 표는 **준비도(리뷰 종결 여부)·의존 그래프·즉시 가치**로 재산정한 **실행 순서**다. 리뷰 파일(`reviews/{NNN}.md`)의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지. 2026-08-28 산정 대비 변경: 201 추가 · 202 는 **Implemented 2026-09-16** (승격 판정 live 2차 + 상한 재승인) 로 완료 표로 이동 · 013 차단 해소 반영 · 212/214 행은 완료 표로 이동 · 150 과 162 는 같은 카드 높이 축이라 150 A2 확정을 162 앞에 둠.
+> 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 **중요도**이고, 본 표는 **준비도(리뷰 종결 여부)·의존 그래프·즉시 가치**로 재산정한 **실행 순서**다. 리뷰 파일(`reviews/{NNN}.md`)의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지. 2026-08-28 산정 대비 변경: 201 · 220 추가 · 202 는 **Implemented 2026-09-16** (승격 판정 live 2차 + 상한 재승인) 로 완료 표로 이동 · 013 차단 해소 반영 · 212/214 행은 완료 표로 이동 · 150 과 162 는 같은 카드 높이 축이라 150 A2 확정을 162 앞에 둠.
 
 | 순위 | ADR                                                                                                                                                                                                                                              | 착수 준비도                                                                                                                                             | 차단 · 선행                                                                                                                                                              |
 | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 |  1   | [013](013-quick-connect-data-binding.md)                                                                                                                                                                                                         | Risk-First 재작성 완료(round 2 전부 fixed, pending 0) · 착수 조건 G0 의 152 Implemented 는 09-11 충족                                                   | **차단 0** — Phase 0 재-inventory 만 선행 (212/213/214/218 로 Data 패널·runtimeData·Variables 소유자 모델이 바뀌어 필수) → Proposed → Accepted 승격 → `/execute-adr 013` |
-|  2   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                                                                                                                                                                     | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(ListBox/GridList/Table, 07-19~~20) · A3 미착수                                          | A2 **시각 최종 확인 (실제 canvas 60fps 스크롤) 이 07-19 부터 사용자 foreground 대기** → ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 → A3. 세션 단독으로 못 연다        |
-|  3   | [162](162-gridlist-template-subtree-projection.md)                                                                                                                                                                                               | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                                                                              | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요. 150 A2 의 GridList stride 와 같은 카드 높이 축을 건드리므로 **150 A2 확정 후** 착수                     |
-|  4   | [201](201-large-file-upload-engine-component-server-contract.md)                                                                                                                                                                                 | Proposed 2026-09-02 · **`reviews/201.md` 없음** (review-adr round 0)                                                                                    | 중요도 P2 이나 전제 미확정 — 착수 전 `/review-adr 201` 1회 필수. 독립 package (`@composition/upload`) 라 다른 ADR 과 파일 충돌 0                                         |
-|  5   | [921](921-render-scene-backend-integration.md)                                                                                                                                                                                                   | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~~190 이후 §6-2 파일 대량 변경 + 09 월 206·209~~219 로 Skia 파이프라인 추가 변경) | 재freeze 전 착수 금지 — 재freeze 비용이 6건 중 가장 큼                                                                                                                   |
+|  2   | [220](220-sample-data-package-and-rename.md)                                                                                                                                                                                                     | Proposed 2026-09-16 · 리뷰 전 — 동작 변경 0 리팩터, 게이트 6                                                                                            | `/review-adr 220` 1회 → Accepted → 병행 세션 (Mock 데이터 모듈) commit 으로 대상 경로 clean 확인 (G0) 후 착수                                                            |
+|  3   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                                                                                                                                                                     | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(ListBox/GridList/Table, 07-19~~20) · A3 미착수                                          | A2 **시각 최종 확인 (실제 canvas 60fps 스크롤) 이 07-19 부터 사용자 foreground 대기** → ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 → A3. 세션 단독으로 못 연다        |
+|  4   | [162](162-gridlist-template-subtree-projection.md)                                                                                                                                                                                               | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                                                                              | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요. 150 A2 의 GridList stride 와 같은 카드 높이 축을 건드리므로 **150 A2 확정 후** 착수                     |
+|  5   | [201](201-large-file-upload-engine-component-server-contract.md)                                                                                                                                                                                 | Proposed 2026-09-02 · **`reviews/201.md` 없음** (review-adr round 0)                                                                                    | 중요도 P2 이나 전제 미확정 — 착수 전 `/review-adr 201` 1회 필수. 독립 package (`@composition/upload`) 라 다른 ADR 과 파일 충돌 0                                         |
+|  6   | [921](921-render-scene-backend-integration.md)                                                                                                                                                                                                   | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~~190 이후 §6-2 파일 대량 변경 + 09 월 206·209~~219 로 Skia 파이프라인 추가 변경) | 재freeze 전 착수 금지 — 재freeze 비용이 6건 중 가장 큼                                                                                                                   |
 |  —   | [910](910-rac-pencil-component-architecture.md) / [911](911-rac-pencil-target-component-architecture.md)                                                                                                                                         | 착수 대상 아님 (비착수 비교 기록 / 비실행 목표 참조)                                                                                                    | 실행 owner = ADR-912 Implemented                                                                                                                                         |
 |  —   | 부분 완료 [019](completed/019-icon-system.md) · [025](completed/025-s2-named-color-palette.md) · [027](027-inline-text-editing.md) · [041](completed/041-spec-driven-property-editor.md) · [198](completed/198-d3-renderer-pixel-parity-gate.md) | P4 (041 만 P2)                                                                                                                                          | 각 항목의 재개 조건 발생 시 (198 은 gh-pages 배포 필요 또는 해당 영역 착수)                                                                                              |
 
