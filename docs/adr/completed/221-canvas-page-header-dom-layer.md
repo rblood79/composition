@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-17 (사용자 `/execute-adr 221` 착수 지시 = Accepted 승인 · [reviews/221.md](reviews/221.md): round 1 HIGH 2 · MEDIUM 2 · LOW 2 → 본문·breakdown 반영 (사용자 판정 1 — capture 가드는 `.canvas-container` 안, Decision 4) → round 2 이슈 0, pending 0) · In Progress — Phase 0 착수 2026-09-17
+Implemented — 2026-09-17 (사용자 `/execute-adr 221` · Phase 0~4 종결 · [reviews/221.md](../reviews/221.md): round 1 HIGH 2 · MEDIUM 2 · LOW 2 → 반영 (사용자 판정 1 — capture 가드는 `.canvas-container` 안, Decision 4) → round 2 이슈 0, pending 0)
 
 > 출처: 2026-09-17 사용자 관찰 "framer 의 경우 page 헤더를 dom (html) 영역에서 생성하고 있다" + "드래그 이동 중에는 헤더가 나타나지만 스크롤·휠 이동 중에는 나타나지 않고 이동 종료 후에 나타난다". 같은 날 Skia 오버레이에 페이지 헤더 띠를 넣으면서 (`470c1859b` … `4049a416c`) 토큰 스코프 리졸버 · 테마 캐시 무효화 · Paragraph bold 캐시라는 우회 3개가 쌓인 직후의 경계 정리다.
 
@@ -102,7 +102,7 @@ DOM 층이면 셋 다 CSS 가 공짜로 해 준다. 반면 DOM 층은 카메라�
 
 **기각 사유**: A — 빌더 chrome 확장마다 CSS 공짜 기능을 JS 로 재구현하는 비용이 누적 (오늘 우회 3종이 그 첫 사례). B — pan/zoom 중 N 노드 DOM 쓰기가 프레임 예산 hard constraint 와 직접 충돌. D — 렌더 경로 2개를 시각 동일하게 유지해야 해 A 의 비용을 그대로 안고 교체 깜빡임까지 얻는다.
 
-> 구현 상세: [221-canvas-page-header-dom-layer-breakdown.md](design/221-canvas-page-header-dom-layer-breakdown.md)
+> 구현 상세: [221-canvas-page-header-dom-layer-breakdown.md](../design/221-canvas-page-header-dom-layer-breakdown.md)
 
 ## Risks
 
@@ -127,7 +127,11 @@ DOM 층이면 셋 다 CSS 가 공짜로 해 준다. 반면 DOM 층은 카메라�
 
 ### Live Exercise
 
-(Implemented 승격 시 기재)
+headed Playwright (dev, 실제 빌더 부팅 — Chrome MCP hidden 탭 RAF 정지 회피) 로 검증. 원본 근거: [221-p3-after-baseline.md](../evidence/221-p3-after-baseline.md) · [221-p0-before-baseline.md](../evidence/221-p0-before-baseline.md).
+
+- **Phase 1 (표시 층, 이중 표시 대조)** 2026-09-17 · 13/13 PASS — DOM 헤더 배치가 scene→screen 공식과 일치 (maxΔ 0.000) · 높이 28 고정 · DOM 순서 = 활성 페이지 마지막 · 위 페이지 body 가 덮는 구간 clip `inset` · 휠 pan/zoom·스페이스 pan 중 숨김 (수리 1: 휠 pan 에 시작 신호가 없던 `useViewportControl` 결함) · 종료 후 재배치 Δ0 · 페이지 drag 중 대상 헤더만 추종 후 커밋 재배치.
+- **Phase 2 (G1, 히트 이관)** 2026-09-17 · 8/8 PASS — ① 헤더 빈 영역 drag → `pagePositions` 이동 (Δ = 마우스 Δ / zoom) ② shift-클릭 → body 다중선택 토글 on/off, `currentPageId`·위치 무변경 ③ dblclick → 헤더 안 편집기 (포커스·700), Enter `renamePageTitle`·Esc 취소, 헤더 텍스트 갱신 ④ 위 페이지에 가려진 헤더 구간 클릭 → `elementFromPoint` = 캔버스 (헤더 아님), 아래 페이지 위치·선택 무변경 ⑤ 스페이스+헤더 드래그 = 카메라 pan (페이지 이동 0, cursor grab) · 헤더 위 휠 = pan · ctrl+휠 = zoom.
+- **Phase 3 (G2, Skia 헤더 삭제)** 2026-09-17 — 22 페이지·10% 줌에서 MutationObserver 실계측: 휠 pan·휠 zoom·스페이스 pan 각각 **제스처 중 헤더 층 DOM 쓰기 0** (게이트 밖 프로그램 zoom 은 86 재배치 대조). 이 계측이 배선 정적 테스트가 못 잡는 leak 1건 (팬의 `transientVisiblePageIds` 리렌더가 `frames` 이펙트로 게이트 밖 배치를 부르던 것) 을 잡아 `gestureActiveRef` 로 막았다. `render.frame` p95 는 평탄/개선 (adverse pan 1.5→1.3 · default zoom 3.4→3.3), callback gap +1ms 는 idle 포함 균일 = 환경 기저 (G4 편집기 700 은 Phase 2 확인).
 
 ## Consequences
 

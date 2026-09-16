@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **collection 에 연결된 ListBox · GridList · Select · ComboBox · Menu 가 행이 0 이면 factory 샘플 항목을 그대로 보이던 문제** (Preview/publish DOM). 연결된 0건은 빈 목록으로 그린다 — Canvas(Skia) 는 이미 그렇게 그리고 있었다 (`boundEmptyCollectionNoStaticFallback.test.tsx`).
 - 대상 요소가 삭제·이동됐거나 그 사이 데이터 연결이 바뀌면 아무것도 만들지 않고 안내한다 (저장 뒤 commit 경계에서도 같은 검사 — 어긋나면 collection 생성을 되돌린다).
 
+## [캔버스 페이지 헤더를 DOM 층으로 이관 — 제스처 중 숨김 (ADR-221)] - 2026-09-17
+
+### Changed
+
+- 캔버스 페이지 헤더 띠·타이틀·이름 편집을 Skia 렌더에서 **DOM 층** (`.canvas-container` 안, Skia 위 · 눈금자 아래) 으로 옮겼다 (ADR-221 Implemented). 보이는 결과는 같다 — 폭 = 페이지 폭, 높이 화면 28px, 배경 `--button-color`(없으면 `--fg`) 10% · 선택 페이지 `--focus-ring` 30%, 타이틀 700, 페이지 상단과 1px 간격. Framer 처럼 휠/스크롤/줌 등 카메라 제스처 중에는 헤더를 숨기고 제스처가 끝나면 다시 배치한다 (제스처 중 헤더 DOM 쓰기 0). 위 페이지 body 에 가려지는 아래 페이지 헤더 구간은 `clip-path` 로 잘려 보이지도 잡히지도 않는다.
+- 페이지 이동 drag · shift-클릭 body 다중선택 · 더블클릭 이름 편집은 종전과 같은 동작으로 헤더 띠 어디서나 되고, 스페이스 pan·헤더 위 휠은 카메라 조작으로 그대로 통과한다. 이름 편집기는 헤더 띠 자체가 필드가 되어 굵기 700 으로 헤더와 맞는다.
+
 ## [캔버스 페이지 헤더 띠 — 타이틀 배경 28px · 선택 페이지 강조] - 2026-09-17
 
 ### Added

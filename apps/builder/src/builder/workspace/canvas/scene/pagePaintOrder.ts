@@ -5,11 +5,14 @@
  * 표시 축이다. canonical 페이지 순서(패널 목록/문서 저장)는 불변으로 두고,
  * 겹침 표시와 포인터 판정만 "활성 페이지가 최상단" 으로 재배열한다.
  *
- * 소비자 3경로가 반드시 같은 순서를 공유해야 한다 — 한쪽만 바꾸면
+ * 소비자 4경로가 반드시 같은 순서를 공유해야 한다 — 한쪽만 바꾸면
  * "보이는데 클릭이 다른 페이지로 가는" 비대칭이 생긴다:
  *  1. 페인트: collectVisiblePageRoots → rootElementIds (배열 뒤 = 위에 그려짐)
  *  2. body 빈 영역 히트: findBodySelectionAtCanvasPoint (top-first 역순 순회)
  *  3. 요소 히트 tie-break: pickTopmostHitElementId 의 pagePaintRank
+ *  4. 페이지 헤더 DOM 층 (ADR-221): PageHeaderLayer 렌더 순서 = 헤더끼리 z-order,
+ *     위 페이지 body ∪ 헤더 에 가려지는 구간은 clip-path 로 잘라 히트도 막는다
+ *     (usePageHeaderPlacement — clip 밖은 pointer 대상 아님)
  */
 
 export interface PageOrderLike {

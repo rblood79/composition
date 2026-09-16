@@ -15,14 +15,14 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     239 |
-| ├ Implemented                 |     203 |
+| 완료 (`completed/`)           |     240 |
+| ├ Implemented                 |     204 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       9 |
+| 열려 있는 것 (`adr/*.md`)     |       8 |
 | ├ Proposed                    |       6 |
-| ├ Accepted (미착수·일부 착수) |       2 |
+| ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
 | **합계**                      | **248** |
 
@@ -49,15 +49,9 @@
 
 #### [201](201-large-file-upload-engine-component-server-contract.md) — 대용량 파일 업로드 — 독립 전송 엔진 `@composition/upload` + FileUpload 컴포넌트 + Spring 서버 계약
 
-- **상태**: Proposed — 2026-09-02
+- **상태**: In Progress — 2026-09-17 (Proposed 2026-09-02 · 사용자 `/execute-adr 201` 지시로 worktree 3개 병렬 착수 · review-adr round 1 HIGH 3 → 본문 반영)
 - **규모**: 실측 2026-09-01: 입력 UI(FileTrigger/DropZone/ProgressBar catalog)만 있고 전송 런타임·XHR·Cloud Storage 0건, `renderFileTrigger` 가 파일명을 문서 prop 에 기록(잘못된 채널), CAPABILITY_REGISTRY 미등재. FILE_UPLOAD.md 5종 비교 — Uppy(100KB+, catalog 밖 UI)/multipart 자체 프로토콜(표준 호환 0)/Rust wasm(I/O 병목·CSP)/shared 내장(외부 사용 불가) 기각 → TS sans-I/O 코어 + TUS 1.0 + 독립 package(esm/cjs/IIFE) + Spring 참조 서버(Java 8/Spring 5)·JSP 예제. 신규 의존 0, GB 힙 Δ≤64MB, tusd 대조군, 보안 공격 corpus G4
 - **우선순위**: **P2** (ADR-194 다음)
-
-#### [221](221-canvas-page-header-dom-layer.md) — 캔버스 페이지 헤더 DOM 층 이관 — 제스처 게이트 + 단일 drag 추종
-
-- **상태**: Accepted — 2026-09-17 (사용자 `/execute-adr 221` 착수 · reviews/221.md round 2 이슈 0) · In Progress Phase 0 (하니스 `--pages N` · 이관 전 기준선)
-- **규모**: 페이지 헤더 (띠 28px + 타이틀 + 이름 편집기) 를 Skia 오버레이에서 `.canvas-container` 안 DOM 층 `PageHeaderLayer` 로. 결정 4: ① 경계 규칙 (카메라 추종 + 텍스트/토큰 chrome = DOM · 픽셀 정합 표식 = Skia) ② 제스처 게이트 (pan/zoom 중 hidden → settle 150 ms 후 1회 배치, 제스처 중 DOM 쓰기 0) ③ 단일 drag 추종 (`pagePositionSnapshot` 델타, 대상 1 노드) ④ 히트 순서 (헤더가 pointerdown 직접 수신 · occlusion 은 DOM 순서 = `orderPagesForPaint` + `clip-path: inset`). 걷어내는 우회 3: `getBuilderCSSVariable` · 헤더 색 리졸버 · 테마 캐시 무효화 배선. R1 HIGH (히트 이관) ↔ G1 live 4 시나리오 · G2 22 페이지 pan/zoom DOM 쓰기 0 + p95. 프레임 타이틀은 범위 밖 (Skia 유지). design breakdown `design/221-canvas-page-header-dom-layer-breakdown.md`
-- **우선순위**: 사용자 제안 2026-09-17 (Framer 관찰)
 
 #### [910](910-rac-pencil-component-architecture.md) — RAC core + Pencil format 1차 원리 컴포넌트 아키텍처
 
@@ -155,6 +149,7 @@
 
 | ADR                                                                                 | 제목                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | 상태        | 일자                                                                 |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------- | -------------------------------------------------------------------- |
+| [221](completed/221-canvas-page-header-dom-layer.md)                                | 캔버스 페이지 헤더 DOM 층 이관 — 헤더 띠·타이틀·이름 편집을 Skia 오버레이에서 `.canvas-container` 안 `PageHeaderLayer` 로 (보이는 결과 동일: 폭=페이지폭·화면 28px·`--button-color`/`--fg` 10%·선택 `--focus-ring` 30%·700·1px 간격). 결정 4 (경계 규칙 · 카메라 제스처 게이트 hidden→settle · 단일 drag 추종 · 히트=헤더 native pointerdown/dblclick + occlusion `clip-path: inset` body∪헤더). 휠 pan 시작 신호 결함 수리(`useViewportControl`) · 팬 리렌더 leak 수리(`gestureActiveRef`) · Skia `renderPageHeader`/`pageTitleBoundsMap`/`getBuilderCSSVariable`/pageTitleEditing 삭제 (`renderPageTitle` 는 프레임 타이틀로 유지). 하니스 `perf-baseline --pages N/--zoom Z`. live Phase 1 13/13 · Phase 2 G1 8/8 · Phase 3 G2 제스처 중 DOM 쓰기 0 · render.frame p95 평탄/개선                                      | Implemented | 2026-09-17                                                           |
 | [013](completed/013-quick-connect-data-binding.md)                                  | Quick Connect — Properties Data 행 「New table」 이 연결 모드로 Creator 를 열고 (대상 note · 「Create & connect」), empty/preset/paste/file 생성 결과를 **원래 대상**에 자동 연결: `create_collection` (사전 UUID) + `bind_element` 한 `applyDataChange` (History entry 1 · `expectBindings` commit 경계 검증 · precheck missing/context/binding-changed 무변경 중단) · Table 은 schema Column 선삽입 + data entry `canonicalEvents` 동반 (undo/redo 두 축) · 재연결 기본 보존 / 명시적 교체 · messenger 늦은 ingress 가드 · DOM 5종 "바인딩+0행 → 정적 children" 비대칭 수리 (연결된 0건 ≠ 미연결) · API/AI 는 「Continue without connecting」 — live 6종 31/31 + G3 17/17 (`adr013-quick-connect-live.mjs`)                                                                                                            | Implemented | 2026-09-17                                                           |
 | [923](completed/923-layout-vocabulary-closure.md)                                   | display 이원 계약 — TS IFC 시뮬레이션 제거·엔진 outer/inner 직결 (C′)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Implemented | 2026-09-03                                                           |
 | [922](completed/922-photoshop-style-panel-layout-coordinator.md)                    | Photoshop식 패널 레이아웃 코디네이터 전환                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Implemented | 2026-08-18                                                           |
