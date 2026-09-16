@@ -202,7 +202,8 @@ const PagePositionRow = memo(function PagePositionRow({
 
 /**
  * Size / Position 두 절이 같은 값 묶음 (useTransformValues) 을 읽는다 — 절 하나당 마운트라
- * 훅은 두 번 돌지만 값은 같은 store 구독이라 비용은 미미하다 (panel-ui 01, 2026-09-14).
+ * 훅은 두 번 돌지만 layout 실측 구독은 자기 축만 (Size = w/h · Position = x/y) 이라 캔버스
+ * 드래그/리사이즈가 상대 절을 다시 그리지 않는다 (panel-ui 01, 2026-09-14).
  */
 type TransformSectionPart = "size" | "position";
 
@@ -217,7 +218,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const { commitLayoutPresentation, previewLayoutPresentation } =
     useLayoutPresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
-  const bundle = useTransformValues(selectedId);
+  const bundle = useTransformValues(selectedId, part);
 
   // 기존 styleValues 인터페이스 어댑터 (문자열 값)
   //   ADR-082 A2: inline 없으면 Spec specDefault (containerStyles/composition 의 "100%",
@@ -742,7 +743,8 @@ export const PositionSection = memo(function PositionSection() {
   const resetStyles = useResetStyles();
   const hasPositionDirty = useHasDirtyStyles(POSITION_PROPS);
   const selectedId = useStore((s) => s.selectedElementId);
-  const bundle = useTransformValues(selectedId);
+  // 접힘 판정은 inline position 만 — layout 실측 구독 0
+  const bundle = useTransformValues(selectedId, "none");
   const isAbsolute = bundle?.position.inline === "absolute";
   const expandSections = useSectionCollapse((s) => s.expandSections);
   const positionCollapsed = useSectionCollapse((s) =>

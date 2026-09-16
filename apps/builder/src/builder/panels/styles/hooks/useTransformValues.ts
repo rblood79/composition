@@ -58,15 +58,26 @@ export interface TransformValuesBundle {
   isBody: boolean;
 }
 
+/**
+ * 어느 축의 layout 실측 (`effective`) 을 구독할지 — Size 절은 width/height 만, Position 절은 x/y 만.
+ * 안 보는 축을 구독하면 캔버스 드래그 (x/y) 가 Size 절을, 리사이즈 (w/h) 가 Position 절을
+ * 매 layout publish 마다 다시 그린다. `none` 은 inline/spec 값만 (PositionSection 의 접힘 판정).
+ */
+export type TransformLayoutAxes = "all" | "size" | "position" | "none";
+
 export function useTransformValues(
   id: string | null,
+  layoutAxes: TransformLayoutAxes = "all",
 ): TransformValuesBundle | null {
   const { style, type, size } = useElementStyleContext(id);
 
-  const effWidth = useLayoutValue(id, "width");
-  const effHeight = useLayoutValue(id, "height");
-  const effLeft = useLayoutValue(id, "x");
-  const effTop = useLayoutValue(id, "y");
+  const sizeId = layoutAxes === "all" || layoutAxes === "size" ? id : null;
+  const positionId =
+    layoutAxes === "all" || layoutAxes === "position" ? id : null;
+  const effWidth = useLayoutValue(sizeId, "width");
+  const effHeight = useLayoutValue(sizeId, "height");
+  const effLeft = useLayoutValue(positionId, "x");
+  const effTop = useLayoutValue(positionId, "y");
 
   const isBody = type?.toLowerCase() === "body";
   const isPickerDateInput = useIsPickerDateInput(id, type);
