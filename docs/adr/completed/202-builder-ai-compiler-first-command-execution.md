@@ -2,18 +2,22 @@
 
 ## Status
 
-Accepted — 2026-09-15
+Implemented — 2026-09-16
 
 사용자 승인: 2026-09-15 “adr 202 착수 시작해”. round 1의 5건 fixed 및 round 2 수리 검증을
-완료한 본문(대안 B·HC12 번들 예산 포함)으로 착수했다. 2026-09-16 로컬 구현과 검증을 진행했으며,
-실제 모델 평가와 main 반영 전까지 Accepted를 유지한다. 상세는 아래 실행 기록과 breakdown §9.
+완료한 본문(대안 B·HC12 번들 예산 포함)으로 착수했다. 2026-09-16 로컬 구현과 검증 → main 반영
+(`464a0769b`) → 승격 판정 live 2차 (실모델 qwen3:14b 설정 상태, 아래 `### Live Exercise 2차`) →
+**사용자 판정 2026-09-16 (a)** 저장소 initial 절대 상한을 **202 재승인값 Builder ≤ 1,319,829 /
+Preview ≤ 675,691 B gzip (만료 2026-10-16, 219 대체)** 으로 재승인해 G5 종결 → Implemented.
+(b) Preview locale 분리 후 재측정은 별도 후속 (Preview 는 Properties 패널 라벨을 읽지 않는다).
+Accepted 2026-09-15 · Proposed 2026-09-15.
 
 > 사용자 요청: 2026-09-02 — Adobe가 제공하는 RAC/RSC Markdown과 composition의 기존
 > catalog/factory/tool 계약을 이용하면 단순 생성까지 Agent가 필요하지 않다는 문제 제기 후,
 > 변경 범위와 대안·트레이드오프를 정리한 새 ADR 초안 작성을 명시 승인했다. 이 ADR은
-> [ADR-134](completed/134-ai-assistant-llm-infrastructure-unification.md)의 Provider·도구 인프라를
+> [ADR-134](134-ai-assistant-llm-infrastructure-unification.md)의 Provider·도구 인프라를
 > 폐기하지 않고 D6~D8의 기본 실행 순서만 부분 개정하는 응용 ADR이다. 4질문 lock-in은
-> [breakdown §1](design/202-builder-ai-compiler-first-command-execution-breakdown.md)에 기록한다.
+> [breakdown §1](../design/202-builder-ai-compiler-first-command-execution-breakdown.md)에 기록한다.
 
 ## Context
 
@@ -38,7 +42,7 @@ Agent가 없으면 **인식은 해도 실행하지 않는 fallback**이다.
   placeable 여부, RAC primitive, 편집 가능한 props를 알고 있다.
 - `create_element`는 leaf 생성 외에 reusable origin ref와
   `ComponentFactory.createComplexComponent()`를 사용해 팔레트와 같은 합성 생성 분기를 탄다.
-- [ADR-196](completed/196-agent-command-surface.md)은 command metadata, allowlist, 승인,
+- [ADR-196](196-agent-command-surface.md)은 command metadata, allowlist, 승인,
   history, 실행 기록이 결합된 안전한 명령 표면을 제공한다.
 - `create_element`/`update_element`/`delete_element`와 canonical read-back 도구가 이미 있다.
 
@@ -120,8 +124,11 @@ executor에 연결하는 runtime routing/validation 계층**이다. Spec/Generat
     direct runtime prompt, RAG, 네트워크 조회의 필수 의존이 아니다. Markdown 부재·버전 차이에도
     manifest와 direct execution은 repo SSOT만으로 동작한다.
 12. **client 번들 예산** — Builder initial 순증 ≤ 3.5 KiB gzip, Preview 순증 0 B. 절대 상한은
-    [ADR-219 재승인값](completed/219-border-geometry-per-corner-radius-per-side-width.md)의
+    [ADR-219 재승인값](219-border-geometry-per-corner-radius-per-side-width.md)의
     Builder ≤ 1,319,829 / Preview ≤ 675,021 B gzip (만료 2026-10-14)을 함께 만족해야 한다.
+    **2026-09-16 승격 판정에서 202 재승인으로 대체** — Builder ≤ 1,319,829 / Preview ≤ 675,691 B
+    gzip (HEAD `3e6623ec9` 실측값, 만료 2026-10-16). 초과분은 202 밖 Properties i18n 키였다
+    (`### Live Exercise 2차`).
     compiler/manifest/alias/recipe와 전이 의존성을 initial/lazy로 분류하고, lazy라는 이름이나
     dynamic import 존재만으로 initial 제외를 주장하지 않는다. 만료·초과는 자동 갱신하지 않고
     G5 실패로 기록한다.
@@ -264,7 +271,7 @@ binding, factory, canonical tool, command registry에서만 파생한다.
 팔레트·human command를 독립 oracle로 쓰는 parity gate, 기존 Agent fallback 유지로 제한할 수 있다.
 canonical schema 변경이 없어 routing rollback도 문서 migration 없이 가능하다.
 
-> 구현 상세: [202-builder-ai-compiler-first-command-execution-breakdown.md](design/202-builder-ai-compiler-first-command-execution-breakdown.md)
+> 구현 상세: [202-builder-ai-compiler-first-command-execution-breakdown.md](../design/202-builder-ai-compiler-first-command-execution-breakdown.md)
 
 ## Risks
 
@@ -359,14 +366,14 @@ canonical schema 변경이 없어 routing rollback도 문서 migration 없이 �
 - 미설정 provider 기준선은 요청 후 mutation 0이었다. 이번 direct 성공을 모델 추론 속도 향상으로
   환산하지 않는다. Ollama endpoint/모델이 없어 latency·token·JSON 유효율은 **UNVERIFIED**.
 - 번들 수치와 재현 명령은 breakdown §9, 상세 로컬 근거는
-  [실행 evidence](evidence/202-execution-live.md)에 기록한다.
+  [실행 evidence](../evidence/202-execution-live.md)에 기록한다.
 
 ### Live Exercise 2차 — 2026-09-16 승격 판정 (HEAD `3e6623ec9`, 실모델)
 
 사용자 지시 "ADR-202 Implemented 승격 판정 진행해". 새 구현 없이 G0~G6 을 HEAD 에서 재확인했다 — headed
 Playwright Chromium (Chrome MCP 탭은 hidden 으로 RAF 정지) · builder dev 5173 · **Ollama `qwen3:14b`
 (`OLLAMA_CONTEXT_LENGTH=32768`) 프로파일 설정 상태**. 하니스 `apps/builder/scripts/adr202-promotion-live.mjs`,
-로컬 근거 [evidence/202-promotion-live.md](evidence/202-promotion-live.md).
+로컬 근거 [evidence/202-promotion-live.md](../evidence/202-promotion-live.md).
 
 - **G2 (provider 설정 상태에서 direct)**: "버튼 생성해" · "셀렉트 생성해" · rollback 해제 뒤 · Stop 직후 —
   4 회 전부 **11434 호출 0 · 5173 밖 요청 0**, Button +1 / Select +5 (자식 4), 2.0~2.1 초, "Done.".
@@ -389,6 +396,7 @@ Playwright Chromium (Chrome MCP 탭은 hidden 으로 RAF 정지) · builder dev 
 - **UNVERIFIED (유지)**: Anthropic one-shot IR 의 JSON·semantic 유효율·latency — `ANTHROPIC_API_KEY` 없음
   (2026-09-03 사용자 고지, 결제 열릴 때까지 보류). 재개 조건: 키 확보 시 breakdown §7 Q3~Q5. OpenAI-compatible
   은 설계상 direct 밖을 Agent 로 보내므로 모델 품질은 본 ADR 판정 대상이 아니다.
-- **승격 미결 1건**: HC12 "상한 만료·축소 불가는 재승인 전 G5 실패 유지" — 저장소 절대 상한 (ADR-219 재승인,
-  만료 2026-10-14) 의 Preview +670 B 초과가 202 와 무관하더라도 G5 는 FAIL 로 남는다. 상한 재승인 또는
-  Preview locale 분리 (Preview 는 Properties 패널 라벨을 읽지 않는다 — 별도 작업) 는 사용자 결정.
+- **G5 종결 (사용자 판정 2026-09-16)**: (a) 저장소 절대 상한을 202 재승인값 Builder ≤ 1,319,829 /
+  Preview ≤ 675,691 B gzip (만료 2026-10-16, 219 대체) 으로 재승인 — `adr202-bundle-gate.mjs` 상수 갱신.
+  (b) Preview locale 분리 (Preview 는 Properties 패널 라벨을 읽지 않는다) 후 재측정은 **별도 후속 작업**
+  — 분리 결과가 상한 아래로 내려오면 그 값으로 다시 조인다.

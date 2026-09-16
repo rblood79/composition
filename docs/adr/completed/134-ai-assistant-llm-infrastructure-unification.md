@@ -11,7 +11,7 @@ Implemented — 2026-08-29 (**delivered scope = Phase 0–8**, 사용자 confirm
 
 ## ADR-202 부분 대체 — 2026-09-16
 
-[ADR-202](../202-builder-ai-compiler-first-command-execution.md)의 착수 승인에 따라 D6~~D8의
+[ADR-202](202-builder-ai-compiler-first-command-execution.md)의 착수 승인에 따라 D6~~D8의
 기본 실행 순서를 compiler-first로 변경했다. 명시적 단일 생성·편집·명령은 모델 없이 기존
 executor를 사용하고, 모호한 요청의 IR adapter와 creative Agent를 구분한다. D1~~D5·D9~D11의
 provider/보안/도구 인프라는 유지한다. OpenAI-compatible one-shot은 미검증이라 기존 Agent로
