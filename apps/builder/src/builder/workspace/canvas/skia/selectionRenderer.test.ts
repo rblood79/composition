@@ -347,12 +347,12 @@ describe("Skia overlay text — 화면 픽셀 크기 고정 계약", () => {
   });
 });
 
-describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
+describe("renderPageHeader — 페이지 상단 28px 헤더 띠", () => {
   beforeEach(() => {
     clearOverlayFontCache();
   });
 
-  it("높이는 화면 32px 고정(scene 은 32/zoom), 폭은 page width 그대로, 페이지와 1px 간격", () => {
+  it("높이는 화면 28px 고정(scene 은 28/zoom), 폭은 page width 그대로, 페이지와 1px 간격", () => {
     const ck = mockCk();
     const at100 = new MockCanvas();
     const at200 = new MockCanvas();
@@ -373,7 +373,7 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
       w: 390,
       h: PAGE_HEADER_HEIGHT / 2,
     });
-    expect(PAGE_HEADER_HEIGHT).toBe(32);
+    expect(PAGE_HEADER_HEIGHT).toBe(28);
     expect(PAGE_HEADER_GAP).toBe(1);
   });
 

@@ -148,8 +148,8 @@ export function clearOverlayFontCache(): void {
   clearPageTitleParagraphCache();
 }
 
-/** Page Header 띠 설정 — 페이지 상단에 붙는 32px 헤더 (화면 px, 줌 무관) */
-export const PAGE_HEADER_HEIGHT = 32;
+/** Page Header 띠 설정 — 페이지 상단에 붙는 28px 헤더 (화면 px, 줌 무관) */
+export const PAGE_HEADER_HEIGHT = 28;
 /** 헤더 띠 하단 ↔ 페이지 상단 간격 (화면 px) */
 export const PAGE_HEADER_GAP = 1;
 export const PAGE_HEADER_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
@@ -158,7 +158,7 @@ export const PAGE_HEADER_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
 const PAGE_TITLE_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
 /** 타이틀 굵기 — variable font `wght` 축 (Paragraph 경로에서만 실제 굵기가 반영된다) */
 export const PAGE_TITLE_FONT_WEIGHT = 700;
-// 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 gap + (32+12)/2 = 23px
+// 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 gap + (28+12)/2 = 21px
 const PAGE_TITLE_OFFSET_Y =
   PAGE_HEADER_GAP + (PAGE_HEADER_HEIGHT + PAGE_TITLE_FONT_SIZE) / 2;
 const PAGE_TITLE_COLOR_R = 0x64 / 255; // slate-500 (#64748b)
@@ -591,7 +591,7 @@ const PAGE_TITLE_LAYOUT_WIDTH = 4096;
 
 /**
  * 페이지 상단에 붙는 헤더 띠를 그린다 — 폭은 page width (scene 단위, 줌 추종),
- * 높이는 화면 32px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 32/zoom),
+ * 높이는 화면 28px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 28/zoom),
  * 페이지 상단과 화면 1px 띄운다.
  *
  * 씬-로컬 좌표계 (page 좌상단 = 원점) 에서 호출된다. 색은 호출자가 CSS 토큰

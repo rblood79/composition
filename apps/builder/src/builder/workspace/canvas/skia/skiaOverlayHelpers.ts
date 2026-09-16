@@ -643,7 +643,7 @@ export function buildMinimapRenderData(
 
 /**
  * 페이지 타이틀 hit/편집 bounds. drag 히트 (`scene*`) 는 **헤더 띠 전체** — 페이지 폭 ×
- * 화면 32px (scene 32/zoom), 페이지 상단에서 1px 위. inline 편집기 (`textScene*`) 는 실제 글리프 line box.
+ * 화면 28px (scene 28/zoom), 페이지 상단에서 1px 위. inline 편집기 (`textScene*`) 는 실제 글리프 line box.
  *
  * @param measured `renderPageTitle` 반환 (화면 px, page 좌상단 원점)
  * @param zoom 카메라 줌 (0 이면 1 로 취급)
