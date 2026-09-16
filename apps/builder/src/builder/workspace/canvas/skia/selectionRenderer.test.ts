@@ -9,11 +9,7 @@ import {
   acquireOverlayFont,
   clearOverlayFontCache,
   renderDimensionLabels,
-  renderPageHeader,
   renderPageTitle,
-  PAGE_HEADER_GAP,
-  PAGE_HEADER_HEIGHT,
-  PAGE_HEADER_PADDING_X,
   PAGE_TITLE_FONT_WEIGHT,
 } from "./selectionRenderer";
 
@@ -347,72 +343,25 @@ describe("Skia overlay text — 화면 픽셀 크기 고정 계약", () => {
   });
 });
 
-describe("renderPageHeader — 페이지 상단 28px 헤더 띠", () => {
+describe("renderPageTitle — 프레임 타이틀 조판 (페이지 헤더는 ADR-221 로 DOM 이관)", () => {
   beforeEach(() => {
     clearOverlayFontCache();
   });
 
-  it("높이는 화면 28px 고정(scene 은 28/zoom), 폭은 page width 그대로, 페이지와 1px 간격", () => {
-    const ck = mockCk();
-    const at100 = new MockCanvas();
-    const at200 = new MockCanvas();
-    const color = [0.1, 0.2, 0.3] as const;
-
-    renderPageHeader(ck, at100 as unknown as Canvas, 390, 1, color, 1);
-    renderPageHeader(ck, at200 as unknown as Canvas, 390, 2, color, 1);
-
-    expect(at100.rects[0]?.rect).toEqual({
-      x: 0,
-      y: -(PAGE_HEADER_GAP + PAGE_HEADER_HEIGHT),
-      w: 390,
-      h: PAGE_HEADER_HEIGHT,
-    });
-    expect(at200.rects[0]?.rect).toEqual({
-      x: 0,
-      y: -(PAGE_HEADER_GAP + PAGE_HEADER_HEIGHT) / 2,
-      w: 390,
-      h: PAGE_HEADER_HEIGHT / 2,
-    });
-    expect(PAGE_HEADER_HEIGHT).toBe(28);
-    expect(PAGE_HEADER_GAP).toBe(1);
-  });
-
-  it("alpha 는 paint 색상 4번째 채널로 전달된다 (활성 = focus-ring 30%)", () => {
-    const ck = mockCk();
-    const canvas = new MockCanvas();
-    renderPageHeader(
-      ck,
-      canvas as unknown as Canvas,
-      100,
-      1,
-      [0.5, 0.6, 0.7],
-      0.3,
-    );
-    expect(canvas.rects[0]?.color).toEqual([0.5, 0.6, 0.7, 0.3]);
-  });
-
-  it("타이틀 텍스트는 헤더 안에 세로 중앙 + 좌측 패딩으로 놓인다", () => {
+  it("타이틀 텍스트는 좌측 8px 패딩 · 프레임 상단에서 21px 위 line box", () => {
     const ck = mockCk();
     const fontMgr = mockFontMgr();
     const canvas = new MockCanvas();
     const metrics = renderPageTitle(
       ck,
       canvas as unknown as Canvas,
-      "Page",
+      "Frame",
       1,
       fontMgr,
       false,
     );
-    expect(metrics?.textX).toBe(PAGE_HEADER_PADDING_X);
-    expect(metrics?.textTop).toBe(
-      -(PAGE_HEADER_GAP + (PAGE_HEADER_HEIGHT + 12) / 2),
-    );
-    // 띠 안 (−33 ~ −1) 에 들어간다
-    expect(metrics!.textTop).toBeGreaterThanOrEqual(
-      -(PAGE_HEADER_GAP + PAGE_HEADER_HEIGHT),
-    );
-    expect(metrics!.textTop + metrics!.textHeight).toBeLessThanOrEqual(
-      -PAGE_HEADER_GAP,
-    );
+    expect(metrics?.textX).toBe(8);
+    expect(metrics?.textTop).toBe(-21);
+    expect(metrics?.textHeight).toBe(12);
   });
 });

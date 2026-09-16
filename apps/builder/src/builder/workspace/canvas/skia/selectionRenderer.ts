@@ -148,19 +148,13 @@ export function clearOverlayFontCache(): void {
   clearPageTitleParagraphCache();
 }
 
-/** Page Header 띠 설정 — 페이지 상단에 붙는 28px 헤더 (화면 px, 줌 무관) */
-export const PAGE_HEADER_HEIGHT = 28;
-/** 헤더 띠 하단 ↔ 페이지 상단 간격 (화면 px) */
-export const PAGE_HEADER_GAP = 1;
-export const PAGE_HEADER_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
-
-/** Page Title 레이블 설정 */
+/** Frame Title 레이블 설정 (페이지 헤더는 ADR-221 로 DOM 층으로 이관 — overlay/pageHeader) */
 const PAGE_TITLE_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
+const PAGE_TITLE_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
 /** 타이틀 굵기 — variable font `wght` 축 (Paragraph 경로에서만 실제 굵기가 반영된다) */
 export const PAGE_TITLE_FONT_WEIGHT = 700;
-// 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 gap + (28+12)/2 = 21px
-const PAGE_TITLE_OFFSET_Y =
-  PAGE_HEADER_GAP + (PAGE_HEADER_HEIGHT + PAGE_TITLE_FONT_SIZE) / 2;
+// 타이틀 line box 상단은 프레임 상단에서 위로 21px (종전 헤더 gap 1 + (28+12)/2)
+const PAGE_TITLE_OFFSET_Y = 21;
 const PAGE_TITLE_COLOR_R = 0x64 / 255; // slate-500 (#64748b)
 const PAGE_TITLE_COLOR_G = 0x74 / 255;
 const PAGE_TITLE_COLOR_B = 0x8b / 255;
@@ -586,46 +580,6 @@ function acquirePageTitleParagraph(
 const PAGE_TITLE_LAYOUT_WIDTH = 4096;
 
 // ============================================
-// Page Header 띠 (타이틀 배경)
-// ============================================
-
-/**
- * 페이지 상단에 붙는 헤더 띠를 그린다 — 폭은 page width (scene 단위, 줌 추종),
- * 높이는 화면 28px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 28/zoom),
- * 페이지 상단과 화면 1px 띄운다.
- *
- * 씬-로컬 좌표계 (page 좌상단 = 원점) 에서 호출된다. 색은 호출자가 CSS 토큰
- * (`--button-color` 10% / 활성 `--focus-ring` 30%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
- */
-export function renderPageHeader(
-  ck: CanvasKit,
-  canvas: Canvas,
-  pageWidth: number,
-  zoom: number,
-  color: readonly [number, number, number],
-  alpha: number,
-): void {
-  if (pageWidth <= 0) return;
-  const safeZoom = zoom === 0 ? 1 : zoom;
-  const sceneHeight = PAGE_HEADER_HEIGHT / safeZoom;
-  const sceneGap = PAGE_HEADER_GAP / safeZoom;
-
-  const scope = new SkiaDisposable();
-  try {
-    const paint = acquireScopedPaint(scope, ck);
-    paint.setAntiAlias(true);
-    paint.setStyle(ck.PaintStyle.Fill);
-    paint.setColor(ck.Color4f(color[0], color[1], color[2], alpha));
-    canvas.drawRect(
-      ck.XYWHRect(0, -sceneGap - sceneHeight, pageWidth, sceneHeight),
-      paint,
-    );
-  } finally {
-    scope.dispose();
-  }
-}
-
-// ============================================
 // Page Title Label (Pencil Frame Title 스타일)
 // ============================================
 
@@ -658,7 +612,7 @@ export function renderPageTitle(
   return withFixedScreenScale(canvas, zoom, 0, 0, () => {
     // 화면 픽셀 좌표 — line box (12px) 를 헤더 띠 안 세로 중앙에 두고, paragraph 의
     // 실제 줄 높이가 12 와 다르면 그 차이만큼 가운데 정렬한다.
-    const textX = PAGE_HEADER_PADDING_X;
+    const textX = PAGE_TITLE_PADDING_X;
     const textTop = -PAGE_TITLE_OFFSET_Y;
     const paraY = Math.round(
       textTop - (para.getHeight() - PAGE_TITLE_FONT_SIZE) / 2,

@@ -32,7 +32,6 @@ import {
   renderTransformHandles,
   renderDimensionLabels,
   renderLasso,
-  renderPageHeader,
   renderPageTitle,
 } from "./selectionRenderer";
 import {
@@ -71,8 +70,6 @@ import {
   buildMinimapConfig,
   buildMinimapRenderData,
   buildViewportSceneRect,
-  buildPageTitleBounds,
-  buildPageTitleRenderItems,
   buildSlotMarkerTargets,
   buildCollectionRemainderTargets,
   buildBindingBadgeTargets,
@@ -80,7 +77,6 @@ import {
   buildPageGuideTargets,
   shouldRenderWorkflowMinimap,
   readOwnerPageId,
-  type PageTitleBounds,
 } from "./skiaOverlayHelpers";
 import {
   buildWorkflowHighlightState,
@@ -89,7 +85,6 @@ import {
 } from "./skiaWorkflowSelection";
 import {
   cssColorToHex,
-  getBuilderCSSVariable,
   getCSSVariable,
 } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
@@ -99,18 +94,6 @@ const CANVAS_BORDER_FALLBACK = parseInt(
   TAILWIND_PALETTE.neutral[300].slice(1),
   16,
 );
-/** `--button-color`→`--fg` / `--focus-ring` 미정의 시 fallback — builder-system light 기본값과 같은 팔레트 값. */
-const PAGE_HEADER_BG_FALLBACK = parseInt(
-  TAILWIND_PALETTE.gray[800].slice(1),
-  16,
-);
-const PAGE_HEADER_ACTIVE_FALLBACK = parseInt(
-  TAILWIND_PALETTE.blue[400].slice(1),
-  16,
-);
-/** 헤더 띠 alpha (사용자 지정) — 기본 (`--button-color`) 10% · 활성 (`--focus-ring`) 30% */
-const PAGE_HEADER_ALPHA = 0.1;
-const PAGE_HEADER_ACTIVE_ALPHA = 0.3;
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -252,12 +235,6 @@ export interface OverlayBuildInput {
   /** Frames 탭 multi-canvas overview 용 frame title 렌더 입력. */
   frameAreas?: FrameAreaGroup[];
   /**
-   * 페이지 타이틀 drag hit-test 를 위한 scene 좌표 bounds 저장소.
-   * renderSkia 호출마다 clear 후 실제 렌더된 title 의 bounds 를 populate 한다.
-   * BuilderCanvas pointerdown 핸들러가 pageId 를 조회하여 usePageDrag 를 트리거.
-   */
-  pageTitleBoundsMap?: Map<string, PageTitleBounds>;
-  /**
    * ADR-212 Phase 6 — data binding 배지. resolver 는 store 를 아는 곳에서 조립해 주입한다
    * (helpers/렌더러는 store 무의존). null 반환 = 배지 없음. boundsMap 은 클릭 hit-test 용으로
    * renderSkia 마다 clear 후 populate.
@@ -291,27 +268,6 @@ function resolveSelectedFrameIdForTitle(
 function resolveCanvasBorderColor(): readonly [number, number, number] {
   return hexToColor4fChannels(
     cssColorToHex(getCSSVariable("--border"), CANVAS_BORDER_FALLBACK),
-  );
-}
-
-/**
- * 페이지 헤더 띠 배경 — `--button-color` (사용자 지정). 이 변수는 Button.css 가
- * `.react-aria-Button` 안에서만 선언한다 (primary = `var(--fg)`) 라 builder 스코프에
- * 없으면 같은 값의 원천인 `--fg` (light gray-800 / dark zinc-100) 로 내려간다.
- */
-function resolvePageHeaderColor(): readonly [number, number, number] {
-  const value =
-    getBuilderCSSVariable("--button-color") || getBuilderCSSVariable("--fg");
-  return hexToColor4fChannels(cssColorToHex(value, PAGE_HEADER_BG_FALLBACK));
-}
-
-/** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 30% 적용) */
-function resolvePageHeaderActiveColor(): readonly [number, number, number] {
-  return hexToColor4fChannels(
-    cssColorToHex(
-      getBuilderCSSVariable("--focus-ring"),
-      PAGE_HEADER_ACTIVE_FALLBACK,
-    ),
   );
 }
 
@@ -401,7 +357,6 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
     dragPresentationActive,
     visiblePageFrames,
     frameAreas,
-    pageTitleBoundsMap,
     bindingBadgeResolver,
     dataBadgeBoundsMap,
     pagePositionSnapshot,
@@ -431,20 +386,16 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         }
       }
 
-      // ── Page Titles ──
-      // bounds Map 은 매 프레임 갱신 — stale pageId (예: 페이지 삭제 후) 가 남지 않도록 clear.
-      if (pageTitleBoundsMap) pageTitleBoundsMap.clear();
+      // ── Page Borders ──
+      // 페이지 헤더 띠·타이틀은 ADR-221 로 DOM 층 (overlay/pageHeader) 으로 이관.
+      // 여기서는 페이지 테두리만 그린다 — 페인트 순서(활성 페이지 마지막)로 아래 페이지
+      // 테두리가 위 페이지 body 를 가로지르지 않게 순서 기반 occlusion clip 을 적용한다.
       const frames = visiblePageFrames ?? [];
-      // 페인트 순서(활성 페이지 마지막) — 테두리 occlusion + 콘텐츠성 chrome
-      // (슬롯 해치 / remainder / hover) 의 페이지 간 occlusion clip 이 공유한다.
       const paintOrderedFrames = orderPagesForPaint(
         frames,
         selection.currentPageId,
       );
       if (frames.length > 0) {
-        // 테두리는 페인트 순서(활성 페이지 마지막)로 — 아래 페이지 테두리가
-        // 위 페이지 body 를 가로지르지 않도록 renderFrameAreaBorder 가
-        // 순서 기반 occlusion clip 을 적용한다 (pagePaintOrder.ts).
         renderFrameAreaBorder(
           ck,
           canvas,
@@ -453,60 +404,6 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
           resolveCanvasBorderColor(),
           pagePositionSnapshot,
         );
-
-        const pageTitleItems = buildPageTitleRenderItems(
-          frames,
-          selection.currentPageId,
-          selection.selectedElementIds.length > 0,
-          pagePositionSnapshot,
-        );
-        // drag hit-test 는 헤더 띠 전체 (buildPageTitleBounds) — 글리프 pad 방식 폐기.
-        const headerColor = resolvePageHeaderColor();
-        const headerActiveColor = resolvePageHeaderActiveColor();
-        for (const item of pageTitleItems) {
-          // 타이틀도 페이지 간 occlusion 대상 — 겹침에서 아래 페이지의 타이틀이
-          // 위(활성) 페이지 body 위에 떠 보이지 않도록 (2026-08-12 사용자 보고,
-          // 슬롯 해치와 동일 결함 계열). 히트 측 대칭은 BuilderCanvas pointerdown
-          // capture 의 paint-rank guard 가 유지한다 — boundsMap 등록은 클립과
-          // 무관하게 유지하고 포인터 판정에서 point 단위로 거른다.
-          const measured = withPageOcclusionClip(
-            ck,
-            canvas,
-            item.pageId,
-            paintOrderedFrames,
-            pagePositionSnapshot,
-            () => {
-              canvas.save();
-              canvas.translate(item.x, item.y);
-              // 헤더 띠는 타이틀 글리프 아래 — 같은 occlusion clip 안에서 그린다.
-              renderPageHeader(
-                ck,
-                canvas,
-                item.width,
-                cameraZoom,
-                item.active ? headerActiveColor : headerColor,
-                item.active ? PAGE_HEADER_ACTIVE_ALPHA : PAGE_HEADER_ALPHA,
-              );
-              const titleMetrics = renderPageTitle(
-                ck,
-                canvas,
-                item.title,
-                cameraZoom,
-                fontMgr,
-                item.highlighted,
-              );
-              canvas.restore();
-              return titleMetrics;
-            },
-          );
-
-          if (pageTitleBoundsMap && measured) {
-            pageTitleBoundsMap.set(
-              item.pageId,
-              buildPageTitleBounds(item, measured, cameraZoom),
-            );
-          }
-        }
       }
 
       // ── Frame Titles ──

@@ -86,10 +86,13 @@ describe("skiaOverlayBuilder page/frame border contract", () => {
     expect(source).toContain('getCSSVariable("--border")');
 
     const pageFramesBlock = source.match(
-      /const frames = visiblePageFrames \?\? \[\];[\s\S]*?const pageTitleItems = buildPageTitleRenderItems/,
+      /const frames = visiblePageFrames \?\? \[\];[\s\S]*?renderFrameAreaBorder\(/,
     );
     expect(pageFramesBlock).not.toBeNull();
     expect(pageFramesBlock?.[0]).toContain("renderFrameAreaBorder(");
+    // 페이지 헤더/타이틀은 DOM 층 (ADR-221) — Skia 는 페이지 테두리만
+    expect(source).not.toContain("renderPageHeader");
+    expect(source).not.toContain("buildPageTitleRenderItems");
 
     const frameAreasBlock = source.match(
       /const reusableFrameAreas = frameAreas \?\? \[\];[\s\S]*?const frameTitleItems = buildFrameTitleRenderItems/,

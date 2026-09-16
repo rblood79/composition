@@ -134,14 +134,6 @@ export interface SkiaCanvasProps {
   rendererInput: SkiaRendererInput;
   /** 드롭 인디케이터 스냅샷 ref */
   dropIndicatorSnapshotRef?: React.MutableRefObject<DropIndicatorSnapshot | null>;
-  /**
-   * 페이지 타이틀 drag hit-test scene bounds 누적 맵.
-   * BuilderCanvas pointerdown 핸들러가 이 ref 로 scene 좌표 → pageId 조회.
-   * 매 프레임 renderSkia 에서 clear + populate 된다.
-   */
-  pageTitleBoundsMapRef?: React.MutableRefObject<
-    Map<string, import("./skiaOverlayHelpers").PageTitleBounds>
-  >;
   /** ADR-212 Phase 6 — 바인딩 배지 resolver (store 무의존 유지 위해 caller 조립) + hit bounds 맵 */
   bindingBadgeResolver?: (
     element: import("../scene/canvasSceneNode").CanvasSceneNode,
@@ -171,7 +163,6 @@ export function SkiaCanvas({
   sceneInvalidationPacket,
   rendererInput,
   dropIndicatorSnapshotRef,
-  pageTitleBoundsMapRef,
   bindingBadgeResolver,
   dataBadgeBoundsMapRef,
 }: SkiaCanvasProps) {
@@ -1116,7 +1107,6 @@ export function SkiaCanvas({
               ? []
               : visiblePageFramesRef.current,
           frameAreas: frameAreasRef.current,
-          pageTitleBoundsMap: pageTitleBoundsMapRef?.current,
           bindingBadgeResolver,
           dataBadgeBoundsMap: dataBadgeBoundsMapRef?.current,
           workflowHoverState: workflowHoverStateRef.current,
@@ -1258,8 +1248,7 @@ export function SkiaCanvas({
     ready,
     containerEl,
     dropIndicatorSnapshotRef,
-    pageTitleBoundsMapRef,
-    bindingBadgeResolver,
+      bindingBadgeResolver,
     dataBadgeBoundsMapRef,
   ]);
 

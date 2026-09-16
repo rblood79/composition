@@ -30,7 +30,7 @@ import {
   buildFrameCaches,
   buildOverlayNode,
 } from "./skiaOverlayBuilder";
-import type { PageTitleBounds, BindingBadgeInfo } from "./skiaOverlayHelpers";
+import type { BindingBadgeInfo } from "./skiaOverlayHelpers";
 import type { DataBadgeBounds } from "./bindingBadgeRenderer";
 import {
   getPagePositionPresentationSnapshot,
@@ -94,7 +94,6 @@ export interface BuildFrameRenderPlanInput {
    * 페이지 타이틀 drag hit-test 용 scene 좌표 bounds 누적 맵.
    * BuilderCanvas 가 ref 로 주입하며 render pass 가 매 프레임 갱신한다.
    */
-  pageTitleBoundsMap?: Map<string, PageTitleBounds>;
   /** ADR-212 Phase 6 — 바인딩 배지 resolver + hit-test bounds 맵 (BuilderCanvas 가 주입) */
   bindingBadgeResolver?: (element: CanvasSceneNode) => BindingBadgeInfo | null;
   dataBadgeBoundsMap?: Map<string, DataBadgeBounds>;
@@ -129,7 +128,6 @@ export function buildFrameRenderPlan(
     allPageFrames,
     visiblePageFrames,
     frameAreas,
-    pageTitleBoundsMap,
     bindingBadgeResolver,
     dataBadgeBoundsMap,
     workflowHoverState,
@@ -194,7 +192,6 @@ export function buildFrameRenderPlan(
     dragPresentationActive,
     visiblePageFrames,
     frameAreas,
-    pageTitleBoundsMap,
     bindingBadgeResolver,
     dataBadgeBoundsMap,
     pagePositionSnapshot: currentPagePositionSnapshot,

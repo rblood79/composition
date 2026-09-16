@@ -167,7 +167,12 @@ export function usePageHeaderPlacement({
   };
 
   // 프레임 목록 · 노드 집합 · 순서가 바뀌면 paint 전에 1회 배치 (새 노드는 transform 이 없다).
+  // 카메라 제스처 중에는 skip — 팬/줌은 transientVisiblePageIds 재계산으로 frames 참조를
+  // 매 프레임 바꿔 이 이펙트를 재실행시킨다 (G2: 제스처 중 DOM 쓰기 0). 층은 이미 숨겨져
+  // 있고, gate-off 전환의 placeAll 이 최신 frames·노드로 따라잡는다. 새 노드는 그때까지
+  // transform 없이 숨은 채 대기한다.
   useLayoutEffect(() => {
+    if (gestureActiveRef.current) return;
     placeAllRef.current();
   }, [layerNode, frames]);
 
@@ -188,7 +193,10 @@ export function usePageHeaderPlacement({
     );
     const unsubscribeSize = useViewportSyncStore.subscribe(
       (state) => state.containerSize,
-      () => placeAllRef.current(),
+      () => {
+        if (gestureActiveRef.current) return;
+        placeAllRef.current();
+      },
     );
 
     const onFrame = (

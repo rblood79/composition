@@ -127,22 +127,20 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).toContain("visiblePageIdsOverride:");
   });
 
-  it("selects the page before starting a title drag", async () => {
+  it("selects the page before starting a header drag (ADR-221 handleHeaderPointerDown)", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderCanvas.tsx"),
       "utf-8",
     );
-    const titleDragBlock = source.slice(
-      source.indexOf("// Page title drag hit-test"),
-      source.indexOf("if (canvasGestureSession.isOwnedByAnotherPointer"),
+    const handlerBlock = source.slice(
+      source.indexOf("const handleHeaderPointerDown = useCallback("),
+      source.indexOf("const canRenamePage = useCallback("),
     );
-    const claimIndex = titleDragBlock.indexOf(
+    const claimIndex = handlerBlock.indexOf(
       "canvasGestureSession.tryClaimPage",
     );
-    const selectIndex = titleDragBlock.indexOf(
-      "setCurrentPageId(bounds.pageId);",
-    );
-    const dragIndex = titleDragBlock.indexOf("startPageDrag(");
+    const selectIndex = handlerBlock.indexOf("setCurrentPageId(pageId);");
+    const dragIndex = handlerBlock.indexOf("startPageDrag(");
 
     expect(claimIndex).toBeGreaterThanOrEqual(0);
     expect(selectIndex).toBeGreaterThan(claimIndex);

@@ -24,7 +24,6 @@ import {
 } from "./workflowMinimap";
 import type { FrameAreaGroup, WorkflowEdge } from "./workflowEdges";
 import type { PageFrame } from "./workflowRenderer";
-import { PAGE_HEADER_GAP, PAGE_HEADER_HEIGHT } from "./selectionRenderer";
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -89,51 +88,12 @@ export function readOwnerPageId(
   return element?.pageId ?? element?.page_id ?? null;
 }
 
-export interface PageTitleRenderItem {
-  elementCount: number;
-  /** 타이틀 글리프 강조 — 활성 페이지 + 요소 선택 있음 */
-  highlighted: boolean;
-  /** 헤더 띠 활성색 — 현재(선택된) 페이지, 요소 선택 여부 무관 */
-  active: boolean;
-  title: string;
-  x: number;
-  y: number;
-  /** 헤더 띠 폭 = page width (scene) */
-  width: number;
-  pageId: string;
-}
-
 export interface FrameTitleRenderItem {
   highlighted: boolean;
   title: string;
   x: number;
   y: number;
   frameId: string;
-}
-
-/**
- * 페이지 타이틀의 scene 좌표 히트 영역.
- *
- * page title 은 `canvas.translate(frame.x, frame.y)` 후 `canvas.scale(invZoom, invZoom)`
- * 안에서 screen-px 기준으로 그려지므로, scene 좌표 bounds 는 아래와 같이 변환한다:
- *
- * `scene*` 는 drag hit padding을 포함하고, `textScene*` 는 Skia가 실제로
- * 사용하는 title line box다. DOM inline editor는 `textScene*` 만 사용해야
- * 기존 glyph 위치와 입력 text가 일치한다.
- *
- * drag 히트 테스트는 scene 좌표에서 수행하므로 (screenToViewportPoint 결과와 직접 비교)
- * renderer 가 매 프레임 이 맵을 clear + populate 한다.
- */
-export interface PageTitleBounds {
-  pageId: string;
-  sceneX: number;
-  sceneY: number;
-  sceneWidth: number;
-  sceneHeight: number;
-  textSceneX: number;
-  textSceneY: number;
-  textSceneWidth: number;
-  textSceneHeight: number;
 }
 
 /**
@@ -639,65 +599,6 @@ export function buildMinimapRenderData(
     focusedPageId,
     viewportBounds,
   };
-}
-
-/**
- * 페이지 타이틀 hit/편집 bounds. drag 히트 (`scene*`) 는 **헤더 띠 전체** — 페이지 폭 ×
- * 화면 28px (scene 28/zoom), 페이지 상단에서 1px 위. inline 편집기 (`textScene*`) 는 실제 글리프 line box.
- *
- * @param measured `renderPageTitle` 반환 (화면 px, page 좌상단 원점)
- * @param zoom 카메라 줌 (0 이면 1 로 취급)
- */
-export function buildPageTitleBounds(
-  item: { pageId: string; x: number; y: number; width: number },
-  measured: {
-    titleWidth: number;
-    textX: number;
-    textTop: number;
-    textHeight: number;
-  },
-  zoom: number,
-): PageTitleBounds {
-  const invZoom = zoom === 0 ? 1 : 1 / zoom;
-  const headerSceneHeight = PAGE_HEADER_HEIGHT * invZoom;
-  return {
-    pageId: item.pageId,
-    sceneX: item.x,
-    sceneY: item.y - PAGE_HEADER_GAP * invZoom - headerSceneHeight,
-    sceneWidth: item.width,
-    sceneHeight: headerSceneHeight,
-    textSceneX: item.x + measured.textX * invZoom,
-    textSceneY: item.y + measured.textTop * invZoom,
-    textSceneWidth: measured.titleWidth * invZoom,
-    textSceneHeight: measured.textHeight * invZoom,
-  };
-}
-
-export function buildPageTitleRenderItems(
-  pageFrames: PageFrame[],
-  activePageId: string | null,
-  hasSelection: boolean,
-  pagePositionSnapshot?: PagePositionPresentationSnapshot,
-): PageTitleRenderItem[] {
-  return pageFrames
-    .filter((frame): frame is PageFrame & { title: string } =>
-      Boolean(frame.title),
-    )
-    .map((frame) => {
-      const delta = pagePositionSnapshot
-        ? readPagePositionDelta(frame.id, pagePositionSnapshot)
-        : null;
-      return {
-        pageId: frame.id,
-        title: frame.title,
-        x: frame.x + (delta?.dx ?? 0),
-        y: frame.y + (delta?.dy ?? 0),
-        width: frame.width,
-        elementCount: frame.elementCount ?? 0,
-        active: frame.id === activePageId,
-        highlighted: hasSelection && frame.id === activePageId,
-      };
-    });
 }
 
 export function buildFrameTitleRenderItems(
