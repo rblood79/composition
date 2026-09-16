@@ -220,6 +220,38 @@ describe("재개 — 서버 Upload-Offset 이 진실", () => {
     await waitFor(q, allDone);
     expect(errors).toContain("E_OFFSET_MISMATCH");
     expect(mock.stats.requests.some((r) => r.status === 409)).toBe(true);
+    // 409 에 Upload-Offset 이 동봉되므로 HEAD 없이 재동기
+    expect(mock.stats.heads).toBe(0);
+    expect(serverBytes().equals(Buffer.from(await file.arrayBuffer()))).toBe(
+      true,
+    );
+  });
+
+  it("409 에 Upload-Offset 이 없는 서버 (tusd 동형) → HEAD 로 재동기, offset 0 오인 없음", async () => {
+    let tampered = false;
+    const base = createFetchDriver();
+    const driver: HttpDriver = {
+      async send(req) {
+        if (
+          req.method === "PATCH" &&
+          req.headers["Upload-Offset"] === String(MB) &&
+          !tampered
+        ) {
+          tampered = true;
+          req = { ...req, headers: { ...req.headers, "Upload-Offset": "777" } };
+        }
+        const res = await base.send(req);
+        return res.status === 409
+          ? { ...res, header: (n) => (n === "Upload-Offset" ? null : res.header(n)) }
+          : res;
+      },
+    };
+    const q = makeQueue({ driver });
+    const file = makeFile(3 * MB);
+    q.add([file]);
+    await waitFor(q, allDone);
+    expect(mock.stats.heads).toBe(1);
+    expect(mock.stats.requests.filter((r) => r.status === 409).length).toBe(1);
     expect(serverBytes().equals(Buffer.from(await file.arrayBuffer()))).toBe(
       true,
     );

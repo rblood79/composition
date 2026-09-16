@@ -38,6 +38,10 @@ export const encodeMetadata = (meta: Record<string, string>): string =>
     .map(([k, v]) => (v === "" ? k : `${k} ${b64(v)}`))
     .join(",");
 
+/** 헤더 부재/공백은 NaN — `Number(null)` 이 0 이 되어 offset 0 으로 오인하는 것을 막는다 (tusd 409 에는 Upload-Offset 이 없다) */
+const headerInt = (v: string | null): number =>
+  v === null || v.trim() === "" ? NaN : Number(v);
+
 const parseExpires = (v: string | null): number | undefined => {
   if (!v) return undefined;
   const t = Date.parse(v);
@@ -170,7 +174,7 @@ export function createTusAdapter(opts: TusAdapterOptions = {}): WireAdapter {
       }
       if (op === "delete") return { kind: "chunk-sent", bytes: 0 };
       if (ok) {
-        const offset = Number(res.header("Upload-Offset"));
+        const offset = headerInt(res.header("Upload-Offset"));
         if (!Number.isInteger(offset) || offset < 0) {
           return {
             kind: "fail",
@@ -205,7 +209,7 @@ export function createTusAdapter(opts: TusAdapterOptions = {}): WireAdapter {
       }
       const error = errorOfResponse(s, res.text, true);
       if (s === 409) {
-        const offset = Number(res.header("Upload-Offset"));
+        const offset = headerInt(res.header("Upload-Offset"));
         if (Number.isInteger(offset) && offset >= 0)
           return { kind: "fail", error, offset };
       }

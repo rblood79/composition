@@ -1,0 +1,71 @@
+{
+  "gate": "G1-heap",
+  "date": "2026-09-16T19:17:02.624Z",
+  "chromium": "151.0.7922.34",
+  "headless": true,
+  "files": [
+    4294967296,
+    4294967296,
+    4294967296
+  ],
+  "chunkSize": 8388608,
+  "parallelUploads": 3,
+  "dryRun": false,
+  "limitBytes": 67108864,
+  "peakDeltaMedianBytes": 2331652,
+  "endAfterGcDeltaMedianBytes": 1071140,
+  "runs": [
+    {
+      "run": 1,
+      "visibilityState": "visible",
+      "baselineBytes": 543388,
+      "peakDuringBytes": 2854136,
+      "peakDeltaBytes": 2310748,
+      "endBeforeGcDeltaBytes": 1639116,
+      "endAfterGcDeltaBytes": 1071140,
+      "samples": 45,
+      "elapsedMs": 11374,
+      "throughputMBps": 1080,
+      "performanceMemoryUsed": 10000000,
+      "subscribeEvents": 3077,
+      "allDone": true,
+      "serverBytesReceived": 12884901888,
+      "retransmittedBytes": 0
+    },
+    {
+      "run": 2,
+      "visibilityState": "visible",
+      "baselineBytes": 543388,
+      "peakDuringBytes": 2938860,
+      "peakDeltaBytes": 2395472,
+      "endBeforeGcDeltaBytes": 1387864,
+      "endAfterGcDeltaBytes": 1071132,
+      "samples": 45,
+      "elapsedMs": 11279,
+      "throughputMBps": 1089,
+      "performanceMemoryUsed": 10000000,
+      "subscribeEvents": 3077,
+      "allDone": true,
+      "serverBytesReceived": 12884901888,
+      "retransmittedBytes": 0
+    },
+    {
+      "run": 3,
+      "visibilityState": "visible",
+      "baselineBytes": 543388,
+      "peakDuringBytes": 2875040,
+      "peakDeltaBytes": 2331652,
+      "endBeforeGcDeltaBytes": 1434716,
+      "endAfterGcDeltaBytes": 1071140,
+      "samples": 46,
+      "elapsedMs": 11534,
+      "throughputMBps": 1065,
+      "performanceMemoryUsed": 10000000,
+      "subscribeEvents": 3077,
+      "allDone": true,
+      "serverBytesReceived": 12884901888,
+      "retransmittedBytes": 0
+    }
+  ],
+  "pass": true
+}

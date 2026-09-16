@@ -1,12 +1,12 @@
 {
-  "date": "2026-09-16T19:16:21.044Z",
+  "date": "2026-09-16T19:21:26.536Z",
   "limits": {
     "coreTus": 6144,
     "iife": 10240
   },
   "coreTus": {
-    "raw": 14174,
-    "gzip": 5831,
+    "raw": 14210,
+    "gzip": 5852,
     "initialFiles": [
       "core-tus.js",
       "chunk-M2UTTNWO.js",
@@ -31,8 +31,8 @@
     ]
   },
   "fullIndex": {
-    "raw": 17204,
-    "gzip": 7506,
+    "raw": 17240,
+    "gzip": 7525,
     "initialFiles": [
       "index.js",
       "chunk-GMLIQM3N.js",
@@ -59,8 +59,8 @@
     ]
   },
   "reactEntry": {
-    "raw": 14657,
-    "gzip": 6042,
+    "raw": 14693,
+    "gzip": 6064,
     "initialFiles": [
       "react.js",
       "chunk-M2UTTNWO.js",
@@ -85,8 +85,8 @@
     ]
   },
   "iife": {
-    "raw": 21020,
-    "gzip": 8068,
+    "raw": 21056,
+    "gzip": 8081,
     "initialFiles": [
       "composition-upload.iife.js"
     ],
