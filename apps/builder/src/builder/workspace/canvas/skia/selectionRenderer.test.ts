@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Canvas, CanvasKit, FontMgr } from "canvaskit-wasm";
+
+// 페이지 타이틀은 Paragraph 경로 (실제 bold) — 공유 FontCollection 은 mock 으로 대체.
+vi.mock("./fontManager", () => ({
+  skiaFontManager: { getFontCollection: () => ({ __mockCollection: true }) },
+}));
 import {
   acquireOverlayFont,
   clearOverlayFontCache,
@@ -9,6 +14,7 @@ import {
   PAGE_HEADER_GAP,
   PAGE_HEADER_HEIGHT,
   PAGE_HEADER_PADDING_X,
+  PAGE_TITLE_FONT_WEIGHT,
 } from "./selectionRenderer";
 
 /**
@@ -77,6 +83,13 @@ class MockCanvas {
   rrects: unknown[] = [];
   rects: Array<{ rect: unknown; color: unknown }> = [];
   texts: Array<{ text: string; x: number; y: number; fontSize: number }> = [];
+  paragraphs: Array<{
+    text: string;
+    x: number;
+    y: number;
+    fontSize: number;
+    weight: number | undefined;
+  }> = [];
 
   save(): void {}
   restore(): void {}
@@ -92,6 +105,15 @@ class MockCanvas {
   drawRect(rect: unknown, paint: MockPaint): void {
     this.rects.push({ rect, color: paint.color });
   }
+  drawParagraph(para: MockParagraph, x: number, y: number): void {
+    this.paragraphs.push({
+      text: para.text,
+      x,
+      y,
+      fontSize: para.fontSize,
+      weight: para.weight,
+    });
+  }
   drawText(
     text: string,
     x: number,
@@ -103,8 +125,55 @@ class MockCanvas {
   }
 }
 
+class MockParagraph {
+  constructor(
+    public text: string,
+    public fontSize: number,
+    public weight: number | undefined,
+  ) {}
+  layout(): void {}
+  getHeight(): number {
+    return this.fontSize;
+  }
+  getLongestLine(): number {
+    return this.text.length * 6;
+  }
+  delete(): void {}
+}
+
+class MockParagraphBuilder {
+  private text = "";
+  private fontSize = 0;
+  private weight: number | undefined;
+  pushStyle(style: {
+    fontSize: number;
+    fontVariations?: Array<{ axis: string; value: number }>;
+  }): void {
+    this.fontSize = style.fontSize;
+    this.weight = style.fontVariations?.find((v) => v.axis === "wght")?.value;
+  }
+  addText(text: string): void {
+    this.text += text;
+  }
+  build(): MockParagraph {
+    return new MockParagraph(this.text, this.fontSize, this.weight);
+  }
+  delete(): void {}
+}
+
 function mockCk(): CanvasKit {
   return {
+    ParagraphStyle: class {
+      constructor(public opts: unknown) {}
+    },
+    TextStyle: class {
+      constructor(opts: object) {
+        Object.assign(this, opts);
+      }
+    },
+    ParagraphBuilder: {
+      MakeFromFontCollection: () => new MockParagraphBuilder(),
+    },
     FontWeight: { Normal: { value: 400 }, Medium: { value: 500 } },
     FontWidth: { Normal: { value: 5 } },
     FontSlant: { Upright: { value: 0 } },
@@ -262,9 +331,19 @@ describe("Skia overlay text — 화면 픽셀 크기 고정 계약", () => {
 
     expect(at100.scales).toEqual([[1, 1]]);
     expect(at200.scales).toEqual([[0.5, 0.5]]);
-    expect(at100.texts).toEqual(at200.texts);
-    expect(at100.texts[0]?.fontSize).toBe(12);
+    expect(at100.paragraphs).toEqual(at200.paragraphs);
+    expect(at100.paragraphs[0]?.fontSize).toBe(12);
     expect(metrics100).toEqual(metrics200);
+  });
+
+  it("Page title 은 Paragraph + wght 700 (실제 bold) 로 조판된다", () => {
+    const ck = mockCk();
+    const fontMgr = mockFontMgr();
+    const canvas = new MockCanvas();
+    renderPageTitle(ck, canvas as unknown as Canvas, "Bold", 1, fontMgr);
+    expect(canvas.paragraphs[0]?.weight).toBe(PAGE_TITLE_FONT_WEIGHT);
+    expect(PAGE_TITLE_FONT_WEIGHT).toBe(700);
+    expect(canvas.texts).toHaveLength(0);
   });
 });
 

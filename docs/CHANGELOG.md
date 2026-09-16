@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- 캔버스의 각 페이지 상단에 폭 = 페이지 폭, 높이 화면 32px (줌 무관) 인 헤더 띠를 추가했다. 배경은 `--button-color` (builder 스코프에 없으면 `--fg` — light gray-800 / dark zinc-100) 10% alpha, 현재 선택된 페이지는 `--focus-ring` 30% alpha. 띠와 페이지 상단 사이는 화면 1px 띄운다. 페이지 타이틀은 띠 안에 세로 중앙 + 좌측 8px 패딩으로 놓인다. 페이지 이동 drag 는 타이틀 글리프가 아니라 **헤더 띠 전체**에서 시작할 수 있다 (더블클릭 이름 편집도 같은 영역 · 편집기 자체는 글리프 box 에 놓임).
+- 캔버스의 각 페이지 상단에 폭 = 페이지 폭, 높이 화면 32px (줌 무관) 인 헤더 띠를 추가했다. 배경은 `--button-color` (builder 스코프에 없으면 `--fg` — light gray-800 / dark zinc-100) 10% alpha, 현재 선택된 페이지는 `--focus-ring` 30% alpha. 띠와 페이지 상단 사이는 화면 1px 띄운다. 페이지 타이틀은 띠 안에 세로 중앙 + 좌측 8px 패딩, **wght 700 (실제 bold)** 로 조판한다 — direct Font 경로는 variable font 굵기를 반영하지 않아 (Bold 요청 = Regular 글리프 실측) 텍스트 노드와 같은 Paragraph + `fontVariations` 경로로 옮겼다 (paragraph 는 타이틀당 1개 보유, 글자 간격 흔들림도 함께 사라짐). 페이지 이동 drag 는 타이틀 글리프가 아니라 **헤더 띠 전체**에서 시작할 수 있다 (더블클릭 이름 편집도 같은 영역 · 편집기 자체는 글리프 box 에 놓임).
 
 ### Fixed
 

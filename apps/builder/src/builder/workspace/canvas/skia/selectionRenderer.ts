@@ -16,8 +16,12 @@ import type {
   Font,
   FontMgr,
   FontStyle,
+  Paragraph,
 } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
+import { skiaFontManager } from "./fontManager";
+import { DEFAULT_FONT_FEATURES } from "../layout/engines/cssResolver";
+import { CANVAS_FONT_FALLBACK_FAMILIES } from "../../../fonts/customFonts";
 import { acquireScopedPaint } from "./paints";
 import { strokeBoundsRect } from "./hoverRenderer";
 import type { BoundingBox } from "../selection/types";
@@ -141,6 +145,7 @@ export function clearOverlayFontCache(): void {
   }
   _overlayFontByStyle.clear();
   _overlayFontMgr = null;
+  clearPageTitleParagraphCache();
 }
 
 /** Page Header 띠 설정 — 페이지 상단에 붙는 32px 헤더 (화면 px, 줌 무관) */
@@ -151,6 +156,8 @@ export const PAGE_HEADER_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
 
 /** Page Title 레이블 설정 */
 const PAGE_TITLE_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
+/** 타이틀 굵기 — variable font `wght` 축 (Paragraph 경로에서만 실제 굵기가 반영된다) */
+export const PAGE_TITLE_FONT_WEIGHT = 700;
 // 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 gap + (32+12)/2 = 23px
 const PAGE_TITLE_OFFSET_Y =
   PAGE_HEADER_GAP + (PAGE_HEADER_HEIGHT + PAGE_TITLE_FONT_SIZE) / 2;
@@ -504,6 +511,80 @@ export function renderLasso(
   }
 }
 
+// ── Page Title paragraph 캐시 ──
+//
+// direct `ck.Font` 경로는 variable font 의 weight 요청을 글리프 굵기에 반영하지 않는다
+// (2026-09-17 실측: FontWeight.Bold 요청 = Regular 글리프 — Pretendard/Inter Variable
+// 에 named instance 가 없다). 실제 bold 는 텍스트 노드와 같은 Paragraph +
+// `fontVariations: wght` 경로뿐이라 타이틀만 Paragraph 로 조판한다. paragraph 는
+// (title, 색) 당 1개를 보유해 프레임마다 재조판하지 않는다 — 페이지/프레임 수만큼이라
+// 작고, fontMgr 교체 시 (`clearOverlayFontCache`) 전부 버린다. 공유 FontCollection
+// 경유가 계약 (ADR-174 — per-call `ParagraphBuilder.Make` 금지, 정적 가드
+// `nodeRendererText.static.test.ts`).
+const PAGE_TITLE_PARAGRAPH_CACHE_MAX = 256;
+const _pageTitleParagraphs = new Map<string, Paragraph>();
+
+function clearPageTitleParagraphCache(): void {
+  for (const para of _pageTitleParagraphs.values()) para.delete();
+  _pageTitleParagraphs.clear();
+}
+
+function acquirePageTitleParagraph(
+  ck: CanvasKit,
+  title: string,
+  isActive: boolean,
+): Paragraph {
+  const key = `${isActive ? 1 : 0}\u0000${title}`;
+  const cached = _pageTitleParagraphs.get(key);
+  if (cached) return cached;
+  if (_pageTitleParagraphs.size >= PAGE_TITLE_PARAGRAPH_CACHE_MAX) {
+    clearPageTitleParagraphCache();
+  }
+  // 활성 페이지: selection 색상, 비활성: slate-500
+  const color = isActive
+    ? ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, 1)
+    : ck.Color4f(
+        PAGE_TITLE_COLOR_R,
+        PAGE_TITLE_COLOR_G,
+        PAGE_TITLE_COLOR_B,
+        PAGE_TITLE_OPACITY,
+      );
+  const textStyle = {
+    color,
+    fontSize: PAGE_TITLE_FONT_SIZE,
+    fontFamilies: [...CANVAS_FONT_FALLBACK_FAMILIES],
+    heightMultiplier: 1,
+    halfLeading: true,
+  };
+  const paraStyle = new ck.ParagraphStyle({
+    maxLines: 1,
+    ellipsis: "…",
+    textStyle,
+  });
+  const builder = ck.ParagraphBuilder.MakeFromFontCollection(
+    paraStyle,
+    skiaFontManager.getFontCollection(),
+  );
+  try {
+    builder.pushStyle(
+      new ck.TextStyle({
+        ...textStyle,
+        fontFeatures: DEFAULT_FONT_FEATURES,
+        fontVariations: [{ axis: "wght", value: PAGE_TITLE_FONT_WEIGHT }],
+      }),
+    );
+    builder.addText(title);
+    const para = builder.build();
+    // 줄바꿈 없이 단일 줄 — 폭은 조판 후 getLongestLine 으로 읽는다.
+    para.layout(PAGE_TITLE_LAYOUT_WIDTH);
+    _pageTitleParagraphs.set(key, para);
+    return para;
+  } finally {
+    builder.delete();
+  }
+}
+const PAGE_TITLE_LAYOUT_WIDTH = 4096;
+
 // ============================================
 // Page Header 띠 (타이틀 배경)
 // ============================================
@@ -570,57 +651,29 @@ export function renderPageTitle(
 } | null {
   if (!title || !fontMgr) return null;
 
-  const scope = new SkiaDisposable();
-  try {
-    // 고정 폰트 사이즈로 렌더링하여 줌 시 글리프 간격 흔들림 방지.
-    // 캐시 소유 Font — scope.track 금지 (acquireOverlayFont 주석 참조).
-    const font = acquireOverlayFont(
-      ck,
-      fontMgr,
-      isActive ? ck.FontWeight.Medium : ck.FontWeight.Normal,
-      PAGE_TITLE_FONT_SIZE,
-      { embolden: true },
+  // 고정 12px 로 조판하고 canvas 를 1/zoom 으로 스케일 — 줌과 무관한 화면 크기.
+  // 캐시 소유 paragraph — 호출부 delete 금지 (acquirePageTitleParagraph 주석 참조).
+  const para = acquirePageTitleParagraph(ck, title, isActive);
+
+  return withFixedScreenScale(canvas, zoom, 0, 0, () => {
+    // 화면 픽셀 좌표 — line box (12px) 를 헤더 띠 안 세로 중앙에 두고, paragraph 의
+    // 실제 줄 높이가 12 와 다르면 그 차이만큼 가운데 정렬한다.
+    const textX = PAGE_HEADER_PADDING_X;
+    const textTop = -PAGE_TITLE_OFFSET_Y;
+    const paraY = Math.round(
+      textTop - (para.getHeight() - PAGE_TITLE_FONT_SIZE) / 2,
     );
-    if (!font) return null;
 
-    // 활성 페이지: selection 색상, 비활성: slate-500
-    const textPaint = acquireScopedPaint(scope, ck);
-    textPaint.setAntiAlias(true);
-    textPaint.setStyle(ck.PaintStyle.Fill);
-    if (isActive) {
-      textPaint.setColor(
-        ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, 1),
-      );
-    } else {
-      textPaint.setColor(
-        ck.Color4f(
-          PAGE_TITLE_COLOR_R,
-          PAGE_TITLE_COLOR_G,
-          PAGE_TITLE_COLOR_B,
-          PAGE_TITLE_OPACITY,
-        ),
-      );
-    }
+    canvas.drawParagraph(para, textX, paraY);
 
-    return withFixedScreenScale(canvas, zoom, 0, 0, () => {
-      // 화면 픽셀 좌표에서 위치 계산 후 pixel snap
-      const textX = PAGE_HEADER_PADDING_X;
-      const textTop = -PAGE_TITLE_OFFSET_Y;
-      const textY = Math.round(textTop + PAGE_TITLE_FONT_SIZE * 0.85);
+    // 타이틀 폭은 drag hit-test / inline 편집기에서도 재사용되므로 항상 반환한다.
+    const titleWidth = para.getLongestLine();
 
-      canvas.drawText(title, textX, textY, textPaint, font);
-
-      // 타이틀 폭은 drag hit-test 에서도 재사용되므로 항상 계산하여 반환한다.
-      const titleWidth = measureGlyphRunWidth(font, title);
-
-      return {
-        titleWidth,
-        textX,
-        textTop,
-        textHeight: PAGE_TITLE_FONT_SIZE,
-      };
-    });
-  } finally {
-    scope.dispose();
-  }
+    return {
+      titleWidth,
+      textX,
+      textTop,
+      textHeight: PAGE_TITLE_FONT_SIZE,
+    };
+  });
 }

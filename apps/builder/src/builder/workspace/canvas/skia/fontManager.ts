@@ -450,6 +450,9 @@ declare global {
 }
 
 function getOrCreateFontManager(): SkiaFontManager {
+  // node 환경 (vitest `@vitest-environment node` 에서 selectionRenderer 를 거쳐 실리는
+  // 경우) 에는 window 가 없다 — HMR 재사용 없이 인스턴스만 만든다.
+  if (typeof window === "undefined") return new SkiaFontManager();
   // HMR 시 이전 인스턴스 재사용 (Typeface 누수 방지)
   const existing = window[FM_GLOBAL_KEY];
   if (existing) return existing;
