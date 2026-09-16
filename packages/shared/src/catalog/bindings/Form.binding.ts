@@ -68,6 +68,8 @@ export const formBinding: PrimitiveBinding = {
         kind: "enum",
         label: "Necessity Indicator",
         section: "appearance",
+        // RSP/RAC 기본 표시는 icon (`*`) — seg 가 선택 없이 시작하지 않도록 (2026-09-16 사용자 결정)
+        default: "icon",
         options: [
           // field 가족 13 타입과 같은 라벨 — 같은 키·값은 같은 컨트롤 (seg 2)
           { value: "icon", label: "Icon" },

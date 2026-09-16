@@ -82,6 +82,8 @@ export const radioGroupBinding: PrimitiveBinding = {
         kind: "enum",
         label: "Necessity Indicator",
         section: "appearance",
+        // RSP/RAC 기본 표시는 icon (`*`) — seg 가 선택 없이 시작하지 않도록 (2026-09-16 사용자 결정)
+        default: "icon",
         options: [
           { value: "icon", label: "Icon" },
           { value: "label", label: "Label" },

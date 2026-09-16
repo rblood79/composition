@@ -99,6 +99,9 @@ describe("family ② fields — toRacProps 변환 계약", () => {
       // labelAlign (2026-08-21 채택) — 노드가 생략해도 계약 default("start")가 emit 된다
       //   (labelPosition/size 와 동일 규칙). start 는 CSS 규칙이 없어 시각적으로 inert.
       "data-label-align": "start",
+      // necessityIndicator (2026-09-16 default "icon" — RSP 기본, Properties seg 가 선택 없이
+      //   시작하지 않도록). data-* 소비 CSS 없음 — DOM 의 `*` 는 renderer 가 props 를 직접 읽는다.
+      "data-necessity-indicator": "icon",
       isRequired: true,
     });
     // raw prop 누출 없음 확인

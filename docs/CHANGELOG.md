@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [필드 가족 — Necessity Indicator 기본값 `icon`] - 2026-09-16
+
+### Changed
+
+- field 가족 13 타입 + Form 의 `necessityIndicator` 계약에 `default: "icon"` (RSP 기본과 같다). Properties 패널의 Necessity Indicator seg 가 선택 없이 시작해 첫 클릭이 슬라이드가 아니라 fade 로 나타나던 것이 사라진다 (live: Icon 선택 상태로 시작 · 첫 클릭 7 프레임 이동). DOM 은 `data-necessity-indicator="icon"` 이 추가로 emit 되지만 소비 CSS 가 없어 시각 무변경 — `*` 표시는 여전히 요소 props 에 값이 있을 때만 (Skia 도 같은 규칙). (2026-09-16 사용자 결정)
+
 ## [Properties 패널 — 글자 seg 의 인디케이터가 잘려 「닦여 나오던」 것] - 2026-09-16
 
 ### Fixed
