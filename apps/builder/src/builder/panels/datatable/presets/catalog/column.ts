@@ -4,7 +4,7 @@
  */
 
 import type { DataFieldType } from "../../../../../types/builder/data.types";
-import type { MockRule } from "../../../../../services/mockData";
+import type { MockRule } from "@composition/sample-data";
 import type { PresetColumn } from "../types";
 
 export interface ColumnExtra {

@@ -3,7 +3,7 @@
  *
  * preset 은 `definePreset({ columns })` 로 정의한다 — 컬럼마다 규칙 (`MockRule`,
  * mockaroo 어법) 이 데이터로 붙어 있고 스키마·샘플 행은 거기서 파생된다. 생성기는
- * `services/mockData` (자체 모듈 — faker · randomuser · dummyjson · picsum 패턴 이식).
+ * `@composition/sample-data` (자체 모듈 — faker · randomuser · dummyjson · picsum 패턴 이식).
  *
  * | 카테고리      | preset                                            | 패턴 출처         |
  * | ------------- | ------------------------------------------------- | ----------------- |

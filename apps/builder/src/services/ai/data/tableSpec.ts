@@ -19,7 +19,7 @@ import {
   type Mock,
   type MockLocale,
   type MockRule,
-} from "../../mockData";
+} from "@composition/sample-data";
 
 export const SAMPLE_ROWS_DEFAULT = 5;
 export const SAMPLE_ROWS_MAX = 50;
@@ -27,7 +27,7 @@ export const TABLE_FIELDS_MAX = 40;
 
 /**
  * 옵션 없는 `MockRule` 종류 — 모델이 고를 수 있는 사실적 값 (이름 · 주소 · 상품 · 금융 · 이미지).
- * `services/mockData` 의 생성기를 그대로 쓴다 (2026-09-16 후속 — preset 과 같은 모듈).
+ * `@composition/sample-data` 의 생성기를 그대로 쓴다 (2026-09-16 후속 — preset 과 같은 모듈).
  */
 export const MOCK_RULE_TYPES = [
   "uuid",

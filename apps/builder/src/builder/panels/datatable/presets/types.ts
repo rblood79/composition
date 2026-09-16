@@ -3,7 +3,7 @@
  *
  * preset = 스키마 + 컬럼별 생성 규칙 (`MockColumn`, mockaroo 어법). 규칙이 데이터라
  * 스키마와 샘플 행이 한 정의에서 나온다 — `definePreset` 이 `schema` 와
- * `generateSampleData` 를 파생한다. 생성기는 `services/mockData` (자체 모듈).
+ * `generateSampleData` 를 파생한다. 생성기는 `@composition/sample-data` (ADR-220).
  */
 
 import type { DataField } from "../../../../types/builder/data.types";
@@ -12,7 +12,7 @@ import {
   resolveMockLocale,
   type MockColumn,
   type MockRule,
-} from "../../../../services/mockData";
+} from "@composition/sample-data";
 
 /**
  * 표시 시점 해소기 — 이 모듈은 순수 `.ts` 라 훅을 못 쓴다 (ADR-200 어법).

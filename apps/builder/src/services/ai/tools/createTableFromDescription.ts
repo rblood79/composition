@@ -31,7 +31,7 @@ import {
   type TableSpec,
 } from "../data/tableSpec";
 import { presetTranslateFromStoredLocale } from "../../../builder/panels/datatable/presets/presetStrings";
-import { resolveMockLocale } from "../../mockData";
+import { resolveMockLocale } from "@composition/sample-data";
 
 const PREVIEW_ROWS = 5;
 

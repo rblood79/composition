@@ -342,6 +342,9 @@ importers:
       '@composition/config':
         specifier: workspace:*
         version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.13.3
       eslint:
         specifier: 'catalog:'
         version: 10.8.1(jiti@2.7.0)

@@ -116,7 +116,7 @@ describe("generateSampleRows", () => {
     expect(validateSampleRows(spec, generateSampleRows(spec, { collections: [] }), { collections: [] })).toEqual([]);
   });
 
-  it("mock 규칙 — services/mockData 생성기 (사실적 값) · key 힌트 phone/city/address · locale 풀", () => {
+  it("mock 규칙 — @composition/sample-data 생성기 (사실적 값) · key 힌트 phone/city/address · locale 풀", () => {
     const spec: TableSpec = {
       name: "People",
       sampleCount: 4,

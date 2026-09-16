@@ -6,7 +6,7 @@
  * 실행 오류 (UI-6, Main 아트보드). 세 곳 (목록 · 편집기 · 캔버스 배지) 이 같은 값을 보이는
  * 규칙의 첫 자리.
  *
- * @see presets/dataTablePresets.ts (카탈로그) · services/mockData (생성기) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
+ * @see presets/dataTablePresets.ts (카탈로그) · @composition/sample-data (생성기, ADR-220) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
 import { useMemo, useState } from "react";
