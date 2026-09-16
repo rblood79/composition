@@ -1,6 +1,6 @@
 # ADR-013 구현 상세 — 기존 Data 생성 흐름의 생성 후 자동 연결
 
-> [ADR-013](../013-quick-connect-data-binding.md)의 상세 설계. 2026-09-16 사용자 요청에 따라 현재 Builder 구현 기준으로 수정했다. **설계만 갱신했으며 구현·live 검증은 미수행(UNVERIFIED)**이다. 2026-07-16 리뷰 기록은 당시 설계의 이력으로 보존한다.
+> [ADR-013](../completed/013-quick-connect-data-binding.md)의 상세 설계. 2026-09-16 사용자 요청에 따라 현재 Builder 구현 기준으로 수정했고, **2026-09-17 Phase 0~3 구현 · live 검증 종결 (Implemented)**. 실행 결과는 §5 Phase 표와 ADR §Live Exercise. 2026-07-16 리뷰 기록은 당시 설계의 이력으로 보존한다.
 
 ## §0. 이전 설계에서 바뀐 결정
 
@@ -68,14 +68,16 @@
 
 ## §5. Phase와 Gate
 
-| Phase | 작업                                                                                                                                                      | 완료 조건                                                                                   |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| 0     | 현재 코드/6종 capability 재확인; 사전 UUID create+bind 지원 사실 기록 및 id 주석 정정 계획, template/history, Table 컬럼·늦은 ingress·오류 복구 경계 확정 | G0: 적용 경로와 실패 시 상태를 기록. 현재 UNVERIFIED                                        |
-| 1     | 기존 생성 액션·editor mode·Creator에 대상 문맥과 생성 후 연결 결선, 공통 draft/적용 경로 구현                                                             | G1: 일반 생성 회귀 없음, 대상 검증·중복 제출 방지·binding/template read-back 및 인접 테스트 |
-| 2     | 6종 연결 전환과 Table 컬럼 보존·재매핑·명시적 교체, 전체 Undo 처리                                                                                        | G2: Canvas/Preview 데이터·0건·재연결·Undo/Redo live 확인; Table 미통과 시 전체 완료 보류    |
-| 3     | 실패 주입·refresh hydration·기존 수동 흐름 회귀 검증                                                                                                      | G3: 모든 hard constraint와 아래 시나리오 PASS 후에만 상태 승격                              |
+| Phase | 작업                                                                                                                                                      | 완료 조건                                                                                   | 결과 (2026-09-17)                                                                                                                                                                                                                                                                                         |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | 현재 코드/6종 capability 재확인; 사전 UUID create+bind 지원 사실 기록 및 id 주석 정정 계획, template/history, Table 컬럼·늦은 ingress·오류 복구 경계 확정 | G0: 적용 경로와 실패 시 상태를 기록                                                         | 종결 — template 미사용 (휴리스틱 + 자동 컬럼 피커) → DataChange entry 1 · `schemas/dataChange.ts` id 주석 정정 · Table = 컬럼 선삽입 + `data` entry 에 canonicalEvents 동반 (`historyActions` undo/redo/goToIndex 가 두 축) · commit 경계 검증은 `ApplyDataChangeOptions.expectBindings` (IR 무변경)      |
+| 1     | 기존 생성 액션·editor mode·Creator에 대상 문맥과 생성 후 연결 결선, 공통 draft/적용 경로 구현                                                             | G1: 일반 생성 회귀 없음, 대상 검증·중복 제출 방지·binding/template read-back 및 인접 테스트 | 종결 — `QuickConnectTarget` (직렬화 값만) · `PropertyDataBindingCreateAction elementId` 캡처 · Creator 연결 모드 (note · 「Create & connect」 · API/AI 「Continue without connecting」) · `executeQuickConnect` · unit: quickConnect 7 · Creator 10 · PropertyDataBinding 9 · dataChange 23 · history 100 |
+| 2     | 6종 연결 전환과 Table 컬럼 보존·재매핑·명시적 교체, 전체 Undo 처리                                                                                        | G2: Canvas/Preview 데이터·0건·재연결·Undo/Redo live 확인; Table 미통과 시 전체 완료 보류    | 종결 — live 31/31 (`adr013-quick-connect-live.mjs`); 0건 은 DOM 5종 수리 후 PASS; Table 교체 undo 순서는 remove 이벤트 내림차순으로 복원                                                                                                                                                                  |
+| 3     | 실패 주입·refresh hydration·기존 수동 흐름 회귀 검증                                                                                                      | G3: 모든 hard constraint와 아래 시나리오 PASS 후에만 상태 승격                              | 종결 — 실패 주입 unit 2 (binding 변경 rollback · 컬럼 되돌리기) · live 새로고침 hydration · 요소 삭제 뒤 collection 보존 · messenger 늦은 ingress 가드 · `codex:preflight` PASS                                                                                                                           |
 
 구현 시 TS 변경은 `pnpm run codex:typecheck`, 인접 Vitest, 실제 Builder 흐름 및 필요한 `cross-check`를 수행한다. 완료 기본 게이트는 `pnpm run codex:preflight`; 병행 dirty 변경이 있으면 `.agents/README.md`의 범위별 검증을 따른다. 사용자 가시 구현 완료 시 CHANGELOG와 ADR 인덱스를 갱신한다. 문서 수정만으로 Phase/Gate를 완료 처리하지 않는다.
+
+**구현 시 §4 와 달라진 점 (2026-09-17)**: 컬럼을 바인딩보다 **먼저** 삽입한다 — 바인딩 있는 Column 0 Table 이 Preview 에 먼저 닿으면 `onColumnsDetected` 가 `ADD_COLUMN_ELEMENTS` 를 보내 중복될 수 있어서다. 방어선 2 로 `useIframeMessenger` 가 TableHeader 에 이미 Column 이 있으면 늦은 요청을 버린다. `ref` 인스턴스 Table 은 컬럼이 공유 origin 소유라 바인딩만 쓴다 (§3). 재매핑은 Column `props.key` 가 field key 라 별도 변환 없이 대응하고, 새 schema 에 없는 key 는 실행 전 note 로 보인다.
 
 ## §6. 검증 시나리오
 
@@ -90,4 +92,4 @@
 9. Undo 1회/Redo 및 refresh: collection·바인딩·template/컬럼이 함께 복원되며 늦은 Preview ingress가 되살리지 않음.
 10. 기존 collection 수동 선택·연결 해제·정적 items 편집 유지; 요소 삭제 후 collection 유지.
 
-모든 실행 결과는 **UNVERIFIED**. 이 문서는 구현 계획이며 테스트 실행 보고서가 아니다.
+실행 결과는 ADR §Live Exercise (2026-09-17, 6종 31/31 + G3 17/17). 5 (연속 클릭·재열기) 는 unit 만, 6 은 자동 연결이 template 을 쓰지 않아 대상 없음.

@@ -18,7 +18,8 @@ import { waitReady } from "./perf-baseline.mjs";
 
 const BASE_URL = "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
-const OUT_DIR = process.env.ADR013_OUT ?? "/private/tmp/adr013-quick-connect-live";
+const OUT_DIR =
+  process.env.ADR013_OUT ?? "/private/tmp/adr013-quick-connect-live";
 const headed = process.argv.includes("--headed");
 const typesArg = process.argv.find((a) => a.startsWith("--types="));
 const TYPES = typesArg ? typesArg.slice(8).split(",") : ["ListBox"];
@@ -122,8 +123,13 @@ async function readPreviewItems(page, elementId) {
  * 문서를 못 받는 경우가 있어 (resend gap) 켠 채로 두고 읽는다.
  */
 async function ensureCompareMode(page) {
-  const compare = page.locator(".header_right .builder-control-group button").first();
-  if ((await compare.getAttribute("aria-pressed")) !== "true" && (await compare.getAttribute("aria-checked")) !== "true") {
+  const compare = page
+    .locator(".header_right .builder-control-group button")
+    .first();
+  if (
+    (await compare.getAttribute("aria-pressed")) !== "true" &&
+    (await compare.getAttribute("aria-checked")) !== "true"
+  ) {
     await compare.click();
     await page.waitForTimeout(2500);
   }
@@ -133,7 +139,12 @@ async function withCompareMode(page, fn) {
   return fn();
 }
 /** Preview 반영은 비동기 (postMessage → 렌더) — 조건이 맞을 때까지 다시 읽는다 */
-async function waitPreviewItems(page, elementId, predicate, timeoutMs = 12_000) {
+async function waitPreviewItems(
+  page,
+  elementId,
+  predicate,
+  timeoutMs = 12_000,
+) {
   const start = Date.now();
   let last = await readPreviewItems(page, elementId);
   while (!predicate(last) && Date.now() - start < timeoutMs) {
@@ -159,7 +170,11 @@ async function addFromPalette(page, type) {
     type,
   );
   // 팔레트 라벨은 소문자 + 공백 ("list box") — 검색창으로 좁힌 뒤 라벨을 공백 제거·소문자로 대조
-  const search = page.locator('[data-panel-id="components"] input[type="search"], [data-panel-id="components"] input').first();
+  const search = page
+    .locator(
+      '[data-panel-id="components"] input[type="search"], [data-panel-id="components"] input',
+    )
+    .first();
   await search.waitFor({ state: "visible", timeout: 20_000 });
   await search.fill(type);
   await page.waitForTimeout(400);
@@ -167,7 +182,8 @@ async function addFromPalette(page, type) {
   const n = await items.count();
   let item = null;
   for (let i = 0; i < n; i++) {
-    const label = (await items.nth(i).locator(".list-item-name").textContent()) ?? "";
+    const label =
+      (await items.nth(i).locator(".list-item-name").textContent()) ?? "";
     if (label.replace(/\s+/g, "").toLowerCase() === type.toLowerCase()) {
       item = items.nth(i);
       break;
@@ -181,9 +197,9 @@ async function addFromPalette(page, type) {
         window.__composition_STORE__
           .getState()
           .elements.find(
-            (e) => (e.type === t || e.componentName === t) && !before.includes(e.id),
-          )?.id ??
-        null,
+            (e) =>
+              (e.type === t || e.componentName === t) && !before.includes(e.id),
+          )?.id ?? null,
       { t: type, before },
       { timeout: 15_000 },
     )
@@ -228,7 +244,8 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 const consoleErrors = [];
 page.on("console", (m) => {
-  if (m.type() === "error" || m.type() === "warning") consoleErrors.push(`${m.type()}: ${m.text().slice(0, 300)}`);
+  if (m.type() === "error" || m.type() === "warning")
+    consoleErrors.push(`${m.type()}: ${m.text().slice(0, 300)}`);
 });
 let dialogs = 0;
 page.on("dialog", (d) => {
@@ -262,13 +279,19 @@ try {
 
     // 1) 연결 모드 표시
     const note = await creator.locator(".creator-connect-target").textContent();
-    const footer = await creator.locator(".creator-footer button").last().textContent();
+    const footer = await creator
+      .locator(".creator-footer button")
+      .last()
+      .textContent();
     record(
       `${type}: Creator 연결 모드 — 대상 note + 「Create & connect」`,
-      (note ?? "").includes(targetBefore.customId) && footer === "Create & connect",
+      (note ?? "").includes(targetBefore.customId) &&
+        footer === "Create & connect",
       `${note} / ${footer}`,
     );
-    await page.screenshot({ path: resolve(OUT_DIR, `${type}-1-connect-mode.png`) });
+    await page.screenshot({
+      path: resolve(OUT_DIR, `${type}-1-connect-mode.png`),
+    });
 
     // 2) 선택을 Button 으로 옮긴 뒤 preset 생성
     await page.evaluate(
@@ -280,12 +303,18 @@ try {
     const collectionsBefore = (await idbCollections(page, projectId)).length;
     const tableName = `${type} contacts`;
     await creator.locator('input[type="text"]').first().fill(tableName);
-    await creator.locator(".preset-card", { hasText: "Contacts" }).first().click();
+    await creator
+      .locator(".preset-card", { hasText: "Contacts" })
+      .first()
+      .click();
     await creator.locator(".creator-footer button").last().click();
     await page.waitForFunction(
       (name) =>
-        (document.querySelector('[data-panel-id="datatableEditor"] .panel-header')
-          ?.textContent ?? "").includes(name),
+        (
+          document.querySelector(
+            '[data-panel-id="datatableEditor"] .panel-header',
+          )?.textContent ?? ""
+        ).includes(name),
       tableName,
       { timeout: 20_000 },
     );
@@ -295,7 +324,9 @@ try {
     const target = await bindingOf(page, targetId);
     const decoy = await bindingOf(page, buttonId);
     const status = await page
-      .locator('[data-panel-id="datatableEditor"] [role="status"], .datatable-panel [role="status"]')
+      .locator(
+        '[data-panel-id="datatableEditor"] [role="status"], .datatable-panel [role="status"]',
+      )
       .first()
       .textContent()
       .catch(() => "");
@@ -317,13 +348,20 @@ try {
         status,
       }),
     );
-    await page.screenshot({ path: resolve(OUT_DIR, `${type}-2-connected.png`) });
+    await page.screenshot({
+      path: resolve(OUT_DIR, `${type}-2-connected.png`),
+    });
 
     // 2a) Preview 가 바인딩 데이터를 그린다 (0건 아님) — Select/ComboBox 는 팝오버 닫힘이라 존재만
     const rows = created?.mockData?.length ?? 0;
-    const popoverType = type === "Select" || type === "ComboBox" || type === "Menu";
+    const popoverType =
+      type === "Select" || type === "ComboBox" || type === "Menu";
     const preview = await withCompareMode(page, () =>
-      waitPreviewItems(page, targetId, (p) => p.found && (popoverType || p.items > 0)),
+      waitPreviewItems(
+        page,
+        targetId,
+        (p) => p.found && (popoverType || p.items > 0),
+      ),
     );
     record(
       `${type}: Preview 가 연결 데이터를 그린다 (${rows}행)`,
@@ -336,13 +374,20 @@ try {
     const columnsOf = () =>
       page.evaluate((tableId) => {
         const els = window.__composition_STORE__.getState().elements;
-        const header = els.find((e) => e.parent_id === tableId && e.type === "TableHeader");
+        const header = els.find(
+          (e) => e.parent_id === tableId && e.type === "TableHeader",
+        );
         return header
-          ? els.filter((e) => e.parent_id === header.id && e.type === "Column").map((e) => e.props.key)
+          ? els
+              .filter((e) => e.parent_id === header.id && e.type === "Column")
+              .map((e) => e.props.key)
           : null;
       }, targetId);
     const isDirectTable = await page.evaluate(
-      (id) => window.__composition_STORE__.getState().elements.find((e) => e.id === id)?.type === "Table",
+      (id) =>
+        window.__composition_STORE__
+          .getState()
+          .elements.find((e) => e.id === id)?.type === "Table",
       targetId,
     );
     if (isDirectTable) {
@@ -357,7 +402,8 @@ try {
           const doc = frame.contentDocument;
           const table = doc?.querySelector(`[data-element-id^="${id}"]`);
           const ths = table?.querySelectorAll('[role="columnheader"]');
-          if (ths && ths.length) return [...ths].map((t) => t.textContent?.trim());
+          if (ths && ths.length)
+            return [...ths].map((t) => t.textContent?.trim());
         }
         return null;
       }, targetId);
@@ -368,7 +414,9 @@ try {
           JSON.stringify(colsAfterPreview) === JSON.stringify(schemaKeys),
         JSON.stringify({ schemaKeys, cols, colsAfterPreview, previewHeaders }),
       );
-      await page.screenshot({ path: resolve(OUT_DIR, `${type}-2b-columns.png`) });
+      await page.screenshot({
+        path: resolve(OUT_DIR, `${type}-2b-columns.png`),
+      });
     }
 
     // 3) undo 1회 → collection + 바인딩 (+ Table 컬럼) 함께 원상 · redo → 같은 id
@@ -377,7 +425,11 @@ try {
         const st = window.__composition_STORE__.getState();
         const frames = [...document.querySelectorAll("iframe")].map((f) => ({
           src: f.src,
-          ids: [...(f.contentDocument?.querySelectorAll("[data-element-id]") ?? [])].slice(0, 40).map((e) => e.getAttribute("data-element-id")),
+          ids: [
+            ...(f.contentDocument?.querySelectorAll("[data-element-id]") ?? []),
+          ]
+            .slice(0, 40)
+            .map((e) => e.getAttribute("data-element-id")),
         }));
         return { page: st.currentPageId, frames };
       });
@@ -390,14 +442,18 @@ try {
     await page.evaluate(() => window.__composition_STORE__.getState().undo());
     await page.waitForTimeout(1200);
     const afterUndo = {
-      idb: (await idbCollections(page, projectId)).some((c) => c.id === created?.id),
+      idb: (await idbCollections(page, projectId)).some(
+        (c) => c.id === created?.id,
+      ),
       binding: await bindingOf(page, targetId),
       cols: isDirectTable ? await columnsOf() : null,
     };
     await page.evaluate(() => window.__composition_STORE__.getState().redo());
     await page.waitForTimeout(1200);
     const afterRedo = {
-      idb: (await idbCollections(page, projectId)).some((c) => c.id === created?.id),
+      idb: (await idbCollections(page, projectId)).some(
+        (c) => c.id === created?.id,
+      ),
       binding: await bindingOf(page, targetId),
       cols: isDirectTable ? await columnsOf() : null,
     };
@@ -409,60 +465,98 @@ try {
         afterRedo.binding.props?.collectionId === created?.id &&
         (!isDirectTable ||
           (afterUndo.cols?.length === 0 &&
-            JSON.stringify(afterRedo.cols) === JSON.stringify(created?.schema.map((f) => f.key)))),
+            JSON.stringify(afterRedo.cols) ===
+              JSON.stringify(created?.schema.map((f) => f.key)))),
       JSON.stringify({
-        undo: { idb: afterUndo.idb, props: afterUndo.binding.props, cols: afterUndo.cols },
-        redo: { idb: afterRedo.idb, props: afterRedo.binding.props, cols: afterRedo.cols },
+        undo: {
+          idb: afterUndo.idb,
+          props: afterUndo.binding.props,
+          cols: afterUndo.cols,
+        },
+        redo: {
+          idb: afterRedo.idb,
+          props: afterRedo.binding.props,
+          cols: afterRedo.cols,
+        },
       }),
     );
 
     // 3b) Table 재연결 — 기존 컬럼 보존 (기본) → 명시적 교체
     if (isDirectTable) {
       const creator2 = await openConnectCreator(page, targetId);
-      const keptNote = await creator2.locator("[data-column-plan]").textContent();
-      await creator2.locator(".preset-card", { hasText: "Products" }).first().click();
+      const keptNote = await creator2
+        .locator("[data-column-plan]")
+        .textContent();
+      await creator2
+        .locator(".preset-card", { hasText: "Products" })
+        .first()
+        .click();
       await page.waitForTimeout(300);
-      const unmatchedNote = await creator2.locator("[data-column-plan]").textContent();
+      const unmatchedNote = await creator2
+        .locator("[data-column-plan]")
+        .textContent();
       const colsBefore = await columnsOf();
       await creator2.locator(".creator-footer button").last().click();
       await page.waitForFunction(
-        () => /Products/.test(document.querySelector('[data-panel-id="datatableEditor"] .panel-header')?.textContent ?? ""),
+        () =>
+          /Products/.test(
+            document.querySelector(
+              '[data-panel-id="datatableEditor"] .panel-header',
+            )?.textContent ?? "",
+          ),
         null,
         { timeout: 20_000 },
       );
       await page.waitForTimeout(800);
       const colsPreserved = await columnsOf();
       const bindingPreserved = await bindingOf(page, targetId);
-      const products = (await idbCollections(page, projectId)).find((c) => c.name === "Products");
+      const products = (await idbCollections(page, projectId)).find(
+        (c) => c.name === "Products",
+      );
       record(
         "Table 재연결 (기본 보존): 기존 컬럼 그대로 · 바인딩만 새 collection · 이전 collection 유지 · unmatched 표시",
         JSON.stringify(colsPreserved) === JSON.stringify(colsBefore) &&
           bindingPreserved.props?.collectionId === products?.id &&
-          (await idbCollections(page, projectId)).some((c) => c.id === created?.id) &&
+          (await idbCollections(page, projectId)).some(
+            (c) => c.id === created?.id,
+          ) &&
           /kept/.test(keptNote ?? "") &&
           /missing from the new schema/.test(unmatchedNote ?? ""),
-        JSON.stringify({ keptNote, unmatchedNote, colsBefore, colsPreserved, binding: bindingPreserved.props }),
+        JSON.stringify({
+          keptNote,
+          unmatchedNote,
+          colsBefore,
+          colsPreserved,
+          binding: bindingPreserved.props,
+        }),
       );
 
       // 명시적 교체
       const creator3 = await openConnectCreator(page, targetId);
-      await creator3.locator(".preset-card", { hasText: "Products" }).first().click();
+      await creator3
+        .locator(".preset-card", { hasText: "Products" })
+        .first()
+        .click();
       await creator3.locator(".react-aria-Checkbox").first().click();
       await page.waitForTimeout(200);
       await creator3.locator(".creator-footer button").last().click();
       await page.waitForTimeout(2500);
       const colsReplaced = await columnsOf();
       const productsSchema = products?.schema.map((f) => f.key) ?? [];
-      const replacedOk = JSON.stringify(colsReplaced) === JSON.stringify(productsSchema);
+      const replacedOk =
+        JSON.stringify(colsReplaced) === JSON.stringify(productsSchema);
       await page.evaluate(() => window.__composition_STORE__.getState().undo());
       await page.waitForTimeout(1200);
       const colsUndone = await columnsOf();
       record(
         "Table 재연결 (명시적 교체): 컬럼 = 새 schema · undo 1회로 이전 컬럼 복원",
-        replacedOk && JSON.stringify(colsUndone) === JSON.stringify(colsPreserved),
+        replacedOk &&
+          JSON.stringify(colsUndone) === JSON.stringify(colsPreserved),
         JSON.stringify({ productsSchema, colsReplaced, colsUndone }),
       );
-      await page.screenshot({ path: resolve(OUT_DIR, `${type}-3b-replaced.png`) });
+      await page.screenshot({
+        path: resolve(OUT_DIR, `${type}-3b-replaced.png`),
+      });
     }
   }
 
@@ -477,7 +571,12 @@ try {
     await creator.locator('input[type="text"]').first().fill("Empty rows");
     await creator.locator(".creator-footer button").last().click();
     await page.waitForFunction(
-      () => (document.querySelector('[data-panel-id="datatableEditor"] .panel-header')?.textContent ?? "").includes("Empty rows"),
+      () =>
+        (
+          document.querySelector(
+            '[data-panel-id="datatableEditor"] .panel-header',
+          )?.textContent ?? ""
+        ).includes("Empty rows"),
       null,
       { timeout: 20_000 },
     );
@@ -488,7 +587,11 @@ try {
     const binding = await bindingOf(page, emptyTarget);
     record(
       "연결된 0건 ≠ 미연결: 빈 테이블 연결 뒤 Preview option 0 (정적 items 미복귀) · 바인딩은 새 collection",
-      before.found && before.items > 0 && after.found && after.items === 0 && Boolean(binding.props?.collectionId),
+      before.found &&
+        before.items > 0 &&
+        after.found &&
+        after.items === 0 &&
+        Boolean(binding.props?.collectionId),
       JSON.stringify({ before, after, binding: binding.props }),
     );
   }
@@ -503,7 +606,10 @@ try {
     );
     await page.waitForTimeout(800);
     const before = (await idbCollections(page, projectId)).length;
-    await creator.locator(".preset-card", { hasText: "Contacts" }).first().click();
+    await creator
+      .locator(".preset-card", { hasText: "Contacts" })
+      .first()
+      .click();
     await creator.locator(".creator-footer button").last().click();
     await page.waitForTimeout(1500);
     const after = (await idbCollections(page, projectId)).length;
@@ -513,7 +619,8 @@ try {
       .catch(() => []);
     record(
       "대상 삭제 뒤 「Create & connect」 → 무변경 (collection 수 동일) + 오류 안내",
-      after === before && toast.some((t) => /target element is gone|대상 요소가 없어/.test(t)),
+      after === before &&
+        toast.some((t) => /target element is gone|대상 요소가 없어/.test(t)),
       JSON.stringify({ before, after, toast }),
     );
     await page.screenshot({ path: resolve(OUT_DIR, "4-target-missing.png") });
@@ -525,42 +632,70 @@ try {
       const st = window.__composition_STORE__.getState();
       return st.elements
         .filter((e) => e.props?.dataBinding?.source === "dataTable")
-        .map((e) => ({ id: e.id, type: e.type, collectionId: e.props.dataBinding.collectionId }));
+        .map((e) => ({
+          id: e.id,
+          type: e.type,
+          collectionId: e.props.dataBinding.collectionId,
+        }));
     });
     const columnsBefore = await page.evaluate(() => {
       const st = window.__composition_STORE__.getState();
-      return st.elements.filter((e) => e.type === "Column").map((e) => [e.parent_id, e.props.key]);
+      return st.elements
+        .filter((e) => e.type === "Column")
+        .map((e) => [e.parent_id, e.props.key]);
     });
-    const idbBefore = (await idbCollections(page, projectId)).map((c) => c.id).sort();
+    const idbBefore = (await idbCollections(page, projectId))
+      .map((c) => c.id)
+      .sort();
     await page.reload({ waitUntil: "networkidle" });
     await waitReady(page);
     const snapshotAfter = await page.evaluate(() => {
       const st = window.__composition_STORE__.getState();
       return st.elements
         .filter((e) => e.props?.dataBinding?.source === "dataTable")
-        .map((e) => ({ id: e.id, type: e.type, collectionId: e.props.dataBinding.collectionId }));
+        .map((e) => ({
+          id: e.id,
+          type: e.type,
+          collectionId: e.props.dataBinding.collectionId,
+        }));
     });
     const columnsAfter = await page.evaluate(() => {
       const st = window.__composition_STORE__.getState();
-      return st.elements.filter((e) => e.type === "Column").map((e) => [e.parent_id, e.props.key]);
+      return st.elements
+        .filter((e) => e.type === "Column")
+        .map((e) => [e.parent_id, e.props.key]);
     });
-    const idbAfter = (await idbCollections(page, projectId)).map((c) => c.id).sort();
+    const idbAfter = (await idbCollections(page, projectId))
+      .map((c) => c.id)
+      .sort();
     record(
       "새로고침 hydration: 바인딩 요소 · Table 컬럼 · collection 이 그대로",
       snapshotBefore.length > 0 &&
         JSON.stringify(snapshotBefore) === JSON.stringify(snapshotAfter) &&
         JSON.stringify(columnsBefore) === JSON.stringify(columnsAfter) &&
         JSON.stringify(idbBefore) === JSON.stringify(idbAfter),
-      JSON.stringify({ bound: snapshotAfter.length, columns: columnsAfter.length, collections: idbAfter.length }),
+      JSON.stringify({
+        bound: snapshotAfter.length,
+        columns: columnsAfter.length,
+        collections: idbAfter.length,
+      }),
     );
 
     // 연결된 요소 삭제 → collection 은 남는다 (HC5)
     const victim = snapshotAfter[0];
-    await page.evaluate((id) => window.__composition_STORE__.getState().removeElement(id), victim.id);
+    await page.evaluate(
+      (id) => window.__composition_STORE__.getState().removeElement(id),
+      victim.id,
+    );
     await page.waitForTimeout(1000);
-    const stillThere = (await idbCollections(page, projectId)).some((c) => c.id === victim.collectionId);
+    const stillThere = (await idbCollections(page, projectId)).some(
+      (c) => c.id === victim.collectionId,
+    );
     const elementGone = await page.evaluate(
-      (id) => !window.__composition_STORE__.getState().elements.some((e) => e.id === id),
+      (id) =>
+        !window.__composition_STORE__
+          .getState()
+          .elements.some((e) => e.id === id),
       victim.id,
     );
     record(
@@ -581,7 +716,10 @@ try {
     const creator = page.locator(".datatable-creator");
     await creator.waitFor({ timeout: 10_000 });
     const notes = await creator.locator(".creator-connect-target").count();
-    const footer = await creator.locator(".creator-footer button").last().textContent();
+    const footer = await creator
+      .locator(".creator-footer button")
+      .last()
+      .textContent();
     record(
       "일반 Data 패널 생성은 종전 그대로 — note 0 · 「Create」",
       notes === 0 && footer === "Create",
@@ -589,11 +727,18 @@ try {
     );
   }
 
-  record("page error 0 · native dialog 0", errors.length === 0 && dialogs === 0, JSON.stringify({ errors, dialogs }));
-  if (process.env.ADR013_DEBUG) log("console", JSON.stringify(consoleErrors.slice(0, 40), null, 1));
+  record(
+    "page error 0 · native dialog 0",
+    errors.length === 0 && dialogs === 0,
+    JSON.stringify({ errors, dialogs }),
+  );
+  if (process.env.ADR013_DEBUG)
+    log("console", JSON.stringify(consoleErrors.slice(0, 40), null, 1));
 } catch (error) {
   record("harness", false, String(error?.stack ?? error));
-  await page.screenshot({ path: resolve(OUT_DIR, "error.png") }).catch(() => {});
+  await page
+    .screenshot({ path: resolve(OUT_DIR, "error.png") })
+    .catch(() => {});
 } finally {
   writeFileSync(
     resolve(OUT_DIR, "findings.json"),
@@ -602,5 +747,7 @@ try {
   await browser.close();
 }
 const failed = findings.filter((f) => !f.pass).length;
-log(`${findings.length - failed}/${findings.length} PASS → ${OUT_DIR}/findings.json`);
+log(
+  `${findings.length - failed}/${findings.length} PASS → ${OUT_DIR}/findings.json`,
+);
 process.exit(failed === 0 ? 0 : 1);

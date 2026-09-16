@@ -31,7 +31,7 @@ composition Team
 ## Related ADRs
 
 - [ADR-010](010-events-panel.md): Events Panel Smart Recommendations
-- [ADR-013](../013-quick-connect-data-binding.md): Quick Connect Data Binding
+- [ADR-013](013-quick-connect-data-binding.md): Quick Connect Data Binding
 
 ---
 
@@ -764,7 +764,7 @@ Quick Connect 후 생성된 핸들러는 단순 산출물이 아니라
 ## References
 
 - [ADR-010](010-events-panel.md)
-- [ADR-013](../013-quick-connect-data-binding.md)
+- [ADR-013](013-quick-connect-data-binding.md)
 - [react-aria skill](/Users/admin/work/composition/.agents/skills/react-aria/SKILL.md)
 - [events.registry.ts](/Users/admin/work/composition/apps/builder/src/types/events/events.registry.ts)
 - [eventTypes.ts](/Users/admin/work/composition/apps/builder/src/builder/panels/events/types/eventTypes.ts)

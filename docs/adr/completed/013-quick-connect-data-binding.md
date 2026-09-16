@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed — 2026-03-02 원문 / 2026-07-16 Risk-First 재작성 / **2026-09-16 현재 Builder 기준 설계 수정**.
+**Implemented — 2026-09-17** (Phase 0~~3 · G0~~G3 종결, `/execute-adr 013`). 2026-03-02 원문 / 2026-07-16 Risk-First 재작성 / 2026-09-16 현재 Builder 기준 설계 수정 / [리뷰 round 4](../reviews/013.md) pending 0 (전제 확정).
 
-사용자 요청으로 설계를 수정했다. 제품 구현과 live 검증은 미수행이며 Accepted/Implemented로 승격하지 않는다. [기존 리뷰](reviews/013.md)는 2026-07-16 설계의 이력으로 보존하며 이번 설계의 검증 결과로 사용하지 않는다.
+구현 정본: `apps/builder/src/builder/panels/datatable/utils/quickConnect.ts` (대상 캡처 · 실행 직전 검증 · `executeQuickConnect` · Table 컬럼 계획) · `DataTableCreator.tsx` 연결 모드 · `dataChange.ts` `expectBindings` / `DataBindingConsumer.read` · `historyActions.ts` canonicalEvents 동반 `data` entry. live 하니스 `apps/builder/scripts/adr013-quick-connect-live.mjs`. 상세 §Live Exercise.
 
 ## Context
 
@@ -14,7 +14,7 @@ Proposed — 2026-03-02 원문 / 2026-07-16 Risk-First 재작성 / **2026-09-16 
 
 **Domain**: D2의 기존 데이터·바인딩 계약을 소비하는 Builder UX다. D1의 RAC 접근성/collection 의미론은 유지한다. D3는 연결 결과의 Canvas/Preview 정합성 검증 대상이며 factory 기본 시각과 empty state 전면 개편은 범위 밖이다.
 
-**의존 관계**: [ADR-152](completed/152-data-panel-collection-binding-integration.md)의 데이터 계약과 [ADR-159](completed/159-collection-field-template-binding.md)의 텍스트 template 계약을 재사용한다. ADR-152는 Implemented이며 과거의 완료 대기는 해소됐다. ADR-013은 이 계약 위의 UX 자동화로 분리 유지한다. 코드 근거와 남은 확인 항목은 상세 설계 §1에 기록한다. 과거 외부 빌더 비교는 현재 검증하지 않았으며 이번 결정의 근거로 사용하지 않는다.
+**의존 관계**: [ADR-152](152-data-panel-collection-binding-integration.md)의 데이터 계약과 [ADR-159](159-collection-field-template-binding.md)의 텍스트 template 계약을 재사용한다. ADR-152는 Implemented이며 과거의 완료 대기는 해소됐다. ADR-013은 이 계약 위의 UX 자동화로 분리 유지한다. 코드 근거와 남은 확인 항목은 상세 설계 §1에 기록한다. 과거 외부 빌더 비교는 현재 검증하지 않았으며 이번 결정의 근거로 사용하지 않는다.
 
 **Hard Constraints**:
 
@@ -48,7 +48,7 @@ Data 행에서 열린 Creator만 대상 문맥을 갖고 생성과 연결을 하
 
 A는 대상 재선택 문제를 남기므로 기각한다. C는 이미 존재하는 생성 UI와 preset 옵션·검증을 중복하므로 기각한다. D는 정적 items 편집에도 불필요한 데이터 생성과 수명 관리를 추가하므로 기각한다. 기본 아이템 전면 제거 및 일괄 `데이터를 연결하세요` empty state는 본 기능에 필요하지 않아 제외한다.
 
-> 구현 상세: [013-quick-connect-data-binding-breakdown.md](design/013-quick-connect-data-binding-breakdown.md)
+> 구현 상세: [013-quick-connect-data-binding-breakdown.md](../design/013-quick-connect-data-binding-breakdown.md)
 
 ## Risks
 
@@ -62,14 +62,30 @@ A는 대상 재선택 문제를 남기므로 기각한다. C는 이미 존재하
 
 ## Gates
 
-| Gate | 통과 조건                                                                                  | 미충족 시                                           |
-| ---- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- |
-| G0   | 최신 코드 inventory와 template/history·Table 컬럼/ingress 경계 확정                        | 설계 보강 후 구현 착수; 현재 UNVERIFIED             |
-| G1   | 대상 보존·중복 제출 방지·read-back과 기존 일반 생성/수동 바인딩 회귀 검사 통과             | 결선/문맥 검증 수정                                 |
-| G2   | 6종의 생성 후 연결·0건·재연결·Canvas/Preview 표시 확인, Table 컬럼 정책과 Undo 실기동 통과 | 해당 컴포넌트 지원 미완으로 명시; 전체 완료 보류    |
-| G3   | 실패 주입·Undo/Redo·refresh hydration·늦은 ingress·요소 삭제 후 데이터 보존 통과           | 복구/수명 경계 수정; 오류 안내만으로 gate 대체 금지 |
+| Gate | 통과 조건                                                                                  | 미충족 시                                           | 결과 (2026-09-17)                                                                                                                                                                                                                                                                           |
+| ---- | ------------------------------------------------------------------------------------------ | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | 최신 코드 inventory와 template/history·Table 컬럼/ingress 경계 확정                        | 설계 보강 후 구현 착수                              | **PASS** — template 은 자동 연결이 쓰지 않는다 (`getItemLabel` 휴리스틱이 텍스트 해소, 바인딩 후 컬럼 피커 자동 노출 → DataChange entry 1 로 완결) · 사전 UUID create+bind 는 현행 reducer 로 성립 (id 주석 정정) · Table 은 Builder 가 컬럼을 먼저 넣고 data entry 에 canonicalEvents 동반 |
+| G1   | 대상 보존·중복 제출 방지·read-back과 기존 일반 생성/수동 바인딩 회귀 검사 통과             | 결선/문맥 검증 수정                                 | **PASS** — 실행 직전 precheck (missing / context / binding-changed) + commit 경계 `expectBindings` (rollback 검증 unit) · `isSubmitting` + mounted ref · read-back 뒤에만 status · Creator/PropertyDataBinding/dataChange/history 인접 100+ 테스트 PASS                                     |
+| G2   | 6종의 생성 후 연결·0건·재연결·Canvas/Preview 표시 확인, Table 컬럼 정책과 Undo 실기동 통과 | 해당 컴포넌트 지원 미완으로 명시; 전체 완료 보류    | **PASS** — live 31/31 (§Live Exercise). 0건 은 DOM 5종 (ListBox/GridList/Select/ComboBox/Menu) 이 정적 children 으로 되돌아가던 결함을 수리한 뒤 통과                                                                                                                                       |
+| G3   | 실패 주입·Undo/Redo·refresh hydration·늦은 ingress·요소 삭제 후 데이터 보존 통과           | 복구/수명 경계 수정; 오류 안내만으로 gate 대체 금지 | **PASS** — 실패 주입 unit (binding 변경 → DataChangeError + collection rollback · applyDataChange 실패 → 삽입 컬럼 제거 · History 0) · live 새로고침 hydration · 요소 삭제 뒤 collection 보존 · Preview 열어 둔 채 늦은 ingress 중복 0 (messenger 가드 + 컬럼 선삽입)                       |
 
-모든 gate는 **UNVERIFIED**. 문서 정합성 검사는 기능 검증을 대신하지 않는다.
+### Live Exercise
+
+2026-09-17 · **headed Playwright** (dev 5173 · `.auth-session.json`, Chrome MCP 는 hidden 탭 RAF 정지로 부팅 95% 정체 → 대체). 하니스 `apps/builder/scripts/adr013-quick-connect-live.mjs` (`--types=ListBox,GridList,Select,ComboBox,Menu,Table`) · 결과 `/private/tmp/adr013-quick-connect-live/findings.json` (로컬) · run ledger `20260917-025303-adr-013-*`.
+
+| 시나리오 (breakdown §6)                                                                                                                                                                                                                             | 결과                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2 · 4 — 6종: Data 행 「New table」 → Creator note "connected to {customId}" + 「Create & connect」 → 선택을 Button 으로 옮긴 뒤 preset 생성 → **원래 대상** `props.dataBinding.collectionId` = 새 collection · `x-composition` 없음 · Button 무변경 | 6/6 PASS (팔레트가 놓는 `ref` 인스턴스 4종 + 직접 노드 Select/ComboBox/Table)                                                    |
+| 2 — Preview 가 연결 데이터를 그린다                                                                                                                                                                                                                 | ListBox 15 option · GridList 30 gridcell · Table 14 row + columnheader 13 · Select/ComboBox/Menu 는 팝오버라 존재만 (PASS)       |
+| 9 — undo 1회 = collection 삭제 (IndexedDB) + 바인딩 해제 (+ Table 컬럼 제거) · redo = 같은 id 복원                                                                                                                                                  | 6/6 PASS                                                                                                                         |
+| 7 — Table: schema 컬럼 13 이 TableHeader 에 생성 (key = field key) · Preview 열어도 중복 0 · 재연결 기본 보존 (unmatched 11 표시) · 명시적 교체 → 컬럼 = 새 schema 18 · undo 로 이전 컬럼 **순서까지** 복원                                         | PASS (remove 이벤트 index 내림차순 정렬로 순서 복원 — 첫 실측에서 순서가 뒤섞여 수리)                                            |
+| 3 — 연결된 0건 ≠ 미연결: 빈 테이블로 연결한 ListBox 가 Preview 에서 option 0                                                                                                                                                                        | 첫 실측 FAIL (origin 정적 3행 잔존) → `packages/shared` 5 컴포넌트 수리 (`boundEmptyCollectionNoStaticFallback.test.tsx`) → PASS |
+| 4 · 8 — 대상 삭제 뒤 「Create & connect」 → collection 수 동일 + 토스트 "The target element is gone — nothing was created."                                                                                                                         | PASS                                                                                                                             |
+| 9 · 10 — 새로고침 hydration (바인딩 3 · 컬럼 13 · collection 4 그대로) · 연결 요소 삭제 뒤 collection 보존                                                                                                                                          | PASS                                                                                                                             |
+| 1 — 일반 Data 패널 Add Table: note 0 · 「Create」                                                                                                                                                                                                   | PASS · page error 0 · dialog 0                                                                                                   |
+
+- **범위 밖 (문서대로)**: API/AI 인계는 연결 모드에서 사유 note + 「Continue without connecting」 로만 일반 생성 전환 (unit). `ref` 인스턴스 Table 의 컬럼은 공유 origin 소유라 바인딩만 쓴다 (§3). 5 (연속 클릭 · 재열기) 는 unit (`isSubmitting` · mounted ref) — live 재현 없음. 6 (field rename 뒤 template 유지) 은 자동 연결이 template 을 쓰지 않아 대상 없음.
+- **부수 발견**: (a) DOM 5종의 "바인딩 + 0행 → 정적 children" 은 ADR-013 이전부터 있던 D3 비대칭 (Skia 는 `[]`) — 이번에 수리. (b) 팔레트가 Components 페이지 origin 이 있는 타입은 `ref` 를 놓는다 — 하니스가 `componentName` 으로도 대상을 찾는다. (c) Compare Mode 토글마다 iframe 이 교체되고 새 iframe 이 다음 canonical 변경까지 문서를 못 받는 경우가 있어 하니스는 한 번만 켜고 반영을 기다린다.
 
 ## Consequences
 

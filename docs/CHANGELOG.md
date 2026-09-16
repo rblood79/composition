@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-013 Quick Connect — Data 행 「New table」 이 만든 테이블을 작업하던 컴포넌트에 자동 연결] - 2026-09-17
+
+### Added
+
+- **Properties Data 행의 「New table」 이 연결 모드로 Creator 를 연다** (ADR-013 Implemented). Creator 에 "The new table will be connected to {요소}" note 와 「Create & connect」 버튼이 서고, 빈 테이블 · preset · 붙여넣기 · CSV/JSON 으로 만든 테이블이 **누른 시점의 그 요소** 에 바로 연결된다 — 생성 중 다른 요소를 선택해도 대상은 바뀌지 않는다. 생성 + 연결은 되돌리기 1회 (⌘Z) 로 함께 원상. 일반 Data 패널 「Add Table」 은 종전 그대로.
+- **Table 대상**: Column 이 없으면 스키마로 Column 을 함께 만들고 (Preview 를 열어 두지 않아도 됨), 이미 Column 이 있으면 보존하며 새 스키마에 없는 컬럼 key 를 note 로 보인다. 「Replace columns with the new schema」 체크로만 전면 교체 — 되돌리기 1회로 이전 컬럼이 순서까지 복원된다.
+- API / AI 인계는 연결 모드에서 지원하지 않는다 — 사유 note 와 함께 「Continue without connecting」 로 일반 생성으로 넘어간다.
+
+### Fixed
+
+- **collection 에 연결된 ListBox · GridList · Select · ComboBox · Menu 가 행이 0 이면 factory 샘플 항목을 그대로 보이던 문제** (Preview/publish DOM). 연결된 0건은 빈 목록으로 그린다 — Canvas(Skia) 는 이미 그렇게 그리고 있었다 (`boundEmptyCollectionNoStaticFallback.test.tsx`).
+- 대상 요소가 삭제·이동됐거나 그 사이 데이터 연결이 바뀌면 아무것도 만들지 않고 안내한다 (저장 뒤 commit 경계에서도 같은 검사 — 어긋나면 collection 생성을 되돌린다).
+
 ## [캔버스 페이지 헤더 띠 — 타이틀 배경 28px · 선택 페이지 강조] - 2026-09-17
 
 ### Added
