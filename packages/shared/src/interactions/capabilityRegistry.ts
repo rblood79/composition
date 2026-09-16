@@ -25,6 +25,25 @@
  * @see docs/adr/design/158-interactions-rules-capability-registry-breakdown.md §0 §3
  */
 
+import type {
+  DropZoneProps,
+  FileTriggerProps,
+} from "react-aria-components";
+
+/**
+ * ADR-201 Phase 3 (2026-09-17) — 파일 입력 2종의 When 축. `satisfies` 로 RAC prop 실존을
+ * **컴파일 시** 증명한다 (review-adr 201 m1 — `capabilityRegistry.test` 는 명명 규약만 보고
+ * 실존은 검사하지 않는다). `onDrop` 은 `DropZoneProps` 가 `DropOptions` 에서 상속한다.
+ * 커스텀 완료/오류 이벤트 (`onUploadComplete` 류) 는 RAC 실존 callback 이 아니라 등재하지
+ * 않는다 (ADR-201 R2 — ADR-158 internal-source 예외 절차 후속).
+ */
+export const FILE_TRIGGER_EVENTS = [
+  "onSelect",
+] as const satisfies readonly (keyof FileTriggerProps)[];
+export const DROP_ZONE_EVENTS = [
+  "onDrop",
+] as const satisfies readonly (keyof DropZoneProps)[];
+
 /** capability 가 값을 요구할 때 패널이 물어볼 입력의 종류 */
 export interface CapabilityParam {
   kind: "itemKey" | "value" | "text" | "number";
@@ -122,6 +141,9 @@ export const CAPABILITY_REGISTRY: Readonly<
   // ── 트리거 전용 (고유 capability 없음) ──────────────────────────────
   Button: { events: ["onPress"], capabilities: {} },
   Link: { events: ["onPress"], capabilities: {} },
+  // ADR-201 Phase 3 — 파일 입력 트리거. 고유 capability 없음 (업로드 큐는 canonical 밖 런타임 층).
+  FileTrigger: { events: FILE_TRIGGER_EVENTS, capabilities: {} },
+  DropZone: { events: DROP_ZONE_EVENTS, capabilities: {} },
 
   // ── (a) controlled — 즉시 반영 ────────────────────────────────────
   Tree: {
