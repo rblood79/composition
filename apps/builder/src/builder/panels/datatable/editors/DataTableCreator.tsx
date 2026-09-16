@@ -210,6 +210,9 @@ export function DataTableCreator({
     null,
   );
   const [sampleCount, setSampleCount] = useState(10);
+  // 생성 조건 (randomuser `?seed=` · mockaroo Blank %) — preset 에만
+  const [seed, setSeed] = useState("");
+  const [blankPercent, setBlankPercent] = useState(0);
   // paste · file
   const [pasteText, setPasteText] = useState("");
   const [fileRows, setFileRows] = useState<
@@ -319,7 +322,10 @@ export function DataTableCreator({
       } else if (method === "preset" && selectedPreset) {
         // 여기서 해소한 문구가 사용자 테이블에 굳는다 — 이후에는 사용자
         // 데이터라 다시 번역하지 않는다 (presets/types.ts `PresetTranslate`).
-        const sampleData = selectedPreset.generateSampleData(sampleCount, tr);
+        const sampleData = selectedPreset.generateSampleData(sampleCount, tr, {
+          seed: seed.trim() || undefined,
+          blankRate: blankPercent / 100,
+        });
         created = await createDataTable({
           name: tableName.trim() || selectedPreset.name,
           project_id: projectId,
@@ -361,6 +367,8 @@ export function DataTableCreator({
     tableName,
     selectedPreset,
     sampleCount,
+    seed,
+    blankPercent,
     imported,
     fileRows,
     aiDescription,
@@ -668,6 +676,37 @@ export function DataTableCreator({
           }
           collapsible={false}
         >
+          {/* 생성 조건 — seed (재현) · 빈 값 비율 (required 아닌 컬럼) */}
+          <div className="fieldset-row creator-generate-options">
+            <PropertyFieldset legend={localize("seed", "Seed")}>
+              <input
+                className="react-aria-Input"
+                type="text"
+                value={seed}
+                onChange={(e) => setSeed(e.target.value)}
+                placeholder={localize("seedPlaceholder", "Empty for random…")}
+                aria-label={localize("seed", "Seed")}
+                spellCheck={false}
+                autoComplete="off"
+              />
+            </PropertyFieldset>
+            <PropertyFieldset legend={localize("blankRate", "Blank %")}>
+              <input
+                className="react-aria-Input"
+                type="number"
+                inputMode="numeric"
+                min="0"
+                max="90"
+                value={blankPercent}
+                onChange={(e) =>
+                  setBlankPercent(
+                    Math.max(0, Math.min(90, parseInt(e.target.value) || 0)),
+                  )
+                }
+                aria-label={localize("blankRate", "Blank %")}
+              />
+            </PropertyFieldset>
+          </div>
           {selectedPreset.schema.map((field) => (
             <div key={field.key} className="creator-schema-field">
               <span className="schema-field-name">

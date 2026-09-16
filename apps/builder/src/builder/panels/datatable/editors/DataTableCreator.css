@@ -159,6 +159,11 @@
   gap: 0;
 }
 
+/* 생성 조건 행 — 스키마 목록 (gap 0) 위에 한 줄, 아래 여백은 행이 든다 */
+.creator-generate-options {
+  margin-bottom: var(--spacing-sm);
+}
+
 .creator-schema-field {
   display: grid;
   grid-template-columns: 100px 60px 1fr;

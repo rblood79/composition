@@ -103,6 +103,42 @@ describe("DataTableCreator (ADR-212 Phase 1)", () => {
     expect(openTableEditor).toHaveBeenCalledWith("new-1");
   });
 
+  it("프리셋: 카드 선택 → 생성 조건 (seed · blank %) → 라벨 해소된 스키마 + seed 재현 행", async () => {
+    const run = async (seedValue: string, blank: string) => {
+      const { container, getByRole, getByText } = render(
+        wrap(<DataTableCreator projectId="p" onClose={() => {}} />),
+      );
+      press(getByText("Contacts").closest("button")!);
+      fireEvent.change(getByRole("textbox", { name: "Seed" }), {
+        target: { value: seedValue },
+      });
+      fireEvent.change(getByRole("spinbutton", { name: "Blank %" }), {
+        target: { value: blank },
+      });
+      press([...container.querySelectorAll(".creator-footer button")].at(-1)!);
+      await vi.waitFor(() => expect(createDataTable).toHaveBeenCalled());
+      const input = createDataTable.mock.calls.at(-1)![0] as unknown as {
+        name: string;
+        schema: { key: string; label?: string }[];
+        mockData: Record<string, unknown>[];
+      };
+      cleanup();
+      return input;
+    };
+    const a = await run("demo", "0");
+    expect(a.name).toBe("Contacts");
+    expect(a.schema.find((f) => f.key === "email")?.label).toBe("Email");
+    expect(a.mockData).toHaveLength(15);
+    const b = await run("demo", "0");
+    expect(b.mockData).toEqual(a.mockData);
+    // blank 90% — required 아닌 email 은 대부분 비고 required name 은 전부 채워진다
+    const c = await run("demo", "90");
+    expect(c.mockData.every((row) => row.name !== null)).toBe(true);
+    expect(c.mockData.filter((row) => row.email === null).length).toBeGreaterThan(
+      7,
+    );
+  });
+
   it("빈 테이블은 id 필드 하나로 만든다", async () => {
     const { container, getByLabelText } = render(
       wrap(<DataTableCreator projectId="p" onClose={() => {}} />),

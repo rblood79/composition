@@ -11,6 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Data 패널 — Add Table preset 확장 (자체 Mock 데이터 모듈)] - 2026-09-16
+
+### Added
+
+- `services/mockData` — 라이브러리 설치 없이 mockaroo · faker.js · randomuser.me · dummyjson · picsum.photos 의 패턴만 이식한 자체 모듈. seed 결정성 (mulberry32 + FNV-1a) · locale 풀 (i18n `presetData.*` 가 정본, 미해소 시 영문 fallback) · faker 식 이름공간 (`person` · `internet` · `location` · `commerce` · `finance` · `date` · `image` · `lorem` · `helpers.fake` 템플릿) · mockaroo 식 컬럼 규칙 (`MockRule` 60여 종 + Blank % + Custom List random/sequential/weighted + Formula 파생) · Luhn 유효 카드 번호 · EAN-13 · randomuser 정적 초상 URL · picsum `/seed` `/id` `?grayscale` `?blur`. 외부 요청 0.
+- Add Table preset 카테고리 4 · preset 13 추가 — **People** (Profiles · Contacts · Employees: randomuser 어법, 성별 ↔ 이름 ↔ 초상 일관, 직급별 연봉 구간, 상급자 참조) · **Content** (Posts · Comments · Todos · Recipes · Quotes: dummyjson 스키마, 완료 여부에 따른 마감일) · **Finance** (Transactions 출금 음수·잔액 파생 · Payment Cards Luhn·마스킹 · Invoices 항목 합계·세금·결제일) · **Media** (Images: picsum id · 크기 · 흑백 · 블러 변형) · E-commerce 에 Carts (합계 파생) · Reviews (평점 5점 편중).
+- 생성 조건 — 스키마 미리보기에 **Seed** (같은 seed = 같은 행, 오늘 날짜 기준) · **Blank %** (required 아닌 컬럼을 그 비율로 비움) 입력 2개.
+
+### Changed
+
+- 기존 preset 15 를 규칙 기반 (`definePreset({ columns })`) 으로 옮겼다 — 스키마와 샘플 행이 한 정의에서 파생. Users 에 gender · avatar 컬럼, status 는 활성 70% 가중, Products 는 dummyjson 스키마 (brand · sku · discountPercentage · rating · dimensions · availabilityStatus 는 stock 에서 파생 · thumbnail/images picsum) 로. Audit Logs 에 userAgent.
+- i18n — `presetData` 풀 33 (성별 이름 · 주소 · 상품 형용사/소재/명사 · 브랜드 · 요리 · 가맹점 · 태그 · 할 일 · 인용문 · 색 이름 …) · `presetField` 라벨 105 · `presetMeta` 18 (ko/en). 어휘 충돌 3건 정리 (Default Card · Avatar/아바타 · Blur/흐림).
+
+live (`apps/builder/scripts/mock-preset-live.mjs`, 8/8): 카테고리 9 · 카드 28 · Profiles 미리보기 22 필드 + Seed/Blank % 28 티어 · seed "live"·blank 20 → 행 10 · 성별↔초상 일관 · 비필수 null 21% · 같은 seed 재생성 = 같은 행 · Images picsum id URL · page error 0.
+
 ## [Properties 패널 — 색 점 하나 (.property-swatch)] - 2026-09-16
 
 ### Changed
