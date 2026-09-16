@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 글자 seg 의 인디케이터가 잘려 「닦여 나오던」 것] - 2026-09-16
+
+### Fixed
+
+- 글자 seg (Size · Fill Style · Necessity Indicator 등 `.property-seg`) 의 선택 인디케이터가 Styles 처럼 이전 버튼에서 미끄러져 오지 않고 목표 버튼 안에서 닦여 나오듯 보이던 것 — 말줄임용 `overflow: hidden` 이 버튼에 걸려 있어 버튼 안의 absolute 자식인 인디케이터가 이동 중 버튼 상자 밖 부분이 잘렸다 (live 실측: 이동 8 프레임 중 앞 3 프레임은 겹침 0% = 보이지 않음). 아이콘 seg 는 이 규칙이 없어 정상이었다. 말줄임을 콘텐츠 span 으로 옮겨 인디케이터는 자르지 않는다 + CSS 정적 가드.
+
 ## [Properties 패널 — 게이트 seg 의 인디케이터가 점프하던 것] - 2026-09-16
 
 ### Fixed

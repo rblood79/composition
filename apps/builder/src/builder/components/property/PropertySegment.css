@@ -15,8 +15,16 @@
   margin-inline-end: var(--spacing-xs);
 }
 
-/* 글자 seg 의 버튼은 글자가 잘리지 않게 한 줄 · 넘치면 말줄임 (반폭/전폭 판정은 fieldEditor 가 한다) */
+/* 글자 seg 는 한 줄 · 넘치면 말줄임 (반폭/전폭 판정은 fieldEditor 가 한다).
+   말줄임은 버튼이 아니라 콘텐츠 span 에 건다 — RAC SelectionIndicator 가 버튼 안의 absolute 자식이라
+   버튼에 overflow:hidden 을 걸면 이전 버튼에서 미끄러져 오는 동안 잘려 「닦여 나오는」 모양이 된다
+   (2026-09-16 사용자 지적: 아이콘 seg 는 Styles 처럼 미끄러지는데 글자 seg 만 다르던 원인). */
 .section .property-seg .react-aria-ToggleButton {
+  overflow: visible;
+}
+
+.section .property-seg .react-aria-ToggleButton > span {
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
