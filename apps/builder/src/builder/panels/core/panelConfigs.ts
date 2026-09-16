@@ -5,9 +5,9 @@
  */
 
 import {
-  Blocks,
   Bot,
   Columns3,
+  Component,
   Database,
   FileEdit,
   History,
@@ -73,7 +73,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     id: "components",
     name: "컴포넌트",
     nameEn: "Components",
-    icon: Blocks,
+    icon: Component,
     component: ComponentsPanel,
     category: "navigation",
     defaultPosition: "left",

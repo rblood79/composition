@@ -75,10 +75,10 @@
 
 따라서 `rootDir` 가 경계다. `dependencies: 0` 은 경계가 아니다 (상대 경로 import 는 의존성 없이 된다).
 
-두 번째 층 `src/boundary.static.test.ts`: 검사 범위는 테스트를 포함한 `src/**/*.ts` 전체다. import/re-export (type-only 포함) 및 `vi.mock("…")` 의 specifier를 검사하되 주석 안 예시는 제외한다. 상대 경로는 해소된 파일이 패키지 `src` 안에 있어야 하고, Builder를 가리키는 경로·alias는 **제품 소스와 테스트 모두 금지**한다.
+두 번째 층 `src/boundary.static.test.ts`: 검사 범위는 테스트를 포함한 `src` 아래 JS/TS 모듈 전체 (`ts/tsx/mts/cts/js/jsx/mjs/cjs`)다. import/re-export (type-only 포함) 및 `vi.mock("…")` 의 specifier를 검사하되 주석 안 예시는 제외한다. 상대 경로는 해소된 파일이 패키지 `src` 안에 있어야 하고, Builder를 가리키는 경로·alias는 **제품 소스와 테스트 모두 금지**한다.
 
-- **제품 소스** (`*.test.ts` 이외): 패키지 내부 제품 소스만 import할 수 있다. bare specifier와 `node:`는 금지하며 테스트 파일을 통한 우회 import도 금지한다. `dependencies`/`peerDependencies` 0 계약을 유지한다.
-- **테스트** (`*.test.ts`, `boundary.static.test.ts` 포함): 내부 파일 외에 `vitest` 및 `node:`만 허용한다. `vitest`는 `devDependencies`에 선언돼 있어야 한다. 나머지 devDependency를 일괄 허용하지 않는다. 이 예외는 제품 소스에 적용하지 않는다.
+- **제품 소스** (`*.test.{ts,tsx,mts,cts,js,jsx,mjs,cjs}` 이외): 패키지 내부 제품 소스만 import할 수 있다. bare specifier와 `node:`는 금지하며 테스트 파일을 통한 우회 import도 금지한다. `dependencies`/`peerDependencies` 0 계약을 유지한다.
+- **테스트** (`*.test.{ts,tsx,mts,cts,js,jsx,mjs,cjs}`, `boundary.static.test.ts` 포함): 내부 파일 외에 `vitest` 및 `node:`만 허용한다. `vitest`는 `devDependencies`에 선언돼 있어야 한다. 나머지 devDependency를 일괄 허용하지 않는다. 이 예외는 제품 소스에 적용하지 않는다.
 - **G1 정책 대조**: 이동한 정상 테스트의 `vitest` import → GREEN; 제품 `random.ts`의 `vitest` import → boundary RED; 테스트 파일의 Builder 상대 import → boundary RED. 주입을 제거하면 GREEN이어야 한다. 제품→테스트 import도 RED여야 한다.
 
 **G1 음성 검사 절차**: `src/random.ts` 끝에 `export { visibleRowCount } from "../../../apps/builder/src/services/ai/data/collectionReadModel";` 1 줄 주입 → `pnpm -F @composition/sample-data type-check` 가 TS6059 로 실패 · `test` 의 boundary RED → 줄 제거 → 둘 다 GREEN. 두 출력을 `docs/adr/evidence/220-g1-boundary-negative.log` 에 기록.
@@ -158,15 +158,15 @@
 
 `adr202-bundle-gate.mjs` 는 202 전용 (Builder Δ ≤ 3,584 · Preview Δ ≤ 0 · lazy 대상 AIPanel/runCommand) 이라 220 조건을 검사하지 않는다 (round 1 m4: +1,000 B fixture 가 pass). 220 판정기는 202 의 closure JSON 4 + manifest 입력을 그대로 받고:
 
-| 검사                                                                    | 조건                                                                                                    |
-| ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `sameLockfile` · `beforeSameRevision`/`afterSameRevision` (202 와 동일) | true                                                                                                    |
-| Builder initial gzip Δ · Preview initial gzip Δ                         | **각각 −512 ≤ Δ ≤ +512**                                                                                |
-| 절대 상한 · 만료                                                        | 1,319,829 / 592,000 · `2026-10-16`                                                                      |
-| `presetStrings` lazy                                                    | `src/builder/panels/datatable/presets/presetStrings.ts` 의 chunk 가 builder initial closure 에 **없음** |
-| 202 lazy 조건 (AIPanel · runCommand)                                    | 보존                                                                                                    |
+| 검사                                                      | 조건                                                                                                    |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `sameLockfile` · `beforeSameRevision`/`afterSameRevision` | lockfile 동일 · 각 arm의 SHA + `dirtyPatchSha256` + `dirtyFiles` 동일                                   |
+| Builder initial gzip Δ · Preview initial gzip Δ           | **각각 −512 ≤ Δ ≤ +512**                                                                                |
+| 절대 상한 · 만료                                          | 1,319,829 / 592,000 · `2026-10-16`                                                                      |
+| `presetStrings` lazy                                      | `src/builder/panels/datatable/presets/presetStrings.ts` 의 chunk 가 builder initial closure 에 **없음** |
+| 202 lazy 조건 (AIPanel · runCommand)                      | 보존                                                                                                    |
 
-**음성 fixture 2 개** (판정기 자기 검증, G4 통과 조건에 포함): ① after builder = before + 1,000 → exit 1 · ② manifest 를 조작해 presetStrings 를 initial 에 넣은 사본 → exit 1.
+**음성 fixture 3 개** (판정기 자기 검증, G4 통과 조건에 포함): ① after builder = before + 1,000 → exit 1 · ② manifest 를 조작해 presetStrings 를 initial 에 넣은 사본 → exit 1 · ③ 같은 commit SHA지만 Builder/Preview의 dirty patch·파일 목록이 다른 arm → exit 1.
 
 lockfile: workspace 패키지 추가로 `pnpm-lock.yaml` 이 바뀐다 → before arm 은 **Phase 1a 준비 커밋** (골격 + lockfile, 코드 이동 0) 이라 두 arm 의 lockfile sha 가 같다. 두 worktree 모두 `pnpm install --frozen-lockfile` + 엔진 wasm `engine-pkg` 복사 (ADR-202 절차).
 

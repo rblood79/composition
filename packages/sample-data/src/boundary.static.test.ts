@@ -1,10 +1,12 @@
 /**
  * ADR-220 경계 정적 검사 — 두 번째 층 (첫 층은 tsconfig `rootDir` 의 TS6059).
  *
- * 검사 범위: `src/**\/*.ts` 전체 (테스트 포함). import / re-export (type-only 포함) ·
- * `vi.mock("…")` 의 specifier 를 읽되 주석 안 예시는 제외한다.
+ * 검사 범위: `src` 아래 JS/TS 모듈 전체 (`ts/tsx/mts/cts/js/jsx/mjs/cjs`, 테스트 포함).
+ * import / re-export (type-only 포함) · `vi.mock("…")` 의 specifier 를 읽되 주석 안
+ * 예시는 제외한다.
  *
- * - 제품 소스 (`*.test.ts` 이외): 패키지 안 제품 소스만. bare specifier · `node:` 금지,
+ * - 제품 소스 (`*.test.{ts,tsx,mts,cts,js,jsx,mjs,cjs}` 이외): 패키지 안 제품 소스만.
+ *   bare specifier · `node:` 금지,
  *   테스트 파일 import 금지 (`dependencies`/`peerDependencies` 0 계약).
  * - 테스트: 패키지 안 파일 + `vitest` + `node:` 만. `vitest` 는 devDependencies 에 있어야 한다.
  *   나머지 devDependency 는 일괄 허용하지 않는다.
@@ -24,11 +26,13 @@ const PACKAGE_JSON = JSON.parse(
   devDependencies?: Record<string, string>;
 };
 
+const isModuleSource = (file: string) => /\.(?:[cm]?[jt]s|[jt]sx)$/.test(file);
+
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = join(dir, name);
     if (statSync(full).isDirectory()) return walk(full);
-    return full.endsWith(".ts") ? [full] : [];
+    return isModuleSource(full) ? [full] : [];
   });
 }
 
@@ -56,7 +60,7 @@ interface Violation {
   reason: string;
 }
 
-const isTest = (file: string) => /\.test\.ts$/.test(file);
+const isTest = (file: string) => /\.test\.(?:[cm]?[jt]s|[jt]sx)$/.test(file);
 const isInsideSrc = (target: string) => {
   const rel = relative(SRC, target);
   return rel !== "" && !rel.startsWith("..") && !rel.startsWith(sep);
@@ -75,7 +79,7 @@ function judge(file: string, source: string): Violation[] {
       const target = resolve(dirname(file), specifier);
       if (!isInsideSrc(target)) {
         push(specifier, "패키지 src 밖 상대 경로 (Builder 역참조)");
-      } else if (!test && /\.test(\.ts)?$/.test(target)) {
+      } else if (!test && /\.test(?:\.(?:[cm]?[jt]s|[jt]sx))?$/.test(target)) {
         push(specifier, "제품 소스가 테스트 파일을 import");
       }
       continue;
@@ -112,7 +116,7 @@ describe("ADR-220 경계 — @composition/sample-data 는 Builder 를 역참조�
     expect(PACKAGE_JSON.peerDependencies ?? {}).toEqual({});
   });
 
-  it("src/**/*.ts 의 import · re-export · vi.mock specifier 가 정책 안", () => {
+  it("src 아래 JS/TS 모듈의 import · re-export · vi.mock specifier 가 정책 안", () => {
     const files = walk(SRC);
     expect(files.length).toBeGreaterThan(5);
     expect(
@@ -122,7 +126,9 @@ describe("ADR-220 경계 — @composition/sample-data 는 Builder 를 역참조�
 
   it("정책 대조 — 제품의 vitest · 테스트의 Builder 상대 경로 · 제품→테스트 import 는 RED, 테스트의 vitest·node: 는 GREEN", () => {
     const product = join(SRC, "random.ts");
+    const productTsx = join(SRC, "future.tsx");
     const test = join(SRC, "sampleData.test.ts");
+    const testMts = join(SRC, "future.test.mts");
     // 이 파일 자체가 검사 대상이라 fixture 는 조립한다 — 소스에 import 문 모양을 남기지 않는다
     const importOf = (spec: string) =>
       ["import", "x", "from", `"${spec}";`].join(" ");
@@ -132,6 +138,28 @@ describe("ADR-220 경계 — @composition/sample-data 는 Builder 를 역참조�
       ["import", "type", "{ X }", "from", `"${spec}";`].join(" ");
     const mockOf = (spec: string) => ["vi", `mock("${spec}");`].join(".");
     const sideEffectOf = (spec: string) => ["import", `"${spec}";`].join(" ");
+    expect(
+      [
+        "x.ts",
+        "x.tsx",
+        "x.mts",
+        "x.cts",
+        "x.js",
+        "x.jsx",
+        "x.mjs",
+        "x.cjs",
+        "x.css",
+      ].filter(isModuleSource),
+    ).toEqual([
+      "x.ts",
+      "x.tsx",
+      "x.mts",
+      "x.cts",
+      "x.js",
+      "x.jsx",
+      "x.mjs",
+      "x.cjs",
+    ]);
     const fixtures: Array<[string, string, string[]]> = [
       [
         product,
@@ -147,6 +175,7 @@ describe("ADR-220 경계 — @composition/sample-data 는 Builder 를 역참조�
         ["제품 소스가 테스트 파일을 import"],
       ],
       [product, importOf("node:fs"), ["제품 소스의 node:"]],
+      [productTsx, importOf("node:fs"), ["제품 소스의 node:"]],
       [product, importOf("zod"), ["제품 소스의 bare specifier"]],
       [
         test,
@@ -158,6 +187,7 @@ describe("ADR-220 경계 — @composition/sample-data 는 Builder 를 역참조�
       [test, importOf("zod"), ["테스트 허용 밖 bare specifier"]],
       [test, importOf("vitest"), []],
       [test, importOf("node:fs"), []],
+      [testMts, importOf("node:fs"), []],
       [test, importOf("./generators"), []],
     ];
     for (const [file, line, expected] of fixtures) {

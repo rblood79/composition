@@ -8,7 +8,7 @@
  *     --before-builder …/before-builder.json --before-preview …/before-preview.json \
  *     --after-builder …/after-builder.json --after-preview …/after-preview.json \
  *     --manifest …/after-dist/.vite/manifest.json --out …/220-gate.json
- *   node apps/builder/scripts/adr220-bundle-gate.mjs --self-test   # 음성 fixture 2 (exit 1 이어야 한다)
+ *   node apps/builder/scripts/adr220-bundle-gate.mjs --self-test   # 음성 fixture 3
  *
  * 조건 (breakdown §7): sameLockfile · before/afterSameRevision · Builder·Preview initial gzip
  * |Δ| ≤ 512 각각 · 절대 상한 1,319,829 / 592,000 (ADR-202 재승인, 만료 2026-10-16) ·
@@ -25,6 +25,17 @@ const DELTA_LIMIT = 512;
 const PRESET_STRINGS_CHUNK = /^_presetStrings-[\w-]+\.js$/;
 const AI_ENTRY = "src/builder/panels/ai/AIPanel.tsx";
 const COMMAND_ENTRY = "src/services/ai/tools/runCommand.ts";
+
+function sameRevision(left, right) {
+  const leftDirtyFiles = [...(left.revision.dirtyFiles ?? [])].sort();
+  const rightDirtyFiles = [...(right.revision.dirtyFiles ?? [])].sort();
+  return (
+    left.revision.sha === right.revision.sha &&
+    (left.revision.dirtyPatchSha256 ?? null) ===
+      (right.revision.dirtyPatchSha256 ?? null) &&
+    JSON.stringify(leftDirtyFiles) === JSON.stringify(rightDirtyFiles)
+  );
+}
 
 export function judge({
   beforeBuilder,
@@ -68,9 +79,8 @@ export function judge({
       (value) =>
         value.revision.lockfileSha256 === beforeBuilder.revision.lockfileSha256,
     ),
-    beforeSameRevision:
-      beforeBuilder.revision.sha === beforePreview.revision.sha,
-    afterSameRevision: afterBuilder.revision.sha === afterPreview.revision.sha,
+    beforeSameRevision: sameRevision(beforeBuilder, beforePreview),
+    afterSameRevision: sameRevision(afterBuilder, afterPreview),
     builderDeltaWithin512: Math.abs(delta.builder) <= DELTA_LIMIT,
     previewDeltaWithin512: Math.abs(delta.preview) <= DELTA_LIMIT,
     builderAbsolute: after.builder <= BUILDER_CEILING,
@@ -100,11 +110,16 @@ export function judge({
   };
 }
 
-/** 음성 fixture 2 — 판정기 자기 검증: ① after builder = before + 1,000 → 실패 ② presetStrings 를 initial 에 넣은 manifest → 실패 */
+/** 음성 fixture 3 — ① after builder +1,000 ② presetStrings initial 편입 ③ 같은 SHA·다른 dirty patch → 실패 */
 export function selfTest() {
-  const revision = { sha: "a", lockfileSha256: "lock" };
-  const closure = (gzipBytes, files) => ({
-    revision,
+  const revision = {
+    sha: "a",
+    dirtyFiles: [],
+    dirtyPatchSha256: null,
+    lockfileSha256: "lock",
+  };
+  const closure = (gzipBytes, files, revisionOverride = revision) => ({
+    revision: revisionOverride,
     initial: { js: { gzipBytes, files } },
   });
   const manifest = {
@@ -134,6 +149,14 @@ export function selfTest() {
         "assets/presetStrings-x.js",
       ]),
     }),
+    dirtyPatchMismatch: judge({
+      ...good,
+      beforePreview: closure(590_000, initial, {
+        ...revision,
+        dirtyFiles: [" M apps/builder/src/example.ts"],
+        dirtyPatchSha256: "different-patch",
+      }),
+    }),
   };
   const verdicts = {
     controlPasses: results.control.pass === true,
@@ -143,6 +166,9 @@ export function selfTest() {
     presetStringsInInitialFails:
       results.presetStringsInInitial.pass === false &&
       results.presetStringsInInitial.checks.presetStringsLazy === false,
+    dirtyPatchMismatchFails:
+      results.dirtyPatchMismatch.pass === false &&
+      results.dirtyPatchMismatch.checks.beforeSameRevision === false,
   };
   return { verdicts, pass: Object.values(verdicts).every(Boolean), results };
 }
