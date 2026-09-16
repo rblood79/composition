@@ -18,7 +18,10 @@ export type {
   UseResolvedCollectionItemsResult,
 } from "./useResolvedCollectionItems";
 export { CollectionDataProvider } from "./CollectionDataProvider";
-export { useCollectionDataServices } from "./collectionDataContext";
+export {
+  CollectionDataContext,
+  useCollectionDataServices,
+} from "./collectionDataContext";
 export { collectionDataCache, createCacheKey } from "./useCollectionDataCache";
 
 export { default as CollectionDataCache } from "./useCollectionDataCache";

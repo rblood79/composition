@@ -1,5 +1,11 @@
 import { ComponentElementProps } from "../../../types/core/store.types";
-import { ComponentDefinition, ComponentCreationContext } from "../types";
+import {
+  ChildDefinition,
+  ComponentDefinition,
+  ComponentCreationContext,
+} from "../types";
+import { deriveDefaultPropsFromCatalog } from "../../../types/builder/defaultPropsDerivation";
+import { createProgressBarDefinition } from "./DisplayComponents";
 
 /**
  * TextField 복합 컴포넌트 정의
@@ -534,6 +540,134 @@ export function createSliderDefinition(
         } as ComponentElementProps,
         children: thumbChildren,
       },
+    ],
+  };
+}
+
+/**
+ * FileUpload compound 정의 (ADR-201 Phase 3).
+ *
+ * CSS DOM 구조 (canonical — Canvas 구조 정본, DOM 은 idle 상태에서 같은 자식을 그린다):
+ * FileUpload (parent, internal renderer "fileupload", column flex · gap — rule shell)
+ *   ├─ DropZone   (RAC leaf — label/description, 시각은 DropZone rule 의 dashed box)
+ *   ├─ FileTrigger (RAC leaf — children 텍스트를 `.react-aria-FileTrigger` Button 으로 self-compose)
+ *   ├─ ProgressBar (샘플 행 1 — label = 파일명, value 60, Label/Value/Track 자식은 ProgressBar 동형)
+ *   └─ ProgressBar (샘플 행 2 — label = 파일명, value 25)
+ *
+ * 샘플 행 2개를 factory 가 싣는 이유 (ADR-157 샘플 정책 동형 · ADR-194 Chart 선례): 파일을
+ * 고르기 전에도 팔레트에서 끌어다 놓으면 "파일 행이 이렇게 보인다" 가 보여야 한다 — 빈 상자를
+ * 놓으면 고장인지 빈 건지 구별이 안 된다. DOM 은 큐에 파일이 들어오면 샘플 행 대신 런타임 행
+ * (RAC GridList) 을 그린다 — Skia 는 디자인 타임 샘플 상태만 (R7).
+ *
+ * DropZone 과 FileTrigger 를 **형제** 로 두는 이유: composition `DropZone` 컴포넌트는 자식이
+ * 있으면 label/description 기본 콘텐츠를 그리지 않는다 (`children || (…)`). FileTrigger 를
+ * DropZone 안에 넣으면 라벨이 사라지고, Skia 는 FileTrigger 를 box+text leaf 로 그리므로
+ * Button 자식을 두면 이중으로 그려진다 — leaf self-compose (2026-09-10 확립 경로) 가 대칭 경로다.
+ */
+export function createFileUploadDefinition(
+  context: ComponentCreationContext,
+): ComponentDefinition {
+  const { parentElement } = context;
+  const parentId = parentElement?.id || null;
+
+  // 샘플 행 = ProgressBar compound 동형 (Label/Value/Track 자식 · grid 배치). 파일명은 Label,
+  //   "크기 · 진행률" 은 Value 텍스트로 싣는다 — 런타임 행 (RAC GridList 안 ProgressBar) 과 같은 어법.
+  const sampleRow = (
+    name: string,
+    sizeLabel: string,
+    value: number,
+  ): ChildDefinition => {
+    const base = createProgressBarDefinition(context);
+    const { parent_id: _parentId, ...parentDef } = base.parent;
+    void _parentId;
+    const label = name;
+    const valueLabel = `${sizeLabel} · ${value}%`;
+    return {
+      ...parentDef,
+      props: {
+        ...(parentDef.props as ComponentElementProps),
+        label,
+        value,
+        valueLabel,
+        showValueLabel: true,
+      } as ComponentElementProps,
+      children: base.children.map((child) => {
+        if (child.type === "Label") {
+          return {
+            ...child,
+            props: {
+              ...(child.props as ComponentElementProps),
+              children: label,
+            } as ComponentElementProps,
+          };
+        }
+        if (child.type === "ProgressBarValue") {
+          return {
+            ...child,
+            props: {
+              ...(child.props as ComponentElementProps),
+              children: valueLabel,
+            } as ComponentElementProps,
+          };
+        }
+        return child;
+      }),
+    };
+  };
+
+  return {
+    type: "FileUpload",
+    parent: {
+      type: "FileUpload",
+      props: {
+        // catalog accepts.default (chunkSize/parallelUploads/retryDelays/maxFileSize/autoProceed/
+        //   allowsMultiple/showPreview) 파생 — getDefaultProps("FileUpload") 와 같은 값 (팔레트
+        //   드롭과 getDefaultProps 두 경로가 갈리면 진입로마다 다르게 보인다, Chart 선례).
+        ...deriveDefaultPropsFromCatalog("FileUpload"),
+      } as ComponentElementProps,
+      parent_id: parentId,
+    },
+    children: [
+      {
+        type: "DropZone",
+        props: {
+          label: "Drop files here",
+          description: "or use the button below to select files",
+          size: "md",
+          // createDefaultDropZoneProps (unified.types) 의 컨테이너 배치 미러 — Skia/레이아웃 엔진은
+          //   props.style 에서만 padding/gap 을 읽고 DOM 은 generated CSS (rule.sizes.md 24/12) 가
+          //   같은 값을 준다 (ADR-907 Layer B). 단독 DropZone 의 inline-flex 대신 flex + width 100%
+          //   — column flex 부모 안에서 한 줄을 다 쓴다.
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: "2px",
+            paddingTop: "24px",
+            paddingRight: "24px",
+            paddingBottom: "24px",
+            paddingLeft: "24px",
+            rowGap: "12px",
+            columnGap: "12px",
+            width: "100%",
+          },
+        } as ComponentElementProps,
+      },
+      {
+        type: "FileTrigger",
+        props: {
+          children: "Select files",
+          variant: "default",
+          size: "md",
+          allowsMultiple: true,
+          style: {
+            width: "fit-content",
+          },
+        } as ComponentElementProps,
+      },
+      sampleRow("report.pdf", "2.4 MB", 60),
+      sampleRow("photo.jpg", "860 KB", 25),
     ],
   };
 }

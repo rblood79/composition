@@ -5282,6 +5282,56 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
   },
+  // ADR-201 Phase 3 (2026-09-17) — 대용량 파일 업로드 compound 의 컨테이너 shell. D1 은 internal
+  //   source (RAC 에 없음 — 자식 DropZone/FileTrigger 가 RAC), D3 는 여기 rule 이 정본이다.
+  //   투명 fill · column flex · gap 만 갖고 자식 시각은 DropZone/FileTrigger/ProgressBar/frame
+  //   기존 rule 이 그린다 — 신규 시각 채널 0 (generate-css 확장 없음). Skia/레이아웃 엔진 컨테이너
+  //   배치는 factory props.style 이 SSOT (ADR-907 Layer B — DropZone 동형), rule 의 gap 은
+  //   generated CSS emit 전용.
+  FileUpload: {
+    defaultVariant: "default",
+    defaultSize: "md",
+    variants: {
+      default: {
+        fill: {
+          default: {
+            base: "{color.transparent}",
+            hover: "{color.transparent}",
+            pressed: "{color.transparent}",
+          },
+          alpha: 0,
+        },
+        colors: {
+          text: "{color.neutral}",
+        },
+      },
+    },
+    sizes: {
+      md: {
+        fontSize: "{typography.text-sm}",
+        borderRadius: "{radius.none}",
+        height: 0,
+        gap: 12,
+      },
+    },
+    structure: {
+      // "text" archetype = block + width 100% + border-box. "default" 는 DEFAULT_BASE_STYLES 의
+      //   cursor:pointer 가 딸려와 컨테이너에 손가락 커서가 붙는다 (Chart 선례 2026-09-08).
+      archetype: "text",
+      element: "div",
+      containerStyles: {
+        display: "flex",
+        flexDirection: "column",
+        width: "100%",
+      },
+      states: {
+        disabled: {
+          opacity: 0.38,
+          pointerEvents: "none",
+        },
+      },
+    },
+  },
   FileTrigger: {
     defaultVariant: "default",
     defaultSize: "md",

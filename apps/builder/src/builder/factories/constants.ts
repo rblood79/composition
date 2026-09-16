@@ -94,4 +94,6 @@ export const COMPLEX_COMPONENT_TAGS = new Set([
   "Breadcrumbs",
   "IllustratedMessage",
   "RangeCalendar",
+  // ADR-201 (2026-09-17): FileUpload compound — factory 가 DropZone/FileTrigger/샘플 행 자식을 만든다.
+  "FileUpload",
 ]);

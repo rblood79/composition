@@ -104,6 +104,37 @@ describe("When 축 — 어휘 정합", () => {
   });
 });
 
+describe("ADR-201 — 파일 입력 트리거 등재 (RAC 실존 callback 만)", () => {
+  it("FileTrigger 는 onSelect 하나, DropZone 은 onDrop 하나를 When 축으로 낸다", () => {
+    expect(resolveTriggers("FileTrigger")).toEqual(["onSelect"]);
+    expect(resolveTriggers("DropZone")).toEqual(["onDrop"]);
+  });
+
+  it("커스텀 완료/오류 이벤트는 등재하지 않는다 (R2 — ADR-158 G1)", () => {
+    const custom = ["onUploadComplete", "onUploadError", "onUploadProgress"];
+    for (const type of ["FileTrigger", "DropZone", "FileUpload"]) {
+      for (const evt of custom) {
+        expect(resolveTriggers(type), `${type}.${evt}`).not.toContain(evt);
+      }
+    }
+    // FileUpload compound 자체는 트리거가 아니다 — 자식 FileTrigger/DropZone 이 트리거다.
+    expect(resolveTriggers("FileUpload")).toEqual([]);
+  });
+
+  it("고유 capability 는 없다 (업로드 큐는 canonical 밖 런타임 층)", () => {
+    expect(Object.keys(resolveCapabilities("FileTrigger"))).toEqual([
+      "show",
+      "hide",
+      "toggle",
+    ]);
+    expect(Object.keys(resolveCapabilities("DropZone"))).toEqual([
+      "show",
+      "hide",
+      "toggle",
+    ]);
+  });
+});
+
 describe("보류(deferred) 계약", () => {
   it("deferred 키는 같은 컴포넌트의 capabilities 에 동시 존재하지 않는다", () => {
     const conflict = Object.entries(CAPABILITY_REGISTRY).flatMap(

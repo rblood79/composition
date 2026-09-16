@@ -103,6 +103,9 @@ export { Meter } from "./Meter";
 export { Skeleton } from "./Skeleton";
 export { IllustratedMessage } from "./IllustratedMessage";
 export { Chart } from "./Chart";
+// ADR-201: 대용량 파일 업로드 compound — publish registry 와 renderFileUpload 가 같은 컴포넌트.
+export { FileUpload } from "./FileUpload";
+export type { FileUploadProps } from "./FileUpload";
 export type { ChartProps } from "./Chart";
 export { StatusLight } from "./StatusLight";
 export { Avatar } from "./Avatar";

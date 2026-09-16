@@ -86,4 +86,9 @@ describe("publish ComponentRegistry 커버리지 (ADR-194 R6)", () => {
   it("Chart 는 등록돼 있다 (ADR-194)", () => {
     expect(registeredTypes().has("Chart")).toBe(true);
   });
+
+  it("FileUpload 는 등록돼 있다 (ADR-201)", () => {
+    expect(registeredTypes().has("FileUpload")).toBe(true);
+    expect(paletteTypes()).toContain("FileUpload");
+  });
 });
