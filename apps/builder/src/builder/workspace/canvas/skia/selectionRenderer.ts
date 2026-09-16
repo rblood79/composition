@@ -145,12 +145,15 @@ export function clearOverlayFontCache(): void {
 
 /** Page Header 띠 설정 — 페이지 상단에 붙는 32px 헤더 (화면 px, 줌 무관) */
 export const PAGE_HEADER_HEIGHT = 32;
+/** 헤더 띠 하단 ↔ 페이지 상단 간격 (화면 px) */
+export const PAGE_HEADER_GAP = 1;
 export const PAGE_HEADER_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
 
 /** Page Title 레이블 설정 */
 const PAGE_TITLE_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
-// 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 (32+12)/2 = 22px
-const PAGE_TITLE_OFFSET_Y = (PAGE_HEADER_HEIGHT + PAGE_TITLE_FONT_SIZE) / 2;
+// 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 gap + (32+12)/2 = 23px
+const PAGE_TITLE_OFFSET_Y =
+  PAGE_HEADER_GAP + (PAGE_HEADER_HEIGHT + PAGE_TITLE_FONT_SIZE) / 2;
 const PAGE_TITLE_COLOR_R = 0x64 / 255; // slate-500 (#64748b)
 const PAGE_TITLE_COLOR_G = 0x74 / 255;
 const PAGE_TITLE_COLOR_B = 0x8b / 255;
@@ -507,7 +510,8 @@ export function renderLasso(
 
 /**
  * 페이지 상단에 붙는 헤더 띠를 그린다 — 폭은 page width (scene 단위, 줌 추종),
- * 높이는 화면 32px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 32/zoom).
+ * 높이는 화면 32px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 32/zoom),
+ * 페이지 상단과 화면 1px 띄운다.
  *
  * 씬-로컬 좌표계 (page 좌상단 = 원점) 에서 호출된다. 색은 호출자가 CSS 토큰
  * (`--bg-muted` / 활성 `--focus-ring` 40%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
@@ -523,6 +527,7 @@ export function renderPageHeader(
   if (pageWidth <= 0) return;
   const safeZoom = zoom === 0 ? 1 : zoom;
   const sceneHeight = PAGE_HEADER_HEIGHT / safeZoom;
+  const sceneGap = PAGE_HEADER_GAP / safeZoom;
 
   const scope = new SkiaDisposable();
   try {
@@ -531,7 +536,7 @@ export function renderPageHeader(
     paint.setStyle(ck.PaintStyle.Fill);
     paint.setColor(ck.Color4f(color[0], color[1], color[2], alpha));
     canvas.drawRect(
-      ck.XYWHRect(0, -sceneHeight, pageWidth, sceneHeight),
+      ck.XYWHRect(0, -sceneGap - sceneHeight, pageWidth, sceneHeight),
       paint,
     );
   } finally {

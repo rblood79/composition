@@ -6,6 +6,7 @@ import {
   renderDimensionLabels,
   renderPageHeader,
   renderPageTitle,
+  PAGE_HEADER_GAP,
   PAGE_HEADER_HEIGHT,
   PAGE_HEADER_PADDING_X,
 } from "./selectionRenderer";
@@ -272,7 +273,7 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
     clearOverlayFontCache();
   });
 
-  it("높이는 화면 32px 고정(scene 은 32/zoom), 폭은 page width 그대로", () => {
+  it("높이는 화면 32px 고정(scene 은 32/zoom), 폭은 page width 그대로, 페이지와 1px 간격", () => {
     const ck = mockCk();
     const at100 = new MockCanvas();
     const at200 = new MockCanvas();
@@ -283,20 +284,21 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
 
     expect(at100.rects[0]?.rect).toEqual({
       x: 0,
-      y: -PAGE_HEADER_HEIGHT,
+      y: -(PAGE_HEADER_GAP + PAGE_HEADER_HEIGHT),
       w: 390,
       h: PAGE_HEADER_HEIGHT,
     });
     expect(at200.rects[0]?.rect).toEqual({
       x: 0,
-      y: -PAGE_HEADER_HEIGHT / 2,
+      y: -(PAGE_HEADER_GAP + PAGE_HEADER_HEIGHT) / 2,
       w: 390,
       h: PAGE_HEADER_HEIGHT / 2,
     });
     expect(PAGE_HEADER_HEIGHT).toBe(32);
+    expect(PAGE_HEADER_GAP).toBe(1);
   });
 
-  it("alpha 는 paint 색상 4번째 채널로 전달된다 (활성 = focus-ring 40%)", () => {
+  it("alpha 는 paint 색상 4번째 채널로 전달된다 (활성 = focus-ring 30%)", () => {
     const ck = mockCk();
     const canvas = new MockCanvas();
     renderPageHeader(
@@ -305,9 +307,9 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
       100,
       1,
       [0.5, 0.6, 0.7],
-      0.4,
+      0.3,
     );
-    expect(canvas.rects[0]?.color).toEqual([0.5, 0.6, 0.7, 0.4]);
+    expect(canvas.rects[0]?.color).toEqual([0.5, 0.6, 0.7, 0.3]);
   });
 
   it("타이틀 텍스트는 헤더 안에 세로 중앙 + 좌측 패딩으로 놓인다", () => {
@@ -323,8 +325,15 @@ describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
       false,
     );
     expect(metrics?.textX).toBe(PAGE_HEADER_PADDING_X);
-    expect(metrics?.textTop).toBe(-(PAGE_HEADER_HEIGHT + 12) / 2);
-    expect(metrics!.textTop).toBeGreaterThanOrEqual(-PAGE_HEADER_HEIGHT);
-    expect(metrics!.textTop + metrics!.textHeight).toBeLessThanOrEqual(0);
+    expect(metrics?.textTop).toBe(
+      -(PAGE_HEADER_GAP + (PAGE_HEADER_HEIGHT + 12) / 2),
+    );
+    // 띠 안 (−33 ~ −1) 에 들어간다
+    expect(metrics!.textTop).toBeGreaterThanOrEqual(
+      -(PAGE_HEADER_GAP + PAGE_HEADER_HEIGHT),
+    );
+    expect(metrics!.textTop + metrics!.textHeight).toBeLessThanOrEqual(
+      -PAGE_HEADER_GAP,
+    );
   });
 });

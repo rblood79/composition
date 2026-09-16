@@ -108,8 +108,8 @@ const PAGE_HEADER_ACTIVE_FALLBACK = parseInt(
   TAILWIND_PALETTE.blue[400].slice(1),
   16,
 );
-/** 활성 페이지 헤더 띠 alpha (사용자 지정 40%) */
-const PAGE_HEADER_ACTIVE_ALPHA = 0.4;
+/** 활성 페이지 헤더 띠 alpha (사용자 지정 30%) */
+const PAGE_HEADER_ACTIVE_ALPHA = 0.3;
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -300,7 +300,7 @@ function resolvePageHeaderColor(): readonly [number, number, number] {
   );
 }
 
-/** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 40% 적용) */
+/** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 30% 적용) */
 function resolvePageHeaderActiveColor(): readonly [number, number, number] {
   return hexToColor4fChannels(
     cssColorToHex(
