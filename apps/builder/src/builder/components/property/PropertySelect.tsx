@@ -24,16 +24,6 @@ import {
 } from "../../../i18n";
 import "./PropertySelectGrid.css";
 
-const SWATCH_STYLE = {
-  flex: "none",
-  display: "inline-block",
-  width: "var(--text-xs)",
-  height: "var(--text-xs)",
-  borderRadius: "var(--radius-full)",
-  boxShadow: "inset 0 0 0 1px rgb(0 0 0 / 0.12)",
-  marginInlineEnd: "var(--spacing-xs)",
-} as const;
-
 interface PropertySelectProps {
   label: string;
   value: string;
@@ -291,7 +281,7 @@ export const PropertySelect = memo(
                         <span
                           aria-hidden="true"
                           className="property-select__swatch"
-                          style={{ ...SWATCH_STYLE, background: swatches[value] }}
+                          style={{ background: swatches[value] }}
                         />
                       )}
                       {selectedText}
@@ -362,12 +352,9 @@ export const PropertySelect = memo(
                       <span
                         aria-hidden="true"
                         className="property-select__swatch"
-                        // 팝오버는 portal (`.section` 밖) 이고 생성 Select.css 가 unlayered 라 크기는
-                        //   인라인으로 고정한다 — 12 (`--text-xs`) 점, 글자 앞 여백 4
-                        style={{
-                          ...SWATCH_STYLE,
-                          background: swatches[option.value],
-                        }}
+                        // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
+                        //   변하는 색만 인라인
+                        style={{ background: swatches[option.value] }}
                       />
                     )}
                     {i18n && translateOptions

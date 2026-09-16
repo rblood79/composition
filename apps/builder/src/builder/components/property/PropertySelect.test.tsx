@@ -227,3 +227,26 @@ it("grid 모드 — 구획에 없는 값은 마지막 구획 뒤에 선다", () 
   expect(sections).toHaveLength(2);
   expect(within(sections[1] as HTMLElement).getAllByRole("option").map((o) => o.textContent || o.getAttribute("aria-label"))).toHaveLength(2);
 });
+
+// 2026-09-16 사용자 지적 — 반복되는 모양은 클래스, 변하는 색만 인라인
+it("색 점은 클래스가 모양을 맡고 인라인은 background 하나뿐", () => {
+  const swatches = { accent: "var(--accent)", negative: "var(--negative)" };
+  render(
+    <PropertySelect
+      label="Variant"
+      value="accent"
+      onChange={() => {}}
+      options={[
+        { value: "accent", label: "Accent" },
+        { value: "negative", label: "Negative" },
+      ]}
+      swatches={swatches}
+    />,
+  );
+  const dot = document.querySelector(
+    ".property-select__swatch",
+  ) as HTMLElement;
+  expect(dot).not.toBeNull();
+  expect(dot.style.background).toBe("var(--accent)");
+  expect(dot.style.length).toBe(1);
+});
