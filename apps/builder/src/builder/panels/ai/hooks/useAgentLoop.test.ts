@@ -240,3 +240,50 @@ describe("ADR-202 direct 진입 순서", () => {
     expect(state.isStreaming).toBe(false);
   });
 });
+
+describe("추천 작업의 완료 보고", () => {
+  it("검증 성공한 작업명을 표시하며 raw set 명령을 사용자 메시지로 남기지 않는다", async () => {
+    scripted.direct = true;
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
+    await act(async () => {
+      await result.current.runAgent("Allow custom input values", {
+        identity: "selection",
+        program: {
+          version: 1,
+          source: "compiler",
+          operations: [
+            {
+              op: "update_element",
+              args: { elementId: "combo", props: { allowsCustomValue: true } },
+            },
+          ],
+        },
+      });
+    });
+    const messages = useConversationStore.getState().messages;
+    expect(messages.find((message) => message.role === "user")?.content).toBe(
+      "Allow custom input values",
+    );
+    expect(
+      messages.find((message) => message.role === "assistant")?.content,
+    ).toContain("Completed: Allow custom input values");
+    expect(scripted.runnerCreations).toBe(0);
+  });
+  it("로컬 실행이 처리되지 않았다고 해도 모델에게 작업을 넘기지 않는다", async () => {
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
+    await act(async () => {
+      await result.current.runAgent("작업", {
+        identity: "selection",
+        program: {
+          version: 1,
+          source: "compiler",
+          operations: [{ op: "create_element", args: { type: "Button" } }],
+        },
+      });
+    });
+    expect(scripted.runnerCreations).toBe(0);
+    expect(useConversationStore.getState().messages.at(-1)?.content).toContain(
+      "could not be completed",
+    );
+  });
+});

@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [AI 패널 — 로컬 추천 작업의 완료 조건 실행] - 2026-09-16
+
+### Changed
+
+- 추천을 표시 당시 선택과 검증된 단일 IR에 연결했다. 클릭 때 자연어를 재해석하지 않고 기존 compiler validator/tool 경로로 실행하며, 선택 변경·검증 실패 시 모델 fallback 없이 중단한다.
+- 필수 입력·사용자 정의 값·선택 모드·숫자 step 설정은 필요한 경우 readonly/disabled도 같은 mutation과 history 1건으로 해제한다. 기존 tool의 모든 요청값 read-back이 성공한 경우에만 작업명과 검증 완료를 보고한다. 대화에는 내부 `set` 문법 대신 사용자가 누른 작업명을 남긴다.
+
+## [AI 패널 — RAC 주요 기능과 공통 편집 추천 분리] - 2026-09-16
+
+### Changed
+
+- 추천을 「컴포넌트 기능」(최대 3개)과 「공통 편집」(최대 2개)으로 분리했다. RAC 컴포넌트 레퍼런스 md와 현재 catalog 편집 계약을 대조한 40종의 기능 우선순위를 적용해 Button pending/submit, Checkbox 부분 선택, ComboBox 사용자 입력, Disclosure 펼침, NumberField step 등이 variant/size에 밀리지 않게 했다.
+- 우선순위 메타데이터는 허용 prop/value를 정의하지 않는다. 현재값·공통 compiler 검증을 재사용하며, callback·데이터 쓰기·미노출 API가 필요한 문서 기능은 자동 실행으로 제안하지 않는다. 실제 모델 호출 없이 실행되는 동작만 표시한다.
+
+## [AI 패널 — 선택 컴포넌트별 로컬 실행 추천] - 2026-09-16
+
+### Changed
+
+- AI suggestions를 고정된 디자인 요청 3종에서 선택 컴포넌트의 편집 계약·현재값 기반 명령으로 변경했다. 숨김/조건부 필드와 compiler 검증 실패 후보는 제외한다. 모델 미설정 및 대화 진행 후에도 추천을 표시하며 기존 실행 경로로 제출한다. 다중 선택에는 단일 요소 편집을 추천하지 않는다.
+
 ## [Properties 패널 — RAC 기본값이 있는 입력의 계약 default 동기] - 2026-09-16
 
 ### Fixed

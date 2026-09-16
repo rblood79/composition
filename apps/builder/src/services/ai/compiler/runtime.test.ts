@@ -158,3 +158,57 @@ describe("ADR-202 runtime routing", () => {
     expect(harness.execute).not.toHaveBeenCalled();
   });
 });
+
+describe("표시된 로컬 작업의 실행", () => {
+  it("자연어 라벨을 다시 해석하지 않고 같은 validator/executor로 실행한다", async () => {
+    const proposal = {
+      identity: harness.identity,
+      program: { ...program, source: "compiler" as const },
+    };
+    const result = await runCompilerRequest(
+      "확인 버튼 작업",
+      t,
+      new AbortController().signal,
+      proposal as never,
+    );
+    expect(result.result?.success).toBe(true);
+    expect(harness.execute).toHaveBeenCalledTimes(1);
+    expect(harness.resolve).not.toHaveBeenCalled();
+  });
+  it("추천 이후 선택이 바뀌면 실행도 모델 호출도 하지 않는다", async () => {
+    const result = await runCompilerRequest(
+      "확인 버튼 작업",
+      t,
+      new AbortController().signal,
+      {
+        identity: "old-selection",
+        program: { ...program, source: "compiler" },
+      } as never,
+    );
+    expect(result.result).toMatchObject({
+      success: false,
+      error: "context-changed",
+    });
+    expect(harness.execute).not.toHaveBeenCalled();
+    expect(harness.resolve).not.toHaveBeenCalled();
+  });
+  it("로컬 proposal도 추가 operation이나 잘못된 source를 우회시키지 못한다", async () => {
+    for (const invalid of [
+      {
+        ...program,
+        source: "compiler",
+        operations: [...program.operations, ...program.operations],
+      },
+      program,
+    ]) {
+      const result = await runCompilerRequest(
+        "작업",
+        t,
+        new AbortController().signal,
+        { identity: harness.identity, program: invalid } as never,
+      );
+      expect(result.result?.success).toBe(false);
+    }
+    expect(harness.execute).not.toHaveBeenCalled();
+  });
+});

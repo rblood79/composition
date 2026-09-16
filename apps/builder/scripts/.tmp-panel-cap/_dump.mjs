@@ -1,0 +1,12 @@
+import { chromium } from "playwright"; import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)"));
+const browser = await chromium.launch({ headless: true });
+const ctx = await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1400 } });
+await ctx.addInitScript(() => { try { localStorage.setItem("composition-locale", "ko-KR"); } catch {} });
+const page = await ctx.newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`i18n-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1500);
+console.log(await page.evaluate(() => ({ pressed: Array.from(document.querySelectorAll("button[aria-pressed]")).map((b) => (b.getAttribute("aria-label") || b.textContent.trim()) + "=" + b.getAttribute("aria-pressed")), panelIds: Array.from(document.querySelectorAll("[data-panel-id]")).map((e) => e.getAttribute("data-panel-id")), listItems: document.querySelectorAll("button.list-item").length })));
+await browser.close();

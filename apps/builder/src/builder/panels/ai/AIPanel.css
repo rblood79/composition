@@ -40,10 +40,23 @@
     font-weight: var(--font-weight-medium);
   }
 
-  .ai-suggestions {
+  .ai-suggestions,
+  .ai-suggestion-group {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-sm);
+  }
+
+  .ai-suggestion-heading {
+    margin: 0;
+    color: var(--fg-muted);
+    font-size: var(--text-xs);
+    font-weight: var(--font-weight-medium);
+    line-height: var(--text-xs--line-height);
+  }
+
+  .ai-suggestion-group + .ai-suggestion-group {
+    margin-top: var(--spacing-sm);
   }
 
   /* 칩 28 (컨트롤 티어 · 알약) — 종전 padding 8 12 파생 36 · r8 은 규격 밖 (2026-09-13).

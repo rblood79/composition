@@ -1,0 +1,20 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: true });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1200 } })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`u-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1000);
+const panel = async (name, want) => { const btn = page.getByRole("button", { name, exact: true }).first(); const pressed = await btn.getAttribute("aria-pressed"); if ((pressed === "true") !== want) { await btn.click(); await page.waitForTimeout(400); } };
+await panel("Components", true); const item = page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^Button$/i }) }).first(); await item.click(); await page.waitForTimeout(800); await panel("Components", false); await panel("Properties", true); await page.waitForTimeout(400);
+const P = '[data-panel-id="properties"]';
+await page.evaluate((P) => { document.querySelectorAll(`${P} .section-caret[aria-expanded="false"]`).forEach((c) => c.click()); }, P); await page.waitForTimeout(300);
+// click Disabled chip
+await page.locator(`${P} .property-chips .react-aria-ToggleButton`).filter({ hasText: /^Disabled$/ }).click(); await page.waitForTimeout(400);
+const read = () => page.evaluate(() => { const st = window.__composition_STORE__.getState(); const el = st.elementsMap.get(st.selectedElementId); return { has: Object.hasOwn(el.props, "isDisabled"), v: el.props.isDisabled, keys: Object.keys(el.props) }; });
+console.log("after chip", JSON.stringify(await read()));
+await page.evaluate(() => { window.__composition_STORE__.getState().updateSelectedProperties({ isDisabled: undefined }); }); await page.waitForTimeout(400);
+console.log("after undefined", JSON.stringify(await read()));
+await browser.close();

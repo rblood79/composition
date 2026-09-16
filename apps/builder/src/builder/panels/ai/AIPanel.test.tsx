@@ -4,12 +4,15 @@ import React from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { ChatMessage as ChatMessageType } from "../../../types/integrations/chat.types";
+
 const mockRunAgent = vi.hoisted(() => vi.fn());
 const mockStopAgent = vi.hoisted(() => vi.fn());
 const mockUpdateContext = vi.hoisted(() => vi.fn());
 const mockClearConversation = vi.hoisted(() => vi.fn());
 
 const mockLoopState = vi.hoisted(() => ({
+  messages: [] as ChatMessageType[],
   hasAgent: true,
   isStreaming: false,
 }));
@@ -36,6 +39,26 @@ const mockBuilderState = vi.hoisted(() => ({
   },
 }));
 
+vi.mock("./hooks/useLocalSuggestions", () => ({
+  useLocalSuggestions: () => ({
+    selectedType: mockBuilderState.elementsMap.get(
+      mockBuilderState.selectedElementId,
+    )?.type,
+    suggestions: [
+      {
+        label: "Show pending state",
+        request: "set isPending to true",
+        group: "component",
+      },
+      {
+        label: "Variant · Outline",
+        request: "set variant to outline",
+        group: "common",
+      },
+    ],
+  }),
+}));
+
 vi.mock("../../stores", () => ({
   useStore: <T,>(selector: (state: typeof mockBuilderState) => T): T =>
     selector(mockBuilderState),
@@ -50,7 +73,7 @@ vi.mock("../../stores/conversation", () => ({
 
 vi.mock("./hooks/useAgentLoop", () => ({
   useAgentLoop: () => ({
-    messages: [],
+    messages: mockLoopState.messages,
     isStreaming: mockLoopState.isStreaming,
     isAgentRunning: false,
     currentTurn: 0,
@@ -151,16 +174,20 @@ describe("AIPanel Photoshop-style initial experience", () => {
 
     expect(screen.getByRole("heading", { name: "AI Assistant" })).toBeTruthy();
     expect(
-      screen.getByText("Here are some ideas for the selected Button."),
+      screen.getByText("Ready to run for the selected Button."),
     ).toBeTruthy();
     expect(
       screen.getByRole("group", { name: "Suggested prompts" }),
     ).toBeTruthy();
     expect(
       screen.getByRole("button", {
-        name: /Please improve the visual hierarchy of the selected Button/,
+        name: /Variant · Outline/,
       }),
     ).toBeTruthy();
+    expect(
+      screen.getByRole("group", { name: "Component features" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("group", { name: "Common edits" })).toBeTruthy();
     expect(screen.getByRole("textbox", { name: "Ask anything" })).toBeTruthy();
     expect(
       screen.getByRole<HTMLButtonElement>("button", {
@@ -181,12 +208,10 @@ describe("AIPanel Photoshop-style initial experience", () => {
 
     fireEvent.click(
       screen.getByRole("button", {
-        name: /Please improve the visual hierarchy of the selected Button/,
+        name: /Variant · Outline/,
       }),
     );
-    expect(mockRunAgent).toHaveBeenCalledWith(
-      "Please improve the visual hierarchy of the selected Button.",
-    );
+    expect(mockRunAgent).toHaveBeenCalledWith("set variant to outline");
 
     const composer = screen.getByRole("textbox", {
       name: "Ask anything",
@@ -236,7 +261,11 @@ describe("BYOK 미설정 최초 진입 (R2)", () => {
     expect(
       screen.getByRole("button", { name: "Open agent settings" }),
     ).toBeTruthy();
-    expect(screen.queryByRole("group", { name: "추천 요청" })).toBeNull();
+    expect(
+      screen.getByRole("group", { name: "Suggested prompts" }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Variant · Outline" }));
+    expect(mockRunAgent).toHaveBeenCalledWith("set variant to outline");
   });
 
   it("안내 버튼이 고급 모드를 연다 — 길이 한 번에 이어진다", () => {
@@ -261,5 +290,32 @@ describe("ADR-202 one-shot 취소", () => {
     const stop = screen.getByRole("button", { name: /중지|Stop/i });
     fireEvent.click(stop);
     expect(mockStopAgent).toHaveBeenCalled();
+  });
+});
+
+describe("로컬 추천의 대화·실행 상태", () => {
+  afterEach(() => {
+    cleanup();
+    mockLoopState.messages = [];
+    mockLoopState.isStreaming = false;
+  });
+  it("대화가 시작된 뒤에도 추천을 유지하고 실행 중에는 비활성화한다", () => {
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    mockLoopState.messages = [
+      {
+        id: "message-1",
+        role: "user",
+        content: "Add Button",
+        status: "complete",
+        timestamp: 1,
+      },
+    ];
+    mockLoopState.isStreaming = true;
+    renderWithI18n(<AIPanel />);
+    expect(screen.getByText("Add Button")).toBeTruthy();
+    const button = screen.getByRole<HTMLButtonElement>("button", {
+      name: "Variant · Outline",
+    });
+    expect(button.disabled).toBe(true);
   });
 });

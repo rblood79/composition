@@ -71,3 +71,9 @@ export const programJsonSchema = () =>
       operations: z.array(operation).max(1),
     }),
   );
+
+/** 표시한 로컬 작업을 같은 선택에서만 실행하기 위한 proposal. 실행 시 다시 검증한다. */
+export interface CompilerProposal {
+  identity: string;
+  program: BuilderCommandProgram;
+}

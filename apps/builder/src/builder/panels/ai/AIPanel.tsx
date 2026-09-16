@@ -28,7 +28,9 @@ import {
 import { useI18n } from "@/i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useConversationStore } from "../../stores/conversation";
-import { useStore } from "../../stores";
+import { useLocalSuggestions } from "./hooks/useLocalSuggestions";
+import type { CompilerProposal } from "../../../services/ai/compiler/contracts";
+import type { LocalSuggestion } from "./localSuggestions";
 import { useAgentLoop } from "./hooks/useAgentLoop";
 import { ToolResultMessage } from "./components/ToolResultMessage";
 import { AgentControls } from "./components/AgentControls";
@@ -182,9 +184,10 @@ function ChatInput({ onSend, disabled = false, placeholder }: ChatInputProps) {
  */
 interface ChatContainerProps {
   messages: ChatMessageType[];
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, proposal?: CompilerProposal) => void;
   isDisabled: boolean;
   selectedElementType?: string;
+  suggestions: LocalSuggestion[];
   /** 실행 중인 도구 이름 — 결과가 나오기 전까지 한 줄로 보인다. */
   runningTool?: string | null;
   /** 에이전트 프로파일이 구성돼 있는가 (R2 온보딩 분기). */
@@ -197,6 +200,7 @@ function ChatContainer({
   onSendMessage,
   isDisabled,
   selectedElementType,
+  suggestions,
   runningTool,
   hasAgent,
   onOpenAdvanced,
@@ -206,30 +210,31 @@ function ChatContainer({
 
   // Auto-scroll
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    if (messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, selectedElementType]);
 
   const targetLabel = selectedElementType
     ? t("ai.targetSelected", { type: formatElementType(selectedElementType) })
     : t("ai.targetPage");
-  const suggestions = [
-    t("ai.suggestHierarchy", { target: targetLabel }),
-    t("ai.suggestSpacing", { target: targetLabel }),
-    t("ai.suggestHowTo", { target: targetLabel }),
-  ];
 
   return (
     <PanelContents className="ai-contents">
       <div className="ai-transcript" aria-live="polite">
-        {messages.length === 0 && !hasAgent ? (
+        {messages.length === 0 ? (
           <div
             className="ai-welcome"
             role="group"
             aria-label={t("ai.welcomeLabel")}
           >
-            <p className="ai-intro">{t("ai.welcomeBody")}</p>
-            <p className="ai-context-label">{t("ai.welcomeKeyNotice")}</p>
-            <div className="ai-suggestions">
+            <p className="ai-intro">
+              {t(hasAgent ? "ai.intro" : "ai.welcomeBody")}
+            </p>
+            {!hasAgent && (
+              <p className="ai-context-label">{t("ai.welcomeKeyNotice")}</p>
+            )}
+            {!hasAgent && (
               <Button
                 className="ai-suggestion"
                 variant="secondary"
@@ -239,33 +244,7 @@ function ChatContainer({
                 <Sparkles size={iconProps.size} aria-hidden="true" />
                 <span>{t("ai.openAgentSettings")}</span>
               </Button>
-            </div>
-          </div>
-        ) : messages.length === 0 ? (
-          <div className="ai-welcome">
-            <p className="ai-intro">{t("ai.intro")}</p>
-            <p className="ai-context-label">
-              {t("ai.suggestionsIntro", { target: targetLabel })}
-            </p>
-            <div
-              className="ai-suggestions"
-              role="group"
-              aria-label={t("ai.suggestionsLabel")}
-            >
-              {suggestions.map((suggestion) => (
-                <Button
-                  key={suggestion}
-                  className="ai-suggestion"
-                  variant="secondary"
-                  size="sm"
-                  onPress={() => onSendMessage(suggestion)}
-                  isDisabled={isDisabled}
-                >
-                  <ArrowRight size={iconProps.size} aria-hidden="true" />
-                  <span title={suggestion}>{suggestion}</span>
-                </Button>
-              ))}
-            </div>
+            )}
           </div>
         ) : (
           <>
@@ -275,9 +254,66 @@ function ChatContainer({
             {runningTool ? (
               <ToolCallMessage name={runningTool} status="running" />
             ) : null}
-            <div ref={messagesEndRef} />
           </>
         )}
+        {suggestions.length > 0 && (
+          <div className="ai-welcome">
+            <p className="ai-context-label">
+              {t("ai.suggestionsIntro", { target: targetLabel })}
+            </p>
+            <div
+              className="ai-suggestions"
+              role="group"
+              aria-label={t("ai.suggestionsLabel")}
+            >
+              {(["component", "common", "create"] as const).map((group) => {
+                const items = suggestions.filter(
+                  (suggestion) => suggestion.group === group,
+                );
+                if (!items.length) return null;
+                const heading =
+                  group === "component"
+                    ? t("ai.suggestComponentFeatures")
+                    : group === "common"
+                      ? t("ai.suggestCommonEdits")
+                      : undefined;
+                return (
+                  <div
+                    key={group}
+                    className="ai-suggestion-group"
+                    role={heading ? "group" : undefined}
+                    aria-label={heading}
+                  >
+                    {heading && (
+                      <p className="ai-suggestion-heading">{heading}</p>
+                    )}
+                    {items.map((suggestion) => (
+                      <Button
+                        key={suggestion.request}
+                        className="ai-suggestion"
+                        variant="secondary"
+                        size="sm"
+                        onPress={() =>
+                          suggestion.execution
+                            ? onSendMessage(
+                                suggestion.label,
+                                suggestion.execution,
+                              )
+                            : onSendMessage(suggestion.request)
+                        }
+                        isDisabled={isDisabled}
+                      >
+                        <ArrowRight size={iconProps.size} aria-hidden="true" />
+                        <span title={suggestion.label}>{suggestion.label}</span>
+                      </Button>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="ai-composer-region">
@@ -310,16 +346,8 @@ function AIPanelContent() {
     stopAgent,
   } = useAgentLoop();
 
-  /**
-   * 추천 문구용 타입만 읽는다. AI 에 넘길 컨텍스트는 **턴 시점에** `useAgentLoop` 가
-   * 스토어에서 만든다 (`services/ai/builderContext.ts`) — 패널이 감춰져 effect 가
-   * 멈춘 동안 제출이 조용히 무시되던 원인이 이 렌더 부수효과였다.
-   */
-  const selectedElementType = useStore((state) =>
-    state.selectedElementId
-      ? state.elementsMap?.get(state.selectedElementId)?.type
-      : undefined,
-  );
+  const { selectedType: selectedElementType, suggestions } =
+    useLocalSuggestions();
 
   const { clearConversation } = useConversationStore();
 
@@ -388,6 +416,7 @@ function AIPanelContent() {
             onSendMessage={runAgent}
             isDisabled={isDisabled}
             selectedElementType={selectedElementType}
+            suggestions={suggestions}
             runningTool={runningTool}
             hasAgent={hasAgent}
             onOpenAdvanced={() => setAdvancedOpen(true)}

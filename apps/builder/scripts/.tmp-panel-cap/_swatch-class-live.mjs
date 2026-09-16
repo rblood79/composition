@@ -1,0 +1,18 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1400 } })).newPage();
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible" }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`sw-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name, want) => { const btn = page.getByRole("button", { name, exact: true }).first(); const pressed = await btn.getAttribute("aria-pressed"); if ((pressed === "true") !== want) { await btn.click(); await page.waitForTimeout(400); } };
+await panel("Components", true); await page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^Button$/i }) }).first().click(); await page.waitForTimeout(800); await panel("Components", false); await panel("Properties", true); await page.waitForTimeout(400);
+const P = '[data-panel-id="properties"]';
+await page.evaluate((P) => { document.querySelectorAll(`${P} .section-caret[aria-expanded="false"]`).forEach((c) => c.click()); }, P); await page.waitForTimeout(300);
+const info = (el) => { const cs = getComputedStyle(el); return `${Math.round(el.getBoundingClientRect().width)}x${Math.round(el.getBoundingClientRect().height)} radius=${cs.borderRadius} bg=${cs.backgroundColor} inline="${el.getAttribute("style")}"`; };
+console.log("trigger:", await page.evaluate(({ P, f }) => { const el = document.querySelector(`${P} .property-select__swatch`); return el ? eval(f)(el) : "none"; }, { P, f: info.toString() }));
+const trig = page.locator(`${P} .react-aria-Select`).filter({ has: page.locator(".property-select__swatch") }).first().locator("button").first(); await trig.scrollIntoViewIfNeeded(); await trig.click(); await page.waitForTimeout(400);
+console.log("popover dots:", await page.evaluate((f) => Array.from(document.querySelectorAll(".react-aria-Popover .property-select__swatch")).slice(0, 3).map((el) => eval(f)(el)), info.toString()));
+await browser.close();

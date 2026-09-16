@@ -1,0 +1,45 @@
+import { chromium } from "playwright";
+import { resolve } from "node:path";
+const READY = () => Boolean(window.__composition_STORE__ && window.__composition_STORE__.getState().currentPageId && document.querySelector(".app:not(.builder-booting)") && document.querySelector('[data-testid="skia-canvas-unified"]'));
+const browser = await chromium.launch({ headless: false });
+const page = await (await browser.newContext({ storageState: resolve("apps/builder/scripts/.auth-session.json"), viewport: { width: 1600, height: 1400 } })).newPage();
+const errors = []; page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("http://localhost:5173/dashboard", { waitUntil: "networkidle" });
+const b = page.locator("button.dashboard-create-button").first(); await b.waitFor({ state: "visible", timeout: 15000 }); await b.click();
+const i = page.locator("#new-project-name"); await i.waitFor({ state: "visible" }); await i.fill(`sc-${Date.now()}`); await i.press("Enter");
+await page.waitForURL(/\/builder\/[^/?]+$/, { timeout: 60000 }); await page.waitForFunction(READY, undefined, { timeout: 90000 }); await page.waitForTimeout(1200);
+const panel = async (name, want) => { const btn = page.getByRole("button", { name, exact: true }).first(); const pressed = await btn.getAttribute("aria-pressed"); if ((pressed === "true") !== want) { await btn.click(); await page.waitForTimeout(400); } };
+await panel("Components", true); await page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^Button$/i }) }).first().click(); await page.waitForTimeout(800); await panel("Components", false); await panel("Properties", true); await page.waitForTimeout(400);
+const P = '[data-panel-id="properties"]';
+await page.evaluate((P) => { document.querySelectorAll(`${P} .section-caret[aria-expanded="false"]`).forEach((c) => c.click()); }, P); await page.waitForTimeout(300);
+// 대상 그룹: aria-label 로 찾는다 (Size · Fill Style 등 글자 seg / Styles 는 첫 seg)
+const probe = async (scope, ariaLabel, label) => {
+  const sel = `${scope} .react-aria-ToggleButtonGroup[data-indicator="true"][aria-label="${ariaLabel}"]`;
+  const g = page.locator(sel).first(); await g.scrollIntoViewIfNeeded();
+  const n = await g.locator(".react-aria-ToggleButton").count();
+  const cur = await page.evaluate((sel) => Array.from(document.querySelector(sel).querySelectorAll(".react-aria-ToggleButton")).findIndex((b) => b.hasAttribute("data-selected")), sel);
+  let target = cur === 0 ? n - 1 : 0; // 가장 먼 쪽으로 — 슬라이드 거리 최대
+  if (await g.locator('.react-aria-ToggleButton').nth(target).isDisabled()) target = target === 0 ? 1 : target - 1;
+  const meta = await page.evaluate(({ sel, target }) => { const g = document.querySelector(sel); const btn = g.querySelectorAll(".react-aria-ToggleButton")[target]; return { cls: g.parentElement.className, overflow: getComputedStyle(btn).overflow, btnW: Math.round(btn.getBoundingClientRect().width) }; }, { sel, target });
+  await page.evaluate(({ sel, target }) => { const g = document.querySelector(sel); const btn = g.querySelectorAll(".react-aria-ToggleButton")[target]; window.__s = []; const rec = () => { const ind = btn.querySelector('.react-aria-SelectionIndicator'); const r = ind?.getBoundingClientRect(); const br = btn.getBoundingClientRect(); if (r) { const ix = Math.max(0, Math.min(r.right, br.right) - Math.max(r.left, br.left)); window.__s.push({ dx: Math.round(r.left - br.left), visible: Math.round(100 * ix / r.width) }); } if (window.__s.length < 30) requestAnimationFrame(rec); }; requestAnimationFrame(rec); }, { sel, target });
+  await g.locator(".react-aria-ToggleButton").nth(target).click(); await page.waitForTimeout(800);
+  const s = await page.evaluate(() => window.__s);
+  const outside = s.filter((v) => v.dx !== 0);
+  console.log(`${label} [${meta.cls.split(" ").filter(c=>c.startsWith("property")).join(",")||"styles"}] target=${target}/${n} btn overflow=${meta.overflow} | frames outside target btn: ${outside.length} | dx→ ${s.slice(0, 10).map((v) => v.dx).join(",")} | 겹침%(overflow hidden 이면 이만큼만 보임)→ ${s.slice(0, 10).map((v) => v.visible).join(",")}`);
+};
+await probe(P, "Size", "PROPERTIES Button Size (글자 seg)");
+await probe(P, "Fill Style", "PROPERTIES Button Fill Style (글자 seg)");
+await panel("Properties", false); await panel("Components", true); await page.locator("button.list-item").filter({ has: page.locator(".list-item-name", { hasText: /^Text ?Field$/i }) }).first().click(); await page.waitForTimeout(800); await panel("Components", false); await panel("Properties", true); await page.waitForTimeout(400);
+await page.evaluate((P) => { document.querySelectorAll(`${P} .section-caret[aria-expanded="false"]`).forEach((c) => c.click()); }, P); await page.waitForTimeout(300);
+await probe(P, "Size", "PROPERTIES TextField Size (글자 seg)");
+await probe(P, "Label Position", "PROPERTIES TextField Label Position (아이콘 seg)");
+console.log("Label Position seg:", await page.evaluate((P) => { const g = document.querySelector(`${P} .react-aria-ToggleButtonGroup[aria-label="Label Position"]`); return `${g.parentElement.className} | ${Array.from(g.querySelectorAll(".react-aria-ToggleButton")).map((b) => `${b.textContent}:${Math.round(b.getBoundingClientRect().width)}px:${b.hasAttribute("data-selected")}`).join(" ")}`; }, P));
+console.log("Necessity initial selected:", await page.evaluate((P) => Array.from(document.querySelector(`${P} .react-aria-ToggleButtonGroup[aria-label="Necessity Indicator"]`).querySelectorAll(".react-aria-ToggleButton")).map((b) => `${b.textContent}:${b.hasAttribute("data-selected")}`).join(" "), P));
+await probe(P, "Necessity Indicator", "PROPERTIES TextField Necessity (첫 클릭)");
+await panel("Properties", false); await panel("Styles", true); await page.waitForTimeout(500);
+const S = '[data-panel-id="styles"]';
+await page.evaluate((S) => { document.querySelectorAll(`${S} .section-caret[aria-expanded="false"]`).forEach((c) => c.click()); }, S); await page.waitForTimeout(300);
+const first = await page.evaluate((S) => document.querySelector(`${S} .react-aria-ToggleButtonGroup[data-indicator="true"]`)?.getAttribute("aria-label"), S);
+await probe(S, first, `STYLES ${first} (아이콘 seg)`);
+console.log("errors", errors.slice(0, 3));
+await browser.close();

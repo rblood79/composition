@@ -528,3 +528,60 @@ describe("회귀 gate — facade/store action 외 직접 접근 0 (R4)", () => {
     expect(offenders).toEqual([]);
   });
 });
+
+describe("로컬 추천 목표의 단일 mutation", () => {
+  beforeEach(seed);
+  it("입력 허용의 세 완료 조건을 적용하고 한 번의 undo/redo로 복원한다", async () => {
+    const created = await createElementTool.execute(
+      {
+        type: "ComboBox",
+        parentId: "body",
+        props: { allowsCustomValue: false, isDisabled: true, isReadOnly: true },
+      },
+      tt,
+    );
+    expect(created.success).toBe(true);
+    const id = (created.data as { elementId: string }).elementId;
+    useStore.setState({ selectedElementId: id, selectedElementIds: [id] });
+    const { readCompilerState } = await import("../compiler/builderHost");
+    const { getLocalSuggestions } =
+      await import("../../../builder/panels/ai/localSuggestions");
+    const { resolveEditContract } = await import("@composition/shared");
+    const { getNodeMap } =
+      await import("../../../builder/stores/canonical/canonicalTraversalHelpers");
+    const { runCompilerRequest } = await import("../compiler/runtime");
+    const state = readCompilerState();
+    const doc = useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)!;
+    const goal = getLocalSuggestions({
+      ...state,
+      fields: resolveEditContract(getNodeMap().get(id)!, doc).fields,
+      korean: true,
+    }).find((item) => item.request === "set allowsCustomValue to true")!;
+    const count = entries();
+    const result = await runCompilerRequest(
+      goal.label,
+      tt,
+      new AbortController().signal,
+      goal.execution,
+    );
+    expect(result.result?.success).toBe(true);
+    expect(getNodeMap().get(id)?.props).toMatchObject({
+      allowsCustomValue: true,
+      isDisabled: false,
+      isReadOnly: false,
+    });
+    expect(entries()).toBe(count + 1);
+    await useStore.getState().undo();
+    expect(getNodeMap().get(id)?.props).toMatchObject({
+      allowsCustomValue: false,
+      isDisabled: true,
+      isReadOnly: true,
+    });
+    await useStore.getState().redo();
+    expect(getNodeMap().get(id)?.props).toMatchObject({
+      allowsCustomValue: true,
+      isDisabled: false,
+      isReadOnly: false,
+    });
+  });
+});

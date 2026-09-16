@@ -12,6 +12,7 @@ import {
   type AgentRunner,
 } from "../../../../services/ai/createAgentRunner";
 import { isAgentProfileReady } from "../../../../services/ai/providers/agentProfiles";
+import type { CompilerProposal } from "../../../../services/ai/compiler/contracts";
 import { runCompilerRequest } from "../../../../services/ai/compiler/runtime";
 import { intentParser } from "../../../../services/ai/IntentParser";
 import { useConversationStore } from "../../../stores/conversation";
@@ -89,7 +90,7 @@ export function useAgentLoop() {
    * Agent Loop 실행
    */
   const runAgent = useCallback(
-    async (message: string) => {
+    async (message: string, proposal?: CompilerProposal) => {
       if (requestRef.current) return;
       const request = new AbortController();
       requestRef.current = request;
@@ -108,6 +109,10 @@ export function useAgentLoop() {
         // 한 릴리스 동안 session-local rollback 표면을 보존한다.
         const disabled =
           sessionStorage.getItem("composition.ai.compiler.disabled") === "true";
+        if (proposal && disabled) {
+          addAssistantMessage(t("ai.localActionFailed"));
+          return;
+        }
         if (!disabled) {
           setStreamingStatus(true);
           const currentSelection = useStore.getState();
@@ -117,21 +122,36 @@ export function useAgentLoop() {
             currentSelection.selectedElementId !== requestSelectedId
           )
             return;
-          const compiled = await runCompilerRequest(message, t, request.signal);
+          const compiled = await runCompilerRequest(
+            message,
+            t,
+            request.signal,
+            proposal,
+          );
           if (request.signal.aborted) return;
           if (compiled.handled) {
             if (compiled.result?.success) {
               addToolMessage(
                 crypto.randomUUID(),
-                "builder_command",
+                proposal?.program.operations[0].op ?? "builder_command",
                 compiled.result,
               );
-              addAssistantMessage(t("aiIntent.done"));
+              addAssistantMessage(
+                proposal
+                  ? t("ai.localActionDone", { goal: message })
+                  : t("aiIntent.done"),
+              );
             } else {
-              addAssistantMessage(t("ai.notUnderstood"));
+              addAssistantMessage(
+                t(proposal ? "ai.localActionFailed" : "ai.notUnderstood"),
+              );
             }
             return;
           }
+        }
+        if (proposal) {
+          addAssistantMessage(t("ai.localActionFailed"));
+          return;
         }
         if (request.signal.aborted) return;
         // Agent 모드 — 실행기는 이 턴의 프로파일로 만든다

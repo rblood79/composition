@@ -3,6 +3,7 @@ import type {
   ToolTranslate,
 } from "../../../types/integrations/ai.types";
 import { createToolRegistry } from "../tools";
+import type { CompilerProposal } from "./contracts";
 import { compileRequest } from "./compile";
 import { validateProgram } from "./manifest";
 import { readCompilerState } from "./builderHost";
@@ -24,6 +25,7 @@ export async function runCompilerRequest(
   message: string,
   t: ToolTranslate,
   signal: AbortSignal,
+  proposal?: CompilerProposal,
 ): Promise<{
   handled: boolean;
   result?: ToolExecutionResult;
@@ -49,7 +51,11 @@ export async function runCompilerRequest(
   };
   try {
     const state = readCompilerState();
-    const compiled = compileRequest(message, state.manifest, state.context);
+    if (proposal && proposal.identity !== state.identity)
+      return rejected("context-changed");
+    const compiled = proposal
+      ? { route: "direct" as const, program: proposal.program }
+      : compileRequest(message, state.manifest, state.context);
     if (compiled.route === "creative-multistep") {
       metric.route = compiled.route;
       record();
@@ -93,6 +99,12 @@ export async function runCompilerRequest(
       (metric.route === "direct" ? "compiler" : "llm")
     )
       return rejected("source-mismatch");
+    if (
+      proposal &&
+      (op.op === "update_element" || op.op === "delete_element") &&
+      op.args.elementId !== state.context.selectedId
+    )
+      return rejected("unrequested-target");
     // 모호한 요청의 모델 출력으로 삭제/명령 실행을 새로 추론하지 않는다.
     if (
       metric.route === "one-shot" &&
