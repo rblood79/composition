@@ -1,5 +1,8 @@
 import {
   Asterisk,
+  FileUp,
+  Files,
+  FolderOpen,
   Axis3d,
   Ban,
   Blend,
@@ -175,6 +178,8 @@ export const PROP_KEY_ICONS: Record<string, PropertyFieldIcon> = {
   description: TextQuote,
   errorMessage: CircleAlert,
   placeholder: TextCursorInput,
+  // ADR-201: FileTrigger · FileUpload 가 공유하는 파일 입력 키
+  acceptedFileTypes: FileUp,
   name: Braces,
   pattern: Regex,
   autoComplete: Sparkles,
@@ -193,6 +198,8 @@ export const PROP_KEY_ICONS: Record<string, PropertyFieldIcon> = {
   isEmphasized: Sparkles,
   autoFocus: Focus,
   showValueLabel: Eye,
+  allowsMultiple: Files,
+  acceptDirectory: FolderOpen,
   showCalendarIcon: Calendar,
   shouldCloseOnSelect: MousePointerClick,
   shouldFlip: FlipVertical2,

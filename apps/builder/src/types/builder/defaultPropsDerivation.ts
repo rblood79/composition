@@ -72,7 +72,7 @@ const FACTORY_LOCAL_DEFAULTS: Readonly<
   Icon: {
     iconFontFamily: "lucide",
   },
-  // ADR-201 (2026-09-17): FileUpload compound 의 컨테이너 배치 — Skia/Taffy 는 props.style 을
+  // ADR-201 (2026-09-17): FileUpload compound 의 컨테이너 배치 — Skia/레이아웃 엔진은 props.style 을
   //   읽고 (ADR-907 Layer B, DropZone 동형) DOM 은 같은 값을 rule containerStyles + generated CSS 로
   //   받는다. 두 표면이 같은 숫자를 봐야 자식이 같은 자리에 쌓인다. store 는 longhand (rowGap).
   FileUpload: {

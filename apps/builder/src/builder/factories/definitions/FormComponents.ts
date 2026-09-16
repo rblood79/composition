@@ -634,7 +634,22 @@ export function createFileUploadDefinition(
           label: "Drop files here",
           description: "or use the button below to select files",
           size: "md",
+          // createDefaultDropZoneProps (unified.types) 의 컨테이너 배치 미러 — Skia/레이아웃 엔진은
+          //   props.style 에서만 padding/gap 을 읽고 DOM 은 generated CSS (rule.sizes.md 24/12) 가
+          //   같은 값을 준다 (ADR-907 Layer B). 단독 DropZone 의 inline-flex 대신 flex + width 100%
+          //   — column flex 부모 안에서 한 줄을 다 쓴다.
           style: {
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: "2px",
+            paddingTop: "24px",
+            paddingRight: "24px",
+            paddingBottom: "24px",
+            paddingLeft: "24px",
+            rowGap: "12px",
+            columnGap: "12px",
             width: "100%",
           },
         } as ComponentElementProps,
