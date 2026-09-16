@@ -514,7 +514,7 @@ export function renderLasso(
  * 페이지 상단과 화면 1px 띄운다.
  *
  * 씬-로컬 좌표계 (page 좌상단 = 원점) 에서 호출된다. 색은 호출자가 CSS 토큰
- * (`--button-color` / 활성 `--focus-ring`, alpha 30%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
+ * (`--button-color` 10% / 활성 `--focus-ring` 30%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
  */
 export function renderPageHeader(
   ck: CanvasKit,

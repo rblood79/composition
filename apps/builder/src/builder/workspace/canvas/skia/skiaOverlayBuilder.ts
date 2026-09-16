@@ -108,8 +108,9 @@ const PAGE_HEADER_ACTIVE_FALLBACK = parseInt(
   TAILWIND_PALETTE.blue[400].slice(1),
   16,
 );
-/** 헤더 띠 alpha — 비활성 (`--button-color`) · 활성 (`--focus-ring`) 모두 30% (사용자 지정) */
-const PAGE_HEADER_ALPHA = 0.3;
+/** 헤더 띠 alpha (사용자 지정) — 기본 (`--button-color`) 10% · 활성 (`--focus-ring`) 30% */
+const PAGE_HEADER_ALPHA = 0.1;
+const PAGE_HEADER_ACTIVE_ALPHA = 0.3;
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -484,7 +485,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
                 item.width,
                 cameraZoom,
                 item.active ? headerActiveColor : headerColor,
-                PAGE_HEADER_ALPHA,
+                item.active ? PAGE_HEADER_ACTIVE_ALPHA : PAGE_HEADER_ALPHA,
               );
               const titleMetrics = renderPageTitle(
                 ck,
