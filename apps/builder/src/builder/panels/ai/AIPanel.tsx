@@ -191,6 +191,16 @@ interface ChatContainerProps {
   onOpenAdvanced: () => void;
 }
 
+/** 제안 묶음 순서 · 제목 키 — create 는 제목 없이 (한 묶음뿐) */
+const SUGGESTION_GROUPS: ReadonlyArray<{
+  group: "component" | "common" | "create";
+  headingKey?: string;
+}> = [
+  { group: "component", headingKey: "ai.suggestComponentFeatures" },
+  { group: "common", headingKey: "ai.suggestCommonEdits" },
+  { group: "create" },
+];
+
 function ChatContainer({
   messages,
   onSendMessage,
@@ -262,17 +272,12 @@ function ChatContainer({
               role="group"
               aria-label={t("ai.suggestionsLabel")}
             >
-              {(["component", "common", "create"] as const).map((group) => {
+              {SUGGESTION_GROUPS.map(({ group, headingKey }) => {
                 const items = suggestions.filter(
                   (suggestion) => suggestion.group === group,
                 );
                 if (!items.length) return null;
-                const heading =
-                  group === "component"
-                    ? t("ai.suggestComponentFeatures")
-                    : group === "common"
-                      ? t("ai.suggestCommonEdits")
-                      : undefined;
+                const heading = headingKey ? t(headingKey) : undefined;
                 return (
                   <div
                     key={group}

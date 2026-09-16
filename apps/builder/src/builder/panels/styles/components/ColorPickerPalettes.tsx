@@ -21,6 +21,7 @@ import { resolveAccentLadder } from "../../../../utils/theme/tintToSkiaColors";
 import { NEUTRAL_PALETTES } from "../../../../utils/theme/neutralToSkiaColors";
 import { useSemanticLabel } from "../../../../i18n";
 import { useDocumentColors } from "../hooks/useDocumentColors";
+import { hex8ToHex6 } from "../utils/colorUtils";
 
 /** Tailwind 사다리에서 고르는 6 단 — 50 · 200 · 400 · 600 · 800 · 950 (모두 실제 팔레트 값) */
 export const NEUTRAL_LADDER_STEPS = [50, 200, 400, 600, 800, 950] as const;
@@ -31,9 +32,32 @@ interface ColorPickerPalettesProps {
   onSelect: (hex8: string) => void;
 }
 
-function toHex6(hex: string): string {
-  return hex.slice(0, 7).toUpperCase();
-}
+/** 스와치 하나 — 드래그 프레임마다 바뀌는 건 선택 링 2개뿐이라 행 단위 memo (parseColor 도 색당 1회) */
+const Swatch = memo(function Swatch({
+  hex,
+  selected,
+  labelPrefix,
+  onSelect,
+}: {
+  hex: string;
+  selected: boolean;
+  labelPrefix: string;
+  onSelect: (hex: string) => void;
+}) {
+  const color = useMemo(() => parseColor(hex), [hex]);
+  const handlePress = useCallback(() => onSelect(hex), [onSelect, hex]);
+  return (
+    <Button
+      className="color-picker-palette__swatch"
+      aria-label={`${labelPrefix} ${hex.slice(1, 7).toUpperCase()}`}
+      aria-pressed={selected}
+      data-selected={selected || undefined}
+      onPress={handlePress}
+    >
+      <ColorSwatch color={color} />
+    </Button>
+  );
+});
 
 const SwatchGrid = memo(function SwatchGrid({
   colors,
@@ -46,27 +70,23 @@ const SwatchGrid = memo(function SwatchGrid({
   labelPrefix: string;
   onSelect: (hex: string) => void;
 }) {
+  // 선택 비교 키 — 색당 1회 (드래그 프레임마다 24 개를 다시 정규화하지 않는다)
+  const hex6s = useMemo(() => colors.map((hex) => hex8ToHex6(hex)), [colors]);
   return (
     <div
       className="color-picker-palette__grid"
       role="group"
       aria-label={labelPrefix}
     >
-      {colors.map((hex) => {
-        const selected = toHex6(hex) === current;
-        return (
-          <Button
-            key={hex}
-            className="color-picker-palette__swatch"
-            aria-label={`${labelPrefix} ${toHex6(hex).slice(1)}`}
-            aria-pressed={selected}
-            data-selected={selected || undefined}
-            onPress={() => onSelect(hex)}
-          >
-            <ColorSwatch color={parseColor(hex)} />
-          </Button>
-        );
-      })}
+      {colors.map((hex, i) => (
+        <Swatch
+          key={hex}
+          hex={hex}
+          selected={hex6s[i] === current}
+          labelPrefix={labelPrefix}
+          onSelect={onSelect}
+        />
+      ))}
     </div>
   );
 });
@@ -119,7 +139,7 @@ export const ColorPickerPalettes = memo(function ColorPickerPalettes({
     () => NEUTRAL_LADDER_STEPS.map((step) => NEUTRAL_PALETTES[neutral][step]),
     [neutral],
   );
-  const current = toHex6(value);
+  const current = hex8ToHex6(value);
 
   // 선택한 스와치 색을 hex8 로 commit — 문서 색은 alpha 를 보존, theme 사다리는 불투명
   const handleSelect = useCallback(

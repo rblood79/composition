@@ -64,7 +64,8 @@ const UNITLESS_PROPS: ReadonlySet<string> = new Set([
   "gridRowEnd",
 ]);
 
-function camelToKebab(prop: string): string {
+/** camelCase style prop → CSS property name (`flexDirection` → `flex-direction`). */
+export function camelToKebab(prop: string): string {
   return prop.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 }
 

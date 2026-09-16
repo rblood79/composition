@@ -1,10 +1,13 @@
 import React, { memo, useCallback } from "react";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
-import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
 import { ColorPickerPanel } from "../../panels/styles/components/ColorPickerPanel";
+import {
+  parseRacColorOrBlack,
+  toDisplayHex,
+} from "../../panels/styles/utils/colorUtils";
 import { useStore } from "../../stores";
 import {
   semanticLabelKeys,
@@ -33,25 +36,6 @@ interface PropertyColorProps {
   showValue?: boolean;
 }
 
-/** 표시용 HEX (# 없이 대문자, 알파 FF 는 생략). 파싱 불가 (var 토큰 등) 는 원문 그대로. */
-function toDisplayHex(value: string): string {
-  try {
-    const hexa = parseColor(value).toString("hexa").toUpperCase();
-    const hex = hexa.slice(1);
-    return hex.length === 8 && hex.endsWith("FF") ? hex.slice(0, 6) : hex;
-  } catch {
-    return value;
-  }
-}
-
-function safeSwatchColor(value: string): Color {
-  try {
-    return parseColor(value);
-  } catch {
-    // var(--token) 등 파싱 불가 표현 — 종전 RAC 동작과 동일하게 검정 표시
-    return parseColor("#000000");
-  }
-}
 
 /**
  * hex8 (#RRGGBBAA) → 저장 포맷 정규화 — 불투명이면 종전 저장 포맷(#RRGGBB) 유지,
@@ -131,7 +115,7 @@ export const PropertyColor = memo(
                 : "Color")
             }
           >
-            <ColorSwatch color={safeSwatchColor(value)} />
+            <ColorSwatch color={parseRacColorOrBlack(value)} />
             {showValue && (
               <span className="color-swatch-value">{toDisplayHex(value)}</span>
             )}

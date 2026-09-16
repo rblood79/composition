@@ -160,6 +160,8 @@ const BorderSectionContent = memo(function BorderSectionContent() {
   } = useStylePresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useAppearanceValues(selectedId);
+  // 코너 4방향 펼침 토글 — 훅은 early return 앞에 (선택 해제 ↔ 선택 사이에 훅 순서가 바뀌면 안 된다)
+  const [cornersOpen, setCornersOpen] = useState(false);
 
   if (!styleValues) return null;
 
@@ -185,7 +187,6 @@ const BorderSectionContent = memo(function BorderSectionContent() {
   const widthPx = uniformWidth ?? Math.max(...widths);
   const radiusPx = uniformRadius ?? Math.max(...radii);
   // 코너 4방향 펼침 — 토글 on 이거나 비균일이면 보인다
-  const [cornersOpen, setCornersOpen] = useState(false);
   const showCorners = cornersOpen || uniformRadius === null;
   const sidesOn = (["top", "right", "bottom", "left"] as const).filter(
     (side) => widths[SIDE_INDEX[side]] > 0,

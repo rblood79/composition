@@ -10,7 +10,6 @@
  */
 
 import { memo, useCallback, useMemo } from "react";
-import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { PaintRoller } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { adaptStyleWithFills } from "@composition/shared";
@@ -18,7 +17,11 @@ import { EmptyState, PropertySection } from "../../../components";
 import type { SelectedElement } from "../../../inspector/types";
 import { useDirtyStyleProps, useResetStyles } from "../hooks/useResetStyles";
 import { useElementStyleContext } from "../hooks/useElementStyleContext";
-import { resolveStylePanelColor } from "../utils/styleValueHelpers";
+import {
+  camelToLabel,
+  resolveStylePanelColor,
+} from "../utils/styleValueHelpers";
+import { toDisplayHex, tryParseRacColor } from "../utils/colorUtils";
 import {
   useResolvedSkiaTheme,
   useThemeConfigVersion,
@@ -183,31 +186,6 @@ function categoryRank(property: string): number {
 }
 
 /** camelCase → 「Border Radius」 */
-function formatLabel(property: string): string {
-  return property
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (str) => str.toUpperCase())
-    .trim();
-}
-
-/** 표시용 HEX (# 없이 대문자, 알파 FF 는 생략). 파싱 불가 (var 토큰 등) 는 원문 그대로. */
-function toDisplayHex(value: string): string {
-  try {
-    const hexa = parseColor(value).toString("hexa").toUpperCase();
-    const hex = hexa.slice(1);
-    return hex.length === 8 && hex.endsWith("FF") ? hex.slice(0, 6) : hex;
-  } catch {
-    return value;
-  }
-}
-
-function safeSwatchColor(value: string): Color | null {
-  try {
-    return parseColor(value);
-  } catch {
-    return null;
-  }
-}
 
 const VALUE_MAX = 40;
 
@@ -253,11 +231,11 @@ export const ModifiedStylesSection = memo(function ModifiedStylesSection({
           const resolved = COLOR_PROPS.has(property)
             ? resolveStylePanelColor(value, theme, accentColor)
             : null;
-          const swatch = resolved ? safeSwatchColor(resolved) : null;
+          const swatch = resolved ? tryParseRacColor(resolved) : null;
           const display = resolved ? toDisplayHex(resolved) : value;
           return {
             property,
-            label: localize(formatLabel(property)),
+            label: localize(camelToLabel(property)),
             raw: value,
             display:
               display.length > VALUE_MAX

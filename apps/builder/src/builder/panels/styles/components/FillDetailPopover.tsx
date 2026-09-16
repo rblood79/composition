@@ -14,7 +14,7 @@
  * @updated 2026-02-10 Phase 2 - 3탭 구조 재설계
  */
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef } from "react";
 import type {
   FillItem,
   ColorFillItem,
@@ -118,12 +118,9 @@ export const FillDetailPopover = memo(function FillDetailPopover({
   const colorRgbFF = isVariableBound
     ? "#000000FF"
     : `${normalizeToHex8(rawColorValue).slice(0, 7)}FF`;
+  // 피커는 이 값을 마운트 · resetKey (fill id/type) 변경 시에만 읽는다 — 드래그 중 미리보기로
+  //   재초기화하지 않는다 (ColorPickerPanel). 별도 「commit 된 값」 state 로 미러링할 이유가 없다.
   const colorValue = `${colorRgbFF.slice(0, 7)}${opacityToAlphaHex(fill.opacity)}`;
-  const [committedColorValue, setCommittedColorValue] = useState(colorValue);
-
-  useEffect(() => {
-    setCommittedColorValue(colorValue);
-  }, [colorValue, fill.id, fill.type]);
 
   // 종전 문서의 색 알파 (…80 등) 는 레이어 opacity 로 접는다 (알파 × opacity → opacity, 색 …FF) —
   //   렌더는 fillAdapter 가 둘을 곱해 왔으므로 화면은 그대로. fill 마다 한 번.
@@ -187,7 +184,6 @@ export const FillDetailPopover = memo(function FillDetailPopover({
 
   const handleColorChangeEndCommitted = useCallback(
     (color: string) => {
-      setCommittedColorValue(normalizeToHex8(color));
       const { rgbFF, alpha, rgbChanged, alphaChanged } = splitPicked(color);
       if (rgbChanged) onColorChangeEnd(rgbFF);
       if (alphaChanged) onOpacityChangeEnd(alpha);
@@ -211,7 +207,7 @@ export const FillDetailPopover = memo(function FillDetailPopover({
       />
       {isColor && (
         <ColorPickerPanel
-          value={committedColorValue}
+          value={colorValue}
           resetKey={`${fill.id}:${fill.type}`}
           presentationOwnsFrameScheduling={presentationOwnsColorFrameScheduling}
           onPresentationCancel={onColorPresentationCancel}

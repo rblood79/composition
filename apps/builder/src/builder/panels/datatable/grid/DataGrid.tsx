@@ -100,6 +100,20 @@ const ADD_SLOT_WIDTH = 36;
 const ADD_SLOT_INPUT_WIDTH = 160;
 
 /** `id` 필드는 행 정체 — 격자에서 고치지 않는다 (aria-readonly). */
+/**
+ * 가로 스크롤러 — 가상화면 Table 자신 (Virtualizer 가 스크롤), 아니면 `.datagrid-scroll` 컨테이너.
+ * 둘 중 하나라도 없으면 (마운트 전) null.
+ */
+function resolveScroller(
+  root: HTMLElement,
+  virtualized: boolean,
+): { scroller: HTMLElement; table: HTMLElement } | null {
+  const container = root.querySelector<HTMLElement>(".datagrid-scroll");
+  const table = root.querySelector<HTMLElement>('[role="grid"]');
+  if (!container || !table) return null;
+  return { scroller: virtualized ? table : container, table };
+}
+
 function isReadonlyField(field: DataField): boolean {
   return field.key === "id";
 }
@@ -279,21 +293,29 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
     [collectionId, schema, t, write],
   );
 
+  // 행당 검색 문자열 하나 (행 × 열 소문자 변환은 rows/schema 가 바뀔 때만) — 필터 키 입력마다는
+  //   행당 includes 1회
+  const searchable = useMemo(
+    () =>
+      rows.map((row, index) => ({
+        id: index,
+        index,
+        row,
+        haystack: schema
+          .map((field) => {
+            const value = row[field.key];
+            return value === null || value === undefined ? "" : String(value);
+          })
+          .join("\0")
+          .toLowerCase(),
+      })),
+    [rows, schema],
+  );
   const items = useMemo(() => {
-    const all = rows.map((row, index) => ({ id: index, index, row }));
     const term = filterText.trim().toLowerCase();
-    if (term === "") return all;
-    return all.filter(({ row }) =>
-      schema.some((field) => {
-        const value = row[field.key];
-        return (
-          value !== null &&
-          value !== undefined &&
-          String(value).toLowerCase().includes(term)
-        );
-      }),
-    );
-  }, [rows, schema, filterText]);
+    if (term === "") return searchable;
+    return searchable.filter(({ haystack }) => haystack.includes(term));
+  }, [searchable, filterText]);
 
   const columns = useMemo(
     () => [
@@ -309,10 +331,9 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    const container = root.querySelector<HTMLElement>(".datagrid-scroll");
-    const table = root.querySelector<HTMLElement>('[role="grid"]');
-    if (!container || !table) return;
-    const scroller = virtualized ? table : container;
+    const parts = resolveScroller(root, virtualized);
+    if (!parts) return;
+    const { scroller, table } = parts;
     const slotWidth = addingField ? ADD_SLOT_INPUT_WIDTH : ADD_SLOT_WIDTH;
     let raf = 0;
     const measure = () => {
@@ -349,10 +370,9 @@ export function DataGrid({ table, virtualized = true }: DataGridProps) {
   const schemaLength = schema.length;
   useEffect(() => {
     if (!addingField) return;
-    const root = rootRef.current;
-    const container = root?.querySelector<HTMLElement>(".datagrid-scroll");
-    const table = root?.querySelector<HTMLElement>('[role="grid"]');
-    const scroller = virtualized ? table : container;
+    const scroller = rootRef.current
+      ? resolveScroller(rootRef.current, virtualized)?.scroller
+      : undefined;
     if (scroller) scroller.scrollLeft = scroller.scrollWidth;
   }, [schemaLength, addingField, virtualized]);
 

@@ -86,11 +86,6 @@ function entryIcon(item: HistoryListItem): LucideIcon {
   return (item.type && ENTRY_TYPE_ICONS[item.type]) || Pencil;
 }
 
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
 function formatSize(chars: number): string {
   if (chars >= 1024 * 1024) return `${(chars / (1024 * 1024)).toFixed(1)}MB`;
   return `${Math.max(1, Math.round(chars / 1024))}KB`;
@@ -107,7 +102,9 @@ export function HistoryPanel() {
 }
 
 function HistoryPanelContent() {
-  const { t } = useI18n();
+  // 시각은 i18n formatTime (locale · 12/24h 설정) — AI 패널과 같은 채널 (b113ccd34)
+  const { t, formatTime } = useI18n();
+  const formatTimestamp = (ts: number) => formatTime(new Date(ts));
   const goToHistoryIndex = useStore((state) => state.goToHistoryIndex);
   const historyOperationInProgress = useStore(
     (state) => state.historyOperationInProgress,

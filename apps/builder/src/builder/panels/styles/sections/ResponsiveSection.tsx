@@ -25,7 +25,7 @@
 import { memo, useCallback, useMemo } from "react";
 import type { Key } from "react-aria-components/Collection";
 import { Monitor, Smartphone, Tablet, X } from "lucide-react";
-import type { BreakpointName } from "@composition/shared";
+import { camelToKebab, type BreakpointName } from "@composition/shared";
 import {
   ToggleButton,
   ToggleButtonGroup,
@@ -40,6 +40,7 @@ import {
 import { BREAKPOINT_ORDER } from "../../../../types/builder/responsive.types";
 import { iconProps, iconSmall } from "../../../../utils/ui/uiConstants";
 import { useResponsiveOverrides } from "../hooks/useResponsiveOverrides";
+import { camelToLabel } from "../utils/styleValueHelpers";
 import { useOptionalI18n, useSemanticLabel } from "../../../../i18n";
 
 const BP_LABEL: Record<BreakpointName, string> = {
@@ -93,19 +94,6 @@ const PRIMARY_ELIGIBLE: {
 const PRIMARY_COVERED_KEYS = new Set(
   PRIMARY_ELIGIBLE.flatMap((p) => p.longhands),
 );
-
-/** camelCase style prop → 읽기 좋은 라벨 (메뉴 미포함 override 표시용) */
-function formatPropLabel(prop: string): string {
-  return prop
-    .replace(/([A-Z])/g, " $1")
-    .replace(/^./, (c) => c.toUpperCase())
-    .trim();
-}
-
-/** camelCase → kebab-case (행의 「flex-direction · column」) */
-function toKebab(prop: string): string {
-  return prop.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
 
 /**
  * 행에 보일 override 값 — longhand 값이 전부 같으면 하나, 다르면 순서대로 공백 join
@@ -164,15 +152,15 @@ export const ResponsiveSection = memo(function ResponsiveSection() {
     ).map((p) => ({
       key: p.key,
       label: p.label,
-      name: toKebab(p.key),
+      name: camelToKebab(p.key),
       value: describeOverrideValue(activeOverrideValues, p.longhands),
     }));
     const uncovered = activeOverriddenProps
       .filter((k) => !PRIMARY_COVERED_KEYS.has(k))
       .map((k) => ({
         key: k,
-        label: formatPropLabel(k),
-        name: toKebab(k),
+        label: camelToLabel(k),
+        name: camelToKebab(k),
         value: describeOverrideValue(activeOverrideValues, [k]),
       }));
     return [...primaries, ...uncovered];

@@ -11,7 +11,6 @@ import { memo } from "react";
 import { DialogTrigger } from "react-aria-components/Dialog";
 import { Button as AriaButton } from "react-aria-components/Button";
 import { ToggleButton as AriaToggleButton } from "react-aria-components/ToggleButton";
-import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { Minus, Square } from "lucide-react";
 import { ColorSwatch } from "@composition/shared/components/ColorSwatch";
 import { Popover } from "@composition/shared/components/Popover";
@@ -23,6 +22,7 @@ import type {
 } from "../../../presentation/boxShadowPresentation";
 import { BoxShadowEditor, type BoxShadowEditorProps } from "./BoxShadowEditor";
 import { useSemanticLabel } from "../../../../i18n";
+import { parseRacColorOrBlack } from "../utils/colorUtils";
 
 export type BoxShadowLayerAction = "inset" | "remove";
 
@@ -38,13 +38,6 @@ interface BoxShadowLayerRowProps {
   >;
 }
 
-function safeColor(value: string): Color {
-  try {
-    return parseColor(value);
-  } catch {
-    return parseColor("#000000");
-  }
-}
 
 function describeLayer(layer: BoxShadowPresentationLayer): string {
   return [layer.offsetX, layer.offsetY, layer.blur, layer.spread].join(" · ");
@@ -68,7 +61,7 @@ export const BoxShadowLayerRow = memo(function BoxShadowLayerRow({
           className="effect-layer-row__trigger"
           aria-label={localize("Edit shadow layer")}
         >
-          <ColorSwatch color={safeColor(layer.color)} />
+          <ColorSwatch color={parseRacColorOrBlack(layer.color)} />
           <span className="effect-layer-row__value">
             {describeLayer(layer)}
           </span>

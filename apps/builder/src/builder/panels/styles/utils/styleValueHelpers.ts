@@ -99,3 +99,11 @@ export function uniform4Way<T>(
   if (a === b && b === c && c === d) return a;
   return undefined;
 }
+
+/** camelCase style prop → 표시 라벨 (`flexDirection` → 「Flex Direction」) — Modified · Responsive 행 제목. */
+export function camelToLabel(prop: string): string {
+  return prop
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (c) => c.toUpperCase())
+    .trim();
+}

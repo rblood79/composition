@@ -18,8 +18,6 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { DEDICATED_SECTION_TYPES } from "./pageBodySectionConstants";
-
 const HERE = dirname(fileURLToPath(import.meta.url));
 const panelSource = readFileSync(resolve(HERE, "PropertiesPanel.tsx"), "utf8");
 
@@ -30,14 +28,9 @@ describe("PropertiesPanel body wiring", () => {
 
   it("does not render an empty edit-contract state at all", () => {
     // 2026-09-15: 계약이 빈 타입은 EmptyState 없이 null — Attributes · State 절이 항상 있어
-    //   「편집 가능한 속성이 없습니다」 가 실제 컨트롤과 함께 뜨는 모순을 타입 표
-    //   (DEDICATED_SECTION_TYPES) 로 가리던 것을 없앴다. 표의 body 는 PageBodySection 이 담당.
-    expect(DEDICATED_SECTION_TYPES.has("body")).toBe(true);
+    //   「편집 가능한 속성이 없습니다」 가 실제 컨트롤과 함께 뜨는 모순을 타입 표로 가리던 것을
+    //   없앴다 (표 `DEDICATED_SECTION_TYPES` 는 소비처 0 이 되어 삭제). body 는 PageBodySection 담당.
     expect(panelSource).not.toContain("propertiesPanel.emptyMessage");
-  });
-
-  it("keeps body in the dedicated section type set", () => {
-    expect(DEDICATED_SECTION_TYPES.has("body")).toBe(true);
   });
 });
 

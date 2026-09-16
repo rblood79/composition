@@ -20,6 +20,7 @@ import { ColorInputModeSelector } from "./ColorInputModeSelector";
 import { ColorInputFields, HexField } from "./ColorInputFields";
 import { EyeDropperButton } from "./EyeDropperButton";
 import { ColorPickerPalettes } from "./ColorPickerPalettes";
+import { parseRacColorOrBlack } from "../utils/colorUtils";
 import {
   recordEditorPresentationRawInput,
   recordEditorPresentationTerminalEvent,
@@ -27,13 +28,6 @@ import {
 
 import "./ColorPickerPanel.css";
 
-function safeParseColor(value: string): Color {
-  try {
-    return parseColor(value);
-  } catch {
-    return parseColor("#000000");
-  }
-}
 
 interface ColorPickerPanelProps {
   value: string; // "#RRGGBBAA" hex8
@@ -46,26 +40,19 @@ interface ColorPickerPanelProps {
 }
 
 /**
- * 내부 피커 - 드래그 중 로컬 상태 관리
- * 외부 preview 값으로는 재초기화하지 않고, 명시적 resetKey 변경 시에만 동기화한다.
+ * 드래그 중 로컬 상태 관리 — `value` 는 마운트 · `resetKey` 변경 시에만 읽는다 (외부 preview
+ * 값으로는 재초기화하지 않는다).
  */
-function ColorPickerPanelInner({
-  initialValue,
+export const ColorPickerPanel = memo(function ColorPickerPanel({
+  value: initialValue,
   resetKey,
   presentationOwnsFrameScheduling = false,
   onPresentationCancel,
   onChange,
   onChangeEnd,
-}: {
-  initialValue: string;
-  resetKey?: string;
-  presentationOwnsFrameScheduling?: boolean;
-  onPresentationCancel?: (reason: "pointer-cancel" | "escape") => void;
-  onChange: (color: string) => void;
-  onChangeEnd: (color: string) => void;
-}) {
+}: ColorPickerPanelProps) {
   const [localColor, setLocalColor] = useState<Color>(() =>
-    safeParseColor(initialValue),
+    parseRacColorOrBlack(initialValue),
   );
   const lastSavedRef = useRef<string>(initialValue);
 
@@ -77,7 +64,7 @@ function ColorPickerPanelInner({
     }
     lastResetKeyRef.current = resetKey;
 
-    const parsed = safeParseColor(initialValue);
+    const parsed = parseRacColorOrBlack(initialValue);
     setLocalColor(parsed);
     lastSavedRef.current = parsed.toString("hexa");
   }, [initialValue, resetKey]);
@@ -183,25 +170,5 @@ function ColorPickerPanelInner({
         <ColorPickerPalettes value={hexValue} onSelect={handleInputChange} />
       </div>
     </AriaColorPicker>
-  );
-}
-
-export const ColorPickerPanel = memo(function ColorPickerPanel({
-  value,
-  resetKey,
-  presentationOwnsFrameScheduling,
-  onPresentationCancel,
-  onChange,
-  onChangeEnd,
-}: ColorPickerPanelProps) {
-  return (
-    <ColorPickerPanelInner
-      initialValue={value}
-      resetKey={resetKey}
-      presentationOwnsFrameScheduling={presentationOwnsFrameScheduling}
-      onPresentationCancel={onPresentationCancel}
-      onChange={onChange}
-      onChangeEnd={onChangeEnd}
-    />
   );
 });

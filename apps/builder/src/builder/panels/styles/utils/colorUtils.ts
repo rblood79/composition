@@ -13,6 +13,7 @@
 import { colord, extend } from "colord";
 import namesPlugin from "colord/plugins/names";
 import hwbPlugin from "colord/plugins/hwb";
+import { parseColor, type Color } from "react-aria-components/ColorPicker";
 
 // colord 플러그인 등록 (named colors: 'red', 'blue' 등)
 extend([namesPlugin, hwbPlugin]);
@@ -277,4 +278,30 @@ export function gradientStopsToCss(stops: GradientStop[]): string {
 export function hex8ToFloat32(hex: string): Float32Array {
   const rgba = hex8ToRgba(hex);
   return Float32Array.of(rgba.r / 255, rgba.g / 255, rgba.b / 255, rgba.a);
+}
+
+// ============================================
+// RAC Color (react-aria parseColor) 안전 파싱 · 표시용 HEX
+// ============================================
+
+/** RAC `parseColor` — 파싱 불가 (var 토큰 · 빈 문자열) 는 null. */
+export function tryParseRacColor(value: string): Color | null {
+  try {
+    return parseColor(value);
+  } catch {
+    return null;
+  }
+}
+
+/** RAC `parseColor` — 파싱 불가는 검정 (종전 RAC swatch 동작과 동일). */
+export function parseRacColorOrBlack(value: string): Color {
+  return tryParseRacColor(value) ?? parseColor("#000000");
+}
+
+/** 표시용 HEX (# 없이 대문자, 알파 FF 는 생략). 파싱 불가 (var 토큰 등) 는 원문 그대로. */
+export function toDisplayHex(value: string): string {
+  const color = tryParseRacColor(value);
+  if (!color) return value;
+  const hex = color.toString("hexa").toUpperCase().slice(1);
+  return hex.length === 8 && hex.endsWith("FF") ? hex.slice(0, 6) : hex;
 }

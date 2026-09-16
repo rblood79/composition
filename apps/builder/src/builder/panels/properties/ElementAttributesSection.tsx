@@ -55,15 +55,10 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
   const allElements = useCanonicalPropertyElements();
 
   const customId = element?.customId ?? "";
-  const className = useMemo(() => {
-    const props = (element?.props ?? {}) as Record<string, unknown>;
-    return typeof props.className === "string" ? props.className : "";
-  }, [element?.props]);
-
-  const ariaLabel = useMemo(() => {
-    const props = (element?.props ?? {}) as Record<string, unknown>;
-    return typeof props["aria-label"] === "string" ? props["aria-label"] : "";
-  }, [element?.props]);
+  const props = (element?.props ?? {}) as Record<string, unknown>;
+  const className = typeof props.className === "string" ? props.className : "";
+  const ariaLabel =
+    typeof props["aria-label"] === "string" ? props["aria-label"] : "";
 
   const handleClassNameChange = useCallback((value: string) => {
     useStore.getState().updateSelectedProperties({

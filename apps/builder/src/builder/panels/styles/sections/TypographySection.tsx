@@ -49,6 +49,59 @@ import { useFontRegistry } from "../../fonts/useFontRegistry";
 import { TYPOGRAPHY_PROPS } from "./styleSectionProps";
 import { useSemanticLabel } from "../../../../i18n";
 
+/** ADR-008 Text Behavior 프리셋 — 5개 속성 묶음 (빈 문자열 = 해제). */
+const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
+  normal: {
+    whiteSpace: "",
+    wordBreak: "",
+    overflowWrap: "",
+    textOverflow: "",
+    overflow: "",
+  },
+  nowrap: {
+    whiteSpace: "nowrap",
+    wordBreak: "",
+    overflowWrap: "",
+    textOverflow: "",
+    overflow: "",
+  },
+  truncate: {
+    whiteSpace: "nowrap",
+    wordBreak: "",
+    overflowWrap: "",
+    textOverflow: "ellipsis",
+    overflow: "hidden",
+  },
+  "break-words": {
+    whiteSpace: "",
+    wordBreak: "",
+    overflowWrap: "break-word",
+    textOverflow: "",
+    overflow: "",
+  },
+  "break-all": {
+    whiteSpace: "",
+    wordBreak: "break-all",
+    overflowWrap: "",
+    textOverflow: "",
+    overflow: "",
+  },
+  "keep-all": {
+    whiteSpace: "",
+    wordBreak: "keep-all",
+    overflowWrap: "break-word",
+    textOverflow: "",
+    overflow: "",
+  },
+  preserve: {
+    whiteSpace: "pre-wrap",
+    wordBreak: "",
+    overflowWrap: "",
+    textOverflow: "",
+    overflow: "",
+  },
+};
+
 const TypographySectionContent = memo(function TypographySectionContent() {
   const localize = useSemanticLabel();
   const { updateStyle, updateStyles } = useStyleActions();
@@ -74,58 +127,7 @@ const TypographySectionContent = memo(function TypographySectionContent() {
   // updateStyles (batch)로 5개 속성을 단일 set()에 적용 → 히스토리 1건 + 레이아웃 1회
   const handleTextBehaviorChange = useCallback(
     (preset: string) => {
-      const presets: Record<string, Record<string, string>> = {
-        normal: {
-          whiteSpace: "",
-          wordBreak: "",
-          overflowWrap: "",
-          textOverflow: "",
-          overflow: "",
-        },
-        nowrap: {
-          whiteSpace: "nowrap",
-          wordBreak: "",
-          overflowWrap: "",
-          textOverflow: "",
-          overflow: "",
-        },
-        truncate: {
-          whiteSpace: "nowrap",
-          wordBreak: "",
-          overflowWrap: "",
-          textOverflow: "ellipsis",
-          overflow: "hidden",
-        },
-        "break-words": {
-          whiteSpace: "",
-          wordBreak: "",
-          overflowWrap: "break-word",
-          textOverflow: "",
-          overflow: "",
-        },
-        "break-all": {
-          whiteSpace: "",
-          wordBreak: "break-all",
-          overflowWrap: "",
-          textOverflow: "",
-          overflow: "",
-        },
-        "keep-all": {
-          whiteSpace: "",
-          wordBreak: "keep-all",
-          overflowWrap: "break-word",
-          textOverflow: "",
-          overflow: "",
-        },
-        preserve: {
-          whiteSpace: "pre-wrap",
-          wordBreak: "",
-          overflowWrap: "",
-          textOverflow: "",
-          overflow: "",
-        },
-      };
-      const values = presets[preset];
+      const values = TEXT_BEHAVIOR_PRESETS[preset];
       if (!values) return; // 'custom' → no-op
       updateStyles(values);
     },
