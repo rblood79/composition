@@ -86,6 +86,12 @@ type UploadState = { id; fingerprint; size; offset; url?; status: "queued"|"crea
 type UploadEvent = { kind: "start" } | { kind: "created"; url } | { kind: "chunk-sent"; bytes } | { kind: "offset"; offset } | { kind: "fail"; status?; retryable } | { kind: "pause" } | { kind: "resume" } | { kind: "cancel" }
 type Command     = { kind: "http"; method; url; headers; body?: { file; start; end } } | { kind: "persist"; fingerprint; url } | { kind: "forget"; fingerprint } | { kind: "wait"; ms } | { kind: "emit"; ... }
 reduce(state, event): [UploadState, Command[]]   // 순수 함수 — 브라우저 API 0
+
+// "@composition/upload/react" — 병렬 착수 commit 에서 freeze (review round 1 m2)
+useUploadQueue(options: UploadQueueOptions): { items: UploadItemState[]; queue: UploadQueue; add; start; pause; resume; cancel; remove }
+useUploadItem(queue: UploadQueue, id: string): UploadItemState | undefined
+// UploadQueueOptions: endpoint · protocol? · chunkSize? · parallelUploads? · retryDelays? · maxFileSize? · headers? · getHeaders? · withCredentials? · autoProceed? · metadata? · overridePatchMethod? · dryRun? · checksum? · requestTimeout?
+// 에러 코드 단일 소스: src/errors.ts (+ errors.json) — server-contract.md §9 와 3자 대조
 ```
 
 - driver 는 `Command` 를 실행하고 결과를 `UploadEvent` 로 되돌린다. XhrDriver 만 `File.slice(start,end)` 를 body 로 넘긴다 (전체 읽기 0). 진행률은 `xhr.upload.onprogress` → `chunk-sent`.
@@ -107,23 +113,32 @@ reduce(state, event): [UploadState, Command[]]   // 순수 함수 — 브라우�
 
 ### 3-4. `FileUpload` compound — 등록 8지점 + capability
 
-| 지점          | 내용                                                                                                                                                                                                                                                                               |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| catalog entry | `primitiveEntry("FileUpload", "forms", …)` category forms, icon `CloudUpload`. source `kind:"internal"`, `renderer:"fileupload"`                                                                                                                                                   |
-| binding       | `FileUpload.binding.ts` — accepts: `endpoint`(ApiEndpoint ref) · `protocol`(enum tus/cloud/multipart) · `chunkSize` · `parallelUploads` · `maxFileSize` · `acceptedFileTypes` · `allowsMultiple` · `acceptDirectory` · `autoUpload` · `retryDelays` · `showPreview` · `isDisabled` |
-| rule          | `COMPONENT_RULES_TABLE.FileUpload` — 컨테이너 shell (fill 투명·gap) 만. 자식 시각은 DropZone/Button/ProgressBar 기존 rule. 신규 시각 채널 0 → Generator 확장 불필요                                                                                                                |
-| factory       | `createFileUploadDefinition` — DropZone(label/description) + FileTrigger>Button("파일 선택") + FileList(GridList, 샘플 행 2) + 행 내부 ProgressBar 자식 자동 생성                                                                                                                  |
-| defaults      | `deriveDefaultPropsFromCatalog` + `ENTRY_DERIVED_DEFAULT_TYPES` 등록, `entryUniverse` facet + INVENTORY 카운트 갱신                                                                                                                                                                |
-| rendererMap   | `renderFileUpload` (preview·publish 공용) — 런타임 상태는 `useUploadQueue` 내부, 문서 write 0. 기존 `renderFileTrigger` 의 `selectedFiles` 문서 write 제거                                                                                                                         |
-| PALETTE_ORDER | forms 그룹에 `FileUpload` 추가 + `paletteOracle.ts` 항목                                                                                                                                                                                                                           |
-| publish       | `ComponentRegistry.tsx` 등록                                                                                                                                                                                                                                                       |
-| Skia          | `buildCatalogShapes` generic box shell + 자식 노드 (DropZone dashed box · Button · GridList 샘플 행 · ProgressBarTrack value_fill_bar) — **디자인 타임 정적 합성만**, 엔진 import 0                                                                                                |
-| capability    | `CAPABILITY_REGISTRY.FileTrigger.events = ["onSelect"]`, `DropZone.events = ["onDrop"]` (RAC 실존 — G1 충족). 커스텀 완료/오류 이벤트는 v1 미등재 (ADR §R2)                                                                                                                        |
-| preview 안전  | preview 기본 = mock endpoint (dry-run, 바이트 미전송), 실서버는 Data 패널 `useMockData` 동형 토글                                                                                                                                                                                  |
+| 지점          | 내용                                                                                                                                                                                                                                                                                      |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| catalog entry | `primitiveEntry("FileUpload", "forms", …)` category forms, icon `CloudUpload`. source `kind:"internal"`, `renderer:"fileupload"`                                                                                                                                                          |
+| binding       | `FileUpload.binding.ts` — accepts: `endpoint`(ApiEndpoint ref) · `protocol`(enum tus/cloud/multipart) · `chunkSize` · `parallelUploads` · `maxFileSize` · `acceptedFileTypes` · `allowsMultiple` · `acceptDirectory` · `autoUpload` · `retryDelays` · `showPreview` · `isDisabled`        |
+| rule          | `COMPONENT_RULES_TABLE.FileUpload` — 컨테이너 shell (fill 투명·gap) 만. 자식 시각은 DropZone/Button/ProgressBar 기존 rule. 신규 시각 채널 0 → Generator 확장 불필요                                                                                                                       |
+| factory       | `createFileUploadDefinition` — DropZone leaf + FileTrigger leaf (형제, "Select files") + ProgressBar×2 샘플 행 (ADR-157 샘플 정책). **2026-09-17 정정**: 초안의 GridList 행은 ref 인스턴스라 행 안 ProgressBar 를 못 담아 폐기 — 런타임 목록만 RAC GridList (`components/FileUpload.tsx`) |
+| defaults      | `deriveDefaultPropsFromCatalog` + `ENTRY_DERIVED_DEFAULT_TYPES` 등록, `entryUniverse` facet + INVENTORY 카운트 갱신                                                                                                                                                                       |
+| rendererMap   | `renderFileUpload` (preview·publish 공용) — 런타임 상태는 `useUploadQueue` 내부, 문서 write 0. 기존 `renderFileTrigger` 의 `selectedFiles` 문서 write 제거                                                                                                                                |
+| PALETTE_ORDER | forms 그룹에 `FileUpload` 추가 + `paletteOracle.ts` 항목                                                                                                                                                                                                                                  |
+| publish       | `ComponentRegistry.tsx` 등록                                                                                                                                                                                                                                                              |
+| Skia          | `buildCatalogShapes` generic box shell + 자식 노드 (DropZone dashed box · Button · GridList 샘플 행 · ProgressBarTrack value_fill_bar) — **디자인 타임 정적 합성만**, 엔진 import 0                                                                                                       |
+| capability    | `CAPABILITY_REGISTRY.FileTrigger.events = ["onSelect"]`, `DropZone.events = ["onDrop"]` (RAC 실존 — G1 충족). 커스텀 완료/오류 이벤트는 v1 미등재 (ADR §R2)                                                                                                                               |
+| preview 안전  | preview 기본 = mock endpoint (dry-run, 바이트 미전송), 실서버는 Data 패널 `useMockData` 동형 토글                                                                                                                                                                                         |
 
 ### 3-5. Spring 참조 구현 (`examples/upload-server-spring/`)
 
 - Maven · Java 8 · Spring MVC 5.3 · servlet 3.1 · Tomcat 9 (Boot 비의존, 전자정부 표준프레임워크 호환 가능한 API 만). pnpm/turbo 대상 제외 (`pnpm-workspace.yaml` 미포함), 별도 CI job (`mvn -q test`, JDK 8).
+- **선행 조건 (review round 1 h1)** — 실행 머신에 있어야 G2b 가 돈다. 2026-09-17 이 머신 실측: 전부 없음.
+
+  | 도구                    | 용도             | 설치 (macOS)                                            | 없을 때                    |
+  | ----------------------- | ---------------- | ------------------------------------------------------- | -------------------------- |
+  | Temurin JDK 8 (또는 17) | 참조 서버 컴파일 | `brew install --cask temurin@8`                         | G2b 차단 (소스만 작성)     |
+  | Maven 3                 | `mvn -q test`    | `brew install maven`                                    | G2b 차단                   |
+  | Tomcat 9                | war 배포 / cargo | `mvn cargo:run` 이 내려받음                             | e2e 차단                   |
+  | tusd release 바이너리   | G2a 대조군       | GitHub release `tusd_darwin_arm64.zip` (Go·docker 불요) | 2026-09-17 실행 — 8/8 PASS |
+
 - 변형 2종: ① `TusController` — jar 무의존, `request.getInputStream()` → `RandomAccessFile.seek(offset)` 1회 쓰기, `@RequestMapping(method = PATCH)` + `X-HTTP-Method-Override` 필터 ② `tus-java-server` 라이브러리 위임 변형 (선택).
 - 저장: 파일 바이트 = 웹루트 밖 디렉터리 (webapp 내부면 기동 실패), 저장명 UUID. 메타 = Oracle `UPLOAD_SESSION(id, owner_id, file_name, file_type, total_size NUMBER, upload_offset NUMBER, storage_path, status, created_at, expires_at)`; offset 갱신 `MERGE` + `SELECT … FOR UPDATE` 로 PATCH 직렬화. 개발 프로파일은 H2 (Oracle 모드).
 - 완료 후 상태 `SCANNING → APPROVED|REJECTED` 훅 (AV 스캔 연동 지점, 참조 구현은 no-op 스캐너).
@@ -144,7 +159,7 @@ reduce(state, event): [UploadState, Command[]]   // 순수 함수 — 브라우�
 | :---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
 |   0   | inventory freeze (§2 재grep) + mock TUS 서버 (Node `http`) + **first-nail**: XhrDriver 로 100MB 파일 1개 진행률 수신 + 강제 단절 후 HEAD offset 재개 1케이스                                  | G0                          |
 |   1   | `@composition/upload` core (상태기계·queue·drivers) + tus 어댑터 + package 빌드 (esm/cjs/iife) + 적합성 스위트 + 공격 corpus (클라이언트 측) + 힙·재전송·크기 측정                            | G1                          |
-|   2   | `server-contract.md` + `examples/upload-server-spring/` (변형 ① 필수, ② 선택) + `examples/upload-client-jsp/` + 참조 서버·tusd e2e                                                            | G2 · G4 (서버 측)           |
+|   2   | `server-contract.md` + `examples/upload-server-spring/` (변형 ① 필수, ② 선택) + `examples/upload-client-jsp/` + tusd 대조군 (G2a, 로컬) · 참조 서버 e2e (G2b, 사용자 머신 + 증거)             | G2a · G2b · G4 (서버 측)    |
 |   3   | composition `FileUpload` compound — 등록 8지점 · capability 등재 · `renderFileTrigger` selectedFiles 문서 write 제거 · Skia 정적 합성 · preview mock 토글 · `/cross-check` · 정적 비밀 게이트 | G3 · G4 (클라이언트 측)     |
 |   4   | live exercise — preview 에서 ≥1GB 실파일 업로드·중단·재개 (참조 서버 대상) + JSP 예제 동일 시나리오 + CHANGELOG + README                                                                      | G5 · `### Live Exercise` 절 |
 
@@ -152,19 +167,19 @@ Phase 1 → 2 는 순차 (계약이 클라이언트 적합성 스위트에서 �
 
 ## 5. 검증 체크리스트
 
-- [ ] `packages/upload-engine` runtime dependency 0 · `@composition/*`/`react-aria-components` import 0 (eslint) · react 는 `src/react/**` 한정
-- [ ] core+tus ≤ 6KB gz · IIFE ≤ 10KB gz · builder 초기 chunk Δ 0 · publish 초기 Δ ≤ +2KB gz (baseline = 같은 디렉터리 detached checkout — 메모리 `reference-bundle-delta-baseline-build-detached-checkout`)
-- [ ] 4GB 합성 파일 업로드 중 JS 힙 Δ ≤ 64MB (Chrome Task Manager / `performance.memory`, 3회 중앙값)
-- [ ] 단절·새로고침·탭 종료 3경로 재개 시 재전송 ≤ chunkSize
-- [ ] mock 서버 적합성 스위트 + 공격 corpus 전부 PASS · tusd 대조군 동일 PASS
+- [x] `packages/upload-engine` runtime dependency 0 · `@composition/*`/`react-aria-components` import 0 (eslint) · react 는 `src/react/**` 한정
+- [x] core+tus 5,852 B ≤ 6KB gz · IIFE 8,068 B ≤ 10KB gz · 엔진 chunk initial 밖 · [ ] initial 상한 재승인 (Builder +3,875 / Preview +3,507 — 사용자 결정, ADR §initial 번들 상한 재승인) (baseline = 같은 디렉터리 detached checkout — 메모리 `reference-bundle-delta-baseline-build-detached-checkout`)
+- [x] 4GB 합성 파일 업로드 중 JS 힙 Δ ≤ 64MB (2.22MB 중앙값) (Chrome Task Manager / `performance.memory`, 3회 중앙값)
+- [x] 단절·새로고침·탭 종료 3경로 재개 시 재전송 ≤ chunkSize (4.06MB / 0 / 0)
+- [x] mock 서버 적합성 스위트 + 공격 corpus 전부 PASS (79) · tusd 대조군 동일 PASS (8/8, v2.10.1 — 2026-09-17)
 - [ ] 참조 서버: 1GB 업로드→중단→재개, override 모드, 소유자 403, TTL GC, webroot 저장 기동 거부, CSRF 없는 PATCH 403
-- [ ] 등록 8지점 + `componentRegistrationContract.test.ts` ratchet 0/0/0 + `paletteOracle` + `entryUniverseContract` INVENTORY
-- [ ] `CAPABILITY_REGISTRY` DropZone/FileTrigger 등재 (RAC 실존 이벤트만) + `capabilityRegistry.test.ts` G1 PASS
-- [ ] `selectedFiles` 문서 write 0 (grep)
-- [ ] `/cross-check` FileUpload 샘플 상태 Skia↔DOM bbox Δ ≤ 1px
-- [ ] 문서/`ApiEndpoint` 비밀 패턴 정적 게이트 PASS
-- [ ] `pnpm type-check` 0 · `mvn -q test` PASS (JDK 8)
-- [ ] live: preview ≥1GB 실파일 + JSP 예제 — Chrome MCP 또는 사용자 confirm 구분 기재
+- [x] 등록 8지점 + `componentRegistrationContract.test.ts` ratchet 0/0/0 + `paletteOracle` + `entryUniverseContract` INVENTORY
+- [x] `CAPABILITY_REGISTRY` DropZone/FileTrigger 등재 (RAC 실존 이벤트만, `satisfies keyof` 단언) + `capabilityRegistry.test.ts` G1 PASS
+- [x] `selectedFiles` 문서 write 0 (grep + 정적 게이트 3 + live)
+- [x] `/cross-check` FileUpload 샘플 상태 Skia↔DOM bbox Δ ≤ 1px (live 20/20 — y/height 축, 폭은 viewport 종속)
+- [x] endpoint headers placeholder 외 auth 값 0 정적 게이트 PASS (`plaintextTokenGate`, 감지기 6 + corpus 5)
+- [x] `pnpm type-check` 0 (5/5) · [ ] `mvn -q test` PASS (JDK 8 — G2b, 사용자 머신)
+- [ ] live: preview ≥1GB 실파일 + JSP 예제 — Chrome MCP 또는 사용자 confirm 구분 기재 (G5 미실행; 통합 시점 부분 기록은 ADR §Live Exercise)
 
 ## 6. 위험 대응 매핑 (ADR §Risks ↔ Phase)
 

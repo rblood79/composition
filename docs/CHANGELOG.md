@@ -11,6 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-201 대용량 파일 업로드 — @composition/upload 전송 엔진 · FileUpload 컴포넌트 · TUS 서버 계약 (Phase 0~3, In Progress)] - 2026-09-17
+
+### Added
+
+- **`@composition/upload` 독립 전송 엔진** (`packages/upload-engine`, 런타임 의존 0, esm/cjs + JSP 용 IIFE `CompositionUpload`): TUS 1.0 (creation · expiration · checksum/termination 감지) sans-I/O 상태기계 + XHR driver — GB 파일을 `File.slice` 로 청크 전송 (4GB×3 힙 Δ 2.22MB), 네트워크 단절 · 새로고침 · 탭 종료 후 서버 `Upload-Offset` 기준 재개 (재전송 ≤ chunkSize), PATCH 차단 환경 `X-HTTP-Method-Override`, 에러 코드 11종 (`errors.json` 정본). tusd v2.10.1 대조군 8/8.
+- **`FileUpload` 컴포넌트** (팔레트 forms "file upload"): DropZone + FileTrigger + 진행 막대 샘플 행 2 로 합성, Preview/publish 에서 파일 선택 시 엔진을 lazy 로드해 런타임 목록 · 진행률 · 오류 코드를 표시 (preview 기본 dry-run, publish 실전송). Properties: 파일 형식 · 다중 · 폴더 · endpoint · chunk 크기 · 동시 수 · 재시도 · 최대 크기 · 자동 시작 · 미리보기.
+- **서버 계약 정본** `docs/reference/upload/server-contract.md` v1.0.0 (헤더 · 시퀀스 · 메타데이터 검증 12 규칙 · 인프라 knob · 보안 의무 · 공격 corpus) + **Spring MVC 5 / Java 8 참조 서버** `examples/upload-server-spring/` (웹루트 밖 저장 강제 · 소유자 · CSRF · TTL GC · Oracle/H2) + JSP 예제 `examples/upload-client-jsp/` + JDK 8 CI workflow.
+- `CAPABILITY_REGISTRY` 에 FileTrigger `onSelect` · DropZone `onDrop` 등재 — 두 컴포넌트가 interaction rule 트리거가 된다.
+
+### Fixed
+
+- **FileTrigger 가 선택한 파일명을 문서 prop (`selectedFiles`) 에 기록하던 잘못된 채널 제거** — 런타임 상태가 canonical document 에 남지 않는다 (정적 게이트 + live 확인).
+
+### Changed
+
+- `pnpm install` postinstall 이 `@composition/upload` 도 빌드한다 (`prepare:upload`).
+- initial 번들: Builder +3,875 B · Preview +3,507 B gzip (등록 8지점 + 렌더러 shell, 엔진 chunk 는 lazy) — 상한 재승인은 ADR-201 §initial 번들 상한 재승인 (사용자 결정 대기, 판정기 `adr201-bundle-gate.mjs`).
+
 ## [ADR-013 Quick Connect — Data 행 「New table」 이 만든 테이블을 작업하던 컴포넌트에 자동 연결] - 2026-09-17
 
 ### Added
