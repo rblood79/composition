@@ -8,7 +8,7 @@
   /* Skia canvas(2) 위 · 눈금자(3, DOM 뒤) 아래 — 같은 z 는 DOM 순서로 눈금자가 위 */
   z-index: 3;
   overflow: hidden;
-  /* Phase 1: 표시 전용. Phase 2 에서 .page-header 만 다시 켠다 */
+  /* 층 자체는 이벤트를 통과시키고 헤더 노드만 받는다 (clip-path 밖은 히트 대상 아님) */
   pointer-events: none;
   contain: layout style;
 }
@@ -34,6 +34,7 @@
   line-height: 1;
   color: var(--fg-muted);
   white-space: nowrap;
+  pointer-events: auto;
   /* Skia 시절과 같은 색 — --button-color 는 Button.css 스코프에만 있어 builder 루트에서는
      --fg 로 내려간다 (light gray-800 / dark zinc-100), alpha 10% */
   background: color-mix(
@@ -42,6 +43,8 @@
     transparent
   );
   will-change: transform;
+  user-select: none;
+  touch-action: none;
 }
 
 /* 현재(선택된) 페이지 — focus-ring 30% */
@@ -57,4 +60,31 @@
 .page-header__title {
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 이름 편집 — 헤더 띠 자체가 필드. 종전 Workspace.css 의 .page-title-edit-input (500) 을
+   이 층으로 옮기고 헤더와 같은 700 으로 맞춘다 (reviews/221 round 1 l1). */
+.page-header[data-editing] {
+  background: var(--bg);
+  outline: 1px solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+.page-header .page-title-edit-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 40px;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 700;
+  line-height: 1;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  outline: none;
+  box-shadow: none;
+  caret-color: var(--accent);
 }

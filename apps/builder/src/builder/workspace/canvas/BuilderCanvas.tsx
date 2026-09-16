@@ -51,7 +51,10 @@ import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
 import { ViewportControlBridge } from "./viewport";
-import { PageHeaderLayer } from "./overlay/pageHeader/PageHeaderLayer";
+import {
+  PageHeaderLayer,
+  isPageHeaderEventTarget,
+} from "./overlay/pageHeader/PageHeaderLayer";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
@@ -72,9 +75,7 @@ import { readPageGuides } from "./viewport/pageGuideActions";
 import {
   CanvasGestureSession,
   computeSelectionBounds,
-  isPointInPageTitleBounds,
   readPagePositionForInteraction,
-  resolvePageTitleEditorRect,
   resolveSelectedElementsForPage,
   resolveSelectedPageIds,
   resolveTopPageIdAtPoint,
@@ -96,10 +97,7 @@ import { useCanvasRuntimeBootstrap } from "./hooks/useCanvasRuntimeBootstrap";
 import { useLayoutPublisher } from "./hooks/useLayoutPublisher";
 import { useDragBridge } from "./hooks/useDragBridge";
 import { usePageDrag } from "./hooks/usePageDrag";
-import type {
-  PageTitleBounds,
-  BindingBadgeInfo,
-} from "./skia/skiaOverlayHelpers";
+import type { BindingBadgeInfo } from "./skia/skiaOverlayHelpers";
 import type { DataBadgeBounds } from "./skia/bindingBadgeRenderer";
 import {
   getElementDataBinding,
@@ -160,17 +158,6 @@ export interface BuilderCanvasProps {
   pageHeight?: number;
   /** 초기 Pan Offset X (비교 모드 등에서 사용) */
   initialPanOffsetX?: number;
-}
-
-interface PageTitleEditState {
-  pageId: string;
-  title: string;
-  bounds: PageTitleBounds;
-}
-
-interface PageTitleHitSnapshot {
-  bounds: PageTitleBounds;
-  timeStamp: number;
 }
 
 // ============================================
@@ -247,7 +234,6 @@ function SkiaCanvasLazy(props: {
   sceneInvalidationPacket: RendererSceneInvalidation;
   rendererInput: SkiaRendererInput;
   dropIndicatorSnapshotRef?: React.MutableRefObject<DropIndicatorSnapshot | null>;
-  pageTitleBoundsMapRef?: React.MutableRefObject<Map<string, PageTitleBounds>>;
   bindingBadgeResolver?: (element: CanvasSceneNode) => BindingBadgeInfo | null;
   dataBadgeBoundsMapRef?: React.MutableRefObject<Map<string, DataBadgeBounds>>;
 }) {
@@ -423,11 +409,6 @@ export function BuilderCanvas({
     useState<ReadonlySet<string> | null>(null);
   const transientVisiblePageIdsRef = useRef<ReadonlySet<string> | null>(null);
 
-  // ADR-100 Phase 9 회귀 복구: <PageContainer> 제거로 끊겼던 page-title drag
-  // 경로를 Skia overlay 경유로 재배선. SkiaCanvas renderSkia 가 매 프레임
-  // pageTitleBoundsMapRef.current 에 scene 좌표 bounds 를 populate 하고,
-  // BuilderCanvas pointerdown(capture) 가 이 Map 을 조회해 usePageDrag 를 트리거.
-  const pageTitleBoundsMapRef = useRef<Map<string, PageTitleBounds>>(new Map());
   // ADR-212 Phase 6 — 바인딩 배지: renderSkia 가 매 프레임 이 맵을 clear+populate 하고
   // pointerdown(capture) 가 조회해 openTableEditor 를 트리거한다.
   const dataBadgeBoundsMapRef = useRef<Map<string, DataBadgeBounds>>(new Map());
@@ -472,10 +453,6 @@ export function BuilderCanvas({
     w.__composition_VIEWPORT__ = () => viewportSnapshotRef.current;
     w.__composition_APPLY_VIEWPORT__ = (s) => applyViewportState(s);
   }, []);
-  const lastPageTitleHitRef = useRef<PageTitleHitSnapshot | null>(null);
-  const pageTitleRenameCancelRef = useRef(false);
-  const [pageTitleEditState, setPageTitleEditState] =
-    useState<PageTitleEditState | null>(null);
   const [canvasGestureSession] = useState(() => new CanvasGestureSession());
   // ADR-179 C3: 스냅 후보 공급 — buildPageFrames 산출(allPageFrames)을 ref 로
   // 전달. usePageDrag 가 드래그 시작 시 1회만 읽는다 (R1 상한).
@@ -1201,6 +1178,11 @@ export function BuilderCanvas({
       // capture 로 붙어 있어 조상 캡처가 스트립 핸들러보다 먼저 돈다 —
       // DOM z-order 로는 안 막히므로 소속 판정으로 조기 반환한다.
       if (isRulerEventTarget(event.target)) return;
+      // ADR-221 Decision 4: 페이지 헤더 DOM 층은 자기 핸들러 (PageHeaderLayer →
+      // handleHeaderPointerDown) 가 판정한다 — 여기서는 Skia 선판정만 건너뛴다.
+      // gestureSession 의 pan 판정은 useViewportControl 소유라 스페이스+헤더 드래그는
+      // 그대로 pan 이 된다.
+      if (isPageHeaderEventTarget(event.target)) return;
       if (isFrameEditMode) return;
       if (event.button !== 0) return;
       const target = event.target as HTMLElement;
@@ -1314,124 +1296,6 @@ export function BuilderCanvas({
         }
       }
 
-      for (const bounds of pageTitleBoundsMapRef.current.values()) {
-        if (
-          scenePoint.x >= bounds.sceneX &&
-          scenePoint.x <= bounds.sceneX + bounds.sceneWidth &&
-          scenePoint.y >= bounds.sceneY &&
-          scenePoint.y <= bounds.sceneY + bounds.sceneHeight
-        ) {
-          // 페이지 간 occlusion — 페인트 순서상 위 페이지에 덮인 지점의 타이틀은
-          // 그려지지 않으므로(skiaOverlayBuilder withPageOcclusionClip) 히트도
-          // 무시한다 (§8.5 paint↔hit 대칭). continue: 같은 지점에 겹친 다른
-          // 타이틀(가려지지 않은 쪽)이 있으면 그쪽이 잡히고, 없으면 중앙
-          // 핸들러의 일반 히트(위 페이지 요소/body)로 폴백한다.
-          const topPageIdAtPoint = resolveTopPageIdAtPoint({
-            canvasPoint: scenePoint,
-            activePageId: titleState.currentPageId,
-            pageHeight,
-            pagePositions: titleState.pagePositions,
-            pageWidth,
-            pages: titleState.pages,
-          });
-          if (topPageIdAtPoint && topPageIdAtPoint !== bounds.pageId) {
-            const topRank = titlePagePaintRank.get(topPageIdAtPoint);
-            const ownRank = titlePagePaintRank.get(bounds.pageId);
-            if (
-              topRank !== undefined &&
-              ownRank !== undefined &&
-              topRank > ownRank
-            ) {
-              continue;
-            }
-          }
-          // ADR-178: 타이틀 shift 클릭 = 그 페이지 body 를 다중 선택에 토글
-          // (요소 shift 클릭과 같은 문법 — 드래그 시작 없음). body 는
-          // resolveClickTarget 을 통과하지 못해 handleElementClick 경유 시
-          // handleUnresolvedTarget(단독 대체 + 페이지 전환)로 빠지므로,
-          // selection 을 직접 토글한다 (selectResolvedTarget shift 분기와
-          // 같은 계약 — currentPageId 무변경, cross-page 유지).
-          if (event.shiftKey) {
-            lastPageTitleHitRef.current = null;
-            const pageElementIds = titleState.pageIndex.elementsByPage.get(
-              bounds.pageId,
-            );
-            let bodyElementId: string | null = null;
-            if (pageElementIds) {
-              for (const candidateId of pageElementIds) {
-                const candidate = titleState.elementsMap.get(candidateId);
-                if (candidate?.type?.toLowerCase() === "body") {
-                  bodyElementId = candidateId;
-                  break;
-                }
-              }
-            }
-            if (bodyElementId) {
-              const selectedSet = new Set(titleState.selectedElementIds);
-              if (selectedSet.has(bodyElementId)) {
-                selectedSet.delete(bodyElementId);
-              } else {
-                selectedSet.add(bodyElementId);
-              }
-              titleState.setSelectedElements(Array.from(selectedSet));
-              (event as PointerEvent & { __handled?: boolean }).__handled =
-                true;
-            }
-            return;
-          }
-          lastPageTitleHitRef.current = {
-            bounds: { ...bounds },
-            timeStamp: event.timeStamp,
-          };
-
-          // ADR-178: 잡은 타이틀의 페이지가 다중 선택 집합에 포함돼 있으면
-          // 집합 전체가 함께 움직인다 (리더 = 잡은 페이지). 아니면 현행 단독.
-          const selectedTitlePageIds = resolveSelectedPageIds({
-            currentPageId: titleState.currentPageId,
-            elementsMap: titleState.elementsMap as unknown as ReadonlyMap<
-              string,
-              import("./interaction/interactionNode").CanvasInteractionNode
-            >,
-            selectedIds: titleState.selectedElementIds,
-          });
-          const titleDragPageIds = selectedTitlePageIds.includes(bounds.pageId)
-            ? selectedTitlePageIds
-            : [bounds.pageId];
-          // 잔류 element 세션 승격 fallback — pointerdown 마다
-          // useViewportControl/중앙 핸들러가 beginPointer(element) 로 세션을
-          // 열지만 element 세션은 pointerup 에서 닫히지 않아 같은 pointerId 로
-          // 잔류한다 (2026-08-12 계측: 첫 press 이후 tryClaimPage 가 항상
-          // 실패). promoteElementToPage 가 정확히 이 상태(같은 pointer 의
-          // element 제스처)를 page 로 승격하는 API 다.
-          if (
-            !canvasGestureSession.tryClaimPage(
-              event.pointerId,
-              bounds.pageId,
-              sceneActiveBreakpoint,
-              titleDragPageIds,
-            ) &&
-            !canvasGestureSession.promoteElementToPage(
-              event.pointerId,
-              bounds.pageId,
-              sceneActiveBreakpoint,
-              titleDragPageIds,
-            )
-          ) {
-            return;
-          }
-
-          setCurrentPageId(bounds.pageId);
-          (event as PointerEvent & { __handled?: boolean }).__handled = true;
-          startPageDrag(
-            bounds.pageId,
-            event.pointerId,
-            event.clientX,
-            event.clientY,
-          );
-          return;
-        }
-      }
-
       if (canvasGestureSession.isOwnedByAnotherPointer(event.pointerId)) {
         return;
       }
@@ -1444,44 +1308,9 @@ export function BuilderCanvas({
       }
     };
 
-    const onDoubleClickCapture = (event: MouseEvent) => {
-      if (isFrameEditMode || event.button !== 0) return;
-      const target = event.target as HTMLElement;
-      if (target.closest('input, textarea, [contenteditable="true"]')) return;
-
-      const hit = lastPageTitleHitRef.current;
-      if (!hit || event.timeStamp - hit.timeStamp > 1_000) return;
-
-      const rect = element.getBoundingClientRect();
-      const scenePoint = screenToCanvasPoint({
-        x: event.clientX - rect.left,
-        y: event.clientY - rect.top,
-      });
-      if (!isPointInPageTitleBounds(scenePoint, hit.bounds)) return;
-
-      const titleState = useStore.getState();
-      const page = titleState.pages.find(
-        (candidate) => candidate.id === hit.bounds.pageId,
-      );
-      if (!page || isComponentsPageMirror(page)) return;
-
-      setCurrentPageId(page.id);
-      pageTitleRenameCancelRef.current = false;
-      setPageTitleEditState({
-        pageId: page.id,
-        title: page.title,
-        bounds: { ...hit.bounds },
-      });
-      lastPageTitleHitRef.current = null;
-      event.preventDefault();
-      event.stopPropagation();
-    };
-
     element.addEventListener("pointerdown", onPointerDownCapture, true);
-    element.addEventListener("dblclick", onDoubleClickCapture, true);
     return () => {
       element.removeEventListener("pointerdown", onPointerDownCapture, true);
-      element.removeEventListener("dblclick", onDoubleClickCapture, true);
     };
   }, [
     canvasGestureSession,
@@ -1567,9 +1396,85 @@ export function BuilderCanvas({
     handleElementDoubleClickRef.current = handleElementDoubleClick;
   }, [handleElementClick, handleElementDoubleClick]);
 
-  const pageTitleEditorRect = pageTitleEditState
-    ? resolvePageTitleEditorRect(pageTitleEditState.bounds, zoom, panOffset)
-    : null;
+  // ADR-221 Phase 2: 페이지 헤더 히트 — Skia bounds 순회 대신 DOM 헤더 노드의 핸들러.
+  // shift 클릭 = 그 페이지 body 를 다중 선택에 토글 (ADR-178 계약 유지) · 그 외 = 페이지 전환 +
+  // drag (선택 집합에 든 페이지면 집합 전체). 스페이스 pan 은 useViewportControl 에 양보.
+  const handleHeaderPointerDown = useCallback(
+    (pageId: string, event: PointerEvent) => {
+      if (isFrameEditMode || canvasGestureSession.spacePressed) return;
+      const state = useStore.getState();
+      const guarded = event as PointerEvent & { __handled?: boolean };
+      if (event.shiftKey) {
+        const pageElementIds = state.pageIndex.elementsByPage.get(pageId);
+        let bodyElementId: string | null = null;
+        if (pageElementIds) {
+          for (const candidateId of pageElementIds) {
+            const candidate = state.elementsMap.get(candidateId);
+            if (candidate?.type?.toLowerCase() === "body") {
+              bodyElementId = candidateId;
+              break;
+            }
+          }
+        }
+        if (bodyElementId) {
+          const selectedSet = new Set(state.selectedElementIds);
+          if (selectedSet.has(bodyElementId)) selectedSet.delete(bodyElementId);
+          else selectedSet.add(bodyElementId);
+          state.setSelectedElements(Array.from(selectedSet));
+          guarded.__handled = true;
+        }
+        return;
+      }
+      const selectedPageIds = resolveSelectedPageIds({
+        currentPageId: state.currentPageId,
+        elementsMap: state.elementsMap as unknown as ReadonlyMap<
+          string,
+          import("./interaction/interactionNode").CanvasInteractionNode
+        >,
+        selectedIds: state.selectedElementIds,
+      });
+      const dragPageIds = selectedPageIds.includes(pageId)
+        ? selectedPageIds
+        : [pageId];
+      // 잔류 element 세션 승격 fallback (2026-08-12 계측) — 기존 Skia 경로와 같은 계약
+      if (
+        !canvasGestureSession.tryClaimPage(
+          event.pointerId,
+          pageId,
+          sceneActiveBreakpoint,
+          dragPageIds,
+        ) &&
+        !canvasGestureSession.promoteElementToPage(
+          event.pointerId,
+          pageId,
+          sceneActiveBreakpoint,
+          dragPageIds,
+        )
+      ) {
+        return;
+      }
+      setCurrentPageId(pageId);
+      guarded.__handled = true;
+      startPageDrag(pageId, event.pointerId, event.clientX, event.clientY);
+    },
+    [
+      canvasGestureSession,
+      isFrameEditMode,
+      sceneActiveBreakpoint,
+      setCurrentPageId,
+      startPageDrag,
+    ],
+  );
+  const canRenamePage = useCallback(
+    (pageId: string) => {
+      if (isFrameEditMode) return false;
+      const page = useStore
+        .getState()
+        .pages.find((candidate) => candidate.id === pageId);
+      return Boolean(page) && !isComponentsPageMirror(page!);
+    },
+    [isFrameEditMode],
+  );
 
   return (
     <div
@@ -1631,7 +1536,6 @@ export function BuilderCanvas({
           sceneInvalidationPacket={sceneInvalidationPacket}
           rendererInput={skiaRendererInput}
           dropIndicatorSnapshotRef={dropIndicatorSnapshotRef}
-          pageTitleBoundsMapRef={pageTitleBoundsMapRef}
           bindingBadgeResolver={bindingBadgeResolver}
           dataBadgeBoundsMapRef={dataBadgeBoundsMapRef}
         />
@@ -1640,9 +1544,13 @@ export function BuilderCanvas({
       {/* ADR-902: Skia canvas 뒤 도트 배경 레이어 (P0에서 투명 clear 전제) */}
       <DotBackground />
 
-      {/* ADR-221: 페이지 헤더 DOM 층 — Skia 위 · 눈금자 아래. Phase 1 은 표시 전용 */}
+      {/* ADR-221: 페이지 헤더 DOM 층 — Skia 위 · 눈금자 아래 (표시 + drag/shift/이름 편집 히트) */}
       <PageHeaderLayer
         frames={sceneStructureSnapshot.document.visiblePageFrames}
+        onHeaderPointerDown={handleHeaderPointerDown}
+        canRenamePage={canRenamePage}
+        onBeginRename={setCurrentPageId}
+        onRenamePage={renamePageTitle}
       />
 
       {/* ADR-181: Skia canvas 앞 눈금자 레이어 (뷰포트 chrome — 문서 데이터 아님) */}
@@ -1661,39 +1569,6 @@ export function BuilderCanvas({
       )}
 
       <GPUDebugOverlay />
-
-      {pageTitleEditState && pageTitleEditorRect && (
-        <input
-          className="page-title-edit-input"
-          data-text-editing="true"
-          aria-label={`Rename page ${pageTitleEditState.title}`}
-          defaultValue={pageTitleEditState.title}
-          autoFocus
-          style={pageTitleEditorRect}
-          onFocus={(event) => event.currentTarget.select()}
-          onPointerDown={(event) => event.stopPropagation()}
-          onBlur={(event) => {
-            const { pageId } = pageTitleEditState;
-            setPageTitleEditState(null);
-            if (pageTitleRenameCancelRef.current) {
-              pageTitleRenameCancelRef.current = false;
-              return;
-            }
-            renamePageTitle(pageId, event.currentTarget.value);
-          }}
-          onKeyDown={(event) => {
-            event.stopPropagation();
-            if (event.key === "Enter") {
-              event.preventDefault();
-              event.currentTarget.blur();
-            } else if (event.key === "Escape") {
-              event.preventDefault();
-              pageTitleRenameCancelRef.current = true;
-              event.currentTarget.blur();
-            }
-          }}
-        />
-      )}
 
       {/* 텍스트 편집 오버레이 (B1.5) */}
       {editState && editState.elementId && (
