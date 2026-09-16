@@ -18,7 +18,6 @@ import com.composition.upload.service.OwnerResolver;
 import com.composition.upload.service.UploadException;
 
 import me.desair.tus.server.TusFileUploadService;
-import me.desair.tus.server.exception.TusException;
 
 /**
  * 변형 ② — tus-java-server 라이브러리 위임 (스켈레톤). Maven 프로파일 {@code tus-lib} 로만 컴파일된다
@@ -50,13 +49,9 @@ public class TusLibraryController {
         if (!"OPTIONS".equalsIgnoreCase(request.getMethod()) && owners.resolve(request) == null) {
             throw new UploadException(401, "authentication required");
         }
-        try {
-            // 소유자 바인딩: 라이브러리의 owner-key 확장 — 같은 principal 만 같은 업로드 URL 을 본다
-            tus.process(request, response, owners.resolve(request));
-        } catch (TusException e) {
-            response.setStatus(e.getStatus());
-            response.getWriter().write(e.getMessage() == null ? "" : e.getMessage());
-        }
+        // 소유자 바인딩: 라이브러리의 owner-key 확장 — 같은 principal 만 같은 업로드 URL 을 본다.
+        // TusException 은 라이브러리가 process 안에서 상태 코드·본문으로 변환한다 (밖으로 던지지 않음)
+        tus.process(request, response, owners.resolve(request));
     }
 
     /** 프로파일 전용 배선 — 저장 경로는 변형 ① 과 같은 검증기를 지난다 (S1). */
