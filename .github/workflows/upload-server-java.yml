@@ -1,0 +1,64 @@
+name: Upload Server (Java 8)
+
+# ADR-201 Phase 2 (R6) — examples/upload-server-spring 은 TS 모노레포 밖 (pnpm/turbo 대상 아님) 이라
+# JDK 8 + Maven job 을 따로 둔다. 이 저장소는 web PR 을 쓰지 않으므로 (.claude/rules/git-workflow.md)
+# 게이트 근거는 main push 의 이 job 과 로컬 `mvn -q test` PASS 로그다. gh 가 미인증인 세션에서는 러너 결과를
+# 관측하지 못한다 — README §사용자 실행 명령 (ADR-198 잔여와 같은 상태).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "examples/upload-server-spring/**"
+      - ".github/workflows/upload-server-java.yml"
+  pull_request:
+    paths:
+      - "examples/upload-server-spring/**"
+      - ".github/workflows/upload-server-java.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: upload-server-java-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: mvn -q test (temurin 8)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/upload-server-spring
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 8 (temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "8"
+          cache: maven
+          cache-dependency-path: examples/upload-server-spring/pom.xml
+
+      - name: Show toolchain
+        run: |
+          java -version
+          mvn -version
+
+      - name: Unit + MockMvc suite (H2 Oracle mode)
+        run: mvn -q -B -ntp test
+
+      - name: Variant 2 (tus-java-server profile) compiles
+        # 선택 변형 — 라이브러리 API 호출은 작성 머신에서 컴파일 미검증. 실패해도 job 은 통과 (continue-on-error)
+        continue-on-error: true
+        run: mvn -q -B -ntp -P tus-lib compile
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload-server-surefire
+          path: examples/upload-server-spring/target/surefire-reports/
+          if-no-files-found: ignore
