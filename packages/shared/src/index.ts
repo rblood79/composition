@@ -31,6 +31,9 @@ export * from "./schemas/dataChange";
 // Interactions (ADR-158) — CAPABILITY_REGISTRY (When/Do 어휘 SSOT) + InteractionRule
 export * from "./interactions";
 
+// ADR-201 — FileUpload 런타임 층 (엔진 lazy 로더 · 유입 컨텍스트 · endpoint 해석 · 평문 토큰 게이트)
+export * from "./upload";
+
 // State (ADR-214) — VariableDef / VariableOwner · 가시성 사슬 · 복제 재매핑 · 의존 digest
 export * from "./state";
 

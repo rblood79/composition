@@ -22,6 +22,7 @@ import {
   createNumberFieldDefinition,
   createSearchFieldDefinition,
   createSliderDefinition,
+  createFileUploadDefinition,
 } from "./definitions/FormComponents";
 import {
   createSelectDefinition,
@@ -116,6 +117,8 @@ export class ComponentFactory {
     Select: ComponentFactory.createSelect,
     ComboBox: ComponentFactory.createComboBox,
     Slider: ComponentFactory.createSlider,
+    // ADR-201 (2026-09-17): 대용량 파일 업로드 compound — DropZone + FileTrigger + 샘플 행 2
+    FileUpload: ComponentFactory.createFileUpload,
     // ADR-148 Phase 3: Card/InlineAlert 는 reusable origin 전환 — creators 진입점 제거.
     //   palette-add 는 useElementCreator 가 type:"ref" instance 생성 (Toolbar/Form 동형).
     Tabs: ComponentFactory.createTabs,
@@ -370,6 +373,12 @@ export class ComponentFactory {
     context: ComponentCreationContext,
   ): Promise<ComponentCreationResult> {
     return this.createComponent(createComboBoxDefinition, context);
+  }
+
+  private static async createFileUpload(
+    context: ComponentCreationContext,
+  ): Promise<ComponentCreationResult> {
+    return this.createComponent(createFileUploadDefinition, context);
   }
 
   private static async createSlider(

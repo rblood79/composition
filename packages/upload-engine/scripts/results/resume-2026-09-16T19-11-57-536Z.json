@@ -1,0 +1,41 @@
+{
+  "gate": "G1-resume",
+  "date": "2026-09-16T19:11:57.536Z",
+  "chromium": "151.0.7922.34",
+  "headless": true,
+  "fileSize": 268435456,
+  "chunkSize": 8388608,
+  "paths": {
+    "network": {
+      "creations": 1,
+      "heads": 1,
+      "serverBytesReceived": 272695296,
+      "retransmittedBytes": 4259840,
+      "finalOffset": 268435456,
+      "withinChunkSize": true,
+      "serverDowns": 1,
+      "attemptSeen": 0
+    },
+    "reload": {
+      "creations": 1,
+      "heads": 1,
+      "serverBytesReceived": 268435456,
+      "retransmittedBytes": 0,
+      "finalOffset": 268435456,
+      "withinChunkSize": true,
+      "offsetAtReload": 109051904,
+      "localStorageKeys": 1,
+      "storageContainsFileName": false
+    },
+    "tab-close": {
+      "creations": 1,
+      "heads": 1,
+      "serverBytesReceived": 268435456,
+      "retransmittedBytes": 0,
+      "finalOffset": 268435456,
+      "withinChunkSize": true,
+      "offsetAtClose": 109051904
+    }
+  },
+  "pass": true
+}

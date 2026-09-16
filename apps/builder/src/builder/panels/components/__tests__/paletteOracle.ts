@@ -295,6 +295,12 @@ export const PALETTE_ORACLE: readonly PaletteOracleItem[] = [
     icon: "FileUp",
   },
   {
+    type: "FileUpload",
+    category: "forms",
+    label: "file upload",
+    icon: "CloudUpload",
+  },
+  {
     type: "Form",
     category: "forms",
     label: "form",

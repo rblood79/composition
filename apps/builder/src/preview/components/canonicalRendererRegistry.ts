@@ -7,6 +7,7 @@ import { DatePicker } from "@composition/shared/components/DatePicker";
 import { DateRangePicker } from "@composition/shared/components/DateRangePicker";
 import { Dialog } from "@composition/shared/components/Dialog";
 import { DropZone } from "@composition/shared/components/DropZone";
+import { FileUpload } from "@composition/shared/components/FileUpload";
 import { GridList } from "@composition/shared/components/GridList";
 import { Icon } from "@composition/shared/components/Icon";
 import { IllustratedMessage } from "@composition/shared/components/IllustratedMessage";
@@ -57,6 +58,7 @@ export const INTERNAL_RENDERERS: Readonly<
   popover: Popover,
   tooltip: Tooltip,
   dropzone: DropZone,
+  fileupload: FileUpload,
   calendar: Calendar,
   rangecalendar: RangeCalendar,
   datepicker: DatePicker,

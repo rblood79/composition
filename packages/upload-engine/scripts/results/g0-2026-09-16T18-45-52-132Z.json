@@ -1,0 +1,26 @@
+{
+  "gate": "G0",
+  "date": "2026-09-16T18:45:52.132Z",
+  "chromium": "151.0.7922.34",
+  "fileSize": 104857600,
+  "chunkSize": 8388608,
+  "abortAfterBytes": 52552256,
+  "progressEvents": 14,
+  "progressMonotonic": true,
+  "disconnect": {
+    "clientSentBytesAtFailure": 58720256,
+    "failureCode": null,
+    "serverAborted": 1
+  },
+  "headResumeOffset": 52576256,
+  "retransmitted": {
+    "clientBytes": 14532608,
+    "serverReceivedMinusSize": 0,
+    "withinChunkSize": false
+  },
+  "finalServerOffset": 104857600,
+  "serverPatches": 14,
+  "done": true,
+  "elapsedMs": 102,
+  "pass": true
+}

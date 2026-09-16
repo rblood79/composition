@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ADR-201 Phase 2 — TUS 1.0 참조 서버 (docs/reference/upload/server-contract.md v1.0.0).
+
+  Java 8 · Spring MVC 5.3 · servlet 3.1 · Tomcat 9 (Boot 비의존, 전자정부 표준프레임워크와 같은 API 만).
+  pnpm/turbo 대상 밖 — 별도 CI job (.github/workflows/upload-server-java.yml, JDK 8, `mvn -q test`).
+  <version> 은 계약 major.minor 를 따른다 (계약 변경 = major).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.composition.examples</groupId>
+  <artifactId>upload-server-spring</artifactId>
+  <version>1.0.0</version>
+  <packaging>war</packaging>
+  <name>composition upload reference server (TUS 1.0)</name>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <spring.version>5.3.39</spring.version>
+    <servlet.version>3.1.0</servlet.version>
+    <h2.version>2.2.224</h2.version>
+    <junit.version>4.13.2</junit.version>
+    <failOnMissingWebXml>false</failOnMissingWebXml>
+    <!-- cargo:run 저장 디렉터리 — 명령행 `-Dupload.storage.dir=…` 가 이 기본값을 덮는다 (G2b-2 기동 거부 실물 확인용) -->
+    <upload.storage.dir>${java.io.tmpdir}/composition-uploads</upload.storage.dir>
+  </properties>
+
+  <dependencies>
+    <!-- Spring MVC 5.3 (servlet 3.1 이상) -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-webmvc</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <!-- JdbcTemplate + DataSourceTransactionManager (메타 DB) -->
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jdbc</artifactId>
+      <version>${spring.version}</version>
+    </dependency>
+    <!-- @EnableScheduling (TTL GC) 은 spring-context 에 포함 -->
+
+    <!-- 서블릿 API — Tomcat 9 가 제공 -->
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>${servlet.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- @PostConstruct — JDK 8 · Tomcat 9 (annotations-api.jar) 가 제공. JDK 11+ 빌드 머신에서만 컴파일에 필요 -->
+    <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+      <version>1.3.2</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- JSP 예제 (examples/upload-client-jsp) 를 이 webapp 에 복사해 쓸 때 필요한 JSTL -->
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>jstl</artifactId>
+      <version>1.2</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- 개발·테스트 메타 DB — H2 Oracle 호환 모드 (jdbc:h2:...;MODE=Oracle) -->
+    <dependency>
+      <groupId>com.h2database</groupId>
+      <artifactId>h2</artifactId>
+      <version>${h2.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <!--
+      운영 Oracle JDBC — 컨테이너(Tomcat lib) 또는 사내 저장소에서 제공. 좌표 예:
+      <dependency>
+        <groupId>com.oracle.database.jdbc</groupId>
+        <artifactId>ojdbc8</artifactId>
+        <version>19.x</version>
+        <scope>provided</scope>
+      </dependency>
+      (Maven Central 의 ojdbc8 은 Java 8 호환. 사내 저장소가 없으면 Tomcat `lib/` 에 두고 JNDI DataSource 사용 — README §설정)
+    -->
+
+    <!-- 테스트: JUnit 4 + Spring Test (MockMvc) -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${spring.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>upload</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.11.0</version>
+        <configuration>
+          <source>1.8</source>
+          <target>1.8</target>
+          <encoding>UTF-8</encoding>
+          <showWarnings>true</showWarnings>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.4.0</version>
+        <configuration>
+          <failOnMissingWebXml>false</failOnMissingWebXml>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <!-- 테스트 저장 디렉터리는 TestConfig 가 java.io.tmpdir 아래에 만든다 -->
+          <trimStackTrace>false</trimStackTrace>
+        </configuration>
+      </plugin>
+      <!--
+        로컬 실행: `mvn cargo:run` — 임베디드 Tomcat 9 (Java 8 호환) 에 war 배포, http://localhost:8080/upload/
+        storage.dir 은 반드시 webapps 밖 (기본 ${java.io.tmpdir}/composition-uploads) — 안이면 기동 실패 (S1).
+      -->
+      <plugin>
+        <groupId>org.codehaus.cargo</groupId>
+        <artifactId>cargo-maven3-plugin</artifactId>
+        <version>1.10.13</version>
+        <configuration>
+          <container>
+            <containerId>tomcat9x</containerId>
+            <type>embedded</type>
+            <systemProperties>
+              <upload.storage.dir>${upload.storage.dir}</upload.storage.dir>
+              <upload.jdbc.initSchema>h2</upload.jdbc.initSchema>
+              <upload.devLogin.enabled>true</upload.devLogin.enabled>
+            </systemProperties>
+          </container>
+          <configuration>
+            <properties>
+              <cargo.servlet.port>8080</cargo.servlet.port>
+            </properties>
+          </configuration>
+          <deployables>
+            <deployable>
+              <groupId>${project.groupId}</groupId>
+              <artifactId>${project.artifactId}</artifactId>
+              <type>war</type>
+              <properties>
+                <context>/upload</context>
+              </properties>
+            </deployable>
+          </deployables>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <profiles>
+    <!--
+      변형 ② — tus-java-server 라이브러리 위임 (선택). `mvn -P tus-lib ...` 로 활성.
+      src/tuslib/java 를 소스 루트에 추가하고 라이브러리 의존을 붙인다. 기본 빌드에는 포함되지 않는다.
+    -->
+    <profile>
+      <id>tus-lib</id>
+      <dependencies>
+        <!-- 1.0.0-2.x = javax.servlet · Java 8 바이트코드 (1.0.0-3.x 는 jakarta.servlet · Spring 6 전용) -->
+        <dependency>
+          <groupId>me.desair.tus</groupId>
+          <artifactId>tus-java-server</artifactId>
+          <version>1.0.0-2.1</version>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <version>3.5.0</version>
+            <executions>
+              <execution>
+                <id>add-tuslib-source</id>
+                <phase>generate-sources</phase>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/tuslib/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
+</project>

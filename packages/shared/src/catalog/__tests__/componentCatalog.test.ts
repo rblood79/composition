@@ -90,6 +90,8 @@ describe("componentCatalog — family ① (primitives) 구성", () => {
         "Button",
         // ADR-912 단계 5 선행-1: catalog 미등록 leaf 등록
         "FileTrigger",
+        // ADR-201 Phase 3: 대용량 파일 업로드 compound
+        "FileUpload",
         "Icon",
         "Link",
         "Separator",

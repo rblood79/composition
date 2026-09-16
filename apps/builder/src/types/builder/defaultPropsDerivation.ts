@@ -72,6 +72,17 @@ const FACTORY_LOCAL_DEFAULTS: Readonly<
   Icon: {
     iconFontFamily: "lucide",
   },
+  // ADR-201 (2026-09-17): FileUpload compound 의 컨테이너 배치 — Skia/레이아웃 엔진은 props.style 을
+  //   읽고 (ADR-907 Layer B, DropZone 동형) DOM 은 같은 값을 rule containerStyles + generated CSS 로
+  //   받는다. 두 표면이 같은 숫자를 봐야 자식이 같은 자리에 쌓인다. store 는 longhand (rowGap).
+  FileUpload: {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      rowGap: 12,
+      width: "100%",
+    },
+  },
 };
 
 /**
@@ -133,4 +144,7 @@ export const ENTRY_DERIVED_DEFAULT_TYPES: ReadonlySet<string> = new Set([
   "Link",
   "ToggleButton",
   "Text",
+  // ADR-201 (2026-09-17): FileUpload — literal row 없이 catalog accepts.default + overlay(style) 파생.
+  //   factory(createFileUploadDefinition) 도 같은 파생을 부모 props 로 쓴다 (두 진입로 동일 값).
+  "FileUpload",
 ]);

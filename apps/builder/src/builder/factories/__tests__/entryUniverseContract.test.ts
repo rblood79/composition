@@ -61,8 +61,9 @@ const INVENTORY = {
   //   ="none" leaf, palette-add 는 else 분기 getDefaultProps). placeable 집합 1 축소.
   // ADR-148 Phase 3 (2026-07-17): Card/InlineAlert creator 제거 → 54 → 52 (reusable origin
   //   전환 — palette-add 는 type:"ref" instance, Toolbar/Form 동형). COMPLEX 도 2 축소.
-  creators: 52,
-  complexComponentTags: 46,
+  // ADR-201 (2026-09-17): FileUpload compound creator + COMPLEX 추가 → 52 → 53 · 46 → 47.
+  creators: 53,
+  complexComponentTags: 47,
   propagationRegistered: 31,
   syntheticChildPropMerge: 9,
   popoverChildren: 2,

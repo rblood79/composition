@@ -257,7 +257,8 @@ describe("resolveCatalogPaint — 기존 Skia shadow parity", () => {
 
     // ADR-194 (2026-09-08): Chart 2 variant 추가로 8,244 → 8,316 (+72 = 2 variant ×
     //   authored paint axis × interaction state). diffs 0 은 그대로 — 새 variant 도 발산 없음.
-    expect(compared).toBe(8_316);
+    // ADR-201 (2026-09-17): FileUpload 1 variant 추가로 8,316 → 8,352 (+36). diffs 0 유지.
+    expect(compared).toBe(8_352);
     expect(diffs.slice(0, 20)).toEqual([]);
   });
 });

@@ -1,0 +1,96 @@
+{
+  "date": "2026-09-16T19:21:26.536Z",
+  "limits": {
+    "coreTus": 6144,
+    "iife": 10240
+  },
+  "coreTus": {
+    "raw": 14210,
+    "gzip": 5852,
+    "initialFiles": [
+      "core-tus.js",
+      "chunk-M2UTTNWO.js",
+      "chunk-O27BAQ5B.js"
+    ],
+    "lazyChunks": [
+      {
+        "file": "dryRun-JFWJLQEA.js",
+        "raw": 1046,
+        "gzip": 666
+      },
+      {
+        "file": "fetch-6CZFK5YA.js",
+        "raw": 674,
+        "gzip": 451
+      },
+      {
+        "file": "multipart-DR3VBCF2.js",
+        "raw": 815,
+        "gzip": 470
+      }
+    ]
+  },
+  "fullIndex": {
+    "raw": 17240,
+    "gzip": 7525,
+    "initialFiles": [
+      "index.js",
+      "chunk-GMLIQM3N.js",
+      "chunk-M2UTTNWO.js",
+      "chunk-645B37IW.js",
+      "chunk-IT347BO3.js"
+    ],
+    "lazyChunks": [
+      {
+        "file": "dryRun-COVST7EU.js",
+        "raw": 96,
+        "gzip": 98
+      },
+      {
+        "file": "fetch-2FGLKJ4F.js",
+        "raw": 95,
+        "gzip": 97
+      },
+      {
+        "file": "multipart-U6LOM3BF.js",
+        "raw": 77,
+        "gzip": 92
+      }
+    ]
+  },
+  "reactEntry": {
+    "raw": 14693,
+    "gzip": 6064,
+    "initialFiles": [
+      "react.js",
+      "chunk-M2UTTNWO.js",
+      "chunk-O27BAQ5B.js"
+    ],
+    "lazyChunks": [
+      {
+        "file": "dryRun-JFWJLQEA.js",
+        "raw": 1046,
+        "gzip": 666
+      },
+      {
+        "file": "fetch-6CZFK5YA.js",
+        "raw": 674,
+        "gzip": 451
+      },
+      {
+        "file": "multipart-DR3VBCF2.js",
+        "raw": 815,
+        "gzip": 470
+      }
+    ]
+  },
+  "iife": {
+    "raw": 21056,
+    "gzip": 8081,
+    "initialFiles": [
+      "composition-upload.iife.js"
+    ],
+    "lazyChunks": []
+  },
+  "pass": true
+}

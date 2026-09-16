@@ -60,7 +60,13 @@ import {
   Popover,
   Tooltip,
   Chart,
+  FileUpload,
 } from "@composition/shared/components";
+
+/** publish 는 실서버 전송 — preview 의 dryRun 기본값을 뒤집는다 (ADR-201 breakdown §3-4). */
+function PublishFileUpload(props: Record<string, unknown>) {
+  return <FileUpload {...(props as object)} dryRun={false} />;
+}
 
 // ============================================
 // Component Registry Types
@@ -407,6 +413,16 @@ export function registerSharedComponents(): void {
     component: Chart as unknown as ComponentType<Record<string, unknown>>,
     displayName: "Chart",
     category: "collection",
+  });
+  // ADR-201: 대용량 파일 업로드 compound. builder Preview 와 **같은 shared FileUpload** — 자식
+  //   (DropZone/FileTrigger/샘플 행) 은 ElementRenderer 가 children 으로 넘기고 컴포넌트가 type
+  //   으로 분류한다. publish 는 실전송 (dryRun false) — endpoint 는 project.json 의 apiEndpoints.
+  registerComponent("FileUpload", {
+    component: PublishFileUpload as unknown as ComponentType<
+      Record<string, unknown>
+    >,
+    displayName: "FileUpload",
+    category: "input",
   });
   registerComponent("Tabs", {
     component: Tabs as ComponentType<Record<string, unknown>>,

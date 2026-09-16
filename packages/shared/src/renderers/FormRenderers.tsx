@@ -17,9 +17,13 @@ import {
   Radio,
   RadioGroup,
   Switch,
-  FileTrigger,
-  DropZone,
 } from "../components/list";
+// ADR-201: DropZone/FileTrigger 는 큐 유입 어댑터를 거친다 — FileUpload 안이면 addFiles,
+//   밖이면 종전과 동일 (컨텍스트 null).
+import {
+  DropZoneIntake as DropZone,
+  FileTriggerIntake as FileTrigger,
+} from "../upload/intakeAdapters";
 import { MyColorSwatches } from "../components/TailSwatch";
 import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { Button as AriaButton } from "react-aria-components/Button";
@@ -1049,6 +1053,12 @@ export const renderFileTrigger = (
   context: RenderContext,
 ): React.ReactNode => {
   const { renderElement } = context;
+  // ADR-201 Phase 3 (2026-09-17): 파일 선택은 문서에 쓰지 않는다. 종전 파일명 prop 문서
+  //   write (`updateElementProps`) 는 런타임 상태를 canonical 채널에 싣는 잘못된 경로였고
+  //   소비처 0 (Phase 0 재grep) 이라 제거. `onSelect` 는 DropZone `onDrop` 과 같이
+  //   `createEventHandlerMap` (ADR-158 규칙) 위임 — CAPABILITY_REGISTRY.FileTrigger.events.
+  const eventHandlers =
+    context.services?.createEventHandlerMap?.(element, context) ?? {};
 
   const children = context.childrenByParent.get(element.id) ?? [];
   // 2026-09-10 (Properties 패널 D2 대조): RAC FileTrigger 는 DOM 을 만들지 않는다(hidden input +
@@ -1081,15 +1091,11 @@ export const renderFileTrigger = (
       defaultCamera={
         element.props.defaultCamera as "user" | "environment" | undefined
       }
-      onSelect={(files) => {
-        if (files) {
-          const fileList = Array.from(files).map((f) => f.name);
-          context.updateElementProps(element.id, {
-            ...element.props,
-            selectedFiles: fileList,
-          });
-        }
-      }}
+      onSelect={
+        eventHandlers.onSelect as unknown as
+          | ((files: FileList | null) => void)
+          | undefined
+      }
     >
       {children.length > 0
         ? children.map((child) => renderElement(child, child.id))

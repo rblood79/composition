@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>ADR-201 G1 — 힙 · 재개 3경로 (IIFE)</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <input id="file" type="file" multiple />
+    <pre id="log"></pre>
+    <!-- composition-upload.iife.js = dist 산출물 (live.mjs 가 복사) — JSP 와 같은 방식으로 global 사용 -->
+    <script src="./composition-upload.iife.js"></script>
+    <script>
+      // 큐 생성 — vanilla create 로 실제 IIFE 경로를 탄다. 파일은 Playwright setInputFiles 가 #file 에 넣는다.
+      window.__setup = function (opts) {
+        const input = document.getElementById("file");
+        window.__q = CompositionUpload.create(document.getElementById("root"), {
+          input,
+          ...opts,
+        });
+        window.__events = 0;
+        window.__q.subscribe(() => {
+          window.__events++;
+        });
+        return true;
+      };
+      window.__items = () => window.__q.getItems();
+      /** pred(items) 가 참이 될 때까지 대기 (subscribe) */
+      window.__wait = (src, timeoutMs) =>
+        new Promise((resolve, reject) => {
+          const pred = new Function("items", "return (" + src + ")(items)");
+          const items = window.__q.getItems();
+          if (pred(items)) return resolve(items);
+          const t = setTimeout(() => reject(new Error("wait timeout: " + src)), timeoutMs || 120000);
+          const unsub = window.__q.subscribe((list) => {
+            if (pred(list)) {
+              clearTimeout(t);
+              unsub();
+              resolve(list);
+            }
+          });
+        });
+      window.__mem = () => (performance.memory ? { used: performance.memory.usedJSHeapSize, total: performance.memory.totalJSHeapSize } : null);
+    </script>
+  </body>
+</html>
