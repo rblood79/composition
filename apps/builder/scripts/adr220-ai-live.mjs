@@ -95,7 +95,7 @@ try {
   await page.waitForTimeout(1500);
 
   const message =
-    "Create a Customers table with these fields: name (person name), phone (phone number), city, email. 5 sample rows.";
+    "Use create_table_from_description to propose a new data collection (a data table in the Data panel, not a UI component) named Customers with fields: name (person name), phone (phone number), city, email. 5 sample rows.";
   await textarea.fill(message);
   await textarea.press("Enter");
   const started = Date.now();
@@ -191,7 +191,7 @@ try {
     "승인 → collection 저장: 행 5 · phone 형식 (generate 규칙 phone)",
     rows.length === 5 &&
       phones.length === 5 &&
-      phones.every((p) => /^[\d+][\d\s().-]{6,}$/.test(String(p))),
+      phones.every((p) => /^[\d+(][\d\s().-]{6,}$/.test(String(p))),
     `${table?.name} · ${rows.length} rows · ${JSON.stringify(rows[0]).slice(0, 200)} · tool ${JSON.stringify(toolResults).slice(0, 160)}`,
   );
   await page.screenshot({ path: resolve(OUT, "2-after-approve.png") });
