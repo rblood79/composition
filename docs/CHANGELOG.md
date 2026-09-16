@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 색 점 하나 (.property-swatch)] - 2026-09-16
+
+### Changed
+
+- Variant 셀렉트 트리거·목록의 색 점 (`.property-select__swatch`, 12) 과 Static Color seg 의 색 점 (`.property-seg__swatch`, 10) 이 크기가 달랐다 — `.property-swatch` (PropertySwatch.css, unlayered 라 팝오버 portal 에도 닿는다) 하나로: 12 (`--text-xs`) · 원 · 안쪽 테두리. 소비처 클래스는 여백만 (글자 앞 4 · 점만 있는 seg 는 `data-swatch-only` 로 0). Properties 안의 다른 색 표시 — 격자 팝오버 칸 (20 정사각, 선택 체크) · Color 필드 swatch (16 정사각, 실제 색 값) 는 점이 아니라 대상 밖. 가드 `PropertySegment.static.test` (크기·모양 정의는 PropertySwatch.css 한 곳). (live: 트리거·팝오버·seg 전부 12×12 · radius-full · 여백 4/0) (2026-09-16 사용자 지적)
+
 ## [빌더 패널 — Web Interface Guidelines 감사 (모션 · 포커스 · i18n · 문자열 26건)] - 2026-09-16
 
 ### Changed

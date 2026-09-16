@@ -91,14 +91,8 @@
   filter: drop-shadow(0 0 1px rgb(0 0 0 / 0.4));
 }
 
-/* 목록·트리거의 색 점 (의미색 variant · 격자 트리거) — 12 점, 글자 앞 여백 4. 팝오버는 portal
-   (`.section` 밖) 이라 이 unlayered 파일이 맡는다. 색만 인라인 `background`. */
+/* 목록·트리거의 색 점 — 모양·크기는 `.property-swatch` (PropertySwatch.css) 정본, 여기는 글자 앞
+   여백 4 만. 팝오버는 portal (`.section` 밖) 이라 이 unlayered 파일이 맡는다. */
 .property-select__swatch {
-  flex: none;
-  display: inline-block;
-  width: var(--text-xs);
-  height: var(--text-xs);
-  border-radius: var(--radius-full);
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.12);
   margin-inline-end: var(--spacing-xs);
 }

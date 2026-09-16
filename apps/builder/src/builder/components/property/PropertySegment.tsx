@@ -22,6 +22,7 @@ import {
 } from "../../../i18n";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import "./PropertySegment.css";
+import "./PropertySwatch.css";
 
 export interface PropertySegmentOption {
   value: string;
@@ -74,6 +75,7 @@ export const PropertySegment = memo(function PropertySegment({
       //   아이콘 seg 는 기본 indicator 그룹 (20×20 버튼이 space-between — Styles 정렬 seg 와 같다)
       className={`properties-aria ${iconMode ? "property-seg-glyphs" : "property-seg"} ${className ?? ""}`}
       data-out-of-range={!inRange ? "true" : undefined}
+      data-swatch-only={swatchOnly || undefined}
     >
       <legend className="fieldset-legend">
         {displayLabel}
@@ -108,7 +110,7 @@ export const PropertySegment = memo(function PropertySegment({
                 <>
                   <span
                     aria-hidden="true"
-                    className="property-seg__swatch"
+                    className="property-swatch property-seg__swatch"
                     style={{ background: option.swatch }}
                   />
                   {!swatchOnly && text}

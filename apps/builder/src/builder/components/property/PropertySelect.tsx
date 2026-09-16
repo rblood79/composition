@@ -23,6 +23,7 @@ import {
   useOptionalI18n,
 } from "../../../i18n";
 import "./PropertySelectGrid.css";
+import "./PropertySwatch.css";
 
 interface PropertySelectProps {
   label: string;
@@ -280,7 +281,7 @@ export const PropertySelect = memo(
                       {swatches?.[value] != null && (
                         <span
                           aria-hidden="true"
-                          className="property-select__swatch"
+                          className="property-swatch property-select__swatch"
                           style={{ background: swatches[value] }}
                         />
                       )}
@@ -351,7 +352,7 @@ export const PropertySelect = memo(
                     {swatches && swatches[option.value] != null && (
                       <span
                         aria-hidden="true"
-                        className="property-select__swatch"
+                        className="property-swatch property-select__swatch"
                         // 모양은 클래스 (PropertySelectGrid.css, 팝오버 portal 에도 닿는 unlayered) ·
                         //   변하는 색만 인라인
                         style={{ background: swatches[option.value] }}
