@@ -1,0 +1,60 @@
+/* ADR-221 — 페이지 헤더 DOM 층. 규격은 pageHeaderGeometry.ts 가 단일 원천 (28 · 1 · 8). */
+
+.page-header-layer {
+  --page-header-height: 28px;
+  --page-header-padding-x: 8px;
+  position: absolute;
+  inset: 0;
+  /* Skia canvas(2) 위 · 눈금자(3, DOM 뒤) 아래 — 같은 z 는 DOM 순서로 눈금자가 위 */
+  z-index: 3;
+  overflow: hidden;
+  /* Phase 1: 표시 전용. Phase 2 에서 .page-header 만 다시 켠다 */
+  pointer-events: none;
+  contain: layout style;
+}
+
+/* 카메라 제스처 (휠 pan/zoom · 스페이스 pan) 동안 숨김 — 배치 훅이 토글 */
+.page-header-layer[data-hidden] {
+  visibility: hidden;
+}
+
+.page-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: var(--page-header-height);
+  padding: 0 var(--page-header-padding-x);
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  /* Skia 시절과 같은 색 — --button-color 는 Button.css 스코프에만 있어 builder 루트에서는
+     --fg 로 내려간다 (light gray-800 / dark zinc-100), alpha 10% */
+  background: color-mix(
+    in srgb,
+    var(--button-color, var(--fg)) 10%,
+    transparent
+  );
+  will-change: transform;
+}
+
+/* 현재(선택된) 페이지 — focus-ring 30% */
+.page-header[data-active] {
+  background: color-mix(in srgb, var(--focus-ring) 30%, transparent);
+}
+
+/* 활성 페이지 + 요소 선택 있음 — 타이틀 글리프 강조 (Skia `highlighted` 계약) */
+.page-header[data-highlighted] .page-header__title {
+  color: var(--accent);
+}
+
+.page-header__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

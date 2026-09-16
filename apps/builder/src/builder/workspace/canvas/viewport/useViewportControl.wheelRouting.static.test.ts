@@ -49,4 +49,22 @@ describe("useViewportControl wheel routing contract", () => {
       /\)\?\.overflow;\s*\n\s*if \(\s*\n?\s*\(overflow === "scroll"/,
     );
   });
+
+  it("휠 pan 도 zoom 과 같은 시작/종료 신호를 낸다 (ADR-221 게이트)", async () => {
+    const source = await readFile(
+      resolve(__dirname, "useViewportControl.ts"),
+      "utf-8",
+    );
+    const panBranch = source.match(
+      /recordViewportInteractionRawInput\(\);\s*\n\s*\/\/ Shift \+ wheel[\s\S]*?viewportSession\.begin\("wheel-pan"\);/,
+    );
+    expect(panBranch).not.toBeNull();
+    // 최초 휠에 시작 신호 — zoom 과 같은 ref 로 한 세션
+    expect(panBranch?.[0]).toContain("isWheelInteractingRef.current = true;");
+    expect(panBranch?.[0]).toContain("onInteractionStartRef.current?.();");
+    // pan 분기가 zoom 세션을 끝내던 종료 호출은 없어야 한다 (게이트가 pan 중 꺼진다)
+    expect(panBranch?.[0]).not.toContain("onInteractionEndRef");
+    // 종료는 150ms 디바운스 finishWheelInteraction 하나
+    expect(source).toMatch(/finishWheelInteraction\("idle"\);\s*\n\s*\}, 150\);/);
+  });
 });

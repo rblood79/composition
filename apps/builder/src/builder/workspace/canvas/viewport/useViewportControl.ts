@@ -87,7 +87,7 @@ export function useViewportControl(
   const lastPanPointRef = useRef<{ x: number; y: number } | null>(null);
   // 휠 interaction 종료 디바운스 타이머
   const wheelEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isZoomingRef = useRef(false);
+  const isWheelInteractingRef = useRef(false);
 
   // 🚀 Phase 6.1: 콜백 ref (의존성 배열에서 제외하여 useEffect 재실행 방지)
   const onInteractionStartRef = useRef(onInteractionStart);
@@ -295,8 +295,8 @@ export function useViewportControl(
         wheelEndTimeoutRef.current = null;
       }
       viewportSession.finish(reason);
-      if (isZoomingRef.current) {
-        isZoomingRef.current = false;
+      if (isWheelInteractingRef.current) {
+        isWheelInteractingRef.current = false;
         onInteractionEndRef.current?.();
       }
     };
@@ -323,9 +323,9 @@ export function useViewportControl(
           e.preventDefault();
           e.stopPropagation();
 
-          // 🚀 Phase 6.1: 줌 시작 알림 (최초 1회만, ref 사용)
-          if (!isZoomingRef.current) {
-            isZoomingRef.current = true;
+          // 휠 제스처 시작 알림 (zoom·pan 공통, 최초 1회만, ref 사용)
+          if (!isWheelInteractingRef.current) {
+            isWheelInteractingRef.current = true;
             onInteractionStartRef.current?.();
           }
 
@@ -379,9 +379,12 @@ export function useViewportControl(
           const rawDeltaX = e.shiftKey ? e.deltaY : e.deltaX;
           const rawDeltaY = e.shiftKey ? 0 : e.deltaY;
 
-          if (isZoomingRef.current) {
-            isZoomingRef.current = false;
-            onInteractionEndRef.current?.();
+          // ADR-221: 휠 pan 도 카메라 제스처 — 최초 휠에 시작 신호, 종료는
+          // scheduleWheelEnd 의 150ms 디바운스 (zoom 과 같은 한 세션). 종전에는 zoom 만
+          // 알리고 pan 은 zoom 중이면 종료만 보내 DOM chrome 게이트가 pan 을 못 봤다.
+          if (!isWheelInteractingRef.current) {
+            isWheelInteractingRef.current = true;
+            onInteractionStartRef.current?.();
           }
           viewportSession.begin("wheel-pan");
           viewportSession.queuePan({ x: -rawDeltaX, y: -rawDeltaY });
@@ -409,11 +412,11 @@ export function useViewportControl(
       }
 
       const wasPanning = isPanningRef.current;
-      const wasZooming = isZoomingRef.current;
+      const wasZooming = isWheelInteractingRef.current;
       viewportSession.finish("interrupted");
       lastPanPointRef.current = null;
       isPanningRef.current = false;
-      isZoomingRef.current = false;
+      isWheelInteractingRef.current = false;
 
       if (wasPanning) {
         applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);

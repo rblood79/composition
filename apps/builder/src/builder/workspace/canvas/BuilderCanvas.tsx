@@ -51,6 +51,7 @@ import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
 import type { BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
 import { ViewportControlBridge } from "./viewport";
+import { PageHeaderLayer } from "./overlay/pageHeader/PageHeaderLayer";
 import { screenToViewportPoint } from "./viewport/viewportTransforms";
 import { TextEditOverlay, useTextEdit } from "../overlay";
 import { DotBackground } from "../components/DotBackground";
@@ -487,6 +488,19 @@ export function BuilderCanvas({
     zoom,
     canvasGestureSession,
     getSnapCandidateFrames,
+  );
+  // ADR-221: 카메라 제스처 게이트 — useViewportControl 의 시작/종료 신호를 store 값으로.
+  // 페이지 헤더 DOM 층이 이 동안 배치를 멈춘다 (제스처 중 DOM 쓰기 0).
+  const setCameraGestureActive = useViewportSyncStore(
+    (state) => state.setCameraGestureActive,
+  );
+  const handleCameraGestureStart = useCallback(
+    () => setCameraGestureActive(true),
+    [setCameraGestureActive],
+  );
+  const handleCameraGestureEnd = useCallback(
+    () => setCameraGestureActive(false),
+    [setCameraGestureActive],
   );
 
   // Matching canonical document가 준비되기 전에는 빈 scene을 유지한다. Builder
@@ -1626,6 +1640,11 @@ export function BuilderCanvas({
       {/* ADR-902: Skia canvas 뒤 도트 배경 레이어 (P0에서 투명 clear 전제) */}
       <DotBackground />
 
+      {/* ADR-221: 페이지 헤더 DOM 층 — Skia 위 · 눈금자 아래. Phase 1 은 표시 전용 */}
+      <PageHeaderLayer
+        frames={sceneStructureSnapshot.document.visiblePageFrames}
+      />
+
       {/* ADR-181: Skia canvas 앞 눈금자 레이어 (뷰포트 chrome — 문서 데이터 아님) */}
       <RulerOverlay onStartGuideCreate={startGuideCreate} />
 
@@ -1636,6 +1655,8 @@ export function BuilderCanvas({
           maxZoom={5}
           initialPanOffsetX={initialPanOffsetX}
           gestureSession={canvasGestureSession}
+          onInteractionStart={handleCameraGestureStart}
+          onInteractionEnd={handleCameraGestureEnd}
         />
       )}
 

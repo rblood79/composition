@@ -9,12 +9,19 @@ export interface ViewportSyncState {
   containerSize: { width: number; height: number };
   pageLayoutPanelMetrics: PageLayoutPanelMetrics;
   canvasSize: { width: number; height: number };
+  /**
+   * ADR-221 — 카메라 제스처 (휠 pan/zoom · 스페이스/중클릭 pan) 진행 중. `useViewportControl`
+   * 의 `onInteractionStart/End` 가 세우고, DOM chrome (페이지 헤더 층) 이 이 동안 배치를 멈춘다.
+   * 프로그램 zoom · 페이지 drag 는 게이트 대상이 아니다 (breakdown §3).
+   */
+  cameraGestureActive: boolean;
   setZoom: (zoom: number) => void;
   setPanOffset: (offset: { x: number; y: number }) => void;
   setViewportSnapshot: (viewport: CanvasViewportSnapshot) => void;
   setContainerSize: (size: { width: number; height: number }) => void;
   setPageLayoutPanelMetrics: (metrics: PageLayoutPanelMetrics) => void;
   setCanvasSize: (size: { width: number; height: number }) => void;
+  setCameraGestureActive: (active: boolean) => void;
   reset: () => void;
 }
 
@@ -24,6 +31,7 @@ const initialViewportState = {
   containerSize: { width: 0, height: 0 },
   pageLayoutPanelMetrics: { leftWidth: 0, rightWidth: 0, gap: 0 },
   canvasSize: { width: 1920, height: 1080 },
+  cameraGestureActive: false,
 };
 
 export const useViewportSyncStore = create<ViewportSyncState>()(
@@ -74,6 +82,14 @@ export const useViewportSyncStore = create<ViewportSyncState>()(
 
     setCanvasSize: (size) => {
       set({ canvasSize: size });
+    },
+
+    setCameraGestureActive: (active) => {
+      set((state) =>
+        state.cameraGestureActive === active
+          ? state
+          : { cameraGestureActive: active },
+      );
     },
 
     reset: () => {
