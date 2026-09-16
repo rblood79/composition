@@ -308,20 +308,23 @@ TUS 는 raw body `PATCH` 라 **multipart 파서 한도는 무관**하다. 아래
 
 ## 9. 클라이언트 에러 코드 ↔ 서버 응답
 
-`@composition/upload` 가 노출하는 코드 8개와 이를 만드는 서버 응답. 컴포넌트/JSP 는 코드로 사용자 메시지를 고른다.
+`@composition/upload` 가 노출하는 코드 11개 (R1 8종 + 보조 3종) 와 이를 만드는 서버 응답. 컴포넌트/JSP 는 코드로 사용자 메시지를 고른다.
 
-| 코드                | 서버 응답 / 조건                                                                       | 재시도 | 클라이언트 동작                                                                    |
-| ------------------- | -------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------- |
-| `E_PATCH_BLOCKED`   | `PATCH` 에 `405` · `501` (본 서버가 아니라 중간 장비)                                  |  자동  | `overridePatchMethod: true` 로 같은 offset 재시도 — 이후 세션 내내 override        |
-| `E_PROXY_TIMEOUT`   | `504` · `408` · 네트워크 오류가 **청크 전송 시간 ≈ timeout** 부근에서 반복             |  자동  | `HEAD` 재동기화 후 chunkSize 를 절반으로 낮춰 재시도 (하한 1 MiB) — §7             |
-| `E_OFFSET_MISMATCH` | `409`                                                                                  |  자동  | 응답 `Upload-Offset` 또는 `HEAD` 값으로 offset 재설정 후 재개 (재전송 ≤ chunkSize) |
-| `E_TOO_LARGE`       | `413` (POST — `Tus-Max-Size` 초과 · PATCH — 청크 상한/길이 초과) · `OPTIONS` 사전 판정 |  없음  | 항목 `error`, 사용자에게 상한 표시                                                 |
-| `E_NETWORK`         | XHR `onerror` · status 0 · DNS/TLS 실패                                                |  자동  | `retryDelays` 지수 backoff → 재개는 `HEAD` 부터                                    |
-| `E_UNAUTHORIZED`    | `401` · `403`                                                                          |  없음  | `getHeaders()` 재호출 1회 (CSRF 토큰 갱신) 뒤에도 실패면 항목 `error`              |
-| `E_EXPIRED`         | `404` · `410` (재개 시)                                                                |  없음  | 저장된 fingerprint→url 삭제 (`forget`) 후 새 세션으로 처음부터                     |
-| `E_CHECKSUM`        | `460`                                                                                  |  자동  | 같은 청크 재전송 (최대 3회) — 반복되면 `checksum` 확장 비활성 후 진행              |
+| 코드                | 서버 응답 / 조건                                                                                                                       | 재시도 | 클라이언트 동작                                                                    |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | :----: | ---------------------------------------------------------------------------------- |
+| `E_PATCH_BLOCKED`   | `PATCH` 에 `405` · `501` (본 서버가 아니라 중간 장비)                                                                                  |  자동  | `overridePatchMethod: true` 로 같은 offset 재시도 — 이후 세션 내내 override        |
+| `E_PROXY_TIMEOUT`   | `504` · `408` · 네트워크 오류가 **청크 전송 시간 ≈ timeout** 부근에서 반복                                                             |  자동  | `HEAD` 재동기화 후 chunkSize 를 절반으로 낮춰 재시도 (하한 1 MiB) — §7             |
+| `E_OFFSET_MISMATCH` | `409`                                                                                                                                  |  자동  | 응답 `Upload-Offset` 또는 `HEAD` 값으로 offset 재설정 후 재개 (재전송 ≤ chunkSize) |
+| `E_TOO_LARGE`       | `413` (POST — `Tus-Max-Size` 초과 · PATCH — 청크 상한/길이 초과) · `OPTIONS` 사전 판정                                                 |  없음  | 항목 `error`, 사용자에게 상한 표시                                                 |
+| `E_NETWORK`         | XHR `onerror` · status 0 · DNS/TLS 실패                                                                                                |  자동  | `retryDelays` 지수 backoff → 재개는 `HEAD` 부터                                    |
+| `E_UNAUTHORIZED`    | `401` · `403`                                                                                                                          |  없음  | `getHeaders()` 재호출 1회 (CSRF 토큰 갱신) 뒤에도 실패면 항목 `error`              |
+| `E_EXPIRED`         | `404` · `410` (재개 시)                                                                                                                |  없음  | 저장된 fingerprint→url 삭제 (`forget`) 후 새 세션으로 처음부터                     |
+| `E_CHECKSUM`        | `460`                                                                                                                                  |  자동  | 같은 청크 재전송 (최대 3회) — 반복되면 `checksum` 확장 비활성 후 진행              |
+| `E_REJECTED`        | `400` · `415` · `422` 및 표 밖 4xx (`411` · `412` · `429`) — 파일명 traversal · 메타데이터 형식 · Content-Type · `Upload-Defer-Length` |  없음  | 항목 `error` + 응답 상태 노출 (계약 위반 — 재시도하지 않음)                        |
+| `E_SERVER`          | `500` · `503` (5xx)                                                                                                                    |  자동  | `retryDelays` 지수 backoff 후 `HEAD` 재동기                                        |
+| `E_CANCELLED`       | (서버 응답 없음 — 사용자 취소)                                                                                                         |  없음  | `termination` 확장이 있으면 `DELETE`, 저장된 재개 정보 `forget`                    |
 
-> 정본: `packages/upload-engine/src/errors.ts`, 계약 버전 1.0.0 — 코드 집합은 엔진이 단일 소스이며 이 표는 서버 응답과의 대응만 적는다 (통합 시 3자 대조: errors.ts · 이 표 · 참조 서버 테스트). 표 밖의 응답 (`5xx` · `400` · `411` · `412` · `415`) 은 코드 없이 항목 `error` + 응답 상태를 그대로 노출한다 — `5xx` 는 `retryDelays` 로 재시도, 나머지는 계약 위반이라 재시도하지 않는다.
+> 정본: `packages/upload-engine/src/errors.ts`, 계약 버전 1.0.0 — 코드 집합은 엔진이 단일 소스이며 이 표는 서버 응답과의 대응만 적는다 (통합 시 3자 대조: errors.ts · 이 표 · 참조 서버 테스트). 표 밖의 4xx 는 `E_REJECTED`, 5xx 는 `E_SERVER` 로 묶이며 응답 상태는 `status` 로 그대로 노출된다 (2026-09-17 3자 대조: errors.json 11 == 이 표 11).
 
 ## 10. 호환 서버
 
