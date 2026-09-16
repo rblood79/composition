@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — 게이트 seg 의 인디케이터가 점프하던 것] - 2026-09-16
+
+### Fixed
+
+- Styles 와 같은 `ToggleButtonGroup` 인데 Properties 에서만 선택 인디케이터가 미끄러지지 않고 점프하던 경우 — 종속 필드를 드러내는 게이트 seg (TextField 「Label Position」 → 「Label Align」 등). 원인은 필드 행의 React key 가 행의 필드 키 전부를 이은 문자열이라 종속 필드가 옆 칸에 합류하는 순간 행이 remount 된 것 (live 실측: 같은 DOM 노드 false · translate 없음). key 를 행의 첫 필드로 바꿔 행과 게이트 seg 가 살아남는다 (7~9 프레임 이동). 게이트 없는 seg (Button Size · Fill Style · Static Color · Type) 는 원래 애니메이션됐다.
+
 ## [Properties 패널 — 색 이름 variant 는 격자 팝오버 (Badge · StatusLight)] - 2026-09-16
 
 사용자 판정 「A 팝오버 grid」 (시안 `docs/design/properties-panel-inventory` 「12 Variant — 색 이름 grid」). catalog 무변경.

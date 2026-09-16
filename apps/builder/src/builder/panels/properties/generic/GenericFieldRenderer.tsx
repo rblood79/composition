@@ -995,8 +995,14 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
                         ownerFields={ownerFields}
                       />
                     ) : (
+                      // 행 key 는 첫 필드 — 게이트가 종속 필드를 드러내 행 구성이 바뀌어도
+                      //   (Label Position → Label Align 이 옆 칸에 합류) 행과 게이트 seg 가 살아
+                      //   남아 SelectionIndicator 가 이전 위치에서 미끄러진다. 종전엔 행의 필드
+                      //   키를 전부 이어 key 로 써서 합류 순간 행이 remount 되고 인디케이터가
+                      //   점프했다 — Styles 패널과 같은 ToggleButtonGroup 인데 Properties 만
+                      //   애니메이션이 없던 원인 (2026-09-16 사용자 지적, live 실측).
                       <div
-                        key={row.map((f) => `${f.origin}:${f.key}`).join("|")}
+                        key={`${row[0]!.origin}:${row[0]!.key}`}
                         className="fieldset-row"
                         data-wide={
                           row.length === 1 && fieldSpan(row[0]!) === "wide"
