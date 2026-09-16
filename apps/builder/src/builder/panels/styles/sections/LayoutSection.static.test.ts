@@ -2,6 +2,20 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
+describe("LayoutSection direction icon contract", () => {
+  it("uses layout direction arrows for the row and column controls", async () => {
+    const source = await readFile(
+      resolve(__dirname, "LayoutSection.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("LayoutArrowRight");
+    expect(source).toContain("LayoutArrowDown");
+    expect(source).not.toContain("StretchVertical");
+    expect(source).not.toContain("StretchHorizontal");
+  });
+});
+
 // Padding · Margin 은 SpacingSection (박스 모델 BoxModelEditor 하나 — 8-필드 폴백은 2026-09-15 제거) 으로 옮겨졌다
 describe("SpacingSection spacing input commit contract", () => {
   it("does not connect box-model typing to a live preview callback", async () => {

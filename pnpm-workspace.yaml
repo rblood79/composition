@@ -19,7 +19,7 @@ catalogs:
     '@vitejs/plugin-react': ^6.1.0
     cross-env: ^10.1.0
     eslint: ^10.8.1
-    lucide-react: ^1.33.0
+    lucide-react: ^1.46.0
     react: ^19.2.8
     react-aria: ^3.52.0
     react-aria-components: ^1.21.0

@@ -2,7 +2,7 @@
 /**
  * Lucide 아이콘 SVG path 데이터 추출 스크립트
  *
- * lucide-react ESM 파일에서 __iconNode 배열을 파싱하여
+ * lucide-react ESM 파일에서 __iconNode 또는 __iconData.node 배열을 파싱하여
  * LucideIconData 형식의 TypeScript 파일을 생성한다.
  *
  * Usage: node packages/specs/scripts/extract-lucide-icons.mjs
@@ -41,13 +41,17 @@ function pointsToPathD(pts) {
 
 /**
  * ESM 아이콘 파일에서 __iconNode 배열을 추출
- * 형식: const __iconNode = [ ["path", { d: "...", key: "..." }], ["circle", { cx: "11", cy: "11", r: "8", key: "..." }] ];
+ * 구 형식: const __iconNode = [ ["path", { d: "..." }] ];
+ * 현 형식: const __iconData = { node: [ ["path", { d: "..." }] ] };
  */
 function parseIconFile(content, fileName) {
-  // __iconNode 배열 추출 — greedy로 마지막 ];까지 캡처
-  const nodeMatch = content.match(
-    /const __iconNode\s*=\s*(\[[\s\S]*?\]);\s*\nconst /,
-  );
+  // 구 배포: `const __iconNode = [...]`
+  // v1.46: `const __iconData = { ..., node: [...], aliases?: [...] }`
+  const nodeMatch =
+    content.match(/const __iconNode\s*=\s*(\[[\s\S]*?\]);\s*\nconst /) ??
+    content.match(
+      /const __iconData\s*=\s*\{[\s\S]*?\bnode:\s*(\[[\s\S]*?\])(?:,\s*aliases:\s*\[[\s\S]*?\])?\s*\};/,
+    );
   if (!nodeMatch) return null;
 
   const nodeArrayStr = nodeMatch[1];

@@ -20,9 +20,9 @@ import {
   ArrowRightToLine,
   CornerDownLeft,
   GalleryHorizontal,
+  LayoutArrowDown,
+  LayoutArrowRight,
   Square,
-  StretchHorizontal,
-  StretchVertical,
   TextWrap,
 } from "lucide-react";
 import { useStyleActions } from "../hooks/useStyleActions";
@@ -117,14 +117,14 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
               />
             </ToggleButton>
             <ToggleButton id="row" aria-label={localize("Row")}>
-              <StretchVertical
+              <LayoutArrowRight
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}
               />
             </ToggleButton>
             <ToggleButton id="column" aria-label={localize("Column")}>
-              <StretchHorizontal
+              <LayoutArrowDown
                 color={iconProps.color}
                 size={iconProps.size}
                 strokeWidth={iconProps.strokeWidth}

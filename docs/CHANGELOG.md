@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — Layout Direction 아이콘 교체] - 2026-09-17
+
+### Changed
+
+- `lucide-react`를 1.33.0에서 1.46.0으로 갱신하고, Layout 섹션 Direction의 row/column 표시를 늘이기 아이콘에서 흐름 방향을 직접 나타내는 공식 `LayoutArrowRight` / `LayoutArrowDown`으로 교체했다. 1.46의 `__iconData.node` 배포 형식도 아이콘 레지스트리 생성기가 읽도록 호환성을 확장했다.
+
 ## [Rust 레이아웃 엔진 패키지 명칭 통일 — `packages/engine`] - 2026-09-17
 
 ### Changed
