@@ -149,7 +149,28 @@ describe("단절 후 HEAD 재개 — 재전송 ≤ chunkSize", () => {
     expect(afterFail.lastError?.code).toBe("E_NETWORK");
   });
 
-  it("409 offset 불일치 → 대기 없이 즉시 HEAD 재동기", () => {
+  it("409 에 서버 Upload-Offset 이 동봉되면 HEAD 없이 그 offset 부터 다음 청크", () => {
+    const { steps, state } = play(fresh(), [
+      { kind: "start" },
+      { kind: "created", url: "/u" },
+      {
+        kind: "fail",
+        error: {
+          code: "E_OFFSET_MISMATCH",
+          status: 409,
+          message: "x",
+          retryable: true,
+        },
+        offset: 6 * MB,
+      },
+    ]);
+    expect(steps[2]).toEqual([patch(6 * MB, 14 * MB)]);
+    expect(state.committed).toBe(6 * MB);
+    expect(state.attempt).toBe(1);
+    expect(state.lastError?.code).toBe("E_OFFSET_MISMATCH");
+  });
+
+  it("409 offset 불일치 (offset 미동봉) → 대기 없이 즉시 HEAD 재동기", () => {
     const { steps, state } = play(fresh(), [
       { kind: "start" },
       { kind: "created", url: "/u" },

@@ -119,7 +119,8 @@ function judge(file: string, source: string): Violation[] {
 }
 
 describe("ADR-201 HC4 — @composition/upload 는 shared/specs/RAC 를 모른다", () => {
-  it("dependencies 0 · peerDependencies 는 optional react 뿐", () => {
+  it("dependencies 0 · peerDependencies 는 optional react 뿐 · sideEffects:false (지연 청크 tree-shake 전제)", () => {
+    expect((PACKAGE_JSON as { sideEffects?: boolean }).sideEffects).toBe(false);
     expect(PACKAGE_JSON.dependencies ?? {}).toEqual({});
     expect(Object.keys(PACKAGE_JSON.peerDependencies ?? {})).toEqual(["react"]);
     expect(PACKAGE_JSON.peerDependenciesMeta?.react?.optional).toBe(true);

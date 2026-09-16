@@ -4,7 +4,6 @@
  * 상태 전이는 전부 `reduce` (sans-I/O) 가 결정하고, 여기서는 command 만 실행한다:
  * http → adapter.request → driver.send → adapter.response → 다시 reduce.
  */
-import { createMultipartAdapter } from "../adapters/multipart";
 import { createTusAdapter } from "../adapters/tus";
 import {
   DEFAULT_CAPABILITIES,
@@ -20,8 +19,6 @@ import type {
   UploadQueue,
   UploadQueueOptions,
 } from "../types";
-import { createDryRunDriver } from "./drivers/dryRun";
-import { createFetchDriver } from "./drivers/fetch";
 import { createMemoryStorage, resolveStorage } from "./drivers/storage";
 import { createXhrDriver } from "./drivers/xhr";
 import { fingerprint } from "./fingerprint";
@@ -60,10 +57,18 @@ interface Item {
 
 const ACTIVE = new Set(["creating", "uploading"]);
 
-const defaultDriver = (): HttpDriver =>
-  typeof XMLHttpRequest !== "undefined"
-    ? createXhrDriver()
-    : createFetchDriver();
+/**
+ * driver / adapter 는 지연 로드 — 브라우저 기본 경로 (XHR + tus) 만 초기 청크에 싣고
+ * dry-run · fetch (Node/Electron) · multipart 는 옵션이 켜질 때만 `import()` (HC1 core+tus ≤ 6KB gz).
+ */
+const resolveDriver = (o: UploadQueueOptions): Promise<HttpDriver> =>
+  o.driver
+    ? Promise.resolve(o.driver)
+    : o.dryRun
+      ? import("./drivers/dryRun").then((m) => m.createDryRunDriver())
+      : typeof XMLHttpRequest !== "undefined"
+        ? Promise.resolve(createXhrDriver())
+        : import("./drivers/fetch").then((m) => m.createFetchDriver());
 
 export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
   const o = {
@@ -76,18 +81,19 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
     checksum: true,
     ...options,
   };
-  const driver: HttpDriver =
-    o.driver ?? (o.dryRun ? createDryRunDriver() : defaultDriver());
-  const storage: ResumeStorage = o.dryRun
-    ? createMemoryStorage()
-    : (o.storage ?? resolveStorage());
-  const adapter: WireAdapter =
-    o.protocol === "multipart"
-      ? createMultipartAdapter()
+  const single = o.protocol === "multipart";
+  const wire: Promise<[HttpDriver, WireAdapter]> = Promise.all([
+    resolveDriver(o),
+    single
+      ? import("../adapters/multipart").then((m) => m.createMultipartAdapter())
       : createTusAdapter({
           overridePatchMethod: o.overridePatchMethod,
           checksum: o.checksum,
-        });
+        }),
+  ]);
+  const storage: ResumeStorage = o.dryRun
+    ? createMemoryStorage()
+    : (o.storage ?? resolveStorage());
 
   const items = new Map<string, Item>();
   const order: string[] = [];
@@ -126,6 +132,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
   });
   const ensureCaps = (): Promise<AdapterCapabilities> =>
     (capsPromise ??= (async () => {
+      const [driver, adapter] = await wire;
       const headers = await resolveHeaders();
       const c = adapter.preflight
         ? await adapter.preflight({
@@ -168,7 +175,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
       retryDelays: o.retryDelays,
       now: Date.now(),
       terminate: !!caps?.terminate,
-      single: !!adapter.single,
+      single,
     });
     if (event.kind === "fail" && event.error.code === "E_PROXY_TIMEOUT") {
       // R1 — 프록시 timeout 은 청크가 너무 크다는 신호. 다음 청크부터 절반 (하한 1MB)
@@ -202,6 +209,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
         const range = { start: cmd.start ?? 0, end: cmd.end ?? 0 };
         (async () => {
           const c = await ensureCaps();
+          const [driver, adapter] = await wire;
           if (gen !== it.gen) return;
           if (
             op === "create" &&
@@ -230,7 +238,7 @@ export function createUploadQueue(options: UploadQueueOptions): UploadQueue {
           req.signal = ctl.signal;
           req.withCredentials = o.withCredentials;
           if (o.requestTimeout) req.timeout = o.requestTimeout;
-          if (op === "patch" || (op === "create" && adapter.single)) {
+          if (op === "patch" || (op === "create" && single)) {
             req.onProgress = (loaded) => {
               if (gen === it.gen)
                 dispatch(it, { kind: "chunk-sent", bytes: loaded });

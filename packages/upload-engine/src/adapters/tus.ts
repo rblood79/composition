@@ -72,8 +72,11 @@ export function createTusAdapter(opts: TusAdapterOptions = {}): WireAdapter {
         // OPTIONS 를 막는 프록시 — core+creation 가정으로 진행
         return caps;
       }
+      // 브라우저는 이 헤더를 노출하지 않는다 (`*` + credentials 면 OPTIONS 자체가 status 0 → E_NETWORK).
+      // Node/Electron 처럼 CORS 가 없는 환경에서만 읽어 무음 실패를 막는다.
       if (
         ctx.withCredentials &&
+        typeof document === "undefined" &&
         res.header("Access-Control-Allow-Origin") === "*"
       ) {
         // §3-6 클라이언트 층 — credentials 와 `*` 는 브라우저가 거부한다. 무음 실패 대신 명시 실패
@@ -200,7 +203,13 @@ export function createTusAdapter(opts: TusAdapterOptions = {}): WireAdapter {
           },
         };
       }
-      return { kind: "fail", error: errorOfResponse(s, res.text, true) };
+      const error = errorOfResponse(s, res.text, true);
+      if (s === 409) {
+        const offset = Number(res.header("Upload-Offset"));
+        if (Number.isInteger(offset) && offset >= 0)
+          return { kind: "fail", error, offset };
+      }
+      return { kind: "fail", error };
     },
   };
 }

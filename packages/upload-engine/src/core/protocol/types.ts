@@ -21,7 +21,8 @@ export type UploadEvent =
   | { kind: "chunk-sent"; bytes: number }
   /** 서버 `Upload-Offset` (HEAD 또는 PATCH 204) — 진실 */
   | { kind: "offset"; offset: number; expires?: number }
-  | { kind: "fail"; error: UploadError }
+  /** `offset` = 409 응답에 동봉된 서버 Upload-Offset (있으면 HEAD 없이 재동기) */
+  | { kind: "fail"; error: UploadError; offset?: number }
   | { kind: "pause" }
   | { kind: "cancel" };
 

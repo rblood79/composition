@@ -84,7 +84,12 @@ const begin = (s: UploadState, c: ProtocolConfig): Step => {
   return create(s, c);
 };
 
-const fail = (s: UploadState, error: UploadError, c: ProtocolConfig): Step => {
+const fail = (
+  s: UploadState,
+  error: UploadError,
+  c: ProtocolConfig,
+  serverOffset?: number,
+): Step => {
   const canRetry = s.attempt < c.retryDelays.length;
   const base: UploadState = {
     ...s,
@@ -101,6 +106,11 @@ const fail = (s: UploadState, error: UploadError, c: ProtocolConfig): Step => {
       : [{ ...base, status: "error", url: undefined, committed: 0 }, [forget]];
   }
   if (error.code === "E_OFFSET_MISMATCH" && s.url && canRetry) {
+    // 409 에 서버 offset 이 동봉되면 (tusd · 참조 서버) HEAD 없이 그 값으로 재동기
+    if (serverOffset !== undefined && serverOffset <= s.size) {
+      const synced = { ...base, committed: serverOffset, offset: serverOffset };
+      return serverOffset >= s.size ? complete(synced) : nextChunk(synced, c);
+    }
     return [{ ...base, status: "uploading" }, [{ kind: "http", op: "head" }]];
   }
   if (error.retryable && canRetry) {
@@ -171,7 +181,7 @@ export function reduce(
     }
     case "fail":
       if (!ACTIVE.has(s.status) || e.error.code === "E_ABORTED") return [s, []];
-      return fail(s, e.error, c);
+      return fail(s, e.error, c, e.offset);
     case "pause":
       if (!ACTIVE.has(s.status)) return [s, []];
       return [

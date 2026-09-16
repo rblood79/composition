@@ -4,22 +4,17 @@ import { transportError } from "./errors";
 /**
  * Node / Electron main / 브라우저 폴백 driver — `fetch`.
  * 진행률 콜백 없음 (`onProgress` 미호출 — 청크 완료 시 `offset` 이벤트로만 진행).
+ * timeout 은 `AbortSignal.timeout` (Node 20.3+ / Chrome 116+) — `TimeoutError` → `E_PROXY_TIMEOUT`.
  */
 export function createFetchDriver(
   fetchImpl: typeof fetch = (...args) => globalThis.fetch(...args),
 ): HttpDriver {
   return {
     async send(req: HttpRequest): Promise<HttpResponse> {
-      const ctl = new AbortController();
-      let timedOut = false;
-      const onAbort = () => ctl.abort();
-      req.signal?.addEventListener("abort", onAbort);
-      const timer = req.timeout
-        ? setTimeout(() => {
-            timedOut = true;
-            ctl.abort();
-          }, req.timeout)
-        : undefined;
+      const signals = [
+        req.signal,
+        req.timeout ? AbortSignal.timeout(req.timeout) : undefined,
+      ].filter(Boolean) as AbortSignal[];
       let res: Response;
       try {
         res = await fetchImpl(req.url, {
@@ -28,21 +23,19 @@ export function createFetchDriver(
           body: req.body ?? undefined,
           credentials:
             req.withCredentials === false ? "same-origin" : "include",
-          signal: ctl.signal,
+          signal: signals.length ? AbortSignal.any(signals) : undefined,
         });
       } catch (e) {
-        if (timedOut)
-          throw transportError("E_PROXY_TIMEOUT", "request timeout");
-        if ((e as Error)?.name === "AbortError") {
-          throw transportError("E_ABORTED", "aborted", false);
-        }
+        const name = (e as Error)?.name;
         throw transportError(
-          "E_NETWORK",
+          name === "TimeoutError"
+            ? "E_PROXY_TIMEOUT"
+            : name === "AbortError"
+              ? "E_ABORTED"
+              : "E_NETWORK",
           (e as Error)?.message ?? "network error",
+          name !== "AbortError",
         );
-      } finally {
-        if (timer) clearTimeout(timer);
-        req.signal?.removeEventListener("abort", onAbort);
       }
       const text =
         req.method === "HEAD"

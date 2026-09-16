@@ -66,6 +66,8 @@ export interface MockTusOptions {
   ownerHeader?: string;
   /** 모든 요청 401 (인증 실패 시뮬레이션) */
   rejectAuth?: boolean;
+  /** creation 을 429 로 거부 (quota) */
+  quotaExceeded?: boolean;
   /** PATCH 수신 중 누적 N 바이트에서 소켓 destroy (1회 후 자동 해제) */
   abortAfterBytes?: number;
   /** PATCH 수신 중 누적 N 바이트에서 서버 전체를 `downMs` 동안 내린다 (listen 중단 → 재기동, 1회) — 진짜 네트워크 단절 */
@@ -321,6 +323,11 @@ export function createMockTusServer(
   }
 
   function checkCommon(req: IncomingMessage, res: ServerResponse): boolean {
+    const m0 = (req.method ?? "").toUpperCase();
+    if (m0 !== "OPTIONS" && req.headers["tus-resumable"] !== "1.0.0") {
+      finish(req, res, 412, { "Tus-Version": "1.0.0" }, "Tus-Resumable mismatch");
+      return false;
+    }
     if (options.rejectAuth) {
       finish(req, res, S.unauthenticated, {}, "unauthorized");
       return false;
@@ -362,6 +369,7 @@ export function createMockTusServer(
   async function handleCreate(req: IncomingMessage, res: ServerResponse) {
     await drain(req);
     if (!checkCommon(req, res)) return;
+    if (options.quotaExceeded) return finish(req, res, 429, {}, "quota exceeded");
     if (req.headers["upload-defer-length"] !== undefined) {
       return finish(req, res, S.rejected, {}, "Upload-Defer-Length not allowed");
     }
