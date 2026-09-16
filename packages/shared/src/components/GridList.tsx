@@ -491,6 +491,23 @@ export function GridList<T extends object>({
     }
   }
 
+  // ADR-013 HC5 — 연결된 0건 ≠ 미연결 (ListBox 와 같은 규칙): 바인딩 있음 + 행 0 이면 정적
+  //   children 으로 되돌아가지 않는다.
+  if (hasDataBinding && !loading && !error) {
+    return (
+      <AriaGridList
+        {...props}
+        className={gridListClassName}
+        data-variant={variant}
+        layout={layout}
+        style={gridListStyle}
+        items={[] as T[]}
+      >
+        {() => null}
+      </AriaGridList>
+    );
+  }
+
   // Static Children (기존 방식)
   return (
     <AriaGridList

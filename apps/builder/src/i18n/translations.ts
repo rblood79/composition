@@ -1478,6 +1478,24 @@ const koKR: TranslationKeys = {
     sendToAi: "AI 에게 묻기",
     tableCreated: '테이블 "{name}" 을(를) 만들었습니다.',
     createFailed: "테이블 생성 실패: {message}",
+    // ADR-013 — Properties Data 행에서 연 연결 모드
+    connectTarget: "만든 테이블을 {name} 에 연결합니다.",
+    createAndConnect: "만들고 연결",
+    continueWithoutConnect: "연결 없이 계속",
+    connectHandoffUnsupported:
+      "연결 모드에서는 지원하지 않습니다. 계속하면 일반 생성으로 넘어가며 {name} 에 자동 연결되지 않습니다.",
+    tableCreatedAndConnected:
+      '테이블 "{name}" 을(를) 만들어 {target} 에 연결했습니다.',
+    connectTargetMissing: "대상 요소가 없어 연결하지 않았습니다. 변경 없음.",
+    connectTargetContext:
+      "대상 요소의 페이지 또는 프로젝트가 바뀌어 연결하지 않았습니다. 변경 없음.",
+    connectBindingChanged:
+      "대상 요소의 데이터 연결이 그 사이 바뀌어 연결하지 않았습니다. 변경 없음.",
+    connectReadBackFailed:
+      "연결 결과를 확인하지 못했습니다. 대상 요소의 Data 행을 확인하세요.",
+    connectColumnsKept: "기존 컬럼 {count}개는 그대로 두고 key 로 대응합니다.",
+    connectColumnsUnmatched: "새 스키마에 없는 컬럼: {keys}",
+    connectReplaceColumns: "새 스키마로 컬럼 교체",
     gridAddRow: "행 추가",
     gridDeleteRows: "{count}개 행 삭제",
     gridRowAdded: "행을 추가했습니다.",
@@ -3344,6 +3362,24 @@ const enUS: TranslationKeys = {
     sendToAi: "Ask AI",
     tableCreated: 'Created table "{name}".',
     createFailed: "Failed to create table: {message}",
+    // ADR-013 — connect mode opened from the Properties Data row
+    connectTarget: "The new table will be connected to {name}.",
+    createAndConnect: "Create & connect",
+    continueWithoutConnect: "Continue without connecting",
+    connectHandoffUnsupported:
+      "Not available in connect mode. Continuing hands off to normal creation — {name} will not be connected automatically.",
+    tableCreatedAndConnected:
+      'Created table "{name}" and connected it to {target}.',
+    connectTargetMissing: "The target element is gone — nothing was created.",
+    connectTargetContext:
+      "The target's page or project changed — nothing was created.",
+    connectBindingChanged:
+      "The target's data binding changed meanwhile — nothing was created.",
+    connectReadBackFailed:
+      "Could not confirm the connection. Check the target's Data row.",
+    connectColumnsKept: "{count} existing columns are kept and matched by key.",
+    connectColumnsUnmatched: "Columns missing from the new schema: {keys}",
+    connectReplaceColumns: "Replace columns with the new schema",
     gridAddRow: "Add row",
     gridDeleteRows: "Delete {count} rows",
     gridRowAdded: "Row added.",
@@ -4721,6 +4757,16 @@ const formattedMessages: Record<
       `테이블 "${String(args?.name ?? "")}" 을(를) 만들었습니다.`,
     "datatable.createFailed": (args) =>
       `테이블 생성 실패: ${String(args?.message ?? "")}`,
+    "datatable.connectTarget": (args) =>
+      `만든 테이블을 ${String(args?.name ?? "")} 에 연결합니다.`,
+    "datatable.connectHandoffUnsupported": (args) =>
+      `연결 모드에서는 지원하지 않습니다. 계속하면 일반 생성으로 넘어가며 ${String(args?.name ?? "")} 에 자동 연결되지 않습니다.`,
+    "datatable.tableCreatedAndConnected": (args) =>
+      `테이블 "${String(args?.name ?? "")}" 을(를) 만들어 ${String(args?.target ?? "")} 에 연결했습니다.`,
+    "datatable.connectColumnsKept": (args) =>
+      `기존 컬럼 ${String(args?.count ?? 0)}개는 그대로 두고 key 로 대응합니다.`,
+    "datatable.connectColumnsUnmatched": (args) =>
+      `새 스키마에 없는 컬럼: ${String(args?.keys ?? "")}`,
     "datatable.gridDeleteRows": (args) =>
       `${String(args?.count ?? 0)}개 행 삭제`,
     "datatable.gridNoRows": (args) =>
@@ -5178,6 +5224,16 @@ const formattedMessages: Record<
       `Created table "${String(args?.name ?? "")}".`,
     "datatable.createFailed": (args) =>
       `Failed to create table: ${String(args?.message ?? "")}`,
+    "datatable.connectTarget": (args) =>
+      `The new table will be connected to ${String(args?.name ?? "")}.`,
+    "datatable.connectHandoffUnsupported": (args) =>
+      `Not available in connect mode. Continuing hands off to normal creation — ${String(args?.name ?? "")} will not be connected automatically.`,
+    "datatable.tableCreatedAndConnected": (args) =>
+      `Created table "${String(args?.name ?? "")}" and connected it to ${String(args?.target ?? "")}.`,
+    "datatable.connectColumnsKept": (args) =>
+      `${String(args?.count ?? 0)} existing columns are kept and matched by key.`,
+    "datatable.connectColumnsUnmatched": (args) =>
+      `Columns missing from the new schema: ${String(args?.keys ?? "")}`,
     "datatable.gridDeleteRows": (args) =>
       `Delete ${String(args?.count ?? 0)} rows`,
     "datatable.gridNoRows": (args) =>

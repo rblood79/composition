@@ -11,6 +11,7 @@ import type {
   DataTableEditorMode,
   DataTableEditorStore,
   ApiEditorTab,
+  QuickConnectTarget,
 } from "../types/editorTypes";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
 
@@ -31,8 +32,12 @@ export const useDataTableEditorStore = create<DataTableEditorStore>(
       if (!keepField) setPanelWorkspacePanelVisibility("datatableField", false);
     },
 
-    openTableCreator: (projectId: string) =>
-      get().open({ type: "table-create", projectId }),
+    openTableCreator: (projectId: string, connect?: QuickConnectTarget) =>
+      get().open({
+        type: "table-create",
+        projectId,
+        ...(connect ? { connect } : {}),
+      }),
     openTableEditor: (tableId: string) =>
       get().open({ type: "table-edit", tableId }),
     openApiCreator: (projectId: string) =>

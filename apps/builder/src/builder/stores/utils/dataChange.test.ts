@@ -505,6 +505,10 @@ describe("applyDataChange — bind_element (ADR-213 Phase 2, canonical 축 consu
   let failOn: string | null;
   const consumer: DataBindingConsumer = {
     has: (id) => nodes.has(id),
+    read: (id) => {
+      const node = nodes.get(id);
+      return node ? { props: node.props, extension: node.extension } : null;
+    },
     apply: (id, write) => {
       if (id === failOn) throw new Error("canonical write failed");
       const node = nodes.get(id);
@@ -719,5 +723,65 @@ describe("applyDataChange — bind_element (ADR-213 Phase 2, canonical 축 consu
         origin: "ai",
       }),
     ).rejects.toThrow(DataChangeError);
+  });
+
+  // ADR-013 — 연결 모드: 비동기 저장 뒤 canonical commit 경계에서 대상 바인딩이 캡처 시점과
+  //   다르면 (사용자가 그 사이 다른 collection 을 골랐다) 무변경 중단 + collection rollback.
+  it("expectBindings: 캡처 스냅샷과 현재 바인딩이 다르면 DataChangeError · collection 생성도 되돌린다", async () => {
+    const { apply, collections } = makeStore();
+    // 캡처 시점엔 미연결이었는데 apply 전에 누가 c1 을 연결했다
+    nodes.set("e_free", {
+      props: { source: "dataTable", collectionId: "c1", name: "Users" },
+    });
+    await expect(
+      apply(
+        {
+          ops: [
+            {
+              op: "create_collection",
+              id: "c_qc",
+              name: "Quick",
+              schema: [{ key: "n", type: "string" }],
+            },
+            { op: "bind_element", elementId: "e_free", collectionId: "c_qc" },
+          ],
+          origin: "user",
+        },
+        { expectBindings: { e_free: { props: undefined } } },
+      ),
+    ).rejects.toThrow(DataChangeError);
+    expect(nodes.get("e_free")!.props).toEqual({
+      source: "dataTable",
+      collectionId: "c1",
+      name: "Users",
+    });
+    expect(collections().has("c_qc")).toBe(false);
+    expect(dbMock.collections.delete).toHaveBeenCalledWith("c_qc");
+    expect(addEntry).not.toHaveBeenCalled();
+  });
+
+  it("expectBindings: 스냅샷이 같으면 정상 적용 (undefined ↔ 없음 동치)", async () => {
+    const { apply } = makeStore();
+    await apply(
+      {
+        ops: [
+          {
+            op: "create_collection",
+            id: "c_qc",
+            name: "Quick",
+            schema: [{ key: "n", type: "string" }],
+          },
+          { op: "bind_element", elementId: "e_free", collectionId: "c_qc" },
+        ],
+        origin: "user",
+      },
+      {
+        expectBindings: { e_free: { props: undefined, extension: undefined } },
+      },
+    );
+    expect(nodes.get("e_free")).toEqual({
+      props: { source: "dataTable", collectionId: "c_qc", name: "Quick" },
+    });
+    expect(addEntry).toHaveBeenCalledTimes(1);
   });
 });

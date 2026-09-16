@@ -95,6 +95,8 @@ export { useStore };
 // import 하면 순환이라 여기서 잇는다).
 registerDataBindingConsumer({
   has: (elementId) => useStore.getState().elementsMap.has(elementId),
+  read: (elementId) =>
+    useStore.getState().readCanonicalDataBindingSnapshot(elementId),
   apply: (elementId, write) =>
     useStore.getState().applyCanonicalDataBindingPatch(elementId, write),
 });

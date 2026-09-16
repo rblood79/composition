@@ -249,9 +249,19 @@ export function ComboBox<T extends object>({
         )) as (item: T) => React.ReactNode;
       }
 
+      // ADR-013 HC5 — 바인딩이 있는데 행이 0 이면 정적 children 으로 되돌아가지 않는다
+      //   (연결된 0건 ≠ 미연결 · Skia 와 대칭).
+      if (hasDataBinding) return null;
+
       // Static children (정규화 rows 없음 — JSX children 그대로)
       return children;
-    }, [children, columnMapping, hasResolvedRows, isTemplateMode]);
+    }, [
+      children,
+      columnMapping,
+      hasResolvedRows,
+      isTemplateMode,
+      hasDataBinding,
+    ]);
 
   // External loading state (from isLoading prop) - show skeleton
   // NOTE: early return은 모든 훅 호출 이후에 위치해야 함 (Rules of Hooks)

@@ -131,4 +131,83 @@ describe("historyActions — data entry early-branch (R9)", () => {
     });
     expect(applyCanonical).not.toHaveBeenCalled();
   });
+
+  // ADR-013 Phase 2 — Table 컬럼: data entry 가 canonicalEvents 를 같이 실으면 (생성+연결 +
+  //   Column 삽입 = 한 사용자 실행) undo/redo/goToIndex 가 collection 축 **과** element 축을
+  //   함께 되돌린다. canonicalEvents 없는 data entry 는 종전 early-branch 그대로.
+  it("canonicalEvents 를 실은 data entry 는 두 축을 함께 — undo/redo/goToIndex 모두 element 경로 진입", async () => {
+    await useDataStore.getState().updateCollection("c1", {
+      mockData: [{ name: "A" }, { name: "b" }],
+    });
+    // 두 번째 entry: data 역연산 + canonical insert 이벤트 (요소는 mock — 적용기는 spy)
+    const events = [
+      {
+        type: "insert",
+        nodeId: "col-1",
+        parentId: "th-1",
+        index: 0,
+        node: { id: "col-1", type: "Column", props: {} },
+      },
+    ] as unknown as canonicalHistoryEvents.CanonicalHistoryNodeEvent[];
+    applyCanonical.mockReturnValue(null as never);
+    historyManager.addEntry({
+      type: "data",
+      elementId: "c1",
+      elementIds: ["c1", "col-1"],
+      data: {
+        dataChangeEvent: {
+          change: {
+            ops: [
+              {
+                op: "update_collection",
+                collectionId: "c1",
+                patch: { name: "People" },
+              },
+            ],
+            origin: "user",
+          },
+          inverse: [
+            {
+              op: "update_collection",
+              collectionId: "c1",
+              patch: { name: "Users" },
+            },
+          ],
+        },
+        canonicalEvents: events,
+      },
+    });
+    await useDataStore
+      .getState()
+      .applyDataChange(
+        {
+          ops: [
+            {
+              op: "update_collection",
+              collectionId: "c1",
+              patch: { name: "People" },
+            },
+          ],
+          origin: "user",
+        },
+        { record: false },
+      );
+
+    await useStore.getState().undo();
+    expect(useDataStore.getState().collections.get("c1")?.name).toBe("Users");
+    expect(applyCanonical).toHaveBeenCalledWith(events, "undo");
+
+    await useStore.getState().redo();
+    expect(useDataStore.getState().collections.get("c1")?.name).toBe("People");
+    expect(applyCanonical).toHaveBeenCalledWith(events, "redo");
+
+    applyCanonical.mockClear();
+    await useStore.getState().goToHistoryIndex(0);
+    expect(useDataStore.getState().collections.get("c1")?.name).toBe("Users");
+    expect(applyCanonical).toHaveBeenCalledWith(events, "undo");
+    // 첫 entry (canonicalEvents 없음) 는 여전히 element 경로 미진입
+    await useStore.getState().goToHistoryIndex(-1);
+    expect(applyCanonical).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().historyOperationInProgress).toBe(false);
+  });
 });

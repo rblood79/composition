@@ -16,7 +16,7 @@
  * @see presets/dataTablePresets.ts (카탈로그) · @composition/sample-data (생성기, ADR-220) — DATATABLE_PRESET_SYSTEM.md 는 없다 (stale 참조 정리 2026-09-16)
  */
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Button } from "react-aria-components/Button";
 import { Radio, RadioGroup } from "react-aria-components/RadioGroup";
 import Papa from "papaparse";
@@ -61,7 +61,11 @@ import {
 } from "lucide-react";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useDataStore } from "../../../stores/data";
-import { PropertyFieldset, Section } from "../../../components";
+import {
+  PropertyCheckbox,
+  PropertyFieldset,
+  Section,
+} from "../../../components";
 import type { DataTablePreset } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
@@ -70,6 +74,15 @@ import { resolvePresetTranslate } from "../presets/presetStrings";
 import { parsePastedRows } from "../utils/pasteRows";
 import { columnsToSchema, detectColumns } from "../utils/columnDetector";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
+import type { QuickConnectTarget } from "../types/editorTypes";
+import {
+  executeQuickConnect,
+  planTableColumns,
+  precheckQuickConnectTarget,
+  readBackQuickConnect,
+  unmatchedColumnKeys,
+  type QuickConnectPrecheck,
+} from "../utils/quickConnect";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { setAiComposerDraft } from "../../ai/aiComposerDraft";
 import { setPanelWorkspacePanelVisibility } from "../../../layout/panelWorkspaceVisibility";
@@ -151,7 +164,24 @@ interface DataTableCreatorProps {
   onClose: () => void;
   /** 열릴 때의 시작 방법 (기본 프리셋 — 종전 탭 기본값 유지) */
   initialMethod?: CreatorMethod;
+  /**
+   * ADR-013 — Properties Data 행에서 열렸을 때의 연결 대상. 있으면 empty/preset/paste/file 은
+   * 생성 + 대상 연결을 `createAndBindDataTable` 1회 (History 1) 로 끝낸다. API/AI 인계는
+   * 연결 모드 미지원 — 사유를 표시하고 사용자가 「연결 없이 계속」 을 눌러야 일반 생성으로
+   * 넘어간다 (문맥을 조용히 버리지 않는다). 일반 Data 패널에서 열면 undefined.
+   */
+  connect?: QuickConnectTarget;
 }
+
+/** 실행 직전 검증 실패 → 사용자 문구 키 (무변경 중단) */
+const PRECHECK_MESSAGE_KEY: Record<
+  Exclude<QuickConnectPrecheck, { ok: true }>["reason"],
+  string
+> = {
+  missing: "connectTargetMissing",
+  context: "connectTargetContext",
+  "binding-changed": "connectBindingChanged",
+};
 
 /** 붙여넣기 · 파일에서 읽은 행 + 감지 스키마 (미리보기 · 생성 입력) */
 interface ImportedRows {
@@ -183,6 +213,7 @@ export function DataTableCreator({
   projectId,
   onClose,
   initialMethod = "preset",
+  connect,
 }: DataTableCreatorProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
@@ -223,6 +254,22 @@ export function DataTableCreator({
   const fileInputRef = useRef<HTMLInputElement>(null);
   // ai
   const [aiDescription, setAiDescription] = useState("");
+  // 처리 중 중복 실행 차단 (연속 클릭) — 저장 await 동안 버튼을 잠근다
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  // ADR-013 §4 — Table 재연결: 기존 컬럼은 보존이 기본, 전면 교체는 명시적 선택
+  const [replaceColumns, setReplaceColumns] = useState(false);
+  const columnPlan = useMemo(
+    () => (connect ? planTableColumns(connect) : null),
+    [connect],
+  );
+  // 요청 수명 — 닫기/모드 교체로 언마운트된 뒤 도착한 완료 응답이 패널 상태를 덮지 않게
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const handlePresetSelect = useCallback((preset: DataTablePreset) => {
     setSelectedPreset(preset);
@@ -296,8 +343,10 @@ export function DataTableCreator({
 
   // 생성 핸들러
   const handleCreate = useCallback(async () => {
+    if (isSubmitting) return;
     try {
       if (method === "api") {
+        // 연결 모드에서는 「연결 없이 계속」 — 일반 생성으로 명시적 전환 (자동 연결 없음)
         openApiCreator(projectId);
         return;
       }
@@ -310,17 +359,21 @@ export function DataTableCreator({
         onClose();
         return;
       }
-      let created: { id: string; name: string } | undefined;
+      // 생성 입력 — 방법별 draft 하나로 정규화 (일반 생성과 연결 모드가 같은 값을 쓴다)
+      let draft:
+        | {
+            name: string;
+            schema: ReturnType<typeof resolvePresetSchema>;
+            mockData: Record<string, unknown>[];
+          }
+        | undefined;
       if (method === "empty") {
-        const name = tableName.trim() || localize("newTable", "New Table");
-        created = await createDataTable({
-          name,
-          project_id: projectId,
+        draft = {
+          name: tableName.trim() || localize("newTable", "New Table"),
           // Main 아트보드 — id 필드 하나로 시작, 나머지는 격자에서
           schema: [{ key: "id", type: "string", required: true }],
           mockData: [],
-          useMockData: true,
-        });
+        };
       } else if (method === "preset" && selectedPreset) {
         // 여기서 해소한 문구가 사용자 테이블에 굳는다 — 이후에는 사용자
         // 데이터라 다시 번역하지 않는다 (presets/types.ts `PresetTranslate`).
@@ -328,43 +381,80 @@ export function DataTableCreator({
           seed: seed.trim() || undefined,
           blankRate: blankPercent / 100,
         });
-        created = await createDataTable({
+        draft = {
           name: tableName.trim() || selectedPreset.name,
-          project_id: projectId,
           schema: resolvePresetSchema(selectedPreset.schema, tr),
           mockData: sampleData,
-          useMockData: true,
-        });
+        };
       } else if ((method === "paste" || method === "file") && imported) {
-        const name =
-          tableName.trim() ||
-          (method === "file" && fileRows
-            ? fileRows.fileName.replace(/\.[^.]+$/, "")
-            : localize("newTable", "New Table"));
-        created = await createDataTable({
-          name,
-          project_id: projectId,
+        draft = {
+          name:
+            tableName.trim() ||
+            (method === "file" && fileRows
+              ? fileRows.fileName.replace(/\.[^.]+$/, "")
+              : localize("newTable", "New Table")),
           schema: imported.schema,
           mockData: imported.rows,
-          useMockData: true,
-        });
+        };
       }
-      if (created) {
+      if (!draft) {
+        onClose();
+        return;
+      }
+      const input = { ...draft, project_id: projectId, useMockData: true };
+
+      let created: { id: string; name: string };
+      if (connect) {
+        // 실행 직전 — 대상 존재 · 페이지/프로젝트 문맥 · 바인딩 무변경. 하나라도 어긋나면
+        // 아무것도 만들지 않는다. 저장 뒤 commit 경계의 같은 검사는 적용기 (`expectBindings`).
+        const precheck = precheckQuickConnectTarget(connect, projectId);
+        if (!precheck.ok) {
+          globalToast.error(
+            localize(PRECHECK_MESSAGE_KEY[precheck.reason], ""),
+          );
+          return;
+        }
+        setIsSubmitting(true);
+        created = await executeQuickConnect({
+          input,
+          target: connect,
+          projectId,
+          replaceColumns,
+        });
+        if (!mountedRef.current) return;
+        if (!readBackQuickConnect(connect.elementId, created.id)) {
+          // 적용기는 성공했는데 대상이 새 collection 을 가리키지 않는다 — 성공으로 알리지 않는다
+          globalToast.error(localize("connectReadBackFailed", ""));
+          return;
+        }
+        announceDataPanelStatus(
+          t("tableCreatedAndConnected", {
+            name: created.name,
+            target: connect.elementLabel,
+          }),
+          { tone: "success" },
+        );
+      } else {
+        setIsSubmitting(true);
+        created = await createDataTable(input);
+        if (!mountedRef.current) return;
         announceDataPanelStatus(t("tableCreated", { name: created.name }), {
           tone: "success",
         });
-        // 만들면 이 자리가 편집기로 바뀐다 (Main 아트보드)
-        openTableEditor(created.id);
-      } else {
-        onClose();
       }
+      // 만들면 이 자리가 편집기로 바뀐다 (Main 아트보드)
+      openTableEditor(created.id);
     } catch (error) {
       console.error("DataTable 생성 실패:", error);
+      if (!mountedRef.current) return;
       globalToast.error(
         t("createFailed", { message: (error as Error).message }),
       );
+    } finally {
+      if (mountedRef.current) setIsSubmitting(false);
     }
   }, [
+    isSubmitting,
     method,
     tableName,
     selectedPreset,
@@ -375,6 +465,8 @@ export function DataTableCreator({
     fileRows,
     aiDescription,
     projectId,
+    connect,
+    replaceColumns,
     createDataTable,
     openApiCreator,
     openTableEditor,
@@ -395,6 +487,15 @@ export function DataTableCreator({
   };
 
   const previewFields = imported?.schema ?? [];
+  // 현재 입력이 만들 schema (컬럼 대조 표시용) — preset 은 라벨 해소 전 key 만 필요
+  const draftSchemaForPlan: readonly { key: string }[] | null =
+    method === "preset" && selectedPreset
+      ? selectedPreset.schema
+      : method === "paste" || method === "file"
+        ? (imported?.schema ?? null)
+        : method === "empty"
+          ? [{ key: "id" }]
+          : null;
 
   return (
     <div className="datatable-creator" data-method={method}>
@@ -420,6 +521,42 @@ export function DataTableCreator({
               "Display name. Bindings reference the id, so you can rename it later.",
             )}
           </p>
+          {connect && (
+            <p
+              className="creator-form-hint creator-connect-target"
+              role="note"
+              data-connect-target={connect.elementId}
+            >
+              {t("connectTarget", { name: connect.elementLabel })}
+            </p>
+          )}
+          {/* Table 재연결 — 기존 컬럼 보존 (기본) · 새 schema 와 어긋나는 key 표시 · 교체는 명시적 */}
+          {connect && columnPlan && columnPlan.existing.length > 0 && (
+            <>
+              <p className="creator-form-hint" role="note" data-column-plan>
+                {t("connectColumnsKept", {
+                  count: columnPlan.existing.length,
+                })}
+                {draftSchemaForPlan &&
+                  unmatchedColumnKeys(columnPlan, draftSchemaForPlan).length >
+                    0 &&
+                  ` ${t("connectColumnsUnmatched", {
+                    keys: unmatchedColumnKeys(
+                      columnPlan,
+                      draftSchemaForPlan,
+                    ).join(", "),
+                  })}`}
+              </p>
+              <PropertyCheckbox
+                label={localize(
+                  "connectReplaceColumns",
+                  "Replace columns with the new schema",
+                )}
+                isSelected={replaceColumns}
+                onChange={setReplaceColumns}
+              />
+            </>
+          )}
           {/* legend 「Start from」 + 방법 격자 (panel-ui 19 — 대조 B12); 이름은 legend 가 준다 */}
           <fieldset className="properties-aria creator-start-from">
             <legend className="fieldset-legend">
@@ -582,7 +719,10 @@ export function DataTableCreator({
               >
                 <FileUp size={20} />
                 <span>
-                  {localize("dropFileHint", "Drop a CSV or JSON file, or click")}
+                  {localize(
+                    "dropFileHint",
+                    "Drop a CSV or JSON file, or click",
+                  )}
                 </span>
               </Button>
             </div>
@@ -619,6 +759,11 @@ export function DataTableCreator({
                 "Opens the new API panel. After the first run, save the response as a table from the Schema tab.",
               )}
             </p>
+            {connect && (
+              <p className="creator-form-hint" role="note">
+                {t("connectHandoffUnsupported", { name: connect.elementLabel })}
+              </p>
+            )}
           </Section>
         )}
 
@@ -645,6 +790,11 @@ export function DataTableCreator({
                 "The AI proposes a schema and sample rows; you review the diff before anything is created.",
               )}
             </p>
+            {connect && (
+              <p className="creator-form-hint" role="note">
+                {t("connectHandoffUnsupported", { name: connect.elementLabel })}
+              </p>
+            )}
           </Section>
         )}
       </div>
@@ -751,12 +901,20 @@ export function DataTableCreator({
           className="control-button"
           data-variant="primary"
           onPress={handleCreate}
-          isDisabled={!canCreate}
+          isDisabled={!canCreate || isSubmitting}
+          isPending={isSubmitting}
         >
-          {method === "api"
-            ? localize("continueToApi", "Continue")
-            : method === "ai"
-              ? localize("sendToAi", "Ask AI")
+          {method === "api" || method === "ai"
+            ? connect
+              ? localize(
+                  "continueWithoutConnect",
+                  "Continue without connecting",
+                )
+              : method === "api"
+                ? localize("continueToApi", "Continue")
+                : localize("sendToAi", "Ask AI")
+            : connect
+              ? localize("createAndConnect", "Create & connect")
               : localize("create", "Create")}
         </Button>
       </div>

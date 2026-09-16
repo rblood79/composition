@@ -47,6 +47,7 @@ import type { DataBindingValue } from "@composition/shared";
 import { resolveBoundCollection, resolveField } from "@composition/shared";
 import { useParams } from "react-router";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
+import { captureQuickConnectTarget } from "../../panels/datatable/utils/quickConnect";
 import { getAiToolReadModel } from "../../../services/ai/tools/canonicalToolReadModel";
 import { resolveCollectionUsage } from "../../../services/ai/data/collectionReadModel";
 import { DatabasePlus, Table2 } from "lucide-react";
@@ -429,18 +430,22 @@ export const PropertyDataBinding = memo(function PropertyDataBinding({
  * `align-self: end` 대신 첫 줄 — legend 아래 컬렉션 Select 상자 — 에 맞춘다
  * (`.actions-binding`). 렌더러 (`GenericFieldRenderer` binding case) 가 fieldset 과 같은
  * `.fieldset-row` 안에 나란히 둔다. 프로젝트 밖 (projectId 없음) 이면 서지 않는다.
+ *
+ * ADR-013 — `elementId` 가 있으면 **연결 모드**로 연다: 누른 시점의 요소·페이지·바인딩
+ * 스냅샷을 캡처해 Creator 에 넘기고, 생성 결과가 그 요소에 자동 연결된다 (선택이 바뀌어도
+ * 대상은 캡처된 요소). 캡처가 실패하면 (요소 없음) 일반 생성으로 연다.
  */
 export const PropertyDataBindingCreateAction = memo(
   function PropertyDataBindingCreateAction({
     disabled,
+    elementId,
   }: {
     disabled?: boolean;
+    elementId?: string;
   }) {
     const { t } = useI18n();
     const { projectId } = useParams<{ projectId: string }>();
-    const openTableCreator = useDataTableEditorStore(
-      (s) => s.openTableCreator,
-    );
+    const openTableCreator = useDataTableEditorStore((s) => s.openTableCreator);
     if (!projectId) return null;
     const label = t("propertiesPanel.bindingNewTable");
     return (
@@ -449,7 +454,13 @@ export const PropertyDataBindingCreateAction = memo(
           <SwatchIconButton
             aria-label={label}
             isDisabled={disabled}
-            onPress={() => openTableCreator(projectId)}
+            onPress={() => {
+              const connect = elementId
+                ? captureQuickConnectTarget(elementId)
+                : null;
+              if (connect) openTableCreator(projectId, connect);
+              else openTableCreator(projectId);
+            }}
           >
             <DatabasePlus
               aria-hidden="true"

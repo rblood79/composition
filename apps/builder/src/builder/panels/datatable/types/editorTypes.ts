@@ -11,13 +11,28 @@
  * - variable: Variable 생성/편집
  */
 export type DataTableEditorMode =
-  | { type: "table-create"; projectId: string }
+  | { type: "table-create"; projectId: string; connect?: QuickConnectTarget }
   | { type: "table-edit"; tableId: string }
   | { type: "api-create"; projectId: string }
   | { type: "api-edit"; endpointId: string; initialTab?: ApiEditorTab }
   | { type: "variable-create"; projectId: string }
   | { type: "variable-edit"; variableId: string }
   | null;
+
+/**
+ * ADR-013 — Properties Data 행에서 연 Creator 의 연결 대상. 직렬화 가능한 식별 정보만 둔다
+ * (선택 요소 객체 · onChange 콜백 보관 금지 — 오래된 참조가 새 상태를 덮는다). `binding` 은
+ * 진입 시점 스냅샷 (`readCanonicalDataBindingSnapshot`) — 실행 직전과 commit 경계에서 현재
+ * 값과 대조해 그 사이 바뀌었으면 무변경 중단한다.
+ */
+export interface QuickConnectTarget {
+  elementId: string;
+  pageId: string | null;
+  elementType: string;
+  /** 표시용 — customId 우선, 없으면 type */
+  elementLabel: string;
+  binding: { props?: unknown; extension?: unknown };
+}
 
 /**
  * 에디터 탭 타입들
@@ -54,7 +69,7 @@ export interface DataTableEditorActions {
   open: (mode: NonNullable<DataTableEditorMode>) => void;
 
   // Table
-  openTableCreator: (projectId: string) => void;
+  openTableCreator: (projectId: string, connect?: QuickConnectTarget) => void;
   openTableEditor: (tableId: string) => void;
 
   // API

@@ -16,13 +16,7 @@
  */
 
 import { useState, useMemo } from "react";
-import {
-  FileEdit,
-  Globe,
-  Settings,
-  Table2,
-  Variable,
-} from "lucide-react";
+import { FileEdit, Globe, Settings, Table2, Variable } from "lucide-react";
 import { useDataTableEditorStore } from "./stores/dataTableEditorStore";
 import { useDataStore } from "../../stores/data";
 import {
@@ -110,7 +104,6 @@ function EditorContent({ mode, close }: EditorContentProps) {
     }
   };
 
-
   // table-edit 헤더 액션: 설정 토글 (aria-pressed) — close 왼쪽
   const headerActions =
     mode.type === "table-edit" ? (
@@ -141,7 +134,13 @@ function EditorContent({ mode, close }: EditorContentProps) {
   const renderEditorContent = () => {
     switch (mode.type) {
       case "table-create":
-        return <DataTableCreator projectId={mode.projectId} onClose={close} />;
+        return (
+          <DataTableCreator
+            projectId={mode.projectId}
+            connect={mode.connect}
+            onClose={close}
+          />
+        );
 
       case "table-edit": {
         const dataTable = collections.find((t) => t.id === mode.tableId);
@@ -199,9 +198,7 @@ function EditorContent({ mode, close }: EditorContentProps) {
             />
           );
         }
-        return (
-          <VariableEditor variable={variable} onClose={close} />
-        );
+        return <VariableEditor variable={variable} onClose={close} />;
       }
 
       default:
@@ -240,7 +237,8 @@ function EditorContent({ mode, close }: EditorContentProps) {
 function getModeKey(mode: NonNullable<DataTableEditorMode>): string {
   switch (mode.type) {
     case "table-create":
-      return `table-create-${mode.projectId}`;
+      // ADR-013 — 연결 대상이 바뀌면 (다른 요소의 Data 행에서 다시 열기) 입력 상태를 새로 시작
+      return `table-create-${mode.projectId}-${mode.connect?.elementId ?? ""}`;
     case "table-edit":
       return `table-edit-${mode.tableId}`;
     case "api-create":

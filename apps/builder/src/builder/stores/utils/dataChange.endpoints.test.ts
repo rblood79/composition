@@ -412,6 +412,7 @@ describe("applyDataChange — define_endpoint (cross-store)", () => {
     // preflight 는 통과 (요소 있음) 하고 commit 에서 실패하는 경우
     registerDataBindingConsumer({
       has: () => true,
+      read: () => null,
       apply: () => null,
     });
     const { apply, endpoints } = makeStore();

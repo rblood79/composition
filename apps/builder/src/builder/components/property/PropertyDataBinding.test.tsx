@@ -1,15 +1,39 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-const routeParams = vi.hoisted(() => ({ projectId: "p-1" as string | undefined }));
+const routeParams = vi.hoisted(() => ({
+  projectId: "p-1" as string | undefined,
+}));
 vi.mock("react-router", async () => {
-  const actual = await vi.importActual<typeof import("react-router")>("react-router");
+  const actual =
+    await vi.importActual<typeof import("react-router")>("react-router");
   return { ...actual, useParams: () => routeParams };
 });
-const editorStore = vi.hoisted(() => ({ openTableCreator: vi.fn(), openTableEditor: vi.fn() }));
+const editorStore = vi.hoisted(() => ({
+  openTableCreator: vi.fn(),
+  openTableEditor: vi.fn(),
+}));
 vi.mock("../../panels/datatable/stores/dataTableEditorStore", () => ({
   useDataTableEditorStore: (selector: (s: typeof editorStore) => unknown) =>
     selector(editorStore),
+}));
+
+// ADR-013 — 연결 대상 캡처 (elements/canonical store 는 이 단위 렌더 밖)
+const quickConnect = vi.hoisted(() => ({
+  capture: vi.fn((elementId: string) =>
+    elementId === "lb-1"
+      ? {
+          elementId,
+          pageId: "pg-1",
+          elementType: "ListBox",
+          elementLabel: "ListBox_1",
+          binding: {},
+        }
+      : null,
+  ),
+}));
+vi.mock("../../panels/datatable/utils/quickConnect", () => ({
+  captureQuickConnectTarget: quickConnect.capture,
 }));
 
 // collection 목록 hook mock — 단위 렌더용 (실제 hook 계약: DataTable[] 반환)
@@ -130,8 +154,7 @@ describe("PropertyDataBinding — fieldMap value/icon (ADR-152 Phase 2)", () => 
     // 모듈 재로드 뒤에는 i18n context 도 같은 인스턴스여야 한다
     const [{ PropertyDataBinding: Comp }, { I18nProvider: Provider }] =
       await Promise.all([import("./PropertyDataBinding"), import("@/i18n")]);
-    const renderFresh = (ui: ReactElement) =>
-      render(ui, { wrapper: Provider });
+    const renderFresh = (ui: ReactElement) => render(ui, { wrapper: Provider });
     return { Comp, renderFresh };
   };
 
@@ -227,12 +250,40 @@ describe("PropertyDataBinding — 새 테이블 액션은 행 액션 열 (2026-0
     routeParams.projectId = "p-1";
     editorStore.openTableCreator.mockClear();
     const { container } = renderWithI18n(<PropertyDataBindingCreateAction />);
-    const wrapper = container.querySelector(".fieldset-actions.actions-binding");
+    const wrapper = container.querySelector(
+      ".fieldset-actions.actions-binding",
+    );
     expect(wrapper).not.toBeNull();
     const button = screen.getByRole("button", { name: "New table" });
     expect(button.querySelector("svg.lucide-database-plus")).not.toBeNull();
     fireEvent.click(button);
     expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1");
+  });
+
+  it("ADR-013: elementId 가 있으면 누른 시점의 대상 스냅샷을 캡처해 연결 모드로 연다 · 캡처 실패는 일반 생성", () => {
+    routeParams.projectId = "p-1";
+    editorStore.openTableCreator.mockClear();
+    const first = renderWithI18n(
+      <PropertyDataBindingCreateAction elementId="lb-1" />,
+    );
+    fireEvent.click(first.container.querySelector("button")!);
+    expect(quickConnect.capture).toHaveBeenCalledWith("lb-1");
+    expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1", {
+      elementId: "lb-1",
+      pageId: "pg-1",
+      elementType: "ListBox",
+      elementLabel: "ListBox_1",
+      binding: {},
+    });
+
+    first.unmount();
+    editorStore.openTableCreator.mockClear();
+    const second = renderWithI18n(
+      <PropertyDataBindingCreateAction elementId="ghost" />,
+    );
+    fireEvent.click(second.container.querySelector("button")!);
+    expect(editorStore.openTableCreator).toHaveBeenCalledWith("p-1");
+    second.unmount();
   });
 
   it("프로젝트 밖 (projectId 없음) 이면 서지 않는다", () => {

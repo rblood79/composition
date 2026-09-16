@@ -274,7 +274,9 @@ describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
   it("#1~#3 — undo/redo early-branch (element 경로 진입 전) + goToIndex continue", async () => {
     const source = await readSource("historyActions.ts");
     expect(source).toContain("function applyDataHistoryEntry");
-    expect(source).toContain('.applyDataChange({ ops, origin: "user" }, { record: false })');
+    expect(source).toContain(
+      '.applyDataChange({ ops, origin: "user" }, { record: false })',
+    );
 
     for (const acquire of ["historyManager.undo()", "historyManager.redo()"]) {
       const idx = source.indexOf(acquire);
@@ -284,28 +286,41 @@ describe("ADR-152: data entry 소비 지점 6곳 (R9)", () => {
       expect(branch).toBeGreaterThan(-1);
       expect(branch).toBeLessThan(elementPath);
     }
+    // ADR-013: canonicalEvents 없는 data entry 만 continue — 동반 entry 는 element 축도 적용
     expect(source).toContain(
-      'if (entry.type === "data") {\n          await applyDataHistoryEntry(entry, direction);\n          continue;\n        }',
+      'if (entry.type === "data") {\n          await applyDataHistoryEntry(entry, direction);',
     );
+    expect(source).toContain("if (!hasCanonicalEvents(entry)) continue;");
   });
 
-  it("#4 — syncDatabaseForEntries skip (elementId=collectionId 오인 차단)", async () => {
+  it("#4 — syncDatabaseForEntries skip (elementId=collectionId 오인 차단) — canonicalEvents 없는 entry 한정 (ADR-013)", async () => {
     const source = await readSource("historyActions.ts");
-    expect(source).toContain('if (entry.type === "data") continue;');
+    expect(source).toContain(
+      'if (entry.type === "data" && !hasCanonicalEvents(entry)) continue;',
+    );
   });
 
   it("#5 — addEntry DEV guard 면제 + IndexedDB 영속 계약", async () => {
     const history = await readSource("../history.ts");
     const guardIdx = history.indexOf("import.meta.env?.DEV &&");
-    expect(history.slice(guardIdx, guardIdx + 400)).toContain('entry.type !== "data"');
+    expect(history.slice(guardIdx, guardIdx + 400)).toContain(
+      'entry.type !== "data"',
+    );
     const idb = await readSource("historyIndexedDB.ts");
-    expect(idb).toContain('case "data":\n      return entry.data.dataChangeEvent !== undefined;');
+    expect(idb).toContain(
+      'case "data":\n      return entry.data.dataChangeEvent !== undefined;',
+    );
   });
 
   it("#6 — 패널 라벨/아이콘", async () => {
     const label = await readSource("../../panels/history/historyEntryLabel.ts");
     expect(label).toContain('case "data":');
-    for (const key of ["entryDataCell", "entryDataRowsRemove", "entryDataRowsReplace", "entryDataFieldRename"])
+    for (const key of [
+      "entryDataCell",
+      "entryDataRowsRemove",
+      "entryDataRowsReplace",
+      "entryDataFieldRename",
+    ])
       expect(label).toContain(`history.${key}`);
     const panel = await readSource("../../panels/history/HistoryPanel.tsx");
     expect(panel).toContain("data: Database");

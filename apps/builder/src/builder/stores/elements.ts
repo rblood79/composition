@@ -101,10 +101,7 @@ import {
   moveElementCanonicalPrimary,
   updateCanonicalNodePropsPrimary,
 } from "@/adapters/canonical/canonicalMutations";
-import type {
-  DataBindingSnapshot,
-  DataBindingWrite,
-} from "./utils/dataChange";
+import type { DataBindingSnapshot, DataBindingWrite } from "./utils/dataChange";
 import { resolveAbsoluteFlowReparentProps } from "../utils/absolutePositioning";
 function pageLayoutId(page: Page): string | null {
   return getNullablePageFrameBindingId(page);
@@ -302,6 +299,16 @@ export interface ElementsState {
     elementId: string,
     write: DataBindingWrite,
   ) => { previous: DataBindingSnapshot } | null;
+
+  /**
+   * ADR-013 — 현재 바인딩 스냅샷 (`props.dataBinding` · `x-composition.dataBinding`).
+   * `applyCanonicalDataBindingPatch` 가 `previous` 로 잡는 것과 같은 두 자리를 쓰기 없이
+   * 읽는다 — 연결 모드의 대상 캡처와 commit 경계 검증 (`expectBindings`) 이 같은 함수를 본다.
+   * 요소·문서가 없으면 null.
+   */
+  readCanonicalDataBindingSnapshot: (
+    elementId: string,
+  ) => DataBindingSnapshot | null;
 
   // 다중 선택 관련 액션
   toggleElementInSelection: (elementId: string) => void;
@@ -2167,6 +2174,22 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       return result.changed;
     },
 
+    readCanonicalDataBindingSnapshot: (elementId) => {
+      if (isRenderProjectionId(elementId)) return null;
+      const canonicalStore = useCanonicalDocumentStore.getState();
+      const projectId = canonicalStore.currentProjectId;
+      if (!projectId || !canonicalStore.documents.get(projectId)) return null;
+      const node = getFirstProjectableNodeById(elementId);
+      if (!node) return null;
+      const extension = (
+        node as { "x-composition"?: { dataBinding?: unknown } }
+      )["x-composition"];
+      return {
+        props: (node.props as Record<string, unknown> | undefined)?.dataBinding,
+        extension: extension?.dataBinding,
+      };
+    },
+
     applyCanonicalDataBindingPatch: (elementId, write) => {
       if (isRenderProjectionId(elementId)) return null;
       if (!areCanonicalMutationStoreActionsRegistered()) return null;
@@ -2178,9 +2201,9 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
 
       const node = getFirstProjectableNodeById(elementId);
       if (!node) return null;
-      const extension = (node as { "x-composition"?: { dataBinding?: unknown } })[
-        "x-composition"
-      ];
+      const extension = (
+        node as { "x-composition"?: { dataBinding?: unknown } }
+      )["x-composition"];
       const previous: DataBindingSnapshot = {
         props: (node.props as Record<string, unknown> | undefined)?.dataBinding,
         extension: extension?.dataBinding,
@@ -2203,12 +2226,11 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
       runCanonicalMutation({
         canonical: () => {
           updateCanonicalNodePropsPrimary(elementId, nextProps);
-          useCanonicalDocumentStore
-            .getState()
-            .updateNodeExtension(elementId, {
-              // restore 는 원본 스냅샷 (직렬화 가능 값만 저장돼 있다) — 타입 축소만
-              dataBinding: nextExtensionBinding as SerializedDataBinding | undefined,
-            });
+          useCanonicalDocumentStore.getState().updateNodeExtension(elementId, {
+            // restore 는 원본 스냅샷 (직렬화 가능 값만 저장돼 있다) — 타입 축소만
+            dataBinding: nextExtensionBinding as
+              SerializedDataBinding | undefined,
+          });
           const next = useCanonicalDocumentStore.getState();
           return {
             changed: true,
@@ -2225,7 +2247,7 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           }));
         },
         history: {
-          skip: "bind_element — data 적용기가 type:\"data\" entry 하나로 묶는다 (ADR-213 HC4)",
+          skip: 'bind_element — data 적용기가 type:"data" entry 하나로 묶는다 (ADR-213 HC4)',
         },
       });
 

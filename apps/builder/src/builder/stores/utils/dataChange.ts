@@ -938,6 +938,11 @@ export interface DataBindingSnapshot {
  */
 export interface DataBindingConsumer {
   has: (elementId: string) => boolean;
+  /**
+   * ADR-013 — 현재 바인딩 스냅샷 (props · extension 두 자리). 연결 모드의 commit 경계
+   * 검증 (`ApplyDataChangeOptions.expectBindings`) 이 읽는다. 요소가 없으면 null.
+   */
+  read: (elementId: string) => DataBindingSnapshot | null;
   /** @returns 적용 전 스냅샷. 요소가 없으면 null. */
   apply: (
     elementId: string,
@@ -951,6 +956,17 @@ export function registerDataBindingConsumer(
   consumer: DataBindingConsumer | null,
 ): void {
   bindingConsumer = consumer;
+}
+
+/**
+ * ADR-013 — 등록된 consumer 로 요소의 현재 바인딩 스냅샷을 읽는다 (Creator 의 대상 캡처 ·
+ * 성공 read-back). consumer 미등록·요소 없음은 null. data store 가 elements store 를
+ * import 하지 않는 경계를 그대로 지킨다.
+ */
+export function readDataBindingSnapshot(
+  elementId: string,
+): DataBindingSnapshot | null {
+  return bindingConsumer?.read(elementId) ?? null;
 }
 
 function isBindElementOp(op: DataOp): op is BindElementOp {
@@ -1016,6 +1032,17 @@ function toBindingWrite(
   };
 }
 
+/** 스냅샷 동치 — 직렬화 비교. `undefined` 키와 부재는 같다 (JSON 이 둘 다 지운다). */
+function isSameBindingSnapshot(
+  a: DataBindingSnapshot,
+  b: DataBindingSnapshot,
+): boolean {
+  return (
+    JSON.stringify(a.props ?? null) === JSON.stringify(b.props ?? null) &&
+    JSON.stringify(a.extension ?? null) === JSON.stringify(b.extension ?? null)
+  );
+}
+
 function inverseOfBinding(
   op: BindElementOp,
   previous: DataBindingSnapshot,
@@ -1037,6 +1064,14 @@ export interface ApplyDataChangeOptions {
   /** false = History entry 를 만들지 않는다 (undo/redo 재적용). 기본 true. */
   record?: boolean;
   projectId?: string;
+  /**
+   * ADR-013 연결 모드 — `bind_element` 를 쓰기 직전, 요소의 현재 바인딩 스냅샷이 여기 적힌
+   * 것과 같아야 한다 (직렬화 비교 · `undefined` 와 부재는 같다). 다르면 그 사이 사용자가
+   * 바인딩을 바꾼 것이라 `DataChangeError` 로 중단하고 앞선 collection 변경은 rollback
+   * 된다. 검증은 비동기 저장 **뒤** canonical commit 경계에서 한다 — preflight 시점 검사만으로는
+   * IndexedDB await 틈의 편집을 못 잡는다. IR (`DataOp`) 은 바꾸지 않는다.
+   */
+  expectBindings?: Readonly<Record<string, DataBindingSnapshot>>;
 }
 
 export interface ApplyDataChangeResult {
@@ -1211,6 +1246,16 @@ export const createApplyDataChangeAction =
     const bindingInverse: BindElementOp[] = [];
     try {
       for (const op of bindingOps) {
+        const expected = options.expectBindings?.[op.elementId];
+        if (expected) {
+          const current = consumer.read(op.elementId);
+          if (!current || !isSameBindingSnapshot(current, expected)) {
+            throw new DataChangeError(
+              `대상 요소의 바인딩이 캡처 시점과 다릅니다: ${op.elementId}`,
+              op,
+            );
+          }
+        }
         const outcome = consumer.apply(
           op.elementId,
           toBindingWrite(op, result.collections),

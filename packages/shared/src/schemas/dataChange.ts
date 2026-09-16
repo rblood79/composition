@@ -125,7 +125,12 @@ export type ExecutionPolicyShape = z.infer<typeof ExecutionPolicySchema>;
 export const DataOpSchema = z.discriminatedUnion("op", [
   z.object({
     op: z.literal("create_collection"),
-    /** undo 가 삭제된 collection 을 **같은 id** 로 되살릴 때만 채운다 (바인딩 참조 보존). */
+    /**
+     * 생략하면 적용기가 발급한다. 채우는 두 경우 — undo 가 삭제된 collection 을 **같은 id**
+     * 로 되살릴 때 (바인딩 참조 보존) · 같은 change 의 `bind_element.collectionId` 가 이 id 를
+     * 가리켜야 할 때 (ADR-013 생성+연결 묶음 — reducer 가 `op.id` 를 채택하고 중복은 거부,
+     * binding preflight 는 reduce 뒤 결과 collections 를 대조하므로 별도 예약 API 없이 성립).
+     */
     id: z.string().optional(),
     projectId: z.string().optional(),
     name: z.string().min(1),

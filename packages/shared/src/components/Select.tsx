@@ -288,6 +288,10 @@ export function Select<T extends object>({
         }) as (item: T) => React.ReactNode;
       }
 
+      // ADR-013 HC5 — 바인딩이 있는데 행이 0 이면 정적 children 으로 되돌아가지 않는다
+      //   (연결된 0건 ≠ 미연결 · Skia 와 대칭).
+      if (hasDataBinding) return null;
+
       // Static children (정규화 rows 없음 — JSX children 그대로)
       return children;
     }, [

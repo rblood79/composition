@@ -635,6 +635,22 @@ export function ListBox<T extends object>({
     );
   }
 
+  // ADR-013 HC5 — 연결된 0건 ≠ 미연결. 바인딩이 있고 (loading/error 아님) 행이 0 이면 정적
+  //   children (factory items 로 만든 JSX) 으로 되돌아가지 않는다 — Skia projection 은
+  //   dataBinding 이 있으면 `[]` 를 내므로 여기서 정적 items 를 그리면 두 leg 가 갈린다.
+  if (hasDataBinding && !loading && !error) {
+    return (
+      <AriaListBox
+        {...props}
+        className={getListBoxClassName(props.className)}
+        data-variant={variant}
+        items={[] as T[]}
+      >
+        {() => null}
+      </AriaListBox>
+    );
+  }
+
   // Static Children (기존 방식)
   return (
     <AriaListBox

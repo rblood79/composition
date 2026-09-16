@@ -450,7 +450,12 @@ export function MenuButton<T extends object>({
               {t("errorWithMessage", { message: String(error) })}
             </AriaMenuItem>
           )}
-          {!loading && !error && (children as React.ReactNode)}
+          {/* ADR-013 HC5 — 바인딩이 있고 행이 0 이면 정적 children 으로 되돌아가지 않는다
+              (연결된 0건 ≠ 미연결 · Skia 와 대칭) */}
+          {!loading &&
+            !error &&
+            !hasDataBinding &&
+            (children as React.ReactNode)}
         </Menu>
       </Popover>
     </MenuTrigger>

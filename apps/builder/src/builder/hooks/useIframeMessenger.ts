@@ -775,6 +775,20 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
         event.data.type === "ADD_COLUMN_ELEMENTS" &&
         event.data.payload?.columns
       ) {
+        // ADR-013 §4 늦은 ingress 가드 — Builder 가 이미 그 TableHeader 에 Column 을 넣었으면
+        // (Quick Connect 가 schema 컬럼을 바인딩보다 먼저 싣는다) Preview 의 감지 요청은
+        // 옛 문서 기준이다. 받아들이면 컬럼이 중복되고 undo 뒤 되살아난다 → 버린다.
+        const headerId = event.data.payload.tableHeaderId as string | undefined;
+        if (
+          headerId &&
+          useStore
+            .getState()
+            .elements.some(
+              (el) => el.parent_id === headerId && el.type === "Column",
+            )
+        ) {
+          return;
+        }
         const newColumns = event.data.payload.columns;
         const columnsToAdd = filterNewPreviewGeneratedElements(newColumns);
 

@@ -60,6 +60,13 @@ async function persistActiveCanonicalDocument(
   });
 }
 
+/** ADR-013 — data entry 가 element 축 이벤트를 같이 실었는가 (Table Column 삽입/제거). */
+function hasCanonicalEvents(entry: {
+  data: { canonicalEvents?: CanonicalHistoryNodeEvent[] };
+}): boolean {
+  return (entry.data.canonicalEvents?.length ?? 0) > 0;
+}
+
 /** 적용 entry 들의 canonical event 에서 방향 기준 제거 node 수 산출 (union). */
 function countExpectedShrinkNodes(
   entries: Array<
@@ -592,11 +599,15 @@ export const createUndoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch)
+    // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch).
+    // ADR-013: canonicalEvents 를 같이 실은 data entry (생성+연결 + Table Column 삽입) 는
+    // collection 축을 먼저 되돌린 뒤 아래 element 경로로 이어진다 — 두 축 = 되돌리기 1단위.
     if (entry.type === "data") {
       await applyDataHistoryEntry(entry, "undo");
-      set({ historyOperationInProgress: false });
-      return;
+      if (!hasCanonicalEvents(entry)) {
+        set({ historyOperationInProgress: false });
+        return;
+      }
     }
 
     const currentState = get();
@@ -730,11 +741,14 @@ export const createRedoAction = (set: SetState, get: GetState) => async () => {
       return;
     }
 
-    // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch)
+    // ADR-152: data entry 는 collection 축 — element 노드 경로 미진입 (early-branch).
+    // ADR-013: canonicalEvents 동반 data entry 는 두 축 (undo 분기와 같다).
     if (entry.type === "data") {
       await applyDataHistoryEntry(entry, "redo");
-      set({ historyOperationInProgress: false });
-      return;
+      if (!hasCanonicalEvents(entry)) {
+        set({ historyOperationInProgress: false });
+        return;
+      }
     }
 
     const currentState = get();
@@ -875,7 +889,8 @@ export const createGoToHistoryIndexAction =
         // full-sync 판정 제외 (element 축 무변경).
         if (entry.type === "data") {
           await applyDataHistoryEntry(entry, direction);
-          continue;
+          // ADR-013: canonicalEvents 동반 entry 는 element 축도 적용 (아래 applyHistoryEntry)
+          if (!hasCanonicalEvents(entry)) continue;
         }
         // ADR-180: snapshot-restore entry 는 문서 전체 교체 — 적용 후 누적
         // 기준(updatedElements)을 store 에서 재취득하고 계속 진행. canonical
@@ -1003,8 +1018,9 @@ async function syncDatabaseForEntries(
     // applyPageLifecycleHistoryEntry 가 자체 수행 (elementId=pageId 무해값).
     if (entry.type === "page-lifecycle") continue;
     // ADR-152: data 도 동일 — persist 는 applyDataChange 가 자체 수행
-    // (elementId=collectionId 오인 차단).
-    if (entry.type === "data") continue;
+    // (elementId=collectionId 오인 차단). ADR-013: canonicalEvents 동반 entry 는 element
+    // 축 제거 node (Column) 가 있으므로 shrink 가드 집계에 들어간다.
+    if (entry.type === "data" && !hasCanonicalEvents(entry)) continue;
 
     const events = entry.data.canonicalEvents;
     if (!events || events.length === 0) continue;

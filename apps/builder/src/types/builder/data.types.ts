@@ -516,7 +516,14 @@ export interface DataStoreActions {
    */
   applyDataChange: (
     change: DataChange,
-    options?: { record?: boolean; projectId?: string },
+    options?: {
+      record?: boolean;
+      projectId?: string;
+      /** ADR-013 — bind_element 쓰기 직전 대상 바인딩 스냅샷 대조 (다르면 중단·rollback). */
+      expectBindings?: Readonly<
+        Record<string, { props?: unknown; extension?: unknown }>
+      >;
+    },
   ) => Promise<{
     applied: DataOp[];
     inverse: DataOp[];

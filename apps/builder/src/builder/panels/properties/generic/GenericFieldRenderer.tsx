@@ -781,7 +781,7 @@ const GenericField = memo(function GenericField({
               value={(value as DataBindingValue | null | undefined) ?? null}
               onChange={(v) => update(v)}
             />
-            <PropertyDataBindingCreateAction />
+            <PropertyDataBindingCreateAction elementId={elementId} />
           </>
         );
       }
@@ -857,11 +857,7 @@ const ChipGroupField = memo(function ChipGroupField({
       if (!editor || !field) return;
       const on = editor.negate ? !selected : selected;
       const next =
-        editor.onValue != null
-          ? on
-            ? editor.onValue
-            : editor.offValue
-          : on;
+        editor.onValue != null ? (on ? editor.onValue : editor.offValue) : on;
       if (field.origin === "style") onStyleUpdate(key, next);
       else onSemanticUpdate(key, next);
     },
