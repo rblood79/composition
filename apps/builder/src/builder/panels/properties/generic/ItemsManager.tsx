@@ -587,7 +587,7 @@ export const ItemsManager = memo(function ItemsManager({
             onClick={handleAddSection}
           >
             <FolderPlus size={14} />
-            Add Section
+            {i18n?.t("itemsManager.addSection") ?? "Add Section"}
           </button>
         )}
         {allowSeparators && (

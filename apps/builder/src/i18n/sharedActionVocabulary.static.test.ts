@@ -23,6 +23,8 @@ const HOMONYMS = new Set([
   "Transform", // DataTable 값 변환 ↔ CSS transform
   "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음 · preset 데이터 열)
   "Total", // 도넛 중앙의 합계 표시 ↔ 주문 preset 의 총액 열
+  "Start", // ButtonGroup 정렬(시작) ↔ 기간 preset 필드(시작일)
+  "End", // ButtonGroup 정렬(끝) ↔ 기간 preset 필드(종료일)
 ]);
 
 /**

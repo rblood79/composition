@@ -14,6 +14,11 @@ import { IconPreview } from "../../panels/icons/components/IconPreview";
 import { IconPickerPopover } from "../../panels/icons/IconPickerPopover";
 import { iconProps } from "../../../utils/ui/uiConstants";
 import { useControlPopoverMetrics } from "./useControlPopoverMetrics";
+import {
+  semanticLabelKeys,
+  translateKey,
+  useOptionalI18n,
+} from "../../../i18n";
 import "../../panels/icons/IconPickerPopover.css";
 
 export interface PropertyIconPickerProps {
@@ -26,13 +31,17 @@ export interface PropertyIconPickerProps {
 }
 
 export const PropertyIconPicker = memo(function PropertyIconPicker({
-  label,
+  label: rawLabel,
   value,
   onChange,
   onClear,
   labelMode = "legend",
 }: PropertyIconPickerProps) {
   const hasIcon = !!value;
+  const i18n = useOptionalI18n();
+  const localize = (text: string) =>
+    i18n ? translateKey(i18n.t, semanticLabelKeys[text] ?? text, text) : text;
+  const label = localize(rawLabel);
   // 팝오버는 아이콘 선택 여부와 무관하게 **입력 폼 박스**와 같은 좌측·폭으로 떠야 한다.
   // 트리거 버튼은 미리보기/clear 유무로 폭이 바뀌므로 group 기준으로 실측한다.
   const { anchorRef, controlRef, popoverStyle } = useControlPopoverMetrics({
@@ -72,7 +81,7 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
               </label>
             )}
             <span className="icon-picker-value">
-              {hasIcon ? value : "None"}
+              {hasIcon ? value : localize("None")}
             </span>
             {labelMode === "suffix" && (
               <>
@@ -91,7 +100,7 @@ export const PropertyIconPicker = memo(function PropertyIconPicker({
         {hasIcon && (
           <Button
             className="icon-picker-clear"
-            aria-label="Clear icon"
+            aria-label={localize("Clear icon")}
             onPress={handleClear}
           >
             <X size={iconProps.size} strokeWidth={iconProps.strokeWidth} />

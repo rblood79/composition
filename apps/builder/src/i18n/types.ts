@@ -344,6 +344,10 @@ export interface TranslationKeys {
     intro: string;
     suggestionsIntro: string;
     suggestionsLabel: string;
+    suggestComponentFeatures: string;
+    suggestCommonEdits: string;
+    localActionDone: string;
+    localActionFailed: string;
     disclaimer: string;
     advancedMode: string;
     advancedModeHint: string;
@@ -565,6 +569,22 @@ export interface TranslationKeys {
     slotSelectOnCanvas: string;
     slotFooterCount: string;
     presetApplied: string;
+    overridesLegend: string;
+    attributes: string;
+    classNamePlaceholder: string;
+    ariaLabelPlaceholder: string;
+    slotSection: string;
+    slotStatus: string;
+    slotInactive: string;
+    slotRecommendations: string;
+    slotEnable: string;
+    slotDisable: string;
+    roleInstanceOrigin: string;
+    roleStandard: string;
+    resetForkedItems: string;
+    resetOverride: string;
+    resetToOrigin: string;
+    reset: string;
   };
   chart: {
     section: string;
@@ -742,6 +762,7 @@ export interface TranslationKeys {
   itemsManager: {
     total: string;
     addItem: string;
+    addSection: string;
     expand: string;
     collapse: string;
     removeItem: string;

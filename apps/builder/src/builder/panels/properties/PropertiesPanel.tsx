@@ -891,7 +891,7 @@ const PropertyClipboardActions = memo(function PropertyClipboardActions({
     <>
       <ActionIconButton
         onPress={handleCopyProperties}
-        aria-label="Copy properties"
+        aria-label={t("propertiesPanel.copyProperties")}
         isDisabled={
           !selectedProperties || Object.keys(selectedProperties).length === 0
         }
@@ -906,7 +906,7 @@ const PropertyClipboardActions = memo(function PropertyClipboardActions({
       </ActionIconButton>
       <ActionIconButton
         onPress={handlePasteProperties}
-        aria-label="Paste properties"
+        aria-label={t("propertiesPanel.pasteProperties")}
         tooltip={t("propertiesPanel.pasteProperties")}
         shortcutId="pasteProperties"
       >

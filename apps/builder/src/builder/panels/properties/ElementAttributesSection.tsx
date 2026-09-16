@@ -123,7 +123,7 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
   // 라벨은 legend (상자 위, Styles 패널과 같은 어법 — 2026-09-15 사용자 판정), 아이콘 prefix
   //   (#, 중괄호, aria) 는 라벨이 있으면 중복이라 뺀다 (panel-ui 07, 2026-09-14).
   return (
-    <PropertySection title="Attributes">
+    <PropertySection title={t("propertiesPanel.attributes")}>
       <div className="fieldset-row" data-wide="true">
         <PropertyCustomId
           label="ID"
@@ -152,7 +152,7 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
           label="Class Name"
           value={className}
           onChange={handleClassNameChange}
-          placeholder="hero-title"
+          placeholder={t("propertiesPanel.classNamePlaceholder")}
         />
       </div>
       {showAriaLabel && (
@@ -161,7 +161,7 @@ export const ElementAttributesSection = memo(function ElementAttributesSection({
             label="Aria Label"
             value={ariaLabel}
             onChange={handleAriaLabelChange}
-            placeholder="Upload progress"
+            placeholder={t("propertiesPanel.ariaLabelPlaceholder")}
           />
         </div>
       )}

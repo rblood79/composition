@@ -34,7 +34,7 @@ import {
   useCanonicalPropertyElement,
   useCanonicalPropertyElementsMap,
 } from "./hooks/useCanonicalPropertyRead";
-import { useI18n } from "@/i18n";
+import { semanticLabelKeys, translateKey, useI18n } from "@/i18n";
 import type { PanelNode } from "../panelNode";
 
 /**
@@ -139,7 +139,11 @@ export const ComponentSemanticsSection = memo(
     // 두 축이 겹치는 노드는 색 마커가 하나뿐이라 (canvas 는 instance 색) 텍스트
     // 라벨이 두 정체를 다 읽어 준다 — 라벨이 역할의 1차 채널이다.
     const roleLabel =
-      isInstance && isOrigin ? "Instance · Origin" : (label ?? "Standard");
+      isInstance && isOrigin
+        ? t("propertiesPanel.roleInstanceOrigin")
+        : label
+          ? translateKey(t, semanticLabelKeys[label] ?? label, label)
+          : t("propertiesPanel.roleStandard");
     const roleClass = role ?? "standard";
 
     if (!element) return null;
@@ -310,7 +314,7 @@ export const ComponentSemanticsSection = memo(
 
         {role === "instance" && overrideItems.length > 0 && (
           <fieldset className="properties-aria component-semantics-overrides">
-            <legend className="fieldset-legend">Overrides</legend>
+            <legend className="fieldset-legend">{t("propertiesPanel.overridesLegend")}</legend>
             <div className="react-aria-Group component-semantics-field-list">
               {overrideItems.map((item) => {
                 // ADR-138 A-3: instance 가 props.items 를 override 하면
@@ -322,8 +326,8 @@ export const ComponentSemanticsSection = memo(
                   <button
                     aria-label={
                       isItemsFork
-                        ? "Reset forked items to origin"
-                        : `Reset ${item.label} override`
+                        ? t("propertiesPanel.resetForkedItems")
+                        : t("propertiesPanel.resetOverride", { label: item.label })
                     }
                     className={
                       isItemsFork
@@ -341,10 +345,12 @@ export const ComponentSemanticsSection = memo(
                   >
                     <span className="component-semantics-field-dot" />
                     <span className="component-semantics-field-name">
-                      {isItemsFork ? "items (forked)" : item.label}
+                      {isItemsFork ? t("propertiesPanel.itemsForkedLabel") : item.label}
                     </span>
                     <span className="component-semantics-field-reset">
-                      {isItemsFork ? "Reset to origin" : "Reset"}
+                      {isItemsFork
+                        ? t("propertiesPanel.resetToOrigin")
+                        : t("propertiesPanel.reset")}
                     </span>
                   </button>
                 );

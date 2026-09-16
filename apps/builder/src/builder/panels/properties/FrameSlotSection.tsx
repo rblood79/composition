@@ -24,6 +24,7 @@ import {
 } from "../../components/slotHostPolicy";
 import type { PanelNode } from "../panelNode";
 import { ACTION_ICONS } from "../../config/actionIcons";
+import { useI18n } from "@/i18n";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -86,6 +87,7 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   const element = useCanonicalPropertyElement(elementId) as
     SlotElement | undefined;
   const elementsById = useCanonicalPropertyElementsMap();
+  const { t } = useI18n();
   const addElement = useStore((state) => state.addElement);
   const updateElement = useStore((state) => state.updateElement);
   const [selectedCandidateId, setSelectedCandidateId] = useState("");
@@ -204,17 +206,19 @@ export const FrameSlotSection = memo(function FrameSlotSection({
   };
 
   return (
-    <PropertySection title="Slot">
+    <PropertySection title={t("propertiesPanel.slotSection")}>
       {/* 읽기 전용 값도 필드 어법 (legend + 값 상자) · 추천 목록은 공용 `.list-row` · 추천 추가는
           셀렉트 행의 28 액션 열 (panel-structure §1, 2026-09-15) */}
       <div className="fieldset-row" data-wide="true">
         <fieldset className="properties-aria frame-slot-status">
-          <legend className="fieldset-legend">Status</legend>
+          <legend className="fieldset-legend">{t("propertiesPanel.slotStatus")}</legend>
           <div className="react-aria-control react-aria-Group">
             <span className="frame-slot-value">
               {isActive
-                ? `${recommendedIds.length} recommendations`
-                : "Inactive"}
+                ? t("propertiesPanel.slotRecommendations", {
+                    count: recommendedIds.length,
+                  })
+                : t("propertiesPanel.slotInactive")}
             </span>
           </div>
         </fieldset>
@@ -222,23 +226,23 @@ export const FrameSlotSection = memo(function FrameSlotSection({
 
       {isActive ? (
         <button
-          aria-label="Disable slot"
+          aria-label={t("propertiesPanel.slotDisable")}
           className="control-button"
           onClick={handleDisable}
           type="button"
         >
           <Minus aria-hidden="true" size={14} />
-          <span>Disable slot</span>
+          <span>{t("propertiesPanel.slotDisable")}</span>
         </button>
       ) : (
         <button
-          aria-label="Enable slot"
+          aria-label={t("propertiesPanel.slotEnable")}
           className="control-button"
           onClick={handleEnable}
           type="button"
         >
           <AddIcon aria-hidden="true" size={14} />
-          <span>Enable slot</span>
+          <span>{t("propertiesPanel.slotEnable")}</span>
         </button>
       )}
 
