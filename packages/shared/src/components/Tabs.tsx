@@ -21,7 +21,6 @@ import type {
 
 import { useResolvedCollectionItems } from "../hooks";
 import { Skeleton } from "./Skeleton";
-import "./styles/generated/Tabs.css";
 import { useComponentStrings } from "../i18n";
 
 /**

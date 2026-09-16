@@ -3,7 +3,6 @@ import { Button } from "./Button";
 import { X, CircleCheck, CircleAlert, AlertTriangle, Info } from "lucide-react";
 import { ToastContext } from "./ToastContext";
 
-import "./styles/Toast.css";
 
 /**
  * Toast types and interfaces

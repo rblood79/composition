@@ -15,7 +15,6 @@ import type { ComponentSizeSubset, MeterVariant } from "../types";
 import { formatPercent } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/generated/Meter.css";
 
 export interface MeterProps extends AriaMeterProps {
   label?: string;

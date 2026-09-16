@@ -89,10 +89,9 @@ function notImportedByIndexCss(): string[] {
 /**
  * live 로 갈린 분류의 정본 (2026-09-04 측정, artifact `adr923-generated-css-reach.json`).
  *
- * - `covered` — 클래스가 있고, **실제 로드된 다른 CSS** 가 이미 담당한다. 담당자는 index.css 경유
- *   (base.css · parent delegation) 일 수도, **컴포넌트 모듈 import** 일 수도 있다
- *   (`Breadcrumbs.tsx` → 수동 `styles/Breadcrumbs.css`, `Skeleton.tsx` → 수동 `styles/Skeleton.css`,
- *   `DropZone.tsx` → `styles/generated/DropZone.css` 직접).
+ * - `covered` — 클래스가 있고, **실제 로드된 다른 CSS** 가 이미 담당한다 (base.css · parent
+ *   delegation · 수동 `styles/Breadcrumbs.css` · `styles/Skeleton.css`). 2026-09-16 부터 컴포넌트
+ *   CSS 는 index.css 한 채널이다 — DropZone · FileTrigger 생성물도 index.css 가 싣는다 (분류표 밖).
  * - `gap` — 클래스가 DOM 에 붙는데 담당 CSS 가 **어디에도** 로드되지 않는다. 미배선 결함 — 삭제 대상이
  *   아니다. 2026-09-06 재측정 기준 해당 없음 (0건).
  * - `unobserved` — 이 sweep (팔레트 기본 상태) 에서 클래스를 못 봤다. dead 라는 뜻이 **아니다**:
@@ -109,9 +108,7 @@ const EXPECTED: Readonly<Record<string, "covered" | "gap" | "unobserved">> = {
   CardView: "unobserved",
   DialogFooter: "unobserved",
   DisclosureHeader: "unobserved",
-  DropZone: "covered",
   FieldError: "covered",
-  FileTrigger: "unobserved",
   FormField: "unobserved",
   IllustratedMessage: "unobserved",
   Image: "unobserved",

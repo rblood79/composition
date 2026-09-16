@@ -26,8 +26,6 @@ import {
   type SlotComposition,
   type SlotRole,
 } from "../catalog/slotRoles";
-import "./styles/generated/Menu.css";
-import "./styles/Menu.css";
 import { useComponentStrings } from "../i18n";
 
 /**

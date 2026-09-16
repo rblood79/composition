@@ -26,7 +26,6 @@ import {
 } from "../collections/fieldTemplate";
 import { resolveFieldRoles } from "../collections/resolveCollectionItems";
 
-import "./styles/GridList.css";
 import { useComponentStrings } from "../i18n";
 
 /**

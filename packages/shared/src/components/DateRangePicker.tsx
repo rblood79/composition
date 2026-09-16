@@ -32,7 +32,6 @@ import {
 } from "./FieldNecessityIndicator";
 import { Icon } from "./Icon";
 
-import "./styles/generated/DateRangePicker.css";
 import { useComponentStrings } from "../i18n";
 
 export interface DateRangePickerProps<T extends DateValue> extends Omit<

@@ -1,29 +1,16 @@
 /* ============================================
-   Foundation CSS — loaded once via components index import
+   Foundation CSS — builder 번들 (builder-components.css) 의 첫 항목
    ============================================
 
-   This file contains ONLY CSS that is NOT imported by individual
-   component .tsx files. Component CSS (Button.css, Select.css, etc.)
-   is loaded by each component's own `import './styles/X.css'` statement.
+   base · animations · utilities · forms · overlays 와 .tsx 가 없는 orphan 수동 CSS.
+   builder 만 이 파일을 싣는다 (2026-09-16) — preview/publish 는 styles/index.css 가 같은
+   파일들을 종전 자리에 직접 싣는다. 두 채널에 같이 두면 같은 문서에 두 번 실린다.
 
-   This separation prevents Vite from creating duplicate <style> tags
-   for the same CSS loaded via both @import chain and JS imports.
+   theme.css 는 여기서 import 하지 않는다 — builder 는 apps/builder/src/index.css 가 싣는다.
+   레이어 순서 선언도 여기 없다 — builder 는 apps/builder/src/index.css, preview/publish 는
+   styles/index.css 첫머리의 @layer 문이 정한다.
 
    ============================================ */
-
-/* ============================================
-   FOUNDATION LAYER — Base
-   ============================================
-
-   theme.css 는 여기서 import 하지 않는다 (2026-09-16). 앱 진입점이 이미 싣는다 —
-   builder: apps/builder/src/index.css · preview/publish: components/styles/index.css.
-   여기서도 실으면 같은 문서에 토큰 659개가 두 번 선언돼 (index.css 사본 + foundation 사본)
-   DevTools 가 앞 사본을 취소선으로 보이고 CSS 가 ~60 KB 분다.
-
-   아래 @layer 문은 preview/publish 의 레이어 순서를 고정한다 — 두 앱은 명시 선언이 없고
-   foundation.css 가 문서의 첫 시트라 theme.css 사본이 첫 등장 순서를 정해 왔다. 사본을
-   빼면서 그 순서를 그대로 적는다 (builder 는 index.css 의 선언이 먼저라 영향 없음). */
-@layer preview-system, shared-tokens, builder-system, components, utilities;
 
 @import "./base.css";
 @import "./animations.css";

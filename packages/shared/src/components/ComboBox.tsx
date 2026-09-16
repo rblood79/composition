@@ -34,7 +34,6 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
-import "./styles/generated/ComboBox.css";
 import { useComponentStrings } from "../i18n";
 
 /**

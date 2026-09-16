@@ -7,7 +7,6 @@ import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { LinkVariant, ComponentSize, StaticColor } from "../types";
 import { Skeleton } from "./Skeleton";
-import "./styles/Link.css";
 
 export interface LinkProps extends RACLinkProps {
   /**

@@ -12,9 +12,8 @@ import {
   useToggleButtonGroupMembership,
   useToggleButtonGroupStaticColor,
 } from "./ToggleButtonGroupContext";
-import "./styles/generated/ToggleButton.css";
-// staticColor 전용 수동 CSS (catalog 토큰으로 표현 불가한 고정 흑백) — Button.tsx 동형.
-import "./styles/ToggleButton.css";
+// CSS: styles/generated/ToggleButton.css + styles/ToggleButton.css (staticColor 전용 수동 — catalog 토큰으로
+// 표현 불가한 고정 흑백, Button.tsx 동형). 앱별 번들이 싣는다 (styles/index.css · builder-components.css).
 
 export interface ToggleButtonExtendedProps extends ToggleButtonProps {
   /**

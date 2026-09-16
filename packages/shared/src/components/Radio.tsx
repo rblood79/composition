@@ -6,7 +6,6 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 
-import "./styles/Radio.css";
 
 export interface RadioProps extends AriaRadioProps {
   children?: React.ReactNode;

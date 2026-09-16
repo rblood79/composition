@@ -6,7 +6,6 @@ import {
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 
-import "./styles/Tooltip.css";
 
 export type TooltipProps = AriaTooltipProps & {
   /**

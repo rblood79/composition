@@ -2,7 +2,6 @@ import React from "react";
 import type { CardVariant, ComponentSizeSubset } from "../types";
 import { normalizeCardVariant } from "../types";
 import { Skeleton } from "./Skeleton";
-import "./styles/generated/Card.css";
 
 export type CardAssetType = "file" | "folder" | "image" | "video" | "audio";
 export type CardOrientation = "horizontal" | "vertical";

@@ -24,7 +24,6 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 
-import "./styles/generated/NumberField.css";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환

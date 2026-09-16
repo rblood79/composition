@@ -39,7 +39,6 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
-import "./styles/generated/Select.css";
 import { useComponentStrings } from "../i18n";
 
 export interface SelectProps<T extends object> extends Omit<

@@ -7,7 +7,6 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { ContentFocusScope } from "./ContentFocusScope";
 import type { ComponentSize } from "../types";
 
-import "./styles/Popover.css";
 
 export interface PopoverProps extends Omit<AriaPopoverProps, "children"> {
   children: React.ReactNode;

@@ -44,7 +44,6 @@ import {
 } from "./CollectionErrorState";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/ListBox.css";
 import { useComponentStrings } from "../i18n";
 
 // 아이템 높이 고정값 (가상화용)

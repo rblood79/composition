@@ -12,7 +12,6 @@ import { ColorField } from "./ColorField";
 import { Popover } from "./Popover";
 import type { ComponentSize } from "../types";
 
-import "./styles/ColorPicker.css";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환

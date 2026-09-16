@@ -3,7 +3,6 @@ import {
   BreadcrumbProps,
 } from "react-aria-components/Breadcrumbs";
 import { Link } from "react-aria-components/Link";
-import "./styles/Breadcrumbs.css";
 
 export interface BreadcrumbItemProps extends BreadcrumbProps {
   href?: string;

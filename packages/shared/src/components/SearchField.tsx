@@ -24,7 +24,6 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 
-import "./styles/generated/SearchField.css";
 
 export interface SearchFieldProps extends AriaSearchFieldProps {
   label?: string;

@@ -9,7 +9,6 @@ import { LabelProps, Label as RACLabel } from "react-aria-components/Label";
 import { TextProps, Text as RACText } from "react-aria-components/Text";
 import type { FieldType } from "../types";
 
-import "./styles/Field.css";
 
 export function Label(props: LabelProps) {
   return <RACLabel {...props} className="react-aria-Label" />;

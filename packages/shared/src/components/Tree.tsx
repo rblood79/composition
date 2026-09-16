@@ -22,7 +22,6 @@ import {
 } from "../collections/resolveCollectionItems";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/Tree.css";
 import { useComponentStrings } from "../i18n";
 
 export interface MyTreeProps<T extends object> extends TreeProps<T> {

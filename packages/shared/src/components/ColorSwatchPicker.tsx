@@ -7,7 +7,6 @@ import {
 
 import { ColorSwatch } from "./ColorSwatch";
 
-import "./styles/ColorSwatchPicker.css";
 
 export function ColorSwatchPicker({
   children,

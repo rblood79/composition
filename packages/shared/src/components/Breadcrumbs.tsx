@@ -8,7 +8,6 @@ import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
 import { Skeleton } from "./Skeleton";
-import "./styles/Breadcrumbs.css";
 import { useComponentStrings } from "../i18n";
 
 /**

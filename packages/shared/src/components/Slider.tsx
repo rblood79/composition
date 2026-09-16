@@ -11,7 +11,6 @@ import type { ComponentSizeSubset } from "../types";
 import { formatNumber } from "../utils/core/numberUtils";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/generated/Slider.css";
 
 export interface SliderProps<T> extends AriaSliderProps<T> {
   label?: string;

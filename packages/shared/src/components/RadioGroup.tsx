@@ -24,7 +24,6 @@ import {
 } from "./FieldNecessityIndicator";
 import { useCollectionData } from "../hooks";
 
-import "./styles/generated/RadioGroup.css";
 import { useComponentStrings } from "../i18n";
 
 /**

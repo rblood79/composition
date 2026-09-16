@@ -19,7 +19,6 @@ import {
   TagList as AriaTagList,
 } from "react-aria-components/TagGroup";
 import { classifyTableCellDisplay } from "../collections/cellValue";
-import "./styles/TagGroup.css";
 import { Button, Select, SelectItem } from "./list";
 import type {
   ComponentSize,
@@ -30,7 +29,6 @@ import type {
 import { useResolvedCollectionItems } from "../hooks";
 import type { CollectionProjectionRow } from "../collections";
 import { generateId } from "../utils";
-import "./styles/Table.css";
 import {
   ChevronDown,
   ChevronUp,

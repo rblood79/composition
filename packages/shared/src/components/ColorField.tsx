@@ -14,7 +14,6 @@ import {
   renderNecessityIndicator,
 } from "./FieldNecessityIndicator";
 
-import "./styles/generated/ColorField.css";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환

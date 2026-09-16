@@ -8,7 +8,6 @@ import { Heading } from "react-aria-components/Heading";
 import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import type { ComponentSize } from "../types";
 
-import "./styles/generated/Disclosure.css";
 
 export interface DisclosureProps extends Omit<AriaDisclosureProps, "children"> {
   /**

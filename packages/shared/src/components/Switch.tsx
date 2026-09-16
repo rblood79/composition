@@ -15,7 +15,6 @@ import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/Switch.css";
 
 export interface SwitchProps extends Omit<AriaSwitchProps, "children"> {
   children: React.ReactNode;

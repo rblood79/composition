@@ -4,10 +4,11 @@
  * Export all React Aria-based components for use across apps.
  */
 
-// Foundation CSS only — component CSS is loaded by individual .tsx imports
-// (e.g., Button.tsx imports './styles/Button.css')
-// This prevents Vite from creating duplicate <style> tags.
-import "./styles/foundation.css";
+// CSS 는 여기서 싣지 않는다 (2026-09-16). 앱마다 순서를 명시한 번들 하나가 싣는다 —
+// builder: styles/builder-components.css (apps/builder/src/main.tsx) ·
+// preview/publish: styles/index.css. 컴포넌트 .tsx 도 CSS 를 import 하지 않는다.
+// 그전엔 배럴의 foundation.css + .tsx 의 JS import + preview 의 index.css 가 같은 문서에
+// 컴포넌트 CSS 61장을 두 번 실었다 (DevTools 취소선 짝 · preview CSS 34% 초과).
 
 // Form Components
 export { Button } from "./Button";

@@ -20,7 +20,6 @@ import { renderTagLeadingSlot } from "./tagLeadingSlot";
 import type { DataBinding, ColumnMapping, DataBindingValue } from "../types";
 
 import { useResolvedCollectionItems } from "../hooks";
-import "./styles/TagGroup.css";
 import { useComponentStrings } from "../i18n";
 
 export interface TagGroupProps<T>

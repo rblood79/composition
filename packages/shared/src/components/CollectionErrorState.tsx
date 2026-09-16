@@ -13,7 +13,6 @@
 import React from "react";
 import { CircleAlert, RefreshCw, LoaderCircle, Inbox } from "lucide-react";
 import { useComponentStrings } from "../i18n";
-import "./CollectionErrorState.css";
 
 interface CollectionErrorStateProps {
   /** 로딩 중 여부 */

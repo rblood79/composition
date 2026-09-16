@@ -10,7 +10,6 @@ import {
   SeparatorProps as AriaSeparatorProps,
 } from "react-aria-components/Separator";
 import type { SeparatorVariant, ComponentSizeSubset } from "../types";
-import "./styles/Separator.css";
 
 export interface SeparatorProps extends AriaSeparatorProps {
   /**

@@ -26,7 +26,6 @@
 
 import React from "react";
 import type { ComponentSize } from "../types";
-import "./styles/Skeleton.css";
 
 // Base shape variants
 export type SkeletonVariant = "text" | "circular" | "rectangular" | "rounded";

@@ -5,7 +5,6 @@ import {
   ColorWheelTrack,
 } from "react-aria-components/ColorWheel";
 
-import "./styles/ColorWheel.css";
 
 export type ColorWheelProps = Omit<
   AriaColorWheelProps,

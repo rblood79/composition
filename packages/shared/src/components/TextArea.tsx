@@ -33,7 +33,6 @@ import {
 } from "./FieldNecessityIndicator";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/generated/TextField.css";
 
 export interface TextAreaProps extends AriaTextFieldProps {
   label?: string;

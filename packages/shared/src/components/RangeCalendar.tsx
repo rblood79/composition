@@ -18,7 +18,6 @@ import { safeParseDateString } from "../utils/core/dateUtils";
 import type { ComponentSize } from "../types";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/RangeCalendar.css";
 
 export interface RangeCalendarProps<T extends DateValue> extends Omit<
   AriaRangeCalendarProps<T>,

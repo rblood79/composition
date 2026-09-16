@@ -56,9 +56,9 @@ describe("Menu 선택 표시 — 데이터 게이팅 + 실제 로드", () => {
     expect(menuCss).not.toMatch(/\d+px/);
   });
 
-  it("styles/index.css 와 Menu.tsx 양쪽에서 로드된다", () => {
+  it("styles/index.css 가 generated/MenuItem.css 뒤에 Menu.css 를 싣는다 (2026-09-16: 채널은 index.css 하나)", () => {
     expect(indexCss).toMatch(/@import "\.\/Menu\.css";/);
-    expect(menuTsx).toMatch(/import "\.\/styles\/Menu\.css";/);
+    expect(menuTsx).not.toMatch(/import "\.\/styles\//);
     // 생성 CSS 뒤에 와야 base 규칙을 보충한다(앞서면 순서상 의미 없음).
     expect(indexCss.indexOf('@import "./Menu.css";')).toBeGreaterThan(
       indexCss.indexOf('@import "./generated/MenuItem.css";'),

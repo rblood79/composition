@@ -1,24 +1,61 @@
 /* ============================================
-   composition Component Styles - Optimized Structure
+   composition Component Styles — preview / publish 번들 (단일 채널)
    ============================================
 
+   preview (apps/builder/src/preview/index.tsx) 와 publish (apps/publish/src/styles/index.css)
+   가 싣는다. 파리티 테스트는 `?inline` 으로 같은 파일을 DOM leg 에 넣는다.
+   builder 는 이 파일을 싣지 않는다 — builder-components.css (builder 순서) 가 대신한다.
+
+   로드 모델 (2026-09-16 정리):
+   - 컴포넌트 .tsx 는 CSS 를 import 하지 않는다. 앱마다 번들 하나가 순서를 명시한다.
+     그전엔 .tsx 의 JS import 와 이 파일의 @import 가 같은 문서에 컴포넌트 CSS 61장을
+     두 번 실었고 (Vite dev <style> 두 장 · production CSS 사본 · DevTools 취소선 짝),
+     preview 와 builder 의 캐스케이드 순서가 서로 달랐다 (JS 평가 순서 vs @import 순서).
+   - 이 파일의 순서는 그날 preview 문서의 **실효 순서** 그대로다 — JS 로만 실리던 파일
+     (아래 첫 블록) 이 앞, 그 뒤가 종전 index.css 순서. 같은 특이도의 규칙은 뒤가 이기므로
+     블록을 옮기면 시각이 바뀐다. 순서 변경은 preview 전 컴포넌트 computed style 대조로만.
+   - 공용 기반 (base · animations · utilities · forms · overlays · orphan 수동 CSS) 도 여기
+     종전 자리에 있다 — foundation.css 는 builder 번들 전용이다.
+
    ADR-036: Spec-First Single Source
-   - generated/ CSS: Spec에서 자동 생성 (pnpm build:specs) — Leaf 컴포넌트 전용
+   - generated/ CSS: catalog 에서 자동 생성 (pnpm build:specs) — Leaf 컴포넌트 전용
    - 수동 CSS: Container/Composite 구조 + Foundation + 빌더 전용
    - Container/Composite는 skipCSSGeneration → 수동 CSS가 구조 담당
-   - Leaf 컴포넌트는 Spec → CSS 자동 생성 (시각 토큰 정합성)
-
-   Import Order Strategy:
-   1. Foundation (theme, base, utilities)
-   2. Core standalone components
-   3. Composed components
-   4. Complex components with multiple dependencies
    ============================================ */
+
+/* 레이어 순서 — preview/publish 는 명시 선언이 이것뿐이다 (builder 는 apps/builder/src/index.css). */
+@layer preview-system, shared-tokens, builder-system, components, utilities;
 
 /* ============================================
-   FOUNDATION LAYER - No Dependencies (수동 유지)
+   THEME
    ============================================ */
 @import "../theme.css";
+
+/* ============================================
+   JS 채널 전용이던 파일 — 종전 preview 문서에서 index.css 시트보다 앞에 실렸다 (모듈 평가 순서).
+   같은 특이도에서 아래 블록들에 진다 (예: 수동 Button.css < generated/Button.css). 그 관계를 그대로 둔다.
+   ============================================ */
+@import "./Skeleton.css";
+@import "./Button.css";
+@import "./ToggleButton.css";
+@import "./ToggleButtonGroup.css";
+@import "./Checkbox.css";
+@import "./Radio.css";
+@import "./generated/FileTrigger.css";
+@import "./generated/DropZone.css";
+@import "./ColorSwatch.css";
+@import "../CollectionErrorState.css";
+@import "./Tooltip.css";
+@import "./ProgressBar.css";
+@import "./Separator.css";
+@import "./Breadcrumbs.css";
+@import "./Link.css";
+@import "./Badge.css";
+@import "./Toast.css";
+
+/* ============================================
+   종전 index.css 순서 (theme 제외) — 아래는 2026-09-16 이전 파일 그대로
+   ============================================ */
 @import "./base.css";
 @import "./animations.css";
 

@@ -1,7 +1,6 @@
 import React from "react";
 import type { BadgeVariant, ComponentSize } from "../types";
 import { Skeleton } from "./Skeleton";
-import "./styles/Badge.css";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   /**

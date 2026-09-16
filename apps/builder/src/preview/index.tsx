@@ -10,7 +10,7 @@ import { App } from "./App";
 import { injectPreviewBaseStyles } from "./baseStyles";
 import { PreviewLocale } from "./PreviewLocale";
 
-// React Aria 컴포넌트 스타일
+// 컴포넌트 CSS 번들 (preview 순서 — 파일 머리말 참조). 컴포넌트 .tsx 는 CSS 를 싣지 않는다.
 import "@composition/shared/components/styles/index.css";
 
 // Pretendard 폰트 (Preview iframe은 별도 컨텍스트이므로 독립 로드 필요)

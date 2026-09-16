@@ -18,7 +18,6 @@ import {
 } from "./FieldNecessityIndicator";
 import { useCollectionData } from "../hooks";
 
-import "./styles/generated/CheckboxGroup.css";
 import { useComponentStrings } from "../i18n";
 
 /**

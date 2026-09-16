@@ -21,6 +21,9 @@ import "./builder/fonts/initCustomFonts";
 // Single CSS entry point - all imports handled in index.css via @import
 import "./index.css";
 import App from "./App.tsx";
+// shared 컴포넌트 CSS 번들 — App.css 뒤 · dashboard/builder CSS 앞 (종전 배럴 foundation.css 자리).
+// 순서는 builder-components.css 머리말 참조. preview 는 styles/index.css 를 따로 싣는다.
+import "@composition/shared/components/styles/builder-components.css";
 import Dashboard from "./dashboard";
 import Builder from "./builder";
 import Signin from "./auth/Signin";

@@ -1,0 +1,81 @@
+/* ============================================
+   composition Component Styles — builder 번들 (단일 채널)
+   ============================================
+
+   apps/builder/src/main.tsx 가 App.tsx 다음 · Dashboard/Builder 앞에서 import 한다 — 그날
+   builder 문서에서 foundation.css (shared 배럴 import) 가 실리던 자리 (App.css · hero.css 뒤).
+   preview/publish 는 이 파일을 싣지 않는다 — styles/index.css (preview 순서) 가 대신한다.
+
+   순서 = 2026-09-16 builder 문서의 <style data-vite-dev-id> 실효 순서 그대로 (배럴
+   components/index.ts 의 모듈 평가 순서). builder 는 index.css 와 달리 leaf 생성 CSS
+   (generated/Button.css 등) 를 싣지 않는다 — 그날도 싣지 않았다. builder 크롬 시각을 바꾸지
+   않으려고 그 사실을 고정한다. 여기에 파일을 넣으면 크롬 캐스케이드가 바뀐다 (사용자-가시 변경).
+
+   theme 토큰은 apps/builder/src/index.css 가 싣는다 (여기 없음 — 두 번 선언 금지).
+   ============================================ */
+@import "./foundation.css"; /* base · animations · utilities · forms · overlays · orphan 수동 CSS */
+
+/* 컴포넌트 CSS — 종전 각 .tsx 의 import "./styles/X.css" 순서.
+   ComponentList.css 는 여기 없다 — builder 의 panels/components/ComponentList.tsx 가 직접 싣는다. */
+@import "./Skeleton.css";
+@import "./Button.css";
+@import "./generated/Slider.css";
+@import "./generated/ToggleButton.css";
+@import "./ToggleButton.css";
+@import "./generated/ToggleButtonGroup.css";
+@import "./ToggleButtonGroup.css";
+@import "./generated/TextField.css";
+@import "./generated/NumberField.css";
+@import "./generated/SearchField.css";
+@import "./Checkbox.css";
+@import "./generated/CheckboxGroup.css";
+@import "./Radio.css";
+@import "./generated/RadioGroup.css";
+@import "./Switch.css";
+@import "./generated/Select.css";
+@import "./generated/ComboBox.css";
+@import "./generated/Form.css";
+@import "./Field.css";
+@import "./generated/FileTrigger.css";
+@import "./generated/DropZone.css";
+@import "./generated/DateField.css";
+@import "./generated/TimeField.css";
+@import "./generated/DatePicker.css";
+@import "./generated/DateRangePicker.css";
+@import "./Calendar.css";
+@import "./RangeCalendar.css";
+@import "./ColorArea.css";
+@import "./Content.css";
+@import "./generated/ColorField.css";
+@import "./ColorSwatch.css";
+@import "./ColorSlider.css";
+@import "./Popover.css";
+@import "./ColorPicker.css";
+@import "./ColorSwatchPicker.css";
+@import "./ColorWheel.css";
+@import "../CollectionErrorState.css";
+@import "./ListBox.css";
+@import "./GridList.css";
+@import "./generated/Menu.css";
+@import "./Menu.css";
+@import "./TagGroup.css";
+@import "./Tree.css";
+@import "./generated/Tabs.css";
+@import "./generated/Card.css";
+@import "./Tooltip.css";
+@import "./generated/ProgressBar.css";
+@import "./ProgressBar.css";
+@import "./generated/Meter.css";
+@import "./generated/Toolbar.css";
+@import "./Separator.css";
+@import "./Breadcrumbs.css";
+@import "./Link.css";
+@import "./Badge.css";
+@import "./generated/Dialog.css";
+@import "./generated/Modal.css";
+@import "./generated/Pagination.css";
+@import "./generated/Disclosure.css";
+@import "./generated/DisclosureGroup.css";
+@import "./Table.css";
+@import "./generated/Slot.css";
+@import "./Toast.css";

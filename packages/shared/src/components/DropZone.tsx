@@ -8,7 +8,6 @@ import { composeRenderProps } from "react-aria-components/composeRenderProps";
 import { Upload } from "lucide-react";
 import type { ComponentSize } from "../types";
 
-import "./styles/generated/DropZone.css";
 
 export interface DropZoneProps extends AriaDropZoneProps {
   /**

@@ -16,7 +16,6 @@ import { mergeProps } from "@react-aria/utils";
 import type { ComponentSizeSubset } from "../types";
 import { Skeleton } from "./Skeleton";
 
-import "./styles/Checkbox.css";
 
 export interface CheckboxProps extends Omit<AriaCheckboxProps, "children"> {
   children?: React.ReactNode;

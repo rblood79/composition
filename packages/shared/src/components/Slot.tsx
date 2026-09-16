@@ -16,7 +16,6 @@
  */
 
 import React from "react";
-import "./styles/generated/Slot.css";
 import { useComponentStrings } from "../i18n";
 
 export interface SlotProps {

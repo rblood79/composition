@@ -7,8 +7,9 @@ import { describe, expect, it } from "vitest";
  *
  * 생성기 (`packages/specs/scripts/generate-css.ts`) 는 `structure` 를 가진 catalog rule 마다 파일을
  * 낸다. 그 파일이 실제 DOM 에 도달하는 경로는 두 가지뿐 — `styles/index.css` 의 `@import`, 또는
- * 컴포넌트·binding 모듈의 `import "./styles/generated/X.css"`. 어느 쪽에도 없는 파일은 **아무도
- * 읽지 않는다**. 2026-09-03 전수 조사 (evidence §11) 결과 그런 파일이 27개 (index 66 + 모듈 2 = 68 로드, 미로드 25) 였고 실제 시각 공백은
+ * 컴포넌트·binding 모듈의 `import "./styles/generated/X.css"` (2026-09-16 부터 모듈 채널은 0 —
+ * 컴포넌트 CSS 는 앱별 번들 index.css / builder-components.css 가 싣는다). 어느 쪽에도 없는 파일은
+ * **아무도 읽지 않는다**. 2026-09-03 전수 조사 (evidence §11) 결과 그런 파일이 27개 (index 66 + 모듈 2 = 68 로드, 미로드 25) 였고 실제 시각 공백은
  * 0 이었다 — 전부 (A) 모듈 import 로 활성 · (B) 수동 CSS 가 같은 class 담당 · (C) 컴포넌트가 catalog
  * rule 을 런타임 인라인으로 소비 · (D) DOM 이 그 class 를 방출하지 않음 · (E) container layout 채널이
  * `props.style` 인라인 (ADR-907 Layer B) 이라 미로드가 오히려 대칭 유지, 중 하나였다.
@@ -143,14 +144,14 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("인벤토리 집계 — 생성 94 · index 67 · 모듈 2 · 미로드 25 (evidence §11 + ADR-194 Chart)", () => {
+  it("인벤토리 집계 — 생성 94 · index 69 · 모듈 0 · 미로드 25 (evidence §11 + ADR-194 Chart · 2026-09-16 단일 채널)", () => {
     expect(generated.length).toBe(94);
-    expect(indexImported.size).toBe(67);
+    expect(indexImported.size).toBe(69);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
-    ).toEqual(["DropZone", "FileTrigger"]);
+    ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
     expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
   });
 });

@@ -3,7 +3,6 @@ import {
   FileTriggerProps as AriaFileTriggerProps,
 } from "react-aria-components/FileTrigger";
 
-import "./styles/generated/FileTrigger.css";
 
 /**
  * 🚀 Phase 4: data-* 패턴 전환

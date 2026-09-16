@@ -8,7 +8,6 @@ import { useFocusRing } from "@react-aria/focus";
 import { mergeProps } from "@react-aria/utils";
 import type { ButtonVariant, ComponentSize, StaticColor } from "../types";
 import { Skeleton } from "./Skeleton";
-import "./styles/Button.css";
 
 export interface ButtonProps extends RACButtonProps {
   variant?: ButtonVariant;
