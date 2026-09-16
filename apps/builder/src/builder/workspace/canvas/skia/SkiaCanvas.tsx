@@ -675,7 +675,7 @@ export function SkiaCanvas({
     // 갱신은 BodySpec TokenRef resolve 가 자동 처리, 본 watcher 는 frame 재렌더만 보장)
     const themeWatcherHandle = setupThemeWatcher({
       onThemeChange: () => {
-        // 오버레이가 읽는 CSS 토큰 캐시 (`--border` / `--bg-muted` / `--focus-ring`) 도
+        // 오버레이가 읽는 CSS 토큰 캐시 (`--border` / `--button-color` / `--focus-ring`) 도
         // 같이 비운다 — 안 비우면 테마를 바꿔도 부팅 시점 색이 남는다.
         invalidateCSSVariableCache();
         renderer.invalidateContent();

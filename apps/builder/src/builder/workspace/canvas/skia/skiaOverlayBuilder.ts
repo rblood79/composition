@@ -99,17 +99,17 @@ const CANVAS_BORDER_FALLBACK = parseInt(
   TAILWIND_PALETTE.neutral[300].slice(1),
   16,
 );
-/** `--bg-muted` / `--focus-ring` 미정의 시 fallback — builder-system light 기본값과 같은 팔레트 값. */
+/** `--button-color`→`--fg` / `--focus-ring` 미정의 시 fallback — builder-system light 기본값과 같은 팔레트 값. */
 const PAGE_HEADER_BG_FALLBACK = parseInt(
-  TAILWIND_PALETTE.gray[200].slice(1),
+  TAILWIND_PALETTE.gray[800].slice(1),
   16,
 );
 const PAGE_HEADER_ACTIVE_FALLBACK = parseInt(
   TAILWIND_PALETTE.blue[400].slice(1),
   16,
 );
-/** 활성 페이지 헤더 띠 alpha (사용자 지정 30%) */
-const PAGE_HEADER_ACTIVE_ALPHA = 0.3;
+/** 헤더 띠 alpha — 비활성 (`--button-color`) · 활성 (`--focus-ring`) 모두 30% (사용자 지정) */
+const PAGE_HEADER_ALPHA = 0.3;
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -293,11 +293,15 @@ function resolveCanvasBorderColor(): readonly [number, number, number] {
   );
 }
 
-/** 페이지 헤더 띠 배경 — builder-system `--bg-muted` (light gray-200 / dark zinc-700) */
+/**
+ * 페이지 헤더 띠 배경 — `--button-color` (사용자 지정). 이 변수는 Button.css 가
+ * `.react-aria-Button` 안에서만 선언한다 (primary = `var(--fg)`) 라 builder 스코프에
+ * 없으면 같은 값의 원천인 `--fg` (light gray-800 / dark zinc-100) 로 내려간다.
+ */
 function resolvePageHeaderColor(): readonly [number, number, number] {
-  return hexToColor4fChannels(
-    cssColorToHex(getBuilderCSSVariable("--bg-muted"), PAGE_HEADER_BG_FALLBACK),
-  );
+  const value =
+    getBuilderCSSVariable("--button-color") || getBuilderCSSVariable("--fg");
+  return hexToColor4fChannels(cssColorToHex(value, PAGE_HEADER_BG_FALLBACK));
 }
 
 /** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 30% 적용) */
@@ -480,7 +484,7 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
                 item.width,
                 cameraZoom,
                 item.active ? headerActiveColor : headerColor,
-                item.active ? PAGE_HEADER_ACTIVE_ALPHA : 1,
+                PAGE_HEADER_ALPHA,
               );
               const titleMetrics = renderPageTitle(
                 ck,
