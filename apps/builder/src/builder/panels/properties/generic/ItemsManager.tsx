@@ -20,6 +20,7 @@ import {
   PropertyIconPicker,
 } from "../../../components";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
+import { packHalfRows } from "./fieldEditor";
 import { resolveItemEditorIdentities } from "./itemsEditorIdentity";
 import { localizeSemanticLabel, useOptionalI18n } from "@/i18n";
 
@@ -87,20 +88,12 @@ function ListRow({
 }
 
 /** 펼친 행의 필드 — 텍스트 · 아이콘은 전폭, 스위치는 반폭 짝 (GenericFieldRenderer 와 같은 격자) */
+const isHalfSchemaField = (field: ItemsManagerFieldItemSchema) =>
+  field.type === "boolean";
 function packSchemaRows(
   schema: readonly ItemsManagerFieldItemSchema[],
 ): ItemsManagerFieldItemSchema[][] {
-  const rows: ItemsManagerFieldItemSchema[][] = [];
-  for (const field of schema) {
-    const half = field.type === "boolean";
-    const last = rows[rows.length - 1];
-    if (half && last && last.length === 1 && last[0]!.type === "boolean") {
-      last.push(field);
-    } else {
-      rows.push([field]);
-    }
-  }
-  return rows;
+  return packHalfRows(schema, isHalfSchemaField);
 }
 
 const SELECTION_MODE_OPTIONS: ReadonlyArray<{ value: string; label: string }> =
@@ -116,17 +109,21 @@ interface ItemsManagerProps {
   field: ItemsManagerField;
 }
 
+/**
+ * 행 콜백은 항목 id 를 첫 인자로 받는다 — 부모가 행마다 새 클로저를 만들지 않아 `memo` 가 살고,
+ * 한 항목의 한 글자 입력이 다른 행을 다시 그리지 않는다.
+ */
 interface ItemRowProps {
-  itemId: string;
+  itemId: string | number;
   item: Record<string, unknown>;
   schema: ItemsManagerFieldItemSchema[];
   labelKey: string;
-  onUpdate: (patch: Record<string, unknown>) => void;
-  onRemove: () => void;
+  onUpdate: (itemId: string | number, patch: Record<string, unknown>) => void;
+  onRemove: (itemId: string | number) => void;
 }
 
 const ItemRow = memo(function ItemRow({
-  itemId: _itemId,
+  itemId,
   item,
   schema,
   labelKey,
@@ -139,10 +136,11 @@ const ItemRow = memo(function ItemRow({
 
   const handleFieldChange = useCallback(
     (key: string, value: unknown) => {
-      onUpdate({ [key]: value });
+      onUpdate(itemId, { [key]: value });
     },
-    [onUpdate],
+    [onUpdate, itemId],
   );
+  const handleRemove = useCallback(() => onRemove(itemId), [onRemove, itemId]);
 
   return (
     <>
@@ -154,7 +152,7 @@ const ItemRow = memo(function ItemRow({
           (expanded ? "Collapse" : "Expand")
         }
         label={label}
-        onRemove={onRemove}
+        onRemove={handleRemove}
         removeLabel={i18n?.t("itemsManager.removeItem") ?? "Remove item"}
       />
 
@@ -235,19 +233,23 @@ const ItemRow = memo(function ItemRow({
 
 interface SeparatorRowProps {
   separatorId: string;
-  onRemove: () => void;
+  onRemove: (separatorId: string) => void;
 }
 
 const SeparatorRow = memo(function SeparatorRow({
-  separatorId: _separatorId,
+  separatorId,
   onRemove,
 }: SeparatorRowProps) {
+  const handleRemove = useCallback(
+    () => onRemove(separatorId),
+    [onRemove, separatorId],
+  );
   return (
     <ListRow
       className="items-manager-separator-row"
       leading={<Minus size={12} />}
       label="Separator"
-      onRemove={onRemove}
+      onRemove={handleRemove}
       removeLabel="Remove separator"
     />
   );
@@ -261,17 +263,20 @@ interface SectionRowProps {
   schema: ItemsManagerFieldItemSchema[];
   labelKey: string;
   hasSelection: boolean;
-  defaultItem: Record<string, unknown>;
   itemTypeName: string;
-  onUpdateSection: (patch: Record<string, unknown>) => void;
-  onRemoveSection: () => void;
-  onAddItem: () => void;
-  onUpdateItem: (itemId: string, patch: Record<string, unknown>) => void;
-  onRemoveItem: (itemId: string) => void;
+  onUpdateSection: (sectionId: string, patch: Record<string, unknown>) => void;
+  onRemoveSection: (sectionId: string) => void;
+  onAddItem: (sectionId: string) => void;
+  onUpdateItem: (
+    sectionId: string,
+    itemId: string,
+    patch: Record<string, unknown>,
+  ) => void;
+  onRemoveItem: (sectionId: string, itemId: string) => void;
 }
 
 const SectionRow = memo(function SectionRow({
-  sectionId: _sectionId,
+  sectionId,
   section,
   schema,
   labelKey,
@@ -288,6 +293,24 @@ const SectionRow = memo(function SectionRow({
   const sectionItems = Array.isArray(section.items)
     ? (section.items as Record<string, unknown>[])
     : [];
+  const updateSection = useCallback(
+    (patch: Record<string, unknown>) => onUpdateSection(sectionId, patch),
+    [onUpdateSection, sectionId],
+  );
+  const removeSection = useCallback(
+    () => onRemoveSection(sectionId),
+    [onRemoveSection, sectionId],
+  );
+  const addItem = useCallback(() => onAddItem(sectionId), [onAddItem, sectionId]);
+  const updateItem = useCallback(
+    (itemId: string | number, patch: Record<string, unknown>) =>
+      onUpdateItem(sectionId, String(itemId), patch),
+    [onUpdateItem, sectionId],
+  );
+  const removeItem = useCallback(
+    (itemId: string | number) => onRemoveItem(sectionId, String(itemId)),
+    [onRemoveItem, sectionId],
+  );
 
   return (
     <div className="items-manager-section-row">
@@ -297,7 +320,7 @@ const SectionRow = memo(function SectionRow({
         onExpandedChange={setExpanded}
         expandLabel={expanded ? "Collapse section" : "Expand section"}
         label={header}
-        onRemove={onRemoveSection}
+        onRemove={removeSection}
         removeLabel="Remove section"
       />
 
@@ -310,7 +333,7 @@ const SectionRow = memo(function SectionRow({
                 label="Header"
                 value={header}
                 onChange={(value) =>
-                  onUpdateSection({ header: value || "Section" })
+                  updateSection({ header: value || "Section" })
                 }
               />
             </div>
@@ -321,7 +344,7 @@ const SectionRow = memo(function SectionRow({
                     label="Selection Mode"
                     value={String(section.selectionMode ?? "")}
                     onChange={(value) =>
-                      onUpdateSection({
+                      updateSection({
                         selectionMode: value === "" ? undefined : value,
                       })
                     }
@@ -337,7 +360,7 @@ const SectionRow = memo(function SectionRow({
                         : ""
                     }
                     onChange={(value) =>
-                      onUpdateSection({
+                      updateSection({
                         defaultSelectedKeys:
                           value === ""
                             ? undefined
@@ -362,8 +385,8 @@ const SectionRow = memo(function SectionRow({
                     item={item}
                     schema={schema}
                     labelKey={labelKey}
-                    onUpdate={(patch) => onUpdateItem(itemId, patch)}
-                    onRemove={() => onRemoveItem(itemId)}
+                    onUpdate={updateItem}
+                    onRemove={removeItem}
                   />
                 );
               })}
@@ -374,7 +397,7 @@ const SectionRow = memo(function SectionRow({
             <button
               className="control-button"
               data-variant="add"
-              onClick={onAddItem}
+              onClick={addItem}
             >
               <AddIcon size={14} />
               Add {itemTypeName}
@@ -522,17 +545,12 @@ export const ItemsManager = memo(function ItemsManager({
                   schema={field.itemSchema}
                   labelKey={labelKey}
                   hasSelection={sectionHasSelection}
-                  defaultItem={field.defaultItem as Record<string, unknown>}
                   itemTypeName={field.itemTypeName}
-                  onUpdateSection={(patch) => handleUpdate(entryId, patch)}
-                  onRemoveSection={() => handleRemove(entryId)}
-                  onAddItem={() => handleAddItemToSection(entryId)}
-                  onUpdateItem={(itemId, patch) =>
-                    handleUpdateItemInSection(entryId, itemId, patch)
-                  }
-                  onRemoveItem={(itemId) =>
-                    handleRemoveItemFromSection(entryId, itemId)
-                  }
+                  onUpdateSection={handleUpdate}
+                  onRemoveSection={handleRemove}
+                  onAddItem={handleAddItemToSection}
+                  onUpdateItem={handleUpdateItemInSection}
+                  onRemoveItem={handleRemoveItemFromSection}
                 />
               );
             }
@@ -543,7 +561,7 @@ export const ItemsManager = memo(function ItemsManager({
                 <SeparatorRow
                   key={entryId}
                   separatorId={entryId}
-                  onRemove={() => handleRemove(entryId)}
+                  onRemove={handleRemove}
                 />
               );
             }
@@ -552,12 +570,12 @@ export const ItemsManager = memo(function ItemsManager({
             return (
               <ItemRow
                 key={identity.key}
-                itemId={identity.key}
+                itemId={identity.target}
                 item={entry}
                 schema={field.itemSchema}
                 labelKey={labelKey}
-                onUpdate={(patch) => handleUpdate(identity.target, patch)}
-                onRemove={() => handleRemove(identity.target)}
+                onUpdate={handleUpdate}
+                onRemove={handleRemove}
               />
             );
           })}

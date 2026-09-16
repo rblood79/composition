@@ -292,8 +292,10 @@ describe("ADR-209 숨긴 종류와 AND 조건", () => {
     const { container, rerender } = renderFields(fields);
     expect(container.textContent).not.toContain("chartType");
     expect(container.textContent).toContain("fillGrid");
-    fields[1] = boolField("showGrid", false);
-    rerender(<GenericFieldRenderer fields={fields} onSemanticUpdate={vi.fn()} onStyleUpdate={vi.fn()} elementId="text-1" />);
+    // 계약이 재해석되면 새 배열 (PropertiesPanel `semanticFields` useMemo) — 렌더러는 배열 참조로
+    //   섹션 배치를 memo 하므로 production 과 같이 새 배열을 넘긴다
+    const next = [fields[0]!, boolField("showGrid", false), fields[2]!];
+    rerender(<GenericFieldRenderer fields={next} onSemanticUpdate={vi.fn()} onStyleUpdate={vi.fn()} elementId="text-1" />);
     expect(container.textContent).not.toContain("fillGrid");
   });
 });

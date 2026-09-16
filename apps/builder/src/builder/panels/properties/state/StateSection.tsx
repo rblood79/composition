@@ -40,7 +40,7 @@ import { ACTION_ICONS } from "../../../config/actionIcons";
 import { useStore } from "../../../stores";
 import { useActiveCanonicalDocument } from "../../../stores/canonical/canonicalElementsBridge";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
-import { useProjectVariableDefs } from "../hooks/useVisibleVariables";
+import { useProjectVariableDefs } from "../../../stores/data";
 import {
   formatDefaultInput,
   nextAutoStateName,
@@ -187,11 +187,19 @@ export const StateSection = memo(function StateSection({
     });
   }, []);
 
-  const usageCount = useCallback(
-    (variableId: string) =>
-      collectVariableUsages(doc, doc?.events, variableId, projectDefs).length,
-    [doc, projectDefs],
-  );
+  // 정의당 문서 전체 순회 — 같은 문서·정의 집합이면 한 번만 (렌더마다 정의 수 × 순회 방지)
+  const usageCount = useMemo(() => {
+    const counts = new Map<string, number>();
+    return (variableId: string) => {
+      let count = counts.get(variableId);
+      if (count === undefined) {
+        count = collectVariableUsages(doc, doc?.events, variableId, projectDefs)
+          .length;
+        counts.set(variableId, count);
+      }
+      return count;
+    };
+  }, [doc, projectDefs]);
 
   // Data 탭 인덱스 → 점프 (절 스크롤 + 정의 펼침)
   const focusRequest = useStateSectionFocus((s) => s.request);

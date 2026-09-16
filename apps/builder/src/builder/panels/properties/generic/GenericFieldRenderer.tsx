@@ -905,49 +905,22 @@ function splitChipFields(fields: readonly ResolvedField[]): {
   return { rows, chipGroups, dependents };
 }
 
+interface SectionLayout {
+  section: string;
+  rows: ResolvedField[][];
+  chipGroups: Array<{ group: ChipGroup; fields: ResolvedField[] }>;
+  dependents: ResolvedField[][];
+}
+
 /**
- * ResolvedField[] → section 그룹 + kind dispatch 렌더.
- *
- * 같은 `section` 을 `PropertySection` 으로 묶되, 입력 순서(계약 순서)를 보존한다.
+ * 계약 필드 → 섹션별 행 배치. 순수 함수 — 렌더러가 `fields` · extras 섹션 키로 memo 한다
+ * (계약이 재해석되지 않은 편집에서는 정렬·패킹·칩 분리를 다시 돌리지 않고, 칩 묶음 배열 참조가
+ * 유지돼 `ChipGroupField` memo 가 산다).
  */
-export const GenericFieldRenderer = memo(function GenericFieldRenderer({
-  fields,
-  onSemanticUpdate,
-  onStyleUpdate,
-  elementId,
-  componentType,
-  contentExtras,
-  sectionExtras,
-  literalOptionFields,
-}: GenericFieldRendererProps) {
-  // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
-  const ownerFields = useOwnerCollectionFields(elementId);
-  const ownerColumns = useMemo(
-    () => ownerFields?.map((f) => f.key) ?? null,
-    [ownerFields],
-  );
-
-  const extraSections = Object.entries(sectionExtras ?? {}).filter(
-    (entry): entry is [string, ReactNode] => entry[1] != null,
-  );
-
-  if (fields.length === 0) {
-    // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 Content 로 렌더한다.
-    if (contentExtras == null && extraSections.length === 0) return null;
-    return (
-      <>
-        {contentExtras != null && (
-          <PropertySection title="Content">{contentExtras}</PropertySection>
-        )}
-        {extraSections.map(([section, extras]) => (
-          <PropertySection key={section} title={sectionTitle(section)}>
-            {extras}
-          </PropertySection>
-        ))}
-      </>
-    );
-  }
-
+function layoutSections(
+  fields: readonly ResolvedField[],
+  extraSectionKeys: readonly string[],
+): SectionLayout[] {
   /**
    * 조건 판정 입력 (ADR-208 P1ⓐ) — **`currentValue`(override ?? base)** 를 쓴다.
    *
@@ -982,124 +955,187 @@ export const GenericFieldRenderer = memo(function GenericFieldRenderer({
       continue;
     bucket.push(field);
   }
-  const extrasBySection = new Map(extraSections);
-  for (const [section] of extraSections) {
+  for (const section of extraSectionKeys) {
     if (!groups.has(section)) groups.set(section, []);
   }
   // 표 밖 섹션의 2차 키 — 계약 등장 순서
   const sectionOrder = Array.from(groups.keys());
+  const pack = (list: readonly ResolvedField[]) =>
+    packFieldRows(sortFields(list));
+  return Array.from(groups.entries())
+    .sort(
+      ([a], [b]) =>
+        sectionRank(a) - sectionRank(b) ||
+        sectionOrder.indexOf(a) - sectionOrder.indexOf(b),
+    )
+    .map(([section, sectionFields]) => {
+      const { rows, chipGroups, dependents } = splitChipFields(sectionFields);
+      return {
+        section,
+        rows: pack(rows),
+        chipGroups,
+        dependents: pack(dependents),
+      };
+    });
+}
 
+/**
+ * ResolvedField[] → section 그룹 + kind dispatch 렌더.
+ *
+ * 같은 `section` 을 `PropertySection` 으로 묶되, 입력 순서(계약 순서)를 보존한다.
+ */
+export const GenericFieldRenderer = memo(function GenericFieldRenderer({
+  fields,
+  onSemanticUpdate,
+  onStyleUpdate,
+  elementId,
+  contentExtras,
+  sectionExtras,
+  literalOptionFields,
+}: GenericFieldRendererProps) {
+  // ADR-159 P4a: 조상(또는 master 소비자) collection 소유자의 컬럼 — 필드 피커 소스.
+  const ownerFields = useOwnerCollectionFields(elementId);
+  const ownerColumns = useMemo(
+    () => ownerFields?.map((f) => f.key) ?? null,
+    [ownerFields],
+  );
+  // ADR-214 Phase 3 — `{{` 자동완성 후보. 필드가 아니라 렌더러가 한 번 구독한다.
+  const stateNames = useVisibleVariableNames(elementId);
+
+  const extraSections = Object.entries(sectionExtras ?? {}).filter(
+    (entry): entry is [string, ReactNode] => entry[1] != null,
+  );
+  const extraSectionsKey = extraSections.map(([section]) => section).join("|");
+  const sections = useMemo(
+    () =>
+      layoutSections(
+        fields,
+        extraSectionsKey === "" ? [] : extraSectionsKey.split("|"),
+      ),
+    [fields, extraSectionsKey],
+  );
+
+  if (fields.length === 0) {
+    // 계약 필드가 0 이어도 주입 컨트롤이 있으면 그것만 Content 로 렌더한다.
+    if (contentExtras == null && extraSections.length === 0) return null;
+    return (
+      <>
+        {contentExtras != null && (
+          <PropertySection title="Content">{contentExtras}</PropertySection>
+        )}
+        {extraSections.map(([section, extras]) => (
+          <PropertySection key={section} title={sectionTitle(section)}>
+            {extras}
+          </PropertySection>
+        ))}
+      </>
+    );
+  }
+
+  const extrasBySection = new Map(extraSections);
   // 주입 컨트롤은 content 그룹 선두. content 그룹이 없으면 Content 섹션을 앞에 만든다.
+  const contentLayout = sections.find((s) => s.section === "content");
   const hasContentGroup =
-    groups.has("content") &&
-    ((groups.get("content")?.length ?? 0) > 0 ||
+    contentLayout != null &&
+    (contentLayout.rows.length > 0 ||
+      contentLayout.chipGroups.length > 0 ||
+      contentLayout.dependents.length > 0 ||
       extrasBySection.has("content"));
+
+  const renderRows = (packed: readonly ResolvedField[][]) =>
+    packed.map((row) =>
+      // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
+      row.length === 1 && row[0]!.kind === "items-manager" ? (
+        <GenericField
+          key={`${row[0]!.origin}:${row[0]!.key}`}
+          field={row[0]!}
+          onSemanticUpdate={onSemanticUpdate}
+          onStyleUpdate={onStyleUpdate}
+          elementId={elementId}
+          ownerColumns={ownerColumns}
+          ownerFields={ownerFields}
+          stateNames={stateNames}
+        />
+      ) : (
+        // 행 key 는 첫 필드 — 게이트가 종속 필드를 드러내 행 구성이 바뀌어도
+        //   (Label Position → Label Align 이 옆 칸에 합류) 행과 게이트 seg 가 살아
+        //   남아 SelectionIndicator 가 이전 위치에서 미끄러진다. 종전엔 행의 필드
+        //   키를 전부 이어 key 로 써서 합류 순간 행이 remount 되고 인디케이터가
+        //   점프했다 — Styles 패널과 같은 ToggleButtonGroup 인데 Properties 만
+        //   애니메이션이 없던 원인 (2026-09-16 사용자 지적, live 실측).
+        <div
+          key={`${row[0]!.origin}:${row[0]!.key}`}
+          className="fieldset-row"
+          data-wide={
+            row.length === 1 && fieldSpan(row[0]!) === "wide"
+              ? "true"
+              : undefined
+          }
+        >
+          {row.map((field) => (
+            <GenericField
+              key={`${field.origin}:${field.key}`}
+              field={field}
+              onSemanticUpdate={onSemanticUpdate}
+              onStyleUpdate={onStyleUpdate}
+              elementId={elementId}
+              ownerColumns={ownerColumns}
+              ownerFields={ownerFields}
+              stateNames={stateNames}
+              translateOptions={!literalOptionFields?.includes(field.key)}
+              optionValueMode={
+                literalOptionFields?.includes(field.key) ? "literal" : "legacy"
+              }
+            />
+          ))}
+          <FieldRowResetAction
+            row={row}
+            elementId={elementId}
+            onSemanticUpdate={onSemanticUpdate}
+            onStyleUpdate={onStyleUpdate}
+          />
+        </div>
+      ),
+    );
 
   return (
     <>
       {contentExtras != null && !hasContentGroup && (
         <PropertySection title="Content">{contentExtras}</PropertySection>
       )}
-      {Array.from(groups.entries())
-        .sort(
-          ([a], [b]) =>
-            sectionRank(a) - sectionRank(b) ||
-            sectionOrder.indexOf(a) - sectionOrder.indexOf(b),
+      {sections.map(({ section, rows, chipGroups, dependents }) => {
+        const tail = extrasBySection.get(section);
+        const head =
+          section === "content" && hasContentGroup ? contentExtras : null;
+        if (
+          rows.length === 0 &&
+          chipGroups.length === 0 &&
+          dependents.length === 0 &&
+          tail == null &&
+          head == null
         )
-        .map(([section, sectionFields]) => {
-          const tail = extrasBySection.get(section);
-          const head =
-            section === "content" && hasContentGroup ? contentExtras : null;
-          if (sectionFields.length === 0 && tail == null && head == null)
-            return null;
-          return (
-            <PropertySection key={section} title={sectionTitle(section)}>
-              {head}
-              {(() => {
-                const { rows, chipGroups, dependents } =
-                  splitChipFields(sectionFields);
-                const renderRows = (list: readonly ResolvedField[]) =>
-                  packFieldRows(sortFields(list)).map((row) =>
-                    // 목록 (items) 은 행 래퍼 없이 전폭 217 — 행의 액션 그룹이 28 열을 쓴다 (Fill 행과 같음)
-                    row.length === 1 && row[0]!.kind === "items-manager" ? (
-                      <GenericField
-                        key={`${row[0]!.origin}:${row[0]!.key}`}
-                        field={row[0]!}
-                        onSemanticUpdate={onSemanticUpdate}
-                        onStyleUpdate={onStyleUpdate}
-                        elementId={elementId}
-                        componentType={componentType}
-                        ownerColumns={ownerColumns}
-                        ownerFields={ownerFields}
-                      />
-                    ) : (
-                      // 행 key 는 첫 필드 — 게이트가 종속 필드를 드러내 행 구성이 바뀌어도
-                      //   (Label Position → Label Align 이 옆 칸에 합류) 행과 게이트 seg 가 살아
-                      //   남아 SelectionIndicator 가 이전 위치에서 미끄러진다. 종전엔 행의 필드
-                      //   키를 전부 이어 key 로 써서 합류 순간 행이 remount 되고 인디케이터가
-                      //   점프했다 — Styles 패널과 같은 ToggleButtonGroup 인데 Properties 만
-                      //   애니메이션이 없던 원인 (2026-09-16 사용자 지적, live 실측).
-                      <div
-                        key={`${row[0]!.origin}:${row[0]!.key}`}
-                        className="fieldset-row"
-                        data-wide={
-                          row.length === 1 && fieldSpan(row[0]!) === "wide"
-                            ? "true"
-                            : undefined
-                        }
-                      >
-                        {row.map((field) => (
-                          <GenericField
-                            key={`${field.origin}:${field.key}`}
-                            field={field}
-                            onSemanticUpdate={onSemanticUpdate}
-                            onStyleUpdate={onStyleUpdate}
-                            elementId={elementId}
-                            componentType={componentType}
-                            ownerColumns={ownerColumns}
-                            ownerFields={ownerFields}
-                            translateOptions={
-                              !literalOptionFields?.includes(field.key)
-                            }
-                            optionValueMode={
-                              literalOptionFields?.includes(field.key)
-                                ? "literal"
-                                : "legacy"
-                            }
-                          />
-                        ))}
-                        <FieldRowResetAction
-                          row={row}
-                          elementId={elementId}
-                          onSemanticUpdate={onSemanticUpdate}
-                          onStyleUpdate={onStyleUpdate}
-                        />
-                      </div>
-                    ),
-                  );
-                return (
-                  <>
-                    {renderRows(rows)}
-                    {/* boolean 은 섹션당 칩 묶음 (Options → Show → Fill) — 전폭 217, 행 래퍼 없음.
-                        칩이 게이트인 종속 필드 (Value Label · Legend Position) 는 묶음 바로 아래 */}
-                    {chipGroups.map(({ group, fields: chipFields }) => (
-                      <ChipGroupField
-                        key={`chips:${group}`}
-                        group={group}
-                        fields={chipFields}
-                        onSemanticUpdate={onSemanticUpdate}
-                        onStyleUpdate={onStyleUpdate}
-                        elementId={elementId}
-                      />
-                    ))}
-                    {renderRows(dependents)}
-                  </>
-                );
-              })()}
-              {tail}
-            </PropertySection>
-          );
-        })}
+          return null;
+        return (
+          <PropertySection key={section} title={sectionTitle(section)}>
+            {head}
+            {renderRows(rows)}
+            {/* boolean 은 섹션당 칩 묶음 (Options → Show → Fill) — 전폭 217, 행 래퍼 없음.
+                칩이 게이트인 종속 필드 (Value Label · Legend Position) 는 묶음 바로 아래 */}
+            {chipGroups.map(({ group, fields: chipFields }) => (
+              <ChipGroupField
+                key={`chips:${group}`}
+                group={group}
+                fields={chipFields}
+                onSemanticUpdate={onSemanticUpdate}
+                onStyleUpdate={onStyleUpdate}
+                elementId={elementId}
+              />
+            ))}
+            {renderRows(dependents)}
+            {tail}
+          </PropertySection>
+        );
+      })}
     </>
   );
 });
