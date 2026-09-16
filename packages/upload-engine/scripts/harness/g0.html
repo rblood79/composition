@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>ADR-201 G0 first-nail — XhrDriver 진행률 + HEAD 재개</title>
+  </head>
+  <body>
+    <input id="file" type="file" />
+    <pre id="log"></pre>
+    <script type="module">
+      // driver.js = src/core/drivers/xhr.ts 를 tsup 로 번들한 산출물 (live.mjs 가 생성)
+      import { createXhrDriver } from "./driver.js";
+
+      const log = (line) => {
+        document.getElementById("log").textContent += line + "\n";
+      };
+
+      // G0 절차 — driver 만으로 TUS 루프를 손으로 돈다 (상태기계 없이 driver 층만 검증).
+      window.__g0 = async function run({ endpoint, chunkSize }) {
+        const driver = createXhrDriver();
+        const file = document.getElementById("file").files[0];
+        if (!file) throw new Error("file not set");
+        const tus = { "Tus-Resumable": "1.0.0" };
+        const result = {
+          size: file.size,
+          progressEvents: 0,
+          progressMonotonic: true,
+          requests: [],
+          failures: [],
+          headResumeOffset: null,
+          disconnectSentBytes: null,
+          clientSentBytes: 0,
+          done: false,
+        };
+        const create = await driver.send({
+          method: "POST",
+          url: endpoint,
+          headers: {
+            ...tus,
+            "Upload-Length": String(file.size),
+            "Upload-Metadata": "filename " + btoa(file.name),
+          },
+        });
+        if (create.status !== 201) throw new Error("create " + create.status);
+        const url = new URL(create.header("Location"), endpoint).href;
+        let offset = 0;
+        while (offset < file.size) {
+          const end = Math.min(offset + chunkSize, file.size);
+          let last = 0;
+          let lastLoaded = -1;
+          try {
+            const res = await driver.send({
+              method: "PATCH",
+              url,
+              headers: {
+                ...tus,
+                "Upload-Offset": String(offset),
+                "Content-Type": "application/offset+octet-stream",
+              },
+              body: file.slice(offset, end),
+              onProgress: (loaded) => {
+                result.progressEvents++;
+                if (loaded < lastLoaded) result.progressMonotonic = false;
+                lastLoaded = loaded;
+                last = loaded;
+              },
+            });
+            result.clientSentBytes += last;
+            result.requests.push({ method: "PATCH", status: res.status, offset, end, loaded: last });
+            if (res.status !== 204) throw new Error("patch " + res.status);
+            offset = Number(res.header("Upload-Offset"));
+          } catch (e) {
+            // 단절 — 서버 Upload-Offset 이 진실. HEAD 로 재동기.
+            result.failures.push({ code: e.code, message: e.message, offset, sent: last });
+            if (result.disconnectSentBytes === null) result.disconnectSentBytes = offset + last;
+            if (!result.requests.length || result.requests[result.requests.length - 1].status !== 0) {
+              result.clientSentBytes += last;
+              result.requests.push({ method: "PATCH", status: 0, offset, end, loaded: last });
+            }
+            // 서버가 내려간 동안은 HEAD 도 실패한다 — 짧은 backoff 로 재시도 (상태기계의 wait 와 동형)
+            let head = null;
+            for (let attempt = 0; attempt < 40 && !head; attempt++) {
+              try {
+                head = await driver.send({ method: "HEAD", url, headers: tus });
+              } catch (err) {
+                result.failures.push({ code: err.code, message: "HEAD retry " + attempt });
+                await new Promise((r) => setTimeout(r, 250));
+              }
+            }
+            if (!head) throw new Error("HEAD never recovered");
+            const serverOffset = Number(head.header("Upload-Offset"));
+            result.requests.push({ method: "HEAD", status: head.status, serverOffset });
+            result.resumes = (result.resumes ?? []).concat([{ failedAt: offset + last, serverOffset }]);
+            if (result.headResumeOffset === null) result.headResumeOffset = serverOffset;
+            offset = serverOffset;
+          }
+        }
+        const verify = await driver.send({ method: "HEAD", url, headers: tus });
+        result.finalServerOffset = Number(verify.header("Upload-Offset"));
+        result.done = result.finalServerOffset === file.size;
+        result.retransmittedClientBytes = result.clientSentBytes - file.size;
+        result.url = url;
+        log(JSON.stringify(result, null, 2));
+        return result;
+      };
+    </script>
+  </body>
+</html>
