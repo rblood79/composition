@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [캔버스 페이지 헤더 띠 — 타이틀 배경 32px · 선택 페이지 강조] - 2026-09-17
+
+### Added
+
+- 캔버스의 각 페이지 상단에 폭 = 페이지 폭, 높이 화면 32px (줌 무관) 인 헤더 띠를 추가했다. 배경은 빌더 토큰 `--bg-inset` (light gray-50 / dark zinc-900), 현재 선택된 페이지는 `--focus-ring` 60% alpha. 페이지 타이틀은 띠 안에 세로 중앙 + 좌측 8px 패딩으로 놓이고, 타이틀 drag·inline 편집 히트 영역은 새 위치를 따라간다.
+
+### Fixed
+
+- 빌더 테마를 바꿔도 Skia 오버레이가 읽는 CSS 토큰 캐시 (`--border` 등) 가 부팅 시점 값에 머물던 것을 테마 변경 시 비우도록 했다. 헤더 띠 색은 `:root` (preview 팔레트) 가 아니라 `[data-context="builder"]` 스코프에서 읽는다.
+
 ## [왼쪽 패널 컨트롤 — Components 아이콘 교체] - 2026-09-17
 
 ### Changed

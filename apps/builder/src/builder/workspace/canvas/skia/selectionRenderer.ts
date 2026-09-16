@@ -143,9 +143,14 @@ export function clearOverlayFontCache(): void {
   _overlayFontMgr = null;
 }
 
+/** Page Header 띠 설정 — 페이지 상단에 붙는 32px 헤더 (화면 px, 줌 무관) */
+export const PAGE_HEADER_HEIGHT = 32;
+export const PAGE_HEADER_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
+
 /** Page Title 레이블 설정 */
 const PAGE_TITLE_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
-const PAGE_TITLE_OFFSET_Y = 20; // 페이지 상단 위로 오프셋 (px)
+// 헤더 띠 안 세로 중앙 — 타이틀 line box 상단은 페이지 상단에서 위로 (32+12)/2 = 22px
+const PAGE_TITLE_OFFSET_Y = (PAGE_HEADER_HEIGHT + PAGE_TITLE_FONT_SIZE) / 2;
 const PAGE_TITLE_COLOR_R = 0x64 / 255; // slate-500 (#64748b)
 const PAGE_TITLE_COLOR_G = 0x74 / 255;
 const PAGE_TITLE_COLOR_B = 0x8b / 255;
@@ -497,6 +502,44 @@ export function renderLasso(
 }
 
 // ============================================
+// Page Header 띠 (타이틀 배경)
+// ============================================
+
+/**
+ * 페이지 상단에 붙는 헤더 띠를 그린다 — 폭은 page width (scene 단위, 줌 추종),
+ * 높이는 화면 32px 고정 (타이틀 글리프와 같은 fixed-screen 규약이라 scene 높이는 32/zoom).
+ *
+ * 씬-로컬 좌표계 (page 좌상단 = 원점) 에서 호출된다. 색은 호출자가 CSS 토큰
+ * (`--bg-inset` / 활성 `--focus-ring` 60%) 을 읽어 넘긴다 — 여기서는 DOM 을 읽지 않는다.
+ */
+export function renderPageHeader(
+  ck: CanvasKit,
+  canvas: Canvas,
+  pageWidth: number,
+  zoom: number,
+  color: readonly [number, number, number],
+  alpha: number,
+): void {
+  if (pageWidth <= 0) return;
+  const safeZoom = zoom === 0 ? 1 : zoom;
+  const sceneHeight = PAGE_HEADER_HEIGHT / safeZoom;
+
+  const scope = new SkiaDisposable();
+  try {
+    const paint = acquireScopedPaint(scope, ck);
+    paint.setAntiAlias(true);
+    paint.setStyle(ck.PaintStyle.Fill);
+    paint.setColor(ck.Color4f(color[0], color[1], color[2], alpha));
+    canvas.drawRect(
+      ck.XYWHRect(0, -sceneHeight, pageWidth, sceneHeight),
+      paint,
+    );
+  } finally {
+    scope.dispose();
+  }
+}
+
+// ============================================
 // Page Title Label (Pencil Frame Title 스타일)
 // ============================================
 
@@ -556,7 +599,7 @@ export function renderPageTitle(
 
     return withFixedScreenScale(canvas, zoom, 0, 0, () => {
       // 화면 픽셀 좌표에서 위치 계산 후 pixel snap
-      const textX = 0;
+      const textX = PAGE_HEADER_PADDING_X;
       const textTop = -PAGE_TITLE_OFFSET_Y;
       const textY = Math.round(textTop + PAGE_TITLE_FONT_SIZE * 0.85);
 

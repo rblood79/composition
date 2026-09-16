@@ -45,6 +45,26 @@ export function getCSSVariable(name: string): string {
 }
 
 /**
+ * 빌더 chrome 토큰 (`builder-system.css` — `[data-context="builder"]` 스코프) 읽기.
+ *
+ * `getCSSVariable` 은 `:root` 를 읽어 preview-system 값이 나온다. 빌더 테마
+ * (light gray / dark zinc) 를 따라야 하는 캔버스 chrome (페이지 헤더 띠 등) 은
+ * 이 함수로 builder 컨텍스트 요소에서 읽는다. 캐시 키는 `getCSSVariable` 과 분리.
+ */
+export function getBuilderCSSVariable(name: string): string {
+  const key = `builder:${name}`;
+  const cached = cssVarCache.get(key);
+  if (cached !== undefined) return cached;
+
+  const scope =
+    document.querySelector<HTMLElement>('[data-context="builder"]') ??
+    document.documentElement;
+  const value = getComputedStyle(scope).getPropertyValue(name).trim();
+  cssVarCache.set(key, value);
+  return value;
+}
+
+/**
  * W3-7: DOM에서 CSS 변수를 조회하는 fallback 함수 (M-4: 캐시 적용)
  */
 export function resolveVariableFromDOM(varName: string): string {

@@ -4,7 +4,10 @@ import {
   acquireOverlayFont,
   clearOverlayFontCache,
   renderDimensionLabels,
+  renderPageHeader,
   renderPageTitle,
+  PAGE_HEADER_HEIGHT,
+  PAGE_HEADER_PADDING_X,
 } from "./selectionRenderer";
 
 /**
@@ -50,9 +53,12 @@ class MockFont {
 }
 
 class MockPaint {
+  color: unknown = null;
   setAntiAlias(): void {}
   setStyle(): void {}
-  setColor(): void {}
+  setColor(color: unknown): void {
+    this.color = color;
+  }
   setStrokeWidth(): void {}
   setStrokeCap(): void {}
   setStrokeJoin(): void {}
@@ -68,6 +74,7 @@ class MockCanvas {
   scales: Array<[number, number]> = [];
   translations: Array<[number, number]> = [];
   rrects: unknown[] = [];
+  rects: Array<{ rect: unknown; color: unknown }> = [];
   texts: Array<{ text: string; x: number; y: number; fontSize: number }> = [];
 
   save(): void {}
@@ -80,6 +87,9 @@ class MockCanvas {
   }
   drawRRect(rrect: unknown): void {
     this.rrects.push(rrect);
+  }
+  drawRect(rect: unknown, paint: MockPaint): void {
+    this.rects.push({ rect, color: paint.color });
   }
   drawText(
     text: string,
@@ -112,6 +122,7 @@ function mockCk(): CanvasKit {
       bottom,
     }),
     RRectXY: (rect: unknown, rx: number, ry: number) => ({ rect, rx, ry }),
+    XYWHRect: (x: number, y: number, w: number, h: number) => ({ x, y, w, h }),
   } as unknown as CanvasKit;
 }
 
@@ -253,5 +264,67 @@ describe("Skia overlay text — 화면 픽셀 크기 고정 계약", () => {
     expect(at100.texts).toEqual(at200.texts);
     expect(at100.texts[0]?.fontSize).toBe(12);
     expect(metrics100).toEqual(metrics200);
+  });
+});
+
+describe("renderPageHeader — 페이지 상단 32px 헤더 띠", () => {
+  beforeEach(() => {
+    clearOverlayFontCache();
+  });
+
+  it("높이는 화면 32px 고정(scene 은 32/zoom), 폭은 page width 그대로", () => {
+    const ck = mockCk();
+    const at100 = new MockCanvas();
+    const at200 = new MockCanvas();
+    const color = [0.1, 0.2, 0.3] as const;
+
+    renderPageHeader(ck, at100 as unknown as Canvas, 390, 1, color, 1);
+    renderPageHeader(ck, at200 as unknown as Canvas, 390, 2, color, 1);
+
+    expect(at100.rects[0]?.rect).toEqual({
+      x: 0,
+      y: -PAGE_HEADER_HEIGHT,
+      w: 390,
+      h: PAGE_HEADER_HEIGHT,
+    });
+    expect(at200.rects[0]?.rect).toEqual({
+      x: 0,
+      y: -PAGE_HEADER_HEIGHT / 2,
+      w: 390,
+      h: PAGE_HEADER_HEIGHT / 2,
+    });
+    expect(PAGE_HEADER_HEIGHT).toBe(32);
+  });
+
+  it("alpha 는 paint 색상 4번째 채널로 전달된다 (활성 = focus-ring 60%)", () => {
+    const ck = mockCk();
+    const canvas = new MockCanvas();
+    renderPageHeader(
+      ck,
+      canvas as unknown as Canvas,
+      100,
+      1,
+      [0.5, 0.6, 0.7],
+      0.6,
+    );
+    expect(canvas.rects[0]?.color).toEqual([0.5, 0.6, 0.7, 0.6]);
+  });
+
+  it("타이틀 텍스트는 헤더 안에 세로 중앙 + 좌측 패딩으로 놓인다", () => {
+    const ck = mockCk();
+    const fontMgr = mockFontMgr();
+    const canvas = new MockCanvas();
+    const metrics = renderPageTitle(
+      ck,
+      canvas as unknown as Canvas,
+      "Page",
+      1,
+      fontMgr,
+      false,
+    );
+    expect(metrics?.textX).toBe(PAGE_HEADER_PADDING_X);
+    expect(metrics?.textTop).toBe(-(PAGE_HEADER_HEIGHT + 12) / 2);
+    expect(metrics!.textTop).toBeGreaterThanOrEqual(-PAGE_HEADER_HEIGHT);
+    expect(metrics!.textTop + metrics!.textHeight).toBeLessThanOrEqual(0);
   });
 });

@@ -32,6 +32,7 @@ import {
   renderTransformHandles,
   renderDimensionLabels,
   renderLasso,
+  renderPageHeader,
   renderPageTitle,
 } from "./selectionRenderer";
 import {
@@ -85,7 +86,11 @@ import {
   collectHighlightedWorkflowPageIds,
   filterRenderableWorkflowEdges,
 } from "./skiaWorkflowSelection";
-import { cssColorToHex, getCSSVariable } from "../utils/cssVariableReader";
+import {
+  cssColorToHex,
+  getBuilderCSSVariable,
+  getCSSVariable,
+} from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
 
 /** `--border` 미정의 시 fallback — preview-system 기본값(neutral-300)과 같은 팔레트 값. (구 M3 FALLBACK_COLORS.outlineVariant 대체) */
@@ -93,6 +98,17 @@ const CANVAS_BORDER_FALLBACK = parseInt(
   TAILWIND_PALETTE.neutral[300].slice(1),
   16,
 );
+/** `--bg-inset` / `--focus-ring` 미정의 시 fallback — builder-system light 기본값과 같은 팔레트 값. */
+const PAGE_HEADER_BG_FALLBACK = parseInt(
+  TAILWIND_PALETTE.gray[50].slice(1),
+  16,
+);
+const PAGE_HEADER_ACTIVE_FALLBACK = parseInt(
+  TAILWIND_PALETTE.blue[400].slice(1),
+  16,
+);
+/** 활성 페이지 헤더 띠 alpha (사용자 지정 60%) */
+const PAGE_HEADER_ACTIVE_ALPHA = 0.6;
 import {
   readPagePositionDelta,
   type PagePositionPresentationSnapshot,
@@ -276,6 +292,23 @@ function resolveCanvasBorderColor(): readonly [number, number, number] {
   );
 }
 
+/** 페이지 헤더 띠 배경 — builder-system `--bg-inset` (light gray-50 / dark zinc-900) */
+function resolvePageHeaderColor(): readonly [number, number, number] {
+  return hexToColor4fChannels(
+    cssColorToHex(getBuilderCSSVariable("--bg-inset"), PAGE_HEADER_BG_FALLBACK),
+  );
+}
+
+/** 활성(선택된) 페이지 헤더 띠 배경 — `--focus-ring` (alpha 는 호출자가 60% 적용) */
+function resolvePageHeaderActiveColor(): readonly [number, number, number] {
+  return hexToColor4fChannels(
+    cssColorToHex(
+      getBuilderCSSVariable("--focus-ring"),
+      PAGE_HEADER_ACTIVE_FALLBACK,
+    ),
+  );
+}
+
 interface OcclusionPageFrame {
   id: string;
   x: number;
@@ -426,6 +459,8 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
         // 사용자가 베이스라인 위/아래 포인터-다운도 타이틀로 인식하도록 한다.
         const HIT_PAD_X = 6;
         const HIT_PAD_Y = 4;
+        const headerColor = resolvePageHeaderColor();
+        const headerActiveColor = resolvePageHeaderActiveColor();
         for (const item of pageTitleItems) {
           // 타이틀도 페이지 간 occlusion 대상 — 겹침에서 아래 페이지의 타이틀이
           // 위(활성) 페이지 body 위에 떠 보이지 않도록 (2026-08-12 사용자 보고,
@@ -441,6 +476,15 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
             () => {
               canvas.save();
               canvas.translate(item.x, item.y);
+              // 헤더 띠는 타이틀 글리프 아래 — 같은 occlusion clip 안에서 그린다.
+              renderPageHeader(
+                ck,
+                canvas,
+                item.width,
+                cameraZoom,
+                item.active ? headerActiveColor : headerColor,
+                item.active ? PAGE_HEADER_ACTIVE_ALPHA : 1,
+              );
               const titleMetrics = renderPageTitle(
                 ck,
                 canvas,

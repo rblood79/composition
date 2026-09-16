@@ -90,10 +90,15 @@ export function readOwnerPageId(
 
 export interface PageTitleRenderItem {
   elementCount: number;
+  /** 타이틀 글리프 강조 — 활성 페이지 + 요소 선택 있음 */
   highlighted: boolean;
+  /** 헤더 띠 활성색 — 현재(선택된) 페이지, 요소 선택 여부 무관 */
+  active: boolean;
   title: string;
   x: number;
   y: number;
+  /** 헤더 띠 폭 = page width (scene) */
+  width: number;
   pageId: string;
 }
 
@@ -654,7 +659,9 @@ export function buildPageTitleRenderItems(
         title: frame.title,
         x: frame.x + (delta?.dx ?? 0),
         y: frame.y + (delta?.dy ?? 0),
+        width: frame.width,
         elementCount: frame.elementCount ?? 0,
+        active: frame.id === activePageId,
         highlighted: hasSelection && frame.id === activePageId,
       };
     });
