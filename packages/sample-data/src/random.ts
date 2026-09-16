@@ -38,7 +38,7 @@ export interface WeightedOption<T> {
   weight: number;
 }
 
-export interface MockRandom {
+export interface SeededRandom {
   /** 실제로 쓰인 seed — 사용자에게 「이 값으로 다시 만들면 같은 행」 을 보여줄 수 있다 */
   readonly seed: number;
   /** [0, 1) */
@@ -73,7 +73,7 @@ const HEX = "0123456789abcdef";
 /**
  * seed 를 주면 결정적, 없으면 시각+Math.random 으로 뽑은 seed (읽을 수 있게 `seed` 노출).
  */
-export function createRandom(seed?: number | string | null): MockRandom {
+export function createRandom(seed?: number | string | null): SeededRandom {
   const resolvedSeed =
     seed === undefined || seed === null || seed === ""
       ? (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0
@@ -92,7 +92,7 @@ export function createRandom(seed?: number | string | null): MockRandom {
     return out;
   };
 
-  const random: MockRandom = {
+  const random: SeededRandom = {
     seed: resolvedSeed,
     next,
     int(min, max) {

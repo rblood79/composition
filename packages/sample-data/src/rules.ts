@@ -3,34 +3,37 @@
  *
  * mockaroo 의 스키마 화면이 이 모양이다: 컬럼 이름 · Type (Row Number / First Name /
  * Credit Card # / Custom List / Formula …) · 타입별 옵션 (min/max · 형식 · 목록 선택 방식
- * random/sequential/weighted) · **Blank %**. 여기서는 `MockRule` 이 Type+옵션,
- * `MockColumn.blank` 가 Blank %, `formula` 가 같은 행의 앞 컬럼을 읽는 파생값이다
+ * random/sequential/weighted) · **Blank %**. 여기서는 `SampleRule` 이 Type+옵션,
+ * `SampleColumn.blank` 가 Blank %, `formula` 가 같은 행의 앞 컬럼을 읽는 파생값이다
  * (dummyjson `discountedTotal` · randomuser 의 이름 ↔ 이메일 ↔ 초상 일관성).
  *
  * 규칙이 데이터라 같은 규칙으로 생성하고 검증할 수 있다 — AI tableSpec 이 택한 원칙
  * (`services/ai/data/tableSpec.ts` "생성기가 곧 검증기").
  */
 
-import type { Gender, Mock, PicsumOptions } from "./generators";
-import { createMock } from "./generators";
-import type { MockLocale } from "./locale";
+import type { Gender, Generators, PicsumOptions } from "./generators";
+import { createGenerators } from "./generators";
+import type { SampleLocale } from "./locale";
 import type { WeightedOption } from "./random";
 
 export type ListSelection = "random" | "sequential";
 
 /** 행 단위 컨텍스트 — formula · 파생 규칙이 읽는다 */
-export interface MockRowContext {
+export interface SampleRowContext {
   index: number;
   /** 지금까지 채운 같은 행의 값 (컬럼 순서대로) */
   row: Record<string, unknown>;
-  mock: Mock;
+  mock: Generators;
   /** `reference` 규칙이 읽는 외부 값 풀 (FK) */
   references: Readonly<Record<string, readonly unknown[]>>;
   /** 문구 해소기 (i18n `t`) — formula 가 카탈로그 문장 템플릿을 쓸 때. 없으면 키 그대로 */
-  t: (key: string, params?: Record<string, string | number | boolean>) => string;
+  t: (
+    key: string,
+    params?: Record<string, string | number | boolean>,
+  ) => string;
 }
 
-export type MockRule =
+export type SampleRule =
   // ---- 식별자 ----
   | { kind: "rowNumber"; start?: number }
   | { kind: "sequence"; prefix?: string; start?: number; pad?: number }
@@ -113,13 +116,17 @@ export type MockRule =
   // ---- 목록 ----
   | { kind: "enum"; values: readonly string[]; selection?: ListSelection }
   | { kind: "weighted"; options: readonly WeightedOption<unknown>[] }
-  | { kind: "pool"; name: keyof MockLocale; selection?: ListSelection }
+  | { kind: "pool"; name: keyof SampleLocale; selection?: ListSelection }
   /** 풀의 i 번째 값을 weights[i] 가중치로 — 풀 문구는 locale, 분포는 규칙 */
-  | { kind: "weightedPool"; name: keyof MockLocale; weights: readonly number[] }
+  | {
+      kind: "weightedPool";
+      name: keyof SampleLocale;
+      weights: readonly number[];
+    }
   | {
       kind: "list";
       values?: readonly string[];
-      pool?: keyof MockLocale;
+      pool?: keyof SampleLocale;
       min?: number;
       max?: number;
     }
@@ -148,20 +155,20 @@ export type MockRule =
   | { kind: "colorName" }
   // ---- 구조 ----
   | { kind: "constant"; value: unknown }
-  | { kind: "object"; fields: readonly MockColumn[] }
+  | { kind: "object"; fields: readonly SampleColumn[] }
   | {
       kind: "array";
       min?: number;
       max?: number;
-      item: MockRule | readonly MockColumn[];
+      item: SampleRule | readonly SampleColumn[];
     }
   | { kind: "reference"; name: string; selection?: ListSelection }
-  | { kind: "formula"; compute: (ctx: MockRowContext) => unknown }
+  | { kind: "formula"; compute: (ctx: SampleRowContext) => unknown }
   | { kind: "template"; template: string };
 
-export interface MockColumn {
+export interface SampleColumn {
   key: string;
-  rule: MockRule;
+  rule: SampleRule;
   /** 빈 값 비율 0~1 (mockaroo Blank %) — 전역 blankRate 보다 우선 */
   blank?: number;
   /** required 컬럼은 전역 blankRate 를 받지 않는다 */
@@ -171,18 +178,18 @@ export interface MockColumn {
 export interface GenerateRowsOptions {
   count: number;
   seed?: number | string | null;
-  locale?: MockLocale;
+  locale?: SampleLocale;
   /** 전역 빈 값 비율 0~1 — `blank` 미지정·required 아닌 컬럼에 적용 */
   blankRate?: number;
   references?: Readonly<Record<string, readonly unknown[]>>;
-  /** 미리 만든 mock 을 이어 쓸 때 (같은 seed 스트림) */
-  mock?: Mock;
+  /** 미리 만든 생성기를 이어 쓸 때 (같은 seed 스트림) */
+  generators?: Generators;
   /** formula 가 읽는 문구 해소기 */
-  t?: MockRowContext["t"];
+  t?: SampleRowContext["t"];
 }
 
 function readString(
-  ctx: MockRowContext,
+  ctx: SampleRowContext,
   key: string | undefined,
 ): string | undefined {
   if (!key) return undefined;
@@ -191,7 +198,7 @@ function readString(
 }
 
 function readGender(
-  ctx: MockRowContext,
+  ctx: SampleRowContext,
   key: string | undefined,
 ): Gender | undefined {
   const value = readString(ctx, key);
@@ -201,7 +208,7 @@ function readGender(
 function pickBy<T>(
   items: readonly T[],
   selection: ListSelection | undefined,
-  ctx: MockRowContext,
+  ctx: SampleRowContext,
 ): T {
   if (items.length === 0) return undefined as T;
   return selection === "sequential"
@@ -210,7 +217,10 @@ function pickBy<T>(
 }
 
 /** 규칙 하나 → 값 하나 */
-export function generateValue(rule: MockRule, ctx: MockRowContext): unknown {
+export function generateValue(
+  rule: SampleRule,
+  ctx: SampleRowContext,
+): unknown {
   const { mock } = ctx;
   switch (rule.kind) {
     case "rowNumber":
@@ -450,10 +460,14 @@ export function generateValue(rule: MockRule, ctx: MockRowContext): unknown {
     case "array": {
       const count = mock.random.int(rule.min ?? 1, rule.max ?? 3);
       return Array.from({ length: count }, (_, i) => {
-        const itemCtx: MockRowContext = { ...ctx, index: i, row: {} };
+        const itemCtx: SampleRowContext = { ...ctx, index: i, row: {} };
         return Array.isArray(rule.item)
-          ? generateRow(rule.item as readonly MockColumn[], itemCtx, undefined)
-          : generateValue(rule.item as MockRule, itemCtx);
+          ? generateRow(
+              rule.item as readonly SampleColumn[],
+              itemCtx,
+              undefined,
+            )
+          : generateValue(rule.item as SampleRule, itemCtx);
       });
     }
     case "reference": {
@@ -469,12 +483,12 @@ export function generateValue(rule: MockRule, ctx: MockRowContext): unknown {
 
 /** 컬럼 목록 → 행 하나. blankRate 는 `blank` 없고 required 아닌 컬럼에만 */
 export function generateRow(
-  columns: readonly MockColumn[],
-  ctx: MockRowContext,
+  columns: readonly SampleColumn[],
+  ctx: SampleRowContext,
   blankRate: number | undefined,
 ): Record<string, unknown> {
   const row: Record<string, unknown> = {};
-  const rowCtx: MockRowContext = { ...ctx, row };
+  const rowCtx: SampleRowContext = { ...ctx, row };
   for (const column of columns) {
     const blank = column.blank ?? (column.required ? 0 : (blankRate ?? 0));
     if (blank > 0 && ctx.mock.random.bool(blank)) {
@@ -493,11 +507,12 @@ export interface GeneratedRows {
 }
 
 export function generateRows(
-  columns: readonly MockColumn[],
+  columns: readonly SampleColumn[],
   options: GenerateRowsOptions,
 ): GeneratedRows {
   const mock =
-    options.mock ?? createMock({ seed: options.seed, locale: options.locale });
+    options.generators ??
+    createGenerators({ seed: options.seed, locale: options.locale });
   const references = options.references ?? {};
   const t = options.t ?? ((key: string) => key);
   const count = Math.max(0, Math.floor(options.count));

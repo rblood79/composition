@@ -3,7 +3,7 @@
  *
  * faker 는 locale 데이터를 패키지 안에 들고 있지만 여기서는 **i18n 카탈로그
  * (`presetData.*`)** 가 풀의 정본이다 (ADR-200 후속 — 번역이 아니라 「같은 자리에 오는
- * 다른 값 묶음」). 이 모듈은 카탈로그를 읽어 `MockLocale` 로 접고, provider 밖(격리
+ * 다른 값 묶음」). 이 모듈은 카탈로그를 읽어 `SampleLocale` 로 접고, provider 밖(격리
  * 렌더 · 테스트 · AI tableSpec) 에서는 `FALLBACK_LOCALE` 로 동작한다.
  *
  * 풀 계약: 쉼표+공백 구분, 값 안에 쉼표 없음. 형식 문자열의 `#` 은 숫자 한 자리.
@@ -11,7 +11,7 @@
 
 export type NameOrder = "family-first" | "given-first";
 
-export interface MockLocale {
+export interface SampleLocale {
   id: string;
   nameOrder: NameOrder;
   /** 이름 사이 구분 — ko 는 붙여 쓰고 en 은 공백 */
@@ -92,7 +92,7 @@ export interface MockLocale {
 export type PoolTranslate = (key: string) => string;
 
 /** 어느 풀도 카탈로그가 없을 때 — 영문 최소 풀. 값은 enUS 카탈로그와 같은 것을 짧게 */
-export const FALLBACK_LOCALE: MockLocale = {
+export const FALLBACK_LOCALE: SampleLocale = {
   id: "en",
   nameOrder: "given-first",
   nameSeparator: " ",
@@ -239,7 +239,7 @@ const LIST_KEYS = [
   "suppliers",
   "partStatuses",
   "auditActions",
-] as const satisfies readonly (keyof MockLocale)[];
+] as const satisfies readonly (keyof SampleLocale)[];
 
 const SCALAR_KEYS = [
   "country",
@@ -247,14 +247,14 @@ const SCALAR_KEYS = [
   "phoneFormat",
   "cellFormat",
   "currency",
-] as const satisfies readonly (keyof MockLocale)[];
+] as const satisfies readonly (keyof SampleLocale)[];
 
 /**
- * i18n 카탈로그 → MockLocale. 풀마다 개별 fallback — 카탈로그에 없는 풀만 영문으로.
+ * i18n 카탈로그 → SampleLocale. 풀마다 개별 fallback — 카탈로그에 없는 풀만 영문으로.
  * `firstNames` (성별 없는 기존 풀) 만 있고 성별 풀이 없으면 둘 다 그것으로.
  */
-export function resolveMockLocale(t: PoolTranslate): MockLocale {
-  const locale: MockLocale = { ...FALLBACK_LOCALE };
+export function resolveSampleLocale(t: PoolTranslate): SampleLocale {
+  const locale: SampleLocale = { ...FALLBACK_LOCALE };
   for (const key of LIST_KEYS) {
     const values = poolOf(t, key);
     if (values && values.length > 0) locale[key] = values;

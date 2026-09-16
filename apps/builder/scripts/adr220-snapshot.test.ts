@@ -28,12 +28,12 @@ import {
   PRESET_STRINGS,
   resolvePresetTranslate,
 } from "../src/builder/panels/datatable/presets/presetStrings";
-import { MOCK_RULE_TYPES } from "../src/services/ai/data/tableSpec";
+import { GENERATE_RULE_TYPES } from "../src/services/ai/data/tableSpec";
 import {
-  createMock,
+  createGenerators,
   generateRows,
-  resolveMockLocale,
-  type MockColumn,
+  resolveSampleLocale,
+  type SampleColumn,
 } from "@composition/sample-data";
 
 const HARNESS_VERSION = "1";
@@ -108,12 +108,12 @@ function provenance() {
 function buildSnapshot() {
   const presets: Record<string, Record<string, unknown[]>> = {};
   const rules: Record<string, Record<string, unknown[]>> = {};
-  const ruleKinds = [...MOCK_RULE_TYPES, "now"] as const;
+  const ruleKinds = [...GENERATE_RULE_TYPES, "now"] as const;
   const allPresets = getAllPresets();
 
   for (const locale of LOCALES) {
     const t = resolvePresetTranslate(locale);
-    const sampleLocale = resolveMockLocale(t);
+    const sampleLocale = resolveSampleLocale(t);
     for (const preset of allPresets) {
       // preset 경로는 제품 그대로 — refDate 는 가짜 시계의 `startOfTodayUtc()` 가 준다
       (presets[preset.id] ??= {})[locale] = preset.generateSampleData(
@@ -123,13 +123,17 @@ function buildSnapshot() {
       );
     }
     for (const kind of ruleKinds) {
-      const columns: MockColumn[] = [{ key: "v", rule: { kind } }];
+      const columns: SampleColumn[] = [{ key: "v", rule: { kind } }];
       const generated = generateRows(columns, {
         count: RULE_ROWS,
         seed: SEED,
         locale: sampleLocale,
         t,
-        mock: createMock({ seed: SEED, locale: sampleLocale, refDate: CLOCK }),
+        generators: createGenerators({
+          seed: SEED,
+          locale: sampleLocale,
+          refDate: CLOCK,
+        }),
       });
       (rules[kind] ??= {})[locale] = generated.rows.map((row) => row.v);
     }

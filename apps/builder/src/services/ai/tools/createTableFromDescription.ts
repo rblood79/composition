@@ -31,13 +31,13 @@ import {
   type TableSpec,
 } from "../data/tableSpec";
 import { presetTranslateFromStoredLocale } from "../../../builder/panels/datatable/presets/presetStrings";
-import { resolveMockLocale } from "@composition/sample-data";
+import { resolveSampleLocale } from "@composition/sample-data";
 
 const PREVIEW_ROWS = 5;
 
 /** 생성기 locale — preset 카탈로그 (lazy 표) 의 `presetData.*` 풀, 저장된 locale */
 function localeFrom(): SampleGenerationContext["locale"] {
-  return resolveMockLocale(presetTranslateFromStoredLocale());
+  return resolveSampleLocale(presetTranslateFromStoredLocale());
 }
 
 /** 순수 — spec → (행 · 검증 · op). 오류는 문자열 목록. */

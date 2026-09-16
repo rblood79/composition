@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   FALLBACK_LOCALE,
-  createMock,
+  createGenerators,
   createRandom,
   generateRows,
   hashSeed,
-  resolveMockLocale,
-  type MockColumn,
+  resolveSampleLocale,
+  type SampleColumn,
 } from "./index";
 
 const luhnValid = (digits: string): boolean => {
@@ -64,7 +64,7 @@ describe("mockData/random — seed 결정성 (faker.seed 어법)", () => {
   });
 });
 
-describe("mockData/locale — 카탈로그 풀 → MockLocale", () => {
+describe("mockData/locale — 카탈로그 풀 → SampleLocale", () => {
   it("해소되지 않은 키는 fallback, 해소된 풀은 쉼표로 자른다", () => {
     const t = (key: string) =>
       key === "presetData.lastNames"
@@ -74,7 +74,7 @@ describe("mockData/locale — 카탈로그 풀 → MockLocale", () => {
           : key === "presetData.firstNames"
             ? "민준, 서연"
             : key;
-    const locale = resolveMockLocale(t);
+    const locale = resolveSampleLocale(t);
     expect(locale.lastNames).toEqual(["김", "이", "박"]);
     expect(locale.nameOrder).toBe("family-first");
     expect(locale.nameSeparator).toBe("");
@@ -86,12 +86,12 @@ describe("mockData/locale — 카탈로그 풀 → MockLocale", () => {
 });
 
 describe("mockData/generators — faker 이름공간", () => {
-  const mock = createMock({ seed: 2026 });
+  const mock = createGenerators({ seed: 2026 });
 
   it("fullName 은 nameOrder 를 따른다", () => {
-    const en = createMock({ seed: 1 });
+    const en = createGenerators({ seed: 1 });
     expect(en.person.fullName("male", "James", "Kim")).toBe("James Kim");
-    const ko = createMock({
+    const ko = createGenerators({
       seed: 1,
       locale: {
         ...FALLBACK_LOCALE,
@@ -174,7 +174,7 @@ describe("mockData/generators — faker 이름공간", () => {
 });
 
 describe("mockData/rules — mockaroo 식 컬럼 규칙", () => {
-  const columns: MockColumn[] = [
+  const columns: SampleColumn[] = [
     { key: "id", rule: { kind: "sequence", prefix: "usr_" }, required: true },
     { key: "gender", rule: { kind: "gender" } },
     { key: "first", rule: { kind: "firstName", genderKey: "gender" } },

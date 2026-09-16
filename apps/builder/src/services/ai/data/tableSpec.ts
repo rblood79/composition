@@ -14,11 +14,11 @@ import { DATA_FIELD_TYPES, type DataFieldShape } from "@composition/shared";
 import { z } from "zod";
 import {
   FALLBACK_LOCALE,
-  createMock,
+  createGenerators,
   generateValue,
-  type Mock,
-  type MockLocale,
-  type MockRule,
+  type Generators,
+  type SampleLocale,
+  type SampleRule,
 } from "@composition/sample-data";
 
 export const SAMPLE_ROWS_DEFAULT = 5;
@@ -26,10 +26,10 @@ export const SAMPLE_ROWS_MAX = 50;
 export const TABLE_FIELDS_MAX = 40;
 
 /**
- * 옵션 없는 `MockRule` 종류 — 모델이 고를 수 있는 사실적 값 (이름 · 주소 · 상품 · 금융 · 이미지).
+ * 옵션 없는 `SampleRule` 종류 — 모델이 고를 수 있는 사실적 값 (이름 · 주소 · 상품 · 금융 · 이미지).
  * `@composition/sample-data` 의 생성기를 그대로 쓴다 (2026-09-16 후속 — preset 과 같은 모듈).
  */
-export const MOCK_RULE_TYPES = [
+export const GENERATE_RULE_TYPES = [
   "uuid",
   "gender",
   "firstName",
@@ -84,15 +84,15 @@ export const MOCK_RULE_TYPES = [
   "avatar",
   "colorHex",
   "colorName",
-] as const satisfies readonly MockRule["kind"][];
+] as const satisfies readonly SampleRule["kind"][];
 
-export type MockRuleType = (typeof MOCK_RULE_TYPES)[number];
+export type GenerateRuleType = (typeof GENERATE_RULE_TYPES)[number];
 
 const GenerateRuleSchema = z.discriminatedUnion("kind", [
   z.object({
-    kind: z.literal("mock"),
-    /** 사실적 값 종류 — `MOCK_RULE_TYPES` */
-    type: z.enum(MOCK_RULE_TYPES),
+    kind: z.literal("generate"),
+    /** 사실적 값 종류 — `GENERATE_RULE_TYPES` */
+    type: z.enum(GENERATE_RULE_TYPES),
   }),
   z.object({
     kind: z.literal("enum"),
@@ -210,12 +210,12 @@ export interface SampleGenerationContext {
   }[];
   /** 이름 · 회사 풀 — preset 카탈로그 (`presetData.*`). 생략 시 영문 기본 풀 */
   pools?: { firstNames?: string[]; lastNames?: string[]; companies?: string[] };
-  /** 생성기 locale 전체 (`resolveMockLocale`) — 있으면 `pools` 보다 우선 */
-  locale?: MockLocale;
+  /** 생성기 locale 전체 (`resolveSampleLocale`) — 있으면 `pools` 보다 우선 */
+  locale?: SampleLocale;
 }
 
 /** ctx → 생성기 locale. `pools` 는 이름·회사 세 풀만 덮는다 (BC). */
-function localeOf(ctx: SampleGenerationContext): MockLocale {
+function localeOf(ctx: SampleGenerationContext): SampleLocale {
   const base = ctx.locale ?? FALLBACK_LOCALE;
   const { pools } = ctx;
   if (!pools) return base;
@@ -233,10 +233,10 @@ const KEY_HINTS: Array<[RegExp, GenerateRule]> = [
   [/^(id|uuid|_id)$|Id$/, { kind: "sequence" }],
   [/name$|^author$|^owner$|^user$|^assignee$/i, { kind: "name" }],
   [/company|vendor|supplier|org/i, { kind: "company" }],
-  [/phone|tel$|mobile/i, { kind: "mock", type: "phone" }],
-  [/^(city|town)$/i, { kind: "mock", type: "city" }],
-  [/address/i, { kind: "mock", type: "address" }],
-  [/^(sku|barcode)$/i, { kind: "mock", type: "sku" }],
+  [/phone|tel$|mobile/i, { kind: "generate", type: "phone" }],
+  [/^(city|town)$/i, { kind: "generate", type: "city" }],
+  [/address/i, { kind: "generate", type: "address" }],
+  [/^(sku|barcode)$/i, { kind: "generate", type: "sku" }],
   [/mail/i, { kind: "email" }],
   [/url|link|href/i, { kind: "url" }],
   [/image|avatar|photo|thumb/i, { kind: "image" }],
@@ -244,9 +244,15 @@ const KEY_HINTS: Array<[RegExp, GenerateRule]> = [
   [/^(title|subject|headline)$/i, { kind: "sentence", words: 4 }],
   [/date|_at$|At$|time/i, { kind: "date" }],
   [/price|amount|total|cost|rate/i, { kind: "decimal", min: 1, max: 999 }],
-  [/count|qty|quantity|age|score|rank|order|position/i, { kind: "integer", min: 0, max: 100 }],
+  [
+    /count|qty|quantity|age|score|rank|order|position/i,
+    { kind: "integer", min: 0, max: 100 },
+  ],
   [/^(is|has|can)[A-Z]|active|enabled|published|done/i, { kind: "boolean" }],
-  [/tags|labels|keywords/i, { kind: "list", values: ["red", "green", "blue", "new", "hot"] }],
+  [
+    /tags|labels|keywords/i,
+    { kind: "list", values: ["red", "green", "blue", "new", "hot"] },
+  ],
 ];
 
 /** 규칙이 없을 때 — type 이 정하고, string 은 key 이름 힌트를 본다. */
@@ -310,15 +316,15 @@ function generateFieldValue(
   field: FieldSpec,
   rule: GenerateRule,
   index: number,
-  mock: Mock,
+  mock: Generators,
   row: Record<string, unknown>,
   ctx: SampleGenerationContext,
 ): unknown {
   const random = mock.random.next;
   const withTime = field.type === "datetime";
   switch (rule.kind) {
-    case "mock":
-      return generateValue({ kind: rule.type } as MockRule, {
+    case "generate":
+      return generateValue({ kind: rule.type } as SampleRule, {
         index,
         row,
         mock,
@@ -334,7 +340,12 @@ function generateFieldValue(
     case "company":
       return mock.company.name();
     case "email":
-      return `${mock.person.firstName().toLowerCase().replace(/[^a-z0-9]/g, "") || "user"}${index + 1}@example.com`;
+      return `${
+        mock.person
+          .firstName()
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "") || "user"
+      }${index + 1}@example.com`;
     case "url":
       return `https://example.com/${slug(field.key)}/${index + 1}`;
     case "image":
@@ -350,7 +361,11 @@ function generateFieldValue(
     case "integer":
       return mock.random.int(rule.min ?? 0, rule.max ?? 100);
     case "decimal":
-      return mock.random.float(rule.min ?? 0, rule.max ?? 100, rule.precision ?? 2);
+      return mock.random.float(
+        rule.min ?? 0,
+        rule.max ?? 100,
+        rule.precision ?? 2,
+      );
     case "boolean":
       return mock.random.bool(rule.trueRatio ?? 0.5);
     case "date": {
@@ -391,7 +406,7 @@ export function generateSampleRows(
 ): Record<string, unknown>[] {
   const count = spec.sampleCount ?? SAMPLE_ROWS_DEFAULT;
   // seed = 테이블 이름 (같은 설명 → 같은 미리보기). 날짜 기준은 mockData 기본 (오늘 0시 UTC)
-  const mock = createMock({ seed: spec.name, locale: localeOf(ctx) });
+  const mock = createGenerators({ seed: spec.name, locale: localeOf(ctx) });
   const rules = spec.fields.map((field) => [field, ruleFor(field)] as const);
   return Array.from({ length: count }, (_, index) => {
     const row: Record<string, unknown> = {};
@@ -464,20 +479,42 @@ export function validateSampleRows(
       const value = row[field.key];
       const empty = value === undefined || value === null || value === "";
       if (field.required && empty) {
-        issues.push({ row: rowIndex, key: field.key, reason: "required-missing" });
+        issues.push({
+          row: rowIndex,
+          key: field.key,
+          reason: "required-missing",
+        });
         continue;
       }
       if (empty) continue;
       if (!typeMatches(field.type, value)) {
-        issues.push({ row: rowIndex, key: field.key, reason: "type-mismatch", value });
+        issues.push({
+          row: rowIndex,
+          key: field.key,
+          reason: "type-mismatch",
+          value,
+        });
         continue;
       }
       const rule = ruleFor(field);
       if (rule.kind === "enum" && !rule.values.includes(String(value))) {
-        issues.push({ row: rowIndex, key: field.key, reason: "enum-violation", value });
+        issues.push({
+          row: rowIndex,
+          key: field.key,
+          reason: "enum-violation",
+          value,
+        });
       }
-      if (rule.kind === "reference" && !referenceValues.get(field.key)?.has(value)) {
-        issues.push({ row: rowIndex, key: field.key, reason: "reference-broken", value });
+      if (
+        rule.kind === "reference" &&
+        !referenceValues.get(field.key)?.has(value)
+      ) {
+        issues.push({
+          row: rowIndex,
+          key: field.key,
+          reason: "reference-broken",
+          value,
+        });
       }
     }
   });

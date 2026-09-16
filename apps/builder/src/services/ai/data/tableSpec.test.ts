@@ -24,9 +24,17 @@ const blog: TableSpec = {
     { key: "id", type: "string", required: true },
     { key: "title", type: "string", required: true },
     { key: "body", type: "string" },
-    { key: "author", type: "string", generate: { kind: "reference", collection: "Users", field: "name" } },
+    {
+      key: "author",
+      type: "string",
+      generate: { kind: "reference", collection: "Users", field: "name" },
+    },
     { key: "publishedAt", type: "date" },
-    { key: "status", type: "string", generate: { kind: "enum", values: ["draft", "published", "archived"] } },
+    {
+      key: "status",
+      type: "string",
+      generate: { kind: "enum", values: ["draft", "published", "archived"] },
+    },
   ],
 };
 
@@ -35,7 +43,10 @@ const ctx: SampleGenerationContext = {
     {
       id: "c-users",
       name: "Users",
-      rows: [{ id: "u1", name: "Ana Kim" }, { id: "u2", name: "Bo Lee" }],
+      rows: [
+        { id: "u1", name: "Ana Kim" },
+        { id: "u2", name: "Bo Lee" },
+      ],
     },
   ],
 };
@@ -59,8 +70,10 @@ describe("TableSpecSchema", () => {
       }).success,
     ).toBe(false);
     expect(
-      TableSpecSchema.safeParse({ name: "X", fields: [{ key: "a", type: "money" }] })
-        .success,
+      TableSpecSchema.safeParse({
+        name: "X",
+        fields: [{ key: "a", type: "money" }],
+      }).success,
     ).toBe(false);
     const json = JSON.stringify(tableSpecJsonSchema());
     expect(json).toContain('"reference"');
@@ -113,16 +126,28 @@ describe("generateSampleRows", () => {
     expect(String(row.createdAt)).toMatch(/T\d{2}:\d{2}/);
     expect(Array.isArray(row.tags)).toBe(true);
     expect(String(row.ownerName)).toMatch(/^\w+ \w+$/);
-    expect(validateSampleRows(spec, generateSampleRows(spec, { collections: [] }), { collections: [] })).toEqual([]);
+    expect(
+      validateSampleRows(spec, generateSampleRows(spec, { collections: [] }), {
+        collections: [],
+      }),
+    ).toEqual([]);
   });
 
-  it("mock 규칙 — @composition/sample-data 생성기 (사실적 값) · key 힌트 phone/city/address · locale 풀", () => {
+  it("generate 규칙 — @composition/sample-data 생성기 (사실적 값) · key 힌트 phone/city/address · locale 풀", () => {
     const spec: TableSpec = {
       name: "People",
       sampleCount: 4,
       fields: [
-        { key: "card", type: "string", generate: { kind: "mock", type: "creditCardNumber" } },
-        { key: "avatar", type: "image", generate: { kind: "mock", type: "avatar" } },
+        {
+          key: "card",
+          type: "string",
+          generate: { kind: "generate", type: "creditCardNumber" },
+        },
+        {
+          key: "avatar",
+          type: "image",
+          generate: { kind: "generate", type: "avatar" },
+        },
         { key: "phone", type: "string" },
         { key: "city", type: "string" },
         { key: "shippingAddress", type: "string" },
@@ -137,7 +162,9 @@ describe("generateSampleRows", () => {
     expect(rows).toEqual(generateSampleRows(spec, ctx));
     for (const row of rows) {
       expect(String(row.card)).toMatch(/^\d{15,16}$/);
-      expect(String(row.avatar)).toMatch(/^https:\/\/randomuser\.me\/api\/portraits\//);
+      expect(String(row.avatar)).toMatch(
+        /^https:\/\/randomuser\.me\/api\/portraits\//,
+      );
       expect(String(row.phone)).toMatch(/^\(\d{3}\) \d{3}-\d{4}$/);
       expect(typeof row.city).toBe("string");
       expect(String(row.shippingAddress).length).toBeGreaterThan(5);
@@ -159,7 +186,9 @@ describe("generateSampleRows", () => {
 
 describe("validateSampleRows — 생성기 = 검증기", () => {
   it("생성기 출력은 issue 0", () => {
-    expect(validateSampleRows(blog, generateSampleRows(blog, ctx), ctx)).toEqual([]);
+    expect(
+      validateSampleRows(blog, generateSampleRows(blog, ctx), ctx),
+    ).toEqual([]);
   });
 
   it("스키마 밖 컬럼 · enum 밖 값 · 깨진 FK · required 누락 · type 불일치를 행/키 단위로 잡는다", () => {
@@ -175,7 +204,12 @@ describe("validateSampleRows — 생성기 = 검증기", () => {
       { row: 1, key: "status", reason: "enum-violation", value: "deleted" },
       { row: 2, key: "author", reason: "reference-broken", value: "Nobody" },
       { row: 3, key: "title", reason: "required-missing" },
-      { row: 4, key: "publishedAt", reason: "type-mismatch", value: "not a date" },
+      {
+        row: 4,
+        key: "publishedAt",
+        reason: "type-mismatch",
+        value: "not a date",
+      },
     ]);
   });
 

@@ -1,7 +1,7 @@
 /**
  * DataTable Preset System Types
  *
- * preset = 스키마 + 컬럼별 생성 규칙 (`MockColumn`, mockaroo 어법). 규칙이 데이터라
+ * preset = 스키마 + 컬럼별 생성 규칙 (`SampleColumn`, mockaroo 어법). 규칙이 데이터라
  * 스키마와 샘플 행이 한 정의에서 나온다 — `definePreset` 이 `schema` 와
  * `generateSampleData` 를 파생한다. 생성기는 `@composition/sample-data` (ADR-220).
  */
@@ -9,9 +9,9 @@
 import type { DataField } from "../../../../types/builder/data.types";
 import {
   generateRows,
-  resolveMockLocale,
-  type MockColumn,
-  type MockRule,
+  resolveSampleLocale,
+  type SampleColumn,
+  type SampleRule,
 } from "@composition/sample-data";
 
 /**
@@ -58,7 +58,7 @@ export type PresetField = Omit<DataField, "label"> & { labelKey: string };
 
 /** 스키마 필드 + 생성 규칙 (mockaroo 의 컬럼 한 줄) */
 export type PresetColumn = PresetField & {
-  rule: MockRule;
+  rule: SampleRule;
   /** 컬럼별 빈 값 비율 0~1 — 전역 blankRate 보다 우선 */
   blank?: number;
 };
@@ -135,7 +135,7 @@ export function definePreset(definition: PresetDefinition): DataTablePreset {
   const schema: PresetField[] = definition.columns.map(
     ({ rule: _rule, blank: _blank, ...field }) => field,
   );
-  const mockColumns: MockColumn[] = definition.columns.map((column) => ({
+  const mockColumns: SampleColumn[] = definition.columns.map((column) => ({
     key: column.key,
     rule: column.rule,
     blank: column.blank,
@@ -151,7 +151,7 @@ export function definePreset(definition: PresetDefinition): DataTablePreset {
       seed: options.seed,
       blankRate: options.blankRate,
       references: options.references,
-      locale: resolveMockLocale((key) => t(key)),
+      locale: resolveSampleLocale((key) => t(key)),
       t,
     });
   return {

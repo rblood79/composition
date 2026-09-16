@@ -1,5 +1,5 @@
 /**
- * 자체 Mock 데이터 모듈 — 라이브러리 설치 없이 5 서비스의 어법만 가져왔다.
+ * @composition/sample-data — 자체 샘플 데이터 생성기 (ADR-220). 라이브러리 설치 없이 5 서비스의 어법만 가져왔다.
  *
  * | 출처            | 가져온 패턴                                                    | 자리              |
  * | --------------- | -------------------------------------------------------------- | ----------------- |
@@ -13,16 +13,16 @@
  */
 
 export { createRandom, hashSeed, mulberry32 } from "./random";
-export type { MockRandom, WeightedOption } from "./random";
-export { FALLBACK_LOCALE, resolveMockLocale } from "./locale";
-export type { MockLocale, NameOrder, PoolTranslate } from "./locale";
-export { createMock, slugify } from "./generators";
+export type { SeededRandom, WeightedOption } from "./random";
+export { FALLBACK_LOCALE, resolveSampleLocale } from "./locale";
+export type { SampleLocale, NameOrder, PoolTranslate } from "./locale";
+export { createGenerators, slugify } from "./generators";
 export type {
   CardType,
-  CreateMockOptions,
+  CreateGeneratorsOptions,
   DateRangeOptions,
   Gender,
-  Mock,
+  Generators,
   PicsumOptions,
   RangeOptions,
 } from "./generators";
@@ -31,7 +31,7 @@ export type {
   GeneratedRows,
   GenerateRowsOptions,
   ListSelection,
-  MockColumn,
-  MockRowContext,
-  MockRule,
+  SampleColumn,
+  SampleRowContext,
+  SampleRule,
 } from "./rules";

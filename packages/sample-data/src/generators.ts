@@ -1,5 +1,5 @@
 /**
- * faker.js 식 생성기 — `createMock({ seed, locale })` 가 이름공간 객체를 돌려준다.
+ * faker.js 식 생성기 — `createGenerators({ seed, locale })` 가 이름공간 객체를 돌려준다.
  *
  * 패턴 출처 (설치 없이 어법만 가져왔다):
  * - faker.js: 이름공간 (`person` · `internet` · `location` · `commerce` · `finance` · `date`
@@ -12,8 +12,8 @@
  * 외부 요청은 0 — URL 은 문자열로만 만든다.
  */
 
-import { FALLBACK_LOCALE, type MockLocale } from "./locale";
-import { createRandom, type MockRandom } from "./random";
+import { FALLBACK_LOCALE, type SampleLocale } from "./locale";
+import { createRandom, type SeededRandom } from "./random";
 
 export type Gender = "male" | "female";
 
@@ -37,15 +37,15 @@ export interface RangeOptions {
 }
 
 export interface DateRangeOptions {
-  /** 기준 시각 — 생략 시 createMock 의 refDate (오늘 0시 UTC) */
+  /** 기준 시각 — 생략 시 createGenerators 의 refDate (오늘 0시 UTC) */
   refDate?: Date | number | string;
   years?: number;
   days?: number;
 }
 
-export interface CreateMockOptions {
+export interface CreateGeneratorsOptions {
   seed?: number | string | null;
-  locale?: MockLocale;
+  locale?: SampleLocale;
   /**
    * 날짜 규칙의 기준 시각. 기본은 **오늘 0시 (UTC)** — 같은 seed 가 같은 날 안에서는
    * 같은 행을 내도록 (ms 단위 now 를 쓰면 호출마다 달라져 seed 가 무의미해진다).
@@ -126,9 +126,9 @@ function asciiLocalPart(text: string): string {
   return ascii || "user";
 }
 
-export interface Mock {
-  readonly random: MockRandom;
-  readonly locale: MockLocale;
+export interface Generators {
+  readonly random: SeededRandom;
+  readonly locale: SampleLocale;
   readonly seed: number;
 
   person: {
@@ -286,21 +286,23 @@ export interface Mock {
     /** `"{{person.firstName}} {{person.lastName}}"` — 이름공간.메서드 를 호출 결과로 */
     fake(template: string): string;
     /** locale 풀에서 하나 */
-    pool(name: keyof MockLocale): string;
-    poolAll(name: keyof MockLocale): string[];
+    pool(name: keyof SampleLocale): string;
+    poolAll(name: keyof SampleLocale): string[];
   };
 }
 
-export function createMock(options: CreateMockOptions = {}): Mock {
+export function createGenerators(
+  options: CreateGeneratorsOptions = {},
+): Generators {
   const random = createRandom(options.seed);
   const locale = options.locale ?? FALLBACK_LOCALE;
   const refMs = toMs(options.refDate, startOfTodayUtc());
 
-  const poolAll = (name: keyof MockLocale): string[] => {
+  const poolAll = (name: keyof SampleLocale): string[] => {
     const value = locale[name];
     return Array.isArray(value) ? value : [String(value)];
   };
-  const pool = (name: keyof MockLocale): string => random.pick(poolAll(name));
+  const pool = (name: keyof SampleLocale): string => random.pick(poolAll(name));
 
   const fillFormat = (format: string): string =>
     format.replace(/#/g, () => String(random.int(0, 9)));
@@ -308,7 +310,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
   const capitalize = (text: string): string =>
     text.length === 0 ? text : text[0].toUpperCase() + text.slice(1);
 
-  const person: Mock["person"] = {
+  const person: Generators["person"] = {
     gender: () => (random.bool() ? "male" : "female"),
     firstName: (gender) =>
       pool(
@@ -347,7 +349,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     },
   };
 
-  const internet: Mock["internet"] = {
+  const internet: Generators["internet"] = {
     domain: () => random.pick(EMAIL_DOMAINS),
     email: (first, last, uniqueSuffix) => {
       const local = internet.username(first, last, uniqueSuffix);
@@ -370,12 +372,12 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     userAgent: () => random.pick(USER_AGENTS),
   };
 
-  const phone: Mock["phone"] = {
+  const phone: Generators["phone"] = {
     number: (format) => fillFormat(format ?? locale.phoneFormat),
     cell: () => fillFormat(locale.cellFormat),
   };
 
-  const location: Mock["location"] = {
+  const location: Generators["location"] = {
     street: () => pool("streets"),
     streetAddress: () => {
       const number = random.int(1, 299);
@@ -401,13 +403,13 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     },
   };
 
-  const company: Mock["company"] = {
+  const company: Generators["company"] = {
     name: () => pool("companies"),
     department: () => pool("departments"),
     industry: () => pool("industries"),
   };
 
-  const commerce: Mock["commerce"] = {
+  const commerce: Generators["commerce"] = {
     productAdjective: () => pool("productAdjectives"),
     productMaterial: () => pool("productMaterials"),
     product: () => pool("productNouns"),
@@ -431,7 +433,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     reviewComment: () => pool("reviewComments"),
   };
 
-  const finance: Mock["finance"] = {
+  const finance: Generators["finance"] = {
     amount: ({ min = 0, max = 1000, precision = 2 } = {}) =>
       random.float(min, max, precision),
     currency: () => locale.currency,
@@ -465,7 +467,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     transactionType: () => pool("transactionTypes"),
   };
 
-  const date: Mock["date"] = {
+  const date: Generators["date"] = {
     past: ({ refDate, years, days } = {}) => {
       const ref = toMs(refDate, refMs);
       const span = days !== undefined ? days * DAY : (years ?? 1) * 365 * DAY;
@@ -490,7 +492,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     },
   };
 
-  const image: Mock["image"] = {
+  const image: Generators["image"] = {
     picsum: ({
       width = 200,
       height = width,
@@ -534,7 +536,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     },
   };
 
-  const lorem: Mock["lorem"] = {
+  const lorem: Generators["lorem"] = {
     word: () => pool("words"),
     words: (count = 3) =>
       Array.from({ length: count }, () => lorem.word()).join(" "),
@@ -549,14 +551,14 @@ export function createMock(options: CreateMockOptions = {}): Mock {
       capitalize(lorem.words(wordCount ?? random.int(3, 6))),
   };
 
-  const color: Mock["color"] = {
+  const color: Generators["color"] = {
     hex: () => `#${random.hex(6)}`,
     rgb: () =>
       `rgb(${random.int(0, 255)}, ${random.int(0, 255)}, ${random.int(0, 255)})`,
     name: () => pool("colorNames"),
   };
 
-  const string: Mock["string"] = {
+  const string: Generators["string"] = {
     uuid: () => random.uuid(),
     alnum: (length = 8) => random.alnum(length),
     id: (prefix = "") =>
@@ -565,7 +567,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
       `${prefix}${String(index).padStart(pad, "0")}`,
   };
 
-  const helpers: Mock["helpers"] = {
+  const helpers: Generators["helpers"] = {
     arrayElement: (items) => random.pick(items),
     arrayElements: (items, count) => {
       const n =
@@ -602,7 +604,7 @@ export function createMock(options: CreateMockOptions = {}): Mock {
     poolAll,
   };
 
-  const mock: Mock = {
+  const mock: Generators = {
     random,
     locale,
     seed: random.seed,

@@ -1,7 +1,7 @@
 /**
  * DataTable Preset Definitions — 카테고리별 catalog/*.ts 를 한 표로.
  *
- * preset 은 `definePreset({ columns })` 로 정의한다 — 컬럼마다 규칙 (`MockRule`,
+ * preset 은 `definePreset({ columns })` 로 정의한다 — 컬럼마다 규칙 (`SampleRule`,
  * mockaroo 어법) 이 데이터로 붙어 있고 스키마·샘플 행은 거기서 파생된다. 생성기는
  * `@composition/sample-data` (자체 모듈 — faker · randomuser · dummyjson · picsum 패턴 이식).
  *

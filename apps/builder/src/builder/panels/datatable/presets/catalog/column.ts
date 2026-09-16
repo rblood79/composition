@@ -4,7 +4,7 @@
  */
 
 import type { DataFieldType } from "../../../../../types/builder/data.types";
-import type { MockRule } from "@composition/sample-data";
+import type { SampleRule } from "@composition/sample-data";
 import type { PresetColumn } from "../types";
 
 export interface ColumnExtra {
@@ -17,14 +17,14 @@ export function col(
   key: string,
   type: DataFieldType,
   label: string,
-  rule: MockRule,
+  rule: SampleRule,
   extra: ColumnExtra = {},
 ): PresetColumn {
   return { key, type, labelKey: `presetField.${label}`, rule, ...extra };
 }
 
 /** 첫 컬럼 관용구 — 필수 id */
-export const idCol = (rule: MockRule = { kind: "rowNumber" }): PresetColumn =>
+export const idCol = (rule: SampleRule = { kind: "rowNumber" }): PresetColumn =>
   col("id", rule.kind === "rowNumber" ? "number" : "string", "id", rule, {
     required: true,
   });
