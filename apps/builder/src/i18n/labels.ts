@@ -155,6 +155,7 @@ export const semanticLabelKeys: Record<string, string> = {
   Ratio: "styles.layout.ratio",
   Left: "styles.transform.left",
   Top: "styles.transform.top",
+  Side: "propertiesPanel.labelPositionSide",
   "Toggle constraints": "styles.transform.toggleConstraints",
   "Lock aspect ratio": "styles.transform.lockAspectRatio",
   "Size constraints": "styles.transform.sizeConstraints",

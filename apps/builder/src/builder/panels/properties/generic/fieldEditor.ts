@@ -91,7 +91,7 @@ const ICON_SEG: Readonly<Record<string, Readonly<Record<string, LucideIcon>>>> =
     orientation: { horizontal: MoveHorizontal, vertical: MoveVertical },
     labelAlign: { start: AlignLeft, center: AlignCenter, end: AlignRight },
     align: { start: AlignLeft, center: AlignCenter, end: AlignRight },
-    labelPosition: { top: PanelTop, side: PanelLeft },
+    // labelPosition (Top · Side) 은 글자 seg — 아이콘은 가독성이 떨어진다 (2026-09-16 사용자 판정)
     legendPosition: {
       top: PanelTop,
       bottom: PanelBottom,

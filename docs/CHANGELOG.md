@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Properties 패널 — Label Position 은 글자 seg (Top · Side)] - 2026-09-16
+
+### Changed
+
+- 필드 가족·Form 의 「Label Position」 seg 가 아이콘 (PanelTop · PanelLeft) 대신 글자 「Top · Side」 (ko 「위쪽 · 옆」) 로 — 아이콘 두 개로는 위/옆 구분이 한눈에 안 읽힌다는 사용자 판정. 반폭 seg 그대로, Label Align 등 정렬 아이콘 seg 는 그대로. (2026-09-16)
+
 ## [필드 가족 — Necessity Indicator 기본값 `icon`] - 2026-09-16
 
 ### Changed

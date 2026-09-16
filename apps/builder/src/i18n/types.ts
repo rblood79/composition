@@ -546,6 +546,8 @@ export interface TranslationKeys {
     idDeduped: string;
     idAssigned: string;
     resetField: string;
+    /** Label Position 글자 seg 의 「옆」 (Top 은 styles.transform.top 재사용) */
+    labelPositionSide: string;
     legacyBinding: string;
     fieldMapValue: string;
     fieldMapIcon: string;

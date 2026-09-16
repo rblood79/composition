@@ -84,7 +84,6 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
     for (const key of [
       "orientation",
       "labelAlign",
-      "labelPosition",
       "legendPosition",
       "stackType",
       "curve",
@@ -95,6 +94,14 @@ describe("fieldEditor — 사용자 판정 매핑", () => {
         expect(editor.type, key).toBe("seg");
         expect(editor.type === "seg" && editor.icons != null, key).toBe(true);
       }
+    }
+    // labelPosition (Top · Side) 은 글자 seg — 아이콘은 가독성이 떨어진다 (2026-09-16 사용자 판정)
+    for (const { field } of byKey("labelPosition")) {
+      expect(resolveFieldEditor(field)).toMatchObject({
+        type: "seg",
+        span: "half",
+      });
+      expect(resolveFieldEditor(field)).not.toHaveProperty("icons");
     }
     expect(editorOf("Popover", "placement").type).toBe("placement");
     expect(editorOf("Button", "staticColor").type).toBe("swatch-seg");
