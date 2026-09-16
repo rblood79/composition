@@ -54,7 +54,7 @@ const checks = {
   beforeSameRevision: beforeBuilder.revision.sha === beforePreview.revision.sha,
   afterSameRevision: afterBuilder.revision.sha === afterPreview.revision.sha,
   builderAbsolute: after.builder <= 1319829,
-  previewAbsolute: after.preview <= 675691, // 202 재승인 2026-09-16 (219 675021 대체)
+  previewAbsolute: after.preview <= 592000, // 202 후속 (b) Preview i18n barrel 분리 2026-09-16 실측 592,000 (재승인 675,691 → 조임)
   builderDelta: delta.builder <= 3.5 * 1024,
   previewDelta: delta.preview <= 0,
   budgetCurrent: new Date().toISOString().slice(0, 10) <= "2026-10-16",

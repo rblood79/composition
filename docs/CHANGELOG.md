@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **ADR-202 Implemented 2026-09-16** — 사용자 판정 (a) 저장소 initial 절대 상한을 202 재승인값 **Builder ≤ 1,319,829 / Preview ≤ 675,691 B gzip (만료 2026-10-16, 219 대체)** 으로 재승인해 G5 종결 (초과 +670 B 는 202 밖 Properties i18n 키 → Preview 공유 locale 청크) · (b) Preview locale 분리 후 재측정은 별도 후속. `docs/adr/completed/202-*.md` 이관 · README 권장 착수 순서 1위 → 013.
+- **Preview initial −89.7 KB gzip (−13.2%)** — Preview 런타임이 `i18n` barrel 을 통해 Builder 번역 표 (raw 245 KB) 와 Properties 라벨 표를 initial 에 싣고 있었다 (Preview 의 i18n 소비는 locale 판독 3개뿐, t() 호출 0). `PreviewLocale.tsx` 가 `i18n/locales` 를 직접 읽는다; 가드 `preview/previewI18nImport.static.test.ts` (barrel · translations/labels · t() 호출 금지). 같은 HEAD worktree A/B: Preview 681,726 → 592,000 B · Builder −28 B. Preview 절대 상한을 592,000 으로 조임 (ADR-202 후속 (b), 사용자 판정).
 - ADR-202 Implemented 승격 판정 live 2차 (`apps/builder/scripts/adr202-promotion-live.mjs`, 실제 Ollama qwen3:14b 설정 상태): direct 4 회 모델 호출 0 · 모호 요청은 Agent 로 실모델 호출 1 · rollback 키 on/off 경로 · page error 0. 번들 HEAD 재측정에서 Preview 절대 상한 (ADR-219) +670 B 초과는 202 밖 (Properties 패널 i18n 키가 Preview 공유 locale 청크를 키움) (같은 날 위 판정으로 Implemented).
 
 ## [Data 패널 — Add Table preset 확장 (자체 Mock 데이터 모듈)] - 2026-09-16
