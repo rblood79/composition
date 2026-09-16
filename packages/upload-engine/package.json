@@ -1,0 +1,60 @@
+{
+  "name": "@composition/upload",
+  "version": "0.1.0",
+  "description": "대용량 파일 업로드 전송 엔진 — sans-I/O TUS 1.0 상태기계 + XHR/Fetch driver, 런타임 의존 0 (ADR-201)",
+  "license": "UNLICENSED",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs"
+    },
+    "./vanilla": {
+      "types": "./dist/vanilla/index.d.ts",
+      "import": "./dist/vanilla/index.js",
+      "require": "./dist/vanilla/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:size": "vitest run src/size.gate.test.ts",
+    "lint": "eslint src/",
+    "measure:size": "node scripts/measure-size.mjs",
+    "mock-server": "node test/mockTusServer.ts --listen",
+    "live": "node scripts/live.mjs"
+  },
+  "devDependencies": {
+    "@composition/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/react": "catalog:",
+    "eslint": "catalog:",
+    "playwright": "^1.62.1",
+    "react": "catalog:",
+    "tsup": "^8.5.1",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "gate": "G0",
+  "date": "2026-09-16T18:47:10.768Z",
+  "chromium": "151.0.7922.34",
+  "fileSize": 104857600,
+  "chunkSize": 8388608,
+  "abortAfterBytes": 52552256,
+  "downAfterBytes": 78708736,
+  "progressEvents": 15,
+  "progressMonotonic": true,
+  "disconnects": [
+    {
+      "failedAt": 58720256,
+      "serverOffset": 52576256
+    },
+    {
+      "failedAt": 79020032,
+      "serverOffset": 78725120
+    }
+  ],
+  "failureCodes": [
+    "http-status",
+    "E_NETWORK",
+    "E_NETWORK",
+    "E_NETWORK"
+  ],
+  "serverAborted": 2,
+  "headResumeOffset": 52576256,
+  "serverBytesReceived": 113246208,
+  "retransmitted": {
+    "clientBytes": 14827520,
+    "serverReceivedMinusSize": 8388608,
+    "withinChunkSize": false
+  },
+  "finalServerOffset": 104857600,
+  "serverPatches": 15,
+  "done": true,
+  "elapsedMs": 599,
+  "pass": true
+}
