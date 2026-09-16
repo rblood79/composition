@@ -28,7 +28,7 @@ export type UploadEvent =
 export type HttpOp = "create" | "head" | "patch" | "delete";
 
 export type Command =
-  | { kind: "http"; op: HttpOp; start?: number; end?: number }
+  | { kind: "http"; op: HttpOp; start?: number; end?: number; url?: string }
   | { kind: "persist"; fingerprint: string; url: string; expires?: number }
   | { kind: "forget"; fingerprint: string }
   | { kind: "wait"; ms: number }

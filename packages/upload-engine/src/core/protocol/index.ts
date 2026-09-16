@@ -185,7 +185,7 @@ export function reduce(
         { kind: "forget", fingerprint: s.fingerprint },
       ];
       if (c.terminate && s.url && !c.single)
-        cmds.push({ kind: "http", op: "delete" });
+        cmds.push({ kind: "http", op: "delete", url: s.url });
       return [
         {
           ...s,

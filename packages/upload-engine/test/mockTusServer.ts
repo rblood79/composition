@@ -17,6 +17,32 @@ import { createHash, randomUUID } from "node:crypto";
 import { createServer } from "node:http";
 import type { IncomingMessage, Server, ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
+import { ERROR_TABLE, statusOf } from "../src/errors.ts";
+
+// 응답 status 는 클라이언트 어댑터와 같은 표 (src/errors.ts) 에서 — 3자 대조 (서버 계약 문서 · 어댑터 · mock)
+const S = {
+  offsetMismatch: statusOf("E_OFFSET_MISMATCH"),
+  expired: statusOf("E_EXPIRED"),
+  tooLarge: statusOf("E_TOO_LARGE"),
+  patchBlocked: statusOf("E_PATCH_BLOCKED"),
+  checksum: statusOf("E_CHECKSUM"),
+  proxyTimeout: statusOf("E_PROXY_TIMEOUT"),
+  unauthenticated: 401,
+  forbidden: 403,
+  rejected: 400,
+  unsupportedMedia: 415,
+};
+for (const [code, st] of [
+  ["E_UNAUTHORIZED", 401],
+  ["E_UNAUTHORIZED", 403],
+  ["E_REJECTED", 400],
+  ["E_REJECTED", 415],
+  ["E_EXPIRED", 404],
+] as const) {
+  if (!(ERROR_TABLE[code].status as readonly number[]).includes(st)) {
+    throw new Error(`errors.ts 표와 mock 서버 status 불일치: ${code} ${st}`);
+  }
+}
 
 export interface MockTusOptions {
   /** 기본 `/files` */
@@ -117,12 +143,14 @@ export function validatePathName(
   if (/[\x00-\x1f\x7f]/.test(value)) return "control character";
   const norm = value.normalize("NFC");
   if (/^[a-zA-Z]:/.test(norm)) return "drive letter";
-  if (norm.startsWith("/") || norm.startsWith("\\")) return "absolute path";
   if (norm.startsWith("\\\\") || norm.startsWith("//")) return "unc path";
-  const segments = allowSeparators ? norm.split(/[\\/]/) : [norm];
+  if (norm.startsWith("/") || norm.startsWith("\\")) return "absolute path";
+  const segments = norm.split(/[\\/]/);
   for (const seg of segments) {
-    if (!allowSeparators && /[\\/]/.test(seg)) return "separator";
     if (seg === "" || seg === "." || seg === "..") return "traversal";
+  }
+  if (!allowSeparators && segments.length > 1) return "separator";
+  for (const seg of segments) {
     if (seg.length > 255) return "segment too long";
     if (RESERVED.test(seg)) return "reserved name";
     if (/[<>:"|?*]/.test(seg)) return "forbidden character";
@@ -140,8 +168,9 @@ export function decodeMetadata(header: string | undefined): {
   for (const pair of header.split(",")) {
     const trimmed = pair.trim();
     if (!trimmed) continue;
-    const [key, b64] = trimmed.split(" ");
-    if (!key || !/^[A-Za-z0-9_-]+$/.test(key))
+    const parts = trimmed.split(" ");
+    const [key, b64] = parts;
+    if (parts.length > 2 || !key || !/^[A-Za-z0-9_-]+$/.test(key))
       return { metadata, error: "bad key" };
     if (key in metadata) return { metadata, error: "duplicate key" };
     if (b64 === undefined) {
@@ -293,14 +322,14 @@ export function createMockTusServer(
 
   function checkCommon(req: IncomingMessage, res: ServerResponse): boolean {
     if (options.rejectAuth) {
-      finish(req, res, 401, {}, "unauthorized");
+      finish(req, res, S.unauthenticated, {}, "unauthorized");
       return false;
     }
     const csrf = options.requireCsrfHeader;
     const m = (req.method ?? "").toUpperCase();
     if (csrf && (m === "POST" || m === "PATCH" || m === "DELETE")) {
       if (!req.headers[csrf.toLowerCase()]) {
-        finish(req, res, 403, {}, "csrf token missing");
+        finish(req, res, S.forbidden, {}, "csrf token missing");
         return false;
       }
     }
@@ -318,13 +347,13 @@ export function createMockTusServer(
       return null;
     }
     if (expired(u)) {
-      finish(req, res, 410, {}, "expired");
+      finish(req, res, S.expired, {}, "expired");
       return null;
     }
     const ownerHeader = options.ownerHeader ?? "X-Owner";
     const owner = req.headers[ownerHeader.toLowerCase()];
     if (u.owner !== null && owner !== u.owner) {
-      finish(req, res, 403, {}, "forbidden (owner mismatch)");
+      finish(req, res, S.forbidden, {}, "forbidden (owner mismatch)");
       return null;
     }
     return u;
@@ -334,28 +363,28 @@ export function createMockTusServer(
     await drain(req);
     if (!checkCommon(req, res)) return;
     if (req.headers["upload-defer-length"] !== undefined) {
-      return finish(req, res, 400, {}, "Upload-Defer-Length not allowed");
+      return finish(req, res, S.rejected, {}, "Upload-Defer-Length not allowed");
     }
     const lenRaw = req.headers["upload-length"];
     const length = Number(lenRaw);
     if (lenRaw === undefined || !Number.isInteger(length) || length < 0) {
-      return finish(req, res, 400, {}, "Upload-Length invalid");
+      return finish(req, res, S.rejected, {}, "Upload-Length invalid");
     }
     if (options.maxSize !== undefined && length > options.maxSize) {
-      return finish(req, res, 413, {}, "Upload-Length exceeds Tus-Max-Size");
+      return finish(req, res, S.tooLarge, {}, "Upload-Length exceeds Tus-Max-Size");
     }
     const { metadata, error } = decodeMetadata(
       req.headers["upload-metadata"] as string | undefined,
     );
-    if (error) return finish(req, res, 400, {}, `Upload-Metadata ${error}`);
+    if (error) return finish(req, res, S.rejected, {}, `Upload-Metadata ${error}`);
     if (metadata.filename !== undefined) {
       const why = validatePathName(metadata.filename, false);
-      if (why) return finish(req, res, 400, {}, `filename rejected: ${why}`);
+      if (why) return finish(req, res, S.rejected, {}, `filename rejected: ${why}`);
     }
     if (metadata.relativePath !== undefined && metadata.relativePath !== "") {
       const why = validatePathName(metadata.relativePath, true);
       if (why)
-        return finish(req, res, 400, {}, `relativePath rejected: ${why}`);
+        return finish(req, res, S.rejected, {}, `relativePath rejected: ${why}`);
     }
     const id = randomUUID();
     const ownerHeader = options.ownerHeader ?? "X-Owner";
@@ -403,7 +432,7 @@ export function createMockTusServer(
       return finish(
         req,
         res,
-        415,
+        S.unsupportedMedia,
         {},
         "Content-Type must be application/offset+octet-stream",
       );
@@ -416,7 +445,7 @@ export function createMockTusServer(
       return finish(
         req,
         res,
-        409,
+        S.offsetMismatch,
         { "Upload-Offset": String(u.offset) },
         `offset mismatch (server ${u.offset}, client ${offset})`,
       );
@@ -432,7 +461,7 @@ export function createMockTusServer(
         return finish(
           req,
           res,
-          400,
+          S.rejected,
           {},
           "Upload-Checksum algorithm unsupported",
         );
@@ -444,6 +473,7 @@ export function createMockTusServer(
     const streamCommit = options.commitMode !== "chunk" && !hash;
     let received = 0;
     let aborted = false;
+    const parts: Buffer[] = [];
     const abortAt = options.abortAfterBytes;
     let gatewayTimeout = options.gatewayTimeoutMs;
     const hang = options.hangPatch;
@@ -455,12 +485,9 @@ export function createMockTusServer(
       stats.bytesReceived += chunk.length;
       u.bytesReceived += chunk.length;
       if (hash) hash.update(chunk);
-      if (
-        u.bytes &&
-        u.bytes.reduce((n, b) => n + b.length, 0) < 16 * 1024 ** 2
-      ) {
-        u.bytes.push(Buffer.from(chunk));
-      }
+      if (u.bytes && u.bytesReceived < 16 * 1024 ** 2) parts.push(Buffer.from(chunk));
+      // stream 커밋은 바이트도 즉시 보관 (tusd 동형)
+      if (streamCommit && u.bytes) u.bytes.push(parts.pop()!);
       if (streamCommit) {
         // stream 커밋 — 길이 초과분은 잘라서 400 로 마감
         u.offset = Math.min(u.length, offset + received);
@@ -515,7 +542,7 @@ export function createMockTusServer(
             // 커밋 안 함
           }
           setTimeout(
-            () => finish(req, res, 504, {}, "gateway timeout"),
+            () => finish(req, res, S.proxyTimeout, {}, "gateway timeout"),
             gatewayTimeout,
           );
           gatewayTimeout = undefined;
@@ -538,13 +565,16 @@ export function createMockTusServer(
             return finish(
               req,
               res,
-              460,
+              S.checksum,
               { "Upload-Offset": String(u.offset) },
               "checksum mismatch",
             );
           }
         }
-        if (!streamCommit) u.offset = offset + received;
+        if (!streamCommit) {
+          u.offset = offset + received;
+          u.bytes?.push(...parts);
+        }
         finish(req, res, 204, {
           "Upload-Offset": String(u.offset),
           ...expiresHeader(u),
@@ -641,6 +671,20 @@ export function createMockTusServer(
       return finish(req, res, 204, headers);
     }
     const b = base();
+    if (url === `${b}/multipart` && method === "POST") {
+      // multipart fallback 대상 — 바디를 버리고 201 (필드 파싱 없음, 바이트 수만)
+      let n = 0;
+      req.on("data", (c: Buffer) => {
+        n += c.length;
+        stats.bytesReceived += c.length;
+      });
+      req.on("end", () => {
+        stats.creations++;
+        finish(req, res, 201, { Location: `${b}/multipart/${randomUUID()}` });
+        stats.requests[stats.requests.length - 1].bytes = n;
+      });
+      return;
+    }
     if (url === b || url === `${b}/`) {
       if (method === "POST") return void handleCreate(req, res);
       return void drain(req).then(() =>
@@ -658,7 +702,7 @@ export function createMockTusServer(
       if (method === "PATCH") {
         if (options.blockPatch) {
           return void drain(req).then(() =>
-            finish(req, res, 405, {}, "PATCH blocked"),
+            finish(req, res, S.patchBlocked, {}, "PATCH blocked"),
           );
         }
         return handlePatch(req, res, id);
@@ -666,7 +710,7 @@ export function createMockTusServer(
       if (isOverridePatch) {
         if (!options.allowOverride) {
           return void drain(req).then(() =>
-            finish(req, res, 405, {}, "override not allowed"),
+            finish(req, res, S.patchBlocked, {}, "override not allowed"),
           );
         }
         return handlePatch(req, res, id);

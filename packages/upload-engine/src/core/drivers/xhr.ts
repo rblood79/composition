@@ -39,7 +39,7 @@ export function createXhrDriver(): HttpDriver {
             transportError(
               "E_NETWORK",
               xhr.withCredentials
-                ? "network error (연결 단절 또는 CORS 거부 — credentials 모드에서는 Access-Control-Allow-Origin: * 를 쓸 수 없다)"
+                ? "network error (disconnected or CORS rejected)"
                 : "network error",
             ),
           );

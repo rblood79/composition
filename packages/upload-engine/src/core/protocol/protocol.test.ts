@@ -292,7 +292,7 @@ describe("pause / resume / cancel", () => {
     expect(cmds).toEqual([
       { kind: "abort" },
       { kind: "forget", fingerprint: "fp1" },
-      { kind: "http", op: "delete" },
+      { kind: "http", op: "delete", url: "/u" },
     ]);
     expect(s.status).toBe("error");
     expect(s.lastError).toEqual({

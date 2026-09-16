@@ -1,0 +1,96 @@
+{
+  "E_PATCH_BLOCKED": {
+    "status": [
+      405,
+      501
+    ],
+    "retryable": false,
+    "messageKey": "upload.error.patchBlocked",
+    "description": "프록시/WAF 가 PATCH 를 차단 — `overridePatchMethod` (POST + X-HTTP-Method-Override: PATCH). 405 수신 시 1회 자동 전환 후에도 실패하면 이 코드"
+  },
+  "E_PROXY_TIMEOUT": {
+    "status": [
+      504,
+      408,
+      502
+    ],
+    "retryable": true,
+    "messageKey": "upload.error.proxyTimeout",
+    "description": "프록시 timeout (Apache `Timeout` 60s 등) 또는 클라이언트 `requestTimeout` — 다음 청크부터 chunkSize 를 절반으로 (하한 1MB)"
+  },
+  "E_OFFSET_MISMATCH": {
+    "status": [
+      409
+    ],
+    "retryable": true,
+    "messageKey": "upload.error.offsetMismatch",
+    "description": "`Upload-Offset` 불일치 — 대기 없이 HEAD 로 서버 offset 재동기"
+  },
+  "E_TOO_LARGE": {
+    "status": [
+      413
+    ],
+    "retryable": false,
+    "messageKey": "upload.error.tooLarge",
+    "description": "`Tus-Max-Size` / `maxFileSize` 초과 (클라이언트는 OPTIONS 값으로 선차단)"
+  },
+  "E_NETWORK": {
+    "status": [
+      0
+    ],
+    "retryable": true,
+    "messageKey": "upload.error.network",
+    "description": "응답 없음 — 연결 단절, DNS, 또는 CORS 거부 (credentials 모드에서 `Access-Control-Allow-Origin: *` 는 브라우저가 거부)"
+  },
+  "E_UNAUTHORIZED": {
+    "status": [
+      401,
+      403
+    ],
+    "retryable": false,
+    "messageKey": "upload.error.unauthorized",
+    "description": "인증 실패 · 소유자 불일치 · CSRF 토큰 부재 — `getHeaders()` 로 토큰 제공"
+  },
+  "E_EXPIRED": {
+    "status": [
+      410,
+      404
+    ],
+    "retryable": true,
+    "messageKey": "upload.error.expired",
+    "description": "업로드 만료/소멸 (`Upload-Expires` 경과 · TTL GC) — 저장소 forget 후 처음부터 재생성"
+  },
+  "E_CHECKSUM": {
+    "status": [
+      460
+    ],
+    "retryable": true,
+    "messageKey": "upload.error.checksum",
+    "description": "`Upload-Checksum` 불일치 — 서버는 청크를 버리고, 클라이언트는 HEAD 후 같은 청크 재전송"
+  },
+  "E_REJECTED": {
+    "status": [
+      400,
+      415,
+      422
+    ],
+    "retryable": false,
+    "messageKey": "upload.error.rejected",
+    "description": "서버가 요청을 거부 — 파일명 traversal · 메타데이터 형식 · Content-Type · Upload-Defer-Length"
+  },
+  "E_SERVER": {
+    "status": [
+      500,
+      503
+    ],
+    "retryable": true,
+    "messageKey": "upload.error.server",
+    "description": "서버 내부 오류 / 일시 불가 — backoff 재시도"
+  },
+  "E_CANCELLED": {
+    "status": [],
+    "retryable": false,
+    "messageKey": "upload.error.cancelled",
+    "description": "사용자 취소 — termination 확장이 있으면 DELETE"
+  }
+}
