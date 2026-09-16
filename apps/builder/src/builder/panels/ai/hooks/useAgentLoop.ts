@@ -321,6 +321,10 @@ export function useAgentLoop() {
    */
   const stopAgent = useCallback(() => {
     requestRef.current?.abort();
+    // abort 된 fetch 스트림이 실제로 끝나 finally 가 돌 때까지 (Ollama 취소 28~240초 실측)
+    // ref 를 들고 있으면 그 사이 제출이 무음으로 버려진다 — 지금 비운다. 늦게 도는 finally 는
+    // `requestRef.current === request` 검사라 새 요청을 덮지 않는다.
+    requestRef.current = null;
     runnerRef.current?.stop();
     useAIVisualFeedbackStore.getState().cancelGenerating();
     setAgentRunning(false);

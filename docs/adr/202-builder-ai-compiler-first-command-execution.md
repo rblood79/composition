@@ -360,3 +360,35 @@ canonical schema 변경이 없어 routing rollback도 문서 migration 없이 �
   환산하지 않는다. Ollama endpoint/모델이 없어 latency·token·JSON 유효율은 **UNVERIFIED**.
 - 번들 수치와 재현 명령은 breakdown §9, 상세 로컬 근거는
   [실행 evidence](evidence/202-execution-live.md)에 기록한다.
+
+### Live Exercise 2차 — 2026-09-16 승격 판정 (HEAD `3e6623ec9`, 실모델)
+
+사용자 지시 "ADR-202 Implemented 승격 판정 진행해". 새 구현 없이 G0~G6 을 HEAD 에서 재확인했다 — headed
+Playwright Chromium (Chrome MCP 탭은 hidden 으로 RAF 정지) · builder dev 5173 · **Ollama `qwen3:14b`
+(`OLLAMA_CONTEXT_LENGTH=32768`) 프로파일 설정 상태**. 하니스 `apps/builder/scripts/adr202-promotion-live.mjs`,
+로컬 근거 [evidence/202-promotion-live.md](evidence/202-promotion-live.md).
+
+- **G2 (provider 설정 상태에서 direct)**: "버튼 생성해" · "셀렉트 생성해" · rollback 해제 뒤 · Stop 직후 —
+  4 회 전부 **11434 호출 0 · 5173 밖 요청 0**, Button +1 / Select +5 (자식 4), 2.0~2.1 초, "Done.".
+- **G4 (실모델 fallback)**: "이 화면을 조금 더 보기 좋게 정리해줘" → compile `ambiguous` → openai-compatible
+  → `legacy` Agent → qwen3 호출 1 (G4 예외 경로 실증; 첫 응답 후 Stop). 자연 종료 측정에서는 호출당 28~106 초
+  (n_tokens ≈ 10.8k, 11 t/s) · MAX_TURNS 10 — legacy Agent 의 지연이며 202 direct 는 2 초대.
+- **G6 (rollback)**: `composition.ai.compiler.disabled=true` → 같은 "버튼 생성해" 가 Agent 로 (호출 1,
+  mutation 0) → 키 제거 → direct 복귀 (호출 0, Button +1).
+- **suite (HEAD)**: `src/services/ai` 41 파일 356 PASS / 2 skipped · AI 패널 hooks 97 PASS · type-check 0.
+- page error 0.
+- **수리 1건 (202 유래)**: `stopAgent` 가 `requestRef` 를 abort 만 하고 비우지 않아 abort 스트림이 실제로
+  끝날 때까지 (Ollama 취소 28~240 초 실측) 다음 제출이 user 메시지도 없이 버려졌다 (입력창은 열려 있음).
+  `stopAgent` 에서 ref 를 비운다 — `finally` 는 `=== request` 검사라 새 요청을 덮지 않는다. RED→GREEN
+  `useAgentLoop.test.ts` 「Stop 뒤 재전송」 · live D2 (pending 스트림 1 상태에서 즉시 제출 → direct, Button +1).
+- **G5 번들 (HEAD 재측정, before = 1차 frozen `278378d40`, lockfile 동일)**: Builder 1,315,897 B gzip
+  (Δ −6,785, 상한 1,319,829 ✓) · **Preview 675,691 B (Δ +248, 상한 675,021 ✗ +670 B)**. 초과분은 chunk 대조로
+  202 밖 — `278378d40..HEAD` Properties 패널 i18n 키 (`63d38cfd0` 등) 가 Preview 공유 `locales.js` +3,715 ·
+  `i18n.js` +1,889 · `aria-runtime.js` +1,136 을 키웠다 (202 커밋의 i18n 접촉은 4 줄). 202 자체 순증은 1차 그대로
+  음수 (Builder −15,277 / Preview −5,623) · `aiImplementationLazy` · `commandLazy` · `budgetCurrent` PASS.
+- **UNVERIFIED (유지)**: Anthropic one-shot IR 의 JSON·semantic 유효율·latency — `ANTHROPIC_API_KEY` 없음
+  (2026-09-03 사용자 고지, 결제 열릴 때까지 보류). 재개 조건: 키 확보 시 breakdown §7 Q3~Q5. OpenAI-compatible
+  은 설계상 direct 밖을 Agent 로 보내므로 모델 품질은 본 ADR 판정 대상이 아니다.
+- **승격 미결 1건**: HC12 "상한 만료·축소 불가는 재승인 전 G5 실패 유지" — 저장소 절대 상한 (ADR-219 재승인,
+  만료 2026-10-14) 의 Preview +670 B 초과가 202 와 무관하더라도 G5 는 FAIL 로 남는다. 상한 재승인 또는
+  Preview locale 분리 (Preview 는 Properties 패널 라벨을 읽지 않는다 — 별도 작업) 는 사용자 결정.

@@ -10,6 +10,9 @@ const scripted = vi.hoisted(() => ({
   configured: true,
   runnerCreations: 0,
   direct: false,
+  /** Agent 루프를 매달아 둔다 — `release` 로 푼다 (Stop 뒤 재전송 검사). */
+  hang: false,
+  release: null as null | (() => void),
 }));
 
 vi.mock("../../../../services/ai/compiler/runtime", () => ({
@@ -31,6 +34,10 @@ vi.mock("../../../../services/ai/createAgentRunner", () => ({
       orchestrated: true,
       async *runAgentLoop(_messages: unknown, context: unknown) {
         scripted.lastContext = context;
+        if (scripted.hang)
+          await new Promise<void>((resolve) => {
+            scripted.release = resolve;
+          });
         for (const event of scripted.events) yield event;
       },
       stop: () => {},
@@ -95,6 +102,9 @@ afterEach(() => {
   scripted.configured = true;
   scripted.runnerCreations = 0;
   scripted.direct = false;
+  scripted.release?.();
+  scripted.hang = false;
+  scripted.release = null;
 });
 
 /** 훅이 `useI18n` 을 쓰므로 provider 밑에서 돌린다 (ADR-200 R7). */
@@ -238,6 +248,38 @@ describe("ADR-202 direct 진입 순서", () => {
     expect(state.messages.some((m) => m.role === "tool")).toBe(true);
     expect(state.isAgentRunning).toBe(false);
     expect(state.isStreaming).toBe(false);
+  });
+});
+
+describe("Stop 뒤 재전송", () => {
+  it("abort 된 스트림이 아직 안 끝났어도 다음 제출을 버리지 않는다", async () => {
+    // live 2026-09-16: Ollama 스트림 abort 가 실제로 끝나기까지 28~240초 동안 입력창은
+    // 열려 있는데 제출이 무음으로 사라졌다 — 이전 요청의 requestRef 가 남아 있어서.
+    scripted.hang = true;
+    const { result } = renderHook(() => useAgentLoop(), { wrapper });
+    let first: Promise<void> | undefined;
+    await act(async () => {
+      first = result.current.runAgent("이 화면을 보기 좋게 정리해줘");
+      await Promise.resolve();
+    });
+    expect(useConversationStore.getState().isAgentRunning).toBe(true);
+    act(() => result.current.stopAgent());
+    expect(useConversationStore.getState().isAgentRunning).toBe(false);
+
+    scripted.direct = true;
+    await act(async () => {
+      await result.current.runAgent("버튼 생성해");
+    });
+    const state = useConversationStore.getState();
+    expect(state.messages.filter((m) => m.role === "user")).toHaveLength(2);
+    expect(state.messages.some((m) => m.role === "tool")).toBe(true);
+
+    scripted.release?.();
+    await act(async () => {
+      await first;
+    });
+    // 먼저 매달렸던 요청의 finally 가 새 요청 상태를 덮지 않는다
+    expect(useConversationStore.getState().isStreaming).toBe(false);
   });
 });
 
