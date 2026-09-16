@@ -456,6 +456,7 @@ function HistoryPanelContent() {
                       {renamingId === snapshot.id ? (
                         <input
                           className="history-snapshot-rename"
+                          aria-label={t("common.rename")}
                           defaultValue={snapshot.name}
                           autoFocus
                           onFocus={(event) => event.currentTarget.select()}

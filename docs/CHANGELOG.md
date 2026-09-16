@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빌더 패널 — Web Interface Guidelines 감사 (접근성 · 성능 12건)] - 2026-09-16
+
+### Changed
+
+- 아이콘 피커: Lucide 아이콘 1,776 개를 전부 `<button>` 으로 그리던 그리드를 RAC `Autocomplete` + `Virtualizer(GridLayout)` + `ListBox layout="grid"` 로 — 뷰포트 안 8행 (66 셀) 만 그리고, 검색 입력에서 ↑↓←→ · Home/End 로 그리드를 돌며 Enter 로 고른다 (live: 열 6 · 셀 28 · 방향키 가상 포커스 이동 · End 스크롤 273 · Enter/클릭 선택 후 닫힘).
+- 그래디언트 바 핸들: 드래그 전용이던 스톱 핸들에 `role="slider"` + 키보드 (←→ 1% · Shift 10% · Home/End · Delete 삭제) + 포커스 링. 스톱 목록의 색 스와치와 DataTable API import 의 컬럼 행은 `<div onClick>` 에서 `<button aria-pressed>` 로 (live: Shift+← 100→89 · Home 0 · Space 선택 · Delete 로 3→2).
+
+### Fixed
+
+- 아이콘 전용 버튼의 접근 이름: ChildItemManager 삭제 (i18n `common.delete`, Edit 도 `common.edit`) · DataTable Refresh · Variables 편집/삭제 (`title` 만 있던 것에 `aria-label`) · History 스냅샷 이름 변경 입력 (`common.rename`) · Variable 편집기 JSON textarea (`aria-labelledby` 로 제목 연결). 아이콘 피커 검색 입력 포커스는 `:focus` → `:focus-visible`. 가드 `panels/wigA11y.static.test.ts`.
+
 ## [AI 패널 — 로컬 추천 작업의 완료 조건 실행] - 2026-09-16
 
 ### Changed

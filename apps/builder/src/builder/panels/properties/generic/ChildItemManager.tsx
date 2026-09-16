@@ -7,6 +7,7 @@ import {
   useCanonicalPropertyChildren,
   useCanonicalPropertyElements,
 } from "../hooks/useCanonicalPropertyRead";
+import { useOptionalI18n } from "@/i18n";
 
 import "../editors/styles/propertyEditors.css";
 import { ACTION_ICONS } from "../../../config/actionIcons";
@@ -41,6 +42,9 @@ export const ChildItemManager = memo(function ChildItemManager({
 
   const rawChildren = useCanonicalPropertyChildren(elementId);
   const canonicalPropertyElements = useCanonicalPropertyElements();
+  const i18n = useOptionalI18n();
+  const editLabel = i18n ? i18n.t("common.edit") : "Edit";
+  const deleteLabel = i18n ? i18n.t("common.delete") : "Delete";
   const currentPageId = useStore((state) => state.currentPageId);
   const addElement = useStore((state) => state.addElement);
   const setSelectedElements = useStore((state) => state.setSelectedElements);
@@ -108,18 +112,21 @@ export const ChildItemManager = memo(function ChildItemManager({
                     `${childTag} ${index + 1}`,
                 )}
               </span>
-              <div style={{ display: "flex", gap: "4px" }}>
+              <div className="editor-item-actions">
                 <button
+                  type="button"
                   className="editor-item-action"
                   onClick={() => handleSelect(child.id)}
                 >
-                  Edit
+                  {editLabel}
                 </button>
                 <button
+                  type="button"
                   className="editor-item-action"
+                  aria-label={deleteLabel}
                   onClick={() => handleDelete(child.id)}
                 >
-                  <DeleteIcon size={12} />
+                  <DeleteIcon size={12} aria-hidden="true" />
                 </button>
               </div>
             </div>

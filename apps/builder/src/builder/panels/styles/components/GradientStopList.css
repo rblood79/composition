@@ -34,9 +34,16 @@
   .gradient-stop-list__swatch {
     width: 16px;
     height: 16px;
+    padding: 0;
     border-radius: 3px;
     border: 1px solid var(--border);
     flex-shrink: 0;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
   }
 
   .gradient-stop-list__position-scrub {

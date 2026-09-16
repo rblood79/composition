@@ -6,6 +6,7 @@
  * - 핸들: 드래그로 position 조정
  * - 빈 영역 클릭: 새 스톱 추가
  * - Y축 30px 초과 드래그: 스톱 삭제
+ * - 핸들은 `role="slider"` (APG) — ←/→ 1%, Shift 10%, Home/End 0/100, Delete 삭제 (2026-09-16)
  *
  * @since 2026-02-10 Gradient Phase 2
  */
@@ -101,6 +102,43 @@ export const GradientBar = memo(function GradientBar({
     [getPosition, onStopMoveEnd, onStopRemove, stops.length],
   );
 
+  const handleHandleKeyDown = useCallback(
+    (e: React.KeyboardEvent, index: number) => {
+      const stop = stops[index];
+      if (!stop) return;
+      const step = e.shiftKey ? 0.1 : 0.01;
+      let next: number | null = null;
+      switch (e.key) {
+        case "ArrowLeft":
+        case "ArrowDown":
+          next = stop.position - step;
+          break;
+        case "ArrowRight":
+        case "ArrowUp":
+          next = stop.position + step;
+          break;
+        case "Home":
+          next = 0;
+          break;
+        case "End":
+          next = 1;
+          break;
+        case "Delete":
+        case "Backspace":
+          if (stops.length > 2) {
+            e.preventDefault();
+            onStopRemove(index);
+          }
+          return;
+        default:
+          return;
+      }
+      e.preventDefault();
+      onStopMoveEnd(index, Math.max(0, Math.min(1, next)));
+    },
+    [onStopMoveEnd, onStopRemove, stops],
+  );
+
   const handleBarClick = useCallback(
     (e: React.MouseEvent) => {
       if (
@@ -130,6 +168,13 @@ export const GradientBar = memo(function GradientBar({
         <div
           key={index}
           className="gradient-bar__handle"
+          role="slider"
+          tabIndex={0}
+          aria-label={`Stop ${index + 1} position`}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(stop.position * 100)}
+          aria-valuetext={`${Math.round(stop.position * 100)}%`}
           style={{
             left: `${stop.position * 100}%`,
             backgroundColor: stop.color.slice(0, 7),
@@ -137,6 +182,8 @@ export const GradientBar = memo(function GradientBar({
           data-active={index === activeStopIndex || undefined}
           data-dragging={draggingIndex === index || undefined}
           onPointerDown={(e) => handlePointerDown(e, index)}
+          onFocus={() => onStopSelect(index)}
+          onKeyDown={(e) => handleHandleKeyDown(e, index)}
         />
       ))}
     </div>

@@ -10,7 +10,7 @@
  * legacy 데이터 호환으로 타입에만 남아 있다 (`data.types.ts`).
  */
 
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import { Button } from "react-aria-components/Button";
 import { useDataStore } from "../../../stores/data";
 import { useStore } from "../../../stores";
@@ -91,6 +91,7 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
+  const defaultValueHeadingId = useId();
   const currentPageId = useStore((state) => state.currentPageId);
   const ownerPageTitle = useStore((state) =>
     variable.scope === "page"
@@ -167,7 +168,7 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
 
       <div className="section-divider" />
 
-      <h4 className="section-title">
+      <h4 className="section-title" id={defaultValueHeadingId}>
         {i18n
           ? translateKey(
               i18n.t,
@@ -187,6 +188,7 @@ function BasicEditor({ variable, onUpdate }: BasicEditorProps) {
         <div className="json-editor-wrapper">
           <textarea
             className="json-textarea"
+            aria-labelledby={defaultValueHeadingId}
             value={defaultValueStr}
             onChange={(e) => handleDefaultValueChange(e.target.value)}
             placeholder={variable.type === "array" ? "[]" : "{}"}

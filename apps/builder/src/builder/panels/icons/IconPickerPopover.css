@@ -16,7 +16,9 @@
     padding: var(--spacing-sm);
   }
 
+  /* RAC SearchField 루트 — 입력 하나만 (clear 버튼 없음) */
   .icon-picker-search {
+    display: block;
     margin-bottom: var(--spacing-sm);
   }
 
@@ -31,7 +33,7 @@
     font-size: var(--text-xs);
     outline: none;
 
-    &:focus {
+    &:focus-visible {
       border-color: var(--focus-ring);
     }
 
@@ -46,38 +48,47 @@
     margin-bottom: var(--spacing-xs);
   }
 
+  /* Virtualizer(GridLayout) 가 그리는 ListBox — 셀 배치·간격은 IconPickerPopover.tsx 의
+     GRID_LAYOUT_OPTIONS (셀 28 · 간격 7 · 6열), 스크롤 상자는 Virtualizer 가 inline 으로 */
   .icon-picker-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, var(--control-size));
-    gap: var(--spacing-sm);
+    outline: none;
     overflow-y: auto;
+    overscroll-behavior: contain;
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
+
+    &[data-focus-visible] {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: -2px;
+    }
   }
 
+  /* Virtualizer 가 셀 상자 (28×28 absolute) 를 두르고 그 안에 option — 상자를 채운다 */
   .icon-picker-item {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: var(--control-size);
-    height: var(--control-size);
-    border: none;
+    box-sizing: border-box;
+    inline-size: 100%;
+    block-size: 100%;
     border-radius: var(--radius-sm);
     background: transparent;
     color: var(--fg);
     cursor: pointer;
-    padding: 0;
+    outline: none;
 
-    &:hover {
+    &[data-hovered] {
       background: var(--bg-muted);
     }
 
-    &.selected {
+    &[data-selected] {
       background: var(--accent);
       color: var(--fg-on-accent);
     }
 
-    &:focus-visible {
+    /* 검색 입력의 가상 포커스 (Autocomplete) 와 직접 포커스 둘 다 */
+    &[data-focused],
+    &[data-focus-visible] {
       outline: 2px solid var(--focus-ring);
       outline-offset: -2px;
     }

@@ -109,9 +109,14 @@ const StopRow = memo(function StopRow({
       data-active={isActive || undefined}
       onClick={handleClick}
     >
-      <div
+      {/* 스와치가 선택 버튼 — 행 onClick 은 마우스 편의, 키보드 경로는 이 버튼 */}
+      <button
+        type="button"
         className="gradient-stop-list__swatch"
         style={{ backgroundColor: stop.color.slice(0, 7) }}
+        aria-label={`Select stop ${index + 1}`}
+        aria-pressed={isActive}
+        onClick={handleClick}
       />
       <div onClick={(e) => e.stopPropagation()}>
         <ScrubInput

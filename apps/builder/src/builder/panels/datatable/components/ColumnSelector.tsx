@@ -136,12 +136,14 @@ export function ColumnSelector({
       {/* 컬럼 목록 */}
       <div className="column-list">
         {columns.map((column) => (
-          <div
+          <button
             key={column.key}
+            type="button"
             className={`column-item ${column.selected ? "selected" : ""}`}
+            aria-pressed={column.selected}
             onClick={() => handleToggle(column.key)}
           >
-            <div className="column-checkbox">
+            <div className="column-checkbox" aria-hidden="true">
               {column.selected ? (
                 <Check {...iconEditProps} className="check-icon" />
               ) : (
@@ -162,7 +164,7 @@ export function ColumnSelector({
                 </span>
               </div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 

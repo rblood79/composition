@@ -175,8 +175,9 @@ export function DataTablePanel({ isActive }: PanelProps) {
             type="button"
             onClick={handleRefresh}
             title={localize("refresh", "Refresh")}
+            aria-label={localize("refresh", "Refresh")}
           >
-            <RefreshCw size={iconProps.size} />
+            <RefreshCw size={iconProps.size} aria-hidden="true" />
           </button>
         }
       />

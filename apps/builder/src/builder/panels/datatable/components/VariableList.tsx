@@ -271,16 +271,18 @@ export function VariableList({ projectId }: VariableListProps) {
           className="iconButton"
           onClick={(e) => handleEdit(variable.id, e)}
           title={localize("edit", "Edit")}
+          aria-label={localize("edit", "Edit")}
         >
-          <SquarePen {...iconEditProps} />
+          <SquarePen {...iconEditProps} aria-hidden="true" />
         </button>
         <button
           type="button"
           className="iconButton"
           onClick={(e) => handleDelete(variable.id, e)}
           title={localize("delete", "Delete")}
+          aria-label={localize("delete", "Delete")}
         >
-          <DeleteIcon {...iconEditProps} />
+          <DeleteIcon {...iconEditProps} aria-hidden="true" />
         </button>
       </div>
     </div>

@@ -53,14 +53,26 @@
   background: var(--bg-overlay);
 }
 
+/* 행 전체가 토글 버튼 (`<button aria-pressed>`) — 키보드 Space/Enter 로도 선택 */
 .column-item {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  width: 100%;
   padding: var(--spacing-xs) var(--spacing-sm);
+  border: 0;
+  border-bottom: 1px solid var(--border-disabled);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
   cursor: pointer;
   transition: background 0.15s ease;
-  border-bottom: 1px solid var(--border-disabled);
+}
+
+.column-item:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: -2px;
 }
 
 .column-item:last-child {

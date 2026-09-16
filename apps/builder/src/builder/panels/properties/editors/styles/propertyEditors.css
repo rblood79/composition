@@ -22,4 +22,9 @@
     gap: var(--spacing-xs);
   }
 
+  /* 목록 행 오른쪽의 편집·삭제 버튼 묶음 (ChildItemManager) */
+  .editor-item-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+  }
 }
