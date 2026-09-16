@@ -30,22 +30,14 @@ import {
   type SampleGenerationContext,
   type TableSpec,
 } from "../data/tableSpec";
+import { presetTranslateFromStoredLocale } from "../../../builder/panels/datatable/presets/presetStrings";
+import { resolveMockLocale } from "../../mockData";
 
 const PREVIEW_ROWS = 5;
 
-/** preset 카탈로그의 locale 풀 (`presetData.*`) — 쉼표+공백 구분 계약 */
-function poolsFrom(t: ToolTranslate): SampleGenerationContext["pools"] {
-  const pool = (key: string): string[] | undefined => {
-    const text = t(`presetData.${key}`);
-    return text && text !== `presetData.${key}`
-      ? text.split(", ").filter(Boolean)
-      : undefined;
-  };
-  return {
-    firstNames: pool("firstNames"),
-    lastNames: pool("lastNames"),
-    companies: pool("companies"),
-  };
+/** 생성기 locale — preset 카탈로그 (lazy 표) 의 `presetData.*` 풀, 저장된 locale */
+function localeFrom(): SampleGenerationContext["locale"] {
+  return resolveMockLocale(presetTranslateFromStoredLocale());
 }
 
 /** 순수 — spec → (행 · 검증 · op). 오류는 문자열 목록. */
@@ -117,7 +109,7 @@ export const createTableFromDescriptionTool: ToolExecutor = {
           name: c.name,
           rows: c.mockData ?? [],
         })),
-        pools: poolsFrom(t),
+        locale: localeFrom(),
         existingNames: collections.map((c) => c.name),
         t,
       });

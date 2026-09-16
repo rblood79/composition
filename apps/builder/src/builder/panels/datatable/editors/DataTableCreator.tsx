@@ -66,6 +66,7 @@ import type { DataTablePreset } from "../presets/types";
 import { PRESET_CATEGORIES } from "../presets/types";
 import { getPresetsByCategory } from "../presets/dataTablePresets";
 import { resolvePresetSchema, type PresetTranslate } from "../presets/types";
+import { resolvePresetTranslate } from "../presets/presetStrings";
 import { parsePastedRows } from "../utils/pasteRows";
 import { columnsToSchema, detectColumns } from "../utils/columnDetector";
 import { useDataTableEditorStore } from "../stores/dataTableEditorStore";
@@ -190,10 +191,11 @@ export function DataTableCreator({
     key: string,
     params?: Record<string, string | number | boolean>,
   ) => (i18n ? i18n.t(`datatable.${key}`, params) : key);
-  /** preset 문구 해소기 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const tr = useCallback<PresetTranslate>(
-    (key, params) => (i18n ? i18n.t(key, params) : key),
-    [i18n],
+  /** preset 문구 해소기 — preset 카탈로그 (lazy 표), locale 은 provider 의 것 (밖이면 en) */
+  const locale = i18n?.locale;
+  const tr = useMemo<PresetTranslate>(
+    () => resolvePresetTranslate(locale),
+    [locale],
   );
   const createDataTable = useDataStore((state) => state.createDataTable);
   const openApiCreator = useDataTableEditorStore(

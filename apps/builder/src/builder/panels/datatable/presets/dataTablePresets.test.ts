@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { localizedStrings } from "../../../../i18n/translations";
+import { PRESET_STRINGS, resolvePresetTranslate } from "./presetStrings";
 import {
   DATATABLE_PRESETS,
   getAllPresets,
@@ -7,19 +7,10 @@ import {
 } from "./dataTablePresets";
 import { PRESET_CATEGORIES, resolvePresetSchema } from "./types";
 
-const ko = localizedStrings["ko-KR"] as Record<string, unknown>;
-const en = localizedStrings["en-US"] as Record<string, unknown>;
-/** 적용 시점 해소기와 같은 모양 — 카탈로그 값, 함수 메시지는 호출 */
-const tOf =
-  (catalog: Record<string, unknown>) =>
-  (key: string, params?: Record<string, string | number | boolean>) => {
-    const value = catalog[key];
-    if (typeof value === "function")
-      return String((value as (args?: unknown) => string)(params));
-    return typeof value === "string" ? value : key;
-  };
-const tKo = tOf(ko);
-const tEn = tOf(en);
+const ko = PRESET_STRINGS["ko-KR"] as Record<string, unknown>;
+const en = PRESET_STRINGS["en-US"] as Record<string, unknown>;
+const tKo = resolvePresetTranslate("ko-KR");
+const tEn = resolvePresetTranslate("en-US");
 
 const isEmpty = (value: unknown) =>
   value === undefined || value === null || value === "";

@@ -116,6 +116,39 @@ describe("generateSampleRows", () => {
     expect(validateSampleRows(spec, generateSampleRows(spec, { collections: [] }), { collections: [] })).toEqual([]);
   });
 
+  it("mock 규칙 — services/mockData 생성기 (사실적 값) · key 힌트 phone/city/address · locale 풀", () => {
+    const spec: TableSpec = {
+      name: "People",
+      sampleCount: 4,
+      fields: [
+        { key: "card", type: "string", generate: { kind: "mock", type: "creditCardNumber" } },
+        { key: "avatar", type: "image", generate: { kind: "mock", type: "avatar" } },
+        { key: "phone", type: "string" },
+        { key: "city", type: "string" },
+        { key: "shippingAddress", type: "string" },
+        { key: "ownerName", type: "string" },
+      ],
+    };
+    const ctx = {
+      collections: [],
+      pools: { firstNames: ["민준"], lastNames: ["김"] },
+    };
+    const rows = generateSampleRows(spec, ctx);
+    expect(rows).toEqual(generateSampleRows(spec, ctx));
+    for (const row of rows) {
+      expect(String(row.card)).toMatch(/^\d{15,16}$/);
+      expect(String(row.avatar)).toMatch(/^https:\/\/randomuser\.me\/api\/portraits\//);
+      expect(String(row.phone)).toMatch(/^\(\d{3}\) \d{3}-\d{4}$/);
+      expect(typeof row.city).toBe("string");
+      expect(String(row.shippingAddress).length).toBeGreaterThan(5);
+      expect(row.ownerName).toBe("민준 김");
+    }
+    expect(validateSampleRows(spec, rows, ctx)).toEqual([]);
+    expect(
+      (tableSpecJsonSchema() as { properties?: unknown }).properties,
+    ).toBeDefined();
+  });
+
   it("reference 대상이 없으면 null (검증이 reference-broken 으로 잡는다)", () => {
     const rows = generateSampleRows(blog, { collections: [] });
     expect(rows.every((r) => r.author === null)).toBe(true);

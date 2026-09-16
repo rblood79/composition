@@ -12,12 +12,88 @@
  */
 import { DATA_FIELD_TYPES, type DataFieldShape } from "@composition/shared";
 import { z } from "zod";
+import {
+  FALLBACK_LOCALE,
+  createMock,
+  generateValue,
+  type Mock,
+  type MockLocale,
+  type MockRule,
+} from "../../mockData";
 
 export const SAMPLE_ROWS_DEFAULT = 5;
 export const SAMPLE_ROWS_MAX = 50;
 export const TABLE_FIELDS_MAX = 40;
 
+/**
+ * 옵션 없는 `MockRule` 종류 — 모델이 고를 수 있는 사실적 값 (이름 · 주소 · 상품 · 금융 · 이미지).
+ * `services/mockData` 의 생성기를 그대로 쓴다 (2026-09-16 후속 — preset 과 같은 모듈).
+ */
+export const MOCK_RULE_TYPES = [
+  "uuid",
+  "gender",
+  "firstName",
+  "lastName",
+  "fullName",
+  "jobTitle",
+  "jobLevel",
+  "birthDate",
+  "email",
+  "username",
+  "url",
+  "ipv4",
+  "mac",
+  "userAgent",
+  "phone",
+  "cell",
+  "street",
+  "streetAddress",
+  "city",
+  "district",
+  "region",
+  "country",
+  "postcode",
+  "address",
+  "latitude",
+  "longitude",
+  "timezone",
+  "company",
+  "department",
+  "industry",
+  "productName",
+  "productCategory",
+  "brand",
+  "sku",
+  "barcode",
+  "price",
+  "availability",
+  "reviewComment",
+  "amount",
+  "currency",
+  "cardType",
+  "creditCardNumber",
+  "cardExpiry",
+  "accountNumber",
+  "merchant",
+  "transactionCategory",
+  "transactionType",
+  "word",
+  "title",
+  "quote",
+  "quoteAuthor",
+  "avatar",
+  "colorHex",
+  "colorName",
+] as const satisfies readonly MockRule["kind"][];
+
+export type MockRuleType = (typeof MOCK_RULE_TYPES)[number];
+
 const GenerateRuleSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("mock"),
+    /** 사실적 값 종류 — `MOCK_RULE_TYPES` */
+    type: z.enum(MOCK_RULE_TYPES),
+  }),
   z.object({
     kind: z.literal("enum"),
     values: z.array(z.string().min(1)).min(1).max(50),
@@ -123,29 +199,6 @@ export function tableSpecJsonSchema(): Record<string, unknown> {
   return z.toJSONSchema(TableSpecSchema) as Record<string, unknown>;
 }
 
-// ---------- 결정적 난수 ----------
-
-function hashSeed(text: string): number {
-  let h = 2166136261;
-  for (const ch of text) {
-    h ^= ch.codePointAt(0) ?? 0;
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-/** mulberry32 */
-function rng(seed: number): () => number {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
 // ---------- 생성 ----------
 
 export interface SampleGenerationContext {
@@ -157,20 +210,33 @@ export interface SampleGenerationContext {
   }[];
   /** 이름 · 회사 풀 — preset 카탈로그 (`presetData.*`). 생략 시 영문 기본 풀 */
   pools?: { firstNames?: string[]; lastNames?: string[]; companies?: string[] };
+  /** 생성기 locale 전체 (`resolveMockLocale`) — 있으면 `pools` 보다 우선 */
+  locale?: MockLocale;
 }
 
-const DEFAULT_FIRST = ["Ana", "Bo", "Cy", "Dee", "Eli", "Fay", "Gus", "Ida"];
-const DEFAULT_LAST = ["Kim", "Lee", "Park", "Choi", "Jung", "Kang", "Cho"];
-const DEFAULT_COMPANY = ["Acme", "Globex", "Initech", "Umbrella", "Hooli"];
-const WORDS =
-  "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua".split(
-    " ",
-  );
+/** ctx → 생성기 locale. `pools` 는 이름·회사 세 풀만 덮는다 (BC). */
+function localeOf(ctx: SampleGenerationContext): MockLocale {
+  const base = ctx.locale ?? FALLBACK_LOCALE;
+  const { pools } = ctx;
+  if (!pools) return base;
+  return {
+    ...base,
+    ...(pools.firstNames
+      ? { firstNamesMale: pools.firstNames, firstNamesFemale: pools.firstNames }
+      : {}),
+    ...(pools.lastNames ? { lastNames: pools.lastNames } : {}),
+    ...(pools.companies ? { companies: pools.companies } : {}),
+  };
+}
 
 const KEY_HINTS: Array<[RegExp, GenerateRule]> = [
   [/^(id|uuid|_id)$|Id$/, { kind: "sequence" }],
   [/name$|^author$|^owner$|^user$|^assignee$/i, { kind: "name" }],
   [/company|vendor|supplier|org/i, { kind: "company" }],
+  [/phone|tel$|mobile/i, { kind: "mock", type: "phone" }],
+  [/^(city|town)$/i, { kind: "mock", type: "city" }],
+  [/address/i, { kind: "mock", type: "address" }],
+  [/^(sku|barcode)$/i, { kind: "mock", type: "sku" }],
   [/mail/i, { kind: "email" }],
   [/url|link|href/i, { kind: "url" }],
   [/image|avatar|photo|thumb/i, { kind: "image" }],
@@ -219,10 +285,6 @@ function slug(text: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function pick<T>(random: () => number, items: readonly T[]): T {
-  return items[Math.floor(random() * items.length)];
-}
-
 function isoDate(ms: number, withTime: boolean): string {
   const iso = new Date(ms).toISOString();
   return withTime ? iso : iso.slice(0, 10);
@@ -244,61 +306,53 @@ function resolveReference(
     .filter((value) => value !== undefined && value !== null);
 }
 
-function generateValue(
+function generateFieldValue(
   field: FieldSpec,
   rule: GenerateRule,
   index: number,
-  random: () => number,
+  mock: Mock,
+  row: Record<string, unknown>,
   ctx: SampleGenerationContext,
 ): unknown {
-  const first = ctx.pools?.firstNames ?? DEFAULT_FIRST;
-  const last = ctx.pools?.lastNames ?? DEFAULT_LAST;
-  const companies = ctx.pools?.companies ?? DEFAULT_COMPANY;
+  const random = mock.random.next;
   const withTime = field.type === "datetime";
   switch (rule.kind) {
+    case "mock":
+      return generateValue({ kind: rule.type } as MockRule, {
+        index,
+        row,
+        mock,
+        references: {},
+        t: (key) => key,
+      });
     case "enum":
       return rule.values[index % rule.values.length];
     case "sequence":
       return `${rule.prefix ?? ""}${(rule.start ?? 1) + index}`;
     case "name":
-      return `${pick(random, first)} ${pick(random, last)}`;
+      return mock.person.fullName();
     case "company":
-      return pick(random, companies);
+      return mock.company.name();
     case "email":
-      return `${pick(random, first).toLowerCase()}${index + 1}@example.com`;
+      return `${mock.person.firstName().toLowerCase().replace(/[^a-z0-9]/g, "") || "user"}${index + 1}@example.com`;
     case "url":
       return `https://example.com/${slug(field.key)}/${index + 1}`;
     case "image":
-      return `https://picsum.photos/seed/${slug(field.key)}-${index + 1}/200/200`;
-    case "sentence": {
-      const n = rule.words ?? 5;
-      const words = Array.from({ length: n }, () => pick(random, WORDS));
-      words[0] = words[0][0].toUpperCase() + words[0].slice(1);
-      return words.join(" ");
-    }
-    case "paragraph": {
-      const n = rule.sentences ?? 2;
-      return Array.from({ length: n }, () => {
-        const words = Array.from({ length: 6 + Math.floor(random() * 6) }, () =>
-          pick(random, WORDS),
-        );
-        words[0] = words[0][0].toUpperCase() + words[0].slice(1);
-        return `${words.join(" ")}.`;
-      }).join(" ");
-    }
-    case "integer": {
-      const min = rule.min ?? 0;
-      const max = rule.max ?? 100;
-      return min + Math.floor(random() * (max - min + 1));
-    }
-    case "decimal": {
-      const min = rule.min ?? 0;
-      const max = rule.max ?? 100;
-      const precision = rule.precision ?? 2;
-      return Number((min + random() * (max - min)).toFixed(precision));
-    }
+      return mock.image.picsum({
+        seed: `${slug(field.key)}-${index + 1}`,
+        width: 200,
+        height: 200,
+      });
+    case "sentence":
+      return mock.lorem.title(rule.words ?? 5);
+    case "paragraph":
+      return mock.lorem.paragraph(rule.sentences ?? 2);
+    case "integer":
+      return mock.random.int(rule.min ?? 0, rule.max ?? 100);
+    case "decimal":
+      return mock.random.float(rule.min ?? 0, rule.max ?? 100, rule.precision ?? 2);
     case "boolean":
-      return random() < (rule.trueRatio ?? 0.5);
+      return mock.random.bool(rule.trueRatio ?? 0.5);
     case "date": {
       const to = rule.to ? Date.parse(rule.to) : Date.UTC(2026, 8, 1);
       const from = rule.from
@@ -336,12 +390,13 @@ export function generateSampleRows(
   ctx: SampleGenerationContext,
 ): Record<string, unknown>[] {
   const count = spec.sampleCount ?? SAMPLE_ROWS_DEFAULT;
-  const random = rng(hashSeed(spec.name));
+  // seed = 테이블 이름 (같은 설명 → 같은 미리보기). 날짜 기준은 mockData 기본 (오늘 0시 UTC)
+  const mock = createMock({ seed: spec.name, locale: localeOf(ctx) });
   const rules = spec.fields.map((field) => [field, ruleFor(field)] as const);
   return Array.from({ length: count }, (_, index) => {
     const row: Record<string, unknown> = {};
     for (const [field, rule] of rules) {
-      row[field.key] = generateValue(field, rule, index, random, ctx);
+      row[field.key] = generateFieldValue(field, rule, index, mock, row, ctx);
     }
     return row;
   });

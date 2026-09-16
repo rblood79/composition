@@ -6,7 +6,8 @@
 //      required 는 전부 채움 · 비필수 null 비율 5~40%
 //   4) 같은 seed 로 한 번 더 → 같은 행 (재현) · Images preset → picsum id URL
 //   5) page error 0 · native dialog 0
-// 사용: node apps/builder/scripts/mock-preset-live.mjs [--headed]   (dev 서버 5173 · .auth-session.json)
+//   --ko: 저장 locale 을 ko-KR 로 두고 부팅 — 라벨 (이름 · 성별) 과 한국어 이름 풀 (성+이름) 확인
+// 사용: node apps/builder/scripts/mock-preset-live.mjs [--headed] [--ko]   (dev 서버 5173 · .auth-session.json)
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { chromium } from "playwright";
@@ -16,6 +17,7 @@ const BASE_URL = "http://localhost:5173";
 const STORAGE_STATE = resolve("apps/builder/scripts/.auth-session.json");
 const OUT_DIR = process.env.MOCK_PRESET_OUT ?? "/private/tmp/mock-preset-live";
 const headed = process.argv.includes("--headed");
+const ko = process.argv.includes("--ko");
 const log = (...a) => console.log("[mock-preset live]", ...a);
 const findings = [];
 const record = (name, pass, detail) => {
@@ -107,6 +109,11 @@ const context = await browser.newContext({
   viewport: { width: 1440, height: 900 },
 });
 const page = await context.newPage();
+if (ko) {
+  await page.addInitScript(() =>
+    localStorage.setItem("composition-locale", "ko-KR"),
+  );
+}
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 let dialogs = 0;
@@ -155,13 +162,21 @@ try {
 
   // 2) Profiles 카드 → 미리보기 · 생성 조건 컨트롤
   await creator.locator(".preset-card", { hasText: "Profiles" }).first().click();
-  const seedInput = creator.locator('input[aria-label="Seed"]');
-  const blankInput = creator.locator('input[aria-label="Blank %"]');
+  const seedInput = creator.locator(
+    'input[aria-label="Seed"], input[aria-label="시드"]',
+  );
+  const blankInput = creator.locator(
+    'input[aria-label="Blank %"], input[aria-label="빈 값 %"]',
+  );
   await seedInput.waitFor({ timeout: 5000 });
   const previewRows = await creator.locator(".creator-schema-field").count();
   const controlSizes = await page.evaluate(() => {
-    const seed = document.querySelector('.datatable-creator input[aria-label="Seed"]');
-    const blank = document.querySelector('.datatable-creator input[aria-label="Blank %"]');
+    const seed = document.querySelector(
+      '.datatable-creator input[aria-label="Seed"], .datatable-creator input[aria-label="시드"]',
+    );
+    const blank = document.querySelector(
+      '.datatable-creator input[aria-label="Blank %"], .datatable-creator input[aria-label="빈 값 %"]',
+    );
     const group = (el) => el?.closest(".react-aria-Group")?.getBoundingClientRect();
     return { seed: group(seed)?.height, blank: group(blank)?.height };
   });
@@ -217,6 +232,20 @@ try {
     `rows ${rows.length} · null ${(nullRatio * 100).toFixed(1)}% · ${profiles?.schema.map((f) => f.label).slice(0, 4).join("/")}`,
   );
   await page.screenshot({ path: resolve(OUT_DIR, "3-profiles-editor.png") });
+  if (ko) {
+    const firstLabel = profiles?.schema.find((f) => f.key === "firstName")?.label;
+    // blank 20% 라 비필수 (fullName · phone) 는 null 일 수 있다 — 값이 있는 행만
+    const koreanNames = rows.every(
+      (r) =>
+        (r.fullName === null || /^[가-힣]{2,4}$/.test(String(r.fullName))) &&
+        (r.phone === null || String(r.phone).startsWith("02-")),
+    );
+    record(
+      "ko-KR: 라벨 「이름」 · 성+이름 붙여 쓴 한국어 이름 · 02 전화 형식",
+      firstLabel === "이름" && koreanNames,
+      `${firstLabel} · ${rows[0]?.fullName} · ${rows[0]?.phone}`,
+    );
+  }
 
   // 4) 같은 seed 재현 · Images preset
   await createFromPreset(page, panel, {

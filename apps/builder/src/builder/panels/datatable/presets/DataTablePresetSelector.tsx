@@ -54,6 +54,7 @@ import "./DataTablePresetSelector.css";
 import { iconProps, iconLarge } from "../../../../utils/ui/uiConstants";
 import { ACTION_ICONS } from "../../../config/actionIcons";
 import { translateKey, useOptionalI18n } from "../../../../i18n";
+import { resolvePresetTranslate } from "./presetStrings";
 
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
@@ -145,8 +146,8 @@ export function DataTablePresetSelector({
   const i18n = useOptionalI18n();
   const localize = (key: string, fallback: string) =>
     i18n ? translateKey(i18n.t, `datatable.${key}`, fallback) : fallback;
-  /** preset 문구 해소기 — provider 밖(격리 렌더)이면 키를 그대로 돌려준다. */
-  const t = (key: string) => (i18n ? i18n.t(key) : key);
+  /** preset 문구 해소기 — preset 카탈로그 (lazy), locale 은 메인 `t` 로 */
+  const t = resolvePresetTranslate(i18n?.locale);
   // 내부 상태 (uncontrolled mode)
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen ?? internalIsOpen;

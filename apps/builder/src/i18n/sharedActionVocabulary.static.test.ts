@@ -14,17 +14,13 @@ import { localizedStrings } from "./translations";
 /**
  * 같은 영어 단어가 **다른 개념**을 가리키는 자리 — 한국어가 달라야 맞다.
  * 새 항목을 넣기 전에 "정말 다른 개념인가" 를 먼저 확인한다.
+ * preset 문자열 (`presetData` · `presetField` · `presetMeta`) 은 2026-09-16 부터 lazy 표
+ * (`panels/datatable/presets/presetStrings.ts`) 에 있어 이 검사 밖이다.
  */
 const HOMONYMS = new Set([
   "Navigation", // 팔레트 분류(탐색) ↔ nav 컴포넌트(내비게이션)
-  "Plan", // AI 작업 계획 ↔ 요금제 preset 필드
-  "Level", // 직급 preset 필드 ↔ 레벨 preset 필드
-  "Visibility", // 공개범위 preset 필드 ↔ 반응형 표시 여부
   "Transform", // DataTable 값 변환 ↔ CSS transform
-  "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음 · preset 데이터 열)
-  "Total", // 도넛 중앙의 합계 표시 ↔ 주문 preset 의 총액 열
-  "Start", // ButtonGroup 정렬(시작) ↔ 기간 preset 필드(시작일)
-  "End", // ButtonGroup 정렬(끝) ↔ 기간 preset 필드(종료일)
+  "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음)
 ]);
 
 /**
