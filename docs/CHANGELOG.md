@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [샘플 데이터 생성기 패키지화 — `@composition/sample-data` · AI 테이블 규칙 kind `mock` → `generate` (ADR-220)] - 2026-09-16
+
+### Changed
+
+- **ADR-220 Implemented 2026-09-16** — Data 패널 preset 과 AI 「설명으로 테이블 만들기」 가 쓰던 샘플 행 생성기 (`services/mockData` 5 파일, 1,923 줄, 외부 import 0) 를 workspace 패키지 `packages/sample-data` (`@composition/sample-data`, src 직접 export · 의존 0) 로 옮겼다. builder 역참조는 tsconfig `rootDir` + `composite` (TS6059/TS6307) 와 `boundary.static.test` (제품 소스는 패키지 안만 · 테스트는 vitest/node: 만) 가 막고, 음성 검사 (Builder 상대 re-export 1 줄 주입 → 둘 다 실패 → 제거 → 통과) 로 매번 증명한다. 사용자-가시 동작 변경 0 — 고정 컨텍스트 스냅샷 (시계 2026-09-16T00Z · TZ UTC · ko/en · seed · preset 28 × 5 행 · 규칙 55 × 3 값) 이 이동·rename 전후 byte-identical. 번들 Builder initial +1 B / Preview 0 (같은 lockfile 두 worktree A/B, 220 판정기 |Δ| ≤ 512 · `presetStrings` chunk initial 밖 · 202 lazy 보존).
+- 공개 심볼 이름 정리 — `MockRule/MockColumn/MockRowContext/MockLocale` → `Sample*` · `MockRandom` → `SeededRandom` · `Mock`/`createMock`/`CreateMockOptions` → `Generators`/`createGenerators`/`CreateGeneratorsOptions` · `resolveMockLocale` → `resolveSampleLocale` · `MOCK_RULE_TYPES`/`MockRuleType` → `GENERATE_RULE_TYPES`/`GenerateRuleType` · `GenerateRowsOptions.mock` → `generators`. collection 저장 필드 `mockData`/`useMockData` (79 지점) 와 workflow `sourceType "mock"` (3) 은 그대로 (데이터 계약은 별도 ADR).
+- AI tool `create_table_from_description` 의 사실적 값 규칙 kind 가 `{ kind: "mock", type }` → **`{ kind: "generate", type }`** (`fields[].generate` 와 같은 단어). 모델이 종류 이름 (phone · city) 을 `kind` 에 넣는 실측 결함 (Ollama qwen3:14b, zod 거부) → tool 설명 ko/en 과 JSON Schema `describe` 에 "종류는 `type` 에 (예: `{ kind: 'generate', type: 'phone' }`)" 를 보강.
+
+live (headed Playwright · Ollama qwen3:14b 32k ctx): preset `mock-preset-live.mjs` 8/8 (Profiles seed 재적용 동일 행 · Images picsum · page error 0) · AI `adr220-ai-live.mjs` 4/4 (`create_table_from_description` → 승인 다이얼로그 "Customers — 4 fields · 5 rows" → collection 5 행, phone "(455) 941-0639" · `"kind":"mock"` 0). 하니스: `adr220-snapshot.test.ts` (+ `vitest.adr220.config.ts`) · `adr220-bundle-gate.mjs` (`--self-test` 음성 fixture 2).
+
 ## [AI 패널 — Stop 직후 재전송이 버려지던 결함 수리 · ADR-202 승격 판정 live] - 2026-09-16
 
 ### Fixed

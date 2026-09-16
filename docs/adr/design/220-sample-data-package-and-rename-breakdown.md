@@ -1,6 +1,6 @@
 # ADR-220 구현 분해 — `@composition/sample-data` 패키지화 + 명칭 정리
 
-> 본문: [220-sample-data-package-and-rename.md](../220-sample-data-package-and-rename.md). 동작 변경 0 리팩터 — 절차는 `.claude/rules/review-loop-closure.md` §3 "동작 변경 0" 행. round 1 (reviews/220.md) 반영: §3 tsconfig 증거 · §4 유지 대상 · §5 스냅샷 하니스 · §7 220 전용 번들 판정기.
+> 본문: [220-sample-data-package-and-rename.md](../completed/220-sample-data-package-and-rename.md). 동작 변경 0 리팩터 — 절차는 `.claude/rules/review-loop-closure.md` §3 "동작 변경 0" 행. round 1 (reviews/220.md) 반영: §3 tsconfig 증거 · §4 유지 대상 · §5 스냅샷 하니스 · §7 220 전용 번들 판정기.
 
 ## 1. 전제 lock-in
 

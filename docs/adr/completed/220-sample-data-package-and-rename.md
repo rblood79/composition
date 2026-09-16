@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-16 (Proposed 2026-09-16 → round 1 HIGH 1 / MEDIUM 3 · round 2 MEDIUM 2 전부 fixed, pending 0 — [reviews/220.md](reviews/220.md) 종결, 전제 확정)
+Implemented — 2026-09-16 (Proposed 2026-09-16 → round 1 HIGH 1 / MEDIUM 3 · round 2 MEDIUM 2 전부 fixed, pending 0 — [reviews/220.md](../reviews/220.md) 종결 → Accepted 2026-09-16 → Phase 0~3 같은 날 실행: `7d32fcb54` (0·1a) · `46ca3bec9` (1b) · `d7bbc6fdd` (2) · `3976502fb` (3a) + 종결 커밋. G0~G5 전부 PASS — 근거 `docs/adr/evidence/220-execution.md` (로컬))
 
 > 출처: 2026-09-16 사용자 제안 "preset 모듈은 package 형태로 제공하는 것은 어떨까?" + 명칭 질의 (mock-data / dummy-data / 다른 것). 같은 날 Mock 데이터 자체 모듈 (`c9f2f7217`) · preset 규칙 기반 재작성 (`8eba9427f`) · preset 문자열 lazy 분리가 반영된 직후의 경계 정리다.
 
@@ -100,7 +100,7 @@ Accepted — 2026-09-16 (Proposed 2026-09-16 → round 1 HIGH 1 / MEDIUM 3 · ro
 - **위험 수용 근거**: 남는 MED 는 마이그레이션 (심볼 28 + importer 6 rename + 병행 편집) 뿐이고, G0 (clean 시작 + 인벤토리 freeze + 고정 컨텍스트 스냅샷) · G2 (범위 한정 잔존 0) · G3 (스냅샷 byte-identical) 이 1:1 로 막는다. 경계 보장은 실측 (TS6059) 에 근거하고 G1 음성 검사가 매번 증명한다.
 - **기각 사유**: A 는 이 ADR 의 목적 (경계 강제) 을 달성하지 못한다. C 는 ADR-152 계약 타입의 위치를 바꾸는 별도 결정이 딸려 온다 — preset 이동은 그 결정 뒤 후속 (패키지는 `presets/` 서브패스를 받을 수 있는 형태로 둔다). D 는 소비자가 builder 하나라 빌드·dist 동기화 비용만 생긴다.
 
-> 구현 상세: [220-sample-data-package-and-rename-breakdown.md](design/220-sample-data-package-and-rename-breakdown.md) (파일 이동표 · 패키지 골격 (tsconfig 증거) · 식별자 대응표 · 스냅샷 하니스 · phase · 게이트 명령)
+> 구현 상세: [220-sample-data-package-and-rename-breakdown.md](../design/220-sample-data-package-and-rename-breakdown.md) (파일 이동표 · 패키지 골격 (tsconfig 증거) · 식별자 대응표 · 스냅샷 하니스 · phase · 게이트 명령)
 
 ## Risks
 
@@ -128,7 +128,16 @@ Accepted — 2026-09-16 (Proposed 2026-09-16 → round 1 HIGH 1 / MEDIUM 3 · ro
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G5 시나리오 · 결과 · 날짜 · Chrome MCP / Playwright 구분)
+2026-09-16 · **headed Playwright** (dev 5173 · `.auth-session.json` · Ollama qwen3:14b `OLLAMA_CONTEXT_LENGTH=32768`) — Chrome MCP 아님. 근거 `docs/adr/evidence/220-g5-{preset,ai}-live.json` · `220-g5-ai-confirm-dialog.png` (로컬).
+
+| 시나리오 | 하니스 | 결과 |
+| --- | --- | --- |
+| Data 패널 Add Table preset 적용 (Profiles, seed "live" · blank 20 → 행 10 · 성별↔초상 일관 · null 21.1%) · **같은 seed 재적용 동일 행** · Images preset picsum URL · 카테고리 9 · 카드 28 · dialog 0 · page error 0 | `apps/builder/scripts/mock-preset-live.mjs` | **8/8 PASS** — 이동한 `@composition/sample-data` 가 vite dev 에서 해소 (G1 dev 조건) |
+| AI 패널 → `create_table_from_description` (실모델) → 규칙 `{ kind: "generate", type }` → 승인 다이얼로그 "Create table Customers — 4 fields · 5 rows" → 승인 → IndexedDB collection Customers 5 행 (`phone "(455) 941-0639"` · city · email) · 스트림 본문 `"kind":"mock"` 0 · page error 0 | `apps/builder/scripts/adr220-ai-live.mjs` | **4/4 PASS** (85~159 s, 2회 동일 행 — seed = 테이블 이름) |
+
+- **R2 실현 → G5 대안 1회 적용**: 보강 전 1차에서 모델이 `{ "kind": "phone" }` 처럼 종류 이름을 kind 에 넣어 zod 거부 2회. `aiToolDef.createTableFromDescription` ko/en 에 "사실적 값은 { kind: 'generate', type: '<종류>' } — 종류는 type 에" 문장 + zod `kind`/`type` `.describe()` (JSON Schema 로 모델에 전달) 추가 후 PASS. 이후에도 모델의 1차 시도가 `generate.type` 부적합으로 거부될 수 있으나 Agent 재시도가 흡수한다 (ADR-213 동일 계약).
+- G4 (production 해소 + 번들): 같은 lockfile 두 worktree A/B — Builder initial 1,312,037 → 1,312,038 (**+1 B**) · Preview 592,000 → 592,000 (**0**) · `presetStrings` chunk initial 밖 · 202 lazy 보존 · 판정기 음성 fixture 2 통과. `220-g4-220-gate.json`.
+- G1 음성 검사 `220-g1-boundary-negative.log`: Builder 상대 re-export 1 줄 주입 → tsc TS6059+TS6307 · boundary RED → 제거 → GREEN. G3 `220-g3-compare.json` PASS (byte-identical, sha `e3abb78b…`). 인벤토리 정정: preset 은 신규 13 이 아니라 카탈로그 전체 **28** 을 잰다.
 
 ## Consequences
 
