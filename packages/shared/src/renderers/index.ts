@@ -11,6 +11,7 @@ import * as TableRenderer from "./TableRenderer";
 import * as DataRenderers from "./DataRenderers";
 import * as IconRenderers from "./IconRenderers";
 import * as ColorRenderers from "./ColorRenderers";
+import * as UploadRenderers from "./UploadRenderers";
 import type { PreviewElement, RenderContext } from "../types";
 
 /**
@@ -38,6 +39,9 @@ export const rendererMap: Record<
   TailSwatch: FormRenderers.renderTailSwatch,
   FileTrigger: FormRenderers.renderFileTrigger,
   DropZone: FormRenderers.renderDropZone,
+  // ADR-201: 대용량 파일 업로드 compound (internal source). cutover 경로는 delegating-internal
+  //   "fileupload" 가 같은 함수로 위임한다 — 자식 분류 (입력 표면 / 샘플 행) 가 필요해서.
+  FileUpload: UploadRenderers.renderFileUpload,
 
   // Selection 컴포넌트
   ListBox: SelectionRenderers.renderListBox,

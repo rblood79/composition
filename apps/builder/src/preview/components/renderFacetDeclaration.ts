@@ -74,6 +74,12 @@ export const RENDER_FACET_DELEGATIONS: readonly RenderFacetDelegation[] = [
       "renderTabs 가 childrenByParent 로 TabPanels→TabPanel itemId 페어링 + items 로 RAC Tab/TabPanel 합성. generic 자식 재귀로는 빈 TabList 만 렌더.",
   },
   {
+    key: "fileupload",
+    kind: "delegating-internal",
+    reason:
+      "ADR-201 renderFileUpload 가 childrenByParent 를 입력 표면(DropZone/FileTrigger)과 샘플 행으로 분류해 shared FileUpload 에 넘긴다. generic 자식 재귀로는 active 상태에서 샘플 행을 런타임 행으로 바꿀 수 없다.",
+  },
+  {
     key: "progressbar",
     kind: "delegating-internal",
     reason:

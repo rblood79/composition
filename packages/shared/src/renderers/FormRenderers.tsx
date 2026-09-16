@@ -17,9 +17,13 @@ import {
   Radio,
   RadioGroup,
   Switch,
-  FileTrigger,
-  DropZone,
 } from "../components/list";
+// ADR-201: DropZone/FileTrigger 는 큐 유입 어댑터를 거친다 — FileUpload 안이면 addFiles,
+//   밖이면 종전과 동일 (컨텍스트 null).
+import {
+  DropZoneIntake as DropZone,
+  FileTriggerIntake as FileTrigger,
+} from "../upload/intakeAdapters";
 import { MyColorSwatches } from "../components/TailSwatch";
 import { parseColor, type Color } from "react-aria-components/ColorPicker";
 import { Button as AriaButton } from "react-aria-components/Button";
