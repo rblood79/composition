@@ -157,7 +157,7 @@ export const PANEL_CONFIGS: PanelConfig[] = [
     defaultPosition: "left",
     minWidth: 233,
     maxWidth: 1000,
-    defaultWidth: 400,
+    defaultWidth: 233,
     defaultHeight: 500,
     description: "앱 설정 및 환경설정",
     shortcutId: "openSettings",

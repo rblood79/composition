@@ -75,7 +75,11 @@
 
 따라서 `rootDir` 가 경계다. `dependencies: 0` 은 경계가 아니다 (상대 경로 import 는 의존성 없이 된다).
 
-두 번째 층 `src/boundary.static.test.ts`: `src/**/*.ts` 의 모든 `import … from "…"` · `export … from "…"` specifier 를 읽어 (a) 상대 경로면 `path.resolve` 결과가 `packages/sample-data/src` 안, (b) `@/` · `apps/` · `@composition/builder` · `../../apps` 로 시작하면 실패, (c) 그 외 bare specifier 는 `package.json` `dependencies` 에 있어야 한다 (= 0 이므로 사실상 금지, `node:` 제외). 이 테스트는 tsc 가 못 보는 것 (주석 안 예시 코드는 무시하되 `vitest` 의 `vi.mock("…")` 경로도 검사) 을 잡는다.
+두 번째 층 `src/boundary.static.test.ts`: 검사 범위는 테스트를 포함한 `src/**/*.ts` 전체다. import/re-export (type-only 포함) 및 `vi.mock("…")` 의 specifier를 검사하되 주석 안 예시는 제외한다. 상대 경로는 해소된 파일이 패키지 `src` 안에 있어야 하고, Builder를 가리키는 경로·alias는 **제품 소스와 테스트 모두 금지**한다.
+
+- **제품 소스** (`*.test.ts` 이외): 패키지 내부 제품 소스만 import할 수 있다. bare specifier와 `node:`는 금지하며 테스트 파일을 통한 우회 import도 금지한다. `dependencies`/`peerDependencies` 0 계약을 유지한다.
+- **테스트** (`*.test.ts`, `boundary.static.test.ts` 포함): 내부 파일 외에 `vitest` 및 `node:`만 허용한다. `vitest`는 `devDependencies`에 선언돼 있어야 한다. 나머지 devDependency를 일괄 허용하지 않는다. 이 예외는 제품 소스에 적용하지 않는다.
+- **G1 정책 대조**: 이동한 정상 테스트의 `vitest` import → GREEN; 제품 `random.ts`의 `vitest` import → boundary RED; 테스트 파일의 Builder 상대 import → boundary RED. 주입을 제거하면 GREEN이어야 한다. 제품→테스트 import도 RED여야 한다.
 
 **G1 음성 검사 절차**: `src/random.ts` 끝에 `export { visibleRowCount } from "../../../apps/builder/src/services/ai/data/collectionReadModel";` 1 줄 주입 → `pnpm -F @composition/sample-data type-check` 가 TS6059 로 실패 · `test` 의 boundary RED → 줄 제거 → 둘 다 GREEN. 두 출력을 `docs/adr/evidence/220-g1-boundary-negative.log` 에 기록.
 
@@ -109,19 +113,34 @@
 | workflow 데이터 소스 종류 `sourceType: "mock"`                                                       | `workflowEdges.ts:212 · 288` · `workflowRenderer.ts:546`                                            |
 | 테스트 대역 `vi.mock` · `__mocks__`                                                                  | 전역                                                                                                |
 
-## 5. 스냅샷 하니스 — `apps/builder/scripts/adr220-snapshot.mjs` (G0 · G3 오라클)
+## 5. 스냅샷 하니스 — `apps/builder/scripts/adr220-snapshot.test.ts` (G0 · G3 오라클)
 
-생성 결과는 seed 만이 아니라 **시각** (`startOfTodayUtc()` → `birthDate` · `cardExpiry`, 규칙 `now` → `new Date()`) · TZ · locale · `t` 에 의존한다. 하니스가 다섯을 전부 고정하고 결과 JSON 의 `metadata` 에 남긴다. metadata 가 다르면 G3 비교 무효.
+생성 결과는 seed 만이 아니라 **시각** (`startOfTodayUtc()` → `birthDate` · `cardExpiry`, 규칙 `now` → `new Date()`) · TZ · locale · `t` 에 의존한다. 하니스가 다섯을 전부 고정하고 결과 JSON의 `context`에 남긴다. `context`가 다르면 G3 비교 무효다. 실행 출처인 `provenance`는 별도로 보존하며 동일성 비교에서 제외한다.
 
 | 고정 축 | 값                                                                        | 방법                                                                                                                          |
 | ------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | 시계    | `2026-09-16T00:00:00.000Z`                                                | vitest `vi.useFakeTimers({ now })` + `vi.setSystemTime` (하니스는 vitest 파일로 실행 — `now` 규칙의 `new Date()` 까지 잡는다) |
 | refDate | 같은 값                                                                   | `createGenerators({ seed, locale, refDate })` → `GenerateRowsOptions.generators`                                              |
 | TZ      | `UTC`                                                                     | `TZ=UTC pnpm -F @composition/builder exec vitest run …`                                                                       |
-| locale  | `ko-KR` · `en-US` 둘 다                                                   | preset `generateSampleData(5, t, { seed: "adr220", locale })`                                                                 |
+| locale  | `ko-KR` · `en-US` 둘 다                                                   | locale별 고정 `t`로 `generateSampleData(5, t, { seed: "adr220" })`; locale은 기존 구현이 `t`에서 해소                         |
 | `t`     | `presetStrings` 의 해소기를 locale 고정으로 (`getStoredLocale` 대신 인자) | 하니스가 `PresetTranslate` 를 직접 만든다                                                                                     |
 
-산출: `docs/adr/evidence/220-p0-seed-snapshot.json` = `{ metadata: { clock, tz, locale[], seed, head, harness }, presets: { [id]: rows[5] × locale }, rules: { [type]: value[3] } }` (preset 13 · 규칙 54 종 + `now`). G3 는 같은 하니스를 이동·rename 후 다시 돌려 `diff` 0.
+산출은 다음 구조를 사용한다 (preset 13 · 규칙 54 종 + `now`).
+
+```ts
+{
+  context: { clock, refDate, tz, locales, seed, translationFixtureVersion, harnessVersion },
+  provenance: { sourceHead, sourceDiffSha256, harnessRevision },
+  presets: { /* preset id별 5행 × locale */ },
+  rules: { /* 규칙별 3값 */ }
+}
+```
+
+- G0 baseline: `docs/adr/evidence/220-p0-seed-snapshot.json`. 이동 전 기록 후 보존하며 G3에서 덮어쓰지 않는다. 파일이 이미 있으면 생성 명령은 실패해야 한다.
+- G3 candidate: `docs/adr/evidence/220-p2-seed-snapshot.json`. 각 실행의 실제 HEAD와 dirty diff 해시를 `provenance`에 기록한다. before/after HEAD가 달라도 정상이며, baseline HEAD를 candidate 출처로 복사하지 않는다.
+- 비교 대상은 `{ context, presets, rules }`뿐이다. 객체 키를 재귀적으로 정렬하고 배열 순서는 유지하는 동일 serializer로 직렬화해 byte-identical을 검사한다. 비교 결과에는 양쪽 `provenance`를 함께 남긴다. JSON 파일 전체의 `diff 0`을 요구하지 않는다.
+- `harnessVersion`은 생성·비교 의미의 버전이다. 이동 전후 import 경로/rename 대응만으로 바꾸지 않는다. 하니스의 실제 revision은 `provenance.harnessRevision`에 기록하고, 생성·비교 의미가 바뀌면 기존 baseline과의 비교는 무효다.
+- G3 판정기 대조: 동일 context/행 + 다른 sourceHead → PASS; clock/TZ/locale/번역 fixture 버전 중 하나 변경 → 비교 무효; 동일 context + 행 변경 → FAIL. 제품 날짜 동작과 preset API는 바꾸지 않는다.
 
 ## 6. Phase
 
@@ -130,7 +149,7 @@
 | 0     | 병행 세션 commit 확인 → 인벤토리 freeze (§4 심볼 28 · importer 6 · 유지 79/3 개수 기록) → §5 스냅샷 (이동 **전**)                                                                                                 | G0                 |
 | 1a    | **준비 커밋** — 빈 패키지 골격 (`package.json` · tsconfig · vitest · `src/index.ts` 빈 export) + builder 의존 + `pnpm install` → **lockfile 확정**. 코드 이동 0. 이 커밋이 G4 의 before arm                       | type-check 4 tasks |
 | 1b    | `git mv` 5 파일 + 테스트 이동 + `boundary.static.test` · importer 6 파일 경로 교체 (식별자는 아직 그대로) · G1 음성 검사 기록                                                                                     | G1                 |
-| 2     | 식별자 rename (§4) · tool 리터럴 `generate` · i18n 설명 · 주석 · 스냅샷 재생성 diff 0 · 유지 대상 개수 불변                                                                                                       | G2 · G3            |
+| 2     | 식별자 rename (§4) · tool 리터럴 `generate` · i18n 설명 · 주석 · candidate 생성 · context/행 비교 일치 · 유지 대상 개수 불변                                                                                      | G2 · G3            |
 | 3     | `adr220-bundle-gate.mjs` 작성 + 음성 fixture · 같은 HEAD·같은 lockfile 두 worktree A/B (before = 1a 커밋, after = Phase 2 커밋) · live (preset 적용 1 + AI create-table 1) · CHANGELOG · README · ADR Implemented | G4 · G5            |
 
 커밋 4 개 (1a 준비 / 1b 이동 / 2 rename / 3 게이트·문서) — `git mv` 이력이 rename diff 와 섞이지 않게.
@@ -159,8 +178,10 @@ grep -rIn --include='*.ts' --include='*.tsx' -E 'services/mockData|\b(MockRule|M
 # 유지 대상 개수 (G2 전후 불변)
 grep -rIn --include='*.ts' --include='*.tsx' -E '\.mockData\b|mockData:|useMockData' apps/builder/src apps/publish/src | grep -v 'services/mockData\|\.test\.' | wc -l   # 79
 grep -rn '"mock"' apps/builder/src/builder/workspace/canvas/skia/workflow*.ts | wc -l                                                                           # 3
-# G0/G3 스냅샷
-TZ=UTC pnpm -F @composition/builder exec vitest run scripts/adr220-snapshot.test.ts   # → docs/adr/evidence/220-p0-seed-snapshot.json (metadata 포함)
+# G0/G3 스냅샷 — 하니스가 ADR220_SNAPSHOT_ARM으로 출력 파일을 선택 (§5)
+ADR220_SNAPSHOT_ARM=baseline TZ=UTC pnpm -F @composition/builder exec vitest run scripts/adr220-snapshot.test.ts
+ADR220_SNAPSHOT_ARM=candidate TZ=UTC pnpm -F @composition/builder exec vitest run scripts/adr220-snapshot.test.ts
+# candidate 실행은 baseline을 읽어 context/행만 비교하고 양쪽 provenance를 보고한다.
 # G1
 pnpm -F @composition/sample-data type-check && pnpm -F @composition/sample-data test && pnpm type-check
 #   음성: src/random.ts 에 apps/builder 상대 import 1 줄 주입 → 위 두 명령이 실패해야 한다 → 제거
