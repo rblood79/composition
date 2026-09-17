@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **flex 부모 안에서 폭 미지정 (shrink-to-fit) 인 Nav 가 캔버스에서 48px** (Preview 56): 레이아웃 2-pass (height-for-width) 후보 선정이 store style 만 보고 "height 없음 = auto" 로 판정해, 실배치 폭이 가정 폭과 다르면 "컨테이너는 height 제거" 분기가 `buildNodeStyle` 이 실은 catalog `height 56` 을 지웠다 (엔진 소비 style 실측: block 부모 `height:"56px"` · flex 부모 폭 없음 → 키 부재). 가드가 batch 와 같은 catalog fallback 을 읽는다. 폭이 있거나 (factory `width:100%`) block 부모면 종전에도 56 이라 팔레트 기본 형태는 영향 없었고, Fit 전환 · 폭 삭제 뒤에 드러났다. catalog 전수 (height 보유 36종 × flex/block) 로 발산 0 확인.
 - **`size` prop 이 catalog `sizes[size]` 높이·padding·gap 에 안 닿음** (Nav `lg`: 캔버스 56 · Preview 64): `buildNodeStyle` 이 catalog fallback 을 size 없이 읽어 default size 값만 실렸다 — `applyImplicitStyles` 는 size 를 넘기지만 분기 없는 generic 컨테이너는 그 결과를 안 싣는다. 요소 `size` 를 같이 넘긴다. live (Compare Mode, Section row flex 안 폭 없는 Nav lg): DOM 181.6×64 · Skia 184×64, Link y 22 양쪽 일치. 오라클 `catalogComponentBox` Nav 폭 없음 · `lg` 케이스 (원복 시 h Δ8 · lg 는 padding/gap 도 Δ).
 
+## [Nav factory — gap·padding 인라인 미러 제거, catalog 단일 공급] - 2026-09-18
+
+### Changed
+
+- **새로 추가하는 Nav 의 `props.style` 에서 `rowGap/columnGap 12 · padding 12 16` 인라인을 뺀다** (ADR-171 Phase 3 Pagination 동형). catalog md 값을 Skia 는 implicitStyles L3 로, Preview 는 생성 `Nav.css` 로 같이 받으므로 인라인은 두 번째 공급원이었다 — catalog 가 바뀌면 인라인이 가린다 (`renderNav` 의 gap 16 / padding 8 16 하드코드가 그 사례). `display/flexDirection/alignItems/width` 는 catalog resolver 가 공급하지 않아 유지. live (`apps/builder/scripts/nav-factory-catalog-live.mjs`): 팔레트 Nav → Skia 56 / DOM computed `padding 12px 16px · gap 12px · height 56px` · Link 3 좌표 ±2.5. 기존 문서의 인라인 값은 그대로다.
+- 정리 (`/simplify`): `renderNav` 의 class·data-size/variant 를 Card 슬롯과 같은 `catalogChrome` 헬퍼로 (부재값은 catalog `defaultSize/defaultVariant`) · 생성기 `ARCHETYPE_IDS` 손 미러를 `ARCHETYPE_BASE_STYLES` 키 판정 (`isArchetypeId`) 으로.
+
 ## [Preview — Nav 높이 · 레이아웃 컨테이너 CSS archetype `container` (Section · Nav)] - 2026-09-17
 
 ### Fixed

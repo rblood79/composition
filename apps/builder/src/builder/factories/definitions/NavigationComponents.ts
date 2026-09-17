@@ -67,22 +67,16 @@ export function createNavDefinition(
       props: {
         label: "Navigation",
         // ADR-912 Nav catalog cutover 후속 (2026-06-11): 자식(Link/Button) 가로 배치 layout 을
-        //   props.style 로 명시 — container layout(flex/gap/padding)은 ADR-907 Layer B 로 props.style
-        //   이 SSOT (catalog rule 의 gap/padding 은 leaf inset 전용, layout 제외). 미주입 시 CSS 는
-        //   Nav.css(.react-aria-Nav)로 보이나 Skia/레이아웃 엔진 은 props.style 만 읽어 gap/padding 0 → 자식
-        //   붙음(Skia↔CSS 비대칭). Pagination definition 동형 패턴. gap/padding = Nav.css md size 미러
-        //   (gap 12 / padding 12px 16px), store longhand 정책으로 rowGap/columnGap + padding 4-way.
+        //   props.style 로 명시 — catalog resolver 는 display/flexDirection/alignItems/width 를
+        //   공급하지 않아 빼면 캔버스가 값을 잃는다 (Pagination 동형). gap/padding 은 두지 않는다
+        //   (2026-09-18, ADR-171 Phase 3 동형): catalog md (gap 12 · padding 12 16 · height 56) 를
+        //   Skia 는 implicitStyles L3 로, DOM 은 생성 Nav.css 로 같이 받는다 — 인라인 미러는 두 번째
+        //   공급원이라 catalog 가 바뀌면 인라인이 가린다 (renderNav 의 gap 16 / padding 8 16 이 그 사례).
         style: {
           width: "100%",
           display: "flex",
           flexDirection: "row",
           alignItems: "center",
-          rowGap: 12,
-          columnGap: 12,
-          paddingTop: 12,
-          paddingRight: 16,
-          paddingBottom: 12,
-          paddingLeft: 16,
         },
       } as ComponentElementProps,
       parent_id: parentId,
