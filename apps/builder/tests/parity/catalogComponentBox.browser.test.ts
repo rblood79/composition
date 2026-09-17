@@ -257,15 +257,35 @@ const CASES: CatalogCase[] = [
     style: { display: "flex" },
     attrs: { "data-size": "md", "data-variant": "default" },
   },
-  //   Nav 는 factory 인라인 (`width: 100%`) 을 같이 준다 — row flex 래퍼 안에서 폭 없는 flex item 은
-  //   pipeline 이 catalog height 를 싣지 않는 별개 축 (shrink-to-fit item 의 content 측정 경로) 이라
-  //   production 형태로 잰다. height 56 (md) 이 DOM 에 도달하는지가 이 케이스의 축.
+  //   Nav 는 factory 인라인 (`width: 100%`) 형태와 폭 없는 형태 둘 다 잰다. height 56 (md) 이 DOM 에
+  //   도달하는지가 이 케이스의 축.
   {
     type: "Nav",
     children: KIDS_2,
     availW: 320,
     style: { display: "flex", width: "100%" },
     attrs: { "data-size": "md", "data-variant": "default" },
+  },
+  //   폭 없는 flex item (shrink-to-fit) — 2-pass height-for-width 가 "store style 에 height 없음 = auto"
+  //   로 보고 catalog height 56 을 지웠다 (엔진 소비 style 실측: block 부모 `height:"56px"` · flex
+  //   부모 폭 없음 → 키 자체 부재, 128×48). buildNodeStyle 이 batch 에 merge 하는 catalog fallback 을
+  //   2-pass 후보 선정도 같은 채널로 읽어야 한다 (2026-09-17).
+  {
+    type: "Nav",
+    children: KIDS_2,
+    availW: 320,
+    style: { display: "flex" },
+    attrs: { "data-size": "md", "data-variant": "default" },
+  },
+  //   size 축 — `buildNodeStyle` 이 catalog fallback 을 size 없이 읽어 default (md 56) 만 실렸다.
+  //   DOM 은 `[data-size="lg"]` 64 (2026-09-17).
+  {
+    type: "Nav",
+    children: KIDS_2,
+    availW: 320,
+    style: { display: "flex", width: "100%" },
+    props: { size: "lg" },
+    attrs: { "data-size": "lg", "data-variant": "default" },
   },
 ];
 

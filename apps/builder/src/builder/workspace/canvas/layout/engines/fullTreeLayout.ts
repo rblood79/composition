@@ -1089,6 +1089,12 @@ function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
   return result;
 }
 
+/** 요소의 `size` prop (문자열일 때만) — catalog `sizes[size]` 조회 키. */
+function resolveElementSizeName(element: CanvasLayoutNode): string | undefined {
+  const size = (element.props as Record<string, unknown> | undefined)?.size;
+  return typeof size === "string" ? size : undefined;
+}
+
 /**
  * CanvasLayoutNode와 display 정보로 EngineStyle을 계산 후 Record로 변환.
  *
@@ -1110,7 +1116,16 @@ function buildNodeStyle(
   // factory 가 props.style 에 중복 주입하지 않는 케이스에서 Skia Grid 레이아웃 누락 방지.
   const rawStyle = (element.props?.style ?? {}) as Record<string, unknown>;
   const type = (element.type ?? "").toLowerCase();
-  const specFallback = resolveContainerStylesFallback(type, rawStyle);
+  // size 축 (catalog `sizes[size]` 의 height/padding/gap) 은 요소의 `size` prop 을 따른다
+  //   (2026-09-17). 종전엔 size 없이 불러 default size 값만 실렸다 — `applyImplicitStyles` 는
+  //   size 를 넘기지만 분기 없는 generic 컨테이너 (Nav 등) 는 그 결과를 effectiveParent 에 싣지
+  //   않아 이 호출이 유일한 catalog 채널이었다. 실측 Nav `size="lg"`: 엔진 56 (md) vs DOM
+  //   `[data-size="lg"]` 64.
+  const specFallback = resolveContainerStylesFallback(
+    type,
+    rawStyle,
+    resolveElementSizeName(element),
+  );
   const hasFallback = Object.keys(specFallback).length > 0;
   let mergedStyle = hasFallback ? { ...specFallback, ...rawStyle } : rawStyle;
 
@@ -2890,7 +2905,22 @@ export function calculateFullTreeLayout(
           string,
           unknown
         >;
-        const rawH = childStyle.height;
+        // catalog fallback height 도 명시 height 다 (2026-09-17). `buildNodeStyle` 은
+        //   `resolveContainerStylesFallback` 의 sizes height 를 batch record 에 merge 해 엔진에
+        //   보내는데, 이 가드는 store/processed style 만 보고 "height 없음 = auto" 로 판정해
+        //   후보에 넣었고, 아래 "컨테이너는 height 제거" 분기가 catalog 값을 지웠다. 실측
+        //   (Nav md, 자식 2): block 부모 → 엔진 소비 `height:"56px"` · flex 부모 + 폭 없음
+        //   (가정 폭 320 ≠ 실배치 128 로 후보 편입) → 키 부재, 128×48 (DOM 56). 2026-07-14
+        //   SelectTrigger 회귀 (implicitStyles 채널) 와 같은 종류 — catalog 채널이 남아 있었다.
+        //   여기서도 batch 와 같은 함수·같은 인자로 읽는다 (오라클: tests/parity/
+        //   catalogComponentBox `Nav` 폭 없는 케이스).
+        const rawH =
+          childStyle.height ??
+          resolveContainerStylesFallback(
+            (childEl.type ?? "").toLowerCase(),
+            childStyle,
+            resolveElementSizeName(childEl),
+          ).height;
         if (
           rawH !== undefined &&
           rawH !== null &&
