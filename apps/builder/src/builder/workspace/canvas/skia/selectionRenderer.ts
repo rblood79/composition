@@ -159,8 +159,9 @@ export const PAGE_TITLE_FONT_WEIGHT = 700;
 const PAGE_TITLE_OFFSET_Y = 21;
 // 프레임 타이틀 — 중립 회색 (slate-500). 팔레트 파생 (종전 하드코딩 #64748b).
 // Figma/Framer 도 타이틀 기본은 회색, 선택되면 파랑으로 승격하는 어법이다.
-const [PAGE_TITLE_COLOR_R, PAGE_TITLE_COLOR_G, PAGE_TITLE_COLOR_B] =
-  hexToRgb01(TAILWIND_PALETTE.slate[500]);
+const [PAGE_TITLE_COLOR_R, PAGE_TITLE_COLOR_G, PAGE_TITLE_COLOR_B] = hexToRgb01(
+  TAILWIND_PALETTE.slate[500],
+);
 const PAGE_TITLE_OPACITY = 0.8;
 
 /** Dimension 레이블 설정 */
@@ -592,12 +593,7 @@ export function renderPageTitle(
   zoom: number,
   fontMgr?: FontMgr,
   isActive = false,
-): {
-  titleWidth: number;
-  textX: number;
-  textTop: number;
-  textHeight: number;
-} | null {
+): { textX: number; textTop: number; textHeight: number } | null {
   if (!title || !fontMgr) return null;
 
   // 고정 12px 로 조판하고 canvas 를 1/zoom 으로 스케일 — 줌과 무관한 화면 크기.
@@ -615,14 +611,7 @@ export function renderPageTitle(
 
     canvas.drawParagraph(para, textX, paraY);
 
-    // 타이틀 폭은 drag hit-test / inline 편집기에서도 재사용되므로 항상 반환한다.
-    const titleWidth = para.getLongestLine();
-
-    return {
-      titleWidth,
-      textX,
-      textTop,
-      textHeight: PAGE_TITLE_FONT_SIZE,
-    };
+    // 반환 기하는 조판 테스트 전용 — 히트 판정은 ADR-221 로 DOM 헤더가 맡는다.
+    return { textX, textTop, textHeight: PAGE_TITLE_FONT_SIZE };
   });
 }

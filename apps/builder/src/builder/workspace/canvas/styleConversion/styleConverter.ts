@@ -23,7 +23,11 @@ import type {
   EffectStyle,
 } from "../skia/types";
 import { resolveCSSSizeValue } from "../layout/engines/cssValueParser";
-import { resolveBorderGeometry, resolveBorderPaint } from "./borderGeometry";
+import {
+  effectiveStrokeWidth,
+  resolveBorderGeometry,
+  resolveBorderPaint,
+} from "./borderGeometry";
 import type { CSSValueContext } from "../layout/engines/cssValueParser";
 // ADR-056: rem 단위 rootFontSize를 baseTypography로부터 가져오기
 import { getRootComputedStyle } from "../layout/engines/cssResolver";
@@ -685,9 +689,9 @@ export function convertToStrokeStyle(
   //   없고 색만 있으면 종전대로 1 (CSS medium 근사).
   const geometry = resolveBorderGeometry(style as Record<string, unknown>);
   // 색은 shorthand ?? 변 longhand 첫 값 (변별 색은 범위 밖 — 첫 값 근사)
-  const borderColor =
-    style.borderColor ??
-    resolveBorderPaint(style as Record<string, unknown>).color;
+  const borderColor = resolveBorderPaint(
+    style as Record<string, unknown>,
+  ).color;
   // 게이트는 종전과 같다 (`!borderWidth && !borderColor` → null) — 변 longhand 만 더한다.
   if (!style.borderWidth && !geometry.hasWidthLonghand && !borderColor) {
     return null;
@@ -695,19 +699,14 @@ export function convertToStrokeStyle(
   const hasWidthInfo =
     (style.borderWidth != null && style.borderWidth !== "") ||
     geometry.hasWidthLonghand;
-  const widths = geometry.widths;
-  const uniform = geometry.uniformWidth;
-  const width = !hasWidthInfo
-    ? 1
-    : uniform !== null
-      ? uniform
-      : Math.max(widths[0], widths[1], widths[2], widths[3]);
 
   return {
-    width,
+    width: hasWidthInfo ? effectiveStrokeWidth(geometry) : 1,
     color: cssColorToHex(borderColor, 0x000000, resolvedColor),
     alpha: cssColorToAlpha(borderColor, resolvedColor),
-    ...(hasWidthInfo && uniform === null ? { widths } : {}),
+    ...(hasWidthInfo && geometry.uniformWidth === null
+      ? { widths: geometry.widths }
+      : {}),
   };
 }
 

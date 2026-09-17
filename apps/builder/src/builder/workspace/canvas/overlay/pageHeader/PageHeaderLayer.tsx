@@ -13,12 +13,20 @@
  * 자손이면 Skia 선판정만 건너뛴다.
  */
 import { Play, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
 import { useStore } from "../../../../stores";
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
-import type { PageHeaderFrame } from "./pageHeaderGeometry";
+import { PAGE_HEADER_HEIGHT, type PageHeaderFrame } from "./pageHeaderGeometry";
 import { usePageHeaderPlacement } from "./usePageHeaderPlacement";
 import "./PageHeaderLayer.css";
 
@@ -55,6 +63,20 @@ function isHeaderActionTarget(target: EventTarget | null): boolean {
   );
 }
 
+/** 헤더 제스처 대상 페이지 id — 주 버튼이 아니거나 편집기·액션 버튼 위면 null. */
+function resolveHeaderHit(event: MouseEvent): string | null {
+  if (event.button !== 0) return null;
+  if (isEditorTarget(event.target) || isHeaderActionTarget(event.target)) {
+    return null;
+  }
+  return headerIdFromTarget(event.target);
+}
+
+/** 레이어 루트 인라인 변수 — CSS 가 읽는 헤더 높이는 기하 상수 하나에서 나온다. */
+const LAYER_STYLE = {
+  "--page-header-height": `${PAGE_HEADER_HEIGHT}px`,
+} as CSSProperties;
+
 export interface PageHeaderLayerProps {
   /** 뷰포트 안 페이지 프레임 (scene 좌표) — Skia 와 같은 소스 (`visiblePageFrames`). */
   frames: readonly PageHeaderFrame[];
@@ -81,7 +103,6 @@ export function PageHeaderLayer({
   const hasSelection = useStore((state) => state.selectedElementIds.length > 0);
   const [layerNode, setLayerNode] = useState<HTMLDivElement | null>(null);
   const [editingPageId, setEditingPageId] = useState<string | null>(null);
-  const renameCancelRef = useRef(false);
 
   const ordered = useMemo(
     () =>
@@ -105,29 +126,30 @@ export function PageHeaderLayer({
     onHeaderPointerDown,
     canRenamePage,
     onBeginRename,
+    onRenamePage,
   });
-  handlersRef.current = { onHeaderPointerDown, canRenamePage, onBeginRename };
+  handlersRef.current = {
+    onHeaderPointerDown,
+    canRenamePage,
+    onBeginRename,
+    onRenamePage,
+  };
 
   useEffect(() => {
     if (!layerNode) return;
     const onPointerDown = (event: PointerEvent): void => {
-      if (event.button !== 0 || isEditorTarget(event.target)) return;
-      if (isHeaderActionTarget(event.target)) return;
-      const pageId = headerIdFromTarget(event.target);
+      const pageId = resolveHeaderHit(event);
       if (!pageId) return;
       handlersRef.current.onHeaderPointerDown?.(pageId, event);
     };
     const onDoubleClick = (event: MouseEvent): void => {
-      if (event.button !== 0 || isEditorTarget(event.target)) return;
-      if (isHeaderActionTarget(event.target)) return;
-      const pageId = headerIdFromTarget(event.target);
+      const pageId = resolveHeaderHit(event);
       if (!pageId) return;
       const { canRenamePage, onBeginRename } = handlersRef.current;
       if (canRenamePage && !canRenamePage(pageId)) return;
       event.preventDefault();
       event.stopPropagation();
       onBeginRename?.(pageId);
-      renameCancelRef.current = false;
       setEditingPageId(pageId);
     };
     layerNode.addEventListener("pointerdown", onPointerDown);
@@ -138,84 +160,123 @@ export function PageHeaderLayer({
     };
   }, [layerNode]);
 
+  // 편집기 닫힘 — value 가 null 이면 취소 (Escape).
+  const handleRenameCommit = useCallback(
+    (pageId: string, value: string | null) => {
+      setEditingPageId(null);
+      if (value !== null) handlersRef.current.onRenamePage?.(pageId, value);
+    },
+    [],
+  );
+
   return (
     <div
       ref={setLayerNode}
       className="page-header-layer"
       data-page-header-layer=""
+      style={LAYER_STYLE}
     >
       {ordered.map((frame) => {
         const active = frame.id === currentPageId;
-        const editing = frame.id === editingPageId;
         return (
-          <div
+          <PageHeaderItem
             key={frame.id}
-            className="page-header"
-            data-page-header=""
-            data-page-id={frame.id}
-            data-active={active || undefined}
-            data-highlighted={(active && hasSelection) || undefined}
-            data-editing={editing || undefined}
-          >
-            {editing ? (
-              <input
-                className="page-title-edit-input"
-                data-text-editing="true"
-                aria-label={`Rename page ${frame.title}`}
-                defaultValue={frame.title}
-                autoFocus
-                onFocus={(event) => event.currentTarget.select()}
-                onBlur={(event) => {
-                  const value = event.currentTarget.value;
-                  setEditingPageId(null);
-                  if (renameCancelRef.current) {
-                    renameCancelRef.current = false;
-                    return;
-                  }
-                  onRenamePage?.(frame.id, value);
-                }}
-                onKeyDown={(event) => {
-                  event.stopPropagation();
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    event.currentTarget.blur();
-                  } else if (event.key === "Escape") {
-                    event.preventDefault();
-                    renameCancelRef.current = true;
-                    event.currentTarget.blur();
-                  }
-                }}
-              />
-            ) : (
-              <>
-                {/* 타이틀 앞 액션 — 뒤의 close 와 같은 어법·같은 20 상자.
-                    동작은 보류 — onPress 는 의미가 확정되면 배선한다. */}
-                <ActionIconButton
-                  aria-label={`Play ${frame.title}`}
-                  className={PAGE_HEADER_ACTION_CLASS}
-                  tooltip="Play"
-                >
-                  <Play aria-hidden="true" size={iconProps.size} />
-                </ActionIconButton>
-                <span className="page-header__title">{frame.title}</span>
-                {/* 패널 header-action 과 같은 어법 (ActionIconButton = action-icon-button).
-                    크기는 select/combobox 안 트리거와 같은 20 상자 (--text-xl) — 헤더 띠
-                    안에 박히는 버튼이라 그 범주를 따른다 (CSS 에서 --icon-control-size 재지정).
-                    동작은 보류 — onPress 는 close 의미가 확정되면 배선한다. */}
-                <ActionIconButton
-                  aria-label={`Close ${frame.title}`}
-                  className={PAGE_HEADER_ACTION_CLASS}
-                  tooltip="Close"
-                >
-                  <X aria-hidden="true" size={iconProps.size} />
-                </ActionIconButton>
-              </>
-            )}
-          </div>
+            id={frame.id}
+            title={frame.title ?? ""}
+            active={active}
+            highlighted={active && hasSelection}
+            editing={frame.id === editingPageId}
+            onRenameCommit={handleRenameCommit}
+          />
         );
       })}
     </div>
   );
 }
+
+interface PageHeaderItemProps {
+  id: string;
+  title: string;
+  active: boolean;
+  highlighted: boolean;
+  editing: boolean;
+  onRenameCommit: (pageId: string, value: string | null) => void;
+}
+
+/**
+ * 헤더 하나 — props 가 원시값뿐이라 `frames` 배열 identity 가 바뀌어도 (스냅샷 재구축마다)
+ * RAC 버튼 서브트리는 재조정되지 않는다. 배치는 훅이 DOM 에 직접 쓴다.
+ */
+const PageHeaderItem = memo(function PageHeaderItem({
+  id,
+  title,
+  active,
+  highlighted,
+  editing,
+  onRenameCommit,
+}: PageHeaderItemProps) {
+  const renameCancelRef = useRef(false);
+  return (
+    <div
+      className="page-header"
+      data-page-header=""
+      data-page-id={id}
+      data-active={active || undefined}
+      data-highlighted={highlighted || undefined}
+      data-editing={editing || undefined}
+    >
+      {editing ? (
+        <input
+          className="page-title-edit-input"
+          data-text-editing="true"
+          aria-label={`Rename page ${title}`}
+          defaultValue={title}
+          autoFocus
+          onFocus={(event) => event.currentTarget.select()}
+          onBlur={(event) => {
+            const cancelled = renameCancelRef.current;
+            renameCancelRef.current = false;
+            onRenameCommit(id, cancelled ? null : event.currentTarget.value);
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
+            if (event.key === "Enter") {
+              event.preventDefault();
+              event.currentTarget.blur();
+            } else if (event.key === "Escape") {
+              event.preventDefault();
+              renameCancelRef.current = true;
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      ) : (
+        <>
+          {/* 타이틀 앞 액션 — 뒤의 close 와 같은 어법·같은 20 상자.
+              동작은 보류 — onPress 는 의미가 확정되면 배선한다. */}
+          <ActionIconButton
+            aria-label={`Play ${title}`}
+            className={PAGE_HEADER_ACTION_CLASS}
+            tooltip="Play"
+          >
+            <Play aria-hidden="true" size={iconProps.size} />
+          </ActionIconButton>
+          <span className="page-header__title">{title}</span>
+          {/* 패널 header-action 과 같은 어법 (ActionIconButton = action-icon-button).
+              크기는 select/combobox 안 트리거와 같은 20 상자 (--text-xl) — 헤더 띠
+              안에 박히는 버튼이라 그 범주를 따른다 (CSS 에서 --icon-control-size 재지정).
+              동작은 보류 — onPress 는 close 의미가 확정되면 배선한다. */}
+          <ActionIconButton
+            aria-label={`Close ${title}`}
+            className={PAGE_HEADER_ACTION_CLASS}
+            tooltip="Close"
+          >
+            <X aria-hidden="true" size={iconProps.size} />
+          </ActionIconButton>
+        </>
+      )}
+    </div>
+  );
+});
 
 export default PageHeaderLayer;

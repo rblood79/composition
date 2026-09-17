@@ -19,7 +19,7 @@ import {
   resolveCssCornerRadii,
   resolveInnerCornerRadii,
 } from "../styleConversion/borderGeometry";
-import type { DropShadowEffect } from "./types";
+import type { DropShadowEffect, FillStyle } from "./types";
 
 type BorderRadius = number | [number, number, number, number];
 type SkiaPaint = Paint;
@@ -613,6 +613,40 @@ function renderInnerBoxShadows(
   }
 }
 
+/** fill 층 하나 — shader 층은 applyFill, 못 만들거나 없으면 fillColor 단색 */
+function paintBoxFill(
+  ck: CanvasKit,
+  canvas: Canvas,
+  paint: Paint,
+  rect: Float32Array,
+  node: SkiaNodeData,
+  layer: FillStyle | undefined,
+): void {
+  const box = node.box!;
+  const shader = layer ? applyFill(ck, paint, layer) : null;
+  if (!shader && layer?.type !== "color") paint.setColor(box.fillColor);
+
+  const br = box.borderRadius;
+  if (Array.isArray(br)) {
+    if (br.some((r) => r > 0)) {
+      const path = createRoundRectPath(ck, 0, 0, node.width, node.height, br);
+      canvas.drawPath(path, paint);
+      path.delete();
+    } else {
+      canvas.drawRect(rect, paint);
+    }
+  } else if (br > 0) {
+    canvas.drawRRect(ck.RRectXY(rect, br, br), paint);
+  } else {
+    canvas.drawRect(rect, paint);
+  }
+
+  if (shader) {
+    paint.setShader(null);
+    shader.delete();
+  }
+}
+
 export function renderBox(
   ck: CanvasKit,
   canvas: Canvas,
@@ -634,57 +668,15 @@ export function renderBox(
     const isArrayRadius = Array.isArray(br);
     const hasRadius = isArrayRadius ? br.some((r) => r > 0) : br > 0;
 
-    const drawFillGeometry = () => {
-      if (hasRadius) {
-        if (isArrayRadius) {
-          const path = createRoundRectPath(
-            ck,
-            0,
-            0,
-            node.width,
-            node.height,
-            br,
-          );
-          canvas.drawPath(path, paint);
-          path.delete();
-        } else {
-          const rrect = ck.RRectXY(rect, br, br);
-          canvas.drawRRect(rrect, paint);
-        }
-      } else {
-        canvas.drawRect(rect, paint);
-      }
-    };
-
-    // 다층 fill (아래 → 위) — 층마다 같은 기하를 한 번씩 (DOM background-image 층 쌓기 대칭).
-    //   단층은 종전 경로 (box.fill shader 또는 fillColor).
-    const layers = node.box.fillLayers;
-    if (layers && layers.length > 1) {
-      for (const layer of layers) {
-        const shader = applyFill(ck, paint, layer);
-        if (!shader && layer.type !== "color") paint.setColor(node.box.fillColor);
-        drawFillGeometry();
-        if (shader) {
-          paint.setShader(null);
-          shader.delete();
-        }
-      }
-    } else {
-      let fillShader: { delete(): void } | null = null;
-      if (node.box.fill) {
-        fillShader = applyFill(ck, paint, node.box.fill);
-        if (!fillShader) {
-          paint.setColor(node.box.fillColor);
-        }
-      } else {
-        paint.setColor(node.box.fillColor);
-      }
-      drawFillGeometry();
-      if (fillShader) {
-        paint.setShader(null);
-        fillShader.delete();
+    // 다층 fill — 아래 층 (아래 → 위) 을 같은 기하로 한 번씩 칠한 뒤 맨 위 층은 종전 단층
+    //   채널 (box.fill shader 또는 fillColor) 로 (DOM background-image 층 쌓기 대칭).
+    const underlays = node.box.fillUnderlays;
+    if (underlays) {
+      for (const layer of underlays) {
+        paintBoxFill(ck, canvas, paint, rect, node, layer);
       }
     }
+    paintBoxFill(ck, canvas, paint, rect, node, node.box.fill);
 
     // inset(inner) box-shadow: fill 위 · content(자식)/border 아래, box 내부 clip (CSS 대칭).
     renderInnerBoxShadows(ck, canvas, node);

@@ -50,7 +50,7 @@ import {
 } from "@composition/shared";
 import {
   fillsToSkiaFillColor,
-  fillsToSkiaFillLayers,
+  fillsToSkiaFillUnderlays,
   fillsToSkiaFallbackColor,
   fillsToSkiaFillStyle,
   getTopEnabledFill,
@@ -94,6 +94,7 @@ import {
   applyTextTransform,
 } from "../styleConversion/styleConverter";
 import {
+  effectiveStrokeWidth,
   resolveBorderGeometry,
   resolveBorderPaint,
 } from "../styleConversion/borderGeometry";
@@ -1970,21 +1971,10 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
       //   presentationFillTargets 는 늘리지 않는다(commit-only, FillSection:340 과 동일 계약).
       specNode.box.fill = fillStyle;
     }
-    // 다층 fill (box 경로 buildBoxNodeData 와 같은 계약) — 맨 위 층은 box.fill / fillColor 공유
+    // 다층 fill (box 경로 buildBoxNodeData 와 같은 계약) — 맨 위 층 아래만, 맨 위는 box.fill / fillColor
     if (fillStyle && fillStyle.type !== "image") {
-      const layers = fillsToSkiaFillLayers(element.fills, w, specHeight);
-      if (layers.length > 1) {
-        const top: FillStyle = specNode.box.fill ?? {
-          type: "color",
-          rgba: specNode.box.fillColor as unknown as [
-            number,
-            number,
-            number,
-            number,
-          ],
-        };
-        specNode.box.fillLayers = [...layers.slice(0, -1), top];
-      }
+      const underlays = fillsToSkiaFillUnderlays(element.fills, w, specHeight);
+      if (underlays) specNode.box.fillUnderlays = underlays;
     }
   }
 
@@ -2345,7 +2335,7 @@ function applyInlineBorderOverlay(
   if (borderWidth == null && !geometry.hasWidthLonghand) return;
 
   const bw = geometry.hasWidthLonghand
-    ? (geometry.uniformWidth ?? Math.max(...geometry.widths))
+    ? effectiveStrokeWidth(geometry)
     : parseCSSSize(borderWidth as string | number);
   if (bw <= 0) return;
 

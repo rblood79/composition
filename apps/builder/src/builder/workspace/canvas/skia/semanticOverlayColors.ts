@@ -1,5 +1,5 @@
 import type { CanvasKit } from "canvaskit-wasm";
-import { TAILWIND_PALETTE } from "@composition/specs";
+import { TAILWIND_PALETTE, hexStringToNumber } from "@composition/specs";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 
 /** `#rrggbb` → CanvasKit Color4f 채널 (0~1). 팔레트 hex 를 오버레이 상수로 내릴 때 공용 (ADR-191 R8). */
@@ -21,6 +21,8 @@ export function hexToRgb01(hex: string): readonly [number, number, number] {
  * DOM 층 (페이지 헤더) 과 Skia 오버레이가 한 색으로 맞는다.
  */
 const OVERLAY_BLUE = hexToRgb01(TAILWIND_PALETTE.blue[400]);
+/** 같은 파랑의 정수 hex (`hexToColor4fChannels` 입력) — 렌더러가 팔레트를 다시 파싱하지 않는다 */
+export const OVERLAY_BLUE_HEX = hexStringToNumber(TAILWIND_PALETTE.blue[400]);
 export const OVERLAY_BLUE_R = OVERLAY_BLUE[0];
 export const OVERLAY_BLUE_G = OVERLAY_BLUE[1];
 export const OVERLAY_BLUE_B = OVERLAY_BLUE[2];
@@ -42,7 +44,7 @@ export const EVENT_NAV_PURPLE_RGB: readonly [number, number, number] =
   hexToRgb01(TAILWIND_PALETTE.purple[500]);
 
 /** ADR-212 Phase 6 — 바인딩 배지 상태색 (팔레트 파생, 목록 배지 어법과 정합) */
-const BADGE_NORMAL = OVERLAY_BLUE_RGB; // 정상 = blue-500
+const BADGE_NORMAL = OVERLAY_BLUE_RGB; // 정상 = 캔버스 파랑 (blue-400)
 const BADGE_EMPTY = hexToRgb01(TAILWIND_PALETTE.amber[500]); // 0행 = amber-500
 const BADGE_ERROR = hexToRgb01(TAILWIND_PALETTE.red[500]); // 실행 오류 = red-500
 

@@ -39,11 +39,12 @@ describe("캔버스 오버레이 파랑 단일화", () => {
     expect(selection.toLowerCase()).not.toContain("0x51 / 255");
     expect(guide.toLowerCase()).not.toContain("0x6dc1ff");
 
-    // 배지는 정본 파랑, 선택 가이드는 같은 팔레트 단계
+    // 배지는 정본 파랑, 선택 가이드는 정본의 정수 hex — 팔레트를 다시 파싱하지 않는다
     expect(selection).toContain(
       "ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, 1)",
     );
-    expect(guide).toContain("TAILWIND_PALETTE.blue[400]");
+    expect(guide).toContain("PAGE_GUIDE_SELECTED_HEX = OVERLAY_BLUE_HEX");
+    expect(guide).not.toContain("TAILWIND_PALETTE");
   });
 
   it("프레임 타이틀 회색도 팔레트 파생 (하드코딩 #64748b 제거)", async () => {

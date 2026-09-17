@@ -4,7 +4,7 @@
    이 파일이 소유한다. */
 
 .page-header-layer {
-  --page-header-height: 28px;
+  /* --page-header-height 는 PageHeaderLayer 가 PAGE_HEADER_HEIGHT 로 인라인 주입 */
   --page-header-padding-x: var(--spacing-xs);
   position: absolute;
   inset: 0;

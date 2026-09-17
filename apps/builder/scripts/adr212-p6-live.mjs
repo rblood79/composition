@@ -139,11 +139,7 @@ try {
       .slice(-2)
       .map((e) => e.id);
   });
-  record(
-    "요소 2개 생성",
-    ids.length === 2,
-    `ids=${JSON.stringify(ids)}`,
-  );
+  record("요소 2개 생성", ids.length === 2, `ids=${JSON.stringify(ids)}`);
   if (ids.length !== 2) throw new Error("요소 2개 생성 실패");
 
   await page.evaluate(
@@ -199,8 +195,8 @@ try {
     // screen = scene*scale + pan → pan = target - scene*scale (배지 좌상단을 (300,300)에)
     window.__composition_APPLY_VIEWPORT__({
       scale,
-      x: 300 - badge.sceneX * scale,
-      y: 300 - badge.sceneY * scale,
+      x: 300 - badge.x * scale,
+      y: 300 - badge.y * scale,
     });
   }, normalId);
   await page.waitForTimeout(900);
@@ -213,15 +209,17 @@ try {
     const rect = canvas.getBoundingClientRect();
     // scene → screen: screenX = sceneX * zoom + panOffset.x (+ canvas rect origin)
     const cx =
-      (badge.sceneX + badge.width / 2) * vp.zoom + vp.panOffset.x + rect.left;
+      (badge.x + badge.width / 2) * vp.zoom + vp.panOffset.x + rect.left;
     const cy =
-      (badge.sceneY + badge.height / 2) * vp.zoom + vp.panOffset.y + rect.top;
+      (badge.y + badge.height / 2) * vp.zoom + vp.panOffset.y + rect.top;
     return { cx, cy };
   }, normalId);
   record(
     "배지 클릭 좌표 계산 (viewport 변환)",
     !!clickInfo,
-    clickInfo ? `(${Math.round(clickInfo.cx)},${Math.round(clickInfo.cy)})` : "실패",
+    clickInfo
+      ? `(${Math.round(clickInfo.cx)},${Math.round(clickInfo.cy)})`
+      : "실패",
   );
   if (clickInfo) {
     await page.mouse.click(clickInfo.cx, clickInfo.cy);

@@ -528,22 +528,24 @@ export function fillsToSkiaFillColor(fills: FillItem[]): Float32Array | null {
 }
 
 /**
- * enabled fill 전부를 아래 → 위 (배열 순서) FillStyle 로 — 다층 fill 렌더 (2026-09-15, DOM 의
- * background-image 층 쌓기와 대칭). image 는 box 경로가 shader 로 못 그려 (SkImage 로드 채널이
- * 따로) 제외한다 — 그 층은 종전처럼 DOM 만 그린다.
+ * 맨 위 층 **아래** 의 enabled fill 을 아래 → 위 (배열 순서) FillStyle 로 — 다층 fill 렌더
+ * (2026-09-15, DOM 의 background-image 층 쌓기와 대칭). 맨 위 층은 종전 단층 채널
+ * (`box.fill` / `box.fillColor`) 이 그리므로 여기 없다 — presentation 패치가 그 채널을 in-place
+ * 로 바꾸는 계약이 그대로 유지된다. image 는 box 경로가 shader 로 못 그려 (SkImage 로드 채널이
+ * 따로) 제외한다 — 그 층은 종전처럼 DOM 만 그린다. 아래 층이 없으면 undefined.
  */
-export function fillsToSkiaFillLayers(
+export function fillsToSkiaFillUnderlays(
   fills: readonly FillItem[],
   width: number,
   height: number,
-): FillStyle[] {
+): FillStyle[] | undefined {
   const layers: FillStyle[] = [];
   for (const fill of fills) {
     if (!fill?.enabled || fill.type === FillType.Image) continue;
     const style = fillItemToFillStyle(fill, width, height);
     if (style) layers.push(style);
   }
-  return layers;
+  return layers.length > 1 ? layers.slice(0, -1) : undefined;
 }
 
 /**

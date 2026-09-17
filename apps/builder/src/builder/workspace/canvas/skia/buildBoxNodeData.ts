@@ -32,7 +32,7 @@ import {
 } from "../layout/engines/implicitStyles";
 import {
   fillsToSkiaFillColor,
-  fillsToSkiaFillLayers,
+  fillsToSkiaFillUnderlays,
   fillsToSkiaFillStyle,
   getTopEnabledFill,
   cssBgImageToSkia,
@@ -291,7 +291,8 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
   //   렌더). "none" 은 테두리 자체를 숨긴다(DOM border-style:none 대칭) → stroke 억제.
   //   catalog/spec 경로와 동일 규약. solid 는 렌더러 기본값이라 키 생략.
   const borderStyleRaw =
-    (style.borderStyle as string | undefined) ?? resolveBorderPaint(style).style;
+    (style.borderStyle as string | undefined) ??
+    resolveBorderPaint(style).style;
   const suppressBorder = borderStyleRaw === "none";
   const strokeStyleValue: BorderStyleValue | undefined =
     borderStyleRaw && borderStyleRaw !== "solid" && borderStyleRaw !== "none"
@@ -307,20 +308,15 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         )
       : undefined;
 
-  // 다층 fill — enabled 가 2개 이상이고 맨 위가 color/gradient/mesh 일 때. 맨 위 층은 box.fill
-  //   (shader) 또는 box.fillColor (같은 Float32Array) 를 공유한다 (presentation 패치 대칭).
-  const fillLayers = (() => {
-    if (!fills || fills.length < 2 || cssBgImageFill) return undefined;
-    const layers = fillsToSkiaFillLayers(fills as FillItem[], w, h);
-    if (layers.length < 2 || topEnabledFill?.type === FillType.Image)
-      return undefined;
-    const top: FillStyle = gradientFill ??
-      meshFill ?? {
-        type: "color",
-        rgba: fillColor as unknown as [number, number, number, number],
-      };
-    return [...layers.slice(0, -1), top];
-  })();
+  // 다층 fill — enabled 가 2개 이상이고 맨 위가 color/gradient/mesh 일 때 아래 층만. 맨 위 층은
+  //   종전 단층 채널 (box.fill shader 또는 box.fillColor) 이 그린다.
+  const fillUnderlays =
+    fills &&
+    fills.length >= 2 &&
+    !cssBgImageFill &&
+    topEnabledFill?.type !== FillType.Image
+      ? fillsToSkiaFillUnderlays(fills as FillItem[], w, h)
+      : undefined;
 
   const box: NonNullable<SkiaNodeData["box"]> = {
     fillColor,
@@ -331,12 +327,14 @@ export function buildBoxNodeData(input: BoxBuildInput): SkiaNodeData | null {
         : meshFill
           ? { fill: meshFill }
           : {}),
-    ...(fillLayers ? { fillLayers } : {}),
+    ...(fillUnderlays ? { fillUnderlays } : {}),
     borderRadius: br,
     strokeColor,
     strokeWidth: suppressBorder ? undefined : stroke?.width,
     // ADR-219 — 변별 폭 (비균일일 때만 키 존재 → 균일 노드 데이터 무변경)
-    ...(!suppressBorder && stroke?.widths ? { strokeWidths: stroke.widths } : {}),
+    ...(!suppressBorder && stroke?.widths
+      ? { strokeWidths: stroke.widths }
+      : {}),
     ...(strokeStyleValue ? { strokeStyle: strokeStyleValue } : {}),
   };
 

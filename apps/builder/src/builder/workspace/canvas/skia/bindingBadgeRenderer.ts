@@ -10,7 +10,7 @@
  * `boundsMapOut` 에 collection 별로 채운다 (BuilderCanvas onPointerDownCapture 가 이 맵으로 판정).
  * 빌더 chrome(선택/hover 마커와 같은 층) 이라 D3 대칭 대상이 아니다.
  */
-import type { Canvas, CanvasKit, FontMgr } from "canvaskit-wasm";
+import type { Canvas, CanvasKit, Font, FontMgr } from "canvaskit-wasm";
 import { SkiaDisposable } from "./disposable";
 import { acquireScopedPaint } from "./paints";
 import {
@@ -20,6 +20,7 @@ import {
 } from "./selectionRenderer";
 import { getBindingBadgeColor } from "./semanticOverlayColors";
 import type { BindingBadgeTarget } from "./skiaOverlayHelpers";
+import type { BoundingBox } from "../selection/types";
 
 const BADGE_FONT_SIZE = 11; // 화면 px
 const BADGE_PADDING_X = 6;
@@ -29,12 +30,8 @@ const BADGE_ICON_SIZE = 11; // 테이블 아이콘 한 변 (화면 px)
 const BADGE_ICON_GAP = 4;
 const BADGE_MAX_TEXT = 24; // 이름 최대 글자 (초과분은 …)
 
-/** 배지의 scene 좌표 rect + 클릭 시 열 collection — hit region 판정용 */
-export interface DataBadgeBounds {
-  sceneX: number;
-  sceneY: number;
-  width: number;
-  height: number;
+/** 배지의 scene 좌표 rect (`BoundingBox` 모양 — `pointInBox` 판정) + 클릭 시 열 collection */
+export interface DataBadgeBounds extends BoundingBox {
   pageId: string | null;
   collectionId: string;
   /** "normal" | "empty" | "error" — 색 검증(픽셀 대신)·진단용 */
@@ -44,6 +41,42 @@ export interface DataBadgeBounds {
 function clampName(name: string): string {
   if (name.length <= BADGE_MAX_TEXT) return name;
   return `${name.slice(0, BADGE_MAX_TEXT - 1)}…`;
+}
+
+interface BadgeLabelMetrics {
+  label: string;
+  textWidth: number;
+  ascent: number;
+  descent: number;
+}
+
+/**
+ * 이름별 조판 결과 캐시 — overlay 는 매 프레임 그리므로 glyph 측정·font metrics wasm 호출을
+ * 이름당 한 번으로 줄인다. overlay font 가 교체되면 (`clearOverlayFontCache` → 새 Font 인스턴스)
+ * 통째로 버린다.
+ */
+const LABEL_METRICS_CACHE_MAX = 256;
+const _labelMetrics = new Map<string, BadgeLabelMetrics>();
+let _labelMetricsFont: Font | null = null;
+
+function acquireLabelMetrics(font: Font, name: string): BadgeLabelMetrics {
+  if (_labelMetricsFont !== font) {
+    _labelMetrics.clear();
+    _labelMetricsFont = font;
+  }
+  const cached = _labelMetrics.get(name);
+  if (cached) return cached;
+  const label = clampName(name);
+  const metrics = font.getMetrics();
+  const entry: BadgeLabelMetrics = {
+    label,
+    textWidth: measureGlyphRunWidth(font, label),
+    ascent: metrics ? Math.abs(metrics.ascent) : BADGE_FONT_SIZE * 0.8,
+    descent: metrics ? Math.abs(metrics.descent) : BADGE_FONT_SIZE * 0.2,
+  };
+  if (_labelMetrics.size >= LABEL_METRICS_CACHE_MAX) _labelMetrics.clear();
+  _labelMetrics.set(name, entry);
+  return entry;
 }
 
 /** 흰색 테이블 아이콘(외곽 + 가로/세로 격자선)을 로컬 (x,y) 에 size×size 로 그린다. */
@@ -91,8 +124,10 @@ export function renderBindingBadge(
   );
   if (!font) return;
 
-  const label = clampName(target.name);
-  const textWidth = measureGlyphRunWidth(font, label);
+  const { label, textWidth, ascent, descent } = acquireLabelMetrics(
+    font,
+    target.name,
+  );
   const contentWidth = BADGE_ICON_SIZE + BADGE_ICON_GAP + textWidth;
   const badgeWidth = contentWidth + BADGE_PADDING_X * 2;
   const badgeHeight = BADGE_FONT_SIZE + BADGE_PADDING_Y * 2;
@@ -129,11 +164,6 @@ export function renderBindingBadge(
       );
 
       // 텍스트 (baseline 보정)
-      const metrics = font.getMetrics();
-      const ascent = metrics ? Math.abs(metrics.ascent) : BADGE_FONT_SIZE * 0.8;
-      const descent = metrics
-        ? Math.abs(metrics.descent)
-        : BADGE_FONT_SIZE * 0.2;
       const textX = BADGE_PADDING_X + BADGE_ICON_SIZE + BADGE_ICON_GAP;
       const textY = (badgeHeight + ascent - descent) / 2;
       canvas.drawText(label, textX, textY, fgPaint, font);
@@ -142,8 +172,8 @@ export function renderBindingBadge(
     if (boundsMapOut) {
       const inv = 1 / (zoom === 0 ? 1 : zoom);
       boundsMapOut.set(target.collectionId, {
-        sceneX: target.bounds.x,
-        sceneY: target.bounds.y,
+        x: target.bounds.x,
+        y: target.bounds.y,
         width: badgeWidth * inv,
         height: badgeHeight * inv,
         pageId: target.pageId,

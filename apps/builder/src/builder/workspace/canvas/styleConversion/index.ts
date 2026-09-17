@@ -29,8 +29,7 @@ export {
   BORDER_GEOMETRY_KEYS,
   BORDER_RADIUS_LONGHANDS,
   BORDER_WIDTH_LONGHANDS,
-  BORDER_RADIUS_AXIS_KEYS,
-  BORDER_WIDTH_AXIS_KEYS,
+  effectiveStrokeWidth,
 } from "./borderGeometry";
 export type {
   BorderGeometry,

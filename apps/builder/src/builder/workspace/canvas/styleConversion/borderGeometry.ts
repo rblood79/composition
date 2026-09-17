@@ -39,13 +39,13 @@ export const BORDER_WIDTH_LONGHANDS = [
 ] as const;
 
 /** 반경 축 키 5 (shorthand 1 + longhand 4) */
-export const BORDER_RADIUS_AXIS_KEYS = [
+const BORDER_RADIUS_AXIS_KEYS = [
   "borderRadius",
   ...BORDER_RADIUS_LONGHANDS,
 ] as const;
 
 /** 폭 축 키 5 (shorthand 1 + longhand 4) */
-export const BORDER_WIDTH_AXIS_KEYS = [
+const BORDER_WIDTH_AXIS_KEYS = [
   "borderWidth",
   ...BORDER_WIDTH_LONGHANDS,
 ] as const;
@@ -152,6 +152,13 @@ function uniformOf(values: CornerRadii): number | null {
     values[2] === values[3]
     ? values[0]
     : null;
+}
+
+/**
+ * 단일 stroke 폭 근사 — 균일이면 그 값, 아니면 네 변의 최댓값 (변별 폭은 `widths` 가 운반).
+ */
+export function effectiveStrokeWidth(geometry: BorderGeometry): number {
+  return geometry.uniformWidth ?? Math.max(...geometry.widths);
 }
 
 /**

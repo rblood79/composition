@@ -40,11 +40,13 @@
  */
 
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
-import { TAILWIND_PALETTE } from "@composition/specs";
 
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
-import { OVERLAY_WARM_RED_HEX } from "./semanticOverlayColors";
+import {
+  OVERLAY_BLUE_HEX,
+  OVERLAY_WARM_RED_HEX,
+} from "./semanticOverlayColors";
 import type { PageGuideRenderTarget } from "./skiaOverlayHelpers";
 import {
   resolveGuideEmphasis,
@@ -89,10 +91,7 @@ const PAGE_GUIDE_HEX = OVERLAY_WARM_RED_HEX;
  * 종전 하드코딩 `#6DC1FF` 를 팔레트 파생으로 올려 선택 테두리·치수 배지와 한 색으로
  * 맞춘다. 연장 점선도 같은 색.
  */
-const PAGE_GUIDE_SELECTED_HEX = parseInt(
-  TAILWIND_PALETTE.blue[400].slice(1),
-  16,
-);
+const PAGE_GUIDE_SELECTED_HEX = OVERLAY_BLUE_HEX;
 /** 기본 — 계속 떠 있는 선이라 콘텐츠를 덮지 않을 만큼만 */
 const PAGE_GUIDE_ALPHA = 0.7;
 /** hover — 불투명해지는 것이 곧 "잡을 수 있다" 는 신호 (커서 변화와 같은 뜻) */

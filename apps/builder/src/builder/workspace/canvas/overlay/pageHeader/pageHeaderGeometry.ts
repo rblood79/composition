@@ -12,23 +12,20 @@
  * 어긋나 있어 제거했다 (2026-09-17).
  */
 
+import type { CameraState } from "../../skia/types";
+import type { PageFrame } from "../../skia/workflowRenderer";
+
 export const PAGE_HEADER_HEIGHT = 28;
 export const PAGE_HEADER_GAP = 8;
 
-export interface PageHeaderFrame {
-  id: string;
-  title?: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
+/** 헤더가 읽는 페이지 프레임 축 — Skia `PageFrame` 의 부분집합 (타입 복제 금지) */
+export type PageHeaderFrame = Pick<
+  PageFrame,
+  "id" | "title" | "x" | "y" | "width" | "height"
+>;
 
-export interface HeaderCamera {
-  zoom: number;
-  panX: number;
-  panY: number;
-}
+/** 헤더 배치 카메라 — Skia 블리팅 `CameraState` 와 같은 값 */
+export type HeaderCamera = CameraState;
 
 export interface ScreenRect {
   left: number;
@@ -68,17 +65,9 @@ export function pageOccluderScreenRect(
   frame: Pick<PageHeaderFrame, "width" | "height">,
   camera: HeaderCamera,
 ): ScreenRect {
-  const headerTop =
-    position.y * camera.zoom +
-    camera.panY -
-    (PAGE_HEADER_HEIGHT + PAGE_HEADER_GAP);
+  const header = pageHeaderScreenRect(position, frame, camera);
   const bodyBottom = (position.y + frame.height) * camera.zoom + camera.panY;
-  return {
-    left: position.x * camera.zoom + camera.panX,
-    top: headerTop,
-    width: frame.width * camera.zoom,
-    height: bodyBottom - headerTop,
-  };
+  return { ...header, height: bodyBottom - header.top };
 }
 
 function rectsIntersect(a: ScreenRect, b: ScreenRect): boolean {
@@ -190,12 +179,7 @@ export function isRectInViewport(
   rect: ScreenRect,
   viewport: { width: number; height: number },
 ): boolean {
-  return (
-    rect.left < viewport.width &&
-    rect.left + rect.width > 0 &&
-    rect.top < viewport.height &&
-    rect.top + rect.height > 0
-  );
+  return rectsIntersect(rect, { left: 0, top: 0, ...viewport });
 }
 
 export function headerTransform(rect: ScreenRect): string {

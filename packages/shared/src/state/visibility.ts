@@ -161,6 +161,46 @@ export function resolveVisibleVariables(
   return out;
 }
 
+/**
+ * 요소 기준 가시 변수 — 요소 사슬이 `pageId` 페이지에 닿지 않으면 (인스턴스 자손은 master
+ * 사슬이라 페이지 밖) 그 페이지의 정의를 프로젝트 앞에 보탠다: 요소 → 조상 → **페이지** →
+ * 프로젝트 순서 유지. 런타임 env (`createRuntimeState().createEnv`) 와 Canvas 기본값 env 가
+ * 같은 사슬을 읽도록 여기 한 곳에 둔다.
+ */
+export function resolveVisibleVariablesForElement(
+  doc: CompositionDocument | null | undefined,
+  elementId: string,
+  pageId: string | null | undefined,
+  projectVariables: readonly VariableDef[],
+): VisibleVariable[] {
+  const visible = resolveVisibleVariables(
+    doc,
+    { kind: "element", elementId },
+    projectVariables,
+  );
+  if (
+    pageId &&
+    !visible.some(
+      (entry) => entry.owner.kind === "page" && entry.owner.pageId === pageId,
+    )
+  ) {
+    const pageEntries = resolveVisibleVariables(
+      doc,
+      { kind: "page", pageId },
+      [],
+    );
+    const firstProject = visible.findIndex(
+      (entry) => entry.owner.kind === "project",
+    );
+    visible.splice(
+      firstProject < 0 ? visible.length : firstProject,
+      0,
+      ...pageEntries,
+    );
+  }
+  return visible;
+}
+
 /** 두 노드가 한 사슬에 있는가 — 한쪽이 다른 쪽의 조상-또는-자기 */
 function shareChain(index: DocumentStateIndex, a: string, b: string): boolean {
   if (a === b) return true;
@@ -235,7 +275,8 @@ export function visitDocumentNodes(
   visit: (node: CanonicalNode, owner: VariableOwner) => void,
 ): void {
   if (!doc) return;
-  for (const entry of getIndex(doc).byId.values()) visit(entry.node, ownerOf(entry));
+  for (const entry of getIndex(doc).byId.values())
+    visit(entry.node, ownerOf(entry));
 }
 
 /** 문서 안 모든 노드 state 이름 (페이지 · 요소 · descendants) — project 변수 정의 시 예약어 집합 */

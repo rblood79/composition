@@ -48,7 +48,7 @@ import {
   useKeyboardShortcutsRegistry,
 } from "@/builder/hooks";
 import { isUnifiedFlag } from "./wasm-bindings/featureFlags";
-import type { BoundingBox } from "./selection/types";
+import { pointInBox, type BoundingBox } from "./selection/types";
 import type { DropIndicatorSnapshot } from "./selection/dropTargetResolver";
 import { ViewportControlBridge } from "./viewport";
 import {
@@ -104,6 +104,10 @@ import {
   resolveStoreCollection,
 } from "@composition/shared";
 import { resolveCollectionBadgeStatus } from "../../panels/datatable/utils/collectionBadgeStatus";
+import type {
+  ApiEndpoint,
+  DataStoreState,
+} from "../../../types/builder/data.types";
 import { useDataTableEditorStore } from "../../panels/datatable/stores/dataTableEditorStore";
 import type { SnapCandidateRect } from "./interaction/snapGuides";
 import { resolveCanvasContextMenuEntry } from "./contextMenu/canvasContextMenuEntry";
@@ -414,23 +418,53 @@ export function BuilderCanvas({
   const dataBadgeBoundsMapRef = useRef<Map<string, DataBadgeBounds>>(new Map());
   // resolver 는 stable — 매 호출 store 최신값을 getState 로 읽어 바인딩→collection→상태를 해소한다
   // (store 무의존 helpers/렌더러 계약 유지). 바인딩·collection 미해소 노드는 null → 배지 스킵.
+  // overlay 가 매 프레임 가시 노드마다 부르므로 collection→상태 해소는 data store 의 세 Map
+  // identity (전부 immutable 교체) 가 바뀔 때만 다시 한다 — 프레임당 비용은 Map 조회뿐.
+  const badgeInfoCacheRef = useRef<{
+    collections: DataStoreState["collections"];
+    apiEndpoints: DataStoreState["apiEndpoints"];
+    apiRuns: DataStoreState["apiRuns"];
+    endpointList: ApiEndpoint[];
+    infos: Map<string, BindingBadgeInfo>;
+  } | null>(null);
   const bindingBadgeResolver = useCallback(
     (element: CanvasSceneNode): BindingBadgeInfo | null => {
       const binding = getElementDataBinding(element);
       if (!binding) return null;
       const { collections, apiEndpoints, apiRuns } = useDataStore.getState();
+      let cache = badgeInfoCacheRef.current;
+      if (
+        !cache ||
+        cache.collections !== collections ||
+        cache.apiEndpoints !== apiEndpoints ||
+        cache.apiRuns !== apiRuns
+      ) {
+        cache = {
+          collections,
+          apiEndpoints,
+          apiRuns,
+          endpointList: Array.from(apiEndpoints.values()),
+          infos: new Map(),
+        };
+        badgeInfoCacheRef.current = cache;
+      }
       const collection = resolveStoreCollection(binding, collections);
       if (!collection) return null;
-      const status = resolveCollectionBadgeStatus(
-        collection,
-        Array.from(apiEndpoints.values()),
-        apiRuns,
-      );
-      return {
-        collectionId: collection.id,
-        name: collection.name,
-        state: status.state,
-      };
+      let info = cache.infos.get(collection.id);
+      if (!info) {
+        const status = resolveCollectionBadgeStatus(
+          collection,
+          cache.endpointList,
+          apiRuns,
+        );
+        info = {
+          collectionId: collection.id,
+          name: collection.name,
+          state: status.state,
+        };
+        cache.infos.set(collection.id, info);
+      }
+      return info;
     },
     [],
   );
@@ -1258,12 +1292,7 @@ export function BuilderCanvas({
       // 부가 경로일 뿐 — 키보드 정본은 Data 패널 목록(DataTableList).
       if (dataBadgeBoundsMapRef.current.size > 0) {
         for (const badge of dataBadgeBoundsMapRef.current.values()) {
-          if (
-            scenePoint.x >= badge.sceneX &&
-            scenePoint.x <= badge.sceneX + badge.width &&
-            scenePoint.y >= badge.sceneY &&
-            scenePoint.y <= badge.sceneY + badge.height
-          ) {
+          if (pointInBox(scenePoint, badge)) {
             const topPageIdAtPoint = resolveTopPageIdAtPoint({
               canvasPoint: scenePoint,
               activePageId: titleState.currentPageId,

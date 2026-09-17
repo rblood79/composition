@@ -43,11 +43,11 @@ export interface SkiaNodeData {
     fillColor: Float32Array;
     fill?: FillStyle;
     /**
-     * 다층 fill (아래 → 위, enabled 2개 이상일 때만). renderBox 가 같은 기하로 층마다 한 번씩
-     * 칠한다 (DOM `background-image` 층 쌓기 대칭, 2026-09-15). 맨 위 층은 `fill` / `fillColor`
-     * 와 같은 객체를 공유해 presentation 패치 (색 슬롯 in-place) 가 그대로 보인다.
+     * 맨 위 층 **아래** 의 fill (아래 → 위, enabled 2개 이상일 때만). renderBox 가 같은 기하로
+     * 층마다 한 번씩 칠한 뒤 맨 위 층을 `fill` / `fillColor` 로 그린다 (DOM `background-image`
+     * 층 쌓기 대칭, 2026-09-15) — presentation 패치 (색 슬롯 in-place) 는 그 채널에만 닿는다.
      */
-    fillLayers?: FillStyle[];
+    fillUnderlays?: FillStyle[];
     borderRadius: number | [number, number, number, number];
     strokeColor?: Float32Array;
     /** 균일 폭 (비균일이면 최대값 — 게이트용, 실제 변 폭은 `strokeWidths`) */

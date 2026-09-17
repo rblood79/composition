@@ -6,9 +6,8 @@
  * @since 2025-12-14 P9: Canvas padding 시스템
  */
 
-import { resolveBorderGeometry } from "./borderGeometry";
-import { parseCSSSize } from './styleConverter';
-import type { CSSStyle } from './styleConverter';
+import { parseCSSSize } from "./styleConverter";
+import type { CSSStyle } from "./styleConverter";
 
 // ============================================
 // Types
@@ -41,10 +40,12 @@ export interface ContentBounds {
  * - "8px 16px 12px" → 상 8px, 좌우 16px, 하 12px
  * - "8px 16px 12px 4px" → 상 8px, 우 16px, 하 12px, 좌 4px
  */
-function parsePaddingShorthand(value: string | number | undefined): PaddingValues | null {
+function parsePaddingShorthand(
+  value: string | number | undefined,
+): PaddingValues | null {
   if (value === undefined || value === null) return null;
 
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return { top: value, right: value, bottom: value, left: value };
   }
 
@@ -55,13 +56,33 @@ function parsePaddingShorthand(value: string | number | undefined): PaddingValue
 
   switch (parts.length) {
     case 1:
-      return { top: parts[0], right: parts[0], bottom: parts[0], left: parts[0] };
+      return {
+        top: parts[0],
+        right: parts[0],
+        bottom: parts[0],
+        left: parts[0],
+      };
     case 2:
-      return { top: parts[0], right: parts[1], bottom: parts[0], left: parts[1] };
+      return {
+        top: parts[0],
+        right: parts[1],
+        bottom: parts[0],
+        left: parts[1],
+      };
     case 3:
-      return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[1] };
+      return {
+        top: parts[0],
+        right: parts[1],
+        bottom: parts[2],
+        left: parts[1],
+      };
     case 4:
-      return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] };
+      return {
+        top: parts[0],
+        right: parts[1],
+        bottom: parts[2],
+        left: parts[3],
+      };
     default:
       return null;
   }
@@ -75,21 +96,48 @@ function parsePaddingShorthand(value: string | number | undefined): PaddingValue
  * 2. shorthand 값 (padding)
  * 3. 기본값 (0)
  */
-export function parsePadding(style: CSSStyle | undefined, defaultValue = 0): PaddingValues {
+export function parsePadding(
+  style: CSSStyle | undefined,
+  defaultValue = 0,
+): PaddingValues {
   if (!style) {
-    return { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
+    return {
+      top: defaultValue,
+      right: defaultValue,
+      bottom: defaultValue,
+      left: defaultValue,
+    };
   }
 
   // shorthand 먼저 파싱
-  const shorthand = parsePaddingShorthand(style.padding as string | number | undefined);
-  const base = shorthand || { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
+  const shorthand = parsePaddingShorthand(
+    style.padding as string | number | undefined,
+  );
+  const base = shorthand || {
+    top: defaultValue,
+    right: defaultValue,
+    bottom: defaultValue,
+    left: defaultValue,
+  };
 
   // 개별 값으로 오버라이드
   return {
-    top: style.paddingTop !== undefined ? parseCSSSize(style.paddingTop, undefined, base.top) : base.top,
-    right: style.paddingRight !== undefined ? parseCSSSize(style.paddingRight, undefined, base.right) : base.right,
-    bottom: style.paddingBottom !== undefined ? parseCSSSize(style.paddingBottom, undefined, base.bottom) : base.bottom,
-    left: style.paddingLeft !== undefined ? parseCSSSize(style.paddingLeft, undefined, base.left) : base.left,
+    top:
+      style.paddingTop !== undefined
+        ? parseCSSSize(style.paddingTop, undefined, base.top)
+        : base.top,
+    right:
+      style.paddingRight !== undefined
+        ? parseCSSSize(style.paddingRight, undefined, base.right)
+        : base.right,
+    bottom:
+      style.paddingBottom !== undefined
+        ? parseCSSSize(style.paddingBottom, undefined, base.bottom)
+        : base.bottom,
+    left:
+      style.paddingLeft !== undefined
+        ? parseCSSSize(style.paddingLeft, undefined, base.left)
+        : base.left,
   };
 }
 
@@ -99,7 +147,7 @@ export function parsePadding(style: CSSStyle | undefined, defaultValue = 0): Pad
 export function getContentBounds(
   containerWidth: number,
   containerHeight: number,
-  padding: PaddingValues
+  padding: PaddingValues,
 ): ContentBounds {
   return {
     x: padding.left,
@@ -112,7 +160,10 @@ export function getContentBounds(
 /**
  * padding 값의 총합 계산
  */
-export function getTotalPadding(padding: PaddingValues): { horizontal: number; vertical: number } {
+export function getTotalPadding(padding: PaddingValues): {
+  horizontal: number;
+  vertical: number;
+} {
   return {
     horizontal: padding.left + padding.right,
     vertical: padding.top + padding.bottom,
@@ -123,84 +174,10 @@ export function getTotalPadding(padding: PaddingValues): { horizontal: number; v
  * padding이 있는지 확인
  */
 export function hasPadding(padding: PaddingValues): boolean {
-  return padding.top > 0 || padding.right > 0 || padding.bottom > 0 || padding.left > 0;
-}
-
-// ============================================
-// Border Parsing
-// ============================================
-
-export interface BorderWidthValues {
-  top: number;
-  right: number;
-  bottom: number;
-  left: number;
-}
-
-/**
- * CSS borderWidth shorthand 값 파싱
- *
- * 지원 형식:
- * - "2px" → 모든 방향 2px
- * - "2px 4px" → 상하 2px, 좌우 4px
- * - "2px 4px 3px" → 상 2px, 좌우 4px, 하 3px
- * - "2px 4px 3px 1px" → 상 2px, 우 4px, 하 3px, 좌 1px
- */
-function parseBorderWidthShorthand(value: string | number | undefined): BorderWidthValues | null {
-  if (value === undefined || value === null) return null;
-
-  if (typeof value === 'number') {
-    return { top: value, right: value, bottom: value, left: value };
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-
-  const parts = trimmed.split(/\s+/).map((p) => parseCSSSize(p, undefined, 0));
-
-  switch (parts.length) {
-    case 1:
-      return { top: parts[0], right: parts[0], bottom: parts[0], left: parts[0] };
-    case 2:
-      return { top: parts[0], right: parts[1], bottom: parts[0], left: parts[1] };
-    case 3:
-      return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[1] };
-    case 4:
-      return { top: parts[0], right: parts[1], bottom: parts[2], left: parts[3] };
-    default:
-      return null;
-  }
-}
-
-/**
- * CSS 스타일에서 borderWidth 값 추출
- *
- * 우선순위:
- * 1. 개별 값 (borderTopWidth, borderRightWidth, borderBottomWidth, borderLeftWidth)
- * 2. shorthand 값 (borderWidth)
- * 3. 기본값 (0)
- */
-export function parseBorderWidth(style: CSSStyle | undefined, defaultValue = 0): BorderWidthValues {
-  if (!style) {
-    return { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
-  }
-  // ADR-219 — 판독은 helper 하나 (longhand ?? shorthand 다중값 ?? shorthand ?? border 단축).
-  //   어느 층에도 폭이 없으면 defaultValue.
-  const geometry = resolveBorderGeometry(style as Record<string, unknown>);
-  const hasAny =
-    geometry.hasWidthLonghand ||
-    (style.borderWidth !== undefined && style.borderWidth !== "") ||
-    (style as Record<string, unknown>).border !== undefined;
-  if (!hasAny) {
-    return { top: defaultValue, right: defaultValue, bottom: defaultValue, left: defaultValue };
-  }
-  const [top, right, bottom, left] = geometry.widths;
-  return { top, right, bottom, left };
-}
-
-/**
- * borderWidth가 있는지 확인
- */
-export function hasBorderWidth(border: BorderWidthValues): boolean {
-  return border.top > 0 || border.right > 0 || border.bottom > 0 || border.left > 0;
+  return (
+    padding.top > 0 ||
+    padding.right > 0 ||
+    padding.bottom > 0 ||
+    padding.left > 0
+  );
 }
