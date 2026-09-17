@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - `pnpm install` postinstall 이 `@composition/upload` 도 빌드한다 (`prepare:upload`).
-- initial 번들: Builder +3,875 B · Preview +3,507 B gzip (등록 8지점 + 렌더러 shell, 엔진 chunk 는 lazy) — 상한 재승인은 ADR-201 §initial 번들 상한 재승인 (사용자 결정 대기, 판정기 `adr201-bundle-gate.mjs`).
+- initial 번들: Builder +3,875 B · Preview +3,507 B gzip (등록 8지점 + 렌더러 shell, 엔진 chunk 는 lazy) — **initial 상한 재승인 2026-09-17: Builder ≤ 1,328,315 / Preview ≤ 601,346 B gzip (만료 2026-10-17, 202 재승인값 대체)**, 판정기 `adr201-bundle-gate.mjs` 11/11.
 
 ## [ADR-013 Quick Connect — Data 행 「New table」 이 만든 테이블을 작업하던 컴포넌트에 자동 연결] - 2026-09-17
 

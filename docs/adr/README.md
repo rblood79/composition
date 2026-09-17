@@ -49,7 +49,7 @@
 
 #### [201](201-large-file-upload-engine-component-server-contract.md) — 대용량 파일 업로드 — 독립 전송 엔진 `@composition/upload` + FileUpload 컴포넌트 + Spring 서버 계약
 
-- **상태**: In Progress — 2026-09-17 (Proposed 2026-09-02 · worktree 3개 병렬 착수 · Phase 0~3 main 통합 · review round 1 HIGH 3 fixed · G0·G1·G2a·G2b·G3·G4 실측 · 남은 것: initial 상한 재승인 (사용자) · G5 ≥1GB live)
+- **상태**: In Progress — 2026-09-17 (Proposed 2026-09-02 · worktree 3개 병렬 착수 · Phase 0~3 main 통합 · review round 1 HIGH 3 fixed · G0·G1·G2a·G2b·G3·G4 실측 · **initial 상한 재승인 2026-09-17 (Builder ≤ 1,328,315 / Preview ≤ 601,346, 만료 10-17 — 202 대체)** · 남은 것: G5 ≥1GB live)
 - **규모**: 실측 2026-09-01: 입력 UI(FileTrigger/DropZone/ProgressBar catalog)만 있고 전송 런타임·XHR·Cloud Storage 0건, `renderFileTrigger` 가 파일명을 문서 prop 에 기록(잘못된 채널), CAPABILITY_REGISTRY 미등재. FILE_UPLOAD.md 5종 비교 — Uppy(100KB+, catalog 밖 UI)/multipart 자체 프로토콜(표준 호환 0)/Rust wasm(I/O 병목·CSP)/shared 내장(외부 사용 불가) 기각 → TS sans-I/O 코어 + TUS 1.0 + 독립 package(esm/cjs/IIFE) + Spring 참조 서버(Java 8/Spring 5)·JSP 예제. 신규 의존 0, GB 힙 Δ≤64MB, tusd 대조군, 보안 공격 corpus G4
 - **우선순위**: **P2** (ADR-194 다음)
 
