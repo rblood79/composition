@@ -47,7 +47,9 @@ describe("BuilderCanvas — 페이지 헤더 DOM 층 배선", () => {
     expect(capture).not.toBeNull();
     const body = capture?.[0] ?? "";
     // 가드 문장 자체 (주석 처리·조건 변형이면 실패)
-    expect(body).toContain("if (isPageHeaderEventTarget(event.target)) return;");
+    expect(body).toContain(
+      "if (isPageHeaderEventTarget(event.target)) return;",
+    );
     // 눈금자 가드 다음, 프레임 편집 모드 판정보다 앞
     expect(
       body.indexOf("isPageHeaderEventTarget(event.target)"),
@@ -73,7 +75,9 @@ describe("BuilderCanvas — 페이지 헤더 DOM 층 배선", () => {
     expect(body).toContain("tryClaimPage(");
     expect(body).toContain("promoteElementToPage(");
     expect(body).toContain("guarded.__handled = true;");
-    expect(body).toMatch(/startPageDrag\(\s*pageId,\s*event\.pointerId,\s*event\.clientX,\s*event\.clientY,?\s*\)/);
+    expect(body).toMatch(
+      /startPageDrag\(\s*pageId,\s*event\.pointerId,\s*event\.clientX,\s*event\.clientY,?\s*\)/,
+    );
     // 헤더 자체 핸들러에서 stopPropagation 하면 pan 리스너 (bubble) 가 죽는다 — 금지
     expect(body).not.toContain("stopPropagation");
   });
@@ -94,5 +98,20 @@ describe("BuilderCanvas — 페이지 헤더 DOM 층 배선", () => {
       /\.page-header-layer\s*\{[^}]*pointer-events: none;/,
     );
     expect(layerCss).toMatch(/\.page-header\s*\{[^}]*pointer-events: auto;/);
+  });
+
+  it("제스처 숨김/나타남은 opacity fade (Framer 감각) — visibility 즉시 토글 아님", async () => {
+    const layerCss = await read("overlay/pageHeader/PageHeaderLayer.css");
+    // 나타남: 층 base 에 opacity transition
+    expect(layerCss).toMatch(
+      /\.page-header-layer\s*\{[^}]*transition: opacity[^};]*;/,
+    );
+    // 숨김: data-hidden 은 opacity 0 (visibility:hidden 즉시 토글 폐기)
+    expect(layerCss).toMatch(
+      /\.page-header-layer\[data-hidden\]\s*\{[^}]*opacity: 0;/,
+    );
+    expect(layerCss).not.toContain("visibility: hidden");
+    // 접근성: reduced-motion 에서 transition 제거
+    expect(layerCss).toContain("prefers-reduced-motion: reduce");
   });
 });

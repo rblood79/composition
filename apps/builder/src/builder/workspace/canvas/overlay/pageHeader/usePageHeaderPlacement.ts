@@ -205,21 +205,17 @@ export function usePageHeaderPlacement({
     ): void => {
       if (gestureActiveRef.current) return;
       if (snapshot.isActive && snapshot.activeOverrides) {
-        // drag 추종: 대상 페이지 노드만. 카메라는 고정이라 나머지는 유효하다.
-        const nodes = collectNodes(layerNode);
-        for (const frame of framesRef.current) {
-          if (!snapshot.activeOverrides.has(frame.id)) continue;
-          const node = nodes.get(frame.id);
-          if (!node) continue;
-          writeTransform(
-            node,
-            pageHeaderScreenRect(
-              resolvePosition(frame, snapshot),
-              frame,
-              cameraState,
-            ),
-          );
-        }
+        // drag 추종: 카메라는 고정이지만 대상 페이지가 움직이며 아래 페이지 헤더의
+        // occlusion (clip-path) 을 바꾼다 — transform 만 쓰면 겹친 아래 페이지 헤더가
+        // 선택 페이지 위로 남는다. 전체 재배치로 clip 을 매 프레임 재계산한다 (쓰기는
+        // 값 변경 시에만 — placePageHeaders 내부 가드).
+        placePageHeaders(
+          layerNode,
+          framesRef.current,
+          cameraState,
+          snapshot,
+          useViewportSyncStore.getState().containerSize,
+        );
         lastSnapshotVersionRef.current = snapshot.version;
         return;
       }

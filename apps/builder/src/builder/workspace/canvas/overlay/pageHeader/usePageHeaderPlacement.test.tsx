@@ -171,6 +171,26 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     expect(headerOf(layer, "p2").style.transform).toBe(p2Before);
   });
 
+  it("drag 중 위 페이지가 겹치면 아래 페이지 헤더 clip 이 매 프레임 갱신된다 (회귀)", () => {
+    // 회귀: transform 만 쓰던 fast path 는 겹친 아래 페이지 헤더의 clip 을 갱신하지
+    // 않아, 선택(위) 페이지가 이동해 겹칠 때 아래 헤더가 위 페이지 위로 남았다.
+    const { container } = render(<PageHeaderLayer frames={frames} />);
+    const layer = container.firstElementChild as HTMLElement;
+    expect(headerOf(layer, "p1").style.clipPath).toBe("");
+
+    // p2 (배열 뒤 = 위 페이지) 를 절대 x=200 으로 드래그 → p1 오른쪽 절반과 겹침.
+    const dragging: PagePositionPresentationSnapshot = {
+      ...idle,
+      activeOverrides: new Map([["p2", { x: 200, y: 0 }]]),
+      version: 1,
+      isActive: true,
+    };
+    publishCanvasFramePresentation(camera(1, 0, 100), dragging);
+    expect(headerOf(layer, "p1").style.clipPath).toBe(
+      "inset(0px 200px 0px 0px)",
+    );
+  });
+
   it("위 (활성) 페이지가 겹치면 아래 페이지 헤더는 clip-path inset 으로 잘린다", () => {
     // p2 (활성, 위) 를 p1 오른쪽 절반 위로 옮긴다
     testStore.setState({

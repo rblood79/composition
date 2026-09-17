@@ -11,11 +11,31 @@
   /* 층 자체는 이벤트를 통과시키고 헤더 노드만 받는다 (clip-path 밖은 히트 대상 아님) */
   pointer-events: none;
   contain: layout style;
+  /* 나타남(appear): 제스처 종료 시 배치 훅이 위치를 먼저 정렬한 뒤 data-hidden 을 떼므로
+     올바른 위치에서 부드럽게 fade-in (Framer 헤더와 같은 감각). opacity 만 애니메이트. */
+  opacity: 1;
+  transition: opacity 160ms ease-out;
+  will-change: opacity;
 }
 
-/* 카메라 제스처 (휠 pan/zoom · 스페이스 pan) 동안 숨김 — 배치 훅이 토글 */
+/* 카메라 제스처 (휠 pan/zoom · 스페이스 pan) 동안 숨김 — 배치 훅이 data-hidden 토글.
+   숨김(hide) 은 더 빠르게 (fade-out 60ms): 제스처 중 헤더 transform 은 freeze(G2 DOM 쓰기 0)
+   되므로, 즉시에 가까운 fade 로 팬/줌과의 순간 어긋남을 가린다. */
 .page-header-layer[data-hidden] {
-  visibility: hidden;
+  opacity: 0;
+  transition: opacity 60ms ease-in;
+}
+
+/* fade 중에도 헤더는 히트 대상에서 제외 — 제스처와 충돌 방지 */
+.page-header-layer[data-hidden] .page-header {
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-header-layer,
+  .page-header-layer[data-hidden] {
+    transition: none;
+  }
 }
 
 .page-header {
@@ -30,7 +50,7 @@
   overflow: hidden;
   font-family: var(--font-sans);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1;
   color: var(--fg-muted);
   white-space: nowrap;
@@ -47,14 +67,15 @@
   touch-action: none;
 }
 
-/* 현재(선택된) 페이지 — focus-ring 30% */
-.page-header[data-active] {
-  background: color-mix(in srgb, var(--focus-ring) 30%, transparent);
+/* 활성 페이지 + 요소 선택 있음 — 배경 · 타이틀 함께 강조. 빈 영역 클릭으로 선택이
+   풀리면 (data-highlighted off) 배경도 타이틀과 같이 비활성으로 돌아간다. data-active
+   (currentPageId) 는 편집 컨텍스트 표식으로 남되 시각 강조는 선택 유무로 판정. */
+.page-header[data-highlighted] {
+  background: color-mix(in srgb, var(--focus-ring) 24%, transparent);
 }
 
-/* 활성 페이지 + 요소 선택 있음 — 타이틀 글리프 강조 (Skia `highlighted` 계약) */
 .page-header[data-highlighted] .page-header__title {
-  color: var(--accent);
+  color: var(--focus-ring);
 }
 
 .page-header__title {
