@@ -45,6 +45,7 @@ import {
   resolveGroupExpandedDisclosureIds,
 } from "../utils/disclosureGroupExpansion";
 import { resolveCatalogDensityField } from "../catalog/resolvers/resolveCatalogContainer";
+import { resolveComponentRule } from "../catalog/resolvers/resolveComponentRule";
 import { resolveCalendarHeaderStyle } from "./DateRenderers";
 import type {
   PreviewElement,
@@ -381,16 +382,19 @@ export const renderCard = (
  * house convention 이고, 생성기(`.react-aria-{Type}`)·`Card.tsx`·`CanonicalNodeRenderer`
  * generic fallback 이 모두 그것을 쓴다. 그 규약에 되돌린다.
  */
-function cardSlotChrome(
-  type: "CardPreview" | "CardHeader" | "CardContent" | "CardFooter",
+function catalogChrome(
+  type: string,
   element: PreviewElement,
-): { className: string; "data-size": string } {
+): { className: string; "data-size": string; "data-variant": string } {
   const userClassName = element.props?.className as string | undefined;
+  // 생성 CSS 가 `.react-aria-{Type}[data-size]` / `[data-variant]` 로 축을 emit 한다. 부재값은
+  // catalog 의 defaultSize/defaultVariant — generic fallback (resolveBackedDefault*) 과 같은 원천.
+  const rule = resolveComponentRule(type);
   return {
     className: [`react-aria-${type}`, userClassName].filter(Boolean).join(" "),
-    // 생성 CSS 가 `.react-aria-{Type}[data-size="md"]` 로 size 축을 emit 한다.
-    // catalog `defaultSize: "md"` — generic fallback 의 resolveBackedDefaultSize 와 같은 기본값.
-    "data-size": (element.props?.size as string | undefined) ?? "md",
+    "data-size": (element.props?.size as string | undefined) ?? rule?.defaultSize ?? "md",
+    "data-variant":
+      (element.props?.variant as string | undefined) ?? rule?.defaultVariant ?? "default",
   };
 }
 
@@ -410,7 +414,7 @@ export const renderCardHeader = (
     <div
       key={element.id}
       data-element-id={element.id}
-      {...cardSlotChrome("CardHeader", element)}
+      {...catalogChrome("CardHeader", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => renderElement(child, child.id))}
@@ -437,7 +441,7 @@ export const renderCardContent = (
     <div
       key={element.id}
       data-element-id={element.id}
-      {...cardSlotChrome("CardContent", element)}
+      {...catalogChrome("CardContent", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => {
@@ -487,7 +491,7 @@ export const renderCardPreview = (
     <div
       key={element.id}
       data-element-id={element.id}
-      {...cardSlotChrome("CardPreview", element)}
+      {...catalogChrome("CardPreview", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => renderElement(child, child.id))}
@@ -511,7 +515,7 @@ export const renderCardFooter = (
     <div
       key={element.id}
       data-element-id={element.id}
-      {...cardSlotChrome("CardFooter", element)}
+      {...catalogChrome("CardFooter", element)}
       style={element.props?.style as React.CSSProperties}
     >
       {children.map((child) => renderElement(child, child.id))}
@@ -1574,26 +1578,20 @@ export const renderNav = (
 
   const children = context.childrenByParent.get(element.id) ?? [];
 
-  // catalog 전달 (2026-09-17): `react-aria-Nav` + data-size/variant 로 생성 Nav.css (md: height 56 ·
-  //   padding 12 16 · gap 12 — Skia 가 주입하는 값) 가 걸린다. 종전 인라인 gap 16 / padding 8 16 하드코드는
-  //   catalog 와 달라 (factory 가 catalog 값을 인라인으로 실어 가리고 있었다) 제거 — 인라인 없는 legacy
-  //   문서도 CSS 로 같은 값을 받는다. display/alignItems 는 factory 인라인과 같은 값이라 유지.
-  const className = ["react-aria-Nav", element.props.className]
-    .filter(Boolean)
-    .join(" ");
+  // `react-aria-Nav` + data-size/variant 로 생성 Nav.css (catalog height·padding·gap) 를 받는다 —
+  //   gap/padding 인라인은 두지 않는다 (2026-09-17, CHANGELOG). display/alignItems 는 props.style 없는
+  //   legacy 문서의 폴백.
   return (
     <nav
       key={element.id}
       id={element.customId}
       data-element-id={element.id}
-      data-size={String(element.props.size || "md")}
-      data-variant={String(element.props.variant || "default")}
+      {...catalogChrome("Nav", element)}
       style={{
         display: "flex",
         alignItems: "center",
         ...element.props.style,
       }}
-      className={className}
       aria-label={String(element.props.label || "Navigation")}
     >
       {children.map((child) => renderElement(child, child.id))}

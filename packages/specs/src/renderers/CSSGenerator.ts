@@ -56,7 +56,7 @@ function emitColorLine(
 
 // ─── Archetype별 base styles ────────────────────────────────────────────────
 
-const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
+export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
   simple: [
     `    display: inline-flex;`,
     `    align-items: center;`,
@@ -174,6 +174,11 @@ const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `    font-family: var(--font-sans);`,
   ],
 };
+
+/** `ArchetypeId` 판정 — 표의 키가 union 과 1:1 (Record 가 컴파일 강제). catalog `"default"` 는 미지정. */
+export function isArchetypeId(value: string): value is ArchetypeId {
+  return Object.prototype.hasOwnProperty.call(ARCHETYPE_BASE_STYLES, value);
+}
 
 // archetype 미지정 시 기본 base styles
 const DEFAULT_BASE_STYLES = [

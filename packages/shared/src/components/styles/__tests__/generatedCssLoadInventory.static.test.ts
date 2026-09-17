@@ -52,11 +52,8 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   CardView:
     "D renderer 인라인 style, class 미방출 — binding 머리말: 빈 셸 (AvatarGroup 동형)",
   // E. container layout 채널 = props.style 인라인 (ADR-907 Layer B) — 로드하면 DOM 전용 스타일로 갈린다
-  //   Section · Nav 는 2026-09-17 이 판정을 뒤집고 index.css 에 실었다 — 실측: Section 은 factory 인라인이
-  //   display:block 뿐이라 Skia 의 catalog padding 16 / gap 12 주입을 DOM 이 못 받았고 (자식 폭 321 vs 293),
-  //   Nav 는 인라인 미러가 height 56 을 안 실어 Skia 56 vs DOM 44. "로드하면 갈린다" 의 원인이던 archetype
-  //   `default` 의 버튼 어법 (center · cursor) 은 새 archetype `container` 로 제거했다 (오라클:
-  //   apps/builder/tests/parity/catalogComponentBox — Section flex 무정렬 · Nav 높이).
+  //   Section · Nav 는 2026-09-17 이 판정을 뒤집고 index.css 에 실었다 (archetype `container` —
+  //   CSSGenerator ARCHETYPE_BASE_STYLES 주석 · CHANGELOG; 오라클 catalogComponentBox).
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
   DialogFooter: "E container — OverlayComponents.ts 인라인",
   DisclosureHeader: "E container — NavigationComponents.ts 인라인",

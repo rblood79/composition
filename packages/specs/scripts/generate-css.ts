@@ -6,7 +6,7 @@
  * Usage: pnpm generate:css
  */
 
-import { generateCSS } from "../src/renderers/CSSGenerator";
+import { generateCSS, isArchetypeId } from "../src/renderers/CSSGenerator";
 import type { ComponentVisualRule } from "../src/renderers/utils/resolveComponentVisual";
 import type {
   ArchetypeId,
@@ -76,25 +76,9 @@ function ruleVariantToVisual(v: ComponentRuleVariant): ComponentVisualRule {
   };
 }
 
-const ARCHETYPE_IDS: ReadonlySet<string> = new Set<ArchetypeId>([
-  "simple",
-  "button",
-  "input-base",
-  "toggle-indicator",
-  "progress",
-  "slider",
-  "tabs-indicator",
-  "collection",
-  "overlay",
-  "calendar",
-  "alert",
-  "text",
-  "container",
-]);
-
 /** catalog `structure.archetype` 은 string("default" 포함). spec 에 없는 값은 미지정과 같다. */
 function toArchetypeId(value: string): ArchetypeId | undefined {
-  return ARCHETYPE_IDS.has(value) ? (value as ArchetypeId) : undefined;
+  return isArchetypeId(value) ? value : undefined;
 }
 
 /**

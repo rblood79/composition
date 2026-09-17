@@ -115,8 +115,7 @@ const EXPECTED: Readonly<Record<string, "covered" | "gap" | "unobserved">> = {
   Input: "covered",
   MeterTrack: "unobserved",
   MeterValue: "unobserved",
-  // Nav — 2026-09-17 import (Section 과 같은 결함: renderNav 가 class 없이 인라인 하드코드, catalog
-  //   height 56 미도달 → Skia 56 vs DOM 44). renderNav 가 `react-aria-Nav` 를 붙인다.
+  // Nav — 2026-09-17 import (Section 동형, CHANGELOG). renderNav 가 `react-aria-Nav` 를 붙인다.
   ProgressBarTrack: "unobserved",
   ProgressBarValue: "unobserved",
   ProgressCircle: "unobserved",
