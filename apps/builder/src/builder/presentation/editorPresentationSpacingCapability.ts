@@ -9,10 +9,24 @@
  * (`readPersistentEngineStyle`) 다 — catalog 기본값 · 미지정 0 · 명시 px 가 전부
  * `"Npx"` 로 정규화돼 있어 canonical raw 값이 없어도 편집을 시작할 수 있다.
  * canonical raw 값은 provenance (단위 보존 여부) 판정에만 쓴다.
+ *
+ * 비-desktop breakpoint (2026-09-17 사용자 승인 — scope 확장): 쓰기 목적지는 Inspector 와
+ * 같은 `shouldWriteBreakpointOverride` 판정이다 (eligible + 해당 tier 토글 ON → tier
+ * override, 아니면 base). provenance 도 그 목적지의 raw 값으로 본다. 토글 OFF 인데 상위
+ * tier override 가 cascade 로 덮고 있으면 base 쓰기가 화면에 안 보이므로 편집을 열지
+ * 않는다 (`cascade-shadowed`) — "편집 가능해 보이는데 아무 일도 안 일어남" 을 금지한
+ * ADR-222 R5 와 같은 원칙.
  */
 
+import {
+  getResponsiveValueWithCascade,
+  type BreakpointName,
+  type ElementResponsiveConfig,
+  type ResponsiveValue,
+} from "@composition/shared";
 import { useStore } from "../stores";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import { shouldWriteBreakpointOverride } from "../stores/utils/responsiveWriteRouting";
 import {
   editorPresentationCanonicalRuntimeOptions,
   getEditorPresentationTargetNode,
@@ -49,7 +63,7 @@ export type SpacingUnsupportedReason =
   | "multi-selection"
   | "not-canonical-node"
   | "body"
-  | "non-desktop-breakpoint"
+  | "cascade-shadowed"
   | "engine-style-missing"
   | "position-unsupported"
   | "grid"
@@ -129,8 +143,54 @@ export interface SpacingCapabilityInputs {
     Record<string, unknown>
   > | null)[];
   readonly children: readonly SpacingCapabilityChildInput[];
-  readonly activeBreakpoint: string;
+  readonly activeBreakpoint: BreakpointName;
+  /** canonical `responsive` (tier override) — 비-desktop 쓰기 목적지·provenance 판정 */
+  readonly responsive?: ElementResponsiveConfig;
   readonly locked: boolean;
+}
+
+const SPACING_SHORTHAND_OF: Readonly<Record<SpacingProperty, "padding" | "gap">> =
+  {
+    paddingTop: "padding",
+    paddingRight: "padding",
+    paddingBottom: "padding",
+    paddingLeft: "padding",
+    rowGap: "gap",
+    columnGap: "gap",
+  };
+
+interface RoutedSpacingRaw {
+  /** 쓰기 목적지의 raw 값 (tier override 또는 base) — provenance 판정 대상 */
+  readonly value: unknown;
+  /** base 로 쓰는데 상위 tier override (longhand 또는 legacy shorthand) 가 cascade 로 덮는다 */
+  readonly shadowed: boolean;
+}
+
+/**
+ * 비-desktop 에서 이 property 의 쓰기 목적지 raw 값. desktop 은 base 그대로.
+ * 목적지 판정은 commit 어댑터와 같은 `shouldWriteBreakpointOverride` 하나다.
+ */
+function readRoutedSpacingRaw(
+  input: SpacingCapabilityInputs,
+  property: SpacingProperty,
+): RoutedSpacingRaw {
+  const raw = normalizePresentationSpacingStyle(input.rawStyle);
+  const breakpoint = input.activeBreakpoint;
+  if (breakpoint === "desktop") return { value: raw[property], shadowed: false };
+  const styles = input.responsive?.styles as
+    | Record<string, ResponsiveValue<unknown> | undefined>
+    | undefined;
+  if (shouldWriteBreakpointOverride(input.responsive, property, breakpoint)) {
+    return { value: styles?.[property]?.[breakpoint], shadowed: false };
+  }
+  const cascaded =
+    getResponsiveValueWithCascade(styles?.[property], breakpoint, undefined) ??
+    getResponsiveValueWithCascade(
+      styles?.[SPACING_SHORTHAND_OF[property]],
+      breakpoint,
+      undefined,
+    );
+  return { value: raw[property], shadowed: cascaded !== undefined };
 }
 
 /** 구조 컨테이너 타입 — dropTargetResolver 의 STRUCTURAL_CONTAINER_TYPES 와 같은 집합 (body 제외). */
@@ -219,15 +279,21 @@ function resolvePaddingCapability(
   if (!PADDING_CONTAINER_TYPES.has(type) && !isLayoutContainer) {
     return { supported: false, reason: "not-container" };
   }
-  const raw = normalizePresentationSpacingStyle(input.rawStyle);
   const rawSides = new Set<SpacingSide>();
   for (const side of SPACING_SIDES) {
     const property = PADDING_PROPERTY_BY_SIDE[side];
-    const rawValue = raw[property];
-    if (isRawUnitPreserved(rawValue)) {
+    const routed = readRoutedSpacingRaw(input, property);
+    if (routed.shadowed) {
+      return { supported: false, reason: "cascade-shadowed" };
+    }
+    if (isRawUnitPreserved(routed.value)) {
       return { supported: false, reason: "raw-unit-preserved" };
     }
-    if (rawValue !== undefined && rawValue !== null && rawValue !== "") {
+    if (
+      routed.value !== undefined &&
+      routed.value !== null &&
+      routed.value !== ""
+    ) {
       rawSides.add(side);
     }
   }
@@ -260,8 +326,11 @@ function resolveGapCapability(
     : "horizontal";
   const property: SpacingGapProperty =
     axis === "horizontal" ? "columnGap" : "rowGap";
-  const raw = normalizePresentationSpacingStyle(input.rawStyle);
-  if (isRawUnitPreserved(raw[property])) {
+  const routed = readRoutedSpacingRaw(input, property);
+  if (routed.shadowed) {
+    return { supported: false, reason: "cascade-shadowed" };
+  }
+  if (isRawUnitPreserved(routed.value)) {
     return { supported: false, reason: "raw-unit-preserved" };
   }
   const flowChildIds: string[] = [];
@@ -311,9 +380,6 @@ export function resolveSpacingCapabilityFromInputs(
   });
 
   if (input.nodeType.toLowerCase() === "body") return unsupported("body");
-  if (input.activeBreakpoint !== "desktop") {
-    return unsupported("non-desktop-breakpoint");
-  }
   if (input.locked) return unsupported("locked");
   const engineStyle = input.engineStyle;
   if (!engineStyle) return unsupported("engine-style-missing");
@@ -403,6 +469,7 @@ export function resolveSpacingCapability(
     ancestorEngineStyles,
     children,
     activeBreakpoint: state.activeBreakpoint,
+    responsive: node.responsive,
     locked: Boolean(props.isLocked ?? props.locked),
   });
 }

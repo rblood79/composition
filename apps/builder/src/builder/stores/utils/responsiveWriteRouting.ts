@@ -157,3 +157,51 @@ export function shouldWriteBreakpointOverride(
     hasOwnTierOverride(responsive, property, activeBreakpoint)
   );
 }
+
+/**
+ * ADR-154: activeBreakpoint override 를 `element.responsive.styles` 에 write.
+ * base `props.style` 과 동일한 longhand 정책(ADR-909) — shorthand(gap/padding/margin)은
+ * longhand 로 분배 저장. 빈 값(clear)은 해당 breakpoint 키를 제거하고, 키가 비면 삭제.
+ * desktop 은 호출측에서 제외(base 편집). Inspector write 3함수와 presentation commit 어댑터
+ * (ADR-222 비-desktop spacing 라우팅) 가 같은 함수를 쓴다.
+ */
+export function buildResponsiveStyleOverride(
+  existing: ElementResponsiveConfig | undefined,
+  property: string,
+  value: string,
+  breakpoint: BreakpointName,
+): ElementResponsiveConfig {
+  const styles: Record<string, Record<string, unknown>> = {};
+  const existingStyles = (existing?.styles ?? {}) as Record<
+    string,
+    Record<string, unknown>
+  >;
+  for (const k of Object.keys(existingStyles)) {
+    styles[k] = { ...existingStyles[k] };
+  }
+
+  const isClearing = value === "" || value === null || value === undefined;
+  const longhands = SHORTHAND_TO_LONGHAND[property] ?? [property];
+  const converted = isClearing
+    ? undefined
+    : toStyleNumericValue(property, value);
+
+  for (const key of longhands) {
+    if (converted === undefined) {
+      if (styles[key]) {
+        delete styles[key][breakpoint];
+        if (Object.keys(styles[key]).length === 0) delete styles[key];
+      }
+    } else {
+      styles[key] = { ...(styles[key] ?? {}), [breakpoint]: converted };
+    }
+  }
+
+  const next: ElementResponsiveConfig = { ...existing };
+  if (Object.keys(styles).length > 0) {
+    next.styles = styles as unknown as ElementResponsiveConfig["styles"];
+  } else {
+    delete next.styles;
+  }
+  return next;
+}

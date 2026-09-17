@@ -1,4 +1,8 @@
-import type { CanonicalNode, CompositionDocument } from "@composition/shared";
+import type {
+  BreakpointName,
+  CanonicalNode,
+  CompositionDocument,
+} from "@composition/shared";
 
 import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunner";
 import type { CanonicalMutationResult } from "@/adapters/canonical/canonicalMutations";
@@ -37,6 +41,11 @@ import {
   withCanonicalRefDescendantStylePatch,
 } from "../../adapters/canonical/canonicalRefResolution";
 import { getFrameElementMirrorId } from "../../adapters/canonical/frameMirror";
+import {
+  buildResponsiveStyleOverride,
+  shouldWriteBreakpointOverride,
+} from "../stores/utils/responsiveWriteRouting";
+import { resolveResponsiveStyleMap } from "../workspace/canvas/layout/resolveResponsive";
 import {
   hasPresentationSpacingPatch,
   normalizePresentationSpacingPatch,
@@ -312,6 +321,31 @@ function readTargetStyle(
   return isRecord(node.props?.style) ? node.props.style : {};
 }
 
+/**
+ * layout intent (width/height · spacing) 의 base 값 — activeBreakpoint 로 resolve 한
+ * effective style (base ⊕ responsive cascade). Inspector 가 보는 값과 같아야 "base 와
+ * 같음 → no-op" 판정과 conflict 감지가 비-desktop 에서도 맞는다 (ADR-222 §1.1 확장 —
+ * mobile 에서 base 16 · mobile override 24 인 노드를 16 으로 끌면 override 를 16 으로
+ * 써야 하지 base 와 같다고 건너뛰면 안 된다). desktop 은 base identity 그대로.
+ */
+function readTargetLayoutStyle(
+  projectId: string,
+  target: EditorPresentationTargetRef,
+): Readonly<Record<string, unknown>> | null {
+  const base = readTargetStyle(projectId, target);
+  if (!base || target.kind !== "canonical-node") return base;
+  const node = getEditorPresentationTargetNode(projectId, target);
+  return resolveResponsiveStyleMap(
+    base as Record<string, unknown>,
+    node?.responsive,
+    useStore.getState().activeBreakpoint,
+  );
+}
+
+function isLayoutCommitIntent(commitIntent: string | undefined): boolean {
+  return commitIntent?.startsWith("style-layout-") === true;
+}
+
 function applyStylePatch(
   baseStyle: Readonly<Record<string, unknown>>,
   patch: Readonly<Record<string, unknown>>,
@@ -344,7 +378,16 @@ function areStylePatchValuesEqual(
     : baseStyle;
   return Object.entries(normalizedPatch).every(([key, value]) => {
     const baseValue = normalizedBaseStyle[key];
-    return value === "" ? baseValue === undefined : Object.is(baseValue, value);
+    if (value === "") return baseValue === undefined;
+    if (Object.is(baseValue, value)) return true;
+    // Inspector 는 spacing 을 숫자로, presentation 은 "Npx" 로 저장한다 — 같은 px 면 같은 값.
+    return (
+      hasSpacing &&
+      typeof baseValue === "number" &&
+      typeof value === "string" &&
+      /^\s*(\d+(?:\.\d+)?)px\s*$/.test(value) &&
+      Number.parseFloat(value) === baseValue
+    );
   });
 }
 
@@ -650,7 +693,38 @@ export function commitEditorPresentationStyle(
       "ADR-187 text metric presentation target must be a fixed standalone Text leaf",
     );
   }
-  if (areStylePatchValuesEqual(descriptor.patch, previousStyle)) {
+  // ADR-222 §1.1 확장 — 비-desktop breakpoint 의 layout patch 는 Inspector write 3함수와
+  // 같은 판정 (shouldWriteBreakpointOverride: eligible + 해당 tier 토글 ON) 으로 키마다
+  // tier override / base 를 가른다. 토글 OFF 면 base (전역) — ADR-154 개정 1 기본 모델.
+  const activeBreakpoint: BreakpointName = useStore.getState().activeBreakpoint;
+  const overridePatch: Record<string, unknown> = {};
+  const basePatch: Record<string, unknown> = {};
+  if (isLayoutPatch && descriptor.target.kind === "canonical-node") {
+    for (const [key, value] of Object.entries(descriptor.patch)) {
+      if (
+        shouldWriteBreakpointOverride(
+          before.node.responsive,
+          key,
+          activeBreakpoint,
+        )
+      ) {
+        overridePatch[key] = value;
+      } else {
+        basePatch[key] = value;
+      }
+    }
+  } else {
+    Object.assign(basePatch, descriptor.patch);
+  }
+  const effectiveStyle =
+    Object.keys(overridePatch).length > 0
+      ? (readTargetLayoutStyle(input.projectId, descriptor.target) ??
+        previousStyle)
+      : previousStyle;
+  if (
+    areStylePatchValuesEqual(basePatch, previousStyle) &&
+    areStylePatchValuesEqual(overridePatch, effectiveStyle)
+  ) {
     return { committedDocumentRevision: canonical.documentVersion };
   }
   if (!historyManager.getCurrentPageId()) {
@@ -659,14 +733,29 @@ export function commitEditorPresentationStyle(
     );
   }
 
+  let nextResponsive = before.node.responsive;
+  for (const [key, value] of Object.entries(overridePatch)) {
+    nextResponsive = buildResponsiveStyleOverride(
+      nextResponsive,
+      key,
+      String(value),
+      activeBreakpoint,
+    );
+  }
   const nextNode: CanonicalNode =
     descriptor.target.kind === "canonical-node"
       ? {
           ...before.node,
           props: {
             ...(before.node.props ?? {}),
-            style: applyStylePatch(previousStyle, descriptor.patch),
+            style:
+              Object.keys(basePatch).length > 0
+                ? applyStylePatch(previousStyle, basePatch)
+                : (before.node.props?.style ?? {}),
           },
+          ...(nextResponsive !== before.node.responsive
+            ? { responsive: nextResponsive }
+            : {}),
         }
       : withCanonicalRefDescendantStylePatch(
           before.node,
@@ -738,9 +827,11 @@ export const editorPresentationCanonicalRuntimeOptions: Required<
     return state.currentProjectId === projectId ? state.documentVersion : -1;
   },
   readTargetValue: (projectId, target, commitIntent) =>
-    commitIntent?.startsWith("style-")
-      ? readTargetStyle(projectId, target)
-      : readTargetFills(projectId, target),
+    isLayoutCommitIntent(commitIntent)
+      ? readTargetLayoutStyle(projectId, target)
+      : commitIntent?.startsWith("style-")
+        ? readTargetStyle(projectId, target)
+        : readTargetFills(projectId, target),
 };
 
 export function isCanonicalFillDescriptor(

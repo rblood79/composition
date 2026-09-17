@@ -499,6 +499,126 @@ describe("ADR-187 Phase 2 canonical fill commit", () => {
     expect(put).toHaveBeenCalledTimes(1);
   });
 
+  describe("비-desktop breakpoint spacing 라우팅 (ADR-222 §1.1 확장, 2026-09-17)", () => {
+    function seedSpacingNode(responsive?: CanonicalNode["responsive"]): void {
+      const document = useCanonicalDocumentStore
+        .getState()
+        .documents.get(PROJECT_ID)!;
+      const first = node("node-1", "#111111FF", {
+        display: "flex",
+        paddingTop: 16,
+        rowGap: 8,
+      });
+      useCanonicalDocumentStore.getState().setDocument(PROJECT_ID, {
+        ...document,
+        children: [
+          responsive ? { ...first, responsive } : first,
+          document.children[1]!,
+        ],
+      });
+    }
+    function commitSpacing(patch: Record<string, string>) {
+      return commitEditorPresentationStyle({
+        baseDocumentVersion: useCanonicalDocumentStore.getState()
+          .documentVersion,
+        commitIntent: "style-layout-spacing",
+        descriptor: {
+          patch,
+          target: { kind: "canonical-node", nodeId: "node-1" },
+          type: "style.patch",
+        },
+        projectId: PROJECT_ID,
+        sessionId: "layout-spacing-session",
+        targets: [{ kind: "canonical-node", nodeId: "node-1" }],
+      });
+    }
+    function firstNode(): CanonicalNode {
+      return useCanonicalDocumentStore.getState().documents.get(PROJECT_ID)!
+        .children[0]!;
+    }
+
+    afterEach(() => {
+      useStore.setState({ activeBreakpoint: "desktop" } as never);
+    });
+
+    it("mobile 에서 tier 토글 ON 인 키는 responsive.styles[key].mobile 로 쓰고 base 는 그대로다", async () => {
+      seedSpacingNode({ styles: { paddingTop: { mobile: 24 } } });
+      useStore.setState({ activeBreakpoint: "mobile" } as never);
+
+      commitSpacing({ paddingTop: "40px" });
+
+      const next = firstNode();
+      expect((next.props?.style as Record<string, unknown>).paddingTop).toBe(
+        16,
+      );
+      expect(
+        (next.responsive?.styles as Record<string, Record<string, unknown>>)
+          .paddingTop,
+      ).toEqual({ mobile: 40 });
+      expect(historyManager.getCurrentPageEntries()).toHaveLength(1);
+      await flushPersist();
+      expect(put).toHaveBeenCalledTimes(1);
+    });
+
+    it("mobile 에서 토글 OFF 인 키는 base 로 쓴다 (ADR-154 개정 1 기본 모델)", () => {
+      seedSpacingNode();
+      useStore.setState({ activeBreakpoint: "mobile" } as never);
+
+      commitSpacing({ rowGap: "20px" });
+
+      const next = firstNode();
+      expect((next.props?.style as Record<string, unknown>).rowGap).toBe(
+        "20px",
+      );
+      expect(next.responsive).toBeUndefined();
+    });
+
+    it("tier override 와 같은 값으로 돌아오면 no-op, base 와 같은 값이어도 override 는 갱신된다", () => {
+      seedSpacingNode({ styles: { paddingTop: { mobile: 24 } } });
+      useStore.setState({ activeBreakpoint: "mobile" } as never);
+      const version = useCanonicalDocumentStore.getState().documentVersion;
+
+      expect(commitSpacing({ paddingTop: "24px" })).toEqual({
+        committedDocumentRevision: version,
+      });
+      // effective 읽기도 tier 값이다 — runtime 의 "base 와 같음" 판정이 override 값을 본다
+      expect(
+        (
+          editorPresentationCanonicalRuntimeOptions.readTargetValue(
+            PROJECT_ID,
+            { kind: "canonical-node", nodeId: "node-1" },
+            "style-layout-spacing",
+          ) as Record<string, unknown>
+        ).paddingTop,
+      ).toBe(24);
+
+      commitSpacing({ paddingTop: "16px" });
+      expect(
+        (
+          firstNode().responsive?.styles as Record<
+            string,
+            Record<string, unknown>
+          >
+        ).paddingTop,
+      ).toEqual({ mobile: 16 });
+    });
+
+    it("desktop 은 responsive 가 있어도 base 로 쓴다", () => {
+      seedSpacingNode({ styles: { paddingTop: { mobile: 24 } } });
+
+      commitSpacing({ paddingTop: "40px" });
+
+      const next = firstNode();
+      expect((next.props?.style as Record<string, unknown>).paddingTop).toBe(
+        "40px",
+      );
+      expect(
+        (next.responsive?.styles as Record<string, Record<string, unknown>>)
+          .paddingTop,
+      ).toEqual({ mobile: 24 });
+    });
+  });
+
   it("boxShadow style patch는 canonical/history/persist를 한 번만 수행한다", async () => {
     useCanonicalDocumentStore
       .getState()

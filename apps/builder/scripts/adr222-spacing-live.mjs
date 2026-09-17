@@ -10,6 +10,7 @@
 //   5) Cmd+Z → 16 복원 (history 1)
 //   6) gap 핸들 드래그 +10 → rowGap 22 · Preview(Compare) DOM 의 두 Button 간격 22
 //   7) Escape 취소 → canonical 무변경 · history 무변경
+//  15~18) mobile breakpoint — 토글 OFF base 쓰기 · 토글 ON tier override 쓰기 · desktop 복귀 (2026-09-17 scope 확장)
 //   8) 클릭 (임계값 미만) → 변경 0
 //   9) page error 0
 // 사용: node apps/builder/scripts/adr222-spacing-live.mjs [--headed]  (dev 서버 5173 · .auth-session.json)
@@ -115,14 +116,16 @@ const readStyle = (page, id) =>
   }, id);
 const readLayout = (page, id) =>
   page.evaluate((elementId) => {
-    const l = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap()?.get(elementId);
+    const l = window.__composition_LAYOUT_DEBUG__
+      .getSharedLayoutMap()
+      ?.get(elementId);
     return l ? { x: l.x, y: l.y, width: l.width, height: l.height } : null;
   }, id);
 const historyCount = (page) =>
   page.evaluate(
     () =>
-      window.__composition_HISTORY_DEBUG__?.getCurrentPageHistory().currentIndex ??
-      null,
+      window.__composition_HISTORY_DEBUG__?.getCurrentPageHistory()
+        .currentIndex ?? null,
   );
 const spacingDebug = (page) =>
   page.evaluate(() => {
@@ -137,7 +140,14 @@ const spacingDebug = (page) =>
         : null,
       hoveredBandId: snap.hoveredBandId,
       active: snap.active,
-      bands: set?.bands.map((b) => ({ id: b.id, value: b.value, rect: b.rect, axis: b.axis, sign: b.sign })) ?? null,
+      bands:
+        set?.bands.map((b) => ({
+          id: b.id,
+          value: b.value,
+          rect: b.rect,
+          axis: b.axis,
+          sign: b.sign,
+        })) ?? null,
       clipRect: set?.clipRect ?? null,
       session: d.getActiveSession(),
     };
@@ -280,8 +290,9 @@ try {
     (ids) =>
       ids.map(
         (id) =>
-          window.__composition_STORE__.getState().elements.find((e) => e.id === id)
-            ?.parent_id,
+          window.__composition_STORE__
+            .getState()
+            .elements.find((e) => e.id === id)?.parent_id,
       ),
     [btnA, btnB, followId],
   );
@@ -299,7 +310,16 @@ try {
   await page.waitForTimeout(900);
   let dbg = await spacingDebug(page);
   for (let i = 0; i < 10 && (dbg.bands?.length ?? 0) !== 5; i++) {
-    log("bands 대기", JSON.stringify({ padding: dbg.padding, gap: dbg.gap && { supported: dbg.gap.supported, reason: dbg.gap.reason } }));
+    log(
+      "bands 대기",
+      JSON.stringify({
+        padding: dbg.padding,
+        gap: dbg.gap && {
+          supported: dbg.gap.supported,
+          reason: dbg.gap.reason,
+        },
+      }),
+    );
     await page.waitForTimeout(500);
     dbg = await spacingDebug(page);
   }
@@ -307,9 +327,14 @@ try {
     "선택 즉시 owner + padding 4변 + gap 1 띠 (값 = 엔진 소비값 16/12)",
     dbg.ownerId === boxId &&
       dbg.bands?.length === 5 &&
-      dbg.bands.filter((b) => b.id.startsWith("padding")).every((b) => b.value === 16) &&
+      dbg.bands
+        .filter((b) => b.id.startsWith("padding"))
+        .every((b) => b.value === 16) &&
       dbg.bands.find((b) => b.id === "gap:0")?.value === 12,
-    JSON.stringify({ owner: dbg.ownerId, bands: dbg.bands?.map((b) => `${b.id}=${b.value}`) }),
+    JSON.stringify({
+      owner: dbg.ownerId,
+      bands: dbg.bands?.map((b) => `${b.id}=${b.value}`),
+    }),
   );
   await focusOwner(page);
   await page.screenshot({ path: resolve(OUT_DIR, "1-selected.png") });
@@ -350,19 +375,29 @@ try {
       dbg.session?.confirmedValues?.paddingTop === 40 &&
       styleMid.paddingTop === styleBefore.paddingTop &&
       styleMid.padding === styleBefore.padding,
-    JSON.stringify({ active: dbg.active, confirmed: dbg.session?.confirmedValues, styleMid }),
+    JSON.stringify({
+      active: dbg.active,
+      confirmed: dbg.session?.confirmedValues,
+      styleMid,
+    }),
   );
   const panelMid = await page.evaluate(() => {
     const input = document.querySelector(
-      '.box-model__input--padding.box-model__input--top',
+      ".box-model__input--padding.box-model__input--top",
     );
     return input
-      ? { value: input.value, active: input.hasAttribute("data-active"), readOnly: input.readOnly }
+      ? {
+          value: input.value,
+          active: input.hasAttribute("data-active"),
+          readOnly: input.readOnly,
+        }
       : null;
   });
   record(
     "드래그 중 Styles 패널 Padding Top = 40 · data-active · readOnly (패널 동기 강조)",
-    panelMid?.value === "40" && panelMid.active === true && panelMid.readOnly === true,
+    panelMid?.value === "40" &&
+      panelMid.active === true &&
+      panelMid.readOnly === true,
     JSON.stringify(panelMid),
   );
   await page.screenshot({ path: resolve(OUT_DIR, "3-dragging.png") });
@@ -393,8 +428,12 @@ try {
   dbg = await spacingDebug(page);
   record(
     "드래그 종료 후 세션 종료 · 핸들 값 40 으로 갱신",
-    dbg.session === null && dbg.bands?.find((b) => b.id === "padding:top")?.value === 40,
-    JSON.stringify({ session: dbg.session, top: dbg.bands?.find((b) => b.id === "padding:top")?.value }),
+    dbg.session === null &&
+      dbg.bands?.find((b) => b.id === "padding:top")?.value === 40,
+    JSON.stringify({
+      session: dbg.session,
+      top: dbg.bands?.find((b) => b.id === "padding:top")?.value,
+    }),
   );
 
   // 5) Undo
@@ -406,7 +445,10 @@ try {
     "Cmd+Z 1회 → paddingTop 16 복원 · 핸들 값 16",
     (styleUndo.paddingTop === "16px" || styleUndo.padding === "16px") &&
       dbg.bands?.find((b) => b.id === "padding:top")?.value === 16,
-    JSON.stringify({ styleUndo, top: dbg.bands?.find((b) => b.id === "padding:top")?.value }),
+    JSON.stringify({
+      styleUndo,
+      top: dbg.bands?.find((b) => b.id === "padding:top")?.value,
+    }),
   );
 
   // 6) gap 드래그 +10 → Preview 대조
@@ -423,7 +465,9 @@ try {
   await page.waitForTimeout(1500);
   const styleGap = await readStyle(page, boxId);
   const rects = await previewRects(page, [btnA, btnB]);
-  const previewGap = rects ? rects[btnB].y - (rects[btnA].y + rects[btnA].height) : null;
+  const previewGap = rects
+    ? rects[btnB].y - (rects[btnA].y + rects[btnA].height)
+    : null;
   record(
     "gap 핸들 드래그 +10 → rowGap 22px (columnGap 보존) · Preview DOM 두 Button 간격 22",
     styleGap.rowGap === "22px" &&
@@ -462,7 +506,16 @@ try {
   await page.waitForTimeout(600);
   const styleEsc = await readStyle(page, boxId);
   dbg = await spacingDebug(page);
-  log("escape debug", JSON.stringify({ midLeft, active: dbg.active, session: dbg.session, hist: [histEsc, await historyCount(page)], left: dbg.bands?.find((b) => b.id === "padding:left")?.value }));
+  log(
+    "escape debug",
+    JSON.stringify({
+      midLeft,
+      active: dbg.active,
+      session: dbg.session,
+      hist: [histEsc, await historyCount(page)],
+      left: dbg.bands?.find((b) => b.id === "padding:left")?.value,
+    }),
+  );
   dbg = await spacingDebug(page);
   record(
     "Escape: 드래그 중 확정값 46 → 취소 후 canonical paddingLeft 16 · history 무변경 · 핸들 16",
@@ -471,7 +524,11 @@ try {
       (histEsc === null || (await historyCount(page)) === histEsc) &&
       dbg.bands?.find((b) => b.id === "padding:left")?.value === 16 &&
       dbg.active === null,
-    JSON.stringify({ midLeft, styleEsc, left: dbg.bands?.find((b) => b.id === "padding:left")?.value }),
+    JSON.stringify({
+      midLeft,
+      styleEsc,
+      left: dbg.bands?.find((b) => b.id === "padding:left")?.value,
+    }),
   );
 
   // 8) 클릭 (무이동) → 인라인 입력 열림 → 24 Enter → commit 1
@@ -483,12 +540,18 @@ try {
   const inlineOpen = await page.evaluate(() => {
     const el = document.querySelector(".spacing-inline-input input");
     return el
-      ? { value: el.value, focused: document.activeElement === el, active: window.__composition_SPACING_DEBUG__.getSnapshot().active }
+      ? {
+          value: el.value,
+          focused: document.activeElement === el,
+          active: window.__composition_SPACING_DEBUG__.getSnapshot().active,
+        }
       : null;
   });
   record(
     "핸들 클릭 (임계값 미만) → 인라인 입력 열림 (값 16 · 포커스 · active mode input)",
-    inlineOpen?.value === "16" && inlineOpen.focused === true && inlineOpen.active?.mode === "input",
+    inlineOpen?.value === "16" &&
+      inlineOpen.focused === true &&
+      inlineOpen.active?.mode === "input",
     JSON.stringify(inlineOpen),
   );
   await page.screenshot({ path: resolve(OUT_DIR, "5-inline-input.png") });
@@ -506,7 +569,12 @@ try {
     styleInline.paddingBottom === "24px" &&
       (histClick === null || histInline === histClick + 1) &&
       inlineClosed,
-    JSON.stringify({ paddingBottom: styleInline.paddingBottom, histClick, histInline, inlineClosed }),
+    JSON.stringify({
+      paddingBottom: styleInline.paddingBottom,
+      histClick,
+      histInline,
+      inlineClosed,
+    }),
   );
 
   // 9) 클릭 → Escape → 무변경
@@ -522,7 +590,9 @@ try {
     "인라인 입력 Escape → canonical paddingRight 16 유지 · history 무변경 · 입력 닫힘",
     styleEscInline.paddingRight === "16px" &&
       (histInline === null || (await historyCount(page)) === histInline) &&
-      (await page.evaluate(() => document.querySelector(".spacing-inline-input") === null)),
+      (await page.evaluate(
+        () => document.querySelector(".spacing-inline-input") === null,
+      )),
     JSON.stringify({ paddingRight: styleEscInline.paddingRight }),
   );
 
@@ -531,19 +601,16 @@ try {
     [0.25, 20],
     [2, 10],
   ]) {
-    await page.evaluate(
-      (scale) => {
-        const set = window.__composition_SPACING_DEBUG__.resolveBands();
-        const top = set?.bands.find((b) => b.id === "padding:top");
-        const rect = document.querySelector("canvas").getBoundingClientRect();
-        window.__composition_APPLY_VIEWPORT__({
-          scale,
-          x: rect.width * 0.25 - (top.rect.x + top.rect.width / 2) * scale,
-          y: 300 - top.rect.y * scale,
-        });
-      },
-      scale,
-    );
+    await page.evaluate((scale) => {
+      const set = window.__composition_SPACING_DEBUG__.resolveBands();
+      const top = set?.bands.find((b) => b.id === "padding:top");
+      const rect = document.querySelector("canvas").getBoundingClientRect();
+      window.__composition_APPLY_VIEWPORT__({
+        scale,
+        x: rect.width * 0.25 - (top.rect.x + top.rect.width / 2) * scale,
+        y: 300 - top.rect.y * scale,
+      });
+    }, scale);
     await page.waitForTimeout(700);
     const pt = await handleScreenPoint(page, "padding:top");
     const before = (await readStyle(page, boxId)).paddingTop ?? "16px";
@@ -561,7 +628,11 @@ try {
   }
   await page.evaluate(() => {
     const vp = window.__composition_VIEWPORT__();
-    window.__composition_APPLY_VIEWPORT__({ scale: 1, x: vp.panOffset.x, y: vp.panOffset.y });
+    window.__composition_APPLY_VIEWPORT__({
+      scale: 1,
+      x: vp.panOffset.x,
+      y: vp.panOffset.y,
+    });
   });
   await page.waitForTimeout(500);
   await focusOwner(page);
@@ -588,13 +659,18 @@ try {
   record(
     "코너 핸들 pointerdown → spacing 세션 열리지 않음 (resize 우선)",
     cornerState.active === null && cornerState.session === null,
-    JSON.stringify({ active: cornerState.active, session: cornerState.session }),
+    JSON.stringify({
+      active: cornerState.active,
+      session: cornerState.session,
+    }),
   );
 
   // 12) Space + 띠 드래그 = pan (spacing 시작 안 함 · canonical 무변경)
   await focusOwner(page);
   const spacePt = await handleScreenPoint(page, "padding:top");
-  const panBefore = await page.evaluate(() => window.__composition_VIEWPORT__().panOffset);
+  const panBefore = await page.evaluate(
+    () => window.__composition_VIEWPORT__().panOffset,
+  );
   await page.mouse.move(spacePt.x, spacePt.y);
   await page.keyboard.down("Space");
   await page.mouse.down();
@@ -604,7 +680,9 @@ try {
   await page.mouse.up();
   await page.keyboard.up("Space");
   await page.waitForTimeout(400);
-  const panAfter = await page.evaluate(() => window.__composition_VIEWPORT__().panOffset);
+  const panAfter = await page.evaluate(
+    () => window.__composition_VIEWPORT__().panOffset,
+  );
   record(
     "Space + 띠 드래그 → pan (세션 0 · panOffset 변경 · canonical 무변경)",
     spaceState.session === null &&
@@ -617,24 +695,40 @@ try {
   const sectionId = await addFromPalette(page, "Section", null);
   await page.evaluate((id) => {
     window.__composition_STORE__.getState().updateElementProps(id, {
-      style: { overflow: "hidden", height: "60px", width: "400px", display: "block" },
+      style: {
+        overflow: "hidden",
+        height: "60px",
+        width: "400px",
+        display: "block",
+      },
     });
   }, sectionId);
   await page.waitForTimeout(500);
   const clippedId = await addFromPalette(page, "frame", sectionId);
   await page.evaluate((id) => {
     window.__composition_STORE__.getState().updateElementProps(id, {
-      style: { display: "flex", flexDirection: "column", padding: "16px", gap: "12px", width: "320px" },
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        padding: "16px",
+        gap: "12px",
+        width: "320px",
+      },
     });
   }, clippedId);
   await addFromPalette(page, "Button", clippedId);
   await addFromPalette(page, "Button", clippedId);
-  await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), clippedId);
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+    clippedId,
+  );
   await page.waitForTimeout(900);
   await focusOwner(page);
   dbg = await spacingDebug(page);
   const clippedParent = await page.evaluate(
-    (id) => window.__composition_STORE__.getState().elements.find((e) => e.id === id)?.parent_id,
+    (id) =>
+      window.__composition_STORE__.getState().elements.find((e) => e.id === id)
+        ?.parent_id,
     clippedId,
   );
   const bottomClipped = dbg.bands?.find((b) => b.id === "padding:bottom");
@@ -648,7 +742,9 @@ try {
   await page.waitForTimeout(250);
   const hoverClipped = (await spacingDebug(page)).hoveredBandId;
   await page.mouse.down();
-  await page.mouse.move(bottomPtClipped.x, bottomPtClipped.y - 10, { steps: 4 });
+  await page.mouse.move(bottomPtClipped.x, bottomPtClipped.y - 10, {
+    steps: 4,
+  });
   await page.waitForTimeout(200);
   const clippedSession = (await spacingDebug(page)).session;
   await page.mouse.up();
@@ -656,7 +752,13 @@ try {
   record(
     "overflow:hidden 조상 밖 bottom 띠: hover 없음 · pointerdown 세션 없음 (clipRect 60px)",
     Boolean(clipOk) && hoverClipped === null && clippedSession === null,
-    JSON.stringify({ clippedParent: clippedParent === sectionId, clipRect: dbg.clipRect, bottom: bottomClipped?.rect, hoverClipped, clippedSession }),
+    JSON.stringify({
+      clippedParent: clippedParent === sectionId,
+      clipRect: dbg.clipRect,
+      bottom: bottomClipped?.rect,
+      hoverClipped,
+      clippedSession,
+    }),
   );
   await page.screenshot({ path: resolve(OUT_DIR, "6-clipped.png") });
 
@@ -666,7 +768,10 @@ try {
   await page.mouse.click(topClipped.x, topClipped.y);
   await page.waitForTimeout(400);
   const ariaName = await page.evaluate(
-    () => document.querySelector(".spacing-inline-input input")?.getAttribute("aria-label") ?? null,
+    () =>
+      document
+        .querySelector(".spacing-inline-input input")
+        ?.getAttribute("aria-label") ?? null,
   );
   await page.keyboard.press("Escape");
   await page.waitForTimeout(300);
@@ -676,7 +781,133 @@ try {
     `aria-label = ${ariaName}`,
   );
 
-  record("page error 0", errors.length === 0, errors.join(" | ").slice(0, 300) || "0");
+  // 15~17) 비-desktop breakpoint (2026-09-17 scope 확장) — 쓰기 목적지는 Inspector 와 같은
+  //   shouldWriteBreakpointOverride: 토글 OFF → base(전역) · 토글 ON → responsive.styles[key].mobile
+  //   · 상위 tier override 가 base 를 덮으면 그 축은 닫힌다 (cascade-shadowed).
+  const readResponsive = (page, id) =>
+    page.evaluate((elementId) => {
+      const el = window.__composition_STORE__
+        .getState()
+        .elements.find((e) => e.id === elementId);
+      return el?.responsive ?? null;
+    }, id);
+  await page.evaluate(
+    (id) => window.__composition_STORE__.getState().setSelectedElement(id),
+    boxId,
+  );
+  // 헤더 토글 (BuilderCore.handleBreakpointChange) 과 같은 경로 — setActiveBreakpoint + invalidateLayout
+  const switchBreakpoint = (page, bp) =>
+    page.evaluate((next) => {
+      const st = window.__composition_STORE__.getState();
+      st.setActiveBreakpoint(next);
+      st.invalidateLayout();
+    }, bp);
+  await switchBreakpoint(page, "mobile");
+  await page.waitForTimeout(900);
+  await focusOwner(page);
+  dbg = await spacingDebug(page);
+  const bpNow = await page.evaluate(
+    () => window.__composition_STORE__.getState().activeBreakpoint,
+  );
+  record(
+    "mobile breakpoint: 토글 OFF 인 요소에도 padding 4 + gap 1 띠 (base 쓰기 목적지)",
+    bpNow === "mobile" && dbg.ownerId === boxId && dbg.bands?.length === 5,
+    JSON.stringify({
+      bpNow,
+      owner: dbg.ownerId,
+      padding: dbg.padding?.supported ?? dbg.padding,
+      gap: dbg.gap?.supported ?? dbg.gap,
+      bands: dbg.bands?.length,
+    }),
+  );
+  // 토글 OFF 드래그 → base 갱신, responsive 없음
+  const baseBefore = await readStyle(page, boxId);
+  const px = (v) => parseFloat(String(v ?? "0"));
+  // bottom 띠는 위로 끌어야 커진다 (sign −1) — 화면 −8*zoom
+  const bottomM = await handleScreenPoint(page, "padding:bottom");
+  await drag(page, bottomM, 0, -8 * bottomM.zoom);
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const baseAfterOff = await readStyle(page, boxId);
+  const respAfterOff = await readResponsive(page, boxId);
+  record(
+    "mobile 토글 OFF 드래그 bottom +8 → base paddingBottom +8 · responsive 없음 (전역 쓰기)",
+    px(baseAfterOff.paddingBottom) === px(baseBefore.paddingBottom) + 8 &&
+      !respAfterOff?.styles?.paddingBottom,
+    JSON.stringify({
+      before: baseBefore.paddingBottom,
+      after: baseAfterOff.paddingBottom,
+      responsive: respAfterOff,
+    }),
+  );
+  // 토글 ON (padding) → 드래그 → responsive.styles.paddingTop.mobile 갱신 · base 그대로
+  await page.evaluate(() =>
+    window.__composition_STORE__
+      .getState()
+      .setResponsiveStyleOverrideEnabled("padding", true),
+  );
+  await page.waitForTimeout(900);
+  await focusOwner(page);
+  const respSeeded = await readResponsive(page, boxId);
+  const baseTopBefore = px(baseAfterOff.paddingTop);
+  const topM = await handleScreenPoint(page, "padding:top");
+  await drag(page, topM, 0, 12 * topM.zoom);
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const baseAfterOn = await readStyle(page, boxId);
+  const respAfterOn = await readResponsive(page, boxId);
+  const bandsOn = (await spacingDebug(page)).bands;
+  record(
+    "mobile 토글 ON 드래그 top +12 → responsive.styles.paddingTop.mobile = base+12 · base paddingTop 유지 · 띠 값 = override",
+    respSeeded?.styles?.paddingTop?.mobile === baseTopBefore &&
+      respAfterOn?.styles?.paddingTop?.mobile === baseTopBefore + 12 &&
+      px(baseAfterOn.paddingTop) === baseTopBefore &&
+      bandsOn?.find((b) => b.id === "padding:top")?.value ===
+        baseTopBefore + 12,
+    JSON.stringify({
+      seeded: respSeeded?.styles?.paddingTop,
+      after: respAfterOn?.styles?.paddingTop,
+      base: baseAfterOn.paddingTop,
+      band: bandsOn?.find((b) => b.id === "padding:top")?.value,
+    }),
+  );
+  await page.screenshot({ path: resolve(OUT_DIR, "7-mobile-override.png") });
+  // desktop 복귀 → 띠 값은 base 로 돌아온다 (override 는 mobile 에만)
+  await switchBreakpoint(page, "desktop");
+  await page.waitForTimeout(900);
+  let bandsDesktop = (await spacingDebug(page)).bands;
+  for (
+    let i = 0;
+    i < 6 &&
+    bandsDesktop?.find((b) => b.id === "padding:top")?.value !== baseTopBefore;
+    i++
+  ) {
+    log(
+      "desktop 복귀 대기",
+      JSON.stringify({
+        top: bandsDesktop?.find((b) => b.id === "padding:top")?.value,
+        layout: await readLayout(page, boxId),
+        engine: await page.evaluate(
+          (id) =>
+            window.__composition_SPACING_DEBUG__.getSnapshot().owner?.padding,
+          boxId,
+        ),
+      }),
+    );
+    await page.waitForTimeout(500);
+    bandsDesktop = (await spacingDebug(page)).bands;
+  }
+  record(
+    "desktop 복귀 → padding:top 띠 값 = base — override 는 mobile 에만",
+    bandsDesktop?.find((b) => b.id === "padding:top")?.value === baseTopBefore,
+    JSON.stringify(bandsDesktop?.map((b) => `${b.id}=${b.value}`)),
+  );
+
+  record(
+    "page error 0",
+    errors.length === 0,
+    errors.join(" | ").slice(0, 300) || "0",
+  );
 } catch (e) {
   record("harness", false, String(e?.stack ?? e));
 } finally {

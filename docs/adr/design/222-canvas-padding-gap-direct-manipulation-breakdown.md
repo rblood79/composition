@@ -8,19 +8,19 @@
 
 ### 1.1 최초 제공 범위
 
-| 조건                                                                      | 첫 구현 판정                                                                      |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 단일 선택, 직접 canonical 노드, desktop/base, non-grid 컨테이너           | padding 4변                                                                       |
-| flex/inline-flex, nowrap, row/column 및 reverse, in-flow 자식 2개 이상    | 해당 주축 gap                                                                     |
-| 고정 크기·hug/auto, catalog numeric 기본값·미지정 0·명시 numeric/px       | 지원, effective 값에서 시작                                                       |
-| 자식 없는 컨테이너                                                        | padding 지원, gap 없음                                                            |
-| Grid 대상 또는 affected layout ancestry 안 Grid                           | 미지원: targeted 계산이 거부하므로 시작 차단                                      |
-| Wrap·space-between/around/evenly·auto margin으로 gap 판정 불명확          | gap 미지원, padding은 별도 capability 판정                                        |
-| 비-desktop breakpoint, responsive 쓰기 문맥                               | 최초 제공 제외, base로 조용히 우회 금지                                           |
-| ref/instance·projected descendant·read-only subpart·page/frame projection | 최초 제공 제외, master로 우회 쓰기 금지                                           |
-| 다중 선택·회전/skew·비축정렬 변환·fixed/sticky·잠금                       | 미지원                                                                            |
-| %, rem/em, calc, 변수/토큰 binding 등 원문 보존이 필요한 값               | 자동 px 변환 금지, 기존 패널에서 편집                                             |
-| 음수 gap                                                                  | CSS gap 계약에 따라 새로 만들지 않음, Figma의 음수 간격을 CSS gap에 복제하지 않음 |
+| 조건                                                                      | 첫 구현 판정                                                                                                                                                                                 |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 단일 선택, 직접 canonical 노드, desktop/base, non-grid 컨테이너           | padding 4변                                                                                                                                                                                  |
+| flex/inline-flex, nowrap, row/column 및 reverse, in-flow 자식 2개 이상    | 해당 주축 gap                                                                                                                                                                                |
+| 고정 크기·hug/auto, catalog numeric 기본값·미지정 0·명시 numeric/px       | 지원, effective 값에서 시작                                                                                                                                                                  |
+| 자식 없는 컨테이너                                                        | padding 지원, gap 없음                                                                                                                                                                       |
+| Grid 대상 또는 affected layout ancestry 안 Grid                           | 미지원: targeted 계산이 거부하므로 시작 차단                                                                                                                                                 |
+| Wrap·space-between/around/evenly·auto margin으로 gap 판정 불명확          | gap 미지원, padding은 별도 capability 판정                                                                                                                                                   |
+| 비-desktop breakpoint, responsive 쓰기 문맥                               | **2026-09-17 확장**: 지원 — 쓰기 목적지는 `shouldWriteBreakpointOverride` (토글 ON → tier override · OFF → base 전역), 토글 OFF 인데 상위 tier override 가 덮으면 `cascade-shadowed` 로 닫음 |
+| ref/instance·projected descendant·read-only subpart·page/frame projection | 최초 제공 제외, master로 우회 쓰기 금지                                                                                                                                                      |
+| 다중 선택·회전/skew·비축정렬 변환·fixed/sticky·잠금                       | 미지원                                                                                                                                                                                       |
+| %, rem/em, calc, 변수/토큰 binding 등 원문 보존이 필요한 값               | 자동 px 변환 금지, 기존 패널에서 편집                                                                                                                                                        |
+| 음수 gap                                                                  | CSS gap 계약에 따라 새로 만들지 않음, Figma의 음수 간격을 CSS gap에 복제하지 않음                                                                                                            |
 
 가로 flex는 `columnGap`, 세로 flex는 `rowGap`을 쓴다. 하나의 gap 핸들은 해당
 부모의 같은 주축 간격 모두를 바꾼다. 자식별 margin이나 위치값으로 변환하지 않는다.

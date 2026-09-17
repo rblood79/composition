@@ -209,10 +209,22 @@ hug/auto는 현행 planner를 그대로 재사용해서 지원하지 않는다. 
 최종 commit은 layout 소비 성공 receipt에 연결한다. 이 두 확장은 G1/G3 통과가
 필수이며, 실패 시 지원한다고 표시한 채 기존 경로로 우회하지 않는다.
 
-Grid·wrap·분배 정렬·responsive 편집·ref/projected descendants·회전/비축정렬 대상,
+Grid·wrap·분배 정렬·ref/projected descendants·회전/비축정렬 대상,
 단위/변수 바인딩을 깨야 하는 값은 첫 범위에서 조작 핸들을 제공하지 않는다.
 기존 우측 입력 경로는 유지한다. 이는 제안 범위이지 Figma의 제한을 의미하지 않는다.
 지원 확장은 동일 ADR의 판정 갱신과 관련 Gate 통과 후 수행한다.
+
+**비-desktop breakpoint (2026-09-17 사용자 승인 — scope 확장, 결정 지점 ④)**: 첫 범위는
+desktop/base 만이었으나 (mobile 에서 핸들이 안 뜨는 것을 사용자가 결함으로 보고),
+tablet/mobile 에서도 핸들을 연다. 쓰기 목적지는 Inspector 와 같은 판정
+`shouldWriteBreakpointOverride` (ADR-154 개정 1 — eligible + 해당 tier 토글 ON → tier
+override, 아니면 base 전역) 를 presentation commit 어댑터가 layout patch 키마다 적용한다.
+provenance (단위 보존) 도 그 목적지의 raw 값으로 보고, 토글 OFF 인데 상위 tier override 가
+cascade 로 덮는 축은 `cascade-shadowed` 로 닫는다 (base 쓰기가 화면에 안 보이는 "편집
+가능해 보이는데 아무 일도 없음" 금지 — R5 원칙). effective 값의 원천 (엔진 소비 style) 은
+breakpoint 에 관계없이 같다 — layout publisher 가 이미 resolve 된 노드를 엔진에 넣는다.
+같은 어댑터 변경으로 Styles 패널 padding 의 presentation 경로도 tier 를 따른다 (종전에는
+토글 ON 이어도 base 에 썼다).
 
 위험 수용 근거는 기존 presentation이 실제로 spacing과 history 단일 커밋을 지원하고,
 지원하지 않는 경로를 캔버스에서 시작하지 않을 수 있다는 점이다. 다만 패널 표시와
@@ -254,7 +266,7 @@ A는 쓰기/제스처/클립 계약 위반, C는 핵심 드래그 요구 미충�
 ### Live Exercise
 
 headed Playwright (dev, 실제 빌더 부팅 — Chrome MCP 는 hidden 탭 RAF 정지로 부트 95% 에서 멈춰 대체) 로 2026-09-17 검증.
-하니스 `apps/builder/scripts/adr222-spacing-live.mjs` (22/22) · `adr222-spacing-frame-ab.mjs` (G4). 판정은 store canonical
+하니스 `apps/builder/scripts/adr222-spacing-live.mjs` (22/22 → 비-desktop 확장 후 26/26) · `adr222-spacing-frame-ab.mjs` (G4). 판정은 store canonical
 style · `__composition_LAYOUT_DEBUG__` layout rect · `__composition_SPACING_DEBUG__` 띠/세션 · `__composition_HISTORY_DEBUG__`
 undo 스택 · Preview(Compare) iframe `getBoundingClientRect` 로 읽었다 (스크린샷은 `/private/tmp/adr222-spacing-live/`).
 
@@ -265,7 +277,8 @@ undo 스택 · Preview(Compare) iframe `getBoundingClientRect` 로 읽었다 (�
 - **취소/무이동**: Escape 중 확정값 46 → canonical 16 · history 무변경 · 선택 유지 (핸들 잔존) · 핸들 클릭 = 인라인 입력 (16 · 포커스 · aria-label "Top padding") → 24 Enter → `paddingBottom: "24px"` history +1 · 입력 Escape 무변경.
 - **G1 zoom/clip · G2 owner**: zoom 25% 화면 5px → +20 · zoom 200% 화면 20px → +10 · 코너 resize 핸들 pointerdown 은 spacing 세션 0 · Space+띠 드래그 = pan (panOffset 변경 · canonical 무변경) · overflow:hidden 조상 (높이 60) 밖 bottom 띠는 hover null · pointerdown 세션 0.
 - **G4**: 캔버스 핸들 드래그 p95 2.6ms vs 패널 연속 편집 p95 2.0ms (Δ +0.6 ≤ 2) · 100 자식 p95 ≤ 16.7 · longtask 0 (DPR 2 · throttle 1 · visible).
-- **미검증 (첫 범위 밖, 지원표대로 핸들 없음)**: Grid · wrap · space-* · 비-desktop breakpoint · ref/projected · 회전 · 단위 보존 값 — capability 순수 코어 16 케이스가 차단을 고정한다.
+- **비-desktop breakpoint (2026-09-17 확장, 하니스 26/26)**: mobile 전환 (`setActiveBreakpoint` + `invalidateLayout`, 헤더 토글과 같은 경로) → 토글 OFF 요소에도 padding 4 + gap 1 띠 · bottom 드래그 +8 → base `paddingBottom` +8 · `responsive` 없음 (전역 쓰기) · `setResponsiveStyleOverrideEnabled("padding")` ON → top 드래그 +12 → `responsive.styles.paddingTop.mobile` = base+12 · base 유지 · 띠 값 = override → desktop 복귀 → 띠 값 = base. 사용자 탭 (ToggleButtonGroup · mobile) 에서도 padding 4 + gap 띠 확인. 함정: `setActiveBreakpoint` 만 부르면 layoutVersion 이 안 올라 엔진이 옛 tier 로 남는다 — `invalidateLayout` 동반.
+- **미검증 (첫 범위 밖, 지원표대로 핸들 없음)**: Grid · wrap · space-* · ref/projected · 회전 · 단위 보존 값 · cascade-shadowed — capability 순수 코어 21 케이스가 차단을 고정한다.
 
 ## Consequences
 

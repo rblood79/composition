@@ -86,7 +86,6 @@ describe("resolveSpacingCapabilityFromInputs (ADR-222 G0 capability table)", () 
 
   it.each([
     ["body", inputs({ nodeType: "body" })],
-    ["non-desktop-breakpoint", inputs({ activeBreakpoint: "tablet" })],
     ["locked", inputs({ locked: true })],
     ["engine-style-missing", inputs({ engineStyle: null })],
     [
@@ -203,5 +202,87 @@ describe("resolveSpacingCapabilityFromInputs (ADR-222 G0 capability table)", () 
       inputs({ rawStyle: { paddingTop: 10 } }),
     );
     expect(one.padding.supported && [...one.padding.rawSides]).toEqual(["top"]);
+  });
+
+  describe("non-desktop breakpoint (2026-09-17 scope 확장 — tier override 라우팅)", () => {
+    it("opens both axes at mobile with no responsive config (base write, Inspector 와 같은 기본 모델)", () => {
+      const cap = resolveSpacingCapabilityFromInputs(
+        inputs({ activeBreakpoint: "mobile", rawStyle: { paddingTop: 8 } }),
+      );
+      expect(cap.padding.supported).toBe(true);
+      expect(cap.padding.supported && [...cap.padding.rawSides]).toEqual([
+        "top",
+      ]);
+      expect(cap.gap.supported).toBe(true);
+    });
+
+    it("reads provenance from the tier override when the tier toggle is ON", () => {
+      const cap = resolveSpacingCapabilityFromInputs(
+        inputs({
+          activeBreakpoint: "mobile",
+          rawStyle: { paddingTop: "10%" },
+          responsive: {
+            styles: {
+              paddingTop: { mobile: 24 },
+              paddingLeft: { mobile: 4 },
+            },
+          },
+        }),
+      );
+      // base 는 % 지만 mobile 목적지는 override(px) 라 열린다
+      expect(cap.padding.supported).toBe(true);
+      expect(cap.padding.supported && [...cap.padding.rawSides]).toEqual([
+        "top",
+        "left",
+      ]);
+    });
+
+    it("blocks a unit-preserved value on the tier override", () => {
+      const cap = resolveSpacingCapabilityFromInputs(
+        inputs({
+          activeBreakpoint: "tablet",
+          responsive: { styles: { columnGap: { tablet: "1rem" } } },
+        }),
+      );
+      expect(cap.gap).toEqual({
+        supported: false,
+        reason: "raw-unit-preserved",
+      });
+      expect(cap.padding.supported).toBe(true);
+    });
+
+    it("blocks the axis whose base write would be shadowed by a higher tier override", () => {
+      const cap = resolveSpacingCapabilityFromInputs(
+        inputs({
+          activeBreakpoint: "mobile",
+          responsive: { styles: { paddingTop: { tablet: 30 } } },
+        }),
+      );
+      expect(cap.padding).toEqual({
+        supported: false,
+        reason: "cascade-shadowed",
+      });
+      expect(cap.gap.supported).toBe(true);
+    });
+
+    it("treats a legacy shorthand override as a shadow too", () => {
+      const cap = resolveSpacingCapabilityFromInputs(
+        inputs({
+          activeBreakpoint: "mobile",
+          responsive: { styles: { gap: { tablet: 6 } } },
+        }),
+      );
+      expect(cap.gap).toEqual({ supported: false, reason: "cascade-shadowed" });
+    });
+
+    it("does not shadow at tablet when only the tablet tier itself carries the override", () => {
+      const cap = resolveSpacingCapabilityFromInputs(
+        inputs({
+          activeBreakpoint: "tablet",
+          responsive: { styles: { paddingTop: { tablet: 30 } } },
+        }),
+      );
+      expect(cap.padding.supported).toBe(true);
+    });
   });
 });

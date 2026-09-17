@@ -25,7 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Escape 는 spacing 드래그 중이면 드래그만 취소** 하고 선택은 유지한다 (핸들 잔존 — Figma 어법). 드래그가 없을 때의 Escape (선택 해제) 는 그대로.
 - presentation layout lane: 자식 있는 컨테이너의 padding/gap 변경이 **외부 크기 불변이 증명될 때만** 자기 서브트리로 제한된다 (hug/auto · px 상자를 넘는 padding 은 부모로 승격). 종전에는 자식 존재만으로 승격을 막아 드래그 중 바깥 형제가 따라오지 않았다.
 - 스타일 commit 허용 목록: padding longhand 부분집합 (2변) 을 원자 patch 로 허용.
-- 캔버스 첫 범위 밖 (Grid · wrap · space-\* 정렬 · 비-desktop breakpoint · ref/projected · 회전 · %, rem, var 등 단위 보존 값) 은 핸들이 뜨지 않고 패널 편집만 — capability 표가 고정.
+- 캔버스 첫 범위 밖 (Grid · wrap · space-\* 정렬 · ref/projected · 회전 · %, rem, var 등 단위 보존 값) 은 핸들이 뜨지 않고 패널 편집만 — capability 표가 고정.
+- **tablet/mobile breakpoint 에서도 핸들이 뜬다** (2026-09-17 확장 — 처음엔 desktop 만이라 mobile 에서 padding 이 있어도 핸들이 없었다). 저장 위치는 Styles 패널과 같은 규칙: 해당 속성의 breakpoint override 토글이 ON 이면 그 breakpoint 값만, OFF 면 전역 (base). 토글 OFF 인데 상위 breakpoint override 가 덮고 있는 축은 핸들을 내지 않는다 (끌어도 화면이 안 바뀌는 상태 방지). 같은 수리로 Styles 패널 Spacing 의 padding 입력도 토글 ON 일 때 breakpoint override 에 저장된다 (종전에는 전역에 썼다).
 
 ## [ADR-201 대용량 파일 업로드 — @composition/upload 전송 엔진 · FileUpload 컴포넌트 · TUS 서버 계약 (Implemented)] - 2026-09-17
 
