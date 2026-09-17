@@ -25,6 +25,10 @@ import {
   type PresentationLayoutTreeIndex,
 } from "./editorPresentationLayoutLane";
 import { normalizePresentationSpacingPatch } from "./editorPresentationStyleNormalization";
+import {
+  publishLayoutReceipt,
+  type PresentationLayoutRejectReason,
+} from "./editorPresentationLayoutReceipt";
 
 export type { PresentationLayoutComputeRequest } from "./editorPresentationLayoutLane";
 
@@ -66,6 +70,20 @@ const TARGETED_SPACING_KEYS = [
   "rowGap",
   "columnGap",
 ] as const;
+
+type LayoutApplyOutcome =
+  | {
+      readonly ok: true;
+      readonly rootKey: string;
+      readonly baseCanonicalRevision: number;
+      readonly presentationRevision: number;
+    }
+  | {
+      readonly ok: false;
+      readonly reason: PresentationLayoutRejectReason;
+      readonly rootKey?: string;
+      readonly baseCanonicalRevision?: number;
+    };
 
 interface SessionPatchState {
   readonly rootKey: string;
@@ -226,25 +244,89 @@ export class SkiaEditorPresentationLayoutBridge {
     this.#sessionState.delete(event.session.sessionId);
   }
 
+  /**
+   * ADR-222 §4.2: layout descriptor 를 가진 session 의 각 frame 은 receipt 를 남긴다.
+   * 성공은 `#applyLayoutSession` 이 publication revision 을 반환할 때, 실패는 그
+   * 안의 모든 early return 이 사유를 반환할 때다. base 로 되돌아간 frame
+   * (applied null) 은 restore 결과를 같은 revision 으로 보고한다.
+   */
   #applySession(session: EditorPresentationSession): void {
     if (session.projectId !== this.#options.getActiveProjectId()) return;
     const descriptor = session.applied?.descriptor;
     if (!descriptor || descriptor.target.kind !== "canonical-node") {
       const state = this.#sessionState.get(session.sessionId);
-      if (state) this.#restoreSession(state);
+      if (state) {
+        const restored = this.#restoreSession(state);
+        publishLayoutReceipt(
+          restored !== null
+            ? {
+                sessionId: session.sessionId,
+                descriptorRevision: session.revision,
+                baseCanonicalRevision: restored.baseCanonicalRevision,
+                rootKey: state.rootKey,
+                layoutPublicationRevision: restored.presentationRevision,
+                result: "published",
+              }
+            : {
+                sessionId: session.sessionId,
+                descriptorRevision: session.revision,
+                baseCanonicalRevision: null,
+                rootKey: state.rootKey,
+                result: "rejected",
+                reason: "restore-rejected",
+              },
+        );
+      }
       return;
     }
 
     const layoutPatch = readLayoutPatch(descriptor);
-    if (!layoutPatch) {
+    if (
+      !layoutPatch ||
+      (descriptor.type !== "style.patch" &&
+        descriptor.type !== "geometry.patch")
+    ) {
       const state = this.#sessionState.get(session.sessionId);
       if (state) this.#restoreSession(state);
       return;
     }
 
+    const outcome = this.#applyLayoutSession(session, descriptor, layoutPatch);
+    publishLayoutReceipt(
+      outcome.ok
+        ? {
+            sessionId: session.sessionId,
+            descriptorRevision: session.revision,
+            baseCanonicalRevision: outcome.baseCanonicalRevision,
+            rootKey: outcome.rootKey,
+            layoutPublicationRevision: outcome.presentationRevision,
+            result: "published",
+          }
+        : {
+            sessionId: session.sessionId,
+            descriptorRevision: session.revision,
+            baseCanonicalRevision: outcome.baseCanonicalRevision ?? null,
+            rootKey: outcome.rootKey ?? null,
+            result: "rejected",
+            reason: outcome.reason,
+          },
+    );
+  }
+
+  #applyLayoutSession(
+    session: EditorPresentationSession,
+    descriptor: Extract<
+      EditorMutationDescriptor,
+      { type: "style.patch" | "geometry.patch" }
+    >,
+    layoutPatch: LayoutPatch,
+  ): LayoutApplyOutcome {
+    if (descriptor.target.kind !== "canonical-node") {
+      return { ok: false, reason: "render-node-missing" };
+    }
     const targetId = descriptor.target.nodeId;
     const renderNode = this.#options.getRenderNode(targetId);
-    if (!renderNode) return;
+    if (!renderNode) return { ok: false, reason: "render-node-missing" };
 
     const hasSizePatch =
       layoutPatch.width !== undefined || layoutPatch.height !== undefined;
@@ -252,10 +334,12 @@ export class SkiaEditorPresentationLayoutBridge {
       (key) => layoutPatch[key] !== undefined,
     );
     const hasTargetedLayoutPatch = hasSizePatch || hasSpacingPatch;
-    if (!hasTargetedLayoutPatch && !getAbsolutePosition(renderNode)) return;
+    if (!hasTargetedLayoutPatch && !getAbsolutePosition(renderNode)) {
+      return { ok: false, reason: "targeted-unsupported" };
+    }
 
     const rootKey = getRootKey(renderNode);
-    if (!rootKey) return;
+    if (!rootKey) return { ok: false, reason: "root-key-missing" };
 
     const previousState = this.#sessionState.get(session.sessionId);
     if (previousState && previousState.targetId !== targetId) {
@@ -266,7 +350,9 @@ export class SkiaEditorPresentationLayoutBridge {
     const current = getCachedCommandStreamSnapshot();
     const layoutMap = this.#options.getLayoutMap();
     const childrenMap = this.#options.getChildrenMap();
-    if (!current || !layoutMap) return;
+    if (!current || !layoutMap) {
+      return { ok: false, reason: "stream-missing", rootKey };
+    }
 
     const affectedNodeIds = new Set<string>();
     collectSubtreeIds(targetId, childrenMap, affectedNodeIds);
@@ -288,7 +374,7 @@ export class SkiaEditorPresentationLayoutBridge {
     const rootKeyByNodeId = new Map<string, string>();
     for (const elementId of affectedNodeIds) {
       const node = this.#options.getRenderNode(elementId);
-      if (!node) return;
+      if (!node) return { ok: false, reason: "affected-node-missing", rootKey };
       nodeById.set(elementId, node);
       rootKeyByNodeId.set(elementId, rootKey);
       parentById.set(elementId, node.parentId ?? node.parent_id ?? null);
@@ -310,9 +396,10 @@ export class SkiaEditorPresentationLayoutBridge {
       mutations: [descriptor],
       tree,
     });
-    if (plan.roots.length !== 1) return;
-    const publicationRootId = plan.roots[0];
-    if (!publicationRootId) return;
+    const publicationRootId = plan.roots.length === 1 ? plan.roots[0] : null;
+    if (!publicationRootId) {
+      return { ok: false, reason: "plan-root-ambiguous", rootKey };
+    }
 
     const context = current.subtreeBuildContextByElement.get(publicationRootId);
     const currentSpan = current.subtreeSpans.get(publicationRootId);
@@ -321,19 +408,19 @@ export class SkiaEditorPresentationLayoutBridge {
       !currentSpan ||
       current.topLayerElementIds.has(publicationRootId)
     ) {
-      return;
+      return { ok: false, reason: "root-context-missing", rootKey };
     }
 
     const subtreeLayoutMap = new Map<string, ComputedLayout>();
     const publicationNodeIds = getSubtreeElementIds(current, currentSpan);
     for (const elementId of publicationNodeIds) {
       const layout = layoutMap.get(elementId);
-      if (!layout) return;
+      if (!layout) return { ok: false, reason: "layout-missing", rootKey };
       subtreeLayoutMap.set(elementId, layout);
     }
 
     const rootLayout = layoutMap.get(publicationRootId);
-    if (!rootLayout) return;
+    if (!rootLayout) return { ok: false, reason: "layout-missing", rootKey };
     const layoutDelta = new Map<string, ComputedLayout>();
     const computeTargetedLayout = this.#options.computeTargetedLayout;
     const canComputeTargetedLayout =
@@ -350,10 +437,11 @@ export class SkiaEditorPresentationLayoutBridge {
         rootKey,
         roots: plan.roots,
       });
-      if (!computed) return;
+      if (!computed) return { ok: false, reason: "compute-null", rootKey };
       for (const elementId of plan.affectedNodeIds) {
         const layout = computed.get(elementId);
-        if (!layout) return;
+        if (!layout)
+          return { ok: false, reason: "compute-incomplete", rootKey };
         subtreeLayoutMap.set(elementId, layout);
         layoutDelta.set(elementId, layout);
       }
@@ -366,10 +454,10 @@ export class SkiaEditorPresentationLayoutBridge {
       ) {
         const state = this.#sessionState.get(session.sessionId);
         if (state) this.#restoreSession(state);
-        return;
+        return { ok: false, reason: "targeted-unsupported", rootKey };
       }
       const baseLayout = layoutMap.get(targetId);
-      if (!baseLayout) return;
+      if (!baseLayout) return { ok: false, reason: "layout-missing", rootKey };
       const nextLayout = {
         ...baseLayout,
         ...(layoutPatch.x !== undefined ? { x: layoutPatch.x } : {}),
@@ -387,7 +475,14 @@ export class SkiaEditorPresentationLayoutBridge {
 
     const canonicalRevision = this.#options.getCanonicalRevision();
     const baseCanonicalRevision = current.baseCanonicalRevision;
-    if (canonicalRevision !== baseCanonicalRevision) return;
+    if (canonicalRevision !== baseCanonicalRevision) {
+      return {
+        ok: false,
+        reason: "canonical-revision-mismatch",
+        rootKey,
+        baseCanonicalRevision,
+      };
+    }
 
     const nextRevision =
       (this.#presentationRevisionByRootKey.get(rootKey) ??
@@ -402,7 +497,14 @@ export class SkiaEditorPresentationLayoutBridge {
       planSequence: this.#planSequence + 1,
       presentationRevisionByRootKey: revisionMap,
     });
-    if (!publications.ok || publications.publications.length !== 1) return;
+    if (!publications.ok || publications.publications.length !== 1) {
+      return {
+        ok: false,
+        reason: "publication-rejected",
+        rootKey,
+        baseCanonicalRevision,
+      };
+    }
     const publication = publications.publications[0];
 
     const replacement = buildSubtreeCommandStream({
@@ -425,7 +527,14 @@ export class SkiaEditorPresentationLayoutBridge {
       publication,
       canonicalRevision,
     });
-    if (!result.applied) return;
+    if (!result.applied) {
+      return {
+        ok: false,
+        reason: "command-patch-rejected",
+        rootKey,
+        baseCanonicalRevision,
+      };
+    }
     recordEditorPresentationTargetIncrementalPatches(affectedNodeIds.size);
     this.#presentationRevisionByRootKey.set(rootKey, nextRevision);
     this.#sessionState.set(session.sessionId, {
@@ -435,9 +544,18 @@ export class SkiaEditorPresentationLayoutBridge {
       terminalRevision: null,
     });
     this.#options.onPatched(current);
+    return {
+      ok: true,
+      rootKey,
+      baseCanonicalRevision,
+      presentationRevision: nextRevision,
+    };
   }
 
-  #restoreSession(state: SessionPatchState): void {
+  /** canonical layout 으로 되돌린다. 성공 시 restore publication revision, 실패 null. */
+  #restoreSession(
+    state: SessionPatchState,
+  ): { baseCanonicalRevision: number; presentationRevision: number } | null {
     const current = getCachedCommandStreamSnapshot();
     const layoutMap = this.#options.getLayoutMap();
     const childrenMap = this.#options.getChildrenMap();
@@ -451,14 +569,14 @@ export class SkiaEditorPresentationLayoutBridge {
       !context ||
       canonicalRevision !== current.baseCanonicalRevision
     ) {
-      return;
+      return null;
     }
 
     const affectedNodeIds = getSubtreeElementIds(current, currentSpan);
     const subtreeLayoutMap = new Map<string, ComputedLayout>();
     for (const elementId of affectedNodeIds) {
       const layout = layoutMap.get(elementId);
-      if (!layout) return;
+      if (!layout) return null;
       subtreeLayoutMap.set(elementId, layout);
     }
     const nextRevision =
@@ -487,9 +605,13 @@ export class SkiaEditorPresentationLayoutBridge {
       },
       canonicalRevision,
     });
-    if (!result.applied) return;
+    if (!result.applied) return null;
     recordEditorPresentationTargetIncrementalPatches(affectedNodeIds.size);
     this.#presentationRevisionByRootKey.set(state.rootKey, nextRevision);
     this.#options.onPatched(current);
+    return {
+      baseCanonicalRevision: current.baseCanonicalRevision,
+      presentationRevision: nextRevision,
+    };
   }
 }

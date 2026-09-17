@@ -182,21 +182,98 @@ const FLOW_SPACING_STYLE_KEYS = new Set([
   "paddingLeft",
 ]);
 
-function isContainerSpacingMutation(
+function parsePxLength(value: unknown): number | null {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value !== "string") return null;
+  const match = /^\s*(-?\d+(?:\.\d+)?)(?:px)?\s*$/.exec(value);
+  return match ? Number(match[1]) : null;
+}
+
+/**
+ * 명시 크기가 이 mutation 아래에서도 외부 used size 를 고정하는지의 증명
+ * (ADR-222 §4.3-2). `auto` · intrinsic 키워드 · aspectRatio 는 증명 실패다.
+ * percentage/calc 는 부모가 이 mutation 으로 바뀌지 않으므로 고정으로 본다.
+ * 숫자 px 는 patch 적용 후 padding+border 합이 상자를 넘지 않을 때만 고정이다
+ * (border-box 하한 — 넘으면 상자가 커진다).
+ */
+function isSpacingSizeInvariant(
+  node: CanvasLayoutNode | undefined,
+  patch: Readonly<Record<string, unknown>>,
+): boolean {
+  const style = getNodeStyle(node);
+  if (style.aspectRatio !== undefined && style.aspectRatio !== null) {
+    return false;
+  }
+  const isExplicit = (value: unknown): boolean =>
+    value !== undefined &&
+    value !== null &&
+    value !== "auto" &&
+    !(typeof value === "string" && value.includes("content"));
+  if (!isExplicit(style.width) || !isExplicit(style.height)) return false;
+
+  const next = {
+    ...normalizePresentationSpacingStyle(style),
+    ...normalizePresentationSpacingPatch(patch),
+  };
+  const px = (key: string): number => parsePxLength(next[key]) ?? 0;
+  const borderPx = (side: string): number =>
+    parsePxLength(style[`border${side}Width`]) ??
+    parsePxLength(style.borderWidth) ??
+    0;
+  const width = parsePxLength(style.width);
+  if (
+    width !== null &&
+    px("paddingLeft") +
+      px("paddingRight") +
+      borderPx("Left") +
+      borderPx("Right") >
+      width
+  ) {
+    return false;
+  }
+  const height = parsePxLength(style.height);
+  if (
+    height !== null &&
+    px("paddingTop") +
+      px("paddingBottom") +
+      borderPx("Top") +
+      borderPx("Bottom") >
+      height
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * 자식 있는 컨테이너의 spacing patch 를 합쳐 돌려준다. 없으면 null.
+ *
+ * ADR-222 h1: 이전에는 자식 존재만으로 부모 승격을 무조건 막아 hug/auto
+ * 컨테이너의 외부 형제가 publication 에서 빠졌다. 지금은 외부 크기 불변이
+ * 증명된 경우에만 자기 서브트리로 제한한다 (`isSpacingSizeInvariant`).
+ */
+function readContainerSpacingPatch(
   mutations: readonly EditorMutationDescriptor[],
   targetKey: string,
   tree: PresentationLayoutTreeIndex,
-): boolean {
-  if ((tree.childrenByParent.get(targetKey)?.length ?? 0) === 0) return false;
-  return mutations.some(
-    (mutation) =>
-      mutation.target.kind === "canonical-node" &&
-      mutation.target.nodeId === targetKey &&
-      mutation.type === "style.patch" &&
-      Object.keys(mutation.patch).some((key) =>
-        FLOW_SPACING_STYLE_KEYS.has(key),
-      ),
-  );
+): Readonly<Record<string, unknown>> | null {
+  if ((tree.childrenByParent.get(targetKey)?.length ?? 0) === 0) return null;
+  let patch: Record<string, unknown> | null = null;
+  for (const mutation of mutations) {
+    if (
+      mutation.target.kind !== "canonical-node" ||
+      mutation.target.nodeId !== targetKey ||
+      mutation.type !== "style.patch"
+    ) {
+      continue;
+    }
+    for (const [key, value] of Object.entries(mutation.patch)) {
+      if (!FLOW_SPACING_STYLE_KEYS.has(key)) continue;
+      patch ??= {};
+      patch[key] = value;
+    }
+  }
+  return patch;
 }
 
 function shouldPromoteUsedSizeParent(input: {
@@ -255,14 +332,20 @@ export function createPresentationLayoutPlan(input: {
       );
     const sourceTargetId =
       target.kind === "canonical-node" ? target.nodeId : target.refId;
-    const containerSpacingMutation = isContainerSpacingMutation(
+    const containerSpacingPatch = readContainerSpacingPatch(
       input.mutations ?? [],
       sourceTargetId,
       input.tree,
     );
+    const spacingScopedToSelf =
+      containerSpacingPatch !== null &&
+      isSpacingSizeInvariant(
+        input.tree.nodeById?.get(sourceTargetId),
+        containerSpacingPatch,
+      );
     while (
       parentId &&
-      !(containerSpacingMutation && rootId === sourceTargetId) &&
+      !(spacingScopedToSelf && rootId === sourceTargetId) &&
       (input.promotionOverrideForTest
         ? input.promotionOverrideForTest(parentId, rootId)
         : shouldPromoteUsedSizeParent({

@@ -18,6 +18,11 @@ import {
   SkiaEditorPresentationLayoutBridge,
   type PresentationLayoutComputeRequest,
 } from "./skiaEditorPresentationLayoutBridge";
+import {
+  resetLayoutReceiptsForTest,
+  subscribeLayoutReceipts,
+  type PresentationLayoutReceipt,
+} from "./editorPresentationLayoutReceipt";
 
 function createScheduler() {
   const callbacks: Array<(timestamp: number) => void> = [];
@@ -118,6 +123,7 @@ function createRuntime(scheduler: ReturnType<typeof createScheduler>) {
 afterEach(() => {
   invalidateCommandStreamCache();
   clearSkiaRegistry();
+  resetLayoutReceiptsForTest();
 });
 
 describe("SkiaEditorPresentationLayoutBridge", () => {
@@ -374,6 +380,124 @@ describe("SkiaEditorPresentationLayoutBridge", () => {
     bridge.dispose();
   });
 
+  // ADR-222 m2: session.applied 는 계산 요청일 뿐이다. 실제 targeted 계산·command
+  // patch 성공 경계에서만 published receipt 가 나오고, 계산 null / patch 거부 /
+  // canonical revision 불일치는 같은 descriptor revision 으로 rejected 가 나온다.
+  it("publishes a layout receipt per descriptor revision and rejects failed spacing frames (ADR-222 m2)", () => {
+    const { body, target, sibling, childrenMap, layoutMap } = primeStream();
+    const staticTarget = makeNode(target.id, body.id, "static");
+    const staticSibling = makeNode(sibling.id, body.id, "static");
+    const scheduler = createScheduler();
+    const runtime = createRuntime(scheduler);
+    const receipts: PresentationLayoutReceipt[] = [];
+    const unsubscribe = subscribeLayoutReceipts((receipt) =>
+      receipts.push(receipt),
+    );
+    let computeResult: ReadonlyMap<string, ComputedLayout> | null = new Map<
+      string,
+      ComputedLayout
+    >([
+      [body.id, { elementId: body.id, x: 0, y: 0, width: 800, height: 600 }],
+      [
+        target.id,
+        { elementId: target.id, x: 10, y: 20, width: 184, height: 80 },
+      ],
+      [
+        sibling.id,
+        { elementId: sibling.id, x: 194, y: 20, width: 80, height: 40 },
+      ],
+    ]);
+    let canonicalRevision = 7;
+    const bridge = new SkiaEditorPresentationLayoutBridge({
+      getActiveProjectId: () => "project-1",
+      getCanonicalRevision: () => canonicalRevision,
+      getChildrenMap: () => childrenMap,
+      getLayoutMap: () => layoutMap,
+      getRenderNode: (nodeId) =>
+        nodeId === body.id
+          ? body
+          : nodeId === target.id
+            ? staticTarget
+            : nodeId === sibling.id
+              ? staticSibling
+              : undefined,
+      computeTargetedLayout: () => computeResult,
+      onPatched: vi.fn(),
+      runtime,
+    });
+    const handle = runtime.beginEditorPresentation({
+      commitIntent: "style-layout-spacing",
+      ownerId: "spacing-test",
+      projectId: "project-1",
+      targets: [{ kind: "canonical-node", nodeId: target.id }],
+    });
+    const targetRef = { kind: "canonical-node", nodeId: target.id } as const;
+
+    handle.publish({
+      patch: { paddingTop: 12 },
+      target: targetRef,
+      type: "style.patch",
+    });
+    scheduler.flush();
+    expect(receipts).toHaveLength(1);
+    expect(receipts[0]).toMatchObject({
+      sessionId: handle.sessionId,
+      descriptorRevision: 1,
+      baseCanonicalRevision: 7,
+      rootKey: "page-1",
+      result: "published",
+    });
+    expect(
+      receipts[0].result === "published" &&
+        typeof receipts[0].layoutPublicationRevision,
+    ).toBe("number");
+
+    // 두 번째 계산이 null → rejected (같은 sessionId, descriptorRevision 2)
+    computeResult = null;
+    handle.publish({
+      patch: { paddingTop: 20 },
+      target: targetRef,
+      type: "style.patch",
+    });
+    scheduler.flush();
+    expect(receipts).toHaveLength(2);
+    expect(receipts[1]).toMatchObject({
+      sessionId: handle.sessionId,
+      descriptorRevision: 2,
+      result: "rejected",
+      reason: "compute-null",
+    });
+
+    // canonical revision 교체 → rejected
+    computeResult = new Map(computeResult ?? []);
+    computeResult = new Map<string, ComputedLayout>([
+      [body.id, { elementId: body.id, x: 0, y: 0, width: 800, height: 600 }],
+      [
+        target.id,
+        { elementId: target.id, x: 10, y: 20, width: 190, height: 80 },
+      ],
+      [
+        sibling.id,
+        { elementId: sibling.id, x: 200, y: 20, width: 80, height: 40 },
+      ],
+    ]);
+    canonicalRevision = 9;
+    handle.publish({
+      patch: { paddingTop: 24 },
+      target: targetRef,
+      type: "style.patch",
+    });
+    scheduler.flush();
+    expect(receipts).toHaveLength(3);
+    expect(receipts[2]).toMatchObject({
+      descriptorRevision: 3,
+      result: "rejected",
+      reason: "canonical-revision-mismatch",
+    });
+
+    unsubscribe();
+    bridge.dispose();
+  });
   it("cancel terminal event는 canonical layout으로 local handoff한다", () => {
     const { body, target, sibling, childrenMap, layoutMap } = primeStream();
     const scheduler = createScheduler();

@@ -15,8 +15,12 @@ import { useLayoutValues } from "../hooks/useLayoutValues";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useStore } from "../../../stores";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
-import { BoxModelEditor } from "../components/BoxModelEditor";
+import { BoxModelEditor, type BoxSide } from "../components/BoxModelEditor";
 import { SPACING_PROPS } from "./styleSectionProps";
+import {
+  readSessionSpacingValue,
+  useSpacingSession,
+} from "../../../presentation/useSpacingSession";
 
 /**
  * LayoutSection 내부 컨텐츠 — 섹션이 열릴 때만 마운트
@@ -26,6 +30,8 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
   const { commitLayoutPresentation } = useLayoutPresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const styleValues = useLayoutValues(selectedId);
+  // ADR-222: 캔버스 spacing 세션이 이 노드의 padding 을 편집 중이면 확정값을 덮어 읽고 그 변을 강조
+  const spacingSession = useSpacingSession();
 
   // BoxModelEditor 는 local draft + blur 커밋이므로 즉시 업데이트
   const handlePaddingChange = (
@@ -46,12 +52,48 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
 
   if (!styleValues) return null;
 
-  const paddingValues = {
-    top: styleValues.paddingTop,
-    right: styleValues.paddingRight,
-    bottom: styleValues.paddingBottom,
-    left: styleValues.paddingLeft,
+  const sessionPadding = (
+    side: BoxSide,
+    fallback: string,
+  ): [string, boolean] => {
+    const value = readSessionSpacingValue(
+      spacingSession,
+      selectedId,
+      `padding${side}`,
+    );
+    return value === null ? [fallback, false] : [`${value}px`, true];
   };
+  const [paddingTop, topActive] = sessionPadding("Top", styleValues.paddingTop);
+  const [paddingRight, rightActive] = sessionPadding(
+    "Right",
+    styleValues.paddingRight,
+  );
+  const [paddingBottom, bottomActive] = sessionPadding(
+    "Bottom",
+    styleValues.paddingBottom,
+  );
+  const [paddingLeft, leftActive] = sessionPadding(
+    "Left",
+    styleValues.paddingLeft,
+  );
+  const paddingValues = {
+    top: paddingTop,
+    right: paddingRight,
+    bottom: paddingBottom,
+    left: paddingLeft,
+  };
+  const activePaddingSides = new Set<BoxSide>(
+    (
+      [
+        ["Top", topActive],
+        ["Right", rightActive],
+        ["Bottom", bottomActive],
+        ["Left", leftActive],
+      ] as const
+    )
+      .filter(([, active]) => active)
+      .map(([side]) => side),
+  );
   const marginValues = {
     top: styleValues.marginTop,
     right: styleValues.marginRight,
@@ -65,6 +107,7 @@ const SpacingSectionContent = memo(function SpacingSectionContent() {
       margin={marginValues}
       onPaddingChange={handlePaddingChange}
       onMarginChange={handleMarginChange}
+      activePaddingSides={activePaddingSides}
     />
   );
 });

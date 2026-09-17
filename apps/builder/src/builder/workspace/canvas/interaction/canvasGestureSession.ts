@@ -1,4 +1,4 @@
-export type CanvasGestureMode = "element" | "idle" | "page" | "pan";
+export type CanvasGestureMode = "element" | "idle" | "page" | "pan" | "spacing";
 
 export interface PageGestureOwner {
   /** 드래그 리더 페이지 (포인터가 잡은 페이지 — 스냅/타겟 판정 기준) */
@@ -135,6 +135,21 @@ export class CanvasGestureSession {
     return true;
   }
 
+  /**
+   * ADR-222: element 로 시작한 pointer 를 spacing (padding·gap 띠) owner 로 원자
+   * 승격한다. promoteElementToPage 와 같은 규약 — release/reclaim 없이 같은 pointer
+   * session 안에서 mode 만 바꾼다. pan 이면 승격하지 않는다 (호출부가 beginPointer 결과로 거른다).
+   */
+  promoteElementToSpacing(pointerId: number): boolean {
+    if (this.activePointerId !== pointerId || this.mode !== "element") {
+      return false;
+    }
+    this.mode = "spacing";
+    this.pageOwner = null;
+    this.notify();
+    return true;
+  }
+
   ownerFor(pointerId: number): CanvasGestureMode {
     return this.activePointerId === pointerId ? this.mode : "idle";
   }
@@ -185,7 +200,9 @@ export class CanvasGestureSession {
     return (
       this.isOwnedByAnotherPointer(pointerId) ||
       (this.activePointerId === pointerId &&
-        (this.mode === "page" || this.mode === "pan"))
+        (this.mode === "page" ||
+          this.mode === "pan" ||
+          this.mode === "spacing"))
     );
   }
 
@@ -203,7 +220,10 @@ export class CanvasGestureSession {
    * transient 해지는 실제 조건이다.
    */
   shouldSuppressElementHover(): boolean {
-    return this.isSpacePressed || this.mode === "pan";
+    // spacing 드래그 중에는 자식 hover 외곽선이 띠와 겹쳐 읽히므로 함께 끈다 (ADR-222).
+    return (
+      this.isSpacePressed || this.mode === "pan" || this.mode === "spacing"
+    );
   }
 
   private releasePointer(): void {

@@ -41,6 +41,11 @@ import { useStore } from "../../../stores";
 import { isDirectionDrivenTag } from "../utils/orientationDrivenTags";
 import { useLayoutPresentationActions } from "../hooks/useLayoutPresentationActions";
 import { LAYOUT_PROPS } from "./styleSectionProps";
+import { resolveGapAxisProperty } from "../utils/gapAxis";
+import {
+  readSessionSpacingValue,
+  useSpacingSession,
+} from "../../../presentation/useSpacingSession";
 
 const LayoutSectionContent = memo(function LayoutSectionContent() {
   const localize = useSemanticLabel();
@@ -77,15 +82,31 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
   const justifyContentSpacingKeys = useJustifyContentSpacingKeys(selectedId);
   const flexWrapKeys = useFlexWrapKeys(selectedId);
 
-  const handleSpacingCommit = (property: "gap", value: string) => {
-    if (!commitLayoutPresentation(property, value)) {
-      updateStyleImmediate(property, value);
+  // ADR-222 §4.1: 단일 행/열 flex 는 Gap 필드가 주축 longhand 하나를 읽고 쓴다
+  // (row → columnGap · column → rowGap). 그 밖 (wrap · grid · block) 은 종전 shorthand.
+  const gapProperty =
+    (styleValues &&
+      resolveGapAxisProperty(
+        styleValues.display,
+        styleValues.flexDirection,
+        styleValues.flexWrap,
+      )) ??
+    "gap";
+  const spacingSession = useSpacingSession();
+  const sessionGap =
+    gapProperty === "gap"
+      ? null
+      : readSessionSpacingValue(spacingSession, selectedId, gapProperty);
+
+  const handleSpacingCommit = (value: string) => {
+    if (!commitLayoutPresentation(gapProperty, value)) {
+      updateStyleImmediate(gapProperty, value);
     }
   };
 
-  const handleSpacingPreview = (property: "gap", value: string) => {
-    if (!previewLayoutPresentation(property, value)) {
-      updateStylePreview(property, value);
+  const handleSpacingPreview = (value: string) => {
+    if (!previewLayoutPresentation(gapProperty, value)) {
+      updateStylePreview(gapProperty, value);
     }
   };
 
@@ -297,13 +318,14 @@ const LayoutSectionContent = memo(function LayoutSectionContent() {
             숫자로 강제 (NUMERIC_COERCE_STYLE_PROPS) */}
         <PropertyUnitInput
           label="Gap"
-          className="displayGap"
-          value={styleValues.gap}
+          className={`displayGap${sessionGap !== null ? " property-unit-input--session-active" : ""}`}
+          value={sessionGap !== null ? `${sessionGap}px` : styleValues.gap}
           units={["px"]}
           presets={SPACING_PRESET_OPTIONS}
           allowKeywords={false}
-          onChange={(value) => handleSpacingCommit("gap", value)}
-          onDrag={(value) => handleSpacingPreview("gap", value)}
+          isDisabled={sessionGap !== null}
+          onChange={handleSpacingCommit}
+          onDrag={handleSpacingPreview}
           min={0}
           max={500}
         />

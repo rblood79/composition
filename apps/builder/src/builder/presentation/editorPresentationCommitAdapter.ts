@@ -566,16 +566,16 @@ export function commitEditorPresentationStyle(
     (presentationGapLonghands as readonly string[]).includes(key);
   const isPaddingLonghand = (key: string): boolean =>
     (presentationPaddingLonghands as readonly string[]).includes(key);
+  // 한 축 그룹 안의 longhand 부분집합은 원자 patch 로 허용한다 — ADR-222 §1.1
+  // Option/Alt 양쪽 padding (2변) 이 commit 1회여야 한다. gap 과 padding 을
+  // 한 patch 에 섞는 것은 여전히 거부한다.
   const isSpacingPatch =
     descriptor.type === "style.patch" &&
+    patchKeys.length >= 1 &&
     patchKeys.every((key) =>
       (spacingKeys as readonly string[]).some((candidate) => candidate === key),
     ) &&
-    (patchKeys.length === 1 ||
-      (patchKeys.length === presentationGapLonghands.length &&
-        patchKeys.every(isGapLonghand)) ||
-      (patchKeys.length === presentationPaddingLonghands.length &&
-        patchKeys.every(isPaddingLonghand)));
+    (patchKeys.every(isGapLonghand) || patchKeys.every(isPaddingLonghand));
   const isLayoutPatch =
     descriptor.type === "style.patch" &&
     ((patchKeys.length === 1 &&

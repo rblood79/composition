@@ -33,6 +33,17 @@ export const OVERLAY_BLUE_RGB: readonly [number, number, number] = [
 ];
 
 /**
+ * ADR-222 gap 분홍 **단일 정본** (pink-500 `#f6339a`, 팔레트 파생).
+ *
+ * Figma 는 auto-layout gap 을 padding 파랑과 구분되는 분홍 (실측 `#FF24BD` 계열) 으로
+ * 그린다. 우리 팔레트에서 가장 가까운 항목이 pink-500 이다 — 외부 HEX 를 복제하지
+ * 않고 토큰을 쓴다 (OVERLAY_BLUE 와 같은 규칙). padding 띠·핸들은 OVERLAY_BLUE.
+ */
+export const OVERLAY_PINK_RGB: readonly [number, number, number] = hexToRgb01(
+  TAILWIND_PALETTE.pink[500],
+);
+
+/**
  * 스냅 정렬선(snapGuideRenderer)·수동 가이드(guideRenderer) 공용 웜 레드
  * (#F24822 — Figma 실측값, 양 테마 공용). 두 렌더러가 각자 선언하면 한쪽만
  * 조정될 때 "같은 색" 이라는 어법 자체가 깨진다.

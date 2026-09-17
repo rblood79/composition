@@ -66,6 +66,12 @@ import {
   useGuideHoverCursor,
 } from "./hooks/useGuideDrag";
 import {
+  getSpacingHoverCursor,
+  useSpacingInteraction,
+} from "./hooks/useSpacingInteraction";
+import { hitTestHandle } from "./selection/types";
+import { SpacingInlineInput } from "./overlay/spacing/SpacingInlineInput";
+import {
   GUIDE_HIT_THRESHOLD_SCREEN_PX,
   buildGuideHitTargets,
   resolveGuideHit,
@@ -1175,7 +1181,8 @@ export function BuilderCanvas({
   // 있는 대상을 가리키는 다른 커서(move/resize)는 그대로 통과시킨다.
   const setCursor = useCallback((cursor: string) => {
     if (!containerRef.current) return;
-    const guideCursor = getGuideHoverCursor();
+    // ADR-222: spacing 띠 hover 커서도 같은 규칙 — "default" 만 덮는다 (가이드가 우선)
+    const guideCursor = getGuideHoverCursor() ?? getSpacingHoverCursor();
     containerRef.current.style.cursor =
       guideCursor !== null && cursor === "default" ? guideCursor : cursor;
   }, []);
@@ -1199,6 +1206,17 @@ export function BuilderCanvas({
   const isEditingRef = useRef(false);
   const completeEditRef = useRef<(elementId: string) => void>(() => {});
   const editingElementIdRef = useRef<string | null>(null);
+
+  // ADR-222: padding·gap 띠 hover/드래그 — pointerdown capture 가 선판정한다
+  const {
+    resolveSpacingPointerDown,
+    inlineInput: spacingInlineInput,
+    closeInlineInput: closeSpacingInlineInput,
+  } = useSpacingInteraction({
+    containerRef,
+    gestureSession: canvasGestureSession,
+    screenToCanvasPoint,
+  });
 
   // Page title drag hit-test (capture phase).
   // Capture 단계에서 먼저 동작하므로 useCentralCanvasPointerHandlers 보다 우선.
@@ -1329,6 +1347,18 @@ export function BuilderCanvas({
         return;
       }
 
+      // ── ADR-222: padding·gap 띠/핸들 — 코너 resize 핸들보다는 뒤, 엣지 resize 보다는
+      // 앞 (breakdown §3.4). 히트면 spacing owner 로 승격하고 중앙 핸들러를 막는다.
+      if (
+        !canvasGestureSession.spacePressed &&
+        !hitTestHandle(scenePoint, computeSelectionBoundsForHitTest(), zoom)
+          ?.isCorner &&
+        resolveSpacingPointerDown(event, scenePoint)
+      ) {
+        (event as PointerEvent & { __handled?: boolean }).__handled = true;
+        return;
+      }
+
       if (
         canvasGestureSession.beginPointer(event.pointerId, event.button) ===
         "pan"
@@ -1343,9 +1373,11 @@ export function BuilderCanvas({
     };
   }, [
     canvasGestureSession,
+    computeSelectionBoundsForHitTest,
     isFrameEditMode,
     pageHeight,
     pageWidth,
+    resolveSpacingPointerDown,
     screenToCanvasPoint,
     sceneActiveBreakpoint,
     setCurrentPageId,
@@ -1598,6 +1630,15 @@ export function BuilderCanvas({
       )}
 
       <GPUDebugOverlay />
+
+      {/* ADR-222: padding·gap 핸들 클릭 → 인라인 숫자 입력 (Skia 배지 자리의 DOM 층) */}
+      {spacingInlineInput && (
+        <SpacingInlineInput
+          key={spacingInlineInput.session.sessionId}
+          state={spacingInlineInput}
+          onClose={closeSpacingInlineInput}
+        />
+      )}
 
       {/* 텍스트 편집 오버레이 (B1.5) */}
       {editState && editState.elementId && (

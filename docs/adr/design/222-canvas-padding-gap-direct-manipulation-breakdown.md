@@ -1,9 +1,8 @@
 # ADR-222 구현 설계: 캔버스 Padding·Gap 직접 편집
 
-정본: [ADR-222](../222-canvas-padding-gap-direct-manipulation.md)
+정본: [ADR-222](../completed/222-canvas-padding-gap-direct-manipulation.md)
 
-작성일: 2026-09-17. **설계만 작성, 구현 미착수.** 아래 신규 심볼명은 제안이며
-현재 존재하는 기능으로 읽지 않는다. 모든 구현 Gate는 UNVERIFIED다.
+작성일: 2026-09-17. 같은 날 Phase 0~3 실행 완료 (§5 결과 열). 신규 심볼의 실제 파일명은 §5 아래 "구현 파일" 절.
 
 ## 1. 범위와 사용자 동작
 
@@ -275,12 +274,12 @@ Phase 0 first-nail에는 §4.3의 hug→외부 형제 반증과 §4.2의 후속 
 포함한다. Phase 1에서 planner/bridge 영향 집합을 구현하고, Phase 2에서 receipt 기반
 패널 표시·finalizing·finish를 연결한다. 기존 경로의 단순 재사용으로 이 작업을 생략하지 않는다.
 
-| Phase | 산출물                                                                                 | 완료 조건                                              |
-| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| 0     | 현재 HEAD 재대조, capability 표·resolved metric 원천·기준 성능, padding/gap first-nail | G0; 시작값→publish→panel→Preview→finish/Undo 경로 증명 |
-| 1     | spacing geometry/state/Skia overlay, clipping·hit·gesture owner                        | G1/G2, 선택 핸들·hover 사선·drag 상태 고정             |
-| 2     | 공통 spacing transaction, 패널 read, 인라인 입력·수정키                                | G3, 2변/4변 원자 patch와 취소/무이동 검증              |
-| 3     | foreground 통합 검증·성능·문서/CHANGELOG                                               | G4/G5, 증거와 실제 지원표 기록 후 상태 판정            |
+| Phase | 산출물                                                                                 | 완료 조건                                              | 결과 (2026-09-17)                                                                                                                                                                                                                           |
+| ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0     | 현재 HEAD 재대조, capability 표·resolved metric 원천·기준 성능, padding/gap first-nail | G0; 시작값→publish→panel→Preview→finish/Undo 경로 증명 | 코드 단위 완료 — 공급원 `readPersistentEngineStyle` · capability 16 · planner h1 5 · receipt m2 1 · 2변 commit 1 · 세션 first-nail 6 (mock 엔진). panel/Preview/Undo 는 Phase 3 live                                                        |
+| 1     | spacing geometry/state/Skia overlay, clipping·hit·gesture owner                        | G1/G2, 선택 핸들·hover 사선·drag 상태 고정             | 완료 — geometry 9 · gesture 2 · 수정키 2 · live 12/12 (선택 핸들 · hover 사선/배지/커서 · drag · Undo · Escape 선택 유지 · Preview gap 22). zoom 25/200% · 스크롤 clip · 페이지 가림 · pan 충돌은 Phase 3 G5                                |
+| 2     | 공통 spacing transaction, 패널 read, 인라인 입력·수정키                                | G3, 2변/4변 원자 patch와 취소/무이동 검증              | 완료 — 패널 read/강조/read-only (useSpacingSession) · Gap 축 (gapAxis 2) · 인라인 입력 (RAC NumberField) · 2변 원자 commit (session first-nail) · live 16/16 (드래그 중 패널 40·active · Gap 22 · 클릭→입력→Enter commit 1 · Escape 무변경) |
+| 3     | foreground 통합 검증·성능·문서/CHANGELOG                                               | G4/G5, 증거와 실제 지원표 기록 후 상태 판정            | 완료 — G4 A/B Δp95 +0.6ms (2.6 vs 2.0, 100 자식) · G5 live 22/22 (zoom 25/200 · 코너 우선 · Space pan · overflow clip · 접근 이름) · ADR Live Exercise · README · CHANGELOG · Implemented                                                   |
 
 필수 회귀 fixture:
 
@@ -316,3 +315,14 @@ canonical ID로 저장하지 않는 기존 target resolver 계약을 검증한 �
 
 Figma와 pixel-identical 복제, 일반 다중선택 Smart selection, margin 드래그,
 새 레이아웃 엔진·새 저장 schema는 본 ADR 범위가 아니다.
+
+## 7. 구현 파일 (2026-09-17 실행 결과)
+
+| 영역         | 파일                                                                                                                                                                                                                                                                                               |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 공급원·판정  | `layout/engines/fullTreeLayout.ts` (`readPersistentEngineStyle` · root 별 available size) · `presentation/editorPresentationSpacingCapability.ts`                                                                                                                                                  |
+| 세션·receipt | `presentation/editorPresentationSpacingSession.ts` · `presentation/editorPresentationLayoutReceipt.ts` · `skiaEditorPresentationLayoutBridge.ts` (rejected 사유) · `editorPresentationLayoutLane.ts` (`isSpacingSizeInvariant`) · `editorPresentationCommitAdapter.ts` (padding longhand 부분집합) |
+| 기하·표시    | `canvas/interaction/spacingGeometry.ts` · `canvas/interaction/spacingPresentation.ts` · `canvas/skia/spacingOverlayRenderer.ts` · `semanticOverlayColors.ts` (`OVERLAY_PINK_RGB`) · `skiaOverlayBuilder.ts` · `SkiaCanvas.tsx` (overlay 무효화)                                                    |
+| 입력         | `canvas/interaction/canvasGestureSession.ts` ("spacing") · `canvas/hooks/useSpacingInteraction.ts` · `BuilderCanvas.tsx` (capture 선판정 · 커서 · 인라인 입력 렌더) · `canvas/overlay/spacing/SpacingInlineInput.tsx`                                                                              |
+| 패널         | `presentation/useSpacingSession.ts` · `panels/styles/sections/SpacingSection.tsx` · `components/BoxModelEditor.tsx` (`activePaddingSides`) · `panels/styles/utils/gapAxis.ts` · `hooks/useLayoutValues.ts` · `sections/LayoutSection.tsx`                                                          |
+| 하니스       | `apps/builder/scripts/adr222-spacing-live.mjs` (G5 22) · `adr222-spacing-frame-ab.mjs` (G4) · dev 전역 `__composition_SPACING_DEBUG__` · `__composition_HISTORY_DEBUG__`                                                                                                                           |

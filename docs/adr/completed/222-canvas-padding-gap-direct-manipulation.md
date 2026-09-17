@@ -2,9 +2,53 @@
 
 ## Status
 
-Proposed — 2026-09-17
+Implemented — 2026-09-17 (Proposed 09-17 → [reviews/222.md](../reviews/222.md) round 1 h1·m2 fixed / l3 LOW deferred → 사용자 `/execute-adr 222` · Phase 0~~3 / G0~~G5 종결, 같은 날)
 
-설계 요청: 사용자 지정 ADR-222. 구현·Accepted 승격·commit/push는 포함하지 않는다.
+설계 요청: 사용자 지정 ADR-222. 실행 기록은 아래 `### 실행 기록` 과 breakdown §5 표의 결과 열, live 근거는 `### Live Exercise`.
+
+### 실행 기록
+
+- **Phase 0 (2026-09-17, G0)**: resolved spacing 공급원 = 엔진이 마지막으로 소비한 style record
+  (`readPersistentEngineStyle`, `"Npx"` 정규화 · catalog implicit · border 포함) — canonical raw 값이 없어도
+  effective 값에서 시작한다. capability 표 (`editorPresentationSpacingCapability.ts`, 순수 코어 16 케이스) ·
+  h1 planner 확장 (`isSpacingSizeInvariant` — hug/auto 는 부모 승격 + 외부 형제 포함, px 상자도 padding 합이
+  넘으면 승격) · m2 receipt 채널 (`editorPresentationLayoutReceipt.ts`, bridge 의 모든 early return 이 rejected
+  사유) · targeted compute 의 available size 를 root 별 실제 계산 문맥으로 교체 (§4.3-5) · commit adapter 2변
+  padding 원자 patch 허용 · UI 독립 세션 어댑터 (`editorPresentationSpacingSession.ts`: setDelta/setValues → 프레임당
+  publish → receipt 확정값 → finish 1 commit · 시작값 복귀 no-op · rejected/1초 초과 cancel). first-nail 6 케이스
+  (padding/gap/2변/rejected/timeout/Escape). 실제 엔진·Preview·Undo 대조는 Phase 3 live 로 미룬다.
+- **Phase 1 (2026-09-17, G1/G2 1차)**: 순수 기하 `interaction/spacingGeometry.ts` (padding-box inset · 상하 띠 코너
+  소유 · gap 은 설정값 폭만 · 0값 두께 0 띠 + 합성 핸들 · 핸들 12×2/12×12 히트 · 축·부호, 9 케이스) · transient
+  `interaction/spacingPresentation.ts` (owner/hover/active + `resolveSpacingBands` 가 히트와 그리기의 같은 입력,
+  가시 영역 `hitBoundsMap` clip) · `skia/spacingOverlayRenderer.ts` (상시 핸들 · hover 사선 4px · 값 배지, padding
+  OVERLAY_BLUE / gap OVERLAY_PINK = pink-500) · `CanvasGestureSession` "spacing" mode (element→spacing 원자 승격,
+  요소 상호작용·hover 억제) · `hooks/useSpacingInteraction.ts` (owner 동기화 · RAF hover · pointerdown capture 선판정
+  — 코너 resize 뒤·엣지 resize 앞 · Option/Alt 양쪽 · Option/Alt+Shift 4변 · Shift 10px step · Escape capture
+  가로채기로 선택 유지). **live (headed Playwright `adr222-spacing-live.mjs`, 12/12)**: frame(flex column ·
+  padding 16 · gap 12 · width 320) + Button 2 자식 + following 형제 — 선택 즉시 띠 5 (엔진 소비값 16/12) · hover
+  padding:top + ns-resize · 드래그 중 canonical 무변경 + 확정값 40 · pointerup canonical paddingTop 40px + 다른 변
+  16 보존 + history +1 · **layout 자식 y +24 · hug 높이 +24 · following y +24 (h1 반증)** · Cmd+Z 1회 16 복원 ·
+  gap +10 → rowGap 22 (columnGap 12 보존) · **Preview DOM Button 간격 22** · Escape 취소 (canonical·history 무변경 ·
+  선택 유지) · 클릭 무변경 · page error 0. 함정: Chrome MCP hidden 탭은 부트 95% 정지 → headed Playwright ·
+  새 프로젝트 템플릿은 카메라가 요소 밖 → `__composition_APPLY_VIEWPORT__` 로 focus · Compare 토글 후 재focus.
+- **Phase 2 (2026-09-17, G3 1차)**: 패널 read `presentation/useSpacingSession.ts` (useSyncExternalStore — 세션
+  확정값만, 세션 snapshot 참조 안정화) → Styles Spacing 의 BoxModelEditor 가 세션 소유 변을 확정값으로 표시 +
+  `data-active` 강조 + read-only (§4.1) · Gap 필드는 단일 행/열 flex 에서 주축 longhand (`utils/gapAxis.ts`:
+  row → columnGap · column → rowGap) 를 읽고 쓴다 (wrap/grid/block 은 종전 shorthand 계약, 2 케이스) · 인라인 숫자
+  입력 `overlay/spacing/SpacingInlineInput.tsx` (RAC NumberField, 클릭 = 임계값 미만 pointerup 이 세션을 열린 채
+  input 모드로 넘김 · Enter/blur 는 값이 바뀌었을 때만 finish → commit 1 · Escape cancel · 카메라 이동·선택 변경·
+  세션 종료 시 닫힘). **live 16/16** (위 12 + 드래그 중 패널 Padding Top 40·data-active·readOnly · Gap 필드 22 ·
+  클릭 → 입력 열림 (16 · 포커스 · mode input) → 24 Enter → canonical paddingBottom 24px + history +1 · 입력
+  Escape 무변경). 함정: Compare Mode 는 캔버스 반폭 + Styles 패널이 우측에 떠 있어 focus 점을 캔버스 폭 25% 로.
+- **Phase 3 (2026-09-17, G4/G5)**: G4 `adr222-spacing-frame-ab.mjs` (100 자식 flex column · DPR 2 · CPU throttle 1 ·
+  visible · 3쌍 순서 교대 · 60 스텝 33ms) — 캔버스 gap 핸들 드래그 render.frame **p95 2.6ms (p50 2.3)** vs 패널
+  연속 편집 (`updateSelectedStylePreview`, ADR-219 G4 정의) p95 2.0 → **Δ +0.6ms ≤ 2 · ≤ 16.7 PASS**, longtask 0.
+  대조군 함정: PropertyUnitInput ▲▼ 는 value prop 기준 base±1 이라 값이 둘뿐 → runtime dedup 으로 프레임 6개 —
+  대조군이 못 된다 (기록). "affected 범위 밖 재수집 0" 은 targeted publication 계약 (ADR-188 G0 가드) 으로 성립.
+  G5 live 22/22 (`adr222-spacing-live.mjs`): 위 16 + zoom 25% (화면 5px → +20) · zoom 200% (화면 20px → +10) ·
+  코너 resize 핸들 우선 (세션 0) · Space+띠 드래그 = pan (세션 0 · canonical 무변경) · overflow:hidden 조상 밖
+  bottom 띠 hover·pointerdown 없음 (clipRect 44px) · 인라인 입력 접근 이름 "Top padding". 사용자 지적 반영: 드래그
+  중 값 배지는 **잡은 띠 하나** 에만 (같은 속성의 다른 gap 띠 · Option 양쪽 변은 핸들 강조만 — Figma·Framer 동형).
 
 ## Context
 
@@ -33,11 +77,11 @@ Figma·Framer 어느 쪽에도 없는 상태이며, 상시 핸들 + hover 피드
   캔버스 핸들은 Builder 편집 도구이며 제품 컴포넌트의 hover 상태를 흉내 내지 않는다.
 - **D2**: 새 public prop이나 canonical 저장 필드를 만들지 않는다.
   기존 `props.style` longhand와 기존 responsive 쓰기 정책을 보존한다.
-- [ADR-176](completed/176-canvas-authoring-gesture-and-page-position-optimization.md)의
-  제스처 소유권과 [ADR-187](completed/187-editor-presentation-transaction-and-typed-invalidation.md)의
+- [ADR-176](176-canvas-authoring-gesture-and-page-position-optimization.md)의
+  제스처 소유권과 [ADR-187](187-editor-presentation-transaction-and-typed-invalidation.md)의
   presentation transaction을 소비하는 응용 설계다. 기존 ADR의 미완료 범위를
   분리하는 문서가 아니며 저장 schema 마이그레이션도 없다.
-- [ADR-221](completed/221-canvas-page-header-dom-layer.md)의 DOM 페이지 헤더와
+- [ADR-221](221-canvas-page-header-dom-layer.md)의 DOM 페이지 헤더와
   입력 우선순위·페이지 가림 경계를 보존한다.
 
 ### 현재 코드에서 확인한 제약
@@ -149,7 +193,7 @@ B의 위험은 동일한 입력→presentation→commit 계약에서 검증해�
 
 ## Decision
 
-> 구현 상세: [222-canvas-padding-gap-direct-manipulation-breakdown.md](design/222-canvas-padding-gap-direct-manipulation-breakdown.md)
+> 구현 상세: [222-canvas-padding-gap-direct-manipulation-breakdown.md](../design/222-canvas-padding-gap-direct-manipulation-breakdown.md)
 
 **대안 B를 제안한다.** 기존 gesture·overlay·presentation·canonical mutation 경로를
 연결한다. 매 드래그마다 새 문서 상태나 별도 레이아웃 엔진을 만들지 않는다.
@@ -206,6 +250,22 @@ A는 쓰기/제스처/클립 계약 위반, C는 핵심 드래그 요구 미충�
 | G3 (R3) | commit/패널/Preview 연결 후 | move 중 canonical/history/DB 0, 완료 history 1, 취소/no-op 0; Undo/Redo·refresh·선택 전환·문서 교체에서 값/대상 정합                                                | 출시 보류, transaction/읽기 연결 수리                          |
 | G4      | 기능 완성 후                | 동일 fixture의 패널 연속 편집 대비 frame p95 증가 ≤2ms, 100자식 기준 p95 ≤16.7ms 목표; affected 범위 밖 layout 재수집 0                                             | 영향 범위 최적화·지원 상한 명시 후 재판정; 수치 자동 완화 금지 |
 | G5      | 완료 판정 시                | foreground Builder에서 padding·gap 각 전체 흐름, 실제 Preview geometry 대조, 인라인 입력·키보드·한글 이름·취소 검증, 인접 테스트/typecheck/범위별 gate PASS         | 미검증 범위를 명시하고 Proposed/진행 상태 유지                 |
+
+### Live Exercise
+
+headed Playwright (dev, 실제 빌더 부팅 — Chrome MCP 는 hidden 탭 RAF 정지로 부트 95% 에서 멈춰 대체) 로 2026-09-17 검증.
+하니스 `apps/builder/scripts/adr222-spacing-live.mjs` (22/22) · `adr222-spacing-frame-ab.mjs` (G4). 판정은 store canonical
+style · `__composition_LAYOUT_DEBUG__` layout rect · `__composition_SPACING_DEBUG__` 띠/세션 · `__composition_HISTORY_DEBUG__`
+undo 스택 · Preview(Compare) iframe `getBoundingClientRect` 로 읽었다 (스크린샷은 `/private/tmp/adr222-spacing-live/`).
+
+- **fixture**: 새 프로젝트 · frame (flex column · padding 16 · gap 12 · width 320 · height auto) + Button 2 자식 + following Button 형제.
+- **선택/hover**: 선택 즉시 padding 4변 + gap 1 띠, 값 = 엔진 소비값 16/12 (canonical raw 는 shorthand) · 띠 hover → 사선 + 배지 16 + 커서 ns-resize.
+- **드래그 (G1/G3)**: paddingTop 핸들 +24 → 드래그 중 canonical 무변경 · 세션 확정값 40 · Styles 패널 Padding Top 40 (data-active · readOnly) → pointerup canonical `paddingTop: "40px"` (다른 변 16 보존) · history +1 · **layout 자식 y +24 · hug 높이 104→128 · following y 104→128** (h1 반증) · Cmd+Z 1회 → 16.
+- **gap (G3 Preview 대조)**: gap 핸들 +10 → `rowGap: "22px"` (columnGap 12 보존) · Preview DOM 두 Button 간격 22 · Styles Gap 필드 22 (column 주축).
+- **취소/무이동**: Escape 중 확정값 46 → canonical 16 · history 무변경 · 선택 유지 (핸들 잔존) · 핸들 클릭 = 인라인 입력 (16 · 포커스 · aria-label "Top padding") → 24 Enter → `paddingBottom: "24px"` history +1 · 입력 Escape 무변경.
+- **G1 zoom/clip · G2 owner**: zoom 25% 화면 5px → +20 · zoom 200% 화면 20px → +10 · 코너 resize 핸들 pointerdown 은 spacing 세션 0 · Space+띠 드래그 = pan (panOffset 변경 · canonical 무변경) · overflow:hidden 조상 (높이 60) 밖 bottom 띠는 hover null · pointerdown 세션 0.
+- **G4**: 캔버스 핸들 드래그 p95 2.6ms vs 패널 연속 편집 p95 2.0ms (Δ +0.6 ≤ 2) · 100 자식 p95 ≤ 16.7 · longtask 0 (DPR 2 · throttle 1 · visible).
+- **미검증 (첫 범위 밖, 지원표대로 핸들 없음)**: Grid · wrap · space-* · 비-desktop breakpoint · ref/projected · 회전 · 단위 보존 값 — capability 순수 코어 16 케이스가 차단을 고정한다.
 
 ## Consequences
 

@@ -83,10 +83,7 @@ import {
   collectHighlightedWorkflowPageIds,
   filterRenderableWorkflowEdges,
 } from "./skiaWorkflowSelection";
-import {
-  cssColorToHex,
-  getCSSVariable,
-} from "../utils/cssVariableReader";
+import { cssColorToHex, getCSSVariable } from "../utils/cssVariableReader";
 import { hexToColor4fChannels } from "./themeWatcher";
 
 /** `--border` 미정의 시 fallback — preview-system 기본값(neutral-300)과 같은 팔레트 값. (구 M3 FALLBACK_COLORS.outlineVariant 대체) */
@@ -117,6 +114,11 @@ import {
   resolveGuideEmphasisIdsForPage,
 } from "../interaction/guideEmphasis";
 import { useStore } from "../../../stores";
+import {
+  getSpacingPresentationSnapshot,
+  resolveSpacingBands,
+} from "../interaction/spacingPresentation";
+import { renderSpacingOverlay } from "./spacingOverlayRenderer";
 
 // ============================================
 // Workflow Overlay Data
@@ -828,6 +830,33 @@ export function buildOverlayNode(input: OverlayBuildInput): SkiaRenderable {
       }
       if (selectionData.lasso) {
         renderLasso(ck, canvas, selectionData.lasso, cameraZoom);
+      }
+
+      // ── Spacing (ADR-222: padding·gap 핸들·hover 사선·값 배지) ──
+      // 선택 박스 위에 그린다 (핸들이 선택 테두리에 가려지지 않게). 내용 자리를
+      // 가리키는 chrome 이라 페이지 occlusion clip 을 따른다 (breakdown §3.2).
+      // 띠 기하는 히트 판정과 같은 resolveSpacingBands 결과다.
+      const spacingSnapshot = getSpacingPresentationSnapshot();
+      if (spacingSnapshot.owner && selectionChromeVisible) {
+        const spacingSet = resolveSpacingBands(spacingSnapshot.owner);
+        if (spacingSet && spacingSet.bands.length > 0 && spacingSet.clipRect) {
+          withPageOcclusionClip(
+            ck,
+            canvas,
+            spacingSnapshot.owner.rootKey,
+            paintOrderedFrames,
+            pagePositionSnapshot,
+            () =>
+              renderSpacingOverlay(ck, canvas, {
+                bands: spacingSet.bands,
+                clipRect: spacingSet.clipRect,
+                hoveredBandId: spacingSnapshot.hoveredBandId,
+                active: spacingSnapshot.active,
+                zoom: cameraZoom,
+                fontMgr,
+              }),
+          );
+        }
       }
 
       // ── Overflow Hatching (scroll/auto 부모의 자식 선택 시 사선 패턴) ──

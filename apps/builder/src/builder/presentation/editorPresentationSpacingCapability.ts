@@ -1,0 +1,408 @@
+/**
+ * ADR-222 Phase 0 — 캔버스 padding·gap 직접 편집의 capability 판정과 effective 값 공급.
+ *
+ * 순수 코어 (`resolveSpacingCapabilityFromInputs`) 는 store 를 모르고, store 바인딩
+ * (`resolveSpacingCapability`) 은 canonical 노드 · store elements · 엔진 style 을 모아
+ * 코어에 넘긴다. 어느 쪽도 저장하지 않는 read-only 파생값이다 (breakdown §3.1).
+ *
+ * effective 값의 유일한 원천은 엔진이 마지막으로 소비한 style record
+ * (`readPersistentEngineStyle`) 다 — catalog 기본값 · 미지정 0 · 명시 px 가 전부
+ * `"Npx"` 로 정규화돼 있어 canonical raw 값이 없어도 편집을 시작할 수 있다.
+ * canonical raw 값은 provenance (단위 보존 여부) 판정에만 쓴다.
+ */
+
+import { useStore } from "../stores";
+import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
+import {
+  editorPresentationCanonicalRuntimeOptions,
+  getEditorPresentationTargetNode,
+  resolveEditorPresentationTarget,
+} from "./editorPresentationCommitAdapter";
+import { normalizePresentationSpacingStyle } from "./editorPresentationStyleNormalization";
+import type { EditorPresentationTargetRef } from "./editorPresentationTypes";
+import { readPersistentEngineStyle } from "../workspace/canvas/layout/engines/fullTreeLayout";
+
+export type SpacingSide = "top" | "right" | "bottom" | "left";
+export const SPACING_SIDES: readonly SpacingSide[] = [
+  "top",
+  "right",
+  "bottom",
+  "left",
+];
+
+export type SpacingPaddingProperty =
+  "paddingTop" | "paddingRight" | "paddingBottom" | "paddingLeft";
+export type SpacingGapProperty = "rowGap" | "columnGap";
+export type SpacingProperty = SpacingPaddingProperty | SpacingGapProperty;
+
+export const PADDING_PROPERTY_BY_SIDE: Readonly<
+  Record<SpacingSide, SpacingPaddingProperty>
+> = {
+  top: "paddingTop",
+  right: "paddingRight",
+  bottom: "paddingBottom",
+  left: "paddingLeft",
+};
+
+export type SpacingUnsupportedReason =
+  | "no-selection"
+  | "multi-selection"
+  | "not-canonical-node"
+  | "body"
+  | "non-desktop-breakpoint"
+  | "engine-style-missing"
+  | "position-unsupported"
+  | "grid"
+  | "grid-ancestor"
+  | "transform"
+  | "locked"
+  | "not-container"
+  | "raw-unit-preserved"
+  | "not-flex"
+  | "wrap"
+  | "distributed-alignment"
+  | "auto-margin-child"
+  | "fewer-than-two-children";
+
+export interface SpacingBoxMetrics {
+  readonly top: number;
+  readonly right: number;
+  readonly bottom: number;
+  readonly left: number;
+}
+
+export type SpacingAxisCapability =
+  | {
+      readonly supported: true;
+      /** 주축 gap property — row 계열은 columnGap, column 계열은 rowGap */
+      readonly property: SpacingGapProperty;
+      readonly axis: "horizontal" | "vertical";
+      readonly reverse: boolean;
+      /** effective px (엔진 소비값) */
+      readonly value: number;
+      /** in-flow 자식 ID (layout 순서) */
+      readonly flowChildIds: readonly string[];
+    }
+  | { readonly supported: false; readonly reason: SpacingUnsupportedReason };
+
+export type SpacingPaddingCapability =
+  | {
+      readonly supported: true;
+      /** effective px (엔진 소비값) — 미지정은 0 */
+      readonly values: SpacingBoxMetrics;
+      /** raw canonical 에 있는 변 (없으면 catalog/기본값 유래) */
+      readonly rawSides: ReadonlySet<SpacingSide>;
+    }
+  | { readonly supported: false; readonly reason: SpacingUnsupportedReason };
+
+export interface SpacingCapability {
+  readonly projectId: string;
+  readonly target: Extract<
+    EditorPresentationTargetRef,
+    { kind: "canonical-node" }
+  >;
+  readonly rootKey: string;
+  readonly nodeType: string;
+  /** border 두께 px (padding-box 계산용) */
+  readonly border: SpacingBoxMetrics;
+  readonly padding: SpacingPaddingCapability;
+  readonly gap: SpacingAxisCapability;
+  readonly rawStyle: Readonly<Record<string, unknown>>;
+}
+
+export interface SpacingCapabilityChildInput {
+  readonly id: string;
+  /** 엔진 style record (없으면 canonical style 로 대체) */
+  readonly engineStyle: Readonly<Record<string, unknown>> | null;
+  readonly rawStyle: Readonly<Record<string, unknown>>;
+}
+
+export interface SpacingCapabilityInputs {
+  readonly projectId: string;
+  readonly nodeId: string;
+  readonly nodeType: string;
+  readonly rootKey: string;
+  readonly rawStyle: Readonly<Record<string, unknown>>;
+  readonly engineStyle: Readonly<Record<string, unknown>> | null;
+  /** 조상 엔진 style 목록 (부모 → 루트 순) — grid ancestry 판정 */
+  readonly ancestorEngineStyles: readonly (Readonly<
+    Record<string, unknown>
+  > | null)[];
+  readonly children: readonly SpacingCapabilityChildInput[];
+  readonly activeBreakpoint: string;
+  readonly locked: boolean;
+}
+
+/** 구조 컨테이너 타입 — dropTargetResolver 의 STRUCTURAL_CONTAINER_TYPES 와 같은 집합 (body 제외). */
+const PADDING_CONTAINER_TYPES = new Set([
+  "box",
+  "card",
+  "cardcontent",
+  "cardfooter",
+  "cardheader",
+  "cardpreview",
+  "container",
+  "frame",
+  "group",
+  "section",
+]);
+
+export function parseSpacingPx(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && value >= 0 ? value : null;
+  }
+  if (typeof value !== "string") return null;
+  const match = /^\s*(\d+(?:\.\d+)?)(?:px)?\s*$/.exec(value);
+  if (!match) return null;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/**
+ * raw canonical 값이 있고 px 로 표현되지 않으면 (%, rem, calc, var, 토큰) 원문을
+ * 보존해야 하므로 캔버스 편집을 열지 않는다 (breakdown §1.1).
+ */
+function isRawUnitPreserved(value: unknown): boolean {
+  if (value === undefined || value === null || value === "") return false;
+  return parseSpacingPx(value) === null;
+}
+
+function readBox(
+  style: Readonly<Record<string, unknown>>,
+  prefix: "padding" | "border",
+): SpacingBoxMetrics {
+  const key = (side: string): string =>
+    prefix === "padding" ? `padding${side}` : `border${side}`;
+  return {
+    top: parseSpacingPx(style[key("Top")]) ?? 0,
+    right: parseSpacingPx(style[key("Right")]) ?? 0,
+    bottom: parseSpacingPx(style[key("Bottom")]) ?? 0,
+    left: parseSpacingPx(style[key("Left")]) ?? 0,
+  };
+}
+
+function isGridDisplay(
+  style: Readonly<Record<string, unknown>> | null,
+): boolean {
+  const display = style?.display;
+  return display === "grid" || display === "inline-grid";
+}
+
+function isOutOfFlowChild(style: Readonly<Record<string, unknown>>): boolean {
+  return (
+    style.position === "absolute" ||
+    style.position === "fixed" ||
+    style.display === "none"
+  );
+}
+
+function hasAutoMargin(
+  style: Readonly<Record<string, unknown>>,
+  axis: "horizontal" | "vertical",
+): boolean {
+  const keys =
+    axis === "horizontal"
+      ? ["marginLeft", "marginRight"]
+      : ["marginTop", "marginBottom"];
+  return keys.some((key) => style[key] === "auto") || style.margin === "auto";
+}
+
+function resolvePaddingCapability(
+  input: SpacingCapabilityInputs,
+  engineStyle: Readonly<Record<string, unknown>>,
+): SpacingPaddingCapability {
+  const type = input.nodeType.toLowerCase();
+  const display = engineStyle.display;
+  const isLayoutContainer =
+    input.children.length > 0 &&
+    (display === "flex" || display === "inline-flex" || display === "block");
+  if (!PADDING_CONTAINER_TYPES.has(type) && !isLayoutContainer) {
+    return { supported: false, reason: "not-container" };
+  }
+  const raw = normalizePresentationSpacingStyle(input.rawStyle);
+  const rawSides = new Set<SpacingSide>();
+  for (const side of SPACING_SIDES) {
+    const property = PADDING_PROPERTY_BY_SIDE[side];
+    const rawValue = raw[property];
+    if (isRawUnitPreserved(rawValue)) {
+      return { supported: false, reason: "raw-unit-preserved" };
+    }
+    if (rawValue !== undefined && rawValue !== null && rawValue !== "") {
+      rawSides.add(side);
+    }
+  }
+  return {
+    supported: true,
+    values: readBox(engineStyle, "padding"),
+    rawSides,
+  };
+}
+
+function resolveGapCapability(
+  input: SpacingCapabilityInputs,
+  engineStyle: Readonly<Record<string, unknown>>,
+): SpacingAxisCapability {
+  const display = engineStyle.display;
+  if (display !== "flex" && display !== "inline-flex") {
+    return { supported: false, reason: "not-flex" };
+  }
+  const wrap = engineStyle.flexWrap;
+  if (wrap !== undefined && wrap !== "nowrap") {
+    return { supported: false, reason: "wrap" };
+  }
+  const justify = String(engineStyle.justifyContent ?? "");
+  if (justify.startsWith("space-")) {
+    return { supported: false, reason: "distributed-alignment" };
+  }
+  const direction = String(engineStyle.flexDirection ?? "row");
+  const axis: "horizontal" | "vertical" = direction.startsWith("column")
+    ? "vertical"
+    : "horizontal";
+  const property: SpacingGapProperty =
+    axis === "horizontal" ? "columnGap" : "rowGap";
+  const raw = normalizePresentationSpacingStyle(input.rawStyle);
+  if (isRawUnitPreserved(raw[property])) {
+    return { supported: false, reason: "raw-unit-preserved" };
+  }
+  const flowChildIds: string[] = [];
+  for (const child of input.children) {
+    const style = child.engineStyle ?? child.rawStyle;
+    if (isOutOfFlowChild(style)) continue;
+    if (hasAutoMargin(style, axis)) {
+      return { supported: false, reason: "auto-margin-child" };
+    }
+    flowChildIds.push(child.id);
+  }
+  if (flowChildIds.length < 2) {
+    return { supported: false, reason: "fewer-than-two-children" };
+  }
+  return {
+    supported: true,
+    property,
+    axis,
+    reverse: direction.endsWith("-reverse"),
+    value: parseSpacingPx(engineStyle[property]) ?? 0,
+    flowChildIds,
+  };
+}
+
+/** store 를 모르는 순수 판정. 공통 차단 사유는 padding·gap 양쪽에 같은 reason 으로 실린다. */
+export function resolveSpacingCapabilityFromInputs(
+  input: SpacingCapabilityInputs,
+): SpacingCapability {
+  const unsupported = (
+    reason: SpacingUnsupportedReason,
+  ): SpacingCapability => ({
+    projectId: input.projectId,
+    target: { kind: "canonical-node", nodeId: input.nodeId },
+    rootKey: input.rootKey,
+    nodeType: input.nodeType,
+    border: input.engineStyle
+      ? readBox(input.engineStyle, "border")
+      : {
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+        },
+    padding: { supported: false, reason },
+    gap: { supported: false, reason },
+    rawStyle: input.rawStyle,
+  });
+
+  if (input.nodeType.toLowerCase() === "body") return unsupported("body");
+  if (input.activeBreakpoint !== "desktop") {
+    return unsupported("non-desktop-breakpoint");
+  }
+  if (input.locked) return unsupported("locked");
+  const engineStyle = input.engineStyle;
+  if (!engineStyle) return unsupported("engine-style-missing");
+  const position = engineStyle.position;
+  if (position === "fixed" || position === "sticky") {
+    return unsupported("position-unsupported");
+  }
+  if (isGridDisplay(engineStyle)) return unsupported("grid");
+  if (input.ancestorEngineStyles.some(isGridDisplay)) {
+    return unsupported("grid-ancestor");
+  }
+  if (
+    input.rawStyle.transform !== undefined &&
+    input.rawStyle.transform !== "none"
+  ) {
+    return unsupported("transform");
+  }
+
+  return {
+    projectId: input.projectId,
+    target: { kind: "canonical-node", nodeId: input.nodeId },
+    rootKey: input.rootKey,
+    nodeType: input.nodeType,
+    border: readBox(engineStyle, "border"),
+    padding: resolvePaddingCapability(input, engineStyle),
+    gap: resolveGapCapability(input, engineStyle),
+    rawStyle: input.rawStyle,
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * store 바인딩 — 현재 선택 하나에 대한 capability. 지원 불가 사유가 선택 구조에
+ * 있으면 (다중 선택 · ref-descendant · 프로젝트 없음) null 을 돌려 UI 를 통째로 닫는다.
+ */
+export function resolveSpacingCapability(
+  selectedElementIds: readonly string[],
+): SpacingCapability | null {
+  if (selectedElementIds.length !== 1) return null;
+  const selectedElementId = selectedElementIds[0];
+  const canonical = useCanonicalDocumentStore.getState();
+  const projectId = canonical.currentProjectId;
+  if (!projectId || !canonical.documents.has(projectId)) return null;
+  const target = resolveEditorPresentationTarget(projectId, selectedElementId);
+  if (
+    !target ||
+    target.kind !== "canonical-node" ||
+    !editorPresentationCanonicalRuntimeOptions.hasTarget(projectId, target)
+  ) {
+    return null;
+  }
+  const node = getEditorPresentationTargetNode(projectId, target);
+  if (!node) return null;
+
+  const state = useStore.getState();
+  const element = state.elementsMap.get(target.nodeId);
+  if (!element) return null;
+  const rootKey = element.page_id ?? null;
+  if (!rootKey) return null;
+
+  const rawStyle = isRecord(node.props?.style) ? node.props.style : {};
+  const ancestorEngineStyles: (Readonly<Record<string, unknown>> | null)[] = [];
+  let cursor = element.parent_id ?? null;
+  while (cursor) {
+    ancestorEngineStyles.push(readPersistentEngineStyle(rootKey, cursor));
+    cursor = state.elementsMap.get(cursor)?.parent_id ?? null;
+  }
+  const children = (state.childrenMap.get(target.nodeId) ?? []).map(
+    (child) => ({
+      id: child.id,
+      engineStyle: readPersistentEngineStyle(rootKey, child.id),
+      rawStyle: isRecord(child.props?.style) ? child.props.style : {},
+    }),
+  );
+  const props = isRecord(element.props) ? element.props : {};
+
+  return resolveSpacingCapabilityFromInputs({
+    projectId,
+    nodeId: target.nodeId,
+    nodeType: node.type,
+    rootKey,
+    rawStyle,
+    engineStyle: readPersistentEngineStyle(rootKey, target.nodeId),
+    ancestorEngineStyles,
+    children,
+    activeBreakpoint: state.activeBreakpoint,
+    locked: Boolean(props.isLocked ?? props.locked),
+  });
+}

@@ -1,0 +1,44 @@
+/* ADR-222 — 인라인 spacing 숫자 입력. 캔버스 배지 자리에 뜨는 작은 필드 — 배지와 같은
+   색 (padding 파랑 = --focus-ring · gap 분홍 = --color-pink-500, Skia OVERLAY_PINK 와 같은 토큰) 테두리. */
+.spacing-inline-input {
+  --spacing-inline-color: var(--focus-ring);
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transform: translate(-50%, calc(-100% - 10px));
+  padding: 2px 4px;
+  border: 1px solid var(--spacing-inline-color);
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  box-shadow: var(--shadow-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  pointer-events: auto;
+}
+
+.spacing-inline-input[data-kind="gap"] {
+  --spacing-inline-color: var(--color-pink-500);
+}
+
+.spacing-inline-input__field {
+  box-sizing: border-box;
+  inline-size: 44px;
+  block-size: 20px;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  outline: none;
+}
+
+.spacing-inline-input__unit {
+  color: var(--fg-muted);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

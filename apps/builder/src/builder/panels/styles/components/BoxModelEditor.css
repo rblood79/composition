@@ -7,7 +7,9 @@
   .box-model {
     position: relative;
     display: grid;
-    grid-template-columns: var(--control-size) var(--control-size) minmax(0, 1fr) var(--control-size) var(--control-size);
+    grid-template-columns:
+      var(--control-size) var(--control-size) minmax(0, 1fr)
+      var(--control-size) var(--control-size);
     grid-template-rows: repeat(5, var(--control-size));
     box-sizing: border-box;
     inline-size: 100%;
@@ -101,6 +103,14 @@
     &:focus-visible {
       border-radius: var(--radius-xs);
       box-shadow: inset 0 0 0 2px var(--focus-ring);
+    }
+
+    /* ADR-222: 캔버스 spacing 핸들이 편집 중인 변 — 캔버스 배지와 같은 파랑으로 동기 강조 */
+    &[data-active] {
+      border-radius: var(--radius-xs);
+      color: var(--focus-ring);
+      box-shadow: inset 0 0 0 1px var(--focus-ring);
+      font-weight: 600;
     }
   }
 

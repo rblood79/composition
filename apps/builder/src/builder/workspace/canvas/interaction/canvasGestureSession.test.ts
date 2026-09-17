@@ -105,6 +105,30 @@ describe("CanvasGestureSession", () => {
     expect(session.shouldSuppressElementInteraction(11)).toBe(true);
   });
 
+  it("ADR-222: element 로 시작한 pointer 를 spacing owner 로 승격하고 요소 상호작용·hover 를 막는다", () => {
+    const session = new CanvasGestureSession();
+
+    expect(session.beginPointer(21, 0)).toBe("element");
+    expect(session.promoteElementToSpacing(21)).toBe(true);
+    expect(session.ownerFor(21)).toBe("spacing");
+    expect(session.shouldSuppressElementInteraction(21)).toBe(true);
+    expect(session.shouldSuppressElementHover()).toBe(true);
+    // 다른 pointer 의 새 제스처는 차단, 같은 pointer 의 endPointer 가 해제한다
+    expect(session.blocksPointerDown(22)).toBe(true);
+    session.endPointer(21);
+    expect(session.ownerFor(21)).toBe("idle");
+    expect(session.shouldSuppressElementHover()).toBe(false);
+  });
+
+  it("ADR-222: pan 이거나 다른 pointer 면 spacing 으로 승격하지 않는다", () => {
+    const session = new CanvasGestureSession();
+    session.setSpacePressed(true);
+    expect(session.beginPointer(21, 0)).toBe("pan");
+    expect(session.promoteElementToSpacing(21)).toBe(false);
+    expect(session.promoteElementToSpacing(22)).toBe(false);
+    expect(session.ownerFor(21)).toBe("pan");
+  });
+
   it("pan 또는 다른 pointer owner는 page owner로 승격하지 않는다", () => {
     const session = new CanvasGestureSession();
     session.setSpacePressed(true);

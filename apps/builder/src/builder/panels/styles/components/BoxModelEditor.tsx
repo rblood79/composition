@@ -30,6 +30,11 @@ interface BoxModelEditorProps {
   readonly margin: BoxSideValues;
   readonly onPaddingChange: (side: BoxSide, value: string) => void;
   readonly onMarginChange: (side: BoxSide, value: string) => void;
+  /**
+   * ADR-222: 캔버스 spacing 세션이 소유 중인 padding 변 — 강조 표시 + 잠시 read-only
+   * (외부 드래그 중 local draft 가 이전 값을 다시 덮지 않도록, breakdown §4.1).
+   */
+  readonly activePaddingSides?: ReadonlySet<BoxSide>;
 }
 
 const SIDES: readonly BoxSide[] = ["Top", "Right", "Bottom", "Left"];
@@ -68,6 +73,7 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   margin,
   onPaddingChange,
   onMarginChange,
+  activePaddingSides,
 }: BoxModelEditorProps) {
   const localize = useSemanticLabel();
   const selectedElementId = useStore((state) => state.selectedElementId);
@@ -117,6 +123,10 @@ export const BoxModelEditor = memo(function BoxModelEditor({
     <input
       key={`${ring}-${side}`}
       className={`box-model__input box-model__input--${ring} box-model__input--${side.toLowerCase()}`}
+      data-active={
+        (ring === "padding" && activePaddingSides?.has(side)) || undefined
+      }
+      readOnly={ring === "padding" && activePaddingSides?.has(side)}
       value={draft[ring][side]}
       placeholder={ring === "margin" ? "auto" : "0"}
       inputMode="decimal"

@@ -254,6 +254,7 @@ export function resetPersistentTree(pageId?: string): void {
       tree.reset();
       persistentTrees.delete(pageId);
     }
+    persistentAvailableSizeByRootKey.delete(pageId);
     // stale 레이아웃 제거
     publishLayoutMap(null, pageId);
     publishSyntheticElementsMap(null, pageId);
@@ -262,6 +263,7 @@ export function resetPersistentTree(pageId?: string): void {
       tree.reset();
     }
     persistentTrees.clear();
+    persistentAvailableSizeByRootKey.clear();
     // 모든 페이지의 stale 레이아웃 제거
     for (const key of [..._perPageLayoutMaps.keys()]) {
       publishLayoutMap(null, key);
@@ -299,6 +301,45 @@ const PRESENTATION_TARGETED_STYLE_KEYS = new Set([
  * presentation frame만 소비한다. 결과 수집은 `getLayoutsForIds`로 제한해
  * 전체 layout map 재수집을 금지한다.
  */
+/**
+ * ADR-222 G0 — 엔진이 마지막으로 소비한 노드 style record (`"Npx"` 정규화, catalog
+ * implicit padding/gap 과 border 포함). 캔버스 spacing 편집이 읽는 **유일한**
+ * effective spacing 원천이다 — canonical raw 값이 없어도 (catalog 기본값 · 미지정 0)
+ * 엔진이 실제로 배치에 쓴 값이 여기 있다. 읽기 전용 사본을 돌려준다.
+ */
+export function readPersistentEngineStyle(
+  rootKey: string,
+  elementId: string,
+): Readonly<Record<string, unknown>> | null {
+  const json = persistentTrees.get(rootKey)?.getLastJson(elementId);
+  if (!json) return null;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return null;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * root 별 마지막 canonical compute 의 available size (ADR-222 §4.3-5).
+ * presentation targeted compute 는 승격된 publication root 의 자기 크기가 아니라
+ * 이 실제 계산 문맥으로 persistent root 를 다시 계산해야 한다.
+ */
+const persistentAvailableSizeByRootKey = new Map<
+  string,
+  { readonly width: number; readonly height: number }
+>();
+
+export function readPersistentAvailableSize(
+  rootKey: string,
+): { readonly width: number; readonly height: number } | null {
+  return persistentAvailableSizeByRootKey.get(rootKey) ?? null;
+}
+
 export function computePresentationLayoutTargeted(
   input: PresentationLayoutComputeRequest,
 ): ReadonlyMap<string, ComputedLayout> | null {
@@ -398,14 +439,15 @@ export function computePresentationLayoutTargeted(
   originalStyle.set(targetId, baseStyle);
   tree.updateNodeStyle(targetId, nextStyle);
   try {
+    const available = persistentAvailableSizeByRootKey.get(input.rootKey);
     const targeted = tree.computeTargetedLayout(
       {
         affectedNodeIds: [...input.affectedNodeIds],
         parentChain: input.parentChain,
         roots: input.roots,
       },
-      input.availableWidth,
-      input.availableHeight,
+      available?.width ?? input.availableWidth,
+      available?.height ?? input.availableHeight,
     );
     if (targeted.layoutMap.size !== input.affectedNodeIds.size) return null;
 
@@ -2652,6 +2694,10 @@ export function calculateFullTreeLayout(
     persistentTrees.set(rootKey, persistentTree);
   }
   if (!persistentTree.isAvailable) return null;
+  persistentAvailableSizeByRootKey.set(rootKey, {
+    width: availableWidth,
+    height: availableHeight,
+  });
   beginSyntheticElementsCollection();
 
   // ── Step 1: DFS post-order 순회 → 배치 배열 구성 ──────────────────

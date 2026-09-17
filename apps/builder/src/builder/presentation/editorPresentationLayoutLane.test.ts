@@ -238,6 +238,157 @@ describe("editor presentation layout lane", () => {
     },
   );
 
+  // ADR-222 h1: hug/auto 컨테이너의 spacing 변경은 used size 를 바꾸므로 부모로
+  // 승격하고 외부 형제 (following) 를 affected 집합에 넣어야 한다. 고정 크기
+  // 컨테이너 (위 테스트) 는 자기 서브트리로 제한하는 대조군이다.
+  it.each(["paddingTop", "rowGap", "padding", "gap"] as const)(
+    "promotes a hug flow container %s patch to its parent and includes following siblings (ADR-222 h1)",
+    (property) => {
+      const target = { kind: "canonical-node", nodeId: "hug" } as const;
+      const tree = {
+        childrenByParent: new Map([
+          ["root", ["hug", "following"]],
+          ["hug", ["a", "b"]],
+        ]),
+        parentById: new Map([
+          ["root", null],
+          ["hug", "root"],
+          ["a", "hug"],
+          ["b", "hug"],
+          ["following", "root"],
+        ]),
+        nodeById: new Map([
+          [
+            "root",
+            {
+              id: "root",
+              type: "Box",
+              props: {
+                style: {
+                  display: "flex",
+                  flexDirection: "column",
+                  width: 400,
+                  height: 600,
+                },
+              },
+            },
+          ],
+          [
+            "hug",
+            {
+              id: "hug",
+              type: "Box",
+              props: {
+                style: { display: "flex", flexDirection: "column", width: 200 },
+              },
+            },
+          ],
+          [
+            "a",
+            {
+              id: "a",
+              type: "Box",
+              props: { style: { width: 50, height: 40 } },
+            },
+          ],
+          [
+            "b",
+            {
+              id: "b",
+              type: "Box",
+              props: { style: { width: 50, height: 40 } },
+            },
+          ],
+          [
+            "following",
+            {
+              id: "following",
+              type: "Box",
+              props: { style: { width: 50, height: 40 } },
+            },
+          ],
+        ]),
+      };
+
+      const plan = createPresentationLayoutPlan({
+        targets: [target],
+        mutations: [{ patch: { [property]: 30 }, target, type: "style.patch" }],
+        tree,
+      });
+
+      expect(plan.roots).toEqual(["root"]);
+      expect(plan.parentChain).toEqual(["root"]);
+      expect(plan.affectedNodeIds.has("following")).toBe(true);
+      expect(plan.affectedNodeIds).toEqual(
+        new Set(["root", "hug", "a", "b", "following"]),
+      );
+    },
+  );
+
+  // 명시 px 크기라도 padding 합이 상자를 넘으면 border-box 하한이 커지므로
+  // 외부 크기 불변 증명이 깨진다 → 승격.
+  it("promotes a px-sized container when the patched padding exceeds the box (ADR-222 §4.3-2)", () => {
+    const target = { kind: "canonical-node", nodeId: "box" } as const;
+    const tree = {
+      childrenByParent: new Map([
+        ["root", ["box", "following"]],
+        ["box", ["a"]],
+      ]),
+      parentById: new Map([
+        ["root", null],
+        ["box", "root"],
+        ["a", "box"],
+        ["following", "root"],
+      ]),
+      nodeById: new Map([
+        [
+          "root",
+          {
+            id: "root",
+            type: "Box",
+            props: { style: { display: "flex", width: 400, height: 600 } },
+          },
+        ],
+        [
+          "box",
+          {
+            id: "box",
+            type: "Box",
+            props: {
+              style: { display: "flex", width: 100, height: 40, padding: 8 },
+            },
+          },
+        ],
+        [
+          "a",
+          { id: "a", type: "Box", props: { style: { width: 10, height: 10 } } },
+        ],
+        [
+          "following",
+          {
+            id: "following",
+            type: "Box",
+            props: { style: { width: 50, height: 40 } },
+          },
+        ],
+      ]),
+    };
+    const within = createPresentationLayoutPlan({
+      targets: [target],
+      mutations: [{ patch: { paddingLeft: 40 }, target, type: "style.patch" }],
+      tree,
+    });
+    expect(within.roots).toEqual(["box"]);
+
+    const overflow = createPresentationLayoutPlan({
+      targets: [target],
+      mutations: [{ patch: { paddingLeft: 96 }, target, type: "style.patch" }],
+      tree,
+    });
+    expect(overflow.roots).toEqual(["root"]);
+    expect(overflow.affectedNodeIds.has("following")).toBe(true);
+  });
+
   it("publishes only affected layout delta without copying a canonical base map", () => {
     const changed = { x: 2 };
     const result = publishPresentationLayout({

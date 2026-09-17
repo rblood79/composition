@@ -1046,6 +1046,15 @@ export class HistoryManager {
 // 싱글톤 인스턴스
 export const historyManager = new HistoryManager();
 
+// dev 전용 디버그 전역 — live 하니스가 undo 스택 길이 (history 1 계약) 를 읽는 단일
+// 진입점. historyManager 는 store 액션 뒤에만 있어 페이지 안에서 달리 셀 수 없다.
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as Record<string, unknown>).__composition_HISTORY_DEBUG__ =
+    {
+      getCurrentPageHistory: () => historyManager.getCurrentPageHistory(),
+    };
+}
+
 // 🆕 Phase 3: IndexedDB 인스턴스 re-export (디버깅/모니터링용)
 export { historyIndexedDB } from "./history/historyIndexedDB";
 

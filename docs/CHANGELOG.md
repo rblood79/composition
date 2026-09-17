@@ -11,6 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-222 캔버스 Padding·Gap 직접 편집 — 여백 위치에서 드래그·클릭으로 조절 (Implemented)] - 2026-09-17
+
+### Added
+
+- **캔버스 padding·gap 핸들** (ADR-222 Implemented): 컨테이너 (frame · Box · Card · Section 등 구조 컨테이너, 또는 자식이 있는 flex/block 컨테이너) 를 선택하면 padding 4변과 단일 행/열 flex 의 주축 gap 띠에 얇은 핸들이 상시 뜬다 (0값도). 띠에 마우스를 올리면 사선 + 현재 값 배지, 핸들/띠를 끌면 값이 실시간으로 바뀌고 (Skia 캔버스 · Preview · Styles 패널이 같은 확정값을 읽는다), 놓으면 되돌리기 1회. padding 은 파랑, gap 은 분홍. hug/auto 컨테이너면 부모·바깥 형제까지 함께 재배치된다.
+- **수정키**: Option/Alt 드래그 = 마주보는 두 변 · Option/Alt+Shift = 4변 · Shift = 10px 단위. 값이 0 에 닿으면 함께 멈춘다 (비대칭 차이 보존).
+- **핸들 클릭 → 인라인 숫자 입력** (RAC NumberField, 접근 이름 "Top padding" 등): Enter 로 반영 · Escape 취소 · 바뀐 값이 없으면 저장하지 않는다. 열려 있는 동안 Styles 패널의 같은 필드가 강조된다.
+- **Styles 패널 동기**: 캔버스에서 끄는 동안 Spacing 박스 모델의 해당 변이 강조 + 잠시 read-only, Layout 의 Gap 필드가 단일 행/열 flex 에서는 주축 longhand (row → columnGap · column → rowGap) 를 읽고 쓴다 — 종전 rowGap 우선 표시가 가로 레이아웃에서 다른 값을 보이던 것 정정.
+
+### Changed
+
+- **Escape 는 spacing 드래그 중이면 드래그만 취소** 하고 선택은 유지한다 (핸들 잔존 — Figma 어법). 드래그가 없을 때의 Escape (선택 해제) 는 그대로.
+- presentation layout lane: 자식 있는 컨테이너의 padding/gap 변경이 **외부 크기 불변이 증명될 때만** 자기 서브트리로 제한된다 (hug/auto · px 상자를 넘는 padding 은 부모로 승격). 종전에는 자식 존재만으로 승격을 막아 드래그 중 바깥 형제가 따라오지 않았다.
+- 스타일 commit 허용 목록: padding longhand 부분집합 (2변) 을 원자 patch 로 허용.
+- 캔버스 첫 범위 밖 (Grid · wrap · space-\* 정렬 · 비-desktop breakpoint · ref/projected · 회전 · %, rem, var 등 단위 보존 값) 은 핸들이 뜨지 않고 패널 편집만 — capability 표가 고정.
+
 ## [ADR-201 대용량 파일 업로드 — @composition/upload 전송 엔진 · FileUpload 컴포넌트 · TUS 서버 계약 (Implemented)] - 2026-09-17
 
 ### Added

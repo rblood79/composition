@@ -106,6 +106,11 @@ import {
 } from "../interaction/pageGuideRevision";
 import { SkiaEditorPresentationBridge } from "../../../presentation/skiaEditorPresentationBridge";
 import { SkiaEditorPresentationLayoutBridge } from "../../../presentation/skiaEditorPresentationLayoutBridge";
+import {
+  getActiveSpacingSession,
+  subscribeActiveSpacingSession,
+} from "../../../presentation/editorPresentationSpacingSession";
+import { subscribeSpacingPresentation } from "../interaction/spacingPresentation";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 import { setStoreCommitDescriptorSink } from "../../../presentation/storeCommitDescriptorSink";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
@@ -391,6 +396,33 @@ export function SkiaCanvas({
       requestCanvasFrame();
       recordInvalidation("content", "pagePositionPresentation");
     });
+  }, []);
+
+  // ADR-222 — spacing 핸들·hover 사선·배지는 오버레이 패스 전용. presentation
+  // snapshot (owner/hover/active) 과 활성 세션의 확정값 변화 둘 다 overlay 만 무효화한다
+  // (본문 layout 은 layout bridge 의 onPatched 가 별도로 invalidateContent).
+  useEffect(() => {
+    const bump = (): void => {
+      overlayVersionRef.current++;
+      requestCanvasFrame();
+      recordInvalidation("overlay", "spacingPresentation");
+    };
+    let unsubscribeSession: (() => void) | null = null;
+    const attachSession = (): void => {
+      unsubscribeSession?.();
+      unsubscribeSession = getActiveSpacingSession()?.subscribe(bump) ?? null;
+    };
+    attachSession();
+    const unsubscribePresentation = subscribeSpacingPresentation(bump);
+    const unsubscribeActive = subscribeActiveSpacingSession(() => {
+      attachSession();
+      bump();
+    });
+    return () => {
+      unsubscribePresentation();
+      unsubscribeActive();
+      unsubscribeSession?.();
+    };
   }, []);
 
   // ADR-181 C11 — 수동 가이드는 오버레이 패스 전용이라 overlay 만 무효화한다.
@@ -1248,7 +1280,7 @@ export function SkiaCanvas({
     ready,
     containerEl,
     dropIndicatorSnapshotRef,
-      bindingBadgeResolver,
+    bindingBadgeResolver,
     dataBadgeBoundsMapRef,
   ]);
 

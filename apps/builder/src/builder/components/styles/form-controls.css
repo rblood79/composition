@@ -501,6 +501,17 @@
       font-variant-numeric: tabular-nums;
     }
 
+    /* ADR-222: 캔버스 spacing 핸들이 이 필드의 값을 편집 중 — 캔버스 배지와 같은 파랑으로
+       동기 강조 (BoxModelEditor 의 [data-active] 와 같은 어법). isDisabled 로 잠긴 동안만. */
+    .property-unit-input--session-active .react-aria-Input {
+      color: var(--focus-ring);
+      font-weight: 600;
+      opacity: 1;
+    }
+    .property-unit-input--session-active .react-aria-Group {
+      box-shadow: inset 0 0 0 1px var(--focus-ring);
+    }
+
     /* suffix 가 곧 단위 메뉴 트리거 (「8 PX」 의 PX 클릭, panel-ui 05 #3) — 위 UnitComboBox
        .react-aria-Button 20 상자 규칙을 글자 폭으로 되돌리고 pointer 를 살린다. ▾ 상자 제거로
        값 폭 +20 (종전 「au… LEFT」 잘림). */
