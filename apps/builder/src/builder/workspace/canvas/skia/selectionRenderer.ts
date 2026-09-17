@@ -165,9 +165,10 @@ const [PAGE_TITLE_COLOR_R, PAGE_TITLE_COLOR_G, PAGE_TITLE_COLOR_B] = hexToRgb01(
 const PAGE_TITLE_OPACITY = 0.8;
 
 /** Dimension 레이블 설정 */
-const DIMENSION_LABEL_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
-const DIMENSION_LABEL_PADDING_X = 6; // 레이블 수평 패딩
-const DIMENSION_LABEL_BORDER_RADIUS = 4; // 배경 둥근 모서리
+// 선택 치수 레이블 규격 — spacing 값 배지 (ADR-222) 도 같은 규격을 읽는다 (2026-09-17)
+export const DIMENSION_LABEL_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
+export const DIMENSION_LABEL_PADDING_X = 6; // 레이블 수평 패딩
+export const DIMENSION_LABEL_BORDER_RADIUS = 4; // 배경 둥근 모서리
 
 function setDimensionLabelBackgroundColor(
   ck: CanvasKit,

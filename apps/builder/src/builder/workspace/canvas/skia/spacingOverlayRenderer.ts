@@ -15,7 +15,17 @@ import type { BoundingBox } from "../selection/types";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { buildPath } from "./buildPath";
 import { SkiaDisposable } from "./disposable";
-import { acquireOverlayFont, measureGlyphRunWidth } from "./selectionRenderer";
+import {
+  DIMENSION_LABEL_BORDER_RADIUS,
+  DIMENSION_LABEL_FONT_SIZE,
+  DIMENSION_LABEL_PADDING_X,
+  acquireOverlayFont,
+  measureGlyphRunWidth,
+} from "./selectionRenderer";
+import {
+  SELECTION_DIMENSION_LABEL_LINE_HEIGHT,
+  SELECTION_DIMENSION_LABEL_PADDING_Y,
+} from "../selectionOverlayGeometry";
 import { OVERLAY_BLUE_RGB, OVERLAY_PINK_RGB } from "./semanticOverlayColors";
 import {
   resolveSpacingHandleRect,
@@ -28,11 +38,12 @@ const HATCH_SPACING_PX = 4;
 const HATCH_ALPHA = 0.35;
 const HATCH_MAX_LINES = 400;
 /** 값 배지 (화면 px) */
-const BADGE_FONT_SIZE_PX = 10;
-const BADGE_LINE_HEIGHT_PX = 12;
-const BADGE_PADDING_X_PX = 4;
-const BADGE_PADDING_Y_PX = 2;
-const BADGE_RADIUS_PX = 3;
+// 값 배지는 선택 치수 레이블 (W × H) 과 같은 규격 — 폰트 12 Medium · 행 16 · 패딩 6/3 · 반경 4
+const BADGE_FONT_SIZE_PX = DIMENSION_LABEL_FONT_SIZE;
+const BADGE_LINE_HEIGHT_PX = SELECTION_DIMENSION_LABEL_LINE_HEIGHT;
+const BADGE_PADDING_X_PX = DIMENSION_LABEL_PADDING_X;
+const BADGE_PADDING_Y_PX = SELECTION_DIMENSION_LABEL_PADDING_Y;
+const BADGE_RADIUS_PX = DIMENSION_LABEL_BORDER_RADIUS;
 /** 핸들 위 배지 간격 (화면 px) */
 const BADGE_OFFSET_PX = 8;
 
@@ -134,7 +145,9 @@ function drawBadge(
 ): void {
   const invZoom = 1 / zoom;
   const fontSize = BADGE_FONT_SIZE_PX * invZoom;
-  const font = acquireOverlayFont(ck, fontMgr, ck.FontWeight.Medium, fontSize);
+  const font = acquireOverlayFont(ck, fontMgr, ck.FontWeight.Medium, fontSize, {
+    embolden: true,
+  });
   if (!font) return;
   const color = bandColor(band);
   const bg = acquirePooledPaint(ck);
