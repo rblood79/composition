@@ -671,17 +671,36 @@ export function calculateNextPagePosition(
   }
 
   if (normalizedDirection === "auto") {
-    const columnCount = resolveAutoPageColumnCount(
+    // 격자 (원점 x · 열 수) 는 기존 page 배치에서 읽는다. 뷰포트 (panel 폭 · zoom) 로
+    // 재도출하면 부팅 시 panel metrics 0 으로 놓인 page 들과 원점이 어긋나고 (x=0 vs
+    // leftInset), zoom 이 바뀌면 열 수가 달라져 기존 열과 무관한 칸에 놓인다
+    // (실측 2026-09-18). 배치된 page 가 없을 때만 뷰포트 bounds 를 쓴다.
+    let gridStartX = pageStartX;
+    let columnCount = resolveAutoPageColumnCount(
       pageWidth,
       gap,
       availableWidth ?? 0,
     );
+    if (positionedPages.length > 0) {
+      let minX = Infinity;
+      let minY = Infinity;
+      for (const { position } of positionedPages) {
+        if (position.x < minX) minX = position.x;
+        if (position.y < minY) minY = position.y;
+      }
+      let firstRowCount = 0;
+      for (const { position } of positionedPages) {
+        if (position.y === minY) firstRowCount += 1;
+      }
+      gridStartX = minX;
+      columnCount = Math.max(1, firstRowCount);
+    }
     let index = pages.length;
     while (true) {
       const column = index % columnCount;
       const row = Math.floor(index / columnCount);
       const candidate = {
-        x: pageStartX + column * (pageWidth + gap),
+        x: gridStartX + column * (pageWidth + gap),
         y: row * (pageHeight + gap),
       };
       const collides = positionedPages.some(({ position }) => {
@@ -1496,6 +1515,16 @@ export const createElementsSlice: StateCreator<ElementsState> = (set, get) => {
           layoutVersion: state.layoutVersion + 1,
         };
       });
+
+      // ADR-177 — 새 page 위치를 canonical `pagePositions` 에도 기록한다. 위 set 이
+      // page shell bridge (BuilderCore) 를 거쳐 canonical 을 재구성한 뒤라 root 필드가
+      // 보존되고, persist 는 같은 microtask 배치에 실린다 (별도 I/O 0). 미기록이면
+      // 새로고침 시 이 page 만 재계산 폴백을 타 persist 된 다른 page 와 겹친다.
+      useCanonicalDocumentStore
+        .getState()
+        .setPagePositions([
+          { pageId: page.id, breakpoint: historyBreakpoint, position },
+        ]);
 
       // ADR-185 G-1 — 페이지 생성 undo 기록. entry 는 활성-후 페이지 스택
       // (activate 시 신규 페이지 — 위 setCurrentPage 로 스택 생성됨) 에 실리고,

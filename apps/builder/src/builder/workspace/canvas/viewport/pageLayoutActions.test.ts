@@ -179,6 +179,46 @@ describe("alignPagesToScreen", () => {
     expect(nextPosition).toEqual({ x: 304, y: 500 });
   });
 
+  it("auto: 기존 page 가 있으면 격자 원점은 기존 page 의 x 이지 현재 leftInset 이 아니다", () => {
+    // 부팅 시 panel metrics 0 으로 x=0 에 놓인 페이지들 — 이후 panel 이 열려 leftInset 317 이 돼도
+    // 새 page 는 같은 열에 선다 (실측 2026-09-18: Page 2 가 x=317 로 어긋남)
+    const nextPosition = calculateNextPagePosition(
+      [makePage("page-1"), makePage("page-2")],
+      {
+        "page-1": { x: 0, y: 0 },
+        "page-2": { x: 0, y: 1160 },
+      },
+      1920,
+      1080,
+      80,
+      "auto",
+      1153,
+      317,
+    );
+
+    expect(nextPosition).toEqual({ x: 0, y: 2320 });
+  });
+
+  it("auto: 열 수는 기존 첫 행의 page 수를 따르고 현재 zoom 의 availableWidth 로 재도출하지 않는다", () => {
+    // 1열 세로로 놓인 3 page — zoom 0.3 으로 availableWidth 가 2열 폭이 돼도 새 page 는 1열 끝에 선다
+    const nextPosition = calculateNextPagePosition(
+      [makePage("page-1"), makePage("page-2"), makePage("page-3")],
+      {
+        "page-1": { x: 437, y: 0 },
+        "page-2": { x: 437, y: 1280 },
+        "page-3": { x: 437, y: 2560 },
+      },
+      1920,
+      1080,
+      200,
+      "auto",
+      4326,
+      437,
+    );
+
+    expect(nextPosition).toEqual({ x: 437, y: 3840 });
+  });
+
   it("does not change manually positioned pages when canvas size is unavailable", () => {
     const pagePositions = { "page-1": { x: 320, y: 240 } };
     useStore.setState({

@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [페이지 추가 — auto 배치가 기존 페이지 격자를 따르고 새 위치가 persist 된다] - 2026-09-18
+
+### Fixed
+
+- **페이지를 추가하면 설정의 Page layout·Page gap 과 어긋난 자리에 놓였다.** `auto` 배치의 새 페이지 위치가 기존 페이지 배치가 아니라 _추가 시점의 뷰포트_ (panel 폭 · zoom) 로 격자를 다시 만들었다 — 부팅 때 panel metrics 0 으로 `x=0` 에 놓인 페이지 옆에 새 페이지만 `x=317` (leftInset) 로, zoom 0.3 에서는 열 수가 2 로 바뀌어 1열 세로 페이지들과 무관한 칸에 놓였다. 새 페이지 위치는 canonical `pagePositions` 에 기록되지 않아 새로고침 시 그 페이지만 재계산 폴백 (gap 80 · metrics 0) 을 타 persist 된 페이지들과 겹쳤다. 수리: `calculateNextPagePosition` auto 분기가 격자 원점 (min x) 과 열 수 (첫 행 페이지 수) 를 기존 배치에서 읽고 (배치된 페이지 0 일 때만 뷰포트 bounds), `appendPageShell` 이 같은 microtask persist 배치에 canonical 위치를 싣는다 (별도 I/O 0). horizontal · vertical 은 종전 정상. 게이트: `pageLayoutActions.test.ts` 2 (원점 · 열 수, 원복 RED) · `pageActivation.test.ts` 1 (canonical 기록) · headless Playwright 실측 3 케이스 (부팅 후 추가 x=0 · zoom 0.3 추가 y=3840 1열 끝 · 새로고침 후 위치 유지). 설정값 (direction · gap) 자체는 세션 전용으로 그대로 — persist 는 별도 판정.
+
 ## [ADR-223 Implemented — 생성 CSS archetype 미지정 기본값 중립화] - 2026-09-18
 
 ### Changed
