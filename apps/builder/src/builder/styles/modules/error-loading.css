@@ -59,6 +59,7 @@
   .app.builder-booting .header,
   .app.builder-booting .panel-dock-stage,
   .app.builder-booting .contextual-action-bar,
+  .app.builder-booting .page-header-layer,
   .app.builder-booting [data-testid="skia-canvas-unified"],
   .app.builder-booting .ruler-overlay,
   .app.builder-booting .workspace-status-indicator {

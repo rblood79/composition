@@ -43,6 +43,9 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(styles).toContain(".app.builder-booting .header");
     expect(styles).toContain(".app.builder-booting .panel-dock-stage");
     expect(styles).toContain(".app.builder-booting .contextual-action-bar");
+    // ADR-221 페이지 헤더 DOM 층 — 09-02 booting 게이트 뒤에 추가돼 목록에서 빠져
+    // 캔버스 페이지보다 먼저 보였다 (2026-09-18)
+    expect(styles).toContain(".app.builder-booting .page-header-layer");
     expect(styles).toContain(
       ".app.builder-booting .workspace-status-indicator",
     );

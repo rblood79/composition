@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [부팅 — 페이지 헤더 DOM 층이 캔버스 페이지보다 먼저 보이던 것 수리] - 2026-09-18
+
+### Fixed
+
+- **프로젝트를 열면 캔버스 페이지가 그려지기 전에 페이지 헤더 (타이틀 칩) 가 먼저 나타났다.** 09-02 부팅 게이트 (`.app.builder-booting` 이 header · 패널 · 액션바 · Skia 캔버스 · 눈금자를 `visibility: hidden`) 뒤에 추가된 ADR-221 `.page-header-layer` 가 목록에 없었다 — 액션바가 같은 원인으로 고쳐졌던 것과 동일. 선택자 1줄 추가로 헤더도 첫 완료 paint 뒤 같은 프레임에 캔버스·액션바와 함께 나타난다. 게이트: `BuilderCore.static.test.ts` 선택자 단언 · headless Playwright rAF 샘플링 (부팅 중 헤더 존재 32 프레임 — 원복 visible 32 → 수리 0, presented 프레임에서 액션바와 같이 visible).
+
 ## [페이지 추가 — auto 배치가 기존 페이지 격자를 따르고 새 위치가 persist 된다] - 2026-09-18
 
 ### Fixed
