@@ -27,8 +27,10 @@ import { strokeBoundsRect } from "./hoverRenderer";
 import type { BoundingBox } from "../selection/types";
 import { HANDLE_SIZE, HANDLE_CONFIGS } from "../selection/types";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
+import { TAILWIND_PALETTE } from "@composition/specs";
 import {
   getSemanticOverlayColor,
+  hexToRgb01,
   OVERLAY_BLUE_R,
   OVERLAY_BLUE_G,
   OVERLAY_BLUE_B,
@@ -155,17 +157,15 @@ const PAGE_TITLE_PADDING_X = 8; // 타이틀 좌측 패딩 (화면 px)
 export const PAGE_TITLE_FONT_WEIGHT = 700;
 // 타이틀 line box 상단은 프레임 상단에서 위로 21px (종전 헤더 gap 1 + (28+12)/2)
 const PAGE_TITLE_OFFSET_Y = 21;
-const PAGE_TITLE_COLOR_R = 0x64 / 255; // slate-500 (#64748b)
-const PAGE_TITLE_COLOR_G = 0x74 / 255;
-const PAGE_TITLE_COLOR_B = 0x8b / 255;
+// 프레임 타이틀 — 중립 회색 (slate-500). 팔레트 파생 (종전 하드코딩 #64748b).
+// Figma/Framer 도 타이틀 기본은 회색, 선택되면 파랑으로 승격하는 어법이다.
+const [PAGE_TITLE_COLOR_R, PAGE_TITLE_COLOR_G, PAGE_TITLE_COLOR_B] =
+  hexToRgb01(TAILWIND_PALETTE.slate[500]);
 const PAGE_TITLE_OPACITY = 0.8;
 
 /** Dimension 레이블 설정 */
 const DIMENSION_LABEL_FONT_SIZE = 12; // 화면상 폰트 크기 (px)
 const DIMENSION_LABEL_PADDING_X = 6; // 레이블 수평 패딩
-const DIMENSION_LABEL_BG_R = 0x51 / 255; // 배경색 (#51a2ff)
-const DIMENSION_LABEL_BG_G = 0xa2 / 255;
-const DIMENSION_LABEL_BG_B = 0xff / 255;
 const DIMENSION_LABEL_BORDER_RADIUS = 4; // 배경 둥근 모서리
 
 function setDimensionLabelBackgroundColor(
@@ -178,14 +178,9 @@ function setDimensionLabelBackgroundColor(
     return;
   }
 
-  paint.setColor(
-    ck.Color4f(
-      DIMENSION_LABEL_BG_R,
-      DIMENSION_LABEL_BG_G,
-      DIMENSION_LABEL_BG_B,
-      1,
-    ),
-  );
+  // 선택 테두리 · 포커스 링과 같은 파랑 하나 (semanticOverlayColors 정본).
+  // 배지는 색이 아니라 "채움 + 흰 텍스트" 로 구분한다 (Figma/Framer 어법).
+  paint.setColor(ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, 1));
 }
 
 /**

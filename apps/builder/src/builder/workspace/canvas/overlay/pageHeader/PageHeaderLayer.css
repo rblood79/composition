@@ -75,9 +75,11 @@
   background: color-mix(in srgb, var(--focus-ring) 12%, transparent);
 }
 
+/* 글리프는 같은 파랑의 강조 단계 — 면에 맞춘 --focus-ring 을 텍스트로 쓰면 대비가
+   부족하다 (light blue-500 / dark blue-300). 면(아래 배경)은 --focus-ring 그대로. */
 .page-header[data-highlighted] .page-header__title,
 .page-header[data-highlighted] .page-header__action {
-  color: var(--focus-ring);
+  color: var(--focus-ring-strong);
 }
 
 /* 활성 헤더의 액션 버튼 — 띠보다 한 단계 진한 같은 계열 배경으로 상자를 드러낸다
@@ -112,18 +114,16 @@
   );
 }
 
-/* hover 는 한 단계 진하게. action-icon-button 의 hover 와 특정도가 같아 소스 순서에
-   좌우되므로 여기서 명시한다 (비활성/활성 각각 같은 계열로). */
+/* hover 는 반전 — 아이콘 색이 그대로 배경이 되고 글리프는 표면색으로 빠진다.
+   action-icon-button 의 hover 와 특정도가 같아 소스 순서에 좌우되므로 여기서 명시한다. */
 .page-header .page-header__action[data-hovered] {
-  background: color-mix(
-    in srgb,
-    var(--button-color, var(--fg)) 26%,
-    transparent
-  );
+  background: var(--fg-muted);
+  color: var(--bg-overlay);
 }
 
 .page-header[data-highlighted] .page-header__action[data-hovered] {
-  background: color-mix(in srgb, var(--focus-ring) 26%, transparent);
+  background: var(--focus-ring);
+  color: var(--bg-overlay);
 }
 
 /* 이름 편집 — 헤더 띠 자체가 필드. 종전 Workspace.css 의 .page-title-edit-input (500) 을

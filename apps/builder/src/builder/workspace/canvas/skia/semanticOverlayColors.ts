@@ -8,8 +8,19 @@ export function hexToRgb01(hex: string): readonly [number, number, number] {
   return [((n >> 16) & 0xff) / 255, ((n >> 8) & 0xff) / 255, (n & 0xff) / 255];
 }
 
-/** blue-500 — tailwindcss/theme.css 파생 팔레트 (손 복사 v3 #3b82f6 제거) */
-const OVERLAY_BLUE = hexToRgb01(TAILWIND_PALETTE.blue[500]);
+/**
+ * 캔버스 "선택·포커스" 파랑 **단일 정본** (blue-400 `#51a2ff`, 팔레트 파생).
+ *
+ * Figma (`#0D99FF`) · Framer (`#0099FF`) 는 선택 테두리 · 치수 배지 · 포커스 링 · 호버
+ * 외곽선에 **같은 파랑 하나**를 쓰고 채움/두께로만 구분한다. 두 값은 사실상 같은 색
+ * (L≈67% · C≈0.183 · H≈249) 이고, 우리 팔레트에서 가장 가까운 항목이 blue-400 이다
+ * (ΔOKLab 0.044 — 종전 blue-500 은 0.066 으로 더 멀었다). 외부 리터럴을 베끼지 않고
+ * 우리 토큰을 쓰므로 테마·팔레트 갱신을 그대로 따라간다.
+ *
+ * 같은 값을 CSS 쪽 `--focus-ring` (builder-system.css = blue-400) 이 이미 쓰고 있어,
+ * DOM 층 (페이지 헤더) 과 Skia 오버레이가 한 색으로 맞는다.
+ */
+const OVERLAY_BLUE = hexToRgb01(TAILWIND_PALETTE.blue[400]);
 export const OVERLAY_BLUE_R = OVERLAY_BLUE[0];
 export const OVERLAY_BLUE_G = OVERLAY_BLUE[1];
 export const OVERLAY_BLUE_B = OVERLAY_BLUE[2];

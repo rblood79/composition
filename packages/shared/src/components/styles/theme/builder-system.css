@@ -103,6 +103,10 @@
 
     /* ===== Focus (ADR-061) ===== */
     --focus-ring: var(--color-blue-400);
+    /* 같은 파랑의 "강조" 단계 — 면(테두리·채움)이 아니라 **글리프**에 쓴다.
+       면에 맞춘 blue-400 을 텍스트로 쓰면 대비가 부족해 읽기 어렵다 (Figma 도
+       `border-selected` 와 `text-brand` 를 다른 단계로 나눈다). light 는 더 어둡게. */
+    --focus-ring-strong: var(--color-blue-500);
     --focus-ring-width: 2px;
     --focus-ring-offset: 2px;
     --focus-ring-inset-offset: -2px;
@@ -207,6 +211,8 @@
 
     /* ===== Focus ===== */
     --focus-ring: var(--color-blue-400);
+    /* dark 는 반대로 — 어두운 배경에서는 더 **밝은** 단계라야 대비가 산다 */
+    --focus-ring-strong: var(--color-blue-300);
 
     /* ===== Status (Dark) ===== */
     --negative: var(--color-red-400);

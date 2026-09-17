@@ -40,6 +40,7 @@
  */
 
 import type { CanvasKit, Canvas } from "canvaskit-wasm";
+import { TAILWIND_PALETTE } from "@composition/specs";
 
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
 import { hexToColor4fChannels } from "./themeWatcher";
@@ -83,8 +84,15 @@ const NO_GUIDE_EMPHASIS: GuideEmphasisIds = {
 
 /** 기본·hover — 웜 레드 (스냅 표식과 공용 — semanticOverlayColors 정본) */
 const PAGE_GUIDE_HEX = OVERLAY_WARM_RED_HEX;
-/** 선택 — 하늘색 (#6DC1FF, Figma 실측값). 연장 점선도 같은 색 */
-const PAGE_GUIDE_SELECTED_HEX = 0x6dc1ff;
+/**
+ * 선택 — 캔버스 "선택" 파랑 하나 (blue-400, semanticOverlayColors 정본과 같은 값).
+ * 종전 하드코딩 `#6DC1FF` 를 팔레트 파생으로 올려 선택 테두리·치수 배지와 한 색으로
+ * 맞춘다. 연장 점선도 같은 색.
+ */
+const PAGE_GUIDE_SELECTED_HEX = parseInt(
+  TAILWIND_PALETTE.blue[400].slice(1),
+  16,
+);
 /** 기본 — 계속 떠 있는 선이라 콘텐츠를 덮지 않을 만큼만 */
 const PAGE_GUIDE_ALPHA = 0.7;
 /** hover — 불투명해지는 것이 곧 "잡을 수 있다" 는 신호 (커서 변화와 같은 뜻) */
