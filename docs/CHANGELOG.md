@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles 패널 — Fill 의 grow 비율 `fr` 단위 (Framer 어법)] - 2026-09-17
+
+### Added
+
+- **W/H 단위 메뉴에 `fr`** (flex 부모의 주축에서만 — row 의 Width · column 의 Height): `2fr` 을 치면 `flexGrow: 2` (basis `0%` 유지) 로 형제와 2:1 분배. `fill` 표기는 그대로 grow 1 이고, 1 이 아닌 grow 는 필드가 `Nfr` 로 보여준다 (`1fr` 을 쳐도 `fill`). 교차축 stretch · grid · block `100%` 는 비율 개념이 없어 메뉴에 나오지 않는다. Figma 는 Fill container 를 균등 분배만 두고 fr 는 grid 트랙 전용, Framer 는 Stack Fill 을 fr 로 연다 — 후자를 따랐다 (Figma 포럼의 fr/비율 요청이 반복되는 지점).
+- `PropertyUnitInput`: 친 글자에 단위가 붙어 있고 (`2fr` · `50%`) 그 단위가 메뉴에 있으면 그 단위로 commit 한다 (Enter · blur 공통) — 종전엔 현재 단위로 덮어 키워드 상태에서 `2fr` 이 `2px` 로 떨어졌다. 메뉴에서 `fr` 을 고르면 기본값 1.
+- Size Mode 역추론: `flexGrow` 가 1 이 아닌 양수여도 Fill 로 읽는다 (종전 `"1"` 문자열 일치만).
+
 ## [엔진 — Fill 자식이 `align-items:center` 부모 · `min-height` body 아래에서 0 으로 붕괴하던 것 수리] - 2026-09-17
 
 ### Fixed

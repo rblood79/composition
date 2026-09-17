@@ -366,6 +366,23 @@ export const PropertyUnitInput = memo(
       popoverStyle,
     } = useControlPopoverMetrics({ widthMode: "fit-content" });
 
+    // 숫자 commit 의 단위 (Enter · blur 공통). 친 글자에 단위가 붙어 있고 (「2fr」· 「50%」) 그
+    //   단위가 메뉴에 있으면 그 단위 — 키워드 상태 (「fill」) 에서 「2fr」 을 쳐도 px 로 떨어지지
+    //   않는다 (2026-09-17). 아니면 현재 단위, 키워드 단위(auto, fit-content 등)에서 숫자로
+    //   전환 시 px.
+    const resolveTypedUnit = (typed: string): string => {
+      if (hasPresets) return hasUnitPresets ? "px" : "";
+      const typedUnit = parseUnitValue(typed).unit;
+      if (
+        typedUnit !== "" &&
+        !KEYWORDS.includes(typedUnit) &&
+        units.includes(typedUnit)
+      ) {
+        return typedUnit;
+      }
+      return KEYWORDS.includes(unit) ? "px" : unit;
+    };
+
     const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
       setIsInputFocused(false);
       // ⭐ Skip save if we just saved via Enter key (useRef는 즉시 반영됨!)
@@ -447,14 +464,7 @@ export const PropertyUnitInput = memo(
         return;
       }
 
-      // ⭐ 키워드 단위(auto, fit-content 등)에서 숫자로 전환 시 px로 기본 설정
-      const effectiveUnit = hasPresets
-        ? hasUnitPresets
-          ? "px"
-          : ""
-        : KEYWORDS.includes(unit)
-          ? "px"
-          : unit;
+      const effectiveUnit = resolveTypedUnit(trimmed);
 
       // commit 판정은 lastSavedValueRef 기준 — preview 가 value prop 을 편집값으로
       // 먼저 반영할 수 있어 `parseUnitValue(value)` 비교는 "변경 없음" 오판 가능.
@@ -512,8 +522,12 @@ export const PropertyUnitInput = memo(
         // state에 저장된 값이 있고 0이 아니면 사용
         newValue = `${numericValue}${selectedUnit}`;
       } else {
-        // ⭐ %, vh, vw 단위는 100을 기본값으로, 나머지는 0
-        const defaultValue = ["%", "vh", "vw"].includes(selectedUnit) ? 100 : 0;
+        // ⭐ %, vh, vw 단위는 100을 기본값으로, fr 는 1 (= fill), 나머지는 0
+        const defaultValue = ["%", "vh", "vw"].includes(selectedUnit)
+          ? 100
+          : selectedUnit === "fr"
+            ? 1
+            : 0;
         newValue = `${defaultValue}${selectedUnit}`;
       }
 
@@ -592,14 +606,7 @@ export const PropertyUnitInput = memo(
         } else {
           const num = parseFloat(trimmed);
           if (!isNaN(num) && num >= min && num <= max) {
-            // ⭐ 키워드 단위(auto, fit-content 등)에서 숫자로 전환 시 px로 기본 설정
-            const effectiveUnit = hasPresets
-              ? hasUnitPresets
-                ? "px"
-                : ""
-              : KEYWORDS.includes(unit)
-                ? "px"
-                : unit;
+            const effectiveUnit = resolveTypedUnit(trimmed);
 
             // preview 경로가 value prop 을 먼저 편집값으로 반영할 수 있으므로
             // commit 판정은 lastSavedValueRef (이전 commit 결과) 기준.

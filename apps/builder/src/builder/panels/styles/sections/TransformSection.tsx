@@ -36,6 +36,7 @@ import { useSemanticLabel } from "../../../../i18n";
 import {
   useWidthSizeMode,
   useHeightSizeMode,
+  useFillGrow,
   useParentDisplay,
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
@@ -49,6 +50,7 @@ import {
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
 import {
+  parseFrValue,
   resolveSizeMode,
   sizeModeToStyleUpdates,
   type SizeMode,
@@ -302,11 +304,13 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // ADR-026: Size Mode (Zustand hooks)
   const widthMode = useWidthSizeMode(selectedId);
   const heightMode = useHeightSizeMode(selectedId);
+  const widthFillGrow = useFillGrow(selectedId, "width");
+  const heightFillGrow = useFillGrow(selectedId, "height");
   const parentDisplay = useParentDisplay(selectedId);
   const parentFlexDirection = useParentFlexDirection(selectedId);
 
   const handleSizeModeChange = useCallback(
-    (axis: "width" | "height", mode: SizeMode) => {
+    (axis: "width" | "height", mode: SizeMode, fillGrow?: number) => {
       const currentValue =
         axis === "width" ? styleValues?.width : styleValues?.height;
       const effectiveSize =
@@ -322,6 +326,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
         parentFlexDirection,
         currentValue,
         fixedFallbackValue,
+        fillGrow,
       );
       const updates = sizeModeToStyleUpdates(css);
       updateStylesImmediate(updates);
@@ -340,11 +345,17 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // W/H 필드 commit — 단위 메뉴의 "fill" · "fit-content" 는 Size Mode 명령 (flexGrow ·
   //   alignSelf 등 부모 문맥별 CSS 를 sizeModeResolver 가 정한다). Fill 상태에서 숫자를
   //   치면 Fixed 로 — fill 속성을 같이 지운다 (종전 Fixed 토글과 같은 경로).
+  //   `Nfr` (Framer 어법, 2026-09-17) 은 Fill 의 grow 비율 — flex 주축에서 flexGrow N.
   const commitAxisValue = useCallback(
     (axis: "width" | "height", value: string) => {
       const mode = axis === "width" ? widthMode : heightMode;
       if (value === "fill") {
         handleSizeModeChange(axis, "fill");
+        return;
+      }
+      const fr = parseFrValue(value);
+      if (fr !== null) {
+        handleSizeModeChange(axis, "fill", fr);
         return;
       }
       if (value === "fit-content") {
@@ -475,29 +486,41 @@ const TransformSectionContent = memo(function TransformSectionContent({
   if (!styleValues) return null;
 
   const isAbsolutePositioned = styleValues.position === "absolute";
-  // Fill 모드 (flexGrow · alignSelf stretch) 는 width/height 값이 비어 있다 — 필드에 "fill" 로
+  // Fill 모드 (flexGrow · alignSelf stretch) 는 width/height 값이 비어 있다 — 필드에 "fill" 로.
+  //   flex 주축의 grow 가 1 이 아니면 비율 표기 `Nfr` (Framer 어법 — `fill` = 1fr).
+  const fillLabel = (grow: number | null) =>
+    grow !== null && grow !== 1 ? `${grow}fr` : "fill";
   const displayWidth =
     styleValues.isBody && styleValues.width === "auto"
       ? String(canvasSize.width)
       : !styleValues.isBody && widthMode === "fill"
-        ? "fill"
+        ? fillLabel(widthFillGrow)
         : styleValues.width;
   const displayHeight =
     styleValues.isBody && styleValues.height === "auto"
       ? String(canvasSize.height)
       : !styleValues.isBody && heightMode === "fill"
-        ? "fill"
+        ? fillLabel(heightFillGrow)
         : styleValues.height;
 
   // ADR-026 Phase 4: Block 부모는 Height Fill 불가 (높이 채우기 미지원) — 단위 메뉴에서 뺀다
   const isBlockParent =
     parentDisplay === "block" || parentDisplay === "inline-block";
+  // `fr` 는 flex 부모의 주축에서만 (grow 비율) — 교차축 stretch · grid · block 100% 는 비율이 없다.
+  const isFlexParent =
+    parentDisplay === "flex" || parentDisplay === "inline-flex";
+  const isFlexMainAxis = (axis: "width" | "height") =>
+    isFlexParent &&
+    ((axis === "width" && parentFlexDirection !== "column") ||
+      (axis === "height" && parentFlexDirection === "column"));
   const sizeModeUnits = (axis: "width" | "height") =>
     styleValues.isBody
       ? []
       : axis === "height" && isBlockParent
         ? ["fit-content"]
-        : ["fit-content", "fill"];
+        : isFlexMainAxis(axis)
+          ? ["fit-content", "fill", "fr"]
+          : ["fit-content", "fill"];
 
   if (part === "position") {
     return pagePositionPageId ? (

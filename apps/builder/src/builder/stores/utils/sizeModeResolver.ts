@@ -84,10 +84,9 @@ function isFillCSS(
     // Block 부모에서 width: 100%
     if (value === "100%") return true;
 
-    // Flex row 부모에서 flex-grow: 1 (main axis)
+    // Flex row 부모에서 flex-grow > 0 (main axis) — `2fr` 같은 비율도 Fill
     if (isFlexParent && parentFlexDirection !== "column") {
-      const flexGrow = String(style.flexGrow ?? "");
-      if (flexGrow === "1") return true;
+      if (parseGrow(style.flexGrow) !== null) return true;
     }
 
     // Flex column 부모에서 align-self: stretch (cross axis)
@@ -106,10 +105,9 @@ function isFillCSS(
   if (axis === "height") {
     if (value === "100%") return true;
 
-    // Flex column 부모에서 flex-grow: 1 (main axis)
+    // Flex column 부모에서 flex-grow > 0 (main axis)
     if (isFlexParent && parentFlexDirection === "column") {
-      const flexGrow = String(style.flexGrow ?? "");
-      if (flexGrow === "1") return true;
+      if (parseGrow(style.flexGrow) !== null) return true;
     }
 
     // Flex row 부모에서 align-self: stretch (cross axis)
@@ -133,6 +131,44 @@ function isFitCSS(value: string): boolean {
   return false;
 }
 
+/** flexGrow 값 → 양수 grow 계수. 0 · 음수 · 비숫자는 null (Fill 아님). */
+function parseGrow(raw: unknown): number | null {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
+/**
+ * `Nfr` 입력 → grow 계수 (Framer 어법 — Fill 의 비율). `fill` 은 grow 1 의 표기이고,
+ * 형제 간 2:1 이 필요할 때만 `2fr` 을 친다. 0 이하는 Fill 이 아니므로 null.
+ */
+export function parseFrValue(value: string): number | null {
+  const m = value.trim().match(/^(\d+(?:\.\d+)?)fr$/i);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return n > 0 ? n : null;
+}
+
+/**
+ * Fill 상태의 grow 계수 — flex 부모의 **주축**에서만 의미가 있다 (교차축 stretch · grid ·
+ * block `100%` 는 비율이 없으므로 null). Fill 이 아니면 null.
+ */
+export function inferFillGrow(
+  style: Record<string, unknown> | undefined,
+  axis: "width" | "height",
+  parentDisplay: string,
+  parentFlexDirection?: string,
+): number | null {
+  if (!style) return null;
+  const isFlexParent =
+    parentDisplay === "flex" || parentDisplay === "inline-flex";
+  const isMainAxis =
+    (axis === "width" && parentFlexDirection !== "column") ||
+    (axis === "height" && parentFlexDirection === "column");
+  if (!isFlexParent || !isMainAxis) return null;
+  return parseGrow(style.flexGrow);
+}
+
 // ============================================================================
 // Resolution — Size Mode → CSS 변환
 // ============================================================================
@@ -145,6 +181,7 @@ function isFitCSS(value: string): boolean {
  * @param parentDisplay - 부모의 display 값
  * @param parentFlexDirection - 부모가 flex일 때의 direction
  * @param currentValue - 현재 값 (Fixed 모드에서 유지)
+ * @param fillGrow - Fill 의 grow 계수 (`2fr` → 2). flex 주축에서만 쓰이고 기본 1.
  */
 export function resolveSizeMode(
   mode: SizeMode,
@@ -153,6 +190,7 @@ export function resolveSizeMode(
   parentFlexDirection?: string,
   currentValue?: string,
   fixedFallbackValue?: string,
+  fillGrow?: number,
 ): SizeModeCSS {
   switch (mode) {
     case "fixed":
@@ -164,7 +202,7 @@ export function resolveSizeMode(
         fixedFallbackValue,
       );
     case "fill":
-      return resolveFill(axis, parentDisplay, parentFlexDirection);
+      return resolveFill(axis, parentDisplay, parentFlexDirection, fillGrow);
     case "fit":
       return resolveFit(axis, parentDisplay, parentFlexDirection);
     default:
@@ -221,6 +259,7 @@ function resolveFill(
   axis: "width" | "height",
   parentDisplay: string,
   parentFlexDirection?: string,
+  fillGrow?: number,
 ): SizeModeCSS {
   const isFlexParent =
     parentDisplay === "flex" || parentDisplay === "inline-flex";
@@ -231,10 +270,14 @@ function resolveFill(
     (axis === "height" && parentFlexDirection === "column");
 
   if (isFlexParent && isMainAxis) {
-    // Flex main axis: flex-grow: 1, flex-basis: 0
+    // Flex main axis: flex-grow: N (기본 1 = `fill`, `Nfr` 은 비율), flex-basis: 0
+    const grow =
+      fillGrow !== undefined && Number.isFinite(fillGrow) && fillGrow > 0
+        ? fillGrow
+        : 1;
     return {
       set: {
-        flexGrow: "1",
+        flexGrow: String(grow),
         flexShrink: "1",
         flexBasis: "0%",
       },
