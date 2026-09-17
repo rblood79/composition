@@ -1,14 +1,19 @@
 /**
  * ADR-221 — 페이지 헤더 DOM 층의 순수 기하.
  *
- * 헤더는 화면 px 고정 (높이 28 · 페이지 상단에서 1px 위) 이고 폭만 페이지 폭 × zoom 을
- * 따른다 — Skia 시절 `renderPageHeader` 와 같은 규격. 상수는 이 파일이 단일 원천이며
- * CSS 는 `--page-header-height` 로 같은 값을 읽는다 (PageHeaderLayer.css).
+ * 헤더는 화면 px 고정 (높이 28 · 페이지 상단에서 8px 위) 이고 폭만 페이지 폭 × zoom 을
+ * 따른다. **배치 계산에 쓰이는 값만** 이 파일이 소유한다 — 높이와 간격은 transform
+ * 좌표(headerTransform)에 들어가므로 여기가 정본이고, CSS 는 `--page-header-height` 로
+ * 같은 높이를 읽는다 (PageHeaderLayer.css).
+ *
+ * 헤더 **안쪽** 여백 (padding / 항목 gap) 은 배치 계산에 안 들어가므로 CSS 가 소유한다
+ * (`--page-header-padding-x` = --spacing-xs, `.page-header { gap }` = --spacing-sm).
+ * 종전 `PAGE_HEADER_PADDING_X` 는 Skia 시절 잔재로 소비처가 0 이었고 CSS 값과도
+ * 어긋나 있어 제거했다 (2026-09-17).
  */
 
 export const PAGE_HEADER_HEIGHT = 28;
 export const PAGE_HEADER_GAP = 8;
-export const PAGE_HEADER_PADDING_X = 8;
 
 export interface PageHeaderFrame {
   id: string;

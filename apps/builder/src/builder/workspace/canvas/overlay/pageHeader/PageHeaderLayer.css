@@ -1,4 +1,7 @@
-/* ADR-221 — 페이지 헤더 DOM 층. 규격은 pageHeaderGeometry.ts 가 단일 원천 (28 · 1 · 8). */
+/* ADR-221 — 페이지 헤더 DOM 층.
+   배치 기하 (높이 28 · 페이지와의 간격 8) 는 pageHeaderGeometry.ts 가 정본 — transform
+   좌표에 들어가는 값이다. 헤더 **안쪽** 여백 (padding · 항목 gap) 은 배치와 무관해
+   이 파일이 소유한다. */
 
 .page-header-layer {
   --page-header-height: 28px;
