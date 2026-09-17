@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Settings — Page layout · Page gap 이 새로고침 후에도 유지된다] - 2026-09-18
+
+### Added
+
+- **Settings 의 Page layout (Auto/Horizontal/Vertical) 과 Page gap 을 localStorage 에 저장한다** (`composition.pageLayout.v1`, 액션바 설정 `composition.actionBar.v1` 과 같은 채널). 종전에는 세션 전용이라 새로고침마다 auto/80 으로 돌아가 문서에 persist 된 페이지 배치와 Settings 표시값이 어긋났다. 페이지 위치 자체는 그대로 문서 (canonical `pagePositions`) 소유 — 이 값은 정렬·페이지 추가의 입력. 구 `zigzag` 는 auto 로, 잘못된 값은 필드 단위 기본값. 위치: `apps/builder/src/builder/stores/utils/pageLayoutStorage.ts` · `canvasSettings.ts` (초기값 read · setter write). 게이트: `pageLayoutStorage.test.ts` 4 · `SettingsPanel.pageLayout.test.tsx` 영속 단언 2 (원복 RED) · headless Playwright (UI 로 Vertical·150 → 새로고침 후 150/vertical 유지 → 추가 페이지 y=2460).
+
 ## [부팅 — 페이지 헤더 DOM 층이 캔버스 페이지보다 먼저 보이던 것 수리] - 2026-09-18
 
 ### Fixed

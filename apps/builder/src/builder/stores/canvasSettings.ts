@@ -24,6 +24,10 @@ import {
   type ActionBarOffset,
   type ActionBarSettings,
 } from "./utils/actionBarStorage";
+import {
+  readPageLayoutSettings,
+  writePageLayoutSettings,
+} from "./utils/pageLayoutStorage";
 import { PAGE_STACK_GAP } from "../workspace/canvas/pageLayoutConstants";
 
 /** 페이지 배치 방향 */
@@ -164,184 +168,199 @@ export interface SettingsState {
 /**
  * Settings Slice 생성
  */
-export const createSettingsSlice: StateCreator<SettingsState> = (set) => ({
-  snapToObjects: true,
-  showRulers: false,
-  showWorkflowOverlay: false,
-  showWorkflowNavigation: true,
-  showWorkflowEvents: true,
-  showWorkflowDataSources: true,
-  showWorkflowLayoutGroups: true,
-  workflowStraightEdges: true,
-  workflowFocusedPageId: null,
-  pageLayoutDirection: "auto" as PageLayoutDirection,
-  pageGap: PAGE_STACK_GAP,
-  activeBreakpoint: "desktop" as BreakpointName,
-  historyInfo: {
-    canUndo: false,
-    canRedo: false,
-    totalEntries: 0,
-    currentIndex: -1,
-  },
-  actionBar: readActionBarSettings(),
+export const createSettingsSlice: StateCreator<SettingsState> = (set) => {
+  const storedPageLayout = readPageLayoutSettings();
+  return {
+    snapToObjects: true,
+    showRulers: false,
+    showWorkflowOverlay: false,
+    showWorkflowNavigation: true,
+    showWorkflowEvents: true,
+    showWorkflowDataSources: true,
+    showWorkflowLayoutGroups: true,
+    workflowStraightEdges: true,
+    workflowFocusedPageId: null,
+    // Settings Page layout · Page gap — localStorage 영속 (액션바 설정과 같은 채널)
+    pageLayoutDirection: storedPageLayout.direction,
+    pageGap: storedPageLayout.gap,
+    activeBreakpoint: "desktop" as BreakpointName,
+    historyInfo: {
+      canUndo: false,
+      canRedo: false,
+      totalEntries: 0,
+      currentIndex: -1,
+    },
+    actionBar: readActionBarSettings(),
 
-  setActionBarHidden: (hidden) => {
-    set((state) => {
-      const next = { ...state.actionBar, hidden };
-      writeActionBarSettings(next);
-      return { actionBar: next };
-    });
-  },
+    setActionBarHidden: (hidden) => {
+      set((state) => {
+        const next = { ...state.actionBar, hidden };
+        writeActionBarSettings(next);
+        return { actionBar: next };
+      });
+    },
 
-  setActionBarPinned: (pinned) => {
-    set((state) => {
-      const next = { ...state.actionBar, pinned };
-      writeActionBarSettings(next);
-      return { actionBar: next };
-    });
-  },
+    setActionBarPinned: (pinned) => {
+      set((state) => {
+        const next = { ...state.actionBar, pinned };
+        writeActionBarSettings(next);
+        return { actionBar: next };
+      });
+    },
 
-  setActionBarOffset: (offset) => {
-    set((state) => {
-      const next = { ...state.actionBar, offset };
-      writeActionBarSettings(next);
-      return { actionBar: next };
-    });
-  },
+    setActionBarOffset: (offset) => {
+      set((state) => {
+        const next = { ...state.actionBar, offset };
+        writeActionBarSettings(next);
+        return { actionBar: next };
+      });
+    },
 
-  /**
-   * 객체 스냅 토글 (ADR-179)
-   */
-  setSnapToObjects: (snap: boolean) => {
-    set({ snapToObjects: snap });
-  },
+    /**
+     * 객체 스냅 토글 (ADR-179)
+     */
+    setSnapToObjects: (snap: boolean) => {
+      set({ snapToObjects: snap });
+    },
 
-  /**
-   * 눈금자 표시 토글 (ADR-181)
-   */
-  setShowRulers: (show: boolean) => {
-    set({ showRulers: show });
-    // 가이드 **표시**는 눈금자와 독립이지만 **조작**은 ON 한정이다 (C10).
-    // 선택은 조작 상태이므로, 끄면 "선택돼 있는데 바꿀 수 없는" 상태가
-    // 남지 않도록 같이 푼다. 가이드 자체는 그대로 보인다.
-    if (!show) clearGuideSelection();
-  },
+    /**
+     * 눈금자 표시 토글 (ADR-181)
+     */
+    setShowRulers: (show: boolean) => {
+      set({ showRulers: show });
+      // 가이드 **표시**는 눈금자와 독립이지만 **조작**은 ON 한정이다 (C10).
+      // 선택은 조작 상태이므로, 끄면 "선택돼 있는데 바꿀 수 없는" 상태가
+      // 남지 않도록 같이 푼다. 가이드 자체는 그대로 보인다.
+      if (!show) clearGuideSelection();
+    },
 
-  /**
-   * History 정보 업데이트
-   */
-  setHistoryInfo: (info: HistoryInfo) => {
-    set({ historyInfo: info });
-  },
+    /**
+     * History 정보 업데이트
+     */
+    setHistoryInfo: (info: HistoryInfo) => {
+      set({ historyInfo: info });
+    },
 
-  /**
-   * Workflow 오버레이 표시 설정
-   */
-  setShowWorkflowOverlay: (show: boolean) => {
-    set({ showWorkflowOverlay: show });
-  },
+    /**
+     * Workflow 오버레이 표시 설정
+     */
+    setShowWorkflowOverlay: (show: boolean) => {
+      set({ showWorkflowOverlay: show });
+    },
 
-  /**
-   * Workflow 오버레이 표시 토글
-   */
-  toggleWorkflowOverlay: () => {
-    set((state) => ({ showWorkflowOverlay: !state.showWorkflowOverlay }));
-  },
+    /**
+     * Workflow 오버레이 표시 토글
+     */
+    toggleWorkflowOverlay: () => {
+      set((state) => ({ showWorkflowOverlay: !state.showWorkflowOverlay }));
+    },
 
-  /**
-   * Workflow Navigation edges 표시 설정
-   */
-  setShowWorkflowNavigation: (show: boolean) => {
-    set({ showWorkflowNavigation: show });
-  },
+    /**
+     * Workflow Navigation edges 표시 설정
+     */
+    setShowWorkflowNavigation: (show: boolean) => {
+      set({ showWorkflowNavigation: show });
+    },
 
-  /**
-   * Workflow Navigation edges 표시 토글
-   */
-  toggleWorkflowNavigation: () => {
-    set((state) => ({ showWorkflowNavigation: !state.showWorkflowNavigation }));
-  },
+    /**
+     * Workflow Navigation edges 표시 토글
+     */
+    toggleWorkflowNavigation: () => {
+      set((state) => ({
+        showWorkflowNavigation: !state.showWorkflowNavigation,
+      }));
+    },
 
-  /**
-   * Workflow Event-navigation edges 표시 설정
-   */
-  setShowWorkflowEvents: (show: boolean) => {
-    set({ showWorkflowEvents: show });
-  },
+    /**
+     * Workflow Event-navigation edges 표시 설정
+     */
+    setShowWorkflowEvents: (show: boolean) => {
+      set({ showWorkflowEvents: show });
+    },
 
-  /**
-   * Workflow Event-navigation edges 표시 토글
-   */
-  toggleWorkflowEvents: () => {
-    set((state) => ({ showWorkflowEvents: !state.showWorkflowEvents }));
-  },
+    /**
+     * Workflow Event-navigation edges 표시 토글
+     */
+    toggleWorkflowEvents: () => {
+      set((state) => ({ showWorkflowEvents: !state.showWorkflowEvents }));
+    },
 
-  /**
-   * Workflow Data source connections 표시 설정
-   */
-  setShowWorkflowDataSources: (show: boolean) => {
-    set({ showWorkflowDataSources: show });
-  },
+    /**
+     * Workflow Data source connections 표시 설정
+     */
+    setShowWorkflowDataSources: (show: boolean) => {
+      set({ showWorkflowDataSources: show });
+    },
 
-  /**
-   * Workflow Data source connections 표시 토글
-   */
-  toggleWorkflowDataSources: () => {
-    set((state) => ({
-      showWorkflowDataSources: !state.showWorkflowDataSources,
-    }));
-  },
+    /**
+     * Workflow Data source connections 표시 토글
+     */
+    toggleWorkflowDataSources: () => {
+      set((state) => ({
+        showWorkflowDataSources: !state.showWorkflowDataSources,
+      }));
+    },
 
-  /**
-   * Workflow Layout group visualization 표시 설정
-   */
-  setShowWorkflowLayoutGroups: (show: boolean) => {
-    set({ showWorkflowLayoutGroups: show });
-  },
+    /**
+     * Workflow Layout group visualization 표시 설정
+     */
+    setShowWorkflowLayoutGroups: (show: boolean) => {
+      set({ showWorkflowLayoutGroups: show });
+    },
 
-  /**
-   * Workflow Layout group visualization 표시 토글
-   */
-  toggleWorkflowLayoutGroups: () => {
-    set((state) => ({
-      showWorkflowLayoutGroups: !state.showWorkflowLayoutGroups,
-    }));
-  },
+    /**
+     * Workflow Layout group visualization 표시 토글
+     */
+    toggleWorkflowLayoutGroups: () => {
+      set((state) => ({
+        showWorkflowLayoutGroups: !state.showWorkflowLayoutGroups,
+      }));
+    },
 
-  /**
-   * Workflow 엣지 직선 표시 설정
-   */
-  setWorkflowStraightEdges: (straight: boolean) => {
-    set({ workflowStraightEdges: straight });
-  },
+    /**
+     * Workflow 엣지 직선 표시 설정
+     */
+    setWorkflowStraightEdges: (straight: boolean) => {
+      set({ workflowStraightEdges: straight });
+    },
 
-  /**
-   * Workflow 포커스 페이지 설정
-   */
-  setWorkflowFocusedPageId: (pageId: string | null) => {
-    set({ workflowFocusedPageId: pageId });
-  },
+    /**
+     * Workflow 포커스 페이지 설정
+     */
+    setWorkflowFocusedPageId: (pageId: string | null) => {
+      set({ workflowFocusedPageId: pageId });
+    },
 
-  /**
-   * 페이지 배치 방향 설정
-   */
-  setPageLayoutDirection: (direction: PageLayoutDirection) => {
-    set({ pageLayoutDirection: normalizePageLayoutDirection(direction) });
-  },
+    /**
+     * 페이지 배치 방향 설정
+     */
+    setPageLayoutDirection: (direction: PageLayoutDirection) => {
+      set((state) => {
+        const next = normalizePageLayoutDirection(direction);
+        writePageLayoutSettings({ direction: next, gap: state.pageGap });
+        return { pageLayoutDirection: next };
+      });
+    },
 
-  /** 페이지 사이 간격 설정 */
-  setPageGap: (gap: number) => {
-    set({
-      pageGap: Number.isFinite(gap) && gap >= 0 ? gap : PAGE_STACK_GAP,
-    });
-  },
+    /** 페이지 사이 간격 설정 */
+    setPageGap: (gap: number) => {
+      set((state) => {
+        const next = Number.isFinite(gap) && gap >= 0 ? gap : PAGE_STACK_GAP;
+        writePageLayoutSettings({
+          direction: state.pageLayoutDirection,
+          gap: next,
+        });
+        return { pageGap: next };
+      });
+    },
 
-  /**
-   * ADR-154: 활성 breakpoint 설정. 값만 변경하며, 전역 재레이아웃 트리거는
-   * 호출측(BuilderCore bridge)이 invalidateLayout() 로 수행 (slice 경계상
-   * layoutVersion 은 elements slice 소유 — cross-slice bump 회피).
-   */
-  setActiveBreakpoint: (breakpoint: BreakpointName) => {
-    set({ activeBreakpoint: breakpoint });
-  },
-});
+    /**
+     * ADR-154: 활성 breakpoint 설정. 값만 변경하며, 전역 재레이아웃 트리거는
+     * 호출측(BuilderCore bridge)이 invalidateLayout() 로 수행 (slice 경계상
+     * layoutVersion 은 elements slice 소유 — cross-slice bump 회피).
+     */
+    setActiveBreakpoint: (breakpoint: BreakpointName) => {
+      set({ activeBreakpoint: breakpoint });
+    },
+  };
+};
