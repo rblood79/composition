@@ -119,7 +119,8 @@ const EXPECTED: Readonly<Record<string, "covered" | "gap" | "unobserved">> = {
   ProgressBarTrack: "unobserved",
   ProgressBarValue: "unobserved",
   ProgressCircle: "unobserved",
-  Section: "unobserved",
+  // Section — 2026-09-17 styles/index.css 에 import (catalog padding 16 / gap 12 가 DOM 에 안 실려
+  //   Skia 와 자식 폭 28px 발산). 이 표에서 빠진다 (import 된 생성물은 sweep 대상 밖).
   Skeleton: "covered",
   StatusLight: "unobserved",
   TailSwatch: "unobserved",

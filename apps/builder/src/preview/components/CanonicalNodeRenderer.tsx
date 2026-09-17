@@ -41,6 +41,7 @@ import {
 import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
+  resolveBackedDefaultVariant,
   usesButtonBaseUtility,
 } from "../utils/specCatalogBacked";
 import {
@@ -644,7 +645,10 @@ function CanonicalNodeRendererBody({
     const sizeProp = adaptedEl.props?.size as string | undefined;
     specDataAttrs["data-size"] =
       sizeProp ?? resolveBackedDefaultSize(type) ?? "md";
-    const variantProp = adaptedEl.props?.variant as string | undefined;
+    // 부재 = catalog defaultVariant (Skia 가 그리는 variant 와 같은 값 — resolveBackedDefaultVariant).
+    const variantProp =
+      (adaptedEl.props?.variant as string | undefined) ??
+      resolveBackedDefaultVariant(type);
     if (variantProp) specDataAttrs["data-variant"] = variantProp;
     // ADR-912 InlineAlert slice (2026-06-04): catalog leaf binding 의 D1 static attr
     //   (role/aria-live 등)을 generic fallback 경로에서 부여. 컴포넌트별 if 가 아니라 binding

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview — Section 컨테이너가 catalog padding·gap 없이 그려지던 것 수리] - 2026-09-17
+
+### Fixed
+
+- **Section 의 Preview/publish DOM 에 catalog md `padding 16` / `gap 12` 가 안 실렸다** — 생성 CSS `generated/Section.css` 가 ADR-912 cutover 때부터 있었지만 `styles/index.css` 번들에 import 되지 않았고, Skia 는 catalog 를 주입해 같은 Section 안 자식 폭이 28px 갈렸다 (실측 Preview 321 vs Skia 293). 이제 두 leg 가 같은 값 (2fr 자식 195.34 / 98.66 · 높이 760 일치).
+- **generic 렌더 경로의 `data-variant` 부재값**: variant prop 이 없으면 catalog `defaultVariant` 를 낸다 (`data-size` 의 부재 = defaultSize 와 같은 규칙). Section 은 default variant 가 fill alpha 0 (`background: transparent`) 인데 base 블록은 `var(--bg)` 라, attr 없이는 색 있는 부모 위에서 Skia 투명 / DOM 흰색으로 갈렸다. 다른 생성 CSS 는 base 와 default-variant 블록이 같아 (Separator 는 자체 렌더러) 시각 무변경.
+
 ## [Styles 패널 — Fill 의 grow 비율 `fr` 단위 (Framer 어법)] - 2026-09-17
 
 ### Added

@@ -47,6 +47,19 @@ export function resolveBackedDefaultSize(type: string): string | undefined {
 }
 
 /**
+ * catalog-backed type 의 defaultVariant — generic 렌더 경로의 `data-variant` 부재값 (2026-09-17).
+ *
+ * **Why**: Skia 는 variant prop 이 없으면 catalog `defaultVariant` 로 그린다. DOM 이 prop 있을 때만
+ *   `data-variant` 를 내면 생성 CSS 의 `[data-variant="<default>"]` 블록이 안 걸린다 — Section 은
+ *   default variant 가 fill alpha 0 (`background: transparent`) 인데 base 블록은 `var(--bg)` 라
+ *   색 있는 부모 위에서 Skia 투명 / DOM 흰색으로 갈렸다. `data-size` 의 부재 = defaultSize 규칙과
+ *   같은 형태. rule 이 없거나 defaultVariant 미정의면 undefined (attr 미방출 — 종전과 동일).
+ */
+export function resolveBackedDefaultVariant(type: string): string | undefined {
+  return resolveComponentRule(type)?.defaultVariant as string | undefined;
+}
+
+/**
  * generic Preview 렌더 경로의 `.button-base` utility 클래스 부여 판정.
  *
  * **배경 (ADR-913 slice 1, 2026-06-18)**: `cssEmitMode: "button-base"` 컴포넌트 CSS 는

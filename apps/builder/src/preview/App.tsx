@@ -41,6 +41,7 @@ import { getElementForTag } from "@composition/specs";
 import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
+  resolveBackedDefaultVariant,
   usesButtonBaseUtility,
 } from "./utils/specCatalogBacked";
 import type { EventHandlerMap } from "@composition/shared/types";
@@ -905,7 +906,10 @@ function CanvasContent() {
           resolveBackedDefaultSize(adaptedElement.type) ??
           "md";
         cleanProps["data-size"] = sizeValue;
-        if (tagProps?.variant) cleanProps["data-variant"] = tagProps.variant;
+        const variantValue =
+          tagProps?.variant ??
+          resolveBackedDefaultVariant(adaptedElement.type);
+        if (variantValue) cleanProps["data-variant"] = variantValue;
       }
 
       // 자식 콘텐츠

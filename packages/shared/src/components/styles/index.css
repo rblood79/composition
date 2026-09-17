@@ -98,6 +98,11 @@
 @import "./generated/CardHeader.css";
 @import "./generated/CardContent.css";
 @import "./generated/CardFooter.css";
+/* Section 컨테이너 (catalog primitive, element "section" · class react-aria-Section). 생성 파일은
+   ADR-912 cutover 때부터 있었으나 preview/publish 번들에 미import — DOM 은 catalog md padding 16 /
+   gap 12 없이 그려지고 Skia 는 catalog 를 주입해 자식 폭이 28px 갈렸다 (2026-09-17 실측 321 vs 293).
+   RAC 컬렉션 섹션은 react-aria-ListBoxSection 등 다른 클래스라 이 selector 에 닿지 않는다. */
+@import "./generated/Section.css";
 @import "./Content.css"; /* 구조 유틸리티 — Spec 없음 */
 @import "./Field.css"; /* 구조 유틸리티 — Spec 없음 */
 @import "./Group.css"; /* Container — skipCSSGeneration, 수동 CSS */
