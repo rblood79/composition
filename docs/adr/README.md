@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-17 ADR-222 추가**: 캔버스 padding·gap 직접 편집 설계(Proposed). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 합계 249. 구현 미착수, G0~G5 UNVERIFIED.
+
 ## 현황
 
 | 구분                          |    개수 |
@@ -20,11 +22,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **248** |
+| **합계**                      | **249** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -34,6 +36,12 @@
 ## 지금 열려 있는 것
 
 ### 진행 중 / 미구현 (Proposed / In Progress)
+
+#### [222](222-canvas-padding-gap-direct-manipulation.md) — 캔버스 Padding·Gap 직접 편집
+
+- **상태**: Proposed — 2026-09-17, 사용자 지정 번호·설계 요청. 구현 미착수.
+- **규모**: hover 사선·선택 영역 박스·drag 값 동기화(padding 파랑/gap 분홍). Skia overlay + 기존 presentation transaction + RAC 숫자 입력. 최초 지원은 desktop/base canonical non-grid padding와 단일 행·열 flex gap. gesture 단일 owner·history 1회·clip/가림·패널 gap 축 정합을 G0~G5로 검증하며 모두 UNVERIFIED. [구현 설계](design/222-canvas-padding-gap-direct-manipulation-breakdown.md).
+- **우선순위**: 사용자 설계 요청 2026-09-17. 실행 순위는 미정이며 기존 ADR 실행 순서를 바꾸지 않는다.
 
 #### [150](150-rac-pencil-residual-interaction-execution.md) — RAC·Pencil 잔여 상호작용 실행 — ~~Skia hover/pressed 상태 threading~~(철회) + collection 가상화 스크롤 60fps + projected drill-in/data edit UI (ADR-912 후속 실행)
 
