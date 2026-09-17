@@ -95,6 +95,14 @@ theme/palette 파생으로 정의한다. Figma HEX를 임의 복제하지 않는
 `presentation/*Spacing*`(UI 독립 세션/읽기 어댑터)로 응집한다.
 정확한 파일 수는 Phase 0에서 확정하며 이 표를 전 파일 변경 의무로 해석하지 않는다.
 
+리뷰 수리로 추가된 필수 변경 경계:
+
+| 현재 파일                                                              | 구현 책임                                                          |
+| ---------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `presentation/editorPresentationLayoutLane.ts`                         | §4.3 used-size 기반 spacing 부모 승격과 형제 publication 집합      |
+| `presentation/skiaEditorPresentationLayoutBridge.ts`                   | 확장 plan의 계산 문맥, §4.2 성공/거부 receipt, 모든 실패 경로 연결 |
+| `presentation/editorPresentationRuntime.ts` 및 spacing session adapter | applied와 소비 완료 구분, 최종 revision 대기·취소·단일 finish      |
+
 ## 3. 기하·히트 계약
 
 ### 3.1 데이터 원천
@@ -157,10 +165,11 @@ reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전
 4. 한 RAF에 마지막 patch만 publish한다. 여러 padding 변은 동일 시작 snapshot 기준으로
    각각 같은 delta를 적용해 비대칭 차이를 보존한다(이 정책은 Composition 제안).
    네 변 중 어느 하나가 0에 닿으면 공통 delta를 제한한다. 4회 개별 commit 금지.
-5. overlay 값과 패널은 같은 session의 **적용 완료된** descriptor를 읽는다.
-   pending 포인터 값만 패널에 먼저 표시하지 않는다. Canvas geometry와 applied revision이
-   다르면 낡은 핸들로 새 선택을 시작하지 않는다. Preview는 기존 frame ordering을 따른다.
-6. Pointerup 마지막 위치를 flush하고 최종 px patch를 한 번 finish한다.
+5. overlay 값과 패널은 §4.2의 **layout publication 성공 receipt**에 연결된 descriptor를
+   읽는다. runtime의 `session.applied`는 계산 요청일 뿐 화면 반영 성공이 아니다.
+   pending 값은 먼저 표시하지 않는다. Preview는 기존 frame ordering을 따른다.
+6. Pointerup 마지막 위치를 flush하고 finalizing으로 전환한다. 최종 descriptor와 같은
+   revision의 성공 receipt를 받은 경우에만 최종 px patch를 한 번 finish한다.
    실제 값이 시작 effective 값과 같으면 raw override를 새로 만들지 않고 cancel/no-op 처리한다.
    canonical key 부재와 상속 상태도 보존한다. 변경 완료는 기존 canonical runner→history→persist.
 7. Escape·pointercancel·capture 상실·window blur·unmount·선택/문서 변경은 cancel한다.
@@ -170,6 +179,78 @@ reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전
 카메라 조작은 활성 spacing drag 동안 억제한다. 외부 zoom/page 위치 변경이 발생하면
 캡처 좌표계를 계속 사용하지 않고 취소한다. 이미 시작한 spacing owner가 Space를 나중에
 눌렀다고 pan owner로 바뀌지 않는다.
+
+### 4.2 Layout publication 완료와 실패 계약 (m2 수리)
+
+새 `SpacingLayoutReceipt`(제안)는 `sessionId`, `descriptorRevision`,
+`baseCanonicalRevision`, `rootKey`, `layoutPublicationRevision`과 결과
+`published | rejected`를 묶는다. canonical schema나 iframe 메시지가 아니라
+Builder 내부의 presentation 소비 완료 신호다. 기존 runtime `applied`의 의미는
+변경하지 않고 spacing session adapter가 이 별도 신호를 소비한다.
+`layoutPublicationRevision`은 성공 시 필수이며, 거부 시에는 없을 수 있다.
+거부 결과에는 실패 사유와 요청 descriptor revision을 반드시 포함한다.
+
+- 성공 발행 위치는 `skiaEditorPresentationLayoutBridge`의 targeted 계산,
+  publication 생성, `applySubtreeCommandPatch` 성공, geometry/bounds를 읽는
+  소비자 갱신까지 완료된 경계다. `onPatched` 호출만으로 완료가 보장되는지는
+  Phase 0에서 실제 caller를 추적하며, 비동기 소비라면 그 완료 지점까지 신호를 늦춘다.
+- Canvas 값 배지·패널·spacing hit geometry는 성공 receipt에 해당하는 descriptor와
+  geometry를 함께 교체한다. scene layout revision과 session descriptor revision은
+  서로 다른 카운터이므로 숫자만 비교하지 않고 위 키로 대응시킨다. 이전 성공 값은
+  다음 결과가 pending인 동안만 유지한다. 취소하면 canonical 표시로 복귀한다.
+- 계산 null, target/span/context 소실, canonical revision 불일치, publication 생성
+  실패, command patch 거부는 모두 `rejected`로 귀결시킨다. 현재 bridge의 조용한
+  early return을 spacing 요청에 대해서는 terminal 실패로 연결한다. **세션 전체를
+  취소하고 임시 layout·패널·Preview를 복원하며 commit은 금지**한다.
+- 세션 취소/교체 뒤 도착한 receipt와 이전 descriptor receipt는 무시한다.
+  동일 descriptor는 한 번만 소비하며, coalescing으로 생략된 중간 revision을 기다리지 않는다.
+- Pointerup에는 pointer capture/gesture owner를 해제하되 finalizing session의 target과
+  최종 descriptor를 고정한다. 새 편집·selection/context 변경은 finalizing을 먼저 취소한다.
+  matching receipt 이후에도 document/target 문맥을 재검사한 뒤 finish한다.
+- 성공 신호 누락으로 무한 대기하지 않도록 최종 publish 뒤 1초를 실패 제한으로 제안한다.
+  제한 초과·탭 비활성화·unmount는 취소하고 마지막 성공 값으로 임의 commit하지 않는다.
+  final descriptor가 시작 effective 값과 같으면 receipt 대기 없이 no-op 취소한다.
+- 인라인 입력의 Enter/정상 blur도 같은 final publish→receipt→finish 경로를 사용한다.
+  window blur에 따른 취소와 입력 focus 이동에 따른 정상 blur는 별도 이벤트로 구분한다.
+- Preview는 기존 bridge/protocol의 순서와 terminal cancel을 재사용한다. 이 receipt는
+  iframe paint ACK가 아니며, Preview 도착 지연까지 동시 프레임이라고 주장하지 않는다.
+  Preview 최종 값·취소 복원 정합은 G3/G5에서 별도로 확인한다.
+
+### 4.3 Spacing의 used-size 영향 범위 (h1 수리)
+
+`createPresentationLayoutPlan`의 현행 `containerSpacingMutation` 무조건 승격 차단은
+본 기능의 재사용 전제에서 제외한다. 현재는 자식 존재만 검사하여 hug/auto에서도
+자기 서브트리만 반환한다. **본 ADR 구현에 planner 확장을 포함한다.**
+
+1. Spacing patch의 영향을 받는 축을 registry에서 해석하고 기존 used-size 부모 전파
+   규칙과 연결한다. padding은 내부 폭 변화→텍스트 줄바꿈→높이 변화까지 고려한다.
+   한 축 고정만으로 전체 크기가 고정됐다고 판정하지 않는다.
+2. 대상의 외부 used size가 불변임을 증명한 경우만 자기 서브트리로 제한한다.
+   단순 width/height 키 존재는 증명이 아니다. percentage/intrinsic/min-max/aspect와
+   border+padding 하한을 검토한다. 증명하지 못하면 안전하게 부모로 승격한다.
+3. 승격한 부모의 재배치에 참여하는 형제와 자손을 publication 집합에 포함한다.
+   부모의 외부 used size도 변할 수 있으면 반복해서 올리고, 불변 경계 또는 layout
+   root에서 멈춘다. 컨테이너의 고정 크기만으로 충분하지 않은 intrinsic contribution
+   의존도 같은 경계 판정에 포함한다. TS에서 CSS 배치를 재구현하지 않고 엔진이 계산한다.
+4. 수정된 plan을 capability 검사, targeted 계산, command subtree 교체, spacing 기하,
+   rollback에 동일하게 사용한다. 확대된 **affected 집합 전체**의 Grid/지원 불가 소비자를
+   검사한다. Grid가 형제 서브트리에 있어도 첫 범위에서는 시작 차단한다.
+5. 엔진 available size는 승격된 root가 속한 실제 계산 문맥에서 공급한다. 현재 bridge의
+   `rootLayout.width/height`를 persistent tree 입력으로 그대로 넘기는 방식이 맞는지
+   확인하고, owner의 이전 크기를 부모 available size로 오인하지 않도록 분리한다.
+6. 각 publish 뒤에도 plan의 안전성을 유지해야 한다. 새 값으로 불변 증명이 깨지면
+   영향 범위를 다시 계산해 원자 publication하거나 요청을 reject/cancel한다.
+   영향 집합 밖 형제 위치를 이전 값으로 둔 채 성공 receipt를 내보내지 않는다.
+
+G1 필수 반증은 `column root → [hug, following]`, `hug → [a,b]`이다.
+paddingTop 10→30 또는 rowGap 10→30이면 두 고정 높이 자식의 hug 높이가 20px 늘고
+following의 y도 20px 이동해야 한다(마진·shrink 0, 충분한 root 높이).
+중첩 hug 2단, 가로 방향, width 고정/height auto에서 padding 증가로 텍스트가 줄바꿈되는
+경우를 추가한다. 드래그 중·commit 후·Undo/Redo에 실제 Preview DOM rect와 대조한다.
+반대로 외부 크기/기여 불변이 증명된 컨테이너는 외부 형제를 재수집하지 않는 대조군이다.
+
+현재 planner의 누락을 확인한 리뷰 probe는 새 구현의 PASS 근거가 아니다.
+G1/G3 통과 전 hug/auto 직접 편집을 활성화하지 않으며 지원 목표 자체는 유지한다.
 
 ### 4.1 패널과 숫자 입력
 
@@ -190,6 +271,10 @@ reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전
 
 ## 5. 구현 순서와 검증
 
+Phase 0 first-nail에는 §4.3의 hug→외부 형제 반증과 §4.2의 후속 publish 실패를
+포함한다. Phase 1에서 planner/bridge 영향 집합을 구현하고, Phase 2에서 receipt 기반
+패널 표시·finalizing·finish를 연결한다. 기존 경로의 단순 재사용으로 이 작업을 생략하지 않는다.
+
 | Phase | 산출물                                                                                 | 완료 조건                                              |
 | ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | 0     | 현재 HEAD 재대조, capability 표·resolved metric 원천·기준 성능, padding/gap first-nail | G0; 시작값→publish→panel→Preview→finish/Undo 경로 증명 |
@@ -198,6 +283,12 @@ reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전
 | 3     | foreground 통합 검증·성능·문서/CHANGELOG                                               | G4/G5, 증거와 실제 지원표 기록 후 상태 판정            |
 
 필수 회귀 fixture:
+
+- h1: 중첩 hug/auto의 padding·gap 변경으로 외부 형제까지 이동, 텍스트 줄바꿈의
+  교차축 영향, 고정 크기 불변 대조군, 확대 affected 집합 내 Grid 시작 거부.
+- m2: 첫 probe 성공 후 두 번째 계산 null, command patch 거부, document revision
+  교체, receipt 역순·중복·누락, pending 중 pointerup/선택 전환. 잘못된 값 표시와
+  commit 0, 실패 후 canonical·Preview 복원, 정상 matching receipt에서 history 1.
 
 - padding 0/비대칭/균일·border 포함·empty·fixed/hug, 가로·세로·reverse gap,
   서로 다른 rowGap/columnGap, 자식 margin/absolute/display:none.

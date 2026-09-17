@@ -58,6 +58,11 @@ Figma·Framer 어느 쪽에도 없는 상태이며, 상시 핸들 + hover 피드
    라우팅하지 않는다. 반면 Inspector는 `shouldWriteBreakpointOverride`를 사용한다.
 5. `ComputedLayout`은 위치·크기를 제공하지만 사용된 padding·gap 영역을 완전하게
    제공하지 않는다. 인접 자식의 사각형 차이를 곧바로 CSS gap으로 간주할 수 없다.
+6. `createPresentationLayoutPlan`은 현재 자식 있는 spacing 대상의 부모 승격을
+   무조건 차단한다. hug/auto 지원에는 used-size 기반 승격과 외부 형제 publication
+   확장이 필요하며 본 ADR의 필수 구현 범위다.
+7. runtime `session.applied`는 descriptor 등록이지 Skia 반영 성공이 아니다.
+   layout bridge의 계산/patch 성공을 확인한 receipt를 별도로 소비해야 한다.
 
 ### Hard constraints
 
@@ -65,6 +70,8 @@ Figma·Framer 어느 쪽에도 없는 상태이며, 상시 핸들 + hover 피드
   취소·무이동·원래 값 복귀는 history **0개**. 새 저장 필드·기존 문서 일괄 변환 **0개**.
 - Canvas geometry·여백 값 배지·우측 패널은 같은 presentation revision을 소비한다.
   Preview는 기존 origin 검증·presentation bridge 경로를 사용한다.
+- 그 revision은 실제 layout publication 성공 receipt와 대응해야 한다. 계산·반영 실패는
+  세션 취소와 commit 금지로 처리한다. 최종 descriptor의 성공 확인 없이 finish하지 않는다.
 - 한 pointer의 owner는 **1개**. 여백 드래그가 요소 이동·페이지 이동·resize를 함께 시작하지 않는다.
 - 클립·스크롤·페이지 가림 이후 보이지 않는 여백은 hover·pointerdown 대상이 아니다.
 - 첫 제공 범위에서도 0값·비대칭 padding·zoom 25/100/200%를 검증한다.
@@ -153,6 +160,11 @@ padding 4변과 **단일 행/열 flex의 numeric gap**이다. catalog 기본 num
 미지정 0도 읽어서 편집할 수 있어야 한다. 인라인 값이 없다는 이유만으로 배제하지 않는다.
 Padding도 targeted layout이 안전한 non-grid 영역에 한정한다.
 
+hug/auto는 현행 planner를 그대로 재사용해서 지원하지 않는다. used-size 변화가
+영향을 주는 부모·형제를 포함하도록 planner와 publication을 확장한다. 패널 표시와
+최종 commit은 layout 소비 성공 receipt에 연결한다. 이 두 확장은 G1/G3 통과가
+필수이며, 실패 시 지원한다고 표시한 채 기존 경로로 우회하지 않는다.
+
 Grid·wrap·분배 정렬·responsive 편집·ref/projected descendants·회전/비축정렬 대상,
 단위/변수 바인딩을 깨야 하는 값은 첫 범위에서 조작 핸들을 제공하지 않는다.
 기존 우측 입력 경로는 유지한다. 이는 제안 범위이지 Figma의 제한을 의미하지 않는다.
@@ -176,6 +188,15 @@ A는 쓰기/제스처/클립 계약 위반, C는 핵심 드래그 요구 미충�
 ## Gates
 
 모두 **UNVERIFIED**. 문서 검증 통과와 구현 Gate 통과는 별개다.
+
+**G1/G3 필수 세부 조건 (리뷰 h1·m2 수리)**:
+
+- G1: 중첩 hug/auto의 padding·gap 변경에 따른 부모·외부 형제 위치를 드래그 중과
+  commit 후에 Preview DOM rect와 대조한다. 텍스트 줄바꿈의 교차축 영향과 고정 크기
+  불변 대조군을 포함한다. 확대 affected 집합 내 미지원 Grid도 시작 전에 차단한다.
+- G3: probe 성공 후 계산 null/patch 거부, receipt 역순·중복·누락과 pointerup 경합을
+  주입한다. 실패 시 잘못된 값 노출·canonical/history/DB 쓰기 0, 임시값 복원,
+  정상 최종 receipt와 같은 revision에서 finish/history 1을 확인한다.
 
 | Gate    | 시점                        | 통과 조건                                                                                                                                                           | 실패 시 대안                                                   |
 | ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
