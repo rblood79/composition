@@ -48,6 +48,32 @@ interface CanonicalNodeSchemaShape {
   [key: string]: unknown;
 }
 
+export const FillAxesSchema = z
+  .object({
+    width: z
+      .object({ factor: z.number().finite().min(1).max(1000) })
+      .strict()
+      .nullable()
+      .optional(),
+    height: z
+      .object({ factor: z.number().finite().min(1).max(1000) })
+      .strict()
+      .nullable()
+      .optional(),
+  })
+  .strict();
+const FillResponsiveSchema = z
+  .object({
+    sizing: z
+      .object({
+        tablet: FillAxesSchema.optional(),
+        mobile: FillAxesSchema.optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .catchall(z.unknown());
+
 const LooseRecordSchema = z.record(z.string(), z.unknown());
 
 export const CanonicalNodeSchema: z.ZodType<CanonicalNodeSchemaShape> = z.lazy(
@@ -76,6 +102,8 @@ export const CanonicalNodeSchema: z.ZodType<CanonicalNodeSchemaShape> = z.lazy(
         placeholder: z.boolean().optional(),
         // ADR-214 Phase 1 — 잘못된 state 는 import 경계에서 거부 (catchall 통과 금지)
         state: z.array(VariableDefSchema).optional(),
+        sizing: FillAxesSchema.optional(),
+        responsive: FillResponsiveSchema.optional(),
       })
       .catchall(z.unknown()),
 );

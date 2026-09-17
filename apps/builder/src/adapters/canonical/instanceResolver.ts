@@ -1,3 +1,4 @@
+import { mergeFillSizing } from "@composition/shared";
 /**
  * G.1 Instance Resolver
  *
@@ -101,11 +102,17 @@ export function resolveCanonicalDescendantOverride(
 
   const childProps = child.props ?? {};
   const overrideRecord = override as Record<string, unknown>;
-  const { fills: overrideFills, ...overrideProps } = overrideRecord;
+  const {
+    fills: overrideFills,
+    sizing: _sizing,
+    responsive: _responsive,
+    ...overrideProps
+  } = overrideRecord;
   const mergedProps = mergePropsWithStyleDeep(childProps, overrideProps);
 
   return {
     ...child,
+    ...mergeFillSizing(child, overrideRecord),
     props: mergedProps,
     ...(Array.isArray(overrideFills) ? { fills: overrideFills } : {}),
   };

@@ -12,6 +12,7 @@
 
 import type { CanvasLayoutNode } from "../layoutNode";
 import {
+  parseMargin,
   parsePadding,
   PHANTOM_INDICATOR_CONFIGS,
   phantomIndicatorGap,
@@ -71,10 +72,6 @@ import { LOWERCASE_TAG_SPEC_MAP } from "./tagSpecLookup";
  * 여기서는 size 만 읽는다 — `specSizeField` 내부 fallback 이 미정의 size 를 defaultSize 로
  * 해소하므로 분기 자체가 불필요하다.
  */
-function resolveTabPanelPadding(sizeName: string): number {
-  return specSizeField("tabpanels", sizeName, "paddingX") ?? 16;
-}
-
 // ─── 인터페이스 ──────────────────────────────────────────────────────
 
 export interface ImplicitStyleResult {
@@ -1742,6 +1739,43 @@ export function applyImplicitStyles(
         parentStyle.flexDirection ??
         (orientation === "vertical" ? "column" : "row"),
     });
+    // Toolbar 안 Separator 는 catalog `Toolbar.composition.staticSelectors` 가 정본 (`.react-aria-Toolbar
+    //   .react-aria-Separator` — align-self stretch · vertical `margin: 0 10px` / horizontal `margin: 10px 0`
+    //   + height 1 + width 100%). staticSelectors 는 DOM 전용 채널이라 여기서 같은 값을 읽어 layout 에
+    //   싣는다 (2026-09-18 — 종전엔 수동 Separator.css 의 8 만 상하에 실려 Toolbar 29 / DOM 22, 좌우
+    //   간격 8 / 18). 수동 Separator.css 의 size margin 은 이 선택자에 진다 (특이도 0,2,0 > 0,1,1).
+    const toolbarStatic = (
+      resolveComponentRule("Toolbar")?.structure?.composition as
+        { staticSelectors?: Record<string, Record<string, string>> } | undefined
+    )?.staticSelectors;
+    const sepCommon = toolbarStatic?.[".react-aria-Separator"];
+    const sepVertical =
+      toolbarStatic?.['.react-aria-Separator[aria-orientation="vertical"]'];
+    const sepHorizontal =
+      toolbarStatic?.[
+        '.react-aria-Separator:not([aria-orientation="vertical"])'
+      ];
+    const toolbarSeparatorStyle = (
+      child: CanvasLayoutNode,
+      cs: Record<string, unknown>,
+    ): Record<string, unknown> => {
+      const vertical =
+        (child.props as Record<string, unknown> | undefined)?.orientation ===
+        "vertical";
+      const sel = vertical ? sepVertical : sepHorizontal;
+      const m = parseMargin({ margin: sel?.margin });
+      const out: Record<string, unknown> = {
+        marginTop: cs.marginTop ?? m.top,
+        marginRight: cs.marginRight ?? m.right,
+        marginBottom: cs.marginBottom ?? m.bottom,
+        marginLeft: cs.marginLeft ?? m.left,
+      };
+      if (sepCommon?.["align-self"])
+        out.alignSelf = cs.alignSelf ?? sepCommon["align-self"];
+      if (sel?.width) out.width = cs.width ?? sel.width;
+      if (sel?.height) out.height = cs.height ?? sel.height;
+      return out;
+    };
     // 자식 Button/ToggleButton: 축소 방지 + 텍스트 줄바꿈 방지
     filteredChildren = filteredChildren.map((child) => {
       const cs = (child.props?.style || {}) as Record<string, unknown>;
@@ -1753,6 +1787,9 @@ export function applyImplicitStyles(
             ...cs,
             flexShrink: cs.flexShrink ?? 0,
             whiteSpace: cs.whiteSpace ?? "nowrap",
+            ...(child.type === "Separator"
+              ? toolbarSeparatorStyle(child, cs)
+              : {}),
           },
         },
       } as CanvasLayoutNode;
@@ -1957,7 +1994,6 @@ export function applyImplicitStyles(
     const tabBarHeight = tabsEmpty
       ? 0
       : (specSizeField("tabs", sizeName, "height") ?? 30);
-    const tabPanelPadding = resolveTabPanelPadding(sizeName);
 
     const tabListEl = children.find((c) => c.type === "TabList");
     const tabPanelsEl = tabsEmpty
@@ -1985,28 +2021,14 @@ export function applyImplicitStyles(
           },
         },
       };
-      // CSS: .react-aria-TabPanel { padding: var(--spacing-md) }
-      // TabPanels 또는 직속 Panel에 size별 padding 주입
+      // TabPanels 래퍼 / 직속 TabPanel 에 padding 을 **주입하지 않는다** (2026-09-18): Preview 는 RAC
+      //   `<Tabs>` 안에 TabPanel 을 직계로 그리고 canonical TabPanels 상자는 그리지 않아 (`renderTabPanels`
+      //   → null) 래퍼 padding 은 DOM 에 대응이 없는 Skia 전용 채널이었다 — TabPanel 이 (12,12) 에 놓이고
+      //   Tabs 가 77 (DOM 53). panel 의 padding 12 는 TabPanel 자기 catalog sizes (L3) 가 양쪽에 같이 준다.
       const panelContainer = tabPanelsEl ?? directPanel;
-      const injectedPanelContainer: CanvasLayoutNode | undefined =
-        panelContainer
-          ? {
-              ...panelContainer,
-              props: {
-                ...panelContainer.props,
-                style: {
-                  ...((panelContainer.props?.style as Record<
-                    string,
-                    unknown
-                  >) ?? {}),
-                  padding: tabPanelPadding,
-                },
-              },
-            }
-          : undefined;
       filteredChildren = [
         injectedTabList,
-        ...(injectedPanelContainer ? [injectedPanelContainer] : []),
+        ...(panelContainer ? [panelContainer] : []),
       ];
       // ADR-087 SP2: display/flexDirection 은 Tabs.spec containerStyles 로 리프팅됨.
       effectiveParent = withParentStyle(containerEl, parentStyle);
@@ -2021,13 +2043,10 @@ export function applyImplicitStyles(
   }
 
   // ── TabPanels ────────────────────────────────────────────────────────
-  // CSS: .react-aria-TabPanel { padding: var(--spacing-md) }
   // → TabPanels는 활성 Panel 하나만 렌더링, 나머지 숨김
   if (containerTag === "tabpanels") {
     const tabsParent = findAncestorByTag(containerEl, "Tabs", elementById, 3);
     const tabsProps = tabsParent?.props as Record<string, unknown> | undefined;
-    const sizeName = (tabsProps?.size as string) ?? "md";
-    const tabPanelPadding = resolveTabPanelPadding(sizeName);
     const selectedKey =
       (tabsProps?.selectedKey as string | undefined) ??
       (tabsProps?.defaultSelectedKey as string | undefined);
@@ -2055,10 +2074,10 @@ export function applyImplicitStyles(
 
     filteredChildren = activePanel ? [activePanel] : [];
     // ADR-087 SP2: display/flexDirection 은 TabPanels.spec containerStyles (ADR-083 Phase 6)
-    //   로 이미 리프팅됨. padding 과 flexGrow 는 runtime 결정 → 잔존.
+    //   로 이미 리프팅됨. flexGrow 는 runtime 결정 → 잔존. padding 은 주지 않는다 — DOM 에 이 래퍼
+    //   상자가 없다 (위 Tabs 분기 주석, 2026-09-18). catalog `TabPanels.sizes` padding 도 0.
     effectiveParent = withParentStyle(containerEl, {
       ...(containerEl.props?.style as Record<string, unknown> | undefined),
-      padding: tabPanelPadding,
       flexGrow: 1,
     });
   }
@@ -3289,13 +3308,21 @@ export function applyImplicitStyles(
   }
 
   // ── Separator: size → margin 주입 (엔진은 CSS data-size 못 읽음) ──
+  //   수동 Separator.css 는 방향에 따라 축이 다르다 — horizontal `margin: {spacing} 0` (상하) ·
+  //   vertical `margin: 0 {spacing}` (좌우). 종전엔 orientation 과 무관하게 상하에만 실어 Toolbar 의
+  //   vertical separator 가 row 의 cross 축을 키우고 (Toolbar 29 / DOM 22) 좌우 간격은 빠졌다
+  //   (DOM 18 = gap 8 + margin · Skia 8) — 2026-09-18.
   if (filteredChildren.some((c) => c.type === "Separator" || c.type === "Hr")) {
     filteredChildren = filteredChildren.map((child) => {
       if (child.type !== "Separator" && child.type !== "Hr") return child;
       const childProps = child.props as Record<string, unknown> | undefined;
       const childStyle = (childProps?.style || {}) as Record<string, unknown>;
+      const vertical = childProps?.orientation === "vertical";
+      const [startKey, endKey] = vertical
+        ? (["marginLeft", "marginRight"] as const)
+        : (["marginTop", "marginBottom"] as const);
       // 이미 인라인 margin이 있으면 스킵
-      if (childStyle.marginTop != null || childStyle.marginBottom != null)
+      if (childStyle[startKey] != null || childStyle[endKey] != null)
         return child;
       const sep_size = (childProps?.size as string) ?? "md";
       const sep_margin = sep_size === "sm" ? 4 : sep_size === "lg" ? 16 : 8;
@@ -3305,8 +3332,8 @@ export function applyImplicitStyles(
           ...childProps,
           style: {
             ...childStyle,
-            marginTop: sep_margin,
-            marginBottom: sep_margin,
+            [startKey]: sep_margin,
+            [endKey]: sep_margin,
           },
         },
       } as CanvasLayoutNode;

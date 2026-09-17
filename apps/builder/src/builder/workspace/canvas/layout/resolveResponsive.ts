@@ -1,3 +1,4 @@
+import { resolveEffectiveFill } from "@composition/shared";
 /**
  * ADR-154 — 반응형 override resolve (base ⊕ cascade)
  *
@@ -124,6 +125,7 @@ export function resolveResponsiveLayoutNode<T extends CanvasLayoutNode>(
 
   const base = (node.props?.style ?? {}) as StyleMap;
   const merged = resolveResponsiveStyleMap(base, responsive, activeBreakpoint);
-  if (merged === base) return node;
-  return { ...node, props: { ...node.props, style: merged } };
+  const sizing = resolveEffectiveFill(node, activeBreakpoint);
+  if (merged === base && sizing === node.sizing) return node;
+  return { ...node, sizing, props: { ...node.props, style: merged } };
 }

@@ -1,4 +1,5 @@
 import {
+  mergeFillSizing,
   readPropsSchema,
   resolveTemplateBindingValues,
   substituteTemplateBindingsInChildren,
@@ -24,6 +25,8 @@ export type CanonicalRefResolvableNode = {
   componentName?: string | null;
   name?: string;
   reusable?: boolean;
+  sizing?: import("@composition/shared").FillAxes;
+  responsive?: import("@composition/shared").ElementResponsiveConfig;
   deleted?: boolean;
   slot?: false | string[];
   metadata?: {
@@ -217,6 +220,7 @@ export function resolveCanonicalRefElement<
   return {
     ...master,
     ...refFieldOverrides,
+    ...mergeFillSizing(master, node),
     ...(substitutedChildren !== undefined
       ? { children: substitutedChildren }
       : {}),
@@ -299,6 +303,8 @@ function propsFromDescendantPatch(
     descendants: _descendants,
     id: _id,
     fills: _fills,
+    sizing: _sizing,
+    responsive: _responsive,
     metadata: _metadata,
     name: _name,
     ref: _ref,
@@ -333,6 +339,8 @@ function getOverrideNodeProps(node: OverrideNode): Record<string, unknown> {
     descendants: _descendants,
     id: _id,
     fills: _fills,
+    sizing: _sizing,
+    responsive: _responsive,
     metadata: _metadata,
     name: _name,
     ref: _ref,
@@ -397,6 +405,7 @@ function applyDescendantPatchToElement<T extends CanonicalRefResolvableNode>(
     ...element,
     type: patchedType,
     props: mergePropsWithStyleDeep(getNodeProps(element), patchProps),
+    ...mergeFillSizing(element, patch),
     ...(Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
   } as T;
 }
@@ -683,6 +692,7 @@ function materializeSyntheticDescendants<T extends CanonicalRefResolvableNode>(
             templateBindings,
           )
         : mergePropsWithStyleDeep(getNodeProps(sourceChild), patchProps),
+      ...mergeFillSizing(sourceChild, patch ?? {}),
       ...(patch && Array.isArray(patch.fills) ? { fills: patch.fills } : {}),
       reusable: undefined,
     } as T;

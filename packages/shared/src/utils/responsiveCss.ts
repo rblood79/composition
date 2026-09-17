@@ -1,3 +1,4 @@
+import { createFillTreeResolver, type FillTreeNode } from "./fillSizingTree";
 /**
  * ADR-154 Phase 3 — 반응형 override → @media CSS 출력 (SSOT)
  *
@@ -98,10 +99,11 @@ export function buildResponsiveElementCss(
   elementId: string,
   baseStyle: Record<string, unknown> | undefined,
   responsive: ElementResponsiveConfig | undefined,
+  fillCss?: string,
 ): string | null {
-  if (!responsive) return null;
+  if (!responsive) return fillCss || null;
   const { styles, visibility } = responsive;
-  if (!styles && !visibility) return null;
+  if (!styles && !visibility) return fillCss || null;
 
   const base = baseStyle ?? {};
   const selector = `[data-element-id="${escapeAttrValue(elementId)}"]`;
@@ -148,6 +150,7 @@ export function buildResponsiveElementCss(
     }
   }
 
+  if (fillCss) parts.push(fillCss);
   return parts.length > 0 ? parts.join("\n") : null;
 }
 
@@ -156,40 +159,84 @@ export function buildResponsiveElementCss(
  * Preview `<style>` 주입 / Publish `generateStaticHtml` `<style>` 블록 공용.
  */
 export function collectResponsiveCss(nodes: readonly CanonicalNode[]): string {
-  const parts: string[] = [];
-  const walk = (list: readonly CanonicalNode[]): void => {
+  const flat: FillTreeNode[] = [];
+  const walk = (
+    list: readonly CanonicalNode[],
+    parent: string | null,
+  ): void => {
     for (const node of list) {
-      const style = node.props?.style as Record<string, unknown> | undefined;
-      const css = buildResponsiveElementCss(node.id, style, node.responsive);
-      if (css) parts.push(css);
-      if (node.children && node.children.length > 0) walk(node.children);
+      flat.push({ ...node, parent_id: parent });
+      if (node.children) walk(node.children, node.id);
     }
   };
-  walk(nodes);
+  walk(nodes, null);
+  return collectResponsiveCssFromElements(flat);
+}
+
+const FILL_CSS_DEFAULTS: Record<string, string | number> = {
+  width: "auto",
+  height: "auto",
+  flexGrow: 0,
+  flexShrink: 1,
+  flexBasis: "auto",
+  minWidth: "auto",
+  minHeight: "auto",
+  alignSelf: "auto",
+  justifySelf: "auto",
+};
+
+/** 부모만 tier에서 바뀌어도 자식의 derived CSS를 다시 낸다. */
+function buildFillCss(
+  node: FillTreeNode,
+  resolve: ReturnType<typeof createFillTreeResolver>,
+): string {
+  if (!node.sizing && !node.responsive?.sizing) return "";
+  const tiers = ["desktop", "tablet", "mobile"] as const;
+  const resolved = Object.fromEntries(
+    tiers.map((tier) => [tier, resolve(node, tier)]),
+  ) as Record<BreakpointName, ReturnType<typeof resolve>>;
+  const keys = new Set(
+    tiers.flatMap((tier) => Object.keys(resolved[tier].projection)),
+  );
+  const selector = `[data-element-id="${escapeAttrValue(node.id)}"]`;
+  const parts: string[] = [];
+  for (const tier of tiers) {
+    const { projection, style } = resolved[tier];
+    const declarations: string[] = [];
+    for (const key of keys) {
+      if (tier === "desktop" && projection[key] === undefined) continue;
+      const value = projection[key] ?? style[key] ?? FILL_CSS_DEFAULTS[key];
+      const css = formatCssValue(key, value);
+      if (css != null)
+        declarations.push(`${camelToKebab(key)}:${css} !important`);
+    }
+    if (!declarations.length) continue;
+    const rule = `${selector}{${declarations.join(";")}}`;
+    parts.push(
+      tier === "desktop"
+        ? rule
+        : `${generateMediaQueryString(BREAKPOINTS[tier])}{${rule}}`,
+    );
+  }
   return parts.join("\n");
 }
 
-/**
- * flat runtime render model(`Element[]` — apps/publish React SSG / preview 파생)에서
- * responsive @media CSS 를 수집. `collectResponsiveCss`(nested `CanonicalNode[]`)의 flat
- * 대응 — 각 element 의 `props.style`(base) + `responsive` 로 `buildResponsiveElementCss`
- * 호출. ElementRenderer 는 base 를 inline 으로만 적용하므로 override 는 이 `<style>` 로
- * 별도 emit 된다 (선택자 `[data-element-id]` 는 ElementRenderer 가 이미 부여).
- */
 export function collectResponsiveCssFromElements(
-  elements: ReadonlyArray<{
-    id: string;
-    props?: Record<string, unknown>;
-    responsive?: ElementResponsiveConfig;
-    deleted?: boolean;
-  }>,
+  elements: ReadonlyArray<FillTreeNode & { deleted?: boolean }>,
 ): string {
+  const nodes = new Map(
+    elements.filter((el) => !el.deleted).map((el) => [el.id, el]),
+  );
+  const resolve = createFillTreeResolver(nodes);
   const parts: string[] = [];
-  for (const el of elements) {
-    if (el.deleted) continue;
-    const style = (el.props as { style?: Record<string, unknown> } | undefined)
-      ?.style;
-    const css = buildResponsiveElementCss(el.id, style, el.responsive);
+  for (const el of nodes.values()) {
+    const style = el.props?.style as Record<string, unknown> | undefined;
+    const css = buildResponsiveElementCss(
+      el.id,
+      style,
+      el.responsive,
+      buildFillCss(el, resolve),
+    );
     if (css) parts.push(css);
   }
   return parts.join("\n");

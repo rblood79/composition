@@ -4770,12 +4770,15 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     //   의 것 — B22 전제 착오). DOM 정본 = flex 부모에서 fit-content (실측 168.2 vs Skia
     //   강제 350 역방향 발산). block 부모 정합은 §5.5 IFC 주입이 담당 (390=390 유지).
     variants: {},
+    // 테두리 없음 (starter Disclosure.css 정합 — 루트는 블록 컨테이너). borderWidth 1 은 variant 가 없어
+    //   생성 CSS 에 border-style/color 가 안 실리는 dead 값이었고 Skia layout 만 1px 을 읽어 w/h Δ2
+    //   (2026-09-18, `catalogComponentBox` Disclosure 케이스).
     sizes: {
       sm: {
         fontSize: "{typography.text-xs}",
         lineHeight: "{typography.text-xs--line-height}",
         borderRadius: "{radius.sm}",
-        borderWidth: 1,
+        borderWidth: 0,
         height: 0,
         iconSize: 14,
       },
@@ -4783,7 +4786,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-sm}",
         lineHeight: "{typography.text-sm--line-height}",
         borderRadius: "{radius.md}",
-        borderWidth: 1,
+        borderWidth: 0,
         height: 0,
         iconSize: 16,
       },
@@ -4791,7 +4794,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         fontSize: "{typography.text-base}",
         lineHeight: "{typography.text-base--line-height}",
         borderRadius: "{radius.lg}",
-        borderWidth: 1,
+        borderWidth: 0,
         height: 0,
         iconSize: 20,
       },
@@ -11430,27 +11433,30 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         },
       },
     },
+    // padding 0 (2026-09-18): Preview 는 이 래퍼 상자를 그리지 않는다 (`renderTabs` 가 RAC Tabs 안에 TabPanel
+    //   직계 — `.react-aria-TabPanels` 는 어느 DOM 에도 없다). 종전 12 는 Skia 만 읽어 TabPanel 이 (12,12) 에
+    //   놓이고 Tabs 가 DOM 보다 24 컸다. 패널 padding 은 TabPanel 자기 sizes 가 정본.
     sizes: {
       sm: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 8,
-        paddingY: 8,
+        paddingX: 0,
+        paddingY: 0,
       },
       md: {
         fontSize: "{typography.text-sm}",
         borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 12,
-        paddingY: 12,
+        paddingX: 0,
+        paddingY: 0,
       },
       lg: {
         fontSize: "{typography.text-base}",
         borderRadius: "{radius.none}",
         height: 0,
-        paddingX: 16,
-        paddingY: 16,
+        paddingX: 0,
+        paddingY: 0,
       },
     },
     structure: {

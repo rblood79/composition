@@ -40,7 +40,9 @@ import {
   useParentDisplay,
   useParentFlexDirection,
 } from "../hooks/useTransformAuxiliary";
-import { useStore } from "../../../stores";
+import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
+import { useElementStyleContext } from "../hooks/useElementStyleContext";
+import { getFillBehavior, getRatioDependentAxis } from "@composition/shared";
 import { historyManager } from "../../../stores/history";
 import { useCanonicalPropertyElement } from "../../properties/hooks/useCanonicalPropertyRead";
 import {
@@ -49,12 +51,7 @@ import {
 } from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
-import {
-  parseFrValue,
-  resolveSizeMode,
-  sizeModeToStyleUpdates,
-  type SizeMode,
-} from "../../../stores/utils/sizeModeResolver";
+import {} from "../../../stores/utils/sizeModeResolver";
 import {
   buildAspectRatioStyleUpdates,
   hasEnabledAspectRatio,
@@ -217,10 +214,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const localize = useSemanticLabel();
   const { updateStyleImmediate, updateStylePreview, updateStylesImmediate } =
     useOptimizedStyleActions();
-  const { commitLayoutPresentation, previewLayoutPresentation } =
-    useLayoutPresentationActions();
+  const { previewLayoutPresentation } = useLayoutPresentationActions();
   const selectedId = useStore((s) => s.selectedElementId);
   const bundle = useTransformValues(selectedId, part);
+  const sizeContext = useElementStyleContext(selectedId);
+  const activeBreakpoint = useStore((s) => s.activeBreakpoint);
 
   // 기존 styleValues 인터페이스 어댑터 (문자열 값)
   //   ADR-082 A2: inline 없으면 Spec specDefault (containerStyles/composition 의 "100%",
@@ -309,88 +307,45 @@ const TransformSectionContent = memo(function TransformSectionContent({
   const parentDisplay = useParentDisplay(selectedId);
   const parentFlexDirection = useParentFlexDirection(selectedId);
 
-  const handleSizeModeChange = useCallback(
-    (axis: "width" | "height", mode: SizeMode, fillGrow?: number) => {
-      const currentValue =
-        axis === "width" ? styleValues?.width : styleValues?.height;
-      const effectiveSize =
-        axis === "width" ? bundle?.width.effective : bundle?.height.effective;
-      const fixedFallbackValue =
-        effectiveSize !== undefined && Number.isFinite(effectiveSize)
-          ? `${Math.max(0, Math.round(effectiveSize))}px`
-          : undefined;
-      const css = resolveSizeMode(
-        mode,
-        axis,
-        parentDisplay,
-        parentFlexDirection,
-        currentValue,
-        fixedFallbackValue,
-        fillGrow,
-      );
-      const updates = sizeModeToStyleUpdates(css);
-      updateStylesImmediate(updates);
-    },
-    [
-      parentDisplay,
-      parentFlexDirection,
-      styleValues?.width,
-      styleValues?.height,
-      bundle?.width.effective,
-      bundle?.height.effective,
-      updateStylesImmediate,
-    ],
-  );
-
-  // W/H 필드 commit — 단위 메뉴의 "fill" · "fit-content" 는 Size Mode 명령 (flexGrow ·
-  //   alignSelf 등 부모 문맥별 CSS 를 sizeModeResolver 가 정한다). Fill 상태에서 숫자를
-  //   치면 Fixed 로 — fill 속성을 같이 지운다 (종전 Fixed 토글과 같은 경로).
-  //   `Nfr` (Framer 어법, 2026-09-17) 은 Fill 의 grow 비율 — flex 주축에서 flexGrow N.
   const commitAxisValue = useCallback(
     (axis: "width" | "height", value: string) => {
-      const mode = axis === "width" ? widthMode : heightMode;
-      if (value === "fill") {
-        handleSizeModeChange(axis, "fill");
+      const state = useStore.getState();
+      const snapshot = readImmediateSelectionSnapshot();
+      if (snapshot.selectedElementId !== selectedId) return;
+      const factor = value.match(/^(\d+(?:\.\d+)?)fill$/);
+      if (factor || value === "fill") {
+        state.applySizingFromSelection(snapshot, {
+          axis,
+          mode: "fill",
+          ...(factor ? { factor: Number(factor[1]) } : {}),
+        });
         return;
       }
-      const fr = parseFrValue(value);
-      if (fr !== null) {
-        handleSizeModeChange(axis, "fill", fr);
+      state.applySizingFromSelection(snapshot, {
+        axis,
+        mode: value === "" ? "reset" : "css",
+        value,
+      });
+    },
+    [selectedId],
+  );
+
+  const selectSizeUnit = useCallback(
+    (axis: "width" | "height", unit: string) => {
+      if (unit === "fill" || unit === "fit-content" || unit === "reset") {
+        commitAxisValue(axis, unit === "reset" ? "" : unit);
         return;
       }
-      if (value === "fit-content") {
-        handleSizeModeChange(axis, "fit");
-        return;
-      }
-      if (mode === "fill" && value !== "") {
-        updateStylesImmediate(
-          sizeModeToStyleUpdates(
-            resolveSizeMode(
-              "fixed",
-              axis,
-              parentDisplay,
-              parentFlexDirection,
-              value,
-              value,
-            ),
-          ),
-        );
-        return;
-      }
-      if (!commitLayoutPresentation(axis, value)) {
-        updateStyleImmediate(axis, value);
+      const effective =
+        axis === "width" ? bundle?.width.effective : bundle?.height.effective;
+      if (unit === "px") {
+        if (effective === undefined || !Number.isFinite(effective)) return;
+        commitAxisValue(axis, `${Math.max(0, effective)}px`);
+      } else {
+        commitAxisValue(axis, `100${unit}`);
       }
     },
-    [
-      widthMode,
-      heightMode,
-      handleSizeModeChange,
-      updateStylesImmediate,
-      parentDisplay,
-      parentFlexDirection,
-      commitLayoutPresentation,
-      updateStyleImmediate,
-    ],
+    [bundle?.width.effective, bundle?.height.effective, commitAxisValue],
   );
 
   const handleAspectRatioLock = useCallback(() => {
@@ -486,41 +441,54 @@ const TransformSectionContent = memo(function TransformSectionContent({
   if (!styleValues) return null;
 
   const isAbsolutePositioned = styleValues.position === "absolute";
-  // Fill 모드 (flexGrow · alignSelf stretch) 는 width/height 값이 비어 있다 — 필드에 "fill" 로.
-  //   flex 주축의 grow 가 1 이 아니면 비율 표기 `Nfr` (Framer 어법 — `fill` = 1fr).
-  const fillLabel = (grow: number | null) =>
-    grow !== null && grow !== 1 ? `${grow}fr` : "fill";
-  const displayWidth =
-    styleValues.isBody && styleValues.width === "auto"
-      ? String(canvasSize.width)
-      : !styleValues.isBody && widthMode === "fill"
-        ? fillLabel(widthFillGrow)
-        : styleValues.width;
-  const displayHeight =
-    styleValues.isBody && styleValues.height === "auto"
-      ? String(canvasSize.height)
-      : !styleValues.isBody && heightMode === "fill"
-        ? fillLabel(heightFillGrow)
-        : styleValues.height;
-
-  // ADR-026 Phase 4: Block 부모는 Height Fill 불가 (높이 채우기 미지원) — 단위 메뉴에서 뺀다
-  const isBlockParent =
-    parentDisplay === "block" || parentDisplay === "inline-block";
-  // `fr` 는 flex 부모의 주축에서만 (grow 비율) — 교차축 stretch · grid · block 100% 는 비율이 없다.
-  const isFlexParent =
-    parentDisplay === "flex" || parentDisplay === "inline-flex";
-  const isFlexMainAxis = (axis: "width" | "height") =>
-    isFlexParent &&
-    ((axis === "width" && parentFlexDirection !== "column") ||
-      (axis === "height" && parentFlexDirection === "column"));
-  const sizeModeUnits = (axis: "width" | "height") =>
-    styleValues.isBody
-      ? []
-      : axis === "height" && isBlockParent
-        ? ["fit-content"]
-        : isFlexMainAxis(axis)
-          ? ["fit-content", "fill", "fr"]
-          : ["fit-content", "fill"];
+  const parentContext = {
+    display: parentDisplay,
+    flexDirection: parentFlexDirection,
+  };
+  const effectiveSizeStyle = sizeContext.style ?? {};
+  const dependentAxis = getRatioDependentAxis(
+    effectiveSizeStyle,
+    sizeContext.sizing,
+  );
+  const isFraction = (axis: "width" | "height") =>
+    getFillBehavior(axis, effectiveSizeStyle, parentContext) === "fraction";
+  const displaySize = (axis: "width" | "height") => {
+    const mode = axis === "width" ? widthMode : heightMode;
+    const factor = axis === "width" ? widthFillGrow : heightFillGrow;
+    if (!styleValues.isBody && mode === "fill")
+      return isFraction(axis) ? `${factor ?? 1}fill` : "fill";
+    const value = styleValues[axis];
+    return styleValues.isBody && value === "auto"
+      ? String(canvasSize[axis])
+      : value;
+  };
+  const sizeControl = (axis: "width" | "height") => {
+    if (styleValues.isBody) return undefined;
+    const mode = axis === "width" ? widthMode : heightMode;
+    const computed =
+      axis === "width" ? bundle?.width.effective : bundle?.height.effective;
+    const kind =
+      dependentAxis === axis
+        ? ("ratio" as const)
+        : mode === "fill"
+          ? ("fill" as const)
+          : effectiveSizeStyle[axis] === "fit-content"
+            ? ("fit" as const)
+            : ("css" as const);
+    return {
+      kind,
+      fraction: isFraction(axis),
+      computed,
+      description:
+        kind === "ratio"
+          ? "Ratio 잠금을 해제하면 이 축을 직접 편집할 수 있습니다."
+          : `계산된 크기 ${computed == null ? "미측정" : `${Math.round(computed)}px`}${mode === "fill" && isFraction(axis) ? ". 숫자는 채우기 가중치입니다." : ""}`,
+      disabledModes: getFillBehavior(axis, effectiveSizeStyle, parentContext)
+        ? []
+        : ["fill"],
+      onModeChange: (unit: string) => selectSizeUnit(axis, unit),
+    };
+  };
 
   if (part === "position") {
     return pagePositionPageId ? (
@@ -586,29 +554,45 @@ const TransformSectionContent = memo(function TransformSectionContent({
           label="Width"
           unitSuffix
           className="width"
-          value={displayWidth}
-          units={["reset", "px", "%", "vw", ...sizeModeUnits("width")]}
+          key={`width:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
+          value={displaySize("width")}
+          sizeControl={sizeControl("width")}
+          units={[
+            "reset",
+            "px",
+            "%",
+            "vw",
+            ...(styleValues.isBody ? [] : ["fill", "fit-content"]),
+          ]}
           onChange={(value) => commitAxisValue("width", value)}
           onDrag={(value) =>
             previewLayoutPresentation("width", value) ||
             updateStylePreview("width", value)
           }
-          min={0}
-          max={9999}
+          min={widthMode === "fill" && isFraction("width") ? 1 : 0}
+          max={widthMode === "fill" && isFraction("width") ? 1000 : 9999}
         />
         <PropertyUnitInput
           label="Height"
           unitSuffix
           className="height"
-          value={displayHeight}
-          units={["reset", "px", "%", "vh", ...sizeModeUnits("height")]}
+          key={`height:${selectedId}:${activeBreakpoint}:${parentDisplay}:${parentFlexDirection}`}
+          value={displaySize("height")}
+          sizeControl={sizeControl("height")}
+          units={[
+            "reset",
+            "px",
+            "%",
+            "vh",
+            ...(styleValues.isBody ? [] : ["fill", "fit-content"]),
+          ]}
           onChange={(value) => commitAxisValue("height", value)}
           onDrag={(value) =>
             previewLayoutPresentation("height", value) ||
             updateStylePreview("height", value)
           }
-          min={0}
-          max={9999}
+          min={heightMode === "fill" && isFraction("height") ? 1 : 0}
+          max={heightMode === "fill" && isFraction("height") ? 1000 : 9999}
         />
         <div className="fieldset-actions actions-size">
           {!styleValues.isBody && (
@@ -633,62 +617,62 @@ const TransformSectionContent = memo(function TransformSectionContent({
           data-constraints={showConstraints ? "open" : "closed"}
         >
           {showConstraints && (
-          <>
-          <PropertyUnitInput
-            label="Min W"
-            unitSuffix
-            placeholder="auto"
-            className="min-width"
-            value={styleValues.minWidth}
-            units={["reset", "px", "%", "vw"]}
-            preserveEmptyValueOnUnitChange
-            onChange={(value) => updateStyleImmediate("minWidth", value)}
-            onDrag={(value) => updateStylePreview("minWidth", value)}
-            min={0}
-            max={9999}
-          />
-          <PropertyUnitInput
-            label="Min H"
-            unitSuffix
-            placeholder="auto"
-            className="min-height"
-            value={styleValues.minHeight}
-            units={["reset", "px", "%", "vh"]}
-            preserveEmptyValueOnUnitChange
-            onChange={(value) => updateStyleImmediate("minHeight", value)}
-            onDrag={(value) => updateStylePreview("minHeight", value)}
-            min={0}
-            max={9999}
-          />
-          <div className="fieldset-actions actions-constraint-min" />
-          <PropertyUnitInput
-            label="Max W"
-            unitSuffix
-            placeholder="auto"
-            className="max-width"
-            value={styleValues.maxWidth}
-            units={["reset", "px", "%", "vw"]}
-            preserveEmptyValueOnUnitChange
-            onChange={(value) => updateStyleImmediate("maxWidth", value)}
-            onDrag={(value) => updateStylePreview("maxWidth", value)}
-            min={0}
-            max={9999}
-          />
-          <PropertyUnitInput
-            label="Max H"
-            unitSuffix
-            placeholder="auto"
-            className="max-height"
-            value={styleValues.maxHeight}
-            units={["reset", "px", "%", "vh"]}
-            preserveEmptyValueOnUnitChange
-            onChange={(value) => updateStyleImmediate("maxHeight", value)}
-            onDrag={(value) => updateStylePreview("maxHeight", value)}
-            min={0}
-            max={9999}
-          />
-          <div className="fieldset-actions actions-constraint-max" />
-          </>
+            <>
+              <PropertyUnitInput
+                label="Min W"
+                unitSuffix
+                placeholder="auto"
+                className="min-width"
+                value={styleValues.minWidth}
+                units={["reset", "px", "%", "vw"]}
+                preserveEmptyValueOnUnitChange
+                onChange={(value) => updateStyleImmediate("minWidth", value)}
+                onDrag={(value) => updateStylePreview("minWidth", value)}
+                min={0}
+                max={9999}
+              />
+              <PropertyUnitInput
+                label="Min H"
+                unitSuffix
+                placeholder="auto"
+                className="min-height"
+                value={styleValues.minHeight}
+                units={["reset", "px", "%", "vh"]}
+                preserveEmptyValueOnUnitChange
+                onChange={(value) => updateStyleImmediate("minHeight", value)}
+                onDrag={(value) => updateStylePreview("minHeight", value)}
+                min={0}
+                max={9999}
+              />
+              <div className="fieldset-actions actions-constraint-min" />
+              <PropertyUnitInput
+                label="Max W"
+                unitSuffix
+                placeholder="auto"
+                className="max-width"
+                value={styleValues.maxWidth}
+                units={["reset", "px", "%", "vw"]}
+                preserveEmptyValueOnUnitChange
+                onChange={(value) => updateStyleImmediate("maxWidth", value)}
+                onDrag={(value) => updateStylePreview("maxWidth", value)}
+                min={0}
+                max={9999}
+              />
+              <PropertyUnitInput
+                label="Max H"
+                unitSuffix
+                placeholder="auto"
+                className="max-height"
+                value={styleValues.maxHeight}
+                units={["reset", "px", "%", "vh"]}
+                preserveEmptyValueOnUnitChange
+                onChange={(value) => updateStyleImmediate("maxHeight", value)}
+                onDrag={(value) => updateStylePreview("maxHeight", value)}
+                min={0}
+                max={9999}
+              />
+              <div className="fieldset-actions actions-constraint-max" />
+            </>
           )}
           <PropertySelect
             label="Ratio"
@@ -787,9 +771,7 @@ export const PositionSection = memo(function PositionSection() {
     <PropertySection
       id={POSITION_SECTION_ID}
       title="Position"
-      onReset={
-        hasPositionDirty ? () => resetStyles(POSITION_PROPS) : undefined
-      }
+      onReset={hasPositionDirty ? () => resetStyles(POSITION_PROPS) : undefined}
     >
       <TransformSectionContent part="position" />
     </PropertySection>

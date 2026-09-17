@@ -861,6 +861,8 @@ export interface CanonicalNode {
    * (`PENCIL_NODE_FIELDS` 등재, clip/placeholder 선례).
    */
   responsive?: ElementResponsiveConfig;
+  /** ADR-224: 축별 Fill 의도. */
+  sizing?: import("./sizing.types").FillAxes;
 
   /**
    * 노드 소유 상태 정의 — canonical 1차 필드 (ADR-214 Phase 1).

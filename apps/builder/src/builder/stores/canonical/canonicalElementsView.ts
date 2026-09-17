@@ -60,6 +60,7 @@ type CanonicalComponentMirrorFields = {
   reusable?: true;
   slot?: false | string[];
   responsive?: CanonicalNode["responsive"];
+  sizing?: CanonicalNode["sizing"];
   state?: CanonicalNode["state"];
 };
 
@@ -151,6 +152,7 @@ function extractCanonicalComponentMirrorFields(
     out.slot = node.slot;
   }
   // ADR-154: 반응형 override mirror (top-level canonical 필드 → Element)
+  if (node.sizing) out.sizing = node.sizing;
   if (node.responsive) {
     out.responsive = node.responsive;
   }

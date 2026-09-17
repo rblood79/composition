@@ -1,3 +1,4 @@
+import { mergeFillSizing } from "./fillSizing";
 import type {
   DataTableDefinition,
   ApiEndpointDefinition,
@@ -307,7 +308,8 @@ function resolveRenderableNode(
     ...master,
     ...node,
     type: master.type,
-    props: { ...(master.props ?? {}), ...(node.props ?? {}) },
+    ...mergeFillSizing(master, node),
+    props: mergePropsWithStyleDeep(master.props ?? {}, node.props ?? {}),
     children: node.children ?? master.children,
   };
 }
@@ -431,6 +433,8 @@ function getDescendantPatchProps(
     reusable: _reusable,
     slot: _slot,
     type: _type,
+    sizing: _sizing,
+    responsive: _responsive,
     ...props
   } = override;
 
@@ -468,6 +472,7 @@ function applyDescendantOverride(
   );
   return {
     ...node,
+    ...mergeFillSizing(node, override),
     props,
     ...(Array.isArray(children)
       ? { children: children.filter(isCanonicalNode) }
@@ -562,6 +567,7 @@ function collectRuntimeElements(
     // ADR-154: responsive override (tablet/mobile) 를 runtime element 로 전달 —
     // SSG/preview 는 base 를 inline 으로 적용하고 override 는 @media <style> 로 별도
     // emit(collectResponsiveCssFromElements). canonical 1차 필드.
+    if (node.sizing) element.sizing = node.sizing;
     const responsive = node.responsive ?? sourceNode.responsive;
     if (responsive) {
       element.responsive = responsive;

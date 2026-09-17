@@ -3954,8 +3954,9 @@ export function calculateContentHeight(
       return totalHeight;
     }
 
-    // Tabs: 탭 바 높이 + TabPanel 패딩 + 활성 Panel 높이
-    // CSS Preview 기준: Tabs(flex col) → TabList(30px) + TabPanel(pad=16px → Panel)
+    // Tabs: 탭 바 높이 + 활성 Panel border-box 높이
+    // CSS Preview 기준: Tabs(flex col) → TabList + TabPanel (RAC 직계 — TabPanels 래퍼 상자 없음,
+    //   2026-09-18: 래퍼 padding 12×2 는 Skia 전용 채널이라 제거 · 패널 padding 은 TabPanel 자기 것)
     if (type === "tabs") {
       const props = element.props as Record<string, unknown> | undefined;
       const sizeName = (props?.size as string) ?? "md";
@@ -3966,14 +3967,6 @@ export function calculateContentHeight(
         (tabsRule?.sizes[sizeName]?.height as number | undefined) ??
         (tabsRule?.sizes.md?.height as number | undefined) ??
         29;
-      // ADR-912: TabPanelsSpec 직접 참조 → resolveSkiaRule 경유 (spec 끊기).
-      //   rule paddingX 값 = spec paddingX 값(sm=8/md=12/lg=16) 동일 보장.
-      const tabPanelsRule = resolveSkiaRule("TabPanels");
-      const tabPanelPadding =
-        (tabPanelsRule?.sizes[sizeName]?.paddingX as number | undefined) ??
-        (tabPanelsRule?.sizes.md?.paddingX as number | undefined) ??
-        12;
-
       // 활성 Panel의 높이 계산 (Dual Lookup: 직속 → TabPanels 내부)
       let panelChildren = childElements.filter((c) => c.type === "TabPanel");
       if (panelChildren.length === 0) {
@@ -4024,7 +4017,7 @@ export function calculateContentHeight(
           panelBox.padding.bottom +
           panelBox.border.top +
           panelBox.border.bottom;
-        return tabBarHeight + tabPanelPadding * 2 + panelBorderBox;
+        return tabBarHeight + panelBorderBox;
       }
       return tabBarHeight;
     }

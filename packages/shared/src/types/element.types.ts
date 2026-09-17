@@ -43,13 +43,7 @@ export interface DataBinding {
  * 필드 타입 (컬렉션 컴포넌트용)
  */
 export type FieldType =
-  | "string"
-  | "number"
-  | "boolean"
-  | "date"
-  | "image"
-  | "url"
-  | "email";
+  "string" | "number" | "boolean" | "date" | "image" | "url" | "email";
 
 /**
  * 필드 정의
@@ -113,6 +107,8 @@ export interface Element {
    * `collectResponsiveCssFromElements` 로 `@media` `<style>` 을 별도 emit 한다.
    */
   responsive?: ElementResponsiveConfig;
+  /** ADR-224: 축별 Fill 의도. */
+  sizing?: import("./sizing.types").FillAxes;
 
   // --- G.1: Component-Instance System ---
   /**

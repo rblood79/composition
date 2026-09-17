@@ -61,11 +61,12 @@ export function useParentFlexDirection(id: string | null): string {
 }
 
 function useSizeMode(id: string | null, axis: "width" | "height"): SizeMode {
-  const { style, type, size } = useElementStyleContext(id);
+  const { style, type, size, sizing } = useElementStyleContext(id);
   const parentDisplay = useParentDisplay(id);
   const parentFlexDirection = useParentFlexDirection(id);
   const specPreset = useMemo(() => resolveSpecPreset(type, size), [type, size]);
   return useMemo(() => {
+    if (sizing?.[axis]) return "fill";
     const resolvedStyle = { ...(style ?? {}) };
     if (resolvedStyle[axis] == null && specPreset[axis] != null) {
       resolvedStyle[axis] = specPreset[axis];
@@ -76,7 +77,7 @@ function useSizeMode(id: string | null, axis: "width" | "height"): SizeMode {
       parentDisplay,
       parentFlexDirection,
     );
-  }, [style, axis, parentDisplay, parentFlexDirection, specPreset]);
+  }, [style, sizing, axis, parentDisplay, parentFlexDirection, specPreset]);
 }
 
 export function useWidthSizeMode(id: string | null): SizeMode {
@@ -95,11 +96,18 @@ export function useFillGrow(
   id: string | null,
   axis: "width" | "height",
 ): number | null {
-  const { style } = useElementStyleContext(id);
+  const { style, sizing } = useElementStyleContext(id);
   const parentDisplay = useParentDisplay(id);
   const parentFlexDirection = useParentFlexDirection(id);
   return useMemo(
-    () => inferFillGrow(style ?? undefined, axis, parentDisplay, parentFlexDirection),
-    [style, axis, parentDisplay, parentFlexDirection],
+    () =>
+      sizing?.[axis]?.factor ??
+      inferFillGrow(
+        style ?? undefined,
+        axis,
+        parentDisplay,
+        parentFlexDirection,
+      ),
+    [style, sizing, axis, parentDisplay, parentFlexDirection],
   );
 }

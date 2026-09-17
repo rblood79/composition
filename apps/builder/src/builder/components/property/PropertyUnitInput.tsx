@@ -2,7 +2,11 @@ import React, { useRef, memo, useState, useMemo, useEffect } from "react";
 import { ComboBox as AriaComboBox } from "react-aria-components/ComboBox";
 import { Button } from "react-aria-components/Button";
 import { Input } from "react-aria-components/Input";
-import { ListBox, ListBoxItem } from "react-aria-components/ListBox";
+import {
+  ListBox,
+  ListBoxItem,
+  ListBoxSection,
+} from "react-aria-components/ListBox";
 import { Popover } from "react-aria-components/Popover";
 import { ChevronDown } from "lucide-react";
 import { iconProps } from "../../../utils/ui/uiConstants";
@@ -15,7 +19,18 @@ import {
   useOptionalI18n,
 } from "../../../i18n";
 
+export interface SizeInputControl {
+  kind: "css" | "fill" | "fit" | "ratio";
+  fraction?: boolean;
+  computed?: number;
+  description?: string;
+  disabledModes?: string[];
+  onModeChange: (unit: string) => void;
+}
+
 interface PropertyUnitInputProps {
+  /** ADR-224: Size 절만 사용하는 한 상자 semantic 입력. */
+  sizeControl?: SizeInputControl;
   label?: string;
   value: string; // "100px", "50%", "auto"
   onChange: (value: string) => void;
@@ -258,6 +273,7 @@ export const PropertyUnitInput = memo(
     labelMode = "legend",
     suffixLabel,
     unitSuffix = false,
+    sizeControl,
   }: PropertyUnitInputProps) {
     const i18n = useOptionalI18n();
     const displayLabel =
@@ -380,6 +396,7 @@ export const PropertyUnitInput = memo(
       ) {
         return typedUnit;
       }
+      if (sizeControl?.kind === "fill" && sizeControl.fraction) return "fill";
       return KEYWORDS.includes(unit) ? "px" : unit;
     };
 
@@ -555,13 +572,20 @@ export const PropertyUnitInput = memo(
       coarse: boolean,
       mode: "drag" | "commit",
     ) => {
-      if (isKeyword) return;
+      if (
+        isKeyword ||
+        (sizeControl && !sizeControl.fraction && sizeControl.kind !== "css")
+      )
+        return;
       const step = coarse ? 10 : 1;
-      const base = numericValue || 0;
+      const base = sizeControl
+        ? parseFloat(inputValue) || 0
+        : numericValue || 0;
       const next =
         direction > 0 ? Math.min(base + step, max) : Math.max(base - step, min);
       setInputValue(String(next));
       const nextValue = `${next}${inputUnit}`;
+      if (sizeControl && mode === "drag") return;
       if (mode === "drag") {
         (onDrag || onChange)(nextValue);
         return;
@@ -573,6 +597,15 @@ export const PropertyUnitInput = memo(
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (sizeControl && e.key === "Escape") {
+        e.preventDefault();
+        setInputValue(
+          getInputDisplayValue(value, parsed, isPreservedEmptyValue, presets),
+        );
+        justSavedViaEnterRef.current = true;
+        (e.target as HTMLInputElement).blur();
+        return;
+      }
       if (e.key === "Enter") {
         e.preventDefault();
         // ⭐ Enter로 저장하기 전에 값이 변경되었는지 확인
@@ -647,7 +680,30 @@ export const PropertyUnitInput = memo(
     //   2026-09-15 사용자 판정으로 전부 제거 — 숫자 조정은 화살표 키 (⇧ 10) 뿐.
     const suffixIsTrigger = isSuffix && !hasPresets && Boolean(displayLabel);
     // legend 모드 + unitSuffix: 트리거 글자가 현재 단위 (「8 PX」, 단위 없음은 —)
-    const unitIsTrigger = !isSuffix && (unitSuffix || isIconMode) && !hasPresets;
+    const unitIsTrigger =
+      !isSuffix && (unitSuffix || isIconMode) && !hasPresets;
+    const sizeReadOnly =
+      sizeControl &&
+      sizeControl.kind !== "css" &&
+      !(sizeControl.kind === "fill" && sizeControl.fraction);
+    const modeLabel = (u: string) =>
+      ({
+        px: "고정",
+        fill: "채우기",
+        "fit-content": "내용 맞춤",
+        "%": "부모 비율",
+        vw: "화면 기준 (vw)",
+        vh: "화면 기준 (vh)",
+        reset: "Reset",
+      })[u] ?? u;
+    const sizeTrigger =
+      sizeControl?.kind === "fill"
+        ? "채우기"
+        : sizeControl?.kind === "fit"
+          ? "Fit"
+          : sizeControl?.kind === "ratio"
+            ? "자동(비율)"
+            : undefined;
     const unitSuffixText =
       unit === "" ||
       unit === "reset" ||
@@ -658,6 +714,7 @@ export const PropertyUnitInput = memo(
     return (
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
+        title={sizeControl?.description}
         data-label-mode={
           labelMode === "suffix" ? "suffix" : unitIsTrigger ? "unit" : undefined
         }
@@ -685,16 +742,15 @@ export const PropertyUnitInput = memo(
             // "reset" 단위 (값 없음) 는 글자 대신 placeholder — 필드에 "reset" 이 차던 것
             //   (suffix 모드 86px 열에서 "r…" 로 잘렸다, 2026-09-14)
             inputValue={
-              hasPresets
-                ? ""
-                : unit === ""
-                  ? "—"
-                  : unit === "reset"
-                    ? ""
-                    : unit
+              hasPresets ? "" : unit === "" ? "—" : unit === "reset" ? "" : unit
             }
             onSelectionChange={(key) => {
               if (key === null) return;
+              if (sizeControl) {
+                syncAfterPresetRef.current = true;
+                sizeControl.onModeChange(String(key));
+                return;
+              }
 
               if (hasPresets) {
                 const preset = presets?.find(
@@ -750,13 +806,21 @@ export const PropertyUnitInput = memo(
                 ref={inputElementRef}
                 className="react-aria-Input"
                 type="text"
-                value={showKeywordAsPlaceholder ? "" : inputValue}
+                value={
+                  sizeReadOnly ? "" : showKeywordAsPlaceholder ? "" : inputValue
+                }
+                readOnly={!!sizeReadOnly}
+                aria-description={sizeControl?.description}
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
                 onKeyDown={handleKeyDown}
                 aria-label={
-                  displayLabel ||
+                  (sizeControl?.kind === "fill" && sizeControl.fraction
+                    ? `${displayLabel} 채우기 가중치`
+                    : sizeControl?.kind === "ratio"
+                      ? `${displayLabel} 자동(비율)`
+                      : displayLabel) ||
                   (i18n
                     ? translateKey(
                         i18n.t,
@@ -766,17 +830,29 @@ export const PropertyUnitInput = memo(
                     : "Value")
                 }
                 placeholder={
-                  showKeywordAsPlaceholder && inputValue.trim() !== ""
-                    ? inputValue
-                    : placeholder
+                  sizeReadOnly
+                    ? sizeControl.computed == null
+                      ? "—"
+                      : String(Math.round(sizeControl.computed))
+                    : showKeywordAsPlaceholder && inputValue.trim() !== ""
+                      ? inputValue
+                      : placeholder
                 }
               />
               {suffixIsTrigger || unitIsTrigger ? (
                 <Button
                   className="react-aria-Button property-unit-input__suffix property-unit-input__suffix--trigger"
-                  aria-label={`${displayLabel ?? ""} ${unitLabel}`.trim()}
+                  isDisabled={sizeControl?.kind === "ratio"}
+                  aria-label={
+                    sizeControl
+                      ? `${displayLabel} 크기 방식`
+                      : `${displayLabel ?? ""} ${unitLabel}`.trim()
+                  }
                 >
-                  {unitIsTrigger ? unitSuffixText : (suffixLabel ?? displayLabel)}
+                  {sizeTrigger ??
+                    (unitIsTrigger
+                      ? unitSuffixText
+                      : (suffixLabel ?? displayLabel))}
                 </Button>
               ) : (
                 <>
@@ -802,31 +878,70 @@ export const PropertyUnitInput = memo(
               style={popoverStyle}
             >
               <ListBox className="react-aria-ListBox">
-                {hasPresets
-                  ? presets?.map((preset) => (
-                      <ListBoxItem
-                        key={preset.id}
-                        id={preset.id}
-                        className="react-aria-ListBoxItem"
-                        textValue={preset.label}
-                        aria-label={preset.label}
-                      >
-                        {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기) */}
-                        {preset.value.trim() === ""
-                          ? preset.label
-                          : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
-                      </ListBoxItem>
-                    ))
-                  : units.map((u) => (
-                      <ListBoxItem
-                        key={u === "" ? "—" : u}
-                        id={u === "" ? "—" : u}
-                        className="react-aria-ListBoxItem"
-                        textValue={u === "" ? "—" : u}
-                      >
-                        {u === "" ? "—" : u}
-                      </ListBoxItem>
-                    ))}
+                {sizeControl
+                  ? [
+                      <ListBoxSection key="basic" aria-label="크기 방식">
+                        {["px", "fill", "fit-content"]
+                          .filter((u) => units.includes(u))
+                          .map((u) => (
+                            <ListBoxItem
+                              key={u}
+                              id={u}
+                              textValue={modeLabel(u)}
+                              isDisabled={sizeControl.disabledModes?.includes(
+                                u,
+                              )}
+                              className="react-aria-ListBoxItem"
+                            >
+                              {modeLabel(u)}
+                            </ListBoxItem>
+                          ))}
+                      </ListBoxSection>,
+                      <ListBoxSection key="relative" aria-label="상대 크기">
+                        {units
+                          .filter(
+                            (u) => !["px", "fill", "fit-content"].includes(u),
+                          )
+                          .map((u) => (
+                            <ListBoxItem
+                              key={u}
+                              id={u}
+                              textValue={modeLabel(u)}
+                              isDisabled={sizeControl.disabledModes?.includes(
+                                u,
+                              )}
+                              className="react-aria-ListBoxItem"
+                            >
+                              {modeLabel(u)}
+                            </ListBoxItem>
+                          ))}
+                      </ListBoxSection>,
+                    ]
+                  : hasPresets
+                    ? presets?.map((preset) => (
+                        <ListBoxItem
+                          key={preset.id}
+                          id={preset.id}
+                          className="react-aria-ListBoxItem"
+                          textValue={preset.label}
+                          aria-label={preset.label}
+                        >
+                          {/* 「XS · 4」 — 토큰 이름 + 풀린 px (Border 프리셋 메뉴와 같은 표기) */}
+                          {preset.value.trim() === ""
+                            ? preset.label
+                            : `${preset.label} · ${getPresetDisplayValue(preset.value)}`}
+                        </ListBoxItem>
+                      ))
+                    : units.map((u) => (
+                        <ListBoxItem
+                          key={u === "" ? "—" : u}
+                          id={u === "" ? "—" : u}
+                          className="react-aria-ListBoxItem"
+                          textValue={u === "" ? "—" : u}
+                        >
+                          {u === "" ? "—" : u}
+                        </ListBoxItem>
+                      ))}
               </ListBox>
             </Popover>
           </AriaComboBox>
@@ -851,6 +966,7 @@ export const PropertyUnitInput = memo(
       prevProps.presetAriaLabel === nextProps.presetAriaLabel &&
       prevProps.labelMode === nextProps.labelMode &&
       prevProps.suffixLabel === nextProps.suffixLabel &&
+      prevProps.sizeControl === nextProps.sizeControl &&
       prevProps.unitSuffix === nextProps.unitSuffix &&
       prevProps.preserveEmptyValueOnUnitChange ===
         nextProps.preserveEmptyValueOnUnitChange &&

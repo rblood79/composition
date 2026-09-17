@@ -153,7 +153,9 @@ describe("ADR-923 r21m1 — Tabs items:[] = 빈 TabList 0, stale panel 은 DOM �
       live.getChildren(live.owner.id),
       live.getChildren,
     );
-    expect(h).toBe(29 + 12 * 2 + 50);
+    // TabPanels 래퍼 padding 은 0 (2026-09-18 — DOM 에 래퍼 상자가 없다; 종전 12×2 는 Skia 전용 채널).
+    //   panel 의 height 50 은 border-box 라 자기 padding 을 안에 품는다.
+    expect(h).toBe(29 + 50);
     // item "gone" 만 있으면 live panel 은 stale — panel 없이 tab bar 만.
     const onlyStale = tabs([{ id: "b", title: "B" }]);
     expect(

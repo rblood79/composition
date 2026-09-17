@@ -873,3 +873,27 @@ flex.rs 에 `baseline` 코드가 없었고 (Taffy #1109 · #1127 의 전제 — 
 - ❌ `safe` 를 파서에서 접두만 떼고 같은 코드로 보내기 → 넘침에서 unsafe 와 같아진다
 - ❌ column 방향에 baseline 그룹 적용 → Chrome 은 start
 - ❌ 슬롯 21 을 raw baseline 으로 두기 → zero-init 0 이 "top 이 baseline" 이 되어 정렬 미참여 item 까지 옮긴다
+
+## intrinsic 키워드 폭 (`min/max/fit-content`) 의 보고는 auto 와 같은 content-box — 컨테이너 · leaf · 세 부모 커널 (CSS-SIZING-3 §5, 2026-09-18)
+
+`catalogComponentBox` Tooltip 케이스 (implicitStyles 가 `width: fit-content` 주입 · catalog padding 6/10) 가 HEAD 에서 RED 였다 — flex row 부모 안에서 엔진 80 / Chrome 60. 키워드 폭의 박스 계약이 소비처마다 달랐다: `measure_intrinsic_width` 의 mn/mx 는 auto solve 의 반환 (content-box) 인데 `solve_node` 키워드 블록은 border-box 로 읽어 `explicit_w` 에 그대로 넣었고 (내부 content 가 pad 만큼 모자람 — body 직계 Tooltip 의 Description 29 / 49), flex 3.5 는 키워드 item 을 px 로 덮어 다시 풀어 border-box 를 content 슬롯에 실었다 (+20), grid 기여 `child_auto_inline_pad_border` 는 키워드를 명시 크기로 보고 pad 를 안 더했다 (−20), leaf `resolve_leaf_intrinsic_width` 는 키워드를 border-box 로 보고했다. block 부모만 우연히 60 (block.rs 가 FIT_CONTENT 를 content + pad 로 계산).
+
+| fixture (Chrome 실측)                                                              | Chrome | 종전 엔진            |
+| ---------------------------------------------------------------------------------- | ------ | -------------------- |
+| flex row > `width:fit-content`/max/min + padding 10·10 컨테이너 (자식 40)          | 60     | 80                   |
+| grid > 같은 컨테이너 (`justify-items:start`)                                       | 60     | 40                   |
+| block > 같은 컨테이너                                                              | 60     | 60 (내부 content 20) |
+| flex row · column · grid · block > 같은 키워드 + padding 의 측정 leaf (스칼라 40)  | 60     | 80 / — / 40 / 60     |
+| grid > `height:fit-content` + padding 6·6 컨테이너 (자식 14)                       | 26     | 14                   |
+| R8-d `fit-content` + grow + overflow hidden, leftover 40 (used 가 키워드를 이긴다) | 40     | 40 (유지)            |
+
+- **계약** — 키워드 폭도 auto 처럼 **content-box 로 보고**하고 자기 layout 만 border-box 다. `solve_node` 키워드 블록: `explicit_w = resolved + own_pb_h` (내부 배치는 border-box), dispatch 뒤 `keyword_content_w` 면 `cw −= own_pb_h`. fit-content 의 stretch-fit 도 content 산술 (`avail − margin − pad_border`). leaf `bb()` 는 `(content, content + pad_border)`.
+- **소비처** — grid `child_auto_inline_pad_border` 는 `resolve_dimension_opt` None (auto 와 키워드) 에 pad 를 더한다 · `place_grid_axis` 의 `cw_box`/`ch_box` 는 키워드도 pad 를 더한다 (키워드는 `explicit` 게이트 — stretch 억제 — 에만) · flex 3.5 는 키워드 main 을 여전히 used px 로 덮되 (used 는 분배 결과 — R8-d) 재-solve 의 border-box 반환에서 `data[off+7]` 을 빼서 content 슬롯에 싣는다 · flex 2-b base size 는 키워드별 (`min-content` → min, `fit-content` → clamp(min, avail − margin − pad, max), 그 외 max).
+- 실측: Rust `padded_keyword_container_as_flex_and_grid_item` (3 키워드 × 3 부모 × 컨테이너/leaf + column cross + grid 블록 축) · parity `catalogComponentBox` Tooltip GREEN (1395 → 1396, 기존 실패 4 동일) · live `apps/builder/scripts/tooltip-keyword-width-live.mjs` — row frame 안 Tooltip 89×44 → **69×44**, body 직계 Description 29 → **49** (둘 다 Description + 20, x 10). Preview 는 standalone Tooltip DOM 을 안 그려 DOM leg 는 `catalogComponentBox` 가 진실.
+
+### 금지 패턴
+
+- ❌ `measure_intrinsic_width` 의 mn/mx 를 border-box 로 읽어 `explicit_w` 에 그대로 넣기 → 내부 content 가 pad 만큼 모자란다
+- ❌ flex 3.5 재-solve 의 반환을 키워드 item 의 content 슬롯에 그대로 싣기 → padding 이중 가산
+- ❌ grid 기여/배치에서 키워드를 "명시 크기" 로 분류해 pad 생략 → 트랙·상자가 pad 만큼 모자란다
+- ❌ 키워드 item 의 3.5 override 를 빼고 키워드를 다시 해소하기 → used main (분배 결과) 이 아니라 preferred size 로 되돌아간다 (R8-d 42 / Chrome 40)

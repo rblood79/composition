@@ -14,11 +14,7 @@
 export type SizeMode = "fixed" | "fill" | "fit";
 
 export type ParentDisplay =
-  | "flex"
-  | "grid"
-  | "block"
-  | "inline-flex"
-  | "inline-grid";
+  "flex" | "grid" | "block" | "inline-flex" | "inline-grid";
 
 interface SizeModeCSS {
   /** 설정할 CSS 속성 (key: 값) */
@@ -82,15 +78,15 @@ function isFillCSS(
 
   if (axis === "width") {
     // Block 부모에서 width: 100%
-    if (value === "100%") return true;
+    if (value === "100%") return false;
 
     // Flex row 부모에서 flex-grow > 0 (main axis) — `2fr` 같은 비율도 Fill
-    if (isFlexParent && parentFlexDirection !== "column") {
+    if (isFlexParent && !parentFlexDirection?.startsWith("column")) {
       if (parseGrow(style.flexGrow) !== null) return true;
     }
 
     // Flex column 부모에서 align-self: stretch (cross axis)
-    if (isFlexParent && parentFlexDirection === "column") {
+    if (isFlexParent && parentFlexDirection?.startsWith("column")) {
       const alignSelf = String(style.alignSelf ?? "");
       if (alignSelf === "stretch") return true;
     }
@@ -103,15 +99,15 @@ function isFillCSS(
   }
 
   if (axis === "height") {
-    if (value === "100%") return true;
+    if (value === "100%") return false;
 
     // Flex column 부모에서 flex-grow > 0 (main axis)
-    if (isFlexParent && parentFlexDirection === "column") {
+    if (isFlexParent && parentFlexDirection?.startsWith("column")) {
       if (parseGrow(style.flexGrow) !== null) return true;
     }
 
     // Flex row 부모에서 align-self: stretch (cross axis)
-    if (isFlexParent && parentFlexDirection !== "column") {
+    if (isFlexParent && !parentFlexDirection?.startsWith("column")) {
       const alignSelf = String(style.alignSelf ?? "");
       if (alignSelf === "stretch") return true;
     }
@@ -163,8 +159,8 @@ export function inferFillGrow(
   const isFlexParent =
     parentDisplay === "flex" || parentDisplay === "inline-flex";
   const isMainAxis =
-    (axis === "width" && parentFlexDirection !== "column") ||
-    (axis === "height" && parentFlexDirection === "column");
+    (axis === "width" && !parentFlexDirection?.startsWith("column")) ||
+    (axis === "height" && parentFlexDirection?.startsWith("column"));
   if (!isFlexParent || !isMainAxis) return null;
   return parseGrow(style.flexGrow);
 }
@@ -243,8 +239,8 @@ function resolveAxisFillProps(
   const isGridParent =
     parentDisplay === "grid" || parentDisplay === "inline-grid";
   const isMainAxis =
-    (axis === "width" && parentFlexDirection !== "column") ||
-    (axis === "height" && parentFlexDirection === "column");
+    (axis === "width" && !parentFlexDirection?.startsWith("column")) ||
+    (axis === "height" && parentFlexDirection?.startsWith("column"));
 
   if (isFlexParent) {
     return isMainAxis ? ["flexGrow", "flexShrink", "flexBasis"] : ["alignSelf"];
@@ -266,8 +262,8 @@ function resolveFill(
   const isGridParent =
     parentDisplay === "grid" || parentDisplay === "inline-grid";
   const isMainAxis =
-    (axis === "width" && parentFlexDirection !== "column") ||
-    (axis === "height" && parentFlexDirection === "column");
+    (axis === "width" && !parentFlexDirection?.startsWith("column")) ||
+    (axis === "height" && parentFlexDirection?.startsWith("column"));
 
   if (isFlexParent && isMainAxis) {
     // Flex main axis: flex-grow: N (기본 1 = `fill`, `Nfr` 은 비율), flex-basis: 0

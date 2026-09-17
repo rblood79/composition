@@ -118,6 +118,7 @@ const PENCIL_NODE_FIELDS = new Set([
   // ADR-154 — responsive breakpoint override: canonical 1차 필드를 pencil
   // top-level direct field 로 보존 (props 흡수 차단 + 양방향 assign)
   "responsive",
+  "sizing",
   // ADR-214 — 노드 소유 상태 정의 (페이지 · 요소 변수): responsive 와 같은 규약
   "state",
 ]);
@@ -451,6 +452,7 @@ export function pencilPrimitiveToComponent(
   assignIfPresent(canonicalNode, record, "clip");
   assignIfPresent(canonicalNode, record, "placeholder");
   assignIfPresent(canonicalNode, record, "responsive");
+  assignIfPresent(canonicalNode, record, "sizing");
   assignIfPresent(canonicalNode, record, "state");
 
   if (canonicalType === "ref") {
@@ -542,6 +544,7 @@ export function componentToPencilTree(node: CanonicalNode): PencilNode {
   assignIfPresent(pencilNode, nodeRecord, "clip");
   assignIfPresent(pencilNode, nodeRecord, "placeholder");
   assignIfPresent(pencilNode, nodeRecord, "responsive");
+  assignIfPresent(pencilNode, nodeRecord, "sizing");
   assignIfPresent(pencilNode, nodeRecord, "state");
 
   if (node.type === "ref") {

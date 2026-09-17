@@ -1293,8 +1293,11 @@ export const renderPagination = (
       }
       data-custom-id={element.customId}
       aria-label="Pagination"
+      // `react-aria-Pagination` + data-size/variant 로 생성 Pagination.css (catalog containerStyles —
+      //   flex · space-between · gap · align-items) 를 받는다 (2026-09-18, Nav 동형). 이 class 가 없어
+      //   생성 CSS 전량이 preview 에 dead 였고 Skia (같은 containerStyles) 와 배치가 갈렸다.
+      {...catalogChrome("Pagination", element)}
       style={element.props.style}
-      className={element.props.className}
       onClick={eventHandlers.onClick as unknown as () => void}
     >
       {children.map((child) => renderElement(child, child.id))}

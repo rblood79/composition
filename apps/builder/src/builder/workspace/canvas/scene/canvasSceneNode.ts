@@ -154,6 +154,7 @@ export interface CanvasSceneNode {
    * canonical `CanonicalNode.responsive` 에서 복사.
    */
   responsive?: CanonicalNode["responsive"];
+  sizing?: CanonicalNode["sizing"];
   /**
    * ADR-214 — 이 노드의 string prop 이 `{{ name }}` 으로 소비하는 상태 정의 digest
    * (이름 → id · type · defaultValue). projection signature 입력 — 소비 정의가 바뀌면 이
@@ -490,6 +491,7 @@ function toCanvasSceneNode(
   }
   // ADR-154: 반응형 override 를 scene node 로 전달 (resolve 소비 경로).
   if (node.responsive) sceneNode.responsive = node.responsive;
+  if (node.sizing) sceneNode.sizing = node.sizing;
   if (node.type === "ref") {
     const refNode = node as RefNode;
     sceneNode.ref = refNode.ref;

@@ -29,8 +29,8 @@
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
 | 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       5 |
-| ├ Accepted (미착수·일부 착수) |       1 |
+| ├ Proposed                    |       4 |
+| ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       1 |
 | **합계**                      | **251** |
 
@@ -75,9 +75,10 @@
 
 #### [224](224-intent-based-size-authoring.md) — 의도 기반 크기 편집 — Fill 한 번으로 채우기, 가중치는 선택 조정
 
-- **상태**: Proposed (2026-09-18)
-- **규모**: Width|Height 한 행·내부 트리거·Min/Max·Ratio·Overflow 현행 패턴 유지. Fill 선택 즉시 적용, 같은 상자의 가중치 편집, factor≥1·재선택 보존. sizing은 Fill 전용이며 나머지 CSS 정본·Fixed shrink 유지. Ratio 종속 축·parent-aware responsive 출력/cache·Undo 계약 명시, 자동 복원 기록 제외. Phase 0~~2 / G0~~G6, 소유자 과업 관찰 필수·신규 사용자5명 관찰 deferred. 제품 검증 UNVERIFIED. [구현 설계](design/224-intent-based-size-authoring-breakdown.md)
-- **우선순위**: 사용자 설계 요청 — 구현 미착수
+- **상태**: Accepted (2026-09-18, 기존 오류 원인 확정; 수리 후보의 신규 크리티컬 회귀로 재중단·후보 철회)
+- **규모**: Width|Height 한 행·내부 트리거·Min/Max·Ratio·Overflow 현행 패턴 유지. Fill 선택 즉시 적용, 같은 상자의 가중치 편집, factor≥1·재선택 보존. sizing은 Fill 전용이며 나머지 CSS 정본·Fixed shrink 유지. Ratio 종속 축·parent-aware responsive 출력/cache·Undo 계약 명시, 자동 복원 기록 제외. Phase 0~~2 / G0~~G6, 소유자 과업 관찰 필수·신규 사용자5명 관찰 deferred. 전체 제품 검증 미완료. [구현 설계](design/224-intent-based-size-authoring-breakdown.md)
+- **실행 결과**: Fill 가중치 입력·refresh 보존 확인. intrinsic 고정 치수 주입 원인 확정. 스칼라 분리 후보는 기존 Fill 오류를 해소했으나 기본 Button Column 폭 900/68px의 신규 크리티컬 회귀로 철회했다. 기존 Row 높이 30/240px·Column Fill 폭 69/900px 차단 미해결, 전체 gate 미완료, G5/G6 UNVERIFIED. [중단 근거](evidence/224-fill-layout-blocker.md)
+- **우선순위**: 사용자 실행 요청 — 크리티컬 오류 중단·보고 조건에 따라 보류
 
 ### 부분 완료
 

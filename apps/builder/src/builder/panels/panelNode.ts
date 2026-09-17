@@ -27,4 +27,5 @@ export interface PanelNode {
    * 판정하려면 타입에 노출돼야 한다 (desktop = base, props.style).
    */
   responsive?: ElementResponsiveConfig;
+  sizing?: import("@composition/shared").FillAxes;
 }

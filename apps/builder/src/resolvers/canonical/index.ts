@@ -1,3 +1,4 @@
+import { mergeFillSizing } from "@composition/shared";
 /**
  * @fileoverview Canonical Document Resolver — ADR-903 Phase 2 Stream A
  *
@@ -162,6 +163,7 @@ function _resolveRefNodeUncached(
   const resolvedBase: CanonicalNode = {
     ...master,
     ...refNode,
+    ...mergeFillSizing(master, refNode),
     // type 은 ref 자체를 유지하지 않고, master 타입으로 "열어준다"
     // NOTE: ResolvedNode 에는 _resolvedFrom 이 있으므로 원본 추적 가능.
     //       여기서는 refNode.id 를 그대로 유지 (인스턴스 identity 보존).

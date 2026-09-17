@@ -1,6 +1,6 @@
 # ADR-224 구현 설계 — 기존 Size 격자와 Fill 전용 의미 보강
 
-> [ADR-224](../224-intent-based-size-authoring.md), Proposed — 2026-09-18. Round 1 수리 반영. 아래 타입·함수는 목표 계약이며 구현 결과가 아니다.
+> [ADR-224](../224-intent-based-size-authoring.md), Accepted — 2026-09-18 (부분 구현 후 크리티컬 오류로 실행 중단). Round 1 수리 반영. 아래 타입·함수는 목표 계약이며 구현 결과가 아니다.
 
 ## 1. 범위
 
@@ -218,6 +218,10 @@ child 자체 responsive가 없어도 **parent만 mobile Column으로 바뀌면**
 A(layoutVersion)와 B(signature)를 모두 고친다. node 자신의 factor는 scalar/axis signature로 읽고 parent direction/layout의 변경은 의존한 Fill child를 무효화한다. parent id만 동일하다고 재사용하지 않는다. cache warm 상태에서 parent만 변경하는 negative probe를 G4에 둔다. 형제 factor 정규화를 제거했으므로 sibling 최소 factor용 의존성은 필요 없다.
 
 ## 7. 실행 단계
+
+**2026-09-18 재개 후 재중단**: 엔진 최종 입력에서 intrinsic 측정값의 고정 W/H 주입을 확정했다. 스칼라 분리 후보로 기존 Fill 불일치는 해소됐으나 기본 Button Column 폭 900/68px의 신규 크리티컬 회귀가 실제 Builder에서 확인됐다. 후보만 철회하고 WASM 재생성, 진단 getter·회귀 fixture·근거를 보존했다. 기존 G3/G4 오류와 이후 범위는 미완료이며 완료 Phase는 없다. 다음 재개는 inline 부재와 catalog/생성 base의 fit-content·명시/Fill auto를 구별하는 유효 스타일 경계부터다.
+
+**2026-09-18 실행 기록**: G0의 Fill→숫자 편집 증상을 재현하고 Fill 전용 저장·투영·기존 한 상자 UI를 부분 구현했다. 실제 브라우저에서 Row 높이 30/240px, Column Width Fill 69/900px의 Canvas/Preview 불일치가 발생해 사용자 지시에 따라 중단했다. Phase 0의 전체 corpus/비용 기준선, Phase 1의 전체 왕복/출력, Phase 2의 Ratio·Absolute·resize 및 과업/성능 검증은 남아 있다. 아래 Phase 어느 것도 완료 처리하지 않는다. [중단 근거와 재개 경계](../evidence/224-fill-layout-blocker.md).
 
 | Phase | 범위                                                                                    | 파일/소비처                                                                                                                            | 종료                         |
 | ----- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |

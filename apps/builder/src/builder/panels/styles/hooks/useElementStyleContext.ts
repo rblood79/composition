@@ -1,3 +1,8 @@
+import {
+  mergeFillSizing,
+  resolveEffectiveFill,
+  type FillAxes,
+} from "@composition/shared";
 import { useMemo } from "react";
 import { resolveComponentRule, type BreakpointName } from "@composition/shared";
 import { getSpecForTag } from "../../../workspace/canvas/styleConversion/tagSpecMap";
@@ -12,6 +17,7 @@ import {
 } from "../../../../utils/theme/tintToSkiaColors";
 
 export interface ElementStyleContext {
+  sizing?: FillAxes;
   style: Record<string, unknown> | undefined;
   type: string | undefined;
   size: string | undefined;
@@ -211,5 +217,13 @@ export function useElementStyleContext(id: string | null): ElementStyleContext {
     return undefined;
   }, [element, elementsMap, props]);
 
-  return { style, type, size, fills, props, accentColor };
+  const sizing = useMemo(
+    () =>
+      resolveEffectiveFill(
+        mergeFillSizing(origin ?? {}, element ?? {}),
+        activeBreakpoint,
+      ),
+    [origin, element, activeBreakpoint],
+  );
+  return { style, type, size, fills, props, accentColor, sizing };
 }

@@ -316,6 +316,10 @@ export interface ResponsiveStyles {
  * Element에 저장되는 Responsive 설정
  */
 export interface ElementResponsiveConfig {
+  /** ADR-224: tier별 Fill 해제(null)·가중치. */
+  sizing?: Partial<
+    Record<"tablet" | "mobile", import("./sizing.types").FillAxes>
+  >;
   /** Breakpoint별 가시성 */
   visibility?: ResponsiveVisibility;
   /** Breakpoint별 스타일 */

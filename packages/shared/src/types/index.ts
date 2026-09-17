@@ -20,3 +20,5 @@ export * from "./pencil-adapter.types";
 export * from "./canonical-resolver.types";
 // ADR-116 Phase 1 — Canonical Document Actions / Adapter API
 export * from "./composition-document-actions.types";
+
+export * from "./sizing.types";

@@ -85,14 +85,14 @@ describe("useTransformAuxiliary", () => {
     seedResponsiveOverride({ width: { mobile: "100%" } });
 
     const { result } = renderHook(() => useWidthSizeMode("el-1"));
-    expect(result.current).toBe("fill");
+    expect(result.current).toBe("fixed");
   });
 
   it("useHeightSizeMode reads the active breakpoint override", () => {
     seedResponsiveOverride({ height: { mobile: "100%" } });
 
     const { result } = renderHook(() => useHeightSizeMode("el-1"));
-    expect(result.current).toBe("fill");
+    expect(result.current).toBe("fixed");
   });
 });
 
@@ -188,7 +188,7 @@ describe("useTransformAuxiliary — ADR-082 A1 부모 Spec fallback", () => {
 });
 
 describe("useTransformAuxiliary — Transform Spec default inference", () => {
-  it("infers ListBox width 100% Spec default as Fill without an inline width", () => {
+  it("keeps ListBox 100% as CSS percentage without inferring Fill", () => {
     setTestElements([
       {
         id: "listbox-1",
@@ -198,7 +198,7 @@ describe("useTransformAuxiliary — Transform Spec default inference", () => {
     ]);
 
     const { result } = renderHook(() => useWidthSizeMode("listbox-1"));
-    expect(result.current).toBe("fill");
+    expect(result.current).toBe("fixed");
   });
 
   it("infers Avatar height Spec default as Fixed without an inline height", () => {

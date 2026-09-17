@@ -1020,7 +1020,7 @@ function canonicalResponsiveField(
     responsive.styles && Object.keys(responsive.styles).length > 0;
   const hasVisibility =
     responsive.visibility && Object.keys(responsive.visibility).length > 0;
-  return hasStyles || hasVisibility ? { responsive } : {};
+  return hasStyles || hasVisibility || responsive.sizing ? { responsive } : {};
 }
 
 /**
@@ -1050,6 +1050,10 @@ function legacyElementToCanonicalNode(
   doc: CompositionDocument,
   previousNode: CanonicalNode | null,
 ): CanonicalNode {
+  const sizing = Object.hasOwn(element, "sizing")
+    ? element.sizing
+    : previousNode?.sizing;
+  const sizingField = sizing ? { sizing } : {};
   const legacy = asElementWithLegacyMirror(element);
   const isReusableOrigin =
     legacy.componentRole === "master" ||
@@ -1082,6 +1086,7 @@ function legacyElementToCanonicalNode(
           name: slotName ?? "content",
         },
         ...responsiveField,
+        ...sizingField,
         metadata: {
           type: "legacy-slot-hoisted",
           slotName: slotName ?? "content",
@@ -1096,6 +1101,7 @@ function legacyElementToCanonicalNode(
       name: element.componentName,
       ...(previousNode?.children ? { children: previousNode.children } : {}),
       ...responsiveField,
+      ...sizingField,
       metadata: {
         type: "legacy-slot",
         slot_name: legacyElement.slot_name,
@@ -1124,6 +1130,7 @@ function legacyElementToCanonicalNode(
         } as Element)
       : element;
   const baseNode: CanonicalNode = {
+    ...sizingField,
     id: previousNode?.id ?? element.id,
     type: tagToType(element.type),
     name: element.componentName,

@@ -17,16 +17,19 @@ const TARGETS = [
   // known: ADR-223 (archetype base) 과 무관한 **기존** 발산 — G2-B before/after arm 과 생성 CSS diff 0 으로 확인.
   //   축이 다르므로 판정에서 분리해 기록만 한다 (docs/adr/evidence/223-phase2-g2.md §G3).
   { type: "Toolbar",    chrome: ".react-aria-Toolbar",      expect: { cursor: "auto",    userSelect: "auto", transitionBg: false },
-    known: [{ re: /^ref\.h /, why: "Skia Toolbar 높이 29 (버튼 md 행) vs DOM 22 — G2-B 에서 DOM 22 는 before/after 동일" },
-            { re: /^ref\.w /, why: "Separator 좌우 여백 (DOM 18 vs Skia 8) — 수동 Separator CSS 축" }] },
+    // 2026-09-18 후속 4 로 닫힘 (Separator margin 축 + Toolbar staticSelectors 를 layout 이 읽는다). 남는 것은 버튼 텍스트
+    //   측정 차 (CanvasKit vs DOM, 버튼당 ≤ 2.5 · 3개 누적) 뿐 — 구조 축은 `toolbar-separator-live.mjs` 가 Δ ≤ 1.
+    known: [{ re: /^ref\.w /, why: "Button 텍스트 run 폭 차 (≤ 2.5/버튼) 누적 — 구조 축 아님" }] },
   { type: "TableView",  chrome: ".react-aria-TableView",    expect: { cursor: "auto",    userSelect: "auto", transitionBg: false }, known: [] },
   { type: "Disclosure", chrome: ".react-aria-Disclosure",   expect: { cursor: "auto",    userSelect: "auto", transitionBg: false }, known: [] },
   { type: "Pagination", chrome: ".react-aria-Pagination",   expect: { cursor: "auto",    userSelect: "auto", transitionBg: false, alignItems: "center" },
-    known: [{ re: /^Button\.x /, why: "preview renderPagination 이 `.react-aria-Pagination` 을 안 붙여 생성 CSS (space-between · gap · align) 가 DOM 에 도달하지 않는다 — Nav 와 같은 catalogChrome 배선이 별도 후속" },
-            { re: /^chrome 없음/, why: "같은 사유 (class 미부여)" }] },
+    // 2026-09-18 후속 1 로 닫힘 (renderPagination catalogChrome) — known 없음
+    known: [] },
   { type: "Card",       chrome: ".react-aria-Card",         expect: { cursor: "pointer", userSelect: "auto", transitionBg: false }, known: [] },
   { type: "Tabs",       chrome: ".react-aria-Tab",          expect: { cursor: "pointer", userSelect: "none", transitionBg: true },
-    known: [{ re: /^(Tabs\.h|TabPanel\.[xy]) /, why: "Skia 는 TabPanels 래퍼 (padding 12) 안에 TabPanel 을 두고 DOM 은 Tabs 직계 padding 0 — Tabs.css 는 composition.layout 17 (byte-identical), 별도 축" }] },
+    // 2026-09-18 후속 3 으로 닫힘 (TabPanels 래퍼 padding 0 — Tabs 53 = 53). 이 하니스는 **부모 기준** rect 라 TabPanel 의
+    //   부모가 다르다 (Skia 는 TabPanels 래퍼 (0) · DOM 은 Tabs 직계 (29)) — Tabs 기준 y 29 = 29 는 `tabs-panel-wrapper-live.mjs`.
+    known: [{ re: /^TabPanel\.y /, why: "부모 기준 좌표계 차이 (Skia TabPanels 래퍼 vs DOM Tabs 직계) — Tabs 기준은 일치" }] },
   // 수동 GridList.css 가 cursor:pointer · `transition: all 150ms` 를 재선언 (transitionProperty = "all")
   { type: "GridList",   chrome: ".react-aria-GridListItem", expect: { cursor: "pointer", userSelect: "auto", transitionAll: true }, known: [] },
 ];

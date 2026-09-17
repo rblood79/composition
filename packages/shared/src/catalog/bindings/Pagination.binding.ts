@@ -31,7 +31,8 @@ import type { PrimitiveBinding } from "../types";
  *   못 타 generic fall-through 로 빠지고, flattenNodeChildrenByParent 보강을 못 받아 자식 Button 이 통째
  *   미렌더된다(Preview 빈 nav, Skia 는 자식 직접 렌더 → 비대칭). ButtonGroup/TableView/AvatarGroup/CardView
  *   동형 — 고유 renderer id(`"pagination"`) + renderFacetDeclaration delegating-internal 등록으로 위임 활성화.
- *   isSpecOrCatalogBacked + `react-aria-Pagination` className + `data-size` 보존 → generated CSS 매칭 불변.
+ *   `react-aria-Pagination` className + `data-size`/`data-variant` 는 renderPagination 의 `catalogChrome` 이 붙인다
+ *   (2026-09-18 — 그전엔 붙인 적이 없어 생성 CSS 전량이 preview 에 dead 였다, CHANGELOG).
  *
  * D1: composition `<nav>` (internal source, generic DOM). role="navigation" / aria-label="Pagination"
  *     은 D2 prop(factory/renderer 가 부여).

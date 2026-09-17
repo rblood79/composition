@@ -825,7 +825,8 @@ export const createUpdateElementAction =
     // `@media` CSS 가 새로고침 전까지 이전 프리셋 규칙 그대로였다). `inspectorActions.ts`
     // 의 Style 패널 경로는 같은 이유로 이미 bump 을 강제하고 있다 — 그 규칙은 호출자
     // 속성이 아니라 **필드 자체의 성질**이므로 일반 경로에도 있어야 한다.
-    const hasResponsiveChange = "responsive" in sanitizedUpdates;
+    const hasResponsiveChange =
+      "responsive" in sanitizedUpdates || "sizing" in sanitizedUpdates;
     const isLayoutChange =
       hasResponsiveChange ||
       (hasStyleChange

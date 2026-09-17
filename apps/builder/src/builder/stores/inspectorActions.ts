@@ -1,3 +1,6 @@
+import { getSizingEffectiveStyle } from "@composition/shared";
+import { buildSizingEdit, type SizingEdit } from "./utils/sizingEdit";
+import type { ImmediateSelectionSnapshot } from "../inspector/types";
 /**
  * Inspector Actions Slice
  *
@@ -570,6 +573,10 @@ export interface InspectorActionsState {
   // Actions for updating selected element
   updateSelectedStyle: (property: string, value: string) => void;
   updateSelectedStyles: (styles: Record<string, string>) => void;
+  applySizingFromSelection: (
+    snapshot: ImmediateSelectionSnapshot,
+    edit: SizingEdit,
+  ) => void;
   /** 비-migrated layout/structure editor의 commit-only fallback용 legacy preview */
   updateSelectedStylePreview: (property: string, value: string) => void;
   /**
@@ -622,6 +629,7 @@ export interface InspectorActionsState {
 
 // Required state from other slices
 interface RequiredState {
+  selectedElementIds?: string[];
   selectedElementId: string | null;
   elementsMap: InspectorElementMap;
   elements: Element[];
@@ -764,7 +772,8 @@ export const createInspectorActionsSlice: StateCreator<
     // propsUpdate 키 검사에 걸리지 않는다 — additionalUpdates.responsive 변경도
     // 전역 재레이아웃(resolve 재계산) 대상이므로 layoutVersion bump 을 강제.
     const hasResponsiveChange =
-      additionalUpdates !== undefined && "responsive" in additionalUpdates;
+      additionalUpdates !== undefined &&
+      ("responsive" in additionalUpdates || "sizing" in additionalUpdates);
     const hasLayoutChange =
       hasResponsiveChange ||
       Object.keys(propsUpdate).some((key) =>
@@ -1121,6 +1130,69 @@ export const createInspectorActionsSlice: StateCreator<
         );
       }
       updateAndSave(element.id, {}, { responsive: nextResponsive });
+    },
+
+    applySizingFromSelection: (snapshot, edit) => {
+      const state = get();
+      if (
+        snapshot.selectedElementId !== state.selectedElementId ||
+        snapshot.currentPageId !== state.currentPageId ||
+        !snapshot.selectedElementId
+      )
+        return;
+      const ids = state.selectedElementIds?.length
+        ? state.selectedElementIds
+        : [snapshot.selectedElementId];
+      const plans: Array<{ id: string; updates: Partial<Element> }> = [];
+      for (const id of ids) {
+        const source = getInspectorElementById(state.elements, id);
+        if (!source || source.page_id !== snapshot.currentPageId) return;
+        const effective = getResolvedInspectorElement(source, state.elements);
+        let parentId = source.parent_id;
+        let parentStyle: Record<string, unknown> = {};
+        const visited = new Set<string>([id]);
+        while (parentId && !visited.has(parentId)) {
+          visited.add(parentId);
+          const parent = getInspectorElementById(state.elements, parentId);
+          if (!parent) break;
+          parentStyle = getSizingEffectiveStyle(
+            getResolvedInspectorElement(parent, state.elements),
+            state.activeBreakpoint,
+          );
+          if (parentStyle.display !== "contents") break;
+          parentId = parent.parent_id;
+        }
+        const context = {
+          display: String(parentStyle.display ?? "block"),
+          flexDirection: String(parentStyle.flexDirection ?? "row"),
+          writingMode: String(parentStyle.writingMode ?? "horizontal-tb"),
+        };
+        const effectiveStyle = getSizingEffectiveStyle(
+          effective,
+          state.activeBreakpoint,
+        );
+        const updates = buildSizingEdit(
+          source,
+          {
+            ...effective,
+            props: { ...effective.props, style: effectiveStyle },
+          },
+          edit,
+          context,
+          state.activeBreakpoint,
+        );
+        if (!updates) return;
+        if (Object.keys(updates).length) plans.push({ id, updates });
+      }
+      historyManager.runInTransaction(
+        { type: "batch", elementId: snapshot.selectedElementId },
+        () => {
+          for (const { id, updates } of plans) {
+            const { props, ...fields } = updates;
+            void updateAndSave(id, props ?? {}, fields);
+          }
+        },
+      );
     },
 
     updateSelectedStyles: (styles) => {

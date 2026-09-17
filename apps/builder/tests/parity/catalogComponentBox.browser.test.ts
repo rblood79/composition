@@ -316,9 +316,15 @@ const CASES: CatalogCase[] = [
     style: { width: "100%" },
     attrs: { "data-size": "md", "data-variant": "default" },
   },
-  //   Disclosure 는 여기 없다 — 잔존이 interaction 뿐이라 좌표 축이 없고, 실측 (2026-09-18) 은 archetype
-  //   과 무관한 Δ2 (w/h) 다: 생성 CSS 가 `border-width: 1px` 만 emit 하고 border-style 이 없어 DOM 은
-  //   0, layout 은 catalog borderWidth 1 을 그대로 쓴다. 별도 축 (docs/adr/evidence/223-phase2-g2.md).
+  //   Disclosure: catalog `sizes.borderWidth 1` 인데 variant 가 없어 (starter 레퍼런스도 테두리 없음)
+  //   생성 CSS 는 `border-width: 1px` 만 emit — border-style 없는 DOM 은 0 이고 layout 은 1 을 그대로
+  //   써 w/h Δ2 였다 (2026-09-18, ADR-223 live 에서 발견). 테두리 없는 상자는 borderWidth 0 이 정본.
+  {
+    type: "Disclosure",
+    children: KIDS_2,
+    availW: 320,
+    attrs: { "data-size": "md" },
+  },
 ];
 
 /**

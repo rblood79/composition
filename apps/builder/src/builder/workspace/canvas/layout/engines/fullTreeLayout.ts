@@ -555,6 +555,13 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
     {
       getSharedLayoutMap,
       getSharedLayoutVersion,
+      getEngineInput: (elementId: string) => {
+        for (const tree of persistentTrees.values()) {
+          const json = tree.getLastJson(elementId);
+          if (json) return JSON.parse(json) as Record<string, unknown>;
+        }
+        return null;
+      },
     };
 }
 

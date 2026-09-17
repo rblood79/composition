@@ -115,6 +115,7 @@ export interface Element {
    * resolve 는 `getResponsiveValueWithCascade` 단일 진입점.
    */
   responsive?: import("@composition/shared").ElementResponsiveConfig;
+  sizing?: import("@composition/shared").FillAxes;
 
   // --- ADR-214: 노드 소유 상태 정의 (페이지 · 요소 변수) ---
   /**

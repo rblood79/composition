@@ -1,3 +1,4 @@
+import { projectFillLayoutNodes } from "../layout/projectFillLayout";
 /**
  * useLayoutPublisher — 레이아웃 발행 (ADR-100 Phase 6.4)
  *
@@ -168,6 +169,7 @@ export function useLayoutPublisher(
           resolveResponsiveLayoutNode(element, activeBreakpoint),
         );
       }
+      projectFillLayoutNodes(sourceElementById);
       const resolvedPageElements = pageElements.map(
         (el) => sourceElementById.get(el.id) ?? el,
       );

@@ -23,7 +23,7 @@
 
   /* Default size */
   height: auto;
-  padding: 12px 12px;
+  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
@@ -43,21 +43,21 @@
 
 .react-aria-TabPanels[data-size="sm"] {
   height: auto;
-  padding: 8px 8px;
+  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
 .react-aria-TabPanels[data-size="md"] {
   height: auto;
-  padding: 12px 12px;
+  padding: 0px 0px;
   font-size: var(--text-sm);
   border-radius: var(--radius-none);
 }
 
 .react-aria-TabPanels[data-size="lg"] {
   height: auto;
-  padding: 16px 16px;
+  padding: 0px 0px;
   font-size: var(--text-base);
   border-radius: var(--radius-none);
 }

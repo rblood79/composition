@@ -23,6 +23,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **페이지를 추가하면 설정의 Page layout·Page gap 과 어긋난 자리에 놓였다.** `auto` 배치의 새 페이지 위치가 기존 페이지 배치가 아니라 _추가 시점의 뷰포트_ (panel 폭 · zoom) 로 격자를 다시 만들었다 — 부팅 때 panel metrics 0 으로 `x=0` 에 놓인 페이지 옆에 새 페이지만 `x=317` (leftInset) 로, zoom 0.3 에서는 열 수가 2 로 바뀌어 1열 세로 페이지들과 무관한 칸에 놓였다. 새 페이지 위치는 canonical `pagePositions` 에 기록되지 않아 새로고침 시 그 페이지만 재계산 폴백 (gap 80 · metrics 0) 을 타 persist 된 페이지들과 겹쳤다. 수리: `calculateNextPagePosition` auto 분기가 격자 원점 (min x) 과 열 수 (첫 행 페이지 수) 를 기존 배치에서 읽고 (배치된 페이지 0 일 때만 뷰포트 bounds), `appendPageShell` 이 같은 microtask persist 배치에 canonical 위치를 싣는다 (별도 I/O 0). horizontal · vertical 은 종전 정상. 게이트: `pageLayoutActions.test.ts` 2 (원점 · 열 수, 원복 RED) · `pageActivation.test.ts` 1 (canonical 기록) · headless Playwright 실측 3 케이스 (부팅 후 추가 x=0 · zoom 0.3 추가 y=3840 1열 끝 · 새로고침 후 위치 유지). 설정값 (direction · gap) 자체는 세션 전용으로 그대로 — persist 는 별도 판정.
 
+## [ADR-224 — Fill 가중치 편집 부분 구현, 레이아웃 오류로 중단] - 2026-09-18
+
+### In progress
+
+- 기존 Size의 Width/Height 한 상자 패턴에서 Fill 선택 후 숫자로 가중치를 조정하는 입력과 Fill 전용 canonical 필드·왕복·문맥별 투영을 부분 구현했다. 실제 입력과 refresh에서 factor2 보존을 확인했다.
+- Canvas/Preview 교차축 크기 불일치(Row 높이 30/240px, Column 폭 69/900px)를 발견해 사용자 지시에 따라 실행을 중단했다. ADR은 Accepted이며 완성 기능이 아니다. Ratio·Absolute·resize와 전체 저장/출력·과업/성능 검증이 남았다. [중단 근거](adr/evidence/224-fill-layout-blocker.md).
+- 재개 조사에서 intrinsic 측정값의 고정 치수 주입을 최종 엔진 입력으로 확정했다. 스칼라 분리 후보는 기존 Fill 오류를 해소했으나 기본 Button Column 폭 900/68px의 신규 크리티컬 회귀로 중단·철회했다. 진단 채널과 회귀 fixture를 남겼으며 기존 Fill 오류는 미해결이다.
+
+## [Toolbar — vertical Separator 의 margin 축 · Toolbar staticSelectors 를 캔버스 layout 이 읽는다 (Toolbar 29 → 22 = Preview)] - 2026-09-18
+
+### Fixed
+
+- **캔버스의 Toolbar 가 Preview 보다 7px 높고 (29 / 22) Separator 좌우 간격이 좁았다 (8 / 18).** 두 원인: (a) implicitStyles 의 Separator size→margin 주입이 orientation 과 무관하게 **상하** 에만 실려 (수동 Separator.css 는 horizontal `margin: {spacing} 0` · vertical `margin: 0 {spacing}`) vertical separator 가 row 의 cross 축을 키웠다 — 방향별 축으로 수정. (b) catalog `Toolbar.composition.staticSelectors` (`.react-aria-Toolbar .react-aria-Separator` — `align-self: stretch` · vertical `margin: 0 10px` · horizontal `margin: 10px 0` + height 1 + width 100%) 는 DOM 전용 채널이라 Skia 에 닿지 않았다 — Toolbar 분기가 같은 선택자 값을 읽어 Separator 자식 layout 에 싣는다 (인라인 우선). 남는 차이는 버튼 텍스트 측정 (CanvasKit vs DOM, ≤ 2.5/버튼) 뿐. 게이트: `toolbarSeparator.browser.test.ts` (팔레트 Toolbar 실렌더 vs production layout — 높이 · separator y · 좌우 간격, 원복 3/3 RED) · live `apps/builder/scripts/toolbar-separator-live.mjs` (22 = 22 · separator (152,0) vs (148.9,0) · 간격 18 = 18) · `adr223-archetype-live.mjs` known 목록에서 후속 1·3·4 제거 → ALL PASS.
+
+## [Tabs — 캔버스만 갖던 TabPanels 래퍼 padding 12 제거 (Tabs 높이 77 → 53 = Preview)] - 2026-09-18
+
+### Fixed
+
+- **캔버스의 Tabs 가 Preview 보다 24px 높고 TabPanel 이 (12,12) 만큼 안쪽에 놓였다.** Preview `renderTabs` 는 RAC `<Tabs>` 안에 TabList 와 TabPanel 을 직계로 그리고 canonical `TabPanels` 상자를 그리지 않는데 (`renderTabPanels` → null, `.react-aria-TabPanels` 는 어느 DOM 에도 없다), 캔버스는 그 래퍼에 padding 12 (catalog `TabPanels.sizes` + implicitStyles 주입 + `calculateContentHeight` 의 `tabPanelPadding × 2`) 를 실었다 — DOM 에 상자가 없는 래퍼의 padding 은 Skia 전용 채널. 세 곳을 같이 걷어내고 catalog `TabPanels.sizes.*.padding` 을 0 으로 (패널 padding 12 는 TabPanel 자기 sizes 가 양쪽에 같이 준다). 게이트: `tabsPanelWrapper.browser.test.ts` (팔레트 Tabs 실렌더 vs production layout — 53/77 · y 29/41 RED → GREEN) · `adr923EmptyStructureBox` 기대값 79 (= 29 + panel 50) · live `apps/builder/scripts/tabs-panel-wrapper-live.mjs` (Tabs 53 = 53 · TabPanel (0,29,24,24) 양쪽 동일).
+
+## [Disclosure — catalog `borderWidth 1` (테두리 없음) 이 캔버스 상자만 2px 키우던 것 수리] - 2026-09-18
+
+### Fixed
+
+- **Disclosure 가 캔버스에서 Preview 보다 상하좌우 1px 컸다 (root h 58 / DOM 56).** catalog `sizes.*.borderWidth: 1` 인데 variant 가 없어 생성 CSS 는 `border-width: 1px` 만 emit (border-style/color 없음 → DOM 테두리 0) 하고 Skia layout 은 그 1 을 그대로 읽었다. starter 레퍼런스 (`react-aria-starter/src/Disclosure.css`) 도 루트 테두리가 없다 — `borderWidth 0` 으로 정정 (catalog 전수 sweep: 같은 형태는 Disclosure 하나). 게이트: `catalogComponentBox` Disclosure 케이스 (Δ2 RED → GREEN) · live `apps/builder/scripts/disclosure-border-live.mjs` (root 56 = 56, Δ ≤ 0.5).
+
+## [엔진 — intrinsic 키워드 폭 (`fit-content` 등) 컨테이너의 padding 이중 가산·누락 수리] - 2026-09-18
+
+### Fixed
+
+- **캔버스에서 `width: min-content / max-content / fit-content` 인 padded 상자가 flex 부모 안에서는 padding 만큼 넓고 (Tooltip 89 / Chrome 60+9), grid 부모 안에서는 좁고 (−20), block 부모 안에서는 폭은 맞되 안쪽 content 가 padding 만큼 모자랐다 (Tooltip 의 Description 29 / 49).** 키워드 폭의 박스 계약이 소비처마다 달랐던 것 — `measure_intrinsic_width` 의 값은 content-box 인데 `solve_node` 키워드 블록이 border-box 로 읽었고, flex 3.5 재-solve 는 키워드 item 을 px 로 덮은 뒤 border-box 반환을 content 슬롯에 실었고, grid 기여/배치는 키워드를 명시 크기로 분류해 pad 를 뺐고, leaf 는 키워드를 border-box 로 보고했다. 계약을 하나로 — **키워드 폭도 auto 처럼 content-box 로 보고, 자기 layout 만 border-box** (ledger §31, `layout-engine.md` 색인). 사용자-가시: Tooltip (implicitStyles 가 `fit-content` 주입) 이 row 컨테이너 안에서 Preview 와 같은 폭이 되고, 어디서나 텍스트가 padding 안에 온전히 놓인다. 실측: Rust `padded_keyword_container_as_flex_and_grid_item` (3 키워드 × flex/grid/block × 컨테이너/leaf · column cross · grid 블록 축) · parity `catalogComponentBox` Tooltip Δ20 RED → GREEN (1395 → 1396, 기존 실패 4 동일) · R8-d (`fit-content` + grow + overflow hidden) 유지 · live `apps/builder/scripts/tooltip-keyword-width-live.mjs` (row frame 안 89×44 → 69×44 · body Description 29 → 49).
+
+## [Pagination preview — 생성 Pagination.css 가 preview `<nav>` 에 닿지 않던 것 수리] - 2026-09-18
+
+### Fixed
+
+- **preview `renderPagination` 이 `.react-aria-Pagination` 과 `data-size`/`data-variant` 를 안 붙여 생성 Pagination.css 전량 (catalog `containerStyles` — `display:flex · justify-content:space-between · gap 8 · align-items:center`) 이 preview 에 dead 였다.** Skia 는 같은 containerStyles 를 읽어 5 버튼을 폭 전체에 space-between 으로 놓고, preview 는 인라인 row 만 있어 붙어 나열됐다 (ADR-223 live G3 에서 발견). `catalogChrome("Pagination", …)` 배선 (Nav 09-18 동형) — 사용자-가시: preview 의 Pagination 이 Canvas 와 같은 간격이 된다. catalog `staticSelectors` 의 `.react-aria-Button[data-current]` 계열은 `@layer components` 라 `@layer utilities` 의 `.button-base` 배경을 못 이겨 canonical 자식 Button 색은 그대로다 (실측). 게이트: `paginationPreviewChrome.browser.test.ts` (class · computed · 마지막 버튼 오른쪽 = nav 오른쪽 · accent 자식 = 독립 accent Button, 배선 전 3/4 RED) · live `apps/builder/scripts/pagination-preview-chrome-live.mjs` (Skia↔DOM root + Button 5 rect 6/6 일치, pageerror 0).
+
 ## [ADR-223 Implemented — 생성 CSS archetype 미지정 기본값 중립화] - 2026-09-18
 
 ### Changed

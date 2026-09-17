@@ -25,4 +25,5 @@ export interface CanvasLayoutNode {
    * activeBreakpoint 기준 base⊕override merge 에 사용. 저장은 raw, 소비 시 resolve.
    */
   responsive?: import("@composition/shared").ElementResponsiveConfig;
+  sizing?: import("@composition/shared").FillAxes;
 }

@@ -131,6 +131,8 @@ function createElementLayoutSignature(element: CanvasLayoutNode): string {
     element.parent_id ?? "root",
     styleSignature,
     propSignature,
+    serializeLayoutRelevantValue(element.sizing),
+    serializeLayoutRelevantValue(element.responsive?.sizing),
   ].join("|");
 }
 

@@ -629,6 +629,7 @@ export const NON_PROPS_CANONICAL_HISTORY_FIELDS = [
   "customId",
   "fills",
   "responsive",
+  "sizing",
   // ADR-214 Phase 5 — 상태 정의 (`CanonicalNode.state` mirror) 편집도 props 밖 축
   "state",
   "slot",
