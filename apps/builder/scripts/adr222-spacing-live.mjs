@@ -369,7 +369,7 @@ try {
     follow: await readLayout(page, followId),
   };
   const histBefore = await historyCount(page);
-  await drag(page, topPt, 0, 24 * topPt.zoom);
+  await drag(page, topPt, 0, -24 * topPt.zoom);
   await page.waitForTimeout(300);
   dbg = await spacingDebug(page);
   const styleMid = await readStyle(page, boxId);
@@ -500,7 +500,7 @@ try {
   await focusOwner(page);
   const histEsc = await historyCount(page);
   const leftPt = await handleScreenPoint(page, "padding:left");
-  await drag(page, leftPt, 30 * leftPt.zoom, 0);
+  await drag(page, leftPt, -30 * leftPt.zoom, 0);
   await page.waitForTimeout(200);
   dbg = await spacingDebug(page);
   const midLeft = dbg.session?.confirmedValues?.paddingLeft;
@@ -618,7 +618,7 @@ try {
     await page.waitForTimeout(700);
     const pt = await handleScreenPoint(page, "padding:top");
     const before = (await readStyle(page, boxId)).paddingTop ?? "16px";
-    await drag(page, pt, 0, sceneDelta * pt.zoom, 8);
+    await drag(page, pt, 0, -sceneDelta * pt.zoom, 8);
     await page.mouse.up();
     await page.waitForTimeout(1000);
     const after = (await readStyle(page, boxId)).paddingTop;
@@ -827,9 +827,9 @@ try {
   // 토글 OFF 드래그 → base 갱신, responsive 없음
   const baseBefore = await readStyle(page, boxId);
   const px = (v) => parseFloat(String(v ?? "0"));
-  // bottom 띠는 위로 끌어야 커진다 (sign −1) — 화면 −8*zoom
+  // bottom 띠는 아래(바깥)로 끌어야 커진다 — 화면 +8*zoom
   const bottomM = await handleScreenPoint(page, "padding:bottom");
-  await drag(page, bottomM, 0, -8 * bottomM.zoom);
+  await drag(page, bottomM, 0, 8 * bottomM.zoom);
   await page.mouse.up();
   await page.waitForTimeout(1200);
   const baseAfterOff = await readStyle(page, boxId);
@@ -855,7 +855,7 @@ try {
   const respSeeded = await readResponsive(page, boxId);
   const baseTopBefore = px(baseAfterOff.paddingTop);
   const topM = await handleScreenPoint(page, "padding:top");
-  await drag(page, topM, 0, 12 * topM.zoom);
+  await drag(page, topM, 0, -12 * topM.zoom);
   await page.mouse.up();
   await page.waitForTimeout(1200);
   const baseAfterOn = await readStyle(page, boxId);
@@ -917,8 +917,8 @@ try {
   await focusOwner(page);
   const styleLinkBefore = await readStyle(page, boxId);
   const rightL = await handleScreenPoint(page, "padding:right");
-  // right 띠는 안쪽(−x) 으로 끌어야 커진다
-  await drag(page, rightL, -6 * rightL.zoom, 0);
+  // right 띠는 오른쪽(바깥, +x) 으로 끌어야 커진다
+  await drag(page, rightL, 6 * rightL.zoom, 0);
   await page.waitForTimeout(250);
   const dbgLink = await spacingDebug(page);
   await page.mouse.up();

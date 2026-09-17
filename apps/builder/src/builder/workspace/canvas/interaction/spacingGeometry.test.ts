@@ -44,17 +44,18 @@ describe("buildSpacingBands (ADR-222 §3)", () => {
       width: 20,
       height: 116,
     });
+    // 바깥쪽으로 끌면 커진다 — top 은 위(−y), right 는 오른쪽(+x)
     expect(byId["padding:top"]).toMatchObject({
       axis: "y",
-      sign: 1,
+      sign: -1,
       property: "paddingTop",
       value: 10,
     });
-    expect(byId["padding:bottom"]).toMatchObject({ axis: "y", sign: -1 });
-    expect(byId["padding:left"]).toMatchObject({ axis: "x", sign: 1 });
+    expect(byId["padding:bottom"]).toMatchObject({ axis: "y", sign: 1 });
+    expect(byId["padding:left"]).toMatchObject({ axis: "x", sign: -1 });
     expect(byId["padding:right"]).toMatchObject({
       axis: "x",
-      sign: -1,
+      sign: 1,
       value: 20,
     });
   });
@@ -191,8 +192,12 @@ describe("hitTestSpacingBands", () => {
 
   it("maps pointer movement through axis and sign", () => {
     const bottom = bands.find((b) => b.id === "padding:bottom")!;
-    expect(spacingDeltaFromPointer(bottom, 7, -10)).toBe(10);
+    expect(spacingDeltaFromPointer(bottom, 7, 10)).toBe(10);
+    const top = bands.find((b) => b.id === "padding:top")!;
+    expect(spacingDeltaFromPointer(top, 7, -10)).toBe(10);
     const right = bands.find((b) => b.id === "padding:right")!;
-    expect(spacingDeltaFromPointer(right, -4, 99)).toBe(4);
+    expect(spacingDeltaFromPointer(right, 4, 99)).toBe(4);
+    const left = bands.find((b) => b.id === "padding:left")!;
+    expect(spacingDeltaFromPointer(left, -4, 99)).toBe(4);
   });
 });
