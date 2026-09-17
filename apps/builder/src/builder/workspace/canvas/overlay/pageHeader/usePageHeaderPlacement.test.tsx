@@ -98,7 +98,7 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     const { container } = render(<PageHeaderLayer frames={frames} />);
     const layer = container.firstElementChild as HTMLElement;
     const p1 = headerOf(layer, "p1");
-    expect(p1.style.transform).toBe("translate3d(0px, 71px, 0)");
+    expect(p1.style.transform).toBe("translate3d(0px, 64px, 0)");
     expect(p1.style.width).toBe("400px");
     expect(p1.style.display).toBe("");
     // (5000, 5000) 은 1600×900 밖
@@ -127,7 +127,7 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     act(() => useViewportSyncStore.getState().setCameraGestureActive(false));
     expect(layer.hasAttribute("data-hidden")).toBe(false);
     expect(headerOf(layer, "p1").style.transform).toBe(
-      "translate3d(-100px, 71px, 0)",
+      "translate3d(-100px, 64px, 0)",
     );
   });
 
@@ -141,7 +141,7 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
       publishCanvasFramePresentation(camera(2, 0, 100), idle);
     });
     expect(headerOf(layer, "p1").style.transform).toBe(
-      "translate3d(0px, 71px, 0)",
+      "translate3d(0px, 64px, 0)",
     );
     expect(headerOf(layer, "p1").style.width).toBe("800px");
     // p2 는 2000 ≥ 1600 → 컬링 (display none, transform 은 안 쓴다)
@@ -166,7 +166,7 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
     });
     expect(writes).toBe(1);
     expect(headerOf(layer, "p1").style.transform).toBe(
-      "translate3d(40px, 81px, 0)",
+      "translate3d(40px, 74px, 0)",
     );
     expect(headerOf(layer, "p2").style.transform).toBe(p2Before);
   });

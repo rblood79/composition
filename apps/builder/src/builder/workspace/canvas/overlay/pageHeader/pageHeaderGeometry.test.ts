@@ -20,8 +20,8 @@ describe("pageHeaderScreenRect — 화면 px 고정 높이, 폭만 zoom", () => 
       panX: 10,
       panY: 20,
     });
-    expect(rect).toEqual({ left: 110, top: 191, width: 390, height: 28 });
-    expect(PAGE_HEADER_HEIGHT + PAGE_HEADER_GAP).toBe(29);
+    expect(rect).toEqual({ left: 110, top: 184, width: 390, height: 28 });
+    expect(PAGE_HEADER_HEIGHT + PAGE_HEADER_GAP).toBe(36);
   });
 
   it("zoom 2: 위치·폭은 2배, 높이는 28 그대로", () => {
@@ -30,7 +30,7 @@ describe("pageHeaderScreenRect — 화면 px 고정 높이, 폭만 zoom", () => 
       panX: 0,
       panY: 0,
     });
-    expect(rect).toEqual({ left: 200, top: 371, width: 780, height: 28 });
+    expect(rect).toEqual({ left: 200, top: 364, width: 780, height: 28 });
   });
 
   it("drag 델타가 반영된 position 을 받는다 (프레임 원본은 안 바뀐다)", () => {
@@ -50,7 +50,7 @@ describe("pageOccluderScreenRect — body ∪ 헤더 한 rect", () => {
       panX: 0,
       panY: 0,
     });
-    expect(rect).toEqual({ left: 100, top: 171, width: 390, height: 873 });
+    expect(rect).toEqual({ left: 100, top: 164, width: 390, height: 880 });
   });
 });
 

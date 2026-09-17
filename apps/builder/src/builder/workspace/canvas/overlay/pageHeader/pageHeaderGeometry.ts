@@ -7,7 +7,7 @@
  */
 
 export const PAGE_HEADER_HEIGHT = 28;
-export const PAGE_HEADER_GAP = 1;
+export const PAGE_HEADER_GAP = 8;
 export const PAGE_HEADER_PADDING_X = 8;
 
 export interface PageHeaderFrame {
