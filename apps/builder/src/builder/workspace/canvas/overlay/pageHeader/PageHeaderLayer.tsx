@@ -12,7 +12,10 @@
  * 합성 핸들러는 root 에서 돌아 너무 늦다). 컨테이너 capture 가드는 `[data-page-header]`
  * 자손이면 Skia 선판정만 건너뛴다.
  */
+import { X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { iconProps } from "../../../../../utils/ui/uiConstants";
+import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
 import { useStore } from "../../../../stores";
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
 import type { PageHeaderFrame } from "./pageHeaderGeometry";
@@ -20,6 +23,9 @@ import { usePageHeaderPlacement } from "./usePageHeaderPlacement";
 import "./PageHeaderLayer.css";
 
 export const PAGE_HEADER_ATTR = "data-page-header";
+
+/** 헤더 우측 액션 슬롯 (패널 header-action 과 같은 `action-icon-button` 어법). */
+const PAGE_HEADER_ACTION_CLASS = "page-header__action";
 
 /** 이벤트 target 이 페이지 헤더 (또는 그 안 편집기) 인가 — 컨테이너 capture 가드용. */
 export function isPageHeaderEventTarget(target: EventTarget | null): boolean {
@@ -35,6 +41,18 @@ function headerIdFromTarget(target: EventTarget | null): string | null {
 
 function isEditorTarget(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest("input") !== null;
+}
+
+/**
+ * 액션 버튼 위 이벤트인가 — 편집기와 같은 이유로 헤더 제스처에서 제외한다. 리스너는 층
+ * 루트에 걸려 있어 버튼 자손의 pointerdown 도 헤더로 올라오는데, 그대로 두면 버튼을 누를
+ * 때마다 페이지 선택·드래그가 시작된다.
+ */
+function isHeaderActionTarget(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest(`.${PAGE_HEADER_ACTION_CLASS}`) !== null
+  );
 }
 
 export interface PageHeaderLayerProps {
@@ -94,12 +112,14 @@ export function PageHeaderLayer({
     if (!layerNode) return;
     const onPointerDown = (event: PointerEvent): void => {
       if (event.button !== 0 || isEditorTarget(event.target)) return;
+      if (isHeaderActionTarget(event.target)) return;
       const pageId = headerIdFromTarget(event.target);
       if (!pageId) return;
       handlersRef.current.onHeaderPointerDown?.(pageId, event);
     };
     const onDoubleClick = (event: MouseEvent): void => {
       if (event.button !== 0 || isEditorTarget(event.target)) return;
+      if (isHeaderActionTarget(event.target)) return;
       const pageId = headerIdFromTarget(event.target);
       if (!pageId) return;
       const { canRenamePage, onBeginRename } = handlersRef.current;
@@ -167,7 +187,20 @@ export function PageHeaderLayer({
                 }}
               />
             ) : (
-              <span className="page-header__title">{frame.title}</span>
+              <>
+                <span className="page-header__title">{frame.title}</span>
+                {/* 패널 header-action 과 같은 어법 (ActionIconButton = action-icon-button).
+                    크기는 select/combobox 안 트리거와 같은 20 상자 (--text-xl) — 헤더 띠
+                    안에 박히는 버튼이라 그 범주를 따른다 (CSS 에서 --icon-control-size 재지정).
+                    동작은 보류 — onPress 는 close 의미가 확정되면 배선한다. */}
+                <ActionIconButton
+                  aria-label={`Close ${frame.title}`}
+                  className={PAGE_HEADER_ACTION_CLASS}
+                  tooltip="Close"
+                >
+                  <X aria-hidden="true" size={iconProps.size} />
+                </ActionIconButton>
+              </>
             )}
           </div>
         );

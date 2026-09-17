@@ -72,16 +72,58 @@
    풀리면 (data-highlighted off) 배경도 타이틀과 같이 비활성으로 돌아간다. data-active
    (currentPageId) 는 편집 컨텍스트 표식으로 남되 시각 강조는 선택 유무로 판정. */
 .page-header[data-highlighted] {
-  background: color-mix(in srgb, var(--focus-ring) 24%, transparent);
+  background: color-mix(in srgb, var(--focus-ring) 12%, transparent);
 }
 
-.page-header[data-highlighted] .page-header__title {
+.page-header[data-highlighted] .page-header__title,
+.page-header[data-highlighted] .page-header__action {
   color: var(--focus-ring);
 }
 
+/* 활성 헤더의 액션 버튼 — 띠보다 한 단계 진한 같은 계열 배경으로 상자를 드러낸다
+   (띠 12% : 버튼 18%). 비활성도 같은 18% 를 띠 계열(--fg) 로 쓴다 (아래 기본 규칙). */
+.page-header[data-highlighted] .page-header__action {
+  background: color-mix(in srgb, var(--focus-ring) 18%, transparent);
+}
+
 .page-header__title {
+  /* 남는 폭을 차지해 액션 버튼을 우측으로 민다. flex 자식의 생략부호에는 min-width:0 필수 */
+  flex: 1 1 auto;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 우측 액션 슬롯 — 28px 헤더 띠 안에 박히는 버튼이라 select/combobox 안 트리거와 같은
+   20 상자(`--text-xl`)를 쓴다. Styles 패널 gap 입력의 preset(▾) 트리거 · FillLayerRow ·
+   SwatchIconButton 이 모두 같은 토큰이다. 기하 선언(width/height/padding)은
+   builder-control-size.css 가 계속 소유하고, 여기서는 그 파일이 정한 방식대로
+   `--icon-control-size` 만 다시 준다. 색·상태는 action-icon-button 그대로. */
+.page-header .page-header__action {
+  --icon-control-size: var(--text-xl);
+
+  flex: none;
+  /* 비활성 헤더에서도 상자가 보이게 — 띠와 같은 계열(--fg) 을 활성 버튼과 같은 18% 로.
+     띠 10% : 버튼 18% (활성은 focus-ring 12% : 18% 로 같은 관계). */
+  background: color-mix(
+    in srgb,
+    var(--button-color, var(--fg)) 18%,
+    transparent
+  );
+}
+
+/* hover 는 한 단계 진하게. action-icon-button 의 hover 와 특정도가 같아 소스 순서에
+   좌우되므로 여기서 명시한다 (비활성/활성 각각 같은 계열로). */
+.page-header .page-header__action[data-hovered] {
+  background: color-mix(
+    in srgb,
+    var(--button-color, var(--fg)) 26%,
+    transparent
+  );
+}
+
+.page-header[data-highlighted] .page-header__action[data-hovered] {
+  background: color-mix(in srgb, var(--focus-ring) 26%, transparent);
 }
 
 /* 이름 편집 — 헤더 띠 자체가 필드. 종전 Workspace.css 의 .page-title-edit-input (500) 을

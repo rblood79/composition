@@ -120,6 +120,33 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
     expect(isPageHeaderEventTarget(layer)).toBe(false);
   });
 
+  it("우측 close 액션 버튼 — 헤더마다 하나, 누르면 페이지 선택·드래그·이름편집으로 새지 않는다", () => {
+    const onHeaderPointerDown = vi.fn();
+    const onBeginRename = vi.fn();
+    const { container } = render(
+      <PageHeaderLayer
+        frames={frames}
+        onBeginRename={onBeginRename}
+        onHeaderPointerDown={onHeaderPointerDown}
+      />,
+    );
+    const layer = container.firstElementChild as HTMLElement;
+    // 제목 있는 헤더 3개 각각에 액션 버튼 1개
+    expect(layer.querySelectorAll(".page-header__action").length).toBe(3);
+
+    const action = headerOf(layer, "p1").querySelector(
+      ".page-header__action",
+    ) as HTMLElement;
+    expect(action.getAttribute("aria-label")).toBe("Close One");
+
+    // 액션 위 제스처는 헤더 제스처에서 제외 (층 루트 리스너가 버튼 자손을 삼키지 않는다)
+    fireEvent.pointerDown(action, { button: 0, pointerId: 3 });
+    expect(onHeaderPointerDown).not.toHaveBeenCalled();
+    fireEvent.dblClick(action, { button: 0 });
+    expect(onBeginRename).not.toHaveBeenCalled();
+    expect(layer.querySelector("input")).toBeNull();
+  });
+
   it("dblclick → onBeginRename + 편집기 (헤더 노드 안) · Enter → onRenamePage · Esc → 취소", () => {
     const onBeginRename = vi.fn();
     const onRenamePage = vi.fn();
