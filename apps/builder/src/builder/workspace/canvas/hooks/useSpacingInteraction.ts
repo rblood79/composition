@@ -33,9 +33,11 @@ import { onLayoutPublished } from "../layout/engines/fullTreeLayout";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import type { BoundingBox } from "../selection/types";
 import {
+  SPACING_SIDES,
   resolveSpacingCapability,
   type SpacingSide,
 } from "../../../presentation/editorPresentationSpacingCapability";
+import { getPaddingLinked } from "../../../panels/styles/components/boxModelLink";
 import {
   SpacingPresentationSession,
   getActiveSpacingSession,
@@ -457,13 +459,17 @@ export function useSpacingInteraction({
 
       const band = hit.band;
       const kind = band.kind;
+      // 패널 박스 모델의 padding link ON → 어느 변을 잡아도 4변 같은 값 (수정키보다 우선)
+      const linked = kind === "padding" && getPaddingLinked();
       const sides =
         kind === "padding" && band.side
-          ? resolveSpacingSidesForModifiers(
-              band.side,
-              event.altKey,
-              event.shiftKey,
-            )
+          ? linked
+            ? SPACING_SIDES
+            : resolveSpacingSidesForModifiers(
+                band.side,
+                event.altKey,
+                event.shiftKey,
+              )
           : undefined;
       const set = resolveSpacingBands(owner);
       const bandIds =
@@ -477,6 +483,7 @@ export function useSpacingInteraction({
           capability: owner,
           kind,
           sides,
+          uniformFrom: linked && band.side ? band.side : undefined,
           ownerId: ownerIdRef.current,
           runtime: editorPresentationFillPilotRuntime,
         });

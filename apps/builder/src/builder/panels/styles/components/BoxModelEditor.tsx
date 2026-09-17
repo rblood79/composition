@@ -4,7 +4,9 @@
  * 217 × 140 = 28 띠 × 5 (margin · padding · 중심 · padding · margin), 가로도 28 띠. 4방향
  * margin/padding 값이 제자리에 놓이고 가운데 link 가 4값을 연동한다 — 종전 「Padding 16 ▾ ·
  * Margin 0 ▾」 축약값 둘로는 상하/좌우가 다른 경우를 펼쳐야 알 수 있었다. 값 입력·커밋 계약은
- * FourWayGrid 와 같다 (local draft → blur/Enter 커밋, 빈 값은 "" = 키 삭제).
+ * FourWayGrid 와 같다 (local draft → blur/Enter 커밋, 빈 값은 "" = 키 삭제). link 는
+ * `boxModelLink` 모듈 상태 — 캔버스 padding 드래그 (ADR-222) 도 같은 link 를 읽어 4변에
+ * 같은 값을 준다.
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -13,6 +15,7 @@ import { Button } from "react-aria-components/Button";
 import { useStore } from "../../../stores";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import { useSemanticLabel } from "../../../../i18n";
+import { setPaddingLinked, usePaddingLinked } from "./boxModelLink";
 import "./BoxModelEditor.css";
 
 export type BoxSide = "Top" | "Right" | "Bottom" | "Left";
@@ -79,7 +82,8 @@ export const BoxModelEditor = memo(function BoxModelEditor({
   const selectedElementId = useStore((state) => state.selectedElementId);
   const derived = useMemo(() => toDraft(padding, margin), [padding, margin]);
   const [draft, setDraft] = useState<Draft>(derived);
-  const [linked, setLinked] = useState(false);
+  // link 는 캔버스 spacing 드래그도 읽는다 (4변 동일 값) — 모듈 상태 공유
+  const linked = usePaddingLinked();
   const focusedElementIdRef = useRef<string | null>(null);
   const justSavedViaEnterRef = useRef(false);
 
@@ -172,7 +176,7 @@ export const BoxModelEditor = memo(function BoxModelEditor({
           className="box-model__link"
           aria-label={localize(linked ? "Unlink sides" : "Link sides")}
           aria-pressed={linked}
-          onPress={() => setLinked((value) => !value)}
+          onPress={() => setPaddingLinked(!linked)}
         >
           {linked ? (
             <Link size={iconSmall.size} strokeWidth={iconSmall.strokeWidth} />

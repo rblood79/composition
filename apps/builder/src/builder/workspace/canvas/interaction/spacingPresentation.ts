@@ -62,7 +62,17 @@ function commit(next: Omit<SpacingPresentationSnapshot, "version">): boolean {
 
 /** 선택 변경 시 owner 교체 — hover·active 는 함께 비운다 (세션 취소는 호출부). */
 export function setSpacingOwner(owner: SpacingCapability | null): boolean {
-  return commit({ owner, hoveredBandId: null, active: null });
+  // 같은 노드의 재판정 (layout publish · breakpoint 재읽기) 은 hover·active 를 지우지 않는다 —
+  // 띠 id 는 안정적이라 hover 사선이 publish 마다 깜빡이던 것 방지 (live 하니스 hover 간헐 실패)
+  const sameNode =
+    owner !== null &&
+    snapshot.owner !== null &&
+    owner.target.nodeId === snapshot.owner.target.nodeId;
+  return commit({
+    owner,
+    hoveredBandId: sameNode ? snapshot.hoveredBandId : null,
+    active: sameNode ? snapshot.active : null,
+  });
 }
 
 export function setSpacingHover(bandId: string | null): boolean {

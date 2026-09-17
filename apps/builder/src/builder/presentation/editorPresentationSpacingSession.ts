@@ -38,6 +38,11 @@ export interface SpacingSessionBeginInput {
   readonly kind: SpacingSessionKind;
   /** padding 일 때 조작할 변 (1 · 2 · 4). gap 은 무시. */
   readonly sides?: readonly SpacingSide[];
+  /**
+   * padding link (패널 박스 모델의 link ON): 잡은 변의 값을 `sides` 전부에 같은 값으로 준다
+   * — delta 는 잡은 변의 시작값 기준, 다른 변의 시작값 차이는 보존하지 않는다.
+   */
+  readonly uniformFrom?: SpacingSide;
   readonly ownerId: string;
   readonly runtime: EditorPresentationTransactionRuntime;
   /** 테스트 seam — 기본 setTimeout */
@@ -127,6 +132,7 @@ export class SpacingPresentationSession {
   readonly capability: SpacingCapability;
 
   #handle: EditorPresentationHandle;
+  #uniformFrom: SpacingProperty | null;
   #phase: SpacingSessionPhase = "active";
   #startValues: SpacingSessionValues;
   #requestedValues: SpacingSessionValues;
@@ -154,6 +160,10 @@ export class SpacingPresentationSession {
       );
     }
     this.#startValues = startValuesFor(input, this.properties);
+    this.#uniformFrom =
+      input.kind === "padding" && input.uniformFrom
+        ? PADDING_PROPERTY_BY_SIDE[input.uniformFrom]
+        : null;
     this.#requestedValues = this.#startValues;
     this.#confirmedValues = this.#startValues;
     this.#scheduleTimeout =
@@ -228,6 +238,13 @@ export class SpacingPresentationSession {
    */
   setDelta(delta: number): boolean {
     if (this.#phase !== "active") return false;
+    if (this.#uniformFrom) {
+      // link: 잡은 변의 시작값 + delta 를 모든 변에 (0 에서 멈춤)
+      const value = Math.max(0, (this.#startValues[this.#uniformFrom] ?? 0) + delta);
+      const next: Partial<Record<SpacingProperty, number>> = {};
+      for (const property of this.properties) next[property] = value;
+      return this.setValues(next);
+    }
     let clamped = delta;
     for (const property of this.properties) {
       const start = this.#startValues[property] ?? 0;

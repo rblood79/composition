@@ -278,6 +278,7 @@ undo 스택 · Preview(Compare) iframe `getBoundingClientRect` 로 읽었다 (�
 - **G1 zoom/clip · G2 owner**: zoom 25% 화면 5px → +20 · zoom 200% 화면 20px → +10 · 코너 resize 핸들 pointerdown 은 spacing 세션 0 · Space+띠 드래그 = pan (panOffset 변경 · canonical 무변경) · overflow:hidden 조상 (높이 60) 밖 bottom 띠는 hover null · pointerdown 세션 0.
 - **G4**: 캔버스 핸들 드래그 p95 2.6ms vs 패널 연속 편집 p95 2.0ms (Δ +0.6 ≤ 2) · 100 자식 p95 ≤ 16.7 · longtask 0 (DPR 2 · throttle 1 · visible).
 - **비-desktop breakpoint (2026-09-17 확장, 하니스 26/26)**: mobile 전환 (`setActiveBreakpoint` + `invalidateLayout`, 헤더 토글과 같은 경로) → 토글 OFF 요소에도 padding 4 + gap 1 띠 · bottom 드래그 +8 → base `paddingBottom` +8 · `responsive` 없음 (전역 쓰기) · `setResponsiveStyleOverrideEnabled("padding")` ON → top 드래그 +12 → `responsive.styles.paddingTop.mobile` = base+12 · base 유지 · 띠 값 = override → desktop 복귀 → 띠 값 = base. 사용자 탭 (ToggleButtonGroup · mobile) 에서도 padding 4 + gap 띠 확인. 함정: `setActiveBreakpoint` 만 부르면 layoutVersion 이 안 올라 엔진이 옛 tier 로 남는다 — `invalidateLayout` 동반.
+- **padding link (2026-09-17 사용자 지적, 하니스 27/27)**: 패널 `.box-model__link` ON → right 띠 +6 드래그 → 세션 property 4 · canonical 4변 모두 right 시작값+6 (top/bottom 이 다른 값이었어도 같은 값). link 는 `boxModelLink` 모듈 상태를 패널·캔버스가 공유, 세션 `uniformFrom` 이 잡은 변 기준 절대값을 4변에 준다. 함정: headed 창 위에 실제 OS 마우스가 있으면 그 pointermove (소수 좌표) 가 hover 를 지운다 — hover 검사는 2회 시도.
 - **미검증 (첫 범위 밖, 지원표대로 핸들 없음)**: Grid · wrap · space-* · ref/projected · 회전 · 단위 보존 값 · cascade-shadowed — capability 순수 코어 21 케이스가 차단을 고정한다.
 
 ## Consequences

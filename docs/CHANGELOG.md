@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **캔버스 padding·gap 핸들** (ADR-222 Implemented): 컨테이너 (frame · Box · Card · Section 등 구조 컨테이너, 또는 자식이 있는 flex/block 컨테이너) 를 선택하면 padding 4변과 단일 행/열 flex 의 주축 gap 띠에 얇은 핸들이 상시 뜬다 (0값도). 띠에 마우스를 올리면 사선 + 현재 값 배지, 핸들/띠를 끌면 값이 실시간으로 바뀌고 (Skia 캔버스 · Preview · Styles 패널이 같은 확정값을 읽는다), 놓으면 되돌리기 1회. padding 은 파랑, gap 은 분홍. hug/auto 컨테이너면 부모·바깥 형제까지 함께 재배치된다.
 - **수정키**: Option/Alt 드래그 = 마주보는 두 변 · Option/Alt+Shift = 4변 · Shift = 10px 단위. 값이 0 에 닿으면 함께 멈춘다 (비대칭 차이 보존).
 - **핸들 클릭 → 인라인 숫자 입력** (RAC NumberField, 접근 이름 "Top padding" 등): Enter 로 반영 · Escape 취소 · 바뀐 값이 없으면 저장하지 않는다. 열려 있는 동안 Styles 패널의 같은 필드가 강조된다.
+- **padding link 와 캔버스 드래그 연동** (2026-09-17): Spacing 박스 모델의 link 가 ON 이면 캔버스에서 어느 변을 끌어도 4변이 잡은 변의 값으로 같아진다 (패널 입력과 같은 규칙, Option/Alt 수정키보다 우선). link 상태는 패널과 캔버스가 공유.
 - **Styles 패널 동기**: 캔버스에서 끄는 동안 Spacing 박스 모델의 해당 변이 강조 + 잠시 read-only, Layout 의 Gap 필드가 단일 행/열 flex 에서는 주축 longhand (row → columnGap · column → rowGap) 를 읽고 쓴다 — 종전 rowGap 우선 표시가 가로 레이아웃에서 다른 값을 보이던 것 정정.
 
 ### Changed

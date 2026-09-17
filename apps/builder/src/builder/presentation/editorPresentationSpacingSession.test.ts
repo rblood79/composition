@@ -336,6 +336,51 @@ describe("SpacingPresentationSession (ADR-222 G0 first-nail)", () => {
     h.bridge.dispose();
   });
 
+  it("padding link (uniformFrom): 잡은 변의 시작값 + delta 를 4변에 같은 값으로, 0 에서 멈춤", async () => {
+    const h = createHarness();
+    const cap = capability();
+    const session = new SpacingPresentationSession({
+      capability: {
+        ...cap,
+        padding: {
+          supported: true,
+          values: { top: 8, right: 20, bottom: 8, left: 4 },
+          rawSides: new Set(),
+        },
+      },
+      kind: "padding",
+      sides: ["top", "right", "bottom", "left"],
+      uniformFrom: "right",
+      ownerId: "canvas-spacing",
+      runtime: h.runtime,
+      scheduleTimeout: scheduleTimeout(h.timeouts),
+    });
+    session.setDelta(10);
+    expect(session.getSnapshot().requestedValues).toEqual({
+      paddingTop: 30,
+      paddingRight: 30,
+      paddingBottom: 30,
+      paddingLeft: 30,
+    });
+    session.setDelta(-25);
+    expect(session.getSnapshot().requestedValues.paddingLeft).toBe(0);
+    session.setDelta(4);
+    h.scheduler.flush();
+    const result = await session.finish();
+    expect(result.status).toBe("committed");
+    expect(h.commit.mock.calls[0][0]).toMatchObject({
+      descriptor: {
+        patch: {
+          paddingTop: "24px",
+          paddingRight: "24px",
+          paddingBottom: "24px",
+          paddingLeft: "24px",
+        },
+      },
+    });
+    h.bridge.dispose();
+  });
+
   it("waits for the final receipt before finish and cancels (commit 0) on a rejected frame", async () => {
     const h = createHarness();
     const session = new SpacingPresentationSession({

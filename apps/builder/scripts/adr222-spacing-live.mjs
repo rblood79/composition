@@ -341,9 +341,13 @@ try {
 
   // 3) hover
   const topPt = await handleScreenPoint(page, "padding:top");
-  await page.mouse.move(topPt.x - 40, topPt.y);
-  await page.waitForTimeout(250);
-  dbg = await spacingDebug(page);
+  // headed 창 위에 실제 OS 마우스가 있으면 그 pointermove (소수 좌표) 가 hover 를 지운다 — 2회 시도
+  for (let i = 0; i < 2; i++) {
+    await page.mouse.move(topPt.x - 40 - i, topPt.y + i);
+    await page.waitForTimeout(250);
+    dbg = await spacingDebug(page);
+    if (dbg.hoveredBandId === "padding:top") break;
+  }
   const cursor = await page.evaluate(
     () => document.querySelector(".canvas-container")?.style.cursor ?? "",
   );
@@ -902,6 +906,42 @@ try {
     bandsDesktop?.find((b) => b.id === "padding:top")?.value === baseTopBefore,
     JSON.stringify(bandsDesktop?.map((b) => `${b.id}=${b.value}`)),
   );
+
+  // 19) 패널 padding link ON → 캔버스 어느 변을 끌어도 4변 같은 값 (잡은 변 시작값 + delta)
+  await setPanel(page, "styles", true);
+  await page.waitForTimeout(500);
+  const linkBtn = page.locator(".box-model__link").first();
+  await linkBtn.click();
+  await page.waitForTimeout(200);
+  const linkPressed = await linkBtn.getAttribute("aria-pressed");
+  await focusOwner(page);
+  const styleLinkBefore = await readStyle(page, boxId);
+  const rightL = await handleScreenPoint(page, "padding:right");
+  // right 띠는 안쪽(−x) 으로 끌어야 커진다
+  await drag(page, rightL, -6 * rightL.zoom, 0);
+  await page.waitForTimeout(250);
+  const dbgLink = await spacingDebug(page);
+  await page.mouse.up();
+  await page.waitForTimeout(1200);
+  const styleLink = await readStyle(page, boxId);
+  const expectedLink = `${px(styleLinkBefore.paddingRight) + 6}px`;
+  record(
+    "padding link ON: right +6 드래그 → 세션 4변 · canonical 4변 모두 right 시작값+6 (top/bottom 이 달랐어도 같은 값)",
+    linkPressed === "true" &&
+      dbgLink.session?.properties?.length === 4 &&
+      ["paddingTop", "paddingRight", "paddingBottom", "paddingLeft"].every(
+        (k) => styleLink[k] === expectedLink,
+      ) &&
+      styleLinkBefore.paddingBottom !== styleLinkBefore.paddingRight,
+    JSON.stringify({
+      linkPressed,
+      before: styleLinkBefore,
+      after: styleLink,
+      sessionProps: dbgLink.session?.properties,
+    }),
+  );
+  await linkBtn.click();
+  await page.waitForTimeout(200);
 
   record(
     "page error 0",
