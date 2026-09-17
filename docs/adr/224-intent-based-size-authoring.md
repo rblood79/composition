@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-18 (원인 확정; 수리 후보의 신규 크리티컬 회귀로 재중단, 후보 철회)
+Accepted — 2026-09-18 (Fill 차단 수리 유지 · Ratio 엔진 경계 수리 — Ratio UI·명령 후보 재적용과 Absolute/resize·G5/G6 은 미완)
 
 사용자 요청: 기존 Fill/fr 선택 방식의 불편을 해소하고, 기존 스타일 패널의 Size 디자인 패턴을 유지하는 ADR 설계. Round 1 HIGH 4·MEDIUM 3·LOW 1을 반영해 범위를 개정했다. Round 3에서 8건 해결을 독립 검증했다. 2026-09-18 사용자가 ADR-224 완료까지 구현·검증을 명시 승인했다. 크리티컬 오류 발견 시 중단·보고하고 작은 오류는 수리 후 재개한다.
 
@@ -114,6 +114,8 @@ B의 큰 migration과 UI 변경을 수용할 이유가 없어 철회한다. A의
 같은 날 재개하여 intrinsic 측정값이 엔진 최종 입력의 고정 W/H로 들어가는 원인을 확정했다. 측정 스칼라 분리 후보는 위 Fill 크기를 일치시켰으나, Fill 없는 기본 Button의 Column 폭이 Canvas 900px / Preview 68px로 벌어지는 신규 크리티컬 회귀를 실제 Builder에서 확인했다. 사용자 지시에 따라 중단하고 이번 수리 후보만 철회했다. 기존 부분 구현과 다른 세션 변경은 보존했으며 기존 G3/G4 차단은 미해결이다.
 
 **최신 재개 결과 (2026-09-18)**: catalog 기본 `fit-content`와 명시 `auto`를 구별하고, leaf 콘텐츠 높이를 CSS height와 분리하며, 2차 재측정의 폭 덮어쓰기를 제거했다. 기존 Row 높이·Column Width Fill·기본 Button·Column Height Fill의 실제 Builder 확인 13/13이 통과했다. 그러나 Ratio 후보 검증에서 Width Fill + 2:1의 높이가 Canvas 30px / Preview 154.328~295.664px로 발산해 새 크리티컬 차단으로 중단했다. Ratio UI·명령 후보만 복구 가능한 로컬 패치로 분리했고 검증된 Fill 수리는 유지했다. 전체 G3/G4 및 Phase 완료가 아니며 Accepted를 유지한다.
+
+**Ratio 엔진 경계 수리 (2026-09-18)**: 위 발산의 원인은 저장·표시가 아니라 엔진 두 곳이다. ① flex 커널 (`flex.rs`) 이 preferred aspect ratio 를 전혀 받지 않아 grow 로 확정된 main 에서 cross 를 파생하지 못했다 (§9.4 step 7). ② leaf 가 aspect 로 파생한 border-box 전송값을 content 제안값으로 보고해 부모가 padding 을 한 번 더 더했다 (`width:200px + ratio 2` Button 110 / Chrome 100). 수리: flex 입력 슬롯 22 `aspect_main_per_cross` (`FLEX_FIELD_COUNT` 22→23) 로 ratio 를 논리축으로 전달하고, used main → cross 전송 (auto·fit-content cross, stretch 는 그대로 이김, §5.2.2 내용 하한), definite cross → basis 전송 (§9.2.3 B), stretch 로 definite 해진 cross → basis 전송 (§9.8, §4.5 floor 동반), column 양축 auto 는 inline 축 fit-content 폭을 먼저 정해 높이 파생 (§9.2.3 E) 을 추가했다. leaf 는 전송·승격으로 굳힌 축을 content-box 로 보고한다. 검증: Rust 425 + golden 39 PASS (신규 8 — Chrome 실측값을 기대값으로), 브라우저 fixture `fillIntrinsicSizing.browser.test.ts` 20/20 (실제 Button CSS 를 Chrome 이 그린 rect 가 oracle — ratio 6 모드 × row/column), 실제 Builder `ratio-engine-probe --ratio` **17/17** (Fill 13 + Ratio 4: fixed 200×100 / 200×100, Fill1 308.667×154.333 / 308.664×154.328, Fill2 591.333×295.667 / 591.336×295.664, pageerror 0). 전체 parity 스위트의 다른 4 파일 10건 실패는 HEAD 엔진에서도 같은 10건이라 이번 변경의 회귀가 아니다. 남은 범위는 아래와 같다.
 
 | Gate | 시점      | 통과 조건                                                                                                                                                              | 실패 시 대안                                |
 | ---- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------- |

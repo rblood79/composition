@@ -1820,6 +1820,11 @@ impl LayoutTree {
             }
             None => (None, None, None, None, 0.0, None, true, true),
         };
+        // ADR-224 Ratio — 아래 stretch 승격 / aspect 전송이 **스타일에 없는** used 치수를 explicit 로
+        // 굳힌 축. leaf 는 이 축을 content-box 로 보고해야 한다 (부모 커널이 pad/border 를 다시
+        // 더한다 — 종전엔 border-box 그대로 보고해 `w200 + ratio 2` Button 이 110 (Chrome 100)).
+        let mut derived_w = false;
+        let mut derived_h = false;
         if explicit_w > 0.0 {
             // 명시 폭 (키워드 해소값 포함) — max 먼저, min 이 이긴다 (CSS §5.1).
             let before = explicit_w;
@@ -1881,6 +1886,7 @@ impl LayoutTree {
                     }
                     if (clamped != tentative || aspect_needs_w) && clamped > 0.0 {
                         explicit_w = clamped;
+                        derived_w = true;
                     }
                 }
             }
@@ -1926,6 +1932,7 @@ impl LayoutTree {
                         aspect_h_floor = Some(transferred);
                     } else {
                         explicit_h = transferred;
+                        derived_h = true;
                     }
                 } else if explicit_h > 0.0 && explicit_w <= 0.0 {
                     // stretch 로 확정된 cross (ADR-206 definite 입력) 도 전송 입력이다 — Chrome 실측
@@ -1933,6 +1940,7 @@ impl LayoutTree {
                     // (종전 엔진 폭 40 = content). 명시 폭이 있으면 stretch 가 aspect 를 이기고
                     // (control: `w100 ratio 1` → 100×200) 여기 오지 않는다.
                     explicit_w = explicit_h * ratio;
+                    derived_w = true;
                 }
             }
         }
@@ -1960,7 +1968,18 @@ impl LayoutTree {
             // ADR-165: 폭 intrinsic — width auto/센티넬을 공급 스칼라로 해석 (스칼라
             // 부재 시 explicit_w 그대로 = 기존 동작). 반환 w 는 부모 content 슬롯
             // (content_main/cross, content_w) 의 제안값이 된다.
-            let (w, w_box) = self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w);
+            let (w, w_box) = if derived_w && explicit_w > 0.0 {
+                // 스타일에 없는 used 폭 (stretch 승격 · aspect h→w 전송) — border-box 는 자기 layout,
+                // 보고는 content-box (ADR-224 Ratio — `resolve_leaf_intrinsic_width` 는 스타일 width
+                // 를 보므로 auto 로 읽어 스칼라를 돌려주고 전송값을 버린다).
+                let pb = self
+                    .get(handle)
+                    .map(|n| axis_pad_border(&n.style, &self.ctx_for(avail_w), true))
+                    .unwrap_or(0.0);
+                ((explicit_w - pb).max(0.0), explicit_w)
+            } else {
+                self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w)
+            };
             // 측정값은 auto 축의 content 제안만 제공한다. 부모 stretch/grow와
             // 명시 height/aspect-ratio 해석 결과를 고정 치수로 덮어쓰지 않는다.
             let (h, h_box) = self
@@ -1972,6 +1991,11 @@ impl LayoutTree {
                             let content = content.max(0.0);
                             let padding = axis_pad_border(&n.style, &self.ctx_for(avail_w), false);
                             (content, content + padding)
+                        }
+                        _ if derived_h && explicit_h > 0.0 => {
+                            // aspect w→h 전송값 (border-box) — 보고는 content-box (위 derived_w 와 동일).
+                            let padding = axis_pad_border(&n.style, &self.ctx_for(avail_w), false);
+                            ((explicit_h - padding).max(0.0), explicit_h)
                         }
                         _ => (explicit_h, explicit_h),
                     }
@@ -5524,7 +5548,7 @@ fn spec_to_content(v: f32, pad_border: f32) -> f32 {
 
 /// 자식 스타일 + solve 된 content 크기 → flex.rs flat f32 (논리축 main/cross).
 ///
-/// flex.rs 필드 계약(FLEX_FIELD_COUNT=19): 0=flex_basis, 1=width(main),
+/// flex.rs 필드 계약(FLEX_FIELD_COUNT=23 — 슬롯 20~22 는 본문 주석): 0=flex_basis, 1=width(main),
 /// 2=height(cross), 3-6=margin(top/right/bottom/left, 물리), 7=pad_border_main,
 /// 8=pad_border_cross, 9=min_main, 10=max_main, 11=min_cross, 12=max_cross,
 /// 13=content_main, 14=content_cross, 15=flex_grow, 16=flex_shrink,
@@ -5558,6 +5582,12 @@ fn write_flex_item(
     // 슬롯 21 — cross 축 baseline + 1 (0 = absent → flex.rs 가 border-box 아래로 합성). row 만:
     // column 의 cross 는 인라인 축이라 baseline 정렬이 start 로 동작한다 (upstream 대조 ⑦).
     data[off + 21] = if is_row && child_baseline >= 0.0 { child_baseline + 1.0 } else { 0.0 };
+    // 슬롯 22 — preferred aspect ratio 를 논리축 main/cross 로 (ADR-224 Ratio). 스타일 ratio 는
+    // width/height 라 row 는 그대로, column 은 역수. 0 = 없음 (zero-init 계약).
+    data[off + 22] = match cstyle.aspect_ratio {
+        Some(r) if r > 0.0 => if is_row { r } else { 1.0 / r },
+        _ => 0.0,
+    };
 
     // 논리축 매핑: row → main=가로(width), cross=세로(height) / column → 반대.
     // main 축은 `resolve_dimension_opt`(fit-content→AUTO), cross 축은
@@ -6769,6 +6799,180 @@ mod tests {
         let l2 = t2.get_layout(h2[0]);
         assert_eq!(l2.width, 100.0, "stretch 300 → max 100");
         assert_eq!(l2.height, 50.0, "100 / 2");
+    }
+
+    // ── ADR-224 Ratio 엔진 경계 (2026-09-18, Chrome 실측 = Preview DOM rect) ──
+    //
+    // 재현 fixture 는 실제 Builder Button 의 최종 엔진 입력 (padding 4/12 · border 1 · contentHeight 20
+    // · contentMin/MaxWidth 43 · minWidth 68) 그대로다. Chrome: `width:200px + ratio 2` → 200×100
+    // (border-box 전송 — box-sizing border-box), `Width Fill1/Fill2 + ratio 2` → 308.664×154.328 ·
+    // 591.336×295.664. 종전 엔진 110 (leaf 가 border-box 전송값을 content 로 보고 → padding 이중) ·
+    // 30 (flex 커널이 aspect 를 모른다 → grow 뒤 cross 미파생).
+
+    const BUTTON_BOX: &str = r#""paddingTop":"4px","paddingRight":"12px","paddingBottom":"4px","paddingLeft":"12px","borderTop":"1px","borderRight":"1px","borderBottom":"1px","borderLeft":"1px","minWidth":"68px","contentHeight":20,"contentMinWidth":43,"contentMaxWidth":43"#;
+
+    #[test]
+    fn ratio_leaf_fixed_width_in_flex_row_transfers_border_box() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","width":"200px","height":"auto","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 1, 900.0, 240.0);
+        let l = t.get_layout(h[0]);
+        assert_eq!(l.width, 200.0);
+        assert_eq!(l.height, 100.0, "200 / 2 border-box (Chrome 100, 종전 110)");
+    }
+
+    #[test]
+    fn ratio_leaf_fill_in_flex_row_derives_cross_from_used_main() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","flexGrow":1,"flexShrink":1,"flexBasis":"0px","height":"auto","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"inline-flex","flexGrow":2,"flexShrink":1,"flexBasis":"0px","height":"auto","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0,1]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 2, 900.0, 240.0);
+        let a = t.get_layout(h[0]);
+        let b = t.get_layout(h[1]);
+        assert!((a.width - 308.6667).abs() < 0.01, "fill1 폭 {}", a.width);
+        assert!((b.width - 591.3333).abs() < 0.01, "fill2 폭 {}", b.width);
+        assert!((a.height - a.width / 2.0).abs() < 0.01, "fill1 높이 = 폭/2 (Chrome 154.328) got {}", a.height);
+        assert!((b.height - b.width / 2.0).abs() < 0.01, "fill2 높이 = 폭/2 (Chrome 295.664) got {}", b.height);
+    }
+
+    /// stretch 는 ratio 를 이긴다 (§9.4 step 11 — computed cross auto + align stretch → 라인 cross).
+    #[test]
+    fn ratio_leaf_fill_in_flex_row_stretch_beats_ratio() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","flexGrow":1,"flexBasis":"0px","height":"auto","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 1, 900.0, 240.0);
+        assert_eq!(t.get_layout(h[0]).height, 240.0, "stretch");
+    }
+
+    /// column: main=height 가 grow 로 확정되면 cross=width 가 ratio 로 파생된다 (h→w).
+    #[test]
+    fn ratio_leaf_height_fill_in_flex_column_derives_width() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","flexGrow":1,"flexBasis":"0px","width":"auto","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"column","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 1, 900.0, 240.0);
+        let l = t.get_layout(h[0]);
+        assert_eq!(l.height, 240.0);
+        assert_eq!(l.width, 480.0, "240 * 2 border-box");
+    }
+
+    /// column: cross(width) 가 catalog 기본 `fit-content` 여도 ratio 종속 축이면 전송값이 fit-content 다
+    /// (CSS-SIZING-4 §5.1 — Chrome `Height Fill 2/1 + ratio 2` Button → 313.344×156.672).
+    #[test]
+    fn ratio_leaf_fit_content_cross_in_flex_column_transfers_from_main() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","flexGrow":2,"flexBasis":"0px","width":"fit-content","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"inline-flex","flexGrow":1,"flexBasis":"0px","width":"fit-content","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"column","width":"900px","height":"240px"}},"children":[0,1]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 2, 900.0, 240.0);
+        let a = t.get_layout(h[0]);
+        let b = t.get_layout(h[1]);
+        assert!((a.width - a.height * 2.0).abs() < 0.01, "fill2 폭 = 높이×2 got {}×{}", a.width, a.height);
+        assert!((b.width - b.height * 2.0).abs() < 0.01, "fill1 폭 = 높이×2 got {}×{}", b.width, b.height);
+        assert!((a.height + b.height - 240.0).abs() < 0.01);
+    }
+
+    /// §9.2.3 B + §9.8 — stretch 로 definite 해진 cross 에서 basis 전송 (Chrome `column 900×240` 안
+    /// `Width Fill (stretch) + ratio 2` → 900×450, `row` 안 Button + ratio 2 (grow 없음) → 480×240).
+    #[test]
+    fn ratio_leaf_stretched_cross_transfers_basis() {
+        let col = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","width":"auto","alignSelf":"stretch","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"column","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&col, 1, 900.0, 240.0);
+        let l = t.get_layout(h[0]);
+        assert_eq!(l.width, 900.0, "stretch");
+        assert_eq!(l.height, 450.0, "900 / 2 (Chrome 450 — 컨테이너 240 을 넘친다)");
+
+        let row = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&row, 1, 900.0, 240.0);
+        let l = t.get_layout(h[0]);
+        assert_eq!(l.height, 240.0, "stretch");
+        assert_eq!(l.width, 480.0, "240 * 2");
+    }
+
+    /// column 양축 auto (§9.2.3 E) — inline 축 fit-content 폭 (43+26=69, min 68) 을 먼저 정하고 높이 파생
+    /// (Chrome 68×34). row 는 main 이 inline 이라 폭 content → 높이 파생 (같은 68/69 × 34/34.5).
+    #[test]
+    fn ratio_leaf_both_auto_in_flex_column_and_row_derive_from_inline_axis() {
+        for dir in ["column", "row"] {
+            let json = format!(
+                r#"[
+                {{"style":{{"display":"inline-flex","width":"fit-content","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+                {{"style":{{"display":"flex","flexDirection":"{dir}","width":"900px","height":"240px"}},"children":[0]}}
+            ]"#,
+                b = BUTTON_BOX,
+                dir = dir
+            );
+            let (t, h) = solve(&json, 1, 900.0, 240.0);
+            let l = t.get_layout(h[0]);
+            assert_eq!(l.width, 69.0, "{dir}: fit-content 폭 43+26");
+            assert_eq!(l.height, 34.5, "{dir}: 69 / 2 (Chrome 68×34)");
+        }
+    }
+
+    /// §9.2.3 B — definite cross + ratio + basis content → flex base size 는 cross 에서 전송.
+    #[test]
+    fn ratio_leaf_definite_cross_in_flex_row_transfers_main() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","height":"100px","alignSelf":"start","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 1, 900.0, 240.0);
+        let l = t.get_layout(h[0]);
+        assert_eq!(l.height, 100.0);
+        assert_eq!(l.width, 200.0, "100 * 2 border-box (종전 content 43+24)");
+    }
+
+    /// block 부모 — padding 있는 leaf 의 w→h 전송도 border-box 한 번 (종전 100 + pad 10).
+    #[test]
+    fn ratio_padded_leaf_in_block_transfers_border_box() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"block","width":"200px","aspectRatio":2,{b}}},"children":[]}},
+            {{"style":{{"display":"block","width":"900px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 1, 900.0, -1.0);
+        assert_eq!(t.get_layout(h[0]).height, 100.0, "200 / 2 (Chrome 100)");
+        assert_eq!(t.get_layout(h[1]).height, 100.0, "부모 auto 높이");
     }
 
     // ── ADR-206 Phase 1: 늘어난 크기는 definite 다 (Chrome 실측 2026-09-07) ──

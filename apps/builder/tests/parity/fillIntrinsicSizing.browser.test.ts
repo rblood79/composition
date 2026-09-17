@@ -17,7 +17,20 @@ beforeAll(async () => {
 
 describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
   for (const direction of ["row", "column"] as const) {
-    for (const mode of ["fill", "height-fill", "both-fill", "fixed"] as const) {
+    for (const mode of [
+      "fill",
+      "height-fill",
+      "both-fill",
+      "fixed",
+      // ADR-224 Ratio — 엔진 경계 (2026-09-18): flex 커널의 aspect 전송 (§9.4 step 7 · §9.2.3 B)
+      // 과 leaf 전송값 content-box 보고. Chrome 이 oracle 이다 (실제 Button CSS).
+      "ratio-fixed",
+      "ratio-fill",
+      "ratio-height-fill",
+      "ratio-definite-cross",
+      "ratio-stretch",
+      "ratio-stretch-plain",
+    ] as const) {
       it(`${direction} ${mode}: 실제 Button CSS와 Canvas 크기가 일치한다`, () => {
         const rootStyle = {
           display: "flex",
@@ -30,12 +43,24 @@ describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
           boxSizing: "border-box",
         };
         const children = [2, 1].map((factor) => {
+          const ratio = mode.startsWith("ratio")
+            ? {
+                aspectRatio: "2 / 1",
+                ...(mode === "ratio-stretch" ? {} : { alignSelf: "start" }),
+              }
+            : {};
           const base: Record<string, string | number> =
-            mode === "fixed" ? { width: "160px", height: "45px" } : {};
+            mode === "fixed"
+              ? { width: "160px", height: "45px" }
+              : mode === "ratio-fixed"
+                ? { ...ratio, width: "200px", height: "auto" }
+                : mode === "ratio-definite-cross"
+                  ? { ...ratio, height: "100px" }
+                  : ratio;
           const fill =
-            mode === "fill"
+            mode === "fill" || mode === "ratio-fill" || mode === "ratio-stretch"
               ? { width: { factor } }
-              : mode === "height-fill"
+              : mode === "height-fill" || mode === "ratio-height-fill"
                 ? { height: { factor } }
                 : mode === "both-fill"
                   ? { width: { factor }, height: { factor } }
@@ -90,11 +115,11 @@ describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
             const rect = button.getBoundingClientRect();
             expect(
               Math.abs(layout[i].w - rect.width),
-              `width ${i}`,
+              `width ${i}: engine ${layout[i].w} vs dom ${rect.width}`,
             ).toBeLessThanOrEqual(1);
             expect(
               Math.abs(layout[i].h - rect.height),
-              `height ${i}`,
+              `height ${i}: engine ${layout[i].h} vs dom ${rect.height}`,
             ).toBeLessThanOrEqual(1);
           });
         } finally {

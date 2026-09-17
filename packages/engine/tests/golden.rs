@@ -60,9 +60,9 @@ fn assert_bounds(label: &str, actual: &[f32], expected: &[[f32; 4]]) {
 // ─────────────────────────────────────────────────────────────────────────────
 // flex golden — flex_layout(data, avail_main, avail_cross, dir, justify, align,
 //                            align_content, wrap, gap_main, gap_cross)
-// FLEX_FIELD_COUNT=22 필드/노드. off: [basis,w,h,mt,mr,mb,ml,pb_main,pb_cross,
+// FLEX_FIELD_COUNT=23 필드/노드. off: [basis,w,h,mt,mr,mb,ml,pb_main,pb_cross,
 //   min_main,max_main,min_cross,max_cross,content_main,content_cross,grow,shrink,
-//   align_self,overflow_main,content_min_main,margin_auto_mask,baseline_plus_one]
+//   align_self,overflow_main,content_min_main,margin_auto_mask,baseline_plus_one,aspect_main_per_cross]
 // ─────────────────────────────────────────────────────────────────────────────
 
 /// 고정 크기 3개 flex item — 두 축 각 100 width, direction=row, gap=10.
@@ -85,6 +85,7 @@ fn flex_item(basis: f32, cross: f32, grow: f32, shrink: f32) -> [f32; FLEX_FIELD
         0.0, // 19 content_min_main (absent — ADR-165, content_main fallback)
         0.0, // 20 margin_auto_mask (auto margin 없음)
         0.0, // 21 baseline_plus_one (absent — 합성 baseline, 정렬 미참여 시 무의미)
+        0.0, // 22 aspect_main_per_cross (없음 — ADR-224 Ratio, golden 입력은 0, 기대값 무변경)
     ]
 }
 
@@ -378,7 +379,8 @@ fn golden_block_negative_margin_collapse() {
 /// (계약 변경 시 golden 이 silent 하게 어긋나지 않도록 가드).
 #[test]
 fn golden_field_contract_guard() {
-    assert_eq!(FLEX_FIELD_COUNT, 22, "flex 필드 계약 변경 — golden 재작성 필요");
+    assert_eq!(FLEX_FIELD_COUNT, 23, "flex 필드 계약 변경 — golden 재작성 필요");
+    // ADR-224 Ratio (2026-09-18): 22 → 23 (슬롯 22 aspect_main_per_cross — golden 입력은 0, 기대값 무변경).
     // upstream 대조 ⑦ (2026-09-07): 21 → 22 (슬롯 21 baseline_plus_one — golden 입력은 0, 기대값 무변경).
     // ADR-923 P3 r10m2: 19 → 21 (슬롯 19/20 margin 음수 성분 — golden 입력은 0, 기대값 무변경).
     assert_eq!(BLOCK_FIELDS, 21, "block 필드 계약 변경 — golden 재작성 필요");

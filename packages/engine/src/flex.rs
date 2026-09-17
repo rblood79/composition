@@ -45,7 +45,7 @@
 //! `flex-wrap: nowrap` 이면 전 아이템이 단일 라인. `wrap` 이면 아이템 outer main-size
 //! 누적이 available_main 을 초과하기 직전에 새 라인 시작 (각 라인은 최소 1개 아이템).
 //!
-//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 22, 노드당)
+//! ## 필드 계약 (`FLEX_FIELD_COUNT` = 23, 노드당)
 //!
 //! | off | 필드              | 센티넬                          |
 //! | --- | ----------------- | ------------------------------- |
@@ -71,6 +71,7 @@
 //! | 19  | content_min_main  | 0=absent(zero-init) — 정확 min-content (main, ADR-165 §4.5 floor 정밀화) |
 //! | 20  | margin_auto_mask  | 0=없음(zero-init) — 물리 margin `auto` 비트마스크 (1=top 2=right 4=bottom 8=left) |
 //! | 21  | baseline_plus_one | 0=absent(zero-init) — item 의 cross 축 baseline (border-top 기준) + 1. absent 면 border-box 아래 모서리로 합성 (Flexbox §8.5, upstream 대조 ⑦) |
+//! | 22  | aspect_main_per_cross | 0=없음(zero-init) — item 의 preferred aspect ratio 를 **논리축** main/cross 로 (row = width/height, column = 그 역수). ADR-224 Ratio: cross auto 면 §9.4 step 7 hypothetical cross = used main 전송 (border-box, box-sizing border-box), main auto·basis content·cross definite 면 §9.2.3 B flex base size = cross 전송 |
 //!
 //! off 17(`align_self`)은 **0=auto 가 zero-init 기본값 겸 CSS 기본값**이라, 값을 안 쓰는
 //! 입력 배열(기존 golden/테스트)은 자동으로 컨테이너 `align_items` 를 상속한다.
@@ -117,7 +118,7 @@ use crate::trace::FloorSource;
 use wasm_bindgen::prelude::*;
 
 /// 노드당 입력 필드 수.
-pub const FLEX_FIELD_COUNT: usize = 22;
+pub const FLEX_FIELD_COUNT: usize = 23;
 
 /// off 20 `margin_auto_mask` 비트 — 물리 margin 이 `auto` 인지 (§8.1 흡수 대상).
 /// 기록(`tree.rs::write_flex_item`)과 해석(`parse_item`)이 **같은 상수**를 쓴다.
@@ -288,6 +289,19 @@ struct FlexItem {
     align_self: u8,
     /// cross 축 baseline (border-top 기준, 슬롯 21 − 1). 음수 = absent → border-box 아래로 합성.
     baseline: f32,
+    /// preferred aspect ratio (논리 main/cross, 슬롯 22). 0 = 없음.
+    aspect: f32,
+    /// cross 가 intrinsic 키워드 (fit/min/max-content 센티넬) — stretch 는 안 하되, ratio 종속 축이면
+    /// 키워드의 min/max-content 기여가 전송값이라 (CSS-SIZING-4 §5.1) 전송은 받는다.
+    cross_is_content: bool,
+    /// flex base size 가 content (basis auto·width auto, 명시 전송 없음) — 라인의 stretched cross
+    /// 가 definite 해지면 §9.2.3 B 전송 대상.
+    basis_is_content: bool,
+    /// main 축 min 이 auto (§4.5 automatic minimum 대상) — ratio 전송 basis 는 그 floor 이기도 하다
+    /// (CSS-SIZING-4 §5.1 ratio 종속 축의 min-content 기여 = 전송값 · §4.5 transferred size suggestion).
+    min_main_is_auto: bool,
+    /// item 자신이 scroll container 인가 (슬롯 18) — ratio 종속 축 §5.2.2 자동 최소의 게이트.
+    scroll_container: bool,
     // §9.7 상태
     frozen: bool,
     target_main: f32,
@@ -432,12 +446,39 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
 
     // flex-basis 해석 우선순위: flex_basis(명시) → width(논리 main) → content.
     // CONTENT / AUTO 센티넬은 content_main 로 fallback (intrinsic 자동측정 미구현).
-    let basis = if flex_basis != AUTO && flex_basis != CONTENT {
+    //
+    // ADR-224 Ratio — §9.2.3 B: basis content(auto) + preferred aspect ratio + **definite cross**
+    //   → flex base size 는 cross 에서 전송 (border-box: (cross + pad_cross) × ratio − pad_main).
+    //   Chrome 실측 `row` 안 `height:100px + ratio 2` Button → 200 (종전 content 43+24).
+    let aspect = data[off + 22].max(0.0);
+    let cross_definite = height != AUTO && height != CONTENT && height >= 0.0;
+    let basis_explicit = flex_basis != AUTO && flex_basis != CONTENT;
+    //
+    // column 양축 auto (§9.2.3 E — basis content 를 max-content 로 배치): ratio 상자는 **inline 축이
+    //   ratio-determining** 이라 (CSS-SIZING-4 §5.1) cross(=width) 의 fit-content 폭을 먼저 정하고
+    //   main(=height) 을 거기서 전송한다. Chrome 실측 `column` 안 Button + ratio 2 (fill 없음, start)
+    //   → 68×34 (종전 엔진 30 = content 높이). row 는 main 이 inline 이라 content_main 그대로.
+    let cross_from_content = aspect > 0.0 && direction == DIR_COLUMN && !cross_definite;
+    let basis = if basis_explicit {
         flex_basis
     } else if width != AUTO {
         width
+    } else if aspect > 0.0 && cross_definite {
+        ((height + pad_border_cross) * aspect - pad_border_main).max(0.0)
+    } else if cross_from_content {
+        let cross_border = clamp_size(content_cross, min_cross, max_cross) + pad_border_cross;
+        (cross_border * aspect - pad_border_main).max(0.0)
     } else {
         content_main
+    };
+    let basis_is_content = !basis_explicit && width == AUTO && !(aspect > 0.0 && cross_definite);
+    let min_main_is_auto = raw_min_main == AUTO && data[off + 18] == 0.0 && width == AUTO;
+    // ratio 전송 basis 는 §4.5 floor — Chrome 은 shrink 로 전송값 아래로 내리지 않는다.
+    let min_main = if min_main_is_auto && !basis_explicit && (cross_definite && aspect > 0.0 || cross_from_content) {
+        let floor = if max_main >= 0.0 { basis.min(max_main) } else { basis };
+        min_main.max(floor)
+    } else {
+        min_main
     };
     // hypothetical main content (min/max clamp 전 — §9.7 이 clamp 를 소유)
     let main_content = basis.max(0.0);
@@ -505,6 +546,11 @@ fn parse_item(data: &[f32], i: usize, direction: u8) -> FlexItem {
         flex_shrink,
         align_self,
         baseline: data[off + 21] - 1.0,
+        aspect,
+        cross_is_content: height == CONTENT,
+        basis_is_content,
+        min_main_is_auto,
+        scroll_container: data[off + 18] != 0.0,
         frozen: false,
         target_main: main_content,
     }
@@ -547,6 +593,82 @@ fn baseline_group(line: &[FlexItem], direction: u8, align_items: u8) -> Option<(
         max_below = max_below.max(below);
     }
     if any { Some((max_b, max_b + max_below)) } else { None }
+}
+
+/// ADR-224 Ratio — §9.4 step 7: used main 이 확정된 뒤 preferred aspect ratio item 의 hypothetical
+/// cross 를 main 에서 전송한다 (CSS-SIZING-4 §5 — 비대체 상자도 definite 한 축에서 전송).
+///
+/// - cross 가 auto 인 item 만 (`cross_is_auto`). 명시 cross 는 그 값, fit-content 센티넬은 content.
+/// - 전송은 **border-box** (composition 은 box-sizing border-box — Chrome 실측 `w200 + ratio 2 +
+///   pad 4/1` Button → h 100). content 슬롯은 content-box 라 pad_border_cross 를 뺀다.
+/// - §5.2.2 automatic minimum (ratio 종속 축, min auto + non-scroll) — 내용 하한 = content_cross.
+/// - stretch 는 그대로 이긴다 — `cross_is_auto` 를 유지하므로 `place_line_cross_axis` 의
+///   ALIGN_STRETCH 분기가 라인 cross 로 덮는다 (§9.4 step 11, Chrome: stretch item 은 ratio 무시).
+/// - min/max cross clamp 는 전송값에 건다 (§5 — 전송 뒤 clamp).
+///
+/// Chrome 실측 (2026-09-18, Preview DOM): `row 900×240` 안 `Fill1/Fill2 + ratio 2 + alignSelf start`
+/// Button → 308.664×154.328 · 591.336×295.664. 종전 엔진은 cross 30 (content) — grow 뒤 전송 없음.
+fn transfer_aspect_cross(line: &mut [FlexItem]) {
+    for it in line.iter_mut() {
+        if it.aspect <= 0.0 || !(it.cross_is_auto || it.cross_is_content) {
+            continue;
+        }
+        let border_main = it.border_main(it.main_content);
+        let transferred = (border_main / it.aspect - it.pad_border_cross).max(0.0);
+        let floored = if it.min_cross == AUTO && !it.scroll_container {
+            transferred.max(it.cross_content)
+        } else {
+            transferred
+        };
+        it.cross_content = clamp_size(floored, it.min_cross, it.max_cross);
+    }
+}
+
+/// ADR-224 Ratio — §9.2.3 B + §9.8: 단일 라인 컨테이너의 cross 가 definite 면 **stretch 될 item 의
+/// cross 는 definite** 이고, basis content + preferred aspect ratio 인 item 의 flex base size 는 그
+/// stretched cross 에서 전송된다. Chrome 실측 (2026-09-18, Preview DOM): `column 900×240` 안
+/// `Width Fill (stretch) + ratio 2` Button → 900×450 (종전 엔진 30 = content).
+///
+/// multi-line (wrap) 은 라인 cross 가 배치 뒤에야 정해져 제외 — 그때 cross 는 §9.4 step 7 전송이 아니라
+/// stretch 가 덮고 main 은 content 로 남는다 (Chrome 도 wrap 에선 라인별 · 여기선 미지원).
+fn transfer_aspect_basis_from_stretch(
+    line: &mut [FlexItem],
+    align_items: u8,
+    available_cross: f32,
+    cross_is_definite: bool,
+    wrap: u8,
+) {
+    if wrap != WRAP_NOWRAP || !cross_is_definite || available_cross < 0.0 {
+        return;
+    }
+    for it in line.iter_mut() {
+        if it.aspect <= 0.0 || !it.basis_is_content || !it.cross_is_auto {
+            continue;
+        }
+        if it.margin_cross_start_auto || it.margin_cross_end_auto {
+            continue; // §9.4 step 11 — cross auto margin 은 stretch 무효
+        }
+        if resolve_self_align(it.align_self, align_items) != ALIGN_STRETCH {
+            continue;
+        }
+        // `place_line_cross_axis` 의 ALIGN_STRETCH 분기와 같은 식 — 결과는 **border-box** (라인 cross
+        // 에서 margin 만 뺀 값이 item 의 border-box 다). 그대로 전송 입력.
+        let stretched_border = clamp_size(
+            available_cross - it.margin_cross_start - it.margin_cross_end,
+            it.min_cross,
+            it.max_cross,
+        );
+        let basis = (stretched_border * it.aspect - it.pad_border_main).max(0.0);
+        it.flex_basis = basis;
+        it.main_content = basis;
+        it.target_main = basis;
+        // §4.5 automatic minimum — 전송값이 min-content 기여라 shrink 가 그 아래로 못 내린다
+        // (Chrome column 240 안 900×450 이 240 으로 줄지 않는다).
+        if it.min_main_is_auto {
+            let floor = if it.max_main >= 0.0 { basis.min(it.max_main) } else { basis };
+            it.min_main = it.min_main.max(floor);
+        }
+    }
 }
 
 /// §9.7 Resolving Flexible Lengths — 단일 라인의 아이템 main content 크기 확정.
@@ -797,7 +919,9 @@ pub fn flex_layout(
         } else {
             0.0
         };
+        transfer_aspect_basis_from_stretch(&mut line, align_items, available_cross, cross_is_definite, wrap);
         resolve_flexible_lengths(&mut line, available_main, line_gap);
+        transfer_aspect_cross(&mut line);
 
         // 라인 cross 크기 = 최대 (cross content + pad_border + margin)
         let mut line_cross = line
