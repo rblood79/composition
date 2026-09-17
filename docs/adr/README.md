@@ -11,6 +11,10 @@
 
 ---
 
+> **2026-09-18 ADR-224 Proposed**: 의도 기반 크기 편집 — Fill 단일 선택 즉시 적용, 주축 비율 선택 조정, canonical semantic sizing·전이·호환 경계 설계. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
+
+> **2026-09-18 ADR-223 Proposed**: 생성 CSS archetype 미지정 기본값 중립화 (`/simplify` 판독 후속). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 합계 250.
+
 > **2026-09-17 ADR-222 추가 → 같은 날 Implemented**: 캔버스 padding·gap 직접 편집 (Proposed → 리뷰 round 1 → `/execute-adr 222` Phase 0~~3 / G0~~G5 종결). 열림 6 (Proposed 4 · Accepted 1 · 부분 1), 합계 249.
 
 ## 현황
@@ -22,11 +26,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       5 |
+| 열려 있는 것 (`adr/*.md`)     |       8 |
+| ├ Proposed                    |       6 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **249** |
+| **합계**                      | **251** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -66,6 +70,18 @@
 - **상태**: Proposed
 - **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
 - **우선순위**: **P1**
+
+#### [223](223-generated-css-default-archetype-neutralization.md) — 생성 CSS archetype 미지정 기본값 중립화 — `DEFAULT_BASE_STYLES` 버튼 어법 제거 + `archetype: "default"` cohort 재판정
+
+- **상태**: Proposed (2026-09-18)
+- **규모**: 미지정 archetype 의 생성 CSS base (`inline-flex · center · cursor pointer · user-select none`) 는 Skia 가 읽지 않는 DOM 전용 채널 — Section 발산 (2026-09-17, `container` 신설로 2건 수리) 의 기제가 미지정 28건 중 실제 소비 11건에 남아 있다. 기본값을 중립 상자로 바꾸고 Pagination align 은 공통 geometry `containerStyles`, Card·Tab interaction 은 기존 generator-only `rootSelectors["&"]` 로 명시 이관한다. GridListItem 기존 Δ18 발산을 수리 대상으로 포함하고 신규 entry 는 정적 ratchet. Phase 0~~3 / G0~~G5 (Chrome 구조 오라클 + 실제 React Card·Tab + live 7종). design breakdown `design/223-generated-css-default-archetype-neutralization-breakdown.md`
+- **우선순위**: 후순위 — 발견된 결함 0 (Toolbar·TableView 는 잠재). 착수는 사용자 판정
+
+#### [224](224-intent-based-size-authoring.md) — 의도 기반 크기 편집 — Fill 한 번으로 채우기, 비율은 선택 조정
+
+- **상태**: Proposed (2026-09-18)
+- **규모**: 기존 Fill/fr 단위 선택 방식을 전제로 하지 않는 UX 재설계. 고정/채우기/내용 맞춤 기본3종, 부모 비율/화면 기준 보조 선택, Fill 기본 비율1 즉시 적용, Flex 주축에만 선택적 비율 입력. canonical sizing·responsive·ref/DB 왕복, shared compiler, geometry 보존 전이, legacy no-write-on-open. Phase 0~~3 / G0~~G6, 제품 검증 UNVERIFIED. [구현 설계](design/224-intent-based-size-authoring-breakdown.md)
+- **우선순위**: 사용자 설계 요청 — 구현 미착수
 
 ### 부분 완료
 
