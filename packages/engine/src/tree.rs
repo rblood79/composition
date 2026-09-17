@@ -2375,21 +2375,28 @@ impl LayoutTree {
         //   초기 시도가 이걸 `%` 해석 컨텍스트와 뒤섞어(`align-items:center` row trigger 가
         //   자식에게 indefinite height 를 내려 SelectValue 가 0) 회귀를 냈다. 여기서 내리는 건
         //   **available 뿐**이고, `%` 해석은 위 `cross_ctx` 가 별도로 담당한다.
-        let stretches_children_cross = align_items == 0;
+        //   **stretch 판정은 자식별** (2026-09-17): `align-self` 가 컨테이너 `align-items` 를
+        //   override 한다 (§8.3). `align-items:center` 컨테이너 밑의 `align-self:stretch` 자식은
+        //   cross 가 확정이고, 반대로 `align-items:stretch` 밑의 `align-self:center` 자식은
+        //   shrink-to-fit 이다. 종전엔 컨테이너 값만 봐서 전자가 indefinite 를 받았고 — 그 자식이
+        //   row 컨테이너면 main(=width) 이 indefinite → Step 0 early return → 손자 `flex:1 1 0%`
+        //   (Size Mode Fill) 가 **폭 0** 으로 붕괴했다 (body column align-items:center >
+        //   Section align-self:stretch > frame×2 가 캔버스에서 2×2). cross 축 auto margin 은
+        //   stretch 를 무효화한다 (§8.1) — `flex_item_stretches_cross` 가 같이 본다.
         let child_cross_solve = |c: usize| -> (f32, f32) {
-            if stretches_children_cross {
+            let Some(n) = self.get(c) else {
+                return (child_avail_w, child_containing_h);
+            };
+            if flex_item_stretches_cross(&n.style, align_items, is_row) {
                 return (child_avail_w, child_containing_h);
             }
             // 자식이 cross 를 **명시**했으면 align-items 와 무관하게 확정 → available 유지.
-            let cross_raw = self.get(c).and_then(|n| {
-                if is_row {
-                    n.style.height.clone()
-                } else {
-                    n.style.width.clone()
-                }
-            });
+            let cross_raw = if is_row {
+                n.style.height.as_deref()
+            } else {
+                n.style.width.as_deref()
+            };
             let child_cross_explicit = cross_raw
-                .as_deref()
                 .map(|v| {
                     let t = v.trim();
                     !t.is_empty() && !t.eq_ignore_ascii_case("auto") && t != "fit-content"
@@ -2655,6 +2662,17 @@ impl LayoutTree {
             cross_definite,
         );
 
+        // 3.5 ↔ 3.6 순환 (2026-09-17): 3.6 이 컨테이너 auto main 을 min/max 로 clamp 해 **used main
+        //   이 바뀌면** 3.5 를 한 번 더 돈다. 종전엔 3.5 → 3.6 한 방향이라, `column + minHeight`
+        //   (production body 가 정확히 이 형태 — `fullTreeLayout.ts` Step 1.5 viewport minHeight 주입)
+        //   안의 `flex:1` 자식 컨테이너는 3.6 커널 재실행으로 **상자만** min 까지 늘고, 그 안 손자는
+        //   indefinite cross 로 굳은 1차 solve 그대로였다 → 손자 `align-self:stretch` 가 높이 0
+        //   (Chrome: body(column, minHeight 844) > section(flex:1, row) > frame(stretch) = 844 /
+        //   구 엔진 0). 2차 3.5 는 `avail_main` 이 clamp 된 used 라 column_definite 가 서고
+        //   (§9.8 2항 — clamp 뒤 used main 은 definite), 3.6 은 base == used 라 재실행 없이 끝난다.
+        let mut main_clamp_pass: u8 = 0;
+        let mut clamped_auto_main: Option<f32> = None;
+        loop {
         // 3.5) **flex item 재-solve** — used main size 로 자식 내용 재배치 (CSS §9.9).
         //
         // 자식 subtree 는 3-1) 에서 **분배 전 available**(child_avail_w/h) 로 solve 됐다.
@@ -2855,7 +2873,7 @@ impl LayoutTree {
         // 위 두 번째 줄처럼 **주축 크기를 명시한** item 뿐이며, 그게 CSS 결과다.
         // main 축이 auto 일 때의 used main size — 아래 4) 컨테이너 크기가 이 값을 쓴다.
         // (main 이 명시면 그 값이 used 라 여기서 건드리지 않는다.)
-        let mut clamped_auto_main: Option<f32> = None;
+        let mut main_clamp_changed = false;
         if !children.is_empty() {
             let ctx_main = self.ctx_for(if is_row { avail_w } else { avail_h });
             let (min_raw, max_raw) = if is_row {
@@ -2897,6 +2915,7 @@ impl LayoutTree {
                 }
                 if (used - base_main).abs() > 0.5 {
                     avail_main = used;
+                    main_clamp_changed = true;
                     out = flex::flex_layout(
                         &data,
                         avail_main,
@@ -2912,6 +2931,13 @@ impl LayoutTree {
                     );
                 }
             }
+        }
+
+        if main_clamp_changed && main_clamp_pass == 0 {
+            main_clamp_pass += 1;
+            continue; // clamp 된 used main 으로 3.5 재-solve 1회
+        }
+        break;
         }
 
         // 3.7) **교차축도 같다** — min/max clamp 가 cross 를 확정으로 만든다 (§9.4 step 8).
@@ -5734,6 +5760,25 @@ fn flex_item_stretches_block_cross(s: &NodeStyle, container_align_items: u8) -> 
     h.is_empty() || h.eq_ignore_ascii_case("auto")
 }
 
+/// flex item 이 컨테이너 cross 축으로 stretch 되는가 — `flex_item_stretches_block_cross` 의
+/// 축 일반화 (row → cross=height, column → cross=width). `align-self` 가 `align-items` 를
+/// override 하고, cross 축 auto margin 과 명시 cross 크기는 stretch 를 무효화한다 (§8.1 · §9.4 step 11).
+fn flex_item_stretches_cross(s: &NodeStyle, container_align_items: u8, is_row: bool) -> bool {
+    if is_row {
+        return flex_item_stretches_block_cross(s, container_align_items);
+    }
+    let align_self = parse_align_self(s.align_self.as_deref());
+    let stretched = if align_self == 0.0 { container_align_items == 0 } else { align_self == 1.0 };
+    if !stretched {
+        return false;
+    }
+    if is_auto_margin(s.margin_left.as_deref()) || is_auto_margin(s.margin_right.as_deref()) {
+        return false;
+    }
+    let w = s.width.as_deref().map(str::trim).unwrap_or("");
+    w.is_empty() || w.eq_ignore_ascii_case("auto")
+}
+
 /// margin 값이 `auto` 인가 — 흡수 대상 판정(§8.1 / §10.3.3 / abspos §10.3.7).
 #[inline]
 fn is_auto_margin(v: Option<&str>) -> bool {
@@ -7882,6 +7927,73 @@ mod tests {
             (0.0, 80.0),
             "auto-height 자식은 stretch 로 셀 채움(무회귀)"
         );
+    }
+
+    /// 컨테이너 `align-items:center` 밑에서 `align-self:stretch` 로 cross 를 채우는 자식 컨테이너 —
+    /// 그 자식의 cross 는 확정이므로 손자 `flex:1 1 0%` 가 grow 로 폭을 받아야 한다.
+    ///
+    /// 종전 `child_cross_solve` 는 컨테이너 `align-items` 만 보고 자식 `align-self` 를 무시해
+    /// 자식에게 indefinite cross available 을 내렸다 → 자식(row) 의 main(=width) indefinite →
+    /// flex.rs Step 0 early return → 손자 `flex-basis:0%` 가 폭 0 으로 붕괴 (Chrome: 195×2).
+    /// 실측 2026-09-17: body(column, align-items:center) > Section(align-self:stretch, flex:1)
+    /// > frame×2(flex:1 1 0%, align-self:stretch) 가 캔버스에서 2×2 (border 만).
+    #[test]
+    fn align_self_stretch_under_center_container_gives_definite_cross_to_grandchildren() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"flex","flexDirection":"column","flexGrow":1,"flexShrink":1,"flexBasis":"0%","alignSelf":"stretch"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","flexGrow":1,"flexShrink":1,"flexBasis":"0%","alignSelf":"stretch"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","flexGrow":1,"flexShrink":1,"flexBasis":"0%","alignSelf":"stretch"},"children":[0,1]},
+            {"style":{"display":"flex","flexDirection":"column","alignItems":"center","width":"390px","height":"844px"},"children":[2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 390.0, 844.0);
+        let section = tree.get_layout(handles[2]);
+        assert_eq!((section.width, section.height), (390.0, 844.0), "section: stretch 폭 + grow 높이");
+        let f0 = tree.get_layout(handles[0]);
+        let f1 = tree.get_layout(handles[1]);
+        assert_eq!((f0.x, f0.width, f0.height), (0.0, 195.0, 844.0), "f0: grow 로 절반 폭");
+        assert_eq!((f1.x, f1.width, f1.height), (195.0, 195.0, 844.0), "f1: grow 로 절반 폭");
+    }
+
+    /// production body 형태 — `column + minHeight` (height 미명시) 안의 `flex:1` row 자식이 3.6 clamp 로
+    /// 늘어난 뒤, 그 손자 `align-self:stretch` 가 clamp 된 used main 을 cross 로 받아야 한다.
+    /// 종전 3.5 → 3.6 한 방향이라 손자 높이 0 (Chrome 844). 3.6 이 main 을 바꾸면 3.5 를 한 번 더 돈다.
+    #[test]
+    fn min_height_clamped_column_main_resolves_grandchild_stretch() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"display":"flex","flexDirection":"column","flexGrow":1,"flexShrink":1,"flexBasis":"0%","alignSelf":"stretch"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"column","flexGrow":1,"flexShrink":1,"flexBasis":"0%","alignSelf":"stretch"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","flexGrow":1,"flexShrink":1,"flexBasis":"0%","alignSelf":"stretch"},"children":[0,1]},
+            {"style":{"display":"flex","flexDirection":"column","width":"390px","minHeight":"844px"},"children":[2]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[3], 390.0, -1.0);
+        let section = tree.get_layout(handles[2]);
+        assert_eq!((section.width, section.height), (390.0, 844.0), "section: minHeight clamp 로 grow");
+        let f0 = tree.get_layout(handles[0]);
+        let f1 = tree.get_layout(handles[1]);
+        assert_eq!((f0.width, f0.height), (195.0, 844.0), "f0: clamp 뒤 used main 이 cross 확정");
+        assert_eq!((f1.x, f1.width, f1.height), (195.0, 195.0, 844.0), "f1");
+    }
+
+    /// 역방향 — 컨테이너 `align-items:stretch`(기본) 밑에서 `align-self:center` 인 자식 컨테이너는
+    /// shrink-to-fit 이라 cross 가 indefinite 다. 손자 `width:50%` 는 auto 로 떨어진다 (§10.2).
+    #[test]
+    fn align_self_center_under_stretch_container_gives_indefinite_cross() {
+        let mut tree = LayoutTree::new();
+        let json = r#"[
+            {"style":{"width":"50%","height":"20px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignSelf":"center"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","width":"390px","height":"844px"},"children":[1]}
+        ]"#;
+        let handles = tree.build_tree_batch(json).unwrap();
+        tree.compute_layout(handles[2], 390.0, 844.0);
+        let mid = tree.get_layout(handles[1]);
+        let leaf = tree.get_layout(handles[0]);
+        assert_eq!(leaf.width, 0.0, "indefinite cross 밑 width:50% → auto → content 0");
+        assert_eq!(mid.x, 195.0, "shrink-to-fit 0 폭이 중앙(195)");
     }
 
     /// align-self:center + explicit height (3-b 정렬 유지 확인) — 셀 중앙 배치 + 크기 유지.

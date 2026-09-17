@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [엔진 — Fill 자식이 `align-items:center` 부모 · `min-height` body 아래에서 0 으로 붕괴하던 것 수리] - 2026-09-17
+
+### Fixed
+
+- **Size Mode Fill (`flex: 1 1 0%` · `align-self: stretch`) 자식이 캔버스에서 폭·높이 0** (border 만 2×2 로 보이던 것): body(column, `align-items: center`) > Section(Fill 폭·높이) > frame×2(Fill 폭·높이) 구성에서 Preview 는 채우는데 Skia 캔버스만 접혔다. 원인 2 (둘 다 `packages/engine/src/tree.rs`):
+  - 자식 cross available 판정이 컨테이너 `align-items` 만 보고 자식 `align-self: stretch` 를 무시 → Section 이 indefinite 폭을 받아 row main 이 미결정 → 손자 `flex-basis: 0%` 가 grow 없이 폭 0. 이제 stretch 판정은 자식별 (`align-self` 가 `align-items` 를 override, cross 축 auto margin 은 stretch 무효 — CSS §8.3 · §8.1). 역방향 (`align-items: stretch` 밑 `align-self: center`) 도 같이 shrink-to-fit 으로 정정.
+  - `column + min-height` (production body 가 정확히 이 형태) 컨테이너의 main 을 min/max 로 clamp 한 뒤 (3.6) 자식 컨테이너를 다시 풀지 않아 (3.5 가 그 앞에서만 돌았다) 손자 stretch 가 clamp 전 indefinite cross 로 굳었다 → 높이 0. 3.6 이 used main 을 바꾸면 3.5 를 한 번 더 돈다 (clamp 뒤 used main 은 definite — §9.8).
+  - 회귀 테스트 3 (Rust) · 브라우저 parity 스위트 무회귀 (기존 실패 6 은 수정 전과 동일 집합).
+
 ## [ADR-222 캔버스 Padding·Gap 직접 편집 — 여백 위치에서 드래그·클릭으로 조절 (Implemented)] - 2026-09-17
 
 ### Added
