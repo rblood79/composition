@@ -13,11 +13,11 @@ IIFE 는 엔진 package 의 빌드 산출물이다 (아직 빌드되지 않았�
 ```bash
 pnpm -F @composition/upload build                                  # → packages/upload-engine/dist/vanilla.global.js
 mkdir -p examples/upload-server-spring/src/main/webapp/js
-cp packages/upload-engine/dist/vanilla.global.js examples/upload-server-spring/src/main/webapp/js/composition-upload.iife.js
+cp packages/upload-engine/dist/composition-upload.iife.js examples/upload-server-spring/src/main/webapp/js/composition-upload.iife.js
 cp examples/upload-client-jsp/upload.jsp           examples/upload-server-spring/src/main/webapp/upload.jsp
 ```
 
-다른 webapp 에 넣을 때도 같다 — `js/composition-upload.iife.js` 와 `upload.jsp` 두 파일. JSTL (`javax.servlet:jstl:1.2`) 이 `WEB-INF/lib` 에 있어야 한다 (참조 서버 pom 은 runtime 의존으로 포함).
+다른 webapp 에 넣을 때도 같다 — `js/composition-upload.iife.js` 와 `upload.jsp` 두 파일. 참조 서버 war 는 이 두 파일을 `src/main/webapp/` 에 동봉한다 (G5 실행 2026-09-17). JSTL (`javax.servlet:jstl:1.2`) 이 `WEB-INF/lib` 에 있어야 한다 (참조 서버 pom 은 runtime 의존으로 포함).
 
 ## 실행 절차 (G2b-3 · G5 JSP 축)
 

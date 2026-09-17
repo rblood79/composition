@@ -10,6 +10,7 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -134,6 +135,15 @@ public class UploadCoreConfig implements WebMvcConfigurer {
      * 거부하므로 설정 오류가 기동 시 드러난다. Expose-Headers 가 빠지면 클라이언트가 Upload-Offset/Location 을
      * 읽지 못해 재개가 불가능하다 — 계약 §5 의 필수 항목.
      */
+    /**
+     * DispatcherServlet 이 "/" 에 걸려 있어 정적 파일 (JSP 예제의 {@code js/composition-upload.iife.js}) 은
+     * 컨테이너 기본 서블릿으로 넘긴다 — 없으면 404 (G5 JSP 실행 2026-09-17 실측).
+     */
+    @Override
+    public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+        configurer.enable();
+    }
+
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         if (properties.getCorsAllowedOrigins().isEmpty()) {

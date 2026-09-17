@@ -28,7 +28,8 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
         if ("GET".equalsIgnoreCase(method)) {
             String token = CsrfTokens.ensure(request.getSession(true));
             Cookie cookie = new Cookie(TusHeaders.CSRF_COOKIE, token);
-            cookie.setPath(contextPathOrRoot(request));
+            // path "/" — publish 정적 앱이 같은 호스트의 다른 컨텍스트 (ROOT 등) 에 있어도 document.cookie 로 읽는다
+            cookie.setPath("/");
             cookie.setHttpOnly(false);
             cookie.setSecure(request.isSecure());
             response.addCookie(cookie);
@@ -46,11 +47,6 @@ public class CsrfHeaderFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(request, response);
-    }
-
-    private static String contextPathOrRoot(HttpServletRequest request) {
-        String context = request.getContextPath();
-        return context == null || context.isEmpty() ? "/" : context;
     }
 
     private static boolean isStateChanging(String method) {

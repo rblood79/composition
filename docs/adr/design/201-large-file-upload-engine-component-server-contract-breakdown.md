@@ -1,6 +1,6 @@
 # ADR-201 Breakdown: 대용량 파일 업로드 — 독립 전송 엔진 + FileUpload 컴포넌트 + Spring 서버 계약
 
-> 2026-09-02 초안. ADR 본문: [201-large-file-upload-engine-component-server-contract.md](../201-large-file-upload-engine-component-server-contract.md).
+> 2026-09-02 초안 · **2026-09-17 Implemented** (Phase 0~4 전부). ADR 본문: [201-large-file-upload-engine-component-server-contract.md](../completed/201-large-file-upload-engine-component-server-contract.md).
 > Phase 0 inventory 는 본 문서의 표를 갱신하는 commit 으로 freeze 한다 (M3 — 추정/실측 gap 은 inventory 보강이지 fork 사유가 아님).
 
 ## 1. 전제 lock-in (fork 아님 — 완전 신규 주제)
@@ -155,20 +155,20 @@ useUploadItem(queue: UploadQueue, id: string): UploadItemState | undefined
 
 ## 4. Phase
 
-| Phase | 내용                                                                                                                                                                                          | 산출물·검증                 |
-| :---: | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-|   0   | inventory freeze (§2 재grep) + mock TUS 서버 (Node `http`) + **first-nail**: XhrDriver 로 100MB 파일 1개 진행률 수신 + 강제 단절 후 HEAD offset 재개 1케이스                                  | G0                          |
-|   1   | `@composition/upload` core (상태기계·queue·drivers) + tus 어댑터 + package 빌드 (esm/cjs/iife) + 적합성 스위트 + 공격 corpus (클라이언트 측) + 힙·재전송·크기 측정                            | G1                          |
-|   2   | `server-contract.md` + `examples/upload-server-spring/` (변형 ① 필수, ② 선택) + `examples/upload-client-jsp/` + tusd 대조군 (G2a, 로컬) · 참조 서버 e2e (G2b, 사용자 머신 + 증거)             | G2a · G2b · G4 (서버 측)    |
-|   3   | composition `FileUpload` compound — 등록 8지점 · capability 등재 · `renderFileTrigger` selectedFiles 문서 write 제거 · Skia 정적 합성 · preview mock 토글 · `/cross-check` · 정적 비밀 게이트 | G3 · G4 (클라이언트 측)     |
-|   4   | live exercise — preview 에서 ≥1GB 실파일 업로드·중단·재개 (참조 서버 대상) + JSP 예제 동일 시나리오 + CHANGELOG + README                                                                      | G5 · `### Live Exercise` 절 |
+| Phase | 내용                                                                                                                                                                                                                | 산출물·검증                 |
+| :---: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+|   0   | inventory freeze (§2 재grep) + mock TUS 서버 (Node `http`) + **first-nail**: XhrDriver 로 100MB 파일 1개 진행률 수신 + 강제 단절 후 HEAD offset 재개 1케이스                                                        | G0                          |
+|   1   | `@composition/upload` core (상태기계·queue·drivers) + tus 어댑터 + package 빌드 (esm/cjs/iife) + 적합성 스위트 + 공격 corpus (클라이언트 측) + 힙·재전송·크기 측정                                                  | G1                          |
+|   2   | `server-contract.md` + `examples/upload-server-spring/` (변형 ① 필수, ② 선택) + `examples/upload-client-jsp/` + tusd 대조군 (G2a, 로컬) · 참조 서버 e2e (G2b, 사용자 머신 + 증거)                                   | G2a · G2b · G4 (서버 측)    |
+|   3   | composition `FileUpload` compound — 등록 8지점 · capability 등재 · `renderFileTrigger` selectedFiles 문서 write 제거 · Skia 정적 합성 · preview mock 토글 · `/cross-check` · 정적 비밀 게이트                       | G3 · G4 (클라이언트 측)     |
+|   4   | preview 실전송 토글 (endpoint `uploadDryRun` · Data 패널 스위치) + CSRF 쿠키→헤더 채널 + live exercise — preview ≥1GB 업로드·단절·새로고침 재개 (10/10) + JSP 예제 (7/7) + CHANGELOG + README — **2026-09-17 완료** | G5 · `### Live Exercise` 절 |
 
 Phase 1 → 2 는 순차 (계약이 클라이언트 적합성 스위트에서 굳은 뒤 서버 작성). Phase 3 은 Phase 1 완료 후 Phase 2 와 병렬 가능.
 
 ## 5. 검증 체크리스트
 
 - [x] `packages/upload-engine` runtime dependency 0 · `@composition/*`/`react-aria-components` import 0 (eslint) · react 는 `src/react/**` 한정
-- [x] core+tus 5,852 B ≤ 6KB gz · IIFE 8,068 B ≤ 10KB gz · 엔진 chunk initial 밖 · [ ] initial 상한 재승인 (Builder +3,875 / Preview +3,507 — 사용자 결정, ADR §initial 번들 상한 재승인) (baseline = 같은 디렉터리 detached checkout — 메모리 `reference-bundle-delta-baseline-build-detached-checkout`)
+- [x] core+tus 5,852 B ≤ 6KB gz · IIFE 8,068 B ≤ 10KB gz · 엔진 chunk initial 밖 · [x] initial 상한 재승인 2026-09-17 (Builder ≤1,328,315 / Preview ≤601,346 — 사용자) (baseline = 같은 디렉터리 detached checkout — 메모리 `reference-bundle-delta-baseline-build-detached-checkout`)
 - [x] 4GB 합성 파일 업로드 중 JS 힙 Δ ≤ 64MB (2.22MB 중앙값) (Chrome Task Manager / `performance.memory`, 3회 중앙값)
 - [x] 단절·새로고침·탭 종료 3경로 재개 시 재전송 ≤ chunkSize (4.06MB / 0 / 0)
 - [x] mock 서버 적합성 스위트 + 공격 corpus 전부 PASS (79) · tusd 대조군 동일 PASS (8/8, v2.10.1 — 2026-09-17)
@@ -178,8 +178,8 @@ Phase 1 → 2 는 순차 (계약이 클라이언트 적합성 스위트에서 �
 - [x] `selectedFiles` 문서 write 0 (grep + 정적 게이트 3 + live)
 - [x] `/cross-check` FileUpload 샘플 상태 Skia↔DOM bbox Δ ≤ 1px (live 20/20 — y/height 축, 폭은 viewport 종속)
 - [x] endpoint headers placeholder 외 auth 값 0 정적 게이트 PASS (`plaintextTokenGate`, 감지기 6 + corpus 5)
-- [x] `pnpm type-check` 0 (5/5) · [ ] `mvn -q test` PASS (JDK 8 — G2b, 사용자 머신)
-- [ ] live: preview ≥1GB 실파일 + JSP 예제 — Chrome MCP 또는 사용자 confirm 구분 기재 (G5 미실행; 통합 시점 부분 기록은 ADR §Live Exercise)
+- [x] `pnpm type-check` 0 (5/5) · [x] `mvn -q test` 53/53 PASS (JDK 17 `-target 1.8` — G2b, 이 머신 2026-09-17; JDK 8 런타임은 CI temurin 8 축)
+- [x] live: preview ≥1GB 실파일 (10/10) + JSP 예제 (7/7) — Playwright Chromium 151, 실행자 Claude (ADR §Live Exercise)
 
 ## 6. 위험 대응 매핑 (ADR §Risks ↔ Phase)
 

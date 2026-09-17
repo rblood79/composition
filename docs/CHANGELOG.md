@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-201 대용량 파일 업로드 — @composition/upload 전송 엔진 · FileUpload 컴포넌트 · TUS 서버 계약 (Phase 0~3, In Progress)] - 2026-09-17
+## [ADR-201 대용량 파일 업로드 — @composition/upload 전송 엔진 · FileUpload 컴포넌트 · TUS 서버 계약 (Implemented)] - 2026-09-17
 
 ### Added
 
@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`FileUpload` 컴포넌트** (팔레트 forms "file upload"): DropZone + FileTrigger + 진행 막대 샘플 행 2 로 합성, Preview/publish 에서 파일 선택 시 엔진을 lazy 로드해 런타임 목록 · 진행률 · 오류 코드를 표시 (preview 기본 dry-run, publish 실전송). Properties: 파일 형식 · 다중 · 폴더 · endpoint · chunk 크기 · 동시 수 · 재시도 · 최대 크기 · 자동 시작 · 미리보기.
 - **서버 계약 정본** `docs/reference/upload/server-contract.md` v1.0.0 (헤더 · 시퀀스 · 메타데이터 검증 12 규칙 · 인프라 knob · 보안 의무 · 공격 corpus) + **Spring MVC 5 / Java 8 참조 서버** `examples/upload-server-spring/` (웹루트 밖 저장 강제 · 소유자 · CSRF · TTL GC · Oracle/H2) + JSP 예제 `examples/upload-client-jsp/` + JDK 8 CI workflow.
 - `CAPABILITY_REGISTRY` 에 FileTrigger `onSelect` · DropZone `onDrop` 등재 — 두 컴포넌트가 interaction rule 트리거가 된다.
+- **미리보기 실전송 토글** — Data 패널 API 편집기 Params 탭 「미리보기에서 실제 업로드」 스위치 (endpoint 정의 `uploadDryRun`, 기본 dry-run). 참조 서버는 세션 CSRF 토큰을 `XSRF-TOKEN` 쿠키 (HttpOnly 아님, Path `/`) 로도 내보내고 composition 클라이언트가 이를 `X-CSRF-TOKEN` 헤더로 되돌린다 (계약 §5 "토큰 획득"). ADR-201 **Implemented 2026-09-17** — G5 live: preview 1GB 실파일 업로드 → 네트워크 단절 재개 → 새로고침 재개 → 완료 (서버 `Upload-Offset` oracle) 10/10 · JSP 예제 (IIFE, 일시정지/재개 · 단절) 7/7.
 
 ### Fixed
 

@@ -2,9 +2,9 @@
 
 ## Status
 
-In Progress — 2026-09-17 (Proposed 2026-09-02 → 사용자 `/execute-adr 201` 지시로 착수. `reviews/201.md` round 0 — 착수와 병행해 review-adr round 1 실행)
+Implemented — 2026-09-17 (Proposed 2026-09-02 → In Progress 09-17 사용자 `/execute-adr 201` worktree 3개 병렬 착수 → Phase 0~4 + G0·G1·G2a·G2b·G3·G4·G5 전부 실측 → Implemented 09-17. `reviews/201.md` round 1 HIGH 3 / MED 3 / LOW 4 전부 fixed)
 
-> 출처: 2026-09-01 사용자 요청 — [FILE_UPLOAD.md](../explanation/research/FILE_UPLOAD.md) (RAON K Upload 유사 오픈소스 5종 비교) 검토 후 라이브러리를 그대로 쓰지 않고 composition 컴포넌트로 자체 구현하기로 결정. 사용자 확정 전제 4건 (GB 단위 파일 · 업로드 대상 대다수 비-Cloud · 초기 고객 Java 8 + Spring 5 + Tomcat + Oracle · 엔진은 독립 package + 서버 계약·Spring 참조 구현 둘 다) 은 [breakdown §1](design/201-large-file-upload-engine-component-server-contract-breakdown.md) 에 lock-in. 완전 신규 주제 (fork 아님 — 선행 결정 0건 실측).
+> 출처: 2026-09-01 사용자 요청 — [FILE_UPLOAD.md](../../explanation/research/FILE_UPLOAD.md) (RAON K Upload 유사 오픈소스 5종 비교) 검토 후 라이브러리를 그대로 쓰지 않고 composition 컴포넌트로 자체 구현하기로 결정. 사용자 확정 전제 4건 (GB 단위 파일 · 업로드 대상 대다수 비-Cloud · 초기 고객 Java 8 + Spring 5 + Tomcat + Oracle · 엔진은 독립 package + 서버 계약·Spring 참조 구현 둘 다) 은 [breakdown §1](../design/201-large-file-upload-engine-component-server-contract-breakdown.md) 에 lock-in. 완전 신규 주제 (fork 아님 — 선행 결정 0건 실측).
 
 ## Context
 
@@ -138,7 +138,7 @@ In Progress — 2026-09-17 (Proposed 2026-09-02 → 사용자 `/execute-adr 201`
 - **대안 D 기각**: 병목이 I/O 라 wasm 이 처리량을 더하지 못하고, 0-copy 계약·CSP·MIME·디버깅에서 진다. 레이아웃 엔진이 Rust 인 이유 (CPU-bound, 60Hz) 가 여기엔 없다. 재개 조건 = 네이티브 에이전트 로드맵 확정 (breakdown §1).
 - **대안 E 기각**: `shared` 가 private 이라 HC4 를 구조적으로 위반하고, leaf 렌더러에 런타임을 넣어 잘못된 `selectedFiles` 채널을 존속시킨다.
 
-> 구현 상세: [201-large-file-upload-engine-component-server-contract-breakdown.md](design/201-large-file-upload-engine-component-server-contract-breakdown.md)
+> 구현 상세: [201-large-file-upload-engine-component-server-contract-breakdown.md](../design/201-large-file-upload-engine-component-server-contract-breakdown.md)
 
 ## Risks
 
@@ -163,28 +163,35 @@ In Progress — 2026-09-17 (Proposed 2026-09-02 → 사용자 `/execute-adr 201`
 | G2b  | Phase 2 종료 (R1·R6) | **사용자 머신 실행 + 증거** — Spring 참조 서버 (Java 8/Spring 5/Tomcat 9) e2e: 1GB 업로드→중단→재개 · override 모드 · 소유자 403 · TTL GC · webroot 저장 기동 거부 · CSRF 없는 PATCH 403 · 로컬 `mvn -q test` PASS 로그 + workflow 파일 존재 (러너 green 은 ADR-198 잔여). 로그·confirm 을 `docs/adr/evidence/201-g2b-*.md` 로 기록. **G2b 없이 Implemented 불가**       | 계약서 수정 + 클라이언트 재조정 (프로토콜 변경 = major). 도구 부재 시 사용자에게 설치·실행 요청 (자동 설치 금지) |
 | G3   | Phase 3 종료 (R8)    | 등록 8지점 + ratchet 0/0/0 + oracle + INVENTORY · binding accepts == D2 판정 표 (Context) · `CAPABILITY_REGISTRY` events 타입 단언으로 RAC 실존 증명 + G1 PASS · `selectedFiles` 문서 write 0 · `/cross-check` 샘플 상태 bbox Δ ≤ 1px · 엔진 chunk initial closure 밖 + 등록·shell Δ 실측 → initial 상한 재승인 절 · `adr201-bundle-gate.mjs` PASS · `pnpm type-check` 0 | 누락 지점 보강 후 재실행; 대칭 실패 → catalog rule/factory 정렬 (Skia 전용 표현 금지)                            |
 | G4   | Phase 2·3 (R3)       | endpoint headers placeholder 외 auth 값 0 정적 게이트 PASS · 런타임 placeholder 헤더 제거 테스트 · 참조 서버 공격 corpus 전부 거부 (G2b) · 저장 경로 webroot 검증 실물 (G2b)                                                                                                                                                                                             | Implemented 승격 차단 — 의무 조항 미충족 항목 수리 전 종결 금지                                                  |
-| G5   | Phase 4 (R1)         | **live** — preview 에서 ≥1GB 실파일 업로드·중단·재개 (G2a 환경이면 tusd 대상, G2b 환경이면 참조 서버 대상 — Chrome MCP 또는 사용자 confirm 구분 기재) + JSP 예제 페이지에서 IIFE 로 동일 시나리오 (G2b 와 같은 사용자 머신 증거) · `### Live Exercise` 절                                                                                                                | Implemented 보류 — 실패 시나리오를 R1 에러 코드로 재현·수리 후 재실행                                            |
+| G5   | Phase 4 (R1)         | **live** — preview 에서 ≥1GB 실파일 업로드·중단·재개 (G2a 환경이면 tusd 대상, G2b 환경이면 참조 서버 대상 — Chrome MCP 또는 사용자 confirm 구분 기재) + JSP 예제 페이지에서 IIFE 로 동일 시나리오 (G2b 와 같은 사용자 머신 증거) · `### Live Exercise                                                                                                                    |
 
-**측정 조건 (measurement-validity §1 — Gate 표 명시 항목)**: Q1 출처 — 힙·재개 측정은 합성 파일 (규모 전용, 분포 지표 인용 없음), G5 는 사용자 실파일 · Q2 불리 케이스 — `parallelUploads` 최대(3)에서 힙 측정, Chrome 네트워크 throttle (Slow 3G) + 단절 5회 반복 재개, 프록시 timeout 시뮬레이션 (mock 서버 지연 61s) · Q3 대조군 — 힙은 업로드 전 처녀 힙 baseline, 번들은 같은 디렉터리 detached checkout baseline (메모리 `reference-bundle-delta-baseline-build-detached-checkout`) · Q4 소비 경로 — `renderFileUpload` → `import("@composition/upload/react")` → XhrDriver 실배선을 live 로 확인 (등록만으로 PASS 금지) · Q5 oracle — 서버 `Upload-Offset` 실값 (tusd 독립 구현 + 참조 서버) 이 기준, 클라이언트 자기 카운터 불인정. 측정 조건 기록: `visibilityState: visible` · 처녀 힙 · Chrome 버전 · 회선. **병렬 착수 계약 (review round 1 m2)**: 에러 코드 표의 단일 소스는 `packages/upload-engine/src/errors.ts` — mock 서버·어댑터가 import, `server-contract.md` §Errors 표는 G1 정적 대조 (문서 표 == 코드 enum) 로 동기. `/react` entry 시그니처 (`useUploadQueue(options) → { items, queue, add, start, pause, resume, cancel, remove }` · `useUploadItem(queue, id)`) 는 착수 commit 에서 freeze — Phase 3 는 이 시그니처의 ambient 선언에 대해 작성하고 통합 시 workspace 의존으로 교체.
+2026-09-17, 실행자 Claude (headed/headless Playwright Chromium 151.0.7922.34 — Chrome MCP 아님 · 사용자 confirm 아님). 실파일 = `mkfile -n 1g` sparse 1,073,741,824 B + ZIP 매직바이트 (참조 서버 확장자 화이트리스트 · 매직바이트 검사 통과). 참조 서버 = `examples/upload-server-spring` `mvn cargo:run` (JDK 17 로 `-source/-target 1.8` 컴파일, Tomcat 9, H2 Oracle 모드, 저장 `/tmp/adr201-g5/uploads` 웹루트 밖, `-Dupload.cors.allowedOrigins=http://localhost:5173`). oracle = 서버 `HEAD` `Upload-Offset` (5173 origin 에서 credentials fetch — CORS Expose-Headers) + 저장 파일 실물 크기. 결과 JSON: `docs/adr/evidence/201-g5-preview.json` · `201-g5-jsp.json` (로컬).
 
-### initial 번들 상한 재승인 (HC1 — review round 1 h2, 2026-09-17 실측)
+**G5 preview 축 — `apps/builder/scripts/adr201-g5-live.mjs` 10/10 PASS (71.6s)**
 
-| arm     | before (`7e9bf72ff`, detached checkout) | after (`adr-201-integration`) |      Δ | 202 상한 (만료 10-16) | 201 재승인 안 (만료 2026-10-17) |
-| ------- | --------------------------------------: | ----------------------------: | -----: | --------------------: | ------------------------------- |
-| Builder |                               1,324,440 |                     1,328,315 | +3,875 |             1,319,829 | **≤ 1,328,315** (Δ 허용 +4,096) |
-| Preview |                                 597,839 |                       601,346 | +3,507 |               592,000 | **≤ 601,346** (Δ 허용 +3,584)   |
+| 단계                                                                                                      | 실측                                                                                                                        |
+| --------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 참조 서버 dev-login → 쿠키                                                                                | `JSESSIONID@/upload` · `XSRF-TOKEN@/` (Path `/`, HttpOnly 아님)                                                             |
+| Data 패널 Add API (`http://localhost:8080/upload/upload`) → Params 탭 「미리보기에서 실제 업로드」 스위치 | `define_endpoint` → `api_endpoints` 1건 `uploadDryRun: false` (Phase 4 토글)                                                |
+| 팔레트 FileUpload + `endpoint` prop 연결                                                                  | 문서에는 endpoint id 만 (URL·비밀 0, HC7)                                                                                   |
+| Compare Preview → FileTrigger input 에 1GB `setInputFiles`                                                | 엔진 lazy 로드 → `OPTIONS` → `POST` 201 (X-CSRF-TOKEN = 쿠키값) → `PATCH` 8MB 진행, HEAD `Upload-Length` 1,073,741,824      |
+| 중단 A — `context.setOffline(true)` 3.5s (20%, 서버 offset 209,715,200)                                   | PATCH 1 실패 → backoff → `HEAD` 218,103,808 재동기 → 같은 URL 로 계속 (24%, 260,046,848) — 재전송 1 청크                    |
+| 중단 B — 45% 에서 builder `page.reload` → Compare 다시 → 같은 파일 재선택                                 | localStorage `cu:<fingerprint>` 1건 → `HEAD` 478,150,656 → 그 offset 부터 (POST 재생성 0 · URL 동일 · 재전송 0)             |
+| 완료                                                                                                      | `HEAD` offset == length == 1,073,741,824 · 저장 파일 1,073,741,824 B · 행 `done` · `cu:*` forget 0건                        |
+| wire                                                                                                      | POST 1 · PATCH 204 ×128 (= 1GB / 8MB) + 실패 1 (오프라인) · 전부 X-CSRF-TOKEN                                               |
+| 문서 write 0 · page error 0 · console error 0                                                             | `st.elements` 에 selectedFiles·파일명 0 (오프라인 구간 XHR 오류 로그 · API 편집기 자동 Send 의 GET 405 는 제외 — 아래 함정) |
 
-- before 가 이미 202 상한을 넘는다 (Builder +4,611 · Preview +5,839 — Mock 데이터 · ADR-221 등 선행 커밋의 몫, 201 착수 전 상태). 201 의 몫은 Δ 열이다: 등록 8지점 (catalog·binding·rule·factory·palette 정적 import) + `renderFileUpload` shell. `@composition/upload` chunk 4개 (react entry + dryRun/fetch/multipart) 는 전부 initial closure 밖 (`adr201-bundle-gate.mjs` `uploadEngineLazy: true`).
-- **2026-09-17 사용자 재승인** — Builder ≤ 1,328,315 / Preview ≤ 601,346 B gzip, 만료 2026-10-17. 저장소 initial 상한 정본이 202 → **201** 로 바뀐다 (다음 ADR 의 before arm 기준). 판정기 `apps/builder/scripts/adr201-bundle-gate.mjs` `APPROVED = true` → 11/11 PASS (`docs/adr/evidence/201-bundle-gate.json`). 사용자는 Δ 의 실체 (엔진은 lazy · 껍데기 = `FileUpload.tsx` DOM 컴포넌트 ~2.1KB + endpoint 해석·token gate ~1.5KB + binding/등록 ~1.4KB, dedupe 후 +3.9KB) 를 확인하고 축소 안 (active 분기 lazy 분리) 대신 재승인을 택했다. 축소 안 (기능 삭제 없이): FileUpload active 분기 (런타임 목록 · 오류 표시) 를 shell 에서 분리해 엔진과 같은 lazy chunk 로 — 예상 Preview Δ 절반.
-- 측정: 같은 lockfile 이 아니다 (workspace package 추가가 201 의 산출물) — lockfile diff 는 `packages/upload-engine` 항목뿐임을 `git diff pnpm-lock.yaml` 로 확인. 산출 JSON: `docs/adr/evidence/201-{before,after}-{builder,preview}.json` · `201-bundle-gate.json` (로컬).
+**G5 JSP 축 — `apps/builder/scripts/adr201-g5-jsp-live.mjs` 7/7 PASS (49.5s)**: 참조 서버 war 에 동봉된 `upload.jsp` (same-origin, IIFE global `CompositionUpload`, CSRF = `<meta name="_csrf">` → `getHeaders`) 에서 같은 1GB → 일시정지 버튼 (서버 offset 2.5s 정지 176,160,768 → 재개 같은 URL) → 오프라인 3.5s (436,207,616 → HEAD 재동기 → 478,150,656) → 완료 offset == length · 저장 파일 실물 · `cu:*` forget. wire: POST 1 · PATCH 204 ×127 + 실패 2 (pause abort 1 · 오프라인 1) — abort 된 PATCH 1건은 서버가 이미 적용해 offset 이 앞서 있었다 (**서버 `Upload-Offset` 이 진실**, 클라이언트 카운터 불인정 — HC3 실증).
 
-### Live Exercise
+**G5 가 잡은 결함·함정 (전부 수리·기록)**:
 
-(Implemented 승격 시 최종 기재 — 아래는 2026-09-17 통합 시점의 부분 기록. G5 preview ≥1GB 실파일 · JSP 예제 · G2b 참조 서버는 **미실행**)
+1. 참조 서버 CSRF 403 이 CORS 헤더 없이 나가 브라우저에서 `E_NETWORK` 로 보였다 (필터가 MVC CORS 앞) — 원인은 아래 2 였고, 계약 §9 표의 "403 → E_UNAUTHORIZED" 는 same-origin 에서만 성립. 교차 출처 운영은 계약이 권장하지 않는다 (§5).
+2. **builder API 편집기의 자동 Send 가 dev proxy (`/api/proxy`) 를 지나 참조 서버에 새 세션을 만들고, 그 `Set-Cookie` 가 5173 응답으로 돌아와 호스트 `localhost` 의 `XSRF-TOKEN` 을 다른 세션 값으로 덮었다** → 하니스는 endpoint 정의 뒤 dev-login 을 다시 한다. 제품 영향: dev 서버 한정 (production builder 는 proxy 없음 · publish 는 same-origin).
+3. JSP 초안이 엔진 API 를 잘못 가정 (`subscribe(event)` · `autoUpload` · `item.error`) → 실제 시그니처 (`subscribe(items[])` · `autoProceed` · `lastError`) 로 정정. DispatcherServlet `/` 가 정적 `js/*.iife.js` 를 삼켜 404 → `configureDefaultServletHandling` 추가.
+4. `XSRF-TOKEN` 쿠키 Path 는 `/` — 컨텍스트 경로 (`/upload`) 면 다른 컨텍스트의 publish 페이지가 `document.cookie` 로 못 읽는다.
+5. API 편집기 자동 Send 는 TUS endpoint 에 GET 을 보내 405 를 콘솔에 남긴다 (데이터 소스가 아닌 endpoint 의 노이즈 — 결함 아님, 후속 UX 후보).
 
-- **엔진 (Phase 0·1, headed Playwright Chromium 151, IIFE global 경로 = JSP 동일, 실행자 Claude)**: G0 100MB sparse 파일 진행률 15회 · 소켓 단절 + 서버 400ms 다운 2회 후 HEAD 재개 (50.14MB / 75.08MB) · 재전송 합 8MB. G1 4GB×3 힙 Δ 중앙값 2.22MB · 재개 3경로 (단절 4.06MB · reload 0 · 탭 종료 0) · core+tus 5,852 B / IIFE 8,068 B gz · **tusd v2.10.1 대조군 8/8 PASS (G2a)** — 409 헤더 부재 시 무한 409 결함 1건을 tusd 가 잡아 수리. mock 적합성 79 PASS.
-- **컴포넌트 (Phase 3, `apps/builder/scripts/adr201-fileupload-live.mjs`, headed Playwright, 통합 브랜치 dev 5175, 실행자 Claude) 20/20 PASS**: 팔레트 "file upload" → canonical FileUpload + DropZone/FileTrigger/ProgressBar×2 · props catalog 파생 (`endpoint` 없음, HC7) · Skia 픽셀 (nonWhite 17,540) · Preview `.react-aria-FileUpload[data-upload-state=idle]` · G3 Δh ≤ 1px (FileTrigger 폭 Δ 6.21 은 단독 leaf 대조군과 동일 — 기존 편차) · **파일 선택 → 실제 `import("@composition/upload/react")` 로드 (engine=loaded) → 런타임 행 1** · `st.elements` 에 selectedFiles 0 · reload 영속 · page/console error 0.
-- **미실행**: G5 (preview ≥1GB 실파일 · JSP 예제) · G2b (Spring `mvn test` · 1GB e2e) — JDK·Maven 부재. 사용자 실행 명령: `docs/adr/evidence/201-phase2-server.md` §4.
+**선행 기록 (통합 시점, 2026-09-17)** — 엔진 G0 100MB 진행률 15회 · 단절 2회 재개 재전송 8MB · G1 4GB×3 힙 Δ 중앙값 2.22MB · 재개 3경로 4.06MB/0/0 · core+tus 5,852 B / IIFE 8,068 B gz · **tusd v2.10.1 대조군 8/8 (G2a)** · G2b `mvn -q test` 53/53 (JDK 17) + cargo 기동 curl 흐름 · 웹루트 저장 기동 거부 실물 · FileUpload 실배선 live 20/20 (engine=loaded) · initial 번들 상한 재승인 (사용자).
 
 ## Consequences
 

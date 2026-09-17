@@ -1,6 +1,6 @@
 # 대용량 업로드 서버 계약 (TUS 1.0) — v1.0.0
 
-> 정본. ADR-201 Hard Constraint 5·7 의 서버 측 계약이며 `@composition/upload` package 버전과 같이 움직인다 (**계약 변경 = package major**). 클라이언트 적합성 스위트 (`packages/upload-engine`) 와 참조 서버 (`examples/upload-server-spring/`) 는 이 문서를 oracle 로 둔다. 설계 배경: [ADR-201](../../adr/201-large-file-upload-engine-component-server-contract.md) · [breakdown §3-3 · §3-6](../../adr/design/201-large-file-upload-engine-component-server-contract-breakdown.md).
+> 정본. ADR-201 Hard Constraint 5·7 의 서버 측 계약이며 `@composition/upload` package 버전과 같이 움직인다 (**계약 변경 = package major**). 클라이언트 적합성 스위트 (`packages/upload-engine`) 와 참조 서버 (`examples/upload-server-spring/`) 는 이 문서를 oracle 로 둔다. 설계 배경: [ADR-201](../../adr/completed/201-large-file-upload-engine-component-server-contract.md) · [breakdown §3-3 · §3-6](../../adr/design/201-large-file-upload-engine-component-server-contract-breakdown.md).
 
 | 항목           | 값                                                                                                                                                                                           |
 | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
