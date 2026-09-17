@@ -11,7 +11,8 @@
  *   node apps/builder/scripts/adr201-bundle-gate.mjs --self-test   # 음성 fixture 4
  *
  * 조건 (ADR-201 HC1 · G3):
- *   ① `@composition/upload` 의 모든 chunk (react entry + 지연 청크) 가 builder·preview initial closure 밖
+ *   ① `@composition/upload` 의 모든 chunk (react entry + 지연 청크) 와 `FileUploadActive` (active 분기,
+ *      ADR-201 후속) 가 builder·preview initial closure 밖
  *   ② 등록 8지점 + renderer shell 의 initial Δ 가 201 허용치 안 (Builder ≤ +4,096 · Preview ≤ +3,584 —
  *      2026-09-17 실측 +3,875 / +3,507 을 올림한 값, 등록 구조상 Δ 0 은 불가)
  *   ③ 절대 상한 = ADR-201 initial 상한 재승인 (Builder ≤ 1,328,315 / Preview ≤ 601,346 B gzip,
@@ -30,6 +31,8 @@ export const CEILING_EXPIRES = "2026-10-17";
 export const BUILDER_DELTA_LIMIT = 4_096;
 export const PREVIEW_DELTA_LIMIT = 3_584;
 const UPLOAD_ENGINE_KEY = /packages\/upload-engine\/dist\//;
+// ADR-201 후속 — FileUpload active 분기 (endpoint 해석 · CSRF · 런타임 행) 도 initial 밖 (lazy chunk)
+const UPLOAD_ACTIVE_KEY = /packages\/shared\/src\/components\/FileUploadActive\.tsx$/;
 const AI_ENTRY = "src/builder/panels/ai/AIPanel.tsx";
 const COMMAND_ENTRY = "src/services/ai/tools/runCommand.ts";
 
@@ -85,10 +88,18 @@ export function judge({
     builder: after.builder - before.builder,
     preview: after.preview - before.preview,
   };
+  const activeChunks = Object.keys(manifest)
+    .filter((key) => UPLOAD_ACTIVE_KEY.test(key))
+    .map((key) => ({ key, file: manifest[key].file }));
+  if (activeChunks.length === 0)
+    throw new Error(
+      "manifest 에 FileUploadActive chunk 가 없다 — active 분기가 정적 import 로 initial 에 편입됐다",
+    );
   const checks = {
     beforeSameRevision: sameRevision(beforeBuilder, beforePreview),
     afterSameRevision: sameRevision(afterBuilder, afterPreview),
     uploadEngineLazy: uploadChunks.every((c) => !initialFiles.has(c.file)),
+    uploadActiveLazy: activeChunks.every((c) => !initialFiles.has(c.file)),
     builderDelta: delta.builder <= BUILDER_DELTA_LIMIT,
     previewDelta: delta.preview <= PREVIEW_DELTA_LIMIT,
     builderAbsolute: after.builder <= BUILDER_CEILING,
@@ -120,7 +131,7 @@ export function judge({
   };
 }
 
-/** 음성 fixture 4 — ① 미승인 ② react entry 가 initial 편입 ③ Builder Δ 초과 ④ 만료 */
+/** 음성 fixture 5 — ① 미승인 ② react entry 가 initial 편입 ③ FileUploadActive 가 initial 편입 ④ Builder Δ 초과 ⑤ 만료 */
 export function selfTest() {
   const revision = { sha: "a", dirtyFiles: [], dirtyPatchSha256: null };
   const closure = (gzipBytes, files) => ({
@@ -133,6 +144,9 @@ export function selfTest() {
     },
     "../../packages/upload-engine/dist/dryRun-x.js": {
       file: "assets/dryRun-x.js",
+    },
+    "../../packages/shared/src/components/FileUploadActive.tsx": {
+      file: "assets/FileUploadActive-x.js",
     },
     [AI_ENTRY]: { file: "assets/AIPanel-x.js" },
     [COMMAND_ENTRY]: { file: "assets/runCommand-x.js" },
@@ -155,6 +169,15 @@ export function selfTest() {
         approved: true,
         afterBuilder: closure(1_328_315, [...initial, "assets/react-x.js"]),
       }).checks.uploadEngineLazy === false,
+    activeInInitialFails:
+      judge({
+        ...base,
+        approved: true,
+        afterPreview: closure(601_346, [
+          ...initial,
+          "assets/FileUploadActive-x.js",
+        ]),
+      }).checks.uploadActiveLazy === false,
     builderDeltaOverFails:
       judge({
         ...base,

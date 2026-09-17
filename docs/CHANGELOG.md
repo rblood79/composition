@@ -24,10 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **FileTrigger 가 선택한 파일명을 문서 prop (`selectedFiles`) 에 기록하던 잘못된 채널 제거** — 런타임 상태가 canonical document 에 남지 않는다 (정적 게이트 + live 확인).
+- **API 편집기가 업로드 endpoint 를 오류로 보이던 것** (후속 1) — Add API 직후 자동 Send (GET) 에 TUS 서버가 `405`/`412` + `Tus-Resumable` 로 답하면 Response 탭이 "실행 실패" 대신 **업로드 endpoint 안내** (TUS 버전 · 허용 메서드 · 데이터 소스 아님) 와 「미리보기에서 실제 업로드」 스위치를 그린다. 콘솔 `console.error`·오류 Map 기록도 없앰 (`info` 1줄).
 
 ### Changed
 
 - `pnpm install` postinstall 이 `@composition/upload` 도 빌드한다 (`prepare:upload`).
+- **FileUpload active 분기 lazy 분리** (후속 2) — endpoint 해석 · CSRF 헤더 · 런타임 행은 `FileUploadActive` chunk 로 첫 파일 선택 때 로드 (initial 에는 idle 껍데기만). Preview initial −212 B gz (Builder 는 후속 1 추가분과 상계해 +266 B). 번들 게이트에 `uploadActiveLazy` 조건 추가. G5 live 12/12 재확인.
 - initial 번들: Builder +3,875 B · Preview +3,507 B gzip (등록 8지점 + 렌더러 shell, 엔진 chunk 는 lazy) — **initial 상한 재승인 2026-09-17: Builder ≤ 1,328,315 / Preview ≤ 601,346 B gzip (만료 2026-10-17, 202 재승인값 대체)**, 판정기 `adr201-bundle-gate.mjs` 11/11.
 
 ## [ADR-013 Quick Connect — Data 행 「New table」 이 만든 테이블을 작업하던 컴포넌트에 자동 연결] - 2026-09-17

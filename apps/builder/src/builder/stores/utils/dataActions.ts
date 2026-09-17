@@ -28,6 +28,10 @@ import {
   syncCollectionsToCanvas,
 } from "./dataChange";
 import { collectionUpdateToOps } from "./dataChangeDiff";
+import {
+  isUploadEndpointProbe,
+  tusResumableVersion,
+} from "./uploadEndpointProbe";
 import { getDB } from "../../../lib/db";
 import {
   migrateVariableOwner,
@@ -914,8 +918,16 @@ export const createExecuteApiEndpointAction =
       recordRun(true);
       return mappedData;
     } catch (error) {
-      console.error(`❌ ApiEndpoint "${endpoint?.name}" 실행 실패:`, error);
       recordRun(false, error instanceof Error ? error.message : String(error));
+      // ADR-201 후속 — TUS 업로드 endpoint 는 GET 을 받지 않는 것이 정상 (405/412 + Tus-Resumable).
+      // 오류 채널 (console.error · errors Map) 에 싣지 않는다 — 편집기가 안내로 그린다.
+      if (isUploadEndpointProbe(responseSnapshot)) {
+        console.info(
+          `ℹ️ ApiEndpoint "${endpoint?.name}" 은 업로드 endpoint (TUS ${tusResumableVersion(responseSnapshot!.headers)}) — GET 프로브 ${responseSnapshot!.status} 는 정상`,
+        );
+        throw error;
+      }
+      console.error(`❌ ApiEndpoint "${endpoint?.name}" 실행 실패:`, error);
       set((state) => {
         const newErrors = new Map(state.errors);
         newErrors.set(`executeApi_${id}`, error as Error);

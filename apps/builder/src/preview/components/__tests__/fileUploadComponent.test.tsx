@@ -10,6 +10,8 @@
  *   3) 엔진 로드 실패 → `E_ENGINE_UNAVAILABLE` + 정적 UI 유지 (console error 0)
  *   4) dryRun=false + vault placeholder 헤더 → `E_UNAUTHORIZED`, 엔진을 부르지 않는다 (m4)
  *   5) 문서 write 0 — 컴포넌트는 updateElementProps 같은 문서 채널을 받지도 않는다
+ *   6) active 분기 (런타임 행 · endpoint 해석 · CSRF 헤더) 는 `FileUploadActive` lazy 모듈 —
+ *      initial 에는 idle 껍데기만 (ADR-201 후속 번들 축소). 정적 import 0 을 소스로 확인한다.
  */
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { useEffect, useMemo, useState } from "react";
@@ -19,10 +21,8 @@ import {
   CollectionDataContext,
   type CollectionDataServices,
 } from "@composition/shared";
-import {
-  FileUpload,
-  csrfHeadersFromCookie,
-} from "@composition/shared/components/FileUpload";
+import { FileUpload } from "@composition/shared/components/FileUpload";
+import { csrfHeadersFromCookie } from "@composition/shared/components/FileUploadActive";
 import type { UploadReactModule } from "@composition/shared";
 import { useFileUploadIntake } from "@composition/shared";
 
@@ -312,5 +312,25 @@ describe("FileUpload — DOM consumer", () => {
         .querySelector(".react-aria-FileUpload")
         ?.getAttribute("data-disabled"),
     ).toBe("true");
+  });
+
+  it("FileUpload 껍데기는 FileUploadActive · resolveUploadEndpoint · 엔진을 정적으로 import 하지 않는다 (lazy 경계)", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { resolve } = await import("node:path");
+    // vitest cwd = apps/builder
+    const src = readFileSync(
+      resolve(
+        process.cwd(),
+        "../../packages/shared/src/components/FileUpload.tsx",
+      ),
+      "utf8",
+    );
+    const staticImports = [...src.matchAll(/^import\s[^;]*?from\s+"([^"]+)"/gms)].map(
+      (m) => m[1],
+    );
+    expect(staticImports).not.toContain("./FileUploadActive");
+    expect(staticImports.some((s) => s.includes("resolveUploadEndpoint"))).toBe(false);
+    expect(staticImports.some((s) => s.includes("@composition/upload"))).toBe(false);
+    expect(src).toMatch(/import\("\.\/FileUploadActive"\)/);
   });
 });

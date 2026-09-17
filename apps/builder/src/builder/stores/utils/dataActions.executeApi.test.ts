@@ -3,6 +3,7 @@
  * 종전: 기본 dataPath "data" 를 축소해 undefined 를 반환 → "Success" + 빈 본문.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isUploadEndpointProbe } from "./uploadEndpointProbe";
 import {
   API_RUN_BODY_PREVIEW_MAX_BYTES,
   createExecuteApiEndpointAction,
@@ -185,6 +186,40 @@ describe("executeApiEndpoint — 실행 스냅샷 (ADR-213 Phase 3)", () => {
     expect(state.errors.get("executeApi_api_1")?.message).toBe(
       "HTTP 401: Unauthorized",
     );
+  });
+
+  it("HTTP 405 + Tus-Resumable (ADR-201 후속): 업로드 endpoint 프로브 — throw 는 하되 console.error 0 · errors Map 미기록 · 스냅샷은 남는다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        fakeResponse("method not allowed", {
+          status: 405,
+          statusText: "Method Not Allowed",
+          headers: {
+            "tus-resumable": "1.0.0",
+            allow: "OPTIONS, POST, HEAD, PATCH, DELETE",
+          },
+        }),
+      ),
+    );
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    const { state, set, get } = makeStore(endpoint({}));
+    await expect(
+      createExecuteApiEndpointAction(set, get)("api_1"),
+    ).rejects.toThrow("HTTP 405");
+    const run = state.apiRuns.get("api_1")!;
+    expect(run.ok).toBe(false);
+    expect(run.response).toMatchObject({
+      status: 405,
+      headers: { "tus-resumable": "1.0.0" },
+    });
+    expect(isUploadEndpointProbe(run.response)).toBe(true);
+    expect(error).not.toHaveBeenCalled();
+    expect(info).toHaveBeenCalledTimes(1);
+    expect(state.errors.has("executeApi_api_1")).toBe(false);
+    error.mockRestore();
+    info.mockRestore();
   });
 
   it("네트워크 오류: response null · error 메시지, 스냅샷은 남는다", async () => {

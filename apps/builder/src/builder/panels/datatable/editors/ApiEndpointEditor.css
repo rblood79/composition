@@ -171,6 +171,15 @@ section-*/fieldset-*) 는 정의하지 않는다 — 고유 시각만 `datatable
   min-height: 0;
 }
 
+/* ADR-201 후속 — 405/412 + Tus-Resumable: 업로드 endpoint 안내 (오류 아님) */
+.datatable-api-upload-endpoint {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: var(--text-sm);
+  color: var(--fg);
+}
+
 .datatable-api-status {
   display: flex;
   flex-wrap: wrap;

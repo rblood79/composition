@@ -7,9 +7,11 @@
  *   - **active (파일이 들어온 뒤)**: 입력 표면 (DropZone/FileTrigger 자식) 은 유지하고 샘플 행
  *     대신 런타임 행 — RAC `GridList` 안에 `ProgressBar` (파일명 · 크기 · 진행률 · R1 에러 코드).
  *
- * 전송 엔진 `@composition/upload/react` 는 **첫 파일 유입 시** lazy 로드한다 (HC1). 로드 실패는
- * throw 가 아니라 `E_ENGINE_UNAVAILABLE` 안전 상태 (정적 UI 유지 · console error 0). 큐 상태는
- * 전부 React 상태 — canonical 문서에 쓰지 않는다 (`selectedFiles` 채널 제거와 짝).
+ * 이 파일은 **idle 껍데기**만이다 (ADR-201 후속 번들 축소) — active 분기 (endpoint 해석 · CSRF ·
+ * 런타임 행) 는 `./FileUploadActive` 를 첫 파일 유입 때 `import()` 하고, 전송 엔진
+ * `@composition/upload/react` 는 그 뒤 `loadEngine` 으로 따로 가져온다 (HC1). 둘 다 initial chunk 밖.
+ * 로드 실패는 throw 가 아니라 `E_ENGINE_UNAVAILABLE` 안전 상태 (정적 UI 유지 · console error 0).
+ * 큐 상태는 전부 React 상태 — canonical 문서에 쓰지 않는다 (`selectedFiles` 채널 제거와 짝).
  *
  * `endpoint` 는 `ApiEndpointDefinition.id` 참조다 — URL·헤더는 `CollectionDataContext` 의
  * endpoint 목록에서 런타임에 해석 (`resolveUploadEndpoint`). 문서에 정적 비밀 0 (HC7).
@@ -28,11 +30,6 @@ import React, {
   type CSSProperties,
   type ReactNode,
 } from "react";
-import {
-  GridList as AriaGridList,
-  GridListItem as AriaGridListItem,
-} from "react-aria-components/GridList";
-import type { UploadItemState, UploadQueueOptions } from "@composition/upload";
 
 import { useCollectionDataServices } from "../hooks/collectionDataContext";
 import {
@@ -44,16 +41,23 @@ import {
   type UploadEngineLoader,
   type UploadReactModule,
 } from "../upload/loadUploadEngine";
-import { resolveUploadEndpoint } from "../upload/resolveUploadEndpoint";
-import { ProgressBar } from "./ProgressBar";
 
-/** 미리보기 `<img>` 상한 (R4 — 파일 전체를 읽지 않지만 objectURL 디코드는 브라우저 메모리다). */
-export const FILE_UPLOAD_PREVIEW_MAX_BYTES = 20 * 1024 * 1024;
 /** 입력 표면으로 분류하는 canonical 자식 type — active 상태에서도 유지된다. */
 export const FILE_UPLOAD_INPUT_CHILD_TYPES: ReadonlySet<string> = new Set([
   "DropZone",
   "FileTrigger",
 ]);
+
+type ActiveModule = typeof import("./FileUploadActive");
+
+let cachedActive: Promise<ActiveModule | null> | null = null;
+/** active 분기 lazy 로더 — 실패도 캐시 (엔진 로더와 같은 규약). */
+function loadActiveModule(): Promise<ActiveModule | null> {
+  if (!cachedActive) {
+    cachedActive = import("./FileUploadActive").catch(() => null);
+  }
+  return cachedActive;
+}
 
 export interface FileUploadProps extends Omit<
   React.HTMLAttributes<HTMLDivElement>,
@@ -91,10 +95,10 @@ export interface FileUploadProps extends Omit<
   children?: ReactNode;
 }
 
-type EngineState =
+type LazyState<T> =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "ready"; mod: UploadReactModule }
+  | { status: "ready"; mod: T }
   | { status: "unavailable" };
 
 /** host 자식 요소의 canonical type — publish `ElementRenderer` 는 `element`, preview 는 `node`. */
@@ -106,22 +110,6 @@ function hostChildType(child: ReactNode): string | null {
   const type =
     element?.type ?? node?.type ?? (props["data-element-type"] as unknown);
   return typeof type === "string" ? type : null;
-}
-
-/**
- * 서버 계약 §5 "토큰 획득" — 세션 CSRF 토큰을 `XSRF-TOKEN` 쿠키 (Spring Security
- * CookieCsrfTokenRepository 관례, HttpOnly 아님) 로 받은 경우 `X-CSRF-TOKEN` 헤더로 되돌린다.
- * 쿠키가 없으면 헤더 0 — 서버가 CSRF 를 요구하면 403 → `E_UNAUTHORIZED` 로 드러난다.
- */
-export function csrfHeadersFromCookie(): Record<string, string> {
-  if (typeof document === "undefined") return {};
-  const match = /(?:^|;\s*)XSRF-TOKEN=([^;]+)/.exec(document.cookie ?? "");
-  if (!match) return {};
-  try {
-    return { "X-CSRF-TOKEN": decodeURIComponent(match[1]) };
-  } catch {
-    return { "X-CSRF-TOKEN": match[1] };
-  }
 }
 
 function partitionChildren(children: ReactNode): {
@@ -136,140 +124,6 @@ function partitionChildren(children: ReactNode): {
     else rows.push(child);
   });
   return { input, rows };
-}
-
-export function formatFileSize(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return "0 B";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  if (bytes < 1024 * 1024 * 1024)
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
-}
-
-function toRetryDelays(
-  value: ReadonlyArray<number | string> | undefined,
-): number[] | undefined {
-  if (!value) return undefined;
-  const out = value
-    .map((v) => (typeof v === "number" ? v : Number.parseInt(String(v), 10)))
-    .filter((n) => Number.isFinite(n) && n >= 0);
-  return out.length > 0 ? out : undefined;
-}
-
-function itemPercent(item: UploadItemState): number {
-  if (item.status === "done") return 100;
-  if (item.size <= 0) return 0;
-  return Math.max(
-    0,
-    Math.min(100, Math.round((item.offset / item.size) * 100)),
-  );
-}
-
-function canPreview(file: File, showPreview: boolean): boolean {
-  return (
-    showPreview &&
-    file.size <= FILE_UPLOAD_PREVIEW_MAX_BYTES &&
-    /^image\/(png|jpeg|gif|webp|avif|bmp)$/i.test(file.type) // SVG/HTML 제외 (§3-6)
-  );
-}
-
-interface UploadRuntimeProps {
-  mod: UploadReactModule;
-  options: UploadQueueOptions;
-  pending: File[];
-  onDrain: () => void;
-  showPreview: boolean;
-}
-
-/**
- * 엔진 hook 을 부르는 유일한 자리 — 엔진이 로드된 뒤에만 마운트되므로 hook 규칙을 지킨다.
- * `pending` 이 들어오면 큐에 넣고 (`autoProceed` 는 엔진 옵션) host 에 비우라고 알린다.
- */
-function UploadRuntime({
-  mod,
-  options,
-  pending,
-  onDrain,
-  showPreview,
-}: UploadRuntimeProps) {
-  const { items, add } = mod.useUploadQueue(options);
-  const previewsRef = useRef(new Map<string, string>());
-  const [, bump] = useState(0);
-
-  useEffect(() => {
-    if (pending.length === 0) return;
-    const added = add(pending);
-    if (showPreview) {
-      added.forEach((item, index) => {
-        const file = pending[index];
-        if (file && canPreview(file, showPreview)) {
-          previewsRef.current.set(item.id, URL.createObjectURL(file));
-        }
-      });
-      bump((n) => n + 1);
-    }
-    onDrain();
-  }, [pending, add, onDrain, showPreview]);
-
-  useEffect(() => {
-    const previews = previewsRef.current;
-    return () => {
-      previews.forEach((url) => URL.revokeObjectURL(url));
-      previews.clear();
-    };
-  }, []);
-
-  return (
-    <AriaGridList
-      aria-label="Upload queue"
-      className="react-aria-FileUpload-list"
-      items={items}
-      selectionMode="none"
-    >
-      {(item) => {
-        const pct = itemPercent(item);
-        const preview = previewsRef.current.get(item.id);
-        return (
-          <AriaGridListItem
-            id={item.id}
-            textValue={item.name}
-            className="react-aria-FileUpload-item"
-            data-status={item.status}
-          >
-            {preview ? (
-              <img
-                className="react-aria-FileUpload-thumb"
-                src={preview}
-                alt=""
-                width={40}
-                height={40}
-              />
-            ) : null}
-            <ProgressBar
-              label={item.name}
-              value={pct}
-              valueLabel={`${formatFileSize(item.size)} · ${pct}%`}
-              showValueLabel
-              isIndeterminate={item.status === "creating"}
-              variant="default"
-              size="md"
-              style={{ width: "100%" }}
-            />
-            {item.lastError ? (
-              <span
-                className="react-aria-FileUpload-error"
-                role="status"
-                data-code={item.lastError.code}
-              >
-                {item.lastError.code}
-              </span>
-            ) : null}
-          </AriaGridListItem>
-        );
-      }}
-    </AriaGridList>
-  );
 }
 
 export function FileUpload({
@@ -306,62 +160,87 @@ export function FileUpload({
     () => services.apiEndpointService?.getApiEndpoints() ?? [],
     [services.apiEndpointService],
   );
-  const resolution = useMemo(
-    () => resolveUploadEndpoint(endpoint, endpoints),
-    [endpoint, endpoints],
-  );
 
-  const [engine, setEngine] = useState<EngineState>({ status: "idle" });
+  const [active, setActive] = useState<LazyState<ActiveModule>>({
+    status: "idle",
+  });
+  const [engine, setEngine] = useState<LazyState<UploadReactModule>>({
+    status: "idle",
+  });
   const [pending, setPending] = useState<File[]>([]);
   const [hasIntake, setHasIntake] = useState(false);
+  const activeRef = useRef(active);
+  activeRef.current = active;
   const engineRef = useRef(engine);
   engineRef.current = engine;
 
-  const dryRun = dryRunProp ?? (resolution.ok ? resolution.uploadDryRun : true);
-  const transportBlocked = !dryRun && !resolution.ok;
+  // endpoint 해석은 active 모듈이 온 뒤에만 (그 전엔 파일이 pending 에 쌓인다).
+  const resolution = useMemo(
+    () =>
+      active.status === "ready"
+        ? active.mod.resolveUploadEndpoint(endpoint, endpoints)
+        : null,
+    [active, endpoint, endpoints],
+  );
+  const dryRun =
+    dryRunProp ?? (resolution?.ok ? resolution.uploadDryRun : true);
+  const transportBlocked = resolution !== null && !dryRun && !resolution.ok;
 
   const addFiles = useCallback(
     (files: File[]) => {
       if (isDisabled || files.length === 0) return;
       setHasIntake(true);
-      if (transportBlocked) return; // 상태 줄에 코드만 — 엔진도 로드하지 않는다
       setPending((prev) => [...prev, ...files]);
-      if (engineRef.current.status === "idle") {
-        setEngine({ status: "loading" });
-        void loadEngine().then((mod) => {
-          setEngine(mod ? { status: "ready", mod } : { status: "unavailable" });
+      if (activeRef.current.status === "idle") {
+        setActive({ status: "loading" });
+        void loadActiveModule().then((mod) => {
+          setActive(mod ? { status: "ready", mod } : { status: "unavailable" });
         });
       }
     },
-    [isDisabled, transportBlocked, loadEngine],
+    [isDisabled],
   );
+
+  // active 모듈 도착 → endpoint 가 열려 있을 때만 엔진 로드 (막힌 경우 상태 줄에 코드만, m4).
+  useEffect(() => {
+    if (!hasIntake || resolution === null) return;
+    if (transportBlocked) {
+      setPending([]);
+      return;
+    }
+    if (engineRef.current.status !== "idle") return;
+    setEngine({ status: "loading" });
+    void loadEngine().then((mod) => {
+      setEngine(mod ? { status: "ready", mod } : { status: "unavailable" });
+    });
+  }, [hasIntake, resolution, transportBlocked, loadEngine]);
 
   const intake = useMemo<FileUploadIntake>(
     () => ({ addFiles, isDisabled }),
     [addFiles, isDisabled],
   );
 
-  const options = useMemo<UploadQueueOptions>(
-    () => ({
-      endpoint: resolution.ok ? resolution.url : "dry-run:",
-      headers: resolution.ok ? resolution.headers : undefined,
-      chunkSize,
-      parallelUploads,
-      retryDelays: toRetryDelays(retryDelays),
-      maxFileSize: maxFileSize && maxFileSize > 0 ? maxFileSize : undefined,
-      autoProceed,
-      withCredentials: true,
-      getHeaders: csrfHeadersFromCookie,
-      dryRun,
-    }),
+  const config = useMemo(
+    () =>
+      resolution
+        ? {
+            resolution,
+            dryRun,
+            chunkSize,
+            parallelUploads,
+            retryDelays,
+            maxFileSize,
+            autoProceed,
+          }
+        : null,
     [
       resolution,
+      dryRun,
       chunkSize,
       parallelUploads,
       retryDelays,
       maxFileSize,
       autoProceed,
-      dryRun,
     ],
   );
 
@@ -375,10 +254,15 @@ export function FileUpload({
     [inputSurface, sampleRows, children],
   );
 
-  const active = hasIntake && engine.status === "ready" && !transportBlocked;
+  const isActive =
+    hasIntake &&
+    active.status === "ready" &&
+    engine.status === "ready" &&
+    config !== null &&
+    !transportBlocked;
   const statusCode = transportBlocked
     ? (resolution as { code: string }).code
-    : engine.status === "unavailable"
+    : active.status === "unavailable" || engine.status === "unavailable"
       ? "E_ENGINE_UNAVAILABLE"
       : null;
 
@@ -392,14 +276,14 @@ export function FileUpload({
         data-variant={variant}
         data-size={size}
         data-disabled={isDisabled || undefined}
-        data-upload-state={active ? "active" : "idle"}
+        data-upload-state={isActive ? "active" : "idle"}
         style={style as CSSProperties | undefined}
       >
         {partitioned.input}
-        {active && engine.status === "ready" ? (
-          <UploadRuntime
+        {isActive && active.status === "ready" && engine.status === "ready" ? (
+          <active.mod.FileUploadActive
             mod={engine.mod}
-            options={options}
+            config={config}
             pending={pending}
             onDrain={drain}
             showPreview={showPreview}

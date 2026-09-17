@@ -52,6 +52,10 @@ import {
   resolveResponseData,
 } from "../../../../utils/data/responseData";
 import { toEndpointDraft } from "../../../stores/utils/dataChange";
+import {
+  isUploadEndpointProbe,
+  tusResumableVersion,
+} from "../../../stores/utils/uploadEndpointProbe";
 import { PropertySwitch } from "../../../components";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { authToEntries, detectAuthPreset, type AuthPreset } from "./authPreset";
@@ -748,6 +752,33 @@ function ResponseTab({
     );
   }
   const { response } = run;
+  // ADR-201 후속 — TUS 업로드 endpoint 는 GET 프로브에 405/412 + Tus-Resumable 로 답한다. 오류가
+  // 아니므로 상태 줄·본문 대신 업로드 endpoint 안내 + preview 전송 토글을 그린다.
+  if (isUploadEndpointProbe(response)) {
+    const version = tusResumableVersion(response.headers) ?? "";
+    const allow = Object.entries(response.headers).find(
+      ([k]) => k.toLowerCase() === "allow",
+    )?.[1];
+    return (
+      <div className="datatable-api-section datatable-api-response">
+        <div
+          className="datatable-api-upload-endpoint"
+          role="status"
+          aria-live="polite"
+          data-upload-endpoint={version}
+        >
+          <strong>{dt("apiUploadEndpointTitle", { version })}</strong>
+          <p className="datatable-api-hint">{dt("apiUploadEndpointHint")}</p>
+          {allow ? (
+            <p className="datatable-api-hint">
+              {dt("apiUploadEndpointAllow")} {allow}
+            </p>
+          ) : null}
+        </div>
+        <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
+      </div>
+    );
+  }
   const bytes = new Blob([response.bodyPreview]).size;
   const sizeText =
     bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`;

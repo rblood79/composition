@@ -1554,6 +1554,10 @@ const koKR: TranslationKeys = {
       "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
     apiUploadDryRunHint:
       "미리보기의 File Upload 는 바이트를 보내지 않고 진행률만 시뮬레이션한다. 게시본은 항상 실제 전송.",
+    apiUploadEndpointTitle: "업로드 endpoint (TUS {version})",
+    apiUploadEndpointHint:
+      "이 endpoint 는 GET 을 받지 않는다 — 데이터 소스가 아니라 File Upload 의 endpoint 로 쓴다. 응답 스키마·테이블 저장은 해당 없음.",
+    apiUploadEndpointAllow: "허용 메서드:",
     apiAddParam: "파라미터 추가",
     apiAddHeader: "헤더 추가",
     apiKeyPlaceholder: "이름",
@@ -3444,6 +3448,10 @@ const enUS: TranslationKeys = {
       "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",
     apiUploadDryRunHint:
       "The preview's File Upload sends no bytes and only simulates progress. Published apps always send.",
+    apiUploadEndpointTitle: "Upload endpoint (TUS {version})",
+    apiUploadEndpointHint:
+      "This endpoint does not accept GET — use it as a File Upload endpoint, not a data source. Response schema and Save as table do not apply.",
+    apiUploadEndpointAllow: "Allowed methods:",
     apiAddParam: "Add parameter",
     apiAddHeader: "Add header",
     apiKeyPlaceholder: "name",
@@ -4719,6 +4727,8 @@ const formattedMessages: Record<
     "chart.referenceMaxHint": (args) =>
       `기준선은 최대 ${String(args?.max ?? 4)}개입니다.`,
     "itemsManager.total": (args) => `총 ${String(args?.count ?? 0)}개`,
+    "datatable.apiUploadEndpointTitle": (args) =>
+      `업로드 endpoint (TUS ${String(args?.version ?? "")})`,
     "itemsManager.addItem": (args) => `${String(args?.type ?? "")} 추가`,
     "errors.withContext": (args) =>
       `${String(args?.context ?? "")} 중 오류가 발생했습니다: ${String(args?.message ?? "")}`,
@@ -5185,6 +5195,8 @@ const formattedMessages: Record<
     "chart.referenceMaxHint": (args) =>
       `Up to ${String(args?.max ?? 4)} reference lines.`,
     "itemsManager.total": (args) => `Total: ${String(args?.count ?? 0)}`,
+    "datatable.apiUploadEndpointTitle": (args) =>
+      `Upload endpoint (TUS ${String(args?.version ?? "")})`,
     "itemsManager.addItem": (args) => `Add ${String(args?.type ?? "")}`,
     "errors.withContext": (args) =>
       `Something went wrong during ${String(args?.context ?? "")}: ${String(args?.message ?? "")}`,

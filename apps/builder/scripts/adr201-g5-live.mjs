@@ -230,6 +230,13 @@ page.on("requestfailed", (req) => {
 });
 const t0 = Date.now();
 const stamp = () => `${((Date.now() - t0) / 1000).toFixed(1)}s`;
+// ADR-201 후속 (번들 축소) — active 분기 모듈 · 엔진 모듈이 dev 서버에서 언제 요청되는지 (파일 선택 뒤여야 한다)
+const lazyRequests = [];
+page.on("request", (req) => {
+  const u = req.url();
+  if (/FileUploadActive|upload-engine|composition[_/]upload/.test(u))
+    lazyRequests.push({ t: stamp(), url: u.replace(BASE_URL, "") });
+});
 
 try {
   // 1) 참조 서버 세션 + CSRF 쿠키
@@ -277,7 +284,28 @@ try {
   const editor = page.locator('[data-panel-id="datatableEditor"]');
   await editor.locator(".datatable-api-editor").waitFor({ timeout: 15_000 });
   await page.waitForTimeout(1200);
-  // 편집기는 자동 Send 뒤 response 탭에 선다 — 토글은 Params 탭
+  // ADR-201 후속 — 자동 Send (GET 프로브) 의 405 + Tus-Resumable 은 오류가 아니라 업로드 endpoint 안내:
+  //   response 탭에 [data-upload-endpoint] + 전송 토글, 실패 상태 줄 없음, console.error 0 (info 만)
+  const uploadNote = editor.locator("[data-upload-endpoint]").first();
+  await uploadNote.waitFor({ timeout: 10_000 });
+  const noteState = {
+    version: await uploadNote.getAttribute("data-upload-endpoint"),
+    text: (await uploadNote.textContent())?.slice(0, 120),
+    statusRow: await editor.locator(".datatable-api-status").count(),
+    transportInResponse: await editor
+      .locator(".datatable-api-response [data-upload-transport]")
+      .count(),
+    probeErrorLogs: errors.filter((e) => /실행 실패/.test(e)).length,
+  };
+  check(
+    "자동 Send 405 + Tus-Resumable → response 탭이 업로드 endpoint 안내 (TUS 1.0.0 · Allow) + 전송 토글 · 실패 상태 줄 0 · '실행 실패' console.error 0",
+    noteState.version === "1.0.0" &&
+      noteState.statusRow === 0 &&
+      noteState.transportInResponse === 1 &&
+      noteState.probeErrorLogs === 0,
+    JSON.stringify(noteState),
+  );
+  // 토글은 Params 탭 (response 탭의 토글과 같은 define_endpoint 경로)
   await editor
     .locator(
       '.panel-tab[id$="params"], .panel-tab:has-text("Params"), .panel-tab:has-text("파라미터")',
@@ -362,6 +390,7 @@ try {
     ),
   );
   let frame = await openCompare(page);
+  const lazyBeforeSelect = lazyRequests.length;
   await frame
     .locator('.react-aria-FileUpload input[type="file"]')
     .first()
@@ -375,6 +404,13 @@ try {
   const entries0 = await resumeEntries(frame);
   const uploadUrl = entries0[0]?.value?.u;
   const head0 = uploadUrl ? await serverHead(frame, uploadUrl) : null;
+  check(
+    "lazy 경계 — 파일 선택 전 FileUploadActive · 엔진 모듈 요청 0, 선택 뒤 둘 다 요청 (initial 밖)",
+    lazyBeforeSelect === 0 &&
+      lazyRequests.some((r) => /FileUploadActive/.test(r.url)) &&
+      lazyRequests.some((r) => /upload-engine|composition[_/]upload/.test(r.url)),
+    JSON.stringify({ before: lazyBeforeSelect, after: lazyRequests }),
+  );
   check(
     "1GB 선택 → 엔진 로드 → POST 생성 → PATCH 진행 (서버 HEAD Upload-Length == 파일 크기, offset 증가)",
     Boolean(uploadUrl) &&
@@ -522,10 +558,10 @@ try {
     !docLeak.selectedFiles && !docLeak.fileName,
     JSON.stringify(docLeak),
   );
-  // 제외 2종: 오프라인 구간의 XHR 네트워크 오류 · API 편집기가 생성 직후 endpoint 를 GET 으로 프로브하는
-  //   자동 Send (TUS endpoint 는 GET 이 405 — 데이터 소스가 아니라서 생기는 노이즈, 결함 아님)
+  // 제외 2종: 오프라인 구간의 XHR 네트워크 오류 · 브라우저 자체의 "Failed to load resource … 405" 네트워크 로그
+  //   (API 편집기 자동 Send 의 GET 프로브 — 앱 쪽 '실행 실패' console.error 는 ADR-201 후속으로 0 이어야 한다)
   const ignorable = (e) =>
-    /net::ERR_INTERNET_DISCONNECTED|ERR_NETWORK_CHANGED|405 \(Method Not Allowed\)|ApiEndpoint .* 실행 실패: Error: HTTP 405/.test(
+    /net::ERR_INTERNET_DISCONNECTED|ERR_NETWORK_CHANGED|405 \(Method Not Allowed\)/.test(
       e,
     );
   const realErrors = errors.filter((e) => !ignorable(e));

@@ -7,9 +7,10 @@
 import { cleanup, fireEvent, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-const { applyDataChange, execute } = vi.hoisted(() => ({
+const { applyDataChange, execute, apiRuns } = vi.hoisted(() => ({
   applyDataChange: vi.fn(async () => ({ endpointIds: ["ep1"] })),
   execute: vi.fn(async () => ({})),
+  apiRuns: new Map<string, unknown>(),
 }));
 
 vi.mock("../../../stores/data", () => ({
@@ -18,7 +19,7 @@ vi.mock("../../../stores/data", () => ({
       applyDataChange,
       executeApiEndpoint: execute,
       loadingApis: new Set(),
-      apiRuns: new Map(),
+      apiRuns,
     }),
 }));
 
@@ -56,6 +57,7 @@ function lastOps() {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  apiRuns.clear();
 });
 
 describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
@@ -104,5 +106,39 @@ describe("ApiEndpointEditor (ADR-212 Phase 4)", () => {
     fireEvent.click(getByRole("tab", { name: "Auth" }));
     // 프리셋 선택 (기본 none) → auth 그룹이 존재. Select 상호작용·vault 저장은 live 검증.
     expect(getByRole("group", { name: "Auth" })).toBeTruthy();
+  });
+
+  it("Response 탭 — 405 + Tus-Resumable 은 오류가 아니라 업로드 endpoint 안내 (ADR-201 후속: 자동 Send 프로브 405 노이즈)", () => {
+    apiRuns.set("ep1", {
+      runId: "r1",
+      endpointId: "ep1",
+      startedAt: "2026-09-17T00:00:00.000Z",
+      durationMs: 12,
+      ok: false,
+      request: { method: "GET", url: "https://api.test/upload", headers: {}, bodyType: "none" },
+      response: {
+        status: 405,
+        statusText: "Method Not Allowed",
+        headers: { "tus-resumable": "1.0.0", allow: "OPTIONS, POST, HEAD, PATCH, DELETE" },
+        bodyPreview: "method not allowed",
+        bodyTruncated: false,
+        bodyBytes: 18,
+      },
+      error: "HTTP 405: Method Not Allowed",
+    });
+    const { container, getByText } = render(
+      wrap(<ApiEndpointEditor endpoint={endpoint} onClose={() => {}} initialTab="response" />),
+    );
+    const note = container.querySelector("[data-upload-endpoint]");
+    expect(note).not.toBeNull();
+    expect(note?.getAttribute("data-upload-endpoint")).toBe("1.0.0");
+    // {version} 은 formattedMessages 함수 등록이 있어야 치환된다 (정적 문자열만으로는 그대로 노출)
+    expect(note?.textContent).toContain("Upload endpoint (TUS 1.0.0)");
+    expect(note?.textContent).not.toContain("{version}");
+    expect(note?.textContent).toContain("OPTIONS, POST, HEAD, PATCH, DELETE");
+    expect(getByText(/Real upload in preview/)).toBeTruthy();
+    // 실패 상태 줄 (status 405) 은 그리지 않는다 — 오류가 아니다
+    expect(container.querySelector(".datatable-api-status")).toBeNull();
+    expect(execute).toHaveBeenCalledWith("ep1");
   });
 });

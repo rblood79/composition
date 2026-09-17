@@ -189,7 +189,22 @@ Implemented — 2026-09-17 (Proposed 2026-09-02 → In Progress 09-17 사용자 
 2. **builder API 편집기의 자동 Send 가 dev proxy (`/api/proxy`) 를 지나 참조 서버에 새 세션을 만들고, 그 `Set-Cookie` 가 5173 응답으로 돌아와 호스트 `localhost` 의 `XSRF-TOKEN` 을 다른 세션 값으로 덮었다** → 하니스는 endpoint 정의 뒤 dev-login 을 다시 한다. 제품 영향: dev 서버 한정 (production builder 는 proxy 없음 · publish 는 same-origin).
 3. JSP 초안이 엔진 API 를 잘못 가정 (`subscribe(event)` · `autoUpload` · `item.error`) → 실제 시그니처 (`subscribe(items[])` · `autoProceed` · `lastError`) 로 정정. DispatcherServlet `/` 가 정적 `js/*.iife.js` 를 삼켜 404 → `configureDefaultServletHandling` 추가.
 4. `XSRF-TOKEN` 쿠키 Path 는 `/` — 컨텍스트 경로 (`/upload`) 면 다른 컨텍스트의 publish 페이지가 `document.cookie` 로 못 읽는다.
-5. API 편집기 자동 Send 는 TUS endpoint 에 GET 을 보내 405 를 콘솔에 남긴다 (데이터 소스가 아닌 endpoint 의 노이즈 — 결함 아님, 후속 UX 후보).
+5. API 편집기 자동 Send 는 TUS endpoint 에 GET 을 보내 405 를 콘솔에 남긴다 (데이터 소스가 아닌 endpoint 의 노이즈 — 결함 아님). → **후속 1 로 수리 (아래)**.
+
+**후속 2건 (2026-09-17, Implemented 뒤 같은 날)** — 둘 다 G5 가 드러낸 것.
+
+1. **업로드 endpoint 의 GET 프로브 노이즈 (UX)** — 실행기가 `405`/`412` + `Tus-Resumable` 응답을 "업로드 endpoint" 로 분류한다 (`stores/utils/uploadEndpointProbe.ts`): `console.error`·`errors` Map 대신 `console.info` 1줄, API 편집기 Response 탭은 실패 상태 줄·본문 대신 **업로드 endpoint 안내** (`[data-upload-endpoint]` = TUS 버전 · `Allow` 메서드 · "데이터 소스가 아니다") + 「미리보기에서 실제 업로드」 스위치를 그 자리에 함께 그린다 (Params 탭과 같은 `define_endpoint` 경로). 자동 Send 자체는 유지 — 생성 시점엔 endpoint 종류를 알 수 없고, 응답이 분류 근거다. 함정: `{version}` 파라미터 메시지는 `formattedMessages` 함수 등록이 있어야 치환된다 (정적 문자열만 두면 live 에서 `TUS {version}` 그대로 노출 — 첫 live 실행이 잡음).
+2. **FileUpload active 분기 lazy 분리 (번들)** — `FileUpload.tsx` 는 idle 껍데기 (입력 표면 + 샘플 행 + 유입 컨텍스트) 만 initial 에 남고, endpoint 해석 (`resolveUploadEndpoint` → vault placeholder 게이트) · CSRF 쿠키→헤더 · 엔진 옵션 조립 · 런타임 행 (GridList + ProgressBar) 은 `FileUploadActive.tsx` 로 옮겨 첫 파일 유입 때 `import()` 한다. 엔진은 그 뒤 `loadEngine` 으로 따로 — 막힌 endpoint (`E_UNAUTHORIZED`/`E_NO_ENDPOINT`) 면 엔진은 여전히 로드되지 않는다 (m4). 게이트 `adr201-bundle-gate.mjs` 에 `uploadActiveLazy` 조건 추가 (self-test 음성 fixture 5).
+
+| 실측 (before `ae749d9db` clean → after 같은 revision + 후속 2건, `docs/adr/evidence/201-followup-*`) |                                                           Builder initial gz |                                   Preview initial gz |
+| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------: | ---------------------------------------------------: |
+| before                                                                                               |                                                                    1,328,840 |                                              601,515 |
+| after                                                                                                |                                                                    1,329,106 |                                              601,303 |
+| Δ                                                                                                    | **+266** (후속 1 의 편집기 분기·i18n ko/en·프로브 분류기 추가 − 후속 2 절감) | **−212** (raw −1,802; preview 에는 후속 1 코드 없음) |
+
+절감이 예상 (~2.5 KB) 보다 작다 — active 분기는 JSX 속성 이름 반복이라 gzip 이 잘 되고 initial 에서 빠진 실제 gzip 몫은 ~250 B 였다. 게이트 판정: `uploadEngineLazy`·`uploadActiveLazy`·Δ·Preview 절대 상한 통과, **Builder 절대 상한 (1,328,315) 은 before 시점에 이미 +525 초과** (ADR-201 종결 뒤 들어온 다른 세션의 PageHeaderLayer 커밋 `2c00aa0d3`·`ae749d9db` 몫) → 후속 뒤 +791. 이 초과분은 201 의 재승인 범위가 아니라 별도 판정 대상이다.
+
+**후속 live — `adr201-g5-live.mjs` 12/12 PASS (71.7s, headless Chromium)**: 종전 10 단계 + ① 자동 Send 405 → Response 탭 `[data-upload-endpoint="1.0.0"]` · "Upload endpoint (TUS 1.0.0)" · Allow `POST, OPTIONS` · 전송 토글 · 실패 상태 줄 0 · '실행 실패' console.error 0 (하니스 제외 목록에서 이 항목 삭제) ② lazy 경계 — 파일 선택 전 `FileUploadActive`·엔진 모듈 요청 0, 선택 직후 (21.8s) 둘 다 `/@fs/…` 로 요청. 1GB 업로드 → 단절 3.5s 재개 → 새로고침 재개 → 완료 offset == length. 함정: **하니스 실행 중 소스를 편집하면 dev 서버 HMR 이 preview iframe 을 교체해 `Frame was detached` 로 끝난다** (첫 실행 8/9 — `translations.ts` 편집이 원인, 재실행 12/12).
 
 **선행 기록 (통합 시점, 2026-09-17)** — 엔진 G0 100MB 진행률 15회 · 단절 2회 재개 재전송 8MB · G1 4GB×3 힙 Δ 중앙값 2.22MB · 재개 3경로 4.06MB/0/0 · core+tus 5,852 B / IIFE 8,068 B gz · **tusd v2.10.1 대조군 8/8 (G2a)** · G2b `mvn -q test` 53/53 (JDK 17) + cargo 기동 curl 흐름 · 웹루트 저장 기동 거부 실물 · FileUpload 실배선 live 20/20 (engine=loaded) · initial 번들 상한 재승인 (사용자).
 
