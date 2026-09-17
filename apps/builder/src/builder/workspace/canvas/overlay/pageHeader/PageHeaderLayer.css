@@ -51,6 +51,7 @@
   font-family: var(--font-sans);
   font-size: 12px;
   font-weight: 600;
+  border-radius: var(--radius-sm);
   line-height: 1;
   color: var(--fg-muted);
   white-space: nowrap;
