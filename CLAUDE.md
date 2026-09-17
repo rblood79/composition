@@ -21,7 +21,7 @@ pnpm perf:baseline -- --lane leak|frame             # 누수·프레임 기준�
 
 env: `apps/builder/.env.example` → `.env` (필수 키 없음 — 인증은 로컬 라이선스: 발급기 공개키 소스 내장 · 토큰은 `apps/builder/public/license`). `VITE_USE_WEBGL_CANVAS=false` 면 iframe Preview 폴백.
 
-**구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/engine` (Rust 레이아웃) · `packages/config`
+**구조**: `apps/builder` (Skia 빌더) · `apps/publish` (런타임) · `packages/shared` (catalog·공용) · `packages/specs` (잔존 spec 3개·CSS 생성) · `packages/sample-data` (seed 결정성 샘플 행 생성기, 의존 0 — ADR-220) · `packages/upload-engine` (`@composition/upload` TUS 전송 엔진, 의존 0, lazy 전용 — ADR-201, 규칙 `.claude/rules/upload-runtime.md`) · `packages/engine` (Rust 레이아웃) · `packages/config`
 
 **핵심 진입점**: `apps/builder/src/main.tsx` (빌더) · `apps/builder/src/builder/workspace/canvas/skia/` (Skia 렌더) · `apps/builder/src/builder/stores/` (Zustand) · `packages/shared/src/catalog/generated/componentRulesTable.ts` (D3 SSOT — ADR-912 로 freeze 후 **직접 편집** 정본, 생성기 삭제됨) · `apps/publish/src/main.tsx` (런타임)
 

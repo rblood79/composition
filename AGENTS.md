@@ -2,7 +2,8 @@
 
 Builder는 `apps/builder`, publish runtime은 `apps/publish`, 시각 정본은
 `packages/shared/src/catalog`와 theme/tokens, 잔존 spec은 `packages/specs`,
-Rust 레이아웃 엔진은 `packages/engine`에 있습니다.
+Rust 레이아웃 엔진은 `packages/engine`, 대용량 업로드 전송 엔진 (`@composition/upload`, ADR-201)
+은 `packages/upload-engine`에 있습니다.
 
 ## 작업 계약
 
