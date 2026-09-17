@@ -31,32 +31,42 @@ Gap 축의 별도 값은 보존한다. non-container의 padding 직접 편집은
 본 ADR 구현 범위에 포함하되, 현재 commit adapter의 2변 patch 허용 확장이 필요하다.
 Shift 단독은 기본 10px step으로 제안한다(일반 1px). 프로젝트에 사용자 nudge 설정이
 있으면 그 값을 재사용하는지 Phase 0에서 확정한다. Figma 설정과 동일하다고 주장하지 않는다.
+Framer 는 Shift 를 "4변 동일" 로 쓰지만 채택하지 않는다 — 기존 element drag 의 Shift 관습
+(축 고정·큰 nudge) 과 충돌한다. 클릭 입력에도 같은 수정키를 적용한다: Option/Alt+클릭은
+양쪽, Option/Alt+Shift+클릭은 4변을 한 입력으로 편집한다 (Figma 문서 정합).
 
 ### 1.2 상태 머신
 
-| 상태/이벤트                                    | 시각 결과                                            | 데이터·입력                               |
-| ---------------------------------------------- | ---------------------------------------------------- | ----------------------------------------- |
-| owner 선택 전 또는 지원 불가                   | spacing UI 없음                                      | 기존 선택/패널 동작                       |
-| idle → 영역 hover                              | 해당 영역 전체 사선+중앙 핸들                        | 저장 없음                                 |
-| 영역/핸들 pointerdown                          | 사선 제거, 영역 selection box+핸들                   | spacing owner claim, 기준값 캡처          |
-| 이동 임계값 미만 pointerup                     | selected 유지                                        | history 0                                 |
-| 핸들 클릭 완료                                 | selected+숫자 입력                                   | RAC 입력 포커스, 값 변경 전에는 저장 없음 |
-| 임계값 이상 이동                               | dragging, 사선 없음, 중앙 핸들·현재값                | 프레임별 presentation publish             |
-| dragging pointerup                             | 최종 배치를 반영한 selected box+핸들                 | 마지막 좌표 반영 후 finish 1회            |
-| Escape/pointercancel/capture 상실/blur/unmount | 임시값 제거, 유효한 기존 선택 표시 복귀              | cancel, history 0                         |
-| owner/프로젝트/페이지/문서/편집 문맥 변경      | spacing 선택·입력 제거                               | 기존 세션 취소, 새 대상에 쓰지 않음       |
-| 다른 영역 hover                                | 그 영역만 hover 사선; 기존 selected 영역은 사선 없음 | 같은 owner 내 보조 선택만 변경 가능       |
+2026-09-17 개정 — ADR §Context 표 (Figma·Framer 실측 조합) 와 1:1. "입력 없는 여백
+영역 선택" 상태는 없다.
 
-드래그 임계값은 기존 element drag의 화면 px 기준을 공유한다. 드래그 중에는
-hover에 의한 사선 재등장과 다른 영역 재타깃을 차단한다. 완료 후 같은 영역 위에
-포인터가 있어도 selected가 우선하므로 사선이 즉시 다시 나타나지 않는다.
-선택한 요소 ID는 유지하고 별도의 비영속 `activeSpacingTarget`으로 여백 선택을 표현한다.
+| 상태/이벤트                                    | 시각 결과                                                          | 데이터·입력                                |
+| ---------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------ |
+| owner 선택 전 또는 지원 불가                   | spacing UI 없음                                                    | 기존 선택/패널 동작                        |
+| 지원 컨테이너 선택 (idle)                      | padding 4변 + 지원 gap 띠에 얇은 핸들 상시 (0값 합성 핸들 포함)    | 핸들 기하는 revision 캐시, 저장 없음       |
+| idle → 띠 hover                                | 그 띠 전체 사선 + 핸들 강조 + 현재 값 배지                         | 저장 없음                                  |
+| 띠/핸들 pointerdown                            | 사선 제거, 핸들 강조 유지                                          | spacing owner claim, 기준값 캡처           |
+| 이동 임계값 미만 pointerup (= 클릭)            | 인라인 숫자 입력 열림 + 패널 해당 필드 강조                        | RAC 입력 포커스, 값 변경 전에는 저장 없음  |
+| 임계값 이상 이동                               | dragging, 사선 없음, 핸들·실시간 값 배지, 패널 해당 필드 동기 강조 | 프레임별 presentation publish              |
+| dragging pointerup                             | 최종 배치를 반영한 핸들, 포인터가 띠 위면 hover 사선·배지로 복귀   | 마지막 좌표 반영 후 finish 1회             |
+| 인라인 입력 Enter/blur                         | 입력 닫힘, 패널 강조 해제, 핸들 유지                               | 값이 바뀌었을 때만 commit 1회              |
+| Escape/pointercancel/capture 상실/blur/unmount | 사선·배지·입력 제거, 핸들은 선택이 유효한 동안 유지                | cancel, history 0                          |
+| 포인터 out (조작 없음)                         | 사선·배지 제거, 핸들 유지                                          | 저장 없음                                  |
+| owner/프로젝트/페이지/문서/편집 문맥 변경      | spacing 핸들·입력 제거, 새 owner 가 지원되면 그 핸들로 교체        | 기존 세션 취소, 새 대상에 쓰지 않음        |
+| 다른 띠 hover                                  | 그 띠만 사선·배지; 나머지는 얇은 핸들만                            | 활성 target 교체 (드래그·입력 중에는 차단) |
+
+드래그 임계값은 기존 element drag의 화면 px 기준을 공유한다. 드래그·인라인 입력 중에는
+hover에 의한 사선 재등장과 다른 띠 재타깃을 차단한다. 선택한 요소 ID는 유지하고 별도의
+비영속 `activeSpacingTarget`(hover/drag/input 중인 띠 하나) 으로 활성 띠를 표현한다 —
+선택 상태가 아니라 조작 상태이며, 조작이 끝나면 비워진다.
 
 Padding 파랑은 `semanticOverlayColors`의 기존 파랑, gap 분홍은 같은 정본에서
 theme/palette 파생으로 정의한다. Figma HEX를 임의 복제하지 않는다. 상·하 padding과
 세로 gap은 가로 핸들, 좌·우 padding과 가로 gap은 세로 핸들로 조절 축을 구분한다.
-핸들 12×2 화면 px, hit 영역 최소 12×12 화면 px, 사선 간격 4 화면 px를 초기 제안값으로
-두고 G5에서 실측한다. 색상만으로 구분하지 않고 입력 이름과 값 배지를 함께 쓴다.
+상시 핸들 12×2 화면 px (hover·drag 시 12×3 강조), hit 영역 최소 12×12 화면 px, 사선 간격
+4 화면 px, 값 배지는 핸들 위 8 화면 px 를 초기 제안값으로 두고 G5에서 실측한다. Framer 의
+단색 tint 는 채택하지 않는다 — 기존 자식 요소 hover 강조와 구분되지 않는다. 색상만으로
+구분하지 않고 입력 이름과 값 배지를 함께 쓴다.
 
 ## 2. 현재 코드 근거와 변경 경계
 
@@ -107,15 +117,17 @@ padding/border/gap metric을 전달한다. 구현 전 G0에서 공급원을 증�
 
 화면 변환은 기존 scene→screen 경로를 한 번만 적용한다. ancestor scroll·clip과
 페이지 paint-order 가림은 inset 계산 뒤 적용한다. spacing은 내용 자리를 가리키므로
-여백 selection box까지 가시 영역 clip을 따른다(요소 resize box와 구분).
+사선·상시 핸들·값 배지까지 가시 영역 clip을 따른다(요소 resize box와 구분).
 
 ### 3.3 Gap
 
 실제 layout 순서의 in-flow 자식 margin-box 사이에 **설정된 gap 폭만** 표시한다.
 display:none/absolute/fixed는 제외한다. margin·정렬 여유를 gap에 포함하지 않는다.
 reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전한다. 동일 주축 gap의
-여러 띠는 같은 owner/property를 공유하며 활성 띠 하나가 핸들·숫자 배지를 갖는다.
-drag 중 같은 속성에 영향을 받는 다른 띠는 얇은 경계로 표시하고 사선은 모두 끈다.
+여러 띠는 같은 owner/property를 공유한다. 선택 중에는 모든 띠에 얇은 핸들을 상시 두고
+(Figma 는 hover 시, Framer 는 선택 시 — 같은 속성이 여러 곳을 바꾼다는 신호), hover·drag
+중인 활성 띠 하나만 사선·강조 핸들·숫자 배지를 갖는다. drag 중 다른 띠는 얇은 핸들만
+유지하고 사선은 모두 끈다.
 
 0 gap은 실제 이웃 margin-box 경계의 합성 핸들로 제공한다. 0 padding은 border 안쪽
 경계의 합성 핸들로 제공한다. 0 면적을 사선으로 부풀려 그리지 않는다. 클릭 영역만
@@ -124,7 +136,9 @@ drag 중 같은 속성에 영향을 받는 다른 띠는 얇은 경계로 표시
 ### 3.4 우선순위
 
 기존 active owner → Space/중간 버튼 pan → DOM 페이지 헤더/텍스트 입력 → 기존
-코너 resize 핸들 → spacing 중앙 핸들 → spacing visible 영역 → 기존 요소 선택/이동.
+코너 resize 핸들 → spacing 중앙 핸들 → spacing visible 띠 → 기존 요소 선택/이동.
+핸들과 띠는 같은 결과를 낸다 (클릭 = 인라인 입력, 드래그 = 값 조절) — 띠가 넓을 때
+핸들을 정확히 맞출 필요가 없게 하기 위한 것이며, 자식 요소 위는 띠가 아니다.
 0 padding 합성 핸들은 코너를 피한 변 중앙에 두며, 변 중앙에서는 일반 edge resize보다
 우선한다. 실제 자식/겹친 상위 요소의 hit를 여백의 큰 bbox만으로 가로채지 않는다.
 전체 페이지/문서 순회 없이 선택 owner와 직접 자식 geometry를 revision 단위로 캐시한다.
@@ -169,15 +183,17 @@ drag 중 같은 속성에 영향을 받는 다른 띠는 얇은 경계로 표시
 - 인라인 입력은 RAC NumberField 등 기존 입력을 재사용한다. Enter/정상 blur는 1회 commit,
   Escape는 취소. IME 조합 중 Enter는 commit하지 않는다. focus 이동과 캔버스 선택 변경으로
   blur가 겹치면 원래 target 검증을 먼저 한다. unsupported 문맥은 기존 패널 입력을 사용한다.
-- 키보드만으로도 우측 패널의 같은 값을 편집할 수 있다. spacing 선택 후 Enter로 인라인
-  입력, Escape로 닫기, 접근성 이름은 예: `상단 padding`, `가로 gap`이다.
+- 인라인 입력이 열리면 패널의 같은 필드를 강조하고 (Framer 의 핸들 클릭 → 패널 포커스
+  대응 학습 효과), 입력이 닫히면 강조를 푼다. 패널 필드에 포커스를 옮기지는 않는다.
+- 키보드만으로도 우측 패널의 같은 값을 편집할 수 있다. 접근성 이름은 예: `상단 padding`,
+  `가로 gap`이다. 캔버스 핸들의 키보드 포커스 순회는 첫 범위가 아니다.
 
 ## 5. 구현 순서와 검증
 
 | Phase | 산출물                                                                                 | 완료 조건                                              |
 | ----- | -------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | 0     | 현재 HEAD 재대조, capability 표·resolved metric 원천·기준 성능, padding/gap first-nail | G0; 시작값→publish→panel→Preview→finish/Undo 경로 증명 |
-| 1     | spacing geometry/state/Skia overlay, clipping·hit·gesture owner                        | G1/G2, hover·selected·drag 사선 상태 고정              |
+| 1     | spacing geometry/state/Skia overlay, clipping·hit·gesture owner                        | G1/G2, 선택 핸들·hover 사선·drag 상태 고정             |
 | 2     | 공통 spacing transaction, 패널 read, 인라인 입력·수정키                                | G3, 2변/4변 원자 patch와 취소/무이동 검증              |
 | 3     | foreground 통합 검증·성능·문서/CHANGELOG                                               | G4/G5, 증거와 실제 지원표 기록 후 상태 판정            |
 
@@ -187,7 +203,9 @@ drag 중 같은 속성에 영향을 받는 다른 띠는 얇은 경계로 표시
   서로 다른 rowGap/columnGap, 자식 margin/absolute/display:none.
 - catalog 기본값과 raw key 부재에서 첫 드래그·원점 복귀·Escape 후 override 생성 0.
 - zoom 25/100/200%, ancestor scroll/clip, 가려진 페이지, 작은 여백 hit와 코너 resize.
-- hover 사선 → 선택 사선 0/box/handle → drag 사선 0/실시간 값 → finish/Undo/Redo/refresh.
+- 선택 즉시 상시 핸들 (0값 포함) → hover 사선/배지 → drag 사선 0/실시간 값 → finish 후
+  hover 복귀/Undo/Redo/refresh · 클릭 = 인라인 입력 + 패널 강조, Enter/blur/Escape 로 해제 ·
+  out 시 사선·배지만 사라지고 핸들 유지 · 선택 해제 시 핸들 제거.
 - 선택 A에서 드래그 중 B 선택, 다른 문서/페이지/breakpoint, owner 삭제·unmount·capture 상실,
   기존 pan/pageHeader/element drag. 기존 문서와 새 대상에 쓰기 0.
 - 1회 drag의 mutation/history/DB 카운트, 2변·4변 변화 원자성, 정상 commit 뒤 Preview reload.

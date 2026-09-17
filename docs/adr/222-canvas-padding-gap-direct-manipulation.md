@@ -9,16 +9,21 @@ Proposed — 2026-09-17
 ## Context
 
 현재 Styles 패널에서 padding과 gap을 편집할 수 있으나, 실제 여백 위치에서
-조절할 수 있는 캔버스 편집기가 필요하다. 사용자가 확정한 동작은 다음과 같다.
+조절할 수 있는 캔버스 편집기가 필요하다. 사용자가 확정한 동작은 다음과 같다
+(2026-09-17 개정 — Figma·Framer 실측 후 "발견성은 Framer, 피드백은 Figma" 조합으로 확정.
+근거는 §외부 리서치).
 
-| 상태      | 영역                               | 핸들·값                                    |
-| --------- | ---------------------------------- | ------------------------------------------ |
-| Hover     | 해당 여백 전체에 사선 배경         | 중앙의 짧은 핸들                           |
-| 영역 선택 | 사선 제거, 여백 영역 selection box | 중앙 핸들 유지                             |
-| 드래그    | 시작 즉시 사선 제거                | 변경 중인 값 표시, 패널 값과 실시간 동기화 |
+| 상태          | 영역                       | 핸들·값                                                         |
+| ------------- | -------------------------- | --------------------------------------------------------------- |
+| 컨테이너 선택 | 표시 없음                  | padding 4변·지원 gap 띠에 **얇은 핸들 상시** (0값 포함)         |
+| 띠 hover      | 해당 여백 전체에 사선 배경 | 핸들 강조 + **현재 값 배지**                                    |
+| 드래그        | 시작 즉시 사선 제거        | 실시간 값 배지, 패널 해당 필드 동기 강조                        |
+| 핸들·띠 클릭  | 사선 제거                  | 인라인 숫자 입력 + 패널 해당 필드 강조 (입력 닫히면 둘 다 해제) |
+| out / Escape  | 사선·배지·입력 해제        | 핸들은 선택이 유지되는 동안 남음                                |
 
-Padding은 파란색, gap은 분홍색이다. 이 표의 선택 박스는 여백 영역의 표식이며
-요소 자체를 크기 조절하는 기존 selection box와 의미가 다르다.
+Padding은 파란색, gap은 분홍색이다. "입력 없는 여백 영역 선택" 상태는 두지 않는다 —
+Figma·Framer 어느 쪽에도 없는 상태이며, 상시 핸들 + hover 피드백이 그 역할을 대신한다.
+핸들은 요소 크기를 조절하는 기존 resize 핸들과 별개이며 변 중앙에만 둔다.
 
 ### 도메인과 선행 결정
 
@@ -73,12 +78,29 @@ Padding은 파란색, gap은 분홍색이다. 이 표의 선택 박스는 여백
   Option/Alt 양쪽 padding, Option/Alt+Shift 전체 padding, Shift 큰 단위 조절.
 - [Figma Smart selection](https://help.figma.com/hc/en-us/articles/360040450233-Arrange-layers-with-Smart-selection):
   선택 레이어 간격 편집은 유사한 UI이나 Auto layout 부모 속성 편집과 별도 의미다.
+- [Framer 2024-01 update](https://www.framer.com/updates/january-update-2024):
+  "Gap and Padding areas become visible on hover", "controls visible when zero",
+  Shift 드래그 = 4변 동일. Framer 공식 문서에 핸들 등장 시점·클릭 동작은 없다.
 - 2026-09-17 [사용자 Figma 파일](https://www.figma.com/design/35H3BXbY4Cdz83c2VUVX0a/-v11--Carbon-Design-System--Community-?node-id=17537-265990)의
-  `Border Colors → Content`에서 **도구로 관찰**: 상단 padding 152의 파란 사선·중앙 핸들,
-  클릭 입력 152, 세로 gap 40의 분홍 핸들·선택 경계·클릭 입력 40. 원본 값 변경 없음.
-- **사용자 관찰로 확정**: hover 사선, 선택 시 사선 제거+selection box+핸들,
-  드래그 시작 시 사선 제거와 값 실시간 동기화, gap에도 동일 상태 적용.
-  Figma 드래그/Undo/0값/Auto 처리의 도구 실측으로 격상하지 않는다.
+  `Border Colors` 프레임에서 **Chrome MCP 도구 실측** (값 변경 0): 프레임 선택 + 띠 hover 에
+  파란 사선·중앙 핸들·**값 배지 115** 즉시 표시, 프레임 내부 어디를 hover 해도 모든 gap 띠에
+  분홍 얇은 핸들 표시 (사선은 hover 띠만) · 여백 **영역** 클릭 = 사선 제거 + 영역 box + 인라인
+  입력 팝오버 즉시 열림 (box 수명 = 입력 수명) · hover 상태에서 out 하면 전부 사라짐, 입력이
+  열려 있으면 box+입력 유지·핸들만 사라짐 · Escape 로 전부 닫힘. gap hover 는 분홍 사선 + 배지 40.
+  Figma 드래그/Undo 는 파일 변경을 피해 실측하지 않았다.
+- 2026-09-17 [사용자 Framer 프로젝트](https://framer.com/projects/Untitled--iQWvvpywUa44QyheWeuQ-2HYNv?node=augiA20Il)
+  세로 Stack (gap 70, padding 0/18/0/18) 에서 **Chrome MCP 도구 실측** (드래그 후 Undo 로 원복,
+  최종 변경 0): 요소 **선택만으로** padding 4변 (0값 상·하 포함) + gap 핸들 전부 표시 (hover
+  불필요) · 띠 hover 는 연한 단색 tint (사선·값 배지 없음) · out 시 tint 만 사라지고 핸들은 선택
+  동안 유지 · gap 핸들 드래그 70→105 는 패널 실시간 동기, Cmd+Z 1회로 70 복원 (드래그 1 =
+  history 1) · gap 핸들 클릭은 인라인 입력 없이 우측 패널 Gap 필드 포커스 + 값 선택.
+- **조합 판정 (사용자 확정 2026-09-17)**: 두 도구 모두 "입력 없는 여백 영역 선택" 상태가 없다.
+  발견성 (선택 즉시 핸들, 0값 핸들) 은 Framer, 식별·값 피드백 (사선·hover 배지·인라인 입력)
+  은 Figma 를 따른다 — tint 는 자식 요소 hover 강조와 혼동되고, hover 전용 핸들은 padding 0
+  컨테이너에서 hover 할 띠 자체가 없어 기능이 숨는다. Shift 의미는 Figma (큰 단위) 를 채택하되
+  프로젝트 기존 Shift 관습과의 정합을 breakdown Phase 0 에서 확정한다. 이전 판 Context 표의
+  "영역 선택 (사선 제거 + selection box + 핸들 유지)" 행은 Figma 의 입력 열린 상태와 Framer 의
+  선택 유지 핸들을 섞어 읽은 것으로 폐기한다.
 
 ## Alternatives Considered
 
@@ -155,25 +177,27 @@ A는 쓰기/제스처/클립 계약 위반, C는 핵심 드래그 요구 미충�
 
 모두 **UNVERIFIED**. 문서 검증 통과와 구현 Gate 통과는 별개다.
 
-| Gate    | 시점                        | 통과 조건                                                                                                                                                   | 실패 시 대안                                                   |
-| ------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| G0      | 구현 착수 시                | supported/unsupported 표와 실제 resolved spacing 공급원 확인, 대표 padding·gap 각 1개 end-to-end first-nail                                                 | 공급 계약 보강 후 진행; 암묵 canonical fallback 금지           |
-| G1 (R1) | geometry/overlay 연결 후    | 비대칭·border·margin·0·역방향·zoom·스크롤·페이지 가림에서 표시/히트 오차 ≤1 화면 px, padding과 gap oracle 구분                                              | 잘못된 지원 항목 비활성화 후 기하 수정                         |
-| G2 (R2) | 입력 연결 후                | hover/선택/drag 상태표 일치, pan/resize/페이지 헤더 충돌 0, cancel·capture 상실·unmount 후 owner 잔류 0                                                     | 핸들 비활성화 후 session 연결 수정                             |
-| G3 (R3) | commit/패널/Preview 연결 후 | move 중 canonical/history/DB 0, 완료 history 1, 취소/no-op 0; Undo/Redo·refresh·선택 전환·문서 교체에서 값/대상 정합                                        | 출시 보류, transaction/읽기 연결 수리                          |
-| G4      | 기능 완성 후                | 동일 fixture의 패널 연속 편집 대비 frame p95 증가 ≤2ms, 100자식 기준 p95 ≤16.7ms 목표; affected 범위 밖 layout 재수집 0                                     | 영향 범위 최적화·지원 상한 명시 후 재판정; 수치 자동 완화 금지 |
-| G5      | 완료 판정 시                | foreground Builder에서 padding·gap 각 전체 흐름, 실제 Preview geometry 대조, 인라인 입력·키보드·한글 이름·취소 검증, 인접 테스트/typecheck/범위별 gate PASS | 미검증 범위를 명시하고 Proposed/진행 상태 유지                 |
+| Gate    | 시점                        | 통과 조건                                                                                                                                                           | 실패 시 대안                                                   |
+| ------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| G0      | 구현 착수 시                | supported/unsupported 표와 실제 resolved spacing 공급원 확인, 대표 padding·gap 각 1개 end-to-end first-nail                                                         | 공급 계약 보강 후 진행; 암묵 canonical fallback 금지           |
+| G1 (R1) | geometry/overlay 연결 후    | 비대칭·border·margin·0·역방향·zoom·스크롤·페이지 가림에서 표시/히트 오차 ≤1 화면 px, padding과 gap oracle 구분                                                      | 잘못된 지원 항목 비활성화 후 기하 수정                         |
+| G2 (R2) | 입력 연결 후                | 선택/hover/drag/클릭/out 상태표 일치, 상시 핸들이 코너 resize·자식 hit 를 가로채지 않음, pan/resize/페이지 헤더 충돌 0, cancel·capture 상실·unmount 후 owner 잔류 0 | 핸들 비활성화 후 session 연결 수정                             |
+| G3 (R3) | commit/패널/Preview 연결 후 | move 중 canonical/history/DB 0, 완료 history 1, 취소/no-op 0; Undo/Redo·refresh·선택 전환·문서 교체에서 값/대상 정합                                                | 출시 보류, transaction/읽기 연결 수리                          |
+| G4      | 기능 완성 후                | 동일 fixture의 패널 연속 편집 대비 frame p95 증가 ≤2ms, 100자식 기준 p95 ≤16.7ms 목표; affected 범위 밖 layout 재수집 0                                             | 영향 범위 최적화·지원 상한 명시 후 재판정; 수치 자동 완화 금지 |
+| G5      | 완료 판정 시                | foreground Builder에서 padding·gap 각 전체 흐름, 실제 Preview geometry 대조, 인라인 입력·키보드·한글 이름·취소 검증, 인접 테스트/typecheck/범위별 gate PASS         | 미검증 범위를 명시하고 Proposed/진행 상태 유지                 |
 
 ## Consequences
 
 ### Positive
 
 - 사용자가 여백의 위치와 변경 결과를 보면서 편집한다.
-- 기존 style 저장 형태와 Undo 계약을 유지하며 Figma 관찰 상태를 명시적으로 재현한다.
+- 기존 style 저장 형태와 Undo 계약을 유지하며 Figma·Framer 실측에서 고른 상태표를 명시적으로 재현한다.
 - 여백 기하·핸들 히트·패널 값이 같은 편집 문맥을 사용한다.
 
 ### Negative
 
 - 기하·presentation 읽기·제스처 소유권 연결이 추가되며 단순 장식 변경보다 검증 비용이 크다.
 - 첫 제공에서는 Grid 등 미지원 컨텍스트에 직접 조작 핸들이 없다.
+- 선택 중 핸들이 상시 보이므로 자식이 많은 컨테이너에서 gap 핸들 수가 늘어난다 — 얇은 핸들과
+  hover 시에만 사선을 그리는 규칙으로 노이즈를 제한하고 G5 에서 실측한다.
 - 숫자 입력 DOM과 Skia 표시 사이 포커스·카메라 전환 수명 관리가 필요하다.
