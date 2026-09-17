@@ -1084,6 +1084,8 @@ function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
   // ADR-204 Phase 2 — 세로축 스칼라 (가상화 collection owner)
   if (style.contentMinHeight !== undefined)
     result.contentMinHeight = style.contentMinHeight;
+  if (style.contentHeight !== undefined)
+    result.contentHeight = style.contentHeight;
 
   // baseline 계약 입력 3종 (ADR-923 Phase 2) — 숫자 스칼라·키워드 문자열 그대로
   // (applyCommonEngineStyle 이 px 해석을 이미 끝냈다: lineHeight 는 px 숫자).
@@ -2395,6 +2397,7 @@ function traversePostOrder(
     >;
     if (
       !enrichedStyle.height &&
+      enrichedStyle.contentHeight === undefined &&
       (!elementStyle.height || elementStyle.height === "auto")
     ) {
       const intrinsicHeight = calculateContentHeight(
@@ -3148,7 +3151,7 @@ export function calculateFullTreeLayout(
             childComputed,
             childChildren,
             getChildElements,
-            false,
+            typeof node.style.contentHeight === "number",
           );
 
           const reStyle = (reEnriched.props?.style ?? {}) as Record<
@@ -3157,7 +3160,13 @@ export function calculateFullTreeLayout(
           >;
           patchBatchStyleFromImplicit(
             node.style,
-            reStyle,
+            // 이 패스는 확정된 폭에서 높이만 재측정한다. 재측정 과정의
+            // width/minWidth를 다시 쓰면 1차 패스의 auto/Fill 선언을 잃는다.
+            Object.fromEntries(
+              ["height", "contentHeight", "contentMinHeight", "leafBaseline"]
+                .filter((key) => reStyle[key] !== undefined)
+                .map((key) => [key, reStyle[key]]),
+            ),
             childComputed.fontSize,
           );
           const styleChanged = persistentTree.updateNodeStyle(

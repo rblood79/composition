@@ -4952,11 +4952,25 @@ export function enrichWithIntrinsicSize(
     Number.isFinite(growRaw) &&
     growRaw > 0;
 
+  // ADR-224: 비대체 leaf의 auto 축은 측정 결과가 아니라 엔진 배치가 소유한다.
+  // 미지정 width는 catalog의 fit-content 등일 수 있으므로 auto로 추정하지 않는다.
+  const measuredAutoLeaf =
+    (isFlexChild || isGridChild) &&
+    !(childElements && childElements.length > 0) &&
+    !IMAGE_INTRINSIC_TAGS.has(type) &&
+    !CIRCLE_LEAF_TAGS.has(type) &&
+    (INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type));
+
   const rawHeight = style?.height;
   const needsHeight =
     !rawHeight || INTRINSIC_SIZE_KEYWORDS.has(rawHeight as string);
 
-  const rawWidth = style?.width;
+  // 기본 Button의 fit-content와 Fill이 명시한 auto를 구별한다.
+  // inline 부재를 auto로 취급하면 Column의 Height Fill이 Width까지 stretch된다.
+  const declaredWidth = measuredAutoLeaf
+    ? resolveComponentRuleByTag(type)?.structure?.containerStyles?.width
+    : undefined;
+  const rawWidth = style?.width ?? declaredWidth;
   // C1: 모든 요소에서 intrinsic width keyword(fit-content/min-content/max-content) 처리
   // INLINE_BLOCK 태그의 width:auto 자동 주입은 기존 동작 유지
   const hasExplicitIntrinsicWidthKeyword =
@@ -5094,6 +5108,8 @@ export function enrichWithIntrinsicSize(
   // engine: specified size 를 border-box 로 해석 (tree.rs specified intake 에서 content 변환) → 변환 불필요. (구 Taffy 0.9 도 동일 계약이었음)
 
   const injectedStyle: Record<string, unknown> = { ...style };
+  if (style?.width == null && declaredWidth != null)
+    injectedStyle.width = declaredWidth;
 
   // Height 주입
   // childElements가 있으면 재계산 (CheckboxGroup 등 자식 기반 높이 필요)
@@ -5187,7 +5203,18 @@ export function enrichWithIntrinsicSize(
       }
       injectHeight += box.border.top + box.border.bottom;
     }
-    injectedStyle.height = injectHeight;
+    if (measuredAutoLeaf && (rawHeight == null || rawHeight === "auto")) {
+      injectedStyle.contentHeight = Math.max(
+        0,
+        injectHeight -
+          box.padding.top -
+          box.padding.bottom -
+          box.border.top -
+          box.border.bottom,
+      );
+    } else {
+      injectedStyle.height = injectHeight;
+    }
     // ADR-204 Phase 2 — 가상화 collection owner (ListBox/GridList: 행이 scene 투영이라 레이아웃
     //   자식 0 → 엔진의 content 제안 0) 에 **세로축 정확 min-content** 를 같이 싣는다. 값은 위
     //   injectHeight 의 원천인 §1.55b/§1.55c (행 수 × stride, 투영 window resolver 와 같은 심볼)
@@ -5336,7 +5363,21 @@ export function enrichWithIntrinsicSize(
       (style.display === "grid" || style.display === "inline-grid");
     const isIntrinsicContainer =
       hasExplicitIntrinsicWidthKeyword && (childElements?.length ?? 0) > 0;
-    if (!growsInFlex && !isIntrinsicGrid && !isIntrinsicContainer) {
+    const measuresAutoWidth =
+      measuredAutoLeaf &&
+      (rawWidth === "auto" || hasExplicitIntrinsicWidthKeyword);
+    if (measuresAutoWidth) {
+      const contentWidth = Math.max(
+        0,
+        ceiledWidth -
+          box.padding.left -
+          box.padding.right -
+          box.border.left -
+          box.border.right,
+      );
+      injectedStyle.contentMinWidth = contentWidth;
+      injectedStyle.contentMaxWidth = contentWidth;
+    } else if (!growsInFlex && !isIntrinsicGrid && !isIntrinsicContainer) {
       injectedStyle.width = ceiledWidth;
     }
     // leaf content 제안값 전달 채널 — 비텍스트 leaf(INLINE_BLOCK/CIRCLE 등) 잔존분:
@@ -5355,7 +5396,12 @@ export function enrichWithIntrinsicSize(
     //   leaf 는 그대로 유지 — 비텍스트 합성 leaf(INLINE_BLOCK/CIRCLE/IMAGE)의 content 는
     //   엔진이 여전히 모르므로 이 채널이 유일한 하한 공급원이다 (layout-engine.md §TS 잔존 계약).
     const isContainerElement = (childElements?.length ?? 0) > 0;
-    if (isFlexChild && !isContainerElement && style?.minWidth == null) {
+    if (
+      isFlexChild &&
+      !isContainerElement &&
+      !measuresAutoWidth &&
+      style?.minWidth == null
+    ) {
       injectedStyle.minWidth = ceiledWidth;
     }
   }
@@ -5370,6 +5416,7 @@ export function enrichWithIntrinsicSize(
     injectedStyle.minWidth === style?.minWidth &&
     injectedStyle.contentMinWidth === style?.contentMinWidth &&
     injectedStyle.contentMaxWidth === style?.contentMaxWidth &&
+    injectedStyle.contentHeight === style?.contentHeight &&
     injectedStyle.leafBaseline === style?.leafBaseline
   ) {
     return element;
@@ -5707,6 +5754,9 @@ export function applyCommonEngineStyle(
   // ADR-204 Phase 2: 세로축 스칼라 (enrichWithIntrinsicSize 가 가상화 collection owner 에 주입).
   if (typeof style.contentMinHeight === "number") {
     result.contentMinHeight = style.contentMinHeight;
+  }
+  if (typeof style.contentHeight === "number") {
+    result.contentHeight = style.contentHeight;
   }
 
   // ADR-923 Phase 2 — baseline 계약 입력 3종. verticalAlign 은 CSS 키워드 문자열

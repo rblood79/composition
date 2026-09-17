@@ -17,7 +17,7 @@ beforeAll(async () => {
 
 describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
   for (const direction of ["row", "column"] as const) {
-    for (const mode of ["fill", "fixed"] as const) {
+    for (const mode of ["fill", "height-fill", "both-fill", "fixed"] as const) {
       it(`${direction} ${mode}: 실제 Button CSS와 Canvas 크기가 일치한다`, () => {
         const rootStyle = {
           display: "flex",
@@ -32,8 +32,21 @@ describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
         const children = [2, 1].map((factor) => {
           const base: Record<string, string | number> =
             mode === "fixed" ? { width: "160px", height: "45px" } : {};
-          const fill = mode === "fill" ? { width: { factor } } : undefined;
+          const fill =
+            mode === "fill"
+              ? { width: { factor } }
+              : mode === "height-fill"
+                ? { height: { factor } }
+                : mode === "both-fill"
+                  ? { width: { factor }, height: { factor } }
+                  : undefined;
           return {
+            // 두 소비자에 동일한 폰트를 지정한다. fixture의 body 상속과
+            // Builder 기본 폰트 차이를 크기 계약 오류로 판정하지 않는다.
+            fontFamily: "Arial",
+            fontSize: "14px",
+            fontWeight: "400",
+            lineHeight: "20px",
             ...base,
             ...resolveFillProjection(
               fill,

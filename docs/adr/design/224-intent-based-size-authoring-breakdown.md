@@ -2,6 +2,8 @@
 
 > [ADR-224](../224-intent-based-size-authoring.md), Accepted — 2026-09-18 (부분 구현 후 크리티컬 오류로 실행 중단). Round 1 수리 반영. 아래 타입·함수는 목표 계약이며 구현 결과가 아니다.
 
+최신 실행: 기본 `fit-content` 보존 + 콘텐츠 측정 분리로 기존 Fill 차단을 수리했고 실제 Builder 13/13을 통과했다. Ratio 후보의 Canvas 높이 30px / Preview 154.328~295.664px 발산으로 다시 중단했다. Ratio 후보는 로컬 evidence 패치로 분리, Fill 수리는 유지, 전체 Phase는 미완료다. Canvas 핸들 resize는 현재 중앙 pointer handler에서 비활성으로 확인했으며 helper 수정만으로 완료할 수 없다.
+
 ## 1. 범위
 
 Width/Height 한 상자의 선택·입력 개선, 축별 Fill 가중치 보존, 그에 필요한 저장·projection·전이만 구현한다. 다섯 mode 통합 schema, 독립 Size panel, 복원 history 필드, sibling 가중치 정규화는 제외한다. Min/Max·Ratio·Overflow의 현행 격자는 유지한다.

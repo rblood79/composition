@@ -379,6 +379,41 @@ try {
       Math.abs(defaultColumn.dom[i].height - defaultColumn.canvas[i].height) <= 1,
     detail: { dom: defaultColumn.dom[i], canvas: defaultColumn.canvas[i] },
   });
+  const transitions = [];
+  for (const testCase of ["height-fill", ...(process.argv.includes("--ratio") ? ["ratio-fixed", "ratio-fill"] : [])]) {
+    const outcome = await page.evaluate(({ ids, parent, testCase }) => {
+      const st = window.__composition_STORE__.getState();
+      const p = st.elements.find((e) => e.id === parent);
+      st.updateElementProps(parent, { style: { ...p.props.style,
+        flexDirection: testCase === "height-fill" ? "column" : "row" } });
+      const results = [];
+      for (const [index, id] of ids.entries()) {
+        const node = st.elements.find((e) => e.id === id);
+        st.updateElement(id, { responsive: undefined,
+          sizing: testCase === "height-fill" ? { height: { factor: index + 1 } }
+            : testCase === "ratio-fill" ? { width: { factor: index + 1 } } : {},
+          props: { ...node.props, style: testCase === "ratio-fixed" ? { width: "200px" } : {} } });
+        if (testCase !== "height-fill") {
+          // 미완료 Ratio UI 후보와 독립된 엔진 경계 진단. UI gate로 계산하지 않는다.
+          const current = window.__composition_STORE__.getState().elements.find((e) => e.id === id);
+          st.updateElement(id, { props: { ...current.props,
+            style: { ...current.props.style, aspectRatio: "2 / 1", height: "auto", alignSelf: "start" } } });
+        }
+      }
+      return results;
+    }, { ids: [a, b], parent, testCase });
+    await page.waitForTimeout(1200);
+    const measured = { testCase, outcome, dom: await readDom(),
+      canvas: [await readLayout(page, a), await readLayout(page, b)],
+      engine: await page.evaluate((ids) => ids.map((id) => window.__composition_LAYOUT_DEBUG__.getEngineInput(id)), [a, b]) };
+    transitions.push(measured);
+    for (let i = 0; i < 2; i++) checks.push({ name: `${testCase} ${i}`,
+      pass: outcome.every((value) => value === null) &&
+        Math.abs(measured.dom[i].width - measured.canvas[i].width) <= 1 &&
+        Math.abs(measured.dom[i].height - measured.canvas[i].height) <= 1,
+      detail: measured,
+    });
+  }
   console.log(
     "PARITY_CONTROL",
     JSON.stringify({ semantic: { dom, canvas }, cross, legacy }),
@@ -409,6 +444,7 @@ try {
     cross,
     legacy,
     defaultColumn,
+    transitions,
     checks,
     errors,
   };

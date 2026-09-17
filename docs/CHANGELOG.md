@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [ADR-224 — Fill 가중치 편집 부분 구현, 레이아웃 오류로 중단] - 2026-09-18
 
+### Fixed / blocked follow-up
+
+- CSS 크기 선언과 intrinsic 측정을 분리했다. catalog 기본 `fit-content`를 보존하고 `contentHeight`는 콘텐츠 제안값으로만 전달하며, height-for-width 재측정이 Width를 고정하지 않게 했다. Canvas Fill projection도 shared catalog Min을 읽는다. 실제 Builder에서 Row 높이 240/240px, Column Width Fill 900/900px, 기본 Button 69/68px, Column Height Fill 포함 13/13 확인. 인접 브라우저 56건·Rust lib 416건 PASS.
+- Ratio 후보에서는 Width Fill + 2:1의 높이 Canvas 30px / Preview 154.328~295.664px 발산을 발견했다. 중단 조건에 따라 후보 UI·명령은 로컬 복구 패치로 분리하고 Fill 수리만 유지했다. ADR 전체 완료·전체 G3/G4 통과가 아니며 Absolute/resize·G5/G6 등은 남아 있다.
+
 ### In progress
 
 - 기존 Size의 Width/Height 한 상자 패턴에서 Fill 선택 후 숫자로 가중치를 조정하는 입력과 Fill 전용 canonical 필드·왕복·문맥별 투영을 부분 구현했다. 실제 입력과 refresh에서 factor2 보존을 확인했다.

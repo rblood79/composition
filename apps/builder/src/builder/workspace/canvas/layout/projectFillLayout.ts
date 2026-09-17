@@ -1,4 +1,7 @@
-import { resolveFillProjection } from "@composition/shared";
+import {
+  getSizingEffectiveStyle,
+  resolveFillProjection,
+} from "@composition/shared";
 import { resolveContainerStylesFallback } from "./engines/implicitStyles";
 import type { CanvasLayoutNode } from "./layoutNode";
 
@@ -17,6 +20,7 @@ export function projectFillLayoutNodes(
           inline,
           String(node.props.size ?? "md"),
         ),
+        ...getSizingEffectiveStyle(node, "desktop"),
         ...inline,
       };
       styles.set(node.id, style);

@@ -264,6 +264,8 @@ pub struct NodeStyle {
     /// 처럼 레이아웃 자식이 없어 content 제안이 0 인 노드에 TS 가 "내용은 최소 이만큼" 을
     /// 공급하는 채널. column 컨테이너의 item 일 때 슬롯 19 로 실린다 (§4.5 floor 입력).
     pub content_min_height: Option<f32>,
+    /// ADR-224: 재줄바꿈 후 콘텐츠 높이. CSS height 선언과 분리된 content-box 제안값.
+    pub content_height: Option<f32>,
 
     // Baseline 계약 (ADR-923 Phase 2) — block line box 의 vertical-align/baseline 슬롯
     // 배선 + 컨테이너 baseline 출력의 입력. line_height 는 컨테이너 strut 으로 소비되고
@@ -282,11 +284,11 @@ pub struct NodeStyle {
 
 /// `NodeStyle` 선언 필드 수 — ADR-156 R7/G6 정적 가드 앵커.
 ///
-/// breakdown §1-3 3축 교차표의 "NodeStyle 49필드"(현재 54 — ADR-165 +2 ·
-/// ADR-923 P2 +3) 를 코드로 고정한다. 이 값을
+/// breakdown §1-3 3축 교차표의 "NodeStyle 49필드"(현재 56 — ADR-165 +2 ·
+/// ADR-923 P2 +3 · ADR-204 +1 · ADR-224 +1) 를 코드로 고정한다. 이 값을
 /// 바꾸면(= 필드 추가/삭제) `nodestyle_field_contract_guard` 의 전수 구조분해가
 /// 먼저 컴파일 RED 이므로, 교차표 갱신 없이 필드만 늘리는 silent drift 가 차단된다.
-pub const NODESTYLE_FIELD_COUNT: usize = 55;
+pub const NODESTYLE_FIELD_COUNT: usize = 56;
 
 /// 「선언 O · 송신 O · 소비 X」 필드 (camelCase = serde 계약명).
 ///
@@ -364,6 +366,7 @@ pub const NODESTYLE_FIELD_NAMES: [&str; NODESTYLE_FIELD_COUNT] = [
     "contentMinWidth",
     "contentMaxWidth",
     "contentMinHeight",
+    "contentHeight",
     "verticalAlign",
     "lineHeight",
     "leafBaseline",
@@ -1958,7 +1961,22 @@ impl LayoutTree {
             // 부재 시 explicit_w 그대로 = 기존 동작). 반환 w 는 부모 content 슬롯
             // (content_main/cross, content_w) 의 제안값이 된다.
             let (w, w_box) = self.resolve_leaf_intrinsic_width(handle, explicit_w, avail_w);
-            let h = explicit_h;
+            // 측정값은 auto 축의 content 제안만 제공한다. 부모 stretch/grow와
+            // 명시 height/aspect-ratio 해석 결과를 고정 치수로 덮어쓰지 않는다.
+            let (h, h_box) = self
+                .get(handle)
+                .map(|n| {
+                    let raw = n.style.height.as_deref().unwrap_or("auto");
+                    match n.style.content_height {
+                        Some(content) if raw == "auto" && explicit_h <= 0.0 => {
+                            let content = content.max(0.0);
+                            let padding = axis_pad_border(&n.style, &self.ctx_for(avail_w), false);
+                            (content, content + padding)
+                        }
+                        _ => (explicit_h, explicit_h),
+                    }
+                })
+                .unwrap_or((explicit_h, explicit_h));
             // ADR-923 Phase 2: leaf baseline = TS 측정 스칼라(`leafBaseline`, content-box
             // 상단 기준 첫 줄 baseline) + 자기 padding/border-top (border-box 좌표 승격).
             // 원천 없으면 센티널 — 경계/부모 intake 가 height(bottom) 로 폴백 (§10.8.1).
@@ -1987,13 +2005,13 @@ impl LayoutTree {
                     && lstyle.leaf_baseline.is_none()
             };
             if let Some(n) = self.get_mut(handle) {
-                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w_box, height: h, baseline };
+                n.layout = NodeLayout { x: 0.0, y: 0.0, width: w_box, height: h_box, baseline };
                 n.self_collapsing = leaf_self_collapsing;
                 n.dirty = false;
                 n.subtree_dirty = false;
             }
             if !abs_children.is_empty() {
-                self.place_absolute_children(handle, &abs_children, w_box, h, avail_w);
+                self.place_absolute_children(handle, &abs_children, w_box, h_box, avail_w);
             }
             if let Some(n) = self.get_mut(handle) {
                 n.last_solved = Some((w, h));
@@ -6300,6 +6318,7 @@ mod tests {
             content_min_width: _,
             content_max_width: _,
             content_min_height: _,
+            content_height: _,
             vertical_align: _,
             line_height: _,
             leaf_baseline: _,
@@ -6315,7 +6334,7 @@ mod tests {
         //     추가 — 소비처는 write_block_item 슬롯 16/17 + 컨테이너 strut(line_height)
         //     + leaf solve baseline (슬롯 18 은 S4 text run 예약 — r8l1 정정) →
         //     "54 = 소비 54 + 미소비 0".
-        const CONSUMED_COUNT: usize = 55;
+        const CONSUMED_COUNT: usize = 56;
         assert_eq!(
             CONSUMED_COUNT + UNCONSUMED_NODESTYLE_FIELDS.len(),
             NODESTYLE_FIELD_COUNT,
@@ -9591,6 +9610,56 @@ mod tests {
         let mut tree = LayoutTree::new();
         let leaf = tree.create_node(scalar_leaf(300.0, 500.0));
         assert_eq!(tree.measure_intrinsic_width(leaf), Some((300.0, 500.0)));
+    }
+
+    #[test]
+    fn measured_auto_height_remains_stretchable_but_explicit_height_wins() {
+        for (height, expected) in [(None, 240.0), (Some("45px"), 45.0)] {
+            let mut tree = LayoutTree::new();
+            let child = tree.create_node(NodeStyle {
+                width: Some("100px".into()),
+                height: height.map(str::to_owned),
+                content_height: Some(20.0),
+                padding_top: Some("4px".into()),
+                padding_bottom: Some("4px".into()),
+                border_top: Some("1px".into()),
+                border_bottom: Some("1px".into()),
+                ..NodeStyle::default()
+            });
+            let root = tree.create_node(NodeStyle {
+                display: Some("flex".into()),
+                width: Some("900px".into()),
+                height: Some("240px".into()),
+                ..NodeStyle::default()
+            });
+            tree.set_children(root, vec![child]);
+            tree.compute_layout(root, 900.0, 240.0);
+            assert_eq!(tree.get_layout(child).height, expected);
+        }
+    }
+
+    #[test]
+    fn measured_auto_height_adds_padding_once_in_column() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(NodeStyle {
+            width: Some("100px".into()),
+            content_height: Some(20.0),
+            padding_top: Some("4px".into()),
+            padding_bottom: Some("4px".into()),
+            border_top: Some("1px".into()),
+            border_bottom: Some("1px".into()),
+            ..NodeStyle::default()
+        });
+        let root = tree.create_node(NodeStyle {
+            display: Some("flex".into()),
+            flex_direction: Some("column".into()),
+            width: Some("900px".into()),
+            height: Some("240px".into()),
+            ..NodeStyle::default()
+        });
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 900.0, 240.0);
+        assert_eq!(tree.get_layout(child).height, 30.0);
     }
 
     /// block 컨테이너 = 자식들의 **최대** (세로 적층).
