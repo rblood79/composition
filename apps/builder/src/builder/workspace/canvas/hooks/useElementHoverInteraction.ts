@@ -26,6 +26,7 @@ import {
   orderPagesForPaint,
 } from "../scene/pagePaintOrder";
 import { getDragVisualOffset } from "../skia/nodeRendererTree";
+import { getPagePositionPresentationSnapshot } from "../interaction/pagePositionPresentation";
 import { getSceneBounds } from "../skia/renderCommands";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
@@ -237,6 +238,14 @@ export function resolveHoverGroupState({
   return { hoveredLeafIds: leafIds, isGroupHover };
 }
 
+/**
+ * 페이지가 **실제로 끌리는 중**인가 (claim 만 된 press 는 false).
+ * 드래그 중에는 페이지 위치가 transient 라 raw scene bounds 기반 hover 와 어긋난다.
+ */
+function isPagePositionDragActive(): boolean {
+  return getPagePositionPresentationSnapshot().isActive;
+}
+
 export function clearElementHoverState(state: ElementHoverState): boolean {
   if (
     state.hoveredElementId === null &&
@@ -377,7 +386,10 @@ export function useElementHoverInteraction({
         // Drag/drop 중에는 일반 element hover와 drop target feedback이 중복되면 안 된다.
         // 렌더링은 transient drag/sibling offset을 쓰지만 hover bounds는 raw scene
         // bounds 기반이므로, drag 활성 중에는 hover 상태를 명시적으로 비운다.
-        if (getDragVisualOffset()) {
+        // 페이지가 실제로 끌리는 동안도 같다 — 위치가 transient 라 raw bounds 기반
+        // hover 와 어긋난다. 단순 press (claim 만 된 상태) 는 여기 걸리지 않으므로
+        // 누르고 있는 동안 hover 외곽선이 유지된다.
+        if (getDragVisualOffset() || isPagePositionDragActive()) {
           clearHover();
           return;
         }

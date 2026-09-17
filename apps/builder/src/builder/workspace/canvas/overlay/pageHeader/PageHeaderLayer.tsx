@@ -12,7 +12,7 @@
  * 합성 핸들러는 root 에서 돌아 너무 늦다). 컨테이너 capture 가드는 `[data-page-header]`
  * 자손이면 Skia 선판정만 건너뛴다.
  */
-import { X } from "lucide-react";
+import { Play, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { iconProps } from "../../../../../utils/ui/uiConstants";
 import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
@@ -188,6 +188,15 @@ export function PageHeaderLayer({
               />
             ) : (
               <>
+                {/* 타이틀 앞 액션 — 뒤의 close 와 같은 어법·같은 20 상자.
+                    동작은 보류 — onPress 는 의미가 확정되면 배선한다. */}
+                <ActionIconButton
+                  aria-label={`Play ${frame.title}`}
+                  className={PAGE_HEADER_ACTION_CLASS}
+                  tooltip="Play"
+                >
+                  <Play aria-hidden="true" size={iconProps.size} />
+                </ActionIconButton>
                 <span className="page-header__title">{frame.title}</span>
                 {/* 패널 header-action 과 같은 어법 (ActionIconButton = action-icon-button).
                     크기는 select/combobox 안 트리거와 같은 20 상자 (--text-xl) — 헤더 띠

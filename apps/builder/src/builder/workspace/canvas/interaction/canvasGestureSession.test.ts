@@ -69,7 +69,26 @@ describe("CanvasGestureSession", () => {
     expect(session.blocksPointerDown(12)).toBe(true);
     expect(session.beginPointer(11, 0)).toBe("page");
     expect(session.shouldSuppressElementInteraction(11)).toBe(true);
-    expect(session.shouldSuppressElementHover()).toBe(true);
+    // page claim 은 pointerdown 시점이라 hover 억제 대상이 아니다 — 누르고만 있어도
+    // hover 외곽선이 꺼지면 요소(2px 유지)와 어긋난다. 실제 이동 중 억제는 hover
+    // 판정부의 page-position presentation 가드가 맡는다 (2026-09-17).
+    expect(session.shouldSuppressElementHover()).toBe(false);
+  });
+
+  it("hover 억제는 pan/Space 만 — page press 는 hover 를 끄지 않는다 (회귀)", () => {
+    const session = new CanvasGestureSession();
+    expect(session.shouldSuppressElementHover()).toBe(false);
+
+    // page 를 잡아도 (= 누르고만 있어도) hover 는 살아 있어야 한다. 종전에는
+    // mode "page" 가 억제 대상이라, 페이지만 press 중 2px → 1px 로 떨어졌다.
+    session.tryClaimPage(11, "page-1", "desktop");
+    session.beginPointer(11, 0);
+    expect(session.shouldSuppressElementHover()).toBe(false);
+
+    // pan 은 종전대로 억제
+    const pan = new CanvasGestureSession();
+    pan.setSpacePressed(true);
+    expect(pan.shouldSuppressElementHover()).toBe(true);
   });
 
   it("선택된 page body의 빈 영역 gesture는 같은 pointer를 page owner로 승격한다", () => {

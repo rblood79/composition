@@ -2,7 +2,7 @@
 
 .page-header-layer {
   --page-header-height: 28px;
-  --page-header-padding-x: 8px;
+  --page-header-padding-x: var(--spacing-xs);
   position: absolute;
   inset: 0;
   /* Skia canvas(2) 위 · 눈금자(3, DOM 뒤) 아래 — 같은 z 는 DOM 순서로 눈금자가 위 */
@@ -44,6 +44,7 @@
   left: 0;
   box-sizing: border-box;
   display: flex;
+  gap: var(--spacing-sm);
   align-items: center;
   height: var(--page-header-height);
   padding: 0 var(--page-header-padding-x);

@@ -120,7 +120,7 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
     expect(isPageHeaderEventTarget(layer)).toBe(false);
   });
 
-  it("우측 close 액션 버튼 — 헤더마다 하나, 누르면 페이지 선택·드래그·이름편집으로 새지 않는다", () => {
+  it("액션 버튼 (타이틀 앞 Play · 뒤 close) — 헤더마다 둘, 누르면 페이지 선택·드래그·이름편집으로 새지 않는다", () => {
     const onHeaderPointerDown = vi.fn();
     const onBeginRename = vi.fn();
     const { container } = render(
@@ -131,13 +131,22 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
       />,
     );
     const layer = container.firstElementChild as HTMLElement;
-    // 제목 있는 헤더 3개 각각에 액션 버튼 1개
-    expect(layer.querySelectorAll(".page-header__action").length).toBe(3);
+    // 제목 있는 헤더 3개 각각에 액션 버튼 2개 (앞 Play · 뒤 close)
+    expect(layer.querySelectorAll(".page-header__action").length).toBe(6);
 
-    const action = headerOf(layer, "p1").querySelector(
+    const actions = headerOf(layer, "p1").querySelectorAll<HTMLElement>(
       ".page-header__action",
-    ) as HTMLElement;
-    expect(action.getAttribute("aria-label")).toBe("Close One");
+    );
+    // DOM 순서 = 시각 순서: Play 가 타이틀 앞, close 가 뒤
+    expect(actions[0].getAttribute("aria-label")).toBe("Play One");
+    expect(actions[1].getAttribute("aria-label")).toBe("Close One");
+    const title = headerOf(layer, "p1").querySelector(".page-header__title");
+    expect(
+      actions[0].compareDocumentPosition(title!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    const action = actions[1];
 
     // 액션 위 제스처는 헤더 제스처에서 제외 (층 루트 리스너가 버튼 자손을 삼키지 않는다)
     fireEvent.pointerDown(action, { button: 0, pointerId: 3 });

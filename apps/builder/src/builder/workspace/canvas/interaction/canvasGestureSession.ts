@@ -194,9 +194,16 @@ export class CanvasGestureSession {
    *
    * 실제 pointer가 아직 없어도 Space keydown부터 hover를 비우고, Space를 먼저
    * 놓은 pan pointer는 pointerup까지 계속 차단한다.
+   *
+   * **`mode === "page"` 는 여기 들어가지 않는다** — page 는 pointerdown 의 claim
+   * 시점에 이미 그 mode 가 되므로, 포함하면 "누르고만 있어도" hover 가 꺼진다
+   * (요소는 mode "element" 라 안 꺼져서 페이지만 press 중 1px 로 보였다 —
+   * 2026-09-17 사용자 live 보고). 페이지가 **실제로 움직이는** 동안의 억제는
+   * hover 판정부의 page-position presentation 가드가 맡는다 — 거기가 bounds 가
+   * transient 해지는 실제 조건이다.
    */
   shouldSuppressElementHover(): boolean {
-    return this.isSpacePressed || this.mode === "page" || this.mode === "pan";
+    return this.isSpacePressed || this.mode === "pan";
   }
 
   private releasePointer(): void {
