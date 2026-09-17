@@ -13,7 +13,7 @@
 
 > **2026-09-18 ADR-223 Implemented (같은 날)**: 생성 CSS archetype 미지정 기본값 중립화 — 리뷰 round 1 → `/execute-adr 223` Phase 0~~3 / G0~~G5 종결 (생성 CSS 12 파일 · catalog entry 3 · 오라클 3 + live 7종). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 완료 243, 합계 251.
 
-> **2026-09-18 ADR-224 Proposed**: 의도 기반 크기 편집 — Fill 단일 선택 즉시 적용, 주축 비율 선택 조정, canonical semantic sizing·전이·호환 경계 설계. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
+> **2026-09-18 ADR-224 Proposed 개정**: 기존 Size 격자·한 상자 입력 유지, Fill 전용 축별 가중치만 저장, Ratio 종속 축 계약 명시, 자동 복원 기록 제외. Round 1 설계 수리 반영. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
 
 > **2026-09-18 ADR-223 Proposed**: 생성 CSS archetype 미지정 기본값 중립화 (`/simplify` 판독 후속). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 합계 250.
 
@@ -73,10 +73,10 @@
 - **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
 - **우선순위**: **P1**
 
-#### [224](224-intent-based-size-authoring.md) — 의도 기반 크기 편집 — Fill 한 번으로 채우기, 비율은 선택 조정
+#### [224](224-intent-based-size-authoring.md) — 의도 기반 크기 편집 — Fill 한 번으로 채우기, 가중치는 선택 조정
 
 - **상태**: Proposed (2026-09-18)
-- **규모**: 기존 Fill/fr 단위 선택 방식을 전제로 하지 않는 UX 재설계. 고정/채우기/내용 맞춤 기본3종, 부모 비율/화면 기준 보조 선택, Fill 기본 비율1 즉시 적용, Flex 주축에만 선택적 비율 입력. canonical sizing·responsive·ref/DB 왕복, shared compiler, geometry 보존 전이, legacy no-write-on-open. Phase 0~~3 / G0~~G6, 제품 검증 UNVERIFIED. [구현 설계](design/224-intent-based-size-authoring-breakdown.md)
+- **규모**: Width|Height 한 행·내부 트리거·Min/Max·Ratio·Overflow 현행 패턴 유지. Fill 선택 즉시 적용, 같은 상자의 가중치 편집, factor≥1·재선택 보존. sizing은 Fill 전용이며 나머지 CSS 정본·Fixed shrink 유지. Ratio 종속 축·parent-aware responsive 출력/cache·Undo 계약 명시, 자동 복원 기록 제외. Phase 0~~2 / G0~~G6, 소유자 과업 관찰 필수·신규 사용자5명 관찰 deferred. 제품 검증 UNVERIFIED. [구현 설계](design/224-intent-based-size-authoring-breakdown.md)
 - **우선순위**: 사용자 설계 요청 — 구현 미착수
 
 ### 부분 완료
