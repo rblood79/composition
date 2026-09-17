@@ -11,6 +11,8 @@
 
 ---
 
+> **2026-09-18 ADR-223 Implemented (같은 날)**: 생성 CSS archetype 미지정 기본값 중립화 — 리뷰 round 1 → `/execute-adr 223` Phase 0~~3 / G0~~G5 종결 (생성 CSS 12 파일 · catalog entry 3 · 오라클 3 + live 7종). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 완료 243, 합계 251.
+
 > **2026-09-18 ADR-224 Proposed**: 의도 기반 크기 편집 — Fill 단일 선택 즉시 적용, 주축 비율 선택 조정, canonical semantic sizing·전이·호환 경계 설계. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
 
 > **2026-09-18 ADR-223 Proposed**: 생성 CSS archetype 미지정 기본값 중립화 (`/simplify` 판독 후속). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 합계 250.
@@ -21,13 +23,13 @@
 
 | 구분                          |    개수 |
 | ----------------------------- | ------: |
-| 완료 (`completed/`)           |     242 |
-| ├ Implemented                 |     206 |
+| 완료 (`completed/`)           |     243 |
+| ├ Implemented                 |     207 |
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       8 |
-| ├ Proposed                    |       6 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
 | **합계**                      | **251** |
@@ -71,12 +73,6 @@
 - **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
 - **우선순위**: **P1**
 
-#### [223](223-generated-css-default-archetype-neutralization.md) — 생성 CSS archetype 미지정 기본값 중립화 — `DEFAULT_BASE_STYLES` 버튼 어법 제거 + `archetype: "default"` cohort 재판정
-
-- **상태**: Proposed (2026-09-18)
-- **규모**: 미지정 archetype 의 생성 CSS base (`inline-flex · center · cursor pointer · user-select none`) 는 Skia 가 읽지 않는 DOM 전용 채널 — Section 발산 (2026-09-17, `container` 신설로 2건 수리) 의 기제가 미지정 28건 중 실제 소비 11건에 남아 있다. 기본값을 중립 상자로 바꾸고 Pagination align 은 공통 geometry `containerStyles`, Card·Tab interaction 은 기존 generator-only `rootSelectors["&"]` 로 명시 이관한다. GridListItem 기존 Δ18 발산을 수리 대상으로 포함하고 신규 entry 는 정적 ratchet. Phase 0~~3 / G0~~G5 (Chrome 구조 오라클 + 실제 React Card·Tab + live 7종). design breakdown `design/223-generated-css-default-archetype-neutralization-breakdown.md`
-- **우선순위**: 후순위 — 발견된 결함 0 (Toolbar·TableView 는 잠재). 착수는 사용자 판정
-
 #### [224](224-intent-based-size-authoring.md) — 의도 기반 크기 편집 — Fill 한 번으로 채우기, 비율은 선택 조정
 
 - **상태**: Proposed (2026-09-18)
@@ -119,7 +115,7 @@
 
 ### 권장 착수 순서 — 2026-09-16 재산정
 
-> **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날).
+> **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날).
 >
 > 아래 표는 **남은 미착수 ADR 의 실행 순서**다. 위 "미구현 (Proposed)" 표의 P1/P2/P3 은 ADR 번호별 **중요도**이고, 본 표는 **준비도(리뷰 종결 여부)·의존 그래프·즉시 가치**로 재산정한 **실행 순서**다. 리뷰 파일(`reviews/{NNN}.md`)의 최신 round 가 pending 0 이면 CLAUDE.md §전제 확정 종결 계약에 따라 **전제 확정** — 구현 중 재질문 금지. 2026-08-28 산정 대비 변경: 201 추가 → **Implemented 2026-09-17** (worktree 3개 병렬 Phase 0~~4 · G0~~G5 실측, 완료 표로 이동) · 220 은 추가 당일 **Implemented 2026-09-16** (Phase 0~~3) 로 완료 표로 이동 · 202 는 **Implemented 2026-09-16** (승격 판정 live 2차 + 상한 재승인) 로 완료 표로 이동 · 013 은 **Implemented 2026-09-17** (Phase 0~~3, live 6종 31/31) 로 완료 표로 이동 · 212/214 행은 완료 표로 이동 · 150 과 162 는 같은 카드 높이 축이라 150 A2 확정을 162 앞에 둠.
 
@@ -152,7 +148,7 @@
 
 ---
 
-## 완료 ADR (242)
+## 완료 ADR (243)
 
 > 상세는 각 본문이 정본이다. 구 README 의 **비고** 열 서술 (최장 셀 14KB — ADR-912 행이 표
 > 전체를 그 폭으로 채워 3.2MB 를 만들었다) 은
@@ -160,6 +156,7 @@
 
 | ADR                                                                                 | 제목                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | 상태        | 일자                                                                 |
 | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------- |
+| [223](completed/223-generated-css-default-archetype-neutralization.md)              | 생성 CSS archetype 미지정 기본값 중립화 — `DEFAULT_BASE_STYLES` (inline-flex · align/justify center · cursor pointer · user-select none · transition) 를 `container` 와 같은 중립 상자 (block · box-sizing · font-family) 로. Skia 가 읽지 않는 DOM 전용 채널이 Section/Toolbar/TableView/GridListItem 정렬 발산의 기제였다. catalog entry 3 이관 (Pagination `containerStyles.alignItems` · Card `rootSelectors["&"]` cursor · Tab `rootSelectors["&"]` cursor/user-select/transition) · 생성 CSS 12 파일 (catalog 11 + 잔존 spec Slot; layout 17 byte-identical) · 정적 ratchet (미지정 11 pin). 실측: 생성기 5 (원복 4 RED) · `catalogComponentBox` Toolbar/TableView 불리 케이스 + GridListItem 기존 Δ18 GREEN (원복 Δ114/Δ79/Δ18 RED) · 실제 Card·Tab·Toolbar before/after root Δ0 (원복 2 RED) · live 7종 (`adr223-archetype-live.mjs`, Skia↔DOM 부모 기준 rect · computed interaction). 이 ADR 밖 기존 발산 5 기록 (Pagination preview class 미부여 · Disclosure border-style · Tabs TabPanels padding · Toolbar Skia 높이 · Tooltip Δ20)                                                                                          | Implemented | 2026-09-18                                                           |
 | [222](completed/222-canvas-padding-gap-direct-manipulation.md)                      | 캔버스 Padding·Gap 직접 편집 — 선택 컨테이너의 padding 4변 + 단일 행/열 flex 주축 gap 을 캔버스 띠·핸들로 드래그/클릭 편집 (발견성 Framer · 피드백 Figma 조합: 선택 즉시 얇은 핸들 (0값 포함) · hover 사선+값 배지 · 드래그 중 잡은 띠 배지 하나 · 클릭 = RAC 인라인 숫자 입력). 공급원 = 엔진 소비 style (`readPersistentEngineStyle`, catalog 기본값·미지정 0 도 편집) · capability 표 (Grid/wrap/space-\*/비-desktop/ref/회전/단위 보존 값 차단) · planner h1 (`isSpacingSizeInvariant` — hug/auto 부모 승격 + 외부 형제) · m2 receipt 채널 (bridge rejected 사유 · 확정값만 표시 · 1초 초과/rejected cancel) · 세션 어댑터 (finish commit 1 · 시작값 복귀 no-op) · gesture "spacing" owner · Option 양쪽/Option+Shift 4변/Shift 10px · Styles 패널 동기 강조+read-only · Gap 필드 주축 longhand. 실측: unit 40+ · live 22/22 (hug→following +24 · Undo 1 · Preview gap 22 · Escape 선택 유지 · zoom 25/200 · 코너 우선 · Space pan · overflow clip) · G4 Δp95 +0.6ms (100 자식)                                                                                                                                                       | Implemented | 2026-09-17                                                           |
 | [201](completed/201-large-file-upload-engine-component-server-contract.md)          | 대용량 파일 업로드 — 독립 전송 엔진 `@composition/upload` (`packages/upload-engine`, 런타임 의존 0, sans-I/O TUS 1.0 상태기계 + XHR driver, esm/cjs + JSP 용 IIFE, core+tus 5,852 B / IIFE 8,068 B gz) + `FileUpload` compound (등록 8지점 · D2 판정 표 accepts 11 · capability FileTrigger `onSelect`/DropZone `onDrop` · `selectedFiles` 문서 write 제거 · 평문 토큰 게이트 · preview 실전송 토글 = endpoint `uploadDryRun`) + TUS 서버 계약 정본 `docs/reference/upload/server-contract.md` v1.0.0 + Spring MVC 5/Java 8 참조 서버 `examples/upload-server-spring` (웹루트 밖 저장 강제 · 소유자 · CSRF 헤더+`XSRF-TOKEN` 쿠키 · TTL GC · Oracle/H2) + JSP 예제. 실측: G0 100MB 단절 재개 · G1 4GB×3 힙 Δ 2.22MB · 재개 3경로 · tusd v2.10.1 8/8 · `mvn test` 53/53 (JDK 17) · live 20/20 · G5 preview 1GB 단절·새로고침 재개 10/10 + JSP 7/7 (서버 Upload-Offset oracle) · initial 상한 재승인 1,328,315 / 601,346 (만료 10-17, 202 대체). 후속 2 (같은 날): API 편집기 자동 Send 405/412+`Tus-Resumable` → 업로드 endpoint 안내 (오류 아님) · `FileUploadActive` lazy 분리 (Preview −212 B gz, 게이트 `uploadActiveLazy`) · G5 12/12 | Implemented | 2026-09-17                                                           |
 | [221](completed/221-canvas-page-header-dom-layer.md)                                | 캔버스 페이지 헤더 DOM 층 이관 — 헤더 띠·타이틀·이름 편집을 Skia 오버레이에서 `.canvas-container` 안 `PageHeaderLayer` 로 (보이는 결과 동일: 폭=페이지폭·화면 28px·`--button-color`/`--fg` 10%·선택 `--focus-ring` 30%·700·1px 간격). 결정 4 (경계 규칙 · 카메라 제스처 게이트 hidden→settle · 단일 drag 추종 · 히트=헤더 native pointerdown/dblclick + occlusion `clip-path: inset` body∪헤더). 휠 pan 시작 신호 결함 수리(`useViewportControl`) · 팬 리렌더 leak 수리(`gestureActiveRef`) · Skia `renderPageHeader`/`pageTitleBoundsMap`/`getBuilderCSSVariable`/pageTitleEditing 삭제 (`renderPageTitle` 는 프레임 타이틀로 유지). 하니스 `perf-baseline --pages N/--zoom Z`. live Phase 1 13/13 · Phase 2 G1 8/8 · Phase 3 G2 제스처 중 DOM 쓰기 0 · render.frame p95 평탄/개선                                                                                                                                                                                                                                                                                                                                                       | Implemented | 2026-09-17                                                           |

@@ -287,6 +287,38 @@ const CASES: CatalogCase[] = [
     props: { size: "lg" },
     attrs: { "data-size": "lg", "data-variant": "default" },
   },
+  // ADR-223 G2-A (2026-09-18) — archetype 미지정 (`"default"`) 의 생성 CSS base 가 버튼 어법
+  //   (inline-flex · align/justify center) 을 실어 DOM 만 가운데 정렬하던 종. Skia 는 archetype 을
+  //   읽지 않아 flex-start. 불리 케이스 = 여유 공간이 생기는 형태 (`width:100%` · 고정 height) 로
+  //   정렬 잔존이 좌표에 드러나게 한다. `DEFAULT_BASE_STYLES` 를 버튼 어법으로 되돌리면 RED.
+  //   Toolbar: row flex + width 100% → 잔존 `justify-content:center` 가 자식 x 를 밀었다.
+  {
+    type: "Toolbar",
+    children: KIDS_2,
+    availW: 320,
+    style: { width: "100%" },
+    attrs: { "data-size": "md", "data-variant": "default" },
+  },
+  //   TableView: column flex + 고정 height → 잔존 `justify-content:center` 가 자식 y 를 밀었다.
+  {
+    type: "TableView",
+    children: KIDS_2,
+    availW: 320,
+    style: { height: "200px" },
+    attrs: { "data-size": "md", "data-variant": "default" },
+  },
+  //   Pagination: row flex — `align-items:center` 는 row 의도라 geometry `containerStyles` 로 이관
+  //   (양 leg 공통). 높이가 다른 자식 2 로 세로 가운데 정렬이 양쪽에 같이 실리는지 잰다.
+  {
+    type: "Pagination",
+    children: KIDS_2,
+    availW: 320,
+    style: { width: "100%" },
+    attrs: { "data-size": "md", "data-variant": "default" },
+  },
+  //   Disclosure 는 여기 없다 — 잔존이 interaction 뿐이라 좌표 축이 없고, 실측 (2026-09-18) 은 archetype
+  //   과 무관한 Δ2 (w/h) 다: 생성 CSS 가 `border-width: 1px` 만 emit 하고 border-style 이 없어 DOM 은
+  //   0, layout 은 catalog borderWidth 1 을 그대로 쓴다. 별도 축 (docs/adr/evidence/223-phase2-g2.md).
 ];
 
 /**

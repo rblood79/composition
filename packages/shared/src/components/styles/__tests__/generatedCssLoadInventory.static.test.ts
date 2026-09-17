@@ -53,7 +53,9 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
     "D renderer 인라인 style, class 미방출 — binding 머리말: 빈 셸 (AvatarGroup 동형)",
   // E. container layout 채널 = props.style 인라인 (ADR-907 Layer B) — 로드하면 DOM 전용 스타일로 갈린다
   //   Section · Nav 는 2026-09-17 이 판정을 뒤집고 index.css 에 실었다 (archetype `container` —
-  //   CSSGenerator ARCHETYPE_BASE_STYLES 주석 · CHANGELOG; 오라클 catalogComponentBox).
+  //   CSSGenerator ARCHETYPE_BASE_STYLES 주석 · CHANGELOG; 오라클 catalogComponentBox). ADR-223 (2026-09-18)
+  //   부터 archetype 미지정 (`"default"`) 도 같은 중립 상자라 미로드 4 (AvatarGroup · ButtonGroup · CardView ·
+  //   Body) 의 생성물도 버튼 어법이 빠졌다 — 로드 판정은 그대로다.
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
   DialogFooter: "E container — OverlayComponents.ts 인라인",
   DisclosureHeader: "E container — NavigationComponents.ts 인라인",

@@ -5,59 +5,51 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-Body {
-  /* Base styles — archetype: default */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .react-aria-Body {
+    /* Base styles — archetype: default */
+    display: block;
     box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
-  /* Default variant */
-  background: var(--bg);
-  color: var(--fg);
-  border: none;
+    /* Default variant */
+    background: var(--bg);
+    color: var(--fg);
+    border: none;
 
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Body[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Body[data-hovered] {
-}
-
-.react-aria-Body[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Body[data-pressed] {
-}
-
-.react-aria-Body[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-Body {
-    forced-color-adjust: auto;
+    /* Default size */
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
   }
-}
 
+  .react-aria-Body[data-size="md"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-none);
+  }
 
+  .react-aria-Body[data-hovered] {
+  }
+
+  .react-aria-Body[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-Body[data-pressed] {
+  }
+
+  .react-aria-Body[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-Body {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */

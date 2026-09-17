@@ -7,8 +7,16 @@
 @layer components {
   .react-aria-Tab {
     /* Base styles — archetype: default */
-    display: block;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     box-sizing: border-box;
+    cursor: pointer;
+    user-select: none;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      transform 0.15s ease;
     font-family: var(--font-sans);
 
     /* Container styles (ADR-071 + ADR-083 Phase 1) */
@@ -79,20 +87,9 @@
     pointer-events: none;
   }
 
-  /* ── Tier 2: Composite Delegation ── */
-
   @media (forced-colors: active) {
     .react-aria-Tab {
       forced-color-adjust: auto;
     }
-  }
-
-  .react-aria-Tab {
-    cursor: pointer;
-    user-select: none;
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.15s ease;
   }
 } /* @layer components */

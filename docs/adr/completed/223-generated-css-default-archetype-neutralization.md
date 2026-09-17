@@ -2,9 +2,17 @@
 
 ## Status
 
-Proposed — 2026-09-18
+Implemented — 2026-09-18 (Proposed 09-18 → [reviews/223.md](../reviews/223.md) round 1 HIGH 1 · MEDIUM 2 · LOW 1 전부 fixed → 사용자 `/execute-adr 223` · Phase 0~~3 / G0~~G5 종결, 같은 날)
 
-설계 요청: 사용자 `/create-adr` (2026-09-18). 발단은 2026-09-17 Section·Nav 수리 (`944fc78d6`) 의 `/simplify` 판독 — "archetype `container` 신설은 옳은 깊이지만 2건만 옮긴 것은 특수 사례다. 결함의 기제는 미지정 archetype 의 fallback 이 버튼 어법이고 Skia 는 그것을 읽지 않는다는 것이다."
+설계 요청: 사용자 `/create-adr` (2026-09-18). 실행 기록은 아래 `### 실행 기록`, 근거는 [evidence/223-phase0-inventory.md](../evidence/223-phase0-inventory.md) · [evidence/223-phase2-g2.md](../evidence/223-phase2-g2.md), live 는 `### Live Exercise`. 발단은 2026-09-17 Section·Nav 수리 (`944fc78d6`) 의 `/simplify` 판독 — "archetype `container` 신설은 옳은 깊이지만 2건만 옮긴 것은 특수 사례다. 결함의 기제는 미지정 archetype 의 fallback 이 버튼 어법이고 Skia 는 그것을 읽지 않는다는 것이다."
+
+### 실행 기록
+
+- **Phase 0 (G0 PASS)**: inventory 재실측 — `archetype: "default"` 28 = layout 17 / containerStyles 만 3 / composition 없음 8 (§2 F4 일치). 생성물은 catalog 28 + 잔존 spec **Slot** (archetype 미선언 → 같은 fallback) = 29 파일, cohort **12 / runtime loaded 8 / unloaded 4** 로 표 정정 (G0 규칙: 표를 고친다). 파일별 root 실효 잔존 표 + before sha 기록.
+- **Phase 1 (G1 · G4 PASS)**: `DEFAULT_BASE_STYLES = ARCHETYPE_BASE_STYLES.container` (상수 하나, `archetypeBaseStyles()` 가 `isArchetypeId` 로 판정) · catalog entry 3 이관 (Pagination `containerStyles.alignItems` · Card `rootSelectors["&"].cursor` · Tab `rootSelectors["&"]` cursor/user-select/transition) · 재생성 diff 정확히 12 파일, layout 17 byte-identical · Slot 스냅샷 갱신 · 생성기 양성 테스트 5 (원복 4 RED) · 정적 ratchet 3 · type-check · text-axis-matrix drift 0.
+- **Phase 2 (G2-A · G2-B · G3 PASS)**: `catalogComponentBox` Toolbar/TableView/Pagination 불리 케이스 GREEN (원복 시 Δ114 / Δ79 RED) + GridListItem 기존 Δ18 GREEN (원복 RED) · Disclosure 는 archetype 밖 Δ2 (border-style 부재) 라 제외 기록 · 실제 Card · Tabs>TabList>Tab · Toolbar before/after arm root box Δ0 + interaction (원복 2 RED) · live 7종 (아래).
+- **Phase 3 (G5 PASS)**: CHANGELOG · `ssot-hierarchy.md` §3 · README · 인벤토리 주석 · visual-parity smoke 98/98.
+- **이 ADR 밖으로 기록한 기존 발산 5** (evidence §후속): Pagination preview DOM 에 `.react-aria-Pagination` 미부여 (생성 CSS 전량 dead) · Disclosure border-style 부재 · Tabs TabPanels padding 12 vs 0 · Toolbar Skia 높이 29 vs 22 + Separator 여백 · Tooltip Δ20 (HEAD 에서 RED).
 
 ## Context
 
@@ -73,7 +81,7 @@ Proposed — 2026-09-18
 
 기각 사유: A — 기제가 남아 Toolbar·TableView 에서 같은 patch 가 반복된다. C — 표 28 entry 편집 + 타입 변경의 병행 세션 충돌 대비 이득이 신규 entry ratchet 과 같다. D — 버튼 어법을 캔버스에 들여오는 것은 대칭이 아니라 결함의 복제다.
 
-> 구현 상세: [223-generated-css-default-archetype-neutralization-breakdown.md](design/223-generated-css-default-archetype-neutralization-breakdown.md) — §2 코드 사실 표 (F1~~F9, 경로:라인) · §3 cohort 11건 판정 표 · §4 Phase 0~~3.
+> 구현 상세: [223-generated-css-default-archetype-neutralization-breakdown.md](../design/223-generated-css-default-archetype-neutralization-breakdown.md) — §2 코드 사실 표 (F1~~F10, 경로:라인) · §3 cohort 12건 판정 표 · §4 Phase 0~~3.
 
 ## Risks
 
@@ -94,7 +102,7 @@ Proposed — 2026-09-18
 | Gate | 시점         | 통과 조건                                                                                                                                                                                                                                                                                                                                                           | 실패 시 대안                                                                   |
 | ---- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
 | G0   | Phase 0      | `archetype: "default"` 목록과 파일별 root 블록 실효 선언이 evidence 로 저장되고 breakdown §3 과 일치 (불일치는 표를 고친다, 전제 재검토 아님)                                                                                                                                                                                                                       | inventory 재실측 후 §3 갱신                                                    |
-| G1   | Phase 1      | 재생성 diff 는 §3 cohort 의 생성 CSS **11파일**에만 있고 runtime load 7 / unloaded 4 분류가 evidence 와 일치 · `composition.layout` 17 파일은 byte-identical · Card/Tab rootSelectors 양성 생성 테스트 · `text-axis-matrix` drift 0 · type-check PASS                                                                                                               | 17 파일 중 하나라도 바뀌면 F2 소비 분기 재확인 — 생성기 변경 되돌리고 원인부터 |
+| G1   | Phase 1      | 재생성 diff 는 §3 cohort 의 생성 CSS **12파일** (catalog 11 + 잔존 spec Slot, Phase 0 재실측) 에만 있고 runtime load 8 / unloaded 4 분류가 evidence 와 일치 · `composition.layout` 17 파일은 byte-identical · Card/Tab rootSelectors 양성 생성 테스트 · `text-axis-matrix` drift 0 · type-check PASS                                                                | 17 파일 중 하나라도 바뀌면 F2 소비 분기 재확인 — 생성기 변경 되돌리고 원인부터 |
 | G2-A | Phase 2      | `catalogComponentBox` 의 Toolbar · TableView · Disclosure · Pagination · GridListItem (불리 케이스 포함) — Skia vs DOM rect Δ ≤ 1px. 기존 GridListItem `child0.x` Δ18 known failure 가 GREEN, `DEFAULT_BASE_STYLES` 만 되돌리면 Toolbar/TableView/GridListItem RED                                                                                                  | Δ > 1 인 entry 는 §3 layout 판정 재검토                                        |
 | G2-B | Phase 2      | 실제 shared React Card와 `Tabs > TabList > Tab` 트리를 production `index.css` 로 렌더하는 전용 browser case — Phase 0 before CSS와 after CSS를 한 arm씩만 활성화해 같은 component tree를 순차 측정. root box Δ ≤ 1px, Card `cursor:pointer`, Tab `cursor:pointer`/`user-select:none`/transition 유지, Card user-select/transition 제거를 `getComputedStyle` 로 확인 | interaction 이 빠지면 rootSelectors 이관/selector reach 재확인                 |
 | G3   | Phase 2 live | 실제 빌더 (headed Playwright 또는 Chrome MCP, hidden 탭 금지) 팔레트 추가 7종 (기존 6종 + GridList): Skia scene rect vs Preview iframe DOM rect Δ ≤ 2.5 · computed cursor/user-select/transition 이 §3 판정과 일치 · GridList 카드 자식 x parity · pageerror 0 · Compare 반폭 함정 기록                                                                             | 불일치 entry 는 §3 판정 재검토                                                 |
@@ -103,7 +111,11 @@ Proposed — 2026-09-18
 
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G3 의 entry 별 결과 · 날짜 · headed Playwright / Chrome MCP 구분.)
+2026-09-18, **headed Playwright** (dev 5173, 실제 빌더 부팅 — Chrome MCP 는 hidden 탭 RAF 정지로 대체하지 않았다) · `apps/builder/scripts/adr223-archetype-live.mjs` · pageerror 0. 새 프로젝트에 팔레트 7종 (Toolbar · TableView · Disclosure · Pagination · Card · Tabs · GridList) 추가 → Skia layout map (부모 기준 rect) → Compare Mode 1회 → preview iframe 폭을 페이지 폭 1920 으로 강제 (반폭 함정) → DOM rect (부모 기준) + `getComputedStyle`.
+
+- **정렬 축 (기제 제거)**: TableView 10 노드 (header/column/body/row/cell) · Disclosure 2 · Card · TabList · GridList projection row 3 ↔ DOM GridListItem 3 (954×76 / 189×76, 0,0 · 966,0 · 0,88) 전부 Δ ≤ 2.5. GridList 카드 텍스트 자식 x = item + 17 · 폭 = item − 34 (stretch — 종전 `align-items:center` 면 수축·가운데).
+- **interaction 축 (§3 판정)**: Toolbar · TableView · Disclosure `cursor auto · user-select auto · transition 없음` / Card `cursor pointer · user-select auto · transition 없음` / Tab `cursor pointer · user-select none · transition background, border-color, transform` / GridListItem `pointer · auto · all` (수동 GridList.css).
+- **이 ADR 밖 기존 발산 (기록, 판정 분리)**: Pagination 은 preview `renderPagination` 이 class 를 안 붙여 생성 CSS 가 DOM 에 도달하지 않는다 (Skia space-between 1920 vs DOM 50px 간격) · Tabs TabPanels 래퍼 padding · Toolbar Skia 높이/Separator 여백 — G2-B 에서 DOM 값이 before/after 동일함을 확인.
 
 ## Consequences
 

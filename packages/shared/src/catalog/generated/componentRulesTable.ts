@@ -1589,6 +1589,18 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         alignItems: "center",
         justifyContent: "center",
       },
+      // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 cursor:pointer 를 generator 전용
+      //   rootSelectors 채널에 명시 (Card 는 onPress 를 받는 상호작용 컴포넌트). user-select/transition 은 제거.
+      composition: {
+        rootSelectors: {
+          "&": {
+            styles: {
+              cursor: "pointer",
+            },
+          },
+        },
+        delegation: [],
+      },
     },
   },
   CardContent: {
@@ -8021,6 +8033,9 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         display: "flex",
         justifyContent: "space-between",
         gap: "var(--spacing-sm)",
+        // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 align-items:center 를 geometry
+        //   채널로 이관 — row 의도와 일치하고 Skia 도 같은 값을 읽는다.
+        alignItems: "center",
       },
       states: {
         disabled: {
@@ -11258,6 +11273,21 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
         focusVisible: {
           focusRing: "{focus.ring.default}",
         },
+      },
+      // ADR-223 (2026-09-18): 미지정 archetype base 가 DOM 에만 주던 interaction 세 선언을 generator 전용
+      //   rootSelectors 채널에 명시. `archetype: "button"` 은 width:fit-content 가 딸려와 TabList 안 폭이 바뀐다.
+      composition: {
+        rootSelectors: {
+          "&": {
+            styles: {
+              cursor: "pointer",
+              "user-select": "none",
+              transition:
+                "background 0.15s ease, border-color 0.15s ease, transform 0.15s ease",
+            },
+          },
+        },
+        delegation: [],
       },
     },
   },

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-223 Implemented — 생성 CSS archetype 미지정 기본값 중립화] - 2026-09-18
+
+### Changed
+
+- **`archetype: "default"` (미지정) 의 생성 CSS base 가 버튼 어법 (`inline-flex · align-items/justify-content center · cursor pointer · user-select none · transition`) 에서 `container` 와 같은 중립 상자 (`block · box-sizing · font-family`) 로 바뀐다.** Skia 는 archetype base 를 읽지 않아 이 8 선언은 DOM 전용 채널이었고, Section (09-17) 과 같은 기제로 Toolbar (`width:100%` 면 자식이 DOM 만 가운데, Δ114) · TableView (고정 height 면 행이 DOM 만 세로 가운데, Δ79) · GridListItem (카드 텍스트가 DOM 만 가운데·수축, Δ18) 이 갈렸다. 바뀌는 생성물은 12 파일 (runtime 로드 8: Toolbar · TableView · Disclosure · Pagination · Card · GridListItem · Tab · Slot / 미로드 4) 이고 `composition.layout` 17 파일은 byte-identical.
+- 값을 지키는 이관 3건: Pagination `align-items:center` → `structure.containerStyles` (row 의도, Skia 도 같은 값) · Card `cursor:pointer` → `composition.rootSelectors["&"]` (onPress 상호작용) · Tab `cursor/user-select/transition` → `rootSelectors["&"]`. 비상호작용 컨테이너 (Toolbar · TableView · Disclosure · Pagination · Slot) 의 손가락 커서 · 텍스트 선택 차단 · root transition 은 사라진다 (사용자-가시). GridListItem 은 수동 GridList.css 의 cursor/transition 이 그대로다.
+- 신규 catalog entry 가 미지정으로 남지 못하게 정적 ratchet (`archetypeDefaultCohort.static.test.ts`, 미지정 11 pin). 실측: 생성기 5 (원복 4 RED) · `catalogComponentBox` Toolbar/TableView 불리 케이스 + GridListItem 기존 Δ18 GREEN (원복 RED) · 실제 Card·Tab·Toolbar before/after root Δ0 + computed interaction (`adr223ArchetypeRoot.browser.test.ts`, 원복 2 RED) · live 7종 headed Playwright (`apps/builder/scripts/adr223-archetype-live.mjs`, Skia↔DOM 부모 기준 rect Δ ≤ 2.5 · pageerror 0). 이 ADR 밖 기존 발산 5 는 evidence `223-phase2-g2.md` §후속 (Pagination preview 가 `.react-aria-Pagination` 을 안 붙여 생성 CSS 가 dead · Disclosure border-style 부재 · Tabs TabPanels padding · Toolbar Skia 높이 · Tooltip Δ20).
+
 ## [캔버스 — 폭 없는 flex item 컨테이너의 catalog height 소실 · `size` prop 이 catalog 높이에 안 닿던 것 수리] - 2026-09-17
 
 ### Fixed

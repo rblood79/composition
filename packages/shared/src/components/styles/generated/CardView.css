@@ -5,80 +5,72 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-CardView {
-  /* Base styles — archetype: default */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .react-aria-CardView {
+    /* Base styles — archetype: default */
+    display: block;
     box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: 0;
-}
-
-.react-aria-CardView[data-variant="default"] {
-  background: transparent;
-  color: var(--fg);
-
-  &[data-hovered] {
+    /* Default variant */
     background: transparent;
+    color: var(--fg);
+    border: none;
+
+    /* Default size */
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: 0;
   }
 
-  &[data-pressed] {
+  .react-aria-CardView[data-variant="default"] {
     background: transparent;
+    color: var(--fg);
+
+    &[data-hovered] {
+      background: transparent;
+    }
+
+    &[data-pressed] {
+      background: transparent;
+    }
   }
-}
 
-.react-aria-CardView[data-size="sm"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: 0;
-}
-
-.react-aria-CardView[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: 0;
-}
-
-.react-aria-CardView[data-size="lg"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: 0;
-}
-
-.react-aria-CardView[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-CardView[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-CardView {
-    forced-color-adjust: auto;
+  .react-aria-CardView[data-size="sm"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: 0;
   }
-}
 
+  .react-aria-CardView[data-size="md"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: 0;
+  }
 
+  .react-aria-CardView[data-size="lg"] {
+    height: auto;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: 0;
+  }
+
+  .react-aria-CardView[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-CardView[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-CardView {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */

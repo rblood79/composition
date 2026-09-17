@@ -67,10 +67,10 @@ export const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `    width: 100%;`,
     `    box-sizing: border-box;`,
   ],
-  // 레이아웃 컨테이너 (Section · Nav, 2026-09-17): DEFAULT_BASE_STYLES 의 버튼 어법 (inline-flex ·
-  //   align/justify center · cursor pointer) 을 물려받으면 사용자가 display:flex 로 바꿨을 때 DOM 만
-  //   가운데 정렬된다 (Skia 는 archetype 을 안 읽어 flex-start). 배치는 inline style 이 정하고
-  //   CSS 는 상자 (padding · gap · height · 색) 만 준다.
+  // 레이아웃 컨테이너 (Section · Nav, 2026-09-17) — 그리고 ADR-223 (2026-09-18) 부터 archetype 미지정의
+  //   기본값이기도 하다. 종전 미지정 기본값의 버튼 어법 (inline-flex · align/justify center · cursor pointer)
+  //   을 물려받으면 사용자가 display:flex 로 바꿨을 때 DOM 만 가운데 정렬된다 (Skia 는 archetype 을 안
+  //   읽어 flex-start). 배치는 inline style 이 정하고 CSS 는 상자 (padding · gap · height · 색) 만 준다.
   container: [
     `    display: block;`,
     `    box-sizing: border-box;`,
@@ -180,17 +180,18 @@ export function isArchetypeId(value: string): value is ArchetypeId {
   return Object.prototype.hasOwnProperty.call(ARCHETYPE_BASE_STYLES, value);
 }
 
-// archetype 미지정 시 기본 base styles
-const DEFAULT_BASE_STYLES = [
-  `    display: inline-flex;`,
-  `    align-items: center;`,
-  `    justify-content: center;`,
-  `    box-sizing: border-box;`,
-  `    cursor: pointer;`,
-  `    user-select: none;`,
-  `    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;`,
-  `    font-family: var(--font-sans);`,
-];
+// archetype 미지정 (catalog `"default"` · 잔존 spec 미선언) 의 base = `container` 와 같은 중립 상자
+//   (ADR-223, 2026-09-18). 종전 버튼 어법 (inline-flex · align/justify center · cursor pointer ·
+//   user-select none · transition) 은 Skia 가 읽지 않는 DOM 전용 채널이라 정렬 발산의 원천이었다.
+//   DOM interaction 이 필요한 entry 는 `composition.rootSelectors["&"]` 에 명시한다 (Card · Tab).
+const DEFAULT_BASE_STYLES = ARCHETYPE_BASE_STYLES.container;
+
+/** archetype → base 선언. 미지정·비-ArchetypeId 문자열 (catalog `"default"`) 은 중립 상자. */
+function archetypeBaseStyles(archetype: string | undefined): readonly string[] {
+  return archetype && isArchetypeId(archetype)
+    ? ARCHETYPE_BASE_STYLES[archetype]
+    : DEFAULT_BASE_STYLES;
+}
 
 /**
  * ADR-141: composition 이 컨테이너 box (layout / composition.containerStyles /
@@ -707,9 +708,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
         spec.composition.layout as LayoutToken,
       );
     } else {
-      baseStyles = archetype
-        ? [...(ARCHETYPE_BASE_STYLES[archetype] ?? DEFAULT_BASE_STYLES)]
-        : [...DEFAULT_BASE_STYLES];
+      baseStyles = [...archetypeBaseStyles(archetype)];
     }
     // ADR-059 v2 Pre-Phase 0-D.3: containerStyles 병합
     if (spec.composition.containerStyles) {
@@ -720,9 +719,7 @@ function generateBaseStyles<Props>(spec: ComponentSpec<Props>): string[] {
       }
     }
   } else {
-    baseStyles = archetype
-      ? (ARCHETYPE_BASE_STYLES[archetype] ?? DEFAULT_BASE_STYLES)
-      : DEFAULT_BASE_STYLES;
+    baseStyles = [...archetypeBaseStyles(archetype)];
   }
 
   const defaultVariant =

@@ -5,95 +5,87 @@
  * ============================================================ */
 
 @layer components {
-
-.react-aria-AvatarGroup {
-  /* Base styles — archetype: default */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+  .react-aria-AvatarGroup {
+    /* Base styles — archetype: default */
+    display: block;
     box-sizing: border-box;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
     font-family: var(--font-sans);
 
-  /* Default variant */
-  background: transparent;
-  color: var(--fg);
-  border: none;
-
-  /* Default size */
-  height: 32px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-AvatarGroup[data-variant="default"] {
-  background: transparent;
-  color: var(--fg);
-  background: transparent;
-
-  &[data-hovered] {
+    /* Default variant */
     background: transparent;
+    color: var(--fg);
+    border: none;
+
+    /* Default size */
+    height: 32px;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-full);
   }
 
-  &[data-pressed] {
+  .react-aria-AvatarGroup[data-variant="default"] {
     background: transparent;
+    color: var(--fg);
+    background: transparent;
+
+    &[data-hovered] {
+      background: transparent;
+    }
+
+    &[data-pressed] {
+      background: transparent;
+    }
   }
-}
 
-.react-aria-AvatarGroup[data-size="xs"] {
-  height: 24px;
-  padding: 0px 0px;
-  font-size: var(--text-2xs);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-AvatarGroup[data-size="sm"] {
-  height: 28px;
-  padding: 0px 0px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-AvatarGroup[data-size="md"] {
-  height: 32px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-AvatarGroup[data-size="lg"] {
-  height: 40px;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-AvatarGroup[data-size="xl"] {
-  height: 48px;
-  padding: 0px 0px;
-  font-size: var(--text-lg);
-  border-radius: var(--radius-full);
-}
-
-.react-aria-AvatarGroup[data-focus-visible] {
-  outline: var(--focus-ring-width) solid var(--focus-ring);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-AvatarGroup[data-disabled] {
-  opacity: 0.38;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-@media (forced-colors: active) {
-  .react-aria-AvatarGroup {
-    forced-color-adjust: auto;
+  .react-aria-AvatarGroup[data-size="xs"] {
+    height: 24px;
+    padding: 0px 0px;
+    font-size: var(--text-2xs);
+    border-radius: var(--radius-full);
   }
-}
 
+  .react-aria-AvatarGroup[data-size="sm"] {
+    height: 28px;
+    padding: 0px 0px;
+    font-size: var(--text-xs);
+    border-radius: var(--radius-full);
+  }
 
+  .react-aria-AvatarGroup[data-size="md"] {
+    height: 32px;
+    padding: 0px 0px;
+    font-size: var(--text-sm);
+    border-radius: var(--radius-full);
+  }
+
+  .react-aria-AvatarGroup[data-size="lg"] {
+    height: 40px;
+    padding: 0px 0px;
+    font-size: var(--text-base);
+    border-radius: var(--radius-full);
+  }
+
+  .react-aria-AvatarGroup[data-size="xl"] {
+    height: 48px;
+    padding: 0px 0px;
+    font-size: var(--text-lg);
+    border-radius: var(--radius-full);
+  }
+
+  .react-aria-AvatarGroup[data-focus-visible] {
+    outline: var(--focus-ring-width) solid var(--focus-ring);
+    outline-offset: var(--focus-ring-offset);
+  }
+
+  .react-aria-AvatarGroup[data-disabled] {
+    opacity: 0.38;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  @media (forced-colors: active) {
+    .react-aria-AvatarGroup {
+      forced-color-adjust: auto;
+    }
+  }
 } /* @layer components */
