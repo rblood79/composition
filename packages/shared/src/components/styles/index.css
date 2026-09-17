@@ -103,6 +103,9 @@
    gap 12 없이 그려지고 Skia 는 catalog 를 주입해 자식 폭이 28px 갈렸다 (2026-09-17 실측 321 vs 293).
    RAC 컬렉션 섹션은 react-aria-ListBoxSection 등 다른 클래스라 이 selector 에 닿지 않는다. */
 @import "./generated/Section.css";
+/* Nav — 같은 결함 (2026-09-17 sweep): renderNav 가 class 없이 인라인 gap 16 / padding 8 16 을 하드코드해
+   catalog md (height 56 · padding 12 16 · gap 12) 가 DOM 에 안 실렸다 (Skia 56 vs DOM 44). */
+@import "./generated/Nav.css";
 @import "./Content.css"; /* 구조 유틸리티 — Spec 없음 */
 @import "./Field.css"; /* 구조 유틸리티 — Spec 없음 */
 @import "./Group.css"; /* Container — skipCSSGeneration, 수동 CSS */

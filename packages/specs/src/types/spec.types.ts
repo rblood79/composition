@@ -40,7 +40,8 @@ export type ArchetypeId =
   | "overlay" // Popover, Dialog, Toast
   | "calendar" // Calendar/Cell
   | "alert" // InlineAlert
-  | "text"; // Description, Heading — block-level text, fills parent width
+  | "text" // Description, Heading — block-level text, fills parent width
+  | "container"; // Section, Nav — 레이아웃 컨테이너: block · 정렬/cursor 없음 (자식 배치는 inline style 이 정한다)
 
 /**
  * Container Styles Schema (ADR-071)

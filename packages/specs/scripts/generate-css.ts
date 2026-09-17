@@ -89,6 +89,7 @@ const ARCHETYPE_IDS: ReadonlySet<string> = new Set<ArchetypeId>([
   "calendar",
   "alert",
   "text",
+  "container",
 ]);
 
 /** catalog `structure.archetype` 은 string("default" 포함). spec 에 없는 값은 미지정과 같다. */

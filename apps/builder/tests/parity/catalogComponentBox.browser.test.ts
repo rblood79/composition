@@ -245,6 +245,28 @@ const CASES: CatalogCase[] = [
   //   text-xs) 이다. layout 은 별도 표(`DEFAULT_SIZE_BY_TAG.badge = "md"`)를 들고 있어
   //   padding/폰트가 한 단계 컸다.
   { type: "Badge", children: KIDS_1, availW: 320 },
+  // 2026-09-17 — 레이아웃 컨테이너 archetype `container` (Section · Nav). 생성 CSS 가 preview 번들에
+  //   없어 (Section) / class 미부여 + 인라인 하드코드 (Nav) catalog padding·gap·height 가 DOM 에 안
+  //   실렸고, 싣고 나니 archetype `default` 의 버튼 어법 (align/justify center) 이 flex 컨테이너의
+  //   자식을 DOM 만 가운데로 보냈다. `display:flex` 만 인라인 (양 leg 공통) — 정렬은 주지 않아 CSS
+  //   base 가 정렬을 실으면 즉시 발산한다. data-variant 는 generic 경로의 부재값 (catalog default).
+  {
+    type: "Section",
+    children: KIDS_2,
+    availW: 320,
+    style: { display: "flex" },
+    attrs: { "data-size": "md", "data-variant": "default" },
+  },
+  //   Nav 는 factory 인라인 (`width: 100%`) 을 같이 준다 — row flex 래퍼 안에서 폭 없는 flex item 은
+  //   pipeline 이 catalog height 를 싣지 않는 별개 축 (shrink-to-fit item 의 content 측정 경로) 이라
+  //   production 형태로 잰다. height 56 (md) 이 DOM 에 도달하는지가 이 케이스의 축.
+  {
+    type: "Nav",
+    children: KIDS_2,
+    availW: 320,
+    style: { display: "flex", width: "100%" },
+    attrs: { "data-size": "md", "data-variant": "default" },
+  },
 ];
 
 /**

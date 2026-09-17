@@ -7513,7 +7513,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: "default",
+      archetype: "container", // 2026-09-17: 레이아웃 컨테이너 — 버튼 어법 base (center · cursor) 제거
       element: "nav",
       containerStyles: undefined,
       states: {
@@ -9627,7 +9627,7 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       },
     },
     structure: {
-      archetype: "default",
+      archetype: "container", // 2026-09-17: 레이아웃 컨테이너 — 버튼 어법 base (center · cursor) 제거
       element: "section",
       containerStyles: undefined,
       states: {

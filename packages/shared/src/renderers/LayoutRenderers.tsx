@@ -1574,19 +1574,26 @@ export const renderNav = (
 
   const children = context.childrenByParent.get(element.id) ?? [];
 
+  // catalog 전달 (2026-09-17): `react-aria-Nav` + data-size/variant 로 생성 Nav.css (md: height 56 ·
+  //   padding 12 16 · gap 12 — Skia 가 주입하는 값) 가 걸린다. 종전 인라인 gap 16 / padding 8 16 하드코드는
+  //   catalog 와 달라 (factory 가 catalog 값을 인라인으로 실어 가리고 있었다) 제거 — 인라인 없는 legacy
+  //   문서도 CSS 로 같은 값을 받는다. display/alignItems 는 factory 인라인과 같은 값이라 유지.
+  const className = ["react-aria-Nav", element.props.className]
+    .filter(Boolean)
+    .join(" ");
   return (
     <nav
       key={element.id}
       id={element.customId}
       data-element-id={element.id}
+      data-size={String(element.props.size || "md")}
+      data-variant={String(element.props.variant || "default")}
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "16px",
-        padding: "8px 16px",
         ...element.props.style,
       }}
-      className={element.props.className}
+      className={className}
       aria-label={String(element.props.label || "Navigation")}
     >
       {children.map((child) => renderElement(child, child.id))}

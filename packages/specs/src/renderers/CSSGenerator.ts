@@ -67,6 +67,15 @@ const ARCHETYPE_BASE_STYLES: Record<ArchetypeId, string[]> = {
     `    width: 100%;`,
     `    box-sizing: border-box;`,
   ],
+  // 레이아웃 컨테이너 (Section · Nav, 2026-09-17): DEFAULT_BASE_STYLES 의 버튼 어법 (inline-flex ·
+  //   align/justify center · cursor pointer) 을 물려받으면 사용자가 display:flex 로 바꿨을 때 DOM 만
+  //   가운데 정렬된다 (Skia 는 archetype 을 안 읽어 flex-start). 배치는 inline style 이 정하고
+  //   CSS 는 상자 (padding · gap · height · 색) 만 준다.
+  container: [
+    `    display: block;`,
+    `    box-sizing: border-box;`,
+    `    font-family: var(--font-sans);`,
+  ],
   button: [
     `    display: inline-flex;`,
     `    align-items: center;`,

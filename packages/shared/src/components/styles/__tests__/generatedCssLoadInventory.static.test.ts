@@ -52,8 +52,11 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   CardView:
     "D renderer 인라인 style, class 미방출 — binding 머리말: 빈 셸 (AvatarGroup 동형)",
   // E. container layout 채널 = props.style 인라인 (ADR-907 Layer B) — 로드하면 DOM 전용 스타일로 갈린다
-  Section: "E container — factory 인라인이 두 표면 공급원",
-  Nav: "E container — NavigationComponents.ts 가 Nav.css md 값을 인라인 미러",
+  //   Section · Nav 는 2026-09-17 이 판정을 뒤집고 index.css 에 실었다 — 실측: Section 은 factory 인라인이
+  //   display:block 뿐이라 Skia 의 catalog padding 16 / gap 12 주입을 DOM 이 못 받았고 (자식 폭 321 vs 293),
+  //   Nav 는 인라인 미러가 height 56 을 안 실어 Skia 56 vs DOM 44. "로드하면 갈린다" 의 원인이던 archetype
+  //   `default` 의 버튼 어법 (center · cursor) 은 새 archetype `container` 로 제거했다 (오라클:
+  //   apps/builder/tests/parity/catalogComponentBox — Section flex 무정렬 · Nav 높이).
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
   DialogFooter: "E container — OverlayComponents.ts 인라인",
   DisclosureHeader: "E container — NavigationComponents.ts 인라인",
@@ -144,14 +147,14 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("인벤토리 집계 — 생성 95 · index 70 · 모듈 0 · 미로드 25 (evidence §11 + ADR-194 Chart · 2026-09-16 단일 채널 · ADR-201 FileUpload)", () => {
+  it("인벤토리 집계 — 생성 95 · index 72 · 모듈 0 · 미로드 23 (evidence §11 + ADR-194 Chart · 2026-09-16 단일 채널 · ADR-201 FileUpload · 2026-09-17 Section·Nav)", () => {
     expect(generated.length).toBe(95);
-    expect(indexImported.size).toBe(70);
+    expect(indexImported.size).toBe(72);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(25);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(23);
   });
 });

@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Preview — Nav 높이 · 레이아웃 컨테이너 CSS archetype `container` (Section · Nav)] - 2026-09-17
+
+### Fixed
+
+- **Nav 가 Preview 에서 44px, 캔버스에서 56px** — `renderNav` 가 class 없이 `gap 16 / padding 8 16` 을 인라인 하드코드하고 생성 `Nav.css` 는 번들 밖이라 catalog md `height 56` 이 DOM 에 안 실렸다. `react-aria-Nav` + `data-size`/`data-variant` 를 붙이고 Nav.css 를 preview/publish 번들에 싣는다. 하드코드는 제거 (catalog 값과 달랐고 factory 인라인이 가리고 있었다 — 인라인 없는 legacy 문서도 CSS 로 같은 값을 받는다). live: Nav 342×56 · Link y 18 양쪽 일치.
+- **생성 CSS archetype `container`** (Section · Nav): 종전 archetype `default` 는 버튼 어법 (`inline-flex · align-items/justify-content: center · cursor: pointer`) 을 base 로 내서, Section 을 `display:flex` 로 바꾸고 정렬을 안 만지면 DOM 만 자식을 가운데로 보냈다 (실측 x 104 vs Skia 16). 새 archetype 은 `display:block · box-sizing · font-family` 만 — 배치는 inline style 이 정하고 CSS 는 상자 (padding · gap · height · 색) 만 준다.
+- 미import 생성 CSS 24개 전수 판정 (팔레트 10종은 production 렌더러 DOM vs Skia rect 대조): import 로 고쳐지는 건 없다 — 23개는 DOM 이 그 class 를 방출하지 않아 selector 가 닿지 않고 (Avatar·AvatarGroup·CardView·IllustratedMessage·Image·Skeleton 은 rect 일치, ButtonGroup·StatusLight·ProgressCircle 은 텍스트 run Δ ≤ 3px), 결함은 Nav 1건이었다. 오라클 `catalogComponentBox` 에 Section (flex 무정렬) · Nav (높이) 케이스 추가, 로드 인벤토리 게이트 (`generatedCssLoadInventory`) 의 E 판정 뒤집음 기록.
+
 ## [Preview — Section 컨테이너가 catalog padding·gap 없이 그려지던 것 수리] - 2026-09-17
 
 ### Fixed
