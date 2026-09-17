@@ -13,8 +13,9 @@
  *
  * `endpoint` 는 `ApiEndpointDefinition.id` 참조다 — URL·헤더는 `CollectionDataContext` 의
  * endpoint 목록에서 런타임에 해석 (`resolveUploadEndpoint`). 문서에 정적 비밀 0 (HC7).
- * `dryRun` (preview 기본 true) 은 바이트 미전송 진행률 시뮬레이션 — 실서버 전송은 publish
- * 또는 host 가 `dryRun={false}` 를 넘길 때만.
+ * `dryRun` 은 바이트 미전송 진행률 시뮬레이션. 미지정이면 endpoint 정의의 `uploadDryRun` (Data 패널
+ * 토글, 기본 true) 을 따르고, publish 는 `dryRun={false}` 를 명시해 항상 실전송한다 (ADR-201 Phase 4).
+ * CSRF: 서버 계약 §5 — `XSRF-TOKEN` 쿠키 (HttpOnly 아님) 가 있으면 요청마다 `X-CSRF-TOKEN` 헤더로 되돌린다.
  */
 import React, {
   Children,
@@ -75,8 +76,8 @@ export interface FileUploadProps extends Omit<
   variant?: string;
   size?: string;
   /**
-   * 바이트 미전송 (진행률 시뮬레이션). preview 기본 true — 실서버 전송은 publish 또는
-   * host 의 명시 false 만 (breakdown §3-4 "preview 안전").
+   * 바이트 미전송 (진행률 시뮬레이션). 미지정 = endpoint 정의의 `uploadDryRun` (기본 true).
+   * publish 는 false 명시 (breakdown §3-4 "preview 안전" + Phase 4 토글).
    */
   dryRun?: boolean;
   /** 엔진 로더 주입 (테스트 · 통합). 기본 = lazy `import("@composition/upload/react")`. */
@@ -105,6 +106,22 @@ function hostChildType(child: ReactNode): string | null {
   const type =
     element?.type ?? node?.type ?? (props["data-element-type"] as unknown);
   return typeof type === "string" ? type : null;
+}
+
+/**
+ * 서버 계약 §5 "토큰 획득" — 세션 CSRF 토큰을 `XSRF-TOKEN` 쿠키 (Spring Security
+ * CookieCsrfTokenRepository 관례, HttpOnly 아님) 로 받은 경우 `X-CSRF-TOKEN` 헤더로 되돌린다.
+ * 쿠키가 없으면 헤더 0 — 서버가 CSRF 를 요구하면 403 → `E_UNAUTHORIZED` 로 드러난다.
+ */
+export function csrfHeadersFromCookie(): Record<string, string> {
+  if (typeof document === "undefined") return {};
+  const match = /(?:^|;\s*)XSRF-TOKEN=([^;]+)/.exec(document.cookie ?? "");
+  if (!match) return {};
+  try {
+    return { "X-CSRF-TOKEN": decodeURIComponent(match[1]) };
+  } catch {
+    return { "X-CSRF-TOKEN": match[1] };
+  }
 }
 
 function partitionChildren(children: ReactNode): {
@@ -269,7 +286,7 @@ export function FileUpload({
   isDisabled = false,
   variant = "default",
   size = "md",
-  dryRun = true,
+  dryRun: dryRunProp,
   loadEngine = loadUploadEngine,
   inputSurface,
   sampleRows,
@@ -300,6 +317,7 @@ export function FileUpload({
   const engineRef = useRef(engine);
   engineRef.current = engine;
 
+  const dryRun = dryRunProp ?? (resolution.ok ? resolution.uploadDryRun : true);
   const transportBlocked = !dryRun && !resolution.ok;
 
   const addFiles = useCallback(
@@ -333,6 +351,7 @@ export function FileUpload({
       maxFileSize: maxFileSize && maxFileSize > 0 ? maxFileSize : undefined,
       autoProceed,
       withCredentials: true,
+      getHeaders: csrfHeadersFromCookie,
       dryRun,
     }),
     [

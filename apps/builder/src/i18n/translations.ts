@@ -1549,6 +1549,11 @@ const koKR: TranslationKeys = {
     apiTabParams: "Params",
     apiTabAuth: "인증",
     apiParamsHint: "쿼리 파라미터 · path 변수는 URL 에 {{key}} 로.",
+    apiUploadLive: "미리보기에서 실제 업로드",
+    apiUploadLiveHint:
+      "미리보기의 File Upload 가 이 endpoint 로 실제 청크를 보낸다 (TUS). 게시본은 항상 실제 전송.",
+    apiUploadDryRunHint:
+      "미리보기의 File Upload 는 바이트를 보내지 않고 진행률만 시뮬레이션한다. 게시본은 항상 실제 전송.",
     apiAddParam: "파라미터 추가",
     apiAddHeader: "헤더 추가",
     apiKeyPlaceholder: "이름",
@@ -3434,6 +3439,11 @@ const enUS: TranslationKeys = {
     apiTabAuth: "Auth",
     apiParamsHint:
       "Query parameters · path variables go in the URL as {{key}}.",
+    apiUploadLive: "Real upload in preview",
+    apiUploadLiveHint:
+      "The preview's File Upload sends real chunks to this endpoint (TUS). Published apps always send.",
+    apiUploadDryRunHint:
+      "The preview's File Upload sends no bytes and only simulates progress. Published apps always send.",
     apiAddParam: "Add parameter",
     apiAddHeader: "Add header",
     apiKeyPlaceholder: "name",

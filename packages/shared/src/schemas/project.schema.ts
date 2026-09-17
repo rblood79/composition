@@ -223,6 +223,7 @@ export const ExportedProjectSchema = z
             .optional(),
           executionMode: z.enum(["client", "server"]).optional(),
           timeout: z.number().optional(),
+          uploadDryRun: z.boolean().optional(),
         }),
       )
       .optional(),

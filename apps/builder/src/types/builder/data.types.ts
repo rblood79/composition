@@ -245,6 +245,8 @@ export interface ApiEndpoint {
   // Settings
   timeout?: number; // ms, default 30000
   retryCount?: number; // default 0
+  /** ADR-201 Phase 4 — preview FileUpload 전송 dry-run (미지정/true = 시뮬레이션, false = 실전송) */
+  uploadDryRun?: boolean;
 
   created_at?: string;
   updated_at?: string;

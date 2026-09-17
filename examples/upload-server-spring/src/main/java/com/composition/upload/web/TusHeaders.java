@@ -25,6 +25,8 @@ public final class TusHeaders {
     public static final String UPLOAD_DEFER_LENGTH = "Upload-Defer-Length";
     public static final String METHOD_OVERRIDE = "X-HTTP-Method-Override";
     public static final String CSRF_TOKEN = "X-CSRF-TOKEN";
+    /** 브라우저 클라이언트가 읽는 CSRF 토큰 쿠키 (Spring Security CookieCsrfTokenRepository 관례, HttpOnly 아님). */
+    public static final String CSRF_COOKIE = "XSRF-TOKEN";
 
     /** §5 — CORS pre-flight 허용 요청 헤더. */
     public static final String[] CORS_ALLOWED_HEADERS = {

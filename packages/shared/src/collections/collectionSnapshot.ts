@@ -80,6 +80,7 @@ export function toRuntimeApiEndpoint(
     responseMapping,
     executionMode,
     timeout,
+    uploadDryRun,
   } = endpoint;
   return {
     id,
@@ -94,6 +95,7 @@ export function toRuntimeApiEndpoint(
     responseMapping,
     executionMode,
     timeout,
+    ...(uploadDryRun !== undefined ? { uploadDryRun } : {}),
   };
 }
 

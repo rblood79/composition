@@ -1,6 +1,10 @@
 package com.composition.upload.web;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -9,6 +13,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
+import javax.servlet.http.Cookie;
+import org.springframework.test.web.servlet.MvcResult;
 
 import com.composition.upload.AbstractTusTest;
 import com.composition.upload.service.SessionOwnerResolver;
@@ -31,6 +37,27 @@ public class OwnershipAndCsrfTest extends AbstractTusTest {
             .andExpect(status().isOk())
             .andExpect(header().string(TusHeaders.UPLOAD_OFFSET, "0"));
         assertEquals(0L, repository.findById(idOf(location)).getUploadOffset());
+    }
+
+    /** 계약 §5 "토큰 획득" — GET 이 세션 토큰을 XSRF-TOKEN 쿠키 (HttpOnly 아님) 로 실어 스크립트 클라이언트가 헤더로 되돌린다. */
+    @Test
+    public void getExposesCsrfTokenAsReadableCookieMatchingSession() throws Exception {
+        MockHttpSession s = sessionFor(uniqueOwner("cookie"));
+        MvcResult result = mvc.perform(get("/session").session(s))
+            .andExpect(status().isOk())
+            .andExpect(cookie().exists(TusHeaders.CSRF_COOKIE))
+            .andReturn();
+        Cookie c = result.getResponse().getCookie(TusHeaders.CSRF_COOKIE);
+        assertNotNull(c);
+        assertFalse(c.isHttpOnly());
+        assertEquals(s.getAttribute(CsrfTokens.SESSION_ATTRIBUTE), c.getValue());
+        // 쿠키값을 헤더로 되돌리면 POST 가 통과한다 (검증은 헤더 ↔ 세션 하나뿐)
+        mvc.perform(post("/upload").session(s)
+                .header(TusHeaders.CSRF_TOKEN, c.getValue())
+                .header(TusHeaders.TUS_RESUMABLE, "1.0.0")
+                .header(TusHeaders.UPLOAD_LENGTH, "16")
+                .header(TusHeaders.UPLOAD_METADATA, metadata("via-cookie.png")))
+            .andExpect(status().isCreated());
     }
 
     @Test

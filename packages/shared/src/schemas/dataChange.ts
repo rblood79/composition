@@ -98,6 +98,8 @@ export const ApiEndpointDraftSchema = z.object({
   bodyTemplate: z.string().optional(),
   dataPath: z.string().optional(),
   targetCollectionId: z.string().optional(),
+  /** ADR-201 Phase 4 — preview FileUpload 전송 dry-run 토글 (false = 실전송). */
+  uploadDryRun: z.boolean().optional(),
 });
 
 const collectionRef = { collectionId: z.string().min(1) };

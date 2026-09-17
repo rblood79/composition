@@ -29,6 +29,8 @@
     <failOnMissingWebXml>false</failOnMissingWebXml>
     <!-- cargo:run 저장 디렉터리 — 명령행 `-Dupload.storage.dir=…` 가 이 기본값을 덮는다 (G2b-2 기동 거부 실물 확인용) -->
     <upload.storage.dir>${java.io.tmpdir}/composition-uploads</upload.storage.dir>
+    <!-- cargo:run CORS origin 목록 — 교차 출처 preview (composition dev 5173) 에서 G5 를 돌릴 때 `-Dupload.cors.allowedOrigins=http://localhost:5173` -->
+    <upload.cors.allowedOrigins></upload.cors.allowedOrigins>
   </properties>
 
   <dependencies>
@@ -148,6 +150,7 @@
               <upload.storage.dir>${upload.storage.dir}</upload.storage.dir>
               <upload.jdbc.initSchema>h2</upload.jdbc.initSchema>
               <upload.devLogin.enabled>true</upload.devLogin.enabled>
+              <upload.cors.allowedOrigins>${upload.cors.allowedOrigins}</upload.cors.allowedOrigins>
             </systemProperties>
           </container>
           <configuration>

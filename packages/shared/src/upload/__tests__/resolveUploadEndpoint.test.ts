@@ -35,7 +35,19 @@ describe("resolveUploadEndpoint", () => {
       id: "ep-upload",
       url: "https://files.example.com/tus/",
       headers: { "X-Client": "composition" },
+      uploadDryRun: true,
     });
+  });
+
+  it("uploadDryRun — 미지정은 true (preview 안전), false 만 실전송 (ADR-201 Phase 4 토글)", () => {
+    const live = resolveUploadEndpoint("ep-upload", [
+      { ...endpoints[0], uploadDryRun: false },
+    ]);
+    expect(live.ok && live.uploadDryRun).toBe(false);
+    const explicitTrue = resolveUploadEndpoint("ep-upload", [
+      { ...endpoints[0], uploadDryRun: true },
+    ]);
+    expect(explicitTrue.ok && explicitTrue.uploadDryRun).toBe(true);
   });
 
   it("name 으로도 찾는다 (Data 패널이 이름으로 부르는 경로)", () => {

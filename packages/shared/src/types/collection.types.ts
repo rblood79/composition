@@ -117,6 +117,11 @@ export interface ApiEndpointDefinition {
   };
   executionMode?: "client" | "server";
   timeout?: number;
+  /**
+   * ADR-201 Phase 4 — preview 에서 이 endpoint 로의 FileUpload 전송. `false` 면 preview 가 실제 바이트를
+   * 보낸다 (Data 패널 `useMockData` 동형 토글). 미지정/true = dry-run (진행률 시뮬레이션). publish 는 항상 실전송.
+   */
+  uploadDryRun?: boolean;
 }
 
 // ============================================

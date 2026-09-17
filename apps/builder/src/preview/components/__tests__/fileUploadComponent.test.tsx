@@ -19,7 +19,10 @@ import {
   CollectionDataContext,
   type CollectionDataServices,
 } from "@composition/shared";
-import { FileUpload } from "@composition/shared/components/FileUpload";
+import {
+  FileUpload,
+  csrfHeadersFromCookie,
+} from "@composition/shared/components/FileUpload";
 import type { UploadReactModule } from "@composition/shared";
 import { useFileUploadIntake } from "@composition/shared";
 
@@ -118,6 +121,13 @@ const services: CollectionDataServices = {
         name: "Plain",
         baseUrl: "https://files.example.com",
         path: "/tus",
+      },
+      {
+        id: "ep-live",
+        name: "Live",
+        baseUrl: "https://files.example.com",
+        path: "/tus",
+        uploadDryRun: false,
       },
     ],
   },
@@ -221,6 +231,35 @@ describe("FileUpload — DOM consumer", () => {
     ).toBe("idle");
     expect(errors).not.toHaveBeenCalled();
     errors.mockRestore();
+  });
+
+  it("dryRun 미지정 → endpoint 정의의 uploadDryRun 을 따른다 (Phase 4 토글: false 면 실전송 옵션 + CSRF 쿠키 헤더)", async () => {
+    document.cookie = "XSRF-TOKEN=abc%3D123; path=/";
+    const { container } = renderFileUpload({ endpoint: "ep-live" });
+    await act(async () => {
+      screen.getByText("Select files").click();
+    });
+    await waitFor(() =>
+      expect(
+        container
+          .querySelector(".react-aria-FileUpload")
+          ?.getAttribute("data-upload-state"),
+      ).toBe("active"),
+    );
+    const opts = (
+      globalThis as {
+        __lastUploadOptions?: {
+          dryRun?: boolean;
+          endpoint?: string;
+          getHeaders?: () => Record<string, string>;
+        };
+      }
+    ).__lastUploadOptions;
+    expect(opts?.dryRun).toBe(false);
+    expect(opts?.endpoint).toBe("https://files.example.com/tus");
+    expect(opts?.getHeaders?.()).toEqual({ "X-CSRF-TOKEN": "abc=123" });
+    document.cookie = "XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+    expect(csrfHeadersFromCookie()).toEqual({});
   });
 
   it("dryRun=false + vault placeholder 헤더 → E_UNAUTHORIZED, 엔진을 부르지 않는다 (m4)", async () => {

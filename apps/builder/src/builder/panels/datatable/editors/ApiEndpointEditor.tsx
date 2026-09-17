@@ -52,6 +52,7 @@ import {
   resolveResponseData,
 } from "../../../../utils/data/responseData";
 import { toEndpointDraft } from "../../../stores/utils/dataChange";
+import { PropertySwitch } from "../../../components";
 import { announceDataPanelStatus } from "../stores/dataPanelStatusStore";
 import { authToEntries, detectAuthPreset, type AuthPreset } from "./authPreset";
 import { buildSaveApiAsTableOps } from "./saveApiAsTable";
@@ -251,6 +252,7 @@ export function ApiEndpointEditor({
 
         <TabPanel id="params" className={panelContents()}>
           <ParamsTab endpoint={endpoint} save={save} dt={dt} />
+          <UploadTransportRow endpoint={endpoint} save={save} dt={dt} />
         </TabPanel>
         <TabPanel id="headers" className={panelContents()}>
           <HeadersTab endpoint={endpoint} save={save} dt={dt} />
@@ -270,6 +272,37 @@ export function ApiEndpointEditor({
 }
 
 type SaveFn = (patch: Partial<ApiEndpoint>) => Promise<void>;
+
+/**
+ * ADR-201 Phase 4 — preview FileUpload 전송 토글 (Data 패널 `useMockData` 동형). 기본 dry-run (바이트
+ * 미전송 · 진행률 시뮬레이션), 켜면 preview 가 이 endpoint 로 실제 청크를 보낸다. publish 는 항상 실전송.
+ */
+function UploadTransportRow({
+  endpoint,
+  save,
+  dt,
+}: {
+  endpoint: ApiEndpoint;
+  save: SaveFn;
+  dt: DtFn;
+}) {
+  const live = endpoint.uploadDryRun === false;
+  return (
+    <div
+      className="datatable-api-section"
+      data-upload-transport={live ? "live" : "dry-run"}
+    >
+      <PropertySwitch
+        label={dt("apiUploadLive")}
+        isSelected={live}
+        onChange={(checked) => void save({ uploadDryRun: !checked })}
+      />
+      <p className="datatable-api-hint">
+        {live ? dt("apiUploadLiveHint") : dt("apiUploadDryRunHint")}
+      </p>
+    </div>
+  );
+}
 type DtFn = (
   key: string,
   params?: Record<string, string | number | boolean>,

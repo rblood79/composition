@@ -17,6 +17,8 @@ export type UploadEndpointResolution =
       id: string;
       url: string;
       headers: Record<string, string>;
+      /** endpoint 정의의 preview dry-run 토글 (ADR-201 Phase 4) — 미지정 = true */
+      uploadDryRun: boolean;
     }
   | {
       ok: false;
@@ -86,5 +88,6 @@ export function resolveUploadEndpoint(
     id: def.id,
     url: joinUrl(def.baseUrl ?? "", def.path ?? ""),
     headers: resolved,
+    uploadDryRun: def.uploadDryRun !== false,
   };
 }

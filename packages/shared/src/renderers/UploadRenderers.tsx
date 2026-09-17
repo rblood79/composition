@@ -5,8 +5,8 @@
  * canonical 자식을 type 으로 분류해 shared `FileUpload` 에 넘긴다 — 입력 표면 (DropZone ·
  * FileTrigger) 과 샘플 행 (그 외). 런타임 큐 상태는 `FileUpload` 내부 React 상태 — 문서 write 0.
  *
- * preview 는 `dryRun` 고정 (바이트 미전송, breakdown §3-4 "preview 안전"). 실서버 전송 토글은
- * Phase 4 (Data 패널 `useMockData` 동형) — 그때까지 publish 만 `dryRun={false}`.
+ * preview 의 dry-run 여부는 endpoint 정의의 `uploadDryRun` (Data 패널 토글, 기본 true — breakdown
+ * §3-4 "preview 안전", Phase 4) 이 정한다 — 여기서는 `dryRun` 을 넘기지 않는다. publish 만 `dryRun={false}`.
  */
 import type React from "react";
 import type { PreviewElement, RenderContext } from "../types";
@@ -47,7 +47,6 @@ export const renderFileUpload = (
       isDisabled={Boolean(props.isDisabled)}
       variant={props.variant as string | undefined}
       size={props.size as string | undefined}
-      dryRun
       className={props.className as string | undefined}
       style={props.style as React.CSSProperties | undefined}
       inputSurface={input.map((child) => renderElement(child, child.id))}

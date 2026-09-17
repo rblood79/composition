@@ -377,6 +377,9 @@ export function toEndpointDraft(endpoint: ApiEndpoint): ApiEndpointDraft {
     ...(endpoint.targetCollectionId !== undefined
       ? { targetCollectionId: endpoint.targetCollectionId }
       : {}),
+    ...(endpoint.uploadDryRun !== undefined
+      ? { uploadDryRun: endpoint.uploadDryRun }
+      : {}),
   };
 }
 
@@ -465,6 +468,9 @@ function reduceDefineEndpoint(
       ...(draft.bodyTemplate !== undefined
         ? { bodyTemplate: draft.bodyTemplate }
         : {}),
+      ...(draft.uploadDryRun !== undefined
+        ? { uploadDryRun: draft.uploadDryRun }
+        : {}),
       ...(draft.dataPath !== undefined
         ? {
             responseMapping: {
@@ -512,6 +518,9 @@ function reduceDefineEndpoint(
     responseMapping: { dataPath: draft.dataPath ?? "" },
     ...(draft.targetCollectionId !== undefined
       ? { targetCollectionId: draft.targetCollectionId }
+      : {}),
+    ...(draft.uploadDryRun !== undefined
+      ? { uploadDryRun: draft.uploadDryRun }
       : {}),
     executionMode: "client",
     timeout: 30000,
