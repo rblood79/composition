@@ -186,14 +186,17 @@ describe("ADR-198 Phase 1 / G1 — identity half", () => {
     }, 180_000);
 
     /**
-     * 아티보드 제외가 **선언된 것과 같은지** 고정한다. Skia 가 아티보드 노드를
-     * 내기 시작하거나 Preview 가 안 내기 시작하면 이 기대가 깨져서 위 계약을
-     * 다시 보게 만든다 (ratchet).
+     * 아티보드 제외가 **선언된 것과 같은지** 고정한다. 어느 leg 이든 아티보드
+     * 노드를 내기 시작하면 이 기대가 깨져서 위 계약을 다시 보게 만든다 (ratchet).
+     *
+     * 2026-09-18 (9229506fb) 부터 Preview 도 page shell `<div>` 를 내지 않는다 —
+     * canonical Page FrameNode 는 scope 경계일 뿐이고 실제 페이지 상자는 자식 body 가
+     * 소유한다. 그 전엔 Preview 만 DOM 컨테이너로 냈다 (`artboardNodeId` 주석).
      */
-    it(`${c.id}: 아티보드는 Preview 만 노드로 낸다 — 제외 근거를 고정`, async () => {
+    it(`${c.id}: 아티보드는 어느 leg 도 노드로 내지 않는다 — 제외 근거를 고정`, async () => {
       const { skia, preview: previewLeg } = await measure(c);
       expect(skia.nodeOrder).not.toContain(c.artboardNodeId);
-      expect(previewLeg.nodeOrder).toContain(c.artboardNodeId);
+      expect(previewLeg.nodeOrder).not.toContain(c.artboardNodeId);
     }, 180_000);
   }
 

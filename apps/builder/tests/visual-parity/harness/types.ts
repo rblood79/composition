@@ -55,8 +55,9 @@ export interface VisualParityCase {
    * 아티보드 컨테이너 노드 id — **비교 대상이 아니라 비교의 기준틀**이다.
    *
    * Skia 는 이 노드를 그리지 않는다 (아티보드 자체가 surface 라 `treeBoundsMap`
-   * 에 상자가 없다). Preview 는 DOM 이 컨테이너 엘리먼트를 필요로 해서
-   * `<div data-element-id>` 로 낸다. 둘은 **같은 시각 결과를 내는 서로 다른 표현**
+   * 에 상자가 없다). Preview 도 2026-09-18 (9229506fb) 부터 page shell `<div>` 를 내지
+   * 않는다 — 페이지 상자는 자식 body 가 소유한다 (그 전엔 DOM 컨테이너로
+   * `<div data-element-id>` 를 냈다). 어느 쪽이든 **같은 시각 결과를 내는 서로 다른 표현**
    * 이고, ssot-hierarchy 의 대칭 정의("구현 방법이 아니라 시각 결과의 동일성")상
    * identity 비교에서 제외하는 것이 옳다.
    *

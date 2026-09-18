@@ -70,8 +70,8 @@ export function environmentChecksum(env: EnvironmentManifest): string {
  * L0 — 두 leg 이 같은 입력을 봤는가. 픽셀을 보기 전에 통과해야 한다.
  *
  * `expectedNodeIds` 는 **아티보드 컨테이너를 뺀 콘텐츠 노드**다. 아티보드는
- * 비교 대상이 아니라 비교의 기준틀이라 두 leg 이 서로 다르게 표현한다 —
- * Skia 는 surface 자체라 노드가 없고, Preview 는 DOM 컨테이너가 필요해 div 를 낸다.
+ * 비교 대상이 아니라 비교의 기준틀이다 — Skia 는 surface 자체라 노드가 없고,
+ * Preview 도 page shell div 를 내지 않는다 (2026-09-18 부터; 그 전엔 DOM 컨테이너 div).
  * (`VisualParityCase.artboardNodeId` 주석 참조.)
  *
  * 이 제외가 **진짜 발산을 가리지 않는다**는 것은 아래 두 장치가 보장한다:
