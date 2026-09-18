@@ -1,6 +1,6 @@
 # ADR-225 구현 상세 — 재사용 레이아웃 어휘 정렬
 
-> 상태: Proposed 설계. 구현 권한 없음.
+> 상태: Accepted 설계. 구현 권한 없음.
 >
 > 본 문서는 [ADR-225](../225-reusable-layout-vocabulary-alignment.md)의 구현 순서와
 > 검증 경계를 구체화한다. 새로운 결정을 추가하지 않으며 canonical `FrameNode` 보존
@@ -16,7 +16,9 @@
 | canonical/Pencil raw model | **Frame 유지**     | `FrameNode`, `type: "frame"`, `selectCanonicalReusableFrames`, `createReusableFrameNode`, `.pen` mapping |
 | renderer/platform          | **Frame 유지**     | canvas geometry frame, visible frame roots, `requestAnimationFrame`, Preview iframe                      |
 | 고유 component             | **Frame 유지**     | catalog `Frame`, `MaskedFrame`, 외부 API의 `FrameNode`                                                   |
-| 역사 기록                  | **원문 유지**      | completed ADR, changelog의 과거 경로·commit·evidence                                                     |
+| 역사 기록                  | **원문 유지**      | pre-225 ADR와 `docs/adr/design/**`, changelog의 과거 경로·commit, evidence                               |
+| 현행 rule/research         | **Layouts로 갱신** | `.claude/rules/state-management.md`, `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md`        |
+| 로컬 비소스 probe          | **분류 후 제외**   | `apps/builder/scripts/.tmp-panel-cap/**`; 제품 source가 아니며 사용 시 새 UI 어휘로 재생성               |
 
 “Frame 문자열 0건”이 아니라 **미분류 Frame 0건**이 완료 조건이다. feature code의 Layout
 facade가 raw adapter의 Frame API를 호출하는 것은 의도된 경계다.
@@ -32,8 +34,9 @@ facade가 raw adapter의 Frame API를 호출하는 것은 의도된 경계다.
 4. Phase 0 inventory를 구현보다 먼저 승인 기준으로 사용한다. 3개 이상 sub-group이나
    기준선 1.5배 이상의 scope가 발견되면 이 breakdown을 재동결하고 사용자 확인을 받는다.
 
-2026-09-19 사용자가 별도 ADR 생성을 명시 승인했다. ADR이 Proposed인 동안 아래 phase는
-착수하지 않는다.
+2026-09-19 사용자가 별도 ADR 생성을 명시 승인했고 round 1의 MEDIUM 3·LOW 2 수정 후
+Accepted 가능 판정을 전달했다. 문서 수정으로 pending 0을 만든 뒤 Accepted로 승격했지만,
+별도 구현 요청 전에는 아래 phase를 착수하지 않는다.
 
 ## 2. Phase 0 — 잔여 어휘 인벤토리 동결
 
@@ -43,36 +46,50 @@ facade가 raw adapter의 Frame API를 호출하는 것은 의도된 경계다.
 
 ### 기준선
 
-다음 feature ownership 정규식의 `apps/builder/src` 결과는 46개 파일이다.
+최초 feature ownership 정규식의 `apps/builder/src` 결과 46개 파일(프로덕션 26, 테스트
+20)은 review round 1에서 재현됐다. G0/G5 정본은 rename 표의 공개 API와 대소문자 변형을
+포함한 다음 확장 정규식이며 결과는 49개 파일이다.
 
 ```text
 FramesTab|FrameList|FrameElementTree|frameActions|
-selectedReusableFrameId|ReusableFrameLayouts|FrameSlotsSection|
+selectedReusableFrameId|SelectedReusableFrameId|
+ReusableFrameLayouts|ReusableFrameLayoutSummary|FrameSlotsSection|
+createReusableFrame|deleteReusableFrame|updateReusableFrame|selectReusableFrame|
+getNextFrameName|useCanonicalFrameSelectionStore|canonicalFrameStore|
 NAVIGATOR_SECTION_IDS.(frames|frameLayers)|
 navigator-(frames|frame-layers)|frame-tree
 ```
 
-- production: 26개
-- test/static test: 20개
-- 이 숫자는 rename 대상 수가 아니라 **판정 대상 기준선**이다.
+- production: 27개
+- test/static test: 22개
+- 최초 46개 대비 +3개이며 1.5배 범위 재확인 임계 안이다.
+- 49는 rename 대상 수가 아니라 **판정 대상 기준선**이다. 예를 들어
+  `adapters/canonical/index.ts`의 `createReusableFrameNode`는 canonical 보존으로 분류한다.
 
 ### 작업
 
 1. 후보마다 `rename`, `canonical`, `platform/component`, `history` 중 하나를 부여한다.
-2. `PageLayoutSelector`와 i18n에서 정규식 밖에 있는 사용자 문구도 별도 D1 목록에 넣는다.
+2. `PageLayoutSelector`와 i18n에서 정규식 밖에 있는 사용자 문구도 별도 Builder chrome
+   copy 목록에 넣는다.
 3. 아래 변경 금지 목록을 snapshot한다.
    - `packages/shared/src/types/composition-document.types.ts`의 `FrameNode`, `type: "frame"`
    - `apps/builder/src/adapters/pencil/` import/export와 `.pen` fixture
    - `apps/builder/src/adapters/canonical/`의 raw frame selector/factory/binding
    - Canvas geometry/cadence/iframe 및 catalog component 고유명
-   - `docs/adr/completed`, `docs/adr/evidence`의 과거 기록
-4. inventory를 읽는 정적 test 또는 grep gate를 추가해 신규 미분류 hit가 생기면 실패시킨다.
+   - pre-225 `docs/adr/completed/**`, `docs/adr/design/**`, `docs/adr/evidence/**`의 과거 기록
+4. source 밖 hit도 분류한다.
+   - `.claude/rules/state-management.md`와
+     `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md`는 현행 문서이므로 Phase 3
+     갱신 대상이다.
+   - `apps/builder/scripts/.tmp-panel-cap/**`는 untracked local probe/capture다. 제품 source
+     ratchet에서 제외하되 재사용 시 현재 Layouts UI로 재생성한다.
+5. inventory를 읽는 정적 test 또는 grep gate를 추가해 신규 미분류 hit가 생기면 실패시킨다.
 
 ### 종료 조건
 
-- 후보 46/46 분류, 추가 D1 문자열 분류 완료, 미분류 0건.
+- 후보 49/49 분류, 추가 Builder chrome 문자열과 source 밖 hit 분류 완료, 미분류 0건.
 - schema snapshot과 5개 Pencil fixture 기준선 통과.
-- 실제 후보가 69개 이상(46×1.5)으로 늘거나 단일 Phase를 3개 이상 sub-group으로 나눠야
+- 실제 후보가 74개 이상(49×1.5 올림)으로 늘거나 단일 Phase를 3개 이상 sub-group으로 나눠야
   하면 구현을 시작하지 않고 scope를 재확인한다.
 
 ## 3. Phase 1 — 사용자 노출·접근성 문구 종결
@@ -88,6 +105,11 @@ navigator-(frames|frame-layers)|frame-tree
   - `Remove frame…` / `Remove Frame` → `Remove layout…` / `Remove Layout`
 - `apps/builder/src/i18n/labels.ts`와 `translations.ts`의 ko/en key·값을 Layout으로 맞춘다.
   기존 key rename이 다른 caller를 끊지 않는지 먼저 검색한다.
+- 현재 i18n 경로가 없는 세 문구에 신규 key를 추가한다.
+  - `properties.noLayout`: `No Layout` / `레이아웃 없음`
+  - `properties.selectReusableLayout`: `Select a reusable layout for this page` / 해당 ko 문구
+  - `properties.usingLayout`: `Using "{name}" layout` / 해당 ko 문구. 이름 인자가 있으므로
+    `formattedMessages`의 ko-KR/en-US 함수로 등록한다.
 - Navigator와 Properties의 label, tooltip, empty state, dialog, alert, aria-label/title을
   전수 검색한다. 이미 적용된 `Pages / Layouts`, `Add Layout`, `Layout Preset`, 신규
   `Layout N`은 회귀 기준으로 잠근다.
@@ -95,8 +117,10 @@ navigator-(frames|frame-layers)|frame-tree
 
 ### 검증
 
-- D1 production source에 재사용 레이아웃 의미의 사용자 노출 `Frame` 0건.
+- Builder chrome production source에 재사용 레이아웃 의미의 사용자 노출 `Frame` 0건.
 - ko/en rendering snapshot과 keyboard/accessible name test 통과.
+- ko-KR로 Builder를 부팅한 i18n residue probe에서 세 신규 문구가 한국어/동적 이름으로
+  출력되고 영어 `Frame` residue가 0건이다.
 - copy 수정만으로 canonical write/history가 발생하지 않음을 확인한다.
 
 ## 4. Phase 2 — Navigator·Properties 기능 소유 식별자 정렬
@@ -133,9 +157,11 @@ adapter의 정확한 domain 용어는 바꾸지 않는다.
 - `navigator-frames` → `navigator-layouts`
 - `navigator-frame-layers` → `navigator-layout-layers`
 
-`useSectionCollapse` hydration에서 새 id가 없고 구 id가 있을 때 새 id로 1회 승계한다.
-중복이 있으면 새 id를 우선한다. 다른 section id는 건드리지 않는다. 이미 올바른
-`navigator-split:layouts`, tab id `layouts`, `editMode: "layout"`은 그대로 둔다.
+`useSectionCollapse` hydration에서 구 id를 **삭제한 뒤** 새 id를 넣는다. old/new가 함께
+있어도 new 하나만 남긴다. `activeFocusSection`이 구 id면 같은 mapping으로 신 id로
+치환한다. 이후 persist되는 state에는 구 id가 없어야 하므로, 사용자가 승계 후 section을
+펼치고 reload해도 구 id 때문에 다시 접히지 않는다. 다른 section id는 건드리지 않는다.
+이미 올바른 `navigator-split:layouts`, tab id `layouts`, `editMode: "layout"`은 그대로 둔다.
 
 ### 검증
 
@@ -143,7 +169,9 @@ adapter의 정확한 domain 용어는 바꾸지 않는다.
 - 새 facade 단위 test에서 create/select/update/delete가 기존과 동일한 canonical
   `FrameNode` mutation과 Undo/refresh 결과를 낸다.
 - CSS class rename 전후 computed style/geometry snapshot이 동일하다.
-- collapse state의 old-only/new-only/both/none 4가지 hydration test 통과.
+- collapse state의 old-only/new-only/both/none 4가지 hydration과
+  `old 승계 → 펼침 → persist/reload → 펼침 유지` 순서 test 통과.
+- `activeFocusSection` old/new/null mapping test 통과.
 
 ## 5. Phase 3 — 테스트·문서·관측 명칭 정렬
 
@@ -155,10 +183,14 @@ adapter의 정확한 domain 용어는 바꾸지 않는다.
   갱신한다.
 - 현재 코드 comment와 console context 중 제품 feature를 뜻하는 Frames를 Layouts로
   바꾼다. raw adapter 로그의 Frame은 유지한다.
+- 상시 로드되는 `.claude/rules/state-management.md`와 현행 성능 연구
+  `docs/explanation/research/BUILDER_PERF_BASELINE_2026-09.md`의 feature 명칭·현재 경로를
+  갱신한다. pre-225 ADR/design/evidence는 역사 기록으로 보존한다.
+- `apps/builder/scripts/.tmp-panel-cap/**`는 untracked local probe/capture라 source 변경
+  대상이 아니다. 구현 검증에 재사용하지 않고 현재 Layouts selector로 새 probe를 만든다.
 - `docs/CHANGELOG.md`에는 구현 시점의 사용자 가시 변경과 internal facade rename을 한 번
   기록한다. ADR-111과 과거 evidence/changelog 문장은 수정하지 않는다.
-- `docs/adr/README.md`는 상태 전이 때만 갱신한다. Proposed 문서 작성만으로 구현 완료
-  표현을 추가하지 않는다.
+- `docs/adr/README.md`는 Accepted 전이를 반영하되, 구현 전에는 완료 표현을 추가하지 않는다.
 
 ### 검증
 
@@ -178,7 +210,7 @@ adapter의 정확한 domain 용어는 바꾸지 않는다.
 5. `pnpm run codex:typecheck`.
 6. concurrent dirty 파일이 없으면 `pnpm run codex:preflight`, 있으면
    `.agents/README.md`의 범위별 검증.
-7. Phase 0 inventory gate: feature-owned 구 명칭 0, 미분류 Frame 0.
+7. Phase 0의 확장 49-file inventory gate: feature-owned 구 명칭 0, 미분류 Frame 0.
 
 ### 실제 Builder
 
@@ -208,9 +240,9 @@ foreground Builder에서 다음을 한 흐름으로 확인한다.
 | UI projection/state | `stores/canonical/canonicalFrameStore.ts` 또는 대체 Layout facade file                                | summary/selection/public hook을 Layout으로 변경               | 내부 `FrameNode` filter와 canonical document read    |
 | UI actions          | `stores/utils/frameActions.ts`와 caller/test                                                          | reusable Layout CRUD facade로 변경                            | 실제 canonical FrameNode 생성·cascade·DB persistence |
 | i18n                | `i18n/labels.ts`, `i18n/translations.ts`, wiring test                                                 | Layout key/value와 ko/en 노출 문구                            | 무관한 component Frame 번역                          |
-| local state         | `useSectionCollapse.ts`와 test                                                                        | 구 section id 1회 승계                                        | 다른 panel state, `navigator-split:layouts`          |
+| local state         | `useSectionCollapse.ts`와 test                                                                        | 구 id 제거+신 id 치환, `activeFocusSection` 승계              | 다른 panel state, `navigator-split:layouts`          |
 | canonical/Pencil    | `packages/shared/...`, `adapters/canonical/**`, `adapters/pencil/**`                                  | 원칙적으로 수정 없음; test import rename만 예외               | schema, type, serialization, fixture                 |
-| docs                | ADR-225, breakdown, README, 구현 시 CHANGELOG                                                         | 현재 결정과 실행 결과 기록                                    | 과거 ADR/evidence 원문                               |
+| docs                | ADR-225, breakdown, README, 현행 rule/research, 구현 시 CHANGELOG                                     | 현재 결정·경로·실행 결과 기록                                 | pre-225 ADR/design/evidence 원문                     |
 
 `canonicalFrameStore.ts`를 통째로 기계 rename하지 않는다. Phase 0에서 UI projection을
 `reusableLayoutStore.ts`로 분리할지 파일명만 정렬할지 결정하되, 외부로 노출되는 feature
@@ -218,13 +250,15 @@ API는 Layout이고 raw type guard는 Frame이라는 최종 계약은 같다.
 
 ## 8. 검증 체크리스트
 
-- [ ] 후보 기준선 46개 파일과 추가 사용자 문구가 100% 분류됐는가?
+- [ ] 확장 후보 기준선 49개 파일과 추가 사용자 문구·source 밖 hit가 100% 분류됐는가?
 - [ ] feature-owned 사용자 문구·aria/title에 Frame이 0건인가?
 - [ ] feature-owned component/file/export/state/action/test 명칭에 Frame이 0건인가?
 - [ ] 잔여 Frame hit마다 canonical/platform/component/history 근거가 있는가?
 - [ ] `FrameNode`, `type: "frame"`, Pencil 5 fixture, DB/JSON roundtrip이 불변인가?
 - [ ] page binding adapter와 Canvas/Preview/publish 결과가 불변인가?
-- [ ] 구 collapse id가 새 id로 승계되고 split/tab/editMode key는 유지되는가?
+- [ ] 구 collapse id가 제거·승계되고 active focus와 승계→펼침→reload가 보존되며 split/tab/editMode key는 유지되는가?
+- [ ] ko-KR 부팅 probe에서 신규 static 2개·formatted 1개가 번역되고 영어 Frame residue가 0건인가?
+- [ ] 현행 rule/research는 갱신되고 pre-225 ADR/design/evidence와 `.tmp-panel-cap`은 분류 계약대로 보존됐는가?
 - [ ] 기존 user-authored 이름을 자동 변경하지 않는가?
 - [ ] 인접 test, typecheck, 범위별 preflight가 통과했는가?
 - [ ] foreground Builder의 생성→선택→적용→해제→삭제→refresh와 console 0을 확인했는가?

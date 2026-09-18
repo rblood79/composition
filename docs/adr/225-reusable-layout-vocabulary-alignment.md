@@ -2,11 +2,12 @@
 
 ## Status
 
-Proposed — 2026-09-19
+Accepted — 2026-09-19 (review round 1 MEDIUM 3 · LOW 2 수정 종결, pending 0)
 
 사용자 요청으로 ADR-111 이후 남아 있는 재사용 레이아웃 기능의 `Frames` 명칭을
-`Layouts`로 정렬하는 결정을 제안한다. 이 상태는 문서 작성 승인만 뜻하며 코드 구현,
-커밋, push를 승인하지 않는다.
+`Layouts`로 정렬하는 결정을 승인했다. 사용자가 전달한 round 1 판정의 MEDIUM 3건과
+LOW 2건을 문서에 반영했으며, Accepted는 설계 승인만 뜻한다. 코드 구현, 커밋, push는
+별도 요청 전까지 시작하지 않는다.
 
 ## Context
 
@@ -15,8 +16,10 @@ Navigator의 사용자 모델은 `Pages / Layouts`이고 Properties는 `Layout P
 대표적으로 `FramesTab/FrameList/FrameElementTree`, `canonicalFrameStore`의 선택 API,
 `frameActions`, `FrameSlotsSection`, `navigator-frames`, `.frame-tree`, 그리고
 `PageLayoutSelector`의 `No Frame / Apply Frame / Remove Frame`이 같은 재사용 페이지
-레이아웃 기능을 서로 다른 이름으로 표현한다. 2026-09-19 잔여 후보 정규식으로
-`apps/builder/src`를 실측한 기준선은 **46개 파일(프로덕션 26, 테스트 20)**이다.
+레이아웃 기능을 서로 다른 이름으로 표현한다. 최초 잔여 후보 정규식은 46개 파일
+(프로덕션 26, 테스트 20)로 재현됐다. rename 표의 store/action API와 대소문자 변형까지
+포함해 재동결한 authoritative 기준선은 **49개 파일(프로덕션 27, 테스트 22)**이다.
+차이 3개는 1.5배 범위 재확인 임계값보다 작다.
 
 그러나 Composition의 모든 `Frame`이 이 제품 기능을 뜻하지는 않는다. canonical 문서의
 `FrameNode`와 `type: "frame"`, Pencil import/export, page-frame binding은 저장 포맷의
@@ -27,13 +30,16 @@ catalog의 `Frame` 컴포넌트도 각각 다른 의미를 가진다. 따라서 
 
 ### Domain과 SSOT 경계
 
-- **D1 DOM/접근성**: Navigator·Properties의 label, description, title, aria-label을
-  `Layout(s)`로 통일한다.
-- **D2 Props/API**: Builder 내부의 재사용 레이아웃 UI facade, selection, action,
-  section id를 `Layout` 계열로 정렬한다. 공개 canonical `FrameNode`와 Pencil schema는
-  변경하지 않는다.
-- **D3 시각 스타일**: `.frame-tree`처럼 기능 소유 CSS selector의 이름만 정렬한다.
-  크기, 색, 간격, 배치, Canvas/Preview 렌더 결과는 바꾸지 않는다.
+주 변경 대상은 **D1/D2/D3 밖의 Builder chrome**이다. Navigator·Properties의 label,
+description, title, aria-label과 내부 selection/action/section id를 Layout 계열로
+정렬한다.
+
+- **D1 RAC 출력 DOM/접근성 계약**: 변경 0. Builder chrome의 접근성 이름은 D1 component
+  output 계약과 구분한다.
+- **D2 component Props/API 계약**: 변경 0. Builder 내부 facade rename은 catalog Props/API
+  변경이 아니며, canonical `FrameNode`는 D2가 아니라 document 저장 계약이다.
+- **D3 catalog 시각 계약**: 변경 0. `.frame-tree`는 Builder chrome selector이므로 이름만
+  바꾸고 theme/token, 크기, 색, 간격, Canvas/Preview 결과는 바꾸지 않는다.
 
 `CompositionDocument`가 저장 정본이다. UI에서는 “페이지에 적용하는 재사용 Layout”으로
 말하고, adapter 아래에서는 “`FrameNode`를 참조하는 binding”으로 말한다. 이 번역 경계를
@@ -41,15 +47,15 @@ catalog의 `Frame` 컴포넌트도 각각 다른 의미를 가진다. 따라서 
 
 ### Hard constraints
 
-| ID  | 계약                                                                                                                                                                                      |
-| --- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| HC1 | 사용자 노출·접근성 문구에서 재사용 레이아웃을 뜻하는 `Frame(s)` 0건. Navigator는 `Pages / Layouts`, Properties는 `Layout Preset`, page binding은 `No/Apply/Remove Layout`을 사용한다.     |
-| HC2 | Builder의 기능 소유 component/file/export/state/action/test 식별자를 `Layout` 계열로 정렬하고, 완료 시 미분류 `Frame` 후보 0건을 만든다.                                                  |
-| HC3 | `FrameNode`, `type: "frame"`, canonical/Pencil adapter, page-frame binding의 저장 계약과 JSON/DB/Pencil 직렬화는 byte-equivalent 의미를 유지한다. document·DB schema migration은 0건이다. |
-| HC4 | Canvas/Preview/publish geometry와 component behavior 변화 0건, 신규 runtime dependency 0건, 정상 사용자 동작의 canonical mutation/history 증가 0건.                                       |
-| HC5 | 기존 사용자 작성 이름(`Frame 1` 등)은 콘텐츠이므로 자동 변경 0건. 신규 기본 이름만 `Layout N`을 유지한다.                                                                                 |
-| HC6 | 접힘 상태처럼 문자열 id에 묶인 Builder 로컬 상태는 구 id→신 id를 1회 승계한다. 이미 `layouts`인 tab/split key는 바꾸지 않는다.                                                            |
-| HC7 | 완료 시 허용되는 `Frame`은 canonical/Pencil 포맷, Canvas geometry, browser cadence/iframe, catalog 고유명, 과거 ADR·증거에 한정하며 각 범주를 정적 gate로 고정한다.                       |
+| ID  | 계약                                                                                                                                                                                                                                               |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HC1 | 사용자 노출·접근성 문구에서 재사용 레이아웃을 뜻하는 `Frame(s)` 0건. Navigator는 `Pages / Layouts`, Properties는 `Layout Preset`, page binding은 `No/Apply/Remove Layout`을 사용한다.                                                              |
+| HC2 | Builder의 기능 소유 component/file/export/state/action/test 식별자를 `Layout` 계열로 정렬하고, 완료 시 미분류 `Frame` 후보 0건을 만든다.                                                                                                           |
+| HC3 | `FrameNode`, `type: "frame"`, canonical/Pencil adapter, page-frame binding의 저장 계약과 JSON/DB/Pencil 직렬화는 byte-equivalent 의미를 유지한다. document·DB schema migration은 0건이다.                                                          |
+| HC4 | Canvas/Preview/publish geometry와 component behavior 변화 0건, 신규 runtime dependency 0건, 정상 사용자 동작의 canonical mutation/history 증가 0건.                                                                                                |
+| HC5 | 기존 사용자 작성 이름(`Frame 1` 등)은 콘텐츠이므로 자동 변경 0건. 신규 기본 이름만 `Layout N`을 유지한다.                                                                                                                                          |
+| HC6 | 접힘 상태 승계는 hydrated `collapsedSections`에서 구 id를 제거하고 신 id로 치환하며 `activeFocusSection`도 같은 mapping을 적용한다. 승계 후 펼침→reload가 다시 접히지 않아야 한다. 이미 `layouts`인 tab/split key는 바꾸지 않는다.                 |
+| HC7 | 완료 시 허용되는 `Frame`은 canonical/Pencil 포맷, Canvas geometry, browser cadence/iframe, catalog 고유명, 과거 ADR·design·증거와 명시적 비소스 probe에 한정한다. 현행 rule/research 문서는 변경 대상으로 분류하고 각 범주를 정적 gate로 고정한다. |
 
 ### 선행 결정과 분리 전제
 
@@ -174,7 +180,7 @@ adapter의 경계가 더 명확해지는 이익이 지속되므로 수용한다.
 | --- | --------------------------------------------------------------------------------- | :----: | --------------------------------------------------------------------------------- |
 | R1  | `FrameNode`/Pencil/page binding까지 잘못 rename해 저장·왕복 호환이 깨짐           |  HIGH  | 변경 금지 경로와 schema snapshot·5개 `.pen` roundtrip을 G0/G3에서 고정            |
 | R2  | component/directory/export rename 뒤 정적 import, mock, lazy boundary 일부가 끊김 | MEDIUM | feature import 0건 ratchet, 인접 static/runtime test와 typecheck를 G2/G6에서 실행 |
-| R3  | `navigator-frames` 접힘 상태가 유실되거나 `layouts` split key가 불필요하게 바뀜   | MEDIUM | old→new hydration 승계와 기존 split key 불변을 G4에서 검증                        |
+| R3  | 구 section id가 저장 상태에 남아 승계 후 펼친 section이 reload마다 다시 접힘      | MEDIUM | 구 id 제거·`activeFocusSection` 치환과 승계→펼침→reload를 G4에서 검증             |
 | R4  | 전역 치환이 과거 ADR·evidence 또는 실제 geometry/cadence 용어를 오염시킴          | MEDIUM | 범주별 inventory/allowlist, 변경 파일 검토를 G0/G5에서 강제                       |
 | R5  | PageLayoutSelector·aria/title·translation에 사용자 노출 Frame이 남음              | MEDIUM | ko/en 문자열·접근성 정적 검사와 foreground Builder 흐름을 G1/G6에서 검증          |
 
@@ -183,19 +189,19 @@ R1은 영향이 HIGH지만 `CompositionDocument`와 adapter를 명시적 비변�
 
 ## Gates
 
-| Gate | 시점           | 통과 조건                                                                                                                                                                                       | 실패 시 대안                                         |
-| ---- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| G0   | 구현 전        | 46개 후보 파일을 `rename / canonical 보존 / platform·component 보존 / history 보존`으로 100% 분류하고 미분류 0건. `FrameNode`, `type: "frame"`, canonical/Pencil adapter 등 변경 금지 목록 동결 | inventory를 보강한 뒤에만 rename 시작                |
-| G1   | 문구 변경      | ko/en 사용자 문구·aria-label·title에서 재사용 레이아웃 의미의 Frame 0건. Pages/Layouts, Layouts/Add Layout, Layout Preset, No/Apply/Remove Layout 일관                                          | 누락 consumer와 translation 수정                     |
-| G2   | 구조 변경      | `FramesTab/FrameList/FrameElementTree`, UI store/action/section의 구 feature import·export 0건; 신규 Layout facade를 모든 caller가 사용; typecheck와 인접 test 통과                             | 호환 facade를 최소 기간 두고 caller를 완료한 뒤 제거 |
-| G3   | canonical 보존 | `FrameNode` schema·`type: "frame"`·DB JSON·page binding·Pencil 5 fixture import/export/roundtrip 의미 불변, document migration 0건, Canvas/Preview/publish 결과 불변                            | raw boundary rename 철회, facade 경계 축소           |
-| G4   | 로컬 상태      | `navigator-frames`/`navigator-frame-layers` 접힘 상태를 새 id로 1회 승계; `navigator-split:layouts`와 `editMode: "layout"` 유지; 기존 사용자 이름 자동 변경 0건                                 | 신 id rollout을 보류하고 호환 read 추가              |
-| G5   | 잔여 검색      | feature-owned 구 명칭·class·comment·test title 0건, 모든 잔여 Frame hit가 allowlist 범주와 근거 보유, 과거 ADR/evidence의 무관 변경 0건                                                         | 미분류 항목을 Phase 0 표로 되돌려 판정               |
-| G6   | 완료 전        | focused Vitest, `pnpm run codex:typecheck`, 범위별 preflight 통과. foreground Builder에서 생성→선택→page 적용→해제→삭제와 refresh 후 read-back, console warning/error 0                         | 실패 경로 수리 후 동일 gate 재실행                   |
+| Gate | 시점           | 통과 조건                                                                                                                                                                                                                      | 실패 시 대안                                                |
+| ---- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------- |
+| G0   | 구현 전        | 확장 정규식 기준 49개 파일(프로덕션 27, 테스트 22)을 `rename / canonical 보존 / platform·component 보존 / history 보존`으로 100% 분류하고 미분류 0건. rename 표의 공개 API와 대소문자 변형을 같은 ratchet에 포함               | inventory를 보강한 뒤에만 rename 시작                       |
+| G1   | 문구 변경      | ko/en 문구·aria-label·title에서 재사용 레이아웃 의미의 Frame 0건. `No Layout`, `Select a reusable layout…`, formatted `Using "{name}" layout` 신규 key를 포함하고 ko-KR 부팅 probe에서 영어 residue 0건                        | 누락 key·formatted message·consumer 수정                    |
+| G2   | 구조 변경      | `FramesTab/FrameList/FrameElementTree`, UI store/action/section의 구 feature import·export 0건; 신규 Layout facade를 모든 caller가 사용; typecheck와 인접 test 통과                                                            | 호환 facade를 최소 기간 두고 caller를 완료한 뒤 제거        |
+| G3   | canonical 보존 | `FrameNode` schema·`type: "frame"`·DB JSON·page binding·Pencil 5 fixture import/export/roundtrip 의미 불변, document migration 0건, Canvas/Preview/publish 결과 불변                                                           | raw boundary rename 철회, facade 경계 축소                  |
+| G4   | 로컬 상태      | hydration이 `navigator-frames`/`navigator-frame-layers`를 제거하고 새 id로 치환하며 `activeFocusSection`도 승계. old/new/both/none과 승계→펼침→reload 통과; split/editMode 유지; 사용자 이름 자동 변경 0건                     | 신 id rollout을 보류하고 version marker 또는 호환 read 추가 |
+| G5   | 잔여 검색      | 확장 49-file ratchet에서 feature-owned 구 명칭·class·comment·test title 0건. 잔여 Frame은 allowlist 근거 보유. pre-225 ADR/design/evidence는 원문 유지, 현행 rule/research는 갱신, `.tmp-panel-cap`은 비소스 probe로 명시 제외 | 미분류 항목을 Phase 0 표로 되돌려 판정                      |
+| G6   | 완료 전        | focused Vitest, `pnpm run codex:typecheck`, 범위별 preflight 통과. foreground Builder에서 생성→선택→page 적용→해제→삭제와 refresh 후 read-back, console warning/error 0                                                        | 실패 경로 수리 후 동일 gate 재실행                          |
 
 ### Live Exercise
 
-해당 없음 — Proposed, 구현 전. 구현 완료 후 자동화 결과와 구분해 실제 foreground Builder의
+해당 없음 — Accepted, 구현 전. 구현 완료 후 자동화 결과와 구분해 실제 foreground Builder의
 조작 시나리오·canonical/DOM read-back·날짜를 기록해야 Implemented로 승격할 수 있다.
 
 ## Consequences
