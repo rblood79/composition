@@ -14,7 +14,6 @@ const LEGACY_BODY_FONT_FAMILIES = new Set([
 
 export interface BodyDomPresentation {
   style: CSSProperties | undefined;
-  fillsViewport: boolean;
 }
 
 /**
@@ -27,12 +26,10 @@ export interface BodyDomPresentation {
  * 콘텐츠 좌표는 layout map 공유로 일치하나, body 배경/테두리·세로 중앙정렬·자식 height:100% 등
  * body 박스 높이에 의존하는 시각/레이아웃이 Builder ↔ DOM 사이에서 갈린다(대칭 위반).
  *
- * viewport 높이 fallback은 inline이 아니라 `data-body-viewport-fill` + generated Body CSS
- * (`&[data-body-viewport-fill] { height: 100vh }`, catalog `body` rootSelectors)가 담당한다.
- * min-height만 있으면 자식 percentage height의 containing block이 indefinite라 `height:100%`가
- * auto로 접히므로 definite `100vh`를 쓴다 (Canvas artboard와 같은 percentage basis). 한때
- * 같은 값을 inline `height:100vh`로도 투영했으나 (2026-09-18) DOM inline은 D3 채널 밖이라
- * 제거했다 — authored height/minHeight가 있으면 data attribute 자체를 내지 않는다.
+ * 페이지 프레임 높이 fallback 은 generated Body CSS 의 base `min-height: 100%` (catalog
+ * `body.structure.containerStyles`) 가 담당한다 — inline 도, 조건부 data attribute 도 없다
+ * (2026-09-18 사용자 결정; 그 전엔 `[data-body-viewport-fill] { height: 100vh }` 조건부 규칙과
+ * 한때 inline `height:100vh`). 저작 height/minHeight 는 inline 으로 실려 base 를 덮는다.
  *
  * 과거 factory가 저장하던 display/fontFamily/overflow는 Body CSS와 catalog 기본값의
  * authored mirror였다. 기존 문서 데이터는 건드리지 않고 값이 정확히 구 기본값일 때만
@@ -42,12 +39,7 @@ export function resolveBodyDomPresentation(
   type: string,
   style: CSSProperties | undefined,
 ): BodyDomPresentation {
-  if (type !== "body") {
-    return { style, fillsViewport: false };
-  }
-
-  const fillsViewport = style?.height == null && style?.minHeight == null;
-  if (!style) return { style: undefined, fillsViewport };
+  if (type !== "body" || !style) return { style };
 
   const normalized = { ...style };
   if (normalized.display === "block") delete normalized.display;
@@ -61,7 +53,6 @@ export function resolveBodyDomPresentation(
 
   return {
     style: Object.keys(normalized).length > 0 ? normalized : undefined,
-    fillsViewport,
   };
 }
 

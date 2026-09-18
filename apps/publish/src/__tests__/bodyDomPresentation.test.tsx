@@ -37,7 +37,7 @@ describe("Publish Body DOM presentation", () => {
     expect(rendered).not.toBeNull();
     expect(rendered!.className).toBe("react-aria-Body");
     expect(rendered!.getAttribute("style")).toBeNull();
-    expect(rendered!.hasAttribute("data-body-viewport-fill")).toBe(true);
+    expect(rendered!.hasAttribute("data-body-viewport-fill")).toBe(false);
 
     await act(async () => root.unmount());
     host.remove();

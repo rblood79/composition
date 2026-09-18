@@ -8,41 +8,32 @@ import {
 
 /**
  * D3 대칭 정합의 단일 소스 — builder Preview `CanonicalNodeRenderer` 와 publish
- * `ElementRenderer` 두 DOM consumer 가 공통 호출하는 로직. 라이브 실측으로 page shell 제거 뒤
- * generated CSS의 `[data-body-viewport-fill] { height: 100vh }` 가 body 박스와 자식 % basis를
- * Preview viewport 높이에 맞추는 것을 확인했고,
- * 본 테스트는 그 data attribute 요청/저작값 보존 규칙을 렌더러 독립적으로 검증한다.
+ * `ElementRenderer` 두 DOM consumer 가 공통 호출하는 로직. 페이지 프레임 높이는 generated
+ * Body CSS base `min-height: 100%` 가 담당하고 (2026-09-18 사용자 결정 — 조건부 data attribute
+ * 와 inline 없음), 본 테스트는 legacy 기본값 제거/저작값 보존 규칙을 렌더러 독립적으로 검증한다.
  */
 describe("resolveBodyDomPresentation", () => {
-  it("구 factory 기본 inline style을 제거하고 viewport fill 속성을 요청한다", () => {
+  it("구 factory 기본 inline style을 제거한다", () => {
     const out = resolveBodyDomPresentation("body", {
       display: "block",
       fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
       overflow: "auto",
     });
-    expect(out).toEqual({ style: undefined, fillsViewport: true });
+    expect(out).toEqual({ style: undefined });
   });
 
-  it("style이 undefined인 body도 viewport fill 속성을 요청한다", () => {
+  it("style이 undefined인 body는 inline 0", () => {
     expect(resolveBodyDomPresentation("body", undefined)).toEqual({
       style: undefined,
-      fillsViewport: true,
     });
   });
 
-  it("사용자가 minHeight를 명시하면 viewport fill을 끄고 저작값을 보존한다", () => {
-    const style: CSSProperties = { display: "flex", minHeight: "500px" };
-    expect(resolveBodyDomPresentation("body", style)).toEqual({
-      style,
-      fillsViewport: false,
-    });
-  });
-
-  it("사용자가 height를 명시하면 viewport fill을 끈다", () => {
-    const style: CSSProperties = { height: "600px" };
-    expect(resolveBodyDomPresentation("body", style)).toEqual({
-      style,
-      fillsViewport: false,
+  it("사용자가 minHeight/height를 명시하면 저작값을 그대로 보존한다 (CSS base min-height 를 inline 이 덮는다)", () => {
+    const withMin: CSSProperties = { display: "flex", minHeight: "500px" };
+    expect(resolveBodyDomPresentation("body", withMin)).toEqual({ style: withMin });
+    const withHeight: CSSProperties = { height: "600px" };
+    expect(resolveBodyDomPresentation("body", withHeight)).toEqual({
+      style: withHeight,
     });
   });
 
@@ -51,7 +42,6 @@ describe("resolveBodyDomPresentation", () => {
     for (const type of ["frame", "Button", "Text", "div"]) {
       const out = resolveBodyDomPresentation(type, style);
       expect(out.style).toBe(style);
-      expect(out.fillsViewport).toBe(false);
     }
   });
 
@@ -65,7 +55,6 @@ describe("resolveBodyDomPresentation", () => {
       }),
     ).toEqual({
       style: { padding: "24px", backgroundColor: "red" },
-      fillsViewport: true,
     });
   });
 });

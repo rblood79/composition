@@ -717,9 +717,6 @@ function CanonicalNodeRendererBody({
       })(),
       style: bodyPresentation.style,
       className: mergedClassName,
-      ...(bodyPresentation.fillsViewport
-        ? { "data-body-viewport-fill": "" }
-        : {}),
       ...specDataAttrs,
     },
     children.length > 0

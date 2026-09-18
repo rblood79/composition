@@ -51,7 +51,7 @@ describe("CanonicalNodeRenderer — body DOM presentation wiring", () => {
     expect(body).not.toBeNull();
     expect(body!.className).toBe("react-aria-Body");
     expect(body!.getAttribute("style")).toBeNull();
-    expect(body!.hasAttribute("data-body-viewport-fill")).toBe(true);
+    expect(body!.hasAttribute("data-body-viewport-fill")).toBe(false);
   });
 
   it("사용자 minHeight/width는 inline으로 보존하고 viewport fill은 끈다", () => {

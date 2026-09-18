@@ -861,6 +861,7 @@ export function emitContainerStyles(c: ContainerStylesSchema): string[] {
     lines.push(`  box-shadow: ${resolveBoxShadow(c.boxShadow)};`);
   }
   if (c.width) lines.push(`  width: ${c.width};`);
+  if (c.minHeight) lines.push(`  min-height: ${c.minHeight};`);
   if (c.maxHeight) lines.push(`  max-height: ${c.maxHeight};`);
   if (c.overflow) lines.push(`  overflow: ${c.overflow};`);
   if (c.outline) lines.push(`  outline: ${c.outline};`);

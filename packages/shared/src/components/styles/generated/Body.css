@@ -14,6 +14,7 @@
 
   /* Container styles (ADR-071 + ADR-083 Phase 1) */
   width: 100%;
+  min-height: 100%;
   overflow: auto;
 
   /* Default variant */
@@ -60,11 +61,6 @@
     forced-color-adjust: auto;
   }
 }
-
-
-  .react-aria-Body[data-body-viewport-fill] {
-    height: 100vh;
-  }
 
 
 } /* @layer components */

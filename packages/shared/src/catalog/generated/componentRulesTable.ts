@@ -805,17 +805,14 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       containerStyles: {
         overflow: "auto",
         width: "100%",
+        // 저작 높이 없는 body 가 페이지 프레임 높이를 채우는 fallback (사용자 결정 2026-09-18:
+        //   조건부 `[data-body-viewport-fill] { height: 100vh }` 대신 base 무조건 min-height).
+        //   저작 height/minHeight 는 inline 이라 이 값을 덮는다. DOM 채널 전용 — Canvas 는 body
+        //   root 를 아트보드 높이로 그린다.
+        minHeight: "100%",
       },
       composition: {
-        rootSelectors: {
-          "&[data-body-viewport-fill]": {
-            // definite viewport 높이 — 자식 height:% 의 basis (min-height 면 indefinite 라 접힌다).
-            //   inline 투영 없이 이 CSS 채널 하나 (resolveBodyDomPresentation 주석).
-            styles: {
-              height: "100vh",
-            },
-          },
-        },
+        rootSelectors: {},
         delegation: [],
       },
     },

@@ -32,7 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Preview `renderButtonGroup`의 prop 기본 `gap`이 Canvas projection에 없던 문제를 수리했다. size/orientation/align 기본값을 read-time에 동일하게 투영하며 authored style이 우선한다.
 - Preview Body가 lowercase canonical type으로 `react-aria-body`를 자동 생성한 뒤 저장된 `react-aria-Body`와 중복 병합하고, display/font/overflow/min-height 기본값을 inline으로 덮던 문제를 수리했다. renderer가 case-correct class 하나만 방출하고 기존 문서의 infrastructure 기본값은 DOM 투영에서 제거한다. Body generated CSS를 실제 preview/publish 번들에 연결해 `width:100%`, `overflow:auto`, 조건부 `min-height:100%`를 담당하게 했다.
 - Size 메뉴의 관계 이름과 선택 후 단위 표시가 중복되던 부분을 정리했다. 목록은 `Parent`·`Viewport`로 표시하고, 선택 뒤 필드는 `%`·`vw/vh`를 표시한다. Fill은 `fr`, Fixed와 Fit content는 `px` suffix를 사용한다.
-- Size의 `Parent`/`Fixed`가 값만 저장되고 실제 박스에는 반영되지 않던 세 경로를 수리했다. viewport-fill Body를 definite `100vh`로 만들어 자식 `height:%`의 기준을 만들고 (처음엔 inline 투영이었으나 같은 날 사용자 지적으로 generated Body CSS `[data-body-viewport-fill] { height: 100vh }` 채널로 옮겼다 — Preview/Publish `div.react-aria-Body` inline 은 authored style 만), flex 주축의 px/%/viewport 크기는 `flex-shrink:0`으로 authored used size를 지킨다. 열린 단위 메뉴에서 Enter가 현재 mode를 재선택해 숫자 commit을 덮던 ComboBox 순서도 차단했다.
+- Size의 `Parent`/`Fixed`가 값만 저장되고 실제 박스에는 반영되지 않던 세 경로를 수리했다. viewport-fill Body를 definite `100vh`로 만들어 자식 `height:%`의 기준을 만들고 (처음엔 inline 투영 → 같은 날 사용자 지적으로 generated CSS 채널 → 최종적으로 사용자 결정에 따라 조건부 `[data-body-viewport-fill]` 규칙과 data attribute 를 없애고 Body CSS base `min-height: 100%` 하나로 — Preview/Publish `div.react-aria-Body` inline 은 authored style 만. 이 상태에서 자식 `height:100%` 는 DOM·Skia 모두 콘텐츠 높이 30 으로 일치), flex 주축의 px/%/viewport 크기는 `flex-shrink:0`으로 authored used size를 지킨다. 열린 단위 메뉴에서 Enter가 현재 mode를 재선택해 숫자 commit을 덮던 ComboBox 순서도 차단했다.
 
 ### Validation
 

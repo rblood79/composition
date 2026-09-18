@@ -110,6 +110,8 @@ export interface ContainerStylesSchema {
 
   // 컨테이너 제약 — CSS 값 (SSOT 대상 아님)
   width?: string;
+  /** body 페이지 프레임 높이 fallback (`min-height: 100%`) — 저작 height/minHeight inline 이 덮는다 */
+  minHeight?: string;
   maxHeight?: string;
   overflow?: "auto" | "scroll" | "visible" | "hidden";
   outline?: string;

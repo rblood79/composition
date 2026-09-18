@@ -127,10 +127,10 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(indexImported.has("Body")).toBe(true);
     expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*width:\s*100%/s);
     expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*overflow:\s*auto/s);
-    expect(bodyCss).toMatch(
-      // definite viewport 높이 — inline 100vh 대체 (자식 height:% basis, 2026-09-18)
-      /\.react-aria-Body\[data-body-viewport-fill\]\s*\{[^}]*height:\s*100vh/s,
-    );
+    // 페이지 프레임 높이 fallback 은 base min-height 하나 (2026-09-18 사용자 결정 — 조건부
+    //   `[data-body-viewport-fill]` 규칙과 inline 없음)
+    expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*min-height:\s*100%/s);
+    expect(bodyCss).not.toContain("data-body-viewport-fill");
   });
 
   it("모든 생성 파일은 index.css · 모듈 import · 명시 미로드 목록 중 정확히 한 곳에 속한다", () => {

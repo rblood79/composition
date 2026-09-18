@@ -200,7 +200,6 @@ export const ElementRenderer = memo(function ElementRenderer({
       data-element-id={adaptedElement.id}
       data-accent={accentColor ? String(accentColor) : undefined}
       className={resolvedClassName}
-      data-body-viewport-fill={bodyPresentation.fillsViewport ? "" : undefined}
       style={bodyPresentation.style}
     >
       {renderedChildren}
