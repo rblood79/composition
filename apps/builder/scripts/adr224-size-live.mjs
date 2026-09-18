@@ -106,6 +106,8 @@ const browser = await chromium.launch({ headless: false });
 const context = await browser.newContext({
   storageState: resolve("apps/builder/scripts/.auth-session.json"),
   viewport: { width: 1440, height: 900 },
+  // `--roundtrip` 의 ⌘C/⌘V (실제 클립보드 경로)
+  permissions: ["clipboard-read", "clipboard-write"],
 });
 const page = await context.newPage();
 const errors = [];
@@ -841,6 +843,127 @@ try {
         parity(absUndone),
       detail: absUndone });
   }
+  // ── ADR-224 G2 왕복 gate — 복제 (⌘C/⌘V) · tier null · breakpoint 전환 · refresh · 무편집 저장 0 (`--roundtrip`) ──
+  // a = base Fill 2 + tablet {width:null} + tablet width 320px (mobile 미지정) · b = Fill 1 (Row 900×240).
+  const roundtrip = [];
+  if (process.argv.includes("--roundtrip")) {
+    await page.evaluate(({ parent, ids }) => {
+      const st = window.__composition_STORE__.getState();
+      const p = st.elements.find((e) => e.id === parent);
+      st.updateElementProps(parent, { style: { ...p.props.style, flexDirection: "row" } });
+      ids.forEach((id, i) => {
+        const e = st.elements.find((n) => n.id === id);
+        st.updateElement(id, {
+          sizing: { width: { factor: 2 - i } },
+          responsive: i === 0
+            ? { sizing: { tablet: { width: null } }, styles: { width: { tablet: "320px" } } }
+            : undefined,
+          props: { ...e.props, style: {} } });
+      });
+    }, { parent, ids: [a, b] });
+    await page.waitForTimeout(1000);
+    const readNode = (id) => page.evaluate((elementId) => {
+      const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
+      return e ? { style: e.props?.style, sizing: e.sizing, responsive: e.responsive, parent: e.parent_id } : null;
+    }, id);
+    const siblings = () => page.evaluate((parentId) =>
+      window.__composition_STORE__.getState().elements.filter((e) => e.parent_id === parentId).map((e) => e.id), parent);
+    const seeded = { a: await readNode(a), b: await readNode(b), siblings: await siblings(), history: await historyCount(page) };
+    roundtrip.push({ name: "seeded", ...seeded });
+    // 1) ⌘C/⌘V 복제 — sizing · responsive 가 새 요소에 그대로
+    // 실제 클릭으로 선택 (키보드 단축키 scope = canvas 포커스)
+    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
+    await page.waitForTimeout(400);
+    const aPoint = await page.evaluate((id) => {
+      const r = window.__composition_RESIZE_DEBUG__.getSceneBounds(id);
+      const vp = window.__composition_VIEWPORT__();
+      const rect = document.querySelector("canvas").getBoundingClientRect();
+      window.__composition_APPLY_VIEWPORT__({ scale: vp.zoom,
+        x: rect.width * 0.3 - (r.x + r.width / 2) * vp.zoom, y: rect.height * 0.45 - (r.y + r.height / 2) * vp.zoom });
+      return null;
+    }, a);
+    await page.waitForTimeout(600);
+    const aCenter = await page.evaluate((id) => {
+      const r = window.__composition_RESIZE_DEBUG__.getSceneBounds(id);
+      const vp = window.__composition_VIEWPORT__();
+      const rect = document.querySelector("canvas").getBoundingClientRect();
+      return { x: (r.x + r.width / 2) * vp.zoom + vp.panOffset.x + rect.left, y: (r.y + r.height / 2) * vp.zoom + vp.panOffset.y + rect.top };
+    }, a);
+    void aPoint;
+    await page.mouse.click(aCenter.x, aCenter.y);
+    await page.waitForTimeout(500);
+    await page.keyboard.press("Meta+c");
+    await page.waitForTimeout(600);
+    await page.keyboard.press("Meta+v");
+    await page.waitForTimeout(1500);
+    const afterPaste = await siblings();
+    const c = afterPaste.find((id) => !seeded.siblings.includes(id));
+    const cNode = c ? await readNode(c) : null;
+    const pasteHistory = await historyCount(page);
+    roundtrip.push({ name: "paste", c, cNode, siblings: afterPaste, history: pasteHistory });
+    checks.push({ name: "G2 복제 (⌘C/⌘V): sizing factor · tier null · tier width 가 새 요소에 보존 · history +1",
+      pass: !!c && JSON.stringify(cNode?.sizing) === JSON.stringify(seeded.a.sizing) &&
+        JSON.stringify(cNode?.responsive) === JSON.stringify(seeded.a.responsive) &&
+        cNode?.parent === parent && pasteHistory === seeded.history + 1,
+      detail: { seeded, c, cNode, afterPaste } });
+    // 2) breakpoint 전환 — tablet: a 는 null 해제 + 320px, c 도 같다, b 는 Fill 1 로 남은 폭
+    // 헤더 토글 (BuilderCore.handleBreakpointChange) 과 같은 경로 — setActiveBreakpoint + invalidateLayout
+    const switchBreakpoint = (bp) => page.evaluate((next) => {
+      const st = window.__composition_STORE__.getState();
+      st.setActiveBreakpoint(next);
+      st.invalidateLayout();
+    }, bp);
+    await switchBreakpoint("tablet");
+    await page.waitForTimeout(1500);
+    const tabletCanvas = { a: await readLayout(page, a), b: await readLayout(page, b), c: c ? await readLayout(page, c) : null };
+    const tabletHistory = await historyCount(page);
+    const tabletDoc = await page.evaluate(() => window.__composition_STORE__.getState().layoutVersion);
+    roundtrip.push({ name: "tablet", canvas: tabletCanvas, history: tabletHistory });
+    checks.push({ name: "G2 tablet 전환: a·c 는 null 해제 + 320px, b 는 Fill · 전환 저장 0",
+      pass: Math.abs(tabletCanvas.a.width - 320) <= 0.01 && (!c || Math.abs(tabletCanvas.c.width - 320) <= 0.01) &&
+        tabletCanvas.b.width > 100 && tabletHistory === pasteHistory,
+      detail: { tabletCanvas, tabletHistory, tabletDoc } });
+    // 3) mobile (미지정) — tablet 을 상속 (cascade)
+    await switchBreakpoint("mobile");
+    await page.waitForTimeout(1500);
+    const mobileA = await readLayout(page, a);
+    checks.push({ name: "G2 mobile 미지정: tablet null + 320px 상속",
+      pass: Math.abs(mobileA.width - 320) <= 0.01 && (await historyCount(page)) === pasteHistory,
+      detail: mobileA });
+    await switchBreakpoint("desktop");
+    await page.waitForTimeout(1200);
+    // 4) refresh — DB 왕복 (factor · tier null · tier width · 복제본)
+    const beforeReload = { a: await readNode(a), c: c ? await readNode(c) : null };
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await waitReady(page);
+    await page.bringToFront();
+    await page.waitForTimeout(1000);
+    const afterReload = { a: await readNode(a), c: c ? await readNode(c) : null, siblings: await siblings() };
+    roundtrip.push({ name: "reload", beforeReload, afterReload });
+    checks.push({ name: "G2 refresh: factor · tier null · tier width · 복제본 보존",
+      pass: JSON.stringify(afterReload.a?.sizing) === JSON.stringify(beforeReload.a?.sizing) &&
+        JSON.stringify(afterReload.a?.responsive) === JSON.stringify(beforeReload.a?.responsive) &&
+        (!c || JSON.stringify(afterReload.c?.sizing) === JSON.stringify(beforeReload.c?.sizing)) &&
+        afterReload.siblings.length === afterPaste.length,
+      detail: { beforeReload, afterReload } });
+    // 5) 무편집 저장 0 — 선택·해제·breakpoint 왕복에 문서 버전·history 무변경
+    const docBefore = await page.evaluate(() => window.__composition_STORE__.getState().layoutVersion);
+    const histBefore = await historyCount(page);
+    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
+    await page.waitForTimeout(500);
+    await switchBreakpoint("tablet");
+    await page.waitForTimeout(800);
+    await switchBreakpoint("desktop");
+    await page.waitForTimeout(800);
+    await page.evaluate(() => window.__composition_STORE__.getState().setSelectedElements([]));
+    await page.waitForTimeout(500);
+    const histAfter = await historyCount(page);
+    const nodeAfter = await readNode(a);
+    checks.push({ name: "G2 무편집 저장 0: 선택·breakpoint 왕복 뒤 history·노드 무변경",
+      pass: histAfter === histBefore && JSON.stringify(nodeAfter) === JSON.stringify(afterReload.a),
+      detail: { histBefore, histAfter, docBefore, nodeAfter } });
+  }
   console.log(
     "PARITY_CONTROL",
     JSON.stringify({ semantic: { dom, canvas }, cross, legacy }),
@@ -876,6 +999,7 @@ try {
     absolute,
     resize,
     multi,
+    roundtrip,
     checks,
     errors,
   };
