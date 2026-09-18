@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **선택 박스 핸들로 크기를 바꿀 수 있다.** 2026-03 정리 이후 핸들은 표시만 됐고 커서만 바뀌었다. 이제 단일 선택의 엣지·코너 핸들을 끌면 드래그 중 캔버스가 바로 그 크기로 놓이고 (Preview 와 같은 레이아웃 lane), 놓으면 한 번에 저장된다 (Undo 1회). 잡은 축이 Fill 이면 그 축만 고정 px 로 바뀌고 다른 축의 Fill 은 그대로다. Ratio 가 잠겨 있으면 기준 축 하나만 바뀌고 (세로로 끌면 목표 높이 × ratio 로 Width), 종속 축은 auto 로 남는다. 3px 미만은 클릭 (저장 0). 다중 선택 핸들과 absolute 요소의 위치 이동 (left/top 핸들) 은 아직이다.
 - **여러 요소를 선택한 채 Absolute 를 켜면 형제가 첫 요소 위로 겹쳤다.** 첫 요소의 left/top 을 전부에 쓰던 것을 요소마다 자기 자리로 계산하게 고쳤다 — 각자 제자리에서 절대 위치가 된다 (Undo 1회).
 - **절대 위치 요소는 왼쪽·위 핸들로도 크기를 바꿀 수 있다.** 잡은 변이 움직이고 반대 변은 고정된다 (left/top 이 같이 바뀐다). Ratio 가 잠겨 있어도 같다. 자식이 있는 절대 위치 컨테이너의 핸들은 아직 동작하지 않는다.
+- Fill 가중치·tier 해제가 복제 (⌘C/⌘V) · breakpoint 전환 · 새로고침 · 정적 export 를 그대로 지난다 (실제 Builder 18/18 · export 단위 3). 도입 전후 성능 A/B (자식 100/1,000 의 부모 resize · 가중치 편집, p95) 는 허용 범위 안 — 느려진 곳 없음.
 - **Ratio 잠금 요소를 resize 한 뒤 Canvas 가 부모 높이로 늘어나고 Preview 는 비율대로였다** (240 / 210). Canvas 의 Fill projection 이 "Fill 축이 명시 null 뿐인 요소" 를 건너뛰어 Ratio 종속 축의 stretch 보호를 빠뜨렸다 — Preview 와 같은 판정으로 수리.
 
 ### In progress
