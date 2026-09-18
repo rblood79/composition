@@ -6,7 +6,7 @@
  * 핸들러 구현은 외부 책임이고, FrameList 는 props 만으로 결정적 UI 를 렌더한다.
  *
  * 시나리오 5개:
- *  1. 빈 frames → "No frames available"
+ *  1. 빈 frames → "No layouts available"
  *  2. 2개 frames 렌더 → 이름 모두 표시
  *  3. Add 버튼 클릭 → onAdd 호출 (frame id 인자 없음)
  *  4. Frame 항목 클릭 → onSelect(frame.id) 호출
@@ -54,9 +54,9 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
   });
 
   describe("rendering", () => {
-    it("frames 가 비어있으면 'No frames available' 표시", () => {
+    it("frames 가 비어있으면 'No layouts available' 표시", () => {
       render(<FrameList {...makeProps({ frames: [] })} />);
-      expect(screen.getByText("No frames available")).toBeTruthy();
+      expect(screen.getByText("No layouts available")).toBeTruthy();
     });
 
     it("frames 2개를 받으면 각 name 을 모두 표시한다", () => {
@@ -124,7 +124,7 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
       const onAdd = vi.fn();
       render(<FrameList {...makeProps({ onAdd })} />);
 
-      fireEvent.click(screen.getByRole("button", { name: "Add Frame" }));
+      fireEvent.click(screen.getByRole("button", { name: "Add Layout" }));
 
       // React onClick 은 SyntheticEvent 를 인자로 전달 — 호출 횟수만 검증
       expect(onAdd).toHaveBeenCalledTimes(1);

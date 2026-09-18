@@ -8,7 +8,7 @@
  * - frame 목록: canonical reusable frame surface
  * - frame selection: `selectedReusableFrameId` (canonical selector)
  * - frame 생성: canonical document mutation + DB persistence mirror
- * - UI 레이블: "Layouts" → "Frames"
+ * - UI 레이블은 page layout 문맥의 "Layouts"를 사용하고 canonical FrameNode는 유지
  *
  * @deprecated-path legacy layout selection direct access 제거됨. `selectedReusableFrameId` 사용.
  */

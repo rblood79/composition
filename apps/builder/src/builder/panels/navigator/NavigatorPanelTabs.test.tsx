@@ -23,7 +23,7 @@ function NavigatorTabsFixture() {
       <Tabs selectedKey={selectedKey} onSelectionChange={handleSelectionChange}>
         <NavigatorPanelTabs />
         <TabPanel id="pages">Pages content</TabPanel>
-        <TabPanel id="layouts">Frames content</TabPanel>
+        <TabPanel id="layouts">Layouts content</TabPanel>
       </Tabs>
     </I18nProvider>
   );
@@ -38,20 +38,20 @@ describe("NavigatorPanelTabs", () => {
     render(<NavigatorTabsFixture />);
 
     const pagesTab = screen.getByRole("tab", { name: "Pages" });
-    const framesTab = screen.getByRole("tab", { name: "Frames" });
+    const layoutsTab = screen.getByRole("tab", { name: "Layouts" });
 
     expect(
       screen.getByRole("tablist", { name: "Navigator tabs" }),
     ).toBeTruthy();
     expect(pagesTab.getAttribute("aria-selected")).toBe("true");
-    expect(framesTab.getAttribute("aria-selected")).toBe("false");
+    expect(layoutsTab.getAttribute("aria-selected")).toBe("false");
     expect(screen.getByText("Pages content")).toBeTruthy();
-    expect(screen.queryByText("Frames content")).toBeNull();
+    expect(screen.queryByText("Layouts content")).toBeNull();
 
-    fireEvent.click(framesTab);
+    fireEvent.click(layoutsTab);
 
-    expect(framesTab.getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByText("Frames content")).toBeTruthy();
+    expect(layoutsTab.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Layouts content")).toBeTruthy();
     expect(screen.queryByText("Pages content")).toBeNull();
   });
 
@@ -59,13 +59,25 @@ describe("NavigatorPanelTabs", () => {
     render(<NavigatorTabsFixture />);
 
     const pagesTab = screen.getByRole("tab", { name: "Pages" });
-    const framesTab = screen.getByRole("tab", { name: "Frames" });
+    const layoutsTab = screen.getByRole("tab", { name: "Layouts" });
 
     pagesTab.focus();
     fireEvent.keyDown(pagesTab, { key: "ArrowRight", code: "ArrowRight" });
 
-    expect(document.activeElement).toBe(framesTab);
-    expect(framesTab.getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByText("Frames content")).toBeTruthy();
+    expect(document.activeElement).toBe(layoutsTab);
+    expect(layoutsTab.getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByText("Layouts content")).toBeTruthy();
+  });
+
+  it("한국어에서도 Layouts 탭을 레이아웃으로 표시한다", () => {
+    render(
+      <I18nProvider initialLocale="ko-KR">
+        <Tabs selectedKey="pages">
+          <NavigatorPanelTabs />
+        </Tabs>
+      </I18nProvider>,
+    );
+
+    expect(screen.getByRole("tab", { name: "레이아웃" })).toBeTruthy();
   });
 });

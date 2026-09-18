@@ -31,7 +31,7 @@ describe("LayoutBodyEditor", () => {
     });
   });
 
-  it("shows Frame Preset for canonical-only frame body elements", () => {
+  it("shows Layout Preset for canonical-only frame body elements", () => {
     const doc: CompositionDocument = {
       version: "composition-1.0",
       children: [
@@ -65,7 +65,7 @@ describe("LayoutBodyEditor", () => {
       />,
     );
 
-    expect(screen.getByText("Frame Preset")).toBeTruthy();
+    expect(screen.getByText("Layout Preset")).toBeTruthy();
     expect(screen.getByText("preset:frame-1:frame-body")).toBeTruthy();
   });
 });

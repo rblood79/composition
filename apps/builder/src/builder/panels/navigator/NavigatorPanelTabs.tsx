@@ -1,7 +1,7 @@
 /**
  * NavigatorPanelTabs
  *
- * Pages/Frames 탭 전환 UI 컴포넌트.
+ * Pages/Layouts 탭 전환 UI 컴포넌트.
  * React Aria TabList 패턴을 따름.
  */
 
@@ -25,8 +25,8 @@ export function NavigatorPanelTabs() {
       Icon: FileText,
     },
     {
-      // ADR-111 P2 followup: UI 라벨만 "Frames" — 탭 id "layouts" / EditMode "layout"
-      // 은 데이터 호환성 유지를 위해 그대로. 후속 PR 에서 정합화 가능.
+      // canonical reusable FrameNode를 편집하지만 사용자 문맥은 page layout이다.
+      // 탭 id "layouts" / EditMode "layout"과 같은 Layouts 라벨을 사용한다.
       id: "layouts",
       label: t("navigator.frames"),
       Icon: Layout,

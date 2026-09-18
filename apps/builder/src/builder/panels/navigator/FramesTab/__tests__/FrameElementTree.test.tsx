@@ -7,8 +7,8 @@
  * 결정적 UI 를 렌더한다.
  *
  * 시나리오:
- *  1. frameId=null → "Select a frame to view elements" placeholder
- *  2. frameId=string + tree=[] → "No elements in this frame" placeholder
+ *  1. frameId=null → "Select a layout to view elements" placeholder
+ *  2. frameId=string + tree=[] → "No elements in this layout" placeholder
  *  3. tree 1-level 렌더 → element type 표시
  *  4. tree nested + expandedKeys → 자식 노드 렌더
  *  5. tree nested + 미펼침 → 자식 노드 미렌더
@@ -93,14 +93,14 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
   });
 
   describe("placeholder rendering", () => {
-    it("frameId=null → 'Select a frame to view elements' 표시", () => {
+    it("frameId=null → 'Select a layout to view elements' 표시", () => {
       render(<FrameElementTree {...makeProps({ frameId: null })} />);
-      expect(screen.getByText("Select a frame to view elements")).toBeTruthy();
+      expect(screen.getByText("Select a layout to view elements")).toBeTruthy();
     });
 
-    it("frameId 있고 tree=[] → 'No elements in this frame' 표시", () => {
+    it("frameId 있고 tree=[] → 'No elements in this layout' 표시", () => {
       render(<FrameElementTree {...makeProps({ frameId: "f-1", tree: [] })} />);
-      expect(screen.getByText("No elements in this frame")).toBeTruthy();
+      expect(screen.getByText("No elements in this layout")).toBeTruthy();
     });
   });
 

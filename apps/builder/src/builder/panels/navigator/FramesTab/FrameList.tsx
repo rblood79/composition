@@ -45,7 +45,7 @@ export interface FrameListProps {
   onSelect: (frameId: string) => void;
   /** Delete 버튼 클릭 핸들러 (stopPropagation 은 컴포넌트 내부에서 처리) */
   onDelete: (frameId: string) => void;
-  /** Add Frame 버튼 클릭 핸들러 */
+  /** Add Layout 버튼 클릭 핸들러 */
   onAdd: () => void;
 }
 

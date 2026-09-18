@@ -6,9 +6,9 @@
  * (read path canonical 전환) 진입 시 동작 차이를 즉시 감지하기 위함이다.
  *
  * 시나리오 5개:
- *  1. 빈 frames 상태 → "No frames available" + "Select a frame to view elements"
+ *  1. 빈 frames 상태 → "No layouts available" + "Select a layout to view elements"
  *  2. 2개 frames 렌더 → 이름 모두 표시
- *  3. Add Frame 버튼 클릭 → `createReusableFrame({ name, projectId })` 호출
+ *  3. Add Layout 버튼 클릭 → `createReusableFrame({ name, projectId })` 호출
  *  4. Frame 항목 클릭 → `selectReusableFrame(frameId)` 호출 (id 기반 시그니처 검증)
  *  5. Delete 버튼 클릭 → `deleteReusableFrame(frameId)` 호출
  *
@@ -100,16 +100,16 @@ vi.mock("@/builder/stores/utils/frameActions", () => ({
   createReusableFrame: vi.fn(),
   deleteReusableFrame: vi.fn(),
   selectReusableFrame: vi.fn(),
-  // 실제 로직 흉내 — Frame N 패턴 추출 + 미사용 번호 사용
+  // 실제 로직 흉내 — Layout N 패턴 추출 + 미사용 번호 사용
   getNextFrameName: (frames: ReadonlyArray<{ name: string }>) => {
     const used = new Set<number>();
     for (const f of frames) {
-      const m = /^Frame (\d+)$/.exec(f.name);
+      const m = /^Layout (\d+)$/.exec(f.name);
       if (m) used.add(Number(m[1]));
     }
     let n = 1;
     while (used.has(n)) n++;
-    return `Frame ${n}`;
+    return `Layout ${n}`;
   },
 }));
 
@@ -239,7 +239,7 @@ function resetMockState() {
   // wrapper Promise resolve 기본값 — 정상 동작
   createReusableFrameMock.mockResolvedValue({
     id: "new-frame",
-    name: "Frame 1",
+    name: "Layout 1",
   });
   deleteReusableFrameMock.mockResolvedValue(undefined);
 }
@@ -255,12 +255,12 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   });
 
   describe("rendering", () => {
-    it("frames 가 비어있으면 'No frames available' 표시 + Layers 영역도 'Select a frame'", () => {
+    it("frames 가 비어있으면 'No layouts available' 표시 + Layers 영역도 layout 선택 안내", () => {
       mockLayoutsState.layouts = [];
       render(<FramesTab {...makeProps()} />);
 
-      expect(screen.getByText("No frames available")).toBeTruthy();
-      expect(screen.getByText("Select a frame to view elements")).toBeTruthy();
+      expect(screen.getByText("No layouts available")).toBeTruthy();
+      expect(screen.getByText("Select a layout to view elements")).toBeTruthy();
     });
 
     it("frames 2개가 있으면 각 frame name 을 모두 표시한다", () => {
@@ -422,7 +422,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       render(<FramesTab {...makeProps()} />);
 
       expect(screen.getByText("body")).toBeTruthy();
-      expect(screen.queryByText("Select a frame to view elements")).toBeNull();
+      expect(screen.queryByText("Select a layout to view elements")).toBeNull();
     });
 
     it("선택 frame 의 canonical body 를 자동 선택한다", async () => {
@@ -472,13 +472,13 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   });
 
   describe("frame creation", () => {
-    it("Add Frame 버튼 클릭 시 createReusableFrame({ name, projectId }) 위임", async () => {
+    it("Add Layout 버튼 클릭 시 createReusableFrame({ name, projectId }) 위임", async () => {
       mockLayoutsState.layouts = [
         { id: "existing", name: "Existing", project_id: "test-project" },
       ];
       render(<FramesTab {...makeProps()} />);
 
-      const addButton = screen.getByRole("button", { name: "Add Frame" });
+      const addButton = screen.getByRole("button", { name: "Add Layout" });
       fireEvent.click(addButton);
 
       // Promise resolve flush
@@ -486,9 +486,9 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       await Promise.resolve();
 
       expect(createReusableFrameMock).toHaveBeenCalledTimes(1);
-      // 기존 frame "Existing" 은 Frame N 패턴 아님 → getNextFrameName 이 "Frame 1" 반환
+      // 기존 frame "Existing" 은 Layout N 패턴 아님 → 사용자 노출 기본 이름은 "Layout 1"
       expect(createReusableFrameMock).toHaveBeenCalledWith({
-        name: "Frame 1",
+        name: "Layout 1",
         projectId: "test-project",
       });
       expect(selectReusableFrameMock).toHaveBeenCalledWith("new-frame");

@@ -30,7 +30,7 @@ export const LayoutBodyEditor = memo(
         {/* ⭐ Frame 전용: 프리셋 선택기 (Slot 자동 생성) */}
         {layoutId && (
           <>
-            <PropertySection title="Frame Preset">
+            <PropertySection title="Layout Preset">
               <LayoutPresetSelector
                 layoutId={layoutId}
                 bodyElementId={elementId}

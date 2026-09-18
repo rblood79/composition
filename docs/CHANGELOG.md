@@ -22,6 +22,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - browser parity 1430/1430 (직전 11 실패 → 0). 원복 RED: 스칼라 패치 분기 제거 시 gridTrackContribution 6 (`rewrap:` 4 · `pipeline: min-content`·`fit-content(60px)`) 이 `txt.h` Δ20 으로 실패. live (headed Playwright, 새 프로젝트): grid `1fr auto` 400px 안 긴 Text 가 Skia 280×40 = Preview DOM 280×40 (2줄).
 
+## [Navigator — Frames 사용자 용어를 Layouts로 통일] - 2026-09-19
+
+### Changed
+
+- Navigator의 `Pages / Frames` 탭을 `Pages / Layouts`로 바꾸고, 목록 제목·추가 버튼·빈 상태·선택 안내와 Properties의 `Frame Preset` 섹션을 `Layout Preset`으로 통일했다. 새 canonical reusable FrameNode의 사용자 노출 기본 이름도 `Layout N`으로 생성한다.
+- canonical `FrameNode`, reusable frame selector/action, 탭 ID `layouts`, EditMode `layout` 계약은 변경하지 않는다.
+
+### Validation
+
+- Navigator 탭, Layout 목록/요소 빈 상태, Layout 생성 기본 이름, Properties `Layout Preset`의 인접 Vitest 9파일 54개와 Builder type-check·preflight를 통과했다. 실행 중인 Builder에서 `Pages / Layouts`, `Layouts`, `Add Layout`, `Layout Preset`을 확인했고 console warning/error는 0건이었다.
+
 ## [Canvas 빈 공간 — 선택 문맥 패널 닫기] - 2026-09-19
 
 ### Changed

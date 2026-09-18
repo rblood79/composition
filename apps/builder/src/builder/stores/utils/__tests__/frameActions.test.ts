@@ -248,18 +248,18 @@ describe("frameActions canonical reusable frame API", () => {
   });
 
   describe("getNextFrameName", () => {
-    it("빈 배열 -> 'Frame 1'", () => {
-      expect(getNextFrameName([])).toBe("Frame 1");
+    it("빈 배열 -> 'Layout 1'", () => {
+      expect(getNextFrameName([])).toBe("Layout 1");
     });
 
-    it("['Frame 1', 'Frame 3'] -> 'Frame 2' (gap 채움)", () => {
-      expect(getNextFrameName([{ name: "Frame 1" }, { name: "Frame 3" }])).toBe(
-        "Frame 2",
-      );
+    it("['Layout 1', 'Layout 3'] -> 'Layout 2' (gap 채움)", () => {
+      expect(
+        getNextFrameName([{ name: "Layout 1" }, { name: "Layout 3" }]),
+      ).toBe("Layout 2");
     });
 
-    it("Frame N 패턴 아닌 이름은 무시한다", () => {
-      expect(getNextFrameName([{ name: "My Custom" }])).toBe("Frame 1");
+    it("Layout N 패턴 아닌 이름은 무시한다", () => {
+      expect(getNextFrameName([{ name: "My Custom" }])).toBe("Layout 1");
     });
   });
 });
