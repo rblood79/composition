@@ -5,6 +5,10 @@ import type {
 } from "@composition/shared";
 
 import { runCanonicalMutation } from "@/adapters/canonical/canonicalMutationRunner";
+import {
+  RESIZE_COMMIT_INTENT,
+  commitCanvasResizePresentation,
+} from "./editorPresentationResizeSession";
 import type { CanonicalMutationResult } from "@/adapters/canonical/canonicalMutations";
 import type { FillItem } from "../../types/builder/fill.types";
 import { useStore } from "../stores";
@@ -811,7 +815,10 @@ export const editorPresentationCanonicalRuntimeOptions: Required<
   commit: (input) =>
     input.descriptor.type === "fills.replace"
       ? commitEditorPresentationFills(input)
-      : commitEditorPresentationStyle(input),
+      : input.commitIntent === RESIZE_COMMIT_INTENT
+        ? // ADR-224 캔버스 resize — marker 축 Fill 해제 + CSS px 는 store 명령 한 경로
+          commitCanvasResizePresentation(input)
+        : commitEditorPresentationStyle(input),
   hasTarget: (projectId, target) =>
     getEditorPresentationTargetNode(projectId, target) !== null,
   isDescriptorEqualToBase: (descriptor, baseValue) =>

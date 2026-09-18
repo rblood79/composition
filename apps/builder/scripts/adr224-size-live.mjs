@@ -278,6 +278,9 @@ try {
               grow: s.flexGrow,
               basis: s.flexBasis,
               min: s.minWidth,
+              alignSelf: s.alignSelf,
+              parentAlignItems: getComputedStyle(e.parentElement).alignItems,
+              parentDisplay: getComputedStyle(e.parentElement).display,
             };
           });
         }
@@ -555,6 +558,153 @@ try {
         undone.node.style.width === undefined && parity(undone),
       detail: undone });
   }
+  // ── ADR-224 §4.3 · §5 캔버스 핸들 resize gate (G4) — 실제 마우스 드래그 (`--resize`) ──
+  // a = Width Fill 2 + Height Fill 1 (Row 900×240). 우측 엣지 −100 screen px → width 만 Fixed px ·
+  // marker null · Height Fill 보존 · b 가 남은 폭 · Canvas/Preview Δ≤1 · history +1 → Undo 1회 = Fill.
+  // 그다음 Ratio 잠금 → 아래 엣지 +60 → driver Width 하나만 (목표 H × ratio) · height auto 유지.
+  const resize = [];
+  if (process.argv.includes("--resize")) {
+    await page.evaluate(({ parent, ids }) => {
+      const st = window.__composition_STORE__.getState();
+      const p = st.elements.find((e) => e.id === parent);
+      st.updateElementProps(parent, { style: { ...p.props.style, flexDirection: "row" } });
+      ids.forEach((id, i) => {
+        const e = st.elements.find((n) => n.id === id);
+        st.updateElement(id, { responsive: undefined,
+          sizing: i === 0 ? { width: { factor: 2 }, height: { factor: 1 } } : { width: { factor: 1 } },
+          props: { ...e.props, style: {} } });
+      });
+    }, { parent, ids: [a, b] });
+    await page.waitForTimeout(1000);
+    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
+    await page.waitForTimeout(600);
+    const styles = page.locator('[data-panel-id="styles"]');
+    const readNode = (id) => page.evaluate((elementId) => {
+      const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
+      return { style: e?.props?.style, sizing: e?.sizing, responsive: e?.responsive };
+    }, id);
+    /** 선택 박스 핸들의 화면 좌표 (scene bounds → screen) */
+    const handlePoint = (id, handle) => page.evaluate(({ elementId, handle }) => {
+      const r = window.__composition_RESIZE_DEBUG__.getSceneBounds(elementId);
+      if (!r) return null;
+      const vp = window.__composition_VIEWPORT__();
+      const rect = document.querySelector("canvas").getBoundingClientRect();
+      const sx = handle.includes("left") ? r.x : handle.includes("right") ? r.x + r.width : r.x + r.width / 2;
+      const sy = handle.includes("top") ? r.y : handle.includes("bottom") ? r.y + r.height : r.y + r.height / 2;
+      return { x: sx * vp.zoom + vp.panOffset.x + rect.left, y: sy * vp.zoom + vp.panOffset.y + rect.top,
+        zoom: vp.zoom, bounds: r };
+    }, { elementId: id, handle });
+    /** 요소가 화면 안에 오도록 카메라 이동 — 새 프로젝트 템플릿은 카메라가 다른 곳을 본다 (ADR-222 focusOwner 어법) */
+    const focusElement = async (id, handle) => {
+      await page.evaluate(({ elementId, handle }) => {
+        const r = window.__composition_RESIZE_DEBUG__.getSceneBounds(elementId);
+        if (!r) return;
+        const scale = window.__composition_VIEWPORT__().zoom;
+        const rect = document.querySelector("canvas").getBoundingClientRect();
+        const sx = handle.includes("left") ? r.x : handle.includes("right") ? r.x + r.width : r.x + r.width / 2;
+        const sy = handle.includes("top") ? r.y : handle.includes("bottom") ? r.y + r.height : r.y + r.height / 2;
+        // 잡을 핸들을 캔버스 폭 40% · 높이 45% 에 — 우측에 떠 있는 Styles 패널 아래로 들어가지 않게
+        window.__composition_APPLY_VIEWPORT__({
+          scale,
+          x: rect.width * 0.4 - sx * scale,
+          y: rect.height * 0.45 - sy * scale,
+        });
+      }, { elementId: id, handle });
+      await page.waitForTimeout(700);
+    };
+    const dragHandle = async (handle, dx, dy) => {
+      await focusElement(a, handle);
+      const from = await handlePoint(a, handle);
+      await page.mouse.move(from.x, from.y);
+      await page.waitForTimeout(100);
+      await page.mouse.down();
+      const steps = 10;
+      for (let i = 1; i <= steps; i++) {
+        await page.mouse.move(from.x + (dx * i) / steps, from.y + (dy * i) / steps);
+        await page.waitForTimeout(30);
+      }
+      const mid = await page.evaluate(() => window.__composition_RESIZE_DEBUG__.getActiveSession());
+      // 미리보기는 command stream (scene bounds) 에 실린다 — 공유 layout map 은 commit 뒤에야 바뀐다
+      const midCanvas = await page.evaluate((id) => {
+        const r = window.__composition_RESIZE_DEBUG__.getSceneBounds(id);
+        return r ? { width: r.width, height: r.height } : null;
+      }, a);
+      await page.mouse.up();
+      await page.waitForTimeout(1200);
+      return { from, mid, midCanvas };
+    };
+    const measure = async (name, extra = {}) => {
+      const node = await readNode(a);
+      const dom = await readDom();
+      const canvas = [await readLayout(page, a), await readLayout(page, b)];
+      const history = await historyCount(page);
+      const detail = { node, dom: dom[0], domB: dom[1], canvas: canvas[0], canvasB: canvas[1], history, ...extra };
+      resize.push({ name, ...detail });
+      return detail;
+    };
+    const parity = (d) => Math.abs(d.dom.width - d.canvas.width) <= 1 &&
+      Math.abs(d.dom.height - d.canvas.height) <= 1 &&
+      Math.abs(d.domB.width - d.canvasB.width) <= 1;
+    const before = await measure("before (Width Fill 2 · Height Fill 1)");
+    const zoom = (await handlePoint(a, "middle-right")).zoom;
+    const drag1 = await dragHandle("middle-right", -100, 0);
+    const expectedW = Math.round(before.canvas.width - 100 / zoom);
+    const after1 = await measure("우측 엣지 −100px", drag1);
+    checks.push({ name: "Resize 우측 엣지: width 만 Fixed px · marker null · Height Fill 보존",
+      pass: after1.history === before.history + 1 &&
+        after1.node.style.width === `${expectedW}px` && after1.node.sizing?.width === null &&
+        after1.node.sizing?.height?.factor === 1 && after1.node.style.height === undefined &&
+        after1.node.style.flexGrow === undefined &&
+        Math.abs(after1.canvas.width - expectedW) <= 0.01 &&
+        Math.abs(after1.canvas.height - before.canvas.height) <= 0.01 &&
+        // 드래그 중 미리보기가 이미 그 폭 (presentation lane) · b 가 남은 폭을 가져간다
+        Math.abs(drag1.midCanvas.width - expectedW) <= 0.01 &&
+        after1.canvasB.width > before.canvasB.width + 50 && parity(after1),
+      detail: { before, after1, expectedW } });
+    await page.keyboard.press("Meta+z");
+    await page.waitForTimeout(1000);
+    const undone1 = await measure("Undo 1회");
+    checks.push({ name: "Resize Undo 1회 = Width Fill 2 복원",
+      pass: undone1.node.sizing?.width?.factor === 2 && undone1.node.style.width === undefined &&
+        Math.abs(undone1.canvas.width - before.canvas.width) <= 0.01 && parity(undone1),
+      detail: undone1 });
+    // Ratio 잠금 (실제 lock 버튼) → 아래 엣지 +60 → driver Width 하나만
+    await styles.locator(".actions-ratio button").click();
+    await page.waitForTimeout(1200);
+    const locked = await measure("Ratio lock");
+    const ratio = locked.canvas.width / locked.canvas.height;
+    // 목표 H 는 줄이는 방향 — 늘리면 driver Width 가 Row 900 을 넘어 shrink 로 잘린다 (별도 계약)
+    const drag2 = await dragHandle("bottom-center", 0, -30);
+    const expectedW2 = Math.round((locked.canvas.height - 30 / zoom) * ratio);
+    const after2 = await measure("Ratio 잠금 + 아래 엣지 −30px", drag2);
+    checks.push({ name: "Resize Ratio: 세로 드래그 → driver Width 만 px (목표 H × ratio) · height auto 유지",
+      pass: after2.history === locked.history + 1 &&
+        after2.node.style.width === `${expectedW2}px` && after2.node.style.height === "auto" &&
+        after2.node.style.aspectRatio === locked.node.style.aspectRatio &&
+        after2.node.sizing?.width === null &&
+        Math.abs(after2.canvas.width - expectedW2) <= 0.01 &&
+        Math.abs(after2.canvas.height - expectedW2 / ratio) <= 1 && parity(after2),
+      detail: { locked, after2, expectedW2 } });
+    await page.keyboard.press("Meta+z");
+    await page.waitForTimeout(1000);
+    const undone2 = await measure("Ratio resize Undo 1회");
+    checks.push({ name: "Ratio resize Undo 1회 = 잠금 상태 (Width Fill 2 · height auto) 복원",
+      pass: undone2.node.sizing?.width?.factor === 2 && undone2.node.style.width === undefined &&
+        undone2.node.style.height === "auto" && parity(undone2),
+      detail: undone2 });
+    // 클릭 (임계값 미만) 은 저장 0
+    await focusElement(a, "middle-right");
+    const tapFrom = await handlePoint(a, "middle-right");
+    await page.mouse.move(tapFrom.x, tapFrom.y);
+    await page.mouse.down();
+    await page.mouse.move(tapFrom.x + 1, tapFrom.y);
+    await page.mouse.up();
+    await page.waitForTimeout(600);
+    const tapped = await measure("핸들 클릭 (1px)");
+    checks.push({ name: "핸들 클릭 (임계값 미만) 저장 0",
+      pass: tapped.history === undone2.history && tapped.node.style.width === undefined,
+      detail: tapped });
+  }
   console.log(
     "PARITY_CONTROL",
     JSON.stringify({ semantic: { dom, canvas }, cross, legacy }),
@@ -588,6 +738,7 @@ try {
     transitions,
     ratioUi,
     absolute,
+    resize,
     checks,
     errors,
   };

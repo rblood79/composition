@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Ratio 잠금이 한 번의 복합 명령이 됐다** (Size 절 Ratio Select · lock 버튼): 잠금은 현재 used 크기 (또는 preset) 를 `aspectRatio` 로 쓰고 Height 를 auto 로 정규화하되 Width 의 Fill 가중치·CSS 는 보존한다. 해제는 각 tier 의 직전 used Height 를 px 로 고정한다 (자기 상태가 있는 tier 만 — 나머지는 base 상속). 한 transaction·Undo 1회, stale geometry 는 오류 문구 (ko/en) 로 거부. Size 메뉴 항목 (고정 · 채우기 · 내용 맞춤 · 부모 비율 · 화면 기준) 과 트리거·오류 문구가 translations 를 탄다. 실제 Builder 22/22.
 - **Absolute 토글이 Fill 을 그대로 두던 것을 고쳤다.** 절대 위치에서 Fill 은 성립하지 않는데 marker 가 남아 Flow 로 돌아오면 Fill 이 되살아났다. 이제 Position 토글 활성화는 한 명령 (Undo 1회) 으로 position/left/top 을 쓰고 무효가 되는 Fill 축만 직전 크기의 px 로 고정한다. Absolute→Flow 는 그 px 를 유지한다.
 - **절대 위치 leaf (Button 등) 의 auto 높이가 Canvas 에서 padding·border 만큼 낮게 그려졌다** (Canvas 20 / Preview 30). 엔진 absolute 배치가 leaf 의 content-box 보고에 pad/border 를 더하지 않던 결함 — leaf 의 border-box layout 을 읽도록 수리.
+- **선택 박스 핸들로 크기를 바꿀 수 있다.** 2026-03 정리 이후 핸들은 표시만 됐고 커서만 바뀌었다. 이제 단일 선택의 엣지·코너 핸들을 끌면 드래그 중 캔버스가 바로 그 크기로 놓이고 (Preview 와 같은 레이아웃 lane), 놓으면 한 번에 저장된다 (Undo 1회). 잡은 축이 Fill 이면 그 축만 고정 px 로 바뀌고 다른 축의 Fill 은 그대로다. Ratio 가 잠겨 있으면 기준 축 하나만 바뀌고 (세로로 끌면 목표 높이 × ratio 로 Width), 종속 축은 auto 로 남는다. 3px 미만은 클릭 (저장 0). 다중 선택 핸들과 absolute 요소의 위치 이동 (left/top 핸들) 은 아직이다.
+- **Ratio 잠금 요소를 resize 한 뒤 Canvas 가 부모 높이로 늘어나고 Preview 는 비율대로였다** (240 / 210). Canvas 의 Fill projection 이 "Fill 축이 명시 null 뿐인 요소" 를 건너뛰어 Ratio 종속 축의 stretch 보호를 빠뜨렸다 — Preview 와 같은 판정으로 수리.
 
 ### In progress
 

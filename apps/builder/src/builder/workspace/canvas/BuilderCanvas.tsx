@@ -69,6 +69,7 @@ import {
   getSpacingHoverCursor,
   useSpacingInteraction,
 } from "./hooks/useSpacingInteraction";
+import { useResizeInteraction } from "./hooks/useResizeInteraction";
 import { hitTestHandle } from "./selection/types";
 import { SpacingInlineInput } from "./overlay/spacing/SpacingInlineInput";
 import {
@@ -1218,6 +1219,14 @@ export function BuilderCanvas({
     screenToCanvasPoint,
   });
 
+  // ADR-224: 선택 박스 핸들 resize — 중앙 핸들러가 핸들 히트에서 startResize 를 부른다
+  const { startResize } = useResizeInteraction({
+    containerRef,
+    gestureSession: canvasGestureSession,
+  });
+  const onStartResizeRef = useRef(startResize);
+  onStartResizeRef.current = startResize;
+
   // Page title drag hit-test (capture phase).
   // Capture 단계에서 먼저 동작하므로 useCentralCanvasPointerHandlers 보다 우선.
   // hit 이면 event.__handled = true 로 중앙 핸들러가 early-return 하도록 막는다.
@@ -1402,6 +1411,7 @@ export function BuilderCanvas({
     lastClickTimeRef,
     onCancelDrag: onCancelDragRef,
     onStartMove: onStartMoveRef,
+    onStartResize: onStartResizeRef,
     onUpdateDrag: onUpdateDragRef,
     onEndDrag: onEndDragRef,
     startPageDrag,

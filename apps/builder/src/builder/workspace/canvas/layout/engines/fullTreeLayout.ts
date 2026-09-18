@@ -279,7 +279,19 @@ function presentationSizeToPx(value: unknown): string | null {
   return `${value}px`;
 }
 
+/** ADR-224 캔버스 resize — 값 "" 로 엔진 입력에서 제거하는 Fill 파생 키 */
+const PRESENTATION_RELEASE_STYLE_KEYS = [
+  "alignSelf",
+  "flexBasis",
+  "flexGrow",
+  "flexShrink",
+  "justifySelf",
+  "minWidth",
+  "minHeight",
+] as const;
+
 const PRESENTATION_TARGETED_STYLE_KEYS = new Set([
+  ...PRESENTATION_RELEASE_STYLE_KEYS,
   "width",
   "height",
   "padding",
@@ -400,6 +412,11 @@ export function computePresentationLayoutTargeted(
   }
 
   const nextStyle = { ...baseStyle };
+  for (const key of PRESENTATION_RELEASE_STYLE_KEYS) {
+    if (patch[key] === undefined) continue;
+    if (patch[key] !== "") return null;
+    delete nextStyle[key];
+  }
   for (const key of ["width", "height"] as const) {
     if (patch[key] === undefined) continue;
     const value = presentationSizeToPx(patch[key]);

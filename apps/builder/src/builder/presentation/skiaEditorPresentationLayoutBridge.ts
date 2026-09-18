@@ -60,6 +60,20 @@ type LayoutPatch = {
   readonly columnGap?: number;
 };
 
+/**
+ * ADR-224 캔버스 resize — marker 축의 Fill 파생 CSS 를 미리보기에서 지우는 키 (값은 "" 만).
+ * commit 이 지우는 집합 (`resolveSizeMode("fixed").remove`) + projection 이 넣은 min.
+ */
+const TARGETED_RELEASE_KEYS = [
+  "alignSelf",
+  "flexBasis",
+  "flexGrow",
+  "flexShrink",
+  "justifySelf",
+  "minWidth",
+  "minHeight",
+] as const;
+
 const TARGETED_SPACING_KEYS = [
   "padding",
   "paddingTop",
@@ -112,10 +126,26 @@ function readLayoutPatch(
       : descriptor.patch;
   const allowedKeys =
     descriptor.type === "style.patch"
-      ? ["left", "top", "width", "height", ...TARGETED_SPACING_KEYS]
+      ? [
+          "left",
+          "top",
+          "width",
+          "height",
+          ...TARGETED_SPACING_KEYS,
+          ...TARGETED_RELEASE_KEYS,
+        ]
       : ["x", "y", "width", "height"];
   const keys = Object.keys(patch);
   if (keys.length === 0 || keys.some((key) => !allowedKeys.includes(key))) {
+    return null;
+  }
+  // release 키는 제거 ("") 만 — 값을 싣는 patch 는 이 lane 의 계약 밖
+  if (
+    descriptor.type === "style.patch" &&
+    TARGETED_RELEASE_KEYS.some(
+      (key) => patch[key] !== undefined && patch[key] !== "",
+    )
+  ) {
     return null;
   }
 

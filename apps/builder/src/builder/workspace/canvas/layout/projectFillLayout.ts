@@ -28,7 +28,11 @@ export function projectFillLayoutNodes(
     return style;
   };
   for (const [id, node] of nodes) {
-    if (!node.sizing?.width && !node.sizing?.height) continue;
+    // Fill 시스템이 만진 노드 = 축이 정의된 노드 (marker 또는 명시 null). null 도 Ratio 종속 축의
+    // stretch 보호 (`alignSelf: start`) 를 받아야 Preview (`createFillTreeResolver`, skip 없음) 와
+    // 같다 — truthiness 로 걸렀을 때 resize 뒤 `{width:null,height:null}` 이 Canvas 240 / DOM 210.
+    if (node.sizing?.width === undefined && node.sizing?.height === undefined)
+      continue;
     let parent = node.parent_id ? nodes.get(node.parent_id) : undefined;
     const visited = new Set<string>([id]);
     let parentStyle: Record<string, unknown> = {};

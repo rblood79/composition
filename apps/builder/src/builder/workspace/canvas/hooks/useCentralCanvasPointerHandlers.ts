@@ -5,7 +5,11 @@ import {
   type RefObject,
 } from "react";
 import { useStore } from "../../../stores";
-import type { BoundingBox, FrameBodySelectionArea } from "../selection";
+import type {
+  BoundingBox,
+  FrameBodySelectionArea,
+  HandlePosition,
+} from "../selection";
 import { resolveHandleCursor } from "../selection";
 import {
   commitPointerClick,
@@ -67,6 +71,19 @@ interface UseCentralCanvasPointerHandlersOptions {
   onUpdateDrag: MutableRefObject<(position: { x: number; y: number }) => void>;
   /** 드래그 종료 콜백 (SelectionLayer로 전달) */
   onEndDrag: MutableRefObject<() => void>;
+  /**
+   * ADR-224: 선택 박스 핸들 resize 시작 (단일 요소 선택). true 면 resize owner 가 pointer
+   * lifecycle 을 소유한다 (`useResizeInteraction`).
+   */
+  onStartResize: MutableRefObject<
+    (
+      elementId: string,
+      handle: HandlePosition,
+      bounds: BoundingBox,
+      event: PointerEvent,
+      cursor: string,
+    ) => boolean
+  >;
   /** 선택된 page body의 빈 영역 drag를 page-position drag로 연결한다. */
   startPageDrag: (
     pageId: string,
@@ -124,6 +141,7 @@ export function useCentralCanvasPointerHandlers({
   onUpdateDrag,
   onCancelDrag,
   onEndDrag,
+  onStartResize,
   startPageDrag,
   pageSelectionEnabled = true,
   pageHeight,
@@ -275,7 +293,20 @@ export function useCentralCanvasPointerHandlers({
               event.clientY,
             );
           }
-          // 리사이즈 핸들 히트 — 드래그 기능 비활성 상태 (single/multi 공통)
+          // ADR-224: 단일 요소 선택의 핸들 = resize 세션 (body/page 는 위에서 page drag).
+          // 다중 선택의 combined bounds 핸들은 시각 표시만 (조작 없음 — 이전과 같다).
+          if (selectedPageIds.length === 0 && selectedIds.length === 1) {
+            const resetState = resetPointerClick();
+            lastClickTargetRef.current = resetState.lastClickTargetId;
+            lastClickTimeRef.current = resetState.lastClickTime;
+            onStartResize.current(
+              selectedIds[0],
+              hitHandle.position,
+              selectionBounds,
+              event,
+              resolveHandleCursor(hitHandle),
+            );
+          }
           return;
         }
       }
@@ -755,6 +786,7 @@ export function useCentralCanvasPointerHandlers({
     onEndDrag,
     onCancelDrag,
     onStartMove,
+    onStartResize,
     onUpdateDrag,
     pageSelectionEnabled,
     pageHeight,

@@ -1,5 +1,14 @@
-import { getSizingEffectiveStyle } from "@composition/shared";
+import {
+  getSizingEffectiveStyle,
+  resolveEffectiveFill,
+  type FillAxes,
+  type FillParentContext,
+} from "@composition/shared";
 import { buildSizingEdit, type SizingEdit } from "./utils/sizingEdit";
+import {
+  buildCanvasResizeEdit,
+  type CanvasResizeRequest,
+} from "./utils/canvasResizeEdit";
 import {
   buildRatioSizingEdit,
   SIZING_TIERS,
@@ -612,6 +621,24 @@ export interface InspectorActionsState {
     snapshot: ImmediateSelectionSnapshot,
     positionStyles: Record<string, string>,
   ) => RatioEditError | null;
+  /**
+   * ADR-224 breakdown §4.3 · §5 — 캔버스 핸들 resize 의 commit. 요청 축마다 Size 메뉴 Fixed 와
+   * 같은 경로 (`buildSizingEdit` css mode): 그 축의 marker null + CSS px + Fill 파생 CSS 정리,
+   * 다른 축 Fill 보존, active tier 라우팅, history 1개. presentation 세션의 commit 이 부른다.
+   */
+  applyCanvasResize: (
+    elementId: string,
+    request: CanvasResizeRequest,
+  ) => RatioEditError | null;
+  /**
+   * 캔버스 resize 가 드래그 시작 시 읽는 문맥 — active tier 의 effective style · Fill marker ·
+   * 부모 문맥 (`display: contents` 를 건너뛴 실제 부모). 쓰기 없음.
+   */
+  readCanvasSizingContext: (elementId: string) => {
+    effectiveStyle: Record<string, unknown>;
+    fill: FillAxes | undefined;
+    context: FillParentContext;
+  } | null;
   /** 비-migrated layout/structure editor의 commit-only fallback용 legacy preview */
   updateSelectedStylePreview: (property: string, value: string) => void;
   /**
@@ -693,6 +720,36 @@ type CombinedState = InspectorActionsState & RequiredState;
 // ============================================
 // Slice Creator
 // ============================================
+
+/**
+ * ADR-224 — sizing 편집이 읽는 부모 문맥: `display: contents` 를 건너뛴 실제 부모의
+ * tier effective display/flexDirection/writingMode. Ratio · Absolute · resize 명령이 같이 쓴다.
+ */
+function resolveSizingParentContext(
+  elements: readonly Element[],
+  source: Element,
+  tier: BreakpointName,
+): FillParentContext {
+  let parentId = source.parent_id;
+  let parentStyle: Record<string, unknown> = {};
+  const visited = new Set<string>([source.id]);
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = getInspectorElementById(elements, parentId);
+    if (!parent) break;
+    parentStyle = getSizingEffectiveStyle(
+      getResolvedInspectorElement(parent, elements),
+      tier,
+    );
+    if (parentStyle.display !== "contents") break;
+    parentId = parent.parent_id;
+  }
+  return {
+    display: String(parentStyle.display ?? "block"),
+    flexDirection: String(parentStyle.flexDirection ?? "row"),
+    writingMode: String(parentStyle.writingMode ?? "horizontal-tb"),
+  };
+}
 
 export const createInspectorActionsSlice: StateCreator<
   CombinedState,
@@ -1244,27 +1301,8 @@ export const createInspectorActionsSlice: StateCreator<
         layoutVersion: state.layoutVersion,
         viewport: useViewportSyncStore.getState().canvasSize,
       };
-      const parentContextOf = (source: Element, tier: BreakpointName) => {
-        let parentId = source.parent_id;
-        let parentStyle: Record<string, unknown> = {};
-        const visited = new Set<string>([source.id]);
-        while (parentId && !visited.has(parentId)) {
-          visited.add(parentId);
-          const parent = getInspectorElementById(state.elements, parentId);
-          if (!parent) break;
-          parentStyle = getSizingEffectiveStyle(
-            getResolvedInspectorElement(parent, state.elements),
-            tier,
-          );
-          if (parentStyle.display !== "contents") break;
-          parentId = parent.parent_id;
-        }
-        return {
-          display: String(parentStyle.display ?? "block"),
-          flexDirection: String(parentStyle.flexDirection ?? "row"),
-          writingMode: String(parentStyle.writingMode ?? "horizontal-tb"),
-        };
-      };
+      const parentContextOf = (source: Element, tier: BreakpointName) =>
+        resolveSizingParentContext(state.elements, source, tier);
       const plans: Array<{ id: string; updates: Partial<Element> }> = [];
       for (const targetId of state.selectedElementIds?.length
         ? state.selectedElementIds
@@ -1312,6 +1350,56 @@ export const createInspectorActionsSlice: StateCreator<
       return null;
     },
 
+    readCanvasSizingContext: (elementId) => {
+      const state = get();
+      const source = getInspectorElementById(state.elements, elementId);
+      if (!source) return null;
+      const effective = getResolvedInspectorElement(source, state.elements);
+      return {
+        effectiveStyle: getSizingEffectiveStyle(
+          effective,
+          state.activeBreakpoint,
+        ),
+        fill: resolveEffectiveFill(effective, state.activeBreakpoint),
+        context: resolveSizingParentContext(
+          state.elements,
+          source,
+          state.activeBreakpoint,
+        ),
+      };
+    },
+
+    applyCanvasResize: (elementId, request) => {
+      const state = get();
+      const source = getInspectorElementById(state.elements, elementId);
+      if (!source) return "target-missing";
+      const effective = getResolvedInspectorElement(source, state.elements);
+      const updates = buildCanvasResizeEdit(
+        source,
+        {
+          ...effective,
+          props: {
+            ...effective.props,
+            style: getSizingEffectiveStyle(effective, state.activeBreakpoint),
+          },
+        },
+        request,
+        resolveSizingParentContext(
+          state.elements,
+          source,
+          state.activeBreakpoint,
+        ),
+        state.activeBreakpoint,
+      );
+      if (!updates) return "target-missing";
+      if (!Object.keys(updates).length) return null;
+      historyManager.runInTransaction({ type: "batch", elementId }, () => {
+        const { props, ...fields } = updates;
+        void updateAndSave(elementId, props ?? {}, fields);
+      });
+      return null;
+    },
+
     applySizingFromSelection: (snapshot, edit) => {
       const state = get();
       if (
@@ -1328,25 +1416,11 @@ export const createInspectorActionsSlice: StateCreator<
         const source = getInspectorElementById(state.elements, id);
         if (!source || source.page_id !== snapshot.currentPageId) return;
         const effective = getResolvedInspectorElement(source, state.elements);
-        let parentId = source.parent_id;
-        let parentStyle: Record<string, unknown> = {};
-        const visited = new Set<string>([id]);
-        while (parentId && !visited.has(parentId)) {
-          visited.add(parentId);
-          const parent = getInspectorElementById(state.elements, parentId);
-          if (!parent) break;
-          parentStyle = getSizingEffectiveStyle(
-            getResolvedInspectorElement(parent, state.elements),
-            state.activeBreakpoint,
-          );
-          if (parentStyle.display !== "contents") break;
-          parentId = parent.parent_id;
-        }
-        const context = {
-          display: String(parentStyle.display ?? "block"),
-          flexDirection: String(parentStyle.flexDirection ?? "row"),
-          writingMode: String(parentStyle.writingMode ?? "horizontal-tb"),
-        };
+        const context = resolveSizingParentContext(
+          state.elements,
+          source,
+          state.activeBreakpoint,
+        );
         const effectiveStyle = getSizingEffectiveStyle(
           effective,
           state.activeBreakpoint,

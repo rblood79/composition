@@ -131,6 +131,12 @@ const LAYOUT_PROP_CACHE_SOURCE = [
 ] as const;
 
 const CONTINUOUS_STYLE_KEYS = new Set([
+  // ADR-224 캔버스 resize 미리보기 — marker 축의 Fill 파생 CSS 를 프레임마다 지운다 (값 "")
+  "alignSelf",
+  "flexBasis",
+  "flexGrow",
+  "flexShrink",
+  "justifySelf",
   "backgroundColor",
   "borderColor",
   "borderRadius",

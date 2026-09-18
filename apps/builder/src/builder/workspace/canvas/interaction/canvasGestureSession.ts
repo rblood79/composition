@@ -1,4 +1,5 @@
-export type CanvasGestureMode = "element" | "idle" | "page" | "pan" | "spacing";
+export type CanvasGestureMode =
+  "element" | "idle" | "page" | "pan" | "resize" | "spacing";
 
 export interface PageGestureOwner {
   /** 드래그 리더 페이지 (포인터가 잡은 페이지 — 스냅/타겟 판정 기준) */
@@ -150,6 +151,21 @@ export class CanvasGestureSession {
     return true;
   }
 
+  /**
+   * ADR-224: 선택 박스 핸들에서 시작한 element pointer 를 resize owner 로 원자 승격한다.
+   * spacing 과 같은 규약 — 중앙 핸들러의 move/up 경로는 이 pointer 를 무시하고
+   * `useResizeInteraction` 이 lifecycle 을 소유한다.
+   */
+  promoteElementToResize(pointerId: number): boolean {
+    if (this.activePointerId !== pointerId || this.mode !== "element") {
+      return false;
+    }
+    this.mode = "resize";
+    this.pageOwner = null;
+    this.notify();
+    return true;
+  }
+
   ownerFor(pointerId: number): CanvasGestureMode {
     return this.activePointerId === pointerId ? this.mode : "idle";
   }
@@ -202,6 +218,7 @@ export class CanvasGestureSession {
       (this.activePointerId === pointerId &&
         (this.mode === "page" ||
           this.mode === "pan" ||
+          this.mode === "resize" ||
           this.mode === "spacing"))
     );
   }
@@ -222,7 +239,10 @@ export class CanvasGestureSession {
   shouldSuppressElementHover(): boolean {
     // spacing 드래그 중에는 자식 hover 외곽선이 띠와 겹쳐 읽히므로 함께 끈다 (ADR-222).
     return (
-      this.isSpacePressed || this.mode === "pan" || this.mode === "spacing"
+      this.isSpacePressed ||
+      this.mode === "pan" ||
+      this.mode === "resize" ||
+      this.mode === "spacing"
     );
   }
 
