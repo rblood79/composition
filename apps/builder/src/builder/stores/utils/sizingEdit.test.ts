@@ -82,6 +82,27 @@ describe("ADR-224 크기 명령", () => {
     expect(after.responsive?.styles?.width?.tablet).toBe("320px");
     expect(after.props.style).toEqual(before.props.style);
   });
+  it("flex 주축의 Fixed와 Parent %는 shrink 0으로 used size를 보존한다", () => {
+    const before = node();
+    expect(
+      buildSizingEdit(
+        before,
+        before,
+        { axis: "width", mode: "css", value: "200px" },
+        row,
+        "desktop",
+      )?.props?.style,
+    ).toMatchObject({ width: "200px", flexShrink: "0" });
+    expect(
+      buildSizingEdit(
+        before,
+        before,
+        { axis: "width", mode: "css", value: "100%" },
+        row,
+        "desktop",
+      )?.props?.style,
+    ).toMatchObject({ width: "100%", flexShrink: "0" });
+  });
   it("무효 가중치와 absolute Fill은 무변경 거부한다", () => {
     const before = node();
     for (const factor of [0, 0.5, 1001, Infinity, NaN])

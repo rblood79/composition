@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - auto-height flex 부모의 `height:100%` leaf가 Canvas에서 intrinsic text height를 잃던 문제를 수리했다. percentage는 authored 값으로 보존하고 containing block 높이가 미정일 때만 측정 content scalar로 fallback한다.
 - Preview `renderButtonGroup`의 prop 기본 `gap`이 Canvas projection에 없던 문제를 수리했다. size/orientation/align 기본값을 read-time에 동일하게 투영하며 authored style이 우선한다.
 - Preview Body가 lowercase canonical type으로 `react-aria-body`를 자동 생성한 뒤 저장된 `react-aria-Body`와 중복 병합하고, display/font/overflow/min-height 기본값을 inline으로 덮던 문제를 수리했다. renderer가 case-correct class 하나만 방출하고 기존 문서의 infrastructure 기본값은 DOM 투영에서 제거한다. Body generated CSS를 실제 preview/publish 번들에 연결해 `width:100%`, `overflow:auto`, 조건부 `min-height:100%`를 담당하게 했다.
+- Size 메뉴의 관계 이름과 선택 후 단위 표시가 중복되던 부분을 정리했다. 목록은 `Parent`·`Viewport`로 표시하고, 선택 뒤 필드는 `%`·`vw/vh`를 표시한다. Fill은 `fr`, Fixed와 Fit content는 `px` suffix를 사용한다.
+- Size의 `Parent`/`Fixed`가 값만 저장되고 실제 박스에는 반영되지 않던 세 경로를 수리했다. viewport-fill Body를 definite `100vh`로 투영해 자식 `height:%`의 기준을 만들고, flex 주축의 px/%/viewport 크기는 `flex-shrink:0`으로 authored used size를 지킨다. 열린 단위 메뉴에서 Enter가 현재 mode를 재선택해 숫자 commit을 덮던 ComboBox 순서도 차단했다.
 
 ### Validation
 
@@ -38,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Styles Width 390→400 입력 시 canonical/Preview/Canvas 모두 400, 새로고침 뒤 보존. 검증 후 390으로 복원하고 다시 새로고침해 보존을 확인했다.
 - Chrome parity 37/37, 기존 신규·인접 Vitest 8/8와 Compare 옵션 focused Vitest 20/20, Rust 전체 467/467, type-check PASS. G5 소유자 확인 전 ADR은 Accepted 유지한다.
 - 지정 프로젝트 foreground Compare 재검증: Body DOM은 `class="react-aria-Body"` 하나, inline style 없음, `data-body-viewport-fill` 조건부 속성. computed 값은 width 390px(100%), height 844px, min-height 100%, overflow auto, background rgb(255,255,255). focused shared/builder/publish 42/42와 root type-check PASS.
+- 실행 중인 Builder에서 Size 목록이 `Fixed / Fill / Fit content / Parent / Viewport`로 표시되고 Parent 선택 상태의 suffix가 `%`로 분리됨을 확인했다. 전체 suffix mapping focused 36/36과 Builder type-check가 통과했다.
 
 ## [ADR-224 — Fill wrap·Min/Max 입력 정합과 통합 검증] - 2026-09-18
 

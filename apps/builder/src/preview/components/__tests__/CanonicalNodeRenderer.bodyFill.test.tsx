@@ -8,7 +8,8 @@ import { CanonicalNodeRenderer } from "../CanonicalNodeRenderer";
 
 /**
  * D3 대칭 정합 — Body infrastructure class/default box는 generated CSS가 소유하고,
- * canonical DOM에는 authored override만 inline으로 남는지 검증한다.
+ * canonical DOM에는 authored override와 percentage basis용 viewport height만 inline으로 남는지
+ * 검증한다.
  *
  * 주입/보존 규칙 자체(모든 분기)는 렌더러 독립적인
  * `packages/shared/src/utils/__tests__/bodyArtboardStyle.test.ts` 가 커버한다. 본 파일은
@@ -49,7 +50,7 @@ describe("CanonicalNodeRenderer — body DOM presentation wiring", () => {
     ) as HTMLElement | null;
     expect(body).not.toBeNull();
     expect(body!.className).toBe("react-aria-Body");
-    expect(body!.getAttribute("style")).toBeNull();
+    expect(body!.style.height).toBe("100vh");
     expect(body!.hasAttribute("data-body-viewport-fill")).toBe(true);
   });
 

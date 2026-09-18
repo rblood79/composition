@@ -213,6 +213,11 @@ function resolveFixed(
   currentValue?: string,
   fixedFallbackValue?: string,
 ): SizeModeCSS {
+  const isFlexParent =
+    parentDisplay === "flex" || parentDisplay === "inline-flex";
+  const isMainAxis =
+    (axis === "width" && !parentFlexDirection?.startsWith("column")) ||
+    (axis === "height" && parentFlexDirection?.startsWith("column"));
   const isReusableFixedValue = (value: string | undefined): value is string =>
     !!value && value !== "auto" && value !== "fit-content" && value !== "100%";
   const value = isReusableFixedValue(currentValue)
@@ -224,7 +229,13 @@ function resolveFixed(
         : "100px";
 
   return {
-    set: { [axis]: value },
+    // flex 주축의 authored px/%/viewport 값은 기본 flex-shrink:1이면 실제 used size가
+    // 더 작아진다. Fixed/Parent/Viewport는 입력한 크기 자체가 계약이므로 shrink를 끈다.
+    // 반대 축의 Fill 소유 속성에는 손대지 않는다.
+    set: {
+      [axis]: value,
+      ...(isFlexParent && isMainAxis ? { flexShrink: "0" } : {}),
+    },
     remove: resolveAxisFillProps(axis, parentDisplay, parentFlexDirection),
   };
 }
@@ -336,7 +347,9 @@ export function sizeModeToStyleUpdates(
 ): Record<string, string> {
   const updates: Record<string, string> = { ...result.set };
   for (const key of result.remove) {
-    updates[key] = "";
+    // mode 전환이 같은 키를 새 의미로 다시 설정할 수 있다. 예: flex 주축 Fixed는
+    // legacy Fill의 flexShrink를 정리하면서 동시에 0으로 고정한다.
+    if (!(key in result.set)) updates[key] = "";
   }
   return updates;
 }

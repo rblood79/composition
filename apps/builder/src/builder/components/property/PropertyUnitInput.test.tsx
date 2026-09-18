@@ -112,6 +112,54 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenCalledWith("1280px");
   });
 
+  it("Size 메뉴의 현재 Fixed 재선택이 Enter 숫자 commit을 덮지 않는다", async () => {
+    const onChange = vi.fn();
+    const onModeChange = vi.fn();
+
+    function Harness() {
+      const [value, setValue] = useState("100%");
+      return (
+        <PropertyUnitInput
+          label="Height"
+          value={value}
+          unitSuffix
+          units={["reset", "px", "%", "vh", "fill", "fit-content"]}
+          sizeControl={{
+            kind: "css",
+            computed: 796,
+            onModeChange: (unit) => {
+              onModeChange(unit);
+              if (unit === "px") setValue("796px");
+            },
+          }}
+          onChange={(next) => {
+            onChange(next);
+            setValue(next);
+          }}
+        />
+      );
+    }
+
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(<Harness />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Height Size mode" }));
+    fireEvent.click(screen.getByRole("option", { name: "Fixed" }));
+    await waitFor(() => {
+      expect(
+        (screen.getByRole("combobox", { name: "Height" }) as HTMLInputElement)
+          .value,
+      ).toBe("796");
+    });
+
+    const input = screen.getByRole("combobox", { name: "Height" });
+    fireEvent.change(input, { target: { value: "300" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onModeChange.mock.calls).toEqual([["px"]]);
+    expect(onChange).toHaveBeenLastCalledWith("300px");
+  });
+
   it("keeps arrow-key increments on the preview path", () => {
     const onChange = vi.fn();
     const onDrag = vi.fn();
@@ -480,7 +528,9 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Show suggestions" })).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Show suggestions" }),
+    ).toBeNull();
     const trigger = screen.getByRole("button", { name: "Left Unit" });
     expect(trigger.textContent).toBe("Left");
     fireEvent.click(trigger);
@@ -502,9 +552,15 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Increase Font Size" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Decrease Font Size" })).toBeNull();
-    expect(screen.getByRole("button", { name: "Font Size Unit" }).textContent).toBe("SIZE");
+    expect(
+      screen.queryByRole("button", { name: "Increase Font Size" }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: "Decrease Font Size" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Font Size Unit" }).textContent,
+    ).toBe("SIZE");
     const input = screen.getByRole("combobox");
     fireEvent.keyDown(input, { key: "ArrowUp" });
     expect(onChange).toHaveBeenLastCalledWith("15px");
@@ -555,7 +611,9 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
       fireEvent.click(screen.getByRole("option", { name: "fill" }));
     });
     expect(onChange).toHaveBeenLastCalledWith("fill");
-    await waitFor(() => expect(input.placeholder === "fill" || input.value === "fill").toBe(true));
+    await waitFor(() =>
+      expect(input.placeholder === "fill" || input.value === "fill").toBe(true),
+    );
     fireEvent.blur(input);
     expect(onChange).toHaveBeenCalledTimes(1);
   });
@@ -579,11 +637,17 @@ describe("PropertyUnitInput labelMode=suffix — suffix 가 단위 메뉴 트리
     expect(screen.queryByRole("button", { name: "Increase Gap" })).toBeNull();
   });
 
-  it("\"fill\" 은 units 에 실린 필드에서만 typed 입력을 받는다", () => {
+  it('"fill" 은 units 에 실린 필드에서만 typed 입력을 받는다', () => {
     const onChange = vi.fn();
     useStore.setState({ selectedElementId: "element-1" } as never);
     render(
-      <PropertyUnitInput label="Left" labelMode="suffix" value="12px" units={["px", "%"]} onChange={onChange} />,
+      <PropertyUnitInput
+        label="Left"
+        labelMode="suffix"
+        value="12px"
+        units={["px", "%"]}
+        onChange={onChange}
+      />,
     );
     const input = screen.getByRole("combobox") as HTMLInputElement;
     fireEvent.focus(input);

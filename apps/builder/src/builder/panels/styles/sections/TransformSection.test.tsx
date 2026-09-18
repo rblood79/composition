@@ -100,7 +100,7 @@ describe("TransformSection sizing controls", () => {
     );
   });
 
-  it("shows fill in the W field while the element fills the flex main axis", () => {
+  it("선택 상태의 suffix는 Fill=fr, Fixed/Fit=px로 표시한다", () => {
     setTestElements([
       {
         id: "button-1",
@@ -117,20 +117,42 @@ describe("TransformSection sizing controls", () => {
     ]);
     render(<TransformSection />);
     const widthGroup = screen.getByRole("group", { name: "Width" });
-    // legend 모드 (Gap 과 같은 어법): legend 「Width」 가 상자 위, 트리거는 크기 방식 「Fill」 (legacy CSS grow 판독)
+    // legend 모드 (Gap 과 같은 어법): legend 「Width」 가 상자 위, 선택 뒤 트리거는 실제 단위 「fr」.
     expect(widthGroup.querySelector("legend")?.textContent).toBe("Width");
     expect(
       within(widthGroup).getByRole("button", { name: /Size mode$/ })
         .textContent,
-    ).toBe("Fill");
+    ).toBe("fr");
     const heightGroup = screen.getByRole("group", { name: "Height" });
     expect(
       within(heightGroup).getByRole("button", { name: /Size mode$/ })
         .textContent,
     ).toBe("px");
+
+    cleanup();
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: { style: { width: "fit-content", height: "100px" } },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+    render(<TransformSection />);
+    expect(
+      within(screen.getByRole("group", { name: "Width" })).getByRole("button", {
+        name: /Size mode$/,
+      }).textContent,
+    ).toBe("px");
   });
 
-  it("offers only axis-relevant viewport units by default", async () => {
+  it("메뉴는 관계 이름만, 선택 상태는 축별 실제 단위를 표시한다", async () => {
     render(<TransformSection />);
 
     const widthGroup = screen.getByRole("group", { name: "Width" });
@@ -141,16 +163,42 @@ describe("TransformSection sizing controls", () => {
 
     const widthListbox = await screen.findByRole("listbox");
     expect(
-      within(widthListbox).getByRole("option", { name: "Viewport (vw)" }),
+      within(widthListbox).getByRole("option", { name: "Parent" }),
     ).not.toBeNull();
     expect(
-      within(widthListbox).queryByRole("option", { name: "Viewport (vh)" }),
-    ).toBeNull();
+      within(widthListbox).getByRole("option", {
+        name: "Viewport",
+      }),
+    ).not.toBeNull();
 
     cleanup();
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: { style: { width: "50%", height: "100vh" } },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
     render(<TransformSection />);
 
+    expect(
+      within(screen.getByRole("group", { name: "Width" })).getByRole("button", {
+        name: /Size mode$/,
+      }).textContent,
+    ).toBe("%");
+
     const heightGroup = screen.getByRole("group", { name: "Height" });
+    expect(
+      within(heightGroup).getByRole("button", { name: /Size mode$/ })
+        .textContent,
+    ).toBe("vh");
     const heightButton = within(heightGroup).getByRole("button", {
       name: /Size mode$/,
     });
@@ -158,11 +206,8 @@ describe("TransformSection sizing controls", () => {
 
     const heightListbox = await screen.findByRole("listbox");
     expect(
-      within(heightListbox).getByRole("option", { name: "Viewport (vh)" }),
+      within(heightListbox).getByRole("option", { name: "Viewport" }),
     ).not.toBeNull();
-    expect(
-      within(heightListbox).queryByRole("option", { name: "Viewport (vw)" }),
-    ).toBeNull();
   });
 
   it("offers only axis-relevant offset units without reset actions", async () => {

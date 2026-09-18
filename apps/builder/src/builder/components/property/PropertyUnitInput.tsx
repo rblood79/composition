@@ -335,6 +335,7 @@ export const PropertyUnitInput = memo(
     const lastSavedValueRef = useRef<string>(value);
     const focusedElementIdRef = useRef<string | null>(null);
     const syncAfterPresetRef = useRef(false);
+    const sizeModeSelectionRef = useRef<string | null>(null);
     const inputElementRef = useRef<HTMLInputElement>(null);
 
     // preview 경로가 elementsMap 을 mutate 하면서 value prop 이 편집값으로 바뀌어도
@@ -371,6 +372,9 @@ export const PropertyUnitInput = memo(
 
     const handleInputChange = (newValue: string) => {
       setInputValue(newValue);
+    };
+    const handleComboBoxTriggerPress = () => {
+      if (sizeControl) sizeModeSelectionRef.current = null;
     };
 
     // ⭐ ComboBox 컨테이너 ref - 내부 포커스 이동 감지용
@@ -697,16 +701,16 @@ export const PropertyUnitInput = memo(
           "styles.transform.sizeMode.fitContent",
           "Fit content",
         ),
-        "%": sizeModeText("styles.transform.sizeMode.parent", "Parent %"),
-        vw: sizeModeText("styles.transform.sizeMode.vw", "Viewport (vw)"),
-        vh: sizeModeText("styles.transform.sizeMode.vh", "Viewport (vh)"),
+        "%": sizeModeText("styles.transform.sizeMode.parent", "Parent"),
+        vw: sizeModeText("styles.transform.sizeMode.vw", "Viewport"),
+        vh: sizeModeText("styles.transform.sizeMode.vh", "Viewport"),
         reset: sizeModeText("styles.transform.sizeMode.reset", "Reset"),
       })[u] ?? u;
     const sizeTrigger =
       sizeControl?.kind === "fill"
-        ? sizeModeText("styles.transform.sizeMode.fill", "Fill")
+        ? "fr"
         : sizeControl?.kind === "fit"
-          ? sizeModeText("styles.transform.sizeMode.fitTrigger", "Fit")
+          ? "px"
           : sizeControl?.kind === "ratio"
             ? sizeModeText(
                 "styles.transform.sizeMode.ratioTrigger",
@@ -756,8 +760,13 @@ export const PropertyUnitInput = memo(
             onSelectionChange={(key) => {
               if (key === null) return;
               if (sizeControl) {
+                const selectedMode = String(key);
+                // RAC는 option 선택 뒤 input Enter에서 같은 mode를 다시 방출할 수 있다. 한 번 연
+                // 메뉴 안의 중복만 막고, trigger를 다시 누른 명시적 재선택은 허용한다.
+                if (sizeModeSelectionRef.current === selectedMode) return;
+                sizeModeSelectionRef.current = selectedMode;
                 syncAfterPresetRef.current = true;
-                sizeControl.onModeChange(String(key));
+                sizeControl.onModeChange(selectedMode);
                 return;
               }
 
@@ -823,7 +832,9 @@ export const PropertyUnitInput = memo(
                 onChange={(e) => handleInputChange(e.target.value)}
                 onFocus={handleInputFocus}
                 onBlur={handleInputBlur}
-                onKeyDown={handleKeyDown}
+                // React Aria ComboBox의 option 선택 key handler보다 먼저 숫자 commit을 확정한다.
+                // bubble 단계만 쓰면 열린 목록의 현재 option(Fixed 등)이 Enter를 선점한다.
+                onKeyDownCapture={handleKeyDown}
                 aria-label={
                   (sizeControl?.kind === "fill" && sizeControl.fraction
                     ? `${displayLabel} 채우기 가중치`
@@ -852,6 +863,7 @@ export const PropertyUnitInput = memo(
                 <Button
                   className="react-aria-Button property-unit-input__suffix property-unit-input__suffix--trigger"
                   isDisabled={sizeControl?.kind === "ratio"}
+                  onPress={handleComboBoxTriggerPress}
                   aria-label={
                     sizeControl
                       ? `${displayLabel} ${sizeModeText("styles.transform.sizeMode.groupBasic", "Size mode")}`
@@ -875,6 +887,7 @@ export const PropertyUnitInput = memo(
                   )}
                   <Button
                     className="react-aria-Button"
+                    onPress={handleComboBoxTriggerPress}
                     aria-label={hasPresets ? presetAriaLabel : undefined}
                   >
                     <ChevronDown size={iconProps.size} />

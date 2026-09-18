@@ -37,7 +37,30 @@ describe("sizeModeResolver axis ownership", () => {
     expect(sizeModeToStyleUpdates(result)).toEqual({
       width: "320px",
       flexGrow: "",
-      flexShrink: "",
+      flexShrink: "0",
+      flexBasis: "",
+    });
+  });
+
+  it("flex 주축의 px와 parent %는 shrink 없이 authored used size를 유지한다", () => {
+    expect(
+      sizeModeToStyleUpdates(
+        resolveSizeMode("fixed", "width", "flex", "row", "200px"),
+      ),
+    ).toEqual({
+      width: "200px",
+      flexShrink: "0",
+      flexGrow: "",
+      flexBasis: "",
+    });
+    expect(
+      sizeModeToStyleUpdates(
+        resolveSizeMode("fixed", "height", "flex", "column", "50%"),
+      ),
+    ).toEqual({
+      height: "50%",
+      flexShrink: "0",
+      flexGrow: "",
       flexBasis: "",
     });
   });
@@ -81,12 +104,28 @@ describe("sizeModeResolver fr (grow ratio)", () => {
   it("fill with a grow ratio writes flexGrow N on the flex main axis", () => {
     expect(
       sizeModeToStyleUpdates(
-        resolveSizeMode("fill", "width", "flex", "row", undefined, undefined, 2),
+        resolveSizeMode(
+          "fill",
+          "width",
+          "flex",
+          "row",
+          undefined,
+          undefined,
+          2,
+        ),
       ),
     ).toEqual({ flexGrow: "2", flexShrink: "1", flexBasis: "0%", width: "" });
     expect(
       sizeModeToStyleUpdates(
-        resolveSizeMode("fill", "height", "flex", "column", undefined, undefined, 3),
+        resolveSizeMode(
+          "fill",
+          "height",
+          "flex",
+          "column",
+          undefined,
+          undefined,
+          3,
+        ),
       ),
     ).toEqual({ flexGrow: "3", flexShrink: "1", flexBasis: "0%", height: "" });
   });
@@ -97,22 +136,45 @@ describe("sizeModeResolver fr (grow ratio)", () => {
     ).toEqual({ flexGrow: "1", flexShrink: "1", flexBasis: "0%", width: "" });
     expect(
       sizeModeToStyleUpdates(
-        resolveSizeMode("fill", "height", "flex", "row", undefined, undefined, 2),
+        resolveSizeMode(
+          "fill",
+          "height",
+          "flex",
+          "row",
+          undefined,
+          undefined,
+          2,
+        ),
       ),
     ).toEqual({ alignSelf: "stretch", height: "" });
   });
 
   it("inferSizeMode reads any positive flexGrow as fill", () => {
-    expect(inferSizeMode({ flexGrow: "2", flexBasis: "0%" }, "width", "flex", "row")).toBe("fill");
-    expect(inferSizeMode({ flexGrow: 3, flexBasis: "0%" }, "height", "flex", "column")).toBe("fill");
-    expect(inferSizeMode({ flexGrow: "0" }, "width", "flex", "row")).toBe("fit");
+    expect(
+      inferSizeMode({ flexGrow: "2", flexBasis: "0%" }, "width", "flex", "row"),
+    ).toBe("fill");
+    expect(
+      inferSizeMode(
+        { flexGrow: 3, flexBasis: "0%" },
+        "height",
+        "flex",
+        "column",
+      ),
+    ).toBe("fill");
+    expect(inferSizeMode({ flexGrow: "0" }, "width", "flex", "row")).toBe(
+      "fit",
+    );
   });
 
   it("inferFillGrow returns the ratio on the flex main axis only", () => {
     expect(inferFillGrow({ flexGrow: "2" }, "width", "flex", "row")).toBe(2);
     expect(inferFillGrow({ flexGrow: "1" }, "width", "flex", "row")).toBe(1);
-    expect(inferFillGrow({ alignSelf: "stretch" }, "height", "flex", "row")).toBeNull();
+    expect(
+      inferFillGrow({ alignSelf: "stretch" }, "height", "flex", "row"),
+    ).toBeNull();
     expect(inferFillGrow({ width: "100%" }, "width", "block")).toBeNull();
-    expect(inferFillGrow({ flexGrow: "2" }, "height", "flex", "row")).toBeNull();
+    expect(
+      inferFillGrow({ flexGrow: "2" }, "height", "flex", "row"),
+    ).toBeNull();
   });
 });
