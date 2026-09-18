@@ -240,6 +240,60 @@ try {
     `body ${layout?.width}×${layout?.height} → 기대 ${layout ? 2048 - layout.width : "?"}/${layout ? 2048 - layout.height : "?"}`,
   );
 
+  // 3) 세로: 페이지(1080)보다 긴 자식 + body padding 24 → 끝까지 스크롤한 Skia 픽셀에서
+  //    자식 아래 24px 띠가 body 배경(흰색)인지 본다. 스크롤은 store scrollBy (StoreRenderBridge 가
+  //    scrollMap 변화를 구독해 재빌드) — Playwright wheel 은 body hit 을 못 잡고 viewport 를 팬했다.
+  //    frame 의 backgroundColor 는 Skia 픽셀에 안 실리므로 (메모리 feedback-…skia-frame-blank)
+  //    긴 자식은 Button 으로 — 프레임은 1×1 로 줄인다.
+  await page.evaluate(
+    (id) =>
+      window.__composition_STORE__.getState().updateElementProps(id, {
+        style: { width: "1px", height: "1px" },
+      }),
+    boxId,
+  );
+  await page.waitForTimeout(600);
+  const tallId = await addFromPalette(page, "Button", bodyId);
+  await page.evaluate(
+    (id) =>
+      window.__composition_STORE__.getState().updateElementProps(id, {
+        style: { width: "600px", height: "1600px", backgroundColor: "#4f7cff" },
+      }),
+    tallId,
+  );
+  await page.waitForTimeout(1200);
+  await page.evaluate(() =>
+    window.__composition_STORE__.getState().setSelectedElement(null),
+  );
+  const tall = await readSkiaScroll(page, bodyId);
+  record(
+    "세로: maxScrollTop = 24 + 1600 + 24 − 1080 (Button 1600 이 body 1080 보다 길다)",
+    !!tall && Math.abs(tall.maxScrollTop - (1648 - layout.height)) <= 1,
+    JSON.stringify(tall) + " kids " + JSON.stringify(await page.evaluate((ids) => ids.map((id) => { const l = window.__composition_LAYOUT_DEBUG__.getSharedLayoutMap().get(id); return l && { y: l.y, h: l.height }; }), [boxId, tallId])),
+  );
+  await page.evaluate((id) => {
+    const st = window.__composition_STORE__.getState();
+    const pp = st.pagePositions?.[st.currentPageId] ?? { x: 0, y: 0 };
+    window.__composition_APPLY_VIEWPORT__?.({
+      scale: 0.5,
+      x: -pp.x * 0.5 + 40,
+      y: -pp.y * 0.5 + 80,
+    });
+    window.__composition_SCROLL_STATE__.getState().scrollBy(id, 0, 1e6);
+  }, bodyId);
+  await page.waitForTimeout(1500);
+  const scrolled = await readSkiaScroll(page, bodyId);
+  const vp = await page.evaluate(() => {
+    const v = window.__composition_VIEWPORT__?.();
+    const r = document.querySelector("canvas").getBoundingClientRect();
+    return { zoom: v?.zoom, pan: v?.panOffset, canvas: { x: r.x, y: r.y, w: r.width, h: r.height } };
+  });
+  log("scrolled", JSON.stringify(scrolled), "viewport", JSON.stringify(vp));
+  const shot = resolve(OUT_DIR, "scrolled-end.png");
+  await page.screenshot({ path: shot });
+  log("screenshot", shot);
+  // 픽셀 판정은 스크린샷 육안 (Skia 캔버스는 페이지 안에서 readback 불가 — preserveDrawingBuffer:false).
+  //   기대: 0.5 배에서 Button 하단과 body 하단 사이 12px 흰 띠 (= padding 24).
   record("page error 0", errors.length === 0, errors.slice(0, 3).join(" | "));
 } catch (e) {
   record("harness", false, String(e?.stack ?? e));
