@@ -180,6 +180,44 @@ function readLayoutPatch(
   };
 }
 
+function parseCssPx(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && /^\s*-?\d+(?:\.\d+)?px\s*$/.test(value)) {
+    return Number.parseFloat(value);
+  }
+  return null;
+}
+
+/** x/y 이동량 — style.patch 는 CSS left/top 과 현재 값의 차, geometry.patch 는 layout 좌표 그대로. */
+function resolveAbsoluteOffsetDelta(
+  descriptor: EditorMutationDescriptor,
+  renderNode: CanvasSceneNode,
+  layoutPatch: LayoutPatch,
+): { dx?: number; dy?: number } | null {
+  if (descriptor.type !== "style.patch") {
+    return {
+      ...(layoutPatch.x !== undefined ? { dx: layoutPatch.x } : {}),
+      ...(layoutPatch.y !== undefined ? { dy: layoutPatch.y } : {}),
+    };
+  }
+  const style = (renderNode.sourceNode?.props?.style ?? {}) as Record<
+    string,
+    unknown
+  >;
+  const result: { dx?: number; dy?: number } = {};
+  if (layoutPatch.x !== undefined) {
+    const current = parseCssPx(style.left);
+    if (current === null) return null;
+    result.dx = layoutPatch.x - current;
+  }
+  if (layoutPatch.y !== undefined) {
+    const current = parseCssPx(style.top);
+    if (current === null) return null;
+    result.dy = layoutPatch.y - current;
+  }
+  return result;
+}
+
 function getAbsolutePosition(node: CanvasSceneNode): boolean {
   const style = node.sourceNode?.props?.style;
   return (
@@ -488,10 +526,21 @@ export class SkiaEditorPresentationLayoutBridge {
       }
       const baseLayout = layoutMap.get(targetId);
       if (!baseLayout) return { ok: false, reason: "layout-missing", rootKey };
+      // style.patch 의 left/top 은 CSS px 다 — layout x/y 는 containing block 원점을 더한 값이라
+      // 현재 CSS left/top 과의 차로 옮긴다 (ADR-224 캔버스 resize 의 absolute left/top 핸들).
+      // 현재 값이 px 가 아니면 (auto) 원점을 모르므로 거부. geometry.patch 는 layout 좌표 그대로.
+      const offsets = resolveAbsoluteOffsetDelta(
+        descriptor,
+        renderNode,
+        layoutPatch,
+      );
+      if (offsets === null) {
+        return { ok: false, reason: "targeted-unsupported", rootKey };
+      }
       const nextLayout = {
         ...baseLayout,
-        ...(layoutPatch.x !== undefined ? { x: layoutPatch.x } : {}),
-        ...(layoutPatch.y !== undefined ? { y: layoutPatch.y } : {}),
+        ...(offsets.dx !== undefined ? { x: baseLayout.x + offsets.dx } : {}),
+        ...(offsets.dy !== undefined ? { y: baseLayout.y + offsets.dy } : {}),
         ...(layoutPatch.width !== undefined
           ? { width: layoutPatch.width }
           : {}),

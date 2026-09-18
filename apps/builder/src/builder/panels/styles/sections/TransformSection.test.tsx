@@ -358,8 +358,20 @@ describe("TransformSection sizing controls", () => {
 
     expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(
       expect.objectContaining({ selectedElementId: "button-1" }),
-      { position: "absolute", left: "60px", top: "45px" },
+      expect.any(Function),
     );
+    // 요소마다 자기 부모·scene bounds 로 inset (다중 선택에서 리더 inset 을 전부에 쓰지 않는다)
+    const stylesFor = (
+      applyAbsoluteFromSelection.mock.calls as unknown as [
+        unknown,
+        (id: string) => Record<string, string>,
+      ][]
+    )[0][1];
+    expect(stylesFor("button-1")).toEqual({
+      position: "absolute",
+      left: "60px",
+      top: "45px",
+    });
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
@@ -423,11 +435,14 @@ describe("TransformSection sizing controls", () => {
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(expect.anything(), {
-      position: "absolute",
-      left: "38px",
-      top: "31px",
-    });
+    expect(
+      (
+        applyAbsoluteFromSelection.mock.calls as unknown as [
+          unknown,
+          (id: string) => Record<string, string>,
+        ][]
+      )[0][1]("button-1"),
+    ).toEqual({ position: "absolute", left: "38px", top: "31px" });
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
@@ -446,9 +461,14 @@ describe("TransformSection sizing controls", () => {
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(expect.anything(), {
-      position: "absolute",
-    });
+    expect(
+      (
+        applyAbsoluteFromSelection.mock.calls as unknown as [
+          unknown,
+          (id: string) => Record<string, string>,
+        ][]
+      )[0][1]("button-1"),
+    ).toEqual({ position: "absolute" });
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
@@ -481,9 +501,14 @@ describe("TransformSection sizing controls", () => {
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(expect.anything(), {
-      position: "absolute",
-    });
+    expect(
+      (
+        applyAbsoluteFromSelection.mock.calls as unknown as [
+          unknown,
+          (id: string) => Record<string, string>,
+        ][]
+      )[0][1]("button-1"),
+    ).toEqual({ position: "absolute" });
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",

@@ -115,4 +115,53 @@ describe("ADR-224 캔버스 resize 기하 — 핸들이 닿는 축만, Ratio 는
       }),
     ).toEqual({ height: 250 });
   });
+
+  it("absolute: left/top handles move left/top so the opposite edge stays fixed", () => {
+    const position = { left: 20, top: 10 };
+    expect(
+      resolveResizeRequest({
+        handle: "middle-left",
+        startBounds: start,
+        dx: 50,
+        dy: 0,
+        lock: null,
+        position,
+      }),
+    ).toEqual({ width: 350, left: 70 });
+    expect(
+      resolveResizeRequest({
+        handle: "top-left",
+        startBounds: start,
+        dx: -10,
+        dy: 30,
+        lock: null,
+        position,
+      }),
+    ).toEqual({ width: 410, height: 210, left: 10, top: 40 });
+    // 오른쪽/아래 핸들은 위치를 건드리지 않는다
+    expect(
+      resolveResizeRequest({
+        handle: "bottom-right",
+        startBounds: start,
+        dx: 10,
+        dy: 10,
+        lock: null,
+        position,
+      }),
+    ).toEqual({ width: 410, height: 250 });
+  });
+
+  it("absolute + ratio lock: top handle moves top by the ratio-derived height change", () => {
+    // driver width, ratio 2 → 위 엣지 −40 (H 280) → W 560, H 결과 280 → top −40
+    expect(
+      resolveResizeRequest({
+        handle: "top-center",
+        startBounds: start,
+        dx: 0,
+        dy: -40,
+        lock: { driver: "width", ratio: 2 },
+        position: { left: 0, top: 100 },
+      }),
+    ).toEqual({ width: 560, top: 60 });
+  });
 });

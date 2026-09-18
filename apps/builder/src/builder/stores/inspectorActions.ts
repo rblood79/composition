@@ -615,11 +615,12 @@ export interface InspectorActionsState {
   /**
    * ADR-224 §6.1 Flow→Absolute 복합 명령: position/inset 쓰기 + 절대 위치에서 무효가 되는 Fill
    * 축만 변경 전 used px 로 Fixed (marker 해제) + 형제 맨 앞으로 — 한 transaction·Undo 1회.
-   * `positionStyles` 는 패널이 scene bounds 로 계산한 `position`(+`left`/`top`).
+   * `positionStylesFor(id)` 는 패널이 요소마다 자기 부모·scene bounds 로 계산한 `position`(+`left`/`top`)
+   * — 다중 선택에서 리더의 inset 을 전부에 쓰지 않는다.
    */
   applyAbsoluteFromSelection: (
     snapshot: ImmediateSelectionSnapshot,
-    positionStyles: Record<string, string>,
+    positionStylesFor: (elementId: string) => Record<string, string>,
   ) => RatioEditError | null;
   /**
    * ADR-224 breakdown §4.3 · §5 — 캔버스 핸들 resize 의 commit. 요청 축마다 Size 메뉴 Fixed 와
@@ -1284,7 +1285,7 @@ export const createInspectorActionsSlice: StateCreator<
       return null;
     },
 
-    applyAbsoluteFromSelection: (snapshot, positionStyles) => {
+    applyAbsoluteFromSelection: (snapshot, positionStylesFor) => {
       const state = get();
       const id = snapshot.selectedElementId;
       if (
@@ -1329,7 +1330,7 @@ export const createInspectorActionsSlice: StateCreator<
           id: targetId,
           updates: buildAbsoluteActivationEdit(
             source,
-            positionStyles,
+            positionStylesFor(targetId),
             state.activeBreakpoint,
             fixes,
           ),

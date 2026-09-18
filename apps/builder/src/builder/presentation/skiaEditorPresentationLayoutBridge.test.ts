@@ -43,10 +43,13 @@ function makeNode(
   parentId: string | null,
   position?: string,
 ): CanvasSceneNode {
+  // ADR-224: style.patch 의 left/top 은 CSS px 라 bridge 가 현재 left/top 과의 차로 옮긴다 —
+  // absolute fixture 는 base layout (10, 20) 과 같은 left/top 을 갖는다 (containing block 원점 0).
+  const style = position ? { position, left: "10px", top: "20px" } : {};
   const sourceNode = {
     id,
     type: id === "layout-body" ? "body" : "Box",
-    props: { style: position ? { position } : {} },
+    props: { style },
   } as never;
   return {
     id,
@@ -55,7 +58,7 @@ function makeNode(
     parent_id: parentId,
     parentId,
     pageId: "page-1",
-    props: { style: position ? { position } : {} },
+    props: { style },
     sourceNode,
   } as unknown as CanvasSceneNode;
 }

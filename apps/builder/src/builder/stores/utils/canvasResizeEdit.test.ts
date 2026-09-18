@@ -81,6 +81,49 @@ describe("ADR-224 캔버스 resize — marker 축만 Fill 해제 + CSS px", () =
     expect(result?.responsive?.styles?.width).toEqual({ mobile: "320px" });
   });
 
+  it("writes absolute left/top through the same tier routing", () => {
+    const element = make({
+      props: {
+        style: {
+          position: "absolute",
+          left: "0px",
+          top: "0px",
+          width: "591.33px",
+        },
+      },
+    });
+    const result = buildCanvasResizeEdit(
+      element,
+      element,
+      { width: 541, left: 50.333 },
+      { display: "flex", flexDirection: "row" },
+      "desktop",
+    );
+    expect(result?.props?.style).toEqual({
+      position: "absolute",
+      left: "50.33px",
+      top: "0px",
+      width: "541px",
+    });
+    const tiered = make({
+      props: { style: { position: "absolute", left: "0px", top: "0px" } },
+      responsive: {
+        styles: { left: { mobile: "5px" } } as never,
+      },
+    });
+    const mobile = buildCanvasResizeEdit(
+      tiered,
+      tiered,
+      { left: -12 },
+      row,
+      "mobile",
+    );
+    expect(
+      (mobile?.responsive?.styles as Record<string, unknown> | undefined)?.left,
+    ).toEqual({ mobile: "-12px" });
+    expect(mobile?.props).toBeUndefined();
+  });
+
   it("rejects a negative or non-finite px", () => {
     const element = make();
     expect(

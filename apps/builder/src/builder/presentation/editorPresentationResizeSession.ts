@@ -34,6 +34,9 @@ export const RESIZE_COMMIT_INTENT = "style-layout-size-resize";
 export interface ResizeSessionSize {
   readonly width?: number;
   readonly height?: number;
+  /** absolute 요소의 CSS left/top px — bridge 가 현재 left/top 과의 차로 layout x/y 를 옮긴다 */
+  readonly left?: number;
+  readonly top?: number;
 }
 
 export interface ResizeSessionBeginInput {
@@ -41,23 +44,28 @@ export interface ResizeSessionBeginInput {
   readonly projectId: string;
   readonly ownerId: string;
   readonly runtime: EditorPresentationTransactionRuntime;
-  /** 시작 used border-box (scene px) — 같은 값이면 finish 는 no-op */
-  readonly startSize: { readonly width: number; readonly height: number };
+  /** 시작 used border-box (scene px) + absolute 면 시작 CSS left/top — 같은 값이면 finish 는 no-op */
+  readonly startSize: ResizeSessionSize;
   /** 요청 축의 Fill 파생 CSS 제거 키 (값 "") — `resolveFillReleasePatch` */
   readonly releasePatch: Readonly<Record<string, "">>;
 }
 
 export type ResizeSessionPhase = "active" | "finalizing" | "closed";
 
+const SIZE_KEYS = ["width", "height", "left", "top"] as const;
+
 function sizeEqual(
-  left: ResizeSessionSize | null,
-  start: { width: number; height: number },
+  requested: ResizeSessionSize | null,
+  start: ResizeSessionSize,
 ): boolean {
-  if (!left) return true;
-  return (
-    (left.width === undefined || left.width === start.width) &&
-    (left.height === undefined || left.height === start.height)
+  if (!requested) return true;
+  return SIZE_KEYS.every(
+    (key) => requested[key] === undefined || requested[key] === start[key],
   );
+}
+
+function sameRequest(a: ResizeSessionSize, b: ResizeSessionSize): boolean {
+  return SIZE_KEYS.every((key) => a[key] === b[key]);
 }
 
 export class ResizePresentationSession {
@@ -66,7 +74,7 @@ export class ResizePresentationSession {
 
   #handle: EditorPresentationHandle;
   #phase: ResizeSessionPhase = "active";
-  #startSize: { width: number; height: number };
+  #startSize: ResizeSessionSize;
   #releasePatch: Readonly<Record<string, "">>;
   #requested: ResizeSessionSize | null = null;
   #lastReject: PresentationLayoutReceipt | null = null;
@@ -114,17 +122,13 @@ export class ResizePresentationSession {
   /** 프레임당 요청 크기 — 같은 값이면 publish 하지 않는다. */
   setSize(size: ResizeSessionSize): boolean {
     if (this.#phase !== "active") return false;
-    for (const value of [size.width, size.height]) {
-      if (value !== undefined && (!Number.isFinite(value) || value < 0))
-        return false;
+    for (const key of SIZE_KEYS) {
+      const value = size[key];
+      if (value === undefined) continue;
+      if (!Number.isFinite(value)) return false;
+      if ((key === "width" || key === "height") && value < 0) return false;
     }
-    if (
-      this.#requested &&
-      this.#requested.width === size.width &&
-      this.#requested.height === size.height
-    ) {
-      return true;
-    }
+    if (this.#requested && sameRequest(this.#requested, size)) return true;
     this.#requested = { ...size };
     const descriptor: EditorMutationDescriptor = {
       patch: { ...this.#releasePatch, ...size },
@@ -179,15 +183,16 @@ export class ResizePresentationSession {
 
 // ─── runtime commit (editorPresentationCanonicalRuntimeOptions 가 intent 로 분기) ──────
 
-function readPx(value: unknown): number | undefined {
+function readPx(value: unknown, allowNegative = false): number | undefined {
   if (value === undefined) return undefined;
-  if (typeof value === "number" && Number.isFinite(value) && value >= 0)
-    return value;
-  if (typeof value === "string") {
-    const parsed = Number.parseFloat(value);
-    if (/^\s*\d+(?:\.\d+)?px\s*$/.test(value) && parsed >= 0) return parsed;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (allowNegative || value >= 0) return value;
   }
-  throw new Error("ADR-224 resize commit expects non-negative px sizes");
+  if (typeof value === "string" && /^\s*-?\d+(?:\.\d+)?px\s*$/.test(value)) {
+    const parsed = Number.parseFloat(value);
+    if (allowNegative || parsed >= 0) return parsed;
+  }
+  throw new Error("ADR-224 resize commit expects px sizes (width/height ≥ 0)");
 }
 
 export function commitCanvasResizePresentation(
@@ -216,6 +221,8 @@ export function commitCanvasResizePresentation(
     .applyCanvasResize(descriptor.target.nodeId, {
       width: readPx(descriptor.patch.width),
       height: readPx(descriptor.patch.height),
+      left: readPx(descriptor.patch.left, true),
+      top: readPx(descriptor.patch.top, true),
     });
   if (error) throw new Error(`ADR-224 resize commit failed: ${error}`);
   return {

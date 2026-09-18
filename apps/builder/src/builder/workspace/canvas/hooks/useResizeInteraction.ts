@@ -23,6 +23,7 @@ import {
   resolveResizeAxes,
   resolveResizeRequest,
   type ResizeRatioLockInput,
+  type ResizeStartPosition,
 } from "../interaction/resizeGeometry";
 import {
   resolveFillReleasePatch,
@@ -49,7 +50,28 @@ interface ResizeDragState {
   readonly startClientY: number;
   readonly startZoom: number;
   readonly lock: ResizeRatioLockInput | null;
+  /** absolute 요소의 시작 CSS left/top (px) — left/top 핸들이 위치도 옮긴다. 흐름 요소는 null */
+  readonly position: ResizeStartPosition | null;
   dragging: boolean;
+}
+
+function parseCssPx(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && /^\s*-?\d+(?:\.\d+)?px\s*$/.test(value)) {
+    return Number.parseFloat(value);
+  }
+  return null;
+}
+
+/** absolute + px left/top 일 때만 위치 이동 — auto 면 containing block 원점을 모르니 크기만 */
+function resolveStartPosition(
+  style: Record<string, unknown>,
+): ResizeStartPosition | null {
+  if (style.position !== "absolute") return null;
+  const left = parseCssPx(style.left);
+  const top = parseCssPx(style.top);
+  if (left === null || top === null) return null;
+  return { left, top };
 }
 
 interface UseResizeInteractionOptions {
@@ -132,6 +154,7 @@ export function useResizeInteraction({
           dx: dxClient / drag.startZoom,
           dy: dyClient / drag.startZoom,
           lock: drag.lock,
+          position: drag.position,
         }),
       );
     };
@@ -218,6 +241,7 @@ export function useResizeInteraction({
           ),
         );
       }
+      const position = resolveStartPosition(sizing.effectiveStyle);
       const zoom = useViewportSyncStore.getState().zoom;
       let session: ResizePresentationSession;
       try {
@@ -226,7 +250,11 @@ export function useResizeInteraction({
           projectId,
           ownerId: ownerIdRef.current,
           runtime: editorPresentationFillPilotRuntime,
-          startSize: { width: bounds.width, height: bounds.height },
+          startSize: {
+            width: bounds.width,
+            height: bounds.height,
+            ...(position ?? {}),
+          },
           releasePatch,
         });
       } catch {
@@ -243,6 +271,7 @@ export function useResizeInteraction({
         startClientY: event.clientY,
         startZoom: zoom === 0 ? 1 : zoom,
         lock,
+        position,
         dragging: false,
       };
       const container = containerRef.current;

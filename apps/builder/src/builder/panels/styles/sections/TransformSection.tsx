@@ -375,11 +375,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
   // ADR-224 §6.1 — Flow→Absolute 는 store 복합 명령 (position/inset + 무효 Fill 의 used px
   // Fixed + 형제 맨 앞, 한 transaction). 오류 코드는 Ratio 와 같은 표로 표시한다.
   const commitAbsoluteActivation = useCallback(
-    (styles: Record<string, string>) => {
+    (stylesFor: (elementId: string) => Record<string, string>) => {
       const snapshot = readImmediateSelectionSnapshot();
       if (snapshot.selectedElementId !== selectedId) return;
       setSizingError(
-        useStore.getState().applyAbsoluteFromSelection(snapshot, styles),
+        useStore.getState().applyAbsoluteFromSelection(snapshot, stylesFor),
       );
     },
     [selectedId],
@@ -391,39 +391,47 @@ const TransformSectionContent = memo(function TransformSectionContent({
         updateStyleImmediate("position", "");
         return;
       }
-
-      const isFlexParent =
-        parentDisplay === "flex" || parentDisplay === "inline-flex";
-      if (isFlexParent) {
+      // 다중 선택은 요소마다 자기 부모·자기 scene bounds 로 inset 을 계산한다 — 리더의 left/top 을
+      // 전부에 쓰면 형제가 리더 위로 겹친다 (live 2026-09-18). 부모가 flex 가 아니거나 bounds 가
+      // 없으면 position 만.
+      commitAbsoluteActivation((elementId) => {
         const state = useStore.getState();
-        const elementId = state.selectedElementId;
-        const element = elementId
-          ? state.elementsMap.get(elementId)
-          : undefined;
+        const element = state.elementsMap.get(elementId);
         const parentId = element?.parent_id;
-        if (elementId && parentId) {
-          const parent = state.elementsMap.get(parentId);
-          const parentBounds = getSceneBounds(parentId);
-          const activationStyles = resolveAbsolutePositionActivationStyles(
+        const parent = parentId ? state.elementsMap.get(parentId) : undefined;
+        if (!parent || !parentId) return { position: "absolute" };
+        const parentStyle = resolveResponsiveStyleMap(
+          (parent.props?.style ?? {}) as Record<string, unknown>,
+          parent.responsive,
+          state.activeBreakpoint,
+        );
+        const display = String(
+          parentStyle.display ??
+            resolveContainerStylesFallback(
+              parent.type.toLowerCase(),
+              parentStyle,
+            ).display ??
+            "",
+        );
+        if (display !== "flex" && display !== "inline-flex") {
+          return { position: "absolute" };
+        }
+        const parentBounds = getSceneBounds(parentId);
+        return (
+          resolveAbsolutePositionActivationStyles(
             getSceneBounds(elementId),
-            parent && parentBounds
+            parentBounds
               ? resolveAbsoluteContainingBlockBounds(
                   parent,
                   parentBounds,
                   state.activeBreakpoint,
                 )
               : parentBounds,
-          );
-          if (activationStyles) {
-            commitAbsoluteActivation(activationStyles);
-            return;
-          }
-        }
-      }
-
-      commitAbsoluteActivation({ position: "absolute" });
+          ) ?? { position: "absolute" }
+        );
+      });
     },
-    [commitAbsoluteActivation, parentDisplay, updateStyleImmediate],
+    [commitAbsoluteActivation, updateStyleImmediate],
   );
 
   // Min/Max 4 필드 펼침 — 토글 on 이거나 값이 하나라도 있으면 보인다 (Border 코너 토글과 같은 규칙,

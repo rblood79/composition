@@ -692,6 +692,59 @@ try {
       pass: undone2.node.sizing?.width?.factor === 2 && undone2.node.style.width === undefined &&
         undone2.node.style.height === "auto" && parity(undone2),
       detail: undone2 });
+    // ── absolute 요소의 left/top 핸들 — 반대 변 고정 (`--resize-abs`) ──
+    if (process.argv.includes("--resize-abs")) {
+      // 잠금 해제 상태에서 Absolute on (a: Width Fill 2 → used px · left/top 0)
+      await page.keyboard.press("Meta+z"); // Ratio lock 해제
+      await page.waitForTimeout(800);
+      const positionSection = styles.locator('[data-section-id="position"]');
+      const header = positionSection.locator(".section-header button[aria-expanded]").first();
+      if ((await header.getAttribute("aria-expanded")) !== "true") {
+        await header.click();
+        await page.waitForTimeout(400);
+      }
+      await positionSection.locator(".actions-position button").click();
+      const absOn = await measure("Absolute on (resize-abs)");
+      const dragL = await dragHandle("middle-left", 50, 0);
+      const wL = Math.round(absOn.canvas.width - 50 / zoom);
+      const leftL = Math.round((parseFloat(absOn.node.style.left) + (absOn.canvas.width - wL)) * 100) / 100;
+      const afterL = await measure("absolute 좌측 엣지 +50px", dragL);
+      checks.push({ name: "absolute 좌측 엣지: width 줄고 left 이동 (우측 변 고정) · 드래그 중 x 도 이동",
+        pass: afterL.history === absOn.history + 1 &&
+          afterL.node.style.width === `${wL}px` && afterL.node.style.left === `${leftL}px` &&
+          Math.abs(afterL.canvas.x - (absOn.canvas.x + (absOn.canvas.width - wL))) <= 0.01 &&
+          Math.abs(afterL.canvas.x + afterL.canvas.width - (absOn.canvas.x + absOn.canvas.width)) <= 0.01 &&
+          Math.abs(dragL.midCanvas.width - wL) <= 0.01 &&
+          Math.abs(afterL.dom.width - afterL.canvas.width) <= 1,
+        detail: { absOn, afterL, wL, leftL } });
+      const dragTL = await dragHandle("top-left", -30, -20);
+      const wTL = Math.round(afterL.canvas.width + 30 / zoom);
+      const hTL = Math.round(afterL.canvas.height + 20 / zoom);
+      const afterTL = await measure("absolute 좌상 코너 −30/−20", dragTL);
+      checks.push({ name: "absolute 좌상 코너: 두 축 + left/top 이동 (우하 변 고정)",
+        pass: afterTL.history === afterL.history + 1 &&
+          afterTL.node.style.width === `${wTL}px` && afterTL.node.style.height === `${hTL}px` &&
+          Math.abs(parseFloat(afterTL.node.style.left) - (leftL - (wTL - wL))) <= 0.01 &&
+          Math.abs(parseFloat(afterTL.node.style.top) - (parseFloat(afterL.node.style.top) - (hTL - afterL.canvas.height))) <= 0.01 &&
+          Math.abs(afterTL.canvas.x + afterTL.canvas.width - (afterL.canvas.x + afterL.canvas.width)) <= 0.01 &&
+          Math.abs(afterTL.canvas.y + afterTL.canvas.height - (afterL.canvas.y + afterL.canvas.height)) <= 0.01 &&
+          Math.abs(afterTL.dom.width - afterTL.canvas.width) <= 1 &&
+          Math.abs(afterTL.dom.height - afterTL.canvas.height) <= 1,
+        detail: { afterL, afterTL, wTL, hTL } });
+      await page.keyboard.press("Meta+z");
+      await page.keyboard.press("Meta+z");
+      await page.waitForTimeout(1000);
+      const absUndone = await measure("absolute resize Undo ×2");
+      checks.push({ name: "absolute resize Undo ×2 = Absolute on 직후 상태",
+        pass: absUndone.node.style.width === absOn.node.style.width &&
+          absUndone.node.style.left === absOn.node.style.left && absUndone.node.style.top === absOn.node.style.top &&
+          absUndone.node.style.height === absOn.node.style.height,
+        detail: absUndone });
+      await page.keyboard.press("Meta+z"); // Absolute off
+      await page.waitForTimeout(800);
+      await styles.locator(".actions-ratio button").click(); // Ratio lock 복원 (다음 단계 전제)
+      await page.waitForTimeout(1000);
+    }
     // 클릭 (임계값 미만) 은 저장 0
     await focusElement(a, "middle-right");
     const tapFrom = await handlePoint(a, "middle-right");
@@ -704,6 +757,89 @@ try {
     checks.push({ name: "핸들 클릭 (임계값 미만) 저장 0",
       pass: tapped.history === undone2.history && tapped.node.style.width === undefined,
       detail: tapped });
+  }
+  // ── ADR-224 다중 선택 Ratio/Absolute gate (G1/G4) — a+b 동시 선택으로 실제 패널 명령 (`--multi`) ──
+  // a = Width Fill 2 · b = Width Fill 1 (Row 900×240). Ratio lock → 각자 own used 비율 · history +1 →
+  // Undo 1회 → Absolute on → 각자 own used px · own left · history +1 → Undo 1회.
+  const multi = [];
+  if (process.argv.includes("--multi")) {
+    await page.evaluate(({ parent, ids }) => {
+      const st = window.__composition_STORE__.getState();
+      const p = st.elements.find((e) => e.id === parent);
+      st.updateElementProps(parent, { style: { ...p.props.style, flexDirection: "row" } });
+      ids.forEach((id, i) => {
+        const e = st.elements.find((n) => n.id === id);
+        st.updateElement(id, { responsive: undefined, sizing: { width: { factor: 2 - i } },
+          props: { ...e.props, style: {} } });
+      });
+    }, { parent, ids: [a, b] });
+    await page.waitForTimeout(1000);
+    await page.evaluate((ids) => window.__composition_STORE__.getState().setSelectedElements(ids), [a, b]);
+    await page.waitForTimeout(800);
+    const styles = page.locator('[data-panel-id="styles"]');
+    const readNode = (id) => page.evaluate((elementId) => {
+      const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
+      return { style: e?.props?.style, sizing: e?.sizing, responsive: e?.responsive };
+    }, id);
+    const measure = async (name) => {
+      await page.waitForTimeout(1200);
+      const nodes = [await readNode(a), await readNode(b)];
+      const dom = await readDom();
+      const canvas = [await readLayout(page, a), await readLayout(page, b)];
+      const error = await styles.locator(".transform-ratio-error").count();
+      const history = await historyCount(page);
+      const selected = await page.evaluate(() => window.__composition_STORE__.getState().selectedElementIds);
+      const detail = { nodes, dom, canvas, error, history, selected };
+      multi.push({ name, ...detail });
+      return detail;
+    };
+    const parity = (d) => [0, 1].every((i) => Math.abs(d.dom[i].width - d.canvas[i].width) <= 1 &&
+      Math.abs(d.dom[i].height - d.canvas[i].height) <= 1);
+    const before = await measure("before (a Fill 2 · b Fill 1, 둘 선택)");
+    const lock = styles.locator(".actions-ratio button");
+    await lock.click();
+    const locked = await measure("multi Ratio lock");
+    const ratioOf = (n) => String(n.style.aspectRatio ?? "");
+    checks.push({ name: "multi Ratio lock: 둘 다 own used 비율 · height auto · history +1",
+      pass: !locked.error && locked.history === before.history + 1 &&
+        ratioOf(locked.nodes[0]) === `${Math.round(before.canvas[0].width * 100) / 100} / 240` &&
+        ratioOf(locked.nodes[1]) === `${Math.round(before.canvas[1].width * 100) / 100} / 240` &&
+        locked.nodes.every((n) => n.style.height === "auto" && n.sizing?.height === null) &&
+        locked.nodes[0].sizing?.width?.factor === 2 && locked.nodes[1].sizing?.width?.factor === 1 &&
+        parity(locked),
+      detail: { before, locked } });
+    await page.keyboard.press("Meta+z");
+    const unlocked = await measure("multi Ratio Undo 1회");
+    checks.push({ name: "multi Ratio Undo 1회: 둘 다 복원",
+      pass: unlocked.history === before.history &&
+        unlocked.nodes.every((n) => n.style.aspectRatio === undefined && n.style.height === undefined) &&
+        parity(unlocked),
+      detail: unlocked });
+    const positionSection = styles.locator('[data-section-id="position"]');
+    const header = positionSection.locator(".section-header button[aria-expanded]").first();
+    if ((await header.getAttribute("aria-expanded")) !== "true") {
+      await header.click();
+      await page.waitForTimeout(400);
+    }
+    await positionSection.locator(".actions-position button").click();
+    const abs = await measure("multi Absolute on");
+    checks.push({ name: "multi Absolute on: 둘 다 own used px · own left · marker null · history +1",
+      pass: !abs.error && abs.history === before.history + 1 &&
+        abs.nodes.every((n) => n.style.position === "absolute" && n.sizing?.width === null) &&
+        Math.abs(parseFloat(abs.nodes[0].style.width) - before.canvas[0].width) <= 0.01 &&
+        Math.abs(parseFloat(abs.nodes[1].style.width) - before.canvas[1].width) <= 0.01 &&
+        Math.abs(parseFloat(abs.nodes[0].style.left) - before.canvas[0].x) <= 0.01 &&
+        Math.abs(parseFloat(abs.nodes[1].style.left) - before.canvas[1].x) <= 0.01 &&
+        Math.abs(abs.canvas[1].x - before.canvas[1].x) <= 0.01 && parity(abs),
+      detail: { before, abs } });
+    await page.keyboard.press("Meta+z");
+    const absUndone = await measure("multi Absolute Undo 1회");
+    checks.push({ name: "multi Absolute Undo 1회: 둘 다 Fill 복원",
+      pass: absUndone.history === before.history &&
+        absUndone.nodes[0].sizing?.width?.factor === 2 && absUndone.nodes[1].sizing?.width?.factor === 1 &&
+        absUndone.nodes.every((n) => n.style.position === undefined && n.style.width === undefined) &&
+        parity(absUndone),
+      detail: absUndone });
   }
   console.log(
     "PARITY_CONTROL",
@@ -739,6 +875,7 @@ try {
     ratioUi,
     absolute,
     resize,
+    multi,
     checks,
     errors,
   };

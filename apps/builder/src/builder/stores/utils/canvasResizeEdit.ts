@@ -10,6 +10,10 @@ import {
 import type { Element } from "../../../types/core/store.types";
 import { parseAspectRatio } from "../../utils/aspectRatio";
 import { buildSizingEdit } from "./sizingEdit";
+import {
+  buildResponsiveStyleOverride,
+  shouldWriteBreakpointOverride,
+} from "./responsiveWriteRouting";
 import { inferSizeMode, resolveSizeMode } from "./sizeModeResolver";
 
 /**
@@ -23,6 +27,9 @@ import { inferSizeMode, resolveSizeMode } from "./sizeModeResolver";
 export interface CanvasResizeRequest {
   width?: number;
   height?: number;
+  /** absolute 요소의 left/top 핸들 — CSS px (기존 write 라우팅으로 저장) */
+  left?: number;
+  top?: number;
 }
 
 export interface ResizeRatioLock {
@@ -116,6 +123,32 @@ export function buildCanvasResizeEdit(
     if (!updates) return null;
     current = { ...current, ...updates } as Element;
     merged = { ...merged, ...updates };
+  }
+  for (const key of ["left", "top"] as const) {
+    const px = request[key];
+    if (px === undefined) continue;
+    if (!Number.isFinite(px)) return null;
+    const value = `${roundCssPx(px)}px`;
+    if (shouldWriteBreakpointOverride(current.responsive, key, breakpoint)) {
+      const responsive = buildResponsiveStyleOverride(
+        current.responsive,
+        key,
+        value,
+        breakpoint,
+      );
+      current = { ...current, responsive };
+      merged = { ...merged, responsive };
+    } else {
+      const props = {
+        ...current.props,
+        style: {
+          ...((current.props.style ?? {}) as Record<string, unknown>),
+          [key]: value,
+        },
+      };
+      current = { ...current, props };
+      merged = { ...merged, props };
+    }
   }
   return merged;
 }
