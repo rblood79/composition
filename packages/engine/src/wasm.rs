@@ -171,6 +171,12 @@ impl LayoutEngine {
 
     // ── 레이아웃 계산/수집 ──
 
+    /// vw/vh 기준 viewport (border-box page 크기 = breakpoint). 미호출 시 1920×1080.
+    #[wasm_bindgen(js_name = setViewport)]
+    pub fn set_viewport(&mut self, width: f32, height: f32) {
+        self.tree.set_viewport(width, height);
+    }
+
     /// `root` 를 뿌리로 트리 레이아웃 계산.
     #[wasm_bindgen(js_name = computeLayout)]
     pub fn compute_layout(&mut self, root: usize, avail_w: f32, avail_h: f32) {

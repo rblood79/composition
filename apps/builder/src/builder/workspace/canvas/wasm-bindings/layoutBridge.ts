@@ -41,6 +41,8 @@ export interface LayoutEngineAPI {
   removeNode(handle: number): void;
 
   // ── 레이아웃 계산/수집 ──
+  /** vw/vh 기준 viewport (border-box page 크기 = breakpoint). 미호출 시 엔진 기본 1920×1080. */
+  setViewport(width: number, height: number): void;
   computeLayout(root: number, availW: number, availH: number): void;
   getLayoutsBatch(handles: number[]): Map<number, LayoutResult>;
 

@@ -108,6 +108,33 @@ export interface ParsedBorder {
 const DEFAULT_VIEWPORT_WIDTH = 1920;
 /** 기본 뷰포트 높이 */
 const DEFAULT_VIEWPORT_HEIGHT = 1080;
+
+/**
+ * 레이아웃 run 의 vw/vh 기준 viewport (border-box page 크기 = breakpoint).
+ *
+ * ctx 에 viewportWidth/Height 가 없을 때의 폴백. `calculateFullTreeLayout` 이 run 시작 시
+ * `setLayoutViewport` 로 page 크기를 넣고, 엔진에도 같은 값을 `setViewport` 로 넘긴다.
+ * **Why**: Preview iframe 은 breakpoint 폭 안에 있어 `50vw` 가 breakpoint 기준으로 풀리는데,
+ * Canvas 쪽 TS 선해석 (applyCommonEngineStyle → parseCSSPropWithContext) 과 엔진 모두
+ * 상수 1920×1080 을 써 390 breakpoint 에서 195 vs 960 으로 갈렸다 (2026-09-19). parse 호출처
+ * 14곳이 viewport 인자를 안 넘기므로 run 단위 폴백 하나로 채운다.
+ */
+let layoutViewportWidth: number | undefined;
+let layoutViewportHeight: number | undefined;
+
+export function setLayoutViewport(
+  viewport: { width: number; height: number } | null,
+): void {
+  layoutViewportWidth = viewport?.width;
+  layoutViewportHeight = viewport?.height;
+}
+
+export function getLayoutViewport(): { width: number; height: number } {
+  return {
+    width: layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH,
+    height: layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT,
+  };
+}
 /** 기본 루트 폰트 크기 */
 const DEFAULT_ROOT_FONT_SIZE = 16;
 
@@ -393,7 +420,7 @@ function resolveUnitValue(
   if (trimmed.endsWith('vh')) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vh = ctx.viewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
+    const vh = ctx.viewportHeight ?? layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
     return (num / 100) * vh;
   }
 
@@ -401,7 +428,7 @@ function resolveUnitValue(
   if (trimmed.endsWith('vw')) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vw = ctx.viewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
+    const vw = ctx.viewportWidth ?? layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
     return (num / 100) * vw;
   }
 
@@ -409,8 +436,8 @@ function resolveUnitValue(
   if (trimmed.endsWith('vmin')) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vw = ctx.viewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
-    const vh = ctx.viewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
+    const vw = ctx.viewportWidth ?? layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
+    const vh = ctx.viewportHeight ?? layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
     return (num / 100) * Math.min(vw, vh);
   }
 
@@ -418,8 +445,8 @@ function resolveUnitValue(
   if (trimmed.endsWith('vmax')) {
     const num = parseFloat(trimmed);
     if (isNaN(num)) return undefined;
-    const vw = ctx.viewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
-    const vh = ctx.viewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
+    const vw = ctx.viewportWidth ?? layoutViewportWidth ?? DEFAULT_VIEWPORT_WIDTH;
+    const vh = ctx.viewportHeight ?? layoutViewportHeight ?? DEFAULT_VIEWPORT_HEIGHT;
     return (num / 100) * Math.max(vw, vh);
   }
 

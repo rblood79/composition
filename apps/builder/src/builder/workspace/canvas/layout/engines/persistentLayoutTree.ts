@@ -387,6 +387,14 @@ export class PersistentLayoutTree {
   }
 
   /**
+   * vw/vh 기준 viewport (border-box page 크기 = breakpoint). 엔진이 값 변화를 감지해
+   * 다음 computeLayout 의 증분 skip 을 무효화한다.
+   */
+  setViewport(width: number, height: number): void {
+    this.engine.setViewport(width, height);
+  }
+
+  /**
    * 전체 노드 레이아웃 결과를 일괄 수집.
    *
    * handleMap의 모든 handle에 대해 getLayoutsBatch()를 호출한다.

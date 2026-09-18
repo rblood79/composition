@@ -590,6 +590,13 @@ pub struct LayoutTree {
     /// 재계산)한다. taffy 는 layout cache 의 available-space 키로 처리하지만
     /// 자체 트리는 캐시가 없어 root-level available 비교로 갈음한다.
     last_compute: Option<(usize, f32, f32)>,
+    /// vw/vh 기준 viewport (border-box page 크기 = breakpoint). `None` 이면
+    /// `style.rs` 기본값 1920×1080.
+    ///
+    /// **Why**: Preview iframe 은 breakpoint 폭 안에 있어 `50vw` 가 breakpoint 기준으로
+    /// 풀리는데, 엔진은 상수 1920 을 써 Canvas 만 달랐다 (390 breakpoint 에서 195 vs 960,
+    /// 2026-09-19). Builder 가 `set_viewport` 로 page 크기를 넘기면 두 leg 가 같은 기준.
+    viewport: Option<(f32, f32)>,
     /// 트리 mutation 카운터 — intrinsic 측정 캐시 유효성 판정 (ADR-169 Phase 1).
     /// 노드 생성/스타일·자식 변경/제거/clear 마다 증가.
     mutation_gen: u64,
@@ -1000,6 +1007,9 @@ impl LayoutTree {
         if self.get(root).is_none() {
             return;
         }
+        // 실측 last_compute 키에 viewport 도 넣으면 avail 이 같고 viewport 만 바뀔 때 (breakpoint
+        // 전환 시 avail 도 같이 바뀌므로 드묾) 전체 재계산이 필요하다 — set_viewport 가
+        // 값이 바뀔 때 last_compute 를 지워 같은 효과를 낸다.
         // available-space 가 직전과 다르면 증분 skip 무효화 (전 서브트리 강제 dirty).
         //
         // **Why 전 서브트리**: root 만 dirty 로 하면 root 재solve 시 clean 자식이
@@ -4613,13 +4623,23 @@ impl LayoutTree {
         }
     }
 
-    /// % 기준 컨텍스트 (container_size = avail).
+    /// vw/vh 기준 viewport 설정 (border-box page 크기). 값이 바뀌면 다음
+    /// `compute_layout` 이 증분 skip 을 무효화하도록 `last_compute` 를 지운다.
+    pub fn set_viewport(&mut self, width: f32, height: f32) {
+        let next = Some((width, height));
+        if self.viewport != next {
+            self.viewport = next;
+            self.last_compute = None;
+        }
+    }
+
+    /// % 기준 컨텍스트 (container_size = avail) + vw/vh 기준 viewport.
     fn ctx_for(&self, avail: f32) -> CssValueContext {
         CssValueContext {
             parent_size: None,
             container_size: Some(avail),
-            viewport_width: None,
-            viewport_height: None,
+            viewport_width: self.viewport.map(|v| v.0),
+            viewport_height: self.viewport.map(|v| v.1),
             root_font_size: None,
         }
     }
@@ -6625,6 +6645,23 @@ mod tests {
         assert_eq!(l.height, 40.0);
         assert_eq!(l.x, 0.0);
         assert_eq!(l.y, 0.0);
+    }
+
+    /// vw/vh 는 `set_viewport` 로 넘긴 page 크기 기준 — 미설정 시 1920×1080 (style.rs 기본값).
+    /// viewport 만 바뀌어도 (avail 동일) 증분 skip 이 무효화되어 재계산된다.
+    #[test]
+    fn compute_leaf_viewport_units_follow_set_viewport() {
+        let mut tree = LayoutTree::new();
+        let json = format!("[{}]", style_json("50vw", "25vh"));
+        let handles = tree.build_tree_batch(&json).unwrap();
+        tree.compute_layout(handles[0], 400.0, 300.0);
+        let l = tree.get_layout(handles[0]);
+        assert_eq!((l.width, l.height), (960.0, 270.0));
+
+        tree.set_viewport(390.0, 844.0);
+        tree.compute_layout(handles[0], 400.0, 300.0);
+        let l = tree.get_layout(handles[0]);
+        assert_eq!((l.width, l.height), (195.0, 211.0));
     }
 
     #[test]

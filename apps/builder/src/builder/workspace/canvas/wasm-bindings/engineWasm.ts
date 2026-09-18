@@ -33,6 +33,7 @@ export interface RawEngineLayout {
   setChildren(handle: number, children: Uint32Array): void;
   markDirty(handle: number): void;
   removeNode(handle: number): void;
+  setViewport(width: number, height: number): void;
   computeLayout(root: number, availW: number, availH: number): void;
   getLayoutsBatch(handles: Uint32Array): Float32Array;
   getLayout(handle: number): string;

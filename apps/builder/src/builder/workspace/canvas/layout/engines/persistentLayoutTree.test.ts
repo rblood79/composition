@@ -47,6 +47,8 @@ class FakeLayoutEngine implements LayoutEngineAPI {
 
   removeNode(): void {}
 
+  setViewport(): void {}
+
   computeLayout(
     root: number,
     availableWidth: number,

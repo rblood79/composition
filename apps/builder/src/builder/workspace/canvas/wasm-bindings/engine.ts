@@ -249,6 +249,12 @@ export class EngineLayout {
 
   // ── 레이아웃 계산/수집 ────────────────────────────────────────────────
 
+  setViewport(width: number, height: number): void {
+    if (!this.engine)
+      throw new Error("EngineLayout: WASM engine not initialized");
+    this.engine.setViewport(width, height);
+  }
+
   computeLayout(
     root: LayoutNodeHandle,
     availableWidth: number,

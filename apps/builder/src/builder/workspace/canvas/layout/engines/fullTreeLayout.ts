@@ -34,6 +34,7 @@ import {
   parseLineHeight,
   measureTextWidth,
 } from "./utils";
+import { setLayoutViewport } from "./cssValueParser";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import {
   resolveTextRenderStyle,
@@ -2747,6 +2748,24 @@ function incrementalUpdate(
  * @param getChildElements - elementId → CanvasLayoutNode[] accessor
  * @returns elementId → ComputedLayout 맵, 실패 시 null
  */
+/** vw/vh 기준 viewport — body root 는 content-box available + padding/border (Step 1.5 와 같은 식). */
+function resolveLayoutViewport(
+  rootEl: CanvasLayoutNode,
+  availableWidth: number,
+  availableHeight: number,
+): { width: number; height: number } {
+  if (rootEl.type.toLowerCase() !== "body") {
+    return { width: availableWidth, height: availableHeight };
+  }
+  const rootStyle = (rootEl.props?.style ?? {}) as Record<string, unknown>;
+  const bp = parsePadding(rootStyle, availableWidth);
+  const bb = parseBorder(rootStyle);
+  return {
+    width: availableWidth + bp.left + bp.right + bb.left + bb.right,
+    height: availableHeight + bp.top + bp.bottom + bb.top + bb.bottom,
+  };
+}
+
 export function calculateFullTreeLayout(
   rootElementId: string,
   elementsMap: Map<string, CanvasLayoutNode>,
@@ -2777,6 +2796,19 @@ export function calculateFullTreeLayout(
     height: availableHeight,
   });
   beginSyntheticElementsCollection();
+
+  // ── Step 0.5: vw/vh 기준 viewport = breakpoint page 크기 (border-box) ─────
+  // Preview iframe 이 breakpoint 폭 안에 있어 `50vw` 가 breakpoint 기준으로 풀리므로 Canvas 도
+  // 같은 기준을 쓴다 (종전 TS 선해석·엔진 모두 상수 1920×1080 — 390 breakpoint 에서 Canvas 960
+  // vs Preview 195, 2026-09-19). body root 는 available(content-box) + padding/border 가 page
+  // 상자 (Step 1.5 와 같은 식) · Frame root 는 available 이 곧 그 root 의 page 상자. DFS 의
+  // TS 선해석 (applyCommonEngineStyle) 이 vw 를 px 로 바꾸므로 DFS **전에** 설정한다.
+  const layoutViewport = resolveLayoutViewport(
+    rootEl,
+    availableWidth,
+    availableHeight,
+  );
+  setLayoutViewport(layoutViewport);
 
   // ── Step 1: DFS post-order 순회 → 배치 배열 구성 ──────────────────
   //    (항상 수행 — implicit style, enrichment, CSS resolve 필요)
@@ -2939,7 +2971,8 @@ export function calculateFullTreeLayout(
       incrementalUpdate(persistentTree, batch, filteredChildIdsMap);
     }
 
-    // ── Step 4: 레이아웃 계산 ─────────────────────────────────────────
+    // ── Step 4: 레이아웃 계산 (엔진도 같은 vw/vh 기준 — TS 선해석을 비껴간 vw 문자열용) ──
+    persistentTree.setViewport(layoutViewport.width, layoutViewport.height);
     persistentTree.computeLayout(availableWidth, availableHeight);
 
     // ── Step 4.5: height-for-width 1회 재측정 (ADR-165 Phase 2 — 축소 계약) ──

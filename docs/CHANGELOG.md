@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas vw/vh — breakpoint page 크기 기준] - 2026-09-19
+
+### Fixed
+
+- Size width/height 등의 `vw`/`vh`/`vmin`/`vmax` 값을 Canvas 가 상수 1920×1080 기준으로 풀어 Preview (iframe viewport = breakpoint) 와 갈리던 문제를 수리했다 — 390 breakpoint 에서 `50vw` 가 Canvas 960 / Preview 195. 기준은 **breakpoint page 크기 (border-box)** 로 통일: `calculateFullTreeLayout` 이 run 시작 시 `setLayoutViewport` (TS 선해석 폴백 — viewport 인자를 안 넘기는 parse 호출처 14곳) 와 엔진 `setViewport` (wasm 경계 입력 1, `LayoutTree.viewport` → `ctx_for`) 에 같은 값을 넣는다. viewport 만 바뀌어도 엔진 증분 skip 이 무효화된다.
+
+### Validation
+
+- Rust `compute_leaf_viewport_units_follow_set_viewport` (960×270 → 195×211) · TS `viewportUnitsLayoutViewport.test.ts` 4 · engines 스위트 487 · type-check. live `viewport-units-live.mjs` (headed Playwright, compare 모드): Skia 50vw×25vh = desktop 960×270 / tablet 384×256 / mobile 195×211 (3/3).
+- 남은 Preview 쪽 사실: compare 모드에서 `.canvas` 가 flex item 이라 pane 폭으로 수축해 desktop/tablet 의 iframe viewport 가 720 (≠ 1920/768) — Preview 의 vw 는 그 pane 폭 기준이 된다 (mobile 390 은 pane 안에 들어와 일치). 별도 판정.
+
 ## [Button — display block 에서 Preview 높이만 줄어들던 문제] - 2026-09-19
 
 ### Fixed
