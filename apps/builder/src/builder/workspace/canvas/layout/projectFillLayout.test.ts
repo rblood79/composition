@@ -60,4 +60,40 @@ describe("projectFillLayoutNodes — Fill 시스템이 만진 노드 (marker 또
     projectFillLayoutNodes(nodes);
     expect(nodes.get("b")).toBe(original);
   });
+
+  it("hug column parent → child Height Fill gets flex-basis auto (Preview parity)", () => {
+    const nodes = new Map<string, CanvasLayoutNode>([
+      [
+        "col",
+        node("col", {
+          type: "Frame",
+          props: { style: { display: "flex", flexDirection: "column" } },
+        }),
+      ],
+      ["a", node("a", { parent_id: "col", sizing: { height: { factor: 1 } } })],
+    ]);
+    projectFillLayoutNodes(nodes);
+    expect(nodes.get("a")?.props.style).toMatchObject({
+      flexGrow: 1,
+      flexBasis: "auto",
+    });
+    const fixed = new Map<string, CanvasLayoutNode>([
+      [
+        "col",
+        node("col", {
+          type: "Frame",
+          props: {
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              height: "240px",
+            },
+          },
+        }),
+      ],
+      ["a", node("a", { parent_id: "col", sizing: { height: { factor: 1 } } })],
+    ]);
+    projectFillLayoutNodes(fixed);
+    expect(fixed.get("a")?.props.style).toMatchObject({ flexBasis: "0px" });
+  });
 });

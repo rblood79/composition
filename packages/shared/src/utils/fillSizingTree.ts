@@ -5,7 +5,11 @@ import {
 } from "../types/responsive.types";
 import type { BreakpointName } from "../types/responsive.types";
 import type { CompositionDocument } from "../types/composition-document.types";
-import { resolveEffectiveFill, resolveFillProjection } from "./fillSizing";
+import {
+  hasDefiniteAxisSize,
+  resolveEffectiveFill,
+  resolveFillProjection,
+} from "./fillSizing";
 import type { FillSizingSource, FillParentContext } from "./fillSizing";
 
 export interface FillTreeNode extends FillSizingSource {
@@ -64,6 +68,45 @@ export function createFillTreeResolver(
     }
     return style;
   };
+  /** 부모의 두 축 definiteness — 부모의 부모 (조부모) 문맥은 legacy grow/stretch 판정에만 쓴다 */
+  const resolveParentDefinite = (
+    parent: FillTreeNode,
+    parentStyle: Record<string, unknown>,
+    breakpoint: BreakpointName,
+  ): { width: boolean; height: boolean } => {
+    let grand = parent.parent_id ? nodes.get(parent.parent_id) : undefined;
+    const seen = new Set<string>([parent.id]);
+    let grandStyle: Record<string, unknown> | null = null;
+    while (grand && !seen.has(grand.id)) {
+      seen.add(grand.id);
+      grandStyle = styleOf(grand, breakpoint);
+      if (grandStyle.display !== "contents") break;
+      grand = grand.parent_id ? nodes.get(grand.parent_id) : undefined;
+    }
+    const grandContext: FillParentContext | undefined = grandStyle
+      ? {
+          display: String(grandStyle.display ?? "block"),
+          flexDirection: String(grandStyle.flexDirection ?? "row"),
+          writingMode: String(grandStyle.writingMode ?? "horizontal-tb"),
+        }
+      : undefined;
+    return {
+      width: hasDefiniteAxisSize(
+        parent,
+        parentStyle,
+        "width",
+        breakpoint,
+        grandContext,
+      ),
+      height: hasDefiniteAxisSize(
+        parent,
+        parentStyle,
+        "height",
+        breakpoint,
+        grandContext,
+      ),
+    };
+  };
   return (node: FillTreeNode, breakpoint: BreakpointName) => {
     let parent = node.parent_id ? nodes.get(node.parent_id) : undefined;
     const visited = new Set<string>([node.id]);
@@ -78,6 +121,9 @@ export function createFillTreeResolver(
       display: String(parentStyle.display ?? "block"),
       flexDirection: String(parentStyle.flexDirection ?? "row"),
       writingMode: String(parentStyle.writingMode ?? "horizontal-tb"),
+      ...(parent
+        ? { definite: resolveParentDefinite(parent, parentStyle, breakpoint) }
+        : {}),
     };
     const style = styleOf(node, breakpoint);
     const fill = resolveEffectiveFill(node, breakpoint);

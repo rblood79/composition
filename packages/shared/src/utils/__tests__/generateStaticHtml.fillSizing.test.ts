@@ -21,7 +21,10 @@ describe("generateStaticHtml — ADR-224 Fill sizing", () => {
           {
             id: "row",
             type: "frame",
-            props: { style: { display: "flex", flexDirection: "row" } },
+            // 폭이 정해진 Row — hug 부모면 fraction Fill 은 basis auto 로 내려간다 (별도 테스트)
+            props: {
+              style: { display: "flex", flexDirection: "row", width: "900px" },
+            },
             children: [
               {
                 id: "a",

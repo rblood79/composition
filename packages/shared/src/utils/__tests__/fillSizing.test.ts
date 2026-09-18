@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  hasDefiniteAxisSize,
   mergeFillSizing,
   resolveEffectiveFill,
   resolveFillProjection,
@@ -111,5 +112,101 @@ describe("ADR-224 Fill 의도와 문맥", () => {
         responsive: { sizing: { tablet: { width: null } } },
       }).success,
     ).toBe(true);
+  });
+
+  it("hug 부모 (그 축 크기 없음) 의 fraction Fill 은 basis auto — 항목이 pad/border 만 남기고 무너지지 않는다", () => {
+    const fill = { height: { factor: 1 } };
+    const column = { display: "flex", flexDirection: "column" };
+    expect(
+      resolveFillProjection(
+        fill,
+        {},
+        { ...column, definite: { height: false } },
+      ),
+    ).toMatchObject({ height: "auto", flexGrow: 1, flexBasis: "auto" });
+    expect(
+      resolveFillProjection(
+        fill,
+        {},
+        { ...column, definite: { height: true } },
+      ),
+    ).toMatchObject({ flexBasis: "0px" });
+    // definite 생략 = 정해진 것으로 (기존 호출자 호환)
+    expect(resolveFillProjection(fill, {}, column)).toMatchObject({
+      flexBasis: "0px",
+    });
+    // 교차축 stretch 는 hug 여부와 무관
+    expect(
+      resolveFillProjection(
+        { width: { factor: 1 } },
+        {},
+        { ...column, definite: { width: false } },
+      ),
+    ).toMatchObject({ alignSelf: "stretch" });
+  });
+
+  it("hasDefiniteAxisSize — 명시 길이 · % · 자기 Fill · body · legacy grow/stretch 는 정해진 축", () => {
+    const row = { display: "flex", flexDirection: "row" };
+    expect(hasDefiniteAxisSize({}, { height: "240px" }, "height")).toBe(true);
+    expect(hasDefiniteAxisSize({}, { height: "50%" }, "height")).toBe(true);
+    expect(hasDefiniteAxisSize({}, { height: 240 }, "height")).toBe(true);
+    expect(hasDefiniteAxisSize({}, {}, "height")).toBe(false);
+    expect(hasDefiniteAxisSize({}, { height: "auto" }, "height")).toBe(false);
+    expect(hasDefiniteAxisSize({}, { height: "fit-content" }, "height")).toBe(
+      false,
+    );
+    expect(
+      hasDefiniteAxisSize({ sizing: { height: { factor: 1 } } }, {}, "height"),
+    ).toBe(true);
+    expect(hasDefiniteAxisSize({ type: "body" }, {}, "height")).toBe(true);
+    expect(
+      hasDefiniteAxisSize({}, { flexGrow: 1 }, "width", "desktop", row),
+    ).toBe(true);
+    expect(
+      hasDefiniteAxisSize(
+        {},
+        { alignSelf: "stretch" },
+        "height",
+        "desktop",
+        row,
+      ),
+    ).toBe(true);
+    expect(hasDefiniteAxisSize({}, { flexGrow: 1 }, "width")).toBe(false);
+  });
+
+  it("emitter: hug column 안의 Height Fill 은 flex-basis auto, 정해진 column 은 0px", () => {
+    const child = (parent: string) => ({
+      id: `c-${parent}`,
+      type: "Button",
+      parent_id: parent,
+      props: { style: {} },
+      sizing: { height: { factor: 1 } },
+    });
+    const css = collectResponsiveCssFromElements([
+      {
+        id: "hug",
+        type: "frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "column" } },
+      },
+      {
+        id: "fixed",
+        type: "frame",
+        parent_id: null,
+        props: {
+          style: { display: "flex", flexDirection: "column", height: "240px" },
+        },
+      },
+      child("hug"),
+      child("fixed"),
+    ] as never);
+    const hugRule = css
+      .split("\n")
+      .find((l) => l.startsWith('[data-element-id="c-hug"]'));
+    const fixedRule = css
+      .split("\n")
+      .find((l) => l.startsWith('[data-element-id="c-fixed"]'));
+    expect(hugRule).toContain("flex-basis:auto !important");
+    expect(fixedRule).toContain("flex-basis:0px !important");
   });
 });

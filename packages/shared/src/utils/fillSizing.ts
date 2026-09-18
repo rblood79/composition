@@ -12,6 +12,12 @@ export interface FillParentContext {
   display: string;
   flexDirection?: string;
   writingMode?: string;
+  /**
+   * 부모가 그 축에 크기를 갖는가 (명시 길이·% · 부모 자신의 Fill · body). 없으면 (hug) fraction Fill 은
+   * `flex-basis: auto` 로 내려 콘텐츠 크기를 유지한다 — basis 0 이면 hug 부모 안에서 Chrome 도 엔진도
+   * 항목이 pad/border 만 남기고 무너진다 (Button 30 → 10, 2026-09-18 사용자 보고). 생략 = 정해진 것으로 본다.
+   */
+  definite?: { width?: boolean; height?: boolean };
 }
 export type FillBehavior =
   "fraction" | "stretch" | "grid-stretch" | "flow-stretch";
@@ -67,6 +73,46 @@ export function mergeFillSizing(
     ...(sizing ? { sizing } : {}),
     ...(responsive ? { responsive } : {}),
   };
+}
+
+const AUTO_SIZE_VALUES = new Set([
+  "",
+  "auto",
+  "fit-content",
+  "min-content",
+  "max-content",
+]);
+
+/**
+ * 노드가 그 축에 크기를 갖는가 — 명시 길이/% (auto·fit/min/max-content 제외) · 자기 Fill marker ·
+ * legacy grow/stretch (부모 문맥이 있을 때) · body. 부모 Fill 의 `definite` 입력을 만드는 데 쓴다.
+ */
+export function hasDefiniteAxisSize(
+  node: { type?: string } & FillSizingSource,
+  style: Record<string, unknown>,
+  axis: SizeAxis,
+  breakpoint: BreakpointName = "desktop",
+  grandparent?: FillParentContext,
+): boolean {
+  if (node.type?.toLowerCase() === "body") return true;
+  const value = style[axis];
+  if (typeof value === "number") return true;
+  if (typeof value === "string" && !AUTO_SIZE_VALUES.has(value.trim()))
+    return true;
+  const fill = resolveEffectiveFill(node, breakpoint)?.[axis];
+  if (fill && isValidFillFactor(fill.factor)) return true;
+  if (grandparent) {
+    const behavior = getFillBehavior(axis, style, grandparent);
+    const grow = Number(style.flexGrow);
+    if (behavior === "fraction" && Number.isFinite(grow) && grow > 0)
+      return true;
+    if (
+      (behavior === "stretch" || behavior === "grid-stretch") &&
+      (style.alignSelf === "stretch" || style.justifySelf === "stretch")
+    )
+      return true;
+  }
+  return false;
 }
 
 export function getFillBehavior(
@@ -126,7 +172,9 @@ export function resolveFillProjection(
     if (behavior === "fraction") {
       projected.flexGrow = intent.factor;
       projected.flexShrink = 1;
-      projected.flexBasis = "0px";
+      // hug 부모 (그 축 크기 없음) 에서는 나눌 공간이 없다 — 콘텐츠 basis 로 hug 처럼 놓이고, 부모가
+      // 크기를 얻으면 남은 공간을 factor 로 나눈다 (Figma: hug 부모 안의 fill = hug).
+      projected.flexBasis = parent.definite?.[axis] === false ? "auto" : "0px";
       const min = axis === "width" ? "minWidth" : "minHeight";
       if (style[min] == null || style[min] === "" || style[min] === "auto")
         projected[min] = "0px";
