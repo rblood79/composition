@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Validation
 
 - Rust `compute_leaf_viewport_units_follow_set_viewport` (960×270 → 195×211) · TS `viewportUnitsLayoutViewport.test.ts` 4 · engines 스위트 487 · type-check. live `viewport-units-live.mjs` (headed Playwright, compare 모드): Skia 50vw×25vh = desktop 960×270 / tablet 384×256 / mobile 195×211 (3/3).
-- 남은 Preview 쪽 사실: compare 모드에서 `.canvas` 가 flex item 이라 pane 폭으로 수축해 desktop/tablet 의 iframe viewport 가 720 (≠ 1920/768) — Preview 의 vw 는 그 pane 폭 기준이 된다 (mobile 390 은 pane 안에 들어와 일치). 별도 판정.
+- Preview 쪽도 같은 기준으로: compare 모드에서 `.workSpace > .canvas` 가 flex item 이라 pane 폭으로 수축해 desktop/tablet 의 iframe viewport 가 720 (≠ 1920/768) 이었다 — `flex: 0 0 auto` + `margin: auto` 로 breakpoint 상자를 유지하고 pane (`overflow: auto`) 이 스크롤한다. live 12/12 (Skia = breakpoint · Preview = iframe viewport · iframe viewport = breakpoint, 3 breakpoint).
 
 ## [Button — display block 에서 Preview 높이만 줄어들던 문제] - 2026-09-19
 

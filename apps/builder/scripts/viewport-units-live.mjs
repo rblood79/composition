@@ -3,6 +3,7 @@
 // 전제: pnpm dev (5173) · .auth-session.json · Chrome MCP 는 hidden 탭이라 RAF 가 멈춰 headed Playwright 로.
 import { chromium } from "playwright";
 import { resolve } from "node:path";
+import { mkdir } from "node:fs/promises";
 import { waitReady } from "./perf-baseline.mjs";
 
 const RAIL_ORDER = [
@@ -125,6 +126,7 @@ const page = await context.newPage();
 const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 const results = [];
+await mkdir("output/playwright/viewport-units", { recursive: true });
 const check = (name, ok, detail) => {
   results.push({ name, ok, detail });
   console.log(`${ok ? "PASS" : "FAIL"} ${name} ${JSON.stringify(detail)}`);
@@ -173,7 +175,21 @@ try {
   };
   for (const bp of ["desktop", "mobile", "tablet", "desktop"]) {
     await switchBreakpoint(page, bp);
+    // 헤더 토글 → BuilderCore 상태 → `.canvas` 크기 반영까지 기다린다 (첫 전환이 부팅 직후면 늦다)
+    await page
+      .waitForFunction(
+        (w) =>
+          [...document.querySelectorAll("iframe")].some(
+            (f) => f.contentWindow?.innerWidth === w,
+          ),
+        expected[bp][0] * 2,
+        { timeout: 10_000 },
+      )
+      .catch(() => {});
     await page.waitForTimeout(1500);
+    await page.screenshot({
+      path: `output/playwright/viewport-units/${bp}.png`,
+    });
     const skia = await readSkia(page, frameId);
     const preview = await readPreview(page, frameId);
     const [ew, eh] = expected[bp];
