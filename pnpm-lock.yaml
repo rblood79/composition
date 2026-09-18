@@ -92,6 +92,9 @@ patchedDependencies:
   react-aria@3.52.0:
     hash: 8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea
     path: patches/react-aria@3.52.0.patch
+  react-dom@19.2.8:
+    hash: 656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc
+    path: patches/react-dom@19.2.8.patch
 
 importers:
 
@@ -123,22 +126,22 @@ importers:
         version: link:../../packages/specs
       '@dnd-kit/core':
         specifier: ^6.3.1
-        version: 6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 6.3.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@dnd-kit/sortable':
         specifier: ^10.0.0
-        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8))(react@19.2.8)
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.8)
       '@react-aria/focus':
         specifier: 'catalog:'
-        version: 3.22.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.22.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@react-aria/i18n':
         specifier: 'catalog:'
-        version: 3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.13.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@tanstack/react-virtual':
         specifier: 'catalog:'
-        version: 3.14.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.14.10(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       canvaskit-wasm:
         specifier: ^0.42.0
         version: 0.42.0
@@ -165,16 +168,16 @@ importers:
         version: 19.2.8
       react-aria:
         specifier: 'catalog:'
-        version: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       react-aria-components:
         specifier: 'catalog:'
-        version: 1.21.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 1.21.0(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       react-router:
         specifier: 'catalog:'
-        version: 8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 8.3.0(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       react-stately:
         specifier: 'catalog:'
         version: 3.50.0(react@19.2.8)
@@ -205,7 +208,7 @@ importers:
         version: 4.3.3
       '@testing-library/react':
         specifier: ^16.3.2
-        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@types/node':
         specifier: 'catalog:'
         version: 24.13.3
@@ -277,13 +280,13 @@ importers:
         version: link:../../packages/shared
       '@react-aria/i18n':
         specifier: 'catalog:'
-        version: 3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.13.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       react:
         specifier: 'catalog:'
         version: 19.2.8
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
     devDependencies:
       '@composition/config':
         specifier: workspace:*
@@ -371,19 +374,19 @@ importers:
         version: 3.6.8
       '@react-aria/focus':
         specifier: 'catalog:'
-        version: 3.22.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.22.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@react-aria/i18n':
         specifier: 'catalog:'
-        version: 3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.13.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@react-aria/utils':
         specifier: 'catalog:'
-        version: 3.34.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.34.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@tanstack/react-table':
         specifier: 'catalog:'
-        version: 8.21.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 8.21.3(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@tanstack/react-virtual':
         specifier: 'catalog:'
-        version: 3.14.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 3.14.10(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       jszip:
         specifier: ^3.10.1
         version: 3.10.1
@@ -395,16 +398,16 @@ importers:
         version: 19.2.8
       react-aria-components:
         specifier: 'catalog:'
-        version: 1.21.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        version: 1.21.0(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       react-dom:
         specifier: 'catalog:'
-        version: 19.2.8(react@19.2.8)
+        version: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       react-stately:
         specifier: 'catalog:'
         version: 3.50.0(react@19.2.8)
       recharts:
         specifier: 3.10.1
-        version: 3.10.1(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1)
+        version: 3.10.1(@types/react@19.2.18)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1)
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.6.0
@@ -3406,17 +3409,17 @@ snapshots:
       react: 19.2.8
       tslib: 2.8.1
 
-  '@dnd-kit/core@6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@dnd-kit/core@6.3.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@dnd-kit/accessibility': 3.1.1(react@19.2.8)
       '@dnd-kit/utilities': 3.2.2(react@19.2.8)
       react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       tslib: 2.8.1
 
-  '@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8))(react@19.2.8)':
+  '@dnd-kit/sortable@10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8))(react@19.2.8)':
     dependencies:
-      '@dnd-kit/core': 6.3.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@dnd-kit/core': 6.3.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
       '@dnd-kit/utilities': 3.2.2(react@19.2.8)
       react: 19.2.8
       tslib: 2.8.1
@@ -3705,33 +3708,33 @@ snapshots:
 
   '@polka/url@1.0.0-next.29': {}
 
-  '@react-aria/focus@3.22.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@react-aria/focus@3.22.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@swc/helpers': 0.5.23
       react: 19.2.8
-      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
+      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
 
-  '@react-aria/i18n@3.13.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@react-aria/i18n@3.13.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@internationalized/date': 3.12.4
       '@internationalized/message': 3.1.10
       '@internationalized/string': 3.2.10
       '@swc/helpers': 0.5.23
       react: 19.2.8
-      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
+      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
 
   '@react-aria/optimize-locales-plugin@2.0.2':
     dependencies:
       unplugin: 2.3.11
 
-  '@react-aria/utils@3.34.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@react-aria/utils@3.34.1(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@swc/helpers': 0.5.23
       react: 19.2.8
-      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
+      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       react-stately: 3.50.0(react@19.2.8)
 
   '@react-types/shared@3.36.1(react@19.2.8)':
@@ -4013,17 +4016,17 @@ snapshots:
       postcss: 8.5.26
       tailwindcss: 4.3.3
 
-  '@tanstack/react-table@8.21.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@tanstack/react-table@8.21.3(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@tanstack/table-core': 8.21.3
       react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
 
-  '@tanstack/react-virtual@3.14.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@tanstack/react-virtual@3.14.10(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@tanstack/virtual-core': 3.17.8
       react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
 
   '@tanstack/table-core@8.21.3': {}
 
@@ -4040,12 +4043,12 @@ snapshots:
       picocolors: 1.1.1
       pretty-format: 27.5.1
 
-  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@testing-library/react@16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)':
     dependencies:
       '@babel/runtime': 7.29.7
       '@testing-library/dom': 10.4.1
       react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
     optionalDependencies:
       '@types/react': 19.2.18
       '@types/react-dom': 19.2.4(@types/react@19.2.18)
@@ -5222,7 +5225,7 @@ snapshots:
       parchment: 3.0.0
       quill-delta: 5.1.0
 
-  react-aria-components@1.21.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  react-aria-components@1.21.0(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8):
     dependencies:
       '@internationalized/date': 3.12.4
       '@internationalized/string': 3.2.10
@@ -5230,11 +5233,11 @@ snapshots:
       '@swc/helpers': 0.5.23
       client-only: 0.0.1
       react: 19.2.8
-      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      react-dom: 19.2.8(react@19.2.8)
+      react-aria: 3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       react-stately: 3.50.0(react@19.2.8)
 
-  react-aria@3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  react-aria@3.52.0(patch_hash=8fdbff66a8ab37501bc381dc7d4d3da46968bd1c26b7f9479ec650bbdac956ea)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8):
     dependencies:
       '@internationalized/date': 3.12.4
       '@internationalized/number': 3.6.8
@@ -5244,11 +5247,11 @@ snapshots:
       aria-hidden: 1.2.6
       clsx: 2.1.1
       react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       react-stately: 3.50.0(react@19.2.8)
       use-sync-external-store: 1.6.0(react@19.2.8)
 
-  react-dom@19.2.8(react@19.2.8):
+  react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8):
     dependencies:
       react: 19.2.8
       scheduler: 0.27.0
@@ -5264,12 +5267,12 @@ snapshots:
       '@types/react': 19.2.18
       redux: 5.0.1
 
-  react-router@8.3.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+  react-router@8.3.0(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react@19.2.8):
     dependencies:
       cookie-es: 3.1.1
       react: 19.2.8
     optionalDependencies:
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
 
   react-stately@3.50.0(react@19.2.8):
     dependencies:
@@ -5295,7 +5298,7 @@ snapshots:
 
   readdirp@4.1.2: {}
 
-  recharts@3.10.1(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1):
+  recharts@3.10.1(@types/react@19.2.18)(react-dom@19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8))(react-is@17.0.2)(react@19.2.8)(redux@5.0.1):
     dependencies:
       '@reduxjs/toolkit': 2.12.0(react-redux@9.3.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1))(react@19.2.8)
       clsx: 2.1.1
@@ -5304,7 +5307,7 @@ snapshots:
       eventemitter3: 5.0.4
       immer: 11.1.18
       react: 19.2.8
-      react-dom: 19.2.8(react@19.2.8)
+      react-dom: 19.2.8(patch_hash=656a39f29fb42499464b6f50374a556867828a14446f12a1b9ced104081423cc)(react@19.2.8)
       react-is: 17.0.2
       react-redux: 9.3.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1)
       reselect: 5.2.0

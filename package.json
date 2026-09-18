@@ -58,7 +58,8 @@
   "packageManager": "pnpm@10.26.2",
   "pnpm": {
     "patchedDependencies": {
-      "react-aria@3.52.0": "patches/react-aria@3.52.0.patch"
+      "react-aria@3.52.0": "patches/react-aria@3.52.0.patch",
+      "react-dom@19.2.8": "patches/react-dom@19.2.8.patch"
     }
   }
 }

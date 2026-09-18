@@ -39,3 +39,6 @@ onlyBuiltDependencies:
 
 patchedDependencies:
   react-aria@3.52.0: patches/react-aria@3.52.0.patch
+  # React 19.2 DEV render logger 가 props 의 getter 를 호출해 throw (react-aria CollectionNode.childNodes) →
+  # flushPassiveEffects 중단. React DevTools 가 있는 브라우저에서만 재현 (ProfileMode). React #35126 / #36430
+  react-dom@19.2.8: patches/react-dom@19.2.8.patch

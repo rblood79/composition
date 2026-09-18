@@ -1,0 +1,25 @@
+diff --git a/cjs/react-dom-client.development.js b/cjs/react-dom-client.development.js
+index b9bb0b5bd00886f4ba53a0f3608d04dcc7567320..bf81b4e1637b253e79daaa3befca62a824964430 100644
+--- a/cjs/react-dom-client.development.js
++++ b/cjs/react-dom-client.development.js
+@@ -3965,8 +3965,18 @@
+           (isDeeplyEqual = !1));
+       for (var _key in next)
+         if (_key in prev) {
+-          var key = prev[_key];
+-          var nextValue = next[_key];
++          // composition patch (React #35126 / #36430): the DEV render logger walks props and
++          // reads every enumerable property, including getters that throw (react-aria
++          // CollectionNode.childNodes, cross-origin Window). A throwing getter must not abort
++          // the commit — skip the key instead of crashing flushPassiveEffects.
++          var key, nextValue;
++          try {
++            key = prev[_key];
++            nextValue = next[_key];
++          } catch (_readError) {
++            isDeeplyEqual = !1;
++            continue;
++          }
+           if (key !== nextValue) {
+             if (0 === indent && "children" === _key)
+               (isDeeplyEqual = "\u00a0\u00a0".repeat(indent) + _key),
