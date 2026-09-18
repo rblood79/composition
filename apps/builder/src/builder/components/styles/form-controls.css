@@ -424,12 +424,19 @@
     .property-unit-input[data-label-mode="unit"] .property-unit-input__suffix {
       flex: none;
       font-family: var(--font-mono);
-      font-size: var(--text-2xs);
+      font-size: var(--text-xs);
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--fg-muted);
       pointer-events: none;
       user-select: none;
+    }
+
+    /* Size mode 선택 결과는 CSS 단위가 아닌 의도 토큰이다. 저장값과 같은
+       fr / % / vh / px / fit 표기를 보존해 모드를 즉시 구분한다. */
+    .property-unit-input[data-size-control="true"]
+      .property-unit-input__suffix {
+      text-transform: none;
     }
 
     .properties-aria[data-label-mode="suffix"],
@@ -551,8 +558,9 @@
       .react-aria-Button.property-unit-input__suffix--trigger {
       width: auto;
       min-width: var(--text-xl);
+      max-width: var(--text-xl);
       height: var(--text-xl);
-      padding: 0 var(--spacing-xs);
+      padding: 0 var(--spacing-2xs);
       pointer-events: auto;
       cursor: pointer;
       line-height: 1;

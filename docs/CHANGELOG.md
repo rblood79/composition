@@ -15,11 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Layout > Size의 Width/Height에서 `Fit content`를 선택해도 suffix 버튼이 Fixed와 같은 `px`로 보이던 문제를 수리했다. 저장값 `fit-content`와 계산된 px 크기는 그대로 유지하고, 모드 버튼만 `fit`으로 표시해 Fixed와 구분한다.
+- Layout > Size의 Width/Height에서 `Fit content`를 선택해도 suffix 버튼이 Fixed와 같은 `px`로 보이던 문제를 수리했다. 저장값 `fit-content`와 계산된 px 크기는 그대로 유지하고, 모드 버튼은 Fill=`fr`, Parent=`%`, Viewport=`vh`/`vw`, Fixed=`px`, Fit content=`fit`의 소문자를 그대로 표시한다.
 
 ### Validation
 
-- `TransformSection.test.tsx`에서 Fill=`fr`, Fixed=`px`, Fit content=`fit` suffix 매핑을 고정했다.
+- `TransformSection.test.tsx`에서 Fill=`fr`, Parent=`%`, Viewport=`vh`/`vw`, Fixed=`px`, Fit content=`fit` suffix 매핑을, `PropertyUnitInput.test.tsx`에서 Size 모드의 uppercase 미적용 계약을 고정했다.
 
 ## [Canvas — 자식 있는 컨테이너의 height fit-content · 100%] - 2026-09-19
 

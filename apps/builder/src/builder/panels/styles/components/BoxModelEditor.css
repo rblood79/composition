@@ -39,8 +39,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    inline-size: var(--control-size);
-    block-size: var(--control-size);
+    inline-size: var(--text-xl);
+    block-size: var(--text-xl);
     padding: 0;
     border: none;
     border-radius: var(--radius-sm);

@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from "node:fs";
 import { useState } from "react";
 import {
   act,
@@ -16,6 +17,11 @@ import {
   PAGE_GAP_PRESETS,
   SPACING_PRESET_OPTIONS,
 } from "./propertyUnitPresets";
+
+const FORM_CONTROLS_CSS = readFileSync(
+  "src/builder/components/styles/form-controls.css",
+  "utf8",
+);
 
 describe("PropertyUnitInput numeric editing", () => {
   beforeAll(() => {
@@ -158,6 +164,12 @@ describe("PropertyUnitInput numeric editing", () => {
 
     expect(onModeChange.mock.calls).toEqual([["px"]]);
     expect(onChange).toHaveBeenLastCalledWith("300px");
+  });
+
+  it("Size 모드 suffix는 fr/%/vh/px/fit 토큰의 소문자를 보존한다", () => {
+    expect(FORM_CONTROLS_CSS).toMatch(
+      /\.property-unit-input\[data-size-control="true"\][\s\S]*?\.property-unit-input__suffix\s*\{[\s\S]*?text-transform:\s*none;/,
+    );
   });
 
   it("keeps arrow-key increments on the preview path", () => {

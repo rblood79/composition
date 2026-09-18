@@ -728,6 +728,7 @@ export const PropertyUnitInput = memo(
       <fieldset
         className={`properties-aria property-unit-input ${className || ""}`}
         title={sizeControl?.description}
+        data-size-control={sizeControl ? "true" : undefined}
         data-label-mode={
           labelMode === "suffix" ? "suffix" : unitIsTrigger ? "unit" : undefined
         }
