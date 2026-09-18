@@ -710,7 +710,7 @@ export const PropertyUnitInput = memo(
       sizeControl?.kind === "fill"
         ? "fr"
         : sizeControl?.kind === "fit"
-          ? "px"
+          ? "fit"
           : sizeControl?.kind === "ratio"
             ? sizeModeText(
                 "styles.transform.sizeMode.ratioTrigger",

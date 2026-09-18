@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Styles Size — Fit content 선택 표시] - 2026-09-19
+
+### Fixed
+
+- Layout > Size의 Width/Height에서 `Fit content`를 선택해도 suffix 버튼이 Fixed와 같은 `px`로 보이던 문제를 수리했다. 저장값 `fit-content`와 계산된 px 크기는 그대로 유지하고, 모드 버튼만 `fit`으로 표시해 Fixed와 구분한다.
+
+### Validation
+
+- `TransformSection.test.tsx`에서 Fill=`fr`, Fixed=`px`, Fit content=`fit` suffix 매핑을 고정했다.
+
 ## [Canvas — 커널 뒤 확정된 높이를 받은 컨테이너의 자기 정렬] - 2026-09-19
 
 ### Fixed

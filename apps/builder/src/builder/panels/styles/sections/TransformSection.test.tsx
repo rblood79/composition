@@ -100,7 +100,7 @@ describe("TransformSection sizing controls", () => {
     );
   });
 
-  it("선택 상태의 suffix는 Fill=fr, Fixed/Fit=px로 표시한다", () => {
+  it("선택 상태의 suffix는 Fill=fr, Fixed=px, Fit content=fit으로 구분한다", () => {
     setTestElements([
       {
         id: "button-1",
@@ -149,7 +149,7 @@ describe("TransformSection sizing controls", () => {
       within(screen.getByRole("group", { name: "Width" })).getByRole("button", {
         name: /Size mode$/,
       }).textContent,
-    ).toBe("px");
+    ).toBe("fit");
   });
 
   it("메뉴는 관계 이름만, 선택 상태는 축별 실제 단위를 표시한다", async () => {
