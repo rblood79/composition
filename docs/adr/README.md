@@ -15,6 +15,8 @@
 
 > **2026-09-18 ADR-224 Proposed 개정**: 기존 Size 격자·한 상자 입력 유지, Fill 전용 축별 가중치만 저장, Ratio 종속 축 계약 명시, 자동 복원 기록 제외. Round 1 설계 수리 반영. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
 
+> **2026-09-19 ADR-225 Proposed 추가**: 재사용 페이지 레이아웃 기능의 남은 사용자 문구와 Builder 소유 식별자를 Frames→Layouts로 정렬하되 canonical `FrameNode`·Pencil·Canvas frame 계약은 보존한다. 잔여 후보 46개 파일(프로덕션 26 · 테스트 20)을 분류하는 Phase 0과 미분류 0건 gate를 포함한다. 열림 8 (Proposed 5 · Accepted 2 · 부분 1), 합계 252. 구현은 미착수다.
+
 > **2026-09-18 ADR-223 Proposed**: 생성 CSS archetype 미지정 기본값 중립화 (`/simplify` 판독 후속). 열림 7 (Proposed 5 · Accepted 1 · 부분 1), 합계 250.
 
 > **2026-09-17 ADR-222 추가 → 같은 날 Implemented**: 캔버스 padding·gap 직접 편집 (Proposed → 리뷰 round 1 → `/execute-adr 222` Phase 0~~3 / G0~~G5 종결). 열림 6 (Proposed 4 · Accepted 1 · 부분 1), 합계 249.
@@ -28,11 +30,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       7 |
-| ├ Proposed                    |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       8 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       2 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **251** |
+| **합계**                      | **252** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -80,6 +82,12 @@
 - **실행 결과**: catalog 기본 fit-content와 명시 auto 구별·측정 스칼라 분리·Ratio·Absolute·resize·다중 선택·G2 왕복을 구현했다. 독립 코드/설계 재검증에서 `wrap + Fill + Min`의 Canvas 한 줄/Preview 두 줄 발산을 발견해 flex line collection·grow/shrink 판정을 outer hypothetical main size로 통일했다. Min/Max는 동일 단위 신규 역전 commit을 차단한다. 실제 Builder 통합 41/41, pageerror 0 (wrap 300×20 두 줄 양 leg, Min 200→Max 100 write/history 0+alert, Max 300 정상), 브라우저 parity 69/69, Rust 427/427. G6 fresh A/B (`e8987c394` vs 현재, N=100/1,000 × 30회) 4/4 PASS. G5 소유자 확인만 남음. [과거 중단 근거](evidence/224-fill-layout-blocker.md)
 - **우선순위**: 사용자 실행 요청 — 크리티컬 오류 중단·보고 조건에 따라 보류
 
+#### [225](225-reusable-layout-vocabulary-alignment.md) — 재사용 레이아웃 어휘 정렬 — Frames 기능 표면을 Layouts로 통일
+
+- **상태**: Proposed (2026-09-19)
+- **규모**: 사용자 문구·접근성 이름과 Navigator/Properties의 feature component, UI selection/action/store facade, section id/class/test를 Layouts로 정렬한다. canonical `FrameNode`·`type: "frame"`·Pencil adapter·page-frame binding·Canvas geometry/cadence·catalog 고유명과 과거 기록은 보존한다. 기준선 46개 파일을 4범주로 분류하고 미분류 Frame 0건을 gate로 둔다. Phase 0~~4 / R1 HIGH / G0~~G6. [구현 설계](design/225-reusable-layout-vocabulary-alignment-breakdown.md)
+- **우선순위**: 사용자 요청 2026-09-19 — ADR review/Accepted 후 구현
+
 ### 부분 완료
 
 #### [019](completed/019-icon-system.md) — 아이콘 시스템 — Icon 선택/변경/추가
@@ -114,7 +122,7 @@
 
 > **참고**: ADR-029에 동일 번호의 [Text Edit Overlay UX 개선](completed/029-text-edit-overlay-improvements.md) 문서가 존재하며, ADR-027의 후속 개선으로 Phase 1-2 모두 구현 완료 (Accepted).
 
-### 권장 착수 순서 — 2026-09-16 재산정
+### 권장 착수 순서 — 2026-09-19 재산정
 
 > **완료 이력** (execute-adr): 915(2026-07-16) → 151(07-17) → 148(07-17) → 149(07-19) → 150-A1(07-19, 이후 07-20 철회) → 154(07-19) → 153(07-27~~28, P4 는 G4 미달 미도입 종결) → 이후 155~~193 순차 종결 → 117(2026-08-28, Phase 0~~4 / G0~~G5 종결) → 195(2026-08-27) → 196(2026-08-28, Phase 0~~4 / G0~~G4 종결) → 206(09-07) → 194(09-08) → 209·210(09-10) → 211·215(09-11) → 212·213·216·217(09-12) → 218(09-13) → 214·219(09-14) → 202(09-16) → 013(09-17, Phase 0~~3 / G0~~G3 종결) → 221(09-17, Phase 0~~4) → 201(09-17, worktree 3 병렬 Phase 0~~4 / G0~~G5 종결 + 후속 2 같은 날) → 222(09-17, Phase 0~~3 / G0~~G5 종결 같은 날) → 223(09-18, Phase 0~~3 / G0~~G5 종결 같은 날).
 >
@@ -122,6 +130,7 @@
 
 | 순위 | ADR                                                                                                                                                                                                                                              | 착수 준비도                                                                                                                                             | 차단 · 선행                                                                                                                                                       |
 | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | [225](225-reusable-layout-vocabulary-alignment.md)                                                                                                                                                                                               | Proposed · 현재 코드 inventory 46개 파일과 canonical 보존 경계를 동결                                                                                   | review/Accepted 선행. 구현은 Phase 0 분류표와 R1 schema 보존 gate부터 시작                                                                                        |
 |  2   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                                                                                                                                                                     | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(ListBox/GridList/Table, 07-19~~20) · A3 미착수                                          | A2 **시각 최종 확인 (실제 canvas 60fps 스크롤) 이 07-19 부터 사용자 foreground 대기** → ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 → A3. 세션 단독으로 못 연다 |
 |  3   | [162](162-gridlist-template-subtree-projection.md)                                                                                                                                                                                               | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                                                                              | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요. 150 A2 의 GridList stride 와 같은 카드 높이 축을 건드리므로 **150 A2 확정 후** 착수              |
 |  5   | [921](921-render-scene-backend-integration.md)                                                                                                                                                                                                   | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~~190 이후 §6-2 파일 대량 변경 + 09 월 206·209~~219 로 Skia 파이프라인 추가 변경) | 재freeze 전 착수 금지 — 재freeze 비용이 6건 중 가장 큼                                                                                                            |
