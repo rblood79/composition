@@ -86,9 +86,12 @@ h6 {
   background-color: #fff;
 }
 
+/* Preview `baseStyles.ts` 와 같은 확정 높이 — `div.react-aria-Body` 의 generated `min-height: 100%`
+   (catalog body containerStyles) 가 조상 체인을 타고 뷰포트로 풀리려면 html/body 가 definite 여야 한다
+   (2026-09-18 사용자 지시). 아래 #root … .publish-page 는 아직 min-height 뿐이라 체인이 거기서 끊긴다. */
 html,
 body {
-  min-height: 100%;
+  height: 100%;
 }
 
 #root {
