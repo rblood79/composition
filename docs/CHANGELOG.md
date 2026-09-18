@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas — 커널 뒤 확정된 높이를 받은 컨테이너의 자기 정렬] - 2026-09-19
+
+### Fixed
+
+- body (`flex row · height auto · minHeight 844`) 안의 frame (`flex row · align-items: center · height 미지정`) 에서 Alignment 가운데/하단이 Canvas 에서만 안 먹던 문제를 수리했다 (Button y: Skia 20 / Chrome 382). 컨테이너 cross 가 커널 **뒤에야** (min-height 클램프 · multi-line) 확정되는 경우 엔진이 stretch item 을 used cross 로 다시 푸는데 (ADR-206 (b)/(c)), 그 게이트 `definite_consumer_flags` 가 **자손** 의 `%` 블록 크기·중첩 컨테이너만 소비자로 세고 item **자신의 정렬** (row 의 `align-items` — 기본 stretch 포함 · wrap 의 `align-content` · column 의 `justify-content` · grid `align-content` · block `align-content`) 은 빠뜨려 재-solve 를 건너뛰었다. `container_places_children_by_block_size` 술어를 (b)·(c) 게이트에 OR 로 추가.
+
+### Validation
+
+- Rust `post_kernel_definite_cross_reaches_items_own_alignment` (min-height row 안 center → y 185 · 기본 stretch → leaf 360 · column definite main → row item center), 게이트 원복 시 RED (y 20) · 엔진 430. live (사용자 프로젝트): Button y 20 → **382** = DOM. 브라우저 parity 1432 중 실패 11 은 세션 시작 커밋 `ce21bf9a1` 에서도 같은 항목이 실패한다 (텍스트 측정 Δ · 팔레트 facet 인벤토리 · Body CSS 분류 — 별도).
+
 ## [빈 fit-content 컨테이너 — Canvas 폭이 DOM 과 갈리던 문제] - 2026-09-19
 
 ### Fixed

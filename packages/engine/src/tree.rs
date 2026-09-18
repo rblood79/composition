@@ -2858,8 +2858,13 @@ impl LayoutTree {
                 //   인 item 을 전부 다시 풀면 column 중첩 깊이에 2^d). row 의 main 은 width 라
                 //   인라인 축 규칙으로 이미 확정 — 해당 없음.
                 let column_definite = !is_row && avail_main >= 0.0;
-                let column_definite_consumer =
-                    column_definite && self.definite_consumer_flags(c).0;
+                //   자기 정렬 소비자 (row-flex item 의 align-items 등 — `container_places_children_by_block_size`)
+                //   도 포함 — 1차 solve 는 이 item 의 cross 를 모른 채 (explicit_h 0) 풀었다.
+                let column_definite_consumer = column_definite
+                    && (self.definite_consumer_flags(c).0
+                        || self
+                            .get(c)
+                            .is_some_and(|n| !n.children.is_empty() && container_places_children_by_block_size(&n.style)));
                 if !main_changed && !column_definite_consumer {
                     continue; // 분배로 안 바뀜 — 재배치 불필요
                 }
@@ -3150,7 +3155,10 @@ impl LayoutTree {
                 {
                     continue;
                 }
-                if !self.definite_consumer_flags(c).1 {
+                // 자손 소비자 (`%` · 중첩 stretch) 또는 **자기 정렬** (align-items center 등) 이
+                //   used cross 를 쓴다 — 둘 다 없으면 다시 풀어도 결과가 같다.
+                let self_consumes = container_places_children_by_block_size(&n.style);
+                if !self_consumes && !self.definite_consumer_flags(c).1 {
                     continue;
                 }
                 let used_w = out[off + 2];
@@ -5896,6 +5904,35 @@ fn style_has_pct_block_size(s: &NodeStyle) -> bool {
 /// ADR-206 — row 컨테이너의 item 이 cross(=height) 를 **stretch 로 받는가** (CSS-FLEXBOX-1 §9.4
 /// step 11): align-self 가 stretch 로 해소되고 · height 가 auto 이고 · cross margin 에 auto 가 없다.
 /// 이 셋이 만족하면 used cross = 라인 cross − margin 이고, 그 값은 definite 다 (§9.8).
+/// 자식 있는 컨테이너가 **자기 블록 크기로 자식을 배치**하는가 — ADR-206 post-kernel 재-solve
+/// ((b) row cross · (c) column main) 의 두 번째 소비자 축 (2026-09-19).
+///
+/// `definite_consumer_flags` 는 **자손** 의 `%` 블록 크기·중첩 stretch 만 세어, 컨테이너 자신의
+/// 정렬이 빠져 있었다 — body `flex row · minHeight 844` 안의 `flex row · align-items:center`
+/// frame 이 커널 뒤 794 로 stretch 되고도 다시 풀리지 않아 Button 이 상단 (y 20 / Chrome 382)
+/// 에 남았다. definite 블록 크기가 자식 배치를 바꾸는 경우:
+/// - flex row: cross = 블록. `align-items` 가 start 계열이 아니면 (기본 stretch 는 leaf 자식을
+///   늘린다 · center/end/baseline 은 위치) · wrap 이면 `align-content` 도 (라인 분배).
+/// - flex column: main = 블록. `justify-content` 가 start 계열이 아니면 (free space 분배).
+/// - grid: `align-content` 가 start 계열이 아니면 (auto 행 §12.8 stretch · 라인 분배).
+/// - block: `align-content` 가 normal 이 아니면 (§28 in-flow 묶음 정렬).
+fn container_places_children_by_block_size(s: &NodeStyle) -> bool {
+    match classify_container_display(s.display.as_deref()) {
+        ContainerDisplay::Flex => {
+            let is_row = parse_flex_direction(s.flex_direction.as_deref()) == flex::DIR_ROW;
+            if is_row {
+                let wraps = parse_flex_wrap(s.flex_wrap.as_deref()) == flex::WRAP_WRAP;
+                parse_align_items(s.align_items.as_deref()) != 1
+                    || (wraps && parse_align_content(s.align_content.as_deref()) != 1)
+            } else {
+                parse_justify_content(s.justify_content.as_deref()) != 0
+            }
+        }
+        ContainerDisplay::Grid => parse_align_content(s.align_content.as_deref()) != 1,
+        ContainerDisplay::Block => parse_block_align_content(s.align_content.as_deref()).is_some(),
+    }
+}
+
 fn flex_item_stretches_block_cross(s: &NodeStyle, container_align_items: u8) -> bool {
     let align_self = parse_align_self(s.align_self.as_deref());
     let stretched = if align_self == 0.0 { container_align_items == 0 } else { align_self == 1.0 };
@@ -7717,6 +7754,49 @@ mod tests {
         );
         assert_eq!(t.get_layout(h[1]).height, 400.0, "item stretch to min");
         assert_eq!(t.get_layout(h[0]).height, 200.0, "Chrome 200");
+    }
+
+    /// 자기 정렬 소비자 (2026-09-19): `min-height` 로 커널 뒤에야 확정된 row cross 를 받은 stretch
+    /// item 이 **자신의 `align-items: center`** 로 leaf 자식을 가운데 놓는다 — 자손에 `%` · 중첩
+    /// 컨테이너가 없어도 다시 풀린다 (사용자 보고: body `flex row · minHeight 844` 안 frame 의
+    /// Button 이 y 20 / Chrome 382). 기본 `align-items` (stretch) 는 leaf 자식을 늘린다.
+    #[test]
+    fn post_kernel_definite_cross_reaches_items_own_alignment() {
+        // frame: flex row · align-items center · padding 20 · height auto — 자식 leaf 30
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"68px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","justifyContent":"center","width":"100%","paddingTop":"20px","paddingBottom":"20px","paddingLeft":"20px","paddingRight":"20px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px","minHeight":"400px"},"children":[1]}
+        ]"#,
+            2, 300.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 400.0, "item stretch to min");
+        assert_eq!(t.get_layout(h[0]).y, 185.0, "Chrome (400-30)/2 = 185");
+        assert_eq!(t.get_layout(h[0]).x, 116.0, "(300-68)/2 = 116");
+
+        // 기본 align-items (stretch) — leaf 자식이 item 의 content 높이 360 으로 늘어난다
+        let (t2, h2) = solve(
+            r#"[
+            {"style":{"width":"68px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","width":"100%","paddingTop":"20px","paddingBottom":"20px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px","minHeight":"400px"},"children":[1]}
+        ]"#,
+            2, 300.0, -1.0,
+        );
+        assert_eq!(t2.get_layout(h2[0]).height, 360.0, "leaf stretch = 400 - 40");
+
+        // column 부모의 definite main 도 같다 — row-flex item 의 align-items center
+        let (t3, h3) = solve(
+            r#"[
+            {"style":{"width":"68px","height":"30px"},"children":[]},
+            {"style":{"display":"flex","flexDirection":"row","alignItems":"center","flexGrow":1},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"column","width":"300px","height":"400px"},"children":[1]}
+        ]"#,
+            2, 300.0, 400.0,
+        );
+        assert_eq!(t3.get_layout(h3[1]).height, 400.0);
+        assert_eq!(t3.get_layout(h3[0]).y, 185.0, "column definite main → item align-items center");
     }
 
     /// 대조군 — 비확정은 종전처럼 0: align-self start · auto margin · height auto 부모.
