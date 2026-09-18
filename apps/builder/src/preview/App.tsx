@@ -1,4 +1,7 @@
-import { CollectionDataProvider, createCollectionSnapshotServices } from "@composition/shared";
+import {
+  CollectionDataProvider,
+  createCollectionSnapshotServices,
+} from "@composition/shared";
 /**
  * Canvas App - Canvas Runtime 메인 컴포넌트
  *
@@ -33,6 +36,8 @@ import {
   getCatalogCutoverTypes,
   isComponentsPageMetadata,
   isRuntimePageNode,
+  resolveBodyDomClassName,
+  resolveBodyDomPresentation,
   resolveSlotComposition,
   resolveStateTemplate,
 } from "@composition/shared";
@@ -42,6 +47,7 @@ import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
   resolveBackedDefaultVariant,
+  resolveBackedRootClassName,
   usesButtonBaseUtility,
 } from "./utils/specCatalogBacked";
 import type { EventHandlerMap } from "@composition/shared/types";
@@ -108,10 +114,8 @@ const CSS_UNITLESS = new Set([
   "flexShrink",
   "order",
 ]);
-// ADR-902 후속: BODY_THEME_MAP 하드코딩 제거. createDefaultBodyProps 가 CSS var 리터럴
-// ("var(--bg)" / "var(--fg)") 을 직접 style 에 저장하므로 기본 iteration 경로가 theme-aware
-// 결과를 자연 적용한다. 사용자가 fills 를 커스터마이즈 하면 adaptElementStyle 이
-// fills → style.backgroundColor 재주입 → user 색상 반영 (이전 conditional override 불필요).
+// Body 기본 시각은 generated CSS가 담당한다. 이 목록은 사용자 authored style을 실제
+// document.body에 투영할 때 숫자 단위를 판정하는 용도다.
 
 // ============================================
 // Canvas Content Component
@@ -451,16 +455,15 @@ function CanvasContent() {
       document.body.setAttribute("data-original-type", "body");
 
       // body element의 style 적용 및 추적
-      if (adaptedBodyElement.props?.style) {
-        const style = adaptedBodyElement.props.style as Record<
-          string,
-          string | number
-        >;
+      const bodyPresentation = resolveBodyDomPresentation(
+        "body",
+        adaptedBodyElement.props?.style as React.CSSProperties | undefined,
+      );
+      if (bodyPresentation.style) {
+        const style = bodyPresentation.style as Record<string, string | number>;
         Object.entries(style).forEach(([key, value]) => {
           const cssKey = camelToKebab(key);
-          // ADR-902 후속: createDefaultBodyProps 의 CSS var 리터럴 (var(--bg)/var(--fg))
-          // 이 style 에 직접 저장되므로 그대로 전달. 사용자 커스텀 fills 는
-          // adaptElementStyle 이 style.backgroundColor 를 재주입해서 여기로 들어옴.
+          // 사용자 커스텀 fills는 adaptElementStyle이 style.backgroundColor로 투영한다.
           const cssValue =
             typeof value === "number" && !CSS_UNITLESS.has(key)
               ? `${value}px`
@@ -471,8 +474,11 @@ function CanvasContent() {
       }
 
       // body element의 className 적용 및 추적
-      if (adaptedBodyElement.props?.className) {
-        const newClassName = adaptedBodyElement.props.className as string;
+      const newClassName = resolveBodyDomClassName(
+        "body",
+        adaptedBodyElement.props?.className as string | undefined,
+      );
+      if (newClassName) {
         document.body.className =
           `${document.body.className} ${newClassName}`.trim();
         appliedClassNameRef.current = newClassName;
@@ -782,7 +788,8 @@ function CanvasContent() {
           owner.kind === "element"
             ? {
                 kind: "element" as const,
-                instanceKey: instanceKeyFor?.(owner.elementId) ?? owner.elementId,
+                instanceKey:
+                  instanceKeyFor?.(owner.elementId) ?? owner.elementId,
               }
             : owner.kind === "page"
               ? { kind: "page" as const, pageId: owner.pageId }
@@ -833,7 +840,10 @@ function CanvasContent() {
         const { runtimeState, currentPageId } = getRuntimeStore().getState();
         return resolveStateTemplate(
           text,
-          runtimeState.createEnv({ pageId: currentPageId, elementId: ownerElementId }),
+          runtimeState.createEnv({
+            pageId: currentPageId,
+            elementId: ownerElementId,
+          }),
         );
       },
     }),
@@ -888,8 +898,8 @@ function CanvasContent() {
       //   와 동일 정합). 누락 시 --button-color 만 설정되고 background 미적용(회색).
       const specClassName = specBacked
         ? usesButtonBaseUtility(adaptedElement.type)
-          ? `react-aria-${adaptedElement.type} button-base`
-          : `react-aria-${adaptedElement.type}`
+          ? `${resolveBackedRootClassName(adaptedElement.type)} button-base`
+          : resolveBackedRootClassName(adaptedElement.type)
         : undefined;
       const mergedClassName =
         [specClassName, tagProps?.className].filter(Boolean).join(" ") ||
@@ -907,8 +917,7 @@ function CanvasContent() {
           "md";
         cleanProps["data-size"] = sizeValue;
         const variantValue =
-          tagProps?.variant ??
-          resolveBackedDefaultVariant(adaptedElement.type);
+          tagProps?.variant ?? resolveBackedDefaultVariant(adaptedElement.type);
         if (variantValue) cleanProps["data-variant"] = variantValue;
       }
 
@@ -1379,7 +1388,10 @@ export function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const collections = useRuntimeStore((state) => state.collections);
   const apiEndpoints = useRuntimeStore((state) => state.apiEndpoints);
-  const collectionServices = useMemo(() => createCollectionSnapshotServices(collections, apiEndpoints), [collections, apiEndpoints]);
+  const collectionServices = useMemo(
+    () => createCollectionSnapshotServices(collections, apiEndpoints),
+    [collections, apiEndpoints],
+  );
   const messageHandlerRef = useRef<MessageHandler | null>(null);
 
   // 스토어에서 필요한 함수들 가져오기
@@ -1448,11 +1460,11 @@ export function App() {
     // ADR-158 Phase 3 — `toast` 앱 액션의 표시 표면. ToastProvider 가 region 까지
     // 렌더하므로 별도 오버레이가 필요 없다.
     <CollectionDataProvider services={collectionServices}>
-    <ToastProvider position="bottom-right">
-      <CanvasRouter renderElements={renderElements}>
-        {/* 추가 오버레이나 UI 요소는 여기에 */}
-      </CanvasRouter>
-    </ToastProvider>
+      <ToastProvider position="bottom-right">
+        <CanvasRouter renderElements={renderElements}>
+          {/* 추가 오버레이나 UI 요소는 여기에 */}
+        </CanvasRouter>
+      </ToastProvider>
     </CollectionDataProvider>
   );
 }

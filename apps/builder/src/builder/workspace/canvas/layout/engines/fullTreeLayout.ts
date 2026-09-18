@@ -2771,7 +2771,8 @@ export function calculateFullTreeLayout(
 
   if (batch.length === 0) return null;
 
-  // body 뷰포트 상자 높이 (Step 1.5 에서 주입, Step 5 에서 보고값으로 사용).
+  // body 뷰포트 상자 높이 (Step 1.5 에서 fallback 을 주입한 경우에만 Step 5 보고값으로 사용).
+  // authored height/minHeight 가 있으면 Preview 의 중첩 body div 와 같이 그 값을 보존한다.
   let bodyViewportHeight: number | null = null;
 
   // ── Step 1.5: Body(root) 요소에 breakpoint 페이지 크기 명시 ─────────
@@ -2790,12 +2791,29 @@ export function calculateFullTreeLayout(
       const bb = parseBorder(rootStyle);
       const pageW = availableWidth + bp.left + bp.right + bb.left + bb.right;
       const pageH = availableHeight + bp.top + bp.bottom + bb.top + bb.bottom;
-      // 폭은 확정, 블록 축은 **하한만** — Chrome 의 body(`min-height:100vh`)와 같은 형태다
-      // (아래 Step 5 주석 참조). 상자 크기는 Step 5 가 뷰포트로 되돌린다.
-      batch[rootIdx].style.width = `${pageW}px`;
-      delete batch[rootIdx].style.height;
-      batch[rootIdx].style.minHeight = `${pageH}px`;
-      bodyViewportHeight = pageH;
+      // canonical Preview 는 page wrapper(뷰포트) 안에 body div 를 렌더한다. 따라서
+      // body 의 authored width/height 는 wrapper 크기와 별개이며 그대로 소비해야 한다.
+      // 종전에는 여기서 항상 pageW/pageH 로 덮어 Size 패널의 저장값이 Preview 에만
+      // 반영됐다. 미지정/auto width 와 height/minHeight 모두 미지정인 경우에만
+      // 기존 viewport fallback 을 주입한다 (`resolveBodyDomPresentation` 과 같은 계약).
+      const hasAuthoredWidth =
+        rootStyle.width !== undefined &&
+        rootStyle.width !== null &&
+        String(rootStyle.width).trim() !== "" &&
+        String(rootStyle.width).trim() !== "auto";
+      const hasAuthoredHeight =
+        rootStyle.height !== undefined && rootStyle.height !== null;
+      const hasAuthoredMinHeight =
+        rootStyle.minHeight !== undefined && rootStyle.minHeight !== null;
+
+      if (!hasAuthoredWidth) {
+        batch[rootIdx].style.width = `${pageW}px`;
+      }
+      if (!hasAuthoredHeight && !hasAuthoredMinHeight) {
+        delete batch[rootIdx].style.height;
+        batch[rootIdx].style.minHeight = `${pageH}px`;
+        bodyViewportHeight = pageH;
+      }
     }
   }
 
@@ -3364,17 +3382,18 @@ export function calculateFullTreeLayout(
       ) as Record<string, unknown>;
       const margin = parseMargin(elementStyle);
 
-      // **body 는 뷰포트가 아니다 — 상자는 뷰포트, 배치는 내용** (2026-07-28).
+      // **body 는 뷰포트가 아니다 — fallback 상자는 뷰포트, 배치는 내용** (2026-07-28).
       //
       // Chrome 은 이 상황을 두 노드로 처리한다: 뷰포트(확정 844 · clip + scroll)와
-      // body(`min-height:100vh` · height auto → 내용만큼 자람). 캔버스에는 뷰포트 노드가
+      // body(`min-height:100%` · height auto → 내용만큼 자람). 캔버스에는 뷰포트 노드가
       // 없어 body 한 노드가 두 역할을 겸하는데, `display:block` 에서는 충돌하지 않던 것이
       // body 가 **세로 flex 컨테이너**가 되는 순간 "뷰포트 크기"가 "main-size 예산" 으로
       // 재해석되면서 자식을 압축한다(실측: 자식 합 1423 이 정확히 844 로 눌림 — ListBox
       // 162→35.6 / Card 322→85.6, 카드 내용이 다음 형제 위로 넘침).
       //
       // 그래서 Step 1.5 는 body 에 `min-height` 만 주고(→ 압축 소멸, Chrome 동형),
-      // 여기서는 **보고 높이를 뷰포트 상자로 되돌린다**. 이 값이 clip 높이이자
+      // authored height/minHeight 가 없을 때만 여기서는 **보고 높이를 뷰포트 상자로
+      // 되돌린다**. 이 값이 clip 높이이자
       // `maxScrollTop = 내용 extent − 이 높이` 의 기준이라, 내용 높이를 그대로 보고하면
       // 스크롤이 0 이 되고 넘친 내용이 프레임 밖 캔버스로 흘러나온다(도달 수단 없음).
       //

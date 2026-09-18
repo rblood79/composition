@@ -69,7 +69,11 @@ import type { BoundingBox } from "../../../workspace/canvas/selection/types";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
 import { resolveContainerStylesFallback } from "../../../workspace/canvas/layout/engines/implicitStyles";
 import type { CanvasLayoutNode } from "../../../workspace/canvas/layout/layoutNode";
-import { resolveAbsolutePositionActivationStyles } from "./transformUtils";
+import {
+  hasSizeConstraintConflict,
+  resolveAbsolutePositionActivationStyles,
+  type SizeConstraintProperty,
+} from "./transformUtils";
 import { POSITION_PROPS, SIZE_PROPS } from "./styleSectionProps";
 import {
   isSectionCollapsedInState,
@@ -357,6 +361,7 @@ const TransformSectionContent = memo(function TransformSectionContent({
   );
 
   const [sizingError, setSizingError] = useState<RatioEditError | null>(null);
+  const [constraintError, setConstraintError] = useState(false);
   const commitRatio = useCallback(
     (value: string | null) => {
       const snapshot = readImmediateSelectionSnapshot();
@@ -367,7 +372,69 @@ const TransformSectionContent = memo(function TransformSectionContent({
     },
     [selectedId],
   );
-  useEffect(() => setSizingError(null), [selectedId]);
+  useEffect(() => {
+    setSizingError(null);
+    setConstraintError(false);
+  }, [selectedId]);
+
+  const validateConstraint = useCallback(
+    (property: SizeConstraintProperty, value: string): boolean => {
+      if (!styleValues) return false;
+      const oppositeProperty: SizeConstraintProperty =
+        property === "minWidth"
+          ? "maxWidth"
+          : property === "maxWidth"
+            ? "minWidth"
+            : property === "minHeight"
+              ? "maxHeight"
+              : "minHeight";
+      // 같은 편집 세션에서 직전에 저장한 반대 제약은 React selector 재렌더보다 먼저
+      // 다음 Enter가 들어올 수 있다. 비교 기준은 렌더 시점 styleValues가 아니라 현재
+      // canonical store의 active breakpoint effective style이어야 한다.
+      const state = useStore.getState();
+      const snapshot = readImmediateSelectionSnapshot();
+      const element = snapshot.selectedElementId
+        ? state.elementsMap.get(snapshot.selectedElementId)
+        : undefined;
+      const baseStyle = (element?.props?.style ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const effectiveStyle = element
+        ? resolveResponsiveStyleMap(
+            baseStyle,
+            element.responsive,
+            state.activeBreakpoint,
+          )
+        : baseStyle;
+      const renderedFallback = styleValues[oppositeProperty];
+      const opposite = String(
+        effectiveStyle[oppositeProperty] ?? renderedFallback ?? "",
+      );
+      const conflict = hasSizeConstraintConflict(property, value, opposite);
+      setConstraintError(conflict);
+      return !conflict;
+    },
+    [styleValues],
+  );
+
+  const commitConstraint = useCallback(
+    (property: SizeConstraintProperty, value: string) => {
+      if (validateConstraint(property, value)) {
+        updateStyleImmediate(property, value);
+      }
+    },
+    [updateStyleImmediate, validateConstraint],
+  );
+
+  const previewConstraint = useCallback(
+    (property: SizeConstraintProperty, value: string) => {
+      if (validateConstraint(property, value)) {
+        updateStylePreview(property, value);
+      }
+    },
+    [updateStylePreview, validateConstraint],
+  );
   const handleAspectRatioLock = useCallback(() => {
     commitRatio(hasEnabledAspectRatio(styleValues?.aspectRatio) ? "" : null);
   }, [commitRatio, styleValues?.aspectRatio]);
@@ -633,8 +700,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 value={styleValues.minWidth}
                 units={["reset", "px", "%", "vw"]}
                 preserveEmptyValueOnUnitChange
-                onChange={(value) => updateStyleImmediate("minWidth", value)}
-                onDrag={(value) => updateStylePreview("minWidth", value)}
+                onChange={(value) => commitConstraint("minWidth", value)}
+                onDrag={(value) => previewConstraint("minWidth", value)}
                 min={0}
                 max={9999}
               />
@@ -646,8 +713,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 value={styleValues.minHeight}
                 units={["reset", "px", "%", "vh"]}
                 preserveEmptyValueOnUnitChange
-                onChange={(value) => updateStyleImmediate("minHeight", value)}
-                onDrag={(value) => updateStylePreview("minHeight", value)}
+                onChange={(value) => commitConstraint("minHeight", value)}
+                onDrag={(value) => previewConstraint("minHeight", value)}
                 min={0}
                 max={9999}
               />
@@ -660,8 +727,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 value={styleValues.maxWidth}
                 units={["reset", "px", "%", "vw"]}
                 preserveEmptyValueOnUnitChange
-                onChange={(value) => updateStyleImmediate("maxWidth", value)}
-                onDrag={(value) => updateStylePreview("maxWidth", value)}
+                onChange={(value) => commitConstraint("maxWidth", value)}
+                onDrag={(value) => previewConstraint("maxWidth", value)}
                 min={0}
                 max={9999}
               />
@@ -673,12 +740,17 @@ const TransformSectionContent = memo(function TransformSectionContent({
                 value={styleValues.maxHeight}
                 units={["reset", "px", "%", "vh"]}
                 preserveEmptyValueOnUnitChange
-                onChange={(value) => updateStyleImmediate("maxHeight", value)}
-                onDrag={(value) => updateStylePreview("maxHeight", value)}
+                onChange={(value) => commitConstraint("maxHeight", value)}
+                onDrag={(value) => previewConstraint("maxHeight", value)}
                 min={0}
                 max={9999}
               />
               <div className="fieldset-actions actions-constraint-max" />
+              {constraintError && (
+                <p className="transform-constraint-error" role="alert">
+                  {localize("Minimum size cannot exceed maximum size")}
+                </p>
+              )}
             </>
           )}
           <PropertySelect

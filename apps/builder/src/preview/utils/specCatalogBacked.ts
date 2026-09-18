@@ -21,7 +21,11 @@
  *   (specs ← shared ← builder, specs 가 shared 를 import 못 함). 두 Preview 호출부
  *   (CanonicalNodeRenderer / App.tsx)가 본 헬퍼를 공유.
  */
-import { isCatalogCutover, resolveComponentRule } from "@composition/shared";
+import {
+  BODY_DOM_CLASS_NAME,
+  isCatalogCutover,
+  resolveComponentRule,
+} from "@composition/shared";
 import { hasSpec, getDefaultSizeForTag } from "@composition/specs";
 
 /**
@@ -57,6 +61,11 @@ export function resolveBackedDefaultSize(type: string): string | undefined {
  */
 export function resolveBackedDefaultVariant(type: string): string | undefined {
   return resolveComponentRule(type)?.defaultVariant as string | undefined;
+}
+
+/** generated CSS selector의 실제 root class. lowercase canonical body는 PascalCase CSS를 쓴다. */
+export function resolveBackedRootClassName(type: string): string {
+  return type === "body" ? BODY_DOM_CLASS_NAME : `react-aria-${type}`;
 }
 
 /**

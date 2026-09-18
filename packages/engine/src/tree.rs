@@ -1986,8 +1986,13 @@ impl LayoutTree {
                 .get(handle)
                 .map(|n| {
                     let raw = n.style.height.as_deref().unwrap_or("auto");
+                    // Percentage height는 containing block 높이가 indefinite면 auto로 계산된다.
+                    // `resolve_self_size`가 해소하지 못한 경우에만 측정 content scalar를 사용한다.
+                    // definite 부모에서는 explicit_h가 양수이므로 authored percentage가 그대로 이긴다.
+                    let unresolved_height =
+                        resolve_dimension_opt(Some(raw), &self.ctx_for(avail_h)).is_none();
                     match n.style.content_height {
-                        Some(content) if raw == "auto" && explicit_h <= 0.0 => {
+                        Some(content) if unresolved_height && explicit_h <= 0.0 => {
                             let content = content.max(0.0);
                             let padding = axis_pad_border(&n.style, &self.ctx_for(avail_w), false);
                             (content, content + padding)
@@ -9910,6 +9915,36 @@ mod tests {
         tree.set_children(root, vec![child]);
         tree.compute_layout(root, 900.0, 240.0);
         assert_eq!(tree.get_layout(child).height, 30.0);
+    }
+
+    #[test]
+    fn percent_height_in_indefinite_column_falls_back_to_intrinsic_content() {
+        let mut tree = LayoutTree::new();
+        let child = tree.create_node(NodeStyle {
+            width: Some("fit-content".into()),
+            height: Some("100%".into()),
+            content_height: Some(20.0),
+            padding_top: Some("4px".into()),
+            padding_bottom: Some("4px".into()),
+            border_top: Some("1px".into()),
+            border_bottom: Some("1px".into()),
+            ..NodeStyle::default()
+        });
+        let root = tree.create_node(NodeStyle {
+            display: Some("flex".into()),
+            flex_direction: Some("column".into()),
+            width: Some("342px".into()),
+            padding_top: Some("12px".into()),
+            padding_bottom: Some("12px".into()),
+            border_top: Some("2px".into()),
+            border_bottom: Some("2px".into()),
+            ..NodeStyle::default()
+        });
+        tree.set_children(root, vec![child]);
+        tree.compute_layout(root, 342.0, 844.0);
+
+        assert_eq!(tree.get_layout(child).height, 30.0);
+        assert_eq!(tree.get_layout(root).height, 58.0);
     }
 
     /// block 컨테이너 = 자식들의 **최대** (세로 적층).

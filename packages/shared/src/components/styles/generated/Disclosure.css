@@ -5,76 +5,79 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-Disclosure {
-    /* Base styles — archetype: default */
+
+.react-aria-Disclosure {
+  /* Base styles — archetype: default */
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
     display: block;
 
-    /* Container styles (ADR-071 + ADR-083 Phase 1) */
-    display: block;
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: block;
 
-    /* Default size */
-    font-size: var(--text-sm);
-    border-radius: var(--radius-md);
-    line-height: var(--text-sm--line-height);
-    border-width: 0px;
-    --icon-size: 16px;
+  /* Default size */
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  line-height: var(--text-sm--line-height);
+  border-width: 0px;
+  --icon-size: 16px;
+}
+
+.react-aria-Disclosure[data-size="sm"] {
+  font-size: var(--text-xs);
+  border-radius: var(--radius-sm);
+  line-height: var(--text-xs--line-height);
+  border-width: 0px;
+  --icon-size: 14px;
+}
+
+.react-aria-Disclosure[data-size="md"] {
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  line-height: var(--text-sm--line-height);
+  border-width: 0px;
+  --icon-size: 16px;
+}
+
+.react-aria-Disclosure[data-size="lg"] {
+  font-size: var(--text-base);
+  border-radius: var(--radius-lg);
+  line-height: var(--text-base--line-height);
+  border-width: 0px;
+  --icon-size: 20px;
+}
+
+.react-aria-Disclosure[data-hovered] {
+}
+
+.react-aria-Disclosure[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Disclosure[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Disclosure {
+    forced-color-adjust: auto;
   }
+}
 
-  .react-aria-Disclosure[data-size="sm"] {
-    font-size: var(--text-xs);
-    border-radius: var(--radius-sm);
-    line-height: var(--text-xs--line-height);
-    border-width: 0px;
-    --icon-size: 14px;
-  }
-
-  .react-aria-Disclosure[data-size="md"] {
-    font-size: var(--text-sm);
-    border-radius: var(--radius-md);
-    line-height: var(--text-sm--line-height);
-    border-width: 0px;
-    --icon-size: 16px;
-  }
-
-  .react-aria-Disclosure[data-size="lg"] {
-    font-size: var(--text-base);
-    border-radius: var(--radius-lg);
-    line-height: var(--text-base--line-height);
-    border-width: 0px;
-    --icon-size: 20px;
-  }
-
-  .react-aria-Disclosure[data-hovered] {
-  }
-
-  .react-aria-Disclosure[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
-
-  .react-aria-Disclosure[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  /* ── Tier 2: Composite Delegation ── */
-
-  @media (forced-colors: active) {
-    .react-aria-Disclosure {
-      forced-color-adjust: auto;
-    }
-  }
 
   .react-aria-Disclosure .react-aria-Heading {
     margin: 0;
     font-size: inherit;
   }
 
-  .react-aria-Disclosure .react-aria-Button[slot="trigger"] {
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'] {
     background: none;
     border: none;
     box-shadow: none;
@@ -93,18 +96,17 @@
     outline: none;
   }
 
-  .react-aria-Disclosure .react-aria-Button[slot="trigger"][data-hovered] {
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-hovered] {
     background: var(--bg-muted);
     color: var(--fg-emphasis);
   }
 
-  .react-aria-Disclosure .react-aria-Button[slot="trigger"][data-pressed] {
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-pressed] {
     background: var(--bg-muted);
     scale: 0.97;
   }
 
-  .react-aria-Disclosure
-    .react-aria-Button[slot="trigger"][data-focus-visible] {
+  .react-aria-Disclosure .react-aria-Button[slot='trigger'][data-focus-visible] {
     outline: var(--focus-ring-width) solid var(--focus-ring);
   }
 
@@ -126,7 +128,10 @@
     color: var(--fg);
   }
 
+
   .react-aria-Disclosure[data-expanded] .disclosure-chevron {
     rotate: 90deg;
   }
+
+
 } /* @layer components */

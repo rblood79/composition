@@ -5,85 +5,88 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-TableView {
-    /* Base styles — archetype: default */
+
+.react-aria-TableView {
+  /* Base styles — archetype: default */
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
 
-    /* Container styles (ADR-071 + ADR-083 Phase 1) */
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 
-    /* Default variant */
-    background: var(--bg-overlay);
-    color: var(--fg);
-    border: 1px solid var(--border);
+  /* Default variant */
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border: 1px solid var(--border);
 
-    /* Default size */
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-md);
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
+
+.react-aria-TableView[data-variant="default"] {
+  background: var(--bg-overlay);
+  color: var(--fg);
+  border-color: var(--border);
+
+  &[data-hovered] {
+    background: var(--bg-muted);
   }
 
-  .react-aria-TableView[data-variant="default"] {
-    background: var(--bg-overlay);
-    color: var(--fg);
-    border-color: var(--border);
+  &[data-pressed] {
+    background: color-mix(in srgb, var(--bg-muted) 75%, black);
+  }
+}
 
-    &[data-hovered] {
-      background: var(--bg-muted);
-    }
+.react-aria-TableView[data-variant="quiet"] {
+  background: transparent;
+  color: var(--fg);
+  border-color: transparent;
 
-    &[data-pressed] {
-      background: color-mix(in srgb, var(--bg-muted) 75%, black);
-    }
+  &[data-hovered] {
+    background: var(--bg-muted);
   }
 
-  .react-aria-TableView[data-variant="quiet"] {
-    background: transparent;
-    color: var(--fg);
-    border-color: transparent;
-
-    &[data-hovered] {
-      background: var(--bg-muted);
-    }
-
-    &[data-pressed] {
-      background: color-mix(in srgb, var(--bg-muted) 75%, black);
-    }
+  &[data-pressed] {
+    background: color-mix(in srgb, var(--bg-muted) 75%, black);
   }
+}
 
-  .react-aria-TableView[data-size="md"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-md);
-  }
+.react-aria-TableView[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+}
 
-  .react-aria-TableView[data-hovered] {
-  }
+.react-aria-TableView[data-hovered] {
+}
 
-  .react-aria-TableView[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
+.react-aria-TableView[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
-  .react-aria-TableView[data-pressed] {
-  }
+.react-aria-TableView[data-pressed] {
+}
 
-  .react-aria-TableView[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+.react-aria-TableView[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
-  @media (forced-colors: active) {
-    .react-aria-TableView {
-      forced-color-adjust: auto;
-    }
+@media (forced-colors: active) {
+  .react-aria-TableView {
+    forced-color-adjust: auto;
   }
+}
+
+
 } /* @layer components */

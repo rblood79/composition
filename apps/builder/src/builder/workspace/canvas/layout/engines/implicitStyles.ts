@@ -1651,6 +1651,41 @@ export function applyImplicitStyles(
     filteredChildren = injectCollectionItemFontStyles(filteredChildren);
   }
 
+  // ── ButtonGroup ───────────────────────────────────────────────────
+  // Preview `renderButtonGroup` 는 prop 기반 layout 기본값(display/flexDirection/gap/
+  // justifyContent)을 만든 뒤 authored style 을 마지막에 merge 한다. Canvas 는 authored
+  // style 만 읽어 legacy/편집 문서에서 빠진 gap 이 0이 되는 비대칭이 있었다.
+  // 같은 기본값을 read-time projection 으로 적용하되 authored style 이 항상 이긴다.
+  if (containerTag === "buttongroup") {
+    const sizeName = String(containerProps?.size ?? "md");
+    const gapBySize: Record<string, number> = {
+      xs: 4,
+      sm: 6,
+      md: 8,
+      lg: 10,
+      xl: 12,
+    };
+    const orientation = String(containerProps?.orientation ?? "horizontal");
+    const align = String(containerProps?.align ?? "end");
+    const justifyByAlign: Record<string, string> = {
+      start: "flex-start",
+      center: "center",
+      end: "flex-end",
+    };
+    const gap = gapBySize[sizeName] ?? 8;
+    effectiveParent = withParentStyle(containerEl, {
+      ...parentStyle,
+      display: parentStyle.display ?? "flex",
+      flexDirection:
+        parentStyle.flexDirection ??
+        (orientation === "vertical" ? "column" : "row"),
+      rowGap: parentStyle.rowGap ?? parentStyle.gap ?? gap,
+      columnGap: parentStyle.columnGap ?? parentStyle.gap ?? gap,
+      justifyContent:
+        parentStyle.justifyContent ?? justifyByAlign[align] ?? "flex-end",
+    });
+  }
+
   // ── Button / ToggleButton (자식 보유 leaf) ────────────────────────────
   //   icon Button = `<Button><Icon/><Text/></Button>` 처럼 자식(Icon/Text element)을 가지면
   //   Button 이 컨테이너로 layout 된다. catalog `sizes[size]` 의 paddingX/paddingY/gap 은

@@ -386,14 +386,7 @@ function makeDefaultPageBodyNode(pageId: string): CanonicalNode {
   return {
     id: `${pageId}-body`,
     type: "Body",
-    props: {
-      className: "react-aria-Body",
-      style: {
-        display: "block",
-        fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
-        overflow: "auto",
-      },
-    },
+    props: { style: { overflow: "auto" } },
     children: [],
   };
 }

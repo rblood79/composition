@@ -327,6 +327,50 @@ describe("TransformSection sizing controls", () => {
     }
   });
 
+  it("blocks a same-unit max below min and commits the next valid value", () => {
+    const originalUpdateSelectedStyle = useStore.getState().updateSelectedStyle;
+    const updateSelectedStyle = vi.fn((property: string, value: string) =>
+      originalUpdateSelectedStyle(property, value),
+    );
+    setTestElements([
+      {
+        id: "button-1",
+        type: "Button",
+        parent_id: "frame-1",
+        props: {
+          style: { width: "300px", height: "100px" },
+        },
+      } as Element,
+      {
+        id: "frame-1",
+        type: "Frame",
+        parent_id: null,
+        props: { style: { display: "flex", flexDirection: "row" } },
+      } as Element,
+    ]);
+    useStore.setState({ updateSelectedStyle } as never);
+
+    render(<TransformSection />);
+    fireEvent.click(screen.getByRole("button", { name: "Size constraints" }));
+    const minW = screen.getByRole("combobox", { name: "Min W" });
+    const maxW = screen.getByRole("combobox", { name: "Max W" });
+    fireEvent.change(minW, { target: { value: "200" } });
+    fireEvent.keyDown(minW, { key: "Enter" });
+    fireEvent.change(maxW, { target: { value: "100" } });
+    fireEvent.keyDown(maxW, { key: "Enter" });
+
+    expect(updateSelectedStyle).not.toHaveBeenCalledWith("maxWidth", "100px");
+    expect(screen.getByRole("alert").textContent).toMatch(
+      /Minimum size cannot exceed maximum size/i,
+    );
+
+    fireEvent.change(maxW, { target: { value: "300" } });
+    fireEvent.keyDown(maxW, { key: "Enter" });
+
+    expect(updateSelectedStyle).toHaveBeenCalledWith("maxWidth", "300px");
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
   // ADR-224 §6.1 — Absolute 활성화는 store 복합 명령 `applyAbsoluteFromSelection` 하나로 간다
   // (position/inset + 무효 Fill 의 used px Fixed + 형제 맨 앞, 한 transaction). 패널은 scene
   // bounds 로 position/left/top 만 계산해 넘긴다.

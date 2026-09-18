@@ -4962,8 +4962,15 @@ export function enrichWithIntrinsicSize(
     (INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type));
 
   const rawHeight = style?.height;
+  // CSS percentage height는 containing block 높이가 indefinite면 auto로 계산된다.
+  // 그 경우 엔진이 원래 콘텐츠 높이로 fallback할 수 있도록 측정 스칼라를 함께 싣는다.
+  // 부모 높이가 definite면 엔진이 percentage를 정상 해소하므로 이 스칼라는 소비되지 않는다.
+  const percentageHeightMayNeedIntrinsicFallback =
+    typeof rawHeight === "string" && rawHeight.includes("%");
   const needsHeight =
     !rawHeight || INTRINSIC_SIZE_KEYWORDS.has(rawHeight as string);
+  const needsHeightMeasurement =
+    needsHeight || percentageHeightMayNeedIntrinsicFallback;
 
   // 기본 Button의 fit-content와 Fill이 명시한 auto를 구별한다.
   // inline 부재를 auto로 취급하면 Column의 Height Fill이 Width까지 stretch된다.
@@ -5048,7 +5055,8 @@ export function enrichWithIntrinsicSize(
     resolveTextLeafWhiteSpace(style, _computedStyle),
   );
 
-  if (!needsHeight && !needsWidth && !textLeafHasLineBox) return element;
+  if (!needsHeightMeasurement && !needsWidth && !textLeafHasLineBox)
+    return element;
 
   const box = parseBoxModel(element, availableWidth, availableHeight);
 
@@ -5144,7 +5152,7 @@ export function enrichWithIntrinsicSize(
   // ADR-923 r20 sweep — button 가족은 content 0 (빈 글자) 도 주입 대상: 엔진은 catalog padding/border
   //   (sizeConfig 경유 parseBoxModel) 를 모르므로 미주입이면 0 이 된다. Chrome 은 padding + border 상자.
   if (
-    needsHeight &&
+    needsHeightMeasurement &&
     (childResolvedHeight > 0 || BUTTON_TEXT_LEAF_TAGS.has(type))
   ) {
     let injectHeight = childResolvedHeight;
@@ -5203,7 +5211,12 @@ export function enrichWithIntrinsicSize(
       }
       injectHeight += box.border.top + box.border.bottom;
     }
-    if (measuredAutoLeaf && (rawHeight == null || rawHeight === "auto")) {
+    if (
+      measuredAutoLeaf &&
+      (rawHeight == null ||
+        rawHeight === "auto" ||
+        percentageHeightMayNeedIntrinsicFallback)
+    ) {
       injectedStyle.contentHeight = Math.max(
         0,
         injectHeight -

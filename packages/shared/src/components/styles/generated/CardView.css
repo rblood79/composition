@@ -5,72 +5,75 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-CardView {
-    /* Base styles — archetype: default */
+
+.react-aria-CardView {
+  /* Base styles — archetype: default */
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
 
-    /* Default variant */
+  /* Default variant */
+  background: transparent;
+  color: var(--fg);
+  border: none;
+
+  /* Default size */
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: 0;
+}
+
+.react-aria-CardView[data-variant="default"] {
+  background: transparent;
+  color: var(--fg);
+
+  &[data-hovered] {
     background: transparent;
-    color: var(--fg);
-    border: none;
-
-    /* Default size */
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-sm);
-    border-radius: 0;
   }
 
-  .react-aria-CardView[data-variant="default"] {
+  &[data-pressed] {
     background: transparent;
-    color: var(--fg);
-
-    &[data-hovered] {
-      background: transparent;
-    }
-
-    &[data-pressed] {
-      background: transparent;
-    }
   }
+}
 
-  .react-aria-CardView[data-size="sm"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-sm);
-    border-radius: 0;
-  }
+.react-aria-CardView[data-size="sm"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: 0;
+}
 
-  .react-aria-CardView[data-size="md"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-sm);
-    border-radius: 0;
-  }
+.react-aria-CardView[data-size="md"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-sm);
+  border-radius: 0;
+}
 
-  .react-aria-CardView[data-size="lg"] {
-    height: auto;
-    padding: 0px 0px;
-    font-size: var(--text-base);
-    border-radius: 0;
-  }
+.react-aria-CardView[data-size="lg"] {
+  height: auto;
+  padding: 0px 0px;
+  font-size: var(--text-base);
+  border-radius: 0;
+}
 
-  .react-aria-CardView[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
+.react-aria-CardView[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
 
-  .react-aria-CardView[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
+.react-aria-CardView[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
-  @media (forced-colors: active) {
-    .react-aria-CardView {
-      forced-color-adjust: auto;
-    }
+@media (forced-colors: active) {
+  .react-aria-CardView {
+    forced-color-adjust: auto;
   }
+}
+
+
 } /* @layer components */

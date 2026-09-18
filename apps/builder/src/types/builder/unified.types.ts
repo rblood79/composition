@@ -1751,23 +1751,10 @@ export function createDefaultDivProps(): DivElementProps {
 }
 
 export function createDefaultBodyProps(): DivElementProps {
-  // ADR-109 D2: backgroundColor / color CSS var 리터럴 제거. className "react-aria-Body"
-  // 자동 주입으로 BodySpec generated CSS (.react-aria-Body { background: var(--bg); color: var(--fg); })
-  // 가 theme 적용을 담당. 3 consumer 동작:
-  // - Skia: BodySpec (TAG_SPEC_MAP 등록) 가 buildSpecNodeData 경로로 담당 → Spec TokenRef
-  //   ({color.base} / {color.neutral}) 가 theme resolve.
-  // - Preview DOM: App.tsx 가 props.className "react-aria-Body" 를 document.body 에 주입 →
-  //   generated CSS rule 로 theme-aware (CSS cascade).
-  // - Publish DOM: useBodyElement(elements) hook 이 react-aria-Body className + props.style 을
-  //   document.body 에 주입 → 동일 generated CSS rule 적용.
-  return {
-    className: "react-aria-Body",
-    style: {
-      display: "block",
-      fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
-      overflow: "auto",
-    },
-  };
+  // Body infrastructure class와 display/font 기본 시각은 canonical authored props가 아니다.
+  // overflow:auto는 Canvas 스크롤 동작이 raw props를 읽으므로 runtime 계약으로 보존하되,
+  // Preview/Publish DOM에서는 generated Body CSS가 적용하도록 inline 투영에서 제거한다.
+  return { style: { overflow: "auto" } };
 }
 
 export function createDefaultSectionProps(): SectionElementProps {

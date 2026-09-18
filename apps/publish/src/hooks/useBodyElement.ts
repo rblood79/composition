@@ -10,7 +10,11 @@
 
 import { useEffect, useRef } from "react";
 import type { Element } from "@composition/shared";
-import { adaptElementStyle } from "@composition/shared";
+import {
+  adaptElementStyle,
+  resolveBodyDomClassName,
+  resolveBodyDomPresentation,
+} from "@composition/shared";
 
 const CSS_UNITLESS = new Set([
   "opacity",
@@ -64,18 +68,31 @@ export function useBodyElement(elements: Element[]): void {
     const adaptedBody = adaptElementStyle(bodyElement);
 
     // D1: BodySpec className 주입 — `.react-aria-Body { ... }` CSS 규칙 매칭
-    const specClassName = "react-aria-Body";
+    const specClassName = resolveBodyDomClassName(
+      "body",
+      adaptedBody.props?.className as string | undefined,
+    )!;
     document.body.className =
       `${document.body.className} ${specClassName}`.trim();
     appliedClassNameRef.current = specClassName;
 
-    if (adaptedBody.props?.style) {
-      const style = adaptedBody.props.style as Record<string, string | number>;
+    const bodyPresentation = resolveBodyDomPresentation(
+      "body",
+      adaptedBody.props?.style as React.CSSProperties | undefined,
+    );
+    if (bodyPresentation.style) {
+      const style = bodyPresentation.style as Record<string, string | number>;
       Object.entries(style).forEach(([key, value]) => {
         // Publish는 앱 shell 안의 Body 컨테이너가 실제 페이지 레이아웃을 소유한다.
         // document.body에도 grid/flex/width/padding을 적용하면 #root가 첫 grid 칸에
         // 갇히거나 padding이 두 번 적용된다. 전역에는 배경/상속 속성만 전달한다.
-        if (!key.startsWith("--") && !/^(background|font|text|lineHeight|letterSpacing|wordSpacing|color|cursor|direction|writingMode)/.test(key)) return;
+        if (
+          !key.startsWith("--") &&
+          !/^(background|font|text|lineHeight|letterSpacing|wordSpacing|color|cursor|direction|writingMode)/.test(
+            key,
+          )
+        )
+          return;
         const cssKey = camelToKebab(key);
         const cssValue =
           typeof value === "number" && !CSS_UNITLESS.has(key)

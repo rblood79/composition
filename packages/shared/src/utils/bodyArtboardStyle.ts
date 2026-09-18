@@ -1,7 +1,24 @@
 import type { CSSProperties } from "react";
 
+export const BODY_DOM_CLASS_NAME = "react-aria-Body";
+
+const LEGACY_BODY_DOM_CLASSES = new Set([
+  BODY_DOM_CLASS_NAME,
+  "react-aria-body",
+]);
+
+const LEGACY_BODY_FONT_FAMILIES = new Set([
+  `"Pretendard", "Inter Variable", system-ui, sans-serif`,
+  `"Pretendard", "Inter Variable", monospace, system-ui, sans-serif`,
+]);
+
+export interface BodyDomPresentation {
+  style: CSSProperties | undefined;
+  fillsViewport: boolean;
+}
+
 /**
- * canonical `body` 노드의 DOM 스타일을 Skia 아트보드 높이에 정합한다.
+ * canonical `body` 노드의 DOM 투영을 정규화한다.
  *
  * D3 대칭(2026-07-15): canonical DOM 렌더 경로(builder Preview `CanonicalNodeRenderer`,
  * publish `ElementRenderer`)는 body 노드를 중첩 `<div>` 로 렌더하며 `element.props.style`
@@ -10,20 +27,53 @@ import type { CSSProperties } from "react";
  * 콘텐츠 좌표는 layout map 공유로 일치하나, body 배경/테두리·세로 중앙정렬·자식 height:100% 등
  * body 박스 높이에 의존하는 시각/레이아웃이 Builder ↔ DOM 사이에서 갈린다(대칭 위반).
  *
- * viewport(=preview iframe / publish 페이지 = Skia artboard) 기준 `min-height:100vh` 로
- * body 박스를 아트보드에 채운다. `%`-height 는 상위 frame 이 auto height 라 cascade 가 0 으로
- * 처리되어 무효(라이브 실측: %=collapse, vh=fill) → `100vh` 필수. 사용자가 height/minHeight 를
- * 명시하면 그 의도를 보존(주입 skip).
+ * viewport 높이 fallback은 inline `min-height`가 아니라
+ * `data-body-viewport-fill` + generated Body CSS가 담당한다. page shell DOM 제거 후 Preview의
+ * `html/body`는 확정 100% 높이이므로 `min-height:100%`를 쓸 수 있고, authored
+ * height/minHeight가 있으면 data attribute 자체를 내지 않는다.
  *
- * D3 symmetric consumer(preview·publish DOM) 가 반드시 **동일 로직**을 쓰도록 단일 소스로 둔다 —
- * 이 정합 자체가 대칭을 위한 코드이므로 렌더러별 복제는 재발산의 씨앗이 된다.
+ * 과거 factory가 저장하던 display/fontFamily/overflow는 Body CSS와 catalog 기본값의
+ * authored mirror였다. 기존 문서 데이터는 건드리지 않고 값이 정확히 구 기본값일 때만
+ * DOM inline 투영에서 제거한다. 다른 값은 사용자 저작값이므로 보존한다.
  */
-export function resolveBodyArtboardStyle(
+export function resolveBodyDomPresentation(
   type: string,
   style: CSSProperties | undefined,
-): CSSProperties | undefined {
-  if (type !== "body" || style?.height != null || style?.minHeight != null) {
-    return style;
+): BodyDomPresentation {
+  if (type !== "body") {
+    return { style, fillsViewport: false };
   }
-  return { ...style, minHeight: "100vh" };
+
+  const fillsViewport = style?.height == null && style?.minHeight == null;
+  if (!style) return { style: undefined, fillsViewport };
+
+  const normalized = { ...style };
+  if (normalized.display === "block") delete normalized.display;
+  if (normalized.overflow === "auto") delete normalized.overflow;
+  if (
+    typeof normalized.fontFamily === "string" &&
+    LEGACY_BODY_FONT_FAMILIES.has(normalized.fontFamily)
+  ) {
+    delete normalized.fontFamily;
+  }
+
+  return {
+    style: Object.keys(normalized).length > 0 ? normalized : undefined,
+    fillsViewport,
+  };
+}
+
+/** Body infrastructure class는 renderer가 소유하고 canonical className에는 중복 저장하지 않는다. */
+export function resolveBodyDomClassName(
+  type: string,
+  authoredClassName: string | undefined,
+): string | undefined {
+  if (type !== "body") return authoredClassName;
+
+  const authoredTokens = authoredClassName?.split(/\s+/).filter(Boolean) ?? [];
+  const tokens = [
+    BODY_DOM_CLASS_NAME,
+    ...authoredTokens.filter((token) => !LEGACY_BODY_DOM_CLASSES.has(token)),
+  ];
+  return Array.from(new Set(tokens)).join(" ");
 }

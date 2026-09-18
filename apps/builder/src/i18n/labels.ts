@@ -171,6 +171,8 @@ export const semanticLabelKeys: Record<string, string> = {
   "Open each screen size (Desktop, Tablet, Mobile) once, then try again":
     "styles.transform.ratio.error.tierGeometry",
   "Document changed. Try again": "styles.transform.ratio.error.document",
+  "Minimum size cannot exceed maximum size":
+    "styles.transform.constraint.error.order",
   "Size constraints": "styles.transform.sizeConstraints",
   "Absolute position": "styles.transform.absolutePosition",
   Auto: "styles.layout.sizing.auto",

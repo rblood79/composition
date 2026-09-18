@@ -76,6 +76,20 @@ describe("BuilderHeader chrome control groups", () => {
     expect(resetItem).not.toContain("<Columns");
   });
 
+  it("Compare의 current-page filter는 Compare 중에만 보이는 독립 옵션이다", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderHeader.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain("isCompareMode && filterCurrentPage");
+    expect(source).toContain('id="current-page"');
+    expect(source).toContain('t("header.compareCurrentPageOnly")');
+    expect(source).toContain(
+      'setCurrentPageFilter(selectedKeys.has("current-page"))',
+    );
+  });
+
   it("header shell은 transparent이고 group surface는 공통 stylesheet가 소유한다", async () => {
     const [headerStyles, groupStyles] = await Promise.all([
       readFile(resolve(__dirname, "../styles/layout/header.css"), "utf-8"),

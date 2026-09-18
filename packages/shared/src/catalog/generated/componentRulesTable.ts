@@ -770,15 +770,13 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     defaultVariant: "default",
     defaultSize: "md",
     // 페이지 body 기본 overflow = auto (스크롤). D3 SSOT 단일 기본값 source — 시스템 페이지
-    //   (Components / fallback Home)는 systemComponentsPage.ts 가 props:{} 로 생성해 factory
-    //   createDefaultBodyProps(overflow:auto)를 우회하므로 catalog 를 안 두면 CSS 기본 visible 로
-    //   떨어진다(패널 specPresetResolver fallback 도 "visible"). top-level containerStyles.overflow
-    //   를 두면 3 소비자(패널 resolveCatalogContainerBase / layout resolveContainerStylesFallback
-    //   경로 A / 렌더)가 동일 fallback 을 읽어 모든 page 가 auto. 사용자 페이지는 factory 명시
-    //   prop 우선(동일 auto). overflow 는 CONTAINER_STYLES_FALLBACK_KEYS whitelist 멤버.
+    //   Body factory는 Canvas 스크롤 runtime을 위해 raw overflow:auto만 보존한다. catalog는
+    //   패널/Canvas layout fallback을 공급하고 structure mirror가 DOM generated CSS를 공급한다.
+    //   overflow는 CONTAINER_STYLES_FALLBACK_KEYS whitelist 멤버다.
     //   (2026-07-21 사용자 요청: 모든 page 기본 overflow=auto, Components 페이지가 visible 이었음)
     containerStyles: {
       overflow: "auto",
+      width: "100%",
     },
     variants: {
       default: {
@@ -802,7 +800,22 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
     structure: {
       archetype: "default",
       element: "body",
-      containerStyles: undefined,
+      // DOM generated CSS channel. top-level containerStyles는 Canvas/layout consumer가 읽고,
+      // structure mirror는 CSSGenerator가 같은 값을 방출한다.
+      containerStyles: {
+        overflow: "auto",
+        width: "100%",
+      },
+      composition: {
+        rootSelectors: {
+          "&[data-body-viewport-fill]": {
+            styles: {
+              "min-height": "100%",
+            },
+          },
+        },
+        delegation: [],
+      },
     },
   },
   Breadcrumb: {

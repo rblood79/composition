@@ -127,6 +127,20 @@ describe("BuilderCanvas canonical projection contract", () => {
     expect(source).toContain("visiblePageIdsOverride:");
   });
 
+  it("keeps all Compare Canvas pages unless the current-page filter is enabled", async () => {
+    const source = await readFile(
+      resolve(__dirname, "BuilderCanvas.tsx"),
+      "utf-8",
+    );
+
+    expect(source).toContain(
+      "isCompareMode && filterCurrentPage && currentPageId",
+    );
+    expect(source).toContain(
+      "compareVisiblePageIds ?? transientVisiblePageIds ?? undefined",
+    );
+  });
+
   it("selects the page before starting a header drag (ADR-221 handleHeaderPointerDown)", async () => {
     const source = await readFile(
       resolve(__dirname, "BuilderCanvas.tsx"),

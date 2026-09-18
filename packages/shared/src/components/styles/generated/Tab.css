@@ -5,94 +5,96 @@
  * ============================================================ */
 
 @layer components {
-  .react-aria-Tab {
-    /* Base styles — archetype: default */
+
+.react-aria-Tab {
+  /* Base styles — archetype: default */
     display: block;
     box-sizing: border-box;
     font-family: var(--font-sans);
 
-    /* Container styles (ADR-071 + ADR-083 Phase 1) */
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+  /* Container styles (ADR-071 + ADR-083 Phase 1) */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
 
-    /* Default variant */
+  /* Default variant */
+  background: transparent;
+  color: var(--fg-muted);
+  border: none;
+
+  /* Default size */
+  height: 29px;
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab[data-variant="default"] {
+  background: transparent;
+  color: var(--fg-muted);
+
+  &[data-hovered] {
     background: transparent;
-    color: var(--fg-muted);
-    border: none;
-
-    /* Default size */
-    height: 29px;
-    padding: 4px 12px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-none);
-    font-weight: 500;
+    color: var(--fg);
   }
 
-  .react-aria-Tab[data-variant="default"] {
+  &[data-pressed] {
     background: transparent;
-    color: var(--fg-muted);
-
-    &[data-hovered] {
-      background: transparent;
-      color: var(--fg);
-    }
-
-    &[data-pressed] {
-      background: transparent;
-    }
   }
+}
 
-  .react-aria-Tab[data-size="sm"] {
-    height: 21px;
-    padding: 2px 8px;
-    font-size: var(--text-xs);
-    border-radius: var(--radius-none);
-    font-weight: 500;
+.react-aria-Tab[data-size="sm"] {
+  height: 21px;
+  padding: 2px 8px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab[data-size="md"] {
+  height: 29px;
+  padding: 4px 12px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab[data-size="lg"] {
+  height: 41px;
+  padding: 8px 16px;
+  font-size: var(--text-base);
+  border-radius: var(--radius-none);
+  font-weight: 500;
+}
+
+.react-aria-Tab[data-focus-visible] {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.react-aria-Tab[data-disabled] {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Tier 2: Composite Delegation ── */
+
+
+@media (forced-colors: active) {
+  .react-aria-Tab {
+    forced-color-adjust: auto;
   }
+}
 
-  .react-aria-Tab[data-size="md"] {
-    height: 29px;
-    padding: 4px 12px;
-    font-size: var(--text-sm);
-    border-radius: var(--radius-none);
-    font-weight: 500;
-  }
-
-  .react-aria-Tab[data-size="lg"] {
-    height: 41px;
-    padding: 8px 16px;
-    font-size: var(--text-base);
-    border-radius: var(--radius-none);
-    font-weight: 500;
-  }
-
-  .react-aria-Tab[data-focus-visible] {
-    outline: var(--focus-ring-width) solid var(--focus-ring);
-    outline-offset: var(--focus-ring-offset);
-  }
-
-  .react-aria-Tab[data-disabled] {
-    opacity: 0.38;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
-  /* ── Tier 2: Composite Delegation ── */
-
-  @media (forced-colors: active) {
-    .react-aria-Tab {
-      forced-color-adjust: auto;
-    }
-  }
 
   .react-aria-Tab {
     cursor: pointer;
     user-select: none;
-    transition:
-      background 0.15s ease,
-      border-color 0.15s ease,
-      transform 0.15s ease;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   }
+
+
 } /* @layer components */

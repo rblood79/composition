@@ -33,7 +33,8 @@ import {
   getPrimitiveBinding,
   resolveAuthoredAriaLabel,
   resolveAuthoredDomId,
-  resolveBodyArtboardStyle,
+  resolveBodyDomClassName,
+  resolveBodyDomPresentation,
   toRacProps,
   toReactStyle,
   type EventHandlerMap,
@@ -42,6 +43,7 @@ import {
   isSpecOrCatalogBacked,
   resolveBackedDefaultSize,
   resolveBackedDefaultVariant,
+  resolveBackedRootClassName,
   usesButtonBaseUtility,
 } from "../utils/specCatalogBacked";
 import {
@@ -175,6 +177,18 @@ function resolveNodeType(node: ResolvedNode): string {
       string | undefined) ??
     String(node.type)
   );
+}
+
+/**
+ * canonical 최상위 page shell 판정.
+ *
+ * Page는 문서에서 `frame` 또는 frame binding을 가진 `ref` 노드로 존재하지만,
+ * 실제 layout box는 그 자식 `body`가 소유한다. `type === "frame"`만 보면 사용자가
+ * 추가한 Frame까지 평탄화되므로 page discriminator만 사용한다.
+ */
+function isCanonicalPageShell(node: ResolvedNode): boolean {
+  const metadataType = (node.metadata as { type?: unknown } | undefined)?.type;
+  return metadataType === "page" || metadataType === "legacy-page";
 }
 
 /**
@@ -372,6 +386,28 @@ function CanonicalNodeRendererBody({
   const nextCollectionAncestor = COLLECTION_HOST_TYPES.has(type.toLowerCase())
     ? type.toLowerCase()
     : collectionAncestor;
+
+  // Page FrameNode/RefNode는 canonical 문서·state scope의 소유 경계이지 DOM layout
+  // container가 아니다. 실제 페이지 상자는 자식 body가 소유하므로 page shell의
+  // `<div class="react-aria-frame|ref">`를 만들지 않는다. 바깥
+  // StateInstanceContext.Provider는 그대로 남아 page scope와 canonical path를 보존한다.
+  // 사용자 Frame/reusable Frame은 metadata discriminator가 달라 아래 정상 렌더 경로를 탄다.
+  if (isCanonicalPageShell(node)) {
+    return (
+      <>
+        {(node.children ?? []).map((child) => (
+          <CanonicalNodeRenderer
+            key={child.id}
+            node={child}
+            renderContext={renderContext}
+            parentPath={currentPath}
+            cutoverPrimitives={cutoverPrimitives}
+            collectionAncestor={nextCollectionAncestor}
+          />
+        ))}
+      </>
+    );
+  }
 
   // ── PreviewElement 재구성 (rendererMap 시그니처 맞춤) ────────────────────
   const elementId = node.id;
@@ -634,12 +670,14 @@ function CanonicalNodeRendererBody({
   //   부여하나 generic Preview 렌더는 누락 → background 미적용(회색). cssEmitMode SSOT 와 정합.
   const specClassName = specBacked
     ? usesButtonBaseUtility(type)
-      ? `react-aria-${type} button-base`
-      : `react-aria-${type}`
+      ? `${resolveBackedRootClassName(type)} button-base`
+      : resolveBackedRootClassName(type)
     : undefined;
   const userClassName = adaptedEl.props?.className as string | undefined;
   const mergedClassName =
-    [specClassName, userClassName].filter(Boolean).join(" ") || undefined;
+    type === "body"
+      ? resolveBodyDomClassName(type, userClassName)
+      : [specClassName, userClassName].filter(Boolean).join(" ") || undefined;
   const specDataAttrs: Record<string, string> = {};
   if (specBacked) {
     const sizeProp = adaptedEl.props?.size as string | undefined;
@@ -658,9 +696,9 @@ function CanonicalNodeRendererBody({
     if (staticAttrs) Object.assign(specDataAttrs, staticAttrs);
   }
 
-  // D3 대칭 정합: canonical body 노드를 Skia 아트보드 높이에 맞춘다(shared 단일 소스 —
-  //   publish `ElementRenderer` 와 동일 로직). 근거·메커니즘은 resolveBodyArtboardStyle 참조.
-  const resolvedStyle = resolveBodyArtboardStyle(
+  // D3 대칭 정합: Body infrastructure 기본값은 inline이 아니라 generated CSS가 소유한다.
+  // publish `ElementRenderer`도 같은 shared 정규화를 사용한다.
+  const bodyPresentation = resolveBodyDomPresentation(
     adaptedEl.type,
     adaptedEl.props?.style as React.CSSProperties | undefined,
   );
@@ -677,8 +715,11 @@ function CanonicalNodeRendererBody({
         );
         return ariaLabel ? { "aria-label": ariaLabel } : {};
       })(),
-      style: resolvedStyle,
+      style: bodyPresentation.style,
       className: mergedClassName,
+      ...(bodyPresentation.fillsViewport
+        ? { "data-body-viewport-fill": "" }
+        : {}),
       ...specDataAttrs,
     },
     children.length > 0

@@ -308,6 +308,12 @@ struct FlexItem {
 }
 
 impl FlexItem {
+    /// CSS Flexbox hypothetical main size: flex base size constrained by used min/max.
+    #[inline]
+    fn hypothetical_main(&self) -> f32 {
+        clamp_size(self.flex_basis, self.min_main.max(0.0), self.max_main)
+    }
+
     /// outer main size (margin 포함, border-box)
     #[inline]
     fn outer_main(&self, content_main: f32) -> f32 {
@@ -697,7 +703,7 @@ fn resolve_flexible_lengths(line: &mut [FlexItem], available_main: f32, total_ga
     // ── Step 1: hypothetical outer main 합으로 grow/shrink 방향 결정 ──
     let hypothetical_sum: f32 = line
         .iter()
-        .map(|it| it.outer_main(it.flex_basis))
+        .map(|it| it.outer_main(it.hypothetical_main()))
         .sum::<f32>()
         + total_gap;
     let growing = hypothetical_sum < available_main;
@@ -705,12 +711,13 @@ fn resolve_flexible_lengths(line: &mut [FlexItem], available_main: f32, total_ga
     // ── Step 2: inflexible 아이템 즉시 동결 (target = hypothetical) ──
     for it in line.iter_mut() {
         let factor = if growing { it.flex_grow } else { it.flex_shrink };
+        let hypothetical_main = it.hypothetical_main();
         let inflexible = factor == 0.0
-            || (growing && it.flex_basis > it.main_content)
-            || (!growing && it.flex_basis < it.main_content);
+            || (growing && it.flex_basis > hypothetical_main)
+            || (!growing && it.flex_basis < hypothetical_main);
         if inflexible {
             it.frozen = true;
-            it.target_main = clamp_size(it.flex_basis, it.min_main, it.max_main);
+            it.target_main = hypothetical_main;
         } else {
             it.frozen = false;
             it.target_main = it.flex_basis;
@@ -845,7 +852,7 @@ fn collect_lines(
     let mut line_main = 0.0f32;
 
     for (i, it) in items.iter().enumerate() {
-        let outer = it.outer_main(it.flex_basis);
+        let outer = it.outer_main(it.hypothetical_main());
         let gap = if current.is_empty() { 0.0 } else { gap_main };
         // 현재 라인이 비어있지 않고, 추가 시 available 초과면 새 라인
         if !current.is_empty() && line_main + gap + outer > available_main {
@@ -1613,6 +1620,38 @@ mod tests {
         let out = flex_layout(&data, 250.0, 200.0, DIR_ROW, JUSTIFY_START, ALIGN_START, ALIGN_CONTENT_START, WRAP_WRAP, 0.0, 0.0, false);
         assert!((out[2] - 125.0).abs() < 0.01, "item0 grown width={}", out[2]);
         assert!((out[6] - 125.0).abs() < 0.01, "item1 grown width={}", out[6]);
+    }
+
+    #[test]
+    fn wrap_collects_lines_with_hypothetical_min_main_size() {
+        // CSS Flexbox §9.3: line collection uses each item's outer hypothetical main size,
+        // not its unclamped flex base size. Fill projects to basis 0 + grow 1, but min-width
+        // 200px still forces two lines in a 300px container before grow is resolved per line.
+        let mut first = with_flex(item(AUTO, 20.0), 1.0, 1.0);
+        first[0] = 0.0;
+        first[9] = 200.0;
+        let mut second = first;
+        second[9] = 200.0;
+
+        let data = flatten(&[first, second]);
+        let out = flex_layout(
+            &data,
+            300.0,
+            AUTO,
+            DIR_ROW,
+            JUSTIFY_START,
+            ALIGN_START,
+            ALIGN_CONTENT_START,
+            WRAP_WRAP,
+            0.0,
+            0.0,
+            false,
+        );
+
+        assert!((out[1] - 0.0).abs() < 0.01, "item0 y={}", out[1]);
+        assert!((out[5] - 20.0).abs() < 0.01, "item1 y={}", out[5]);
+        assert!((out[2] - 300.0).abs() < 0.01, "item0 width={}", out[2]);
+        assert!((out[6] - 300.0).abs() < 0.01, "item1 width={}", out[6]);
     }
 
     // ── align-content ──

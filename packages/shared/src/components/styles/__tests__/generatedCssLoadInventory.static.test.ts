@@ -46,7 +46,6 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   CalendarHeader:
     "D Calendar self-compose — DOM header 는 CalendarCommon.css class",
   TailSwatch: "D Tailwind 래퍼 (HC2: generated dead)",
-  Body: "D 페이지 body — canonical props 인라인, class 규칙 없음이 정본",
   AvatarGroup:
     "D renderer 인라인 style, class 미방출 — binding 머리말: 시각 분기 없는 빈 셸",
   CardView:
@@ -54,8 +53,8 @@ export const UNLOADED_GENERATED_CSS: Readonly<Record<string, string>> = {
   // E. container layout 채널 = props.style 인라인 (ADR-907 Layer B) — 로드하면 DOM 전용 스타일로 갈린다
   //   Section · Nav 는 2026-09-17 이 판정을 뒤집고 index.css 에 실었다 (archetype `container` —
   //   CSSGenerator ARCHETYPE_BASE_STYLES 주석 · CHANGELOG; 오라클 catalogComponentBox). ADR-223 (2026-09-18)
-  //   부터 archetype 미지정 (`"default"`) 도 같은 중립 상자라 미로드 4 (AvatarGroup · ButtonGroup · CardView ·
-  //   Body) 의 생성물도 버튼 어법이 빠졌다 — 로드 판정은 그대로다.
+  //   부터 archetype 미지정 (`"default"`) 도 같은 중립 상자다. Body는 page-root class 계약 복구로
+  //   로드 전환했고, 나머지 미로드 3 (AvatarGroup · ButtonGroup · CardView)은 기존 판정을 유지한다.
   ButtonGroup: "E container — DisplayComponents.ts 인라인",
   DialogFooter: "E container — OverlayComponents.ts 인라인",
   DisclosureHeader: "E container — NavigationComponents.ts 인라인",
@@ -123,6 +122,16 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(missing).toEqual([]);
   });
 
+  it("Body CSS는 page-root box 계약을 싣고 inline fallback을 대체한다", () => {
+    const bodyCss = readFileSync(join(GENERATED_DIR, "Body.css"), "utf-8");
+    expect(indexImported.has("Body")).toBe(true);
+    expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*width:\s*100%/s);
+    expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*overflow:\s*auto/s);
+    expect(bodyCss).toMatch(
+      /\.react-aria-Body\[data-body-viewport-fill\]\s*\{[^}]*min-height:\s*100%/s,
+    );
+  });
+
   it("모든 생성 파일은 index.css · 모듈 import · 명시 미로드 목록 중 정확히 한 곳에 속한다", () => {
     const unclassified: string[] = [];
     const doubly: string[] = [];
@@ -146,14 +155,14 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(stale).toEqual([]);
   });
 
-  it("인벤토리 집계 — 생성 95 · index 72 · 모듈 0 · 미로드 23 (evidence §11 + ADR-194 Chart · 2026-09-16 단일 채널 · ADR-201 FileUpload · 2026-09-17 Section·Nav)", () => {
+  it("인벤토리 집계 — 생성 95 · index 73 · 모듈 0 · 미로드 22 (Body CSS load 포함)", () => {
     expect(generated.length).toBe(95);
-    expect(indexImported.size).toBe(72);
+    expect(indexImported.size).toBe(73);
     expect(
       Array.from(moduleImported)
         .filter((n) => !indexImported.has(n))
         .sort(),
     ).toEqual([]); // 2026-09-16: 모듈 채널 0 — DropZone·FileTrigger 도 index.css 로
-    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(23);
+    expect(Object.keys(UNLOADED_GENERATED_CSS).length).toBe(22);
   });
 });

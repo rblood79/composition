@@ -1149,6 +1149,7 @@ export interface TranslationKeys {
     viewportSize: string;
     viewOptions: string;
     compareMode: string;
+    compareCurrentPageOnly: string;
     skiaOnlyMode: string;
     workflow: string;
     showWorkflowOverlay: string;

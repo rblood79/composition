@@ -37,7 +37,11 @@ import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElem
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenuHook";
 import { resolveContextMenuDisposition } from "../../components/overlay/contextMenu/contextMenuPolicy";
-import { selectFrameAreaPanelMetrics, useViewportSyncStore } from "./stores";
+import {
+  selectFrameAreaPanelMetrics,
+  useCompareModeStore,
+  useViewportSyncStore,
+} from "./stores";
 import {
   applyViewportState,
   clampViewportZoom,
@@ -378,6 +382,10 @@ export function BuilderCanvas({
   const setSelectedElements = useStore((state) => state.setSelectedElements);
   const clearSelection = useStore((state) => state.clearSelection);
   const currentPageId = useStore((state) => state.currentPageId);
+  const isCompareMode = useCompareModeStore((state) => state.isCompareMode);
+  const filterCurrentPage = useCompareModeStore(
+    (state) => state.filterCurrentPage,
+  );
   const setCurrentPageId = useStore((state) => state.setCurrentPageId);
   const renamePageTitle = useStore((state) => state.renamePageTitle);
   // ADR-069 Phase 1: 페이지 전환 + 선택 병합 action
@@ -555,6 +563,15 @@ export function BuilderCanvas({
   const pageGap = useStore((state) => state.pageGap);
 
   const scenePageIndex = canonicalSceneModel?.pageIndex ?? EMPTY_PAGE_INDEX;
+  // Compare Canvas는 기존처럼 전체 page scene을 유지한다. 사용자가 명시적으로
+  // current-page filter를 켠 경우에만 CSS leg와 같은 canonical page로 제한한다.
+  const compareVisiblePageIds = useMemo<ReadonlySet<string> | null>(
+    () =>
+      isCompareMode && filterCurrentPage && currentPageId
+        ? new Set([currentPageId])
+        : null,
+    [currentPageId, filterCurrentPage, isCompareMode],
+  );
 
   // ADR-916 2-C 안 A: projection content signature 를 pan/zoom 독립 useMemo 로
   // 분리. 벤치상 이 계산(전체 elements stableSerialize)이 buildScene 비용의
@@ -600,11 +617,13 @@ export function BuilderCanvas({
       panOffset,
       precomputedProjectionSignature: projectionContentSignature,
       source: "canonical",
-      visiblePageIdsOverride: transientVisiblePageIds ?? undefined,
+      visiblePageIdsOverride:
+        compareVisiblePageIds ?? transientVisiblePageIds ?? undefined,
       zoom,
     });
   }, [
     containerSize,
+    compareVisiblePageIds,
     currentPageId,
     isFrameEditMode,
     layoutVersion,
@@ -623,6 +642,14 @@ export function BuilderCanvas({
   ]);
 
   useEffect(() => {
+    if (isCompareMode) {
+      transientVisiblePageIdsRef.current = null;
+      setTransientVisiblePageIds((current) =>
+        current === null ? current : null,
+      );
+      return;
+    }
+
     const updateTransientVisiblePageIds = () => {
       const presentation = getViewportPresentationSnapshot();
       const nextVisiblePageIds = buildVisiblePageSet({
@@ -661,6 +688,7 @@ export function BuilderCanvas({
     return subscribeViewportPresentation(updateTransientVisiblePageIds);
   }, [
     containerSize,
+    isCompareMode,
     panOffset,
     sceneStructureSnapshot.document.allPageFrames,
     sceneStructureSnapshot.document.visiblePageIds,

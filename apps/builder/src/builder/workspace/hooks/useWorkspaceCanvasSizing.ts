@@ -19,6 +19,7 @@ import {
   type WorkspaceCanvasViewport,
 } from "./workspaceCanvasViewportPersistence";
 import type { PageLayoutPanelMetrics } from "../canvas/pageLayoutConstants";
+import { useStore } from "../../stores";
 
 interface UseWorkspaceCanvasSizingOptions {
   breakpoint?: Set<Key>;
@@ -225,9 +226,20 @@ export function useWorkspaceCanvasSizing({
       return false;
     }
 
-    applyViewportState(computeFitViewport({ canvasSize, containerSize }));
+    const centered = computeFitViewport({ canvasSize, containerSize });
+    if (compareMode) {
+      const state = useStore.getState();
+      const position = state.currentPageId
+        ? state.pagePositions[state.currentPageId]
+        : undefined;
+      if (position) {
+        centered.x -= position.x * centered.scale;
+        centered.y -= position.y * centered.scale;
+      }
+    }
+    applyViewportState(centered);
     return true;
-  }, [canvasSize]);
+  }, [canvasSize, compareMode]);
 
   const centerCanvasAt100 = useCallback(() => {
     const containerSize = containerSizeRef.current;
@@ -235,11 +247,24 @@ export function useWorkspaceCanvasSizing({
       return false;
     }
 
-    applyViewportState(
-      computeCenteredViewport({ canvasSize, containerSize, zoom: 1 }),
-    );
+    const centered = computeCenteredViewport({
+      canvasSize,
+      containerSize,
+      zoom: 1,
+    });
+    if (compareMode) {
+      const state = useStore.getState();
+      const position = state.currentPageId
+        ? state.pagePositions[state.currentPageId]
+        : undefined;
+      if (position) {
+        centered.x -= position.x;
+        centered.y -= position.y;
+      }
+    }
+    applyViewportState(centered);
     return true;
-  }, [canvasSize]);
+  }, [canvasSize, compareMode]);
 
   useEffect(() => {
     centerCanvasRef.current = centerCanvas;
@@ -252,6 +277,10 @@ export function useWorkspaceCanvasSizing({
       return false;
     }
 
+    if (compareMode) {
+      return centerCanvasAt100Ref.current();
+    }
+
     const savedViewport = activeBreakpointIdRef.current
       ? breakpointViewports.get(activeBreakpointIdRef.current)
       : undefined;
@@ -261,7 +290,7 @@ export function useWorkspaceCanvasSizing({
     }
 
     return centerCanvasAt100Ref.current();
-  }, [breakpointViewports]);
+  }, [breakpointViewports, compareMode]);
 
   const lastCompareModeRef = useRef(compareMode);
 
@@ -334,6 +363,18 @@ export function useWorkspaceCanvasSizing({
         centerCanvasAt100Ref.current();
       });
     }
+  }, [compareMode]);
+
+  // Compare 상태에서 page를 바꾸면 CSS iframe의 currentPageId와 같은 page를 즉시
+  // 가운데 둔다. pagePositions는 callback 실행 시 읽어 드래그 중 재센터링은 하지 않는다.
+  useEffect(() => {
+    if (!compareMode) return;
+    let previousPageId = useStore.getState().currentPageId;
+    return useStore.subscribe((state) => {
+      if (state.currentPageId === previousPageId) return;
+      previousPageId = state.currentPageId;
+      requestAnimationFrame(() => centerCanvasAt100Ref.current());
+    });
   }, [compareMode]);
 
   useEffect(() => {

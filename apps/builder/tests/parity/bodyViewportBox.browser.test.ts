@@ -64,9 +64,13 @@ function domViewportBodyLeg(
       ? v.join(" ")
       : String(v);
   }
-  // 빌더 주입 대응 — 폭은 확정, 블록 축은 하한만 (Chrome body 의 `min-height:100vh`).
-  body.style.width = `${PAGE_W}px`;
-  body.style.minHeight = "100%";
+  // 빌더 주입 대응 — authored 크기는 보존하고, 부재한 폭/블록 축만 viewport fallback.
+  if (!bodyStyle.width || bodyStyle.width === "auto") {
+    body.style.width = `${PAGE_W}px`;
+  }
+  if (bodyStyle.height == null && bodyStyle.minHeight == null) {
+    body.style.minHeight = "100%";
+  }
 
   const children = childStyles.map((style) => {
     const el = document.createElement("div");
@@ -238,6 +242,20 @@ describe("body 뷰포트 상자 ↔ 내용 배치 분리", () => {
     it("내용이 짧아도 페이지 높이", () => {
       const pipe = pipelineBodyLeg(COLUMN_FLEX, [{ height: "100px" }]);
       expect(pipe.body.h).toBeCloseTo(PAGE_H, 1);
+    });
+
+    it("authored width/height는 page viewport와 독립적으로 보존한다", () => {
+      const style: StyleRecord = {
+        display: "flex",
+        width: "430px",
+        height: "260px",
+        padding: "24px",
+      };
+      const dom = domViewportBodyLeg(style, [{ width: "40px" }]);
+      const pipe = pipelineBodyLeg(style, [{ width: "40px" }]);
+      expect(pipe.body.w).toBeCloseTo(dom.body.w, 1);
+      expect(pipe.body.h).toBeCloseTo(dom.body.h, 1);
+      expect(diffChildren("", dom.children, pipe.children)).toEqual([]);
     });
   });
 

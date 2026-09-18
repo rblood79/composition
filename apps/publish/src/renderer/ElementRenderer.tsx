@@ -17,7 +17,8 @@ import { memo, useMemo } from "react";
 import {
   adaptElementStyle,
   resolveAuthoredDomId,
-  resolveBodyArtboardStyle,
+  resolveBodyDomClassName,
+  resolveBodyDomPresentation,
   type Element,
 } from "@composition/shared";
 import { getComponent } from "../registry/ComponentRegistry";
@@ -129,16 +130,20 @@ export const ElementRenderer = memo(function ElementRenderer({
   // Props 추출 (style 제외한 나머지)
   const {
     style,
+    className: authoredClassName,
     children: propsChildren,
     accentColor,
     ...restProps
   } = adaptedElement.props as Record<string, unknown>;
 
-  // D3 대칭 정합: canonical body 노드를 Skia 아트보드 높이에 맞춘다(shared 단일 소스 —
-  //   builder Preview `CanonicalNodeRenderer` 와 동일 로직). 근거는 resolveBodyArtboardStyle 참조.
-  const resolvedStyle = resolveBodyArtboardStyle(
+  // D3 대칭 정합: Body 기본 시각은 generated CSS가 소유하고 DOM에는 사용자 override만 싣는다.
+  const bodyPresentation = resolveBodyDomPresentation(
     adaptedElement.type,
     style as React.CSSProperties | undefined,
+  );
+  const resolvedClassName = resolveBodyDomClassName(
+    adaptedElement.type,
+    authoredClassName as string | undefined,
   );
 
   // Card: structural children 감지 (Preview renderCard와 동일 로직)
@@ -194,7 +199,9 @@ export const ElementRenderer = memo(function ElementRenderer({
       {...eventHandlers}
       data-element-id={adaptedElement.id}
       data-accent={accentColor ? String(accentColor) : undefined}
-      style={resolvedStyle}
+      className={resolvedClassName}
+      data-body-viewport-fill={bodyPresentation.fillsViewport ? "" : undefined}
+      style={bodyPresentation.style}
     >
       {renderedChildren}
     </Component>

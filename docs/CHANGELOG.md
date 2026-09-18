@@ -11,6 +11,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-224 — Compare 페이지·Size·intrinsic 정합 수리] - 2026-09-18
+
+### Fixed
+
+- Compare의 CSS Preview는 현재 페이지만 그리는데 Canvas camera가 전체 document 원점을 그대로 써 현재 페이지끼리 정렬되지 않던 문제를 수리했다. Canvas의 기존 다중 페이지 표시는 기본값으로 유지하고, 현재 페이지의 document position을 상쇄해 CSS leg와 같은 viewport에 맞춘다. 현재 페이지만 보고 싶을 때는 헤더의 `현재 페이지만 비교` 필터를 명시적으로 켤 수 있다.
+- canonical Page의 `FrameNode`/frame-bound `RefNode`가 Preview에서 실제 `.react-aria-frame`/`.react-aria-ref` 박스로 렌더되어 `document.body`와 authored body 사이에 불필요한 containing block을 만들던 문제를 수리했다. Page shell은 canonical·state scope 경계로만 유지하고 DOM에서는 투명하게 렌더하며, 사용자 Frame과 reusable Frame은 실제 layout container로 그대로 보존한다.
+- Canvas root가 authored body `width`/`height`를 breakpoint viewport로 덮어 Styles Size 편집이 Preview에만 반영되던 문제를 수리했다. authored 크기가 없을 때만 viewport fallback을 주입한다.
+- auto-height flex 부모의 `height:100%` leaf가 Canvas에서 intrinsic text height를 잃던 문제를 수리했다. percentage는 authored 값으로 보존하고 containing block 높이가 미정일 때만 측정 content scalar로 fallback한다.
+- Preview `renderButtonGroup`의 prop 기본 `gap`이 Canvas projection에 없던 문제를 수리했다. size/orientation/align 기본값을 read-time에 동일하게 투영하며 authored style이 우선한다.
+- Preview Body가 lowercase canonical type으로 `react-aria-body`를 자동 생성한 뒤 저장된 `react-aria-Body`와 중복 병합하고, display/font/overflow/min-height 기본값을 inline으로 덮던 문제를 수리했다. renderer가 case-correct class 하나만 방출하고 기존 문서의 infrastructure 기본값은 DOM 투영에서 제거한다. Body generated CSS를 실제 preview/publish 번들에 연결해 `width:100%`, `overflow:auto`, 조건부 `min-height:100%`를 담당하게 했다.
+
+### Validation
+
+- 지정 프로젝트 `974c0363-fa08-49db-a7bc-f006fb66a1ec`, Mobile foreground Compare: 기본 Canvas에 Components+Home 다중 페이지가 보이고 현재 Home은 CSS leg와 같은 viewport에 정렬된다. `현재 페이지만 비교` on에서는 Home만, off에서는 즉시 두 페이지가 다시 보인다. body 양쪽 390×844, ButtonGroup 양쪽 342×96 (`x=24`, `y=374`), Button 높이 30과 gap 8 일치.
+- Styles Width 390→400 입력 시 canonical/Preview/Canvas 모두 400, 새로고침 뒤 보존. 검증 후 390으로 복원하고 다시 새로고침해 보존을 확인했다.
+- Chrome parity 37/37, 기존 신규·인접 Vitest 8/8와 Compare 옵션 focused Vitest 20/20, Rust 전체 467/467, type-check PASS. G5 소유자 확인 전 ADR은 Accepted 유지한다.
+- 지정 프로젝트 foreground Compare 재검증: Body DOM은 `class="react-aria-Body"` 하나, inline style 없음, `data-body-viewport-fill` 조건부 속성. computed 값은 width 390px(100%), height 844px, min-height 100%, overflow auto, background rgb(255,255,255). focused shared/builder/publish 42/42와 root type-check PASS.
+
+## [ADR-224 — Fill wrap·Min/Max 입력 정합과 통합 검증] - 2026-09-18
+
+### Fixed
+
+- **`flex-wrap` 부모에서 Fill 자식의 `min-width`가 Canvas 줄바꿈에 반영되지 않았다.** 300px Row 안의 Fill 자식 두 개에 `min-width:200px`를 주면 Preview는 300×20 두 줄인데 Canvas는 200×20 한 줄이었다. Rust flex가 line collection과 grow/shrink 판정에서 min/max가 반영된 hypothetical main size 대신 raw flex basis(0)를 사용한 것이 원인이다. `FlexItem::hypothetical_main`으로 세 경로를 통일했다.
+- **Size 패널이 `min > max`인 신규 값을 그대로 저장했다.** 현재 canonical active-breakpoint 값과 비교 가능한 동일 단위에서만 역전을 차단하고 오류를 표시한다. 서로 다른 단위·`calc()`·키워드·reset은 `parseFloat`로 억지 비교하지 않으며 기존 충돌값도 자동 수정하지 않는다.
+- ADR-224 통합 browser harness가 Ratio refresh 뒤 Preview/probe를 복구하지 않았고, 긴 실행에서 history 50-entry 상한과 다중 선택 상태를 실패로 오판했다. reload 복구·상한 인식 transaction/Undo 판정·roundtrip 단일 선택 격리를 추가했다.
+
+### Validation
+
+- Headed Builder 통합 41/41, pageerror 0. wrap fixture는 Canvas/Preview 모두 300×20 두 줄(y=0/20), Min W 200 → Max W 100은 authored write/history 0 + alert, Max W 300은 정상 저장.
+- Rust lib 427/427, Chrome parity 4파일 69/69, Min/Max 인접 Vitest 21/21, type-check PASS.
+- G6 fresh A/B (`e8987c394` baseline vs 현재, N=100/1,000, warmup 5 + 30회): parent resize p95 16.5→17.3ms / 53.2→52.5ms, factor edit 20.5→22.0ms / 62.7→63.2ms, 4/4 허용 범위 안 PASS.
+
 ## [Settings — Page layout · Page gap 이 새로고침 후에도 유지된다] - 2026-09-18
 
 ### Added

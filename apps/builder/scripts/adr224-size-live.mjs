@@ -99,6 +99,12 @@ const historyCount = (page) =>
       window.__composition_HISTORY_DEBUG__?.getCurrentPageHistory()
         .currentIndex ?? null,
   );
+// History hot cache는 50개 상한이라 index 49에서 새 entry가 들어오면 오래된 entry가
+// shift되고 currentIndex는 49에 머문다. 장시간 통합 run에서도 +1 transaction을 오탐하지 않는다.
+const historyAdvancedOnce = (before, after) =>
+  after === before + 1 || (before === 49 && after === 49);
+const historyIndexAfterUndo = (before, afterCommit) =>
+  afterCommit === before ? before - 1 : before;
 const phase = process.argv[2] ?? "after";
 const out = `output/playwright/adr224/${phase}`;
 await mkdir(out, { recursive: true });
@@ -118,6 +124,26 @@ async function installEngineProbe() {
       get: (id) => window.__composition_LAYOUT_DEBUG__.getEngineInput(id),
     };
   });
+}
+async function ensureComparePreview(elementId) {
+  const compare = page
+    .locator(".header_right .builder-control-group button")
+    .first();
+  if (
+    (await compare.getAttribute("aria-pressed")) !== "true" &&
+    (await compare.getAttribute("aria-checked")) !== "true"
+  ) {
+    await compare.click();
+  }
+  await page.waitForTimeout(2000);
+  await page.waitForFunction(
+    (id) =>
+      [...document.querySelectorAll("iframe")].some((frame) =>
+        frame.contentDocument?.querySelector(`[data-element-id="${id}"]`),
+      ),
+    elementId,
+    { timeout: 20000 },
+  );
 }
 try {
   await page.goto("http://localhost:5173/dashboard", {
@@ -239,15 +265,7 @@ try {
   await installEngineProbe();
   const hydrated = await read();
   assert("refresh Fill 보존", hydrated.sizing?.width?.factor === 2, hydrated);
-  const compare = page
-    .locator(".header_right .builder-control-group button")
-    .first();
-  if (
-    (await compare.getAttribute("aria-pressed")) !== "true" &&
-    (await compare.getAttribute("aria-checked")) !== "true"
-  )
-    await compare.click();
-  await page.waitForTimeout(2000);
+  await ensureComparePreview(a);
   await page.evaluate((id) => {
     const st = window.__composition_STORE__.getState();
     const p = st.elements.find((e) => e.id === id);
@@ -255,14 +273,6 @@ try {
       style: { ...p.props.style, flexDirection: "row" },
     });
   }, parent);
-  await page.waitForFunction(
-    (id) =>
-      [...document.querySelectorAll("iframe")].some((f) =>
-        f.contentDocument?.querySelector(`[data-element-id="${id}"]`),
-      ),
-    a,
-    { timeout: 20000 },
-  );
   const readDom = () =>
     page.evaluate(
       (ids) => {
@@ -275,6 +285,8 @@ try {
               s = getComputedStyle(e);
             return {
               id,
+              x: r.x,
+              y: r.y,
               width: r.width,
               height: r.height,
               grow: s.flexGrow,
@@ -419,6 +431,162 @@ try {
       detail: measured,
     });
   }
+  // ── ADR-224 G3: wrap line collection은 flex basis가 아니라 min/max가 반영된
+  // outer hypothetical main size를 사용한다 (`--wrap-min`).
+  let wrapMin = null;
+  if (process.argv.includes("--wrap-min")) {
+    await page.evaluate(
+      ({ parent, ids }) => {
+        const st = window.__composition_STORE__.getState();
+        const p = st.elements.find((e) => e.id === parent);
+        st.updateElementProps(parent, {
+          style: {
+            ...p.props.style,
+            display: "flex",
+            flexDirection: "row",
+            flexWrap: "wrap",
+            width: "300px",
+            height: "auto",
+            gap: "0px",
+          },
+        });
+        ids.forEach((id) => {
+          const node = st.elements.find((e) => e.id === id);
+          st.updateElement(id, {
+            responsive: undefined,
+            sizing: { width: { factor: 1 } },
+            props: {
+              ...node.props,
+              style: { minWidth: "200px", height: "20px" },
+            },
+          });
+        });
+      },
+      { parent, ids: [a, b] },
+    );
+    await page.waitForTimeout(1500);
+    const wrapDom = await readDom();
+    const wrapCanvas = [await readLayout(page, a), await readLayout(page, b)];
+    wrapMin = { dom: wrapDom, canvas: wrapCanvas };
+    checks.push({
+      name: "wrap + Fill + Min: hypothetical main size로 두 줄 수집 · Canvas/Preview Δ≤1",
+      pass:
+        wrapDom.every(
+          (entry, index) =>
+            Math.abs(entry.width - wrapCanvas[index].width) <= 1 &&
+            Math.abs(entry.height - wrapCanvas[index].height) <= 1,
+        ) &&
+        Math.abs(
+          wrapDom[1].y - wrapDom[0].y - (wrapCanvas[1].y - wrapCanvas[0].y),
+        ) <= 1 &&
+        wrapDom[1].y > wrapDom[0].y &&
+        wrapCanvas[1].y > wrapCanvas[0].y,
+      detail: wrapMin,
+    });
+    await page.evaluate(
+      ({ parent, ids }) => {
+        const st = window.__composition_STORE__.getState();
+        const p = st.elements.find((e) => e.id === parent);
+        st.updateElementProps(parent, {
+          style: {
+            ...p.props.style,
+            flexDirection: "row",
+            flexWrap: "nowrap",
+            width: "900px",
+            height: "240px",
+          },
+        });
+        ids.forEach((id, index) => {
+          const node = st.elements.find((e) => e.id === id);
+          st.updateElement(id, {
+            responsive: undefined,
+            sizing: { width: { factor: 2 - index } },
+            props: { ...node.props, style: {} },
+          });
+        });
+      },
+      { parent, ids: [a, b] },
+    );
+    await page.waitForTimeout(1000);
+  }
+  // ── ADR-224 Min/Max authoring: 동일 단위 역전 commit은 거부하고 오류를 보이며,
+  // 다음 유효 commit은 정상 저장한다 (`--constraints`).
+  let constraints = null;
+  if (process.argv.includes("--constraints")) {
+    await page.evaluate((id) => {
+      const st = window.__composition_STORE__.getState();
+      const node = st.elements.find((e) => e.id === id);
+      st.updateElement(id, {
+        responsive: undefined,
+        sizing: {},
+        props: { ...node.props, style: { width: "300px", height: "100px" } },
+      });
+      st.setSelectedElement(id);
+    }, a);
+    await page.waitForTimeout(800);
+    const styles = page.locator('[data-panel-id="styles"]');
+    const constraintsButton = styles.getByRole("button", {
+      name: /Size constraints|최소·최대 크기/,
+    });
+    if ((await styles.locator("fieldset.min-width").count()) === 0) {
+      await constraintsButton.click();
+      await page.waitForTimeout(400);
+    }
+    const minWidth = styles.locator("fieldset.min-width input");
+    const maxWidth = styles.locator("fieldset.max-width input");
+    const readNode = () =>
+      page.evaluate((id) => {
+        const node = window.__composition_STORE__
+          .getState()
+          .elements.find((e) => e.id === id);
+        return { style: node?.props?.style, sizing: node?.sizing };
+      }, a);
+    await minWidth.fill("200");
+    await minWidth.press("Enter");
+    await page.waitForTimeout(600);
+    const afterMin = await readNode();
+    const historyAfterMin = await historyCount(page);
+    await maxWidth.fill("100");
+    await maxWidth.press("Enter");
+    await page.waitForTimeout(600);
+    const afterInvalid = await readNode();
+    const historyAfterInvalid = await historyCount(page);
+    const invalidAlertLocator = styles.locator(".transform-constraint-error");
+    const invalidAlertCount = await invalidAlertLocator.count();
+    const invalidAlert = invalidAlertCount
+      ? await invalidAlertLocator.innerText()
+      : "";
+    await maxWidth.fill("300");
+    await maxWidth.press("Enter");
+    await page.waitForTimeout(600);
+    const afterValid = await readNode();
+    const historyAfterValid = await historyCount(page);
+    const validAlertCount = await styles
+      .locator(".transform-constraint-error")
+      .count();
+    constraints = {
+      afterMin,
+      afterInvalid,
+      afterValid,
+      invalidAlert,
+      invalidAlertCount,
+      validAlertCount,
+      history: [historyAfterMin, historyAfterInvalid, historyAfterValid],
+    };
+    checks.push({
+      name: "Min/Max 동일 단위 역전 차단 · 오류 표시 · 유효값 재커밋",
+      pass:
+        afterMin.style?.minWidth === "200px" &&
+        afterInvalid.style?.maxWidth === undefined &&
+        historyAfterInvalid === historyAfterMin &&
+        invalidAlertCount === 1 &&
+        invalidAlert.length > 0 &&
+        afterValid.style?.maxWidth === "300px" &&
+        historyAdvancedOnce(historyAfterMin, historyAfterValid) &&
+        validAlertCount === 0,
+      detail: constraints,
+    });
+  }
   // ── ADR-224 Ratio UI gate (G1/G4) — 실제 Ratio Select · lock 버튼 · 해제 (`--ratio-ui`) ──
   // Row 900×240, a = Width Fill 2 · b = Width Fill 1 로 되돌린 뒤 실제 패널로 잠금 → preset → 해제.
   const ratioUi = [];
@@ -455,7 +623,7 @@ try {
         Math.abs(dom[0].height - canvas[0].height) <= 1;
       const detail = { node, dom: dom[0], canvas: canvas[0], error, history: [before, after] };
       ratioUi.push({ name, ...detail });
-      checks.push({ name, pass: !error && after === before + 1 && parity && verify(node, canvas[0]), detail });
+      checks.push({ name, pass: !error && historyAdvancedOnce(before, after) && parity && verify(node, canvas[0]), detail });
     };
     await step("Ratio lock (used size)", () => lock.click(), (n) =>
       n.style.height === "auto" && /^[\d.]+ \/ [\d.]+$/.test(String(n.style.aspectRatio)) &&
@@ -484,6 +652,8 @@ try {
     await page.reload();
     await waitReady(page);
     await page.bringToFront();
+    await installEngineProbe();
+    await ensureComparePreview(a);
     const afterReload = await readNode(a);
     checks.push({ name: "Ratio unlock refresh 보존",
       pass: afterReload.style?.height === beforeReload.style?.height &&
@@ -538,7 +708,7 @@ try {
     const parity = (d) => Math.abs(d.dom.width - d.canvas.width) <= 1 &&
       Math.abs(d.dom.height - d.canvas.height) <= 1;
     checks.push({ name: "Absolute: 무효 Fill → used px Fixed · marker null · inset",
-      pass: !on.error && on.history === before.history + 1 &&
+      pass: !on.error && historyAdvancedOnce(before.history, on.history) &&
         on.node.style.position === "absolute" &&
         Math.abs(parseFloat(on.node.style.width) - before.canvas.width) <= 0.01 &&
         on.node.sizing?.width === null && typeof on.node.style.left === "string" &&
@@ -547,7 +717,7 @@ try {
     await toggle.click();
     const off = await measure("Absolute off (Flow)");
     checks.push({ name: "Flow 복귀: Fixed 유지 · Fill 자동 복원 0",
-      pass: !off.error && off.history === on.history + 1 &&
+      pass: !off.error && historyAdvancedOnce(on.history, off.history) &&
         off.node.style.position === undefined &&
         off.node.style.width === on.node.style.width && off.node.sizing?.width === null &&
         Math.abs(off.canvas.width - before.canvas.width) <= 0.01 && parity(off),
@@ -653,7 +823,7 @@ try {
     const expectedW = Math.round(before.canvas.width - 100 / zoom);
     const after1 = await measure("우측 엣지 −100px", drag1);
     checks.push({ name: "Resize 우측 엣지: width 만 Fixed px · marker null · Height Fill 보존",
-      pass: after1.history === before.history + 1 &&
+      pass: historyAdvancedOnce(before.history, after1.history) &&
         after1.node.style.width === `${expectedW}px` && after1.node.sizing?.width === null &&
         after1.node.sizing?.height?.factor === 1 && after1.node.style.height === undefined &&
         after1.node.style.flexGrow === undefined &&
@@ -680,7 +850,7 @@ try {
     const expectedW2 = Math.round((locked.canvas.height - 30 / zoom) * ratio);
     const after2 = await measure("Ratio 잠금 + 아래 엣지 −30px", drag2);
     checks.push({ name: "Resize Ratio: 세로 드래그 → driver Width 만 px (목표 H × ratio) · height auto 유지",
-      pass: after2.history === locked.history + 1 &&
+      pass: historyAdvancedOnce(locked.history, after2.history) &&
         after2.node.style.width === `${expectedW2}px` && after2.node.style.height === "auto" &&
         after2.node.style.aspectRatio === locked.node.style.aspectRatio &&
         after2.node.sizing?.width === null &&
@@ -712,7 +882,7 @@ try {
       const leftL = Math.round((parseFloat(absOn.node.style.left) + (absOn.canvas.width - wL)) * 100) / 100;
       const afterL = await measure("absolute 좌측 엣지 +50px", dragL);
       checks.push({ name: "absolute 좌측 엣지: width 줄고 left 이동 (우측 변 고정) · 드래그 중 x 도 이동",
-        pass: afterL.history === absOn.history + 1 &&
+        pass: historyAdvancedOnce(absOn.history, afterL.history) &&
           afterL.node.style.width === `${wL}px` && afterL.node.style.left === `${leftL}px` &&
           Math.abs(afterL.canvas.x - (absOn.canvas.x + (absOn.canvas.width - wL))) <= 0.01 &&
           Math.abs(afterL.canvas.x + afterL.canvas.width - (absOn.canvas.x + absOn.canvas.width)) <= 0.01 &&
@@ -724,7 +894,7 @@ try {
       const hTL = Math.round(afterL.canvas.height + 20 / zoom);
       const afterTL = await measure("absolute 좌상 코너 −30/−20", dragTL);
       checks.push({ name: "absolute 좌상 코너: 두 축 + left/top 이동 (우하 변 고정)",
-        pass: afterTL.history === afterL.history + 1 &&
+        pass: historyAdvancedOnce(afterL.history, afterTL.history) &&
           afterTL.node.style.width === `${wTL}px` && afterTL.node.style.height === `${hTL}px` &&
           Math.abs(parseFloat(afterTL.node.style.left) - (leftL - (wTL - wL))) <= 0.01 &&
           Math.abs(parseFloat(afterTL.node.style.top) - (parseFloat(afterL.node.style.top) - (hTL - afterL.canvas.height))) <= 0.01 &&
@@ -803,7 +973,7 @@ try {
     const locked = await measure("multi Ratio lock");
     const ratioOf = (n) => String(n.style.aspectRatio ?? "");
     checks.push({ name: "multi Ratio lock: 둘 다 own used 비율 · height auto · history +1",
-      pass: !locked.error && locked.history === before.history + 1 &&
+      pass: !locked.error && historyAdvancedOnce(before.history, locked.history) &&
         ratioOf(locked.nodes[0]) === `${Math.round(before.canvas[0].width * 100) / 100} / 240` &&
         ratioOf(locked.nodes[1]) === `${Math.round(before.canvas[1].width * 100) / 100} / 240` &&
         locked.nodes.every((n) => n.style.height === "auto" && n.sizing?.height === null) &&
@@ -813,7 +983,7 @@ try {
     await page.keyboard.press("Meta+z");
     const unlocked = await measure("multi Ratio Undo 1회");
     checks.push({ name: "multi Ratio Undo 1회: 둘 다 복원",
-      pass: unlocked.history === before.history &&
+      pass: unlocked.history === historyIndexAfterUndo(before.history, locked.history) &&
         unlocked.nodes.every((n) => n.style.aspectRatio === undefined && n.style.height === undefined) &&
         parity(unlocked),
       detail: unlocked });
@@ -826,7 +996,7 @@ try {
     await positionSection.locator(".actions-position button").click();
     const abs = await measure("multi Absolute on");
     checks.push({ name: "multi Absolute on: 둘 다 own used px · own left · marker null · history +1",
-      pass: !abs.error && abs.history === before.history + 1 &&
+      pass: !abs.error && historyAdvancedOnce(before.history, abs.history) &&
         abs.nodes.every((n) => n.style.position === "absolute" && n.sizing?.width === null) &&
         Math.abs(parseFloat(abs.nodes[0].style.width) - before.canvas[0].width) <= 0.01 &&
         Math.abs(parseFloat(abs.nodes[1].style.width) - before.canvas[1].width) <= 0.01 &&
@@ -837,7 +1007,7 @@ try {
     await page.keyboard.press("Meta+z");
     const absUndone = await measure("multi Absolute Undo 1회");
     checks.push({ name: "multi Absolute Undo 1회: 둘 다 Fill 복원",
-      pass: absUndone.history === before.history &&
+      pass: absUndone.history === historyIndexAfterUndo(before.history, abs.history) &&
         absUndone.nodes[0].sizing?.width?.factor === 2 && absUndone.nodes[1].sizing?.width?.factor === 1 &&
         absUndone.nodes.every((n) => n.style.position === undefined && n.style.width === undefined) &&
         parity(absUndone),
@@ -872,7 +1042,11 @@ try {
     roundtrip.push({ name: "seeded", ...seeded });
     // 1) ⌘C/⌘V 복제 — sizing · responsive 가 새 요소에 그대로
     // 실제 클릭으로 선택 (키보드 단축키 scope = canvas 포커스)
-    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
+    await page.evaluate((id) => {
+      const st = window.__composition_STORE__.getState();
+      st.setSelectedElements([id]);
+      st.setSelectedElement(id);
+    }, a);
     await page.waitForTimeout(400);
     const aPoint = await page.evaluate((id) => {
       const r = window.__composition_RESIZE_DEBUG__.getSceneBounds(id);
@@ -904,7 +1078,9 @@ try {
     checks.push({ name: "G2 복제 (⌘C/⌘V): sizing factor · tier null · tier width 가 새 요소에 보존 · history +1",
       pass: !!c && JSON.stringify(cNode?.sizing) === JSON.stringify(seeded.a.sizing) &&
         JSON.stringify(cNode?.responsive) === JSON.stringify(seeded.a.responsive) &&
-        cNode?.parent === parent && pasteHistory === seeded.history + 1,
+        cNode?.parent === parent &&
+        afterPaste.length === seeded.siblings.length + 1 &&
+        historyAdvancedOnce(seeded.history, pasteHistory),
       detail: { seeded, c, cNode, afterPaste } });
     // 2) breakpoint 전환 — tablet: a 는 null 해제 + 320px, c 도 같다, b 는 Fill 1 로 남은 폭
     // 헤더 토글 (BuilderCore.handleBreakpointChange) 과 같은 경로 — setActiveBreakpoint + invalidateLayout
@@ -995,6 +1171,8 @@ try {
     legacy,
     defaultColumn,
     transitions,
+    wrapMin,
+    constraints,
     ratioUi,
     absolute,
     resize,

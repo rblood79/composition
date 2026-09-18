@@ -1242,6 +1242,7 @@ const koKR: TranslationKeys = {
     viewportSize: "뷰포트 크기",
     viewOptions: "보기 옵션",
     compareMode: "비교 모드 (Preview + Skia)",
+    compareCurrentPageOnly: "현재 페이지만 비교",
     skiaOnlyMode: "Skia만 보기",
     workflow: "Workflow",
     showWorkflowOverlay: "Workflow 오버레이 표시",
@@ -3133,6 +3134,7 @@ const enUS: TranslationKeys = {
     viewportSize: "Viewport size",
     viewOptions: "View options",
     compareMode: "Compare Mode (Preview + Skia)",
+    compareCurrentPageOnly: "Compare current page only",
     skiaOnlyMode: "Skia Only Mode",
     workflow: "Workflow",
     showWorkflowOverlay: "Show Workflow Overlay",
@@ -3858,6 +3860,8 @@ const semanticLabelTranslations: Record<
       "각 화면 크기 (Desktop · Tablet · Mobile) 를 한 번씩 연 뒤 다시 시도하세요. 계산되지 않은 크기는 저장하지 않습니다.",
     "styles.transform.ratio.error.document":
       "문서가 변경되었습니다. 다시 시도하세요.",
+    "styles.transform.constraint.error.order":
+      "최소 크기는 최대 크기보다 클 수 없습니다.",
     "styles.transform.sizeConstraints": "최소·최대 크기",
     "styles.transform.absolutePosition": "절대 위치",
     "styles.layout.sizing.auto": "자동",
@@ -4317,6 +4321,8 @@ const semanticLabelTranslations: Record<
     "styles.transform.ratio.error.tierGeometry":
       "Open each screen size (Desktop, Tablet, Mobile) once, then try again. Sizes that were not computed are not saved.",
     "styles.transform.ratio.error.document": "Document changed. Try again.",
+    "styles.transform.constraint.error.order":
+      "Minimum size cannot exceed maximum size.",
     "styles.transform.sizeConstraints": "Size constraints",
     "styles.transform.absolutePosition": "Absolute position",
     "styles.layout.sizing.auto": "Auto",

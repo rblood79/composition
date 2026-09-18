@@ -425,9 +425,7 @@ describe("project export canonical CompositionDocument payload", () => {
       parent_id: null,
     });
     expect(pageBody).not.toHaveProperty("layout_id");
-    expect(pageBody?.props).toMatchObject({
-      className: "react-aria-Body",
-    });
+    expect(pageBody?.props).toEqual({ style: { overflow: "auto" } });
 
     const frameBodyId = toPageFrameElementId("page-home", "frame-body");
     const slotContentId = toPageFrameElementId("page-home", "slot-content");

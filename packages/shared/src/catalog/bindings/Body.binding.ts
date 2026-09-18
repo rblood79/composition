@@ -12,14 +12,13 @@ import type { PrimitiveBinding } from "../types";
  *   만 반환(L168 early return) → spec.render.shapes 의 "자식 있으면 bg 만"(Body.spec.ts:124) 과
  *   시각 대칭.
  *
- * **DOM parity = 변화 0 (실측 2026-06-04)**: INTERNAL_RENDERERS 미등록 → catalog generic DOM
- *   경로(CanonicalNodeRenderer:192) 미진입 → generic fallback 경로(L248) 유지. isSpecOrCatalogBacked
- *   (spec 있음 || isCatalogCutover) 가 catalog 등록 후에도 true → `react-aria-Body` className +
- *   data-size 주입 보존 → generated CSS(Body.css) 매칭 불변. resolveGenericHtmlTag body→div.
- *   따라서 generated CSS diff 0.
+ * **DOM contract (2026-09-18)**: INTERNAL_RENDERERS 미등록 → generic fallback 경로를 사용한다.
+ *   renderer가 lowercase canonical type을 case-correct `react-aria-Body` class로 투영하고,
+ *   loaded generated CSS가 display/font/width/overflow 및 조건부 viewport min-height를 담당한다.
+ *   기존 canonical 문서의 infrastructure class/기본 inline style은 DOM 투영에서 정규화한다.
  *
  * D1: composition `<body>` 페이지 루트 (internal source, generic DOM via KNOWN_HTML body→div).
- *     Preview 는 App.tsx 가 className 을 document.body 에, Publish 는 useBodyElement hook 이 주입.
+ *     Preview/Publish의 nested body div와 실제 document.body 동기화가 같은 class resolver를 쓴다.
  * D2: children(페이지 콘텐츠)만 — 페이지 루트는 최소 surface.
  * D3: 시각(배경 `{color.base}`)은 theme rule(COMPONENT_RULES_TABLE.body).
  */

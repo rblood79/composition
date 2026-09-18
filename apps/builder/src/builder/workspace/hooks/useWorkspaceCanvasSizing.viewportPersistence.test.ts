@@ -3,6 +3,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { useViewportSyncStore } from "../canvas/stores";
+import { useStore } from "../../stores";
 import { useWorkspaceCanvasSizing } from "./useWorkspaceCanvasSizing";
 import { WORKSPACE_CANVAS_VIEWPORT_STORAGE_KEY } from "./workspaceCanvasViewportPersistence";
 
@@ -50,6 +51,30 @@ describe("useWorkspaceCanvasSizing viewport persistence", () => {
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
+  });
+
+  it("compare에서는 current page의 문서 위치를 상쇄해 같은 viewport를 가운데 둔다", () => {
+    useStore.setState({
+      currentPageId: "home",
+      pagePositions: { home: { x: 470, y: 40 } },
+    });
+    const containerRef = createRefElement(1000, 700);
+    const canvasAreaRef = createRefElement(1000, 700);
+
+    renderHook(() =>
+      useWorkspaceCanvasSizing({
+        breakpoint: new Set(["mobile"]),
+        breakpoints: BREAKPOINTS,
+        canvasAreaRef,
+        compareMode: true,
+        containerRef,
+      }),
+    );
+
+    expect(useViewportSyncStore.getState().panOffset).toEqual({
+      x: -165,
+      y: -112,
+    });
   });
 
   function renderSizing(initialBreakpoint = "desktop") {

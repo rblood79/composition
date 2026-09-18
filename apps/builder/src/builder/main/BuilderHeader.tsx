@@ -12,6 +12,7 @@ import {
   CircleHelp,
   Info,
   Columns,
+  Filter,
   LayoutDashboard,
   Settings,
 } from "lucide-react";
@@ -86,6 +87,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   const toggleCompareMode = useCompareModeStore(
     (state) => state.toggleCompareMode,
   );
+  const filterCurrentPage = useCompareModeStore(
+    (state) => state.filterCurrentPage,
+  );
+  const setCurrentPageFilter = useCompareModeStore(
+    (state) => state.setCurrentPageFilter,
+  );
   const importInputRef = useRef<HTMLInputElement>(null);
 
   // 프로젝트 목록으로 나간다 — 헤더 메뉴 항목과 ⌘O 가 같은 동작을 부른다.
@@ -116,6 +123,7 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
   const compareLabel = isCompareMode
     ? t("header.skiaOnlyMode")
     : t("header.compareMode");
+  const currentPageFilterLabel = t("header.compareCurrentPageOnly");
   return (
     <header className="header">
       <div className="header_contents header_left">
@@ -282,7 +290,12 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
           <ToggleButtonGroup
             className="builder-control-group"
             selectionMode="multiple"
-            selectedKeys={new Set([...(isCompareMode ? ["compare"] : [])])}
+            selectedKeys={
+              new Set([
+                ...(isCompareMode ? ["compare"] : []),
+                ...(isCompareMode && filterCurrentPage ? ["current-page"] : []),
+              ])
+            }
             indicator={true}
             onSelectionChange={(keys: Set<Key>) => {
               const selectedKeys = new Set(keys);
@@ -292,6 +305,10 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
               // Compare mode 토글
               if (wasCompareMode !== isCompareNowSelected) {
                 toggleCompareMode();
+              }
+
+              if (isCompareMode) {
+                setCurrentPageFilter(selectedKeys.has("current-page"));
               }
             }}
             aria-label={compareLabel}
@@ -304,6 +321,19 @@ export const BuilderHeader: React.FC<BuilderHeaderProps> = ({
                 />
               </ToggleButton>
             </ActionTooltipTrigger>
+            {isCompareMode && (
+              <ActionTooltipTrigger tooltip={currentPageFilterLabel}>
+                <ToggleButton
+                  id="current-page"
+                  aria-label={currentPageFilterLabel}
+                >
+                  <Filter
+                    strokeWidth={iconProps.strokeWidth}
+                    size={iconProps.size}
+                  />
+                </ToggleButton>
+              </ActionTooltipTrigger>
+            )}
           </ToggleButtonGroup>
           <ActionIconButton
             aria-label={t("header.preview")}

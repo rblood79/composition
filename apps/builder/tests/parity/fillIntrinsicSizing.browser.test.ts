@@ -16,6 +16,100 @@ beforeAll(async () => {
 });
 
 describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
+  it("ButtonGroup auto 높이에서 100% Button과 prop 기본 gap이 Preview와 일치한다", () => {
+    const group = document.createElement("div");
+    Object.assign(group.style, {
+      boxSizing: "border-box",
+      display: "flex",
+      flexDirection: "column",
+      rowGap: "8px",
+      columnGap: "8px",
+      justifyContent: "center",
+      alignItems: "center",
+      width: "342px",
+      padding: "12px",
+      border: "2px solid #d4d4d4",
+    });
+    const buttons = ["Cancel", "Save"].map((text, index) => {
+      const button = document.createElement("button");
+      button.className = "react-aria-Button button-base";
+      button.dataset.size = "md";
+      button.dataset.variant = index === 0 ? "secondary" : "accent";
+      button.dataset.fillStyle = index === 0 ? "outline" : "fill";
+      button.textContent = text;
+      Object.assign(button.style, {
+        boxSizing: "border-box",
+        fontFamily: "Arial",
+        fontSize: "14px",
+        fontWeight: "400",
+        lineHeight: "20px",
+      });
+      if (index === 0) button.style.height = "100%";
+      group.appendChild(button);
+      return button;
+    });
+    document.body.appendChild(group);
+
+    try {
+      const nodes: CaseNode[] = [
+        {
+          label: "cancel",
+          elementType: "Button",
+          text: "Cancel",
+          props: { size: "md" },
+          style: {
+            height: "100%",
+            fontFamily: "Arial",
+            fontSize: "14px",
+            fontWeight: "400",
+            lineHeight: "20px",
+          },
+        },
+        {
+          label: "save",
+          elementType: "Button",
+          text: "Save",
+          props: { size: "md" },
+          style: {
+            fontFamily: "Arial",
+            fontSize: "14px",
+            fontWeight: "400",
+            lineHeight: "20px",
+          },
+        },
+        {
+          label: "group",
+          elementType: "ButtonGroup",
+          props: { size: "md", orientation: "horizontal", align: "end" },
+          style: {
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "342px",
+            padding: "12px",
+            borderWidth: "2px",
+            borderStyle: "solid",
+          },
+          children: [0, 1],
+        },
+      ];
+      const layout = pipelineLeg(nodes, 342, 844);
+      const groupRect = group.getBoundingClientRect();
+
+      expect(Math.abs(layout[2].w - groupRect.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(layout[2].h - groupRect.height)).toBeLessThanOrEqual(1);
+      buttons.forEach((button, index) => {
+        const rect = button.getBoundingClientRect();
+        expect(Math.abs(layout[index].w - rect.width)).toBeLessThanOrEqual(1);
+        expect(Math.abs(layout[index].h - rect.height)).toBeLessThanOrEqual(1);
+      });
+      expect(layout[1].y - layout[0].y).toBe(38);
+    } finally {
+      group.remove();
+    }
+  });
+
   for (const direction of ["row", "column"] as const) {
     for (const mode of [
       "fill",
@@ -128,4 +222,75 @@ describe("ADR-224 — Fill과 leaf intrinsic 측정의 분리", () => {
       });
     }
   }
+
+  it("wrap + Fill + min-width는 hypothetical main size로 줄을 나눈다", () => {
+    const rootStyle = {
+      display: "flex",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      width: "300px",
+      height: "auto",
+      padding: "0px",
+      gap: "0px",
+      border: "0px",
+      boxSizing: "border-box",
+    };
+    const childStyle = {
+      fontFamily: "Arial",
+      fontSize: "14px",
+      fontWeight: "400",
+      lineHeight: "20px",
+      minWidth: "200px",
+      height: "20px",
+      ...resolveFillProjection(
+        { width: { factor: 1 } },
+        getSizingEffectiveStyle(
+          {
+            id: "button",
+            type: "Button",
+            props: { size: "md", style: { minWidth: "200px" } },
+          },
+          "desktop",
+        ),
+        rootStyle,
+      ),
+    };
+    const host = document.createElement("div");
+    Object.assign(host.style, rootStyle);
+    const buttons = [0, 1].map(() => {
+      const button = document.createElement("button");
+      button.className = "react-aria-Button button-base";
+      button.dataset.size = "md";
+      button.dataset.variant = "primary";
+      button.dataset.fillStyle = "fill";
+      button.textContent = "Button";
+      Object.assign(button.style, { boxSizing: "border-box", ...childStyle });
+      host.appendChild(button);
+      return button;
+    });
+    document.body.appendChild(host);
+    try {
+      const nodes: CaseNode[] = [0, 1].map((index) => ({
+        label: `button-${index}`,
+        elementType: "Button",
+        text: "Button",
+        props: { size: "md", children: "Button" },
+        style: childStyle,
+      }));
+      nodes.push({ label: "root", style: rootStyle, children: [0, 1] });
+      const layout = pipelineLeg(nodes, 300, 240);
+      const dom = buttons.map((button) => button.getBoundingClientRect());
+
+      for (let i = 0; i < 2; i++) {
+        expect(Math.abs(layout[i].w - dom[i].width)).toBeLessThanOrEqual(1);
+        expect(Math.abs(layout[i].h - dom[i].height)).toBeLessThanOrEqual(1);
+      }
+      expect(
+        Math.abs(layout[1].y - layout[0].y - (dom[1].y - dom[0].y)),
+      ).toBeLessThanOrEqual(1);
+      expect(layout[1].y).toBeGreaterThan(layout[0].y);
+    } finally {
+      host.remove();
+    }
+  });
 });
