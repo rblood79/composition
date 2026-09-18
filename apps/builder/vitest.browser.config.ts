@@ -52,6 +52,9 @@ export default defineConfig({
   },
   test: {
     include: ["tests/parity/**/*.browser.test.ts"],
+    // DOM leg 페이지의 root 폰트 문맥을 production 과 같이 고정한다 — 앱 배럴의 CSS 부작용에
+    // 기대지 않는다 (2026-09-16 CSS 단일 채널 뒤 DOM leg 만 Times 로 떨어졌다, harness/setupThemeFont.ts).
+    setupFiles: ["./tests/parity/harness/setupThemeFont.ts"],
     browser: {
       enabled: true,
       provider: playwright(),

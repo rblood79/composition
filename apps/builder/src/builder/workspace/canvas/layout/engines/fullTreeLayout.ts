@@ -888,6 +888,15 @@ function isGridDisplay(display: unknown): boolean {
 // ─── Implicit Style 패치 ──────────────────────────────────────────────
 
 /** CSS dimension 속성 (number → "${v}px" 변환) */
+/** 엔진 NodeStyle 의 숫자 측정 스칼라 (ADR-224) — 2-pass 재측정이 다시 쓰는 키. */
+const LEAF_SCALAR_KEYS = new Set([
+  "contentMinWidth",
+  "contentMaxWidth",
+  "contentMinHeight",
+  "contentHeight",
+  "leafBaseline",
+]);
+
 const IMPLICIT_DIM_PROPS = new Set([
   "marginLeft",
   "marginRight",
@@ -994,6 +1003,13 @@ function patchBatchStyleFromImplicit(
       const px = parseLineHeight({ lineHeight: val }, fs ?? computedFontSize);
       if (px === undefined) continue; // normal/미해석 → 기존 batch 값 유지
       coercedVal = px;
+    } else if (LEAF_SCALAR_KEYS.has(key) && typeof val === "number") {
+      // ADR-224 (2026-09-18) 뒤 leaf 의 높이는 `height` px 가 아니라 `contentHeight` 스칼라로
+      // 엔진에 간다. 이 분기가 없으면 Step 4.5 2-pass 가 확정 폭에서 다시 잰 줄바꿈 높이
+      // (`contentHeight` 40) 가 여기서 조용히 버려져 1-pass 추정 (20) 이 남는다 — grid 비균등
+      // 트랙·flex 실배치 폭이 DFS 추정과 다른 텍스트 leaf 전부 (오라클: tests/parity/
+      // gridTrackContribution `rewrap:` · `pipeline: min-content`).
+      coercedVal = val;
     } else if (typeof val === "string") {
       coercedVal = val; // flexDirection, alignItems 등
     } else if (Array.isArray(val)) {

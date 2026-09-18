@@ -11,6 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 텍스트 줄바꿈 높이 — 확정 폭 재측정 복구 · parity 하니스 폰트 문맥] - 2026-09-19
+
+### Fixed
+
+- Canvas 에서 텍스트의 실제 배치 폭이 1-pass 추정 폭과 다를 때 (grid 비균등 트랙 `1fr auto`·`min-content`, flex 실배치 등) 줄 수가 DOM 과 달리 1-pass 추정 그대로 남던 문제를 수리했다. ADR-224 (09-18) 가 leaf 높이를 `height` px 에서 `contentHeight` 스칼라로 옮긴 뒤 Step 4.5 2-pass 의 batch 패치가 숫자 스칼라를 지원 타입 밖으로 버려 재측정 결과가 엔진에 닿지 않았다 — 숫자 측정 스칼라 5종 (`contentMinWidth`·`contentMaxWidth`·`contentMinHeight`·`contentHeight`·`leafBaseline`) 을 패치 대상에 넣었다.
+- browser parity 하니스 (`vitest.browser.config.ts`) 가 DOM leg 페이지의 root 폰트 문맥을 스스로 고정한다 (`tests/parity/harness/setupThemeFont.ts` — theme `shared-tokens.css`). 09-16 CSS 단일 채널 뒤 `@composition/shared/components` 배럴의 CSS 부작용이 사라져 DOM leg 만 Times 로 떨어졌고 텍스트 폭 케이스 3 (containerAlign 2 · CapabilityMatrixSeed 오라클) 이 갈렸다. 분류표 drift 2 (GeneratedCssReach 의 `Body` — 09-18 부터 import 됨 · OverflowCapInventory 의 FileUpload + chart 7) 갱신.
+
+### Validation
+
+- browser parity 1430/1430 (직전 11 실패 → 0). 원복 RED: 스칼라 패치 분기 제거 시 gridTrackContribution 6 (`rewrap:` 4 · `pipeline: min-content`·`fit-content(60px)`) 이 `txt.h` Δ20 으로 실패. live (headed Playwright, 새 프로젝트): grid `1fr auto` 400px 안 긴 Text 가 Skia 280×40 = Preview DOM 280×40 (2줄).
+
 ## [Styles Size — Fit content 선택 표시] - 2026-09-19
 
 ### Fixed

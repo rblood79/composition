@@ -101,7 +101,6 @@ function notImportedByIndexCss(): string[] {
 const EXPECTED: Readonly<Record<string, "covered" | "gap" | "unobserved">> = {
   Avatar: "unobserved",
   AvatarGroup: "unobserved",
-  Body: "unobserved",
   Breadcrumb: "covered",
   ButtonGroup: "unobserved",
   CalendarHeader: "unobserved",

@@ -350,6 +350,8 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
   // TailSwatch 는 2026-09-04 팔레트에서 제거 (ComponentFactory creator 부재 — 사용자 판정).
   DropZone: "none",
   FileTrigger: "none",
+  // ADR-201 (2026-09-17) — 팔레트 추가. complex (Skia projection + 자식 sub-part).
+  FileUpload: "complex",
   Form: "reusableOrigin",
   Table: "complex",
   ListBox: "complex",
@@ -368,6 +370,14 @@ const EXPECTED_FACETS: Record<string, "reusableOrigin" | "complex" | "none"> = {
   Modal: "none",
   Popover: "complex",
   Tooltip: "complex",
+  // ADR-194/217 (2026-09-08~12) — 차트 팔레트 7 (chartType 별 entry, 전부 leaf).
+  "chart-area": "none",
+  "chart-bar": "none",
+  "chart-line": "none",
+  "chart-pie": "none",
+  "chart-radar": "none",
+  "chart-radial": "none",
+  "chart-scatter": "none",
 };
 
 /**

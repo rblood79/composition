@@ -28,6 +28,12 @@ const config = mergeConfig(
 );
 
 config.test!.include = ["tests/visual-parity/**/*.browser.test.ts"];
+// setupFiles 도 이어붙는다 — ADR-156 parity 의 root 폰트 setup (tests/parity/harness/setupThemeFont.ts)
+// 은 이 하니스의 것이 아니므로 교체한다 (tester 페이지 폰트 문맥은 위 두 파일이 정본).
+config.test!.setupFiles = [
+  "./tests/visual-parity/harness/setupFonts.ts",
+  "./tests/visual-parity/harness/setupTheme.ts",
+];
 
 // 뷰포트 핀 (HC4) — **캡처 배율을 1:1 로 만들기 위한 것이지 취향이 아니다.**
 //
