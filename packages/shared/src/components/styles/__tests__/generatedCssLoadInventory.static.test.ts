@@ -128,7 +128,8 @@ describe("generated CSS 로드 인벤토리 (ADR-923 잔여 2)", () => {
     expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*width:\s*100%/s);
     expect(bodyCss).toMatch(/\.react-aria-Body\s*\{[^}]*overflow:\s*auto/s);
     expect(bodyCss).toMatch(
-      /\.react-aria-Body\[data-body-viewport-fill\]\s*\{[^}]*min-height:\s*100%/s,
+      // definite viewport 높이 — inline 100vh 대체 (자식 height:% basis, 2026-09-18)
+      /\.react-aria-Body\[data-body-viewport-fill\]\s*\{[^}]*height:\s*100vh/s,
     );
   });
 

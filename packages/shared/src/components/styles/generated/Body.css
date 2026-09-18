@@ -63,7 +63,7 @@
 
 
   .react-aria-Body[data-body-viewport-fill] {
-    min-height: 100%;
+    height: 100vh;
   }
 
 

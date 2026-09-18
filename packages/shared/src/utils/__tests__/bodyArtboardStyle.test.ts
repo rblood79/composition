@@ -9,7 +9,7 @@ import {
 /**
  * D3 대칭 정합의 단일 소스 — builder Preview `CanonicalNodeRenderer` 와 publish
  * `ElementRenderer` 두 DOM consumer 가 공통 호출하는 로직. 라이브 실측으로 page shell 제거 뒤
- * generated CSS의 min-height:100%와 definite 100vh projection이 body 박스와 자식 % basis를
+ * generated CSS의 `[data-body-viewport-fill] { height: 100vh }` 가 body 박스와 자식 % basis를
  * Preview viewport 높이에 맞추는 것을 확인했고,
  * 본 테스트는 그 data attribute 요청/저작값 보존 규칙을 렌더러 독립적으로 검증한다.
  */
@@ -20,12 +20,12 @@ describe("resolveBodyDomPresentation", () => {
       fontFamily: `"Pretendard", "Inter Variable", system-ui, sans-serif`,
       overflow: "auto",
     });
-    expect(out).toEqual({ style: { height: "100vh" }, fillsViewport: true });
+    expect(out).toEqual({ style: undefined, fillsViewport: true });
   });
 
   it("style이 undefined인 body도 viewport fill 속성을 요청한다", () => {
     expect(resolveBodyDomPresentation("body", undefined)).toEqual({
-      style: { height: "100vh" },
+      style: undefined,
       fillsViewport: true,
     });
   });
@@ -64,11 +64,7 @@ describe("resolveBodyDomPresentation", () => {
         backgroundColor: "red",
       }),
     ).toEqual({
-      style: {
-        padding: "24px",
-        backgroundColor: "red",
-        height: "100vh",
-      },
+      style: { padding: "24px", backgroundColor: "red" },
       fillsViewport: true,
     });
   });

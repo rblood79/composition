@@ -809,8 +809,10 @@ export const COMPONENT_RULES_TABLE: ComponentRulesTable = {
       composition: {
         rootSelectors: {
           "&[data-body-viewport-fill]": {
+            // definite viewport 높이 — 자식 height:% 의 basis (min-height 면 indefinite 라 접힌다).
+            //   inline 투영 없이 이 CSS 채널 하나 (resolveBodyDomPresentation 주석).
             styles: {
-              "min-height": "100%",
+              height: "100vh",
             },
           },
         },

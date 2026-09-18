@@ -8,7 +8,7 @@ import type { Element } from "@composition/shared";
 import { ElementRenderer } from "../renderer/ElementRenderer";
 
 describe("Publish Body DOM presentation", () => {
-  it("case-correct class 하나와 definite viewport fill을 방출한다", async () => {
+  it("case-correct class 하나와 CSS viewport fill만 방출한다 (inline 0)", async () => {
     const body = {
       id: "body-1",
       type: "body",
@@ -36,7 +36,7 @@ describe("Publish Body DOM presentation", () => {
 
     expect(rendered).not.toBeNull();
     expect(rendered!.className).toBe("react-aria-Body");
-    expect(rendered!.style.height).toBe("100vh");
+    expect(rendered!.getAttribute("style")).toBeNull();
     expect(rendered!.hasAttribute("data-body-viewport-fill")).toBe(true);
 
     await act(async () => root.unmount());
