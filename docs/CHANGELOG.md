@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Button — display block 에서 Preview 높이만 줄어들던 문제] - 2026-09-19
+
+### Fixed
+
+- Button (ButtonGroup 안의 Button 포함) 을 Layout Direction 에서 `block` 으로 바꾸면 Compare 모드의 Preview 쪽 높이만 27→18 로 줄어들던 문제를 수리했다. 원인은 수동 `Button.css` 의 `text-box: trim-both cap alphabetic` — `text-box-trim` 은 block container 에만 적용되어 `inline-flex` 일 때는 잠들어 있다가 `block` 에서만 살아났고, Skia 는 이 채널을 모른다 (catalog 정본에도 없는 DOM 전용 선언). ToggleButton 에는 없어 대칭이었다. 선언 삭제.
+
+### Validation
+
+- live 실측 (md): Button inline-flex 27.14 / block 18.48 → 삭제 후 block 27.14 · ButtonGroup 안 Button block 30 · ToggleButton block 30 (변화 없음). `text-box: normal` 로 덮어도 같은 값이라 다른 요인 없음.
+
 ## [생성 CSS — 단일 size 의 `[data-size]` 블록·빈 state 블록 생략] - 2026-09-18
 
 ### Changed
