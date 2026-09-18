@@ -154,6 +154,42 @@ interface ScrollExtentBox {
 }
 
 /**
+ * 스크롤 컨테이너의 끝쪽 padding·border 는 scrollable overflow 에 들어간다 (CSS-OVERFLOW-3 §2.2).
+ *
+ * Chrome 153 실측 (2026-09-18): `width:200; padding:24; overflow:auto` 블록 안에 400px 자식 →
+ * `scrollWidth 448 = 24 + 400 + 24`, `clientWidth 200`. 끝까지 스크롤하면 콘텐츠 뒤에 padding 이
+ * 남는다. 종전엔 `자식 right − width` 만 세서 끝 padding 이 잘렸다 — Compare 모드에서 body
+ * padding 24 가 오른쪽·아래에서만 사라지던 사용자 보고.
+ *
+ * 자식 좌표는 부모 border-box 기준 (시작쪽 border+padding 포함) 이므로 끝쪽만 더한다:
+ * `scrollWidth − clientWidth = (padL + content + padR) − (width − bL − bR)
+ *   = extent + padR + bR − width`.
+ */
+export function computeMaxScroll(input: {
+  /** 자손 넘침 끝 (부모 border-box 기준) — `computeScrollExtent` 의 maxRight/maxBottom */
+  extent: number;
+  /** 컨테이너 border-box 크기 */
+  size: number;
+  endPadding: number;
+  endBorder: number;
+}): number {
+  return Math.max(
+    0,
+    input.extent + input.endPadding + input.endBorder - input.size,
+  );
+}
+
+/** 엔진 소비 style JSON (`"Npx"` 정규화) 의 px 값 — px 가 아니면 (%, calc …) 0 으로 본다. */
+function readEnginePx(value: unknown): number {
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+  if (typeof value !== "string") return 0;
+  const match = /^\s*(\d+(?:\.\d+)?)(?:px)?\s*$/.exec(value);
+  if (!match) return 0;
+  const parsed = Number(match[1]);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/**
  * 스크롤 가능 영역 = 직계 자식이 아니라 **자손 전체**의 넘침 (CSS-OVERFLOW-3 §3).
  *
  * 직계만 세면 `overflow: visible` 인 중간 노드가 자손의 넘침을 삼킨다. **프레임을 적용한
@@ -3476,9 +3512,29 @@ export function calculateFullTreeLayout(
             return childOverflow != null && childOverflow !== "visible";
           },
         );
+        // 끝쪽 padding·border 는 엔진이 실제로 소비한 style (catalog implicit 포함) 에서 읽는다.
+        const engineJson = persistentTree.getLastJson(elementId);
+        let engineStyle: Record<string, unknown> = {};
+        if (engineJson) {
+          try {
+            engineStyle = JSON.parse(engineJson) as Record<string, unknown>;
+          } catch {
+            engineStyle = {};
+          }
+        }
         // queueMicrotask: 렌더링 중 setState 방지 (React strict mode)
-        const scrollTop = Math.max(0, maxBottom - layout.height);
-        const scrollLeft = Math.max(0, maxRight - layout.width);
+        const scrollTop = computeMaxScroll({
+          extent: maxBottom,
+          size: layout.height,
+          endPadding: readEnginePx(engineStyle.paddingBottom),
+          endBorder: readEnginePx(engineStyle.borderBottom),
+        });
+        const scrollLeft = computeMaxScroll({
+          extent: maxRight,
+          size: layout.width,
+          endPadding: readEnginePx(engineStyle.paddingRight),
+          endBorder: readEnginePx(engineStyle.borderRight),
+        });
         queueMicrotask(() => {
           useScrollState
             .getState()

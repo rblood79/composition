@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [Canvas 스크롤 범위 — 끝쪽 padding·border 포함] - 2026-09-18
+
+### Fixed
+
+- `overflow:auto` 컨테이너(body 포함)를 Canvas에서 끝까지 스크롤하면 콘텐츠가 오른쪽·아래 가장자리에 붙고 padding이 사라지던 문제를 수리했다. Chrome은 scrollable overflow에 끝쪽 padding·border를 넣으므로(`scrollWidth = padL + content + padR`) Skia 스크롤 범위도 엔진이 소비한 `paddingRight/Bottom`·`borderRight/Bottom`을 더한다. Compare 모드에서 body padding 24가 오른쪽에서만 없어지던 사용자 보고.
+
+### Validation
+
+- 사용자 문서 `df522f3a` body(390 폭, padding 24, flex row, 마지막 Button right 412): maxScrollLeft 22 → 46. 새 프로젝트 live(`scroll-end-padding-live.mjs`, body padding 24 + 2000×2000 자식): Skia scrollable overflow 끝 2048/2048 = Compare Preview `.react-aria-Body` scrollWidth/scrollHeight 2048/2048. Chrome 153 블록 실측 `scrollWidth 448 = 24 + 400 + 24`. focused Vitest 10/10, type-check PASS.
+
 ## [ADR-224 — Compare 페이지·Size·intrinsic 정합 수리] - 2026-09-18
 
 ### Fixed

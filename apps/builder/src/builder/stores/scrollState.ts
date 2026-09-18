@@ -219,6 +219,13 @@ export function isScrollable(elementId: string): boolean {
   return scroll.maxScrollTop > 0 || scroll.maxScrollLeft > 0;
 }
 
+// dev 전용: live 하니스가 Skia 스크롤 범위 (maxScroll) 를 Chrome scrollWidth/Height 와 대조한다.
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (
+    window as unknown as { __composition_SCROLL_STATE__?: unknown }
+  ).__composition_SCROLL_STATE__ = useScrollState;
+}
+
 /**
  * React hook: 요소의 스크롤 상태 구독
  */
