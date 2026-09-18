@@ -424,7 +424,7 @@
     .property-unit-input[data-label-mode="unit"] .property-unit-input__suffix {
       flex: none;
       font-family: var(--font-mono);
-      font-size: var(--text-xs);
+      font-size: var(--text-2xs);
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: var(--fg-muted);

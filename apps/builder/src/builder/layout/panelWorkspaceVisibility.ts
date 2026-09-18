@@ -17,6 +17,20 @@ import {
 } from "./panelWorkspaceLayoutV2";
 import { activatePanelWorkspacePanelV4 } from "./panelWorkspacePolicyV4";
 
+/**
+ * Canvas 선택과 무관한 project/app 문맥 패널은 빈 공간 클릭에도 유지한다.
+ * Workflow/Shortcut은 PanelId가 아닌 overlay이므로 이 경로의 대상이 아니다.
+ */
+const CANVAS_BACKGROUND_PERSISTENT_PANEL_IDS = new Set<PanelId>([
+  "library",
+  "datatable",
+  "datatableEditor",
+  "datatableField",
+  "theme",
+  "user",
+  "settings",
+]);
+
 function currentPanelStageRect(): PanelWorkspaceRect | null {
   const stage = document.querySelector<HTMLElement>(".panel-dock-stage");
   if (!stage || stage.clientWidth <= 0 || stage.clientHeight <= 0) {
@@ -60,4 +74,23 @@ export function setPanelWorkspacePanelVisibility(
     surfaceRect,
   );
   if (result.ok) setPanelWorkspaceLayout(result.value.layout);
+}
+
+/**
+ * Canvas page 밖 빈 공간은 element/page 선택 문맥을 끝낸다. 현재 보이는
+ * 선택 문맥 패널만 기존 activation dispatcher로 닫아 rail toggle과 workspace를
+ * 한 상태로 유지한다.
+ */
+export function dismissCanvasSelectionPanels(): void {
+  const layout = useStore.getState().panelWorkspaceLayout;
+  if (!layout) return;
+
+  for (const [panelId, visible] of Object.entries(layout.visibility) as Array<
+    [PanelId, boolean]
+  >) {
+    if (!visible || CANVAS_BACKGROUND_PERSISTENT_PANEL_IDS.has(panelId)) {
+      continue;
+    }
+    setPanelWorkspacePanelVisibility(panelId, false);
+  }
 }

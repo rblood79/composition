@@ -22,6 +22,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - browser parity 1430/1430 (직전 11 실패 → 0). 원복 RED: 스칼라 패치 분기 제거 시 gridTrackContribution 6 (`rewrap:` 4 · `pipeline: min-content`·`fit-content(60px)`) 이 `txt.h` Δ20 으로 실패. live (headed Playwright, 새 프로젝트): grid `1fr auto` 400px 안 긴 Text 가 Skia 280×40 = Preview DOM 280×40 (2줄).
 
+## [Canvas 빈 공간 — 선택 문맥 패널 닫기] - 2026-09-19
+
+### Changed
+
+- Canvas의 page 밖 빈 공간을 클릭하면 요소 선택 해제와 함께 Left/Right rail에서 열린 page/selection 문맥 패널 (Navigator·Components·AI·Properties·Styles·Interactions·History)을 닫고 토글을 비활성화한다. Theme·Data 계열·Settings 패널과 Workflow·Shortcut overlay는 project/app 문맥이라 유지한다.
+
+### Validation
+
+- panel visibility 정책 테스트에서 닫힘 7종·유지 5종을 고정하고, 중앙 Canvas 포인터 처리의 page 밖 클릭이 선택 해제와 패널 닫기를 함께 수행하는지 검증했다.
+
 ## [Styles Size — Fit content 선택 표시] - 2026-09-19
 
 ### Fixed

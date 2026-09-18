@@ -32,7 +32,8 @@
     align-items: center;
     justify-content: center;
     background: var(--bg-muted);
-    border-radius: var(--radius-xs);
+    box-shadow: var(--inset-shadow-sm);
+    border-radius: var(--radius-md) 0.375rem;
   }
 
   .box-model__link {

@@ -38,7 +38,10 @@ vi.mock("../stores", () => ({
   },
 }));
 
-import { setPanelWorkspacePanelVisibility } from "./panelWorkspaceVisibility";
+import {
+  dismissCanvasSelectionPanels,
+  setPanelWorkspacePanelVisibility,
+} from "./panelWorkspaceVisibility";
 
 describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
   beforeEach(() => {
@@ -86,5 +89,43 @@ describe("setPanelWorkspacePanelVisibility (ADR-212 UI-8)", () => {
     setPanelWorkspacePanelVisibility("datatableEditor", true);
     expect(mocks.activatePolicy).toHaveBeenCalledTimes(1);
     expect(mocks.setLayout).toHaveBeenCalledWith("next");
+  });
+
+  it("Canvas 빈 공간은 page/selection 문맥 패널만 닫고 project/app 패널은 유지한다", () => {
+    mocks.configs.splice(
+      0,
+      mocks.configs.length,
+      ...[
+        "navigator",
+        "components",
+        "datatable",
+        "datatableEditor",
+        "datatableField",
+        "theme",
+        "ai",
+        "properties",
+        "styles",
+        "events",
+        "history",
+        "settings",
+      ].map((id) => ({ id })),
+    );
+    mocks.storeState.panelWorkspaceLayout = {
+      visibility: Object.fromEntries(mocks.configs.map(({ id }) => [id, true])),
+    };
+
+    dismissCanvasSelectionPanels();
+
+    expect(mocks.dispatchActivation.mock.calls).toEqual(
+      [
+        "navigator",
+        "components",
+        "ai",
+        "properties",
+        "styles",
+        "events",
+        "history",
+      ].map((panelId) => [panelId, false]),
+    );
   });
 });

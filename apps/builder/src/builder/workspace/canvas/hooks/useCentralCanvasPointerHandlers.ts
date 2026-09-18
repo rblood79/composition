@@ -33,6 +33,7 @@ import { useKeyboardShortcutsRegistry } from "../../../hooks/useKeyboardShortcut
 import { observe, PERF_LABEL } from "../../../utils/perfMarks";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import { dismissCanvasSelectionPanels } from "../../../layout/panelWorkspaceVisibility";
 
 interface ModifierState {
   ctrlKey: boolean;
@@ -593,8 +594,10 @@ export function useCentralCanvasPointerHandlers({
             }
             setSelectedElements([]);
           } else {
-            // 페이지 영역 밖 클릭 → 선택 모두 해제
+            // 페이지 영역 밖 클릭 → 선택 모두 해제 + 선택 문맥 패널 닫기.
+            // Theme/Data/Settings 및 panel이 아닌 Workflow/Shortcut overlay는 유지한다.
             setSelectedElements([]);
+            dismissCanvasSelectionPanels();
           }
         }
       }

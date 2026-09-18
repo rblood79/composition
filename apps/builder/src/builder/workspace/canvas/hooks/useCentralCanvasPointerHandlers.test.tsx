@@ -7,10 +7,13 @@ import { CanvasGestureSession } from "../interaction/canvasGestureSession";
 import type { CanvasInteractionNode } from "../interaction/interactionNode";
 import { useCentralCanvasPointerHandlers } from "./useCentralCanvasPointerHandlers";
 
-const { getStateMock, hitTestPointMock } = vi.hoisted(() => ({
-  getStateMock: vi.fn(),
-  hitTestPointMock: vi.fn(() => [] as string[]),
-}));
+const { dismissPanelsMock, getStateMock, hitTestPointMock } = vi.hoisted(
+  () => ({
+    dismissPanelsMock: vi.fn(),
+    getStateMock: vi.fn(),
+    hitTestPointMock: vi.fn(() => [] as string[]),
+  }),
+);
 
 vi.mock("../../../stores", () => ({
   useStore: {
@@ -25,6 +28,10 @@ vi.mock("../../../hooks/useKeyboardShortcutsRegistry", () => ({
 vi.mock("../../../utils/perfMarks", () => ({
   observe: (_label: string, callback: () => void) => callback(),
   PERF_LABEL: { INPUT_POINTERDOWN: "input.pointerdown" },
+}));
+
+vi.mock("../../../layout/panelWorkspaceVisibility", () => ({
+  dismissCanvasSelectionPanels: dismissPanelsMock,
 }));
 
 vi.mock("../wasm-bindings/spatialIndex", () => ({
@@ -75,6 +82,60 @@ describe("useCentralCanvasPointerHandlers page body drag", () => {
     cleanup();
     container.remove();
     vi.clearAllMocks();
+  });
+
+  it("페이지 밖 Canvas 빈 공간은 선택을 해제하고 선택 문맥 패널을 닫는다", () => {
+    const setSelectedElements = vi.fn();
+    const gestureSession = new CanvasGestureSession();
+    getStateMock.mockReturnValue({
+      activeBreakpoint: "desktop",
+      currentPageId: "page-1",
+      editingContextId: null,
+      pageIndex: { elementsByPage: new Map() },
+      pagePositions: { "page-1": { x: 500, y: 500 } },
+      pages: [{ id: "page-1" }],
+      selectedElementIds: ["element-1"],
+    });
+
+    renderHook(() =>
+      useCentralCanvasPointerHandlers({
+        gestureSession,
+        completeEditRef: ref(() => {}),
+        computeSelectionBoundsForHitTest: () => null,
+        containerRef: ref(container),
+        editingElementIdRef: ref(null),
+        handleElementClickRef: ref(() => {}),
+        handleElementDoubleClickRef: ref(() => {}),
+        getHitChildrenMap: () => new Map(),
+        getHitElementsMap: () => new Map(),
+        isEditingRef: ref(false),
+        lastClickTargetRef: ref(null),
+        lastClickTimeRef: ref(0),
+        onCancelDrag: ref(() => {}),
+        onEndDrag: ref(() => {}),
+        onStartResize: ref(() => false),
+        onStartMove: ref(() => {}),
+        onUpdateDrag: ref(() => {}),
+        pageHeight: 844,
+        pageWidth: 390,
+        screenToCanvasPoint: (position) => position,
+        selectionBoundsRef: ref(null),
+        selectElementWithPageTransition: () => {},
+        setCurrentPageId: () => {},
+        setCursor: () => {},
+        setSelectedElements,
+        startPageDrag: () => {},
+        zoom: 1,
+      }),
+    );
+
+    gestureSession.beginPointer(6, 0);
+    act(() => {
+      container.dispatchEvent(createPointerDown(6, 100, 100));
+    });
+
+    expect(setSelectedElements).toHaveBeenCalledWith([]);
+    expect(dismissPanelsMock).toHaveBeenCalledOnce();
   });
 
   it("선택된 page body의 빈 영역을 끌면 page drag를 시작한다", () => {
