@@ -29,22 +29,9 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-Body[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-base);
-  border-radius: var(--radius-none);
-}
-
-.react-aria-Body[data-hovered] {
-}
-
 .react-aria-Body[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Body[data-pressed] {
 }
 
 .react-aria-Body[data-disabled] {

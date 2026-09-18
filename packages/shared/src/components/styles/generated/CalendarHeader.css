@@ -85,15 +85,9 @@
   --icon-size: 32px;
 }
 
-.react-aria-CalendarHeader[data-hovered] {
-}
-
 .react-aria-CalendarHeader[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-CalendarHeader[data-pressed] {
 }
 
 .react-aria-CalendarHeader[data-disabled] {

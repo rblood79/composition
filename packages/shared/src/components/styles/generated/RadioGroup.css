@@ -51,15 +51,9 @@
   gap: 20px;
 }
 
-.react-aria-RadioGroup[data-hovered] {
-}
-
 .react-aria-RadioGroup[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-RadioGroup[data-pressed] {
 }
 
 .react-aria-RadioGroup[data-disabled] {

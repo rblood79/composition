@@ -76,9 +76,6 @@
   --icon-size: 40px;
 }
 
-.react-aria-DropZone[data-hovered] {
-}
-
 .react-aria-DropZone[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

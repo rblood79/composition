@@ -59,15 +59,9 @@
   gap: 10px;
 }
 
-.react-aria-TextField[data-hovered] {
-}
-
 .react-aria-TextField[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-TextField[data-pressed] {
 }
 
 .react-aria-TextField[data-disabled] {

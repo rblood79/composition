@@ -54,15 +54,9 @@
   --icon-size: 28px;
 }
 
-.react-aria-SearchField[data-hovered] {
-}
-
 .react-aria-SearchField[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-SearchField[data-pressed] {
 }
 
 .react-aria-SearchField[data-disabled] {

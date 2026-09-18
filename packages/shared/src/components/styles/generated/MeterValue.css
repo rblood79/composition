@@ -112,15 +112,9 @@
   line-height: 28px;
 }
 
-.react-aria-MeterValue[data-hovered] {
-}
-
 .react-aria-MeterValue[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-MeterValue[data-pressed] {
 }
 
 .react-aria-MeterValue[data-disabled] {

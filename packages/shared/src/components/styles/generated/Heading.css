@@ -98,15 +98,9 @@
   line-height: var(--text-3xl--line-height);
 }
 
-.react-aria-Heading[data-hovered] {
-}
-
 .react-aria-Heading[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Heading[data-pressed] {
 }
 
 .react-aria-Heading[data-disabled] {

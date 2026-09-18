@@ -40,14 +40,6 @@
   }
 }
 
-.react-aria-Modal[data-size="md"] {
-  height: auto;
-  padding: 24px 24px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-xl);
-  gap: 8px;
-}
-
 .react-aria-Modal[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

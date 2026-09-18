@@ -108,15 +108,9 @@
   border-radius: var(--radius-md);
 }
 
-.react-aria-Chart[data-hovered] {
-}
-
 .react-aria-Chart[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Chart[data-pressed] {
 }
 
 .react-aria-Chart[data-disabled] {

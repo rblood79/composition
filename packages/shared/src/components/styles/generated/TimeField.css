@@ -47,15 +47,9 @@
   gap: 10px;
 }
 
-.react-aria-TimeField[data-hovered] {
-}
-
 .react-aria-TimeField[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-TimeField[data-pressed] {
 }
 
 .react-aria-TimeField[data-disabled] {

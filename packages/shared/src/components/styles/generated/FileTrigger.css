@@ -58,9 +58,6 @@
   --icon-size: 20px;
 }
 
-.react-aria-FileTrigger[data-hovered] {
-}
-
 .react-aria-FileTrigger[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

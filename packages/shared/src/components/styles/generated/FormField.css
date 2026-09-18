@@ -54,15 +54,9 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-FormField[data-hovered] {
-}
-
 .react-aria-FormField[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-FormField[data-pressed] {
 }
 
 .react-aria-FormField[data-disabled] {

@@ -60,15 +60,9 @@
   --icon-size: 28px;
 }
 
-.react-aria-NumberField[data-hovered] {
-}
-
 .react-aria-NumberField[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-NumberField[data-pressed] {
 }
 
 .react-aria-NumberField[data-disabled] {

@@ -37,9 +37,6 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-Tabs[data-hovered] {
-}
-
 .react-aria-Tabs[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-inset-offset);

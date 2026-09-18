@@ -44,14 +44,6 @@
   }
 }
 
-.react-aria-FileUpload[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-none);
-  gap: 12px;
-}
-
 .react-aria-FileUpload[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

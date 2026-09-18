@@ -58,22 +58,9 @@
   }
 }
 
-.react-aria-TableView[data-size="md"] {
-  height: auto;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-}
-
-.react-aria-TableView[data-hovered] {
-}
-
 .react-aria-TableView[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-TableView[data-pressed] {
 }
 
 .react-aria-TableView[data-disabled] {

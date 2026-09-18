@@ -607,7 +607,14 @@ export function generateCSS<Props>(
     hasContainerStylesOuter && spec.containerStyles?.gap != null;
   const skipBorderWidthOuter =
     hasContainerStylesOuter && spec.containerStyles?.border != null;
-  for (const [sizeName, sizeSpec] of Object.entries(spec.sizes)) {
+  // size 가 defaultSize 하나뿐이면 per-size 블록은 base 의 `/* Default size */` 와 선언이 같다
+  //   (skip 기준 동일) — 중복 emit 을 생략한다. DOM 은 `data-size` 를 항상 붙이지만 base 가 같은
+  //   값을 이미 실으므로 computed style 은 불변 (2026-09-18, 팔레트 전수 digest 오라클로 확인).
+  const sizeEntries = Object.entries(spec.sizes);
+  const singleDefaultSize =
+    sizeEntries.length === 1 && sizeEntries[0][0] === spec.defaultSize;
+  for (const [sizeName, sizeSpec] of sizeEntries) {
+    if (singleDefaultSize) break;
     lines.push(`.react-aria-${spec.name}[data-size="${sizeName}"] {`);
     lines.push(
       ...generateSizeStyles(sizeSpec, {
@@ -1312,7 +1319,25 @@ function generateStateStyles<Props>(spec: ComponentSpec<Props>): string[] {
   }
   lines.push("}");
 
-  return lines;
+  return dropEmptyBlocks(lines);
+}
+
+/**
+ * 선언이 없는 `selector {\n}` 블록을 지운다 — 기본 states (`hover: {}` / `pressed: {}`) 가
+ * 빈 `[data-hovered] {}` 를 내던 것. 선언 0 이라 computed style 불변 (2026-09-18).
+ */
+function dropEmptyBlocks(lines: string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.endsWith(" {") && lines[i + 1] === "}") {
+      i += 1;
+      if (lines[i + 1] === "") i += 1;
+      continue;
+    }
+    out.push(line);
+  }
+  return out;
 }
 
 // ─── Phase 3a: Tier 2 Composite CSS Generation ─────────────────────────────

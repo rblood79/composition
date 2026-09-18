@@ -57,15 +57,9 @@
   --icon-size: 28px;
 }
 
-.react-aria-ComboBox[data-hovered] {
-}
-
 .react-aria-ComboBox[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ComboBox[data-pressed] {
 }
 
 .react-aria-ComboBox[data-disabled] {

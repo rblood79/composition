@@ -90,15 +90,9 @@
   gap: 14px;
 }
 
-.react-aria-Switch[data-hovered] {
-}
-
 .react-aria-Switch[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Switch[data-pressed] {
 }
 
 .react-aria-Switch[data-disabled] {

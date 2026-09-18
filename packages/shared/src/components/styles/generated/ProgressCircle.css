@@ -62,15 +62,9 @@
   border-radius: var(--radius-full);
 }
 
-.react-aria-ProgressCircle[data-hovered] {
-}
-
 .react-aria-ProgressCircle[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ProgressCircle[data-pressed] {
 }
 
 .react-aria-ProgressCircle[data-disabled] {

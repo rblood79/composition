@@ -107,15 +107,9 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-MeterTrack[data-hovered] {
-}
-
 .react-aria-MeterTrack[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-MeterTrack[data-pressed] {
 }
 
 .react-aria-MeterTrack[data-disabled] {

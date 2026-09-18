@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [생성 CSS — 단일 size 의 `[data-size]` 블록·빈 state 블록 생략] - 2026-09-18
+
+### Changed
+
+- CSSGenerator 가 `sizes` 가 defaultSize 하나뿐인 rule 의 `.react-aria-X[data-size="md"]` 블록 (base `/* Default size */` 와 선언이 같다 — Body·FileUpload·GridListItem·ListBox·ListBoxItem·Modal·TableView·TailSwatch 8) 과 선언 0 인 `[data-hovered]`/`[data-pressed]` 빈 블록 117 을 내지 않는다. 생성 파일 67 개 −414 줄, 시각 결과 무변경.
+
+### Validation
+
+- 새 오라클 `generatedCssComputedDigest.browser.test.ts` — 팔레트 전수 538 요소를 production `styles/index.css` 로 마운트한 computed style digest 가 변경 전후 동일 (Icon 은 무작위 아이콘이라 제외, 후 arm 3 run 일치). specs 1373 · shared 884 · type-check · pre-push 시각 파리티 smoke PASS.
+
 ## [Canvas 스크롤 범위 — 끝쪽 padding·border 포함] - 2026-09-18
 
 ### Fixed

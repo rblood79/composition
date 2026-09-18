@@ -41,13 +41,6 @@
   }
 }
 
-.react-aria-TailSwatch[data-size="md"] {
-  height: 32px;
-  padding: 0px 0px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-}
-
 .react-aria-TailSwatch[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

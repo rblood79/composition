@@ -83,15 +83,9 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-SliderTrack[data-hovered] {
-}
-
 .react-aria-SliderTrack[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-SliderTrack[data-pressed] {
 }
 
 .react-aria-SliderTrack[data-disabled] {

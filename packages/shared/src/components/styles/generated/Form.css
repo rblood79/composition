@@ -47,15 +47,9 @@
   gap: 24px;
 }
 
-.react-aria-Form[data-hovered] {
-}
-
 .react-aria-Form[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Form[data-pressed] {
 }
 
 .react-aria-Form[data-disabled] {

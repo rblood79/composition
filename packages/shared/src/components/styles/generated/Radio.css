@@ -115,15 +115,9 @@
   gap: 12px;
 }
 
-.react-aria-Radio[data-hovered] {
-}
-
 .react-aria-Radio[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Radio[data-pressed] {
 }
 
 .react-aria-Radio[data-disabled] {

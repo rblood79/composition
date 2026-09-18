@@ -129,15 +129,9 @@
   gap: 16px;
 }
 
-.react-aria-Section[data-hovered] {
-}
-
 .react-aria-Section[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Section[data-pressed] {
 }
 
 .react-aria-Section[data-disabled] {

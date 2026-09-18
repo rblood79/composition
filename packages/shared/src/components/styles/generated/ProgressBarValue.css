@@ -73,15 +73,9 @@
   line-height: 28px;
 }
 
-.react-aria-ProgressBarValue[data-hovered] {
-}
-
 .react-aria-ProgressBarValue[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ProgressBarValue[data-pressed] {
 }
 
 .react-aria-ProgressBarValue[data-disabled] {

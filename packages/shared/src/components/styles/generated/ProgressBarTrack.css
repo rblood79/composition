@@ -68,15 +68,9 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-ProgressBarTrack[data-hovered] {
-}
-
 .react-aria-ProgressBarTrack[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ProgressBarTrack[data-pressed] {
 }
 
 .react-aria-ProgressBarTrack[data-disabled] {

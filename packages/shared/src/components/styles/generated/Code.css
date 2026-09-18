@@ -74,15 +74,9 @@
   line-height: var(--text-lg--line-height);
 }
 
-.react-aria-Code[data-hovered] {
-}
-
 .react-aria-Code[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Code[data-pressed] {
 }
 
 .react-aria-Code[data-disabled] {

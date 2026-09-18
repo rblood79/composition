@@ -30,20 +30,9 @@
   font-size: var(--text-sm);
 }
 
-.react-aria-ListBox[data-size="md"] {
-  height: auto;
-  font-size: var(--text-sm);
-}
-
-.react-aria-ListBox[data-hovered] {
-}
-
 .react-aria-ListBox[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-ListBox[data-pressed] {
 }
 
 .react-aria-ListBox[data-disabled] {

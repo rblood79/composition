@@ -51,17 +51,6 @@
   }
 }
 
-.react-aria-ListBoxItem[data-size="md"] {
-  height: auto;
-  padding: 4px 12px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-xs);
-  line-height: var(--text-sm--line-height);
-  font-weight: 600;
-  gap: 2px;
-  --icon-size: 16px;
-}
-
 .react-aria-ListBoxItem[data-hovered] {
   background: var(--bg-overlay);
 }

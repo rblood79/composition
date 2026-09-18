@@ -47,15 +47,9 @@
   gap: 10px;
 }
 
-.react-aria-DateField[data-hovered] {
-}
-
 .react-aria-DateField[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-DateField[data-pressed] {
 }
 
 .react-aria-DateField[data-disabled] {

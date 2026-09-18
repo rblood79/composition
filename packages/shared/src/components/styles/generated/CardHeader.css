@@ -61,15 +61,9 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-CardHeader[data-hovered] {
-}
-
 .react-aria-CardHeader[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-CardHeader[data-pressed] {
 }
 
 .react-aria-CardHeader[data-disabled] {

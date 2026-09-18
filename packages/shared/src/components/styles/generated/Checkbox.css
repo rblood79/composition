@@ -89,15 +89,9 @@
   gap: 12px;
 }
 
-.react-aria-Checkbox[data-hovered] {
-}
-
 .react-aria-Checkbox[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Checkbox[data-pressed] {
 }
 
 .react-aria-Checkbox[data-disabled] {

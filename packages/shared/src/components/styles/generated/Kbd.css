@@ -80,15 +80,9 @@
   border-width: 1px;
 }
 
-.react-aria-Kbd[data-hovered] {
-}
-
 .react-aria-Kbd[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Kbd[data-pressed] {
 }
 
 .react-aria-Kbd[data-disabled] {

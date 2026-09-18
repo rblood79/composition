@@ -89,15 +89,9 @@
   column-gap: 20px;
 }
 
-.react-aria-Slider[data-hovered] {
-}
-
 .react-aria-Slider[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Slider[data-pressed] {
 }
 
 .react-aria-Slider[data-disabled] {

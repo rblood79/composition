@@ -63,9 +63,6 @@
   border-radius: var(--radius-none);
 }
 
-.react-aria-Breadcrumb[data-hovered] {
-}
-
 .react-aria-Breadcrumb[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);

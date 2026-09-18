@@ -112,15 +112,9 @@
   line-height: var(--text-lg--line-height);
 }
 
-.react-aria-Link[data-hovered] {
-}
-
 .react-aria-Link[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Link[data-pressed] {
 }
 
 .react-aria-Link[data-disabled] {

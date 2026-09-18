@@ -56,15 +56,9 @@
   line-height: 28px;
 }
 
-.react-aria-SliderOutput[data-hovered] {
-}
-
 .react-aria-SliderOutput[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-SliderOutput[data-pressed] {
 }
 
 .react-aria-SliderOutput[data-disabled] {

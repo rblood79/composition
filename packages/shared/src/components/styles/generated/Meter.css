@@ -59,15 +59,9 @@
   gap: 4px;
 }
 
-.react-aria-Meter[data-hovered] {
-}
-
 .react-aria-Meter[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-Meter[data-pressed] {
 }
 
 .react-aria-Meter[data-disabled] {

@@ -69,15 +69,9 @@
   --icon-size: 18px;
 }
 
-.react-aria-DisclosureHeader[data-hovered] {
-}
-
 .react-aria-DisclosureHeader[data-focus-visible] {
   outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: var(--focus-ring-offset);
-}
-
-.react-aria-DisclosureHeader[data-pressed] {
 }
 
 .react-aria-DisclosureHeader[data-disabled] {
