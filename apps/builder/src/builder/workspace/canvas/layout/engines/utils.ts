@@ -5374,8 +5374,19 @@ export function enrichWithIntrinsicSize(
       hasExplicitIntrinsicWidthKeyword &&
       typeof style?.display === "string" &&
       (style.display === "grid" || style.display === "inline-grid");
+    // **자식 0 컨테이너도 엔진 소유** (2026-09-19): TS 가 측정하는 leaf (INTRINSIC_MEASURE /
+    //   CIRCLE / IMAGE / TEXT_LEAF) 가 아니면 `calculateContentWidth` 는 §6 `DEFAULT_WIDTH` 80 으로
+    //   떨어진다 — 빈 `width:fit-content` frame (padding 20) 이 width 120 + minWidth 120 으로
+    //   굳어 DOM 40 (content 0 + padding) 과 갈렸다. 자식이 있으면 이미 통과시키던 키워드를
+    //   자식 0 에서도 통과시키면 엔진이 content 0 으로 같은 답을 낸다.
+    const tsMeasuredLeaf =
+      INTRINSIC_MEASURE_TAGS.has(type) ||
+      CIRCLE_LEAF_TAGS.has(type) ||
+      IMAGE_INTRINSIC_TAGS.has(type) ||
+      TEXT_LEAF_TAGS.has(type);
     const isIntrinsicContainer =
-      hasExplicitIntrinsicWidthKeyword && (childElements?.length ?? 0) > 0;
+      hasExplicitIntrinsicWidthKeyword &&
+      ((childElements?.length ?? 0) > 0 || !tsMeasuredLeaf);
     const measuresAutoWidth =
       measuredAutoLeaf &&
       (rawWidth === "auto" || hasExplicitIntrinsicWidthKeyword);
@@ -5408,7 +5419,8 @@ export function enrichWithIntrinsicSize(
     //   컨테이너가 최장 단어까지 접히지 못하고 80 에서 멈췄다 (DOM 40, R8-d fixture).
     //   leaf 는 그대로 유지 — 비텍스트 합성 leaf(INLINE_BLOCK/CIRCLE/IMAGE)의 content 는
     //   엔진이 여전히 모르므로 이 채널이 유일한 하한 공급원이다 (layout-engine.md §TS 잔존 계약).
-    const isContainerElement = (childElements?.length ?? 0) > 0;
+    const isContainerElement =
+      (childElements?.length ?? 0) > 0 || isIntrinsicContainer;
     if (
       isFlexChild &&
       !isContainerElement &&

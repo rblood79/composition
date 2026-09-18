@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [빈 fit-content 컨테이너 — Canvas 폭이 DOM 과 갈리던 문제] - 2026-09-19
+
+### Fixed
+
+- `width: fit-content` frame (padding 20) 이 자식이 없으면 Canvas 120 / Preview 40 으로 갈리던 문제를 수리했다 (자식이 있으면 정상). 자식 0 이면 `enrichWithIntrinsicSize` 가 `calculateContentWidth` 를 불러 §6 `DEFAULT_WIDTH` 80 ("알 수 없는 태그" 추정값) 에 padding 을 더한 width 120 + minWidth 120 을 주입했다. TS 가 측정하는 leaf (INTRINSIC_MEASURE / CIRCLE / IMAGE / TEXT_LEAF) 가 아니면 자식 수와 무관하게 키워드를 엔진에 통과시킨다 (content 0 + padding = DOM 과 같은 40). 자식 있는 컨테이너는 종전과 같다.
+
+### Validation
+
+- `emptyContainerIntrinsicKeyword.test.ts` 3 (빈 frame flex/block 자식 · Button 대조군) · `adr923IntrinsicMeasureBaseline.json` 대조군 3 키 (`div`·`taglist`·`tagview @fit-content`) 갱신, 측정 24 항목 무변경 · layout 스위트 507. live (사용자 프로젝트, compare): 빈 frame Skia 40×40 = DOM 40×40 · 자식 있는 frame 109×70 vs 108×70 (종전과 같음).
+
 ## [Canvas vw/vh — breakpoint page 크기 기준] - 2026-09-19
 
 ### Fixed

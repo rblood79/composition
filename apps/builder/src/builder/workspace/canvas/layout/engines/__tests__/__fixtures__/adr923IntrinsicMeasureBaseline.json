@@ -457,7 +457,7 @@
       "width": "auto"
     },
     "div @fit-content": {
-      "width": 40
+      "width": "fit-content"
     },
     "div @px120": {
       "width": 120
@@ -557,7 +557,7 @@
       "width": "auto"
     },
     "taglist @fit-content": {
-      "width": 40
+      "width": "fit-content"
     },
     "taglist @px120": {
       "width": 120
@@ -570,7 +570,7 @@
       "height": 24
     },
     "tagview @fit-content": {
-      "width": 40,
+      "width": "fit-content",
       "height": 24
     },
     "tagview @px120": {

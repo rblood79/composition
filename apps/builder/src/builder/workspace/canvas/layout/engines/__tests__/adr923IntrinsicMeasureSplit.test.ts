@@ -22,6 +22,10 @@ import {
  * baseline 은 **분리 전 커밋** (`ee4bd0b9d`, needsWidth 가 INLINE_BLOCK_TAGS 를 읽던 코드) 에서 같은
  * fixture 로 캡처해 파일로 고정했다 — 이 테스트는 그 파일과 현재 출력을 대조한다. 분류표에서 항목
  * 하나를 빼면 그 tag 의 width 주입이 사라져 즉시 RED (측정 capability 가 곧 출력이다).
+ *
+ * 2026-09-19 갱신 (대조군 3 — `div`·`taglist`·`tagview @fit-content`): 자식 0 인 비-측정 컨테이너의
+ * intrinsic 키워드는 엔진 소유로 통과시킨다 (`width: "fit-content"`, 종전 §6 `DEFAULT_WIDTH` 기반 40).
+ * 빈 `fit-content` frame (padding 20) 이 Canvas 120 / DOM 40 으로 갈리던 사용자 보고. 측정 24 항목은 무변경.
  */
 const styleOf = (n: { props?: { style?: unknown } }): Record<string, unknown> =>
   (n.props?.style ?? {}) as Record<string, unknown>;
