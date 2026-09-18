@@ -135,7 +135,9 @@ describe("TransformSection sizing controls", () => {
         id: "button-1",
         type: "Button",
         parent_id: "frame-1",
-        props: { style: { width: "fit-content", height: "100px" } },
+        props: {
+          style: { width: "fit-content", height: "fit-content" },
+        },
       } as Element,
       {
         id: "frame-1",
@@ -149,6 +151,14 @@ describe("TransformSection sizing controls", () => {
       within(screen.getByRole("group", { name: "Width" })).getByRole("button", {
         name: /Size mode$/,
       }).textContent,
+    ).toBe("fit");
+    expect(
+      within(screen.getByRole("group", { name: "Height" })).getByRole(
+        "button",
+        {
+          name: /Size mode$/,
+        },
+      ).textContent,
     ).toBe("fit");
   });
 

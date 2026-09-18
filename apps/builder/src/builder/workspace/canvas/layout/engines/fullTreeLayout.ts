@@ -3217,7 +3217,15 @@ export function calculateFullTreeLayout(
             filteredChildIds?.length === 1 &&
             filteredChildIds[0].includes("-rows:");
           if (isContainer && !onlyProjectionRowsChild2) {
-            if (node.style.height) {
+            // 지우는 건 1-pass 가 넣은 근사 px 뿐 — 엔진 소유 키워드 (`fit-content` 등, 2026-09-19
+            //   통과) 를 지우면 auto 가 되어 flex 부모에서 stretch 된다.
+            const h = node.style.height;
+            const engineOwnedKeyword =
+              typeof h === "string" &&
+              (h === "fit-content" ||
+                h === "min-content" ||
+                h === "max-content");
+            if (h && !engineOwnedKeyword) {
               delete node.style.height;
               persistentTree.updateNodeStyle(node.elementId, node.style);
             }

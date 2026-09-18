@@ -21,6 +21,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `TransformSection.test.tsx`에서 Fill=`fr`, Fixed=`px`, Fit content=`fit` suffix 매핑을 고정했다.
 
+## [Canvas — 자식 있는 컨테이너의 height fit-content · 100%] - 2026-09-19
+
+### Fixed
+
+- body (`flex row · minHeight 844`) 안의 두 frame 그룹 — `height: fit-content` 와 `height: 100%` — 가 Canvas 에서만 794 (stretch) · 70 (근사) 이던 문제를 수리했다 (Chrome 80 · 100). 원인 둘: (1) TS 1-pass 가 자식 있는 컨테이너에 `calculateContentHeight` 근사 px 를 넣고 (block 안 block-level Button 2 를 30 으로) 엔진 경계가 높이 키워드를 drop — `fit-content` 는 2-pass 가 px 를 지운 뒤 auto 가 되어 stretch, `100%` 는 2-pass 후보에서 빠져 근사가 남았다. (2) 엔진 `resolve_cross_dimension_opt` 가 미해소 `%` cross 를 AUTO 로 접어 커널이 stretch 했다 — computed 값이 auto 가 아니라 §9.4 step 11 stretch 조건 밖 (Chrome 100). 수리: 자식 있는 비-측정 컨테이너의 키워드·`%` 높이는 주입 없이 통과 (`engineOwnsContainerHeight`) · `applyCommonEngineStyle` 이 높이 키워드도 통과 · 2-pass 는 근사 px 만 지움 · 엔진은 미해소 `%` cross 를 CONTENT 센티넬로 (definite 부모면 종전대로 해소).
+
+### Validation
+
+- Rust `unresolved_percent_cross_is_content_not_stretch` (minHeight 부모 100 · definite 부모 400) · 엔진 431 · TS `emptyContainerIntrinsicKeyword.test.ts` +3 · canvas 스위트 1846 · type-check. live (사용자 프로젝트, 새로고침): frame 1 Skia 194×80 = DOM 193×80 · frame 2 **109×100** = DOM 108×100 (종전 794 / 70). 브라우저 parity 1432 — 실패 11 은 세션 시작 커밋과 동일 (신규 0).
+
 ## [Canvas — 커널 뒤 확정된 높이를 받은 컨테이너의 자기 정렬] - 2026-09-19
 
 ### Fixed

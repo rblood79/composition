@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { CanvasLayoutNode } from "../../layoutNode";
-import { enrichWithIntrinsicSize } from "../utils";
+import { applyCommonEngineStyle, enrichWithIntrinsicSize } from "../utils";
 
 // 사용자 보고 (2026-09-19): 같은 frame (padding 20 · width fit-content) 이 자식이 있으면 두 leg 가
 // 같고, 자식이 없으면 Canvas 120 / DOM 40. 자식 0 이면 `calculateContentWidth` 가 §6
@@ -51,5 +51,56 @@ describe("빈 컨테이너의 intrinsic width 키워드는 엔진 소유", () =>
       false,
     ).props?.style ?? {}) as Record<string, unknown>;
     expect(typeof style.width).toBe("number");
+  });
+});
+
+// 2026-09-19 — 자식 있는 비-측정 컨테이너의 키워드·`%` 높이도 엔진 소유: 1-pass 가 근사 px
+// (`calculateContentHeight` — block 안 block-level Button 2 를 30 으로) 를 넣지 않고, 엔진 경계
+// (`applyCommonEngineStyle`) 가 높이 키워드를 폭과 같이 통과시킨다.
+describe("자식 있는 컨테이너의 height 키워드·% 는 엔진 소유", () => {
+  const button = (id: string, display: string): CanvasLayoutNode =>
+    ({
+      id,
+      type: "Button",
+      parent_id: "f",
+      props: {
+        children: "Button",
+        size: "md",
+        style: { display, flexDirection: "row", width: "fit-content" },
+      },
+    }) as CanvasLayoutNode;
+  const kids = [button("b1", "flex"), button("b2", "inline-flex")];
+  const enrichFrame = (height: string) =>
+    (
+      enrichWithIntrinsicSize(
+        frame({
+          display: "block",
+          width: "fit-content",
+          height,
+          paddingTop: "20px",
+          paddingBottom: "20px",
+        }),
+        340,
+        794,
+        undefined,
+        kids,
+        (id) => (id === "frame-1" ? kids : []),
+        true,
+      ).props?.style ?? {}
+    ) as Record<string, unknown>;
+
+  it("height: fit-content 는 px 로 선해석되지 않고 남는다", () => {
+    expect(enrichFrame("fit-content").height).toBe("fit-content");
+  });
+
+  it("height: 100% 도 그대로 남는다 (엔진이 definite 부모에서만 해소, 미결정이면 content)", () => {
+    expect(enrichFrame("100%").height).toBe("100%");
+  });
+
+  it("엔진 경계가 height 키워드를 통과시킨다", () => {
+    const record: Record<string, unknown> = {};
+    applyCommonEngineStyle(record, { height: "fit-content", width: "max-content" }, {});
+    expect(record.height).toBe("fit-content");
+    expect(record.width).toBe("max-content");
   });
 });

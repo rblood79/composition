@@ -6305,6 +6305,12 @@ fn resolve_cross_dimension_opt(value: Option<&str>, ctx: &CssValueContext) -> Op
         Some(n) if n == FIT_CONTENT || n == MIN_CONTENT || n == MAX_CONTENT => {
             Some(flex::CONTENT)
         }
+        // 미해소 `%` (컨테이너 cross 미결정 — `height:auto`/`min-height` 만) 는 **auto 처럼 크기가
+        //   잡히되 stretch 는 아니다** (2026-09-19): computed 값이 `auto` 가 아니라 §9.4 step 11 의
+        //   stretch 조건 (cross size property computes to auto) 을 만족하지 않는다. Chrome 실측 —
+        //   `flex row · minHeight 844` 안 `height:100%` frame 이 내용 100 (stretch 794 아님).
+        //   종전 None → AUTO 센티넬 → 커널 stretch → 794.
+        _ if trimmed.ends_with('%') => Some(flex::CONTENT),
         _ => None,
     }
 }
@@ -7797,6 +7803,31 @@ mod tests {
         );
         assert_eq!(t3.get_layout(h3[1]).height, 400.0);
         assert_eq!(t3.get_layout(h3[0]).y, 185.0, "column definite main → item align-items center");
+    }
+
+    /// 미해소 `%` cross 는 content 크기, stretch 아님 (2026-09-19 — Chrome: `flex row · minHeight
+    /// 400` 안 `height:100%` frame 이 내용 100). 부모 cross 가 definite 면 종전대로 `%` 해소.
+    #[test]
+    fn unresolved_percent_cross_is_content_not_stretch() {
+        let (t, h) = solve(
+            r#"[
+            {"style":{"width":"68px","height":"60px"},"children":[]},
+            {"style":{"display":"block","height":"100%","width":"fit-content","paddingTop":"20px","paddingBottom":"20px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px","minHeight":"400px"},"children":[1]}
+        ]"#,
+            2, 300.0, -1.0,
+        );
+        assert_eq!(t.get_layout(h[1]).height, 100.0, "Chrome 100 (content, no stretch)");
+
+        let (t2, h2) = solve(
+            r#"[
+            {"style":{"width":"68px","height":"60px"},"children":[]},
+            {"style":{"display":"block","height":"100%","width":"fit-content","paddingTop":"20px","paddingBottom":"20px"},"children":[0]},
+            {"style":{"display":"flex","flexDirection":"row","width":"300px","height":"400px"},"children":[1]}
+        ]"#,
+            2, 300.0, 400.0,
+        );
+        assert_eq!(t2.get_layout(h2[1]).height, 400.0, "definite 부모 → 100% = 400");
     }
 
     /// 대조군 — 비확정은 종전처럼 0: align-self start · auto margin · height auto 부모.

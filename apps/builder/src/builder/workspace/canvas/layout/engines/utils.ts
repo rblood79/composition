@@ -4969,8 +4969,27 @@ export function enrichWithIntrinsicSize(
     typeof rawHeight === "string" && rawHeight.includes("%");
   const needsHeight =
     !rawHeight || INTRINSIC_SIZE_KEYWORDS.has(rawHeight as string);
+  // **자식 있는 비-측정 컨테이너의 키워드·`%` 높이는 엔진 소유** (2026-09-19): TS 의
+  //   `calculateContentHeight` 는 근사다 (block 안에 block-level Button 2 를 30 으로 — Chrome 60).
+  //   `height: fit-content` frame 은 1-pass 가 근사 px 를 넣고 2-pass 가 지워 (폭 불일치 후보만)
+  //   엔진이 키워드를 못 본 채 auto → flex 부모에서 794 로 stretch (Chrome 100) · `height: 100%`
+  //   frame 은 2-pass 후보에서 빠져 근사 70 이 남았다 (Chrome — 부모 미결정 → auto → 100).
+  //   폭 키워드 (ADR-170) 와 같이 통과시키면 엔진이 cross 축 CONTENT 센티넬 / block 축 content /
+  //   `%` 는 §13 (definite 부모만) 으로 정확 산출. 측정 leaf (INTRINSIC_MEASURE / CIRCLE / IMAGE /
+  //   TEXT_LEAF — DateInput `height:100%` 등) 는 종전대로 TS 가 공급한다.
+  const engineOwnsContainerHeight =
+    (childElements?.length ?? 0) > 0 &&
+    !INTRINSIC_MEASURE_TAGS.has(type) &&
+    !CIRCLE_LEAF_TAGS.has(type) &&
+    !IMAGE_INTRINSIC_TAGS.has(type) &&
+    !TEXT_LEAF_TAGS.has(type) &&
+    typeof rawHeight === "string" &&
+    (INTRINSIC_SIZE_KEYWORDS.has(rawHeight) && rawHeight !== "auto"
+      ? true
+      : percentageHeightMayNeedIntrinsicFallback);
   const needsHeightMeasurement =
-    needsHeight || percentageHeightMayNeedIntrinsicFallback;
+    !engineOwnsContainerHeight &&
+    (needsHeight || percentageHeightMayNeedIntrinsicFallback);
 
   // 기본 Button의 fit-content와 Fill이 명시한 auto를 구별한다.
   // inline 부재를 auto로 취급하면 Column의 Height Fill이 Width까지 stretch된다.
@@ -5767,6 +5786,18 @@ export function applyCommonEngineStyle(
       style.width === "max-content")
   ) {
     result.width = style.width;
+  }
+  // 높이 키워드도 같은 통과 (2026-09-19): 엔진은 cross 축 CONTENT 센티넬 (`resolve_cross_dimension_opt`
+  //   — stretch 안 함) · block 축 content · grid `size_is_intrinsic_keyword` 로 해석한다. 종전엔 drop 되어
+  //   `height: fit-content` 가 auto 와 같아져 flex 부모에서 stretch 됐다.
+  if (
+    heightVal === undefined &&
+    typeof style.height === "string" &&
+    (style.height === "fit-content" ||
+      style.height === "min-content" ||
+      style.height === "max-content")
+  ) {
+    result.height = style.height;
   }
 
   // ADR-165: 측정 스칼라 공급 채널 (enrichWithIntrinsicSize 가 텍스트 leaf 에 주입).
