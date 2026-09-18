@@ -138,7 +138,7 @@ export function resolveFillProjection(
   }
   // Ratio 종속 축의 auto가 부모 stretch로 무효화되지 않게 한다.
   const dependent = getRatioDependentAxis(style, fill);
-  if (dependent && (fill?.width || fill?.height)) {
+  if (dependent && (fill?.width !== undefined || fill?.height !== undefined)) {
     const behavior = getFillBehavior(dependent, style, parent);
     if (behavior === "stretch") projected.alignSelf = "start";
     if (behavior === "grid-stretch")

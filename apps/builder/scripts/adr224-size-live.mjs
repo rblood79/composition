@@ -163,7 +163,7 @@ try {
   const width = page.locator('[data-panel-id="styles"] fieldset.width');
   await width.locator("button").click();
   console.log("options", await page.getByRole("listbox").innerText());
-  await page.getByRole("option", { name: "채우기", exact: true }).click();
+  await page.getByRole("option", { name: /^(채우기|Fill)$/ }).click();
   await page.waitForTimeout(500);
   const read = () =>
     page.evaluate((id) => {
@@ -202,7 +202,7 @@ try {
   );
   await page.waitForTimeout(500);
   await width.locator("button").click();
-  await page.getByRole("option", { name: "채우기", exact: true }).click();
+  await page.getByRole("option", { name: /^(채우기|Fill)$/ }).click();
   await page.waitForTimeout(500);
   const rowA = await readLayout(page, a),
     rowB = await readLayout(page, b);
@@ -414,6 +414,78 @@ try {
       detail: measured,
     });
   }
+  // ── ADR-224 Ratio UI gate (G1/G4) — 실제 Ratio Select · lock 버튼 · 해제 (`--ratio-ui`) ──
+  // Row 900×240, a = Width Fill 2 · b = Width Fill 1 로 되돌린 뒤 실제 패널로 잠금 → preset → 해제.
+  const ratioUi = [];
+  if (process.argv.includes("--ratio-ui")) {
+    await page.evaluate(({ parent, ids }) => {
+      const st = window.__composition_STORE__.getState();
+      const p = st.elements.find((e) => e.id === parent);
+      st.updateElementProps(parent, { style: { ...p.props.style, flexDirection: "row" } });
+      ids.forEach((id, i) => {
+        const e = st.elements.find((n) => n.id === id);
+        st.updateElement(id, { responsive: undefined, sizing: { width: { factor: 2 - i } },
+          props: { ...e.props, style: {} } });
+      });
+    }, { parent, ids: [a, b] });
+    await page.waitForTimeout(1000);
+    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
+    await page.waitForTimeout(600);
+    const styles = page.locator('[data-panel-id="styles"]');
+    const lock = styles.locator(".actions-ratio button");
+    const readNode = (id) => page.evaluate((elementId) => {
+      const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
+      return { style: e?.props?.style, sizing: e?.sizing, responsive: e?.responsive };
+    }, id);
+    const step = async (name, act, verify) => {
+      const before = await historyCount(page);
+      await act();
+      await page.waitForTimeout(1200);
+      const node = await readNode(a);
+      const dom = await readDom();
+      const canvas = [await readLayout(page, a), await readLayout(page, b)];
+      const error = await styles.locator(".transform-ratio-error").count();
+      const after = await historyCount(page);
+      const parity = Math.abs(dom[0].width - canvas[0].width) <= 1 &&
+        Math.abs(dom[0].height - canvas[0].height) <= 1;
+      const detail = { node, dom: dom[0], canvas: canvas[0], error, history: [before, after] };
+      ratioUi.push({ name, ...detail });
+      checks.push({ name, pass: !error && after === before + 1 && parity && verify(node, canvas[0]), detail });
+    };
+    await step("Ratio lock (used size)", () => lock.click(), (n) =>
+      n.style.height === "auto" && /^[\d.]+ \/ [\d.]+$/.test(String(n.style.aspectRatio)) &&
+      n.sizing?.width?.factor === 2 && n.sizing?.height === null);
+    await step("Ratio preset 16:9", async () => {
+      await styles.locator(".aspect-ratio-select button").click();
+      await page.getByRole("option", { name: /16:9/ }).click();
+    }, (n, c) => n.style.aspectRatio === "16 / 9" && n.style.height === "auto" &&
+      Math.abs(c.height - (c.width * 9) / 16) <= 1);
+    const lockedCanvas = await readLayout(page, a);
+    await step("Ratio unlock (fix used px)", () => lock.click(), (n) =>
+      n.style.aspectRatio === undefined &&
+      Math.abs(parseFloat(n.style.height) - lockedCanvas.height) <= 0.01 &&
+      n.sizing?.width?.factor === 2 && !n.responsive?.styles?.height);
+    // Undo 1회 = 해제 전 (잠금 상태) 복원
+    await page.keyboard.press("Meta+z");
+    await page.waitForTimeout(1000);
+    const undone = await readNode(a);
+    checks.push({ name: "Ratio unlock Undo 1회", pass: undone.style.aspectRatio === "16 / 9" &&
+      undone.style.height === "auto", detail: undone });
+    await page.keyboard.press("Meta+Shift+z");
+    await page.waitForTimeout(800);
+    // 저장·hydration: 해제 결과 (height px · sizing.height null) 가 refresh 뒤에도 같다
+    const beforeReload = await readNode(a);
+    await page.waitForTimeout(1500);
+    await page.reload();
+    await waitReady(page);
+    await page.bringToFront();
+    const afterReload = await readNode(a);
+    checks.push({ name: "Ratio unlock refresh 보존",
+      pass: afterReload.style?.height === beforeReload.style?.height &&
+        afterReload.style?.aspectRatio === undefined && afterReload.sizing?.height === null &&
+        afterReload.sizing?.width?.factor === 2,
+      detail: { beforeReload, afterReload } });
+  }
   console.log(
     "PARITY_CONTROL",
     JSON.stringify({ semantic: { dom, canvas }, cross, legacy }),
@@ -445,6 +517,7 @@ try {
     legacy,
     defaultColumn,
     transitions,
+    ratioUi,
     checks,
     errors,
   };

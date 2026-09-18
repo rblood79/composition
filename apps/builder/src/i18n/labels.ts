@@ -158,6 +158,19 @@ export const semanticLabelKeys: Record<string, string> = {
   Side: "propertiesPanel.labelPositionSide",
   "Toggle constraints": "styles.transform.toggleConstraints",
   "Lock aspect ratio": "styles.transform.lockAspectRatio",
+  "Applies to every screen size. Height follows Width":
+    "styles.transform.ratio.lockDescription",
+  "Unlock the ratio to edit this axis": "styles.transform.ratio.dependentAxis",
+  "Computed size": "styles.transform.computedSize",
+  "Not measured": "styles.transform.notMeasured",
+  "The number is the fill weight": "styles.transform.fillWeightHint",
+  "Selection changed. Try again": "styles.transform.ratio.error.selection",
+  "Selected element not found": "styles.transform.ratio.error.target",
+  "Size not measured yet. Wait for layout or pick a Ratio preset":
+    "styles.transform.ratio.error.geometry",
+  "Open each screen size (Desktop, Tablet, Mobile) once, then try again":
+    "styles.transform.ratio.error.tierGeometry",
+  "Document changed. Try again": "styles.transform.ratio.error.document",
   "Size constraints": "styles.transform.sizeConstraints",
   "Absolute position": "styles.transform.absolutePosition",
   Auto: "styles.layout.sizing.auto",

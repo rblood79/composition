@@ -2,7 +2,7 @@
 
 > [ADR-224](../224-intent-based-size-authoring.md), Accepted — 2026-09-18 (부분 구현 후 크리티컬 오류로 실행 중단). Round 1 수리 반영. 아래 타입·함수는 목표 계약이며 구현 결과가 아니다.
 
-최신 실행: 기본 `fit-content` 보존 + 콘텐츠 측정 분리로 기존 Fill 차단을 수리했고 실제 Builder 13/13을 통과했다. Ratio 후보의 Canvas 높이 30px / Preview 154.328~295.664px 발산으로 다시 중단했다. Ratio 후보는 로컬 evidence 패치로 분리, Fill 수리는 유지, 전체 Phase는 미완료다. 이후 그 발산을 엔진 경계 (flex 커널 aspect 슬롯 22 + leaf 전송값 content-box 보고) 로 확정·수리했다 — 실제 Builder 17/17, Chrome oracle fixture 20/20. §4 Ratio 계약의 UI·복합 명령은 아직 재적용 전이다. Canvas 핸들 resize는 현재 중앙 pointer handler에서 비활성으로 확인했으며 helper 수정만으로 완료할 수 없다.
+최신 실행: 기본 `fit-content` 보존 + 콘텐츠 측정 분리로 기존 Fill 차단을 수리했고 실제 Builder 13/13을 통과했다. Ratio 후보의 Canvas 높이 30px / Preview 154.328~295.664px 발산으로 다시 중단했다. Ratio 후보는 로컬 evidence 패치로 분리, Fill 수리는 유지, 전체 Phase는 미완료다. 이후 그 발산을 엔진 경계 (flex 커널 aspect 슬롯 22 + leaf 전송값 content-box 보고) 로 확정·수리했다 — 실제 Builder 17/17, Chrome oracle fixture 20/20. §4 Ratio 계약의 UI·복합 명령도 반영했다 (live 22/22) — 잠금·해제의 tier 쓰기는 **자기 상태가 있는 tier 만** (없는 tier 는 base 상속; 후보의 전 tier 쓰기는 해제를 항상 막았다). 남은 것은 Absolute/Free · 실제 resize pointer 경로 · G5/G6. Canvas 핸들 resize는 현재 중앙 pointer handler에서 비활성으로 확인했으며 helper 수정만으로 완료할 수 없다.
 
 ## 1. 범위
 

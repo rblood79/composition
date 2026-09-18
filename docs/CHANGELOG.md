@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CSS 크기 선언과 intrinsic 측정을 분리했다. catalog 기본 `fit-content`를 보존하고 `contentHeight`는 콘텐츠 제안값으로만 전달하며, height-for-width 재측정이 Width를 고정하지 않게 했다. Canvas Fill projection도 shared catalog Min을 읽는다. 실제 Builder에서 Row 높이 240/240px, Column Width Fill 900/900px, 기본 Button 69/68px, Column Height Fill 포함 13/13 확인. 인접 브라우저 56건·Rust lib 416건 PASS.
 - Ratio 후보에서는 Width Fill + 2:1의 높이 Canvas 30px / Preview 154.328~295.664px 발산을 발견했다. 중단 조건에 따라 후보 UI·명령은 로컬 복구 패치로 분리하고 Fill 수리만 유지했다. ADR 전체 완료·전체 G3/G4 통과가 아니며 Absolute/resize·G5/G6 등은 남아 있다.
 - **aspect-ratio 를 가진 flex item 이 Canvas 에서 Preview 와 다른 크기로 그려졌다** (`width:200px + 2:1` Button 높이 110 vs 100 · Width Fill + 2:1 높이 30 vs 154~296). 엔진 flex 커널이 ratio 를 받지 않아 grow 로 정해진 폭에서 높이를 파생하지 못했고, leaf 가 ratio 로 파생한 border-box 값을 content 로 보고해 padding 이 두 번 더해졌다. flex 입력에 ratio 슬롯 (`FLEX_FIELD_COUNT` 23) 을 추가하고 used main → cross · definite/stretched cross → basis · column 양축 auto 의 inline 우선 전송 (CSS-FLEXBOX §9.2.3 B/E · §9.4 step 7 · CSS-SIZING-4 §5) 을 구현했다. 실제 Builder 17/17 · Chrome oracle 브라우저 fixture 20/20 · Rust 425.
+- **Ratio 잠금이 한 번의 복합 명령이 됐다** (Size 절 Ratio Select · lock 버튼): 잠금은 현재 used 크기 (또는 preset) 를 `aspectRatio` 로 쓰고 Height 를 auto 로 정규화하되 Width 의 Fill 가중치·CSS 는 보존한다. 해제는 각 tier 의 직전 used Height 를 px 로 고정한다 (자기 상태가 있는 tier 만 — 나머지는 base 상속). 한 transaction·Undo 1회, stale geometry 는 오류 문구 (ko/en) 로 거부. Size 메뉴 항목 (고정 · 채우기 · 내용 맞춤 · 부모 비율 · 화면 기준) 과 트리거·오류 문구가 translations 를 탄다. 실제 Builder 22/22.
 
 ### In progress
 

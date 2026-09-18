@@ -73,9 +73,9 @@ describe("TransformSection sizing controls", () => {
     });
   });
 
-  it("folds Hug and Fill into the W/H unit menu (no size-mode toggle row) and commits fill via the size-mode resolver", async () => {
-    const updateSelectedStyles = vi.fn();
-    useStore.setState({ updateSelectedStyles } as never);
+  it("folds Fit and Fill into the W/H size-mode menu (no size-mode toggle row) and commits Fill as a sizing edit (ADR-224)", async () => {
+    const applySizingFromSelection = vi.fn();
+    useStore.setState({ applySizingFromSelection } as never);
     render(<TransformSection />);
 
     expect(screen.queryByRole("radio", { name: "Hug" })).toBeNull();
@@ -84,22 +84,20 @@ describe("TransformSection sizing controls", () => {
 
     const widthGroup = screen.getByRole("group", { name: "Width" });
     within(widthGroup)
-      .getByRole("button", { name: /Unit$/ })
+      .getByRole("button", { name: /Size mode$/ })
       .click();
     const listbox = await screen.findByRole("listbox");
-    within(listbox).getByRole("option", { name: "fit-content" });
-    const fillOption = within(listbox).getByRole("option", { name: "fill" });
+    within(listbox).getByRole("option", { name: "Fit content" });
+    const fillOption = within(listbox).getByRole("option", { name: "Fill" });
     await act(async () => {
       fillOption.click();
     });
 
-    // flex row 부모 → 주축 Fill = flexGrow 1 · flexBasis 0% · width 제거 (sizeModeResolver)
-    expect(updateSelectedStyles).toHaveBeenCalledWith({
-      flexGrow: "1",
-      flexShrink: "1",
-      flexBasis: "0%",
-      width: "",
-    });
+    // ADR-224: Fill 은 CSS grow 가 아니라 축별 sizing 의도 (factor 1 기본) 로 한 번에 적용된다.
+    expect(applySizingFromSelection).toHaveBeenCalledWith(
+      expect.objectContaining({ selectedElementId: "button-1" }),
+      { axis: "width", mode: "fill" },
+    );
   });
 
   it("shows fill in the W field while the element fills the flex main axis", () => {
@@ -119,17 +117,16 @@ describe("TransformSection sizing controls", () => {
     ]);
     render(<TransformSection />);
     const widthGroup = screen.getByRole("group", { name: "Width" });
-    expect(
-      within(widthGroup).getByRole("combobox").getAttribute("placeholder"),
-    ).toBe("fill");
-    // legend 모드 (Gap 과 같은 어법): legend 「Width」 가 상자 위, 단위 트리거는 키워드라 「—」
+    // legend 모드 (Gap 과 같은 어법): legend 「Width」 가 상자 위, 트리거는 크기 방식 「Fill」 (legacy CSS grow 판독)
     expect(widthGroup.querySelector("legend")?.textContent).toBe("Width");
     expect(
-      within(widthGroup).getByRole("button", { name: /Unit$/ }).textContent,
-    ).toBe("—");
+      within(widthGroup).getByRole("button", { name: /Size mode$/ })
+        .textContent,
+    ).toBe("Fill");
     const heightGroup = screen.getByRole("group", { name: "Height" });
     expect(
-      within(heightGroup).getByRole("button", { name: /Unit$/ }).textContent,
+      within(heightGroup).getByRole("button", { name: /Size mode$/ })
+        .textContent,
     ).toBe("px");
   });
 
@@ -137,30 +134,34 @@ describe("TransformSection sizing controls", () => {
     render(<TransformSection />);
 
     const widthGroup = screen.getByRole("group", { name: "Width" });
-    const widthButton = within(widthGroup).getByRole("button", { name: /Unit$/ });
+    const widthButton = within(widthGroup).getByRole("button", {
+      name: /Size mode$/,
+    });
     widthButton.click();
 
     const widthListbox = await screen.findByRole("listbox");
     expect(
-      within(widthListbox).getByRole("option", { name: "vw" }),
+      within(widthListbox).getByRole("option", { name: "Viewport (vw)" }),
     ).not.toBeNull();
     expect(
-      within(widthListbox).queryByRole("option", { name: "vh" }),
+      within(widthListbox).queryByRole("option", { name: "Viewport (vh)" }),
     ).toBeNull();
 
     cleanup();
     render(<TransformSection />);
 
     const heightGroup = screen.getByRole("group", { name: "Height" });
-    const heightButton = within(heightGroup).getByRole("button", { name: /Unit$/ });
+    const heightButton = within(heightGroup).getByRole("button", {
+      name: /Size mode$/,
+    });
     heightButton.click();
 
     const heightListbox = await screen.findByRole("listbox");
     expect(
-      within(heightListbox).getByRole("option", { name: "vh" }),
+      within(heightListbox).getByRole("option", { name: "Viewport (vh)" }),
     ).not.toBeNull();
     expect(
-      within(heightListbox).queryByRole("option", { name: "vw" }),
+      within(heightListbox).queryByRole("option", { name: "Viewport (vw)" }),
     ).toBeNull();
   });
 

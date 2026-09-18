@@ -51,11 +51,19 @@ import {
 } from "../../../workspace/canvas/interaction/pagePositionPresentation";
 import { useResetStyles, useHasDirtyStyles } from "../hooks/useResetStyles";
 import { useViewportSyncStore } from "../../../workspace/canvas/stores";
-import {} from "../../../stores/utils/sizeModeResolver";
-import {
-  buildAspectRatioStyleUpdates,
-  hasEnabledAspectRatio,
-} from "../../../utils/aspectRatio";
+import { hasEnabledAspectRatio } from "../../../utils/aspectRatio";
+import type { RatioEditError } from "../../../stores/inspectorActions";
+
+/** Ratio 복합 명령 오류 코드 → semantic label (labels.ts 가 키로, translations 가 ko/en 으로). */
+const RATIO_ERROR_LABELS: Record<RatioEditError, string> = {
+  "selection-changed": "Selection changed. Try again",
+  "target-missing": "Selected element not found",
+  "geometry-missing":
+    "Size not measured yet. Wait for layout or pick a Ratio preset",
+  "tier-geometry-missing":
+    "Open each screen size (Desktop, Tablet, Mobile) once, then try again",
+  "document-changed": "Document changed. Try again",
+};
 import { getSceneBounds } from "../../../workspace/canvas/skia/renderCommands";
 import type { BoundingBox } from "../../../workspace/canvas/selection/types";
 import { resolveResponsiveStyleMap } from "../../../workspace/canvas/layout/resolveResponsive";
@@ -348,31 +356,21 @@ const TransformSectionContent = memo(function TransformSectionContent({
     [bundle?.width.effective, bundle?.height.effective, commitAxisValue],
   );
 
+  const [sizingError, setSizingError] = useState<RatioEditError | null>(null);
+  const commitRatio = useCallback(
+    (value: string | null) => {
+      const snapshot = readImmediateSelectionSnapshot();
+      if (snapshot.selectedElementId !== selectedId) return;
+      setSizingError(
+        useStore.getState().applyRatioFromSelection(snapshot, value),
+      );
+    },
+    [selectedId],
+  );
+  useEffect(() => setSizingError(null), [selectedId]);
   const handleAspectRatioLock = useCallback(() => {
-    if (hasEnabledAspectRatio(styleValues?.aspectRatio)) {
-      updateStylesImmediate(
-        buildAspectRatioStyleUpdates("", {
-          width: styleValues?.width,
-          height: styleValues?.height,
-        }),
-      );
-    } else {
-      const w = parseFloat(styleValues?.width ?? "0");
-      const h = parseFloat(styleValues?.height ?? "0");
-      const nextRatio = w > 0 && h > 0 ? `${w} / ${h}` : "1 / 1";
-      updateStylesImmediate(
-        buildAspectRatioStyleUpdates(nextRatio, {
-          width: styleValues?.width,
-          height: styleValues?.height,
-        }),
-      );
-    }
-  }, [
-    styleValues?.aspectRatio,
-    styleValues?.width,
-    styleValues?.height,
-    updateStylesImmediate,
-  ]);
+    commitRatio(hasEnabledAspectRatio(styleValues?.aspectRatio) ? "" : null);
+  }, [commitRatio, styleValues?.aspectRatio]);
 
   const commitAbsoluteActivation = useCallback(
     (styles: Record<string, string>) => {
@@ -481,8 +479,8 @@ const TransformSectionContent = memo(function TransformSectionContent({
       computed,
       description:
         kind === "ratio"
-          ? "Ratio 잠금을 해제하면 이 축을 직접 편집할 수 있습니다."
-          : `계산된 크기 ${computed == null ? "미측정" : `${Math.round(computed)}px`}${mode === "fill" && isFraction(axis) ? ". 숫자는 채우기 가중치입니다." : ""}`,
+          ? localize("Unlock the ratio to edit this axis")
+          : `${localize("Computed size")} ${computed == null ? localize("Not measured") : `${Math.round(computed)}px`}${mode === "fill" && isFraction(axis) ? `. ${localize("The number is the fill weight")}` : ""}`,
       disabledModes: getFillBehavior(axis, effectiveSizeStyle, parentContext)
         ? []
         : ["fill"],
@@ -679,18 +677,14 @@ const TransformSectionContent = memo(function TransformSectionContent({
             className="aspect-ratio-select"
             value={styleValues.aspectRatio || ""}
             options={ASPECT_RATIO_OPTIONS}
-            onChange={(value) =>
-              updateStylesImmediate(
-                buildAspectRatioStyleUpdates(value, {
-                  width: styleValues.width,
-                  height: styleValues.height,
-                }),
-              )
-            }
+            onChange={commitRatio}
           />
           <div className="fieldset-actions actions-ratio">
             <SwatchIconButton
               aria-label={localize("Lock aspect ratio")}
+              aria-description={localize(
+                "Applies to every screen size. Height follows Width",
+              )}
               onPress={handleAspectRatioLock}
             >
               {styleValues.aspectRatio ? (
@@ -708,6 +702,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
               )}
             </SwatchIconButton>
           </div>
+          {sizingError && (
+            <p className="transform-ratio-error" role="alert">
+              {localize(RATIO_ERROR_LABELS[sizingError])}
+            </p>
+          )}
           <PropertySelect
             label="Overflow"
             className="overflow"

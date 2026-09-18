@@ -21,6 +21,7 @@ const HOMONYMS = new Set([
   "Navigation", // 팔레트 분류(탐색) ↔ nav 컴포넌트(내비게이션)
   "Transform", // DataTable 값 변환 ↔ CSS transform
   "Category", // 차트의 범주 축 ↔ 카테고리(속성 묶음)
+  "Fill", // Size 메뉴의 채우기 (ADR-224 grow 가중치) ↔ 칩·버튼 fillStyle 의 채움 (면 채움)
 ]);
 
 /**

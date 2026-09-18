@@ -1,4 +1,6 @@
 import { projectFillLayoutNodes } from "../layout/projectFillLayout";
+import { publishSizingGeometry } from "../layout/sizingGeometry";
+import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 /**
  * useLayoutPublisher — 레이아웃 발행 (ADR-100 Phase 6.4)
  *
@@ -203,6 +205,22 @@ export function useLayoutPublisher(
       // - frame bodyElement: frame mirror id → frameId 키로 발행
       // - 양쪽 모두 미정 시 element id fallback (graceful degradation)
       layoutUpdates.push({ key, map: layoutMap });
+      // ADR-224 Ratio — tier 별 used border-box 발행 (잠금/해제의 geometry 원천). 문서 버전은
+      // **발행 시점**의 값이다: 렌더 시점 캡처 + 일치 가드는 이 훅의 컴포넌트가 canonical 변경에
+      // 재렌더되지 않으면 영원히 stale 이라 발행 0 → 잠금이 항상 "계산되지 않음" 으로 막힌다.
+      // stale 판정은 읽는 쪽 (`readSizingGeometry`) 이 layoutVersion·viewport 로 한다.
+      const canonical = useCanonicalDocumentStore.getState();
+      if (layoutMap && useStore.getState().layoutVersion === layoutVersion) {
+        publishSizingGeometry({
+          projectId: canonical.currentProjectId,
+          documentVersion: canonical.documentVersion,
+          layoutVersion,
+          breakpoint: activeBreakpoint,
+          rootKey: key,
+          viewport: { width: pageWidth, height: pageHeight },
+          layout: layoutMap,
+        });
+      }
     }
 
     const staleKeys: string[] = [];

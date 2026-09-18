@@ -1,6 +1,20 @@
 import { getSizingEffectiveStyle } from "@composition/shared";
 import { buildSizingEdit, type SizingEdit } from "./utils/sizingEdit";
+import {
+  buildRatioSizingEdit,
+  SIZING_TIERS,
+  type UsedSizing,
+} from "./utils/ratioSizingEdit";
+import { readSizingGeometry } from "../workspace/canvas/layout/sizingGeometry";
+import { useViewportSyncStore } from "../workspace/canvas/stores";
 import type { ImmediateSelectionSnapshot } from "../inspector/types";
+const roundCssPx = (v: number): number => Math.round(v * 100) / 100;
+export type RatioEditError =
+  | "selection-changed"
+  | "target-missing"
+  | "geometry-missing"
+  | "tier-geometry-missing"
+  | "document-changed";
 /**
  * Inspector Actions Slice
  *
@@ -577,6 +591,14 @@ export interface InspectorActionsState {
     snapshot: ImmediateSelectionSnapshot,
     edit: SizingEdit,
   ) => void;
+  /**
+   * ADR-224 Ratio 복합 명령 (breakdown §4). `ratio` null = 현재 used 크기로 잠금, "" = 해제,
+   * 그 외 = preset. 반환은 오류 코드 (패널이 i18n 문구로 바꾼다) 또는 null (적용).
+   */
+  applyRatioFromSelection: (
+    snapshot: ImmediateSelectionSnapshot,
+    ratio: string | null,
+  ) => RatioEditError | null;
   /** 비-migrated layout/structure editor의 commit-only fallback용 legacy preview */
   updateSelectedStylePreview: (property: string, value: string) => void;
   /**
@@ -1130,6 +1152,61 @@ export const createInspectorActionsSlice: StateCreator<
         );
       }
       updateAndSave(element.id, {}, { responsive: nextResponsive });
+    },
+
+    applyRatioFromSelection: (snapshot, ratio) => {
+      const state = get();
+      const id = snapshot.selectedElementId;
+      if (
+        !id ||
+        id !== state.selectedElementId ||
+        snapshot.currentPageId !== state.currentPageId
+      )
+        return "selection-changed";
+      const canonical = useCanonicalDocumentStore.getState();
+      const expected = {
+        projectId: canonical.currentProjectId,
+        documentVersion: canonical.documentVersion,
+        activeBreakpoint: state.activeBreakpoint,
+        layoutVersion: state.layoutVersion,
+        viewport: useViewportSyncStore.getState().canvasSize,
+      };
+      const plans: Array<{ id: string; updates: Partial<Element> }> = [];
+      for (const targetId of state.selectedElementIds?.length
+        ? state.selectedElementIds
+        : [id]) {
+        const source = getInspectorElementById(state.elements, targetId);
+        if (!source) return "target-missing";
+        const effective = getResolvedInspectorElement(source, state.elements);
+        const used: UsedSizing = {};
+        for (const tier of SIZING_TIERS) {
+          const geometry = readSizingGeometry(targetId, tier, expected);
+          if (geometry) used[tier] = geometry;
+        }
+        let value = ratio;
+        if (value === null) {
+          const current = used[state.activeBreakpoint];
+          if (!current || current.width <= 0 || current.height <= 0)
+            return "geometry-missing";
+          // 저장 CSS 는 소수 2자리 (엔진 float 13자리를 그대로 쓰지 않는다 — 시각 차 ≤0.005px)
+          value = `${roundCssPx(current.width)} / ${roundCssPx(current.height)}`;
+        }
+        const updates = buildRatioSizingEdit(source, effective, value, used);
+        if (!updates) return "tier-geometry-missing";
+        plans.push({ id: targetId, updates });
+      }
+      if (
+        canonical.documentVersion !==
+        useCanonicalDocumentStore.getState().documentVersion
+      )
+        return "document-changed";
+      historyManager.runInTransaction({ type: "batch", elementId: id }, () => {
+        for (const plan of plans) {
+          const { props, ...fields } = plan.updates;
+          void updateAndSave(plan.id, props ?? {}, fields);
+        }
+      });
+      return null;
     },
 
     applySizingFromSelection: (snapshot, edit) => {

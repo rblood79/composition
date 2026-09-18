@@ -189,9 +189,9 @@ describe("elementUpdate responsive layout-invalidation contract (ADR-168)", () =
     // responsive-only write 가 layout 무영향으로 판정돼 layoutVersion 이 오르지 않고,
     // resolve 재계산·preview `@media` 재발행이 건너뛰어진다 (프리셋 적용 후 preview 가
     // 새로고침 전까지 이전 프리셋 규칙을 보여준 실측 결함).
-    expect(source).toContain(
-      'const hasResponsiveChange = "responsive" in sanitizedUpdates;',
-    );
+    // ADR-224: `sizing` (Fill 가중치) 도 top-level 필드라 같은 게이트를 탄다.
+    expect(source).toContain('"responsive" in sanitizedUpdates');
+    expect(source).toContain('"sizing" in sanitizedUpdates');
 
     const actionIndex = source.indexOf(
       "export const createUpdateElementAction",

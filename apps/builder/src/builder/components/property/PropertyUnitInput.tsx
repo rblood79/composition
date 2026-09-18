@@ -686,23 +686,32 @@ export const PropertyUnitInput = memo(
       sizeControl &&
       sizeControl.kind !== "css" &&
       !(sizeControl.kind === "fill" && sizeControl.fraction);
+    // ADR-224 Size 메뉴 항목 — ko/en 은 translations `styles.transform.sizeMode.*` (i18n 없는 테스트는 en).
+    const sizeModeText = (key: string, fallback: string) =>
+      i18n ? translateKey(i18n.t, key, fallback) : fallback;
     const modeLabel = (u: string) =>
       ({
-        px: "고정",
-        fill: "채우기",
-        "fit-content": "내용 맞춤",
-        "%": "부모 비율",
-        vw: "화면 기준 (vw)",
-        vh: "화면 기준 (vh)",
-        reset: "Reset",
+        px: sizeModeText("styles.transform.sizeMode.fixed", "Fixed"),
+        fill: sizeModeText("styles.transform.sizeMode.fill", "Fill"),
+        "fit-content": sizeModeText(
+          "styles.transform.sizeMode.fitContent",
+          "Fit content",
+        ),
+        "%": sizeModeText("styles.transform.sizeMode.parent", "Parent %"),
+        vw: sizeModeText("styles.transform.sizeMode.vw", "Viewport (vw)"),
+        vh: sizeModeText("styles.transform.sizeMode.vh", "Viewport (vh)"),
+        reset: sizeModeText("styles.transform.sizeMode.reset", "Reset"),
       })[u] ?? u;
     const sizeTrigger =
       sizeControl?.kind === "fill"
-        ? "채우기"
+        ? sizeModeText("styles.transform.sizeMode.fill", "Fill")
         : sizeControl?.kind === "fit"
-          ? "Fit"
+          ? sizeModeText("styles.transform.sizeMode.fitTrigger", "Fit")
           : sizeControl?.kind === "ratio"
-            ? "자동(비율)"
+            ? sizeModeText(
+                "styles.transform.sizeMode.ratioTrigger",
+                "Auto (ratio)",
+              )
             : undefined;
     const unitSuffixText =
       unit === "" ||
@@ -845,7 +854,7 @@ export const PropertyUnitInput = memo(
                   isDisabled={sizeControl?.kind === "ratio"}
                   aria-label={
                     sizeControl
-                      ? `${displayLabel} 크기 방식`
+                      ? `${displayLabel} ${sizeModeText("styles.transform.sizeMode.groupBasic", "Size mode")}`
                       : `${displayLabel ?? ""} ${unitLabel}`.trim()
                   }
                 >
@@ -880,7 +889,13 @@ export const PropertyUnitInput = memo(
               <ListBox className="react-aria-ListBox">
                 {sizeControl
                   ? [
-                      <ListBoxSection key="basic" aria-label="크기 방식">
+                      <ListBoxSection
+                        key="basic"
+                        aria-label={sizeModeText(
+                          "styles.transform.sizeMode.groupBasic",
+                          "Size mode",
+                        )}
+                      >
                         {["px", "fill", "fit-content"]
                           .filter((u) => units.includes(u))
                           .map((u) => (
@@ -897,7 +912,13 @@ export const PropertyUnitInput = memo(
                             </ListBoxItem>
                           ))}
                       </ListBoxSection>,
-                      <ListBoxSection key="relative" aria-label="상대 크기">
+                      <ListBoxSection
+                        key="relative"
+                        aria-label={sizeModeText(
+                          "styles.transform.sizeMode.groupRelative",
+                          "Relative size",
+                        )}
+                      >
                         {units
                           .filter(
                             (u) => !["px", "fill", "fit-content"].includes(u),
