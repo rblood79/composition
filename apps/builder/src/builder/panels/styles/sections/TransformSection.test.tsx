@@ -327,11 +327,12 @@ describe("TransformSection sizing controls", () => {
     }
   });
 
+  // ADR-224 §6.1 — Absolute 활성화는 store 복합 명령 `applyAbsoluteFromSelection` 하나로 간다
+  // (position/inset + 무효 Fill 의 used px Fixed + 형제 맨 앞, 한 transaction). 패널은 scene
+  // bounds 로 position/left/top 만 계산해 넘긴다.
   it("preserves a flex child's visual position when enabling absolute positioning", () => {
     const updateSelectedStyle = vi.fn();
-    const updateSelectedStyles = vi.fn();
-    const moveElementToSiblingEdge = vi.fn(() => true);
-    const transactionSpy = vi.spyOn(historyManager, "runInTransaction");
+    const applyAbsoluteFromSelection = vi.fn(() => null);
     getSceneBoundsMock.mockImplementation((id: string) => {
       if (id === "button-1") {
         return { x: 160, y: 95, width: 200, height: 100 };
@@ -343,8 +344,7 @@ describe("TransformSection sizing controls", () => {
     });
     useStore.setState({
       updateSelectedStyle,
-      updateSelectedStyles,
-      moveElementToSiblingEdge,
+      applyAbsoluteFromSelection,
     } as never);
 
     render(<TransformSection />);
@@ -356,22 +356,28 @@ describe("TransformSection sizing controls", () => {
 
     toggle.click();
 
-    expect(updateSelectedStyles).toHaveBeenCalledWith({
-      position: "absolute",
-      left: "60px",
-      top: "45px",
-    });
+    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(
+      expect.objectContaining({ selectedElementId: "button-1" }),
+      { position: "absolute", left: "60px", top: "45px" },
+    );
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
     );
-    expect(moveElementToSiblingEdge).toHaveBeenCalledWith("button-1", "front");
-    expect(transactionSpy).toHaveBeenCalledWith(
-      { type: "batch", elementId: "button-1" },
-      expect.any(Function),
-    );
-    expect(updateSelectedStyles.mock.invocationCallOrder[0]).toBeLessThan(
-      moveElementToSiblingEdge.mock.invocationCallOrder[0],
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows the command error when the store rejects the activation", () => {
+    const applyAbsoluteFromSelection = vi.fn(() => "geometry-missing" as const);
+    useStore.setState({ applyAbsoluteFromSelection } as never);
+
+    render(<TransformSection />);
+    act(() => {
+      screen.getByRole("button", { name: "Absolute position" }).click();
+    });
+
+    expect(screen.getByRole("alert").textContent).toContain(
+      "Size not measured yet",
     );
   });
 
@@ -407,13 +413,17 @@ describe("TransformSection sizing controls", () => {
       }
       return undefined;
     });
-    useStore.setState({ updateSelectedStyle, updateSelectedStyles } as never);
+    const applyAbsoluteFromSelection = vi.fn(() => null);
+    useStore.setState({
+      updateSelectedStyle,
+      applyAbsoluteFromSelection,
+    } as never);
 
     render(<TransformSection />);
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(updateSelectedStyles).toHaveBeenCalledWith({
+    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(expect.anything(), {
       position: "absolute",
       left: "38px",
       top: "31px",
@@ -426,32 +436,27 @@ describe("TransformSection sizing controls", () => {
 
   it("falls back to position-only activation when flex bounds are unavailable", () => {
     const updateSelectedStyle = vi.fn();
-    const updateSelectedStyles = vi.fn();
-    const moveElementToSiblingEdge = vi.fn(() => true);
+    const applyAbsoluteFromSelection = vi.fn(() => null);
     useStore.setState({
       updateSelectedStyle,
-      updateSelectedStyles,
-      moveElementToSiblingEdge,
+      applyAbsoluteFromSelection,
     } as never);
 
     render(<TransformSection />);
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(updateSelectedStyles).toHaveBeenCalledWith({
+    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(expect.anything(), {
       position: "absolute",
     });
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
     );
-    expect(moveElementToSiblingEdge).toHaveBeenCalledWith("button-1", "front");
   });
 
   it("keeps non-flex activation on the position-only path", () => {
     const updateSelectedStyle = vi.fn();
-    const updateSelectedStyles = vi.fn();
-    const moveElementToSiblingEdge = vi.fn(() => true);
     setTestElements([
       {
         id: "button-1",
@@ -466,24 +471,23 @@ describe("TransformSection sizing controls", () => {
         props: { style: { display: "block" } },
       } as Element,
     ]);
+    const applyAbsoluteFromSelection = vi.fn(() => null);
     useStore.setState({
       updateSelectedStyle,
-      updateSelectedStyles,
-      moveElementToSiblingEdge,
+      applyAbsoluteFromSelection,
     } as never);
 
     render(<TransformSection />);
 
     screen.getByRole("button", { name: "Absolute position" }).click();
 
-    expect(updateSelectedStyles).toHaveBeenCalledWith({
+    expect(applyAbsoluteFromSelection).toHaveBeenCalledWith(expect.anything(), {
       position: "absolute",
     });
     expect(updateSelectedStyle).not.toHaveBeenCalledWith(
       "position",
       "absolute",
     );
-    expect(moveElementToSiblingEdge).toHaveBeenCalledWith("button-1", "front");
   });
 
   it("disables absolute positioning without clearing offsets", () => {

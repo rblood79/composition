@@ -37,6 +37,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ratio 후보에서는 Width Fill + 2:1의 높이 Canvas 30px / Preview 154.328~295.664px 발산을 발견했다. 중단 조건에 따라 후보 UI·명령은 로컬 복구 패치로 분리하고 Fill 수리만 유지했다. ADR 전체 완료·전체 G3/G4 통과가 아니며 Absolute/resize·G5/G6 등은 남아 있다.
 - **aspect-ratio 를 가진 flex item 이 Canvas 에서 Preview 와 다른 크기로 그려졌다** (`width:200px + 2:1` Button 높이 110 vs 100 · Width Fill + 2:1 높이 30 vs 154~296). 엔진 flex 커널이 ratio 를 받지 않아 grow 로 정해진 폭에서 높이를 파생하지 못했고, leaf 가 ratio 로 파생한 border-box 값을 content 로 보고해 padding 이 두 번 더해졌다. flex 입력에 ratio 슬롯 (`FLEX_FIELD_COUNT` 23) 을 추가하고 used main → cross · definite/stretched cross → basis · column 양축 auto 의 inline 우선 전송 (CSS-FLEXBOX §9.2.3 B/E · §9.4 step 7 · CSS-SIZING-4 §5) 을 구현했다. 실제 Builder 17/17 · Chrome oracle 브라우저 fixture 20/20 · Rust 425.
 - **Ratio 잠금이 한 번의 복합 명령이 됐다** (Size 절 Ratio Select · lock 버튼): 잠금은 현재 used 크기 (또는 preset) 를 `aspectRatio` 로 쓰고 Height 를 auto 로 정규화하되 Width 의 Fill 가중치·CSS 는 보존한다. 해제는 각 tier 의 직전 used Height 를 px 로 고정한다 (자기 상태가 있는 tier 만 — 나머지는 base 상속). 한 transaction·Undo 1회, stale geometry 는 오류 문구 (ko/en) 로 거부. Size 메뉴 항목 (고정 · 채우기 · 내용 맞춤 · 부모 비율 · 화면 기준) 과 트리거·오류 문구가 translations 를 탄다. 실제 Builder 22/22.
+- **Absolute 토글이 Fill 을 그대로 두던 것을 고쳤다.** 절대 위치에서 Fill 은 성립하지 않는데 marker 가 남아 Flow 로 돌아오면 Fill 이 되살아났다. 이제 Position 토글 활성화는 한 명령 (Undo 1회) 으로 position/left/top 을 쓰고 무효가 되는 Fill 축만 직전 크기의 px 로 고정한다. Absolute→Flow 는 그 px 를 유지한다.
+- **절대 위치 leaf (Button 등) 의 auto 높이가 Canvas 에서 padding·border 만큼 낮게 그려졌다** (Canvas 20 / Preview 30). 엔진 absolute 배치가 leaf 의 content-box 보고에 pad/border 를 더하지 않던 결함 — leaf 의 border-box layout 을 읽도록 수리.
 
 ### In progress
 

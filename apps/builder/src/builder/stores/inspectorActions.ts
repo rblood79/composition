@@ -5,6 +5,10 @@ import {
   SIZING_TIERS,
   type UsedSizing,
 } from "./utils/ratioSizingEdit";
+import {
+  buildAbsoluteActivationEdit,
+  collectInvalidFillAxes,
+} from "./utils/absoluteSizingEdit";
 import { readSizingGeometry } from "../workspace/canvas/layout/sizingGeometry";
 import { useViewportSyncStore } from "../workspace/canvas/stores";
 import type { ImmediateSelectionSnapshot } from "../inspector/types";
@@ -599,6 +603,15 @@ export interface InspectorActionsState {
     snapshot: ImmediateSelectionSnapshot,
     ratio: string | null,
   ) => RatioEditError | null;
+  /**
+   * ADR-224 §6.1 Flow→Absolute 복합 명령: position/inset 쓰기 + 절대 위치에서 무효가 되는 Fill
+   * 축만 변경 전 used px 로 Fixed (marker 해제) + 형제 맨 앞으로 — 한 transaction·Undo 1회.
+   * `positionStyles` 는 패널이 scene bounds 로 계산한 `position`(+`left`/`top`).
+   */
+  applyAbsoluteFromSelection: (
+    snapshot: ImmediateSelectionSnapshot,
+    positionStyles: Record<string, string>,
+  ) => RatioEditError | null;
   /** 비-migrated layout/structure editor의 commit-only fallback용 legacy preview */
   updateSelectedStylePreview: (property: string, value: string) => void;
   /**
@@ -668,6 +681,11 @@ interface RequiredState {
   _rebuildIndexes: (sourceElements?: Element[]) => void;
   _cancelHydrateSelectedProps: () => void;
   batchUpdateElementProps: (updates: BatchPropsUpdate[]) => Promise<void>;
+  /** ADR-224 §6.1 — Absolute 활성화 시 형제 맨 앞으로 (elements slice) */
+  moveElementToSiblingEdge: (
+    elementId: string,
+    edge: "front" | "back",
+  ) => boolean;
 }
 
 type CombinedState = InspectorActionsState & RequiredState;
@@ -1204,6 +1222,91 @@ export const createInspectorActionsSlice: StateCreator<
         for (const plan of plans) {
           const { props, ...fields } = plan.updates;
           void updateAndSave(plan.id, props ?? {}, fields);
+        }
+      });
+      return null;
+    },
+
+    applyAbsoluteFromSelection: (snapshot, positionStyles) => {
+      const state = get();
+      const id = snapshot.selectedElementId;
+      if (
+        !id ||
+        id !== state.selectedElementId ||
+        snapshot.currentPageId !== state.currentPageId
+      )
+        return "selection-changed";
+      const canonical = useCanonicalDocumentStore.getState();
+      const expected = {
+        projectId: canonical.currentProjectId,
+        documentVersion: canonical.documentVersion,
+        activeBreakpoint: state.activeBreakpoint,
+        layoutVersion: state.layoutVersion,
+        viewport: useViewportSyncStore.getState().canvasSize,
+      };
+      const parentContextOf = (source: Element, tier: BreakpointName) => {
+        let parentId = source.parent_id;
+        let parentStyle: Record<string, unknown> = {};
+        const visited = new Set<string>([source.id]);
+        while (parentId && !visited.has(parentId)) {
+          visited.add(parentId);
+          const parent = getInspectorElementById(state.elements, parentId);
+          if (!parent) break;
+          parentStyle = getSizingEffectiveStyle(
+            getResolvedInspectorElement(parent, state.elements),
+            tier,
+          );
+          if (parentStyle.display !== "contents") break;
+          parentId = parent.parent_id;
+        }
+        return {
+          display: String(parentStyle.display ?? "block"),
+          flexDirection: String(parentStyle.flexDirection ?? "row"),
+          writingMode: String(parentStyle.writingMode ?? "horizontal-tb"),
+        };
+      };
+      const plans: Array<{ id: string; updates: Partial<Element> }> = [];
+      for (const targetId of state.selectedElementIds?.length
+        ? state.selectedElementIds
+        : [id]) {
+        const source = getInspectorElementById(state.elements, targetId);
+        if (!source) return "target-missing";
+        const effective = getResolvedInspectorElement(source, state.elements);
+        const used: UsedSizing = {};
+        for (const tier of SIZING_TIERS) {
+          const geometry = readSizingGeometry(targetId, tier, expected);
+          if (geometry) used[tier] = geometry;
+        }
+        const fixes = collectInvalidFillAxes({
+          source,
+          effective,
+          parentContext: (tier) => parentContextOf(source, tier),
+          used,
+        });
+        if (!fixes)
+          return used[state.activeBreakpoint]
+            ? "tier-geometry-missing"
+            : "geometry-missing";
+        plans.push({
+          id: targetId,
+          updates: buildAbsoluteActivationEdit(
+            source,
+            positionStyles,
+            state.activeBreakpoint,
+            fixes,
+          ),
+        });
+      }
+      if (
+        canonical.documentVersion !==
+        useCanonicalDocumentStore.getState().documentVersion
+      )
+        return "document-changed";
+      historyManager.runInTransaction({ type: "batch", elementId: id }, () => {
+        for (const plan of plans) {
+          const { props, ...fields } = plan.updates;
+          void updateAndSave(plan.id, props ?? {}, fields);
+          get().moveElementToSiblingEdge(plan.id, "front");
         }
       });
       return null;

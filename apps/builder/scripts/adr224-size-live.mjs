@@ -486,6 +486,75 @@ try {
         afterReload.sizing?.width?.factor === 2,
       detail: { beforeReload, afterReload } });
   }
+  // ── ADR-224 §6.1 Flow→Absolute→Flow gate (G4) — 실제 Position 토글 (`--absolute`) ──
+  // a = Width Fill 2 (Row 900×240). Absolute 활성화 → 무효 Fill 만 used px Fixed · marker null ·
+  // left/top 기록 · Canvas/Preview Δ≤1 → Flow 복귀 → Fixed 유지 (Fill 자동 복원 0) → Undo 2회 = Fill.
+  const absolute = [];
+  if (process.argv.includes("--absolute")) {
+    await page.evaluate(({ parent, ids }) => {
+      const st = window.__composition_STORE__.getState();
+      const p = st.elements.find((e) => e.id === parent);
+      st.updateElementProps(parent, { style: { ...p.props.style, flexDirection: "row" } });
+      ids.forEach((id, i) => {
+        const e = st.elements.find((n) => n.id === id);
+        st.updateElement(id, { responsive: undefined, sizing: { width: { factor: 2 - i } },
+          props: { ...e.props, style: {} } });
+      });
+    }, { parent, ids: [a, b] });
+    await page.waitForTimeout(1000);
+    await page.evaluate((id) => window.__composition_STORE__.getState().setSelectedElement(id), a);
+    await page.waitForTimeout(600);
+    const styles = page.locator('[data-panel-id="styles"]');
+    const positionSection = styles.locator('[data-section-id="position"]');
+    const header = positionSection.locator(".section-header button[aria-expanded]").first();
+    if ((await header.getAttribute("aria-expanded")) !== "true") {
+      await header.click();
+      await page.waitForTimeout(400);
+    }
+    const toggle = positionSection.locator(".actions-position button");
+    const readNode = (id) => page.evaluate((elementId) => {
+      const e = window.__composition_STORE__.getState().elements.find((n) => n.id === elementId);
+      return { style: e?.props?.style, sizing: e?.sizing, responsive: e?.responsive };
+    }, id);
+    const measure = async (name) => {
+      await page.waitForTimeout(1200);
+      const node = await readNode(a);
+      const dom = await readDom();
+      const canvas = [await readLayout(page, a), await readLayout(page, b)];
+      const error = await styles.locator(".transform-ratio-error").count();
+      const history = await historyCount(page);
+      const detail = { node, dom: dom[0], canvas: canvas[0], error, history };
+      absolute.push({ name, ...detail });
+      return detail;
+    };
+    const before = await measure("before (Width Fill 2)");
+    await toggle.click();
+    const on = await measure("Absolute on");
+    const parity = (d) => Math.abs(d.dom.width - d.canvas.width) <= 1 &&
+      Math.abs(d.dom.height - d.canvas.height) <= 1;
+    checks.push({ name: "Absolute: 무효 Fill → used px Fixed · marker null · inset",
+      pass: !on.error && on.history === before.history + 1 &&
+        on.node.style.position === "absolute" &&
+        Math.abs(parseFloat(on.node.style.width) - before.canvas.width) <= 0.01 &&
+        on.node.sizing?.width === null && typeof on.node.style.left === "string" &&
+        Math.abs(on.canvas.width - before.canvas.width) <= 0.01 && parity(on),
+      detail: { before, on } });
+    await toggle.click();
+    const off = await measure("Absolute off (Flow)");
+    checks.push({ name: "Flow 복귀: Fixed 유지 · Fill 자동 복원 0",
+      pass: !off.error && off.history === on.history + 1 &&
+        off.node.style.position === undefined &&
+        off.node.style.width === on.node.style.width && off.node.sizing?.width === null &&
+        Math.abs(off.canvas.width - before.canvas.width) <= 0.01 && parity(off),
+      detail: { on, off } });
+    await page.keyboard.press("Meta+z");
+    await page.keyboard.press("Meta+z");
+    const undone = await measure("Undo ×2");
+    checks.push({ name: "Undo 2회 = Width Fill 2 복원",
+      pass: undone.node.sizing?.width?.factor === 2 && undone.node.style.position === undefined &&
+        undone.node.style.width === undefined && parity(undone),
+      detail: undone });
+  }
   console.log(
     "PARITY_CONTROL",
     JSON.stringify({ semantic: { dom, canvas }, cross, legacy }),
@@ -518,6 +587,7 @@ try {
     defaultColumn,
     transitions,
     ratioUi,
+    absolute,
     checks,
     errors,
   };

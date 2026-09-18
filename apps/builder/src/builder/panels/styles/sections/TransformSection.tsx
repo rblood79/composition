@@ -372,21 +372,17 @@ const TransformSectionContent = memo(function TransformSectionContent({
     commitRatio(hasEnabledAspectRatio(styleValues?.aspectRatio) ? "" : null);
   }, [commitRatio, styleValues?.aspectRatio]);
 
+  // ADR-224 §6.1 — Flow→Absolute 는 store 복합 명령 (position/inset + 무효 Fill 의 used px
+  // Fixed + 형제 맨 앞, 한 transaction). 오류 코드는 Ratio 와 같은 표로 표시한다.
   const commitAbsoluteActivation = useCallback(
     (styles: Record<string, string>) => {
-      const state = useStore.getState();
-      const elementId = state.selectedElementId;
-      if (!elementId) {
-        updateStylesImmediate(styles);
-        return;
-      }
-
-      historyManager.runInTransaction({ type: "batch", elementId }, () => {
-        updateStylesImmediate(styles);
-        useStore.getState().moveElementToSiblingEdge(elementId, "front");
-      });
+      const snapshot = readImmediateSelectionSnapshot();
+      if (snapshot.selectedElementId !== selectedId) return;
+      setSizingError(
+        useStore.getState().applyAbsoluteFromSelection(snapshot, styles),
+      );
     },
-    [updateStylesImmediate],
+    [selectedId],
   );
 
   const handleAbsolutePositionChange = useCallback(
@@ -536,6 +532,11 @@ const TransformSectionContent = memo(function TransformSectionContent({
             />
           </SwatchIconToggleButton>
         </div>
+        {sizingError && (
+          <p className="transform-ratio-error" role="alert">
+            {localize(RATIO_ERROR_LABELS[sizingError])}
+          </p>
+        )}
       </div>
     );
   }

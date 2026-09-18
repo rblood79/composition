@@ -2234,12 +2234,26 @@ impl LayoutTree {
             // solve_* 는 auto 크기 컨테이너의 content-box를 부모 배치 커널에 반환한다.
             // 일반 flow에서는 그 커널이 padding/border를 더해 border-box를 기록하지만,
             // absolute 자식은 이 경로에서 직접 layout을 기록하므로 같은 변환이 필요하다.
-            // leaf의 반환값은 이미 border-box일 수 있으므로 컨테이너에만 적용한다.
-            if child_is_container && !has_w {
-                w += axis_pad_border(&cstyle, &ctx_x, true);
-            }
-            if child_is_container && !has_h {
-                h += axis_pad_border(&cstyle, &ctx_y, false);
+            //
+            // leaf 도 auto 축은 **content-box** 로 보고한다 (2026-09-18 박스 계약 — `contentHeight`
+            // 스칼라 · `resolve_leaf_intrinsic_width` · aspect 전송값). 자기 layout 은 border-box
+            // (`w_box`/`h_box`) 로 이미 적혀 있으므로 그 값을 읽는다 — 스칼라 없이 auto 인 축은
+            // layout == 반환값이라 무변경. 종전 "leaf 반환은 이미 border-box" 가정은 absolute Button
+            // 높이를 20 (Chrome 30) 으로 냈다 (ADR-224 §6.1 live).
+            if child_is_container {
+                if !has_w {
+                    w += axis_pad_border(&cstyle, &ctx_x, true);
+                }
+                if !has_h {
+                    h += axis_pad_border(&cstyle, &ctx_y, false);
+                }
+            } else if let Some(leaf) = self.get(c).map(|n| n.layout) {
+                if !has_w {
+                    w = leaf.width;
+                }
+                if !has_h {
+                    h = leaf.height;
+                }
             }
 
             let left = resolve_inset(cstyle.inset_left.as_deref(), &ctx_x);
@@ -6942,6 +6956,38 @@ mod tests {
             assert_eq!(l.width, 69.0, "{dir}: fit-content 폭 43+26");
             assert_eq!(l.height, 34.5, "{dir}: 69 / 2 (Chrome 68×34)");
         }
+    }
+
+    /// ADR-224 §6.1 Flow→Absolute live (2026-09-18): absolute leaf 의 auto 축은 leaf 가 **content-box**
+    /// 로 보고하므로 (박스 계약 — `contentHeight` 스칼라 20 / `contentMinWidth` 43) abs 배치가 pad/border
+    /// 를 더해야 한다. 종전 "leaf 반환은 이미 border-box" 가정으로 Button 높이 20 (Chrome 30), 폭도
+    /// 43+pad 가 아닌 43 이 될 수 있었다 (min-width 68 이 가렸다).
+    #[test]
+    fn absolute_leaf_auto_axes_are_border_box() {
+        let json = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","position":"absolute","left":"0px","top":"0px",{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t, h) = solve(&json, 1, 900.0, 240.0);
+        let l = t.get_layout(h[0]);
+        assert_eq!(l.height, 30.0, "20 + pad 8 + border 2 (Chrome 30, 종전 20)");
+        assert_eq!(l.width, 69.0, "43 + 24 + 2 (min 68 보다 크다)");
+
+        // 명시 폭 + Fill 이 굳은 형태 (Flow→Absolute 결과) — 명시축은 그대로, auto 축만 보정.
+        let json2 = format!(
+            r#"[
+            {{"style":{{"display":"inline-flex","position":"absolute","left":"0px","top":"0px","width":"591.33px",{b}}},"children":[]}},
+            {{"style":{{"display":"flex","flexDirection":"row","width":"900px","height":"240px"}},"children":[0]}}
+        ]"#,
+            b = BUTTON_BOX
+        );
+        let (t2, h2) = solve(&json2, 1, 900.0, 240.0);
+        let l2 = t2.get_layout(h2[0]);
+        assert!((l2.width - 591.33).abs() < 0.01);
+        assert_eq!(l2.height, 30.0);
     }
 
     /// §9.2.3 B — definite cross + ratio + basis content → flex base size 는 cross 에서 전송.
