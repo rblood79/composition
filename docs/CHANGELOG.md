@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-027 후속 — `white-space: normal` Text 의 `\n` 을 Skia 도 공백으로 접는다] - 2026-09-20
+## [Styles 패널 Size — Width/Height 에 값을 치고 Enter 하면 요소를 바꾼 뒤 첫 번엔 반영되지 않던 결함] - 2026-09-20
+
+### Fixed
+
+- Width/Height 입력에 값을 치고 **Enter** 하면 (Tab 은 정상) 요소를 바꾼 뒤 첫 번마다 값이 되돌아가던 결함 — RAC ComboBox 가 숫자 input 의 Enter 에서도 같은 단위 key 로 `onSelectionChange` 를 다시 내고 (allowDuplicateSelectionEvents), 그것이 Size 모드 변경 ("px") 으로 흘러 stale 측정값을 다시 commit 해 방금 친 값을 덮었다 (200 → 250 Enter 가 200). 닫힌 메뉴에서 온 선택은 무시한다 (사용자가 고른 선택은 항상 열린 메뉴에서 온다). live: 250 Enter → 250 · 메뉴에서 Fit content 선택 정상.
 
 ### Fixed
 

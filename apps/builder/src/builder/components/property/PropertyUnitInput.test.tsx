@@ -166,6 +166,33 @@ describe("PropertyUnitInput numeric editing", () => {
     expect(onChange).toHaveBeenLastCalledWith("300px");
   });
 
+  it("메뉴를 연 적 없는 첫 Enter 가 onModeChange 를 내지 않는다 (RAC 의 닫힌 메뉴 재방출 차단)", () => {
+    // 사용자 live 2026-09-20: 요소를 바꾼 뒤 (key 로 remount) 첫 Enter 마다 RAC ComboBox 가 같은 key
+    //   ("px") 로 onSelectionChange 를 내고 → onModeChange("px") 가 stale 측정값을 다시 commit 해 방금 친
+    //   값을 덮었다 (200 → 250 Enter 가 200 으로, Tab 은 정상). 닫힌 메뉴에서 온 선택은 무시한다.
+    const onChange = vi.fn();
+    const onModeChange = vi.fn();
+
+    useStore.setState({ selectedElementId: "element-1" } as never);
+    render(
+      <PropertyUnitInput
+        label="Width"
+        value="200px"
+        unitSuffix
+        units={["reset", "px", "%", "vw", "fill", "fit-content"]}
+        sizeControl={{ kind: "css", computed: 200, onModeChange }}
+        onChange={onChange}
+      />,
+    );
+
+    const input = screen.getByRole("combobox", { name: "Width" });
+    fireEvent.change(input, { target: { value: "250" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    expect(onChange.mock.calls).toEqual([["250px"]]);
+    expect(onModeChange).not.toHaveBeenCalled();
+  });
+
   it("Size 모드 suffix는 fr/%/vh/px/fit 토큰의 소문자를 보존한다", () => {
     expect(FORM_CONTROLS_CSS).toMatch(
       /\.property-unit-input\[data-size-control="true"\][\s\S]*?\.property-unit-input__suffix\s*\{[\s\S]*?text-transform:\s*none;/,

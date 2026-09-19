@@ -336,6 +336,8 @@ export const PropertyUnitInput = memo(
     const focusedElementIdRef = useRef<string | null>(null);
     const syncAfterPresetRef = useRef(false);
     const sizeModeSelectionRef = useRef<string | null>(null);
+    /** 단위 메뉴가 열려 있는가 — 닫힌 채 오는 onSelectionChange (input Enter 의 재방출) 를 거른다. */
+    const menuOpenRef = useRef(false);
     const inputElementRef = useRef<HTMLInputElement>(null);
 
     // preview 경로가 elementsMap 을 mutate 하면서 value prop 이 편집값으로 바뀌어도
@@ -758,8 +760,17 @@ export const PropertyUnitInput = memo(
             inputValue={
               hasPresets ? "" : unit === "" ? "—" : unit === "reset" ? "" : unit
             }
+            onOpenChange={(open) => {
+              menuOpenRef.current = open;
+            }}
             onSelectionChange={(key) => {
               if (key === null) return;
+              // 닫힌 메뉴에서 온 선택은 무시 — RAC ComboBox 는 숫자 input 의 Enter 에서도 같은 key 로
+              //   onSelectionChange 를 다시 낸다 (allowDuplicateSelectionEvents). 그게 sizeControl.onModeChange
+              //   ("px") 로 가면 stale 측정값 (`bundle.effective`) 을 다시 commit 해 방금 친 값을 덮는다 —
+              //   요소를 바꾼 뒤 첫 Enter 마다 (사용자 live 2026-09-20: 200 → 250 Enter 가 200 으로 남음,
+              //   Tab 은 정상). 사용자가 고른 선택은 항상 열린 메뉴에서 온다.
+              if (!menuOpenRef.current) return;
               if (sizeControl) {
                 const selectedMode = String(key);
                 // RAC는 option 선택 뒤 input Enter에서 같은 mode를 다시 방출할 수 있다. 한 번 연
