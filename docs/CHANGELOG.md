@@ -22,8 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Validation
 
-- Phase 0 인벤토리 49 파일 분류 (rename 48 · canonical 1, [evidence](adr/evidence/225-phase0-vocabulary-inventory.md)) · 정적 ratchet `adr225VocabularyRatchet.static.test.ts` (구 feature 명칭 0 · 사용자 문구 Frame 0 · ko/en key 3) · `useSectionCollapse` 승계 test 5 (old/new/both/none · 승계→펼침→persist→reload) · 인접 Vitest 88 파일 636 PASS · builder 전체 6699 PASS (선재 실패 8 은 clean HEAD 재현) · `type-check` PASS.
-- live (headed Playwright, `apps/builder/scripts/adr225-layouts-live.mjs`) 13/13: 구 collapse id 승계 · Add Layout → canonical `{type:"frame", reusable:true, name:"Layout 1"}` · `.layout-tree`/`.frame-tree` 0 · Apply Layout → binding · Remove Layout → 해제 · Delete → reload 0 · Navigator/Properties 문자열 Frame 0 · ko-KR 동일 흐름 · pageerror/console.error 0.
+- Phase 0 인벤토리 49 파일 분류 (rename 48 · canonical 1, [evidence](adr/design/225-reusable-layout-vocabulary-alignment-inventory.md)) · 정적 ratchet `adr225VocabularyRatchet.static.test.ts` (구 feature 명칭 0 · 사용자 문구 Frame 0 · ko/en key 3) · `useSectionCollapse` 승계 test 5 (old/new/both/none · 승계→펼침→persist→reload) · 인접 Vitest 88 파일 636 PASS · builder 전체 6699 PASS (선재 실패 8 은 clean HEAD 재현) · `type-check` PASS.
+- live (headed Playwright, `apps/builder/scripts/adr225-layouts-live.mjs`) 16/16: 구 collapse id 승계 · Add Layout → canonical `{type:"frame", reusable:true, name:"Layout 1"}` · `.layout-tree`/`.frame-tree` 0 · Apply Layout → binding · Remove Layout → 해제 · 내부 Layers 트리 (2-Row → Slot 2 · 선택 · 접기/펼치기) · 분할 핸들 → `navigator-split:layouts` · Layout 적용 page Canvas↔Preview geometry Δ≤1 · Delete → reload 0 · Navigator/Properties 문자열 Frame 0 · ko-KR 동일 흐름 · pageerror/console error·warning 0. foreground Chrome MCP 재확인 (사용자 참관).
+- review round 2 (codex) MEDIUM 3 수리: 주석·테스트 제목의 `Frames tab / Navigator Frames / Frame Preset` 어법 13곳 → Layouts + ratchet 문구 패턴 · 인벤토리를 gitignore 밖 `docs/adr/design/…-inventory.md` 로 · Phase 4 계획에서 이름 변경 UI (production caller 0) · Undo (canonical 직접 갱신) 를 범위 밖으로 명시.
 
 ## [Canvas 텍스트 줄바꿈 높이 — 확정 폭 재측정 복구 · parity 하니스 폰트 문맥] - 2026-09-19
 

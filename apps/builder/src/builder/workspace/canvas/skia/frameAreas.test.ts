@@ -128,7 +128,7 @@ describe("ADR-111 P3-β computeFrameAreas", () => {
     expect(result[0].frameName).toBe("frame-noname");
   });
 
-  it("다중 reusable frame 을 모두 노출해 Frames tab overview 를 제공", () => {
+  it("다중 reusable frame 을 모두 노출해 Layouts tab overview 를 제공", () => {
     const doc = makeDoc([
       makeFrame({ id: "f1", reusable: true, name: "First" }),
       makeFrame({ id: "f2", reusable: false, name: "Skip" }),

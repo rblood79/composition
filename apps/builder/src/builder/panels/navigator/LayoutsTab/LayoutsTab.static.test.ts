@@ -61,7 +61,7 @@ describe("LayoutsTab frame selection race guard", () => {
     expect(source).not.toContain("useStore((state) => state.elementsMap)");
   });
 
-  it("stacks Frames sections in the shared SectionSplitStack without an extra layouts-tab wrapper", async () => {
+  it("stacks Layouts sections in the shared SectionSplitStack without an extra layouts-tab wrapper", async () => {
     const source = await readFile(
       resolve(__dirname, "LayoutsTab.tsx"),
       "utf-8",
@@ -73,7 +73,7 @@ describe("LayoutsTab frame selection race guard", () => {
     expect(source).toContain("<LayoutElementTree");
   });
 
-  it("renders Frames/Layers children through shared TreeBase primitives", async () => {
+  it("renders Layouts/Layers children through shared TreeBase primitives", async () => {
     const frameListSource = await readFile(
       resolve(__dirname, "LayoutList.tsx"),
       "utf-8",

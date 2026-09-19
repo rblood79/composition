@@ -100,7 +100,7 @@ export function NavigatorPanel() {
         title={t("panels.navigator")}
         panelId="navigator"
         actions={
-          // 활성 탭의 두 Section 전체 접기·펼치기 (Pages/Layers 또는 Frames/Layers)
+          // 활성 탭의 두 Section 전체 접기·펼치기 (Pages/Layers 또는 Layouts/Layers)
           <SectionGroupToggleButton
             sectionIds={
               activeTab === "pages"

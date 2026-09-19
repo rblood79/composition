@@ -7,7 +7,7 @@ Implemented — 2026-09-19 (Accepted 같은 날 `/execute-adr 225` Phase 0~~4 / 
 사용자 요청으로 ADR-111 이후 남아 있는 재사용 레이아웃 기능의 `Frames` 명칭을
 `Layouts`로 정렬하는 결정을 승인했고 (review round 1 MEDIUM 3 · LOW 2 수정, pending 0),
 같은 날 구현을 종결했다. 실행 결과는 [Gates](#gates) 아래 `### Live Exercise` 와
-[Phase 0 인벤토리](../evidence/225-phase0-vocabulary-inventory.md) 에 있다.
+[Phase 0 인벤토리](../design/225-reusable-layout-vocabulary-alignment-inventory.md) 에 있다.
 
 ## Context
 
@@ -201,7 +201,8 @@ R1은 영향이 HIGH지만 `CompositionDocument`와 adapter를 명시적 비변�
 
 ### Live Exercise
 
-**2026-09-19 · headed Playwright 로 실제 dev Builder (5173) 부팅 — `apps/builder/scripts/adr225-layouts-live.mjs` 13/13 PASS.**
+**2026-09-19 · headed Playwright 로 실제 dev Builder (5173) 부팅 — `apps/builder/scripts/adr225-layouts-live.mjs` 16/16 PASS**
+(round 2 m3 뒤 13 → 16: 내부 Layers 트리 · 분할 핸들 · Layout 적용 page geometry 추가, console warning 도 수집).
 Chrome MCP 탭은 처음 `document.hidden=true` (RAF pause, 부트 95% 정지 — 메모리
 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`) 라 headed Playwright 로 먼저 돌렸고, 사용자가 창을 앞으로 가져온 뒤
 **foreground Chrome MCP 로 같은 날 재확인** (프로젝트 `new`, 사용자 참관 — 아래 표 뒤 절).
@@ -217,7 +218,10 @@ Chrome MCP 탭은 처음 `document.hidden=true` (RAF pause, 부트 95% 정지 �
 | 7   | Navigator·Properties 의 텍스트 · aria-label · title · placeholder 전수 (15 + 31 문자열)         | `\bframes?\b` 0                                                                                                                           |
 | 8   | `Delete Layout 1` → reload                                                                      | canonical reusable frame 0 · reload 후 0 (persist)                                                                                        |
 | 9   | `composition-locale=ko-KR` 부팅 → 같은 흐름                                                     | 탭 `레이아웃` · `레이아웃 추가` · `레이아웃 적용` · 옵션 `레이아웃 없음` · `레이아웃 제거` / `이 페이지에서 레이아웃 제거` · 영어 Frame 0 |
-| 10  | 전 과정                                                                                         | pageerror 0 · console.error 0                                                                                                             |
+| 10  | Layout 1 body → Properties `Layout Preset` 2-Row → Layers 트리                                  | `Slot: header` / `Slot: content` 2 · Slot 클릭 → 선택 = Slot(header) · body 접기 0 → 펼치기 2                                             |
+| 11  | SectionSplitStack 분할 핸들 60px 드래그                                                         | `navigator-split:layouts` = 146 기록 · `navigator-split:pages` 무변경                                                                     |
+| 12  | page 에 Button 추가 → Layout 1 적용 → Compare                                                   | Canvas layout map 69×30 vs Preview DOM 68×30 (Δ1, 반올림) · Preview y=60 (header slot 아래)                                               |
+| 13  | 전 과정                                                                                         | pageerror 0 · console error/warning 0                                                                                                     |
 
 **Foreground Chrome MCP (2026-09-19, 사용자 프로젝트 `new`, mobile breakpoint)**: 구 id `navigator-frame-layers` 를 심고
 reload → Layouts 탭의 Layers 절 `aria-expanded=false` · `data-section-id^="navigator-frame"` 0 · persist 첫 set 뒤 구 id 0 →
@@ -232,7 +236,10 @@ IDB reusable frame `Layout 1` 만 → reload → `Layout 1` 만 · Layers 펼침
   기존부터 렌더되지 않는다 (`PropertySelect.tsx` "not displayed") — 표시 동작을 바꾸지 않았고 (HC4) 카탈로그 등록은
   `adr225VocabularyRatchet.static.test.ts` 가 ko/en · formatted 함수로 잠근다.
 - Undo: reusable layout CRUD 는 종전부터 history 에 기록하지 않는 canonical 직접 갱신이라 (ADR-111 그대로) 이 ADR 의 검증
-  대상이 아니다. refresh 후 read-back 으로 대체했다.
+  대상이 아니다. refresh 후 read-back 으로 대체했다. 이름 변경 UI 도 같은 이유로 범위 밖 (`updateReusableLayoutName` production
+  caller 0 — rename 만) — breakdown §6 에 명시 (round 2 m3).
+- round 2 (codex) MEDIUM 3 수리: m1 주석·테스트 제목의 UI 어법 13곳 + ratchet `LEGACY_FEATURE_COPY_PATTERN` · m2 인벤토리를
+  tracked `docs/adr/design/…-inventory.md` 로 · m3 위 10~13 harness 확장. 판정: `docs/adr/reviews/225.md`.
 - 자동화: 인접 Vitest (navigator 24 파일 155 · stores · properties editors · i18n · canonical static 등 88 파일 636) PASS ·
   전체 builder 6699 PASS / 실패 8 은 clean HEAD 에서 재현되는 선재 항목 (`canvasResizeEdit` 4 · `pageFrameBinding` 1 ·
   `g5LegacyFieldGrepGate` 1 · `actionIcons.static` 1 · `sharedActionVocabulary` 1) · `pnpm -F @composition/builder type-check` PASS.

@@ -8,7 +8,10 @@
 //   5) 삭제 → canonical reusable frame 0 → reload 후에도 0 (persist)
 //   6) Navigator·Properties DOM 텍스트·aria-label·title 에 재사용 레이아웃 의미의 `Frame` 0
 //   7) ko-KR 부팅 → 레이아웃 / 레이아웃 추가 / 레이아웃 적용 / 레이아웃 없음 / 레이아웃 제거, 영어 Frame 0
-//   8) page error 0 · console error 0
+//   8) 내부 Layers 트리 — Layout Preset 2-Row 적용 뒤 body > Slot 2 · Slot 선택 → Canvas 선택 · 접기/펼치기
+//   9) SectionSplitStack 분할 핸들 드래그 → `navigator-split:layouts` 기록 · 다른 key 무변경
+//  10) page 에 Layout 적용 상태의 slot geometry — Canvas layout map vs Preview DOM rect (Δ≤1)
+//  11) page error 0 · console error/warning 0
 // 사용: node apps/builder/scripts/adr225-layouts-live.mjs [--headed]   (dev 서버 5173 · .auth-session.json)
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -77,6 +80,50 @@ async function idbReusableFrames(page, projectId) {
   }, projectId);
 }
 
+/** 팔레트로 요소 하나 추가 (adr013 하니스와 같은 경로 — store addElement 는 canonical 에 안 실린다) */
+async function addFromPalette(page, type) {
+  await setPanel(page, "components", true);
+  const before = await page.evaluate(
+    (t) =>
+      window.__composition_STORE__
+        .getState()
+        .elements.filter((e) => e.type === t || e.componentName === t)
+        .map((e) => e.id),
+    type,
+  );
+  const search = page
+    .locator('[data-panel-id="components"] input[type="search"], [data-panel-id="components"] input')
+    .first();
+  await search.waitFor({ state: "visible", timeout: 20_000 });
+  await search.fill(type);
+  await page.waitForTimeout(400);
+  const items = page.locator(`[data-panel-id="components"] .list-item`);
+  const n = await items.count();
+  let item = null;
+  for (let i = 0; i < n; i++) {
+    const label = (await items.nth(i).locator(".list-item-name").textContent()) ?? "";
+    if (label.replace(/\s+/g, "").toLowerCase() === type.toLowerCase()) {
+      item = items.nth(i);
+      break;
+    }
+  }
+  if (!item) throw new Error(`팔레트에 ${type} 없음 (${n} items)`);
+  await item.click();
+  const id = await page
+    .waitForFunction(
+      ({ t, before }) =>
+        window.__composition_STORE__
+          .getState()
+          .elements.find((e) => (e.type === t || e.componentName === t) && !before.includes(e.id))?.id ?? null,
+      { t: type, before },
+      { timeout: 15_000 },
+    )
+    .then((h) => h.jsonValue());
+  await page.waitForTimeout(800);
+  await setPanel(page, "components", false);
+  return id;
+}
+
 /** 패널 안 사용자 노출 문자열 전부 (텍스트 · aria-label · title · placeholder) */
 async function panelStrings(page, selector) {
   return page.evaluate((sel) => {
@@ -128,7 +175,8 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 const consoleErrors = [];
 page.on("console", (m) => {
-  if (m.type() === "error") consoleErrors.push(m.text().slice(0, 300));
+  if (m.type() === "error" || m.type() === "warning")
+    consoleErrors.push(`${m.type()}: ${m.text().slice(0, 300)}`);
 });
 
 try {
@@ -284,6 +332,111 @@ try {
   }, pageInfo.pid);
   record("Remove Layout → binding 해제", !unboundId, `binding=${unboundId}`);
 
+  // 8) 내부 Layers 트리 — Layout 1 body 선택 → Properties Layout Preset 2-Row → Slot 2 → 선택/접기
+  await setPanel(page, "navigator", true);
+  await page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ }).click();
+  await page.waitForTimeout(500);
+  await page.locator('.section[data-section-id="navigator-layouts"] .elementItemLabel', { hasText: /^Layout 1$/ }).click();
+  await page.waitForTimeout(600);
+  await setPanel(page, "properties", true);
+  const presetSection = props.locator(".section", { hasText: "Layout Preset" });
+  await presetSection.first().waitFor({ timeout: 10_000 });
+  await presetSection.locator(".preset-card", { has: page.locator(".list-item-name", { hasText: /^2-Row$/ }) }).first().click();
+  await page.waitForTimeout(1200);
+  const layersSection = page.locator('.section[data-section-id="navigator-layout-layers"]');
+  const slotRows = layersSection.locator(".elementItemLabel", { hasText: /^Slot: / });
+  const slotCount = await slotRows.count();
+  await slotRows.first().click();
+  await page.waitForTimeout(500);
+  const selectedAfterSlot = await page.evaluate(() => {
+    const st = window.__composition_STORE__.getState();
+    const el = st.elements.find((e) => e.id === st.selectedElementId);
+    return { id: st.selectedElementId, type: el?.type, slotName: el?.props?.name ?? el?.props?.slotName ?? null };
+  });
+  // body 행 접기 → Slot 행 사라짐 → 다시 펼침
+  const bodyToggle = layersSection.locator('button[aria-label^="Collapse "]').first();
+  await bodyToggle.click();
+  await page.waitForTimeout(300);
+  const collapsedCount = await slotRows.count();
+  await layersSection.locator('button[aria-label^="Expand "]').first().click();
+  await page.waitForTimeout(300);
+  const reexpandedCount = await slotRows.count();
+  record(
+    "내부 Layers 트리 — 2-Row 뒤 Slot 2 · Slot 클릭이 선택 · body 접기/펼치기",
+    slotCount === 2 && selectedAfterSlot.type !== "body" && collapsedCount === 0 && reexpandedCount === 2,
+    `slots=${slotCount} selected=${JSON.stringify(selectedAfterSlot)} collapsed=${collapsedCount} reexpanded=${reexpandedCount}`,
+  );
+
+  // 9) 분할 핸들 드래그 → navigator-split:layouts
+  const splitBefore = await page.evaluate(() => ({
+    layouts: localStorage.getItem("navigator-split:layouts"),
+    pages: localStorage.getItem("navigator-split:pages"),
+  }));
+  const handle = page.locator('[data-panel-id="navigator"] .split-handle').first();
+  const hb = await handle.boundingBox();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2 + 60, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(400);
+  const splitAfter = await page.evaluate(() => ({
+    layouts: localStorage.getItem("navigator-split:layouts"),
+    pages: localStorage.getItem("navigator-split:pages"),
+  }));
+  record(
+    "분할 핸들 드래그 → navigator-split:layouts 기록 · pages key 무변경",
+    splitAfter.layouts !== null && splitAfter.layouts !== splitBefore.layouts && splitAfter.pages === splitBefore.pages,
+    `${JSON.stringify(splitBefore)} → ${JSON.stringify(splitAfter)}`,
+  );
+
+  // 10) page 에 Layout 1 적용 → slot geometry Canvas vs Preview (page 에 Button 하나를 먼저 놓는다)
+  await page.locator(".navigator-panel-tab", { hasText: /^Pages$/ }).click();
+  await page.waitForTimeout(400);
+  await page.evaluate((bodyId) => window.__composition_STORE__.getState().setSelectedElement(bodyId), pageInfo.bodyId);
+  await addFromPalette(page, "Button");
+  await page.evaluate((bodyId) => window.__composition_STORE__.getState().setSelectedElement(bodyId), pageInfo.bodyId);
+  await setPanel(page, "properties", true);
+  await props.locator('button[aria-label="Apply Layout"]').first().click();
+  await page.locator('[role="option"]', { hasText: /^Layout 1$/ }).click();
+  await page.waitForTimeout(1500);
+  const compare = page.locator(".header_right .builder-control-group button").first();
+  if ((await compare.getAttribute("aria-pressed")) !== "true") {
+    await compare.click();
+    await page.waitForTimeout(3000);
+  }
+  const geometry = await page.evaluate((pid) => {
+    const st = window.__composition_STORE__.getState();
+    const lm = window.__composition_LAYOUT_DEBUG__?.getSharedLayoutMap?.();
+    const frame = [...document.querySelectorAll("iframe")].find((f) => f.contentDocument?.body);
+    const doc = frame?.contentDocument;
+    const bodyEl = doc?.querySelector(".react-aria-Body, .react-aria-body");
+    const bodyRect = bodyEl?.getBoundingClientRect();
+    const pageEls = st.elements.filter((e) => e.page_id === pid && e.type !== "body");
+    const rows = [];
+    for (const el of pageEls.slice(0, 6)) {
+      const c = lm?.get?.(el.id);
+      const d = doc?.querySelector(`[data-element-id^="${el.id}"]`)?.getBoundingClientRect();
+      if (!c || !d) continue;
+      rows.push({
+        type: el.type,
+        canvas: { w: Math.round(c.width), h: Math.round(c.height) },
+        preview: { w: Math.round(d.width), h: Math.round(d.height), y: Math.round(d.y - (bodyRect?.y ?? 0)) },
+      });
+    }
+    return { rows, previewBodyH: bodyRect ? Math.round(bodyRect.height) : null };
+  }, pageInfo.pid);
+  const geomOk =
+    geometry.rows.length > 0 &&
+    geometry.rows.every((r) => Math.abs(r.canvas.w - r.preview.w) <= 1 && Math.abs(r.canvas.h - r.preview.h) <= 1);
+  record(
+    "Layout 적용 page 의 요소 geometry — Canvas layout map = Preview DOM (Δ≤1, 폭·높이)",
+    geomOk,
+    JSON.stringify(geometry).slice(0, 400),
+  );
+  await page.screenshot({ path: resolve(OUT_DIR, "4-slot-geometry-compare.png") });
+  await props.locator("button.page-layout-clear").click();
+  await page.waitForTimeout(600);
+
   // 5) 삭제 → reload 후 0
   await setPanel(page, "navigator", true);
   await page.locator(".navigator-panel-tab", { hasText: /^Layouts$/ }).click();
@@ -352,7 +505,7 @@ try {
   await page.evaluate(() => localStorage.setItem("composition-locale", "en-US"));
 
   record(
-    "page error 0 · console error 0",
+    "page error 0 · console error/warning 0",
     errors.length === 0 && consoleErrors.length === 0,
     `pageErrors=${errors.length} consoleErrors=${consoleErrors.length} ${consoleErrors.slice(0, 3).join(" | ")}`,
   );

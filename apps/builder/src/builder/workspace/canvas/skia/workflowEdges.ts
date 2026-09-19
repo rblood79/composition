@@ -375,7 +375,7 @@ export function computeLayoutGroups(
  * - id 정규화: `metadata.layoutId` (legacyToCanonical adapter 가 보존) 우선,
  *   부재 시 FrameNode.id 사용. canonical frame selection id 와 정합.
  * - 좌표/크기: `framePositions[frameId]` lookup, miss 시 `{0,0,0,0}` (P3-α 의 기본 동작과 동일)
- * - Frames tab UX: page multi-canvas 처럼 reusable frame 전체를 반환한다.
+ * - Layouts tab UX: page multi-canvas 처럼 reusable frame 전체를 반환한다.
  *   선택 frame 하나로 제한하면 등록 layout 을 한 화면에서 비교할 수 없다.
  *
  * 본 함수는 P3-β scope: compute layer 만. BuilderCanvas / Skia render 통합은 P3-δ.

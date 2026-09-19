@@ -975,7 +975,7 @@ function PropertiesPanelContent() {
     useCanonicalPropertyElementType(selectedElementId);
 
   const displayName = useCanonicalPropertyDisplayName(selectedElementId);
-  // Frame 편집 (layout 모드) 의 body 는 "body" 가 아니라 Frame 이름으로 — Navigator Frames
+  // Layout 편집 (layout 모드) 의 body 는 "body" 가 아니라 Layout 이름으로 — Navigator Layouts
   //   목록과 같은 이름 (panel-ui 18, 2026-09-14).
   const editMode = useEditModeStore((state) => state.mode);
   const editLayoutId = useEditModeStore((state) => state.layoutId);

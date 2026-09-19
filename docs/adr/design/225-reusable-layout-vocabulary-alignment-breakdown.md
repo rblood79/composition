@@ -1,7 +1,7 @@
 # ADR-225 구현 상세 — 재사용 레이아웃 어휘 정렬
 
 > 상태: Implemented 2026-09-19 (Phase 0~4 종결 — 실행 결과는 ADR 본문 `### Live Exercise` 와
-> [Phase 0 인벤토리](../evidence/225-phase0-vocabulary-inventory.md)).
+> [Phase 0 인벤토리](225-reusable-layout-vocabulary-alignment-inventory.md)).
 >
 > 본 문서는 [ADR-225](../completed/225-reusable-layout-vocabulary-alignment.md)의 구현 순서와
 > 검증 경계를 구체화한다. 새로운 결정을 추가하지 않으며 canonical `FrameNode` 보존
@@ -218,13 +218,19 @@ adapter의 정확한 domain 용어는 바꾸지 않는다.
 foreground Builder에서 다음을 한 흐름으로 확인한다.
 
 1. Navigator `Layouts` tab을 열고 `Add Layout`으로 생성한다.
-2. 이름 변경, 선택, 내부 Layers tree 선택/접기/분할 크기 조절을 확인한다.
+2. 선택, 내부 Layers tree 선택/접기/분할 크기 조절을 확인한다. **이름 변경은 범위 밖** —
+   `updateReusableLayoutName` 은 ADR-111 부터 production caller 가 없는 API 라 Builder 에 실행할 UI 가
+   없다 (rename 만 했고 UI 신설은 이 ADR 의 scope 가 아니다).
 3. Properties의 `Layout Preset`과 page의 `Apply Layout`으로 연결한다.
-4. `Remove Layout`, 삭제, Undo/refresh를 확인한다.
+4. `Remove Layout`, 삭제, refresh 를 확인한다. **Undo 는 범위 밖** — reusable layout CRUD 는 종전부터
+   history 에 기록하지 않는 canonical 직접 갱신이다 (ADR-111 그대로).
 5. canonical document에는 `type: "frame"`이 남고 UI/accessible name에는 Layout만 보이는지
    read-back한다.
 6. Canvas와 Preview geometry/slot 결과가 동일하고 console warning/error가 0인지 확인한다.
 7. 구 collapse id가 저장된 fixture를 열어 접힘 상태가 유지되는지 확인한다.
+
+> 실행 (2026-09-19): headed Playwright `adr225-layouts-live.mjs` **16/16** (위 1·2·3·4·5·6·7 + ko-KR) 과 foreground
+> Chrome MCP 재확인 (사용자 참관) — ADR 본문 `### Live Exercise`. review round 2 m3 로 2·4 의 범위 밖 항목을 명시했다.
 
 ### 완료 판정
 

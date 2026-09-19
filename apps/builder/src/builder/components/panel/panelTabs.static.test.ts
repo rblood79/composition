@@ -99,7 +99,7 @@ describe("패널 탭 구조 가드", () => {
     // Why: RAC 1.21+ `TabPanel` 은 `getAnimations()` 의 `finished` 로 마운트/언마운트
     // 전환의 끝을 판정한다. scroll-progress timeline 애니메이션은 그 promise 가 영원히
     // settle 되지 않으므로, 그런 애니메이션을 얹은 선택자가 곧 `TabPanel` 이면 빠지는
-    // 패널이 `inert` 인 채로 화면에 남는다 (2026-09-06 Navigator Pages/Frames 동시 표시).
+    // 패널이 `inert` 인 채로 화면에 남는다 (2026-09-06 Navigator Pages/Layouts 동시 표시).
     // 전환 상태(`[data-entering]` / `[data-exiting]`)에서 `animation-name: none` 을 함께
     // 두어야 RAC 가 그 프레임에 전환을 종료한다.
     const cssFiles: string[] = [];

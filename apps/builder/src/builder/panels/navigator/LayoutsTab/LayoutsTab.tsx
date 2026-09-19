@@ -1,5 +1,5 @@
 /**
- * LayoutsTab — Navigator 의 재사용 레이아웃 탭 (ADR-225 로 구 Frames 탭 명칭을 정렬).
+ * LayoutsTab — Navigator 의 재사용 레이아웃 탭 (ADR-225 로 구 명칭을 정렬).
  *
  * ADR-903 P3-C 재설계: canonical reusable FrameNode 목록 표시 + 그 내부 element 트리.
  *

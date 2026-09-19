@@ -1,7 +1,7 @@
 /**
  * ADR-225 G5 — 재사용 레이아웃 기능이 소유한 구 `Frame` 명칭 ratchet.
  *
- * Phase 0 inventory (docs/adr/evidence/225-phase0-vocabulary-inventory.md) 의 확장 정규식에서
+ * Phase 0 inventory (docs/adr/design/225-reusable-layout-vocabulary-alignment-inventory.md) 의 확장 정규식에서
  * raw canonical boundary 로 판정한 심볼 (`createReusableFrameNode`) 을 뺀 집합이다. 이 정규식에
  * 걸리는 파일은 allowlist (구 section id 를 승계하는 hydration map) 만 허용한다.
  *
@@ -23,6 +23,18 @@ const ALLOWLIST: readonly string[] = [
   "builder/panels/styles/hooks/useSectionCollapse.ts",
   "builder/panels/styles/hooks/useSectionCollapse.test.ts",
   // 게이트 자신 (정규식 리터럴)
+  "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
+];
+
+/**
+ * 재사용 레이아웃 기능을 가리키는 UI 어법 (주석·테스트 제목 포함 — ADR-225 G5 "comment·test title 0건").
+ * `Frames tab` / `Frames 탭` / `Navigator Frames` / `Frame Preset` / `Frames/Layers` 는 전부 Layouts 어휘로 쓴다.
+ * `LayoutBodyEditor.static.test.ts` 는 구 문구의 **부재**를 단언하는 리터럴이라 allowlist.
+ */
+const LEGACY_FEATURE_COPY_PATTERN =
+  /Frames tab|Frames 탭|Navigator Frames|Frame Preset|Frames section|Frames\/Layers|Frames List|Pages\/Frames/;
+const COPY_ALLOWLIST: readonly string[] = [
+  "builder/panels/properties/editors/LayoutBodyEditor.static.test.ts",
   "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
 ];
 
@@ -52,6 +64,17 @@ describe("ADR-225 — 재사용 레이아웃 기능 소유 구 Frame 명칭 0건
       )
       .map((file) => path.relative(BUILDER_SRC, file))
       .filter((rel) => !ALLOWLIST.includes(rel))
+      .sort();
+    expect(hits).toEqual([]);
+  });
+
+  it("주석·테스트 제목·CSS 주석의 재사용 레이아웃 UI 어법 (Frames tab · Frame Preset …) 이 allowlist 밖에 없다", () => {
+    const hits = files
+      .filter((file) =>
+        LEGACY_FEATURE_COPY_PATTERN.test(fs.readFileSync(file, "utf-8")),
+      )
+      .map((file) => path.relative(BUILDER_SRC, file))
+      .filter((rel) => !COPY_ALLOWLIST.includes(rel))
       .sort();
     expect(hits).toEqual([]);
   });

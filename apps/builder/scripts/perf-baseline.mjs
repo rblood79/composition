@@ -364,7 +364,7 @@ export async function createInstrumentedContext(
   }
 }
 
-async function createIsolatedProject(page, baseUrl) {
+export async function createIsolatedProject(page, baseUrl) {
   await page.goto(`${baseUrl}/dashboard`, { waitUntil: "networkidle" });
   const projectName = `perf-baseline-${Date.now()}`;
   // 프로젝트는 브라우저 컨텍스트의 IndexedDB 에만 생긴다 (dashboard/index.tsx
@@ -389,7 +389,7 @@ async function openExistingProject(page, projectUrl) {
 
 // 새 컨텍스트는 패널이 전부 닫힌 채 부팅된다 (toggle 전부 aria-pressed=false, splitter 0).
 // 실사용 형태 (Navigator·Properties 열림) 로 맞춘다 — 리사이즈 드라이버도 splitter 가 필요.
-async function openPanels(page, names) {
+export async function openPanels(page, names) {
   for (const name of names) {
     const button = page
       .locator(
@@ -406,7 +406,7 @@ async function openPanels(page, names) {
 // 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 페이지 셸 pageCount 장 (기본 2).
 // 5k fixture는 단일 addElement 반복의 전체 문서 persist O(n²) 비용을 피하려고
 // production addComplexElement action으로 한 번에 merge/store/reindex/persist한다.
-async function seedDocument(page, seedCount, fixtureKind, pageCount = 2) {
+export async function seedDocument(page, seedCount, fixtureKind, pageCount = 2) {
   return page.evaluate(
     async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
@@ -1562,7 +1562,7 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
 // 드라이버 — 각각 durationMs 동안 동작. 휠은 canvas 에 dispatch (실핸들러 경로, 메모리
 // project-frame-drop-map-5k-baseline: 선택이 있으면 Phase E 가 휠을 scrollBy 로 삼킨다 →
 // 팬/줌 전 clearSelection). 포인터 경로 (패널 리사이즈) 는 Playwright mouse.
-const wheelBurst = (page, durationMs, initFactory, fixedInputs = false) =>
+export const wheelBurst = (page, durationMs, initFactory, fixedInputs = false) =>
   page.evaluate(
     async ({ durationMs, initFactorySrc, fixedInputs }) => {
       const initFactory = new Function("i", initFactorySrc);

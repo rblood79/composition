@@ -55,7 +55,7 @@ interface UseElementHoverInteractionOptions {
   containerEl: HTMLDivElement | null;
   /** Hand/Pan mode가 armed된 동안 element hover hit-test를 막는 session */
   gestureSession: CanvasGestureSession;
-  /** Frames tab multi-canvas overview 에서 frame body 빈 영역 hover 판정용 */
+  /** Layouts tab multi-canvas overview 에서 frame body 빈 영역 hover 판정용 */
   frameAreasRef?: RefObject<ReadonlyArray<FrameHoverArea>>;
   /** Page mode multi-page canvas 에서 page body 빈 영역 hover 판정용 */
   pageFramesRef?: RefObject<ReadonlyArray<PageHoverFrame>>;
@@ -492,7 +492,7 @@ export function useElementHoverInteraction({
             }
           }
 
-          // Frame body 자체는 root/body 후보로 수집되지 않는다. Frames tab
+          // Frame body 자체는 root/body 후보로 수집되지 않는다. Layouts tab
           // overview 의 빈 frame 영역 hover 는 rendered frame area 를 기준으로
           // body target 을 보강한다.
           if (!contextHitId) {

@@ -274,7 +274,7 @@ describe("LayoutsTab (ADR-111 P2-a PR-B baseline)", () => {
       expect(screen.getByText("Footer Frame")).toBeTruthy();
     });
 
-    it("Frames 탭 진입 시 선택 frame 이 없으면 첫 번째 frame body 를 자동 선택한다", async () => {
+    it("Layouts 탭 진입 시 선택 layout 이 없으면 첫 번째 layout body 를 자동 선택한다", async () => {
       mockLayoutsState.selectedReusableLayoutId = null;
       mockActiveCanonicalDocument.mockReturnValue({
         children: [

@@ -61,7 +61,7 @@
      끝나기를 기다린다 (`useEnterAnimation` / `useExitAnimation`). 위 스크롤 힌트는
      scroll-progress timeline 이라 `Animation.finished` 가 영원히 settle 되지 않는다 —
      그래서 빠지는 탭 패널이 unmount 되지 않고 `inert` 인 채로 화면에 남아 두 탭의 본문이
-     동시에 보였다 (Navigator Pages/Frames · Styles · DataTable · Monitor 전부).
+     동시에 보였다 (Navigator Pages/Layouts · Styles · DataTable · Monitor 전부).
 
      전환 중에는 힌트를 끈다: 페이드는 스크롤 위치를 알리는 장치라 마운트/언마운트 프레임에
      의미가 없고, `animation-name: none` 이면 `getAnimations()` 가 비어 RAC 가 그 프레임에
@@ -655,8 +655,7 @@
     }
 
     /* Select instances 의 수 배지 — 아이콘 옆 10 mono. 버튼 폭은 내용에 맞춘다. */
-    .component-semantics-strip
-      .control-button:has(.component-semantics-count) {
+    .component-semantics-strip .control-button:has(.component-semantics-count) {
       width: auto;
       padding: 0 var(--spacing-xs) 0 var(--spacing-xs);
     }

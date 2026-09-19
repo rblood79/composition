@@ -234,7 +234,7 @@ export interface OverlayBuildInput {
     height: number;
     elementCount: number;
   }>;
-  /** Frames 탭 multi-canvas overview 용 frame title 렌더 입력. */
+  /** Layouts 탭 multi-canvas overview 용 frame title 렌더 입력. */
   frameAreas?: FrameAreaGroup[];
   /**
    * ADR-212 Phase 6 — data binding 배지. resolver 는 store 를 아는 곳에서 조립해 주입한다

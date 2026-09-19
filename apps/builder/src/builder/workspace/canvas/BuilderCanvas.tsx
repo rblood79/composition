@@ -416,7 +416,7 @@ export function BuilderCanvas({
   const emptyFrameElementScopes = useMemo(() => new Map(), []);
   const frameElementScopes =
     canonicalSceneModel?.frameElementScopes ?? emptyFrameElementScopes;
-  // Frames tab overview: canvas 는 reusable frame 전체를 표시하고, 이 값은
+  // Layouts tab overview: canvas 는 reusable frame 전체를 표시하고, 이 값은
   // Node tree/properties 의 현재 frame 선택 동기화에 사용한다.
   const selectedReusableLayoutId = useSelectedReusableLayoutId();
   // ADR-074 Phase 4: aiGeneratingNodes/aiFlashAnimations/cleanupExpiredFlashes
