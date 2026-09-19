@@ -2,7 +2,23 @@
 
 ## Status
 
-Partial (2026-03-08) — Phase A+B+C 구현 완료 (TextEditOverlay + Quill + 멀티페이지 좌표 보정 + Spec 컴포넌트 텍스트 편집), Phase D (리치 텍스트) 미구현
+Partial (2026-09-20 재정의) — Phase A+B+C 구현 완료 (TextEditOverlay + Quill + 멀티페이지 좌표 보정 + 컴포넌트 텍스트 편집). **Phase D 는 2026-09-20 "리치 텍스트" 에서 "전환 무결성" 으로 재정의** (§Phase D) — Skia ↔ DOM 오버레이 전환이 이질감 없이 이뤄지는 것이 이 ADR 의 완료 조건이다. 리치 텍스트·툴바는 보류 (재개 조건: canonical 텍스트 모델 ADR 선행).
+
+### 2026-09-20 재점검 — 왜 멈췄고 무엇이 남았나
+
+- Phase C 마감 (`ce304764d`, 2026-03-08) 직후 ADR-029 가 "Skia→DOM 1~2px 점프" 를 원인 수리 대신 50ms 페이드로 가리는 것으로 닫았다. 그 페이드도 현재 코드에 없다 (`TextEditOverlay.tsx` opacity 0 → Quill 준비 후 즉시 1). 이후 ADR-192 편집 플래그 · ADR-923 텍스트 원천 키 · icon Button 자식 Text redirect 만 손댔고 **전환 품질은 3월 이후 변경 0**.
+- Phase C 근거의 "14개 Spec 지원 / `extractFullSpecTextStyle` spec 기반" 서술은 ADR-142/912 catalog 전환 후 사실과 다르다 — 현재 폰트 추출은 `resolveSkiaCatalogRenderInput` + `buildCatalogShapes` (catalog rule) 경로 (`specTextStyleForOverlay.ts`), 텍스트 원천 키는 ADR-923 r16 (`006a6c6f4`) 의 타입별 계약.
+
+#### Live Exercise (2026-09-20, Chrome MCP foreground · 프로젝트 `adr027-check` · 100% / 200%)
+
+| #   | 증상                                                                                                   | 재현                                                                                                                                                                           | 원인 (코드)                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A   | 편집 진입·타이핑 시 캔버스 전체가 옆으로 밀리고 종료 후에도 안 돌아옴                                  | 200% 에서 긴 Text 더블클릭 → `main.workspace` `scrollLeft` 1091.5, Escape 후 127.5 잔존 (scrollWidth−clientWidth 로 clamp). `scrollLeft = 0` 으로 되돌리면 캔버스가 127px 복귀 | `.workspace` 가 `overflow: hidden` — 브라우저의 focus / caret scrollIntoView 가 hidden 컨테이너를 프로그램적으로 스크롤한다. `quill.focus()` + nowrap 오버플로가 유발 |
+| B   | 여러 줄 텍스트가 편집 진입 순간 한 줄로 펴져 페이지 밖으로 넘침                                        | 390px Text 에 긴 문장 → Skia 3줄 (390×72) ↔ 오버레이 1줄 overflow                                                                                                              | `whiteSpace: nowrap`, Enter = 완료 — Skia paragraph 의 wrap 폭을 오버레이가 안 읽는다                                                                                 |
+| C   | 가운데 정렬 라벨이 편집 진입 시 왼쪽으로 ≈5.5px 이동                                                   | Button "Save" 68×30: Skia 중앙 ↔ DOM `.ql-editor` 폭 55 (auto) 이 flex-start 에 붙음                                                                                           | `textAlign: center` 는 있으나 editor 폭이 컨테이너 100% 가 아니다                                                                                                     |
+| D   | 100% 단일행 Text 는 y · lineHeight 일치 (53.0 / 24px), 200% 글리프 육안 동일 — 타입별 픽셀 측정은 없음 | —                                                                                                                                                                              | G1 "2px" 은 padding 근사 (`specTextStyleForOverlay.ts`) 의 잔여                                                                                                       |
+
+A 는 편집과 무관한 캔버스 변위 결함 (사용자-가시, 잔존). B·C 가 "전환 순간 형태가 바뀜" 의 직접 원인. 리치 텍스트·툴바는 이질감과 무관.
 
 ### Phase C 완료 근거 (2026-03-08)
 
@@ -289,21 +305,20 @@ interface TextEditingSlice {
 - 텍스트 변경 → `layoutVersion + 1` → Taffy 재계산 → DOM 오버레이 크기 업데이트
 - fit-content 요소: 텍스트 길이에 따라 요소 크기 변동 → 오버레이도 동기화
 
-### Phase D: 고급 기능 (장기)
+### Phase D: 전환 무결성 (2026-09-20 재정의 — 구 "고급 기능" 대체)
 
-#### D-1. 리치 텍스트 지원
+> 완료 조건: Skia 텍스트 ↔ DOM 오버레이 전환에서 **위치 · 줄 수 · 정렬 · 캔버스 뷰포트** 가 바뀌지 않는다. 리치 텍스트 (구 D-1) · 툴바 (구 D-3) 는 보류 — canonical 텍스트 prop 이 plain string 이라 데이터 모델 ADR 이 선행돼야 하며, 전환 이질감과 무관하다. 빈 텍스트 완료 시 노드 삭제 (Pencil 차이표) 는 이 ADR 범위 밖 (별도 항목).
 
-- Bold, Italic, 색상 등 인라인 스타일
-- Quill 또는 TipTap 같은 리치 텍스트 에디터 도입 검토
+| Phase               | 내용                                                                                                                                                                                                                            | 파일                                                | Gate                                                                                                                          |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| D0 캔버스 변위 차단 | `.workspace` `overflow: hidden → clip` (스크롤 컨테이너가 아니게 — 프로그램 스크롤 불가) + `quill.focus({ preventScroll: true })`                                                                                               | `Workspace.css`, `TextEditOverlay.tsx`              | G-D0: 진입 · 타이핑 · 완료 후 `main.workspace` `scrollLeft/Top === 0` (live) · 정적 가드 (`overflow: clip` · `preventScroll`) |
+| D1 wrap 파리티      | 오버레이 white-space 를 Skia 가 쓴 paragraph 입력 (maxWidth · wrap 여부) 에서 파생 — 고정폭 텍스트는 `pre-wrap` + 컨테이너 폭, fit-content 라벨은 nowrap 유지. 다중행 타입은 Enter = 줄바꿈, Cmd+Enter / Esc / 외부 클릭 = 완료 | `TextEditOverlay.tsx`, `useTextEdit.ts`             | G-D1: 3줄 문장에서 오버레이 줄 수 == Skia 줄 수, 줄 y ±1px                                                                    |
+| D2 정렬 파리티      | `.ql-editor` 폭 100% (center / right 정렬 정상화) · 수직은 Skia paragraph line metrics (baseline) 로 padding-top 산출 — spec padding 근사 대체                                                                                  | `TextEditOverlay.tsx`, `specTextStyleForOverlay.ts` | G-D2: 가운데 라벨 Δx ≤ 1px                                                                                                    |
+| D3 픽셀 게이트      | 타입별 (Text / Heading / Button / Badge / Link / TextArea) × 100 / 200% 줌, Skia 캡처 vs 편집 진입 캡처 diff 하니스 (ADR-198 하니스 폰트 비대칭 함정 재사용)                                                                    | `apps/builder/scripts/adr027-*.mjs`                 | G-D3: Δ ≤ 1px · 사용자 참관 live 1회                                                                                          |
 
-#### D-2. 멀티 라인 편집
+**결정 (2026-09-20)**: Enter 의미는 다중행 타입 (Text · Paragraph · TextArea 등 wrap 대상) 에서 줄바꿈, fit-content 라벨 (Button · Badge · Link) 에서는 완료 유지. 빈 텍스트 노드 삭제는 별도 항목.
 
-- 자동 높이 증가
-- 줄바꿈 + CSS text wrapping 속성 반영
-
-#### D-3. 텍스트 편집 툴바
-
-- 편집 중 플로팅 미니 툴바 (B/I/U, 정렬, 색상)
+**보류 (구 Phase D)**: D-1 리치 텍스트 (Bold / Italic / 색) · D-3 편집 툴바 — 재개 조건: canonical 텍스트 모델이 인라인 스타일 run 을 담는 ADR 이 Implemented 된 뒤.
 
 ---
 

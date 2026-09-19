@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-027 Phase D0 — 텍스트 편집 진입이 캔버스를 밀지 않는다] - 2026-09-20
+
+### Fixed
+
+- 캔버스 텍스트 더블클릭 편집에 들어가거나 타이핑하면 캔버스 전체가 옆으로 밀리고 편집을 끝내도 돌아오지 않던 결함 (200% 줌 긴 문장에서 `main.workspace` `scrollLeft` 1091 → 잔존 127.5) — `.workspace` 를 `overflow: hidden` 에서 `clip` 으로 (스크롤 컨테이너가 아니라 브라우저 focus / caret scrollIntoView 가 밀 수 없다) + Quill focus `preventScroll`. live 확인: 진입 · 캐럿이 뷰포트 밖 (x 2084 > 1797) 인 타이핑 · Escape 뒤 모두 scroll 0/0.
+
+### Changed
+
+- ADR-027 Phase D 를 "리치 텍스트 / 툴바" 에서 **"전환 무결성"** (D0 캔버스 변위 · D1 wrap 파리티 · D2 정렬 파리티 · D3 타입별 × 줌 픽셀 게이트) 으로 재정의. 리치 텍스트 · 툴바는 canonical 텍스트 모델 ADR 선행 조건으로 보류.
+
 ## [ADR-226 — 페이지 헤더 DOM 층 줌 LOD: 제스처 중 프레임 집합 동결 + 헤더 폭 티어] - 2026-09-19
 
 ### Added

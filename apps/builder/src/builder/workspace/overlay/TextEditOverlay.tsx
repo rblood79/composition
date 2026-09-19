@@ -249,10 +249,12 @@ export function TextEditOverlay({
     };
 
     // rAF 후 외부 클릭 리스너 등록 + 포커스 (Pencil 동일 패턴)
+    // preventScroll — 오버레이는 이미 요소 위에 있다. 브라우저의 focus scrollIntoView 가
+    // 조상 컨테이너를 밀면 캔버스가 변위된다 (ADR-027 D0).
     requestAnimationFrame(() => {
       if (container.parentElement) {
         document.addEventListener("mousedown", handleClickOutside);
-        quill.focus();
+        quill.focus({ preventScroll: true });
       }
     });
 

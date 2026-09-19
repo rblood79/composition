@@ -1,3 +1,6 @@
+/* `clip` — 스크롤 컨테이너가 아니어야 한다. `hidden` 은 사용자 스크롤만 막고 프로그램 스크롤
+   (focus / caret scrollIntoView) 은 허용해서, 텍스트 편집 진입 시 캔버스 전체가 옆으로 밀리고
+   종료 후에도 scrollLeft 가 남았다 (ADR-027 D0, 2026-09-20 live: 200% 줌 1091.5 → 잔존 127.5). */
 .workspace {
   position: relative;
   width: 100%;
@@ -5,7 +8,7 @@
   min-width: 0;
   min-height: 0;
   z-index: 0;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* Preview(iframe) 레그 — `.canvas` 는 breakpoint 상자 (390×844 등) 그대로 두고 pane 이 더
