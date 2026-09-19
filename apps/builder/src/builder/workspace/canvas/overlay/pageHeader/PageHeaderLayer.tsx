@@ -27,7 +27,12 @@ import { ActionIconButton } from "../../../../components/ui/ActionIconButton";
 import { useStore } from "../../../../stores";
 import { orderPagesForPaint } from "../../scene/pagePaintOrder";
 import { useViewportSyncStore } from "../../stores";
-import { PAGE_HEADER_HEIGHT, type PageHeaderFrame } from "./pageHeaderGeometry";
+import {
+  PAGE_HEADER_HEIGHT,
+  resolvePageHeaderLod,
+  type PageHeaderFrame,
+  type PageHeaderLod,
+} from "./pageHeaderGeometry";
 import { usePageHeaderPlacement } from "./usePageHeaderPlacement";
 import "./PageHeaderLayer.css";
 
@@ -235,6 +240,7 @@ export function PageHeaderLayer({
     >
       {ordered.map((frame) => {
         const active = frame.id === currentPageId;
+        const editing = frame.id === editingPageId;
         return (
           <PageHeaderItem
             key={frame.id}
@@ -242,7 +248,12 @@ export function PageHeaderLayer({
             title={frame.title ?? ""}
             active={active}
             highlighted={active && hasSelection}
-            editing={frame.id === editingPageId}
+            editing={editing}
+            // 티어 입력은 settle 스냅샷 (frames · zoom) 뿐 — 제스처 중 전환 0. 편집 중은
+            // 편집기 폭 확보를 위해 항상 full.
+            lod={
+              editing ? "full" : resolvePageHeaderLod(frame.width * settled.zoom)
+            }
             onRenameCommit={handleRenameCommit}
           />
         );
@@ -257,6 +268,8 @@ interface PageHeaderItemProps {
   active: boolean;
   highlighted: boolean;
   editing: boolean;
+  /** ADR-226 폭 티어 — compact 는 액션 버튼을 렌더하지 않는다 (CSS 숨김 아님, 노드 6 → 2). */
+  lod: PageHeaderLod;
   onRenameCommit: (pageId: string, value: string | null) => void;
 }
 
@@ -270,9 +283,11 @@ const PageHeaderItem = memo(function PageHeaderItem({
   active,
   highlighted,
   editing,
+  lod,
   onRenameCommit,
 }: PageHeaderItemProps) {
   const renameCancelRef = useRef(false);
+  const compact = lod === "compact";
   return (
     <div
       className="page-header"
@@ -281,6 +296,7 @@ const PageHeaderItem = memo(function PageHeaderItem({
       data-active={active || undefined}
       data-highlighted={highlighted || undefined}
       data-editing={editing || undefined}
+      data-lod={lod}
     >
       {editing ? (
         <input
@@ -310,26 +326,31 @@ const PageHeaderItem = memo(function PageHeaderItem({
       ) : (
         <>
           {/* 타이틀 앞 액션 — 뒤의 close 와 같은 어법·같은 20 상자.
-              동작은 보류 — onPress 는 의미가 확정되면 배선한다. */}
-          <ActionIconButton
-            aria-label={`Play ${title}`}
-            className={PAGE_HEADER_ACTION_CLASS}
-            tooltip="Play"
-          >
-            <Play aria-hidden="true" size={iconProps.size} />
-          </ActionIconButton>
+              동작은 보류 — onPress 는 의미가 확정되면 배선한다. compact 티어는 버튼 없이
+              타이틀 띠만 (배선 뒤 compact 노출 방식은 그 ADR 이 정한다 — ADR-226 R4). */}
+          {!compact && (
+            <ActionIconButton
+              aria-label={`Play ${title}`}
+              className={PAGE_HEADER_ACTION_CLASS}
+              tooltip="Play"
+            >
+              <Play aria-hidden="true" size={iconProps.size} />
+            </ActionIconButton>
+          )}
           <span className="page-header__title">{title}</span>
           {/* 패널 header-action 과 같은 어법 (ActionIconButton = action-icon-button).
               크기는 select/combobox 안 트리거와 같은 20 상자 (--text-xl) — 헤더 띠
               안에 박히는 버튼이라 그 범주를 따른다 (CSS 에서 --icon-control-size 재지정).
               동작은 보류 — onPress 는 close 의미가 확정되면 배선한다. */}
-          <ActionIconButton
-            aria-label={`Close ${title}`}
-            className={PAGE_HEADER_ACTION_CLASS}
-            tooltip="Close"
-          >
-            <X aria-hidden="true" size={iconProps.size} />
-          </ActionIconButton>
+          {!compact && (
+            <ActionIconButton
+              aria-label={`Close ${title}`}
+              className={PAGE_HEADER_ACTION_CLASS}
+              tooltip="Close"
+            >
+              <X aria-hidden="true" size={iconProps.size} />
+            </ActionIconButton>
+          )}
         </>
       )}
     </div>

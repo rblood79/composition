@@ -18,6 +18,20 @@ import type { PageFrame } from "../../skia/workflowRenderer";
 export const PAGE_HEADER_HEIGHT = 28;
 export const PAGE_HEADER_GAP = 8;
 
+/**
+ * ADR-226 Decision 2 — 헤더 폭 티어. 화면 폭 (페이지 폭 × settle zoom) 이 이 값 미만이면
+ * `compact` (액션 버튼 미렌더 · padding 축소). 값 = 안쪽 chrome ≈ 64 (padding ×2 + 버튼
+ * 20 ×2 + gap ×2) + 타이틀 최소 32. 현행 breakpoint × `minZoom` 0.1 = desktop 192 full ·
+ * tablet 76.8 · mobile 39 compact. hidden 티어 (< 24) 는 도달 불가라 두지 않는다 (Decision 3).
+ */
+export const PAGE_HEADER_COMPACT_MAX_WIDTH = 96;
+
+export type PageHeaderLod = "full" | "compact";
+
+export function resolvePageHeaderLod(screenWidth: number): PageHeaderLod {
+  return screenWidth < PAGE_HEADER_COMPACT_MAX_WIDTH ? "compact" : "full";
+}
+
 /** 헤더가 읽는 페이지 프레임 축 — Skia `PageFrame` 의 부분집합 (타입 복제 금지) */
 export type PageHeaderFrame = Pick<
   PageFrame,

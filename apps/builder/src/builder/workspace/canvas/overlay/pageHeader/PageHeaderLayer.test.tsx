@@ -20,7 +20,10 @@ vi.mock("../../../../stores", async () => {
 
 import { useStore as testStore } from "../../../../stores";
 
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { resetCanvasFramePresentation } from "../../canvasFramePresentation";
+import { useViewportSyncStore } from "../../stores";
 import { PageHeaderLayer, isPageHeaderEventTarget } from "./PageHeaderLayer";
 
 const frames = [
@@ -216,5 +219,111 @@ describe("PageHeaderLayer — 히트 (pointerdown · 이름 편집)", () => {
     const input = headerOf(layer, "p1").querySelector("input") as HTMLElement;
     fireEvent.pointerDown(input, { button: 0 });
     expect(onHeaderPointerDown).not.toHaveBeenCalled();
+  });
+});
+
+describe("PageHeaderLayer — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
+  const tierFrames = [
+    { id: "desktop", title: "Desktop", x: 0, y: 0, width: 1920, height: 1080 },
+    { id: "mobile", title: "Mobile", x: 3000, y: 0, width: 390, height: 844 },
+  ];
+  beforeEach(() => {
+    testStore.setState({ currentPageId: "desktop", selectedElementIds: [] });
+    resetCanvasFramePresentation();
+    useViewportSyncStore.getState().reset();
+  });
+  afterEach(() => {
+    cleanup();
+    useViewportSyncStore.getState().reset();
+  });
+
+  it("settle zoom 0.1: 1920 → full (버튼 2) · 390 → compact (버튼 0 · 타이틀 유지)", () => {
+    act(() =>
+      useViewportSyncStore
+        .getState()
+        .setViewportSnapshot({ zoom: 0.1, panOffset: { x: 0, y: 0 } }),
+    );
+    const { container } = render(<PageHeaderLayer frames={tierFrames} />);
+    const layer = container.firstElementChild as HTMLElement;
+    const desktop = headerOf(layer, "desktop");
+    const mobile = headerOf(layer, "mobile");
+    expect(desktop.dataset.lod).toBe("full");
+    expect(desktop.querySelectorAll(".page-header__action").length).toBe(2);
+    expect(mobile.dataset.lod).toBe("compact");
+    expect(mobile.querySelectorAll(".page-header__action").length).toBe(0);
+    expect(mobile.querySelector(".page-header__title")?.textContent).toBe(
+      "Mobile",
+    );
+
+    // zoom 0.3 → 117 px → full 복귀
+    act(() =>
+      useViewportSyncStore
+        .getState()
+        .setViewportSnapshot({ zoom: 0.3, panOffset: { x: 0, y: 0 } }),
+    );
+    expect(headerOf(layer, "mobile").dataset.lod).toBe("full");
+    expect(
+      headerOf(layer, "mobile").querySelectorAll(".page-header__action").length,
+    ).toBe(2);
+  });
+
+  it("제스처 중에는 zoom 미러가 바뀌어도 티어가 바뀌지 않는다 (settle 스냅샷)", () => {
+    const { container } = render(<PageHeaderLayer frames={tierFrames} />);
+    const layer = container.firstElementChild as HTMLElement;
+    expect(headerOf(layer, "mobile").dataset.lod).toBe("full");
+    act(() => useViewportSyncStore.getState().setCameraGestureActive(true));
+    // settle 순서: 카메라 미러 commit 이 gate-off 보다 먼저 온다 (reviews/226 l1)
+    act(() =>
+      useViewportSyncStore
+        .getState()
+        .setViewportSnapshot({ zoom: 0.1, panOffset: { x: 0, y: 0 } }),
+    );
+    expect(headerOf(layer, "mobile").dataset.lod).toBe("full");
+    act(() => useViewportSyncStore.getState().setCameraGestureActive(false));
+    expect(headerOf(layer, "mobile").dataset.lod).toBe("compact");
+  });
+
+  it("이름 편집 중인 헤더는 compact 폭에서도 full (편집기 폭 확보)", () => {
+    act(() =>
+      useViewportSyncStore
+        .getState()
+        .setViewportSnapshot({ zoom: 0.1, panOffset: { x: 0, y: 0 } }),
+    );
+    const { container } = render(
+      <PageHeaderLayer frames={tierFrames} onRenamePage={() => {}} />,
+    );
+    const layer = container.firstElementChild as HTMLElement;
+    expect(headerOf(layer, "mobile").dataset.lod).toBe("compact");
+    fireEvent.dblClick(headerOf(layer, "mobile"), { button: 0 });
+    const mobile = headerOf(layer, "mobile");
+    expect(mobile.hasAttribute("data-editing")).toBe(true);
+    expect(mobile.dataset.lod).toBe("full");
+    expect(mobile.querySelector("input")).not.toBeNull();
+    const input = mobile.querySelector("input") as HTMLInputElement;
+    fireEvent.keyDown(input, { key: "Escape" });
+    fireEvent.blur(input);
+    expect(headerOf(layer, "mobile").querySelector("input")).toBeNull();
+    expect(headerOf(layer, "mobile").dataset.lod).toBe("compact");
+  });
+
+  it("CSS 정적 계약 — 일반 타이틀 12px 600 · 편집 input 700 · compact 규칙은 padding/gap 만", async () => {
+    const css = await readFile(
+      resolve(__dirname, "PageHeaderLayer.css"),
+      "utf-8",
+    );
+    const base = css.match(/\n\.page-header \{[\s\S]*?\n\}/)?.[0] ?? "";
+    expect(base).toContain("font-size: 12px;");
+    expect(base).toContain("font-weight: 600;");
+    const input =
+      css.match(/\.page-header \.page-title-edit-input \{[\s\S]*?\n\}/)?.[0] ??
+      "";
+    expect(input).toContain("font-weight: 700;");
+    const compact =
+      css.match(/\.page-header\[data-lod="compact"\] \{[\s\S]*?\n\}/)?.[0] ??
+      "";
+    expect(compact).not.toBe("");
+    expect(compact).toContain("--page-header-padding-x: 2px;");
+    expect(compact).toContain("gap: 0;");
+    expect(compact).not.toMatch(/font-(size|weight)/);
   });
 });

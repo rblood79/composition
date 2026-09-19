@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  PAGE_HEADER_COMPACT_MAX_WIDTH,
+  resolvePageHeaderLod,
   headerClipPath,
   headerTransform,
   isRectInViewport,
@@ -157,5 +159,21 @@ describe("headerClipPath / transform / viewport", () => {
     expect(isRectInViewport({ ...header, left: 1000 }, viewport)).toBe(false);
     expect(isRectInViewport({ ...header, top: -28 }, viewport)).toBe(false);
     expect(isRectInViewport({ ...header, top: -27 }, viewport)).toBe(true);
+  });
+});
+
+describe("resolvePageHeaderLod — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
+  it("chrome (≈64) + 타이틀 최소 32 = 96 px 미만이면 compact, 이상이면 full", () => {
+    expect(PAGE_HEADER_COMPACT_MAX_WIDTH).toBe(96);
+    expect(resolvePageHeaderLod(96)).toBe("full");
+    expect(resolvePageHeaderLod(95.99)).toBe("compact");
+    expect(resolvePageHeaderLod(0)).toBe("compact");
+  });
+
+  it("breakpoint × minZoom 0.1 — desktop 192 full · tablet 76.8 · mobile 39 compact", () => {
+    expect(resolvePageHeaderLod(1920 * 0.1)).toBe("full");
+    expect(resolvePageHeaderLod(768 * 0.1)).toBe("compact");
+    expect(resolvePageHeaderLod(390 * 0.1)).toBe("compact");
+    expect(resolvePageHeaderLod(390 * 0.3)).toBe("full");
   });
 });

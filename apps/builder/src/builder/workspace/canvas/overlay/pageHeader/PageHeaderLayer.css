@@ -92,6 +92,14 @@
   background: color-mix(in srgb, var(--focus-ring) 18%, transparent);
 }
 
+/* ADR-226 폭 티어 — 화면 폭 < 96px (tablet · mobile 저줌) 이면 액션 버튼을 렌더하지
+   않고 (PageHeaderLayer.tsx) 안쪽 여백만 줄여 타이틀 띠로 남긴다. 타이포그래피 · 색 ·
+   상태 규칙 (highlighted / active / editing) 은 티어 무관 — 여기서 재정의하지 않는다. */
+.page-header[data-lod="compact"] {
+  --page-header-padding-x: 2px;
+  gap: 0;
+}
+
 .page-header__title {
   /* 남는 폭을 차지해 액션 버튼을 우측으로 민다. flex 자식의 생략부호에는 min-width:0 필수 */
   flex: 1 1 auto;
