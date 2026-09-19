@@ -406,7 +406,12 @@ export async function openPanels(page, names) {
 // 결정적 시드: 현재 페이지에 Text/frame 을 격자로 추가 + 페이지 셸 pageCount 장 (기본 2).
 // 5k fixture는 단일 addElement 반복의 전체 문서 persist O(n²) 비용을 피하려고
 // production addComplexElement action으로 한 번에 merge/store/reindex/persist한다.
-export async function seedDocument(page, seedCount, fixtureKind, pageCount = 2) {
+export async function seedDocument(
+  page,
+  seedCount,
+  fixtureKind,
+  pageCount = 2,
+) {
   return page.evaluate(
     async ({ seedCount, fixtureKind, pageCount }) => {
       const store = window.__composition_STORE__;
@@ -1562,7 +1567,12 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
 // 드라이버 — 각각 durationMs 동안 동작. 휠은 canvas 에 dispatch (실핸들러 경로, 메모리
 // project-frame-drop-map-5k-baseline: 선택이 있으면 Phase E 가 휠을 scrollBy 로 삼킨다 →
 // 팬/줌 전 clearSelection). 포인터 경로 (패널 리사이즈) 는 Playwright mouse.
-export const wheelBurst = (page, durationMs, initFactory, fixedInputs = false) =>
+export const wheelBurst = (
+  page,
+  durationMs,
+  initFactory,
+  fixedInputs = false,
+) =>
   page.evaluate(
     async ({ durationMs, initFactorySrc, fixedInputs }) => {
       const initFactory = new Function("i", initFactorySrc);
