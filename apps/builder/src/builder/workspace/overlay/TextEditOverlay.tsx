@@ -17,7 +17,9 @@ import "quill/dist/quill.core.css";
 import { getSceneBounds, subscribeBounds } from "../canvas/skia/renderCommands";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { notifyLayoutChange } from "../canvas/skia/useSkiaNode";
+import { resolveTextGlyphOrigin } from "../canvas/skia/textDrawOrigin";
 import type { OverlayWrap } from "./overlayWrap";
+import { resolveOverlayNudge } from "./overlayNudge";
 
 // ============================================
 // Types
@@ -203,6 +205,39 @@ export function TextEditOverlay({
     quill.setText(initialValue, "api");
     quill.setSelection(initialValue.length, 0);
     quill.history.clear();
+
+    // ADR-027 D2 — 첫 줄 상자를 Skia 가 마지막 프레임에 그린 element-local 원점으로 옮긴다.
+    // Skia 텍스트가 아직 보이는 (숨기기 전) 시점의 기록이라 같은 상태의 짝이다. 측정은
+    // 컨테이너 기준 · zoom 전 좌표 (컨테이너가 scale(zoom) 이라 rect 를 zoom 으로 나눈다).
+    {
+      const z = zoomRef.current || 1;
+      const containerRect = container.getBoundingClientRect();
+      // x 는 글리프끼리 (Skia 는 paragraph 원점 + 첫 줄 left, DOM 은 첫 run rect) — center /
+      // right 정렬은 상자 폭이 달라도 글리프 자리가 기준이다. y 는 첫 line box (<p>) top.
+      const firstLine = root.querySelector("p");
+      const lineRect = firstLine?.getBoundingClientRect();
+      let textLeft: number | null = null;
+      if (firstLine?.firstChild && initialValue) {
+        const range = document.createRange();
+        range.selectNodeContents(firstLine);
+        const glyphRect = range.getClientRects()[0];
+        if (glyphRect) textLeft = (glyphRect.left - containerRect.left) / z;
+      }
+      const nudge = lineRect
+        ? resolveOverlayNudge(resolveTextGlyphOrigin(elementId), {
+            textLeft,
+            lineTop: (lineRect.top - containerRect.top) / z,
+          })
+        : null;
+      if (nudge && (nudge.dx !== 0 || nudge.dy !== 0)) {
+        root.style.position = "relative";
+        root.style.left = `${nudge.dx}px`;
+        root.style.top = `${nudge.dy}px`;
+      }
+      container.dataset.textEditNudge = nudge
+        ? `${nudge.dx},${nudge.dy}`
+        : "none";
+    }
 
     // DOM 오버레이 준비 완료 → Skia 텍스트 숨김 + 오버레이 즉시 표시 (깜빡임 방지)
     setEditingElementId(elementId);

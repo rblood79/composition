@@ -149,13 +149,19 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
   };
 }
 
+/** 텍스트를 그린 노드-로컬 원점 — ADR-027 D2 오버레이 정렬용 (executor 가 element-local 로 환산). */
+export interface TextDrawPoint {
+  drawX: number;
+  drawY: number;
+}
+
 export function renderText(
   ck: CanvasKit,
   canvas: Canvas,
   node: SkiaNodeData,
   fontMgr: FontMgr,
-): void {
-  if (!node.text) return;
+): TextDrawPoint | undefined {
+  if (!node.text) return undefined;
 
   // fontMgr 교체 시 일괄 clear 는 없다 — retained entry 가 생성 시점 fontMgr 을
   // 들고 있어 resolveRetainedParagraph 가 per-entry 로 무효 판정 + 지연 폐기한다.
@@ -386,7 +392,7 @@ export function renderText(
     const drawX = node.text.paddingLeft + textIndent + retained.alignOffset;
     renderTextShadows(retained.paragraph, drawX, drawY);
     drawTextWithPresentationColor(retained.paragraph, drawX, drawY);
-    return;
+    return { drawX, drawY };
   }
   if (PARAGRAPH_METRICS_DEV) getCacheMetrics("paragraph").recordMiss();
 
@@ -754,6 +760,7 @@ export function renderText(
     if (shouldClip) {
       canvas.restore();
     }
+    return { drawX, drawY };
   } finally {
     scope.dispose();
   }

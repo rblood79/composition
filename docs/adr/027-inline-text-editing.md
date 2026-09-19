@@ -24,6 +24,7 @@ A 는 편집과 무관한 캔버스 변위 결함 (사용자-가시, 잔존). B�
 
 - D0 (`bdd55079d`, 200% 줌 긴 Text): 진입 0/0 · 캐럿이 뷰포트 밖 (x 2084 > 1797) 인 타이핑 0/0 · Escape 뒤 0/0, 캔버스 위치 불변 → **A 종결**.
 - D1 (100% 줌): 390px Text 긴 문장 — Skia 3줄 (390×72) ↔ 오버레이 `pre-wrap` 3줄, 같은 위치에서 줄바꿈, 줄 pitch 24 == 24, 편집기 높이 72 == 72 · `whiteSpace: normal` 에서 Enter = 완료 유지 · Button "Save" 편집기 폭 68 == 컨테이너, 텍스트 중심 Δx 0 (종전 ≈5.5) · fit-content 라벨에 " Changes Now" 타이핑 → 상자 68 → 150 한 줄, wrap 0 → **B·C 종결**. Enter 결정 정정: 줄바꿈은 `\n` 을 두 consumer 가 같이 그리는 pre 계열 white-space 에서만 (normal 은 CSS 가 접고 Skia 는 그려 갈린다 — D3 대칭).
+- D2 (100% 줌): Skia executor 가 마지막 프레임의 텍스트 draw 원점을 element-local 로 기록 (`recordTextDrawOrigin`, record 프레임은 base 가 element-local) 하고, 오버레이가 진입 시점에 첫 글리프 (paragraph 원점 + 첫 줄 `left`, 보유 paragraph `peekRetainedParagraph`) ↔ DOM 첫 run rect · 첫 line box top 을 재어 root 의 relative 오프셋으로 둔다 (`overlayNudge.ts`, 한도 8px). 실측 nudge — 일반 Text 0/0 · center + border 2 + padding 38 Text 0/0 · Button "Save" −0.52/−0.1 (전부 1px 미만, 육안 동일) → **D 종결**. 함정: 상자 left 끼리 비교하면 center 정렬이 반대로 밀린다 (글리프 left −3.66 · Skia 상자 42 vs DOM 44 → dx 1) — 글리프끼리 비교가 정답.
 
 ### Phase C 완료 근거 (2026-03-08)
 

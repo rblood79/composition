@@ -43,6 +43,7 @@ import {
   renderScrollbar,
   buildClipPath,
   getEditingElementId,
+  recordTextDrawOrigin,
 } from "./nodeRenderers";
 import {
   beginRenderEffects,
@@ -2073,6 +2074,8 @@ function executeCommandRange(
   pageRootPageIds?: ReadonlyMap<string, string>,
   pagePositionSnapshot?: PagePositionPresentationSnapshot,
   options: RenderCommandExecutionOptions = {},
+  /** record 프레임 (self span 은 element 의 BEGIN 을 뺀 구간) 의 elementId 스택 base. */
+  rootElementId = "",
 ): void {
   const cullLeft = cullingBounds.x;
   const cullTop = cullingBounds.y;
@@ -2084,9 +2087,13 @@ function executeCommandRange(
   let stackTop = 0;
 
   // 현재 요소 ID 스택 (편집 중 텍스트 숨김용)
-  const elementIdStack: string[] = [""];
+  const elementIdStack: string[] = [rootElementId];
   let eidTop = 0;
   const editingId = getEditingElementId();
+  // 요소 원점 스택 (elementIdStack 과 같은 층) — 텍스트 draw 원점을 element-local 로 환산
+  // (ADR-027 D2). 실제 요소의 BEGIN 에서 그 translate 를 잡고 내부 자식은 물려받는다.
+  // record 프레임은 base (0,0) 이 이미 element-local 이다.
+  const elementOriginStack: Array<{ x: number; y: number }> = [{ x: 0, y: 0 }];
 
   // 비가시 요소 스킵 카운터
   let skipDepth = 0;
@@ -2193,6 +2200,9 @@ function executeCommandRange(
             y: parentPos.y + cmd.y + doy,
           };
         }
+        elementOriginStack[eidTop] = cmd.elementId
+          ? translateStack[stackTop]
+          : elementOriginStack[eidTop - 1];
 
         canvas.save();
         // position: fixed — camera 역보정 인프라 (TODO: cameraX/Y 파라미터 수신 후 활성화)
@@ -2373,8 +2383,21 @@ function executeCommandRange(
           case "text":
             if (cmd.skiaData.box) renderBox(ck, canvas, cmd.skiaData);
             // Pencil hideText: 편집 중인 요소의 텍스트만 숨김 (배경/보더 유지)
-            if (fontMgr && !(editingId && elementIdStack[eidTop] === editingId))
-              renderText(ck, canvas, cmd.skiaData, fontMgr);
+            if (
+              fontMgr &&
+              !(editingId && elementIdStack[eidTop] === editingId)
+            ) {
+              const drawn = renderText(ck, canvas, cmd.skiaData, fontMgr);
+              if (drawn) {
+                const at = translateStack[stackTop];
+                const origin = elementOriginStack[eidTop];
+                recordTextDrawOrigin(
+                  elementIdStack[eidTop],
+                  at.x - origin.x + drawn.drawX,
+                  at.y - origin.y + drawn.drawY,
+                );
+              }
+            }
             break;
           case "image":
             renderImage(ck, canvas, cmd.skiaData);
@@ -2578,6 +2601,10 @@ function recordSelfSpan(
       RECORD_BOUNDS,
       fontMgr,
       undefined,
+      undefined,
+      undefined,
+      {},
+      elementId,
     );
     return recorder.finishRecordingAsPicture() ?? null;
   } catch (e) {

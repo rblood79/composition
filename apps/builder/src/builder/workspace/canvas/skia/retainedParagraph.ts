@@ -162,3 +162,14 @@ export function releaseParagraphsIn(node: SkiaNodeData): void {
 export function getRetainedParagraphCount(): number {
   return retainedCount;
 }
+
+/**
+ * 노드가 지금 보유한 paragraph 를 검사 없이 돌려준다 — 텍스트 편집 오버레이가 진입 시점의
+ * 첫 줄 metrics (ADR-027 D2) 를 읽는 용도. 키·fontMgr 검사를 하지 않으므로 무효 판정·폐기가
+ * 일어나지 않는다 (렌더 경로는 `resolveRetainedParagraph`).
+ */
+export function peekRetainedParagraph(
+  node: SkiaNodeData,
+): Paragraph | undefined {
+  return slotOf(node)[PARAGRAPH_SLOT]?.paragraph;
+}

@@ -14,6 +14,7 @@ import { requestCanvasFrame } from "./frameScheduler";
  */
 
 import type { SkiaNodeData } from "./nodeRenderers";
+import { getTextDrawOrigin } from "./nodeRendererState";
 import { getTextParagraphCacheKey } from "./textParagraphKey";
 import { recordInvalidation } from "./renderInvalidation";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
@@ -116,5 +117,7 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
     getSkiaNode,
     getSkiaRegistrySize,
     getTextParagraphCacheKey,
+    // ADR-027 D2 — 마지막 프레임의 텍스트 draw 원점 (element-local). 오버레이 정렬 하니스용.
+    getTextDrawOrigin,
   };
 }

@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-027 Phase D0·D1 — 텍스트 편집 진입이 캔버스를 밀지 않고, 줄바꿈·정렬이 Skia 와 같다] - 2026-09-20
+## [ADR-027 Phase D0~D2 — 텍스트 편집 진입이 캔버스를 밀지 않고, 줄바꿈·정렬·첫 줄 자리가 Skia 와 같다] - 2026-09-20
 
 ### Fixed
+
+- 편집 진입 시 첫 줄이 Skia 가 그린 자리와 1px 안팎 어긋나던 잔여 (ADR-027 G1 "2px") — Skia 가 마지막 프레임에 텍스트를 그린 element-local 원점 (paragraph 원점 + 첫 줄 left) 을 기록하고 편집기가 DOM 첫 글리프·첫 line box 와의 차를 relative 오프셋으로 둔다 (한도 8px). live: 일반 Text 0/0 · center+border+padding Text 0/0 · Button 라벨 −0.52/−0.1.
 
 - 여러 줄로 그려진 텍스트 (390px Text 에 긴 문장 = Skia 3줄) 를 더블클릭하면 편집기가 한 줄로 펴져 페이지 밖으로 넘치던 결함 — 편집기 white-space 를 Skia 가 paragraph 에 넘긴 입력 (`whiteSpace` · `wordBreak` · `overflowWrap`) 에서 파생 (`overlayWrap.ts`), 편집기 폭 = 요소 폭. live: 같은 자리에서 3줄, 줄 pitch 24 == 24, 높이 72 == 72.
 - 가운데 정렬 라벨 (Button "Save") 이 편집 진입 시 왼쪽으로 ≈5.5px 이동하던 결함 — 편집기 폭 auto → 100%. live: 텍스트 중심 Δx 0, fit-content 라벨 타이핑 시 상자 68 → 150 한 줄.
