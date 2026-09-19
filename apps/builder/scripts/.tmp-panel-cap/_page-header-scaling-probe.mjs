@@ -154,15 +154,29 @@ async function main() {
     result.panVerticalMutations = await page.evaluate(() => window.__hdrObs.stop());
     process.stderr.write(`[pan-v] mut ${JSON.stringify(result.panVerticalMutations)}\n`);
 
-    // (c) 페이지 드래그 — 첫 페이지 헤더를 잡고 좌우 왕복
-    await page.waitForTimeout(600);
-    const box = await page.evaluate((homeId) => {
-      const el = document.querySelector(`.page-header[data-page-id="${homeId}"] .page-header__title`) ?? document.querySelector(`.page-header[data-page-id="${homeId}"]`);
-      if (!el) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height };
-    }, seed.homePageId);
-    if (!box) throw new Error("home page header 없음");
+    // (c) 페이지 드래그 — 카메라를 시작 상태로 되돌린 뒤 첫 페이지 헤더를 잡고 좌우 왕복
+    await page.evaluate(async (scale) => {
+      window.__composition_APPLY_VIEWPORT__({ scale, x: 40, y: 80 });
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }, zoom ?? 1);
+    await page.waitForTimeout(800);
+    const box = await page.evaluate(() => {
+      // 떠 있는 패널 아래 헤더는 히트가 안 된다 — elementFromPoint 가 자기 자신인 첫 헤더를 고른다
+      for (const el of document.querySelectorAll(".page-header")) {
+        const title = el.querySelector(".page-header__title");
+        if (!title) continue;
+        const r = title.getBoundingClientRect();
+        if (r.width < 4) continue;
+        const x = r.left + Math.min(r.width / 2, 12);
+        const y = r.top + r.height / 2;
+        const hit = document.elementFromPoint(x, y);
+        if (hit === title)
+          return { x, y, w: r.width, h: r.height, pageId: el.getAttribute("data-page-id"), hit: `${hit.tagName.toLowerCase()}.${hit.className}` };
+      }
+      return null;
+    });
+    if (!box) throw new Error("히트 가능한 page header 없음");
+    process.stderr.write(`[drag-target] ${JSON.stringify(box)}\n`);
     await page.evaluate(() => window.__hdrObs.start());
     await page.mouse.move(box.x, box.y);
     await page.evaluate((o) => window.__perfRecorder.start(o), { profile: true, instrumentation: "on" });

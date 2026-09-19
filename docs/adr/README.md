@@ -15,6 +15,8 @@
 
 > **2026-09-18 ADR-224 Proposed 개정**: 기존 Size 격자·한 상자 입력 유지, Fill 전용 축별 가중치만 저장, Ratio 종속 축 계약 명시, 자동 복원 기록 제외. Round 1 설계 수리 반영. 열림 8 (Proposed 6 · Accepted 1 · 부분 1), 합계 251. 제품 gate는 UNVERIFIED.
 
+> **2026-09-19 ADR-226 Proposed**: 페이지 헤더 DOM 층 줌 LOD — 제스처 중 프레임 집합 동결 (mount/unmount 0) + 헤더 폭 티어 (`< 96 px` compact · 미배선 액션 버튼 미렌더). 연구 문서 PAGE_HEADER_DOM_LAYER_SCALING §4-1 실측 (200p · 줌 0.1 pan 3 s childList 200/240 · V 상한 60) 의 실행 ADR. 줌 임계 미마운트 (A) 기각 · 개수 cap (D) 유보. 열림 8 (Proposed 5 · Accepted 2 · 부분 1), 합계 253.
+
 > **2026-09-19 ADR-224 Implemented**: 의도 기반 크기 편집 — G5 소유자 확인 (foreground Chrome MCP, 사용자 참관: Fill 채움 · 1:2 배분 120/214 CSS=Canvas · Ratio 잠금→16:9→해제 180px · Min 350 / Max 300 차단) 으로 마지막 gate 닫힘. Accepted (09-18) 의 자동 gate G0~G4·G6 (통합 headed 41/41 · parity 69/69 · Rust 427 · G6 A/B 4/4) 은 그대로. 완료 표로 이동.
 >
 > **2026-09-19 ADR-225 Implemented (같은 날)**: 재사용 레이아웃 어휘 정렬 — Accepted → `/execute-adr 225` Phase 0~~4 / G0~~G6 종결. Navigator `LayoutsTab/LayoutList/LayoutElementTree` · `reusableLayoutStore` / `reusableLayoutActions` facade · section id `navigator-layouts/-layout-layers` (구 id hydration 승계) · `.layout-tree` · Properties `Layout / Apply Layout / No Layout / Remove Layout` + ko/en key (formatted `properties.usingLayout`) · ratchet `adr225VocabularyRatchet.static.test.ts`. canonical `FrameNode` · Pencil · page binding adapter 변경 0. live 13/13 (headed Playwright · ko-KR 포함). 열림 7 (Proposed 4 · Accepted 2 · 부분 1), 완료 244, 합계 252.
@@ -34,11 +36,11 @@
 | ├ Accepted                    |      13 |
 | ├ Superseded                  |      14 |
 | └ Deprecated                  |       9 |
-| 열려 있는 것 (`adr/*.md`)     |       6 |
-| ├ Proposed                    |       4 |
+| 열려 있는 것 (`adr/*.md`)     |       7 |
+| ├ Proposed                    |       5 |
 | ├ Accepted (미착수·일부 착수) |       1 |
 | └ 부분 완료                   |       1 |
-| **합계**                      | **252** |
+| **합계**                      | **253** |
 
 `completed/` 에는 ADR 외에 Phase 0 baseline 4건과 참조 자료 1건이 함께 있다 (완료 절 끝 참조).
 `adr/` 직속에는 ADR 이 아닌 레퍼런스 1건 (`react-skia-zustand-frame-performance-design.md`) 이 있다.
@@ -78,6 +80,12 @@
 - **상태**: Proposed
 - **규모**: **2026-08-26 기준선 갱신 필요** — 187~190 이후 §6-2 파일 대량 변경, Phase 0 재freeze. OpenPencil v0.8.4의 derived scene/shared backend 구조를 architecture reference로 채택하되 `CompositionDocument` SSOT와 현행 CanvasKit oracle을 보존하는 contract-first hybrid. Phase 0~~3 = baseline freeze → renderer-neutral snapshot/reference compiler → CanvasKit adapter dual-run → production cutover. Rust compiler/native/read-only SDK는 측정·제품 trigger와 별도 승인 후 조건부. R1~~R5/R7 HIGH를 G0~~G6으로 관리. design breakdown `design/921-render-scene-backend-integration-breakdown.md`
 - **우선순위**: **P1**
+
+#### [226](226-page-header-zoom-lod.md) — 페이지 헤더 DOM 층 줌 LOD — 제스처 중 프레임 집합 동결 + 헤더 폭 티어
+
+- **상태**: Proposed (2026-09-19)
+- **규모**: ADR-221 층의 부하 정책 2 규칙 추가 — ① `cameraGestureActive` 동안 층 컴포넌트가 `frames` 갱신을 무시 (제스처 중 mount/unmount 0, gate-off 1회 반영) ② `frame.width × settleZoom < 96 px` 면 `compact` (액션 버튼 미렌더 · 편집 중 full). hidden 티어 · 개수 cap 은 재개 조건 (minZoom 인하 / V ≥ 150 실측) 으로 유보. Phase 0~~3 / G0~~G4, R1 settle 스파이크 (G2 max ≤ 25 ms). 파일 ≤ 10. [구현 설계](design/226-page-header-zoom-lod-breakdown.md)
+- **우선순위**: MEDIUM (깨지는 시나리오 없음 · 누적선) — 사용자 착수 판단
 
 ### 부분 완료
 
@@ -121,6 +129,7 @@
 
 | 순위 | ADR                                                                                                                                                                                                                                              | 착수 준비도                                                                                                                                             | 차단 · 선행                                                                                                                                                       |
 | :--: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|  1   | [226](226-page-header-zoom-lod.md)                                                                                                                                                                                                               | Proposed (2026-09-19) · 리뷰 미실시 · 선행 ADR-221 Implemented · 코드 사실 F1~~F11 실측 · 계측 하니스 준비됨                                            | 없음 — 파일 ≤ 10, D1/D2/D3 밖 (빌더 chrome). 리뷰 round 1 후 `/execute-adr 226`                                                                                   |
 |  2   | [150](150-rac-pencil-residual-interaction-execution.md) (A3)                                                                                                                                                                                     | Accepted · A1 철회(2026-07-20 D1/D3 경계 재판정) · A2 delivered(ListBox/GridList/Table, 07-19~~20) · A3 미착수                                          | A2 **시각 최종 확인 (실제 canvas 60fps 스크롤) 이 07-19 부터 사용자 foreground 대기** → ADR-148 Phase 4 `canvasSceneNode` 표면 재실측 → A3. 세션 단독으로 못 연다 |
 |  3   | [162](162-gridlist-template-subtree-projection.md)                                                                                                                                                                                               | round 1 이슈 2건 fixed. 선행 의존 ADR-159 P1/P4 는 **Implemented 로 해소**                                                                              | R1 HIGH(카드 높이 formula→실측 전환) 잔존 — Phase 0 재실측 필요. 150 A2 의 GridList stride 와 같은 카드 높이 축을 건드리므로 **150 A2 확정 후** 착수              |
 |  5   | [921](921-render-scene-backend-integration.md)                                                                                                                                                                                                   | round 1 LOW 3건 fixed이나 **Phase 0 baseline 재freeze 선행 필요** (187~~190 이후 §6-2 파일 대량 변경 + 09 월 206·209~~219 로 Skia 파이프라인 추가 변경) | 재freeze 전 착수 금지 — 재freeze 비용이 6건 중 가장 큼                                                                                                            |
