@@ -120,7 +120,7 @@ import {
 import type { TintPreset } from "../../utils/theme/tintToSkiaColors";
 import { useUiStore } from "../../stores/uiStore";
 import { getDB } from "../../lib/db";
-import { getCanonicalReusableFrameLayouts } from "../stores/canonical/canonicalFrameStore";
+import { getCanonicalReusableLayouts } from "../stores/canonical/reusableLayoutStore";
 import { getProjectVariableDefinitions, useDataStore } from "../stores/data";
 import { useExecutionPolicyScheduler } from "../panels/datatable/hooks/useExecutionPolicyScheduler";
 import { resolveCollectionByName } from "@composition/shared";
@@ -277,7 +277,7 @@ export const BuilderCore: React.FC = () => {
         return {
           elements: getCanonicalOrBootstrapBuilderElements(state),
           pages: state.pages,
-          layouts: getCanonicalReusableFrameLayouts(),
+          layouts: getCanonicalReusableLayouts(),
         };
       },
       getCurrentProjectId: () => projectId ?? null,

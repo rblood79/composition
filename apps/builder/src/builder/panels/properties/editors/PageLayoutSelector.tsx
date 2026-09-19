@@ -3,6 +3,7 @@
  *
  * ADR-903 P3-C: page 의 layout 연결 → page 노드의 reusable frame ref 선택 UI.
  * ADR-111 direct cutover: canonical reusable FrameNode read path.
+ * ADR-225: 사용자 문구는 Layout, binding 아래 저장 계약은 FrameNode ref 그대로.
  *
  * - active canonical document 의 reusable FrameNode 기반 layout surface 사용
  */
@@ -11,7 +12,8 @@ import { memo, useMemo, useCallback } from "react";
 import { Layout, X } from "lucide-react";
 import { PropertySelect, PropertySection } from "../../../components";
 import { readImmediateSelectionSnapshot, useStore } from "../../../stores";
-import { useCanonicalReusableFrameLayouts } from "../../../stores/canonical/canonicalFrameStore";
+import { useCanonicalReusableLayouts } from "../../../stores/canonical/reusableLayoutStore";
+import { translateKey, useOptionalI18n } from "../../../../i18n";
 import { iconEditProps } from "../../../../utils/ui/uiConstants";
 import {
   applyPageFrameBindingExplicit,
@@ -31,11 +33,17 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
   bindingMode = "selection",
   contextReason = "page-layout-selector",
 }: PageLayoutSelectorProps) {
+  const i18n = useOptionalI18n();
+  const t = useCallback(
+    (key: string, params?: Record<string, string | number | boolean>) =>
+      i18n ? i18n.t(key, params) : key,
+    [i18n],
+  );
   const page = useStore((state) => state.pages.find((p) => p.id === pageId));
-  const layouts = useCanonicalReusableFrameLayouts();
+  const layouts = useCanonicalReusableLayouts();
 
-  // ADR-116 projection 제거: FramesTab 과 동일하게 active canonical document 를 사용.
-  const reusableFrames = useMemo<
+  // ADR-116 projection 제거: LayoutsTab 과 동일하게 active canonical document 를 사용.
+  const reusableLayouts = useMemo<
     ReadonlyArray<{ id: string; name: string; description?: string }>
   >(() => {
     return layouts.map((layout) => ({
@@ -45,29 +53,30 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
     }));
   }, [layouts]);
 
-  const selectedFrameId = getPageFrameBindingId(page);
+  const selectedLayoutId = getPageFrameBindingId(page);
   const currentLayout = useMemo(
-    () => reusableFrames.find((f) => f.id === selectedFrameId),
-    [reusableFrames, selectedFrameId],
+    () => reusableLayouts.find((layout) => layout.id === selectedLayoutId),
+    [reusableLayouts, selectedLayoutId],
   );
 
+  // "No Layout" 은 PropertySelect 의 semanticLabelKeys 경로로 번역된다 (labels.ts).
   const layoutOptions = useMemo(() => {
-    const options = [{ value: "", label: "No Frame" }];
-    reusableFrames.forEach((frame) => {
-      options.push({ value: frame.id, label: frame.name });
+    const options = [{ value: "", label: "No Layout" }];
+    reusableLayouts.forEach((layout) => {
+      options.push({ value: layout.id, label: layout.name });
     });
     return options;
-  }, [reusableFrames]);
+  }, [reusableLayouts]);
 
   const handleLayoutChange = useCallback(
-    async (frameId: string) => {
+    async (layoutId: string) => {
       try {
         const state = useStore.getState();
         if (bindingMode === "explicit") {
           await applyPageFrameBindingExplicit({
             pageId,
             contextReason,
-            frameId: frameId || null,
+            frameId: layoutId || null,
             getElementsState: () => useStore.getState(),
             setPages: state.setPages,
           });
@@ -77,7 +86,7 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
         const snapshot = readImmediateSelectionSnapshot();
         await applyPageFrameBindingFromSelection({
           snapshot,
-          frameId: frameId || null,
+          frameId: layoutId || null,
           getElementsState: () => useStore.getState(),
           setPages: state.setPages,
         });
@@ -91,20 +100,29 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
     [bindingMode, contextReason, pageId],
   );
 
-  if (reusableFrames.length === 0) return null;
+  if (reusableLayouts.length === 0) return null;
 
   return (
-    <PropertySection title="Frame">
+    <PropertySection title="Layout">
       <PropertySelect
-        label="Apply Frame"
-        value={selectedFrameId}
+        label="Apply Layout"
+        value={selectedLayoutId}
         onChange={handleLayoutChange}
         options={layoutOptions}
         icon={Layout}
         description={
           currentLayout
-            ? `Using "${currentLayout.name}" frame`
-            : "Select a reusable frame for this page"
+            ? translateKey(
+                t,
+                "properties.usingLayout",
+                `Using "${currentLayout.name}" layout`,
+                { name: currentLayout.name },
+              )
+            : translateKey(
+                t,
+                "properties.selectReusableLayout",
+                "Select a reusable layout for this page",
+              )
         }
       />
 
@@ -118,10 +136,16 @@ export const PageLayoutSelector = memo(function PageLayoutSelector({
           <button
             className="page-layout-clear"
             onClick={() => handleLayoutChange("")}
-            title="Remove frame from this page"
+            title={translateKey(
+              t,
+              "properties.removeLayoutFromPage",
+              "Remove layout from this page",
+            )}
           >
             <X size={iconEditProps.size} />
-            <span>Remove Frame</span>
+            <span>
+              {translateKey(t, "properties.removeLayout", "Remove Layout")}
+            </span>
           </button>
         </div>
       )}

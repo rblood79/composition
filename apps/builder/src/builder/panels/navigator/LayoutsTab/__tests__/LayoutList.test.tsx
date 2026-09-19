@@ -1,18 +1,18 @@
 // @vitest-environment jsdom
 /**
- * ADR-111 Phase 2 PR-D — FrameList 컴포넌트 단위 테스트.
+ * ADR-111 Phase 2 PR-D — LayoutList 컴포넌트 단위 테스트.
  *
- * 본 테스트는 FrameList 가 프레젠테이션 전용임을 검증한다 — 데이터 source 와
- * 핸들러 구현은 외부 책임이고, FrameList 는 props 만으로 결정적 UI 를 렌더한다.
+ * 본 테스트는 LayoutList 가 프레젠테이션 전용임을 검증한다 — 데이터 source 와
+ * 핸들러 구현은 외부 책임이고, LayoutList 는 props 만으로 결정적 UI 를 렌더한다.
  *
  * 시나리오 5개:
- *  1. 빈 frames → "No layouts available"
- *  2. 2개 frames 렌더 → 이름 모두 표시
+ *  1. 빈 layouts → "No layouts available"
+ *  2. 2개 layouts 렌더 → 이름 모두 표시
  *  3. Add 버튼 클릭 → onAdd 호출 (frame id 인자 없음)
  *  4. Frame 항목 클릭 → onSelect(frame.id) 호출
  *  5. Delete 버튼 클릭 → onDelete(frame.id) 호출 + onSelect 미호출 (stopPropagation)
  *
- * + selectedFrameId 매칭 시 active 클래스 표시 확인.
+ * + selectedLayoutId 매칭 시 active 클래스 표시 확인.
  */
 
 import React from "react";
@@ -25,18 +25,18 @@ import {
 } from "@testing-library/react";
 import { I18nProvider } from "@/i18n";
 
-import { FrameList } from "../FrameList";
+import { LayoutList } from "../LayoutList";
 
 function render(ui: React.ReactElement) {
   return rtlRender(<I18nProvider initialLocale="en-US">{ui}</I18nProvider>);
 }
 
 function makeProps(
-  override: Partial<React.ComponentProps<typeof FrameList>> = {},
-): React.ComponentProps<typeof FrameList> {
+  override: Partial<React.ComponentProps<typeof LayoutList>> = {},
+): React.ComponentProps<typeof LayoutList> {
   return {
-    frames: [],
-    selectedFrameId: null,
+    layouts: [],
+    selectedLayoutId: null,
     onSelect: vi.fn(),
     onDelete: vi.fn(),
     onAdd: vi.fn(),
@@ -44,7 +44,7 @@ function makeProps(
   };
 }
 
-describe("FrameList (ADR-111 P2 PR-D)", () => {
+describe("LayoutList (ADR-111 P2 PR-D)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -54,16 +54,16 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
   });
 
   describe("rendering", () => {
-    it("frames 가 비어있으면 'No layouts available' 표시", () => {
-      render(<FrameList {...makeProps({ frames: [] })} />);
+    it("layouts 가 비어있으면 'No layouts available' 표시", () => {
+      render(<LayoutList {...makeProps({ layouts: [] })} />);
       expect(screen.getByText("No layouts available")).toBeTruthy();
     });
 
-    it("frames 2개를 받으면 각 name 을 모두 표시한다", () => {
+    it("layouts 2개를 받으면 각 name 을 모두 표시한다", () => {
       render(
-        <FrameList
+        <LayoutList
           {...makeProps({
-            frames: [
+            layouts: [
               { id: "f-1", name: "Header Frame" },
               { id: "f-2", name: "Footer Frame" },
             ],
@@ -74,15 +74,15 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
       expect(screen.getByText("Footer Frame")).toBeTruthy();
     });
 
-    it("selectedFrameId 와 매칭되는 frame 만 active 클래스 표시", () => {
+    it("selectedLayoutId 와 매칭되는 frame 만 active 클래스 표시", () => {
       const { container } = render(
-        <FrameList
+        <LayoutList
           {...makeProps({
-            frames: [
+            layouts: [
               { id: "f-1", name: "Selected" },
               { id: "f-2", name: "Other" },
             ],
-            selectedFrameId: "f-1",
+            selectedLayoutId: "f-1",
           })}
         />,
       );
@@ -99,9 +99,9 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
 
     it("Pages와 같은 section 구조로 frame 목록을 렌더한다", () => {
       const { container } = render(
-        <FrameList
+        <LayoutList
           {...makeProps({
-            frames: [{ id: "f-1", name: "Frame" }],
+            layouts: [{ id: "f-1", name: "Frame" }],
           })}
         />,
       );
@@ -113,7 +113,7 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
         container.firstElementChild?.classList.contains("node-tree-section"),
       ).toBe(true);
       expect(container.querySelector(".section-content")).toBeTruthy();
-      expect(container.querySelector(".frame-tree")).toBeTruthy();
+      expect(container.querySelector(".layout-tree")).toBeTruthy();
       expect(container.querySelector(".sidebar_layouts")).toBeNull();
       expect(container.querySelector(".frame-list-tree")).toBeNull();
     });
@@ -122,7 +122,7 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
   describe("interactions", () => {
     it("Add 버튼 클릭 시 onAdd 호출", () => {
       const onAdd = vi.fn();
-      render(<FrameList {...makeProps({ onAdd })} />);
+      render(<LayoutList {...makeProps({ onAdd })} />);
 
       fireEvent.click(screen.getByRole("button", { name: "Add Layout" }));
 
@@ -133,9 +133,9 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
     it("Frame 항목 클릭 시 onSelect(frameId) 호출", () => {
       const onSelect = vi.fn();
       render(
-        <FrameList
+        <LayoutList
           {...makeProps({
-            frames: [{ id: "frame-abc", name: "Header" }],
+            layouts: [{ id: "frame-abc", name: "Header" }],
             onSelect,
           })}
         />,
@@ -151,9 +151,9 @@ describe("FrameList (ADR-111 P2 PR-D)", () => {
       const onSelect = vi.fn();
       const onDelete = vi.fn();
       render(
-        <FrameList
+        <LayoutList
           {...makeProps({
-            frames: [{ id: "frame-xyz", name: "Doomed" }],
+            layouts: [{ id: "frame-xyz", name: "Doomed" }],
             onSelect,
             onDelete,
           })}

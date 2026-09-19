@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useStore } from "../../../stores";
 import { useEditModeStore } from "../../../stores/editMode";
-import { selectReusableFrame } from "../../../stores/utils/frameActions";
+import { selectReusableLayout } from "../../../stores/utils/reusableLayoutActions";
 import {
   resolveClickTarget,
   resolveContextEntryTarget,
@@ -84,7 +84,7 @@ function syncReusableFrameSelectionForElement(
   const layoutId = getFrameElementMirrorId(element);
   if (!layoutId) return;
 
-  selectReusableFrame(layoutId);
+  selectReusableLayout(layoutId);
   useEditModeStore.getState().setCurrentLayoutId(layoutId);
 }
 

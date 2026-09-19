@@ -1,8 +1,9 @@
 # ADR-225 구현 상세 — 재사용 레이아웃 어휘 정렬
 
-> 상태: Accepted 설계. 구현 권한 없음.
+> 상태: Implemented 2026-09-19 (Phase 0~4 종결 — 실행 결과는 ADR 본문 `### Live Exercise` 와
+> [Phase 0 인벤토리](../evidence/225-phase0-vocabulary-inventory.md)).
 >
-> 본 문서는 [ADR-225](../225-reusable-layout-vocabulary-alignment.md)의 구현 순서와
+> 본 문서는 [ADR-225](../completed/225-reusable-layout-vocabulary-alignment.md)의 구현 순서와
 > 검증 경계를 구체화한다. 새로운 결정을 추가하지 않으며 canonical `FrameNode` 보존
 > 결정을 따른다.
 
@@ -248,19 +249,23 @@ foreground Builder에서 다음을 한 흐름으로 확인한다.
 `reusableLayoutStore.ts`로 분리할지 파일명만 정렬할지 결정하되, 외부로 노출되는 feature
 API는 Layout이고 raw type guard는 Frame이라는 최종 계약은 같다.
 
+> 실행 판정 (2026-09-19): 파일명만 `reusableLayoutStore.ts` 로 정렬하고 public API 를 Layout 으로 바꿨다.
+> 내부 `isReusableFrameNode` · actions 의 `createReusableFrameNode` / `upsertReusableFrame` / `withFrameMetadata` 는
+> raw FrameNode factory 라 그대로다. 게이트는 `panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts`.
+
 ## 8. 검증 체크리스트
 
-- [ ] 확장 후보 기준선 49개 파일과 추가 사용자 문구·source 밖 hit가 100% 분류됐는가?
-- [ ] feature-owned 사용자 문구·aria/title에 Frame이 0건인가?
-- [ ] feature-owned component/file/export/state/action/test 명칭에 Frame이 0건인가?
-- [ ] 잔여 Frame hit마다 canonical/platform/component/history 근거가 있는가?
-- [ ] `FrameNode`, `type: "frame"`, Pencil 5 fixture, DB/JSON roundtrip이 불변인가?
-- [ ] page binding adapter와 Canvas/Preview/publish 결과가 불변인가?
-- [ ] 구 collapse id가 제거·승계되고 active focus와 승계→펼침→reload가 보존되며 split/tab/editMode key는 유지되는가?
-- [ ] ko-KR 부팅 probe에서 신규 static 2개·formatted 1개가 번역되고 영어 Frame residue가 0건인가?
-- [ ] 현행 rule/research는 갱신되고 pre-225 ADR/design/evidence와 `.tmp-panel-cap`은 분류 계약대로 보존됐는가?
-- [ ] 기존 user-authored 이름을 자동 변경하지 않는가?
-- [ ] 인접 test, typecheck, 범위별 preflight가 통과했는가?
-- [ ] foreground Builder의 생성→선택→적용→해제→삭제→refresh와 console 0을 확인했는가?
-- [ ] historical ADR/evidence의 기계적 수정이 0건인가?
-- [ ] 구현 완료 전 Status를 Implemented로 올리지 않았는가?
+- [x] 확장 후보 기준선 49개 파일과 추가 사용자 문구·source 밖 hit가 100% 분류됐는가?
+- [x] feature-owned 사용자 문구·aria/title에 Frame이 0건인가?
+- [x] feature-owned component/file/export/state/action/test 명칭에 Frame이 0건인가?
+- [x] 잔여 Frame hit마다 canonical/platform/component/history 근거가 있는가?
+- [x] `FrameNode`, `type: "frame"`, Pencil 5 fixture, DB/JSON roundtrip이 불변인가?
+- [x] page binding adapter와 Canvas/Preview/publish 결과가 불변인가?
+- [x] 구 collapse id가 제거·승계되고 active focus와 승계→펼침→reload가 보존되며 split/tab/editMode key는 유지되는가?
+- [x] ko-KR 부팅 probe에서 신규 static 2개·formatted 1개가 번역되고 영어 Frame residue가 0건인가?
+- [x] 현행 rule/research는 갱신되고 pre-225 ADR/design/evidence와 `.tmp-panel-cap`은 분류 계약대로 보존됐는가?
+- [x] 기존 user-authored 이름을 자동 변경하지 않는가?
+- [x] 인접 test, typecheck, 범위별 preflight가 통과했는가?
+- [x] foreground Builder의 생성→선택→적용→해제→삭제→refresh와 console 0을 확인했는가?
+- [x] historical ADR/evidence의 기계적 수정이 0건인가?
+- [x] 구현 완료 전 Status를 Implemented로 올리지 않았는가?

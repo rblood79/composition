@@ -1,22 +1,20 @@
 /**
- * FramesTab
+ * LayoutsTab — Navigator 의 재사용 레이아웃 탭 (ADR-225 로 구 Frames 탭 명칭을 정렬).
  *
- * ADR-903 P3-C: LayoutsTab → FramesTab 재설계.
- * Canonical reusable frame 목록 표시 + frame node 트리.
+ * ADR-903 P3-C 재설계: canonical reusable FrameNode 목록 표시 + 그 내부 element 트리.
  *
- * P3-C 변경 사항:
- * - frame 목록: canonical reusable frame surface
- * - frame selection: `selectedReusableFrameId` (canonical selector)
- * - frame 생성: canonical document mutation + DB persistence mirror
- * - UI 레이블은 page layout 문맥의 "Layouts"를 사용하고 canonical FrameNode는 유지
+ * - layout 목록: canonical reusable FrameNode surface (`useCanonicalReusableLayouts`)
+ * - layout selection: `selectedReusableLayoutId` (Builder UI state)
+ * - layout 생성: canonical document mutation + DB persistence mirror
+ * - UI 어휘는 "Layouts", 저장 계약은 canonical `FrameNode` 유지
  *
- * @deprecated-path legacy layout selection direct access 제거됨. `selectedReusableFrameId` 사용.
+ * @deprecated-path legacy layout selection direct access 제거됨. `selectedReusableLayoutId` 사용.
  */
 
 import React, { useCallback, useEffect, useMemo } from "react";
 import { useParams } from "react-router";
-import { FrameList } from "./FrameList";
-import { FrameElementTree } from "./FrameElementTree";
+import { LayoutList } from "./LayoutList";
+import { LayoutElementTree } from "./LayoutElementTree";
 import { SectionSplitStack } from "../../../components";
 import { useI18n } from "@/i18n";
 import {
@@ -24,15 +22,15 @@ import {
   NAVIGATOR_SPLIT_STORAGE_KEYS,
 } from "../navigatorSectionIds";
 import {
-  useCanonicalReusableFrameLayouts,
-  useSelectedReusableFrameId,
-} from "../../../stores/canonical/canonicalFrameStore";
+  useCanonicalReusableLayouts,
+  useSelectedReusableLayoutId,
+} from "../../../stores/canonical/reusableLayoutStore";
 import {
-  createReusableFrame,
-  deleteReusableFrame,
-  selectReusableFrame,
-  getNextFrameName,
-} from "../../../stores/utils/frameActions";
+  createReusableLayout,
+  deleteReusableLayout,
+  selectReusableLayout,
+  getNextLayoutName,
+} from "../../../stores/utils/reusableLayoutActions";
 import { useEditModeStore } from "../../../stores/editMode";
 import { useStore } from "../../../stores";
 import { useCanonicalFrameElementScopes } from "../../../stores/canonical/canonicalElementsView";
@@ -78,27 +76,27 @@ function toLegacyFrameElement(element: PanelNode): LegacyFrameElement {
   };
 }
 
-interface FramesTabProps {
+interface LayoutsTabProps {
   selectedElementId: string | null;
   setSelectedElement: (elementId: string | null, props?: ElementProps) => void;
   sendElementSelectedMessage: (elementId: string, props: ElementProps) => void;
   projectId?: string;
 }
 
-export function FramesTab({
+export function LayoutsTab({
   selectedElementId,
   setSelectedElement,
   sendElementSelectedMessage,
   projectId: projectIdProp,
-}: FramesTabProps) {
+}: LayoutsTabProps) {
   const { t } = useI18n();
   const { projectId: projectIdFromParams } = useParams<{ projectId: string }>();
   const projectId = projectIdProp || projectIdFromParams;
 
-  // canonical selector: selectedReusableFrameId
-  const selectedReusableFrameId = useSelectedReusableFrameId();
+  // Builder UI selection: selectedReusableLayoutId
+  const selectedReusableLayoutId = useSelectedReusableLayoutId();
 
-  const layouts = useCanonicalReusableFrameLayouts();
+  const layouts = useCanonicalReusableLayouts();
 
   // Edit Mode store
   const setEditModeLayoutId = useEditModeStore(
@@ -111,51 +109,51 @@ export function FramesTab({
 
   // ADR-116 projection 제거: active canonical document 의 reusable FrameNode 를
   // 단일 read path 로 사용한다.
-  const reusableFrames = useMemo<
+  const reusableLayouts = useMemo<
     ReadonlyArray<{ id: string; name: string }>
   >(() => {
     return layouts.map((layout) => ({ id: layout.id, name: layout.name }));
   }, [layouts]);
 
-  // selectedReusableFrameId 기반 현재 프레임 조회
-  const currentFrame = useMemo(() => {
-    const projectedFrame =
-      reusableFrames.find((f) => f.id === selectedReusableFrameId) || null;
-    if (projectedFrame || !selectedReusableFrameId) {
-      return projectedFrame;
+  // selectedReusableLayoutId 기반 현재 layout 조회
+  const currentLayout = useMemo(() => {
+    const projectedLayout =
+      reusableLayouts.find((f) => f.id === selectedReusableLayoutId) || null;
+    if (projectedLayout || !selectedReusableLayoutId) {
+      return projectedLayout;
     }
 
-    return { id: selectedReusableFrameId, name: "" };
-  }, [reusableFrames, selectedReusableFrameId]);
+    return { id: selectedReusableLayoutId, name: "" };
+  }, [reusableLayouts, selectedReusableLayoutId]);
 
   const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
 
-  const autoSelectedFrameIdRef = React.useRef<string | null>(null);
+  const autoSelectedLayoutIdRef = React.useRef<string | null>(null);
 
-  // Frames tree는 canonical document가 가진 frame scope만 읽는다. Builder chrome은
+  // Layout 내부 트리는 canonical document가 가진 frame scope만 읽는다. Builder chrome은
   // matching canonical 첫 frame 전까지 숨겨지므로 legacy hydration fallback이 없다.
   const frameElements = useMemo(() => {
-    if (!currentFrame) return [];
-    const frameScope = frameElementScopes?.get(currentFrame.id) ?? null;
+    if (!currentLayout) return [];
+    const frameScope = frameElementScopes?.get(currentLayout.id) ?? null;
     return collectCanonicalFrameElements(canonicalElements, frameScope);
-  }, [canonicalElements, currentFrame, frameElementScopes]);
+  }, [canonicalElements, currentLayout, frameElementScopes]);
 
   const legacyFrameElements = useMemo(
     () => frameElements.map(toLegacyFrameElement),
     [frameElements],
   );
 
-  // Frame 요소 트리 빌드
+  // Layout 내부 요소 트리 빌드
   const frameElementTree = useMemo(
     () => buildTreeFromElements(legacyFrameElements),
     [legacyFrameElements],
   );
 
-  // Frame 전용 트리 펼치기/접기 상태
+  // Layout 전용 트리 펼치기/접기 상태
   const {
     expandedKeys,
     toggleKey,
-    collapseAll: collapseFrameTree,
+    collapseAll: collapseLayoutTree,
     expandKey,
   } = useTreeExpandState({
     selectedElementId,
@@ -167,15 +165,15 @@ export function FramesTab({
     [expandedKeys],
   );
 
-  // Frame 전환 시 body 자동 펼치기 + 선택
-  const prevFrameIdRef = React.useRef<string | null>(null);
+  // Layout 전환 시 body 자동 펼치기 + 선택
+  const prevLayoutIdRef = React.useRef<string | null>(null);
   const bodyAutoSelectedRef = React.useRef<boolean>(false);
 
-  const selectFrameBody = useCallback(
+  const selectLayoutBody = useCallback(
     (frameId: string): boolean => {
       const frameScope = frameElementScopes?.get(frameId) ?? null;
       const elementsForFrame =
-        currentFrame?.id === frameId
+        currentLayout?.id === frameId
           ? frameElements
           : collectCanonicalFrameElements(canonicalElements, frameScope);
       const bodyElement = findFrameBodyElement(elementsForFrame);
@@ -201,7 +199,7 @@ export function FramesTab({
     },
     [
       canonicalElements,
-      currentFrame?.id,
+      currentLayout?.id,
       expandKey,
       frameElements,
       frameElementScopes,
@@ -211,95 +209,95 @@ export function FramesTab({
   );
 
   useEffect(() => {
-    const frameChanged = currentFrame?.id !== prevFrameIdRef.current;
+    const layoutChanged = currentLayout?.id !== prevLayoutIdRef.current;
 
-    if (frameChanged && currentFrame?.id) {
-      collapseFrameTree();
-      prevFrameIdRef.current = currentFrame.id;
+    if (layoutChanged && currentLayout?.id) {
+      collapseLayoutTree();
+      prevLayoutIdRef.current = currentLayout.id;
       bodyAutoSelectedRef.current = false;
     }
 
     if (
-      currentFrame &&
+      currentLayout &&
       frameElements.length > 0 &&
       !bodyAutoSelectedRef.current
     ) {
-      selectFrameBody(currentFrame.id);
+      selectLayoutBody(currentLayout.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFrame?.id, frameElements, collapseFrameTree, selectFrameBody]);
+  }, [currentLayout?.id, frameElements, collapseLayoutTree, selectLayoutBody]);
 
-  // Frame 선택 핸들러 — id 기반 (ADR-111 P2-a PR-B)
-  const handleSelectFrame = useCallback(
+  // Layout 선택 핸들러 — id 기반 (ADR-111 P2-a PR-B)
+  const handleSelectLayout = useCallback(
     (frameId: string) => {
-      selectReusableFrame(frameId);
+      selectReusableLayout(frameId);
       setEditModeLayoutId(frameId);
-      selectFrameBody(frameId);
+      selectLayoutBody(frameId);
     },
-    [setEditModeLayoutId, selectFrameBody],
+    [setEditModeLayoutId, selectLayoutBody],
   );
 
   useEffect(() => {
-    const firstFrameId = reusableFrames[0]?.id ?? null;
-    if (!firstFrameId) {
-      autoSelectedFrameIdRef.current = null;
+    const firstLayoutId = reusableLayouts[0]?.id ?? null;
+    if (!firstLayoutId) {
+      autoSelectedLayoutIdRef.current = null;
       return;
     }
 
     const hasValidSelection = Boolean(
-      selectedReusableFrameId &&
-      reusableFrames.some((frame) => frame.id === selectedReusableFrameId),
+      selectedReusableLayoutId &&
+      reusableLayouts.some((frame) => frame.id === selectedReusableLayoutId),
     );
     if (hasValidSelection) {
-      autoSelectedFrameIdRef.current = null;
+      autoSelectedLayoutIdRef.current = null;
       return;
     }
 
-    if (autoSelectedFrameIdRef.current === firstFrameId) return;
-    autoSelectedFrameIdRef.current = firstFrameId;
-    void handleSelectFrame(firstFrameId);
-  }, [handleSelectFrame, reusableFrames, selectedReusableFrameId]);
+    if (autoSelectedLayoutIdRef.current === firstLayoutId) return;
+    autoSelectedLayoutIdRef.current = firstLayoutId;
+    void handleSelectLayout(firstLayoutId);
+  }, [handleSelectLayout, reusableLayouts, selectedReusableLayoutId]);
 
-  // Frame 삭제 핸들러 — frameActions.deleteReusableFrame 위임
-  const handleDeleteFrame = useCallback(
+  // Layout 삭제 핸들러 — reusableLayoutActions.deleteReusableLayout 위임
+  const handleDeleteLayout = useCallback(
     async (frameId: string) => {
       try {
-        await deleteReusableFrame(frameId);
-        const remaining = reusableFrames.filter((f) => f.id !== frameId);
+        await deleteReusableLayout(frameId);
+        const remaining = reusableLayouts.filter((f) => f.id !== frameId);
         if (remaining.length > 0) {
-          handleSelectFrame(remaining[0].id);
+          handleSelectLayout(remaining[0].id);
         } else {
-          selectReusableFrame(null);
+          selectReusableLayout(null);
           setEditModeLayoutId(null);
         }
       } catch (error) {
-        console.error("[FramesTab] Frame 삭제 에러:", error);
+        console.error("[LayoutsTab] Layout 삭제 에러:", error);
       }
     },
-    [reusableFrames, handleSelectFrame, setEditModeLayoutId],
+    [reusableLayouts, handleSelectLayout, setEditModeLayoutId],
   );
 
-  // 새 Frame 생성 핸들러 — frameActions.createReusableFrame 위임.
-  // unique 한 default 이름은 getNextFrameName 으로 안정 생성 — 이전 패턴
-  // (`Frame ${reusableFrames.length + 1}`) 의 중복 위험 제거 (delete 후 add 또는
+  // 새 Layout 생성 핸들러 — reusableLayoutActions.createReusableLayout 위임.
+  // unique 한 default 이름은 getNextLayoutName 으로 안정 생성 — 이전 패턴
+  // (`Layout ${reusableLayouts.length + 1}`) 의 중복 위험 제거 (delete 후 add 또는
   // IDB 잔존 데이터 + 메모리 length mismatch 시 충돌 방지).
-  const handleAddFrame = useCallback(async () => {
+  const handleAddLayout = useCallback(async () => {
     if (!projectId) {
-      console.error("[FramesTab] 프로젝트 ID가 없습니다");
+      console.error("[LayoutsTab] 프로젝트 ID가 없습니다");
       return;
     }
     try {
-      const ref = await createReusableFrame({
-        name: getNextFrameName(reusableFrames),
+      const ref = await createReusableLayout({
+        name: getNextLayoutName(reusableLayouts),
         projectId,
       });
-      await handleSelectFrame(ref.id);
+      await handleSelectLayout(ref.id);
     } catch (error) {
-      console.error("[FramesTab] Frame 생성 에러:", error);
+      console.error("[LayoutsTab] Layout 생성 에러:", error);
     }
-  }, [projectId, reusableFrames, handleSelectFrame]);
+  }, [projectId, reusableLayouts, handleSelectLayout]);
 
-  // Frame node 삭제 핸들러
+  // Layout 내부 node 삭제 핸들러
   const handleDeleteElement = useCallback(
     async (el: PanelNode) => {
       await removeElement(el.id);
@@ -316,28 +314,28 @@ export function FramesTab({
   return (
     <SectionSplitStack
       storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}
-      topId={NAVIGATOR_SECTION_IDS.frames}
-      bottomId={NAVIGATOR_SECTION_IDS.frameLayers}
+      topId={NAVIGATOR_SECTION_IDS.layouts}
+      bottomId={NAVIGATOR_SECTION_IDS.layoutLayers}
       label={t("navigator.resizeSections")}
       top={
-        /* Frames List — ADR-111 P2 PR-D 추출 */
-        <FrameList
-          frames={reusableFrames}
-          selectedFrameId={currentFrame?.id ?? null}
-          onSelect={handleSelectFrame}
-          onDelete={handleDeleteFrame}
-          onAdd={handleAddFrame}
+        /* Layout List — ADR-111 P2 PR-D 추출 */
+        <LayoutList
+          layouts={reusableLayouts}
+          selectedLayoutId={currentLayout?.id ?? null}
+          onSelect={handleSelectLayout}
+          onDelete={handleDeleteLayout}
+          onAdd={handleAddLayout}
         />
       }
       bottom={
-        /* Frame node tree — ADR-111 P2 PR-D2 추출 */
-        <FrameElementTree
+        /* Layout 내부 node tree — ADR-111 P2 PR-D2 추출 */
+        <LayoutElementTree
           tree={frameElementTree}
-          frameId={currentFrame?.id ?? null}
+          frameId={currentLayout?.id ?? null}
           selectedElementId={selectedElementId}
           expandedKeys={expandedStringKeys}
           toggleKey={toggleKey}
-          onCollapseAll={collapseFrameTree}
+          onCollapseAll={collapseLayoutTree}
           onElementClick={(el) => {
             setSelectedElement(el.id, el.props as ElementProps);
             requestAnimationFrame(() =>
@@ -351,4 +349,4 @@ export function FramesTab({
   );
 }
 
-export default FramesTab;
+export default LayoutsTab;

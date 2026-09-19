@@ -65,7 +65,7 @@ const ALLOWED_LINE_PATTERNS: readonly RegExp[] = [];
  * - 16: mutation reverse pilot land (2 caller — factories/utils/elementCreation
  *   + dev/editingSemanticsFixture)
  * - 0: mutation reverse 광역 완료 (BuilderCore, stores/elements,
- *   useIframeMessenger, usePageManager, dbPersistence, FramesTab,
+ *   useIframeMessenger, usePageManager, dbPersistence, LayoutsTab,
  *   PageLayoutSelector, TableEditor)
  *   → **G4 grep gate PASS**.
  */

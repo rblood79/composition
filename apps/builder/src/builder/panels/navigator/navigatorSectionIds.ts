@@ -5,8 +5,8 @@
 export const NAVIGATOR_SECTION_IDS = {
   pages: "navigator-pages",
   layers: "navigator-layers",
-  frames: "navigator-frames",
-  frameLayers: "navigator-frame-layers",
+  layouts: "navigator-layouts",
+  layoutLayers: "navigator-layout-layers",
 } as const;
 
 /** Pages 탭의 섹션 (헤더 토글 대상) */
@@ -15,10 +15,10 @@ export const NAVIGATOR_PAGES_TAB_SECTION_IDS: readonly string[] = [
   NAVIGATOR_SECTION_IDS.layers,
 ];
 
-/** Layouts(Frames) 탭의 섹션 (헤더 토글 대상) */
+/** Layouts 탭의 섹션 (헤더 토글 대상) */
 export const NAVIGATOR_LAYOUTS_TAB_SECTION_IDS: readonly string[] = [
-  NAVIGATOR_SECTION_IDS.frames,
-  NAVIGATOR_SECTION_IDS.frameLayers,
+  NAVIGATOR_SECTION_IDS.layouts,
+  NAVIGATOR_SECTION_IDS.layoutLayers,
 ];
 
 /** 분할 상한 저장 키 (localStorage) */

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import type { CompositionDocument, FrameNode } from "@composition/shared";
 import { useCanonicalDocumentStore } from "../canonicalDocumentStore";
-import { getCanonicalReusableFrameLayouts } from "../canonicalFrameStore";
+import { getCanonicalReusableLayouts } from "../reusableLayoutStore";
 
 function resetStore(): void {
   useCanonicalDocumentStore.setState({
@@ -18,7 +18,7 @@ function makeDoc(children: CompositionDocument["children"] = []) {
   } satisfies CompositionDocument;
 }
 
-describe("canonicalFrameStore", () => {
+describe("reusableLayoutStore", () => {
   beforeEach(() => {
     resetStore();
   });
@@ -54,7 +54,7 @@ describe("canonicalFrameStore", () => {
     canonical.setCurrentProject("proj-1");
     canonical.setDocument("proj-1", makeDoc([reusableFrame, nonReusableFrame]));
 
-    expect(getCanonicalReusableFrameLayouts()).toEqual([
+    expect(getCanonicalReusableLayouts()).toEqual([
       {
         id: "main",
         name: "Main",

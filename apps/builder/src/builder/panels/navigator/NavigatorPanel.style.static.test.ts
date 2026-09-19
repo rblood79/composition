@@ -5,8 +5,8 @@ import { resolve } from "node:path";
 const NODE_SECTION_FILES = [
   "PagesSection.tsx",
   "LayersSection.tsx",
-  "FramesTab/FrameList.tsx",
-  "FramesTab/FrameElementTree.tsx",
+  "LayoutsTab/LayoutList.tsx",
+  "LayoutsTab/LayoutElementTree.tsx",
 ];
 
 // 네 섹션 전부 접기 가능 + persist id (Navigator UX 2·3단계). 헤더 전체 토글과
@@ -14,8 +14,8 @@ const NODE_SECTION_FILES = [
 const COLLAPSIBLE_SECTION_FILES: Record<string, string> = {
   "PagesSection.tsx": "id={NAVIGATOR_SECTION_IDS.pages}",
   "LayersSection.tsx": "id={NAVIGATOR_SECTION_IDS.layers}",
-  "FramesTab/FrameList.tsx": "id={NAVIGATOR_SECTION_IDS.frames}",
-  "FramesTab/FrameElementTree.tsx": "id={NAVIGATOR_SECTION_IDS.frameLayers}",
+  "LayoutsTab/LayoutList.tsx": "id={NAVIGATOR_SECTION_IDS.layouts}",
+  "LayoutsTab/LayoutElementTree.tsx": "id={NAVIGATOR_SECTION_IDS.layoutLayers}",
 };
 
 describe("NavigatorPanel shared panel style contract", () => {
@@ -74,7 +74,7 @@ describe("NavigatorPanel shared panel style contract", () => {
       "utf-8",
     );
     const framesSource = await readFile(
-      resolve(__dirname, "FramesTab/FramesTab.tsx"),
+      resolve(__dirname, "LayoutsTab/LayoutsTab.tsx"),
       "utf-8",
     );
 
@@ -88,9 +88,9 @@ describe("NavigatorPanel shared panel style contract", () => {
     expect(framesSource).toContain(
       "storageKey={NAVIGATOR_SPLIT_STORAGE_KEYS.layouts}",
     );
-    expect(framesSource).toContain("topId={NAVIGATOR_SECTION_IDS.frames}");
+    expect(framesSource).toContain("topId={NAVIGATOR_SECTION_IDS.layouts}");
     expect(framesSource).toContain(
-      "bottomId={NAVIGATOR_SECTION_IDS.frameLayers}",
+      "bottomId={NAVIGATOR_SECTION_IDS.layoutLayers}",
     );
 
     // 탭 컨텐츠는 스크롤 컨테이너가 아니다 — 각 섹션이 따로 스크롤한다
@@ -120,15 +120,17 @@ describe("NavigatorPanel shared panel style contract", () => {
       [
         "tree/PageTree/PageTreeItemContent.tsx",
         "tree/LayerTree/LayerTreeItemContent.tsx",
-        "FramesTab/FrameList.tsx",
-        "FramesTab/FrameElementTree.tsx",
+        "LayoutsTab/LayoutList.tsx",
+        "LayoutsTab/LayoutElementTree.tsx",
       ].map((file) => readFile(resolve(__dirname, file), "utf-8")),
     );
 
     expect(css).not.toMatch(/\.section-content\s*\{[^}]*all:\s*unset/s);
     // panel-ui 07: 안내선은 gradient 가 아니라 depth 마다 1px span (`.layer-indent-guide`) —
     //   선택 항목의 조상 사슬은 `--fg-muted` 로 강조된다
-    expect(css).toMatch(/\.layer-indent-guide \{[^}]*background: var\(--border\);/s);
+    expect(css).toMatch(
+      /\.layer-indent-guide \{[^}]*background: var\(--border\);/s,
+    );
     expect(css).toMatch(
       /\.layer-indent-guide\[data-active\] \{[^}]*background: var\(--fg-muted\);/s,
     );
@@ -155,7 +157,7 @@ describe("NavigatorPanel shared panel style contract", () => {
       "utf-8",
     );
     const frameTreeSource = await readFile(
-      resolve(__dirname, "FramesTab/FrameElementTree.tsx"),
+      resolve(__dirname, "LayoutsTab/LayoutElementTree.tsx"),
       "utf-8",
     );
 

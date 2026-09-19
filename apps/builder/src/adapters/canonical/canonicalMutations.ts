@@ -311,7 +311,7 @@ let _registeredActions: CanonicalMutationStoreActions | null = null;
  *     getCurrentLegacySnapshot: () => ({
  *       elements: Array.from(useStore.getState().elementsMap.values()),
  *       pages: useStore.getState().pages,
- *       layouts: getCanonicalReusableFrameLayouts(),
+ *       layouts: getCanonicalReusableLayouts(),
  *     }),
  *     getCurrentProjectId: () => projectId ?? null,
  *   });

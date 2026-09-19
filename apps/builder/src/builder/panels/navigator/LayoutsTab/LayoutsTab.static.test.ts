@@ -2,19 +2,25 @@ import { describe, expect, it } from "vitest";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-describe("FramesTab frame selection race guard", () => {
+describe("LayoutsTab frame selection race guard", () => {
   it("selects canonical frames synchronously without an async mirror load", async () => {
-    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+    const source = await readFile(
+      resolve(__dirname, "LayoutsTab.tsx"),
+      "utf-8",
+    );
 
     expect(source).toMatch(
-      /selectReusableFrame\(frameId\);[\s\S]*setEditModeLayoutId\(frameId\);[\s\S]*selectFrameBody\(frameId\);/,
+      /selectReusableLayout\(frameId\);[\s\S]*setEditModeLayoutId\(frameId\);[\s\S]*selectLayoutBody\(frameId\);/,
     );
     expect(source).not.toContain("frameSelectRequestRef");
     expect(source).not.toContain("loadFrameElements");
   });
 
   it("does not merge a legacy frame mirror into the canonical document", async () => {
-    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+    const source = await readFile(
+      resolve(__dirname, "LayoutsTab.tsx"),
+      "utf-8",
+    );
 
     expect(source).toContain("useCanonicalFrameElementScopes");
     expect(source).toContain("frameScope.elementIds.has(element.id)");
@@ -25,20 +31,26 @@ describe("FramesTab frame selection race guard", () => {
       "const storeSetElements = useStore.getState().setElements;",
     );
     expect(source).not.toMatch(
-      /filter\(\s*\(el\) => el\.layout_id !== selectedReusableFrameId/,
+      /filter\(\s*\(el\) => el\.layout_id !== selectedReusableLayoutId/,
     );
   });
 
   it("uses active canonical document without rebuilding projection for frame list", async () => {
-    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+    const source = await readFile(
+      resolve(__dirname, "LayoutsTab.tsx"),
+      "utf-8",
+    );
 
-    expect(source).toContain("useCanonicalReusableFrameLayouts");
+    expect(source).toContain("useCanonicalReusableLayouts");
     expect(source).not.toContain("selectCanonicalDocument");
     expect(source).not.toContain("useLayoutsStore");
   });
 
   it("reads the selected canonical frame scope without store array/map subscriptions", async () => {
-    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+    const source = await readFile(
+      resolve(__dirname, "LayoutsTab.tsx"),
+      "utf-8",
+    );
 
     expect(source).toContain("useCanonicalPanelElements");
     expect(source).not.toContain("useCanonicalElements");
@@ -50,35 +62,40 @@ describe("FramesTab frame selection race guard", () => {
   });
 
   it("stacks Frames sections in the shared SectionSplitStack without an extra layouts-tab wrapper", async () => {
-    const source = await readFile(resolve(__dirname, "FramesTab.tsx"), "utf-8");
+    const source = await readFile(
+      resolve(__dirname, "LayoutsTab.tsx"),
+      "utf-8",
+    );
 
     expect(source).not.toContain('className="layouts-tab"');
     expect(source).toContain("<SectionSplitStack");
-    expect(source).toContain("<FrameList");
-    expect(source).toContain("<FrameElementTree");
+    expect(source).toContain("<LayoutList");
+    expect(source).toContain("<LayoutElementTree");
   });
 
   it("renders Frames/Layers children through shared TreeBase primitives", async () => {
     const frameListSource = await readFile(
-      resolve(__dirname, "FrameList.tsx"),
+      resolve(__dirname, "LayoutList.tsx"),
       "utf-8",
     );
     const frameElementTreeSource = await readFile(
-      resolve(__dirname, "FrameElementTree.tsx"),
+      resolve(__dirname, "LayoutElementTree.tsx"),
       "utf-8",
     );
 
     expect(frameListSource).toContain('from "../tree/TreeBase"');
-    expect(frameListSource).toContain("<TreeBase<FrameListNode>");
+    expect(frameListSource).toContain("<TreeBase<LayoutListNode>");
     expect(frameElementTreeSource).toContain('from "../tree/TreeBase"');
-    expect(frameElementTreeSource).toContain("<TreeBase<FrameElementTreeNode>");
     expect(frameElementTreeSource).toContain(
-      "<VirtualizedTree<FrameElementTreeNode>",
+      "<TreeBase<LayoutElementTreeNode>",
     );
-    expect(frameListSource).toContain('className="frame-tree"');
-    expect(frameElementTreeSource).toContain('className="frame-tree"');
     expect(frameElementTreeSource).toContain(
-      'className="frame-tree frame-tree--virtualized"',
+      "<VirtualizedTree<LayoutElementTreeNode>",
+    );
+    expect(frameListSource).toContain('className="layout-tree"');
+    expect(frameElementTreeSource).toContain('className="layout-tree"');
+    expect(frameElementTreeSource).toContain(
+      'className="layout-tree layout-tree--virtualized"',
     );
     expect(frameListSource).not.toContain("frame-list-tree");
     expect(frameElementTreeSource).not.toContain("frame-layer-tree");

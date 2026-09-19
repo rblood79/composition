@@ -1,10 +1,10 @@
 /**
- * FrameList — reusable frame 목록 컴포넌트.
+ * LayoutList — reusable layout 목록 컴포넌트.
  *
- * ADR-111 Phase 2 PR-D: FramesTab.tsx 의 Frames section (frame 목록 + Add 버튼) 추출.
+ * ADR-111 Phase 2 PR-D: LayoutsTab.tsx 의 Layouts section (layout 목록 + Add 버튼) 추출.
  *
  * 본 컴포넌트는 프레젠테이션 전용 — 데이터 source (legacy/canonical) 결정과
- * frame CRUD 로직은 부모 (FramesTab) 책임. props 로 데이터/핸들러 주입받아
+ * layout CRUD 로직은 부모 (LayoutsTab) 책임. props 로 데이터/핸들러 주입받아
  * UI 만 렌더한다.
  *
  * functional 동등 — 추출 전후 동작 차이 없음 (PR-Followup-A 의 5 baseline 시나리오 + PR-C 의 8/8 시나리오 회귀 0).
@@ -27,21 +27,21 @@ import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 /** 여러 화면에 공통으로 나오는 액션의 아이콘 정본 (`config/actionIcons.ts`). */
 const AddIcon = ACTION_ICONS.add;
 
-export interface FrameListItem {
+export interface LayoutListItem {
   id: string;
   name: string;
 }
 
-interface FrameListNode extends BaseTreeNode {
+interface LayoutListNode extends BaseTreeNode {
   name: string;
 }
 
-export interface FrameListProps {
-  /** 표시할 frame 목록 (legacy 또는 canonical projection 결과) */
-  frames: ReadonlyArray<FrameListItem>;
-  /** 현재 선택된 frame id (active 표시용) */
-  selectedFrameId: string | null;
-  /** Frame 항목 클릭 핸들러 */
+export interface LayoutListProps {
+  /** 표시할 reusable layout 목록 (canonical projection 결과) */
+  layouts: ReadonlyArray<LayoutListItem>;
+  /** 현재 선택된 layout id (active 표시용) */
+  selectedLayoutId: string | null;
+  /** Layout 항목 클릭 핸들러 */
   onSelect: (frameId: string) => void;
   /** Delete 버튼 클릭 핸들러 (stopPropagation 은 컴포넌트 내부에서 처리) */
   onDelete: (frameId: string) => void;
@@ -49,47 +49,48 @@ export interface FrameListProps {
   onAdd: () => void;
 }
 
-export function FrameList({
-  frames,
-  selectedFrameId,
+export function LayoutList({
+  layouts,
+  selectedLayoutId,
   onSelect,
   onDelete,
   onAdd,
-}: FrameListProps) {
+}: LayoutListProps) {
   const { t } = useI18n();
-  const treeNodes = useMemo<FrameListNode[]>(
+  const treeNodes = useMemo<LayoutListNode[]>(
     () =>
-      frames.map((frame) => ({
-        id: frame.id,
-        name: frame.name,
+      layouts.map((layout) => ({
+        id: layout.id,
+        name: layout.name,
         parentId: null,
         depth: 0,
         hasChildren: false,
         children: [],
       })),
-    [frames],
+    [layouts],
   );
   const nodeMap = useMemo(
     () => new Map(treeNodes.map((node) => [node.id, node])),
     [treeNodes],
   );
   const selectedKeys = useMemo(
-    () => (selectedFrameId ? new Set<Key>([selectedFrameId]) : new Set<Key>()),
-    [selectedFrameId],
+    () =>
+      selectedLayoutId ? new Set<Key>([selectedLayoutId]) : new Set<Key>(),
+    [selectedLayoutId],
   );
   const handleSelectionChange = useCallback(
     (keys: Set<Key>) => {
       const key = [...keys][0];
       if (!key) return;
       const node = nodeMap.get(String(key));
-      if (!node || node.id === selectedFrameId) return;
+      if (!node || node.id === selectedLayoutId) return;
       onSelect(node.id);
     },
-    [nodeMap, onSelect, selectedFrameId],
+    [nodeMap, onSelect, selectedLayoutId],
   );
   const renderContent = useCallback(
-    (node: FrameListNode, state: TreeItemState) => (
-      <FrameListItemContent
+    (node: LayoutListNode, state: TreeItemState) => (
+      <LayoutListItemContent
         node={node}
         state={state}
         onDelete={onDelete}
@@ -101,13 +102,13 @@ export function FrameList({
 
   return (
     <Section
-      id={NAVIGATOR_SECTION_IDS.frames}
+      id={NAVIGATOR_SECTION_IDS.layouts}
       className="node-tree-section"
-      title={t("navigator.frames")}
+      title={t("navigator.layouts")}
       actions={
         <ActionIconButton
-          aria-label={t("navigator.addFrame")}
-          tooltip={t("navigator.addFrame")}
+          aria-label={t("navigator.addLayout")}
+          tooltip={t("navigator.addLayout")}
           onPress={onAdd}
         >
           <AddIcon
@@ -118,40 +119,40 @@ export function FrameList({
         </ActionIconButton>
       }
     >
-      {frames.length === 0 ? (
+      {layouts.length === 0 ? (
         <EmptyState
           icon={<Box size={32} />}
-          message={t("navigator.noFrames")}
+          message={t("navigator.noLayouts")}
         />
       ) : (
-        <TreeBase<FrameListNode>
-          aria-label={t("navigator.frames")}
+        <TreeBase<LayoutListNode>
+          aria-label={t("navigator.layouts")}
           items={treeNodes}
           getKey={(node) => node.id}
           getTextValue={(node) => node.name}
           renderContent={renderContent}
           selectedKeys={selectedKeys}
           onSelectionChange={handleSelectionChange}
-          className="frame-tree"
+          className="layout-tree"
         />
       )}
     </Section>
   );
 }
 
-interface FrameListItemContentProps {
-  node: FrameListNode;
+interface LayoutListItemContentProps {
+  node: LayoutListNode;
   state: TreeItemState;
   onDelete: (frameId: string) => void;
   onReselect: (frameId: string) => void;
 }
 
-function FrameListItemContent({
+function LayoutListItemContent({
   node,
   state,
   onDelete,
   onReselect,
-}: FrameListItemContentProps) {
+}: LayoutListItemContentProps) {
   const { isSelected, isFocusVisible } = state;
 
   return (

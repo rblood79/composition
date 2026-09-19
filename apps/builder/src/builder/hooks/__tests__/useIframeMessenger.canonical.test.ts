@@ -39,7 +39,7 @@ describe("Builder → Preview canonical 단일 채널", () => {
         "../usePageManager.ts",
         "../../panels/navigator/NavigatorPanel.tsx",
         "../../panels/navigator/PagesSection.tsx",
-        "../../panels/navigator/FramesTab/FramesTab.tsx",
+        "../../panels/navigator/LayoutsTab/LayoutsTab.tsx",
       ];
       const sources = await Promise.all(
         relativePaths.map((relativePath) =>
@@ -67,7 +67,7 @@ describe("Builder → Preview canonical 단일 채널", () => {
         "UPDATE_PAGE_INFO effect block 추출 실패 — 시그니처 변경 시 regex 동기화",
       ).not.toBeNull();
       expect(effectBlock![0]).toMatch(/currentEditMode/);
-      expect(effectBlock![0]).toMatch(/selectedReusableFrameId/);
+      expect(effectBlock![0]).toMatch(/selectedReusableLayoutId/);
     });
 
     it("canonical document 변경 시 UPDATE_CANONICAL_DOCUMENT 를 active sync 로 전송한다", async () => {

@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 /**
- * ADR-111 Phase 2 PR-D2 — FrameElementTree 컴포넌트 단위 테스트.
+ * ADR-111 Phase 2 PR-D2 — LayoutElementTree 컴포넌트 단위 테스트.
  *
- * 본 테스트는 FrameElementTree 가 프레젠테이션 전용임을 검증한다 — element
- * 선택 / 삭제 핸들러 구현은 외부 책임이고, FrameElementTree 는 props 만으로
+ * 본 테스트는 LayoutElementTree 가 프레젠테이션 전용임을 검증한다 — element
+ * 선택 / 삭제 핸들러 구현은 외부 책임이고, LayoutElementTree 는 props 만으로
  * 결정적 UI 를 렌더한다.
  *
  * 시나리오:
@@ -29,7 +29,7 @@ import {
 } from "@testing-library/react";
 import { I18nProvider } from "@/i18n";
 
-import { FrameElementTree } from "../FrameElementTree";
+import { LayoutElementTree } from "../LayoutElementTree";
 import type { ElementTreeItem } from "@/types/builder/stately.types";
 
 function render(ui: React.ReactElement) {
@@ -68,8 +68,8 @@ function makeItem(
 }
 
 function makeProps(
-  override: Partial<React.ComponentProps<typeof FrameElementTree>> = {},
-): React.ComponentProps<typeof FrameElementTree> {
+  override: Partial<React.ComponentProps<typeof LayoutElementTree>> = {},
+): React.ComponentProps<typeof LayoutElementTree> {
   return {
     tree: [],
     frameId: "frame-1",
@@ -83,7 +83,7 @@ function makeProps(
   };
 }
 
-describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
+describe("LayoutElementTree (ADR-111 P2 PR-D2)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -94,12 +94,14 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
   describe("placeholder rendering", () => {
     it("frameId=null → 'Select a layout to view elements' 표시", () => {
-      render(<FrameElementTree {...makeProps({ frameId: null })} />);
+      render(<LayoutElementTree {...makeProps({ frameId: null })} />);
       expect(screen.getByText("Select a layout to view elements")).toBeTruthy();
     });
 
     it("frameId 있고 tree=[] → 'No elements in this layout' 표시", () => {
-      render(<FrameElementTree {...makeProps({ frameId: "f-1", tree: [] })} />);
+      render(
+        <LayoutElementTree {...makeProps({ frameId: "f-1", tree: [] })} />,
+      );
       expect(screen.getByText("No elements in this layout")).toBeTruthy();
     });
   });
@@ -107,7 +109,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
   describe("tree rendering", () => {
     it("tree 1-level → element type 표시", () => {
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [makeItem("el-1", "Button"), makeItem("el-2", "Text")],
           })}
@@ -119,7 +121,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("Slot type → 'Slot: <name>' 형태로 표시", () => {
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [
               makeItem("slot-1", "Slot", { props: { name: "header" } }),
@@ -137,7 +139,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
         children: [makeItem("child", "Button")],
       });
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [parent],
             expandedKeys: new Set(["parent"]),
@@ -153,7 +155,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
         children: [makeItem("child", "Button")],
       });
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({ tree: [parent], expandedKeys: new Set() })}
         />,
       );
@@ -163,7 +165,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("selectedElementId 매칭 시 active 클래스 적용", () => {
       const { container } = render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [makeItem("el-1", "Button"), makeItem("el-2", "Text")],
             selectedElementId: "el-1",
@@ -182,7 +184,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("Pages Layers와 같은 section 구조로 frame element tree를 렌더한다", () => {
       const { container } = render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [makeItem("el-1", "Button")],
           })}
@@ -196,7 +198,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
         container.firstElementChild?.classList.contains("node-tree-section"),
       ).toBe(true);
       expect(container.querySelector(".section-content")).toBeTruthy();
-      expect(container.querySelector(".frame-tree")).toBeTruthy();
+      expect(container.querySelector(".layout-tree")).toBeTruthy();
       expect(container.querySelector(".sidebar_elements")).toBeNull();
       expect(container.querySelector(".frame-layer-tree")).toBeNull();
     });
@@ -206,7 +208,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
     it("element click → onElementClick(element) 호출 + frameId 가 element.layout_id 로 매핑", () => {
       const onElementClick = vi.fn();
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [makeItem("el-1", "Button")],
             frameId: "frame-abc",
@@ -229,7 +231,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
       const onElementClick = vi.fn();
       const onElementDelete = vi.fn().mockResolvedValue(undefined);
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({
             tree: [makeItem("el-1", "Button")],
             onElementClick,
@@ -248,7 +250,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("body type → Settings 버튼 표시 (Delete 없음)", () => {
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({ tree: [makeItem("body-1", "body")] })}
         />,
       );
@@ -263,7 +265,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
         children: [makeItem("child", "Button")],
       });
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({ tree: [parent], toggleKey, onElementClick })}
         />,
       );
@@ -276,7 +278,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("Collapse All 버튼 클릭 → onCollapseAll", () => {
       const onCollapseAll = vi.fn();
-      render(<FrameElementTree {...makeProps({ onCollapseAll })} />);
+      render(<LayoutElementTree {...makeProps({ onCollapseAll })} />);
 
       fireEvent.click(screen.getByRole("button", { name: "Collapse tree" }));
 
@@ -305,7 +307,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("루트 1개 + 자식 11개(총 12) → VirtualizedTree(role=tree)", () => {
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({ tree: deepTree(11), expandedKeys: expandAll(11) })}
         />,
       );
@@ -314,7 +316,7 @@ describe("FrameElementTree (ADR-111 P2 PR-D2)", () => {
 
     it("루트 1개 + 자식 10개(총 11) → TreeBase 유지", () => {
       render(
-        <FrameElementTree
+        <LayoutElementTree
           {...makeProps({ tree: deepTree(10), expandedKeys: expandAll(10) })}
         />,
       );

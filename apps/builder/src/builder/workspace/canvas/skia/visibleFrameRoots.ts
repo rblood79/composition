@@ -2,7 +2,7 @@
  * ADR-111 P3-δ — reusable frame canvas authoring viewport root collection.
  *
  * Sibling to `visiblePageRoots.ts`. P3-α (`framePositions`) + P3-β
- * (`computeFrameAreas`) + P3-γ (`selectedReusableFrameId`) 결정에 따라 신설.
+ * (`computeFrameAreas`) + P3-γ (`selectedReusableLayoutId`) 결정에 따라 신설.
  *
  * Contract:
  * - input: `SkiaRendererInput.frameAreas` (canonical reusable frames, 이미

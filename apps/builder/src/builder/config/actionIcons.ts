@@ -51,7 +51,7 @@ export type ActionIcon = ComponentType<{
  *
  * | 액션 | 갈린 형태 |
  * | --- | --- |
- * | 삭제 | `Trash2` 25곳 vs **`Trash`** — FramesTab 2파일 (라이브) |
+ * | 삭제 | `Trash2` 25곳 vs **`Trash`** — LayoutsTab 2파일 (라이브) |
  * | 눈금자 토글 | 컨텍스트 메뉴 `Ruler` vs SettingsPanel `RulerDimensionLine` — **같은 `setShowRulers`** |
  *
  * HistoryPanel `ENTRY_TYPE_ICONS` 의 `page-guide` 주석("눈금자 토글과 같은
@@ -87,7 +87,7 @@ export const ACTION_ICONS = {
   copy: Copy,
   paste: ClipboardPaste,
   duplicate: CopyPlus,
-  /** 컨텍스트 메뉴 · 다중 선택 툴바 · History 항목 · FramesTab */
+  /** 컨텍스트 메뉴 · 다중 선택 툴바 · History 항목 · LayoutsTab */
   delete: Trash2,
   /** 되돌리기 — 섹션 헤더 reset · Properties 필드 행 reset (기본값으로) · 액션 바 reset ·
       Chart 시리즈 reset · SelectionMemory 복원. 같은 「원래대로」 액션이 다섯 표면에 선다. */

@@ -1,14 +1,13 @@
 /**
- * Frame Actions — canonical-shaped wrapper API for reusable frame CRUD.
+ * Reusable Layout Actions — Navigator/Properties 가 쓰는 재사용 레이아웃 CRUD facade.
  *
- * ADR-111 P2-a (PR-A): canonical-native FramesTab 재설계의 첫 단계.
+ * ADR-111 P2-a (PR-A): canonical-native 재설계의 첫 단계 (당시 파일명은 frame 계열).
+ * ADR-225: Builder 기능 어휘는 Layout, 저장 계약은 canonical FrameNode
+ * (`type: "frame"` + `reusable: true`) 그대로 — 이 파일이 그 번역 경계다.
+ * Persistence SSOT 는 active canonical document 이다.
  *
- * 본 모듈은 canonical FrameNode (`type: "frame"` + `reusable: true`) 의미를
- * 가진 reusable frame CRUD API를 제공한다. Persistence SSOT 는 active canonical
- * document 이다.
- *
- * @see docs/adr/111-layout-frameset-pencil-redesign.md
- * @see docs/adr/design/111-layout-frameset-pencil-redesign-breakdown.md
+ * @see docs/adr/completed/111-layout-frameset-pencil-redesign.md
+ * @see docs/adr/225-reusable-layout-vocabulary-alignment.md
  */
 
 import type {
@@ -27,20 +26,20 @@ import {
   useCanonicalDocumentStore,
 } from "@/builder/stores/canonical/canonicalDocumentStore";
 import {
-  getCanonicalReusableFrameLayouts,
-  getSelectedReusableFrameId,
-  setSelectedReusableFrameId,
-} from "@/builder/stores/canonical/canonicalFrameStore";
+  getCanonicalReusableLayouts,
+  getSelectedReusableLayoutId,
+  setSelectedReusableLayoutId,
+} from "@/builder/stores/canonical/reusableLayoutStore";
 import { getLiveElementsState } from "@/builder/stores/rootStoreAccess";
 import type { Element } from "@/types/builder/unified.types";
 
 /**
- * Reusable frame 생성 입력 — canonical-shaped 명명.
+ * Reusable layout 생성 입력 — canonical-shaped 명명.
  *
  * DB mirror 의 `project_id` 대신 canonical-facing `projectId` 를 받는다.
  */
-export interface CreateReusableFrameInput {
-  /** Frame 이름 — 사용자 노출 라벨 */
+export interface CreateReusableLayoutInput {
+  /** Layout 이름 — 사용자 노출 라벨 */
   name: string;
   /** 소속 project id */
   projectId: string;
@@ -49,18 +48,18 @@ export interface CreateReusableFrameInput {
 }
 
 /**
- * Reusable frame 생성 결과.
+ * Reusable layout 생성 결과.
  *
- * Canonical reusable frame 생성 뒤 UI가 필요한 최소 식별자만 반환한다.
+ * Canonical reusable FrameNode 생성 뒤 UI가 필요한 최소 식별자만 반환한다.
  */
-export interface ReusableFrameRef {
+export interface ReusableLayoutRef {
   /** Canonical FrameNode id (현재는 layout id 와 동일) */
   id: string;
   /** Frame 이름 */
   name: string;
 }
 
-export interface ReusableFrameUpdate {
+export interface ReusableLayoutUpdate {
   name?: string;
   description?: string;
   slug?: string;
@@ -68,7 +67,7 @@ export interface ReusableFrameUpdate {
   inheritNotFound?: boolean;
 }
 
-interface ReusableFrameRecord extends ReusableFrameRef {
+interface ReusableFrameRecord extends ReusableLayoutRef {
   projectId: string;
   description?: string;
   slug?: string;
@@ -169,15 +168,15 @@ function upsertReusableFrame(frame: FrameNode, projectId: string): void {
 }
 
 /**
- * Reusable frame 생성 — canonical document 에 reusable FrameNode 를 직접 추가한다.
+ * Reusable layout 생성 — canonical document 에 reusable FrameNode 를 직접 추가한다.
  *
- * @param input - frame 메타데이터
- * @returns 생성된 frame 참조 (P3 이후 `FrameNode` 로 전환)
+ * @param input - layout 메타데이터
+ * @returns 생성된 layout 참조 (canonical FrameNode id)
  * @throws 생성 실패 시 (DB write error 등)
  */
-export async function createReusableFrame(
-  input: CreateReusableFrameInput,
-): Promise<ReusableFrameRef> {
+export async function createReusableLayout(
+  input: CreateReusableLayoutInput,
+): Promise<ReusableLayoutRef> {
   const frameRecord: ReusableFrameRecord = {
     id: crypto.randomUUID(),
     name: input.name,
@@ -189,22 +188,22 @@ export async function createReusableFrame(
   const frame = createReusableFrameNode(frameRecord, bodyElement);
   upsertReusableFrame(frame, input.projectId);
   await persistCanonicalDocument(input.projectId);
-  setSelectedReusableFrameId(frameRecord.id);
+  setSelectedReusableLayoutId(frameRecord.id);
 
   return { id: frameRecord.id, name: frameRecord.name };
 }
 
 /**
- * Reusable frame 삭제 — canonical-shaped wrapper.
+ * Reusable layout 삭제 — canonical-shaped wrapper.
  *
  * canonical frame 제거와 page binding clear를 동일 cascade에서 처리하고
  * 변경된 canonical document를 영속한다.
  *
  * @param frameId - canonical FrameNode id (현재는 layout id 와 동일)
  */
-export async function deleteReusableFrame(frameId: string): Promise<void> {
+export async function deleteReusableLayout(frameId: string): Promise<void> {
   const { setPages } = getLiveElementsState();
-  const layouts = getCanonicalReusableFrameLayouts();
+  const layouts = getCanonicalReusableLayouts();
 
   await applyDeleteReusableFrameCanonicalPrimary({
     frameId,
@@ -218,31 +217,31 @@ export async function deleteReusableFrame(frameId: string): Promise<void> {
     await persistCanonicalDocument(projectId);
   }
 
-  if (getSelectedReusableFrameId() === frameId) {
-    setSelectedReusableFrameId(null);
+  if (getSelectedReusableLayoutId() === frameId) {
+    setSelectedReusableLayoutId(null);
   }
 }
 
 /**
- * Reusable frame 이름 업데이트 — canonical-shaped wrapper.
+ * Reusable layout 이름 업데이트 — canonical-shaped wrapper.
  *
  * canonical FrameNode를 직접 갱신한다.
  *
  * @param frameId - canonical FrameNode id
  * @param name - 새 이름
  */
-export async function updateReusableFrameName(
+export async function updateReusableLayoutName(
   frameId: string,
   name: string,
 ): Promise<void> {
-  await updateReusableFrame(frameId, { name });
+  await updateReusableLayout(frameId, { name });
 }
 
-export async function updateReusableFrame(
+export async function updateReusableLayout(
   frameId: string,
-  updates: ReusableFrameUpdate,
+  updates: ReusableLayoutUpdate,
 ): Promise<void> {
-  const currentLayouts = getCanonicalReusableFrameLayouts();
+  const currentLayouts = getCanonicalReusableLayouts();
   const activeProjectId = useCanonicalDocumentStore.getState().currentProjectId;
   const sourceSummary = currentLayouts.find((layout) => layout.id === frameId);
   const currentDoc = selectActiveCanonicalDocument();
@@ -255,7 +254,8 @@ export async function updateReusableFrame(
   const projectId = sourceSummary?.project_id || activeProjectId || "";
   const nextRecord: ReusableFrameRecord = {
     id: frameId,
-    name: updates.name ?? existingFrame?.name ?? sourceSummary?.name ?? "Frame",
+    name:
+      updates.name ?? existingFrame?.name ?? sourceSummary?.name ?? "Layout",
     projectId,
     description:
       updates.description ??
@@ -296,21 +296,21 @@ export async function updateReusableFrame(
 }
 
 /**
- * Reusable frame 선택 (canonical semantic).
+ * Reusable layout 선택 — Builder UI selection state.
  *
- * 내부 구현: `selectedReusableFrameId` 갱신.
+ * 내부 구현: `selectedReusableLayoutId` 갱신.
  *
- * @param frameId - 선택할 frame id, 또는 `null` (선택 해제)
+ * @param frameId - 선택할 layout (canonical FrameNode) id, 또는 `null` (선택 해제)
  */
-export function selectReusableFrame(frameId: string | null): void {
-  setSelectedReusableFrameId(frameId);
+export function selectReusableLayout(frameId: string | null): void {
+  setSelectedReusableLayoutId(frameId);
 }
 
 /**
- * 새 reusable frame 의 unique 한 default 이름 생성.
+ * 새 reusable layout 의 unique 한 default 이름 생성.
  *
  * `Layout N` 패턴의 기존 이름들을 분석하여 미사용 번호 중 가장 작은 값 사용.
- * 이전 패턴 (`Layout ${frames.length + 1}`) 의 중복 위험 제거 — frame 삭제 후
+ * 이전 패턴 (`Layout ${layouts.length + 1}`) 의 중복 위험 제거 — layout 삭제 후
  * 추가하거나 IDB 잔존 데이터 + 메모리 length mismatch 시 발생하는 충돌 방지.
  *
  * 동작:
@@ -321,16 +321,16 @@ export function selectReusableFrame(frameId: string | null): void {
  * - `["My Custom"]`: `Layout 1` (`Layout N` 패턴 아닌 이름은 무시)
  * - `["Layout 1", "My Custom", "Layout 3"]`: `Layout 2`
  *
- * @param existingFrames - 현재 frame 목록 (id 와 name 만 사용)
- * @returns 새 frame 의 사용자 노출 default 이름 (예: `Layout 4`)
+ * @param existingLayouts - 현재 layout 목록 (id 와 name 만 사용)
+ * @returns 새 layout 의 사용자 노출 default 이름 (예: `Layout 4`)
  */
-export function getNextFrameName(
-  existingFrames: ReadonlyArray<{ name: string }>,
+export function getNextLayoutName(
+  existingLayouts: ReadonlyArray<{ name: string }>,
 ): string {
   const usedNumbers = new Set<number>();
   const pattern = /^Layout (\d+)$/;
-  for (const frame of existingFrames) {
-    const match = pattern.exec(frame.name);
+  for (const layout of existingLayouts) {
+    const match = pattern.exec(layout.name);
     if (match) {
       usedNumbers.add(Number(match[1]));
     }

@@ -26,10 +26,10 @@ import { markBegin, markEnd } from "../utils/perfMarks";
 import { useStore } from "../stores";
 import { useEditModeStore } from "../stores/editMode";
 import {
-  getCanonicalReusableFrameLayouts,
-  useCanonicalReusableFrameLayouts,
-  useSelectedReusableFrameId,
-} from "../stores/canonical/canonicalFrameStore";
+  getCanonicalReusableLayouts,
+  useCanonicalReusableLayouts,
+  useSelectedReusableLayoutId,
+} from "../stores/canonical/reusableLayoutStore";
 import {
   useCollections,
   useApiEndpoints,
@@ -214,8 +214,8 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
   const currentEditMode = useEditModeStore((state) => state.mode);
 
   // ⭐ Nested Routes & Slug System: canonical reusable frame surface 구독
-  const layouts = useCanonicalReusableFrameLayouts();
-  const selectedReusableFrameId = useSelectedReusableFrameId();
+  const layouts = useCanonicalReusableLayouts();
+  const selectedReusableLayoutId = useSelectedReusableLayoutId();
 
   // ⭐ DataTables 구독 (PropertyDataBinding용)
   const collections = useCollections();
@@ -399,7 +399,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     const currentReadyState = iframeReadyStateRef.current;
 
     // 현재 reusable frame surface 가져오기
-    const currentLayouts = getCanonicalReusableFrameLayouts();
+    const currentLayouts = getCanonicalReusableLayouts();
 
     // PreviewLayout 형태로 변환 (id, name, slug만 전송)
     const previewLayouts = currentLayouts.map((l) => ({
@@ -1048,7 +1048,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     const pageId = currentEditMode === "layout" ? null : currentPageId;
     const layoutId =
       currentEditMode === "layout"
-        ? selectedReusableFrameId
+        ? selectedReusableLayoutId
         : getNullablePageFrameBindingId(currentPage);
 
     // 이전 값과 같으면 스킵
@@ -1089,7 +1089,7 @@ export const useIframeMessenger = (): UseIframeMessengerReturn => {
     currentEditMode,
     currentPageId,
     pages,
-    selectedReusableFrameId,
+    selectedReusableLayoutId,
     sendPageInfoToIframe,
   ]);
 

@@ -2,15 +2,15 @@
 /**
  * ADR-111 Phase 2 PR-B baseline 잠금 테스트.
  *
- * 본 테스트는 PR-B 시점의 FramesTab 동작을 회귀 안전망으로 잠근다. 후속 PR-C
+ * 본 테스트는 PR-B 시점의 LayoutsTab 동작을 회귀 안전망으로 잠근다. 후속 PR-C
  * (read path canonical 전환) 진입 시 동작 차이를 즉시 감지하기 위함이다.
  *
  * 시나리오 5개:
  *  1. 빈 frames 상태 → "No layouts available" + "Select a layout to view elements"
  *  2. 2개 frames 렌더 → 이름 모두 표시
- *  3. Add Layout 버튼 클릭 → `createReusableFrame({ name, projectId })` 호출
- *  4. Frame 항목 클릭 → `selectReusableFrame(frameId)` 호출 (id 기반 시그니처 검증)
- *  5. Delete 버튼 클릭 → `deleteReusableFrame(frameId)` 호출
+ *  3. Add Layout 버튼 클릭 → `createReusableLayout({ name, projectId })` 호출
+ *  4. Frame 항목 클릭 → `selectReusableLayout(frameId)` 호출 (id 기반 시그니처 검증)
+ *  5. Delete 버튼 클릭 → `deleteReusableLayout(frameId)` 호출
  *
  * 외부 의존성은 모두 vi.mock 으로 격리. canonical frame surface 와
  * `useStore((state) => ...)` 호출 시 mockState 에 selector 적용하는 방식으로 구현.
@@ -40,7 +40,7 @@ type LayoutLite = { id: string; name: string; project_id: string };
 
 const mockLayoutsState = {
   layouts: [] as LayoutLite[],
-  selectedReusableFrameId: null as string | null,
+  selectedReusableLayoutId: null as string | null,
 };
 
 const mockStoreState = {
@@ -71,8 +71,8 @@ vi.mock("react-router", () => ({
   useParams: () => ({ projectId: "test-project" }),
 }));
 
-vi.mock("@/builder/stores/canonical/canonicalFrameStore", () => ({
-  useCanonicalReusableFrameLayouts: () => {
+vi.mock("@/builder/stores/canonical/reusableLayoutStore", () => ({
+  useCanonicalReusableLayouts: () => {
     const doc = mockActiveCanonicalDocument();
     return (doc?.children ?? [])
       .filter(
@@ -93,15 +93,15 @@ vi.mock("@/builder/stores/canonical/canonicalFrameStore", () => ({
         }),
       );
   },
-  useSelectedReusableFrameId: () => mockLayoutsState.selectedReusableFrameId,
+  useSelectedReusableLayoutId: () => mockLayoutsState.selectedReusableLayoutId,
 }));
 
-vi.mock("@/builder/stores/utils/frameActions", () => ({
-  createReusableFrame: vi.fn(),
-  deleteReusableFrame: vi.fn(),
-  selectReusableFrame: vi.fn(),
+vi.mock("@/builder/stores/utils/reusableLayoutActions", () => ({
+  createReusableLayout: vi.fn(),
+  deleteReusableLayout: vi.fn(),
+  selectReusableLayout: vi.fn(),
   // 실제 로직 흉내 — Layout N 패턴 추출 + 미사용 번호 사용
-  getNextFrameName: (frames: ReadonlyArray<{ name: string }>) => {
+  getNextLayoutName: (frames: ReadonlyArray<{ name: string }>) => {
     const used = new Set<number>();
     for (const f of frames) {
       const m = /^Layout (\d+)$/.exec(f.name);
@@ -172,20 +172,20 @@ vi.mock("@/builder/utils/treeUtils", () => ({
 }));
 
 // ─── import under test (after mocks) ────────────────────────────────────────
-import { FramesTab } from "../FramesTab";
+import { LayoutsTab } from "../LayoutsTab";
 import {
-  createReusableFrame,
-  deleteReusableFrame,
-  selectReusableFrame,
-} from "@/builder/stores/utils/frameActions";
+  createReusableLayout,
+  deleteReusableLayout,
+  selectReusableLayout,
+} from "@/builder/stores/utils/reusableLayoutActions";
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
 
-const createReusableFrameMock = vi.mocked(createReusableFrame);
-const deleteReusableFrameMock = vi.mocked(deleteReusableFrame);
-const selectReusableFrameMock = vi.mocked(selectReusableFrame);
+const createReusableLayoutMock = vi.mocked(createReusableLayout);
+const deleteReusableLayoutMock = vi.mocked(deleteReusableLayout);
+const selectReusableLayoutMock = vi.mocked(selectReusableLayout);
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-function makeProps(): React.ComponentProps<typeof FramesTab> {
+function makeProps(): React.ComponentProps<typeof LayoutsTab> {
   return {
     selectedElementId: null,
     setSelectedElement: vi.fn(),
@@ -212,7 +212,7 @@ function makeFrameElement(
 
 function resetMockState() {
   mockLayoutsState.layouts = [];
-  mockLayoutsState.selectedReusableFrameId = null;
+  mockLayoutsState.selectedReusableLayoutId = null;
   mockStoreState.elementsMap = new Map<string, Element>();
   mockStoreState.pages = [];
   useCanonicalDocumentStore.setState({
@@ -237,15 +237,15 @@ function resetMockState() {
   }));
   mockBuildTreeFromElements.mockImplementation(() => []);
   // wrapper Promise resolve 기본값 — 정상 동작
-  createReusableFrameMock.mockResolvedValue({
+  createReusableLayoutMock.mockResolvedValue({
     id: "new-frame",
     name: "Layout 1",
   });
-  deleteReusableFrameMock.mockResolvedValue(undefined);
+  deleteReusableLayoutMock.mockResolvedValue(undefined);
 }
 
 // ─── tests ──────────────────────────────────────────────────────────────────
-describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
+describe("LayoutsTab (ADR-111 P2-a PR-B baseline)", () => {
   beforeEach(() => {
     resetMockState();
   });
@@ -257,7 +257,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   describe("rendering", () => {
     it("frames 가 비어있으면 'No layouts available' 표시 + Layers 영역도 layout 선택 안내", () => {
       mockLayoutsState.layouts = [];
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       expect(screen.getByText("No layouts available")).toBeTruthy();
       expect(screen.getByText("Select a layout to view elements")).toBeTruthy();
@@ -268,14 +268,14 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
         { id: "f-1", name: "Header Frame", project_id: "test-project" },
         { id: "f-2", name: "Footer Frame", project_id: "test-project" },
       ];
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       expect(screen.getByText("Header Frame")).toBeTruthy();
       expect(screen.getByText("Footer Frame")).toBeTruthy();
     });
 
     it("Frames 탭 진입 시 선택 frame 이 없으면 첫 번째 frame body 를 자동 선택한다", async () => {
-      mockLayoutsState.selectedReusableFrameId = null;
+      mockLayoutsState.selectedReusableLayoutId = null;
       mockActiveCanonicalDocument.mockReturnValue({
         children: [
           {
@@ -310,10 +310,10 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       });
       const props = makeProps();
 
-      render(<FramesTab {...props} />);
+      render(<LayoutsTab {...props} />);
 
       await waitFor(() => {
-        expect(selectReusableFrameMock).toHaveBeenCalledWith("f-1");
+        expect(selectReusableLayoutMock).toHaveBeenCalledWith("f-1");
       });
       expect(mockEditModeState.setCurrentLayoutId).toHaveBeenCalledWith("f-1");
       expect(props.setSelectedElement).toHaveBeenCalledWith(
@@ -376,7 +376,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
         documentVersion: 1,
       });
 
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       await waitFor(() => {
         expect(screen.getByText("Header Frame")).toBeTruthy();
@@ -387,7 +387,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
 
     it("선택 frame 의 canonical scope 로 body tree를 렌더한다", () => {
       mockLayoutsState.layouts = [];
-      mockLayoutsState.selectedReusableFrameId = "new-frame";
+      mockLayoutsState.selectedReusableLayoutId = "new-frame";
       mockActiveCanonicalDocument.mockReturnValue({
         children: [
           {
@@ -419,14 +419,14 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
           })),
       );
 
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       expect(screen.getByText("body")).toBeTruthy();
       expect(screen.queryByText("Select a layout to view elements")).toBeNull();
     });
 
     it("선택 frame 의 canonical body 를 자동 선택한다", async () => {
-      mockLayoutsState.selectedReusableFrameId = "new-frame";
+      mockLayoutsState.selectedReusableLayoutId = "new-frame";
       mockActiveCanonicalDocument.mockReturnValue({
         children: [
           {
@@ -459,7 +459,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       );
       const props = makeProps();
 
-      render(<FramesTab {...props} />);
+      render(<LayoutsTab {...props} />);
 
       await waitFor(() => {
         expect(props.setSelectedElement).toHaveBeenCalledWith(
@@ -472,11 +472,11 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   });
 
   describe("frame creation", () => {
-    it("Add Layout 버튼 클릭 시 createReusableFrame({ name, projectId }) 위임", async () => {
+    it("Add Layout 버튼 클릭 시 createReusableLayout({ name, projectId }) 위임", async () => {
       mockLayoutsState.layouts = [
         { id: "existing", name: "Existing", project_id: "test-project" },
       ];
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       const addButton = screen.getByRole("button", { name: "Add Layout" });
       fireEvent.click(addButton);
@@ -485,13 +485,13 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(createReusableFrameMock).toHaveBeenCalledTimes(1);
+      expect(createReusableLayoutMock).toHaveBeenCalledTimes(1);
       // 기존 frame "Existing" 은 Layout N 패턴 아님 → 사용자 노출 기본 이름은 "Layout 1"
-      expect(createReusableFrameMock).toHaveBeenCalledWith({
+      expect(createReusableLayoutMock).toHaveBeenCalledWith({
         name: "Layout 1",
         projectId: "test-project",
       });
-      expect(selectReusableFrameMock).toHaveBeenCalledWith("new-frame");
+      expect(selectReusableLayoutMock).toHaveBeenCalledWith("new-frame");
       expect(mockEditModeState.setCurrentLayoutId).toHaveBeenCalledWith(
         "new-frame",
       );
@@ -499,25 +499,25 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   });
 
   describe("frame selection", () => {
-    it("Frame 항목 클릭 시 selectReusableFrame(frameId) 위임 — id 기반 시그니처", async () => {
+    it("Frame 항목 클릭 시 selectReusableLayout(frameId) 위임 — id 기반 시그니처", async () => {
       mockLayoutsState.layouts = [
         { id: "frame-abc", name: "Header", project_id: "test-project" },
       ];
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       const frameLabel = screen.getByText("Header");
       fireEvent.click(frameLabel);
 
-      // handleSelectFrame async 흐름 (getByLayout → mergeElements → selectReusableFrame)
+      // handleSelectLayout async 흐름 (getByLayout → mergeElements → selectReusableLayout)
       await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(selectReusableFrameMock).toHaveBeenCalledWith("frame-abc");
+      expect(selectReusableLayoutMock).toHaveBeenCalledWith("frame-abc");
     });
 
     it("이미 선택된 frame 을 다시 클릭해도 body 를 다시 선택한다", async () => {
-      mockLayoutsState.selectedReusableFrameId = "frame-abc";
+      mockLayoutsState.selectedReusableLayoutId = "frame-abc";
       mockActiveCanonicalDocument.mockReturnValue({
         children: [
           {
@@ -549,7 +549,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
           })),
       );
       const props = makeProps();
-      render(<FramesTab {...props} />);
+      render(<LayoutsTab {...props} />);
       await waitFor(() =>
         expect(props.setSelectedElement).toHaveBeenCalledWith(
           "body-frame-abc",
@@ -569,16 +569,16 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
   });
 
   describe("frame deletion", () => {
-    it("Delete 버튼 클릭 시 deleteReusableFrame(frameId) 위임 + stopPropagation", async () => {
+    it("Delete 버튼 클릭 시 deleteReusableLayout(frameId) 위임 + stopPropagation", async () => {
       mockLayoutsState.layouts = [
         { id: "frame-xyz", name: "Doomed", project_id: "test-project" },
       ];
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       await waitFor(() => {
-        expect(selectReusableFrameMock).toHaveBeenCalledWith("frame-xyz");
+        expect(selectReusableLayoutMock).toHaveBeenCalledWith("frame-xyz");
       });
-      selectReusableFrameMock.mockClear();
+      selectReusableLayoutMock.mockClear();
 
       const deleteButton = screen.getByRole("button", {
         name: "Delete Doomed",
@@ -588,13 +588,13 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(deleteReusableFrameMock).toHaveBeenCalledTimes(1);
-      expect(deleteReusableFrameMock).toHaveBeenCalledWith("frame-xyz");
-      // stopPropagation 효과: 부모 onClick (handleSelectFrame) 미호출 확인
-      // selectReusableFrame 은 deleteFrame 마지막에 remaining=0 이면 null 호출됨
+      expect(deleteReusableLayoutMock).toHaveBeenCalledTimes(1);
+      expect(deleteReusableLayoutMock).toHaveBeenCalledWith("frame-xyz");
+      // stopPropagation 효과: 부모 onClick (handleSelectLayout) 미호출 확인
+      // selectReusableLayout 은 deleteFrame 마지막에 remaining=0 이면 null 호출됨
       // → 호출은 1회 (null 인자) — 부모 click 으로 인한 추가 호출 없음
-      expect(selectReusableFrameMock).toHaveBeenCalledTimes(1);
-      expect(selectReusableFrameMock).toHaveBeenCalledWith(null);
+      expect(selectReusableLayoutMock).toHaveBeenCalledTimes(1);
+      expect(selectReusableLayoutMock).toHaveBeenCalledWith(null);
     });
   });
 
@@ -618,7 +618,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
         ],
       });
 
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       expect(screen.getByText("Canonical Frame")).toBeTruthy();
       expect(screen.queryByText("Legacy Should Not Show")).toBeNull();
@@ -653,14 +653,14 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
         ],
       });
 
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       expect(screen.getByText("Reusable Frame")).toBeTruthy();
       expect(screen.queryByText("Page Frame")).toBeNull();
       expect(screen.queryByText("Some Ref")).toBeNull();
     });
 
-    it("canonical frame 클릭 시 metadata.layoutId mirror id 로 selectReusableFrame 위임 — write 정합성", async () => {
+    it("canonical frame 클릭 시 metadata.layoutId mirror id 로 selectReusableLayout 위임 — write 정합성", async () => {
       mockActiveCanonicalDocument.mockReturnValue({
         children: [
           {
@@ -674,18 +674,18 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
         ],
       });
 
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
       fireEvent.click(screen.getByText("Header"));
       await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
 
       // mirror id ("frame-zzz") 로 select 호출 — canonical id ("layout-frame-zzz") 아님
-      expect(selectReusableFrameMock).toHaveBeenCalledWith("frame-zzz");
+      expect(selectReusableLayoutMock).toHaveBeenCalledWith("frame-zzz");
     });
 
     it("선택 frame 의 canonical body 만 tree source 로 사용하고 store mirror 중복 body 는 무시", () => {
-      mockLayoutsState.selectedReusableFrameId = "frame-b";
+      mockLayoutsState.selectedReusableLayoutId = "frame-b";
       mockActiveCanonicalDocument.mockReturnValue({
         children: [
           {
@@ -728,7 +728,7 @@ describe("FramesTab (ADR-111 P2-a PR-B baseline)", () => {
       });
       mockStoreState.elementsMap = new Map([[staleBody.id, staleBody]]);
 
-      render(<FramesTab {...makeProps()} />);
+      render(<LayoutsTab {...makeProps()} />);
 
       const lastCall = mockBuildTreeFromElements.mock.calls.at(-1)?.[0] ?? [];
       expect(lastCall.map((element: Element) => element.id)).toEqual([

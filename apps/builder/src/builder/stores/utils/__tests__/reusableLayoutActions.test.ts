@@ -34,7 +34,7 @@ const mockLiveElementsState = vi.hoisted(() => ({
   setPages: vi.fn(),
   setElements: vi.fn(),
   // canonical mutation 후 store mirror 재구축 (state-management: canonical → set →
-  // _rebuildIndexes). double 에서 빠지면 deleteReusableFrame 이 TypeError 로 죽는다.
+  // _rebuildIndexes). double 에서 빠지면 deleteReusableLayout 이 TypeError 로 죽는다.
   _rebuildIndexes: vi.fn(),
 }));
 
@@ -60,14 +60,14 @@ vi.mock("@/builder/stores/rootStoreAccess", () => ({
 }));
 
 import { useCanonicalDocumentStore } from "@/builder/stores/canonical/canonicalDocumentStore";
-import { useCanonicalFrameSelectionStore } from "@/builder/stores/canonical/canonicalFrameStore";
+import { useReusableLayoutSelectionStore } from "@/builder/stores/canonical/reusableLayoutStore";
 import {
-  createReusableFrame,
-  deleteReusableFrame,
-  getNextFrameName,
-  selectReusableFrame,
-  updateReusableFrameName,
-} from "../frameActions";
+  createReusableLayout,
+  deleteReusableLayout,
+  getNextLayoutName,
+  selectReusableLayout,
+  updateReusableLayoutName,
+} from "../reusableLayoutActions";
 
 function makeDoc(children: CompositionDocument["children"] = []) {
   return {
@@ -76,7 +76,7 @@ function makeDoc(children: CompositionDocument["children"] = []) {
   } satisfies CompositionDocument;
 }
 
-describe("frameActions canonical reusable frame API", () => {
+describe("reusableLayoutActions canonical reusable frame API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockDb.documents.put.mockImplementation(
@@ -87,18 +87,18 @@ describe("frameActions canonical reusable frame API", () => {
       currentProjectId: "proj-1",
       documentVersion: 0,
     });
-    useCanonicalFrameSelectionStore.setState({
-      selectedReusableFrameId: null,
+    useReusableLayoutSelectionStore.setState({
+      selectedReusableLayoutId: null,
     });
   });
 
-  describe("createReusableFrame", () => {
+  describe("createReusableLayout", () => {
     it("active canonical document 에 reusable FrameNode 를 추가하고 document store 를 저장한다", async () => {
       const randomUUIDSpy = vi
         .spyOn(crypto, "randomUUID")
         .mockReturnValue("frame-x" as ReturnType<typeof crypto.randomUUID>);
 
-      const result = await createReusableFrame({
+      const result = await createReusableLayout({
         name: "My Frame",
         projectId: "proj-1",
         description: "desc",
@@ -110,7 +110,7 @@ describe("frameActions canonical reusable frame API", () => {
       );
       expect(result).toEqual({ id: "frame-x", name: "My Frame" });
       expect(
-        useCanonicalFrameSelectionStore.getState().selectedReusableFrameId,
+        useReusableLayoutSelectionStore.getState().selectedReusableLayoutId,
       ).toBe("frame-x");
 
       const doc = useCanonicalDocumentStore.getState().getDocument("proj-1");
@@ -141,7 +141,7 @@ describe("frameActions canonical reusable frame API", () => {
         .spyOn(crypto, "randomUUID")
         .mockReturnValue("frame-y" as ReturnType<typeof crypto.randomUUID>);
 
-      await createReusableFrame({ name: "F", projectId: "p" });
+      await createReusableLayout({ name: "F", projectId: "p" });
 
       const doc = useCanonicalDocumentStore.getState().getDocument("p");
       expect(doc?.children[0]).toMatchObject({
@@ -156,12 +156,12 @@ describe("frameActions canonical reusable frame API", () => {
       mockDb.documents.put.mockRejectedValueOnce(new Error("DB 실패"));
 
       await expect(
-        createReusableFrame({ name: "F", projectId: "p" }),
+        createReusableLayout({ name: "F", projectId: "p" }),
       ).rejects.toThrow("DB 실패");
     });
   });
 
-  describe("deleteReusableFrame", () => {
+  describe("deleteReusableLayout", () => {
     it("canonical delete cascade 를 적용하고 document store 를 저장한다", async () => {
       useCanonicalDocumentStore.getState().setDocument(
         "proj-1",
@@ -176,9 +176,9 @@ describe("frameActions canonical reusable frame API", () => {
           },
         ]),
       );
-      selectReusableFrame("frame-x");
+      selectReusableLayout("frame-x");
 
-      await deleteReusableFrame("frame-x");
+      await deleteReusableLayout("frame-x");
 
       expect(mockApplyDeleteReusableFrameCanonicalPrimary).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -196,12 +196,12 @@ describe("frameActions canonical reusable frame API", () => {
         expect.objectContaining({ version: "composition-1.0" }),
       );
       expect(
-        useCanonicalFrameSelectionStore.getState().selectedReusableFrameId,
+        useReusableLayoutSelectionStore.getState().selectedReusableLayoutId,
       ).toBeNull();
     });
   });
 
-  describe("updateReusableFrameName", () => {
+  describe("updateReusableLayoutName", () => {
     it("canonical FrameNode name 을 갱신하고 document store 를 저장한다", async () => {
       useCanonicalDocumentStore.getState().setDocument(
         "proj-1",
@@ -217,7 +217,7 @@ describe("frameActions canonical reusable frame API", () => {
         ]),
       );
 
-      await updateReusableFrameName("frame-x", "New Name");
+      await updateReusableLayoutName("frame-x", "New Name");
 
       expect(mockDb.documents.put).toHaveBeenCalledWith(
         "proj-1",
@@ -231,35 +231,35 @@ describe("frameActions canonical reusable frame API", () => {
     });
   });
 
-  describe("selectReusableFrame", () => {
+  describe("selectReusableLayout", () => {
     it("canonical frame selection store 를 갱신한다", () => {
-      selectReusableFrame("frame-x");
+      selectReusableLayout("frame-x");
 
       expect(
-        useCanonicalFrameSelectionStore.getState().selectedReusableFrameId,
+        useReusableLayoutSelectionStore.getState().selectedReusableLayoutId,
       ).toBe("frame-x");
 
-      selectReusableFrame(null);
+      selectReusableLayout(null);
 
       expect(
-        useCanonicalFrameSelectionStore.getState().selectedReusableFrameId,
+        useReusableLayoutSelectionStore.getState().selectedReusableLayoutId,
       ).toBeNull();
     });
   });
 
-  describe("getNextFrameName", () => {
+  describe("getNextLayoutName", () => {
     it("빈 배열 -> 'Layout 1'", () => {
-      expect(getNextFrameName([])).toBe("Layout 1");
+      expect(getNextLayoutName([])).toBe("Layout 1");
     });
 
     it("['Layout 1', 'Layout 3'] -> 'Layout 2' (gap 채움)", () => {
       expect(
-        getNextFrameName([{ name: "Layout 1" }, { name: "Layout 3" }]),
+        getNextLayoutName([{ name: "Layout 1" }, { name: "Layout 3" }]),
       ).toBe("Layout 2");
     });
 
     it("Layout N 패턴 아닌 이름은 무시한다", () => {
-      expect(getNextFrameName([{ name: "My Custom" }])).toBe("Layout 1");
+      expect(getNextLayoutName([{ name: "My Custom" }])).toBe("Layout 1");
     });
   });
 });

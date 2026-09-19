@@ -11,6 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-225 — 재사용 레이아웃 어휘 정렬: Frames 기능 표면을 Layouts 로 통일] - 2026-09-19
+
+### Changed
+
+- Properties 의 page 레이아웃 연결 절이 `Frame / Apply Frame / No Frame / Remove Frame` 대신 `Layout / Apply Layout / No Layout / Remove Layout` 을 쓴다 (ko: 레이아웃 적용 · 레이아웃 없음 · 레이아웃 제거 · 이 페이지에서 레이아웃 제거). 신규 key `properties.noLayout` · `properties.selectReusableLayout` · formatted `properties.usingLayout` (이름 인자) 를 ko/en 에 등록했다.
+- Navigator 의 재사용 레이아웃 기능이 소유한 내부 명칭을 Layout 계열로 정렬했다 — `panels/navigator/LayoutsTab/` (`LayoutsTab` · `LayoutList` · `LayoutElementTree`), `stores/canonical/reusableLayoutStore.ts` (`ReusableLayoutSummary` · `useReusableLayoutSelectionStore` · `selectedReusableLayoutId` · `useCanonicalReusableLayouts`), `stores/utils/reusableLayoutActions.ts` (`create/delete/update/selectReusableLayout` · `getNextLayoutName`), `LayoutPresetSelector/LayoutSlotsSection.tsx`, i18n `navigator.layouts/addLayout/noLayouts/selectLayout`, CSS `.layout-tree`, section id `navigator-layouts` / `navigator-layout-layers`.
+- 저장된 접힘 상태의 구 section id (`navigator-frames` / `navigator-frame-layers`) 는 부팅 시 새 id 로 승계하고 제거한다 (`activeFocusSection` 포함) — 승계 뒤 펼친 섹션이 새로고침마다 다시 접히지 않는다.
+- 보존: canonical `FrameNode` · `type: "frame"` · Pencil import/export · `applyPageFrameBinding*` · Canvas `visibleFrameRoots`/`frameAreas` · catalog `Frame`/`MaskedFrame` · 사용자가 지은 이름 (`Frame 1` 등) 은 바뀌지 않는다. 문서/DB schema 변경 0.
+
+### Validation
+
+- Phase 0 인벤토리 49 파일 분류 (rename 48 · canonical 1, [evidence](adr/evidence/225-phase0-vocabulary-inventory.md)) · 정적 ratchet `adr225VocabularyRatchet.static.test.ts` (구 feature 명칭 0 · 사용자 문구 Frame 0 · ko/en key 3) · `useSectionCollapse` 승계 test 5 (old/new/both/none · 승계→펼침→persist→reload) · 인접 Vitest 88 파일 636 PASS · builder 전체 6699 PASS (선재 실패 8 은 clean HEAD 재현) · `type-check` PASS.
+- live (headed Playwright, `apps/builder/scripts/adr225-layouts-live.mjs`) 13/13: 구 collapse id 승계 · Add Layout → canonical `{type:"frame", reusable:true, name:"Layout 1"}` · `.layout-tree`/`.frame-tree` 0 · Apply Layout → binding · Remove Layout → 해제 · Delete → reload 0 · Navigator/Properties 문자열 Frame 0 · ko-KR 동일 흐름 · pageerror/console.error 0.
+
 ## [Canvas 텍스트 줄바꿈 높이 — 확정 폭 재측정 복구 · parity 하니스 폰트 문맥] - 2026-09-19
 
 ### Fixed

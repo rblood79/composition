@@ -10,7 +10,7 @@ describe("NavigatorPanelTabs contract", () => {
     );
 
     expect(source).toContain('label: t("navigator.pages")');
-    expect(source).toContain('label: t("navigator.frames")');
+    expect(source).toContain('label: t("navigator.layouts")');
     expect(source).toContain("<TabList");
     expect(source).toContain("<Tab key={id} id={id}");
     expect(source).not.toContain('role="tab"');

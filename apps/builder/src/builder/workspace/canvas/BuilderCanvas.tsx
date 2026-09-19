@@ -30,9 +30,9 @@ import {
 } from "../../stores/canvasSettings";
 import { useEditModeStore } from "../../stores/editMode";
 import {
-  useCanonicalReusableFrameLayouts,
-  useSelectedReusableFrameId,
-} from "../../stores/canonical/canonicalFrameStore";
+  useCanonicalReusableLayouts,
+  useSelectedReusableLayoutId,
+} from "../../stores/canonical/reusableLayoutStore";
 import { useActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
 import { useCanonicalDocumentStore } from "../../stores/canonical/canonicalDocumentStore";
 import { useContextMenu } from "../../components/overlay/contextMenu/useContextMenuHook";
@@ -286,7 +286,7 @@ export function BuilderCanvas({
 
   // Canvas는 컨테이너 크기에 맞춰 자동 동기화 (CSS → 종료 시 renderer.resize)
 
-  const layouts = useCanonicalReusableFrameLayouts();
+  const layouts = useCanonicalReusableLayouts();
   const activeCanonicalDocument = useActiveCanonicalDocument();
   const canonicalDocumentRevision = useCanonicalDocumentStore(
     (state) => state.documentVersion,
@@ -418,7 +418,7 @@ export function BuilderCanvas({
     canonicalSceneModel?.frameElementScopes ?? emptyFrameElementScopes;
   // Frames tab overview: canvas 는 reusable frame 전체를 표시하고, 이 값은
   // Node tree/properties 의 현재 frame 선택 동기화에 사용한다.
-  const selectedReusableFrameId = useSelectedReusableFrameId();
+  const selectedReusableLayoutId = useSelectedReusableLayoutId();
   // ADR-074 Phase 4: aiGeneratingNodes/aiFlashAnimations/cleanupExpiredFlashes
   // 구독은 SkiaCanvas 내부로 이전 — BuilderCanvas 루트 리렌더 fan-out 차단.
 
@@ -795,7 +795,7 @@ export function BuilderCanvas({
     return computeFrameAreas(
       activeCanonicalDocument,
       framePositions,
-      selectedReusableFrameId,
+      selectedReusableLayoutId,
     ).map((area, index) => {
       const stackedPosition = computeStackedCanvasPosition(
         index,
@@ -827,7 +827,7 @@ export function BuilderCanvas({
     pageLayoutPanelMetrics,
     containerSize.width,
     zoom,
-    selectedReusableFrameId,
+    selectedReusableLayoutId,
   ]);
 
   // ADR-111 P3-δ fix #3 (D4=A, 2026-04-28): frame body 의 layout publish input.

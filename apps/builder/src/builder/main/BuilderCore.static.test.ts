@@ -127,7 +127,7 @@ describe("BuilderCore canonical document direct cutover contract", () => {
     expect(source).not.toContain("loadFrameElements");
     expect(source).not.toMatch(/elements: await loadFrameElements/);
     expect(source).not.toMatch(
-      /const activeFrameId = getSelectedReusableFrameId\(\);/,
+      /const activeFrameId = getSelectedReusableLayoutId\(\);/,
     );
     expect(source).not.toMatch(/const frameIds = Array\.from\(/);
     expect(source).not.toMatch(/layouts\.map\(\(layout\) => layout\.id\)/);

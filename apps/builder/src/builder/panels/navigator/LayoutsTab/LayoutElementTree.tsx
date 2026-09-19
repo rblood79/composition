@@ -1,13 +1,13 @@
 /**
- * FrameElementTree — frame 의 element 트리 렌더 + Layers 헤더 + Collapse All 버튼.
+ * LayoutElementTree — frame 의 element 트리 렌더 + Layers 헤더 + Collapse All 버튼.
  *
- * ADR-111 Phase 2 PR-D2: FramesTab.tsx 의 Layers section (Layers 헤더 + tree 렌더
+ * ADR-111 Phase 2 PR-D2: LayoutsTab.tsx 의 Layers section (Layers 헤더 + tree 렌더
  * + placeholder) 추출.
  *
  * 본 컴포넌트는 프레젠테이션 전용 — element 선택 / 삭제 핸들러 구현은 부모 책임.
  * tree 데이터, expand 상태, 핸들러 모두 props 로 주입받아 결정적 UI 만 렌더.
  *
- * functional 동등 — 추출 전후 동작 차이 없음 (FramesTab 8/8 회귀 0).
+ * functional 동등 — 추출 전후 동작 차이 없음 (LayoutsTab 8/8 회귀 0).
  */
 
 import React, { useCallback, useMemo } from "react";
@@ -29,10 +29,10 @@ import { TreeBase, VirtualizedTree } from "../tree/TreeBase";
 import type { BaseTreeNode, TreeItemState } from "../tree/TreeBase";
 import type { PanelNode } from "../../panelNode";
 
-interface FrameElementTreeNode extends BaseTreeNode {
+interface LayoutElementTreeNode extends BaseTreeNode {
   type: string;
   item: ElementTreeItem;
-  children?: FrameElementTreeNode[];
+  children?: LayoutElementTreeNode[];
 }
 
 /**
@@ -45,7 +45,7 @@ interface FrameElementTreeNode extends BaseTreeNode {
  */
 const VIRTUALIZE_THRESHOLD = 12;
 
-export interface FrameElementTreeProps {
+export interface LayoutElementTreeProps {
   /** 렌더할 element 트리 */
   tree: ElementTreeItem[];
   /** 현재 선택된 frame id (없으면 placeholder 표시 + element 의 legacy layout binding source) */
@@ -64,7 +64,7 @@ export interface FrameElementTreeProps {
   onElementDelete: (element: PanelNode) => Promise<void> | void;
 }
 
-export function FrameElementTree({
+export function LayoutElementTree({
   tree,
   frameId,
   selectedElementId,
@@ -73,11 +73,11 @@ export function FrameElementTree({
   onCollapseAll,
   onElementClick,
   onElementDelete,
-}: FrameElementTreeProps) {
+}: LayoutElementTreeProps) {
   const { t } = useI18n();
-  const treeNodes = useMemo(() => toFrameElementTreeNodes(tree), [tree]);
+  const treeNodes = useMemo(() => toLayoutElementTreeNodes(tree), [tree]);
   const nodeMap = useMemo(() => {
-    const map = new Map<string, FrameElementTreeNode>();
+    const map = new Map<string, LayoutElementTreeNode>();
     const stack = [...treeNodes];
     while (stack.length > 0) {
       const node = stack.shift();
@@ -98,7 +98,7 @@ export function FrameElementTree({
   );
 
   const toElement = useCallback(
-    (node: FrameElementTreeNode): PanelNode =>
+    (node: LayoutElementTreeNode): PanelNode =>
       withFrameElementMirrorId(
         {
           id: node.item.id,
@@ -141,8 +141,8 @@ export function FrameElementTree({
   );
 
   const renderContent = useCallback(
-    (node: FrameElementTreeNode, state: TreeItemState) => (
-      <FrameElementTreeItemContent
+    (node: LayoutElementTreeNode, state: TreeItemState) => (
+      <LayoutElementTreeItemContent
         node={node}
         state={state}
         element={toElement(node)}
@@ -155,7 +155,7 @@ export function FrameElementTree({
 
   return (
     <Section
-      id={NAVIGATOR_SECTION_IDS.frameLayers}
+      id={NAVIGATOR_SECTION_IDS.layoutLayers}
       className="node-tree-section"
       title={t("navigator.layers")}
       actions={
@@ -175,7 +175,7 @@ export function FrameElementTree({
       {!frameId ? (
         <EmptyState
           icon={<Box size={32} />}
-          message={t("navigator.selectFrame")}
+          message={t("navigator.selectLayout")}
         />
       ) : tree.length === 0 ? (
         <EmptyState
@@ -183,7 +183,7 @@ export function FrameElementTree({
           message={t("navigator.noElements")}
         />
       ) : nodeMap.size >= VIRTUALIZE_THRESHOLD ? (
-        <VirtualizedTree<FrameElementTreeNode>
+        <VirtualizedTree<LayoutElementTreeNode>
           aria-label={t("navigator.layers")}
           items={treeNodes}
           getKey={(node) => node.id}
@@ -195,10 +195,10 @@ export function FrameElementTree({
           onExpandedChange={handleExpandedChange}
           itemHeight={28}
           overscan={8}
-          className="frame-tree frame-tree--virtualized"
+          className="layout-tree layout-tree--virtualized"
         />
       ) : (
-        <TreeBase<FrameElementTreeNode>
+        <TreeBase<LayoutElementTreeNode>
           aria-label={t("navigator.layers")}
           items={treeNodes}
           getKey={(node) => node.id}
@@ -208,19 +208,19 @@ export function FrameElementTree({
           expandedKeys={resolvedExpandedKeys}
           onSelectionChange={handleSelectionChange}
           onExpandedChange={handleExpandedChange}
-          className="frame-tree"
+          className="layout-tree"
         />
       )}
     </Section>
   );
 }
 
-function toFrameElementTreeNodes(
+function toLayoutElementTreeNodes(
   items: ElementTreeItem[],
   depth = 0,
-): FrameElementTreeNode[] {
+): LayoutElementTreeNode[] {
   return items.map((item) => {
-    const children = toFrameElementTreeNodes(item.children ?? [], depth + 1);
+    const children = toLayoutElementTreeNodes(item.children ?? [], depth + 1);
     return {
       id: item.id,
       parentId: item.parent_id ?? null,
@@ -233,7 +233,7 @@ function toFrameElementTreeNodes(
   });
 }
 
-function getFrameElementDisplayName(node: FrameElementTreeNode): string {
+function getFrameElementDisplayName(node: LayoutElementTreeNode): string {
   if (node.type === "Slot" && node.item.props) {
     return `Slot: ${
       (node.item.props as Record<string, unknown>).name || "unnamed"
@@ -242,21 +242,21 @@ function getFrameElementDisplayName(node: FrameElementTreeNode): string {
   return node.type;
 }
 
-interface FrameElementTreeItemContentProps {
-  node: FrameElementTreeNode;
+interface LayoutElementTreeItemContentProps {
+  node: LayoutElementTreeNode;
   state: TreeItemState;
   element: PanelNode;
   onDelete: (element: PanelNode) => Promise<void> | void;
   onReselect: (element: PanelNode) => void;
 }
 
-function FrameElementTreeItemContent({
+function LayoutElementTreeItemContent({
   node,
   state,
   element,
   onDelete,
   onReselect,
-}: FrameElementTreeItemContentProps) {
+}: LayoutElementTreeItemContentProps) {
   const { isSelected, isExpanded, isFocusVisible } = state;
 
   return (

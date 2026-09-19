@@ -33,7 +33,7 @@ describe("PageLayoutSelector frame binding persistence contract", () => {
       "utf-8",
     );
 
-    expect(source).toContain("useCanonicalReusableFrameLayouts");
+    expect(source).toContain("useCanonicalReusableLayouts");
     expect(source).not.toContain("selectCanonicalDocument");
     expect(source).not.toContain("useLayoutsStore");
   });

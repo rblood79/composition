@@ -79,7 +79,7 @@ const makeFrameScope = (
 });
 
 describe("ADR-111 P3-δ collectVisibleFrameRoots", () => {
-  it("page mode 에서는 selectedReusableFrameId/frameAreas 가 남아 있어도 frame roots 를 렌더하지 않는다", () => {
+  it("page mode 에서는 selectedReusableLayoutId/frameAreas 가 남아 있어도 frame roots 를 렌더하지 않는다", () => {
     const bodyEl = makeElement({
       id: "frame-body-1",
       type: "body",

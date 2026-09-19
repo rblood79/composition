@@ -8,9 +8,10 @@ import {
 } from "./canonicalElementsBridge";
 
 /**
- * Canonical reusable frame → UI/list/invalidation 읽기 투영.
+ * Canonical reusable FrameNode → Builder "Layout" UI/list/invalidation 읽기 투영 (ADR-225).
+ * 이 파일이 Layout facade 와 raw `FrameNode` 사이 번역 경계다 — type guard 는 Frame 을 유지한다.
  */
-export interface ReusableFrameLayoutSummary {
+export interface ReusableLayoutSummary {
   id: string;
   name: string;
   project_id: string;
@@ -18,32 +19,32 @@ export interface ReusableFrameLayoutSummary {
   slug?: string;
 }
 
-type CanonicalFrameSelectionState = {
-  selectedReusableFrameId: string | null;
-  setSelectedReusableFrameId: (frameId: string | null) => void;
+type ReusableLayoutSelectionState = {
+  selectedReusableLayoutId: string | null;
+  setSelectedReusableLayoutId: (frameId: string | null) => void;
 };
 
-export const useCanonicalFrameSelectionStore =
-  create<CanonicalFrameSelectionState>((set) => ({
-    selectedReusableFrameId: null,
-    setSelectedReusableFrameId: (frameId) =>
-      set({ selectedReusableFrameId: frameId }),
+export const useReusableLayoutSelectionStore =
+  create<ReusableLayoutSelectionState>((set) => ({
+    selectedReusableLayoutId: null,
+    setSelectedReusableLayoutId: (frameId) =>
+      set({ selectedReusableLayoutId: frameId }),
   }));
 
-export function useSelectedReusableFrameId(): string | null {
-  return useCanonicalFrameSelectionStore(
-    (state) => state.selectedReusableFrameId,
+export function useSelectedReusableLayoutId(): string | null {
+  return useReusableLayoutSelectionStore(
+    (state) => state.selectedReusableLayoutId,
   );
 }
 
-export function getSelectedReusableFrameId(): string | null {
-  return useCanonicalFrameSelectionStore.getState().selectedReusableFrameId;
+export function getSelectedReusableLayoutId(): string | null {
+  return useReusableLayoutSelectionStore.getState().selectedReusableLayoutId;
 }
 
-export function setSelectedReusableFrameId(frameId: string | null): void {
-  useCanonicalFrameSelectionStore
+export function setSelectedReusableLayoutId(frameId: string | null): void {
+  useReusableLayoutSelectionStore
     .getState()
-    .setSelectedReusableFrameId(frameId);
+    .setSelectedReusableLayoutId(frameId);
 }
 
 function isReusableFrameNode(node: unknown): node is FrameNode {
@@ -63,14 +64,14 @@ function getStringMetadata(
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-export function canonicalDocumentToReusableFrameLayouts(
+export function canonicalDocumentToReusableLayouts(
   doc: CompositionDocument | null | undefined,
-): ReusableFrameLayoutSummary[] {
+): ReusableLayoutSummary[] {
   if (!doc) return [];
 
   return doc.children
     .filter(isReusableFrameNode)
-    .map((frame): ReusableFrameLayoutSummary => {
+    .map((frame): ReusableLayoutSummary => {
       const id = getReusableFrameMirrorId(frame);
       const projectId =
         getStringMetadata(frame.metadata, "project_id") ??
@@ -86,11 +87,11 @@ export function canonicalDocumentToReusableFrameLayouts(
     });
 }
 
-export function getCanonicalReusableFrameLayouts(): ReusableFrameLayoutSummary[] {
-  return canonicalDocumentToReusableFrameLayouts(getActiveCanonicalDocument());
+export function getCanonicalReusableLayouts(): ReusableLayoutSummary[] {
+  return canonicalDocumentToReusableLayouts(getActiveCanonicalDocument());
 }
 
-export function useCanonicalReusableFrameLayouts(): ReusableFrameLayoutSummary[] {
+export function useCanonicalReusableLayouts(): ReusableLayoutSummary[] {
   const doc = useActiveCanonicalDocument();
-  return useMemo(() => canonicalDocumentToReusableFrameLayouts(doc), [doc]);
+  return useMemo(() => canonicalDocumentToReusableLayouts(doc), [doc]);
 }

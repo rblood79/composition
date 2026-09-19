@@ -1,5 +1,5 @@
 /**
- * FrameSlotsSection — Frame 편집 (layout 모드) Properties 의 "Slots" 절.
+ * LayoutSlotsSection — Layout 편집 (layout 모드) Properties 의 "Slots" 절.
  *
  * preset 을 적용한 결과가 보이는 자리다: 슬롯 행 28 (이름 · 놓인 요소 수 mono 10). 행을 누르면
  * 그 Slot 요소를 캔버스에서 선택한다. `element.slot: string[]` 에는 이름만 있고 크기 데이터가
@@ -13,13 +13,13 @@ import { useStore } from "../../../../stores";
 import { useExistingFrameSlots } from "./usePresetApply";
 import { useOptionalI18n } from "@/i18n";
 
-interface FrameSlotsSectionProps {
+interface LayoutSlotsSectionProps {
   readonly layoutId: string;
 }
 
-export const FrameSlotsSection = memo(function FrameSlotsSection({
+export const LayoutSlotsSection = memo(function LayoutSlotsSection({
   layoutId,
-}: FrameSlotsSectionProps) {
+}: LayoutSlotsSectionProps) {
   // 편집기 테스트가 provider 없이 마운트한다 — 접근 이름은 provider 없으면 영문 기본.
   const i18n = useOptionalI18n();
   const slots = useExistingFrameSlots(layoutId);

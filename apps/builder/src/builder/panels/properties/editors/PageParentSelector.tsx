@@ -24,7 +24,7 @@ import {
   validateSlug,
   generateSlugFromTitle,
 } from "../../../../utils/slugValidator";
-import { useCanonicalReusableFrameLayouts } from "../../../stores/canonical/canonicalFrameStore";
+import { useCanonicalReusableLayouts } from "../../../stores/canonical/reusableLayoutStore";
 import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDocumentStore";
 import { iconSmall } from "../../../../utils/ui/uiConstants";
 import {
@@ -73,7 +73,7 @@ export const PageParentSelector = memo(function PageParentSelector({
   const page = useStore((state) => state.pages.find((p) => p.id === pageId));
   const pages = useStore((state) => state.pages);
 
-  const layouts = useCanonicalReusableFrameLayouts();
+  const layouts = useCanonicalReusableLayouts();
 
   const [slugError, setSlugError] = useState<string | null>(null);
 

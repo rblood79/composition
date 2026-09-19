@@ -17,7 +17,7 @@ import { Input } from "react-aria-components/Input";
 import { TextField } from "react-aria-components/TextField";
 import { FolderTree, Layout, Link, CircleAlert } from "lucide-react";
 import { useStore } from "../../stores";
-import { useCanonicalReusableFrameLayouts } from "../../stores/canonical/canonicalFrameStore";
+import { useCanonicalReusableLayouts } from "../../stores/canonical/reusableLayoutStore";
 import {
   generateSlugFromTitle,
   validateSlug,
@@ -78,7 +78,7 @@ export function AddPageDialog({
 
   // Store data
   const pages = useStore((state) => state.pages);
-  const layouts = useCanonicalReusableFrameLayouts();
+  const layouts = useCanonicalReusableLayouts();
 
   // Default values
   const defaultTitle = `Page ${existingPagesCount + 1}`;

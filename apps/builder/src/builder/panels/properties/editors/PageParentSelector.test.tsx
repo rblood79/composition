@@ -29,8 +29,8 @@ vi.mock("../../../components", () => ({
   PropertySelect: ({ label }: { label: string }) => <div>{label}</div>,
 }));
 
-vi.mock("../../../stores/canonical/canonicalFrameStore", () => ({
-  useCanonicalReusableFrameLayouts: () => [],
+vi.mock("../../../stores/canonical/reusableLayoutStore", () => ({
+  useCanonicalReusableLayouts: () => [],
 }));
 
 function makePage(overrides: Partial<Page>): Page {

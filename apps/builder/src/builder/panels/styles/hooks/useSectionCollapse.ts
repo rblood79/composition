@@ -24,6 +24,32 @@ import { persist } from "zustand/middleware";
  */
 export const DEFAULT_COLLAPSED_SECTION_IDS: readonly string[] = ["position"];
 
+/**
+ * 구 persisted section id → 현행 id (ADR-225 HC6). Navigator 의 재사용 레이아웃 섹션이
+ * `navigator-frames` / `navigator-frame-layers` 로 저장돼 있던 사용자를 한 번 승계한다.
+ * hydration 에서 구 id 를 **지우고** 신 id 를 넣으므로 다음 persist 에는 구 id 가 남지 않는다 —
+ * 그래야 승계 뒤 펼친 섹션이 reload 마다 다시 접히지 않는다.
+ */
+export const LEGACY_SECTION_ID_MAP: Readonly<Record<string, string>> = {
+  "navigator-frames": "navigator-layouts",
+  "navigator-frame-layers": "navigator-layout-layers",
+};
+
+/** 구 id 를 신 id 로 치환한 집합. old/new 가 함께 있어도 new 하나만 남는다. */
+export function migrateLegacySectionIds(ids: Iterable<string>): Set<string> {
+  const next = new Set<string>();
+  for (const id of ids) {
+    next.add(LEGACY_SECTION_ID_MAP[id] ?? id);
+  }
+  return next;
+}
+
+/** `activeFocusSection` 도 같은 mapping — 구 id 면 신 id, 아니면 그대로. */
+export function migrateLegacySectionId(id: string | null): string | null {
+  if (id === null) return null;
+  return LEGACY_SECTION_ID_MAP[id] ?? id;
+}
+
 /** ⌥S 전체 토글 대상 — Styles 패널이 그리는 절 전부 (탭 순서대로). */
 export const STYLE_PANEL_SECTION_IDS: readonly string[] = [
   "transform",
@@ -197,12 +223,14 @@ export const useSectionCollapse = create<SectionCollapseState>()(
 
         return {
           ...currentState,
-          collapsedSections: new Set([
+          collapsedSections: migrateLegacySectionIds([
             ...(stored?.collapsedSections || []),
             ...pendingDefaults,
           ]),
           focusMode: stored?.focusMode || false,
-          activeFocusSection: stored?.activeFocusSection || null,
+          activeFocusSection: migrateLegacySectionId(
+            stored?.activeFocusSection || null,
+          ),
         };
       },
     },

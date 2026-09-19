@@ -26,7 +26,7 @@ describe("ADR-111 P3-β computeFrameAreas", () => {
     expect(computeFrameAreas(undefined, {}, "any-frame")).toEqual([]);
   });
 
-  it("selectedReusableFrameId null 이어도 reusable frame 전체를 반환", () => {
+  it("selectedReusableLayoutId null 이어도 reusable frame 전체를 반환", () => {
     const doc = makeDoc([
       makeFrame({ id: "frame-A", reusable: true, name: "A" }),
     ]);

@@ -1,7 +1,7 @@
 /**
  * LayoutBodyEditor - Layout body 요소 전용 에디터
  *
- * Frame body의 핵심 기능: 프리셋을 통한 Slot 생성
+ * Layout body의 핵심 기능: 프리셋을 통한 Slot 생성
  * - LayoutPresetSelector를 통해 레이아웃 프리셋 적용
  * - Slot 자동 생성 및 containerStyle 적용
  *
@@ -14,7 +14,7 @@ import { memo, useMemo } from "react";
 import { PropertySection } from "../../../components";
 import { PropertyEditorProps } from "../types/editorTypes";
 import { LayoutPresetSelector } from "./LayoutPresetSelector";
-import { FrameSlotsSection } from "./LayoutPresetSelector/FrameSlotsSection";
+import { LayoutSlotsSection } from "./LayoutPresetSelector/LayoutSlotsSection";
 import { getFrameElementMirrorId } from "../../../../adapters/canonical/frameMirror";
 import { useCanonicalPropertyElement } from "../hooks/useCanonicalPropertyRead";
 
@@ -27,7 +27,7 @@ export const LayoutBodyEditor = memo(
 
     return (
       <>
-        {/* ⭐ Frame 전용: 프리셋 선택기 (Slot 자동 생성) */}
+        {/* ⭐ Layout 전용: 프리셋 선택기 (Slot 자동 생성) */}
         {layoutId && (
           <>
             <PropertySection title="Layout Preset">
@@ -37,7 +37,7 @@ export const LayoutBodyEditor = memo(
               />
             </PropertySection>
             {/* preset 적용 결과 — 슬롯 이름 · 놓인 요소 수 (panel-ui 18) */}
-            <FrameSlotsSection layoutId={layoutId} />
+            <LayoutSlotsSection layoutId={layoutId} />
           </>
         )}
       </>

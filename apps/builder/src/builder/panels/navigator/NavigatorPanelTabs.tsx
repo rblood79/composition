@@ -28,7 +28,7 @@ export function NavigatorPanelTabs() {
       // canonical reusable FrameNode를 편집하지만 사용자 문맥은 page layout이다.
       // 탭 id "layouts" / EditMode "layout"과 같은 Layouts 라벨을 사용한다.
       id: "layouts",
-      label: t("navigator.frames"),
+      label: t("navigator.layouts"),
       Icon: Layout,
     },
   ];

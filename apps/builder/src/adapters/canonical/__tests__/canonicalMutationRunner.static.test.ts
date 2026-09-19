@@ -42,7 +42,7 @@ const EXISTING_PATH_ALLOWLIST = new Set([
   "builder/factories/utils/elementCreation.ts",
   "builder/hooks/useIframeMessenger.ts",
   "builder/main/BuilderCore.tsx",
-  "builder/panels/navigator/FramesTab/FramesTab.tsx",
+  "builder/panels/navigator/LayoutsTab/LayoutsTab.tsx",
   "builder/panels/navigator/PagesSection.tsx",
   "builder/panels/properties/editors/LayoutPresetSelector/usePresetApply.ts",
   "builder/stores/elements.ts",

@@ -2,12 +2,12 @@
 
 ## Status
 
-Accepted — 2026-09-19 (review round 1 MEDIUM 3 · LOW 2 수정 종결, pending 0)
+Implemented — 2026-09-19 (Accepted 같은 날 `/execute-adr 225` Phase 0~~4 / G0~~G6 종결)
 
 사용자 요청으로 ADR-111 이후 남아 있는 재사용 레이아웃 기능의 `Frames` 명칭을
-`Layouts`로 정렬하는 결정을 승인했다. 사용자가 전달한 round 1 판정의 MEDIUM 3건과
-LOW 2건을 문서에 반영했으며, Accepted는 설계 승인만 뜻한다. 코드 구현, 커밋, push는
-별도 요청 전까지 시작하지 않는다.
+`Layouts`로 정렬하는 결정을 승인했고 (review round 1 MEDIUM 3 · LOW 2 수정, pending 0),
+같은 날 구현을 종결했다. 실행 결과는 [Gates](#gates) 아래 `### Live Exercise` 와
+[Phase 0 인벤토리](../evidence/225-phase0-vocabulary-inventory.md) 에 있다.
 
 ## Context
 
@@ -59,7 +59,7 @@ description, title, aria-label과 내부 selection/action/section id를 Layout �
 
 ### 선행 결정과 분리 전제
 
-[ADR-111](completed/111-layout-frameset-pencil-redesign.md)은 reusable preset을 canonical
+[ADR-111](111-layout-frameset-pencil-redesign.md)은 reusable preset을 canonical
 `FrameNode`로 구현한 **응용·실행 결정**이고, 이 ADR은 그 저장 모델을 바꾸지 않는
 **후속 제품 어휘·Builder 소유권 정리**다. 2026-09-19 사용자가 “남은 모든 사항들을
 Frames → Layouts로 변경할 ADR”을 명시 요청해 별도 ADR 작성을 승인했다.
@@ -172,7 +172,7 @@ Builder 내부에서는 Layout-named facade가 `FrameNode`를 소비한다. 예�
 기각한다. B의 rename 비용과 section state 승계 비용은 한 번이고, 이후 기능 코드와 raw
 adapter의 경계가 더 명확해지는 이익이 지속되므로 수용한다.
 
-> 구현 상세: [225-reusable-layout-vocabulary-alignment-breakdown.md](design/225-reusable-layout-vocabulary-alignment-breakdown.md)
+> 구현 상세: [225-reusable-layout-vocabulary-alignment-breakdown.md](../design/225-reusable-layout-vocabulary-alignment-breakdown.md)
 
 ## Risks
 
@@ -201,8 +201,31 @@ R1은 영향이 HIGH지만 `CompositionDocument`와 adapter를 명시적 비변�
 
 ### Live Exercise
 
-해당 없음 — Accepted, 구현 전. 구현 완료 후 자동화 결과와 구분해 실제 foreground Builder의
-조작 시나리오·canonical/DOM read-back·날짜를 기록해야 Implemented로 승격할 수 있다.
+**2026-09-19 · headed Playwright 로 실제 dev Builder (5173) 부팅 — `apps/builder/scripts/adr225-layouts-live.mjs` 13/13 PASS.**
+Chrome MCP 탭은 `document.hidden=true` (RAF pause, 부트 95% 정지 — 메모리
+`reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`) 라 headed Playwright 로 대체했고, 사용자 confirm 은 아직 없다.
+
+| #   | 시나리오 (새 프로젝트)                                                                          | read-back                                                                                                                                 |
+| --- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `styles-panel-collapse` 에 구 id `navigator-frame-layers` 를 심고 부팅 → Navigator `Layouts` 탭 | `navigator-layout-layers` 절 `aria-expanded=false` (승계) · 펼친 뒤 persist 에 `navigator-frame*` 0 (G4)                                  |
+| 2   | `Add Layout` (aria-label)                                                                       | IDB `document_parts` 의 canonical 노드 `{type:"frame", reusable:true, name:"Layout 1"}` 1 · 목록 `Layout 1`                               |
+| 3   | 내부 트리 class                                                                                 | `.layout-tree` 2 · `.frame-tree` 0                                                                                                        |
+| 4   | Pages 탭 → 페이지 body 선택 → Properties                                                        | 절 제목 `Layout` · legend `Apply Layout` · 옵션 `["No Layout","Layout 1"]`                                                                |
+| 5   | `Layout 1` 선택                                                                                 | page binding id = frame 노드 id 의 uuid (`layout-<uuid>` 접두 그대로)                                                                     |
+| 6   | `Remove Layout` (title `Remove layout from this page`) 클릭                                     | binding `null`                                                                                                                            |
+| 7   | Navigator·Properties 의 텍스트 · aria-label · title · placeholder 전수 (15 + 31 문자열)         | `\bframes?\b` 0                                                                                                                           |
+| 8   | `Delete Layout 1` → reload                                                                      | canonical reusable frame 0 · reload 후 0 (persist)                                                                                        |
+| 9   | `composition-locale=ko-KR` 부팅 → 같은 흐름                                                     | 탭 `레이아웃` · `레이아웃 추가` · `레이아웃 적용` · 옵션 `레이아웃 없음` · `레이아웃 제거` / `이 페이지에서 레이아웃 제거` · 영어 Frame 0 |
+| 10  | 전 과정                                                                                         | pageerror 0 · console.error 0                                                                                                             |
+
+- `Using "{name}" layout` / `Select a reusable layout for this page` 는 `PropertySelect.description` 으로 전달되는데 이 prop 은
+  기존부터 렌더되지 않는다 (`PropertySelect.tsx` "not displayed") — 표시 동작을 바꾸지 않았고 (HC4) 카탈로그 등록은
+  `adr225VocabularyRatchet.static.test.ts` 가 ko/en · formatted 함수로 잠근다.
+- Undo: reusable layout CRUD 는 종전부터 history 에 기록하지 않는 canonical 직접 갱신이라 (ADR-111 그대로) 이 ADR 의 검증
+  대상이 아니다. refresh 후 read-back 으로 대체했다.
+- 자동화: 인접 Vitest (navigator 24 파일 155 · stores · properties editors · i18n · canonical static 등 88 파일 636) PASS ·
+  전체 builder 6699 PASS / 실패 8 은 clean HEAD 에서 재현되는 선재 항목 (`canvasResizeEdit` 4 · `pageFrameBinding` 1 ·
+  `g5LegacyFieldGrepGate` 1 · `actionIcons.static` 1 · `sharedActionVocabulary` 1) · `pnpm -F @composition/builder type-check` PASS.
 
 ## Consequences
 

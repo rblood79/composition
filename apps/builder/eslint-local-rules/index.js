@@ -54,7 +54,7 @@ const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/builder/stores/utils/elementRemoval.ts",
   "src/builder/stores/utils/elementTagNormalizer.ts",
   "src/builder/stores/utils/elementUpdate.ts",
-  "src/builder/stores/utils/frameActions.ts",
+  "src/builder/stores/utils/reusableLayoutActions.ts",
   "src/builder/stores/utils/historyHelpers.ts",
   "src/builder/stores/utils/instanceActions.ts",
   "src/builder/utils/idGeneration.ts",

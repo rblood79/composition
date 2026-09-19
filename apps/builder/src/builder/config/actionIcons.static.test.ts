@@ -61,7 +61,8 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
     //   액션이 아니다 (TypographySection 의 textAlign 과 같은 사유, 2026-09-15)
     file: "builder/panels/properties/generic/fieldEditor.ts",
     symbols: ["AlignLeft", "AlignCenter", "AlignRight"],
-    reason: "labelAlign · align 필드 값 (start/center/end) 의 글리프 — 정렬 액션이 아니다",
+    reason:
+      "labelAlign · align 필드 값 (start/center/end) 의 글리프 — 정렬 액션이 아니다",
   },
   {
     file: "builder/panels/styles/sections/TypographySection.tsx",
@@ -120,7 +121,7 @@ const INTENTIONAL_DIVERGENCE: ReadonlyArray<{
 const BANNED_VARIANTS: Record<string, { canonicalKey: string; why: string }> = {
   Trash: {
     canonicalKey: "delete",
-    why: "삭제 정본은 `Trash2`. 2026-08-16 이전 FramesTab 2파일이 `Trash` 였다.",
+    why: "삭제 정본은 `Trash2`. 2026-08-16 이전 LayoutsTab 2파일이 `Trash` 였다.",
   },
   Ruler: {
     canonicalKey: "toggleRulers",

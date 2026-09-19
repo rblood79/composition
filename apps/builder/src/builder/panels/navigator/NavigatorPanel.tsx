@@ -33,7 +33,7 @@ import {
   NavigatorPanelTabs,
   type NavigatorPanelTabType,
 } from "./NavigatorPanelTabs";
-import { FramesTab } from "./FramesTab/FramesTab";
+import { LayoutsTab } from "./LayoutsTab/LayoutsTab";
 // 🚀 Performance: 분리된 섹션 컴포넌트
 import { PagesSection } from "./PagesSection";
 import { LayersSection } from "./LayersSection";
@@ -130,7 +130,7 @@ export function NavigatorPanel() {
           id="layouts"
           className={panelContents("navigator-panel-content")}
         >
-          <FramesTabContent projectId={projectId} />
+          <LayoutsTabContent projectId={projectId} />
         </TabPanel>
       </Tabs>
     </div>
@@ -225,7 +225,7 @@ const PagesTabContent = memo(function PagesTabContent({
   );
 });
 
-const FramesTabContent = memo(function FramesTabContent({
+const LayoutsTabContent = memo(function LayoutsTabContent({
   projectId,
 }: {
   projectId: string | undefined;
@@ -235,7 +235,7 @@ const FramesTabContent = memo(function FramesTabContent({
   const { sendElementSelectedMessage } = useIframeMessenger();
 
   return (
-    <FramesTab
+    <LayoutsTab
       selectedElementId={selectedElementId}
       setSelectedElement={setSelectedElement}
       sendElementSelectedMessage={sendElementSelectedMessage}

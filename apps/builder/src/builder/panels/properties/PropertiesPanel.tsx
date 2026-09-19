@@ -82,7 +82,7 @@ import {
 import { useI18n } from "../../../i18n";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
-import { useCanonicalReusableFrameLayouts } from "../../stores/canonical/canonicalFrameStore";
+import { useCanonicalReusableLayouts } from "../../stores/canonical/reusableLayoutStore";
 import {
   SLOT_NAME_MIRROR_FIELD,
   withSlotMirrorName,
@@ -496,9 +496,7 @@ const CatalogEditContractEditor = memo(function CatalogEditContractEditor({
       <GenericFieldRenderer
         fields={semanticFields}
         literalOptionFields={
-          elementType === "Chart"
-            ? ["dimension", "metric", "color"]
-            : undefined
+          elementType === "Chart" ? ["dimension", "metric", "color"] : undefined
         }
         onSemanticUpdate={handleSemanticUpdate}
         onStyleUpdate={handleStyleUpdate}
@@ -981,7 +979,7 @@ function PropertiesPanelContent() {
   //   목록과 같은 이름 (panel-ui 18, 2026-09-14).
   const editMode = useEditModeStore((state) => state.mode);
   const editLayoutId = useEditModeStore((state) => state.layoutId);
-  const frameLayouts = useCanonicalReusableFrameLayouts();
+  const frameLayouts = useCanonicalReusableLayouts();
   const frameTitle =
     editMode === "layout" && selectedElementType === "body" && editLayoutId
       ? (frameLayouts.find((layout) => layout.id === editLayoutId)?.name ??

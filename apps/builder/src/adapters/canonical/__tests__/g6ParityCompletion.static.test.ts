@@ -37,7 +37,7 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
       readFile(
         resolve(
           __dirname,
-          "../../../builder/panels/navigator/FramesTab/FramesTab.tsx",
+          "../../../builder/panels/navigator/LayoutsTab/LayoutsTab.tsx",
         ),
         "utf-8",
       ),
@@ -57,6 +57,6 @@ describe("ADR-116 G6-3 Slot/Ref/Descendants/Frame parity completion contract", (
     expect(pageFrameBindingSource).toContain("getReusableFrameMirrorId(frame)");
     expect(frameMirrorSource).toContain("getReusableFrameMirrorId");
     expect(pageLayoutSelectorSource).toContain("getPageFrameBindingId");
-    expect(framesTabSource).toContain("useCanonicalReusableFrameLayouts");
+    expect(framesTabSource).toContain("useCanonicalReusableLayouts");
   });
 });

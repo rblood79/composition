@@ -386,7 +386,7 @@ export function computeFrameAreas(
     string,
     { x: number; y: number; width: number; height: number }
   >,
-  _selectedReusableFrameId: string | null = null,
+  _selectedReusableLayoutId: string | null = null,
 ): FrameAreaGroup[] {
   if (!doc) return [];
 

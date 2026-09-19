@@ -1,4 +1,4 @@
-import type { ReusableFrameLayoutSummary } from "../../../stores/canonical/canonicalFrameStore";
+import type { ReusableLayoutSummary } from "../../../stores/canonical/reusableLayoutStore";
 import type { FlashAnimationState, GeneratingEffectState } from "../skia/types";
 import type {
   DataSourceEdge,
@@ -22,7 +22,7 @@ export interface RendererWorkflowInvalidationInput {
   dataSourceEdges: DataSourceEdge[];
   focusedPageId: string | null;
   layoutGroups: LayoutGroup[];
-  layouts: ReusableFrameLayoutSummary[];
+  layouts: ReusableLayoutSummary[];
   showDataSources: boolean;
   showEvents: boolean;
   showLayoutGroups: boolean;
@@ -138,9 +138,9 @@ function buildLayoutGroupSignature(groups: LayoutGroup[]): string {
     .join("|");
 }
 
-function buildLayoutSignature(layouts: ReusableFrameLayoutSummary[]): string {
-  // notFoundPageId / inheritNotFound 는 ReusableFrameLayoutSummary 에 없음 —
-  // 공급자(canonicalDocumentToReusableFrameLayouts) 도 원래 채우지 않았다.
+function buildLayoutSignature(layouts: ReusableLayoutSummary[]): string {
+  // notFoundPageId / inheritNotFound 는 ReusableLayoutSummary 에 없음 —
+  // 공급자(canonicalDocumentToReusableLayouts) 도 원래 채우지 않았다.
   // 해당 필드가 summary 에 부활하면 signature 키에 다시 넣는다.
   return layouts
     .map((layout) =>

@@ -13,7 +13,7 @@ import { useCallback } from "react";
 import ComponentList from "./ComponentList";
 import { useStore } from "../../stores";
 import { useEditModeStore } from "../../stores/editMode";
-import { useSelectedReusableFrameId } from "../../stores/canonical/canonicalFrameStore";
+import { useSelectedReusableLayoutId } from "../../stores/canonical/reusableLayoutStore";
 import { useElementCreator } from "@/builder/hooks";
 import { belongsToLegacyLayout } from "../../../adapters/canonical";
 import { getActiveCanonicalDocument } from "../../stores/canonical/canonicalElementsBridge";
@@ -34,14 +34,18 @@ function ComponentsPanelContent() {
 
   // ⭐ Layout/Slot System: Edit Mode 상태
   const editMode = useEditModeStore((state) => state.mode);
-  const selectedReusableFrameId = useSelectedReusableFrameId();
+  const selectedReusableLayoutId = useSelectedReusableLayoutId();
 
   const { handleAddElement: rawHandleAddElement } = useElementCreator();
 
   // handleAddElement wrapper - 필요한 모든 데이터 자동 전달
   // ⭐ Layout/Slot System: Page 모드와 Layout 모드 분기 처리
   const handleAddElement = useCallback(
-    async (type: string, parentId?: string, initialProps?: Record<string, unknown>) => {
+    async (
+      type: string,
+      parentId?: string,
+      initialProps?: Record<string, unknown>,
+    ) => {
       // 🆕 콜백 실행 시점에 최신 값을 가져옴 (구독 대신 getState 사용)
       // ADR-116 projection 제거: element creation path 는 active canonical document 만 사용.
       const doc = getActiveCanonicalDocument();
@@ -52,12 +56,12 @@ function ComponentsPanelContent() {
       const elements = collectCanonicalPanelNodes(doc);
 
       // Layout 모드인 경우
-      if (editMode === "layout" && selectedReusableFrameId) {
+      if (editMode === "layout" && selectedReusableLayoutId) {
         // 현재 Layout의 요소만 필터링
         // ADR-903 P3-E E-6 후속: write-through 활성화 후 frame ownership mirror 가
         // 비어 canonical reusable frame descendants 매칭 필수. legacy fallback 보존.
         const layoutElements = elements.filter((el) =>
-          belongsToLegacyLayout(el, selectedReusableFrameId, doc),
+          belongsToLegacyLayout(el, selectedReusableLayoutId, doc),
         );
 
         // ⭐ Layout/Slot System: selectedElementId가 Layout 요소인지 검증
@@ -77,7 +81,7 @@ function ComponentsPanelContent() {
         }
 
         console.log(
-          `🏗️ [ComponentsPanel] Layout 모드: ${type}를 Layout ${selectedReusableFrameId?.slice(0, 8)}에 추가 (parent: ${(parentId || validSelectedElementId)?.slice(0, 8) || "auto"})`,
+          `🏗️ [ComponentsPanel] Layout 모드: ${type}를 Layout ${selectedReusableLayoutId?.slice(0, 8)}에 추가 (parent: ${(parentId || validSelectedElementId)?.slice(0, 8) || "auto"})`,
         );
         await rawHandleAddElement(
           type,
@@ -85,7 +89,7 @@ function ComponentsPanelContent() {
           parentId || validSelectedElementId,
           layoutElements,
           addElement,
-          selectedReusableFrameId, // layoutId 전달
+          selectedReusableLayoutId, // layoutId 전달
           doc,
           initialProps,
         );
@@ -116,7 +120,7 @@ function ComponentsPanelContent() {
       currentPageId,
       editMode,
       selectedElementId,
-      selectedReusableFrameId,
+      selectedReusableLayoutId,
       addElement,
       rawHandleAddElement,
     ],

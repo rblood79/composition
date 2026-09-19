@@ -76,7 +76,7 @@ runCanonicalMutation({
 
 - wrapper (`mergeElementsCanonicalPrimary` 등 6종) **직호출은 기존 경로 allowlist (15파일, ADR-184 breakdown §4-3 freeze) 한정** — `canonicalMutationRunner.static.test.ts` 가 기계 집행 (allowlist **추가 금지**, 추가 시도 자체가 리뷰 대상)
 - 기존 경로 이관은 비스코프 ("회귀 위험 대비 이득 작음" 선행 판정 유지) — 재개 조건: 해당 경로에서 stale-canonical race **재발** 시 그 경로 1건만 이관
-- hydration / bridge / undo 재생 (FramesTab 로드, BuilderCore page shell bridge, historyActions 재생 등) 은 mutation 이 아니라 러너 대상 아님 — 기존 파일 allowlist 로 고정
+- hydration / bridge / undo 재생 (LayoutsTab 로드, BuilderCore page shell bridge, historyActions 재생 등) 은 mutation 이 아니라 러너 대상 아님 — 기존 파일 allowlist 로 고정
 
 **금지 패턴**:
 

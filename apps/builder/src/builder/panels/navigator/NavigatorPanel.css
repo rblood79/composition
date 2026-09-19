@@ -277,7 +277,12 @@
 }
 
 .navigator-panel-content
-  :is(.react-aria-Tree, .page-tree, .frame-tree, .layer-tree--rac-virtualized) {
+  :is(
+    .react-aria-Tree,
+    .page-tree,
+    .layout-tree,
+    .layer-tree--rac-virtualized
+  ) {
   display: flex;
   flex-direction: column;
   width: 100%;

@@ -1201,13 +1201,13 @@ export interface TranslationKeys {
   };
   navigator: {
     pages: string;
-    frames: string;
+    layouts: string;
     panelTabs: string;
     addPage: string;
     selectPage: string;
-    addFrame: string;
-    noFrames: string;
-    selectFrame: string;
+    addLayout: string;
+    noLayouts: string;
+    selectLayout: string;
     noElements: string;
     layers: string;
     collapseTree: string;

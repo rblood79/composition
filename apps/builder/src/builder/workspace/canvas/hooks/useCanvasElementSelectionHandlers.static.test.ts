@@ -11,7 +11,7 @@ describe("useCanvasElementSelectionHandlers frame selection contract", () => {
 
     expect(source).toContain("function syncReusableFrameSelectionForElement(");
     expect(source).toContain("getFrameElementMirrorId(element);");
-    expect(source).toContain("selectReusableFrame(layoutId);");
+    expect(source).toContain("selectReusableLayout(layoutId);");
     expect(source).toContain(
       "useEditModeStore.getState().setCurrentLayoutId(layoutId);",
     );
