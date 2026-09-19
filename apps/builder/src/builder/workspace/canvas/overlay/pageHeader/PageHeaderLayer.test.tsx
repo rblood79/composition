@@ -306,7 +306,7 @@ describe("PageHeaderLayer — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
     expect(headerOf(layer, "mobile").dataset.lod).toBe("compact");
   });
 
-  it("CSS 정적 계약 — 일반 타이틀 12px 600 · 편집 input 700 · compact 규칙은 padding/gap 만", async () => {
+  it("CSS 정적 계약 — 일반 타이틀 12px 600 · 편집 input 700 · compact 규칙은 gap 만", async () => {
     const css = await readFile(
       resolve(__dirname, "PageHeaderLayer.css"),
       "utf-8",
@@ -322,8 +322,9 @@ describe("PageHeaderLayer — 헤더 폭 티어 (ADR-226 Decision 2)", () => {
       css.match(/\.page-header\[data-lod="compact"\] \{[\s\S]*?\n\}/)?.[0] ??
       "";
     expect(compact).not.toBe("");
-    expect(compact).toContain("--page-header-padding-x: 2px;");
     expect(compact).toContain("gap: 0;");
-    expect(compact).not.toMatch(/font-(size|weight)/);
+    // padding 은 full 과 같다 (사용자 판정 2026-09-19) · 타이포그래피 재정의 없음
+    expect(compact).not.toContain("--page-header-padding-x");
+    expect(compact).not.toMatch(/padding|font-(size|weight)/);
   });
 });

@@ -11,6 +11,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-226 — 페이지 헤더 DOM 층 줌 LOD: 제스처 중 프레임 집합 동결 + 헤더 폭 티어] - 2026-09-19
+
+### Added
+
+- 페이지 헤더 폭 티어 — 헤더 화면 폭 (페이지 폭 × settle zoom) 이 96 px 미만이면 (tablet 768 · mobile 390 을 줌 0.1 부근에서 볼 때) 액션 버튼 2개를 렌더하지 않고 타이틀 띠만 남긴다 (`data-lod="compact"` · gap 0 · padding 은 full 과 같다). 종전에는 39 px 폭에 버튼 2개가 들어가 타이틀이 0 글자였다. drag · shift-클릭 body 토글 · dblclick 이름 편집은 compact 에서도 같고, 이름 편집 중인 헤더는 항상 full 이다.
+- 하니스: `pnpm perf:baseline -- --lane frame` 이 휠 pan/zoom 부류에서 gate-off (+150 ms) + 2 rAF 까지 기록하고 `windows.gesture / windows.settle` (callback gap · RAF gap · longtask) 과 `environment.refreshHz / dpr` 를 따로 낸다 · `apps/builder/scripts/page-header-scaling-probe.mjs` (gesture / settle / post 창 childList · reveal 순서) · `adr226-page-header-lod-live.mjs` (G3 14 항목). DEV 전역 `__composition_VIEWPORT_SYNC__` · `__composition_VISIBLE_PAGE_IDS__`.
+
+### Changed
+
+- 카메라 제스처 (휠 pan/zoom · 스페이스/중클릭 pan) 중 페이지 헤더 층은 마지막 settle 시점의 프레임 집합을 유지한다 — 뷰포트 마진을 넘나드는 페이지마다 헤더 항목을 mount/unmount 하던 것 (200 페이지 · 줌 0.1 · 3 s pan 에 childList 440) 이 0 이 된다. 층은 그동안 `data-hidden` 이라 보이는 결과는 같다.
+- 제스처 종료 시 헤더 층은 최신 집합을 React 가 커밋한 뒤 새 노드까지 1회 배치하고 나서 나타난다 (commit-before-reveal) — 종전 gate-off 구독 콜백의 즉시 reveal 은 커밋 전 한 paint 동안 구 집합·무배치 새 노드를 보일 수 있었다. 측정 (120 Hz · 200 페이지 · 줌 0.1, identity A/B 각 3회): 제스처 창 callback gap p95 pan 10.3 → 10.2 · zoom 12.0 → 10.0 ms, settle 창 max ≤ 18.9 ms · longtask 0.
+
+### Fixed
+
+- 스페이스 pan 도중 창 blur / 탭 hidden 으로 끊기면 pan 을 잡은 pointer 가 gesture session 에 남아 다음 좌클릭이 pan 으로 판정되고 페이지 헤더 drag 가 되지 않던 결함 (ADR-221 잔존, G3 live 에서 발견) — interrupt 3경로 (blur · visibility · control unmount) 가 session pointer 를 놓는다. control unmount 도 `onInteractionEnd` 로 게이트를 끈다.
+
+### Validation
+
+- G1 probe (fixed inputs): 200p · 줌 0.1 pan-h/pan-v/zoom · 50p · 줌 1 pan-h 제스처 창 childList 0 · identity 원복 389 · reveal 시 표시 헤더 transform 누락 0 · settle 집합 = 뷰포트 집합. G2 A/B 3회 교차 (22p 대조 |Δp95| ≤ 0.2). G3 headed Playwright 14/14 (사용자 참관 없음). G4 14 파일 120 PASS · type-check PASS · 원복 RED 7/7.
+
 ## [ADR-224 — 의도 기반 크기 편집 Implemented (G5 소유자 확인)] - 2026-09-19
 
 ### Changed

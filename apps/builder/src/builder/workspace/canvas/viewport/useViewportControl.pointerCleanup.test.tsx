@@ -65,8 +65,7 @@ describe("useViewportControl — pointer pan 중 unmount 는 onInteractionEnd 1�
   }
 
   it("중클릭 pan 시작 → unmount → onInteractionEnd 1회 · store false", () => {
-    const { view, onInteractionStart, onInteractionEnd } =
-      mountWithStoreGate();
+    const { view, onInteractionStart, onInteractionEnd } = mountWithStoreGate();
     fireEvent.pointerDown(container, { button: 1, pointerId: 5 });
     expect(onInteractionStart).toHaveBeenCalledTimes(1);
     expect(useViewportSyncStore.getState().cameraGestureActive).toBe(true);
@@ -92,5 +91,57 @@ describe("useViewportControl — pointer pan 중 unmount 는 onInteractionEnd 1�
     // 이미 종료된 뒤 unmount 는 중복 호출 없음
     second.view.unmount();
     expect(second.onInteractionEnd).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("useViewportControl — interrupt (blur · visibility · unmount) 는 gesture session 의 pan pointer 도 놓는다", () => {
+  let container: HTMLDivElement;
+  beforeEach(() => {
+    useViewportSyncStore.getState().reset();
+    container = document.createElement("div");
+    document.body.appendChild(container);
+  });
+  afterEach(() => {
+    cleanup();
+    container.remove();
+  });
+
+  function mount() {
+    const gestureSession = new CanvasGestureSession();
+    const onInteractionEnd = vi.fn();
+    const view = render(
+      <Harness
+        containerEl={container}
+        gestureSession={gestureSession}
+        onInteractionStart={() => {}}
+        onInteractionEnd={onInteractionEnd}
+      />,
+    );
+    return { view, gestureSession, onInteractionEnd };
+  }
+
+  it("blur 로 끊긴 뒤 같은 pointer 의 다음 pointerdown 은 pan 이 아니라 element 다 (ADR-226 G3 ④ 실측 RED)", () => {
+    const { gestureSession } = mount();
+    fireEvent.pointerDown(container, { button: 1, pointerId: 1 });
+    expect(gestureSession.ownerFor(1)).toBe("pan");
+    fireEvent(window, new Event("blur"));
+    // 끊긴 pan 의 pointerup 은 viewport 핸들러가 무시한다 — session 이 잡힌 채면 다음
+    // 좌클릭이 stale "pan" 으로 판정되고 page drag (tryClaimPage) 가 영구 차단된다.
+    fireEvent(
+      window,
+      new PointerEvent("pointerup", { pointerId: 1, bubbles: true }),
+    );
+    expect(gestureSession.ownerFor(1)).toBe("idle");
+    expect(gestureSession.beginPointer(1, 0)).toBe("element");
+    gestureSession.endPointer(1);
+    expect(gestureSession.tryClaimPage(1, "p1", "desktop")).toBe(true);
+  });
+
+  it("pan 중 unmount 도 session pointer 를 놓는다", () => {
+    const { view, gestureSession } = mount();
+    fireEvent.pointerDown(container, { button: 1, pointerId: 3 });
+    expect(gestureSession.ownerFor(3)).toBe("pan");
+    view.unmount();
+    expect(gestureSession.ownerFor(3)).toBe("idle");
   });
 });

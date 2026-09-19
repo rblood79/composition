@@ -93,10 +93,10 @@
 }
 
 /* ADR-226 폭 티어 — 화면 폭 < 96px (tablet · mobile 저줌) 이면 액션 버튼을 렌더하지
-   않고 (PageHeaderLayer.tsx) 안쪽 여백만 줄여 타이틀 띠로 남긴다. 타이포그래피 · 색 ·
-   상태 규칙 (highlighted / active / editing) 은 티어 무관 — 여기서 재정의하지 않는다. */
+   않고 (PageHeaderLayer.tsx) 타이틀 띠만 남긴다. padding 은 full 과 같다 (사용자 판정
+   2026-09-19 — 축소 없음), gap 만 0. 타이포그래피 · 색 · 상태 규칙 (highlighted /
+   active / editing) 은 티어 무관 — 여기서 재정의하지 않는다. */
 .page-header[data-lod="compact"] {
-  --page-header-padding-x: 2px;
   gap: 0;
 }
 

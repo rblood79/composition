@@ -252,7 +252,9 @@ export function PageHeaderLayer({
             // 티어 입력은 settle 스냅샷 (frames · zoom) 뿐 — 제스처 중 전환 0. 편집 중은
             // 편집기 폭 확보를 위해 항상 full.
             lod={
-              editing ? "full" : resolvePageHeaderLod(frame.width * settled.zoom)
+              editing
+                ? "full"
+                : resolvePageHeaderLod(frame.width * settled.zoom)
             }
             onRenameCommit={handleRenameCommit}
           />

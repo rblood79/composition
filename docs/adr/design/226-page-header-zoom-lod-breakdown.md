@@ -1,6 +1,6 @@
 # ADR-226 구현 설계: 페이지 헤더 DOM 층 줌 LOD
 
-정본: [ADR-226](../226-page-header-zoom-lod.md)
+정본: [ADR-226](../completed/226-page-header-zoom-lod.md)
 
 작성일: 2026-09-19. 코드 사실은 이 날짜의 main (`1cb5c9b5b`) 실측이다 — 착수 시 Phase 0 에서 재실측한다.
 
@@ -50,7 +50,7 @@
 
 - `pageHeaderGeometry.ts`: `PAGE_HEADER_COMPACT_MAX_WIDTH = 96` (chrome 64 + 타이틀 최소 32) · `resolvePageHeaderLod(screenWidth): "full" | "compact"` 순수 함수 + 테스트 (경계 96 · 95.99 · 0).
 - `PageHeaderLayer.tsx`: `zoom = useViewportSyncStore((s) => s.zoom)` 구독 (settle 미러). 항목마다 `lod = resolvePageHeaderLod(frame.width * zoom)` 을 `PageHeaderItem` prop 으로 전달 → `data-lod` attribute · compact 면 액션 버튼 2 를 **렌더하지 않는다** (CSS 숨김이 아니라 노드 수 감소). 편집 중 (`data-editing`) 은 항상 full (편집기 폭 확보).
-- `PageHeaderLayer.css`: `.page-header[data-lod="compact"]` — padding 축소 (`--page-header-padding-x: 2px`) · gap 0. 일반 타이틀 12px · 600, 편집 input 700 을 그대로 둔다. 색 · 상태 규칙 (highlighted / active / editing) 은 티어 무관.
+- `PageHeaderLayer.css`: `.page-header[data-lod="compact"]` — gap 0 뿐 (padding 축소 `--page-header-padding-x: 2px` 는 구현 중 사용자 판정 2026-09-19 로 제거 — full 과 같은 padding). 일반 타이틀 12px · 600, 편집 input 700 을 그대로 둔다. 색 · 상태 규칙 (highlighted / active / editing) 은 티어 무관.
 - 테스트: `PageHeaderLayer.test.tsx` — zoom 0.1 · width 390 → compact (버튼 0) / width 1920 → full (버튼 2) / 편집 중 mobile → full. CSS 정적 계약은 일반 600 · input 700. 원복 RED = 판정 함수 상수를 0 으로.
 - **하지 않는 것**: hidden 티어 (폭 < 24 px 미마운트) — 현행 breakpoint × `minZoom` 0.1 에서 도달 불가 (F7 최소 39 px). `minZoom` 이 내려가거나 커스텀 폭 페이지가 생기면 그때 같은 함수에 티어를 더한다 (ADR 본문 Decision 3 유보).
 
@@ -76,14 +76,23 @@
 | `apps/builder/scripts/page-header-scaling-probe.mjs` (신규)   | evidence 의 probe 를 scripts 로 승격 + 제스처/settle/reveal 순서 분리                         |   3   |
 | `.claude/rules/canvas-interaction.md` · CHANGELOG · 연구 문서 | 문서                                                                                          |   3   |
 
-## 7. 원복 RED 매트릭스
+## 7. 원복 RED 매트릭스 (2026-09-19 실측 결과)
 
-| 원복                                                   | RED 가 되는 게이트       |
-| ------------------------------------------------------ | ------------------------ |
-| `useSettledFrames` → identity                          | Phase 1 단위 · G1        |
-| gate-off 구독에서 즉시 hidden 제거                     | Phase 1 순서 단위 · G1   |
-| pointer pan cleanup 의 `onInteractionEnd` 제거         | viewport 단위 · G3 ②     |
-| recorder 를 `wheelBurst` 반환 즉시 정지                | G2 settle 표본 부재      |
-| `PAGE_HEADER_COMPACT_MAX_WIDTH` → 0                    | Phase 2 단위 · G3 ③      |
-| compact 에서 버튼 렌더 복귀                            | Phase 2 단위             |
-| 편집 중 full 강제 제거 또는 일반 타이틀을 700으로 변경 | Phase 2 단위 · G3 ④ · G4 |
+| 원복                                                   | RED 가 되는 게이트       | 결과                                                                                            |
+| ------------------------------------------------------ | ------------------------ | ----------------------------------------------------------------------------------------------- |
+| `useSettledHeaderInput` → identity                     | Phase 1 단위 · G1        | 단위 RED (동결 childList 0 · reveal 순서 2 실패) · G1 probe pan-v gesture childList 389         |
+| gate-off 구독에서 즉시 hidden 제거                     | Phase 1 순서 단위 · G1   | 단위 RED (reveal 순서 테스트 1 실패)                                                            |
+| pointer pan cleanup 의 `onInteractionEnd` 제거         | viewport 단위 · G3 ②     | 단위 RED (`pointerCleanup.test.tsx` unmount 1회 실패)                                           |
+| recorder 를 `wheelBurst` 반환 즉시 정지                | G2 settle 표본 부재      | `windows` null → settle 열 부재 (설계상 — 구 빌드는 `waitForCameraSettle` 가 `supported:false`) |
+| `PAGE_HEADER_COMPACT_MAX_WIDTH` → 0                    | Phase 2 단위 · G3 ③      | 단위 RED 5 (경계 · breakpoint · 티어 · 제스처 중 · 편집)                                        |
+| compact 에서 버튼 렌더 복귀                            | Phase 2 단위             | 단위 RED (버튼 0 기대 실패 — 티어 테스트에 포함)                                                |
+| 편집 중 full 강제 제거 또는 일반 타이틀을 700으로 변경 | Phase 2 단위 · G3 ④ · G4 | 단위 RED 1 (편집 중 full) · CSS 정적 계약이 600/700 고정                                        |
+
+## 8. 실행 기록 (2026-09-19, `/execute-adr 226`)
+
+- Phase 0 G0: F1~F12 HEAD `2b9bd06f0` 일치, src drift 0.
+- Phase 1 `cdd9620f0`: `useSettledHeaderInput` (frames · zoom · gestureActive 스냅샷 — render 중 ref 갱신, gate-off render 에서만 최신화 → reviews/226 l1 흡수) · `usePageHeaderPlacement` gate-off 구독 즉시 reveal 제거 → `[layerNode, frames, gestureActive]` layoutEffect 가 `placeAll` 1회 뒤 `data-hidden` 제거 · pointer pan cleanup `onInteractionEnd`.
+- Phase 2 `c55df5512`: `PAGE_HEADER_COMPACT_MAX_WIDTH` 96 · `resolvePageHeaderLod` · `data-lod` · compact 버튼 미렌더 · 편집 중 full. **사용자 판정**: compact 의 `--page-header-padding-x: 2px` 제거 — padding 은 full 과 같고 gap 0 만 (CSS 정적 계약도 padding 재정의 금지로 갱신).
+- Phase 3: `perf-baseline.mjs` recorder 에 frameTimes · markers(gateOff · settleEnd) · longTaskEntries · `waitForCameraSettle` (pan/zoom 부류 gate-off + 2 rAF 까지 기록) · `summarizeSettleWindows` (`results[cls].windows.gesture/settle` + `environment.refreshHz/dpr`) · 보고서 settle 표 · `page-header-scaling-probe.mjs` (scripts 승격 — gesture/settle/post 창 + reveal 순서 판정, fixed inputs) · `adr226-page-header-lod-live.mjs` (G3 14 항목). DEV 전역 `__composition_VIEWPORT_SYNC__` (store) · `__composition_VISIBLE_PAGE_IDS__` 를 BuilderCanvas 가 낸다.
+- **G3 ④ 실측 결함 (ADR-221 잔존) 수리**: blur / visibility 로 끊긴 스페이스 pan 의 pointer 가 `CanvasGestureSession` 에 "pan" 으로 남아 다음 좌클릭 · page drag 를 막았다 (`interruptViewportInteraction` 이 `endPointer` 를 안 함). `panPointerIdRef` + interrupt 3경로 `endPointer` — 단위 RED 2 → GREEN. G1 probe 함정: wall-clock `wheelBurst` 는 120 Hz 에서 pan 이 문서 밖까지 나가 settle 집합이 0~10 이 된다 → fixed inputs.
+- Gate 결과 · Live Exercise: ADR 본문 §Gates. evidence (local, gitignored): `docs/adr/evidence/226-page-header-zoom-lod/` (g1-probe · g1-identity-revert · g2-ab · g2-ab-summary.json · g2-ab.sh · g3-live.log).

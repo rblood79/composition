@@ -2,9 +2,9 @@
 
 ## Status
 
-Accepted — 2026-09-19 (Proposed 09-19 → [reviews/226.md](reviews/226.md) round 1 HIGH 1 · MEDIUM 3 · LOW 3 전부 fixed → round 2 수리 검증 VERIFIED FIXED 7/7 · 신규 LOW 1 deferred (settle 순서 — Phase 2 흡수) → 사용자 승격 지시. 구현은 미착수)
+Implemented — 2026-09-19 (Proposed 09-19 → [reviews/226.md](../reviews/226.md) round 1 HIGH 1 · MEDIUM 3 · LOW 3 전부 fixed → round 2 VERIFIED FIXED 7/7 · LOW 1 deferred (settle 순서 — Phase 2 에서 흡수) → Accepted → `/execute-adr 226` Phase 0~~3 / G0~~G4 같은 날 종결. 구현 커밋: Phase 1 `cdd9620f0` · Phase 2 `c55df5512` · Phase 3 (하니스 · gesture session 수리 · 문서) 후속 커밋)
 
-설계 요청: 사용자 `/create-adr 4-2 줌 LOD` (2026-09-19). 발단은 연구 문서 [PAGE_HEADER_DOM_LAYER_SCALING_2026-09.md](../explanation/research/PAGE_HEADER_DOM_LAYER_SCALING_2026-09.md) §4-1 실측 (같은 날) — "제스처 중 헤더 mount/unmount 는 실제로 돈다 (줌 1 · 50p 수평 pan 4/4 · 줌 0.1 · 200p 3 s 에 200/240) · 레이어/GPU 와 드래그 occlusion 은 V=60 에서 병목 아님 · 4-2 줌 LOD 만 착수 사유 성립 (MEDIUM · 긴급 아님)".
+설계 요청: 사용자 `/create-adr 4-2 줌 LOD` (2026-09-19). 발단은 연구 문서 [PAGE_HEADER_DOM_LAYER_SCALING_2026-09.md](../../explanation/research/PAGE_HEADER_DOM_LAYER_SCALING_2026-09.md) §4-1 실측 (같은 날) — "제스처 중 헤더 mount/unmount 는 실제로 돈다 (줌 1 · 50p 수평 pan 4/4 · 줌 0.1 · 200p 3 s 에 200/240) · 레이어/GPU 와 드래그 occlusion 은 V=60 에서 병목 아님 · 4-2 줌 LOD 만 착수 사유 성립 (MEDIUM · 긴급 아님)".
 
 ## Context
 
@@ -66,7 +66,7 @@ ADR-221 은 카메라 제스처 중 헤더 층의 **DOM 쓰기** 를 0 으로 �
 
 ### 대안 C: 헤더 폭 티어 — 화면 폭이 chrome 을 못 담으면 compact (타이틀 띠만)
 
-- 설명: `frame.width × settleZoom < 96 px` 면 액션 버튼 2 를 렌더하지 않고 padding 을 줄인다 (`data-lod="compact"`). 노드는 유지 → drag · 이름 편집 · 식별 보존. 판정은 settle zoom 으로만 하므로 제스처 중 티어 전환 0.
+- 설명: `frame.width × settleZoom < 96 px` 면 액션 버튼 2 를 렌더하지 않는다 (`data-lod="compact"` · gap 0 · padding 은 full 과 같다 — 구현 중 사용자 판정 2026-09-19). 노드는 유지 → drag · 이름 편집 · 식별 보존. 판정은 settle zoom 으로만 하므로 제스처 중 티어 전환 0.
 - 근거: Figma 라벨 = 프레임 폭에 잘리는 텍스트, 폭이 없으면 텍스트만. 현행 mobile 390 × 0.1 = 39 px 는 chrome 64 px 보다 좁아 **지금도** 버튼이 타이틀을 밀어내는 상태 (실측 헤더 sample `w 240 / h 56` 은 desktop).
 - 위험: 기술(L) / 성능(L — 노드 6 → 2, 저줌 좁은 페이지에서만) / 유지보수(L — 티어 1개 · 순수 함수 1개) / 마이그레이션(L — 버튼은 미배선이라 기능 손실 0)
 
@@ -91,14 +91,14 @@ ADR-221 은 카메라 제스처 중 헤더 층의 **DOM 쓰기** 를 0 으로 �
 **대안 B + C 채택, D 유보.** ADR-221 의 4 규칙은 그대로 두고 두 규칙을 더한다:
 
 1. **제스처 중 프레임 집합 동결 + commit-before-reveal** — 층 컴포넌트는 `cameraGestureActive` 동안 `frames` 갱신을 무시하고 마지막 settle 집합을 유지한다. gate-off 구독 콜백은 `data-hidden` 을 제거하거나 구 노드를 배치하지 않는다. React 가 최신 집합을 커밋한 layoutEffect 가 새 노드를 1회 배치하고 최종 page id/transform 을 확인할 수 있는 상태에서 `data-hidden` 을 제거한다. 제스처 중 헤더 층 **mount/unmount 0**, settle reveal 전 최신 집합 배치 — 221 의 "DOM 쓰기 0" 이 "DOM 변경 0" 으로 완결된다. Skia 쪽 `visiblePageFrames` 소비는 무변경.
-2. **헤더 폭 티어** — `resolvePageHeaderLod(frame.width × settleZoom)`: `< 96 px` 면 `compact` (액션 버튼 미렌더 · padding 축소 · 일반 타이틀 12px 600 유지), 아니면 `full`. 판정 입력은 settle zoom 미러와 동결된 frames 뿐이라 제스처 중 전환이 없다. 이름 편집 중인 헤더는 항상 `full` 이고 input 700 을 유지한다.
+2. **헤더 폭 티어** — `resolvePageHeaderLod(frame.width × settleZoom)`: `< 96 px` 면 `compact` (액션 버튼 미렌더 · gap 0 · padding 은 full 과 같다 (구현 중 사용자 판정 2026-09-19) · 일반 타이틀 12px 600 유지), 아니면 `full`. 판정 입력은 settle zoom 미러와 동결된 frames 뿐이라 제스처 중 전환이 없다. 이름 편집 중인 헤더는 항상 `full` 이고 input 700 을 유지한다.
 3. **유보 — 개수 cap · hidden 티어**: 현행 breakpoint × `minZoom` 0.1 에서 헤더 폭 최소 39 px 이라 hidden 티어 (< 24 px) 는 도달 불가, 개수 cap 은 측정 환경이 없다. 재개 조건: (a) `minZoom` 인하 또는 커스텀 폭 페이지 도입, (b) 2560 px 이상 뷰포트에서 V ≥ 150 실측 — 그때 같은 판정 함수에 티어를 더하거나 cap ADR 을 따로 쓴다.
 
 **위험 수용 근거**: B 의 잔존 위험은 settle 프레임에 델타가 몰리는 것 하나이고, 상한은 이 창의 V=60 (최대 60 항목) 으로 닫혀 있다. 제스처 중 매 프레임 내던 비용을 사용자가 손을 뗀 settle 한 프레임으로 옮기는 것이라 (Framer 와 같은 배분), 그 프레임이 25 ms 를 넘지 않으면 (G2) 총비용은 줄고 체감은 개선된다. C 는 노드를 줄이기만 하고 미배선 버튼만 뺀다.
 
 **기각 사유**: A — 원인 (제스처 중 churn) 이 줌 1 에서도 나므로 줌 임계는 원인을 겨누지 않고, 저줌 개요 모드에서 페이지 drag · 이름 편집 · 식별을 지운다. D — 측정된 환경이 없어 K 를 정할 근거가 없다 (measurement-validity Q1); 재개 조건으로 유보.
 
-> 구현 상세: [226-page-header-zoom-lod-breakdown.md](design/226-page-header-zoom-lod-breakdown.md)
+> 구현 상세: [226-page-header-zoom-lod-breakdown.md](../design/226-page-header-zoom-lod-breakdown.md)
 
 ## Risks
 
@@ -122,9 +122,25 @@ ADR-221 은 카메라 제스처 중 헤더 층의 **DOM 쓰기** 를 0 으로 �
 | G3   | Phase 2 종료 | live (headed · 사용자 참관 1회): ① 휠 pan · 휠 zoom · 스페이스 pan settle 후 헤더 집합 = 뷰포트 안 페이지 ② pointercancel · blur · visibility hidden · pointer pan 중 control unmount/remount 뒤 store false, 헤더 visible·최신 집합 ③ mobile 페이지 줌 0.1 compact / 0.3 full ④ compact 에서 drag · shift 토글 · 이름 편집 (편집 중 full) ⑤ 편집 페이지가 200px 가시 마진 안에 남는 pan 은 편집기 유지, 마진 밖 settle 은 현행대로 닫힘 | 해당 경로 수리                                        |
 | G4   | Phase 3 종료 | `overlay/pageHeader/*.test.*` · `viewport/useViewportControl*.test.*` · `BuilderCanvas.pageHeaderLayer.static.test.ts` · type-check PASS · 일반 타이틀 600/편집 input 700 정적 계약 · 원복 RED 매트릭스 (breakdown §7) 7/7                                                                                                                                                                                                               | 수리                                                  |
 
+### Gate 결과 (2026-09-19, main HEAD `c55df5512` + Phase 3 working tree · 1440×900 · 120 Hz · DPR 1 · visible · headed Chrome)
+
+| Gate | 결과       | 근거 (local `docs/adr/evidence/226-page-header-zoom-lod/`)                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| ---- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| G0   | PASS       | F1~F12 라인 HEAD `2b9bd06f0` 일치 · `1cb5c9b5b` 이후 대상 src 커밋 0 · 병행 세션 교집합 0                                                                                                                                                                                                                                                                                                                                                                                                            |
+| G1   | PASS       | `page-header-scaling-probe.mjs` (fixed inputs): 200p · 줌 0.1 pan-h **gesture childList 0** (settle −11 · V 60) · pan-v **0** (settle +20/−4 · V 65) · zoom **0** (settle −65) · 50p · 줌 1 pan-h **0**. settle 마다 reveal 시점 `styleAfterReveal=false` · 표시 헤더 중 transform 없음 0 · post 창 childList 0 · 최종 집합 = `visiblePageIds`. **identity 원복 RED**: pan-v gesture childList **389** (`g1-identity-revert/`). premature-reveal 원복은 단위 RED (`usePageHeaderPlacement.test.tsx`) |
+| G2   | PASS       | `perf:baseline --lane frame --pages 200 --zoom 0.1 --headed --fixed-inputs --classes pan,zoom --duration-ms 3000`, identity A / 구현 B 교차 3회 (20분 안). **gesture p95 중앙값** pan A 10.3 / B 10.2 · zoom A 12.0 / B 10.0 (B ≤ A + 0.5) · **settle callback max** pan B 18.9 / 18.5 / 17.4 (A 17.1 / 11.5 / 15.8) · zoom B 13.1 / 12.7 / 14.8 — 전부 ≤ 25 · settle RAF max ≤ 12 · settle longtask 0 · 전체 longtask B 0 (A zoom 1회). **22p 대조군** p95 차                                       | A−B | pan 0.1 · zoom 0.2 (≤ 0.5). 할당 MB/s (참고) pan A 65.7 → B 61.6 · zoom A 48.9 → B 39.4 (`g2-ab-summary.json`) |
+| G3   | PASS 14/14 | 아래 Live Exercise                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| G4   | PASS       | `overlay/pageHeader/*` 36 · `viewport/*` 51 (pointerCleanup 4 신규) · `BuilderCanvas.pageHeaderLayer.static` 2 · `canvasGestureSession` 포함 14 파일 120 PASS · `pnpm type-check` PASS · CSS 정적 계약 (일반 600 · input 700 · compact 는 gap 만) · 원복 RED 매트릭스 7/7 (breakdown §7 결과 열)                                                                                                                                                                                                     |
+
 ### Live Exercise
 
-(Implemented 승격 시 기재 — G3 시나리오 · 결과 · 날짜 · Chrome MCP / 사용자 confirm 구분)
+- **2026-09-19 · headed Playwright (`apps/builder/scripts/adr226-page-header-lod-live.mjs`) · 실제 빌더 (dev 5173 · 격리 프로젝트 · seeded 40 페이지 · 실입력 mouse/keyboard/wheel) · 14/14 · console/page error 0** — 사용자 참관 없음 (Chrome MCP 는 hidden 탭 RAF pause 로 부트 정지 — 메모리 `reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`). 로그 `evidence/226-page-header-zoom-lod/g3-live.log`.
+  - ① 휠 pan · 휠 zoom · 스페이스 pan settle 뒤 헤더 집합 = 뷰포트 안 페이지 (40/40) · 층 visible · gate off. 스페이스 pan 도중 `data-hidden` + gate on 확인.
+  - ② 스페이스 pan 도중 pointercancel · blur · visibility hidden → store false · 헤더 visible · 최신 집합 (40 · 32 · 26). pointer pan 중 control unmount 는 live 표면이 없어 단위 테스트 (`useViewportControl.pointerCleanup.test.tsx`) 가 정본.
+  - ③ 헤더 Mobile 토글 (전역 breakpoint 390) × 줌 0.1 → `data-lod="compact"` · 버튼 0 · 타이틀 "Perf Page 3" / 줌 0.3 → full · 버튼 2.
+  - ④ compact 헤더 drag → pagePositions (940,0) → (1960,300) · shift-클릭 body 토글 [body] → [] · dblclick → `data-editing` + input + full.
+  - ⑤ 편집 중 4px × 12 tick pan (마진 안) → 편집기 유지 · 40px × 90 tick pan (밖) → settle 에 헤더 unmount 로 닫힘.
+- **G3 ④ 가 드러낸 ADR-221 잔존 결함 (수리 포함)**: 스페이스 pan 도중 blur / visibility hidden 으로 끊기면 `interruptViewportInteraction` 이 `isPanningRef` 만 내리고 `CanvasGestureSession` 의 pan pointer 를 놓지 않아, 뒤따르는 pointerup 을 viewport 핸들러가 무시 → session 이 그 pointer 를 "pan" 으로 계속 잡음 → 다음 좌클릭이 stale pan 판정 · `tryClaimPage` 영구 false (첫 live 실행에서 drag 가 (940,0) 그대로). `panPointerIdRef` 로 pan 소유 pointer 를 기억해 interrupt 3경로 (blur · visibility · unmount) 에서 `endPointer` — 단위 RED 2 (`pointerCleanup.test.tsx`) → GREEN, live 재실행 14/14.
 
 ## Consequences
 

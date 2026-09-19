@@ -487,6 +487,8 @@ export function BuilderCanvas({
   // (Skia 픽셀은 페이지에서 못 읽으므로 배지 검증·scene→screen 변환에 쓴다).
   const viewportSnapshotRef = useRef({ zoom, panOffset });
   viewportSnapshotRef.current = { zoom, panOffset };
+  // ADR-226 G1/G2 probe: settle 뒤 헤더 집합 = 뷰포트 집합 대조용 (아래 sceneStructureSnapshot 이 갱신).
+  const visiblePageIdsRef = useRef<ReadonlySet<string>>(new Set());
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     const w = window as unknown as {
@@ -497,10 +499,15 @@ export function BuilderCanvas({
         x: number;
         y: number;
       }) => void;
+      __composition_VIEWPORT_SYNC__?: typeof useViewportSyncStore;
+      __composition_VISIBLE_PAGE_IDS__?: () => string[];
     };
     w.__composition_DATA_BADGES__ = dataBadgeBoundsMapRef.current;
     w.__composition_VIEWPORT__ = () => viewportSnapshotRef.current;
     w.__composition_APPLY_VIEWPORT__ = (s) => applyViewportState(s);
+    // ADR-226 하니스: cameraGestureActive 구독 (gesture/settle 창 분리) + 뷰포트 페이지 집합.
+    w.__composition_VIEWPORT_SYNC__ = useViewportSyncStore;
+    w.__composition_VISIBLE_PAGE_IDS__ = () => [...visiblePageIdsRef.current];
   }, []);
   const [canvasGestureSession] = useState(() => new CanvasGestureSession());
   // ADR-179 C3: 스냅 후보 공급 — buildPageFrames 산출(allPageFrames)을 ref 로
@@ -640,6 +647,7 @@ export function BuilderCanvas({
     transientVisiblePageIds,
     zoom,
   ]);
+  visiblePageIdsRef.current = sceneStructureSnapshot.document.visiblePageIds;
 
   useEffect(() => {
     if (isCompareMode) {

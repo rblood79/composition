@@ -91,7 +91,7 @@ Skia 시절과의 구조적 차이: Skia 텍스트는 줌에 따라 자연 축�
 
 헤더의 화면 높이가 임계 (예: 타이틀 12px 미만으로 읽히는 줌) 아래면 헤더 노드를 마운트하지 않거나 타이틀 없는 띠 하나로 축약 — V 가 폭발하는 유일한 경로를 끊는 후보였다. React Flow 공식 문서는 저줌 미마운트를 직접 규정하지 않고, tldraw culled shape 도 placeholder 로 교체되지 않고 DOM 에 남아 `display:none` 이 된다. 선택·편집 shape 는 컬링에서 제외된다.
 
-→ **[ADR-226](../../adr/226-page-header-zoom-lod.md) Proposed (2026-09-19)**: 실측이 겨눈 비용은 줌이 아니라 **제스처 중 mount/unmount** 라 (줌 1 에서도 4/4) 줌 임계 미마운트는 기각하고, 제스처 중 프레임 집합 동결 + 헤더 폭 티어 (`< 96 px` compact) 를 채택. 개수 cap · hidden 티어는 V ≥ 150 실측 후 재개.
+→ **[ADR-226](../../adr/completed/226-page-header-zoom-lod.md) Proposed (2026-09-19)**: 실측이 겨눈 비용은 줌이 아니라 **제스처 중 mount/unmount** 라 (줌 1 에서도 4/4) 줌 임계 미마운트는 기각하고, 제스처 중 프레임 집합 동결 + 헤더 폭 티어 (`< 96 px` compact) 를 채택. 개수 cap · hidden 티어는 V ≥ 150 실측 후 재개.
 
 ### 4-3. `will-change: transform` 제거 또는 활성 헤더만
 

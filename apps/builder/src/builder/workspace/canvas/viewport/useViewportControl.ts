@@ -85,6 +85,11 @@ export function useViewportControl(
   } = options;
   const isPanningRef = useRef(false);
   const lastPanPointRef = useRef<{ x: number; y: number } | null>(null);
+  // pan 을 소유한 pointerId — interrupt (blur · visibility · unmount) 에서 gesture session 의
+  // pointer 를 놓을 때 쓴다. 놓지 않으면 끊긴 pan 의 pointerup 을 아래 핸들러가 무시해 session 이
+  // 그 pointer 를 "pan" 으로 계속 잡고, 다음 좌클릭이 stale pan · page drag (tryClaimPage) 가
+  // 영구 차단된다 (ADR-226 G3 ④ 실측, 2026-09-19).
+  const panPointerIdRef = useRef<number | null>(null);
   // 휠 interaction 종료 디바운스 타이머
   const wheelEndTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isWheelInteractingRef = useRef(false);
@@ -228,6 +233,7 @@ export function useViewportControl(
         onInteractionStartRef.current?.();
         viewportSession.begin("drag");
         lastPanPointRef.current = { x: e.clientX, y: e.clientY };
+        panPointerIdRef.current = e.pointerId;
         isPanningRef.current = true;
         applyPanCursorRef.current("grabbing");
       }
@@ -259,6 +265,7 @@ export function useViewportControl(
         e.type === "pointercancel" ? "interrupted" : "pointerup",
       );
       lastPanPointRef.current = null;
+      panPointerIdRef.current = null;
       isPanningRef.current = false;
       // Space가 여전히 눌려있으면 grab, 아니면 null
       applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
@@ -285,6 +292,10 @@ export function useViewportControl(
         lastPanPointRef.current = null;
         isPanningRef.current = false;
         onInteractionEndRef.current?.();
+        if (panPointerIdRef.current !== null) {
+          gestureSession.endPointer(panPointerIdRef.current);
+          panPointerIdRef.current = null;
+        }
       }
     };
   }, [containerEl, controller, gestureSession, viewportSession]);
@@ -424,6 +435,11 @@ export function useViewportControl(
 
       if (wasPanning) {
         applyPanCursorRef.current(gestureSession.spacePressed ? "grab" : null);
+        // 끊긴 pan 의 pointer 를 session 에서 놓는다 — 이후 pointerup 은 위 핸들러가 무시한다.
+        if (panPointerIdRef.current !== null) {
+          gestureSession.endPointer(panPointerIdRef.current);
+          panPointerIdRef.current = null;
+        }
       }
       if (wasPanning || wasZooming) {
         onInteractionEndRef.current?.();

@@ -1424,17 +1424,20 @@ export const RECORDER_SCRIPT = `(() => {
       const profiler = opts.profile && typeof Profiler !== "undefined" ? new Profiler({ sampleInterval: 1, maxBufferSize: 100000 }) : null;
       const gaps = []; const rafGaps = []; const callbackDelays = []; const gapEvents = [];
       const inputPhases = [];
+      // ADR-226 G2: 프레임별 콜백 시각 + 마커 (gateOff · settleEnd) 로 gesture/settle 창을 나눈다.
+      const frameTimes = []; const markers = {}; const longTaskEntries = [];
+      this.mark = (name) => { markers[name] = performance.now(); };
       let lastTimestamp = null; let allocBytes = 0, gcCount = 0; let lastHeap = performance.memory?.usedJSHeapSize ?? 0;
       const inputPhase = () => { inputPhases.push({ at: performance.now(), lastRafTimestamp: lastTimestamp }); };
       document.addEventListener?.("wheel", inputPhase, { capture: true, passive: true });
       const longTasks = [];
       const lt = typeof PerformanceObserver !== "undefined" && PerformanceObserver.supportedEntryTypes.includes("longtask")
-        ? new PerformanceObserver((list) => { for (const e of list.getEntries()) longTasks.push(e.duration); }) : null;
+        ? new PerformanceObserver((list) => { for (const e of list.getEntries()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } }) : null;
       lt?.observe({ type: "longtask" });
       let last = performance.now(); let running = true;
       const tick = (timestamp) => { if (!running) return; const now = performance.now();
         const callbackGap = now - last; const rafGap = lastTimestamp === null ? null : timestamp - lastTimestamp;
-        gaps.push(callbackGap); if (rafGap !== null) rafGaps.push(rafGap); callbackDelays.push(now - timestamp);
+        gaps.push(callbackGap); if (rafGap !== null) rafGaps.push(rafGap); callbackDelays.push(now - timestamp); frameTimes.push(now);
         if (callbackGap > 25 || (rafGap !== null && rafGap > 25)) gapEvents.push({ timestamp, callbackTime: now, callbackGap, rafGap, callbackDelay: now - timestamp });
         last = now; lastTimestamp = timestamp;
         const heap = performance.memory?.usedJSHeapSize ?? 0; const d = heap - lastHeap; if (d > 0) allocBytes += d; else if (d < 0) gcCount += 1; lastHeap = heap;
@@ -1446,7 +1449,7 @@ export const RECORDER_SCRIPT = `(() => {
       document.addEventListener?.("visibilitychange", visibilityChanged);
       window.__composition_FRAME_CAPTURE__?.reset();
       window.__composition_PERF__?.reset?.(); window.__composition_PERF__?.resetLongTasks?.(); window.__composition_CACHE_METRICS__?.reset?.();
-      this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) longTasks.push(e.duration); lt.disconnect(); }
+      this._stop = async () => { running = false; const ms = performance.now() - t0; if (lt) { for (const e of lt.takeRecords()) { longTasks.push(e.duration); longTaskEntries.push({ start: e.startTime, duration: e.duration }); } lt.disconnect(); }
         document.removeEventListener?.("visibilitychange", visibilityChanged);
         document.removeEventListener?.("wheel", inputPhase, true);
         // profiler.stop()을 기다리는 동안 발생한 프레임은 측정 구간에 포함하지 않는다.
@@ -1467,7 +1470,8 @@ export const RECORDER_SCRIPT = `(() => {
         }
         const layerTreeRows = document.querySelectorAll('.layer-tree--rac-virtualized [role="row"]').length;
         return { ms, gaps, rafGaps, callbackDelays, gapEvents, allocBytes, gcCount, longTasks, profile, layerTreeRows,
-          perf, caches, frameCapture, visibility, inputPhases }; };
+          perf, caches, frameCapture, visibility, inputPhases, frameTimes, markers, longTaskEntries, t0,
+          dpr: window.devicePixelRatio ?? null }; };
     },
     stop() { return this._stop(); },
   };
@@ -1506,6 +1510,21 @@ export function summarizeRecording(rec, nominalMs = 1000 / 60) {
     rafTimestampGap: summarizeIntervals(rec.rafGaps, nominalMs * 1.5),
     callbackDelay: summarizeIntervals(rec.callbackDelays, nominalMs * 1.5),
     gapEvents: rec.gapEvents,
+    windows: summarizeSettleWindows(rec),
+    environment: {
+      // native refresh 추정 = rAF timestamp 간격 중앙값 (G2 기록 항목)
+      refreshHz: rec.rafGaps?.length
+        ? Math.round(
+            1000 /
+              pct(
+                [...rec.rafGaps].sort((a, b) => a - b),
+                0.5,
+              ),
+          )
+        : null,
+      dpr: rec.dpr ?? null,
+      visibility: rec.visibility ?? null,
+    },
     layerTreeRows: rec.layerTreeRows,
     frameCapture: rec.frameCapture ?? null,
     visibility: rec.visibility ?? null,
@@ -1610,6 +1629,82 @@ export const wheelBurst = (
     },
     { durationMs, initFactorySrc: initFactory, fixedInputs },
   );
+
+// ADR-226 G2: 휠 드라이버가 돌아온 뒤 gate-off (`cameraGestureActive=false`, 마지막 입력
+// +150 ms) 를 기다리고 2 rAF 더 기록한 뒤 정지한다 — settle 커밋 (헤더 mount/unmount 델타 +
+// placeAll) 이 recorder 안에 들어온다. 앱이 `__composition_VIEWPORT_SYNC__` 를 안 내면 (구 빌드)
+// 창 분리 없이 기존대로 즉시 정지.
+export const waitForCameraSettle = (page, timeoutMs = 3000) =>
+  page.evaluate(
+    (timeoutMs) =>
+      new Promise((resolve) => {
+        const sync = window.__composition_VIEWPORT_SYNC__;
+        const rec = window.__perfRecorder;
+        if (!sync || !rec?.mark) return resolve({ supported: false });
+        let done = false;
+        const finish = (reason) => {
+          if (done) return;
+          done = true;
+          rec.mark("gateOff");
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() => {
+              rec.mark("settleEnd");
+              resolve({ supported: true, reason });
+            }),
+          );
+        };
+        if (!sync.getState().cameraGestureActive) return finish("already-off");
+        const unsub = sync.subscribe(
+          (state) => state.cameraGestureActive,
+          (active) => {
+            if (active) return;
+            unsub();
+            finish("gate-off");
+          },
+        );
+        setTimeout(() => {
+          unsub();
+          finish("timeout");
+        }, timeoutMs);
+      }),
+    timeoutMs,
+  );
+
+/** gesture/settle 창 분리 — `rec.markers.gateOff` 가 없으면 null. */
+export function summarizeSettleWindows(rec) {
+  const gateOff = rec.markers?.gateOff;
+  const settleEnd = rec.markers?.settleEnd;
+  if (gateOff == null || !Array.isArray(rec.frameTimes)) return null;
+  const gestureGaps = [];
+  const settleGaps = [];
+  const settleRafGaps = [];
+  for (let i = 0; i < rec.frameTimes.length; i += 1) {
+    const at = rec.frameTimes[i];
+    if (at <= gateOff) gestureGaps.push(rec.gaps[i]);
+    else if (settleEnd == null || at <= settleEnd + 1) {
+      settleGaps.push(rec.gaps[i]);
+      // rafGaps 는 첫 프레임이 없어 index 가 1 밀린다
+      if (i >= 1) settleRafGaps.push(rec.rafGaps[i - 1]);
+    }
+  }
+  const settleLongTasks = (rec.longTaskEntries ?? []).filter(
+    (e) => e.start + e.duration > gateOff - 1,
+  );
+  return {
+    gateOffAtMs: +(gateOff - (rec.t0 ?? 0)).toFixed(1),
+    settleEndAtMs:
+      settleEnd == null ? null : +(settleEnd - (rec.t0 ?? 0)).toFixed(1),
+    gesture: summarizeIntervals(gestureGaps, (1000 / 60) * 1.5),
+    settle: {
+      ...summarizeIntervals(settleGaps, 25),
+      rafGapMax: +Math.max(0, ...settleRafGaps).toFixed(1),
+      longTasks: settleLongTasks.length,
+      longTaskMs: Math.round(
+        settleLongTasks.reduce((a, b) => a + b.duration, 0),
+      ),
+    },
+  };
+}
 
 export const FRAME_CLASSES = {
   idle: async (page, ctx, ms) => {
@@ -1783,7 +1878,11 @@ async function runFrameLane(page, cdp, seed, options) {
       },
       options.durationMs,
     );
+    // 휠 부류는 gate-off + 2 rAF 까지 기록 (ADR-226 G2 settle 창)
+    const settle =
+      cls === "pan" || cls === "zoom" ? await waitForCameraSettle(page) : null;
     const rec = await page.evaluate(() => window.__perfRecorder.stop());
+    if (settle) rec.settleWait = settle;
     const after = await cdp.send("Performance.getMetrics");
     results[cls] = summarizeRecording(rec);
     results[cls].raw = rec;
@@ -1860,6 +1959,20 @@ function renderFrameTable(results) {
     lines.push(
       `| ${cls} / ${r.selectionDriver ?? "-"} | ${raf.p95} / ${raf.max} | ${raf.overThreshold} / ${raf.overThresholdPct} | ${r.callbackDelay.p95} / ${r.callbackDelay.max} | ${r.layerTreeRows} |`,
     );
+  }
+  // ADR-226 G2: 휠 부류의 gesture 창 (gate-off 이전) / settle 창 (gate-off → 2 rAF) 분리
+  const windowed = Object.entries(results).filter(([, r]) => r.windows);
+  if (windowed.length) {
+    lines.push(
+      "\n| 부류 | refresh Hz / DPR | gesture callback gap p50 / p95 / max (n) | settle callback max / RAF max (n) | settle longtask (n / ms) | gate-off at / settle end (ms) |",
+      "| --- | ---: | ---: | ---: | ---: | ---: |",
+    );
+    for (const [cls, r] of windowed) {
+      const w = r.windows;
+      lines.push(
+        `| ${cls} | ${r.environment?.refreshHz ?? "-"} / ${r.environment?.dpr ?? "-"} | ${w.gesture.p50} / ${w.gesture.p95} / ${w.gesture.max} (${w.gesture.count}) | ${w.settle.max} / ${w.settle.rafGapMax} (${w.settle.count}) | ${w.settle.longTasks} / ${w.settle.longTaskMs} | ${w.gateOffAtMs} / ${w.settleEndAtMs ?? "-"} |`,
+      );
+    }
   }
   return lines.join("\n");
 }
