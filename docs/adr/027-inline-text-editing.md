@@ -20,6 +20,11 @@ Partial (2026-09-20 재정의) — Phase A+B+C 구현 완료 (TextEditOverlay + 
 
 A 는 편집과 무관한 캔버스 변위 결함 (사용자-가시, 잔존). B·C 가 "전환 순간 형태가 바뀜" 의 직접 원인. 리치 텍스트·툴바는 이질감과 무관.
 
+**수리 검증 (Chrome MCP foreground, 사용자 참관)**:
+
+- D0 (`bdd55079d`, 200% 줌 긴 Text): 진입 0/0 · 캐럿이 뷰포트 밖 (x 2084 > 1797) 인 타이핑 0/0 · Escape 뒤 0/0, 캔버스 위치 불변 → **A 종결**.
+- D1 (100% 줌): 390px Text 긴 문장 — Skia 3줄 (390×72) ↔ 오버레이 `pre-wrap` 3줄, 같은 위치에서 줄바꿈, 줄 pitch 24 == 24, 편집기 높이 72 == 72 · `whiteSpace: normal` 에서 Enter = 완료 유지 · Button "Save" 편집기 폭 68 == 컨테이너, 텍스트 중심 Δx 0 (종전 ≈5.5) · fit-content 라벨에 " Changes Now" 타이핑 → 상자 68 → 150 한 줄, wrap 0 → **B·C 종결**. Enter 결정 정정: 줄바꿈은 `\n` 을 두 consumer 가 같이 그리는 pre 계열 white-space 에서만 (normal 은 CSS 가 접고 Skia 는 그려 갈린다 — D3 대칭).
+
 ### Phase C 완료 근거 (2026-03-08)
 
 - TEXT_ELEMENT_TAGS: Button, ToggleButton, Tag, Badge, Link 등 14개 태그 등록 완료
@@ -316,7 +321,7 @@ interface TextEditingSlice {
 | D2 정렬 파리티      | `.ql-editor` 폭 100% (center / right 정렬 정상화) · 수직은 Skia paragraph line metrics (baseline) 로 padding-top 산출 — spec padding 근사 대체                                                                                  | `TextEditOverlay.tsx`, `specTextStyleForOverlay.ts` | G-D2: 가운데 라벨 Δx ≤ 1px                                                                                                    |
 | D3 픽셀 게이트      | 타입별 (Text / Heading / Button / Badge / Link / TextArea) × 100 / 200% 줌, Skia 캡처 vs 편집 진입 캡처 diff 하니스 (ADR-198 하니스 폰트 비대칭 함정 재사용)                                                                    | `apps/builder/scripts/adr027-*.mjs`                 | G-D3: Δ ≤ 1px · 사용자 참관 live 1회                                                                                          |
 
-**결정 (2026-09-20)**: Enter 의미는 다중행 타입 (Text · Paragraph · TextArea 등 wrap 대상) 에서 줄바꿈, fit-content 라벨 (Button · Badge · Link) 에서는 완료 유지. 빈 텍스트 노드 삭제는 별도 항목.
+**결정 (2026-09-20, D1 에서 정정)**: Enter 가 줄바꿈인 조건은 타입이 아니라 Skia 가 paragraph 에 넘긴 white-space 다 — `pre` / `pre-wrap` / `pre-line` 에서만 줄바꿈 (`\n` 을 Skia 와 CSS 가 같이 그린다), `normal` / `nowrap` 은 완료 (CSS 는 `\n` 을 접고 Skia 는 그려 두 consumer 가 갈린다). 계약 한 곳: `overlay/overlayWrap.ts` `resolveOverlayWrap`. 빈 텍스트 노드 삭제는 별도 항목.
 
 **보류 (구 Phase D)**: D-1 리치 텍스트 (Bold / Italic / 색) · D-3 편집 툴바 — 재개 조건: canonical 텍스트 모델이 인라인 스타일 run 을 담는 ADR 이 Implemented 된 뒤.
 

@@ -11,14 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-027 Phase D0 — 텍스트 편집 진입이 캔버스를 밀지 않는다] - 2026-09-20
+## [ADR-027 Phase D0·D1 — 텍스트 편집 진입이 캔버스를 밀지 않고, 줄바꿈·정렬이 Skia 와 같다] - 2026-09-20
 
 ### Fixed
+
+- 여러 줄로 그려진 텍스트 (390px Text 에 긴 문장 = Skia 3줄) 를 더블클릭하면 편집기가 한 줄로 펴져 페이지 밖으로 넘치던 결함 — 편집기 white-space 를 Skia 가 paragraph 에 넘긴 입력 (`whiteSpace` · `wordBreak` · `overflowWrap`) 에서 파생 (`overlayWrap.ts`), 편집기 폭 = 요소 폭. live: 같은 자리에서 3줄, 줄 pitch 24 == 24, 높이 72 == 72.
+- 가운데 정렬 라벨 (Button "Save") 이 편집 진입 시 왼쪽으로 ≈5.5px 이동하던 결함 — 편집기 폭 auto → 100%. live: 텍스트 중심 Δx 0, fit-content 라벨 타이핑 시 상자 68 → 150 한 줄.
 
 - 캔버스 텍스트 더블클릭 편집에 들어가거나 타이핑하면 캔버스 전체가 옆으로 밀리고 편집을 끝내도 돌아오지 않던 결함 (200% 줌 긴 문장에서 `main.workspace` `scrollLeft` 1091 → 잔존 127.5) — `.workspace` 를 `overflow: hidden` 에서 `clip` 으로 (스크롤 컨테이너가 아니라 브라우저 focus / caret scrollIntoView 가 밀 수 없다) + Quill focus `preventScroll`. live 확인: 진입 · 캐럿이 뷰포트 밖 (x 2084 > 1797) 인 타이핑 · Escape 뒤 모두 scroll 0/0.
 
 ### Changed
 
+- 편집 중 Enter: Skia 와 CSS 가 `\n` 을 같이 그리는 `pre` / `pre-wrap` / `pre-line` 텍스트에서는 줄바꿈 (Cmd+Enter · Esc · 외부 클릭 = 완료), `normal` / `nowrap` 은 종전대로 완료.
 - ADR-027 Phase D 를 "리치 텍스트 / 툴바" 에서 **"전환 무결성"** (D0 캔버스 변위 · D1 wrap 파리티 · D2 정렬 파리티 · D3 타입별 × 줌 픽셀 게이트) 으로 재정의. 리치 텍스트 · 툴바는 canonical 텍스트 모델 ADR 선행 조건으로 보류.
 
 ## [ADR-226 — 페이지 헤더 DOM 층 줌 LOD: 제스처 중 프레임 집합 동결 + 헤더 폭 티어] - 2026-09-19

@@ -17,6 +17,7 @@ import "quill/dist/quill.core.css";
 import { getSceneBounds, subscribeBounds } from "../canvas/skia/renderCommands";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { notifyLayoutChange } from "../canvas/skia/useSkiaNode";
+import type { OverlayWrap } from "./overlayWrap";
 
 // ============================================
 // Types
@@ -57,6 +58,8 @@ export interface TextStyleConfig {
   letterSpacing?: number;
   /** 수직 정렬 (Spec baseline: "middle" → "center") */
   verticalAlign?: "top" | "center";
+  /** ADR-027 D1 — Skia paragraph 입력에서 파생한 줄바꿈 계약 (없으면 nowrap · Enter = 완료). */
+  wrap?: OverlayWrap;
 }
 
 // ============================================
@@ -182,9 +185,13 @@ export function TextEditOverlay({
     root.style.paddingTop = style.paddingTop ? `${style.paddingTop}px` : "0";
     root.style.paddingBottom = "0";
     root.style.margin = "0";
-    root.style.whiteSpace = "nowrap";
-    root.style.overflowWrap = "normal";
-    root.style.wordBreak = "normal";
+    // ADR-027 D1 — 줄바꿈은 Skia 가 paragraph 에 넘긴 white-space 를 따른다. 편집기 폭은
+    // 컨테이너 100% (= 요소 bounds) 라 padding 을 뺀 내용 폭이 Skia maxWidth 와 같은 상자다.
+    // 폭 auto 는 center/right 정렬도 깨뜨렸다 (Save 라벨 Δx≈5.5px, live 2026-09-20).
+    root.style.width = "100%";
+    root.style.whiteSpace = style.wrap?.whiteSpace ?? "nowrap";
+    root.style.overflowWrap = style.wrap?.overflowWrap ?? "normal";
+    root.style.wordBreak = style.wrap?.wordBreak ?? "normal";
     root.style.minWidth = initialValue ? "auto" : "1px";
     // 수직 중앙 정렬: 컨테이너 flex + ql-editor align-self
     if (style.verticalAlign === "center") {
@@ -222,7 +229,8 @@ export function TextEditOverlay({
         return;
       }
       if (e.key === "Enter" && !e.shiftKey) {
-        // 단일행 텍스트: Enter → 완료
+        // pre 계열 white-space 는 Enter 가 줄바꿈 (Quill 에 통과) — 그 외는 완료.
+        if (style.wrap?.enterInsertsNewline) return;
         e.stopPropagation();
         e.preventDefault();
         onCompleteRef.current?.(elementId);

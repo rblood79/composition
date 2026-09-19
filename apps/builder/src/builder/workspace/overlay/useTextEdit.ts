@@ -23,6 +23,7 @@ import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { useCanvasStore } from "../../stores/canvasStore";
 import { getSkiaNode, notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { extractFullSpecTextStyle } from "./specTextStyleForOverlay";
+import { resolveOverlayWrap } from "./overlayWrap";
 import {
   resolveTextSourceKey,
   resolveTextSourceText,
@@ -231,13 +232,16 @@ function extractTextStyle(
   props: Record<string, unknown> | undefined,
   style: Record<string, unknown> | undefined,
 ): TextStyleConfig {
-  // 1. Spec shapes에서 추출 (CSS Preview와 동일한 소스 — Button, Badge 등)
-  const specStyle = extractFullSpecTextStyle(type, props);
-  if (specStyle) return specStyle;
-
-  // 2. Skia 노드에서 추출 (비-Spec 텍스트 요소: p, h1, span 등)
+  // ADR-027 D1 — 줄바꿈 계약은 경로와 무관하게 Skia 가 paragraph 에 넘긴 입력에서 파생.
   const skiaNode = getSkiaNode(elementId);
   const t = findTextData(skiaNode);
+  const wrap = t ? resolveOverlayWrap(t) : undefined;
+
+  // 1. Spec shapes에서 추출 (CSS Preview와 동일한 소스 — Button, Badge 등)
+  const specStyle = extractFullSpecTextStyle(type, props);
+  if (specStyle) return { ...specStyle, wrap };
+
+  // 2. Skia 노드에서 추출 (비-Spec 텍스트 요소: p, h1, span 등)
   if (t) {
     // Float32Array color → CSS hex
     const r = Math.round((t.color[0] ?? 0) * 255);
@@ -264,6 +268,7 @@ function extractTextStyle(
       padding: t.paddingLeft ?? 0,
       letterSpacing: t.letterSpacing,
       paddingTop: t.paddingTop ?? 0,
+      wrap,
     };
   }
 
