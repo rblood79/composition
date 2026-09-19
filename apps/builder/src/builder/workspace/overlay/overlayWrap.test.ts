@@ -17,7 +17,6 @@ describe("resolveOverlayWrap — Skia text input → editor white-space", () => 
       whiteSpace: "pre-wrap",
       wordBreak: "normal",
       overflowWrap: "normal",
-      enterInsertsNewline: false,
       collapsesSegmentBreaks: true,
     });
   });
@@ -27,27 +26,6 @@ describe("resolveOverlayWrap — Skia text input → editor white-space", () => 
       "nowrap",
     );
     expect(resolveOverlayWrap({ whiteSpace: "pre" }).whiteSpace).toBe("pre");
-  });
-
-  it("pre-line / pre-wrap 은 줄바꿈 문자를 두 consumer 가 다 그리므로 Enter 가 줄바꿈", () => {
-    expect(
-      resolveOverlayWrap({ whiteSpace: "pre-wrap" }).enterInsertsNewline,
-    ).toBe(true);
-    expect(
-      resolveOverlayWrap({ whiteSpace: "pre-line" }).enterInsertsNewline,
-    ).toBe(true);
-    expect(resolveOverlayWrap({ whiteSpace: "pre" }).enterInsertsNewline).toBe(
-      true,
-    );
-  });
-
-  it("normal 에서 Enter 는 완료 — normal · nowrap 은 \\n 을 두 consumer 가 다 공백으로 접는다", () => {
-    expect(
-      resolveOverlayWrap({ whiteSpace: "normal" }).enterInsertsNewline,
-    ).toBe(false);
-    expect(
-      resolveOverlayWrap({ whiteSpace: "nowrap" }).enterInsertsNewline,
-    ).toBe(false);
   });
 
   it("wordBreak / overflowWrap 은 Skia 값을 그대로 옮긴다", () => {
@@ -69,7 +47,9 @@ describe("TextEditOverlay consumes the wrap contract (static)", () => {
     expect(source).toContain(
       'root.style.whiteSpace = style.wrap?.whiteSpace ?? "nowrap"',
     );
-    expect(source).toContain("if (style.wrap?.enterInsertsNewline) return;");
+    // Enter 는 항상 줄바꿈 (Figma · Framer 규약, 2026-09-20) — 완료 분기는 Cmd/Ctrl+Enter 뿐.
+    expect(source).not.toContain("enterInsertsNewline");
+    expect(source).not.toContain('e.key === "Enter" && !e.shiftKey');
     expect(source).not.toContain('root.style.whiteSpace = "nowrap"');
   });
 });

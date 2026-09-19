@@ -322,14 +322,9 @@ export function TextEditOverlay({
         onCompleteRef.current?.(elementId);
         return;
       }
-      if (e.key === "Enter" && !e.shiftKey) {
-        // pre 계열 white-space 는 Enter 가 줄바꿈 (Quill 에 통과) — 그 외는 완료.
-        if (style.wrap?.enterInsertsNewline) return;
-        e.stopPropagation();
-        e.preventDefault();
-        onCompleteRef.current?.(elementId);
-        return;
-      }
+      // Enter 는 항상 줄바꿈 (Figma · Framer 규약, 사용자 판정 2026-09-20 — Quill 에 통과). 완료는
+      //   Cmd/Ctrl+Enter · 바깥 클릭. normal · nowrap 에 들어간 `\n` 은 커밋 때 white-space 를
+      //   pre 계열로 올려 CSS · Skia 가 같이 그린다 (`resolveCommittedWhiteSpace`).
       if (e.key === "Escape") {
         e.stopPropagation();
         e.preventDefault();

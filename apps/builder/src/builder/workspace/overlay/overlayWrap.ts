@@ -34,12 +34,6 @@ export interface OverlayWrap {
   wordBreak: SkiaWordBreak;
   overflowWrap: SkiaOverflowWrap;
   /**
-   * Enter 가 줄바꿈 문자를 넣는가. `\n` 을 Skia 는 항상 그리지만 CSS 는 pre 계열에서만
-   * 그린다 — 두 consumer 가 같이 그리는 white-space 에서만 줄바꿈이고, 그 외 (normal ·
-   * nowrap) 는 Enter = 완료를 유지한다 (D3 대칭).
-   */
-  enterInsertsNewline: boolean;
-  /**
    * 편집기에 싣기 전 `\n` 을 공백으로 접는가 (normal · nowrap — CSS segment break transformation).
    * Skia · DOM 둘 다 접어 그리는데 Quill 은 `\n` 을 문단 경계로 그려 편집 진입 순간 8줄이 됐다.
    * 접힌 텍스트가 편집기의 초기값이라, 사용자가 고쳐 커밋하면 접힌 형태로 저장된다 (WYSIWYG) —
@@ -56,10 +50,6 @@ export function resolveOverlayWrap(input: SkiaWrapInput): OverlayWrap {
     whiteSpace: editorWhiteSpace,
     wordBreak: input.wordBreak ?? "normal",
     overflowWrap: input.overflowWrap ?? "normal",
-    enterInsertsNewline:
-      whiteSpace === "pre" ||
-      whiteSpace === "pre-wrap" ||
-      whiteSpace === "pre-line",
     collapsesSegmentBreaks: collapsesSegmentBreaks(whiteSpace),
   };
 }
