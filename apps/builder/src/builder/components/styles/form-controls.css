@@ -631,7 +631,7 @@
       inset-inline-start: 0;
       /* 생성 Slider.css 의 top 50% + translateY(-50%) 무효화 */
       transform: none;
-      background: var(--accent);
+      background: var(--focus-ring);
       border-radius: var(--radius-full);
       pointer-events: none;
     }
