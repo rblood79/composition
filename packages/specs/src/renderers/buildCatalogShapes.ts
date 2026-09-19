@@ -490,15 +490,20 @@ export function buildCatalogShapes(
     //   TextArea 의 Input 자식 (rows 줄 상자, DOM `<textarea>` 는 위) 은 Skia sub-part 투영이 이 값을 넣는다
     //   (ADR-923 Phase 5 후속 착수 2, 2026-09-03). specShapeConverter 는 baseline top 이면 paddingTop = y.
     const textTop = style?.verticalAlign === "top";
-    const textTopY =
+    // 위에 붙는 텍스트 (verticalAlign top · inline leaf) 의 y = 사용자 padding-top (paddingX 와 같은 우선순위:
+    //   인라인 style → rule size.paddingY → 0). 종전엔 rule paddingY 만 읽어 Text 에 padding-top 24 를 줘도
+    //   Skia 는 0 이었다 (사용자 live 2026-09-20 — DOM 은 padding-top 만큼 내려간다).
+    const textTopY = parsePxValue(
+      style?.paddingTop ?? style?.padding,
       typeof (size as { paddingY?: unknown }).paddingY === "number"
         ? ((size as { paddingY?: number }).paddingY as number)
-        : 0;
+        : 0,
+    );
 
     shapes.push({
       type: "text",
       x: textX,
-      y: textTop ? textTopY : 0,
+      y: textTop || isInlineText ? textTopY : 0,
       text,
       fontSize,
       fontFamily: ff,
