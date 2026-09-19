@@ -202,8 +202,9 @@ R1은 영향이 HIGH지만 `CompositionDocument`와 adapter를 명시적 비변�
 ### Live Exercise
 
 **2026-09-19 · headed Playwright 로 실제 dev Builder (5173) 부팅 — `apps/builder/scripts/adr225-layouts-live.mjs` 13/13 PASS.**
-Chrome MCP 탭은 `document.hidden=true` (RAF pause, 부트 95% 정지 — 메모리
-`reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`) 라 headed Playwright 로 대체했고, 사용자 confirm 은 아직 없다.
+Chrome MCP 탭은 처음 `document.hidden=true` (RAF pause, 부트 95% 정지 — 메모리
+`reference-chrome-mcp-hidden-tab-raf-pause-stale-overlay`) 라 headed Playwright 로 먼저 돌렸고, 사용자가 창을 앞으로 가져온 뒤
+**foreground Chrome MCP 로 같은 날 재확인** (프로젝트 `new`, 사용자 참관 — 아래 표 뒤 절).
 
 | #   | 시나리오 (새 프로젝트)                                                                          | read-back                                                                                                                                 |
 | --- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
@@ -217,6 +218,15 @@ Chrome MCP 탭은 `document.hidden=true` (RAF pause, 부트 95% 정지 — 메�
 | 8   | `Delete Layout 1` → reload                                                                      | canonical reusable frame 0 · reload 후 0 (persist)                                                                                        |
 | 9   | `composition-locale=ko-KR` 부팅 → 같은 흐름                                                     | 탭 `레이아웃` · `레이아웃 추가` · `레이아웃 적용` · 옵션 `레이아웃 없음` · `레이아웃 제거` / `이 페이지에서 레이아웃 제거` · 영어 Frame 0 |
 | 10  | 전 과정                                                                                         | pageerror 0 · console.error 0                                                                                                             |
+
+**Foreground Chrome MCP (2026-09-19, 사용자 프로젝트 `new`, mobile breakpoint)**: 구 id `navigator-frame-layers` 를 심고
+reload → Layouts 탭의 Layers 절 `aria-expanded=false` · `data-section-id^="navigator-frame"` 0 · persist 첫 set 뒤 구 id 0 →
+`Add Layout` → `Layout 2` 자동 선택, Layers 펼침, Canvas 에 Layout 2 프레임 → Layout 1 선택 → 트리 body > Slot: header / Slot: content ·
+Slot 선택 시 Canvas 342×60 선택 · body 접기 · 분할 핸들 드래그 → `navigator-split:layouts` 기록 → Properties 헤더 `Layout 2` ·
+`Layout Preset` 2-Row 적용 → 슬롯 2 생성 (트리·Canvas 즉시) → Pages 탭 → Home body → `Layout / Apply Layout` 옵션
+`No Layout / Layout 1 / Layout 2` → Layout 2 적용 → header slot 띠 + 콘텐츠 content slot 이동, `Remove Layout` · Slot Assignment 노출 →
+Compare (CSS ↔ Canvas) Cancel 버튼 같은 y (141) · 30px 높이 양 leg → `Remove Layout` → 양 leg 복귀, binding null → `Delete Layout 2` →
+IDB reusable frame `Layout 1` 만 → reload → `Layout 1` 만 · Layers 펼침 유지 · console error/warning 0 (tracking 켠 뒤 reload 포함).
 
 - `Using "{name}" layout` / `Select a reusable layout for this page` 는 `PropertySelect.description` 으로 전달되는데 이 prop 은
   기존부터 렌더되지 않는다 (`PropertySelect.tsx` "not displayed") — 표시 동작을 바꾸지 않았고 (HC4) 카탈로그 등록은
