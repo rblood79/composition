@@ -4,7 +4,7 @@
  * Pencil nUt 패턴: WebGL 캔버스 위에 Quill 에디터 오버레이.
  * - 편집 중 Skia 텍스트 숨김 (nodeRenderers.ts setEditingElementId)
  * - CSS transform으로 카메라 좌표계 매핑
- * - Enter/Escape/외부 클릭으로 편집 완료/취소
+ * - Enter 줄바꿈 · Cmd/Ctrl+Enter · Esc · 외부 클릭으로 편집 완료 (Figma 규약 — 취소는 Undo)
  * - IME(한글) 조합 지원
  *
  * @since 2025-12-11 Phase 10 B1.5
@@ -45,7 +45,6 @@ export interface TextEditOverlayProps {
   /** 편집 완료 콜백 */
   onComplete?: (elementId: string) => void;
   /** 편집 취소 콜백 */
-  onCancel?: (elementId: string) => void;
 }
 
 export interface TextStyleConfig {
@@ -83,7 +82,6 @@ export function TextEditOverlay({
   style = {},
   onChange,
   onComplete,
-  onCancel,
 }: TextEditOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const quillRef = useRef<Quill | null>(null);
@@ -148,13 +146,11 @@ export function TextEditOverlay({
 
   // Stable refs for callbacks (avoid stale closures)
   const onCompleteRef = useRef(onComplete);
-  const onCancelRef = useRef(onCancel);
   const onChangeRef = useRef(onChange);
   useEffect(() => {
     onCompleteRef.current = onComplete;
-    onCancelRef.current = onCancel;
     onChangeRef.current = onChange;
-  }, [onCancel, onChange, onComplete]);
+  }, [onChange, onComplete]);
 
   // Initialize Quill editor (Pencil nUt constructor 패턴)
   useEffect(() => {
@@ -325,10 +321,12 @@ export function TextEditOverlay({
       // Enter 는 항상 줄바꿈 (Figma · Framer 규약, 사용자 판정 2026-09-20 — Quill 에 통과). 완료는
       //   Cmd/Ctrl+Enter · 바깥 클릭. normal · nowrap 에 들어간 `\n` 은 커밋 때 white-space 를
       //   pre 계열로 올려 CSS · Skia 가 같이 그린다 (`resolveCommittedWhiteSpace`).
+      // Esc 도 완료 (Figma 규약, 사용자 판정 2026-09-20 — 종전 Pencil 규약은 취소). 되돌리기는
+      //   커밋 뒤 Undo 로 (updateElementProps 가 히스토리에 기록한다).
       if (e.key === "Escape") {
         e.stopPropagation();
         e.preventDefault();
-        onCancelRef.current?.(elementId);
+        onCompleteRef.current?.(elementId);
         return;
       }
     };

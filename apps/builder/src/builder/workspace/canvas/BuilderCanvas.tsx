@@ -1464,14 +1464,8 @@ export function BuilderCanvas({
   });
 
   // 텍스트 편집 (B1.5)
-  const {
-    editState,
-    startEdit,
-    updateText,
-    completeEdit,
-    cancelEdit,
-    isEditing,
-  } = useTextEdit();
+  const { editState, startEdit, updateText, completeEdit, isEditing } =
+    useTextEdit();
 
   // 편집 상태 ref 동기화 (handleCentralPointerDown에서 참조)
   useEffect(() => {
@@ -1698,7 +1692,6 @@ export function BuilderCanvas({
           style={editState.style}
           onChange={updateText}
           onComplete={completeEdit}
-          onCancel={cancelEdit}
         />
       )}
     </div>

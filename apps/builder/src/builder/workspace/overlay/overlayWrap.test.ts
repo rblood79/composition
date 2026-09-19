@@ -50,6 +50,11 @@ describe("TextEditOverlay consumes the wrap contract (static)", () => {
     // Enter 는 항상 줄바꿈 (Figma · Framer 규약, 2026-09-20) — 완료 분기는 Cmd/Ctrl+Enter 뿐.
     expect(source).not.toContain("enterInsertsNewline");
     expect(source).not.toContain('e.key === "Enter" && !e.shiftKey');
+    // Esc 도 완료 (Figma 규약, 2026-09-20) — 취소 경로는 키에 매이지 않는다.
+    expect(source).toMatch(
+      /e\.key === "Escape"\) \{\s+e\.stopPropagation\(\);\s+e\.preventDefault\(\);\s+onCompleteRef/,
+    );
+    expect(source).not.toContain("onCancelRef.current?.(elementId)");
     expect(source).not.toContain('root.style.whiteSpace = "nowrap"');
   });
 });
