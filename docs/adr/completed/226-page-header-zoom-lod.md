@@ -140,6 +140,13 @@ ADR-221 은 카메라 제스처 중 헤더 층의 **DOM 쓰기** 를 0 으로 �
   - ③ 헤더 Mobile 토글 (전역 breakpoint 390) × 줌 0.1 → `data-lod="compact"` · 버튼 0 · 타이틀 "Perf Page 3" / 줌 0.3 → full · 버튼 2.
   - ④ compact 헤더 drag → pagePositions (940,0) → (1960,300) · shift-클릭 body 토글 [body] → [] · dblclick → `data-editing` + input + full.
   - ⑤ 편집 중 4px × 12 tick pan (마진 안) → 편집기 유지 · 40px × 90 tick pan (밖) → settle 에 헤더 unmount 로 닫힘.
+- **2026-09-19 · `/evaluate 226` · Chrome MCP foreground (사용자가 탭을 앞으로 가져옴 — 참관) · 사용자 프로젝트 `new` (mobile breakpoint) 에 eval 페이지 28 을 `appendPageShell` 로 임시 추가 · 실입력 (MCP 휠 scroll · 클릭 · drag · shift-클릭 · dblclick · 타이핑) + 페이지 안 MutationObserver 창 판정** — 전부 PASS, 콘솔 오류 0. 종료 후 `removePageLocal` 로 28 제거 · 새로고침 hydration 뒤 Components · Home 만 남음.
+  - 실휠 pan 3회 (down 10 tick · up 8 tick · down 1 tick): 제스처 창 childList **0** · settle 창 −30 / +30 / 0 (style 54 · 42 · 30) · reveal 시 표시 헤더 transform 누락 0 · post 0 · 집합 = `visiblePageIds`. JS 휠 zoom (ctrl) 왕복 · 단방향: 제스처 중 `data-hidden` + 티어 동결 (`compact` 30 유지), childList 0.
+  - 티어: 줌 0.1 (390 × 0.1 = 39 px) 30 헤더 전부 `compact` · 버튼 0 · 타이틀 "Co…/Ho…/Eva…" 보임 (스크린샷) → `APPLY_VIEWPORT` 0.3 → 24 헤더 `full` · 버튼 48 (Play · 타이틀 · Close 스크린샷).
+  - compact 헤더 실입력: 클릭 → currentPageId 전환 · drag → pagePositions (2400,1100) → (3990,1640) · shift-클릭 [] → [body] + `data-highlighted` · dblclick → `data-editing` + input focus + `full` (input 700 / 헤더 600 computed) · "Renamed 9" + Enter → 페이지 title 반영 · compact 복귀.
+  - ⑤ 편집 중 1 tick pan → 편집기·focus 유지 (settle childList 0) · 편집 중 10 tick pan → 헤더 unmount 로 편집기 닫힘 (settle −20).
+  - ② 중클릭 pan (컨테이너 native 리스너에 PointerEvent) 중 `window` blur → gate off · `data-hidden` 제거 · 집합 일치 · 뒤이은 실제 좌클릭 drag 로 다른 페이지 이동 (1200,2200) → (2010,2710) · 카메라 불변 — 수리한 gesture session 잔류 결함 재현 없음.
+  - MCP 한계: 스페이스 pan · 실 ctrl-휠 zoom 은 도구가 modifier 를 못 실어 JS dispatch (실핸들러 경로) 로 대체. 스크린샷 좌표계는 CSS px × 0.8414 (1512/1797).
 - **G3 ④ 가 드러낸 ADR-221 잔존 결함 (수리 포함)**: 스페이스 pan 도중 blur / visibility hidden 으로 끊기면 `interruptViewportInteraction` 이 `isPanningRef` 만 내리고 `CanvasGestureSession` 의 pan pointer 를 놓지 않아, 뒤따르는 pointerup 을 viewport 핸들러가 무시 → session 이 그 pointer 를 "pan" 으로 계속 잡음 → 다음 좌클릭이 stale pan 판정 · `tryClaimPage` 영구 false (첫 live 실행에서 drag 가 (940,0) 그대로). `panPointerIdRef` 로 pan 소유 pointer 를 기억해 interrupt 3경로 (blur · visibility · unmount) 에서 `endPointer` — 단위 RED 2 (`pointerCleanup.test.tsx`) → GREEN, live 재실행 14/14.
 
 ## Consequences
