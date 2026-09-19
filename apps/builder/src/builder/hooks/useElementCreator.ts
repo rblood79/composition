@@ -8,6 +8,7 @@ import {
   getDefaultProps as getCentralDefaultProps,
 } from "../../types/builder/unified.types";
 import { ComponentFactory } from "../factories/ComponentFactory";
+import { composeCreationProps } from "../factories/creationStyleDefaults";
 import type { ComponentCreationSourceNode } from "../factories/types";
 import type { CanvasInteractionNode } from "../workspace/canvas/interaction/interactionNode";
 import { resolveNestingAwareTarget } from "../workspace/canvas/interaction/nestingRelocation";
@@ -194,7 +195,7 @@ export const useElementCreator = (): UseElementCreatorReturn => {
       addElement: (element: Element) => void,
       layoutId: string | null | undefined,
       doc: CompositionDocument,
-    initialProps?: Record<string, unknown>,
+      initialProps?: Record<string, unknown>,
     ) => {
       if (isProcessingRef.current) return;
       isProcessingRef.current = true;
@@ -353,7 +354,11 @@ export const useElementCreator = (): UseElementCreatorReturn => {
                   id: crypto.randomUUID(), // UUID 생성
                   type,
                   customId: generateCustomId(type, elements),
-                  props: { ...getDefaultProps(type), ...initialProps },
+                  props: composeCreationProps(
+                    type,
+                    getDefaultProps(type),
+                    initialProps,
+                  ),
                   // Layout 모드면 legacy layout binding 사용, 아니면 page_id 사용
                   page_id: layoutId ? null : currentPageId,
                   parent_id: parentId,

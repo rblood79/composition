@@ -44,7 +44,8 @@ function deriveTextBehaviorPreset(
   if (ws === "nowrap" && to === "ellipsis" && of === "hidden")
     return "truncate";
   if (ws === "nowrap") return "nowrap";
-  if (ws === "pre-wrap") return "preserve";
+  // pre-wrap = "Auto" (새 Text 기본 — 줄바꿈 보존, ADR-027 후속 5).
+  if (ws === "pre-wrap") return "auto";
   if (wb === "break-all") return "break-all";
   if (wb === "keep-all") return "keep-all";
   if (ow === "break-word") return "break-words";

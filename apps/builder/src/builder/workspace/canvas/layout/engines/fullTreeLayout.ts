@@ -3072,7 +3072,13 @@ export function calculateFullTreeLayout(
         } else if (typeof rawW === "string" && rawW.endsWith("px")) {
           enrichedWidth = parseFloat(rawW) || availableWidth;
         } else if (typeof rawW === "string" && rawW.endsWith("%")) {
-          enrichedWidth = (availableWidth * (parseFloat(rawW) || 100)) / 100;
+          // enrich 가 실제로 쓴 부모 폭 (DFS 기록) 에 비율을 곱한다 — root availableWidth 로 추정하면
+          //   (342 × 50% = 171 == layout 171) 재측정을 건너뛰는데 enrich 는 294 × 50% = 147 로 쟀다
+          //   (사용자 live 2026-09-20: pre-wrap 50% Text 상자 226 ↔ Skia 192, 1줄 초과).
+          enrichedWidth =
+            ((node.enrichAvailWidth ?? availableWidth) *
+              (parseFloat(rawW) || 100)) /
+            100;
         } else {
           // **DFS 가 기록한 실제 값**을 쓴다 — 여기서 부모 폭으로 역추정하면 grid
           //   자식이 어긋난다(트랙 추정폭을 넘겼으므로). 기록이 없으면 종전 폴백.
@@ -3257,10 +3263,12 @@ export function calculateFullTreeLayout(
           const storeStyle = (elementsMap.get(node.elementId)?.props?.style ??
             {}) as Record<string, unknown>;
 
-          const mergedStyle =
-            batchWidth && !storeStyle.width
-              ? { ...childStyle, width: batchWidth }
-              : childStyle;
+          const mergedStyle = resolveRemeasureStyle(
+            childStyle,
+            batchWidth,
+            storeStyle.width,
+            actualWidth,
+          );
           const mergedEl =
             mergedStyle !== childStyle
               ? ({
@@ -3665,4 +3673,25 @@ export function calculateFullTreeLayoutFromSceneModel(
     availableHeight,
     accessor,
   );
+}
+
+/**
+ * Step 4.5 재측정용 style — 1차 enrich 는 `availableWidth` = 부모 폭이라 `%` 를 그 비율로 풀지만
+ * (`resolveEnrichMeasureWidth`), 2차는 `actualWidth` = **자기** 확정 폭이다. `%` 를 그대로 두면 자기
+ * 폭에 비율을 또 곱해 (50% → 85.5) 줄이 늘어난다 (사용자 live 2026-09-20: pre-wrap 50% Text 상자
+ * 226 ↔ Skia 192). 확정 폭을 px 로 박아 그 폭에서 잰다 — 이 패스는 height 키만 되돌려 쓰므로 width
+ * 출력엔 영향이 없다. implicit 주입 폭 (batchWidth) 은 store 에 폭이 없을 때만 (종전 그대로).
+ */
+export function resolveRemeasureStyle(
+  childStyle: Record<string, unknown>,
+  batchWidth: unknown,
+  storeWidth: unknown,
+  actualWidth: number,
+): Record<string, unknown> {
+  const w = childStyle.width;
+  if (typeof w === "string" && w.trim().endsWith("%")) {
+    return { ...childStyle, width: actualWidth };
+  }
+  if (batchWidth && !storeWidth) return { ...childStyle, width: batchWidth };
+  return childStyle;
 }

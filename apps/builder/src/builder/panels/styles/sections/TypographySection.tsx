@@ -93,7 +93,8 @@ const TEXT_BEHAVIOR_PRESETS: Record<string, Record<string, string>> = {
     textOverflow: "",
     overflow: "",
   },
-  preserve: {
+  // "Auto" = pre-wrap — 새 Text 의 기본 (줄바꿈 보존 · 폭에서 접힘, Figma 규약). 종전 이름 "Preserve".
+  auto: {
     whiteSpace: "pre-wrap",
     wordBreak: "",
     overflowWrap: "",
@@ -497,13 +498,13 @@ const TypographySectionContent = memo(function TypographySectionContent() {
         value={styleValues.textBehaviorPreset}
         popoverWidthMode="fit-content"
         options={[
+          { value: "auto", label: "Auto" },
           { value: "normal", label: "Normal" },
           { value: "nowrap", label: "No Wrap" },
           { value: "truncate", label: "Truncate (…)" },
           { value: "break-words", label: "Break Words" },
           { value: "break-all", label: "Break All" },
           { value: "keep-all", label: "Keep All (CJK)" },
-          { value: "preserve", label: "Preserve" },
           { value: "custom", label: "Custom…" },
         ]}
         onChange={handleTextBehaviorChange}

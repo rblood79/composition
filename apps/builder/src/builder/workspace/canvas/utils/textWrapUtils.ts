@@ -95,6 +95,30 @@ export function cssNormalBreakProcess(
   text: string,
   maxWidth: number,
 ): { text: string; effectiveWidth: number } {
+  // `\n` 은 hard break (pre 계열 — normal 은 여기 오기 전에 공백으로 접혔다). 조각마다 따로 접고
+  //   `\n` 으로 다시 잇는다 (ADR-027 후속 5, 사용자 live 2026-09-20: pre-wrap Text 의 첫 조각이 폭을
+  //   넘자 `/\s+/` split 이 `\n` 을 삼켜 Skia 5줄 ↔ 상자·Preview 8줄).
+  if (text.includes("\n")) {
+    const parts: string[] = [];
+    let effectiveWidth = maxWidth;
+    for (const segment of text.split("\n")) {
+      if (!segment) {
+        parts.push("");
+        continue;
+      }
+      const r = cssNormalBreakProcess(
+        ck,
+        paraStyle,
+        fontMgr,
+        segment,
+        maxWidth,
+      );
+      parts.push(r.text);
+      effectiveWidth = Math.max(effectiveWidth, r.effectiveWidth);
+    }
+    return { text: parts.join("\n"), effectiveWidth };
+  }
+
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length === 0) return { text, effectiveWidth: maxWidth };
 
