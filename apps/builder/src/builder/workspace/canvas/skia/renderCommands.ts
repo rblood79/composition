@@ -71,6 +71,7 @@ import {
   type PagePositionPresentationSnapshot,
 } from "../interaction/pagePositionPresentation";
 import { getCanvasFramePresentationSnapshot } from "../canvasFramePresentation";
+import { resolveTextLineMetrics } from "./textDrawOrigin";
 
 // ── Command 타입 ──────────────────────────────────────────────────────
 
@@ -2661,4 +2662,11 @@ export function buildAIBoundsFromStream(
     });
   }
   return result;
+}
+
+// dev 전용 디버그 전역 — 텍스트 편집 오버레이가 쓰는 것과 같은 scene bounds (마지막 프레임의
+// boundsMap). ADR-027 D3 파리티 하니스가 요소의 화면 rect 를 이 값 + 카메라로 만든다.
+if (typeof window !== "undefined" && import.meta.env?.DEV) {
+  (window as unknown as Record<string, unknown>).__composition_RENDER_DEBUG__ =
+    { getSceneBounds, resolveTextLineMetrics };
 }

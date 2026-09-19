@@ -23,7 +23,11 @@ import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { useCanvasStore } from "../../stores/canvasStore";
 import { getSkiaNode, notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { extractFullSpecTextStyle } from "./specTextStyleForOverlay";
-import { resolveOverlayWrap } from "./overlayWrap";
+import {
+  decorationMaskToCss,
+  resolveOverlayFontFeatures,
+  resolveOverlayWrap,
+} from "./overlayWrap";
 import {
   resolveTextSourceKey,
   resolveTextSourceText,
@@ -236,10 +240,21 @@ function extractTextStyle(
   const skiaNode = getSkiaNode(elementId);
   const t = findTextData(skiaNode);
   const wrap = t ? resolveOverlayWrap(t) : undefined;
+  const textDecoration = decorationMaskToCss(t?.decoration);
+  const wordSpacing = t?.wordSpacing;
+  // Skia 가 paragraph 에 싣는 feature 와 같은 값 — 노드가 없어도 기본 4개는 싣는다.
+  const fontFeatureSettings = resolveOverlayFontFeatures(t?.fontVariant);
 
   // 1. Spec shapes에서 추출 (CSS Preview와 동일한 소스 — Button, Badge 등)
   const specStyle = extractFullSpecTextStyle(type, props);
-  if (specStyle) return { ...specStyle, wrap };
+  if (specStyle)
+    return {
+      ...specStyle,
+      wrap,
+      textDecoration,
+      wordSpacing,
+      fontFeatureSettings,
+    };
 
   // 2. Skia 노드에서 추출 (비-Spec 텍스트 요소: p, h1, span 등)
   if (t) {
@@ -269,6 +284,9 @@ function extractTextStyle(
       letterSpacing: t.letterSpacing,
       paddingTop: t.paddingTop ?? 0,
       wrap,
+      textDecoration,
+      wordSpacing,
+      fontFeatureSettings,
     };
   }
 
@@ -281,6 +299,7 @@ function extractTextStyle(
     textAlign: (style?.textAlign as "left" | "center" | "right") || "left",
     lineHeight: style?.lineHeight as number | string | undefined,
     padding: Number(style?.padding || style?.paddingLeft || 0),
+    fontFeatureSettings,
   };
 }
 

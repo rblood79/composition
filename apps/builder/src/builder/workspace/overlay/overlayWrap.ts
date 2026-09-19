@@ -8,6 +8,11 @@
  * 규칙을 그대로 따른다.
  */
 
+import {
+  DEFAULT_FONT_FEATURES,
+  resolveFontVariantFeatures,
+} from "../canvas/layout/engines/cssResolver";
+
 export type SkiaWhiteSpace =
   "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
 export type SkiaWordBreak = "normal" | "break-all" | "keep-all";
@@ -45,4 +50,35 @@ export function resolveOverlayWrap(input: SkiaWrapInput): OverlayWrap {
       whiteSpace === "pre-wrap" ||
       whiteSpace === "pre-line",
   };
+}
+
+/**
+ * Skia decoration 비트마스크 (underline 1 · overline 2 · line-through 4) → CSS text-decoration-line.
+ * 오버레이가 이걸 안 실으면 Link 의 밑줄이 편집 진입 순간 사라진다 (D3 하니스: 200% ink bbox r −4 · b −2).
+ */
+export function decorationMaskToCss(
+  mask: number | undefined,
+): string | undefined {
+  if (!mask) return undefined;
+  const parts: string[] = [];
+  if (mask & 1) parts.push("underline");
+  if (mask & 2) parts.push("overline");
+  if (mask & 4) parts.push("line-through");
+  return parts.length ? parts.join(" ") : undefined;
+}
+
+/**
+ * ADR-027 D3 — Skia paragraph 가 싣는 OpenType feature (기본 Pretendard cv02·03·04·11 + fontVariant)
+ * 를 CSS `font-feature-settings` 로. 빌더 문서는 `--default-font-feature-settings` 가 없어 오버레이가
+ * `normal` 이면 Latin 글리프 폭이 갈린다 (Heading 205.94 ↔ 204.41 — 200% 에서 ink 우측 3px).
+ * Preview body 도 같은 4개를 싣는다 (`preview/baseStyles.ts`).
+ */
+export function resolveOverlayFontFeatures(
+  fontVariant: string | undefined,
+): string {
+  const tags = [
+    ...DEFAULT_FONT_FEATURES,
+    ...resolveFontVariantFeatures(fontVariant ?? "normal"),
+  ];
+  return tags.map((t) => `"${t.name}" ${t.value}`).join(", ");
 }

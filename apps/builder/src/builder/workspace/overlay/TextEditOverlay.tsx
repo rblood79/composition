@@ -62,6 +62,11 @@ export interface TextStyleConfig {
   verticalAlign?: "top" | "center";
   /** ADR-027 D1 — Skia paragraph 입력에서 파생한 줄바꿈 계약 (없으면 nowrap · Enter = 완료). */
   wrap?: OverlayWrap;
+  /** ADR-027 D3 — Skia decoration (Link 밑줄 등) 을 그대로. */
+  textDecoration?: string;
+  wordSpacing?: number;
+  /** ADR-027 D3 — Skia paragraph 의 OpenType feature (`resolveOverlayFontFeatures`). */
+  fontFeatureSettings?: string;
 }
 
 // ============================================
@@ -92,8 +97,18 @@ export function TextEditOverlay({
     panOffsetRef.current = panOffset;
   }, [zoom, panOffset]);
 
-  const [livePos, setLivePos] = useState(position);
-  const [liveSize, setLiveSize] = useState(size);
+  // 첫 렌더부터 카메라를 적용한다 (ADR-027 D3). `position`/`size` prop 은 scene 좌표라 (startEdit 의
+  //   getElementBoundsSimple) 그대로 두면 200% 에서 컨테이너가 반 크기로 마운트되고, 마운트 effect 의
+  //   D2 nudge 측정이 그 상자에서 이뤄져 (Save 라벨 textLeft 12 · lineTop −2.4) 보정이 6px 틀렸다.
+  //   effect 가 나중에 setState 로 고치지만 측정은 이미 끝난 뒤다.
+  const [livePos, setLivePos] = useState(() => {
+    const sb = getSceneBounds(elementId);
+    return sb ? { x: sb.x * zoom + panOffset.x, y: sb.y * zoom + panOffset.y } : position;
+  });
+  const [liveSize, setLiveSize] = useState(() => {
+    const sb = getSceneBounds(elementId);
+    return sb ? { width: sb.width * zoom, height: sb.height * zoom } : size;
+  });
 
   // scene→screen 변환 헬퍼 (subscribeBounds 콜백 + zoom/pan 변경에서 공유)
   const applyTransform = useCallback(
@@ -177,6 +192,15 @@ export function TextEditOverlay({
     if (style.letterSpacing != null) {
       root.style.letterSpacing = `${style.letterSpacing}px`;
     }
+    if (style.wordSpacing != null) {
+      root.style.wordSpacing = `${style.wordSpacing}px`;
+    }
+    if (style.textDecoration) {
+      root.style.textDecoration = style.textDecoration;
+    }
+    if (style.fontFeatureSettings) {
+      root.style.fontFeatureSettings = style.fontFeatureSettings;
+    }
     // Skia CanvasKit 텍스트 렌더링과 최대한 유사하게 CSS 렌더링 조정
     root.style.textRendering = "geometricPrecision";
     root.style.setProperty("-webkit-font-smoothing", "antialiased");
@@ -192,6 +216,17 @@ export function TextEditOverlay({
     // 폭 auto 는 center/right 정렬도 깨뜨렸다 (Save 라벨 Δx≈5.5px, live 2026-09-20).
     root.style.width = "100%";
     root.style.whiteSpace = style.wrap?.whiteSpace ?? "nowrap";
+    // ADR-027 D3 — Skia 는 Canvas 2D 힌트 경로에서 상자보다 최대 1px 넓게 layout 한다
+    // (`wrapWidthExtra`). wrap 모드에서만 그만큼 넓혀 같은 자리에서 줄을 바꾼다 — nowrap 은
+    // 폭이 줄바꿈에 무관하고 center 정렬 상자를 흔들 뿐이라 100% 그대로.
+    const skiaOrigin = resolveTextGlyphOrigin(elementId);
+    if (
+      skiaOrigin &&
+      skiaOrigin.wrapWidthExtra > 0 &&
+      style.wrap?.whiteSpace === "pre-wrap"
+    ) {
+      root.style.width = `calc(100% + ${skiaOrigin.wrapWidthExtra}px)`;
+    }
     root.style.overflowWrap = style.wrap?.overflowWrap ?? "normal";
     root.style.wordBreak = style.wrap?.wordBreak ?? "normal";
     root.style.minWidth = initialValue ? "auto" : "1px";
@@ -217,26 +252,46 @@ export function TextEditOverlay({
       const firstLine = root.querySelector("p");
       const lineRect = firstLine?.getBoundingClientRect();
       let textLeft: number | null = null;
+      let baseline: number | undefined;
       if (firstLine?.firstChild && initialValue) {
         const range = document.createRange();
         range.selectNodeContents(firstLine);
         const glyphRect = range.getClientRects()[0];
         if (glyphRect) textLeft = (glyphRect.left - containerRect.left) / z;
+        // D3 — 첫 줄 baseline: 0×0 inline-block 은 자기 baseline (= 아래 변) 을 줄의 baseline 에
+        //   놓는다. 재고 바로 뗀다 (Quill 의 observer 가 볼 것은 없다).
+        const probe = document.createElement("span");
+        probe.style.display = "inline-block";
+        probe.style.width = "0";
+        probe.style.height = "0";
+        probe.style.verticalAlign = "baseline";
+        firstLine.insertBefore(probe, firstLine.firstChild);
+        const probeTop = probe.getBoundingClientRect().top;
+        probe.remove();
+        if (lineRect) baseline = (probeTop - lineRect.top) / z;
       }
-      const nudge = lineRect
-        ? resolveOverlayNudge(resolveTextGlyphOrigin(elementId), {
+      const domLine = lineRect
+        ? {
             textLeft,
             lineTop: (lineRect.top - containerRect.top) / z,
-          })
+            baseline,
+          }
         : null;
+      const nudge = domLine ? resolveOverlayNudge(skiaOrigin, domLine) : null;
       if (nudge && (nudge.dx !== 0 || nudge.dy !== 0)) {
         root.style.position = "relative";
         root.style.left = `${nudge.dx}px`;
         root.style.top = `${nudge.dy}px`;
       }
+      // 진단 (D3 하니스가 읽는다): 적용한 보정과 그 두 입력.
       container.dataset.textEditNudge = nudge
         ? `${nudge.dx},${nudge.dy}`
         : "none";
+      container.dataset.textEditNudgeSrc = JSON.stringify({
+        skia: skiaOrigin,
+        dom: domLine,
+        zoom: z,
+      });
     }
 
     // DOM 오버레이 준비 완료 → Skia 텍스트 숨김 + 오버레이 즉시 표시 (깜빡임 방지)

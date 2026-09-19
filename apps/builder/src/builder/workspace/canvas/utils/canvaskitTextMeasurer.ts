@@ -175,6 +175,8 @@ function buildWrappedCacheKey(
     style.lineHeight ?? 0,
     style.wordBreak ?? "normal",
     style.overflowWrap ?? "normal",
+    // pre 계열은 `\n` 이 hard break — 같은 text·폭이라도 normal 과 높이가 다르다 (ADR-027 D3).
+    style.whiteSpace ?? "normal",
   ].join("\0");
 }
 

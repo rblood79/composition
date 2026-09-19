@@ -157,6 +157,32 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
       return { width: 0, height: lineHeight };
     }
 
+    // ADR-027 D3 — pre 계열의 `\n` 은 hard break (CSS Text 3 §4.1.1 · CanvasKit paragraph 도 그렇게
+    //   그린다). 줄마다 따로 재서 높이를 더한다 — 종전엔 `\n` 이 공백 토큰이라 "a\nb\nc" 가 1줄이었고
+    //   Skia 3줄이 상자 밖으로 넘쳤다 (레이아웃의 활성 측정기는 이 클래스다).
+    const ws = style.whiteSpace;
+    if (
+      (ws === "pre" || ws === "pre-wrap" || ws === "pre-line") &&
+      text.includes("\n")
+    ) {
+      let height = 0;
+      let width = 0;
+      for (const segment of text.split("\n")) {
+        if (!segment) {
+          height += lineHeight;
+          continue;
+        }
+        const r = this.measureWrapped(
+          segment,
+          { ...style, whiteSpace: undefined },
+          ws === "pre" ? Number.MAX_SAFE_INTEGER : maxWidth,
+        );
+        height += r.height;
+        width = Math.max(width, r.width);
+      }
+      return { width, height };
+    }
+
     const ctx = getMeasureCtx();
     if (!ctx) {
       return { width: maxWidth, height: lineHeight };
@@ -543,6 +569,11 @@ export function measureWrappedTextHeight(
    * 해소는 `resolveTextRenderStyle` 이 하고 이 함수는 결과를 운반만 한다.
    */
   letterSpacing?: number,
+  /**
+   * ADR-027 D3 — white-space. pre 계열이면 `\n` 이 hard break 다 (CanvasKit paragraph 경로 —
+   * `needsFallback`). 생략은 normal 과 같아 기존 호출 지점의 동작이 바뀌지 않는다.
+   */
+  whiteSpace?: string,
 ): number {
   const result = getTextMeasurer().measureWrapped(
     text,
@@ -554,6 +585,7 @@ export function measureWrappedTextHeight(
       wordBreak,
       overflowWrap,
       letterSpacing,
+      whiteSpace,
     },
     maxWidth,
   );

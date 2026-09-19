@@ -37,6 +37,7 @@ import {
   resolveRetainedParagraph,
   retainParagraph,
 } from "./retainedParagraph";
+import { resolveSingleLineGlyphTop } from "./textGlyphCentering";
 
 // paragraph 소유 = 텍스트 노드 (ADR-174). 구 전역 content-키 LRU 와 전환
 // 플래그는 Phase 3 에서 제거됨 — 상한/퇴거 개념 자체가 사라졌고, 수명은
@@ -76,12 +77,6 @@ function syncParagraphMetricsSize(): void {
   if (PARAGRAPH_METRICS_DEV) {
     getCacheMetrics("paragraph").setSize(getRetainedParagraphCount());
   }
-}
-
-function containsIdeographicText(text: string): boolean {
-  return /[\u1100-\u11ff\u3130-\u318f\u3400-\u9fff\uac00-\ud7af\u3040-\u30ff]/.test(
-    text,
-  );
 }
 
 /**
@@ -215,7 +210,9 @@ export function renderText(
         );
       }
 
-      // 단일줄: 글리프 기반 수직 중앙 (기존 로직)
+      // 단일줄: 글리프 기반 수직 중앙. ink 는 Canvas 2D (alphabetic baseline 기준) 라 paragraph
+      //   원점도 alphabetic baseline — 스크립트 무관 (textGlyphCentering.ts 의 Why: ideographic
+      //   원점은 한글을 descent 만큼 위에 그렸다).
       const primaryFamily = node.text!.fontFamilies[0] ?? "sans-serif";
       const metrics = measureActualTextBounds(
         processedText,
@@ -223,16 +220,14 @@ export function renderText(
         node.text!.fontSize,
         node.text!.fontWeight ?? 400,
       );
-      const baselineOffset = containsIdeographicText(processedText)
-        ? paragraph.getIdeographicBaseline()
-        : paragraph.getAlphabeticBaseline();
-      const glyphTopOffset = baselineOffset - metrics.ascent;
-      const contentHeight =
-        node.height - node.text!.paddingTop - (node.text!.paddingBottom ?? 0);
-      const centeredGlyphTop =
-        node.text!.paddingTop +
-        Math.max(0, (contentHeight - metrics.height) / 2);
-      return centeredGlyphTop - glyphTopOffset;
+      return resolveSingleLineGlyphTop({
+        contentTop: node.text!.paddingTop,
+        contentHeight:
+          node.height - node.text!.paddingTop - (node.text!.paddingBottom ?? 0),
+        inkAscent: metrics.ascent,
+        inkHeight: metrics.height,
+        alphabeticBaseline: paragraph.getAlphabeticBaseline(),
+      });
     }
 
     if (

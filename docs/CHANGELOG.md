@@ -11,6 +11,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-027 Phase D3 — 텍스트 편집 전환 픽셀 게이트 16/16 + 게이트가 잡은 Canvas 텍스트 결함 3] - 2026-09-20
+
+### Fixed
+
+- **한글 (CJK) 이 들어간 단일행 텍스트가 Canvas 에서 descent 만큼 (16px 에서 ≈6px) 위에 그려지던 결함** (2026-04-08 부터) — Skia 단일행 글리프 중앙 배치가 CJK 포함 텍스트에 ideographic baseline (줄 아래 변) 을 원점으로 쓰면서 ink ascent 는 alphabetic 기준이었다. Text "가운데 정렬" y −6.32 · Button "저장" 라벨 y −0.05 (Latin "Save" 4.96) → Preview 와 같은 line box 자리로. `textGlyphCentering.ts`.
+- 고정 px 폭 Text/Heading 에 긴 문장을 넣으면 상자는 1줄 높이로 남고 글이 상자 밖으로 넘치던 결함 — 엔진 1차 측정이 부모 content 폭 (body 1920) 으로 줄바꿈을 재고 2-pass 가 px 폭을 "이미 쓴 폭" 으로 가정해 재측정을 건너뛰었다. 텍스트 leaf 도 자기 px 폭으로 잰다 (Button 계열과 같이).
+- `white-space: pre / pre-wrap / pre-line` 텍스트의 줄바꿈 문자 (`\n`, 편집 중 Enter) 가 상자 높이에 반영되지 않던 결함 — 레이아웃 측정기가 `\n` 을 공백으로 봤다. 줄마다 재서 더한다 (`pre` 는 폭 무한).
+- 편집 진입 시 (a) Link "Learn more 자세히" 처럼 fit-content 라벨의 마지막 단어가 둘째 줄로 떨어지고 (b) Latin 글리프 폭이 Skia 와 미세하게 달라 (Heading 28px 에서 1.5px) 200% 에서 우측 3px 갈리고 (c) 200% 줌에서 첫 줄 보정이 반 크기 컨테이너에서 측정돼 6px 틀리고 (d) 같은 line box 안에서 글리프가 1px 위였던 잔여 — 오버레이가 Skia 와 같은 OpenType feature (Pretendard cv02·03·04·11) 를 싣고, Skia 가 layout 한 폭 여유 (+1px) 만큼 wrap 폭을 넓히고, 첫 렌더부터 카메라를 적용하고, 세로 보정을 baseline 끼리 한다.
+
+### Added
+
+- `apps/builder/scripts/adr027-text-edit-parity.mjs` — 타입 8 × 줌 100/200% 의 Skia 캡처 ↔ 편집 진입 캡처 게이트 (텍스트 지도 shift + 반치 bbox, ≤ 1 CSS px). 16/16 PASS.
+
 ## [ADR-027 Phase D0~D2 — 텍스트 편집 진입이 캔버스를 밀지 않고, 줄바꿈·정렬·첫 줄 자리가 Skia 와 같다] - 2026-09-20
 
 ### Fixed

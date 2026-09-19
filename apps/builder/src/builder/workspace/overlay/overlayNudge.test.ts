@@ -38,6 +38,26 @@ describe("resolveOverlayNudge", () => {
     ).toEqual({ dx: 0.04, dy: 0 });
   });
 
+  it("D3 — 두 쪽 다 baseline 이 있으면 dy 는 line box top 이 아니라 baseline 끼리 (같은 24px 줄에서 글리프가 1px 갈린다)", () => {
+    // 하니스 (2026-09-20): Text 4줄 · Heading 28 — line box top 은 같은데 (nudge 0/0) DOM 글리프가
+    // 1 CSS px 위 (shift dy −1 @100% · −2 @200%). half-leading 안의 baseline 자리가 두 엔진에서 다르다.
+    expect(
+      resolveOverlayNudge(
+        { x: 0, y: 0, baseline: 17.6 },
+        { textLeft: 0, lineTop: 0, baseline: 16.6 },
+      ),
+    ).toEqual({ dx: 0, dy: 1 });
+  });
+
+  it("baseline 이 한쪽만 있으면 line box top 으로 (종전)", () => {
+    expect(
+      resolveOverlayNudge(
+        { x: 0, y: 2, baseline: 17.6 },
+        { textLeft: 0, lineTop: 0 },
+      ),
+    ).toEqual({ dx: 0, dy: 2 });
+  });
+
   it("한도를 넘는 축은 기록이 다른 상태의 것이라 보고 0 으로 둔다", () => {
     const wild = MAX_OVERLAY_NUDGE + 1;
     expect(

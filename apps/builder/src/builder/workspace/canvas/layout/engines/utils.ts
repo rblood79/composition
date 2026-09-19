@@ -4192,13 +4192,17 @@ export function calculateContentHeight(
     const tlProps = element.props as Record<string, unknown> | undefined;
     if (resolveTextLeafContent(tlProps) === "") return 0;
   }
-  const ws49 = style?.whiteSpace as string | undefined;
+  // ADR-027 D3 (2026-09-20): white-space 를 측정기에 넘긴다 — pre 계열은 `\n` 이 hard break 라
+  //   (Skia 도 CanvasKit paragraph 로 그린다) 명시 줄바꿈 텍스트의 높이가 줄 수만큼 는다. 종전엔
+  //   whiteSpace 미전달 → Canvas 2D 경로가 `\n` 을 공백으로 봐 pre-wrap "a\nb\nc" 가 1줄 (24)
+  //   이었고 Skia 3줄이 상자 밖으로 넘쳤다 (오버레이 Enter = 줄바꿈 경로). `pre` 는 폭 무한
+  //   (줄바꿈은 `\n` 만) 으로 잰다. nowrap 은 CSS 가 `\n` 을 접어 1줄 — 종전대로 건너뛴다.
+  const ws49 = resolveTextLeafWhiteSpace(style, computedStyle);
   if (
     TEXT_LEAF_TAGS.has(type) &&
     availableWidth != null &&
     availableWidth > 0 &&
-    ws49 !== "nowrap" &&
-    ws49 !== "pre"
+    ws49 !== "nowrap"
   ) {
     const props = element.props as Record<string, unknown> | undefined;
     const textContent = resolveTextLeafContent(props); // r13m2 — 원천 SSOT
@@ -4219,7 +4223,8 @@ export function calculateContentHeight(
         computedStyle?.fontFamily ??
         specFontFamily.sans;
       const pad = parsePadding(style, availableWidth);
-      const maxTextWidth = availableWidth - pad.left - pad.right;
+      const maxTextWidth =
+        ws49 === "pre" ? 100000 : availableWidth - pad.left - pad.right;
       if (maxTextWidth > 0) {
         // Tailwind CSS v4 기본 line-height: 1.5 → fontSize * 1.5
         // style.lineHeight 명시 우선 → spec size lineHeight → fontSize*1.5 fallback
@@ -4240,6 +4245,7 @@ export function calculateContentHeight(
           ow1,
           // ADR-205 Phase 1 — 여기가 live 증상(줄 수)의 결손 지점이었다.
           resolveTextRenderStyle(style, computedStyle).letterSpacing,
+          ws49,
         );
         const singleLineH = resolvedLH;
         if (wrappedHeight > singleLineH + 0.5) {
@@ -5159,7 +5165,11 @@ export function enrichWithIntrinsicSize(
             // INLINE_BLOCK 태그에 명시적 고정 너비(px)가 있으면 자신의 border-box 너비로
             // 텍스트 줄바꿈을 계산해야 함. 부모의 availableWidth를 사용하면 버튼 크기를
             // 초과한 너비로 측정되어 줄바꿈이 발생하지 않고 높이가 늘어나지 않는 버그 발생.
-            INTRINSIC_MEASURE_TAGS.has(type) &&
+            // 텍스트 leaf 도 같다 (ADR-027 D3, 2026-09-20): block 부모 (body 1920) 안의
+            //   `Text { width: 300px }` 긴 문장을 부모 폭으로 재면 1줄 (24) 이 명시 height 로
+            //   굳고, Step 4.5 2-pass 는 px 폭을 "enrich 가 쓴 폭" 으로 가정해 (300 == 300)
+            //   재측정을 건너뛴다 → 엔진 300×24 ↔ Skia paragraph 3줄 (72) 넘침.
+            (INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type)) &&
               (parseNumericValue(rawWidth) ?? 0) > 0
               ? (parseNumericValue(rawWidth) as number)
               : availableWidth,
