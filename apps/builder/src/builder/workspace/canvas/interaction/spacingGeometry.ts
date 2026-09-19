@@ -7,7 +7,7 @@
  * 핸들이다 — 사선으로 부풀리지 않는다. 히트와 그리기가 같은 결과를 읽는다.
  */
 
-import type { BoundingBox } from "../selection/types";
+import { pointInBox, type BoundingBox } from "../selection/types";
 import type {
   SpacingBoxMetrics,
   SpacingProperty,
@@ -216,15 +216,6 @@ export function resolveSpacingHandleRect(
       };
 }
 
-function containsPoint(rect: BoundingBox, x: number, y: number): boolean {
-  return (
-    x >= rect.x &&
-    x <= rect.x + rect.width &&
-    y >= rect.y &&
-    y <= rect.y + rect.height
-  );
-}
-
 export interface SpacingHit {
   readonly band: SpacingBand;
   readonly onHandle: boolean;
@@ -244,11 +235,12 @@ export function hitTestSpacingBands(
     const cx = band.rect.x + band.rect.width / 2;
     const cy = band.rect.y + band.rect.height / 2;
     if (
-      containsPoint(
-        { x: cx - hit / 2, y: cy - hit / 2, width: hit, height: hit },
-        point.x,
-        point.y,
-      )
+      pointInBox(point, {
+        x: cx - hit / 2,
+        y: cy - hit / 2,
+        width: hit,
+        height: hit,
+      })
     ) {
       return { band, onHandle: true };
     }
@@ -262,7 +254,7 @@ export function hitTestSpacingBands(
         : band.axis === "x" && rect.width < minHit
           ? { ...rect, x: rect.x + rect.width / 2 - minHit / 2, width: minHit }
           : rect;
-    if (containsPoint(expanded, point.x, point.y)) {
+    if (pointInBox(point, expanded)) {
       return { band, onHandle: false };
     }
   }

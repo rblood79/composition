@@ -1,5 +1,9 @@
-import type { SizeAxis } from "@composition/shared";
+import { roundToDecimals } from "@composition/shared";
 import type { BoundingBox, HandlePosition } from "../selection/types";
+import type {
+  CanvasResizeRequest,
+  ResizeRatioLock,
+} from "../../../stores/utils/canvasResizeEdit";
 
 /**
  * ADR-224 breakdown §4.3 — 핸들 드래그 → 요청 크기 (scene px).
@@ -13,19 +17,9 @@ import type { BoundingBox, HandlePosition } from "../selection/types";
  *   left/top 핸들을 잡으면 반대 변이 고정되도록 left/top 을 같이 옮긴다 — 잡은 변만, 결과 크기 기준
  *   (Ratio 로 파생된 종속 축도 포함).
  */
-export interface ResizeRatioLockInput {
-  driver: SizeAxis;
-  /** width / height */
-  ratio: number;
-}
-
-export interface ResizeRequest {
-  width?: number;
-  height?: number;
-  /** absolute 요소의 left/top 핸들 — CSS px */
-  left?: number;
-  top?: number;
-}
+/** store 측 `canvasResizeEdit` 과 같은 모양 — 결과가 곧 `session.setSize` 입력이다 */
+export type ResizeRatioLockInput = ResizeRatioLock;
+export type ResizeRequest = CanvasResizeRequest;
 
 export interface ResizeStartPosition {
   left: number;
@@ -116,14 +110,16 @@ export function resolveResizeRequest(input: {
   if (!position) return request;
   const result = resultingSize(request, startBounds, lock);
   if (handle.includes("left")) {
-    request.left =
-      Math.round((position.left + (startBounds.width - result.width)) * 100) /
-      100;
+    request.left = roundToDecimals(
+      position.left + (startBounds.width - result.width),
+      2,
+    );
   }
   if (handle.includes("top")) {
-    request.top =
-      Math.round((position.top + (startBounds.height - result.height)) * 100) /
-      100;
+    request.top = roundToDecimals(
+      position.top + (startBounds.height - result.height),
+      2,
+    );
   }
   return request;
 }

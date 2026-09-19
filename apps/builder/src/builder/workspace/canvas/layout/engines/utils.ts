@@ -112,6 +112,7 @@ import {
   parseBorderShorthand,
 } from "./cssValueParser";
 import type { CSSValueContext, CSSVariableScope } from "./cssValueParser";
+import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
 import type { ComputedStyle } from "./cssResolver";
 import type { LayoutContext } from "./LayoutEngine";
@@ -353,7 +354,7 @@ const PX_NUMBER_PATTERN = /^-?\d+(\.\d+)?(px)?$/;
  *
  * @returns 파싱된 숫자 또는 undefined (미지원 단위)
  */
-function parseNumericValue(value: unknown): number | undefined {
+export function parseNumericValue(value: unknown): number | undefined {
   if (typeof value === "number") return value;
   if (typeof value === "string") {
     // px 또는 숫자만 허용
@@ -4807,11 +4808,23 @@ export const TEXT_LEAF_TAGS = new Set([
   "code",
 ]);
 
-/** intrinsic 크기 키워드 — height/width에서 enrichWithIntrinsicSize가 개입해야 하는 값 */
-const INTRINSIC_SIZE_KEYWORDS = new Set([
+/**
+ * 엔진이 문자열 그대로 해석하는 intrinsic 크기 키워드 (CSS-SIZING-3 §5) — 숫자 파서는 undefined 로
+ * 두고 `applyCommonEngineStyle` 이 복원하며, 2-pass 는 이 키워드를 지우지 않는다.
+ */
+const ENGINE_INTRINSIC_KEYWORDS: ReadonlySet<string> = new Set([
   "fit-content",
   "min-content",
   "max-content",
+]);
+
+export function isEngineIntrinsicKeyword(value: unknown): value is string {
+  return typeof value === "string" && ENGINE_INTRINSIC_KEYWORDS.has(value);
+}
+
+/** intrinsic 크기 키워드 — height/width에서 enrichWithIntrinsicSize가 개입해야 하는 값 */
+const INTRINSIC_SIZE_KEYWORDS = new Set([
+  ...ENGINE_INTRINSIC_KEYWORDS,
   "auto",
 ]);
 
@@ -4977,12 +4990,18 @@ export function enrichWithIntrinsicSize(
 
   // ADR-224: 비대체 leaf의 auto 축은 측정 결과가 아니라 엔진 배치가 소유한다.
   // 미지정 width는 catalog의 fit-content 등일 수 있으므로 auto로 추정하지 않는다.
+  // TS 가 측정하는 leaf 태그 집합 — 아래 세 술어가 같은 집합을 읽는다.
+  const tsMeasuredLeaf =
+    INTRINSIC_MEASURE_TAGS.has(type) ||
+    CIRCLE_LEAF_TAGS.has(type) ||
+    IMAGE_INTRINSIC_TAGS.has(type) ||
+    TEXT_LEAF_TAGS.has(type);
   const measuredAutoLeaf =
     (isFlexChild || isGridChild) &&
     !(childElements && childElements.length > 0) &&
     !IMAGE_INTRINSIC_TAGS.has(type) &&
     !CIRCLE_LEAF_TAGS.has(type) &&
-    (INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type));
+    tsMeasuredLeaf;
 
   const rawHeight = style?.height;
   // CSS percentage height는 containing block 높이가 indefinite면 auto로 계산된다.
@@ -5002,14 +5021,9 @@ export function enrichWithIntrinsicSize(
   //   TEXT_LEAF — DateInput `height:100%` 등) 는 종전대로 TS 가 공급한다.
   const engineOwnsContainerHeight =
     (childElements?.length ?? 0) > 0 &&
-    !INTRINSIC_MEASURE_TAGS.has(type) &&
-    !CIRCLE_LEAF_TAGS.has(type) &&
-    !IMAGE_INTRINSIC_TAGS.has(type) &&
-    !TEXT_LEAF_TAGS.has(type) &&
-    typeof rawHeight === "string" &&
-    (INTRINSIC_SIZE_KEYWORDS.has(rawHeight) && rawHeight !== "auto"
-      ? true
-      : percentageHeightMayNeedIntrinsicFallback);
+    !tsMeasuredLeaf &&
+    (isEngineIntrinsicKeyword(rawHeight) ||
+      percentageHeightMayNeedIntrinsicFallback);
   const needsHeightMeasurement =
     !engineOwnsContainerHeight &&
     (needsHeight || percentageHeightMayNeedIntrinsicFallback);
@@ -5428,11 +5442,6 @@ export function enrichWithIntrinsicSize(
     //   떨어진다 — 빈 `width:fit-content` frame (padding 20) 이 width 120 + minWidth 120 으로
     //   굳어 DOM 40 (content 0 + padding) 과 갈렸다. 자식이 있으면 이미 통과시키던 키워드를
     //   자식 0 에서도 통과시키면 엔진이 content 0 으로 같은 답을 낸다.
-    const tsMeasuredLeaf =
-      INTRINSIC_MEASURE_TAGS.has(type) ||
-      CIRCLE_LEAF_TAGS.has(type) ||
-      IMAGE_INTRINSIC_TAGS.has(type) ||
-      TEXT_LEAF_TAGS.has(type);
     const isIntrinsicContainer =
       hasExplicitIntrinsicWidthKeyword &&
       ((childElements?.length ?? 0) > 0 || !tsMeasuredLeaf);
@@ -5488,10 +5497,9 @@ export function enrichWithIntrinsicSize(
     injectedStyle.height === undefined &&
     injectedStyle.width === style?.width &&
     injectedStyle.minWidth === style?.minWidth &&
-    injectedStyle.contentMinWidth === style?.contentMinWidth &&
-    injectedStyle.contentMaxWidth === style?.contentMaxWidth &&
-    injectedStyle.contentHeight === style?.contentHeight &&
-    injectedStyle.leafBaseline === style?.leafBaseline
+    ENGINE_MEASURE_SCALAR_KEYS.every(
+      (key) => injectedStyle[key] === style?.[key],
+    )
   ) {
     return element;
   }
@@ -5766,12 +5774,7 @@ export function parseCSSPropWithContext(
     //   담당한다 (텍스트 leaf 는 enrichment 가 스칼라 contentMin/MaxWidth 동반 공급,
     //   컨테이너는 enrichment numeric 선해석이 잔존해 키워드가 남는 경우만 통과).
     //   구 전역 drop 사유(2-pass 상호작용, 2026-07-13)는 스칼라 계약 도입으로 해소.
-    if (
-      value === "fit-content" ||
-      value === "min-content" ||
-      value === "max-content"
-    )
-      return undefined;
+    if (isEngineIntrinsicKeyword(value)) return undefined;
     // resolveCSSSizeValue: rem, em, vh, vw, calc(), clamp(), min(), max() 해석
     const px = resolveCSSSizeValue(value, ctx);
     if (px !== undefined && px >= 0) return px;
@@ -5808,47 +5811,27 @@ export function applyCommonEngineStyle(
   //   문자열 그대로 복원 — 엔진이 스칼라(contentMin/MaxWidth) + CSS-SIZING-3 §5
   //   공식으로 해석한다. 컨테이너는 enrichment 가 px 로 선해석해 키워드가 남지
   //   않으므로(잔존 경로) 실제 통과 대상은 텍스트 leaf + 미해석 컨테이너뿐.
-  if (
-    widthVal === undefined &&
-    typeof style.width === "string" &&
-    (style.width === "fit-content" ||
-      style.width === "min-content" ||
-      style.width === "max-content")
-  ) {
+  if (widthVal === undefined && isEngineIntrinsicKeyword(style.width)) {
     result.width = style.width;
   }
   // 높이 키워드도 같은 통과 (2026-09-19): 엔진은 cross 축 CONTENT 센티넬 (`resolve_cross_dimension_opt`
   //   — stretch 안 함) · block 축 content · grid `size_is_intrinsic_keyword` 로 해석한다. 종전엔 drop 되어
   //   `height: fit-content` 가 auto 와 같아져 flex 부모에서 stretch 됐다.
-  if (
-    heightVal === undefined &&
-    typeof style.height === "string" &&
-    (style.height === "fit-content" ||
-      style.height === "min-content" ||
-      style.height === "max-content")
-  ) {
+  if (heightVal === undefined && isEngineIntrinsicKeyword(style.height)) {
     result.height = style.height;
   }
 
   // ADR-165: 측정 스칼라 공급 채널 (enrichWithIntrinsicSize 가 텍스트 leaf 에 주입).
-  if (typeof style.contentMinWidth === "number") {
-    result.contentMinWidth = style.contentMinWidth;
-  }
-  if (typeof style.contentMaxWidth === "number") {
-    result.contentMaxWidth = style.contentMaxWidth;
-  }
-  // ADR-204 Phase 2: 세로축 스칼라 (enrichWithIntrinsicSize 가 가상화 collection owner 에 주입).
-  if (typeof style.contentMinHeight === "number") {
-    result.contentMinHeight = style.contentMinHeight;
-  }
-  if (typeof style.contentHeight === "number") {
-    result.contentHeight = style.contentHeight;
+  //   (contentMin/MaxWidth ADR-165 · contentMinHeight ADR-204 가상화 collection owner ·
+  //   contentHeight ADR-224 · leafBaseline ADR-923 — 목록은 ENGINE_MEASURE_SCALAR_KEYS 하나)
+  for (const key of ENGINE_MEASURE_SCALAR_KEYS) {
+    const value = style[key];
+    if (typeof value === "number") result[key] = value;
   }
 
-  // ADR-923 Phase 2 — baseline 계약 입력 3종. verticalAlign 은 CSS 키워드 문자열
+  // ADR-923 Phase 2 — baseline 계약 입력. verticalAlign 은 CSS 키워드 문자열
   // (엔진 tree.rs 가 u8 매핑), lineHeight 는 여기서 px 로 선해석 (엔진은 폰트
-  // 메트릭이 없어 배율을 해석할 수 없다), leafBaseline 은 enrichWithIntrinsicSize
-  // 가 주입한 측정 스칼라 통과.
+  // 메트릭이 없어 배율을 해석할 수 없다). leafBaseline 은 위 스칼라 루프가 통과시킨다.
   if (typeof style.verticalAlign === "string" && style.verticalAlign.trim()) {
     result.verticalAlign = style.verticalAlign;
   }
@@ -5865,9 +5848,6 @@ export function applyCommonEngineStyle(
           : undefined;
     const lineHeightPx = parseLineHeight(style, fs ?? computedFontSize);
     if (lineHeightPx !== undefined) result.lineHeight = lineHeightPx;
-  }
-  if (typeof style.leafBaseline === "number") {
-    result.leafBaseline = style.leafBaseline;
   }
 
   // Min/Max size

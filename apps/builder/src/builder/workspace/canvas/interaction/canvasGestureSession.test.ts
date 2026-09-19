@@ -109,7 +109,7 @@ describe("CanvasGestureSession", () => {
     const session = new CanvasGestureSession();
 
     expect(session.beginPointer(21, 0)).toBe("element");
-    expect(session.promoteElementToSpacing(21)).toBe(true);
+    expect(session.promoteElement(21, "spacing")).toBe(true);
     expect(session.ownerFor(21)).toBe("spacing");
     expect(session.shouldSuppressElementInteraction(21)).toBe(true);
     expect(session.shouldSuppressElementHover()).toBe(true);
@@ -124,8 +124,8 @@ describe("CanvasGestureSession", () => {
     const session = new CanvasGestureSession();
     session.setSpacePressed(true);
     expect(session.beginPointer(21, 0)).toBe("pan");
-    expect(session.promoteElementToSpacing(21)).toBe(false);
-    expect(session.promoteElementToSpacing(22)).toBe(false);
+    expect(session.promoteElement(21, "spacing")).toBe(false);
+    expect(session.promoteElement(22, "spacing")).toBe(false);
     expect(session.ownerFor(21)).toBe("pan");
   });
 

@@ -178,7 +178,10 @@ describe("presentation targeted spacing consumer contract", () => {
     expect(source).toContain('"paddingTop"');
     expect(source).toContain('"rowGap"');
     expect(source).toContain("tree.computeTargetedLayout(");
-    expect(source).toContain("tree.getLastJson(elementId)");
+    // affected 노드의 엔진 style 은 readPersistentEngineStyle 하나로 읽는다 (인라인 JSON.parse 0)
+    expect(source).toContain(
+      "readPersistentEngineStyle(input.rootKey, elementId)",
+    );
     expect(source).toContain("targeted.layoutMap");
     expect(source).toContain("finally");
     expect(source).toContain('=== "grid"');

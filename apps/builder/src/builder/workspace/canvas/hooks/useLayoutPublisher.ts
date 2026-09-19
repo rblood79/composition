@@ -123,6 +123,9 @@ export function useLayoutPublisher(
     // activeBreakpoint 변경은 bridge(invalidateLayout)로 layoutVersion 을 bump →
     // 본 effect 가 재실행되고, resolve 된 style 로 시그니처가 달라져 캐시 miss.
     const activeBreakpoint = useStore.getState().activeBreakpoint;
+    // ADR-224 geometry 발행 문맥 — 루프 불변 (compute 의 setState 는 microtask 라 루프 중 안 바뀐다)
+    const canonical = useCanonicalDocumentStore.getState();
+    const publishedLayoutVersion = useStore.getState().layoutVersion;
     const activeKeys = new Set<string>();
     // 발행 키(frame mirror id 포함)와 layout 캐시 키는 서로 다르다 — 캐시 정리는
     //   캐시 자신의 키로 해야 한다. readiness 와 무관하게 모으는 것은 startup·전환
@@ -209,8 +212,7 @@ export function useLayoutPublisher(
       // **발행 시점**의 값이다: 렌더 시점 캡처 + 일치 가드는 이 훅의 컴포넌트가 canonical 변경에
       // 재렌더되지 않으면 영원히 stale 이라 발행 0 → 잠금이 항상 "계산되지 않음" 으로 막힌다.
       // stale 판정은 읽는 쪽 (`readSizingGeometry`) 이 layoutVersion·viewport 로 한다.
-      const canonical = useCanonicalDocumentStore.getState();
-      if (layoutMap && useStore.getState().layoutVersion === layoutVersion) {
+      if (layoutMap && publishedLayoutVersion === layoutVersion) {
         publishSizingGeometry({
           projectId: canonical.currentProjectId,
           documentVersion: canonical.documentVersion,

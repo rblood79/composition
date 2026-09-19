@@ -14,6 +14,9 @@
 export type CssWhiteSpace =
   "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
 
+/** 접기가 결과를 바꿀 수 있는 content — 줄바꿈 · 탭 · 공백 run · 앞뒤 공백 */
+const NEEDS_COLLAPSE = /[\r\n\t]|  |^\s|\s$/;
+
 /** normal · nowrap 에서 segment break (`\n` · `\r\n` · `\r`) 와 그 주변 공백 → 공백 1개. */
 export function transformSegmentBreaks(content: string): string {
   return content.replace(/[ \t]*(?:\r\n|\r|\n)+[ \t]*/g, " ");
@@ -40,6 +43,8 @@ export function collapseTextWhiteSpace(
 ): string {
   const ws = whiteSpace ?? "normal";
   if (ws === "pre" || ws === "pre-wrap") return content;
+  // 접을 것이 없는 흔한 단일행 content 는 정규식 3회 없이 그대로 (per-node 렌더 경로)
+  if (!NEEDS_COLLAPSE.test(content)) return content;
   if (ws === "pre-line") {
     return content
       .replace(/\r\n|\r/g, "\n")

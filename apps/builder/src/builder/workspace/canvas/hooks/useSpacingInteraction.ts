@@ -27,11 +27,16 @@ import {
 } from "react";
 import { useStore } from "../../../stores";
 import { useViewportSyncStore } from "../stores";
+import { viewportToScreenPoint } from "../viewport/viewportTransforms";
 import { isRulerEventTarget } from "../../components/rulerOverlayUtils";
 import { requestCanvasFrame } from "../skia/frameScheduler";
 import { onLayoutPublished } from "../layout/engines/fullTreeLayout";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
-import type { BoundingBox } from "../selection/types";
+import {
+  usePointerDragLifecycle,
+  type PointerDragCancelReason,
+} from "../interaction/usePointerDragLifecycle";
+import { pointInBox } from "../selection/types";
 import {
   SPACING_SIDES,
   resolveSpacingCapability,
@@ -61,8 +66,6 @@ import {
 } from "../interaction/spacingGeometry";
 import type { SpacingInlineInputState } from "../overlay/spacing/SpacingInlineInput";
 
-/** 클릭 ↔ 드래그 갈림 (screen px) — element drag 의 DRAG_THRESHOLD 와 같은 값 */
-const SPACING_DRAG_THRESHOLD_PX = 3;
 /** Shift 큰 단위 step (px) — breakdown §1.1 제안값 (Figma 설정과 동일하다고 주장하지 않는다) */
 const SPACING_SHIFT_STEP = 10;
 
@@ -110,15 +113,6 @@ export interface SpacingInteractionApi {
   closeInlineInput: () => void;
 }
 
-function containsPoint(rect: BoundingBox, x: number, y: number): boolean {
-  return (
-    x >= rect.x &&
-    x <= rect.x + rect.width &&
-    y >= rect.y &&
-    y <= rect.y + rect.height
-  );
-}
-
 /** Option/Alt 양쪽 · Option/Alt+Shift 4변 (Figma 문서 정합, breakdown §1.1) */
 export function resolveSpacingSidesForModifiers(
   side: SpacingSide,
@@ -147,7 +141,7 @@ function hitSpacing(
   const set = resolveSpacingBands();
   if (!set || !set.clipRect) return null;
   // 가시 영역 밖은 hover·pointerdown 대상이 아니다 (HC — 클립·스크롤·가림)
-  if (!containsPoint(set.clipRect, scenePoint.x, scenePoint.y)) return null;
+  if (!pointInBox(scenePoint, set.clipRect)) return null;
   return hitTestSpacingBands(scenePoint, set.bands, zoom);
 }
 
@@ -161,15 +155,17 @@ export function useSpacingInteraction({
     useState<SpacingInlineInputState | null>(null);
   const inlineInputRef = useRef<SpacingInlineInputState | null>(null);
   const hoverRafRef = useRef<number | null>(null);
-  const lastPointerRef = useRef({ x: 0, y: 0 });
+  const lastPointerRef = useRef({ x: Number.NaN, y: Number.NaN });
   const ownerIdRef = useRef(`canvas-spacing-${nextOwnerId++}`);
 
   // ── 1. owner 동기화 ──
   useEffect(() => {
-    let lastSignature = "";
+    // selectedElementIds 는 변경 때마다 새 배열이라 참조 비교로 충분하다 (store set 마다 실행)
+    let lastIds: readonly string[] | null = null;
+    let lastBreakpoint: unknown = null;
+    let lastLayoutVersion: unknown = null;
     const sync = (): void => {
       const state = useStore.getState();
-      const signature = `${state.selectedElementIds.join(",")}|${state.activeBreakpoint}|${state.layoutVersion}`;
       const active = getActiveSpacingSession();
       const selectedId =
         state.selectedElementIds.length === 1
@@ -178,8 +174,16 @@ export function useSpacingInteraction({
       if (active && active.capability.target.nodeId !== selectedId) {
         active.cancel("selection-change");
       }
-      if (signature === lastSignature) return;
-      lastSignature = signature;
+      if (
+        state.selectedElementIds === lastIds &&
+        state.activeBreakpoint === lastBreakpoint &&
+        state.layoutVersion === lastLayoutVersion
+      ) {
+        return;
+      }
+      lastIds = state.selectedElementIds;
+      lastBreakpoint = state.activeBreakpoint;
+      lastLayoutVersion = state.layoutVersion;
       // 드래그 중 layout publish 는 owner 를 갈지 않는다 — 세션 확정값이 표시 정본
       if (getActiveSpacingSession()?.phase === "active" && selectedId) return;
       const owner = resolveSpacingCapability(state.selectedElementIds);
@@ -189,7 +193,7 @@ export function useSpacingInteraction({
     const unsubscribeStore = useStore.subscribe(sync);
     const unsubscribeLayout = onLayoutPublished(() => {
       // 엔진 style 은 layout pass 뒤에야 유효하다 — 같은 선택이라도 다시 읽는다
-      lastSignature = "";
+      lastIds = null;
       sync();
     });
     return () => {
@@ -217,11 +221,16 @@ export function useSpacingInteraction({
       const container = containerRef.current;
       const vp = useViewportSyncStore.getState();
       const handle = resolveSpacingHandleRect(drag.band, vp.zoom, true);
+      const anchor = viewportToScreenPoint(
+        { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 },
+        vp.zoom,
+        vp.panOffset,
+      );
       const state: SpacingInlineInputState = {
         session: drag.session,
         band: drag.band,
-        x: (handle.x + handle.width / 2) * vp.zoom + vp.panOffset.x,
-        y: (handle.y + handle.height / 2) * vp.zoom + vp.panOffset.y,
+        x: anchor.x,
+        y: anchor.y,
       };
       if (!container) {
         drag.session.cancel("superseded");
@@ -243,8 +252,7 @@ export function useSpacingInteraction({
   const endDrag = useCallback(
     (
       outcome: "finish" | "cancel",
-      reason:
-        "escape" | "pointer-cancel" | "blur" | "unmount" = "pointer-cancel",
+      reason: PointerDragCancelReason = "pointer-cancel",
     ) => {
       const drag = dragRef.current;
       if (!drag) return;
@@ -292,76 +300,27 @@ export function useSpacingInteraction({
     });
   }, [closeInlineInput, inlineInput]);
 
-  useEffect(() => {
-    const handleMove = (event: PointerEvent): void => {
-      const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      if (drag.session.phase !== "active") {
-        // 문서 교체·conflict 로 runtime 이 먼저 닫았다 — 드래그도 정리
-        endDrag("cancel");
-        return;
-      }
-      const dxClient = event.clientX - drag.startClientX;
-      const dyClient = event.clientY - drag.startClientY;
-      if (
-        !drag.dragging &&
-        Math.hypot(dxClient, dyClient) >= SPACING_DRAG_THRESHOLD_PX
-      ) {
-        drag.dragging = true;
-        setSpacingActive({
-          bandId: drag.band.id,
-          bandIds: drag.bandIds,
-          mode: "drag",
-        });
-      }
-      if (!drag.dragging) return;
+  const onDragStart = useCallback((drag: SpacingDragState) => {
+    setSpacingActive({
+      bandId: drag.band.id,
+      bandIds: drag.bandIds,
+      mode: "drag",
+    });
+  }, []);
+  const onMove = useCallback(
+    (drag: SpacingDragState, dxClient: number, dyClient: number) => {
       const delta = spacingDeltaFromPointer(
         drag.band,
         dxClient / drag.startZoom,
         dyClient / drag.startZoom,
       );
       drag.session.setDelta(applySpacingStep(delta, drag.shift));
-    };
-    const handleUp = (event: PointerEvent): void => {
-      const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      // 임계값 미만이면 endDrag 가 인라인 입력으로 넘긴다
-      endDrag("finish");
-    };
-    const handleCancel = (event: PointerEvent): void => {
-      const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      endDrag("cancel", "pointer-cancel");
-    };
-    const handleBlur = (): void => {
-      if (dragRef.current) endDrag("cancel", "blur");
-    };
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", handleCancel);
-    window.addEventListener("blur", handleBlur);
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-      window.removeEventListener("pointercancel", handleCancel);
-      window.removeEventListener("blur", handleBlur);
-      if (dragRef.current) endDrag("cancel", "unmount");
-    };
-  }, [endDrag]);
-
-  // Escape 는 드래그 중일 때만 가로챈다 — capture 단계에서 stopPropagation 해 전역
-  // Escape (선택 해제) 가 같은 keydown 에 돌지 않게 한다. 상태표: 취소 뒤에도 핸들은
-  // 선택이 유지되는 동안 남는다 (Figma 어법). 드래그가 없으면 전역 처리에 그대로 넘긴다.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== "Escape" || !dragRef.current) return;
-      event.preventDefault();
-      event.stopPropagation();
-      endDrag("cancel", "escape");
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [endDrag]);
+    },
+    [],
+  );
+  // 임계값 미만 pointerup 은 endDrag 가 인라인 입력으로 넘긴다. 상태표: Escape 취소 뒤에도
+  // 핸들은 선택이 유지되는 동안 남는다 (Figma 어법).
+  usePointerDragLifecycle({ dragRef, endDrag, onDragStart, onMove });
 
   // ── 2. hover ──
   useEffect(() => {
@@ -373,17 +332,19 @@ export function useSpacingInteraction({
     };
     const handlePointerMove = (event: PointerEvent): void => {
       if (dragRef.current) return;
+      // window 리스너다 — owner 가 없으면 (선택 없음 · 앱 어디든 마우스 이동) rAF 도 잡지 않는다
+      if (!getSpacingPresentationSnapshot().owner) {
+        clearHover();
+        return;
+      }
       if (isRulerEventTarget(event.target)) {
         clearHover();
         return;
       }
-      if (
-        event.clientX === lastPointerRef.current.x &&
-        event.clientY === lastPointerRef.current.y
-      ) {
-        return;
-      }
-      lastPointerRef.current = { x: event.clientX, y: event.clientY };
+      const last = lastPointerRef.current;
+      if (event.clientX === last.x && event.clientY === last.y) return;
+      last.x = event.clientX;
+      last.y = event.clientY;
       if (hoverRafRef.current !== null) return;
       hoverRafRef.current = requestAnimationFrame(() => {
         hoverRafRef.current = null;
@@ -454,7 +415,7 @@ export function useSpacingInteraction({
       ) {
         return false;
       }
-      if (!gestureSession.promoteElementToSpacing(event.pointerId))
+      if (!gestureSession.promoteElement(event.pointerId, "spacing"))
         return false;
 
       const band = hit.band;

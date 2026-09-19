@@ -1230,6 +1230,21 @@ function getDelegatedSize(
 
 // ─── 공개 API ────────────────────────────────────────────────────────
 
+// ButtonGroup 의 prop 기반 layout 기본값 — Preview `renderButtonGroup` (LayoutRenderers.tsx) 과 같은 표.
+// catalog `ButtonGroup.sizes` 에는 gap 이 없어 두 consumer 가 리터럴을 든다 (catalog 이관은 D3 후속).
+const BUTTON_GROUP_GAP_BY_SIZE: Readonly<Record<string, number>> = {
+  xs: 4,
+  sm: 6,
+  md: 8,
+  lg: 10,
+  xl: 12,
+};
+const BUTTON_GROUP_JUSTIFY_BY_ALIGN: Readonly<Record<string, string>> = {
+  start: "flex-start",
+  center: "center",
+  end: "flex-end",
+};
+
 /**
  * 컨테이너 태그에 따라 implicit style을 부모/자식에 주입하고,
  * 렌더링 대상 자식을 필터링한다.
@@ -1658,21 +1673,9 @@ export function applyImplicitStyles(
   // 같은 기본값을 read-time projection 으로 적용하되 authored style 이 항상 이긴다.
   if (containerTag === "buttongroup") {
     const sizeName = String(containerProps?.size ?? "md");
-    const gapBySize: Record<string, number> = {
-      xs: 4,
-      sm: 6,
-      md: 8,
-      lg: 10,
-      xl: 12,
-    };
     const orientation = String(containerProps?.orientation ?? "horizontal");
     const align = String(containerProps?.align ?? "end");
-    const justifyByAlign: Record<string, string> = {
-      start: "flex-start",
-      center: "center",
-      end: "flex-end",
-    };
-    const gap = gapBySize[sizeName] ?? 8;
+    const gap = BUTTON_GROUP_GAP_BY_SIZE[sizeName] ?? 8;
     effectiveParent = withParentStyle(containerEl, {
       ...parentStyle,
       display: parentStyle.display ?? "flex",
@@ -1682,7 +1685,9 @@ export function applyImplicitStyles(
       rowGap: parentStyle.rowGap ?? parentStyle.gap ?? gap,
       columnGap: parentStyle.columnGap ?? parentStyle.gap ?? gap,
       justifyContent:
-        parentStyle.justifyContent ?? justifyByAlign[align] ?? "flex-end",
+        parentStyle.justifyContent ??
+        BUTTON_GROUP_JUSTIFY_BY_ALIGN[align] ??
+        "flex-end",
     });
   }
 
@@ -1790,6 +1795,8 @@ export function applyImplicitStyles(
       toolbarStatic?.[
         '.react-aria-Separator:not([aria-orientation="vertical"])'
       ];
+    const sepVerticalMargin = parseMargin({ margin: sepVertical?.margin });
+    const sepHorizontalMargin = parseMargin({ margin: sepHorizontal?.margin });
     const toolbarSeparatorStyle = (
       child: CanvasLayoutNode,
       cs: Record<string, unknown>,
@@ -1798,7 +1805,7 @@ export function applyImplicitStyles(
         (child.props as Record<string, unknown> | undefined)?.orientation ===
         "vertical";
       const sel = vertical ? sepVertical : sepHorizontal;
-      const m = parseMargin({ margin: sel?.margin });
+      const m = vertical ? sepVerticalMargin : sepHorizontalMargin;
       const out: Record<string, unknown> = {
         marginTop: cs.marginTop ?? m.top,
         marginRight: cs.marginRight ?? m.right,

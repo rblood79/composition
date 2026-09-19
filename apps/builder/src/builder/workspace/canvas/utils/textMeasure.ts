@@ -165,10 +165,14 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     //   그린다). 줄마다 따로 재서 높이를 더한다 — 종전엔 `\n` 이 공백 토큰이라 "a\nb\nc" 가 1줄이었고
     //   Skia 3줄이 상자 밖으로 넘쳤다 (레이아웃의 활성 측정기는 이 클래스다).
     const ws = style.whiteSpace;
-    if (
-      (ws === "pre" || ws === "pre-wrap" || ws === "pre-line") &&
-      text.includes("\n")
-    ) {
+    if (!collapsesSegmentBreaks(ws) && text.includes("\n")) {
+      // 조각엔 `\n` 이 없어 재분할되지 않는다 — pre-line 조각은 공백을 접고 (normal 규칙),
+      //   pre · pre-wrap 조각은 공백을 보존한다 (pre-wrap 규칙). 조각마다 같은 style 이다.
+      const segmentStyle: TextMeasureStyle = {
+        ...style,
+        whiteSpace: ws === "pre-line" ? "normal" : "pre-wrap",
+      };
+      const segmentMaxWidth = ws === "pre" ? Number.MAX_SAFE_INTEGER : maxWidth;
       let height = 0;
       let width = 0;
       for (const segment of text.split("\n")) {
@@ -176,13 +180,7 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
           height += lineHeight;
           continue;
         }
-        // 조각엔 `\n` 이 없어 재분할되지 않는다 — pre-line 조각은 공백을 접고 (normal 규칙),
-        //   pre · pre-wrap 조각은 공백을 보존한다 (pre-wrap 규칙).
-        const r = this.measureWrapped(
-          segment,
-          { ...style, whiteSpace: ws === "pre-line" ? "normal" : "pre-wrap" },
-          ws === "pre" ? Number.MAX_SAFE_INTEGER : maxWidth,
-        );
+        const r = this.measureWrapped(segment, segmentStyle, segmentMaxWidth);
         height += r.height;
         width = Math.max(width, r.width);
       }
@@ -196,9 +194,8 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
 
     // normal · nowrap 은 `\n` 을 공백으로 접는다 (Skia paragraph 입력과 같은 함수) — 종전엔 `\n` 이
     //   공백 토큰이라 결과는 같았지만 앞뒤 공백 흡수 (`가 \n 나` → 공백 1개) 는 달랐다.
-    if (collapsesSegmentBreaks(ws) || ws === "pre-line") {
-      text = collapseTextWhiteSpace(text, ws);
-    }
+    //   pre · pre-wrap 은 그 함수가 그대로 돌려준다.
+    text = collapseTextWhiteSpace(text, ws);
 
     const fontStyleStr =
       style.fontStyle === 1 || style.fontStyle === "italic"

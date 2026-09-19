@@ -137,30 +137,17 @@ export class CanvasGestureSession {
   }
 
   /**
-   * ADR-222: element 로 시작한 pointer 를 spacing (padding·gap 띠) owner 로 원자
-   * 승격한다. promoteElementToPage 와 같은 규약 — release/reclaim 없이 같은 pointer
-   * session 안에서 mode 만 바꾼다. pan 이면 승격하지 않는다 (호출부가 beginPointer 결과로 거른다).
+   * element 로 시작한 pointer 를 spacing (ADR-222, padding·gap 띠) 또는 resize (ADR-224,
+   * 선택 박스 핸들) owner 로 원자 승격한다. promoteElementToPage 와 같은 규약 — release/reclaim
+   * 없이 같은 pointer session 안에서 mode 만 바꾼다. pan 이면 승격하지 않는다 (호출부가
+   * beginPointer 결과로 거른다). 승격 뒤 중앙 핸들러의 move/up 경로는 이 pointer 를 무시하고
+   * 해당 훅 (`useSpacingInteraction` / `useResizeInteraction`) 이 lifecycle 을 소유한다.
    */
-  promoteElementToSpacing(pointerId: number): boolean {
+  promoteElement(pointerId: number, to: "spacing" | "resize"): boolean {
     if (this.activePointerId !== pointerId || this.mode !== "element") {
       return false;
     }
-    this.mode = "spacing";
-    this.pageOwner = null;
-    this.notify();
-    return true;
-  }
-
-  /**
-   * ADR-224: 선택 박스 핸들에서 시작한 element pointer 를 resize owner 로 원자 승격한다.
-   * spacing 과 같은 규약 — 중앙 핸들러의 move/up 경로는 이 pointer 를 무시하고
-   * `useResizeInteraction` 이 lifecycle 을 소유한다.
-   */
-  promoteElementToResize(pointerId: number): boolean {
-    if (this.activePointerId !== pointerId || this.mode !== "element") {
-      return false;
-    }
-    this.mode = "resize";
+    this.mode = to;
     this.pageOwner = null;
     this.notify();
     return true;

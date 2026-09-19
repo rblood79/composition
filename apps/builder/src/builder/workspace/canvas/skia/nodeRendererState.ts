@@ -16,6 +16,7 @@ export function getEditingElementId(): string | null {
 // ADR-027 Phase D2 — 마지막 프레임에 텍스트를 그린 element-local 원점. 오버레이가 편집 진입
 //   시 DOM 첫 줄 상자를 이 자리로 옮긴다 (overlay/overlayNudge.ts). 항목은 제자리 갱신이라
 //   프레임당 할당 0. 편집 중 (텍스트 숨김) 에는 갱신되지 않아 진입 직전 프레임 값이 남는다.
+//   수명은 Skia registry 와 같다 (unregister/clear 가 `clearTextDrawOrigin` 을 부른다).
 export interface TextDrawOriginRecord {
   x: number;
   y: number;
@@ -42,4 +43,10 @@ export function getTextDrawOrigin(
   elementId: string,
 ): TextDrawOriginRecord | null {
   return textDrawOrigins.get(elementId) ?? null;
+}
+
+/** 요소가 Skia registry 에서 빠질 때 (삭제 · 페이지 전환) 같이 지운다 — 문서 수명 동안 무한 성장 방지 */
+export function clearTextDrawOrigin(elementId?: string): void {
+  if (elementId === undefined) textDrawOrigins.clear();
+  else textDrawOrigins.delete(elementId);
 }

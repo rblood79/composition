@@ -196,5 +196,19 @@ export interface EngineStyle {
   leafBaseline?: number;
 }
 
+/**
+ * TS 측정이 공급하는 엔진 NodeStyle 숫자 스칼라 키 — CSS 속성이 아니라 px 변환 없이 그대로 싣는다.
+ * enrich 주입 · `applyCommonEngineStyle` 통과 · `engineStyleToRecord` · 2-pass 재측정 patch 가
+ * 전부 이 하나를 순회한다 (키를 더할 때 한 곳만 놓쳐도 무음 drop — `contentHeight` 09-19 사고).
+ */
+export const ENGINE_MEASURE_SCALAR_KEYS = [
+  "contentMinWidth",
+  "contentMaxWidth",
+  "contentMinHeight",
+  "contentHeight",
+  "leafBaseline",
+] as const satisfies readonly (keyof EngineStyle)[];
+export type EngineMeasureScalarKey = (typeof ENGINE_MEASURE_SCALAR_KEYS)[number];
+
 /** Opaque handle to a layout node. (구 EngineNodeHandle — 자체 엔진 handle 과 동일 규약) */
 export type EngineNodeHandle = number;

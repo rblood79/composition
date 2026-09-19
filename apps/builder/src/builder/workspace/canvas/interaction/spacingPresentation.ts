@@ -100,11 +100,6 @@ export function subscribeSpacingPresentation(listener: () => void): () => void {
   };
 }
 
-export function resetSpacingPresentation(): void {
-  snapshot = INITIAL_SNAPSHOT;
-  for (const listener of listeners) listener();
-}
-
 /**
  * 현재 표시할 padding·gap 값 — 활성 세션의 **확정값** 이 capability 의 effective 값을
  * 덮는다 (pending 값은 먼저 보이지 않는다 — §4-5).
@@ -143,16 +138,14 @@ export interface SpacingBandSet {
 
 /**
  * owner 의 띠 목록 (scene 좌표). 렌더·히트가 같은 함수를 읽는다.
- * `readBounds` 는 기본 `getSceneBounds` (원본 박스 — presentation patch 반영),
- * `readHitBounds` 는 기본 `getSceneHitBounds` (가시 영역). owner 가 stream 에 없으면 null.
+ * 원본 박스는 `getSceneBounds` (presentation patch 반영), 가시 영역은 `getSceneHitBounds`.
+ * owner 가 stream 에 없으면 null.
  */
 export function resolveSpacingBands(
   owner: SpacingCapability | null = snapshot.owner,
-  readBounds: (id: string) => BoundingBox | undefined = getSceneBounds,
-  readHitBounds: (id: string) => BoundingBox | undefined = getSceneHitBounds,
 ): SpacingBandSet | null {
   if (!owner) return null;
-  const ownerBounds = readBounds(owner.target.nodeId);
+  const ownerBounds = getSceneBounds(owner.target.nodeId);
   if (!ownerBounds) return null;
   const { padding, gap } = resolveCurrentSpacingValues(owner);
   const gapInput =
@@ -162,7 +155,7 @@ export function resolveSpacingBands(
           value: gap,
           reverse: owner.gap.reverse,
           childBounds: owner.gap.flowChildIds
-            .map((id) => readBounds(id))
+            .map((id) => getSceneBounds(id))
             .filter((b): b is BoundingBox => b !== undefined),
         }
       : null;
@@ -173,7 +166,7 @@ export function resolveSpacingBands(
       padding,
       gap: gapInput,
     }),
-    clipRect: readHitBounds(owner.target.nodeId) ?? null,
+    clipRect: getSceneHitBounds(owner.target.nodeId) ?? null,
   };
 }
 

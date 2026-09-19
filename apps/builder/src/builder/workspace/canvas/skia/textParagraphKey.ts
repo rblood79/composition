@@ -6,10 +6,16 @@ import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
  * of this key: mutating a fixed Text target must rebuild only its paragraph,
  * while its rect and hit-test slot remain owned by the existing scene stream.
  */
-export function getTextParagraphCacheKey(node: SkiaNodeData): string {
+export function getTextParagraphCacheKey(
+  node: SkiaNodeData,
+  /** 호출부가 이미 접은 텍스트 — renderText 는 같은 content 를 두 번 접지 않는다 */
+  processedText: string = collapseTextWhiteSpace(
+    node.text?.content ?? "",
+    node.text?.whiteSpace ?? "normal",
+  ),
+): string {
   if (!node.text) return "";
   const whiteSpace = node.text.whiteSpace ?? "normal";
-  const processedText = collapseTextWhiteSpace(node.text.content, whiteSpace);
   const layoutMaxWidth =
     whiteSpace === "nowrap" || whiteSpace === "pre"
       ? 100000

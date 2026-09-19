@@ -10,8 +10,6 @@ export interface CompareModeState {
   toggleCompareMode: () => void;
   /** Compare mode 설정 */
   setCompareMode: (enabled: boolean) => void;
-  /** Compare Canvas current-page filter 토글 */
-  toggleCurrentPageFilter: () => void;
   /** Compare Canvas current-page filter 설정 */
   setCurrentPageFilter: (enabled: boolean) => void;
 }
@@ -28,10 +26,6 @@ export const useCompareModeStore = create<CompareModeState>()((set) => ({
 
   setCompareMode: (enabled) => {
     set({ isCompareMode: enabled });
-  },
-
-  toggleCurrentPageFilter: () => {
-    set((state) => ({ filterCurrentPage: !state.filterCurrentPage }));
   },
 
   setCurrentPageFilter: (enabled) => {

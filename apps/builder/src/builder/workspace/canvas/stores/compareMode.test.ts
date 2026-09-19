@@ -12,7 +12,7 @@ describe("compareMode store", () => {
   });
 
   it("supports an independent current-page filter option", () => {
-    useCompareModeStore.getState().toggleCurrentPageFilter();
+    useCompareModeStore.getState().setCurrentPageFilter(true);
     expect(useCompareModeStore.getState().filterCurrentPage).toBe(true);
     expect(useCompareModeStore.getState().isCompareMode).toBe(false);
 

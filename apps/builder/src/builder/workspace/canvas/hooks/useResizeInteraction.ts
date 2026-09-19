@@ -17,7 +17,12 @@ import { useCanonicalDocumentStore } from "../../../stores/canonical/canonicalDo
 import { useViewportSyncStore } from "../stores";
 import { requestCanvasFrame } from "../skia/frameScheduler";
 import { getSceneBounds } from "../skia/renderCommands";
+import { parseNumericValue } from "../layout/engines/utils";
 import type { CanvasGestureSession } from "../interaction/canvasGestureSession";
+import {
+  usePointerDragLifecycle,
+  type PointerDragCancelReason,
+} from "../interaction/usePointerDragLifecycle";
 import type { BoundingBox, HandlePosition } from "../selection/types";
 import {
   resolveResizeAxes,
@@ -36,8 +41,6 @@ import {
 } from "../../../presentation/editorPresentationResizeSession";
 import { editorPresentationFillPilotRuntime } from "../../../presentation/editorPresentationFillPilot";
 
-/** 클릭 ↔ 드래그 갈림 (screen px) — element drag 의 DRAG_THRESHOLD 와 같은 값 */
-const RESIZE_DRAG_THRESHOLD_PX = 3;
 
 let nextOwnerId = 1;
 
@@ -56,11 +59,8 @@ interface ResizeDragState {
 }
 
 function parseCssPx(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && /^\s*-?\d+(?:\.\d+)?px\s*$/.test(value)) {
-    return Number.parseFloat(value);
-  }
-  return null;
+  const parsed = parseNumericValue(value);
+  return parsed !== undefined && Number.isFinite(parsed) ? parsed : null;
 }
 
 /** absolute + px left/top 일 때만 위치 이동 — auto 면 containing block 원점을 모르니 크기만 */
@@ -104,12 +104,7 @@ export function useResizeInteraction({
   const endDrag = useCallback(
     (
       outcome: "finish" | "cancel",
-      reason:
-        | "escape"
-        | "pointer-cancel"
-        | "blur"
-        | "unmount"
-        | "selection-change" = "pointer-cancel",
+      reason: PointerDragCancelReason = "pointer-cancel",
     ) => {
       const drag = dragRef.current;
       if (!drag) return;
@@ -129,73 +124,19 @@ export function useResizeInteraction({
     [gestureSession],
   );
 
-  useEffect(() => {
-    const handleMove = (event: PointerEvent): void => {
-      const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      if (drag.session.phase !== "active") {
-        // 문서 교체·conflict 로 runtime 이 먼저 닫았다 — 드래그도 정리
-        endDrag("cancel");
-        return;
-      }
-      const dxClient = event.clientX - drag.startClientX;
-      const dyClient = event.clientY - drag.startClientY;
-      if (
-        !drag.dragging &&
-        Math.hypot(dxClient, dyClient) >= RESIZE_DRAG_THRESHOLD_PX
-      ) {
-        drag.dragging = true;
-      }
-      if (!drag.dragging) return;
-      drag.session.setSize(
-        resolveResizeRequest({
-          handle: drag.handle,
-          startBounds: drag.startBounds,
-          dx: dxClient / drag.startZoom,
-          dy: dyClient / drag.startZoom,
-          lock: drag.lock,
-          position: drag.position,
-        }),
-      );
-    };
-    const handleUp = (event: PointerEvent): void => {
-      const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      endDrag("finish");
-    };
-    const handleCancel = (event: PointerEvent): void => {
-      const drag = dragRef.current;
-      if (!drag || event.pointerId !== drag.pointerId) return;
-      endDrag("cancel", "pointer-cancel");
-    };
-    const handleBlur = (): void => {
-      if (dragRef.current) endDrag("cancel", "blur");
-    };
-    window.addEventListener("pointermove", handleMove);
-    window.addEventListener("pointerup", handleUp);
-    window.addEventListener("pointercancel", handleCancel);
-    window.addEventListener("blur", handleBlur);
-    return () => {
-      window.removeEventListener("pointermove", handleMove);
-      window.removeEventListener("pointerup", handleUp);
-      window.removeEventListener("pointercancel", handleCancel);
-      window.removeEventListener("blur", handleBlur);
-      if (dragRef.current) endDrag("cancel", "unmount");
-    };
-  }, [endDrag]);
-
-  // Escape 는 드래그 중일 때만 가로챈다 (spacing 과 같은 어법) — 전역 Escape (선택 해제) 가
-  // 같은 keydown 에 돌지 않게 capture 단계에서 stopPropagation.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent): void => {
-      if (event.key !== "Escape" || !dragRef.current) return;
-      event.preventDefault();
-      event.stopPropagation();
-      endDrag("cancel", "escape");
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [endDrag]);
+  const onMove = useCallback((drag: ResizeDragState, dxClient: number, dyClient: number) => {
+    drag.session.setSize(
+      resolveResizeRequest({
+        handle: drag.handle,
+        startBounds: drag.startBounds,
+        dx: dxClient / drag.startZoom,
+        dy: dyClient / drag.startZoom,
+        lock: drag.lock,
+        position: drag.position,
+      }),
+    );
+  }, []);
+  usePointerDragLifecycle({ dragRef, endDrag, onMove });
 
   // 선택이 바뀌면 (다른 요소 · 해제) 세션 취소 — 잡고 있던 요소의 값을 다른 선택에 저장하지 않는다
   useEffect(
@@ -222,7 +163,7 @@ export function useResizeInteraction({
       if (!sizing) return false;
       const projectId = useCanonicalDocumentStore.getState().currentProjectId;
       if (!projectId) return false;
-      if (!gestureSession.promoteElementToResize(event.pointerId)) return false;
+      if (!gestureSession.promoteElement(event.pointerId, "resize")) return false;
 
       const lock = resolveResizeRatioLock(sizing.effectiveStyle, sizing.fill);
       // 요청될 축 = 핸들이 닿는 축, Ratio 면 driver 하나 — 그 축들의 Fill 파생 CSS 만 미리보기에서 지운다

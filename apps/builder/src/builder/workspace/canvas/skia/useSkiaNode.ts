@@ -14,7 +14,7 @@ import { requestCanvasFrame } from "./frameScheduler";
  */
 
 import type { SkiaNodeData } from "./nodeRenderers";
-import { getTextDrawOrigin } from "./nodeRendererState";
+import { getTextDrawOrigin, clearTextDrawOrigin } from "./nodeRendererState";
 import { getTextParagraphCacheKey } from "./textParagraphKey";
 import { recordInvalidation } from "./renderInvalidation";
 import { drainPendingWasmDisposals } from "./deferredDisposal";
@@ -56,6 +56,7 @@ export function unregisterSkiaNode(elementId: string): void {
   const data = skiaNodeRegistry.get(elementId);
   if (data) releaseParagraphsIn(data);
   skiaNodeRegistry.delete(elementId);
+  clearTextDrawOrigin(elementId);
   registryVersion++;
   requestCanvasFrame();
   invalidateNodePicture(elementId);
@@ -79,6 +80,7 @@ export function getSkiaRegistrySize(): number {
 export function clearSkiaRegistry(): void {
   for (const data of skiaNodeRegistry.values()) releaseParagraphsIn(data);
   skiaNodeRegistry.clear();
+  clearTextDrawOrigin();
   registryVersion++;
   requestCanvasFrame();
   clearNodePictureCache();

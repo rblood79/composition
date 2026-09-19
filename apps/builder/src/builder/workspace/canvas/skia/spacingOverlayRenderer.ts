@@ -220,11 +220,13 @@ export function renderSpacingOverlay(
       true,
     );
   }
-  // 1) hover 사선 — 조작 중이 아닐 때 hover 띠 하나만
-  if (!active && hoveredBandId) {
-    const hovered = bands.find((band) => band.id === hoveredBandId);
-    if (hovered) drawHatch(ck, canvas, hovered.rect, bandColor(hovered), zoom);
-  }
+  // 조작 중이 아닐 때만 hover 띠가 뜻을 가진다 (사선 · 배지 둘 다)
+  const hovered =
+    !active && hoveredBandId
+      ? bands.find((band) => band.id === hoveredBandId)
+      : undefined;
+  // 1) hover 사선 — hover 띠 하나만
+  if (hovered) drawHatch(ck, canvas, hovered.rect, bandColor(hovered), zoom);
 
   // 2) 상시 핸들 — 활성/hover 는 두껍게
   for (const band of bands) {
@@ -241,8 +243,7 @@ export function renderSpacingOverlay(
   if (active && active.mode !== "input") {
     const grabbed = bands.find((band) => band.id === active.bandId);
     if (grabbed) drawBadge(ck, canvas, grabbed, grabbed.value, zoom, fontMgr);
-  } else if (!active && hoveredBandId) {
-    const hovered = bands.find((band) => band.id === hoveredBandId);
-    if (hovered) drawBadge(ck, canvas, hovered, hovered.value, zoom, fontMgr);
+  } else if (hovered) {
+    drawBadge(ck, canvas, hovered, hovered.value, zoom, fontMgr);
   }
 }

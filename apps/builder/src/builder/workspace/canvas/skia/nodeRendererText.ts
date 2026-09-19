@@ -181,7 +181,7 @@ export function renderText(
     whiteSpace === "nowrap" &&
     !!node.text.clipText;
 
-  const key = getTextParagraphCacheKey(node);
+  const key = getTextParagraphCacheKey(node, processedText);
 
   const computeDrawY = (paragraph: Paragraph): number => {
     const verticalAlign = node.text!.verticalAlign;

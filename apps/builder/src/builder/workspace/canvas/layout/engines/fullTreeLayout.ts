@@ -19,6 +19,7 @@ import { isEngineReady } from "../../wasm-bindings/engineWasm";
 import { PersistentLayoutTree } from "./persistentLayoutTree";
 import { installLayoutExplain } from "./layoutExplain";
 import type { PersistentBatchNode } from "./persistentLayoutTree";
+import { ENGINE_MEASURE_SCALAR_KEYS } from "../../wasm-bindings/layoutTypes";
 import {
   enrichWithIntrinsicSize,
   setTagGroupAllowsRemovingContext,
@@ -33,6 +34,8 @@ import {
   parseCSSPropWithContext,
   parseLineHeight,
   measureTextWidth,
+  parseNumericValue,
+  isEngineIntrinsicKeyword,
 } from "./utils";
 import { setLayoutViewport } from "./cssValueParser";
 import { resolveStyle, getRootComputedStyle } from "./cssResolver";
@@ -182,12 +185,8 @@ export function computeMaxScroll(input: {
 
 /** 엔진 소비 style JSON (`"Npx"` 정규화) 의 px 값 — px 가 아니면 (%, calc …) 0 으로 본다. */
 function readEnginePx(value: unknown): number {
-  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-  if (typeof value !== "string") return 0;
-  const match = /^\s*(\d+(?:\.\d+)?)(?:px)?\s*$/.exec(value);
-  if (!match) return 0;
-  const parsed = Number(match[1]);
-  return Number.isFinite(parsed) ? parsed : 0;
+  const parsed = parseNumericValue(value);
+  return parsed !== undefined && Number.isFinite(parsed) ? parsed : 0;
 }
 
 /**
@@ -383,12 +382,6 @@ const persistentAvailableSizeByRootKey = new Map<
   { readonly width: number; readonly height: number }
 >();
 
-export function readPersistentAvailableSize(
-  rootKey: string,
-): { readonly width: number; readonly height: number } | null {
-  return persistentAvailableSizeByRootKey.get(rootKey) ?? null;
-}
-
 export function computePresentationLayoutTargeted(
   input: PresentationLayoutComputeRequest,
 ): ReadonlyMap<string, ComputedLayout> | null {
@@ -412,38 +405,17 @@ export function computePresentationLayoutTargeted(
 
   const targetId = input.descriptor.target.nodeId;
   const originalStyle = new Map<string, Record<string, unknown>>();
-  const originalJson = tree.getLastJson(targetId);
-  if (!originalJson) return null;
-
-  let baseStyle: Record<string, unknown>;
-  try {
-    const parsed: unknown = JSON.parse(originalJson);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      return null;
-    }
-    baseStyle = { ...(parsed as Record<string, unknown>) };
-  } catch {
-    return null;
-  }
+  const persisted = readPersistentEngineStyle(input.rootKey, targetId);
+  if (!persisted) return null;
+  const baseStyle: Record<string, unknown> = { ...persisted };
 
   // Grid placement has a known persistent update limitation: track/placement
   // caches require a full rebuild. Keep this lane fail-closed for any grid
   // consumer in the affected ancestry.
   for (const elementId of input.affectedNodeIds) {
-    const json = tree.getLastJson(elementId);
-    if (!json) return null;
-    try {
-      const parsed: unknown = JSON.parse(json);
-      if (
-        parsed &&
-        typeof parsed === "object" &&
-        !Array.isArray(parsed) &&
-        ((parsed as Record<string, unknown>).display === "grid" ||
-          (parsed as Record<string, unknown>).display === "inline-grid")
-      ) {
-        return null;
-      }
-    } catch {
+    const style = readPersistentEngineStyle(input.rootKey, elementId);
+    if (!style) return null;
+    if (style.display === "grid" || style.display === "inline-grid") {
       return null;
     }
   }
@@ -610,9 +582,9 @@ if (typeof window !== "undefined" && import.meta.env?.DEV) {
       getSharedLayoutMap,
       getSharedLayoutVersion,
       getEngineInput: (elementId: string) => {
-        for (const tree of persistentTrees.values()) {
-          const json = tree.getLastJson(elementId);
-          if (json) return JSON.parse(json) as Record<string, unknown>;
+        for (const key of persistentTrees.keys()) {
+          const style = readPersistentEngineStyle(key, elementId);
+          if (style) return style;
         }
         return null;
       },
@@ -889,13 +861,9 @@ function isGridDisplay(display: unknown): boolean {
 
 /** CSS dimension 속성 (number → "${v}px" 변환) */
 /** 엔진 NodeStyle 의 숫자 측정 스칼라 (ADR-224) — 2-pass 재측정이 다시 쓰는 키. */
-const LEAF_SCALAR_KEYS = new Set([
-  "contentMinWidth",
-  "contentMaxWidth",
-  "contentMinHeight",
-  "contentHeight",
-  "leafBaseline",
-]);
+const LEAF_SCALAR_KEYS: ReadonlySet<string> = new Set(
+  ENGINE_MEASURE_SCALAR_KEYS,
+);
 
 const IMPLICIT_DIM_PROPS = new Set([
   "marginLeft",
@@ -1146,24 +1114,16 @@ function engineStyleToRecord(style: EngineStyle): Record<string, unknown> {
     result.aspectRatio = style.aspectRatio;
   }
 
-  // 측정 스칼라 (ADR-165) — 숫자 그대로 (dim() px 변환 대상 아님, NodeStyle Option<f32>)
-  if (style.contentMinWidth !== undefined)
-    result.contentMinWidth = style.contentMinWidth;
-  if (style.contentMaxWidth !== undefined)
-    result.contentMaxWidth = style.contentMaxWidth;
-  // ADR-204 Phase 2 — 세로축 스칼라 (가상화 collection owner)
-  if (style.contentMinHeight !== undefined)
-    result.contentMinHeight = style.contentMinHeight;
-  if (style.contentHeight !== undefined)
-    result.contentHeight = style.contentHeight;
+  // 측정 스칼라 (ADR-165 · 204 · 224 · 923 leafBaseline) — 숫자 그대로 (dim() px 변환 대상 아님)
+  for (const key of ENGINE_MEASURE_SCALAR_KEYS) {
+    if (style[key] !== undefined) result[key] = style[key];
+  }
 
-  // baseline 계약 입력 3종 (ADR-923 Phase 2) — 숫자 스칼라·키워드 문자열 그대로
+  // baseline 계약 입력 (ADR-923 Phase 2) — 키워드 문자열·px 숫자 그대로
   // (applyCommonEngineStyle 이 px 해석을 이미 끝냈다: lineHeight 는 px 숫자).
   if (style.verticalAlign !== undefined)
     result.verticalAlign = style.verticalAlign;
   if (style.lineHeight !== undefined) result.lineHeight = style.lineHeight;
-  if (style.leafBaseline !== undefined)
-    result.leafBaseline = style.leafBaseline;
 
   return result;
 }
@@ -2764,7 +2724,7 @@ function incrementalUpdate(
  * @param getChildElements - elementId → CanvasLayoutNode[] accessor
  * @returns elementId → ComputedLayout 맵, 실패 시 null
  */
-/** vw/vh 기준 viewport — body root 는 content-box available + padding/border (Step 1.5 와 같은 식). */
+/** vw/vh 기준 viewport — body root 는 content-box available + padding/border. Step 1.5 의 body 페이지 크기도 이 값을 읽는다. */
 function resolveLayoutViewport(
   rootEl: CanvasLayoutNode,
   availableWidth: number,
@@ -2871,10 +2831,9 @@ export function calculateFullTreeLayout(
     const rootEl = elementsMap.get(rootElementId);
     if (rootEl && rootEl.type.toLowerCase() === "body") {
       const rootStyle = (rootEl.props?.style ?? {}) as Record<string, unknown>;
-      const bp = parsePadding(rootStyle, availableWidth);
-      const bb = parseBorder(rootStyle);
-      const pageW = availableWidth + bp.left + bp.right + bb.left + bb.right;
-      const pageH = availableHeight + bp.top + bp.bottom + bb.top + bb.bottom;
+      // Step 0.5 의 resolveLayoutViewport 가 같은 root 로 이미 계산한 border-box 페이지 크기
+      const pageW = layoutViewport.width;
+      const pageH = layoutViewport.height;
       // canonical Preview 는 page wrapper(뷰포트) 안에 body div 를 렌더한다. 따라서
       // body 의 authored width/height 는 wrapper 크기와 별개이며 그대로 소비해야 한다.
       // 종전에는 여기서 항상 pageW/pageH 로 덮어 Size 패널의 저장값이 Preview 에만
@@ -3242,12 +3201,7 @@ export function calculateFullTreeLayout(
             // 지우는 건 1-pass 가 넣은 근사 px 뿐 — 엔진 소유 키워드 (`fit-content` 등, 2026-09-19
             //   통과) 를 지우면 auto 가 되어 flex 부모에서 stretch 된다.
             const h = node.style.height;
-            const engineOwnedKeyword =
-              typeof h === "string" &&
-              (h === "fit-content" ||
-                h === "min-content" ||
-                h === "max-content");
-            if (h && !engineOwnedKeyword) {
+            if (h && !isEngineIntrinsicKeyword(h)) {
               delete node.style.height;
               persistentTree.updateNodeStyle(node.elementId, node.style);
             }
@@ -3578,15 +3532,7 @@ export function calculateFullTreeLayout(
           },
         );
         // 끝쪽 padding·border 는 엔진이 실제로 소비한 style (catalog implicit 포함) 에서 읽는다.
-        const engineJson = persistentTree.getLastJson(elementId);
-        let engineStyle: Record<string, unknown> = {};
-        if (engineJson) {
-          try {
-            engineStyle = JSON.parse(engineJson) as Record<string, unknown>;
-          } catch {
-            engineStyle = {};
-          }
-        }
+        const engineStyle = readPersistentEngineStyle(rootKey, elementId) ?? {};
         // queueMicrotask: 렌더링 중 setState 방지 (React strict mode)
         const scrollTop = computeMaxScroll({
           extent: maxBottom,

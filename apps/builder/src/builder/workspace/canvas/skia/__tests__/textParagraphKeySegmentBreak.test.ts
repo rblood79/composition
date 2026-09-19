@@ -41,11 +41,23 @@ describe("getTextParagraphCacheKey — segment break", () => {
   it("renderText 와 키가 같은 함수를 읽는다 (정적)", async () => {
     const { readFile } = await import("node:fs/promises");
     const { resolve } = await import("node:path");
-    for (const f of ["../nodeRendererText.ts", "../textParagraphKey.ts"]) {
-      const src = await readFile(resolve(__dirname, f), "utf8");
-      expect(src).toContain(
-        "collapseTextWhiteSpace(node.text.content, whiteSpace)",
-      );
+    // renderText 가 한 번 접은 processedText 를 키 빌더에 넘긴다 — 키 빌더 단독 호출은 같은 함수로 접는다
+    const renderSrc = await readFile(
+      resolve(__dirname, "../nodeRendererText.ts"),
+      "utf8",
+    );
+    expect(renderSrc).toContain(
+      "collapseTextWhiteSpace(node.text.content, whiteSpace)",
+    );
+    expect(renderSrc).toContain(
+      "getTextParagraphCacheKey(node, processedText)",
+    );
+    const keySrc = await readFile(
+      resolve(__dirname, "../textParagraphKey.ts"),
+      "utf8",
+    );
+    expect(keySrc).toContain("processedText: string = collapseTextWhiteSpace(");
+    for (const src of [renderSrc, keySrc]) {
       expect(src).not.toContain('replace(/[ \\t]+/g, " ")');
     }
   });
