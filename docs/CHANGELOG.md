@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `width: 50%` 같은 `%` 폭 Text 의 상자 높이가 부모 폭 기준 줄 수로 굳어 Skia 줄이 상자 밖으로 넘치던 결함 — enrich 가 `%` 를 Step 4.5 재측정 추정식과 같은 식 (availableWidth × %) 으로 풀어 자기 폭에서 잰다 (live 58 → 82).
 - **새 Text 는 줄바꿈 보존이 기본** (`whiteSpace: pre-wrap`, Figma · Framer 규약) — Styles 패널 Wrap 의 "Preserve" 가 **"Auto"** (첫 항목) 로 바뀌고 새 Text 가 그 값으로 만들어진다. 기존 Text (미지정 = normal) 는 편집에서 줄바꿈을 넣어 커밋하면 Auto 로 올라간다.
 - pre-wrap Text 에서 폭을 넘는 조각이 있으면 Skia 가 `\n` 을 잃고 다시 접던 결함 (Skia 5줄 ↔ 상자·Preview 8줄) · `%` 폭 Text 의 2-pass 재측정이 건너뛰어 상자가 한 줄 크던 결함 (226 ↔ 192) 수리.
+- Wrap "Truncate" (nowrap + ellipsis + overflow hidden) 가 Canvas 에서 "…" 없이 전문을 그리던 결함 — nowrap 의 intrinsic 폭 재layout 이 ellipsis 문단을 덮어썼다. Preview 와 같이 "ABCDEFG AB…".
 - 텍스트 편집에서 **Enter 가 항상 줄바꿈** (Figma · Framer 규약, 사용자 판정) — 종전엔 normal · nowrap 에서 Enter = 완료, Shift+Enter 만 줄바꿈. 완료는 Cmd/Ctrl+Enter · **Esc** · 바깥 클릭 — Esc 도 취소가 아니라 완료 (Figma 규약, 사용자 판정; 되돌리기는 Undo).
 - normal Text 에서 Shift+Enter 줄바꿈이 저장만 되고 보이지 않던 것 — 커밋 텍스트에 `\n` 이 남으면 같은 커밋에 `whiteSpace` 를 `pre-wrap` (nowrap 은 `pre`) 으로 승격해 CSS · Skia 가 같이 그린다.
 

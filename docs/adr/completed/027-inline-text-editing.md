@@ -365,6 +365,8 @@ interface TextEditingSlice {
 
 **후속 5 (2026-09-20, 사용자 판정 "preserve → auto")**: 줄바꿈 보존이 새 Text 의 **기본**이다 — 팔레트 Text 생성 style 에 `whiteSpace: pre-wrap` (`factories/creationStyleDefaults.ts` — catalog 파생엔 style 키가 없어야 하므로 생성 경로가 합성), 패널 Wrap 은 pre-wrap 을 **"Auto"** (첫 항목) 로 보인다 (종전 "Preserve"). 기존 요소 (미지정 = normal) 는 커밋 때 승격 (후속 2) 으로 Auto 가 된다. 같은 live 에서 잡은 결함 2: (a) pre-wrap Text 의 첫 조각이 폭을 넘으면 `cssNormalBreakProcess` 가 `/\s+/` split 으로 `\n` 을 삼켜 Skia 5줄 ↔ 상자·Preview 8줄 — 조각마다 접고 `\n` 으로 잇는다. (b) Step 4.5 재측정: `%` 폭 추정이 root availableWidth (342 × 50% = 171 == layout) 라 건너뛰었는데 enrich 는 DFS 기록 폭 (294 × 50%) 으로 쟀다 → 상자 226 ↔ 192; 추정을 `node.enrichAvailWidth` 로, 2차 재측정은 확정 폭 px 로 (`resolveRemeasureStyle`). live: 상자 202 = 192 + 10 · 새 Text `whiteSpace: pre-wrap` · 패널 "Auto".
 
+**후속 6 (2026-09-20, 사용자 live: Wrap "Truncate" 가 Preview 는 "…" · Canvas 는 전문)**: `renderText` 의 nowrap "큰 폭 layout 회피" 재layout (intrinsic + 1) 이 ellipsis 문단에도 걸려 maxWidth · maxLines 1 · ellipsis 로 만든 layout 을 덮어썼다 (678px 한 줄). `!isEllipsis` 로 제외. 하니스 `text-truncate` (nowrap + ellipsis + hidden, 200px): 한 줄 · 줄 폭 182.6 ≤ 200 게이트, 편집기 ink 비교는 SKIP (편집 중엔 줄임 해제 — Figma 도 같다) → **40/40**. live: Canvas "ABCDEFG ABCDEFG AB…" = Preview.
+
 ~~**결정 (2026-09-20, D1 에서 정정)**~~ (후속 3 으로 대체): Enter 가 줄바꿈인 조건은 타입이 아니라 Skia 가 paragraph 에 넘긴 white-space 다 — `pre` / `pre-wrap` / `pre-line` 에서만 줄바꿈 (`\n` 을 Skia 와 CSS 가 같이 그린다), `normal` / `nowrap` 은 완료 (CSS 는 `\n` 을 접고 Skia 는 그려 두 consumer 가 갈린다). 계약 한 곳: `overlay/overlayWrap.ts` `resolveOverlayWrap`. 빈 텍스트 노드 삭제는 별도 항목.
 
 **보류 (구 Phase D)**: D-1 리치 텍스트 (Bold / Italic / 색) · D-3 편집 툴바 — 재개 조건: canonical 텍스트 모델이 인라인 스타일 run 을 담는 ADR 이 Implemented 된 뒤.

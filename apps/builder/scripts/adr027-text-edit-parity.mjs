@@ -105,6 +105,23 @@ const CASES = [
       style: { width: "320px" },
     },
   },
+  {
+    // ADR-027 후속 6 — Wrap "Truncate": nowrap + ellipsis + overflow hidden. Skia 가 nowrap 을
+    //   intrinsic 폭으로 다시 layout 하며 "…" 을 잃었다 (Preview "ABCDEFG AB…" ↔ Canvas 678px 전부).
+    key: "text-truncate",
+    palette: "text",
+    truncate: true,
+    props: {
+      children:
+        "ABCDEFG ABCDEFG ABCDEFG 12345 가나다라마바사 098763 BGTRFV bye bye",
+      style: {
+        width: "200px",
+        whiteSpace: "nowrap",
+        textOverflow: "ellipsis",
+        overflow: "hidden",
+      },
+    },
+  },
   // TextArea 는 TEXT_EDITABLE_TAGS 밖 (오버레이 편집 없음 — RAC textarea 자식) 이라 케이스 없음.
   { key: "button", palette: "button", props: { children: "Save" } },
   { key: "badge", palette: "badge", props: { children: "New" } },
@@ -424,6 +441,19 @@ async function main() {
             window.__composition_RENDER_DEBUG__.resolveTextLineMetrics(id),
           id,
         );
+        if (lines && c.truncate) {
+          // 줄임: 한 줄 · 줄 폭 ≤ 상자 폭 (ellipsis 가 살아 있으면 paragraph 가 maxWidth 안에서 끝난다).
+          const lineW = Math.max(...lines.map((m) => m.width)) * zoom;
+          check(
+            `${name} truncated within box`,
+            lines.length === 1 && lineW <= rect.w,
+            {
+              lines: lines.length,
+              lineW: +lineW.toFixed(1),
+              boxW: +rect.w.toFixed(1),
+            },
+          );
+        }
         if (lines) {
           const paraH = lines.reduce((acc, m) => acc + m.height, 0) * zoom;
           check(`${name} paragraph fits box`, paraH <= rect.h + 1 * zoom, {
@@ -498,6 +528,13 @@ async function main() {
         await page.keyboard.press("Escape");
         await settle(page, 300);
 
+        if (c.truncate) {
+          // 편집기는 줄임 없이 전문을 보인다 (Figma 도 편집 중엔 줄임 해제) — ink 비교는 하지 않는다.
+          process.stderr.write(
+            `SKIP ${name} — 편집기는 줄임 해제 (ink 비교 대상 아님)\n`,
+          );
+          continue;
+        }
         const bg = dominantColor(a, pad);
         const mapA = textMap(a, rgb, bg, pad);
         const mapB = textMap(b, rgb, bg, pad);

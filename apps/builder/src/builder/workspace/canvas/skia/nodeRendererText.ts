@@ -671,7 +671,10 @@ export function renderText(
     // CanvasKit 큰 width 렌더링 실패 방지:
     // paragraph.layout(100000+) 시 텍스트가 보이지 않는 CanvasKit 내부 버그.
     // nowrap/pre → maxIntrinsicWidth + 1로 재레이아웃하여 정확한 폭 사용.
-    if (layoutMaxWidth >= 100000) {
+    // ellipsis 는 예외 — 이미 maxWidth 로 layout 했고 (maxLines 1 + ellipsis), intrinsic 폭으로
+    //   다시 layout 하면 "…" 이 사라진다 (사용자 live 2026-09-20: Truncate Text 가 Preview 는
+    //   "ABCDEFG AB…", Canvas 는 678px 한 줄 전부).
+    if (layoutMaxWidth >= 100000 && !isEllipsis) {
       const maxIntrinsic = paragraph.getMaxIntrinsicWidth();
       effectiveLayoutWidth = Math.ceil(maxIntrinsic) + 1;
       paragraph.layout(effectiveLayoutWidth);
