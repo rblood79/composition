@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   decorationMaskToCss,
   resolveOverlayFontFeatures,
+  resolveOverlayInitialText,
   resolveOverlayWrap,
 } from "./overlayWrap";
 
@@ -16,6 +17,7 @@ describe("resolveOverlayWrap — Skia text input → editor white-space", () => 
       wordBreak: "normal",
       overflowWrap: "normal",
       enterInsertsNewline: false,
+      collapsesSegmentBreaks: true,
     });
   });
 
@@ -38,7 +40,7 @@ describe("resolveOverlayWrap — Skia text input → editor white-space", () => 
     );
   });
 
-  it("normal 에서 Enter 는 완료 — CSS 는 \\n 을 접고 Skia 는 그려 두 consumer 가 갈린다", () => {
+  it("normal 에서 Enter 는 완료 — normal · nowrap 은 \\n 을 두 consumer 가 다 공백으로 접는다", () => {
     expect(
       resolveOverlayWrap({ whiteSpace: "normal" }).enterInsertsNewline,
     ).toBe(false);
@@ -68,6 +70,58 @@ describe("TextEditOverlay consumes the wrap contract (static)", () => {
     );
     expect(source).toContain("if (style.wrap?.enterInsertsNewline) return;");
     expect(source).not.toContain('root.style.whiteSpace = "nowrap"');
+  });
+});
+
+/**
+ * ADR-027 후속 (2026-09-20) — normal Text 에 든 `\n` 은 Skia · DOM 이 공백으로 접어 2줄인데 Quill 은
+ * 문단 경계로 그려 편집 진입 순간 8줄이 됐다. 편집기 초기값도 접는다 (segment break 만 — 공백 run 은
+ * 편집 중 보존, pre 계열은 그대로).
+ */
+describe("resolveOverlayInitialText — normal · nowrap 은 \\n 을 공백으로", () => {
+  const eight = Array.from({ length: 8 }, (_, i) => `줄 ${i + 1}`).join("\n");
+
+  it("normal / nowrap: segment break → 공백 1개, 공백 run 은 그대로", () => {
+    const wrap = resolveOverlayWrap({});
+    expect(wrap.collapsesSegmentBreaks).toBe(true);
+    expect(resolveOverlayInitialText(eight, wrap)).toBe(
+      Array.from({ length: 8 }, (_, i) => `줄 ${i + 1}`).join(" "),
+    );
+    expect(resolveOverlayInitialText("a  b\n\nc", wrap)).toBe("a  b c");
+    expect(
+      resolveOverlayInitialText(
+        "a\nb",
+        resolveOverlayWrap({ whiteSpace: "nowrap" }),
+      ),
+    ).toBe("a b");
+  });
+
+  it("pre 계열: 그대로 (Enter 가 줄바꿈인 white-space)", () => {
+    for (const whiteSpace of ["pre", "pre-wrap", "pre-line"] as const) {
+      const wrap = resolveOverlayWrap({ whiteSpace });
+      expect(wrap.collapsesSegmentBreaks).toBe(false);
+      expect(resolveOverlayInitialText(eight, wrap)).toBe(eight);
+    }
+  });
+
+  it("wrap 계약이 없으면 (Skia 노드 없음) 그대로", () => {
+    expect(resolveOverlayInitialText(eight, undefined)).toBe(eight);
+  });
+});
+
+describe("TextEditOverlay loads the collapsed initial text (static)", () => {
+  it("setText 가 resolveOverlayInitialText 를 거친다", async () => {
+    const { readFile } = await import("node:fs/promises");
+    const { resolve } = await import("node:path");
+    const source = await readFile(
+      resolve(__dirname, "TextEditOverlay.tsx"),
+      "utf8",
+    );
+    expect(source).toContain(
+      "const editorText = resolveOverlayInitialText(initialValue, style.wrap)",
+    );
+    expect(source).toContain('quill.setText(editorText, "api")');
+    expect(source).not.toContain('quill.setText(initialValue, "api")');
   });
 });
 

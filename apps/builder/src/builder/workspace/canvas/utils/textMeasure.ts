@@ -62,6 +62,10 @@ export interface TextMeasurer {
 }
 
 import { buildFontString } from "./canvas2dSegmentCache";
+import {
+  collapseTextWhiteSpace,
+  collapsesSegmentBreaks,
+} from "./textWhiteSpace";
 import { setSpecWrappedTextHeightMeasurer } from "@composition/specs";
 
 // ============================================
@@ -172,9 +176,11 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
           height += lineHeight;
           continue;
         }
+        // 조각엔 `\n` 이 없어 재분할되지 않는다 — pre-line 조각은 공백을 접고 (normal 규칙),
+        //   pre · pre-wrap 조각은 공백을 보존한다 (pre-wrap 규칙).
         const r = this.measureWrapped(
           segment,
-          { ...style, whiteSpace: undefined },
+          { ...style, whiteSpace: ws === "pre-line" ? "normal" : "pre-wrap" },
           ws === "pre" ? Number.MAX_SAFE_INTEGER : maxWidth,
         );
         height += r.height;
@@ -186,6 +192,12 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
     const ctx = getMeasureCtx();
     if (!ctx) {
       return { width: maxWidth, height: lineHeight };
+    }
+
+    // normal · nowrap 은 `\n` 을 공백으로 접는다 (Skia paragraph 입력과 같은 함수) — 종전엔 `\n` 이
+    //   공백 토큰이라 결과는 같았지만 앞뒤 공백 흡수 (`가 \n 나` → 공백 1개) 는 달랐다.
+    if (collapsesSegmentBreaks(ws) || ws === "pre-line") {
+      text = collapseTextWhiteSpace(text, ws);
     }
 
     const fontStyleStr =

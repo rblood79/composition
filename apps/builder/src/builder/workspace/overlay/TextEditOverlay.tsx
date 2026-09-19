@@ -18,7 +18,7 @@ import { getSceneBounds, subscribeBounds } from "../canvas/skia/renderCommands";
 import { setEditingElementId } from "../canvas/skia/nodeRenderers";
 import { notifyLayoutChange } from "../canvas/skia/useSkiaNode";
 import { resolveTextGlyphOrigin } from "../canvas/skia/textDrawOrigin";
-import type { OverlayWrap } from "./overlayWrap";
+import { resolveOverlayInitialText, type OverlayWrap } from "./overlayWrap";
 import { resolveOverlayNudge } from "./overlayNudge";
 
 // ============================================
@@ -103,7 +103,9 @@ export function TextEditOverlay({
   //   effect 가 나중에 setState 로 고치지만 측정은 이미 끝난 뒤다.
   const [livePos, setLivePos] = useState(() => {
     const sb = getSceneBounds(elementId);
-    return sb ? { x: sb.x * zoom + panOffset.x, y: sb.y * zoom + panOffset.y } : position;
+    return sb
+      ? { x: sb.x * zoom + panOffset.x, y: sb.y * zoom + panOffset.y }
+      : position;
   });
   const [liveSize, setLiveSize] = useState(() => {
     const sb = getSceneBounds(elementId);
@@ -237,8 +239,10 @@ export function TextEditOverlay({
     }
 
     // 초기 텍스트 설정 + 커서를 끝에 배치 (Pencil: setText → setSelection(length))
-    quill.setText(initialValue, "api");
-    quill.setSelection(initialValue.length, 0);
+    // normal · nowrap 은 `\n` 을 공백으로 접어 싣는다 — Skia · DOM 이 그리는 그대로.
+    const editorText = resolveOverlayInitialText(initialValue, style.wrap);
+    quill.setText(editorText, "api");
+    quill.setSelection(editorText.length, 0);
     quill.history.clear();
 
     // ADR-027 D2 — 첫 줄 상자를 Skia 가 마지막 프레임에 그린 element-local 원점으로 옮긴다.

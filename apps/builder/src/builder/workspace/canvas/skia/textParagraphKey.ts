@@ -1,4 +1,5 @@
 import type { SkiaNodeData } from "./nodeRendererTypes";
+import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
 
 /**
  * Retained paragraph identity. Presentation text metrics are deliberately part
@@ -8,10 +9,7 @@ import type { SkiaNodeData } from "./nodeRendererTypes";
 export function getTextParagraphCacheKey(node: SkiaNodeData): string {
   if (!node.text) return "";
   const whiteSpace = node.text.whiteSpace ?? "normal";
-  let processedText = node.text.content;
-  if (whiteSpace === "normal" || whiteSpace === "pre-line") {
-    processedText = processedText.replace(/[ \t]+/g, " ");
-  }
+  const processedText = collapseTextWhiteSpace(node.text.content, whiteSpace);
   const layoutMaxWidth =
     whiteSpace === "nowrap" || whiteSpace === "pre"
       ? 100000

@@ -16,6 +16,7 @@ import {
   preprocessBreakWordText,
 } from "../utils/textWrapUtils";
 import { USE_CANVAS2D_MEASURE } from "../wasm-bindings/featureFlags";
+import { collapseTextWhiteSpace } from "../utils/textWhiteSpace";
 import {
   needsFallback,
   measureWithCanvas2D,
@@ -162,10 +163,8 @@ export function renderText(
   // 들고 있어 resolveRetainedParagraph 가 per-entry 로 무효 판정 + 지연 폐기한다.
 
   const whiteSpace = node.text.whiteSpace ?? "normal";
-  let processedText = node.text.content;
-  if (whiteSpace === "normal" || whiteSpace === "pre-line") {
-    processedText = processedText.replace(/[ \t]+/g, " ");
-  }
+  // CSS §4.1.1 공백 처리 — normal · nowrap 은 `\n` 도 공백으로 접는다 (DOM 과 같이).
+  const processedText = collapseTextWhiteSpace(node.text.content, whiteSpace);
 
   const layoutMaxWidth =
     whiteSpace === "nowrap" || whiteSpace === "pre"

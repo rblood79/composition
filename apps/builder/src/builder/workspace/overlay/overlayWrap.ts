@@ -12,6 +12,10 @@ import {
   DEFAULT_FONT_FEATURES,
   resolveFontVariantFeatures,
 } from "../canvas/layout/engines/cssResolver";
+import {
+  collapsesSegmentBreaks,
+  transformSegmentBreaks,
+} from "../canvas/utils/textWhiteSpace";
 
 export type SkiaWhiteSpace =
   "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
@@ -35,6 +39,13 @@ export interface OverlayWrap {
    * nowrap) 는 Enter = 완료를 유지한다 (D3 대칭).
    */
   enterInsertsNewline: boolean;
+  /**
+   * 편집기에 싣기 전 `\n` 을 공백으로 접는가 (normal · nowrap — CSS segment break transformation).
+   * Skia · DOM 둘 다 접어 그리는데 Quill 은 `\n` 을 문단 경계로 그려 편집 진입 순간 8줄이 됐다.
+   * 접힌 텍스트가 편집기의 초기값이라, 사용자가 고쳐 커밋하면 접힌 형태로 저장된다 (WYSIWYG) —
+   * 고치지 않고 나가면 저장 0.
+   */
+  collapsesSegmentBreaks: boolean;
 }
 
 export function resolveOverlayWrap(input: SkiaWrapInput): OverlayWrap {
@@ -49,7 +60,16 @@ export function resolveOverlayWrap(input: SkiaWrapInput): OverlayWrap {
       whiteSpace === "pre" ||
       whiteSpace === "pre-wrap" ||
       whiteSpace === "pre-line",
+    collapsesSegmentBreaks: collapsesSegmentBreaks(whiteSpace),
   };
+}
+
+/** 편집기 초기값 — normal · nowrap 이면 segment break 만 공백으로 (공백 run 은 편집 중 보존). */
+export function resolveOverlayInitialText(
+  value: string,
+  wrap: OverlayWrap | undefined,
+): string {
+  return wrap?.collapsesSegmentBreaks ? transformSegmentBreaks(value) : value;
 }
 
 /**

@@ -93,6 +93,18 @@ const CASES = [
       style: { width: "320px", whiteSpace: "pre-wrap" },
     },
   },
+  {
+    // ADR-027 후속 — normal + `\n` (import · AI 생성 데이터). CSS segment break transformation:
+    //   DOM 은 공백으로 접어 폭이 줄을 정한다. Skia 도 같이 접고 (종전 8줄), 편집기 초기값도 접는다.
+    key: "text-normal-newline",
+    palette: "text",
+    props: {
+      children: Array.from({ length: 8 }, (_, i) => `줄 ${i + 1} line`).join(
+        "\n",
+      ),
+      style: { width: "320px" },
+    },
+  },
   // TextArea 는 TEXT_EDITABLE_TAGS 밖 (오버레이 편집 없음 — RAC textarea 자식) 이라 케이스 없음.
   { key: "button", palette: "button", props: { children: "Save" } },
   { key: "badge", palette: "badge", props: { children: "New" } },
@@ -242,7 +254,7 @@ function dominantColor(png, band) {
     }
   let best = 0,
     bestN = -1;
-  for (const [k, n] of counts) if (n > bestN) (best = k), (bestN = n);
+  for (const [k, n] of counts) if (n > bestN) ((best = k), (bestN = n));
   return [(best >> 16) & 255, (best >> 8) & 255, best & 255];
 }
 
@@ -257,14 +269,18 @@ function textMap(png, rgb, bg, band) {
   const { width, height, data } = png;
   const out = new Float32Array(width * height);
   const span =
-    Math.abs(bg[0] - rgb[0]) + Math.abs(bg[1] - rgb[1]) + Math.abs(bg[2] - rgb[2]);
+    Math.abs(bg[0] - rgb[0]) +
+    Math.abs(bg[1] - rgb[1]) +
+    Math.abs(bg[2] - rgb[2]);
   if (span <= 0) return out;
   const edge = 2,
     handle = 10;
   const si = (Math.floor(height / 2) * width + band) * 4;
   const sel = [data[si], data[si + 1], data[si + 2]];
   const dist = (i, c) =>
-    Math.abs(data[i] - c[0]) + Math.abs(data[i + 1] - c[1]) + Math.abs(data[i + 2] - c[2]);
+    Math.abs(data[i] - c[0]) +
+    Math.abs(data[i + 1] - c[1]) +
+    Math.abs(data[i + 2] - c[2]);
   for (let y = 0; y < height; y += 1)
     for (let x = 0; x < width; x += 1) {
       const i = (y * width + x) * 4;
@@ -393,8 +409,28 @@ async function main() {
               skia: !!window.__composition_SKIA_DEBUG__.getSkiaNode(id),
             };
           }, id);
-          check(name, false, { reason: "layout/skia node 없음", rect, rgb, probe });
+          check(name, false, {
+            reason: "layout/skia node 없음",
+            rect,
+            rgb,
+            probe,
+          });
           continue;
+        }
+        // 문단이 상자 안에 드는가 — Skia 줄 수 × 줄 높이 ≤ 상자 높이 (normal + `\n` 이 8줄로
+        //   상자 밖으로 넘치던 결함의 게이트; 편집기 비교는 clip 이 상자라 넘침을 못 본다).
+        const lines = await page.evaluate(
+          (id) =>
+            window.__composition_RENDER_DEBUG__.resolveTextLineMetrics(id),
+          id,
+        );
+        if (lines) {
+          const paraH = lines.reduce((acc, m) => acc + m.height, 0) * zoom;
+          check(`${name} paragraph fits box`, paraH <= rect.h + 1 * zoom, {
+            lines: lines.length,
+            paraH: +paraH.toFixed(2),
+            boxH: +rect.h.toFixed(2),
+          });
         }
         // 선택 상자 (Skia 오버레이) 를 두 캡처에 똑같이 넣는다 — 먼저 클릭으로 선택.
         // 넓은 요소는 중심이 뷰포트 밖일 수 있다 — 왼쪽 300px 안에서 클릭.
@@ -412,7 +448,8 @@ async function main() {
         const stale = await page.evaluate(
           () => !!document.querySelector("[data-text-edit-overlay]"),
         );
-        if (stale) process.stderr.write(`[warn] ${name}: 이전 편집 오버레이 잔존\n`);
+        if (stale)
+          process.stderr.write(`[warn] ${name}: 이전 편집 오버레이 잔존\n`);
         const a = await captureClip(
           page,
           clip,
@@ -428,12 +465,16 @@ async function main() {
             const st = window.__composition_STORE__.getState();
             return {
               selected: st.selectedElementId,
-              overlayBefore: !!document.querySelector("[data-text-edit-overlay]"),
+              overlayBefore: !!document.querySelector(
+                "[data-text-edit-overlay]",
+              ),
               type: st.elementsMap.get(id)?.type,
               parent: st.elementsMap.get(id)?.parent_id,
             };
           }, id);
-          await page.screenshot({ path: `${outDir}/${c.key}-z${zoom}-fail.png` });
+          await page.screenshot({
+            path: `${outDir}/${c.key}-z${zoom}-fail.png`,
+          });
           check(name, false, { reason: "편집 진입 실패", id, rect, state });
           continue;
         }
@@ -477,7 +518,12 @@ async function main() {
           PNG.sync.write(diffPng),
         );
         if (!boxA || !boxB) {
-          check(name, false, { reason: "ink 마스크 비어 있음", boxA, boxB, rgb });
+          check(name, false, {
+            reason: "ink 마스크 비어 있음",
+            boxA,
+            boxB,
+            rgb,
+          });
           continue;
         }
         const delta = {

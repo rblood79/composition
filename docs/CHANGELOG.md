@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-027 후속 — `white-space: normal` Text 의 `\n` 을 Skia 도 공백으로 접는다] - 2026-09-20
+
+### Fixed
+
+- `white-space: normal` (또는 nowrap) Text 에 `\n` 이 든 경우 (import · AI 생성 데이터) Skia 가 줄마다 그려 8줄이 상자 밖으로 넘치던 결함 — Preview DOM 과 레이아웃 상자는 CSS segment break 규칙대로 공백으로 접어 2줄이었다. Skia 렌더 · retained paragraph 키 · 레이아웃 측정기가 한 함수 (`collapseTextWhiteSpace`) 로 CSS Text 3 §4.1.1 공백 처리를 읽는다 (Chrome 실측: segment break 는 문자 종류와 무관하게 공백 1개). 편집 진입 시 Quill 이 `\n` 을 문단 경계로 그려 8줄이 되던 것도 초기값의 segment break 를 접어 종결 (pre 계열은 그대로). 하니스 `text-normal-newline` + "paragraph fits box" 게이트 36/36 · 사용자 프로젝트 live 1.
+
 ## [ADR-027 Implemented — 텍스트 편집 전환 픽셀 게이트 16/16 + 사용자 참관 live + 게이트가 잡은 Canvas 텍스트 결함] - 2026-09-20
 
 ### Changed

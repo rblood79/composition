@@ -49,7 +49,19 @@ A 는 편집과 무관한 캔버스 변위 결함 (사용자-가시, 잔존). B�
 | 6   | 한글 단일행 Text (200%)        | nudge 0/0.16 · Skia y −0.02 (종전 −6.32) · 편집기 = Skia 육안 동일 (캐럿만 다름) · pan/scroll 불변                                                                                                                                                                                          |
 | 7   | Button (200%)                  | nudge 0/0.39 — 100% 와 같은 값 (종전 5.94/7.4 는 반 크기 컨테이너 측정 결함) · 컨테이너 109px × scale(2)                                                                                                                                                                                    |
 
-관찰: 팔레트 패널 토글이 뷰포트를 옮긴다 (편집과 무관 — 처음엔 편집 진입이 pan 을 바꾼 것으로 보였으나 재측정에서 클릭·더블클릭·진입 전후 pan 동일). 사용자 프로젝트에 있던 `white-space: normal` + `\n` Text (Skia 8줄 ↔ 상자 2줄) 는 D1 결정의 알려진 발산 (CSS 는 접고 Skia 는 그린다) — 범위 밖.
+관찰: 팔레트 패널 토글이 뷰포트를 옮긴다 (편집과 무관 — 처음엔 편집 진입이 pan 을 바꾼 것으로 보였으나 재측정에서 클릭·더블클릭·진입 전후 pan 동일). 사용자 프로젝트에 있던 `white-space: normal` + `\n` Text (Skia 8줄 ↔ 상자 2줄) 는 D1 결정의 알려진 발산 (CSS 는 접고 Skia 는 그린다) — 아래 후속에서 종결.
+
+### 후속 — `white-space: normal` + `\n` (2026-09-20, 사용자 지시 "별도 항목으로 처리해")
+
+**원인**: Skia paragraph 입력이 normal 에서 `[ \t]+` 만 접고 segment break (`\n`) 는 그대로 그렸다. CSS Text 3 §4.1.1 은 normal · nowrap 에서 segment break 를 공백으로 접는다 — Preview DOM 은 접어 2줄, 레이아웃 상자는 Canvas 2D 측정 (`\n` = 공백) 이라 2줄, Skia 만 8줄이 상자 밖으로 넘쳤다. D3 대칭 = 시각 결과 동일이라 Skia 가 CSS 규칙을 따른다.
+
+**Chrome 실측 (Playwright chromium)**: segment break 는 앞뒤 문자와 무관하게 공백 1개 — 한글·한자·가나·Latin·전각 전부 "space", 연속 `\n` 도 1개, 앞뒤 공백 흡수. spec 의 East Asian Width 제거 규칙은 Blink 가 적용하지 않으므로 그 규칙은 구현하지 않는다.
+
+**수리**: `canvas/utils/textWhiteSpace.ts` `collapseTextWhiteSpace(content, whiteSpace)` 한 함수 — normal · nowrap 은 segment break → 공백 · 공백 run 1개 · 줄 앞뒤 공백 제거, pre-line 은 `\n` 보존 + 공백 접기, pre · pre-wrap 은 그대로. 소비처 3: Skia 렌더 (`nodeRendererText.ts`) · retained paragraph 키 (`textParagraphKey.ts` — 같은 함수여야 `\n` 만 다른 두 문서가 같은 문단) · 레이아웃 측정기 (`Canvas2DTextMeasurer.measureWrapped`, pre 계열 조각 재귀는 pre-wrap 규칙으로). 편집 오버레이는 `resolveOverlayWrap().collapsesSegmentBreaks` (normal · nowrap) 일 때 초기값의 segment break 만 공백으로 접어 싣는다 (`resolveOverlayInitialText` — Quill 은 `\n` 을 문단 경계로 그려 편집 진입 순간 8줄이 됐다). 고치지 않고 나가면 저장 0, 고쳐 커밋하면 접힌 형태로 저장 (WYSIWYG — normal 에서 `\n` 은 시각 의미가 없다).
+
+**게이트**: 하니스 케이스 `text-normal-newline` (320px Text, `\n` 8줄) 추가 + 모든 케이스에 "paragraph fits box" (Skia 줄 높이 합 ≤ 상자 높이) 게이트 → **36/36 PASS**. 원복 RED: segment break 접기만 빼면 `lines 9 · paraH 216 vs boxH 48` FAIL 4건. 단위: `textWhiteSpace.test.ts` (Chrome 실측 기대값) · `textParagraphKeySegmentBreak.test.ts` · `canvas2dMeasurerHardBreak.test.ts` 확장 · `overlayWrap.test.ts` 확장.
+
+**live (Chrome MCP foreground, 사용자 프로젝트 `0ca64d4c`, 200%)**: 그 Text (`가운데 정렬 Centered 라벨\n둘째 줄 second line 자세히\n셋째 줄 third`, textAlign center, padding 4, border 1) — Skia 2줄 (paraH 48) · 상자 342×58 안에 · 더블클릭 편집기 문단 1개 = 같은 2줄 (center) · Esc 로 나가 저장 0.
 
 ### Phase C 완료 근거 (2026-03-08)
 
