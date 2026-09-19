@@ -70,7 +70,7 @@
   .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
     .react-aria-ToggleButton[data-selected] {
     --button-text: var(--fg-on-accent);
-    color: var(--button-text);
+    color: var(--focus-ring);
   }
 
   .builder-control-group.react-aria-ToggleButtonGroup[data-indicator="true"]
