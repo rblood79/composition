@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — 2026-09-19
+Accepted — 2026-09-19 (Proposed 09-19 → [reviews/226.md](reviews/226.md) round 1 HIGH 1 · MEDIUM 3 · LOW 3 전부 fixed → round 2 수리 검증 VERIFIED FIXED 7/7 · 신규 LOW 1 deferred (settle 순서 — Phase 2 흡수) → 사용자 승격 지시. 구현은 미착수)
 
 설계 요청: 사용자 `/create-adr 4-2 줌 LOD` (2026-09-19). 발단은 연구 문서 [PAGE_HEADER_DOM_LAYER_SCALING_2026-09.md](../explanation/research/PAGE_HEADER_DOM_LAYER_SCALING_2026-09.md) §4-1 실측 (같은 날) — "제스처 중 헤더 mount/unmount 는 실제로 돈다 (줌 1 · 50p 수평 pan 4/4 · 줌 0.1 · 200p 3 s 에 200/240) · 레이어/GPU 와 드래그 occlusion 은 V=60 에서 병목 아님 · 4-2 줌 LOD 만 착수 사유 성립 (MEDIUM · 긴급 아님)".
 
