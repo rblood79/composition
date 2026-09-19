@@ -367,6 +367,8 @@ interface TextEditingSlice {
 
 **후속 6 (2026-09-20, 사용자 live: Wrap "Truncate" 가 Preview 는 "…" · Canvas 는 전문)**: `renderText` 의 nowrap "큰 폭 layout 회피" 재layout (intrinsic + 1) 이 ellipsis 문단에도 걸려 maxWidth · maxLines 1 · ellipsis 로 만든 layout 을 덮어썼다 (678px 한 줄). `!isEllipsis` 로 제외. 하니스 `text-truncate` (nowrap + ellipsis + hidden, 200px): 한 줄 · 줄 폭 182.6 ≤ 200 게이트, 편집기 ink 비교는 SKIP (편집 중엔 줄임 해제 — Figma 도 같다) → **40/40**. live: Canvas "ABCDEFG ABCDEFG AB…" = Preview.
 
+**후속 7 (2026-09-20, 사용자 live: Text 에 border 1px 만 주면 padding 0 에서 텍스트가 상자 밖, padding ≥ 1 이면 정상)**: 원인 2 — (a) `resolveCatalogPaint.hasOpaqueCatalogBackground` 가 사용자 인라인 `borderColor` 까지 세어 inline Text 를 box archetype (center · middle) 로 판정 (배경색은 2026-07-21 에 이미 제외했었다) → catalog 테두리만 센다. (b) `specShapeConverter` 의 블록 높이 측정이 `x = 0` 이면 건너뛰어 7줄을 1줄로 보고 (170 − 24) / 2 = 73 에 중앙 배치 → x 0 도 잰다. 더해 baseline top 텍스트는 border-box 보정에서 paddingTop 도 border 만큼 내린다 (DOM border-top). 단위: `resolveCatalogPaint.test` (text-only + inline border → inline) · `specShapeConverterPreWrapBlockHeight.test` (middle x 0 → paddingTop 1 (종전 73) · top → 1/1). live: 7줄이 상자 안 좌상단 (pt 1 · pl 1), 하니스 40/40 · parity 1430 PASS.
+
 ~~**결정 (2026-09-20, D1 에서 정정)**~~ (후속 3 으로 대체): Enter 가 줄바꿈인 조건은 타입이 아니라 Skia 가 paragraph 에 넘긴 white-space 다 — `pre` / `pre-wrap` / `pre-line` 에서만 줄바꿈 (`\n` 을 Skia 와 CSS 가 같이 그린다), `normal` / `nowrap` 은 완료 (CSS 는 `\n` 을 접고 Skia 는 그려 두 consumer 가 갈린다). 계약 한 곳: `overlay/overlayWrap.ts` `resolveOverlayWrap`. 빈 텍스트 노드 삭제는 별도 항목.
 
 **보류 (구 Phase D)**: D-1 리치 텍스트 (Bold / Italic / 색) · D-3 편집 툴바 — 재개 조건: canonical 텍스트 모델이 인라인 스타일 run 을 담는 ADR 이 Implemented 된 뒤.

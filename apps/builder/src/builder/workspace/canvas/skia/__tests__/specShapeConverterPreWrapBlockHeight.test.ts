@@ -82,3 +82,54 @@ describe("buildSpecNodeData 가 style.whiteSpace 를 text shape 에 싣는다 (s
     expect(src).toContain('sh.type === "text" && sh.whiteSpace == null');
   });
 });
+
+/**
+ * ADR-027 후속 7 (2026-09-20, 사용자 live: Text 에 border 1px 만 주면 padding 0 에서 텍스트가 상자 밖) —
+ * (a) x = 0 이면 블록 높이를 안 재 7줄을 1줄로 보고 (170 − 24) / 2 = 73 에 중앙 배치했다.
+ * (b) baseline top 텍스트는 border-box 보정에서 paddingTop 도 border 만큼 내려간다 (DOM border-top).
+ */
+describe("specShapesToSkia — padding 0 · border 1 의 텍스트 자리", () => {
+  const convert = (baseline: "top" | "middle") =>
+    specShapesToSkia(
+      [
+        {
+          id: "bg",
+          type: "roundRect",
+          x: 0,
+          y: 0,
+          width: 342,
+          height: 170,
+          radius: 0,
+          fill: "#fff",
+        },
+        { id: "bd", type: "border", color: "#C20E0E", borderWidth: 1 },
+        {
+          id: "t",
+          type: "text",
+          text: "1\n2\n3\n4\n5\n6\n7",
+          x: 0,
+          y: 0,
+          align: "left",
+          baseline,
+          fill: "#000",
+          fontSize: 16,
+          fontFamily: "Pretendard",
+          lineHeight: 24,
+          whiteSpace: "pre-wrap",
+        },
+      ],
+      "light",
+      342,
+      170,
+    ).children?.find((c) => c.type === "text")?.text;
+
+  it("middle · x 0: 7줄 (168) 기준 중앙 → paddingTop 1 (종전 73)", () => {
+    expect(convert("middle")?.paddingTop).toBe(1);
+  });
+
+  it("top: border 1 만큼 내려간다 → paddingTop 1, paddingLeft 1", () => {
+    const t = convert("top");
+    expect(t?.paddingTop).toBe(1);
+    expect(t?.paddingLeft).toBe(1);
+  });
+});

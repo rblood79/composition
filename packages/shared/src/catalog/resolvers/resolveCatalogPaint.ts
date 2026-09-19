@@ -129,22 +129,29 @@ export function resolveCatalogPaint({
   const staticBorderEligible =
     variantBorderColor != null &&
     (variantBorderColor !== TRANSPARENT_TOKEN || hasBorderWidthChannel);
+  // catalog 이 준 테두리 (variant colors · staticColor) — 사용자 인라인 border 는 아래 borderColor 에만.
+  const catalogBorderColor = isShowAll
+    ? undefined
+    : staticHex != null && staticBorderEligible
+      ? staticHex
+      : variantBorderColor;
   const borderColor = isShowAll
     ? undefined
-    : ((style?.borderColor as string | undefined) ??
-      (staticHex != null && staticBorderEligible
-        ? staticHex
-        : variantBorderColor));
+    : ((style?.borderColor as string | undefined) ?? catalogBorderColor);
 
   const hasVisibleBoxPaint =
     style?.backgroundColor != null ||
     (backgroundColor != null && catalogAlpha !== 0) ||
     !!borderColor;
+  // box archetype 신호는 **catalog** 배경·테두리만 — 사용자가 inline text leaf (Text 등) 에 붙인 border 는
+  //   DOM 에서 inline flow 를 바꾸지 않으므로 (배경색과 같은 판정, 2026-07-21) 여기서도 세지 않는다.
+  //   종전엔 `!!borderColor` 가 사용자 border 를 포함해 Text 에 1px 테두리만 줘도 box 로 판정 → 텍스트가
+  //   중앙 배치되고 (padding 0 이면 7줄이 상자 밖) DOM 과 갈렸다 (사용자 live 2026-09-20).
   const hasOpaqueCatalogBackground =
     (stateBackground != null &&
       stateBackground !== TRANSPARENT_TOKEN &&
       catalogAlpha !== 0) ||
-    !!borderColor;
+    !!catalogBorderColor;
 
   return {
     backgroundColor,

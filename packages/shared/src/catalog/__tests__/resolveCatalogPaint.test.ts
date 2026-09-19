@@ -155,6 +155,28 @@ describe("resolveCatalogPaint", () => {
     });
   });
 
+  it("사용자 inline border 는 box archetype 신호가 아니다 — text-only variant 에 border 를 줘도 inline", () => {
+    const textOnly: ComponentRuleVariant = {
+      fill: {
+        default: { base: "{color.transparent}" },
+        alpha: 0,
+      },
+      colors: { text: "variant-text" },
+    };
+    expect(
+      resolve(
+        { style: { borderColor: "#C20E0E", borderWidth: 1 } },
+        "default",
+        textOnly,
+        undefined,
+      ),
+    ).toMatchObject({
+      borderColor: "#C20E0E",
+      hasVisibleBoxPaint: true,
+      hasOpaqueCatalogBackground: false,
+    });
+  });
+
   it("transparent border는 width channel이 있을 때만 static border 교체 대상이다", () => {
     const transparentBorder: ComponentRuleVariant = {
       fill: { default: { base: "opaque-bg" } },

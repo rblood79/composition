@@ -167,21 +167,24 @@ function resolveLegacySemantic(
     (variantBorderColor !== "{color.transparent}" ||
       size?.borderWidth != null ||
       style?.borderWidth != null);
+  const catalogBorderColor = isShowAll
+    ? undefined
+    : staticHex != null && staticBorderEligible
+      ? staticHex
+      : variantBorderColor;
   const borderColor = isShowAll
     ? undefined
-    : ((style?.borderColor as string | undefined) ??
-      (staticHex != null && staticBorderEligible
-        ? staticHex
-        : variantBorderColor));
+    : ((style?.borderColor as string | undefined) ?? catalogBorderColor);
   const hasVisibleBoxPaint =
     style?.backgroundColor != null ||
     (backgroundColor != null && catalogAlpha !== 0) ||
     !!borderColor;
+  // 2026-09-20: 사용자 inline border 는 box archetype 신호가 아니다 (catalog 테두리만).
   const hasOpaqueCatalogBackground =
     (stateBackground != null &&
       stateBackground !== "{color.transparent}" &&
       catalogAlpha !== 0) ||
-    !!borderColor;
+    !!catalogBorderColor;
 
   return {
     backgroundColor: hasVisibleBoxPaint ? backgroundColor : undefined,

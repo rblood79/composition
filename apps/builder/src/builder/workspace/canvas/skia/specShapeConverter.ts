@@ -179,6 +179,8 @@ export function specShapesToSkia(
   const presentationFillTargets: SkiaPresentationFillTarget[] = [];
   const presentationTextTargets: SkiaPresentationTextTarget[] = [];
   const presentationTextMetricTargets: SkiaPresentationTextMetricTarget[] = [];
+  // baseline top 텍스트 노드 — border-box 보정에서 paddingTop 도 border 만큼 민다.
+  const topAnchoredTextNodes = new Set<SkiaNodeData>();
 
   // Deferred shapes: shadow/border with explicit target (forward reference)
   const deferredShapes: Shape[] = [];
@@ -208,6 +210,14 @@ export function specShapesToSkia(
     for (const child of children) {
       if (child.type === "text" && child.text) {
         child.text.paddingLeft += bgBorderWidth;
+        if (topAnchoredTextNodes.has(child)) {
+          child.text.paddingTop += bgBorderWidth;
+          if (typeof child.text.paddingBottom === "number")
+            child.text.paddingBottom = Math.max(
+              0,
+              child.text.paddingBottom - bgBorderWidth,
+            );
+        }
         child.text.maxWidth -= bgBorderWidth * 2;
         if (child.text.maxWidth < 1) child.text.maxWidth = containerWidth;
       }
@@ -816,7 +826,9 @@ export function specShapesToSkia(
           const effectiveMaxWidth =
             shape.maxWidth ??
             (shape.x > 0 ? containerWidth - shape.x * 2 : containerWidth);
-          if (effectiveMaxWidth > 0 && effectiveMaxWidth < containerWidth) {
+          // x = 0 (padding 0) 이라도 잰다 — 종전 `< containerWidth` 조건은 padding 0 box 의 여러 줄
+          //   텍스트를 1줄로 보고 (170 − 24) / 2 = 73 에 중앙 배치해 상자 밖으로 내보냈다 (2026-09-20).
+          if (effectiveMaxWidth > 0) {
             const ff = shape.fontFamily ?? DEFAULT_FONT_FAMILY;
             const fw =
               typeof shape.fontWeight === "number" ? shape.fontWeight : 400;
@@ -854,6 +866,9 @@ export function specShapesToSkia(
           0,
           containerHeight - Math.max(0, paddingTop) - textBlockHeight,
         );
+        // top 기준 텍스트는 border-box 보정 (아래 post-process) 에서 border 만큼 내려간다 — DOM 의
+        //   border-top 이 content 를 미는 것과 같다. middle 은 상자 전체 기준 중앙이라 대칭 border 에 무관.
+        const anchoredTop = shape.baseline !== "middle";
 
         // Calculate paddingLeft based on align
         // align="right" + x>0: x는 우측 경계 → paddingLeft=0, maxWidth=x
@@ -979,6 +994,7 @@ export function specShapesToSkia(
 
         presentationTextMetricTargets.push({ text: node.text! });
 
+        if (anchoredTop) topAnchoredTextNodes.add(node);
         children.push(node);
         break;
       }
