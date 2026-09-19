@@ -26,6 +26,7 @@ import { extractFullSpecTextStyle } from "./specTextStyleForOverlay";
 import {
   decorationMaskToCss,
   resolveOverlayFontFeatures,
+  resolveCommittedWhiteSpace,
   resolveOverlayWrap,
 } from "./overlayWrap";
 import {
@@ -473,10 +474,24 @@ export function useTextEdit(): UseTextEditReturn {
 
           // silentUpdateTextProp이 store를 변경했으므로 최신 state 재조회
           const freshState = useStore.getState();
+          // Shift+Enter 로 넣은 `\n` 이 보이려면 white-space 가 pre 계열이어야 한다 (normal 은
+          //   CSS·Skia 가 같이 접는다) — 같은 커밋에 style.whiteSpace 승격.
+          const promotedWhiteSpace = resolveCommittedWhiteSpace(
+            (props?.style as Record<string, unknown> | undefined)?.whiteSpace,
+            finalValue,
+          );
           // updateElementProps: 히스토리 기록 + DB persist + layoutVersion
           freshState.updateElementProps(elementId, {
             ...props,
             [propKey]: finalValue,
+            ...(promotedWhiteSpace
+              ? {
+                  style: {
+                    ...((props?.style as Record<string, unknown>) ?? {}),
+                    whiteSpace: promotedWhiteSpace,
+                  },
+                }
+              : {}),
           });
           freshState.invalidateLayout?.();
         }

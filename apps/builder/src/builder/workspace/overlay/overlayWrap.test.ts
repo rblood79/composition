@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   decorationMaskToCss,
   resolveOverlayFontFeatures,
+  resolveCommittedWhiteSpace,
   resolveOverlayInitialText,
   resolveOverlayWrap,
 } from "./overlayWrap";
@@ -162,5 +163,23 @@ describe("TextEditOverlay consumes the font feature channel (static)", () => {
       "utf8",
     );
     expect(source).toContain("root.style.fontFeatureSettings");
+  });
+});
+
+/**
+ * Shift+Enter 가 normal Text 에 넣은 `\n` 은 커밋 때 white-space 를 pre 계열로 올려야 보인다
+ * (사용자 live 2026-09-20: `\n\n` 이 저장됐지만 CSS·Skia 둘 다 접어 줄바꿈이 안 보였다).
+ */
+describe("resolveCommittedWhiteSpace — Shift+Enter 줄바꿈은 pre 계열로 승격", () => {
+  it("normal / 미지정 + \\n → pre-wrap · nowrap + \\n → pre", () => {
+    expect(resolveCommittedWhiteSpace(undefined, "a\nb")).toBe("pre-wrap");
+    expect(resolveCommittedWhiteSpace("normal", "a\nb")).toBe("pre-wrap");
+    expect(resolveCommittedWhiteSpace("nowrap", "a\nb")).toBe("pre");
+  });
+  it("\\n 없음 · 이미 pre 계열 → null (style 무변경)", () => {
+    expect(resolveCommittedWhiteSpace("normal", "ab")).toBeNull();
+    expect(resolveCommittedWhiteSpace("pre-wrap", "a\nb")).toBeNull();
+    expect(resolveCommittedWhiteSpace("pre", "a\nb")).toBeNull();
+    expect(resolveCommittedWhiteSpace("pre-line", "a\nb")).toBeNull();
   });
 });

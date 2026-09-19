@@ -102,3 +102,20 @@ export function resolveOverlayFontFeatures(
   ];
   return tags.map((t) => `"${t.name}" ${t.value}`).join(", ");
 }
+
+/**
+ * 커밋 시 white-space 승격 — normal · nowrap 편집기 초기값은 segment break 를 접어 실었으므로
+ * 커밋 텍스트에 남은 `\n` 은 전부 이번 편집에서 Shift+Enter 로 넣은 줄바꿈이다. CSS 는 normal 에서
+ * `\n` 을 못 그리므로 (Skia 도 이제 같이 접는다) 줄바꿈이 보이려면 pre 계열이어야 한다 — normal →
+ * `pre-wrap` (폭에서 줄바꿈 유지), nowrap → `pre` (한 줄 유지). 이미 pre 계열이거나 `\n` 이 없으면 null.
+ * 사용자 live (2026-09-20): "shift+enter 로 줄바꿈이 동작하지 않음" — `\n\n` 이 저장은 됐지만 안 보였다.
+ */
+export function resolveCommittedWhiteSpace(
+  currentWhiteSpace: unknown,
+  committedText: string,
+): "pre-wrap" | "pre" | null {
+  if (!committedText.includes("\n")) return null;
+  if (!collapsesSegmentBreaks(currentWhiteSpace as string | undefined))
+    return null;
+  return currentWhiteSpace === "nowrap" ? "pre" : "pre-wrap";
+}

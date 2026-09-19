@@ -80,6 +80,13 @@ describe("텍스트 leaf 고정 폭 줄바꿈 높이", () => {
   test("폭 미지정이면 부모 폭 기준 (1줄) — 종전 동작 유지", () => {
     expect(enrichedHeight({})).toBe(24);
   });
+
+  // 사용자 live (2026-09-20, `width: 50%` Text): 엔진 상자 2줄 ↔ Skia 3줄. enrich 가 % 를 거부해
+  //   부모 폭으로 쟀고, Step 4.5 는 "% 면 enrich 도 availableWidth × % 로 쟀다" 고 추정해
+  //   (960 == 960) 재측정을 건너뛰었다 — 둘의 가정이 갈렸다. enrich 도 같은 식으로 푼다.
+  test("width 30% (부모 1920 → 576) → 832px 문장이 2줄", () => {
+    expect(enrichedHeight({ width: "30%" })).toBe(48);
+  });
 });
 
 describe("텍스트 leaf 명시 줄바꿈 (`\\n`) 높이 — white-space 를 측정기에 넘긴다", () => {

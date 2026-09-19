@@ -63,6 +63,8 @@ A 는 편집과 무관한 캔버스 변위 결함 (사용자-가시, 잔존). B�
 
 **live (Chrome MCP foreground, 사용자 프로젝트 `0ca64d4c`, 200%)**: 그 Text (`가운데 정렬 Centered 라벨\n둘째 줄 second line 자세히\n셋째 줄 third`, textAlign center, padding 4, border 1) — Skia 2줄 (paraH 48) · 상자 342×58 안에 · 더블클릭 편집기 문단 1개 = 같은 2줄 (center) · Esc 로 나가 저장 0.
 
+**후속 2 (같은 날, 사용자 live 지적 2건)**: (a) `width: 50%` Text — 폭 안에서 줄바꿈은 되지만 상자 높이가 2줄 (58) 로 Skia 3줄 (72) 이 넘쳤다. enrich 가 `%` 폭을 거부해 부모 폭으로 재고, Step 4.5 는 "% 면 enrich 도 availableWidth × % 로 쟀다" 고 추정해 (171 == 171) 재측정을 건너뛰었다 — 둘의 가정이 갈렸다. `resolveEnrichMeasureWidth` 가 px · `%` 를 Step 4.5 와 같은 식으로 푼다 (RED 24 → GREEN 48, live 58 → 82). (b) normal Text 에서 Shift+Enter — `\n` 이 저장은 됐지만 CSS·Skia 둘 다 접어 줄바꿈이 안 보였다. 커밋 텍스트에 `\n` 이 남아 있으면 (초기값은 접어 실었으므로 전부 이번 편집분) 같은 커밋에 `style.whiteSpace` 를 승격한다 — normal → `pre-wrap`, nowrap → `pre` (`resolveCommittedWhiteSpace`). live: "라벨" 뒤 Shift+Enter → 편집기 2줄 → Cmd+Enter → `whiteSpace: pre-wrap` 저장, Skia 2줄 (175.5 · 266.9) 이 342×58 안에.
+
 ### Phase C 완료 근거 (2026-03-08)
 
 - TEXT_ELEMENT_TAGS: Button, ToggleButton, Tag, Badge, Link 등 14개 태그 등록 완료

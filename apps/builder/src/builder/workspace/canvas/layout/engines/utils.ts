@@ -366,6 +366,23 @@ function parseNumericValue(value: unknown): number | undefined {
 }
 
 /**
+ * enrich 가 텍스트 leaf · INTRINSIC_MEASURE 태그의 height-for-width 를 잴 폭 — px/숫자는 그 값,
+ * `%` 는 availableWidth 비율 (Step 4.5 의 enrichedWidth 추정식과 같은 식), 그 외는 availableWidth.
+ */
+export function resolveEnrichMeasureWidth(
+  rawWidth: unknown,
+  availableWidth: number,
+): number {
+  const px = parseNumericValue(rawWidth);
+  if (px !== undefined && px > 0) return px;
+  if (typeof rawWidth === "string" && rawWidth.trim().endsWith("%")) {
+    const pct = parseFloat(rawWidth);
+    if (Number.isFinite(pct) && pct > 0) return (availableWidth * pct) / 100;
+  }
+  return availableWidth;
+}
+
+/**
  * ADR-150 A2: ListBoxItem 행의 padding-box 높이를 row style + description 유무로 산출.
  *
  * `calculateContentHeight` 의 listboxitem 분기(§1.55b-2)와 collection 가상화 window resolver
@@ -5169,9 +5186,12 @@ export function enrichWithIntrinsicSize(
             //   `Text { width: 300px }` 긴 문장을 부모 폭으로 재면 1줄 (24) 이 명시 height 로
             //   굳고, Step 4.5 2-pass 는 px 폭을 "enrich 가 쓴 폭" 으로 가정해 (300 == 300)
             //   재측정을 건너뛴다 → 엔진 300×24 ↔ Skia paragraph 3줄 (72) 넘침.
-            (INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type)) &&
-              (parseNumericValue(rawWidth) ?? 0) > 0
-              ? (parseNumericValue(rawWidth) as number)
+            // `%` 폭도 같다 (사용자 live 2026-09-20, `width: 50%`): Step 4.5 는 "% 면 enrich 가
+            //   availableWidth × % 로 쟀다" 고 추정하므로 (fullTreeLayout enrichedWidth) 여기서도
+            //   같은 식으로 풀어야 재측정 판정과 가정이 일치한다 — 종전엔 % 를 거부해 부모 폭 (2줄)
+            //   으로 잰 뒤 Step 4.5 가 171 == 171 로 건너뛰어 Skia 3줄이 상자 밖이었다.
+            INTRINSIC_MEASURE_TAGS.has(type) || TEXT_LEAF_TAGS.has(type)
+              ? resolveEnrichMeasureWidth(rawWidth, availableWidth)
               : availableWidth,
             undefined,
             getChildElements,
