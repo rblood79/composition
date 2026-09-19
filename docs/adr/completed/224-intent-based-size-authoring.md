@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — 2026-09-18 (Fill 차단 수리 · Ratio 엔진 경계 · Ratio 복합 명령 UI · Flow→Absolute 복합 명령 · 캔버스 핸들 resize · 다중 선택 · absolute 핸들 · G2 왕복 · wrap hypothetical size · Min/Max 입력 제약 · G6 A/B 반영 — **G5 소유자 확인 대기**: 소유자가 foreground Builder 에서 확인하면 Implemented 승격)
+Implemented — 2026-09-19 (G5 소유자 확인 완료 — 2026-09-18 Accepted: Fill 차단 수리 · Ratio 엔진 경계 · Ratio 복합 명령 UI · Flow→Absolute 복합 명령 · 캔버스 핸들 resize · 다중 선택 · absolute 핸들 · G2 왕복 · wrap hypothetical size · Min/Max 입력 제약 · G6 A/B)
 
 사용자 요청: 기존 Fill/fr 선택 방식의 불편을 해소하고, 기존 스타일 패널의 Size 디자인 패턴을 유지하는 ADR 설계. Round 1 HIGH 4·MEDIUM 3·LOW 1을 반영해 범위를 개정했다. Round 3에서 8건 해결을 독립 검증했다. 2026-09-18 사용자가 ADR-224 완료까지 구현·검증을 명시 승인했다. 크리티컬 오류 발견 시 중단·보고하고 작은 오류는 수리 후 재개한다.
 
@@ -29,8 +29,8 @@ Accepted — 2026-09-18 (Fill 차단 수리 · Ratio 엔진 경계 · Ratio 복�
 
 ### 선행 계약과 개정 범위
 
-- [ADR-026](completed/026-responsive-constraint-ui.md)의 Fill/fr 입력 방식만 대체한다. 기존 CSS 크기·단위 편집과 패널 격자는 재사용한다. 전체 ADR 상태는 바꾸지 않는다.
-- [ADR-116](completed/116-canonical-document-ssot-transition.md)은 기반, 이 ADR은 응용이다. [ADR-154](completed/154-responsive-breakpoint-authoring.md)의 base/tier 명시 opt-in과 [ADR-187](completed/187-editor-presentation-transaction-and-typed-invalidation.md)의 transaction을 소비한다.
+- [ADR-026](026-responsive-constraint-ui.md)의 Fill/fr 입력 방식만 대체한다. 기존 CSS 크기·단위 편집과 패널 격자는 재사용한다. 전체 ADR 상태는 바꾸지 않는다.
+- [ADR-116](116-canonical-document-ssot-transition.md)은 기반, 이 ADR은 응용이다. [ADR-154](154-responsive-breakpoint-authoring.md)의 base/tier 명시 opt-in과 [ADR-187](187-editor-presentation-transaction-and-typed-invalidation.md)의 transaction을 소비한다.
 - Fill은 부모 문맥에 따라 CSS 표현이 바뀌므로 축별 factor를 보존한다. 나머지 모드의 크기값은 기존 CSS로 충분하다. **Fill 전용 의미 보강**이며 다섯 모드의 전면 schema 전환이 아니다. Fill 해제 시 속성 정리는 여전히 부모 문맥을 고려한다.
 - `x-composition.sizingRestore` 신설과 Absolute→Flow 자동 복원은 제외한다. Undo가 이전 상태 전체를 복원한다. 이번 개정은 같은 ADR 안의 범위 축소다.
 
@@ -82,7 +82,7 @@ Accepted — 2026-09-18 (Fill 차단 수리 · Ratio 엔진 경계 · Ratio 복�
 
 ## Decision
 
-> 구현 상세: [224-intent-based-size-authoring-breakdown.md](design/224-intent-based-size-authoring-breakdown.md)
+> 구현 상세: [224-intent-based-size-authoring-breakdown.md](../design/224-intent-based-size-authoring-breakdown.md)
 
 **대안 C를 제안한다. 기존 Size 격자와 CSS 크기 저장을 유지하고 Fill에 필요한 의미만 추가한다.**
 
@@ -109,7 +109,7 @@ B의 큰 migration과 UI 변경을 수용할 이유가 없어 철회한다. A의
 
 ## Gates
 
-2026-09-18 실행 결과: **G3 실패, G4 방향 전환 시 렌더 정합 실패**. Row 자식 높이 Canvas 30px / Preview 240px, Column Width Fill 69px / 900px를 실측해 사용자 지시에 따라 중단했다. G0 증상 재현·G1 같은 상자 가중치 편집·G2 일부 왕복은 확인했지만 각 gate의 전체 조건은 미검증이다. G5/G6는 UNVERIFIED다. [실행 중단 근거](evidence/224-fill-layout-blocker.md).
+2026-09-18 실행 결과: **G3 실패, G4 방향 전환 시 렌더 정합 실패**. Row 자식 높이 Canvas 30px / Preview 240px, Column Width Fill 69px / 900px를 실측해 사용자 지시에 따라 중단했다. G0 증상 재현·G1 같은 상자 가중치 편집·G2 일부 왕복은 확인했지만 각 gate의 전체 조건은 미검증이다. G5/G6는 UNVERIFIED다. [실행 중단 근거](../evidence/224-fill-layout-blocker.md).
 
 같은 날 재개하여 intrinsic 측정값이 엔진 최종 입력의 고정 W/H로 들어가는 원인을 확정했다. 측정 스칼라 분리 후보는 위 Fill 크기를 일치시켰으나, Fill 없는 기본 Button의 Column 폭이 Canvas 900px / Preview 68px로 벌어지는 신규 크리티컬 회귀를 실제 Builder에서 확인했다. 사용자 지시에 따라 중단하고 이번 수리 후보만 철회했다. 기존 부분 구현과 다른 세션 변경은 보존했으며 기존 G3/G4 차단은 미해결이다.
 
@@ -152,6 +152,8 @@ B의 큰 migration과 UI 변경을 수용할 이유가 없어 철회한다. A의
 같은 날 Chrome foreground에 소유자 확인용 전용 fixture를 다시 구성했다. 실제 패널에서 Button 둘에 Width Fill 2/1을 입력해 계산 크기 251/139px를 확인했고, Ratio 잠금에서 Height가 `자동(비율)` 읽기 전용으로 바뀐 뒤 Desktop·Tablet·Mobile geometry를 열어 해제하면 30px Fixed로 저장됐다. Min W 200 + Max W 100은 오류와 함께 commit되지 않았고 Max W 300은 정상 저장됐다. Compare 모드에서 Preview `frame_1/button_1/button_2`와 Canvas 두 Button을 함께 표시한 Chrome 탭을 사용자에게 handoff했다. 사용자 직접 관찰 확인과 코드 commit 전까지 G5는 UNVERIFIED이며 Status는 Accepted다.
 
 같은 G5 handoff에서 사용자가 기존 프로젝트의 Compare 불일치와 Size 미반영을 발견해 이전 handoff 판정을 무효화했다. 위 크리티컬 수리 후 동일 프로젝트를 다시 열어 현재 Home 한 페이지만 양쪽에 표시하고 Width 입력→canonical→두 renderer→refresh 경로를 실측했다. Chrome 탭은 수리된 390×844 Compare 상태로 다시 handoff하며, 사용자 확인 전 G5는 계속 UNVERIFIED다.
+
+**G5 소유자 확인 (2026-09-19, foreground Chrome MCP — 사용자 참관, 프로젝트 `new` Home · mobile 390)**: 소유자가 창을 앞으로 가져온 상태에서 Styles 패널의 실제 컨트롤로 네 과업을 연속 실행하고 관찰했다. ① 남은 공간 채우기 — `width: fit-content` 인 ButtonGroup 안에서는 Cancel Fill 이 콘텐츠 크기 (71) 로 남고 (hug 부모 계약, `46647c8f6`), ButtonGroup Width Fill 로 두자 342 로 body 를 채우고 Cancel 이 Save 옆까지 늘어남. ② 배분 — Save `2 fr` 입력 → Cancel 120 / Save 214 (padding 24 제외 free 286 의 1/3·2/3), Compare 의 CSS Preview 와 Canvas 모두 120/214. ③ Ratio — Chart 잠금 → `aspectRatio 320 / 240` · Height `Auto (ratio)` → 16:9 → 320×180 양 leg → 해제: 첫 시도는 "Open each screen size … once" 안내로 저장 0 (tier geometry 계약), Desktop·Tablet·Mobile 순회 뒤 해제 → `height 180px` Fixed · aspectRatio 삭제 · Ratio Auto. ④ Min/Max — Min W 350 → 양 leg 350 (320 을 min 이 밀어올림), Max W 300 → 저장 0 · 필드 auto 복귀 · `role="alert"` "Minimum size cannot exceed maximum size.". 사용자가 관찰 결과를 확인하고 Implemented 승격을 지시했다 — G5 닫힘. 테스트 편집은 사용자 요청으로 프로젝트에 그대로 둔다.
 
 ## Consequences
 

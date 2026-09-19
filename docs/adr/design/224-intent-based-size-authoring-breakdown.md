@@ -1,6 +1,6 @@
 # ADR-224 구현 설계 — 기존 Size 격자와 Fill 전용 의미 보강
 
-> [ADR-224](../224-intent-based-size-authoring.md), Accepted — 2026-09-18. 제품·자동 gate 구현과 독립 재검증 완료. G5 handoff에서 발견된 Compare current-page/camera, body authored size, percentage-height intrinsic fallback, ButtonGroup gap 정합도 수리했으며 소유자 재관찰만 대기. Round 1 수리 반영.
+> [ADR-224](../completed/224-intent-based-size-authoring.md), **Implemented — 2026-09-19** (G5 소유자 확인: foreground Chrome MCP, 프로젝트 `new` — Fill 채움 · 1:2 배분 120/214 양 leg · Ratio 잠금→16:9→해제 180px · Min 350/Max 300 차단). 2026-09-18 Accepted: 제품·자동 gate 구현과 독립 재검증 완료, G5 handoff 의 Compare current-page/camera · body authored size · percentage-height intrinsic fallback · ButtonGroup gap 정합 수리. Round 1 수리 반영.
 
 최신 실행: 기본 `fit-content`·콘텐츠 측정·Ratio 엔진/복합 명령·Flow→Absolute·캔버스 resize·다중 선택·absolute 핸들·G2 왕복을 구현했다. 독립 재검증에서 새로 발견한 wrap+Min 발산은 flex line collection·grow/shrink 판정이 unclamped basis를 쓰던 공통 원인을 `hypothetical_main` 단일 정의로 수리했다. G5 기존 프로젝트 handoff에서 Compare current-page/camera 격리, body authored size 덮어쓰기, auto-height 부모의 percentage leaf intrinsic fallback, ButtonGroup prop 기본 gap 누락을 추가로 발견해 수리했다. 지정 프로젝트에서 body 양쪽 390×844, ButtonGroup 양쪽 342×96, Width 390→400 양쪽 반영·refresh 보존 후 390 복원을 확인했다. Min/Max 신규 역전은 current canonical active-tier 값을 기준으로 commit을 막는다. 통합 headed Builder 41/41, pageerror 0; wrap Canvas/Preview 300×20 두 줄 일치; 최신 Chrome parity 37/37; G6는 이전 산출물을 재사용하지 않고 `e8987c394` 대 현재를 새로 30회씩 측정해 4/4 PASS했다. 남은 것은 G5 소유자 확인 (blocking). 알려진 한계: 자식 있는 absolute 컨테이너의 핸들 resize (layout lane targeted-unsupported).
 

@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [ADR-224 — 의도 기반 크기 편집 Implemented (G5 소유자 확인)] - 2026-09-19
+
+### Changed
+
+- ADR-224 를 Implemented 로 승격했다. 남아 있던 마지막 gate G5 (소유자 foreground 관찰) 를 사용자 참관 아래 Chrome MCP 로 닫았다 — 프로젝트 `new` Home (mobile 390) 에서 실제 Styles 패널 컨트롤로 ① ButtonGroup·Cancel Fill → 남은 공간 채움 ② Save `2 fr` → Cancel 120 / Save 214, CSS Preview 와 Canvas 동일 ③ Chart Ratio 잠금 `320/240` → 16:9 → 320×180 양 leg → 3 breakpoint 순회 뒤 해제 → `height 180px` 고정 ④ Min W 350 → 양 leg 350, Max W 300 → 저장 0 + "Minimum size cannot exceed maximum size.". 제품 코드 변경 0 (Accepted 09-18 시점의 구현 그대로).
+
+### Validation
+
+- 자동 gate 는 09-18 기록 유지: 통합 headed Builder 41/41 · parity 69/69 · Rust 427 · G6 A/B (`e8987c394` vs HEAD) 4/4. 이번 승격은 G5 관찰 기록만 추가 (ADR `### Live Exercise`).
+
 ## [ADR-225 — 재사용 레이아웃 어휘 정렬: Frames 기능 표면을 Layouts 로 통일] - 2026-09-19
 
 ### Changed
