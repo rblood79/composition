@@ -278,9 +278,13 @@ export function useViewportControl(
       window.removeEventListener("pointerup", handleWindowPointerEnd);
       window.removeEventListener("pointercancel", handleWindowPointerEnd);
       if (isPanningRef.current) {
+        // ADR-226 R2: pointer pan 중 unmount 도 pointercancel · blur 와 같은 종료 계약 —
+        // session finish 뒤 onInteractionEnd 1회로 cameraGestureActive 를 false 로 돌린다.
+        // 누락 시 헤더 층이 동결 + 숨김으로 남는다 (reviews/226 round 1 m3).
         viewportSession.finish("interrupted");
         lastPanPointRef.current = null;
         isPanningRef.current = false;
+        onInteractionEndRef.current?.();
       }
     };
   }, [containerEl, controller, gestureSession, viewportSession]);

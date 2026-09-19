@@ -4,8 +4,13 @@
  * - 카메라는 Skia 프레임이 publish 하는 `subscribeCanvasFramePresentation` 하나만 구독한다
  *   (액션바 `useActionBarPlacement` 와 같은 규약 — 별도 RAF/React state 없음, transform 만 쓴다).
  * - **게이트**: `useViewportSyncStore.cameraGestureActive` (휠 pan/zoom · 스페이스/중클릭 pan)
- *   가 켜진 동안 프레임 콜백은 early return — DOM 쓰기 0 (G2 계측 대상). 루트에
- *   `data-hidden` 을 걸어 층을 숨기고, 꺼지는 순간 `placeAll` 1회.
+ *   가 켜진 동안 프레임 콜백은 early return — DOM 쓰기 0 (G2 계측 대상). 켜지는 순간 store
+ *   구독 콜백이 루트에 `data-hidden` 을 건다 (React 커밋을 기다리지 않는다 — 다음 프레임
+ *   콜백보다 먼저 닫혀야 한다).
+ * - **commit-before-reveal (ADR-226 Decision 1)**: 꺼짐은 구독 콜백이 처리하지 않는다. 층
+ *   컴포넌트가 제스처 중 동결했던 frames 를 gate-off render 에서 최신으로 올리면, 그 커밋의
+ *   layoutEffect 가 새 노드까지 `placeAll` 1회 → `data-hidden` 제거 순서로 닫는다. 구독
+ *   콜백에서 바로 reveal 하면 React 커밋 전 한 paint 동안 구 집합 · 무배치 새 노드가 보인다 (R5).
  * - **단일 drag 추종**: `pagePositionSnapshot.isActive` 면 `activeOverrides` 에 든 페이지
  *   노드만 transform 을 다시 쓴다 (다중 선택 drag 는 그 소집합). 카메라는 안 움직인다.
  * - **settle 배치** `placeAll`: 카메라 변화 (프로그램 zoom · 미니맵 점프) · 프레임 목록 ·
@@ -40,8 +45,13 @@ import {
 
 export interface PageHeaderPlacementInput {
   layerNode: HTMLElement | null;
-  /** 렌더 순서 그대로 (= `orderPagesForPaint`, 뒤가 위). */
+  /** 렌더 순서 그대로 (= `orderPagesForPaint`, 뒤가 위). 제스처 중에는 settle 집합으로 동결. */
   frames: readonly PageHeaderFrame[];
+  /**
+   * 이 render 가 본 게이트 값 (층 컴포넌트의 settled 스냅샷). false 로 바뀐 커밋의
+   * layoutEffect 가 최신 frames 배치 + reveal 을 맡는다.
+   */
+  gestureActive: boolean;
 }
 
 function currentCamera(): HeaderCamera {
@@ -137,6 +147,7 @@ export function placePageHeaders(
 export function usePageHeaderPlacement({
   layerNode,
   frames,
+  gestureActive,
 }: PageHeaderPlacementInput): void {
   const framesRef = useRef(frames);
   framesRef.current = frames;
@@ -167,29 +178,34 @@ export function usePageHeaderPlacement({
   };
 
   // 프레임 목록 · 노드 집합 · 순서가 바뀌면 paint 전에 1회 배치 (새 노드는 transform 이 없다).
-  // 카메라 제스처 중에는 skip — 팬/줌은 transientVisiblePageIds 재계산으로 frames 참조를
-  // 매 프레임 바꿔 이 이펙트를 재실행시킨다 (G2: 제스처 중 DOM 쓰기 0). 층은 이미 숨겨져
-  // 있고, gate-off 전환의 placeAll 이 최신 frames·노드로 따라잡는다. 새 노드는 그때까지
-  // transform 없이 숨은 채 대기한다.
+  // 카메라 제스처 중에는 skip — 층 컴포넌트가 frames 를 동결하므로 (ADR-226) 이 이펙트는
+  // 제스처 중 재실행되지 않지만, 게이트 ON 자체가 커밋을 하나 만들므로 가드는 남긴다.
+  // gate-off 커밋 (gestureActive true → false) 이 최신 frames · 새 노드로 `placeAll` 1회
+  // 한 뒤 `data-hidden` 을 뗀다 — 브라우저 paint 전에 집합 · transform · visible 순서가
+  // 닫힌다 (commit-before-reveal). 프레임 콜백은 그 사이 gestureActiveRef 로 계속 막힌다.
   useLayoutEffect(() => {
-    if (gestureActiveRef.current) return;
+    if (gestureActive) return;
+    gestureActiveRef.current = false;
     placeAllRef.current();
-  }, [layerNode, frames]);
+    if (layerNode?.hasAttribute("data-hidden")) {
+      layerNode.removeAttribute("data-hidden");
+    }
+  }, [layerNode, frames, gestureActive]);
 
   useLayoutEffect(() => {
     if (!layerNode) return;
 
-    const applyGate = (active: boolean): void => {
-      gestureActiveRef.current = active;
-      if (active) layerNode.setAttribute("data-hidden", "");
-      else layerNode.removeAttribute("data-hidden");
-      if (!active) placeAllRef.current();
+    // ON 만 즉시 — OFF 는 위 layoutEffect 가 최신 커밋에서 소유한다.
+    const applyGateOn = (active: boolean): void => {
+      if (!active) return;
+      gestureActiveRef.current = true;
+      layerNode.setAttribute("data-hidden", "");
     };
-    applyGate(useViewportSyncStore.getState().cameraGestureActive);
+    applyGateOn(useViewportSyncStore.getState().cameraGestureActive);
 
     const unsubscribeGate = useViewportSyncStore.subscribe(
       (state) => state.cameraGestureActive,
-      applyGate,
+      applyGateOn,
     );
     const unsubscribeSize = useViewportSyncStore.subscribe(
       (state) => state.containerSize,

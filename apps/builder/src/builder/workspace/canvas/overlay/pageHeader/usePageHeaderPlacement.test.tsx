@@ -72,6 +72,12 @@ async function countStyleWrites(
   return count;
 }
 
+function order(layer: HTMLElement): string[] {
+  return Array.from(layer.querySelectorAll<HTMLElement>("[data-page-id]")).map(
+    (node) => node.dataset.pageId ?? "",
+  );
+}
+
 function headerOf(layer: HTMLElement, pageId: string): HTMLElement {
   const node = layer.querySelector<HTMLElement>(`[data-page-id="${pageId}"]`);
   if (!node) throw new Error(`header ${pageId} 없음`);
@@ -213,5 +219,114 @@ describe("usePageHeaderPlacement — 게이트 · drag 추종 · settle 배치",
         p3: { x: 5000, y: 5000 },
       },
     });
+  });
+});
+
+describe("ADR-226 — 제스처 중 프레임 집합 동결 · commit-before-reveal", () => {
+  beforeEach(() => {
+    resetCanvasFramePresentation();
+    useViewportSyncStore.getState().reset();
+    useViewportSyncStore.getState().setContainerSize({
+      width: 1600,
+      height: 900,
+    });
+    useViewportSyncStore.getState().setCameraGestureActive(false);
+    publishCanvasFramePresentation(camera(1, 0, 100), idle);
+  });
+  afterEach(() => {
+    cleanup();
+    resetCanvasFramePresentation();
+  });
+
+  function childListRecorder(layer: HTMLElement) {
+    const records: MutationRecord[] = [];
+    const observer = new MutationObserver((batch) => records.push(...batch));
+    observer.observe(layer, { childList: true });
+    return {
+      count: () => {
+        records.push(...observer.takeRecords());
+        return records.filter((record) => record.type === "childList").length;
+      },
+      stop: () => observer.disconnect(),
+    };
+  }
+
+  it("게이트 ON 동안 frames 교체는 mount/unmount 0 — settle 집합을 유지한다", async () => {
+    const { container, rerender } = render(<PageHeaderLayer frames={frames} />);
+    const layer = container.firstElementChild as HTMLElement;
+    const nodesBefore = Array.from(layer.children);
+    act(() => useViewportSyncStore.getState().setCameraGestureActive(true));
+
+    const recorder = childListRecorder(layer);
+    const swapped = [
+      { id: "p4", title: "Four", x: 100, y: 0, width: 400, height: 800 },
+      frames[1],
+    ];
+    rerender(<PageHeaderLayer frames={swapped} />);
+    rerender(<PageHeaderLayer frames={[...swapped]} />);
+    await Promise.resolve();
+    expect(recorder.count()).toBe(0);
+    recorder.stop();
+    expect(Array.from(layer.children)).toEqual(nodesBefore);
+    expect(layer.querySelector('[data-page-id="p4"]')).toBeNull();
+    expect(layer.hasAttribute("data-hidden")).toBe(true);
+  });
+
+  it("게이트 OFF 커밋: 최신 집합 mount → 새 노드 transform 설정 → data-hidden 제거 순서 (settle 당 배치 1회)", async () => {
+    const { container, rerender } = render(<PageHeaderLayer frames={frames} />);
+    const layer = container.firstElementChild as HTMLElement;
+    act(() => useViewportSyncStore.getState().setCameraGestureActive(true));
+
+    // 제스처 중 카메라 이동 + 집합 교체 (뷰포트 안 p4 진입, p1 이탈)
+    publishCanvasFramePresentation(camera(1, -50, 100), idle);
+    const next = [
+      { id: "p4", title: "Four", x: 100, y: 0, width: 400, height: 800 },
+      frames[1],
+    ];
+    rerender(<PageHeaderLayer frames={next} />);
+    expect(layer.querySelector('[data-page-id="p4"]')).toBeNull();
+
+    // reveal 시점에 새 노드 transform 이 이미 설정돼 있어야 한다.
+    const sequence: string[] = [];
+    const observer = new MutationObserver((batch) => {
+      for (const record of batch) {
+        if (record.type === "childList") sequence.push("childList");
+        else if (
+          record.type === "attributes" &&
+          record.attributeName === "data-hidden" &&
+          record.target === layer
+        ) {
+          const p4 = layer.querySelector<HTMLElement>('[data-page-id="p4"]');
+          sequence.push(
+            `hidden:${layer.hasAttribute("data-hidden") ? "on" : "off"}:p4=${p4?.style.transform ?? "absent"}`,
+          );
+        }
+      }
+    });
+    observer.observe(layer, {
+      childList: true,
+      attributes: true,
+      attributeFilter: ["data-hidden"],
+    });
+
+    act(() => useViewportSyncStore.getState().setCameraGestureActive(false));
+    await Promise.resolve();
+    observer.disconnect();
+
+    expect(layer.hasAttribute("data-hidden")).toBe(false);
+    expect(order(layer)).toEqual(["p4", "p2"]);
+    expect(headerOf(layer, "p4").style.transform).toBe(
+      "translate3d(50px, 64px, 0)",
+    );
+    // childList (mount/unmount) 뒤에 hidden 제거가 오고, 그때 p4 transform 은 설정 완료.
+    const revealIndex = sequence.findIndex((entry) =>
+      entry.startsWith("hidden:off"),
+    );
+    expect(revealIndex).toBeGreaterThan(0);
+    expect(sequence[revealIndex]).toBe(
+      "hidden:off:p4=translate3d(50px, 64px, 0)",
+    );
+    expect(sequence.slice(0, revealIndex)).toContain("childList");
+    expect(sequence.slice(revealIndex + 1)).not.toContain("childList");
   });
 });
