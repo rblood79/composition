@@ -11,9 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
-## [ADR-027 Phase D3 — 텍스트 편집 전환 픽셀 게이트 16/16 + 게이트가 잡은 Canvas 텍스트 결함 3] - 2026-09-20
+## [ADR-027 Implemented — 텍스트 편집 전환 픽셀 게이트 16/16 + 사용자 참관 live + 게이트가 잡은 Canvas 텍스트 결함] - 2026-09-20
+
+### Changed
+
+- **ADR-027 Canvas 인라인 텍스트 편집 Implemented** (Phase A~~C + Phase D 전환 무결성 D0~~D3). 사용자 참관 live (Chrome MCP foreground, 100/200%): pre-wrap Text 진입·Enter·타이핑·Cmd+Enter 커밋 (상자 58 → 82 라이브) · Button "저장하기 Save" · Link · 한글 단일행 — 편집기와 Skia 가 같은 자리 (nudge ≤ 0.4px), pan/scroll 불변. Esc 는 취소 (Pencil 규약; ADR D1 표의 "Esc = 완료" 표기 정정).
 
 ### Fixed
+
+- pre-wrap 텍스트를 편집·커밋하면 Canvas 가 줄 수를 하나 적게 세서 (baseline middle 상자, 테두리·padding 있는 Text) 텍스트를 12px 아래 중앙에 두던 결함 (live 에서 발견) — shape 변환기의 textBlockHeight 측정에도 white-space 를 넘긴다 (`buildSpecNodeData` 가 `style.whiteSpace` 를 text shape 에 싣는다).
 
 - **한글 (CJK) 이 들어간 단일행 텍스트가 Canvas 에서 descent 만큼 (16px 에서 ≈6px) 위에 그려지던 결함** (2026-04-08 부터) — Skia 단일행 글리프 중앙 배치가 CJK 포함 텍스트에 ideographic baseline (줄 아래 변) 을 원점으로 쓰면서 ink ascent 는 alphabetic 기준이었다. Text "가운데 정렬" y −6.32 · Button "저장" 라벨 y −0.05 (Latin "Save" 4.96) → Preview 와 같은 line box 자리로. `textGlyphCentering.ts`.
 - 고정 px 폭 Text/Heading 에 긴 문장을 넣으면 상자는 1줄 높이로 남고 글이 상자 밖으로 넘치던 결함 — 엔진 1차 측정이 부모 content 폭 (body 1920) 으로 줄바꿈을 재고 2-pass 가 px 폭을 "이미 쓴 폭" 으로 가정해 재측정을 건너뛰었다. 텍스트 leaf 도 자기 px 폭으로 잰다 (Button 계열과 같이).

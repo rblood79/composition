@@ -820,6 +820,8 @@ export function specShapesToSkia(
             const ff = shape.fontFamily ?? DEFAULT_FONT_FAMILY;
             const fw =
               typeof shape.fontWeight === "number" ? shape.fontWeight : 400;
+            // ADR-027 D3 — white-space 도 넘긴다: pre 계열의 `\n` 은 hard break 라 (렌더도 그렇게 그린다)
+            //   빠뜨리면 3줄 텍스트를 2줄로 재 12px 아래에 중앙 배치한다 (live 2026-09-20).
             const measured = measureWrappedTextHeight(
               shape.text,
               fontSize,
@@ -827,6 +829,10 @@ export function specShapesToSkia(
               ff,
               effectiveMaxWidth,
               lineHeightPx,
+              undefined,
+              undefined,
+              shape.letterSpacing,
+              shape.whiteSpace,
             );
             if (measured > lineHeightPx + 0.5) {
               textBlockHeight = measured;

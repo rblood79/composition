@@ -17,7 +17,7 @@ composition Team
 - [ADR-008](008-layout-engine.md): 캔버스 레이아웃 엔진 전환
 - [ADR-009](009-full-tree-wasm-layout.md): Figma-Class Rendering & Layout
 - [ADR-012](012-rendering-layout-pipeline-hardening.md): 렌더링/레이아웃 파이프라인 하드닝
-- [ADR-027](../027-inline-text-editing.md): Canvas Inline Text Editing
+- [ADR-027](027-inline-text-editing.md): Canvas Inline Text Editing
 
 ---
 
@@ -262,7 +262,7 @@ paragraph cache, strutStyle, fontFamilies, text/image render path의 정합성�
 
 따라서 `Phase 5`는 아래 조건을 모두 만족할 때만 진행한다.
 
-1. Phase 0~4, 6~8 모두 완료
+1. Phase 0~~4, 6~~8 모두 완료
 2. 시각 스냅샷 비교 기준과 수동 비교 체크리스트 확보
 3. 작업 범위를 **extract-only**로 제한
 

@@ -175,8 +175,11 @@ export interface TextShape {
   /** 줄 수 제한 (multiline 텍스트) */
   maxLines?: number;
 
-  /** 줄바꿈 제어 — "nowrap"이면 다중 줄 보정 로직 우회 */
-  whiteSpace?: "normal" | "nowrap" | "pre";
+  /**
+   * 줄바꿈 제어 — "nowrap"이면 다중 줄 보정 로직 우회. pre 계열은 `\n` 이 hard break
+   * (ADR-027 D3 — 사용자 style.whiteSpace 가 buildSpecNodeData 에서 실린다).
+   */
+  whiteSpace?: "normal" | "nowrap" | "pre" | "pre-wrap" | "pre-line";
 }
 
 /**

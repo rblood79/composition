@@ -1925,6 +1925,24 @@ export function buildSpecNodeData(input: SpecBuildInput): SkiaNodeData | null {
     }
   }
 
+  // ADR-027 D3 (2026-09-20) — 사용자 style.whiteSpace 를 text shape 에도 싣는다. 아래 override (§13 필드)
+  //   는 변환된 node 에만 적용돼 specShapeConverter 의 textBlockHeight 측정 (baseline middle 의 세로
+  //   중앙) 이 `\n` 을 공백으로 봤다 — pre-wrap 3줄 (72) 을 2줄 (48) 로 재 12px 아래에 놓았다 (live).
+  {
+    const ws = style.whiteSpace;
+    if (
+      ws === "normal" ||
+      ws === "nowrap" ||
+      ws === "pre" ||
+      ws === "pre-wrap" ||
+      ws === "pre-line"
+    ) {
+      for (const sh of shapes) {
+        if (sh.type === "text" && sh.whiteSpace == null) sh.whiteSpace = ws;
+      }
+    }
+  }
+
   // ---------- Accent override + specShapesToSkia ----------
   const resolvedAccent = resolveAccentColor(element, elementsMap);
   const specNode = withAccentOverride(resolvedAccent, () =>
