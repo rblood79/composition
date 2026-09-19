@@ -35,7 +35,7 @@ describe("LayoutsTab frame selection race guard", () => {
     );
   });
 
-  it("uses active canonical document without rebuilding projection for frame list", async () => {
+  it("uses active canonical document without rebuilding projection for layout list", async () => {
     const source = await readFile(
       resolve(__dirname, "LayoutsTab.tsx"),
       "utf-8",

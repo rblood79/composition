@@ -1066,7 +1066,7 @@ function legacyElementToCanonicalNode(
   if (isLegacySlotTag(element.type)) {
     const legacyElement = asElementWithLegacyMirror(element);
     // 아래 두 분기는 필드를 직접 나열하며 early return 하므로 baseNode 의 1차 필드
-    // 스프레드에 도달하지 못한다 — responsive 를 여기서 함께 실어야 한다. Frame preset 이
+    // 스프레드에 도달하지 못한다 — responsive 를 여기서 함께 실어야 한다. Layout preset 이
     // 슬롯에 breakpoint override 를 쓰면서 드러났다 (ADR-168 Phase 3 실측): body 는
     // 반영되는데 슬롯만 base 값으로 남아 mobile 에서 사이드바가 250px 그대로였다.
     const responsiveField = canonicalResponsiveField(element);

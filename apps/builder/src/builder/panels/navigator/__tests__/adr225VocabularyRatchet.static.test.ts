@@ -28,13 +28,18 @@ const ALLOWLIST: readonly string[] = [
 
 /**
  * 재사용 레이아웃 기능을 가리키는 UI 어법 (주석·테스트 제목 포함 — ADR-225 G5 "comment·test title 0건").
- * `Frames tab` / `Frames 탭` / `Navigator Frames` / `Frame Preset` / `Frames/Layers` 는 전부 Layouts 어휘로 쓴다.
- * `LayoutBodyEditor.static.test.ts` 는 구 문구의 **부재**를 단언하는 리터럴이라 allowlist.
+ * `frame(s) tab / preset / section / list / layers` 계열은 대소문자·단복수 무관하게 전부 Layouts 어휘로 쓴다
+ * (round 3 m1 — exact-case 열거는 `Frame preset` · `frame list` 를 놓쳤다). 구분자는 공백/하이픈 필수라
+ * `frameTab` 같은 식별자 (page-frame 아래 Tabs 컴포넌트) 와 `frame-list-tree` (legacy class 의 부재 단언) 는 밖이다.
+ * `LayoutBodyEditor.static.test.ts` 는 구 문구의 **부재**를 단언하는 리터럴, `useSectionCollapse` 는 구 persisted id
+ * `navigator-frame-layers` 의 승계 map 이라 allowlist.
  */
 const LEGACY_FEATURE_COPY_PATTERN =
-  /Frames tab|Frames 탭|Navigator Frames|Frame Preset|Frames section|Frames\/Layers|Frames List|Pages\/Frames/;
+  /\bframes?[- ](?:tab|preset|section|list(?!-tree)|layers)\b|Navigator Frames|Frames\/Layers|Pages\/Frames/i;
 const COPY_ALLOWLIST: readonly string[] = [
   "builder/panels/properties/editors/LayoutBodyEditor.static.test.ts",
+  "builder/panels/styles/hooks/useSectionCollapse.ts",
+  "builder/panels/styles/hooks/useSectionCollapse.test.ts",
   "builder/panels/navigator/__tests__/adr225VocabularyRatchet.static.test.ts",
 ];
 
@@ -68,7 +73,7 @@ describe("ADR-225 — 재사용 레이아웃 기능 소유 구 Frame 명칭 0건
     expect(hits).toEqual([]);
   });
 
-  it("주석·테스트 제목·CSS 주석의 재사용 레이아웃 UI 어법 (Frames tab · Frame Preset …) 이 allowlist 밖에 없다", () => {
+  it("주석·테스트 제목·CSS 주석의 재사용 레이아웃 UI 어법 (frame(s) tab/preset/section/list/layers, 대소문자·단복수 무관) 이 allowlist 밖에 없다", () => {
     const hits = files
       .filter((file) =>
         LEGACY_FEATURE_COPY_PATTERN.test(fs.readFileSync(file, "utf-8")),
