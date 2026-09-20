@@ -62,7 +62,6 @@ const ADR126_ELEMENT_IMPORT_ALLOWED_FILES = new Set([
   "src/builder/utils/selectionMemory.ts",
   "src/builder/utils/smartSelection.ts",
   "src/builder/utils/treeUtils.ts",
-  "src/builder/workspace/canvas/hooks/useCanvasDragDropHelpers.ts",
   "src/builder/workspace/canvas/hooks/useCanvasElementSelectionHandlers.ts",
   "src/builder/workspace/canvas/hooks/useCentralCanvasPointerHandlers.ts",
   "src/builder/workspace/overlay/useTextEdit.ts",
