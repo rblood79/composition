@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [저작 보조 사선 (hatch) 패턴 통일 — slot 마커 · padding/gap hover · overflow] - 2026-09-20
+
+### Changed
+
+- 빈 slot 마커 (layout preset 의 슬롯) · collection 나머지 (ADR-157) · padding/gap hover 띠 (ADR-222) · overflow 영역이 각각 자기 상수로 같은 45° 사선을 따로 그려 결이 달랐다 (사용자 지적 — slot 7 px/1.5 px/α 0.42 · padding 4/1/0.35 · overflow 6/1.5/0.35). `skia/hatchPattern.ts` 의 `drawDiagonalHatch` 하나로 통일 — 간격 4 화면 px · 굵기 1 px · α 0.35 · 줄 상한 400 (ADR-222 breakdown §1.2 기준값). 색 (의미: role 색 · padding blue · gap pink · overflow blue) 만 호출부가 정한다. 검증: skia 단위 489 · live 스크린샷 (layout preset Left Sidebar 슬롯 vs padding hover 같은 결) · type-check/lint PASS.
+
 ## [padding hover 사선 — 좌·우 띠가 상·하 padding 만큼 짧게 그려지던 것] - 2026-09-20
 
 ### Fixed

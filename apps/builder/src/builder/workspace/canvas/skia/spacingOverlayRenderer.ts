@@ -13,8 +13,6 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import type { BoundingBox } from "../selection/types";
 import { acquirePooledPaint, releasePooledPaint } from "./paints";
-import { buildPath } from "./buildPath";
-import { SkiaDisposable } from "./disposable";
 import {
   DIMENSION_LABEL_BORDER_RADIUS,
   DIMENSION_LABEL_FONT_SIZE,
@@ -27,16 +25,13 @@ import {
   SELECTION_DIMENSION_LABEL_PADDING_Y,
 } from "../selectionOverlayGeometry";
 import { OVERLAY_BLUE_RGB, OVERLAY_PINK_RGB } from "./semanticOverlayColors";
+import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import {
   resolveSpacingHandleRect,
   type SpacingBand,
 } from "../interaction/spacingGeometry";
 import type { SpacingActiveTarget } from "../interaction/spacingPresentation";
 
-/** 사선 간격 (화면 px, breakdown §1.2 제안값) */
-const HATCH_SPACING_PX = 4;
-const HATCH_ALPHA = 0.35;
-const HATCH_MAX_LINES = 400;
 /** 값 배지 (화면 px) */
 // 값 배지는 선택 치수 레이블 (W × H) 과 같은 규격 — 폰트 12 Medium · 행 16 · 패딩 6/3 · 반경 4
 const BADGE_FONT_SIZE_PX = DIMENSION_LABEL_FONT_SIZE;
@@ -68,38 +63,14 @@ function drawHatch(
   color: readonly [number, number, number],
   zoom: number,
 ): void {
-  if (rect.width <= 0 || rect.height <= 0) return;
-  const scope = new SkiaDisposable();
-  const paint = acquirePooledPaint(ck);
-  try {
-    canvas.save();
-    canvas.clipRect(
-      ck.LTRBRect(rect.x, rect.y, rect.x + rect.width, rect.y + rect.height),
-      ck.ClipOp.Intersect,
-      true,
-    );
-    paint.setAntiAlias(true);
-    paint.setStyle(ck.PaintStyle.Stroke);
-    paint.setStrokeWidth(1 / zoom);
-    paint.setColor(ck.Color4f(color[0], color[1], color[2], HATCH_ALPHA));
-    const spacing = HATCH_SPACING_PX / zoom;
-    const span = rect.width + rect.height;
-    const step =
-      span / spacing > HATCH_MAX_LINES ? span / HATCH_MAX_LINES : spacing;
-    const path = scope.track(
-      buildPath(ck, (sink) => {
-        for (let d = -rect.height; d < rect.width; d += step) {
-          sink.moveTo(rect.x + d, rect.y);
-          sink.lineTo(rect.x + d + rect.height, rect.y + rect.height);
-        }
-      }),
-    );
-    canvas.drawPath(path, paint);
-    canvas.restore();
-  } finally {
-    releasePooledPaint(paint);
-    scope.dispose();
-  }
+  // 사선 패턴은 slot 마커·overflow 와 한 정본 (`hatchPattern.ts`) — 색만 여기서.
+  drawDiagonalHatch(
+    ck,
+    canvas,
+    rect,
+    ck.Color4f(color[0], color[1], color[2], HATCH_ALPHA),
+    zoom,
+  );
 }
 
 function drawHandle(

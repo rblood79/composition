@@ -15,7 +15,7 @@ import type {
   OverflowContentInfo,
   ChildOverflowContext,
 } from "./skiaFrameHelpers";
-import { buildPath } from "./buildPath";
+import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import {
   getSemanticOverlayColor,
   OVERLAY_BLUE_R,
@@ -180,10 +180,6 @@ export function renderOverflowContent(
 // Overflow Hatching Pattern (scroll/auto 선택 시)
 // ============================================
 
-const HATCHING_ALPHA = 0.35;
-const HATCHING_LINE_SPACING = 6; // 화면 px 간격
-const MAX_HATCHING_LINES = 200; // GPU 과부하 방지 상한
-
 /**
  * 선택된 자식 요소가 scroll/auto 부모의 경계를 벗어날 때 해칭 패턴 표시.
  * 자식 bounds에서 부모 컨테이너 밖 영역에만 45도 사선 렌더링.
@@ -203,57 +199,14 @@ export function renderOverflowHatching(
     const containerRect = ck.LTRBRect(c.x, c.y, c.x + c.width, c.y + c.height);
     canvas.clipRect(containerRect, ck.ClipOp.Difference, true);
 
-    // 자식 bounds 내로 추가 클리핑
-    const childRect = ck.LTRBRect(
-      cb.x,
-      cb.y,
-      cb.x + cb.width,
-      cb.y + cb.height,
+    // 자식 bounds 안 — 사선 패턴은 padding·gap hover · slot 마커와 한 정본 (`hatchPattern.ts`).
+    drawDiagonalHatch(
+      ck,
+      canvas,
+      cb,
+      ck.Color4f(OVERLAY_BLUE_R, OVERLAY_BLUE_G, OVERLAY_BLUE_B, HATCH_ALPHA),
+      zoom,
     );
-    canvas.clipRect(childRect, ck.ClipOp.Intersect, true);
-
-    // 대각선 45도 해칭 라인
-    const paint = acquireScopedPaint(scope, ck);
-    paint.setAntiAlias(true);
-    paint.setStyle(ck.PaintStyle.Stroke);
-    paint.setStrokeWidth(1.5 / zoom);
-    // --focus-ring 토큰 색상 (blue-500 = #3b82f6)
-    paint.setColor(
-      ck.Color4f(
-        OVERLAY_BLUE_R,
-        OVERLAY_BLUE_G,
-        OVERLAY_BLUE_B,
-        HATCHING_ALPHA,
-      ),
-    );
-
-    const spacing = HATCHING_LINE_SPACING / zoom;
-    const left = cb.x;
-    const top = cb.y;
-    const right = cb.x + cb.width;
-    const bottom = cb.y + cb.height;
-    const totalSpan = right - left + (bottom - top);
-
-    // 라인 수 상한 — 큰 요소에서 GPU 과부하 방지
-    const effectiveSpacing =
-      totalSpan / spacing > MAX_HATCHING_LINES
-        ? totalSpan / MAX_HATCHING_LINES
-        : spacing;
-
-    const path = scope.track(
-      buildPath(ck, (pathSink) => {
-        for (let d = -(bottom - top); d < right - left; d += effectiveSpacing) {
-          // 우하향(\) 45도 대각선
-          const x0 = left + d;
-          const y0 = top;
-          const x1 = left + d + (bottom - top);
-          const y1 = bottom;
-          pathSink.moveTo(x0, y0);
-          pathSink.lineTo(x1, y1);
-        }
-      }),
-    );
-    canvas.drawPath(path, paint);
 
     canvas.restore();
   } finally {

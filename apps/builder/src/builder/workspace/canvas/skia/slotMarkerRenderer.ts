@@ -1,15 +1,12 @@
 import type { CanvasKit, Canvas, FontMgr } from "canvaskit-wasm";
 import type { EditingSemanticsRole } from "../../../utils/editingSemantics";
 import type { BoundingBox } from "../selection/types";
-import { buildPath } from "./buildPath";
 import { SkiaDisposable } from "./disposable";
+import { HATCH_ALPHA, drawDiagonalHatch } from "./hatchPattern";
 import { acquireScopedPaint } from "./paints";
 import { getSemanticOverlayColor } from "./semanticOverlayColors";
 import { acquireOverlayFont, measureGlyphRunWidth } from "./selectionRenderer";
 
-const SLOT_HATCH_ALPHA = 0.42;
-const SLOT_HATCH_SPACING = 7;
-const SLOT_HATCH_MAX_LINES = 180;
 const SLOT_BORDER_ALPHA = 0.95;
 
 export function renderSlotHatchPattern(
@@ -32,41 +29,14 @@ export function renderSlotHatchPattern(
     );
 
     if (showHatch) {
-      canvas.save();
-      canvas.clipRect(rect, ck.ClipOp.Intersect, true);
-
-      const paint = acquireScopedPaint(scope, ck);
-      paint.setAntiAlias(true);
-      paint.setStyle(ck.PaintStyle.Stroke);
-      paint.setStrokeWidth(1.5 / zoom);
-      paint.setColor(getSemanticOverlayColor(ck, role, SLOT_HATCH_ALPHA));
-
-      const spacing = SLOT_HATCH_SPACING / zoom;
-      const totalSpan = bounds.width + bounds.height;
-      const effectiveSpacing =
-        totalSpan / spacing > SLOT_HATCH_MAX_LINES
-          ? totalSpan / SLOT_HATCH_MAX_LINES
-          : spacing;
-
-      const path = scope.track(
-        buildPath(ck, (pathSink) => {
-          for (
-            let d = -bounds.height;
-            d < bounds.width;
-            d += effectiveSpacing
-          ) {
-            const x0 = bounds.x + d;
-            const y0 = bounds.y;
-            const x1 = bounds.x + d + bounds.height;
-            const y1 = bounds.y + bounds.height;
-            pathSink.moveTo(x0, y0);
-            pathSink.lineTo(x1, y1);
-          }
-        }),
+      // 사선 패턴은 padding·gap hover · overflow 와 한 정본 (`hatchPattern.ts`) — 색 (role) 만 여기서.
+      drawDiagonalHatch(
+        ck,
+        canvas,
+        bounds,
+        getSemanticOverlayColor(ck, role, HATCH_ALPHA),
+        zoom,
       );
-
-      canvas.drawPath(path, paint);
-      canvas.restore();
     }
 
     const borderPaint = acquireScopedPaint(scope, ck);
