@@ -180,7 +180,7 @@ reverse에서도 저장 속성은 동일하고 포인터 진행 방향만 반전
 캡처 좌표계를 계속 사용하지 않고 취소한다. 이미 시작한 spacing owner가 Space를 나중에
 눌렀다고 pan owner로 바뀌지 않는다.
 
-> 2026-09-20 갱신 — 위 취소 규칙은 **drag** (pointer 캡처 좌표계) 에만 남는다. 인라인 **input** 모드는
+> 2026-09-20 갱신 (사용자 확정 "추종 유지") — 위 취소 규칙은 **drag** (pointer 캡처 좌표계) 에만 남는다. 인라인 **input** 모드는
 > 카메라를 따라간다: 종전 구현이 React mirror 를 구독해 제스처 종료에만 닫혀 팬 중 입력이 옛 자리에 남았고,
 > 숫자 입력은 카메라가 좌표계를 무효화하지 않는다. `SpacingInlineInput` 이 Skia 프레임 카메라 채널
 > (`subscribeCanvasFramePresentation`) 로 핸들 중심을 프레임마다 다시 찍는다 (TextEditOverlay 와 같은 경로).
