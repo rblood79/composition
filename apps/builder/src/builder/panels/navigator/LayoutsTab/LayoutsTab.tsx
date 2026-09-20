@@ -39,12 +39,7 @@ import type { CanonicalFrameElementScope } from "../../../../adapters/canonical/
 import type { ElementProps } from "../../../../types/builder/elementProps.types";
 import type { PanelNode } from "../../panelNode";
 import { buildTreeFromElements } from "../../../utils/treeUtils";
-import { MessageService } from "../../../../utils/messaging";
 import { useTreeExpandState } from "@/builder/hooks";
-import {
-  isWebGLCanvas,
-  isCanvasCompareMode,
-} from "../../../../utils/featureFlags";
 
 type LegacyFrameElement = Parameters<typeof buildTreeFromElements>[0][number];
 
@@ -125,8 +120,6 @@ export function LayoutsTab({
 
     return { id: selectedReusableLayoutId, name: "" };
   }, [reusableLayouts, selectedReusableLayoutId]);
-
-  const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
 
   const autoSelectedLayoutIdRef = React.useRef<string | null>(null);
 
@@ -303,12 +296,9 @@ export function LayoutsTab({
       await removeElement(el.id);
       if (el.id === selectedElementId) {
         setSelectedElement(null);
-        if (!isWebGLOnly) {
-          MessageService.clearOverlay();
-        }
       }
     },
-    [removeElement, selectedElementId, setSelectedElement, isWebGLOnly],
+    [removeElement, selectedElementId, setSelectedElement],
   );
 
   return (

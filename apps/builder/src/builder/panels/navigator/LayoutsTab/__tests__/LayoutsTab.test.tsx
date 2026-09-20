@@ -140,10 +140,6 @@ vi.mock("@/lib/db", () => ({
   })),
 }));
 
-vi.mock("@/utils/messaging", () => ({
-  MessageService: { clearOverlay: vi.fn() },
-}));
-
 vi.mock("@/utils/featureFlags", () => ({
   isWebGLCanvas: () => true,
   isCanvasCompareMode: () => false,

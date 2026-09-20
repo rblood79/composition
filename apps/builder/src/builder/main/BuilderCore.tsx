@@ -70,7 +70,7 @@ import { BuilderCanvas } from "./BuilderCanvas";
 
 import { BuilderViewport } from "./BuilderViewport";
 import { Workspace } from "../workspace";
-import { isWebGLCanvas, isCanvasCompareMode } from "../../utils/featureFlags";
+import { isWebGLCanvas } from "../../utils/featureFlags";
 import { startCanonicalDocumentSync } from "../stores/canonical/canonicalDocumentSync";
 import { useCanonicalDocumentStore } from "../stores/canonical/canonicalDocumentStore";
 // ADR-116 Phase 2 G3 Step 4 — BuilderCore layout refresh dual-mode
@@ -1319,11 +1319,6 @@ export const BuilderCore: React.FC = () => {
         target.classList.contains("bg");
       if (isWorkspaceBackground) {
         setSelectedElement(null);
-        // 🚀 Phase 11: WebGL-only 모드에서는 iframe clearOverlay 스킵
-        const isWebGLOnly = isWebGLCanvas() && !isCanvasCompareMode();
-        if (!isWebGLOnly) {
-          MessageService.clearOverlay();
-        }
       }
     };
 
