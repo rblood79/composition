@@ -183,6 +183,15 @@ describe("Canvas2DTextMeasurer.measureWrapped — trailing space hang 수정", (
     ).toBe(5);
   });
 
+  it("TC11: wordSpacing 경로 (폴백 split) 도 한글은 음절 단위", () => {
+    const r = measurer.measureWrapped(
+      "가나다라마바사",
+      { ...baseStyle, wordSpacing: 4 },
+      24,
+    );
+    expect(Math.round(r.height / 19.2)).toBe(3);
+  });
+
   it("TC10: keep-all 이면 한글 연속을 한 단위로 (1줄 · 넘침)", () => {
     const r = measurer.measureWrapped(
       "가나다라마바사",

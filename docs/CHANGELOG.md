@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [텍스트 줄바꿈 sweep — CanvasKit 폴백 경로의 공백 split · break-word 줄 첫 단어 · wrap leg 의 word-spacing] - 2026-09-20
+
+### Fixed
+
+- 앞 항목 (한글 줄바꿈 단위) 과 같은 "단어 = 공백 사이" 전제가 남아 있던 곳 3 (사용자 지시 sweep): (1) CanvasKit 폴백 렌더 (`cssNormalBreakProcess` · `preprocessBreakWordText` — word-spacing · small-caps · letter-spacing 미지원 브라우저) 가 `split(/\s+/)` 로 나눠 한글 연속을 한 줄로 그렸다 → 힌트 경로와 같은 토큰화 (Intl.Segmenter · CJK 문자 사이 · 금칙) · 공백 hang · 공백 토큰에 word-spacing 직접 가산 (skparagraph 는 줄 첫 공백에 안 준다) · (2) 레이아웃 측정기의 word-spacing 경로도 같은 토큰화 · (3) `computeLines` 의 `overflow-wrap: break-word` 가 줄 첫 단어는 안 끊었다 (`lineW > 0` 안에만) → CSS Text 3 §5.5 대로 넘치면 줄 처음이어도 문자 분할, `anywhere` 도 같은 분기 (Chrome "ABCDEFG" 60px 2줄 / Canvas 1줄). 함께: 텍스트 leaf wrap leg 이 `word-spacing` 을 측정기에 안 넘겨 (폭 leg 만) Chrome 보다 줄이 적었다 (120px pad 30 · word-spacing 4: Chrome 302 / Canvas 278). 범위 밖으로 남긴 것: Skia 가 small-caps 글리프 자체를 안 그린다 (줄 수·상자는 일치). 검증: 단위 (cssNormalBreak 한글·구두점·word-spacing 3 · measurer TC11) · parity 게이트 `textCjkLineBreak` 8 (sweep 2 원복 RED) · parity 1479 · canvas 1907 · live 하니스 3/3 (word-spacing · small-caps · break-word) 상자 + 글리프 줄 나눔 일치 · type-check/lint PASS.
+
 ## [한글·한자 텍스트의 줄바꿈 단위 — Canvas 상자·글리프가 Preview 보다 줄이 적던 결함] - 2026-09-20
 
 ### Fixed

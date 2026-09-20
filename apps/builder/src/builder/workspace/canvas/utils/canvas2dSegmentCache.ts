@@ -714,27 +714,34 @@ export function computeLines(
       continue;
     }
 
-    if (lineW > 0 && lineW + pendingSpace + w > maxWidth + LINE_FIT_EPSILON) {
-      // overflow-wrap: break-word — maxWidth 초과 단어 grapheme 분할
-      if (overflowWrap === "break-word" && w > maxWidth) {
+    // overflow-wrap: break-word · anywhere — maxWidth 초과 단어는 grapheme 분할 (CSS Text 3 §5.5:
+    //   줄 처음이어도 넘치면 단어 안에서 끊는다). 종전엔 `lineW > 0` 분기 안에만 있어 줄 첫 단어
+    //   ("ABCDEFG" 60px 상자) 는 안 끊겼다 — Chrome 2줄 / Canvas 1줄 (2026-09-20 sweep).
+    if (
+      (overflowWrap === "break-word" || overflowWrap === "anywhere") &&
+      w > maxWidth + LINE_FIT_EPSILON
+    ) {
+      if (lineW > 0) {
         maxLineW = Math.max(maxLineW, lineW);
         lines.push([]);
         lineW = 0;
-        pendingSpace = 0;
-        const graphemes = Array.from(token.text);
-        for (const g of graphemes) {
-          const gw = getOrMeasureWidth(g, fontKey, fontString, letterSpacing);
-          if (lineW > 0 && lineW + gw > maxWidth + LINE_FIT_EPSILON) {
-            maxLineW = Math.max(maxLineW, lineW);
-            lines.push([]);
-            lineW = 0;
-          }
-          lines[lines.length - 1].push(g);
-          lineW += gw;
-        }
-        continue;
       }
+      pendingSpace = 0;
+      const graphemes = Array.from(token.text);
+      for (const g of graphemes) {
+        const gw = getOrMeasureWidth(g, fontKey, fontString, letterSpacing);
+        if (lineW > 0 && lineW + gw > maxWidth + LINE_FIT_EPSILON) {
+          maxLineW = Math.max(maxLineW, lineW);
+          lines.push([]);
+          lineW = 0;
+        }
+        lines[lines.length - 1].push(g);
+        lineW += gw;
+      }
+      continue;
+    }
 
+    if (lineW > 0 && lineW + pendingSpace + w > maxWidth + LINE_FIT_EPSILON) {
       // 새 줄 → 보류된 공백 폐기 (CSS: trailing space hang)
       maxLineW = Math.max(maxLineW, lineW);
       lines.push([]);

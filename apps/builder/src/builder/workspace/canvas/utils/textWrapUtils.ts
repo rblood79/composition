@@ -8,6 +8,7 @@
  */
 
 import type { CanvasKit, ParagraphStyle, FontMgr } from "canvaskit-wasm";
+import { preprocessTokens, tokenize } from "./canvas2dSegmentCache";
 
 // ============================================
 // CanvasKit 단어 폭 측정 헬퍼
@@ -119,8 +120,13 @@ export function cssNormalBreakProcess(
     return { text: parts.join("\n"), effectiveWidth };
   }
 
-  const words = text.split(/\s+/).filter(Boolean);
-  if (words.length === 0) return { text, effectiveWidth: maxWidth };
+  // 줄바꿈 단위는 Canvas 2D 힌트 경로와 같은 토큰화 (Intl.Segmenter · CJK 문자 사이 break · 금칙)
+  //   — 종전 `split(/\s+/)` 은 한글 연속을 한 단어로 봐 (2026-09-20 sweep) 이 폴백 경로 (wordSpacing ·
+  //   small-caps · letterSpacing 미지원) 에서만 Chrome 보다 줄이 적었다. 공백 토큰은 줄 끝에서 hang.
+  //   호출 조건이 `wordBreak === "normal"` 이라 토큰화도 normal.
+  const tokens = preprocessTokens(tokenize(text, "normal"), "normal");
+  if (!tokens.some((t) => !/^\s+$/.test(t.text)))
+    return { text, effectiveWidth: maxWidth };
 
   // Early exit: 전체 텍스트의 intrinsic width가 maxWidth 이내이면
   // 수동 줄바꿈 불필요 (개별 단어 합산은 커닝/셰이핑으로 인해 전체보다 넓을 수 있음)
@@ -135,43 +141,51 @@ export function cssNormalBreakProcess(
     return { text, effectiveWidth: maxWidth };
   }
 
-  // 1. 각 단어 폭 측정
+  // 1. 각 토큰 폭 측정. 공백 토큰은 wordSpacing 을 직접 더한다 — skparagraph 는 줄 첫 공백에
+  //   wordSpacing 을 안 주므로 낱개 " " paragraph 측정엔 실리지 않는다 (Chrome: 공백마다 가산).
+  const wordSpacing =
+    (paraStyle as { textStyle?: { wordSpacing?: number } }).textStyle
+      ?.wordSpacing ?? 0;
   let maxWordWidth = 0;
-  const wordWidths: number[] = [];
-  for (const word of words) {
-    const ww = measureTokenWidth(ck, paraStyle, fontMgr, word);
-    wordWidths.push(ww);
-    if (ww > maxWordWidth) maxWordWidth = ww;
-  }
-
-  // 2. 스페이스 폭 측정
-  const spaceWidth = measureSpaceWidth(ck, paraStyle, fontMgr);
-
-  // 3. CSS 줄바꿈 시뮬레이션
-  const lines: string[] = [];
-  let currentLine = "";
-  let currentWidth = 0;
-
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    const ww = wordWidths[i];
-
-    if (currentLine === "") {
-      // 줄의 첫 단어: 항상 추가 (overflow 허용)
-      currentLine = word;
-      currentWidth = ww;
-    } else if (currentWidth + spaceWidth + ww <= maxWidth) {
-      // 현재 줄에 들어감
-      currentLine += " " + word;
-      currentWidth += spaceWidth + ww;
-    } else {
-      // 안 들어감 → 새 줄 시작
-      lines.push(currentLine);
-      currentLine = word;
-      currentWidth = ww;
+  const widths = tokens.map((t) => {
+    let w = measureTokenWidth(ck, paraStyle, fontMgr, t.text);
+    if (/^\s+$/.test(t.text)) {
+      if (wordSpacing) w += wordSpacing * (t.text.match(/ /g) ?? []).length;
+    } else if (w > maxWordWidth) {
+      maxWordWidth = w;
     }
+    return w;
+  });
+
+  // 2. CSS 줄바꿈 시뮬레이션 — computeLines (canvas2dSegmentCache) 와 같은 규칙:
+  //   공백은 보류 (hang) · 비-breakable (구두점) 은 앞 토큰에 붙고 · breakable 앞에서만 줄을 나눈다.
+  const lines: string[] = [""];
+  let lineW = 0;
+  let pending = "";
+  let pendingW = 0;
+  for (let i = 0; i < tokens.length; i++) {
+    const { text: tt, breakable } = tokens[i];
+    const w = widths[i];
+    if (/^\s+$/.test(tt)) {
+      pending += tt;
+      pendingW += w;
+      continue;
+    }
+    if (
+      breakable &&
+      lineW > 0 &&
+      lineW + pendingW + w > maxWidth
+    ) {
+      lines.push(tt);
+      lineW = w;
+    } else {
+      lines[lines.length - 1] += pending + tt;
+      lineW += pendingW + w;
+    }
+    pending = "";
+    pendingW = 0;
   }
-  if (currentLine) lines.push(currentLine);
+  if (pending) lines[lines.length - 1] += pending;
 
   return {
     text: lines.join("\n"),
@@ -237,7 +251,9 @@ export function preprocessBreakWordText(
   text: string,
   maxWidth: number,
 ): string {
-  const tokens = text.split(/(\s+)/);
+  // 같은 토큰화 (2026-09-20 sweep) — 한글 연속은 문자마다 토큰이라 폭이 maxWidth 를 넘는 "단어" 가
+  //   아니고, CanvasKit 이 힌트 없이도 문자 사이에서 접는다 (라틴 긴 단어만 ZWS 분할).
+  const tokens = preprocessTokens(tokenize(text, "normal")).map((t) => t.text);
   const result: string[] = [];
   let hasContentBefore = false;
 

@@ -4350,6 +4350,7 @@ export function calculateContentHeight(
           // ADR-205 Phase 1 — 여기가 live 증상(줄 수)의 결손 지점이었다.
           resolveTextRenderStyle(style, computedStyle).letterSpacing,
           ws49,
+          parseNumericValue(style?.wordSpacing) ?? computedStyle?.wordSpacing,
         );
         const singleLineH = resolvedLH;
         if (wrappedHeight > singleLineH + 0.5) {

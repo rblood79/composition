@@ -91,6 +91,29 @@ const CASES: { name: string; text: StyleRecord }[] = [
       wordBreak: "keep-all",
     },
   },
+  // sweep (2026-09-20) — 같은 "단어 = 공백 사이" 전제가 남아 있던 경로들
+  {
+    name: "sweep — overflow-wrap:break-word width:60px (줄 첫 단어도 넘치면 문자 분할)",
+    text: {
+      ...TEXT_BASE,
+      display: "block",
+      width: "60px",
+      overflowWrap: "break-word",
+    },
+  },
+  {
+    name: "sweep — word-spacing:4px width:120px padding:30px border:1px (wrap leg 에 wordSpacing)",
+    text: {
+      ...TEXT_BASE,
+      display: "block",
+      width: "120px",
+      padding: "30px",
+      borderStyle: "solid",
+      borderWidth: "1px",
+      borderColor: "#f00",
+      wordSpacing: "4px",
+    },
+  },
   {
     name: "width:60px padding:10px border:1px — 좁은 padding 도 같은 식",
     text: {

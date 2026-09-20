@@ -61,7 +61,12 @@ export interface TextMeasurer {
   ): TextMeasureResult;
 }
 
-import { buildFontString, measureWithCanvas2D } from "./canvas2dSegmentCache";
+import {
+  buildFontString,
+  measureWithCanvas2D,
+  preprocessTokens,
+  tokenize,
+} from "./canvas2dSegmentCache";
 import {
   collapseTextWhiteSpace,
   collapsesSegmentBreaks,
@@ -225,12 +230,13 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
       return { width: maxWidth, height: r.lineCount * lineHeight };
     }
 
-    const words = text.split(/(\s+)/); // 공백 포함 분리
+    // wordSpacing 경로도 같은 토큰화 — 비-breakable (구두점) 토큰은 앞 토큰에 붙는다 (줄을 못 연다).
+    const tokens = preprocessTokens(tokenize(text, wb), wb);
     let lineCount = 1;
     let currentLineWidth = 0;
     const allowBreakWord = ow === "break-word" || ow === "anywhere";
 
-    for (const word of words) {
+    for (const { text: word, breakable } of tokens) {
       const isSpace = /^\s+$/.test(word);
       let wordWidth = this._measureWord(ctx, word, style);
       // 공백 토큰: wordSpacing 가산
@@ -244,7 +250,11 @@ export class Canvas2DTextMeasurer implements TextMeasurer {
         currentLineWidth += wordWidth;
         continue;
       }
-      if (currentLineWidth + wordWidth > maxWidth && currentLineWidth > 0) {
+      if (
+        breakable &&
+        currentLineWidth + wordWidth > maxWidth &&
+        currentLineWidth > 0
+      ) {
         // ADR-008: overflow-wrap: break-word — 단어가 maxWidth보다 크면 문자 단위 분할
         if (allowBreakWord && wordWidth > maxWidth) {
           // 먼저 새 줄로 이동 후 문자 단위 분할 (CSS break-word 동작)
@@ -579,6 +589,8 @@ export function measureWrappedTextHeight(
    * `needsFallback`). 생략은 normal 과 같아 기존 호출 지점의 동작이 바뀌지 않는다.
    */
   whiteSpace?: string,
+  /** 단어 간격(px) — 공백 토큰 폭에 더한다 (2026-09-20 sweep: 종전 wrap leg 미전달 → Chrome 보다 줄이 적었다). */
+  wordSpacing?: number,
 ): number {
   const result = getTextMeasurer().measureWrapped(
     text,
@@ -591,6 +603,7 @@ export function measureWrappedTextHeight(
       overflowWrap,
       letterSpacing,
       whiteSpace,
+      wordSpacing,
     },
     maxWidth,
   );
