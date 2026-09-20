@@ -19,7 +19,7 @@ import {
   hasCircularReference,
   getNestingDepth,
   generatePageUrl,
-} from "../../../../utils/urlGenerator";
+} from "@composition/shared";
 import {
   validateSlug,
   generateSlugFromTitle,

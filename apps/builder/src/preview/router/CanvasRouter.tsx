@@ -22,7 +22,7 @@ import {
   generatePageUrl,
   hasDynamicParams,
   type UrlPage,
-} from "../../utils/urlGenerator";
+} from "@composition/shared";
 import {
   getNullablePageFrameBindingId,
   withPageFrameBinding,

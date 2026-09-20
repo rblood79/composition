@@ -22,10 +22,13 @@ describe("ADR-116 direct cutover: getByLayout legacy DB path removed", () => {
     expect(source).not.toMatch(/\bgetByLayout\s*:/);
   });
 
-  it("urlGenerator.ts 에 page.layout_id 직접 참조가 더 이상 존재하지 않는다 (E-6 후)", async () => {
+  it("pageUrl.ts (shared, 구 urlGenerator.ts) 에 page.layout_id 직접 참조가 더 이상 존재하지 않는다 (E-6 후)", async () => {
     const fs = await import("node:fs/promises");
     const path = await import("node:path");
-    const filePath = path.resolve(__dirname, "../../../utils/urlGenerator.ts");
+    const filePath = path.resolve(
+      __dirname,
+      "../../../../../../packages/shared/src/utils/pageUrl.ts",
+    );
     const source = await fs.readFile(filePath, "utf-8");
     expect(source).not.toMatch(/page\.layout_id/);
   });

@@ -22,7 +22,7 @@ import {
   generateSlugFromTitle,
   validateSlug,
 } from "../../../utils/slugValidator";
-import { generatePageUrl } from "../../../utils/urlGenerator";
+import { generatePageUrl } from "@composition/shared";
 import {
   iconProps,
   iconEditProps,
