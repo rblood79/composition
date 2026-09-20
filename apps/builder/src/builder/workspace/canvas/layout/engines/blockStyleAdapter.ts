@@ -11,11 +11,10 @@
  * ADR-923 Phase 5 시뮬레이션 삭제 (2026-09-02) · Phase 6 개명 (2026-09-03).
  */
 
-import { resolveMarginAutoSides } from "./resolveMarginAutoSides";
 import type { CanvasLayoutNode } from "../layoutNode";
 import type { EngineStyle } from "../../wasm-bindings/layoutTypes";
 import {
-  parseMargin,
+  resolveEngineBoxEdges,
   applyCommonEngineStyle,
   parseCSSPropWithContext,
 } from "./utils";
@@ -95,29 +94,13 @@ export function elementToEngineBlockStyle(
     result.justifySelf = style.justifySelf as EngineStyle["justifySelf"];
   }
 
-  // Margin — margin:auto는 parseMargin()이 숫자 전용이므로 원본 값을 직접 검사
-  const margin = parseMargin(style);
-  const marginAuto = resolveMarginAutoSides(style);
-  result.marginTop = marginAuto.top
-    ? "auto"
-    : margin.top !== 0
-      ? margin.top
-      : undefined;
-  result.marginRight = marginAuto.right
-    ? "auto"
-    : margin.right !== 0
-      ? margin.right
-      : undefined;
-  result.marginBottom = marginAuto.bottom
-    ? "auto"
-    : margin.bottom !== 0
-      ? margin.bottom
-      : undefined;
-  result.marginLeft = marginAuto.left
-    ? "auto"
-    : margin.left !== 0
-      ? margin.left
-      : undefined;
+  // px 는 숫자 · `%` 는 문자열 · auto 는 "auto" — 엔진이 `%` 를 containing block 폭으로 푼다 (resolveEngineBoxEdges)
+  const margin = resolveEngineBoxEdges(style, "margin");
+  const edge = (v: number | string | undefined) => (v === 0 ? undefined : v);
+  result.marginTop = edge(margin.top);
+  result.marginRight = edge(margin.right);
+  result.marginBottom = edge(margin.bottom);
+  result.marginLeft = edge(margin.left);
 
   // Inset (position offsets)
   // 엔진(Taffy 0.9 계보)은 Position::Relative와 Position::Absolute 모두에서 inset을 네이티브 처리

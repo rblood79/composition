@@ -747,6 +747,85 @@ export function parsePadding(
   };
 }
 
+/** 엔진 직렬화용 box edge 값 — px 숫자 · `%` 문자열 · (margin) `"auto"` · 미지정 undefined. */
+export type EngineBoxEdge = number | string | undefined;
+export interface EngineBoxEdges {
+  top: EngineBoxEdge;
+  right: EngineBoxEdge;
+  bottom: EngineBoxEdge;
+  left: EngineBoxEdge;
+}
+
+function parseEngineEdgeToken(
+  token: unknown,
+  allowAuto: boolean,
+): EngineBoxEdge {
+  if (token === undefined || token === null) return undefined;
+  const px = parseNumericValue(token);
+  if (px !== undefined) return px;
+  if (typeof token !== "string") return undefined;
+  const t = token.trim();
+  if (t.endsWith("%") && Number.isFinite(parseFloat(t))) return t;
+  if (allowAuto && t.toLowerCase() === "auto") return "auto";
+  return undefined;
+}
+
+/**
+ * padding / margin 을 **엔진에 보낼 형태**로 — px 는 숫자, `%` 는 문자열 그대로, margin `auto` 는
+ * `"auto"`. longhand 가 shorthand 를 이긴다 (`parsePadding` / `parseMargin` 과 같은 우선순위).
+ *
+ * Why (2026-09-20): 세 직렬화 지점이 `parsePadding(style)` / `parseMargin(style)` 을 containerWidth
+ * 없이 불러 `%` 가 **0 으로 떨어졌다** (Frame `padding: 10%` 안의 Text — Chrome x 39 / Canvas 0).
+ * 엔진은 길이 문자열의 `%` 를 containing block 폭 (`ctx_for(avail_w)`) 으로 네 변 모두 푼다
+ * (CSS-BOX-4 §3.1 · §4.1) — TS 가 px 로 선해석할 이유가 없고, 1-pass 의 부모 폭 추정으로 풀면
+ * 실배치 폭과 어긋난다. 측정용 px 합산은 종전대로 `parsePadding(style, containerWidth)`.
+ */
+export function resolveEngineBoxEdges(
+  style: Record<string, unknown> | undefined,
+  prop: "padding" | "margin",
+): EngineBoxEdges {
+  const none: EngineBoxEdges = {
+    top: undefined,
+    right: undefined,
+    bottom: undefined,
+    left: undefined,
+  };
+  if (!style) return none;
+  const allowAuto = prop === "margin";
+  const shorthand = style[prop];
+  let base = none;
+  if (typeof shorthand === "number") {
+    base = {
+      top: shorthand,
+      right: shorthand,
+      bottom: shorthand,
+      left: shorthand,
+    };
+  } else if (typeof shorthand === "string" && shorthand.trim()) {
+    const parts = shorthand
+      .trim()
+      .split(/\s+/)
+      .map((token) => parseEngineEdgeToken(token, allowAuto));
+    const [a, b, c, d] = parts;
+    base =
+      parts.length === 1
+        ? { top: a, right: a, bottom: a, left: a }
+        : parts.length === 2
+          ? { top: a, right: b, bottom: a, left: b }
+          : parts.length === 3
+            ? { top: a, right: b, bottom: c, left: b }
+            : { top: a, right: b, bottom: c, left: d };
+  }
+  const side = (key: string, fallback: EngineBoxEdge): EngineBoxEdge =>
+    parseEngineEdgeToken(style[key], allowAuto) ?? fallback;
+  return {
+    top: side(`${prop}Top`, base.top),
+    right: side(`${prop}Right`, base.right),
+    bottom: side(`${prop}Bottom`, base.bottom),
+    left: side(`${prop}Left`, base.left),
+  };
+}
+
 /**
  * 스타일에서 보더 너비 파싱
  *
@@ -5866,12 +5945,16 @@ export function applyCommonEngineStyle(
   if (maxW !== undefined) result.maxWidth = maxW;
   if (maxH !== undefined) result.maxHeight = maxH;
 
-  // Padding — 숫자 직접 전달
-  const padding = parsePadding(style);
-  if (padding.top !== 0) result.paddingTop = padding.top;
-  if (padding.right !== 0) result.paddingRight = padding.right;
-  if (padding.bottom !== 0) result.paddingBottom = padding.bottom;
-  if (padding.left !== 0) result.paddingLeft = padding.left;
+  // Padding — px 는 숫자, `%` 는 문자열 그대로 (엔진이 containing block 폭으로 푼다 — resolveEngineBoxEdges)
+  const padding = resolveEngineBoxEdges(style, "padding");
+  if (padding.top !== undefined && padding.top !== 0)
+    result.paddingTop = padding.top;
+  if (padding.right !== undefined && padding.right !== 0)
+    result.paddingRight = padding.right;
+  if (padding.bottom !== undefined && padding.bottom !== 0)
+    result.paddingBottom = padding.bottom;
+  if (padding.left !== undefined && padding.left !== 0)
+    result.paddingLeft = padding.left;
 
   // Border — 숫자 직접 전달
   const border = parseBorder(style);

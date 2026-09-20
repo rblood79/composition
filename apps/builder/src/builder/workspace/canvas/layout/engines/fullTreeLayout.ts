@@ -28,6 +28,7 @@ import {
   parseMargin,
   parsePadding,
   parseBorder,
+  resolveEngineBoxEdges,
   calculateContentHeight,
   calculateContentWidth,
   parseBoxModel,
@@ -1272,11 +1273,16 @@ function buildNodeStyle(
       if (bottom !== undefined) partial.insetBottom = bottom;
     }
 
-    const margin = parseMargin(style);
-    if (margin.top !== 0) partial.marginTop = margin.top;
-    if (margin.right !== 0) partial.marginRight = margin.right;
-    if (margin.bottom !== 0) partial.marginBottom = margin.bottom;
-    if (margin.left !== 0) partial.marginLeft = margin.left;
+    // px 는 숫자 · `%` 는 문자열 · auto 는 "auto" (block/flex 어댑터와 같은 직렬화 — resolveEngineBoxEdges)
+    const margin = resolveEngineBoxEdges(style, "margin");
+    if (margin.top !== undefined && margin.top !== 0)
+      partial.marginTop = margin.top;
+    if (margin.right !== undefined && margin.right !== 0)
+      partial.marginRight = margin.right;
+    if (margin.bottom !== undefined && margin.bottom !== 0)
+      partial.marginBottom = margin.bottom;
+    if (margin.left !== undefined && margin.left !== 0)
+      partial.marginLeft = margin.left;
 
     // CSS: grid 요소가 flex/grid 부모의 자식이면 flex item 속성도 적용
     if (FLEX_GRID_DISPLAYS.has(parentDisplay)) {
@@ -3481,7 +3487,29 @@ export function calculateFullTreeLayout(
       const elementStyle = (
         readOnlySubpart ? (node.style ?? {}) : (rawEl?.props?.style ?? {})
       ) as Record<string, unknown>;
-      const margin = parseMargin(elementStyle);
+      // `%` margin 은 containing block (부모 content) 폭으로 — 엔진 배치와 같은 기준 (2026-09-20).
+      //   overlay 보고용이라 부모의 padding/border 는 px 만 정확 (`%` 는 부모 layout 폭 기준 근사).
+      const parentId = rawEl?.parent_id ?? undefined;
+      const parentHandle =
+        parentId !== undefined ? persistentTree.getHandle(parentId) : undefined;
+      const parentLayout =
+        parentHandle !== undefined ? layoutBatch.get(parentHandle) : undefined;
+      const parentStyle = (elementsMap.get(parentId ?? "")?.props?.style ??
+        {}) as Record<string, unknown>;
+      const parentPad = parsePadding(parentStyle, parentLayout?.width);
+      const parentBorder = parseBorder(parentStyle);
+      const containingWidth =
+        parentLayout !== undefined
+          ? Math.max(
+              0,
+              parentLayout.width -
+                parentPad.left -
+                parentPad.right -
+                parentBorder.left -
+                parentBorder.right,
+            )
+          : undefined;
+      const margin = parseMargin(elementStyle, containingWidth);
 
       // **body 는 뷰포트가 아니다 — fallback 상자는 뷰포트, 배치는 내용** (2026-07-28).
       //

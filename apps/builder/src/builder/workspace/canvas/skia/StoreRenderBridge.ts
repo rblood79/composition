@@ -45,6 +45,7 @@ import { useScrollState } from "../../../stores/scrollState";
 import { useStore } from "../../../stores";
 import { useThemeConfigStore } from "../../../../stores/themeConfigStore";
 import { resolveResponsiveLayoutNode } from "../layout/resolveResponsive";
+import { resolvePercentBoxEdgesForRender } from "./resolvePercentBoxEdges";
 import { getSkImage, loadSkImage, releaseSkImage } from "./imageCache";
 import { getSpecForTag, IMAGE_TAGS } from "../styleConversion/tagSpecMap";
 import { onLayoutPublished } from "../layout";
@@ -1696,6 +1697,14 @@ export class StoreRenderBridge {
     effectiveElement = resolveResponsiveLayoutNode(
       effectiveElement,
       useStore.getState().activeBreakpoint,
+    );
+    // `%` padding / margin 은 px 로 풀어 넘긴다 (2026-09-20) — 상자는 엔진이 containing block 폭으로
+    //   풀었는데 shape 합성 (text x/y · image inset) 은 px 만 읽어 "10%" 를 10 으로 그렸다. `%` 가
+    //   없으면 같은 참조 (비용 0).
+    effectiveElement = resolvePercentBoxEdgesForRender(
+      effectiveElement,
+      elementsMap,
+      ctx.layoutMap,
     );
 
     // TagGroup maxRows chip 접힘 — layout(fullTreeLayout Step 4.5b)이 이미 엔진 실측 rowY 기준으로

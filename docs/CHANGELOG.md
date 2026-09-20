@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > - [CHANGELOG-2026-H1-archived.md](./CHANGELOG-2026-H1-archived.md) — 2026-02-22 ~ 06-30 (209 엔트리)
 > - [CHANGELOG-2025-archived.md](./CHANGELOG-2025-archived.md) — 2025 + 2026-02-15 이전 in-progress mixed 분량 (2026-05-15 아카이빙)
 
+## [`%` padding / margin 이 Canvas 에서 0 (레이아웃) · 10px (글리프) 로 떨어지던 결함] - 2026-09-20
+
+### Fixed
+
+- Frame `padding: 10%` 안의 Text 가 Preview x 39 / Canvas 0, Text `padding: 10%` 의 글리프가 Canvas 에서 11 (Preview 39) 에 그려지던 결함 (앞 항목의 LOW deferred 를 사용자 지시로 수리). 두 층 — (1) **레이아웃**: 세 직렬화 지점 (`applyCommonEngineStyle` padding · block/flex 어댑터 margin · grid branch margin) 이 `parsePadding(style)` / `parseMargin(style)` 을 containerWidth 없이 불러 `%` 를 0 으로 떨어뜨렸다 → `resolveEngineBoxEdges` 하나로 px 는 숫자 · `%` 는 문자열 그대로 · margin `auto` 는 "auto" (엔진은 `%` 를 containing block 폭으로 네 변 모두 푼다, CSS-BOX-4 §3.1/§4.1). overlay 의 margin 띠도 부모 content 폭 기준. (2) **Skia 글리프**: shape 합성 (`buildCatalogShapes` text x/y · image inset) 은 px 만 읽으므로 bridge 가 layout map 의 부모 상자로 `%` 를 px 로 풀어 넘긴다 (`resolvePercentBoxEdgesForRender` — 부모의 `%` padding 은 조부모 기준 사슬, `%` 없으면 같은 참조). 게이트 `tests/parity/percentPaddingMargin.browser.test.ts` 9 (Chrome 오라클: block/flex/grid · longhand/shorthand · 세로 변 폭 기준 · auto 보존) + 단위 7 · parity 1446 · canvas 단위 1896 · live Compare Mode (Frame pad 10% · Text pad 10% · margin 20%/5% · flex row pad 5% gap 4% · Button margin/padding 10%) 상자·글리프 일치. **범위 밖 (후속)**: grid **행 트랙 기여가 item margin 을 안 더한다** — px 도 같다 (grid 2열 > 자식 `margin:10px` Chrome 60 / Canvas 40), `%` 와 무관한 엔진 gap.
+
 ## [definite 부모 안의 Text `%` 높이를 Canvas 가 측정 px 로 치환하던 결함 — 유사 패턴 sweep] - 2026-09-20
 
 ### Fixed
