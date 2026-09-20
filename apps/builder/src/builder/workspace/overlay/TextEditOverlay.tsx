@@ -44,7 +44,6 @@ export interface TextEditOverlayProps {
   onChange?: (elementId: string, newValue: string) => void;
   /** 편집 완료 콜백 */
   onComplete?: (elementId: string) => void;
-  /** 편집 취소 콜백 */
 }
 
 export interface TextStyleConfig {

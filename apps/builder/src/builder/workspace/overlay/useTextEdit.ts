@@ -4,7 +4,7 @@
  * Pencil textEditorManager 패턴:
  * - startEdit: 원본 스냅샷 저장 + Skia 텍스트 숨김
  * - completeEdit: 히스토리 기록 + store 업데이트 + Skia 텍스트 복원
- * - cancelEdit: Skia 텍스트 복원 (store 변경 없음)
+ *   (Esc 도 완료 — Figma 규약, ADR-027 후속 4. 취소 경로 없음)
  *
  * @since 2025-12-11 Phase 10 B1.5
  * @updated 2026-03-07 Pencil 패턴 적용 (히스토리, Skia 연동)
@@ -73,8 +73,6 @@ export interface UseTextEditReturn {
   updateText: (elementId: string, newValue: string) => void;
   /** 편집 완료 (저장) */
   completeEdit: (elementId: string) => void;
-  /** 편집 취소 */
-  cancelEdit: (elementId: string) => void;
   /** 편집 중 여부 */
   isEditing: boolean;
 }
@@ -504,36 +502,9 @@ export function useTextEdit(): UseTextEditReturn {
     [captureEditingRevision, readEditingElement],
   );
 
-  // 편집 취소 (Pencil: 원본 복원)
-  const cancelEdit = useCallback(
-    (elementId: string) => {
-      if (editingIdRef.current !== elementId) return;
-      const element = readEditingElement(elementId);
-
-      // Pencil showText: Skia 텍스트 렌더링 복원 + 리렌더 트리거
-      setEditingElementId(null);
-      notifyLayoutChange();
-      editingIdRef.current = null;
-
-      // updateText가 store를 실시간 반영했으므로 원본 복원 필요
-      const originalValue = originalValueRef.current;
-      const currentValue = currentValueRef.current;
-      if (currentValue !== originalValue) {
-        if (element?.id === elementId) {
-          silentUpdateTextProp(element, originalValue);
-        }
-      }
-
-      editingElementRef.current = null;
-      useCanvasStore.getState().setEditing(false);
-      setEditState(null);
-    },
-    [readEditingElement],
-  );
-
   // 언마운트 시 편집 플래그 회수 (2026-08-27 code-review #6).
   // `isEditing` 은 `useCanvasStore` 싱글턴이고 내려가는 경로가
-  // completeEdit/cancelEdit 뿐이다. 마우스 클릭은 TextEditOverlay 의 document
+  // completeEdit 뿐이다. 마우스 클릭은 TextEditOverlay 의 document
   // mousedown 이 먼저 완료를 부르지만, 비-마우스 경로(브라우저 Back, compare
   // 모드 토글)로 BuilderCanvas 가 사라지면 true 가 남아 액션 바가 다시는
   // 마운트되지 않는다. 문서 내용은 건드리지 않는다 — 언마운트는 사용자의
@@ -555,7 +526,6 @@ export function useTextEdit(): UseTextEditReturn {
     startEdit,
     updateText,
     completeEdit,
-    cancelEdit,
     isEditing,
   };
 }
